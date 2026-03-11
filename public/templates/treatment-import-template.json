@@ -1,0 +1,35 @@
+[
+  {
+    "hospital_id": "your-hospital-uuid-here",
+    "name": "샘플 시술",
+    "description": "간략한 시술 설명",
+    "full_description": "상세한 시술 설명을 입력하세요",
+    "price_min": 1000000,
+    "price_max": 3000000,
+    "tags": ["성형", "얼굴"],
+    "images": ["https://example.com/treatment1.jpg"],
+    "benefits": ["자연스러운 결과", "빠른 회복"],
+    "recovery_time_min": 7,
+    "recovery_time_max": 14,
+    "recovery_process": {
+      "day1": "당일 귀가 가능",
+      "week1": "붓기 감소",
+      "month1": "일상 복귀"
+    },
+    "side_effects": ["일시적 부기", "멍"],
+    "side_effects_detail": "부작용 상세 설명",
+    "precautions": ["시술 전 금식", "시술 후 안정"],
+    "anesthesia_type": "수면마취",
+    "surgery_duration_min": 60,
+    "surgery_duration_max": 120,
+    "required_equipment": ["레이저 장비"],
+    "insurance_coverage": false,
+    "insurance_coverage_detail": null,
+    "annual_procedure_count": 500,
+    "success_rate": 95.5,
+    "similar_treatments": [],
+    "comparison_data": {},
+    "display_order": 1,
+    "is_published": true
+  }
+]

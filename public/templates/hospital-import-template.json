@@ -1,0 +1,54 @@
+[
+  {
+    "name": "샘플 병원",
+    "slug": "sample-hospital",
+    "location_kr": "서울 강남구",
+    "location_en": "Gangnam-gu, Seoul",
+    "address_detail": "테헤란로 123",
+    "description": "병원 소개 내용을 입력하세요",
+    "latitude": 37.5012,
+    "longitude": 127.0396,
+    "tags": ["성형", "피부"],
+    "thumbnail_image": "",
+    "gallery_images": [],
+    "supported_languages": ["한국어", "영어"],
+    "amenities": ["주차장", "WiFi"],
+    "specialties": ["성형외과", "피부과"],
+    "operating_hours": {
+      "mon_fri": "09:00-18:00",
+      "sat": "09:00-13:00"
+    },
+    "doctor_profile": {
+      "name": "홍길동",
+      "title": "원장",
+      "specialties": ["성형외과"]
+    },
+    "business_registration_number": "123-45-67890",
+    "medical_institution_code": "A1234567",
+    "certifications": [
+      {
+        "type": "JCI_ACCREDITATION",
+        "issuer": "국제의료기관인증위원회",
+        "date": "2025-01-01",
+        "valid_until": "2028-01-01"
+      }
+    ],
+    "medical_equipment": ["레이저 장비", "CT"],
+    "insurance_accepted": true,
+    "insurance_details": {
+      "types": ["건강보험"]
+    },
+    "annual_surgery_count": 1000,
+    "establishment_date": "2020-01-01",
+    "total_staff_count": 20,
+    "doctor_count": 5,
+    "external_ratings": {
+      "naver": {
+        "rating": 4.5,
+        "count": 120
+      }
+    },
+    "display_order": 1,
+    "is_published": true
+  }
+]

@@ -1,0 +1,4 @@
+import { PRIVACY_POLICY, TERMS_OF_SERVICE } from "./policies";
+
+export const PRIVACY_CONTENT = PRIVACY_POLICY;
+export const TERMS_CONTENT = TERMS_OF_SERVICE;

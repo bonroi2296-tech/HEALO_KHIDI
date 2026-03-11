@@ -1,0 +1,34 @@
+---
+description: HEALO project map and guardrails — always consult before proposing edits
+alwaysApply: true
+---
+
+# Project Map
+
+Before modifying any file, read `docs/AI_PROJECT_MAP.md` to locate the correct module and path.
+
+Key module locations:
+- Auth: `src/lib/auth/**`
+- Crawl: `src/lib/crawl/**`
+- Enrichment: `src/lib/enrichment/**`
+- Hospital Offers: `src/lib/hospitalOffers/**`
+- RAG: `src/lib/rag/**`
+- Chat: `src/lib/chat/**`
+- Notifications: `src/lib/notifications/**`
+- Security: `src/lib/security/**`
+- Admin API: `app/api/admin/**`
+- Admin UI: `app/admin/**`
+- Middleware: `middleware.ts` (root)
+- i18n: `src/lib/i18n/index.js`
+- DB schema: `migrations/`
+
+If you cannot locate a referenced path, stop and ask — do not guess.
+
+# Guardrails (non-negotiable)
+
+- No booking or payment features (lead generation only)
+- Do not encourage direct hospital contact — route to HEALO inquiry
+- No evidence-free medical claims — only evidence-based summarization
+- Do not make HEALO appear to be a hospital or medical institution
+- Supabase is the single source of truth — no frontend mock data or fallback constants
+- Detail pages must fetch data by URL param (id/slug) directly from DB

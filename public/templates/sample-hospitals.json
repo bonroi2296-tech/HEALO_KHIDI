@@ -1,0 +1,62 @@
+[
+  {
+    "name": "강남성형외과",
+    "slug": "gangnam-plastic-surgery",
+    "location_kr": "서울 강남구",
+    "address_detail": "테헤란로 123",
+    "description": "20년 경력의 전문 성형외과 병원입니다.",
+    "latitude": 37.5012,
+    "longitude": 127.0396,
+    "tags": ["성형외과", "미용"],
+    "thumbnail_image": "",
+    "gallery_images": [],
+    "supported_languages": ["한국어", "영어", "중국어"],
+    "amenities": ["주차장", "WiFi", "통역 서비스"],
+    "specialties": ["안면윤곽", "코성형", "눈성형"],
+    "operating_hours": {
+      "mon_fri": "09:00-18:00",
+      "sat": "09:00-14:00"
+    },
+    "doctor_profile": {
+      "name": "김성형",
+      "title": "대표원장",
+      "school": "서울대학교 의과대학",
+      "years": "20년",
+      "specialties": ["안면윤곽", "코성형"]
+    },
+    "insurance_accepted": false,
+    "annual_surgery_count": 500,
+    "establishment_date": "2010-03-15",
+    "doctor_count": 3,
+    "display_order": 1,
+    "is_published": false
+  },
+  {
+    "name": "청담피부과의원",
+    "slug": "cheongdam-dermatology",
+    "location_kr": "서울 강남구",
+    "address_detail": "청담동 456",
+    "description": "피부 전문 클리닉입니다.",
+    "latitude": 37.5172,
+    "longitude": 127.0473,
+    "tags": ["피부과", "레이저"],
+    "thumbnail_image": "",
+    "gallery_images": [],
+    "supported_languages": ["한국어", "영어"],
+    "amenities": ["주차장", "WiFi"],
+    "specialties": ["레이저 시술", "보톡스", "필러"],
+    "operating_hours": {
+      "mon_fri": "10:00-19:00",
+      "sat": "10:00-15:00"
+    },
+    "insurance_accepted": true,
+    "insurance_details": {
+      "types": ["건강보험", "실손보험"]
+    },
+    "annual_surgery_count": 1200,
+    "establishment_date": "2015-06-20",
+    "doctor_count": 2,
+    "display_order": 2,
+    "is_published": false
+  }
+]

@@ -1,0 +1,26 @@
+﻿# Build artifacts / generated
+**/*.tsbuildinfo
+.next/
+dist/
+output/
+.vercel/
+
+# Archive docs (57 files, never needed for code edits)
+docs/archive/
+
+# Root-level legacy reports/notes (not active code)
+P1_COMPILATION_REPORT.md
+P2_REFACTORING_REPORT.md
+P3_PRODUCTION_READINESS_REPORT.md
+P4_CODE_QUALITY_REPORT.md
+PHASE2_6_REPORT.md
+SECURITY_LOCKDOWN_REPORT.md
+MIGRATION_NOTES.md
+MIGRATION_NOTES_PHASE4.md
+
+# Snapshots / backups
+HEALO_full_snapshot/
+
+# Secrets (defense-in-depth)
+.env
+.env.*

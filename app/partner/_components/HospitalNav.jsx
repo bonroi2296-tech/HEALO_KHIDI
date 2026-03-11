@@ -1,0 +1,143 @@
+"use client";
+
+import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
+import { useState, useEffect } from "react";
+import {
+  LayoutDashboard,
+  MessageSquare,
+  Building2,
+  Stethoscope,
+  LogOut,
+  Menu,
+  X,
+} from "lucide-react";
+import { createSupabaseBrowserClient } from "../../../src/lib/supabase/browser";
+import { useHospitalContext } from "./HospitalGateClient";
+
+const navItems = [
+  { id: "dashboard", label: "대시보드", icon: LayoutDashboard, href: "/partner" },
+  { id: "leads", label: "리드 관리", icon: MessageSquare, href: "/partner/leads" },
+  { id: "profile", label: "병원 정보", icon: Building2, href: "/partner/profile" },
+  { id: "treatments", label: "시술 관리", icon: Stethoscope, href: "/partner/treatments" },
+];
+
+export function HospitalNav() {
+  const pathname = usePathname();
+  const router = useRouter();
+  const supabase = createSupabaseBrowserClient();
+  const hospitalInfo = useHospitalContext();
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
+
+  useEffect(() => {
+    setIsMobileOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    if (isMobileOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => { document.body.style.overflow = ""; };
+  }, [isMobileOpen]);
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    router.push("/login");
+  };
+
+  const NavContent = () => (
+    <>
+      <div className="p-4 lg:p-6 border-b border-gray-200">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 lg:w-10 lg:h-10 bg-gradient-to-br from-teal-500 to-teal-600 rounded-xl flex items-center justify-center shadow-sm">
+              <Building2 size={20} className="text-white" />
+            </div>
+            <div>
+              <h1 className="text-sm lg:text-base font-bold text-gray-900 truncate max-w-[160px]">
+                {hospitalInfo?.hospitalName || "병원 포털"}
+              </h1>
+              <p className="text-[10px] lg:text-xs text-gray-500">Hospital Portal</p>
+            </div>
+          </div>
+          <button
+            onClick={() => setIsMobileOpen(false)}
+            className="lg:hidden p-2 text-gray-400 hover:text-gray-600 rounded-lg"
+          >
+            <X size={20} />
+          </button>
+        </div>
+      </div>
+
+      <nav className="flex-1 p-3 lg:p-4 space-y-1 overflow-y-auto">
+        {navItems.map((item) => {
+          const Icon = item.icon;
+          const isActive = pathname === item.href || (item.href !== "/partner" && pathname.startsWith(item.href));
+          return (
+            <Link
+              key={item.id}
+              href={item.href}
+              className={`w-full flex items-center gap-3 px-3 lg:px-4 py-2.5 rounded-lg text-sm font-medium transition-all min-h-[44px] lg:min-h-0 items-center ${
+                isActive
+                  ? "bg-teal-50 text-teal-700 shadow-sm"
+                  : "text-gray-700 hover:bg-gray-50"
+              }`}
+            >
+              <Icon size={18} className={isActive ? "text-teal-600" : "text-gray-400"} />
+              <span>{item.label}</span>
+            </Link>
+          );
+        })}
+      </nav>
+
+      <div className="p-3 lg:p-4 border-t border-gray-200 pb-safe-area">
+        <button
+          onClick={handleLogout}
+          className="w-full flex items-center gap-3 px-3 lg:px-4 py-2.5 rounded-lg text-sm font-medium text-gray-700 hover:bg-red-50 hover:text-red-600 transition-all min-h-[44px] md:min-h-0"
+        >
+          <LogOut size={18} />
+          <span>로그아웃</span>
+        </button>
+      </div>
+    </>
+  );
+
+  return (
+    <>
+      {/* Mobile top bar (below PortalTopBar h-12) */}
+      <div className="lg:hidden fixed top-12 left-0 right-0 z-40 bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 bg-gradient-to-br from-teal-500 to-teal-600 rounded-lg flex items-center justify-center">
+            <Building2 size={16} className="text-white" />
+          </div>
+          <span className="font-bold text-gray-900 text-sm truncate max-w-[200px]">
+            {hospitalInfo?.hospitalName || "병원 포털"}
+          </span>
+        </div>
+        <button
+          onClick={() => setIsMobileOpen(true)}
+          className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg transition"
+        >
+          <Menu size={22} />
+        </button>
+      </div>
+
+      {/* Mobile overlay */}
+      {isMobileOpen && (
+        <div className="lg:hidden fixed inset-0 z-50">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setIsMobileOpen(false)} />
+          <aside className="absolute left-0 top-0 bottom-0 w-72 bg-white flex flex-col shadow-2xl animate-in slide-in-from-left duration-200">
+            <NavContent />
+          </aside>
+        </div>
+      )}
+
+      {/* Desktop sidebar (below PortalTopBar h-12) */}
+      <aside className="hidden lg:flex w-64 bg-white border-r border-gray-200 min-h-screen flex-col sticky top-12 h-[calc(100vh-3rem)]">
+        <NavContent />
+      </aside>
+    </>
+  );
+}
