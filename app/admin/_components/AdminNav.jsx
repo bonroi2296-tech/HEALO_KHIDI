@@ -23,6 +23,7 @@ import {
   HeartPulse,
   ClipboardList,
   Activity,
+  Video,
 } from "lucide-react";
 import { createSupabaseBrowserClient } from "../../../src/lib/supabase/browser";
 
@@ -31,6 +32,7 @@ const navGroups = [
     title: "KHIDI",
     items: [
       { id: "agent", label: "Human Agent", icon: HeartPulse, href: "/admin/agent" },
+      { id: "consultations", label: "원격협진", icon: Video, href: "/admin/consultations" },
       { id: "intakes", label: "암환자 인테이크", icon: ClipboardList, href: "/admin/agent" },
       { id: "kpi", label: "성과 지표", icon: Activity, href: "/admin/agent" },
     ]
