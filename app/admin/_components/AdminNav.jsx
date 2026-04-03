@@ -3,12 +3,12 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
-import { 
-  LayoutDashboard, 
-  MessageSquare, 
-  Building2, 
-  Stethoscope, 
-  BarChart3, 
+import {
+  LayoutDashboard,
+  MessageSquare,
+  Building2,
+  Stethoscope,
+  BarChart3,
   FileText,
   Brain,
   LogOut,
@@ -19,11 +19,22 @@ import {
   Menu,
   X,
   Database,
-  SearchCode
+  SearchCode,
+  HeartPulse,
+  ClipboardList,
+  Activity,
 } from "lucide-react";
 import { createSupabaseBrowserClient } from "../../../src/lib/supabase/browser";
 
 const navGroups = [
+  {
+    title: "KHIDI",
+    items: [
+      { id: "agent", label: "Human Agent", icon: HeartPulse, href: "/admin/agent" },
+      { id: "intakes", label: "암환자 인테이크", icon: ClipboardList, href: "/admin/agent" },
+      { id: "kpi", label: "성과 지표", icon: Activity, href: "/admin/agent" },
+    ]
+  },
   {
     title: "운영",
     items: [
