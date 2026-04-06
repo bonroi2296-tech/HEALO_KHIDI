@@ -44,7 +44,15 @@ export default function PaginatedListClient({ type, title, withCta = false }) {
   const ITEMS_PER_PAGE = 6;
   const isDev = process.env.NODE_ENV !== "production";
   const [lang, setLang] = useState("en");
-  useEffect(() => { setLang(getLangCodeFromCookie()); }, []);
+  useEffect(() => {
+    const update = () => {
+      const newLang = getLangCodeFromCookie();
+      setLang(prev => prev !== newLang ? newLang : prev);
+    };
+    update();
+    const id = setInterval(update, 1500);
+    return () => clearInterval(id);
+  }, []);
   const localTitle = type === "treatment" ? t("list.treatments.title", lang) : t("list.hospitals.title", lang);
 
   const buildUrl = (path, params) => {
@@ -142,7 +150,7 @@ export default function PaginatedListClient({ type, title, withCta = false }) {
     setHasMore(true);
     fetchItems(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [type, activeTag, searchQuery]);
+  }, [type, activeTag, searchQuery, lang]);
 
   const chips = TAG_CHIPS[type] || [];
 

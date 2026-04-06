@@ -29,6 +29,8 @@ export const TreatmentDetailPage = ({
 
   const [treatment, setTreatment] = useState(null);
   const [hospital, setHospital] = useState(null);
+  const [rawTreatmentData, setRawTreatmentData] = useState(null);
+  const [rawHospitalData, setRawHospitalData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(null);
   const [treatmentError, setTreatmentError] = useState(null);
@@ -41,7 +43,80 @@ export const TreatmentDetailPage = ({
   const [similarTreatments, setSimilarTreatments] = useState([]);
   const [currentSlide, setCurrentSlide] = useState(0);
   const [langCode, setLangCode] = useState("en");
-  useEffect(() => { setLangCode(getLangCodeFromCookie()); }, []);
+  useEffect(() => {
+    const update = () => setLangCode(prev => {
+      const next = getLangCodeFromCookie();
+      return prev !== next ? next : prev;
+    });
+    update();
+    const timer = setInterval(update, 1500);
+    return () => clearInterval(timer);
+  }, []);
+
+  // Helper: build treatment view object from raw DB row
+  const buildTreatmentView = (tRow, lang) => {
+    const thumb = tRow.thumbnail_image;
+    const gallery = normalizeImages(tRow.gallery_images);
+    const legacyImgs = normalizeImages(tRow.images);
+    const legacyThumb = normalizeImages(tRow.thumbnail);
+    const imgsWithThumbFallback = [thumb, ...gallery, ...legacyImgs, ...legacyThumb].filter(Boolean);
+    return {
+      id: tRow.id, slug: tRow.slug || null,
+      title: localize(tRow, "name", lang) || tRow.name || "",
+      name: localize(tRow, "name", lang) || tRow.name || "",
+      desc: localize(tRow, "description", lang) || tRow.description || "",
+      fullDescription: localize(tRow, "full_description", lang) || tRow.full_description || "",
+      benefits: Array.isArray(tRow.benefits) ? tRow.benefits : [],
+      tags: localizeArray(tRow, "tags", lang),
+      images: imgsWithThumbFallback, thumbnail: tRow.thumbnail || null,
+      hospitalId: tRow.hospital_id,
+      price: formatPriceRange(tRow.price_min, tRow.price_max, "en"),
+      price_min: tRow.price_min, price_max: tRow.price_max,
+      recovery_time_min: tRow.recovery_time_min, recovery_time_max: tRow.recovery_time_max,
+      recovery_process: tRow.recovery_process,
+      side_effects: Array.isArray(tRow.side_effects) ? tRow.side_effects : [],
+      side_effects_detail: tRow.side_effects_detail,
+      precautions: Array.isArray(tRow.precautions) ? tRow.precautions : [],
+      anesthesia_type: tRow.anesthesia_type,
+      surgery_duration_min: tRow.surgery_duration_min, surgery_duration_max: tRow.surgery_duration_max,
+      required_equipment: Array.isArray(tRow.required_equipment) ? tRow.required_equipment : [],
+      insurance_coverage: tRow.insurance_coverage,
+      insurance_coverage_detail: tRow.insurance_coverage_detail,
+      annual_procedure_count: tRow.annual_procedure_count,
+      success_rate: tRow.success_rate,
+      similar_treatments: Array.isArray(tRow.similar_treatments) ? tRow.similar_treatments : [],
+      comparison_data: tRow.comparison_data || null,
+      before_after_images: Array.isArray(tRow.before_after_images) ? tRow.before_after_images : [],
+      price_includes: Array.isArray(tRow.price_includes) ? tRow.price_includes : [],
+    };
+  };
+
+  const buildHospitalView = (hRow, lang) => {
+    const hThumb = hRow.thumbnail_image;
+    const hGallery = normalizeImages(hRow.gallery_images);
+    const hLegacyImgs = normalizeImages(hRow.images);
+    const hLegacyThumb = normalizeImages(hRow.thumbnail);
+    const hImgsFinal = [hThumb, ...hGallery, ...hLegacyImgs, ...hLegacyThumb].filter(Boolean);
+    return {
+      id: hRow.id, slug: hRow.slug || null,
+      name: localize(hRow, "name", lang) || hRow.name || "",
+      location: localizeLocation(hRow, lang) || hRow.location_en || "",
+      address_detail: hRow.address_detail || "",
+      description: localize(hRow, "description", lang) || hRow.description || "",
+      tags: localizeArray(hRow, "tags", lang),
+      rating: hRow.rating ?? null, reviews_count: hRow.reviews_count ?? null,
+      images: hImgsFinal, thumbnail: hRow.thumbnail || null,
+      latitude: hRow.latitude || null, longitude: hRow.longitude || null,
+      operating_hours: hRow.operating_hours || null,
+    };
+  };
+
+  // Re-map data when language changes (without re-fetching)
+  useEffect(() => {
+    if (!rawTreatmentData) return;
+    setTreatment(buildTreatmentView(rawTreatmentData, langCode));
+    if (rawHospitalData) setHospital(buildHospitalView(rawHospitalData, langCode));
+  }, [langCode]);
 
   const getAddressText = (h) => {
     const locationText = (h?.location || "").trim();
@@ -86,74 +161,23 @@ export const TreatmentDetailPage = ({
         if (tErr) { if (isDev) console.error("[TreatmentDetail] Treatment fetch error:", tErr); setTreatmentError(tErr); throw tErr; }
         if (!tRow) throw new Error("Treatment not found");
 
-        const thumb = tRow.thumbnail_image;
-        const gallery = normalizeImages(tRow.gallery_images);
-        const legacyImgs = normalizeImages(tRow.images);
-        const legacyThumb = normalizeImages(tRow.thumbnail);
-        const imgsWithThumbFallback = [thumb, ...gallery, ...legacyImgs, ...legacyThumb].filter(Boolean);
-
-        const currentLang = getCurrentLangCode();
-        const t = {
-          id: tRow.id, slug: tRow.slug || null,
-          title: localize(tRow, "name", currentLang) || tRow.name || "",
-          name: localize(tRow, "name", currentLang) || tRow.name || "",
-          desc: localize(tRow, "description", currentLang) || tRow.description || "",
-          fullDescription: localize(tRow, "full_description", currentLang) || tRow.full_description || "",
-          benefits: Array.isArray(tRow.benefits) ? tRow.benefits : [],
-          tags: localizeArray(tRow, "tags", currentLang),
-          images: imgsWithThumbFallback, thumbnail: tRow.thumbnail || null,
-          hospitalId: tRow.hospital_id,
-          price: formatPriceRange(tRow.price_min, tRow.price_max, "en"),
-          price_min: tRow.price_min, price_max: tRow.price_max,
-          recovery_time_min: tRow.recovery_time_min, recovery_time_max: tRow.recovery_time_max,
-          recovery_process: tRow.recovery_process,
-          side_effects: Array.isArray(tRow.side_effects) ? tRow.side_effects : [],
-          side_effects_detail: tRow.side_effects_detail,
-          precautions: Array.isArray(tRow.precautions) ? tRow.precautions : [],
-          anesthesia_type: tRow.anesthesia_type,
-          surgery_duration_min: tRow.surgery_duration_min, surgery_duration_max: tRow.surgery_duration_max,
-          required_equipment: Array.isArray(tRow.required_equipment) ? tRow.required_equipment : [],
-          insurance_coverage: tRow.insurance_coverage,
-          insurance_coverage_detail: tRow.insurance_coverage_detail,
-          annual_procedure_count: tRow.annual_procedure_count,
-          success_rate: tRow.success_rate,
-          similar_treatments: Array.isArray(tRow.similar_treatments) ? tRow.similar_treatments : [],
-          comparison_data: tRow.comparison_data || null,
-          before_after_images: Array.isArray(tRow.before_after_images) ? tRow.before_after_images : [],
-          price_includes: Array.isArray(tRow.price_includes) ? tRow.price_includes : [],
-        };
+        setRawTreatmentData(tRow);
+        const currentLang = langCode;
+        const tView = buildTreatmentView(tRow, currentLang);
 
         if (!alive) return;
-        setTreatment(t);
-        const viewLang = getLangCodeFromCookie();
-        if (viewLang) event("view_treatment", { treatment_slug: tRow.slug || null, lang: viewLang });
+        setTreatment(tView);
+        event("view_treatment", { treatment_slug: tRow.slug || null, lang: currentLang });
 
-        if (t.hospitalId) {
-          const locCol = getLocationColumn();
+        if (tView.hospitalId) {
           const { data: hRow, error: hErr } = await supabase
             .from("hospitals")
-            .select(`id,slug,name,location:${locCol},location_kr,location_en,address_detail,description,images,thumbnail,thumbnail_image,gallery_images,tags,rating,reviews_count,latitude,longitude,operating_hours,i18n`)
-            .eq("id", t.hospitalId).single();
+            .select(`id,slug,name,location_kr,location_en,address_detail,description,images,thumbnail,thumbnail_image,gallery_images,tags,rating,reviews_count,latitude,longitude,operating_hours,i18n`)
+            .eq("id", tView.hospitalId).single();
           if (hErr) { setHospitalError(hErr); throw hErr; }
 
-          const hThumb = hRow.thumbnail_image;
-          const hGallery = normalizeImages(hRow.gallery_images);
-          const hLegacyImgs = normalizeImages(hRow.images);
-          const hLegacyThumb = normalizeImages(hRow.thumbnail);
-          const hImgsFinal = [hThumb, ...hGallery, ...hLegacyImgs, ...hLegacyThumb].filter(Boolean);
-
-          const h = {
-            id: hRow.id, slug: hRow.slug || null,
-            name: localize(hRow, "name", currentLang) || hRow.name || "",
-            location: localizeLocation(hRow, currentLang) || hRow.location || "",
-            address_detail: hRow.address_detail || "",
-            description: localize(hRow, "description", currentLang) || hRow.description || "",
-            tags: localizeArray(hRow, "tags", currentLang),
-            rating: hRow.rating ?? null, reviews_count: hRow.reviews_count ?? null,
-            images: hImgsFinal, thumbnail: hRow.thumbnail || null,
-            latitude: hRow.latitude || null, longitude: hRow.longitude || null,
-            operating_hours: hRow.operating_hours || null,
-          };
+          setRawHospitalData(hRow);
+          const h = buildHospitalView(hRow, currentLang);
           if (!alive) return;
           setHospital(h);
         }
@@ -268,14 +292,14 @@ export const TreatmentDetailPage = ({
     ? (realReviews.reduce((acc, r) => acc + (r.rating || 5), 0) / realReviews.length).toFixed(1)
     : null;
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center text-teal-600 font-bold">Loading Treatment...</div>;
+  if (loading) return <div className="min-h-screen flex items-center justify-center text-teal-600 font-bold">{t("status.loadingTreatment", langCode)}</div>;
 
   if (!treatment || loadError) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center p-6 text-center">
-        <div className="text-teal-700 font-extrabold text-lg mb-2">Treatment not found</div>
+        <div className="text-teal-700 font-extrabold text-lg mb-2">{t("status.treatmentNotFound", langCode)}</div>
         {loadError && isDev && <div className="text-red-500 text-xs mb-2 max-w-md">{loadError?.message || JSON.stringify(loadError)}</div>}
-        <button onClick={goBackToTreatments} className="px-5 py-3 rounded-xl bg-teal-600 text-white font-bold hover:bg-teal-700 mt-4">Back to Treatments</button>
+        <button onClick={goBackToTreatments} className="px-5 py-3 rounded-xl bg-teal-600 text-white font-bold hover:bg-teal-700 mt-4">{t("btn.backToTreatments", langCode)}</button>
       </div>
     );
   }
@@ -323,7 +347,7 @@ export const TreatmentDetailPage = ({
       {/* Content */}
       <div className="max-w-6xl mx-auto px-4">
         <button onClick={goBackToTreatments} className="flex items-center text-sm text-gray-500 mb-6 hover:text-teal-600">
-          <ChevronLeft size={16} /> Back to Treatments
+          <ChevronLeft size={16} /> {t("btn.backToTreatments", langCode)}
         </button>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

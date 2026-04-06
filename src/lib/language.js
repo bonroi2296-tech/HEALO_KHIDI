@@ -4,7 +4,7 @@
 
 import { getLangCodeFromCookie } from "./i18n";
 
-export const SUPPORTED_LANGS = ["ko", "en", "zh", "ja"];
+export const SUPPORTED_LANGS = ["ko", "en", "zh", "ja", "ru", "kz"];
 
 /** @deprecated UI는 i18n/LANG_OPTIONS 사용. DB 로케일은 getCurrentLangCode() 사용 */
 export const getCurrentLanguage = () => {

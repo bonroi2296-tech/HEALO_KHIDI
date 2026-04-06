@@ -103,14 +103,14 @@ export default function ConsultationsPage() {
     }
   };
 
-  const sessionTypeLabel: Record<string, string> = {
+  const sessionTypeLabel = {
     pre_consultation: "진료 전 평가",
     follow_up: "추후 진료",
     emergency: "긴급 상담",
     diagnostic: "검사 결과 검토",
   };
 
-  const statusLabel: Record<string, string> = {
+  const statusLabel = {
     scheduled: "예정됨",
     active: "진행 중",
     completed: "완료",
@@ -118,7 +118,7 @@ export default function ConsultationsPage() {
     no_show: "무응답",
   };
 
-  const statusColor: Record<string, string> = {
+  const statusColor = {
     scheduled: "bg-blue-100 text-blue-800",
     active: "bg-green-100 text-green-800",
     completed: "bg-gray-100 text-gray-800",

@@ -56,7 +56,7 @@ const GoogleReviewsList = ({ reviews, langCode }) => {
 
   return (
     <div>
-      {translating && <p className="text-xs text-teal-500 animate-pulse mb-2">번역 중...</p>}
+      {translating && <p className="text-xs text-teal-500 animate-pulse mb-2">{t("status.translating", langCode) || "Translating..."}</p>}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {translatedReviews.map((review, idx) => (
           <div key={idx} className="p-4 bg-gray-50 rounded-xl">
@@ -90,6 +90,8 @@ export const HospitalDetailPage = ({ selectedId, setView, onTreatmentClick }) =>
 
   const [hospital, setHospital] = useState(null);
   const [hospitalTreatments, setHospitalTreatments] = useState([]);
+  const [rawHospital, setRawHospital] = useState(null);
+  const [rawTreatments, setRawTreatments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [treatmentsError, setTreatmentsError] = useState(null);
@@ -98,11 +100,21 @@ export const HospitalDetailPage = ({ selectedId, setView, onTreatmentClick }) =>
   const [openFaqIdx, setOpenFaqIdx] = useState(-1);
   const [langCode, setLangCode] = useState("en");
   useEffect(() => {
-    const update = () => setLangCode(getLangCodeFromCookie());
+    const update = () => setLangCode(prev => {
+      const next = getLangCodeFromCookie();
+      return prev !== next ? next : prev;
+    });
     update();
-    const id = setInterval(update, 2000);
+    const id = setInterval(update, 1500);
     return () => clearInterval(id);
   }, []);
+
+  // Re-map data when language changes (without re-fetching)
+  useEffect(() => {
+    if (!rawHospital) return;
+    try { setHospital(mapHospitalRow(rawHospital, langCode)); } catch {}
+    try { setHospitalTreatments(rawTreatments.map(r => mapTreatmentRow(r, langCode)).filter(Boolean)); } catch {}
+  }, [langCode, rawHospital, rawTreatments]);
 
   const normalizeImages = (raw) => {
     if (!raw) return [];
@@ -128,13 +140,14 @@ export const HospitalDetailPage = ({ selectedId, setView, onTreatmentClick }) =>
       setLoading(true);
       setHospital(null);
       setHospitalTreatments([]);
+      setRawHospital(null);
+      setRawTreatments([]);
       setError(null);
 
       try {
-        const locCol = getLocationColumn();
         let hQuery = supabase
           .from("hospitals")
-          .select(`id,slug,name,location:${locCol},location_kr,location_en,address_detail,website,description,images,thumbnail_image,gallery_images,tags,rating,reviews_count,doctor_profile,latitude,longitude,operating_hours,certifications,medical_equipment,insurance_accepted,insurance_details,annual_surgery_count,establishment_date,doctor_count,external_ratings,specialties,amenities,supported_languages,faq,i18n,is_partner`);
+          .select(`id,slug,name,location_kr,location_en,address_detail,website,description,images,thumbnail_image,gallery_images,tags,rating,reviews_count,doctor_profile,latitude,longitude,operating_hours,certifications,medical_equipment,insurance_accepted,insurance_details,annual_surgery_count,establishment_date,doctor_count,external_ratings,specialties,amenities,supported_languages,faq,i18n,is_partner`);
 
         hQuery = isUuid(selectedId)
           ? hQuery.eq("id", selectedId)
@@ -144,13 +157,13 @@ export const HospitalDetailPage = ({ selectedId, setView, onTreatmentClick }) =>
         if (hErr) { console.error("[HospitalDetail] Hospital fetch error:", hErr); setError(hErr); setLoading(false); return; }
         if (!hRow) { setError(new Error(`Hospital not found for id: ${selectedId}`)); setLoading(false); return; }
 
+        setRawHospital(hRow);
         let h;
-        try { const lang = getCurrentLangCode(); h = mapHospitalRow ? mapHospitalRow(hRow, lang) : hRow; }
+        try { h = mapHospitalRow(hRow, langCode); }
         catch (e) { console.warn("mapHospitalRow failed, using raw:", e); h = hRow; }
 
         setHospital(h);
-        const viewLang = getLangCodeFromCookie();
-        if (viewLang) event("view_hospital", { hospital_slug: h?.slug || null, lang: viewLang });
+        event("view_hospital", { hospital_slug: h?.slug || null, lang: langCode });
 
         const { data: tRows, error: tErr } = await supabase
           .from("treatments")
@@ -160,8 +173,9 @@ export const HospitalDetailPage = ({ selectedId, setView, onTreatmentClick }) =>
         if (tErr) { setTreatmentsError(tErr); setHospitalTreatments([]); }
         else {
           setTreatmentsError(null);
+          setRawTreatments(tRows || []);
           let mapped = [];
-          try { const tLang = getCurrentLangCode(); mapped = (tRows || []).map((r) => (mapTreatmentRow ? mapTreatmentRow(r, tLang) : r)); }
+          try { mapped = (tRows || []).map((r) => mapTreatmentRow(r, langCode)); }
           catch (e) { mapped = tRows || []; }
           setHospitalTreatments(mapped);
         }
@@ -273,14 +287,14 @@ export const HospitalDetailPage = ({ selectedId, setView, onTreatmentClick }) =>
   }, [hospital]);
 
   if (loading) {
-    return <div className="min-h-[60vh] flex items-center justify-center text-gray-500 font-bold">Loading hospital...</div>;
+    return <div className="min-h-[60vh] flex items-center justify-center text-gray-500 font-bold">{t("status.loadingHospital", langCode)}</div>;
   }
   if (error || !hospital) {
     return (
       <div className="min-h-[60vh] flex flex-col items-center justify-center text-center px-6">
-        <div className="text-teal-700 font-extrabold text-lg mb-2">Hospital not found</div>
+        <div className="text-teal-700 font-extrabold text-lg mb-2">{t("status.hospitalNotFound", langCode)}</div>
         {error && isDev && <div className="text-red-500 text-xs mb-2 max-w-md">{error.message || JSON.stringify(error)}</div>}
-        <button onClick={() => setView?.("list_hospital")} className="px-5 py-3 rounded-xl bg-teal-600 text-white font-bold hover:bg-teal-700 mt-4">Back to Hospitals</button>
+        <button onClick={() => setView?.("list_hospital")} className="px-5 py-3 rounded-xl bg-teal-600 text-white font-bold hover:bg-teal-700 mt-4">{t("btn.backToHospitals", langCode)}</button>
       </div>
     );
   }
