@@ -161,7 +161,7 @@ Primary objective: guide the user to submit an inquiry."""
     try:
         if LLM_PROVIDER == "google":
             genai.configure(api_key=GOOGLE_GENERATIVE_AI_API_KEY)
-            model = genai.GenerativeModel("gemini-2.0-flash")
+            model = genai.GenerativeModel("gemini-2.5-flash")
             response = model.generate_content(
                 f"{system_prompt}\n\nUser: {inquiry}\n\nAssistant:"
             )
@@ -216,7 +216,7 @@ If relevant, reference the provided context briefly.
     try:
         if LLM_PROVIDER == "google":
             genai.configure(api_key=GOOGLE_GENERATIVE_AI_API_KEY)
-            model = genai.GenerativeModel("gemini-2.0-flash")
+            model = genai.GenerativeModel("gemini-2.5-flash")
             response = model.generate_content(
                 f"{system_prompt}\n\nUser: {inquiry}\n\nAssistant:"
             )

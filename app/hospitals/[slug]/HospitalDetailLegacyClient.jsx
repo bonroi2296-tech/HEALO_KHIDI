@@ -10,7 +10,7 @@ import {
 import { supabase } from "../../../src/supabase";
 import { mapHospitalRow, mapTreatmentRow } from "../../../src/lib/mapper";
 import { GoogleMapComponent } from "../../../src/components/GoogleMap";
-import { getLocationColumn, getCurrentLangCode } from "../../../src/lib/language";
+import { getCurrentLangCode } from "../../../src/lib/language";
 import { getLangCodeFromCookie, t } from "../../../src/lib/i18n";
 import { formatDate } from "../../../src/lib/i18n/format";
 import { event } from "../../../src/lib/ga";
@@ -92,7 +92,7 @@ export const HospitalDetailPage = ({ selectedId, setView, onTreatmentClick }) =>
   const [hospitalTreatments, setHospitalTreatments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [treatmentsError, setTreatmentsError] = useState(null);
+  const [, setTreatmentsError] = useState(null);
   const [loadingReviews, setLoadingReviews] = useState(false);
   const [realReviews, setRealReviews] = useState([]);
   const [openFaqIdx, setOpenFaqIdx] = useState(-1);
@@ -131,10 +131,9 @@ export const HospitalDetailPage = ({ selectedId, setView, onTreatmentClick }) =>
       setError(null);
 
       try {
-        const locCol = getLocationColumn();
         let hQuery = supabase
           .from("hospitals")
-          .select(`id,slug,name,location:${locCol},location_kr,location_en,address_detail,website,description,images,thumbnail_image,gallery_images,tags,rating,reviews_count,doctor_profile,latitude,longitude,operating_hours,certifications,medical_equipment,insurance_accepted,insurance_details,annual_surgery_count,establishment_date,doctor_count,external_ratings,specialties,amenities,supported_languages,faq,i18n,is_partner`);
+          .select(`id,slug,name,location_kr,location_en,address_detail,website,description,images,thumbnail_image,gallery_images,tags,rating,reviews_count,doctor_profile,latitude,longitude,operating_hours,certifications,medical_equipment,insurance_accepted,insurance_details,annual_surgery_count,establishment_date,doctor_count,external_ratings,specialties,amenities,supported_languages,i18n,is_partner`);
 
         hQuery = isUuid(selectedId)
           ? hQuery.eq("id", selectedId)
@@ -162,12 +161,13 @@ export const HospitalDetailPage = ({ selectedId, setView, onTreatmentClick }) =>
           setTreatmentsError(null);
           let mapped = [];
           try { const tLang = getCurrentLangCode(); mapped = (tRows || []).map((r) => (mapTreatmentRow ? mapTreatmentRow(r, tLang) : r)); }
-          catch (e) { mapped = tRows || []; }
+          catch { mapped = tRows || []; }
           setHospitalTreatments(mapped);
         }
       } finally { setLoading(false); }
     };
     run();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedId]);
 
   useEffect(() => {
@@ -185,12 +185,11 @@ export const HospitalDetailPage = ({ selectedId, setView, onTreatmentClick }) =>
         if (revErr) throw revErr;
         if (!alive) return;
         setRealReviews(reviews || []);
-      } catch (e) {
+      } catch {
         if (!alive) return;
         setRealReviews([]);
       } finally {
-        if (!alive) return;
-        setLoadingReviews(false);
+        if (alive) setLoadingReviews(false);
       }
     };
     fetchReviews();
@@ -229,6 +228,7 @@ export const HospitalDetailPage = ({ selectedId, setView, onTreatmentClick }) =>
     const dbFaq = hospital?.faq;
     if (Array.isArray(dbFaq) && dbFaq.length > 0) return dbFaq;
     return defaultFaq;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hospital?.faq]);
 
   // Highlights: compact grid items

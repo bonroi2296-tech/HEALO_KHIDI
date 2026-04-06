@@ -14,6 +14,7 @@ import { NextRequest } from "next/server";
 import { supabaseAdmin, assertSupabaseEnv } from "../../../../../../../src/lib/rag/supabaseAdmin";
 import { requireAdminAuth } from "../../../../../../../src/lib/auth/requireAdminAuth";
 import { sanitizeResponse, computeQualityScore } from "../../../../../../../src/lib/playbook/sanitize";
+import { runPostResolve } from "../../../../../../../src/lib/automation/postResolveWorker";
 
 function buildTranscript(
   messages: { actor_type: string; message_text: string; created_at: string; is_internal: boolean }[]
@@ -109,6 +110,12 @@ export async function POST(
       .from("chat_threads")
       .update({ status: "resolved", updated_at: now })
       .eq("id", threadId);
+
+    // Fire-and-forget: 자동 패턴 추출 파이프라인
+    // resolve 응답에 영향 없이 백그라운드로 실행
+    runPostResolve(threadId).catch((err) => {
+      console.error("[resolve] postResolve background error:", err.message);
+    });
 
     return Response.json({
       ok: true,

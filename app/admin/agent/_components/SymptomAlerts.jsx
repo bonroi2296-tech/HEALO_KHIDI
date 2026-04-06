@@ -168,6 +168,26 @@ export function SymptomAlerts() {
                       화상 상담 예약
                     </button>
                   ) : null}
+                  {(urgency === "high" || urgency === "medium") && (
+                    <button
+                      onClick={() => {
+                        fetch("/api/khidi/rebooking/create", {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({
+                            patientId: report.inquiry_id,
+                            source: "symptom",
+                            reason: report.ai_assessment || "증상 기반 재예약",
+                            sessionType: urgency === "high" ? "diagnostic" : "follow_up",
+                            daysFromNow: urgency === "high" ? 1 : 5,
+                          }),
+                        }).then(() => alert("재예약이 생성되었습니다."));
+                      }}
+                      className="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition"
+                    >
+                      재예약 제안
+                    </button>
+                  )}
                 </div>
               </div>
             );

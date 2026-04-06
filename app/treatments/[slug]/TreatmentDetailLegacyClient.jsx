@@ -9,10 +9,9 @@ import {
 } from "lucide-react";
 import { supabase } from "../../../src/supabase";
 import { ReviewModal } from "../../../src/components/Modals";
-import { normalizeImages, mapTreatmentRow } from "../../../src/lib/mapper";
+import { normalizeImages } from "../../../src/lib/mapper";
 import { localize, localizeArray, localizeLocation, getCurrentLangCode } from "../../../src/lib/language";
 import { GoogleMapComponent } from "../../../src/components/GoogleMap";
-import { getLocationColumn } from "../../../src/lib/language";
 import { formatDate, formatPriceRange } from "../../../src/lib/i18n/format";
 import { getLangCodeFromCookie, t } from "../../../src/lib/i18n";
 import { event } from "../../../src/lib/ga";
@@ -31,9 +30,9 @@ export const TreatmentDetailPage = ({
   const [hospital, setHospital] = useState(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(null);
-  const [treatmentError, setTreatmentError] = useState(null);
-  const [hospitalError, setHospitalError] = useState(null);
-  const [relatedError, setRelatedError] = useState(null);
+  const [, setTreatmentError] = useState(null);
+  const [, setHospitalError] = useState(null);
+  const [, setRelatedError] = useState(null);
   const [realReviews, setRealReviews] = useState([]);
   const [loadingReviews, setLoadingReviews] = useState(true);
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
@@ -80,17 +79,13 @@ export const TreatmentDetailPage = ({
       try {
         let tQuery = supabase
           .from("treatments")
-          .select("id,name,slug,description,full_description,benefits,tags,images,thumbnail,thumbnail_image,gallery_images,price_min,price_max,hospital_id,recovery_time_min,recovery_time_max,recovery_process,side_effects,side_effects_detail,precautions,anesthesia_type,surgery_duration_min,surgery_duration_max,required_equipment,insurance_coverage,insurance_coverage_detail,annual_procedure_count,success_rate,similar_treatments,comparison_data,before_after_images,price_includes,i18n");
+          .select("id,name,slug,description,full_description,benefits,tags,images,price_min,price_max,hospital_id,duration,recovery_time,risks,preparation,currency,i18n");
         tQuery = isUuid(id) ? tQuery.eq("id", id) : tQuery.eq("slug", id);
         const { data: tRow, error: tErr } = await tQuery.single();
         if (tErr) { if (isDev) console.error("[TreatmentDetail] Treatment fetch error:", tErr); setTreatmentError(tErr); throw tErr; }
         if (!tRow) throw new Error("Treatment not found");
 
-        const thumb = tRow.thumbnail_image;
-        const gallery = normalizeImages(tRow.gallery_images);
         const legacyImgs = normalizeImages(tRow.images);
-        const legacyThumb = normalizeImages(tRow.thumbnail);
-        const imgsWithThumbFallback = [thumb, ...gallery, ...legacyImgs, ...legacyThumb].filter(Boolean);
 
         const currentLang = getCurrentLangCode();
         const t = {
@@ -101,26 +96,14 @@ export const TreatmentDetailPage = ({
           fullDescription: localize(tRow, "full_description", currentLang) || tRow.full_description || "",
           benefits: Array.isArray(tRow.benefits) ? tRow.benefits : [],
           tags: localizeArray(tRow, "tags", currentLang),
-          images: imgsWithThumbFallback, thumbnail: tRow.thumbnail || null,
+          images: legacyImgs, thumbnail: null,
           hospitalId: tRow.hospital_id,
           price: formatPriceRange(tRow.price_min, tRow.price_max, "en"),
           price_min: tRow.price_min, price_max: tRow.price_max,
-          recovery_time_min: tRow.recovery_time_min, recovery_time_max: tRow.recovery_time_max,
-          recovery_process: tRow.recovery_process,
-          side_effects: Array.isArray(tRow.side_effects) ? tRow.side_effects : [],
-          side_effects_detail: tRow.side_effects_detail,
-          precautions: Array.isArray(tRow.precautions) ? tRow.precautions : [],
-          anesthesia_type: tRow.anesthesia_type,
-          surgery_duration_min: tRow.surgery_duration_min, surgery_duration_max: tRow.surgery_duration_max,
-          required_equipment: Array.isArray(tRow.required_equipment) ? tRow.required_equipment : [],
-          insurance_coverage: tRow.insurance_coverage,
-          insurance_coverage_detail: tRow.insurance_coverage_detail,
-          annual_procedure_count: tRow.annual_procedure_count,
-          success_rate: tRow.success_rate,
-          similar_treatments: Array.isArray(tRow.similar_treatments) ? tRow.similar_treatments : [],
-          comparison_data: tRow.comparison_data || null,
-          before_after_images: Array.isArray(tRow.before_after_images) ? tRow.before_after_images : [],
-          price_includes: Array.isArray(tRow.price_includes) ? tRow.price_includes : [],
+          recovery_time: tRow.recovery_time || null,
+          duration: tRow.duration || null,
+          risks: Array.isArray(tRow.risks) ? tRow.risks : [],
+          preparation: tRow.preparation || null,
         };
 
         if (!alive) return;
@@ -129,10 +112,9 @@ export const TreatmentDetailPage = ({
         if (viewLang) event("view_treatment", { treatment_slug: tRow.slug || null, lang: viewLang });
 
         if (t.hospitalId) {
-          const locCol = getLocationColumn();
           const { data: hRow, error: hErr } = await supabase
             .from("hospitals")
-            .select(`id,slug,name,location:${locCol},location_kr,location_en,address_detail,description,images,thumbnail,thumbnail_image,gallery_images,tags,rating,reviews_count,latitude,longitude,operating_hours,i18n`)
+            .select(`id,slug,name,location_kr,location_en,address_detail,description,images,thumbnail,thumbnail_image,gallery_images,tags,rating,reviews_count,latitude,longitude,operating_hours,i18n`)
             .eq("id", t.hospitalId).single();
           if (hErr) { setHospitalError(hErr); throw hErr; }
 
@@ -157,17 +139,17 @@ export const TreatmentDetailPage = ({
           if (!alive) return;
           setHospital(h);
         }
-      } catch (e) {
-        console.error("[TreatmentDetail] fetch failed:", e);
+      } catch (err) {
+        console.error("[TreatmentDetail] fetch failed:", err);
         if (!alive) return;
-        setLoadError(e);
+        setLoadError(err);
       } finally {
-        if (!alive) return;
-        setLoading(false);
+        if (alive) setLoading(false);
       }
     };
     fetchTreatmentAndHospital();
     return () => { alive = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   useEffect(() => {
@@ -183,12 +165,11 @@ export const TreatmentDetailPage = ({
         if (error) throw error;
         if (!alive) return;
         setRealReviews(reviews || []);
-      } catch (e) {
+      } catch {
         if (!alive) return;
         setRealReviews([]);
       } finally {
-        if (!alive) return;
-        setLoadingReviews(false);
+        if (alive) setLoadingReviews(false);
       }
     };
     fetchReviews();
@@ -203,7 +184,7 @@ export const TreatmentDetailPage = ({
         setRelatedError(null);
         const { data: rows, error } = await supabase
           .from("treatments")
-          .select("id,slug,name,price_min,price_max,thumbnail,images,thumbnail_image,gallery_images,hospital_id")
+          .select("id,slug,name,price_min,price_max,images,hospital_id")
           .eq("hospital_id", treatment.hospitalId).neq("id", treatment.id).limit(4);
         if (error) { setRelatedError(error); throw error; }
         const rLang = getCurrentLangCode();
@@ -215,7 +196,7 @@ export const TreatmentDetailPage = ({
         }));
         if (!alive) return;
         setRelatedTreatments(mapped);
-      } catch (e) {
+      } catch {
         if (!alive) return;
         setRelatedTreatments([]);
       }
@@ -232,7 +213,7 @@ export const TreatmentDetailPage = ({
       try {
         const { data: rows, error } = await supabase
           .from("treatments")
-          .select("id,slug,name,price_min,price_max,thumbnail_image,gallery_images,images,recovery_time_min,recovery_time_max,hospitals(name)")
+          .select("id,slug,name,price_min,price_max,images,recovery_time,hospitals(name)")
           .in("id", ids).limit(4);
         if (error) throw error;
         if (!alive) return;
@@ -241,11 +222,11 @@ export const TreatmentDetailPage = ({
           id: r.id, slug: r.slug || null,
           name: localize(r, "name", sLang) || r.name || "",
           price: formatPriceRange(r.price_min, r.price_max, "en"),
-          recovery: r.recovery_time_min && r.recovery_time_max ? `${r.recovery_time_min}-${r.recovery_time_max}d` : r.recovery_time_min ? `${r.recovery_time_min}+d` : null,
+          recovery: r.recovery_time || null,
           hospitalName: (r.hospitals ? localize(r.hospitals, "name", sLang) : "") || r.hospitals?.name || "",
-          image: r.thumbnail_image || normalizeImages(r.gallery_images)?.[0] || normalizeImages(r.images)?.[0] || null,
+          image: normalizeImages(r.images)?.[0] || null,
         })));
-      } catch (e) {
+      } catch {
         if (!alive) return;
         setSimilarTreatments([]);
       }
@@ -632,7 +613,7 @@ export const TreatmentDetailPage = ({
                 <h3 className="text-lg font-bold text-gray-900 mb-4">{t("detail.moreFrom", langCode)} {hospital?.name || ""}</h3>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                   {relatedTreatments.map((item) => {
-                    const thumb = item.thumbnail_image || normalizeImages(item.gallery_images)?.[0] || normalizeImages(item.images)?.[0] || item.thumbnail;
+                    const thumb = normalizeImages(item.images)?.[0] || null;
                     return (
                       <div key={item.id} onClick={() => onTreatmentClick?.(item.slug || item.id)} className="bg-white border border-gray-100 rounded-xl overflow-hidden hover:shadow-md transition cursor-pointer group flex flex-col">
                         {thumb ? (

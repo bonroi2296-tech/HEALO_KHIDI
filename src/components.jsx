@@ -31,9 +31,18 @@ const useOutsideClose = (isOpen, onClose) => {
 // 언어 코드는 i18n getLangCodeFromCookie() 사용 (healo_lang 우선, 20개 언어)
 
 const useLangCode = () => {
-  const [langCode, setLangCode] = useState('en');
+  // SSR에서는 쿠키 접근 불가 → "en" 고정, 클라이언트에서 hydration 후 실제 값 반영
+  const [langCode, setLangCode] = useState("en");
   useEffect(() => {
+    // 마운트 시 즉시 쿠키에서 언어 읽기
     setLangCode(getLangCodeFromCookie());
+    const id = setInterval(() => {
+      setLangCode(prev => {
+        const next = getLangCodeFromCookie();
+        return prev !== next ? next : prev;
+      });
+    }, 1500);
+    return () => clearInterval(id);
   }, []);
   return langCode;
 };
@@ -97,7 +106,7 @@ const UserMenu = ({ session, onLogout, langCode }) => {
 // --- 1. 헤더 (langCode는 ClientShell에서 전달 — 푸터와 동일 소스) ---
 export const Header = ({ setView, view, handleGlobalInquiry, isMobileMenuOpen, setIsMobileMenuOpen, onNavClick, session, onLogout, siteConfig, isHospitalUser, langCode: langCodeProp }) => {
   const [isLangOpen, setIsLangOpen] = useState(false);
-  const isAdmin = session?.user?.email === 'admin@healo.com';
+  const isAdmin = session?.user?.user_metadata?.role === 'admin' || session?.user?.app_metadata?.role === 'admin';
   const langCode = langCodeProp ?? getLangCodeFromCookie();
   const langRef = useOutsideClose(isLangOpen, () => setIsLangOpen(false));
   const LANG_OPTIONS = I18N_LANG_OPTIONS;
@@ -413,7 +422,9 @@ export const CardListSection = ({ title, items, onCardClick, type, showPartnerBa
           >
           <div className="w-40 md:w-auto md:h-full md:aspect-square relative bg-gray-200 overflow-hidden shrink-0">
             {(() => {
-              const imgSrc = item.thumbnail_image || item.images?.[0] || '';
+              const rawSrc = item.thumbnail_image || item.images?.[0] || '';
+              const isValidUrl = rawSrc.startsWith('http://') || rawSrc.startsWith('https://') || rawSrc.startsWith('/');
+              const imgSrc = isValidUrl ? rawSrc : '';
               const isExternal = imgSrc.includes('googleapis.com');
               if (isExternal) {
                 return <img src={imgSrc} alt={type === 'hospital' ? item.name : item.title} className="w-full h-full object-cover group-hover:scale-105 transition duration-500 absolute inset-0" referrerPolicy="no-referrer" loading="lazy" />;
@@ -546,7 +557,7 @@ export const PersonalConciergeCTA = ({ onClick, className = "" }) => {
   );
 };
 
-export const MobileBottomNav = ({ setView, view, onInquiry, onNavClick }) => {
+export const MobileBottomNav = ({ view, onInquiry, onNavClick }) => {
   const langCode = useLangCode();
   return (
     <div className="md:hidden fixed bottom-0 left-0 right-0 z-[80] bg-white border-t border-gray-200 pb-safe-area shadow-[0_-4px_10px_rgba(0,0,0,0.03)]">
@@ -637,4 +648,3 @@ export const ProcessSteps = () => {
   );
 };
 
-export { SEO } from './components/SEO';

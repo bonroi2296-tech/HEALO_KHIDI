@@ -10,7 +10,7 @@ import { google } from "@ai-sdk/google";
 
 const TRANSLATE_MODEL = "gemini-2.5-flash";
 
-export const SUPPORTED_LANGS = ["ko", "en", "zh", "ja"] as const;
+export const SUPPORTED_LANGS = ["ko", "en", "zh", "ja", "ru", "kz"] as const;
 export type LangCode = (typeof SUPPORTED_LANGS)[number];
 
 // ============================================================
@@ -21,6 +21,9 @@ const KOREAN_RE = /[\uAC00-\uD7AF\u1100-\u11FF\u3130-\u318F]/;
 const CJK_RE = /[\u4E00-\u9FFF\u3400-\u4DBF]/;
 const HIRAGANA_RE = /[\u3040-\u309F]/;
 const KATAKANA_RE = /[\u30A0-\u30FF]/;
+const CYRILLIC_RE = /[\u0400-\u04FF]/;
+// Kazakh-specific characters (not in Russian): Ә,Ғ,Қ,Ң,Ө,Ұ,Ү,Һ,І and lowercase
+const KAZAKH_SPECIFIC_RE = /[\u0472\u0473\u0492\u0493\u049A\u049B\u04A2\u04A3\u04E8\u04E9\u04B0\u04B1\u04AE\u04AF\u04BA\u04BB\u0406\u0456]/;
 
 export function containsKorean(text: string | null | undefined): boolean {
   if (!text) return false;
@@ -32,6 +35,9 @@ export function detectLanguage(text: string | null | undefined): LangCode {
   if (KOREAN_RE.test(text)) return "ko";
   if (HIRAGANA_RE.test(text) || KATAKANA_RE.test(text)) return "ja";
   if (CJK_RE.test(text)) return "zh";
+  if (CYRILLIC_RE.test(text)) {
+    return KAZAKH_SPECIFIC_RE.test(text) ? "kz" : "ru";
+  }
   return "en";
 }
 
@@ -58,7 +64,7 @@ export function anyFieldKorean(payload: Record<string, any>): boolean {
 // ============================================================
 
 function buildSystemPrompt(sourceLang: LangCode, targetLangs: LangCode[]): string {
-  const langNames: Record<LangCode, string> = { ko: "Korean", en: "English", zh: "Chinese (Simplified)", ja: "Japanese" };
+  const langNames: Record<LangCode, string> = { ko: "Korean", en: "English", zh: "Chinese (Simplified)", ja: "Japanese", ru: "Russian", kz: "Kazakh" };
   const sourceLabel = langNames[sourceLang];
   const targetLabels = targetLangs.map((l) => `"${l}" (${langNames[l]})`).join(", ");
 
@@ -70,7 +76,7 @@ TRANSLATION RULES:
 - "location": Standard address format for each language.
 - "description": Natural 1-2 sentence description. Professional and welcoming tone for medical tourists.
 - "tags": Standard medical terminology in each language. Hospital types: "상급종합"→"Tertiary Hospital"(en)/"三级综合医院"(zh)/"上級総合病院"(ja), "종합병원"→"General Hospital"/"综合医院"/"総合病院", "의원"→"Clinic"/"诊所"/"クリニック".
-- "specialties": Standard medical specialties. Examples: "성형외과"→"Plastic Surgery"/"整形外科"/"整形外科", "피부과"→"Dermatology"/"皮肤科"/"皮膚科", "치과"→"Dentistry"/"牙科"/"歯科", "안과"→"Ophthalmology"/"眼科"/"眼科".
+- "specialties": Standard medical specialties. Examples: "성형외과"→"Plastic Surgery"/"整形外科"/"整形外科"/"Пластическая хирургия"/"Пластикалық хирургия", "피부과"→"Dermatology"/"皮肤科"/"皮膚科"/"Дерматология"/"Дерматология".
 
 Return ONLY valid JSON with language codes as keys. Each key contains an object with the translated fields.
 Example format: { "en": { "name": "...", "description": "..." }, "zh": { "name": "...", "description": "..." } }

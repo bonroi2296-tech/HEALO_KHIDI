@@ -4,7 +4,7 @@
 
 import { getLangCodeFromCookie } from "./i18n";
 
-export const SUPPORTED_LANGS = ["ko", "en", "zh", "ja"];
+export const SUPPORTED_LANGS = ["ko", "en", "zh", "ja", "ru", "kz"];
 
 /** @deprecated UI는 i18n/LANG_OPTIONS 사용. DB 로케일은 getCurrentLangCode() 사용 */
 export const getCurrentLanguage = () => {
@@ -19,12 +19,6 @@ export const getCurrentLanguage = () => {
 export const getCurrentLangCode = () => {
   if (typeof document === 'undefined') return 'en';
   return getLangCodeFromCookie();
-};
-
-/** location_kr / location_en 선택. getCurrentLangCode()와 동일 소스 사용 */
-export const getLocationColumn = (lang = null) => {
-  const code = lang || getCurrentLangCode();
-  return code === 'ko' ? 'location_kr' : 'location_en';
 };
 
 /**

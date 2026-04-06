@@ -102,10 +102,10 @@ export function checkRateLimit(
 ): RateLimitResult {
   const { windowMs, maxRequests, apiName = 'api' } = config;
   
-  // identifier 없으면 허용 (실패 안전)
+  // identifier 없으면 차단 (Fail-Closed)
   if (!identifier) {
-    console.warn(`[rateLimit:${apiName}] No identifier provided, allowing request`);
-    return { allowed: true, remaining: maxRequests, resetAt: Date.now() + windowMs };
+    console.warn(`[rateLimit:${apiName}] No identifier provided, blocking request`);
+    return { allowed: false, remaining: 0, resetAt: Date.now() + windowMs };
   }
   
   const now = Date.now();

@@ -41,7 +41,27 @@ export default async function sitemap() {
     }
   }
 
-  const urls = [];
+  // Static pages
+  const staticPages = [
+    { url: `${baseUrl}/`, changeFrequency: 'weekly', priority: 1.0 },
+    { url: `${baseUrl}/treatments`, changeFrequency: 'weekly', priority: 0.9 },
+    { url: `${baseUrl}/hospitals`, changeFrequency: 'weekly', priority: 0.9 },
+    { url: `${baseUrl}/search`, changeFrequency: 'weekly', priority: 0.8 },
+    { url: `${baseUrl}/specialties/dental`, changeFrequency: 'monthly', priority: 0.8 },
+    { url: `${baseUrl}/specialties/dermatology`, changeFrequency: 'monthly', priority: 0.8 },
+    { url: `${baseUrl}/specialties/plastic-surgery`, changeFrequency: 'monthly', priority: 0.8 },
+    { url: `${baseUrl}/specialties/korean-medicine`, changeFrequency: 'monthly', priority: 0.8 },
+    { url: `${baseUrl}/patient/education`, changeFrequency: 'monthly', priority: 0.7 },
+    { url: `${baseUrl}/patient/visa`, changeFrequency: 'monthly', priority: 0.7 },
+    { url: `${baseUrl}/inquiry`, changeFrequency: 'monthly', priority: 0.7 },
+    { url: `${baseUrl}/consult/start`, changeFrequency: 'monthly', priority: 0.7 },
+    { url: `${baseUrl}/about`, changeFrequency: 'monthly', priority: 0.5 },
+    { url: `${baseUrl}/contact`, changeFrequency: 'monthly', priority: 0.5 },
+    { url: `${baseUrl}/terms`, changeFrequency: 'yearly', priority: 0.3 },
+    { url: `${baseUrl}/privacy`, changeFrequency: 'yearly', priority: 0.3 },
+  ].map(p => ({ ...p, lastModified: now }));
+
+  const urls = [...staticPages];
 
   for (const t of treatments || []) {
     const slugOrId = t?.slug || t?.id;
@@ -49,6 +69,8 @@ export default async function sitemap() {
     urls.push({
       url: `${baseUrl}/treatments/${slugOrId}`,
       lastModified: t?.updated_at || t?.created_at || now,
+      changeFrequency: 'weekly',
+      priority: 0.8,
     });
   }
 
@@ -58,6 +80,8 @@ export default async function sitemap() {
     urls.push({
       url: `${baseUrl}/hospitals/${slugOrId}`,
       lastModified: h?.updated_at || h?.created_at || now,
+      changeFrequency: 'weekly',
+      priority: 0.8,
     });
   }
 

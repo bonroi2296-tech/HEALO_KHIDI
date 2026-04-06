@@ -10,7 +10,7 @@ import {
 import { Leaf, ArrowRight } from "lucide-react";
 import { supabaseClient } from "../../src/lib/data/supabaseClient";
 import { mapHospitalRow, mapTreatmentRow } from "../../src/lib/mapper";
-import { getLocationColumn, getCurrentLangCode } from "../../src/lib/language";
+import { getCurrentLangCode } from "../../src/lib/language";
 import { getLangCodeFromCookie, t } from "../../src/lib/i18n";
 
 export default function HomeClient() {
@@ -36,8 +36,6 @@ export default function HomeClient() {
 
       try {
         setIsLoading(true);
-        const locCol = getLocationColumn();
-
         const HOSPITAL_PUBLIC_COLS = `id,slug,name,location_en,location_kr,address_detail,description,tags,rating,reviews_count,images,thumbnail_image,gallery_images,latitude,longitude,operating_hours,doctor_profile,amenities,supported_languages,specialties,medical_equipment,certifications,insurance_accepted,insurance_details,annual_surgery_count,establishment_date,doctor_count,external_ratings,is_published,display_order,created_at,i18n,is_partner`;
         const TREATMENT_PUBLIC_COLS = `id,slug,name,description,full_description,hospital_id,price_min,price_max,tags,images,benefits,i18n`;
 
@@ -47,14 +45,14 @@ export default function HomeClient() {
           supabaseClient.from("site_settings").select("logo_url,hero_background_url").single(),
           supabaseClient
             .from("treatments")
-            .select(`${TREATMENT_PUBLIC_COLS}, hospitals(slug, name, location:${locCol}, location_kr, location_en, i18n)`)
+            .select(`${TREATMENT_PUBLIC_COLS}, hospitals(slug, name, location_kr, location_en, i18n)`)
             .eq("is_published", true)
             .order("display_order", { ascending: true, nullsFirst: false })
             .order("created_at", { ascending: false })
             .limit(4),
           supabaseClient
             .from("hospitals")
-            .select(`${HOSPITAL_PUBLIC_COLS}, location:${locCol}`)
+            .select(HOSPITAL_PUBLIC_COLS)
             .eq("is_published", true)
             .order("display_order", { ascending: true, nullsFirst: false })
             .order("created_at", { ascending: false })
@@ -113,6 +111,7 @@ export default function HomeClient() {
     };
 
     fetchFeatured();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (

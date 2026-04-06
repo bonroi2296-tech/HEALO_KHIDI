@@ -76,11 +76,21 @@ export async function POST(request: NextRequest) {
       `urgency=${analysis.urgencyLevel}, action=${analysis.recommendedAction}`
     );
 
+    // Auto-evaluate rebooking need based on symptom analysis
+    let rebookingSuggestion = null;
+    if (analysis.recommendedAction === 'schedule_followup' ||
+        analysis.recommendedAction === 'escalate_doctor' ||
+        analysis.recommendedAction === 'emergency_refer') {
+      const { evaluateFromSymptoms } = await import("../../../../src/lib/followup/rebookingEngine");
+      rebookingSuggestion = evaluateFromSymptoms(report);
+    }
+
     return Response.json({
       ok: true,
       analysis,
       report: data,
       saved: true,
+      rebookingSuggestion,
     });
   } catch (error: any) {
     console.error("[api/khidi/followup] Exception:", error);

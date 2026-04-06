@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 
 export const metadata = {
-  title: "Dental Treatment in Korea | Implants, Veneers & Prices | HEALO",
+  title: "Dental Treatment in Korea | Implants, Veneers & Prices | HEALO-KHIDI",
   description:
     "Comprehensive guide to dental treatment in Korea. Dental implants, veneers, whitening, and orthodontics at competitive prices. Free consultation available.",
   keywords: [
@@ -25,14 +25,14 @@ export const metadata = {
     "dental tourism Korea",
   ],
   openGraph: {
-    title: "Dental Treatment in Korea | Implants, Veneers & Prices | HEALO",
+    title: "Dental Treatment in Korea | Implants, Veneers & Prices | HEALO-KHIDI",
     description:
       "Comprehensive guide to dental treatment in Korea. Implants, veneers, whitening, and orthodontics at competitive prices.",
     type: "website",
-    url: "https://healo.kr/specialties/dental",
+    url: "https://khidi.healo.kr/specialties/dental",
   },
   alternates: {
-    canonical: "https://healo.kr/specialties/dental",
+    canonical: "https://khidi.healo.kr/specialties/dental",
   },
 };
 
@@ -42,7 +42,7 @@ const jsonLd = {
   name: "Dentistry",
   description:
     "Comprehensive dental treatment services in South Korea, including dental implants, porcelain veneers, teeth whitening, and orthodontics.",
-  url: "https://healo.kr/specialties/dental",
+  url: "https://khidi.healo.kr/specialties/dental",
   medicalSpecialty: "Dentistry",
   availableService: [
     {
