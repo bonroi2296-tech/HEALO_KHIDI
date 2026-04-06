@@ -2,28 +2,30 @@ import HomeClient from "./home/HomeClient";
 import Script from "next/script";
 
 export const metadata = {
-  title: "HEALO | Korea Medical Tourism Concierge",
+  title: "HEALO | 카자흐스탄 암환자 ICT 사전상담 플랫폼",
   description:
-    "AI-powered medical concierge connecting international patients with top Korean hospitals. Compare cancer treatments, get free quotes, and receive full concierge support in 6 languages.",
+    "카자흐스탄 암환자를 위한 한국 암 전문의 원격 사전상담 및 사후관리 플랫폼. 실시간 통역, 의료문서 관리, 교육 콘텐츠 제공.",
   keywords: [
-    "Korea medical tourism",
+    "Kazakhstan cancer treatment Korea",
+    "카자흐스탄 암환자",
+    "원격 암 상담",
+    "ICT 사전상담",
+    "онкология Корея",
+    "рак лечение Корея Казахстан",
+    "Корея онкология консультация",
     "cancer treatment Korea",
-    "Korean hospitals",
-    "medical concierge",
-    "한국 의료관광",
-    "медицинский туризм Корея",
   ],
   openGraph: {
-    title: "HEALO | Korea Medical Tourism Concierge",
+    title: "HEALO | 카자흐스탄 암환자 ICT 사전상담 플랫폼",
     description:
-      "Compare cancer treatments at top Korean hospitals. Free quotes and multilingual concierge service.",
+      "한국 최고의 암 전문의와 원격 사전상담. 6개국어 실시간 통역 지원.",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "HEALO | Korea Medical Tourism Concierge",
+    title: "HEALO | Cancer Pre-consultation Platform",
     description:
-      "AI-powered medical concierge for international patients seeking treatment in Korea.",
+      "ICT pre-consultation & post-care platform connecting Kazakhstan cancer patients with Korean oncologists.",
   },
   alternates: {
     canonical: "/",
@@ -35,28 +37,23 @@ const jsonLd = {
   "@type": "MedicalBusiness",
   name: "HEALO",
   description:
-    "AI-powered medical concierge connecting international patients with top Korean hospitals for cancer treatment.",
+    "ICT pre-consultation and post-care platform connecting Kazakhstan cancer patients with top Korean oncologists. Real-time interpretation in 6 languages.",
   url: "https://khidi.healo.kr",
   logo: "https://khidi.healo.kr/icons/icon-512x512.png",
-  areaServed: {
-    "@type": "Country",
-    name: "South Korea",
-  },
+  areaServed: [
+    { "@type": "Country", name: "Kazakhstan" },
+    { "@type": "Country", name: "South Korea" },
+  ],
   availableLanguage: [
     { "@type": "Language", name: "Korean" },
+    { "@type": "Language", name: "Russian" },
+    { "@type": "Language", name: "Kazakh" },
     { "@type": "Language", name: "English" },
     { "@type": "Language", name: "Chinese" },
     { "@type": "Language", name: "Japanese" },
-    { "@type": "Language", name: "Russian" },
-    { "@type": "Language", name: "Kazakh" },
   ],
-  medicalSpecialty: [
-    "Oncology",
-    "Dermatology",
-    "PlasticSurgery",
-    "Dentistry",
-  ],
-  serviceType: "Medical Tourism Concierge",
+  medicalSpecialty: ["Oncology"],
+  serviceType: "Cancer Pre-consultation & Post-care Platform",
 };
 
 export default function HomePage() {
