@@ -50,6 +50,11 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // Skip external CDN requests (avoid CSP connect-src issues)
+  if (url.origin !== self.location.origin) {
+    return;
+  }
+
   // Static assets: cache-first
   if (
     url.pathname.match(/\.(js|css|png|jpg|jpeg|svg|ico|woff2?|ttf)$/) ||
