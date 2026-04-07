@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import HomeClient from "./home/HomeClient";
 import Script from "next/script";
 
@@ -63,7 +64,9 @@ export default function HomePage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      <HomeClient />
+      <Suspense>
+        <HomeClient />
+      </Suspense>
     </>
   );
 }
