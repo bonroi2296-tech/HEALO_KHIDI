@@ -1,26 +1,25 @@
 import { Suspense } from "react";
-import PaginatedListClient from "../list/PaginatedListClient";
+import HospitalsClient from "./HospitalsClient";
 
 export const metadata = {
-  title: "Hospitals — Top Partner Clinics in Korea",
-  description: "Browse HEALO partner hospitals and clinics across Korea. Korean Medicine, plastic surgery, dermatology, and more. Verified and reviewed for international patients.",
-  keywords: ["Korea hospitals", "Korean Medicine hospital", "plastic surgery clinic Korea", "medical tourism Korea", "韩国医院", "韓国病院"],
+  title: "협력 병원 — HEALO 파트너 의료기관",
+  description:
+    "HEALO 컨소시엄 핵심 파트너 면력한방병원과 협진 암 전문 병원을 소개합니다. 한방 면역치료부터 암 수술·항암까지 원스톱 케어.",
+  keywords: [
+    "면력한방병원",
+    "cancer hospital Korea",
+    "oncology partner hospital",
+    "Korean Medicine immune therapy",
+    "한방 면역치료",
+    "암 전문 병원 한국",
+  ],
   alternates: { canonical: "/hospitals" },
-  openGraph: {
-    title: "Partner Hospitals | HEALO Korea",
-    description: "Explore verified Korean hospitals and clinics for international patients.",
-    type: "website",
-  },
 };
 
 export default function HospitalsPage() {
   return (
     <Suspense>
-      <PaginatedListClient
-        type="hospital"
-        title="Partner Hospitals"
-        withCta
-      />
+      <HospitalsClient />
     </Suspense>
   );
 }
