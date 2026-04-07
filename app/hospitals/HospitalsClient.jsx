@@ -71,10 +71,10 @@ const DOCTORS = [
     role: 'ceo',
     photo: 'https://immunehospital.com/uploads/doctors/6895e62074dc23.62228636.jpg',
     thumb: 'https://immunehospital.com/uploads/doctors/68a674036de695.54364290.png',
-    keywords: ['#꼼꼼한','#친절한','#예리한','#이성적인','#정확한'],
-    경력: ['(現) 면력한방병원 대표원장'],
-    학력: ['동국대학교 한의과대학 졸업', '통합암학회 인정의', '척추신경추나의학회 정회원'],
-    활동: ['한방비만학회 전문가과정', '동의방약학회 정회원'],
+    keywords: { ko: ['#꼼꼼한','#친절한','#예리한','#이성적인','#정확한'], en: ['#Thorough','#Friendly','#Sharp','#Rational','#Precise'] },
+    경력: { ko: ['(現) 면력한방병원 대표원장'], en: ['(Current) Chief Director, Immunehospital'] },
+    학력: { ko: ['동국대학교 한의과대학 졸업', '통합암학회 인정의', '척추신경추나의학회 정회원'], en: ['Graduated from Dongguk University, College of Korean Medicine', 'Integrative Oncology Certified Specialist', 'Spinal Nerve Chuna Medicine Society Regular Member'] },
+    활동: { ko: ['한방비만학회 전문가과정', '동의방약학회 정회원'], en: ['KM Obesity Academy Expert Course', 'Dong-Eui Herbal Medicine Society Regular Member'] },
   },
   { id: 3, branch: 'gangseo',
     name: { ko: '이우석', en: 'Lee Woo-seok', ru: 'Ли Усок', zh: '李佑锡', ja: '李佑錫' },
@@ -83,10 +83,10 @@ const DOCTORS = [
     role: 'wm',
     photo: 'https://immunehospital.com/uploads/doctors/68a3efab789ed9.14338812.jpg',
     thumb: 'https://immunehospital.com/uploads/doctors/68a42d8de9e095.75488957.jpg',
-    keywords: ['#부담없는','#배려깊은','#상담이편한','#공감있는','#질문환영'],
-    경력: ['(前) 삼성서울병원 전임의', '(前) 중앙대학교병원 전임의', '(現) 면력한방병원 원장'],
-    학력: ['산부인과 전문의', '중앙대학교 의과대학 졸업', '중앙대학교 의과대학 박사'],
-    활동: ['University of Chicago 부인 종양학', '순천향대학교 부천병원 산부인과 조교수', '순천향대학교 구미병원 산부인과 조교수'],
+    keywords: { ko: ['#부담없는','#배려깊은','#상담이편한','#공감있는','#질문환영'], en: ['#Approachable','#Considerate','#EasyConsult','#Empathetic','#QuestionsWelcome'] },
+    경력: { ko: ['(前) 삼성서울병원 전임의', '(前) 중앙대학교병원 전임의', '(現) 면력한방병원 원장'], en: ['(Former) Fellow, Samsung Seoul Hospital', '(Former) Fellow, Chung-Ang University Hospital', '(Current) Director, Immunehospital'] },
+    학력: { ko: ['산부인과 전문의', '중앙대학교 의과대학 졸업', '중앙대학교 의과대학 박사'], en: ['OB/GYN Specialist', 'Graduated from Chung-Ang University, College of Medicine', 'Ph.D., Chung-Ang University College of Medicine'] },
+    활동: { ko: ['University of Chicago 부인 종양학', '순천향대학교 부천병원 산부인과 조교수', '순천향대학교 구미병원 산부인과 조교수'], en: ['Gynecologic Oncology, University of Chicago', 'Assistant Professor of OB/GYN, Soonchunhyang Univ. Bucheon Hospital', 'Assistant Professor of OB/GYN, Soonchunhyang Univ. Gumi Hospital'] },
   },
   { id: 34, branch: 'gangseo',
     name: { ko: '임지성', en: 'Lim Ji-seong', ru: 'Лим Чисон', zh: '林志成', ja: '林志成' },
@@ -95,10 +95,10 @@ const DOCTORS = [
     role: 'cmo',
     photo: 'https://immunehospital.com/uploads/doctors/68ff28295475d1.28021653.jpg',
     thumb: 'https://immunehospital.com/uploads/doctors/68ff2829546a03.48601548.jpg',
-    keywords: ['#믿음을주는','#정성스러운','#쉬운설명','#신뢰가는'],
-    학력: ['한방재활의학과 전문의', '대전대학교 한의과 대학 졸업', '원광대학교 한방병원 한방재활 학과 전문의'],
-    활동: ['한방재활의학과학회 평생회원', '척추신경추나의학회 정회원', '미국 근골격계 초음파 자격(RMSK)', '파워리프팅 협회 WPC 팀닥터'],
-    논문: ['疎經活血湯加味方의 관절염에 미치는효과 (2021)', '지질다당류로 유발한 염증성 뇌손상동물모델에 대한 황금작약탕의 억제효과연구 (2021)', '슬관절전치환술후 한방병원에 입원한환자 20명에대한 후향적분석 (2022)'],
+    keywords: { ko: ['#믿음을주는','#정성스러운','#쉬운설명','#신뢰가는'], en: ['#Trustworthy','#Devoted','#ClearExplanation','#Reliable'] },
+    학력: { ko: ['한방재활의학과 전문의', '대전대학교 한의과 대학 졸업', '원광대학교 한방병원 한방재활 학과 전문의'], en: ['KM Rehabilitation Specialist', 'Graduated from Daejeon University, College of Korean Medicine', 'KM Rehabilitation Specialist, Wonkwang University KM Hospital'] },
+    활동: { ko: ['한방재활의학과학회 평생회원', '척추신경추나의학회 정회원', '미국 근골격계 초음파 자격(RMSK)', '파워리프팅 협회 WPC 팀닥터'], en: ['KM Rehabilitation Society Lifetime Member', 'Spinal Nerve Chuna Medicine Society Regular Member', 'RMSK (Registered Musculoskeletal Sonographer, USA)', 'WPC Powerlifting Association Team Doctor'] },
+    논문: { ko: ['疎經活血湯加味方의 관절염에 미치는효과 (2021)', '지질다당류로 유발한 염증성 뇌손상동물모델에 대한 황금작약탕의 억제효과연구 (2021)', '슬관절전치환술후 한방병원에 입원한환자 20명에대한 후향적분석 (2022)'], en: ['Effect of modified Sogyeonghwalhyeol-tang on arthritis (2021)', 'Inhibitory effect of Hwanggeumjakyak-tang on LPS-induced inflammatory brain injury model (2021)', 'Retrospective analysis of 20 patients admitted to KM hospital after total knee arthroplasty (2022)'] },
   },
   { id: 6, branch: 'gangseo',
     name: { ko: '김지영', en: 'Kim Ji-young', ru: 'Ким Чиён', zh: '金志英', ja: '金志英' },
@@ -106,10 +106,10 @@ const DOCTORS = [
     subspecialty: { ko: '통합면역 한방내과', en: 'KM Internal Medicine', ru: 'Внутренняя корейская медицина', zh: '韩方内科', ja: '韓方内科' },
     photo: 'https://immunehospital.com/uploads/doctors/68a42f470e29d3.79526645.jpg',
     thumb: 'https://immunehospital.com/uploads/doctors/68a42f470df8e0.51544383.jpg',
-    keywords: ['#꼼꼼한','#친절한','#예리한','#이성적인','#정확한'],
-    경력: ['(前) 인애가(대전,송파)한방병원 진료원장', '(前) 소람한방병원 진료원장', '(現) 면력한방병원 원장'],
-    학력: ['한방내과 전문의', '대전대학교 한의과 대학 졸업', '대전대학교 한방병원 한방내과 전문의'],
-    활동: ['대한 중풍순환신경학회 정회원', '대한 한방비만학회 정회원', '대한한방내과의원 정회원'],
+    keywords: { ko: ['#꼼꼼한','#친절한','#예리한','#이성적인','#정확한'], en: ['#Thorough','#Friendly','#Sharp','#Rational','#Precise'] },
+    경력: { ko: ['(前) 인애가(대전,송파)한방병원 진료원장', '(前) 소람한방병원 진료원장', '(現) 면력한방병원 원장'], en: ['(Former) Attending Director, Inaega KM Hospital (Daejeon/Songpa)', '(Former) Attending Director, Soram KM Hospital', '(Current) Director, Immunehospital'] },
+    학력: { ko: ['한방내과 전문의', '대전대학교 한의과 대학 졸업', '대전대학교 한방병원 한방내과 전문의'], en: ['KM Internal Medicine Specialist', 'Graduated from Daejeon University, College of Korean Medicine', 'KM Internal Medicine Specialist, Daejeon University KM Hospital'] },
+    활동: { ko: ['대한 중풍순환신경학회 정회원', '대한 한방비만학회 정회원', '대한한방내과의원 정회원'], en: ['Korean Stroke & Circulatory Neurology Society Regular Member', 'Korean KM Obesity Society Regular Member', 'Korean KM Internal Medicine Clinics Regular Member'] },
   },
   { id: 7, branch: 'gangseo',
     name: { ko: '김은지', en: 'Kim Eun-ji', ru: 'Ким Ынджи', zh: '金恩智', ja: '金恩智' },
@@ -117,11 +117,11 @@ const DOCTORS = [
     subspecialty: { ko: '통합면역 한방내과', en: 'KM Internal Medicine', ru: 'Внутренняя корейская медицина', zh: '韩方内科', ja: '韓方内科' },
     photo: 'https://immunehospital.com/uploads/doctors/68a42d656c4665.58894230.jpg',
     thumb: 'https://immunehospital.com/uploads/doctors/68a42d656c1818.66316770.jpg',
-    keywords: ['#편안한분위기','#쉬운설명','#따뜻한','#신뢰가는','#섬세한','#공감있는'],
-    경력: ['(前) 면력한방병원 면역내과 진료원장', '(前) 튼튼한방병원 항암면역센터 진료원장', '(現) 면력한방병원 원장'],
-    학력: ['한방내과 전문의', '동신대학교 한의과대학 졸업', '동신대학교 대학원 한의학과 석사', '목동동신한방병원 일반/전문수련의 수료'],
-    활동: ['대한한방내과학회 정회원', '대한통합암학회 정회원', '통합암치료 인정의', '한방비만학회 전문가과정 이수', '2018 평창동계올림픽 미디어촌 한의진료센터 진료', '한의약 홍보체험관(메디컬코리아 지원센터) 외국인 한방검진 및 상담'],
-    논문: ['조등산과 GB34 전침치료를 활용한 약인성 파킨슨증후군 환자의 증례 (2017)', '항암치료 후 식욕부진·오심에 대한 독활지황탕 가미방 투여 삶의 질 개선 증례보고 (2018)', '厚朴이 ob/ob 마우스의 대사성 염증과 인슐린저항성에 미치는 영향 연구 (2018)'],
+    keywords: { ko: ['#편안한분위기','#쉬운설명','#따뜻한','#신뢰가는','#섬세한','#공감있는'], en: ['#Comfortable','#ClearExplanation','#Warm','#Reliable','#Attentive','#Empathetic'] },
+    경력: { ko: ['(前) 면력한방병원 면역내과 진료원장', '(前) 튼튼한방병원 항암면역센터 진료원장', '(現) 면력한방병원 원장'], en: ['(Former) Attending Director, Immunehospital Immuno-Internal Medicine', '(Former) Attending Director, Teunteun KM Hospital Immuno-Oncology Center', '(Current) Director, Immunehospital'] },
+    학력: { ko: ['한방내과 전문의', '동신대학교 한의과대학 졸업', '동신대학교 대학원 한의학과 석사', '목동동신한방병원 일반/전문수련의 수료'], en: ['KM Internal Medicine Specialist', 'Graduated from Dongshin University, College of Korean Medicine', 'M.S., Dongshin University Graduate School of Korean Medicine', 'Completed residency at Mokdong Dongshin KM Hospital'] },
+    활동: { ko: ['대한한방내과학회 정회원', '대한통합암학회 정회원', '통합암치료 인정의', '한방비만학회 전문가과정 이수', '2018 평창동계올림픽 미디어촌 한의진료센터 진료', '한의약 홍보체험관(메디컬코리아 지원센터) 외국인 한방검진 및 상담'], en: ['Korean KM Internal Medicine Society Regular Member', 'Korean Society of Integrative Oncology Regular Member', 'Integrative Oncology Certified Specialist', 'KM Obesity Academy Expert Course', '2018 PyeongChang Winter Olympics Media Village KM Clinic', 'Medical Korea Support Center — foreign patient KM consultation'] },
+    논문: { ko: ['조등산과 GB34 전침치료를 활용한 약인성 파킨슨증후군 환자의 증례 (2017)', '항암치료 후 식욕부진·오심에 대한 독활지황탕 가미방 투여 삶의 질 개선 증례보고 (2018)', '厚朴이 ob/ob 마우스의 대사성 염증과 인슐린저항성에 미치는 영향 연구 (2018)'], en: ['Case of drug-induced parkinsonism treated with Jodeungsan & GB34 electroacupuncture (2017)', 'QoL improvement with modified Dokhwaljihwang-tang for post-chemo anorexia/nausea (2018)', 'Effect of Magnolia bark on metabolic inflammation & insulin resistance in ob/ob mice (2018)'] },
   },
   { id: 11, branch: 'gangseo',
     name: { ko: '배상근', en: 'Bae Sang-geun', ru: 'Пэ Сангын', zh: '裴相根', ja: '裴相根' },
@@ -130,10 +130,10 @@ const DOCTORS = [
     role: 'wm',
     photo: 'https://immunehospital.com/uploads/doctors/68a428b7697d23.50383418.jpg',
     thumb: 'https://immunehospital.com/uploads/doctors/690b00eb512ff3.09917549.jpg',
-    keywords: ['#부담없는','#차분한','#편안한','#빠른대응','#부드러운','#침착한'],
-    경력: ['(前) 새빛요양병원 진료원장', '(前) 서울대학교 상산수리과학관 의학통계연구소장', '(前) 인천석병원 내과 진료원장', '(前) 국립춘천병원 내과 진료원장'],
-    학력: ['서울중앙보훈병원 가정의학과 전문의'],
-    활동: ['대한임상갱년기학회 정회원', '한국임상고혈압학회 정회원', '대한임상노인학회 정회원', '대한통증학회 정회원'],
+    keywords: { ko: ['#부담없는','#차분한','#편안한','#빠른대응','#부드러운','#침착한'], en: ['#Approachable','#Calm','#Comfortable','#Responsive','#Gentle','#Composed'] },
+    경력: { ko: ['(前) 새빛요양병원 진료원장', '(前) 서울대학교 상산수리과학관 의학통계연구소장', '(前) 인천석병원 내과 진료원장', '(前) 국립춘천병원 내과 진료원장'], en: ['(Former) Attending Director, Saebit Long-term Care Hospital', '(Former) Director, Medical Statistics Lab, Seoul National University', '(Former) Attending Director, Internal Medicine, Incheon Seok Hospital', '(Former) Attending Director, Internal Medicine, National Chuncheon Hospital'] },
+    학력: { ko: ['서울중앙보훈병원 가정의학과 전문의'], en: ['Family Medicine Specialist, Seoul Veterans Hospital'] },
+    활동: { ko: ['대한임상갱년기학회 정회원', '한국임상고혈압학회 정회원', '대한임상노인학회 정회원', '대한통증학회 정회원'], en: ['Korean Menopause Society Regular Member', 'Korean Clinical Hypertension Society Regular Member', 'Korean Clinical Geriatrics Society Regular Member', 'Korean Pain Society Regular Member'] },
   },
   { id: 39, branch: 'gangseo',
     name: { ko: '김정현', en: 'Kim Jeong-hyeon', ru: 'Ким Чонхён', zh: '金正贤', ja: '金正賢' },
@@ -141,11 +141,11 @@ const DOCTORS = [
     subspecialty: { ko: '통증재활', en: 'Pain Rehabilitation', ru: 'Реабилитация боли', zh: '疼痛康复', ja: '疼痛リハビリ' },
     photo: 'https://immunehospital.com/uploads/doctors/69cddc4eccde42.45651812.jpg',
     thumb: 'https://immunehospital.com/uploads/doctors/69cddc4eccce48.64445214.png',
-    keywords: ['#세심한','#꼼꼼한','#따스한','#사려깊은','#믿음을주는','#편안한분위기'],
-    경력: ['(前) 종로 통인한의원 진료원장', '(前) 터한의원 여의도점 진료원장', '(現) 면력한방병원 진료원장'],
-    학력: ['동국대학교 한의과대학 한의학과 졸업'],
-    활동: ['대한한의학회 회원', '대한통합레이저의학회 정회원', '임상약침학회 정회원', '한국한의약진흥원 [동남아 외국인 환자 유치 활성화 지원] 기획재정이사', '2025, 2026 서울특별시 학교 주치의', '2023 한의혜민대상 수상(잼버리 한의진료센터)', '2024 종로구 한의사회 표창장', '2025 하베스트 [신규 한의사 임상역량 강화프로그램] 교육위원'],
-    논문: ['Research on Ways to Attract Foreign Patients to a Korean Medicine Clinic (Frontiers in Medicine, 2025)'],
+    keywords: { ko: ['#세심한','#꼼꼼한','#따스한','#사려깊은','#믿음을주는','#편안한분위기'], en: ['#Attentive','#Thorough','#Warm','#Thoughtful','#Trustworthy','#Comfortable'] },
+    경력: { ko: ['(前) 종로 통인한의원 진료원장', '(前) 터한의원 여의도점 진료원장', '(現) 면력한방병원 진료원장'], en: ['(Former) Attending Director, Jongno Tongin KM Clinic', '(Former) Attending Director, Teo KM Clinic Yeouido', '(Current) Attending Director, Immunehospital'] },
+    학력: { ko: ['동국대학교 한의과대학 한의학과 졸업'], en: ['Graduated from Dongguk University, College of Korean Medicine'] },
+    활동: { ko: ['대한한의학회 회원', '대한통합레이저의학회 정회원', '임상약침학회 정회원', '한국한의약진흥원 [동남아 외국인 환자 유치 활성화 지원] 기획재정이사', '2025, 2026 서울특별시 학교 주치의', '2023 한의혜민대상 수상(잼버리 한의진료센터)', '2024 종로구 한의사회 표창장', '2025 하베스트 [신규 한의사 임상역량 강화프로그램] 교육위원'], en: ['Korean Medicine Society Member', 'Korean Integrative Laser Medicine Society Regular Member', 'Clinical Pharmacopuncture Society Regular Member', 'NIKOM — Planning & Finance Director for SE Asian patient attraction', 'Seoul Metropolitan School Doctor 2025–2026', '2023 KM Hyemin Award (Jamboree KM Clinic)', '2024 Jongno KM Association Commendation', '2025 Harvest New KM Practitioner Clinical Training Committee'] },
+    논문: { ko: ['Research on Ways to Attract Foreign Patients to a Korean Medicine Clinic (Frontiers in Medicine, 2025)'], en: ['Research on Ways to Attract Foreign Patients to a Korean Medicine Clinic (Frontiers in Medicine, 2025)'] },
   },
 
   // ── 신촌점 (5명) ──
@@ -156,11 +156,11 @@ const DOCTORS = [
     role: 'ceo',
     photo: 'https://immunehospital.com/uploads/doctors/68ac46bd43c9d4.37241186.jpg',
     thumb: 'https://immunehospital.com/uploads/doctors/68ac46bd439598.83386960.png',
-    keywords: ['#믿음을주는','#차분한','#쉬운설명','#공감있는','#부드러운','#따뜻한시선'],
-    경력: ['원광대학교 산본한방병원 일반수련의', '자생한방병원 한방재활의학과 전문수련의', '(前) 청주나비솔한방병원 진료원장', '(前) 강서면력한방병원 진료원장', '(現) 신촌면력한방병원 대표원장'],
-    학력: ['원광대학교 한의과대학 졸업', '원광대학교 한의과대학 석사 및 박사 학위'],
-    활동: ['한방재활의학과 학회 평생회원', '척추신경추나의학회 정회원', '대한 스포츠학회 정회원', '한방비만학회 정회원', '대한 통합암학회 인정의', '대한 암한의학회 정회원'],
-    논문: ['제 4~5번 요추 추간판 탈출 정도와 요통의 한의학적 치료 효과의 상관성 연구', '반월상 연골판 손상을 동반한 전방 십자인대 부분파열 환자의 한의학적 치료 효과 증례보고'],
+    keywords: { ko: ['#믿음을주는','#차분한','#쉬운설명','#공감있는','#부드러운','#따뜻한시선'], en: ['#Trustworthy','#Calm','#ClearExplanation','#Empathetic','#Gentle','#WarmGaze'] },
+    경력: { ko: ['원광대학교 산본한방병원 일반수련의', '자생한방병원 한방재활의학과 전문수련의', '(前) 청주나비솔한방병원 진료원장', '(前) 강서면력한방병원 진료원장', '(現) 신촌면력한방병원 대표원장'], en: ['Resident, Wonkwang University Sanbon KM Hospital', 'KM Rehabilitation Fellow, Jaseng KM Hospital', '(Former) Attending Director, Cheongju Navisol KM Hospital', '(Former) Attending Director, Gangseo Immunehospital', '(Current) Chief Director, Sinchon Immunehospital'] },
+    학력: { ko: ['원광대학교 한의과대학 졸업', '원광대학교 한의과대학 석사 및 박사 학위'], en: ['Graduated from Wonkwang University, College of Korean Medicine', 'M.S. & Ph.D., Wonkwang University College of Korean Medicine'] },
+    활동: { ko: ['한방재활의학과 학회 평생회원', '척추신경추나의학회 정회원', '대한 스포츠학회 정회원', '한방비만학회 정회원', '대한 통합암학회 인정의', '대한 암한의학회 정회원'], en: ['KM Rehabilitation Society Lifetime Member', 'Spinal Nerve Chuna Medicine Society Regular Member', 'Korean Sports Medicine Society Regular Member', 'KM Obesity Society Regular Member', 'Korean Society of Integrative Oncology Certified Specialist', 'Korean Cancer KM Society Regular Member'] },
+    논문: { ko: ['제 4~5번 요추 추간판 탈출 정도와 요통의 한의학적 치료 효과의 상관성 연구', '반월상 연골판 손상을 동반한 전방 십자인대 부분파열 환자의 한의학적 치료 효과 증례보고'], en: ['Correlation between L4-5 lumbar disc herniation severity and KM treatment outcomes for low back pain', 'Case report: KM treatment of partial ACL tear with meniscal injury'] },
   },
   { id: 37, branch: 'sinchon',
     name: { ko: '조현실', en: 'Cho Hyeon-sil', ru: 'Чо Хёнсиль', zh: '赵贤实', ja: '趙賢実' },
@@ -169,9 +169,9 @@ const DOCTORS = [
     role: 'wm',
     photo: 'https://immunehospital.com/uploads/doctors/69cddae60209c3.18962833.jpg',
     thumb: 'https://immunehospital.com/uploads/doctors/69cddae601fbd8.12610287.jpg',
-    keywords: ['#친절한','#세심한','#따뜻한','#신뢰가는','#사려깊은','#상담충분'],
-    학력: ['산부인과 전문의', '이화여대 의과대학 의학과 졸업', '이화여대부속병원 수련', '경희대학교 의과대학 석사', '흑룡강 중의약대학교 졸업(Traditional Chinese Medicine)'],
-    활동: ['대한 IMS학회 정회원', '대한 폐경학회 회원', '대한 노인병학회 회원'],
+    keywords: { ko: ['#친절한','#세심한','#따뜻한','#신뢰가는','#사려깊은','#상담충분'], en: ['#Friendly','#Attentive','#Warm','#Reliable','#Thoughtful','#ThoroughConsult'] },
+    학력: { ko: ['산부인과 전문의', '이화여대 의과대학 의학과 졸업', '이화여대부속병원 수련', '경희대학교 의과대학 석사', '흑룡강 중의약대학교 졸업(Traditional Chinese Medicine)'], en: ['OB/GYN Specialist', 'Graduated from Ewha Womans University, College of Medicine', 'Residency at Ewha Womans University Hospital', 'M.S., Kyung Hee University College of Medicine', 'Graduated from Heilongjiang University of Chinese Medicine (TCM)'] },
+    활동: { ko: ['대한 IMS학회 정회원', '대한 폐경학회 회원', '대한 노인병학회 회원'], en: ['Korean IMS Society Regular Member', 'Korean Menopause Society Member', 'Korean Geriatrics Society Member'] },
   },
   { id: 24, branch: 'sinchon',
     name: { ko: '정유진', en: 'Jung Yu-jin', ru: 'Чон Юджин', zh: '郑有镇', ja: '鄭有鎭' },
@@ -179,11 +179,11 @@ const DOCTORS = [
     subspecialty: { ko: '한방내과 전문의', en: 'KM Internal Medicine Specialist', ru: 'Специалист по внутренней КМ', zh: '韩方内科专科医师', ja: '韓方内科専門医' },
     photo: 'https://immunehospital.com/uploads/doctors/68ac464c700852.38470926.jpg',
     thumb: 'https://immunehospital.com/uploads/doctors/68ac464c6fdee2.09872274.jpg',
-    keywords: ['#친절한','#꼼꼼한','#세심한','#성실한','#편안한설명','#쉬운설명'],
-    경력: ['(前) 광덕안정한의원 부산하단점 수석원장', '(前) 휘림한방병원 진료원장', '(現) 신촌면력한방병원 진료원장'],
-    학력: ['동의대학교 한의학과 한방내과 박사', '동의대학교 한의과 대학 졸업', '동의대학교 부속 한방병원 한방내과 전문의'],
-    활동: ['대한 한의사 전문의 협회 정회원', '대한 한방 내과학회 정회원', '대한 암한의학회 정회원', '대한 통합암의학회 회원', '척추신경추나의학회 정회원'],
-    논문: ['통합 의학 치료로 5년 생존 및 완전 관해에 도달한 췌장암 증례보고 (2023)', '위식도 역류질환에 대한 반하사심탕의 효과 연구경향 (2020)', '뇌졸중 후 중추성 통증·시상증후군에 대한 한약치료 체계적 고찰 (2019)', '약물유발성 구강건조증 치험 1례 (2018)'],
+    keywords: { ko: ['#친절한','#꼼꼼한','#세심한','#성실한','#편안한설명','#쉬운설명'], en: ['#Friendly','#Thorough','#Attentive','#Diligent','#ComfortExplanation','#ClearExplanation'] },
+    경력: { ko: ['(前) 광덕안정한의원 부산하단점 수석원장', '(前) 휘림한방병원 진료원장', '(現) 신촌면력한방병원 진료원장'], en: ['(Former) Senior Director, Gwangdeok Anjeong KM Clinic Busan', '(Former) Attending Director, Hwirim KM Hospital', '(Current) Attending Director, Sinchon Immunehospital'] },
+    학력: { ko: ['동의대학교 한의학과 한방내과 박사', '동의대학교 한의과 대학 졸업', '동의대학교 부속 한방병원 한방내과 전문의'], en: ['Ph.D. in KM Internal Medicine, Dong-Eui University', 'Graduated from Dong-Eui University, College of Korean Medicine', 'KM Internal Medicine Specialist, Dong-Eui University KM Hospital'] },
+    활동: { ko: ['대한 한의사 전문의 협회 정회원', '대한 한방 내과학회 정회원', '대한 암한의학회 정회원', '대한 통합암의학회 회원', '척추신경추나의학회 정회원'], en: ['Korean KM Specialist Association Regular Member', 'Korean KM Internal Medicine Society Regular Member', 'Korean Cancer KM Society Regular Member', 'Korean Society of Integrative Oncology Member', 'Spinal Nerve Chuna Medicine Society Regular Member'] },
+    논문: { ko: ['통합 의학 치료로 5년 생존 및 완전 관해에 도달한 췌장암 증례보고 (2023)', '위식도 역류질환에 대한 반하사심탕의 효과 연구경향 (2020)', '뇌졸중 후 중추성 통증·시상증후군에 대한 한약치료 체계적 고찰 (2019)', '약물유발성 구강건조증 치험 1례 (2018)'], en: ['5-year survival & complete remission of pancreatic cancer with integrative medicine (2023)', 'Research trends on Banhasasim-tang for GERD (2020)', 'Systematic review of herbal medicine for post-stroke central pain/thalamic syndrome (2019)', 'Case of drug-induced xerostomia treated with herbal medicine (2018)'] },
   },
   { id: 23, branch: 'sinchon',
     name: { ko: '조수호', en: 'Cho Su-ho', ru: 'Чо Сухо', zh: '赵秀昊', ja: '趙秀昊' },
@@ -191,11 +191,11 @@ const DOCTORS = [
     subspecialty: { ko: '한방내과 전문의', en: 'KM Internal Medicine Specialist', ru: 'Специалист по внутренней КМ', zh: '韩方内科专科医师', ja: '韓方内科専門医' },
     photo: 'https://immunehospital.com/uploads/doctors/68be43e0120336.44853403.jpg',
     thumb: 'https://immunehospital.com/uploads/doctors/68ac45d97c31b7.54028297.jpg',
-    keywords: ['#친절한','#부담없는','#배려깊은','#공감있는','#편안한','#친근한'],
-    경력: ['(前) 강동경희대학교 한방병원 한방내과 전문의', '(現) 신촌면력한방병원 진료원장'],
-    학력: ['경희대학교 한의과대학 졸업', '경희대학교 임상한의학과(소화기내과학) 석사', '강동경희대학교 한방병원 전문수련의 수료'],
-    활동: ['대한한방내과학회 정회원', '기능성소화불량 한의표준임상진료지침 개발 참여 연구원(실행위원)'],
-    논문: ['초음파 위배출 측정과 한의설문 간의 상관성 분석 (2018)', '약침치료로 호전된 급성 충수염 환자 1례 (2019)', 'Herbal medicine Banha-sasim-tang for functional dyspepsia: systematic review protocol (Medicine, 2019)'],
+    keywords: { ko: ['#친절한','#부담없는','#배려깊은','#공감있는','#편안한','#친근한'], en: ['#Friendly','#Approachable','#Considerate','#Empathetic','#Comfortable','#Personable'] },
+    경력: { ko: ['(前) 강동경희대학교 한방병원 한방내과 전문의', '(現) 신촌면력한방병원 진료원장'], en: ['(Former) KM Internal Medicine Specialist, Gangdong Kyung Hee University KM Hospital', '(Current) Attending Director, Sinchon Immunehospital'] },
+    학력: { ko: ['경희대학교 한의과대학 졸업', '경희대학교 임상한의학과(소화기내과학) 석사', '강동경희대학교 한방병원 전문수련의 수료'], en: ['Graduated from Kyung Hee University, College of Korean Medicine', 'M.S. in Clinical KM (Gastroenterology), Kyung Hee University', 'Completed fellowship at Gangdong Kyung Hee University KM Hospital'] },
+    활동: { ko: ['대한한방내과학회 정회원', '기능성소화불량 한의표준임상진료지침 개발 참여 연구원(실행위원)'], en: ['Korean KM Internal Medicine Society Regular Member', 'Researcher, KM Standard Clinical Practice Guideline for Functional Dyspepsia (Executive Committee)'] },
+    논문: { ko: ['초음파 위배출 측정과 한의설문 간의 상관성 분석 (2018)', '약침치료로 호전된 급성 충수염 환자 1례 (2019)', 'Herbal medicine Banha-sasim-tang for functional dyspepsia: systematic review protocol (Medicine, 2019)'], en: ['Correlation analysis of ultrasound gastric emptying and KM questionnaire (2018)', 'A case of acute appendicitis improved by pharmacopuncture (2019)', 'Herbal medicine Banha-sasim-tang for functional dyspepsia: systematic review protocol (Medicine, 2019)'] },
   },
   { id: 22, branch: 'sinchon',
     name: { ko: '김민정', en: 'Kim Min-jeong', ru: 'Ким Минджон', zh: '金敏贞', ja: '金敏貞' },
@@ -203,11 +203,11 @@ const DOCTORS = [
     subspecialty: { ko: '한방내과 전문의', en: 'KM Internal Medicine Specialist', ru: 'Специалист по внутренней КМ', zh: '韩方内科专科医师', ja: '韓方内科専門医' },
     photo: 'https://immunehospital.com/uploads/doctors/68ac45367f95d4.17025580.jpg',
     thumb: 'https://immunehospital.com/uploads/doctors/68ac45367f6ed2.58460098.jpg',
-    keywords: ['#부담없는','#상냥한','#믿을수있는','#자세한설명','#공감있는','#부드러운'],
-    경력: ['(現) 신촌면력한방병원 진료원장'],
-    학력: ['경희대학교 한의과대학 졸업', '경희대학교 임상한의학과(소화기내과학) 석사', '강동경희대학교한방병원 일반수련의 수료', '강동경희대학교한방병원 한방내과 전문수련의 수료'],
-    활동: ['대한한방내과학회 정회원'],
-    논문: ['Herbal medicine for non-erosive reflux disease: systematic review & meta-analysis (Medicine, 2024)', '헬리코박터 파일로리 연관 위궤양의 감초사심탕 치료 연구 동향 (2024)', '염증성 장 질환에서 전침 중심 미주신경자극 고찰 (2023)', '딸꾹질에 대한 침 치료의 최근 임상 연구 동향 (2022)'],
+    keywords: { ko: ['#부담없는','#상냥한','#믿을수있는','#자세한설명','#공감있는','#부드러운'], en: ['#Approachable','#Kind','#Trustable','#DetailedExplanation','#Empathetic','#Gentle'] },
+    경력: { ko: ['(現) 신촌면력한방병원 진료원장'], en: ['(Current) Attending Director, Sinchon Immunehospital'] },
+    학력: { ko: ['경희대학교 한의과대학 졸업', '경희대학교 임상한의학과(소화기내과학) 석사', '강동경희대학교한방병원 일반수련의 수료', '강동경희대학교한방병원 한방내과 전문수련의 수료'], en: ['Graduated from Kyung Hee University, College of Korean Medicine', 'M.S. in Clinical KM (Gastroenterology), Kyung Hee University', 'Completed internship at Gangdong Kyung Hee University KM Hospital', 'Completed KM Internal Medicine fellowship at Gangdong Kyung Hee University KM Hospital'] },
+    활동: { ko: ['대한한방내과학회 정회원'], en: ['Korean KM Internal Medicine Society Regular Member'] },
+    논문: { ko: ['Herbal medicine for non-erosive reflux disease: systematic review & meta-analysis (Medicine, 2024)', '헬리코박터 파일로리 연관 위궤양의 감초사심탕 치료 연구 동향 (2024)', '염증성 장 질환에서 전침 중심 미주신경자극 고찰 (2023)', '딸꾹질에 대한 침 치료의 최근 임상 연구 동향 (2022)'], en: ['Herbal medicine for non-erosive reflux disease: systematic review & meta-analysis (Medicine, 2024)', 'Research trends on Gamchosasim-tang for H. pylori-associated gastric ulcer (2024)', 'Review of vagus nerve stimulation via electroacupuncture in inflammatory bowel disease (2023)', 'Recent clinical research trends on acupuncture for hiccups (2022)'] },
   },
 
   // ── 광명점 (7명) ──
@@ -218,11 +218,11 @@ const DOCTORS = [
     role: 'ceo',
     photo: 'https://immunehospital.com/uploads/doctors/68ac21df896ae3.71046416.jpg',
     thumb: 'https://immunehospital.com/uploads/doctors/697feda49897b6.88772738.png',
-    keywords: ['#친절한','#꼼꼼한','#신뢰가는','#정성스러운','#자세한설명'],
-    경력: ['(前) 동신대학교 부속 광주한방병원 한방재활의학과 진료교수', '(前) 365다시재한방병원 진료부장', '(現) 면력한방병원 진료원장'],
-    학력: ['한방재활의학과 전문의, 한의학박사', '동신대학교 한의과대학 졸업', '동신대학교 한의과대학원 석/박사', '동신대학교 부속 목포한방병원 일반/전문수련의 수료'],
-    활동: ['대한한의사전문의협회 부회장', '한방재활의학과학회', '대한오스테오파시학회', '척추신경추나의학회', '대한통합암학회', '네이버 지식인 상담한의사 (한방재활의학과)', '한의약선도기술개발사업 참여연구원', '노인장기요양보험 등급판정위원'],
-    논문: ['Antiosteoarthritic Effects of ChondroT (Evidence-based CAM)', 'Inpatient treatment effect and MMPI of MVC injuries (Chinese J of Integrative Med)', 'Anti-osteoarthritic effects of ChondroT collagenase model (BMC CAM)', '외 10편'],
+    keywords: { ko: ['#친절한','#꼼꼼한','#신뢰가는','#정성스러운','#자세한설명'], en: ['#Friendly','#Thorough','#Reliable','#Devoted','#DetailedExplanation'] },
+    경력: { ko: ['(前) 동신대학교 부속 광주한방병원 한방재활의학과 진료교수', '(前) 365다시재한방병원 진료부장', '(現) 면력한방병원 진료원장'], en: ['(Former) Clinical Professor, KM Rehabilitation, Dongshin University Gwangju KM Hospital', '(Former) Medical Director, 365 Dasijae KM Hospital', '(Current) Attending Director, Immunehospital'] },
+    학력: { ko: ['한방재활의학과 전문의, 한의학박사', '동신대학교 한의과대학 졸업', '동신대학교 한의과대학원 석/박사', '동신대학교 부속 목포한방병원 일반/전문수련의 수료'], en: ['KM Rehabilitation Specialist, Ph.D. in Korean Medicine', 'Graduated from Dongshin University, College of Korean Medicine', 'M.S. & Ph.D., Dongshin University Graduate School of Korean Medicine', 'Completed residency at Dongshin University Mokpo KM Hospital'] },
+    활동: { ko: ['대한한의사전문의협회 부회장', '한방재활의학과학회', '대한오스테오파시학회', '척추신경추나의학회', '대한통합암학회', '네이버 지식인 상담한의사 (한방재활의학과)', '한의약선도기술개발사업 참여연구원', '노인장기요양보험 등급판정위원'], en: ['Vice President, Korean KM Specialist Association', 'KM Rehabilitation Society', 'Korean Osteopathy Society', 'Spinal Nerve Chuna Medicine Society', 'Korean Society of Integrative Oncology', 'Naver Knowledge-in KM Consultant (Rehabilitation)', 'Researcher, KM Leading Technology Development Project', 'Long-term Care Insurance Rating Committee Member'] },
+    논문: { ko: ['Antiosteoarthritic Effects of ChondroT (Evidence-based CAM)', 'Inpatient treatment effect and MMPI of MVC injuries (Chinese J of Integrative Med)', 'Anti-osteoarthritic effects of ChondroT collagenase model (BMC CAM)', '외 10편'], en: ['Antiosteoarthritic Effects of ChondroT (Evidence-based CAM)', 'Inpatient treatment effect and MMPI of MVC injuries (Chinese J of Integrative Med)', 'Anti-osteoarthritic effects of ChondroT collagenase model (BMC CAM)', '+ 10 more'] },
   },
   { id: 38, branch: 'gwangmyeong',
     name: { ko: '이정훈', en: 'Lee Jeong-hun', ru: 'Ли Чонхун', zh: '李正勋', ja: '李正勲' },
@@ -231,10 +231,10 @@ const DOCTORS = [
     role: 'wm',
     photo: 'https://immunehospital.com/uploads/doctors/69cddb97abdb81.98166856.jpg',
     thumb: 'https://immunehospital.com/uploads/doctors/69cddb97abcd76.76518423.png',
-    keywords: ['#친절한','#따뜻한','#꼼꼼한','#사려깊은','#믿음을주는','#따뜻한시선'],
-    경력: ['한양대학교병원 마취통증의학과 전공의/전문의', '한양대학교병원 통증의학과 임상교수', '(前) 닥터투유의원 원장', '(前) 오정본병원 통증의학과 원장', '(前) 날아라정형외과 원장', '(前) 부평그린마취통증의학과의원 진료원장', '(現) 면력한방병원 양방원장'],
-    학력: ['한양대학교 의과대학 의학과 졸업', '한양대학교 의과대학 마취통증의학과 석사', '한양대학교병원 통증의학과 전임의'],
-    활동: ['대한마취통증의학회 정회원', '대한골대사학회 정회원', '대한통증학회 정회원', '대한근골격계초음파학회 정회원', '대한척추통증학회 정회원', 'TPI 연수교육 이수', 'prolotherapy(인대증식치료) 교육 이수'],
+    keywords: { ko: ['#친절한','#따뜻한','#꼼꼼한','#사려깊은','#믿음을주는','#따뜻한시선'], en: ['#Friendly','#Warm','#Thorough','#Thoughtful','#Trustworthy','#WarmGaze'] },
+    경력: { ko: ['한양대학교병원 마취통증의학과 전공의/전문의', '한양대학교병원 통증의학과 임상교수', '(前) 닥터투유의원 원장', '(前) 오정본병원 통증의학과 원장', '(前) 날아라정형외과 원장', '(前) 부평그린마취통증의학과의원 진료원장', '(現) 면력한방병원 양방원장'], en: ['Anesthesiology & Pain Medicine Resident/Specialist, Hanyang University Hospital', 'Clinical Professor, Pain Medicine, Hanyang University Hospital', '(Former) Director, Doctor To You Clinic', '(Former) Director, Pain Medicine, Ojeongbon Hospital', '(Former) Director, Narara Orthopedics', '(Former) Attending Director, Bupyeong Green Anesthesiology & Pain Clinic', '(Current) Western Medicine Director, Immunehospital'] },
+    학력: { ko: ['한양대학교 의과대학 의학과 졸업', '한양대학교 의과대학 마취통증의학과 석사', '한양대학교병원 통증의학과 전임의'], en: ['Graduated from Hanyang University, College of Medicine', 'M.S. in Anesthesiology & Pain Medicine, Hanyang University', 'Pain Medicine Fellow, Hanyang University Hospital'] },
+    활동: { ko: ['대한마취통증의학회 정회원', '대한골대사학회 정회원', '대한통증학회 정회원', '대한근골격계초음파학회 정회원', '대한척추통증학회 정회원', 'TPI 연수교육 이수', 'prolotherapy(인대증식치료) 교육 이수'], en: ['Korean Society of Anesthesiology Regular Member', 'Korean Bone Metabolism Society Regular Member', 'Korean Pain Society Regular Member', 'Korean Musculoskeletal Ultrasound Society Regular Member', 'Korean Spinal Pain Society Regular Member', 'TPI (Trigger Point Injection) Training Completed', 'Prolotherapy Training Completed'] },
   },
   { id: 16, branch: 'gwangmyeong',
     name: { ko: '하정빈', en: 'Ha Jeong-bin', ru: 'Ха Чонбин', zh: '河正彬', ja: '河正彬' },
@@ -242,11 +242,11 @@ const DOCTORS = [
     subspecialty: { ko: '통합면역 한방내과', en: 'KM Internal Medicine · Immuno-Oncology', ru: 'Внутренняя КМ · Иммуноонкология', zh: '韩方内科·免疫肿瘤', ja: '韓方内科・免疫腫瘍' },
     photo: 'https://immunehospital.com/uploads/doctors/68ac238878a855.69829943.jpg',
     thumb: 'https://immunehospital.com/uploads/doctors/68ac2388788076.62890527.jpg',
-    keywords: ['#친절한','#꼼꼼한','#빠른대응','#상담충분','#믿음을주는'],
-    경력: ['한방내과 전문의', '대한통합암학회 인증 통합암치료 인정의', '대한한방비만학회 비만치료 인증 한의사', '(前) 사랑한방병원 진료원장', '(前) 참바른한방병원 수석원장', '(現) 면력한방병원 원장'],
-    학력: ['대구한의대학교 한의학과 차석 졸업', '경희대학교 동서의학대학원 한의학 석사', '경희대학교 한방병원 일반/전문 수련의 수료'],
-    활동: ['대한한방내과학회 평생회원', '대한통합암학회 정회원', '대한한방비만학회 정회원', '경희대 CMS Winter Workshop on Data-Driven Medicine 수료', '경희대 동서의학대학원 우수 학위논문상 수상'],
-    논문: ['경관 영양으로 유발된 소음인 설사에 관한 한방 처치 1례', '뇌졸중 환자의 실어증에 대한 전침 치료 : 체계적 문헌 고찰'],
+    keywords: { ko: ['#친절한','#꼼꼼한','#빠른대응','#상담충분','#믿음을주는'], en: ['#Friendly','#Thorough','#Responsive','#ThoroughConsult','#Trustworthy'] },
+    경력: { ko: ['한방내과 전문의', '대한통합암학회 인증 통합암치료 인정의', '대한한방비만학회 비만치료 인증 한의사', '(前) 사랑한방병원 진료원장', '(前) 참바른한방병원 수석원장', '(現) 면력한방병원 원장'], en: ['KM Internal Medicine Specialist', 'Integrative Oncology Certified Specialist, Korean Society of Integrative Oncology', 'Certified Obesity Treatment KM Doctor, Korean KM Obesity Society', '(Former) Attending Director, Sarang KM Hospital', '(Former) Senior Director, Chambareun KM Hospital', '(Current) Director, Immunehospital'] },
+    학력: { ko: ['대구한의대학교 한의학과 차석 졸업', '경희대학교 동서의학대학원 한의학 석사', '경희대학교 한방병원 일반/전문 수련의 수료'], en: ['Graduated 2nd in class from Daegu Haany University, Korean Medicine', 'M.S. in KM, Kyung Hee University East-West Medicine Graduate School', 'Completed residency at Kyung Hee University KM Hospital'] },
+    활동: { ko: ['대한한방내과학회 평생회원', '대한통합암학회 정회원', '대한한방비만학회 정회원', '경희대 CMS Winter Workshop on Data-Driven Medicine 수료', '경희대 동서의학대학원 우수 학위논문상 수상'], en: ['Korean KM Internal Medicine Society Lifetime Member', 'Korean Society of Integrative Oncology Regular Member', 'Korean KM Obesity Society Regular Member', 'Kyung Hee CMS Winter Workshop on Data-Driven Medicine', 'Outstanding Thesis Award, Kyung Hee East-West Medicine Graduate School'] },
+    논문: { ko: ['경관 영양으로 유발된 소음인 설사에 관한 한방 처치 1례', '뇌졸중 환자의 실어증에 대한 전침 치료 : 체계적 문헌 고찰'], en: ['A case of Soeumin diarrhea induced by tube feeding treated with herbal medicine', 'Electroacupuncture for post-stroke aphasia: a systematic review'] },
   },
   { id: 17, branch: 'gwangmyeong',
     name: { ko: '오재우', en: 'Oh Jae-woo', ru: 'О Чэу', zh: '吴在佑', ja: '呉在佑' },
@@ -254,11 +254,11 @@ const DOCTORS = [
     subspecialty: { ko: '통증재활 한방신경정신과', en: 'KM Neuropsychiatry · Pain Rehab', ru: 'Нейропсихиатрия КМ', zh: '韩方神经精神科·疼痛康复', ja: '韓方神経精神科・疼痛リハ' },
     photo: 'https://immunehospital.com/uploads/doctors/68ac24c0008ac3.71274446.jpg',
     thumb: 'https://immunehospital.com/uploads/doctors/68ac24c0006643.02621332.jpg',
-    keywords: ['#정확한','#쉬운설명','#섬세한','#소통이좋은','#신뢰가는','#공감있는'],
-    경력: ['강남자생한방병원 한방신경정신과 전문의', '(前) 자생한방병원 진료원장', '(現) 면력한방병원 원장'],
-    학력: ['한방신경정신과 전문의', '경원대학교 한의과대학', '가천대학교 한의학대학원 석사'],
-    활동: ['대한한방신경정신과학회 평생회원', '대한한방신경정신과학회 전문의이사', '척추신경추나의학회 정회원'],
-    논문: ['Long term follow-up of cervical disc herniation with integrated CAM (BMC CAM, 2016)', 'Snake Venom synergized Cytotoxic Effect of NK Cells on Lung Cancer (2016)', '외 4편'],
+    keywords: { ko: ['#정확한','#쉬운설명','#섬세한','#소통이좋은','#신뢰가는','#공감있는'], en: ['#Precise','#ClearExplanation','#Attentive','#Communicative','#Reliable','#Empathetic'] },
+    경력: { ko: ['강남자생한방병원 한방신경정신과 전문의', '(前) 자생한방병원 진료원장', '(現) 면력한방병원 원장'], en: ['KM Neuropsychiatry Specialist, Gangnam Jaseng KM Hospital', '(Former) Attending Director, Jaseng KM Hospital', '(Current) Director, Immunehospital'] },
+    학력: { ko: ['한방신경정신과 전문의', '경원대학교 한의과대학', '가천대학교 한의학대학원 석사'], en: ['KM Neuropsychiatry Specialist', 'Kyungwon University, College of Korean Medicine', 'M.S., Gachon University Graduate School of Korean Medicine'] },
+    활동: { ko: ['대한한방신경정신과학회 평생회원', '대한한방신경정신과학회 전문의이사', '척추신경추나의학회 정회원'], en: ['Korean KM Neuropsychiatry Society Lifetime Member', 'Board Director, Korean KM Neuropsychiatry Society', 'Spinal Nerve Chuna Medicine Society Regular Member'] },
+    논문: { ko: ['Long term follow-up of cervical disc herniation with integrated CAM (BMC CAM, 2016)', 'Snake Venom synergized Cytotoxic Effect of NK Cells on Lung Cancer (2016)', '외 4편'], en: ['Long term follow-up of cervical disc herniation with integrated CAM (BMC CAM, 2016)', 'Snake Venom synergized Cytotoxic Effect of NK Cells on Lung Cancer (2016)', '+ 4 more'] },
   },
   { id: 18, branch: 'gwangmyeong',
     name: { ko: '김상현', en: 'Kim Sang-hyeon', ru: 'Ким Сангхён', zh: '金相贤', ja: '金相賢' },
@@ -266,10 +266,10 @@ const DOCTORS = [
     subspecialty: { ko: '통합면역', en: 'Integrative Immunology', ru: 'Интегративная иммунология', zh: '综合免疫', ja: '統合免疫学' },
     photo: 'https://immunehospital.com/uploads/doctors/68ac25e7cc1487.42823820.jpg',
     thumb: 'https://immunehospital.com/uploads/doctors/68ac25e7cbec30.65434200.jpg',
-    keywords: ['#자세한설명','#상담충분','#질문환영','#진심있는','#침착한'],
-    경력: ['(前) 힘찬큐한방병원 수석원장', '(現) 면력한방병원 진료원장'],
-    학력: ['경원대 한의학과 졸업'],
-    활동: ['스위스 정부 장학생', '제네바의대 면역학 연구실 연구원', '(사)대한통합암학회 인증 통합암치료 인정의'],
+    keywords: { ko: ['#자세한설명','#상담충분','#질문환영','#진심있는','#침착한'], en: ['#DetailedExplanation','#ThoroughConsult','#QuestionsWelcome','#Sincere','#Composed'] },
+    경력: { ko: ['(前) 힘찬큐한방병원 수석원장', '(現) 면력한방병원 진료원장'], en: ['(Former) Senior Director, Himchan Q KM Hospital', '(Current) Attending Director, Immunehospital'] },
+    학력: { ko: ['경원대 한의학과 졸업'], en: ['Graduated from Kyungwon University, Korean Medicine'] },
+    활동: { ko: ['스위스 정부 장학생', '제네바의대 면역학 연구실 연구원', '(사)대한통합암학회 인증 통합암치료 인정의'], en: ['Swiss Government Scholarship Recipient', 'Researcher, Immunology Lab, University of Geneva Medical School', 'Integrative Oncology Certified Specialist, Korean Society of Integrative Oncology'] },
   },
   { id: 19, branch: 'gwangmyeong',
     name: { ko: '김주완', en: 'Kim Ju-wan', ru: 'Ким Чуван', zh: '金周完', ja: '金周完' },
@@ -277,10 +277,10 @@ const DOCTORS = [
     subspecialty: { ko: '통증재활', en: 'Pain Rehabilitation', ru: 'Реабилитация боли', zh: '疼痛康复', ja: '疼痛リハビリ' },
     photo: 'https://immunehospital.com/uploads/doctors/68ac266eec3443.90360671.jpg',
     thumb: 'https://immunehospital.com/uploads/doctors/68ac266eec0d10.41842964.jpg',
-    keywords: ['#친절한','#꼼꼼한','#정확한','#배려깊은','#소통이좋은','#신뢰가는'],
-    경력: ['(前) 구산한의원 원장', '(前) 김정기한의원 원장', '(現) 면력한방병원 원장'],
-    학력: ['대구한의대학교 한의학과대학 졸업', '대구한의대 부속한방병원 수련의', '울진군 보건의료원 한방진료과장', '성주군 보건소 한방진료과장'],
-    활동: ['척추 신경 추나 의학회 정회원', '[MBC] \'이상한 나라의 며느리\' 방송'],
+    keywords: { ko: ['#친절한','#꼼꼼한','#정확한','#배려깊은','#소통이좋은','#신뢰가는'], en: ['#Friendly','#Thorough','#Precise','#Considerate','#Communicative','#Reliable'] },
+    경력: { ko: ['(前) 구산한의원 원장', '(前) 김정기한의원 원장', '(現) 면력한방병원 원장'], en: ['(Former) Director, Gusan KM Clinic', '(Former) Director, Kim Jeonggi KM Clinic', '(Current) Director, Immunehospital'] },
+    학력: { ko: ['대구한의대학교 한의학과대학 졸업', '대구한의대 부속한방병원 수련의', '울진군 보건의료원 한방진료과장', '성주군 보건소 한방진료과장'], en: ['Graduated from Daegu Haany University, College of Korean Medicine', 'Resident, Daegu Haany University KM Hospital', 'KM Department Chief, Uljin Public Health Center', 'KM Department Chief, Seongju Public Health Center'] },
+    활동: { ko: ['척추 신경 추나 의학회 정회원', '[MBC] \'이상한 나라의 며느리\' 방송'], en: ['Spinal Nerve Chuna Medicine Society Regular Member', '[MBC] TV appearance on "Wonderful Daughter-in-Law"'] },
   },
   { id: 20, branch: 'gwangmyeong',
     name: { ko: '조성원', en: 'Cho Seong-won', ru: 'Чо Сонвон', zh: '赵成元', ja: '趙成元' },
@@ -288,10 +288,10 @@ const DOCTORS = [
     subspecialty: { ko: '통증재활', en: 'Pain Rehabilitation', ru: 'Реабилитация боли', zh: '疼痛康复', ja: '疼痛リハビリ' },
     photo: 'https://immunehospital.com/uploads/doctors/68ac27045a5df4.11570705.jpg',
     thumb: 'https://immunehospital.com/uploads/doctors/68ac27045a39e4.56645724.jpg',
-    keywords: ['#꼼꼼한','#정확한','#빠른대응','#정성스러운','#진심있는','#친화적인'],
-    경력: ['(前) 숭실한의원 진료원장', '(前) 자양으뜸한의원 대표원장', '(前) 맘편한요양병원 한의과장', '(現) 면력한방병원 진료원장'],
-    학력: ['경희대학교 한의과대학 졸업', '진천군 보건소 공중보건의사'],
-    활동: ['한방비만학회 회원', '산돌한의원 통증치료사관학교 과정 이수', '대한스포츠한의학회 팀닥터과정 수료'],
+    keywords: { ko: ['#꼼꼼한','#정확한','#빠른대응','#정성스러운','#진심있는','#친화적인'], en: ['#Thorough','#Precise','#Responsive','#Devoted','#Sincere','#Personable'] },
+    경력: { ko: ['(前) 숭실한의원 진료원장', '(前) 자양으뜸한의원 대표원장', '(前) 맘편한요양병원 한의과장', '(現) 면력한방병원 진료원장'], en: ['(Former) Attending Director, Soongsil KM Clinic', '(Former) Chief Director, Jayang Eutteum KM Clinic', '(Former) KM Department Chief, Mampyeonhan Long-term Care Hospital', '(Current) Attending Director, Immunehospital'] },
+    학력: { ko: ['경희대학교 한의과대학 졸업', '진천군 보건소 공중보건의사'], en: ['Graduated from Kyung Hee University, College of Korean Medicine', 'Public Health Doctor, Jincheon Public Health Center'] },
+    활동: { ko: ['한방비만학회 회원', '산돌한의원 통증치료사관학교 과정 이수', '대한스포츠한의학회 팀닥터과정 수료'], en: ['KM Obesity Society Member', 'Sandol KM Clinic Pain Treatment Academy Completed', 'Korean Sports KM Society Team Doctor Course Completed'] },
   },
 ];
 
@@ -328,14 +328,21 @@ function StatusBadge({ status, l }) {
   );
 }
 
+/* Helper: get localized array data (supports both plain arrays and {ko,en,...} objects) */
+const la = (obj, lang) => {
+  if (!obj) return [];
+  if (Array.isArray(obj)) return obj;
+  return obj[lang] || obj.en || obj.ko || [];
+};
+
 /* ── Doctor Profile Modal (Large) ── */
-function DoctorModal({ doc, l, onClose }) {
+function DoctorModal({ doc, l, lang, onClose }) {
   if (!doc) return null;
   const sections = [
-    { key: '경력', icon: <Briefcase size={16} />, label: l(L.section.career), data: doc.경력 },
-    { key: '학력', icon: <GraduationCap size={16} />, label: l(L.section.education), data: doc.학력 },
-    { key: '활동', icon: <Activity size={16} />, label: l(L.section.activities), data: doc.활동 },
-    { key: '논문', icon: <BookOpen size={16} />, label: l(L.section.publications), data: doc.논문 },
+    { key: '경력', icon: <Briefcase size={16} />, label: l(L.section.career), data: la(doc.경력, lang) },
+    { key: '학력', icon: <GraduationCap size={16} />, label: l(L.section.education), data: la(doc.학력, lang) },
+    { key: '활동', icon: <Activity size={16} />, label: l(L.section.activities), data: la(doc.활동, lang) },
+    { key: '논문', icon: <BookOpen size={16} />, label: l(L.section.publications), data: la(doc.논문, lang) },
   ];
 
   return (
@@ -354,9 +361,9 @@ function DoctorModal({ doc, l, onClose }) {
               {doc.subspecialty && <p className="text-white/70 text-sm mt-1">{l(doc.subspecialty)}</p>}
             </div>
           </div>
-          {doc.keywords?.length > 0 && (
+          {la(doc.keywords, lang).length > 0 && (
             <div className="flex flex-wrap gap-2 mt-5">
-              {doc.keywords.map((kw, i) => (
+              {la(doc.keywords, lang).map((kw, i) => (
                 <span key={i} className="px-2.5 py-1 bg-white/15 text-white/90 text-xs rounded-full">{kw}</span>
               ))}
             </div>
@@ -388,7 +395,7 @@ function DoctorModal({ doc, l, onClose }) {
 }
 
 /* ── Doctor Card (Large PC / Compact Mobile) ── */
-function DoctorCard({ doc, l, onSelect }) {
+function DoctorCard({ doc, l, lang, onSelect }) {
   const isLeader = !!doc.role;
   const roleBadge = doc.role === 'ceo' ? { label: 'CEO', color: 'bg-emerald-600 text-white' }
     : doc.role === 'wm' ? { label: 'WM', color: 'bg-blue-600 text-white' }
@@ -396,9 +403,11 @@ function DoctorCard({ doc, l, onSelect }) {
     : null;
 
   // 대표들은 경력 첫줄, 일반은 학력 첫줄 미리보기
+  const career = la(doc.경력, lang);
+  const edu = la(doc.학력, lang);
   const previewLines = [];
-  if (doc.경력?.length) previewLines.push(...doc.경력.slice(0, 2));
-  if (doc.학력?.length && previewLines.length < 2) previewLines.push(...doc.학력.slice(0, 2 - previewLines.length));
+  if (career.length) previewLines.push(...career.slice(0, 2));
+  if (edu.length && previewLines.length < 2) previewLines.push(...edu.slice(0, 2 - previewLines.length));
 
   return (
     <div
@@ -432,9 +441,9 @@ function DoctorCard({ doc, l, onSelect }) {
           )}
 
           {/* Keywords */}
-          {doc.keywords?.length > 0 && (
+          {la(doc.keywords, lang).length > 0 && (
             <div className="flex flex-wrap gap-1 mt-3">
-              {doc.keywords.slice(0, 5).map((kw, i) => (
+              {la(doc.keywords, lang).slice(0, 5).map((kw, i) => (
                 <span key={i} className="px-2 py-0.5 bg-gray-50 text-gray-500 text-[11px] rounded-full">{kw}</span>
               ))}
             </div>
@@ -451,14 +460,14 @@ function DoctorCard({ doc, l, onSelect }) {
 
           {/* Footer stats */}
           <div className="flex items-center gap-4 mt-auto pt-3 text-xs text-gray-300">
-            {doc.논문?.length > 0 && (
-              <span className="flex items-center gap-1 text-gray-400"><BookOpen size={11} /> {doc.논문.length}</span>
+            {la(doc.논문, lang).length > 0 && (
+              <span className="flex items-center gap-1 text-gray-400"><BookOpen size={11} /> {la(doc.논문, lang).length}</span>
             )}
-            {doc.경력?.length > 0 && (
-              <span className="flex items-center gap-1 text-gray-400"><Briefcase size={11} /> {doc.경력.length}</span>
+            {career.length > 0 && (
+              <span className="flex items-center gap-1 text-gray-400"><Briefcase size={11} /> {career.length}</span>
             )}
-            {doc.활동?.length > 0 && (
-              <span className="flex items-center gap-1 text-gray-400"><Activity size={11} /> {doc.활동.length}</span>
+            {la(doc.활동, lang).length > 0 && (
+              <span className="flex items-center gap-1 text-gray-400"><Activity size={11} /> {la(doc.활동, lang).length}</span>
             )}
             <span className="ml-auto text-emerald-600 font-semibold group-hover:text-emerald-700 transition text-xs">
               {l(L.view_profile)} →
@@ -507,7 +516,7 @@ export default function HospitalsClient() {
 
   return (
     <div className="min-h-screen bg-white">
-      {selectedDoctor && <DoctorModal doc={selectedDoctor} l={l} onClose={() => setSelectedDoctor(null)} />}
+      {selectedDoctor && <DoctorModal doc={selectedDoctor} l={l} lang={lang} onClose={() => setSelectedDoctor(null)} />}
 
       {/* ── Hero ── */}
       <section className="relative bg-gradient-to-br from-emerald-800 via-teal-700 to-emerald-900 text-white overflow-hidden">
@@ -615,7 +624,7 @@ export default function HospitalsClient() {
                   <div className="border-t-2 border-gray-100 bg-gray-50/30 px-4 sm:px-6 md:px-8 py-6 md:py-8">
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-5">
                       {docs.map(doc => (
-                        <DoctorCard key={doc.id} doc={doc} l={l} onSelect={setSelectedDoctor} />
+                        <DoctorCard key={doc.id} doc={doc} l={l} lang={lang} onSelect={setSelectedDoctor} />
                       ))}
                     </div>
                   </div>
