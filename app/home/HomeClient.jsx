@@ -261,28 +261,22 @@ export default function HomeClient() {
           <div className="absolute bottom-0 right-1/4 w-[400px] h-[400px] bg-emerald-500/10 rounded-full blur-3xl" />
         </div>
 
-        <div className="relative max-w-6xl mx-auto px-4 py-20 md:py-32">
+        <div className="relative max-w-6xl mx-auto px-4 py-12 md:py-24">
           <div className="text-center">
-            {/* Hero badge removed */}
-            <h1 className="text-4xl md:text-6xl font-extrabold leading-tight mb-6 whitespace-pre-line tracking-tight">
+            <h1 className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold leading-tight mb-4 md:mb-6 whitespace-pre-line tracking-tight">
               {l(L.hero.title)}
             </h1>
-            <p className="text-base md:text-lg text-slate-300 mb-10 max-w-2xl mx-auto whitespace-pre-line leading-relaxed">
+            <p className="text-sm md:text-base lg:text-lg text-slate-300 mb-6 md:mb-8 max-w-2xl mx-auto whitespace-pre-line leading-relaxed">
               {l(L.hero.subtitle)}
             </p>
             <button
               onClick={() => router.push("/intake")}
-              className="group bg-gradient-to-r from-teal-500 to-emerald-500 text-white font-bold text-lg px-10 py-5 rounded-2xl shadow-2xl shadow-teal-500/30 hover:shadow-teal-500/50 hover:scale-105 transition-all duration-300 inline-flex items-center gap-3"
+              className="group bg-gradient-to-r from-teal-500 to-emerald-500 text-white font-bold text-base md:text-lg px-8 py-4 md:px-10 md:py-5 rounded-2xl shadow-2xl shadow-teal-500/30 hover:shadow-teal-500/50 hover:scale-105 transition-all duration-300 inline-flex items-center gap-2 md:gap-3"
             >
               {l(L.hero.cta)}
-              <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
+              <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
             </button>
-            <p className="text-slate-400 text-sm mt-4">{l(L.hero.ctaSub)}</p>
-            <div className="flex flex-wrap justify-center gap-2 mt-10">
-              {["🇰🇷 한국어", "🇺🇸 English", "🇷🇺 Русский", "🇨🇳 中文", "🇯🇵 日本語", "🇰🇿 Қазақша"].map((t, i) => (
-                <span key={i} className="text-xs bg-white/10 backdrop-blur-sm rounded-full px-3 py-1.5 text-slate-300 border border-white/10">{t}</span>
-              ))}
-            </div>
+            <p className="text-slate-400 text-xs md:text-sm mt-3">{l(L.hero.ctaSub)}</p>
           </div>
         </div>
       </section>
@@ -290,17 +284,17 @@ export default function HomeClient() {
       {/* ══════════════════════════════════════════
           STATS — Why Korea?
           ══════════════════════════════════════════ */}
-      <section className="bg-white py-20">
+      <section className="bg-white py-10 md:py-16">
         <div className="max-w-6xl mx-auto px-4">
-          <div className="text-center mb-14">
-            <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 mb-4">{l(L.stats.title)}</h2>
-            <p className="text-gray-500 max-w-2xl mx-auto">{l(L.stats.subtitle)}</p>
+          <div className="text-center mb-8 md:mb-12">
+            <h2 className="text-2xl md:text-3xl lg:text-4xl font-extrabold text-gray-900 mb-2 md:mb-4">{l(L.stats.title)}</h2>
+            <p className="text-gray-500 text-sm md:text-base max-w-2xl mx-auto">{l(L.stats.subtitle)}</p>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-6">
             {L.stats.items.map((item, i) => (
-              <div key={i} className="text-center p-6 rounded-2xl bg-gradient-to-b from-teal-50 to-white border border-teal-100 hover:shadow-lg transition-shadow">
-                <div className="text-4xl md:text-5xl font-black text-teal-600 mb-3">{typeof item.value === 'string' ? item.value : l(item.value)}</div>
-                <div className="text-xs md:text-sm text-gray-500 font-medium whitespace-pre-line leading-relaxed">{l(item.label)}</div>
+              <div key={i} className="text-center p-4 md:p-6 rounded-xl md:rounded-2xl bg-gradient-to-b from-teal-50 to-white border border-teal-100 hover:shadow-lg transition-shadow">
+                <div className="text-2xl sm:text-3xl md:text-5xl font-black text-teal-600 mb-1 md:mb-3">{typeof item.value === 'string' ? item.value : l(item.value)}</div>
+                <div className="text-[10px] sm:text-xs md:text-sm text-gray-500 font-medium whitespace-pre-line leading-snug md:leading-relaxed">{l(item.label)}</div>
               </div>
             ))}
           </div>
@@ -311,16 +305,15 @@ export default function HomeClient() {
           DOCTORS — 협력 의료진
           📸 교체 방법: DOCTORS_DATA 배열에서 img, name, title, specialty 수정
           ══════════════════════════════════════════ */}
-      <section className="bg-slate-50 py-20">
+      <section className="bg-slate-50 py-10 md:py-16">
         <div className="max-w-6xl mx-auto px-4">
-          <div className="text-center mb-14">
-            <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 mb-4">{l(L.doctors.title)}</h2>
-            <p className="text-gray-500 max-w-2xl mx-auto">{l(L.doctors.subtitle)}</p>
+          <div className="text-center mb-8 md:mb-12">
+            <h2 className="text-2xl md:text-3xl lg:text-4xl font-extrabold text-gray-900 mb-2 md:mb-4">{l(L.doctors.title)}</h2>
+            <p className="text-gray-500 text-sm md:text-base max-w-2xl mx-auto">{l(L.doctors.subtitle)}</p>
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-6">
             {DOCTORS_DATA.map((doc, i) => (
-              <div key={i} className="bg-white rounded-2xl overflow-hidden border border-gray-100 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group">
-                {/* 📸 의사 사진 — 400x400px 정사각형 권장 */}
+              <div key={i} className="bg-white rounded-xl md:rounded-2xl overflow-hidden border border-gray-100 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group">
                 <div className="aspect-square overflow-hidden bg-gray-100">
                   <img
                     src={doc.img}
@@ -328,26 +321,20 @@ export default function HomeClient() {
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                   />
                 </div>
-                <div className="p-5">
-                  <h3 className="font-bold text-lg text-gray-900">{l(doc.name)}</h3>
-                  <p className="text-teal-600 text-sm font-medium mt-1">{l(doc.title)}</p>
-                  <p className="text-gray-400 text-xs mt-1">{l(doc.specialty)}</p>
-                  <div className="flex items-center gap-1 mt-3">
-                    <GraduationCap size={14} className="text-gray-400" />
-                    <span className="text-xs text-gray-400">
-                      {doc.exp} {lang === "ko" ? "년 경력" : "years exp."}
-                    </span>
-                  </div>
+                <div className="p-3 md:p-5">
+                  <h3 className="font-bold text-sm md:text-lg text-gray-900 leading-snug">{l(doc.name)}</h3>
+                  <p className="text-teal-600 text-xs md:text-sm font-medium mt-0.5 md:mt-1 leading-snug">{l(doc.title)}</p>
+                  <p className="text-gray-400 text-[10px] md:text-xs mt-0.5 md:mt-1 line-clamp-1">{l(doc.specialty)}</p>
                 </div>
               </div>
             ))}
           </div>
-          <div className="text-center mt-8">
+          <div className="text-center mt-5 md:mt-8">
             <button
               onClick={() => router.push("/hospitals")}
-              className="text-teal-600 font-semibold text-sm hover:text-teal-700 inline-flex items-center gap-1 transition"
+              className="text-teal-600 font-semibold text-xs md:text-sm hover:text-teal-700 inline-flex items-center gap-1 transition"
             >
-              {l(L.doctors.viewAll)} <ChevronRight size={16} />
+              {l(L.doctors.viewAll)} <ChevronRight size={14} />
             </button>
           </div>
         </div>
@@ -356,13 +343,13 @@ export default function HomeClient() {
       {/* ══════════════════════════════════════════
           SERVICES — What HEALO Does
           ══════════════════════════════════════════ */}
-      <section className="bg-white py-20">
+      <section className="bg-white py-10 md:py-16">
         <div className="max-w-6xl mx-auto px-4">
-          <div className="text-center mb-14">
-            <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 mb-4">{l(L.services.title)}</h2>
-            <p className="text-gray-500 max-w-2xl mx-auto">{l(L.services.subtitle)}</p>
+          <div className="text-center mb-8 md:mb-12">
+            <h2 className="text-2xl md:text-3xl lg:text-4xl font-extrabold text-gray-900 mb-2 md:mb-4">{l(L.services.title)}</h2>
+            <p className="text-gray-500 text-sm md:text-base max-w-2xl mx-auto">{l(L.services.subtitle)}</p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-6">
             {L.services.items.map((item, i) => {
               const Icon = ICON_MAP[item.icon];
               const colors = [
@@ -372,12 +359,13 @@ export default function HomeClient() {
                 { bg: "bg-purple-100", icon: "text-purple-600", border: "border-purple-200" },
               ][i];
               return (
-                <div key={i} className={`bg-white rounded-2xl p-7 border ${colors.border} hover:shadow-lg transition-shadow duration-300`}>
-                  <div className={`w-12 h-12 ${colors.bg} rounded-xl flex items-center justify-center mb-5`}>
-                    <Icon size={24} className={colors.icon} />
+                <div key={i} className={`bg-white rounded-xl md:rounded-2xl p-5 md:p-7 border ${colors.border} hover:shadow-lg transition-shadow duration-300`}>
+                  <div className={`w-10 h-10 md:w-12 md:h-12 ${colors.bg} rounded-lg md:rounded-xl flex items-center justify-center mb-3 md:mb-5`}>
+                    <Icon size={20} className={`${colors.icon} md:hidden`} />
+                    <Icon size={24} className={`${colors.icon} hidden md:block`} />
                   </div>
-                  <h3 className="font-bold text-xl mb-3 text-gray-900">{l(item.title)}</h3>
-                  <p className="text-gray-500 text-sm leading-relaxed">{l(item.desc)}</p>
+                  <h3 className="font-bold text-base md:text-xl mb-2 md:mb-3 text-gray-900">{l(item.title)}</h3>
+                  <p className="text-gray-500 text-xs md:text-sm leading-relaxed">{l(item.desc)}</p>
                 </div>
               );
             })}
@@ -388,21 +376,21 @@ export default function HomeClient() {
       {/* ══════════════════════════════════════════
           PROCESS — How It Works
           ══════════════════════════════════════════ */}
-      <section className="bg-slate-50 py-20">
+      <section className="bg-slate-50 py-10 md:py-16">
         <div className="max-w-6xl mx-auto px-4">
-          <h2 className="text-3xl md:text-4xl font-extrabold text-center text-gray-900 mb-14">{l(L.process.title)}</h2>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 md:gap-4">
+          <h2 className="text-2xl md:text-3xl lg:text-4xl font-extrabold text-center text-gray-900 mb-8 md:mb-12">{l(L.process.title)}</h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
             {L.process.steps.map((step, i) => (
-              <div key={i} className="relative flex md:flex-col items-start md:items-center gap-4 md:gap-0 md:text-center">
+              <div key={i} className="relative flex flex-col items-center text-center">
                 {i < 3 && (
                   <div className="hidden md:block absolute top-6 left-[calc(50%+28px)] w-[calc(100%-56px)] h-0.5 bg-gradient-to-r from-teal-300 to-teal-100" />
                 )}
-                <div className="w-12 h-12 md:w-14 md:h-14 bg-gradient-to-br from-teal-500 to-emerald-500 rounded-2xl flex items-center justify-center text-white font-black text-lg md:mb-4 shrink-0 relative z-10 shadow-lg shadow-teal-500/20">
+                <div className="w-10 h-10 md:w-14 md:h-14 bg-gradient-to-br from-teal-500 to-emerald-500 rounded-xl md:rounded-2xl flex items-center justify-center text-white font-black text-sm md:text-lg mb-2 md:mb-4 shrink-0 relative z-10 shadow-lg shadow-teal-500/20">
                   {step.num}
                 </div>
                 <div>
-                  <h3 className="font-bold text-base md:text-lg text-gray-900 mb-1">{l(step.title)}</h3>
-                  <p className="text-gray-400 text-sm">{l(step.desc)}</p>
+                  <h3 className="font-bold text-xs md:text-lg text-gray-900 mb-0.5 md:mb-1">{l(step.title)}</h3>
+                  <p className="text-gray-400 text-[10px] md:text-sm leading-snug">{l(step.desc)}</p>
                 </div>
               </div>
             ))}
@@ -413,21 +401,21 @@ export default function HomeClient() {
       {/* ══════════════════════════════════════════
           CANCER TYPES
           ══════════════════════════════════════════ */}
-      <section className="bg-white py-20">
+      <section className="bg-white py-10 md:py-16">
         <div className="max-w-6xl mx-auto px-4">
-          <h2 className="text-3xl md:text-4xl font-extrabold text-center text-gray-900 mb-14">{l(L.cancers.title)}</h2>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          <h2 className="text-2xl md:text-3xl lg:text-4xl font-extrabold text-center text-gray-900 mb-8 md:mb-12">{l(L.cancers.title)}</h2>
+          <div className="grid grid-cols-3 md:grid-cols-6 gap-2 md:gap-4">
             {L.cancers.items.map((c, i) => (
-              <div key={i} onClick={() => router.push("/treatments")} className="bg-white rounded-2xl p-5 text-center cursor-pointer hover:shadow-xl hover:-translate-y-1 transition-all duration-300 border border-gray-100 group">
-                <div className="text-4xl mb-3">{c.emoji}</div>
-                <div className="font-bold text-sm text-gray-800 mb-1">{l(c.label)}</div>
-                <div className="text-[11px] text-teal-600 font-semibold">{l(c.stat)}</div>
+              <div key={i} onClick={() => router.push("/treatments")} className="bg-white rounded-xl md:rounded-2xl p-3 md:p-5 text-center cursor-pointer hover:shadow-xl hover:-translate-y-1 transition-all duration-300 border border-gray-100 group">
+                <div className="text-2xl md:text-4xl mb-1 md:mb-3">{c.emoji}</div>
+                <div className="font-bold text-xs md:text-sm text-gray-800 mb-0.5 md:mb-1">{l(c.label)}</div>
+                <div className="text-[9px] md:text-[11px] text-teal-600 font-semibold leading-tight">{l(c.stat)}</div>
               </div>
             ))}
           </div>
-          <div className="text-center mt-8">
-            <button onClick={() => router.push("/treatments")} className="text-teal-600 font-semibold text-sm hover:text-teal-700 inline-flex items-center gap-1 transition">
-              {lang === "ko" ? "암종별 상세 치료 안내 보기" : "View detailed treatment guides"} <ChevronRight size={16} />
+          <div className="text-center mt-5 md:mt-8">
+            <button onClick={() => router.push("/treatments")} className="text-teal-600 font-semibold text-xs md:text-sm hover:text-teal-700 inline-flex items-center gap-1 transition">
+              {lang === "ko" ? "암종별 상세 치료 안내 보기" : "View detailed treatment guides"} <ChevronRight size={14} />
             </button>
           </div>
         </div>
@@ -437,13 +425,13 @@ export default function HomeClient() {
           PARTNER HOSPITALS
           📸 교체 방법: PARTNERS_DATA 배열에서 img, name, desc 수정
           ══════════════════════════════════════════ */}
-      <section className="bg-slate-50 py-20">
+      <section className="bg-slate-50 py-10 md:py-16">
         <div className="max-w-6xl mx-auto px-4">
-          <div className="text-center mb-14">
-            <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 mb-4">{l(L.partners.title)}</h2>
-            <p className="text-gray-500 max-w-2xl mx-auto">{l(L.partners.subtitle)}</p>
+          <div className="text-center mb-8 md:mb-12">
+            <h2 className="text-2xl md:text-3xl lg:text-4xl font-extrabold text-gray-900 mb-2 md:mb-4">{l(L.partners.title)}</h2>
+            <p className="text-gray-500 text-sm md:text-base max-w-2xl mx-auto">{l(L.partners.subtitle)}</p>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-5">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 md:gap-5">
             {PARTNERS_DATA.map((h, i) => {
               const isPartner = h.badge === "partner";
               const badgeClass = isPartner
@@ -456,17 +444,17 @@ export default function HomeClient() {
                 <div
                   key={i}
                   onClick={() => router.push(`/hospitals/${h.slug}`)}
-                  className="bg-white rounded-2xl overflow-hidden border border-gray-100 hover:shadow-xl hover:border-teal-200 transition-all duration-300 cursor-pointer group"
+                  className="bg-white rounded-xl md:rounded-2xl overflow-hidden border border-gray-100 hover:shadow-xl hover:border-teal-200 transition-all duration-300 cursor-pointer group"
                 >
-                  <div className="h-36 md:h-40 overflow-hidden bg-gray-100">
+                  <div className="h-24 sm:h-32 md:h-40 overflow-hidden bg-gray-100">
                     <img src={h.img} alt={l(h.name)} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                   </div>
-                  <div className="p-4">
-                    <div className={`inline-block text-[10px] font-semibold px-2 py-0.5 rounded-full mb-2 ${badgeClass}`}>
+                  <div className="p-2.5 md:p-4">
+                    <div className={`inline-block text-[9px] md:text-[10px] font-semibold px-1.5 md:px-2 py-0.5 rounded-full mb-1 md:mb-2 ${badgeClass}`}>
                       {badgeLabel}
                     </div>
-                    <h3 className="font-bold text-sm text-gray-900 mb-1 group-hover:text-teal-700 transition-colors leading-snug">{l(h.name)}</h3>
-                    <p className="text-gray-500 text-[11px] leading-relaxed line-clamp-2">{l(h.desc)}</p>
+                    <h3 className="font-bold text-xs md:text-sm text-gray-900 mb-0.5 md:mb-1 group-hover:text-teal-700 transition-colors leading-snug">{l(h.name)}</h3>
+                    <p className="text-gray-500 text-[10px] md:text-[11px] leading-snug md:leading-relaxed line-clamp-2 hidden sm:block">{l(h.desc)}</p>
                   </div>
                 </div>
               );
@@ -479,21 +467,21 @@ export default function HomeClient() {
           TESTIMONIALS — 환자 후기
           📸 교체 방법: TESTIMONIALS_DATA 배열에서 text, author 수정
           ══════════════════════════════════════════ */}
-      <section className="bg-white py-20">
+      <section className="bg-white py-10 md:py-16">
         <div className="max-w-6xl mx-auto px-4">
-          <h2 className="text-3xl md:text-4xl font-extrabold text-center text-gray-900 mb-14">{l(L.testimonials.title)}</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <h2 className="text-2xl md:text-3xl lg:text-4xl font-extrabold text-center text-gray-900 mb-8 md:mb-12">{l(L.testimonials.title)}</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-6">
             {TESTIMONIALS_DATA.map((t, i) => (
-              <div key={i} className="bg-gradient-to-b from-slate-50 to-white rounded-2xl p-7 border border-slate-100 flex flex-col">
-                <Quote size={24} className="text-teal-200 mb-4" />
-                <p className="text-gray-600 text-sm leading-relaxed flex-1">{l(t.text)}</p>
-                <div className="mt-6 pt-4 border-t border-gray-100">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-gradient-to-br from-teal-400 to-emerald-400 rounded-full flex items-center justify-center text-white font-bold text-sm">
+              <div key={i} className="bg-gradient-to-b from-slate-50 to-white rounded-xl md:rounded-2xl p-5 md:p-7 border border-slate-100 flex flex-col">
+                <Quote size={20} className="text-teal-200 mb-2 md:mb-4" />
+                <p className="text-gray-600 text-xs md:text-sm leading-relaxed flex-1 line-clamp-4 md:line-clamp-none">{l(t.text)}</p>
+                <div className="mt-4 md:mt-6 pt-3 md:pt-4 border-t border-gray-100">
+                  <div className="flex items-center gap-2 md:gap-3">
+                    <div className="w-8 h-8 md:w-10 md:h-10 bg-gradient-to-br from-teal-400 to-emerald-400 rounded-full flex items-center justify-center text-white font-bold text-xs md:text-sm">
                       {l(t.author).charAt(0)}
                     </div>
                     <div>
-                      <p className="text-sm font-semibold text-gray-800">{l(t.author)}</p>
+                      <p className="text-xs md:text-sm font-semibold text-gray-800">{l(t.author)}</p>
                       <div className="flex gap-0.5 mt-0.5">
                         {[...Array(5)].map((_, j) => <Star key={j} size={12} className="text-amber-400 fill-amber-400" />)}
                       </div>
@@ -509,17 +497,17 @@ export default function HomeClient() {
       {/* ══════════════════════════════════════════
           FAQ — 탭 + 아코디언
           ══════════════════════════════════════════ */}
-      <section className="bg-slate-50 py-20">
+      <section className="bg-slate-50 py-10 md:py-16">
         <div className="max-w-3xl mx-auto px-4">
-          <h2 className="text-3xl md:text-4xl font-extrabold text-center text-gray-900 mb-10">{l(L.faq.title)}</h2>
+          <h2 className="text-2xl md:text-3xl lg:text-4xl font-extrabold text-center text-gray-900 mb-6 md:mb-10">{l(L.faq.title)}</h2>
 
           {/* Tabs */}
-          <div className="flex justify-center gap-2 mb-8">
+          <div className="flex justify-center gap-1.5 md:gap-2 mb-6 md:mb-8">
             {Object.entries(L.faq.tabs).map(([key, label]) => (
               <button
                 key={key}
                 onClick={() => { setFaqTab(key); setOpenFaq(null); }}
-                className={`px-5 py-2.5 rounded-full text-sm font-medium transition-all ${
+                className={`px-3 md:px-5 py-2 md:py-2.5 rounded-full text-xs md:text-sm font-medium transition-all ${
                   faqTab === key
                     ? "bg-teal-600 text-white shadow-lg shadow-teal-500/20"
                     : "bg-white text-gray-500 hover:bg-gray-100 border border-gray-200"
@@ -531,20 +519,20 @@ export default function HomeClient() {
           </div>
 
           {/* Accordion */}
-          <div className="space-y-3">
+          <div className="space-y-2 md:space-y-3">
             {FAQ_DATA[faqTab]?.map((item, i) => {
               const isOpen = openFaq === `${faqTab}-${i}`;
               return (
                 <div key={i} className="bg-white rounded-xl border border-gray-100 overflow-hidden">
                   <button
                     onClick={() => setOpenFaq(isOpen ? null : `${faqTab}-${i}`)}
-                    className="w-full flex items-center justify-between p-5 text-left hover:bg-gray-50 transition"
+                    className="w-full flex items-center justify-between p-4 md:p-5 text-left hover:bg-gray-50 transition"
                   >
-                    <span className="font-semibold text-gray-800 text-sm pr-4">{l(item.q)}</span>
+                    <span className="font-semibold text-gray-800 text-xs md:text-sm pr-4">{l(item.q)}</span>
                     <ChevronDown size={18} className={`text-gray-400 shrink-0 transition-transform duration-300 ${isOpen ? "rotate-180" : ""}`} />
                   </button>
                   <div className={`overflow-hidden transition-all duration-300 ${isOpen ? "max-h-96 opacity-100" : "max-h-0 opacity-0"}`}>
-                    <div className="px-5 pb-5 text-gray-500 text-sm leading-relaxed">{l(item.a)}</div>
+                    <div className="px-4 md:px-5 pb-4 md:pb-5 text-gray-500 text-xs md:text-sm leading-relaxed">{l(item.a)}</div>
                   </div>
                 </div>
               );
@@ -556,26 +544,26 @@ export default function HomeClient() {
       {/* ══════════════════════════════════════════
           EMERGENCY CTA — 즉시 상담
           ══════════════════════════════════════════ */}
-      <section className="bg-white py-16">
+      <section className="bg-white py-10 md:py-16">
         <div className="max-w-4xl mx-auto px-4">
-          <div className="bg-gradient-to-r from-red-50 to-orange-50 rounded-2xl p-8 md:p-10 border border-red-100">
+          <div className="bg-gradient-to-r from-red-50 to-orange-50 rounded-xl md:rounded-2xl p-5 md:p-10 border border-red-100">
             <div className="text-center">
-              <div className="inline-flex items-center gap-2 bg-red-100 rounded-full px-4 py-1.5 text-red-600 text-sm font-semibold mb-4">
-                <Phone size={14} />
+              <div className="inline-flex items-center gap-2 bg-red-100 rounded-full px-3 md:px-4 py-1 md:py-1.5 text-red-600 text-xs md:text-sm font-semibold mb-3 md:mb-4">
+                <Phone size={12} />
                 24/7
               </div>
-              <h2 className="text-2xl md:text-3xl font-extrabold text-gray-900 mb-3">{l(L.emergency.title)}</h2>
-              <p className="text-gray-500 mb-8">{l(L.emergency.subtitle)}</p>
-              <div className="flex flex-col sm:flex-row justify-center gap-4">
-                <a href="mailto:contact@healo.kr" className="inline-flex items-center justify-center gap-2 bg-white border border-gray-200 rounded-xl px-6 py-3 text-gray-700 font-medium hover:border-teal-300 hover:shadow-md transition-all">
-                  <Mail size={18} className="text-teal-600" />
+              <h2 className="text-xl md:text-3xl font-extrabold text-gray-900 mb-2 md:mb-3">{l(L.emergency.title)}</h2>
+              <p className="text-gray-500 text-sm md:text-base mb-5 md:mb-8">{l(L.emergency.subtitle)}</p>
+              <div className="flex flex-col sm:flex-row justify-center gap-2 md:gap-4">
+                <a href="mailto:contact@healo.kr" className="inline-flex items-center justify-center gap-2 bg-white border border-gray-200 rounded-xl px-4 md:px-6 py-2.5 md:py-3 text-gray-700 text-sm md:text-base font-medium hover:border-teal-300 hover:shadow-md transition-all">
+                  <Mail size={16} className="text-teal-600" />
                   contact@healo.kr
                 </a>
                 <button
                   onClick={() => router.push("/inquiry")}
-                  className="inline-flex items-center justify-center gap-2 bg-teal-600 text-white rounded-xl px-6 py-3 font-medium hover:bg-teal-700 transition-colors shadow-lg shadow-teal-600/20"
+                  className="inline-flex items-center justify-center gap-2 bg-teal-600 text-white rounded-xl px-4 md:px-6 py-2.5 md:py-3 text-sm md:text-base font-medium hover:bg-teal-700 transition-colors shadow-lg shadow-teal-600/20"
                 >
-                  <MessageCircle size={18} />
+                  <MessageCircle size={16} />
                   {lang === "ko" ? "온라인 문의" : "Online Inquiry"}
                 </button>
               </div>
@@ -587,19 +575,19 @@ export default function HomeClient() {
       {/* ══════════════════════════════════════════
           TRUST BADGES (compact)
           ══════════════════════════════════════════ */}
-      <section className="bg-slate-50 py-16">
+      <section className="bg-slate-50 py-8 md:py-14">
         <div className="max-w-6xl mx-auto px-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-6">
             {L.trust?.items?.map((item, i) => {
               const Icon = ICON_MAP[item.icon];
               return (
-                <div key={i} className="flex items-start gap-4 bg-white rounded-xl p-6 border border-gray-100">
-                  <div className="w-12 h-12 bg-teal-50 rounded-xl flex items-center justify-center shrink-0">
-                    <Icon size={22} className="text-teal-600" />
+                <div key={i} className="flex items-start gap-3 md:gap-4 bg-white rounded-xl p-4 md:p-6 border border-gray-100">
+                  <div className="w-10 h-10 md:w-12 md:h-12 bg-teal-50 rounded-lg md:rounded-xl flex items-center justify-center shrink-0">
+                    <Icon size={18} className="text-teal-600" />
                   </div>
                   <div>
-                    <h3 className="font-bold text-base text-gray-900 mb-1">{l(item.title)}</h3>
-                    <p className="text-gray-500 text-sm leading-relaxed">{l(item.desc)}</p>
+                    <h3 className="font-bold text-sm md:text-base text-gray-900 mb-0.5 md:mb-1">{l(item.title)}</h3>
+                    <p className="text-gray-500 text-xs md:text-sm leading-relaxed">{l(item.desc)}</p>
                   </div>
                 </div>
               );
@@ -611,25 +599,25 @@ export default function HomeClient() {
       {/* ══════════════════════════════════════════
           BOTTOM CTA
           ══════════════════════════════════════════ */}
-      <section className="relative bg-gradient-to-br from-slate-900 via-teal-900 to-slate-900 text-white py-24 overflow-hidden">
+      <section className="relative bg-gradient-to-br from-slate-900 via-teal-900 to-slate-900 text-white py-14 md:py-24 overflow-hidden">
         <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-teal-500/10 rounded-full blur-3xl" />
-          <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-emerald-500/10 rounded-full blur-3xl" />
+          <div className="absolute top-0 right-0 w-[300px] h-[300px] md:w-[400px] md:h-[400px] bg-teal-500/10 rounded-full blur-3xl" />
+          <div className="absolute bottom-0 left-0 w-[200px] h-[200px] md:w-[300px] md:h-[300px] bg-emerald-500/10 rounded-full blur-3xl" />
         </div>
         <div className="relative max-w-3xl mx-auto px-4 text-center">
-          <h2 className="text-3xl md:text-4xl font-extrabold mb-6">{l(L.bottomCta.title)}</h2>
-          <p className="text-slate-300 text-base mb-10 whitespace-pre-line leading-relaxed">{l(L.bottomCta.desc)}</p>
+          <h2 className="text-2xl md:text-3xl lg:text-4xl font-extrabold mb-4 md:mb-6">{l(L.bottomCta.title)}</h2>
+          <p className="text-slate-300 text-sm md:text-base mb-6 md:mb-10 whitespace-pre-line leading-relaxed">{l(L.bottomCta.desc)}</p>
           <button
             onClick={() => router.push("/intake")}
-            className="group bg-gradient-to-r from-teal-500 to-emerald-500 text-white font-bold text-lg px-10 py-5 rounded-2xl shadow-2xl shadow-teal-500/30 hover:shadow-teal-500/50 hover:scale-105 transition-all duration-300 inline-flex items-center gap-3"
+            className="group bg-gradient-to-r from-teal-500 to-emerald-500 text-white font-bold text-base md:text-lg px-8 py-4 md:px-10 md:py-5 rounded-2xl shadow-2xl shadow-teal-500/30 hover:shadow-teal-500/50 hover:scale-105 transition-all duration-300 inline-flex items-center gap-2 md:gap-3"
           >
             {l(L.hero.cta)}
-            <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
+            <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
           </button>
-          <div className="flex flex-wrap justify-center gap-6 mt-10 text-sm text-slate-400">
-            <span className="flex items-center gap-1.5"><CheckCircle size={14} className="text-teal-400" />{lang === "ko" ? "무료 상담" : "Free consultation"}</span>
-            <span className="flex items-center gap-1.5"><CheckCircle size={14} className="text-teal-400" />{lang === "ko" ? "24시간 내 응답" : "24h response"}</span>
-            <span className="flex items-center gap-1.5"><CheckCircle size={14} className="text-teal-400" />{lang === "ko" ? "치료 강제 없음" : "No obligation"}</span>
+          <div className="flex flex-wrap justify-center gap-3 md:gap-6 mt-6 md:mt-10 text-xs md:text-sm text-slate-400">
+            <span className="flex items-center gap-1"><CheckCircle size={12} className="text-teal-400" />{lang === "ko" ? "무료 상담" : "Free consultation"}</span>
+            <span className="flex items-center gap-1"><CheckCircle size={12} className="text-teal-400" />{lang === "ko" ? "24시간 내 응답" : "24h response"}</span>
+            <span className="flex items-center gap-1"><CheckCircle size={12} className="text-teal-400" />{lang === "ko" ? "치료 강제 없음" : "No obligation"}</span>
           </div>
         </div>
       </section>
