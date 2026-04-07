@@ -2,21 +2,24 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { getLangCodeFromCookie } from '../../src/lib/i18n';
 import {
   Home, FileText, BookOpen, Activity, Calendar, Globe,
 } from 'lucide-react';
 
 const TABS = [
-  { href: '/patient', icon: Home, label: '홈' },
-  { href: '/patient/documents', icon: FileText, label: '문서' },
-  { href: '/patient/education', icon: BookOpen, label: '교육' },
-  { href: '/patient/symptoms', icon: Activity, label: '증상' },
-  { href: '/patient/rebooking', icon: Calendar, label: '재진' },
-  { href: '/patient/visa', icon: Globe, label: '비자' },
+  { href: '/patient', icon: Home, label: { ko: '홈', en: 'Home', ru: 'Главная', kz: 'Басты', zh: '首页', ja: 'ホーム' } },
+  { href: '/patient/documents', icon: FileText, label: { ko: '문서', en: 'Docs', ru: 'Документы', kz: 'Құжаттар', zh: '文档', ja: '文書' } },
+  { href: '/patient/education', icon: BookOpen, label: { ko: '교육', en: 'Education', ru: 'Обучение', kz: 'Білім', zh: '教育', ja: '教育' } },
+  { href: '/patient/symptoms', icon: Activity, label: { ko: '증상', en: 'Symptoms', ru: 'Симптомы', kz: 'Белгілер', zh: '症状', ja: '症状' } },
+  { href: '/patient/rebooking', icon: Calendar, label: { ko: '재진', en: 'Rebooking', ru: 'Запись', kz: 'Қайта жазу', zh: '复诊', ja: '再診' } },
+  { href: '/patient/visa', icon: Globe, label: { ko: '비자', en: 'Visa', ru: 'Виза', kz: 'Виза', zh: '签证', ja: 'ビザ' } },
 ];
 
 export default function PatientLayout({ children }) {
   const pathname = usePathname();
+  const lang = getLangCodeFromCookie?.() || 'en';
+  const l = (obj) => obj?.[lang] || obj?.['en'] || '';
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20 lg:pb-0">
@@ -37,7 +40,7 @@ export default function PatientLayout({ children }) {
                 }`}
               >
                 <Icon size={20} />
-                <span className="text-[10px] font-medium">{tab.label}</span>
+                <span className="text-[10px] font-medium">{l(tab.label)}</span>
               </Link>
             );
           })}

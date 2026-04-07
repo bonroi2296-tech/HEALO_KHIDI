@@ -82,15 +82,15 @@ const GoogleReviewsList = ({ reviews, langCode }) => {
   );
 };
 
-export const HospitalDetailPage = ({ selectedId, setView, onTreatmentClick }) => {
+export const HospitalDetailPage = ({ selectedId, setView, onTreatmentClick, initialData }) => {
   const isDev = process.env.NODE_ENV !== "production";
   const UUID_REGEX =
     /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
   const isUuid = (value) => UUID_REGEX.test(String(value || ""));
 
-  const [hospital, setHospital] = useState(null);
+  const [hospital, setHospital] = useState(initialData || null);
   const [hospitalTreatments, setHospitalTreatments] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!initialData);
   const [error, setError] = useState(null);
   const [, setTreatmentsError] = useState(null);
   const [loadingReviews, setLoadingReviews] = useState(false);
@@ -103,6 +103,26 @@ export const HospitalDetailPage = ({ selectedId, setView, onTreatmentClick }) =>
     const id = setInterval(update, 2000);
     return () => clearInterval(id);
   }, []);
+
+  // Re-resolve i18n fields for partner hospitals when language changes
+  useEffect(() => {
+    if (!hospital?._i18n) return;
+    const i = hospital._i18n;
+    const l = (obj) => obj?.[langCode] || obj?.["en"] || obj?.["ko"] || "";
+    const lArr = (obj) => {
+      if (!obj) return [];
+      const arr = obj[langCode] || obj["en"] || obj["ko"];
+      return Array.isArray(arr) ? arr : [];
+    };
+    setHospital((prev) => ({
+      ...prev,
+      name: l(i.name),
+      description: l(i.description),
+      location: l(i.address),
+      specialties: lArr(i.specialties),
+      tags: [l(i.type)],
+    }));
+  }, [langCode, hospital?._i18n]);
 
   const normalizeImages = (raw) => {
     if (!raw) return [];
@@ -124,6 +144,7 @@ export const HospitalDetailPage = ({ selectedId, setView, onTreatmentClick }) =>
 
   useEffect(() => {
     const run = async () => {
+      if (initialData) return; // Skip fetch for partner hospitals with pre-loaded data
       if (!selectedId) return;
       setLoading(true);
       setHospital(null);

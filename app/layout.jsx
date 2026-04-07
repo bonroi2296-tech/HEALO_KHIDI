@@ -83,7 +83,7 @@ export default function RootLayout({ children }) {
       <body className="font-sans text-gray-800 bg-gray-50 min-h-screen">
         <script
           dangerouslySetInnerHTML={{
-            __html: `if('serviceWorker' in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('/sw.js').catch(()=>{})})}`,
+            __html: `if('serviceWorker' in navigator){if(location.hostname==='localhost'||location.hostname==='127.0.0.1'){navigator.serviceWorker.getRegistrations().then(function(r){r.forEach(function(reg){reg.unregister()})})}else{window.addEventListener('load',function(){navigator.serviceWorker.register('/sw.js').catch(function(){})})}}`,
           }}
         />
         {/* ✅ 성능 최적화: Google Analytics 조건부 로딩 */}

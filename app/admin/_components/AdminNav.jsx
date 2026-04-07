@@ -49,6 +49,7 @@ const navGroups = [
     title: "데이터 관리",
     items: [
       { id: "hospitals", label: "병원관리", icon: Building2, href: "/admin/hospitals" },
+      { id: "doctors", label: "의료진·지점", icon: Users, href: "/admin/doctors" },
       { id: "treatments", label: "시술관리", icon: Stethoscope, href: "/admin/treatments" },
       { id: "import", label: "대량 Import", icon: Upload, href: "/admin/import" },
       { id: "enrichment", label: "데이터 보강", icon: Database, href: "/admin/enrichment" },

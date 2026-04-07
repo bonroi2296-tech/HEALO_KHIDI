@@ -3,12 +3,13 @@
 import { useRouter } from "next/navigation";
 import { HospitalDetailPage } from "./HospitalDetailLegacyClient";
 
-export default function HospitalDetailClient({ id }) {
+export default function HospitalDetailClient({ id, initialData }) {
   const router = useRouter();
 
   return (
     <HospitalDetailPage
       selectedId={id}
+      initialData={initialData}
       setView={(view) => {
         if (view === "home") router.push("/");
         if (view === "list_treatment") router.push("/treatments");

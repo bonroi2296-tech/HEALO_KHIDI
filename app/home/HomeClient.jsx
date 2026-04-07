@@ -42,14 +42,7 @@ import {
 const PLACEHOLDER = {
   // 📸 히어로 배경 — 교체: 실제 병원 또는 한국 의료 이미지 (1920x1080+)
   heroBg: "https://images.unsplash.com/photo-1538108149393-fbbd81895907?w=1920&q=80",
-  // 📸 의사 4명 — 교체: 실제 면력한방병원 의료진 프로필 사진 (400x400)
-  doctors: [
-    "https://images.unsplash.com/photo-1612944095914-33fd0a85fcfc?w=400&h=400&fit=crop&crop=face",
-    "https://plus.unsplash.com/premium_photo-1664475473789-1ea7ac194527?w=400&h=400&fit=crop&crop=face",
-    "https://plus.unsplash.com/premium_photo-1664475450083-5c9eef17a191?w=400&h=400&fit=crop&crop=face",
-    "https://images.unsplash.com/photo-1659353888306-e06177765540?w=400&h=400&fit=crop&crop=face",
-  ],
-  // 📸 병원 2곳 — 교체: 면력한방병원 + 협진 병원 사진 (800x500)
+  // 📸 병원 2곳 — 교체: 면력한방병원 실제 사진으로 교체 권장 (800x500)
   hospitals: [
     "https://images.unsplash.com/photo-1538108149393-fbbd81895907?w=800&h=500&fit=crop",
     "https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=800&h=500&fit=crop",
@@ -107,9 +100,9 @@ const L = {
     subtitle: { ko: "한국은 세계 최고 수준의 암 생존율과 최첨단 의료 기술을 보유하고 있습니다", en: "Korea leads the world in cancer survival rates and cutting-edge medical technology", ru: "Корея — мировой лидер по выживаемости при раке и передовым медицинским технологиям", kz: "Корея рак бойынша тірі қалу көрсеткіштері мен озық медициналық технологиялар бойынша әлем көшбасшысы", zh: "韩国在癌症生存率和尖端医疗技术方面处于世界领先地位", ja: "韓国はがん生存率と最先端医療技術で世界をリード" },
     items: [
       { value: "78.4%", label: { ko: "위암 5년 생존율\n(세계 1위)", en: "Stomach Cancer\n5-year Survival\n(World #1)", ru: "Рак желудка\n5-летняя выживаемость\n(№1 в мире)", kz: "Асқазан обыры\n5 жылдық тірі қалу\n(Әлемде №1)", zh: "胃癌5年生存率\n（世界第一）", ja: "胃がん5年生存率\n（世界1位）" } },
-      { value: "117万+", label: { ko: "2024 외국인 환자\n한국 방문", en: "Foreign Patients\nVisited Korea\nin 2024", ru: "Иностранных\nпациентов в Корее\nв 2024", kz: "2024 жылы Кореяға\nкелген шетелдік\nнауқастар", zh: "2024年访韩\n外国患者", ja: "2024年韓国訪問\n外国人患者" } },
-      { value: "1/3~1/5", label: { ko: "미국 대비\n치료 비용", en: "Treatment Cost\nvs. United States", ru: "Стоимость лечения\nvs. США", kz: "АҚШ-қа қарағанда\nем құны", zh: "与美国相比\n治疗费用", ja: "米国比\n治療費用" } },
-      { value: "83.5세", label: { ko: "기대수명\n(OECD 상위)", en: "Life Expectancy\n(Above OECD Avg)", ru: "Продолжительность жизни\n(выше среднего ОЭСР)", kz: "Өмір сүру ұзақтығы\n(ЭЫДҰ орташасынан жоғары)", zh: "预期寿命\n（高于OECD平均）", ja: "平均寿命\n（OECD平均以上）" } },
+      { value: { ko: "117만+", en: "1.17M+", ru: "1,17 млн+", kz: "1,17 млн+", zh: "117万+", ja: "117万+" }, label: { ko: "2024 외국인 환자\n한국 방문", en: "Foreign Patients\nVisited Korea\nin 2024", ru: "Иностранных\nпациентов в Корее\nв 2024", kz: "2024 жылы Кореяға\nкелген шетелдік\nнауқастар", zh: "2024年访韩\n外国患者", ja: "2024年韓国訪問\n外国人患者" } },
+      { value: "60~80%", label: { ko: "미국 대비\n치료비 절감", en: "Cost Savings\nvs. United States", ru: "Экономия\nvs. США", kz: "АҚШ-қа қарағанда\nүнемдеу", zh: "与美国相比\n节省费用", ja: "米国比\nコスト削減" } },
+      { value: "Top 10", label: { ko: "의료 시설 품질\n세계 순위", en: "Global Ranking\nHealthcare Quality\n& Facilities", ru: "Мировой рейтинг\nкачества медицины", kz: "Медицина сапасы\nбойынша әлемдік\nрейтинг", zh: "医疗设施质量\n世界排名", ja: "医療施設の質\n世界ランキング" } },
     ],
   },
   /* ── 의사 섹션 ── */
@@ -153,8 +146,8 @@ const L = {
   },
   /* ── 파트너 병원 ── */
   partners: {
-    title: { ko: "검증된 파트너 의료기관", en: "Our Verified Care Network", ru: "Наша проверенная сеть", kz: "Біздің тексерілген желі", zh: "我们的认证医疗网络", ja: "認定パートナー医療機関" },
-    subtitle: { ko: "엄격한 기준으로 선별된 한국 최고의 암 전문 의료기관과 함께합니다", en: "Carefully vetted partner hospitals meeting the highest clinical standards", ru: "Тщательно проверенные партнёрские больницы высших клинических стандартов", kz: "Жоғары клиникалық стандарттарға сай серіктес аурухналар", zh: "经过严格筛选的顶级合作医疗机构", ja: "厳格な基準で選ばれたパートナー医療機関" },
+    title: { ko: "협력 의료기관", en: "Our Partner Hospitals", ru: "Наши партнёрские больницы", kz: "Біздің серіктес аурухналар", zh: "合作医疗机构", ja: "協力医療機関" },
+    subtitle: { ko: "HEALO와 함께하는 제휴 병원 및 협진 대학병원", en: "Partner hospitals and cooperating university hospitals working with HEALO", ru: "Больницы-партнёры, работающие с HEALO", kz: "HEALO-мен жұмыс істейтін серіктес аурухналар", zh: "与HEALO合作的医院", ja: "HEALOと連携する医療機関" },
   },
   /* ── 환자 후기 ── */
   testimonials: {
@@ -194,19 +187,26 @@ const ICON_MAP = { FileText, Shield, Video, Heart, Globe, Clock, Leaf, Stethosco
    5. 환자 후기 (익명 가능) 2-3건
    ═══════════════════════════════════════════════════════ */
 
-// 📸 교체 대상: 의사 정보 — 실제 면력한방병원 의료진 사진·이름으로 교체
-// 현재: 면력한방병원 기반 한방 면역치료 전문 의료진 (샘플)
+// 면력한방병원 실제 의료진 (강서점 + 신촌점 — 이번 사업 참여기관)
+// 📸 사진은 면력한방병원 공식 사이트에서 가져옴
 const DOCTORS_DATA = [
-  { name: { ko: "대표원장", en: "Chief Director", ru: "Главный директор", kz: "Бас директор", zh: "代表院长", ja: "代表院長" }, title: { ko: "면력한방병원 대표원장", en: "Immunehospital Chief Director", ru: "Главный директор Иммуногоспиталя", kz: "Иммуногоспиталь бас директоры", zh: "免力韩方医院代表院长", ja: "免力韓方病院代表院長" }, specialty: { ko: "한방 면역 종양학 · 통합 암 케어", en: "Korean Medicine Immuno-Oncology", ru: "Иммуноонкология корейской медицины", kz: "Корей медицинасы иммуноонкологиясы", zh: "韩方免疫肿瘤学 · 综合癌症护理", ja: "韓方免疫腫瘍学 · 統合がんケア" }, exp: "20+", img: PLACEHOLDER.doctors[0] },
-  { name: { ko: "강남점 원장", en: "Gangnam Director", ru: "Директор Каннам", kz: "Каннам директоры", zh: "江南分院院长", ja: "江南院長" }, title: { ko: "면력한방병원 강남", en: "Immunehospital Gangnam", ru: "Иммуногоспиталь Каннам", kz: "Иммуногоспиталь Каннам", zh: "免力韩方医院 江南", ja: "免力韓方病院 江南" }, specialty: { ko: "항암 부작용 관리 · 면역 증강", en: "Chemo Side-effect Care · Immune Boost", ru: "Управление побочными эффектами", kz: "Химиотерапия жанама әсерлерін басқару", zh: "化疗副作用管理 · 免疫增强", ja: "抗がん副作用管理 · 免疫増強" }, exp: "15+", img: PLACEHOLDER.doctors[1] },
-  { name: { ko: "강서점 원장", en: "Gangseo Director", ru: "Директор Кансо", kz: "Кансо директоры", zh: "江西分院院长", ja: "江西院長" }, title: { ko: "면력한방병원 강서", en: "Immunehospital Gangseo", ru: "Иммуногоспиталь Кансо", kz: "Иммуногоспиталь Кансо", zh: "免力韩方医院 江西", ja: "免力韓方病院 江西" }, specialty: { ko: "한방 종양 치료 · 통증 관리", en: "Korean Medicine Oncology · Pain Care", ru: "Онкология корейской медицины", kz: "Корей медицинасы онкологиясы", zh: "韩方肿瘤治疗 · 疼痛管理", ja: "韓方腫瘍治療 · 疼痛管理" }, exp: "18+", img: PLACEHOLDER.doctors[2] },
-  { name: { ko: "부산점 원장", en: "Busan Director", ru: "Директор Пусан", kz: "Пусан директоры", zh: "釜山分院院长", ja: "釜山院長" }, title: { ko: "면력한방병원 부산", en: "Immunehospital Busan", ru: "Иммуногоспиталь Пусан", kz: "Иммуногоспиталь Пусан", zh: "免力韩方医院 釜山", ja: "免力韓方病院 釜山" }, specialty: { ko: "암 재활 · 한방 면역 치료", en: "Cancer Rehab · Korean Immunotherapy", ru: "Реабилитация · Корейская иммунотерапия", kz: "Оңалту · Корей иммунотерапиясы", zh: "癌症康复 · 韩方免疫治疗", ja: "がんリハビリ · 韓方免疫治療" }, exp: "12+", img: PLACEHOLDER.doctors[3] },
+  { name: { ko: "황이준 대표원장", en: "Dr. Hwang Yi-jun", ru: "Д-р Хван Иджун", kz: "Д-р Хван Иджун", zh: "黄以准 代表院长", ja: "黄以準 代表院長" }, title: { ko: "면력한방병원 강서 대표원장", en: "Chief Director, Immunehospital Gangseo", ru: "Главный директор, Иммуногоспиталь Кансо", kz: "Бас директор, Иммуногоспиталь Кансо", zh: "免力韩方医院 江西 代表院长", ja: "免力韓方病院 江西 代表院長" }, specialty: { ko: "한방 면역 종양학 · 통합 암 케어", en: "Korean Medicine Immuno-Oncology", ru: "Иммуноонкология корейской медицины", kz: "Корей медицинасы иммуноонкологиясы", zh: "韩方免疫肿瘤学", ja: "韓方免疫腫瘍学" }, exp: "", img: "https://immunehospital.com/uploads/doctors/68a674036de695.54364290.png" },
+  { name: { ko: "유형진 대표원장", en: "Dr. Yu Hyung-jin", ru: "Д-р Ю Хёнджин", kz: "Д-р Ю Хёнджин", zh: "柳炯进 代表院长", ja: "柳炯進 代表院長" }, title: { ko: "면력한방병원 신촌 대표원장", en: "Chief Director, Immunehospital Sinchon", ru: "Главный директор, Иммуногоспиталь Синчхон", kz: "Бас директор, Иммуногоспиталь Синчхон", zh: "免力韩方医院 新村 代表院长", ja: "免力韓方病院 新村 代表院長" }, specialty: { ko: "한방 면역 치료 · 암 통합 케어", en: "Korean Medicine Immunotherapy · Cancer Care", ru: "Иммунотерапия · Онкологическая помощь", kz: "Иммунотерапия · Онкологиялық көмек", zh: "韩方免疫治疗 · 癌症综合护理", ja: "韓方免疫治療 · がん統合ケア" }, exp: "", img: "https://immunehospital.com/uploads/doctors/68ac46bd439598.83386960.png" },
+  { name: { ko: "이우석 양방대표원장", en: "Dr. Lee Woo-seok", ru: "Д-р Ли Усок", kz: "Д-р Ли Усок", zh: "李宇锡 西医代表院长", ja: "李宇錫 洋方代表院長" }, title: { ko: "면력한방병원 강서 양방대표원장", en: "Western Medicine Director, Gangseo", ru: "Директор западной медицины, Кансо", kz: "Батыс медицинасы директоры, Кансо", zh: "江西 西医代表院长", ja: "江西 洋方代表院長" }, specialty: { ko: "통합면역 · 산부인과", en: "Integrated Immunity · Obstetrics/Gynecology", ru: "Интегративный иммунитет · Акушерство", kz: "Кешенді иммунитет · Акушерлік", zh: "综合免疫 · 妇产科", ja: "統合免疫 · 産婦人科" }, exp: "", img: "https://immunehospital.com/uploads/doctors/68a42d8de9e095.75488957.jpg" },
+  { name: { ko: "정유진 진료원장", en: "Dr. Jung Yu-jin", ru: "Д-р Чон Юджин", kz: "Д-р Чон Юджин", zh: "郑有进 诊疗院长", ja: "鄭有進 診療院長" }, title: { ko: "면력한방병원 신촌 한방내과 전문의", en: "Korean Internal Medicine Specialist, Sinchon", ru: "Специалист корейской внутренней медицины, Синчхон", kz: "Корей ішкі медицина маманы, Синчхон", zh: "新村 韩方内科专家", ja: "新村 韓方内科専門医" }, specialty: { ko: "한방내과 · 면역 치료", en: "Korean Internal Medicine · Immunotherapy", ru: "Корейская внутренняя медицина · Иммунотерапия", kz: "Корей ішкі медицинасы · Иммунотерапия", zh: "韩方内科 · 免疫治疗", ja: "韓方内科 · 免疫治療" }, exp: "", img: "https://immunehospital.com/uploads/doctors/68ac464c6fdee2.09872274.jpg" },
 ];
 
-// 📸 교체 대상: 병원 정보 — 실제 병원 로고·사진·설명으로 교체
+// 📸 교체 대상: 병원 로고 이미지 — 실제 로고 URL로 교체
 const PARTNERS_DATA = [
-  { name: { ko: "면력한방병원", en: "Immunehospital", ru: "Иммуногоспиталь", kz: "Иммуногоспиталь", zh: "免力韩方医院", ja: "免力韓方病院" }, type: { ko: "컨소시엄 핵심 파트너", en: "Core Consortium Partner", ru: "Основной партнёр", kz: "Негізгі серіктес", zh: "核心联盟伙伴", ja: "コンソーシアム中核パートナー" }, desc: { ko: "한방 면역치료 전문 — 서울 강남·강서·부산 3개 지점", en: "Korean Medicine Immunotherapy — 3 branches in Seoul & Busan", ru: "Иммунотерапия корейской медицины — 3 филиала", kz: "Корей медицинасы иммунотерапиясы — 3 филиал", zh: "韩方免疫治疗 — 首尔江南·江西·釜山3个分院", ja: "韓方免疫治療 — ソウル江南·江西·釜山3支院" }, img: PLACEHOLDER.hospitals[0] },
-  { name: { ko: "협력 암 전문 병원", en: "Partner Oncology Hospital", ru: "Партнёрская онкобольница", kz: "Серіктес онкоаурухана", zh: "合作肿瘤医院", ja: "協力がん専門病院" }, type: { ko: "협진 파트너", en: "Collaborative Partner", ru: "Партнёр по совместному лечению", kz: "Бірлескен ем серіктесі", zh: "协诊伙伴", ja: "協診パートナー" }, desc: { ko: "수술·항암·방사선 치료 — 다학제 암 치료 센터", en: "Surgery, chemo, radiation — Multidisciplinary Cancer Center", ru: "Хирургия, химиотерапия, радиация — Многопрофильный центр", kz: "Хирургия, химиотерапия, радиация — Көп бейінді орталық", zh: "手术·化疗·放疗 — 多学科肿瘤治疗中心", ja: "手術・抗がん・放射線 — 集学的がん治療センター" }, img: PLACEHOLDER.hospitals[1] },
+  // 면력한방병원 3개 지점 (제휴 병원) — 공식 사이트 이미지
+  { slug: "immunehospital-magok", badge: "partner", name: { ko: "면력한방병원 강서 (본원)", en: "Immunehospital Gangseo (HQ)", ru: "Иммуногоспиталь Кансо (главный)", kz: "Иммуногоспиталь Кансо (бас)", zh: "免力韩方医院 江西本院", ja: "免力韓方病院 江西本院" }, desc: { ko: "마곡 소재 한방 면역치료 본원", en: "Korean Medicine Immunotherapy Headquarters in Magok", ru: "Главный офис иммунотерапии в Магоке", kz: "Магоктағы иммунотерапия бас кеңсесі", zh: "麻谷韩方免疫治疗本院", ja: "麻谷の韓方免疫治療本院" }, img: "https://immunehospital.com/uploads/banners/6895825b600130.26433858.jpg" },
+  { slug: "immunehospital-sinchon", badge: "partner", name: { ko: "신촌면력한방병원", en: "Immunehospital Sinchon", ru: "Иммуногоспиталь Синчхон", kz: "Иммуногоспиталь Синчон", zh: "新村免力韩方医院", ja: "新村免力韓方病院" }, desc: { ko: "연세로 소재 신촌 분원", en: "Sinchon branch on Yonsei-ro", ru: "Филиал Синчхон на Ёнсе-ро", kz: "Ёнсе-родағы Синчон филиалы", zh: "位于延世路的新村分院", ja: "延世路の新村分院" }, img: "https://immunehospital.com/uploads/banners/6895825b600130.26433858.jpg" },
+  { slug: "immunehospital-gwangmyeong", badge: "partner", name: { ko: "면력한방병원 광명점", en: "Immunehospital Gwangmyeong", ru: "Иммуногоспиталь Кванмён", kz: "Иммуногоспиталь Кванмён", zh: "免力韩方医院 光明院", ja: "免力韓方病院 光明院" }, desc: { ko: "광명역 소재 광명 분원", en: "Gwangmyeong branch near Gwangmyeong Station", ru: "Филиал Кванмён у станции Кванмён", kz: "Кванмён стансасындағы филиал", zh: "光明站附近光明分院", ja: "光明駅の光明分院" }, img: "https://immunehospital.com/uploads/banners/68ad73ce876dc6.84077341.jpg" },
+  // 협진 대학병원 4곳
+  { slug: "ewha-seoul", badge: "university", name: { ko: "이대서울병원", en: "Ewha Seoul Hospital", ru: "Больница Ихва Сеул", kz: "Ихва Сеул ауруханасы", zh: "梨大首尔医院", ja: "梨大ソウル病院" }, desc: { ko: "서울 마곡 소재 최신 대학병원", en: "Modern university hospital in Magok, Seoul", ru: "Современная больница в Магоке", kz: "Магоктағы заманауи аурухана", zh: "首尔麻谷现代化大学医院", ja: "ソウル麻谷の最新大学病院" }, img: "https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=800&h=500&fit=crop" },
+  { slug: "ewha-mokdong", badge: "university", name: { ko: "이대목동병원", en: "Ewha Mokdong Hospital", ru: "Больница Ихва Мокдон", kz: "Ихва Мокдон ауруханасы", zh: "梨大木洞医院", ja: "梨大木洞病院" }, desc: { ko: "이화여자대학교 의료원 목동", en: "Ewha Medical Center, Mokdong", ru: "Медицинский центр Ихва, Мокдон", kz: "Ихва медициналық орталығы, Мокдон", zh: "梨花医疗院木洞", ja: "梨花医療院木洞" }, img: "https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=800&h=500&fit=crop" },
+  { slug: "korea-guro", badge: "university", name: { ko: "고려대 구로병원", en: "Korea Univ. Guro Hospital", ru: "Больница Куро", kz: "Куро ауруханасы", zh: "高丽大九老医院", ja: "高麗大九老病院" }, desc: { ko: "고려대학교 의과대학 부속", en: "Korea University College of Medicine", ru: "При медфакультете Корёского университета", kz: "Корё университеті медицина факультеті", zh: "高丽大学医学院附属", ja: "高麗大学医学部附属" }, img: "https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=800&h=500&fit=crop" },
+  { slug: "severance-sinchon", badge: "university", name: { ko: "신촌세브란스병원", en: "Severance Hospital", ru: "Больница Северанс", kz: "Северанс ауруханасы", zh: "世福兰斯医院", ja: "セブランス病院" }, desc: { ko: "연세대학교 세브란스병원 본원", en: "Yonsei University Severance Hospital", ru: "Больница Северанс университета Ёнсе", kz: "Ёнсе университетінің Северанс ауруханасы", zh: "延世大学世福兰斯本院", ja: "延世大学セブランス本院" }, img: "https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=800&h=500&fit=crop" },
 ];
 
 // 📸 교체 대상: 환자 후기 — 실제 환자 리뷰로 교체 (익명 가능)
@@ -263,10 +263,7 @@ export default function HomeClient() {
 
         <div className="relative max-w-6xl mx-auto px-4 py-20 md:py-32">
           <div className="text-center">
-            <div className="inline-flex items-center gap-2 bg-teal-500/20 border border-teal-400/30 backdrop-blur-sm rounded-full px-5 py-2 text-sm font-medium mb-8">
-              <Award size={16} className="text-teal-300" />
-              <span className="text-teal-200">{l(L.hero.badge)}</span>
-            </div>
+            {/* Hero badge removed */}
             <h1 className="text-4xl md:text-6xl font-extrabold leading-tight mb-6 whitespace-pre-line tracking-tight">
               {l(L.hero.title)}
             </h1>
@@ -302,7 +299,7 @@ export default function HomeClient() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             {L.stats.items.map((item, i) => (
               <div key={i} className="text-center p-6 rounded-2xl bg-gradient-to-b from-teal-50 to-white border border-teal-100 hover:shadow-lg transition-shadow">
-                <div className="text-4xl md:text-5xl font-black text-teal-600 mb-3">{item.value}</div>
+                <div className="text-4xl md:text-5xl font-black text-teal-600 mb-3">{typeof item.value === 'string' ? item.value : l(item.value)}</div>
                 <div className="text-xs md:text-sm text-gray-500 font-medium whitespace-pre-line leading-relaxed">{l(item.label)}</div>
               </div>
             ))}
@@ -446,22 +443,34 @@ export default function HomeClient() {
             <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 mb-4">{l(L.partners.title)}</h2>
             <p className="text-gray-500 max-w-2xl mx-auto">{l(L.partners.subtitle)}</p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {PARTNERS_DATA.map((h, i) => (
-              <div key={i} className="bg-white rounded-2xl overflow-hidden border border-gray-100 hover:shadow-xl transition-shadow duration-300">
-                {/* 📸 병원 사진 — 800x500px 권장 */}
-                <div className="h-56 overflow-hidden bg-gray-100">
-                  <img src={h.img} alt={l(h.name)} className="w-full h-full object-cover hover:scale-105 transition-transform duration-500" />
-                </div>
-                <div className="p-6">
-                  <div className="inline-block bg-teal-50 text-teal-700 text-xs font-semibold px-3 py-1 rounded-full mb-3">
-                    {l(h.type)}
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-5">
+            {PARTNERS_DATA.map((h, i) => {
+              const isPartner = h.badge === "partner";
+              const badgeClass = isPartner
+                ? "bg-teal-50 text-teal-700"
+                : "bg-blue-50 text-blue-700";
+              const badgeLabel = isPartner
+                ? (lang === "ko" ? "제휴 병원" : lang === "ru" ? "Партнёр" : lang === "zh" ? "合作" : lang === "ja" ? "提携" : "Partner")
+                : (lang === "ko" ? "협진 대학병원" : lang === "ru" ? "Университет" : lang === "zh" ? "大学医院" : lang === "ja" ? "大学病院" : "University");
+              return (
+                <div
+                  key={i}
+                  onClick={() => router.push(`/hospitals/${h.slug}`)}
+                  className="bg-white rounded-2xl overflow-hidden border border-gray-100 hover:shadow-xl hover:border-teal-200 transition-all duration-300 cursor-pointer group"
+                >
+                  <div className="h-36 md:h-40 overflow-hidden bg-gray-100">
+                    <img src={h.img} alt={l(h.name)} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                   </div>
-                  <h3 className="font-bold text-xl text-gray-900 mb-2">{l(h.name)}</h3>
-                  <p className="text-gray-500 text-sm leading-relaxed">{l(h.desc)}</p>
+                  <div className="p-4">
+                    <div className={`inline-block text-[10px] font-semibold px-2 py-0.5 rounded-full mb-2 ${badgeClass}`}>
+                      {badgeLabel}
+                    </div>
+                    <h3 className="font-bold text-sm text-gray-900 mb-1 group-hover:text-teal-700 transition-colors leading-snug">{l(h.name)}</h3>
+                    <p className="text-gray-500 text-[11px] leading-relaxed line-clamp-2">{l(h.desc)}</p>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </section>
