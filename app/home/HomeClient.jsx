@@ -25,12 +25,12 @@ const L = {
       ja: "韓国トップのがん専門医と\nリモートで相談",
     },
     subtitle: {
-      ko: "카자흐스탄 암환자를 위한 ICT 사전상담 · 사후관리 플랫폼",
-      en: "ICT Pre-consultation & Post-care Platform for Cancer Patients",
-      ru: "Платформа ИКТ предварительных консультаций и послеоперационного ухода для онкопациентов",
-      kz: "Онкологиялық науқастарға арналған АКТ алдын ала кеңес беру және емнен кейінгі күтім платформасы",
-      zh: "面向癌症患者的ICT术前咨询与术后管理平台",
-      ja: "がん患者のためのICT事前相談・術後管理プラットフォーム",
+      ko: "해외 암환자를 위한 ICT 사전상담 · 사후관리 플랫폼",
+      en: "ICT Pre-consultation & Post-care Platform for International Cancer Patients",
+      ru: "Платформа ИКТ предварительных консультаций и послеоперационного ухода для иностранных онкопациентов",
+      kz: "Шетелдік онкологиялық науқастарға арналған АКТ алдын ала кеңес беру платформасы",
+      zh: "面向海外癌症患者的ICT术前咨询与术后管理平台",
+      ja: "海外がん患者のためのICT事前相談・術後管理プラットフォーム",
     },
     cta: {
       ko: "무료 사전상담 시작하기",
@@ -94,7 +94,7 @@ const L = {
       {
         icon: "Globe",
         title: { ko: "6개국어 실시간 통역", en: "Real-time Translation in 6 Languages", ru: "Перевод в реальном времени на 6 языках", kz: "6 тілде нақты уақыттағы аударма", zh: "6种语言实时翻译", ja: "6言語リアルタイム通訳" },
-        desc: { ko: "한국어↔러시아어↔카자흐어 자동 통역", en: "Korean↔Russian↔Kazakh auto-interpretation", ru: "Корейский↔Русский↔Казахский автоперевод", kz: "Корей↔Орыс↔Қазақ авто аудармасы", zh: "韩语↔俄语↔哈萨克语自动翻译", ja: "韓国語↔ロシア語↔カザフ語自動通訳" },
+        desc: { ko: "한·영·러·중·일·카자흐어 자동 통역", en: "Auto-interpretation across 6 languages", ru: "Автоперевод на 6 языках", kz: "6 тілде авто аударма", zh: "6种语言自动翻译", ja: "6言語自動通訳" },
       },
       {
         icon: "Shield",
@@ -136,12 +136,12 @@ const L = {
       ja: "今すぐ始める",
     },
     desc: {
-      ko: "카자흐스탄에서 한국 최고의 암 전문의와 상담하세요. 비용은 무료입니다.",
-      en: "Consult with Korea's top oncologists from Kazakhstan. It's free.",
-      ru: "Проконсультируйтесь с лучшими онкологами Кореи из Казахстана. Это бесплатно.",
-      kz: "Қазақстаннан Кореяның үздік онкологтарымен кеңесіңіз. Тегін.",
-      zh: "从哈萨克斯坦咨询韩国顶级肿瘤专家。完全免费。",
-      ja: "カザフスタンから韓国トップのがん専門医に相談。無料です。",
+      ko: "한국 최고의 암 전문의와 원격으로 상담하세요. 비용은 무료입니다.",
+      en: "Consult with Korea's top oncologists remotely. It's free.",
+      ru: "Проконсультируйтесь с лучшими онкологами Кореи удалённо. Это бесплатно.",
+      kz: "Кореяның үздік онкологтарымен қашықтан кеңесіңіз. Тегін.",
+      zh: "远程咨询韩国顶级肿瘤专家。完全免费。",
+      ja: "韓国トップのがん専門医とリモートで相談。無料です。",
     },
   },
 };
@@ -165,7 +165,7 @@ export default function HomeClient() {
 
         <div className="relative max-w-5xl mx-auto px-4 py-16 md:py-24 text-center">
           <div className="inline-block bg-white/15 backdrop-blur-sm rounded-full px-4 py-1.5 text-sm font-medium mb-6">
-            🇰🇿 🇰🇷 Kazakhstan × Korea Medical Bridge
+            🏥 Korea Oncology × Global Patients
           </div>
 
           <h1 className="text-3xl md:text-5xl font-extrabold leading-tight mb-4 whitespace-pre-line">
