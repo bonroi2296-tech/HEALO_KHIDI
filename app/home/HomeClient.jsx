@@ -40,18 +40,18 @@ import {
    - 히어로 배경: 1920x1080px 이상
    ═══════════════════════════════════════════════════════ */
 const PLACEHOLDER = {
-  // 📸 히어로 배경 — 교체: 실제 병원 또는 한국 의료 이미지
-  heroBg: "https://images.unsplash.com/photo-1631815588090-d4bfec5b1ccb?w=1920&q=80",
-  // 📸 의사 4명 — 교체: 실제 협력 의료진 프로필 사진 (400x400)
+  // 📸 히어로 배경 — 교체: 실제 병원 또는 한국 의료 이미지 (1920x1080+)
+  heroBg: "https://images.unsplash.com/photo-1538108149393-fbbd81895907?w=1920&q=80",
+  // 📸 의사 4명 — 교체: 실제 면력한방병원 의료진 프로필 사진 (400x400)
   doctors: [
-    "https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=400&h=400&fit=crop&crop=face",
-    "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=400&h=400&fit=crop&crop=face",
-    "https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=400&h=400&fit=crop&crop=face",
-    "https://images.unsplash.com/photo-1594824476967-48c8b964ac31?w=400&h=400&fit=crop&crop=face",
+    "https://images.unsplash.com/photo-1612944095914-33fd0a85fcfc?w=400&h=400&fit=crop&crop=face",
+    "https://plus.unsplash.com/premium_photo-1664475473789-1ea7ac194527?w=400&h=400&fit=crop&crop=face",
+    "https://plus.unsplash.com/premium_photo-1664475450083-5c9eef17a191?w=400&h=400&fit=crop&crop=face",
+    "https://images.unsplash.com/photo-1659353888306-e06177765540?w=400&h=400&fit=crop&crop=face",
   ],
   // 📸 병원 2곳 — 교체: 면력한방병원 + 협진 병원 사진 (800x500)
   hospitals: [
-    "https://images.unsplash.com/photo-1586773860418-d37222d8fce3?w=800&h=500&fit=crop",
+    "https://images.unsplash.com/photo-1538108149393-fbbd81895907?w=800&h=500&fit=crop",
     "https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=800&h=500&fit=crop",
   ],
 };
@@ -106,10 +106,10 @@ const L = {
     title: { ko: "왜 한국에서 암 치료인가요?", en: "Why Cancer Treatment in Korea?", ru: "Почему лечение рака в Корее?", kz: "Неге Кореяда рак емдеу?", zh: "为什么选择韩国治疗癌症？", ja: "なぜ韓国でがん治療？" },
     subtitle: { ko: "한국은 세계 최고 수준의 암 생존율과 최첨단 의료 기술을 보유하고 있습니다", en: "Korea leads the world in cancer survival rates and cutting-edge medical technology", ru: "Корея — мировой лидер по выживаемости при раке и передовым медицинским технологиям", kz: "Корея рак бойынша тірі қалу көрсеткіштері мен озық медициналық технологиялар бойынша әлем көшбасшысы", zh: "韩国在癌症生存率和尖端医疗技术方面处于世界领先地位", ja: "韓国はがん生存率と最先端医療技術で世界をリード" },
     items: [
-      { value: "77.0%", label: { ko: "위암 5년 생존율\n(세계 1위)", en: "Stomach Cancer\n5-year Survival\n(World #1)", ru: "Рак желудка\n5-летняя выживаемость\n(№1 в мире)", kz: "Асқазан обыры\n5 жылдық тірі қалу\n(Әлемде №1)", zh: "胃癌5年生存率\n（世界第一）", ja: "胃がん5年生存率\n（世界1位）" } },
-      { value: "3,000+", label: { ko: "연간 외국인 암환자\n한국 방문", en: "International Cancer\nPatients Visit\nKorea Annually", ru: "Иностранных\nонкопациентов\nежегодно", kz: "Жыл сайын Кореяға\nкелетін шетелдік\nонкопациенттер", zh: "每年访韩外国\n癌症患者", ja: "年間韓国訪問\n外国人がん患者" } },
-      { value: "1/3", label: { ko: "미국 대비\n치료 비용", en: "Treatment Cost\nvs. United States", ru: "Стоимость лечения\nvs. США", kz: "АҚШ-қа қарағанда\nем құны", zh: "与美国相比\n治疗费用", ja: "米国比\n治療費用" } },
-      { value: "Top 5", label: { ko: "OECD 의료\n품질 순위", en: "OECD Healthcare\nQuality Ranking", ru: "Рейтинг\nкачества ОЭСР", kz: "ЭЫДҰ денсаулық\nсақтау рейтингі", zh: "OECD医疗\n质量排名", ja: "OECD医療\n品質ランキング" } },
+      { value: "78.4%", label: { ko: "위암 5년 생존율\n(세계 1위)", en: "Stomach Cancer\n5-year Survival\n(World #1)", ru: "Рак желудка\n5-летняя выживаемость\n(№1 в мире)", kz: "Асқазан обыры\n5 жылдық тірі қалу\n(Әлемде №1)", zh: "胃癌5年生存率\n（世界第一）", ja: "胃がん5年生存率\n（世界1位）" } },
+      { value: "117万+", label: { ko: "2024 외국인 환자\n한국 방문", en: "Foreign Patients\nVisited Korea\nin 2024", ru: "Иностранных\nпациентов в Корее\nв 2024", kz: "2024 жылы Кореяға\nкелген шетелдік\nнауқастар", zh: "2024年访韩\n外国患者", ja: "2024年韓国訪問\n外国人患者" } },
+      { value: "1/3~1/5", label: { ko: "미국 대비\n치료 비용", en: "Treatment Cost\nvs. United States", ru: "Стоимость лечения\nvs. США", kz: "АҚШ-қа қарағанда\nем құны", zh: "与美国相比\n治疗费用", ja: "米国比\n治療費用" } },
+      { value: "83.5세", label: { ko: "기대수명\n(OECD 상위)", en: "Life Expectancy\n(Above OECD Avg)", ru: "Продолжительность жизни\n(выше среднего ОЭСР)", kz: "Өмір сүру ұзақтығы\n(ЭЫДҰ орташасынан жоғары)", zh: "预期寿命\n（高于OECD平均）", ja: "平均寿命\n（OECD平均以上）" } },
     ],
   },
   /* ── 의사 섹션 ── */
@@ -143,7 +143,7 @@ const L = {
   cancers: {
     title: { ko: "주요 지원 암종", en: "Cancer Types We Support", ru: "Типы рака", kz: "Рак түрлері", zh: "支持的癌症类型", ja: "対応がん種" },
     items: [
-      { emoji: "🫁", label: { ko: "위암", en: "Stomach", ru: "Желудок", kz: "Асқазан", zh: "胃癌", ja: "胃がん" }, stat: { ko: "5년 생존율 77%", en: "77% 5yr survival", ru: "77% выживаемость", kz: "77% тірі қалу", zh: "5年生存率77%", ja: "5年生存率77%" } },
+      { emoji: "🫁", label: { ko: "위암", en: "Stomach", ru: "Желудок", kz: "Асқазан", zh: "胃癌", ja: "胃がん" }, stat: { ko: "5년 생존율 78.4%", en: "78.4% 5yr survival", ru: "78.4% выживаемость", kz: "78.4% тірі қалу", zh: "5年生存率78.4%", ja: "5年生存率78.4%" } },
       { emoji: "🩷", label: { ko: "유방암", en: "Breast", ru: "Молочная железа", kz: "Сүт безі", zh: "乳腺癌", ja: "乳がん" }, stat: { ko: "보존율 세계 최고", en: "Top conservation rate", ru: "Лучшая сохранность", kz: "Ең жоғары сақтау", zh: "保乳率世界最高", ja: "温存率世界最高" } },
       { emoji: "🫀", label: { ko: "간암", en: "Liver", ru: "Печень", kz: "Бауыр", zh: "肝癌", ja: "肝がん" }, stat: { ko: "간이식 세계 1위", en: "World #1 transplant", ru: "№1 трансплантация", kz: "Трансплантация №1", zh: "肝移植世界第一", ja: "肝移植世界1位" } },
       { emoji: "🌬️", label: { ko: "폐암", en: "Lung", ru: "Лёгкие", kz: "Өкпе", zh: "肺癌", ja: "肺がん" }, stat: { ko: "VATS 수술 선도", en: "VATS surgery leader", ru: "Лидер ВАТС", kz: "ВАТС көшбасшысы", zh: "VATS手术领先", ja: "VATS手術リーダー" } },
@@ -194,12 +194,13 @@ const ICON_MAP = { FileText, Shield, Video, Heart, Globe, Clock, Leaf, Stethosco
    5. 환자 후기 (익명 가능) 2-3건
    ═══════════════════════════════════════════════════════ */
 
-// 📸 교체 대상: 의사 정보 — 실제 의료진 이름·직함·전공으로 교체
+// 📸 교체 대상: 의사 정보 — 실제 면력한방병원 의료진 사진·이름으로 교체
+// 현재: 면력한방병원 기반 한방 면역치료 전문 의료진 (샘플)
 const DOCTORS_DATA = [
-  { name: { ko: "김OO 교수", en: "Prof. Kim", ru: "Проф. Ким", kz: "Проф. Ким", zh: "金教授", ja: "金教授" }, title: { ko: "종양내과 전문의", en: "Medical Oncologist", ru: "Онколог-терапевт", kz: "Онколог-терапевт", zh: "肿瘤内科专家", ja: "腫瘍内科専門医" }, specialty: { ko: "위암 · 대장암", en: "Stomach · Colorectal", ru: "Желудок · Толстая кишка", kz: "Асқазан · Тоқ ішек", zh: "胃癌 · 大肠癌", ja: "胃がん · 大腸がん" }, exp: "20+", img: PLACEHOLDER.doctors[0] },
-  { name: { ko: "박OO 원장", en: "Dr. Park", ru: "Д-р Пак", kz: "Д-р Пак", zh: "朴院长", ja: "朴院長" }, title: { ko: "한방면역치료 전문", en: "Korean Medicine Immunotherapy", ru: "Иммунотерапия корейской медицины", kz: "Корей медицинасы иммунотерапиясы", zh: "韩方免疫治疗", ja: "韓方免疫治療" }, specialty: { ko: "면역 강화 · 부작용 관리", en: "Immune Support · Side Effects", ru: "Иммунная поддержка", kz: "Иммундық қолдау", zh: "免疫增强 · 副作用管理", ja: "免疫強化 · 副作用管理" }, exp: "15+", img: PLACEHOLDER.doctors[1] },
-  { name: { ko: "이OO 교수", en: "Prof. Lee", ru: "Проф. Ли", kz: "Проф. Ли", zh: "李教授", ja: "李教授" }, title: { ko: "외과 전문의", en: "Surgical Oncologist", ru: "Хирург-онколог", kz: "Хирург-онколог", zh: "肿瘤外科专家", ja: "外科腫瘍専門医" }, specialty: { ko: "간암 · 유방암", en: "Liver · Breast", ru: "Печень · Молочная железа", kz: "Бауыр · Сүт безі", zh: "肝癌 · 乳腺癌", ja: "肝がん · 乳がん" }, exp: "18+", img: PLACEHOLDER.doctors[2] },
-  { name: { ko: "최OO 교수", en: "Prof. Choi", ru: "Проф. Чхве", kz: "Проф. Чхве", zh: "崔教授", ja: "崔教授" }, title: { ko: "방사선종양학과", en: "Radiation Oncologist", ru: "Радиолог-онколог", kz: "Радиолог-онколог", zh: "放射肿瘤科", ja: "放射線腫瘍科" }, specialty: { ko: "폐암 · 갑상선암", en: "Lung · Thyroid", ru: "Лёгкие · Щитовидная", kz: "Өкпе · Қалқанша", zh: "肺癌 · 甲状腺癌", ja: "肺がん · 甲状腺がん" }, exp: "22+", img: PLACEHOLDER.doctors[3] },
+  { name: { ko: "대표원장", en: "Chief Director", ru: "Главный директор", kz: "Бас директор", zh: "代表院长", ja: "代表院長" }, title: { ko: "면력한방병원 대표원장", en: "Immunehospital Chief Director", ru: "Главный директор Иммуногоспиталя", kz: "Иммуногоспиталь бас директоры", zh: "免力韩方医院代表院长", ja: "免力韓方病院代表院長" }, specialty: { ko: "한방 면역 종양학 · 통합 암 케어", en: "Korean Medicine Immuno-Oncology", ru: "Иммуноонкология корейской медицины", kz: "Корей медицинасы иммуноонкологиясы", zh: "韩方免疫肿瘤学 · 综合癌症护理", ja: "韓方免疫腫瘍学 · 統合がんケア" }, exp: "20+", img: PLACEHOLDER.doctors[0] },
+  { name: { ko: "강남점 원장", en: "Gangnam Director", ru: "Директор Каннам", kz: "Каннам директоры", zh: "江南分院院长", ja: "江南院長" }, title: { ko: "면력한방병원 강남", en: "Immunehospital Gangnam", ru: "Иммуногоспиталь Каннам", kz: "Иммуногоспиталь Каннам", zh: "免力韩方医院 江南", ja: "免力韓方病院 江南" }, specialty: { ko: "항암 부작용 관리 · 면역 증강", en: "Chemo Side-effect Care · Immune Boost", ru: "Управление побочными эффектами", kz: "Химиотерапия жанама әсерлерін басқару", zh: "化疗副作用管理 · 免疫增强", ja: "抗がん副作用管理 · 免疫増強" }, exp: "15+", img: PLACEHOLDER.doctors[1] },
+  { name: { ko: "강서점 원장", en: "Gangseo Director", ru: "Директор Кансо", kz: "Кансо директоры", zh: "江西分院院长", ja: "江西院長" }, title: { ko: "면력한방병원 강서", en: "Immunehospital Gangseo", ru: "Иммуногоспиталь Кансо", kz: "Иммуногоспиталь Кансо", zh: "免力韩方医院 江西", ja: "免力韓方病院 江西" }, specialty: { ko: "한방 종양 치료 · 통증 관리", en: "Korean Medicine Oncology · Pain Care", ru: "Онкология корейской медицины", kz: "Корей медицинасы онкологиясы", zh: "韩方肿瘤治疗 · 疼痛管理", ja: "韓方腫瘍治療 · 疼痛管理" }, exp: "18+", img: PLACEHOLDER.doctors[2] },
+  { name: { ko: "부산점 원장", en: "Busan Director", ru: "Директор Пусан", kz: "Пусан директоры", zh: "釜山分院院长", ja: "釜山院長" }, title: { ko: "면력한방병원 부산", en: "Immunehospital Busan", ru: "Иммуногоспиталь Пусан", kz: "Иммуногоспиталь Пусан", zh: "免力韩方医院 釜山", ja: "免力韓方病院 釜山" }, specialty: { ko: "암 재활 · 한방 면역 치료", en: "Cancer Rehab · Korean Immunotherapy", ru: "Реабилитация · Корейская иммунотерапия", kz: "Оңалту · Корей иммунотерапиясы", zh: "癌症康复 · 韩方免疫治疗", ja: "がんリハビリ · 韓方免疫治療" }, exp: "12+", img: PLACEHOLDER.doctors[3] },
 ];
 
 // 📸 교체 대상: 병원 정보 — 실제 병원 로고·사진·설명으로 교체
