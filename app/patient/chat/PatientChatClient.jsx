@@ -2,11 +2,20 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { getLangCodeFromCookie } from '../../../src/lib/i18n';
 import { createSupabaseBrowserClient } from '../../../src/lib/supabase/browser';
+import { getAllPartnerHospitals } from '../../../src/lib/data/partnerHospitals';
+import {
+  getAllCancerCosts,
+  formatKRW,
+  getDisclaimer as getCostDisclaimer,
+  getSourceLabel as getCostSource,
+} from '../../../src/lib/data/hiraCancerCosts';
 import {
   Send, Loader2, Bot, User, Plus, ChevronLeft,
   MessageSquare, Shield, Globe, Database, AlertCircle,
+  Building2, Wallet, Clock, FileText, MapPin, ExternalLink,
 } from 'lucide-react';
 
 // ─── i18n ───
@@ -39,6 +48,58 @@ const L = {
   sourceTier3: { ko: '공개 소스', en: 'Public Source', ru: 'Открытый источник', kz: 'Ашық дереккөз', zh: '公开来源', ja: '公開ソース' },
   handOff: { ko: '상담원 연결을 요청했습니다. 잠시만 기다려주세요.', en: 'A coordinator has been notified. You can keep chatting.', ru: 'Координатор уведомлен. Можете продолжать общение.', kz: 'Үйлестірушіге хабарландырылды. Сөйлесуді жалғастыра аласыз.', zh: '协调员已收到通知，您可以继续聊天。', ja: 'コーディネーターに通知しました。チャットを続けられます。' },
   login: { ko: '로그인이 필요합니다', en: 'Please log in', ru: 'Войдите в систему', kz: 'Жүйеге кіріңіз', zh: '请登录', ja: 'ログインしてください' },
+
+  // Quick action buttons
+  qaTitle: { ko: '자주 묻는 질문', en: 'Quick questions', ru: 'Частые вопросы', kz: 'Жиі қойылатын сұрақтар', zh: '常见问题', ja: 'よくある質問' },
+  qaFindHospital: { ko: '내 병에 맞는 병원 찾기', en: 'Find hospitals for my condition', ru: 'Подобрать больницу', kz: 'Ауруханамды табу', zh: '寻找合适医院', ja: '私に合う病院を探す' },
+  qaCost: { ko: '예상 진료비', en: 'Estimated costs', ru: 'Ориентировочная стоимость', kz: 'Шамамен құны', zh: '费用估算', ja: '費用の目安' },
+  qaDuration: { ko: '치료 기간', en: 'Treatment duration', ru: 'Срок лечения', kz: 'Емдеу ұзақтығы', zh: '治疗期限', ja: '治療期間' },
+  qaVisa: { ko: '비자 정보', en: 'Visa information', ru: 'Информация о визе', kz: 'Виза туралы', zh: '签证信息', ja: 'ビザ情報' },
+
+  // Quick action prompts (sent to AI)
+  qaFindHospitalQ: {
+    ko: '제 병(암)에 맞는 한국 병원을 추천해주세요. 협진 가능한 병원과 특화 분야를 알려주세요.',
+    en: 'Please recommend Korean hospitals suitable for my condition (cancer). Which partner hospitals are available and what are their specialties?',
+    ru: 'Порекомендуйте корейские больницы для лечения рака. Какие больницы-партнёры доступны и в чём их специализация?',
+    kz: 'Менің жағдайыма (рак) сай корей ауруханаларын ұсыныңыз. Қандай серіктес ауруханалар бар және олардың мамандануы қандай?',
+    zh: '请推荐适合我病情（癌症）的韩国医院。有哪些合作医院可供选择，它们的专长是什么？',
+    ja: '私の病気（がん）に合う韓国の病院を推薦してください。協力病院と専門分野を教えてください。',
+  },
+  qaCostQ: {
+    ko: '한국에서 암 치료를 받을 경우 예상 진료비는 얼마나 되나요? 수술·항암·방사선 기준으로 알려주세요.',
+    en: 'How much does cancer treatment cost in Korea? Please give me reference ranges for surgery, chemotherapy, and radiation therapy.',
+    ru: 'Сколько стоит лечение рака в Корее? Ориентировочные цены на операцию, химиотерапию и лучевую терапию.',
+    kz: 'Кореяда рак емдеу қанша тұрады? Ота, химиотерапия, сәулелік терапия бойынша шамамен бағаларды айтыңыз.',
+    zh: '在韩国接受癌症治疗的费用大约是多少？请按手术、化疗、放疗分别说明。',
+    ja: '韓国でがん治療を受ける場合の費用の目安を教えてください。手術・化学療法・放射線治療別にお願いします。',
+  },
+  qaDurationQ: {
+    ko: '한국에서 암 치료를 받을 때 예상 치료 기간과 입원 기간은 얼마나 되나요?',
+    en: 'How long does cancer treatment typically take in Korea, including inpatient stay?',
+    ru: 'Как долго обычно длится лечение рака в Корее, включая пребывание в стационаре?',
+    kz: 'Кореяда рак емдеу әдетте қанша уақытқа созылады, стационарда жату уақытын қоса?',
+    zh: '在韩国接受癌症治疗通常需要多长时间？包括住院期间。',
+    ja: '韓国でのがん治療は通常どれくらいかかりますか？入院期間も含めて教えてください。',
+  },
+  qaVisaQ: {
+    ko: '한국 의료 비자(C-3-3, G-1-10)는 어떻게 신청하고, 어떤 서류가 필요한가요?',
+    en: 'How do I apply for Korean medical visas (C-3-3, G-1-10) and what documents are required?',
+    ru: 'Как подать заявление на корейскую медицинскую визу (C-3-3, G-1-10) и какие документы требуются?',
+    kz: 'Корей медициналық визасына (C-3-3, G-1-10) қалай өтініш беремін және қандай құжаттар қажет?',
+    zh: '如何申请韩国医疗签证（C-3-3、G-1-10）？需要哪些材料？',
+    ja: '韓国の医療ビザ（C-3-3、G-1-10）はどのように申請し、どんな書類が必要ですか？',
+  },
+
+  // Card labels
+  partnerCardTitle: { ko: '협진 병원 안내 (7곳)', en: 'Partner Hospitals (7)', ru: 'Больницы-партнёры (7)', kz: 'Серіктес ауруханалар (7)', zh: '合作医院（7家）', ja: '協力病院（7施設）' },
+  partnerCardNote: { ko: '※ 상세 정보는 상담 후 제공됩니다.', en: '※ Detailed info is shared after consultation.', ru: '※ Подробности — после консультации.', kz: '※ Толық ақпарат кеңестен кейін беріледі.', zh: '※ 详细信息将在咨询后提供。', ja: '※ 詳細は相談後にご案内します。' },
+  viewDetail: { ko: '자세히 보기', en: 'View details', ru: 'Подробнее', kz: 'Толығырақ', zh: '查看详情', ja: '詳細を見る' },
+  costCardTitle: { ko: '한국인 기준 암종별 진료비 참고 범위', en: 'Reference Cancer Treatment Costs (Korean Baseline)', ru: 'Справочная стоимость лечения рака (базовая для корейцев)', kz: 'Рак емдеудің анықтамалық құны (корей базасы)', zh: '韩国癌症治疗参考费用（韩国患者基准）', ja: 'がん治療参考費用（韓国人基準）' },
+  costSurgery: { ko: '수술', en: 'Surgery', ru: 'Операция', kz: 'Ота', zh: '手术', ja: '手術' },
+  costChemo: { ko: '항암치료', en: 'Chemotherapy', ru: 'Химиотерапия', kz: 'Химиотерапия', zh: '化疗', ja: '化学療法' },
+  costRadiation: { ko: '방사선치료', en: 'Radiation', ru: 'Лучевая терапия', kz: 'Сәулелік терапия', zh: '放疗', ja: '放射線治療' },
+  costInpatient: { ko: '입원', en: 'Inpatient', ru: 'Стационар', kz: 'Стационар', zh: '住院', ja: '入院' },
+  days: { ko: '일', en: 'days', ru: 'дней', kz: 'күн', zh: '天', ja: '日' },
 };
 
 // ─── Source Tier Badge ───
@@ -56,6 +117,103 @@ function SourceBadge({ tier, lang }) {
       <Icon size={10} />
       {c.label[lang] || c.label.en}
     </span>
+  );
+}
+
+// ─── Partner Hospitals Card ───
+
+function PartnerHospitalsCard({ lang }) {
+  const partners = getAllPartnerHospitals();
+  const t = (obj) => obj?.[lang] || obj?.en || obj?.ko || '';
+  const tArr = (obj) => obj?.[lang] || obj?.en || obj?.ko || [];
+
+  return (
+    <div className="mt-3 bg-white border border-teal-100 rounded-2xl p-4 shadow-sm">
+      <div className="flex items-center gap-2 mb-3">
+        <Building2 size={16} className="text-teal-600" />
+        <h3 className="text-sm font-bold text-gray-800">{L.partnerCardTitle[lang] || L.partnerCardTitle.en}</h3>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        {partners.map((p) => (
+          <Link
+            key={p.slug}
+            href={`/hospitals/${p.slug}`}
+            className="block border border-gray-100 rounded-xl p-3 hover:border-teal-300 hover:bg-teal-50/30 transition"
+          >
+            <div className="flex items-start justify-between gap-2 mb-1">
+              <span className="text-xs font-semibold text-gray-900 leading-tight">{t(p.name)}</span>
+              <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-medium shrink-0 ${
+                p.badge === 'partner' ? 'bg-teal-50 text-teal-700' : 'bg-blue-50 text-blue-700'
+              }`}>
+                {t(p.type)}
+              </span>
+            </div>
+            <div className="flex items-start gap-1 text-[10px] text-gray-500 mb-1.5">
+              <MapPin size={10} className="mt-0.5 shrink-0" />
+              <span className="line-clamp-1">{t(p.address)}</span>
+            </div>
+            <div className="flex flex-wrap gap-1">
+              {tArr(p.specialties).slice(0, 3).map((s, i) => (
+                <span key={i} className="text-[9px] px-1.5 py-0.5 bg-gray-50 text-gray-600 rounded">
+                  {s}
+                </span>
+              ))}
+            </div>
+          </Link>
+        ))}
+      </div>
+      <p className="text-[10px] text-gray-400 mt-3 text-center">{L.partnerCardNote[lang] || L.partnerCardNote.en}</p>
+    </div>
+  );
+}
+
+// ─── Cancer Costs Card ───
+
+function CancerCostsCard({ lang }) {
+  const costs = getAllCancerCosts();
+
+  return (
+    <div className="mt-3 bg-white border border-amber-100 rounded-2xl p-4 shadow-sm">
+      <div className="flex items-center gap-2 mb-3">
+        <Wallet size={16} className="text-amber-600" />
+        <h3 className="text-sm font-bold text-gray-800">{L.costCardTitle[lang] || L.costCardTitle.en}</h3>
+      </div>
+      <div className="space-y-2">
+        {costs.map((c) => (
+          <div key={c.id} className="border border-gray-100 rounded-xl p-3">
+            <div className="text-xs font-semibold text-gray-900 mb-1.5">{c.name[lang] || c.name.en}</div>
+            <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-[10px] text-gray-600">
+              <div className="flex justify-between">
+                <span className="text-gray-400">{L.costSurgery[lang] || L.costSurgery.en}</span>
+                <span className="font-medium text-gray-700">
+                  {formatKRW(c.surgery.min, lang)}~{formatKRW(c.surgery.max, lang)}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-400">{L.costChemo[lang] || L.costChemo.en}</span>
+                <span className="font-medium text-gray-700">
+                  {formatKRW(c.chemo.min, lang)}~{formatKRW(c.chemo.max, lang)}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-400">{L.costRadiation[lang] || L.costRadiation.en}</span>
+                <span className="font-medium text-gray-700">
+                  {formatKRW(c.radiation.min, lang)}~{formatKRW(c.radiation.max, lang)}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-400">{L.costInpatient[lang] || L.costInpatient.en}</span>
+                <span className="font-medium text-gray-700">
+                  {c.inpatientDays.min}~{c.inpatientDays.max} {L.days[lang] || L.days.en}
+                </span>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+      <p className="text-[10px] text-gray-500 mt-3 leading-relaxed">{getCostDisclaimer(lang)}</p>
+      <p className="text-[9px] text-gray-400 mt-1">{getCostSource(lang)}</p>
+    </div>
   );
 }
 
@@ -201,9 +359,9 @@ export default function PatientChatClient() {
     }
   }, [lang, l, loadThreads]);
 
-  // Send message
-  const handleSend = async () => {
-    const trimmed = input.trim();
+  // Send message (optionally with a preset text and intent from quick actions)
+  const handleSend = async (presetText = null, intent = null) => {
+    const trimmed = (presetText ?? input).trim();
     if (!trimmed || sending) return;
 
     // If no active thread, start one first
@@ -231,9 +389,9 @@ export default function PatientChatClient() {
       }
     }
 
-    const userMsg = { id: `u_${Date.now()}`, role: 'user', content: trimmed, sources: [] };
+    const userMsg = { id: `u_${Date.now()}`, role: 'user', content: trimmed, sources: [], intent };
     setMessages((prev) => [...prev, userMsg]);
-    setInput('');
+    if (!presetText) setInput('');
     setSending(true);
 
     try {
@@ -406,17 +564,70 @@ export default function PatientChatClient() {
         className="flex-1 overflow-y-auto px-4 py-4 space-y-4 bg-gray-50"
       >
         {messages.length === 0 && !activeThread && (
-          <div className="flex flex-col items-center justify-center h-full gap-4 text-center">
+          <div className="flex flex-col items-center justify-center min-h-full gap-5 text-center py-6">
             <div className="w-16 h-16 rounded-2xl bg-teal-50 flex items-center justify-center">
               <Bot size={32} className="text-teal-600" />
             </div>
             <p className="text-sm text-gray-500 whitespace-pre-line max-w-xs">{l(L.intro)}</p>
+
+            {/* Quick Action buttons */}
+            <div className="w-full max-w-sm">
+              <p className="text-[11px] text-gray-400 mb-2 font-medium">{l(L.qaTitle)}</p>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={() => handleSend(l(L.qaFindHospitalQ), 'find_hospital')}
+                  className="flex items-center gap-2 p-3 bg-white border border-teal-100 rounded-xl hover:border-teal-300 hover:bg-teal-50/50 transition text-left"
+                >
+                  <Building2 size={14} className="text-teal-600 shrink-0" />
+                  <span className="text-[11px] font-medium text-gray-700 leading-tight">{l(L.qaFindHospital)}</span>
+                </button>
+                <button
+                  onClick={() => handleSend(l(L.qaCostQ), 'cost')}
+                  className="flex items-center gap-2 p-3 bg-white border border-amber-100 rounded-xl hover:border-amber-300 hover:bg-amber-50/50 transition text-left"
+                >
+                  <Wallet size={14} className="text-amber-600 shrink-0" />
+                  <span className="text-[11px] font-medium text-gray-700 leading-tight">{l(L.qaCost)}</span>
+                </button>
+                <button
+                  onClick={() => handleSend(l(L.qaDurationQ), 'duration')}
+                  className="flex items-center gap-2 p-3 bg-white border border-blue-100 rounded-xl hover:border-blue-300 hover:bg-blue-50/50 transition text-left"
+                >
+                  <Clock size={14} className="text-blue-600 shrink-0" />
+                  <span className="text-[11px] font-medium text-gray-700 leading-tight">{l(L.qaDuration)}</span>
+                </button>
+                <button
+                  onClick={() => handleSend(l(L.qaVisaQ), 'visa')}
+                  className="flex items-center gap-2 p-3 bg-white border border-purple-100 rounded-xl hover:border-purple-300 hover:bg-purple-50/50 transition text-left"
+                >
+                  <FileText size={14} className="text-purple-600 shrink-0" />
+                  <span className="text-[11px] font-medium text-gray-700 leading-tight">{l(L.qaVisa)}</span>
+                </button>
+              </div>
+            </div>
           </div>
         )}
 
-        {messages.map((msg) => (
-          <ChatBubble key={msg.id} msg={msg} lang={lang} />
-        ))}
+        {messages.map((msg, idx) => {
+          // If this is an assistant message that follows a user msg with an intent, show the card below
+          const prev = idx > 0 ? messages[idx - 1] : null;
+          const intentForCard =
+            msg.role === 'assistant' && prev?.role === 'user' ? prev.intent : null;
+          return (
+            <div key={msg.id}>
+              <ChatBubble msg={msg} lang={lang} />
+              {intentForCard === 'find_hospital' && (
+                <div className="pl-10 sm:pl-10">
+                  <PartnerHospitalsCard lang={lang} />
+                </div>
+              )}
+              {intentForCard === 'cost' && (
+                <div className="pl-10 sm:pl-10">
+                  <CancerCostsCard lang={lang} />
+                </div>
+              )}
+            </div>
+          );
+        })}
 
         {sending && (
           <div className="flex gap-2.5">
@@ -461,7 +672,7 @@ export default function PatientChatClient() {
             disabled={sending}
           />
           <button
-            onClick={handleSend}
+            onClick={() => handleSend()}
             disabled={sending || !input.trim()}
             className="w-10 h-10 flex items-center justify-center bg-teal-600 text-white rounded-full hover:bg-teal-700 transition disabled:opacity-40 shrink-0"
           >

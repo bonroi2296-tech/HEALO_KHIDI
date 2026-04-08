@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { getLangCodeFromCookie } from '../../../src/lib/i18n';
+import { getVisaChecklist } from '../../../src/lib/visa/visaGuide';
 
 const LABELS = {
   title: { ko: '재예약 관리', en: 'Rebooking Management', ru: 'Управление повторной записью', zh: '复诊管理', ja: '再予約管理', kz: 'Қайта жазылу басқару' },
@@ -18,6 +19,23 @@ const LABELS = {
   followup: { ko: '팔로업 기반', en: 'Follow-up Based', ru: 'По плану наблюдения', zh: '随访触发', ja: 'フォローアップ', kz: 'Бақылау жоспары бойынша' },
   symptom: { ko: '증상 기반', en: 'Symptom Based', ru: 'По симптомам', zh: '症状触发', ja: '症状ベース', kz: 'Симптом бойынша' },
   doctor: { ko: '의사 권고', en: 'Doctor Recommended', ru: 'По рекомендации врача', zh: '医生推荐', ja: '医師推奨', kz: 'Дәрігер ұсынысы' },
+
+  // Visa section
+  visaTitle: { ko: '의료비자 안내', en: 'Medical Visa Information', ru: 'Информация о медицинской визе', zh: '医疗签证信息', ja: '医療ビザ案内', kz: 'Медициналық виза туралы' },
+  visaIntro: {
+    ko: '재진을 위해 한국에 재입국할 때 필요한 비자 정보입니다. 체류 기간에 따라 적합한 비자 유형이 다릅니다.',
+    en: 'Visa information for re-entry to Korea for follow-up visits. The right visa type depends on your length of stay.',
+    ru: 'Информация о визе для повторного въезда в Корею на контрольные осмотры. Тип визы зависит от срока пребывания.',
+    zh: '复诊时再次入境韩国所需的签证信息。签证类型取决于停留时间。',
+    ja: '再診のため韓国に再入国する際に必要なビザ情報です。滞在期間により適切なビザが異なります。',
+    kz: 'Қайта қабылдау үшін Кореяға қайта кіру кезінде қажет виза туралы ақпарат. Виза түрі сіздің болу мерзіміңізге байланысты.',
+  },
+  visaShort: { ko: '90일 이내 체류', en: 'Stay ≤ 90 days', ru: 'До 90 дней', zh: '90天以内', ja: '90日以内', kz: '90 күнге дейін' },
+  visaLong: { ko: '91일 이상 장기 치료', en: 'Stay > 90 days', ru: 'Более 90 дней', zh: '91天以上', ja: '91日以上', kz: '91 күннен астам' },
+  visaDocs: { ko: '필요 서류', en: 'Required Documents', ru: 'Необходимые документы', zh: '所需材料', ja: '必要書類', kz: 'Қажетті құжаттар' },
+  visaProcessing: { ko: '처리 기간', en: 'Processing Time', ru: 'Срок обработки', zh: '处理时间', ja: '処理期間', kz: 'Өңдеу уақыты' },
+  visaFee: { ko: '수수료', en: 'Fee', ru: 'Сбор', zh: '费用', ja: '手数料', kz: 'Алым' },
+  visaNotes: { ko: '참고사항', en: 'Notes', ru: 'Примечания', zh: '注意事项', ja: '備考', kz: 'Ескертпелер' },
 };
 
 const SOURCE_COLORS = {
@@ -100,6 +118,9 @@ export default function RebookingClient() {
     return source;
   };
 
+  const visaShort = getVisaChecklist('C-3-3', lang);
+  const visaLong = getVisaChecklist('G-1-10', lang);
+
   if (loading) {
     return <div style={{ textAlign: 'center', padding: 60, color: '#999' }}>{l(LABELS.loading)}</div>;
   }
@@ -175,6 +196,53 @@ export default function RebookingClient() {
           })}
         </div>
       )}
+
+      {/* Medical Visa Information */}
+      <section style={{ marginBottom: 32, padding: 20, background: '#f0f9ff', border: '1px solid #bae6fd', borderRadius: 12 }}>
+        <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 4, color: '#0c4a6e' }}>{l(LABELS.visaTitle)}</h2>
+        <p style={{ fontSize: 13, color: '#075985', marginBottom: 16, lineHeight: 1.5 }}>{l(LABELS.visaIntro)}</p>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 12 }}>
+          {[
+            { label: l(LABELS.visaShort), visa: visaShort },
+            { label: l(LABELS.visaLong), visa: visaLong },
+          ].map(({ label, visa }) => (
+            <div key={visa.visaType} style={{ background: '#fff', borderRadius: 10, padding: 16, border: '1px solid #e0f2fe' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, flexWrap: 'wrap', gap: 8 }}>
+                <div>
+                  <span style={{ fontSize: 11, fontWeight: 600, padding: '3px 8px', borderRadius: 6, background: '#dbeafe', color: '#1e40af', marginRight: 8 }}>
+                    {label}
+                  </span>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: '#0f172a' }}>{visa.visaName}</span>
+                </div>
+                <span style={{ fontSize: 12, color: '#64748b' }}>
+                  {l(LABELS.visaFee)}: {visa.fee}
+                </span>
+              </div>
+              <p style={{ fontSize: 12, color: '#475569', marginBottom: 10, lineHeight: 1.5 }}>{visa.description}</p>
+              <div style={{ fontSize: 11, color: '#64748b', marginBottom: 10 }}>
+                <strong>{l(LABELS.visaProcessing)}:</strong> {visa.processingTime}
+              </div>
+              <details style={{ fontSize: 12 }}>
+                <summary style={{ cursor: 'pointer', color: '#0284c7', fontWeight: 600, marginBottom: 6 }}>
+                  {l(LABELS.visaDocs)} ({visa.documents.length})
+                </summary>
+                <ul style={{ margin: '8px 0 0 16px', padding: 0, color: '#475569' }}>
+                  {visa.documents.map((doc) => (
+                    <li key={doc.id} style={{ marginBottom: 4 }}>
+                      <strong>{doc.name}</strong> — {doc.description}
+                    </li>
+                  ))}
+                </ul>
+              </details>
+              {visa.notes && (
+                <div style={{ marginTop: 10, padding: 8, background: '#fffbeb', borderRadius: 6, fontSize: 11, color: '#92400e' }}>
+                  <strong>{l(LABELS.visaNotes)}:</strong> {visa.notes}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </section>
 
       {/* History */}
       {history.length > 0 && (
