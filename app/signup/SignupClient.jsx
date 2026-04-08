@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Mail, Lock, Eye, EyeOff, Check } from 'lucide-react';
 import { createSupabaseBrowserClient } from '../../src/lib/supabase/browser';
 import { useToast } from '../../src/components/Toast';
@@ -10,8 +11,30 @@ import { getLangCodeFromCookie, t } from '../../src/lib/i18n';
 
 const supabase = createSupabaseBrowserClient();
 
+/**
+ * 비밀번호 강도 검증
+ * - 최소 8자
+ * - 영문 대소문자 포함
+ * - 숫자 포함
+ */
+function validatePassword(pw) {
+    if (pw.length < 8) return { valid: false, msg: 'min8' };
+    if (!/[a-z]/.test(pw)) return { valid: false, msg: 'lowercase' };
+    if (!/[A-Z]/.test(pw)) return { valid: false, msg: 'uppercase' };
+    if (!/[0-9]/.test(pw)) return { valid: false, msg: 'number' };
+    return { valid: true, msg: 'ok' };
+}
+
+const PW_ERROR_MSG = {
+    min8: { ko: '비밀번호는 최소 8자 이상이어야 합니다', en: 'Password must be at least 8 characters' },
+    lowercase: { ko: '영문 소문자를 포함해야 합니다', en: 'Must include a lowercase letter' },
+    uppercase: { ko: '영문 대문자를 포함해야 합니다', en: 'Must include an uppercase letter' },
+    number: { ko: '숫자를 포함해야 합니다', en: 'Must include a number' },
+};
+
 export const SignUpPage = ({ setView }) => {
     const toast = useToast();
+    const router = useRouter();
     const [langCode, setLangCode] = useState('en');
     const [firstName, setFirstName] = useState('');
     const [lastName, setLastName] = useState('');
@@ -21,7 +44,7 @@ export const SignUpPage = ({ setView }) => {
     const [isAgreed, setIsAgreed] = useState(false);
     const [isMarketing, setIsMarketing] = useState(false);
     const [activeModal, setActiveModal] = useState(null);
-    
+
     const [password, setPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
@@ -30,6 +53,8 @@ export const SignUpPage = ({ setView }) => {
     useEffect(() => {
         setLangCode(getLangCodeFromCookie());
     }, []);
+
+    const pwCheck = validatePassword(password);
 
     const handleSignUp = async () => {
         if (!firstName || !lastName || !email) {
@@ -40,8 +65,9 @@ export const SignUpPage = ({ setView }) => {
             toast.error(t("signup.agreeError", langCode));
             return;
         }
-        if (password.length < 6) {
-            toast.error(t("signup.errorPasswordLength", langCode));
+        if (!pwCheck.valid) {
+            const errObj = PW_ERROR_MSG[pwCheck.msg];
+            toast.error(errObj?.[langCode] || errObj?.en || 'Invalid password');
             return;
         }
         if (password !== confirmPassword) {
@@ -51,7 +77,7 @@ export const SignUpPage = ({ setView }) => {
 
         setLoading(true);
 
-        const { error } = await supabase.auth.signUp({
+        const { data, error } = await supabase.auth.signUp({
             email: email,
             password: password,
             options: {
@@ -65,9 +91,24 @@ export const SignUpPage = ({ setView }) => {
 
         if (error) {
             toast.error(t("signup.errorFailed", langCode) + ": " + error.message);
-        } else {
-            toast.success(t("signup.successCreated", langCode));
+            setLoading(false);
+            return;
+        }
+
+        // 가입 성공 → 자동 로그인 시도
+        const { error: loginError } = await supabase.auth.signInWithPassword({
+            email, password,
+        });
+
+        if (loginError) {
+            // 이메일 인증 필요 등의 이유로 자동 로그인 실패 → 로그인 페이지로
+            toast.success(langCode === 'ko'
+                ? '가입 완료! 이메일을 확인하고 로그인해주세요.'
+                : 'Account created! Please check your email and log in.');
             setView('login');
+        } else {
+            toast.success(langCode === 'ko' ? '가입 완료! 환영합니다.' : 'Welcome! Account created successfully.');
+            router.push('/');
         }
         setLoading(false);
     };
@@ -137,6 +178,18 @@ export const SignUpPage = ({ setView }) => {
                             {showPassword ? <EyeOff size={20}/> : <Eye size={20}/>}
                         </button>
                     </div>
+                    {password && (
+                        <div className="flex gap-1 px-1 -mt-2">
+                            {[
+                                { ok: password.length >= 8, label: '8+' },
+                                { ok: /[a-z]/.test(password), label: 'a-z' },
+                                { ok: /[A-Z]/.test(password), label: 'A-Z' },
+                                { ok: /[0-9]/.test(password), label: '0-9' },
+                            ].map((r, i) => (
+                                <span key={i} className={`text-[10px] px-1.5 py-0.5 rounded ${r.ok ? 'bg-teal-100 text-teal-700' : 'bg-gray-100 text-gray-400'}`}>{r.label}</span>
+                            ))}
+                        </div>
+                    )}
 
                     <div className="relative">
                         <Lock className="absolute left-4 top-3.5 text-gray-400" size={20}/>
