@@ -72,3 +72,6 @@ tmp/
 # Local output / crawl/import data
 output/
 .vercel
+
+# Claude Code workspace (임시 작업장, 세션 파일, 백업 — 본판에 저장 안 함)
+.claude/
