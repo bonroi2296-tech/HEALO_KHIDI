@@ -144,7 +144,7 @@ function getModel() {
   if (!GOOGLE_GENERATIVE_AI_API_KEY) {
     throw new Error("GOOGLE_GENERATIVE_AI_API_KEY is missing");
   }
-  return google("gemini-2.0-flash");
+  return google("gemini-2.5-flash");
 }
 
 /**

@@ -21,12 +21,6 @@ export const getCurrentLangCode = () => {
   return getLangCodeFromCookie();
 };
 
-/** location_kr / location_en 선택. getCurrentLangCode()와 동일 소스 사용 */
-export const getLocationColumn = (lang = null) => {
-  const code = lang || getCurrentLangCode();
-  return code === 'ko' ? 'location_kr' : 'location_en';
-};
-
 /**
  * Resolve a localized field from a DB record's i18n JSONB.
  * Falls back: i18n[lang][field] -> i18n.en[field] -> record[field] -> fallback

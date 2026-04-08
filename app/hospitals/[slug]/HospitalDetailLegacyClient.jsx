@@ -10,7 +10,7 @@ import {
 import { supabase } from "../../../src/supabase";
 import { mapHospitalRow, mapTreatmentRow } from "../../../src/lib/mapper";
 import { GoogleMapComponent } from "../../../src/components/GoogleMap";
-import { getLocationColumn, getCurrentLangCode } from "../../../src/lib/language";
+import { getCurrentLangCode } from "../../../src/lib/language";
 import { getLangCodeFromCookie, t } from "../../../src/lib/i18n";
 import { formatDate } from "../../../src/lib/i18n/format";
 import { event } from "../../../src/lib/ga";
@@ -82,19 +82,19 @@ const GoogleReviewsList = ({ reviews, langCode }) => {
   );
 };
 
-export const HospitalDetailPage = ({ selectedId, setView, onTreatmentClick }) => {
+export const HospitalDetailPage = ({ selectedId, setView, onTreatmentClick, initialData }) => {
   const isDev = process.env.NODE_ENV !== "production";
   const UUID_REGEX =
     /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
   const isUuid = (value) => UUID_REGEX.test(String(value || ""));
 
-  const [hospital, setHospital] = useState(null);
+  const [hospital, setHospital] = useState(initialData || null);
   const [hospitalTreatments, setHospitalTreatments] = useState([]);
   const [rawHospital, setRawHospital] = useState(null);
   const [rawTreatments, setRawTreatments] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!initialData);
   const [error, setError] = useState(null);
-  const [treatmentsError, setTreatmentsError] = useState(null);
+  const [, setTreatmentsError] = useState(null);
   const [loadingReviews, setLoadingReviews] = useState(false);
   const [realReviews, setRealReviews] = useState([]);
   const [openFaqIdx, setOpenFaqIdx] = useState(-1);
@@ -109,12 +109,32 @@ export const HospitalDetailPage = ({ selectedId, setView, onTreatmentClick }) =>
     return () => clearInterval(id);
   }, []);
 
-  // Re-map data when language changes (without re-fetching)
+  // Re-map data when language changes (normal hospitals, without re-fetching)
   useEffect(() => {
     if (!rawHospital) return;
     try { setHospital(mapHospitalRow(rawHospital, langCode)); } catch {}
     try { setHospitalTreatments(rawTreatments.map(r => mapTreatmentRow(r, langCode)).filter(Boolean)); } catch {}
   }, [langCode, rawHospital, rawTreatments]);
+
+  // Re-resolve i18n fields for partner hospitals (pre-loaded via initialData) when language changes
+  useEffect(() => {
+    if (!hospital?._i18n) return;
+    const i = hospital._i18n;
+    const l = (obj) => obj?.[langCode] || obj?.["en"] || obj?.["ko"] || "";
+    const lArr = (obj) => {
+      if (!obj) return [];
+      const arr = obj[langCode] || obj["en"] || obj["ko"];
+      return Array.isArray(arr) ? arr : [];
+    };
+    setHospital((prev) => ({
+      ...prev,
+      name: l(i.name),
+      description: l(i.description),
+      location: l(i.address),
+      specialties: lArr(i.specialties),
+      tags: [l(i.type)],
+    }));
+  }, [langCode, hospital?._i18n]);
 
   const normalizeImages = (raw) => {
     if (!raw) return [];
@@ -136,6 +156,7 @@ export const HospitalDetailPage = ({ selectedId, setView, onTreatmentClick }) =>
 
   useEffect(() => {
     const run = async () => {
+      if (initialData) return; // Skip fetch for partner hospitals with pre-loaded data
       if (!selectedId) return;
       setLoading(true);
       setHospital(null);
@@ -182,6 +203,7 @@ export const HospitalDetailPage = ({ selectedId, setView, onTreatmentClick }) =>
       } finally { setLoading(false); }
     };
     run();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedId]);
 
   useEffect(() => {
@@ -199,12 +221,11 @@ export const HospitalDetailPage = ({ selectedId, setView, onTreatmentClick }) =>
         if (revErr) throw revErr;
         if (!alive) return;
         setRealReviews(reviews || []);
-      } catch (e) {
+      } catch {
         if (!alive) return;
         setRealReviews([]);
       } finally {
-        if (!alive) return;
-        setLoadingReviews(false);
+        if (alive) setLoadingReviews(false);
       }
     };
     fetchReviews();
@@ -243,6 +264,7 @@ export const HospitalDetailPage = ({ selectedId, setView, onTreatmentClick }) =>
     const dbFaq = hospital?.faq;
     if (Array.isArray(dbFaq) && dbFaq.length > 0) return dbFaq;
     return defaultFaq;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hospital?.faq]);
 
   // Highlights: compact grid items

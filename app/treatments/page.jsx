@@ -1,26 +1,26 @@
 import { Suspense } from "react";
-import PaginatedListClient from "../list/PaginatedListClient";
+import TreatmentsClient from "./TreatmentsClient";
 
 export const metadata = {
-  title: "Treatments — Compare Top Medical Procedures in Korea",
-  description: "Browse all HEALO treatments — Korean Medicine, plastic surgery, dermatology & more. Compare prices, reviews, and hospitals across Korea.",
-  keywords: ["Korea treatments", "Korean Medicine", "plastic surgery Korea", "medical tourism treatments", "韩国治疗", "韓国施術"],
+  title: "암종별 치료 안내 — 한국 암 치료와 한방 통합 케어",
+  description:
+    "위암, 유방암, 간암, 폐암, 갑상선암, 대장암 등 주요 암종에 대한 한국의 치료 접근법과 한방 면역치료 통합 케어를 안내합니다.",
+  keywords: [
+    "cancer treatment Korea",
+    "위암 치료",
+    "유방암 치료",
+    "간암 치료",
+    "Korean Medicine cancer care",
+    "한방 면역치료",
+    "oncology Korea",
+  ],
   alternates: { canonical: "/treatments" },
-  openGraph: {
-    title: "All Treatments | HEALO Korea",
-    description: "Compare top medical treatments and Korean Medicine programs in Korea.",
-    type: "website",
-  },
 };
 
 export default function TreatmentsPage() {
   return (
     <Suspense>
-      <PaginatedListClient
-        type="treatment"
-        title="All Treatments"
-        withCta
-      />
+      <TreatmentsClient />
     </Suspense>
   );
 }

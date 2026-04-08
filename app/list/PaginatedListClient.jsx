@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2, X, Search } from "lucide-react";
 import { supabaseClient } from "../../src/lib/data/supabaseClient";
 import { mapHospitalRow, mapTreatmentRow } from "../../src/lib/mapper";
-import { getLocationColumn, getCurrentLangCode } from "../../src/lib/language";
+import { getCurrentLangCode } from "../../src/lib/language";
 import { getLangCodeFromCookie, t } from "../../src/lib/i18n";
 import { CardListSection, PersonalConciergeCTA } from "../../src/components.jsx";
 
@@ -29,7 +29,7 @@ const TAG_CHIPS = {
   ],
 };
 
-export default function PaginatedListClient({ type, title, withCta = false }) {
+export default function PaginatedListClient({ type, withCta = false }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const initialTag = searchParams?.get("tag") || "";
@@ -83,8 +83,6 @@ export default function PaginatedListClient({ type, title, withCta = false }) {
       const from = isLoadMore ? (page + 1) * ITEMS_PER_PAGE : 0;
       const to = from + ITEMS_PER_PAGE - 1;
       const table = type === "treatment" ? "treatments" : "hospitals";
-      const locCol = getLocationColumn();
-
       const HOSPITAL_PUBLIC_COLS = `id,slug,name,location_en,location_kr,address_detail,description,tags,rating,reviews_count,images,thumbnail_image,gallery_images,latitude,longitude,operating_hours,doctor_profile,amenities,supported_languages,specialties,medical_equipment,certifications,insurance_accepted,insurance_details,annual_surgery_count,establishment_date,doctor_count,external_ratings,is_published,display_order,created_at,i18n,is_partner`;
       const TREATMENT_PUBLIC_COLS = `id,slug,name,description,full_description,hospital_id,price_min,price_max,tags,images,benefits,i18n`;
 
@@ -93,8 +91,8 @@ export default function PaginatedListClient({ type, title, withCta = false }) {
           .from(table)
           .select(
             type === "treatment"
-              ? `${TREATMENT_PUBLIC_COLS}, hospitals(slug, name, location:${locCol}, location_kr, location_en, i18n)`
-              : `${HOSPITAL_PUBLIC_COLS}, location:${locCol}`
+              ? `${TREATMENT_PUBLIC_COLS}, hospitals(slug, name, location_kr, location_en, i18n)`
+              : HOSPITAL_PUBLIC_COLS
           )
           .eq("is_published", true)
           .order("display_order", { ascending: true, nullsFirst: false })

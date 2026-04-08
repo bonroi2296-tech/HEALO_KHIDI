@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
         hasSupabaseUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
         hasSupabaseAnonKey: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
         hasAdminAllowlist: !!process.env.ADMIN_EMAIL_ALLOWLIST,
-        allowlistValue: process.env.ADMIN_EMAIL_ALLOWLIST || null,
+        allowlistCount: (process.env.ADMIN_EMAIL_ALLOWLIST || "").split(",").filter(Boolean).length,
       },
     },
   });

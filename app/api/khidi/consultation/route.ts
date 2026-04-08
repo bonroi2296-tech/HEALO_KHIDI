@@ -9,6 +9,7 @@ export const runtime = "nodejs";
 
 import { NextRequest } from "next/server";
 import { v4 as uuidv4 } from "uuid";
+import { AccessToken } from "livekit-server-sdk";
 
 export async function POST(request: NextRequest) {
   try {
@@ -54,9 +55,31 @@ export async function POST(request: NextRequest) {
     );
     const supabaseAdmin = getSupabaseServerClient();
 
-    // Generate room name and tokens (mock for now)
+    // Generate room name and LiveKit tokens
     const liveroomName = `khidi-${uuidv4()}`;
-    const mockToken = uuidv4();
+    const apiKey = process.env.LIVEKIT_API_KEY;
+    const apiSecret = process.env.LIVEKIT_API_SECRET;
+
+    let tokenPatient = "";
+    let tokenDoctor = "";
+
+    if (apiKey && apiSecret) {
+      const patientToken = new AccessToken(apiKey, apiSecret, {
+        identity: `patient-${payload.patientId}`,
+        name: "Patient",
+        metadata: JSON.stringify({ role: "patient" }),
+      });
+      patientToken.addGrant({ room: liveroomName, roomJoin: true, canPublish: true, canSubscribe: true, canPublishData: true });
+      tokenPatient = await patientToken.toJwt();
+
+      const doctorToken = new AccessToken(apiKey, apiSecret, {
+        identity: `doctor-${payload.doctorId || "unassigned"}`,
+        name: "Doctor",
+        metadata: JSON.stringify({ role: "doctor" }),
+      });
+      doctorToken.addGrant({ room: liveroomName, roomJoin: true, canPublish: true, canSubscribe: true, canPublishData: true });
+      tokenDoctor = await doctorToken.toJwt();
+    }
 
     // Insert into consultation_sessions
     const insertData: Record<string, any> = {
@@ -70,8 +93,8 @@ export async function POST(request: NextRequest) {
       doctor_language: payload.doctorLanguage || "ko",
       status: "scheduled",
       livekit_room_name: liveroomName,
-      livekit_token_patient: mockToken,
-      livekit_token_doctor: mockToken,
+      livekit_token_patient: tokenPatient || null,
+      livekit_token_doctor: tokenDoctor || null,
       notes: payload.notes || null,
     };
 

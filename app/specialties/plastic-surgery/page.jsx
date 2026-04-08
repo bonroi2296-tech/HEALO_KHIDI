@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 
 export const metadata = {
-  title: "Plastic Surgery in Korea | Prices, Top Clinics & Guide | HEALO",
+  title: "Plastic Surgery in Korea | Prices, Top Clinics & Guide | HEALO-KHIDI",
   description:
     "Complete guide to plastic surgery in Korea. Compare prices, find verified clinics, and get a free personalized treatment plan. Rhinoplasty from $2,500.",
   keywords: [
@@ -25,14 +25,14 @@ export const metadata = {
     "plastic surgery Seoul",
   ],
   openGraph: {
-    title: "Plastic Surgery in Korea | Prices, Top Clinics & Guide | HEALO",
+    title: "Plastic Surgery in Korea | Prices, Top Clinics & Guide | HEALO-KHIDI",
     description:
       "Complete guide to plastic surgery in Korea. Compare prices, find verified clinics, and get a free personalized treatment plan.",
     type: "website",
-    url: "https://healo.kr/specialties/plastic-surgery",
+    url: "https://khidi.healo.kr/specialties/plastic-surgery",
   },
   alternates: {
-    canonical: "https://healo.kr/specialties/plastic-surgery",
+    canonical: "https://khidi.healo.kr/specialties/plastic-surgery",
   },
 };
 
@@ -42,7 +42,7 @@ const jsonLd = {
   name: "Plastic Surgery",
   description:
     "Comprehensive plastic and cosmetic surgery services in South Korea, including rhinoplasty, double eyelid surgery, facial contouring, and facelifts.",
-  url: "https://healo.kr/specialties/plastic-surgery",
+  url: "https://khidi.healo.kr/specialties/plastic-surgery",
   medicalSpecialty: "PlasticSurgery",
   availableService: [
     {

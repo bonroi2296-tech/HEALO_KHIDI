@@ -182,6 +182,19 @@ export async function middleware(request: NextRequest) {
     return partnerResponse;
   }
 
+  // ========================================
+  // /patient 경로 보호 (로그인 여부 체크)
+  // ========================================
+  if (pathname.startsWith("/patient")) {
+    const { hasSession, response: patientResponse } = await checkSessionInMiddleware(request);
+    if (!hasSession) {
+      const loginUrl = new URL("/login", request.url);
+      loginUrl.searchParams.set("redirect", pathname);
+      return NextResponse.redirect(loginUrl);
+    }
+    return patientResponse;
+  }
+
   return NextResponse.next();
 }
 

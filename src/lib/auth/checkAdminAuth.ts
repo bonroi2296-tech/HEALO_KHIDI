@@ -211,7 +211,6 @@ export async function checkAdminAuth(request?: any): Promise<{
     const allowlist = getAdminEmailAllowlist();
     
     if (isDev) {
-      debugInfo.allowlist = allowlist;
       debugInfo.allowlistCount = allowlist.length;
       debugInfo.emailInAllowlist = allowlist.includes(userEmail || "");
     }

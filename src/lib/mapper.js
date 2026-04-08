@@ -4,26 +4,28 @@ import { formatPriceRange } from "./i18n/format";
 import { localize, localizeArray, localizeLocation } from "./language";
 
 // 1. 이미지 데이터 정규화 (무조건 유효한 URL 배열로 반환)
+const isValidImageUrl = (v) => typeof v === 'string' && (v.startsWith('http://') || v.startsWith('https://') || v.startsWith('/'));
+
 export const normalizeImages = (raw) => {
   if (!raw) return [];
-  
-  if (Array.isArray(raw)) return raw.filter(Boolean);
+
+  if (Array.isArray(raw)) return raw.filter(isValidImageUrl);
 
   if (typeof raw === "string") {
     const t = raw.trim();
-    
+
     if (t.startsWith("[") && t.endsWith("]")) {
       try {
         const parsed = JSON.parse(t);
-        if (Array.isArray(parsed)) return parsed.filter(Boolean);
-      } catch (e) {
-          console.error("Image parse error:", e);
+        if (Array.isArray(parsed)) return parsed.filter(isValidImageUrl);
+      } catch {
+        // invalid JSON, skip
       }
     }
-    
+
     if (t.startsWith("http")) return [t];
   }
-  
+
   return [];
 };
 
@@ -64,8 +66,8 @@ export const mapHospitalRow = (h, lang) => {
     ratingCount: resolved.count,
     reviewsCount: h.reviews_count ?? 0,
     images: normalizeImages(h.images),
-    thumbnail_image: h.thumbnail_image ?? null,
-    gallery_images: Array.isArray(h.gallery_images) ? h.gallery_images : [],
+    thumbnail_image: isValidImageUrl(h.thumbnail_image) ? h.thumbnail_image : null,
+    gallery_images: Array.isArray(h.gallery_images) ? h.gallery_images.filter(isValidImageUrl) : [],
     latitude: h.latitude ?? null,
     longitude: h.longitude ?? null,
     operating_hours: h.operating_hours ?? null,

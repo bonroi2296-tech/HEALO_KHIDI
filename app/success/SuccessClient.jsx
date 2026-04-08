@@ -100,7 +100,7 @@ export const SuccessPage = ({ setView }) => {
                                 </div>
                             </div>
 
-                            <div className="relative flex gap-4">
+                            <div className="relative flex gap-4 pb-6">
                                 <div className="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center shrink-0 z-10 ring-4 ring-white">
                                     <MessageCircle size={12} className="text-gray-400"/>
                                 </div>
@@ -109,16 +109,33 @@ export const SuccessPage = ({ setView }) => {
                                     <p className="text-xs text-gray-400">{t('success.step3Desc', langCode)}</p>
                                 </div>
                             </div>
+
+                            <div className="relative flex gap-4">
+                                <div className="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center shrink-0 z-10 ring-4 ring-white">
+                                    <Sparkles size={12} className="text-gray-400"/>
+                                </div>
+                                <div>
+                                    <p className="text-sm font-bold text-gray-400 leading-none mb-1">{t('success.step4Title', langCode)}</p>
+                                    <p className="text-xs text-gray-400">{t('success.step4Desc', langCode)}</p>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
-                    {/* 4. Step2 CTA (문의 성공 시만) + 하단 버튼 */}
+                    {/* 4. CTA 버튼들: 계정 생성 유도 → 추가 정보 → 홈 */}
                     <div className="space-y-3">
+                        {/* 핵심 CTA: 계정 생성 → 진행 상황 추적 */}
+                        <button
+                            onClick={() => router.push('/signup?redirect=/patient')}
+                            className="w-full bg-teal-600 text-white font-bold py-4 rounded-xl hover:bg-teal-700 transition shadow-lg shadow-teal-100 transform active:scale-[0.98] flex items-center justify-center gap-2"
+                        >
+                            {t('success.createAccountCta', langCode)}
+                        </button>
+
                         {inquirySuccess && (
                             <button
                                 type="button"
                                 onClick={() => {
-                                  // ✅ Funnel 이벤트: Step2 CTA 클릭
                                   fetch('/api/inquiries/event', {
                                     method: 'POST',
                                     headers: { 'Content-Type': 'application/json' },
@@ -131,9 +148,9 @@ export const SuccessPage = ({ setView }) => {
                                 {t('success.addInfoCta', langCode)}
                             </button>
                         )}
-                        <button 
-                            onClick={() => setView('home')} 
-                            className="w-full bg-teal-600 text-white font-bold py-4 rounded-xl hover:bg-teal-700 transition shadow-lg shadow-teal-100 transform active:scale-[0.98] flex items-center justify-center gap-2"
+                        <button
+                            onClick={() => setView('home')}
+                            className="w-full bg-white border border-gray-200 text-gray-600 font-medium py-3 rounded-xl hover:bg-gray-50 transition transform active:scale-[0.98] text-sm"
                         >
                             {t('success.returnHome', langCode)}
                         </button>

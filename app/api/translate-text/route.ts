@@ -5,7 +5,7 @@ import { google } from "@ai-sdk/google";
 import { generateText } from "ai";
 
 const LANG_NAMES: Record<string, string> = {
-  en: "English", zh: "Simplified Chinese", ja: "Japanese", ko: "Korean",
+  en: "English", zh: "Simplified Chinese", ja: "Japanese", ko: "Korean", ru: "Russian", kz: "Kazakh",
 };
 
 export async function POST(request: NextRequest) {

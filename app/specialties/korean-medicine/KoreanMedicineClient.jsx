@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 import { supabaseClient } from "../../../src/lib/data/supabaseClient";
 import { mapHospitalRow, mapTreatmentRow } from "../../../src/lib/mapper";
-import { getLocationColumn, getCurrentLangCode } from "../../../src/lib/language";
+import { getCurrentLangCode } from "../../../src/lib/language";
 import { getLangCodeFromCookie, t } from "../../../src/lib/i18n";
 
 export default function KoreanMedicineClient() {
@@ -18,24 +18,31 @@ export default function KoreanMedicineClient() {
   const [treatments, setTreatments] = useState([]);
   const [openFaqIdx, setOpenFaqIdx] = useState(-1);
 
-  useEffect(() => { setLangCode(getLangCodeFromCookie()); }, []);
+  useEffect(() => {
+    const update = () => setLangCode(prev => {
+      const next = getLangCodeFromCookie();
+      return prev !== next ? next : prev;
+    });
+    update();
+    const id = setInterval(update, 1500);
+    return () => clearInterval(id);
+  }, []);
 
   useEffect(() => {
     const fetchData = async () => {
-      const locCol = getLocationColumn();
       const lang = getCurrentLangCode();
 
       const [hospRes, treatRes] = await Promise.all([
         supabaseClient
           .from("hospitals")
-          .select(`*, location:${locCol}`)
+          .select(`*`)
           .eq("is_published", true)
           .contains("tags", ["Korean Medicine"])
           .order("display_order", { ascending: true, nullsFirst: false })
           .limit(6),
         supabaseClient
           .from("treatments")
-          .select(`id,slug,name,description,hospital_id,price_min,price_max,tags,images,benefits,i18n, hospitals(slug, name, location:${locCol}, location_kr, location_en, i18n)`)
+          .select(`id,slug,name,description,hospital_id,price_min,price_max,tags,images,benefits,i18n, hospitals(slug, name, location_kr, location_en, i18n)`)
           .eq("is_published", true)
           .contains("tags", ["Korean Medicine"])
           .order("display_order", { ascending: true, nullsFirst: false })
@@ -275,7 +282,7 @@ export default function KoreanMedicineClient() {
             "@type": "MedicalBusiness",
             name: "Korean Traditional Medicine at HEALO",
             description: "Experience Korea's unique traditional medicine — herbal formulas, acupuncture, and holistic healing programs for international patients.",
-            url: "https://healo.kr/specialties/korean-medicine",
+            url: "https://khidi.healo.kr/specialties/korean-medicine",
             medicalSpecialty: "Traditional Korean Medicine",
             availableService: treatments.map((t) => ({
               "@type": "MedicalProcedure",

@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 
 export const metadata = {
-  title: "Dermatology & Skin Treatments in Korea | HEALO",
+  title: "Dermatology & Skin Treatments in Korea | HEALO-KHIDI",
   description:
     "Explore advanced dermatology and skin treatments in Korea. Laser therapy, Botox, fillers, and skin rejuvenation at competitive prices. Free consultation.",
   keywords: [
@@ -25,14 +25,14 @@ export const metadata = {
     "dermatologist Seoul",
   ],
   openGraph: {
-    title: "Dermatology & Skin Treatments in Korea | HEALO",
+    title: "Dermatology & Skin Treatments in Korea | HEALO-KHIDI",
     description:
       "Explore advanced dermatology and skin treatments in Korea. Laser therapy, Botox, fillers, and rejuvenation at competitive prices.",
     type: "website",
-    url: "https://healo.kr/specialties/dermatology",
+    url: "https://khidi.healo.kr/specialties/dermatology",
   },
   alternates: {
-    canonical: "https://healo.kr/specialties/dermatology",
+    canonical: "https://khidi.healo.kr/specialties/dermatology",
   },
 };
 
@@ -42,7 +42,7 @@ const jsonLd = {
   name: "Dermatology",
   description:
     "Advanced dermatology and skin treatment services in South Korea, including laser therapy, Botox, dermal fillers, and skin rejuvenation programs.",
-  url: "https://healo.kr/specialties/dermatology",
+  url: "https://khidi.healo.kr/specialties/dermatology",
   medicalSpecialty: "Dermatology",
   availableService: [
     {
