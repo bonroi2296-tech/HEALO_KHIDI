@@ -4,11 +4,12 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { getLangCodeFromCookie } from '../../src/lib/i18n';
 import {
-  Home, FileText, BookOpen, Activity, Calendar, Globe,
+  Home, FileText, BookOpen, Activity, Calendar, Globe, MessageSquare,
 } from 'lucide-react';
 
 const TABS = [
   { href: '/patient', icon: Home, label: { ko: '홈', en: 'Home', ru: 'Главная', kz: 'Басты', zh: '首页', ja: 'ホーム' } },
+  { href: '/patient/chat', icon: MessageSquare, label: { ko: 'AI상담', en: 'AI Chat', ru: 'AI Чат', kz: 'AI Чат', zh: 'AI咨询', ja: 'AI相談' } },
   { href: '/patient/documents', icon: FileText, label: { ko: '문서', en: 'Docs', ru: 'Документы', kz: 'Құжаттар', zh: '文档', ja: '文書' } },
   { href: '/patient/education', icon: BookOpen, label: { ko: '교육', en: 'Education', ru: 'Обучение', kz: 'Білім', zh: '教育', ja: '教育' } },
   { href: '/patient/symptoms', icon: Activity, label: { ko: '증상', en: 'Symptoms', ru: 'Симптомы', kz: 'Белгілер', zh: '症状', ja: '症状' } },

@@ -6,7 +6,7 @@ import { getLangCodeFromCookie } from '../../src/lib/i18n';
 import { createSupabaseBrowserClient } from '../../src/lib/supabase/browser';
 import {
   FileText, Video, BookOpen, Activity, Calendar,
-  Upload, ChevronRight, AlertCircle, User,
+  Upload, ChevronRight, AlertCircle, User, MessageSquare,
 } from 'lucide-react';
 
 const L = {
@@ -15,6 +15,7 @@ const L = {
   login: { ko: '로그인이 필요합니다', en: 'Please log in to view your dashboard', ru: 'Пожалуйста, войдите в систему', kz: 'Жүйеге кіріңіз', zh: '请登录', ja: 'ログインしてください' },
   loginBtn: { ko: '로그인', en: 'Log In', ru: 'Войти', kz: 'Кіру', zh: '登录', ja: 'ログイン' },
   sections: {
+    aiChat: { ko: 'AI 건강 상담', en: 'AI Health Chat', ru: 'AI Консультация', kz: 'AI Кеңес', zh: 'AI 健康咨询', ja: 'AI 健康相談' },
     consultations: { ko: '내 상담', en: 'My Consultations', ru: 'Мои консультации', kz: 'Менің кеңестерім', zh: '我的咨询', ja: '相談一覧' },
     documents: { ko: '의료 문서', en: 'Medical Documents', ru: 'Медицинские документы', kz: 'Медициналық құжаттар', zh: '医疗文档', ja: '医療書類' },
     education: { ko: '건강 교육', en: 'Health Education', ru: 'Обучение здоровью', kz: 'Денсаулық білімі', zh: '健康教育', ja: '健康教育' },
@@ -30,7 +31,8 @@ const L = {
 };
 
 const MENU_ITEMS = [
-  { key: 'consultations', icon: Video, href: null, color: 'bg-blue-50 text-blue-600' },
+  { key: 'aiChat', icon: MessageSquare, href: '/patient/chat', color: 'bg-teal-50 text-teal-600' },
+  { key: 'consultations', icon: Video, href: '#consultations', color: 'bg-blue-50 text-blue-600' },
   { key: 'documents', icon: Upload, href: '/patient/documents', color: 'bg-purple-50 text-purple-600' },
   { key: 'education', icon: BookOpen, href: '/patient/education', color: 'bg-green-50 text-green-600' },
   { key: 'symptoms', icon: Activity, href: '/patient/symptoms', color: 'bg-orange-50 text-orange-600' },
@@ -113,7 +115,14 @@ export default function PatientDashboardClient() {
           return (
             <button
               key={item.key}
-              onClick={() => item.href ? router.push(item.href) : null}
+              onClick={() => {
+                if (!item.href) return;
+                if (item.href.startsWith('#')) {
+                  document.getElementById(item.href.slice(1))?.scrollIntoView({ behavior: 'smooth' });
+                } else {
+                  router.push(item.href);
+                }
+              }}
               className="flex items-center gap-3 p-4 bg-white rounded-xl border border-gray-100 hover:shadow-md hover:-translate-y-0.5 transition-all text-left"
             >
               <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${item.color}`}>
@@ -129,14 +138,14 @@ export default function PatientDashboardClient() {
       </div>
 
       {/* Consultations List */}
-      <h2 className="text-lg font-semibold mb-4">{l(L.sections.consultations)}</h2>
+      <h2 id="consultations" className="text-lg font-semibold mb-4 scroll-mt-20">{l(L.sections.consultations)}</h2>
       {consultations.length === 0 ? (
         <div className="bg-gray-50 rounded-2xl p-8 text-center">
           <AlertCircle size={40} className="text-gray-300 mx-auto mb-3" />
           <p className="font-medium text-gray-600 mb-1">{l(L.noConsultations)}</p>
           <p className="text-gray-400 text-sm mb-4">{l(L.startFirst)}</p>
           <button
-            onClick={() => router.push('/intake')}
+            onClick={() => router.push('/inquiry')}
             className="bg-teal-600 text-white font-semibold px-5 py-2.5 rounded-xl hover:bg-teal-700 transition text-sm"
           >
             {l(L.newIntake)}

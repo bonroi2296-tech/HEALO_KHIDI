@@ -675,12 +675,15 @@ export default function HospitalsClient() {
                 </div>
                 <p className="text-sm text-gray-600 line-clamp-2 mb-3">{h.description}</p>
                 {h.tags?.length > 0 && (
-                  <div className="flex flex-wrap gap-1">
+                  <div className="flex flex-wrap gap-1 mb-3">
                     {h.tags.slice(0, 3).map((tag, i) => (
                       <span key={i} className="px-2 py-0.5 bg-teal-50 text-teal-700 text-xs font-semibold rounded-full">{tag}</span>
                     ))}
                   </div>
                 )}
+                <div className="flex items-center gap-1 text-sm text-teal-600 font-medium">
+                  {lang === 'ko' ? '상세 보기' : 'View Details'} <ArrowRight size={14} />
+                </div>
               </div>
             ))}
           </div>
@@ -699,7 +702,7 @@ export default function HospitalsClient() {
           <p className="text-gray-500 text-base mb-8">{l(L.cancerCare.desc)}</p>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
             {CANCER_GUIDES.map((guide, i) => (
-              <div key={i} onClick={() => router.push('/intake')} className="bg-white border border-gray-200 rounded-2xl p-6 hover:shadow-md hover:border-teal-200 transition cursor-pointer group">
+              <div key={i} onClick={() => router.push('/inquiry')} className="bg-white border border-gray-200 rounded-2xl p-6 hover:shadow-md hover:border-teal-200 transition cursor-pointer group">
                 <div className="flex items-center gap-3 mb-3">
                   <span className="text-3xl">{guide.emoji}</span>
                   <h3 className="font-bold text-lg group-hover:text-teal-600 transition">{l(guide.type)}</h3>
