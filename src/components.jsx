@@ -47,9 +47,15 @@ const useLangCode = () => {
   return langCode;
 };
 
-const UserMenu = ({ session, onLogout, langCode }) => {
+const MY_PAGE_LABEL = {
+  ko: '내 페이지', en: 'My Page', ru: 'Мой кабинет', kz: 'Менің бетім', zh: '我的页面', ja: 'マイページ',
+};
+
+const UserMenu = ({ session, onLogout, langCode, isHospitalUser, isAdmin }) => {
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useOutsideClose(isOpen, () => setIsOpen(false));
+  const myPageHref = isAdmin ? '/admin' : isHospitalUser ? '/partner' : '/patient';
+  const myPageLabel = MY_PAGE_LABEL[langCode] || MY_PAGE_LABEL.en;
 
   const getInitials = (email) => {
     if (!email) return 'U';
@@ -88,6 +94,14 @@ const UserMenu = ({ session, onLogout, langCode }) => {
                 {session?.user?.email}
               </div>
             </div>
+            <a
+              href={myPageHref}
+              onClick={() => setIsOpen(false)}
+              className="w-full text-left px-4 py-2.5 text-sm hover:bg-teal-50 transition-colors flex items-center gap-2.5 text-gray-700 font-medium border-b border-gray-100"
+            >
+              <User size={15} className="text-teal-600" />
+              <span>{myPageLabel}</span>
+            </a>
             <button
               onClick={() => { setIsOpen(false); onLogout(); }}
               className="w-full text-left px-4 py-2.5 text-sm hover:bg-red-50 transition-colors flex items-center gap-2.5 text-red-600 font-medium"
@@ -194,7 +208,7 @@ export const Header = ({ setView, view, handleGlobalInquiry, isMobileMenuOpen, s
 
             {/* Auth */}
             {session ? (
-              <UserMenu session={session} onLogout={onLogout} langCode={langCode} />
+              <UserMenu session={session} onLogout={onLogout} langCode={langCode} isHospitalUser={isHospitalUser} isAdmin={isAdmin} />
             ) : (
               <div className="flex items-center gap-1.5">
                 <button onClick={() => setView('login')} className="px-3 py-1.5 text-sm font-medium text-white/70 hover:text-white hover:bg-white/10 rounded-full transition-all whitespace-nowrap">
@@ -266,8 +280,13 @@ export const Header = ({ setView, view, handleGlobalInquiry, isMobileMenuOpen, s
               )}
 
               {/* Portal links */}
-              {(isHospitalUser || isAdmin) && (
-                <div className="px-5 pt-4 pb-2">
+              {session && (
+                <div className="px-5 pt-4 pb-2 space-y-2">
+                  {!isHospitalUser && !isAdmin && (
+                    <a href="/patient" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center gap-2.5 py-3 px-4 bg-teal-600 text-white rounded-xl text-sm font-semibold shadow-sm">
+                      <User size={16} /> {MY_PAGE_LABEL[langCode] || MY_PAGE_LABEL.en}
+                    </a>
+                  )}
                   {isHospitalUser && !isAdmin && (
                     <a href="/partner" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center gap-2.5 py-3 px-4 bg-teal-600 text-white rounded-xl text-sm font-semibold shadow-sm">
                       <Building2 size={16} /> Hospital Portal
