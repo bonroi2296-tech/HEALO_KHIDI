@@ -15,11 +15,14 @@ import {
 import { createSupabaseBrowserClient } from "../../../src/lib/supabase/browser";
 import { useHospitalContext } from "./HospitalGateClient";
 
+// KHIDI 방향성 기준 메뉴
+// - 진료 의뢰/일정/의료기록은 P1에서 신규 페이지 추가 예정
+// - 리드/시술 관리는 마케팅 시절 잔재로 별도 그룹("기존 도구")에 보존
 const navItems = [
   { id: "dashboard", label: "대시보드", icon: LayoutDashboard, href: "/partner" },
-  { id: "leads", label: "리드 관리", icon: MessageSquare, href: "/partner/leads" },
+  { id: "leads", label: "진료 의뢰(리드)", icon: MessageSquare, href: "/partner/leads" },
   { id: "profile", label: "병원 정보", icon: Building2, href: "/partner/profile" },
-  { id: "treatments", label: "시술 관리", icon: Stethoscope, href: "/partner/treatments" },
+  { id: "treatments", label: "시술 카탈로그", icon: Stethoscope, href: "/partner/treatments" },
 ];
 
 export function HospitalNav() {
