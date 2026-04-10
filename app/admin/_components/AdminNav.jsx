@@ -7,7 +7,6 @@ import {
   LayoutDashboard,
   MessageSquare,
   Building2,
-  Stethoscope,
   BarChart3,
   FileText,
   Brain,
@@ -21,36 +20,36 @@ import {
   Database,
   SearchCode,
   HeartPulse,
-  ClipboardList,
-  Activity,
   Video,
 } from "lucide-react";
 import { createSupabaseBrowserClient } from "../../../src/lib/supabase/browser";
 
 const navGroups = [
   {
-    title: "KHIDI",
-    items: [
-      { id: "agent", label: "Human Agent", icon: HeartPulse, href: "/admin/agent" },
-      { id: "consultations", label: "원격협진", icon: Video, href: "/admin/consultations" },
-      { id: "intakes", label: "암환자 인테이크", icon: ClipboardList, href: "/admin/agent" },
-      { id: "kpi", label: "성과 지표", icon: Activity, href: "/admin/agent" },
-    ]
-  },
-  {
-    title: "운영",
+    title: "KHIDI 운영",
     items: [
       { id: "dashboard", label: "대시보드", icon: LayoutDashboard, href: "/admin" },
-      { id: "inquiries", label: "문의관리", icon: MessageSquare, href: "/admin/inquiries" },
-      { id: "leads", label: "리드관리", icon: Users, href: "/admin/leads" },
+      { id: "agent", label: "Human Agent", icon: HeartPulse, href: "/admin/agent" },
+      { id: "consultations", label: "원격협진", icon: Video, href: "/admin/consultations" },
     ]
   },
   {
-    title: "데이터 관리",
+    title: "환자 깔때기",
+    items: [
+      { id: "inquiries", label: "AI 핸드오프(문의)", icon: MessageSquare, href: "/admin/inquiries" },
+      { id: "leads", label: "사전상담 리드", icon: Users, href: "/admin/leads" },
+    ]
+  },
+  {
+    title: "제휴 데이터",
     items: [
       { id: "hospitals", label: "병원관리", icon: Building2, href: "/admin/hospitals" },
       { id: "doctors", label: "의료진·지점", icon: Users, href: "/admin/doctors" },
-      { id: "treatments", label: "시술관리", icon: Stethoscope, href: "/admin/treatments" },
+    ]
+  },
+  {
+    title: "데이터 파이프라인",
+    items: [
       { id: "import", label: "대량 Import", icon: Upload, href: "/admin/import" },
       { id: "enrichment", label: "데이터 보강", icon: Database, href: "/admin/enrichment" },
       { id: "crawl", label: "데이터 크롤링", icon: SearchCode, href: "/admin/crawl" },
@@ -58,7 +57,7 @@ const navGroups = [
     ]
   },
   {
-    title: "분석 및 도구",
+    title: "분석 및 AI",
     items: [
       { id: "analytics", label: "문의 현황", icon: BarChart3, href: "/admin/analytics" },
       { id: "rag", label: "RAG 관리", icon: Brain, href: "/admin/rag" },
