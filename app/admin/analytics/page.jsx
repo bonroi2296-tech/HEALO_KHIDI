@@ -3,9 +3,6 @@
 import { useState, useEffect } from "react";
 import { AnalyticsTab } from "./_client/AnalyticsTab";
 import { AdminGuideModal } from "../_components/AdminGuideModal";
-import { createSupabaseBrowserClient } from "../../../src/lib/supabase/browser";
-
-const supabase = createSupabaseBrowserClient();
 
 export default function AnalyticsPage() {
   const [showGuide, setShowGuide] = useState(false);
@@ -19,40 +16,29 @@ export default function AnalyticsPage() {
 
   useEffect(() => {
     const fetchAnalytics = async () => {
-      const { data: inquiries } = await supabase
-        .from('inquiries')
-        .select('treatment_type')
-        .order('created_at', { ascending: false });
-
-      if (inquiries) {
-        const totalLeads = inquiries.length;
-        const avgPrice = 3500;
-        const totalRevenue = totalLeads * avgPrice;
-
-        // Treatment trends
-        const typeCounts = {};
-        inquiries.forEach(i => {
-          const type = i.treatment_type || 'Unknown';
-          typeCounts[type] = (typeCounts[type] || 0) + 1;
+      try {
+        const res = await fetch('/api/admin/analytics', {
+          credentials: 'include',
+          cache: 'no-store',
         });
-
-        const treatmentTrends = Object.entries(typeCounts)
-          .map(([name, count]) => ({
-            name,
-            count,
-            percent: Math.round((count / totalLeads) * 100)
-          }))
-          .sort((a, b) => b.count - a.count);
-
-        const topTreatment = treatmentTrends[0]?.name || '-';
-
+        if (!res.ok) {
+          console.error('[admin/analytics] HTTP', res.status);
+          return;
+        }
+        const data = await res.json();
+        if (!data?.ok) {
+          console.error('[admin/analytics] API error:', data?.error, data?.detail);
+          return;
+        }
         setAnalytics({
-          totalRevenue,
-          totalLeads,
-          topTreatment,
-          hospitalOpportunities: [],
-          treatmentTrends
+          totalRevenue: data.totalRevenue ?? 0,
+          totalLeads: data.totalLeads ?? 0,
+          topTreatment: data.topTreatment ?? '-',
+          hospitalOpportunities: Array.isArray(data.hospitalOpportunities) ? data.hospitalOpportunities : [],
+          treatmentTrends: Array.isArray(data.treatmentTrends) ? data.treatmentTrends : [],
         });
+      } catch (e) {
+        console.error('[admin/analytics] fetch failed:', e);
       }
     };
 
