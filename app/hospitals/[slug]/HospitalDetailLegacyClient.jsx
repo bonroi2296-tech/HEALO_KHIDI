@@ -277,25 +277,25 @@ export const HospitalDetailPage = ({ selectedId, setView, onTreatmentClick, init
   };
   const highlights = useMemo(() => {
     const items = [];
-    if (hospital?.doctor_count) items.push({ icon: Users, value: approxCount(hospital.doctor_count), label: "Medical Professionals" });
-    if (hospital?.annual_surgery_count) items.push({ icon: ClipboardCheck, value: hospital.annual_surgery_count.toLocaleString(), label: "Annual Procedures" });
-    if (hospital?.establishment_date) items.push({ icon: Calendar, value: `${new Date(hospital.establishment_date).getFullYear()}`, label: "Established" });
-    if (hospital?.insurance_accepted) items.push({ icon: ShieldCheck, value: "Yes", label: "Insurance Accepted" });
+    if (hospital?.doctor_count) items.push({ icon: Users, value: approxCount(hospital.doctor_count), label: t("detail.medicalProfessionals", langCode) });
+    if (hospital?.annual_surgery_count) items.push({ icon: ClipboardCheck, value: hospital.annual_surgery_count.toLocaleString(), label: t("detail.annualProcedures", langCode) });
+    if (hospital?.establishment_date) items.push({ icon: Calendar, value: `${new Date(hospital.establishment_date).getFullYear()}`, label: t("detail.established", langCode) });
+    if (hospital?.insurance_accepted) items.push({ icon: ShieldCheck, value: t("detail.yes", langCode), label: t("detail.insuranceAccepted", langCode) });
     const hours = hospital?.operating_hours;
-    if (hours?.mon_fri) items.push({ icon: Clock, value: hours.mon_fri, label: "Mon - Fri", highlight: 'weekday' });
+    if (hours?.mon_fri) items.push({ icon: Clock, value: hours.mon_fri, label: t("hours.monFri", langCode), highlight: 'weekday' });
     if (hours?.sat) {
       const isClosed = hours.sat === '휴무일' || hours.sat === '휴무' || hours.sat.toLowerCase() === 'closed';
-      items.push({ icon: Clock, value: isClosed ? 'Closed' : hours.sat, label: "Saturday", highlight: isClosed ? 'closed' : 'weekend' });
+      items.push({ icon: Clock, value: isClosed ? t("hours.closed", langCode) : hours.sat, label: t("hours.saturday", langCode), highlight: isClosed ? 'closed' : 'weekend' });
     }
     const sun = hours?.sun || hours?.sun_holidays || hours?.sun_holiday;
     if (sun) {
       const isClosed = sun === '휴무일' || sun === '휴무' || sun.toLowerCase() === 'closed';
-      items.push({ icon: Clock, value: isClosed ? 'Closed' : sun, label: "Sunday", highlight: isClosed ? 'closed' : 'weekend' });
+      items.push({ icon: Clock, value: isClosed ? t("hours.closed", langCode) : sun, label: t("hours.sunday", langCode), highlight: isClosed ? 'closed' : 'weekend' });
     } else if (hours?.mon_fri || hours?.sat) {
-      items.push({ icon: Clock, value: 'Closed', label: "Sunday", highlight: 'closed' });
+      items.push({ icon: Clock, value: t("hours.closed", langCode), label: t("hours.sunday", langCode), highlight: 'closed' });
     }
     return items;
-  }, [hospital]);
+  }, [hospital, langCode]);
 
   // Offerings: merge specialties, languages, amenities, equipment, certifications
   const offerings = useMemo(() => {
@@ -338,7 +338,7 @@ export const HospitalDetailPage = ({ selectedId, setView, onTreatmentClick, init
       <div className="max-w-6xl mx-auto px-4 py-6">
         {galleryImages.length === 0 ? (
           <div className="w-full aspect-[16/7] bg-gray-100 rounded-2xl flex flex-col items-center justify-center text-gray-400">
-            <ImageIcon size={48} className="mb-2" /><p className="font-bold text-sm">No Images Available</p>
+            <ImageIcon size={48} className="mb-2" /><p className="font-bold text-sm">{t("detail.noImages", langCode)}</p>
           </div>
         ) : galleryImages.length === 1 ? (
           <div className="w-full aspect-[16/7] relative overflow-hidden rounded-2xl bg-gray-100">
@@ -416,7 +416,7 @@ export const HospitalDetailPage = ({ selectedId, setView, onTreatmentClick, init
       {/* Content */}
       <div className="max-w-6xl mx-auto px-4">
         <button onClick={() => setView("list_hospital")} className="flex items-center text-sm text-gray-500 mb-6 hover:text-teal-600">
-          <ChevronLeft size={16} /> Back to Hospitals
+          <ChevronLeft size={16} /> {t("detail.backToHospitals", langCode)}
         </button>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
@@ -431,7 +431,7 @@ export const HospitalDetailPage = ({ selectedId, setView, onTreatmentClick, init
                 ))}
                 <span className={`px-2 py-0.5 text-xs font-medium rounded-full border flex items-center gap-1 ${isPartner ? "bg-teal-600 text-white border-teal-600" : "bg-gray-50 text-gray-500 border-gray-200"}`}>
                   {isPartner ? <ShieldCheck size={11} /> : <Info size={11} />}
-                  {isPartner ? t("badge.verified", langCode) : "Public Info"}
+                  {isPartner ? t("badge.verified", langCode) : t("detail.publicInfo", langCode)}
                 </span>
               </div>
 
@@ -456,13 +456,13 @@ export const HospitalDetailPage = ({ selectedId, setView, onTreatmentClick, init
                   {hospital.external_ratings.website && (
                     <a href={hospital.external_ratings.website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 hover:text-teal-600 transition">
                       <ExternalLink size={14} className="text-gray-400" />
-                      <span className="truncate max-w-[200px]">Website</span>
+                      <span className="truncate max-w-[200px]">{t("detail.website", langCode)}</span>
                     </a>
                   )}
                   {hospital.external_ratings.google_maps_url && (
                     <a href={hospital.external_ratings.google_maps_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 hover:text-teal-600 transition">
                       <MapPin size={14} className="text-gray-400" />
-                      <span>Google Maps</span>
+                      <span>{t("detail.googleMaps", langCode)}</span>
                     </a>
                   )}
                 </div>
@@ -473,8 +473,8 @@ export const HospitalDetailPage = ({ selectedId, setView, onTreatmentClick, init
             {doctor && (doctor.name || doctor.title || doctor.image) && (
               <section className="border-t border-gray-200 pt-8 pb-2">
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-lg font-bold text-gray-900">Medical Director</h2>
-                  <span className="bg-blue-50 text-blue-700 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border border-blue-100">Board Certified</span>
+                  <h2 className="text-lg font-bold text-gray-900">{t("detail.medicalDirector", langCode)}</h2>
+                  <span className="bg-blue-50 text-blue-700 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border border-blue-100">{t("detail.boardCertified", langCode)}</span>
                 </div>
                 <div className="flex flex-col md:flex-row gap-5">
                   {doctor.image && (
@@ -490,7 +490,7 @@ export const HospitalDetailPage = ({ selectedId, setView, onTreatmentClick, init
                     {doctor.title && <p className="text-teal-600 text-sm mb-3">{doctor.title}</p>}
                     <div className="flex flex-wrap justify-center md:justify-start gap-2 mb-3">
                       {doctor.school && <span className="flex items-center gap-1 px-2.5 py-1 bg-gray-50 rounded-lg text-xs text-gray-600 border border-gray-100"><GraduationCap size={13} className="text-gray-400" /> {doctor.school}</span>}
-                      {doctor.years && <span className="flex items-center gap-1 px-2.5 py-1 bg-gray-50 rounded-lg text-xs text-gray-600 border border-gray-100"><Award size={13} className="text-gray-400" /> {doctor.years} Experience</span>}
+                      {doctor.years && <span className="flex items-center gap-1 px-2.5 py-1 bg-gray-50 rounded-lg text-xs text-gray-600 border border-gray-100"><Award size={13} className="text-gray-400" /> {doctor.years} {t("detail.experience", langCode)}</span>}
                     </div>
                     {Array.isArray(doctor.specialties) && doctor.specialties.length > 0 && (
                       <div className="flex flex-wrap justify-center md:justify-start gap-1.5">
@@ -511,7 +511,7 @@ export const HospitalDetailPage = ({ selectedId, setView, onTreatmentClick, init
             {/* Highlights Grid */}
             {(highlights.length > 0 || hospital?.website) && (
               <section className="border-t border-gray-200 pt-8 pb-2">
-                <h2 className="text-lg font-bold text-gray-900 mb-4">Hospital Information</h2>
+                <h2 className="text-lg font-bold text-gray-900 mb-4">{t("detail.hospitalInformation", langCode)}</h2>
                 {hospital?.website && (
                   <a
                     href={hospital.website.startsWith("http") ? hospital.website : `https://${hospital.website}`}
@@ -581,7 +581,7 @@ export const HospitalDetailPage = ({ selectedId, setView, onTreatmentClick, init
             {/* Signature Programs */}
             {hospitalTreatments.length > 0 && (
               <section className="border-t border-gray-200 pt-8 pb-2">
-                <h2 className="text-lg font-bold text-gray-900 mb-4">Signature Programs</h2>
+                <h2 className="text-lg font-bold text-gray-900 mb-4">{t("detail.signaturePrograms", langCode)}</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {hospitalTreatments.map((item) => {
                     const thumb = normalizeImages(item.images)?.[0] || item.logo;

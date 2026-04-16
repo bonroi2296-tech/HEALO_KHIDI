@@ -29,10 +29,10 @@ const L = {
     upcoming: { ko: '오픈 예정', en: 'Coming Soon', ru: 'Скоро открытие', kz: 'Жақында ашылады', zh: '即将开业', ja: '近日オープン予定' },
   },
   section: {
-    career: { ko: '경력', en: 'Career' },
-    education: { ko: '학력', en: 'Education' },
-    activities: { ko: '활동', en: 'Activities & Memberships' },
-    publications: { ko: '저서 및 논문', en: 'Publications & Papers' },
+    career: { ko: '경력', en: 'Career', ru: 'Карьера', kz: 'Мансап', zh: '经历', ja: '経歴' },
+    education: { ko: '학력', en: 'Education', ru: 'Образование', kz: 'Білім', zh: '学历', ja: '学歴' },
+    activities: { ko: '활동', en: 'Activities & Memberships', ru: 'Деятельность и членство', kz: 'Қызмет және мүшелік', zh: '活动与会员', ja: '活動・所属' },
+    publications: { ko: '저서 및 논문', en: 'Publications & Papers', ru: 'Публикации и статьи', kz: 'Жарияланымдар және мақалалар', zh: '著作与论文', ja: '著書・論文' },
   },
   doctors_label: { ko: '명 전문의', en: ' Doctors', ru: ' врачей', kz: ' дәрігер', zh: '名医生', ja: '名の医師' },
   view_profile: { ko: '상세 프로필', en: 'Full Profile', ru: 'Полный профиль', kz: 'Толық профиль', zh: '详细简历', ja: '詳細プロフィール' },
@@ -54,6 +54,10 @@ const L = {
     desc: { ko: '각 암종에 대한 한국의 치료 접근법과 HEALO의 통합 케어를 확인하세요.', en: 'Korean treatment approaches for each cancer type with HEALO\'s integrated care.', ru: 'Корейские методы лечения с интегрированной помощью HEALO.', kz: 'HEALO кешенді көмегімен корей емдеу тәсілдері.', zh: '了解韩国治疗方法和HEALO综合护理。', ja: '韓国の治療アプローチとHEALO統合ケア。' },
   },
   cta: { ko: '사전상담 신청하기', en: 'Request Pre-consultation', ru: 'Запросить консультацию', kz: 'Кеңес сұрау', zh: '申请预咨询', ja: '事前相談を申請' },
+  viewDetails: { ko: '상세 보기', en: 'View Details', ru: 'Подробнее', kz: 'Толығырақ', zh: '查看详情', ja: '詳細を見る' },
+  comingSoon: { ko: '협진 병원 정보를 준비 중입니다', en: 'Partner hospital information coming soon', ru: 'Информация о больницах-партнёрах скоро появится', kz: 'Серіктес аурухналар туралы ақпарат жақында', zh: '合作医院信息即将推出', ja: '協診病院情報を準備中です' },
+  ewTitle: { ko: '양·한방 통합 암 케어', en: 'Integrated East-West Cancer Care', ru: 'Интегрированная онкологическая помощь', kz: 'Кешенді онкологиялық көмек', zh: '中西医结合肿瘤护理', ja: '洋・韓方統合がんケア' },
+  ewDesc: { ko: '전문 암 병원의 수술·항암 치료와 면력한방병원의 면역 강화·사후관리를 하나의 플랫폼에서.', en: 'Oncology surgery & chemotherapy from partner hospitals + Korean Medicine immune therapy & post-care — all on one platform.', ru: 'Хирургия и химиотерапия в партнёрских больницах + иммунная терапия и послеоперационный уход в Иммуногоспитале — на одной платформе.', kz: 'Серіктес аурухналардағы хирургия мен химиотерапия + Иммуногоспитальдегі иммундық терапия мен бақылау — бір платформада.', zh: '合作医院的手术与化疗 + 免力韩方医院的免疫强化与术后管理 — 一站式平台。', ja: '提携病院の手術・抗がん治療と免力韓方病院の免疫強化・術後管理を一つのプラットフォームで。' },
   hero_branches: { ko: '개 지점', en: 'Branches', ru: 'филиала', kz: 'филиал', zh: '家分院', ja: '拠点' },
   hero_doctors: { ko: '명 전문의', en: 'Doctors', ru: 'врачей', kz: 'дәрігер', zh: '名医生', ja: '名の医師' },
   hero_registered: { ko: '2개 지점 외국인환자 유치기관 등록', en: '2 Branches Registered for Foreign Patients', ru: '2 филиала зарегистрированы', kz: '2 филиал тіркелген', zh: '2家已注册外国患者招引', ja: '2拠点 外国人患者誘致登録済み' },
@@ -682,7 +686,7 @@ export default function HospitalsClient() {
                   </div>
                 )}
                 <div className="flex items-center gap-1 text-sm text-teal-600 font-medium">
-                  {lang === 'ko' ? '상세 보기' : 'View Details'} <ArrowRight size={14} />
+                  {l(L.viewDetails)} <ArrowRight size={14} />
                 </div>
               </div>
             ))}
@@ -690,7 +694,7 @@ export default function HospitalsClient() {
         ) : (
           <div className="text-center py-16 bg-gray-50 rounded-2xl">
             <Building2 size={40} className="mx-auto text-gray-300 mb-3" />
-            <p className="text-gray-400">{lang === 'ko' ? '협진 병원 정보를 준비 중입니다' : 'Partner hospital information coming soon'}</p>
+            <p className="text-gray-400">{l(L.comingSoon)}</p>
           </div>
         )}
       </section>
@@ -726,10 +730,10 @@ export default function HospitalsClient() {
             <Leaf size={28} className="text-emerald-200" />
           </div>
           <h2 className="text-2xl md:text-4xl font-extrabold mb-4">
-            {lang === 'ko' ? '양·한방 통합 암 케어' : lang === 'ru' ? 'Интегрированная онкологическая помощь' : lang === 'zh' ? '中西医结合肿瘤护理' : lang === 'ja' ? '洋・韓方統合がんケア' : 'Integrated East-West Cancer Care'}
+            {l(L.ewTitle)}
           </h2>
           <p className="text-white/80 max-w-2xl mx-auto mb-8 text-lg">
-            {lang === 'ko' ? '전문 암 병원의 수술·항암 치료와 면력한방병원의 면역 강화·사후관리를 하나의 플랫폼에서.' : 'Oncology surgery & chemotherapy from partner hospitals + Korean Medicine immune therapy & post-care — all on one platform.'}
+            {l(L.ewDesc)}
           </p>
           <button onClick={() => router.push('/intake')} className="bg-white text-teal-700 font-bold px-10 py-5 rounded-2xl shadow-xl hover:shadow-2xl hover:scale-105 transition-all inline-flex items-center gap-2 text-lg">
             {l(L.cta)} <ArrowRight size={20} />

@@ -16,6 +16,8 @@ const L = {
   easternTitle: { ko: '한방 통합 케어 (면력한방병원)', en: 'Korean Medicine Care (Immunehospital)', ru: 'Корейская медицина (Иммуногоспиталь)', kz: 'Корей медицинасы (Иммуногоспиталь)', zh: '韩方综合护理（免力韩方医院）', ja: '韓方統合ケア（免力韓方病院）' },
   cta: { ko: '사전상담 시작하기', en: 'Start Pre-consultation', ru: 'Начать консультацию', kz: 'Кеңес бастау', zh: '开始预咨询', ja: '事前相談を始める' },
   expandDetail: { ko: '상세 보기', en: 'View Details', ru: 'Подробнее', kz: 'Толығырақ', zh: '查看详情', ja: '詳細を見る' },
+  bottomTitle: { ko: '어떤 암종이든, HEALO가 함께합니다', en: 'Whatever the cancer type, HEALO is with you', ru: 'Какой бы ни был тип рака — HEALO поможет', kz: 'Қандай рак түрі болса да, HEALO жанында', zh: '无论哪种癌症，HEALO与您同在', ja: 'どのがん種でも、HEALOがそばにいます' },
+  bottomDesc: { ko: '인테이크 양식을 작성하면 24시간 이내에 최적의 치료 계획을 안내해드립니다.', en: 'Submit your intake form and we\'ll guide you to the optimal treatment plan within 24 hours.', ru: 'Заполните анкету, и мы предложим оптимальный план лечения в течение 24 часов.', kz: 'Сауалнаманы толтырыңыз, 24 сағат ішінде ең тиімді емдеу жоспарын ұсынамыз.', zh: '提交问诊表，我们将在24小时内为您提供最佳治疗方案。', ja: '問診票をご提出いただければ、24時間以内に最適な治療計画をご案内します。' },
 };
 
 const CANCERS = [
@@ -237,14 +239,10 @@ export default function TreatmentsClient() {
       {/* Bottom CTA */}
       <section className="max-w-5xl mx-auto px-4 py-12 text-center">
         <h2 className="text-xl md:text-2xl font-bold mb-3">
-          {lang === 'ko' ? '어떤 암종이든, HEALO가 함께합니다' :
-           lang === 'ru' ? 'Какой бы ни был тип рака — HEALO поможет' :
-           'Whatever the cancer type, HEALO is with you'}
+          {l(L.bottomTitle)}
         </h2>
         <p className="text-gray-500 text-sm mb-6 max-w-lg mx-auto">
-          {lang === 'ko' ? '인테이크 양식을 작성하면 24시간 이내에 최적의 치료 계획을 안내해드립니다.' :
-           lang === 'ru' ? 'Заполните анкету, и мы предложим оптимальный план лечения в течение 24 часов.' :
-           'Submit your intake form and we\'ll guide you to the optimal treatment plan within 24 hours.'}
+          {l(L.bottomDesc)}
         </p>
         <button
           onClick={() => router.push('/intake')}

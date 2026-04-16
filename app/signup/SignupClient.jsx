@@ -26,10 +26,38 @@ function validatePassword(pw) {
 }
 
 const PW_ERROR_MSG = {
-    min8: { ko: '비밀번호는 최소 8자 이상이어야 합니다', en: 'Password must be at least 8 characters' },
-    lowercase: { ko: '영문 소문자를 포함해야 합니다', en: 'Must include a lowercase letter' },
-    uppercase: { ko: '영문 대문자를 포함해야 합니다', en: 'Must include an uppercase letter' },
-    number: { ko: '숫자를 포함해야 합니다', en: 'Must include a number' },
+    min8: {
+        ko: '비밀번호는 최소 8자 이상이어야 합니다',
+        en: 'Password must be at least 8 characters',
+        ru: 'Пароль должен содержать не менее 8 символов',
+        kz: 'Құпиясөз кемінде 8 таңбадан тұруы керек',
+        zh: '密码至少需要8个字符',
+        ja: 'パスワードは8文字以上である必要があります',
+    },
+    lowercase: {
+        ko: '영문 소문자를 포함해야 합니다',
+        en: 'Must include a lowercase letter',
+        ru: 'Должен содержать строчную букву',
+        kz: 'Кіші латын әрпі болуы керек',
+        zh: '必须包含一个小写字母',
+        ja: '小文字を含める必要があります',
+    },
+    uppercase: {
+        ko: '영문 대문자를 포함해야 합니다',
+        en: 'Must include an uppercase letter',
+        ru: 'Должен содержать заглавную букву',
+        kz: 'Бас латын әрпі болуы керек',
+        zh: '必须包含一个大写字母',
+        ja: '大文字を含める必要があります',
+    },
+    number: {
+        ko: '숫자를 포함해야 합니다',
+        en: 'Must include a number',
+        ru: 'Должен содержать цифру',
+        kz: 'Сан болуы керек',
+        zh: '必须包含一个数字',
+        ja: '数字を含める必要があります',
+    },
 };
 
 export const SignUpPage = ({ setView }) => {
