@@ -1,19 +1,20 @@
 /**
- * HEALO: 첨부파일 서버 경유 업로드 API
- * 
- * 클라이언트가 Supabase Storage에 직접 업로드하는 대신
- * 서버에서 검증 후 service_role로 업로드합니다.
- * 
+ * HEALO: 첨부파일 서버 경유 업로드 API (공개 — 인테이크 플로우)
+ *
  * 보안:
+ * - Rate limit (IP당 분당 5회) — storage 폭파 방지
  * - 파일 크기 제한 (10MB)
- * - 허용 MIME 타입 제한
- * - 파일명 sanitize
- * - inquiry/ 경로에만 업로드 허용
+ * - MIME 화이트리스트
+ * - 파일명 sanitize + crypto.randomUUID 경로 — enumeration 방지
+ *
+ * ⚠️ 과거 버전은 무제한 익명 업로드 허용 → 아무나 10MB 파일 무제한 업로드 가능했음.
  */
 export const runtime = "nodejs";
 
 import { supabaseAdmin, assertSupabaseEnv } from "../../../../src/lib/rag/supabaseAdmin";
 import { NextRequest } from "next/server";
+import { checkRateLimit, getClientIp, getRateLimitHeaders } from "../../../../src/lib/rateLimit";
+import { randomUUID } from "node:crypto";
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
@@ -27,6 +28,13 @@ const ALLOWED_TYPES = new Set([
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
 ]);
 
+// Public upload 전용 rate limit: 분당 5회 (봇 차단, 정상 사용자는 충분)
+const UPLOAD_RATE = {
+  windowMs: 60 * 1000,
+  maxRequests: 5,
+  apiName: "attachments_upload",
+};
+
 function sanitizeFileName(name: string): string {
   return name
     .replace(/[^a-zA-Z0-9가-힣._-]/g, "_")
@@ -36,6 +44,16 @@ function sanitizeFileName(name: string): string {
 
 export async function POST(request: NextRequest) {
   assertSupabaseEnv();
+
+  // ✅ Rate limit 먼저
+  const clientIp = getClientIp(request);
+  const rl = checkRateLimit(clientIp, UPLOAD_RATE);
+  if (!rl.allowed) {
+    return Response.json(
+      { ok: false, error: "rate_limited", detail: rl.reason },
+      { status: 429, headers: getRateLimitHeaders(rl) }
+    );
+  }
 
   try {
     const formData = await request.formData();
@@ -63,7 +81,8 @@ export async function POST(request: NextRequest) {
     }
 
     const safeName = sanitizeFileName(file.name);
-    const filePath = `inquiry/${Date.now()}_${safeName}`;
+    // ✅ 파일명 enumeration 방지를 위해 randomUUID prefix 사용
+    const filePath = `inquiry/${randomUUID()}_${safeName}`;
 
     const buffer = Buffer.from(await file.arrayBuffer());
 
@@ -82,12 +101,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    return Response.json({
-      ok: true,
-      path: filePath,
-      name: file.name,
-      type: file.type,
-    });
+    return Response.json(
+      {
+        ok: true,
+        path: filePath,
+        name: file.name,
+        type: file.type,
+      },
+      { headers: getRateLimitHeaders(rl) }
+    );
   } catch (err) {
     console.error("[api/attachments/upload] unexpected error:", err);
     return Response.json(

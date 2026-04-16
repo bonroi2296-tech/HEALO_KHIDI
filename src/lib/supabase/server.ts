@@ -19,6 +19,10 @@
  * ```
  */
 
+// ✅ SERVER ONLY — createServiceRoleClient() 는 SUPABASE_SERVICE_ROLE_KEY 를
+//    사용하며 RLS 를 우회. 클라이언트 번들에 절대 포함되면 안 됨.
+import 'server-only'
+
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { createClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'

@@ -1,20 +1,22 @@
 /**
  * HEALO: 관리자 권한 체크 유틸 (SSR-safe)
- * 
+ *
  * 목적:
  * - API route에서 관리자 권한 확인
  * - @supabase/ssr의 createServerClient 사용 (쿠키 기반)
  * - 복호화 권한 부여 전 사용
- * 
+ *
  * 권한 판정 기준 (OR 조건):
- * 1. user.user_metadata.role === "admin"
- * 2. user.app_metadata.role === "admin"
- * 3. 환경변수 ADMIN_EMAIL_ALLOWLIST에 포함된 이메일
- * 
+ * 1. user.app_metadata.role === "admin"   ← service_role로만 쓸 수 있음
+ * 2. 환경변수 ADMIN_EMAIL_ALLOWLIST에 포함된 이메일
+ *
+ * ⚠️ user_metadata는 `supabase.auth.updateUser({ data: { role: 'admin' } })`로
+ * 임의 유저가 자기 자신을 고칠 수 있는 필드이므로 어드민 판정에 사용 금지.
+ *
  * 환경변수:
  * - ADMIN_EMAIL_ALLOWLIST: 쉼표로 구분된 관리자 이메일 목록
  *   예: "admin@healo.com,manager@healo.com"
- * 
+ *
  * 사용법:
  * ```ts
  * const authResult = await checkAdminAuth();
@@ -51,9 +53,10 @@ function getAdminEmailAllowlist(): string[] {
  * 2. 없으면 쿠키 기반 세션 확인 → createSupabaseServerClient().auth.getUser()
  * 
  * 판정 기준 (OR 조건):
- * 1. user.user_metadata.role === "admin"
- * 2. user.app_metadata.role === "admin"
- * 3. ADMIN_EMAIL_ALLOWLIST에 포함된 이메일
+ * 1. user.app_metadata.role === "admin"
+ * 2. ADMIN_EMAIL_ALLOWLIST에 포함된 이메일
+ *
+ * ⚠️ user_metadata.role은 클라이언트가 고칠 수 있어 사용 금지.
  * 
  * @param request NextRequest (optional, for Bearer token)
  * @returns { isAdmin: boolean, userId?: string, email?: string, reason?: string, error?: string, debug?: object }
@@ -173,28 +176,15 @@ export async function checkAdminAuth(request?: any): Promise<{
 
     if (isDev) {
       debugInfo.email = userEmail;
-      debugInfo.userMetadataRole = user.user_metadata?.role;
       debugInfo.appMetadataRole = user.app_metadata?.role;
+      // user_metadata.role은 인증 결정에 사용하지 않음 (클라이언트가 자기 자신을 고칠 수 있음)
     }
 
     // ========================================
     // 4. 권한 판정 (OR 조건)
     // ========================================
-    
-    // 4-1. user_metadata.role === "admin"
-    const userMetadataRole = user.user_metadata?.role;
-    if (userMetadataRole === "admin") {
-      return {
-        isAdmin: true,
-        userId,
-        email: userEmail,
-        reason: "user_metadata_role",
-        authMethod,
-        debug: isDev ? debugInfo : undefined,
-      };
-    }
 
-    // 4-2. app_metadata.role === "admin"
+    // 4-1. app_metadata.role === "admin"  (service_role만 쓸 수 있는 필드)
     const appMetadataRole = user.app_metadata?.role;
     if (appMetadataRole === "admin") {
       return {
@@ -207,7 +197,7 @@ export async function checkAdminAuth(request?: any): Promise<{
       };
     }
 
-    // 4-3. ADMIN_EMAIL_ALLOWLIST에 포함
+    // 4-2. ADMIN_EMAIL_ALLOWLIST에 포함
     const allowlist = getAdminEmailAllowlist();
     
     if (isDev) {

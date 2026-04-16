@@ -1,33 +1,33 @@
-import { NextRequest, NextResponse } from "next/server";
-import { createSupabaseServerClient } from "../../../../src/lib/supabase/server";
+/**
+ * HEALO: 의료진 관리 API (admin 전용)
+ *
+ * 보안:
+ * - requireAdminAuth (Bearer/쿠키 기반 app_metadata.role + ADMIN_EMAIL_ALLOWLIST)
+ * - 실패 시 audit log 자동 기록
+ * - service_role 클라이언트 사용 (RLS 우회하되 admin 권한 확인 후)
+ *
+ * ⚠️ 과거 코드가 쓰던 `profiles.role` 체크는 클라이언트에서 self-insert 가능성이
+ * 있어 권한 판정에 사용 금지. (user_metadata.role 권한상승 이슈와 같은 패턴)
+ */
+export const runtime = "nodejs";
 
-// Admin auth check helper
-async function checkAdmin(supabase: any) {
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return null;
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single();
-  if (!profile || !["admin", "super_admin"].includes(profile.role)) return null;
-  return user;
-}
+import { NextRequest, NextResponse } from "next/server";
+import { supabaseAdmin } from "../../../../src/lib/rag/supabaseAdmin";
+import { requireAdminAuth } from "../../../../src/lib/auth/requireAdminAuth";
 
 /**
  * GET /api/admin/doctors
  * List all doctors, optionally filtered by branch_id
  */
 export async function GET(req: NextRequest) {
-  try {
-    const supabase = createSupabaseServerClient();
-    const admin = await checkAdmin(supabase);
-    if (!admin) return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+  const auth = await requireAdminAuth(req);
+  if (!auth.success) return auth.response;
 
+  try {
     const { searchParams } = new URL(req.url);
     const branchId = searchParams.get("branch_id");
 
-    let query = supabase
+    let query = supabaseAdmin
       .from("partner_doctors")
       .select("*, partner_branches(id, name_ko, name_en, branch_code)")
       .order("display_order", { ascending: true })
@@ -49,14 +49,12 @@ export async function GET(req: NextRequest) {
 
 /**
  * POST /api/admin/doctors
- * Create a new doctor
  */
 export async function POST(req: NextRequest) {
-  try {
-    const supabase = createSupabaseServerClient();
-    const admin = await checkAdmin(supabase);
-    if (!admin) return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+  const auth = await requireAdminAuth(req);
+  if (!auth.success) return auth.response;
 
+  try {
     const body = await req.json();
     const {
       branch_id, name_ko, name_en, position_ko, position_en,
@@ -69,7 +67,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: false, error: "branch_id and name_ko are required" }, { status: 400 });
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from("partner_doctors")
       .insert({
         branch_id,
@@ -101,14 +99,12 @@ export async function POST(req: NextRequest) {
 
 /**
  * PUT /api/admin/doctors
- * Update a doctor (requires id in body)
  */
 export async function PUT(req: NextRequest) {
-  try {
-    const supabase = createSupabaseServerClient();
-    const admin = await checkAdmin(supabase);
-    if (!admin) return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+  const auth = await requireAdminAuth(req);
+  if (!auth.success) return auth.response;
 
+  try {
     const body = await req.json();
     const { id, ...updates } = body;
 
@@ -116,7 +112,6 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ ok: false, error: "id is required" }, { status: 400 });
     }
 
-    // Sanitize: only allow known fields
     const allowed = [
       "branch_id", "name_ko", "name_en", "position_ko", "position_en",
       "photo_url", "listing_photo_url", "subspecialty",
@@ -128,7 +123,7 @@ export async function PUT(req: NextRequest) {
       if (key in updates) sanitized[key] = updates[key];
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from("partner_doctors")
       .update(sanitized)
       .eq("id", id)
@@ -149,18 +144,17 @@ export async function PUT(req: NextRequest) {
  * Soft-delete a doctor (set is_active = false)
  */
 export async function DELETE(req: NextRequest) {
-  try {
-    const supabase = createSupabaseServerClient();
-    const admin = await checkAdmin(supabase);
-    if (!admin) return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 });
+  const auth = await requireAdminAuth(req);
+  if (!auth.success) return auth.response;
 
+  try {
     const { searchParams } = new URL(req.url);
     const id = searchParams.get("id");
     if (!id) {
       return NextResponse.json({ ok: false, error: "id is required" }, { status: 400 });
     }
 
-    const { error } = await supabase
+    const { error } = await supabaseAdmin
       .from("partner_doctors")
       .update({ is_active: false })
       .eq("id", id);

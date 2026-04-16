@@ -74,22 +74,18 @@ export async function GET(request: NextRequest) {
 
     // ✅ Admin 여부 체크 후 적절한 페이지로 redirect
     try {
-      // Admin 권한 체크
+      // Admin 권한 체크 — user_metadata는 클라이언트가 고칠 수 있어 신뢰 금지.
+      // app_metadata.role (service_role 만 변경 가능) 또는 ADMIN_EMAIL_ALLOWLIST 만 사용.
       const user = data.user;
       const userEmail = user?.email?.trim().toLowerCase();
       let isAdmin = false;
 
-      // 1. user_metadata.role === "admin"
-      if (user?.user_metadata?.role === "admin") {
-        isAdmin = true;
-      }
-
-      // 2. app_metadata.role === "admin"
+      // 1. app_metadata.role === "admin"
       if (user?.app_metadata?.role === "admin") {
         isAdmin = true;
       }
 
-      // 3. ADMIN_EMAIL_ALLOWLIST
+      // 2. ADMIN_EMAIL_ALLOWLIST
       const allowlistEnv = process.env.ADMIN_EMAIL_ALLOWLIST;
       if (allowlistEnv && userEmail) {
         const allowlist = allowlistEnv

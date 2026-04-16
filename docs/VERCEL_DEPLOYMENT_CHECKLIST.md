@@ -21,17 +21,21 @@
 ### **필수 환경변수 (5개)**:
 
 ```env
-# 1. Supabase 연결
-NEXT_PUBLIC_SUPABASE_URL=https://xppnvkuahlrdyfvabzur.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=sb_publishable_ui0m9IIp-8VQUfHLCb4d1w_LcwHa0Zd
-SUPABASE_SERVICE_ROLE_KEY=sb_secret_TTfjGIkpxnd5c6CZ6djguA_2KUut4Pm
+# 1. Supabase 연결 (실제 값은 Supabase Dashboard → Settings → API 에서 확인)
+NEXT_PUBLIC_SUPABASE_URL=https://<PROJECT_REF>.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=<ANON_PUBLIC_KEY>
+SUPABASE_SERVICE_ROLE_KEY=<SERVICE_ROLE_SECRET>
 
 # 2. 암호화 키 (32 bytes base64)
-ENCRYPTION_KEY_V1=+HqAphm+2mFg6ZNokz0xvLqzFf7bdrh57UVi9E6KZ/o=
+# openssl rand -base64 32 으로 새로 생성 후 Vercel 환경변수에 저장
+ENCRYPTION_KEY_V1=<BASE64_32BYTES>
 
 # 3. 관리자 이메일 (쉼표로 구분)
-ADMIN_EMAIL_ALLOWLIST=admin@healo.com
+ADMIN_EMAIL_ALLOWLIST=admin@example.com
 ```
+
+> ⚠️ **보안 주의**: 실제 키 값은 절대 이 문서 또는 Git에 커밋하지 말 것.
+> Supabase 대시보드 + Vercel Environment Variables 에서만 관리.
 
 ---
 

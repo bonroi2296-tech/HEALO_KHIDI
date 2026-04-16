@@ -1,55 +1,82 @@
 /**
  * HEALO: public_token 회전(재발급) API (서버 전용)
  * 유출 대응을 위해 토큰 재발급
- * 보안: INTERNAL_ADMIN_SECRET 환경변수로 보호
- * 
- * ✅ P0 수정: 런타임 명시 (Node.js)
- * 
- * 이유:
- * - DB 관리자 접근 (SERVICE_ROLE_KEY 사용)
- * - Edge 런타임에서 발생할 수 있는 예측 불가 오류 방지
+ *
+ * 보안:
+ * - INTERNAL_ADMIN_SECRET 환경변수로 보호
+ * - ✅ Secret을 **헤더(x-internal-admin-secret)** 로만 받음 (body가 아님 — CSRF + 로그 노출 방지)
+ * - ✅ timingSafeEqual 로 비교 (타이밍 공격 방지)
+ * - ✅ IP 기반 rate limit (분당 5회)
+ *
+ * ⚠️ 과거 버전은 adminSecret을 JSON body로 받고 `!==` 비교 → CSRF + 타이밍 누출 위험.
+ *
+ * 런타임: Node.js
  */
 export const runtime = "nodejs";
 
 import { supabaseAdmin, assertSupabaseEnv } from "../../../../src/lib/rag/supabaseAdmin";
 import { NextRequest } from "next/server";
+import { timingSafeEqual, randomUUID as nodeRandomUUID } from "node:crypto";
+import { checkRateLimit, getClientIp, getRateLimitHeaders } from "../../../../src/lib/rateLimit";
 
-function randomUUID(): string {
-  if (typeof crypto !== "undefined" && crypto.randomUUID) {
-    return crypto.randomUUID();
-  }
-  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
-    const r = (Math.random() * 16) | 0;
-    const v = c === "x" ? r : (r & 0x3) | 0x8;
-    return v.toString(16);
-  });
+const ROTATE_RATE = {
+  windowMs: 60 * 1000,
+  maxRequests: 5,
+  apiName: "rotate_token",
+};
+
+function safeEqual(a: string | undefined, b: string | undefined): boolean {
+  if (!a || !b) return false;
+  const bufA = Buffer.from(a);
+  const bufB = Buffer.from(b);
+  if (bufA.length !== bufB.length) return false;
+  return timingSafeEqual(bufA, bufB);
 }
 
 export async function POST(request: NextRequest) {
   assertSupabaseEnv();
+
+  // ✅ Rate limit
+  const clientIp = getClientIp(request);
+  const rl = checkRateLimit(clientIp, ROTATE_RATE);
+  if (!rl.allowed) {
+    return Response.json(
+      { ok: false, error: "rate_limited" },
+      { status: 429, headers: getRateLimitHeaders(rl) }
+    );
+  }
+
+  const expectedSecret = process.env.INTERNAL_ADMIN_SECRET;
+  if (!expectedSecret) {
+    console.error("[api/inquiries/rotate-token] INTERNAL_ADMIN_SECRET not set");
+    return Response.json(
+      { ok: false, error: "admin_secret_not_configured" },
+      { status: 500 }
+    );
+  }
+
+  // ✅ Header 기반 시크릿 (body에 넣지 않음 — 로그 노출/CSRF 감소)
+  const provided =
+    request.headers.get("x-internal-admin-secret") ||
+    request.headers.get("X-Internal-Admin-Secret") ||
+    undefined;
+
+  if (!safeEqual(provided, expectedSecret)) {
+    // 실패 원인 상세 로그는 남기지 않음 (타이밍 정보 제공 최소화)
+    return Response.json(
+      { ok: false, error: "forbidden" },
+      { status: 403 }
+    );
+  }
+
   try {
     const body = await request.json().catch(() => ({}));
-    const inquiryId = body?.inquiryId != null
-      ? (typeof body.inquiryId === "number" ? body.inquiryId : Number(body.inquiryId))
-      : null;
-    const adminSecret = body?.adminSecret ? String(body.adminSecret) : null;
-
-    const expectedSecret = process.env.INTERNAL_ADMIN_SECRET;
-    if (!expectedSecret) {
-      console.error("[api/inquiries/rotate-token] INTERNAL_ADMIN_SECRET not set");
-      return Response.json(
-        { ok: false, error: "admin_secret_not_configured" },
-        { status: 500 }
-      );
-    }
-
-    if (!adminSecret || adminSecret !== expectedSecret) {
-      console.error("[api/inquiries/rotate-token] invalid or missing adminSecret");
-      return Response.json(
-        { ok: false, error: "invalid_admin_secret" },
-        { status: 403 }
-      );
-    }
+    const inquiryId =
+      body?.inquiryId != null
+        ? typeof body.inquiryId === "number"
+          ? body.inquiryId
+          : Number(body.inquiryId)
+        : null;
 
     if (inquiryId == null || isNaN(inquiryId)) {
       return Response.json(
@@ -73,14 +100,13 @@ export async function POST(request: NextRequest) {
     }
 
     if (!existing) {
-      console.error("[api/inquiries/rotate-token] inquiry not found:", inquiryId);
       return Response.json(
         { ok: false, error: "inquiry_not_found" },
         { status: 404 }
       );
     }
 
-    const newToken = randomUUID();
+    const newToken = nodeRandomUUID();
 
     const { error: updateError } = await supabaseAdmin
       .from("inquiries")
@@ -99,14 +125,14 @@ export async function POST(request: NextRequest) {
     }
 
     console.log("[api/inquiries/rotate-token] success:", { inquiryId });
-    return Response.json({
-      ok: true,
-      publicToken: newToken,
-    });
+    return Response.json(
+      { ok: true, publicToken: newToken },
+      { headers: getRateLimitHeaders(rl) }
+    );
   } catch (error: any) {
     console.error("[api/inquiries/rotate-token] error:", error);
     return Response.json(
-      { ok: false, error: error?.message || "rotate_failed" },
+      { ok: false, error: "rotate_failed" },
       { status: 500 }
     );
   }

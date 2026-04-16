@@ -113,12 +113,15 @@ git push origin main
 4. 다음 5개 추가:
 
 ```
-NEXT_PUBLIC_SUPABASE_URL=https://xppnvkuahlrdyfvabzur.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=sb_publishable_ui0m9IIp-8VQUfHLCb4d1w_LcwHa0Zd
-SUPABASE_SERVICE_ROLE_KEY=sb_secret_TTfjGIkpxnd5c6CZ6djguA_2KUut4Pm
-ENCRYPTION_KEY_V1=+HqAphm+2mFg6ZNokz0xvLqzFf7bdrh57UVi9E6KZ/o=
-ADMIN_EMAIL_ALLOWLIST=admin@healo.com
+NEXT_PUBLIC_SUPABASE_URL=<SUPABASE_URL>
+NEXT_PUBLIC_SUPABASE_ANON_KEY=<ANON_KEY>
+SUPABASE_SERVICE_ROLE_KEY=<SERVICE_ROLE_SECRET>
+ENCRYPTION_KEY_V1=<BASE64_32BYTES>
+ADMIN_EMAIL_ALLOWLIST=admin@example.com
 ```
+
+> ⚠️ 실제 값은 Supabase Dashboard / Vercel Environment Variables에서만 조회/설정.
+> 문서/Git에 하드코딩 금지.
 
 5. **Redeploy** 버튼 클릭 (환경변수 적용)
 
