@@ -60,11 +60,13 @@ export async function PATCH(
       .single();
 
     if (error) {
-      return Response.json({ ok: false, error: error.message }, { status: 500 });
+      console.error("[partner/leads/id] Update error:", error.message);
+      return Response.json({ ok: false, error: "update_failed" }, { status: 500 });
     }
 
     return Response.json({ ok: true, lead: data });
   } catch (err: any) {
-    return Response.json({ ok: false, error: err.message }, { status: 500 });
+    console.error("[partner/leads/id] Exception:", err.message);
+    return Response.json({ ok: false, error: "internal_error" }, { status: 500 });
   }
 }

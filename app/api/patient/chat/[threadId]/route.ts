@@ -54,7 +54,7 @@ export async function GET(
 
   if (mErr) {
     console.error("[patient/chat/threadId] messages:", mErr.message);
-    return Response.json({ ok: false, error: mErr.message }, { status: 500 });
+    return Response.json({ ok: false, error: "query_failed" }, { status: 500 });
   }
 
   return Response.json({

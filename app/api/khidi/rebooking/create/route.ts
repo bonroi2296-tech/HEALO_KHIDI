@@ -11,10 +11,17 @@ import { NextRequest } from "next/server";
 import { v4 as uuidv4 } from "uuid";
 import { defaultLimiter } from "../../../../../src/lib/api/rateLimiter";
 import { sanitizeString } from "../../../../../src/lib/api/sanitize";
+import { checkAdminAuth } from "../../../../../src/lib/auth/checkAdminAuth";
 
 export async function POST(request: NextRequest) {
   const limited = defaultLimiter.check(request);
   if (limited) return limited;
+
+  // ── 인증 확인 ──────────────────────────────────────────────
+  const auth = await checkAdminAuth(request);
+  if (!auth.userId) {
+    return Response.json({ ok: false, error: "unauthorized" }, { status: 401 });
+  }
 
   try {
     const raw = await request.json();
@@ -28,6 +35,11 @@ export async function POST(request: NextRequest) {
         { ok: false, error: "patientId, source, and reason are required" },
         { status: 400 }
       );
+    }
+
+    // ── IDOR 방지: 본인 또는 어드민/코디네이터만 재예약 생성 가능 ──
+    if (!auth.isAdmin && payload.patientId !== auth.userId) {
+      return Response.json({ ok: false, error: "forbidden" }, { status: 403 });
     }
 
     const validSources = ['followup', 'symptom', 'doctor'];
@@ -89,7 +101,7 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error("[api/khidi/rebooking/create] Exception:", error);
     return Response.json(
-      { ok: false, error: error.message || "Internal server error" },
+      { ok: false, error: "internal_error" },
       { status: 500 }
     );
   }
