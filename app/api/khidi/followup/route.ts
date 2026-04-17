@@ -9,8 +9,15 @@ export const runtime = "nodejs";
 
 import { NextRequest } from "next/server";
 import { analyzeSymptoms, type SymptomReport } from "../../../../src/lib/followup/symptomAnalyzer";
+import { checkAdminAuth } from "../../../../src/lib/auth/checkAdminAuth";
 
 export async function POST(request: NextRequest) {
+  // ── 인증 확인: 로그인한 사용자만 증상 보고서 제출 가능 ──────────
+  const auth = await checkAdminAuth(request);
+  if (!auth.userId) {
+    return Response.json({ ok: false, error: "unauthorized" }, { status: 401 });
+  }
+
   try {
     const payload = await request.json();
 
@@ -95,7 +102,7 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error("[api/khidi/followup] Exception:", error);
     return Response.json(
-      { ok: false, error: error.message || "Internal server error" },
+      { ok: false, error: "internal_error" },
       { status: 500 }
     );
   }
@@ -142,7 +149,7 @@ export async function GET(request: NextRequest) {
     if (error) {
       console.error("[api/khidi/followup] GET error:", error);
       return Response.json(
-        { ok: false, error: error.message },
+        { ok: false, error: "query_failed" },
         { status: 500 }
       );
     }
@@ -157,7 +164,7 @@ export async function GET(request: NextRequest) {
   } catch (error: any) {
     console.error("[api/khidi/followup] GET exception:", error);
     return Response.json(
-      { ok: false, error: error.message || "Internal server error" },
+      { ok: false, error: "internal_error" },
       { status: 500 }
     );
   }

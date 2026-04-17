@@ -12,6 +12,13 @@ export const runtime = "nodejs";
 
 import { supabaseAdmin, assertSupabaseEnv } from "../../../../src/lib/rag/supabaseAdmin";
 import { NextRequest } from "next/server";
+import { checkRateLimit, getClientIp, getRateLimitHeaders } from "../../../../src/lib/rateLimit";
+
+const EVENT_RATE = {
+  windowMs: 60 * 1000,
+  maxRequests: 60,
+  apiName: "inquiry_event",
+};
 
 const ALLOWED_EVENT_TYPES = [
   "step1_viewed",
@@ -26,6 +33,17 @@ const REQUIRES_INQUIRY_ID: EventType[] = ["step1_submitted", "step2_viewed", "st
 
 export async function POST(request: NextRequest) {
   assertSupabaseEnv();
+
+  // Rate limit (이벤트 어뷰즈 방지)
+  const ip = getClientIp(request);
+  const rl = checkRateLimit(ip, EVENT_RATE);
+  if (!rl.allowed) {
+    return Response.json(
+      { ok: false, error: "rate_limited" },
+      { status: 429, headers: getRateLimitHeaders(rl) }
+    );
+  }
+
   try {
     const body = await request.json().catch(() => ({}));
     const eventType = body?.eventType ? String(body.eventType) : null;
@@ -73,7 +91,7 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error("[api/inquiries/event] error:", error);
     return Response.json(
-      { ok: false, error: error?.message || "event_failed" },
+      { ok: false, error: "event_failed" },
       { status: 500 }
     );
   }

@@ -1,32 +1,35 @@
 /**
- * HEALO-KHIDI: Consultation Translation API
+ * HEALO-KHIDI: Consultation Translation Log API
  *
- * POST /api/khidi/consultation/[id]/translate — Log a translation event
- * GET  /api/khidi/consultation/[id]/translate — Get translation logs
+ * POST /api/khidi/consultation/[id]/translate — 번역 로그 기록 (참가자 only)
+ * GET  /api/khidi/consultation/[id]/translate — 번역 로그 조회 (참가자 only)
+ *
+ * 변경 이력:
+ * - 2026-04-17 (보안): 미인증 → requireConsultationAccess.
+ *   schema 정합성 수정 (source_lang/target_lang/source_text 사용).
  */
 
 export const runtime = "nodejs";
 
 import { NextRequest } from "next/server";
+import { requireConsultationAccess } from "@/lib/auth/requireConsultationAccess";
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const consultationId = parseInt(params.id);
-    const payload = await request.json();
+    const { id: consultationId } = await params;
 
-    // Validation
-    if (
-      !payload.originalText ||
-      !payload.sourceLanguage ||
-      !payload.targetLanguage
-    ) {
+    const access = await requireConsultationAccess(request, consultationId);
+    if (!access.success) return access.response;
+
+    const payload = await request.json();
+    if (!payload.originalText || !payload.sourceLanguage || !payload.targetLanguage) {
       return Response.json(
         {
           ok: false,
-          error: "originalText, sourceLanguage, and targetLanguage are required",
+          error: "originalText, sourceLanguage, targetLanguage are required",
         },
         { status: 400 }
       );
@@ -43,59 +46,36 @@ export async function POST(
       );
     }
 
-    const validRoles = ["patient", "doctor", "coordinator"];
-    if (
-      payload.speakerRole &&
-      !validRoles.includes(payload.speakerRole)
-    ) {
-      return Response.json(
-        { ok: false, error: "Invalid speakerRole" },
-        { status: 400 }
-      );
-    }
+    const { supabaseAdmin } = await import("@/lib/rag/supabaseAdmin");
 
-    const { getSupabaseServerClient } = await import(
-      "../../../../../src/lib/data/supabaseServerClient"
-    );
-    const supabaseAdmin = getSupabaseServerClient();
-
-    // Insert translation
     const { data, error } = await supabaseAdmin
       .from("consultation_translations")
       .insert([
         {
-          consultation_id: consultationId,
-          source_language: payload.sourceLanguage,
-          target_language: payload.targetLanguage,
-          original_text: payload.originalText,
+          session_id: consultationId,
+          source_lang: payload.sourceLanguage,
+          target_lang: payload.targetLanguage,
+          source_text: payload.originalText,
           translated_text: payload.translatedText || null,
-          speaker_role: payload.speakerRole || null,
-          translation_confidence: payload.confidence || null,
+          confidence: payload.confidence ?? null,
         },
       ])
       .select()
       .single();
 
     if (error) {
-      console.error("[api/khidi/consultation/translate] Insert error:", error);
+      console.error("[api/khidi/consultation/translate] Insert error:", error.message);
       return Response.json(
-        { ok: false, error: error.message },
+        { ok: false, error: "insert_failed" },
         { status: 500 }
       );
     }
 
-    console.log(
-      `[api/khidi/consultation/${consultationId}/translate] New translation: ${payload.sourceLanguage} → ${payload.targetLanguage}`
-    );
-
-    return Response.json({
-      ok: true,
-      data,
-    });
+    return Response.json({ ok: true, data });
   } catch (error: any) {
-    console.error("[api/khidi/consultation/translate] Exception:", error);
+    console.error("[api/khidi/consultation/translate] Exception:", error?.message);
     return Response.json(
-      { ok: false, error: error.message || "Internal server error" },
+      { ok: false, error: "internal_error" },
       { status: 500 }
     );
   }
@@ -103,42 +83,31 @@ export async function POST(
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const consultationId = parseInt(params.id);
+    const { id: consultationId } = await params;
 
-    const { getSupabaseServerClient } = await import(
-      "../../../../../src/lib/data/supabaseServerClient"
-    );
-    const supabaseAdmin = getSupabaseServerClient();
+    const access = await requireConsultationAccess(request, consultationId);
+    if (!access.success) return access.response;
+
+    const { supabaseAdmin } = await import("@/lib/rag/supabaseAdmin");
 
     const { searchParams } = new URL(request.url);
     const limit = Math.min(parseInt(searchParams.get("limit") || "100"), 500);
     const offset = parseInt(searchParams.get("offset") || "0");
-    const sourceLanguage = searchParams.get("sourceLanguage");
-    const targetLanguage = searchParams.get("targetLanguage");
 
-    let query = supabaseAdmin
+    const { data, count, error } = await supabaseAdmin
       .from("consultation_translations")
       .select("*", { count: "exact" })
-      .eq("consultation_id", consultationId);
-
-    if (sourceLanguage) {
-      query = query.eq("source_language", sourceLanguage);
-    }
-    if (targetLanguage) {
-      query = query.eq("target_language", targetLanguage);
-    }
-
-    const { data, count, error } = await query
-      .order("timestamp", { ascending: true })
+      .eq("session_id", consultationId)
+      .order("created_at", { ascending: true })
       .range(offset, offset + limit - 1);
 
     if (error) {
-      console.error("[api/khidi/consultation/translate] GET error:", error);
+      console.error("[api/khidi/consultation/translate] GET error:", error.message);
       return Response.json(
-        { ok: false, error: error.message },
+        { ok: false, error: "fetch_failed" },
         { status: 500 }
       );
     }
@@ -151,9 +120,9 @@ export async function GET(
       offset,
     });
   } catch (error: any) {
-    console.error("[api/khidi/consultation/translate] GET exception:", error);
+    console.error("[api/khidi/consultation/translate] GET exception:", error?.message);
     return Response.json(
-      { ok: false, error: error.message || "Internal server error" },
+      { ok: false, error: "internal_error" },
       { status: 500 }
     );
   }

@@ -75,7 +75,7 @@ export async function GET(request: NextRequest) {
         .from("treatments")
         .select("hospital_id");
       if (error) {
-        return Response.json({ ok: false, error: error.message }, { status: 500 });
+        return Response.json({ ok: false, error: "query_failed" }, { status: 500 });
       }
       const counts: Record<string, number> = {};
       for (const row of data || []) {
@@ -100,7 +100,6 @@ export async function GET(request: NextRequest) {
         {
           ok: false,
           error: "db_query_failed",
-          detail: error.message,
         },
         { status: 500 }
       );
@@ -134,7 +133,6 @@ export async function GET(request: NextRequest) {
       {
         ok: false,
         error: "internal_error",
-        detail: error.message,
       },
       { status: 500 }
     );
@@ -260,7 +258,6 @@ export async function POST(request: NextRequest) {
         {
           ok: false,
           error: "db_insert_failed",
-          detail: error.message,
         },
         { status: 500 }
       );
@@ -299,7 +296,6 @@ export async function POST(request: NextRequest) {
       {
         ok: false,
         error: "internal_error",
-        detail: error.message,
       },
       { status: 500 }
     );
@@ -454,7 +450,6 @@ export async function PATCH(request: NextRequest) {
         {
           ok: false,
           error: "db_update_failed",
-          detail: error.message,
         },
         { status: 500 }
       );
@@ -493,7 +488,6 @@ export async function PATCH(request: NextRequest) {
       {
         ok: false,
         error: "internal_error",
-        detail: error.message,
       },
       { status: 500 }
     );
@@ -552,7 +546,6 @@ export async function DELETE(request: NextRequest) {
         {
           ok: false,
           error: "db_delete_failed",
-          detail: error.message,
         },
         { status: 500 }
       );
@@ -584,7 +577,6 @@ export async function DELETE(request: NextRequest) {
       {
         ok: false,
         error: "internal_error",
-        detail: error.message,
       },
       { status: 500 }
     );

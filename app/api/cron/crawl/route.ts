@@ -130,7 +130,8 @@ export async function GET(request: NextRequest) {
     .single();
 
   if (insertErr || !job) {
-    return NextResponse.json({ ok: false, error: insertErr?.message || "insert failed" }, { status: 500 });
+    console.error("[cron/crawl] insert error:", insertErr?.message);
+    return NextResponse.json({ ok: false, error: "insert_failed" }, { status: 500 });
   }
 
   // Update last_auto_run

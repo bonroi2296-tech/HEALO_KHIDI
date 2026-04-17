@@ -112,13 +112,18 @@ async function setAdminRole(email: string, role: "admin" | "none"): Promise<void
 
   console.log(`\n✅ 유저 발견: ${user.email} (ID: ${user.id})`);
 
-  // 2. user_metadata 업데이트
-  const updateData: any = {
-    user_metadata: {
-      ...user.user_metadata,
-      role: role === "admin" ? "admin" : null, // none이면 null로 설정
-    },
+  // 2. app_metadata 업데이트 (service_role 만 쓸 수 있는 필드)
+  //    user_metadata는 클라이언트가 자기 자신을 고칠 수 있어 인증 결정에 쓰지 않음.
+  const nextAppMetadata: Record<string, unknown> = {
+    ...(user.app_metadata || {}),
   };
+  if (role === "admin") {
+    nextAppMetadata.role = "admin";
+  } else {
+    delete nextAppMetadata.role;
+  }
+
+  const updateData: any = { app_metadata: nextAppMetadata };
 
   const { data, error } = await supabase.auth.admin.updateUserById(user.id, updateData);
 
@@ -127,7 +132,7 @@ async function setAdminRole(email: string, role: "admin" | "none"): Promise<void
   }
 
   console.log(`✅ Role 업데이트 완료: ${email} → ${role}`);
-  console.log(`   user_metadata.role: ${role === "admin" ? "admin" : "null (제거됨)"}`);
+  console.log(`   app_metadata.role: ${role === "admin" ? "admin" : "(제거됨)"}`);
 }
 
 /**
@@ -143,9 +148,8 @@ async function listAdmins(): Promise<void> {
   }
 
   const users = (data?.users ?? []) as AuthAdminUser[];
-  const admins = users.filter(
-    (u) => u.user_metadata?.role === "admin" || u.app_metadata?.role === "admin"
-  );
+  // 인증 결정에 사용되는 유일한 서버측 채널: app_metadata.role
+  const admins = users.filter((u) => u.app_metadata?.role === "admin");
 
   // 환경변수 allowlist도 표시
   const allowlist = process.env.ADMIN_EMAIL_ALLOWLIST?.split(",")
@@ -158,15 +162,9 @@ async function listAdmins(): Promise<void> {
   if (admins.length === 0) {
     console.log('❌ metadata.role="admin"인 유저가 없습니다.');
   } else {
-    console.log(`✅ metadata.role="admin"인 유저 (${admins.length}명):\n`);
+    console.log(`✅ app_metadata.role="admin"인 유저 (${admins.length}명):\n`);
     admins.forEach((u, idx) => {
-      const roleSource =
-        u.user_metadata?.role === "admin"
-          ? "user_metadata"
-          : u.app_metadata?.role === "admin"
-          ? "app_metadata"
-          : "unknown";
-      console.log(`  ${idx + 1}. ${u.email} (ID: ${u.id}, source: ${roleSource})`);
+      console.log(`  ${idx + 1}. ${u.email} (ID: ${u.id}, source: app_metadata)`);
     });
   }
 

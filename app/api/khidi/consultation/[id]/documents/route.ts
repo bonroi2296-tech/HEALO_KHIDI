@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseServerClient } from '../../../../../../src/lib/data/supabaseServerClient';
 import { uploadLimiter } from '../../../../../../src/lib/api/rateLimiter';
 import { sanitizeString } from '../../../../../../src/lib/api/sanitize';
+import { requireConsultationAccess } from '../../../../../../src/lib/auth/requireConsultationAccess';
 
 const ALLOWED_TYPES = [
   'application/pdf',
@@ -28,6 +29,10 @@ export async function POST(
 
     const { id: consultationId } = await params;
 
+    // 인증 + 참가자 검증 (admin/doctor/patient/coordinator/translator)
+    const access = await requireConsultationAccess(request, consultationId);
+    if (!access.success) return access.response;
+
     const formData = await request.formData();
     const file = formData.get('file') as File | null;
     const documentType = sanitizeString(formData.get('documentType') as string, 50) || 'other';
@@ -52,17 +57,6 @@ export async function POST(
     }
 
     const supabase = getSupabaseServerClient();
-
-    // Verify consultation exists
-    const { data: session } = await supabase
-      .from('consultation_sessions')
-      .select('id')
-      .eq('id', consultationId)
-      .single();
-
-    if (!session) {
-      return NextResponse.json({ ok: false, error: 'Consultation not found' }, { status: 404 });
-    }
 
     // Upload to Supabase Storage
     const ext = file.name.split('.').pop() || 'bin';
@@ -121,6 +115,10 @@ export async function GET(
 ) {
   try {
     const { id: consultationId } = await params;
+
+    const access = await requireConsultationAccess(request, consultationId);
+    if (!access.success) return access.response;
+
     const supabase = getSupabaseServerClient();
 
     const { data, error } = await supabase

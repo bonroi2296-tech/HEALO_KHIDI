@@ -107,7 +107,7 @@ export async function POST(request: NextRequest) {
       }
 
       return NextResponse.json(
-        { ok: false, error: uploadError.message },
+        { ok: false, error: "upload_failed" },
         { status: 500 }
       );
     }
@@ -140,7 +140,7 @@ export async function POST(request: NextRequest) {
       if (updateError) {
         console.error(`[${apiPath}] site_settings UPDATE 실패:`, updateError);
         return NextResponse.json(
-          { ok: false, error: updateError.message },
+          { ok: false, error: "update_failed" },
           { status: 500 }
         );
       }
@@ -153,7 +153,7 @@ export async function POST(request: NextRequest) {
       if (insertError) {
         console.error(`[${apiPath}] site_settings INSERT 실패:`, insertError);
         return NextResponse.json(
-          { ok: false, error: insertError.message },
+          { ok: false, error: "insert_failed" },
           { status: 500 }
         );
       }
@@ -170,7 +170,7 @@ export async function POST(request: NextRequest) {
   } catch (err: any) {
     console.error(`[${apiPath}] 예외 발생:`, err);
     return NextResponse.json(
-      { ok: false, error: err.message || "internal_error" },
+      { ok: false, error: "internal_error" },
       { status: 500 }
     );
   }

@@ -75,3 +75,14 @@ output/
 
 # Claude Code workspace (임시 작업장, 세션 파일, 백업 — 본판에 저장 안 함)
 .claude/
+
+# i18n 작업 dump (임시)
+_missing_*.json
+_i18n_dump.json
+_extract_i18n.*
+_*.cjs
+_*.json
+
+# 임시 감사/감사노트
+temp_audit.*
+healo_project_context.*

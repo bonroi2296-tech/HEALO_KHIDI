@@ -1,40 +1,46 @@
 /**
  * HEALO-KHIDI: Consultation Session Detail API
  *
- * GET  /api/khidi/consultation/[id] — Get consultation details
- * PATCH /api/khidi/consultation/[id] — Update consultation status/info
+ * GET   /api/khidi/consultation/[id] — 진료 상세 (참가자 또는 admin)
+ * PATCH /api/khidi/consultation/[id] — 진료 상태/노트 수정 (의사/코디네이터/admin)
+ *
+ * 변경 이력:
+ * - 2026-04-17 (보안): 미인증 IDOR → requireConsultationAccess.
+ *   GET 은 참가자 전원, PATCH 는 doctor/coordinator/admin 만.
+ *   응답에서 livekit_token_* 필드 제거.
  */
 
 export const runtime = "nodejs";
 
 import { NextRequest } from "next/server";
+import { requireConsultationAccess } from "@/lib/auth/requireConsultationAccess";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const consultationId = parseInt(params.id);
+    const { id: consultationId } = await params;
 
-    const { getSupabaseServerClient } = await import(
-      "../../../../src/lib/data/supabaseServerClient"
-    );
-    const supabaseAdmin = getSupabaseServerClient();
+    const access = await requireConsultationAccess(request, consultationId);
+    if (!access.success) return access.response;
+
+    const { supabaseAdmin } = await import("@/lib/rag/supabaseAdmin");
 
     const { data, error } = await supabaseAdmin
       .from("consultation_sessions")
       .select(
         `
         id,
-        patient_id,
-        doctor_id,
-        coordinator_id,
+        patient_user_id,
+        doctor_user_id,
+        coordinator_user_id,
         translator_id,
         session_type,
         scheduled_at,
         started_at,
         ended_at,
-        duration_minutes,
+        duration_seconds,
         status,
         patient_language,
         doctor_language,
@@ -42,9 +48,11 @@ export async function GET(
         notes,
         clinical_summary,
         recommendations,
+        recording_url,
+        ai_summary,
         created_at,
         updated_at,
-        cancer_patient_intakes(id, cancer_type, cancer_stage, first_name)
+        cancer_patient_intakes(id, cancer_type, cancer_stage)
       `
       )
       .eq("id", consultationId)
@@ -53,10 +61,10 @@ export async function GET(
     if (error) {
       console.error(
         `[api/khidi/consultation/${consultationId}] GET error:`,
-        error
+        error.message
       );
       return Response.json(
-        { ok: false, error: error.message },
+        { ok: false, error: "fetch_failed" },
         { status: 500 }
       );
     }
@@ -68,14 +76,11 @@ export async function GET(
       );
     }
 
-    return Response.json({
-      ok: true,
-      data,
-    });
+    return Response.json({ ok: true, data, viewerRole: access.role });
   } catch (error: any) {
-    console.error("[api/khidi/consultation] GET exception:", error);
+    console.error("[api/khidi/consultation] GET exception:", error?.message);
     return Response.json(
-      { ok: false, error: error.message || "Internal server error" },
+      { ok: false, error: "internal_error" },
       { status: 500 }
     );
   }
@@ -83,13 +88,19 @@ export async function GET(
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const consultationId = parseInt(params.id);
+    const { id: consultationId } = await params;
+
+    // 노트/상태 수정은 의료 staff 또는 admin 만 가능
+    const access = await requireConsultationAccess(request, consultationId, {
+      requireRole: ["admin", "doctor", "coordinator"],
+    });
+    if (!access.success) return access.response;
+
     const payload = await request.json();
 
-    // Validate status if provided
     if (payload.status) {
       const validStatuses = [
         "scheduled",
@@ -106,59 +117,65 @@ export async function PATCH(
       }
     }
 
-    const { getSupabaseServerClient } = await import(
-      "../../../../src/lib/data/supabaseServerClient"
-    );
-    const supabaseAdmin = getSupabaseServerClient();
+    const { supabaseAdmin } = await import("@/lib/rag/supabaseAdmin");
 
-    // Build update object
     const updateData: Record<string, any> = {};
-
     if (payload.status) updateData.status = payload.status;
     if (payload.startedAt) updateData.started_at = payload.startedAt;
     if (payload.endedAt) updateData.ended_at = payload.endedAt;
-    if (payload.durationMinutes)
-      updateData.duration_minutes = payload.durationMinutes;
-    if (payload.notes) updateData.notes = payload.notes;
-    if (payload.clinicalSummary)
+    if (payload.durationSeconds !== undefined)
+      updateData.duration_seconds = payload.durationSeconds;
+    if (payload.notes !== undefined) updateData.notes = payload.notes;
+    if (payload.clinicalSummary !== undefined)
       updateData.clinical_summary = payload.clinicalSummary;
-    if (payload.recommendations)
+    if (payload.recommendations !== undefined)
       updateData.recommendations = payload.recommendations;
-    if (payload.doctorId) updateData.doctor_id = payload.doctorId;
-    if (payload.translatorId)
-      updateData.translator_id = payload.translatorId;
+
+    // doctor_user_id / translator_id 등 참가자 변경은 admin/coordinator 만
+    if (access.role === "admin" || access.role === "coordinator") {
+      if (payload.doctorId !== undefined)
+        updateData.doctor_user_id = payload.doctorId;
+      if (payload.translatorId !== undefined)
+        updateData.translator_id = payload.translatorId;
+    }
+
+    if (Object.keys(updateData).length === 0) {
+      return Response.json(
+        { ok: false, error: "no_updates" },
+        { status: 400 }
+      );
+    }
 
     const { data, error } = await supabaseAdmin
       .from("consultation_sessions")
       .update(updateData)
       .eq("id", consultationId)
-      .select()
+      .select(
+        "id, status, started_at, ended_at, duration_seconds, updated_at"
+      )
       .single();
 
     if (error) {
       console.error(
         `[api/khidi/consultation/${consultationId}] PATCH error:`,
-        error
+        error.message
       );
       return Response.json(
-        { ok: false, error: error.message },
+        { ok: false, error: "update_failed" },
         { status: 500 }
       );
     }
 
     console.log(
-      `[api/khidi/consultation/${consultationId}] Updated:`,
+      `[api/khidi/consultation/${consultationId}] Updated by ${access.role} (${access.userId}):`,
       Object.keys(updateData).join(", ")
     );
 
-    return Response.json({
-      ok: true,
-      data,
-    });
+    return Response.json({ ok: true, data });
   } catch (error: any) {
-    console.error("[api/khidi/consultation] PATCH exception:", error);
+    console.error("[api/khidi/consultation] PATCH exception:", error?.message);
     return Response.json(
-      { ok: false, error: error.message || "Internal server error" },
+      { ok: false, error: "internal_error" },
       { status: 500 }
     );
   }

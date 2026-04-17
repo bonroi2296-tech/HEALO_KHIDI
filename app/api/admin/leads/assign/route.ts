@@ -77,21 +77,6 @@ export async function POST(request: NextRequest) {
   const { normalized_inquiry_id, hospital_ids } = validation.data;
 
   // ========================================
-  // 🔍 DEBUG: Supabase 연결 정보 로그 출력
-  // ========================================
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.VITE_SUPABASE_URL;
-  const projectRef = supabaseUrl?.split("//")[1]?.split(".")[0] || "unknown";
-  
-  // 🔒 키 타입 진단 (RLS 문제 확인)
-  const hasServiceRoleKey = Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY);
-  const serviceRolePrefix = process.env.SUPABASE_SERVICE_ROLE_KEY?.substring(0, 6) || "N/A";
-  const keyType = hasServiceRoleKey ? "service_role" : "anon_or_missing";
-  
-  if (process.env.NODE_ENV !== "production") {
-    console.log("[leads/assign] keyType:", keyType, "| id:", normalized_inquiry_id);
-  }
-
-  // ========================================
   // 3. Inquiry 존재 확인
   // ========================================
   try {
@@ -102,26 +87,18 @@ export async function POST(request: NextRequest) {
       .maybeSingle();
 
     if (inquiryError || !inquiry) {
-      // TODO: 프로덕션에서는 디버깅 정보 제거
-      const debugInfo = process.env.NODE_ENV !== "production" ? {
-        supabase_url: supabaseUrl,
-        project_ref: projectRef,
-        queried_table: "public.normalized_inquiries",
-        queried_id: normalized_inquiry_id,
-        key_type: keyType,
-        has_service_role_key: hasServiceRoleKey,
-        service_role_prefix: serviceRolePrefix,
-        error_code: inquiryError?.code,
-        error_message: inquiryError?.message,
-        error_details: inquiryError?.details,
-      } : undefined;
-
+      if (process.env.NODE_ENV !== "production") {
+        console.error("[leads/assign] Inquiry not found:", {
+          queried_id: normalized_inquiry_id,
+          error_code: inquiryError?.code,
+          error_message: inquiryError?.message,
+        });
+      }
       return Response.json(
         {
           ok: false,
           error: "inquiry_not_found",
           detail: "해당 inquiry를 찾을 수 없습니다.",
-          debug: debugInfo,
         },
         { status: 404 }
       );
@@ -236,7 +213,6 @@ export async function POST(request: NextRequest) {
       {
         ok: false,
         error: "internal_error",
-        detail: error.message,
       },
       { status: 500 }
     );

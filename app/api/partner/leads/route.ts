@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
 
     if (error) {
       console.error("[Hospital Leads] Query error:", error.message);
-      return Response.json({ ok: false, error: error.message }, { status: 500 });
+      return Response.json({ ok: false, error: "query_failed" }, { status: 500 });
     }
 
     return Response.json({
@@ -51,6 +51,6 @@ export async function GET(request: NextRequest) {
     });
   } catch (err: any) {
     console.error("[Hospital Leads] Error:", err.message);
-    return Response.json({ ok: false, error: err.message }, { status: 500 });
+    return Response.json({ ok: false, error: "internal_error" }, { status: 500 });
   }
 }

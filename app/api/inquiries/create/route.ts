@@ -204,7 +204,7 @@ export async function POST(request: NextRequest) {
     console.error(`[${apiPath}] Internal error:`, error.message);
     
     return Response.json(
-      { ok: false, error: "internal_error", detail: error.message },
+      { ok: false, error: "internal_error" },
       { status: 500 }
     );
   }

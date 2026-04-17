@@ -128,9 +128,9 @@ export const TreatmentDetailPage = ({
   const getOperatingHoursRows = (hours) => {
     const data = hours && typeof hours === "object" ? hours : {};
     return [
-      { label: "Mon-Fri", time: data.mon_fri || "" },
-      { label: "Sat", time: data.sat || "" },
-      { label: "Sun / Holidays", time: data.sun || data.sun_holidays || data.sun_holiday || "" },
+      { label: t("hours.monFri", langCode), time: data.mon_fri || "" },
+      { label: t("hours.saturday", langCode), time: data.sat || "" },
+      { label: t("hours.sunday", langCode), time: data.sun || data.sun_holidays || data.sun_holiday || "" },
     ];
   };
 

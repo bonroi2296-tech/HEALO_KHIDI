@@ -61,7 +61,7 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error("[api/khidi/rebooking/evaluate] Exception:", error);
     return Response.json(
-      { ok: false, error: error.message || "Internal server error" },
+      { ok: false, error: "evaluate_failed" },
       { status: 500 }
     );
   }

@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
   } catch (err: any) {
     console.error("[api/translate] Error:", err.message);
     return NextResponse.json(
-      { ok: false, error: "translation_failed", detail: err.message },
+      { ok: false, error: "translation_failed" },
       { status: 500 }
     );
   }

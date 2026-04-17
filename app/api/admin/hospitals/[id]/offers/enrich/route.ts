@@ -33,7 +33,8 @@ export async function POST(
     .single();
 
   if (error || !newJob) {
-    return Response.json({ ok: false, error: error?.message ?? "job_insert_failed" }, { status: 500 });
+    console.error("[hospitals/offers/enrich] insert error:", error?.message);
+    return Response.json({ ok: false, error: "job_insert_failed" }, { status: 500 });
   }
 
   const origin = new URL(request.url).origin;

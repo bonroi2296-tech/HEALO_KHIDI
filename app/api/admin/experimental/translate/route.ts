@@ -124,7 +124,6 @@ export async function POST(request: NextRequest) {
       {
         ok: false,
         error: "translation_failed",
-        detail: error.message,
       },
       { status: 500 }
     );

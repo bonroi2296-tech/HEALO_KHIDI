@@ -171,6 +171,16 @@ const L = {
   bottomCta: {
     title: { ko: "지금 바로 시작하세요", en: "Start Your Journey Today", ru: "Начните свой путь сегодня", kz: "Бүгін бастаңыз", zh: "今天就开始", ja: "今日から始めましょう" },
     desc: { ko: "인테이크 제출 후 24시간 이내에 최적의 전문의를 매칭해드립니다.\n상담 비용은 무료이며, 치료 결정은 언제든 자유입니다.", en: "We'll match you with the best specialist within 24 hours.\nConsultation is free, and you're never obligated to proceed.", ru: "Мы подберём лучшего специалиста в течение 24 часов.\nКонсультация бесплатна, решение за вами.", kz: "24 сағат ішінде ең жақсы маманды тағайындаймыз.\nКеңес тегін, шешім сізде.", zh: "提交后24小时内匹配最佳专家。\n咨询免费，决定权在您。", ja: "24時間以内に最適な専門医をマッチング。\n相談無料、決定はご自由に。" },
+    free: { ko: "무료 상담", en: "Free consultation", ru: "Бесплатная консультация", kz: "Тегін кеңес", zh: "免费咨询", ja: "無料相談" },
+    fast: { ko: "24시간 내 응답", en: "24h response", ru: "Ответ в течение 24ч", kz: "24 сағат ішінде жауап", zh: "24小时内回复", ja: "24時間以内に返信" },
+    noObligation: { ko: "치료 강제 없음", en: "No obligation", ru: "Без обязательств", kz: "Міндеттемесіз", zh: "无需承诺", ja: "義務なし" },
+  },
+  /* ── misc CTA / labels ── */
+  misc: {
+    viewTreatments: { ko: "암종별 상세 치료 안내 보기", en: "View detailed treatment guides", ru: "Подробные руководства по лечению", kz: "Емдеу нұсқаулықтарын көру", zh: "查看各癌种详细治疗指南", ja: "がん種別の詳細治療ガイドを見る" },
+    onlineInquiry: { ko: "온라인 문의", en: "Online Inquiry", ru: "Онлайн-запрос", kz: "Онлайн сұрау", zh: "在线咨询", ja: "オンラインお問い合わせ" },
+    badgePartner: { ko: "제휴 병원", en: "Partner", ru: "Партнёр", kz: "Серіктес", zh: "合作", ja: "提携" },
+    badgeUniversity: { ko: "협진 대학병원", en: "University", ru: "Университет", kz: "Университет", zh: "大学医院", ja: "大学病院" },
   },
 };
 
@@ -415,7 +425,7 @@ export default function HomeClient() {
           </div>
           <div className="text-center mt-5 md:mt-8">
             <button onClick={() => router.push("/treatments")} className="text-teal-600 font-semibold text-xs md:text-sm hover:text-teal-700 inline-flex items-center gap-1 transition">
-              {lang === "ko" ? "암종별 상세 치료 안내 보기" : "View detailed treatment guides"} <ChevronRight size={14} />
+              {l(L.misc.viewTreatments)} <ChevronRight size={14} />
             </button>
           </div>
         </div>
@@ -437,9 +447,7 @@ export default function HomeClient() {
               const badgeClass = isPartner
                 ? "bg-teal-50 text-teal-700"
                 : "bg-blue-50 text-blue-700";
-              const badgeLabel = isPartner
-                ? (lang === "ko" ? "제휴 병원" : lang === "ru" ? "Партнёр" : lang === "zh" ? "合作" : lang === "ja" ? "提携" : "Partner")
-                : (lang === "ko" ? "협진 대학병원" : lang === "ru" ? "Университет" : lang === "zh" ? "大学医院" : lang === "ja" ? "大学病院" : "University");
+              const badgeLabel = isPartner ? l(L.misc.badgePartner) : l(L.misc.badgeUniversity);
               return (
                 <div
                   key={i}
@@ -564,7 +572,7 @@ export default function HomeClient() {
                   className="inline-flex items-center justify-center gap-2 bg-teal-600 text-white rounded-xl px-4 md:px-6 py-2.5 md:py-3 text-sm md:text-base font-medium hover:bg-teal-700 transition-colors shadow-lg shadow-teal-600/20"
                 >
                   <MessageCircle size={16} />
-                  {lang === "ko" ? "온라인 문의" : "Online Inquiry"}
+                  {l(L.misc.onlineInquiry)}
                 </button>
               </div>
             </div>
@@ -615,9 +623,9 @@ export default function HomeClient() {
             <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
           </button>
           <div className="flex flex-wrap justify-center gap-3 md:gap-6 mt-6 md:mt-10 text-xs md:text-sm text-slate-400">
-            <span className="flex items-center gap-1"><CheckCircle size={12} className="text-teal-400" />{lang === "ko" ? "무료 상담" : "Free consultation"}</span>
-            <span className="flex items-center gap-1"><CheckCircle size={12} className="text-teal-400" />{lang === "ko" ? "24시간 내 응답" : "24h response"}</span>
-            <span className="flex items-center gap-1"><CheckCircle size={12} className="text-teal-400" />{lang === "ko" ? "치료 강제 없음" : "No obligation"}</span>
+            <span className="flex items-center gap-1"><CheckCircle size={12} className="text-teal-400" />{l(L.bottomCta.free)}</span>
+            <span className="flex items-center gap-1"><CheckCircle size={12} className="text-teal-400" />{l(L.bottomCta.fast)}</span>
+            <span className="flex items-center gap-1"><CheckCircle size={12} className="text-teal-400" />{l(L.bottomCta.noObligation)}</span>
           </div>
         </div>
       </section>

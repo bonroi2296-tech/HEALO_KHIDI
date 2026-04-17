@@ -32,7 +32,7 @@ export async function GET(
   if (error) {
     console.error("[admin/treatments/sources] GET error:", error.message);
     return Response.json(
-      { ok: false, error: "db_query_failed", detail: error.message },
+      { ok: false, error: "db_query_failed" },
       { status: 500 }
     );
   }

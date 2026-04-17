@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
     if (error) {
       console.error("[api/khidi/roles] GET error:", error);
       return Response.json(
-        { ok: false, error: error.message },
+        { ok: false, error: "query_failed" },
         { status: 500 }
       );
     }
@@ -50,7 +50,7 @@ export async function GET(request: NextRequest) {
   } catch (error: any) {
     console.error("[api/khidi/roles] GET exception:", error);
     return Response.json(
-      { ok: false, error: error.message || "Internal server error" },
+      { ok: false, error: "internal_error" },
       { status: 500 }
     );
   }
@@ -122,7 +122,7 @@ export async function POST(request: NextRequest) {
       }
       console.error("[api/khidi/roles] POST error:", error);
       return Response.json(
-        { ok: false, error: error.message },
+        { ok: false, error: "insert_failed" },
         { status: 500 }
       );
     }
@@ -145,7 +145,7 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error("[api/khidi/roles] POST exception:", error);
     return Response.json(
-      { ok: false, error: error.message || "Internal server error" },
+      { ok: false, error: "internal_error" },
       { status: 500 }
     );
   }

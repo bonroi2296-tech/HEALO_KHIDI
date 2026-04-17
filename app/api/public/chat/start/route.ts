@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
 
     if (error) {
       console.error("[POST /api/public/chat/start]", error.message);
-      return Response.json({ ok: false, error: error.message }, { status: 500 });
+      return Response.json({ ok: false, error: "insert_failed" }, { status: 500 });
     }
 
     return Response.json({

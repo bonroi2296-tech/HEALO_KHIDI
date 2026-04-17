@@ -85,6 +85,7 @@ export async function GET(request: NextRequest) {
       recentLeads: recentLeads || [],
     });
   } catch (err: any) {
-    return Response.json({ ok: false, error: err.message }, { status: 500 });
+    console.error("[partner/dashboard] GET error:", err);
+    return Response.json({ ok: false, error: "internal_error" }, { status: 500 });
   }
 }

@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
   const { data: hospitals, error: fetchErr } = await query;
 
   if (fetchErr) {
-    return NextResponse.json({ ok: false, error: "db_query_failed", detail: fetchErr.message }, { status: 500 });
+    return NextResponse.json({ ok: false, error: "db_query_failed" }, { status: 500 });
   }
 
   if (!hospitals || hospitals.length === 0) {
@@ -88,11 +88,12 @@ export async function POST(request: NextRequest) {
         })),
       });
     } catch (err: any) {
+      console.error("[admin/hospitals/enrich/batch] pipeline error:", err);
       results.push({
         id: hospital.id,
         name: hospital.name,
         success: false,
-        error: err.message,
+        error: "pipeline_failed",
       });
     }
   }

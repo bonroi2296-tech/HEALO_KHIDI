@@ -128,6 +128,64 @@ const LABELS = {
     selectOne: "하나를 선택하세요", selectAll: "해당하는 것을 모두 선택",
     stage: "기",
   },
+  zh: {
+    title: "癌症治疗申请表",
+    subtitle: "为您匹配韩国顶级肿瘤专家",
+    step1: "诊断", step2: "治疗", step3: "日程", step4: "确认",
+    cancerType: "哪种癌症？", cancerStage: "分期",
+    diagnosisDate: "何时确诊？",
+    currentTreatment: "目前是否在接受治疗？",
+    preferredTreatment: "您对哪些治疗方法感兴趣？",
+    medicalRecords: "医疗记录",
+    uploadHint: "将文件拖到此处或点击上传 (PDF, JPG, PNG)",
+    budget: "预算估算", budgetMin: "最低", budgetMax: "最高", currency: "货币",
+    travelEarliest: "最早可出发日", travelLatest: "最迟须抵达日",
+    flexibleDates: "日期灵活",
+    language: "交流语言",
+    consent: "我同意处理我的个人和医疗数据",
+    consentDetail: "数据使用AES-256加密，符合国际医疗数据标准。",
+    next: "继续", back: "返回", submit: "提交申请",
+    success: "申请已提交！协调员将在24小时内与您联系。",
+    required: "必填", none: "目前没有",
+    chemo: "化疗", radiation: "放疗", surgery: "手术", immunotherapy: "免疫治疗",
+    stomach: "胃", liver: "肝", lung: "肺", breast: "乳腺", thyroid: "甲状腺", other: "其他",
+    unknown: "未知",
+    additionalNotes: "还有其他需要告知的吗？",
+    additionalNotesHint: "症状、顾虑、药物、过敏...",
+    reviewTitle: "请确认您的申请",
+    reviewDisease: "诊断详情", reviewSchedule: "日程与预算",
+    selectOne: "请选择一项", selectAll: "选择所有适用项",
+    stage: "期",
+  },
+  ja: {
+    title: "がん治療申込書",
+    subtitle: "韓国トップのがん専門医とマッチングします",
+    step1: "診断", step2: "治療", step3: "スケジュール", step4: "確認",
+    cancerType: "どのようながんですか？", cancerStage: "ステージ",
+    diagnosisDate: "いつ診断されましたか？",
+    currentTreatment: "現在治療を受けていますか？",
+    preferredTreatment: "ご興味のある治療法は？",
+    medicalRecords: "医療記録",
+    uploadHint: "ファイルをドラッグまたはクリックしてアップロード (PDF, JPG, PNG)",
+    budget: "予算目安", budgetMin: "最小", budgetMax: "最大", currency: "通貨",
+    travelEarliest: "出発可能日", travelLatest: "到着期限",
+    flexibleDates: "日程は柔軟です",
+    language: "コミュニケーション言語",
+    consent: "個人情報および医療情報の処理に同意します",
+    consentDetail: "データはAES-256で暗号化され、国際医療データ基準に準拠しています。",
+    next: "続ける", back: "戻る", submit: "申込書を提出",
+    success: "申込が完了しました！コーディネーターが24時間以内にご連絡します。",
+    required: "必須", none: "現在なし",
+    chemo: "化学療法", radiation: "放射線", surgery: "手術", immunotherapy: "免疫療法",
+    stomach: "胃", liver: "肝臓", lung: "肺", breast: "乳房", thyroid: "甲状腺", other: "その他",
+    unknown: "不明",
+    additionalNotes: "他にお知らせいただくことはありますか？",
+    additionalNotesHint: "症状、懸念、服用中の薬、アレルギー...",
+    reviewTitle: "申込内容をご確認ください",
+    reviewDisease: "診断情報", reviewSchedule: "スケジュールと予算",
+    selectOne: "一つお選びください", selectAll: "該当するものをすべて選択",
+    stage: "期",
+  },
 };
 
 const CANCER_TYPES = [
@@ -167,7 +225,7 @@ export default function IntakePage() {
   useEffect(() => {
     const code = getLangCodeFromCookie();
     if (LABELS[code]) setLang(code);
-    else if (code === "ja" || code === "zh") setLang("en");
+    else setLang("en");
   }, []);
 
   const L = LABELS[lang] || LABELS.en;

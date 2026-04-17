@@ -17,9 +17,12 @@
 VITE_SUPABASE_URL=your_supabase_url
 VITE_SUPABASE_KEY=your_supabase_key
 
-# Google Maps API 키 (새로 추가)
-VITE_GOOGLE_MAPS_API_KEY=AIzaSyA_DYCZyOPTi0lt7mChWe9dFjxtA9g1QZE
+# Google Maps API 키 (새로 추가 — 실제 값은 Git에 커밋 금지)
+VITE_GOOGLE_MAPS_API_KEY=<YOUR_GOOGLE_MAPS_BROWSER_KEY>
 ```
+
+> ⚠️ 실제 키 값은 GCP Console → APIs & Services → Credentials 에서 조회.
+> HTTP Referrer 제한 적용 후 발급된 값만 사용.
 
 ### .env 파일이 없다면?
 

@@ -206,7 +206,7 @@ export async function POST(request: NextRequest) {
     console.error("[api/inquiries/intake] error:", error);
     logInquiryFailed(apiPath, clientIp, 'intake_failed', { error: error?.message });
     return Response.json(
-      { ok: false, error: error?.message || "intake_failed" },
+      { ok: false, error: "intake_failed" },
       { status: 500 }
     );
   }

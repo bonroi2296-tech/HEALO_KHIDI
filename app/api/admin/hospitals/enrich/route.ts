@@ -114,7 +114,7 @@ export async function POST(request: NextRequest) {
     });
   } catch (e: any) {
     return NextResponse.json(
-      { ok: false, error: "pipeline_error", detail: e.message },
+      { ok: false, error: "pipeline_error" },
       { status: 502 },
     );
   }

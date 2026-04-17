@@ -190,8 +190,9 @@ export async function POST(request: NextRequest) {
       id: result.id,
     });
   } catch (error: any) {
+    console.error("[admin/notification-recipients] POST error:", error);
     return Response.json(
-      { ok: false, error: error.message },
+      { ok: false, error: "internal_error" },
       { status: 500 }
     );
   }

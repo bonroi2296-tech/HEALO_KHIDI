@@ -55,7 +55,7 @@ export async function GET(
 
   if (error) {
     console.error("[crawl items API] query error:", error.code, error.message, error.details, error.hint);
-    return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
+    return NextResponse.json({ ok: false, error: "query_failed" }, { status: 500 });
   }
 
   // Get distinct filter values for this job (for filter dropdowns)
@@ -143,6 +143,7 @@ export async function POST(
       return NextResponse.json({ ok: false, error: "Invalid action. Use: approve, reject, skip" }, { status: 400 });
     }
   } catch (err: any) {
-    return NextResponse.json({ ok: false, error: err.message }, { status: 500 });
+    console.error("[crawl items API] review error:", err);
+    return NextResponse.json({ ok: false, error: "review_failed" }, { status: 500 });
   }
 }

@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
       .select("*")
       .order("created_at", { ascending: false })
       .limit(20);
-    if (error) return Response.json({ ok: false, error: error.message }, { status: 500 });
+    if (error) return Response.json({ ok: false, error: "query_failed" }, { status: 500 });
     return Response.json({ ok: true, data });
   }
 
@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
       .select("*")
       .order("created_at", { ascending: false })
       .limit(50);
-    if (error) return Response.json({ ok: false, error: error.message }, { status: 500 });
+    if (error) return Response.json({ ok: false, error: "query_failed" }, { status: 500 });
     return Response.json({ ok: true, data });
   }
 
@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
       .eq("is_active", true)
       .order("auto_score", { ascending: true })
       .limit(20);
-    if (error) return Response.json({ ok: false, error: error.message }, { status: 500 });
+    if (error) return Response.json({ ok: false, error: "query_failed" }, { status: 500 });
     return Response.json({ ok: true, data });
   }
 
@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
       .eq("auto_status", "ab_testing")
       .order("last_auto_action_at", { ascending: false })
       .limit(20);
-    if (error) return Response.json({ ok: false, error: error.message }, { status: 500 });
+    if (error) return Response.json({ ok: false, error: "query_failed" }, { status: 500 });
     return Response.json({ ok: true, data });
   }
 

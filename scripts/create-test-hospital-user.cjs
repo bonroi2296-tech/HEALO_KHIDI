@@ -12,8 +12,23 @@ const supabase = createClient(
   { auth: { autoRefreshToken: false, persistSession: false } }
 );
 
-const TEST_EMAIL = "hospital-test@gmail.com";
-const TEST_PASSWORD = "test1234";
+// ⚠️ 보안: 비밀번호를 하드코딩하지 않고 환경변수로 주입
+//   실행 예: TEST_HOSPITAL_EMAIL=foo@bar.com TEST_HOSPITAL_PASSWORD='$(openssl rand -base64 18)' node scripts/create-test-hospital-user.cjs
+const TEST_EMAIL = process.env.TEST_HOSPITAL_EMAIL;
+const TEST_PASSWORD = process.env.TEST_HOSPITAL_PASSWORD;
+
+if (!TEST_EMAIL || !TEST_PASSWORD) {
+  console.error(
+    "❌ TEST_HOSPITAL_EMAIL, TEST_HOSPITAL_PASSWORD 환경변수가 필요합니다.\n" +
+      "   예: TEST_HOSPITAL_EMAIL=foo@bar.com TEST_HOSPITAL_PASSWORD=\"$(openssl rand -base64 18)\" node scripts/create-test-hospital-user.cjs"
+  );
+  process.exit(1);
+}
+
+if (TEST_PASSWORD.length < 12) {
+  console.error("❌ TEST_HOSPITAL_PASSWORD는 12자 이상이어야 합니다.");
+  process.exit(1);
+}
 
 async function main() {
   console.log("=== 병원 테스트 계정 생성 ===\n");

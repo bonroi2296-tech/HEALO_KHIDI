@@ -53,7 +53,7 @@ export async function GET(request: NextRequest) {
       }
 
       return NextResponse.json(
-        { ok: false, error: error.message, code: error.code },
+        { ok: false, error: "query_failed" },
         { status: 500 }
       );
     }
@@ -65,7 +65,7 @@ export async function GET(request: NextRequest) {
   } catch (err: any) {
     console.error(`[${apiPath}] 예외 발생:`, err);
     return NextResponse.json(
-      { ok: false, error: err.message || "internal_error", stack: err.stack },
+      { ok: false, error: "internal_error" },
       { status: 500 }
     );
   }
@@ -122,7 +122,7 @@ export async function PUT(request: NextRequest) {
       if (error) {
         console.error(`[${apiPath}] UPDATE 실패:`, error);
         return NextResponse.json(
-          { ok: false, error: error.message },
+          { ok: false, error: "update_failed" },
           { status: 500 }
         );
       }
@@ -138,7 +138,7 @@ export async function PUT(request: NextRequest) {
       if (error) {
         console.error(`[${apiPath}] INSERT 실패:`, error);
         return NextResponse.json(
-          { ok: false, error: error.message },
+          { ok: false, error: "insert_failed" },
           { status: 500 }
         );
       }

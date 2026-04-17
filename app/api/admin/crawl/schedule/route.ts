@@ -82,7 +82,7 @@ export async function PUT(request: NextRequest) {
         .eq("id", existing.id);
 
       if (error) {
-        return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
+        return NextResponse.json({ ok: false, error: "update_failed" }, { status: 500 });
       }
     } else {
       // status='completed' to satisfy CHECK constraint
@@ -95,12 +95,13 @@ export async function PUT(request: NextRequest) {
         });
 
       if (error) {
-        return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
+        return NextResponse.json({ ok: false, error: "insert_failed" }, { status: 500 });
       }
     }
 
     return NextResponse.json({ ok: true, schedule: merged });
   } catch (err: any) {
-    return NextResponse.json({ ok: false, error: err.message }, { status: 500 });
+    console.error("[admin/crawl/schedule] PUT error:", err);
+    return NextResponse.json({ ok: false, error: "internal_error" }, { status: 500 });
   }
 }

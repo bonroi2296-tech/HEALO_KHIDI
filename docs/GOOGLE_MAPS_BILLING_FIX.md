@@ -167,8 +167,11 @@ npm run dev
 
 ### `.env.local`
 ```env
-NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=AIzaSyA_DYCZyOPTi0lt7mChWe9dFjxtA9g1QZE
+NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=<YOUR_GOOGLE_MAPS_BROWSER_KEY>
 ```
+
+> ⚠️ 실제 키 값은 절대 문서/Git에 커밋하지 말 것. Vercel 환경변수에서만 관리.
+> GCP Console에서 HTTP Referrer 제한 필수 적용 (`*.healo-khidi.vercel.app/*`, `localhost:3000/*`).
 
 ### 확인 방법
 ```bash

@@ -21,12 +21,14 @@ export async function GET(request: NextRequest) {
       .order("created_at", { ascending: false });
 
     if (error) {
-      return Response.json({ ok: false, error: error.message }, { status: 500 });
+      console.error("[partner/treatments] GET error:", error);
+      return Response.json({ ok: false, error: "query_failed" }, { status: 500 });
     }
 
     return Response.json({ ok: true, treatments: data || [], total: count || 0 });
   } catch (err: any) {
-    return Response.json({ ok: false, error: err.message }, { status: 500 });
+    console.error("[partner/treatments] GET exception:", err);
+    return Response.json({ ok: false, error: "internal_error" }, { status: 500 });
   }
 }
 
@@ -82,7 +84,8 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (error) {
-      return Response.json({ ok: false, error: error.message }, { status: 500 });
+      console.error("[partner/treatments] POST error:", error);
+      return Response.json({ ok: false, error: "insert_failed" }, { status: 500 });
     }
 
     if (payload.name || payload.description || payload.tags) {
@@ -93,7 +96,8 @@ export async function POST(request: NextRequest) {
 
     return Response.json({ ok: true, treatment: data });
   } catch (err: any) {
-    return Response.json({ ok: false, error: err.message }, { status: 500 });
+    console.error("[partner/treatments] POST exception:", err);
+    return Response.json({ ok: false, error: "internal_error" }, { status: 500 });
   }
 }
 
@@ -161,7 +165,8 @@ export async function PATCH(request: NextRequest) {
       .single();
 
     if (error) {
-      return Response.json({ ok: false, error: error.message }, { status: 500 });
+      console.error("[partner/treatments] PATCH error:", error);
+      return Response.json({ ok: false, error: "update_failed" }, { status: 500 });
     }
 
     if (updates.name || updates.description || updates.tags) {
@@ -172,6 +177,7 @@ export async function PATCH(request: NextRequest) {
 
     return Response.json({ ok: true, treatment: data });
   } catch (err: any) {
-    return Response.json({ ok: false, error: err.message }, { status: 500 });
+    console.error("[partner/treatments] PATCH exception:", err);
+    return Response.json({ ok: false, error: "internal_error" }, { status: 500 });
   }
 }

@@ -70,7 +70,6 @@ export async function GET(request: NextRequest) {
         {
           ok: false,
           error: "db_query_failed",
-          detail: error.message,
         },
         { status: 500 }
       );
@@ -104,7 +103,6 @@ export async function GET(request: NextRequest) {
       {
         ok: false,
         error: "internal_error",
-        detail: error.message,
       },
       { status: 500 }
     );
@@ -237,7 +235,6 @@ export async function POST(request: NextRequest) {
         {
           ok: false,
           error: "db_insert_failed",
-          detail: error.message,
         },
         { status: 500 }
       );
@@ -279,7 +276,6 @@ export async function POST(request: NextRequest) {
       {
         ok: false,
         error: "internal_error",
-        detail: error.message,
       },
       { status: 500 }
     );
@@ -331,7 +327,7 @@ export async function PATCH(request: NextRequest) {
 
   if (!id) {
     return Response.json(
-      { ok: false, error: "id_required", detail: "병원 ID가 필요합니다." },
+      { ok: false, error: "id_required" },
       { status: 400 }
     );
   }
@@ -369,7 +365,7 @@ export async function PATCH(request: NextRequest) {
 
     if (fetchError || !existing) {
       return Response.json(
-        { ok: false, error: "hospital_not_found", detail: "병원을 찾을 수 없습니다." },
+        { ok: false, error: "hospital_not_found" },
         { status: 404 }
       );
     }
@@ -439,7 +435,6 @@ export async function PATCH(request: NextRequest) {
         {
           ok: false,
           error: "db_update_failed",
-          detail: error.message,
         },
         { status: 500 }
       );
@@ -482,7 +477,6 @@ export async function PATCH(request: NextRequest) {
       {
         ok: false,
         error: "internal_error",
-        detail: error.message,
       },
       { status: 500 }
     );
@@ -521,7 +515,7 @@ export async function DELETE(request: NextRequest) {
 
   if (!id) {
     return Response.json(
-      { ok: false, error: "id_required", detail: "병원 ID가 필요합니다." },
+      { ok: false, error: "id_required" },
       { status: 400 }
     );
   }
@@ -541,7 +535,6 @@ export async function DELETE(request: NextRequest) {
         {
           ok: false,
           error: "db_delete_failed",
-          detail: error.message,
         },
         { status: 500 }
       );
@@ -573,7 +566,6 @@ export async function DELETE(request: NextRequest) {
       {
         ok: false,
         error: "internal_error",
-        detail: error.message,
       },
       { status: 500 }
     );

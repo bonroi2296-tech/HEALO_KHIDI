@@ -54,7 +54,7 @@ export async function GET(request: NextRequest) {
 
   if (error) {
     console.error("[patient/chat] GET threads:", error.message);
-    return Response.json({ ok: false, error: error.message }, { status: 500 });
+    return Response.json({ ok: false, error: "query_failed" }, { status: 500 });
   }
 
   return Response.json({ ok: true, threads: data || [] });
@@ -99,7 +99,7 @@ export async function POST(request: NextRequest) {
 
     if (error) {
       console.error("[patient/chat] start thread:", error.message);
-      return Response.json({ ok: false, error: error.message }, { status: 500 });
+      return Response.json({ ok: false, error: "insert_failed" }, { status: 500 });
     }
 
     return Response.json({ ok: true, thread_id: data.id, created_at: data.created_at });

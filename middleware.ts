@@ -18,11 +18,13 @@ import { createServerClient } from "@supabase/ssr";
 
 /**
  * ✅ Middleware에서 admin 권한 체크
- * 
- * 판정 기준:
- * 1. user.user_metadata.role === "admin"
- * 2. user.app_metadata.role === "admin"
- * 3. ADMIN_EMAIL_ALLOWLIST에 포함된 이메일
+ *
+ * 판정 기준 (OR):
+ * 1. user.app_metadata.role === "admin"   ← service_role만 쓸 수 있는 필드
+ * 2. ADMIN_EMAIL_ALLOWLIST에 포함된 이메일
+ *
+ * ⚠️ user_metadata는 클라이언트(auth.updateUser) 로 자기 자신이 고칠 수 있으므로
+ * 어드민 판정에 절대 사용 금지. 과거 코드가 체크하던 경로를 삭제했음.
  *
  * ⚠️ isAdmin일 때 반드시 반환된 response를 사용해야 함.
  * Supabase가 세션 갱신 시 setAll로 쿠키를 넣은 response를 그대로 돌려줘야
@@ -70,9 +72,8 @@ async function checkAdminInMiddleware(request: NextRequest): Promise<{
 
     const userEmail = user.email?.trim().toLowerCase();
 
-    if (user.user_metadata?.role === "admin") {
-      return { isAdmin: true, email: userEmail, response };
-    }
+    // Only trust app_metadata (server-writable). user_metadata is client-writable
+    // via auth.updateUser() and must NEVER be used for authorization decisions.
     if (user.app_metadata?.role === "admin") {
       return { isAdmin: true, email: userEmail, response };
     }

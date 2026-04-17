@@ -39,7 +39,8 @@ export async function GET(request: NextRequest) {
   const { data, count, error } = await query;
 
   if (error) {
-    return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
+    console.error("[admin/crawl/jobs] GET error:", error);
+    return NextResponse.json({ ok: false, error: "query_failed" }, { status: 500 });
   }
 
   return NextResponse.json({ ok: true, jobs: data || [], total: count || 0 });
@@ -94,7 +95,8 @@ export async function POST(request: NextRequest) {
     .single();
 
   if (insertErr || !job) {
-    return NextResponse.json({ ok: false, error: insertErr?.message || "insert failed" }, { status: 500 });
+    console.error("[admin/crawl/jobs] insert failed:", insertErr);
+    return NextResponse.json({ ok: false, error: "insert_failed" }, { status: 500 });
   }
 
   // Fire-and-forget: start the job in background

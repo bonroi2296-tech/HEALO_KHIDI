@@ -50,7 +50,7 @@ export async function GET(request: NextRequest) {
     if (error) {
       console.error("[observability/rag/health] RPC error:", error.message);
       return Response.json(
-        { ok: false, error: error.message },
+        { ok: false, error: "rpc_failed" },
         { status: 500 }
       );
     }
@@ -92,7 +92,7 @@ export async function GET(request: NextRequest) {
   } catch (e: any) {
     console.error("[observability/rag/health] error:", e?.message ?? e);
     return Response.json(
-      { ok: false, error: e?.message ?? "internal_error" },
+      { ok: false, error: "internal_error" },
       { status: 500 }
     );
   }

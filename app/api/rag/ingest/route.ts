@@ -1,15 +1,21 @@
 /**
- * ✅ P0 수정: 런타임 명시 (Node.js)
- * 
- * 이유:
- * - DB 관리자 접근 (ingestSources 내부에서 사용)
- * - Edge 런타임에서 발생할 수 있는 예측 불가 오류 방지
+ * RAG 인덱싱 트리거 API (admin 전용)
+ *
+ * ⚠️ 과거 버전은 인증 없이 누구나 호출 가능 → embedding/LLM 비용 DoS + RAG 인덱스 오염.
+ *   → requireAdminAuth 로 폐쇄.
+ *
+ * 런타임: Node.js
  */
 export const runtime = "nodejs";
 
+import { NextRequest } from "next/server";
 import { ingestSources } from "../../../../src/lib/rag/ingest";
+import { requireAdminAuth } from "../../../../src/lib/auth/requireAdminAuth";
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
+  const auth = await requireAdminAuth(request);
+  if (!auth.success) return auth.response;
+
   try {
     const body = await request.json().catch(() => ({}));
     const sourceTypes = Array.isArray(body?.sourceTypes)

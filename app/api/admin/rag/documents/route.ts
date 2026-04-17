@@ -55,7 +55,7 @@ export async function GET(request: NextRequest) {
     const { data, error, count } = await query;
     if (error) {
       console.error("[GET /api/admin/rag/documents]", error.message);
-      return Response.json({ ok: false, error: error.message }, { status: 500 });
+      return Response.json({ ok: false, error: "query_failed" }, { status: 500 });
     }
 
     return Response.json({ ok: true, documents: data, total: count ?? 0 });
