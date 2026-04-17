@@ -1,7 +1,10 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
+import { Upload, FileText, AlertCircle, ChevronDown } from 'lucide-react';
 import { getLangCodeFromCookie } from '../../../src/lib/i18n';
+import { createSupabaseBrowserClient } from '../../../src/lib/supabase/browser';
 
 const LABELS = {
   title: { ko: '의료 문서 관리', en: 'Medical Documents', ru: 'Медицинские документы', zh: '医疗文档', ja: '医療書類', kz: 'Медициналық құжаттар' },
@@ -18,6 +21,11 @@ const LABELS = {
   formats: { ko: 'PDF, JPEG, PNG, WebP', en: 'PDF, JPEG, PNG, WebP', ru: 'PDF, JPEG, PNG, WebP', zh: 'PDF, JPEG, PNG, WebP', ja: 'PDF, JPEG, PNG, WebP', kz: 'PDF, JPEG, PNG, WebP' },
   myDocs: { ko: '내 문서', en: 'My Documents', ru: 'Мои документы', zh: '我的文档', ja: 'マイ書類', kz: 'Менің құжаттарым' },
   loading: { ko: '로딩 중...', en: 'Loading...', ru: 'Загрузка...', zh: '加载中...', ja: '読み込み中...', kz: 'Жүктелуде...' },
+  selectConsult: { ko: '연결할 상담', en: 'Linked consultation', ru: 'Связанная консультация', zh: '关联咨询', ja: '関連相談', kz: 'Байланысты кеңес' },
+  noConsult: { ko: '먼저 사전상담을 신청하세요', en: 'Please request a pre-consultation first', ru: 'Сначала запросите консультацию', zh: '请先申请预咨询', ja: 'まず事前相談を申請してください', kz: 'Алдымен кеңес сұраңыз' },
+  noConsultDesc: { ko: '의료 문서는 상담과 연결되어 저장됩니다.', en: 'Medical documents are linked to a consultation.', ru: 'Документы привязываются к консультации.', zh: '医疗文档与咨询关联。', ja: '書類は相談と紐付きます。', kz: 'Құжаттар кеңеспен байланысады.' },
+  requestConsult: { ko: '사전상담 신청', en: 'Request Consultation', ru: 'Запросить консультацию', zh: '申请咨询', ja: '相談を申請', kz: 'Кеңес сұрау' },
+  loginRequired: { ko: '로그인이 필요합니다', en: 'Login required', ru: 'Требуется вход', zh: '需要登录', ja: 'ログインが必要です', kz: 'Кіру қажет' },
 };
 
 const DOC_TYPES = [
@@ -35,12 +43,17 @@ function formatFileSize(bytes) {
 }
 
 export default function DocumentsClient() {
+  const router = useRouter();
   const [lang, setLang] = useState('en');
   useEffect(() => { setLang(getLangCodeFromCookie()); }, []);
   const l = (obj) => obj?.[lang] || obj?.['en'] || '';
 
+  const [authChecked, setAuthChecked] = useState(false);
+  const [authed, setAuthed] = useState(false);
   const [documents, setDocuments] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [consultations, setConsultations] = useState([]);
+  const [selectedConsultId, setSelectedConsultId] = useState('');
+  const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [docType, setDocType] = useState('medical_record');
   const [description, setDescription] = useState('');
@@ -48,30 +61,52 @@ export default function DocumentsClient() {
   const [message, setMessage] = useState(null);
   const fileRef = useRef(null);
 
-  // This requires a consultationId - for now use query param or localStorage
-  const [consultationId, setConsultationId] = useState(null);
-
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const cid = params.get('consultationId');
-    if (cid) {
-      setConsultationId(cid);
-      fetchDocuments(cid);
-    }
-  }, []);
-
-  const fetchDocuments = async (cid) => {
+  const fetchDocuments = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/khidi/consultation/${cid}/documents`);
+      const supabase = createSupabaseBrowserClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        setAuthed(false);
+        setAuthChecked(true);
+        setLoading(false);
+        return;
+      }
+      setAuthed(true);
+
+      const res = await fetch('/api/patient/documents', {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
       const result = await res.json();
-      if (result.ok) setDocuments(result.data || []);
-    } catch (e) { console.error(e); }
+      if (result.ok) {
+        setDocuments(result.data || []);
+        setConsultations(result.consultations || []);
+        if (result.consultations?.length && !selectedConsultId) {
+          setSelectedConsultId(result.consultations[0].id);
+        }
+      }
+    } catch (e) {
+      console.error(e);
+    }
+    setAuthChecked(true);
     setLoading(false);
   };
 
+  useEffect(() => { fetchDocuments(); }, []);
+
+  // Allow ?consultationId= override
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const cid = params.get('consultationId');
+    if (cid) setSelectedConsultId(cid);
+  }, []);
+
   const handleUpload = async (file) => {
-    if (!file || !consultationId) return;
+    if (!file) return;
+    if (!selectedConsultId) {
+      setMessage({ type: 'error', text: l(LABELS.noConsult) });
+      return;
+    }
 
     const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'];
     if (!allowedTypes.includes(file.type)) {
@@ -86,21 +121,26 @@ export default function DocumentsClient() {
     setUploading(true);
     setMessage(null);
 
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('documentType', docType);
-    formData.append('description', description);
-
     try {
-      const res = await fetch(`/api/khidi/consultation/${consultationId}/documents`, {
+      const supabase = createSupabaseBrowserClient();
+      const { data: { session } } = await supabase.auth.getSession();
+
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('consultationId', selectedConsultId);
+      formData.append('documentType', docType);
+      formData.append('description', description);
+
+      const res = await fetch('/api/patient/documents', {
         method: 'POST',
+        headers: { Authorization: `Bearer ${session.access_token}` },
         body: formData,
       });
       const result = await res.json();
       if (result.ok) {
         setMessage({ type: 'success', text: l(LABELS.success) });
         setDescription('');
-        fetchDocuments(consultationId);
+        fetchDocuments();
       } else {
         setMessage({ type: 'error', text: `${l(LABELS.error)}: ${result.error}` });
       }
@@ -122,127 +162,191 @@ export default function DocumentsClient() {
     if (file) handleUpload(file);
   };
 
-  if (!consultationId) {
+  if (!authChecked || loading) {
     return (
-      <main style={{ maxWidth: 600, margin: '60px auto', padding: '0 16px', textAlign: 'center' }}>
-        <h1 style={{ fontSize: 24, fontWeight: 700, marginBottom: 8 }}>{l(LABELS.title)}</h1>
-        <p style={{ color: '#666' }}>consultationId parameter required.</p>
+      <main className="max-w-3xl mx-auto px-4 py-6">
+        <div className="flex items-center justify-center min-h-[40vh]">
+          <div className="animate-spin w-8 h-8 border-3 border-teal-600 border-t-transparent rounded-full" />
+        </div>
+      </main>
+    );
+  }
+
+  if (!authed) {
+    return (
+      <main className="max-w-md mx-auto px-4 py-20 text-center">
+        <h1 className="text-2xl font-bold mb-4">{l(LABELS.title)}</h1>
+        <p className="text-gray-500 mb-6">{l(LABELS.loginRequired)}</p>
+        <button
+          onClick={() => router.push('/login')}
+          className="bg-teal-600 text-white font-semibold px-6 py-3 rounded-xl hover:bg-teal-700 transition"
+        >
+          Login
+        </button>
       </main>
     );
   }
 
   return (
-    <main style={{ maxWidth: 700, margin: '0 auto', padding: '24px 16px' }} aria-label={l(LABELS.title)}>
-      <h1 style={{ fontSize: 28, fontWeight: 700, marginBottom: 4 }}>{l(LABELS.title)}</h1>
-      <p style={{ color: '#666', marginBottom: 24 }}>{l(LABELS.subtitle)}</p>
-
-      {/* Upload Area */}
-      <div
-        role="button"
-        tabIndex={0}
-        aria-label={l(LABELS.dragDrop)}
-        onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
-        onDragLeave={() => setDragOver(false)}
-        onDrop={handleDrop}
-        onClick={() => fileRef.current?.click()}
-        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') fileRef.current?.click(); }}
-        style={{
-          border: `2px dashed ${dragOver ? '#2563eb' : '#ddd'}`,
-          borderRadius: 12, padding: 40, textAlign: 'center', cursor: 'pointer',
-          background: dragOver ? '#eff6ff' : '#fafafa', marginBottom: 16,
-          transition: 'all 0.2s',
-        }}
-      >
-        <div style={{ fontSize: 40, marginBottom: 8 }}>📄</div>
-        <p style={{ fontSize: 15, fontWeight: 500, marginBottom: 4 }}>{l(LABELS.dragDrop)}</p>
-        <p style={{ fontSize: 13, color: '#888' }}>{l(LABELS.formats)} · {l(LABELS.maxSize)}</p>
-        <input
-          ref={fileRef}
-          type="file"
-          accept=".pdf,.jpg,.jpeg,.png,.webp"
-          onChange={handleFileSelect}
-          style={{ display: 'none' }}
-          aria-hidden="true"
-        />
+    <main className="max-w-3xl mx-auto px-4 py-6" aria-label={l(LABELS.title)}>
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-gray-900">{l(LABELS.title)}</h1>
+        <p className="text-gray-500 text-sm mt-1">{l(LABELS.subtitle)}</p>
       </div>
 
-      {/* Options */}
-      <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
-        <div style={{ flex: 1, minWidth: 180 }}>
-          <label htmlFor="doc-type" style={{ fontSize: 13, fontWeight: 600, display: 'block', marginBottom: 4 }}>{l(LABELS.docType)}</label>
-          <select
-            id="doc-type"
-            value={docType}
-            onChange={e => setDocType(e.target.value)}
-            style={{ width: '100%', padding: '8px 10px', borderRadius: 8, border: '1px solid #ddd', fontSize: 14 }}
+      {/* No consultation yet */}
+      {consultations.length === 0 ? (
+        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6 mb-6 text-center">
+          <AlertCircle size={36} className="text-amber-500 mx-auto mb-3" />
+          <p className="font-semibold text-amber-900 mb-1">{l(LABELS.noConsult)}</p>
+          <p className="text-sm text-amber-700 mb-4">{l(LABELS.noConsultDesc)}</p>
+          <button
+            onClick={() => router.push('/inquiry')}
+            className="bg-teal-600 text-white font-semibold px-5 py-2.5 rounded-xl hover:bg-teal-700 transition text-sm"
           >
-            {DOC_TYPES.map(dt => (
-              <option key={dt.value} value={dt.value}>{l(dt.label)}</option>
-            ))}
-          </select>
+            {l(LABELS.requestConsult)}
+          </button>
         </div>
-        <div style={{ flex: 2, minWidth: 200 }}>
-          <label htmlFor="doc-desc" style={{ fontSize: 13, fontWeight: 600, display: 'block', marginBottom: 4 }}>{l(LABELS.description)}</label>
-          <input
-            id="doc-desc"
-            type="text"
-            value={description}
-            onChange={e => setDescription(e.target.value)}
-            placeholder="e.g. Blood test from March 2026"
-            style={{ width: '100%', padding: '8px 10px', borderRadius: 8, border: '1px solid #ddd', fontSize: 14 }}
-          />
-        </div>
-      </div>
+      ) : (
+        <>
+          {/* Consultation picker */}
+          <div className="mb-4">
+            <label htmlFor="consult-picker" className="block text-xs font-semibold text-gray-700 mb-1.5">
+              {l(LABELS.selectConsult)}
+            </label>
+            <div className="relative">
+              <select
+                id="consult-picker"
+                value={selectedConsultId}
+                onChange={(e) => setSelectedConsultId(e.target.value)}
+                className="w-full appearance-none bg-white border border-gray-200 rounded-xl px-4 py-3 pr-10 text-sm focus:border-teal-500 focus:ring-2 focus:ring-teal-100 outline-none"
+              >
+                {consultations.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.session_type === 'pre_consultation' ? '사전상담' :
+                     c.session_type === 'follow_up' ? '추후진료' :
+                     c.session_type === 'emergency' ? '긴급상담' : c.session_type || 'Consultation'}
+                    {' · '}
+                    {c.scheduled_at ? new Date(c.scheduled_at).toLocaleDateString() : '-'}
+                    {' · '}
+                    {c.status}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+            </div>
+          </div>
 
-      {/* Status message */}
-      {uploading && (
-        <div style={{ textAlign: 'center', padding: 12, color: '#2563eb', fontWeight: 500 }}>
-          {l(LABELS.uploading)}
-        </div>
-      )}
-      {message && (
-        <div style={{
-          padding: 12, borderRadius: 8, marginBottom: 16, fontSize: 14, fontWeight: 500,
-          background: message.type === 'success' ? '#f0fdf4' : '#fef2f2',
-          color: message.type === 'success' ? '#166534' : '#991b1b',
-          border: `1px solid ${message.type === 'success' ? '#86efac' : '#fca5a5'}`,
-        }}>
-          {message.text}
-        </div>
+          {/* Upload Area */}
+          <div
+            role="button"
+            tabIndex={0}
+            aria-label={l(LABELS.dragDrop)}
+            onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+            onDragLeave={() => setDragOver(false)}
+            onDrop={handleDrop}
+            onClick={() => fileRef.current?.click()}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') fileRef.current?.click(); }}
+            className={`border-2 border-dashed rounded-2xl p-10 text-center cursor-pointer transition mb-4 ${
+              dragOver ? 'border-teal-500 bg-teal-50' : 'border-gray-200 bg-gray-50 hover:bg-gray-100'
+            }`}
+          >
+            <Upload size={36} className="text-gray-400 mx-auto mb-3" />
+            <p className="text-sm font-semibold mb-1">{l(LABELS.dragDrop)}</p>
+            <p className="text-xs text-gray-500">{l(LABELS.formats)} · {l(LABELS.maxSize)}</p>
+            <input
+              ref={fileRef}
+              type="file"
+              accept=".pdf,.jpg,.jpeg,.png,.webp"
+              onChange={handleFileSelect}
+              className="hidden"
+              aria-hidden="true"
+            />
+          </div>
+
+          {/* Options */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+            <div className="sm:col-span-1">
+              <label htmlFor="doc-type" className="block text-xs font-semibold text-gray-700 mb-1.5">{l(LABELS.docType)}</label>
+              <select
+                id="doc-type"
+                value={docType}
+                onChange={(e) => setDocType(e.target.value)}
+                className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:border-teal-500 focus:ring-2 focus:ring-teal-100 outline-none"
+              >
+                {DOC_TYPES.map((dt) => (
+                  <option key={dt.value} value={dt.value}>{l(dt.label)}</option>
+                ))}
+              </select>
+            </div>
+            <div className="sm:col-span-2">
+              <label htmlFor="doc-desc" className="block text-xs font-semibold text-gray-700 mb-1.5">{l(LABELS.description)}</label>
+              <input
+                id="doc-desc"
+                type="text"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="e.g. Blood test from March 2026"
+                className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:border-teal-500 focus:ring-2 focus:ring-teal-100 outline-none"
+              />
+            </div>
+          </div>
+
+          {uploading && (
+            <div className="text-center py-3 text-teal-600 font-medium text-sm">
+              {l(LABELS.uploading)}
+            </div>
+          )}
+          {message && (
+            <div className={`p-3 rounded-xl mb-4 text-sm font-medium border ${
+              message.type === 'success'
+                ? 'bg-green-50 text-green-800 border-green-200'
+                : 'bg-red-50 text-red-800 border-red-200'
+            }`}>
+              {message.text}
+            </div>
+          )}
+        </>
       )}
 
       {/* Document List */}
-      <h2 style={{ fontSize: 18, fontWeight: 600, marginTop: 32, marginBottom: 12 }}>{l(LABELS.myDocs)}</h2>
+      <h2 className="text-lg font-semibold text-gray-900 mt-6 mb-3">{l(LABELS.myDocs)}</h2>
 
-      {loading ? (
-        <p style={{ textAlign: 'center', color: '#999', padding: 20 }}>{l(LABELS.loading)}</p>
-      ) : documents.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: 40, background: '#f9fafb', borderRadius: 12, color: '#888' }}>
+      {documents.length === 0 ? (
+        <div className="text-center py-10 bg-gray-50 rounded-2xl text-gray-500 text-sm">
+          <FileText size={32} className="text-gray-300 mx-auto mb-2" />
           {l(LABELS.noFiles)}
         </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {documents.map(doc => (
-            <div key={doc.id} style={{
-              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-              padding: '12px 16px', background: '#fff', borderRadius: 8,
-              border: '1px solid #eee',
-            }}>
-              <div>
-                <div style={{ fontWeight: 500, fontSize: 14 }}>{doc.file_name}</div>
-                <div style={{ fontSize: 12, color: '#888', marginTop: 2 }}>
-                  {l(DOC_TYPES.find(dt => dt.value === doc.document_type)?.label || DOC_TYPES[4].label)}
+        <div className="flex flex-col gap-2">
+          {documents.map((doc) => (
+            <div
+              key={doc.id}
+              className="flex items-center justify-between p-4 bg-white rounded-xl border border-gray-100"
+            >
+              <div className="min-w-0 flex-1">
+                <div className="font-medium text-sm text-gray-900 truncate">{doc.file_name}</div>
+                <div className="text-xs text-gray-500 mt-1">
+                  {l(DOC_TYPES.find((dt) => dt.value === doc.document_type)?.label || DOC_TYPES[4].label)}
                   {' · '}
                   {formatFileSize(doc.file_size)}
                   {doc.description && ` · ${doc.description}`}
                 </div>
+                {doc.consultation && (
+                  <div className="text-[10px] text-gray-400 mt-0.5">
+                    {doc.consultation.session_type === 'pre_consultation' ? '사전상담' :
+                     doc.consultation.session_type === 'follow_up' ? '추후진료' :
+                     doc.consultation.session_type || 'Consultation'}
+                    {doc.consultation.scheduled_at && ` · ${new Date(doc.consultation.scheduled_at).toLocaleDateString()}`}
+                  </div>
+                )}
               </div>
               {doc.url && (
                 <a
                   href={doc.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  style={{ fontSize: 13, color: '#2563eb', textDecoration: 'none', fontWeight: 500 }}
+                  className="ml-3 text-sm text-teal-600 hover:text-teal-700 font-semibold whitespace-nowrap"
                 >
                   View
                 </a>

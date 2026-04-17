@@ -2,23 +2,23 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { 
-  MessageSquare, 
-  Building2, 
-  Stethoscope, 
-  BarChart3, 
-  FileText,
+import {
+  MessageSquare,
+  Building2,
+  HeartPulse,
+  Video,
+  BarChart3,
   Brain,
-  ArrowRight 
+  ArrowRight
 } from "lucide-react";
 import { AdminGuideModal } from "./_components/AdminGuideModal";
 
 const quickLinks = [
-  { title: "문의관리", href: "/admin/inquiries", icon: MessageSquare, description: "고객 문의 관리" },
-  { title: "병원관리", href: "/admin/hospitals", icon: Building2, description: "병원 데이터베이스" },
-  { title: "시술관리", href: "/admin/treatments", icon: Stethoscope, description: "시술 카탈로그" },
+  { title: "Human Agent", href: "/admin/agent", icon: HeartPulse, description: "에스컬레이션 응대" },
+  { title: "원격협진", href: "/admin/consultations", icon: Video, description: "상담 세션 모니터링" },
+  { title: "AI 핸드오프", href: "/admin/inquiries", icon: MessageSquare, description: "환자 문의 핸드오프" },
+  { title: "병원관리", href: "/admin/hospitals", icon: Building2, description: "제휴 병원 정보" },
   { title: "통계", href: "/admin/analytics", icon: BarChart3, description: "인사이트 보기" },
-  { title: "감사로그", href: "/admin/audit", icon: FileText, description: "활동 기록" },
   { title: "RAG", href: "/admin/rag", icon: Brain, description: "AI 관리" },
 ];
 

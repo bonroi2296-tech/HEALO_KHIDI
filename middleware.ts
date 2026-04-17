@@ -197,7 +197,7 @@ export async function middleware(request: NextRequest) {
   }
 
   // ========================================
-  // /coordinator 경로 보호 (로그인 여부 체크)
+  // /coordinator 경로 보호 (로그인 여부 체크, 세부 권한은 페이지에서)
   // ========================================
   if (pathname.startsWith("/coordinator")) {
     const { hasSession, response: coordinatorResponse } = await checkSessionInMiddleware(request);
