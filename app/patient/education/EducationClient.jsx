@@ -27,8 +27,8 @@ const GUIDES = {
       {
         icon: Stethoscope,
         color: 'text-blue-600 bg-blue-50',
-        image: 'https://images.unsplash.com/photo-1551076805-e1869033e561?w=800&auto=format&fit=crop&q=80',
-        imageAlt: 'Modern operating room',
+        image: 'https://images.unsplash.com/photo-1666214280557-f1b5022eb634?w=800&auto=format&fit=crop&q=80',
+        imageAlt: 'Doctor explaining CT scan results to patient',
         title: { ko: '한국에서의 위암 치료', en: 'Stomach Cancer Treatment in Korea', ru: 'Лечение рака желудка в Корее', zh: '韩国的胃癌治疗', ja: '韓国での胃がん治療', kz: 'Кореядағы асқазан обыры емдеу' },
         body: {
           ko: '한국은 위암 치료 분야에서 세계 최고 수준의 의료 기술을 보유하고 있습니다. 5년 생존율 78.4%로 세계 1위이며, 로봇 수술과 복강경 수술 등 최소침습 치료가 보편화되어 있습니다.\n\n주요 치료 방법:\n• 내시경 절제술 — 초기 위암의 경우, 수술 없이 내시경으로 종양 제거\n• 복강경/로봇 수술 — 절개 부위를 최소화하여 회복이 빠름\n• 항암화학요법 — 수술 전후로 병행하여 재발 방지\n• 면역요법 — 진행성 위암에 대한 최신 치료 옵션\n\n치료 기간은 보통 2-4주이며, 수술 후 1-2주 입원 후 퇴원합니다.',
@@ -190,8 +190,8 @@ GUIDES.liver = {
     {
       icon: Stethoscope,
       color: 'text-blue-600 bg-blue-50',
-      image: 'https://images.unsplash.com/photo-1538108149393-fbbd81895907?w=800&auto=format&fit=crop&q=80',
-      imageAlt: 'Hospital ward',
+      image: 'https://images.unsplash.com/photo-1581056771107-24ca5f033842?w=800&auto=format&fit=crop&q=80',
+      imageAlt: 'Doctor consulting with patient',
       title: { ko: '한국에서의 간암 치료', en: 'Liver Cancer Treatment in Korea', ru: 'Лечение рака печени в Корее', zh: '韩国的肝癌治疗', ja: '韓国での肝臓がん治療', kz: 'Кореядағы бауыр обыры емдеу' },
       body: {
         ko: '한국은 간암 치료에서 세계적으로 인정받는 선도국입니다. 간 이식 성공률은 96% 이상이며, 5년 생존율도 38.3%로 꾸준히 향상되고 있습니다.\n\n주요 치료 방법:\n• 간 절제술 — 종양이 있는 간의 일부를 제거. 간 기능이 충분한 경우 선택\n• 간 이식 — 생체 또는 뇌사 기증자로부터 이식. 한국의 생체간이식 기술은 세계 최고\n• 고주파 열치료(RFA) — 바늘로 종양에 열을 가해 파괴. 3cm 이하 종양에 효과적\n• 경동맥 화학색전술(TACE) — 간동맥을 통해 항암제를 직접 주입\n• 표적치료/면역치료 — 소라페닙, 아테졸리주맙 등 진행성 간암 치료\n\n치료 기간: 수술 2-4주, 비수술적 치료 1-2주 입원.',
@@ -271,8 +271,8 @@ GUIDES.lung = {
     {
       icon: Stethoscope,
       color: 'text-blue-600 bg-blue-50',
-      image: 'https://images.unsplash.com/photo-1505751172876-fa1923c5c528?w=800&auto=format&fit=crop&q=80',
-      imageAlt: 'Medical stethoscope',
+      image: 'https://images.unsplash.com/photo-1588776814546-1ffcf47267a5?w=800&auto=format&fit=crop&q=80',
+      imageAlt: 'Doctor examining medical scans',
       title: { ko: '한국에서의 폐암 치료', en: 'Lung Cancer Treatment in Korea', ru: 'Лечение рака лёгких в Корее', zh: '韩国的肺癌治疗', ja: '韓国での肺がん治療', kz: 'Кореядағы өкпе обыры емдеу' },
       body: {
         ko: '한국의 폐암 5년 생존율은 36.8%로, 10년 전 대비 크게 향상되었습니다. 특히 비소세포폐암 초기 단계에서는 생존율이 70% 이상입니다.\n\n주요 치료 방법:\n• 흉강경 수술(VATS) — 작은 절개로 폐엽 절제. 통증과 회복 기간 감소\n• 로봇 수술 — 정밀한 림프절 절제 가능\n• 방사선치료 — 수술 불가능한 경우 SBRT(정위방사선) 활용\n• 표적치료 — EGFR, ALK, ROS1 등 유전자 변이에 맞춤 치료\n• 면역관문억제제 — PD-L1 발현에 따른 면역치료 (키트루다, 옵디보)\n\n한국의 강점:\n• 유전체 분석 기반의 정밀의료\n• 다학제 협진 (외과, 종양내과, 방사선과 공동 진료)\n• 치료 기간: 수술 1-2주, 항암/방사선 3-6개월',
@@ -352,8 +352,8 @@ GUIDES.thyroid = {
     {
       icon: Stethoscope,
       color: 'text-blue-600 bg-blue-50',
-      image: 'https://images.unsplash.com/photo-1631815588090-d4bfec5b1ccb?w=800&auto=format&fit=crop&q=80',
-      imageAlt: 'Patient care',
+      image: 'https://images.unsplash.com/photo-1532938911079-1b06ac7ceec7?w=800&auto=format&fit=crop&q=80',
+      imageAlt: 'Professional doctor portrait',
       title: { ko: '한국에서의 갑상선암 치료', en: 'Thyroid Cancer Treatment in Korea', ru: 'Лечение рака щитовидной железы в Корее', zh: '韩国的甲状腺癌治疗', ja: '韓国での甲状腺がん治療', kz: 'Кореядағы қалқанша без обыры емдеу' },
       body: {
         ko: '한국의 갑상선암 5년 생존율은 100%에 가까운 99.9%로, 예후가 매우 좋은 암입니다. 한국은 갑상선암 수술 경험이 세계에서 가장 많으며, 흉터를 최소화하는 수술법이 발달해 있습니다.\n\n주요 치료 방법:\n• 갑상선 전절제술 — 갑상선 전체 제거. 이후 갑상선 호르몬제 평생 복용\n• 엽절제술 — 암이 작고 한쪽에만 있을 때 반만 제거. 호르몬제 불필요할 수도\n• 로봇/내시경 수술 — 겨드랑이나 입 안으로 접근하여 목에 흉터 없음\n• 방사성 요오드 치료 — 수술 후 잔여 갑상선 조직과 전이 부위 제거\n• 능동적 감시 — 매우 작은 미세암의 경우 수술 없이 경과 관찰\n\n치료 기간: 수술 2-3일 입원, 방사성 요오드 치료 시 2-3일 격리.',
@@ -515,7 +515,7 @@ export default function EducationClient() {
                       <img
                         src={section.image}
                         alt={section.imageAlt || ''}
-                        className="w-full h-48 md:h-56 object-cover"
+                        className="w-full h-48 md:h-64 lg:h-72 object-cover"
                         loading="lazy"
                       />
                     </div>
