@@ -124,8 +124,8 @@ GUIDES.breast = {
     {
       icon: Utensils,
       color: 'text-green-600 bg-green-50',
-      image: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800&auto=format&fit=crop&q=80',
-      imageAlt: 'Healthy food bowls',
+      image: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=800&auto=format&fit=crop&q=80',
+      imageAlt: 'Colorful healthy salad bowl',
       title: { ko: '치료 중 식사와 영양 관리', en: 'Diet & Nutrition During Treatment', ru: 'Питание во время лечения', zh: '治疗期间的饮食与营养', ja: '治療中の食事と栄養管理', kz: 'Емдеу кезіндегі тамақтану' },
       body: {
         ko: '유방암 치료 중 올바른 영양 섭취는 회복과 면역력 유지에 핵심적입니다.\n\n항암치료 중:\n• 구역감이 있을 때는 소량씩 자주 먹기\n• 생강차, 레몬수가 메스꺼움 완화에 도움\n• 고단백 식품 중심 — 달걀, 두부, 닭가슴살, 생선\n• 백혈구 수치가 낮을 때는 날 음식 주의\n\n호르몬 치료 중:\n• 체중 증가 관리가 중요 — 과식 주의\n• 콩류(이소플라본)는 담당의와 상의 후 섭취\n• 칼슘과 비타민 D 충분히 — 골밀도 보호\n• 규칙적인 식사 시간 유지\n\n일반 권장사항:\n• 채소, 과일, 통곡물 중심의 균형 잡힌 식단\n• 가공육과 알코올 제한\n• 충분한 수분 섭취 (하루 1.5-2L)',
@@ -139,8 +139,8 @@ GUIDES.breast = {
     {
       icon: Dumbbell,
       color: 'text-orange-600 bg-orange-50',
-      image: 'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=800&auto=format&fit=crop&q=80',
-      imageAlt: 'Gentle stretching exercise',
+      image: 'https://images.unsplash.com/photo-1515377905703-c4788e51af15?w=800&auto=format&fit=crop&q=80',
+      imageAlt: 'Couple walking outdoors',
       title: { ko: '수술 후 운동과 재활', en: 'Post-Surgery Exercise & Rehabilitation', ru: 'Упражнения и реабилитация после операции', zh: '术后运动与康复', ja: '術後の運動とリハビリ', kz: 'Операциядан кейінгі жаттығулар' },
       body: {
         ko: '유방암 수술 후 팔과 어깨 운동은 림프부종 예방과 기능 회복에 매우 중요합니다.\n\n수술 후 1-2주:\n• 손 주먹 쥐었다 펴기, 손목 돌리기\n• 팔꿈치 구부렸다 펴기\n• 어깨를 으쓱하는 동작\n\n2-4주:\n• 벽 기어오르기 운동 — 벽에 손을 대고 천천히 위로 올리기\n• 수건 스트레칭 — 수건을 잡고 등 뒤로 올리기\n• 15-20분 가벼운 산책\n\n1-3개월:\n• 요가, 필라테스 (수정 동작)\n• 가벼운 수영\n• 30분 걷기 매일\n\n주의사항:\n• 수술 쪽 팔로 무거운 물건 들지 않기 (처음 6주)\n• 팔이 부어오르면 즉시 의료진에게 알리기 (림프부종 의심)\n• 드레인 제거 전까지는 상체 스트레칭만',
@@ -154,8 +154,8 @@ GUIDES.breast = {
     {
       icon: AlertTriangle,
       color: 'text-red-600 bg-red-50',
-      image: 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=800&auto=format&fit=crop&q=80',
-      imageAlt: 'Medical professional',
+      image: 'https://images.unsplash.com/photo-1576091160550-2173dba999ef?w=800&auto=format&fit=crop&q=80',
+      imageAlt: 'Doctor consultation',
       title: { ko: '즉시 병원에 연락해야 하는 증상', en: 'When to Contact the Hospital Immediately', ru: 'Когда срочно обращаться в больницу', zh: '需要立即联系医院的症状', ja: 'すぐに病院に連絡すべき症状', kz: 'Дереу ауруханаға хабарласу керек белгілер' },
       body: {
         ko: '다음 증상이 나타나면 즉시 담당 병원에 연락하세요:\n\n🔴 긴급:\n• 38.5°C 이상 고열이 지속 (항암 중 감염 의심)\n• 수술 부위 심한 부기, 발적, 분비물\n• 갑작스러운 호흡곤란이나 가슴 통증\n• 수술 쪽 팔이 급격히 부어오름\n• 심한 출혈\n\n🟡 주의 (24시간 내):\n• 항암 후 구토가 24시간 이상 지속\n• 입 안 궤양으로 식사 불가\n• 손발 저림이 심해짐 (말초신경병증)\n• 수술 부위 주변 지속적인 통증\n• 극심한 피로로 일상생활 불가',
@@ -169,8 +169,8 @@ GUIDES.breast = {
     {
       icon: Brain,
       color: 'text-purple-600 bg-purple-50',
-      image: 'https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=800&auto=format&fit=crop&q=80',
-      imageAlt: 'Meditation and mindfulness',
+      image: 'https://images.unsplash.com/photo-1573497620053-ea5300f94f21?w=800&auto=format&fit=crop&q=80',
+      imageAlt: 'Counseling session',
       title: { ko: '마음 건강과 외모 변화 대처', en: 'Mental Health & Coping with Body Changes', ru: 'Психическое здоровье и изменения тела', zh: '心理健康与身体变化应对', ja: 'メンタルヘルスと身体の変化への対応', kz: 'Психологиялық денсаулық және дене өзгерістері' },
       body: {
         ko: '유방암 치료는 신체적 변화와 감정적 도전이 함께 옵니다. 이 모든 감정은 자연스럽습니다.\n\n외모 변화 대처:\n• 탈모 — 미리 가발이나 스카프를 준비하면 마음의 부담이 줄어듭니다\n• 유방 변화 — 재건 수술 외에도 보형물 속옷 등 다양한 옵션이 있습니다\n• 체중 변화 — 호르몬 치료로 인한 자연스러운 현상, 담당의와 상의\n\n감정 관리:\n• 불안과 우울은 치료 과정의 정상적인 반응입니다\n• 환자 커뮤니티에서 같은 경험을 나누는 것이 큰 도움이 됩니다\n• 파트너와의 소통이 중요합니다 — 걱정도 솔직하게 나누세요\n• 전문 심리 상담을 적극 활용하세요\n\nHEALO는 한국 체류 중 한국어-모국어 통역과 심리 상담 연결을 도와드립니다.',
@@ -205,8 +205,8 @@ GUIDES.liver = {
     {
       icon: Utensils,
       color: 'text-green-600 bg-green-50',
-      image: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800&auto=format&fit=crop&q=80',
-      imageAlt: 'Healthy food',
+      image: 'https://images.unsplash.com/photo-1498837167922-ddd27525d352?w=800&auto=format&fit=crop&q=80',
+      imageAlt: 'Fresh vegetables and fruits',
       title: { ko: '간 건강을 위한 식단', en: 'Diet for Liver Health', ru: 'Диета для здоровья печени', zh: '护肝饮食', ja: '肝臓の健康のための食事', kz: 'Бауыр денсаулығы үшін тамақтану' },
       body: {
         ko: '간암 치료 후 간에 부담을 주지 않는 식단이 회복의 핵심입니다.\n\n필수 원칙:\n• 절대 금주 — 알코올은 간에 직접적인 독성을 미침\n• 소금 제한 — 하루 5g 이하, 복수(배에 물이 차는 것) 예방\n• 고단백 식단 — 간 재생에 필수. 두부, 생선, 달걀, 닭가슴살\n• 탄수화물은 적당히 — 현미, 잡곡밥 권장\n\n좋은 음식:\n• 녹색 채소 (브로콜리, 시금치) — 항산화 효과\n• 블루베리, 포도 등 색이 짙은 과일\n• 올리브 오일, 아보카도 — 건강한 지방\n• 커피 — 간 섬유화 억제 효과 (하루 1-2잔)\n\n피해야 할 음식:\n• 알코올 (절대 금지)\n• 기름진 튀김류\n• 가공식품, 인스턴트 식품\n• 생선회 등 날 음식 (간기능 저하 시)',
@@ -220,8 +220,8 @@ GUIDES.liver = {
     {
       icon: Dumbbell,
       color: 'text-orange-600 bg-orange-50',
-      image: 'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=800&auto=format&fit=crop&q=80',
-      imageAlt: 'Gentle exercise',
+      image: 'https://images.unsplash.com/photo-1582750433449-648ed127bb54?w=800&auto=format&fit=crop&q=80',
+      imageAlt: 'Outdoor yoga exercise',
       title: { ko: '간암 환자의 운동 가이드', en: 'Exercise Guide for Liver Cancer Patients', ru: 'Упражнения для пациентов с раком печени', zh: '肝癌患者运动指南', ja: '肝臓がん患者の運動ガイド', kz: 'Бауыр обыры науқастарына жаттығулар' },
       body: {
         ko: '간암 치료 후 적절한 운동은 간 기능 회복과 체력 유지에 도움이 됩니다. 단, 간 기능 수치에 따라 운동 강도를 조절해야 합니다.\n\n수술 후 초기 (1-4주):\n• 침상 안정 후 천천히 보행 시작\n• 하루 10-15분 복도 걷기\n• 심호흡 운동으로 폐 합병증 예방\n\n회복기 (1-3개월):\n• 30분 산책 가능\n• 가벼운 스트레칭, 관절 운동\n• 피로감에 맞춰 강도 조절 — 무리하지 않기\n\n안정기 (3개월 이후):\n• 수영, 자전거 등 유산소 운동 가능\n• 가벼운 근력 운동 (고무밴드 등)\n• 요가, 태극권 권장\n\n주의사항:\n• 복수가 있을 때는 격렬한 운동 금지\n• 혈소판 수치가 낮으면 충돌 위험이 있는 운동 피하기\n• 피로감이 심하면 쉬는 것이 우선',
@@ -250,8 +250,8 @@ GUIDES.liver = {
     {
       icon: Brain,
       color: 'text-purple-600 bg-purple-50',
-      image: 'https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=800&auto=format&fit=crop&q=80',
-      imageAlt: 'Meditation',
+      image: 'https://images.unsplash.com/photo-1552196563-55cd4e45efb3?w=800&auto=format&fit=crop&q=80',
+      imageAlt: 'Woman in meditation',
       title: { ko: '심리적 지원과 마음 건강', en: 'Psychological Support & Mental Health', ru: 'Психологическая поддержка', zh: '心理支持与心理健康', ja: '心理的サポートとメンタルヘルス', kz: 'Психологиялық қолдау' },
       body: {
         ko: '간암 진단은 특히 큰 충격을 줄 수 있습니다. B형간염이나 음주 이력이 있는 경우 자책감을 느끼기도 하지만, 자신을 탓하지 않는 것이 중요합니다.\n\n마음 관리 방법:\n• 진단에 대한 충격과 분노는 자연스러운 감정입니다\n• "왜 나인가"라는 질문보다 "지금 무엇을 할 수 있는가"에 집중하세요\n• 가족에게 모든 짐을 지우지 말고, 전문가의 도움을 적극 활용하세요\n• 규칙적인 일상 루틴을 유지하는 것이 안정감을 줍니다\n\n금주 스트레스 관리:\n• 음주 습관을 바꾸는 것은 쉽지 않습니다 — 필요 시 중독 상담도 가능\n• 대체 음료(무알코올 맥주, 탄산수, 허브티) 활용\n• 음주 대신 산책, 명상 등 새로운 스트레스 해소법 찾기\n\nHEALO는 한국 체류 중 통역 지원과 심리 상담 연결을 도와드립니다.',
@@ -286,8 +286,8 @@ GUIDES.lung = {
     {
       icon: Utensils,
       color: 'text-green-600 bg-green-50',
-      image: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800&auto=format&fit=crop&q=80',
-      imageAlt: 'Nutritious food',
+      image: 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=800&auto=format&fit=crop&q=80',
+      imageAlt: 'Fresh salad with olive oil',
       title: { ko: '폐암 환자의 영양 관리', en: 'Nutrition for Lung Cancer Patients', ru: 'Питание при раке лёгких', zh: '肺癌患者的营养管理', ja: '肺がん患者の栄養管理', kz: 'Өкпе обыры науқастарына тамақтану' },
       body: {
         ko: '폐암 치료 중 체중 감소와 영양 부족은 흔한 문제입니다. 충분한 영양이 치료 효과와 체력 유지에 필수적입니다.\n\n핵심 영양 원칙:\n• 고단백·고열량 식단 — 체중 감소 방지가 최우선\n• 소량 다회식 — 호흡 곤란 시 큰 식사가 어려우므로 하루 5-6회\n• 부드러운 음식 — 삼키기 어려울 때 스무디, 수프, 죽 활용\n• 수분 보충 — 하루 1.5L 이상, 가래 묽게 하는 데 도움\n\n항암 부작용별 대처:\n• 입맛 변화 — 레몬, 생강으로 맛을 보정\n• 구내염 — 자극적인 음식 피하기, 부드러운 아이스크림 가능\n• 변비 — 섬유질 풍부한 채소, 과일 섭취\n\n금연 후 체중 증가가 걱정되지만, 치료 중에는 체중 유지가 더 중요합니다.',
@@ -301,8 +301,8 @@ GUIDES.lung = {
     {
       icon: Dumbbell,
       color: 'text-orange-600 bg-orange-50',
-      image: 'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=800&auto=format&fit=crop&q=80',
-      imageAlt: 'Gentle exercise',
+      image: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=800&auto=format&fit=crop&q=80',
+      imageAlt: 'Exercise and fitness',
       title: { ko: '호흡 재활과 운동', en: 'Breathing Rehabilitation & Exercise', ru: 'Дыхательная реабилитация и упражнения', zh: '呼吸康复与运动', ja: '呼吸リハビリと運動', kz: 'Тыныс алу оңалтуы және жаттығулар' },
       body: {
         ko: '폐 수술 후 호흡 기능 회복은 가장 중요한 재활 목표입니다. 호흡 운동을 꾸준히 하면 폐활량이 상당히 회복됩니다.\n\n호흡 운동 (매일):\n• 복식호흡 — 코로 천천히 들이쉬고 (배 부풀리기), 입으로 천천히 내쉬기\n• 입술 오므려 불기 — 촛불 끄듯이 천천히 내쉬기, 기관지 확장 효과\n• 인센티브 스파이로미터 — 병원에서 제공하는 호흡 측정기로 매시간 10회\n\n단계별 운동:\n• 1-2주: 병실 내 걷기 + 호흡 운동\n• 1개월: 15-20분 산책, 가벼운 스트레칭\n• 3개월: 30분 걷기, 계단 오르기, 가벼운 자전거\n• 6개월: 수영, 조깅 등 유산소 운동 (담당의 허가 후)\n\n주의사항:\n• 운동 중 산소포화도 90% 이하로 떨어지면 중단\n• 숨이 차면 쉬었다가 다시 시작\n• 대기 오염이 심한 날은 실내 운동으로 대체',
@@ -316,8 +316,8 @@ GUIDES.lung = {
     {
       icon: AlertTriangle,
       color: 'text-red-600 bg-red-50',
-      image: 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=800&auto=format&fit=crop&q=80',
-      imageAlt: 'Medical professional',
+      image: 'https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?w=800&auto=format&fit=crop&q=80',
+      imageAlt: 'Doctor with stethoscope',
       title: { ko: '즉시 병원에 연락해야 하는 증상', en: 'When to Contact the Hospital Immediately', ru: 'Когда срочно обращаться в больницу', zh: '需要立即联系医院的症状', ja: 'すぐに病院に連絡すべき症状', kz: 'Дереу ауруханаға хабарласу керек белгілер' },
       body: {
         ko: '폐암 치료 후 다음 증상이 나타나면 즉시 연락하세요:\n\n🔴 긴급:\n• 갑작스러운 심한 호흡곤란\n• 객혈 (기침에 피가 섞임)\n• 38.5°C 이상 고열 (감염 의심)\n• 가슴의 급격한 통증\n• 얼굴이나 목이 부어오름 (상대정맥 증후군)\n\n🟡 주의 (24시간 내):\n• 기침이 점점 심해지거나 양상이 변함\n• 가래 색이 녹색이나 노란색으로 변함\n• 쉬어도 호흡곤란이 개선되지 않음\n• 체중이 급격히 감소 (1주일 2kg 이상)\n• 목소리가 갑자기 변함 (쉰 목소리)',
@@ -331,8 +331,8 @@ GUIDES.lung = {
     {
       icon: Brain,
       color: 'text-purple-600 bg-purple-50',
-      image: 'https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=800&auto=format&fit=crop&q=80',
-      imageAlt: 'Meditation',
+      image: 'https://images.unsplash.com/photo-1545205597-3d9d02c29597?w=800&auto=format&fit=crop&q=80',
+      imageAlt: 'Meditation class',
       title: { ko: '심리적 지원과 금연 관리', en: 'Psychological Support & Smoking Cessation', ru: 'Психологическая поддержка и отказ от курения', zh: '心理支持与戒烟管理', ja: '心理的サポートと禁煙管理', kz: 'Психологиялық қолдау және темекіні тастау' },
       body: {
         ko: '폐암 진단 후 흡연 이력이 있는 환자는 특히 자책감을 느끼기 쉽습니다. 하지만 폐암은 비흡연자에게도 발생하며, 지금 할 수 있는 일에 집중하는 것이 중요합니다.\n\n금연 지원:\n• 진단 후에도 금연은 치료 효과를 높입니다\n• 니코틴 패치, 금연 상담 등 의료진의 도움을 받으세요\n• 주변에 흡연 유혹이 있을 때의 대처법을 미리 준비\n\n심리적 지원:\n• 호흡곤란으로 인한 불안감은 호흡 훈련으로 크게 개선됩니다\n• "숨 쉬는 것이 힘들다"는 공포감은 매우 흔합니다 — 의료진에게 솔직히 말씀하세요\n• 환자 모임이나 온라인 커뮤니티에서 같은 경험을 나누세요\n• 가족도 함께 상담을 받으면 서로에게 더 좋은 지지가 됩니다\n\nHEALO는 한국 체류 중 통역 지원과 심리 상담 연결을 도와드립니다.',
@@ -367,8 +367,8 @@ GUIDES.thyroid = {
     {
       icon: Utensils,
       color: 'text-green-600 bg-green-50',
-      image: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800&auto=format&fit=crop&q=80',
-      imageAlt: 'Healthy food',
+      image: 'https://images.unsplash.com/photo-1490645935967-10de6ba17061?w=800&auto=format&fit=crop&q=80',
+      imageAlt: 'Nutritious meal with eggs and vegetables',
       title: { ko: '갑상선암 치료와 식단', en: 'Diet & Thyroid Cancer Treatment', ru: 'Диета при лечении рака щитовидной железы', zh: '甲状腺癌治疗与饮食', ja: '甲状腺がん治療と食事', kz: 'Қалқанша без обыры емдеуі мен тамақтану' },
       body: {
         ko: '갑상선암 치료 후 식단 관리는 특히 방사성 요오드 치료 전후로 중요합니다.\n\n방사성 요오드 치료 전 (2주간 저요오드 식단):\n• 해조류 (김, 미역, 다시마) 완전 금지\n• 유제품 제한 — 우유, 치즈, 요거트\n• 요오드 함유 소금 대신 무요오드 소금 사용\n• 달걀노른자 제한 (흰자는 가능)\n• 가공식품 주의 — 대부분 요오드 소금 포함\n\n수술 후 일반 식단:\n• 목이 불편할 수 있으므로 처음에는 부드러운 음식\n• 칼슘 보충 — 부갑상선 기능 저하 시 필수 (유제품, 멸치, 두부)\n• 비타민 D 충분히 — 칼슘 흡수 돕기\n• 셀레늄 함유 음식 — 견과류, 해바라기씨, 마늘\n\n호르몬제 복용 시:\n• 매일 아침 공복에 복용, 30분 후 식사\n• 카페인, 칼슘 보충제와 시간 간격 두기',
@@ -382,8 +382,8 @@ GUIDES.thyroid = {
     {
       icon: Dumbbell,
       color: 'text-orange-600 bg-orange-50',
-      image: 'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=800&auto=format&fit=crop&q=80',
-      imageAlt: 'Gentle exercise',
+      image: 'https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=800&auto=format&fit=crop&q=80',
+      imageAlt: 'Gentle stretching exercise',
       title: { ko: '수술 후 회복과 운동', en: 'Post-Surgery Recovery & Exercise', ru: 'Восстановление и упражнения после операции', zh: '术后恢复与运动', ja: '術後の回復と運動', kz: 'Операциядан кейінгі қалпына келу' },
       body: {
         ko: '갑상선 수술은 비교적 회복이 빠른 수술입니다. 하지만 목 부위 수술이므로 주의할 점이 있습니다.\n\n수술 후 1주:\n• 목을 과도하게 젖히거나 돌리지 않기\n• 가벼운 산책 시작 (10-15분)\n• 부드러운 목 스트레칭 — 의료진 지시에 따라\n• 목소리를 과도하게 사용하지 않기\n\n2-4주:\n• 가벼운 운동 재개 가능 (걷기, 스트레칭)\n• 수영은 상처 완전 아물 때까지 대기\n• 무거운 물건 들기 자제\n\n1개월 이후:\n• 대부분의 일상 활동 복귀 가능\n• 조깅, 자전거, 요가 가능\n• 고강도 운동은 갑상선 호르몬 수치 안정 후\n\n갑상선 호르몬 관리:\n• 호르몬제 용량이 안정되면 피로감이 크게 개선됩니다\n• 정기적인 혈액 검사 (TSH)로 용량 조절\n• 체중, 체온, 기분 변화를 기록하면 의료진에게 도움이 됩니다',
@@ -397,8 +397,8 @@ GUIDES.thyroid = {
     {
       icon: AlertTriangle,
       color: 'text-red-600 bg-red-50',
-      image: 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=800&auto=format&fit=crop&q=80',
-      imageAlt: 'Medical professional',
+      image: 'https://images.unsplash.com/photo-1607619056574-7b8d3ee536b2?w=800&auto=format&fit=crop&q=80',
+      imageAlt: 'Medical medications',
       title: { ko: '주의해야 할 증상', en: 'Symptoms to Watch For', ru: 'Симптомы, на которые следует обратить внимание', zh: '需要注意的症状', ja: '注意すべき症状', kz: 'Назар аударатын белгілер' },
       body: {
         ko: '갑상선암은 예후가 좋지만, 다음 증상이 나타나면 의료진에게 연락하세요:\n\n🔴 즉시 연락:\n• 수술 부위에서 출혈이나 심한 부기\n• 호흡 곤란이나 삼키기 어려움이 갑자기 악화\n• 손발이 저리거나 경련 (저칼슘혈증 의심)\n• 목소리가 갑자기 나오지 않음\n• 38.5°C 이상 고열\n\n🟡 다음 진료 시 상의:\n• 목 앞쪽에 새로운 혹이 만져짐\n• 지속적인 피로감 (호르몬 용량 조절 필요 가능)\n• 체중이 급격히 증가하거나 감소\n• 추위를 잘 타거나 더위를 잘 탐 (호르몬 불균형 신호)\n• 기분 변화, 불안, 우울감 지속',
@@ -412,8 +412,8 @@ GUIDES.thyroid = {
     {
       icon: Brain,
       color: 'text-purple-600 bg-purple-50',
-      image: 'https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=800&auto=format&fit=crop&q=80',
-      imageAlt: 'Meditation',
+      image: 'https://images.unsplash.com/photo-1499209974431-9dddcece7f88?w=800&auto=format&fit=crop&q=80',
+      imageAlt: 'Peaceful sunrise for mental wellness',
       title: { ko: '마음 건강: "착한 암"이라는 말에 대하여', en: 'Mental Health: On Being Told It\'s "The Good Cancer"', ru: 'Психическое здоровье: когда говорят, что это «хороший рак»', zh: '心理健康：关于"好治的癌"这种说法', ja: 'メンタルヘルス：「おとなしいがん」と言われることについて', kz: 'Психологиялық денсаулық: «жақсы обыр» деген сөз туралы' },
       body: {
         ko: '"갑상선암은 착한 암이에요"라는 말을 자주 듣게 됩니다. 생존율은 높지만, 암 진단의 심리적 충격은 다른 암과 다르지 않습니다.\n\n흔한 감정들:\n• "착한 암이라 감사해야 하는데, 왜 이렇게 불안하지?" — 자연스러운 감정입니다\n• 주변의 "별거 아니야"라는 반응에 상처받을 수 있습니다\n• 평생 호르몬제를 먹어야 한다는 부담감\n• 재발 걱정은 생존율과 관계없이 누구나 느낍니다\n\n도움이 되는 것들:\n• 갑상선암 환자 커뮤니티에서 같은 경험을 나누세요\n• "착한 암"이라도 두려워할 권리가 있습니다 — 감정을 인정해주세요\n• 호르몬 변동으로 인한 기분 변화는 의료적 원인일 수 있으니 담당의와 상의\n• 외모 변화(목의 흉터)에 대한 고민도 솔직히 표현하세요\n\nHEALO는 한국 체류 중 통역 지원과 심리 상담 연결을 도와드립니다.',
