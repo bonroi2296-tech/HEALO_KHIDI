@@ -9,6 +9,7 @@
 export const runtime = "nodejs";
 
 import { NextRequest } from "next/server";
+import { requireAuthenticatedUser } from "@/lib/auth/requireConsultationAccess";
 
 /**
  * Generate recommended consultation schedule based on cancer type and treatment phase
@@ -90,6 +91,10 @@ function generateSchedule(
 
 export async function POST(request: NextRequest) {
   try {
+    // 인증 (스케줄 생성 알고리즘 — 환자/의료진/admin 모두 호출 가능)
+    const auth = await requireAuthenticatedUser(request);
+    if (!auth.success) return auth.response;
+
     const payload = await request.json();
 
     // Validation

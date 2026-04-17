@@ -96,14 +96,16 @@ CREATE SCHEMA IF NOT EXISTS extensions;
 
 암환자 대상이라 민감정보 처리가 많으므로 **법무 리뷰 필수**.
 
-### 9. KHIDI consultation 미인증 엔드포인트 결정
+### ~~9. KHIDI consultation 미인증 엔드포인트 결정~~ ✅ **완료** (커밋 다음)
 
-아래 엔드포인트는 인증 없이도 호출됨 (공개 인테이크 플로우라 의도적일 수도 있음):
-
-- `/api/khidi/consultation/*` 계열 11 개 (create, documents, status 등)
-
-현재 동작 중인 라이브 비디오 기능을 깰 수 있어 일괄 게이트 안 걸었음.
-각 엔드포인트별로 **"공개 인테이크 필요 vs 인증 필요"** 의사결정 후 `requireAuth` 또는 `public_token` 기반 접근 제한 중 선택.
+`/api/khidi/consultation/*` 8 개 라우트 일괄 잠금:
+- `requireConsultationAccess` 헬퍼 신설 (참가자 검증 + IDOR 차단)
+- POST(create) — 인증 필수, `patient_user_id` 강제 = `auth.userId` (admin 제외)
+- GET(list) — 본인 참여 세션만 조회 (admin 제외)
+- GET/PATCH/messages/translate/documents — 참가자만 (admin/doctor/coordinator/translator/patient)
+- token — 공개 → 인증 + 참가자 + 역할별 권한 분리 (patient/doctor 만 publish, admin canPublishData=false), TTL 2h
+- translate-realtime — Origin 화이트리스트 + 인증 + (consultationId 시) 참가자 검증
+- schedule — 인증된 사용자만
 
 ### 10. `inquiries` plaintext 컬럼 제거 결정
 
@@ -130,10 +132,13 @@ CREATE SCHEMA IF NOT EXISTS extensions;
 
 `jsondiffpatch` XSS 의존성 체인. `ai@6` 는 breaking change (streaming API 변경 등) 라 테스트 커버리지 확보 후 진행.
 
-### 13. `cancer_patient_intakes` 암호화 레이어 추가
+### ~~13. `cancer_patient_intakes` 암호화 레이어 추가~~ ✅ **완료** (커밋 다음)
 
-현재 평문으로 저장 중 (진단명, 복용 약물, 전이 여부 등 민감정보).
-`inquiries` 와 같은 방식으로 `*_ciphertext` 컬럼 + 서버 사이드 암복호화 래퍼 추가.
+`first_name_encrypted`, `current_treatment_encrypted`, `diagnosis_date_encrypted` 컬럼 추가 (AES-256-GCM via `encryptionV2`).
+- POST 시 자유서술 + PII 자동 암호화
+- GET 은 admin only, 기본 마스킹, `?decrypt=1` 명시 시만 복호화
+- 평문 컬럼은 backward-compat 으로 유지 (다음 마이그레이션에서 DROP 예정)
+- 마이그레이션: `harden_cancer_intake_consultation_encryption_and_rls`
 
 ### 14. CSP `unsafe-inline` 제거
 
@@ -160,7 +165,20 @@ CREATE SCHEMA IF NOT EXISTS extensions;
 
 ---
 
-## 참고 — 이번 커밋 (`bd4ab59`) 에서 이미 처리된 것
+## 참고 — 다음 커밋 (LiveKit/intake 강화) 에서 처리된 것
+
+- `requireConsultationAccess` / `requireAuthenticatedUser` 헬퍼 신설 (`src/lib/auth/requireConsultationAccess.ts`)
+- KHIDI consultation 8 라우트 IDOR + 인증 잠금 (위 #9 참고)
+- LiveKit 토큰 발급 — 참가자 검증 + 역할별 권한 + TTL 2h
+- `cancer_patient_intakes` AES-256-GCM 암호화 (위 #13 참고)
+- `consultation_sessions` / `consultation_messages` / `consultation_translations` 암호화 컬럼 + 서비스롤 전용 RLS
+- 40+ 테이블 service_role-only RLS, profiles/user_roles self-select 정책
+- `/coordinator` 경로 미들웨어 세션 게이트 추가
+- `/api/admin/leads/assign` 디버그 로그에서 supabase_url / project_ref / key_type / has_service_role_key 누설 제거
+- tsconfig `@/*` path alias 추가
+- 마이그레이션: `harden_cancer_intake_consultation_encryption_and_rls`
+
+## 참고 — 이전 커밋 (`bd4ab59`) 에서 이미 처리된 것
 
 - user_metadata.role 권한 상승 경로 제거 (앱메타데이터 이관 완료)
 - /api/admin/doctors, /api/admin/branches 에 requireAdminAuth 게이트

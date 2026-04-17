@@ -13,6 +13,26 @@ export const runtime = "nodejs";
 import { NextRequest } from "next/server";
 import { generateText } from "ai";
 import { google } from "@ai-sdk/google";
+import { requireConsultationAccess, requireAuthenticatedUser } from "@/lib/auth/requireConsultationAccess";
+
+// Origin 화이트리스트 (브라우저에서 진료 중 호출되므로 시크릿 대신 Origin 검증)
+const ALLOWED_ORIGINS = new Set<string>([
+  "http://localhost:3000",
+  "http://localhost:3001",
+]);
+function isAllowedOrigin(originHeader: string | null): boolean {
+  if (!originHeader) return false;
+  if (ALLOWED_ORIGINS.has(originHeader)) return true;
+  try {
+    const u = new URL(originHeader);
+    if (u.hostname.endsWith(".vercel.app")) return true;
+    if (u.hostname.endsWith(".healo-khidi.com") || u.hostname === "healo-khidi.com") return true;
+    if (u.hostname.endsWith(".healo.com") || u.hostname === "healo.com") return true;
+  } catch {}
+  return false;
+}
+
+const MAX_TEXT_LENGTH = 2000;
 
 const LANG_NAMES: Record<string, string> = {
   ko: "Korean",
@@ -41,6 +61,11 @@ RULES:
 
 export async function POST(request: NextRequest) {
   try {
+    // Origin 검증 (CSRF 방지)
+    if (!isAllowedOrigin(request.headers.get("origin"))) {
+      return Response.json({ ok: false, error: "forbidden_origin" }, { status: 403 });
+    }
+
     const { text, sourceLang, targetLang, consultationId, speakerRole } =
       await request.json();
 
@@ -49,6 +74,22 @@ export async function POST(request: NextRequest) {
         { ok: false, error: "text, sourceLang, targetLang are required" },
         { status: 400 }
       );
+    }
+
+    if (typeof text !== "string" || text.length > MAX_TEXT_LENGTH) {
+      return Response.json(
+        { ok: false, error: `text too long (max ${MAX_TEXT_LENGTH})` },
+        { status: 400 }
+      );
+    }
+
+    // 인증: consultationId 가 있으면 참가자 검증, 없으면 인증된 사용자만
+    if (consultationId) {
+      const access = await requireConsultationAccess(request, String(consultationId));
+      if (!access.success) return access.response;
+    } else {
+      const auth = await requireAuthenticatedUser(request);
+      if (!auth.success) return auth.response;
     }
 
     // Skip if same language
@@ -111,13 +152,11 @@ async function saveTranslationLog(
 
   await supabase.from("consultation_translations").insert([
     {
-      consultation_id: parseInt(consultationId),
-      original_text: data.originalText,
+      session_id: consultationId,
+      source_text: data.originalText,
       translated_text: data.translatedText,
-      source_language: data.sourceLang,
-      target_language: data.targetLang,
-      speaker_role: data.speakerRole,
-      translation_method: "gemini-2.5-flash",
+      source_lang: data.sourceLang,
+      target_lang: data.targetLang,
     },
   ]);
 }
