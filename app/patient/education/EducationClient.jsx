@@ -27,6 +27,8 @@ const GUIDES = {
       {
         icon: Stethoscope,
         color: 'text-blue-600 bg-blue-50',
+        image: 'https://images.unsplash.com/photo-1551076805-e1869033e561?w=800&auto=format&fit=crop&q=80',
+        imageAlt: 'Modern operating room',
         title: { ko: '한국에서의 위암 치료', en: 'Stomach Cancer Treatment in Korea', ru: 'Лечение рака желудка в Корее', zh: '韩国的胃癌治疗', ja: '韓国での胃がん治療', kz: 'Кореядағы асқазан обыры емдеу' },
         body: {
           ko: '한국은 위암 치료 분야에서 세계 최고 수준의 의료 기술을 보유하고 있습니다. 5년 생존율 78.4%로 세계 1위이며, 로봇 수술과 복강경 수술 등 최소침습 치료가 보편화되어 있습니다.\n\n주요 치료 방법:\n• 내시경 절제술 — 초기 위암의 경우, 수술 없이 내시경으로 종양 제거\n• 복강경/로봇 수술 — 절개 부위를 최소화하여 회복이 빠름\n• 항암화학요법 — 수술 전후로 병행하여 재발 방지\n• 면역요법 — 진행성 위암에 대한 최신 치료 옵션\n\n치료 기간은 보통 2-4주이며, 수술 후 1-2주 입원 후 퇴원합니다.',
@@ -40,6 +42,8 @@ const GUIDES = {
       {
         icon: Utensils,
         color: 'text-green-600 bg-green-50',
+        image: 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=800&auto=format&fit=crop&q=80',
+        imageAlt: 'Healthy food bowls',
         title: { ko: '수술 후 식사와 영양 관리', en: 'Post-Surgery Diet & Nutrition', ru: 'Питание после операции', zh: '术后饮食与营养管理', ja: '術後の食事と栄養管理', kz: 'Операциядан кейінгі тамақтану' },
         body: {
           ko: '위 절제 수술 후에는 식사 방법이 크게 달라집니다. 처음에는 불편하지만 몸이 적응하면 대부분의 음식을 즐길 수 있게 됩니다.\n\n초기 (1-2주):\n• 미음과 죽부터 시작, 소량씩 하루 6-8회\n• 충분히 씹고, 천천히 먹기\n• 식사 중 물은 적게, 식후 30분 뒤에 수분 보충\n\n적응기 (1-3개월):\n• 부드러운 밥으로 전환, 하루 4-5회\n• 단백질 충분히 (두부, 계란, 생선, 닭가슴살)\n• 지나치게 달거나 기름진 음식 주의 (덤핑증후군)\n\n안정기 (3개월 이후):\n• 일반식 가능하나 소량 다회식 유지\n• 비타민 B12, 철분, 칼슘 보충제 필요할 수 있음\n• 체중 변화를 정기적으로 확인',
@@ -53,6 +57,8 @@ const GUIDES = {
       {
         icon: Dumbbell,
         color: 'text-orange-600 bg-orange-50',
+        image: 'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=800&auto=format&fit=crop&q=80',
+        imageAlt: 'Gentle stretching exercise',
         title: { ko: '회복 단계별 운동 가이드', en: 'Exercise Guide by Recovery Stage', ru: 'Упражнения по этапам восстановления', zh: '分阶段恢复运动指南', ja: '回復段階別の運動ガイド', kz: 'Қалпына келу кезеңдері бойынша жаттығулар' },
         body: {
           ko: '적절한 운동은 회복을 빠르게 하고 재발 위험을 줄입니다. 단, 반드시 담당의와 상의 후 시작하세요.\n\n1주차: 침대에서 일어나 하루 2-3회 짧은 복도 걷기 (5-10분). 심호흡 운동.\n2주차: 산책 15-20분으로 확대. 가벼운 스트레칭 시작.\n1개월: 30분 산책 가능. 의사 허가 시 수영, 자전거 가능.\n3개월: 가벼운 조깅, 요가, 태극권 등 가능. 복근 운동은 서서히.\n6개월 이후: 대부분의 일상 운동 가능. 격렬한 운동은 담당의와 상의.\n\n주의사항:\n• 운동 중 통증이 심해지면 즉시 중단\n• 식후 1시간 이내 격렬한 운동 금지\n• 탈수 방지를 위해 수분 충분히 섭취',
@@ -66,6 +72,8 @@ const GUIDES = {
       {
         icon: AlertTriangle,
         color: 'text-red-600 bg-red-50',
+        image: 'https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=800&auto=format&fit=crop&q=80',
+        imageAlt: 'Medical professional',
         title: { ko: '즉시 병원에 연락해야 하는 증상', en: 'When to Contact the Hospital Immediately', ru: 'Когда срочно обращаться в больницу', zh: '需要立即联系医院的症状', ja: 'すぐに病院に連絡すべき症状', kz: 'Дереу ауруханаға хабарласу керек белгілер' },
         body: {
           ko: '다음 증상이 나타나면 즉시 담당 병원에 연락하세요:\n\n🔴 긴급 (즉시 응급실):\n• 38.5°C 이상의 고열이 지속\n• 수술 부위에서 피나 고름이 나옴\n• 심한 복통이 갑자기 시작\n• 구토에 피가 섞여 나옴\n• 대변이 검은색이거나 피가 섞임\n\n🟡 주의 (24시간 내 연락):\n• 구토가 하루 이상 지속\n• 음식을 전혀 먹을 수 없음\n• 수술 부위가 점점 붉어지고 부어오름\n• 체중이 1주일에 2kg 이상 감소\n• 심한 피로감이나 어지러움',
@@ -79,6 +87,8 @@ const GUIDES = {
       {
         icon: Brain,
         color: 'text-purple-600 bg-purple-50',
+        image: 'https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=800&auto=format&fit=crop&q=80',
+        imageAlt: 'Meditation and mindfulness',
         title: { ko: '심리적 지원과 마음 건강', en: 'Psychological Support & Mental Health', ru: 'Психологическая поддержка', zh: '心理支持与心理健康', ja: '心理的サポートとメンタルヘルス', kz: 'Психологиялық қолдау' },
         body: {
           ko: '암 진단과 치료 과정에서 불안, 우울, 두려움을 느끼는 것은 매우 자연스러운 반응입니다.\n\n도움이 되는 방법:\n• 감정을 억누르지 말고 가족이나 의료진에게 솔직하게 이야기하세요\n• 규칙적인 수면과 가벼운 산책이 기분 개선에 효과적입니다\n• 같은 경험을 한 환자 커뮤니티에 참여해보세요\n• 필요하다면 전문 심리 상담을 요청하세요 — 이것은 약한 것이 아닙니다\n\n보호자를 위한 조언:\n• 환자의 감정을 있는 그대로 인정해주세요\n• "힘내"보다는 "내가 옆에 있어"라는 말이 더 도움이 됩니다\n• 보호자 자신의 건강도 돌보는 것이 중요합니다\n\nHEALO는 한국 체류 중 통역 지원은 물론 심리 상담 연결도 도와드립니다.',
@@ -183,6 +193,16 @@ export default function EducationClient() {
               </button>
               {isOpen && (
                 <div className="px-5 pb-5 pt-0">
+                  {section.image && (
+                    <div className="mb-4 rounded-xl overflow-hidden">
+                      <img
+                        src={section.image}
+                        alt={section.imageAlt || ''}
+                        className="w-full h-48 md:h-56 object-cover"
+                        loading="lazy"
+                      />
+                    </div>
+                  )}
                   <div className="pl-14">
                     <p className="text-[15px] text-gray-600 leading-relaxed whitespace-pre-line">
                       {l(section.body)}
@@ -199,6 +219,14 @@ export default function EducationClient() {
       <div className="mt-8 bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-800">
         {l(PAGE_LABELS.disclaimer)}
       </div>
+
+      {/* Photo Credit */}
+      <p className="mt-4 text-center text-xs text-gray-400">
+        Photos by{' '}
+        <a href="https://unsplash.com" target="_blank" rel="noopener noreferrer" className="underline hover:text-gray-500">
+          Unsplash
+        </a>
+      </p>
     </main>
   );
 }
