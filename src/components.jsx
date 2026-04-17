@@ -7,7 +7,7 @@ import Image from 'next/image';
 import {
   Search, MapPin, Globe, Menu, Star, Zap, ChevronDown, CheckCircle,
   MessageCircle, X, ArrowRight, Stethoscope, Building2, Settings,
-  FileText, UserCheck, Clock, ShieldCheck, Shield, Sparkles, User, LogOut
+  FileText, UserCheck, Clock, ShieldCheck, Shield, Sparkles, User, LogOut, BookOpen
 } from 'lucide-react';
 import { getLangCodeFromCookie, setLangCookie, LANG_OPTIONS as I18N_LANG_OPTIONS, LANG_OPTIONS_PRIMARY, t } from "./lib/i18n";
 
@@ -164,6 +164,18 @@ export const Header = ({ setView, view, handleGlobalInquiry, isMobileMenuOpen, s
               >
                 {t("nav.hospitals", langCode)}
               </button>
+              <a
+                href="/visa"
+                className="px-3.5 py-1.5 rounded-full text-sm font-semibold transition-all text-white/70 hover:text-white hover:bg-white/10"
+              >
+                {t("nav.visa", langCode)}
+              </a>
+              <a
+                href="/education"
+                className="px-3.5 py-1.5 rounded-full text-sm font-semibold transition-all text-white/70 hover:text-white hover:bg-white/10"
+              >
+                {t("nav.education", langCode)}
+              </a>
             </nav>
           </div>
 
@@ -326,6 +338,14 @@ export const Header = ({ setView, view, handleGlobalInquiry, isMobileMenuOpen, s
                   <span className="flex items-center gap-2.5"><Building2 size={16} className="text-gray-400 shrink-0" /> {t("nav.hospitals", langCode)}</span>
                   <ArrowRight size={14} className="text-gray-300 shrink-0" />
                 </button>
+                <a href="/visa" onClick={() => setIsMobileMenuOpen(false)} className="w-full text-left py-3 px-3 rounded-lg text-sm font-medium flex items-center justify-between transition-colors min-h-[44px] text-gray-700 hover:bg-gray-50">
+                  <span className="flex items-center gap-2.5"><Globe size={16} className="text-gray-400 shrink-0" /> {t("nav.visa", langCode)}</span>
+                  <ArrowRight size={14} className="text-gray-300 shrink-0" />
+                </a>
+                <a href="/education" onClick={() => setIsMobileMenuOpen(false)} className="w-full text-left py-3 px-3 rounded-lg text-sm font-medium flex items-center justify-between transition-colors min-h-[44px] text-gray-700 hover:bg-gray-50">
+                  <span className="flex items-center gap-2.5"><BookOpen size={16} className="text-gray-400 shrink-0" /> {t("nav.education", langCode)}</span>
+                  <ArrowRight size={14} className="text-gray-300 shrink-0" />
+                </a>
               </div>
 
               {/* Language — UI+콘텐츠 둘 다 지원하는 4개만 노출 */}
