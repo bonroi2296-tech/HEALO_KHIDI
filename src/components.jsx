@@ -179,8 +179,8 @@ export const Header = ({ setView, view, handleGlobalInquiry, isMobileMenuOpen, s
             </nav>
           </div>
 
-          {/* Center: CTA (desktop) */}
-          {!isAdmin && (
+          {/* Center: CTA (desktop) — 비활성화 (필요 시 복원) */}
+          {/* {!isAdmin && (
             <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 hidden md:block z-30">
               <button
                 onClick={handleGlobalInquiry}
@@ -190,7 +190,7 @@ export const Header = ({ setView, view, handleGlobalInquiry, isMobileMenuOpen, s
                 {t("cta.freePlan", langCode)}
               </button>
             </div>
-          )}
+          )} */}
 
           {/* Right: Lang + Auth + Portal (desktop) */}
           <div className="hidden md:flex items-center gap-1.5 z-20">
@@ -314,8 +314,8 @@ export const Header = ({ setView, view, handleGlobalInquiry, isMobileMenuOpen, s
                 </div>
               )}
 
-              {/* CTA (모바일) */}
-              {!isAdmin && (
+              {/* CTA (모바일) — 비활성화 (필요 시 복원) */}
+              {/* {!isAdmin && (
                 <div className="px-5 pt-2 pb-3">
                   <button
                     onClick={() => { handleGlobalInquiry(); setIsMobileMenuOpen(false); }}
@@ -325,7 +325,7 @@ export const Header = ({ setView, view, handleGlobalInquiry, isMobileMenuOpen, s
                     {t("cta.freePlan", langCode)}
                   </button>
                 </div>
-              )}
+              )} */}
 
               {/* Navigation */}
               <div className="px-5 py-3">
