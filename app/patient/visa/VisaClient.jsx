@@ -40,60 +40,60 @@ function VisaCard({ checklist, label, l }) {
   if (!checklist) return null;
 
   return (
-    <div style={{ border: '1px solid #e5e7eb', borderRadius: 12, padding: 20, background: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-        <h3 style={{ fontSize: 18, fontWeight: 700, color: '#1e40af' }}>{checklist.visaName}</h3>
-        <span style={{ fontSize: 12, background: '#dbeafe', color: '#1e40af', padding: '4px 10px', borderRadius: 12, fontWeight: 600 }}>{label}</span>
+    <div className="border border-gray-200 rounded-xl p-5 bg-white shadow-sm">
+      <div className="flex justify-between items-center mb-3">
+        <h3 className="text-lg font-bold text-blue-800">{checklist.visaName}</h3>
+        <span className="text-xs bg-blue-100 text-blue-800 px-2.5 py-1 rounded-xl font-semibold">{label}</span>
       </div>
 
-      <p style={{ fontSize: 14, color: '#555', marginBottom: 16 }}>{checklist.description}</p>
+      <p className="text-sm text-gray-600 mb-4">{checklist.description}</p>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12, marginBottom: 16 }}>
-        <div style={{ background: '#f9fafb', padding: 10, borderRadius: 8 }}>
-          <div style={{ fontSize: 12, color: '#888' }}>{l(LABELS.maxStay)}</div>
-          <div style={{ fontSize: 16, fontWeight: 600 }}>{checklist.maxStay} {l(LABELS.days)}</div>
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+        <div className="bg-gray-50 p-2.5 rounded-lg">
+          <div className="text-xs text-gray-400">{l(LABELS.maxStay)}</div>
+          <div className="text-base font-semibold">{checklist.maxStay} {l(LABELS.days)}</div>
         </div>
-        <div style={{ background: '#f9fafb', padding: 10, borderRadius: 8 }}>
-          <div style={{ fontSize: 12, color: '#888' }}>{l(LABELS.processingTime)}</div>
-          <div style={{ fontSize: 14, fontWeight: 600 }}>{checklist.processingTime}</div>
+        <div className="bg-gray-50 p-2.5 rounded-lg">
+          <div className="text-xs text-gray-400">{l(LABELS.processingTime)}</div>
+          <div className="text-sm font-semibold">{checklist.processingTime}</div>
         </div>
-        <div style={{ background: '#f9fafb', padding: 10, borderRadius: 8 }}>
-          <div style={{ fontSize: 12, color: '#888' }}>{l(LABELS.fee)}</div>
-          <div style={{ fontSize: 16, fontWeight: 600 }}>{checklist.fee}</div>
+        <div className="bg-gray-50 p-2.5 rounded-lg">
+          <div className="text-xs text-gray-400">{l(LABELS.fee)}</div>
+          <div className="text-base font-semibold">{checklist.fee}</div>
         </div>
       </div>
 
       {/* Document Checklist */}
-      <h4 style={{ fontSize: 15, fontWeight: 600, marginBottom: 10 }}>{l(LABELS.documents)}</h4>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
+      <h4 className="text-[15px] font-semibold mb-2.5">{l(LABELS.documents)}</h4>
+      <div className="flex flex-col gap-2 mb-4">
         {checklist.documents.map(doc => (
           <label
             key={doc.id}
-            style={{
-              display: 'flex', alignItems: 'flex-start', gap: 10, padding: 10,
-              background: checks[doc.id] ? '#f0fdf4' : '#fafafa', borderRadius: 8,
-              cursor: 'pointer', border: `1px solid ${checks[doc.id] ? '#86efac' : '#eee'}`,
-            }}
+            className={`flex items-start gap-2.5 p-2.5 rounded-lg cursor-pointer border ${
+              checks[doc.id]
+                ? 'bg-green-50 border-green-300'
+                : 'bg-gray-50 border-gray-100'
+            }`}
           >
             <input
               type="checkbox"
               checked={!!checks[doc.id]}
               onChange={() => toggle(doc.id)}
-              style={{ marginTop: 3 }}
+              className="mt-0.5"
             />
             <div>
-              <div style={{ fontWeight: 500, fontSize: 14 }}>
+              <div className="font-medium text-sm">
                 {doc.name}
-                {doc.required && <span style={{ color: '#ef4444', marginLeft: 4 }}>*</span>}
+                {doc.required && <span className="text-red-500 ml-1">*</span>}
               </div>
-              <div style={{ fontSize: 13, color: '#666', marginTop: 2 }}>{doc.description}</div>
+              <div className="text-[13px] text-gray-500 mt-0.5">{doc.description}</div>
             </div>
           </label>
         ))}
       </div>
 
       {/* Note */}
-      <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8, padding: 12, fontSize: 13, color: '#92400e' }}>
+      <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-[13px] text-amber-800">
         <strong>{l(LABELS.note)}:</strong> {checklist.notes}
       </div>
     </div>
@@ -125,27 +125,27 @@ export default function VisaClient() {
   }, [nationality, duration, lang]);
 
   return (
-    <main style={{ maxWidth: 900, margin: '0 auto', padding: '24px 16px' }} aria-label={l(LABELS.title)}>
-      <h1 style={{ fontSize: 28, fontWeight: 700, marginBottom: 4 }}>{l(LABELS.title)}</h1>
-      <p style={{ color: '#666', marginBottom: 24 }}>{l(LABELS.subtitle)}</p>
+    <main className="max-w-[900px] mx-auto px-4 py-6" aria-label={l(LABELS.title)}>
+      <h1 className="text-[28px] font-bold mb-1">{l(LABELS.title)}</h1>
+      <p className="text-gray-500 mb-6">{l(LABELS.subtitle)}</p>
 
       {/* Inputs */}
-      <form onSubmit={e => e.preventDefault()} style={{ display: 'flex', gap: 16, marginBottom: 24, flexWrap: 'wrap' }}>
-        <div style={{ flex: 1, minWidth: 200 }}>
-          <label htmlFor="visa-nationality" style={{ fontSize: 14, fontWeight: 600, display: 'block', marginBottom: 6 }}>{l(LABELS.nationality)}</label>
+      <form onSubmit={e => e.preventDefault()} className="flex gap-4 mb-6 flex-wrap">
+        <div className="flex-1 min-w-[200px]">
+          <label htmlFor="visa-nationality" className="text-sm font-semibold block mb-1.5">{l(LABELS.nationality)}</label>
           <select
             id="visa-nationality"
             value={nationality}
             onChange={e => setNationality(e.target.value)}
-            style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #ddd', fontSize: 14 }}
+            className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-sm"
           >
             {NATIONALITIES.map(n => (
               <option key={n.value} value={n.value}>{l(n.label)}</option>
             ))}
           </select>
         </div>
-        <div style={{ flex: 1, minWidth: 200 }}>
-          <label htmlFor="visa-duration" style={{ fontSize: 14, fontWeight: 600, display: 'block', marginBottom: 6 }}>{l(LABELS.duration)}</label>
+        <div className="flex-1 min-w-[200px]">
+          <label htmlFor="visa-duration" className="text-sm font-semibold block mb-1.5">{l(LABELS.duration)}</label>
           <input
             id="visa-duration"
             type="number"
@@ -153,15 +153,15 @@ export default function VisaClient() {
             onChange={e => setDuration(Math.max(1, parseInt(e.target.value) || 1))}
             min={1}
             max={365}
-            style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1px solid #ddd', fontSize: 14 }}
+            className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-sm"
           />
         </div>
       </form>
 
       {loading ? (
-        <p style={{ textAlign: 'center', color: '#999', padding: 40 }}>{l(LABELS.loading)}</p>
+        <p className="text-center text-gray-400 py-10">{l(LABELS.loading)}</p>
       ) : data ? (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+        <div className="flex flex-col gap-5">
           <VisaCard checklist={data.recommended} label={l(LABELS.recommended)} l={l} />
           {data.alternative && (
             <VisaCard checklist={data.alternative} label={l(LABELS.alternative)} l={l} />
@@ -169,11 +169,11 @@ export default function VisaClient() {
 
           {/* Embassy Info */}
           {data.embassy && (
-            <div style={{ border: '1px solid #e5e7eb', borderRadius: 12, padding: 16, background: '#f8fafc' }}>
-              <h4 style={{ fontSize: 15, fontWeight: 600, marginBottom: 8 }}>{l(LABELS.embassy)}</h4>
-              <p style={{ fontSize: 14, marginBottom: 4 }}>{data.embassy.ko || data.embassy.en}</p>
+            <div className="border border-gray-200 rounded-xl p-4 bg-slate-50">
+              <h4 className="text-[15px] font-semibold mb-2">{l(LABELS.embassy)}</h4>
+              <p className="text-sm mb-1">{data.embassy.ko || data.embassy.en}</p>
               {data.embassy.url && (
-                <a href={data.embassy.url} target="_blank" rel="noopener noreferrer" style={{ fontSize: 13, color: '#2563eb' }}>
+                <a href={data.embassy.url} target="_blank" rel="noopener noreferrer" className="text-[13px] text-blue-600 hover:underline">
                   {data.embassy.url}
                 </a>
               )}
@@ -183,11 +183,7 @@ export default function VisaClient() {
           {/* Print Button */}
           <button
             onClick={() => window.print()}
-            style={{
-              padding: '12px 24px', borderRadius: 8, border: 'none',
-              background: '#2563eb', color: '#fff', fontSize: 15, fontWeight: 600,
-              cursor: 'pointer', alignSelf: 'center',
-            }}
+            className="self-center px-6 py-3 rounded-lg bg-blue-600 text-white text-[15px] font-semibold hover:bg-blue-700 transition"
           >
             {l(LABELS.print)}
           </button>

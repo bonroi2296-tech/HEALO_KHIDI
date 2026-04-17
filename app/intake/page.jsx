@@ -301,13 +301,19 @@ export default function IntakePage() {
             onClick={() => router.push("/signup?redirect=/patient")}
             className="w-full py-3.5 bg-teal-600 text-white rounded-2xl font-semibold hover:bg-teal-700 transition mb-3"
           >
-            {lang === 'ko' ? '계정 만들고 진행 확인' : lang === 'ru' ? 'Создать аккаунт' : 'Create Account & Track'}
+            {lang === 'ko' ? '계정 만들고 진행 확인' : lang === 'ru' ? 'Создать аккаунт и отслеживать' : 'Create Account & Track'}
+          </button>
+          <button
+            onClick={() => router.push("/patient")}
+            className="w-full py-3 text-teal-600 text-sm font-semibold hover:text-teal-700 transition border border-teal-200 rounded-2xl mb-2"
+          >
+            {lang === 'ko' ? '대시보드로 이동' : lang === 'ru' ? 'Перейти в кабинет' : lang === 'kz' ? 'Кабинетке өту' : lang === 'zh' ? '前往仪表板' : lang === 'ja' ? 'ダッシュボードへ' : 'Go to Dashboard'}
           </button>
           <button
             onClick={() => router.push("/")}
-            className="w-full py-3 text-gray-500 text-sm font-medium hover:text-gray-700 transition"
+            className="w-full py-3 text-gray-400 text-sm font-medium hover:text-gray-600 transition"
           >
-            {L.back} →
+            {lang === 'ko' ? '홈으로' : lang === 'ru' ? 'На главную' : 'Back to Home'}
           </button>
         </div>
       </div>

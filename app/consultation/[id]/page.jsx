@@ -410,8 +410,8 @@ export default function ConsultationRoomPage() {
   return (
     <div className="w-full h-screen bg-gray-900 text-white flex flex-col">
       {/* ── Header ── */}
-      <div className="bg-gray-800 border-b border-gray-700 px-6 py-3">
-        <div className="flex items-center justify-between">
+      <div className="bg-gray-800 border-b border-gray-700 px-3 py-2 md:px-6 md:py-3">
+        <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-4">
             <button
               onClick={() => router.back()}
@@ -434,7 +434,7 @@ export default function ConsultationRoomPage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5 md:gap-3 flex-wrap justify-end">
             {/* Translation toggle */}
             <button
               onClick={toggleTranslation}
@@ -447,14 +447,14 @@ export default function ConsultationRoomPage() {
             >
               <Languages size={16} />
               {translationEnabled ? (
-                <>
+                <span className="hidden sm:inline">
                   {LANG_LABELS[myLang]} → {LANG_LABELS[targetLang]}
                   {isTranslating && (
                     <span className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse" />
                   )}
-                </>
+                </span>
               ) : (
-                "통번역"
+                <span className="hidden sm:inline">통번역</span>
               )}
             </button>
 
@@ -497,18 +497,18 @@ export default function ConsultationRoomPage() {
 
             <button
               onClick={handleEndCall}
-              className="px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 transition flex items-center gap-2 text-sm"
+              className="px-3 py-2 md:px-4 rounded-lg bg-red-600 hover:bg-red-700 transition flex items-center gap-1.5 md:gap-2 text-sm"
             >
-              <Phone size={16} /> 종료
+              <Phone size={16} /> <span className="hidden xs:inline">종료</span>
             </button>
           </div>
         </div>
       </div>
 
       {/* ── Main content ── */}
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
         {/* Video area */}
-        <div className="flex-1 flex flex-col relative">
+        <div className="flex-1 flex flex-col relative min-h-[40vh] lg:min-h-0">
           {livekitToken && livekitUrl ? (
             <LiveKitRoom
               token={livekitToken}
@@ -542,13 +542,13 @@ export default function ConsultationRoomPage() {
             </LiveKitRoom>
           ) : (
             <div className="flex-1 flex flex-col">
-              <div className="flex-1 flex gap-4 p-4 bg-gray-950 relative">
-                <div className="flex-1 bg-gray-800 rounded-lg flex flex-col items-center justify-center">
+              <div className="flex-1 flex flex-col sm:flex-row gap-4 p-4 bg-gray-950 relative">
+                <div className="flex-1 bg-gray-800 rounded-lg flex flex-col items-center justify-center min-h-[30vh] sm:min-h-0">
                   <Video size={64} className="mb-4 text-gray-500" />
                   <p className="text-gray-400 font-semibold">Doctor (의사)</p>
                   <p className="text-xs text-gray-500 mt-1">대기 중...</p>
                 </div>
-                <div className="flex-1 bg-gray-800 rounded-lg flex flex-col items-center justify-center">
+                <div className="flex-1 bg-gray-800 rounded-lg flex flex-col items-center justify-center min-h-[30vh] sm:min-h-0">
                   <Video size={64} className="mb-4 text-gray-500" />
                   <p className="text-gray-400 font-semibold">Patient (환자)</p>
                   <p className="text-xs text-gray-500 mt-1">내 화면</p>
@@ -569,7 +569,7 @@ export default function ConsultationRoomPage() {
         </div>
 
         {/* ── Right panel: Chat + Translation log ── */}
-        <div className="w-96 flex flex-col border-l border-gray-700 bg-gray-800">
+        <div className="w-full lg:w-96 flex flex-col border-t lg:border-t-0 lg:border-l border-gray-700 bg-gray-800 max-h-[45vh] lg:max-h-none">
           {/* Tab selector */}
           <div className="flex border-b border-gray-700">
             <button

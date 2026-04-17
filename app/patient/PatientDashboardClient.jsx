@@ -6,7 +6,7 @@ import { getLangCodeFromCookie } from '../../src/lib/i18n';
 import { createSupabaseBrowserClient } from '../../src/lib/supabase/browser';
 import {
   FileText, Video, BookOpen, Activity, Calendar,
-  Upload, ChevronRight, AlertCircle, User, MessageSquare,
+  Upload, ChevronRight, AlertCircle, User, MessageSquare, Phone, ArrowRight,
 } from 'lucide-react';
 
 const L = {
@@ -28,6 +28,10 @@ const L = {
   noConsultations: { ko: '아직 상담이 없습니다', en: 'No consultations yet', ru: 'Консультаций пока нет', kz: 'Кеңестер әлі жоқ', zh: '暂无咨询', ja: 'まだ相談がありません' },
   startFirst: { ko: '첫 사전상담을 시작해보세요', en: 'Start your first pre-consultation', ru: 'Начните первую консультацию', kz: 'Алғашқы кеңесті бастаңыз', zh: '开始您的第一次预咨询', ja: '最初の事前相談を始めましょう' },
   loading: { ko: '로딩 중...', en: 'Loading...', ru: 'Загрузка...', kz: 'Жүктелуде...', zh: '加载中...', ja: '読み込み中...' },
+  consultationCta: { ko: '화상 상담 예약이 있습니다', en: 'You have a consultation', ru: 'У вас есть консультация', kz: 'Сізде кеңес бар', zh: '您有一个会诊', ja: '相談があります' },
+  joinNow: { ko: '지금 참여', en: 'Join Now', ru: 'Присоединиться', kz: 'Қосылу', zh: '立即加入', ja: '参加する' },
+  enterWaiting: { ko: '대기실 입장', en: 'Enter Waiting Room', ru: 'Войти в зал ожидания', kz: 'Күту залына кіру', zh: '进入候诊室', ja: '待合室に入る' },
+  journeySteps: { ko: '진료 과정', en: 'Your Journey', ru: 'Ваш путь', kz: 'Сіздің жолыңыз', zh: '就诊流程', ja: '診療の流れ' },
 };
 
 const MENU_ITEMS = [
@@ -107,6 +111,42 @@ export default function PatientDashboardClient() {
         <h1 className="text-2xl font-bold">{user.email?.split('@')[0] || 'Patient'}</h1>
       </div>
 
+      {/* Active/Scheduled Consultation CTA */}
+      {consultations.some(c => c.status === 'active' || c.status === 'scheduled') && (
+        <div className="mb-6 bg-gradient-to-r from-teal-600 to-teal-700 rounded-2xl p-5 text-white shadow-lg">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+                <Video size={24} />
+              </div>
+              <div>
+                <p className="font-semibold">{l(L.consultationCta)}</p>
+                <p className="text-teal-100 text-sm">
+                  {(() => {
+                    const active = consultations.find(c => c.status === 'active');
+                    const scheduled = consultations.find(c => c.status === 'scheduled');
+                    const c = active || scheduled;
+                    return c?.scheduled_at ? new Date(c.scheduled_at).toLocaleDateString() : '';
+                  })()}
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={() => {
+                const active = consultations.find(c => c.status === 'active');
+                const scheduled = consultations.find(c => c.status === 'scheduled');
+                const c = active || scheduled;
+                if (c) router.push(`/consultation/${c.id}`);
+              }}
+              className="flex items-center gap-2 bg-white text-teal-700 font-semibold px-4 py-2.5 rounded-xl hover:bg-teal-50 transition text-sm whitespace-nowrap"
+            >
+              <Phone size={16} />
+              {consultations.some(c => c.status === 'active') ? l(L.joinNow) : l(L.enterWaiting)}
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Quick Menu Grid */}
       <h2 className="text-lg font-semibold mb-4">{l(L.quickActions)}</h2>
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-8">
@@ -140,16 +180,40 @@ export default function PatientDashboardClient() {
       {/* Consultations List */}
       <h2 id="consultations" className="text-lg font-semibold mb-4 scroll-mt-20">{l(L.sections.consultations)}</h2>
       {consultations.length === 0 ? (
-        <div className="bg-gray-50 rounded-2xl p-8 text-center">
-          <AlertCircle size={40} className="text-gray-300 mx-auto mb-3" />
-          <p className="font-medium text-gray-600 mb-1">{l(L.noConsultations)}</p>
-          <p className="text-gray-400 text-sm mb-4">{l(L.startFirst)}</p>
-          <button
-            onClick={() => router.push('/inquiry')}
-            className="bg-teal-600 text-white font-semibold px-5 py-2.5 rounded-xl hover:bg-teal-700 transition text-sm"
-          >
-            {l(L.newIntake)}
-          </button>
+        <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
+          {/* Journey step indicator */}
+          <div className="px-6 pt-6 pb-4">
+            <h3 className="text-sm font-semibold text-gray-500 mb-4">{l(L.journeySteps)}</h3>
+            <div className="flex items-center gap-2 mb-6">
+              {[
+                { label: { ko: '신청서 작성', en: 'Apply', ru: 'Заявка', kz: 'Өтінім', zh: '申请', ja: '申請' }, done: false },
+                { label: { ko: '매칭', en: 'Matching', ru: 'Подбор', kz: 'Сәйкестендіру', zh: '匹配', ja: 'マッチング' }, done: false },
+                { label: { ko: '사전상담', en: 'Consult', ru: 'Консультация', kz: 'Кеңес', zh: '咨询', ja: '相談' }, done: false },
+                { label: { ko: '치료', en: 'Treatment', ru: 'Лечение', kz: 'Емдеу', zh: '治疗', ja: '治療' }, done: false },
+              ].map((s, i) => (
+                <div key={i} className="flex items-center gap-2 flex-1">
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
+                    s.done ? 'bg-teal-100 text-teal-700' : i === 0 ? 'bg-teal-600 text-white' : 'bg-gray-100 text-gray-400'
+                  }`}>
+                    {i + 1}
+                  </div>
+                  <span className="text-xs text-gray-500 hidden sm:block">{l(s.label)}</span>
+                  {i < 3 && <div className="flex-1 h-px bg-gray-200 hidden sm:block" />}
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="bg-gray-50 px-6 py-6 text-center border-t border-gray-100">
+            <AlertCircle size={36} className="text-gray-300 mx-auto mb-3" />
+            <p className="font-medium text-gray-600 mb-1">{l(L.noConsultations)}</p>
+            <p className="text-gray-400 text-sm mb-4">{l(L.startFirst)}</p>
+            <button
+              onClick={() => router.push('/intake')}
+              className="inline-flex items-center gap-2 bg-teal-600 text-white font-semibold px-5 py-2.5 rounded-xl hover:bg-teal-700 transition text-sm"
+            >
+              {l(L.newIntake)} <ArrowRight size={16} />
+            </button>
+          </div>
         </div>
       ) : (
         <div className="flex flex-col gap-3">
