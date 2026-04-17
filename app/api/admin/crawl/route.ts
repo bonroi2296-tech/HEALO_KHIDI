@@ -95,7 +95,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: true, ...result });
   } catch (err: any) {
     return NextResponse.json(
-      { ok: false, error: "crawl_error", detail: err.message },
+      { ok: false, error: "crawl_error" },
       { status: 502 },
     );
   }

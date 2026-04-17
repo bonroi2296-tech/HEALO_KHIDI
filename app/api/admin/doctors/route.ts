@@ -43,7 +43,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ ok: true, data });
   } catch (err: any) {
     console.error("[admin/doctors] GET error:", err);
-    return NextResponse.json({ ok: false, error: err.message }, { status: 500 });
+    return NextResponse.json({ ok: false, error: "query_failed" }, { status: 500 });
   }
 }
 
@@ -93,7 +93,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true, data }, { status: 201 });
   } catch (err: any) {
     console.error("[admin/doctors] POST error:", err);
-    return NextResponse.json({ ok: false, error: err.message }, { status: 500 });
+    return NextResponse.json({ ok: false, error: "insert_failed" }, { status: 500 });
   }
 }
 
@@ -135,7 +135,7 @@ export async function PUT(req: NextRequest) {
     return NextResponse.json({ ok: true, data });
   } catch (err: any) {
     console.error("[admin/doctors] PUT error:", err);
-    return NextResponse.json({ ok: false, error: err.message }, { status: 500 });
+    return NextResponse.json({ ok: false, error: "update_failed" }, { status: 500 });
   }
 }
 
@@ -164,6 +164,6 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ ok: true, message: "Doctor deactivated" });
   } catch (err: any) {
     console.error("[admin/doctors] DELETE error:", err);
-    return NextResponse.json({ ok: false, error: err.message }, { status: 500 });
+    return NextResponse.json({ ok: false, error: "delete_failed" }, { status: 500 });
   }
 }

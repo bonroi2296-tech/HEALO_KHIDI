@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
         .order("created_at", { ascending: false });
 
       if (error) {
-        return Response.json({ ok: false, error: error.message }, { status: 500 });
+        return Response.json({ ok: false, error: "query_failed" }, { status: 500 });
       }
 
       // Resolve emails from auth.users via service client
@@ -50,12 +50,13 @@ export async function GET(request: NextRequest) {
       .order("created_at", { ascending: false });
 
     if (error) {
-      return Response.json({ ok: false, error: error.message }, { status: 500 });
+      return Response.json({ ok: false, error: "query_failed" }, { status: 500 });
     }
 
     return Response.json({ ok: true, accounts: data || [] });
   } catch (err: any) {
-    return Response.json({ ok: false, error: err.message }, { status: 500 });
+    console.error("[admin/hospital-accounts] GET error:", err);
+    return Response.json({ ok: false, error: "internal_error" }, { status: 500 });
   }
 }
 
@@ -110,7 +111,8 @@ export async function POST(request: NextRequest) {
         email_confirm: true,
       });
       if (createErr || !newUser.user) {
-        return Response.json({ ok: false, error: createErr?.message || "user_creation_failed" }, { status: 500 });
+        console.error("[admin/hospital-accounts] createUser failed:", createErr);
+        return Response.json({ ok: false, error: "user_creation_failed" }, { status: 500 });
       }
       targetUser = newUser.user;
     }
@@ -141,7 +143,8 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (insertErr) {
-      return Response.json({ ok: false, error: insertErr.message }, { status: 500 });
+      console.error("[admin/hospital-accounts] insert failed:", insertErr);
+      return Response.json({ ok: false, error: "insert_failed" }, { status: 500 });
     }
 
     return Response.json({
@@ -153,7 +156,8 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (err: any) {
-    return Response.json({ ok: false, error: err.message }, { status: 500 });
+    console.error("[admin/hospital-accounts] POST error:", err);
+    return Response.json({ ok: false, error: "internal_error" }, { status: 500 });
   }
 }
 
@@ -180,11 +184,12 @@ export async function DELETE(request: NextRequest) {
       .eq("id", id);
 
     if (error) {
-      return Response.json({ ok: false, error: error.message }, { status: 500 });
+      return Response.json({ ok: false, error: "update_failed" }, { status: 500 });
     }
 
     return Response.json({ ok: true });
   } catch (err: any) {
-    return Response.json({ ok: false, error: err.message }, { status: 500 });
+    console.error("[admin/hospital-accounts] DELETE error:", err);
+    return Response.json({ ok: false, error: "internal_error" }, { status: 500 });
   }
 }

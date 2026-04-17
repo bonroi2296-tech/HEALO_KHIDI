@@ -58,7 +58,7 @@ export async function GET(request: NextRequest) {
   } catch (error: any) {
     console.error("[api/khidi/visa] Exception:", error);
     return Response.json(
-      { ok: false, error: error.message || "Internal server error" },
+      { ok: false, error: "internal_error" },
       { status: 500 }
     );
   }

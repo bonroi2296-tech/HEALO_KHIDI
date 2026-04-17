@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
 
     if (error) {
       console.error("[POST /api/admin/playbook/responses]", error.message);
-      return Response.json({ ok: false, error: error.message }, { status: 500 });
+      return Response.json({ ok: false, error: "insert_failed" }, { status: 500 });
     }
 
     return Response.json({ ok: true, response: data, sanitize_flags: flags });
@@ -105,7 +105,7 @@ export async function GET(request: NextRequest) {
     const { data, error, count } = await query;
     if (error) {
       console.error("[GET /api/admin/playbook/responses]", error.message);
-      return Response.json({ ok: false, error: error.message }, { status: 500 });
+      return Response.json({ ok: false, error: "query_failed" }, { status: 500 });
     }
 
     return Response.json({ ok: true, responses: data, total: count ?? 0 });

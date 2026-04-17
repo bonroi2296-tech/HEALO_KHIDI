@@ -71,7 +71,7 @@ export async function POST(
 
     if (error) {
       console.error("[POST messages]", error.message);
-      return Response.json({ ok: false, error: error.message }, { status: 500 });
+      return Response.json({ ok: false, error: "insert_failed" }, { status: 500 });
     }
 
     await supabaseAdmin
@@ -105,7 +105,7 @@ export async function GET(
 
     if (error) {
       console.error("[GET messages]", error.message);
-      return Response.json({ ok: false, error: error.message }, { status: 500 });
+      return Response.json({ ok: false, error: "query_failed" }, { status: 500 });
     }
 
     return Response.json({ ok: true, messages: data });

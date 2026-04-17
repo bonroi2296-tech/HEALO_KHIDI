@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
     if (error) {
       console.error("[api/khidi/rebooking/create] Insert error:", error);
       return Response.json(
-        { ok: false, error: error.message },
+        { ok: false, error: "insert_failed" },
         { status: 500 }
       );
     }

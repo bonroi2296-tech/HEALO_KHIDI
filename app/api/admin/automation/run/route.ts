@@ -38,7 +38,8 @@ export async function POST(request: NextRequest) {
     .single();
 
   if (jobErr || !jobRow) {
-    return Response.json({ ok: false, error: jobErr?.message || "Failed to create job" }, { status: 500 });
+    console.error("[admin/automation/run] job create failed:", jobErr);
+    return Response.json({ ok: false, error: "insert_failed" }, { status: 500 });
   }
 
   const jobId = jobRow.id;
@@ -66,6 +67,7 @@ export async function POST(request: NextRequest) {
       .update({ status: "failed", finished_at: new Date().toISOString(), error: err.message })
       .eq("id", jobId);
 
-    return Response.json({ ok: false, error: err.message, job_id: jobId }, { status: 500 });
+    console.error("[admin/automation/run] job failed:", err);
+    return Response.json({ ok: false, error: "job_failed", job_id: jobId }, { status: 500 });
   }
 }

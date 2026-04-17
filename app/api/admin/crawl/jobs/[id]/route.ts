@@ -42,7 +42,10 @@ export async function DELETE(
       .from("crawl_jobs")
       .delete()
       .eq("id", id);
-    if (error) return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
+    if (error) {
+      console.error("[admin/crawl/jobs/:id] delete error:", error);
+      return NextResponse.json({ ok: false, error: "delete_failed" }, { status: 500 });
+    }
     return NextResponse.json({ ok: true, message: "Job deleted" });
   }
 
@@ -61,7 +64,8 @@ export async function DELETE(
     .eq("id", id);
 
   if (error) {
-    return NextResponse.json({ ok: false, error: error.message }, { status: 500 });
+    console.error("[admin/crawl/jobs/:id] cancel error:", error);
+    return NextResponse.json({ ok: false, error: "update_failed" }, { status: 500 });
   }
 
   return NextResponse.json({ ok: true, message: "Job cancelled" });

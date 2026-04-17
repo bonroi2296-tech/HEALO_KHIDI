@@ -156,7 +156,7 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error("[api/khidi/consultation/schedule] Exception:", error);
     return Response.json(
-      { ok: false, error: error.message || "Internal server error" },
+      { ok: false, error: "internal_error" },
       { status: 500 }
     );
   }

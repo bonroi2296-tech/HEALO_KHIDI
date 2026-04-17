@@ -87,14 +87,14 @@ async function sendTestNotification(data: {
       channel: data.channel,
       destination: maskPhone(data.phone),
       status: "failed",
-      error: error.message,
+      error: "notification_failed",
       message_preview: testMessage.substring(0, 100),
       delivery_time_ms: Date.now() - startTime,
     });
     
     return {
       success: false,
-      error: error.message,
+      error: "notification_failed",
     };
   }
 }
@@ -148,7 +148,7 @@ export async function POST(request: NextRequest) {
 
       if (error) {
         return Response.json(
-          { ok: false, error: error.message },
+          { ok: false, error: "query_failed" },
           { status: 500 }
         );
       }
@@ -197,9 +197,9 @@ export async function POST(request: NextRequest) {
 
   } catch (error: any) {
     console.error("[Test Notification] Error:", error.message);
-    
+
     return Response.json(
-      { ok: false, error: error.message },
+      { ok: false, error: "internal_error" },
       { status: 500 }
     );
   }

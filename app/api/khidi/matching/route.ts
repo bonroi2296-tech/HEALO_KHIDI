@@ -14,8 +14,25 @@ import {
   type MatchingCriteria,
   type HospitalCapability,
 } from "../../../../src/lib/cancer/matchingEngine";
+import { checkRateLimit, getClientIp, getRateLimitHeaders } from "../../../../src/lib/rateLimit";
+
+const MATCHING_RATE = {
+  windowMs: 60 * 1000,
+  maxRequests: 20,
+  apiName: "khidi_matching",
+};
 
 export async function POST(request: NextRequest) {
+  // Rate limit (DB 부하 + enum 방지)
+  const ip = getClientIp(request);
+  const rl = checkRateLimit(ip, MATCHING_RATE);
+  if (!rl.allowed) {
+    return Response.json(
+      { ok: false, error: "rate_limited" },
+      { status: 429, headers: getRateLimitHeaders(rl) }
+    );
+  }
+
   try {
     const payload = await request.json();
 
@@ -41,7 +58,7 @@ export async function POST(request: NextRequest) {
     if (error) {
       console.error("[api/khidi/matching] DB error:", error);
       return Response.json(
-        { ok: false, error: error.message },
+        { ok: false, error: "matching_failed" },
         { status: 500 }
       );
     }
@@ -89,7 +106,7 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error("[api/khidi/matching] Exception:", error);
     return Response.json(
-      { ok: false, error: error.message || "Internal server error" },
+      { ok: false, error: "internal_error" },
       { status: 500 }
     );
   }

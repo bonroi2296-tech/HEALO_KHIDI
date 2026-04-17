@@ -267,6 +267,6 @@ export async function POST(
       ? "Embedding 생성 실패 — GOOGLE_GENERATIVE_AI_API_KEY를 확인하세요"
       : "Internal server error";
 
-    return Response.json({ ok: false, error: userMsg, detail: err.message, ingest_status: "failed" }, { status: 500 });
+    return Response.json({ ok: false, error: userMsg, ingest_status: "failed" }, { status: 500 });
   }
 }

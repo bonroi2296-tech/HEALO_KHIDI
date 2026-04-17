@@ -113,7 +113,7 @@ export async function PATCH(
       if (error.code === "PGRST116") {
         return Response.json({ ok: false, error: "Document not found" }, { status: 404 });
       }
-      return Response.json({ ok: false, error: error.message }, { status: 500 });
+      return Response.json({ ok: false, error: "update_failed" }, { status: 500 });
     }
 
     return Response.json({ ok: true, document: data });

@@ -74,8 +74,9 @@ export async function PATCH(
 
     return Response.json({ ok: true });
   } catch (error: any) {
+    console.error("[admin/notification-recipients/:id] PATCH error:", error);
     return Response.json(
-      { ok: false, error: error.message },
+      { ok: false, error: "internal_error" },
       { status: 500 }
     );
   }
@@ -108,8 +109,9 @@ export async function DELETE(
 
     return Response.json({ ok: true });
   } catch (error: any) {
+    console.error("[admin/notification-recipients/:id] DELETE error:", error);
     return Response.json(
-      { ok: false, error: error.message },
+      { ok: false, error: "internal_error" },
       { status: 500 }
     );
   }

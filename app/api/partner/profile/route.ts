@@ -48,7 +48,8 @@ export async function GET(request: NextRequest) {
 
     return Response.json({ ok: true, hospital: data, editableFields: EDITABLE_FIELDS });
   } catch (err: any) {
-    return Response.json({ ok: false, error: err.message }, { status: 500 });
+    console.error("[partner/profile] GET error:", err);
+    return Response.json({ ok: false, error: "internal_error" }, { status: 500 });
   }
 }
 
@@ -88,7 +89,8 @@ export async function PATCH(request: NextRequest) {
       .single();
 
     if (error) {
-      return Response.json({ ok: false, error: error.message }, { status: 500 });
+      console.error("[partner/profile] PATCH error:", error);
+      return Response.json({ ok: false, error: "update_failed" }, { status: 500 });
     }
 
     const hasTranslatableContent = updates.name || updates.description || updates.tags || updates.specialties || updates.location_kr;
@@ -100,6 +102,7 @@ export async function PATCH(request: NextRequest) {
 
     return Response.json({ ok: true, hospital: data });
   } catch (err: any) {
-    return Response.json({ ok: false, error: err.message }, { status: 500 });
+    console.error("[partner/profile] PATCH exception:", err);
+    return Response.json({ ok: false, error: "internal_error" }, { status: 500 });
   }
 }

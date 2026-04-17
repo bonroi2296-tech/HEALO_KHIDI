@@ -213,7 +213,6 @@ export async function PATCH(
       {
         ok: false,
         error: "internal_error",
-        detail: error.message,
       },
       { status: 500 }
     );

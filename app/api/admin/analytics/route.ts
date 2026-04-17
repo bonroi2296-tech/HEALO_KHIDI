@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
     if (error) {
       console.error("[admin/analytics] inquiries fetch error:", error.message);
       return Response.json(
-        { ok: false, error: "fetch_failed", detail: error.message },
+        { ok: false, error: "fetch_failed" },
         { status: 500 }
       );
     }

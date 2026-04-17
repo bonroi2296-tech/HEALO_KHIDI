@@ -190,7 +190,7 @@ export async function POST(request: NextRequest) {
     });
   } catch (err: any) {
     console.error(`[POST /api/public/chat/message] Unexpected: ${err.message}`, err.stack?.slice(0, 500));
-    return Response.json({ ok: false, error: "Internal server error", detail: err.message }, { status: 500 });
+    return Response.json({ ok: false, error: "internal_error" }, { status: 500 });
   }
 }
 

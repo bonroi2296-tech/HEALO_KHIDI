@@ -151,7 +151,6 @@ export async function GET(request: NextRequest) {
         {
           ok: false,
           error: "query_failed",
-          detail: error.message,
         },
         { status: 500 }
       );
@@ -215,7 +214,6 @@ export async function GET(request: NextRequest) {
       {
         ok: false,
         error: "internal_error",
-        detail: error.message,
       },
       { status: 500 }
     );

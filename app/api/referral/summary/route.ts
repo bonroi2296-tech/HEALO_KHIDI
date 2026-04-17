@@ -18,9 +18,27 @@ import {
   buildReferralSummaryJson,
   buildReferralSummaryMarkdown,
 } from "../../../../src/lib/referral/buildReferralSummary";
+import { checkRateLimit, getClientIp, getRateLimitHeaders } from "../../../../src/lib/rateLimit";
+
+const REFERRAL_RATE = {
+  windowMs: 60 * 1000,
+  maxRequests: 10,
+  apiName: "referral_summary",
+};
 
 export async function POST(request: NextRequest) {
   assertSupabaseEnv();
+
+  // Rate limit (publicToken enum 방지)
+  const ip = getClientIp(request);
+  const rl = checkRateLimit(ip, REFERRAL_RATE);
+  if (!rl.allowed) {
+    return Response.json(
+      { ok: false, error: "rate_limited" },
+      { status: 429, headers: getRateLimitHeaders(rl) }
+    );
+  }
+
   try {
     const body = await request.json().catch(() => ({}));
     const normalizedInquiryId = body?.normalizedInquiryId ? String(body.normalizedInquiryId) : null;
@@ -113,7 +131,7 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error("[api/referral/summary] error:", error);
     return Response.json(
-      { ok: false, error: error?.message || "summary_failed" },
+      { ok: false, error: "summary_failed" },
       { status: 500 }
     );
   }

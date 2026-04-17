@@ -149,7 +149,7 @@ export async function GET(request: NextRequest) {
     if (error) {
       console.error("[api/khidi/followup] GET error:", error);
       return Response.json(
-        { ok: false, error: error.message },
+        { ok: false, error: "query_failed" },
         { status: 500 }
       );
     }
