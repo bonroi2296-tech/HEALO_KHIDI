@@ -67,24 +67,23 @@ export default function EducationClient() {
   }, [cancerType, activePhase, activeCategory, lang]);
 
   return (
-    <main style={{ maxWidth: 900, margin: '0 auto', padding: '24px 16px' }} aria-label={l(PAGE_LABELS.title)}>
-      <h1 style={{ fontSize: 28, fontWeight: 700, marginBottom: 4 }}>{l(PAGE_LABELS.title)}</h1>
-      <p style={{ color: '#666', marginBottom: 24 }}>{l(PAGE_LABELS.subtitle)}</p>
+    <main className="max-w-[900px] mx-auto px-4 py-6" aria-label={l(PAGE_LABELS.title)}>
+      <h1 className="text-2xl md:text-[28px] font-bold mb-1">{l(PAGE_LABELS.title)}</h1>
+      <p className="text-gray-500 mb-6">{l(PAGE_LABELS.subtitle)}</p>
 
       {/* Cancer Type Selector */}
-      <fieldset style={{ marginBottom: 20, border: 'none', padding: 0, margin: 0 }}>
-        <legend style={{ fontSize: 14, fontWeight: 600, display: 'block', marginBottom: 6 }}>{l(PAGE_LABELS.selectCancer)}</legend>
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }} role="radiogroup" aria-label={l(PAGE_LABELS.selectCancer)}>
+      <fieldset className="mb-5 border-none p-0 m-0">
+        <legend className="text-sm font-semibold block mb-1.5">{l(PAGE_LABELS.selectCancer)}</legend>
+        <div className="flex gap-2 flex-wrap" role="radiogroup" aria-label={l(PAGE_LABELS.selectCancer)}>
           {CANCER_TYPES.map(ct => (
             <button
               key={ct.value}
               onClick={() => setCancerType(ct.value)}
-              style={{
-                padding: '8px 16px', borderRadius: 8, border: '1px solid #ddd',
-                background: cancerType === ct.value ? '#2563eb' : '#fff',
-                color: cancerType === ct.value ? '#fff' : '#333',
-                cursor: 'pointer', fontSize: 14, fontWeight: 500,
-              }}
+              className={`px-4 py-2 rounded-lg border text-sm font-medium transition-all ${
+                cancerType === ct.value
+                  ? 'bg-blue-600 text-white border-blue-600'
+                  : 'bg-white text-gray-700 border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+              }`}
             >
               {l(ct.label)}
             </button>
@@ -93,20 +92,22 @@ export default function EducationClient() {
       </fieldset>
 
       {/* Phase Tabs */}
-      <nav aria-label="Treatment phase" style={{ display: 'flex', gap: 4, marginBottom: 16, overflowX: 'auto', borderBottom: '2px solid #eee', paddingBottom: 2 }} role="tablist">
+      <nav
+        aria-label="Treatment phase"
+        className="flex gap-1 mb-4 overflow-x-auto border-b-2 border-gray-100 pb-0.5 scrollbar-hide"
+        role="tablist"
+      >
         {PHASES.map(p => (
           <button
             key={p.value}
             role="tab"
             aria-selected={activePhase === p.value}
             onClick={() => setActivePhase(p.value)}
-            style={{
-              padding: '8px 14px', border: 'none', background: 'none', cursor: 'pointer',
-              fontSize: 14, fontWeight: activePhase === p.value ? 700 : 400,
-              color: activePhase === p.value ? '#2563eb' : '#666',
-              borderBottom: activePhase === p.value ? '2px solid #2563eb' : '2px solid transparent',
-              whiteSpace: 'nowrap',
-            }}
+            className={`px-3.5 py-2 border-b-2 text-sm whitespace-nowrap transition-all ${
+              activePhase === p.value
+                ? 'font-bold text-blue-600 border-blue-600'
+                : 'font-normal text-gray-500 border-transparent hover:text-gray-700'
+            }`}
           >
             {l(p.label)}
           </button>
@@ -114,15 +115,14 @@ export default function EducationClient() {
       </nav>
 
       {/* Category Filter */}
-      <div role="group" aria-label="Category filter" style={{ display: 'flex', gap: 6, marginBottom: 20, flexWrap: 'wrap' }}>
+      <div role="group" aria-label="Category filter" className="flex gap-1.5 mb-5 flex-wrap">
         <button
           onClick={() => setActiveCategory(null)}
-          style={{
-            padding: '6px 12px', borderRadius: 20, border: '1px solid #ddd',
-            background: !activeCategory ? '#f0f7ff' : '#fff',
-            color: !activeCategory ? '#2563eb' : '#666',
-            cursor: 'pointer', fontSize: 13,
-          }}
+          className={`px-3 py-1.5 rounded-full border text-[13px] transition-all ${
+            !activeCategory
+              ? 'bg-blue-50 text-blue-600 border-blue-200'
+              : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'
+          }`}
         >
           {l(PAGE_LABELS.allCategories)}
         </button>
@@ -130,12 +130,11 @@ export default function EducationClient() {
           <button
             key={c.value}
             onClick={() => setActiveCategory(c.value)}
-            style={{
-              padding: '6px 12px', borderRadius: 20, border: '1px solid #ddd',
-              background: activeCategory === c.value ? '#f0f7ff' : '#fff',
-              color: activeCategory === c.value ? '#2563eb' : '#666',
-              cursor: 'pointer', fontSize: 13,
-            }}
+            className={`px-3 py-1.5 rounded-full border text-[13px] transition-all ${
+              activeCategory === c.value
+                ? 'bg-blue-50 text-blue-600 border-blue-200'
+                : 'bg-white text-gray-500 border-gray-200 hover:bg-gray-50'
+            }`}
           >
             {c.icon} {l(c.label)}
           </button>
@@ -144,29 +143,26 @@ export default function EducationClient() {
 
       {/* Content Cards */}
       {loading ? (
-        <p style={{ textAlign: 'center', color: '#999', padding: 40 }}>{l(PAGE_LABELS.loading)}</p>
+        <p className="text-center text-gray-400 py-10">{l(PAGE_LABELS.loading)}</p>
       ) : contents.length === 0 ? (
-        <p style={{ textAlign: 'center', color: '#999', padding: 40 }}>{l(PAGE_LABELS.noContent)}</p>
+        <p className="text-center text-gray-400 py-10">{l(PAGE_LABELS.noContent)}</p>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div className="flex flex-col gap-4">
           {contents.map(item => {
             const cat = CATEGORIES.find(c => c.value === item.category);
             return (
               <div
                 key={item.id}
-                style={{
-                  padding: 20, borderRadius: 12, border: '1px solid #e5e7eb',
-                  background: '#fff', boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
-                }}
+                className="p-5 rounded-xl border border-gray-200 bg-white shadow-sm"
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-                  <span style={{ fontSize: 20 }}>{cat?.icon}</span>
-                  <span style={{ fontSize: 12, color: '#888', background: '#f3f4f6', padding: '2px 8px', borderRadius: 10 }}>
+                <div className="flex items-center gap-2 mb-2.5">
+                  <span className="text-xl">{cat?.icon}</span>
+                  <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded-lg">
                     {cat ? l(cat.label) : item.category}
                   </span>
                 </div>
-                <h3 style={{ fontSize: 18, fontWeight: 600, marginBottom: 8 }}>{item.title}</h3>
-                <p style={{ fontSize: 15, color: '#444', lineHeight: 1.6, whiteSpace: 'pre-line' }}>{item.body}</p>
+                <h3 className="text-lg font-semibold mb-2">{item.title}</h3>
+                <p className="text-[15px] text-gray-600 leading-relaxed whitespace-pre-line">{item.body}</p>
               </div>
             );
           })}

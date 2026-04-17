@@ -16,10 +16,10 @@ const PRIMARY_TABS = [
 ];
 
 const MORE_TABS = [
-  { href: '/patient/education', icon: BookOpen, label: { ko: '건강 교육', en: 'Education', ru: 'Обучение', kz: 'Білім', zh: '教育', ja: '教育' } },
+  { href: '/education', icon: BookOpen, label: { ko: '건강 교육', en: 'Education', ru: 'Обучение', kz: 'Білім', zh: '教育', ja: '教育' } },
   { href: '/patient/symptoms', icon: Activity, label: { ko: '증상 기록', en: 'Symptoms', ru: 'Симптомы', kz: 'Белгілер', zh: '症状', ja: '症状' } },
   { href: '/patient/rebooking', icon: Calendar, label: { ko: '재진 예약', en: 'Rebooking', ru: 'Запись', kz: 'Қайта жазу', zh: '复诊', ja: '再診' } },
-  { href: '/patient/visa', icon: Globe, label: { ko: '비자 가이드', en: 'Visa Guide', ru: 'Виза', kz: 'Виза', zh: '签证指南', ja: 'ビザ' } },
+  { href: '/visa', icon: Globe, label: { ko: '비자 가이드', en: 'Visa Guide', ru: 'Виза', kz: 'Виза', zh: '签证指南', ja: 'ビザ' } },
 ];
 
 const MORE_LABEL = { ko: '더보기', en: 'More', ru: 'Ещё', kz: 'Көбірек', zh: '更多', ja: 'もっと' };

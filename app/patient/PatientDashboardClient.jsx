@@ -38,10 +38,10 @@ const MENU_ITEMS = [
   { key: 'aiChat', icon: MessageSquare, href: '/patient/chat', color: 'bg-teal-50 text-teal-600' },
   { key: 'consultations', icon: Video, href: '#consultations', color: 'bg-blue-50 text-blue-600' },
   { key: 'documents', icon: Upload, href: '/patient/documents', color: 'bg-purple-50 text-purple-600' },
-  { key: 'education', icon: BookOpen, href: '/patient/education', color: 'bg-green-50 text-green-600' },
+  { key: 'education', icon: BookOpen, href: '/education', color: 'bg-green-50 text-green-600' },
   { key: 'symptoms', icon: Activity, href: '/patient/symptoms', color: 'bg-orange-50 text-orange-600' },
   { key: 'rebooking', icon: Calendar, href: '/patient/rebooking', color: 'bg-teal-50 text-teal-600' },
-  { key: 'visa', icon: FileText, href: '/patient/visa', color: 'bg-indigo-50 text-indigo-600' },
+  { key: 'visa', icon: FileText, href: '/visa', color: 'bg-indigo-50 text-indigo-600' },
 ];
 
 export default function PatientDashboardClient() {
