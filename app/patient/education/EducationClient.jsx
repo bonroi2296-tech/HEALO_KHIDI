@@ -109,8 +109,8 @@ GUIDES.breast = {
     {
       icon: Stethoscope,
       color: 'text-blue-600 bg-blue-50',
-      image: 'https://images.unsplash.com/photo-1579684385127-1ef15d508118?w=800&auto=format&fit=crop&q=80',
-      imageAlt: 'Surgical team',
+      image: 'https://images.unsplash.com/photo-1516574187841-cb9cc2ca948b?w=800&auto=format&fit=crop&q=80',
+      imageAlt: 'Pink ribbon breast cancer awareness',
       title: { ko: '한국에서의 유방암 치료', en: 'Breast Cancer Treatment in Korea', ru: 'Лечение рака молочной железы в Корее', zh: '韩国的乳腺癌治疗', ja: '韓国での乳がん治療', kz: 'Кореядағы сүт безі обыры емдеу' },
       body: {
         ko: '한국의 유방암 5년 생존율은 93.8%로 세계 최고 수준입니다. 유방 보존술(부분 절제) 비율이 70% 이상이며, 로봇 수술과 온코플라스틱 수술로 외형 보존까지 가능합니다.\n\n주요 치료 방법:\n• 유방 보존술 — 종양만 제거하고 유방 모양을 최대한 보존\n• 유방 전절제 + 즉시 재건 — 실리콘 또는 자가조직으로 동시 복원\n• 항암화학요법 — 수술 전 종양 크기를 줄이거나 수술 후 재발 방지\n• 표적치료/호르몬치료 — HER2 양성, 호르몬 수용체 양성에 맞춤 치료\n• 방사선치료 — 수술 후 잔여 암세포 제거\n\n치료 기간은 수술 1-2주 + 항암/방사선 3-6개월입니다.',
