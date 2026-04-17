@@ -50,6 +50,28 @@ npx next build --webpack
 
 ---
 
+## 보안 체크리스트 (기능 개발 시 반드시 동시 적용)
+
+**새 API 라우트 만들 때:**
+- [ ] 인증 헬퍼 추가 (requireAdminAuth / requireConsultationAccess / checkAdminAuth)
+- [ ] 공개 POST면 rate limit 추가
+- [ ] catch 블록에서 error.message 응답 노출 안 하는지 확인
+- [ ] 환자 PII 다루면 encryptStringNullable() 암호화
+
+**새 DB 테이블/컬럼 추가할 때:**
+- [ ] RLS 활성화 + 정책 추가 (기본: service_role only)
+- [ ] PII 컬럼이면 *_encrypted 컬럼 같이 추가
+- [ ] 마이그레이션 파일에 RLS 포함
+
+**새 페이지 만들 때:**
+- [ ] 인증 필요한 페이지면 middleware.ts에 경로 보호 추가
+- [ ] 클라이언트에서 service_role 키 접근 안 하는지 확인
+
+> 이 체크리스트는 "나중에 몰아서" 가 아니라 **기능 개발과 동시에** 적용할 것.
+> 빠뜨리면 나중에 전수 감사 돌려야 함 (2026-04-17 교훈).
+
+---
+
 ## 보안 규칙 (필수 준수)
 
 ### API 응답
