@@ -15,6 +15,7 @@ import {
 import Nav from "../../components/healo/Nav";
 import Footer from "../../components/healo/Footer";
 import { PHOTO_FILTER } from "../../components/healo/Photos";
+import { SkeletonCard } from "../../components/healo/Skeleton";
 
 const COPY = {
   en: {
@@ -210,16 +211,15 @@ export default function HospitalsClientPremium() {
       <section style={{ padding: "72px 24px 96px" }}>
         <div style={{ maxWidth: 1240, margin: "0 auto" }}>
           {loading ? (
-            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-              {[0, 1, 2].map((i) => (
-                <div
-                  key={i}
-                  style={{
-                    height: 200,
-                    background: "var(--paper)",
-                    border: "1px solid var(--cream-2)",
-                  }}
-                />
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 280px), 1fr))",
+                gap: 48,
+              }}
+            >
+              {[0, 1, 2, 3, 4, 5].map((i) => (
+                <SkeletonCard key={i} />
               ))}
             </div>
           ) : filtered.length === 0 ? (

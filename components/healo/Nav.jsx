@@ -28,6 +28,11 @@ const NAV_ITEMS = [
     label: { en: "Guides", ko: "가이드", ru: "Руководства", kz: "Нұсқаулықтар", zh: "指南", ja: "ガイド" },
   },
   {
+    id: "faq",
+    href: "/faq",
+    label: { en: "FAQ", ko: "FAQ", ru: "FAQ", kz: "Сұрақтар", zh: "问答", ja: "FAQ" },
+  },
+  {
     id: "about",
     href: "/about",
     label: { en: "About", ko: "소개", ru: "О нас", kz: "Біз туралы", zh: "关于", ja: "会社情報" },

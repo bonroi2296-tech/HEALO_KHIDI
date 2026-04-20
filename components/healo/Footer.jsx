@@ -60,6 +60,7 @@ export default function Footer() {
                 { href: "/treatments", label: "Treatments" },
                 { href: "/hospitals", label: "Hospitals" },
                 { href: "/education", label: "Patient Guides" },
+                { href: "/faq", label: "FAQ" },
                 { href: "/intake", label: "Request Consultation" },
               ].map((l) => (
                 <Link

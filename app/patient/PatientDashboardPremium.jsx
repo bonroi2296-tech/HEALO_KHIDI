@@ -55,7 +55,6 @@ const COPY = {
     rebooking: "Rebook",
     chat: "AI assistant",
     calendar: "Calendar",
-    billing: "Billing",
     visa: "Visa",
     unreadMessages: (n) => `${n} unread`,
     footerNote: "All data is encrypted end-to-end. Contact your coordinator for any concerns.",
@@ -80,7 +79,6 @@ const COPY = {
     rebooking: "재예약",
     chat: "AI 상담",
     calendar: "캘린더",
-    billing: "청구서",
     visa: "비자",
     unreadMessages: (n) => `읽지 않음 ${n}`,
     footerNote: "모든 데이터는 종단 간 암호화되어 있습니다. 문의사항은 코디네이터에게 연락 주세요.",
@@ -94,7 +92,7 @@ const QUICK_LINKS = [
   { key: "documents", href: "/patient/documents" },
   { key: "symptoms", href: "/patient/symptoms" },
   { key: "rebooking", href: "/patient/rebooking" },
-  { key: "billing", href: "/patient/billing" },
+  { key: "visa", href: "/visa" },
   { key: "education", href: "/education" },
 ];
 
