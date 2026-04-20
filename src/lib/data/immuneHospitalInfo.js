@@ -10,8 +10,8 @@ export const IMMUNE_HOSPITAL = {
   officialName: {
     ko: "면력한방병원",
     en: "Immune Hospital",
-    ru: "Иммун Госпиталь",
-    kz: "Иммун госпиталі",
+    ru: "Иммунная Клиника",
+    kz: "Иммундық клиника",
     zh: "免疫医院",
     ja: "免疫病院",
   },

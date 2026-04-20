@@ -18,7 +18,7 @@ import {
 } from "../../components/healo/Primitives";
 import Nav from "../../components/healo/Nav";
 import Footer from "../../components/healo/Footer";
-import { PHOTOS, PHOTO_FILTER } from "../../components/healo/Photos";
+import { PHOTOS, IMMUNE_PHOTOS, PHOTO_FILTER, IMMUNE_PHOTO_FILTER } from "../../components/healo/Photos";
 
 const COPY = {
   en: {
@@ -30,7 +30,7 @@ const COPY = {
       "HEALO coordinates every step — from first consultation to follow-up — with Korea's most experienced oncology teams. For patients from anywhere in the world.",
     ctaPrimary: "Request consultation",
     ctaSecondary: "How it works",
-    heroCaption: "Asan Medical Center · Seoul",
+    heroCaption: "Immune Hospital · Magok (HEALO direct)",
     disclaimer:
       "We are not a medical institution. All diagnosis and treatment is delivered by licensed Korean providers.",
 
@@ -138,7 +138,7 @@ const COPY = {
       "HEALO는 첫 상담부터 사후 관리까지 한국 최고 수준 종양학 팀과 함께 조용히 코디네이팅합니다. 전 세계 어디에서 오시든.",
     ctaPrimary: "상담 신청",
     ctaSecondary: "진행 방식 보기",
-    heroCaption: "서울아산병원",
+    heroCaption: "면력한방병원 마곡 (HEALO 직영)",
     disclaimer:
       "HEALO는 의료기관이 아닙니다. 진단과 치료는 한국의 면허를 갖춘 의료진이 수행합니다.",
 
@@ -392,14 +392,14 @@ export default function HomeClientPremium() {
             }}
           >
             <img
-              src={PHOTOS.hero}
-              alt=""
+              src={IMMUNE_PHOTOS.team}
+              alt="HEALO · Immune Hospital team"
               style={{
                 width: "100%",
                 height: "100%",
                 objectFit: "cover",
                 display: "block",
-                filter: PHOTO_FILTER,
+                filter: IMMUNE_PHOTO_FILTER,
               }}
             />
             <div style={{ position: "absolute", left: 24, bottom: 24 }}>
@@ -612,6 +612,7 @@ export default function HomeClientPremium() {
                 </div>
                 <Eyebrow tone="muted">{h.specialty}</Eyebrow>
                 <h3
+                  translate="no"
                   style={{
                     fontFamily: "var(--font-serif)",
                     fontSize: 22,

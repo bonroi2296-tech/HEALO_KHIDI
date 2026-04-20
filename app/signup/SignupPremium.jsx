@@ -6,7 +6,8 @@ import { useRouter } from "next/navigation";
 import { useLang } from "../../src/lib/i18n/LangContext";
 import { createSupabaseBrowserClient } from "../../src/lib/supabase/browser";
 import { Eyebrow, Rule, ButtonGold, FilmGrain } from "../../components/healo/Primitives";
-import { PHOTOS, PHOTO_FILTER } from "../../components/healo/Photos";
+import { IMMUNE_PHOTOS, IMMUNE_PHOTO_FILTER as PHOTO_FILTER } from "../../components/healo/Photos";
+const PHOTOS = { hospital2: IMMUNE_PHOTOS.facilityTreatment };
 
 const COPY = {
   en: {

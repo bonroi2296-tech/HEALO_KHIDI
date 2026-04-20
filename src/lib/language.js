@@ -28,17 +28,27 @@ export const getCurrentLangCode = () => {
 export const localize = (record, field, lang) => {
   if (!record) return '';
   const langCode = lang || getCurrentLangCode();
-  
+
+  // 1) 직접 컬럼: name_ko, name_en, name_ru, name_kz, name_zh, name_ja 등
+  const directCol = record?.[`${field}_${langCode}`];
+  if (directCol !== undefined && directCol !== null && directCol !== '') return directCol;
+
+  // 2) JSONB i18n 필드: record.i18n[lang][field]
   const i18nVal = record?.i18n?.[langCode]?.[field];
   if (i18nVal !== undefined && i18nVal !== null && i18nVal !== '') return i18nVal;
-  
+
+  // 3) 한국어 요청 시: 기본 컬럼이 원본 한국어
   if (langCode === 'ko') return record?.[field] ?? '';
-  
+
+  // 4) 다른 언어 폴백: name_en 직접 컬럼 → i18n.en → 원본
   if (langCode !== 'en') {
+    const enDirect = record?.[`${field}_en`];
+    if (enDirect !== undefined && enDirect !== null && enDirect !== '') return enDirect;
+
     const enVal = record?.i18n?.en?.[field];
     if (enVal !== undefined && enVal !== null && enVal !== '') return enVal;
   }
-  
+
   return record?.[field] ?? '';
 };
 

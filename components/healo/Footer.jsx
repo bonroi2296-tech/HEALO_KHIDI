@@ -26,6 +26,7 @@ export default function Footer() {
           {/* Brand */}
           <div>
             <div
+              translate="no"
               style={{
                 fontFamily: "var(--font-serif)",
                 fontWeight: 500,

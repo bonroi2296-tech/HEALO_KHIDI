@@ -334,6 +334,7 @@ function HospitalCard({ hospital, copy, lang }) {
 
         <Eyebrow tone="muted">{tagLabel}</Eyebrow>
         <h3
+          translate="no"
           style={{
             fontFamily: "var(--font-serif)",
             fontSize: 22,

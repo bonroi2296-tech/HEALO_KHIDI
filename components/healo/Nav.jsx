@@ -112,6 +112,7 @@ export default function Nav({ current }) {
         {/* Wordmark */}
         <Link
           href="/"
+          translate="no"
           style={{
             fontFamily: "var(--font-serif)",
             fontWeight: 500,
