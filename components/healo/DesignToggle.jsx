@@ -1,55 +1,61 @@
 "use client";
 
 /**
- * DesignToggle — 화면 우측 하단 플로팅 버튼으로 디자인 모드 즉시 전환
+ * DesignToggle — 우하단 작은 플로팅 버튼으로 디자인 모드 전환 (QA 용도)
  *
- * 개발·QA 중에만 표시. 배포 전에는 env var로 강제하거나 이 컴포넌트 제거.
- * 현재는 localStorage 기반이므로 브라우저에서만 작동.
+ * 작동 방식: 쿠키 `healo_design` 에 저장 후 페이지 새로고침.
+ * 서버와 클라이언트 둘 다 이 쿠키를 읽어 일관된 모드 적용.
+ *
+ * 배포 전 production에서 숨기려면 env NEXT_PUBLIC_DESIGN_TOGGLE=off 로 설정.
  */
 
 import { useState, useEffect } from "react";
-import { getClientDesignMode, setDesignMode } from "../../src/lib/designMode";
+import { getClientDesignMode, toggleDesignMode } from "../../src/lib/designMode";
 
 export default function DesignToggle() {
-  const [mode, setMode] = useState("premium");
-  const [mounted, setMounted] = useState(false);
+  const [mode, setMode] = useState(null);
 
   useEffect(() => {
-    setMounted(true);
     setMode(getClientDesignMode());
   }, []);
 
-  if (!mounted) return null;
+  // 환경변수로 숨김 가능
+  const isHidden = process.env.NEXT_PUBLIC_DESIGN_TOGGLE === "off";
+  if (isHidden || mode === null) return null;
+
+  const isPremium = mode === "premium";
 
   return (
-    <div
+    <button
+      onClick={toggleDesignMode}
+      aria-label={`Switch to ${isPremium ? "Legacy" : "Premium"} design`}
+      title={`Current: ${isPremium ? "Premium" : "Legacy"}. Click to switch.`}
       style={{
         position: "fixed",
-        bottom: 20,
-        right: 20,
+        bottom: 16,
+        right: 16,
         zIndex: 9999,
-        background: "var(--ink-0, #0a0a0a)",
-        color: "var(--gold-0, #c8a96a)",
-        border: "1px solid var(--gold-0, #c8a96a)",
+        background: isPremium ? "var(--ink-0, #0a0a0a)" : "#0d9488",
+        color: isPremium ? "var(--gold-0, #c8a96a)" : "#ffffff",
+        border: isPremium
+          ? "1px solid var(--gold-0, #c8a96a)"
+          : "1px solid rgba(255,255,255,0.4)",
         borderRadius: 2,
-        padding: "8px 14px",
-        fontFamily: "var(--font-sans, system-ui)",
-        fontSize: 10,
+        padding: "6px 10px",
+        fontFamily: "system-ui, -apple-system, sans-serif",
+        fontSize: 9,
         fontWeight: 600,
-        letterSpacing: "0.2em",
+        letterSpacing: "0.18em",
         textTransform: "uppercase",
         cursor: "pointer",
-        boxShadow: "0 8px 24px rgba(0,0,0,0.3)",
-        opacity: 0.85,
+        boxShadow: "0 4px 16px rgba(0,0,0,0.2)",
+        opacity: 0.6,
         transition: "opacity 150ms",
       }}
       onMouseEnter={(e) => (e.currentTarget.style.opacity = "1")}
-      onMouseLeave={(e) => (e.currentTarget.style.opacity = "0.85")}
-      onClick={() => setDesignMode(mode === "premium" ? "legacy" : "premium")}
-      title="Toggle HEALO design mode (premium ↔ legacy)"
+      onMouseLeave={(e) => (e.currentTarget.style.opacity = "0.6")}
     >
-      {mode === "premium" ? "◆ Premium" : "◇ Legacy"} &nbsp;→&nbsp;{" "}
-      {mode === "premium" ? "Legacy" : "Premium"}
-    </div>
+      {isPremium ? "◆ Premium" : "◇ Legacy"} · Switch
+    </button>
   );
 }

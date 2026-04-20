@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { cookies } from "next/headers";
 import HomeClient from "./home/HomeClient";
 import HomeClientPremium from "./home/HomeClientPremium";
 import Script from "next/script";
@@ -58,8 +59,10 @@ const jsonLd = {
   serviceType: "Cancer Pre-consultation & Post-care Platform",
 };
 
-export default function HomePage() {
-  const mode = getServerDesignMode();
+export default async function HomePage({ searchParams }) {
+  const sp = (await searchParams) || {};
+  const ck = await cookies();
+  const mode = getServerDesignMode({ searchParams: sp, cookies: ck });
   const Client = mode === "legacy" ? HomeClient : HomeClientPremium;
   return (
     <>

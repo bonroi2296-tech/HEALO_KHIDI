@@ -1,64 +1,84 @@
 /**
  * HEALO Design Mode — Feature flag
  *
- * Controls which version of UI is rendered:
- * - "premium" (default): New D. Premium design (ink/gold/cream, Playfair + Inter)
- * - "legacy": Original Tailwind/Shadcn-style design
- *
- * ROLLBACK INSTRUCTIONS:
- * 1. Set Vercel environment variable: NEXT_PUBLIC_DESIGN=legacy
- * 2. Redeploy (or Vercel auto-redeploys on env change)
- * 3. All pages revert to pre-premium design instantly
- *
- * Can also be overridden per-request with ?design=legacy query param (client-side only).
+ * 롤백 방법 (우선순위 순):
+ * 1. URL 쿼리: ?design=legacy 또는 ?design=premium
+ *    → 쿠키에 저장되어 다음 방문에도 유지됨
+ * 2. 쿠키: healo_design=legacy
+ * 3. Vercel 환경변수: NEXT_PUBLIC_DESIGN=legacy (전체 사용자 강제)
+ * 4. 기본값: premium
  */
 
 export const DEFAULT_MODE = "premium";
+export const COOKIE_NAME = "healo_design";
 
 /**
- * Server-side / build-time read from env.
- * Safe for RSC, layouts, and middleware.
+ * 서버/빌드 시 모드 결정.
+ * page.jsx에서 searchParams와 cookies()를 받아 사용 권장.
  */
-export function getServerDesignMode() {
-  const raw = process.env.NEXT_PUBLIC_DESIGN?.toLowerCase();
-  if (raw === "legacy") return "legacy";
+export function getServerDesignMode({ searchParams, cookies } = {}) {
+  // 1. URL 쿼리 최우선
+  const q = searchParams?.design?.toLowerCase?.();
+  if (q === "legacy" || q === "premium") return q;
+
+  // 2. 쿠키
+  const cookieValue = cookies?.get?.(COOKIE_NAME)?.value?.toLowerCase?.();
+  if (cookieValue === "legacy" || cookieValue === "premium") return cookieValue;
+
+  // 3. 환경변수
+  const env = process.env.NEXT_PUBLIC_DESIGN?.toLowerCase();
+  if (env === "legacy") return "legacy";
+
   return DEFAULT_MODE;
 }
 
 /**
- * Client-side mode. Checks:
- * 1. URL query param `?design=legacy` (highest priority, session-only)
- * 2. localStorage override (via toggle UI)
- * 3. Build-time env
+ * 클라이언트 모드.
+ * URL 쿼리 > 쿠키 > env 순.
  */
 export function getClientDesignMode() {
-  if (typeof window === "undefined") return getServerDesignMode();
+  if (typeof window === "undefined") {
+    return getServerDesignMode();
+  }
   try {
     const qs = new URLSearchParams(window.location.search);
     const q = qs.get("design")?.toLowerCase();
     if (q === "legacy" || q === "premium") return q;
-    const stored = window.localStorage.getItem("healo:design");
-    if (stored === "legacy" || stored === "premium") return stored;
+
+    // 쿠키 확인
+    const m = document.cookie.match(new RegExp(`(?:^|; )${COOKIE_NAME}=([^;]*)`));
+    if (m) {
+      const v = decodeURIComponent(m[1]).toLowerCase();
+      if (v === "legacy" || v === "premium") return v;
+    }
   } catch {
     /* ignore */
   }
-  return getServerDesignMode();
+  const env = process.env.NEXT_PUBLIC_DESIGN?.toLowerCase();
+  if (env === "legacy") return "legacy";
+  return DEFAULT_MODE;
 }
 
 /**
- * Toggle design mode in browser (for internal/preview use).
- * Stores in localStorage and reloads.
+ * 디자인 모드 설정 + 쿠키 저장 + 새로고침.
+ * 쿠키는 1년 유효.
  */
-export function toggleDesignMode() {
+export function setDesignMode(mode) {
   if (typeof window === "undefined") return;
-  const current = getClientDesignMode();
-  const next = current === "premium" ? "legacy" : "premium";
-  window.localStorage.setItem("healo:design", next);
+  if (mode !== "legacy" && mode !== "premium") return;
+  document.cookie = `${COOKIE_NAME}=${mode}; path=/; max-age=${60 * 60 * 24 * 365}`;
+  // URL의 ?design= 쿼리 제거 (쿠키가 우선되도록)
+  try {
+    const url = new URL(window.location.href);
+    url.searchParams.delete("design");
+    window.history.replaceState({}, "", url.toString());
+  } catch {
+    /* ignore */
+  }
   window.location.reload();
 }
 
-export function setDesignMode(mode) {
-  if (typeof window === "undefined") return;
-  window.localStorage.setItem("healo:design", mode);
-  window.location.reload();
+export function toggleDesignMode() {
+  const current = getClientDesignMode();
+  setDesignMode(current === "premium" ? "legacy" : "premium");
 }

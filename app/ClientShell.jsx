@@ -145,6 +145,34 @@ export default function ClientShell({ children }) {
   const hideBottomNav = pathname.includes("success");
   const isPortalPage = pathname.startsWith("/admin") || pathname.startsWith("/partner");
 
+  // D. Premium 디자인 적용 라우트 — 자체 Nav/Footer를 가지므로 ClientShell의 Header/Footer 숨김
+  const PREMIUM_ROUTES = ["/", "/intake", "/education", "/privacy", "/terms", "/medical-disclaimer"];
+  const [isPremiumMode, setIsPremiumMode] = useState(true);
+  useEffect(() => {
+    try {
+      // 우선순위: ?design= 쿼리 > 쿠키 > env
+      const qs = new URLSearchParams(window.location.search);
+      const q = qs.get("design")?.toLowerCase();
+      if (q === "legacy" || q === "premium") {
+        setIsPremiumMode(q === "premium");
+        return;
+      }
+      const m = document.cookie.match(/(?:^|; )healo_design=([^;]*)/);
+      if (m) {
+        const v = decodeURIComponent(m[1]).toLowerCase();
+        if (v === "legacy" || v === "premium") {
+          setIsPremiumMode(v === "premium");
+          return;
+        }
+      }
+      const env = process.env.NEXT_PUBLIC_DESIGN?.toLowerCase();
+      setIsPremiumMode(env !== "legacy");
+    } catch {
+      setIsPremiumMode(true);
+    }
+  }, [pathname]);
+  const isPremiumPage = isPremiumMode && PREMIUM_ROUTES.includes(pathname);
+
   // --- Idle timeout (portal pages only, 10 min) ---
   const IDLE_LIMIT_MS = 10 * 60 * 1000;
   const WARNING_MS = 9 * 60 * 1000;
@@ -210,6 +238,7 @@ export default function ClientShell({ children }) {
         handleNavClick={handleNavClick}
         isHospitalUser={isHospitalUser}
         hideBottomNav={hideBottomNav}
+        isPremiumPage={isPremiumPage}
       >
         {children}
       </ClientShellContent>
@@ -230,6 +259,7 @@ function ClientShellContent({
   handleNavClick,
   isHospitalUser,
   hideBottomNav,
+  isPremiumPage = false,
   children,
 }) {
   const langCode = useLang();
@@ -237,7 +267,7 @@ function ClientShellContent({
     <div className="font-sans text-gray-800 bg-gray-50 min-h-screen min-h-screen-safe relative">
       {isPortalPage ? (
         <PortalTopBar session={session} onLogout={handleLogout} siteConfig={siteConfig} langCode={langCode} />
-      ) : (
+      ) : isPremiumPage ? null : (
         <Header
           setView={handleSetView}
           view={getCurrentView}
@@ -257,7 +287,7 @@ function ClientShellContent({
         <main className={isPortalPage ? "" : "pb-24 pb-safe-area"}>{children}</main>
       </ErrorBoundary>
 
-      {!isPortalPage && <footer className="bg-white border-t border-gray-100 pt-safe-area">
+      {!isPortalPage && !isPremiumPage && <footer className="bg-white border-t border-gray-100 pt-safe-area">
         <div className="max-w-6xl mx-auto px-4 py-8 sm:py-10 text-sm text-gray-600">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div>
@@ -323,7 +353,7 @@ function ClientShellContent({
         </div>
       </footer>}
 
-      {!hideBottomNav && !isPortalPage && (
+      {!hideBottomNav && !isPortalPage && !isPremiumPage && (
         <>
           <MobileBottomNav
             setView={handleSetView}

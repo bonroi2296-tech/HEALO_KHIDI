@@ -1,3 +1,4 @@
+import { cookies } from "next/headers";
 import MedicalDisclaimerClient from "./MedicalDisclaimerClient";
 import MedicalDisclaimerClientLegacy from "./MedicalDisclaimerClientLegacy";
 import { getServerDesignMode } from "../../src/lib/designMode";
@@ -9,7 +10,9 @@ export const metadata = {
   alternates: { canonical: "/medical-disclaimer" },
 };
 
-export default function MedicalDisclaimerPage() {
-  const mode = getServerDesignMode();
+export default async function MedicalDisclaimerPage({ searchParams }) {
+  const sp = (await searchParams) || {};
+  const ck = await cookies();
+  const mode = getServerDesignMode({ searchParams: sp, cookies: ck });
   return mode === "legacy" ? <MedicalDisclaimerClientLegacy /> : <MedicalDisclaimerClient />;
 }

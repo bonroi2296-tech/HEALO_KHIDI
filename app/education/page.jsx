@@ -1,3 +1,4 @@
+import { cookies } from "next/headers";
 import EducationClient from "../patient/education/EducationClient";
 import EducationClientPremium from "../patient/education/EducationClientPremium";
 import { getServerDesignMode } from "../../src/lib/designMode";
@@ -19,7 +20,9 @@ export const metadata = {
   alternates: { canonical: "/education" },
 };
 
-export default function PublicEducationPage() {
-  const mode = getServerDesignMode();
+export default async function PublicEducationPage({ searchParams }) {
+  const sp = (await searchParams) || {};
+  const ck = await cookies();
+  const mode = getServerDesignMode({ searchParams: sp, cookies: ck });
   return mode === "legacy" ? <EducationClient /> : <EducationClientPremium />;
 }

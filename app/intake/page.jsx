@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { cookies } from "next/headers";
 import IntakeLegacy from "./IntakeLegacy";
 import IntakePremium from "./IntakePremium";
 import { getServerDesignMode } from "../../src/lib/designMode";
@@ -10,8 +11,10 @@ export const metadata = {
   alternates: { canonical: "/intake" },
 };
 
-export default function IntakePage() {
-  const mode = getServerDesignMode();
+export default async function IntakePage({ searchParams }) {
+  const sp = (await searchParams) || {};
+  const ck = await cookies();
+  const mode = getServerDesignMode({ searchParams: sp, cookies: ck });
   const Client = mode === "legacy" ? IntakeLegacy : IntakePremium;
   return (
     <Suspense>

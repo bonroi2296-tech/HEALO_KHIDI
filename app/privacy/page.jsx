@@ -1,3 +1,4 @@
+import { cookies } from "next/headers";
 import PrivacyPolicyClient from "./PrivacyPolicyClient";
 import PrivacyPolicyClientLegacy from "./PrivacyPolicyClientLegacy";
 import { getServerDesignMode } from "../../src/lib/designMode";
@@ -9,7 +10,9 @@ export const metadata = {
   alternates: { canonical: "/privacy" },
 };
 
-export default function PrivacyPolicyPage() {
-  const mode = getServerDesignMode();
+export default async function PrivacyPolicyPage({ searchParams }) {
+  const sp = (await searchParams) || {};
+  const ck = await cookies();
+  const mode = getServerDesignMode({ searchParams: sp, cookies: ck });
   return mode === "legacy" ? <PrivacyPolicyClientLegacy /> : <PrivacyPolicyClient />;
 }
