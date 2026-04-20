@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { getLangCodeFromCookie } from "../../../src/lib/i18n";
+
 import { CANCER_TYPES, PAGE_LABELS, GUIDES } from "./EducationClient";
 import {
   Eyebrow,

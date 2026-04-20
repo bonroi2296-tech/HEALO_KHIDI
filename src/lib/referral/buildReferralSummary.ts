@@ -115,11 +115,12 @@ export async function buildReferralSummaryJson(
 
   if (normErr || !norm) return null;
 
-  const constraints = norm.constraints && typeof norm.constraints === "object" ? norm.constraints : {};
-  const intake = constraints.intake && typeof constraints.intake === "object" ? constraints.intake : {};
-  const complaint = intake.complaint && typeof intake.complaint === "object" ? intake.complaint : {};
-  const history = intake.history && typeof intake.history === "object" ? intake.history : {};
-  const logistics = intake.logistics && typeof intake.logistics === "object" ? intake.logistics : {};
+  // jsonb 컬럼 — TS Json 타입은 인덱싱 불허라 any 로 접근
+  const constraints: any = (norm.constraints && typeof norm.constraints === "object" && !Array.isArray(norm.constraints)) ? norm.constraints : {};
+  const intake: any = (constraints.intake && typeof constraints.intake === "object" && !Array.isArray(constraints.intake)) ? constraints.intake : {};
+  const complaint: any = (intake.complaint && typeof intake.complaint === "object" && !Array.isArray(intake.complaint)) ? intake.complaint : {};
+  const history: any = (intake.history && typeof intake.history === "object" && !Array.isArray(intake.history)) ? intake.history : {};
+  const logistics: any = (intake.logistics && typeof intake.logistics === "object" && !Array.isArray(intake.logistics)) ? intake.logistics : {};
 
   // ✅ Security: pathAuthorized 검증 포함하여 attachments 생성
   const { data: inquiry, error: inquiryErr } = await supabaseAdmin

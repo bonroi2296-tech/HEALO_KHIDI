@@ -60,7 +60,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: false, error: "hospital_not_found" }, { status: 404 });
   }
 
-  const hospitalRow = hospital as HospitalRow;
+  const hospitalRow = hospital as unknown as HospitalRow;
 
   try {
     const pipelineResult = await runPipeline(hospitalRow, requestedSources);

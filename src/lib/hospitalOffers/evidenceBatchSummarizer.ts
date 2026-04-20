@@ -93,7 +93,7 @@ export async function buildOffersFromEvidenceBatch(
       system: SYSTEM_PROMPT,
       prompt: userPrompt,
       temperature: TEMPERATURE,
-      maxTokens: Math.max(1024, candidates.length * 280),
+      maxOutputTokens: Math.max(1024, candidates.length * 280),
       abortSignal: abortController.signal,
     });
     clearTimeout(timeoutId);

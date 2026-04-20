@@ -47,9 +47,9 @@ export async function GET(request: NextRequest) {
     const usedRate = total > 0 ? Math.round((usedCount / total) * 10000) / 100 : 0;
     const handoffCount = events.filter((e) => e.handoff_requested).length;
     const handoffRate = total > 0 ? Math.round((handoffCount / total) * 10000) / 100 : 0;
-    const fallbackCount = events.filter((e) => e.metadata?.analytics_fallback === true).length;
+    const fallbackCount = events.filter((e) => (e.metadata as any)?.analytics_fallback === true).length;
     const fallbackRate = total > 0 ? Math.round((fallbackCount / total) * 10000) / 100 : 0;
-    const latencies = events.filter((e) => e.latency_ms != null).map((e) => e.latency_ms);
+    const latencies: number[] = events.filter((e) => e.latency_ms != null).map((e) => e.latency_ms as number);
     const avgLatencyMs = latencies.length > 0
       ? Math.round(latencies.reduce((a: number, b: number) => a + b, 0) / latencies.length)
       : 0;

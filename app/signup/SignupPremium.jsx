@@ -99,7 +99,7 @@ const OVERSEAS_TRANSFER = {
 };
 
 export default function SignupPremium() {
-  const router = useRouter();
+  const _router = useRouter();
   const lang = useLang();
   const copy = COPY[lang] || COPY.en;
 
@@ -127,7 +127,7 @@ export default function SignupPremium() {
     setLoading(true);
     try {
       const supabase = createSupabaseBrowserClient();
-      const { data, error } = await supabase.auth.signUp({
+      const { data: _data, error } = await supabase.auth.signUp({
         email: form.email,
         password: form.password,
         options: {

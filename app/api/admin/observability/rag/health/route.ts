@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
     const { hours, label } = parseWindow(windowParam);
     const since = new Date(Date.now() - hours * 60 * 60 * 1000).toISOString();
 
-    const { data: agg, error } = await supabaseAdmin.rpc("rag_health_aggregates", {
+    const { data: agg, error } = await (supabaseAdmin as any).rpc("rag_health_aggregates", {
       p_since: since,
     });
 

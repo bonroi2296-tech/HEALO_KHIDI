@@ -164,8 +164,15 @@ export async function POST(request: NextRequest) {
     }
 
     // 발송
-    const results = [];
-    
+    const results: Array<{
+      recipient_id: string;
+      recipient_label: string;
+      phone_masked: string;
+      success: boolean;
+      error?: string;
+      message_id?: string;
+    }> = [];
+
     for (const recipient of recipients) {
       const result = await sendTestNotification({
         recipientId: recipient.id,

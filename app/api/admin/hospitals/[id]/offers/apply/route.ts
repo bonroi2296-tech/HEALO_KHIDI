@@ -172,7 +172,7 @@ export async function POST(
       sources,
       evidence: offer.evidence ?? {},
       raw_hash: rawHash.slice(0, 512),
-    });
+    } as any);
   }
 
   const { authResult } = auth;

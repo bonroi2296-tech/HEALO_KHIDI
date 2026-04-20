@@ -373,7 +373,7 @@ export async function PATCH(request: NextRequest) {
     // ========================================
     // 5. Slug 결정 (정책: UPDATE시 기존 slug 유지)
     // ========================================
-    const finalName = validatedData.name?.trim() || existing.name;
+    const finalName = validatedData.name?.trim() || existing.name || "";
     const finalSlug = resolveSlugForUpdate(validatedData.slug, existing.slug, finalName);
 
     // ========================================

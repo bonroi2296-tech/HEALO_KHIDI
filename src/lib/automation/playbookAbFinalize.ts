@@ -34,17 +34,28 @@ function computeRates(s: BucketStats): BucketStats {
   return s;
 }
 
+type VariantWithParent = Record<string, any> & {
+  id: string;
+  last_auto_action_at?: string | null;
+  rag_document_id?: string | null;
+  parent?: (Record<string, any> & { id: string; rag_document_id?: string | null }) | null;
+};
+
 export async function runAbFinalize(jobId: string): Promise<{ evaluated: number; promoted: number; variant_retired: number }> {
-  const { data: variants } = await supabaseAdmin
+  // Supabase embed — 동일 테이블 self-join 은 TypeScript 추론이 실패해 any 로 캐스트.
+  // 런타임 동작은 정상.
+  const { data: variantsRaw } = await supabaseAdmin
     .from("playbook_patterns")
     .select("*, parent:auto_parent_id(*)")
     .eq("auto_status", "ab_testing")
     .eq("ab_bucket", "variant")
     .eq("is_active", true);
 
+  const variants = (variantsRaw as unknown as VariantWithParent[]) || [];
+
   let evaluated = 0, promoted = 0, variantRetired = 0;
 
-  for (const variant of variants || []) {
+  for (const variant of variants) {
     const parent = variant.parent;
     if (!parent) continue;
 
@@ -63,21 +74,22 @@ export async function runAbFinalize(jobId: string): Promise<{ evaluated: number;
     const controlStats = emptyStats();
 
     for (const ev of events || []) {
-      const pids = ev.retrieved_pattern_ids || [];
+      const pids = (ev as any).retrieved_pattern_ids || [];
+      const meta = (ev as any).metadata as Record<string, any> | null | undefined;
       const hasVariant = pids.includes(variant.id);
       const hasControl = pids.includes(parent.id);
 
       if (hasVariant) {
         variantStats.total++;
-        if (ev.used && ev.used_pattern_id === variant.id) variantStats.used++;
-        if (ev.handoff_requested) variantStats.handoff++;
-        if (ev.metadata?.analytics_fallback) variantStats.fallback++;
+        if ((ev as any).used && (ev as any).used_pattern_id === variant.id) variantStats.used++;
+        if ((ev as any).handoff_requested) variantStats.handoff++;
+        if (meta?.analytics_fallback) variantStats.fallback++;
       }
       if (hasControl) {
         controlStats.total++;
-        if (ev.used && ev.used_pattern_id === parent.id) controlStats.used++;
-        if (ev.handoff_requested) controlStats.handoff++;
-        if (ev.metadata?.analytics_fallback) controlStats.fallback++;
+        if ((ev as any).used && (ev as any).used_pattern_id === parent.id) controlStats.used++;
+        if ((ev as any).handoff_requested) controlStats.handoff++;
+        if (meta?.analytics_fallback) controlStats.fallback++;
       }
     }
 
@@ -115,9 +127,17 @@ export async function runAbFinalize(jobId: string): Promise<{ evaluated: number;
       }
 
       await supabaseAdmin.from("auto_job_events").insert({
-        job_id: jobId, pattern_id: variant.id, action: "ab_finalize",
-        result: "variant_promoted",
-        detail: { parent_id: parent.id, days: Math.round(daysSince), total_uses: totalUses, variant: variantStats, control: controlStats },
+        job_id: jobId,
+        event_type: "ab_finalize.variant_promoted",
+        step: "ab_finalize",
+        data: {
+          pattern_id: variant.id,
+          parent_id: parent.id,
+          days: Math.round(daysSince),
+          total_uses: totalUses,
+          variant: variantStats as unknown as Record<string, number>,
+          control: controlStats as unknown as Record<string, number>,
+        } as any,
       });
       promoted++;
     } else {
@@ -138,9 +158,17 @@ export async function runAbFinalize(jobId: string): Promise<{ evaluated: number;
       }).eq("id", parent.id);
 
       await supabaseAdmin.from("auto_job_events").insert({
-        job_id: jobId, pattern_id: variant.id, action: "ab_finalize",
-        result: "variant_retired",
-        detail: { parent_id: parent.id, days: Math.round(daysSince), total_uses: totalUses, variant: variantStats, control: controlStats },
+        job_id: jobId,
+        event_type: "ab_finalize.variant_retired",
+        step: "ab_finalize",
+        data: {
+          pattern_id: variant.id,
+          parent_id: parent.id,
+          days: Math.round(daysSince),
+          total_uses: totalUses,
+          variant: variantStats as unknown as Record<string, number>,
+          control: controlStats as unknown as Record<string, number>,
+        } as any,
       });
       variantRetired++;
     }

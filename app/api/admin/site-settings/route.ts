@@ -131,7 +131,7 @@ export async function PUT(request: NextRequest) {
       // INSERT (첫 생성)
       const { data, error } = await supabaseAdmin
         .from("site_settings")
-        .insert(updateData)
+        .insert(updateData as any)
         .select()
         .single();
 

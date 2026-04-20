@@ -254,7 +254,7 @@ export async function POST(request: Request) {
       objective: null,
       extraction_confidence,
       missing_fields: missing_fields.length ? missing_fields : null,
-    });
+    } as any);
 
     if (insertError) {
       throw insertError;
@@ -272,9 +272,9 @@ export async function POST(request: Request) {
     // ✅ P2: 퍼널 이벤트 추적 (채팅 메시지)
     trackFunnelEvent({
       stage: 'chat_message',
-      sessionId: sessionId,
-      page: page,
-      utm: utm,
+      sessionId: sessionId ?? undefined,
+      page: page ?? undefined,
+      utm: utm ?? undefined,
       language: lang,
     });
   } catch (error: any) {
@@ -292,7 +292,7 @@ export async function POST(request: Request) {
     // ✅ P2: 퍼널 이벤트 추적 (에러)
     trackFunnelEvent({
       stage: 'chat_error',
-      sessionId: sessionId,
+      sessionId: sessionId ?? undefined,
       dropReason: 'db_insert_failed',
     });
   }
@@ -422,7 +422,7 @@ export async function POST(request: Request) {
         console.error("[api/chat] stream onError:", error instanceof Error ? error.message : error);
       },
     });
-    return result.toDataStreamResponse();
+    return result.toUIMessageStreamResponse();
   } catch (error: any) {
     const errMsg = error?.message || String(error);
     const errStack = error?.stack || "";

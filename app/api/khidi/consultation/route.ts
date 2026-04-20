@@ -95,7 +95,7 @@ export async function POST(request: NextRequest) {
 
     const { data, error } = await supabaseAdmin
       .from("consultation_sessions")
-      .insert([insertData])
+      .insert([insertData] as any)
       .select(
         "id, patient_user_id, session_type, scheduled_at, status, livekit_room_name, created_at"
       )

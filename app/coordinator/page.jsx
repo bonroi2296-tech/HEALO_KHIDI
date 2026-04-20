@@ -16,7 +16,7 @@ export default function CoordinatorDashboard() {
     activePatients: 0,
     urgentAlerts: 0,
   });
-  const [recentIntakes, setRecentIntakes] = useState([]);
+  const [_recentIntakes, _setRecentIntakes] = useState([]);
   const [upcomingConsultations, setUpcomingConsultations] = useState([]);
   const [loading, setLoading] = useState(true);
 

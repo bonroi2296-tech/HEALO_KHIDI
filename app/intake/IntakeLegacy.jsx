@@ -7,7 +7,7 @@ import {
   Stethoscope, Heart, Calendar, FileCheck,
   ArrowRight, Sparkles, Clock,
 } from "lucide-react";
-import { supabaseClient } from "../../src/lib/data/supabaseClient";
+
 import { getLangCodeFromCookie } from "../../src/lib/i18n";
 
 // ─── i18n ───

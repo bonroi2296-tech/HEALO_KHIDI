@@ -81,7 +81,7 @@ export async function summarizeOffersBatch(input: SummarizeInput): Promise<Summa
       system: SYSTEM_PROMPT,
       prompt: userPrompt,
       temperature: TEMPERATURE,
-      maxTokens: 1024,
+      maxOutputTokens: 1024,
       abortSignal: abortController.signal,
     });
     clearTimeout(timeoutId);

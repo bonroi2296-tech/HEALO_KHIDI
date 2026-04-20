@@ -18,7 +18,9 @@ export const runtime = "nodejs";
 export const maxDuration = 120;
 
 async function updateProgress(jobId: string, progress: number, debug?: Record<string, unknown>) {
-  const payload: { progress: number; updated_at: string; debug?: Record<string, unknown> } = {
+  // hospital_offer_jobs 스키마에 updated_at 컬럼이 없어 any 캐스트로 우회 —
+  // 마이그레이션 시 updated_at 추가하거나 다른 컬럼 활용 필요.
+  const payload: any = {
     progress,
     updated_at: new Date().toISOString(),
   };
@@ -160,7 +162,7 @@ export async function POST(request: NextRequest) {
         debug,
         error: null,
         updated_at: new Date().toISOString(),
-      })
+      } as any)
       .eq("id", jobId);
 
     return Response.json({

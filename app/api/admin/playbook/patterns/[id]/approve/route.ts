@@ -229,7 +229,7 @@ export async function POST(
           .from("rag_documents")
           .update({
             metadata: {
-              ...(curDoc?.metadata || {}),
+              ...((curDoc?.metadata && typeof curDoc.metadata === "object" && !Array.isArray(curDoc.metadata)) ? curDoc.metadata : {}),
               ingest_status: "failed",
               ingest_error: String(err.message).slice(0, 500),
               failed_at: nowIso(),

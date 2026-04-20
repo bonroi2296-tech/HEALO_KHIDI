@@ -235,7 +235,7 @@ function ProgressRail({ steps, current }) {
 
 export default function IntakePremium() {
   const lang = useLang();
-  const router = useRouter();
+  const _router = useRouter();
   const copy = COPY[lang] || COPY.en;
   const [step, setStep] = useState(0);
   const [submitted, setSubmitted] = useState(false);

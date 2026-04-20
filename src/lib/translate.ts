@@ -131,7 +131,7 @@ export async function translateToAllLanguages(
       system: buildSystemPrompt(sourceLang, targetLangs),
       prompt: `Source language: ${sourceLang}\nTranslate this data:\n${JSON.stringify(compact)}`,
       temperature: 0.1,
-      maxTokens: 4096,
+      maxOutputTokens: 4096,
     });
 
     let cleaned = text.trim();

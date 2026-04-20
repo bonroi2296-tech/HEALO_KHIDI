@@ -68,7 +68,7 @@ export async function POST(
       return Response.json({ ok: false, error: "No messages in thread" }, { status: 400 });
     }
 
-    const transcript = buildTranscript(messages);
+    const transcript = buildTranscript(messages as any);
     const { sanitized, flags } = sanitizeResponse(transcript);
     const qualityScore = computeQualityScore(flags);
 

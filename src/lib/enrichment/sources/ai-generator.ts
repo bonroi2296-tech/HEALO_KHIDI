@@ -109,7 +109,7 @@ export const aiGeneratorSource: EnrichmentSource = {
         model,
         system: SYSTEM_PROMPT,
         prompt: context,
-        maxTokens: 8000,
+        maxOutputTokens: 8000,
         temperature: 0.7,
       });
 

@@ -93,7 +93,7 @@ const upsertDocumentAndChunks = async (doc: {
 
     if (error) throw error;
     documentId = inserted.id;
-    version = inserted.version;
+    version = inserted.version ?? 1;
   } else if (needsUpdate) {
     const { data: updated, error } = await supabaseAdmin
       .from("rag_documents")
@@ -109,7 +109,7 @@ const upsertDocumentAndChunks = async (doc: {
 
     if (error) throw error;
     documentId = updated.id;
-    version = updated.version;
+    version = updated.version ?? 1;
   }
 
   if (!documentId) return { updated: false, documentId: null };
@@ -119,7 +119,7 @@ const upsertDocumentAndChunks = async (doc: {
 
     const chunks = chunkText(doc.content);
     if (chunks.length > 0) {
-      const payload = [];
+      const payload: any[] = [];
       for (const chunk of chunks) {
         let embedding: number[] | null = null;
         try {

@@ -148,7 +148,7 @@ export async function POST(request: NextRequest) {
       // INSERT
       const { error: insertError } = await supabaseAdmin
         .from("site_settings")
-        .insert({ [fieldName]: publicUrl });
+        .insert({ [fieldName]: publicUrl } as any);
 
       if (insertError) {
         console.error(`[${apiPath}] site_settings INSERT 실패:`, insertError);

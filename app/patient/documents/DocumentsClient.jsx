@@ -144,7 +144,7 @@ export default function DocumentsClient() {
       } else {
         setMessage({ type: 'error', text: `${l(LABELS.error)}: ${result.error}` });
       }
-    } catch (e) {
+    } catch (_e) {
       setMessage({ type: 'error', text: l(LABELS.error) });
     }
     setUploading(false);

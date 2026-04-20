@@ -194,18 +194,18 @@ export async function POST(request: NextRequest) {
     }
 
     // 감사 로그 기록
-    if (authResult.userId) {
+    if (auth.authResult.userId) {
       await supabase.from('admin_audit_logs').insert({
-        admin_id: authResult.userId,
-        admin_email: authResult.email,
+        admin_user_id: auth.authResult.userId,
+        admin_email: auth.authResult.email || 'unknown',
         action: 'bulk_import_treatments',
-        entity_type: 'treatment',
-        changes: {
+        metadata: {
+          entity_type: 'treatment',
           total: data.length,
           success: result.success,
           failed: result.failed,
         },
-      });
+      } as any);
     }
 
     return NextResponse.json({

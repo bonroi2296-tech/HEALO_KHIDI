@@ -143,7 +143,8 @@ export default function NotificationsSettingsPage() {
           </section>
         </AdminGuideModal>
       )}
-      <AdminFormFooter targetSection="notifications" />
+      {/* Note: AdminFormFooter 는 onPrimary/onCancel 콜백이 필수 — 현재 페이지에서는
+          별도 푸터 버튼이 필요 없으므로 제거. 구 API 호출 흔적으로 남아있던 것. */}
 
       <div className="bg-white shadow-sm rounded-lg border border-gray-200 p-6 mt-6">
         <div className="flex items-center justify-between mb-6">

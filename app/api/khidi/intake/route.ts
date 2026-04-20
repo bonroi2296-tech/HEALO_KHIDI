@@ -100,7 +100,7 @@ export async function POST(request: NextRequest) {
 
     const { data, error } = await supabaseAdmin
       .from("cancer_patient_intakes")
-      .insert([insertData])
+      .insert([insertData] as any)
       .select("id, cancer_type, cancer_stage, language_preference, created_at")
       .single();
 

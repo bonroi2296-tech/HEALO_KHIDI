@@ -18,11 +18,29 @@ import { supabaseAdmin } from "../rag/supabaseAdmin";
 import type { NextRequest } from "next/server";
 
 export type AdminAuditAction =
+  // inquiries
   | "LIST_INQUIRIES"
   | "VIEW_INQUIRY"
   | "UPDATE_INQUIRY"
   | "DELETE_INQUIRY"
   | "EXPORT_INQUIRIES"
+  // treatments
+  | "LIST_TREATMENTS"
+  | "CREATE_TREATMENT"
+  | "UPDATE_TREATMENT"
+  | "DELETE_TREATMENT"
+  // hospitals
+  | "LIST_HOSPITALS"
+  | "CREATE_HOSPITAL"
+  | "UPDATE_HOSPITAL"
+  | "DELETE_HOSPITAL"
+  | "HOSPITAL_OFFERS_APPLY"
+  // leads
+  | "LIST_LEADS"
+  | "ASSIGN_LEADS"
+  | "UPDATE_LEAD"
+  // misc
+  | "UPLOAD_IMAGE"
   | "UNAUTHORIZED_ADMIN_ACCESS";
 
 export interface AdminAuditLogParams {

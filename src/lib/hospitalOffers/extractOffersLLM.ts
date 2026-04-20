@@ -162,7 +162,7 @@ export async function extractOffersFromTextWithAttempt(
       system: SYSTEM_PROMPT,
       prompt,
       temperature: 0,
-      maxTokens: 4096,
+      maxOutputTokens: 4096,
     });
     const { candidates, selected } = tryParseOffers(text);
     attempt.candidates_count = candidates.length;

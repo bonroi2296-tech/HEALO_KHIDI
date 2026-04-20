@@ -43,7 +43,7 @@ export async function PATCH(
 
     if (body.status && VALID_STATUSES.includes(body.status)) {
       updates.status = body.status;
-      if (body.status === "replied" && !existing.first_response_at) {
+      if (body.status === "replied" && !(existing as any).first_response_at) {
         updates.first_response_at = new Date().toISOString();
       }
     }

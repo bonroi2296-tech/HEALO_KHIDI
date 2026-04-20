@@ -40,7 +40,7 @@ export function assertSupabaseEnv(): void {
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!supabaseUrl || !serviceKey) {
-    const missing = [];
+    const missing: string[] = [];
     if (!supabaseUrl) missing.push("NEXT_PUBLIC_SUPABASE_URL/VITE_SUPABASE_URL");
     if (!serviceKey) missing.push("SUPABASE_SERVICE_ROLE_KEY");
     
@@ -66,7 +66,7 @@ function getSupabaseAdmin() {
 
   // 환경 변수 체크 (런타임에서만 실행됨)
   if (!supabaseUrl || !serviceKey) {
-    const missing = [];
+    const missing: string[] = [];
     if (!supabaseUrl) missing.push("NEXT_PUBLIC_SUPABASE_URL/VITE_SUPABASE_URL");
     if (!serviceKey) missing.push("SUPABASE_SERVICE_ROLE_KEY");
     throw new Error(`Supabase admin env missing: ${missing.join(", ")}`);

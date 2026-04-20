@@ -24,7 +24,7 @@ function mergeResults(results: EnrichmentResult[]): Partial<HospitalRow> {
       const existing = merged[key];
 
       if (Array.isArray(value) && Array.isArray(existing)) {
-        merged[key] = deduplicateArray(existing, value);
+        merged[key] = deduplicateArray(existing as any[], value as any[]);
       } else if (
         typeof value === "object" &&
         !Array.isArray(value) &&

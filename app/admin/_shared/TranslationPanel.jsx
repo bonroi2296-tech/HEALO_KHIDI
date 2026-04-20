@@ -36,7 +36,7 @@ function StatusBadge({ hasValue }) {
   );
 }
 
-export function TranslationPanel({ i18n, onI18nChange, type = 'hospital', entityId, onRetranslate, toast }) {
+export function TranslationPanel({ i18n, onI18nChange, type = 'hospital', _entityId, onRetranslate, toast }) {
   const [activeLang, setActiveLang] = useState('ko');
   const [isOpen, setIsOpen] = useState(false);
   const [retranslating, setRetranslating] = useState(false);
@@ -120,7 +120,7 @@ export function TranslationPanel({ i18n, onI18nChange, type = 'hospital', entity
         <div className="space-y-3">
           {/* Language Tabs */}
           <div className="flex gap-1 bg-white rounded-lg p-1 border border-gray-200">
-            {LANG_TABS.map(({ code, label, full }) => {
+            {LANG_TABS.map(({ code, label, full: _full }) => {
               const comp = langCompleteness.find(c => c.code === code);
               return (
                 <button

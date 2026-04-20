@@ -261,7 +261,7 @@ export default function HospitalsClientPremium() {
   );
 }
 
-function HospitalCard({ hospital, copy, lang }) {
+function HospitalCard({ hospital, _copy, lang: _lang }) {
   const name = hospital.name || hospital.name_ko || hospital.name_en;
   const address = hospital.address || "";
   const thumb = hospital.thumbnail_image || hospital._raw?.thumbnail_image;

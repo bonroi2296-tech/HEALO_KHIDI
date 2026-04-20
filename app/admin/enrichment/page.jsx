@@ -30,7 +30,7 @@ const SOURCE_META = {
 export default function EnrichmentPage() {
   const toast = useToast();
   const [hospitals, setHospitals] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [_loading, setLoading] = useState(true);
   const [manifest, setManifest] = useState([]);
 
   const [selectedSources, setSelectedSources] = useState(["google"]);
@@ -65,7 +65,7 @@ export default function EnrichmentPage() {
         const data = await res.json();
         setHospitals(data.hospitals || data || []);
       }
-    } catch (err) {
+    } catch (_err) {
       toast.error("병원 목록 로드 실패");
     } finally {
       setLoading(false);
@@ -124,7 +124,7 @@ export default function EnrichmentPage() {
       } else {
         toast.error(data.error || "배치 실행 실패");
       }
-    } catch (err) {
+    } catch (_err) {
       toast.error("배치 실행 중 오류 발생");
     } finally {
       setRunning(false);

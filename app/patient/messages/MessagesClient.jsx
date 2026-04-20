@@ -449,7 +449,7 @@ export default function MessagesClient() {
   );
 }
 
-function ThreadRow({ thread, active, onClick, copy }) {
+function ThreadRow({ thread, active, onClick, copy: _copy }) {
   const subject = thread.subject || "Conversation";
   return (
     <button

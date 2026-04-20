@@ -22,8 +22,8 @@ export const ROLE_PERMISSIONS = {
 export function hasPermission(roles: UserRoleRecord[], permission: string): boolean {
   return roles.some(r => {
     if (!r.is_active) return false;
-    const perms = ROLE_PERMISSIONS[r.role];
-    return perms.includes('*' as any) || perms.includes(permission as any);
+    const perms = ROLE_PERMISSIONS[r.role] as readonly string[];
+    return perms.includes('*') || perms.includes(permission);
   });
 }
 

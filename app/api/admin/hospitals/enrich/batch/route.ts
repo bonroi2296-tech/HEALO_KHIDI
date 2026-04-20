@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
 
   for (const hospital of hospitals) {
     try {
-      const pipelineResult = await runPipeline(hospital as HospitalRow, sources);
+      const pipelineResult = await runPipeline(hospital as unknown as HospitalRow, sources);
       const mergedUpdate = pipelineResult.mergedUpdate;
       mergedUpdate.enrichment_log = pipelineResult.enrichmentLog;
 

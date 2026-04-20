@@ -52,6 +52,7 @@ export async function GET(request: NextRequest) {
 
     const statusCounts: Record<string, number> = {};
     for (const lead of allLeads || []) {
+      if (!lead.status) continue;
       statusCounts[lead.status] = (statusCounts[lead.status] || 0) + 1;
     }
 

@@ -73,7 +73,7 @@ export default function HospitalTreatmentsPage() {
   const [form, setForm] = useState(emptyForm);
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState(null);
-  const [newTag, setNewTag] = useState("");
+  const [_newTag, _setNewTag] = useState("");
 
   const loadTreatments = useCallback(async () => {
     setLoading(true);
@@ -171,7 +171,7 @@ export default function HospitalTreatmentsPage() {
       } else {
         showToast("저장 실패: " + (data.error || ""), "error");
       }
-    } catch (err) {
+    } catch (_err) {
       showToast("저장 중 오류가 발생했습니다", "error");
     } finally {
       setSaving(false);

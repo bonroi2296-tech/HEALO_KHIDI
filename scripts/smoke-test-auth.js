@@ -105,7 +105,7 @@ async function checkServer() {
   try {
     await makeRequest('/');
     return true;
-  } catch (error) {
+  } catch (_error) {
     console.error('❌ Cannot connect to server at', BASE_URL);
     console.error('   Please start the dev server first: npm run dev');
     process.exit(1);

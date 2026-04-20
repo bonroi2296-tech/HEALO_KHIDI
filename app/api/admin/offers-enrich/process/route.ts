@@ -149,7 +149,7 @@ export async function POST(request: NextRequest) {
         result: { offers: batchResult.offers },
         error: batchResult.timeout ? "llm_timeout" : null,
         updated_at: new Date().toISOString(),
-      })
+      } as any)
       .eq("id", jobId);
 
     return Response.json({

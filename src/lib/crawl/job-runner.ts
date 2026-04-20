@@ -66,7 +66,7 @@ export async function runCrawlJob(jobId: string): Promise<void> {
   // Reset dedup set for this job
   jobSeenIds.clear();
 
-  const params: CrawlJobParams = job.params;
+  const params: CrawlJobParams = (job.params ?? {}) as unknown as CrawlJobParams;
   const stats: JobStats = { new: 0, changed: 0, unchanged: 0, closed: 0, errors: 0 };
 
   try {

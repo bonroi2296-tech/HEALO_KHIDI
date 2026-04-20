@@ -102,7 +102,7 @@ export async function POST(request: NextRequest) {
       system: buildPrompt(sourceLang, targetLang),
       prompt: text,
       temperature: 0.1,
-      maxTokens: 500,
+      maxOutputTokens: 500,
     });
 
     const translatedText = translated.trim();

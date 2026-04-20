@@ -136,7 +136,7 @@ export async function GET(request: NextRequest) {
     // ========================================
     let inquiries = data || [];
     // ✅ inquiry_ids는 INT4[] (number[]) - DB row의 id는 integer
-    const inquiryIds: number[] = inquiries.map((inq) => inq.id);
+    const inquiryIds: number[] = inquiries.map((inq: any) => inq.id);
 
     // 🔒 보안 정책: 목록 API는 항상 마스킹만 반환
     // 복호화 로직 자체를 제거하여 평문 대량 노출 가능성 차단

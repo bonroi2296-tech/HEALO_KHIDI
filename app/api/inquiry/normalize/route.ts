@@ -397,7 +397,7 @@ export async function POST(request: Request) {
               messenger_handle: contactIdEnc, // 암호화된 값
             }
           : null,
-      })
+      } as any)
       .select("*")
       .single();
 
@@ -457,12 +457,12 @@ export async function POST(request: Request) {
     // ✅ P2: 퍼널 이벤트 추적
     trackFunnelEvent({
       stage: 'form_complete',
-      sessionId: sessionId,
-      page: page,
-      utm: utm,
+      sessionId: sessionId ?? undefined,
+      page: page ?? undefined,
+      utm: utm ?? undefined,
       language: language,
-      country: inquiryRow?.nationality,
-      treatmentType: inquiryRow?.treatment_type,
+      country: inquiryRow?.nationality ?? undefined,
+      treatmentType: inquiryRow?.treatment_type ?? undefined,
     });
 
     // ✅ 운영 로그: 정규화 성공

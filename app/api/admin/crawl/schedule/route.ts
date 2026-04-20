@@ -66,7 +66,7 @@ export async function PUT(request: NextRequest) {
       .limit(1)
       .maybeSingle();
 
-    const currentSchedule = existing?.params || DEFAULT_SCHEDULE;
+    const currentSchedule: any = (existing?.params && typeof existing.params === "object" && !Array.isArray(existing.params)) ? existing.params : DEFAULT_SCHEDULE;
 
     const updates: any = {};
     if (typeof enabled === "boolean") updates.enabled = enabled;

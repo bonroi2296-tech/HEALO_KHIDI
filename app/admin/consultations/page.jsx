@@ -27,8 +27,8 @@ export default function ConsultationsPage() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("upcoming"); // upcoming, active, completed, all
   const [expandedId, setExpandedId] = useState(null);
-  const [showScheduleModal, setShowScheduleModal] = useState(false);
-  const [selectedConsultation, setSelectedConsultation] = useState(null);
+  const [_showScheduleModal, setShowScheduleModal] = useState(false);
+  const [_selectedConsultation, setSelectedConsultation] = useState(null);
 
   // Fetch consultations
   useEffect(() => {
@@ -87,7 +87,7 @@ export default function ConsultationsPage() {
 
     try {
       const { data: sessionData } = await supabase.auth.getSession();
-      const token = sessionData?.session?.access_token;
+      const _token = sessionData?.session?.access_token;
 
       // In real implementation, call an update API
       // For now, just show success

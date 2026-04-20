@@ -14,7 +14,7 @@ const URGENCY_STYLE = {
 };
 
 export default function AlertsPage() {
-  const router = useRouter();
+  const _router = useRouter();
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('high');

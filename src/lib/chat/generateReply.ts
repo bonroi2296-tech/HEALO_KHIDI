@@ -116,7 +116,7 @@ export async function fetchRagChunks(query: string, lang: string, threadId?: str
         query_embedding: JSON.stringify(embedding),
         match_count: remaining + 2,
         p_lang: lang,
-        p_source_type: null,
+        p_source_type: undefined,
         p_partner_only: false,
         p_ab_enabled: abEnabled,
         p_thread_hash: threadHash,
@@ -350,8 +350,8 @@ export async function generateChatReply(
     ragScoring = ragChunks.length > 0 ? "vector_cosine_similarity" : "no_results";
     const { text: contextText, hasTier3, usedPatternIds: injectedPatternIds } = buildContext(ragChunks);
     const dbContext = dbResult.context;
-    const matchedHospitalNames = dbResult.matchedHospitalNames ?? [];
-    const hospitalMatchType = dbResult.hospitalMatchType ?? "none";
+    const matchedHospitalNames = (dbResult as any).matchedHospitalNames ?? [];
+    const hospitalMatchType = (dbResult as any).hospitalMatchType ?? "none";
 
     const HOSPITAL_KEYWORDS = /병원|의원|한방병원|클리닉|clinic|hospital/i;
     const hospitalIntent = HOSPITAL_KEYWORDS.test(query) || matchedHospitalNames.length > 0;
@@ -486,27 +486,29 @@ export async function logPlaybookUsage(params: {
   const used = declaredIds.length > 0;
   const usedPatternId = declaredIds[0] || null;
 
-  const insertPromise = supabaseAdmin
-    .from("playbook_usage_events")
-    .insert({
-      thread_id: threadId || null,
-      message_id: messageId || null,
-      language,
-      query_text_hash: sha256(queryText),
-      query_len: queryText.length,
-      model: model || null,
-      retrieved_count: retrievedPatternIds.length,
-      retrieved_pattern_ids: retrievedPatternIds,
-      used,
-      used_pattern_id: usedPatternId,
-      handoff_requested: handoffRequested,
-      rag_scoring: analytics.ragScoring,
-      latency_ms: analytics.latencyMs,
-      metadata: {
-        declared_used_pattern_ids: declaredIds,
-        analytics_fallback: analytics.analyticsFallback,
-      },
-    })
+  const insertPromise = Promise.resolve(
+    supabaseAdmin
+      .from("playbook_usage_events")
+      .insert({
+        thread_id: threadId || null,
+        message_id: messageId || null,
+        language,
+        query_text_hash: sha256(queryText),
+        query_len: queryText.length,
+        model: model || null,
+        retrieved_count: retrievedPatternIds.length,
+        retrieved_pattern_ids: retrievedPatternIds,
+        used,
+        used_pattern_id: usedPatternId,
+        handoff_requested: handoffRequested,
+        rag_scoring: analytics.ragScoring,
+        latency_ms: analytics.latencyMs,
+        metadata: {
+          declared_used_pattern_ids: declaredIds,
+          analytics_fallback: analytics.analyticsFallback,
+        },
+      } as any)
+  )
     .then(({ error }) => {
       if (error) console.error("[logPlaybookUsage] insert error:", error.message);
     })

@@ -182,8 +182,16 @@ const nextConfig = {
    * - 타입 에러는 있지만, 런타임 안전성은 확보됨 (P0 수정 완료)
    * - 데이터 유실 방지, Fail-Closed 원칙 적용 완료
    */
+  /**
+   * ✅ 2026-04-20: ignoreBuildErrors: false 로 전환
+   *
+   * - database.types.ts 생성 및 모든 클라이언트 팩토리에 타입 바인딩 완료
+   * - tsconfig.json strictNullChecks: true 활성화
+   * - 앱 코드 type error 233 → 0 (scripts/ 는 exclude)
+   * - 이후 `npm run build` 는 타입 에러 시 실패함 (의도된 동작)
+   */
   typescript: {
-    ignoreBuildErrors: true, // Supabase 타입 생성 전까지 유지
+    ignoreBuildErrors: false,
   },
 };
 

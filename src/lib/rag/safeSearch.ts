@@ -80,8 +80,8 @@ export async function safeRagSearch(params: SafeRagSearchParams): Promise<SafeRa
   const { data, error } = await supabaseAdmin.rpc("rag_search_chunks_v1_1", {
     query_embedding: JSON.stringify(embedding),
     match_count: matchCount,
-    p_lang: lang || null,
-    p_source_type: pSourceType,
+    p_lang: lang || undefined,
+    p_source_type: pSourceType ?? undefined,
     p_partner_only: partnerOnly,
     p_ab_enabled: abEnabled,
     p_thread_hash: threadHash,

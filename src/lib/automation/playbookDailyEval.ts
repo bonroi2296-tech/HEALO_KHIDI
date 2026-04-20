@@ -60,7 +60,7 @@ export async function runDailyEval(jobId: string): Promise<{ evaluated: number; 
       s.total++;
       if (ev.used && ev.used_pattern_id === pid) s.used++;
       if (ev.handoff_requested) s.handoff++;
-      if (ev.metadata?.analytics_fallback === true) s.fallback++;
+      if ((ev.metadata as any)?.analytics_fallback === true) s.fallback++;
       if (ev.latency_ms != null) {
         s.latencySum += ev.latency_ms;
         s.latencyCount++;
@@ -117,15 +117,14 @@ export async function runDailyEval(jobId: string): Promise<{ evaluated: number; 
         auto_status: newAutoStatus,
         last_evaluated_at: now,
         quality_gate: gateFlags,
-      })
+      } as any)
       .eq("id", pid);
 
     await supabaseAdmin.from("auto_job_events").insert({
       job_id: jobId,
-      pattern_id: pid,
-      action: "daily_eval",
-      result: newAutoStatus,
-      detail: { score, stats, gate_flags: gateFlags },
+      event_type: `daily_eval.${newAutoStatus}`,
+      step: "daily_eval",
+      data: { pattern_id: pid, score, stats, gate_flags: gateFlags } as any,
     });
 
     evaluated++;

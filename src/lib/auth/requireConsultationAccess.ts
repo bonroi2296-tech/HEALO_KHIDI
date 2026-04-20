@@ -136,9 +136,8 @@ export async function requireConsultationAccess(
   // 4) 권한 판정
   // ────────────────────────────────────────────────
   const uid = auth.userId;
-  let role: ConsultationAccessResult extends { success: true; role: infer R }
-    ? R
-    : never = "patient" as any;
+  type ConsultationRole = "admin" | "patient" | "doctor" | "coordinator" | "translator";
+  let role: ConsultationRole = "patient";
 
   if (auth.isAdmin) {
     role = "admin";
@@ -176,7 +175,7 @@ export async function requireConsultationAccess(
   // ────────────────────────────────────────────────
   // 5) Role 제한 (admin/doctor/coordinator 등)
   // ────────────────────────────────────────────────
-  if (options?.requireRole && !options.requireRole.includes(role as any)) {
+  if (options?.requireRole && !options.requireRole.includes(role as "admin" | "doctor" | "coordinator")) {
     return {
       success: false,
       response: Response.json(

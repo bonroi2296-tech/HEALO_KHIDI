@@ -309,7 +309,7 @@ function ViewTab({ active, onClick, children }) {
   );
 }
 
-function MonthGrid({ cursor, events, daysOfWeek, copy, lang }) {
+function MonthGrid({ cursor, events, daysOfWeek, copy, lang: _lang }) {
   const year = cursor.getFullYear();
   const month = cursor.getMonth();
   const firstDay = new Date(year, month, 1);
@@ -422,7 +422,7 @@ function DayCell({ day, isToday, isWeekend, events, copy }) {
   );
 }
 
-function EventPill({ event, copy }) {
+function EventPill({ event, copy: _copy }) {
   const colors = {
     consultation: { bg: "var(--ink-0)", fg: "var(--gold-0)" },
     followup: { bg: "var(--gold-0)", fg: "var(--ink-0)" },

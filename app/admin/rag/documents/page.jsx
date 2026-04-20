@@ -87,7 +87,7 @@ export default function RagDocumentsPage() {
       } else {
         alert(`저장 실패: ${json.error || json.errors?.join(", ")}`);
       }
-    } catch (e) {
+    } catch (_e) {
       alert("저장 중 오류 발생");
     } finally {
       setSaving((p) => ({ ...p, [doc.id]: false }));

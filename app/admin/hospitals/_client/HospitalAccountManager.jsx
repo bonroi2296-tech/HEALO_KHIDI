@@ -73,7 +73,7 @@ export function HospitalAccountManager({ hospitals }) {
             : data.error || "등록 실패"
         );
       }
-    } catch (err) {
+    } catch (_err) {
       setError("등록 중 오류가 발생했습니다");
     } finally {
       setAdding(false);

@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
 
     const { data, error } = await supabaseAdmin
       .from("symptom_reports")
-      .insert([insertData])
+      .insert([insertData] as any)
       .select("id, ai_risk_score, ai_assessment, action_taken, created_at")
       .single();
 
@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
     );
 
     // Auto-evaluate rebooking need based on symptom analysis
-    let rebookingSuggestion = null;
+    let rebookingSuggestion: any = null;
     if (analysis.recommendedAction === 'schedule_followup' ||
         analysis.recommendedAction === 'escalate_doctor' ||
         analysis.recommendedAction === 'emergency_refer') {

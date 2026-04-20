@@ -45,8 +45,7 @@ export async function POST(
         status: "error",
         progress: 0,
         error: "no_website",
-        updated_at: new Date().toISOString(),
-      })
+      } as any)
       .select("id, status")
       .single();
     return Response.json({
@@ -128,7 +127,7 @@ export async function GET(
 
   const { data: job, error } = await supabaseAdmin
     .from("hospital_offer_jobs")
-    .select("id, hospital_id, status, progress, result_offers, debug, error, updated_at")
+    .select("id, hospital_id, status, progress, result_offers, debug, error, completed_at")
     .eq("id", jobId)
     .eq("hospital_id", hospitalId)
     .single();
@@ -145,6 +144,6 @@ export async function GET(
     result_offers: job.result_offers ?? undefined,
     debug: job.debug ?? undefined,
     error: job.error ?? undefined,
-    updated_at: job.updated_at,
+    updated_at: job.completed_at,
   });
 }

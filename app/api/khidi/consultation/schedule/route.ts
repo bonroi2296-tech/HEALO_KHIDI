@@ -24,7 +24,7 @@ function generateSchedule(
   treatmentPhase: string,
   startDate: Date
 ): Array<{ date: Date; type: string; description: string }> {
-  const schedule = [];
+  const schedule: Array<{ date: Date; type: string; description: string }> = [];
 
   const cancerSchedules: Record<string, Record<string, number[]>> = {
     stomach: {

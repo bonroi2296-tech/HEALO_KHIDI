@@ -10,7 +10,7 @@ import {
 import { supabase } from "../../../src/supabase";
 import { mapHospitalRow, mapTreatmentRow } from "../../../src/lib/mapper";
 import { GoogleMapComponent } from "../../../src/components/GoogleMap";
-import { getCurrentLangCode } from "../../../src/lib/language";
+
 import { getLangCodeFromCookie, t } from "../../../src/lib/i18n";
 import { formatDate } from "../../../src/lib/i18n/format";
 import { event } from "../../../src/lib/ga";
@@ -197,7 +197,7 @@ export const HospitalDetailPage = ({ selectedId, setView, onTreatmentClick, init
           setRawTreatments(tRows || []);
           let mapped = [];
           try { mapped = (tRows || []).map((r) => mapTreatmentRow(r, langCode)); }
-          catch (e) { mapped = tRows || []; }
+          catch (_e) { mapped = tRows || []; }
           setHospitalTreatments(mapped);
         }
       } finally { setLoading(false); }

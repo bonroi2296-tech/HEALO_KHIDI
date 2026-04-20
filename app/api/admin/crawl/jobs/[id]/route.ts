@@ -91,8 +91,8 @@ export async function GET(
     return NextResponse.json({ ok: false, error: "Job not found" }, { status: 404 });
   }
 
-  // Get item counts by status
-  const { data: statusCounts } = await supabaseAdmin
+  // Get item counts by status (RPC may not be migrated yet — fallback used below)
+  const { data: statusCounts } = await (supabaseAdmin as any)
     .rpc("crawl_job_status_counts", { p_job_id: id })
     .select("*");
 
@@ -117,7 +117,7 @@ export async function GET(
       .not("review_action", "is", null);
     counts.reviewed = reviewedCount || 0;
   } else {
-    counts = statusCounts;
+    counts = statusCounts as Record<string, number>;
   }
 
   return NextResponse.json({

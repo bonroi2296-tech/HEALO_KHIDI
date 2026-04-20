@@ -734,7 +734,7 @@ function OffersFailureBanner({ hospitalForm, patchHospitalOffersFlags, onRequest
   );
 }
 
-function FormContent({ editingHospitalId, hospitalForm, setHospitalForm, uploading, loading, handleSaveHospital, handleDelete, fetchHospitals, handleEditHospital, hospitalsList, uploadToSupabase, patchHospitalOffersFlags, offersFailureLogEnabled, DynamicListInput, ImageUploader, AddressInput, toast, offersModalOpen, offersPayload, offersLoading, usePlaywright, setUsePlaywright, onRequestOffersPreview, onRetryOffersPoll, onCloseOffersModal, onOffersApplyComplete }) {
+function FormContent({ editingHospitalId, hospitalForm, setHospitalForm, uploading, loading, handleSaveHospital, handleDelete, fetchHospitals, handleEditHospital, _hospitalsList, uploadToSupabase, patchHospitalOffersFlags, offersFailureLogEnabled, _DynamicListInput, _ImageUploader, _AddressInput, toast, offersModalOpen, offersPayload, offersLoading, usePlaywright, setUsePlaywright, onRequestOffersPreview, onRetryOffersPoll, onCloseOffersModal, onOffersApplyComplete }) {
 
   return (
     <div className="relative">

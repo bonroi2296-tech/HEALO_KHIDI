@@ -422,7 +422,7 @@ export async function getAllRecipients(): Promise<{
       label: row.label,
       phone_masked: row.phone_e164 ? formatPhoneDisplay(row.phone_e164) : null,
       email: row.email || null,
-      destination: row.channel === "email" ? row.email : (row.phone_e164 ? formatPhoneDisplay(row.phone_e164) : "-"),
+      destination: (row.channel === "email" ? row.email : (row.phone_e164 ? formatPhoneDisplay(row.phone_e164) : "-")) || "-",
       channel: row.channel,
       is_active: row.is_active,
       last_sent_at: row.last_sent_at,

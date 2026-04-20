@@ -112,7 +112,7 @@ export function encryptPiiInObject<T extends Record<string, any>>(
       // 문자열만 암호화 (null/number/boolean 등은 그대로)
       if (typeof value === "string" && value.trim() !== "") {
         try {
-          result[key] = encryptString(value);
+          (result as Record<string, unknown>)[key] = encryptString(value);
         } catch (error: any) {
           // Fail-Closed: 암호화 실패 시 즉시 throw
           throw new Error(`[piiJson] Encryption failed for key "${key}": ${error.message}`);
@@ -156,11 +156,11 @@ export function decryptPiiInObject<T extends Record<string, any>>(
       // 문자열만 복호화
       if (typeof value === "string" && value.trim() !== "") {
         try {
-          result[key] = decryptString(value);
+          (result as Record<string, unknown>)[key] = decryptString(value);
         } catch (error: any) {
           // 복호화 실패 시 경고 후 null 처리 (복호화는 덜 엄격하게)
           console.warn(`[piiJson] Decryption failed for key "${key}": ${error.message}`);
-          result[key] = null;
+          (result as Record<string, unknown>)[key] = null;
         }
       }
     }

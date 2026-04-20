@@ -148,7 +148,7 @@ export async function GET(
     // ========================================
     // 4. normalized_inquiries 조회 (옵션)
     // ========================================
-    let normalized = null;
+    let normalized: any = null;
 
     if (includeNormalized) {
       const { data: normalizedData, error: normalizedError } = await supabaseAdmin

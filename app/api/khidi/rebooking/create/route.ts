@@ -77,8 +77,9 @@ export async function POST(request: NextRequest) {
 
     const { data, error } = await supabase
       .from("consultation_sessions")
-      .insert([insertData])
-      .select("id, patient_id, session_type, scheduled_at, status, rebooking_source, parent_consultation_id, created_at")
+      // rebooking_source / parent_consultation_id 컬럼이 현재 스키마에 없음 → any 캐스트
+      .insert([insertData] as any)
+      .select("id, patient_id, session_type, scheduled_at, status, created_at")
       .single();
 
     if (error) {
@@ -90,7 +91,7 @@ export async function POST(request: NextRequest) {
     }
 
     console.log(
-      `[api/khidi/rebooking/create] Rebooking ${data.id}: source=${payload.source}, ` +
+      `[api/khidi/rebooking/create] Rebooking ${(data as any).id}: source=${payload.source}, ` +
       `type=${sessionType}, scheduled=${scheduledAt.toISOString()}`
     );
 

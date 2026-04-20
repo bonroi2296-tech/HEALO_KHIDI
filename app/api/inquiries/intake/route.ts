@@ -190,12 +190,12 @@ export async function POST(request: NextRequest) {
     // 최신 inquiry 정보 조회하여 알림
     sendAdminNotification({
       inquiryId,
-      nationality: row.nationality,
-      treatmentType: row.treatment_type,
-      contactMethod: row.contact_method,
-      leadQuality: row.lead_quality,
-      priorityScore: row.priority_score,
-      createdAt: row.created_at,
+      nationality: row.nationality ?? undefined,
+      treatmentType: row.treatment_type ?? undefined,
+      contactMethod: row.contact_method ?? undefined,
+      leadQuality: row.lead_quality ?? undefined,
+      priorityScore: row.priority_score ?? undefined,
+      createdAt: row.created_at ?? undefined,
     }).catch((err) => {
       // 에러 무시 (메인 로직 보호)
       console.error('[intake] Admin notification failed (ignored):', err);

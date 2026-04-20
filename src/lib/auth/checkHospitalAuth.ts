@@ -85,9 +85,9 @@ export async function checkHospitalAuth(request?: any): Promise<HospitalAuthResu
       isHospitalUser: true,
       userId,
       email: userEmail,
-      hospitalId: hospitalUser.hospital_id,
+      hospitalId: hospitalUser.hospital_id ?? undefined,
       hospitalName: hospital?.name || "Unknown",
-      role: hospitalUser.role,
+      role: hospitalUser.role ?? undefined,
     };
   } catch (error: any) {
     console.error("[checkHospitalAuth] Error:", error.message);

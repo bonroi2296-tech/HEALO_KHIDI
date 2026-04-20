@@ -88,13 +88,14 @@ export async function POST(request: NextRequest) {
 
     const handOff = detectHandOff(trimmedMsg);
 
+    const threadMeta: any = (thread.metadata && typeof thread.metadata === "object" && !Array.isArray(thread.metadata)) ? thread.metadata : {};
     if (handOff.requested) {
       await supabaseAdmin
         .from("chat_threads")
         .update({
           updated_at: new Date().toISOString(),
           metadata: {
-            ...thread.metadata,
+            ...threadMeta,
             hand_off_requested: true,
             hand_off_reason: handOff.reason,
             hand_off_at: new Date().toISOString(),
@@ -115,7 +116,7 @@ export async function POST(request: NextRequest) {
       content: m.message_text,
     }));
 
-    const lang = thread.metadata?.language || "en";
+    const lang = threadMeta.language || "en";
 
     const { reply, ragChunks, error: aiError, _analytics } = await generateChatReply(
       chatMessages,
@@ -171,7 +172,7 @@ export async function POST(request: NextRequest) {
 
     if (patientMsgCount > 0 && patientMsgCount % INTAKE_EVERY_N_TURNS === 0) {
       try {
-        await createDraftIntake(thread, history || [], lang);
+        await createDraftIntake(thread, (history || []) as any, lang);
       } catch (e: any) {
         console.error("[public/chat/message] intake error:", e.message);
       }

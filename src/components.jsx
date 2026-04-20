@@ -118,7 +118,7 @@ const UserMenu = ({ session, onLogout, langCode, isHospitalUser, isAdmin }) => {
 };
 
 // --- 1. 헤더 (langCode는 ClientShell에서 전달 — 푸터와 동일 소스) ---
-export const Header = ({ setView, view, handleGlobalInquiry, isMobileMenuOpen, setIsMobileMenuOpen, onNavClick, session, onLogout, siteConfig, isHospitalUser, langCode: langCodeProp }) => {
+export const Header = ({ setView, view, _handleGlobalInquiry, isMobileMenuOpen, setIsMobileMenuOpen, onNavClick, session, onLogout, siteConfig, isHospitalUser, langCode: langCodeProp }) => {
   const [isLangOpen, setIsLangOpen] = useState(false);
   // user_metadata.role은 클라이언트가 고칠 수 있어 어드민 판정에 사용 금지.
   // 서버측 단일 소스는 app_metadata.role. (ADMIN_EMAIL_ALLOWLIST는 서버에서만 체크)

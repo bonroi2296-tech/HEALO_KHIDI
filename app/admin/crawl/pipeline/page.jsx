@@ -188,7 +188,7 @@ export default function PipelinePage() {
       } else {
         toast.error(data.message || data.error || "저장 실패");
       }
-    } catch (err) {
+    } catch (_err) {
       toast.error("저장 중 오류가 발생했습니다");
     } finally {
       setScheduleSaving(false);

@@ -48,7 +48,7 @@ export default function SymptomsClient() {
   const [submitting, setSubmitting] = useState(false);
   const [symptoms, setSymptoms] = useState([{ name: '', severity: 5, duration: '' }]);
   const [result, setResult] = useState(null);
-  const [previousReports, setPreviousReports] = useState([]);
+  const [_previousReports, _setPreviousReports] = useState([]);
   const [showPrevious, setShowPrevious] = useState(false);
 
   useEffect(() => { setLang(getLangCodeFromCookie()); }, []);

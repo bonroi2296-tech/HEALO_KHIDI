@@ -69,7 +69,7 @@ export async function encryptText(
   try {
     const { data, error } = await supabaseAdmin.rpc("encrypt_text", {
       plaintext: String(plaintext),
-      encryption_key: ENCRYPTION_KEY,
+      encryption_key: ENCRYPTION_KEY!,
     });
 
     if (error) {
@@ -102,7 +102,7 @@ export async function decryptText(
   try {
     const { data, error } = await supabaseAdmin.rpc("decrypt_text", {
       ciphertext: String(ciphertext),
-      encryption_key: ENCRYPTION_KEY,
+      encryption_key: ENCRYPTION_KEY!,
     });
 
     if (error) {

@@ -64,7 +64,7 @@ export default function LoginPremium() {
     setLoading(true);
     try {
       const supabase = createSupabaseBrowserClient();
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      const { data: _data, error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) {
         setErr(
           error.message?.toLowerCase().includes("invalid") ? copy.errorInvalid : copy.errorGeneric
@@ -72,7 +72,7 @@ export default function LoginPremium() {
         return;
       }
       router.push("/patient");
-    } catch (e) {
+    } catch (_e) {
       setErr(copy.errorGeneric);
     } finally {
       setLoading(false);
@@ -88,7 +88,7 @@ export default function LoginPremium() {
           redirectTo: typeof window !== "undefined" ? `${window.location.origin}/patient` : undefined,
         },
       });
-    } catch (e) {
+    } catch (_e) {
       setErr(copy.errorGeneric);
     }
   }

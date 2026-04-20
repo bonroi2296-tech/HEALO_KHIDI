@@ -110,9 +110,10 @@ export async function generateHospitalLeadSummary(
     // 주의: 병원에게 전달할 때만 복호화, 저장은 암호화된 상태 유지
     // decryptAuto: V2(AES-256-GCM) 또는 RPC(pgcrypto) 자동 감지
     let decryptedEmail: string | null = null;
-    if (normalized?.contact?.email) {
+    const contactJson = normalized?.contact as any;
+    if (contactJson?.email) {
       try {
-        decryptedEmail = await decryptAuto(normalized.contact.email);
+        decryptedEmail = await decryptAuto(String(contactJson.email));
       } catch (error) {
         console.error("[hospitalLeadSummary] Email decryption failed:", error);
       }
@@ -126,10 +127,11 @@ export async function generateHospitalLeadSummary(
       priority = 'low';
     }
 
-    // 5. intake 데이터 파싱
-    const intake = inquiry.intake && typeof inquiry.intake === 'object' ? inquiry.intake : {};
-    const complaint = intake.complaint || {};
-    const history = intake.history || {};
+    // 5. intake 데이터 파싱 (jsonb 컬럼 → any 로 인덱싱)
+    const intakeJson = (inquiry as any).intake;
+    const intake: any = (intakeJson && typeof intakeJson === 'object' && !Array.isArray(intakeJson)) ? intakeJson : {};
+    const complaint: any = intake.complaint || {};
+    const history: any = intake.history || {};
 
     // 6. 리드 요약 생성
     const summary: HospitalLeadSummary = {

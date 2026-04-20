@@ -23,15 +23,19 @@ export async function POST(request: NextRequest) {
       return Response.json({ ok: false, error: "thread_id required" }, { status: 400 });
     }
 
-    const { data: thread, error: tErr } = await supabaseAdmin
+    // Supabase embed: chat_threads ↔ normalized_inquiries 관계가 FK 로 선언 안됨 —
+    // TypeScript 가 타입 추론 실패. 런타임에는 PostgREST 가 명시적 관계 선언 필요할 수 있음.
+    // TODO(schema): ALTER TABLE chat_threads ADD CONSTRAINT ... REFERENCES normalized_inquiries
+    const { data: threadRaw, error: tErr } = await supabaseAdmin
       .from("chat_threads")
       .select("*, normalized_inquiries(language, treatment_slug, country)")
       .eq("id", thread_id)
       .single();
 
-    if (tErr || !thread) {
+    if (tErr || !threadRaw) {
       return Response.json({ ok: false, error: "Thread not found" }, { status: 404 });
     }
+    const thread = threadRaw as any;
 
     const { data: messages, error: mErr } = await supabaseAdmin
       .from("chat_messages")
@@ -52,7 +56,7 @@ export async function POST(request: NextRequest) {
       treatment_slug: ni?.treatment_slug || thread.metadata?.treatment_slug || null,
     };
 
-    const pattern = await extractPattern(messages, context);
+    const pattern = await extractPattern(messages as any, context);
 
     const { data: saved, error: insertErr } = await supabaseAdmin
       .from("playbook_patterns")
@@ -75,7 +79,7 @@ export async function POST(request: NextRequest) {
           extracted_by: auth.authResult.email,
           message_count: messages.length,
         },
-      })
+      } as any)
       .select("*")
       .single();
 

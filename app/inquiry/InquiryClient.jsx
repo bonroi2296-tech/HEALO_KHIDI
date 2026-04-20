@@ -9,7 +9,7 @@ import { getLangCodeFromCookie, t } from '../../src/lib/i18n';
 import { SITE_INFO } from '../../src/lib/siteSettings';
 import { useLang } from '../../src/lib/i18n/LangContext';
 import { event } from '../../src/lib/ga';
-import { useChat } from 'ai/react';
+import { useChat } from '@ai-sdk/react';
 import { InquiryFormB } from './InquiryFormB';
 import { ThreadChat } from './ThreadChat';
 
@@ -96,7 +96,7 @@ export const InquiryPage = ({ setView, mode, setMode, onClose, treatments }) => 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const clearFieldError = (field) => setFormErrors((prev) => ({ ...prev, [field]: '' }));
 
-  const handleSend = () => {
+  const _handleSend = () => {
     const trimmed = input.trim();
     if (!trimmed) return;
     const lang = getLangCodeFromCookie();

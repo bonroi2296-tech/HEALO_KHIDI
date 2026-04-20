@@ -97,7 +97,7 @@ const QUICK_LINKS = [
 ];
 
 export default function PatientDashboardPremium() {
-  const router = useRouter();
+  const _router = useRouter();
   const lang = useLang();
   const copy = COPY[lang] || COPY.en;
 

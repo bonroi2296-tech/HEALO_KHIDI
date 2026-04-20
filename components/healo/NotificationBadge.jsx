@@ -41,7 +41,7 @@ export default function NotificationBadge() {
         ]);
         const total = (threadsRes.count || 0) + (consRes.count || 0);
         setCount(total);
-      } catch (e) {
+      } catch (_e) {
         /* ignore */
       }
     })();

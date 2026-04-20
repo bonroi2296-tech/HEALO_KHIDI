@@ -1,13 +1,17 @@
 /**
- * HEALO: Next.js Middleware (서버 레벨 보호)
- * 
+ * HEALO: Next.js Proxy (구 middleware — 서버 레벨 보호)
+ *
+ * ⚠️ Next.js 16 부터 `middleware.ts` 는 deprecated.
+ *   `proxy.ts` + `export async function proxy` 로 마이그레이트됨.
+ *   https://nextjs.org/docs/messages/middleware-to-proxy
+ *
  * 목적:
  * - /admin 경로를 서버 레벨에서 보호
- * - Admin 권한이 없으면 /login으로 redirect
+ * - Admin 권한이 없으면 /login 으로 redirect
  * - Client-side 체크 전에 실행되어 UI 노출 차단
- * 
+ *
  * 실행 순서:
- * 1. Middleware (서버) ← 여기서 먼저 차단
+ * 1. Proxy (서버) ← 여기서 먼저 차단
  * 2. Server Component
  * 3. Client Component
  */
@@ -91,7 +95,7 @@ async function checkAdminInMiddleware(request: NextRequest): Promise<{
 
     return { isAdmin: false, email: userEmail, response };
   } catch (error: any) {
-    console.error("[middleware] Admin check error:", error.message);
+    console.error("[proxy] Admin check error:", error.message);
     return { isAdmin: false, response };
   }
 }
@@ -128,9 +132,9 @@ async function checkSessionInMiddleware(request: NextRequest): Promise<{
 }
 
 /**
- * ✅ Middleware 실행
+ * ✅ Proxy 실행 (구 middleware)
  */
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // ========================================
@@ -160,7 +164,7 @@ export async function middleware(request: NextRequest) {
 
     if (!isAdmin) {
       if (process.env.NODE_ENV !== "production") {
-        console.warn(`[middleware] Admin access blocked: ${pathname} | ${email || "none"}`);
+        console.warn(`[proxy] Admin access blocked: ${pathname} | ${email || "none"}`);
       }
       const loginUrl = new URL("/login", request.url);
       loginUrl.searchParams.set("redirect", pathname);
@@ -213,7 +217,7 @@ export async function middleware(request: NextRequest) {
 }
 
 /**
- * ✅ Middleware 적용 경로
+ * ✅ Proxy 적용 경로
  */
 export const config = {
   matcher: [

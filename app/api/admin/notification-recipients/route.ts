@@ -173,7 +173,6 @@ export async function POST(request: NextRequest) {
       phone: body.phone,
       email: body.email,
       channel,
-      message_template: body.message_template,
       notes: body.notes,
       is_active: body.is_active !== undefined ? body.is_active : true,
     });

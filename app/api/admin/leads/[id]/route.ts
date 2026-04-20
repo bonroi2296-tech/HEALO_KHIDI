@@ -147,8 +147,9 @@ export async function PATCH(
 
     // 메타데이터 (병합)
     if (validatedData.metadata !== undefined) {
+      const existingMeta = (existingLead.metadata && typeof existingLead.metadata === "object" && !Array.isArray(existingLead.metadata)) ? existingLead.metadata : {};
       payload.metadata = {
-        ...(existingLead.metadata || {}),
+        ...existingMeta,
         ...validatedData.metadata,
       };
     }

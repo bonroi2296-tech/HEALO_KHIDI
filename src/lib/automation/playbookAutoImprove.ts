@@ -239,8 +239,10 @@ export async function runAutoImprove(jobId: string): Promise<{ processed: number
     const llmResult = await llmImprovePattern(parent);
     if (!llmResult) {
       await supabaseAdmin.from("auto_job_events").insert({
-        job_id: jobId, pattern_id: parent.id, action: "auto_improve",
-        result: "skipped", detail: { reason: "LLM unavailable or failed" },
+        job_id: jobId,
+        event_type: "auto_improve.skipped",
+        step: "auto_improve",
+        data: { pattern_id: parent.id, reason: "LLM unavailable or failed" } as any,
       });
       continue;
     }
@@ -270,14 +272,16 @@ export async function runAutoImprove(jobId: string): Promise<{ processed: number
 
     const { data: variant, error: vErr } = await supabaseAdmin
       .from("playbook_patterns")
-      .insert(variantData)
+      .insert(variantData as any)
       .select("*")
       .single();
 
     if (vErr || !variant) {
       await supabaseAdmin.from("auto_job_events").insert({
-        job_id: jobId, pattern_id: parent.id, action: "auto_improve",
-        result: "insert_failed", detail: { error: vErr?.message },
+        job_id: jobId,
+        event_type: "auto_improve.insert_failed",
+        step: "auto_improve",
+        data: { pattern_id: parent.id, error: vErr?.message } as any,
       });
       continue;
     }
@@ -295,11 +299,13 @@ export async function runAutoImprove(jobId: string): Promise<{ processed: number
         quality_gate: { safety_pass: safety.pass, gate_pass: gate.pass, score_est: autoScoreEst, errors: [...safety.errors, ...gate.errors] },
         last_auto_action_at: nowIso(),
         updated_at: nowIso(),
-      }).eq("id", variant.id);
+      } as any).eq("id", variant.id);
 
       await supabaseAdmin.from("auto_job_events").insert({
-        job_id: jobId, pattern_id: variant.id, action: "auto_improve",
-        result: "blocked", detail: { parent_id: parent.id, safety, gate, score_est: autoScoreEst },
+        job_id: jobId,
+        event_type: "auto_improve.blocked",
+        step: "auto_improve",
+        data: { pattern_id: variant.id, parent_id: parent.id, safety, gate, score_est: autoScoreEst } as any,
       });
       blocked++;
       continue;
@@ -312,11 +318,12 @@ export async function runAutoImprove(jobId: string): Promise<{ processed: number
         reject_reason: `ingest failed: ${String(ingest.error).slice(0, 200)}`,
         last_auto_action_at: nowIso(),
         updated_at: nowIso(),
-      }).eq("id", variant.id);
+      } as any).eq("id", variant.id);
       await supabaseAdmin.from("auto_job_events").insert({
-        job_id: jobId, pattern_id: variant.id, action: "ingest_failed",
-        result: "failed",
-        detail: { parent_id: parent.id, doc_id: ingest.doc_id ?? null, error: String(ingest.error).slice(0, 300) },
+        job_id: jobId,
+        event_type: "ingest_failed.failed",
+        step: "ingest",
+        data: { pattern_id: variant.id, parent_id: parent.id, doc_id: ingest.doc_id ?? null, error: String(ingest.error).slice(0, 300) } as any,
       });
       blocked++;
       continue;
@@ -332,9 +339,10 @@ export async function runAutoImprove(jobId: string): Promise<{ processed: number
     }).eq("id", parent.id);
 
     await supabaseAdmin.from("auto_job_events").insert({
-      job_id: jobId, pattern_id: variant.id, action: "auto_improve",
-      result: "auto_approved_ab_started",
-      detail: { parent_id: parent.id, doc_id: ingest.doc_id, chunks: ingest.chunks, traffic_split: splitPct, score_est: autoScoreEst },
+      job_id: jobId,
+      event_type: "auto_improve.auto_approved_ab_started",
+      step: "auto_improve",
+      data: { pattern_id: variant.id, parent_id: parent.id, doc_id: ingest.doc_id, chunks: ingest.chunks, traffic_split: splitPct, score_est: autoScoreEst } as any,
     });
     improved++;
   }

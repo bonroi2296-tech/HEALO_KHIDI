@@ -49,7 +49,7 @@ export async function POST(
       .update({
         is_active: false,
         updated_at: nowIso(),
-        metadata: { ...(pattern.metadata || {}), retire_reason: reason, retired_at: nowIso(), retired_by: auth.authResult.email },
+        metadata: { ...((pattern.metadata && typeof pattern.metadata === "object" && !Array.isArray(pattern.metadata)) ? pattern.metadata : {}), retire_reason: reason, retired_at: nowIso(), retired_by: auth.authResult.email },
       })
       .eq("id", id);
     if (updErr) throw updErr;

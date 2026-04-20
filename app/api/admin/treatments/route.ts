@@ -79,6 +79,7 @@ export async function GET(request: NextRequest) {
       }
       const counts: Record<string, number> = {};
       for (const row of data || []) {
+        if (!row.hospital_id) continue;
         counts[row.hospital_id] = (counts[row.hospital_id] || 0) + 1;
       }
       return Response.json({ ok: true, counts });
@@ -393,7 +394,7 @@ export async function PATCH(request: NextRequest) {
     // ========================================
     // 5. Slug 결정 (정책: UPDATE시 기존 slug 유지)
     // ========================================
-    const finalName = validatedData.name?.trim() || existing.name;
+    const finalName = validatedData.name?.trim() || existing.name || "";
     const finalSlug = resolveSlugForUpdate(validatedData.slug, existing.slug, finalName);
 
     // ========================================

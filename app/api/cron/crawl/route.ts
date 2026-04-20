@@ -78,7 +78,7 @@ export async function GET(request: NextRequest) {
     .limit(1)
     .maybeSingle();
 
-  const schedule = configRow?.params;
+  const schedule: any = (configRow?.params && typeof configRow.params === "object" && !Array.isArray(configRow.params)) ? configRow.params : {};
 
   if (!shouldRunNow(schedule)) {
     return NextResponse.json({
@@ -136,11 +136,14 @@ export async function GET(request: NextRequest) {
 
   // Update last_auto_run
   if (configRow) {
-    await supabaseAdmin
-      .from("crawl_jobs")
-      .update({ params: { ...schedule, last_auto_run: new Date().toISOString() } })
-      .eq("source_id", "__schedule__")
-      .catch(() => {});
+    try {
+      await supabaseAdmin
+        .from("crawl_jobs")
+        .update({ params: { ...schedule, last_auto_run: new Date().toISOString() } })
+        .eq("source_id", "__schedule__");
+    } catch {
+      // best-effort
+    }
   }
 
   runCrawlJob(job.id).catch((err) => {

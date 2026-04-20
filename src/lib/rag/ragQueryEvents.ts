@@ -38,8 +38,8 @@ export async function insertRagQueryEvent(params: InsertRagQueryEventParams): Pr
       result_count: params.resultCount,
       status: params.status,
       latency_ms: params.latencyMs ?? null,
-      detail: params.detail ?? {},
-    });
+      detail: (params.detail ?? {}) as any,
+    } as any);
     if (error) {
       console.error("[ragQueryEvents] insert failed:", error.message);
     }

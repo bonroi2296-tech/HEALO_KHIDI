@@ -133,7 +133,7 @@ export async function POST(request: NextRequest) {
         console.error(`[${apiPath}] Insert error:`, insertError.message);
         
         // ✅ 운영 로그
-        logInquiryReceived({
+        logInquiryReceived(apiPath, null, {
           inquiryId: null,
           source: 'inquiry_form',
           status: 'failed',
@@ -150,7 +150,7 @@ export async function POST(request: NextRequest) {
       const publicToken = insertedRow.public_token;
       
       // ✅ 운영 로그
-      logInquiryReceived({
+      logInquiryReceived(apiPath, null, {
         inquiryId,
         source: 'inquiry_form',
         status: 'success',
@@ -187,7 +187,7 @@ export async function POST(request: NextRequest) {
       console.error(`[${apiPath}] Encryption error:`, encryptError.message);
       
       // ✅ 운영 로그
-      logInquiryReceived({
+      logInquiryReceived(apiPath, null, {
         inquiryId: null,
         source: 'inquiry_form',
         status: 'failed',

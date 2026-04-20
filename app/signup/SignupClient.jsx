@@ -105,7 +105,7 @@ export const SignUpPage = ({ setView }) => {
 
         setLoading(true);
 
-        const { data, error } = await supabase.auth.signUp({
+        const { data: _data, error } = await supabase.auth.signUp({
             email: email,
             password: password,
             options: {

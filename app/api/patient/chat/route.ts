@@ -158,7 +158,8 @@ export async function POST(request: NextRequest) {
     content: m.content,
   }));
 
-  const lang = thread.metadata?.language || "en";
+  const threadMeta: any = (thread.metadata && typeof thread.metadata === "object" && !Array.isArray(thread.metadata)) ? thread.metadata : {};
+  const lang = threadMeta.language || "en";
 
   // Hand-off 감지
   const handOff = detectHandOff(trimmed);
@@ -169,7 +170,7 @@ export async function POST(request: NextRequest) {
       .update({
         updated_at: new Date().toISOString(),
         metadata: {
-          ...thread.metadata,
+          ...threadMeta,
           hand_off_requested: true,
           hand_off_reason: handOff.reason,
           hand_off_at: new Date().toISOString(),
@@ -209,7 +210,7 @@ export async function POST(request: NextRequest) {
         hand_off: handOff.requested ? handOff.reason : null,
         ...(aiError ? { ai_error: aiError } : {}),
       },
-    })
+    } as any)
     .select("id, created_at")
     .single();
 
@@ -226,15 +227,16 @@ export async function POST(request: NextRequest) {
     }).catch(() => {});
   }
 
-  // 스레드 업데이트
+  // 스레드 업데이트 (subject 컬럼이 현재 스키마엔 없어 as any)
+  const currentSubject = (thread as any).subject ?? null;
   await supabaseAdmin
     .from("chat_threads")
     .update({
       updated_at: new Date().toISOString(),
-      subject: thread.subject === "AI Health Consultation" && trimmed.length > 5
+      subject: currentSubject === "AI Health Consultation" && trimmed.length > 5
         ? trimmed.slice(0, 60) + (trimmed.length > 60 ? "..." : "")
-        : thread.subject,
-    })
+        : currentSubject,
+    } as any)
     .eq("id", thread_id);
 
   return Response.json({

@@ -61,7 +61,7 @@ export async function classifyMedicalProcedures(
       system: SYSTEM_PROMPT,
       prompt: userPrompt,
       temperature: TEMPERATURE,
-      maxTokens: Math.max(512, n * 30 + 64),
+      maxOutputTokens: Math.max(512, n * 30 + 64),
       abortSignal: abortController.signal,
     });
     clearTimeout(timeoutId);

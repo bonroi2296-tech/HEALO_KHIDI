@@ -304,7 +304,7 @@ export default function AdminDoctorsPage() {
       if (docRes.ok) setDoctors(docRes.data || []);
       if (branchRes.ok) setBranches(branchRes.data || []);
       if (!docRes.ok && !branchRes.ok) setError("데이터를 불러올 수 없습니다");
-    } catch (e) {
+    } catch (_e) {
       setError("네트워크 오류");
     } finally {
       setLoading(false);

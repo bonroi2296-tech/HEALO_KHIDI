@@ -45,7 +45,7 @@ export async function approveItems(itemIds: string[]): Promise<{
 
       approved++;
     } catch (err: any) {
-      errors.push(`Item ${itemId} (${item.name}): ${err.message}`);
+      errors.push(`Item ${itemId} (${(item as any).name || "unknown"}): ${err.message}`);
     }
   }
 
@@ -57,7 +57,7 @@ export async function rejectItems(itemIds: string[]): Promise<number> {
     .from("crawl_raw_items")
     .update({ review_action: "rejected", reviewed_at: new Date().toISOString() })
     .in("id", itemIds)
-    .select("id", { count: "exact", head: true });
+    .select("id");
 
   return count || 0;
 }
@@ -67,7 +67,7 @@ export async function skipItems(itemIds: string[]): Promise<number> {
     .from("crawl_raw_items")
     .update({ review_action: "skipped", reviewed_at: new Date().toISOString() })
     .in("id", itemIds)
-    .select("id", { count: "exact", head: true });
+    .select("id");
 
   return count || 0;
 }

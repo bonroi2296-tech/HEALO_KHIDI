@@ -69,7 +69,7 @@ const MESSAGE_GUIDES = {
   _default: ["What symptom or concern do you have?", "How long has it lasted?", "Any previous diagnosis or treatment?"],
 };
 
-export function InquiryFormB({ setView, treatments }) {
+export function InquiryFormB({ setView, treatments: _treatments }) {
   const toast = useToast();
   const langCode = useLang();
   const [step, setStep] = useState(1);

@@ -75,7 +75,7 @@ export function useSpeechRecognition({ language = "ko", onResult, onInterim, ena
       if (enabledRef.current && recognitionRef.current) {
         try {
           recognition.start();
-        } catch (e) {
+        } catch (_e) {
           // Already started
         }
       } else {
@@ -88,7 +88,7 @@ export function useSpeechRecognition({ language = "ko", onResult, onInterim, ena
     return () => {
       try {
         recognition.stop();
-      } catch (e) {
+      } catch (_e) {
         // ignore
       }
       recognitionRef.current = null;
@@ -127,7 +127,7 @@ export function useSpeechRecognition({ language = "ko", onResult, onInterim, ena
     try {
       recognitionRef.current.start();
       setIsListening(true);
-    } catch (e) {
+    } catch (_e) {
       // Already started
     }
   }, []);
@@ -138,7 +138,7 @@ export function useSpeechRecognition({ language = "ko", onResult, onInterim, ena
     try {
       recognitionRef.current.stop();
       setIsListening(false);
-    } catch (e) {
+    } catch (_e) {
       // ignore
     }
   }, []);

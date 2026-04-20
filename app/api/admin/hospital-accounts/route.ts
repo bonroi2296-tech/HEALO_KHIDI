@@ -30,9 +30,9 @@ export async function GET(request: NextRequest) {
       }
 
       // Resolve emails from auth.users via service client
-      const enriched = [];
+      const enriched: any[] = [];
       for (const hu of data || []) {
-        const { data: userData } = await supabase.auth.admin.getUserById(hu.user_id);
+        const { data: userData } = await supabase.auth.admin.getUserById((hu as any).user_id);
         enriched.push({
           ...hu,
           email: userData?.user?.email || "unknown",
@@ -99,7 +99,7 @@ export async function POST(request: NextRequest) {
     // Find or create user by email
     const { data: userList } = await supabase.auth.admin.listUsers();
     let targetUser = userList?.users?.find(
-      (u) => u.email?.toLowerCase() === email.trim().toLowerCase()
+      (u: any) => u.email?.toLowerCase() === email.trim().toLowerCase()
     );
 
     if (!targetUser) {

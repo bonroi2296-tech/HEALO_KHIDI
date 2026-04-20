@@ -25,10 +25,10 @@ vi.mock("./checkAdminAuth", () => ({
 const sessionSelectSingle = vi.fn();
 const sessionSelectEq = vi.fn(() => ({ maybeSingle: sessionSelectSingle }));
 const sessionSelect = vi.fn(() => ({ eq: sessionSelectEq }));
-const sessionFrom = vi.fn(() => ({ select: sessionSelect }));
+const sessionFrom: any = vi.fn(() => ({ select: sessionSelect }));
 vi.mock("../rag/supabaseAdmin", () => ({
   supabaseAdmin: {
-    from: (...args: any[]) => sessionFrom(...args),
+    from: (table: any) => sessionFrom(table),
   },
 }));
 

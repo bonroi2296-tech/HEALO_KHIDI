@@ -28,7 +28,10 @@ export type OperationalEventType =
   | 'normalize_success'     // 정규화 성공
   | 'normalize_failed'      // 정규화 실패
   | 'encryption_failed'     // 암호화 실패
-  | 'rate_limit_exceeded';  // Rate limit 초과
+  | 'rate_limit_exceeded'   // Rate limit 초과
+  | 'admin_notified'                     // 어드민 알림 발송 성공
+  | 'admin_notify_failed'                // 어드민 알림 발송 실패
+  | 'admin_notification_critical_error'; // 크리티컬 알림 채널 자체가 실패
 
 /**
  * 운영 로그 메타데이터
@@ -44,6 +47,18 @@ export interface OperationalLogMeta {
   reason?: string;
   /** HTTP 상태 코드 */
   statusCode?: number;
+  /** inquiry 식별자 (있는 경우) */
+  inquiry_id?: number | string;
+  /** 알림 채널 (admin_notified 등) */
+  channel?: string;
+  /** 알림 provider (slack / email 등) */
+  provider?: string;
+  /** 에러 문자열 (개인정보 없는 요약) */
+  error?: string;
+  /** 수신자 소스 (DB / ENV 등) */
+  recipient_source?: string;
+  /** 알림 수신처 마스킹 문자열 (예: a***@domain) */
+  masked_to?: string;
   /** 추가 컨텍스트 (개인정보 제외) */
   context?: Record<string, any>;
 }

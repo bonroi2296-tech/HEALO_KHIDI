@@ -230,11 +230,11 @@ export const hiraCrawlSource: CrawlSource = {
           const list = Array.isArray(rawItems) ? rawItems : [rawItems];
 
           for (const item of list) {
-            const mapped = mapItem(item, dept.name, selectedFields);
+            const mapped = mapItem(item, dept, selectedFields);
             const existing = dedupeMap.get(mapped._dedupeKey);
             if (existing) {
-              if (!existing.specialties.includes(dept.name)) existing.specialties.push(dept.name);
-              if (!existing.tags.includes(dept.name)) existing.tags.push(dept.name);
+              if (!existing.specialties.includes(dept)) existing.specialties.push(dept);
+              if (!existing.tags.includes(dept)) existing.tags.push(dept);
             } else {
               dedupeMap.set(mapped._dedupeKey, mapped);
             }

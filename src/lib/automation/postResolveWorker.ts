@@ -233,6 +233,8 @@ export async function runPostResolve(threadId: string): Promise<{
     }
 
     // 6. playbook_patterns에 삽입 (draft)
+    // TODO(schema-drift): playbook_patterns 의 일부 컬럼 (source_thread_id 등) 이
+    // 실제 스키마와 다를 수 있음. as any 로 캐스트.
     const { data: newPattern, error: pErr } = await supabaseAdmin
       .from("playbook_patterns")
       .insert({
@@ -255,7 +257,7 @@ export async function runPostResolve(threadId: string): Promise<{
         metadata: { auto_extracted: true, job_id: jobId },
         created_at: nowIso(),
         updated_at: nowIso(),
-      })
+      } as any)
       .select("id")
       .single();
 
@@ -263,10 +265,14 @@ export async function runPostResolve(threadId: string): Promise<{
 
     await supabaseAdmin.from("auto_job_events").insert({
       job_id: jobId,
-      pattern_id: newPattern.id,
-      action: "auto_extract",
-      result: "extracted",
-      detail: { quality_score: extracted.quality_score, scope: extracted.scope, trigger_keys: Object.keys(extracted.trigger) },
+      event_type: "auto_extract.extracted",
+      step: "auto_extract",
+      data: {
+        pattern_id: newPattern.id,
+        quality_score: extracted.quality_score,
+        scope: extracted.scope,
+        trigger_keys: Object.keys(extracted.trigger),
+      } as any,
     });
 
     // 7. 품질 게이트 체크 → 자동 승인 여부
@@ -276,10 +282,9 @@ export async function runPostResolve(threadId: string): Promise<{
       // draft로 유지 — 관리자가 수동 승인할 수 있음
       await supabaseAdmin.from("auto_job_events").insert({
         job_id: jobId,
-        pattern_id: newPattern.id,
-        action: "auto_approve_check",
-        result: "blocked",
-        detail: { errors: gate.errors },
+        event_type: "auto_approve_check.blocked",
+        step: "auto_approve_check",
+        data: { pattern_id: newPattern.id, errors: gate.errors } as any,
       });
 
       await supabaseAdmin
@@ -295,7 +300,7 @@ export async function runPostResolve(threadId: string): Promise<{
     }
 
     // 8. 자동 승인 → RAG ingest
-    const ingestResult = await ingestPatternToRag(newPattern.id, extracted);
+    const ingestResult = await ingestPatternToRag(newPattern.id, extracted as any);
 
     if (ingestResult.ok) {
       await supabaseAdmin
@@ -306,24 +311,22 @@ export async function runPostResolve(threadId: string): Promise<{
           rag_document_id: ingestResult.doc_id,
           auto_status: "auto_approved",
           updated_at: nowIso(),
-        })
+        } as any)
         .eq("id", newPattern.id);
 
       await supabaseAdmin.from("auto_job_events").insert({
         job_id: jobId,
-        pattern_id: newPattern.id,
-        action: "auto_approve",
-        result: "approved_and_ingested",
-        detail: { doc_id: ingestResult.doc_id, chunks: ingestResult.chunks },
+        event_type: "auto_approve.approved_and_ingested",
+        step: "auto_approve",
+        data: { pattern_id: newPattern.id, doc_id: ingestResult.doc_id, chunks: ingestResult.chunks } as any,
       });
     } else {
       // ingest 실패 → draft로 유지
       await supabaseAdmin.from("auto_job_events").insert({
         job_id: jobId,
-        pattern_id: newPattern.id,
-        action: "auto_approve",
-        result: "ingest_failed",
-        detail: { error: ingestResult.error },
+        event_type: "auto_approve.ingest_failed",
+        step: "auto_approve",
+        data: { pattern_id: newPattern.id, error: ingestResult.error } as any,
       });
     }
 
