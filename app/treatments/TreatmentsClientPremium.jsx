@@ -12,7 +12,7 @@ import {
 } from "../../components/healo/Primitives";
 import Nav from "../../components/healo/Nav";
 import Footer from "../../components/healo/Footer";
-import { PHOTOS, PHOTO_FILTER } from "../../components/healo/Photos";
+import { PHOTOS, IMMUNE_PHOTOS, PHOTO_FILTER, IMMUNE_PHOTO_FILTER } from "../../components/healo/Photos";
 
 const SECTION_PHOTOS = [
   PHOTOS.hero,
@@ -358,6 +358,243 @@ export default function TreatmentsClientPremium() {
           </section>
         );
       })}
+
+      {/* Immune Hospital integrated programs */}
+      <section
+        style={{
+          background: "var(--cream-0)",
+          padding: "96px 24px",
+          borderTop: "1px solid var(--gold-tint)",
+        }}
+      >
+        <div style={{ maxWidth: 1240, margin: "0 auto" }}>
+          <div style={{ maxWidth: 720, marginBottom: 56 }}>
+            <Eyebrow>{lang === "ko" ? "한방 통합 케어" : "Integrative Korean Medicine"}</Eyebrow>
+            <h2
+              style={{
+                fontFamily: "var(--font-serif)",
+                fontWeight: 400,
+                fontSize: "clamp(32px, 4.5vw, 56px)",
+                lineHeight: 1.1,
+                margin: "20px 0 16px",
+                color: "var(--fg-on-light-1)",
+              }}
+            >
+              {lang === "ko" ? "치료는" : "Healing is"}{" "}
+              <span style={{ fontStyle: "italic", color: "var(--gold-2)" }}>
+                {lang === "ko" ? "의사 혼자의 일이 아닙니다." : "not a solo act."}
+              </span>
+            </h2>
+            <Rule width={48} />
+            <p
+              style={{
+                fontFamily: "var(--font-sans)",
+                fontSize: 15,
+                lineHeight: 1.75,
+                color: "var(--fg-on-light-2)",
+                marginTop: 20,
+              }}
+            >
+              {lang === "ko"
+                ? "HEALO 직영 면력한방병원(Immune Hospital)은 의료진·임상영양사·치료식 셰프가 함께 한 명의 환자를 돌봅니다. 누적 50,000건 이상의 케이스."
+                : "At Immune Hospital — HEALO's direct partner — physicians, clinical dietitians, and a full-time therapeutic chef care for each patient together. Over 50,000 cases to date."}
+            </p>
+          </div>
+
+          {/* Program cards — 5개 프로그램 */}
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 240px), 1fr))",
+              gap: 24,
+            }}
+          >
+            {[
+              {
+                photo: IMMUNE_PHOTOS.programFoodTherapy,
+                labelKo: "셰프 푸드테라피",
+                labelEn: "Chef food therapy",
+                descKo: "2주 1회 전담 셰프와 함께하는 맞춤 치료식",
+                descEn: "Bi-weekly personalized therapeutic meals with an in-house chef",
+              },
+              {
+                photo: IMMUNE_PHOTOS.programWalking,
+                labelKo: "야외 산책",
+                labelEn: "Outdoor walking",
+                descKo: "평일 오전, 강변에서 회복의 시간",
+                descEn: "Riverside walks every weekday morning",
+              },
+              {
+                photo: IMMUNE_PHOTOS.programExercise,
+                labelKo: "운동치료",
+                labelEn: "Movement therapy",
+                descKo: "주 1회 전문 치료사 동반 개별 세션",
+                descEn: "Weekly guided sessions with a specialist",
+              },
+              {
+                photo: IMMUNE_PHOTOS.programPicnic,
+                labelKo: "힐링 소풍",
+                labelEn: "Healing picnic",
+                descKo: "주 1회 병원 밖에서의 휴식과 대화",
+                descEn: "Weekly off-site rest and conversation",
+              },
+              {
+                photo: IMMUNE_PHOTOS.programClass,
+                labelKo: "원데이 클래스",
+                labelEn: "One-day class",
+                descKo: "공예·명상·셀프케어 주제별 프로그램",
+                descEn: "Craft · meditation · self-care weekly themes",
+              },
+            ].map((prog, i) => (
+              <article key={i}>
+                <div
+                  style={{
+                    width: "100%",
+                    aspectRatio: "4 / 5",
+                    overflow: "hidden",
+                    marginBottom: 12,
+                  }}
+                >
+                  <img
+                    src={prog.photo}
+                    alt={lang === "ko" ? prog.labelKo : prog.labelEn}
+                    loading="lazy"
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "cover",
+                      filter: IMMUNE_PHOTO_FILTER,
+                    }}
+                  />
+                </div>
+                <div
+                  style={{
+                    fontFamily: "var(--font-mono)",
+                    fontSize: 10,
+                    letterSpacing: "0.2em",
+                    color: "var(--gold-2)",
+                    textTransform: "uppercase",
+                    marginBottom: 6,
+                  }}
+                >
+                  {String(i + 1).padStart(2, "0")}
+                </div>
+                <h3
+                  style={{
+                    fontFamily: "var(--font-serif)",
+                    fontSize: 20,
+                    fontWeight: 500,
+                    color: "var(--fg-on-light-1)",
+                    margin: "0 0 6px",
+                    lineHeight: 1.25,
+                  }}
+                >
+                  {lang === "ko" ? prog.labelKo : prog.labelEn}
+                </h3>
+                <p
+                  style={{
+                    fontFamily: "var(--font-sans)",
+                    fontSize: 13,
+                    lineHeight: 1.6,
+                    color: "var(--fg-on-light-3)",
+                    margin: 0,
+                  }}
+                >
+                  {lang === "ko" ? prog.descKo : prog.descEn}
+                </p>
+              </article>
+            ))}
+          </div>
+
+          {/* 5단계 프로세스 요약 */}
+          <div
+            style={{
+              marginTop: 72,
+              padding: "48px 40px",
+              background: "var(--ink-0)",
+              color: "var(--fg-on-dark-1)",
+              borderTop: "1px solid var(--gold-0)",
+            }}
+          >
+            <Eyebrow>{lang === "ko" ? "5단계 통합 면역치료" : "5-stage integrated immune care"}</Eyebrow>
+            <h3
+              style={{
+                fontFamily: "var(--font-serif)",
+                fontSize: "clamp(24px, 3vw, 36px)",
+                fontWeight: 400,
+                lineHeight: 1.2,
+                margin: "16px 0 32px",
+                color: "var(--fg-on-dark-1)",
+                maxWidth: 680,
+              }}
+            >
+              {lang === "ko"
+                ? "수술 전부터 재발 관리까지, 암의 모든 단계를 함께합니다."
+                : "From before surgery to recurrence management — with you through every phase."}
+            </h3>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 180px), 1fr))",
+                gap: 0,
+                borderTop: "1px solid var(--gold-tint)",
+              }}
+            >
+              {[
+                { num: "01", ko: "수술 전", en: "Pre-surgery", sub: { ko: "면역관리", en: "Immune prep" } },
+                { num: "02", ko: "수술 후", en: "Post-surgery", sub: { ko: "회복·재활", en: "Recovery" } },
+                { num: "03", ko: "항암 중", en: "During chemo", sub: { ko: "효과 개선", en: "Efficacy boost" } },
+                { num: "04", ko: "재발 관리", en: "Recurrence", sub: { ko: "면역 강화", en: "Immune fortification" } },
+                { num: "05", ko: "추적 관찰", en: "Follow-up", sub: { ko: "장기 관리", en: "Long-term care" } },
+              ].map((step, i) => (
+                <div
+                  key={step.num}
+                  style={{
+                    padding: "24px 16px",
+                    borderRight: i < 4 ? "1px solid var(--ink-3)" : "none",
+                    textAlign: "center",
+                  }}
+                >
+                  <div
+                    style={{
+                      fontFamily: "var(--font-serif)",
+                      fontSize: 36,
+                      fontWeight: 400,
+                      color: "var(--gold-0)",
+                      lineHeight: 1,
+                      marginBottom: 10,
+                    }}
+                  >
+                    {step.num}
+                  </div>
+                  <div
+                    style={{
+                      fontFamily: "var(--font-serif)",
+                      fontSize: 14,
+                      fontWeight: 500,
+                      color: "var(--fg-on-dark-1)",
+                      marginBottom: 4,
+                    }}
+                  >
+                    {lang === "ko" ? step.ko : step.en}
+                  </div>
+                  <div
+                    style={{
+                      fontFamily: "var(--font-sans)",
+                      fontSize: 10,
+                      letterSpacing: "0.1em",
+                      color: "var(--fg-on-dark-3)",
+                      textTransform: "uppercase",
+                    }}
+                  >
+                    {lang === "ko" ? step.sub.ko : step.sub.en}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
 
       {/* Final CTA */}
       <section style={{ background: "var(--paper)", padding: "96px 24px" }}>

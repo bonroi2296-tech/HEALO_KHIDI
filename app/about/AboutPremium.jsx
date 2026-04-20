@@ -10,7 +10,7 @@ import {
   FilmGrain,
   Stat,
 } from "../../components/healo/Primitives";
-import { PHOTOS, PHOTO_FILTER } from "../../components/healo/Photos";
+import { PHOTOS, IMMUNE_PHOTOS, PHOTO_FILTER, IMMUNE_PHOTO_FILTER } from "../../components/healo/Photos";
 
 const COPY = {
   en: {
@@ -233,13 +233,13 @@ export default function AboutPremium() {
         >
           <div>
             <img
-              src={PHOTOS.interior1}
-              alt=""
+              src={IMMUNE_PHOTOS.team}
+              alt="HEALO team — physicians, coordinators, and chef"
               style={{
                 width: "100%",
                 aspectRatio: "4 / 5",
                 objectFit: "cover",
-                filter: PHOTO_FILTER,
+                filter: IMMUNE_PHOTO_FILTER,
               }}
             />
           </div>
