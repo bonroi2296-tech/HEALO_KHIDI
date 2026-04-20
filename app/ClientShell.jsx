@@ -16,6 +16,7 @@ import {
 import ErrorBoundary from "../src/components/ErrorBoundary";
 import { useToast } from "../src/components/Toast";
 import CookieConsent from "../src/components/CookieConsent";
+import EmergencyButton from "../components/healo/EmergencyButton";
 
 export default function ClientShell({ children }) {
   const router = useRouter();
@@ -287,6 +288,7 @@ function ClientShellContent({
   children,
 }) {
   const langCode = useLang();
+  const pathname = usePathname() || "/";
   return (
     <div className="font-sans text-gray-800 bg-gray-50 min-h-screen min-h-screen-safe relative">
       {isPortalPage ? (
@@ -392,6 +394,11 @@ function ClientShellContent({
       )}
 
       <CookieConsent />
+
+      {/* SOS — 로그인한 환자 페이지에만 표시 */}
+      {pathname.startsWith("/patient") && !pathname.startsWith("/patient/education") && (
+        <EmergencyButton />
+      )}
     </div>
   );
 }

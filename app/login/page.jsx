@@ -1,17 +1,17 @@
-"use client";
+import { cookies } from "next/headers";
+import LoginPremium from "./LoginPremium";
+import LoginLegacyWrapper from "./LoginLegacyWrapper";
+import { getServerDesignMode } from "../../src/lib/designMode";
 
-import { useRouter } from "next/navigation";
-import { LoginPage } from "./LoginClient";
+export const metadata = {
+  title: "Sign in | HEALO",
+  description: "Sign in to your HEALO patient dashboard.",
+  robots: { index: false, follow: false },
+};
 
-export default function Login() {
-  const router = useRouter();
-  const setView = (viewName) => {
-    if (viewName === "signup") {
-      router.push("/signup");
-    } else {
-      router.push("/");
-    }
-  };
-
-  return <LoginPage setView={setView} />;
+export default async function Login({ searchParams }) {
+  const sp = (await searchParams) || {};
+  const ck = await cookies();
+  const mode = getServerDesignMode({ searchParams: sp, cookies: ck });
+  return mode === "legacy" ? <LoginLegacyWrapper /> : <LoginPremium />;
 }
