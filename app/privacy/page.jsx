@@ -1,4 +1,6 @@
 import PrivacyPolicyClient from "./PrivacyPolicyClient";
+import PrivacyPolicyClientLegacy from "./PrivacyPolicyClientLegacy";
+import { getServerDesignMode } from "../../src/lib/designMode";
 
 export const metadata = {
   title: "Privacy Policy | HEALO",
@@ -8,5 +10,6 @@ export const metadata = {
 };
 
 export default function PrivacyPolicyPage() {
-  return <PrivacyPolicyClient />;
+  const mode = getServerDesignMode();
+  return mode === "legacy" ? <PrivacyPolicyClientLegacy /> : <PrivacyPolicyClient />;
 }

@@ -1,4 +1,6 @@
 import TermsOfServiceClient from "./TermsOfServiceClient";
+import TermsOfServiceClientLegacy from "./TermsOfServiceClientLegacy";
+import { getServerDesignMode } from "../../src/lib/designMode";
 
 export const metadata = {
   title: "Terms of Service | HEALO",
@@ -8,5 +10,6 @@ export const metadata = {
 };
 
 export default function TermsOfServicePage() {
-  return <TermsOfServiceClient />;
+  const mode = getServerDesignMode();
+  return mode === "legacy" ? <TermsOfServiceClientLegacy /> : <TermsOfServiceClient />;
 }

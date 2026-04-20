@@ -1,4 +1,6 @@
 import MedicalDisclaimerClient from "./MedicalDisclaimerClient";
+import MedicalDisclaimerClientLegacy from "./MedicalDisclaimerClientLegacy";
+import { getServerDesignMode } from "../../src/lib/designMode";
 
 export const metadata = {
   title: "Medical Disclaimer | HEALO",
@@ -8,5 +10,6 @@ export const metadata = {
 };
 
 export default function MedicalDisclaimerPage() {
-  return <MedicalDisclaimerClient />;
+  const mode = getServerDesignMode();
+  return mode === "legacy" ? <MedicalDisclaimerClientLegacy /> : <MedicalDisclaimerClient />;
 }

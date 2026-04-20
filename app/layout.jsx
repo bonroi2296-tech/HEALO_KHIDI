@@ -4,6 +4,7 @@ import "./styles/healo-tokens.css";
 import Providers from "./providers";
 import ClientShell from "./ClientShell";
 import AnalyticsWrapper from "./AnalyticsWrapper";
+import DesignToggle from "../components/healo/DesignToggle";
 
 export const metadata = {
   metadataBase: new URL("https://khidi.healo.kr"),
@@ -91,6 +92,7 @@ export default function RootLayout({ children }) {
         <AnalyticsWrapper />
         <Providers>
           <ClientShell>{children}</ClientShell>
+          <DesignToggle />
         </Providers>
       </body>
     </html>

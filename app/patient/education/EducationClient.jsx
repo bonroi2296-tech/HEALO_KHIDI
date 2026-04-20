@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { getLangCodeFromCookie } from '../../../src/lib/i18n';
 import { BookOpen, ChevronDown, ChevronUp, Stethoscope, AlertTriangle, Heart, Utensils, Dumbbell, Brain } from 'lucide-react';
 
-const CANCER_TYPES = [
+export const CANCER_TYPES = [
   { value: 'stomach', emoji: '🫁', label: { ko: '위암', en: 'Stomach Cancer', ru: 'Рак желудка', zh: '胃癌', ja: '胃がん', kz: 'Асқазан обыры' } },
   { value: 'breast', emoji: '🎀', label: { ko: '유방암', en: 'Breast Cancer', ru: 'Рак молочной железы', zh: '乳腺癌', ja: '乳がん', kz: 'Сүт безі обыры' } },
   { value: 'liver', emoji: '🫀', label: { ko: '간암', en: 'Liver Cancer', ru: 'Рак печени', zh: '肝癌', ja: '肝臓がん', kz: 'Бауыр обыры' } },
@@ -12,7 +12,7 @@ const CANCER_TYPES = [
   { value: 'thyroid', emoji: '🦋', label: { ko: '갑상선암', en: 'Thyroid Cancer', ru: 'Рак щитовидной железы', zh: '甲状腺癌', ja: '甲状腺がん', kz: 'Қалқанша без обыры' } },
 ];
 
-const PAGE_LABELS = {
+export const PAGE_LABELS = {
   title: { ko: '암 치료 가이드', en: 'Cancer Treatment Guide', ru: 'Руководство по лечению рака', zh: '癌症治疗指南', ja: 'がん治療ガイド', kz: 'Обыр емдеу нұсқаулығы' },
   subtitle: { ko: '한국에서의 암 치료, 준비부터 회복까지 알아야 할 모든 것', en: 'Everything you need to know about cancer treatment in Korea', ru: 'Всё, что нужно знать о лечении рака в Корее', zh: '关于在韩国治疗癌症，您需要了解的一切', ja: '韓国でのがん治療について知っておくべきすべて', kz: 'Кореядағы обыр емдеу туралы білуіңіз керек нәрселер' },
   selectCancer: { ko: '암종을 선택하세요', en: 'Select cancer type', ru: 'Выберите тип рака', zh: '选择癌症类型', ja: 'がん種を選択', kz: 'Обыр түрін таңдаңыз' },
@@ -20,7 +20,7 @@ const PAGE_LABELS = {
 };
 
 // 암종별 종합 가이드 콘텐츠
-const GUIDES = {
+export const GUIDES = {
   stomach: {
     title: { ko: '위암 치료 종합 가이드', en: 'Stomach Cancer Treatment Guide', ru: 'Полное руководство по лечению рака желудка', zh: '胃癌治疗综合指南', ja: '胃がん治療総合ガイド', kz: 'Асқазан обыры емдеу нұсқаулығы' },
     sections: [

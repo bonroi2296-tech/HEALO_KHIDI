@@ -1,4 +1,6 @@
-import EducationClient from '../patient/education/EducationClient';
+import EducationClient from "../patient/education/EducationClient";
+import EducationClientPremium from "../patient/education/EducationClientPremium";
+import { getServerDesignMode } from "../../src/lib/designMode";
 
 export const metadata = {
   title: "Patient Education | HEALO",
@@ -18,5 +20,6 @@ export const metadata = {
 };
 
 export default function PublicEducationPage() {
-  return <EducationClient />;
+  const mode = getServerDesignMode();
+  return mode === "legacy" ? <EducationClient /> : <EducationClientPremium />;
 }

@@ -1,6 +1,8 @@
 import { Suspense } from "react";
 import HomeClient from "./home/HomeClient";
+import HomeClientPremium from "./home/HomeClientPremium";
 import Script from "next/script";
+import { getServerDesignMode } from "../src/lib/designMode";
 
 export const metadata = {
   title: "HEALO | 해외 암환자 ICT 사전상담 플랫폼",
@@ -57,6 +59,8 @@ const jsonLd = {
 };
 
 export default function HomePage() {
+  const mode = getServerDesignMode();
+  const Client = mode === "legacy" ? HomeClient : HomeClientPremium;
   return (
     <>
       <Script
@@ -65,7 +69,7 @@ export default function HomePage() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
       <Suspense>
-        <HomeClient />
+        <Client />
       </Suspense>
     </>
   );
