@@ -9,6 +9,7 @@
     "start": "next start",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
+    "typecheck": "tsc --noEmit",
     "format": "prettier --write \"src/**/*.{js,jsx}\"",
     "test": "vitest",
     "test:ui": "vitest --ui",
@@ -51,6 +52,7 @@
     "@supabase/supabase-js": "^2.90.1",
     "ai": "^4.3.19",
     "axios": "^1.7.9",
+    "exceljs": "^4.4.0",
     "livekit-client": "^2.18.1",
     "livekit-server-sdk": "^2.15.0",
     "lucide-react": "^0.562.0",
@@ -65,7 +67,6 @@
     "recharts": "^3.8.1",
     "resend": "^6.12.0",
     "server-only": "^0.0.1",
-    "xlsx": "^0.18.5",
     "zod": "^3.25.76"
   },
   "devDependencies": {

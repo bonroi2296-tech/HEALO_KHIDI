@@ -18,16 +18,19 @@
 
 import { createBrowserClient } from '@supabase/ssr'
 import type { SupabaseClient } from '@supabase/supabase-js'
+import type { Database } from '@/types/database.types'
+
+export type TypedSupabaseClient = SupabaseClient<Database>
 
 // 싱글톤 인스턴스
-let browserClient: SupabaseClient | null = null
+let browserClient: TypedSupabaseClient | null = null
 
 /**
- * ✅ 브라우저용 Supabase 클라이언트 생성
- * 
- * @returns Supabase client
+ * ✅ 브라우저용 Supabase 클라이언트 생성 (DB 타입 바인딩)
+ *
+ * @returns Supabase client with Database types
  */
-export function createSupabaseBrowserClient(): SupabaseClient {
+export function createSupabaseBrowserClient(): TypedSupabaseClient {
   // 싱글톤: 이미 생성되었으면 재사용
   if (browserClient) {
     return browserClient
@@ -40,7 +43,7 @@ export function createSupabaseBrowserClient(): SupabaseClient {
   const isServer = typeof window === 'undefined'
   if (!supabaseUrl || !supabaseAnonKey) {
     if (isServer) {
-      browserClient = createBrowserClient(
+      browserClient = createBrowserClient<Database>(
         'https://build-placeholder.supabase.co',
         'build-placeholder-anon-key'
       )
@@ -52,7 +55,7 @@ export function createSupabaseBrowserClient(): SupabaseClient {
   }
 
   // @supabase/ssr의 createBrowserClient 사용
-  const client = createBrowserClient(supabaseUrl, supabaseAnonKey)
+  const client = createBrowserClient<Database>(supabaseUrl, supabaseAnonKey)
 
   // ✅ 리프레시 토큰 무효 시 콘솔 에러 방지: 로그아웃 처리 후 null 세션 반환
   const originalGetSession = client.auth.getSession.bind(client.auth)

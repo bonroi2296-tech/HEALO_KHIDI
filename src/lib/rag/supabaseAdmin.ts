@@ -4,6 +4,7 @@
 import "server-only";
 
 import { createClient } from "@supabase/supabase-js";
+import type { Database } from "@/types/database.types";
 
 /**
  * ✅ P0 수정: Fail-Closed 원칙 적용
@@ -27,7 +28,7 @@ import { createClient } from "@supabase/supabase-js";
 
 // 빌드 시점에는 환경 변수가 없을 수 있으므로, 런타임에서만 체크
 // 모듈 레벨에서 환경 변수를 읽지 않도록 함수 내부에서만 읽음
-let supabaseAdminInstance: ReturnType<typeof createClient> | null = null;
+let supabaseAdminInstance: ReturnType<typeof createClient<Database>> | null = null;
 
 /**
  * ✅ 새로 추가: Supabase 환경변수 검증 함수
@@ -72,7 +73,7 @@ function getSupabaseAdmin() {
   }
 
   // 클라이언트 생성
-  supabaseAdminInstance = createClient(supabaseUrl, serviceKey, {
+  supabaseAdminInstance = createClient<Database>(supabaseUrl, serviceKey, {
     auth: { persistSession: false },
   });
 
@@ -114,7 +115,7 @@ const createDummyAdminClient = () => {
 };
 
 // Proxy를 사용하여 런타임에만 초기화 (빌드 시점에는 에러 발생하지 않음)
-export const supabaseAdmin = new Proxy({} as ReturnType<typeof createClient>, {
+export const supabaseAdmin = new Proxy({} as ReturnType<typeof createClient<Database>>, {
   get(_target, prop) {
     try {
       const admin = getSupabaseAdmin();

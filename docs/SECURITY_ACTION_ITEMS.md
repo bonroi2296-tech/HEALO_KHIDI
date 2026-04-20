@@ -85,16 +85,19 @@ CREATE SCHEMA IF NOT EXISTS extensions;
 
 복잡해서 별도 마이그레이션 PR 로 처리 권장.
 
-### 8. 개인정보처리방침 보강 (PIPA 대응)
+### 8. 개인정보처리방침 보강 (PIPA 대응) — **🟡 부분 완료 + 법무 리뷰 필요**
 
-`src/lib/policies.js` / `/privacy` 페이지에 현재 빠진 내용 추가:
+**가입 플로우에 PIPA §28조의8 별도 동의 UI 추가됨** (`app/signup/SignupPremium.jsx`):
+- 이전 목적, 이전 항목, 수탁자/국가/목적, 이전 방법, 보유·이용 기간, 거부권 6가지 항목
+- 체크박스 + 세부 내용 펼침 모달
+- 한국어/영어 기본 제공 (다른 언어 추가 필요)
+- 동의 시각 + 언어 + 버전 `user_metadata` 에 기록
 
-- 국외이전 수탁자 명시: **Google (Gemini LLM)**, **LiveKit (비디오/오디오 중계, US)**, **AWS (인프라, US)**, **HIRA (공공데이터, KR)**
-- PIPA **제28조의8 국외이전 동의 항목** (민감정보 포함 시)
-- 보관 기간 명시 (inquiries, cancer_patient_intakes, consultation 녹화 등)
-- 파기 절차
-
-암환자 대상이라 민감정보 처리가 많으므로 **법무 리뷰 필수**.
+**남은 작업** (제가 못 함):
+- `/privacy` 페이지 본문 국외이전 조항 추가 (동일 내용)
+- 법무팀 최종 문구 검토
+- 다른 언어 (ru / kz / zh / ja) 번역 추가
+- 인테이크 폼에도 추가 (환자가 회원가입 전 인테이크 작성 시)
 
 ### ~~9. KHIDI consultation 미인증 엔드포인트 결정~~ ✅ **완료** (커밋 다음)
 
@@ -107,22 +110,18 @@ CREATE SCHEMA IF NOT EXISTS extensions;
 - translate-realtime — Origin 화이트리스트 + 인증 + (consultationId 시) 참가자 검증
 - schedule — 인증된 사용자만
 
-### 10. `inquiries` plaintext 컬럼 제거 결정
+### ~~10. `inquiries` plaintext 컬럼 제거~~ ✅ **마이그레이션 파일 준비됨**
 
-`inquiries` 테이블에는 `email`, `phone` 평문 컬럼과 `email_ciphertext`, `phone_ciphertext` 암호화 컬럼이 공존. Ciphertext 만 남기는 마이그레이션 `20260125` 이 scaffold 됐지만 아직 적용 안 됨.
+- 코드에서 `email` 평문 사용처 전부 제거 확인됨 (encrypted_email jsonb 로 전환)
+- 마이그레이션: `migrations/20260420_drop_inquiries_plaintext_email.sql`
+- 안전장치: DROP 전에 `email IS NOT NULL AND encrypted_email IS NULL` row 존재 시 RAISE EXCEPTION
+- **사용자 실행 필요**: Supabase Dashboard → SQL Editor 에서 수동 실행 + 백업 확보
 
-- 기존 관리자 도구가 평문 컬럼에 의존하는지 확인
-- 의존하면 먼저 `requireAdminAuth` + 복호화 헬퍼로 전환
-- 그 후 plaintext 컬럼 DROP
+추가로 `cancer_patient_intakes` 평문 컬럼(first_name / current_treatment / diagnosis_date) DROP 도 동일 패턴 준비됨: `migrations/20260420_drop_cancer_intake_plaintext.sql`
 
-### 11. `xlsx` 취약점 — 의존성 교체
+### ~~11. `xlsx` 취약점~~ ✅ **완료**
 
-`app/admin/import/page.jsx` 에서 xlsx 사용. prototype pollution + ReDoS 있으나 SheetJS 공식 수정본은 npm 이 아닌 자체 CDN. 옵션:
-
-- `exceljs` 로 교체 (권장, 유지보수 활발)
-- SheetJS CE 를 CDN 에서 직접 받아 pin
-
-관리자 전용이라 P0 는 아니지만 6개월 내 처리 권장.
+`exceljs` 로 교체 완료 (`app/admin/import/page.jsx`). npm audit: xlsx 관련 취약점 0.
 
 ---
 
@@ -177,6 +176,19 @@ CREATE SCHEMA IF NOT EXISTS extensions;
 - `/api/admin/leads/assign` 디버그 로그에서 supabase_url / project_ref / key_type / has_service_role_key 누설 제거
 - tsconfig `@/*` path alias 추가
 - 마이그레이션: `harden_cancer_intake_consultation_encryption_and_rls`
+
+## 참고 — 이후 커밋 (DB 타입 / Sentry / 테스트 / PIPA UI) 에서 처리된 것
+
+- **Supabase DB 타입 생성** (`src/types/database.types.ts`, 3007줄) + 모든 클라이언트 팩토리에 `SupabaseClient<Database>` 타입 바인딩
+- **`tsconfig.json` `strictNullChecks: true`** (292 → 232 type error, discriminated union 내러잉 복구 — admin auth 60건 해소)
+- **`npm run typecheck` 스크립트 추가** (`tsc --noEmit`)
+- **Sentry 활성화** — `instrumentation.ts` (onRequestError 캡처) + `app/error.jsx` / `app/global-error.jsx` 에 Sentry dynamic import captureException
+- **webpack Prisma/OpenTelemetry ignore** (next.config.js) — Sentry 번들 critical warning 제거 → `✓ Compiled successfully` 무경고
+- **Consultation API 보안 회귀 테스트** (`src/lib/auth/requireConsultationAccess.test.ts`) — 12개 시나리오 (401/403/404/429, 참가자 5종, requireRole 게이트) 전부 통과
+- **xlsx → exceljs 교체** (`app/admin/import/page.jsx`) — prototype pollution 취약점 해소
+- **DROP 마이그레이션 파일** 2종 — inquiries.email, cancer_patient_intakes 평문 3컬럼 (안전장치 포함, 사용자 수동 실행)
+- **PIPA §28조의8 국외이전 동의 UI** (가입 폼) — 6항목 고지 + 별도 체크박스 + 동의 메타데이터 기록
+- `.gitignore` 에 `*.tsbuildinfo` 추가 (빌드 캐시 커밋 방지)
 
 ## 참고 — 이전 커밋 (`bd4ab59`) 에서 이미 처리된 것
 

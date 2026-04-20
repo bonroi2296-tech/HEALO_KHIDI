@@ -14,10 +14,13 @@
 import "server-only";
 
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/types/database.types";
 
-let instance: SupabaseClient | null = null;
+export type TypedSupabaseClient = SupabaseClient<Database>;
 
-export function getSupabaseServerClient(): SupabaseClient {
+let instance: TypedSupabaseClient | null = null;
+
+export function getSupabaseServerClient(): TypedSupabaseClient {
   if (instance) return instance;
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -29,7 +32,7 @@ export function getSupabaseServerClient(): SupabaseClient {
     );
   }
 
-  instance = createClient(url, key, {
+  instance = createClient<Database>(url, key, {
     auth: { persistSession: false },
   });
 

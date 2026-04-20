@@ -1,7 +1,17 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // ✅ 성능 최적화: 코드 스플리팅 및 번들 최적화
-  webpack: (config, { isServer, dev }) => {
+  webpack: (config, { isServer, dev, webpack }) => {
+    // @sentry/nextjs 가 @prisma/instrumentation + @opentelemetry/instrumentation (postgres.js)
+    // 를 선택적으로 import — 이 프로젝트는 Prisma / postgres.js 미사용 (Supabase 사용) →
+    // webpack "Critical dependency" 경고 제거.
+    config.plugins = config.plugins || [];
+    config.plugins.push(
+      new webpack.IgnorePlugin({
+        resourceRegExp: /^(@prisma\/instrumentation|@opentelemetry\/instrumentation)$/,
+      })
+    );
+
     if (!isServer) {
       // 클라이언트 사이드 번들 최적화
       config.optimization = {

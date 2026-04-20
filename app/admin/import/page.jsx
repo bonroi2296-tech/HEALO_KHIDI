@@ -8,7 +8,7 @@
 import { useState, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
 import Papa from 'papaparse';
-import * as XLSX from 'xlsx';
+import ExcelJS from 'exceljs';
 import { AdminGuideModal } from '../_components/AdminGuideModal';
 
 const CHUNK_SIZE = 500;
@@ -62,12 +62,41 @@ export default function ImportPage() {
       });
     } else if (fileType === 'xlsx' || fileType === 'xls') {
       const reader = new FileReader();
-      reader.onload = (e) => {
+      reader.onload = async (e) => {
         try {
-          const data = new Uint8Array(e.target.result);
-          const workbook = XLSX.read(data, { type: 'array' });
-          const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
-          const jsonData = XLSX.utils.sheet_to_json(firstSheet);
+          const workbook = new ExcelJS.Workbook();
+          await workbook.xlsx.load(e.target.result);
+          const worksheet = workbook.worksheets[0];
+          if (!worksheet) throw new Error('빈 스프레드시트');
+
+          // 첫 행을 헤더로, 나머지를 row object 로 변환
+          const headerRow = worksheet.getRow(1);
+          const headers = [];
+          headerRow.eachCell({ includeEmpty: false }, (cell, colNumber) => {
+            headers[colNumber - 1] = String(cell.value ?? '').trim();
+          });
+
+          const jsonData = [];
+          worksheet.eachRow({ includeEmpty: false }, (row, rowNumber) => {
+            if (rowNumber === 1) return; // header
+            const obj = {};
+            row.eachCell({ includeEmpty: false }, (cell, colNumber) => {
+              const key = headers[colNumber - 1];
+              if (!key) return;
+              // ExcelJS 는 hyperlink / formula 값을 객체로 반환할 수 있음 → 평문 추출
+              let val = cell.value;
+              if (val && typeof val === 'object') {
+                if ('text' in val) val = val.text;
+                else if ('result' in val) val = val.result;
+                else if ('richText' in val && Array.isArray(val.richText)) {
+                  val = val.richText.map((t) => t.text).join('');
+                }
+              }
+              obj[key] = val;
+            });
+            jsonData.push(obj);
+          });
+
           setParsedData(jsonData);
           setStep(2);
         } catch (error) {

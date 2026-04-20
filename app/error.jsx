@@ -1,6 +1,16 @@
 "use client";
 
+import { useEffect } from "react";
+
 export default function Error({ error, reset }) {
+  useEffect(() => {
+    if (!process.env.NEXT_PUBLIC_SENTRY_DSN) return;
+    // 동적 import — 프로덕션 번들에만 Sentry 포함, DSN 없으면 완전 제거
+    import("@sentry/nextjs")
+      .then((Sentry) => Sentry.captureException(error))
+      .catch(() => {});
+  }, [error]);
+
   return (
     <main
       style={{
