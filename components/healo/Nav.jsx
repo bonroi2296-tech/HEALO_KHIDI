@@ -5,6 +5,7 @@ import { useState, useRef, useEffect } from "react";
 import { useLang } from "../../src/lib/i18n/LangContext";
 import { setLangCookie } from "../../src/lib/i18n";
 import NotificationBadge from "./NotificationBadge";
+import { createSupabaseBrowserClient } from "../../src/lib/supabase/browser";
 
 /**
  * HEALO Nav — cream background, sticky, hairline divider, backdrop blur.
@@ -57,19 +58,44 @@ export default function Nav({ current }) {
   const lang = useLang();
   const [langOpen, setLangOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [user, setUser] = useState(null);
+  const [acctOpen, setAcctOpen] = useState(false);
   const langRef = useRef(null);
+  const acctRef = useRef(null);
 
   // 바깥 클릭 시 드롭다운 닫기
   useEffect(() => {
-    if (!langOpen) return;
+    if (!langOpen && !acctOpen) return;
     const handler = (e) => {
-      if (langRef.current && !langRef.current.contains(e.target)) {
+      if (langOpen && langRef.current && !langRef.current.contains(e.target)) {
         setLangOpen(false);
+      }
+      if (acctOpen && acctRef.current && !acctRef.current.contains(e.target)) {
+        setAcctOpen(false);
       }
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
-  }, [langOpen]);
+  }, [langOpen, acctOpen]);
+
+  // 세션 확인
+  useEffect(() => {
+    const supabase = createSupabaseBrowserClient();
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user || null);
+    });
+    const { data } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user || null);
+    });
+    return () => data?.subscription?.unsubscribe?.();
+  }, []);
+
+  async function handleLogout() {
+    const supabase = createSupabaseBrowserClient();
+    await supabase.auth.signOut();
+    setAcctOpen(false);
+    if (typeof window !== "undefined") window.location.href = "/";
+  }
 
   const changeLang = (code) => {
     if (code === lang) {
@@ -261,6 +287,127 @@ export default function Nav({ current }) {
             )}
           </div>
 
+          {/* Account — 로그인 상태에 따라 다르게 */}
+          {user ? (
+            <div ref={acctRef} style={{ position: "relative" }}>
+              <button
+                onClick={() => setAcctOpen(!acctOpen)}
+                aria-expanded={acctOpen}
+                aria-haspopup="true"
+                aria-label="My account"
+                className="healo-acct-btn"
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 36,
+                  background: "var(--ink-0)",
+                  color: "var(--gold-0)",
+                  border: 0,
+                  cursor: "pointer",
+                  fontFamily: "var(--font-serif)",
+                  fontSize: 14,
+                  fontWeight: 500,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0,
+                }}
+              >
+                {(user.email || "?").charAt(0).toUpperCase()}
+              </button>
+              {acctOpen && (
+                <div
+                  role="menu"
+                  style={{
+                    position: "absolute",
+                    top: "calc(100% + 6px)",
+                    right: 0,
+                    minWidth: 220,
+                    background: "var(--paper)",
+                    border: "1px solid var(--cream-2)",
+                    boxShadow: "var(--shadow-md)",
+                    zIndex: 100,
+                  }}
+                >
+                  <div
+                    style={{
+                      padding: "12px 14px",
+                      borderBottom: "1px solid var(--cream-2)",
+                      fontFamily: "var(--font-sans)",
+                      fontSize: 11,
+                      color: "var(--fg-on-light-3)",
+                      wordBreak: "break-all",
+                    }}
+                  >
+                    {user.email}
+                  </div>
+                  {[
+                    { href: "/patient", label: lang === "ko" ? "내 치료 대시보드" : "My dashboard" },
+                    { href: "/patient/messages", label: lang === "ko" ? "메시지" : "Messages" },
+                    { href: "/patient/calendar", label: lang === "ko" ? "캘린더" : "Calendar" },
+                    { href: "/patient/documents", label: lang === "ko" ? "의료 문서" : "Documents" },
+                  ].map((it) => (
+                    <Link
+                      key={it.href}
+                      href={it.href}
+                      onClick={() => setAcctOpen(false)}
+                      style={{
+                        display: "block",
+                        padding: "10px 14px",
+                        fontFamily: "var(--font-sans)",
+                        fontSize: 13,
+                        color: "var(--fg-on-light-1)",
+                        textDecoration: "none",
+                        borderBottom: "1px solid var(--cream-2)",
+                      }}
+                    >
+                      {it.label}
+                    </Link>
+                  ))}
+                  <button
+                    onClick={handleLogout}
+                    style={{
+                      display: "block",
+                      width: "100%",
+                      textAlign: "left",
+                      padding: "10px 14px",
+                      background: "transparent",
+                      border: 0,
+                      cursor: "pointer",
+                      fontFamily: "var(--font-sans)",
+                      fontSize: 11,
+                      fontWeight: 600,
+                      letterSpacing: "0.18em",
+                      textTransform: "uppercase",
+                      color: "#8c3a2e",
+                    }}
+                  >
+                    {lang === "ko" ? "로그아웃" : "Sign out"}
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <Link
+              href="/login"
+              className="healo-nav-login"
+              style={{
+                fontFamily: "var(--font-sans)",
+                fontSize: 11,
+                fontWeight: 500,
+                letterSpacing: "0.2em",
+                textTransform: "uppercase",
+                color: "var(--fg-on-light-2)",
+                textDecoration: "none",
+                borderBottom: "1px solid var(--fg-on-light-4)",
+                paddingBottom: 2,
+                whiteSpace: "nowrap",
+              }}
+            >
+              {lang === "ko" ? "로그인" : "Sign in"}
+            </Link>
+          )}
+
           {/* CTA */}
           <Link
             href="/intake"
@@ -341,6 +488,86 @@ export default function Nav({ current }) {
               </Link>
             );
           })}
+
+          {/* Mobile: account section */}
+          <div
+            style={{
+              marginTop: 16,
+              paddingTop: 16,
+              borderTop: "1px solid var(--gold-tint)",
+              display: "flex",
+              flexDirection: "column",
+              gap: 4,
+            }}
+          >
+            {user ? (
+              <>
+                <div
+                  style={{
+                    fontFamily: "var(--font-sans)",
+                    fontSize: 10,
+                    letterSpacing: "0.2em",
+                    textTransform: "uppercase",
+                    color: "var(--fg-on-light-3)",
+                    marginBottom: 8,
+                  }}
+                >
+                  {user.email}
+                </div>
+                <Link
+                  href="/patient"
+                  onClick={() => setMobileOpen(false)}
+                  style={{
+                    padding: "10px 0",
+                    borderBottom: "1px solid var(--cream-2)",
+                    fontFamily: "var(--font-sans)",
+                    fontSize: 13,
+                    letterSpacing: "0.08em",
+                    color: "var(--fg-on-light-1)",
+                    textDecoration: "none",
+                    textTransform: "uppercase",
+                  }}
+                >
+                  {lang === "ko" ? "내 대시보드" : "My dashboard"}
+                </Link>
+                <button
+                  onClick={() => { setMobileOpen(false); handleLogout(); }}
+                  style={{
+                    padding: "14px 0",
+                    background: "transparent",
+                    border: 0,
+                    textAlign: "left",
+                    cursor: "pointer",
+                    fontFamily: "var(--font-sans)",
+                    fontSize: 11,
+                    fontWeight: 600,
+                    letterSpacing: "0.2em",
+                    textTransform: "uppercase",
+                    color: "#8c3a2e",
+                  }}
+                >
+                  {lang === "ko" ? "로그아웃" : "Sign out"}
+                </button>
+              </>
+            ) : (
+              <Link
+                href="/login"
+                onClick={() => setMobileOpen(false)}
+                style={{
+                  padding: "14px 0",
+                  fontFamily: "var(--font-sans)",
+                  fontSize: 12,
+                  fontWeight: 600,
+                  letterSpacing: "0.2em",
+                  textTransform: "uppercase",
+                  color: "var(--gold-2)",
+                  textDecoration: "none",
+                }}
+              >
+                {lang === "ko" ? "로그인 →" : "Sign in →"}
+              </Link>
+            )}
+          </div>
         </div>
       )}
 
@@ -351,6 +578,11 @@ export default function Nav({ current }) {
           }
           :global(.healo-nav-mobile-btn) {
             display: inline-flex !important;
+          }
+          /* 모바일에서는 데스크톱 로그인 텍스트·계정 드롭다운 숨김 (드로어에서 보임) */
+          :global(.healo-nav-login),
+          :global(.healo-acct-btn) {
+            display: none !important;
           }
         }
       `}</style>
