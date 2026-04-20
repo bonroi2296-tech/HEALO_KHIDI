@@ -164,6 +164,7 @@ export default function ClientShell({ children }) {
     "/success",
     "/search",
     "/faq",
+    "/stories",
   ];
   const PREMIUM_PREFIXES = [
     "/hospitals/",     // /hospitals/[slug]
