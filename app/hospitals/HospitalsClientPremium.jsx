@@ -272,7 +272,7 @@ function HospitalCard({ hospital, copy, lang }) {
   return (
     <article>
       <Link
-        href={`/hospitals/${hospital.slug}`}
+        href={hospital.slug?.startsWith("immunehospital") ? "/hospitals/immune" : `/hospitals/${hospital.slug}`}
         style={{ textDecoration: "none", color: "inherit", display: "block" }}
       >
         <div
