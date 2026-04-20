@@ -19,12 +19,12 @@ export default function PlaybookAnalyticsPage() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showGuide, setShowGuide] = useState(false);
-  const [filters, setFilters] = useState({
+  const [filters, setFilters] = useState(() => ({
     from: new Date(Date.now() - 14 * 86400000).toISOString().slice(0, 10),
     to: new Date().toISOString().slice(0, 10),
     used: "",
     lang: "",
-  });
+  }));
 
   const load = useCallback(async () => {
     setLoading(true);

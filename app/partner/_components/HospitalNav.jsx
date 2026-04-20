@@ -50,7 +50,7 @@ export function HospitalNav() {
     router.push("/login");
   };
 
-  const NavContent = () => (
+  const navContent = (
     <>
       <div className="p-4 lg:p-6 border-b border-gray-200">
         <div className="flex items-center justify-between">
@@ -132,14 +132,14 @@ export function HospitalNav() {
         <div className="lg:hidden fixed inset-0 z-50">
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setIsMobileOpen(false)} />
           <aside className="absolute left-0 top-0 bottom-0 w-72 bg-white flex flex-col shadow-2xl animate-in slide-in-from-left duration-200">
-            <NavContent />
+            {navContent}
           </aside>
         </div>
       )}
 
       {/* Desktop sidebar (below PortalTopBar h-12) */}
       <aside className="hidden lg:flex w-64 bg-white border-r border-gray-200 min-h-screen flex-col sticky top-12 h-[calc(100vh-3rem)]">
-        <NavContent />
+        {navContent}
       </aside>
     </>
   );

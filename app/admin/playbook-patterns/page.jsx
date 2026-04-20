@@ -20,6 +20,7 @@ export default function PlaybookPatternsPage() {
   const [mergeMode, setMergeMode] = useState(false);
   const [mergeSelection, setMergeSelection] = useState(new Set());
   const [merging, setMerging] = useState(false);
+  const [showGuide, setShowGuide] = useState(false);
   const LIMIT = 20;
 
   const fetchPatterns = useCallback(async () => {

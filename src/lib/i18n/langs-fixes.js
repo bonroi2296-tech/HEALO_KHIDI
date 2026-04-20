@@ -57,7 +57,7 @@ export const ZH_FIXES = {
   "hero.subtitle.line1":
     "AI为您比较治疗方案、医生和价格，省时省力。",
   "hero.subtitle.line2": "您的专属医疗礼宾服务。",
-  "search.placeholder": "试试搜索"干细胞"...",
+  "search.placeholder": "试试搜索『干细胞』...",
   "search.button": "搜索",
   "card.estPrice": "预估价格",
   "price.inquire": "咨询",

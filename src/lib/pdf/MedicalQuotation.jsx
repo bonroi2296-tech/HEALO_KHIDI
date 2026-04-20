@@ -95,6 +95,10 @@ function fmtUSD(n) {
   return `$${Number(n).toLocaleString("en-US", { maximumFractionDigits: 0 })}`;
 }
 
+// @react-pdf/renderer is NOT a React DOM component — it's rendered server-side
+// once to a PDF buffer, never re-rendered. The react-hooks/purity rule doesn't
+// apply here, so Math.random() / new Date() at render-time is safe.
+/* eslint-disable react-hooks/purity */
 export default function MedicalQuotation({ data, lang = "ko" }) {
   const L = LABELS[lang] || LABELS.en;
   const L2 = lang === "ko" ? LABELS.en : LABELS.ko; // bilingual

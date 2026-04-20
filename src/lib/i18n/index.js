@@ -2504,7 +2504,6 @@ const DICTIONARY = {
     "contact.address": "Мекенжай",
     "contact.privacyTerms": "Құпиялылық және шарттар",
     "contact.privacyTermsDesc": "Біздің",
-    "auth.greeting": "Сәлем",
     "auth.signedInAs": "Кіргендер:",
     "footer.company": "Компания",
     "footer.legal": "Құқықтық ақпарат",

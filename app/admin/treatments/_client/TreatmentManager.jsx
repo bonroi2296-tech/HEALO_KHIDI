@@ -65,7 +65,7 @@ export const TreatmentManager = ({
     setShowForm(true);
   };
 
-  const ListPanel = () => (
+  const listPanel = (
     <>
       <select
         className="w-full border p-2 rounded mb-4 text-sm"
@@ -98,7 +98,7 @@ export const TreatmentManager = ({
     </>
   );
 
-  const FormPanel = () => (
+  const formPanel = (
     <>
       {!selectedHospitalId ? (
         <div className="bg-white rounded-2xl border border-gray-200 p-8 lg:h-[calc(100vh-100px)] flex items-center justify-center">
@@ -318,10 +318,10 @@ export const TreatmentManager = ({
       {/* Desktop */}
       <div className="hidden lg:grid grid-cols-12 gap-8">
         <div className="col-span-4 bg-white rounded-2xl border border-gray-200 p-4 h-[calc(100vh-100px)] overflow-y-auto">
-          <ListPanel />
+          {listPanel}
         </div>
         <div className="col-span-8 relative">
-          <FormPanel />
+          {formPanel}
         </div>
       </div>
 
@@ -329,14 +329,14 @@ export const TreatmentManager = ({
       <div className="lg:hidden">
         {!showForm ? (
           <div className="bg-white rounded-2xl border border-gray-200 p-4">
-            <ListPanel />
+            {listPanel}
           </div>
         ) : (
           <div>
             <button onClick={() => setShowForm(false)} className="flex items-center gap-1 text-sm text-gray-600 mb-3 hover:text-teal-600">
               <ChevronLeft size={16}/> 목록으로
             </button>
-            <FormPanel />
+            {formPanel}
           </div>
         )}
       </div>

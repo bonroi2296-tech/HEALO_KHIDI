@@ -207,7 +207,7 @@ export default function ClientShell({ children }) {
   const CHECK_INTERVAL_MS = 30 * 1000;
   const THROTTLE_MS = 1000;
 
-  const lastActivityRef = useRef(Date.now());
+  const lastActivityRef = useRef(0);
   const warningShownRef = useRef(false);
   const throttleRef = useRef(0);
 

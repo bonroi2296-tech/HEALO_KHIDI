@@ -622,7 +622,7 @@ function JobRow({ job, onCancel, onDelete }) {
     ? Math.round((job.progress_current / job.progress_total) * 100)
     : 0;
 
-  const [now, setNow] = useState(Date.now());
+  const [now, setNow] = useState(() => Date.now());
 
   useEffect(() => {
     if (job.status !== "running") return;
