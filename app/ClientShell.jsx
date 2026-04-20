@@ -146,7 +146,7 @@ export default function ClientShell({ children }) {
   const isPortalPage = pathname.startsWith("/admin") || pathname.startsWith("/partner");
 
   // D. Premium 디자인 적용 라우트 — 자체 Nav/Footer를 가지므로 ClientShell의 Header/Footer 숨김
-  const PREMIUM_ROUTES = ["/", "/intake", "/education", "/privacy", "/terms", "/medical-disclaimer"];
+  const PREMIUM_ROUTES = ["/", "/intake", "/education", "/privacy", "/terms", "/medical-disclaimer", "/treatments", "/hospitals", "/visa"];
   const [isPremiumMode, setIsPremiumMode] = useState(true);
   useEffect(() => {
     try {

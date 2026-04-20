@@ -1,5 +1,8 @@
 import { Suspense } from "react";
+import { cookies } from "next/headers";
 import HospitalsClient from "./HospitalsClient";
+import HospitalsClientPremium from "./HospitalsClientPremium";
+import { getServerDesignMode } from "../../src/lib/designMode";
 
 export const metadata = {
   title: "협력 병원 — HEALO 파트너 의료기관",
@@ -16,10 +19,14 @@ export const metadata = {
   alternates: { canonical: "/hospitals" },
 };
 
-export default function HospitalsPage() {
+export default async function HospitalsPage({ searchParams }) {
+  const sp = (await searchParams) || {};
+  const ck = await cookies();
+  const mode = getServerDesignMode({ searchParams: sp, cookies: ck });
+  const Client = mode === "legacy" ? HospitalsClient : HospitalsClientPremium;
   return (
     <Suspense>
-      <HospitalsClient />
+      <Client />
     </Suspense>
   );
 }

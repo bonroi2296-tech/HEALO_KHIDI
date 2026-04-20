@@ -1,7 +1,11 @@
 "use client";
 
 import Link from "next/link";
+import { useState, useEffect } from "react";
 import { useLang } from "../../src/lib/i18n/LangContext";
+import { supabaseClient } from "../../src/lib/data/supabaseClient";
+import { mapHospitalRow } from "../../src/lib/mapper";
+import { getLangCodeFromCookie } from "../../src/lib/i18n";
 import {
   Eyebrow,
   Rule,
@@ -237,6 +241,41 @@ export default function HomeClientPremium() {
   const lang = useLang();
   const copy = COPY[lang] || COPY.en;
   const isKo = lang === "ko";
+
+  // 실제 DB에서 병원 데이터 fetch (Google Places enriched)
+  const [dbHospitals, setDbHospitals] = useState(null);
+  useEffect(() => {
+    (async () => {
+      try {
+        const { data } = await supabaseClient
+          .from("hospitals")
+          .select("*")
+          .eq("is_published", true)
+          .not("thumbnail_image", "is", null)
+          .order("display_order", { ascending: true, nullsFirst: false })
+          .limit(3);
+        if (data && data.length > 0) {
+          const langCode = getLangCodeFromCookie();
+          setDbHospitals(
+            data.map((r) => {
+              const mapped = mapHospitalRow(r, langCode);
+              return {
+                name: mapped?.name || r.name_ko || r.name_en,
+                photo: r.thumbnail_image,
+                specialty: r.tags?.[0] || "Partner hospital",
+                meta: r.address || "Seoul",
+                slug: r.slug,
+                rating: r.external_ratings?.google?.rating,
+              };
+            })
+          );
+        }
+      } catch {
+        /* use fallback */
+      }
+    })();
+  }, []);
+  const hospitalsToShow = dbHospitals && dbHospitals.length > 0 ? dbHospitals : copy.hospitals;
 
   return (
     <div style={{ background: "var(--cream-0)", minHeight: "100vh" }}>
@@ -550,8 +589,8 @@ export default function HomeClientPremium() {
               gap: 32,
             }}
           >
-            {copy.hospitals.map((h, i) => (
-              <article key={i}>
+            {hospitalsToShow.map((h, i) => (
+              <article key={h.slug || i}>
                 <div
                   style={{
                     width: "100%",

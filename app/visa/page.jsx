@@ -1,4 +1,7 @@
-import VisaClient from '../patient/visa/VisaClient';
+import { cookies } from "next/headers";
+import VisaClient from "../patient/visa/VisaClient";
+import VisaClientPremium from "../patient/visa/VisaClientPremium";
+import { getServerDesignMode } from "../../src/lib/designMode";
 
 export const metadata = {
   title: "Medical Visa Guide | HEALO",
@@ -17,6 +20,9 @@ export const metadata = {
   alternates: { canonical: "/visa" },
 };
 
-export default function PublicVisaPage() {
-  return <VisaClient />;
+export default async function PublicVisaPage({ searchParams }) {
+  const sp = (await searchParams) || {};
+  const ck = await cookies();
+  const mode = getServerDesignMode({ searchParams: sp, cookies: ck });
+  return mode === "legacy" ? <VisaClient /> : <VisaClientPremium />;
 }

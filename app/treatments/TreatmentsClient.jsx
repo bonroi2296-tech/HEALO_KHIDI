@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import { getLangCodeFromCookie } from '../../src/lib/i18n';
 
-const L = {
+export const TREATMENTS_L = {
   title: { ko: '암종별 치료 안내', en: 'Cancer Treatment Guide', ru: 'Руководство по лечению рака', kz: 'Рак емдеу нұсқаулығы', zh: '癌症治疗指南', ja: 'がん治療ガイド' },
   subtitle: { ko: '한국의 첨단 암 치료와 한방 면역치료를 결합한 HEALO 통합 케어 프로세스', en: 'HEALO integrated care combining Korea\'s advanced cancer treatment with Korean Medicine immune therapy', ru: 'Интегрированная помощь HEALO: передовое лечение рака в Корее + корейская иммунная терапия', kz: 'HEALO кешенді көмек: Кореяның озық онкологиялық емі + корей иммундық терапиясы', zh: 'HEALO综合护理：韩国先进肿瘤治疗+韩方免疫治疗', ja: 'HEALO統合ケア：韓国の先端がん治療と韓方免疫治療の融合' },
   processTitle: { ko: 'HEALO 통합 케어 프로세스', en: 'HEALO Integrated Care Process', ru: 'Процесс интегрированной помощи HEALO', kz: 'HEALO кешенді көмек процесі', zh: 'HEALO综合护理流程', ja: 'HEALO統合ケアプロセス' },
@@ -20,7 +20,7 @@ const L = {
   bottomDesc: { ko: '인테이크 양식을 작성하면 24시간 이내에 최적의 치료 계획을 안내해드립니다.', en: 'Submit your intake form and we\'ll guide you to the optimal treatment plan within 24 hours.', ru: 'Заполните анкету, и мы предложим оптимальный план лечения в течение 24 часов.', kz: 'Сауалнаманы толтырыңыз, 24 сағат ішінде ең тиімді емдеу жоспарын ұсынамыз.', zh: '提交问诊表，我们将在24小时内为您提供最佳治疗方案。', ja: '問診票をご提出いただければ、24時間以内に最適な治療計画をご案内します。' },
 };
 
-const CANCERS = [
+export const CANCERS = [
   {
     emoji: '🫁', type: { ko: '위암', en: 'Stomach Cancer', ru: 'Рак желудка', kz: 'Асқазан обыры', zh: '胃癌', ja: '胃がん' },
     koreaStrength: { ko: '한국 위암 5년 생존율 세계 1위 (77.0%)', en: 'Korea has the world\'s highest 5-year stomach cancer survival rate (77.0%)', ru: 'Корея — мировой лидер по выживаемости при раке желудка (77.0%)', kz: 'Корея — асқазан обыры бойынша өмір сүру рекорды (77.0%)', zh: '韩国胃癌5年生存率世界第一（77.0%）', ja: '韓国の胃がん5年生存率は世界一（77.0%）' },
@@ -128,14 +128,14 @@ export default function TreatmentsClient() {
       {/* Hero */}
       <section className="bg-gradient-to-br from-teal-700 via-teal-600 to-emerald-700 text-white py-14 md:py-20">
         <div className="max-w-5xl mx-auto px-4 text-center">
-          <h1 className="text-3xl md:text-4xl font-extrabold mb-4">{l(L.title)}</h1>
-          <p className="text-white/80 text-base md:text-lg max-w-2xl mx-auto">{l(L.subtitle)}</p>
+          <h1 className="text-3xl md:text-4xl font-extrabold mb-4">{l(TREATMENTS_L.title)}</h1>
+          <p className="text-white/80 text-base md:text-lg max-w-2xl mx-auto">{l(TREATMENTS_L.subtitle)}</p>
         </div>
       </section>
 
       {/* Process */}
       <section className="max-w-5xl mx-auto px-4 py-12">
-        <h2 className="text-xl font-bold text-center mb-8">{l(L.processTitle)}</h2>
+        <h2 className="text-xl font-bold text-center mb-8">{l(TREATMENTS_L.processTitle)}</h2>
         <div className="flex flex-col md:flex-row items-stretch gap-3 md:gap-0">
           {PROCESS_STEPS.map((step, i) => {
             const Icon = step.icon;
@@ -191,7 +191,7 @@ export default function TreatmentsClient() {
                       <div className="bg-blue-50 rounded-xl p-4 border border-blue-100">
                         <div className="flex items-center gap-2 mb-3">
                           <Stethoscope size={16} className="text-blue-600" />
-                          <h4 className="font-bold text-sm text-blue-900">{l(L.westernTitle)}</h4>
+                          <h4 className="font-bold text-sm text-blue-900">{l(TREATMENTS_L.westernTitle)}</h4>
                         </div>
                         <ul className="space-y-2">
                           {cancer.western.map((item, j) => (
@@ -207,7 +207,7 @@ export default function TreatmentsClient() {
                       <div className="bg-emerald-50 rounded-xl p-4 border border-emerald-100">
                         <div className="flex items-center gap-2 mb-3">
                           <Leaf size={16} className="text-emerald-600" />
-                          <h4 className="font-bold text-sm text-emerald-900">{l(L.easternTitle)}</h4>
+                          <h4 className="font-bold text-sm text-emerald-900">{l(TREATMENTS_L.easternTitle)}</h4>
                         </div>
                         <ul className="space-y-2">
                           {cancer.eastern.map((item, j) => (
@@ -225,7 +225,7 @@ export default function TreatmentsClient() {
                         onClick={() => router.push('/intake')}
                         className="inline-flex items-center gap-2 px-5 py-2.5 bg-teal-600 text-white rounded-xl hover:bg-teal-700 transition text-sm font-semibold"
                       >
-                        {l(L.cta)} <ArrowRight size={14} />
+                        {l(TREATMENTS_L.cta)} <ArrowRight size={14} />
                       </button>
                     </div>
                   </div>
@@ -239,16 +239,16 @@ export default function TreatmentsClient() {
       {/* Bottom CTA */}
       <section className="max-w-5xl mx-auto px-4 py-12 text-center">
         <h2 className="text-xl md:text-2xl font-bold mb-3">
-          {l(L.bottomTitle)}
+          {l(TREATMENTS_L.bottomTitle)}
         </h2>
         <p className="text-gray-500 text-sm mb-6 max-w-lg mx-auto">
-          {l(L.bottomDesc)}
+          {l(TREATMENTS_L.bottomDesc)}
         </p>
         <button
           onClick={() => router.push('/intake')}
           className="bg-teal-600 text-white font-bold px-8 py-4 rounded-2xl shadow-lg hover:bg-teal-700 hover:shadow-xl hover:scale-105 transition-all inline-flex items-center gap-2"
         >
-          {l(L.cta)} <ArrowRight size={18} />
+          {l(TREATMENTS_L.cta)} <ArrowRight size={18} />
         </button>
       </section>
     </div>

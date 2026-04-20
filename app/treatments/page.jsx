@@ -1,5 +1,8 @@
 import { Suspense } from "react";
+import { cookies } from "next/headers";
 import TreatmentsClient from "./TreatmentsClient";
+import TreatmentsClientPremium from "./TreatmentsClientPremium";
+import { getServerDesignMode } from "../../src/lib/designMode";
 
 export const metadata = {
   title: "암종별 치료 안내 — 한국 암 치료와 한방 통합 케어",
@@ -17,10 +20,14 @@ export const metadata = {
   alternates: { canonical: "/treatments" },
 };
 
-export default function TreatmentsPage() {
+export default async function TreatmentsPage({ searchParams }) {
+  const sp = (await searchParams) || {};
+  const ck = await cookies();
+  const mode = getServerDesignMode({ searchParams: sp, cookies: ck });
+  const Client = mode === "legacy" ? TreatmentsClient : TreatmentsClientPremium;
   return (
     <Suspense>
-      <TreatmentsClient />
+      <Client />
     </Suspense>
   );
 }
