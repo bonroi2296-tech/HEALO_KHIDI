@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState, useRef, useEffect } from "react";
 import { useLang } from "../../src/lib/i18n/LangContext";
 import { setLangCookie } from "../../src/lib/i18n";
+import NotificationBadge from "./NotificationBadge";
 
 /**
  * HEALO Nav — cream background, sticky, hairline divider, backdrop blur.
@@ -149,8 +150,9 @@ export default function Nav({ current }) {
           })}
         </div>
 
-        {/* Right: lang dropdown + CTA */}
+        {/* Right: notification + lang dropdown + CTA */}
         <div style={{ display: "flex", alignItems: "center", gap: 12, flexShrink: 0 }}>
+          <NotificationBadge />
           {/* Language dropdown */}
           <div ref={langRef} style={{ position: "relative" }}>
             <button

@@ -62,6 +62,7 @@
     "react-daum-postcode": "^3.2.0",
     "react-dom": "18.2.0",
     "react-dropzone": "^14.4.1",
+    "recharts": "^3.8.1",
     "server-only": "^0.0.1",
     "xlsx": "^0.18.5",
     "zod": "^3.25.76"

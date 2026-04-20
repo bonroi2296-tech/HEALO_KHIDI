@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import PatientDashboardClient from "./PatientDashboardClient";
+import PatientDashboardPremium from "./PatientDashboardPremium";
 import PageShell from "../../components/healo/PageShell";
 import { getServerDesignMode } from "../../src/lib/designMode";
 
@@ -13,10 +14,12 @@ export default async function PatientPage({ searchParams }) {
   const sp = (await searchParams) || {};
   const ck = await cookies();
   const mode = getServerDesignMode({ searchParams: sp, cookies: ck });
-  if (mode === "legacy") return <PatientDashboardClient />;
-  return (
-    <PageShell current="" noHero>
-      <PatientDashboardClient />
-    </PageShell>
-  );
+  if (mode === "legacy") {
+    return (
+      <PageShell current="" noHero>
+        <PatientDashboardClient />
+      </PageShell>
+    );
+  }
+  return <PatientDashboardPremium />;
 }

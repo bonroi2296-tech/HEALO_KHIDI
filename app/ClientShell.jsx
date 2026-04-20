@@ -167,7 +167,7 @@ export default function ClientShell({ children }) {
     "/hospitals/",     // /hospitals/[slug]
     "/treatments/",    // /treatments/[slug]
     "/specialties/",   // /specialties/*
-    "/patient",        // /patient, /patient/chat, etc.
+    "/patient",        // /patient, /patient/chat, /patient/messages, /patient/calendar, etc.
   ];
   const isPremiumPath = (p) =>
     PREMIUM_ROUTES.includes(p) || PREMIUM_PREFIXES.some((pre) => p.startsWith(pre));
