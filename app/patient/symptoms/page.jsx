@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import SymptomsClient from "./SymptomsClient";
+import SymptomsPremium from "./SymptomsPremium";
 import PageShell from "../../../components/healo/PageShell";
 import { getServerDesignMode } from "../../../src/lib/designMode";
 
@@ -13,10 +14,12 @@ export default async function SymptomsPage({ searchParams }) {
   const sp = (await searchParams) || {};
   const ck = await cookies();
   const mode = getServerDesignMode({ searchParams: sp, cookies: ck });
-  if (mode === "legacy") return <SymptomsClient />;
-  return (
-    <PageShell current="" noHero>
-      <SymptomsClient />
-    </PageShell>
-  );
+  if (mode === "legacy") {
+    return (
+      <PageShell current="" noHero>
+        <SymptomsClient />
+      </PageShell>
+    );
+  }
+  return <SymptomsPremium />;
 }

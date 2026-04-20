@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import RebookingClient from "./RebookingClient";
+import RebookingPremium from "./RebookingPremium";
 import PageShell from "../../../components/healo/PageShell";
 import { getServerDesignMode } from "../../../src/lib/designMode";
 
@@ -15,10 +16,12 @@ export default async function PatientRebookingPage({ searchParams }) {
   const sp = (await searchParams) || {};
   const ck = await cookies();
   const mode = getServerDesignMode({ searchParams: sp, cookies: ck });
-  if (mode === "legacy") return <RebookingClient />;
-  return (
-    <PageShell current="" noHero>
-      <RebookingClient />
-    </PageShell>
-  );
+  if (mode === "legacy") {
+    return (
+      <PageShell current="" noHero>
+        <RebookingClient />
+      </PageShell>
+    );
+  }
+  return <RebookingPremium />;
 }
