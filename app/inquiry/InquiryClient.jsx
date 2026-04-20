@@ -49,7 +49,9 @@ export const InquiryPage = ({ setView, mode, setMode, onClose, treatments }) => 
     messages,
     input,
     setInput,
-    handleInputChange,
+    // handleInputChange 는 ai@6 에서 deprecated — 현재 사용 안함. 이 컴포넌트를
+    // sendMessage 기반 v6 API 로 전환 시 제거.
+    handleInputChange: _handleInputChange,
     append,
     error: chatError,
   } = useChat({

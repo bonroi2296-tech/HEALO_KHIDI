@@ -20,8 +20,10 @@ export const TreatmentManager = ({
   loading,
   uploadToSupabase,
   uploading,
-  DynamicListInput,
-  ImageUploader,
+  // DynamicListInput / ImageUploader 는 부모에서 주입되지만 현재 컴포넌트 내에서
+  // 직접 쓰이진 않음 — 향후 리팩터 시 사용 예정이므로 destructure 유지 (prefix `_`).
+  DynamicListInput: _DynamicListInput,
+  ImageUploader: _ImageUploader,
 }) => {
   const [showForm, setShowForm] = useState(false);
   const [treatmentSources, setTreatmentSources] = useState([]);

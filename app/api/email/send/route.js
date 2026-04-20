@@ -31,7 +31,8 @@ const TEMPLATE_MAP = {
 export async function POST(request) {
   try {
     const body = await request.json();
-    const { to, template, data = {}, lang = "en", subject: customSubject } = body;
+    // `lang` 필드는 미래 확장 (번역된 메일 발송) 용으로 body 에서 받지만 현재 사용 X
+    const { to, template, data = {}, lang: _lang = "en", subject: customSubject } = body;
 
     if (!to || !template) {
       return NextResponse.json({ ok: false, error: "missing_to_or_template" }, { status: 400 });

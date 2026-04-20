@@ -211,6 +211,64 @@ export function getRateLimitHeaders(result: RateLimitResult): HeadersInit {
 }
 
 /**
+ * ✅ Persistent rate limit — Supabase RPC 기반 (cross-isolate)
+ *
+ * Vercel serverless 에서 isolate 마다 메모리가 독립이라 같은 IP 가 다른 isolate 히트하면
+ * in-memory 카운터가 리셋됨. 진짜 공격자 차단 효과가 떨어짐.
+ * DB 기반 sliding window 로 교체.
+ *
+ * 동작:
+ * - `check_rate_limit(key, window_ms, max_requests)` RPC 호출
+ * - 반환: { allowed, remaining, reset_at }
+ * - DB 실패 시 → in-memory 로 fallback (fail-open 방지)
+ *
+ * 사용:
+ * ```ts
+ * const rl = await checkRateLimitPersistent(clientIp, RATE_LIMITS.INQUIRY);
+ * if (!rl.allowed) return Response.json({ error: 'rate_limited' }, { status: 429 });
+ * ```
+ */
+export async function checkRateLimitPersistent(
+  identifier: string | null | undefined,
+  config: RateLimitConfig
+): Promise<RateLimitResult> {
+  const { windowMs, maxRequests, apiName = "api" } = config;
+
+  if (!identifier) {
+    return { allowed: false, remaining: 0, resetAt: Date.now() + windowMs };
+  }
+
+  const key = `${apiName}:${identifier}`;
+
+  try {
+    const { supabaseAdmin } = await import("./rag/supabaseAdmin");
+    const { data, error } = await (supabaseAdmin as any).rpc("check_rate_limit", {
+      p_key: key,
+      p_window_ms: windowMs,
+      p_max_requests: maxRequests,
+    });
+
+    if (error || !data || !Array.isArray(data) || data.length === 0) {
+      // DB 호출 실패 → in-memory 로 fallback (fail-open 하지 않음)
+      console.warn(`[rateLimit:${apiName}] DB RPC failed, falling back to in-memory: ${error?.message}`);
+      return checkRateLimit(identifier, config);
+    }
+
+    const row = data[0] as { allowed: boolean; remaining: number; reset_at: string };
+    return {
+      allowed: row.allowed,
+      remaining: row.remaining,
+      resetAt: new Date(row.reset_at).getTime(),
+      blocked: !row.allowed,
+      reason: !row.allowed ? `Too many requests. Max ${maxRequests} per ${windowMs / 1000}s.` : undefined,
+    };
+  } catch (e) {
+    console.warn(`[rateLimit:${apiName}] Exception during DB RPC, fallback:`, (e as Error).message);
+    return checkRateLimit(identifier, config);
+  }
+}
+
+/**
  * ✅ 추천 Rate Limit 설정 (보수적)
  */
 export const RATE_LIMITS = {

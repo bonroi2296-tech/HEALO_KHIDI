@@ -15,6 +15,7 @@ import { supabaseAdmin, assertSupabaseEnv } from "../../../../src/lib/rag/supaba
 import { NextRequest } from "next/server";
 import { checkRateLimit, getClientIp, getRateLimitHeaders } from "../../../../src/lib/rateLimit";
 import { randomUUID } from "node:crypto";
+import { verifyFileMagic } from "../../../../src/lib/security/fileMagic";
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
@@ -85,6 +86,18 @@ export async function POST(request: NextRequest) {
     const filePath = `inquiry/${randomUUID()}_${safeName}`;
 
     const buffer = Buffer.from(await file.arrayBuffer());
+
+    // Magic bytes 검증 — content-type spoofing 차단
+    const magicCheck = verifyFileMagic(buffer, file.type);
+    if (!magicCheck.ok) {
+      console.warn(
+        `[api/attachments/upload] magic check failed: declared=${file.type} reason=${magicCheck.reason}`
+      );
+      return Response.json(
+        { ok: false, error: "invalid_file_content" },
+        { status: 400 }
+      );
+    }
 
     const { error: uploadError } = await supabaseAdmin.storage
       .from("attachments")

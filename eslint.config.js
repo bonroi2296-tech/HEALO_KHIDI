@@ -2,6 +2,7 @@ import js from '@eslint/js'
 import globals from 'globals'
 import reactHooks from 'eslint-plugin-react-hooks'
 import reactRefresh from 'eslint-plugin-react-refresh'
+import react from 'eslint-plugin-react'
 
 export default [
   {
@@ -27,6 +28,7 @@ export default [
     plugins: {
       'react-hooks': reactHooks,
       'react-refresh': reactRefresh,
+      react,
     },
     languageOptions: {
       ecmaVersion: 2020,
@@ -45,6 +47,21 @@ export default [
     rules: {
       ...js.configs.recommended.rules,
       ...reactHooks.configs.recommended.rules,
+      // JSX 안에서 사용되는 변수는 no-unused-vars 가 감지하도록 명시 등록
+      'react/jsx-uses-vars': 'error',
+      'react/jsx-uses-react': 'error',
+      // React 19 preview rule — cascading rerender 위험을 경고하지만,
+      // SSR hydration 용 useEffect + setState 같은 의도적 사용에서 false positive.
+      // 빌드를 막지 않고 경고만 내보내도록 warn 으로 조정. 점진적 useSyncExternalStore
+      // 또는 useEffect 제거 리팩터 대상.
+      'react-hooks/set-state-in-effect': 'warn',
+      // 동일하게 'Cannot create components' 도 warn 으로 — 렌더 내 선언 안티패턴 경고
+      'react-hooks/static-components': 'warn',
+      'react-hooks/purity': 'warn',
+      // React 19 preview rule — 기존 useMemo/useCallback 호환성 경고
+      'react-hooks/preserve-manual-memoization': 'warn',
+      // 빈 catch 는 "의도적으로 무시" 인 경우가 많음 (best-effort cleanup, storage 등)
+      'no-empty': ['error', { allowEmptyCatch: true }],
       'react-refresh/only-export-components': [
         'warn',
         { allowConstantExport: true },

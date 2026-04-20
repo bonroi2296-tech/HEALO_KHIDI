@@ -3,6 +3,7 @@ import { getSupabaseServerClient } from '../../../../../../src/lib/data/supabase
 import { uploadLimiter } from '../../../../../../src/lib/api/rateLimiter';
 import { sanitizeString } from '../../../../../../src/lib/api/sanitize';
 import { requireConsultationAccess } from '../../../../../../src/lib/auth/requireConsultationAccess';
+import { verifyFileMagic } from '../../../../../../src/lib/security/fileMagic';
 
 const ALLOWED_TYPES = [
   'application/pdf',
@@ -63,6 +64,19 @@ export async function POST(
     const storagePath = `consultations/${consultationId}/${Date.now()}_${crypto.randomUUID().slice(0, 8)}.${ext}`;
 
     const buffer = Buffer.from(await file.arrayBuffer());
+
+    // Magic bytes 검증 — declared content-type 와 실제 파일 헤더가 일치하는지 확인.
+    // `.pdf.exe` 같은 확장자 위장이나 content-type spoofing 차단.
+    const magicCheck = verifyFileMagic(buffer, file.type);
+    if (!magicCheck.ok) {
+      console.warn(
+        `[DocumentUpload] magic check failed: file=${file.name} declared=${file.type} reason=${magicCheck.reason}`
+      );
+      return NextResponse.json(
+        { ok: false, error: 'File content does not match declared type' },
+        { status: 400 }
+      );
+    }
 
     const { error: uploadError } = await supabase.storage
       .from('documents')
