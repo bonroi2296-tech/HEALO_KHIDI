@@ -1,4 +1,7 @@
 import Link from "next/link";
+import { cookies } from "next/headers";
+import PageShell from "../../../components/healo/PageShell";
+import { getServerDesignMode } from "../../../src/lib/designMode";
 import {
   Star,
   Shield,
@@ -146,7 +149,7 @@ const steps = [
   },
 ];
 
-export default function PlasticSurgeryPage() {
+function PlasticSurgeryContent() {
   return (
     <>
       <script
@@ -318,5 +321,17 @@ export default function PlasticSurgeryPage() {
         </section>
       </main>
     </>
+  );
+}
+
+export default async function PlasticSurgeryPage({ searchParams }) {
+  const sp = (await searchParams) || {};
+  const ck = await cookies();
+  const mode = getServerDesignMode({ searchParams: sp, cookies: ck });
+  if (mode === "legacy") return <PlasticSurgeryContent />;
+  return (
+    <PageShell current="treatments" noHero>
+      <PlasticSurgeryContent />
+    </PageShell>
   );
 }

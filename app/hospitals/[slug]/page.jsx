@@ -1,5 +1,8 @@
 import Script from "next/script";
+import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
+import PageShell from "../../../components/healo/PageShell";
+import { getServerDesignMode } from "../../../src/lib/designMode";
 import {
   getHospitalById,
   getHospitalBySlug,
@@ -65,8 +68,13 @@ export async function generateMetadata({ params }) {
   };
 }
 
-export default async function HospitalDetailPage({ params }) {
+export default async function HospitalDetailPage({ params, searchParams }) {
   const { slug } = await params;
+  const sp = (await searchParams) || {};
+  const ck = await cookies();
+  const mode = getServerDesignMode({ searchParams: sp, cookies: ck });
+  const wrapIfPremium = (node) =>
+    mode === "legacy" ? node : <PageShell current="hospitals" noHero>{node}</PageShell>;
 
   if (slug && isUuid(slug)) {
     const resolvedSlug = await getHospitalSlugById(slug);
@@ -103,7 +111,7 @@ export default async function HospitalDetailPage({ params }) {
           }
         : undefined,
     };
-    return (
+    return wrapIfPremium(
       <>
         <Script
           id="hospital-jsonld"
@@ -119,7 +127,7 @@ export default async function HospitalDetailPage({ params }) {
   const partner = getPartnerHospital(slug);
   if (partner) {
     const initialData = convertPartnerToInitialData(partner);
-    return <HospitalDetailClient id={slug} initialData={initialData} />;
+    return wrapIfPremium(<HospitalDetailClient id={slug} initialData={initialData} />);
   }
 
   notFound();

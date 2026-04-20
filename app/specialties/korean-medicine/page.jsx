@@ -1,4 +1,7 @@
+import { cookies } from "next/headers";
 import KoreanMedicineClient from "./KoreanMedicineClient";
+import PageShell from "../../../components/healo/PageShell";
+import { getServerDesignMode } from "../../../src/lib/designMode";
 
 export const metadata = {
   title: "Korean Traditional Medicine | HEALO",
@@ -23,6 +26,16 @@ export const metadata = {
   },
 };
 
-export default function KoreanMedicinePage() {
-  return <KoreanMedicineClient />;
+export default async function KoreanMedicinePage({ searchParams }) {
+  const sp = (await searchParams) || {};
+  const ck = await cookies();
+  const mode = getServerDesignMode({ searchParams: sp, cookies: ck });
+  if (mode === "legacy") {
+    return <KoreanMedicineClient />;
+  }
+  return (
+    <PageShell current="treatments" noHero>
+      <KoreanMedicineClient />
+    </PageShell>
+  );
 }

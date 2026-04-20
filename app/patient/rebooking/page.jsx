@@ -1,4 +1,7 @@
-import RebookingClient from './RebookingClient';
+import { cookies } from "next/headers";
+import RebookingClient from "./RebookingClient";
+import PageShell from "../../../components/healo/PageShell";
+import { getServerDesignMode } from "../../../src/lib/designMode";
 
 export const metadata = {
   title: "Rebooking Management",
@@ -8,6 +11,14 @@ export const metadata = {
   alternates: { canonical: "/patient/rebooking" },
 };
 
-export default function PatientRebookingPage() {
-  return <RebookingClient />;
+export default async function PatientRebookingPage({ searchParams }) {
+  const sp = (await searchParams) || {};
+  const ck = await cookies();
+  const mode = getServerDesignMode({ searchParams: sp, cookies: ck });
+  if (mode === "legacy") return <RebookingClient />;
+  return (
+    <PageShell current="" noHero>
+      <RebookingClient />
+    </PageShell>
+  );
 }

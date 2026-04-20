@@ -1,17 +1,17 @@
-"use client";
-
-import { useRouter } from "next/navigation";
+import { cookies } from "next/headers";
 import { SuccessPage } from "./SuccessClient";
+import SuccessPremium from "./SuccessPremium";
+import { getServerDesignMode } from "../../src/lib/designMode";
 
-export default function Success() {
-  const router = useRouter();
-  const setView = (viewName) => {
-    if (viewName === "home") {
-      router.push("/");
-    } else {
-      router.push("/");
-    }
-  };
+// Legacy fallback wrapper
+function SuccessLegacy() {
+  // SuccessClient expects setView callback — in Next App Router we use Link, so pass a noop
+  return <SuccessPage setView={() => {}} />;
+}
 
-  return <SuccessPage setView={setView} />;
+export default async function Success({ searchParams }) {
+  const sp = (await searchParams) || {};
+  const ck = await cookies();
+  const mode = getServerDesignMode({ searchParams: sp, cookies: ck });
+  return mode === "legacy" ? <SuccessLegacy /> : <SuccessPremium />;
 }

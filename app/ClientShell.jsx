@@ -146,7 +146,31 @@ export default function ClientShell({ children }) {
   const isPortalPage = pathname.startsWith("/admin") || pathname.startsWith("/partner");
 
   // D. Premium 디자인 적용 라우트 — 자체 Nav/Footer를 가지므로 ClientShell의 Header/Footer 숨김
-  const PREMIUM_ROUTES = ["/", "/intake", "/education", "/privacy", "/terms", "/medical-disclaimer", "/treatments", "/hospitals", "/visa"];
+  // Premium 디자인 적용된 정확한 경로 (prefix 매칭은 아래 isPremiumPath 함수에서)
+  const PREMIUM_ROUTES = [
+    "/",
+    "/intake",
+    "/education",
+    "/privacy",
+    "/terms",
+    "/medical-disclaimer",
+    "/cookies",
+    "/treatments",
+    "/hospitals",
+    "/visa",
+    "/about",
+    "/contact",
+    "/success",
+    "/search",
+  ];
+  const PREMIUM_PREFIXES = [
+    "/hospitals/",     // /hospitals/[slug]
+    "/treatments/",    // /treatments/[slug]
+    "/specialties/",   // /specialties/*
+    "/patient",        // /patient, /patient/chat, etc.
+  ];
+  const isPremiumPath = (p) =>
+    PREMIUM_ROUTES.includes(p) || PREMIUM_PREFIXES.some((pre) => p.startsWith(pre));
   const [isPremiumMode, setIsPremiumMode] = useState(true);
   useEffect(() => {
     try {
@@ -171,7 +195,7 @@ export default function ClientShell({ children }) {
       setIsPremiumMode(true);
     }
   }, [pathname]);
-  const isPremiumPage = isPremiumMode && PREMIUM_ROUTES.includes(pathname);
+  const isPremiumPage = isPremiumMode && isPremiumPath(pathname);
 
   // --- Idle timeout (portal pages only, 10 min) ---
   const IDLE_LIMIT_MS = 10 * 60 * 1000;

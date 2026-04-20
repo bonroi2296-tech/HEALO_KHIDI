@@ -1,5 +1,8 @@
 import Script from "next/script";
+import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
+import PageShell from "../../../components/healo/PageShell";
+import { getServerDesignMode } from "../../../src/lib/designMode";
 import {
   getTreatmentById,
   getTreatmentBySlug,
@@ -50,8 +53,11 @@ export async function generateMetadata({ params }) {
   };
 }
 
-export default async function TreatmentDetailPage({ params }) {
+export default async function TreatmentDetailPage({ params, searchParams }) {
   const { slug } = await params;
+  const sp = (await searchParams) || {};
+  const ck = await cookies();
+  const mode = getServerDesignMode({ searchParams: sp, cookies: ck });
   if (slug && isUuid(slug)) {
     const resolvedSlug = await getTreatmentSlugById(slug);
     if (resolvedSlug) redirect(`/treatments/${resolvedSlug}`);
@@ -89,7 +95,7 @@ export default async function TreatmentDetailPage({ params }) {
     areaServed: "KR",
     priceRange: treatment.price || undefined,
   };
-  return (
+  const content = (
     <>
       <Script
         id="treatment-jsonld"
@@ -98,5 +104,11 @@ export default async function TreatmentDetailPage({ params }) {
       />
       <TreatmentDetailClient id={slug} />
     </>
+  );
+  if (mode === "legacy") return content;
+  return (
+    <PageShell current="treatments" noHero>
+      {content}
+    </PageShell>
   );
 }

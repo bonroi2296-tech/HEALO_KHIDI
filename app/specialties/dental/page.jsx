@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { cookies } from "next/headers";
 import {
   Star,
   Shield,
@@ -9,6 +10,8 @@ import {
   Smile,
   HeartPulse,
 } from "lucide-react";
+import PageShell from "../../../components/healo/PageShell";
+import { getServerDesignMode } from "../../../src/lib/designMode";
 
 export const metadata = {
   title: "Dental Treatment in Korea | Implants, Veneers & Prices | HEALO-KHIDI",
@@ -154,7 +157,7 @@ const steps = [
   },
 ];
 
-export default function DentalPage() {
+function DentalContent() {
   return (
     <>
       <script
@@ -318,5 +321,17 @@ export default function DentalPage() {
         </section>
       </main>
     </>
+  );
+}
+
+export default async function DentalPage({ searchParams }) {
+  const sp = (await searchParams) || {};
+  const ck = await cookies();
+  const mode = getServerDesignMode({ searchParams: sp, cookies: ck });
+  if (mode === "legacy") return <DentalContent />;
+  return (
+    <PageShell current="treatments" noHero>
+      <DentalContent />
+    </PageShell>
   );
 }

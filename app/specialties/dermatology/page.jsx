@@ -1,4 +1,7 @@
 import Link from "next/link";
+import { cookies } from "next/headers";
+import PageShell from "../../../components/healo/PageShell";
+import { getServerDesignMode } from "../../../src/lib/designMode";
 import {
   Star,
   Shield,
@@ -154,7 +157,7 @@ const steps = [
   },
 ];
 
-export default function DermatologyPage() {
+function DermatologyContent() {
   return (
     <>
       <script
@@ -319,5 +322,17 @@ export default function DermatologyPage() {
         </section>
       </main>
     </>
+  );
+}
+
+export default async function DermatologyPage({ searchParams }) {
+  const sp = (await searchParams) || {};
+  const ck = await cookies();
+  const mode = getServerDesignMode({ searchParams: sp, cookies: ck });
+  if (mode === "legacy") return <DermatologyContent />;
+  return (
+    <PageShell current="treatments" noHero>
+      <DermatologyContent />
+    </PageShell>
   );
 }
