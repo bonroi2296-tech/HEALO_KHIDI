@@ -77,6 +77,7 @@ export default function Nav({ current }) {
 
   return (
     <nav
+      className="healo-safe-top"
       style={{
         position: "sticky",
         top: 0,

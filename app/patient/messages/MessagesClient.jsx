@@ -364,10 +364,13 @@ export default function MessagesClient() {
 
                 {/* Composer */}
                 <div
+                  className="healo-safe-bottom"
                   style={{
                     padding: "16px 32px 20px",
                     borderTop: "1px solid var(--cream-2)",
                     background: "var(--cream-0)",
+                    position: "sticky",
+                    bottom: 0,
                   }}
                 >
                   <div style={{ display: "flex", gap: 12, alignItems: "flex-end" }}>

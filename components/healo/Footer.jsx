@@ -6,6 +6,7 @@ import { Eyebrow, Rule } from "./Primitives";
 export default function Footer() {
   return (
     <footer
+      className="healo-safe-bottom"
       style={{
         background: "var(--ink-0)",
         color: "var(--fg-on-dark-2)",

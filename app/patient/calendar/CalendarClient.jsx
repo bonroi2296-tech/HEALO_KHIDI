@@ -63,6 +63,13 @@ export default function CalendarClient() {
   const [view, setView] = useState("month");
   const [cursor, setCursor] = useState(new Date()); // Month cursor
 
+  // 모바일에서는 기본 list view
+  useEffect(() => {
+    if (typeof window !== "undefined" && window.innerWidth < 768) {
+      setView("list");
+    }
+  }, []);
+
   useEffect(() => {
     (async () => {
       const supabase = createSupabaseBrowserClient();
@@ -236,12 +243,25 @@ export default function CalendarClient() {
               {copy.noEvents}
             </p>
           ) : view === "month" ? (
-            <MonthGrid cursor={cursor} events={events} daysOfWeek={copy.daysOfWeek} copy={copy} lang={lang} />
+            <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
+              <div style={{ minWidth: 700 }}>
+                <MonthGrid cursor={cursor} events={events} daysOfWeek={copy.daysOfWeek} copy={copy} lang={lang} />
+              </div>
+            </div>
           ) : (
             <ListView events={events} copy={copy} lang={lang} />
           )}
         </div>
       </section>
+
+      <style jsx>{`
+        @media (max-width: 640px) {
+          :global(.healo-calendar-list-row) {
+            grid-template-columns: 1fr !important;
+            gap: 8px !important;
+          }
+        }
+      `}</style>
     </PageShell>
   );
 }
@@ -467,6 +487,7 @@ function ListView({ events, copy, lang }) {
       {events.map((e) => (
         <div
           key={e.id}
+          className="healo-calendar-list-row"
           style={{
             display: "grid",
             gridTemplateColumns: "140px 1fr auto",

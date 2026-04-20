@@ -438,10 +438,11 @@ export default function PatientDashboardPremium() {
         <div style={{ maxWidth: 1240, margin: "0 auto" }}>
           <Eyebrow>{copy.quickLinks}</Eyebrow>
           <div
+            className="healo-quick-grid"
             style={{
               marginTop: 32,
               display: "grid",
-              gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))",
+              gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 220px), 1fr))",
               gap: 0,
               borderTop: "1px solid var(--gold-tint)",
               borderLeft: "1px solid var(--cream-2)",
@@ -524,7 +525,10 @@ function JourneyTimeline({ stages, lang }) {
         display: "flex",
         gap: 0,
         overflowX: "auto",
-        paddingBottom: 4,
+        overflowY: "hidden",
+        WebkitOverflowScrolling: "touch",
+        paddingBottom: 8,
+        scrollSnapType: "x mandatory",
       }}
     >
       {stages.map((s, i) => {
@@ -536,12 +540,13 @@ function JourneyTimeline({ stages, lang }) {
             key={s.id}
             style={{
               flex: "1 1 0",
-              minWidth: 100,
+              minWidth: 120,
               display: "flex",
               flexDirection: "column",
               alignItems: "flex-start",
               paddingRight: i < stages.length - 1 ? 16 : 0,
               position: "relative",
+              scrollSnapAlign: "start",
             }}
           >
             {/* Top bar */}

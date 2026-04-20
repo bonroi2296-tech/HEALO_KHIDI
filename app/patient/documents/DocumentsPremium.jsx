@@ -345,6 +345,7 @@ function DocRow({ item, uploaded, lang, copy, uploading, onUpload }) {
 
   return (
     <div
+      className="healo-doc-row"
       style={{
         display: "grid",
         gridTemplateColumns: "24px 1fr auto auto",
@@ -420,7 +421,7 @@ function DocRow({ item, uploaded, lang, copy, uploading, onUpload }) {
             background: "transparent",
             color: "var(--ink-0)",
             border: "1px solid var(--ink-0)",
-            padding: "8px 14px",
+            padding: "10px 16px",
             fontFamily: "var(--font-sans)",
             fontSize: 10,
             fontWeight: 600,
@@ -428,11 +429,32 @@ function DocRow({ item, uploaded, lang, copy, uploading, onUpload }) {
             textTransform: "uppercase",
             cursor: uploading ? "wait" : "pointer",
             opacity: uploading ? 0.5 : 1,
+            minHeight: 44,
           }}
         >
           {uploading ? "…" : copy.upload}
         </button>
       )}
+
+      <style jsx>{`
+        @media (max-width: 640px) {
+          :global(.healo-doc-row) {
+            grid-template-columns: 24px 1fr auto !important;
+            gap: 12px !important;
+            padding: 18px 0 !important;
+          }
+          :global(.healo-doc-row > *:nth-child(3)) {
+            grid-column: 2 / 3;
+            grid-row: 2;
+            justify-self: start;
+          }
+          :global(.healo-doc-row > *:nth-child(4)) {
+            grid-column: 3 / 4;
+            grid-row: 1 / 3;
+            align-self: center;
+          }
+        }
+      `}</style>
     </div>
   );
 }

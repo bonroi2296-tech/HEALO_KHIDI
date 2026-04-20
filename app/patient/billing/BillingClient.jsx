@@ -221,6 +221,7 @@ export default function BillingClient() {
                 {invoices.map((inv) => (
                   <div
                     key={inv.id}
+                    className="healo-invoice-row"
                     style={{
                       padding: "20px 0",
                       borderBottom: "1px solid var(--cream-2)",
@@ -381,6 +382,23 @@ export default function BillingClient() {
           </div>
         </div>
       </section>
+
+      <style jsx>{`
+        @media (max-width: 640px) {
+          :global(.healo-invoice-row) {
+            grid-template-columns: 1fr auto !important;
+            gap: 8px 16px !important;
+          }
+          :global(.healo-invoice-row > *:nth-child(1)) {
+            grid-column: 1 / 3;
+            order: -1;
+          }
+          :global(.healo-bank-row) {
+            grid-template-columns: 1fr !important;
+            gap: 4px !important;
+          }
+        }
+      `}</style>
     </PageShell>
   );
 }
@@ -388,6 +406,7 @@ export default function BillingClient() {
 function BankRow({ label, value, mono }) {
   return (
     <div
+      className="healo-bank-row"
       style={{
         display: "grid",
         gridTemplateColumns: "160px 1fr",

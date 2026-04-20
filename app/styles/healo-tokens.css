@@ -247,3 +247,56 @@ p, .body { font-size: var(--body-size); line-height: var(--body-leading); }
   mix-blend-mode: overlay;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='a'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23a)'/%3E%3C/svg%3E");
 }
+
+/* ==========================================================
+   MOBILE / ACCESSIBILITY
+   ========================================================== */
+
+/* iOS safe area — HEALO Nav/Footer 에 적용 권장 */
+.healo-safe-top    { padding-top:    env(safe-area-inset-top); }
+.healo-safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
+.healo-safe-left   { padding-left:   env(safe-area-inset-left); }
+.healo-safe-right  { padding-right:  env(safe-area-inset-right); }
+
+/* 모바일 수평 스크롤 방지 — body 전역 */
+html, body {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+/* 터치 기기에서 링크 tap highlight 제거 */
+a, button {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* 모바일에서 최소 터치 타겟 44px 보장 (a11y WCAG 2.5.5) */
+@media (max-width: 768px) {
+  button,
+  a[role="button"],
+  .healo-tap-target {
+    min-height: 44px;
+  }
+
+  /* 모바일에서 폰트 확대 가능하게 */
+  input,
+  textarea,
+  select {
+    font-size: 16px !important; /* iOS에서 16px 미만이면 포커스 시 자동 확대 방지 */
+  }
+
+  /* 모바일 그리드 일반 폴백 — 2열 이상 grid는 대부분 1열로 */
+  .healo-mobile-stack {
+    grid-template-columns: 1fr !important;
+    gap: 24px !important;
+  }
+}
+
+/* 프린트 — PDF로 저장 시 깔끔하게 */
+@media print {
+  nav, footer, .healo-nav-mobile-btn, .healo-no-print {
+    display: none !important;
+  }
+  body {
+    background: white !important;
+  }
+}
