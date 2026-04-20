@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   getPrivacyPolicy,
   getPrivacySectionsList,
@@ -8,6 +8,7 @@ import {
   PRIVACY_VERSION,
 } from "../../src/lib/legal/privacyPolicy";
 import { useLang } from "../../src/lib/i18n/LangContext";
+import { Eyebrow, Rule } from "../../components/healo/Primitives";
 
 export default function PrivacyPolicyClient() {
   const langCode = useLang();
@@ -15,96 +16,237 @@ export default function PrivacyPolicyClient() {
   const sections = getPrivacySectionsList(langCode);
   const [activeId, setActiveId] = useState(null);
 
-  // 번역 대기 언어인 경우 배너 표시
+  useEffect(() => {
+    if (sections.length > 0) setActiveId(sections[0].id);
+  }, []); // eslint-disable-line
+
   const translationPending = policy._translationPending;
   const pageLabels = policy._labels || policy;
 
   return (
-    <div className="bg-white min-h-screen">
-      <div className="max-w-5xl mx-auto px-4 py-12 md:py-16">
-        {/* Header */}
-        <header className="mb-10 border-b border-gray-200 pb-8">
-          <p className="text-xs font-mono uppercase tracking-widest text-gray-500 mb-2">
-            HEALO · Legal
-          </p>
-          <h1 className="text-3xl md:text-4xl font-bold text-gray-900">
+    <div
+      style={{
+        minHeight: "100vh",
+        background: "var(--cream-0)",
+        color: "var(--fg-on-light-1)",
+      }}
+    >
+      {/* HEADER — editorial, cream */}
+      <header style={{ background: "var(--paper)", borderBottom: "1px solid var(--cream-2)" }}>
+        <div style={{ maxWidth: 1280, margin: "0 auto", padding: "80px 24px 48px" }}>
+          <Eyebrow>HEALO · Legal</Eyebrow>
+          <h1
+            style={{
+              fontFamily: "var(--font-serif)",
+              fontSize: "clamp(44px, 6vw, 80px)",
+              fontWeight: 400,
+              lineHeight: 1.05,
+              letterSpacing: "-0.01em",
+              margin: "16px 0 0",
+              color: "var(--fg-on-light-1)",
+            }}
+          >
             {pageLabels.pageTitle}
           </h1>
-          <div className="mt-3 flex flex-wrap gap-4 text-sm text-gray-600">
+          <Rule width={64} />
+          <div
+            style={{
+              display: "flex",
+              flexWrap: "wrap",
+              gap: 24,
+              fontFamily: "var(--font-sans)",
+              fontSize: 13,
+              color: "var(--fg-on-light-3)",
+              marginTop: 16,
+            }}
+          >
             <span>
-              {pageLabels.lastUpdated}: <strong>{PRIVACY_EFFECTIVE_DATE}</strong>
+              {pageLabels.lastUpdated}{" "}
+              <strong style={{ color: "var(--fg-on-light-1)", fontWeight: 500 }}>
+                {PRIVACY_EFFECTIVE_DATE}
+              </strong>
             </span>
             <span>
-              {pageLabels.version}: <strong>{PRIVACY_VERSION}</strong>
+              {pageLabels.version}{" "}
+              <strong style={{ color: "var(--fg-on-light-1)", fontWeight: 500 }}>
+                {PRIVACY_VERSION}
+              </strong>
             </span>
           </div>
+
           {translationPending && (
-            <div className="mt-4 bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-800">
-              ⚠️ Translation for this language is pending professional legal review.
-              The English version is shown below. For legal interpretation, please refer to
-              the Korean or English version.
+            <div
+              style={{
+                marginTop: 24,
+                padding: 16,
+                background: "var(--gold-wash)",
+                border: "1px solid var(--gold-tint)",
+                color: "var(--fg-on-light-2)",
+                fontFamily: "var(--font-sans)",
+                fontSize: 12,
+                lineHeight: 1.6,
+              }}
+            >
+              <strong style={{ color: "var(--gold-2)" }}>Translation pending.</strong>{" "}
+              Professional legal translation for this language is in progress. The English
+              version is shown below. For legal interpretation, please refer to the Korean or
+              English version.
             </div>
           )}
-        </header>
+        </div>
+      </header>
 
-        <div className="grid md:grid-cols-4 gap-8">
-          {/* Table of Contents (sticky sidebar on md+) */}
-          <aside className="md:col-span-1 md:sticky md:top-20 md:self-start">
-            <p className="text-xs uppercase tracking-widest text-gray-400 mb-3">
-              {pageLabels.tableOfContents || "Contents"}
-            </p>
-            <nav className="space-y-1 max-h-[60vh] md:max-h-[calc(100vh-10rem)] overflow-y-auto pr-2">
+      {/* BODY — two column editorial layout */}
+      <div style={{ maxWidth: 1280, margin: "0 auto", padding: "64px 24px 96px" }}>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "minmax(0, 260px) minmax(0, 1fr)",
+            gap: 64,
+          }}
+          className="healo-legal-grid"
+        >
+          {/* TOC — sticky sidebar */}
+          <aside
+            style={{
+              position: "sticky",
+              top: 24,
+              alignSelf: "start",
+              maxHeight: "calc(100vh - 48px)",
+              overflowY: "auto",
+              paddingRight: 8,
+            }}
+          >
+            <div style={{ marginBottom: 16 }}>
+              <Eyebrow tone="muted">{pageLabels.tableOfContents || "Contents"}</Eyebrow>
+            </div>
+            <nav style={{ display: "flex", flexDirection: "column", gap: 2 }}>
               {sections.map((s, idx) => (
                 <a
                   key={s.id}
                   href={`#${s.id}`}
                   onClick={() => setActiveId(s.id)}
-                  className={`block text-xs py-1.5 px-2 rounded transition ${
-                    activeId === s.id
-                      ? "bg-gray-900 text-white"
-                      : "text-gray-600 hover:bg-gray-100"
-                  }`}
+                  style={{
+                    display: "flex",
+                    gap: 10,
+                    padding: "8px 0",
+                    fontFamily: "var(--font-sans)",
+                    fontSize: 12,
+                    lineHeight: 1.4,
+                    color:
+                      activeId === s.id ? "var(--fg-on-light-1)" : "var(--fg-on-light-3)",
+                    textDecoration: "none",
+                    borderLeft:
+                      activeId === s.id
+                        ? "1px solid var(--gold-0)"
+                        : "1px solid transparent",
+                    paddingLeft: 12,
+                    marginLeft: -12,
+                    transition: "all 150ms var(--ease-out)",
+                  }}
                 >
-                  <span className="text-gray-400 mr-2">{String(idx + 1).padStart(2, "0")}</span>
-                  {s.title}
+                  <span
+                    style={{
+                      fontFamily: "var(--font-mono)",
+                      color: "var(--fg-on-light-4)",
+                      fontSize: 10,
+                      paddingTop: 2,
+                    }}
+                  >
+                    {String(idx + 1).padStart(2, "0")}
+                  </span>
+                  <span>{s.title}</span>
                 </a>
               ))}
             </nav>
           </aside>
 
-          {/* Body */}
-          <article className="md:col-span-3 space-y-10 text-gray-800 leading-relaxed">
-            {sections.map((section) => (
-              <section key={section.id} id={section.id} className="scroll-mt-20">
-                <h2 className="text-xl md:text-2xl font-semibold text-gray-900 mb-4">
+          {/* ARTICLE */}
+          <article>
+            {sections.map((section, idx) => (
+              <section
+                key={section.id}
+                id={section.id}
+                style={{
+                  scrollMarginTop: 24,
+                  marginBottom: 64,
+                  paddingBottom: 48,
+                  borderBottom:
+                    idx < sections.length - 1 ? "1px solid var(--cream-2)" : "none",
+                }}
+              >
+                <Eyebrow tone="muted">Section {String(idx + 1).padStart(2, "0")}</Eyebrow>
+                <h2
+                  style={{
+                    fontFamily: "var(--font-serif)",
+                    fontSize: "clamp(28px, 3vw, 40px)",
+                    fontWeight: 400,
+                    lineHeight: 1.15,
+                    color: "var(--fg-on-light-1)",
+                    margin: "12px 0 24px",
+                  }}
+                >
                   {section.title}
                 </h2>
-                <div className="space-y-3 text-sm md:text-[15px] text-gray-700">
+                <div
+                  style={{
+                    fontFamily: "var(--font-sans)",
+                    fontSize: 15,
+                    lineHeight: 1.75,
+                    color: "var(--fg-on-light-2)",
+                  }}
+                >
                   {section.body.map((paragraph, i) => (
-                    <p key={i} className="whitespace-pre-line">
+                    <p key={i} style={{ margin: "0 0 16px", whiteSpace: "pre-line" }}>
                       {paragraph}
                     </p>
                   ))}
                 </div>
               </section>
             ))}
+
+            {/* Footer note */}
+            <footer
+              style={{
+                marginTop: 64,
+                paddingTop: 32,
+                borderTop: "1px solid var(--gold-tint)",
+                fontFamily: "var(--font-sans)",
+                fontSize: 12,
+                color: "var(--fg-on-light-3)",
+                lineHeight: 1.7,
+              }}
+            >
+              <p style={{ margin: "0 0 12px" }}>
+                이 문서는 대한민국 개인정보보호법, 의료법, 의료해외진출법, 카자흐스탄 94-V
+                ЗРК, EU GDPR을 기반으로 작성되었습니다. 최종 법적 효력은 관할 법령 및
+                변호사의 검토에 따릅니다.
+              </p>
+              <p style={{ margin: 0 }}>
+                This document is drafted based on Korean PIPA, Medical Service Act, Medical
+                Tourism Act, Kazakhstan Law 94-V, and EU GDPR. Final legal effect is subject
+                to applicable laws and professional review.
+              </p>
+            </footer>
           </article>
         </div>
-
-        {/* Footer notice */}
-        <footer className="mt-16 pt-8 border-t border-gray-200 text-xs text-gray-500">
-          <p>
-            이 문서는 대한민국 개인정보보호법, 의료법, 의료해외진출법, 카자흐스탄
-            94-V ЗРК, EU GDPR을 기반으로 작성되었습니다. 최종 법적 효력은 관할
-            법령 및 변호사의 검토에 따릅니다.
-          </p>
-          <p className="mt-2">
-            This document is drafted based on Korean PIPA, Medical Service Act,
-            Medical Tourism Act, Kazakhstan Law 94-V, and EU GDPR. Final legal effect
-            is subject to applicable laws and professional review.
-          </p>
-        </footer>
       </div>
+
+      {/* Mobile sidebar collapse */}
+      <style jsx>{`
+        @media (max-width: 768px) {
+          :global(.healo-legal-grid) {
+            grid-template-columns: 1fr !important;
+            gap: 32px !important;
+          }
+          :global(.healo-legal-grid aside) {
+            position: static !important;
+            max-height: 240px !important;
+            border-bottom: 1px solid var(--cream-2);
+            padding-bottom: 24px;
+          }
+        }
+      `}</style>
     </div>
   );
 }

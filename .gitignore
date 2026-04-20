@@ -86,3 +86,5 @@ _*.json
 # 임시 감사/감사노트
 temp_audit.*
 healo_project_context.*
+design-system-export/
+HEALO Design System.zip
