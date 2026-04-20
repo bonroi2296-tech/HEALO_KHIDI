@@ -84,21 +84,24 @@ const KO = {
   introduction: {
     title: "1. 총칙",
     body: [
-      "주식회사 HEALO(이하 '회사')는 해외 환자(주로 카자흐스탄·러시아 등)의 한국 내 의료기관 이용을 돕는 메디컬 컨시어지 서비스를 제공합니다. 회사는 의료기관이 아니며 진단·치료를 직접 제공하지 않습니다.",
-      "본 방침은 대한민국 「개인정보보호법」, 「의료법」, 「의료 해외진출 및 외국인환자 유치 지원에 관한 법률」을 기본으로 하며, 카자흐스탄 「개인정보 및 그 보호에 관한 법률」(94-V ЗРК), EU GDPR의 해당 조항을 반영합니다.",
-      "회사는 정보주체의 개인정보를 소중히 다루며, 관련 법령을 준수하여 안전하게 처리합니다.",
+      "본로이(BONROI, 이하 '회사')는 해외 환자의 대한민국 내 의료기관 이용을 돕는 메디컬 컨시어지 서비스 'HEALO'를 제공합니다. 회사는 의료기관이 아니며 진단·치료를 직접 제공하지 않습니다.",
+      "본 방침은 대한민국 「개인정보보호법」, 「의료법」, 「의료 해외진출 및 외국인환자 유치 지원에 관한 법률」을 기본으로 하며, 이용자의 거주국 법제(예: EU GDPR, 카자흐스탄 94-V ЗРК, 러시아 152-ФЗ 등)의 관련 요구사항을 반영합니다. 각 관할별 상세 고지는 별도 섹션에 기술합니다.",
+      "회사는 국적·거주지를 불문하고 모든 이용자의 개인정보를 소중히 다루며, 관련 법령을 준수하여 안전하게 처리합니다.",
     ],
   },
 
   controller: {
     title: "2. 개인정보처리자 정보",
     body: [
-      "상호: 주식회사 HEALO (HEALO Inc.)",
-      "대표자: [대표자명 — 사업자등록 확정 후 기입]",
-      "사업자등록번호: [등록번호 — 확정 후 기입]",
-      "외국인환자 유치업자 등록번호: [보건복지부 등록번호 — 의료법 §27-2 및 의료해외진출법 §6에 따라 등록 후 기입]",
-      "주소: [서울시 …]",
-      "연락처: contact@healo.com · +82 (0)2-XXXX-XXXX",
+      "상호: 본로이 (BONROI) — 서비스명: HEALO",
+      "사업 형태: 개인사업자",
+      "대표자: 강주영 (JUYOUNG KANG)",
+      "사업자등록번호: 463-35-00902",
+      "외국인환자 유치업자 등록번호: A-2026-01-02-06761 (유효기간 2026-03-11 ~ 2029-03-10, 서울특별시장 등록)",
+      "사업장 주소: 서울특별시 강서구 강서로 385, 613호 (마곡동, 우성에스비타워)",
+      "연락처: +82-10-4772-1075 (국제) · 070-7500-7795 (국내)",
+      "이메일: roiimmunelab@immunelab.co.kr",
+      "고객지원 운영시간: 평일 09:00-18:00 KST (공휴일 제외)",
     ],
   },
 
@@ -195,7 +198,7 @@ const KO = {
   cross_border: {
     title: "8. 개인정보의 국외이전 (개인정보보호법 §28-8)",
     body: [
-      "회사는 해외 환자의 한국 의료기관 이용을 돕는 특성상, 이용자 거주국(카자흐스탄, 러시아 등)에서 대한민국으로 개인정보를 이전합니다. 또한 서비스 운영상 일부 데이터를 제3국으로 이전할 수 있습니다.",
+      "회사는 해외 환자의 한국 의료기관 이용을 돕는 특성상, 이용자 거주국에서 대한민국으로 개인정보를 이전합니다. 또한 서비스 운영상 일부 데이터를 제3국으로 이전할 수 있습니다.",
       "",
       "【이전 받는 자 및 국가】",
       "· 대한민국 내 협력 의료기관 (진료 목적)",
@@ -281,14 +284,14 @@ const KO = {
   },
 
   dpo: {
-    title: "14. 개인정보보호책임자 (DPO)",
+    title: "14. 개인정보보호책임자 (CPO / DPO)",
     body: [
-      "성명: [DPO 지정 후 기입]",
-      "직책: [예: 정보보호최고책임자 CISO]",
-      "이메일: dpo@healo.com",
-      "전화: +82 (0)2-XXXX-XXXX",
+      "성명: 강주영 (JUYOUNG KANG)",
+      "직책: 대표 (겸임 — 개인정보보호법 §31, GDPR Art 37)",
+      "이메일: roiimmunelab@immunelab.co.kr",
+      "전화: +82-10-4772-1075 (국제) · 070-7500-7795 (국내)",
       "",
-      "이용자는 개인정보 관련 문의·불만·피해 구제를 DPO에게 직접 연락할 수 있습니다.",
+      "이용자는 개인정보 관련 문의·불만·피해 구제를 개인정보보호책임자에게 직접 연락할 수 있습니다. 회사는 이용자의 문의에 영업일 10일 이내에 응답합니다.",
     ],
   },
 
@@ -297,17 +300,21 @@ const KO = {
     body: [
       "본 조항은 카자흐스탄공화국 「개인정보 및 그 보호에 관한 법률」(94-V ЗРК, 2013, 2015·2022년 개정) 및 관련 시행규정에 따른 추가 고지입니다.",
       "",
-      "【현지화 의무 (제12조)】",
-      "카자흐스탄법은 카자흐스탄 시민의 개인정보에 대해 카자흐스탄 영토 내 서버에 1차 저장을 의무화합니다. 회사는 이 의무를 준수하기 위해 카자흐스탄 내 클라우드 파트너(예: QazCloud 또는 Yandex Cloud Kazakhstan 리전)와의 협력 또는 현지 1차 저장소 구축을 진행 중이며, 해외(대한민국) 이전은 복제(replication) 형태로 이루어집니다. 최신 현황은 본 방침 업데이트 시 공지합니다.",
+      "【국외 이전에 대한 명시적 동의 (제16조)】",
+      "본 서비스는 해외 환자의 한국 의료기관 이용을 돕는 성격상, 이용자의 개인정보를 대한민국으로 이전합니다. 카자흐스탄법 제16조는 정보주체의 명시적 서면 동의에 기반한 국외 이전을 허용하며, 이용자는 서비스 이용 신청 시 본 방침의 국외이전 조항 및 별도 동의 체크박스를 통해 다음에 명시적으로 동의합니다:",
+      "· 이전 국가: 대한민국",
+      "· 이전받는 자: 이용자가 선택한 한국 내 협력 의료기관, 클라우드 서비스 제공자(Vercel Inc., Supabase Inc.)",
+      "· 이전 항목: 제3조 수집 항목 및 제5조 민감정보",
+      "· 이전 목적: 의료 컨시어지 서비스 제공",
+      "",
+      "【현지 저장 (제12조)에 관한 안내】",
+      "카자흐스탄법 제12조는 카자흐스탄 시민의 개인정보에 대한 카자흐 영토 내 1차 저장을 규정합니다. 현재 회사는 상기 제16조에 따른 명시적 동의 경로를 법적 근거로 서비스를 운영하고 있으며, 서비스 성장 단계에 따라 카자흐스탄 현지 클라우드 파트너(QazCloud, Yandex Cloud Kazakhstan 등)를 통한 현지 1차 저장 구조 도입을 검토합니다. 중요한 변경 시 본 방침 업데이트로 즉시 공지합니다.",
       "",
       "【민감정보(의료) 별도 동의 (제8조, 제9조)】",
-      "카자흐스탄법상 민감정보는 서면 또는 전자서명(EDS, eGov 연동) 으로 확인 가능한 방식의 동의를 요구합니다. 구두 동의는 인정되지 않습니다.",
-      "",
-      "【국외 이전 (제16조)】",
-      "대한민국은 현재 카자흐스탄 정부의 적정국 고시 목록에 포함되어 있지 않을 가능성이 있으므로, 카자흐스탄 시민의 개인정보 이전은 정보주체의 명시적 서면 동의에 기반합니다. 이용자는 본 방침 및 별도 동의서를 통해 한국으로의 이전에 동의합니다.",
+      "카자흐스탄법상 민감정보는 서면 또는 전자서명(EDS, eGov 연동)으로 확인 가능한 방식의 동의를 요구합니다. 회사는 전자 체크박스 기반 동의를 타임스탬프·IP·사용자 식별자와 함께 기록하여 서면에 준하는 증거력을 확보합니다. 구두 동의는 수집하지 않습니다.",
       "",
       "【공용 언어】",
-      "본 방침은 카자흐어(국어) 및 러시아어(공용어)로 동시 제공됩니다. 이용자는 선호 언어를 선택할 수 있습니다.",
+      "본 방침은 카자흐어(국어) 및 러시아어(공용어)로 동시 제공됩니다. 이용자는 선호 언어를 선택할 수 있으며, 번역본 간 해석 차이 시 대한민국 법적 효력은 한국어판을 기준으로 합니다.",
       "",
       "【감독기관】",
       "· 정보보안위원회 (Комитет по информационной безопасности, КНБ 산하)",
@@ -369,10 +376,9 @@ const KO = {
   contact: {
     title: "19. 연락처",
     body: [
-      "개인정보 관련 문의: privacy@healo.com",
-      "일반 문의: contact@healo.com",
-      "주소: [서울시 …]",
-      "전화: +82 (0)2-XXXX-XXXX",
+      "개인정보·일반 문의: roiimmunelab@immunelab.co.kr",
+      "주소: 서울특별시 강서구 강서로 385, 613호 (마곡동, 우성에스비타워)",
+      "전화: +82-10-4772-1075 (국제) · 070-7500-7795 (국내)",
       "운영 시간: 평일 09:00-18:00 KST (공휴일 제외)",
     ],
   },
@@ -390,21 +396,24 @@ const EN = {
   introduction: {
     title: "1. Introduction",
     body: [
-      "HEALO Inc. (\"HEALO\", \"we\", \"us\") operates a medical concierge platform that helps international patients — primarily from Kazakhstan, Russia, and other Central Asian countries — access medical care in the Republic of Korea. HEALO is not a medical institution and does not provide diagnosis or treatment.",
-      "This Policy is primarily governed by the Korean Personal Information Protection Act (PIPA), the Medical Service Act, and the Act on Support for Overseas Expansion of Healthcare Systems and Attraction of International Patients. Where applicable, it also reflects the Kazakhstan Law on Personal Data and Its Protection (No. 94-V) and the EU General Data Protection Regulation (GDPR).",
-      "We treat your personal information with care and handle it in accordance with applicable laws.",
+      "BONROI (\"we\", \"us\") operates a medical concierge platform, HEALO, that helps international patients access medical care in the Republic of Korea. HEALO is not a medical institution and does not provide diagnosis or treatment.",
+      "This Policy is primarily governed by the Korean Personal Information Protection Act (PIPA), the Medical Service Act, and the Act on Support for Overseas Expansion of Healthcare Systems and Attraction of International Patients. Where applicable, it also reflects the requirements of your country of residence (e.g., EU GDPR, Kazakhstan Law 94-V, Russian Federal Law 152-FZ, etc.). Jurisdiction-specific notices are provided in dedicated sections below.",
+      "We treat the personal information of all users with care, regardless of nationality or residence, and handle it in accordance with applicable laws.",
     ],
   },
 
   controller: {
     title: "2. Data Controller",
     body: [
-      "Legal name: HEALO Inc.",
-      "Representative: [Name — to be confirmed]",
-      "Business Registration Number: [To be confirmed]",
-      "International Patient Attraction Registration Number (MOHW): [To be confirmed, per Medical Service Act §27-2 and Medical Tourism Act §6]",
-      "Registered address: [Seoul, Korea]",
-      "Contact: contact@healo.com · +82 (0)2-XXXX-XXXX",
+      "Trade name: BONROI (service: HEALO)",
+      "Entity type: Sole proprietorship",
+      "Representative: JUYOUNG KANG",
+      "Business Registration Number: 463-35-00902",
+      "International Patient Facilitator Registration Number: A-2026-01-02-06761 (valid 2026-03-11 ~ 2029-03-10, issued by the Mayor of Seoul)",
+      "Registered address: Room 613, 385 Gangseo-ro, Gangseo-gu, Seoul, Republic of Korea",
+      "Contact: +82-10-4772-1075 (international) · 070-7500-7795 (domestic)",
+      "Email: roiimmunelab@immunelab.co.kr",
+      "Business hours: Mon-Fri 09:00-18:00 KST (excluding Korean public holidays)",
     ],
   },
 
@@ -501,7 +510,7 @@ const EN = {
   cross_border: {
     title: "8. International Transfers (PIPA §28-8 / GDPR Art. 44-49)",
     body: [
-      "By the nature of our service — helping overseas patients access Korean healthcare — we transfer personal data from your country of residence (Kazakhstan, Russia, etc.) to the Republic of Korea. Certain operational data may also be transferred to other jurisdictions.",
+      "By the nature of our service — helping overseas patients access Korean healthcare — we transfer personal data from your country of residence to the Republic of Korea. Certain operational data may also be transferred to other jurisdictions.",
       "",
       "【Recipients & Jurisdictions】",
       "· Korean partner hospitals (for medical purposes)",
@@ -586,14 +595,14 @@ const EN = {
   },
 
   dpo: {
-    title: "14. Data Protection Officer (DPO)",
+    title: "14. Data Protection Officer (DPO / CPO)",
     body: [
-      "Name: [To be appointed]",
-      "Title: [e.g., Chief Information Security Officer]",
-      "Email: dpo@healo.com",
-      "Phone: +82 (0)2-XXXX-XXXX",
+      "Name: JUYOUNG KANG",
+      "Title: Representative (concurrent — per Korean PIPA §31 and GDPR Art 37)",
+      "Email: roiimmunelab@immunelab.co.kr",
+      "Phone: +82-10-4772-1075 (international) · 070-7500-7795 (domestic)",
       "",
-      "You may contact the DPO directly for any privacy-related inquiry, complaint, or remedy request.",
+      "You may contact the DPO directly for any privacy-related inquiry, complaint, or remedy request. We respond within 10 business days.",
     ],
   },
 
@@ -641,10 +650,9 @@ const EN = {
   contact: {
     title: "19. Contact",
     body: [
-      "Privacy inquiries: privacy@healo.com",
-      "General inquiries: contact@healo.com",
-      "Address: [Seoul, Korea]",
-      "Phone: +82 (0)2-XXXX-XXXX",
+      "Privacy and general inquiries: roiimmunelab@immunelab.co.kr",
+      "Address: Room 613, 385 Gangseo-ro, Gangseo-gu, Seoul, Republic of Korea",
+      "Phone: +82-10-4772-1075 (international) · 070-7500-7795 (domestic)",
       "Business hours: Mon-Fri 09:00-18:00 KST",
     ],
   },
