@@ -125,7 +125,7 @@ function BranchForm({ branch, onSave, onCancel }) {
         <div>
           <label className="text-xs text-gray-500">Name (EN)</label>
           <input value={form.name_en || ""} onChange={e => set("name_en", e.target.value)}
-            className="w-full text-sm border rounded-lg px-3 py-2 mt-1" placeholder="Immunehospital Gangseo" />
+            className="w-full text-sm border rounded-lg px-3 py-2 mt-1" placeholder="Immune Hospital Gangseo" />
         </div>
       </div>
       <div>

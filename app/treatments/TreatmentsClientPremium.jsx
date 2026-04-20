@@ -34,7 +34,7 @@ const COPY = {
     western: "Western Medicine",
     eastern: "Korean Medicine",
     partnerLabel: "Partner hospital",
-    kmLabel: "Immunehospital (HEALO direct)",
+    kmLabel: "Immune Hospital (HEALO direct)",
     strength: "Korea's advantage",
     readGuide: "Read patient guide",
     requestConsult: "Request consultation",
