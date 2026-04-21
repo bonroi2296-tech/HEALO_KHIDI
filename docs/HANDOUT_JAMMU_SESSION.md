@@ -51,13 +51,18 @@
 
 | 영역 | 파일 / 디렉터리 |
 |------|----------------|
-| i18n 번역 | `src/lib/i18n/index.js` 언어 블록 추가 |
-| i18n 보조 | `src/lib/i18n/langs-fixes.js` |
 | 법적 문구 | `src/lib/policies.js`, `app/privacy/**`, `app/terms/**`, `app/cookies/**` |
-| 병원 데이터 | 정적 데이터 파일 (src/lib/hospitals/*) |
-| 디자인 튜닝 | `components/healo/Primitives.jsx` |
+| 병원 데이터 | 정적 데이터 파일 (src/lib/hospitals/*), 시드 스크립트 |
+| 디자인 튜닝 | `components/healo/Primitives.jsx` 색상/폰트 |
+| 브랜딩 | public/images, public/icons |
 | 환자 대시보드 | `app/patient/**` (관리자 관련 제외) |
-| 공개 페이지 | `app/about`, `app/faq`, `app/stories`, `app/contact` |
+| 공개 페이지 카피 | `app/about`, `app/faq`, `app/stories`, `app/contact` |
+| 에러/로딩 UI | `app/error.jsx`, `app/loading.jsx`, `app/not-found.jsx` |
+
+### 🌐 번역 작업은 당분간 하지 않음
+
+구조 안정화 전까지 한국어/영어/일본어 외에 번역 추가 금지.
+사용자가 명시적으로 번역 task 주면 확인 후 진행.
 
 ### 🔴 절대 건드리지 마 (메인 세션 작업 중)
 
