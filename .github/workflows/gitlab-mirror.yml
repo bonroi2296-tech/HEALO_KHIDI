@@ -1,0 +1,34 @@
+name: Mirror to GitLab
+
+# GitHub main 브랜치에 푸시될 때마다 GitLab 저장소로 전체 히스토리 미러링.
+# 목적: GitHub 계정 이슈·실수로 인한 데이터 소실 대비 오프사이트 백업.
+#
+# 인증: GITLAB_TOKEN (Personal Access Token, write_repository 스코프) — GitHub Secret
+# 대상: https://gitlab.com/healo2/HEALO
+# 만료: 2027-04-21 (토큰 교체 필요)
+
+on:
+  push:
+    branches:
+      - main
+  # 수동 실행도 가능
+  workflow_dispatch:
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout (전체 히스토리)
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Push to GitLab
+        env:
+          GITLAB_TOKEN: ${{ secrets.GITLAB_TOKEN }}
+        run: |
+          # 토큰은 URL 에만 사용, 로그 노출 방지
+          git remote add gitlab "https://oauth2:${GITLAB_TOKEN}@gitlab.com/healo2/HEALO.git"
+          git push gitlab --all --force
+          git push gitlab --tags --force
+          echo "✓ GitLab 미러링 완료: https://gitlab.com/healo2/HEALO"
