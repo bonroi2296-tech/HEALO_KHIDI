@@ -792,6 +792,102 @@ export default function HomeClientPremium() {
           </div>
         </div>
 
+        {/* ==================== TELEMEDICINE RIBBON ==================== */}
+        <div
+          style={{
+            borderTop: "1px solid var(--gold-tint)",
+            background: "linear-gradient(90deg, var(--ink-0) 0%, #141210 100%)",
+            color: "var(--fg-on-dark-1, #f5f0e8)",
+          }}
+        >
+          <Link
+            href="/telemedicine"
+            style={{
+              display: "block",
+              maxWidth: 1240,
+              margin: "0 auto",
+              padding: "20px 24px",
+              textDecoration: "none",
+              color: "inherit",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 24,
+                flexWrap: "wrap",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: 16, flex: 1, minWidth: 280 }}>
+                <div
+                  style={{
+                    width: 44,
+                    height: 44,
+                    borderRadius: 2,
+                    background: "var(--gold-0, #c8a96a)",
+                    color: "var(--ink-0)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: 22,
+                    flexShrink: 0,
+                  }}
+                >
+                  🎥
+                </div>
+                <div style={{ lineHeight: 1.3 }}>
+                  <div
+                    style={{
+                      fontFamily: "var(--font-mono)",
+                      fontSize: 10,
+                      color: "var(--gold-0, #c8a96a)",
+                      letterSpacing: "0.24em",
+                      textTransform: "uppercase",
+                      marginBottom: 4,
+                    }}
+                  >
+                    {lang === "ko" ? "NEW · 원격협진 정식 오픈" : "NEW · Telemedicine now live"}
+                  </div>
+                  <div
+                    style={{
+                      fontFamily: "var(--font-sans)",
+                      fontSize: 15,
+                      fontWeight: 500,
+                      color: "var(--fg-on-dark-1)",
+                    }}
+                  >
+                    {lang === "ko"
+                      ? "한국 오기 전, 먼저 영상으로 전문의와 상담하세요"
+                      : lang === "ru"
+                      ? "Поговорите с корейским специалистом до поездки"
+                      : lang === "kz"
+                      ? "Сапарға шықпас бұрын корей маманымен сөйлесіңіз"
+                      : "Talk to a Korean specialist before you travel"}
+                  </div>
+                </div>
+              </div>
+              <div
+                style={{
+                  fontFamily: "var(--font-sans)",
+                  fontSize: 11,
+                  letterSpacing: "0.24em",
+                  textTransform: "uppercase",
+                  color: "var(--gold-0, #c8a96a)",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  borderBottom: "1px solid var(--gold-0)",
+                  paddingBottom: 2,
+                }}
+              >
+                {lang === "ko" ? "상담 예약하기" : lang === "ru" ? "Записаться" : "Book now"} →
+              </div>
+            </div>
+          </Link>
+        </div>
+
         {/* ==================== STATS STRIP ==================== */}
         <div
           style={{

@@ -58,6 +58,7 @@ export default function Footer() {
             <Eyebrow>Services</Eyebrow>
             <div style={{ marginTop: 16, display: "flex", flexDirection: "column", gap: 10 }}>
               {[
+                { href: "/telemedicine", label: "Telemedicine · NEW" },
                 { href: "/treatments", label: "Treatments" },
                 { href: "/hospitals", label: "Hospitals" },
                 { href: "/education", label: "Patient Guides" },

@@ -14,6 +14,19 @@ import { createSupabaseBrowserClient } from "../../src/lib/supabase/browser";
 
 const NAV_ITEMS = [
   {
+    id: "telemedicine",
+    href: "/telemedicine",
+    label: {
+      en: "Telemedicine",
+      ko: "원격협진",
+      ru: "Телемедицина",
+      kz: "Телемедицина",
+      zh: "远程诊疗",
+      ja: "遠隔診療",
+    },
+    highlight: true, // 골드 뱃지 표시
+  },
+  {
     id: "treatments",
     href: "/treatments",
     label: { en: "Treatments", ko: "치료", ru: "Лечение", kz: "Емдеу", zh: "治疗", ja: "治療" },
@@ -171,18 +184,41 @@ export default function Nav({ current }) {
                 href={item.href}
                 style={{
                   fontFamily: "var(--font-sans)",
-                  fontWeight: 500,
+                  fontWeight: item.highlight ? 600 : 500,
                   fontSize: 11,
                   letterSpacing: "0.2em",
                   textTransform: "uppercase",
-                  color: isActive ? "var(--gold-0)" : "var(--fg-on-light-2)",
+                  color: item.highlight
+                    ? "var(--gold-2)"
+                    : isActive
+                    ? "var(--gold-0)"
+                    : "var(--fg-on-light-2)",
                   textDecoration: "none",
                   borderBottom: `1px solid ${isActive ? "var(--gold-0)" : "transparent"}`,
                   paddingBottom: 2,
                   whiteSpace: "nowrap",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 6,
                 }}
               >
                 {label}
+                {item.highlight && (
+                  <span
+                    style={{
+                      fontSize: 7,
+                      letterSpacing: "0.1em",
+                      color: "var(--gold-2)",
+                      background: "var(--gold-tint, rgba(200,169,106,0.15))",
+                      border: "1px solid var(--gold-0)",
+                      borderRadius: 2,
+                      padding: "2px 5px",
+                      textTransform: "uppercase",
+                    }}
+                  >
+                    NEW
+                  </span>
+                )}
               </Link>
             );
           })}
