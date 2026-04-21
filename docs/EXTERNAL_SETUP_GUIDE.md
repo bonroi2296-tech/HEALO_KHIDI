@@ -42,9 +42,11 @@
 
 ### 1-3. Leaked Password Protection 활성화
 
-1. 좌측 **Authentication → Policies** 이동
-2. **Password** 섹션의 **"Leaked password protection"** 토글 **ON**
-3. Save (HaveIBeenPwned 로 털린 비번 가입 차단됨)
+1. 좌측 **Authentication → Attack Protection** 이동  
+   ⚠️ `Policies` 가 아니라 **`Attack Protection`** — UI 가 업데이트되었습니다
+2. **"Leaked password protection"** 토글 **ON**
+3. (권장) **"Bot and Abuse Protection"** 도 같이 **ON**
+4. Save (HaveIBeenPwned 로 털린 비번 가입/변경 시도 차단됨)
 
 ### 1-4. Database 백업 확보 (마이그레이션 실행 전)
 
