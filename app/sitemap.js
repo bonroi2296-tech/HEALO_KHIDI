@@ -41,18 +41,37 @@ export default async function sitemap() {
     }
   }
 
+  // hreflang alternates 헬퍼 — Yandex/Google 모두 지원
+  const makeAlternates = (path) => ({
+    languages: {
+      'x-default': `${baseUrl}${path}`,
+      'en':        `${baseUrl}${path}`,
+      'ko':        `${baseUrl}${path}?lang=ko`,
+      // Yandex 크롤러가 우선 인식하는 ru·kk 별도 명시
+      'ru':        `${baseUrl}/ru/for-russian-patients`,
+      'kk':        `${baseUrl}/kk/for-kazakh-patients`,
+    },
+  });
+
   // Static pages
   const staticPages = [
-    { url: `${baseUrl}/`, changeFrequency: 'weekly', priority: 1.0 },
-    { url: `${baseUrl}/treatments`, changeFrequency: 'weekly', priority: 0.9 },
-    { url: `${baseUrl}/hospitals`, changeFrequency: 'weekly', priority: 0.9 },
-    { url: `${baseUrl}/telemedicine`, changeFrequency: 'weekly', priority: 0.9 },
-    { url: `${baseUrl}/search`, changeFrequency: 'weekly', priority: 0.8 },
+    { url: `${baseUrl}/`, changeFrequency: 'weekly', priority: 1.0, alternates: makeAlternates('/') },
+    { url: `${baseUrl}/treatments`, changeFrequency: 'weekly', priority: 0.9, alternates: makeAlternates('/treatments') },
+    { url: `${baseUrl}/hospitals`, changeFrequency: 'weekly', priority: 0.9, alternates: makeAlternates('/hospitals') },
+    { url: `${baseUrl}/telemedicine`, changeFrequency: 'weekly', priority: 0.9, alternates: makeAlternates('/telemedicine') },
+    { url: `${baseUrl}/search`, changeFrequency: 'weekly', priority: 0.8, alternates: makeAlternates('/search') },
     { url: `${baseUrl}/specialties/dental`, changeFrequency: 'monthly', priority: 0.8 },
     { url: `${baseUrl}/specialties/dermatology`, changeFrequency: 'monthly', priority: 0.8 },
     { url: `${baseUrl}/specialties/plastic-surgery`, changeFrequency: 'monthly', priority: 0.8 },
     { url: `${baseUrl}/specialties/korean-medicine`, changeFrequency: 'monthly', priority: 0.8 },
-    { url: `${baseUrl}/hospitals/immune`, changeFrequency: 'monthly', priority: 0.85 },
+    { url: `${baseUrl}/hospitals/immune`, changeFrequency: 'monthly', priority: 0.85, alternates: makeAlternates('/hospitals/immune') },
+    // ── 암종별 치료 상세 페이지 (면력한방병원 6개 암종)
+    { url: `${baseUrl}/treatments/female`, changeFrequency: 'monthly', priority: 0.88, alternates: makeAlternates('/treatments/female') },
+    { url: `${baseUrl}/treatments/digest`, changeFrequency: 'monthly', priority: 0.88, alternates: makeAlternates('/treatments/digest') },
+    { url: `${baseUrl}/treatments/liver`, changeFrequency: 'monthly', priority: 0.88, alternates: makeAlternates('/treatments/liver') },
+    { url: `${baseUrl}/treatments/lung`, changeFrequency: 'monthly', priority: 0.88, alternates: makeAlternates('/treatments/lung') },
+    { url: `${baseUrl}/treatments/thyroid`, changeFrequency: 'monthly', priority: 0.88, alternates: makeAlternates('/treatments/thyroid') },
+    { url: `${baseUrl}/treatments/etc`, changeFrequency: 'monthly', priority: 0.85, alternates: makeAlternates('/treatments/etc') },
     { url: `${baseUrl}/faq`, changeFrequency: 'monthly', priority: 0.75 },
     { url: `${baseUrl}/stories`, changeFrequency: 'weekly', priority: 0.75 },
     { url: `${baseUrl}/education`, changeFrequency: 'monthly', priority: 0.7 },
@@ -67,6 +86,11 @@ export default async function sitemap() {
     { url: `${baseUrl}/privacy`, changeFrequency: 'yearly', priority: 0.3 },
     { url: `${baseUrl}/cookies`, changeFrequency: 'yearly', priority: 0.2 },
     { url: `${baseUrl}/medical-disclaimer`, changeFrequency: 'yearly', priority: 0.2 },
+    // ── Yandex 대응 러시아어·카자흐어 전용 랜딩 (priority 0.9 — 중앙아시아 타겟)
+    { url: `${baseUrl}/ru/for-russian-patients`, changeFrequency: 'weekly', priority: 0.9,
+      alternates: { languages: { 'ru': `${baseUrl}/ru/for-russian-patients`, 'x-default': `${baseUrl}/` } } },
+    { url: `${baseUrl}/kk/for-kazakh-patients`, changeFrequency: 'weekly', priority: 0.9,
+      alternates: { languages: { 'kk': `${baseUrl}/kk/for-kazakh-patients`, 'x-default': `${baseUrl}/` } } },
   ].map(p => ({ ...p, lastModified: now }));
 
   const urls = [...staticPages];

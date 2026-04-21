@@ -71,6 +71,27 @@ export const metadata = {
   other: {
     "mobile-web-app-capable": "yes",
   },
+  // ────────────────────────────────────────────────
+  // Yandex SEO
+  // ① Yandex Webmaster Console (https://webmaster.yandex.com) 에서
+  //    사이트를 추가한 뒤, HTML-tag 검증을 선택하면 아래와 같은 코드가 발급됩니다.
+  //    예: <meta name="yandex-verification" content="xxxxxxxxxxxxxxxx" />
+  //    발급된 16자리 값으로 아래 플레이스홀더를 교체하세요.
+  verification: {
+    // Google Search Console 코드 (기존 유지 or 추가)
+    // google: "REPLACE_WITH_GOOGLE_SITE_VERIFICATION",
+    // Yandex Webmaster 검증 코드
+    yandex: "REPLACE_WITH_YANDEX_WEBMASTER_CODE",
+  },
+  // ────────────────────────────────────────────────
+  // Geo 메타 — Yandex 지역 신호 (면력한방병원 강서점 기준)
+  // ICBM: 위도 37.5583, 경도 126.8339 (강서구)
+  geo: {
+    region: "KR-11",      // ISO 3166-2 서울특별시
+    placename: "Seoul",
+    position: "37.5583;126.8339",
+    ICBM: "37.5583, 126.8339",
+  },
 };
 
 export default function RootLayout({ children }) {
