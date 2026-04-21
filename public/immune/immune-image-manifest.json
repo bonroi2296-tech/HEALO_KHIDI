@@ -1,0 +1,188 @@
+{
+  "_meta": {
+    "generated": "2026-04-21",
+    "source": "https://immunehospital.com",
+    "copyright": "면력한방병원 (자사 병원, 저작권 OK)",
+    "total_files": 101
+  },
+  "logo": {
+    "colorLogo": "/immune/logo/color-logo.svg",
+    "grayLogo": "/immune/logo/gray-logo.svg",
+    "pcFixedLogo": "/immune/logo/pc-fixed-logo.svg"
+  },
+  "cancer": {
+    "common": {
+      "graph": "/immune/cancer/cancer-graph.jpg",
+      "caseImg": "/immune/cancer/cancer-case-img.svg",
+      "caseImg2": "/immune/cancer/cancer-case-img2.svg",
+      "healSvg": "/immune/cancer/cancer-heal.svg"
+    },
+    "female": {
+      "disease": {
+        "fever": "/immune/cancer/cancer-disease1.jpg",
+        "lymphEdema": "/immune/cancer/cancer-disease2.jpg",
+        "urinaryBowel": "/immune/cancer/cancer-disease3.jpg",
+        "surgicalSite": "/immune/cancer/cancer-disease4.jpg",
+        "adhesion": "/immune/cancer/cancer-disease5.jpg",
+        "residualCancer": "/immune/cancer/cancer-disease6.jpg",
+        "nutrition": "/immune/cancer/cancer-disease7.jpg",
+        "emotional": "/immune/cancer/cancer-disease8.jpg"
+      }
+    },
+    "digest": {
+      "disease": {
+        "fever": "/immune/cancer/cancer-disease1.jpg",
+        "anastomotic": "/immune/cancer/cancer-disease9.jpg",
+        "bowelFunction": "/immune/cancer/cancer-disease10.jpg",
+        "surgicalSite": "/immune/cancer/cancer-disease11.jpg",
+        "adhesion": "/immune/cancer/cancer-disease12.jpg",
+        "residualCancer": "/immune/cancer/cancer-disease6.jpg",
+        "nutrition": "/immune/cancer/cancer-disease7.jpg",
+        "emotional": "/immune/cancer/cancer-disease8.jpg"
+      }
+    },
+    "liver": {
+      "disease": {
+        "liverFailure": "/immune/cancer/cancer-disease13-1.jpg",
+        "surgicalSite": "/immune/cancer/cancer-disease13-2.jpg",
+        "bileLeak": "/immune/cancer/cancer-disease13-3.jpg",
+        "digestive": "/immune/cancer/cancer-disease13-4.jpg",
+        "diabetes": "/immune/cancer/cancer-disease13-5.jpg",
+        "residualCancer": "/immune/cancer/cancer-disease6.jpg",
+        "nutrition": "/immune/cancer/cancer-disease7.jpg",
+        "emotional": "/immune/cancer/cancer-disease8.jpg"
+      }
+    },
+    "lung": {
+      "disease": {
+        "breathingDifficulty": "/immune/cancer/cancer-disease14-1.jpg",
+        "coughChestPain": "/immune/cancer/cancer-disease14-2.jpg",
+        "fatigue": "/immune/cancer/cancer-disease14-3.jpg",
+        "residualCancer": "/immune/cancer/cancer-disease6.jpg",
+        "nutrition": "/immune/cancer/cancer-disease7.jpg",
+        "emotional": "/immune/cancer/cancer-disease8.jpg"
+      }
+    },
+    "thyroid": {
+      "disease": {
+        "voiceChange": "/immune/cancer/cancer-disease15-1.jpg",
+        "hypocalcemia": "/immune/cancer/cancer-disease15-2.jpg",
+        "hormoneDeficiency": "/immune/cancer/cancer-disease15-3.jpg",
+        "neckScar": "/immune/cancer/cancer-disease15-4.jpg",
+        "swallowingDifficulty": "/immune/cancer/cancer-disease15-5.jpg",
+        "residualCancer": "/immune/cancer/cancer-disease6.jpg",
+        "nutrition": "/immune/cancer/cancer-disease7.jpg",
+        "emotional": "/immune/cancer/cancer-disease8.jpg"
+      }
+    }
+  },
+  "program": {
+    "immunity": {
+      "thymosin": "/immune/program/cancer-heal1-1.png",
+      "mistletoe": "/immune/program/cancer-heal1-2.png",
+      "nkCell": "/immune/program/cancer-heal1-3.png",
+      "hyperthermia": "/immune/program/cancer-heal1-4.png",
+      "selenium": "/immune/program/cancer-heal1-5.png"
+    },
+    "heal2_1": "/immune/program/cancer-heal2-1.png",
+    "heal2_2": "/immune/program/cancer-heal2-2.png",
+    "heal3": "/immune/program/cancer-heal3.jpg",
+    "heal4": "/immune/program/cancer-heal4.jpg",
+    "nutrition": {
+      "chef_1": "/immune/program/cancer-heal5-1.png",
+      "chef_2": "/immune/program/cancer-heal5-2.png",
+      "chef_3": "/immune/program/cancer-heal5-3.png",
+      "chef_4": "/immune/program/cancer-heal5-4.png"
+    },
+    "meal": [
+      "/immune/program/cancer-heal6-1.jpg",
+      "/immune/program/cancer-heal6-2.jpg",
+      "/immune/program/cancer-heal6-3.jpg",
+      "/immune/program/cancer-heal6-4.jpg",
+      "/immune/program/cancer-heal6-5.jpg",
+      "/immune/program/cancer-heal6-6.jpg",
+      "/immune/program/cancer-heal6-7.jpg",
+      "/immune/program/cancer-heal6-8.jpg"
+    ]
+  },
+  "facility": {
+    "vip": [
+      "/immune/facility/facility-vip-room-1.jpg",
+      "/immune/facility/facility-vip-room-2.jpg",
+      "/immune/facility/facility-vip-room-3.jpg",
+      "/immune/facility/facility-vip-room-4.jpg",
+      "/immune/facility/facility-vip-room-5.jpg"
+    ],
+    "ward": [
+      "/immune/facility/facility-ward-room-1.jpg",
+      "/immune/facility/facility-ward-room-2.jpg",
+      "/immune/facility/facility-ward-room-3.jpg"
+    ],
+    "treatment": [
+      "/immune/facility/facility-treatment-room-1.jpg",
+      "/immune/facility/facility-treatment-room-2.jpg",
+      "/immune/facility/facility-treatment-room-3.jpg",
+      "/immune/facility/facility-treatment-room-4.jpg"
+    ],
+    "healing": [
+      "/immune/facility/facility-healing-space-1.jpg",
+      "/immune/facility/facility-healing-space-2.jpg",
+      "/immune/facility/facility-healing-space-3.jpg",
+      "/immune/facility/facility-healing-space-4.jpg",
+      "/immune/facility/facility-healing-space-5.jpg",
+      "/immune/facility/facility-healing-space-6.jpg",
+      "/immune/facility/facility-healing-space-7.jpg"
+    ],
+    "seongdong": ["/immune/facility/facility-seongdong-1.jpg"]
+  },
+  "doctor": {
+    "gangeo": {
+      "hwang_ijun": "/immune/doctor/gangeo-dr-hwang-ijun.png",
+      "lee_useok": "/immune/doctor/gangeo-dr-lee-useok.jpg",
+      "im_jisung": "/immune/doctor/gangeo-dr-im-jisung.jpg",
+      "kim_jiyoung": "/immune/doctor/gangeo-dr-kim-jiyoung.jpg",
+      "kim_eunji": "/immune/doctor/gangeo-dr-kim-eunji.jpg",
+      "bae_sanggeun": "/immune/doctor/gangeo-dr-bae-sanggeun.jpg",
+      "kim_junghyun": "/immune/doctor/gangeo-dr-kim-junghyun.jpg"
+    },
+    "seongdong": {
+      "kang_juan": "/immune/doctor/seongdong-dr-kang-juan.png"
+    }
+  },
+  "misc": {
+    "hospitalVisual": "/immune/misc/hospital-visual.jpg",
+    "hospitalAbout": "/immune/misc/hospital-about.jpg",
+    "programs": [
+      "/immune/misc/hospital-program1.jpg",
+      "/immune/misc/hospital-program2.jpg",
+      "/immune/misc/hospital-program3.jpg",
+      "/immune/misc/hospital-program4.jpg"
+    ],
+    "newFacility": [
+      "/immune/misc/new-facility1.jpg",
+      "/immune/misc/new-facility2.jpg",
+      "/immune/misc/new-facility3.jpg"
+    ],
+    "banners": {
+      "gangeo": "/immune/misc/banner-gangeo-main.jpg",
+      "gwangmyeong": "/immune/misc/banner-gwangmyeong.jpg",
+      "sinchon": "/immune/misc/banner-sinchon.jpg",
+      "seongdong": "/immune/misc/banner-seongdong.jpg"
+    }
+  },
+  "neuro": {
+    "shingles": {
+      "before": "/immune/neuro/neuro-before.jpg",
+      "after": "/immune/neuro/neuro-after.jpg",
+      "before2": "/immune/neuro/neuro-before-2.jpg",
+      "after2": "/immune/neuro/neuro-after-2.jpg",
+      "process": [
+        "/immune/neuro/neuro-process1.jpg",
+        "/immune/neuro/neuro-process2.jpg",
+        "/immune/neuro/neuro-process3.jpg",
+        "/immune/neuro/neuro-process4.jpg",
+        "/immune/neuro/neuro-process5.jpg"
+      ]
+    }
+  }
+}
