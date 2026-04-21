@@ -39,6 +39,8 @@ const DOCUMENT_TYPES = [
 export default function VisaApplicationDetailClient({ applicationId }) {
   const [application, setApplication] = useState(null);
   const [documents, setDocuments] = useState([]);
+  // role 은 현재 UI 에서 사용 안 하지만, 서버에서 받아온 값을 추후 확장용으로 보관
+  // eslint-disable-next-line no-unused-vars
   const [role, setRole] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
