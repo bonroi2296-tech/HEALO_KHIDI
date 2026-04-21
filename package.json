@@ -34,7 +34,10 @@
     "loadtest:rag": "tsx scripts/loadtest-rag-rpc.ts",
     "cap:sync": "npx cap sync",
     "cap:ios": "npx cap open ios",
-    "cap:android": "npx cap open android"
+    "cap:android": "npx cap open android",
+    "check": "npm run lint && next build --webpack",
+    "check:vercel": "node scripts/validate-vercel-config.js",
+    "prepare": "node scripts/install-hooks.js"
   },
   "dependencies": {
     "@ai-sdk/google": "^3.0.64",

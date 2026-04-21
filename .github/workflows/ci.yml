@@ -1,5 +1,5 @@
-# HEALO CI: install → build → verify:rag (RAG 회귀 방지)
-# verify:rag 실패 시 배포 차단
+# HEALO CI: install → vercel config 검증 → build → verify:rag (RAG 회귀 방지)
+# vercel.json Hobby 플랜 위반 또는 verify:rag 실패 시 배포 차단
 name: CI
 on:
   push:
@@ -16,5 +16,7 @@ jobs:
           node-version: "20"
           cache: "npm"
       - run: npm ci
+      - name: vercel.json 검증 (Hobby 플랜 호환성)
+        run: node scripts/validate-vercel-config.js
       - run: npm run build
       - run: npm run verify:rag
