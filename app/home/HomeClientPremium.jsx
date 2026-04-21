@@ -158,6 +158,7 @@ const COPY = {
     ctaTitle: "A single inquiry starts everything.",
     ctaBody:
       "No account, no payment. Share what you know, and we respond within one business day.",
+    ctaSecondaryLabel: "Or start with a remote video consultation →",
   },
 
   ko: {
@@ -296,6 +297,7 @@ const COPY = {
     ctaEyebrow: "시작하기",
     ctaTitle: "한 번의 문의로 모든 것이 시작됩니다.",
     ctaBody: "계정도 결제도 필요 없습니다. 아시는 만큼만 공유해 주시면 영업일 기준 하루 안에 답변드립니다.",
+    ctaSecondaryLabel: "혹은 원격 영상 상담으로 먼저 만나보기 →",
   },
 
   ru: {
@@ -402,6 +404,7 @@ const COPY = {
     ctaEyebrow: "Начать",
     ctaTitle: "Одна заявка запускает весь процесс.",
     ctaBody: "Ни аккаунта, ни оплаты. Расскажите, что знаете — ответим в течение одного рабочего дня.",
+    ctaSecondaryLabel: "Или начните с онлайн-консультации →",
   },
 
   kz: {
@@ -472,6 +475,7 @@ const COPY = {
     ctaEyebrow: "Бастау",
     ctaTitle: "Бір өтініш — барлығының басы.",
     ctaBody: "Аккаунт та, төлем де қажет емес. Білгеніңізді жіберіңіз — бір жұмыс күні ішінде жауап береміз.",
+    ctaSecondaryLabel: "Немесе алдымен онлайн-кеңеспен танысу →",
   },
 
   zh: {
@@ -539,6 +543,7 @@ const COPY = {
     ctaEyebrow: "开始",
     ctaTitle: "一次咨询,启动全部流程。",
     ctaBody: "无需账户、无需付款。告诉我们您所知道的,我们会在一个工作日内回复。",
+    ctaSecondaryLabel: "或从远程视频咨询开始 →",
   },
 
   ja: {
@@ -606,6 +611,7 @@ const COPY = {
     ctaEyebrow: "はじめる",
     ctaTitle: "一度のお問い合わせで、すべてが始まります。",
     ctaBody: "アカウントも決済も不要。知っている範囲でお知らせいただければ、営業日 1 日以内にお返事します。",
+    ctaSecondaryLabel: "またはまずオンライン診療から →",
   },
 };
 
@@ -1312,6 +1318,30 @@ export default function HomeClientPremium() {
           <Link href="/intake" style={{ textDecoration: "none" }}>
             <ButtonGold>{copy.ctaPrimary}</ButtonGold>
           </Link>
+          {copy.ctaSecondaryLabel && (
+            <div style={{ marginTop: 28 }}>
+              <Link
+                href="/telemedicine"
+                style={{
+                  fontFamily: "var(--font-sans)",
+                  fontSize: 14,
+                  color: "var(--gold-2)",
+                  textDecoration: "none",
+                  letterSpacing: "0.02em",
+                  borderBottom: "1px solid transparent",
+                  transition: "border-color 0.2s",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderBottomColor = "var(--gold-2)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderBottomColor = "transparent";
+                }}
+              >
+                {copy.ctaSecondaryLabel}
+              </Link>
+            </div>
+          )}
         </div>
       </section>
 
