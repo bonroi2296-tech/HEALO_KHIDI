@@ -451,20 +451,20 @@ DB 스키마가 변경됐으므로 `database.types.ts` 도 재생성:
 완료하면 각 항목 체크:
 
 ### 🔴 P0 — 즉시
-- [ ] Supabase service_role 키 회전
-- [ ] Supabase anon 키 회전
-- [ ] Supabase Leaked Password Protection ON
-- [ ] Supabase Database 백업 생성
-- [ ] `INTERNAL_ADMIN_SECRET` 생성 + 반영
-- [ ] `INTERNAL_API_SECRET` 생성 + 반영
-- [ ] `CRON_SECRET` 생성 + 반영
-- [ ] Google AI API 키 회전
-- [ ] Google Maps API 키 회전 + HTTP Referrer 제한
-- [ ] **LiveKit 계정 + 프로젝트 + API Key 발급**
-- [ ] LiveKit URL / KEY / SECRET Vercel + 로컬 env 반영
-- [ ] Vercel Redeploy 트리거
-- [ ] 로컬 `.env.local` 동기화
-- [ ] `npm run check:env` 통과 확인
+- [x] Supabase service_role 키 회전 (2026-04-20)
+- [x] Supabase anon 키 회전 (2026-04-20)
+- [x] Supabase 비밀번호 정책 강화 (10자+ / 복잡도 / secure change / require current)
+- [ ] Supabase Database 백업 생성 (마이그레이션 실행 전 권장)
+- [ ] `INTERNAL_ADMIN_SECRET` 생성 + 반영 (미룸 — 이번 주)
+- [ ] `INTERNAL_API_SECRET` 생성 + 반영 (미룸 — 이번 주)
+- [ ] `CRON_SECRET` 회전 (미룸 — 이번 주)
+- [ ] Google AI API 키 회전 (연 1회 권장, 긴급도 낮음)
+- [ ] Google Maps API 키 회전 + HTTP Referrer 제한 (연 1회 권장)
+- [x] LiveKit 계정 + 프로젝트 + API Key 발급 (2026-04-20)
+- [x] LiveKit URL / KEY / SECRET Vercel + 로컬 env 반영 (2026-04-20)
+- [x] Vercel Redeploy 트리거 (2026-04-20)
+- [x] 로컬 `.env.local` 동기화 (2026-04-20)
+- [ ] `npm run check:env` 통과 확인 (Redeploy 후 로컬에서)
 
 ### 🟠 P1 — 24시간
 - [ ] HIRA 키 회전
