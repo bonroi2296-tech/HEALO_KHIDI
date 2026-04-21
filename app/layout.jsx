@@ -32,7 +32,7 @@ export const metadata = {
       "Find the best clinics in Korea. Compare treatments, doctors, and prices. Free quotes and full concierge service.",
     type: "website",
     locale: "en_US",
-    alternateLocale: ["ko_KR", "zh_CN", "ja_JP", "ru_RU"],
+    alternateLocale: ["ko_KR", "zh_CN", "ja_JP", "ru_RU", "kk_KZ"],
     siteName: "HEALO",
   },
   twitter: {
@@ -47,6 +47,7 @@ export const metadata = {
       'en': '/',
       'ko': '/?lang=ko',
       'ru': '/?lang=ru',
+      'kk': '/?lang=kz',
       'zh': '/?lang=zh',
       'ja': '/?lang=ja',
       'x-default': '/',

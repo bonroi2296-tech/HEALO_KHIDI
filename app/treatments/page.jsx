@@ -18,6 +18,16 @@ export const metadata = {
     "oncology Korea",
   ],
   alternates: { canonical: "/treatments" },
+  openGraph: {
+    title: "암종별 치료 안내 — 한국 암 치료와 한방 통합 케어 | HEALO",
+    description: "위암, 유방암, 간암, 폐암, 갑상선암, 대장암 등 주요 암종에 대한 한국의 치료 접근법과 한방 면역치료 통합 케어.",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Korea Cancer Treatment Guide | HEALO",
+    description: "Comprehensive guide to cancer treatments in Korea — surgery, chemotherapy, and Korean Medicine immune therapy.",
+  },
 };
 
 export default async function TreatmentsPage({ searchParams }) {

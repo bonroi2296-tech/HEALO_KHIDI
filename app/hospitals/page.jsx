@@ -17,6 +17,16 @@ export const metadata = {
     "암 전문 병원 한국",
   ],
   alternates: { canonical: "/hospitals" },
+  openGraph: {
+    title: "협력 병원 — HEALO 파트너 의료기관",
+    description: "HEALO 컨소시엄 핵심 파트너 면력한방병원과 협진 암 전문 병원. 한방 면역치료부터 암 수술·항암까지 원스톱 케어.",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "HEALO Partner Hospitals in Korea",
+    description: "HEALO partner hospitals offering integrated cancer care — Korean Medicine immune therapy to oncology surgery.",
+  },
 };
 
 export default async function HospitalsPage({ searchParams }) {

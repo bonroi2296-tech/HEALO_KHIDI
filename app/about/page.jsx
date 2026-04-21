@@ -7,7 +7,18 @@ export const metadata = {
   title: "About HEALO | AI Medical Concierge",
   description:
     "HEALO connects global patients with trusted hospitals and clinics in Korea through AI-powered medical concierge and matching services.",
+  keywords: ["about HEALO", "HEALO medical concierge", "Korea medical tourism platform", "KHIDI"],
   alternates: { canonical: "/about" },
+  openGraph: {
+    title: "About HEALO | AI Medical Concierge",
+    description: "HEALO connects global cancer patients with trusted Korean hospitals through AI-powered concierge and real-time 6-language interpretation.",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "About HEALO | AI Medical Concierge",
+    description: "HEALO connects global patients with trusted hospitals in Korea through AI-powered medical concierge.",
+  },
 };
 
 export default async function AboutPage({ searchParams }) {
