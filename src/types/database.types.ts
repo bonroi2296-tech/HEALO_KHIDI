@@ -50,6 +50,42 @@ export type Database = {
         }
         Relationships: []
       }
+      admin_audit_logs_archive: {
+        Row: {
+          action: string
+          admin_email: string
+          admin_user_id: string | null
+          created_at: string
+          id: string
+          inquiry_ids: number[] | null
+          ip_address: string | null
+          metadata: Json | null
+          user_agent: string | null
+        }
+        Insert: {
+          action: string
+          admin_email: string
+          admin_user_id?: string | null
+          created_at?: string
+          id?: string
+          inquiry_ids?: number[] | null
+          ip_address?: string | null
+          metadata?: Json | null
+          user_agent?: string | null
+        }
+        Update: {
+          action?: string
+          admin_email?: string
+          admin_user_id?: string | null
+          created_at?: string
+          id?: string
+          inquiry_ids?: number[] | null
+          ip_address?: string | null
+          metadata?: Json | null
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
       admin_notification_logs: {
         Row: {
           channel: string
@@ -450,6 +486,74 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "consultation_documents_consultation_id_fkey"
+            columns: ["consultation_id"]
+            isOneToOne: false
+            referencedRelation: "consultation_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      consultation_guest_tokens: {
+        Row: {
+          consultation_id: string
+          created_at: string
+          created_by: string | null
+          expires_at: string
+          first_used_at: string | null
+          id: string
+          invitee_email: string | null
+          invitee_name: string | null
+          last_used_at: string | null
+          last_used_ip: string | null
+          last_used_user_agent: string | null
+          max_uses: number
+          metadata: Json | null
+          revoked_at: string | null
+          role: string
+          token_hash: string
+          used_count: number
+        }
+        Insert: {
+          consultation_id: string
+          created_at?: string
+          created_by?: string | null
+          expires_at: string
+          first_used_at?: string | null
+          id?: string
+          invitee_email?: string | null
+          invitee_name?: string | null
+          last_used_at?: string | null
+          last_used_ip?: string | null
+          last_used_user_agent?: string | null
+          max_uses?: number
+          metadata?: Json | null
+          revoked_at?: string | null
+          role: string
+          token_hash: string
+          used_count?: number
+        }
+        Update: {
+          consultation_id?: string
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string
+          first_used_at?: string | null
+          id?: string
+          invitee_email?: string | null
+          invitee_name?: string | null
+          last_used_at?: string | null
+          last_used_ip?: string | null
+          last_used_user_agent?: string | null
+          max_uses?: number
+          metadata?: Json | null
+          revoked_at?: string | null
+          role?: string
+          token_hash?: string
+          used_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "consultation_guest_tokens_consultation_id_fkey"
             columns: ["consultation_id"]
             isOneToOne: false
             referencedRelation: "consultation_sessions"
@@ -2272,6 +2376,27 @@ export type Database = {
         }
         Relationships: []
       }
+      rate_limit_buckets: {
+        Row: {
+          count: number
+          key: string
+          updated_at: string
+          window_start: string
+        }
+        Insert: {
+          count?: number
+          key: string
+          updated_at?: string
+          window_start: string
+        }
+        Update: {
+          count?: number
+          key?: string
+          updated_at?: string
+          window_start?: string
+        }
+        Relationships: []
+      }
       reviews: {
         Row: {
           content: string | null
@@ -2814,6 +2939,22 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      archive_old_audit_logs: {
+        Args: { p_older_than_days?: number }
+        Returns: number
+      }
+      check_rate_limit: {
+        Args: { p_key: string; p_max_requests: number; p_window_ms: number }
+        Returns: {
+          allowed: boolean
+          remaining: number
+          reset_at: string
+        }[]
+      }
+      cleanup_rate_limit_buckets: {
+        Args: { p_older_than_ms?: number }
+        Returns: number
+      }
       decrypt_text: {
         Args: { ciphertext: string; encryption_key: string }
         Returns: string

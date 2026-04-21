@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import {
   LiveKitRoom,
   RoomAudioRenderer,
@@ -95,15 +95,25 @@ function SubtitleOverlay({ original, translated, interimText, sourceLang, target
 export default function ConsultationRoomPage() {
   const params = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const toast = useToast();
   const consultationId = params.id;
 
+  // Guest mode: URL 에 ?invite=<token> 있으면 계정 없이 입장 가능
+  const inviteToken = searchParams?.get("invite") || null;
+  const isGuestMode = !!inviteToken;
+
   // Core state
   const [consultation, setConsultation] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!isGuestMode); // 게스트는 초기엔 이름 입력 폼 표시
   const [livekitToken, setLivekitToken] = useState("");
   const [livekitUrl, setLivekitUrl] = useState("");
   const [connected, setConnected] = useState(false);
+
+  // Guest mode state
+  const [guestName, setGuestName] = useState("");
+  const [guestJoining, setGuestJoining] = useState(false);
+  const [guestError, setGuestError] = useState("");
 
   // Panel state
   const [activePanel, setActivePanel] = useState("translation"); // "chat" | "translation"
@@ -231,8 +241,66 @@ export default function ConsultationRoomPage() {
     translationsEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [translations]);
 
-  // ── Fetch consultation + LiveKit token ──
+  // ── Guest join (invite 토큰으로 계정 없이 입장) ──
+  const joinAsGuest = useCallback(async () => {
+    if (!inviteToken) return;
+    if (!guestName.trim() || guestName.trim().length < 2) {
+      setGuestError("이름을 2자 이상 입력해주세요.");
+      return;
+    }
+
+    setGuestJoining(true);
+    setGuestError("");
+
+    try {
+      const res = await fetch(
+        `/api/khidi/consultation/${consultationId}/guest-join`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            token: inviteToken,
+            displayName: guestName.trim(),
+          }),
+        }
+      );
+      const result = await res.json();
+
+      if (!res.ok || !result.ok) {
+        const msg =
+          result.error === "invalid_or_expired_invite"
+            ? "초대 링크가 만료되었거나 유효하지 않습니다. 관리자에게 새 링크를 요청하세요."
+            : result.error === "consultation_closed"
+            ? "이미 종료된 상담입니다."
+            : result.error === "rate_limited"
+            ? "너무 많은 시도가 감지되어 차단됐습니다. 잠시 후 다시 시도해주세요."
+            : `접속 실패: ${result.error || res.statusText}`;
+        setGuestError(msg);
+        return;
+      }
+
+      setLivekitToken(result.livekitToken);
+      setLivekitUrl(result.livekitUrl);
+      // 게스트도 번역/언어는 역할 기반 기본값
+      if (result.role === "patient") {
+        setMyLang("ru");
+        setTargetLang("ko");
+      } else {
+        setMyLang("ko");
+        setTargetLang("ru");
+      }
+      setLoading(false);
+    } catch (err) {
+      console.error("[guest-join] error:", err);
+      setGuestError("네트워크 오류. 잠시 후 다시 시도해주세요.");
+    } finally {
+      setGuestJoining(false);
+    }
+  }, [inviteToken, consultationId, guestName]);
+
+  // ── Fetch consultation + LiveKit token (authenticated mode) ──
   useEffect(() => {
+    if (isGuestMode) return; // guest 는 별도 플로우
     const init = async () => {
       try {
         const { data: sessionData } = await supabase.auth.getSession();
@@ -310,7 +378,7 @@ export default function ConsultationRoomPage() {
     };
 
     init();
-  }, [consultationId]);
+  }, [consultationId, isGuestMode]);
 
   // ── Send message ──
   const handleSendMessage = useCallback(async () => {
@@ -379,6 +447,71 @@ export default function ConsultationRoomPage() {
     }
   };
 
+  // ── Guest mode: 이름 입력 폼 먼저 표시 ──
+  if (isGuestMode && !livekitToken) {
+    return (
+      <div className="w-full min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-slate-900 to-teal-950 text-white p-4">
+        <div className="max-w-md w-full bg-gray-800/90 backdrop-blur rounded-2xl shadow-2xl overflow-hidden border border-gray-700">
+          <div className="p-8 border-b border-gray-700">
+            <div className="w-14 h-14 rounded-2xl bg-teal-500/10 text-teal-400 flex items-center justify-center mb-4">
+              <Video size={28} />
+            </div>
+            <h1 className="text-2xl font-bold mb-2">HEALO 원격 상담</h1>
+            <p className="text-sm text-gray-400 leading-relaxed">
+              초대 링크로 입장합니다. 본인 이름을 입력하고 카메라/마이크 사용을 허용해주세요.
+            </p>
+          </div>
+
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              joinAsGuest();
+            }}
+            className="p-8 space-y-4"
+          >
+            <div>
+              <label className="block text-sm font-semibold mb-2 text-gray-200">
+                이름 (의료진에게 표시됨)
+              </label>
+              <input
+                type="text"
+                autoFocus
+                value={guestName}
+                onChange={(e) => {
+                  setGuestName(e.target.value);
+                  setGuestError("");
+                }}
+                placeholder="예: Айжан Нурланова / Ji-hoon Park"
+                className="w-full px-4 py-3 bg-gray-900 border border-gray-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                maxLength={50}
+              />
+            </div>
+
+            {guestError && (
+              <p className="text-sm text-red-400 bg-red-900/20 px-3 py-2 rounded-lg border border-red-800">
+                {guestError}
+              </p>
+            )}
+
+            <button
+              type="submit"
+              disabled={guestJoining || !guestName.trim()}
+              className="w-full py-3 bg-teal-600 hover:bg-teal-700 disabled:opacity-60 disabled:cursor-not-allowed rounded-lg font-semibold transition"
+            >
+              {guestJoining ? "접속 중…" : "상담 시작"}
+            </button>
+
+            <p className="text-xs text-gray-500 leading-relaxed pt-2 border-t border-gray-700 mt-6">
+              🔒 통신은 AES-256 암호화됩니다. 이 링크는 본인 상담 1회에만 유효합니다.
+              <br />
+              녹화 / 녹음이 필요한 경우 의료진이 사전에 안내합니다.
+            </p>
+          </form>
+        </div>
+      </div>
+    );
+  }
+
   // ── Loading / Error states ──
   if (loading) {
     return (
@@ -391,7 +524,8 @@ export default function ConsultationRoomPage() {
     );
   }
 
-  if (!consultation) {
+  // 게스트는 consultation 상세를 못 가져오지만 livekitToken 만 있으면 접속 가능
+  if (!consultation && !isGuestMode) {
     return (
       <div className="w-full h-screen flex items-center justify-center bg-gray-900">
         <div className="text-white text-center">

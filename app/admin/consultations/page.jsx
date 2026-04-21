@@ -85,6 +85,55 @@ export default function ConsultationsPage() {
     setShowScheduleModal(true);
   };
 
+  const handleIssueInvite = async (consultation) => {
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+      if (!token) {
+        toast.error("인증 오류");
+        return;
+      }
+
+      const res = await fetch(
+        `/api/khidi/consultation/${consultation.id}/invite`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            role: "patient",
+            expiresInHours: 72,
+            maxUses: 3,
+          }),
+        }
+      );
+      const result = await res.json();
+
+      if (!res.ok || !result.ok) {
+        toast.error(`초대 링크 생성 실패: ${result.error}`);
+        return;
+      }
+
+      // 클립보드 복사
+      try {
+        await navigator.clipboard.writeText(result.inviteUrl);
+        toast.success(
+          `환자 초대 링크가 클립보드에 복사됐습니다 (만료: ${new Date(
+            result.expiresAt
+          ).toLocaleString("ko-KR")})`
+        );
+      } catch {
+        // 클립보드 권한 없으면 alert 로
+        prompt("아래 링크를 복사해 환자에게 공유하세요:", result.inviteUrl);
+      }
+    } catch (err) {
+      console.error("[handleIssueInvite] error:", err);
+      toast.error("초대 링크 생성 실패");
+    }
+  };
+
   const handleCancel = async (id) => {
     if (!confirm("상담을 취소하시겠습니까?")) return;
 
@@ -347,22 +396,27 @@ export default function ConsultationsPage() {
                   )}
 
                   {/* Action buttons */}
-                  <div className="flex gap-3 pt-4">
+                  <div className="flex gap-3 pt-4 flex-wrap">
                     {consultation.status === "scheduled" && (
                       <>
                         <button
                           onClick={() => handleJoinConsultation(consultation)}
-                          className="flex-1 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition font-medium flex items-center justify-center gap-2"
+                          className="flex-1 min-w-[140px] px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition font-medium flex items-center justify-center gap-2"
                         >
                           <Phone size={16} />
                           상담 시작
                         </button>
                         <button
+                          onClick={() => handleIssueInvite(consultation)}
+                          className="flex-1 min-w-[140px] px-4 py-2 bg-blue-50 text-blue-700 border border-blue-200 rounded-lg hover:bg-blue-100 transition font-medium flex items-center justify-center gap-2"
+                        >
+                          🔗 환자 초대 링크
+                        </button>
+                        <button
                           onClick={() => handleReschedule(consultation)}
-                          className="flex-1 px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition font-medium flex items-center justify-center gap-2"
+                          className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition font-medium flex items-center justify-center gap-2"
                         >
                           <Edit2 size={16} />
-                          일정 변경
                         </button>
                         <button
                           onClick={() => handleCancel(consultation.id)}
@@ -429,16 +483,23 @@ function CreateConsultationModal({ onClose, onSuccess }) {
       patient_language: "ru",
       doctor_language: "ko",
       notes: "",
+      // 게스트 초대 옵션 (환자가 계정 없으면 링크로 입장)
+      generateGuestInvite: true,
+      inviteeName: "",
     };
   });
   const [submitting, setSubmitting] = useState(false);
+  const [created, setCreated] = useState(null); // 생성 후 initiate 결과 (세션 + invite)
 
   async function handleSubmit(e) {
     e.preventDefault();
-    if (!form.patient_user_id) {
-      toast.error("환자 User ID 를 입력하세요 (Supabase auth.users.id)");
+
+    // 환자 user_id 또는 guest invite 중 하나는 있어야 함
+    if (!form.patient_user_id && !form.generateGuestInvite) {
+      toast.error("환자 계정 ID 또는 게스트 초대 링크 중 하나는 필요합니다");
       return;
     }
+
     setSubmitting(true);
     try {
       const { data: sessionData } = await supabase.auth.getSession();
@@ -448,11 +509,17 @@ function CreateConsultationModal({ onClose, onSuccess }) {
         return;
       }
 
+      // 1. 세션 생성
+      // 게스트 전용이면 서버는 patient_user_id 필수로 요구할 수 있으므로
+      // admin 본인 ID 를 placeholder 로 세팅 (후속 PATCH 로 환자 확정 가능)
       const payload = {
         ...form,
+        patient_user_id: form.patient_user_id || sessionData.session.user.id,
         scheduled_at: new Date(form.scheduled_at).toISOString(),
       };
-      // 빈 값은 서버에 보내지 않음
+      // 게스트 관련 필드 / UI 플래그 제거
+      delete payload.generateGuestInvite;
+      delete payload.inviteeName;
       Object.keys(payload).forEach((k) => {
         if (payload[k] === "" || payload[k] == null) delete payload[k];
       });
@@ -470,13 +537,136 @@ function CreateConsultationModal({ onClose, onSuccess }) {
         toast.error(`생성 실패: ${result.error || res.statusText}`);
         return;
       }
-      onSuccess();
+
+      const sessionId = result.data?.id;
+
+      // 2. (옵션) 환자용 게스트 초대 링크 발급
+      let inviteUrl = null;
+      let expiresAt = null;
+      if (form.generateGuestInvite && sessionId) {
+        try {
+          const inviteRes = await fetch(
+            `/api/khidi/consultation/${sessionId}/invite`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+              },
+              body: JSON.stringify({
+                role: "patient",
+                inviteeName: form.inviteeName || undefined,
+                expiresInHours: 72, // 3일
+                maxUses: 3, // 환자 재접속 고려
+              }),
+            }
+          );
+          const inviteResult = await inviteRes.json();
+          if (inviteRes.ok && inviteResult.ok) {
+            inviteUrl = inviteResult.inviteUrl;
+            expiresAt = inviteResult.expiresAt;
+          } else {
+            console.warn("[invite] 생성 실패:", inviteResult.error);
+          }
+        } catch (inviteErr) {
+          console.error("[invite] 예외:", inviteErr);
+        }
+      }
+
+      setCreated({
+        sessionId,
+        inviteUrl,
+        expiresAt,
+      });
     } catch (err) {
       console.error("[CreateConsultationModal] error:", err);
       toast.error("생성 실패");
     } finally {
       setSubmitting(false);
     }
+  }
+
+  // 생성 완료 화면
+  if (created) {
+    return (
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
+        onClick={() => {
+          onSuccess();
+        }}
+      >
+        <div
+          className="bg-white rounded-2xl shadow-2xl w-full max-w-xl p-8"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-12 h-12 rounded-2xl bg-green-50 text-green-600 flex items-center justify-center text-2xl">
+              ✓
+            </div>
+            <div>
+              <h2 className="text-xl font-bold text-gray-900">상담 예약 생성 완료</h2>
+              <p className="text-sm text-gray-500">
+                아래 링크를 환자에게 공유하세요.
+              </p>
+            </div>
+          </div>
+
+          {created.inviteUrl ? (
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-800 mb-2">
+                  환자 초대 링크 (계정 불필요)
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    readOnly
+                    value={created.inviteUrl}
+                    className="flex-1 px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-sm font-mono text-gray-800"
+                    onFocus={(e) => e.target.select()}
+                  />
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(created.inviteUrl).then(
+                        () => toast.success("링크 복사 완료"),
+                        () => toast.error("복사 실패")
+                      );
+                    }}
+                    className="px-4 py-2 bg-teal-600 text-white rounded-lg text-sm font-semibold hover:bg-teal-700"
+                  >
+                    복사
+                  </button>
+                </div>
+                <p className="text-xs text-gray-500 mt-2">
+                  만료: {new Date(created.expiresAt).toLocaleString("ko-KR")}
+                  {" · "}최대 3회 접속 가능
+                </p>
+              </div>
+
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-sm text-amber-800">
+                <p className="font-semibold mb-1">📋 전달 시 참고사항</p>
+                <ul className="text-xs space-y-1 list-disc list-inside">
+                  <li>이메일 / 카카오톡 / SMS 로 링크 공유</li>
+                  <li>환자는 이 링크를 클릭하고 본인 이름만 입력하면 입장 가능</li>
+                  <li>상담 30분 전 예약 알림 함께 발송 권장</li>
+                </ul>
+              </div>
+            </div>
+          ) : (
+            <p className="text-sm text-gray-600">
+              초대 링크 발급은 실패했지만 세션은 생성되었습니다. 필요 시 세션 상세에서 수동 발급하세요.
+            </p>
+          )}
+
+          <button
+            onClick={onSuccess}
+            className="w-full mt-6 px-4 py-3 bg-gray-900 text-white rounded-lg font-semibold hover:bg-gray-800"
+          >
+            닫기
+          </button>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -504,13 +694,58 @@ function CreateConsultationModal({ onClose, onSuccess }) {
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          <Field label="환자 User ID (필수)" hint="Supabase auth.users.id (환자 계정)">
+          {/* 게스트 초대 링크 (Zoom 스타일) */}
+          <div className="bg-teal-50 border border-teal-200 rounded-xl p-4">
+            <label className="flex items-start gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={form.generateGuestInvite}
+                onChange={(e) =>
+                  setForm({ ...form, generateGuestInvite: e.target.checked })
+                }
+                className="mt-1 accent-teal-600"
+              />
+              <div className="flex-1">
+                <p className="font-semibold text-sm text-gray-900">
+                  🔗 환자 초대 링크 생성 (계정 불필요)
+                </p>
+                <p className="text-xs text-gray-600 mt-1 leading-relaxed">
+                  Zoom 처럼 링크만 주면 환자가 계정 없이 입장 가능. 카자흐 / 러시아
+                  환자 편의 UP. 만료 72시간, 최대 3회 접속.
+                </p>
+              </div>
+            </label>
+            {form.generateGuestInvite && (
+              <div className="mt-3 pl-7">
+                <input
+                  type="text"
+                  value={form.inviteeName}
+                  onChange={(e) => setForm({ ...form, inviteeName: e.target.value })}
+                  placeholder="(선택) 환자 이름 힌트 — 예: Айжан Нурланова"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+                />
+              </div>
+            )}
+          </div>
+
+          <Field
+            label={
+              form.generateGuestInvite
+                ? "환자 User ID (선택 — 계정 있는 경우)"
+                : "환자 User ID (필수)"
+            }
+            hint="Supabase auth.users.id"
+          >
             <input
               type="text"
-              required
+              required={!form.generateGuestInvite}
               value={form.patient_user_id}
               onChange={(e) => setForm({ ...form, patient_user_id: e.target.value })}
-              placeholder="예: 550e8400-e29b-41d4-a716-446655440000"
+              placeholder={
+                form.generateGuestInvite
+                  ? "(비워두면 게스트 전용 상담)"
+                  : "예: 550e8400-e29b-41d4-a716-446655440000"
+              }
               className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-teal-500"
             />
           </Field>

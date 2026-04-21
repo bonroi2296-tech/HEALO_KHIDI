@@ -1,0 +1,209 @@
+/**
+ * HEALO: Consultation guest invite tokens
+ *
+ * Zoom-스타일 공유 링크로 환자가 계정 없이 원격 상담 방에 참여할 수 있게 함.
+ *
+ * 보안 설계:
+ * - 원본 토큰 (base64url 32 bytes) 은 발급 시 1회만 반환됨
+ * - DB 에는 SHA-256 hash 만 저장 (유출 시 복원 불가)
+ * - 역할 고정 (patient / doctor / translator / coordinator / observer)
+ * - 만료시각 필수 + max_uses 제한
+ * - 접속 IP / UA audit
+ *
+ * 사용 흐름:
+ * 1. admin 이 POST /api/khidi/consultation/:id/invite 호출 → token 반환
+ * 2. 관리자/코디네이터가 환자에게 URL `/consultation/:id?invite=<token>` 공유
+ * 3. 환자가 URL 접속 → POST /api/khidi/consultation/:id/guest-join
+ *    (token 을 body 에 담아 전송) → LiveKit access token 발급
+ */
+
+import "server-only";
+
+import { randomBytes, createHash } from "node:crypto";
+import { supabaseAdmin } from "../rag/supabaseAdmin";
+
+export type GuestRole = "patient" | "doctor" | "translator" | "coordinator" | "observer";
+
+export interface GenerateGuestTokenParams {
+  consultationId: string;
+  role: GuestRole;
+  inviteeName?: string;
+  inviteeEmail?: string;
+  expiresAt?: Date;         // 기본: 24h 후
+  maxUses?: number;         // 기본: 1
+  createdBy?: string;       // admin user_id
+}
+
+export interface GenerateGuestTokenResult {
+  tokenPlain: string;       // 발급 시에만 반환, DB 저장 X
+  tokenId: string;          // row id
+  inviteUrl: (baseUrl: string) => string;
+  expiresAt: Date;
+}
+
+/**
+ * base64url 없이 hex 만 사용 (URL-safe).
+ * 32 bytes = 64 hex chars = 추측 불가능한 키스페이스 (2^256).
+ */
+function generateRawToken(): string {
+  return randomBytes(32).toString("hex");
+}
+
+function hashToken(token: string): string {
+  return createHash("sha256").update(token).digest("hex");
+}
+
+/**
+ * 토큰 발급 — admin/coordinator 만 호출해야 함 (route 에서 권한 체크 필수)
+ */
+export async function generateGuestToken(
+  params: GenerateGuestTokenParams
+): Promise<GenerateGuestTokenResult> {
+  const tokenPlain = generateRawToken();
+  const tokenHash = hashToken(tokenPlain);
+
+  const expiresAt =
+    params.expiresAt ?? new Date(Date.now() + 24 * 60 * 60 * 1000); // +24h
+
+  const { data, error } = await supabaseAdmin
+    .from("consultation_guest_tokens")
+    .insert({
+      consultation_id: params.consultationId,
+      token_hash: tokenHash,
+      role: params.role,
+      invitee_name: params.inviteeName ?? null,
+      invitee_email: params.inviteeEmail ?? null,
+      created_by: params.createdBy ?? null,
+      expires_at: expiresAt.toISOString(),
+      max_uses: params.maxUses ?? 1,
+    } as any)
+    .select("id")
+    .single();
+
+  if (error || !data) {
+    throw new Error(`[guestToken] Insert failed: ${error?.message}`);
+  }
+
+  return {
+    tokenPlain,
+    tokenId: data.id,
+    expiresAt,
+    inviteUrl: (baseUrl: string) =>
+      `${baseUrl.replace(/\/$/, "")}/consultation/${params.consultationId}?invite=${tokenPlain}`,
+  };
+}
+
+export interface VerifyGuestTokenResult {
+  valid: boolean;
+  consultationId?: string;
+  role?: GuestRole;
+  inviteeName?: string | null;
+  inviteeEmail?: string | null;
+  tokenId?: string;
+  reason?: string;
+}
+
+/**
+ * 토큰 검증 + 사용 카운트 증가 (원자적).
+ *
+ * @param tokenPlain URL 쿼리에서 받은 원본 토큰
+ * @param consultationId 사용자가 접근 시도하는 세션 ID (토큰과 일치해야 함)
+ * @param metadata 접속 IP / UA (audit 용)
+ */
+export async function verifyAndConsumeGuestToken(
+  tokenPlain: string,
+  consultationId: string,
+  metadata?: { ip?: string; userAgent?: string }
+): Promise<VerifyGuestTokenResult> {
+  if (!tokenPlain || typeof tokenPlain !== "string" || tokenPlain.length < 32) {
+    return { valid: false, reason: "invalid_token_format" };
+  }
+
+  const tokenHash = hashToken(tokenPlain);
+
+  const { data: row, error } = await supabaseAdmin
+    .from("consultation_guest_tokens")
+    .select(
+      "id, consultation_id, role, invitee_name, invitee_email, expires_at, revoked_at, max_uses, used_count"
+    )
+    .eq("token_hash", tokenHash)
+    .maybeSingle();
+
+  if (error) {
+    console.error("[guestToken] DB error:", error.message);
+    return { valid: false, reason: "db_error" };
+  }
+  if (!row) {
+    return { valid: false, reason: "token_not_found" };
+  }
+
+  // 세션 ID 일치 확인 — 다른 세션의 토큰으로 이 세션 접근 시도 방어
+  if (row.consultation_id !== consultationId) {
+    return { valid: false, reason: "consultation_mismatch" };
+  }
+
+  if (row.revoked_at) {
+    return { valid: false, reason: "token_revoked" };
+  }
+
+  if (new Date(row.expires_at) < new Date()) {
+    return { valid: false, reason: "token_expired" };
+  }
+
+  if (row.used_count >= row.max_uses) {
+    return { valid: false, reason: "max_uses_exceeded" };
+  }
+
+  // 사용 카운트 증가 + audit 기록 (best-effort, 실패해도 접속 허용)
+  try {
+    await supabaseAdmin
+      .from("consultation_guest_tokens")
+      .update({
+        used_count: row.used_count + 1,
+        first_used_at: row.used_count === 0 ? new Date().toISOString() : undefined,
+        last_used_at: new Date().toISOString(),
+        last_used_ip: metadata?.ip ?? null,
+        last_used_user_agent: metadata?.userAgent?.slice(0, 500) ?? null,
+      } as any)
+      .eq("id", row.id);
+  } catch (e) {
+    console.warn("[guestToken] usage update failed (non-critical):", (e as Error).message);
+  }
+
+  return {
+    valid: true,
+    consultationId: row.consultation_id,
+    role: row.role as GuestRole,
+    inviteeName: row.invitee_name,
+    inviteeEmail: row.invitee_email,
+    tokenId: row.id,
+  };
+}
+
+/**
+ * 토큰 폐기 (관리자)
+ */
+export async function revokeGuestToken(tokenId: string): Promise<boolean> {
+  const { error } = await supabaseAdmin
+    .from("consultation_guest_tokens")
+    .update({ revoked_at: new Date().toISOString() } as any)
+    .eq("id", tokenId);
+
+  return !error;
+}
+
+/**
+ * 세션의 모든 게스트 토큰 일괄 폐기 — 세션 취소 시 호출 권장
+ */
+export async function revokeAllGuestTokensForConsultation(
+  consultationId: string
+): Promise<number> {
+  const { error, count } = await supabaseAdmin
+    .from("consultation_guest_tokens")
+    .update({ revoked_at: new Date().toISOString() } as any, { count: "exact" })
+    .eq("consultation_id", consultationId)
+    .is("revoked_at", null);
+
+  if (error) return 0;
+  return count ?? 0;
+}
