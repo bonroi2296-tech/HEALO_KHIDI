@@ -110,6 +110,38 @@ npm run dev
 
 ---
 
+## ⚠️ Vercel "Need to Rotate" 배지 대응
+
+Vercel 이 오래된 env 변수에 "Need To Rotate" 경고 배지를 붙입니다.
+**다 회전해야 하는 건 아님.** 각 변수별 대응:
+
+### 🔴 절대 회전 금지 (데이터 손실 위험)
+
+| 변수 | 이유 |
+|------|------|
+| `SUPABASE_ENCRYPTION_KEY` | DB `inquiries.encrypted_email`, `cancer_patient_intakes.*_encrypted` 복호화 불가 |
+| `ENCRYPTION_KEY_V1` | 구버전 암호화 데이터 복호화 불가 |
+
+**조치**: 각 행 우측 `...` → **Dismiss rotation warning** 만 클릭.
+회전하려면 `scripts/reencrypt-inquiries-email.mjs` 같은 재암호화 배치를 먼저 돌려야 함.
+
+### 🟡 외부 서비스 재발급 필요 (급하진 않음)
+
+| 변수 | 대응 | 긴급도 |
+|------|------|-------|
+| `GOOGLE_GENERATIVE_AI_API_KEY` | AI Studio 에서 재발급 | 🟠 24h |
+| `HIRA_API_KEY` | 공공데이터포털 재발급 | 🟡 1주 |
+| `KAKAO_REST_API_KEY` | 앱 키 회전 불가 — 유출 의심 시만 새 앱 생성 | 🟡 1주 |
+| `NAVER_CLIENT_SECRET` | Naver Developers → Client Secret 재발급 | 🟡 1주 |
+
+DB 안쪽 개인정보와 무관한 외부 API 키들이라 당장 유출 증거 없으면 급하지 않음.
+
+### ✅ 자체 생성 (지금 즉시)
+
+`CRON_SECRET`, `INTERNAL_ADMIN_SECRET`, `INTERNAL_API_SECRET` — 아래 #3 참조.
+
+---
+
 ## 3. 🔴 서버 시크릿 3종 생성
 
 ### 3-1. 새 시크릿 생성 (각 한 번씩)
