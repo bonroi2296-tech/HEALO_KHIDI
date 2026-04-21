@@ -35,7 +35,16 @@ export const metadata = {
     url: "https://khidi.healo.kr/specialties/dental",
   },
   alternates: {
-    canonical: "https://khidi.healo.kr/specialties/dental",
+    canonical: "/specialties/dental",
+    languages: {
+      en: "/specialties/dental?lang=en",
+      ko: "/specialties/dental?lang=ko",
+      ru: "/specialties/dental?lang=ru",
+      kk: "/specialties/dental?lang=kz",
+      zh: "/specialties/dental?lang=zh",
+      ja: "/specialties/dental?lang=ja",
+      'x-default': "/specialties/dental",
+    },
   },
 };
 

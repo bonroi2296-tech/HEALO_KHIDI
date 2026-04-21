@@ -35,7 +35,16 @@ export const metadata = {
     url: "https://khidi.healo.kr/specialties/dermatology",
   },
   alternates: {
-    canonical: "https://khidi.healo.kr/specialties/dermatology",
+    canonical: "/specialties/dermatology",
+    languages: {
+      en: "/specialties/dermatology?lang=en",
+      ko: "/specialties/dermatology?lang=ko",
+      ru: "/specialties/dermatology?lang=ru",
+      kk: "/specialties/dermatology?lang=kz",
+      zh: "/specialties/dermatology?lang=zh",
+      ja: "/specialties/dermatology?lang=ja",
+      'x-default': "/specialties/dermatology",
+    },
   },
 };
 

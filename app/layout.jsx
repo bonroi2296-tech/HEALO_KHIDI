@@ -9,37 +9,49 @@ import DesignToggle from "../components/healo/DesignToggle";
 export const metadata = {
   metadataBase: new URL("https://khidi.healo.kr"),
   title: {
-    default: "HEALO | Korea Medical Tourism Concierge",
+    default: "HEALO | Korea Cancer Care for International Patients",
     template: "%s | HEALO",
   },
   description:
-    "Find the best clinics in Korea. Compare treatments, doctors, and prices. Free quotes and full concierge service for international patients.",
+    "Korean cancer care concierge for international patients from Kazakhstan, Russia, and Central Asia. Video pre-consultation with top oncologists, 6-language interpretation, and full-journey support — from diagnosis to post-treatment follow-up.",
   keywords: [
-    "Korea medical tourism",
-    "Korean hospitals",
-    "cancer treatment Korea",
-    "Korean Medicine",
-    "plastic surgery Korea",
-    "medical concierge Korea",
-    "한국 의료관광",
-    "韩国医疗旅游",
-    "韓国医療観光",
+    // 영어
+    "Korea cancer treatment",
+    "Korean oncology specialist",
+    "cancer concierge Korea",
+    "international cancer patient",
+    "telemedicine Korea oncology",
+    "medical tourism cancer Korea",
+    // 러시아어 (카자흐·러시아 검색 타겟)
+    "лечение рака в Корее",
+    "онкология Южная Корея",
+    "корейские онкологи",
     "медицинский туризм Корея",
+    // 카자흐어
+    "Кореядағы онкологиялық емдеу",
+    "Корея медициналық туризм",
+    // 한국어
+    "한국 암 치료 컨시어지",
+    "해외 암환자 원격상담",
+    "한국 암 전문의",
+    // 중국어·일본어
+    "韩国癌症治疗",
+    "韓国がん治療",
   ],
   openGraph: {
-    title: "HEALO | Korea Medical Tourism Concierge",
+    title: "HEALO | Korea Cancer Care for International Patients",
     description:
-      "Find the best clinics in Korea. Compare treatments, doctors, and prices. Free quotes and full concierge service.",
+      "Video pre-consultation with Korea's top oncologists. Real-time interpretation in 6 languages (RU/KZ/EN/ZH/JA/KO). Full-journey concierge for cancer patients — from diagnosis to follow-up.",
     type: "website",
     locale: "en_US",
-    alternateLocale: ["ko_KR", "zh_CN", "ja_JP", "ru_RU", "kk_KZ"],
+    alternateLocale: ["ko_KR", "ru_RU", "kk_KZ", "zh_CN", "ja_JP"],
     siteName: "HEALO",
   },
   twitter: {
     card: "summary_large_image",
-    title: "HEALO | Korea Medical Tourism Concierge",
+    title: "HEALO | Korea Cancer Care for International Patients",
     description:
-      "AI-powered medical concierge for international patients seeking treatment in Korea.",
+      "Video pre-consultation + 6-language interpretation + full-journey concierge for international cancer patients seeking treatment in Korea.",
   },
   alternates: {
     canonical: "/",

@@ -35,7 +35,16 @@ export const metadata = {
     url: "https://khidi.healo.kr/specialties/plastic-surgery",
   },
   alternates: {
-    canonical: "https://khidi.healo.kr/specialties/plastic-surgery",
+    canonical: "/specialties/plastic-surgery",
+    languages: {
+      en: "/specialties/plastic-surgery?lang=en",
+      ko: "/specialties/plastic-surgery?lang=ko",
+      ru: "/specialties/plastic-surgery?lang=ru",
+      kk: "/specialties/plastic-surgery?lang=kz",
+      zh: "/specialties/plastic-surgery?lang=zh",
+      ja: "/specialties/plastic-surgery?lang=ja",
+      'x-default': "/specialties/plastic-surgery",
+    },
   },
 };
 
