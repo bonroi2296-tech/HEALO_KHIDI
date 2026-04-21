@@ -1,0 +1,190 @@
+/**
+ * HEALO: cost_estimates 접근 권한 강제 체크
+ *
+ * 원칙: 환자는 본인 건, 코디·admin 은 전체.
+ */
+
+import "server-only";
+import { NextRequest } from "next/server";
+import { checkAdminAuth } from "./checkAdminAuth";
+import { supabaseAdmin as _sb } from "../rag/supabaseAdmin";
+const supabaseAdmin: any = _sb;
+import { checkRateLimit, getClientIp, getRateLimitHeaders } from "../rateLimit";
+
+const COST_RATE = {
+  windowMs: 60 * 1000,
+  maxRequests: 60,
+  apiName: "cost_estimate_api",
+};
+
+interface CostEstimateRow {
+  id: string;
+  patient_user_id: string;
+  coordinator_user_id: string | null;
+  status: string;
+  consultation_id: string | null;
+  intake_id: string | null;
+}
+
+export type CostRole = "admin" | "coordinator" | "patient";
+
+export type CostAccessResult =
+  | {
+      success: true;
+      userId: string;
+      isAdmin: boolean;
+      estimate: CostEstimateRow;
+      role: CostRole;
+    }
+  | { success: false; response: Response };
+
+async function isCoordinatorUser(userId: string): Promise<boolean> {
+  const { data } = await supabaseAdmin
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", userId)
+    .maybeSingle();
+  return (data as any)?.role === "coordinator";
+}
+
+export async function requireCostEstimateAccess(
+  request: NextRequest,
+  estimateId: string,
+  options?: { requireRole?: ("admin" | "coordinator")[] }
+): Promise<CostAccessResult> {
+  const clientIp = getClientIp(request);
+  const rl = checkRateLimit(clientIp, COST_RATE);
+  if (!rl.allowed) {
+    return {
+      success: false,
+      response: Response.json(
+        { ok: false, error: "rate_limited" },
+        { status: 429, headers: getRateLimitHeaders(rl) }
+      ),
+    };
+  }
+
+  const auth = await checkAdminAuth(request);
+  if (!auth.userId) {
+    return {
+      success: false,
+      response: Response.json(
+        { ok: false, error: "unauthorized" },
+        { status: 401 }
+      ),
+    };
+  }
+
+  if (!estimateId || typeof estimateId !== "string") {
+    return {
+      success: false,
+      response: Response.json(
+        { ok: false, error: "invalid_estimate_id" },
+        { status: 400 }
+      ),
+    };
+  }
+
+  const { data: estimateRaw, error } = await supabaseAdmin
+    .from("cost_estimates")
+    .select("id, patient_user_id, coordinator_user_id, status, consultation_id, intake_id")
+    .eq("id", estimateId)
+    .maybeSingle();
+  const estimate = estimateRaw as CostEstimateRow | null;
+
+  if (error) {
+    return {
+      success: false,
+      response: Response.json({ ok: false, error: "db_error" }, { status: 500 }),
+    };
+  }
+
+  if (!estimate) {
+    return {
+      success: false,
+      response: Response.json(
+        { ok: false, error: "estimate_not_found" },
+        { status: 404 }
+      ),
+    };
+  }
+
+  const uid = auth.userId;
+  let role: CostRole;
+
+  if (auth.isAdmin) {
+    role = "admin";
+  } else if (estimate.coordinator_user_id === uid) {
+    role = "coordinator";
+  } else if (await isCoordinatorUser(uid)) {
+    role = "coordinator";
+  } else if (estimate.patient_user_id === uid) {
+    role = "patient";
+  } else {
+    return {
+      success: false,
+      response: Response.json({ ok: false, error: "forbidden" }, { status: 403 }),
+    };
+  }
+
+  if (
+    options?.requireRole &&
+    !options.requireRole.includes(role as "admin" | "coordinator")
+  ) {
+    return {
+      success: false,
+      response: Response.json(
+        {
+          ok: false,
+          error: "insufficient_role",
+          detail: `required: ${options.requireRole.join("/")}`,
+        },
+        { status: 403 }
+      ),
+    };
+  }
+
+  return { success: true, userId: uid, isAdmin: auth.isAdmin, estimate, role };
+}
+
+export async function requireCostEstimateUser(
+  request: NextRequest
+): Promise<
+  | { success: true; userId: string; email?: string; isAdmin: boolean; isCoordinator: boolean }
+  | { success: false; response: Response }
+> {
+  const clientIp = getClientIp(request);
+  const rl = checkRateLimit(clientIp, COST_RATE);
+  if (!rl.allowed) {
+    return {
+      success: false,
+      response: Response.json(
+        { ok: false, error: "rate_limited" },
+        { status: 429, headers: getRateLimitHeaders(rl) }
+      ),
+    };
+  }
+
+  const auth = await checkAdminAuth(request);
+  if (!auth.userId) {
+    return {
+      success: false,
+      response: Response.json(
+        { ok: false, error: "unauthorized" },
+        { status: 401 }
+      ),
+    };
+  }
+
+  const isCoordinator = auth.isAdmin
+    ? true
+    : await isCoordinatorUser(auth.userId);
+
+  return {
+    success: true,
+    userId: auth.userId,
+    email: auth.email,
+    isAdmin: auth.isAdmin,
+    isCoordinator,
+  };
+}
