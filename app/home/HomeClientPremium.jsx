@@ -671,11 +671,11 @@ export default function HomeClientPremium() {
             margin: "0 auto",
             position: "relative",
             display: "grid",
-            gridTemplateColumns: "minmax(0, 1.05fr) minmax(340px, 0.72fr)",
-            gap: 56,
+            gridTemplateColumns: "minmax(0, 1.25fr) minmax(320px, 0.75fr)",
+            gap: 48,
             alignItems: "center",
             minHeight: "calc(100svh - 152px)",
-            padding: "32px 24px 36px",
+            padding: "48px 24px 56px",
           }}
         >
           <div
@@ -691,16 +691,15 @@ export default function HomeClientPremium() {
               style={{
                 fontFamily: "var(--font-serif)",
                 fontWeight: 400,
-                fontSize: "clamp(42px, 5vw, 82px)",
-                lineHeight: 1.03,
-                letterSpacing: 0,
-                margin: "18px 0 24px",
-                maxWidth: 830,
+                fontSize: "clamp(36px, 4.2vw, 68px)",
+                lineHeight: 1.08,
+                letterSpacing: "-0.01em",
+                margin: "20px 0 28px",
+                maxWidth: 720,
                 wordBreak: "keep-all",
               }}
             >
-              {copy.heroTitleA}
-              <br />
+              {copy.heroTitleA}{" "}
               <span style={{ fontStyle: "italic", color: "var(--gold-0)" }}>
                 {copy.heroTitleB}
               </span>
