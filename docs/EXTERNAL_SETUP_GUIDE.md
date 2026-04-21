@@ -42,11 +42,22 @@
 
 ### 1-3. Leaked Password Protection 활성화
 
-1. 좌측 **Authentication → Attack Protection** 이동  
-   ⚠️ `Policies` 가 아니라 **`Attack Protection`** — UI 가 업데이트되었습니다
-2. **"Leaked password protection"** 토글 **ON**
-3. (권장) **"Bot and Abuse Protection"** 도 같이 **ON**
-4. Save (HaveIBeenPwned 로 털린 비번 가입/변경 시도 차단됨)
+**2026-04 기준 Supabase UI 경로** (자주 바뀜 주의):
+
+1. 좌측 **Authentication → Attack Protection** 이동
+2. **"Prevent use of leaked passwords"** 행의 **`Configure email provider`** 버튼 클릭
+3. `Sign In / Providers → Email` 페이지로 이동됨
+4. 스크롤해서 **"Prevent use of leaked passwords"** 토글 **ON**
+5. **Save changes**
+
+작동 원리: HaveIBeenPwned.com 의 털린 비밀번호 DB 해시와 대조.
+가입/비밀번호 변경 시 이미 유출된 비번 사용하려 하면 거부.
+
+### 1-3a. Captcha 보호 (선택사항, 나중에)
+
+Attack Protection 페이지의 **"Enable Captcha protection"** 는 지금 skip.
+ON 하려면 hCaptcha 계정 + Site Key + Secret + 가입 폼 UI 코드 수정 필요.
+가입 스팸 발생 시 그때 설정.
 
 ### 1-4. Database 백업 확보 (마이그레이션 실행 전)
 
