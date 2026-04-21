@@ -8,6 +8,9 @@
  */
 
 export async function register() {
+  // DSN 없으면 Sentry 로드 스킵 (dev 환경에서 불필요한 의존성 에러 방지)
+  if (!process.env.NEXT_PUBLIC_SENTRY_DSN) return;
+
   if (process.env.NEXT_RUNTIME === "nodejs") {
     await import("./sentry.server.config");
   }

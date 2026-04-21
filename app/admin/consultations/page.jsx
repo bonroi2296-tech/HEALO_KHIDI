@@ -277,6 +277,29 @@ export default function ConsultationsPage() {
                         <p className="text-sm text-gray-600 mt-1">
                           {sessionTypeLabel[consultation.session_type] || consultation.session_type}
                         </p>
+                        {/* 병원 / 의사 배지 */}
+                        {(consultation.hospitals?.name ||
+                          consultation.partner_doctors?.name_ko ||
+                          consultation.partner_doctors?.name_en) && (
+                          <div className="flex flex-wrap items-center gap-2 mt-2">
+                            {consultation.hospitals?.name && (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-teal-50 text-teal-700 text-xs font-medium rounded-full border border-teal-200">
+                                🏥 {consultation.hospitals.name}
+                              </span>
+                            )}
+                            {(consultation.partner_doctors?.name_ko ||
+                              consultation.partner_doctors?.name_en) && (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-50 text-amber-700 text-xs font-medium rounded-full border border-amber-200">
+                                👨‍⚕️ Dr. {consultation.partner_doctors.name_ko || consultation.partner_doctors.name_en}
+                                {consultation.partner_doctors.subspecialty && (
+                                  <span className="text-amber-600">
+                                    · {consultation.partner_doctors.subspecialty}
+                                  </span>
+                                )}
+                              </span>
+                            )}
+                          </div>
+                        )}
                       </div>
                       <span
                         className={`px-3 py-1 rounded-full text-sm font-semibold ${
@@ -483,6 +506,8 @@ function CreateConsultationModal({ onClose, onSuccess }) {
       scheduled_at: d.toISOString().slice(0, 16),
       patient_language: "ru",
       doctor_language: "ko",
+      hospital_id: "",
+      partner_doctor_id: "",
       notes: "",
       // 역할별 초대 링크 생성 여부 (multi-party 지원)
       inviteRoles: {
@@ -498,6 +523,65 @@ function CreateConsultationModal({ onClose, onSuccess }) {
   });
   const [submitting, setSubmitting] = useState(false);
   const [created, setCreated] = useState(null); // 생성 후 initiate 결과 (세션 + invite)
+  // 병원/의사 옵션 (DB 에서 lazy load)
+  const [hospitalOptions, setHospitalOptions] = useState([]);
+  const [doctorOptions, setDoctorOptions] = useState([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadOptions() {
+      try {
+        const { data: hospitalsData } = await supabase
+          .from("hospitals")
+          .select("id, name, address")
+          .eq("is_active", true)
+          .order("name");
+        if (!cancelled && hospitalsData) setHospitalOptions(hospitalsData);
+      } catch {
+        // silent
+      }
+    }
+    loadOptions();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  // 병원 변경 시 해당 병원의 의사 목록 로드
+  useEffect(() => {
+    if (!form.hospital_id) {
+      setDoctorOptions([]);
+      return;
+    }
+    let cancelled = false;
+    async function loadDoctors() {
+      try {
+        // partner_doctors 는 branch_id 참조, branches 가 hospital_id 참조
+        const { data: branchesData } = await supabase
+          .from("partner_branches")
+          .select("id")
+          .eq("hospital_id", form.hospital_id);
+        const branchIds = (branchesData || []).map((b) => b.id);
+        if (branchIds.length === 0) {
+          if (!cancelled) setDoctorOptions([]);
+          return;
+        }
+        const { data: doctorsData } = await supabase
+          .from("partner_doctors")
+          .select("id, name_ko, name_en, position_ko, subspecialty")
+          .eq("is_active", true)
+          .in("branch_id", branchIds)
+          .order("display_order", { ascending: true, nullsFirst: false });
+        if (!cancelled && doctorsData) setDoctorOptions(doctorsData);
+      } catch {
+        // silent
+      }
+    }
+    loadDoctors();
+    return () => {
+      cancelled = true;
+    };
+  }, [form.hospital_id]);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -836,6 +920,55 @@ function CreateConsultationModal({ onClose, onSuccess }) {
               >
                 <option value="ko">한국어</option>
                 <option value="en">영어</option>
+              </select>
+            </Field>
+          </div>
+
+          {/* 병원 / 의사 (브랜딩용) */}
+          <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 space-y-3">
+            <p className="text-xs font-semibold text-gray-700">
+              🏥 병원 / 의사 지정 (선택) — 환자 이메일 & UI 에 표시됨
+            </p>
+            <Field label="병원">
+              <select
+                value={form.hospital_id}
+                onChange={(e) =>
+                  setForm({ ...form, hospital_id: e.target.value, partner_doctor_id: "" })
+                }
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white"
+              >
+                <option value="">(선택 안함)</option>
+                {hospitalOptions.map((h) => (
+                  <option key={h.id} value={h.id}>
+                    {h.name}
+                  </option>
+                ))}
+              </select>
+            </Field>
+
+            <Field label="담당 의사" hint={form.hospital_id ? "" : "병원 먼저 선택"}>
+              <select
+                value={form.partner_doctor_id}
+                onChange={(e) =>
+                  setForm({ ...form, partner_doctor_id: e.target.value })
+                }
+                disabled={!form.hospital_id || doctorOptions.length === 0}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white disabled:bg-gray-100 disabled:text-gray-400"
+              >
+                <option value="">
+                  {!form.hospital_id
+                    ? "병원 먼저 선택"
+                    : doctorOptions.length === 0
+                    ? "등록된 의사 없음"
+                    : "(선택 안함)"}
+                </option>
+                {doctorOptions.map((d) => (
+                  <option key={d.id} value={d.id}>
+                    {d.name_ko || d.name_en}
+                    {d.position_ko ? ` · ${d.position_ko}` : ""}
+                    {d.subspecialty ? ` · ${d.subspecialty}` : ""}
+                  </option>
+                ))}
               </select>
             </Field>
           </div>

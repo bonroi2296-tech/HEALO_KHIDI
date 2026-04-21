@@ -149,9 +149,15 @@ export async function GET(request: NextRequest) {
         ended_at,
         status,
         patient_language,
+        doctor_language,
         livekit_room_name,
+        hospital_id,
+        partner_doctor_id,
         created_at,
-        cancer_patient_intakes(id, cancer_type, cancer_stage)
+        notes,
+        cancer_patient_intakes(id, cancer_type, cancer_stage),
+        hospitals(id, name, address),
+        partner_doctors(id, name_ko, name_en, subspecialty, position_ko)
       `,
         { count: "exact" }
       );

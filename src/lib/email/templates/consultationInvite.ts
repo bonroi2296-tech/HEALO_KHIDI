@@ -10,7 +10,9 @@ export interface ConsultationInviteProps {
   scheduledAt: string;           // ISO 문자열
   role?: string;                 // patient / doctor 등
   doctorName?: string;
+  doctorSpecialty?: string;      // 전공 / 직위 (예: 종양학, 교수)
   hospitalName?: string;
+  hospitalAddress?: string;
   lang?: "ko" | "en" | "ru" | "kz";
 }
 
@@ -81,14 +83,55 @@ export function renderConsultationInviteEmail(props: ConsultationInviteProps) {
     }
   );
 
-  const doctorLine = props.doctorName
-    ? `<tr><td style="padding:4px 0;color:#64748b;font-size:13px;">${lang === "ko" ? "담당 의사" : "Doctor"}:</td>
-         <td style="padding:4px 0;color:#0f172a;font-size:13px;font-weight:600;">${escape(props.doctorName)}</td></tr>`
-    : "";
-  const hospitalLine = props.hospitalName
-    ? `<tr><td style="padding:4px 0;color:#64748b;font-size:13px;">${lang === "ko" ? "병원" : "Hospital"}:</td>
-         <td style="padding:4px 0;color:#0f172a;font-size:13px;font-weight:600;">${escape(props.hospitalName)}</td></tr>`
-    : "";
+  // 병원 / 의사 카드 — 환자가 "어디 / 누구" 를 명확히 알도록 큰 카드로 표시
+  const hospitalDoctorCard =
+    props.hospitalName || props.doctorName
+      ? `
+<tr><td style="padding:16px 0 8px;">
+  <table cellpadding="0" cellspacing="0" role="presentation" style="width:100%;background:linear-gradient(180deg,#ffffff 0%,#fafafa 100%);border:1px solid #c8a96a;border-left:3px solid #c8a96a;border-radius:4px;">
+    <tr><td style="padding:18px 20px;">
+      <div style="font-family:'Helvetica Neue',Arial,sans-serif;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:#c8a96a;margin-bottom:10px;">
+        ${lang === "ko" ? "담당 기관 및 의료진" : lang === "ru" ? "Медицинское учреждение" : lang === "kz" ? "Медициналық мекеме" : "Medical provider"}
+      </div>
+      ${
+        props.hospitalName
+          ? `<div style="font-family:'Playfair Display',Georgia,serif;font-size:22px;line-height:1.3;color:#0a0a0a;margin-bottom:4px;">${escape(props.hospitalName)}</div>`
+          : ""
+      }
+      ${
+        props.hospitalAddress
+          ? `<div style="font-size:12px;color:#64748b;margin-bottom:12px;">📍 ${escape(props.hospitalAddress)}</div>`
+          : ""
+      }
+      ${
+        props.doctorName
+          ? `
+      <table cellpadding="0" cellspacing="0" style="margin-top:8px;border-top:1px dashed #e2e8f0;padding-top:12px;width:100%;">
+        <tr>
+          <td style="width:40px;vertical-align:top;padding-right:10px;">
+            <div style="width:36px;height:36px;border-radius:50%;background:#c8a96a;color:#0a0a0a;text-align:center;line-height:36px;font-weight:700;font-size:14px;font-family:Arial;">
+              ${escape((props.doctorName || "D").slice(0, 1).toUpperCase())}
+            </div>
+          </td>
+          <td style="vertical-align:middle;">
+            <div style="font-size:15px;font-weight:600;color:#0f172a;">Dr. ${escape(props.doctorName)}</div>
+            ${
+              props.doctorSpecialty
+                ? `<div style="font-size:12px;color:#64748b;margin-top:2px;">${escape(props.doctorSpecialty)}</div>`
+                : ""
+            }
+          </td>
+        </tr>
+      </table>`
+          : ""
+      }
+    </td></tr>
+  </table>
+</td></tr>`
+      : "";
+
+  const doctorLine = ""; // 위 카드로 대체
+  const hospitalLine = ""; // 위 카드로 대체
 
   const html = `
 <!DOCTYPE html>
@@ -116,12 +159,12 @@ export function renderConsultationInviteEmail(props: ConsultationInviteProps) {
           <p style="margin:0 0 16px;font-size:15px;color:#0f172a;">${escape(s.greeting(name))}</p>
           <p style="margin:0 0 24px;font-size:14px;line-height:1.7;color:#334155;">${escape(s.intro)}</p>
 
-          <table cellpadding="0" cellspacing="0" style="width:100%;margin:16px 0 24px;border-top:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0;padding:12px 0;">
+          <table cellpadding="0" cellspacing="0" style="width:100%;margin:16px 0 8px;border-top:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0;padding:12px 0;">
             <tr><td style="padding:8px 0;color:#64748b;font-size:13px;">${escape(s.timeLabel)}:</td>
                 <td style="padding:8px 0;color:#0f172a;font-size:14px;font-weight:600;">${escape(scheduledFormatted)}</td></tr>
-            ${doctorLine}
-            ${hospitalLine}
           </table>
+
+          ${hospitalDoctorCard}
 
           <div style="text-align:center;margin:32px 0;">
             <a href="${escape(props.inviteUrl)}"
@@ -155,8 +198,11 @@ export function renderConsultationInviteEmail(props: ConsultationInviteProps) {
     s.intro,
     "",
     `${s.timeLabel}: ${scheduledFormatted}`,
-    props.doctorName ? `Doctor: ${props.doctorName}` : "",
-    props.hospitalName ? `Hospital: ${props.hospitalName}` : "",
+    props.hospitalName ? `🏥 ${props.hospitalName}` : "",
+    props.hospitalAddress ? `   ${props.hospitalAddress}` : "",
+    props.doctorName
+      ? `👨‍⚕️ Dr. ${props.doctorName}${props.doctorSpecialty ? ` (${props.doctorSpecialty})` : ""}`
+      : "",
     "",
     `${s.joinBtn}: ${props.inviteUrl}`,
     "",

@@ -30,7 +30,7 @@ const COPY = {
       "HEALO coordinates every step — from first consultation to follow-up — with Korea's most experienced oncology teams. For patients from anywhere in the world.",
     ctaPrimary: "Request consultation",
     ctaSecondary: "How it works",
-    heroCaption: "Immune Hospital · Magok (HEALO direct)",
+    heroCaption: "Immune Hospital · Gangseo",
     disclaimer:
       "We are not a medical institution. All diagnosis and treatment is delivered by licensed Korean providers.",
 
@@ -169,7 +169,7 @@ const COPY = {
       "HEALO는 첫 상담부터 사후 관리까지 한국 최고 수준 종양학 팀과 함께 조용히 코디네이팅합니다. 전 세계 어디에서 오시든.",
     ctaPrimary: "상담 신청",
     ctaSecondary: "진행 방식 보기",
-    heroCaption: "면력한방병원 마곡 (HEALO 직영)",
+    heroCaption: "면력한방병원 강서",
     disclaimer:
       "HEALO는 의료기관이 아닙니다. 진단과 치료는 한국의 면허를 갖춘 의료진이 수행합니다.",
 
@@ -297,6 +297,316 @@ const COPY = {
     ctaTitle: "한 번의 문의로 모든 것이 시작됩니다.",
     ctaBody: "계정도 결제도 필요 없습니다. 아시는 만큼만 공유해 주시면 영업일 기준 하루 안에 답변드립니다.",
   },
+
+  ru: {
+    navCurrent: "home",
+    eyebrowHero: "01 — Консьерж-сопровождение, Корея",
+    heroTitleA: "Лечение рака в Корее,",
+    heroTitleB: "от начала до конца.",
+    heroLede:
+      "HEALO координирует каждый шаг — от первой консультации до постлечения — с самыми опытными онкологическими командами Кореи. Для пациентов из любой страны.",
+    ctaPrimary: "Оставить заявку",
+    ctaSecondary: "Как это работает",
+    heroCaption: "Immune Hospital · Кансо",
+    disclaimer:
+      "HEALO не является медицинским учреждением. Диагностика и лечение выполняются лицензированными корейскими специалистами.",
+
+    statsEyebrow: "02 — В цифрах",
+    stats: [
+      { num: "99.9", unit: "%", label: "Выживаемость: рак щитовидной железы, 5 лет" },
+      { num: "93.8", unit: "%", label: "Выживаемость: рак молочной железы, 5 лет" },
+      { num: "3,200", unit: "+", label: "Случаев в год" },
+      { num: "24/7", unit: "", label: "Поддержка консьержа" },
+    ],
+
+    servicesEyebrow: "03 — Что мы берём на себя",
+    servicesTitle: "Весь путь",
+    servicesTitleItalic: "под нашим контролем.",
+    services: [
+      {
+        eyebrow: "Подбор клиники",
+        title: "Подбор клиники",
+        body:
+          "Мультидисциплинарный скрининг среди ведущих онкоцентров Кореи — по диагнозу, языку, бюджету и срокам.",
+      },
+      {
+        eyebrow: "Виза и пребывание",
+        title: "Виза и прибытие",
+        body:
+          "Оформление медицинских виз C-3-3 и G-1, встреча в аэропорту, подобранное жильё рядом с клиникой.",
+      },
+      {
+        eyebrow: "Перевод",
+        title: "Медицинский перевод",
+        body:
+          "Профессиональные переводчики: корейский-русский, корейский-английский, корейский-казахский — на каждой консультации.",
+      },
+      {
+        eyebrow: "Координация",
+        title: "Сквозная координация",
+        body:
+          "Один выделенный координатор от первого обращения до постлечения, работающий в вашем часовом поясе.",
+      },
+    ],
+
+    telemedicineEyebrow: "04 — Телемедицина · Наше УТП",
+    telemedicineTitle: "Поговорите с корейским специалистом",
+    telemedicineTitleItalic: "ещё до вылета.",
+    telemedicineLede:
+      "Без визы. Без перелёта. Начните с видеоконсультации с ведущими онкологами Кореи — затем решайте, ехать ли.",
+    telemedicineFeatures: [
+      {
+        icon: "🎥",
+        title: "HD-видеоконсультация",
+        desc: "WebRTC с минимальной задержкой. Работает на ноутбуке, планшете и мобильном. Без установки приложения.",
+      },
+      {
+        icon: "🗣️",
+        title: "Перевод в реальном времени",
+        desc: "Корейский ↔ русский / казахский / английский / китайский. Медицинский ИИ + живые переводчики при необходимости.",
+      },
+      {
+        icon: "📄",
+        title: "Безопасный обзор документов",
+        desc: "Загрузите МРТ, КТ, гистологию — корейские специалисты обсуждают результаты в прямом эфире.",
+      },
+      {
+        icon: "🔒",
+        title: "Медицинский уровень безопасности",
+        desc: "Сквозное шифрование AES-256. Соответствие PIPA §28-8 / HIPAA. Ваши данные, ваше согласие.",
+      },
+    ],
+    telemedicineCtaPrimary: "Начать удалённую консультацию",
+    telemedicineCtaSecondary: "Посмотреть, как это работает",
+
+    hospitalsEyebrow: "05 — Партнёрские клиники",
+    hospitalsTitle: "Выбраны по результатам,",
+    hospitalsTitleItalic: "а не по рекламе.",
+    hospitalsLede:
+      "Каждый партнёр проверен на онкологическую специализацию, опыт работы с иностранными пациентами и языковую поддержку. Никаких спонсорских размещений.",
+    hospitals: [
+      { name: "Asan Medical Center", specialty: "Комплексная онкология", meta: "2,700 коек · Сеул", photo: PHOTOS.hospital1 },
+      { name: "Samsung Medical Center", specialty: "Прецизионная онкология", meta: "1,970 коек · Сеул", photo: PHOTOS.hospital2 },
+      { name: "Severance Hospital", specialty: "Роботизированная и малоинвазивная хирургия", meta: "2,450 коек · Сеул", photo: PHOTOS.hospital3 },
+    ],
+
+    processEyebrow: "06 — Процесс",
+    processTitle: "Четыре этапа, без спешки.",
+    process: [
+      { step: "01", title: "Заявка", body: "Поделитесь диагнозом и приоритетами. Рассмотрим в течение 24 часов." },
+      { step: "02", title: "Подбор", body: "Предложим две-три подходящие клиники с прозрачной стоимостью." },
+      { step: "03", title: "Поездка", body: "Подготовим визовые документы и организуем прибытие." },
+      { step: "04", title: "Лечение", body: "Координатор сопровождает каждый приём вплоть до выписки." },
+    ],
+
+    ctaEyebrow: "Начать",
+    ctaTitle: "Одна заявка запускает весь процесс.",
+    ctaBody: "Ни аккаунта, ни оплаты. Расскажите, что знаете — ответим в течение одного рабочего дня.",
+  },
+
+  kz: {
+    navCurrent: "home",
+    eyebrowHero: "01 — Кореядағы консьерж-қолдау",
+    heroTitleA: "Кореяда онкологиялық емдеу,",
+    heroTitleB: "басынан соңына дейін.",
+    heroLede:
+      "HEALO бірінші консультациядан кейінгі бақылауға дейін әрбір қадамды Кореяның ең тәжірибелі онкология командаларымен үнсіз үйлестіреді. Әлемнің кез келген нүктесінен.",
+    ctaPrimary: "Өтініш қалдыру",
+    ctaSecondary: "Қалай жұмыс істейді",
+    heroCaption: "Immune Hospital · Каңсо",
+    disclaimer:
+      "HEALO медициналық мекеме емес. Диагностика мен емдеуді Кореяның лицензиясы бар мамандары жүргізеді.",
+
+    statsEyebrow: "02 — Сандармен",
+    stats: [
+      { num: "99.9", unit: "%", label: "Қалқанша безі қатерлі ісігі: 5 жылдық тірі қалу" },
+      { num: "93.8", unit: "%", label: "Сүт безі қатерлі ісігі: 5 жылдық тірі қалу" },
+      { num: "3,200", unit: "+", label: "Жылдық кейстер" },
+      { num: "24/7", unit: "", label: "Консьерж қолдауы" },
+    ],
+
+    servicesEyebrow: "03 — Біз атқаратын жұмыс",
+    servicesTitle: "Бүкіл жол",
+    servicesTitleItalic: "біздің бақылауда.",
+    services: [
+      { eyebrow: "Аурухана іріктеу", title: "Аурухана іріктеу", body: "Диагноз, тіл, бюджет және мерзімге сай Кореяның үздік онкоцентрлерін мультидисциплинарлық тұрғыда іріктейміз." },
+      { eyebrow: "Виза және қалу", title: "Виза мен келу", body: "Медициналық виза (C-3-3, G-1), әуежайдан қарсы алу, емдеу орталығына жақын тұру нұсқалары." },
+      { eyebrow: "Аударма", title: "Медициналық аударма", body: "Корей-орыс, корей-ағылшын, корей-қазақ кәсіби медициналық аудармашылар әр кездесуде." },
+      { eyebrow: "Координация", title: "Толық координация", body: "Бірінші өтініштен емдеуден кейінгі бақылауға дейін — бір координатор сіздің уақыт белдеуінде." },
+    ],
+
+    telemedicineEyebrow: "04 — Телемедицина · Біздің USP",
+    telemedicineTitle: "Ұшаққа отырмас бұрын",
+    telemedicineTitleItalic: "корей маманымен сөйлесіңіз.",
+    telemedicineLede:
+      "Виза да, ұшақ та қажет емес. Тұрған жеріңізден Кореяның үздік онкологтарымен тікелей бейне-консультация — содан кейін сапар туралы шешім қабылдаңыз.",
+    telemedicineFeatures: [
+      { icon: "🎥", title: "HD бейне-консультация", desc: "Төмен кідірісті WebRTC. Ноутбук, планшет, мобильді. Қосымша орнатудың қажеті жоқ." },
+      { icon: "🗣️", title: "Нақты уақыттағы аударма", desc: "Корей ↔ орыс / қазақ / ағылшын / қытай. Медициналық AI + қажет болса — тірі аудармашы." },
+      { icon: "📄", title: "Қауіпсіз құжат көру", desc: "МРТ, КТ, гистология жүктеңіз — корей мамандары тікелей эфирде талдайды." },
+      { icon: "🔒", title: "Медициналық деңгейдегі қауіпсіздік", desc: "Толық AES-256 шифрлау. PIPA §28-8 / HIPAA сәйкестік. Сіздің деректеріңіз — сіздің келісіміңіз." },
+    ],
+    telemedicineCtaPrimary: "Қашықтан консультация бастау",
+    telemedicineCtaSecondary: "Қалай жұмыс істейтінін көру",
+
+    hospitalsEyebrow: "05 — Серіктес аурухналар",
+    hospitalsTitle: "Нәтиже үшін таңдалған,",
+    hospitalsTitleItalic: "жарнама үшін емес.",
+    hospitalsLede:
+      "Әр серіктес — онкологиялық маманданумен, шетелдік пациенттермен жұмыс тәжірибесімен және тілдік қолдаумен таңдалды. Демеуші орындар жоқ.",
+    hospitals: [
+      { name: "Asan Medical Center", specialty: "Кешенді онкология", meta: "2,700 төсек · Сеул", photo: PHOTOS.hospital1 },
+      { name: "Samsung Medical Center", specialty: "Дәл онкология", meta: "1,970 төсек · Сеул", photo: PHOTOS.hospital2 },
+      { name: "Severance Hospital", specialty: "Роботты және минималды инвазивті хирургия", meta: "2,450 төсек · Сеул", photo: PHOTOS.hospital3 },
+    ],
+
+    processEyebrow: "06 — Процесс",
+    processTitle: "Төрт қадам, асықпай.",
+    process: [
+      { step: "01", title: "Өтініш", body: "Диагноз бен приоритеттерді бөлісіңіз. 24 сағат ішінде қараймыз." },
+      { step: "02", title: "Іріктеу", body: "Ашық бағамен екі-үш лайықты ауруханы ұсынамыз." },
+      { step: "03", title: "Сапар", body: "Виза құжаттарын дайындап, келуді ұйымдастырамыз." },
+      { step: "04", title: "Емдеу", body: "Координатор әр қабылдауға еріп, шығаруға дейін бірге болады." },
+    ],
+
+    ctaEyebrow: "Бастау",
+    ctaTitle: "Бір өтініш — барлығының басы.",
+    ctaBody: "Аккаунт та, төлем де қажет емес. Білгеніңізді жіберіңіз — бір жұмыс күні ішінде жауап береміз.",
+  },
+
+  zh: {
+    navCurrent: "home",
+    eyebrowHero: "01 — 韩国癌症治疗礼宾服务",
+    heroTitleA: "韩国癌症治疗,",
+    heroTitleB: "全程陪伴。",
+    heroLede:
+      "HEALO 与韩国最有经验的肿瘤团队一起,从首次咨询到后续随访,全程安静地为您协调每一步。欢迎来自世界各地的患者。",
+    ctaPrimary: "申请咨询",
+    ctaSecondary: "了解流程",
+    heroCaption: "Immune Hospital · 江西",
+    disclaimer: "HEALO 不是医疗机构。诊断与治疗由韩国持证医疗人员执行。",
+
+    statsEyebrow: "02 — 数据实绩",
+    stats: [
+      { num: "99.9", unit: "%", label: "甲状腺癌 5 年生存率" },
+      { num: "93.8", unit: "%", label: "乳腺癌 5 年生存率" },
+      { num: "3,200", unit: "+", label: "年接诊病例" },
+      { num: "24/7", unit: "", label: "礼宾支持" },
+    ],
+
+    servicesEyebrow: "03 — 我们负责的部分",
+    servicesTitle: "整个就医旅程,",
+    servicesTitleItalic: "由我们安静承担。",
+    services: [
+      { eyebrow: "医院匹配", title: "医院匹配", body: "根据诊断、语言、预算和时间安排,从韩国顶尖癌症中心中进行多学科筛选。" },
+      { eyebrow: "签证与住宿", title: "签证与接机", body: "C-3-3 与 G-1 医疗签证办理、机场接送、就诊医院附近的精选住宿。" },
+      { eyebrow: "翻译", title: "医疗翻译", body: "韩-俄、韩-英、韩-哈萨克专业医疗翻译全程陪同每次就诊。" },
+      { eyebrow: "协调", title: "全程协调", body: "从首次咨询到治疗后随访,专属协调员按您的时区陪伴。" },
+    ],
+
+    telemedicineEyebrow: "04 — 远程医疗 · 我们的核心优势",
+    telemedicineTitle: "在登机前",
+    telemedicineTitleItalic: "先与韩国专家通话。",
+    telemedicineLede: "无需签证、无需机票。在您所在的地方,通过实时视频与韩国顶尖肿瘤专家会诊,再决定是否赴韩。",
+    telemedicineFeatures: [
+      { icon: "🎥", title: "HD 视频咨询", desc: "超低延迟 WebRTC。笔记本、平板、手机均可,无需安装应用。" },
+      { icon: "🗣️", title: "实时翻译", desc: "韩 ↔ 俄 / 哈萨克 / 英 / 中。医疗级 AI + 必要时人工翻译。" },
+      { icon: "📄", title: "安全文档审阅", desc: "上传 MRI、CT、病理 — 韩国专家在通话中实时审阅并讨论。" },
+      { icon: "🔒", title: "医疗级安全", desc: "端到端 AES-256 加密。符合 PIPA §28-8 / HIPAA。您的记录,您同意。" },
+    ],
+    telemedicineCtaPrimary: "开始远程咨询",
+    telemedicineCtaSecondary: "了解流程",
+
+    hospitalsEyebrow: "05 — 合作医院",
+    hospitalsTitle: "以疗效入选,",
+    hospitalsTitleItalic: "不以门面取人。",
+    hospitalsLede: "每家合作医院均基于肿瘤专科能力、国际患者经验和语言支持进行筛选。没有赞助位。",
+    hospitals: [
+      { name: "Asan Medical Center", specialty: "综合癌症中心", meta: "2,700 床 · 首尔", photo: PHOTOS.hospital1 },
+      { name: "Samsung Medical Center", specialty: "精准肿瘤学", meta: "1,970 床 · 首尔", photo: PHOTOS.hospital2 },
+      { name: "Severance Hospital", specialty: "机器人与微创手术", meta: "2,450 床 · 首尔", photo: PHOTOS.hospital3 },
+    ],
+
+    processEyebrow: "06 — 流程",
+    processTitle: "四个步骤,节奏从容。",
+    process: [
+      { step: "01", title: "咨询", body: "分享您的诊断与优先事项,我们在 24 小时内审阅。" },
+      { step: "02", title: "匹配", body: "提供两到三家合适的医院与透明报价。" },
+      { step: "03", title: "赴韩", body: "为您准备签证文件并安排入境接待。" },
+      { step: "04", title: "治疗", body: "专属协调员陪同每次就诊直至出院。" },
+    ],
+
+    ctaEyebrow: "开始",
+    ctaTitle: "一次咨询,启动全部流程。",
+    ctaBody: "无需账户、无需付款。告诉我们您所知道的,我们会在一个工作日内回复。",
+  },
+
+  ja: {
+    navCurrent: "home",
+    eyebrowHero: "01 — 韓国がん治療コンシェルジュ",
+    heroTitleA: "韓国でのがん治療を、",
+    heroTitleB: "最初から最後まで。",
+    heroLede:
+      "HEALO は初回相談からアフターケアまで、韓国屈指の腫瘍チームとともに静かにコーディネートします。世界のどこからでも。",
+    ctaPrimary: "相談を申し込む",
+    ctaSecondary: "進め方を見る",
+    heroCaption: "Immune Hospital · 江西",
+    disclaimer: "HEALO は医療機関ではありません。診断と治療は韓国の免許を持つ医療従事者が行います。",
+
+    statsEyebrow: "02 — 数字で見る",
+    stats: [
+      { num: "99.9", unit: "%", label: "甲状腺がん 5 年生存率" },
+      { num: "93.8", unit: "%", label: "乳がん 5 年生存率" },
+      { num: "3,200", unit: "+", label: "年間症例数" },
+      { num: "24/7", unit: "", label: "コンシェルジュ対応" },
+    ],
+
+    servicesEyebrow: "03 — 私たちが担うこと",
+    servicesTitle: "旅程のすべてを、",
+    servicesTitleItalic: "静かに担います。",
+    services: [
+      { eyebrow: "病院マッチング", title: "病院マッチング", body: "診断・言語・予算・日程に合わせ、韓国トップのがんセンターの中から多職種審査を経て提案します。" },
+      { eyebrow: "ビザ・滞在", title: "ビザと到着", body: "医療ビザ(C-3-3、G-1)手配、空港送迎、治療病院近くの滞在先を事前に整えます。" },
+      { eyebrow: "通訳", title: "医療通訳", body: "韓-露、韓-英、韓-カザフの医療専門通訳がすべての診療に同行します。" },
+      { eyebrow: "コーディネート", title: "一貫コーディネート", body: "最初のお問い合わせから治療後のフォローまで、専任コーディネーター一人がご利用者の時差に合わせて対応します。" },
+    ],
+
+    telemedicineEyebrow: "04 — 遠隔診療 · 当社のUSP",
+    telemedicineTitle: "飛行機に乗る前に、",
+    telemedicineTitleItalic: "韓国の専門医とお話しください。",
+    telemedicineLede: "ビザも航空券も不要。今いる場所から韓国トップの腫瘍医とリアルタイムビデオ相談 — その上で訪韓を判断してください。",
+    telemedicineFeatures: [
+      { icon: "🎥", title: "HD ビデオ相談", desc: "超低遅延 WebRTC。ノート PC・タブレット・スマホ対応。アプリ不要。" },
+      { icon: "🗣️", title: "リアルタイム通訳", desc: "韓 ↔ 露 / カザフ / 英 / 中。医療グレード AI と必要に応じて人間通訳。" },
+      { icon: "📄", title: "安全な書類共有", desc: "MRI・CT・病理をアップロード — 韓国専門医が相談中にリアルタイムで判読。" },
+      { icon: "🔒", title: "医療グレードのセキュリティ", desc: "エンドツーエンド AES-256 暗号化。PIPA §28-8 / HIPAA 準拠。あなたの記録、あなたの同意で。" },
+    ],
+    telemedicineCtaPrimary: "遠隔相談を始める",
+    telemedicineCtaSecondary: "進め方を見る",
+
+    hospitalsEyebrow: "05 — 提携病院",
+    hospitalsTitle: "派手さではなく、",
+    hospitalsTitleItalic: "実績で選びました。",
+    hospitalsLede: "すべての提携病院は腫瘍専門性、外国人患者対応経験、言語サポートを基準に選定されています。スポンサー掲載はありません。",
+    hospitals: [
+      { name: "Asan Medical Center", specialty: "総合がんセンター", meta: "2,700 床 · ソウル", photo: PHOTOS.hospital1 },
+      { name: "Samsung Medical Center", specialty: "精密腫瘍学", meta: "1,970 床 · ソウル", photo: PHOTOS.hospital2 },
+      { name: "Severance Hospital", specialty: "ロボット・低侵襲手術", meta: "2,450 床 · ソウル", photo: PHOTOS.hospital3 },
+    ],
+
+    processEyebrow: "06 — 進め方",
+    processTitle: "4ステップ、慎重なペースで。",
+    process: [
+      { step: "01", title: "お問い合わせ", body: "診断と優先事項を共有してください。24 時間以内に確認します。" },
+      { step: "02", title: "マッチング", body: "透明な見積とともに適した病院 2〜3 カ所を提案します。" },
+      { step: "03", title: "渡航", body: "ビザ書類と入国ロジスティクスを代行します。" },
+      { step: "04", title: "治療", body: "専任コーディネーターがすべての診療に同行し、退院まで伴走します。" },
+    ],
+
+    ctaEyebrow: "はじめる",
+    ctaTitle: "一度のお問い合わせで、すべてが始まります。",
+    ctaBody: "アカウントも決済も不要。知っている範囲でお知らせいただければ、営業日 1 日以内にお返事します。",
+  },
 };
 
 export default function HomeClientPremium() {
@@ -345,34 +655,35 @@ export default function HomeClientPremium() {
 
       {/* ==================== HERO ==================== */}
       <section
+        className="healo-hero-section"
         style={{
           position: "relative",
           background: "var(--ink-0)",
           color: "var(--fg-on-dark-1)",
-          padding: "64px 0 0",
           overflow: "hidden",
         }}
       >
         <FilmGrain />
         <div
+          className="healo-hero-inner"
           style={{
             maxWidth: 1240,
             margin: "0 auto",
-            padding: "0 24px",
             position: "relative",
           }}
         >
-          <div style={{ borderTop: "1px solid var(--gold-tint)", paddingTop: 64 }}>
+          <div className="healo-hero-top" style={{ borderTop: "1px solid var(--gold-tint)" }}>
             <Eyebrow>{copy.eyebrowHero}</Eyebrow>
             <h1
               style={{
                 fontFamily: "var(--font-serif)",
                 fontWeight: 400,
-                fontSize: "clamp(48px, 9vw, 132px)",
-                lineHeight: 1.02,
-                letterSpacing: "-0.02em",
-                margin: "32px 0 40px",
+                fontSize: "clamp(30px, 5.2vw, 72px)",
+                lineHeight: 1.08,
+                letterSpacing: "-0.015em",
+                margin: "20px 0 28px",
                 maxWidth: 1100,
+                wordBreak: "keep-all",
               }}
             >
               {copy.heroTitleA}
@@ -386,10 +697,9 @@ export default function HomeClientPremium() {
               className="healo-hero-grid"
               style={{
                 display: "grid",
-                gridTemplateColumns: "5fr 7fr",
-                gap: 48,
+                gap: 32,
                 alignItems: "end",
-                marginBottom: 48,
+                marginBottom: 40,
               }}
             >
               <div>
@@ -423,7 +733,7 @@ export default function HomeClientPremium() {
                   </LinkArrow>
                 </div>
               </div>
-              <div style={{ textAlign: "right" }}>
+              <div className="healo-hero-disclaimer">
                 <p
                   style={{
                     fontFamily: "var(--font-serif)",
@@ -433,7 +743,6 @@ export default function HomeClientPremium() {
                     color: "var(--fg-on-dark-4)",
                     margin: 0,
                     maxWidth: 340,
-                    marginLeft: "auto",
                     lineHeight: 1.7,
                   }}
                 >
@@ -445,10 +754,10 @@ export default function HomeClientPremium() {
 
           {/* Hero photo */}
           <div
+            className="healo-hero-photo"
             style={{
               position: "relative",
               width: "100%",
-              aspectRatio: "21 / 9",
               overflow: "hidden",
               marginTop: 8,
             }}
@@ -460,6 +769,7 @@ export default function HomeClientPremium() {
                 width: "100%",
                 height: "100%",
                 objectFit: "cover",
+                objectPosition: "center 35%",
                 display: "block",
                 filter: IMMUNE_PHOTO_FILTER,
               }}

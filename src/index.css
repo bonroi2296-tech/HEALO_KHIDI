@@ -56,3 +56,70 @@ font, * {
 .portal-main-offset {
   padding-top: env(safe-area-inset-top, 0);
 }
+
+/* ===== 홈 히어로 레이아웃 ===== */
+.healo-hero-section {
+  padding: 48px 0 0;
+}
+.healo-hero-inner {
+  padding: 0 24px;
+}
+.healo-hero-top {
+  padding-top: 48px;
+}
+.healo-hero-grid {
+  grid-template-columns: 5fr 7fr;
+}
+.healo-hero-disclaimer {
+  text-align: right;
+}
+.healo-hero-disclaimer p {
+  margin-left: auto !important;
+}
+
+/* 홈 히어로 사진: 데스크톱은 와이드, 모바일은 세로 여유 */
+.healo-hero-photo {
+  aspect-ratio: 16 / 9;
+}
+
+/* 태블릿/작은 데스크톱 */
+@media (max-width: 1024px) {
+  .healo-hero-top {
+    padding-top: 32px;
+  }
+}
+
+/* 모바일 */
+@media (max-width: 768px) {
+  .healo-hero-section {
+    padding: 24px 0 0;
+  }
+  .healo-hero-inner {
+    padding: 0 20px;
+  }
+  .healo-hero-top {
+    padding-top: 20px;
+  }
+  .healo-hero-grid {
+    grid-template-columns: 1fr !important;
+    gap: 20px !important;
+    margin-bottom: 24px !important;
+  }
+  .healo-hero-disclaimer {
+    text-align: left;
+  }
+  .healo-hero-disclaimer p {
+    margin-left: 0 !important;
+    font-size: 12px !important;
+  }
+  .healo-hero-photo {
+    aspect-ratio: 4 / 5;
+  }
+}
+
+/* 초소형 (≤ 380px, iPhone SE 등) */
+@media (max-width: 380px) {
+  .healo-hero-inner {
+    padding: 0 16px;
+  }
+}

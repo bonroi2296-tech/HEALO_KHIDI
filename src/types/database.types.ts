@@ -684,6 +684,7 @@ export type Database = {
           doctor_user_id: string | null
           duration_seconds: number | null
           ended_at: string | null
+          hospital_id: string | null
           id: string
           inquiry_id: number | null
           intake_id: string | null
@@ -692,6 +693,7 @@ export type Database = {
           livekit_token_patient: string | null
           notes: string | null
           notes_encrypted: string | null
+          partner_doctor_id: string | null
           patient_id: string | null
           patient_language: string | null
           patient_user_id: string | null
@@ -717,6 +719,7 @@ export type Database = {
           doctor_user_id?: string | null
           duration_seconds?: number | null
           ended_at?: string | null
+          hospital_id?: string | null
           id?: string
           inquiry_id?: number | null
           intake_id?: string | null
@@ -725,6 +728,7 @@ export type Database = {
           livekit_token_patient?: string | null
           notes?: string | null
           notes_encrypted?: string | null
+          partner_doctor_id?: string | null
           patient_id?: string | null
           patient_language?: string | null
           patient_user_id?: string | null
@@ -750,6 +754,7 @@ export type Database = {
           doctor_user_id?: string | null
           duration_seconds?: number | null
           ended_at?: string | null
+          hospital_id?: string | null
           id?: string
           inquiry_id?: number | null
           intake_id?: string | null
@@ -758,6 +763,7 @@ export type Database = {
           livekit_token_patient?: string | null
           notes?: string | null
           notes_encrypted?: string | null
+          partner_doctor_id?: string | null
           patient_id?: string | null
           patient_language?: string | null
           patient_user_id?: string | null
@@ -773,6 +779,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "consultation_sessions_hospital_id_fkey"
+            columns: ["hospital_id"]
+            isOneToOne: false
+            referencedRelation: "hospitals"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "consultation_sessions_inquiry_id_fkey"
             columns: ["inquiry_id"]
             isOneToOne: false
@@ -784,6 +797,13 @@ export type Database = {
             columns: ["intake_id"]
             isOneToOne: false
             referencedRelation: "cancer_patient_intakes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "consultation_sessions_partner_doctor_id_fkey"
+            columns: ["partner_doctor_id"]
+            isOneToOne: false
+            referencedRelation: "partner_doctors"
             referencedColumns: ["id"]
           },
         ]
@@ -2999,6 +3019,203 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      visa_applications: {
+        Row: {
+          consultation_id: string | null
+          coordinator_notes_encrypted: string | null
+          coordinator_user_id: string | null
+          created_at: string | null
+          duration_days: number | null
+          embassy_decision_date: string | null
+          embassy_submission_date: string | null
+          hospital_id: string | null
+          id: string
+          intake_id: string | null
+          invitation_issued_at: string | null
+          invitation_issued_by: string | null
+          invitation_letter_url: string | null
+          nationality: string
+          patient_user_id: string
+          planned_arrival_date: string | null
+          planned_departure_date: string | null
+          purpose: string | null
+          status: string
+          updated_at: string | null
+          visa_number: string | null
+          visa_type: string
+        }
+        Insert: {
+          consultation_id?: string | null
+          coordinator_notes_encrypted?: string | null
+          coordinator_user_id?: string | null
+          created_at?: string | null
+          duration_days?: number | null
+          embassy_decision_date?: string | null
+          embassy_submission_date?: string | null
+          hospital_id?: string | null
+          id?: string
+          intake_id?: string | null
+          invitation_issued_at?: string | null
+          invitation_issued_by?: string | null
+          invitation_letter_url?: string | null
+          nationality: string
+          patient_user_id: string
+          planned_arrival_date?: string | null
+          planned_departure_date?: string | null
+          purpose?: string | null
+          status?: string
+          updated_at?: string | null
+          visa_number?: string | null
+          visa_type: string
+        }
+        Update: {
+          consultation_id?: string | null
+          coordinator_notes_encrypted?: string | null
+          coordinator_user_id?: string | null
+          created_at?: string | null
+          duration_days?: number | null
+          embassy_decision_date?: string | null
+          embassy_submission_date?: string | null
+          hospital_id?: string | null
+          id?: string
+          intake_id?: string | null
+          invitation_issued_at?: string | null
+          invitation_issued_by?: string | null
+          invitation_letter_url?: string | null
+          nationality?: string
+          patient_user_id?: string
+          planned_arrival_date?: string | null
+          planned_departure_date?: string | null
+          purpose?: string | null
+          status?: string
+          updated_at?: string | null
+          visa_number?: string | null
+          visa_type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "visa_applications_consultation_id_fkey"
+            columns: ["consultation_id"]
+            isOneToOne: false
+            referencedRelation: "consultation_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "visa_applications_hospital_id_fkey"
+            columns: ["hospital_id"]
+            isOneToOne: false
+            referencedRelation: "hospitals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "visa_applications_intake_id_fkey"
+            columns: ["intake_id"]
+            isOneToOne: false
+            referencedRelation: "cancer_patient_intakes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      visa_documents: {
+        Row: {
+          application_id: string
+          created_at: string | null
+          document_label: string | null
+          document_type: string
+          file_name: string
+          file_size: number
+          file_type: string
+          id: string
+          review_note: string | null
+          review_status: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          storage_path: string
+          updated_at: string | null
+          uploaded_by: string
+        }
+        Insert: {
+          application_id: string
+          created_at?: string | null
+          document_label?: string | null
+          document_type: string
+          file_name: string
+          file_size: number
+          file_type: string
+          id?: string
+          review_note?: string | null
+          review_status?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          storage_path: string
+          updated_at?: string | null
+          uploaded_by: string
+        }
+        Update: {
+          application_id?: string
+          created_at?: string | null
+          document_label?: string | null
+          document_type?: string
+          file_name?: string
+          file_size?: number
+          file_type?: string
+          id?: string
+          review_note?: string | null
+          review_status?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          storage_path?: string
+          updated_at?: string | null
+          uploaded_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "visa_documents_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "visa_applications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      visa_status_history: {
+        Row: {
+          application_id: string
+          changed_by: string | null
+          created_at: string | null
+          from_status: string | null
+          id: string
+          note: string | null
+          to_status: string
+        }
+        Insert: {
+          application_id: string
+          changed_by?: string | null
+          created_at?: string | null
+          from_status?: string | null
+          id?: string
+          note?: string | null
+          to_status: string
+        }
+        Update: {
+          application_id?: string
+          changed_by?: string | null
+          created_at?: string | null
+          from_status?: string | null
+          id?: string
+          note?: string | null
+          to_status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "visa_status_history_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "visa_applications"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

@@ -79,26 +79,64 @@ export async function POST(
     let emailError: string | undefined;
     if (body.inviteeEmail && typeof body.inviteeEmail === "string") {
       try {
-        // 세션 정보 조회 (예정 시각, doctor/hospital 이름)
+        // 세션 + 병원 + 의사 정보 조회 (이메일 본문에 표시)
         const { data: session } = await supabaseAdmin
           .from("consultation_sessions")
-          .select("scheduled_at")
+          .select(
+            "scheduled_at, hospital_id, partner_doctor_id, patient_language"
+          )
           .eq("id", consultationId)
           .maybeSingle();
+
+        let hospitalName: string | undefined;
+        let hospitalAddress: string | undefined;
+        let doctorName: string | undefined;
+        let doctorSpecialty: string | undefined;
+
+        const sessionAny = session as any;
+        if (sessionAny?.hospital_id) {
+          const { data: hospital } = await supabaseAdmin
+            .from("hospitals")
+            .select("name, address")
+            .eq("id", sessionAny.hospital_id)
+            .maybeSingle();
+          if (hospital) {
+            hospitalName = (hospital as any).name || undefined;
+            hospitalAddress = (hospital as any).address || undefined;
+          }
+        }
+        if (sessionAny?.partner_doctor_id) {
+          const { data: doctor } = await supabaseAdmin
+            .from("partner_doctors")
+            .select("name_ko, name_en, position_ko, subspecialty")
+            .eq("id", sessionAny.partner_doctor_id)
+            .maybeSingle();
+          if (doctor) {
+            const d = doctor as any;
+            doctorName = d.name_ko || d.name_en || undefined;
+            doctorSpecialty = d.subspecialty || d.position_ko || undefined;
+          }
+        }
 
         const preferredLang =
           typeof body.lang === "string" && ["ko", "en", "ru", "kz"].includes(body.lang)
             ? body.lang
             : role === "patient"
-            ? "ru"
+            ? sessionAny?.patient_language || "ru"
             : "ko";
 
         const { subject, html, text } = renderConsultationInviteEmail({
           recipientName: body.inviteeName,
           inviteUrl,
-          scheduledAt: session?.scheduled_at || new Date().toISOString(),
+          scheduledAt: sessionAny?.scheduled_at || new Date().toISOString(),
           role,
-          lang: preferredLang as any,
+          hospitalName,
+          hospitalAddress,
+          doctorName,
+          doctorSpecialty,
+          lang: ["ko", "en", "ru", "kz"].includes(preferredLang)
+            ? (preferredLang as any)
+            : "ko",
         });
 
         const sendResult = await sendEmail({

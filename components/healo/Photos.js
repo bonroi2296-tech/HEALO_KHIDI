@@ -24,8 +24,8 @@ export const PHOTOS = {
  * 출처: immunehospital.com — 직영 파트너로 사용 권한 있음
  */
 export const IMMUNE_PHOTOS = {
-  // 팀 단체 사진 (녹색 배경, 의료진+환자+셰프)
-  team: "https://immunehospital.com/uploads/banners/68958290074023.47202131.jpg",
+  // 팀 단체 사진 (면력한방병원 강서 — 원본 고해상도)
+  team: "/images/immune-gangseo-team.jpg",
 
   // 시설
   facilityRoom: "https://immunehospital.com/resource/images/new-facility1.jpg",      // 프리미엄 입원실
