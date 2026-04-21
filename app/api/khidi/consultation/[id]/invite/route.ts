@@ -12,6 +12,9 @@ export const runtime = "nodejs";
 import { NextRequest } from "next/server";
 import { requireConsultationAccess } from "../../../../../../src/lib/auth/requireConsultationAccess";
 import { generateGuestToken, type GuestRole } from "../../../../../../src/lib/auth/guestToken";
+import { sendEmail } from "../../../../../../src/lib/email/sendEmail";
+import { renderConsultationInviteEmail } from "../../../../../../src/lib/email/templates/consultationInvite";
+import { supabaseAdmin } from "../../../../../../src/lib/rag/supabaseAdmin";
 
 const VALID_ROLES: GuestRole[] = ["patient", "doctor", "translator", "coordinator", "observer"];
 
@@ -69,15 +72,60 @@ export async function POST(
     });
 
     const origin = request.nextUrl.origin;
+    const inviteUrl = result.inviteUrl(origin);
+
+    // 이메일 자동 발송 (inviteeEmail 있을 때만)
+    let emailSent = false;
+    let emailError: string | undefined;
+    if (body.inviteeEmail && typeof body.inviteeEmail === "string") {
+      try {
+        // 세션 정보 조회 (예정 시각, doctor/hospital 이름)
+        const { data: session } = await supabaseAdmin
+          .from("consultation_sessions")
+          .select("scheduled_at")
+          .eq("id", consultationId)
+          .maybeSingle();
+
+        const preferredLang =
+          typeof body.lang === "string" && ["ko", "en", "ru", "kz"].includes(body.lang)
+            ? body.lang
+            : role === "patient"
+            ? "ru"
+            : "ko";
+
+        const { subject, html, text } = renderConsultationInviteEmail({
+          recipientName: body.inviteeName,
+          inviteUrl,
+          scheduledAt: session?.scheduled_at || new Date().toISOString(),
+          role,
+          lang: preferredLang as any,
+        });
+
+        const sendResult = await sendEmail({
+          to: body.inviteeEmail,
+          subject,
+          html,
+          text,
+          tags: { type: "consultation_invite", consultation_id: consultationId, role },
+        });
+        emailSent = sendResult.ok;
+        if (!sendResult.ok) emailError = sendResult.error;
+      } catch (mailErr: any) {
+        console.warn("[invite] email send failed:", mailErr.message);
+        emailError = mailErr.message;
+      }
+    }
 
     return Response.json({
       ok: true,
       tokenPlain: result.tokenPlain,
       tokenId: result.tokenId,
-      inviteUrl: result.inviteUrl(origin),
+      inviteUrl,
       expiresAt: result.expiresAt.toISOString(),
       role,
       maxUses,
+      emailSent,
+      emailError,
     });
   } catch (err: any) {
     console.error("[invite] error:", err.message);

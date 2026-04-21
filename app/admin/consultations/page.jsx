@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { createSupabaseBrowserClient } from "../../../src/lib/supabase/browser";
 import { useToast } from "../../../src/components/Toast";
+import QRCode from "qrcode";
 
 const supabase = createSupabaseBrowserClient();
 
@@ -479,13 +480,20 @@ function CreateConsultationModal({ onClose, onSuccess }) {
       doctor_user_id: "",
       coordinator_user_id: "",
       session_type: "pre_consultation",
-      scheduled_at: d.toISOString().slice(0, 16), // datetime-local 포맷
+      scheduled_at: d.toISOString().slice(0, 16),
       patient_language: "ru",
       doctor_language: "ko",
       notes: "",
-      // 게스트 초대 옵션 (환자가 계정 없으면 링크로 입장)
-      generateGuestInvite: true,
+      // 역할별 초대 링크 생성 여부 (multi-party 지원)
+      inviteRoles: {
+        patient: true,
+        doctor: false,
+        translator: false,
+        coordinator: false,
+        observer: false,
+      },
       inviteeName: "",
+      inviteeEmail: "",
     };
   });
   const [submitting, setSubmitting] = useState(false);
@@ -494,9 +502,10 @@ function CreateConsultationModal({ onClose, onSuccess }) {
   async function handleSubmit(e) {
     e.preventDefault();
 
-    // 환자 user_id 또는 guest invite 중 하나는 있어야 함
-    if (!form.patient_user_id && !form.generateGuestInvite) {
-      toast.error("환자 계정 ID 또는 게스트 초대 링크 중 하나는 필요합니다");
+    // 환자 계정 or 최소 1개 역할 초대 필수
+    const hasAnyInvite = Object.values(form.inviteRoles).some((v) => v);
+    if (!form.patient_user_id && !hasAnyInvite) {
+      toast.error("환자 계정 ID 또는 초대 링크 역할 중 하나는 필요합니다");
       return;
     }
 
@@ -518,8 +527,9 @@ function CreateConsultationModal({ onClose, onSuccess }) {
         scheduled_at: new Date(form.scheduled_at).toISOString(),
       };
       // 게스트 관련 필드 / UI 플래그 제거
-      delete payload.generateGuestInvite;
+      delete payload.inviteRoles;
       delete payload.inviteeName;
+      delete payload.inviteeEmail;
       Object.keys(payload).forEach((k) => {
         if (payload[k] === "" || payload[k] == null) delete payload[k];
       });
@@ -540,43 +550,51 @@ function CreateConsultationModal({ onClose, onSuccess }) {
 
       const sessionId = result.data?.id;
 
-      // 2. (옵션) 환자용 게스트 초대 링크 발급
-      let inviteUrl = null;
-      let expiresAt = null;
-      if (form.generateGuestInvite && sessionId) {
-        try {
-          const inviteRes = await fetch(
-            `/api/khidi/consultation/${sessionId}/invite`,
-            {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${token}`,
-              },
-              body: JSON.stringify({
-                role: "patient",
-                inviteeName: form.inviteeName || undefined,
-                expiresInHours: 72, // 3일
-                maxUses: 3, // 환자 재접속 고려
-              }),
+      // 2. (옵션) 선택된 역할별로 게스트 초대 링크 일괄 발급
+      const invites = [];
+      if (sessionId) {
+        const rolesToInvite = Object.entries(form.inviteRoles)
+          .filter(([, enabled]) => enabled)
+          .map(([role]) => role);
+
+        for (const role of rolesToInvite) {
+          try {
+            const inviteRes = await fetch(
+              `/api/khidi/consultation/${sessionId}/invite`,
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({
+                  role,
+                  inviteeName: role === "patient" ? form.inviteeName || undefined : undefined,
+                  inviteeEmail: role === "patient" ? form.inviteeEmail || undefined : undefined,
+                  expiresInHours: 72,
+                  maxUses: role === "patient" ? 3 : 5, // 의사/통역사는 더 여유
+                }),
+              }
+            );
+            const inviteResult = await inviteRes.json();
+            if (inviteRes.ok && inviteResult.ok) {
+              invites.push({
+                role,
+                url: inviteResult.inviteUrl,
+                expiresAt: inviteResult.expiresAt,
+              });
+            } else {
+              console.warn(`[invite:${role}] 실패:`, inviteResult.error);
             }
-          );
-          const inviteResult = await inviteRes.json();
-          if (inviteRes.ok && inviteResult.ok) {
-            inviteUrl = inviteResult.inviteUrl;
-            expiresAt = inviteResult.expiresAt;
-          } else {
-            console.warn("[invite] 생성 실패:", inviteResult.error);
+          } catch (inviteErr) {
+            console.error(`[invite:${role}] 예외:`, inviteErr);
           }
-        } catch (inviteErr) {
-          console.error("[invite] 예외:", inviteErr);
         }
       }
 
       setCreated({
         sessionId,
-        inviteUrl,
-        expiresAt,
+        invites,
       });
     } catch (err) {
       console.error("[CreateConsultationModal] error:", err);
@@ -611,50 +629,32 @@ function CreateConsultationModal({ onClose, onSuccess }) {
             </div>
           </div>
 
-          {created.inviteUrl ? (
+          {created.invites && created.invites.length > 0 ? (
             <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-semibold text-gray-800 mb-2">
-                  환자 초대 링크 (계정 불필요)
-                </label>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    readOnly
-                    value={created.inviteUrl}
-                    className="flex-1 px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-sm font-mono text-gray-800"
-                    onFocus={(e) => e.target.select()}
+              {created.invites.map((inv) => (
+                <div key={inv.role} className="pb-4 border-b border-gray-200 last:border-0 last:pb-0">
+                  <InviteLinkBlock
+                    url={inv.url}
+                    expiresAt={inv.expiresAt}
+                    toast={toast}
+                    label={`${roleLabelKo(inv.role)} 초대 링크`}
                   />
-                  <button
-                    onClick={() => {
-                      navigator.clipboard.writeText(created.inviteUrl).then(
-                        () => toast.success("링크 복사 완료"),
-                        () => toast.error("복사 실패")
-                      );
-                    }}
-                    className="px-4 py-2 bg-teal-600 text-white rounded-lg text-sm font-semibold hover:bg-teal-700"
-                  >
-                    복사
-                  </button>
                 </div>
-                <p className="text-xs text-gray-500 mt-2">
-                  만료: {new Date(created.expiresAt).toLocaleString("ko-KR")}
-                  {" · "}최대 3회 접속 가능
-                </p>
-              </div>
+              ))}
 
               <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-sm text-amber-800">
                 <p className="font-semibold mb-1">📋 전달 시 참고사항</p>
                 <ul className="text-xs space-y-1 list-disc list-inside">
-                  <li>이메일 / 카카오톡 / SMS 로 링크 공유</li>
-                  <li>환자는 이 링크를 클릭하고 본인 이름만 입력하면 입장 가능</li>
-                  <li>상담 30분 전 예약 알림 함께 발송 권장</li>
+                  <li>각 참여자에게 역할별 링크를 분리해 공유 (링크가 역할을 고정함)</li>
+                  <li>환자는 이메일/카카오톡/SMS, 의료진은 내부 메신저 권장</li>
+                  <li>링크 유출 방지 — 공용 채팅방에 올리지 않기</li>
+                  <li>예정 30분 전 자동 리마인더 발송됨 (환자 이메일 입력 시)</li>
                 </ul>
               </div>
             </div>
           ) : (
             <p className="text-sm text-gray-600">
-              초대 링크 발급은 실패했지만 세션은 생성되었습니다. 필요 시 세션 상세에서 수동 발급하세요.
+              초대 링크 생성 대상이 없거나 모두 실패했습니다. 세션은 생성되었으니 목록에서 개별 발급하세요.
             </p>
           )}
 
@@ -694,34 +694,63 @@ function CreateConsultationModal({ onClose, onSuccess }) {
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          {/* 게스트 초대 링크 (Zoom 스타일) */}
+          {/* 게스트 초대 링크 — 역할별 다중 선택 (Multi-party) */}
           <div className="bg-teal-50 border border-teal-200 rounded-xl p-4">
-            <label className="flex items-start gap-3 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={form.generateGuestInvite}
-                onChange={(e) =>
-                  setForm({ ...form, generateGuestInvite: e.target.checked })
-                }
-                className="mt-1 accent-teal-600"
-              />
-              <div className="flex-1">
-                <p className="font-semibold text-sm text-gray-900">
-                  🔗 환자 초대 링크 생성 (계정 불필요)
-                </p>
-                <p className="text-xs text-gray-600 mt-1 leading-relaxed">
-                  Zoom 처럼 링크만 주면 환자가 계정 없이 입장 가능. 카자흐 / 러시아
-                  환자 편의 UP. 만료 72시간, 최대 3회 접속.
-                </p>
-              </div>
-            </label>
-            {form.generateGuestInvite && (
-              <div className="mt-3 pl-7">
+            <p className="font-semibold text-sm text-gray-900 mb-1">
+              🔗 초대 링크 생성 (Zoom 스타일, 계정 불필요)
+            </p>
+            <p className="text-xs text-gray-600 mb-3 leading-relaxed">
+              참여자 역할별로 초대 링크를 각각 발급합니다. 각 링크는 만료 72시간 +
+              접속 횟수 제한 + 고정 역할 부여.
+            </p>
+            <div className="grid grid-cols-2 gap-2">
+              {[
+                { key: "patient", label: "🧑 환자", desc: "카메라/마이크 송수신" },
+                { key: "doctor", label: "👨‍⚕️ 의사", desc: "카메라/마이크 송수신 + 주도권" },
+                { key: "translator", label: "🗣 통역사", desc: "음성 송수신" },
+                { key: "coordinator", label: "🤝 코디네이터", desc: "참관 + 채팅" },
+                { key: "observer", label: "👁 참관자", desc: "시청만 (보호자 등)" },
+              ].map((r) => (
+                <label
+                  key={r.key}
+                  className="flex items-start gap-2 cursor-pointer p-2 rounded-lg hover:bg-white"
+                >
+                  <input
+                    type="checkbox"
+                    checked={!!form.inviteRoles[r.key]}
+                    onChange={(e) =>
+                      setForm({
+                        ...form,
+                        inviteRoles: {
+                          ...form.inviteRoles,
+                          [r.key]: e.target.checked,
+                        },
+                      })
+                    }
+                    className="mt-1 accent-teal-600"
+                  />
+                  <div className="flex-1 text-xs">
+                    <p className="font-semibold text-gray-800">{r.label}</p>
+                    <p className="text-gray-500">{r.desc}</p>
+                  </div>
+                </label>
+              ))}
+            </div>
+
+            {form.inviteRoles.patient && (
+              <div className="mt-3 pt-3 border-t border-teal-200 space-y-2">
                 <input
                   type="text"
                   value={form.inviteeName}
                   onChange={(e) => setForm({ ...form, inviteeName: e.target.value })}
-                  placeholder="(선택) 환자 이름 힌트 — 예: Айжан Нурланова"
+                  placeholder="환자 이름 (선택) — 예: Айжан Нурланова"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+                />
+                <input
+                  type="email"
+                  value={form.inviteeEmail}
+                  onChange={(e) => setForm({ ...form, inviteeEmail: e.target.value })}
+                  placeholder="환자 이메일 (선택) — 자동 발송 시 사용"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
                 />
               </div>
@@ -729,23 +758,14 @@ function CreateConsultationModal({ onClose, onSuccess }) {
           </div>
 
           <Field
-            label={
-              form.generateGuestInvite
-                ? "환자 User ID (선택 — 계정 있는 경우)"
-                : "환자 User ID (필수)"
-            }
+            label="환자 User ID (선택 — 기존 계정 있는 경우)"
             hint="Supabase auth.users.id"
           >
             <input
               type="text"
-              required={!form.generateGuestInvite}
               value={form.patient_user_id}
               onChange={(e) => setForm({ ...form, patient_user_id: e.target.value })}
-              placeholder={
-                form.generateGuestInvite
-                  ? "(비워두면 게스트 전용 상담)"
-                  : "예: 550e8400-e29b-41d4-a716-446655440000"
-              }
+              placeholder="비워두면 게스트 전용 상담"
               className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-teal-500"
             />
           </Field>
@@ -848,6 +868,101 @@ function CreateConsultationModal({ onClose, onSuccess }) {
           </div>
         </form>
       </div>
+    </div>
+  );
+}
+
+function roleLabelKo(role) {
+  return (
+    {
+      patient: "🧑 환자",
+      doctor: "👨‍⚕️ 의사",
+      translator: "🗣 통역사",
+      coordinator: "🤝 코디네이터",
+      observer: "👁 참관자",
+    }[role] || role
+  );
+}
+
+// ─── 초대 링크 + QR 코드 블록 ─────────────────────────────
+function InviteLinkBlock({ url, expiresAt, toast, label = "환자 초대 링크 (계정 불필요)" }) {
+  const [qrDataUrl, setQrDataUrl] = useState("");
+
+  useEffect(() => {
+    if (!url) return;
+    // QR 생성 (512x512, 에러 정정 M 레벨)
+    QRCode.toDataURL(url, {
+      width: 256,
+      margin: 2,
+      errorCorrectionLevel: "M",
+      color: { dark: "#0f172a", light: "#ffffff" },
+    })
+      .then(setQrDataUrl)
+      .catch(() => {});
+  }, [url]);
+
+  const handleDownloadQR = () => {
+    if (!qrDataUrl) return;
+    const a = document.createElement("a");
+    a.href = qrDataUrl;
+    a.download = `healo-consultation-qr-${Date.now()}.png`;
+    a.click();
+  };
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <label className="block text-sm font-semibold text-gray-800 mb-2">{label}</label>
+        <div className="flex gap-2">
+          <input
+            type="text"
+            readOnly
+            value={url}
+            className="flex-1 px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-sm font-mono text-gray-800"
+            onFocus={(e) => e.target.select()}
+          />
+          <button
+            onClick={() => {
+              navigator.clipboard.writeText(url).then(
+                () => toast.success("링크 복사 완료"),
+                () => toast.error("복사 실패")
+              );
+            }}
+            className="px-4 py-2 bg-teal-600 text-white rounded-lg text-sm font-semibold hover:bg-teal-700"
+          >
+            복사
+          </button>
+        </div>
+        {expiresAt && (
+          <p className="text-xs text-gray-500 mt-2">
+            만료: {new Date(expiresAt).toLocaleString("ko-KR")}
+          </p>
+        )}
+      </div>
+
+      {/* QR 코드 — 환자 모바일 스캔용 */}
+      {qrDataUrl && (
+        <div className="flex items-start gap-4 bg-gray-50 border border-gray-200 rounded-xl p-4">
+          <img
+            src={qrDataUrl}
+            alt="초대 링크 QR 코드"
+            className="w-32 h-32 rounded-lg bg-white p-1 shadow-sm"
+          />
+          <div className="flex-1">
+            <p className="text-sm font-semibold text-gray-800 mb-1">📱 모바일 QR 스캔</p>
+            <p className="text-xs text-gray-600 leading-relaxed mb-3">
+              환자가 자기 핸드폰 카메라로 스캔하면 앱 설치 없이 바로 접속. 이메일에 링크
+              + QR 둘 다 넣는 걸 권장.
+            </p>
+            <button
+              onClick={handleDownloadQR}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-300 rounded-md text-xs font-medium text-gray-700 hover:bg-gray-100"
+            >
+              <span>⬇</span> PNG 다운로드
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -449,6 +449,72 @@ export type Database = {
         }
         Relationships: []
       }
+      consultation_admissions: {
+        Row: {
+          auth_user_id: string | null
+          consultation_id: string
+          decided_at: string | null
+          decided_by: string | null
+          display_name: string | null
+          guest_token_id: string | null
+          id: string
+          left_at: string | null
+          participant_identity: string
+          participant_role: string
+          requested_at: string
+          requester_ip: string | null
+          requester_user_agent: string | null
+          status: string
+        }
+        Insert: {
+          auth_user_id?: string | null
+          consultation_id: string
+          decided_at?: string | null
+          decided_by?: string | null
+          display_name?: string | null
+          guest_token_id?: string | null
+          id?: string
+          left_at?: string | null
+          participant_identity: string
+          participant_role: string
+          requested_at?: string
+          requester_ip?: string | null
+          requester_user_agent?: string | null
+          status?: string
+        }
+        Update: {
+          auth_user_id?: string | null
+          consultation_id?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          display_name?: string | null
+          guest_token_id?: string | null
+          id?: string
+          left_at?: string | null
+          participant_identity?: string
+          participant_role?: string
+          requested_at?: string
+          requester_ip?: string | null
+          requester_user_agent?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "consultation_admissions_consultation_id_fkey"
+            columns: ["consultation_id"]
+            isOneToOne: false
+            referencedRelation: "consultation_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "consultation_admissions_guest_token_id_fkey"
+            columns: ["guest_token_id"]
+            isOneToOne: false
+            referencedRelation: "consultation_guest_tokens"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       consultation_documents: {
         Row: {
           consultation_id: string

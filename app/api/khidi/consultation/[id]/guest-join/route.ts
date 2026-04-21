@@ -162,7 +162,37 @@ export async function POST(
     const jwt = await lkToken.toJwt();
 
     // ───────────────────────────────────────────────
-    // 4. Audit log
+    // 4. Waiting Room 등록 (의사 제외 pending)
+    // ───────────────────────────────────────────────
+    const initialStatus = role === "doctor" ? "approved" : "pending";
+    let admissionId: string | null = null;
+    try {
+      const { data: adm, error: admErr } = await supabaseAdmin
+        .from("consultation_admissions")
+        .insert({
+          consultation_id: consultationId,
+          participant_role: role,
+          participant_identity: identity,
+          display_name: name,
+          guest_token_id: verification.tokenId,
+          status: initialStatus,
+          decided_at:
+            initialStatus === "approved" ? new Date().toISOString() : null,
+          requester_ip: ip,
+          requester_user_agent: (userAgent || "").slice(0, 500),
+        } as any)
+        .select("id")
+        .single();
+      if (!admErr && adm) admissionId = adm.id;
+    } catch (admInsertErr) {
+      console.warn(
+        "[guest-join] admission insert failed:",
+        (admInsertErr as Error).message
+      );
+    }
+
+    // ───────────────────────────────────────────────
+    // 5. Audit log
     // ───────────────────────────────────────────────
     try {
       await supabaseAdmin.from("admin_audit_logs").insert({
@@ -189,6 +219,8 @@ export async function POST(
       role,
       displayName: name,
       ttlSeconds: TOKEN_TTL_SECONDS,
+      admissionId,
+      admissionStatus: initialStatus,
     });
   } catch (err: any) {
     console.error("[guest-join] error:", err?.message);

@@ -114,6 +114,11 @@ export default function ConsultationRoomPage() {
   const [guestName, setGuestName] = useState("");
   const [guestJoining, setGuestJoining] = useState(false);
   const [guestError, setGuestError] = useState("");
+  // Waiting Room — 의사 승인 대기
+  const [admissionId, setAdmissionId] = useState(null);
+  const [admissionStatus, setAdmissionStatus] = useState(null);
+  // 의사/관리자용 대기 목록 (pending 참가자)
+  const [pendingAdmissions, setPendingAdmissions] = useState([]);
 
   // Panel state
   const [activePanel, setActivePanel] = useState("translation"); // "chat" | "translation"
@@ -281,6 +286,8 @@ export default function ConsultationRoomPage() {
 
       setLivekitToken(result.livekitToken);
       setLivekitUrl(result.livekitUrl);
+      setAdmissionId(result.admissionId || null);
+      setAdmissionStatus(result.admissionStatus || "approved");
       // 게스트도 번역/언어는 역할 기반 기본값
       if (result.role === "patient") {
         setMyLang("ru");
@@ -297,6 +304,103 @@ export default function ConsultationRoomPage() {
       setGuestJoining(false);
     }
   }, [inviteToken, consultationId, guestName]);
+
+  // ── 의사/관리자용 대기열 polling (인증 사용자만) ──
+  useEffect(() => {
+    if (isGuestMode) return; // 게스트는 대기열 조회 불가
+    if (!livekitToken) return;
+
+    let cancelled = false;
+
+    const fetchPending = async () => {
+      try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        const token = sessionData?.session?.access_token;
+        if (!token) return;
+        const res = await fetch(
+          `/api/khidi/consultation/${consultationId}/admissions`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        const result = await res.json();
+        if (cancelled) return;
+        if (result.ok) setPendingAdmissions(result.pending || []);
+      } catch {
+        // silent
+      }
+    };
+
+    const interval = setInterval(fetchPending, 3000);
+    fetchPending();
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [isGuestMode, livekitToken, consultationId]);
+
+  const decideAdmission = useCallback(
+    async (admissionIdToDecide, status) => {
+      try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        const token = sessionData?.session?.access_token;
+        if (!token) return;
+        await fetch(
+          `/api/khidi/consultation/${consultationId}/admissions?admissionId=${admissionIdToDecide}`,
+          {
+            method: "PATCH",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ status }),
+          }
+        );
+        // 즉시 UI 반영 (polling 으로도 곧 갱신됨)
+        setPendingAdmissions((prev) =>
+          prev.filter((a) => a.id !== admissionIdToDecide)
+        );
+        toast.success(
+          status === "approved" ? "입장 승인됨" : "입장 거절됨"
+        );
+      } catch (err) {
+        console.error("[admission decide] error:", err);
+        toast.error("처리 실패");
+      }
+    },
+    [consultationId, toast]
+  );
+
+  // ── Waiting Room polling: admissionId 가 있고 pending 인 동안 2초마다 상태 확인 ──
+  useEffect(() => {
+    if (!admissionId || admissionStatus !== "pending") return;
+    let cancelled = false;
+
+    const check = async () => {
+      try {
+        const res = await fetch(
+          `/api/khidi/consultation/${consultationId}/admission-status?admissionId=${admissionId}`
+        );
+        const result = await res.json();
+        if (cancelled) return;
+        if (result.ok && result.status !== admissionStatus) {
+          setAdmissionStatus(result.status);
+          if (result.status === "approved") {
+            toast.success("의료진이 입장을 승인했습니다");
+          } else if (result.status === "rejected") {
+            toast.error("입장이 거절되었습니다");
+          }
+        }
+      } catch {
+        // polling failure — retry
+      }
+    };
+
+    const interval = setInterval(check, 2500);
+    check();
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [admissionId, admissionStatus, consultationId, toast]);
 
   // ── Fetch consultation + LiveKit token (authenticated mode) ──
   useEffect(() => {
@@ -643,7 +747,79 @@ export default function ConsultationRoomPage() {
       <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
         {/* Video area */}
         <div className="flex-1 flex flex-col relative min-h-[40vh] lg:min-h-0">
-          {livekitToken && livekitUrl ? (
+          {livekitToken && livekitUrl && admissionStatus === "rejected" ? (
+            <div className="flex-1 flex items-center justify-center bg-gradient-to-br from-gray-900 to-red-950 p-8">
+              <div className="text-center max-w-md">
+                <div className="w-16 h-16 rounded-full bg-red-500/20 text-red-400 flex items-center justify-center text-4xl mx-auto mb-6">
+                  ✕
+                </div>
+                <h2 className="text-2xl font-bold mb-2 text-white">입장이 거절되었습니다</h2>
+                <p className="text-sm text-gray-400 leading-relaxed">
+                  의료진이 입장을 거절했습니다. 관리자 / 코디네이터에게 문의해주세요.
+                </p>
+              </div>
+            </div>
+          ) : livekitToken && livekitUrl && admissionStatus === "pending" ? (
+            <div className="flex-1 flex items-center justify-center bg-gradient-to-br from-gray-900 via-slate-900 to-teal-950 p-8">
+              <div className="text-center max-w-md">
+                <div className="w-20 h-20 rounded-full bg-teal-500/10 text-teal-400 flex items-center justify-center text-4xl mx-auto mb-6 animate-pulse">
+                  ⏳
+                </div>
+                <h2 className="text-2xl font-bold mb-3 text-white">대기실 (Waiting Room)</h2>
+                <p className="text-sm text-gray-300 leading-relaxed mb-6">
+                  의료진이 곧 입장을 승인합니다.
+                  <br />
+                  잠시만 기다려주세요 — 이 화면은 자동으로 전환됩니다.
+                </p>
+                <div className="flex items-center justify-center gap-2 text-xs text-gray-400">
+                  <span className="inline-block w-2 h-2 rounded-full bg-teal-500 animate-pulse" />
+                  <span>상태 확인 중...</span>
+                </div>
+                <p className="text-xs text-gray-500 mt-6 border-t border-gray-800 pt-4">
+                  이 대기실은 HIPAA / PIPA 기준 프라이버시 보호 대기실입니다.
+                  <br />
+                  진료 시작 전까지 카메라 / 마이크는 활성화되지 않습니다.
+                </p>
+              </div>
+            </div>
+          ) : livekitToken && livekitUrl ? (
+            <>
+              {/* 의사용 대기자 승인 배너 — 1명 이상 대기 중일 때 표시 */}
+              {!isGuestMode && pendingAdmissions.length > 0 && (
+                <div className="absolute top-4 right-4 z-30 bg-teal-900/95 backdrop-blur border border-teal-500 rounded-xl shadow-2xl max-w-sm p-4 space-y-3">
+                  <p className="text-sm font-semibold text-white flex items-center gap-2">
+                    ⏳ 입장 대기 중 ({pendingAdmissions.length})
+                  </p>
+                  {pendingAdmissions.map((adm) => (
+                    <div
+                      key={adm.id}
+                      className="flex items-center gap-2 bg-black/30 rounded-lg p-2"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm text-white truncate">
+                          {adm.display_name || "익명"}
+                        </p>
+                        <p className="text-xs text-teal-200">
+                          {adm.participant_role}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => decideAdmission(adm.id, "approved")}
+                        className="px-3 py-1 bg-teal-500 hover:bg-teal-600 text-white text-xs font-semibold rounded"
+                      >
+                        승인
+                      </button>
+                      <button
+                        onClick={() => decideAdmission(adm.id, "rejected")}
+                        className="px-3 py-1 bg-red-500/80 hover:bg-red-600 text-white text-xs font-semibold rounded"
+                      >
+                        거절
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
             <LiveKitRoom
               token={livekitToken}
               serverUrl={livekitUrl}
@@ -674,6 +850,7 @@ export default function ConsultationRoomPage() {
                 }}
               />
             </LiveKitRoom>
+            </>
           ) : (
             <div className="flex-1 flex flex-col">
               <div className="flex-1 flex flex-col sm:flex-row gap-4 p-4 bg-gray-950 relative">
