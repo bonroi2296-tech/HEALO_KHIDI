@@ -43,6 +43,7 @@
     "HEALO_full_snapshot/**",
     "HEALO_REVIEW/**",
     ".claude/worktrees/**",
-    "design-system-export/**"
+    "design-system-export/**",
+    "e2e/**"
   ]
 }

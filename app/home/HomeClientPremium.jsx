@@ -670,19 +670,32 @@ export default function HomeClientPremium() {
             maxWidth: 1240,
             margin: "0 auto",
             position: "relative",
+            display: "grid",
+            gridTemplateColumns: "minmax(0, 1.05fr) minmax(340px, 0.72fr)",
+            gap: 56,
+            alignItems: "center",
+            minHeight: "calc(100svh - 152px)",
+            padding: "32px 24px 36px",
           }}
         >
-          <div className="healo-hero-top" style={{ borderTop: "1px solid var(--gold-tint)" }}>
+          <div
+            className="healo-hero-top"
+            style={{
+              borderTop: "1px solid var(--gold-tint)",
+              paddingTop: 34,
+              minWidth: 0,
+            }}
+          >
             <Eyebrow>{copy.eyebrowHero}</Eyebrow>
             <h1
               style={{
                 fontFamily: "var(--font-serif)",
                 fontWeight: 400,
-                fontSize: "clamp(30px, 5.2vw, 72px)",
-                lineHeight: 1.08,
-                letterSpacing: "-0.015em",
-                margin: "20px 0 28px",
-                maxWidth: 1100,
+                fontSize: "clamp(42px, 5vw, 82px)",
+                lineHeight: 1.03,
+                letterSpacing: 0,
+                margin: "18px 0 24px",
+                maxWidth: 830,
                 wordBreak: "keep-all",
               }}
             >
@@ -699,7 +712,7 @@ export default function HomeClientPremium() {
                 display: "grid",
                 gap: 32,
                 alignItems: "end",
-                marginBottom: 40,
+                marginBottom: 0,
               }}
             >
               <div>
@@ -708,11 +721,11 @@ export default function HomeClientPremium() {
                   style={{
                     fontFamily: "var(--font-sans)",
                     fontWeight: 300,
-                    fontSize: 16,
-                    lineHeight: 1.75,
+                    fontSize: 15,
+                    lineHeight: 1.65,
                     color: "var(--fg-on-dark-2)",
-                    maxWidth: 440,
-                    margin: "16px 0 24px",
+                    maxWidth: 520,
+                    margin: "14px 0 22px",
                   }}
                 >
                   {copy.heroLede}
@@ -759,7 +772,9 @@ export default function HomeClientPremium() {
               position: "relative",
               width: "100%",
               overflow: "hidden",
-              marginTop: 8,
+              minHeight: 440,
+              height: "min(58svh, 560px)",
+              border: "1px solid var(--gold-tint)",
             }}
           >
             <img
@@ -1383,6 +1398,19 @@ export default function HomeClientPremium() {
       {/* Mobile responsive */}
       <style jsx>{`
         @media (max-width: 768px) {
+          :global(.healo-hero-inner) {
+            grid-template-columns: 1fr !important;
+            gap: 28px !important;
+            min-height: auto !important;
+            padding: 28px 18px 32px !important;
+          }
+          :global(.healo-hero-top) {
+            padding-top: 24px !important;
+          }
+          :global(.healo-hero-photo) {
+            min-height: 260px !important;
+            height: 48svh !important;
+          }
           :global(.healo-hero-grid),
           :global(.healo-hospitals-head) {
             grid-template-columns: 1fr !important;

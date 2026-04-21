@@ -19,6 +19,10 @@
     "check:i18n": "node scripts/check-i18n-coverage.mjs",
     "fix:lint-unused": "node scripts/fix-unused-vars.mjs",
     "migrate:reencrypt-email": "node scripts/reencrypt-inquiries-email.mjs",
+    "e2e": "playwright test",
+    "e2e:ui": "playwright test --ui",
+    "e2e:debug": "playwright test --debug",
+    "e2e:headed": "playwright test --headed",
     "eval": "tsx scripts/evaluation.ts",
     "test:smoke:inquiry": "node scripts/smoke-test-inquiry.js",
     "test:smoke:auth": "node scripts/smoke-test-auth.js",
@@ -76,6 +80,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
+    "@playwright/test": "^1.59.1",
     "@types/node": "^20.0.0",
     "@types/papaparse": "^5.3.15",
     "@types/react": "^18.2.0",

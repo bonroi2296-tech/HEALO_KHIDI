@@ -148,7 +148,7 @@ export async function PATCH(
 
     const { data, error } = await supabaseAdmin
       .from("consultation_sessions")
-      .update(updateData)
+      .update(updateData as any)
       .eq("id", consultationId)
       .select(
         "id, status, started_at, ended_at, duration_seconds, updated_at"
@@ -164,6 +164,27 @@ export async function PATCH(
         { ok: false, error: "update_failed" },
         { status: 500 }
       );
+    }
+
+    // 세션이 취소/완료되면 관련 guest invite 토큰 전부 폐기
+    // → 이후 아무도 그 링크로 재진입 불가
+    if (payload.status === "cancelled" || payload.status === "completed") {
+      try {
+        const { revokeAllGuestTokensForConsultation } = await import(
+          "@/lib/auth/guestToken"
+        );
+        const revoked = await revokeAllGuestTokensForConsultation(
+          consultationId
+        );
+        console.log(
+          `[api/khidi/consultation/${consultationId}] revoked ${revoked} guest tokens (status=${payload.status})`
+        );
+      } catch (revokeErr: any) {
+        console.warn(
+          `[api/khidi/consultation/${consultationId}] token revoke failed:`,
+          revokeErr.message
+        );
+      }
     }
 
     console.log(

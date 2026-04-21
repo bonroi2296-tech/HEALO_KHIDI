@@ -841,38 +841,24 @@ function CreateConsultationModal({ onClose, onSuccess }) {
             )}
           </div>
 
-          <Field
-            label="환자 User ID (선택 — 기존 계정 있는 경우)"
-            hint="Supabase auth.users.id"
-          >
-            <input
-              type="text"
-              value={form.patient_user_id}
-              onChange={(e) => setForm({ ...form, patient_user_id: e.target.value })}
-              placeholder="비워두면 게스트 전용 상담"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-teal-500"
-            />
-          </Field>
-
-          <Field label="의사 User ID (선택)" hint="담당 의사 계정 UUID">
-            <input
-              type="text"
-              value={form.doctor_user_id}
-              onChange={(e) => setForm({ ...form, doctor_user_id: e.target.value })}
-              placeholder="(선택) 의사 auth.users.id"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-teal-500"
-            />
-          </Field>
-
-          <Field label="코디네이터 User ID (선택)">
-            <input
-              type="text"
-              value={form.coordinator_user_id}
-              onChange={(e) => setForm({ ...form, coordinator_user_id: e.target.value })}
-              placeholder="(선택) 코디네이터 auth.users.id"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-teal-500"
-            />
-          </Field>
+          <UserSearchField
+            label="환자 계정 (선택 — 기존 계정)"
+            value={form.patient_user_id}
+            onSelect={(id) => setForm({ ...form, patient_user_id: id })}
+            placeholder="비워두면 게스트 링크 전용"
+          />
+          <UserSearchField
+            label="의사 계정 (선택)"
+            value={form.doctor_user_id}
+            onSelect={(id) => setForm({ ...form, doctor_user_id: id })}
+            placeholder="이메일로 검색"
+          />
+          <UserSearchField
+            label="코디네이터 계정 (선택)"
+            value={form.coordinator_user_id}
+            onSelect={(id) => setForm({ ...form, coordinator_user_id: id })}
+            placeholder="이메일로 검색"
+          />
 
           <div className="grid grid-cols-2 gap-4">
             <Field label="세션 유형">
@@ -1002,6 +988,133 @@ function CreateConsultationModal({ onClose, onSuccess }) {
         </form>
       </div>
     </div>
+  );
+}
+
+// ─── 사용자 검색 필드 ─────────────────────────────
+// 이메일로 auth.users 검색 → 선택 → UUID 자동 입력
+function UserSearchField({ label, value, onSelect, placeholder }) {
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [selectedEmail, setSelectedEmail] = useState("");
+
+  // value 가 바깥에서 변경되면 보이는 텍스트도 맞춤
+  useEffect(() => {
+    if (!value) setSelectedEmail("");
+  }, [value]);
+
+  // debounced search
+  useEffect(() => {
+    if (!query || query.length < 2) {
+      setResults([]);
+      return;
+    }
+    let cancelled = false;
+    const timer = setTimeout(async () => {
+      setLoading(true);
+      try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        const token = sessionData?.session?.access_token;
+        if (!token) return;
+        const res = await fetch(
+          `/api/admin/users/search?q=${encodeURIComponent(query)}&limit=8`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        const result = await res.json();
+        if (cancelled) return;
+        if (result.ok) setResults(result.users || []);
+      } catch (err) {
+        console.error("[UserSearchField] error:", err);
+      } finally {
+        setLoading(false);
+      }
+    }, 300);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [query]);
+
+  const handlePick = (user) => {
+    onSelect(user.id);
+    setSelectedEmail(user.email);
+    setQuery("");
+    setResults([]);
+    setShowDropdown(false);
+  };
+
+  const handleClear = () => {
+    onSelect("");
+    setSelectedEmail("");
+    setQuery("");
+    setResults([]);
+  };
+
+  return (
+    <Field label={label}>
+      <div className="relative">
+        {value && selectedEmail ? (
+          <div className="flex items-center gap-2 px-3 py-2 bg-teal-50 border border-teal-200 rounded-lg">
+            <span className="flex-1 text-sm text-teal-900 truncate">
+              ✓ {selectedEmail}
+            </span>
+            <button
+              type="button"
+              onClick={handleClear}
+              className="text-teal-600 hover:text-teal-800 text-sm"
+            >
+              변경
+            </button>
+          </div>
+        ) : (
+          <>
+            <input
+              type="text"
+              value={query}
+              onChange={(e) => {
+                setQuery(e.target.value);
+                setShowDropdown(true);
+              }}
+              onFocus={() => setShowDropdown(true)}
+              onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
+              placeholder={placeholder || "이메일로 검색"}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+            />
+            {showDropdown && query.length >= 2 && (
+              <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-64 overflow-auto z-20">
+                {loading ? (
+                  <div className="px-3 py-3 text-sm text-gray-500">검색 중...</div>
+                ) : results.length === 0 ? (
+                  <div className="px-3 py-3 text-sm text-gray-500">
+                    일치하는 계정 없음
+                  </div>
+                ) : (
+                  results.map((user) => (
+                    <button
+                      type="button"
+                      key={user.id}
+                      onMouseDown={() => handlePick(user)}
+                      className="w-full text-left px-3 py-2 hover:bg-teal-50 border-b border-gray-100 last:border-b-0"
+                    >
+                      <div className="text-sm text-gray-900 truncate">
+                        {user.email}
+                      </div>
+                      {user.full_name && (
+                        <div className="text-xs text-gray-500 truncate">
+                          {user.full_name}
+                        </div>
+                      )}
+                    </button>
+                  ))
+                )}
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    </Field>
   );
 }
 
