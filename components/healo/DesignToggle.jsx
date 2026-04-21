@@ -11,6 +11,7 @@
 
 import { useState, useEffect } from "react";
 import { getClientDesignMode, toggleDesignMode } from "../../src/lib/designMode";
+import { SHOW_DESIGN_TOGGLE } from "../../src/lib/designMode";
 
 export default function DesignToggle() {
   const [mode, setMode] = useState(null);
@@ -19,7 +20,11 @@ export default function DesignToggle() {
     setMode(getClientDesignMode());
   }, []);
 
-  // 환경변수로 숨김 가능
+  // 2026-04-21: 기본 LEGACY 전환 후 UI 토글 숨김. 코드는 유지.
+  // 복구하려면 src/lib/designMode.js 의 SHOW_DESIGN_TOGGLE = true 로 변경.
+  if (!SHOW_DESIGN_TOGGLE) return null;
+
+  // 환경변수로도 숨김 가능
   const isHidden = process.env.NEXT_PUBLIC_DESIGN_TOGGLE === "off";
   if (isHidden || mode === null) return null;
 

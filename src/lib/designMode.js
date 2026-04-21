@@ -9,8 +9,13 @@
  * 4. 기본값: premium
  */
 
-export const DEFAULT_MODE = "premium";
+// 2026-04-21: LEGACY 를 기본값으로 전환. PREMIUM 은 ?design=premium 쿼리나
+// 쿠키 수동 설정 시에만 노출 (UI 토글은 숨김 처리됨).
+export const DEFAULT_MODE = "legacy";
 export const COOKIE_NAME = "healo_design";
+
+// UI 토글 노출 여부. false 면 LEGACY · SWITCH 버튼 안 보임. 코드는 유지.
+export const SHOW_DESIGN_TOGGLE = false;
 
 /**
  * 서버/빌드 시 모드 결정.
