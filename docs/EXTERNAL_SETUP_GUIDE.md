@@ -40,24 +40,39 @@
 
 같은 화면에서 **anon** 키도 **Reset** → 새 키 복사
 
-### 1-3. Leaked Password Protection 활성화
+### 1-3. 비밀번호 보안 강화 (Free tier 대응)
 
-**2026-04 기준 Supabase UI 경로** (자주 바뀜 주의):
+⚠️ **"Prevent use of leaked passwords" (HaveIBeenPwned 연동) 는 Pro plan 전용 유료 기능.**
+Free tier 에서는 대신 아래 4개 설정으로 동등 수준 방어 구성.
 
 1. 좌측 **Authentication → Attack Protection** 이동
 2. **"Prevent use of leaked passwords"** 행의 **`Configure email provider`** 버튼 클릭
-3. `Sign In / Providers → Email` 페이지로 이동됨
-4. 스크롤해서 **"Prevent use of leaked passwords"** 토글 **ON**
-5. **Save changes**
+3. `Sign In / Providers → Email` 패널이 열림
+4. 다음 4개 설정 변경:
 
-작동 원리: HaveIBeenPwned.com 의 털린 비밀번호 DB 해시와 대조.
-가입/비밀번호 변경 시 이미 유출된 비번 사용하려 하면 거부.
+| 항목 | 변경 | 이유 |
+|------|------|------|
+| **Secure password change** | OFF → **ON** | 비번 변경 시 최근 24h 재로그인 요구 (세션 탈취 방어) |
+| **Require current password when updating** | OFF → **ON** | 비번 변경 시 현재 비번 필수 (XSS 시 비번 탈취 방어 핵심) |
+| **Minimum password length** | 6 → **10** | 6자는 brute force 로 뚫림, 10자 이상 권장 |
+| **Password requirements** | 미설정 → **Lowercase, uppercase, digits and symbols** | 복잡도 강제 |
 
-### 1-3a. Captcha 보호 (선택사항, 나중에)
+5. 맨 아래 **Save** 클릭
 
-Attack Protection 페이지의 **"Enable Captcha protection"** 는 지금 skip.
+### 1-3a. 나중에 Pro 업그레이드 시 고려사항
+
+Pro plan ($25/월) 올리면 아래 자동 활성:
+- Prevent leaked passwords (HaveIBeenPwned DB 대조)
+- 자동 일일 백업 + PITR
+- 8GB DB (Free 는 500MB)
+
+**파일럿 환자 10명 초과 or 1개월 운영 후** 업그레이드 권장.
+
+### 1-3b. Captcha 보호 (선택, 나중에)
+
+**"Enable Captcha protection"** 는 지금 skip.
 ON 하려면 hCaptcha 계정 + Site Key + Secret + 가입 폼 UI 코드 수정 필요.
-가입 스팸 발생 시 그때 설정.
+가입 스팸 실제 발생 시 그때 설정.
 
 ### 1-4. Database 백업 확보 (마이그레이션 실행 전)
 
