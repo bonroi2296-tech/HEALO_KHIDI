@@ -13,6 +13,8 @@ import {
   ChevronDown,
   Globe,
   AlertCircle,
+  Plus,
+  Video,
 } from "lucide-react";
 import { createSupabaseBrowserClient } from "../../../src/lib/supabase/browser";
 import { useToast } from "../../../src/components/Toast";
@@ -29,6 +31,7 @@ export default function ConsultationsPage() {
   const [expandedId, setExpandedId] = useState(null);
   const [_showScheduleModal, setShowScheduleModal] = useState(false);
   const [_selectedConsultation, setSelectedConsultation] = useState(null);
+  const [showCreateModal, setShowCreateModal] = useState(false);
 
   // Fetch consultations
   useEffect(() => {
@@ -135,11 +138,20 @@ export default function ConsultationsPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900">원격협진 관리</h1>
-        <p className="text-gray-500 mt-2">
-          카자흐스탄 환자와 한국 병원 간 WebRTC 화상 상담
-        </p>
+      <div className="flex items-start justify-between gap-4 flex-wrap">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">원격협진 관리</h1>
+          <p className="text-gray-500 mt-2">
+            카자흐스탄 환자와 한국 병원 간 WebRTC 화상 상담
+          </p>
+        </div>
+        <button
+          onClick={() => setShowCreateModal(true)}
+          className="inline-flex items-center gap-2 px-5 py-3 bg-teal-600 text-white rounded-lg font-semibold shadow-md hover:bg-teal-700 active:scale-[0.98] transition"
+        >
+          <Plus size={18} />
+          새 상담 예약
+        </button>
       </div>
 
       {/* Filter tabs */}
@@ -385,6 +397,234 @@ export default function ConsultationsPage() {
           ))}
         </div>
       )}
+
+      {/* 새 상담 예약 모달 */}
+      {showCreateModal && (
+        <CreateConsultationModal
+          onClose={() => setShowCreateModal(false)}
+          onSuccess={() => {
+            setShowCreateModal(false);
+            fetchConsultations();
+            toast.success("상담 예약이 생성되었습니다");
+          }}
+        />
+      )}
     </div>
+  );
+}
+
+// ─── 새 상담 예약 모달 ──────────────────────────────────────────
+function CreateConsultationModal({ onClose, onSuccess }) {
+  const toast = useToast();
+  const [form, setForm] = useState(() => {
+    // 기본 값: 1시간 후로 예약
+    const d = new Date();
+    d.setHours(d.getHours() + 1, 0, 0, 0);
+    return {
+      patient_user_id: "",
+      doctor_user_id: "",
+      coordinator_user_id: "",
+      session_type: "pre_consultation",
+      scheduled_at: d.toISOString().slice(0, 16), // datetime-local 포맷
+      patient_language: "ru",
+      doctor_language: "ko",
+      notes: "",
+    };
+  });
+  const [submitting, setSubmitting] = useState(false);
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    if (!form.patient_user_id) {
+      toast.error("환자 User ID 를 입력하세요 (Supabase auth.users.id)");
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+      if (!token) {
+        toast.error("인증 오류 — 다시 로그인하세요");
+        return;
+      }
+
+      const payload = {
+        ...form,
+        scheduled_at: new Date(form.scheduled_at).toISOString(),
+      };
+      // 빈 값은 서버에 보내지 않음
+      Object.keys(payload).forEach((k) => {
+        if (payload[k] === "" || payload[k] == null) delete payload[k];
+      });
+
+      const res = await fetch("/api/khidi/consultation", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
+      });
+      const result = await res.json();
+      if (!res.ok || !result.ok) {
+        toast.error(`생성 실패: ${result.error || res.statusText}`);
+        return;
+      }
+      onSuccess();
+    } catch (err) {
+      console.error("[CreateConsultationModal] error:", err);
+      toast.error("생성 실패");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white rounded-2xl shadow-2xl w-full max-w-xl max-h-[90vh] overflow-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between p-6 border-b border-gray-200">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center">
+              <Video size={20} />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-gray-900">새 원격 상담 예약</h2>
+              <p className="text-sm text-gray-500">환자-의사 간 WebRTC 화상 세션 생성</p>
+            </div>
+          </div>
+          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg">
+            <X size={20} />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          <Field label="환자 User ID (필수)" hint="Supabase auth.users.id (환자 계정)">
+            <input
+              type="text"
+              required
+              value={form.patient_user_id}
+              onChange={(e) => setForm({ ...form, patient_user_id: e.target.value })}
+              placeholder="예: 550e8400-e29b-41d4-a716-446655440000"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-teal-500"
+            />
+          </Field>
+
+          <Field label="의사 User ID (선택)" hint="담당 의사 계정 UUID">
+            <input
+              type="text"
+              value={form.doctor_user_id}
+              onChange={(e) => setForm({ ...form, doctor_user_id: e.target.value })}
+              placeholder="(선택) 의사 auth.users.id"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-teal-500"
+            />
+          </Field>
+
+          <Field label="코디네이터 User ID (선택)">
+            <input
+              type="text"
+              value={form.coordinator_user_id}
+              onChange={(e) => setForm({ ...form, coordinator_user_id: e.target.value })}
+              placeholder="(선택) 코디네이터 auth.users.id"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-mono focus:outline-none focus:ring-2 focus:ring-teal-500"
+            />
+          </Field>
+
+          <div className="grid grid-cols-2 gap-4">
+            <Field label="세션 유형">
+              <select
+                value={form.session_type}
+                onChange={(e) => setForm({ ...form, session_type: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+              >
+                <option value="pre_consultation">진료 전 평가</option>
+                <option value="follow_up">추후 진료</option>
+                <option value="emergency">긴급 상담</option>
+                <option value="diagnostic">검사 결과 검토</option>
+              </select>
+            </Field>
+
+            <Field label="예약 시각">
+              <input
+                type="datetime-local"
+                required
+                value={form.scheduled_at}
+                onChange={(e) => setForm({ ...form, scheduled_at: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+              />
+            </Field>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <Field label="환자 언어">
+              <select
+                value={form.patient_language}
+                onChange={(e) => setForm({ ...form, patient_language: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+              >
+                <option value="ru">러시아어</option>
+                <option value="kz">카자흐어</option>
+                <option value="en">영어</option>
+                <option value="zh">중국어</option>
+              </select>
+            </Field>
+            <Field label="의사 언어">
+              <select
+                value={form.doctor_language}
+                onChange={(e) => setForm({ ...form, doctor_language: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+              >
+                <option value="ko">한국어</option>
+                <option value="en">영어</option>
+              </select>
+            </Field>
+          </div>
+
+          <Field label="비고 (선택)">
+            <textarea
+              value={form.notes}
+              onChange={(e) => setForm({ ...form, notes: e.target.value })}
+              rows={3}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 resize-none"
+              placeholder="상담 목적 / 주요 증상 / 사전 확인 필요 사항 등"
+            />
+          </Field>
+
+          <div className="flex gap-3 pt-2">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 px-4 py-3 border border-gray-300 rounded-lg font-medium text-gray-700 hover:bg-gray-50"
+            >
+              취소
+            </button>
+            <button
+              type="submit"
+              disabled={submitting}
+              className="flex-1 px-4 py-3 bg-teal-600 text-white rounded-lg font-semibold hover:bg-teal-700 disabled:opacity-60"
+            >
+              {submitting ? "생성 중…" : "상담 예약 생성"}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function Field({ label, hint, children }) {
+  return (
+    <label className="block">
+      <div className="flex items-baseline justify-between mb-1">
+        <span className="text-sm font-semibold text-gray-800">{label}</span>
+        {hint && <span className="text-xs text-gray-500">{hint}</span>}
+      </div>
+      {children}
+    </label>
   );
 }

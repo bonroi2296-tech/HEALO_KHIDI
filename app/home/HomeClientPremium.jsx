@@ -72,7 +72,38 @@ const COPY = {
       },
     ],
 
-    hospitalsEyebrow: "04 — Partner hospitals",
+    // 원격협진 — USP 전면
+    telemedicineEyebrow: "04 — Telemedicine · Our USP",
+    telemedicineTitle: "Talk to a Korean specialist",
+    telemedicineTitleItalic: "before you board the plane.",
+    telemedicineLede:
+      "No visa. No flight. Start with a real-time video consultation with Korea's top oncologists from wherever you are — then decide whether to travel.",
+    telemedicineFeatures: [
+      {
+        icon: "🎥",
+        title: "HD video consultation",
+        desc: "Ultra-low-latency WebRTC. Works on laptop, tablet, and mobile. No app install.",
+      },
+      {
+        icon: "🗣️",
+        title: "Real-time interpretation",
+        desc: "Korean ↔ Russian / Kazakh / English / Chinese. Medical-grade AI + human interpreters when needed.",
+      },
+      {
+        icon: "📄",
+        title: "Secure document review",
+        desc: "Upload MRI, CT, pathology — Korean specialists review and discuss live during the call.",
+      },
+      {
+        icon: "🔒",
+        title: "Medical-grade security",
+        desc: "AES-256 encryption end-to-end. PIPA §28-8 / HIPAA-ready. Your records, your consent.",
+      },
+    ],
+    telemedicineCtaPrimary: "Start a remote consultation",
+    telemedicineCtaSecondary: "See how it works",
+
+    hospitalsEyebrow: "05 — Partner hospitals",
     hospitalsTitle: "Selected for outcomes,",
     hospitalsTitleItalic: "not for show.",
     hospitalsLede:
@@ -98,7 +129,7 @@ const COPY = {
       },
     ],
 
-    processEyebrow: "05 — The process",
+    processEyebrow: "06 — The process",
     processTitle: "Four steps, carefully paced.",
     process: [
       {
@@ -180,7 +211,38 @@ const COPY = {
       },
     ],
 
-    hospitalsEyebrow: "04 — 제휴 병원",
+    // 원격협진 — USP 전면
+    telemedicineEyebrow: "04 — 원격협진 · HEALO 의 USP",
+    telemedicineTitle: "비행기 타기 전에",
+    telemedicineTitleItalic: "한국 전문의와 먼저 만나세요.",
+    telemedicineLede:
+      "비자도, 항공편도 필요 없습니다. 계신 그 자리에서 실시간 영상 상담으로 한국 최고의 암 전문의와 만난 뒤 — 한국 방문 여부를 결정하세요.",
+    telemedicineFeatures: [
+      {
+        icon: "🎥",
+        title: "HD 영상 상담",
+        desc: "초저지연 WebRTC. 노트북/태블릿/모바일 어디서든. 앱 설치 불필요.",
+      },
+      {
+        icon: "🗣️",
+        title: "실시간 의료 통역",
+        desc: "한-러 / 한-카자흐 / 한-영 / 한-중. 의료 전문 AI + 필요 시 인간 통역사.",
+      },
+      {
+        icon: "📄",
+        title: "보안 문서 공유",
+        desc: "MRI, CT, 조직검사 업로드 — 한국 전문의가 상담 중 실시간 판독.",
+      },
+      {
+        icon: "🔒",
+        title: "의료 등급 보안",
+        desc: "End-to-end AES-256 암호화. PIPA §28조의8 / HIPAA 준수. 본인 동의 기반.",
+      },
+    ],
+    telemedicineCtaPrimary: "원격 상담 시작하기",
+    telemedicineCtaSecondary: "진행 방식 보기",
+
+    hospitalsEyebrow: "05 — 제휴 병원",
     hospitalsTitle: "과시를 위한 것이 아닌,",
     hospitalsTitleItalic: "성과로 선정했습니다.",
     hospitalsLede:
@@ -206,7 +268,7 @@ const COPY = {
       },
     ],
 
-    processEyebrow: "05 — 진행 방식",
+    processEyebrow: "06 — 진행 방식",
     processTitle: "네 단계, 신중한 속도로.",
     process: [
       {
@@ -529,6 +591,156 @@ export default function HomeClientPremium() {
                 </p>
               </div>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ==================== TELEMEDICINE (USP) ==================== */}
+      <section
+        style={{
+          background:
+            "linear-gradient(180deg, var(--ink-0) 0%, var(--ink-0) 60%, #0f1a17 100%)",
+          color: "var(--fg-on-dark-1, #f5f0e8)",
+          padding: "120px 24px",
+          position: "relative",
+          overflow: "hidden",
+        }}
+      >
+        {/* Decorative gold frame */}
+        <div
+          aria-hidden
+          style={{
+            position: "absolute",
+            top: 32,
+            right: 32,
+            width: 120,
+            height: 120,
+            borderTop: "1px solid var(--gold-0, #c8a96a)",
+            borderRight: "1px solid var(--gold-0, #c8a96a)",
+            opacity: 0.3,
+          }}
+        />
+        <div
+          aria-hidden
+          style={{
+            position: "absolute",
+            bottom: 32,
+            left: 32,
+            width: 120,
+            height: 120,
+            borderBottom: "1px solid var(--gold-0, #c8a96a)",
+            borderLeft: "1px solid var(--gold-0, #c8a96a)",
+            opacity: 0.3,
+          }}
+        />
+
+        <div style={{ maxWidth: 1240, margin: "0 auto", position: "relative" }}>
+          <div style={{ maxWidth: 900 }}>
+            <Eyebrow tone="muted-dark">{copy.telemedicineEyebrow}</Eyebrow>
+            <h2
+              style={{
+                fontFamily: "var(--font-serif)",
+                fontWeight: 400,
+                fontSize: "clamp(40px, 5.5vw, 80px)",
+                lineHeight: 1.05,
+                letterSpacing: "-0.01em",
+                margin: "32px 0 32px",
+              }}
+            >
+              {copy.telemedicineTitle}
+              <br />
+              <span style={{ fontStyle: "italic", color: "var(--gold-0, #c8a96a)" }}>
+                {copy.telemedicineTitleItalic}
+              </span>
+            </h2>
+            <Rule width={64} color="gold" />
+            <p
+              style={{
+                fontFamily: "var(--font-sans)",
+                fontSize: "clamp(16px, 1.3vw, 19px)",
+                lineHeight: 1.7,
+                color: "var(--fg-on-dark-2, #c7c2b8)",
+                margin: "32px 0 64px",
+                maxWidth: 720,
+              }}
+            >
+              {copy.telemedicineLede}
+            </p>
+          </div>
+
+          {/* 4 Feature grid */}
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
+              gap: 32,
+              marginBottom: 64,
+            }}
+          >
+            {copy.telemedicineFeatures.map((f, i) => (
+              <div
+                key={i}
+                style={{
+                  padding: "32px 24px",
+                  background: "rgba(200, 169, 106, 0.04)",
+                  border: "1px solid rgba(200, 169, 106, 0.2)",
+                  borderRadius: 2,
+                }}
+              >
+                <div style={{ fontSize: 32, marginBottom: 16 }}>{f.icon}</div>
+                <h3
+                  style={{
+                    fontFamily: "var(--font-serif)",
+                    fontSize: 20,
+                    fontWeight: 500,
+                    margin: "0 0 12px",
+                    color: "var(--fg-on-dark-1, #f5f0e8)",
+                  }}
+                >
+                  {f.title}
+                </h3>
+                <p
+                  style={{
+                    fontFamily: "var(--font-sans)",
+                    fontSize: 13,
+                    lineHeight: 1.65,
+                    color: "var(--fg-on-dark-2, #c7c2b8)",
+                    margin: 0,
+                  }}
+                >
+                  {f.desc}
+                </p>
+              </div>
+            ))}
+          </div>
+
+          {/* CTA row */}
+          <div
+            style={{
+              display: "flex",
+              gap: 24,
+              flexWrap: "wrap",
+              alignItems: "center",
+            }}
+          >
+            <Link href="/inquiry" style={{ textDecoration: "none" }}>
+              <ButtonGold>{copy.telemedicineCtaPrimary}</ButtonGold>
+            </Link>
+            <Link
+              href="#process"
+              style={{
+                fontFamily: "var(--font-sans)",
+                fontSize: 11,
+                letterSpacing: "0.24em",
+                textTransform: "uppercase",
+                color: "var(--fg-on-dark-2, #c7c2b8)",
+                textDecoration: "none",
+                borderBottom: "1px solid rgba(255,255,255,0.25)",
+                paddingBottom: 4,
+              }}
+            >
+              {copy.telemedicineCtaSecondary} →
+            </Link>
           </div>
         </div>
       </section>
