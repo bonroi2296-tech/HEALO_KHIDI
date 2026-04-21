@@ -73,7 +73,7 @@ const COPY = {
     ],
 
     // 원격협진 — USP 전면
-    telemedicineEyebrow: "04 — Telemedicine · Our USP",
+    telemedicineEyebrow: "03 — Telemedicine · Our USP",
     telemedicineTitle: "Talk to a Korean specialist",
     telemedicineTitleItalic: "before you board the plane.",
     telemedicineLede:
@@ -103,7 +103,7 @@ const COPY = {
     telemedicineCtaPrimary: "Start a remote consultation",
     telemedicineCtaSecondary: "See how it works",
 
-    hospitalsEyebrow: "05 — Partner hospitals",
+    hospitalsEyebrow: "04 — Partner hospitals",
     hospitalsTitle: "Selected for outcomes,",
     hospitalsTitleItalic: "not for show.",
     hospitalsLede:
@@ -129,7 +129,7 @@ const COPY = {
       },
     ],
 
-    processEyebrow: "06 — The process",
+    processEyebrow: "05 — The process",
     processTitle: "Four steps, carefully paced.",
     process: [
       {
@@ -212,7 +212,7 @@ const COPY = {
     ],
 
     // 원격협진 — USP 전면
-    telemedicineEyebrow: "04 — 원격협진 · HEALO 의 USP",
+    telemedicineEyebrow: "03 — 원격협진 · HEALO 의 USP",
     telemedicineTitle: "비행기 타기 전에",
     telemedicineTitleItalic: "한국 전문의와 먼저 만나세요.",
     telemedicineLede:
@@ -242,7 +242,7 @@ const COPY = {
     telemedicineCtaPrimary: "원격 상담 시작하기",
     telemedicineCtaSecondary: "진행 방식 보기",
 
-    hospitalsEyebrow: "05 — 제휴 병원",
+    hospitalsEyebrow: "04 — 제휴 병원",
     hospitalsTitle: "과시를 위한 것이 아닌,",
     hospitalsTitleItalic: "성과로 선정했습니다.",
     hospitalsLede:
@@ -268,7 +268,7 @@ const COPY = {
       },
     ],
 
-    processEyebrow: "06 — 진행 방식",
+    processEyebrow: "05 — 진행 방식",
     processTitle: "네 단계, 신중한 속도로.",
     process: [
       {
@@ -349,7 +349,7 @@ const COPY = {
       },
     ],
 
-    telemedicineEyebrow: "04 — Телемедицина · Наше УТП",
+    telemedicineEyebrow: "03 — Телемедицина · Наше УТП",
     telemedicineTitle: "Поговорите с корейским специалистом",
     telemedicineTitleItalic: "ещё до вылета.",
     telemedicineLede:
@@ -379,7 +379,7 @@ const COPY = {
     telemedicineCtaPrimary: "Начать удалённую консультацию",
     telemedicineCtaSecondary: "Посмотреть, как это работает",
 
-    hospitalsEyebrow: "05 — Партнёрские клиники",
+    hospitalsEyebrow: "04 — Партнёрские клиники",
     hospitalsTitle: "Выбраны по результатам,",
     hospitalsTitleItalic: "а не по рекламе.",
     hospitalsLede:
@@ -390,7 +390,7 @@ const COPY = {
       { name: "Severance Hospital", specialty: "Роботизированная и малоинвазивная хирургия", meta: "2,450 коек · Сеул", photo: PHOTOS.hospital3 },
     ],
 
-    processEyebrow: "06 — Процесс",
+    processEyebrow: "05 — Процесс",
     processTitle: "Четыре этапа, без спешки.",
     process: [
       { step: "01", title: "Заявка", body: "Поделитесь диагнозом и приоритетами. Рассмотрим в течение 24 часов." },
@@ -435,7 +435,7 @@ const COPY = {
       { eyebrow: "Координация", title: "Толық координация", body: "Бірінші өтініштен емдеуден кейінгі бақылауға дейін — бір координатор сіздің уақыт белдеуінде." },
     ],
 
-    telemedicineEyebrow: "04 — Телемедицина · Біздің USP",
+    telemedicineEyebrow: "03 — Телемедицина · Біздің USP",
     telemedicineTitle: "Ұшаққа отырмас бұрын",
     telemedicineTitleItalic: "корей маманымен сөйлесіңіз.",
     telemedicineLede:
@@ -449,7 +449,7 @@ const COPY = {
     telemedicineCtaPrimary: "Қашықтан консультация бастау",
     telemedicineCtaSecondary: "Қалай жұмыс істейтінін көру",
 
-    hospitalsEyebrow: "05 — Серіктес аурухналар",
+    hospitalsEyebrow: "04 — Серіктес аурухналар",
     hospitalsTitle: "Нәтиже үшін таңдалған,",
     hospitalsTitleItalic: "жарнама үшін емес.",
     hospitalsLede:
@@ -460,7 +460,7 @@ const COPY = {
       { name: "Severance Hospital", specialty: "Роботты және минималды инвазивті хирургия", meta: "2,450 төсек · Сеул", photo: PHOTOS.hospital3 },
     ],
 
-    processEyebrow: "06 — Процесс",
+    processEyebrow: "05 — Процесс",
     processTitle: "Төрт қадам, асықпай.",
     process: [
       { step: "01", title: "Өтініш", body: "Диагноз бен приоритеттерді бөлісіңіз. 24 сағат ішінде қараймыз." },
@@ -504,7 +504,7 @@ const COPY = {
       { eyebrow: "协调", title: "全程协调", body: "从首次咨询到治疗后随访,专属协调员按您的时区陪伴。" },
     ],
 
-    telemedicineEyebrow: "04 — 远程医疗 · 我们的核心优势",
+    telemedicineEyebrow: "03 — 远程医疗 · 我们的核心优势",
     telemedicineTitle: "在登机前",
     telemedicineTitleItalic: "先与韩国专家通话。",
     telemedicineLede: "无需签证、无需机票。在您所在的地方,通过实时视频与韩国顶尖肿瘤专家会诊,再决定是否赴韩。",
@@ -517,7 +517,7 @@ const COPY = {
     telemedicineCtaPrimary: "开始远程咨询",
     telemedicineCtaSecondary: "了解流程",
 
-    hospitalsEyebrow: "05 — 合作医院",
+    hospitalsEyebrow: "04 — 合作医院",
     hospitalsTitle: "以疗效入选,",
     hospitalsTitleItalic: "不以门面取人。",
     hospitalsLede: "每家合作医院均基于肿瘤专科能力、国际患者经验和语言支持进行筛选。没有赞助位。",
@@ -527,7 +527,7 @@ const COPY = {
       { name: "Severance Hospital", specialty: "机器人与微创手术", meta: "2,450 床 · 首尔", photo: PHOTOS.hospital3 },
     ],
 
-    processEyebrow: "06 — 流程",
+    processEyebrow: "05 — 流程",
     processTitle: "四个步骤,节奏从容。",
     process: [
       { step: "01", title: "咨询", body: "分享您的诊断与优先事项,我们在 24 小时内审阅。" },
@@ -571,7 +571,7 @@ const COPY = {
       { eyebrow: "コーディネート", title: "一貫コーディネート", body: "最初のお問い合わせから治療後のフォローまで、専任コーディネーター一人がご利用者の時差に合わせて対応します。" },
     ],
 
-    telemedicineEyebrow: "04 — 遠隔診療 · 当社のUSP",
+    telemedicineEyebrow: "03 — 遠隔診療 · 当社のUSP",
     telemedicineTitle: "飛行機に乗る前に、",
     telemedicineTitleItalic: "韓国の専門医とお話しください。",
     telemedicineLede: "ビザも航空券も不要。今いる場所から韓国トップの腫瘍医とリアルタイムビデオ相談 — その上で訪韓を判断してください。",
@@ -584,7 +584,7 @@ const COPY = {
     telemedicineCtaPrimary: "遠隔相談を始める",
     telemedicineCtaSecondary: "進め方を見る",
 
-    hospitalsEyebrow: "05 — 提携病院",
+    hospitalsEyebrow: "04 — 提携病院",
     hospitalsTitle: "派手さではなく、",
     hospitalsTitleItalic: "実績で選びました。",
     hospitalsLede: "すべての提携病院は腫瘍専門性、外国人患者対応経験、言語サポートを基準に選定されています。スポンサー掲載はありません。",
@@ -594,7 +594,7 @@ const COPY = {
       { name: "Severance Hospital", specialty: "ロボット・低侵襲手術", meta: "2,450 床 · ソウル", photo: PHOTOS.hospital3 },
     ],
 
-    processEyebrow: "06 — 進め方",
+    processEyebrow: "05 — 進め方",
     processTitle: "4ステップ、慎重なペースで。",
     process: [
       { step: "01", title: "お問い合わせ", body: "診断と優先事項を共有してください。24 時間以内に確認します。" },
@@ -933,87 +933,10 @@ export default function HomeClientPremium() {
         </div>
       </section>
 
-      {/* ==================== SERVICES ==================== */}
-      <section style={{ background: "var(--cream-0)", padding: "96px 24px" }}>
-        <div style={{ maxWidth: 1240, margin: "0 auto" }}>
-          <Eyebrow>{copy.servicesEyebrow}</Eyebrow>
-          <h2
-            style={{
-              fontFamily: "var(--font-serif)",
-              fontWeight: 400,
-              fontSize: "clamp(36px, 5vw, 72px)",
-              lineHeight: 1.08,
-              letterSpacing: "-0.005em",
-              margin: "24px 0 64px",
-              color: "var(--fg-on-light-1)",
-              maxWidth: 900,
-            }}
-          >
-            {copy.servicesTitle}
-            <br />
-            <span style={{ fontStyle: "italic", color: "var(--gold-2)" }}>
-              {copy.servicesTitleItalic}
-            </span>
-          </h2>
-
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
-              gap: 0,
-              borderTop: "1px solid var(--gold-tint)",
-            }}
-          >
-            {copy.services.map((srv, i) => (
-              <div
-                key={i}
-                style={{
-                  padding: "40px 32px 40px 0",
-                  borderRight:
-                    i < copy.services.length - 1
-                      ? "1px solid var(--cream-2)"
-                      : "none",
-                  paddingLeft: i === 0 ? 0 : 32,
-                }}
-              >
-                <div
-                  style={{
-                    fontFamily: "var(--font-mono)",
-                    fontSize: 11,
-                    color: "var(--gold-2)",
-                    marginBottom: 16,
-                  }}
-                >
-                  {String(i + 1).padStart(2, "0")}
-                </div>
-                <h3
-                  style={{
-                    fontFamily: "var(--font-serif)",
-                    fontSize: 24,
-                    fontWeight: 500,
-                    lineHeight: 1.2,
-                    color: "var(--fg-on-light-1)",
-                    margin: "0 0 12px",
-                  }}
-                >
-                  {srv.title}
-                </h3>
-                <p
-                  style={{
-                    fontFamily: "var(--font-sans)",
-                    fontSize: 14,
-                    lineHeight: 1.7,
-                    color: "var(--fg-on-light-2)",
-                    margin: 0,
-                  }}
-                >
-                  {srv.body}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      {/* SERVICES 섹션 삭제 (2026-04-21): "진행 방식(PROCESS)" 섹션과 내용 중복.
+          병원 매칭 / 비자 / 통역 / 코디네이션 4종은 Process 4단계(문의→매칭→여정→치료) 와
+          같은 축을 다르게 분해한 것이라 사용자가 같은 얘길 두 번 읽게 됨.
+          서비스 스코프 자체는 히어로 lede + /telemedicine / /about 에서 커버. */}
 
       {/* ==================== TELEMEDICINE (USP) ==================== */}
       <section
