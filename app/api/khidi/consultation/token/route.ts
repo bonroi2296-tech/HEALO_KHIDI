@@ -91,7 +91,9 @@ export async function POST(request: NextRequest) {
       ok: true,
       token: jwt,
       roomName: session.livekit_room_name,
-      livekitUrl: process.env.NEXT_PUBLIC_LIVEKIT_URL,
+      // 서버 전용 환경변수 `LIVEKIT_URL` 우선, 구버전 설정 호환용으로
+      // `NEXT_PUBLIC_LIVEKIT_URL` 도 지원. 둘 중 하나만 있으면 동작.
+      livekitUrl: process.env.LIVEKIT_URL || process.env.NEXT_PUBLIC_LIVEKIT_URL,
       role,
       ttlSeconds: TOKEN_TTL_SECONDS,
     });
