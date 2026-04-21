@@ -1,6 +1,7 @@
 import { ImageResponse } from 'next/og';
 
-export const runtime = 'edge';
+// nodejs runtime — edge 번들이 1MB Hobby 한도를 초과해서 배포 실패했음
+export const runtime = 'nodejs';
 export const alt = 'HEALO - Korea Medical Tourism Concierge';
 export const size = { width: 1200, height: 630 };
 export const contentType = 'image/png';
