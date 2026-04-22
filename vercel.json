@@ -2,26 +2,6 @@
   "buildCommand": "next build --webpack",
   "framework": "nextjs",
   "regions": ["icn1"],
-  "_crons_memo": [
-    "========================================================================",
-    "자동 스케줄 작업 (크론) — 정식 오픈 전까지 전체 비활성화.",
-    "",
-    "비활성화 이유:",
-    "  1) Hobby 플랜은 daily 크론 1개만 허용 → 10분 주기 리마인더 불가",
-    "  2) 크롤링은 사용자 요청으로 중단",
-    "  3) 아직 실제 환자 예약이 없어 리마인더도 불필요",
-    "",
-    "정식 오픈 시 복구 방법:",
-    "  A) Pro 플랜 업그레이드($20/월) 후 아래 crons 블록 복구",
-    "     - /api/cron/consultation-reminders: */10 * * * * (원격협진 30분 전 알림)",
-    "  B) 또는 Pro 없이 외부 스케줄러(cron-job.org 등)에서",
-    "     10분마다 POST https://healo-khidi.vercel.app/api/cron/consultation-reminders",
-    "     Authorization: Bearer <CRON_SECRET> 헤더 포함",
-    "",
-    "크롤링(/api/cron/crawl) 은 자동화 재개 결정 시 별도 검토.",
-    "라우트 파일은 유지 (수동 호출 또는 재활성화 용이).",
-    "========================================================================"
-  ],
   "headers": [
     {
       "source": "/sw.js",
