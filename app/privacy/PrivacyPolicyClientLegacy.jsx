@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   getPrivacyPolicy,
   getPrivacySectionsList,
@@ -15,96 +15,144 @@ export default function PrivacyPolicyClientLegacy() {
   const sections = getPrivacySectionsList(langCode);
   const [activeId, setActiveId] = useState(null);
 
-  // 번역 대기 언어인 경우 배너 표시
+  useEffect(() => {
+    if (sections.length > 0) setActiveId(sections[0].id);
+  }, []); // eslint-disable-line
+
   const translationPending = policy._translationPending;
   const pageLabels = policy._labels || policy;
 
   return (
-    <div className="bg-white min-h-screen">
-      <div className="max-w-5xl mx-auto px-4 py-12 md:py-16">
-        {/* Header */}
-        <header className="mb-10 border-b border-gray-200 pb-8">
-          <p className="text-xs font-mono uppercase tracking-widest text-gray-500 mb-2">
+    <div style={{ background: "#f8fafc", minHeight: "100vh" }}>
+
+      {/* ── HEADER ── */}
+      <header style={{ background: "linear-gradient(135deg, #0d9488 0%, #0f766e 100%)", color: "#fff", padding: "64px 24px 56px" }}>
+        <div style={{ maxWidth: "64rem", margin: "0 auto" }}>
+          <p style={{ fontSize: "0.6875rem", fontWeight: 700, letterSpacing: "0.2em", textTransform: "uppercase", color: "rgba(255,255,255,0.65)", marginBottom: 12 }}>
             HEALO · Legal
           </p>
-          <h1 className="text-3xl md:text-4xl font-bold text-gray-900">
+          <h1 style={{ fontSize: "clamp(2rem, 5vw, 3rem)", fontWeight: 800, lineHeight: 1.15, margin: "0 0 20px" }}>
             {pageLabels.pageTitle}
           </h1>
-          <div className="mt-3 flex flex-wrap gap-4 text-sm text-gray-600">
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 20, fontSize: "0.8125rem", color: "rgba(255,255,255,0.8)" }}>
             <span>
-              {pageLabels.lastUpdated}: <strong>{PRIVACY_EFFECTIVE_DATE}</strong>
+              {pageLabels.lastUpdated}{" "}
+              <strong style={{ color: "#fff" }}>{PRIVACY_EFFECTIVE_DATE}</strong>
             </span>
             <span>
-              {pageLabels.version}: <strong>{PRIVACY_VERSION}</strong>
+              {pageLabels.version}{" "}
+              <strong style={{ color: "#fff" }}>{PRIVACY_VERSION}</strong>
             </span>
           </div>
           {translationPending && (
-            <div className="mt-4 bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-800">
+            <div style={{ marginTop: 20, padding: "12px 16px", background: "rgba(255,255,255,0.12)", borderRadius: 10, fontSize: "0.8125rem", color: "rgba(255,255,255,0.85)", lineHeight: 1.6 }}>
               ⚠️ Translation for this language is pending professional legal review.
-              The English version is shown below. For legal interpretation, please refer to
-              the Korean or English version.
+              The English version is shown below. For legal interpretation, please refer to the Korean or English version.
             </div>
           )}
-        </header>
+        </div>
+      </header>
 
-        <div className="grid md:grid-cols-4 gap-8">
-          {/* Table of Contents (sticky sidebar on md+) */}
-          <aside className="md:col-span-1 md:sticky md:top-20 md:self-start">
-            <p className="text-xs uppercase tracking-widest text-gray-400 mb-3">
+      {/* ── BODY ── */}
+      <div style={{ maxWidth: "64rem", margin: "0 auto", padding: "40px 24px 80px" }}>
+        <div className="healo-legal-legacy-grid" style={{ display: "grid", gridTemplateColumns: "240px 1fr", gap: 40 }}>
+
+          {/* TOC — sticky sidebar */}
+          <aside style={{ position: "sticky", top: 24, alignSelf: "start", maxHeight: "calc(100vh - 48px)", overflowY: "auto", paddingRight: 8 }}>
+            <p style={{ fontSize: "0.6875rem", fontWeight: 700, letterSpacing: "0.16em", textTransform: "uppercase", color: "#0d9488", marginBottom: 12 }}>
               {pageLabels.tableOfContents || "Contents"}
             </p>
-            <nav className="space-y-1 max-h-[60vh] md:max-h-[calc(100vh-10rem)] overflow-y-auto pr-2">
+            <nav style={{ display: "flex", flexDirection: "column", gap: 2 }}>
               {sections.map((s, idx) => (
                 <a
                   key={s.id}
                   href={`#${s.id}`}
                   onClick={() => setActiveId(s.id)}
-                  className={`block text-xs py-1.5 px-2 rounded transition ${
-                    activeId === s.id
-                      ? "bg-gray-900 text-white"
-                      : "text-gray-600 hover:bg-gray-100"
-                  }`}
+                  style={{
+                    display: "flex",
+                    gap: 8,
+                    padding: "7px 10px",
+                    fontSize: "0.75rem",
+                    lineHeight: 1.4,
+                    borderRadius: 8,
+                    textDecoration: "none",
+                    color: activeId === s.id ? "#fff" : "#475569",
+                    background: activeId === s.id ? "#0d9488" : "transparent",
+                    transition: "all 150ms",
+                  }}
+                  onMouseEnter={e => { if (activeId !== s.id) e.currentTarget.style.background = "#f0fdfa"; }}
+                  onMouseLeave={e => { if (activeId !== s.id) e.currentTarget.style.background = "transparent"; }}
                 >
-                  <span className="text-gray-400 mr-2">{String(idx + 1).padStart(2, "0")}</span>
-                  {s.title}
+                  <span style={{ color: activeId === s.id ? "rgba(255,255,255,0.65)" : "#94a3b8", fontSize: "0.625rem", paddingTop: 2, flexShrink: 0 }}>
+                    {String(idx + 1).padStart(2, "0")}
+                  </span>
+                  <span>{s.title}</span>
                 </a>
               ))}
             </nav>
           </aside>
 
-          {/* Body */}
-          <article className="md:col-span-3 space-y-10 text-gray-800 leading-relaxed">
-            {sections.map((section) => (
-              <section key={section.id} id={section.id} className="scroll-mt-20">
-                <h2 className="text-xl md:text-2xl font-semibold text-gray-900 mb-4">
+          {/* ARTICLE */}
+          <article>
+            {sections.map((section, idx) => (
+              <section
+                key={section.id}
+                id={section.id}
+                style={{
+                  scrollMarginTop: 24,
+                  marginBottom: 48,
+                  paddingBottom: 40,
+                  borderBottom: idx < sections.length - 1 ? "1px solid #e2e8f0" : "none",
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+                  <span style={{ background: "#0d9488", color: "#fff", borderRadius: 8, padding: "2px 8px", fontSize: "0.625rem", fontWeight: 700, letterSpacing: "0.12em", fontFamily: "monospace" }}>
+                    {String(idx + 1).padStart(2, "0")}
+                  </span>
+                </div>
+                <h2 style={{ fontSize: "clamp(1.125rem, 2.5vw, 1.5rem)", fontWeight: 800, color: "#0f172a", margin: "0 0 16px", lineHeight: 1.25 }}>
                   {section.title}
                 </h2>
-                <div className="space-y-3 text-sm md:text-[15px] text-gray-700">
+                <div style={{ fontSize: "0.9375rem", lineHeight: 1.75, color: "#334155" }}>
                   {section.body.map((paragraph, i) => (
-                    <p key={i} className="whitespace-pre-line">
+                    <p key={i} style={{ margin: "0 0 14px", whiteSpace: "pre-line" }}>
                       {paragraph}
                     </p>
                   ))}
                 </div>
               </section>
             ))}
+
+            {/* Footer notice */}
+            <footer style={{ marginTop: 48, paddingTop: 24, borderTop: "2px solid #99f6e4", fontSize: "0.75rem", color: "#64748b", lineHeight: 1.7 }}>
+              <p style={{ margin: "0 0 10px" }}>
+                이 문서는 대한민국 개인정보보호법(§28-8 포함), 의료법, 의료해외진출법, 카자흐스탄 94-V ЗРК, EU GDPR을 기반으로
+                작성되었습니다. 환자 민감정보는 AES-256-GCM 암호화 후 저장됩니다. 최종 법적 효력은 관할 법령 및 변호사의 검토에 따릅니다.
+              </p>
+              <p style={{ margin: 0 }}>
+                This document is drafted based on Korean PIPA (incl. §28-8), Medical Service Act, Medical Tourism Act,
+                Kazakhstan Law 94-V, and EU GDPR. Patient sensitive data is stored with AES-256-GCM encryption.
+                Final legal effect is subject to applicable laws and professional review.
+              </p>
+            </footer>
           </article>
         </div>
-
-        {/* Footer notice */}
-        <footer className="mt-16 pt-8 border-t border-gray-200 text-xs text-gray-500">
-          <p>
-            이 문서는 대한민국 개인정보보호법, 의료법, 의료해외진출법, 카자흐스탄
-            94-V ЗРК, EU GDPR을 기반으로 작성되었습니다. 최종 법적 효력은 관할
-            법령 및 변호사의 검토에 따릅니다.
-          </p>
-          <p className="mt-2">
-            This document is drafted based on Korean PIPA, Medical Service Act,
-            Medical Tourism Act, Kazakhstan Law 94-V, and EU GDPR. Final legal effect
-            is subject to applicable laws and professional review.
-          </p>
-        </footer>
       </div>
+
+      <style jsx>{`
+        @media (max-width: 768px) {
+          :global(.healo-legal-legacy-grid) {
+            grid-template-columns: 1fr !important;
+            gap: 24px !important;
+          }
+          :global(.healo-legal-legacy-grid aside) {
+            position: static !important;
+            max-height: 220px !important;
+            border-bottom: 1px solid #e2e8f0;
+            padding-bottom: 20px;
+          }
+        }
+      `}</style>
     </div>
   );
 }
