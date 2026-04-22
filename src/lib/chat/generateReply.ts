@@ -29,11 +29,11 @@ const TIER_LABELS: Record<number, string> = {
 
 export function getModel() {
   if (!process.env.GOOGLE_GENERATIVE_AI_API_KEY) return null;
-  return google("gemini-2.5-flash") as any;
+  return google("gemini-3-flash") as any;
 }
 
 export function getModelName() {
-  return "gemini-2.5-flash";
+  return "gemini-3-flash";
 }
 
 export async function getEmbedding(text: string): Promise<number[] | null> {

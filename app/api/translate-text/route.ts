@@ -86,7 +86,7 @@ export async function POST(request: NextRequest) {
     }
 
     const { text: result } = await generateText({
-      model: google("gemini-2.5-flash"),
+      model: google("gemini-3-flash"),
       prompt: `Translate these ${texts.length} texts to ${LANG_NAMES[targetLang]}. Return ONLY a JSON array of translated strings in the same order. No explanation.\n\n${JSON.stringify(texts)}`,
     });
 

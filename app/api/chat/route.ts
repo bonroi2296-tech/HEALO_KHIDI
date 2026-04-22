@@ -65,10 +65,10 @@ const getModel = () => {
     console.error("[api/chat] GOOGLE_GENERATIVE_AI_API_KEY is missing");
     return { error: jsonError(500, "google_key_missing", "GOOGLE_GENERATIVE_AI_API_KEY is missing") };
   }
-  return { model: google("gemini-2.5-flash") as any };
+  return { model: google("gemini-3-flash") as any };
 };
 
-const getModelName = () => "gemini-2.5-flash";
+const getModelName = () => "gemini-3-flash";
 
 const classifyGoogleError = (error: any) => {
   const message = String(error?.message || "");
