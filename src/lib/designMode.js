@@ -14,8 +14,8 @@
 export const DEFAULT_MODE = "legacy";
 export const COOKIE_NAME = "healo_design";
 
-// UI 토글 노출 여부. false 면 LEGACY · SWITCH 버튼 안 보임. 코드는 유지.
-export const SHOW_DESIGN_TOGGLE = false;
+// UI 토글 노출 여부. true = 우하단 LEGACY · SWITCH 버튼 노출 (A/B 비교용).
+export const SHOW_DESIGN_TOGGLE = true;
 
 /**
  * 서버/빌드 시 모드 결정.
