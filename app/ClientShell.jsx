@@ -175,17 +175,19 @@ export default function ClientShell({ children }) {
   ];
   const isPremiumPath = (p) =>
     PREMIUM_ROUTES.includes(p) || PREMIUM_PREFIXES.some((pre) => p.startsWith(pre));
-  const [isPremiumMode, setIsPremiumMode] = useState(true);
+  // 2026-04: 기본값 LEGACY 로 변경. 쿠키 이름도 v2 로 동기화.
+  // DEFAULT_MODE/COOKIE_NAME 은 src/lib/designMode.js 의 단일 진실 소스 참조.
+  const [isPremiumMode, setIsPremiumMode] = useState(false);
   useEffect(() => {
     try {
-      // 우선순위: ?design= 쿼리 > 쿠키 > env
+      // 우선순위: ?design= 쿼리 > 쿠키(v2) > env > 기본 LEGACY
       const qs = new URLSearchParams(window.location.search);
       const q = qs.get("design")?.toLowerCase();
       if (q === "legacy" || q === "premium") {
         setIsPremiumMode(q === "premium");
         return;
       }
-      const m = document.cookie.match(/(?:^|; )healo_design=([^;]*)/);
+      const m = document.cookie.match(/(?:^|; )healo_design_v2=([^;]*)/);
       if (m) {
         const v = decodeURIComponent(m[1]).toLowerCase();
         if (v === "legacy" || v === "premium") {
@@ -194,9 +196,9 @@ export default function ClientShell({ children }) {
         }
       }
       const env = process.env.NEXT_PUBLIC_DESIGN?.toLowerCase();
-      setIsPremiumMode(env !== "legacy");
+      setIsPremiumMode(env === "premium");
     } catch {
-      setIsPremiumMode(true);
+      setIsPremiumMode(false);
     }
   }, [pathname]);
   const isPremiumPage = isPremiumMode && isPremiumPath(pathname);
