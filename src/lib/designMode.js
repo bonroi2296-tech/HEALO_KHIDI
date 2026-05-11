@@ -16,8 +16,9 @@ export const DEFAULT_MODE = "legacy";
 // 첫 방문은 무조건 LEGACY (DEFAULT_MODE), 토글로 변경 시 v2 쿠키 새로 세팅.
 export const COOKIE_NAME = "healo_design_v2";
 
-// UI 토글 노출 여부. true = 우하단 LEGACY · SWITCH 버튼 노출 (A/B 비교용).
-export const SHOW_DESIGN_TOGGLE = true;
+// UI 토글 노출 여부. false = 버튼 숨김, 코드는 유지.
+// 다시 띄우려면 true 로 바꾸기만 하면 됨.
+export const SHOW_DESIGN_TOGGLE = false;
 
 /**
  * 서버/빌드 시 모드 결정.
