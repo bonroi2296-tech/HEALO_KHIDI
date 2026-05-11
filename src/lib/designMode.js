@@ -12,7 +12,9 @@
 // 2026-04-21: LEGACY 를 기본값으로 전환. PREMIUM 은 ?design=premium 쿼리나
 // 쿠키 수동 설정 시에만 노출 (UI 토글은 숨김 처리됨).
 export const DEFAULT_MODE = "legacy";
-export const COOKIE_NAME = "healo_design";
+// v2: 쿠키 이름 변경 → 예전 'healo_design=premium' 잔존 쿠키 무효화.
+// 첫 방문은 무조건 LEGACY (DEFAULT_MODE), 토글로 변경 시 v2 쿠키 새로 세팅.
+export const COOKIE_NAME = "healo_design_v2";
 
 // UI 토글 노출 여부. true = 우하단 LEGACY · SWITCH 버튼 노출 (A/B 비교용).
 export const SHOW_DESIGN_TOGGLE = true;
