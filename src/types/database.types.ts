@@ -906,6 +906,147 @@ export type Database = {
         }
         Relationships: []
       }
+      cost_estimate_history: {
+        Row: {
+          changed_by: string | null
+          created_at: string | null
+          estimate_id: string
+          from_status: string | null
+          id: string
+          note: string | null
+          to_status: string
+        }
+        Insert: {
+          changed_by?: string | null
+          created_at?: string | null
+          estimate_id: string
+          from_status?: string | null
+          id?: string
+          note?: string | null
+          to_status: string
+        }
+        Update: {
+          changed_by?: string | null
+          created_at?: string | null
+          estimate_id?: string
+          from_status?: string | null
+          id?: string
+          note?: string | null
+          to_status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cost_estimate_history_estimate_id_fkey"
+            columns: ["estimate_id"]
+            isOneToOne: false
+            referencedRelation: "cost_estimates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cost_estimates: {
+        Row: {
+          ai_personalization: string | null
+          auto_max_krw: number | null
+          auto_median_krw: number | null
+          auto_min_krw: number | null
+          consultation_id: string | null
+          coordinator_notes_encrypted: string | null
+          coordinator_user_id: string | null
+          created_at: string | null
+          expires_at: string | null
+          hospital_id: string | null
+          id: string
+          intake_id: string | null
+          patient_accepted_at: string | null
+          patient_accepted_ip: string | null
+          patient_user_id: string
+          quotation_issued_at: string | null
+          quotation_issued_by: string | null
+          quotation_items: Json | null
+          quotation_no: string | null
+          quotation_pdf_url: string | null
+          status: string
+          total_krw: number | null
+          total_usd: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          ai_personalization?: string | null
+          auto_max_krw?: number | null
+          auto_median_krw?: number | null
+          auto_min_krw?: number | null
+          consultation_id?: string | null
+          coordinator_notes_encrypted?: string | null
+          coordinator_user_id?: string | null
+          created_at?: string | null
+          expires_at?: string | null
+          hospital_id?: string | null
+          id?: string
+          intake_id?: string | null
+          patient_accepted_at?: string | null
+          patient_accepted_ip?: string | null
+          patient_user_id: string
+          quotation_issued_at?: string | null
+          quotation_issued_by?: string | null
+          quotation_items?: Json | null
+          quotation_no?: string | null
+          quotation_pdf_url?: string | null
+          status?: string
+          total_krw?: number | null
+          total_usd?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          ai_personalization?: string | null
+          auto_max_krw?: number | null
+          auto_median_krw?: number | null
+          auto_min_krw?: number | null
+          consultation_id?: string | null
+          coordinator_notes_encrypted?: string | null
+          coordinator_user_id?: string | null
+          created_at?: string | null
+          expires_at?: string | null
+          hospital_id?: string | null
+          id?: string
+          intake_id?: string | null
+          patient_accepted_at?: string | null
+          patient_accepted_ip?: string | null
+          patient_user_id?: string
+          quotation_issued_at?: string | null
+          quotation_issued_by?: string | null
+          quotation_items?: Json | null
+          quotation_no?: string | null
+          quotation_pdf_url?: string | null
+          status?: string
+          total_krw?: number | null
+          total_usd?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cost_estimates_consultation_id_fkey"
+            columns: ["consultation_id"]
+            isOneToOne: false
+            referencedRelation: "consultation_sessions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cost_estimates_hospital_id_fkey"
+            columns: ["hospital_id"]
+            isOneToOne: false
+            referencedRelation: "hospitals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cost_estimates_intake_id_fkey"
+            columns: ["intake_id"]
+            isOneToOne: false
+            referencedRelation: "cancer_patient_intakes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       crawl_jobs: {
         Row: {
           completed_at: string | null
@@ -1871,6 +2012,42 @@ export type Database = {
         }
         Relationships: []
       }
+      kpi_snapshots: {
+        Row: {
+          computed_at: string | null
+          countries: Json | null
+          follow_up_count: number | null
+          patient_attraction_count: number | null
+          pre_consultation_count: number | null
+          satisfaction_avg: number | null
+          satisfaction_response_count: number | null
+          snapshot_date: string
+          unique_patients_count: number | null
+        }
+        Insert: {
+          computed_at?: string | null
+          countries?: Json | null
+          follow_up_count?: number | null
+          patient_attraction_count?: number | null
+          pre_consultation_count?: number | null
+          satisfaction_avg?: number | null
+          satisfaction_response_count?: number | null
+          snapshot_date: string
+          unique_patients_count?: number | null
+        }
+        Update: {
+          computed_at?: string | null
+          countries?: Json | null
+          follow_up_count?: number | null
+          patient_attraction_count?: number | null
+          pre_consultation_count?: number | null
+          satisfaction_avg?: number | null
+          satisfaction_response_count?: number | null
+          snapshot_date?: string
+          unique_patients_count?: number | null
+        }
+        Relationships: []
+      }
       normalized_inquiries: {
         Row: {
           client_meta: Json | null
@@ -1951,6 +2128,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      notifications: {
+        Row: {
+          body: string | null
+          created_at: string | null
+          id: string
+          link: string | null
+          payload: Json | null
+          priority: string | null
+          read_at: string | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          body?: string | null
+          created_at?: string | null
+          id?: string
+          link?: string | null
+          payload?: Json | null
+          priority?: string | null
+          read_at?: string | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          body?: string | null
+          created_at?: string | null
+          id?: string
+          link?: string | null
+          payload?: Json | null
+          priority?: string | null
+          read_at?: string | null
+          title?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       partner_branches: {
         Row: {
@@ -2483,6 +2699,62 @@ export type Database = {
         }
         Relationships: []
       }
+      reminders_scheduled: {
+        Row: {
+          attempts: number | null
+          channel: string
+          consultation_session_id: string | null
+          created_at: string | null
+          fire_at: string
+          id: string
+          last_error: string | null
+          payload: Json | null
+          recipient_address: string | null
+          recipient_user_id: string | null
+          reminder_type: string
+          sent_at: string | null
+          status: string | null
+        }
+        Insert: {
+          attempts?: number | null
+          channel: string
+          consultation_session_id?: string | null
+          created_at?: string | null
+          fire_at: string
+          id?: string
+          last_error?: string | null
+          payload?: Json | null
+          recipient_address?: string | null
+          recipient_user_id?: string | null
+          reminder_type: string
+          sent_at?: string | null
+          status?: string | null
+        }
+        Update: {
+          attempts?: number | null
+          channel?: string
+          consultation_session_id?: string | null
+          created_at?: string | null
+          fire_at?: string
+          id?: string
+          last_error?: string | null
+          payload?: Json | null
+          recipient_address?: string | null
+          recipient_user_id?: string | null
+          reminder_type?: string
+          sent_at?: string | null
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reminders_scheduled_consultation_session_id_fkey"
+            columns: ["consultation_session_id"]
+            isOneToOne: false
+            referencedRelation: "consultation_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       reviews: {
         Row: {
           content: string | null
@@ -2634,6 +2906,148 @@ export type Database = {
         }
         Relationships: []
       }
+      survey_responses: {
+        Row: {
+          comment: string | null
+          id: string
+          ip_hash: string | null
+          q1_score: number | null
+          q2_score: number | null
+          q3_score: number | null
+          q4_score: number | null
+          q5_score: number | null
+          submitted_at: string | null
+          survey_id: string
+          user_agent: string | null
+        }
+        Insert: {
+          comment?: string | null
+          id?: string
+          ip_hash?: string | null
+          q1_score?: number | null
+          q2_score?: number | null
+          q3_score?: number | null
+          q4_score?: number | null
+          q5_score?: number | null
+          submitted_at?: string | null
+          survey_id: string
+          user_agent?: string | null
+        }
+        Update: {
+          comment?: string | null
+          id?: string
+          ip_hash?: string | null
+          q1_score?: number | null
+          q2_score?: number | null
+          q3_score?: number | null
+          q4_score?: number | null
+          q5_score?: number | null
+          submitted_at?: string | null
+          survey_id?: string
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "survey_responses_survey_id_fkey"
+            columns: ["survey_id"]
+            isOneToOne: false
+            referencedRelation: "surveys"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      surveys: {
+        Row: {
+          consultation_session_id: string | null
+          created_at: string | null
+          expires_at: string | null
+          id: string
+          patient_id: string | null
+          reminder_sent_at: string | null
+          responded: boolean | null
+          sent_at: string | null
+          survey_type: string
+          token: string
+        }
+        Insert: {
+          consultation_session_id?: string | null
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          patient_id?: string | null
+          reminder_sent_at?: string | null
+          responded?: boolean | null
+          sent_at?: string | null
+          survey_type?: string
+          token: string
+        }
+        Update: {
+          consultation_session_id?: string | null
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          patient_id?: string | null
+          reminder_sent_at?: string | null
+          responded?: boolean | null
+          sent_at?: string | null
+          survey_type?: string
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "surveys_consultation_session_id_fkey"
+            columns: ["consultation_session_id"]
+            isOneToOne: false
+            referencedRelation: "consultation_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      symptom_alerts: {
+        Row: {
+          acknowledged_at: string | null
+          acknowledged_by: string | null
+          alert_type: string
+          data: Json | null
+          detected_at: string | null
+          detected_by: string | null
+          id: string
+          patient_id: string
+          resolution_note: string | null
+          resolved_at: string | null
+          severity: string
+          symptom_entry_id: string | null
+        }
+        Insert: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          alert_type: string
+          data?: Json | null
+          detected_at?: string | null
+          detected_by?: string | null
+          id?: string
+          patient_id: string
+          resolution_note?: string | null
+          resolved_at?: string | null
+          severity?: string
+          symptom_entry_id?: string | null
+        }
+        Update: {
+          acknowledged_at?: string | null
+          acknowledged_by?: string | null
+          alert_type?: string
+          data?: Json | null
+          detected_at?: string | null
+          detected_by?: string | null
+          id?: string
+          patient_id?: string
+          resolution_note?: string | null
+          resolved_at?: string | null
+          severity?: string
+          symptom_entry_id?: string | null
+        }
+        Relationships: []
+      }
       symptom_reports: {
         Row: {
           action_taken: string | null
@@ -2727,6 +3141,66 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      treatment_cost_benchmarks: {
+        Row: {
+          cancer_type: string
+          confidence: string | null
+          created_at: string | null
+          id: string
+          max_krw: number
+          max_usd: number | null
+          median_krw: number
+          median_usd: number | null
+          min_krw: number
+          min_usd: number | null
+          notes: string | null
+          procedures: Json | null
+          sample_size: number | null
+          source: string | null
+          stage: string
+          treatment_phase: string
+          updated_at: string | null
+        }
+        Insert: {
+          cancer_type: string
+          confidence?: string | null
+          created_at?: string | null
+          id?: string
+          max_krw: number
+          max_usd?: number | null
+          median_krw: number
+          median_usd?: number | null
+          min_krw: number
+          min_usd?: number | null
+          notes?: string | null
+          procedures?: Json | null
+          sample_size?: number | null
+          source?: string | null
+          stage: string
+          treatment_phase: string
+          updated_at?: string | null
+        }
+        Update: {
+          cancer_type?: string
+          confidence?: string | null
+          created_at?: string | null
+          id?: string
+          max_krw?: number
+          max_usd?: number | null
+          median_krw?: number
+          median_usd?: number | null
+          min_krw?: number
+          min_usd?: number | null
+          notes?: string | null
+          procedures?: Json | null
+          sample_size?: number | null
+          source?: string | null
+          stage?: string
+          treatment_phase?: string
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       treatment_sources: {
         Row: {

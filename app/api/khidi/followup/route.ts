@@ -83,6 +83,65 @@ export async function POST(request: NextRequest) {
       `urgency=${analysis.urgencyLevel}, action=${analysis.recommendedAction}`
     );
 
+    // ── FR-16: 이상치 자동 감지 (비동기 — 응답 차단 X) ─────────────
+    // symptom_reports 의 첫 번째 증상을 SymptomEntry 형태로 변환하여 감지 실행
+    ;(async () => {
+      try {
+        const { detectAlerts } = await import("../../../../src/lib/symptoms/detect");
+        const { saveAndNotifyAlerts } = await import("../../../../src/lib/symptoms/alertService");
+
+        // 직전 보고 조회 (급격한 악화 감지용)
+        // symptom_reports 에 patient_id 컬럼이 없으므로 followup_id 기반 조회 시도,
+        // 없으면 가장 최근 2개 (같은 inquiry 범위)
+        const { data: prevReports } = payload.inquiryId
+          ? await supabaseAdmin
+              .from("symptom_reports")
+              .select("id, symptoms, created_at")
+              .eq("inquiry_id" as any, payload.inquiryId)
+              .order("created_at", { ascending: false })
+              .limit(2)
+          : await supabaseAdmin
+              .from("symptom_reports")
+              .select("id, symptoms, created_at")
+              .order("created_at", { ascending: false })
+              .limit(2);
+
+        const prevSymptoms = (prevReports as any[] | null)?.[1]?.symptoms;
+        const prevPain = Array.isArray(prevSymptoms?.items)
+          ? prevSymptoms.items[0]?.severity
+          : Array.isArray(prevSymptoms)
+            ? prevSymptoms[0]?.severity
+            : undefined;
+
+        const firstSym = report.symptoms[0];
+        const entry = {
+          id: data.id,
+          patient_id: auth.userId!,
+          pain_score: firstSym?.severity ?? undefined,
+          notes: [
+            ...report.symptoms.map((s: any) => s.symptom),
+            report.additionalNotes || "",
+          ]
+            .filter(Boolean)
+            .join(" "),
+          created_at: new Date().toISOString(),
+        };
+        const previousEntry = prevPain != null
+          ? { patient_id: auth.userId!, pain_score: Number(prevPain) }
+          : null;
+
+        const detected = await detectAlerts(entry, previousEntry);
+        if (detected.length > 0) {
+          await saveAndNotifyAlerts(detected);
+          console.log(`[api/khidi/followup] 이상치 감지 ${detected.length}건 — report ${data.id}`);
+        }
+      } catch (e: any) {
+        // Fail-safe: 감지 실패해도 메인 응답에 영향 없음
+        console.error("[api/khidi/followup] 감지 오류 (무시):", e.message);
+      }
+    })();
+    // ────────────────────────────────────────────────────────────────
+
     // Auto-evaluate rebooking need based on symptom analysis
     let rebookingSuggestion: any = null;
     if (analysis.recommendedAction === 'schedule_followup' ||

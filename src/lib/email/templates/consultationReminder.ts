@@ -1,0 +1,248 @@
+/**
+ * HEALO: 30분 전 상담 리마인더 이메일 템플릿
+ *
+ * 지원 언어: ko / en / ru / kk / zh / ja
+ * 순수 HTML (React Email 없이 — 이메일 클라이언트 호환성 최대화)
+ * 기존 consultationInvite.ts 의 스타일/구조와 통일.
+ */
+
+export interface ConsultationReminderProps {
+  recipientName?: string;
+  joinUrl: string;
+  scheduledAt: string; // ISO 문자열
+  role?: string; // patient | doctor | interpreter | coordinator
+  doctorName?: string;
+  hospitalName?: string;
+  lang?: "ko" | "en" | "ru" | "kk" | "zh" | "ja";
+}
+
+const STRINGS: Record<
+  string,
+  {
+    subject: string;
+    preheader: string;
+    greeting: (n: string) => string;
+    countdown: string;
+    timeLabel: string;
+    intro: string;
+    joinBtn: string;
+    alreadyHaveLink: string;
+    footer: string;
+  }
+> = {
+  ko: {
+    subject: "⏰ [30분 후] HEALO 원격 상담이 시작됩니다",
+    preheader: "30분 뒤 상담 시작 — 지금 입장 준비하세요",
+    greeting: (n: string) => `안녕하세요${n ? `, ${n}님` : ""}.`,
+    countdown: "30분 후 상담 시작",
+    timeLabel: "예약 시각",
+    intro: "곧 원격 상담이 시작됩니다. 아래 버튼을 클릭해 상담 방에 입장해 주세요.",
+    joinBtn: "지금 입장하기",
+    alreadyHaveLink: "이미 초대 이메일을 받으신 경우 기존 링크로도 입장 가능합니다.",
+    footer: "HEALO · 한국 암 치료 컨시어지",
+  },
+  en: {
+    subject: "⏰ [30 min] Your HEALO consultation starts soon",
+    preheader: "Consultation starting in 30 minutes — get ready",
+    greeting: (n: string) => `Hello${n ? `, ${n}` : ""},`,
+    countdown: "Starting in 30 minutes",
+    timeLabel: "Scheduled time",
+    intro: "Your telemedicine consultation is starting soon. Click the button below to join.",
+    joinBtn: "Join now",
+    alreadyHaveLink: "You can also use the link from your original invitation email.",
+    footer: "HEALO · Korea cancer-care concierge",
+  },
+  ru: {
+    subject: "⏰ [30 мин] Ваша консультация HEALO скоро начнётся",
+    preheader: "Консультация через 30 минут — приготовьтесь",
+    greeting: (n: string) => `Здравствуйте${n ? `, ${n}` : ""}!`,
+    countdown: "Начало через 30 минут",
+    timeLabel: "Время",
+    intro: "Ваша онлайн-консультация скоро начнётся. Нажмите кнопку ниже, чтобы войти.",
+    joinBtn: "Войти сейчас",
+    alreadyHaveLink: "Вы также можете использовать ссылку из исходного письма-приглашения.",
+    footer: "HEALO · Онкология в Корее",
+  },
+  kk: {
+    subject: "⏰ [30 мин] HEALO кеңесіңіз жақын арада басталады",
+    preheader: "30 минуттан кейін кеңес — дайындалыңыз",
+    greeting: (n: string) => `Сәлеметсіз бе${n ? `, ${n}` : ""}!`,
+    countdown: "30 минуттан кейін басталады",
+    timeLabel: "Уақыт",
+    intro: "Сіздің онлайн кеңесіңіз жақын арада басталады. Кіру үшін төмендегі түймені басыңыз.",
+    joinBtn: "Қазір кіру",
+    alreadyHaveLink: "Бастапқы шақыру хатындағы сілтемені де пайдалана аласыз.",
+    footer: "HEALO · Кореядағы онкология консьерж",
+  },
+  zh: {
+    subject: "⏰ [30分钟后] 您的 HEALO 会诊即将开始",
+    preheader: "30分钟后开始会诊——请做好准备",
+    greeting: (n: string) => `您好${n ? `，${n}` : ""},`,
+    countdown: "30分钟后开始",
+    timeLabel: "预约时间",
+    intro: "您的在线会诊即将开始。请点击下方按钮进入会诊室。",
+    joinBtn: "立即进入",
+    alreadyHaveLink: "您也可以使用原始邀请邮件中的链接。",
+    footer: "HEALO · 韩国肿瘤医疗服务",
+  },
+  ja: {
+    subject: "⏰ [30分後] HEALO 遠隔診療がもうすぐ始まります",
+    preheader: "30分後に診療開始 — ご準備ください",
+    greeting: (n: string) => `こんにちは${n ? `、${n}様` : ""}。`,
+    countdown: "30分後に開始",
+    timeLabel: "予約時刻",
+    intro: "遠隔診療がもうすぐ始まります。下のボタンをクリックして入室してください。",
+    joinBtn: "今すぐ入室",
+    alreadyHaveLink: "元の招待メールのリンクからも入室できます。",
+    footer: "HEALO · 韓国がん治療コンシェルジュ",
+  },
+};
+
+export function renderConsultationReminderEmail(props: ConsultationReminderProps): {
+  subject: string;
+  html: string;
+  text: string;
+} {
+  const langKey =
+    props.lang && STRINGS[props.lang] ? props.lang : "ko";
+  const s = STRINGS[langKey];
+  const name = (props.recipientName || "").slice(0, 50);
+
+  const localeMap: Record<string, string> = {
+    ko: "ko-KR",
+    en: "en-US",
+    ru: "ru-RU",
+    kk: "ru-RU",
+    zh: "zh-CN",
+    ja: "ja-JP",
+  };
+  const scheduledFormatted = new Date(props.scheduledAt).toLocaleString(
+    localeMap[langKey] ?? "ko-KR",
+    {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      weekday: "short",
+      hour: "2-digit",
+      minute: "2-digit",
+    }
+  );
+
+  // 의사/병원 카드 (있을 때만)
+  const providerCard =
+    props.hospitalName || props.doctorName
+      ? `
+<tr><td style="padding:12px 0 8px;">
+  <table cellpadding="0" cellspacing="0" style="width:100%;background:#fafaf8;border-left:3px solid #c8a96a;border-radius:2px;">
+    <tr><td style="padding:14px 16px;">
+      ${props.hospitalName ? `<div style="font-size:14px;font-weight:600;color:#0f172a;margin-bottom:2px;">${esc(props.hospitalName)}</div>` : ""}
+      ${props.doctorName ? `<div style="font-size:12px;color:#64748b;">Dr. ${esc(props.doctorName)}</div>` : ""}
+    </td></tr>
+  </table>
+</td></tr>`
+      : "";
+
+  // 30분 카운트다운 배지
+  const countdownBadge = `
+<tr><td style="text-align:center;padding:24px 0 16px;">
+  <div style="display:inline-block;background:#fee2e2;border:1.5px solid #fca5a5;border-radius:20px;padding:8px 20px;">
+    <span style="font-size:13px;font-weight:700;color:#dc2626;letter-spacing:0.05em;">⏰ ${esc(s.countdown)}</span>
+  </div>
+</td></tr>`;
+
+  const html = `
+<!DOCTYPE html>
+<html lang="${langKey}">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${esc(s.subject)}</title>
+</head>
+<body style="margin:0;padding:0;background:#f5f0e8;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">
+<div style="display:none;overflow:hidden;line-height:1px;opacity:0;max-height:0;max-width:0;">${esc(s.preheader)}</div>
+<table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background:#f5f0e8;padding:24px 12px;">
+  <tr><td align="center">
+    <table width="560" cellpadding="0" cellspacing="0" role="presentation" style="max-width:560px;background:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 4px 16px rgba(0,0,0,0.06);">
+      <!-- 헤더 -->
+      <tr>
+        <td style="background:#0a0a0a;padding:28px 32px 20px;">
+          <div style="font-family:'Playfair Display',Georgia,serif;color:#c8a96a;font-size:28px;letter-spacing:0.02em;">HEALO</div>
+          <div style="font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#c7c2b8;margin-top:4px;">${esc(s.footer)}</div>
+        </td>
+      </tr>
+      <!-- 본문 -->
+      <tr>
+        <td style="padding:32px 32px 16px;">
+          <table cellpadding="0" cellspacing="0" style="width:100%;">
+            ${countdownBadge}
+            <tr><td>
+              <p style="margin:0 0 12px;font-size:15px;color:#0f172a;">${esc(s.greeting(name))}</p>
+              <p style="margin:0 0 20px;font-size:14px;line-height:1.7;color:#334155;">${esc(s.intro)}</p>
+            </td></tr>
+            <!-- 시간 표 -->
+            <tr><td>
+              <table cellpadding="0" cellspacing="0" style="width:100%;margin:0 0 8px;border-top:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0;padding:10px 0;">
+                <tr>
+                  <td style="padding:8px 0;color:#64748b;font-size:13px;">${esc(s.timeLabel)}:</td>
+                  <td style="padding:8px 0;color:#0f172a;font-size:14px;font-weight:600;">${esc(scheduledFormatted)}</td>
+                </tr>
+              </table>
+            </td></tr>
+            ${providerCard}
+            <!-- 입장 버튼 -->
+            <tr><td style="text-align:center;padding:28px 0 16px;">
+              <a href="${esc(props.joinUrl)}"
+                 style="display:inline-block;background:#c8a96a;color:#0a0a0a;text-decoration:none;padding:14px 36px;font-size:13px;letter-spacing:0.2em;text-transform:uppercase;font-weight:600;border-radius:2px;">
+                ${esc(s.joinBtn)}
+              </a>
+            </td></tr>
+            <tr><td>
+              <p style="margin:8px 0;font-size:12px;line-height:1.6;color:#64748b;">${esc(s.alreadyHaveLink)}</p>
+              <p style="margin:12px 0 0;font-size:11px;color:#94a3b8;word-break:break-all;">${esc(props.joinUrl)}</p>
+            </td></tr>
+          </table>
+        </td>
+      </tr>
+      <!-- 푸터 -->
+      <tr>
+        <td style="background:#f8fafc;padding:16px 32px;font-size:10px;color:#94a3b8;text-align:center;line-height:1.6;">
+          HEALO is not a medical institution. Diagnosis / treatment by licensed Korean providers.
+        </td>
+      </tr>
+    </table>
+  </td></tr>
+</table>
+</body>
+</html>`.trim();
+
+  const text = [
+    s.greeting(name),
+    "",
+    `⏰ ${s.countdown}`,
+    "",
+    s.intro,
+    "",
+    `${s.timeLabel}: ${scheduledFormatted}`,
+    props.hospitalName ? `🏥 ${props.hospitalName}` : "",
+    props.doctorName ? `👨‍⚕️ Dr. ${props.doctorName}` : "",
+    "",
+    `${s.joinBtn}: ${props.joinUrl}`,
+    "",
+    s.alreadyHaveLink,
+    "",
+    "— HEALO",
+  ]
+    .filter((l) => l !== undefined && l !== null)
+    .join("\n");
+
+  return { subject: s.subject, html, text };
+}
+
+function esc(s: string): string {
+  return String(s)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}

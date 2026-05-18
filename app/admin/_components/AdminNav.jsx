@@ -21,6 +21,7 @@ import {
   SearchCode,
   HeartPulse,
   Video,
+  TrendingUp,
 } from "lucide-react";
 import { createSupabaseBrowserClient } from "../../../src/lib/supabase/browser";
 
@@ -31,6 +32,7 @@ const navGroups = [
       { id: "dashboard", label: "대시보드", icon: LayoutDashboard, href: "/admin" },
       { id: "agent", label: "Human Agent", icon: HeartPulse, href: "/admin/agent" },
       { id: "consultations", label: "원격협진", icon: Video, href: "/admin/consultations" },
+      { id: "kpi-dashboard", label: "KPI 대시보드", icon: TrendingUp, href: "/admin/khidi/kpi-dashboard" },
     ]
   },
   {

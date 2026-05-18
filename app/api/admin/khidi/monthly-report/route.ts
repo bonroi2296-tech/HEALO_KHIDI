@@ -1,0 +1,242 @@
+/**
+ * HEALO KHIDI 월간 보고 xlsx 자동 생성 API
+ *
+ * POST /api/admin/khidi/monthly-report
+ * Body: { year: number, month: number }
+ *
+ * 처리 흐름:
+ * 1. requireAdminAuth 권한 체크
+ * 2. 템플릿 xlsx 읽기 (원본 수정 절대 금지 — 메모리 사본으로만 처리)
+ * 3. KPI 집계 + 환자 명단 조회
+ * 4. 해당 월 시트에 셀 채우기 (C9/C10/C11/C12)
+ * 5. 사전사후관리 현황보고 시트 환자 행 채우기
+ * 6. xlsx Buffer 스트림 반환
+ *
+ * 셀 매핑:
+ *   C9  사전상담 건수 (K-02)
+ *   C10 사후관리 건수 (K-04)
+ *   C11 환자유치 건수 (K-01)
+ *   C12 기타사항 (자동 생성 메모)
+ *
+ * 라이브러리: exceljs ^4.4.0
+ * 권한: admin only
+ */
+
+export const runtime = "nodejs";
+export const maxDuration = 60;
+
+import { NextRequest } from "next/server";
+import ExcelJS from "exceljs";
+import path from "path";
+import fs from "fs";
+import { requireAdminAuth } from "../../../../../src/lib/auth/requireAdminAuth";
+import {
+  getKpiForMonth,
+} from "../../../../../src/lib/khidi/kpi";
+import { createClient } from "@supabase/supabase-js";
+
+// ============================================================
+// 템플릿 파일 경로 (원본 — 읽기 전용)
+// ============================================================
+const TEMPLATE_CANDIDATES = [
+  // 실제 파일 경로 (로컬 개발 환경)
+  "C:/Users/user/Documents/테플러/2025 정부지원과제/02. 본로이/03. 진행 중/12. ICT 기반 외국인환자 사전상담·사후관리 지원 사업/02. 진행서류/07. 월간 업무 보고/월간 업무 보고_5월_본로이_작성본.xlsx",
+  // Vercel 배포 환경 — public 폴더에 복사해두는 경우
+  path.join(process.cwd(), "public/templates/khidi_monthly_report_template.xlsx"),
+];
+
+const MONTH_SHEET_NAMES: Record<number, string> = {
+  4: "4월", 5: "5월", 6: "6월", 7: "7월",
+  8: "8월", 9: "9월", 10: "10월", 11: "11월",
+};
+
+function getAdminClient() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+  return createClient(url, key, { auth: { persistSession: false } });
+}
+
+async function fetchPatientList(year: number, month: number) {
+  const supabase = getAdminClient();
+  const fromISO = `${year}-${String(month).padStart(2, "0")}-01T00:00:00+09:00`;
+  const nextMonth = month === 12 ? 1 : month + 1;
+  const nextYear = month === 12 ? year + 1 : year;
+  const toISO = `${nextYear}-${String(nextMonth).padStart(2, "0")}-01T00:00:00+09:00`;
+
+  const { data, error } = await supabase
+    .from("consultation_sessions")
+    .select(`
+      id,
+      patient_id,
+      session_type,
+      scheduled_at,
+      notes,
+      khidi_intakes!inner(
+        user_id,
+        nationality,
+        gender,
+        birth_date,
+        diagnosis
+      )
+    `)
+    .eq("status", "completed")
+    .gte("scheduled_at", fromISO)
+    .lt("scheduled_at", toISO)
+    .order("scheduled_at", { ascending: true });
+
+  if (error) {
+    console.error("[monthly-report] patient fetch error:", error.message);
+    return [];
+  }
+
+  return data ?? [];
+}
+
+export async function POST(request: NextRequest) {
+  const auth = await requireAdminAuth(request);
+  if (!auth.success) return auth.response;
+
+  let body: { year?: number; month?: number };
+  try {
+    body = await request.json();
+  } catch {
+    return Response.json({ ok: false, error: "invalid_json" }, { status: 400 });
+  }
+
+  const { year, month } = body;
+  if (!year || !month || month < 4 || month > 11) {
+    return Response.json(
+      { ok: false, error: "invalid_params", detail: "year·month 필수 (month: 4~11)" },
+      { status: 400 }
+    );
+  }
+
+  const sheetName = MONTH_SHEET_NAMES[month];
+  if (!sheetName) {
+    return Response.json(
+      { ok: false, error: "unsupported_month", detail: "4~11월만 지원됩니다" },
+      { status: 400 }
+    );
+  }
+
+  // ── 1. 템플릿 파일 찾기 ──────────────────────────────────
+  let templatePath: string | null = null;
+  for (const candidate of TEMPLATE_CANDIDATES) {
+    if (fs.existsSync(candidate)) {
+      templatePath = candidate;
+      break;
+    }
+  }
+
+  if (!templatePath) {
+    console.error("[monthly-report] Template file not found. Candidates:", TEMPLATE_CANDIDATES);
+    return Response.json(
+      {
+        ok: false,
+        error: "template_not_found",
+        detail:
+          "템플릿 xlsx 파일을 찾을 수 없습니다. public/templates/khidi_monthly_report_template.xlsx 에 복사해 주세요.",
+      },
+      { status: 500 }
+    );
+  }
+
+  try {
+    // ── 2. KPI + 환자 명단 병렬 조회 ──────────────────────
+    const [kpi, patients] = await Promise.all([
+      getKpiForMonth(year, month),
+      fetchPatientList(year, month),
+    ]);
+
+    // ── 3. 템플릿 로드 (메모리 내 사본 — 원본 파일 절대 쓰기 금지) ──
+    const wb = new ExcelJS.Workbook();
+    await wb.xlsx.readFile(templatePath);
+
+    // ── 4. 월별 시트 채우기 ───────────────────────────────
+    const monthSheet = wb.getWorksheet(sheetName);
+    if (!monthSheet) {
+      return Response.json(
+        { ok: false, error: "sheet_not_found", detail: `'${sheetName}' 시트가 없습니다` },
+        { status: 500 }
+      );
+    }
+
+    // C9: 사전상담 건수
+    monthSheet.getCell("C9").value = kpi.preConsultation;
+    // C10: 사후관리 건수
+    monthSheet.getCell("C10").value = kpi.followUp;
+    // C11: 환자유치 건수
+    monthSheet.getCell("C11").value = kpi.attraction;
+    // C12: 기타사항 (자동 생성 메모)
+    const generatedAt = new Date().toLocaleString("ko-KR", { timeZone: "Asia/Seoul" });
+    monthSheet.getCell("C12").value =
+      `HEALO 시스템 자동 생성 (${generatedAt})\n` +
+      `만족도 평균: ${kpi.satisfactionAvg ?? "미집계"}점 (응답 ${kpi.satisfactionResponseCount}건, 응답률 ${kpi.satisfactionResponseRate ?? "—"}%)\n` +
+      `고유 환자 수: ${kpi.uniquePatients}명`;
+
+    // ── 5. 사전사후관리 현황보고 시트 (환자 명단) ──────────
+    const patientSheet = wb.getWorksheet("사전사후관리 현황보고 양식_누적");
+    if (patientSheet && patients.length > 0) {
+      // 5행부터 데이터 시작 (헤더: 1~4행)
+      const startRow = 5;
+      patients.forEach((session: any, idx: number) => {
+        const intake = Array.isArray(session.khidi_intakes)
+          ? session.khidi_intakes[0]
+          : session.khidi_intakes;
+        if (!intake) return;
+
+        const rowNum = startRow + idx;
+        const row = patientSheet.getRow(rowNum);
+
+        // A: 항목 번호
+        row.getCell(1).value = idx + 1;
+        // B: 진료유형 (사전상담/사후관리)
+        row.getCell(2).value =
+          session.session_type === "pre_consultation" ? "사전상담" : "사후관리";
+        // C: 환자등록번호 (UUID 앞 8자리 — PII 최소화)
+        row.getCell(3).value = String(session.patient_id ?? "").slice(0, 8).toUpperCase();
+        // D: 출생연도 (YYYY)
+        row.getCell(4).value = intake.birth_date
+          ? new Date(intake.birth_date).getFullYear()
+          : "";
+        // E: 성별
+        row.getCell(5).value = intake.gender === "male" ? "남" : intake.gender === "female" ? "여" : "";
+        // F: 국적
+        row.getCell(6).value = intake.nationality ?? "";
+        // G: 진료일자
+        row.getCell(7).value = session.scheduled_at
+          ? new Date(session.scheduled_at).toISOString().slice(0, 10)
+          : "";
+        // H: 진료과명 (한방 기본)
+        row.getCell(8).value = "한방";
+        // I: 주상병명
+        row.getCell(9).value = intake.diagnosis ?? "";
+        // J: 사전사후관리 내용
+        row.getCell(10).value = session.notes ?? "";
+
+        row.commit();
+      });
+    }
+
+    // ── 6. xlsx Buffer 생성 → 스트림 반환 ────────────────
+    const buffer = await wb.xlsx.writeBuffer();
+    const filename = `KHIDI_월간보고_${year}년${month}월_본로이.xlsx`;
+
+    return new Response(buffer as unknown as BodyInit, {
+      status: 200,
+      headers: {
+        "Content-Type":
+          "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "Content-Disposition": `attachment; filename*=UTF-8''${encodeURIComponent(filename)}`,
+        "Content-Length": String((buffer as unknown as Buffer).byteLength),
+        "Cache-Control": "no-store",
+      },
+    });
+  } catch (err) {
+    console.error("[monthly-report] generation error:", (err as Error).message);
+    return Response.json(
+      { ok: false, error: "internal_error" },
+      { status: 500 }
+    );
+  }
+}
