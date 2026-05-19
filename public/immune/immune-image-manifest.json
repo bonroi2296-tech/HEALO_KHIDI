@@ -1,9 +1,9 @@
 {
   "_meta": {
-    "generated": "2026-04-21",
-    "source": "https://immunehospital.com",
+    "generated": "2026-05-19",
+    "source": "https://immunehospital.com, https://sd.immunehospital.com",
     "copyright": "면력한방병원 (자사 병원, 저작권 OK)",
-    "total_files": 101
+    "total_files": 115
   },
   "logo": {
     "colorLogo": "/immune/logo/color-logo.svg",
@@ -133,7 +133,15 @@
       "/immune/facility/facility-healing-space-6.jpg",
       "/immune/facility/facility-healing-space-7.jpg"
     ],
-    "seongdong": ["/immune/facility/facility-seongdong-1.jpg"]
+    "seongdong": [
+      "/immune/facility/facility-seongdong-1.jpg",
+      "/immune/facility/facility-seongdong-vip-1.jpg",
+      "/immune/facility/facility-seongdong-vip-2.jpg",
+      "/immune/facility/facility-seongdong-vip-3.jpg",
+      "/immune/facility/facility-seongdong-ward-1.jpg",
+      "/immune/facility/facility-seongdong-treatment-1.jpg",
+      "/immune/facility/facility-seongdong-healing-1.jpg"
+    ]
   },
   "doctor": {
     "gangeo": {
@@ -146,7 +154,14 @@
       "kim_junghyun": "/immune/doctor/gangeo-dr-kim-junghyun.jpg"
     },
     "seongdong": {
-      "kang_juan": "/immune/doctor/seongdong-dr-kang-juan.png"
+      "kang_juan": "/immune/doctor/seongdong-dr-kang-juan.png",
+      "seung_hyeonsuk": "/immune/doctor/seongdong-dr-seung-hyeonsuk.jpg",
+      "im_gyeongsu": "/immune/doctor/seongdong-dr-im-gyeongsu.jpg",
+      "go_eunsang": "/immune/doctor/seongdong-dr-go-eunsang.jpg",
+      "lee_munseong": "/immune/doctor/seongdong-dr-lee-munseong.jpg",
+      "park_jeonghyang": "/immune/doctor/seongdong-dr-park-jeonghyang.jpg",
+      "noh_hyeonmin": "/immune/doctor/seongdong-dr-noh-hyeonmin.jpg",
+      "lee_jinyeong": "/immune/doctor/seongdong-dr-lee-jinyeong.jpg"
     }
   },
   "misc": {

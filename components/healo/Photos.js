@@ -52,6 +52,16 @@ export const IMMUNE_PHOTOS = {
   drBae: "https://immunehospital.com/uploads/doctors/690b00eb512ff3.09917549.jpg",       // 배상근
   drKimJH: "https://immunehospital.com/uploads/doctors/69d6ee664689b0.12934912.jpg",     // 김정현
 
+  // 성동 의료진
+  drKangJuan: "https://immunehospital.com/uploads/doctors/69e71eaa0bb548.83985851.png",      // 강주안 (성동 대표원장)
+  drSeungHyeonsuk: "https://immunehospital.com/uploads/doctors/6a040390c37997.97100336.jpg", // 승현석 (의무원장)
+  drImGyeongsu: "https://immunehospital.com/uploads/doctors/6a040420ccbe86.88350198.jpg",    // 임경수 (양방대표원장)
+  drGoEunsang: "https://immunehospital.com/uploads/doctors/6a0404b0869a76.89735854.jpg",     // 고은상
+  drLeeMunseong: "https://immunehospital.com/uploads/doctors/6a04046e2e7a86.09116902.jpg",   // 이문성
+  drParkJeonghyang: "https://immunehospital.com/uploads/doctors/6a0405363d4b90.26971351.jpg",// 박정향
+  drNohHyeonmin: "https://immunehospital.com/uploads/doctors/6a057a886c1dc8.77991002.jpg",   // 노현민
+  drLeeJinyeong: "https://immunehospital.com/uploads/doctors/6a057b078fe633.40987548.jpg",   // 이진영
+
   // 로고
   logo: "https://immunehospital.com/uploads/logo/68c380cc245ef6.75534933.svg",
 };
