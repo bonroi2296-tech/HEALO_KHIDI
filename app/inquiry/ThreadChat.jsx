@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { ArrowRight, AlertCircle, Loader2, User, Bot } from "lucide-react";
+import { ArrowRight, AlertCircle, Loader2, User, Bot, ThumbsUp, ThumbsDown, X } from "lucide-react";
 import { getLangCodeFromCookie, t } from "../../src/lib/i18n";
 
 const TOKEN_COOKIE = "healo_chat_token";
@@ -109,6 +109,99 @@ function IdentificationForm({ langCode, onSubmit, submitting }) {
   );
 }
 
+// 피드백 모달 컴포넌트
+function FeedbackModal({ langCode, messageId, threadId, publicToken, onClose, onSubmitted }) {
+  const [selectedReason, setSelectedReason] = useState("");
+  const [comment, setComment] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  const reasons = [
+    { key: "inaccurate", label: t("chat.feedback.reason.inaccurate", langCode) || "Inaccurate information" },
+    { key: "irrelevant", label: t("chat.feedback.reason.irrelevant", langCode) || "Not relevant" },
+    { key: "harmful", label: t("chat.feedback.reason.harmful", langCode) || "Potentially harmful" },
+    { key: "other", label: t("chat.feedback.reason.other", langCode) || "Other" },
+  ];
+
+  const handleSubmit = async () => {
+    setSubmitting(true);
+    try {
+      await fetch("/api/public/chat/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          thread_id: threadId,
+          message_id: messageId,
+          public_token: publicToken,
+          rating: -1,
+          reason_category: selectedReason || null,
+          comment: comment.trim() || null,
+        }),
+      });
+    } catch (e) {
+      console.warn("[FeedbackModal] submit failed:", e);
+    } finally {
+      setSubmitting(false);
+      onSubmitted();
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-5">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-sm font-bold text-gray-900">
+            {t("chat.feedback.modalTitle", langCode) || "What was wrong with this response?"}
+          </h3>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition">
+            <X size={18} />
+          </button>
+        </div>
+
+        <div className="space-y-2 mb-4">
+          {reasons.map((r) => (
+            <button
+              key={r.key}
+              onClick={() => setSelectedReason(r.key)}
+              className={`w-full text-left px-4 py-2.5 rounded-xl border text-sm font-medium transition ${
+                selectedReason === r.key
+                  ? "bg-red-50 border-red-400 text-red-700"
+                  : "border-gray-200 text-gray-700 hover:bg-gray-50"
+              }`}
+            >
+              {r.label}
+            </button>
+          ))}
+        </div>
+
+        <textarea
+          value={comment}
+          onChange={(e) => setComment(e.target.value)}
+          placeholder={t("chat.feedback.commentPlaceholder", langCode) || "Additional comments (optional)"}
+          rows={3}
+          className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-red-400 mb-4"
+        />
+
+        <div className="flex gap-2">
+          <button
+            onClick={onClose}
+            className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 transition"
+          >
+            {t("chat.feedback.cancel", langCode) || "Cancel"}
+          </button>
+          <button
+            onClick={handleSubmit}
+            disabled={submitting}
+            className="flex-1 py-2.5 rounded-xl bg-red-500 text-white text-sm font-medium hover:bg-red-600 disabled:opacity-50 transition flex items-center justify-center gap-1"
+          >
+            {submitting ? <Loader2 size={14} className="animate-spin" /> : null}
+            {t("chat.feedback.submit", langCode) || "Submit"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function ThreadChat() {
   const [threadId, setThreadId] = useState(null);
   const [publicToken, setPublicToken] = useState(null);
@@ -121,6 +214,39 @@ export function ThreadChat() {
   const [sending, setSending] = useState(false);
   const [handOff, setHandOff] = useState(false);
   const chatRef = useRef(null);
+
+  // 피드백 상태
+  const [feedbackModal, setFeedbackModal] = useState(null); // { messageId }
+  const [feedbackDone, setFeedbackDone] = useState({}); // { [messageId]: 'positive'|'negative' }
+  const [feedbackThanks, setFeedbackThanks] = useState(null); // messageId
+
+  const handleThumbsUp = async (messageId) => {
+    if (feedbackDone[messageId] || !threadId || !publicToken) return;
+    setFeedbackDone((prev) => ({ ...prev, [messageId]: "positive" }));
+    setFeedbackThanks(messageId);
+    setTimeout(() => setFeedbackThanks(null), 2000);
+    try {
+      await fetch("/api/public/chat/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ thread_id: threadId, message_id: messageId, public_token: publicToken, rating: 1 }),
+      });
+    } catch (e) {
+      console.warn("[ThreadChat] thumbsUp submit failed:", e);
+    }
+  };
+
+  const handleThumbsDown = (messageId) => {
+    if (feedbackDone[messageId] || !threadId || !publicToken) return;
+    setFeedbackModal({ messageId });
+  };
+
+  const handleFeedbackSubmitted = (messageId) => {
+    setFeedbackDone((prev) => ({ ...prev, [messageId]: "negative" }));
+    setFeedbackModal(null);
+    setFeedbackThanks(messageId);
+    setTimeout(() => setFeedbackThanks(null), 2000);
+  };
 
   useEffect(() => {
     if (chatRef.current) chatRef.current.scrollTop = chatRef.current.scrollHeight;
@@ -381,14 +507,49 @@ export function ThreadChat() {
                 >
                   {msg.role === "assistant" ? <Bot size={16} /> : <User size={16} />}
                 </div>
-                <div
-                  className={`p-3 rounded-2xl shadow-sm text-sm border max-w-[80%] ${
-                    msg.role === "assistant"
-                      ? "bg-white border-gray-100 rounded-tl-none"
-                      : "bg-teal-600 text-white border-teal-600 rounded-tr-none"
-                  }`}
-                >
-                  <p className="whitespace-pre-wrap">{msg.content}</p>
+                <div className="flex flex-col gap-1 max-w-[80%]">
+                  <div
+                    className={`p-3 rounded-2xl shadow-sm text-sm border ${
+                      msg.role === "assistant"
+                        ? "bg-white border-gray-100 rounded-tl-none"
+                        : "bg-teal-600 text-white border-teal-600 rounded-tr-none"
+                    }`}
+                  >
+                    <p className="whitespace-pre-wrap">{msg.content}</p>
+                  </div>
+                  {/* assistant 메시지만 피드백 버튼 표시 (intro/resume 제외) */}
+                  {msg.role === "assistant" && !["intro", "resume_note"].includes(msg.id) && !msg.id.startsWith("resumed_") && !msg.id.startsWith("greet_") && threadId && (
+                    <div className="flex items-center gap-1 pl-1">
+                      {feedbackThanks === msg.id ? (
+                        <span className="text-[11px] text-teal-600 font-medium">
+                          {t("chat.feedback.thanks", langCode) || "Thank you!"}
+                        </span>
+                      ) : feedbackDone[msg.id] ? (
+                        <span className="text-[11px] text-gray-400">
+                          {feedbackDone[msg.id] === "positive"
+                            ? (t("chat.feedback.helpful", langCode) || "Helpful") + " ✓"
+                            : (t("chat.feedback.notHelpful", langCode) || "Not helpful") + " ✓"}
+                        </span>
+                      ) : (
+                        <>
+                          <button
+                            onClick={() => handleThumbsUp(msg.id)}
+                            title={t("chat.feedback.helpful", langCode) || "Helpful"}
+                            className="p-1 rounded-lg text-gray-300 hover:text-teal-500 hover:bg-teal-50 transition"
+                          >
+                            <ThumbsUp size={12} />
+                          </button>
+                          <button
+                            onClick={() => handleThumbsDown(msg.id)}
+                            title={t("chat.feedback.notHelpful", langCode) || "Not helpful"}
+                            className="p-1 rounded-lg text-gray-300 hover:text-red-500 hover:bg-red-50 transition"
+                          >
+                            <ThumbsDown size={12} />
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
@@ -439,6 +600,18 @@ export function ThreadChat() {
             </p>
           </div>
         </>
+      )}
+
+      {/* 피드백 모달 */}
+      {feedbackModal && (
+        <FeedbackModal
+          langCode={langCode}
+          messageId={feedbackModal.messageId}
+          threadId={threadId}
+          publicToken={publicToken}
+          onClose={() => setFeedbackModal(null)}
+          onSubmitted={() => handleFeedbackSubmitted(feedbackModal.messageId)}
+        />
       )}
     </div>
   );
