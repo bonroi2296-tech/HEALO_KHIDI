@@ -194,13 +194,23 @@ export default function CoordinatorMessagesClient() {
                   display: "block",
                 }}
               >
-                <div style={{ fontSize: 14, fontWeight: 500, color: "#0a0a0a", marginBottom: 4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                  {t.subject || "Conversation"}
+                <div style={{ fontSize: 14, fontWeight: 500, color: "#0a0a0a", marginBottom: 4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", display: "flex", alignItems: "center", gap: 6 }}>
+                  <ChannelDot channel={t.channel} />
+                  {t.guest_name ? (
+                    <span>
+                      {t.guest_name}
+                      {t.guest_country ? <span style={{ color: "#9a9284", fontWeight: 400, marginLeft: 6 }}>· {t.guest_country}</span> : null}
+                    </span>
+                  ) : (
+                    <span>{t.subject || "Conversation"}</span>
+                  )}
                 </div>
-                <div style={{ fontSize: 11, color: "#6b6458", display: "flex", justifyContent: "space-between" }}>
-                  <span>Inquiry #{t.inquiry_id || "—"}</span>
-                  <span style={{ fontFamily: "SF Mono, monospace" }}>
-                    {new Date(t.updated_at).toLocaleDateString()}
+                <div style={{ fontSize: 11, color: "#6b6458", display: "flex", justifyContent: "space-between", overflow: "hidden" }}>
+                  <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {t.guest_name ? (t.subject || t.guest_email || "Guest chat") : `Inquiry #${t.inquiry_id || "—"}`}
+                  </span>
+                  <span style={{ fontFamily: "SF Mono, monospace", flexShrink: 0, marginLeft: 8 }}>
+                    {new Date(t.updated_at || t.last_active_at || t.created_at).toLocaleDateString()}
                   </span>
                 </div>
                 <StatusBadge status={t.status} />
@@ -248,12 +258,25 @@ export default function CoordinatorMessagesClient() {
                     overflow: "hidden",
                     textOverflow: "ellipsis",
                     whiteSpace: "nowrap",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
                   }}
                 >
-                  {selectedThread.subject || "Conversation"}
+                  <ChannelDot channel={selectedThread.channel} />
+                  {selectedThread.guest_name || selectedThread.subject || "Conversation"}
                 </div>
-                <div style={{ fontSize: 11, color: "#6b6458", marginTop: 4 }}>
-                  Inquiry #{selectedThread.inquiry_id || "—"} · {selectedThread.user_id?.slice(0, 8)}
+                <div style={{ fontSize: 11, color: "#6b6458", marginTop: 4, display: "flex", gap: 12, flexWrap: "wrap" }}>
+                  {selectedThread.guest_name ? (
+                    <>
+                      {selectedThread.guest_email && <span>✉ {selectedThread.guest_email}</span>}
+                      {selectedThread.guest_country && <span>🌐 {selectedThread.guest_country}</span>}
+                      {selectedThread.guest_phone && <span>📞 {selectedThread.guest_phone}</span>}
+                      <span style={{ color: "#9a9284" }}>· Guest (no signup)</span>
+                    </>
+                  ) : (
+                    <span>Inquiry #{selectedThread.inquiry_id || "—"} · {selectedThread.user_id?.slice(0, 8)}</span>
+                  )}
                 </div>
               </div>
               <div style={{ display: "flex", gap: 8 }}>
@@ -347,6 +370,31 @@ export default function CoordinatorMessagesClient() {
         )}
       </div>
     </div>
+  );
+}
+
+function ChannelDot({ channel }) {
+  const map = {
+    web: { color: "#0d9488", label: "Web" },
+    whatsapp: { color: "#25D366", label: "WhatsApp" },
+    telegram: { color: "#0088cc", label: "Telegram" },
+    email: { color: "#8c3a2e", label: "Email" },
+    line: { color: "#06C755", label: "Line" },
+    kakao: { color: "#FEE500", label: "Kakao" },
+  };
+  const c = map[channel] || map.web;
+  return (
+    <span
+      title={`Channel: ${c.label}`}
+      style={{
+        display: "inline-block",
+        width: 8,
+        height: 8,
+        borderRadius: "50%",
+        background: c.color,
+        flexShrink: 0,
+      }}
+    />
   );
 }
 
