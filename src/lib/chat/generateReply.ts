@@ -328,6 +328,75 @@ function parseStructuredReply(
  * 비스트리밍 AI 응답 생성 (thread 기반 채팅용)
  * V1.1: 모델에 JSON 출력 강제 → used_pattern_ids 선언 기반 판정
  */
+// 짧은 인사·잡담 패턴 — RAG/DB 검색 없이 자연스럽게 응답
+const SMALL_TALK_PATTERNS = [
+  /^(안녕|하이|hi|hello|hey|здравств|привет|сәлем|你好|嗨|こんにちは|やあ|halo|hola)[\s!?.,~]*$/i,
+  /^(고마워|감사|thanks|thank\s*you|спасибо|рахмет|谢谢|ありがとう)[\s!?.,~]*$/i,
+  /^(ok|okay|네|예|응|yes|yep|good|좋아요?)[\s!?.,~]*$/i,
+  /^(bye|잘\s*가|안녕히|пока|до\s*свидан|再见|さようなら)[\s!?.,~]*$/i,
+  /^.{1,3}$/, // 매우 짧은 메시지 (4글자 이하)
+];
+
+function isSmallTalk(text: string): boolean {
+  const trimmed = text.trim();
+  if (trimmed.length === 0) return false;
+  return SMALL_TALK_PATTERNS.some((p) => p.test(trimmed));
+}
+
+function smallTalkReply(text: string, lang: string): string {
+  const trimmed = text.trim().toLowerCase();
+  // 인사 vs 감사 vs 종료 vs 기타 짧은 응답 구분
+  const isGreeting = /^(안녕|하이|hi|hello|hey|здравств|привет|сәлем|你好|嗨|こんにちは|halo|hola)/i.test(trimmed);
+  const isThanks = /^(고마워|감사|thanks|thank|спасибо|рахмет|谢谢|ありがとう)/i.test(trimmed);
+  const isBye = /^(bye|잘\s*가|안녕히|пока|до\s*свидан|再见|さようなら)/i.test(trimmed);
+
+  const replies: Record<string, { greeting: string; thanks: string; bye: string; default: string }> = {
+    ko: {
+      greeting: "안녕하세요! HEALO AI 에이전트입니다. 어떤 치료나 병원 정보가 필요하신가요? 증상이나 원하시는 진료를 말씀해 주세요.",
+      thanks: "별말씀을요. 더 궁금한 점이 있으면 언제든 물어보세요.",
+      bye: "감사합니다. 추가 문의는 언제든 환영합니다.",
+      default: "더 자세히 말씀해 주시면 적합한 한국 병원을 찾아드릴게요.",
+    },
+    en: {
+      greeting: "Hello! I'm HEALO's AI agent. What medical treatment or hospital information do you need? Please describe your symptoms or desired care.",
+      thanks: "You're welcome. Feel free to ask anything else.",
+      bye: "Thank you. Reach out anytime for more questions.",
+      default: "Could you tell me more so I can find the right hospital in Korea for you?",
+    },
+    ru: {
+      greeting: "Здравствуйте! Я AI-агент HEALO. Какое лечение или информацию о больнице вас интересует? Расскажите о симптомах или нужном вам уходе.",
+      thanks: "Пожалуйста. Спрашивайте, если что-то ещё нужно.",
+      bye: "Спасибо. Обращайтесь в любое время.",
+      default: "Расскажите подробнее, чтобы я подобрал подходящую корейскую клинику.",
+    },
+    kk: {
+      greeting: "Сәлеметсіз бе! Мен HEALO AI агентімін. Қандай емдеу немесе аурухана туралы ақпарат қажет? Симптомдарыңызды немесе керек көмек түрін айтыңыз.",
+      thanks: "Оқасы жоқ. Тағы сұрағыңыз болса айта беріңіз.",
+      bye: "Рахмет. Қашан да хабарласа беріңіз.",
+      default: "Толығырақ айтсаңыз, лайық корейлік клиниканы тапсам.",
+    },
+    zh: {
+      greeting: "您好！我是 HEALO 的 AI 助手。需要哪种治疗或医院信息？请告诉我您的症状或希望的诊疗。",
+      thanks: "不客气，有其他问题请随时提问。",
+      bye: "谢谢，欢迎随时再来咨询。",
+      default: "请详细说明，以便我为您找到合适的韩国医院。",
+    },
+    ja: {
+      greeting: "こんにちは！HEALOのAIエージェントです。どのような治療や病院情報をお探しですか？症状やご希望の診療をお聞かせください。",
+      thanks: "どういたしまして。他にもご質問があればお気軽にどうぞ。",
+      bye: "ありがとうございました。いつでもご相談ください。",
+      default: "もう少し詳しくお聞かせいただければ、最適な韓国の病院をお探しします。",
+    },
+  };
+
+  const langKey = lang in replies ? lang : "en";
+  const set = replies[langKey];
+  if (isGreeting) return set.greeting;
+  if (isThanks) return set.thanks;
+  if (isBye) return set.bye;
+  return set.default;
+}
+
 export async function generateChatReply(
   messages: ChatMessage[],
   query: string,
@@ -336,6 +405,22 @@ export async function generateChatReply(
 ): Promise<ChatReplyResult> {
   const t0 = Date.now();
   let ragScoring = "none";
+
+  // 짧은 인사·잡담 — RAG 검색 없이 즉시 응답
+  if (isSmallTalk(query)) {
+    return {
+      reply: smallTalkReply(query, lang),
+      ragChunks: [],
+      _analytics: {
+        retrievedPatternIds: [],
+        usedPatternIds: [],
+        declaredUsedPatternIds: [],
+        analyticsFallback: false,
+        ragScoring: "small_talk_bypass",
+        latencyMs: Date.now() - t0,
+      },
+    };
+  }
 
   try {
     // 1단계: HEALO DB 직접 검색 (최우선) + RAG 벡터 검색 (병렬 실행)
