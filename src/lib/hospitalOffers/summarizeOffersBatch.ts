@@ -8,7 +8,7 @@ import { google } from "@ai-sdk/google";
 import type { OfferItem, TreatmentOffer, OfferEvidence } from "./types";
 import type { PriceHint } from "./priceHints";
 
-const MODEL = (process.env.OFFERS_SUMMARY_MODEL || "gemini-3-flash").trim();
+const MODEL = (process.env.OFFERS_SUMMARY_MODEL || "gemini-2.5-flash").trim();
 const TIMEOUT_MS = 8_000;
 const TEMPERATURE = 0;
 const MAX_OFFERS = 5;

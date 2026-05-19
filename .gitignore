@@ -91,3 +91,5 @@ HEALO Design System.zip
 
 # TypeScript incremental build cache
 *.tsbuildinfo
+
+.env*.local

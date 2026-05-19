@@ -8,7 +8,7 @@
 import { generateText } from "ai";
 import { google } from "@ai-sdk/google";
 
-const TRANSLATE_MODEL = "gemini-3-flash";
+const TRANSLATE_MODEL = "gemini-2.5-flash";
 
 export const SUPPORTED_LANGS = ["ko", "en", "zh", "ja", "ru", "kz"] as const;
 export type LangCode = (typeof SUPPORTED_LANGS)[number];
