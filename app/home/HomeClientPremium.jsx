@@ -743,7 +743,7 @@ export default function HomeClientPremium() {
                     flexWrap: "wrap",
                   }}
                 >
-                  <Link href="/intake" style={{ textDecoration: "none" }}>
+                  <Link href="/inquiry" style={{ textDecoration: "none" }}>
                     <ButtonGold>{copy.ctaPrimary}</ButtonGold>
                   </Link>
                   <LinkArrow href="#process" onDark>
@@ -1315,7 +1315,7 @@ export default function HomeClientPremium() {
           >
             {copy.ctaBody}
           </p>
-          <Link href="/intake" style={{ textDecoration: "none" }}>
+          <Link href="/inquiry" style={{ textDecoration: "none" }}>
             <ButtonGold>{copy.ctaPrimary}</ButtonGold>
           </Link>
           {copy.ctaSecondaryLabel && (

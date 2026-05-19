@@ -1,24 +1,13 @@
-import { Suspense } from "react";
-import { cookies } from "next/headers";
-import IntakeLegacy from "./IntakeLegacy";
-import IntakePremium from "./IntakePremium";
-import { getServerDesignMode } from "../../src/lib/designMode";
+// /intake → /inquiry 영구 리디렉트
+// 기존 컴포넌트: _archive/IntakePremium.jsx, _archive/IntakeLegacy.jsx
+
+import { redirect } from "next/navigation";
 
 export const metadata = {
-  title: "Consultation Request | HEALO",
-  description:
-    "Share your diagnosis and care preferences. We respond within one business day.",
-  alternates: { canonical: "/intake" },
+  title: "상담 신청 | HEALO",
+  alternates: { canonical: "/inquiry" },
 };
 
-export default async function IntakePage({ searchParams }) {
-  const sp = (await searchParams) || {};
-  const ck = await cookies();
-  const mode = getServerDesignMode({ searchParams: sp, cookies: ck });
-  const Client = mode === "legacy" ? IntakeLegacy : IntakePremium;
-  return (
-    <Suspense>
-      <Client />
-    </Suspense>
-  );
+export default function IntakePage() {
+  redirect("/inquiry");
 }

@@ -451,7 +451,7 @@ export default function Nav({ current }) {
 
           {/* CTA */}
           <Link
-            href="/intake"
+            href="/inquiry"
             style={{
               background: "var(--ink-0)",
               color: "var(--cream-0)",

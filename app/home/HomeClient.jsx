@@ -280,7 +280,7 @@ export default function HomeClient() {
               {l(L.hero.subtitle)}
             </p>
             <button
-              onClick={() => router.push("/intake")}
+              onClick={() => router.push("/inquiry")}
               className="group bg-gradient-to-r from-teal-500 to-emerald-500 text-white font-bold text-base md:text-lg px-8 py-4 md:px-10 md:py-5 rounded-2xl shadow-2xl shadow-teal-500/30 hover:shadow-teal-500/50 hover:scale-105 transition-all duration-300 inline-flex items-center gap-2 md:gap-3"
             >
               {l(L.hero.cta)}
@@ -616,7 +616,7 @@ export default function HomeClient() {
           <h2 className="text-2xl md:text-3xl lg:text-4xl font-extrabold mb-4 md:mb-6">{l(L.bottomCta.title)}</h2>
           <p className="text-slate-300 text-sm md:text-base mb-6 md:mb-10 whitespace-pre-line leading-relaxed">{l(L.bottomCta.desc)}</p>
           <button
-            onClick={() => router.push("/intake")}
+            onClick={() => router.push("/inquiry")}
             className="group bg-gradient-to-r from-teal-500 to-emerald-500 text-white font-bold text-base md:text-lg px-8 py-4 md:px-10 md:py-5 rounded-2xl shadow-2xl shadow-teal-500/30 hover:shadow-teal-500/50 hover:scale-105 transition-all duration-300 inline-flex items-center gap-2 md:gap-3"
           >
             {l(L.hero.cta)}

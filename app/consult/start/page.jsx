@@ -1,23 +1,13 @@
-import ConsultWrapper from "./ConsultWrapper";
+// /consult/start → /inquiry 영구 리디렉트
+// 기존 컴포넌트: _archive/ConsultWrapper.jsx
+
+import { redirect } from "next/navigation";
 
 export const metadata = {
-  title: "Start Your Consultation | HEALO — Korea Cancer Treatment",
-  description:
-    "Begin your free consultation with HEALO's medical concierge team. Connect with Korean oncology specialists, get a treatment plan, and receive support in your language.",
-  keywords: ["Korea cancer consultation", "free medical consultation Korea", "oncology second opinion Korea"],
-  alternates: { canonical: "/consult/start" },
-  openGraph: {
-    title: "Start Your Consultation | HEALO",
-    description: "Free consultation with Korean oncology specialists. Get a personalized treatment plan in your language.",
-    type: "website",
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "Start Your Consultation | HEALO",
-    description: "Free consultation with Korean oncology specialists. Get a personalized cancer treatment plan.",
-  },
+  title: "상담 신청 | HEALO",
+  alternates: { canonical: "/inquiry" },
 };
 
 export default function ConsultStartPage() {
-  return <ConsultWrapper />;
+  redirect("/inquiry");
 }
