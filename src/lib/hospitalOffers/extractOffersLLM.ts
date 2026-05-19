@@ -9,7 +9,7 @@ import type { OfferItem, TreatmentOffer, OfferEvidence } from "./types";
 
 function getModel() {
   if (process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
-    return google("gemini-2.5-flash") as any;
+    return google("gemini-flash-latest") as any;
   }
   return null;
 }
