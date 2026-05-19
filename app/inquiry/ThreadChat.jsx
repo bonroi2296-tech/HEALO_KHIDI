@@ -175,11 +175,72 @@ export function ThreadChat() {
     };
   }, [langCode]);
 
+  // 기존 thread 복구 (이름·이메일 매칭 후 사용자 확인 거친 토큰)
+  const resumeWithToken = useCallback(
+    async (token, fallbackGuest) => {
+      try {
+        const res = await fetch(`/api/public/chat/resume?token=${encodeURIComponent(token)}`);
+        const json = await res.json();
+        if (!json.ok || !json.thread) throw new Error("resume_failed");
+        setThreadId(json.thread.id);
+        setPublicToken(json.thread.public_token);
+        setGuest(json.thread.guest || fallbackGuest);
+        writeCookie(TOKEN_COOKIE, json.thread.public_token);
+
+        const history = (json.messages || []).map((m) => ({
+          id: m.id,
+          role: m.role,
+          content: m.content,
+        }));
+        setMessages([
+          { id: "intro", role: "assistant", content: t("chat.intro", langCode) },
+          ...history,
+          {
+            id: `resumed_${Date.now()}`,
+            role: "assistant",
+            content: t("chat.resumedNote", langCode) || "Welcome back. Your previous conversation has been restored.",
+          },
+        ]);
+        return true;
+      } catch (e) {
+        console.warn("[ThreadChat] resume by token failed:", e);
+        return false;
+      }
+    },
+    [langCode]
+  );
+
   const handleIdentify = useCallback(
     async ({ name, email, country }) => {
       setIdentifying(true);
       try {
         const browserSessionId = ensureBrowserSessionId();
+
+        // 1) 이메일 있으면 lookup — 다른 기기·새 브라우저에서도 복구
+        if (email && email.includes("@")) {
+          try {
+            const lookupRes = await fetch("/api/public/chat/lookup", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ name, email }),
+            });
+            const lookupJson = await lookupRes.json();
+            if (lookupJson.ok && lookupJson.found && lookupJson.public_token) {
+              const confirmMsg = t("chat.identify.resumePrompt", langCode) ||
+                "We found your previous conversation. Continue from where you left off?";
+              if (typeof window !== "undefined" && window.confirm(confirmMsg)) {
+                const ok = await resumeWithToken(lookupJson.public_token, { name, email, country });
+                if (ok) return;
+              }
+              // 사용자가 No → 새 thread 진행
+            }
+          } catch (e) {
+            // lookup 실패해도 그냥 새 thread 진행
+            console.warn("[ThreadChat] lookup failed, starting new:", e);
+          }
+        }
+
+        // 2) 새 thread 생성
         const res = await fetch("/api/public/chat/start", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -218,7 +279,7 @@ export function ThreadChat() {
         setIdentifying(false);
       }
     },
-    [langCode]
+    [langCode, resumeWithToken]
   );
 
   const handleSend = async () => {
