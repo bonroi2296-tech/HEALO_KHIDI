@@ -50,7 +50,7 @@ const DICTIONARY = {
     "search.button": "Search",
     "card.estPrice": "EST. PRICE",
     "badge.healoPartner": "HEALO Partner",
-    "floatingHelp": "FloatingHelp",
+    "floatingHelp": "Need help?",
     "process.title": "Your Journey",
     "process.inquiry": "Inquiry",
     "process.matching": "Matching",
