@@ -40,7 +40,7 @@ export async function POST(
       return Response.json({ ok: false, error: "Invalid actor_type" }, { status: 400 });
     }
 
-    const { data: thread } = await supabaseAdmin
+    const { data: thread } = await (supabaseAdmin as any)
       .from("chat_threads")
       .select("id, status")
       .eq("id", threadId)
@@ -63,7 +63,7 @@ export async function POST(
       row.actor_id = auth.authResult.userId;
     }
 
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await (supabaseAdmin as any)
       .from("chat_messages")
       .insert(row)
       .select("*")
@@ -74,7 +74,7 @@ export async function POST(
       return Response.json({ ok: false, error: "insert_failed" }, { status: 500 });
     }
 
-    await supabaseAdmin
+    await (supabaseAdmin as any)
       .from("chat_threads")
       .update({ updated_at: new Date().toISOString() })
       .eq("id", threadId);
@@ -97,7 +97,7 @@ export async function GET(
   const { threadId } = await params;
 
   try {
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await (supabaseAdmin as any)
       .from("chat_messages")
       .select("*")
       .eq("thread_id", threadId)

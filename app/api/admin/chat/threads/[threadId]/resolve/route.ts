@@ -42,7 +42,7 @@ export async function POST(
   const { threadId } = await params;
 
   try {
-    const { data: thread, error: tErr } = await supabaseAdmin
+    const { data: thread, error: tErr } = await (supabaseAdmin as any)
       .from("chat_threads")
       .select("*")
       .eq("id", threadId)
@@ -56,7 +56,7 @@ export async function POST(
       return Response.json({ ok: false, error: "Thread already resolved" }, { status: 409 });
     }
 
-    const { data: messages, error: mErr } = await supabaseAdmin
+    const { data: messages, error: mErr } = await (supabaseAdmin as any)
       .from("chat_messages")
       .select("*")
       .eq("thread_id", threadId)
@@ -74,15 +74,15 @@ export async function POST(
 
     let language = "en";
     if (thread.normalized_inquiry_id) {
-      const { data: ni } = await supabaseAdmin
-        .from("normalized_inquiries")
+      const { data: ni } = await (supabaseAdmin as any)
+      .from("normalized_inquiries")
         .select("language")
         .eq("id", thread.normalized_inquiry_id)
         .single();
       if (ni?.language) language = ni.language;
     }
 
-    const { data: draft, error: draftErr } = await supabaseAdmin
+    const { data: draft, error: draftErr } = await (supabaseAdmin as any)
       .from("coordinator_responses")
       .insert({
         normalized_inquiry_id: thread.normalized_inquiry_id || null,
@@ -106,7 +106,7 @@ export async function POST(
     if (draftErr) throw draftErr;
 
     const now = new Date().toISOString();
-    await supabaseAdmin
+    await (supabaseAdmin as any)
       .from("chat_threads")
       .update({ status: "resolved", updated_at: now })
       .eq("id", threadId);

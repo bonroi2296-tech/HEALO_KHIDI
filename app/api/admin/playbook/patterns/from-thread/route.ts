@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
     // Supabase embed: chat_threads ↔ normalized_inquiries 관계가 FK 로 선언 안됨 —
     // TypeScript 가 타입 추론 실패. 런타임에는 PostgREST 가 명시적 관계 선언 필요할 수 있음.
     // TODO(schema): ALTER TABLE chat_threads ADD CONSTRAINT ... REFERENCES normalized_inquiries
-    const { data: threadRaw, error: tErr } = await supabaseAdmin
+    const { data: threadRaw, error: tErr } = await (supabaseAdmin as any)
       .from("chat_threads")
       .select("*, normalized_inquiries(language, treatment_slug, country)")
       .eq("id", thread_id)
@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
     }
     const thread = threadRaw as any;
 
-    const { data: messages, error: mErr } = await supabaseAdmin
+    const { data: messages, error: mErr } = await (supabaseAdmin as any)
       .from("chat_messages")
       .select("id, actor_type, message_text, created_at, is_internal")
       .eq("thread_id", thread_id)
@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
 
     const pattern = await extractPattern(messages as any, context);
 
-    const { data: saved, error: insertErr } = await supabaseAdmin
+    const { data: saved, error: insertErr } = await (supabaseAdmin as any)
       .from("playbook_patterns")
       .insert({
         source_thread_id: thread_id,

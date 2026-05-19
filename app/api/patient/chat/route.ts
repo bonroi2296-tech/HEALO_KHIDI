@@ -45,8 +45,8 @@ export async function GET(request: NextRequest) {
     return Response.json({ ok: false, error: "Unauthorized" }, { status: 401 });
   }
 
-  const { data, error } = await supabaseAdmin
-    .from("chat_threads")
+  const { data, error } = await (supabaseAdmin as any)
+      .from("chat_threads")
     .select("id, subject, status, created_at, updated_at, metadata")
     .eq("user_id", user.id)
     .order("updated_at", { ascending: false })
@@ -81,7 +81,7 @@ export async function POST(request: NextRequest) {
   if (action === "start") {
     const lang = body.language || "en";
 
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await (supabaseAdmin as any)
       .from("chat_threads")
       .insert({
         status: "open",
@@ -115,8 +115,8 @@ export async function POST(request: NextRequest) {
   }
 
   // 스레드 소유권 확인
-  const { data: thread, error: tErr } = await supabaseAdmin
-    .from("chat_threads")
+  const { data: thread, error: tErr } = await (supabaseAdmin as any)
+      .from("chat_threads")
     .select("id, status, metadata")
     .eq("id", thread_id)
     .eq("user_id", user.id)
@@ -133,7 +133,7 @@ export async function POST(request: NextRequest) {
   const trimmed = text.trim();
 
   // 환자 메시지 저장
-  const { error: insertErr } = await supabaseAdmin.from("chat_messages").insert({
+  const { error: insertErr } = await (supabaseAdmin as any).from("chat_messages").insert({
     thread_id,
     role: "user",
     content: trimmed,
@@ -146,8 +146,8 @@ export async function POST(request: NextRequest) {
   }
 
   // 대화 이력 조회
-  const { data: history } = await supabaseAdmin
-    .from("chat_messages")
+  const { data: history } = await (supabaseAdmin as any)
+      .from("chat_messages")
     .select("role, content")
     .eq("thread_id", thread_id)
     .order("created_at", { ascending: true })
@@ -165,7 +165,7 @@ export async function POST(request: NextRequest) {
   const handOff = detectHandOff(trimmed);
 
   if (handOff.requested) {
-    await supabaseAdmin
+    await (supabaseAdmin as any)
       .from("chat_threads")
       .update({
         updated_at: new Date().toISOString(),
@@ -197,8 +197,8 @@ export async function POST(request: NextRequest) {
   }
 
   // AI 응답 저장
-  const { data: aiMsg } = await supabaseAdmin
-    .from("chat_messages")
+  const { data: aiMsg } = await (supabaseAdmin as any)
+      .from("chat_messages")
     .insert({
       thread_id,
       role: "assistant",
@@ -229,8 +229,8 @@ export async function POST(request: NextRequest) {
 
   // 스레드 업데이트 (subject 컬럼이 현재 스키마엔 없어 as any)
   const currentSubject = (thread as any).subject ?? null;
-  await supabaseAdmin
-    .from("chat_threads")
+  await (supabaseAdmin as any)
+      .from("chat_threads")
     .update({
       updated_at: new Date().toISOString(),
       subject: currentSubject === "AI Health Consultation" && trimmed.length > 5

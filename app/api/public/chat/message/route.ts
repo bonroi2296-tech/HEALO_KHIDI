@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { data: thread, error: tErr } = await supabaseAdmin
+    const { data: thread, error: tErr } = await (supabaseAdmin as any)
       .from("chat_threads")
       .select("*")
       .eq("id", thread_id)
@@ -73,7 +73,7 @@ export async function POST(request: NextRequest) {
 
     const trimmedMsg = message_text.trim();
 
-    const { error: patientErr } = await supabaseAdmin
+    const { error: patientErr } = await (supabaseAdmin as any)
       .from("chat_messages")
       .insert({
         thread_id,
@@ -90,8 +90,8 @@ export async function POST(request: NextRequest) {
 
     const threadMeta: any = (thread.metadata && typeof thread.metadata === "object" && !Array.isArray(thread.metadata)) ? thread.metadata : {};
     if (handOff.requested) {
-      await supabaseAdmin
-        .from("chat_threads")
+      await (supabaseAdmin as any)
+      .from("chat_threads")
         .update({
           updated_at: new Date().toISOString(),
           metadata: {
@@ -104,7 +104,7 @@ export async function POST(request: NextRequest) {
         .eq("id", thread_id);
     }
 
-    const { data: history } = await supabaseAdmin
+    const { data: history } = await (supabaseAdmin as any)
       .from("chat_messages")
       .select("actor_type, message_text")
       .eq("thread_id", thread_id)
@@ -130,7 +130,7 @@ export async function POST(request: NextRequest) {
       finalReply += "\n\n🔔 I've flagged your request to be connected with a human coordinator. A team member will reach out to you shortly.";
     }
 
-    const { data: aiMsg, error: aiInsertErr } = await supabaseAdmin
+    const { data: aiMsg, error: aiInsertErr } = await (supabaseAdmin as any)
       .from("chat_messages")
       .insert({
         thread_id,
@@ -161,7 +161,7 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    await supabaseAdmin
+    await (supabaseAdmin as any)
       .from("chat_threads")
       .update({ updated_at: new Date().toISOString() })
       .eq("id", thread_id);
@@ -222,8 +222,8 @@ async function createDraftIntake(
 
   const rawEnc = encryptStringNullable(patientTexts.slice(0, 1000));
 
-  const { data, error } = await supabaseAdmin
-    .from("normalized_inquiries")
+  const { data, error } = await (supabaseAdmin as any)
+      .from("normalized_inquiries")
     .insert({
       source_type: "ai_agent",
       language: lang,
@@ -246,7 +246,7 @@ async function createDraftIntake(
   if (error) throw error;
 
   if (data?.id) {
-    await supabaseAdmin
+    await (supabaseAdmin as any)
       .from("chat_threads")
       .update({ normalized_inquiry_id: data.id })
       .eq("id", thread.id);

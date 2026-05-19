@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
     if (inquiry_id) row.inquiry_id = inquiry_id;
     if (normalized_inquiry_id) row.normalized_inquiry_id = normalized_inquiry_id;
 
-    const { data, error } = await supabaseAdmin
+    const { data, error } = await (supabaseAdmin as any)
       .from("chat_threads")
       .insert(row)
       .select("*")
@@ -57,7 +57,7 @@ export async function GET(request: NextRequest) {
     const limit = Math.min(Number(url.searchParams.get("limit")) || 50, 200);
     const offset = Math.max(Number(url.searchParams.get("offset")) || 0, 0);
 
-    let query = supabaseAdmin
+    let query = (supabaseAdmin as any)
       .from("chat_threads")
       .select("*", { count: "exact" });
 

@@ -32,8 +32,8 @@ export async function GET(
   const { threadId } = await params;
 
   // 스레드 소유권 확인
-  const { data: thread, error: tErr } = await supabaseAdmin
-    .from("chat_threads")
+  const { data: thread, error: tErr } = await (supabaseAdmin as any)
+      .from("chat_threads")
     .select("id, user_id")
     .eq("id", threadId)
     .eq("user_id", user.id)
@@ -44,8 +44,8 @@ export async function GET(
   }
 
   // 메시지 이력 조회
-  const { data: messages, error: mErr } = await supabaseAdmin
-    .from("chat_messages")
+  const { data: messages, error: mErr } = await (supabaseAdmin as any)
+      .from("chat_messages")
     .select("id, role, content, created_at, metadata")
     .eq("thread_id", threadId)
     .eq("is_internal", false)

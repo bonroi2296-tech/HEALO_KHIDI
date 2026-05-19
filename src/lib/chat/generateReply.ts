@@ -15,6 +15,7 @@ import { supabaseAdmin } from "../rag/supabaseAdmin";
 import { hashQuery, logRagDisabled } from "../rag/ragQueryEvents";
 import { searchHospitalsAndTreatments } from "./dbSearch";
 import { searchExternal } from "./externalSearch";
+import { runJudgeInBackground } from "./judge";
 
 type ChatMessage = { role: "user" | "assistant" | "system"; content: string };
 
@@ -528,7 +529,7 @@ export async function generateChatReply(
       fallback = false;
     }
 
-    return {
+    const finalResult: ChatReplyResult = {
       reply: finalReply,
       ragChunks,
       _analytics: {
@@ -540,6 +541,18 @@ export async function generateChatReply(
         latencyMs: Date.now() - t0,
       },
     };
+
+    // Judge: 메인 응답 흐름 차단 없이 백그라운드 평가
+    runJudgeInBackground({
+      query,
+      response: finalReply,
+      context: allContext || undefined,
+      lang,
+      messageId: null,   // 호출자가 나중에 message_id 를 알게 되므로 null
+      threadId: threadId ?? null,
+    });
+
+    return finalResult;
   } catch (err: any) {
     console.error("[generateChatReply] error:", err.message);
     return {

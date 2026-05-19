@@ -67,7 +67,7 @@ async function ingestPatternToRag(
   let createdDocId: string | null = null;
 
   try {
-    const { data: newDoc, error: docErr } = await supabaseAdmin
+    const { data: newDoc, error: docErr } = await (supabaseAdmin as any)
       .from("rag_documents")
       .insert({
         source_type: "playbook_pattern",
@@ -112,13 +112,13 @@ async function ingestPatternToRag(
         },
       }));
 
-      const { error: chunkErr } = await supabaseAdmin
-        .from("rag_chunks")
+      const { error: chunkErr } = await (supabaseAdmin as any)
+      .from("rag_chunks")
         .insert(payload);
       if (chunkErr) throw chunkErr;
     }
 
-    await supabaseAdmin
+    await (supabaseAdmin as any)
       .from("rag_documents")
       .update({ metadata: { ingest_status: "done" }, updated_at: nowIso() })
       .eq("id", newDoc.id);
@@ -127,8 +127,8 @@ async function ingestPatternToRag(
   } catch (err: any) {
     if (createdDocId) {
       try {
-        await supabaseAdmin
-          .from("rag_documents")
+        await (supabaseAdmin as any)
+      .from("rag_documents")
           .update({
             metadata: { ingest_status: "failed", ingest_error: String(err.message).slice(0, 200), failed_at: nowIso() },
             updated_at: nowIso(),
@@ -155,8 +155,8 @@ export async function runPostResolve(threadId: string): Promise<{
   const jobType = "post_resolve";
 
   // 1. auto_jobs에 기록
-  const { data: jobRow, error: jobErr } = await supabaseAdmin
-    .from("auto_jobs")
+  const { data: jobRow, error: jobErr } = await (supabaseAdmin as any)
+      .from("auto_jobs")
     .insert({ job_type: jobType, status: "running", started_at: nowIso(), stats: { thread_id: threadId } })
     .select("id")
     .single();
@@ -169,7 +169,7 @@ export async function runPostResolve(threadId: string): Promise<{
 
   try {
     // 2. 메시지 조회
-    const { data: messages, error: mErr } = await supabaseAdmin
+    const { data: messages, error: mErr } = await (supabaseAdmin as any)
       .from("chat_messages")
       .select("id, actor_type, message_text, created_at")
       .eq("thread_id", threadId)
@@ -177,15 +177,15 @@ export async function runPostResolve(threadId: string): Promise<{
 
     if (mErr) throw mErr;
     if (!messages || messages.length < 2) {
-      await supabaseAdmin
-        .from("auto_jobs")
+      await (supabaseAdmin as any)
+      .from("auto_jobs")
         .update({ status: "done", finished_at: nowIso(), stats: { thread_id: threadId, skipped: true, reason: "too few messages" } })
         .eq("id", jobId);
       return { auto_approved: false, error: "too few messages" };
     }
 
     // 3. thread 정보로 context 구성
-    const { data: thread } = await supabaseAdmin
+    const { data: thread } = await (supabaseAdmin as any)
       .from("chat_threads")
       .select("normalized_inquiry_id, metadata")
       .eq("id", threadId)
@@ -193,8 +193,8 @@ export async function runPostResolve(threadId: string): Promise<{
 
     let ctx: PatternContext = { language: "en" };
     if (thread?.normalized_inquiry_id) {
-      const { data: ni } = await supabaseAdmin
-        .from("normalized_inquiries")
+      const { data: ni } = await (supabaseAdmin as any)
+      .from("normalized_inquiries")
         .select("language, country, treatment_slug")
         .eq("id", thread.normalized_inquiry_id)
         .single();
@@ -218,15 +218,15 @@ export async function runPostResolve(threadId: string): Promise<{
     const extracted = await extractPattern(patternMessages, ctx);
 
     // 5. 중복 체크: 같은 thread에서 이미 추출된 패턴 있는지
-    const { data: existing } = await supabaseAdmin
+    const { data: existing } = await (supabaseAdmin as any)
       .from("playbook_patterns")
       .select("id")
       .eq("source_thread_id", threadId)
       .limit(1);
 
     if (existing && existing.length > 0) {
-      await supabaseAdmin
-        .from("auto_jobs")
+      await (supabaseAdmin as any)
+      .from("auto_jobs")
         .update({ status: "done", finished_at: nowIso(), stats: { thread_id: threadId, skipped: true, reason: "pattern already exists" } })
         .eq("id", jobId);
       return { pattern_id: existing[0].id, auto_approved: false, error: "pattern already exists for this thread" };
@@ -235,7 +235,7 @@ export async function runPostResolve(threadId: string): Promise<{
     // 6. playbook_patterns에 삽입 (draft)
     // TODO(schema-drift): playbook_patterns 의 일부 컬럼 (source_thread_id 등) 이
     // 실제 스키마와 다를 수 있음. as any 로 캐스트.
-    const { data: newPattern, error: pErr } = await supabaseAdmin
+    const { data: newPattern, error: pErr } = await (supabaseAdmin as any)
       .from("playbook_patterns")
       .insert({
         source_thread_id: threadId,
@@ -263,7 +263,7 @@ export async function runPostResolve(threadId: string): Promise<{
 
     if (pErr || !newPattern) throw pErr || new Error("pattern insert failed");
 
-    await supabaseAdmin.from("auto_job_events").insert({
+    await (supabaseAdmin as any).from("auto_job_events").insert({
       job_id: jobId,
       event_type: "auto_extract.extracted",
       step: "auto_extract",
@@ -280,15 +280,15 @@ export async function runPostResolve(threadId: string): Promise<{
 
     if (!gate.pass) {
       // draft로 유지 — 관리자가 수동 승인할 수 있음
-      await supabaseAdmin.from("auto_job_events").insert({
+      await (supabaseAdmin as any).from("auto_job_events").insert({
         job_id: jobId,
         event_type: "auto_approve_check.blocked",
         step: "auto_approve_check",
         data: { pattern_id: newPattern.id, errors: gate.errors } as any,
       });
 
-      await supabaseAdmin
-        .from("auto_jobs")
+      await (supabaseAdmin as any)
+      .from("auto_jobs")
         .update({
           status: "done",
           finished_at: nowIso(),
@@ -303,8 +303,8 @@ export async function runPostResolve(threadId: string): Promise<{
     const ingestResult = await ingestPatternToRag(newPattern.id, extracted as any);
 
     if (ingestResult.ok) {
-      await supabaseAdmin
-        .from("playbook_patterns")
+      await (supabaseAdmin as any)
+      .from("playbook_patterns")
         .update({
           status: "approved",
           approved_at: nowIso(),
@@ -314,7 +314,7 @@ export async function runPostResolve(threadId: string): Promise<{
         } as any)
         .eq("id", newPattern.id);
 
-      await supabaseAdmin.from("auto_job_events").insert({
+      await (supabaseAdmin as any).from("auto_job_events").insert({
         job_id: jobId,
         event_type: "auto_approve.approved_and_ingested",
         step: "auto_approve",
@@ -322,7 +322,7 @@ export async function runPostResolve(threadId: string): Promise<{
       });
     } else {
       // ingest 실패 → draft로 유지
-      await supabaseAdmin.from("auto_job_events").insert({
+      await (supabaseAdmin as any).from("auto_job_events").insert({
         job_id: jobId,
         event_type: "auto_approve.ingest_failed",
         step: "auto_approve",
@@ -330,7 +330,7 @@ export async function runPostResolve(threadId: string): Promise<{
       });
     }
 
-    await supabaseAdmin
+    await (supabaseAdmin as any)
       .from("auto_jobs")
       .update({
         status: "done",
@@ -352,7 +352,7 @@ export async function runPostResolve(threadId: string): Promise<{
     };
   } catch (err: any) {
     console.error("[postResolve] Error:", err.message);
-    await supabaseAdmin
+    await (supabaseAdmin as any)
       .from("auto_jobs")
       .update({ status: "failed", finished_at: nowIso(), error: err.message })
       .eq("id", jobId);
