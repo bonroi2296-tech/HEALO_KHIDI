@@ -82,6 +82,21 @@ export const SignUpPage = ({ setView }) => {
         setLangCode(getLangCodeFromCookie());
     }, []);
 
+    // /inquiry → /signup?provider=google 자동 OAuth 트리거
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('provider') === 'google') {
+            const redirectUrl = `${window.location.origin}/auth/callback`;
+            supabase.auth.signInWithOAuth({
+                provider: 'google',
+                options: { redirectTo: redirectUrl },
+            }).catch((err) => {
+                console.error('[SignUpPage] auto Google OAuth failed:', err);
+            });
+        }
+    }, []);
+
     const pwCheck = validatePassword(password);
 
     const handleSignUp = async () => {
