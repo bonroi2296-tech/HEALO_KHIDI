@@ -107,6 +107,11 @@ export default function Nav({ current }) {
     const supabase = createSupabaseBrowserClient();
     await supabase.auth.signOut();
     setAcctOpen(false);
+    // 로그아웃 시 게스트 채팅 쿠키도 정리 (의료 대화 PIPA 보호)
+    if (typeof document !== "undefined") {
+      document.cookie = "healo_chat_token=; path=/; max-age=0; SameSite=Lax";
+      document.cookie = "healo_browser_session=; path=/; max-age=0; SameSite=Lax";
+    }
     if (typeof window !== "undefined") window.location.href = "/";
   }
 

@@ -492,10 +492,26 @@ export function ThreadChat() {
           {/* 채팅 메시지 */}
           <div className="flex-1 overflow-y-auto mb-4 bg-gray-50 rounded-2xl p-4 text-left space-y-4" ref={chatRef}>
             {guest?.name && (
-              <div className="text-[11px] text-gray-400 text-center pb-2 border-b border-gray-200">
-                {(t("chat.identifiedAs", langCode) || "Conversing as {name} · {country}")
-                  .replace("{name}", guest.name)
-                  .replace("{country}", guest.country || "")}
+              <div className="flex items-center justify-between pb-2 border-b border-gray-200">
+                <div className="text-[11px] text-gray-400">
+                  {(t("chat.identifiedAs", langCode) || "Conversing as {name} · {country}")
+                    .replace("{name}", guest.name)
+                    .replace("{country}", guest.country || "")}
+                </div>
+                <button
+                  onClick={() => {
+                    if (!window.confirm(t("chat.endSession.confirm", langCode) || "End this conversation and clear local history? (Server-side history is kept for follow-up.)")) return;
+                    if (typeof document !== "undefined") {
+                      document.cookie = "healo_chat_token=; path=/; max-age=0; SameSite=Lax";
+                      document.cookie = "healo_browser_session=; path=/; max-age=0; SameSite=Lax";
+                    }
+                    window.location.reload();
+                  }}
+                  className="text-[10px] text-gray-400 hover:text-red-600 underline underline-offset-2 transition"
+                  title={t("chat.endSession.button", langCode) || "End conversation"}
+                >
+                  {t("chat.endSession.button", langCode) || "End conversation"}
+                </button>
               </div>
             )}
             {messages.map((msg) => (
