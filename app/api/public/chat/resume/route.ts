@@ -48,12 +48,21 @@ async function resume(token: string | null) {
     .eq("id", data.id);
 
   // 최근 메시지 50개 동시 반환
-  const { data: messages } = await (supabaseAdmin as any)
+  // chat_messages 컬럼: actor_type (patient/coordinator/bot/admin), message_text
+  // 클라이언트에 보낼 땐 role(user/assistant) + content 로 변환
+  const { data: rawMessages } = await (supabaseAdmin as any)
     .from("chat_messages")
-    .select("id, role, content, metadata, created_at")
+    .select("id, actor_type, message_text, created_at")
     .eq("thread_id", data.id)
     .order("created_at", { ascending: true })
     .limit(50);
+
+  const messages = (rawMessages || []).map((m: any) => ({
+    id: m.id,
+    role: m.actor_type === "patient" || m.actor_type === "user" ? "user" : "assistant",
+    content: m.message_text || "",
+    created_at: m.created_at,
+  }));
 
   return {
     ok: true,
@@ -72,7 +81,7 @@ async function resume(token: string | null) {
       created_at: data.created_at,
       last_active_at: data.last_active_at,
     },
-    messages: messages || [],
+    messages,
   };
 }
 
