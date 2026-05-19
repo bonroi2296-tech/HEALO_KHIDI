@@ -28,9 +28,10 @@ import {
 } from "lucide-react";
 import { createSupabaseBrowserClient } from "../../../src/lib/supabase/browser";
 import { useToast } from "../../../src/components/Toast";
-import { useSpeechRecognition } from "../../../src/lib/consultation/useSpeechRecognition";
+import { useSpeechRecognition, getEffectiveSttLang } from "../../../src/lib/consultation/useSpeechRecognition";
 import { useTTS } from "../../../src/lib/consultation/useTTS";
 import { useRealtimeMessages } from "../../../src/lib/consultation/useRealtimeMessages";
+import { useLiveKitDataChannel } from "../../../src/lib/consultation/useLiveKitDataChannel";
 
 const supabase = createSupabaseBrowserClient();
 
@@ -42,6 +43,19 @@ const LANG_LABELS = {
   zh: "中文",
   ja: "日本語",
 };
+
+// ── DataChannel bridge (LiveKitRoom 내부에서만 사용 가능) ──
+// props 로 외부 state setter 를 받아서 DataChannel 수신 결과를 부모에 전달
+function DataChannelBridge({ onRemoteSubtitle, publishRef }) {
+  const { publishSubtitle } = useLiveKitDataChannel({ onRemoteSubtitle });
+
+  // 부모가 publishSubtitle 을 호출할 수 있도록 ref 에 노출
+  useEffect(() => {
+    if (publishRef) publishRef.current = publishSubtitle;
+  }, [publishSubtitle, publishRef]);
+
+  return null; // 렌더링 없음
+}
 
 // ── LiveKit Video Grid ──
 function VideoGrid() {
@@ -60,33 +74,77 @@ function VideoGrid() {
   );
 }
 
+// 자막 크기별 Tailwind 클래스
+const SUBTITLE_SIZE_CLASS = {
+  sm: { text: "text-xs", trans: "text-sm", meta: "text-xs" },
+  md: { text: "text-sm", trans: "text-base", meta: "text-xs" },
+  lg: { text: "text-base", trans: "text-lg", meta: "text-sm" },
+};
+
 // ── Subtitle overlay ──
-function SubtitleOverlay({ original, translated, interimText, sourceLang, targetLang }) {
-  if (!original && !interimText) return null;
+// size: "sm" | "md" | "lg"
+// remoteSubtitle: { text, lang, role } | null  — 상대방 자막 (DataChannel 수신)
+function SubtitleOverlay({
+  original,
+  translated,
+  interimText,
+  sourceLang,
+  targetLang,
+  remoteSubtitle,
+  size = "md",
+}) {
+  const hasContent = original || interimText || remoteSubtitle?.text;
+  if (!hasContent) return null;
+
+  const sz = SUBTITLE_SIZE_CLASS[size] || SUBTITLE_SIZE_CLASS.md;
+
+  // 역할별 색상
+  const roleColor = {
+    doctor: "text-yellow-300",
+    patient: "text-teal-300",
+    coordinator: "text-gray-300",
+  };
+  const remoteColor = roleColor[remoteSubtitle?.role] || "text-teal-300";
 
   return (
-    <div className="absolute bottom-4 left-4 right-4 z-10 pointer-events-none">
-      {/* Interim (currently speaking) */}
-      {interimText && (
-        <div className="bg-black/70 backdrop-blur-sm rounded-lg px-4 py-2 mb-2 text-center">
-          <p className="text-gray-300 text-sm italic">🎤 {interimText}</p>
+    <div className="absolute bottom-4 left-4 right-4 z-10 pointer-events-none space-y-2">
+      {/* 상대방 자막 (DataChannel 수신) */}
+      {remoteSubtitle?.text && (
+        <div className="bg-black/75 backdrop-blur-sm rounded-lg px-4 py-2 text-center border border-yellow-500/20">
+          <p className="text-yellow-500/70 text-xs mb-0.5">
+            {remoteSubtitle.role === "doctor" ? "Doctor" : "Patient"} — {LANG_LABELS[remoteSubtitle.lang] || remoteSubtitle.lang}
+          </p>
+          <p className={`${remoteColor} ${sz.trans} font-medium`}>{remoteSubtitle.text}</p>
         </div>
       )}
-      {/* Final translation */}
+
+      {/* 내 음성 인식 중간 결과 */}
+      {interimText && (
+        <div className="bg-black/70 backdrop-blur-sm rounded-lg px-4 py-2 text-center">
+          <p className={`text-gray-300 ${sz.text} italic`}>🎤 {interimText}</p>
+        </div>
+      )}
+
+      {/* 내 발화 번역 결과 */}
       {original && (
         <div className="bg-black/80 backdrop-blur-sm rounded-lg px-4 py-3 text-center">
-          <p className="text-gray-400 text-xs mb-1">
+          <p className={`text-gray-400 ${sz.meta} mb-1`}>
             {LANG_LABELS[sourceLang] || sourceLang}
           </p>
-          <p className="text-white text-sm mb-2">{original}</p>
+          <p className={`text-white ${sz.text} mb-2`}>{original}</p>
           <div className="border-t border-gray-600 pt-2">
-            <p className="text-teal-400 text-xs mb-1">
+            <p className={`text-teal-400 ${sz.meta} mb-1`}>
               → {LANG_LABELS[targetLang] || targetLang}
             </p>
-            <p className="text-teal-300 text-base font-medium">{translated}</p>
+            <p className={`text-teal-300 ${sz.trans} font-medium`}>{translated}</p>
           </div>
         </div>
       )}
+
+      {/* 의료 면책 문구 */}
+      <p className="text-center text-gray-500 text-[10px] leading-tight">
+        AI 자막은 참고용입니다. 의학적 판단은 의료진과 직접 확인하세요.
+      </p>
     </div>
   );
 }
@@ -133,12 +191,22 @@ export default function ConsultationRoomPage() {
   const [ttsEnabled, setTtsEnabled] = useState(true);
   const [isTranslating, setIsTranslating] = useState(false);
 
+  // 자막 크기: "sm" | "md" | "lg"
+  const [subtitleSize, setSubtitleSize] = useState("md");
+  // 상대방 자막 (DataChannel 수신)
+  const [remoteSubtitle, setRemoteSubtitle] = useState(null);
+  const remoteSubtitleTimerRef = useRef(null);
+  // 내 역할 (token metadata 에서 추론: guest=patient 기본)
+  const [myRole, setMyRole] = useState("patient");
+
   // Language settings — default: doctor=ko, patient=ru
   const [myLang, setMyLang] = useState("ko");
   const [targetLang, setTargetLang] = useState("ru");
 
   const translationsEndRef = useRef(null);
   const subtitleTimerRef = useRef(null);
+  // DataChannel publish 함수 ref (LiveKitRoom 내부 DataChannelBridge 에서 주입)
+  const publishSubtitleRef = useRef(null);
 
   // ── Realtime subscription ──
   useRealtimeMessages(consultationId, (msg) => {
@@ -193,6 +261,12 @@ export default function ConsultationRoomPage() {
           translated: result.translated,
         });
 
+        // DataChannel: 내 STT 결과를 상대방에게 전송 (번역된 텍스트 전송)
+        // 상대방은 본인 언어(targetLang)로 번역된 텍스트를 받아서 표시
+        if (publishSubtitleRef.current) {
+          publishSubtitleRef.current(result.translated, targetLang, myRole);
+        }
+
         // Auto-hide subtitle after 6 seconds
         if (subtitleTimerRef.current) clearTimeout(subtitleTimerRef.current);
         subtitleTimerRef.current = setTimeout(() => setCurrentSubtitle(null), 6000);
@@ -211,6 +285,17 @@ export default function ConsultationRoomPage() {
       }
     },
     [myLang, targetLang, consultationId, ttsEnabled, tts, isTranslating]
+  );
+
+  // ── 상대방 자막 수신 핸들러 (DataChannel) ──
+  const handleRemoteSubtitle = useCallback(
+    ({ text, lang, role }) => {
+      setRemoteSubtitle({ text, lang, role });
+      // 8초 후 자동 숨김
+      if (remoteSubtitleTimerRef.current) clearTimeout(remoteSubtitleTimerRef.current);
+      remoteSubtitleTimerRef.current = setTimeout(() => setRemoteSubtitle(null), 8000);
+    },
+    []
   );
 
   // ── Speech Recognition ──
@@ -292,9 +377,11 @@ export default function ConsultationRoomPage() {
       if (result.role === "patient") {
         setMyLang("ru");
         setTargetLang("ko");
+        setMyRole("patient");
       } else {
         setMyLang("ko");
         setTargetLang("ru");
+        setMyRole(result.role || "patient");
       }
       setLoading(false);
     } catch (err) {
@@ -456,6 +543,7 @@ export default function ConsultationRoomPage() {
         if (tokenResult.ok && tokenResult.token) {
           setLivekitToken(tokenResult.token);
           setLivekitUrl(tokenResult.livekitUrl);
+          if (tokenResult.role) setMyRole(tokenResult.role);
         }
 
         // Fetch existing messages
@@ -733,6 +821,20 @@ export default function ConsultationRoomPage() {
               <option value="ja">日本語</option>
             </select>
 
+            {/* 자막 크기 선택 — 번역이 켜져 있을 때만 표시 */}
+            {translationEnabled && (
+              <select
+                value={subtitleSize}
+                onChange={(e) => setSubtitleSize(e.target.value)}
+                className="bg-gray-700 text-white text-xs rounded px-2 py-1 border-0"
+                title="자막 크기"
+              >
+                <option value="sm">자막 小</option>
+                <option value="md">자막 中</option>
+                <option value="lg">자막 大</option>
+              </select>
+            )}
+
             <button
               onClick={handleEndCall}
               className="px-3 py-2 md:px-4 rounded-lg bg-red-600 hover:bg-red-700 transition flex items-center gap-1.5 md:gap-2 text-sm"
@@ -829,6 +931,11 @@ export default function ConsultationRoomPage() {
               style={{ height: "100%" }}
               data-lk-theme="default"
             >
+              {/* DataChannel 수신/송신 브릿지 — 렌더링 없음 */}
+              <DataChannelBridge
+                onRemoteSubtitle={handleRemoteSubtitle}
+                publishRef={publishSubtitleRef}
+              />
               <div className="flex-1 relative" style={{ height: "calc(100% - 64px)" }}>
                 <VideoGrid />
                 <RoomAudioRenderer />
@@ -838,6 +945,8 @@ export default function ConsultationRoomPage() {
                   interimText={interimText}
                   sourceLang={myLang}
                   targetLang={targetLang}
+                  remoteSubtitle={remoteSubtitle}
+                  size={subtitleSize}
                 />
               </div>
               <ControlBar
@@ -870,6 +979,8 @@ export default function ConsultationRoomPage() {
                   interimText={interimText}
                   sourceLang={myLang}
                   targetLang={targetLang}
+                  remoteSubtitle={remoteSubtitle}
+                  size={subtitleSize}
                 />
               </div>
               <div className="bg-gray-800 border-t border-gray-700 px-6 py-3 text-center text-sm text-yellow-400">

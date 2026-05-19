@@ -11,10 +11,17 @@ const LANG_MAP = {
   ko: "ko-KR",
   ru: "ru-RU",
   en: "en-US",
-  kz: "kk-KZ",
+  // kk-KZ는 Chrome SpeechRecognition 미지원 → ru-RU 폴백
+  kz: "ru-RU",
   zh: "zh-CN",
   ja: "ja-JP",
 };
+
+// STT 폴백 적용 후 실제 사용 언어 코드 반환
+export function getEffectiveSttLang(lang) {
+  if (lang === "kz") return "ru"; // 카자흐어 STT → 러시아어로 폴백
+  return lang;
+}
 
 export function useSpeechRecognition({ language = "ko", onResult, onInterim, enabled = true }) {
   const [isListening, setIsListening] = useState(false);

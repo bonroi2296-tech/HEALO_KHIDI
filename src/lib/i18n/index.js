@@ -2785,6 +2785,31 @@ const DICTIONARY = {
     "intake.saving": "Сақталуда...",
     "intake.saved": "Қосымша ақпарат сақталды.",
     "intake.returnHome": "Басты бетке оралу",
+    // 2026-05 추가: inquiry/intake 누락 키 보강 (ru와 일치, 카자흐어 의료 표준)
+    "inquiry.howProceed": "Қалай жалғастырғыңыз келеді?",
+    "inquiry.formTitle": "Өтініш формасы",
+    "inquiry.formDesc": "Электрондық пошта арқылы жеке баға ұсынысын алыңыз.",
+    "inquiry.consultSubtext": "Жағдайыңызды талдап, ең қолайлы келесі қадамға бағыттаймыз.",
+    "inquiry.formSubtitle": "Жеке ұсыныс алу үшін мәліметтерді толтырыңыз.",
+    "inquiry.emailLabel": "Электрондық пошта",
+    "inquiry.emailOrMessenger": "(немесе төмендегі мессенджер)",
+    "inquiry.flexibleDate": "Икемді (нақты күнсіз)",
+    "inquiry.messageLabel": "Хабарлама",
+    "inquiry.messageOptional": "(міндетті емес, ұсынылады)",
+    "inquiry.uploadPhoto": "Фотосурет немесе медициналық құжаттарды жүктеңіз (рентген, анализ нәтижелері, дәрігер қорытындысы болса)",
+    "inquiry.agreePrivacy": "Мен оқып, келісемін:",
+    "inquiry.privacyPolicy": "Құпиялылық саясаты",
+    "inquiry.required": "(міндетті)",
+    "inquiry.agreeSharing": "Мен емдеуді таңдау үшін деректерімді серіктес ауруханаларға беруге келісемін (міндетті)",
+    "inquiry.submitBtn": "Өтінішті жіберу",
+    "inquiry.select": "Таңдаңыз...",
+    "inquiry.idPhone": "ID / Телефон",
+    "inquiry.aiDisclaimer": "HEALO медициналық мекеме емес. Біздің AI-көмекші тек жалпы ақпарат береді және диагноз қоя алмайды, ем тағайындай алмайды немесе медициналық кеңес бере алмайды. Білікті медицина мамандарына жүгіну қажет.",
+    "inquiry.humanTitle": "Кеңесші маман",
+    "inquiry.humanSubtitle": "Тәжірибелі медициналық координаторларымызбен тікелей байланысыңыз.",
+    "inquiry.humanReply": "Жұмыс уақытында 10 минут ішінде жауап береміз.",
+    "intake.missingParams": "inquiryId немесе токен жоқ.",
+    "intake.failedSave": "Сақтау сәтсіз аяқталды.",
   },
   ar: {
     "cta.freePlan": "احصل على خطة علاج مجانية",
@@ -5143,5 +5168,15 @@ export const getLangCodeFromLabel = (label) => {
 
 export const t = (key, lang = "en") => {
   const langDict = DICTIONARY[lang] || DICTIONARY.en;
-  return langDict[key] || DICTIONARY.en[key] || key;
+  const val = langDict[key];
+  if (val) return val;
+  // dev 환경: 언어 폴백 발생 시 경고 (ru/kz 누락 키 조기 발견용)
+  if (
+    process.env.NODE_ENV === "development" &&
+    lang !== "en" &&
+    (lang === "ru" || lang === "kz")
+  ) {
+    console.warn(`[i18n] Missing key "${key}" for lang "${lang}" — falling back to en`);
+  }
+  return DICTIONARY.en[key] || key;
 };
