@@ -195,24 +195,16 @@ const nextConfig = {
   },
 };
 
-// Sentry 설정 (DSN이 있을 때만 활성화)
-import { withSentryConfig } from "@sentry/nextjs";
+// 2026-05-19: Sentry withSentryConfig 일시 비활성.
+// 빌드 출력 chunks 에 @opentelemetry/instrumentation require 를 주입해
+// "Cannot find module" 에러 발생. 패키지 설치로도 sub-import 체인 미해결.
+// 추후 Sentry SDK 안정 버전 또는 next.config externalPackages 검토 후 재활성화.
+//
+// import { withSentryConfig } from "@sentry/nextjs";
+// const sentryConfig = { silent: true, org: process.env.SENTRY_ORG, project: process.env.SENTRY_PROJECT };
+// const sentryOptions = { widenClientFileUpload: true, tunnelRoute: "/monitoring", hideSourceMaps: true, disableLogger: true };
+// const finalConfig = process.env.NEXT_PUBLIC_SENTRY_DSN
+//   ? withSentryConfig(nextConfig, sentryConfig, sentryOptions)
+//   : nextConfig;
 
-const sentryConfig = {
-  silent: true,
-  org: process.env.SENTRY_ORG,
-  project: process.env.SENTRY_PROJECT,
-};
-
-const sentryOptions = {
-  widenClientFileUpload: true,
-  tunnelRoute: "/monitoring",
-  hideSourceMaps: true,
-  disableLogger: true,
-};
-
-const finalConfig = process.env.NEXT_PUBLIC_SENTRY_DSN
-  ? withSentryConfig(nextConfig, sentryConfig, sentryOptions)
-  : nextConfig;
-
-export default finalConfig;
+export default nextConfig;
