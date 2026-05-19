@@ -11,13 +11,15 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
-  Check, ChevronRight, UploadCloud, X, File,
+  Check, ChevronRight, ChevronLeft, UploadCloud, X, File,
   AlertCircle, Loader2, Shield, Clock,
   Activity, Heart, Brain, Stethoscope, Wind,
-  Zap, Microscope, HelpCircle
+  Zap, Microscope, HelpCircle,
+  Bot, MessageCircle, ClipboardList, Headset
 } from "lucide-react";
 import { useLang } from "../../../src/lib/i18n/LangContext";
 import { event } from "../../../src/lib/ga";
+import { SITE_INFO } from "../../../src/lib/siteSettings";
 
 // ─── 상수 ───────────────────────────────────────────────────────────
 const NATIONALITIES = [
@@ -92,6 +94,78 @@ const LANG_NAMES = {
 
 // ─── i18n 문자열 (6개 언어) ────────────────────────────────────────
 const T = {
+  // ─ 채널 선택 진입 ─
+  chooseTitle: {
+    ko: "어떻게 도와드릴까요?",
+    en: "How can we help?",
+    ru: "Чем мы можем помочь?",
+    kk: "Қалай көмектесе аламыз?",
+    zh: "我们如何为您提供帮助？",
+    ja: "どのようにお手伝いしましょうか？",
+  },
+  chooseSubtitle: {
+    ko: "원하시는 방식을 선택해주세요.",
+    en: "Choose your preferred way to start.",
+    ru: "Выберите удобный способ.",
+    kk: "Қолайлы тәсілді таңдаңыз.",
+    zh: "请选择您喜欢的方式。",
+    ja: "ご希望の方法をお選びください。",
+  },
+  aiAgent: {
+    ko: "AI 상담사", en: "AI Assistant", ru: "ИИ-консультант", kk: "ИИ-консультант", zh: "AI 助手", ja: "AIアシスタント",
+  },
+  aiAgentDesc: {
+    ko: "지금 바로 한국어·러시아어로 질문하세요. 24시간 즉시 응답.",
+    en: "Ask anything now in your language. Instant 24/7 answers.",
+    ru: "Задайте вопрос на русском прямо сейчас. Ответ 24/7.",
+    kk: "Қазір сұрақ қойыңыз. 24/7 жауап.",
+    zh: "立即用您的语言提问。24/7即时回答。",
+    ja: "あなたの言語で今すぐ質問。24時間即時応答。",
+  },
+  humanAgent: {
+    ko: "코디네이터 채팅", en: "Talk to a Coordinator", ru: "Чат с координатором", kk: "Координатормен сөйлесу", zh: "联系协调员", ja: "コーディネーターと話す",
+  },
+  humanAgentDesc: {
+    ko: "WhatsApp · Telegram · WeChat · LINE 으로 직접 연결.",
+    en: "Connect via WhatsApp, Telegram, WeChat, or LINE.",
+    ru: "Связаться через WhatsApp, Telegram, WeChat, LINE.",
+    kk: "WhatsApp, Telegram, WeChat немесе LINE арқылы.",
+    zh: "通过 WhatsApp、Telegram、WeChat 或 LINE 联系。",
+    ja: "WhatsApp・Telegram・WeChat・LINEで直接連絡。",
+  },
+  inquiryForm: {
+    ko: "상담 신청서", en: "Consultation Form", ru: "Анкета", kk: "Сұраныс формасы", zh: "咨询表单", ja: "相談フォーム",
+  },
+  inquiryFormDesc: {
+    ko: "1분 입력 → 코디네이터가 선호 언어로 회신.",
+    en: "1-minute form. We reply in your language.",
+    ru: "Заполните за 1 минуту. Ответим на вашем языке.",
+    kk: "1 минут — біз сіздің тіліңізде жауап береміз.",
+    zh: "1分钟表单。我们用您的语言回复。",
+    ja: "1分で完了。ご希望の言語で返信します。",
+  },
+  humanChannelsTitle: {
+    ko: "어느 채널이 편하세요?",
+    en: "Which channel do you prefer?",
+    ru: "Какой канал удобнее?",
+    kk: "Қай арна ыңғайлы?",
+    zh: "您更喜欢哪个渠道？",
+    ja: "どのチャンネルがよろしいですか？",
+  },
+  humanChannelsSubtitle: {
+    ko: "코디네이터가 24시간 이내에 응답합니다.",
+    en: "A coordinator will respond within 24 hours.",
+    ru: "Координатор ответит в течение 24 часов.",
+    kk: "Координатор 24 сағат ішінде жауап береді.",
+    zh: "协调员将在24小时内回复。",
+    ja: "コーディネーターが24時間以内に対応します。",
+  },
+  channelComingSoon: {
+    ko: "준비 중", en: "Coming Soon", ru: "Скоро", kk: "Жақында", zh: "即将开通", ja: "準備中",
+  },
+  back: {
+    ko: "뒤로", en: "Back", ru: "Назад", kk: "Артқа", zh: "返回", ja: "戻る",
+  },
   step1Title: {
     ko: "상담 신청",
     en: "Start Your Consultation",
@@ -319,7 +393,9 @@ export default function UnifiedInquiryFunnel() {
   const searchParams = useSearchParams();
   const fromChat = searchParams?.get("from_chat") || null;
 
-  const [phase, setPhase] = useState("step1"); // step1 | step1-success | step2 | step2-success | done
+  // from_chat 이 있으면 채널 선택 건너뛰고 바로 step1 (AI 챗에서 폼 전환된 케이스)
+  const initialPhase = searchParams?.get("from_chat") ? "step1" : "channel-select";
+  const [phase, setPhase] = useState(initialPhase); // channel-select | human-channels | step1 | step1-success | step2 | step2-success | done
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [inquiryId, setInquiryId] = useState(null);
@@ -367,10 +443,12 @@ export default function UnifiedInquiryFunnel() {
       .catch(() => {});
   }, [fromChat]);
 
-  // GA 이벤트
+  // GA 이벤트 — 폼 단계 진입 시에만 트리거
   useEffect(() => {
-    safeEvent("inquiry_step1_started");
-  }, []);
+    if (phase === "step1") safeEvent("inquiry_step1_started");
+    if (phase === "channel-select") safeEvent("inquiry_channel_view");
+    if (phase === "human-channels") safeEvent("inquiry_human_channels_view");
+  }, [phase]);
 
   function safeEvent(name, params) {
     try { event(name, params); } catch {}
@@ -829,9 +907,167 @@ export default function UnifiedInquiryFunnel() {
     );
   }
 
-  // Phase: step1 (default)
+  // Phase: channel-select (진입)
+  if (phase === "channel-select") {
+    const channels = [
+      {
+        key: "ai",
+        title: tl("aiAgent", lang),
+        desc: tl("aiAgentDesc", lang),
+        Icon: Bot,
+        iconColor: "text-teal-700",
+        iconBg: "bg-teal-50",
+        hoverBorder: "hover:border-teal-500",
+        onClick: () => {
+          safeEvent("inquiry_choose_channel", { channel: "ai" });
+          router.push("/");
+          setTimeout(() => {
+            const ev = new CustomEvent("healo:openFloatingChat");
+            window.dispatchEvent(ev);
+          }, 200);
+        },
+      },
+      {
+        key: "human",
+        title: tl("humanAgent", lang),
+        desc: tl("humanAgentDesc", lang),
+        Icon: Headset,
+        iconColor: "text-green-700",
+        iconBg: "bg-green-50",
+        hoverBorder: "hover:border-green-500",
+        onClick: () => {
+          safeEvent("inquiry_choose_channel", { channel: "human" });
+          setPhase("human-channels");
+        },
+      },
+      {
+        key: "form",
+        title: tl("inquiryForm", lang),
+        desc: tl("inquiryFormDesc", lang),
+        Icon: ClipboardList,
+        iconColor: "text-blue-700",
+        iconBg: "bg-blue-50",
+        hoverBorder: "hover:border-blue-500",
+        onClick: () => {
+          safeEvent("inquiry_choose_channel", { channel: "form" });
+          setPhase("step1");
+        },
+      },
+    ];
+
+    return (
+      <div className="max-w-3xl mx-auto px-4 py-10 md:py-16 animate-in fade-in slide-in-from-bottom-4 duration-300">
+        <div className="text-center mb-10">
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">{tl("chooseTitle", lang)}</h1>
+          <p className="text-gray-500 text-sm md:text-base">{tl("chooseSubtitle", lang)}</p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-5">
+          {channels.map((c) => {
+            const Icon = c.Icon;
+            return (
+              <button
+                key={c.key}
+                type="button"
+                onClick={c.onClick}
+                className={`bg-white border border-gray-200 rounded-2xl p-6 text-left ${c.hoverBorder} hover:shadow-md transition-all`}
+              >
+                <div className={`w-12 h-12 ${c.iconBg} rounded-xl flex items-center justify-center mb-4`}>
+                  <Icon size={22} className={c.iconColor} />
+                </div>
+                <h3 className="text-lg font-bold text-gray-900 mb-1.5">{c.title}</h3>
+                <p className="text-gray-500 text-sm leading-relaxed">{c.desc}</p>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
+  // Phase: human-channels (4개 메신저 카드)
+  if (phase === "human-channels") {
+    const channels = [
+      { key: "whatsapp", name: "WhatsApp", url: SITE_INFO.messenger.whatsapp, color: "#25D366", iconUrl: "https://cdn.simpleicons.org/whatsapp/25D366" },
+      { key: "telegram", name: "Telegram", url: SITE_INFO.messenger.telegram, color: "#26A5E4", iconUrl: "https://cdn.simpleicons.org/telegram/26A5E4" },
+      { key: "wechat", name: "WeChat", url: SITE_INFO.messenger.wechat, color: "#07C160", iconUrl: "https://cdn.simpleicons.org/wechat/07C160" },
+      { key: "line", name: "LINE", url: SITE_INFO.messenger.line, color: "#06C755", iconUrl: "https://cdn.simpleicons.org/line/06C755" },
+    ];
+
+    return (
+      <div className="max-w-3xl mx-auto px-4 py-10 md:py-16 animate-in fade-in slide-in-from-right-4 duration-300">
+        <button
+          type="button"
+          onClick={() => setPhase("channel-select")}
+          className="flex items-center gap-1 text-sm font-medium text-gray-500 mb-6 hover:text-teal-600 transition"
+        >
+          <ChevronLeft size={16} /> {tl("back", lang)}
+        </button>
+
+        <div className="text-center mb-10">
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">{tl("humanChannelsTitle", lang)}</h1>
+          <p className="text-gray-500 text-sm md:text-base">{tl("humanChannelsSubtitle", lang)}</p>
+        </div>
+
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+          {channels.map((c) => {
+            const enabled = !!c.url;
+            const inner = (
+              <>
+                <img src={c.iconUrl} alt={c.name} className="w-10 h-10 mb-3" style={{ opacity: enabled ? 1 : 0.4 }} />
+                <span className="text-sm font-bold text-gray-900">{c.name}</span>
+                {!enabled && (
+                  <span className="mt-1.5 text-[10px] font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
+                    {tl("channelComingSoon", lang)}
+                  </span>
+                )}
+              </>
+            );
+
+            const baseCls = "bg-white border border-gray-200 rounded-2xl p-5 flex flex-col items-center justify-center text-center transition-all aspect-square";
+
+            if (enabled) {
+              return (
+                <a
+                  key={c.key}
+                  href={c.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => safeEvent("inquiry_messenger_click", { channel: c.key })}
+                  className={`${baseCls} hover:shadow-md hover:-translate-y-0.5`}
+                  style={{ borderColor: undefined }}
+                  onMouseEnter={(e) => (e.currentTarget.style.borderColor = c.color)}
+                  onMouseLeave={(e) => (e.currentTarget.style.borderColor = "")}
+                >
+                  {inner}
+                </a>
+              );
+            }
+            return (
+              <div key={c.key} className={`${baseCls} opacity-60 cursor-not-allowed`}>
+                {inner}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
+  // Phase: step1 (폼)
   return (
     <div className="max-w-2xl mx-auto px-4 py-8 animate-in fade-in slide-in-from-bottom-4 duration-300">
+      {/* 채널 선택으로 돌아가기 (from_chat 케이스 제외) */}
+      {!fromChat && (
+        <button
+          type="button"
+          onClick={() => setPhase("channel-select")}
+          className="flex items-center gap-1 text-sm font-medium text-gray-500 mb-4 hover:text-teal-600 transition"
+        >
+          <ChevronLeft size={16} /> {tl("back", lang)}
+        </button>
+      )}
+
       <div className="text-center mb-8">
         <span className="inline-block bg-teal-50 text-teal-700 text-xs font-bold px-3 py-1 rounded-full border border-teal-200 mb-3">Step 1 / 2</span>
         <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">{tl("step1Title", lang)}</h1>
