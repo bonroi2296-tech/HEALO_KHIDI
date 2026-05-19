@@ -20,6 +20,7 @@
     "fix:lint-unused": "node scripts/fix-unused-vars.mjs",
     "migrate:reencrypt-email": "node scripts/reencrypt-inquiries-email.mjs",
     "e2e": "playwright test",
+    "e2e:smoke": "playwright test --grep @smoke",
     "e2e:ui": "playwright test --ui",
     "e2e:debug": "playwright test --debug",
     "e2e:headed": "playwright test --headed",
