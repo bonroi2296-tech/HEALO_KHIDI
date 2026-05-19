@@ -20,6 +20,7 @@ import {
 import { useLang } from "../../../src/lib/i18n/LangContext";
 import { event } from "../../../src/lib/ga";
 import { SITE_INFO } from "../../../src/lib/siteSettings";
+import ThreadChat from "../ThreadChat";
 
 // ─── 상수 ───────────────────────────────────────────────────────────
 const NATIONALITIES = [
@@ -920,11 +921,7 @@ export default function UnifiedInquiryFunnel() {
         hoverBorder: "hover:border-teal-500",
         onClick: () => {
           safeEvent("inquiry_choose_channel", { channel: "ai" });
-          router.push("/");
-          setTimeout(() => {
-            const ev = new CustomEvent("healo:openFloatingChat");
-            window.dispatchEvent(ev);
-          }, 200);
+          setPhase("ai-chat");
         },
       },
       {
@@ -981,6 +978,22 @@ export default function UnifiedInquiryFunnel() {
             );
           })}
         </div>
+      </div>
+    );
+  }
+
+  // Phase: ai-chat (AI 상담사 인라인 챗)
+  if (phase === "ai-chat") {
+    return (
+      <div className="max-w-3xl mx-auto px-4 py-8 animate-in fade-in slide-in-from-right-4 duration-300">
+        <button
+          type="button"
+          onClick={() => setPhase("channel-select")}
+          className="flex items-center gap-1 text-sm font-medium text-gray-500 mb-4 hover:text-teal-600 transition"
+        >
+          <ChevronLeft size={16} /> {tl("back", lang)}
+        </button>
+        <ThreadChat />
       </div>
     );
   }
