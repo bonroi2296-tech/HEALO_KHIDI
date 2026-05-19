@@ -8,13 +8,17 @@
  */
 
 export async function register() {
-  // DSN 없으면 Sentry 로드 스킵 (dev 환경에서 불필요한 의존성 에러 방지)
-  if (!process.env.NEXT_PUBLIC_SENTRY_DSN) return;
+  // 2026-05-19: 서버·엣지 Sentry 일시 비활성 — @opentelemetry/instrumentation
+  // 의존성 체인 충돌로 빌드 실패. 클라이언트 사이드 Sentry 만 활성.
+  // 추후 Sentry SDK 안정 버전 또는 next.config externalPackages 검토 후 재활성화.
+  // 클라이언트 측 에러는 sentry.client.config.js 가 직접 처리하므로 영향 없음.
+  return;
 
+  // eslint-disable-next-line no-unreachable
+  if (!process.env.NEXT_PUBLIC_SENTRY_DSN) return;
   if (process.env.NEXT_RUNTIME === "nodejs") {
     await import("./sentry.server.config");
   }
-
   if (process.env.NEXT_RUNTIME === "edge") {
     await import("./sentry.edge.config");
   }
@@ -40,8 +44,6 @@ export async function onRequestError(
     renderType?: "dynamic" | "dynamic-resume";
   }>
 ) {
-  if (!process.env.NEXT_PUBLIC_SENTRY_DSN) return;
-
-  const Sentry = await import("@sentry/nextjs");
-  Sentry.captureRequestError(error, request, context);
+  // 서버 사이드 Sentry 비활성 동안 onRequestError 도 noop
+  return;
 }
