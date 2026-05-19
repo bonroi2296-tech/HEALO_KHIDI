@@ -409,9 +409,16 @@ export type Database = {
       }
       chat_threads: {
         Row: {
+          browser_session_id: string | null
+          channel: string | null
           created_at: string | null
+          guest_country: string | null
+          guest_email: string | null
+          guest_name: string | null
+          guest_phone: string | null
           id: string
           inquiry_id: number | null
+          last_active_at: string | null
           metadata: Json | null
           normalized_inquiry_id: string | null
           public_token: string | null
@@ -422,9 +429,16 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          browser_session_id?: string | null
+          channel?: string | null
           created_at?: string | null
+          guest_country?: string | null
+          guest_email?: string | null
+          guest_name?: string | null
+          guest_phone?: string | null
           id?: string
           inquiry_id?: number | null
+          last_active_at?: string | null
           metadata?: Json | null
           normalized_inquiry_id?: string | null
           public_token?: string | null
@@ -435,9 +449,16 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          browser_session_id?: string | null
+          channel?: string | null
           created_at?: string | null
+          guest_country?: string | null
+          guest_email?: string | null
+          guest_name?: string | null
+          guest_phone?: string | null
           id?: string
           inquiry_id?: number | null
+          last_active_at?: string | null
           metadata?: Json | null
           normalized_inquiry_id?: string | null
           public_token?: string | null
