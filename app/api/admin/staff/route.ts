@@ -18,6 +18,38 @@ import { requireAdminAuth } from "../../../../src/lib/auth/requireAdminAuth";
 
 const ALLOWED_ROLES = ["doctor", "coordinator"];
 
+// DELETE /api/admin/staff?userId=xxx — 소프트 삭제(역할 해제). 계정·기록은 보존.
+export async function DELETE(request: NextRequest) {
+  const auth = await requireAdminAuth(request);
+  if (!auth.success) return auth.response;
+  try {
+    const userId = request.nextUrl.searchParams.get("userId");
+    if (!userId) {
+      return Response.json({ ok: false, error: "userId required" }, { status: 400 });
+    }
+    const supabase = createServiceRoleClient();
+    const { data: userRes } = await supabase.auth.admin.getUserById(userId);
+    const current = userRes?.user;
+    if (!current) {
+      return Response.json({ ok: false, error: "user_not_found" }, { status: 404 });
+    }
+    // app_metadata 에서 role 만 제거 (계정·상담기록 연결 유지 → 되돌리기 가능)
+    const nextMeta = { ...(current.app_metadata || {}) };
+    delete nextMeta.role;
+    const { error } = await supabase.auth.admin.updateUserById(userId, {
+      app_metadata: { ...nextMeta, role: null },
+    });
+    if (error) {
+      console.error("[admin/staff] DELETE (role remove) failed:", error.message);
+      return Response.json({ ok: false, error: "role_remove_failed" }, { status: 500 });
+    }
+    return Response.json({ ok: true });
+  } catch (err: any) {
+    console.error("[admin/staff] DELETE error:", err.message);
+    return Response.json({ ok: false, error: "internal_error" }, { status: 500 });
+  }
+}
+
 export async function GET(request: NextRequest) {
   const auth = await requireAdminAuth(request);
   if (!auth.success) return auth.response;

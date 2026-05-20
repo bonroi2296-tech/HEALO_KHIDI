@@ -62,6 +62,7 @@ const navGroups = [
     items: [
       { id: "ai-quality", label: "AI 품질 모니터링", icon: Brain, href: "/admin/khidi/ai-quality" },
       { id: "ai-feedback", label: "AI 피드백", icon: ThumbsDown, href: "/admin/khidi/ai-feedback" },
+      { id: "users", label: "회원(환자) 관리", icon: Users, href: "/admin/users" },
       { id: "staff", label: "직원 계정", icon: Users, href: "/admin/staff" },
       { id: "audit", label: "감사로그", icon: FileText, href: "/admin/audit" },
       { id: "notifications", label: "알림 관리", icon: Bell, href: "/admin/settings/notifications" },

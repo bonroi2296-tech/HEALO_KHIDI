@@ -39,6 +39,25 @@ export default function AdminStaffPage() {
     load();
   }, []);
 
+  async function handleRemove(s) {
+    if (!confirm(`${s.full_name || s.email} 의 ${ROLE_LABEL[s.role] || s.role} 역할을 해제할까요?\n(계정·기록은 보존되며 드롭다운·권한에서만 제외됩니다)`)) return;
+    try {
+      const res = await fetch(`/api/admin/staff?userId=${encodeURIComponent(s.id)}`, {
+        method: "DELETE",
+        headers: await authHeaders(),
+      });
+      const result = await res.json();
+      if (!res.ok || !result.ok) {
+        toast.error(`실패: ${result.error || "unknown"}`);
+        return;
+      }
+      toast.success("역할 해제 완료");
+      load();
+    } catch {
+      toast.error("요청 실패");
+    }
+  }
+
   async function handleSubmit(e) {
     e.preventDefault();
     if (!form.email.trim()) {
@@ -172,16 +191,33 @@ export default function AdminStaffPage() {
       ) : (
         <div className="border border-gray-200 rounded-xl overflow-hidden divide-y divide-gray-100">
           {staff.map((s) => (
-            <div key={s.id} className="flex items-center justify-between px-4 py-3 bg-white">
-              <div>
+            <div key={s.id} className="flex items-center justify-between px-4 py-3 bg-white gap-3">
+              <div className="min-w-0">
                 <span className="font-semibold text-gray-900 text-sm">
                   {s.full_name || s.email}
                 </span>
                 {s.full_name && <span className="text-xs text-gray-400 ml-2">{s.email}</span>}
               </div>
-              <span className="text-xs font-bold text-teal-700 bg-teal-50 border border-teal-100 rounded-full px-2.5 py-0.5">
-                {ROLE_LABEL[s.role] || s.role}
-              </span>
+              <div className="flex items-center gap-2 shrink-0">
+                <span className="text-xs font-bold text-teal-700 bg-teal-50 border border-teal-100 rounded-full px-2.5 py-0.5">
+                  {ROLE_LABEL[s.role] || s.role}
+                </span>
+                <button
+                  onClick={() => {
+                    setForm({ name: s.full_name || "", email: s.email, role: s.role, password: "healo1234" });
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                  }}
+                  className="text-xs font-semibold text-gray-500 hover:text-teal-600 px-2 py-1"
+                >
+                  수정
+                </button>
+                <button
+                  onClick={() => handleRemove(s)}
+                  className="text-xs font-semibold text-red-500 hover:text-red-700 px-2 py-1"
+                >
+                  역할 해제
+                </button>
+              </div>
             </div>
           ))}
         </div>
