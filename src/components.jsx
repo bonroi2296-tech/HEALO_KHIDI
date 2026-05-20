@@ -165,6 +165,12 @@ export const Header = ({ setView, view, _handleGlobalInquiry, isMobileMenuOpen, 
                 {t("nav.hospitals", langCode)}
               </button>
               <a
+                href="/care-journey"
+                className="px-3.5 py-1.5 rounded-full text-sm font-semibold transition-all text-white/70 hover:text-white hover:bg-white/10"
+              >
+                {t("nav.careJourney", langCode)}
+              </a>
+              <a
                 href="/visa"
                 className="px-3.5 py-1.5 rounded-full text-sm font-semibold transition-all text-white/70 hover:text-white hover:bg-white/10"
               >
@@ -338,6 +344,10 @@ export const Header = ({ setView, view, _handleGlobalInquiry, isMobileMenuOpen, 
                   <span className="flex items-center gap-2.5"><Building2 size={16} className="text-gray-400 shrink-0" /> {t("nav.hospitals", langCode)}</span>
                   <ArrowRight size={14} className="text-gray-300 shrink-0" />
                 </button>
+                <a href="/care-journey" onClick={() => setIsMobileMenuOpen(false)} className="w-full text-left py-3 px-3 rounded-lg text-sm font-medium flex items-center justify-between transition-colors min-h-[44px] text-gray-700 hover:bg-gray-50">
+                  <span className="flex items-center gap-2.5"><MapPin size={16} className="text-gray-400 shrink-0" /> {t("nav.careJourney", langCode)}</span>
+                  <ArrowRight size={14} className="text-gray-300 shrink-0" />
+                </a>
                 <a href="/visa" onClick={() => setIsMobileMenuOpen(false)} className="w-full text-left py-3 px-3 rounded-lg text-sm font-medium flex items-center justify-between transition-colors min-h-[44px] text-gray-700 hover:bg-gray-50">
                   <span className="flex items-center gap-2.5"><Globe size={16} className="text-gray-400 shrink-0" /> {t("nav.visa", langCode)}</span>
                   <ArrowRight size={14} className="text-gray-300 shrink-0" />
