@@ -7,7 +7,7 @@ import Image from 'next/image';
 import {
   Search, MapPin, Globe, Menu, Star, Zap, ChevronDown, CheckCircle,
   MessageCircle, X, ArrowRight, Stethoscope, Building2, Settings,
-  FileText, UserCheck, Clock, ShieldCheck, Shield, Sparkles, User, LogOut, BookOpen
+  FileText, UserCheck, Clock, ShieldCheck, Shield, Sparkles, User, LogOut, BookOpen, Video
 } from 'lucide-react';
 import { getLangCodeFromCookie, setLangCookie, LANG_OPTIONS as I18N_LANG_OPTIONS, LANG_OPTIONS_PRIMARY, t } from "./lib/i18n";
 
@@ -152,6 +152,13 @@ export const Header = ({ setView, view, _handleGlobalInquiry, isMobileMenuOpen, 
               )}
             </div>
             <nav className="hidden md:flex items-center gap-1">
+              <a
+                href="/telemedicine"
+                className="px-3.5 py-1.5 rounded-full text-sm font-semibold transition-all text-white/70 hover:text-white hover:bg-white/10 inline-flex items-center gap-1.5"
+              >
+                {t("nav.telemedicine", langCode)}
+                <span className="text-[9px] font-extrabold bg-white/20 text-white px-1.5 py-0.5 rounded-full leading-none">NEW</span>
+              </a>
               <button
                 onClick={() => onNavClick('list_treatment')}
                 className={`px-3.5 py-1.5 rounded-full text-sm font-semibold transition-all ${isActive('treatment') ? 'bg-white/15 text-white' : 'text-white/70 hover:text-white hover:bg-white/10'}`}
@@ -336,6 +343,10 @@ export const Header = ({ setView, view, _handleGlobalInquiry, isMobileMenuOpen, 
               {/* Navigation */}
               <div className="px-5 py-3">
                 <div className="text-[10px] uppercase tracking-widest text-gray-400 font-semibold mb-2 px-1">Menu</div>
+                <a href="/telemedicine" onClick={() => setIsMobileMenuOpen(false)} className="w-full text-left py-3 px-3 rounded-lg text-sm font-medium flex items-center justify-between transition-colors min-h-[44px] text-gray-700 hover:bg-gray-50">
+                  <span className="flex items-center gap-2.5"><Video size={16} className="text-teal-500 shrink-0" /> {t("nav.telemedicine", langCode)} <span className="text-[9px] font-extrabold bg-teal-100 text-teal-700 px-1.5 py-0.5 rounded-full leading-none">NEW</span></span>
+                  <ArrowRight size={14} className="text-gray-300 shrink-0" />
+                </a>
                 <button onClick={() => onNavClick('list_treatment')} className={`w-full text-left py-3 px-3 rounded-lg text-sm font-medium flex items-center justify-between transition-colors min-h-[44px] ${isActive('treatment') ? 'text-teal-600 bg-teal-50' : 'text-gray-700 hover:bg-gray-50'}`}>
                   <span className="flex items-center gap-2.5"><Stethoscope size={16} className="text-gray-400 shrink-0" /> {t("nav.treatments", langCode)}</span>
                   <ArrowRight size={14} className="text-gray-300 shrink-0" />
