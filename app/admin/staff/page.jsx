@@ -12,9 +12,9 @@ export default function AdminStaffPage() {
   const toast = useToast();
   const [staff, setStaff] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [form, setForm] = useState({ name: "", email: "", role: "doctor" });
+  const [form, setForm] = useState({ name: "", email: "", role: "doctor", password: "healo1234" });
   const [submitting, setSubmitting] = useState(false);
-  const [lastLink, setLastLink] = useState(null);
+  const [lastCreated, setLastCreated] = useState(null);
 
   async function authHeaders() {
     const { data } = await supabase.auth.getSession();
@@ -45,8 +45,12 @@ export default function AdminStaffPage() {
       toast.error("이메일을 입력하세요");
       return;
     }
+    if (form.password.trim().length < 6) {
+      toast.error("임시 비밀번호는 최소 6자 (예: healo1234)");
+      return;
+    }
     setSubmitting(true);
-    setLastLink(null);
+    setLastCreated(null);
     try {
       const res = await fetch("/api/admin/staff", {
         method: "POST",
@@ -55,16 +59,17 @@ export default function AdminStaffPage() {
       });
       const result = await res.json();
       if (!res.ok || !result.ok) {
-        toast.error(`실패: ${result.error || "unknown"}`);
+        const msg = result.error === "password_too_short" ? "임시 비밀번호는 최소 6자" : result.error || "unknown";
+        toast.error(`실패: ${msg}`);
         return;
       }
       toast.success(
         result.createdNew
           ? `${ROLE_LABEL[form.role]} 계정 생성 완료`
-          : `기존 계정에 ${ROLE_LABEL[form.role]} 역할 부여 완료`
+          : `기존 계정에 ${ROLE_LABEL[form.role]} 역할 부여 + 비번 재설정`
       );
-      if (result.setupLink) setLastLink({ email: form.email, url: result.setupLink });
-      setForm({ name: "", email: "", role: "doctor" });
+      setLastCreated({ email: result.loginEmail, password: result.tempPassword });
+      setForm({ name: "", email: "", role: "doctor", password: "healo1234" });
       load();
     } catch {
       toast.error("요청 실패");
@@ -116,6 +121,17 @@ export default function AdminStaffPage() {
             </select>
           </div>
         </div>
+        <div className="mt-4 max-w-xs">
+          <label className="block text-xs font-semibold text-gray-600 mb-1">임시 비밀번호 (최소 6자)</label>
+          <input
+            type="text"
+            value={form.password}
+            onChange={(e) => setForm({ ...form, password: e.target.value })}
+            placeholder="healo1234"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+          />
+          <p className="text-[11px] text-gray-400 mt-1">직원에게 이메일+이 비번을 전달하면 바로 로그인. 본인이 나중에 변경 가능.</p>
+        </div>
         <button
           type="submit"
           disabled={submitting}
@@ -125,28 +141,25 @@ export default function AdminStaffPage() {
         </button>
       </form>
 
-      {/* 비번 설정 링크 (생성 직후 1회 표시) */}
-      {lastLink && (
-        <div className="border border-amber-200 bg-amber-50 rounded-xl p-4 mb-8">
-          <p className="text-sm font-semibold text-amber-800 mb-2">
-            {lastLink.email} 비밀번호 설정 링크 — 이 직원에게 전달하세요
+      {/* 로그인 정보 (생성 직후 표시) — 직원에게 전달 */}
+      {lastCreated && (
+        <div className="border border-teal-200 bg-teal-50 rounded-xl p-4 mb-8">
+          <p className="text-sm font-semibold text-teal-800 mb-3">
+            아래 로그인 정보를 이 직원에게 전달하세요
           </p>
-          <div className="flex items-center gap-2">
-            <input
-              readOnly
-              value={lastLink.url}
-              className="flex-1 px-3 py-2 border border-amber-300 rounded-lg text-xs bg-white"
-            />
-            <button
-              onClick={() => {
-                navigator.clipboard.writeText(lastLink.url);
-                toast.success("복사됨");
-              }}
-              className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-sm font-bold"
-            >
-              복사
-            </button>
+          <div className="bg-white border border-teal-200 rounded-lg p-3 font-mono text-sm space-y-1">
+            <div>이메일: <span className="font-bold">{lastCreated.email}</span></div>
+            <div>비밀번호: <span className="font-bold">{lastCreated.password}</span></div>
           </div>
+          <button
+            onClick={() => {
+              navigator.clipboard.writeText(`이메일: ${lastCreated.email}\n비밀번호: ${lastCreated.password}\n로그인: ${window.location.origin}/login`);
+              toast.success("로그인 정보 복사됨");
+            }}
+            className="mt-3 px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-lg text-sm font-bold"
+          >
+            로그인 정보 복사
+          </button>
         </div>
       )}
 

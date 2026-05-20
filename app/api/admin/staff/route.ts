@@ -57,6 +57,8 @@ export async function POST(request: NextRequest) {
       typeof body.name === "string" && body.name.trim()
         ? body.name.trim().slice(0, 100)
         : undefined;
+    // 관리자가 지정한 임시 비밀번호 (없으면 기본값). 직원이 이메일+이 비번으로 바로 로그인.
+    const password = String(body.password || "").trim() || "healo1234";
 
     if (!email || !role) {
       return Response.json({ ok: false, error: "email and role required" }, { status: 400 });
@@ -68,6 +70,10 @@ export async function POST(request: NextRequest) {
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return Response.json({ ok: false, error: "invalid_email" }, { status: 400 });
     }
+    // Supabase 기본 비밀번호 정책: 최소 6자
+    if (password.length < 6) {
+      return Response.json({ ok: false, error: "password_too_short" }, { status: 400 });
+    }
 
     const supabase = createServiceRoleClient();
     const { data: userList } = await supabase.auth.admin.listUsers({ page: 1, perPage: 200 });
@@ -77,11 +83,10 @@ export async function POST(request: NextRequest) {
     let createdNew = false;
 
     if (!target) {
-      // 신규: 임시 비번으로 생성 → 본인이 recovery 링크로 비번 설정
-      const tempPassword = crypto.randomUUID().slice(0, 16) + "Aa1!";
+      // 신규: 관리자 지정 임시 비번으로 바로 생성 (직원이 이메일+비번으로 로그인)
       const { data: created, error: createErr } = await supabase.auth.admin.createUser({
         email,
-        password: tempPassword,
+        password,
         email_confirm: true,
         app_metadata: { role },
         user_metadata: fullName ? { full_name: fullName } : undefined,
@@ -93,8 +98,9 @@ export async function POST(request: NextRequest) {
       target = created.user;
       createdNew = true;
     } else {
-      // 기존: 역할만 부여/갱신
+      // 기존: 역할 부여 + 비밀번호 재설정
       const { error: updErr } = await supabase.auth.admin.updateUserById(target.id, {
+        password,
         app_metadata: { ...(target.app_metadata || {}), role },
         ...(fullName
           ? { user_metadata: { ...(target.user_metadata || {}), full_name: fullName } }
@@ -106,19 +112,8 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 비밀번호 설정용 링크 (admin 이 직원에게 전달) — Supabase SMTP 미설정이어도 링크 자체는 생성됨
-    let setupLink: string | null = null;
-    try {
-      const { data: linkData } = await supabase.auth.admin.generateLink({
-        type: "recovery",
-        email,
-      });
-      setupLink = (linkData as any)?.properties?.action_link || null;
-    } catch {
-      // 링크 생성 실패해도 계정/역할은 정상 — 링크는 부가 기능
-    }
-
-    return Response.json({ ok: true, userId: target.id, role, createdNew, setupLink });
+    // 직원에게 전달할 로그인 정보 (이메일 + 방금 설정한 임시 비번)
+    return Response.json({ ok: true, userId: target.id, role, createdNew, loginEmail: email, tempPassword: password });
   } catch (err: any) {
     console.error("[admin/staff] POST error:", err.message);
     return Response.json({ ok: false, error: "internal_error" }, { status: 500 });
