@@ -25,7 +25,7 @@ const L = {
   branchesDesc: { ko: '면력한방병원은 서울·경기 4개 지점을 운영하고 있습니다.', en: 'Immune Hospital operates 4 branches across Seoul & Gyeonggi.', ru: 'Иммунная Клиника работает в 4 филиалах.', kz: 'Иммунная Клиника 4 филиалда жұмыс істейді.', zh: '免疫医院在首尔及京畿道运营4家分院。', ja: '免疫病院は4拠点で運営しています。' },
   status: {
     registered: { ko: '외국인환자 유치기관 등록', en: 'Registered for Foreign Patients', ru: 'Зарегистрирован для иностранных пациентов', kz: 'Шетелдік пациенттер үшін тіркелген', zh: '已注册外国患者招引机构', ja: '外国人患者誘致機関登録済み' },
-    preparing: { ko: '등록 준비 중', en: 'Registration in Progress', ru: 'Регистрация в процессе', kz: 'Тіркеу дайындалуда', zh: '注册准备中', ja: '登録準備中' },
+    preparing: { ko: '외국인환자 유치기관 등록 준비 중', en: 'Foreign Patient Institution — Registration in Progress', ru: 'Регистрация учреждения для иностранных пациентов в процессе', kz: 'Шетелдік пациенттер мекемесі ретінде тіркеу дайындалуда', zh: '外国患者招引机构注册准备中', ja: '外国人患者誘致機関の登録準備中' },
     upcoming: { ko: '오픈 예정', en: 'Coming Soon', ru: 'Скоро открытие', kz: 'Жақында ашылады', zh: '即将开业', ja: '近日オープン予定' },
   },
   section: {
