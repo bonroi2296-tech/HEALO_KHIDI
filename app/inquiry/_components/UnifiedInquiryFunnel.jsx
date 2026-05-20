@@ -8,7 +8,7 @@
  * Step 2 (3분, 6필드): 병기·진단일·치료상태·의료문서·입국시기·우선순위
  */
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   Check, ChevronRight, ChevronLeft, UploadCloud, X, File,

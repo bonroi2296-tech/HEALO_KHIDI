@@ -74,8 +74,15 @@ export async function GET(request: NextRequest) {
       if (s.patient_user_id) countByPatient[s.patient_user_id] = (countByPatient[s.patient_user_id] || 0) + 1;
     });
 
+    // 이메일 allowlist 로만 admin 인 계정도 환자 목록에서 제외
+    const adminEmails = new Set(
+      (process.env.ADMIN_EMAIL_ALLOWLIST || "")
+        .split(",")
+        .map((e) => e.trim().toLowerCase())
+        .filter(Boolean)
+    );
     const patients = (list.users || [])
-      .filter((u) => !STAFF_ROLES.includes(u.app_metadata?.role))
+      .filter((u) => !STAFF_ROLES.includes(u.app_metadata?.role) && !adminEmails.has((u.email || "").toLowerCase()))
       .map((u) => ({
         id: u.id,
         email: u.email,
