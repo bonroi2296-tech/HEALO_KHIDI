@@ -71,17 +71,23 @@ export function renderConsultationInviteEmail(props: ConsultationInviteProps) {
   const lang = (props.lang && STRINGS[props.lang]) ? props.lang : "ko";
   const s = STRINGS[lang];
   const name = (props.recipientName || "").slice(0, 50);
-  const scheduledFormatted = new Date(props.scheduledAt).toLocaleString(
-    lang === "ko" ? "ko-KR" : lang === "ru" || lang === "kz" ? "ru-RU" : "en-US",
-    {
+  // 시간대 명시 — 코디는 KST로 입력하지만 환자는 해외(CIS 등)라 시간대 라벨이 없으면 혼란.
+  // KST(상담이 진행되는 한국 시간) + UTC(글로벌 표준) 를 모두 라벨과 함께 표기.
+  const locale =
+    lang === "ko" ? "ko-KR" : lang === "ru" || lang === "kz" ? "ru-RU" : "en-US";
+  const fmtIn = (timeZone: string) =>
+    new Date(props.scheduledAt).toLocaleString(locale, {
       year: "numeric",
       month: "short",
       day: "numeric",
       weekday: "short",
       hour: "2-digit",
       minute: "2-digit",
-    }
-  );
+      timeZone,
+      timeZoneName: "short",
+    });
+  // 예: "2026. 10. 5. (월) 오후 2:00 GMT+9  ·  오전 5:00 UTC"
+  const scheduledFormatted = `${fmtIn("Asia/Seoul")}  ·  ${fmtIn("UTC")}`;
 
   // 병원 / 의사 카드 — 환자가 "어디 / 누구" 를 명확히 알도록 큰 카드로 표시
   const hospitalDoctorCard =

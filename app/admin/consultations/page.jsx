@@ -874,7 +874,7 @@ function CreateConsultationModal({ onClose, onSuccess }) {
               </select>
             </Field>
 
-            <Field label="예약 시각">
+            <Field label="예약 시각 (KST · 한국 시간 기준)">
               <input
                 type="datetime-local"
                 required
