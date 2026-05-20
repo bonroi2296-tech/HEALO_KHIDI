@@ -113,7 +113,7 @@ const T = {
     ja: "ご希望の方法をお選びください。",
   },
   aiAgent: {
-    ko: "AI 상담사", en: "AI Assistant", ru: "ИИ-консультант", kz: "ИИ-консультант", zh: "AI 助手", ja: "AIアシスタント",
+    ko: "AI Agent", en: "AI Agent", ru: "AI Agent", kz: "AI Agent", zh: "AI Agent", ja: "AI Agent",
   },
   aiAgentDesc: {
     ko: "지금 바로 한국어·러시아어로 질문하세요. 24시간 즉시 응답.",
@@ -124,7 +124,7 @@ const T = {
     ja: "あなたの言語で今すぐ質問。24時間即時応答。",
   },
   humanAgent: {
-    ko: "코디네이터 채팅", en: "Talk to a Coordinator", ru: "Чат с координатором", kz: "Координатормен сөйлесу", zh: "联系协调员", ja: "コーディネーターと話す",
+    ko: "Human Agent", en: "Human Agent", ru: "Human Agent", kz: "Human Agent", zh: "Human Agent", ja: "Human Agent",
   },
   humanAgentDesc: {
     ko: "WhatsApp · Telegram · WeChat · LINE 으로 직접 연결.",
@@ -135,7 +135,7 @@ const T = {
     ja: "WhatsApp・Telegram・WeChat・LINEで直接連絡。",
   },
   inquiryForm: {
-    ko: "상담 신청서", en: "Consultation Form", ru: "Анкета", kz: "Сұраныс формасы", zh: "咨询表单", ja: "相談フォーム",
+    ko: "Inquiry Form", en: "Inquiry Form", ru: "Inquiry Form", kz: "Inquiry Form", zh: "Inquiry Form", ja: "Inquiry Form",
   },
   inquiryFormDesc: {
     ko: "1분 입력 → 코디네이터가 선호 언어로 회신.",
