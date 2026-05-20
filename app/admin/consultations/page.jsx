@@ -499,6 +499,7 @@ function CreateConsultationModal({ onClose, onSuccess }) {
     const d = new Date();
     d.setHours(d.getHours() + 1, 0, 0, 0);
     return {
+      selected_inquiry_id: "",
       patient_user_id: "",
       doctor_user_id: "",
       coordinator_user_id: "",
@@ -526,6 +527,8 @@ function CreateConsultationModal({ onClose, onSuccess }) {
   // 병원/의사 옵션 (DB 에서 lazy load)
   const [hospitalOptions, setHospitalOptions] = useState([]);
   const [doctorOptions, setDoctorOptions] = useState([]);
+  // 문의(inquiries) 옵션 — 환자를 직접 타이핑하지 않고 실제 문의에서 선택
+  const [inquiryOptions, setInquiryOptions] = useState([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -540,12 +543,41 @@ function CreateConsultationModal({ onClose, onSuccess }) {
       } catch {
         // silent
       }
+      try {
+        // Step1 이상 완료된 실제 문의만 — 코디가 이 목록에서 환자 선택
+        const { data: inquiriesData } = await supabase
+          .from("inquiries")
+          .select("id, first_name, nationality, cancer_type, preferred_language, contact_method, status, created_at")
+          .not("step1_completed_at", "is", null)
+          .order("created_at", { ascending: false })
+          .limit(50);
+        if (!cancelled && inquiriesData) setInquiryOptions(inquiriesData);
+      } catch {
+        // silent
+      }
     }
     loadOptions();
     return () => {
       cancelled = true;
     };
   }, []);
+
+  // 문의 선택 시 환자 정보 자동 채움
+  function applyInquiry(inquiryId) {
+    const inq = inquiryOptions.find((i) => String(i.id) === String(inquiryId));
+    if (!inq) {
+      setForm((f) => ({ ...f, selected_inquiry_id: "" }));
+      return;
+    }
+    setForm((f) => ({
+      ...f,
+      selected_inquiry_id: inquiryId,
+      inviteeName: inq.first_name || f.inviteeName,
+      patient_language: inq.preferred_language || f.patient_language,
+      inviteRoles: { ...f.inviteRoles, patient: true },
+      notes: f.notes || `문의 #${inq.id} · ${inq.nationality || ""} · ${inq.cancer_type || ""}`.trim(),
+    }));
+  }
 
   // 병원 변경 시 해당 병원의 의사 목록 로드
   useEffect(() => {
@@ -821,13 +853,31 @@ function CreateConsultationModal({ onClose, onSuccess }) {
               ))}
             </div>
 
+            {/* 문의에서 환자 선택 — 직접 타이핑 대신 실제 문의 목록에서 (오타·중복 입력 방지) */}
+            <div className="mt-3">
+              <label className="block text-xs font-semibold text-gray-600 mb-1">문의에서 환자 선택</label>
+              <select
+                value={form.selected_inquiry_id}
+                onChange={(e) => applyInquiry(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-teal-500"
+              >
+                <option value="">— 문의 목록에서 선택 (이름·언어 자동 입력) —</option>
+                {inquiryOptions.map((inq) => (
+                  <option key={inq.id} value={inq.id}>
+                    #{inq.id} · {inq.first_name || "(이름 미상)"} · {inq.nationality || "?"} · {inq.cancer_type || "?"} · {inq.status || ""}
+                  </option>
+                ))}
+              </select>
+              <p className="text-[11px] text-gray-400 mt-1">연락처(이메일/전화)는 보안상 암호화되어 있어 자동 표시되지 않습니다. 초대 링크를 복사해 해당 문의 연락수단으로 전달하세요.</p>
+            </div>
+
             {form.inviteRoles.patient && (
               <div className="mt-3 pt-3 border-t border-teal-200 space-y-2">
                 <input
                   type="text"
                   value={form.inviteeName}
                   onChange={(e) => setForm({ ...form, inviteeName: e.target.value })}
-                  placeholder="환자 이름 (선택) — 예: Айжан Нурланова"
+                  placeholder="환자 이름 (문의 선택 시 자동) — 예: Айжан Нурланова"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
                 />
                 <input
@@ -847,17 +897,17 @@ function CreateConsultationModal({ onClose, onSuccess }) {
             onSelect={(id) => setForm({ ...form, patient_user_id: id })}
             placeholder="비워두면 게스트 링크 전용"
           />
-          <UserSearchField
-            label="의사 계정 (선택)"
+          <RoleUserSelect
+            label="담당 의사 (지정 의사 목록)"
+            role="doctor"
             value={form.doctor_user_id}
             onSelect={(id) => setForm({ ...form, doctor_user_id: id })}
-            placeholder="이메일로 검색"
           />
-          <UserSearchField
-            label="코디네이터 계정 (선택)"
+          <RoleUserSelect
+            label="담당 코디네이터 (지정 코디 목록)"
+            role="coordinator"
             value={form.coordinator_user_id}
             onSelect={(id) => setForm({ ...form, coordinator_user_id: id })}
-            placeholder="이메일로 검색"
           />
 
           <div className="grid grid-cols-2 gap-4">
@@ -993,6 +1043,53 @@ function CreateConsultationModal({ onClose, onSuccess }) {
 
 // ─── 사용자 검색 필드 ─────────────────────────────
 // 이메일로 auth.users 검색 → 선택 → UUID 자동 입력
+// 역할(doctor/coordinator) 회원을 드롭다운으로 — 이메일 검색 대신 지정 명단에서 선택
+function RoleUserSelect({ label, role, value, onSelect }) {
+  const [options, setOptions] = useState([]);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        const token = sessionData?.session?.access_token;
+        if (!token) return;
+        const res = await fetch(`/api/admin/users/search?role=${encodeURIComponent(role)}&limit=50`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const result = await res.json();
+        if (!cancelled && result.ok) setOptions(result.users || []);
+      } catch {
+        // silent
+      } finally {
+        if (!cancelled) setLoaded(true);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [role]);
+
+  return (
+    <div>
+      <label className="block text-xs font-semibold text-gray-600 mb-1">{label}</label>
+      <select
+        value={value}
+        onChange={(e) => onSelect(e.target.value)}
+        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-teal-500"
+      >
+        <option value="">
+          {loaded && options.length === 0 ? `등록된 ${role === "doctor" ? "의사" : "코디네이터"} 계정 없음 — 회원가입 후 역할 부여 필요` : "— 선택 —"}
+        </option>
+        {options.map((u) => (
+          <option key={u.id} value={u.id}>
+            {u.full_name ? `${u.full_name} (${u.email})` : u.email}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
 function UserSearchField({ label, value, onSelect, placeholder }) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState([]);

@@ -25,12 +25,14 @@ export async function GET(request: NextRequest) {
   if (!auth.success) return auth.response;
 
   const q = (request.nextUrl.searchParams.get("q") || "").trim();
+  // role 지정 시: 해당 역할(doctor/coordinator 등) 회원 전체 반환 (드롭다운용, q 불필요)
+  const role = (request.nextUrl.searchParams.get("role") || "").trim();
   const limit = Math.min(
     parseInt(request.nextUrl.searchParams.get("limit") || "10"),
-    20
+    50
   );
 
-  if (q.length < 2) {
+  if (!role && q.length < 2) {
     return Response.json({
       ok: true,
       users: [],
@@ -56,15 +58,19 @@ export async function GET(request: NextRequest) {
 
     const qLower = q.toLowerCase();
     const matched = (authData.users || [])
-      .filter((u: any) => (u.email || "").toLowerCase().includes(qLower))
+      .filter((u: any) => {
+        // role 모드: app_metadata.role 일치 (권한은 항상 app_metadata 기준)
+        if (role) return u.app_metadata?.role === role;
+        // 검색 모드: 이메일 부분 매치
+        return (u.email || "").toLowerCase().includes(qLower);
+      })
       .slice(0, limit)
       .map((u: any) => ({
         id: u.id,
         email: u.email,
         created_at: u.created_at,
-        // user_metadata 에서 이름 등 있으면
         full_name: u.user_metadata?.full_name || null,
-        // 민감 필드는 반환 안 함
+        role: u.app_metadata?.role || null,
       }));
 
     return Response.json({
