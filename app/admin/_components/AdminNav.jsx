@@ -26,60 +26,58 @@ import {
 } from "lucide-react";
 import { createSupabaseBrowserClient } from "../../../src/lib/supabase/browser";
 
+// 2026-05: 피벗(암환자 컨시어지) 반영 메뉴 재편 — 환자 여정 중심으로 그룹화,
+// 디렉토리 시절 도구는 '레거시 도구'로 분리(코드 보존). 크롤링은 RAG Tier2 갱신으로 라벨 재정의.
 const navGroups = [
   {
-    title: "KHIDI 운영",
+    title: "운영 현황",
     items: [
       { id: "dashboard", label: "대시보드", icon: LayoutDashboard, href: "/admin" },
-      { id: "agent", label: "Human Agent", icon: HeartPulse, href: "/admin/agent" },
-      { id: "consultations", label: "원격협진", icon: Video, href: "/admin/consultations" },
-      { id: "staff", label: "직원 계정", icon: Users, href: "/admin/staff" },
       { id: "kpi-dashboard", label: "KPI 대시보드", icon: TrendingUp, href: "/admin/khidi/kpi-dashboard" },
+      { id: "analytics", label: "문의 현황", icon: BarChart3, href: "/admin/analytics" },
+    ]
+  },
+  {
+    title: "환자 여정",
+    items: [
+      { id: "leads", label: "사전상담 리드", icon: Users, href: "/admin/leads" },
+      { id: "inquiries", label: "AI 핸드오프 문의", icon: MessageSquare, href: "/admin/inquiries" },
+      { id: "consultations", label: "원격협진", icon: Video, href: "/admin/consultations" },
+      { id: "agent", label: "Human Agent", icon: HeartPulse, href: "/admin/agent" },
+    ]
+  },
+  {
+    title: "제휴 자원 · RAG",
+    items: [
+      { id: "hospitals", label: "제휴 병원", icon: Building2, href: "/admin/hospitals" },
+      { id: "doctors", label: "의료진·지점", icon: Users, href: "/admin/doctors" },
+      { id: "rag", label: "RAG 관리", icon: Brain, href: "/admin/rag" },
+      { id: "rag-docs", label: "RAG 문서/Tier", icon: FileText, href: "/admin/rag/documents" },
+      { id: "crawl", label: "Tier 2 데이터 갱신", icon: SearchCode, href: "/admin/crawl" },
+      { id: "pipeline", label: "갱신 파이프라인", icon: BarChart3, href: "/admin/crawl/pipeline" },
+    ]
+  },
+  {
+    title: "AI 품질 · 시스템",
+    items: [
       { id: "ai-quality", label: "AI 품질 모니터링", icon: Brain, href: "/admin/khidi/ai-quality" },
       { id: "ai-feedback", label: "AI 피드백", icon: ThumbsDown, href: "/admin/khidi/ai-feedback" },
+      { id: "staff", label: "직원 계정", icon: Users, href: "/admin/staff" },
+      { id: "audit", label: "감사로그", icon: FileText, href: "/admin/audit" },
+      { id: "notifications", label: "알림 관리", icon: Bell, href: "/admin/settings/notifications" },
+      { id: "branding", label: "브랜딩 설정", icon: Palette, href: "/admin/settings/branding" },
     ]
   },
   {
-    title: "환자 깔때기",
-    items: [
-      { id: "inquiries", label: "AI 핸드오프(문의)", icon: MessageSquare, href: "/admin/inquiries" },
-      { id: "leads", label: "사전상담 리드", icon: Users, href: "/admin/leads" },
-    ]
-  },
-  {
-    title: "제휴 데이터",
-    items: [
-      { id: "hospitals", label: "병원관리", icon: Building2, href: "/admin/hospitals" },
-      { id: "doctors", label: "의료진·지점", icon: Users, href: "/admin/doctors" },
-    ]
-  },
-  {
-    title: "데이터 파이프라인",
+    // 디렉토리 시절(전체 병원 수동등록) 잔재 — 코드는 보존, 메뉴에서만 하단 분리
+    title: "레거시 도구",
     items: [
       { id: "import", label: "대량 Import", icon: Upload, href: "/admin/import" },
       { id: "enrichment", label: "데이터 보강", icon: Database, href: "/admin/enrichment" },
-      { id: "crawl", label: "데이터 크롤링", icon: SearchCode, href: "/admin/crawl" },
-      { id: "pipeline", label: "크롤링 파이프라인", icon: BarChart3, href: "/admin/crawl/pipeline" },
-    ]
-  },
-  {
-    title: "분석 및 AI",
-    items: [
-      { id: "analytics", label: "문의 현황", icon: BarChart3, href: "/admin/analytics" },
-      { id: "rag", label: "RAG 관리", icon: Brain, href: "/admin/rag" },
-      { id: "rag-docs", label: "RAG 문서/Tier", icon: FileText, href: "/admin/rag/documents" },
       { id: "playbook", label: "플레이북", icon: FileText, href: "/admin/playbook" },
       { id: "playbook-patterns", label: "응대 패턴", icon: Brain, href: "/admin/playbook-patterns" },
       { id: "playbook-analytics", label: "패턴 분석", icon: BarChart3, href: "/admin/playbook-analytics" },
       { id: "automation-playbook", label: "자동화", icon: BarChart3, href: "/admin/automation/playbook" },
-    ]
-  },
-  {
-    title: "시스템",
-    items: [
-      { id: "audit", label: "감사로그", icon: FileText, href: "/admin/audit" },
-      { id: "notifications", label: "알림 관리", icon: Bell, href: "/admin/settings/notifications" },
-      { id: "branding", label: "브랜딩 설정", icon: Palette, href: "/admin/settings/branding" },
     ]
   }
 ];
