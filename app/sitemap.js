@@ -73,7 +73,6 @@ export default async function sitemap() {
     { url: `${baseUrl}/treatments/thyroid`, changeFrequency: 'monthly', priority: 0.88, alternates: makeAlternates('/treatments/thyroid') },
     { url: `${baseUrl}/treatments/etc`, changeFrequency: 'monthly', priority: 0.85, alternates: makeAlternates('/treatments/etc') },
     { url: `${baseUrl}/faq`, changeFrequency: 'monthly', priority: 0.75 },
-    { url: `${baseUrl}/stories`, changeFrequency: 'weekly', priority: 0.75 },
     { url: `${baseUrl}/education`, changeFrequency: 'monthly', priority: 0.7 },
     { url: `${baseUrl}/patient/education`, changeFrequency: 'monthly', priority: 0.7 },
     { url: `${baseUrl}/patient/visa`, changeFrequency: 'monthly', priority: 0.7 },
