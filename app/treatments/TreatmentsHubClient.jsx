@@ -1,14 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, HeartPulse, Activity, Droplet, Wind, Stethoscope, Microscope } from "lucide-react";
 import { useLang } from "../../src/lib/i18n/LangContext";
 import { CANCERS, TREATMENTS_L } from "./TreatmentsClient";
 import { PHOTOS, IMMUNE_PHOTOS } from "../../components/healo/Photos";
 import {
   CANCER_DETAILS,
   ITCRN_FRAMEWORK,
-  CANCER_IMAGES,
 } from "../../src/lib/data/immuneCancerDetails";
 
 const SECTION_PHOTOS = [
@@ -20,14 +19,14 @@ const SECTION_PHOTOS = [
   PHOTOS.clinical2,
 ];
 
-// 6개 암종 카드용 이미지
-const CANCER_CARD_IMAGES = {
-  female: CANCER_IMAGES.complications.lymphEdema,
-  digest: CANCER_IMAGES.complications.digestive,
-  liver: CANCER_IMAGES.complications.liverFailure,
-  lung: CANCER_IMAGES.complications.breathingDifficulty,
-  thyroid: CANCER_IMAGES.complications.voiceChange,
-  etc: CANCER_IMAGES.healGraph,
+// 6개 암종 카드용 아이콘 (사진 대신 깔끔한 플랫폼 톤)
+const CANCER_ICONS = {
+  female: HeartPulse,
+  digest: Activity,
+  liver: Droplet,
+  lung: Wind,
+  thyroid: Stethoscope,
+  etc: Microscope,
 };
 
 const ITCRN_KEYS = ["immunity", "temperature", "circulation", "resistibility", "nutrition"];
@@ -264,19 +263,16 @@ export default function TreatmentsHubClient() {
               className="group block border border-gray-200 rounded-xl overflow-hidden hover:border-teal-300 hover:shadow-md transition-all"
             >
               <article>
-                <div className="w-full aspect-[16/9] overflow-hidden bg-gray-100">
-                  <img
-                    src={CANCER_CARD_IMAGES[cancer.slug] || CANCER_IMAGES.healGraph}
-                    alt={l(cancer.title)}
-                    loading="lazy"
-                    className="w-full h-full object-cover"
-                    onError={(e) => { e.currentTarget.src = CANCER_IMAGES.healSvg; }}
-                  />
+                <div className="w-full aspect-[16/9] bg-teal-50 border-b border-teal-100 flex items-center justify-between px-6">
+                  {(() => {
+                    const Icon = CANCER_ICONS[cancer.slug] || Activity;
+                    return <Icon size={34} strokeWidth={1.5} className="text-teal-600" />;
+                  })()}
+                  <span className="text-3xl font-extrabold text-teal-600/30">
+                    {String(idx + 1).padStart(2, "0")}
+                  </span>
                 </div>
                 <div className="p-5 md:p-6">
-                  <div className="text-xs font-bold tracking-wide text-teal-600 mb-2">
-                    {String(idx + 1).padStart(2, "0")}
-                  </div>
                   <h3 className="text-lg font-bold text-gray-900 mb-2 leading-snug">{l(cancer.title)}</h3>
                   <p className="text-sm text-gray-500 leading-relaxed mb-4 line-clamp-3">{l(cancer.intro)}</p>
                   {cancer.focusPrograms && (

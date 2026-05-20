@@ -2,7 +2,16 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { ArrowRight, Plus } from "lucide-react";
+import { ArrowRight, Plus, HeartPulse, Activity, Droplet, Wind, Stethoscope, Microscope } from "lucide-react";
+
+const CANCER_ICONS = {
+  female: HeartPulse,
+  digest: Activity,
+  liver: Droplet,
+  lung: Wind,
+  thyroid: Stethoscope,
+  etc: Microscope,
+};
 import { useLang } from "../../../src/lib/i18n/LangContext";
 import {
   CANCER_DETAILS,
@@ -88,16 +97,6 @@ const COMPLICATION_IMAGES = {
     CANCER_IMAGES.complications.nutrition,
     CANCER_IMAGES.complications.emotional,
   ],
-};
-
-// 암종별 히어로 이미지
-const HERO_BG = {
-  female: CANCER_IMAGES.complications.lymphEdema,
-  digest: CANCER_IMAGES.complications.digestive,
-  liver: CANCER_IMAGES.complications.liverFailure,
-  lung: CANCER_IMAGES.complications.breathingDifficulty,
-  thyroid: CANCER_IMAGES.complications.voiceChange,
-  etc: CANCER_IMAGES.healGraph,
 };
 
 // FAQ 데이터 — 암종별 + 러시아/카자흐 관점
@@ -283,7 +282,6 @@ export default function CancerDetailClient({ slug }) {
 
   const therapyKeys = SLUG_THERAPIES[slug] || [];
   const complicationImgs = COMPLICATION_IMAGES[slug] || [];
-  const heroBg = HERO_BG[slug] || CANCER_IMAGES.healGraph;
   const faqs = FAQ_DATA[slug] || FAQ_DATA.etc;
 
   const showPostSurgical = slug === "digest" || slug === "liver";
@@ -323,15 +321,12 @@ export default function CancerDetailClient({ slug }) {
           </Link>
         </div>
 
-        {/* 히어로 이미지 */}
-        <div className="mt-10 w-full aspect-[16/7] overflow-hidden rounded-xl bg-gray-100 border border-gray-200">
-          <img
-            src={heroBg}
-            alt={l(cancer.title)}
-            loading="lazy"
-            className="w-full h-full object-cover"
-            onError={(e) => { e.currentTarget.src = CANCER_IMAGES.healSvg; }}
-          />
+        {/* 히어로 — 암종 아이콘 밴드 (사진 대신 깔끔한 플랫폼 톤) */}
+        <div className="mt-10 w-full aspect-[16/7] rounded-xl bg-teal-50 border border-teal-100 flex items-center justify-center">
+          {(() => {
+            const Icon = CANCER_ICONS[slug] || Activity;
+            return <Icon size={64} strokeWidth={1.25} className="text-teal-600/70" />;
+          })()}
         </div>
       </section>
 
