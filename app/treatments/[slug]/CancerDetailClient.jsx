@@ -2,14 +2,8 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { ArrowRight, Plus } from "lucide-react";
 import { useLang } from "../../../src/lib/i18n/LangContext";
-import {
-  Eyebrow,
-  Rule,
-  ButtonGold,
-  LinkArrow,
-  FilmGrain,
-} from "../../../components/healo/Primitives";
 import {
   CANCER_DETAILS,
   ITCRN_FRAMEWORK,
@@ -17,17 +11,15 @@ import {
   POST_SURGICAL_CARE,
 } from "../../../src/lib/data/immuneCancerDetails";
 import { IMMUNE_THERAPIES } from "../../../src/lib/data/immuneTherapies";
-import Nav from "../../../components/healo/Nav";
-import Footer from "../../../components/healo/Footer";
 
 // ── 다국어 CTA 레이블 ────────────────────────────────────────────
 const CTA = {
-  ko: { consult: "원격 상담으로 먼저 만나보기", intake: "문의 신청", intakeShort: "문의 신청" },
-  en: { consult: "Start with a Remote Consultation", intake: "Submit an Inquiry", intakeShort: "Inquiry" },
-  ru: { consult: "Начните с онлайн-консультации", intake: "Оставить заявку", intakeShort: "Заявка" },
-  kz: { consult: "Қашықтан кеңесу", intake: "Сұрау жіберу", intakeShort: "Сұрау" },
-  ja: { consult: "まずはオンライン相談から", intake: "お問い合わせ", intakeShort: "問い合わせ" },
-  zh: { consult: "先进行远程咨询", intake: "提交咨询", intakeShort: "咨询" },
+  ko: { consult: "원격 상담 신청", intake: "문의 신청", intakeShort: "문의 신청" },
+  en: { consult: "Request a remote consultation", intake: "Submit an inquiry", intakeShort: "Inquiry" },
+  ru: { consult: "Запросить онлайн-консультацию", intake: "Оставить заявку", intakeShort: "Заявка" },
+  kz: { consult: "Қашықтан кеңес сұрау", intake: "Сұрау жіберу", intakeShort: "Сұрау" },
+  ja: { consult: "オンライン相談を申し込む", intake: "お問い合わせ", intakeShort: "問い合わせ" },
+  zh: { consult: "申请远程咨询", intake: "提交咨询", intakeShort: "咨询" },
 };
 
 // 암종별 관련 치료법 매핑
@@ -98,7 +90,7 @@ const COMPLICATION_IMAGES = {
   ],
 };
 
-// 암종별 영웅 배경 이미지
+// 암종별 히어로 이미지
 const HERO_BG = {
   female: CANCER_IMAGES.complications.lymphEdema,
   digest: CANCER_IMAGES.complications.digestive,
@@ -149,6 +141,134 @@ const FAQ_DATA = {
 
 // ITCRN 축 순서
 const ITCRN_KEYS = ["immunity", "temperature", "circulation", "resistibility", "nutrition"];
+const ITCRN_LETTERS = ["I", "T", "C", "R", "N"];
+
+// 섹션 라벨 다국어
+const SECTION_COPY = {
+  ko: {
+    heroEyebrow: "면력한방병원 · 암종별 치료",
+    compEyebrow: "수술 후 주요 합병증",
+    compTitle: "수술 후 나타날 수 있는 합병증과 관리",
+    itcrnTitle: "5축 통합 면역 치료",
+    itcrnFocus: "특화 프로그램",
+    therapyEyebrow: "주요 치료 프로그램",
+    therapyTitle: "이 암종에 특화된 치료 접근법",
+    postEyebrow: "수술 후 관리 프로토콜",
+    postTitle: "퇴원 후에도 이어지는 관리",
+    postProtocols: "프로토콜",
+    journeyEyebrow: "환자 여정",
+    journeyTitle: "문의부터 귀국까지의 5단계",
+    faqTitle: "자주 묻는 질문",
+    ctaEyebrow: "다음 단계",
+    ctaTitle: "원격 상담으로 먼저 시작하세요",
+    ctaBody: "원격 상담으로 부담 없이 시작하세요. 영업일 기준 1일 내 담당 코디네이터가 연락드립니다.",
+    allTypes: "모든 암종 보기",
+  },
+  en: {
+    heroEyebrow: "Immune Hospital · Cancer-specific care",
+    compEyebrow: "Post-surgical complications",
+    compTitle: "Complications that can follow surgery, and how we manage them",
+    itcrnTitle: "5-axis integrative immune care",
+    itcrnFocus: "Focus programs",
+    therapyEyebrow: "Key treatment programs",
+    therapyTitle: "Treatment approaches tailored to this cancer type",
+    postEyebrow: "Post-surgical care protocols",
+    postTitle: "Care that continues after discharge",
+    postProtocols: "protocols",
+    journeyEyebrow: "Patient journey",
+    journeyTitle: "Five steps from inquiry to return home",
+    faqTitle: "Frequently asked questions",
+    ctaEyebrow: "Next step",
+    ctaTitle: "Start with a remote consultation",
+    ctaBody: "Start with a no-obligation remote consultation. Your dedicated coordinator will reach out within 1 business day.",
+    allTypes: "View all cancer types",
+  },
+  ru: {
+    heroEyebrow: "Immune Hospital · Лечение по типу рака",
+    compEyebrow: "Послеоперационные осложнения",
+    compTitle: "Возможные осложнения после операции и их ведение",
+    itcrnTitle: "5-осевая интегративная иммунотерапия",
+    itcrnFocus: "Профильные программы",
+    therapyEyebrow: "Ключевые программы лечения",
+    therapyTitle: "Подходы к лечению, адаптированные под этот тип рака",
+    postEyebrow: "Протоколы послеоперационного ухода",
+    postTitle: "Уход, который продолжается после выписки",
+    postProtocols: "протоколов",
+    journeyEyebrow: "Путь пациента",
+    journeyTitle: "Пять шагов от заявки до возвращения домой",
+    faqTitle: "Часто задаваемые вопросы",
+    ctaEyebrow: "Следующий шаг",
+    ctaTitle: "Начните с онлайн-консультации",
+    ctaBody: "Начните с бесплатной онлайн-консультации. Координатор свяжется с вами в течение 1 рабочего дня.",
+    allTypes: "Все виды рака",
+  },
+  kz: {
+    heroEyebrow: "Immune Hospital · Обыр түрі бойынша емдеу",
+    compEyebrow: "Операциядан кейінгі асқынулар",
+    compTitle: "Операциядан кейін мүмкін асқынулар және оларды басқару",
+    itcrnTitle: "5 осьті интегративті иммунотерапия",
+    itcrnFocus: "Профильді бағдарламалар",
+    therapyEyebrow: "Негізгі емдеу бағдарламалары",
+    therapyTitle: "Осы обыр түріне бейімделген емдеу тәсілдері",
+    postEyebrow: "Операциядан кейінгі күтім хаттамалары",
+    postTitle: "Шыққаннан кейін де жалғасатын күтім",
+    postProtocols: "хаттама",
+    journeyEyebrow: "Пациент жолы",
+    journeyTitle: "Сұраудан үйге оралуға дейінгі бес кезең",
+    faqTitle: "Жиі қойылатын сұрақтар",
+    ctaEyebrow: "Келесі қадам",
+    ctaTitle: "Қашықтан кеңестен бастаңыз",
+    ctaBody: "Қашықтан кеңестен ыңғайлы бастаңыз. Бір жұмыс күні ішінде координатор сізге хабарласады.",
+    allTypes: "Барлық обыр түрін қарау",
+  },
+  zh: {
+    heroEyebrow: "Immune Hospital · 癌症专科治疗",
+    compEyebrow: "术后主要并发症",
+    compTitle: "术后可能出现的并发症及其管理",
+    itcrnTitle: "五轴整合免疫治疗",
+    itcrnFocus: "专项项目",
+    therapyEyebrow: "主要治疗项目",
+    therapyTitle: "针对该癌症类型的治疗方案",
+    postEyebrow: "术后护理方案",
+    postTitle: "出院后仍持续的护理",
+    postProtocols: "项方案",
+    journeyEyebrow: "患者旅程",
+    journeyTitle: "从咨询到回国的五个阶段",
+    faqTitle: "常见问题",
+    ctaEyebrow: "下一步",
+    ctaTitle: "先从远程咨询开始",
+    ctaBody: "从无负担的远程咨询开始。我们将在一个工作日内由专属协调员与您联系。",
+    allTypes: "查看所有癌症类型",
+  },
+  ja: {
+    heroEyebrow: "面力韓方病院 · がん種別の治療",
+    compEyebrow: "術後の主な合併症",
+    compTitle: "手術後に起こりうる合併症とその管理",
+    itcrnTitle: "5軸統合免疫治療",
+    itcrnFocus: "特化プログラム",
+    therapyEyebrow: "主な治療プログラム",
+    therapyTitle: "このがん種に特化した治療アプローチ",
+    postEyebrow: "術後ケアプロトコル",
+    postTitle: "退院後も続くケア",
+    postProtocols: "プロトコル",
+    journeyEyebrow: "患者の歩み",
+    journeyTitle: "お問い合わせから帰国までの5ステップ",
+    faqTitle: "よくある質問",
+    ctaEyebrow: "次のステップ",
+    ctaTitle: "まずはオンライン相談から",
+    ctaBody: "まずは負担のないオンライン相談から。営業日基準1日以内に担当コーディネーターがご連絡します。",
+    allTypes: "すべてのがん種を見る",
+  },
+};
+
+// 환자 여정 5단계
+const JOURNEY_STEPS = [
+  { num: "01", ko: "문의 · 상담", en: "Inquiry & consult", ru: "Запрос и консультация", kz: "Сұрау және кеңес", zh: "咨询", ja: "お問い合わせ・相談", sub: { ko: "원격 상담", en: "Remote consultation", ru: "Онлайн-консультация", kz: "Қашықтан кеңес", zh: "远程咨询", ja: "オンライン相談" } },
+  { num: "02", ko: "치료 계획", en: "Treatment plan", ru: "План лечения", kz: "Емдеу жоспары", zh: "治疗计划", ja: "治療計画", sub: { ko: "맞춤 견적", en: "Tailored plan", ru: "Индивидуальный план", kz: "Жеке жоспар", zh: "定制方案", ja: "個別見積もり" } },
+  { num: "03", ko: "방문 · 입원", en: "Visit & admission", ru: "Приезд и госпитализация", kz: "Келу және жатқызу", zh: "到访 · 住院", ja: "来院・入院", sub: { ko: "비자·이동 지원", en: "Visa & transfer", ru: "Виза и трансфер", kz: "Виза және трансфер", zh: "签证·交通支持", ja: "ビザ・移動支援" } },
+  { num: "04", ko: "치료 · 회복", en: "Treatment & recovery", ru: "Лечение и восстановление", kz: "Емдеу және қалпына келу", zh: "治疗 · 康复", ja: "治療・回復", sub: { ko: "ITCRN 5축", en: "ITCRN 5-axis", ru: "5-осевая система ITCRN", kz: "ITCRN 5 ось", zh: "ITCRN 五轴", ja: "ITCRN 5軸" } },
+  { num: "05", ko: "귀국 · 추적", en: "Return & follow-up", ru: "Возвращение и наблюдение", kz: "Оралу және бақылау", zh: "回国 · 随访", ja: "帰国・追跡", sub: { ko: "원격 사후 관리", en: "Remote follow-up", ru: "Удалённое наблюдение", kz: "Қашықтан бақылау", zh: "远程后续管理", ja: "オンライン経過観察" } },
+];
 
 export default function CancerDetailClient({ slug }) {
   const lang = useLang();
@@ -159,6 +279,7 @@ export default function CancerDetailClient({ slug }) {
 
   const l = (obj) => obj?.[lang] || obj?.en || obj?.ko || "";
   const cta = CTA[lang] || CTA.en;
+  const s = SECTION_COPY[lang] || SECTION_COPY.en;
 
   const therapyKeys = SLUG_THERAPIES[slug] || [];
   const complicationImgs = COMPLICATION_IMAGES[slug] || [];
@@ -168,197 +289,87 @@ export default function CancerDetailClient({ slug }) {
   const showPostSurgical = slug === "digest" || slug === "liver";
 
   return (
-    <div style={{ background: "var(--cream-0)", minHeight: "100vh" }}>
-      <Nav current="treatments" />
-
+    <div className="bg-white">
       {/* ── 1. HERO ─────────────────────────────────── */}
-      <section
-        style={{
-          position: "relative",
-          background: "var(--ink-0)",
-          color: "var(--fg-on-dark-1)",
-          padding: "96px 24px 72px",
-          overflow: "hidden",
-          minHeight: 420,
-          display: "flex",
-          alignItems: "center",
-        }}
-      >
-        <FilmGrain />
-        {/* 배경 이미지 레이어 */}
-        <div
-          style={{
-            position: "absolute", inset: 0,
-            backgroundImage: `url(${heroBg})`,
-            backgroundSize: "cover",
-            backgroundPosition: "center",
-            opacity: 0.18,
-          }}
-          aria-hidden="true"
-        />
-        <div style={{ position: "relative", maxWidth: 1240, margin: "0 auto", width: "100%" }}>
-          <Eyebrow>면력한방병원 · 암종별 치료</Eyebrow>
-          <h1
-            style={{
-              fontFamily: "var(--font-serif)",
-              fontWeight: 400,
-              fontSize: "clamp(40px, 6vw, 88px)",
-              lineHeight: 1.05,
-              letterSpacing: "-0.015em",
-              margin: "28px 0 20px",
-              maxWidth: 900,
-            }}
-          >
-            {l(cancer.title).split("·").map((part, i, arr) => (
-              <span key={i}>
-                {i > 0 && <span style={{ color: "var(--fg-on-dark-3)" }}> · </span>}
-                {i === arr.length - 1
-                  ? <span style={{ fontStyle: "italic", color: "var(--gold-0)" }}>{part.trim()}</span>
-                  : part.trim()}
-              </span>
-            ))}
-          </h1>
-          <Rule width={64} tone="gold" />
-          <p
-            style={{
-              fontFamily: "var(--font-sans)",
-              fontWeight: 300,
-              fontSize: 17,
-              lineHeight: 1.8,
-              color: "var(--fg-on-dark-2)",
-              marginTop: 20,
-              maxWidth: 680,
-            }}
-          >
-            {l(cancer.intro)}
-          </p>
-          {cancer.stats?.survivalImprovement && (
-            <div
-              style={{
-                marginTop: 32,
-                padding: "16px 24px",
-                borderLeft: "3px solid var(--gold-0)",
-                background: "rgba(200,169,106,0.08)",
-                maxWidth: 560,
-              }}
-            >
-              <p style={{ fontFamily: "var(--font-serif)", fontStyle: "italic", fontSize: 15, color: "var(--gold-0)", margin: 0 }}>
-                {cancer.stats.survivalImprovement}
-              </p>
-            </div>
-          )}
-          <div style={{ display: "flex", gap: 20, marginTop: 40, flexWrap: "wrap" }}>
-            <Link href="/consult/start" style={{ textDecoration: "none" }}>
-              <ButtonGold>{cta.consult}</ButtonGold>
-            </Link>
-            <Link href="/intake" style={{ textDecoration: "none" }}>
-              <span
-                style={{
-                  fontFamily: "var(--font-serif)",
-                  fontStyle: "italic",
-                  fontSize: 15,
-                  color: "var(--fg-on-dark-2)",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 6,
-                  cursor: "pointer",
-                }}
-              >
-                {cta.intake} →
-              </span>
-            </Link>
+      <section className="max-w-4xl mx-auto px-4 pt-14 pb-12 md:pt-20 md:pb-16">
+        <span className="inline-block text-xs font-bold tracking-wide text-teal-700 bg-teal-50 border border-teal-100 rounded-full px-3 py-1 mb-5">
+          {s.heroEyebrow}
+        </span>
+        <h1 className="text-3xl md:text-4xl font-bold text-gray-900 leading-tight">
+          {l(cancer.title)}
+        </h1>
+        <p className="mt-5 text-base md:text-lg text-gray-500 leading-relaxed max-w-2xl">
+          {l(cancer.intro)}
+        </p>
+        {cancer.stats?.survivalImprovement && (
+          <div className="mt-6 border-l-2 border-teal-600 bg-teal-50 rounded-r-xl px-4 py-3 max-w-xl">
+            <p className="text-sm md:text-base text-teal-800 font-semibold leading-relaxed m-0">
+              {cancer.stats.survivalImprovement}
+            </p>
           </div>
+        )}
+        <div className="mt-8 flex flex-wrap items-center gap-4">
+          <Link
+            href="/inquiry"
+            className="inline-flex items-center gap-2 px-6 py-3 bg-teal-600 hover:bg-teal-700 text-white rounded-xl font-bold transition-colors"
+          >
+            {cta.consult} <ArrowRight size={18} />
+          </Link>
+          <Link
+            href="/intake"
+            className="inline-flex items-center gap-1.5 px-2 py-2 text-sm font-bold text-teal-600 hover:text-teal-700 transition-colors"
+          >
+            {cta.intake} <ArrowRight size={16} />
+          </Link>
+        </div>
+
+        {/* 히어로 이미지 */}
+        <div className="mt-10 w-full aspect-[16/7] overflow-hidden rounded-xl bg-gray-100 border border-gray-200">
+          <img
+            src={heroBg}
+            alt={l(cancer.title)}
+            loading="lazy"
+            className="w-full h-full object-cover"
+            onError={(e) => { e.currentTarget.src = CANCER_IMAGES.healSvg; }}
+          />
         </div>
       </section>
 
       {/* ── 2. 합병증·증상 그리드 ───────────────────── */}
-      <section style={{ background: "var(--cream-0)", padding: "88px 24px" }}>
-        <div style={{ maxWidth: 1240, margin: "0 auto" }}>
-          <Eyebrow>{lang === "ko" ? "수술 후 주요 합병증" : lang === "ru" ? "Основные осложнения" : "Post-Surgical Complications"}</Eyebrow>
-          <h2
-            style={{
-              fontFamily: "var(--font-serif)",
-              fontWeight: 400,
-              fontSize: "clamp(28px, 4vw, 52px)",
-              lineHeight: 1.1,
-              margin: "20px 0 16px",
-              color: "var(--fg-on-light-1)",
-            }}
-          >
-            {lang === "ko" ? "조용히, 그러나" : lang === "ru" ? "Молча, но" : "Quietly, but"}{" "}
-            <span style={{ fontStyle: "italic", color: "var(--gold-2)" }}>
-              {lang === "ko" ? "책임집니다." : lang === "ru" ? "ответственно." : "responsibly."}
-            </span>
+      <section className="bg-gray-50 border-y border-gray-100">
+        <div className="max-w-4xl mx-auto px-4 py-12 md:py-16">
+          <span className="inline-block text-xs font-bold tracking-wide text-teal-700 bg-teal-50 border border-teal-100 rounded-full px-3 py-1 mb-4">
+            {s.compEyebrow}
+          </span>
+          <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-3 leading-tight">
+            {s.compTitle}
           </h2>
-          <Rule width={48} />
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 280px), 1fr))",
-              gap: 20,
-              marginTop: 48,
-            }}
-          >
+          <div className="w-12 h-px bg-teal-600 mb-8 md:mb-10" />
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5">
             {cancer.complications.map((comp, idx) => (
               <article
                 key={idx}
-                style={{
-                  background: "var(--paper)",
-                  border: "1px solid var(--cream-2)",
-                  overflow: "hidden",
-                }}
+                className="bg-white border border-gray-200 rounded-xl overflow-hidden"
               >
                 {complicationImgs[idx] && (
-                  <div style={{ width: "100%", aspectRatio: "16 / 9", overflow: "hidden" }}>
+                  <div className="w-full aspect-[16/9] overflow-hidden bg-gray-100">
                     <img
                       src={complicationImgs[idx]}
                       alt={comp.name}
                       loading="lazy"
-                      style={{
-                        width: "100%",
-                        height: "100%",
-                        objectFit: "cover",
-                        filter: "grayscale(20%) contrast(1.05)",
-                      }}
-                      onError={(e) => {
-                        e.currentTarget.src = CANCER_IMAGES.healSvg;
-                      }}
+                      className="w-full h-full object-cover"
+                      onError={(e) => { e.currentTarget.src = CANCER_IMAGES.healSvg; }}
                     />
                   </div>
                 )}
-                <div style={{ padding: "20px 20px 24px" }}>
-                  <div
-                    style={{
-                      fontFamily: "var(--font-mono)",
-                      fontSize: 10,
-                      letterSpacing: "0.2em",
-                      color: "var(--gold-2)",
-                      marginBottom: 8,
-                    }}
-                  >
+                <div className="p-4 md:p-5">
+                  <div className="text-xs font-bold tracking-wide text-teal-600 mb-1.5">
                     {String(idx + 1).padStart(2, "0")}
                   </div>
-                  <h3
-                    style={{
-                      fontFamily: "var(--font-serif)",
-                      fontSize: 20,
-                      fontWeight: 500,
-                      color: "var(--fg-on-light-1)",
-                      margin: "0 0 8px",
-                      lineHeight: 1.3,
-                    }}
-                  >
+                  <h3 className="text-base font-bold text-gray-900 mb-1.5 leading-snug">
                     {comp.name}
                   </h3>
-                  <p
-                    style={{
-                      fontFamily: "var(--font-sans)",
-                      fontSize: 14,
-                      lineHeight: 1.65,
-                      color: "var(--fg-on-light-2)",
-                      margin: 0,
-                    }}
-                  >
+                  <p className="text-sm text-gray-500 leading-relaxed">
                     {comp.desc}
                   </p>
                 </div>
@@ -369,279 +380,139 @@ export default function CancerDetailClient({ slug }) {
       </section>
 
       {/* ── 3. ITCRN 5축 치료 ───────────────────────── */}
-      <section
-        style={{
-          background: "var(--ink-0)",
-          color: "var(--fg-on-dark-1)",
-          padding: "88px 24px",
-          borderTop: "1px solid var(--gold-tint)",
-        }}
-      >
-        <FilmGrain />
-        <div style={{ position: "relative", maxWidth: 1240, margin: "0 auto" }}>
-          <Eyebrow tone="muted-dark">ITCRN Framework</Eyebrow>
-          <h2
-            style={{
-              fontFamily: "var(--font-serif)",
-              fontWeight: 400,
-              fontSize: "clamp(28px, 4vw, 52px)",
-              lineHeight: 1.1,
-              margin: "20px 0 12px",
-            }}
-          >
-            {lang === "ko" ? "5축 통합 면역 치료" : lang === "ru" ? "5-осевая интегративная терапия" : "5-Axis Integrative Immune Care"}
-          </h2>
+      <section className="max-w-4xl mx-auto px-4 py-12 md:py-16">
+        <span className="inline-block text-xs font-bold tracking-wide text-teal-700 bg-teal-50 border border-teal-100 rounded-full px-3 py-1 mb-4">
+          ITCRN Framework
+        </span>
+        <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-3 leading-tight">
+          {s.itcrnTitle}
+        </h2>
+        <div className="w-12 h-px bg-teal-600 mb-6" />
 
-          {/* 암종 특화 포커스 배지 */}
-          {cancer.focusPrograms && (
-            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 20, marginBottom: 40 }}>
-              <span style={{ fontFamily: "var(--font-sans)", fontSize: 11, color: "var(--fg-on-dark-3)", letterSpacing: "0.1em", alignSelf: "center" }}>
-                {lang === "ko" ? "특화 프로그램" : "Focus"}:
+        {/* 암종 특화 포커스 배지 */}
+        {cancer.focusPrograms && (
+          <div className="flex flex-wrap items-center gap-2 mb-8">
+            <span className="text-xs font-bold tracking-wide text-gray-400 uppercase mr-1">
+              {s.itcrnFocus}
+            </span>
+            {cancer.focusPrograms.map((prog, i) => (
+              <span
+                key={i}
+                className="text-xs font-semibold text-teal-700 bg-teal-50 border border-teal-100 rounded-full px-3 py-1"
+              >
+                {prog}
               </span>
-              {cancer.focusPrograms.map((prog, i) => (
-                <span
-                  key={i}
-                  style={{
-                    fontFamily: "var(--font-sans)",
-                    fontSize: 11,
-                    fontWeight: 600,
-                    letterSpacing: "0.1em",
-                    padding: "4px 12px",
-                    border: "1px solid var(--gold-0)",
-                    color: "var(--gold-0)",
-                    borderRadius: 2,
-                  }}
-                >
-                  {prog}
-                </span>
-              ))}
-            </div>
-          )}
-
-          {/* 5축 아코디언 */}
-          <div style={{ borderTop: "1px solid var(--ink-3)" }}>
-            {ITCRN_KEYS.map((key, idx) => {
-              const axis = ITCRN_FRAMEWORK[key];
-              if (!axis) return null;
-              const isOpen = openAxis === key;
-              return (
-                <div key={key} style={{ borderBottom: "1px solid var(--ink-3)" }}>
-                  <button
-                    onClick={() => setOpenAxis(isOpen ? null : key)}
-                    style={{
-                      width: "100%",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      background: "none",
-                      border: "none",
-                      cursor: "pointer",
-                      padding: "24px 0",
-                      textAlign: "left",
-                    }}
-                  >
-                    <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
-                      <span
-                        style={{
-                          fontFamily: "var(--font-mono)",
-                          fontSize: 12,
-                          color: "var(--gold-0)",
-                          letterSpacing: "0.2em",
-                          minWidth: 28,
-                        }}
-                      >
-                        {String.fromCharCode(73 + [0,3,2,17,13][idx])}
-                      </span>
-                      <span
-                        style={{
-                          fontFamily: "var(--font-serif)",
-                          fontSize: "clamp(18px, 2.5vw, 28px)",
-                          fontWeight: 400,
-                          color: "var(--fg-on-dark-1)",
-                        }}
-                      >
-                        {l(axis.title)}
-                      </span>
-                    </div>
-                    <span
-                      style={{
-                        fontFamily: "var(--font-mono)",
-                        fontSize: 20,
-                        color: "var(--gold-0)",
-                        transform: isOpen ? "rotate(45deg)" : "none",
-                        transition: "transform 0.2s",
-                      }}
-                    >
-                      +
-                    </span>
-                  </button>
-                  {isOpen && (
-                    <div style={{ padding: "0 0 32px 48px" }}>
-                      <p
-                        style={{
-                          fontFamily: "var(--font-sans)",
-                          fontSize: 15,
-                          lineHeight: 1.75,
-                          color: "var(--fg-on-dark-2)",
-                          maxWidth: 640,
-                          marginBottom: 20,
-                        }}
-                      >
-                        {l(axis.desc)}
-                      </p>
-                      {axis.evidence && (
-                        <div
-                          style={{
-                            padding: "12px 20px",
-                            borderLeft: "2px solid var(--gold-0)",
-                            marginBottom: 20,
-                            background: "rgba(200,169,106,0.06)",
-                          }}
-                        >
-                          <p style={{ fontFamily: "var(--font-serif)", fontStyle: "italic", fontSize: 14, color: "var(--gold-0)", margin: 0 }}>
-                            {axis.evidence}
-                          </p>
-                        </div>
-                      )}
-                      {(axis.methods || axis.cellular || axis.programs) && (
-                        <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexWrap: "wrap", gap: 8 }}>
-                          {[...(axis.methods || []), ...(axis.cellular || []), ...(axis.humoral || []), ...(axis.programs || [])].map(
-                            (m, i) => (
-                              <li
-                                key={i}
-                                style={{
-                                  fontFamily: "var(--font-sans)",
-                                  fontSize: 13,
-                                  color: "var(--fg-on-dark-2)",
-                                  padding: "6px 14px",
-                                  border: "1px solid var(--ink-3)",
-                                  borderRadius: 2,
-                                }}
-                              >
-                                {m}
-                              </li>
-                            )
-                          )}
-                        </ul>
-                      )}
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+            ))}
           </div>
+        )}
+
+        {/* 5축 아코디언 */}
+        <div className="border-t border-gray-200">
+          {ITCRN_KEYS.map((key, idx) => {
+            const axis = ITCRN_FRAMEWORK[key];
+            if (!axis) return null;
+            const isOpen = openAxis === key;
+            return (
+              <div key={key} className="border-b border-gray-200">
+                <button
+                  onClick={() => setOpenAxis(isOpen ? null : key)}
+                  className="w-full flex items-center justify-between gap-4 py-5 text-left"
+                >
+                  <div className="flex items-center gap-4">
+                    <span className="shrink-0 w-9 h-9 rounded-lg bg-teal-600 text-white font-bold flex items-center justify-center text-sm">
+                      {ITCRN_LETTERS[idx]}
+                    </span>
+                    <span className="text-base md:text-lg font-bold text-gray-900">
+                      {l(axis.title)}
+                    </span>
+                  </div>
+                  <Plus
+                    size={20}
+                    className={`shrink-0 text-teal-600 transition-transform ${isOpen ? "rotate-45" : ""}`}
+                  />
+                </button>
+                {isOpen && (
+                  <div className="pb-6 pl-0 md:pl-13">
+                    <p className="text-sm md:text-base text-gray-600 leading-relaxed max-w-2xl mb-4">
+                      {l(axis.desc)}
+                    </p>
+                    {axis.evidence && (
+                      <div className="border-l-2 border-teal-600 bg-teal-50 rounded-r-xl px-4 py-3 mb-4 max-w-2xl">
+                        <p className="text-sm text-teal-800 font-semibold m-0 leading-relaxed">
+                          {axis.evidence}
+                        </p>
+                      </div>
+                    )}
+                    {(axis.methods || axis.cellular || axis.programs) && (
+                      <ul className="flex flex-wrap gap-2 list-none p-0 m-0">
+                        {[...(axis.methods || []), ...(axis.cellular || []), ...(axis.humoral || []), ...(axis.programs || [])].map(
+                          (m, i) => (
+                            <li
+                              key={i}
+                              className="text-xs font-semibold text-gray-600 border border-gray-200 rounded-full px-3 py-1"
+                            >
+                              {m}
+                            </li>
+                          )
+                        )}
+                      </ul>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       </section>
 
       {/* ── 4. 치료법 상세 카드 ─────────────────────── */}
-      <section style={{ background: "var(--paper)", padding: "88px 24px" }}>
-        <div style={{ maxWidth: 1240, margin: "0 auto" }}>
-          <Eyebrow>{lang === "ko" ? "주요 치료 프로그램" : lang === "ru" ? "Ключевые программы" : "Key Treatment Programs"}</Eyebrow>
-          <h2
-            style={{
-              fontFamily: "var(--font-serif)",
-              fontWeight: 400,
-              fontSize: "clamp(28px, 4vw, 52px)",
-              lineHeight: 1.1,
-              margin: "20px 0 48px",
-              color: "var(--fg-on-light-1)",
-            }}
-          >
-            {lang === "ko" ? "이 암종에 특화된" : lang === "ru" ? "Специализированные методы для" : "Tailored for"}{" "}
-            <span style={{ fontStyle: "italic", color: "var(--gold-2)" }}>
-              {lang === "ko" ? "치료 접근법" : lang === "ru" ? "данного типа рака" : "this cancer type"}
-            </span>
+      <section className="bg-gray-50 border-y border-gray-100">
+        <div className="max-w-4xl mx-auto px-4 py-12 md:py-16">
+          <span className="inline-block text-xs font-bold tracking-wide text-teal-700 bg-teal-50 border border-teal-100 rounded-full px-3 py-1 mb-4">
+            {s.therapyEyebrow}
+          </span>
+          <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-3 leading-tight">
+            {s.therapyTitle}
           </h2>
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 300px), 1fr))",
-              gap: 24,
-            }}
-          >
+          <div className="w-12 h-px bg-teal-600 mb-8 md:mb-10" />
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5">
             {therapyKeys.map((key, idx) => {
               const therapy = IMMUNE_THERAPIES[key];
               if (!therapy) return null;
               return (
                 <article
                   key={key}
-                  style={{
-                    background: "var(--cream-0)",
-                    border: "1px solid var(--cream-2)",
-                    overflow: "hidden",
-                  }}
+                  className="bg-white border border-gray-200 rounded-xl overflow-hidden"
                 >
                   {therapy.image && (
-                    <div style={{ width: "100%", aspectRatio: "16 / 9", overflow: "hidden" }}>
+                    <div className="w-full aspect-[16/9] overflow-hidden bg-gray-100">
                       <img
                         src={therapy.image}
                         alt={l(therapy.name)}
                         loading="lazy"
-                        style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                        className="w-full h-full object-cover"
+                        onError={(e) => { e.currentTarget.src = CANCER_IMAGES.healSvg; }}
                       />
                     </div>
                   )}
-                  <div style={{ padding: "24px" }}>
-                    <div
-                      style={{
-                        fontFamily: "var(--font-mono)",
-                        fontSize: 10,
-                        letterSpacing: "0.2em",
-                        color: "var(--gold-2)",
-                        textTransform: "uppercase",
-                        marginBottom: 8,
-                      }}
-                    >
+                  <div className="p-4 md:p-5">
+                    <div className="text-xs font-bold tracking-wide text-teal-600 uppercase mb-1.5">
                       {therapy.axis?.toUpperCase()} — {String(idx + 1).padStart(2, "0")}
                     </div>
-                    <h3
-                      style={{
-                        fontFamily: "var(--font-serif)",
-                        fontSize: 20,
-                        fontWeight: 500,
-                        color: "var(--fg-on-light-1)",
-                        margin: "0 0 10px",
-                        lineHeight: 1.25,
-                      }}
-                    >
+                    <h3 className="text-base font-bold text-gray-900 mb-1.5 leading-snug">
                       {l(therapy.name)}
                     </h3>
-                    <p
-                      style={{
-                        fontFamily: "var(--font-sans)",
-                        fontSize: 14,
-                        lineHeight: 1.65,
-                        color: "var(--fg-on-light-2)",
-                        margin: 0,
-                      }}
-                    >
+                    <p className="text-sm text-gray-500 leading-relaxed">
                       {l(therapy.description)}
                     </p>
                     {therapy.evidence && (
-                      <p
-                        style={{
-                          fontFamily: "var(--font-serif)",
-                          fontStyle: "italic",
-                          fontSize: 13,
-                          color: "var(--gold-2)",
-                          marginTop: 12,
-                          marginBottom: 0,
-                        }}
-                      >
+                      <p className="text-xs text-teal-700 font-semibold mt-3 mb-0 leading-relaxed">
                         {l(therapy.evidence)}
                       </p>
                     )}
                     {therapy.price && (
-                      <div
-                        style={{
-                          marginTop: 16,
-                          padding: "8px 12px",
-                          background: "var(--paper)",
-                          border: "1px solid var(--cream-2)",
-                          display: "inline-block",
-                        }}
-                      >
-                        <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--fg-on-light-3)" }}>
+                      <div className="mt-4 inline-block bg-gray-50 border border-gray-200 rounded-lg px-3 py-1.5">
+                        <span className="text-xs font-semibold text-gray-600">
                           {typeof therapy.price.amount === "number"
                             ? `${therapy.price.amount.toLocaleString()} ${therapy.price.unit}`
                             : `${therapy.price.amount} ${therapy.price.unit || ""}`}
@@ -658,171 +529,54 @@ export default function CancerDetailClient({ slug }) {
 
       {/* ── 5. 수술 후 관리 (대장/간만) ─────────────── */}
       {showPostSurgical && (
-        <section
-          style={{
-            background: "var(--ink-0)",
-            color: "var(--fg-on-dark-1)",
-            padding: "88px 24px",
-            borderTop: "1px solid var(--gold-tint)",
-          }}
-        >
-          <FilmGrain />
-          <div style={{ position: "relative", maxWidth: 1240, margin: "0 auto" }}>
-            <Eyebrow tone="muted-dark">
-              {lang === "ko" ? "수술 후 관리 프로토콜" : lang === "ru" ? "Протоколы послеоперационного ухода" : "Post-Surgical Care Protocols"}
-            </Eyebrow>
-            <h2
-              style={{
-                fontFamily: "var(--font-serif)",
-                fontWeight: 400,
-                fontSize: "clamp(28px, 4vw, 48px)",
-                lineHeight: 1.1,
-                margin: "20px 0 48px",
-              }}
-            >
-              {lang === "ko" ? "퇴원 후에도" : lang === "ru" ? "После выписки тоже" : "Even after discharge,"}
-              {" "}
-              <span style={{ fontStyle: "italic", color: "var(--gold-0)" }}>
-                {lang === "ko" ? "조용히 책임집니다." : lang === "ru" ? "мы несём ответственность." : "we take responsibility."}
-              </span>
-            </h2>
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(3, 1fr)",
-                gap: 1,
-                background: "var(--ink-3)",
-              }}
-            >
-              {Object.entries(POST_SURGICAL_CARE).map(([key, care]) => (
-                <div
-                  key={key}
-                  style={{
-                    background: "var(--ink-1)",
-                    padding: "40px 32px",
-                    textAlign: "center",
-                  }}
-                >
-                  <div
-                    style={{
-                      fontFamily: "var(--font-serif)",
-                      fontSize: 48,
-                      fontWeight: 400,
-                      color: "var(--gold-0)",
-                      lineHeight: 1,
-                      marginBottom: 16,
-                    }}
-                  >
-                    {care.items}
-                  </div>
-                  <div
-                    style={{
-                      fontFamily: "var(--font-sans)",
-                      fontSize: 11,
-                      letterSpacing: "0.15em",
-                      textTransform: "uppercase",
-                      color: "var(--fg-on-dark-3)",
-                      marginBottom: 8,
-                    }}
-                  >
-                    {lang === "ko" ? "프로토콜" : "protocols"}
-                  </div>
-                  <h3
-                    style={{
-                      fontFamily: "var(--font-serif)",
-                      fontSize: 22,
-                      fontWeight: 400,
-                      color: "var(--fg-on-dark-1)",
-                      margin: 0,
-                    }}
-                  >
-                    {care.title}
-                  </h3>
+        <section className="max-w-4xl mx-auto px-4 py-12 md:py-16">
+          <span className="inline-block text-xs font-bold tracking-wide text-teal-700 bg-teal-50 border border-teal-100 rounded-full px-3 py-1 mb-4">
+            {s.postEyebrow}
+          </span>
+          <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-3 leading-tight">
+            {s.postTitle}
+          </h2>
+          <div className="w-12 h-px bg-teal-600 mb-8 md:mb-10" />
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5">
+            {Object.entries(POST_SURGICAL_CARE).map(([key, care]) => (
+              <div
+                key={key}
+                className="bg-gray-50 border border-gray-200 rounded-xl p-5 md:p-6 text-center"
+              >
+                <div className="text-3xl md:text-4xl font-bold text-teal-600 leading-none mb-3">
+                  {care.items}
                 </div>
-              ))}
-            </div>
+                <div className="text-xs font-bold tracking-wide text-gray-400 uppercase mb-1.5">
+                  {s.postProtocols}
+                </div>
+                <h3 className="text-base md:text-lg font-bold text-gray-900 leading-snug">
+                  {care.title}
+                </h3>
+              </div>
+            ))}
           </div>
         </section>
       )}
 
       {/* ── 6. 환자 여정 5단계 ──────────────────────── */}
-      <section style={{ background: "var(--cream-0)", padding: "88px 24px" }}>
-        <div style={{ maxWidth: 1240, margin: "0 auto" }}>
-          <Eyebrow>
-            {lang === "ko" ? "환자 여정" : lang === "ru" ? "Путь пациента" : "Patient Journey"}
-          </Eyebrow>
-          <h2
-            style={{
-              fontFamily: "var(--font-serif)",
-              fontWeight: 400,
-              fontSize: "clamp(28px, 4vw, 52px)",
-              lineHeight: 1.1,
-              margin: "20px 0 48px",
-              color: "var(--fg-on-light-1)",
-            }}
-          >
-            {lang === "ko" ? "문의부터 귀국까지," : lang === "ru" ? "От заявки до возвращения домой," : "From inquiry to return,"}{" "}
-            <span style={{ fontStyle: "italic", color: "var(--gold-2)" }}>
-              {lang === "ko" ? "함께합니다." : lang === "ru" ? "мы рядом." : "we are with you."}
-            </span>
+      <section className="bg-gray-50 border-y border-gray-100">
+        <div className="max-w-4xl mx-auto px-4 py-12 md:py-16">
+          <span className="inline-block text-xs font-bold tracking-wide text-teal-700 bg-teal-50 border border-teal-100 rounded-full px-3 py-1 mb-4">
+            {s.journeyEyebrow}
+          </span>
+          <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-3 leading-tight">
+            {s.journeyTitle}
           </h2>
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(5, 1fr)",
-              gap: 0,
-              borderTop: "1px solid var(--cream-2)",
-            }}
-          >
-            {[
-              { num: "01", ko: "문의 · 상담", en: "Inquiry & Consult", ru: "Запрос", sub: { ko: "원격 상담", en: "Remote consultation", ru: "Онлайн" } },
-              { num: "02", ko: "치료 계획", en: "Treatment Plan", ru: "План лечения", sub: { ko: "맞춤 견적", en: "Tailored plan", ru: "Индивидуально" } },
-              { num: "03", ko: "방문 · 입원", en: "Visit & Admission", ru: "Приезд", sub: { ko: "비자·이동 지원", en: "Visa & transfer", ru: "Виза и трансфер" } },
-              { num: "04", ko: "치료 · 회복", en: "Treatment & Recovery", ru: "Лечение", sub: { ko: "ITCRN 5축", en: "ITCRN 5-axis", ru: "5-осевая система" } },
-              { num: "05", ko: "귀국 · 추적", en: "Return & Follow-up", ru: "Возвращение", sub: { ko: "원격 사후 관리", en: "Remote follow-up", ru: "Удалённое наблюдение" } },
-            ].map((step, i) => (
-              <div
-                key={step.num}
-                style={{
-                  padding: "32px 16px",
-                  borderRight: i < 4 ? "1px solid var(--cream-2)" : "none",
-                  borderBottom: "1px solid var(--cream-2)",
-                }}
-              >
-                <div
-                  style={{
-                    fontFamily: "var(--font-serif)",
-                    fontSize: 40,
-                    fontWeight: 400,
-                    color: "var(--gold-2)",
-                    lineHeight: 1,
-                    marginBottom: 12,
-                  }}
-                >
-                  {step.num}
+          <div className="w-12 h-px bg-teal-600 mb-8 md:mb-10" />
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+            {JOURNEY_STEPS.map((step) => (
+              <div key={step.num} className="bg-white border border-gray-200 rounded-xl p-4 text-center">
+                <div className="text-2xl font-bold text-teal-600 leading-none mb-2.5">{step.num}</div>
+                <div className="text-sm font-bold text-gray-900 mb-1 leading-snug">
+                  {step[lang] || step.en}
                 </div>
-                <div
-                  style={{
-                    fontFamily: "var(--font-serif)",
-                    fontSize: 16,
-                    fontWeight: 500,
-                    color: "var(--fg-on-light-1)",
-                    marginBottom: 4,
-                    lineHeight: 1.3,
-                  }}
-                >
-                  {lang === "ko" ? step.ko : lang === "ru" ? step.ru : step.en}
-                </div>
-                <div
-                  style={{
-                    fontFamily: "var(--font-sans)",
-                    fontSize: 11,
-                    letterSpacing: "0.1em",
-                    color: "var(--fg-on-light-3)",
-                    textTransform: "uppercase",
-                  }}
-                >
-                  {lang === "ko" ? step.sub.ko : lang === "ru" ? step.sub.ru : step.sub.en}
+                <div className="text-xs text-gray-500 leading-snug">
+                  {step.sub[lang] || step.sub.en}
                 </div>
               </div>
             ))}
@@ -831,171 +585,63 @@ export default function CancerDetailClient({ slug }) {
       </section>
 
       {/* ── 7. FAQ ──────────────────────────────────── */}
-      <section
-        style={{
-          background: "var(--paper)",
-          padding: "88px 24px",
-          borderTop: "1px solid var(--cream-2)",
-        }}
-      >
-        <div style={{ maxWidth: 800, margin: "0 auto" }}>
-          <Eyebrow>FAQ</Eyebrow>
-          <h2
-            style={{
-              fontFamily: "var(--font-serif)",
-              fontWeight: 400,
-              fontSize: "clamp(28px, 4vw, 48px)",
-              lineHeight: 1.1,
-              margin: "20px 0 48px",
-              color: "var(--fg-on-light-1)",
-            }}
-          >
-            {lang === "ko" ? "자주 묻는" : lang === "ru" ? "Часто задаваемые" : "Frequently asked"}{" "}
-            <span style={{ fontStyle: "italic", color: "var(--gold-2)" }}>
-              {lang === "ko" ? "질문들" : lang === "ru" ? "вопросы" : "questions"}
-            </span>
-          </h2>
-          <div>
-            {faqs.map((faq, idx) => (
-              <div
-                key={idx}
-                style={{
-                  padding: "28px 0",
-                  borderTop: "1px solid var(--cream-2)",
-                }}
-              >
-                <h3
-                  style={{
-                    fontFamily: "var(--font-serif)",
-                    fontSize: 20,
-                    fontWeight: 500,
-                    color: "var(--fg-on-light-1)",
-                    margin: "0 0 12px",
-                    lineHeight: 1.4,
-                  }}
-                >
-                  {faq.q[lang] || faq.q.ko}
-                </h3>
-                <p
-                  style={{
-                    fontFamily: "var(--font-sans)",
-                    fontSize: 15,
-                    lineHeight: 1.75,
-                    color: "var(--fg-on-light-2)",
-                    margin: 0,
-                  }}
-                >
-                  {faq.a[lang] || faq.a.ko}
-                </p>
-              </div>
-            ))}
-            <div style={{ borderTop: "1px solid var(--cream-2)" }} />
-          </div>
+      <section className="max-w-4xl mx-auto px-4 py-12 md:py-16">
+        <span className="inline-block text-xs font-bold tracking-wide text-teal-700 bg-teal-50 border border-teal-100 rounded-full px-3 py-1 mb-4">
+          FAQ
+        </span>
+        <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-6 md:mb-8 leading-tight">
+          {s.faqTitle}
+        </h2>
+        <div className="divide-y divide-gray-200 border-t border-gray-200">
+          {faqs.map((faq, idx) => (
+            <div key={idx} className="py-5">
+              <h3 className="text-base md:text-lg font-bold text-gray-900 mb-2 leading-snug">
+                {faq.q[lang] || faq.q.ko}
+              </h3>
+              <p className="text-sm md:text-base text-gray-500 leading-relaxed">
+                {faq.a[lang] || faq.a.ko}
+              </p>
+            </div>
+          ))}
         </div>
       </section>
 
       {/* ── 8. CTA ──────────────────────────────────── */}
-      <section
-        style={{
-          background: "var(--ink-0)",
-          color: "var(--fg-on-dark-1)",
-          padding: "96px 24px",
-          textAlign: "center",
-          borderTop: "1px solid var(--gold-tint)",
-        }}
-      >
-        <FilmGrain />
-        <div style={{ position: "relative", maxWidth: 720, margin: "0 auto" }}>
-          <Eyebrow tone="muted-dark">
-            {lang === "ko" ? "다음 단계" : lang === "ru" ? "Следующий шаг" : "Next Step"}
-          </Eyebrow>
-          <h2
-            style={{
-              fontFamily: "var(--font-serif)",
-              fontWeight: 400,
-              fontSize: "clamp(32px, 5vw, 64px)",
-              lineHeight: 1.05,
-              margin: "24px 0 16px",
-            }}
-          >
-            {lang === "ko" ? "치료는 대화에서" : lang === "ru" ? "Лечение начинается" : "Healing begins"}{" "}
-            <span style={{ fontStyle: "italic", color: "var(--gold-0)" }}>
-              {lang === "ko" ? "시작됩니다." : lang === "ru" ? "с разговора." : "with a conversation."}
-            </span>
+      <section className="bg-teal-600">
+        <div className="max-w-4xl mx-auto px-4 py-14 md:py-20 text-center">
+          <span className="inline-block text-xs font-bold tracking-wide text-teal-50 bg-teal-500/40 border border-teal-400/40 rounded-full px-3 py-1 mb-5">
+            {s.ctaEyebrow}
+          </span>
+          <h2 className="text-2xl md:text-3xl font-bold text-white mb-4 leading-snug">
+            {s.ctaTitle}
           </h2>
-          <Rule width={64} tone="gold" style={{ margin: "24px auto" }} />
-          <p
-            style={{
-              fontFamily: "var(--font-sans)",
-              fontSize: 16,
-              lineHeight: 1.8,
-              color: "var(--fg-on-dark-2)",
-              marginBottom: 40,
-            }}
-          >
-            {lang === "ko"
-              ? "원격 상담으로 부담 없이 시작하세요. 영업일 기준 1일 내 담당 코디네이터가 연락드립니다."
-              : lang === "ru"
-              ? "Начните с бесплатной онлайн-консультации. Координатор свяжется с вами в течение 1 рабочего дня."
-              : "Start with a no-obligation remote consultation. Your dedicated coordinator will reach out within 1 business day."}
+          <p className="text-teal-50 text-sm md:text-base mb-8 max-w-2xl mx-auto leading-relaxed">
+            {s.ctaBody}
           </p>
-          <div style={{ display: "flex", gap: 20, justifyContent: "center", flexWrap: "wrap" }}>
-            <Link href="/consult/start" style={{ textDecoration: "none" }}>
-              <ButtonGold>{cta.consult}</ButtonGold>
+          <div className="flex flex-wrap items-center justify-center gap-4">
+            <Link
+              href="/inquiry"
+              className="inline-flex items-center gap-2 px-7 py-3.5 bg-white text-teal-700 rounded-xl font-bold hover:bg-teal-50 transition-colors"
+            >
+              {cta.consult} <ArrowRight size={18} />
             </Link>
-            <Link href="/intake" style={{ textDecoration: "none" }}>
-              <span
-                style={{
-                  fontFamily: "var(--font-serif)",
-                  fontStyle: "italic",
-                  fontSize: 15,
-                  color: "var(--fg-on-dark-2)",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 6,
-                  cursor: "pointer",
-                  padding: "14px 0",
-                }}
-              >
-                {cta.intake} →
-              </span>
+            <Link
+              href="/intake"
+              className="inline-flex items-center gap-1.5 px-4 py-2 text-sm font-bold text-teal-50 hover:text-white transition-colors"
+            >
+              {cta.intake} <ArrowRight size={16} />
             </Link>
           </div>
-          <div style={{ marginTop: 40 }}>
-            <Link href="/treatments" style={{ textDecoration: "none" }}>
-              <span
-                style={{
-                  fontFamily: "var(--font-sans)",
-                  fontSize: 12,
-                  letterSpacing: "0.15em",
-                  textTransform: "uppercase",
-                  color: "var(--fg-on-dark-4)",
-                }}
-              >
-                ← {lang === "ko" ? "모든 암종 보기" : lang === "ru" ? "Все виды рака" : "All Cancer Types"}
-              </span>
+          <div className="mt-8">
+            <Link
+              href="/treatments"
+              className="inline-flex items-center gap-1.5 text-xs font-semibold tracking-wide text-teal-100 hover:text-white transition-colors"
+            >
+              {s.allTypes} <ArrowRight size={14} />
             </Link>
           </div>
         </div>
       </section>
-
-      <Footer />
-
-      <style jsx>{`
-        @media (max-width: 768px) {
-          :global(section > div > div[style*="grid-template-columns: repeat(5"]) {
-            grid-template-columns: repeat(2, 1fr) !important;
-          }
-          :global(section > div > div[style*="grid-template-columns: repeat(3"]) {
-            grid-template-columns: 1fr !important;
-          }
-        }
-        @media (max-width: 480px) {
-          :global(section > div > div[style*="grid-template-columns: repeat(5"]) {
-            grid-template-columns: 1fr !important;
-          }
-        }
-      `}</style>
     </div>
   );
 }
