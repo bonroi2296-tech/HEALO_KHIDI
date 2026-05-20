@@ -39,20 +39,20 @@ const PREFERRED_LANGUAGES = [
   { value: "ko", label: "한국어" },
   { value: "en", label: "English" },
   { value: "ru", label: "Русский" },
-  { value: "kk", label: "Қазақша" },
+  { value: "kz", label: "Қазақша" },
   { value: "zh", label: "中文" },
   { value: "ja", label: "日本語" },
 ];
 
 const CANCER_TYPES = [
-  { value: "stomach", label: { ko: "위암", en: "Stomach", ru: "Желудок", kk: "Асқазан", zh: "胃癌", ja: "胃がん" }, icon: Activity },
-  { value: "liver", label: { ko: "간암", en: "Liver", ru: "Печень", kk: "Бауыр", zh: "肝癌", ja: "肝がん" }, icon: Zap },
-  { value: "lung", label: { ko: "폐암", en: "Lung", ru: "Лёгкое", kk: "Өкпе", zh: "肺癌", ja: "肺がん" }, icon: Wind },
-  { value: "breast", label: { ko: "유방암", en: "Breast", ru: "Грудь", kk: "Сүт без", zh: "乳腺癌", ja: "乳がん" }, icon: Heart },
-  { value: "thyroid", label: { ko: "갑상선암", en: "Thyroid", ru: "Щитовидка", kk: "Қалқанша", zh: "甲状腺癌", ja: "甲状腺がん" }, icon: Stethoscope },
-  { value: "colorectal", label: { ko: "대장암", en: "Colorectal", ru: "Толстая кишка", kk: "Тоқ ішек", zh: "结肠癌", ja: "大腸がん" }, icon: Activity },
-  { value: "pancreatic", label: { ko: "췌장암", en: "Pancreatic", ru: "Поджелудочная", kk: "Ұйқы без", zh: "胰腺癌", ja: "膵がん" }, icon: Microscope },
-  { value: "other", label: { ko: "기타", en: "Other", ru: "Другое", kk: "Басқа", zh: "其他", ja: "その他" }, icon: HelpCircle },
+  { value: "stomach", label: { ko: "위암", en: "Stomach", ru: "Желудок", kz: "Асқазан", zh: "胃癌", ja: "胃がん" }, icon: Activity },
+  { value: "liver", label: { ko: "간암", en: "Liver", ru: "Печень", kz: "Бауыр", zh: "肝癌", ja: "肝がん" }, icon: Zap },
+  { value: "lung", label: { ko: "폐암", en: "Lung", ru: "Лёгкое", kz: "Өкпе", zh: "肺癌", ja: "肺がん" }, icon: Wind },
+  { value: "breast", label: { ko: "유방암", en: "Breast", ru: "Грудь", kz: "Сүт без", zh: "乳腺癌", ja: "乳がん" }, icon: Heart },
+  { value: "thyroid", label: { ko: "갑상선암", en: "Thyroid", ru: "Щитовидка", kz: "Қалқанша", zh: "甲状腺癌", ja: "甲状腺がん" }, icon: Stethoscope },
+  { value: "colorectal", label: { ko: "대장암", en: "Colorectal", ru: "Толстая кишка", kz: "Тоқ ішек", zh: "结肠癌", ja: "大腸がん" }, icon: Activity },
+  { value: "pancreatic", label: { ko: "췌장암", en: "Pancreatic", ru: "Поджелудочная", kz: "Ұйқы без", zh: "胰腺癌", ja: "膵がん" }, icon: Microscope },
+  { value: "other", label: { ko: "기타", en: "Other", ru: "Другое", kz: "Басқа", zh: "其他", ja: "その他" }, icon: HelpCircle },
 ];
 
 const CANCER_TYPE_COLORS = {
@@ -68,29 +68,29 @@ const CANCER_TYPE_COLORS = {
 
 const STAGES = ["I", "II", "III", "IV"];
 const TREATMENT_STATES = [
-  { value: "pre_surgery", label: { ko: "수술 전", en: "Pre-surgery", ru: "До операции", kk: "Операцияға дейін", zh: "术前", ja: "術前" } },
-  { value: "post_surgery", label: { ko: "수술 후", en: "Post-surgery", ru: "После операции", kk: "Операциядан кейін", zh: "术后", ja: "術後" } },
-  { value: "chemotherapy", label: { ko: "항암 중", en: "Chemotherapy", ru: "Химиотерапия", kk: "Химиотерапия", zh: "化疗中", ja: "化学療法中" } },
-  { value: "follow_up", label: { ko: "추적 관찰", en: "Follow-up", ru: "Наблюдение", kk: "Бақылау", zh: "随访", ja: "経過観察" } },
-  { value: "other", label: { ko: "기타", en: "Other", ru: "Другое", kk: "Басқа", zh: "其他", ja: "その他" } },
+  { value: "pre_surgery", label: { ko: "수술 전", en: "Pre-surgery", ru: "До операции", kz: "Операцияға дейін", zh: "术前", ja: "術前" } },
+  { value: "post_surgery", label: { ko: "수술 후", en: "Post-surgery", ru: "После операции", kz: "Операциядан кейін", zh: "术后", ja: "術後" } },
+  { value: "chemotherapy", label: { ko: "항암 중", en: "Chemotherapy", ru: "Химиотерапия", kz: "Химиотерапия", zh: "化疗中", ja: "化学療法中" } },
+  { value: "follow_up", label: { ko: "추적 관찰", en: "Follow-up", ru: "Наблюдение", kz: "Бақылау", zh: "随访", ja: "経過観察" } },
+  { value: "other", label: { ko: "기타", en: "Other", ru: "Другое", kz: "Басқа", zh: "其他", ja: "その他" } },
 ];
 
 const TRAVEL_TIMING = [
-  { value: "2weeks", label: { ko: "2주 내", en: "Within 2 weeks", ru: "В течение 2 нед.", kk: "2 апта ішінде", zh: "2周内", ja: "2週間以内" } },
-  { value: "1month", label: { ko: "1개월", en: "~1 month", ru: "~1 месяц", kk: "~1 ай", zh: "约1个月", ja: "約1ヶ月" } },
-  { value: "3months", label: { ko: "3개월", en: "~3 months", ru: "~3 месяца", kk: "~3 ай", zh: "约3个月", ja: "約3ヶ月" } },
-  { value: "undecided", label: { ko: "미정", en: "Undecided", ru: "Не решено", kk: "Белгісіз", zh: "未定", ja: "未定" } },
+  { value: "2weeks", label: { ko: "2주 내", en: "Within 2 weeks", ru: "В течение 2 нед.", kz: "2 апта ішінде", zh: "2周内", ja: "2週間以内" } },
+  { value: "1month", label: { ko: "1개월", en: "~1 month", ru: "~1 месяц", kz: "~1 ай", zh: "约1个月", ja: "約1ヶ月" } },
+  { value: "3months", label: { ko: "3개월", en: "~3 months", ru: "~3 месяца", kz: "~3 ай", zh: "约3个月", ja: "約3ヶ月" } },
+  { value: "undecided", label: { ko: "미정", en: "Undecided", ru: "Не решено", kz: "Белгісіз", zh: "未定", ja: "未定" } },
 ];
 
 const PRIORITIES = [
-  { value: "price", label: { ko: "가격", en: "Price", ru: "Цена", kk: "Баға", zh: "价格", ja: "価格" } },
-  { value: "duration", label: { ko: "기간", en: "Duration", ru: "Сроки", kk: "Мерзім", zh: "疗程", ja: "期間" } },
-  { value: "doctor", label: { ko: "의료진", en: "Doctor", ru: "Врачи", kk: "Дәрігерлер", zh: "医生", ja: "医師" } },
-  { value: "accessibility", label: { ko: "접근성", en: "Accessibility", ru: "Доступность", kk: "Қолжетімділік", zh: "便利性", ja: "アクセス" } },
+  { value: "price", label: { ko: "가격", en: "Price", ru: "Цена", kz: "Баға", zh: "价格", ja: "価格" } },
+  { value: "duration", label: { ko: "기간", en: "Duration", ru: "Сроки", kz: "Мерзім", zh: "疗程", ja: "期間" } },
+  { value: "doctor", label: { ko: "의료진", en: "Doctor", ru: "Врачи", kz: "Дәрігерлер", zh: "医生", ja: "医師" } },
+  { value: "accessibility", label: { ko: "접근성", en: "Accessibility", ru: "Доступность", kz: "Қолжетімділік", zh: "便利性", ja: "アクセス" } },
 ];
 
 const LANG_NAMES = {
-  ko: "한국어", en: "English", ru: "Русский", kk: "Қазақша", zh: "中文", ja: "日本語",
+  ko: "한국어", en: "English", ru: "Русский", kz: "Қазақша", zh: "中文", ja: "日本語",
 };
 
 // ─── i18n 문자열 (6개 언어) ────────────────────────────────────────
@@ -100,7 +100,7 @@ const T = {
     ko: "어떻게 도와드릴까요?",
     en: "How can we help?",
     ru: "Чем мы можем помочь?",
-    kk: "Қалай көмектесе аламыз?",
+    kz: "Қалай көмектесе аламыз?",
     zh: "我们如何为您提供帮助？",
     ja: "どのようにお手伝いしましょうか？",
   },
@@ -108,40 +108,40 @@ const T = {
     ko: "원하시는 방식을 선택해주세요.",
     en: "Choose your preferred way to start.",
     ru: "Выберите удобный способ.",
-    kk: "Қолайлы тәсілді таңдаңыз.",
+    kz: "Қолайлы тәсілді таңдаңыз.",
     zh: "请选择您喜欢的方式。",
     ja: "ご希望の方法をお選びください。",
   },
   aiAgent: {
-    ko: "AI 상담사", en: "AI Assistant", ru: "ИИ-консультант", kk: "ИИ-консультант", zh: "AI 助手", ja: "AIアシスタント",
+    ko: "AI 상담사", en: "AI Assistant", ru: "ИИ-консультант", kz: "ИИ-консультант", zh: "AI 助手", ja: "AIアシスタント",
   },
   aiAgentDesc: {
     ko: "지금 바로 한국어·러시아어로 질문하세요. 24시간 즉시 응답.",
     en: "Ask anything now in your language. Instant 24/7 answers.",
     ru: "Задайте вопрос на русском прямо сейчас. Ответ 24/7.",
-    kk: "Қазір сұрақ қойыңыз. 24/7 жауап.",
+    kz: "Қазір сұрақ қойыңыз. 24/7 жауап.",
     zh: "立即用您的语言提问。24/7即时回答。",
     ja: "あなたの言語で今すぐ質問。24時間即時応答。",
   },
   humanAgent: {
-    ko: "코디네이터 채팅", en: "Talk to a Coordinator", ru: "Чат с координатором", kk: "Координатормен сөйлесу", zh: "联系协调员", ja: "コーディネーターと話す",
+    ko: "코디네이터 채팅", en: "Talk to a Coordinator", ru: "Чат с координатором", kz: "Координатормен сөйлесу", zh: "联系协调员", ja: "コーディネーターと話す",
   },
   humanAgentDesc: {
     ko: "WhatsApp · Telegram · WeChat · LINE 으로 직접 연결.",
     en: "Connect via WhatsApp, Telegram, WeChat, or LINE.",
     ru: "Связаться через WhatsApp, Telegram, WeChat, LINE.",
-    kk: "WhatsApp, Telegram, WeChat немесе LINE арқылы.",
+    kz: "WhatsApp, Telegram, WeChat немесе LINE арқылы.",
     zh: "通过 WhatsApp、Telegram、WeChat 或 LINE 联系。",
     ja: "WhatsApp・Telegram・WeChat・LINEで直接連絡。",
   },
   inquiryForm: {
-    ko: "상담 신청서", en: "Consultation Form", ru: "Анкета", kk: "Сұраныс формасы", zh: "咨询表单", ja: "相談フォーム",
+    ko: "상담 신청서", en: "Consultation Form", ru: "Анкета", kz: "Сұраныс формасы", zh: "咨询表单", ja: "相談フォーム",
   },
   inquiryFormDesc: {
     ko: "1분 입력 → 코디네이터가 선호 언어로 회신.",
     en: "1-minute form. We reply in your language.",
     ru: "Заполните за 1 минуту. Ответим на вашем языке.",
-    kk: "1 минут — біз сіздің тіліңізде жауап береміз.",
+    kz: "1 минут — біз сіздің тіліңізде жауап береміз.",
     zh: "1分钟表单。我们用您的语言回复。",
     ja: "1分で完了。ご希望の言語で返信します。",
   },
@@ -149,7 +149,7 @@ const T = {
     ko: "어느 채널이 편하세요?",
     en: "Which channel do you prefer?",
     ru: "Какой канал удобнее?",
-    kk: "Қай арна ыңғайлы?",
+    kz: "Қай арна ыңғайлы?",
     zh: "您更喜欢哪个渠道？",
     ja: "どのチャンネルがよろしいですか？",
   },
@@ -157,21 +157,21 @@ const T = {
     ko: "코디네이터가 24시간 이내에 응답합니다.",
     en: "A coordinator will respond within 24 hours.",
     ru: "Координатор ответит в течение 24 часов.",
-    kk: "Координатор 24 сағат ішінде жауап береді.",
+    kz: "Координатор 24 сағат ішінде жауап береді.",
     zh: "协调员将在24小时内回复。",
     ja: "コーディネーターが24時間以内に対応します。",
   },
   channelComingSoon: {
-    ko: "준비 중", en: "Coming Soon", ru: "Скоро", kk: "Жақында", zh: "即将开通", ja: "準備中",
+    ko: "준비 중", en: "Coming Soon", ru: "Скоро", kz: "Жақында", zh: "即将开通", ja: "準備中",
   },
   back: {
-    ko: "뒤로", en: "Back", ru: "Назад", kk: "Артқа", zh: "返回", ja: "戻る",
+    ko: "뒤로", en: "Back", ru: "Назад", kz: "Артқа", zh: "返回", ja: "戻る",
   },
   step1Title: {
     ko: "상담 신청",
     en: "Start Your Consultation",
     ru: "Начать консультацию",
-    kk: "Кеңес алуды бастаңыз",
+    kz: "Кеңес алуды бастаңыз",
     zh: "开始咨询",
     ja: "相談を始める",
   },
@@ -179,66 +179,66 @@ const T = {
     ko: "1분이면 충분합니다. 코디네이터가 선호하신 언어로 연락드립니다.",
     en: "Takes 1 minute. Our coordinator will reach out in your preferred language.",
     ru: "Займёт 1 минуту. Координатор свяжется на вашем языке.",
-    kk: "1 минут жетеді. Координатор сіздің тіліңізде хабарласады.",
+    kz: "1 минут жетеді. Координатор сіздің тіліңізде хабарласады.",
     zh: "只需1分钟。协调员将以您偏好的语言联系您。",
     ja: "1分で完了。コーディネーターが希望の言語でご連絡します。",
   },
   nameLabel: {
-    ko: "성함", en: "Full Name", ru: "Имя", kk: "Аты-жөні", zh: "姓名", ja: "お名前",
+    ko: "성함", en: "Full Name", ru: "Имя", kz: "Аты-жөні", zh: "姓名", ja: "お名前",
   },
   namePlaceholder: {
-    ko: "홍길동", en: "John Doe", ru: "Иван Иванов", kk: "Аты-жөні", zh: "姓名", ja: "山田太郎",
+    ko: "홍길동", en: "John Doe", ru: "Иван Иванов", kz: "Аты-жөні", zh: "姓名", ja: "山田太郎",
   },
   nationalityLabel: {
-    ko: "국적", en: "Nationality", ru: "Гражданство", kk: "Азаматтық", zh: "国籍", ja: "国籍",
+    ko: "국적", en: "Nationality", ru: "Гражданство", kz: "Азаматтық", zh: "国籍", ja: "国籍",
   },
   selectNationality: {
-    ko: "국적 선택", en: "Select nationality", ru: "Выберите гражданство", kk: "Азаматтықты таңдаңыз", zh: "选择国籍", ja: "国籍を選択",
+    ko: "국적 선택", en: "Select nationality", ru: "Выберите гражданство", kz: "Азаматтықты таңдаңыз", zh: "选择国籍", ja: "国籍を選択",
   },
   contactLabel: {
-    ko: "연락 수단", en: "Contact Method", ru: "Способ связи", kk: "Байланыс тәсілі", zh: "联系方式", ja: "連絡方法",
+    ko: "연락 수단", en: "Contact Method", ru: "Способ связи", kz: "Байланыс тәсілі", zh: "联系方式", ja: "連絡方法",
   },
   contactEmail: {
-    ko: "이메일", en: "Email", ru: "Эл. почта", kk: "Электрондық пошта", zh: "邮箱", ja: "メール",
+    ko: "이메일", en: "Email", ru: "Эл. почта", kz: "Электрондық пошта", zh: "邮箱", ja: "メール",
   },
   contactPhone: {
-    ko: "전화번호", en: "Phone", ru: "Телефон", kk: "Телефон", zh: "电话", ja: "電話",
+    ko: "전화번호", en: "Phone", ru: "Телефон", kz: "Телефон", zh: "电话", ja: "電話",
   },
   emailPlaceholder: {
-    ko: "example@email.com", en: "example@email.com", ru: "example@email.com", kk: "example@email.com", zh: "example@email.com", ja: "example@email.com",
+    ko: "example@email.com", en: "example@email.com", ru: "example@email.com", kz: "example@email.com", zh: "example@email.com", ja: "example@email.com",
   },
   phonePlaceholder: {
-    ko: "+7 701 234 5678", en: "+7 701 234 5678", ru: "+7 701 234 5678", kk: "+7 701 234 5678", zh: "+86 ...", ja: "+81 ...",
+    ko: "+7 701 234 5678", en: "+7 701 234 5678", ru: "+7 701 234 5678", kz: "+7 701 234 5678", zh: "+86 ...", ja: "+81 ...",
   },
   langLabel: {
-    ko: "선호 언어", en: "Preferred Language", ru: "Предпочтительный язык", kk: "Қалаулы тіл", zh: "偏好语言", ja: "希望言語",
+    ko: "선호 언어", en: "Preferred Language", ru: "Предпочтительный язык", kz: "Қалаулы тіл", zh: "偏好语言", ja: "希望言語",
   },
   selectLang: {
-    ko: "언어 선택", en: "Select language", ru: "Выберите язык", kk: "Тілді таңдаңыз", zh: "选择语言", ja: "言語を選択",
+    ko: "언어 선택", en: "Select language", ru: "Выберите язык", kz: "Тілді таңдаңыз", zh: "选择语言", ja: "言語を選択",
   },
   cancerTypeLabel: {
-    ko: "어떤 암인가요?", en: "Cancer Type", ru: "Тип рака", kk: "Қатерлі ісік түрі", zh: "癌症类型", ja: "がんの種類",
+    ko: "어떤 암인가요?", en: "Cancer Type", ru: "Тип рака", kz: "Қатерлі ісік түрі", zh: "癌症类型", ja: "がんの種類",
   },
   memoLabel: {
-    ko: "한 줄 메모 (선택, 200자)", en: "Brief note (optional, 200 chars)", ru: "Краткая заметка (необязательно)", kk: "Қысқа ескертпе (міндетті емес)", zh: "简短备注（可选）", ja: "簡単なメモ（任意）",
+    ko: "한 줄 메모 (선택, 200자)", en: "Brief note (optional, 200 chars)", ru: "Краткая заметка (необязательно)", kz: "Қысқа ескертпе (міндетті емес)", zh: "简短备注（可选）", ja: "簡単なメモ（任意）",
   },
   memoPlaceholder: {
-    ko: "자유롭게 적어주세요 (진단명, 병원명, 궁금한 점 등)", en: "Diagnosis, hospital, questions...", ru: "Диагноз, больница, вопросы...", kk: "Диагноз, аурухана, сұрақтар...", zh: "诊断、医院、问题...", ja: "診断名、病院、質問など...",
+    ko: "자유롭게 적어주세요 (진단명, 병원명, 궁금한 점 등)", en: "Diagnosis, hospital, questions...", ru: "Диагноз, больница, вопросы...", kz: "Диагноз, аурухана, сұрақтар...", zh: "诊断、医院、问题...", ja: "診断名、病院、質問など...",
   },
   submitStep1: {
-    ko: "상담 신청하기", en: "Request Consultation", ru: "Запросить консультацию", kk: "Кеңес сұрату", zh: "申请咨询", ja: "相談を申し込む",
+    ko: "상담 신청하기", en: "Request Consultation", ru: "Запросить консультацию", kz: "Кеңес сұрату", zh: "申请咨询", ja: "相談を申し込む",
   },
   submitting: {
-    ko: "처리 중...", en: "Submitting...", ru: "Отправка...", kk: "Жіберілуде...", zh: "提交中...", ja: "送信中...",
+    ko: "처리 중...", en: "Submitting...", ru: "Отправка...", kz: "Жіберілуде...", zh: "提交中...", ja: "送信中...",
   },
   successTitle: {
-    ko: "상담 신청 완료", en: "Consultation Requested", ru: "Консультация запрошена", kk: "Кеңес сұратылды", zh: "咨询申请成功", ja: "相談申し込み完了",
+    ko: "상담 신청 완료", en: "Consultation Requested", ru: "Консультация запрошена", kz: "Кеңес сұратылды", zh: "咨询申请成功", ja: "相談申し込み完了",
   },
   successBody: {
     ko: "코디네이터가 영업일 1일 이내에 {lang}로 연락드립니다.",
     en: "Our coordinator will contact you in {lang} within 1 business day.",
     ru: "Координатор свяжется с вами на {lang} в течение 1 рабочего дня.",
-    kk: "Координатор {lang} тілінде 1 жұмыс күні ішінде хабарласады.",
+    kz: "Координатор {lang} тілінде 1 жұмыс күні ішінде хабарласады.",
     zh: "协调员将在1个工作日内以{lang}与您联系。",
     ja: "コーディネーターが1営業日以内に{lang}でご連絡します。",
   },
@@ -246,7 +246,7 @@ const T = {
     ko: "더 정확한 매칭을 받고 싶으세요?",
     en: "Want a more accurate match?",
     ru: "Хотите более точное совпадение?",
-    kk: "Дәлірек сәйкестік алғыңыз келе ме?",
+    kz: "Дәлірек сәйкестік алғыңыз келе ме?",
     zh: "想要更准确的匹配吗？",
     ja: "より正確なマッチングを希望しますか？",
   },
@@ -254,24 +254,24 @@ const T = {
     ko: "추가 정보 6가지만 더 알려주시면 매칭 정확도가 90%까지 올라갑니다.",
     en: "6 more details will raise your match accuracy to 90%.",
     ru: "Ещё 6 сведений поднимут точность подбора до 90%.",
-    kk: "6 қосымша ақпарат сәйкестік дәлдігін 90%-ға дейін арттырады.",
+    kz: "6 қосымша ақпарат сәйкестік дәлдігін 90%-ға дейін арттырады.",
     zh: "再提供6项信息，匹配准确率将提升至90%。",
     ja: "あと6つの情報で、マッチング精度が90%に上がります。",
   },
   yesUpgrade: {
-    ko: "네, 알려드릴게요", en: "Yes, tell you more", ru: "Да, расскажу", kk: "Иә, айтамын", zh: "是的，告诉你更多", ja: "はい、詳しく教えます",
+    ko: "네, 알려드릴게요", en: "Yes, tell you more", ru: "Да, расскажу", kz: "Иә, айтамын", zh: "是的，告诉你更多", ja: "はい、詳しく教えます",
   },
   noUpgrade: {
-    ko: "나중에 할게요", en: "Maybe later", ru: "Потом", kk: "Кейінірек", zh: "以后再说", ja: "後で",
+    ko: "나중에 할게요", en: "Maybe later", ru: "Потом", kz: "Кейінірек", zh: "以后再说", ja: "後で",
   },
   doneTitle: {
-    ko: "감사합니다!", en: "Thank you!", ru: "Спасибо!", kk: "Рахмет!", zh: "谢谢！", ja: "ありがとうございます！",
+    ko: "감사합니다!", en: "Thank you!", ru: "Спасибо!", kz: "Рахмет!", zh: "谢谢！", ja: "ありがとうございます！",
   },
   doneBody: {
     ko: "신청이 접수되었습니다. 코디네이터가 곧 연락드립니다.",
     en: "Your request has been received. A coordinator will be in touch soon.",
     ru: "Ваш запрос получен. Координатор скоро свяжется.",
-    kk: "Сіздің сұрауыңыз қабылданды. Координатор жақында хабарласады.",
+    kz: "Сіздің сұрауыңыз қабылданды. Координатор жақында хабарласады.",
     zh: "您的申请已收到。协调员将很快与您联系。",
     ja: "お申し込みを受け付けました。コーディネーターよりご連絡いたします。",
   },
@@ -279,30 +279,30 @@ const T = {
     ko: "더 자세한 정보 (매칭 정확도 90%)",
     en: "More Details (90% Match Accuracy)",
     ru: "Подробнее (точность подбора 90%)",
-    kk: "Толық мәліметтер (90% сәйкестік дәлдігі)",
+    kz: "Толық мәліметтер (90% сәйкестік дәлдігі)",
     zh: "更多详情（匹配准确率90%）",
     ja: "詳細情報（マッチング精度90%）",
   },
   stageLabel: {
-    ko: "병기", en: "Stage", ru: "Стадия", kk: "Кезең", zh: "分期", ja: "ステージ",
+    ko: "병기", en: "Stage", ru: "Стадия", kz: "Кезең", zh: "分期", ja: "ステージ",
   },
   stageUnknown: {
-    ko: "모름", en: "Unknown", ru: "Не знаю", kk: "Білмеймін", zh: "不知道", ja: "不明",
+    ko: "모름", en: "Unknown", ru: "Не знаю", kz: "Білмеймін", zh: "不知道", ja: "不明",
   },
   diagnosisDateLabel: {
-    ko: "진단 받은 날짜", en: "Diagnosis Date", ru: "Дата диагноза", kk: "Диагноз күні", zh: "诊断日期", ja: "診断日",
+    ko: "진단 받은 날짜", en: "Diagnosis Date", ru: "Дата диагноза", kz: "Диагноз күні", zh: "诊断日期", ja: "診断日",
   },
   diagnosisUnknown: {
-    ko: "모름", en: "I don't know", ru: "Не знаю", kk: "Білмеймін", zh: "不知道", ja: "不明",
+    ko: "모름", en: "I don't know", ru: "Не знаю", kz: "Білмеймін", zh: "不知道", ja: "不明",
   },
   treatmentStateLabel: {
-    ko: "현재 치료 상태", en: "Current Treatment Status", ru: "Текущий статус лечения", kk: "Ағымдағы емдеу жағдайы", zh: "当前治疗状态", ja: "現在の治療状況",
+    ko: "현재 치료 상태", en: "Current Treatment Status", ru: "Текущий статус лечения", kz: "Ағымдағы емдеу жағдайы", zh: "当前治疗状态", ja: "現在の治療状況",
   },
   uploadLabel: {
     ko: "의료문서 업로드 (선택, PDF/JPG/PNG, 최대 10MB·5개)",
     en: "Medical Documents (optional, PDF/JPG/PNG, max 10MB·5 files)",
     ru: "Медицинские документы (необязательно, PDF/JPG/PNG, макс. 10МБ·5 файлов)",
-    kk: "Медициналық құжаттар (міндетті емес, PDF/JPG/PNG, макс. 10МБ·5 файл)",
+    kz: "Медициналық құжаттар (міндетті емес, PDF/JPG/PNG, макс. 10МБ·5 файл)",
     zh: "医疗文件（可选，PDF/JPG/PNG，最多10MB·5个）",
     ja: "医療文書（任意、PDF/JPG/PNG、最大10MB・5ファイル）",
   },
@@ -310,24 +310,24 @@ const T = {
     ko: "파일을 여기에 드래그하거나 클릭하여 업로드",
     en: "Drag files here or click to upload",
     ru: "Перетащите файлы или нажмите для загрузки",
-    kk: "Файлдарды сүйреп апарыңыз немесе жүктеу үшін басыңыз",
+    kz: "Файлдарды сүйреп апарыңыз немесе жүктеу үшін басыңыз",
     zh: "拖动文件到此处或点击上传",
     ja: "ファイルをここにドラッグまたはクリックしてアップロード",
   },
   travelTimingLabel: {
-    ko: "입국 희망 기간", en: "Preferred Travel Window", ru: "Желаемые сроки поездки", kk: "Саяхат мерзімі", zh: "希望入境时间", ja: "希望渡航時期",
+    ko: "입국 희망 기간", en: "Preferred Travel Window", ru: "Желаемые сроки поездки", kz: "Саяхат мерзімі", zh: "希望入境时间", ja: "希望渡航時期",
   },
   prioritiesLabel: {
-    ko: "우선순위 (복수 선택 가능)", en: "Priorities (select all that apply)", ru: "Приоритеты (можно несколько)", kk: "Басымдықтар (бірнеше таңдауға болады)", zh: "优先考虑（可多选）", ja: "優先事項（複数可）",
+    ko: "우선순위 (복수 선택 가능)", en: "Priorities (select all that apply)", ru: "Приоритеты (можно несколько)", kz: "Басымдықтар (бірнеше таңдауға болады)", zh: "优先考虑（可多选）", ja: "優先事項（複数可）",
   },
   submitStep2: {
-    ko: "매칭 시작", en: "Start Matching", ru: "Начать подбор", kk: "Сәйкестіруді бастау", zh: "开始匹配", ja: "マッチング開始",
+    ko: "매칭 시작", en: "Start Matching", ru: "Начать подбор", kz: "Сәйкестіруді бастау", zh: "开始匹配", ja: "マッチング開始",
   },
   step2SuccessTitle: {
     ko: "매칭 정확도 90% 달성",
     en: "90% Match Accuracy Achieved",
     ru: "Достигнута точность подбора 90%",
-    kk: "90% сәйкестік дәлдігіне жетті",
+    kz: "90% сәйкестік дәлдігіне жетті",
     zh: "达到90%匹配准确率",
     ja: "マッチング精度90%達成",
   },
@@ -335,7 +335,7 @@ const T = {
     ko: "의료진이 미리 자료를 검토한 후 화상 사전상담을 안내드립니다.",
     en: "Our medical team will review your information and guide you to a pre-consultation video call.",
     ru: "Медицинская команда изучит ваши данные и назначит предварительную видеоконсультацию.",
-    kk: "Медициналық топ сіздің деректерді қарап, бейнекеңесті жоспарлайды.",
+    kz: "Медициналық топ сіздің деректерді қарап, бейнекеңесті жоспарлайды.",
     zh: "我们的医疗团队将审阅您的资料并安排视频预咨询。",
     ja: "医療チームが情報を確認し、事前ビデオ相談をご案内します。",
   },
@@ -343,7 +343,7 @@ const T = {
     ko: "진행 상황을 직접 확인하시려면?",
     en: "Want to track your progress?",
     ru: "Хотите отслеживать ход процесса?",
-    kk: "Үдерісті қадағалағыңыз келе ме?",
+    kz: "Үдерісті қадағалағыңыз келе ме?",
     zh: "想跟踪进展吗？",
     ja: "進捗を確認したいですか？",
   },
@@ -351,33 +351,33 @@ const T = {
     ko: "10초 만에 가입하시면: 매칭 결과 알림 · 화상상담 예약 · 의료문서 안전 보관 · 사후 관리 알림",
     en: "Sign up in 10 seconds: Match result alerts · Video consultation booking · Secure document storage · Follow-up reminders",
     ru: "Зарегистрируйтесь за 10 сек: Уведомления о подборе · Запись на видео-консультацию · Безопасное хранение документов · Напоминания",
-    kk: "10 секундта тіркеліңіз: Сәйкестік нәтижелері · Бейнекеңес жазылу · Қауіпсіз сақтау · Еске салулар",
+    kz: "10 секундта тіркеліңіз: Сәйкестік нәтижелері · Бейнекеңес жазылу · Қауіпсіз сақтау · Еске салулар",
     zh: "10秒注册：匹配结果通知 · 视频咨询预约 · 文件安全保存 · 后续提醒",
     ja: "10秒で登録：マッチング結果通知 · ビデオ相談予約 · 文書の安全な保管 · フォローアップ",
   },
   signupGoogle: {
-    ko: "Google로 가입", en: "Sign up with Google", ru: "Войти через Google", kk: "Google арқылы тіркелу", zh: "通过Google注册", ja: "Googleで登録",
+    ko: "Google로 가입", en: "Sign up with Google", ru: "Войти через Google", kz: "Google арқылы тіркелу", zh: "通过Google注册", ja: "Googleで登録",
   },
   signupEmail: {
-    ko: "이메일로 가입", en: "Sign up with Email", ru: "Зарегистрироваться по Email", kk: "Email арқылы тіркелу", zh: "用邮箱注册", ja: "メールで登録",
+    ko: "이메일로 가입", en: "Sign up with Email", ru: "Зарегистрироваться по Email", kz: "Email арқылы тіркелу", zh: "用邮箱注册", ja: "メールで登録",
   },
   noSignup: {
-    ko: "나중에 할게요", en: "Maybe later", ru: "Потом", kk: "Кейінірек", zh: "以后再说", ja: "後で",
+    ko: "나중에 할게요", en: "Maybe later", ru: "Потом", kz: "Кейінірек", zh: "以后再说", ja: "後で",
   },
   required: {
-    ko: "필수 항목을 모두 입력해주세요.", en: "Please fill in all required fields.", ru: "Пожалуйста, заполните все обязательные поля.", kk: "Барлық міндетті өрістерді толтырыңыз.", zh: "请填写所有必填项。", ja: "必須項目をすべて入力してください。",
+    ko: "필수 항목을 모두 입력해주세요.", en: "Please fill in all required fields.", ru: "Пожалуйста, заполните все обязательные поля.", kz: "Барлық міндетті өрістерді толтырыңыз.", zh: "请填写所有必填项。", ja: "必須項目をすべて入力してください。",
   },
   invalidEmail: {
-    ko: "이메일 형식이 올바르지 않습니다.", en: "Invalid email format.", ru: "Неверный формат email.", kk: "Жарамсыз email форматы.", zh: "邮箱格式不正确。", ja: "メールアドレスの形式が正しくありません。",
+    ko: "이메일 형식이 올바르지 않습니다.", en: "Invalid email format.", ru: "Неверный формат email.", kz: "Жарамсыз email форматы.", zh: "邮箱格式不正确。", ja: "メールアドレスの形式が正しくありません。",
   },
   uploadError: {
-    ko: "파일 업로드 실패. 다시 시도해주세요.", en: "File upload failed. Please try again.", ru: "Ошибка загрузки файла.", kk: "Файл жүктеу сәтсіз.", zh: "文件上传失败，请重试。", ja: "ファイルのアップロードに失敗しました。",
+    ko: "파일 업로드 실패. 다시 시도해주세요.", en: "File upload failed. Please try again.", ru: "Ошибка загрузки файла.", kz: "Файл жүктеу сәтсіз.", zh: "文件上传失败，请重试。", ja: "ファイルのアップロードに失敗しました。",
   },
   tooManyFiles: {
-    ko: "파일은 최대 5개까지 업로드 가능합니다.", en: "Maximum 5 files allowed.", ru: "Максимум 5 файлов.", kk: "Максимум 5 файл.", zh: "最多上传5个文件。", ja: "最大5ファイルまでアップロードできます。",
+    ko: "파일은 최대 5개까지 업로드 가능합니다.", en: "Maximum 5 files allowed.", ru: "Максимум 5 файлов.", kz: "Максимум 5 файл.", zh: "最多上传5个文件。", ja: "最大5ファイルまでアップロードできます。",
   },
   fileTooLarge: {
-    ko: "파일 크기는 10MB 이하여야 합니다.", en: "File must be under 10MB.", ru: "Файл должен быть меньше 10МБ.", kk: "Файл 10МБ-тан аз болуы керек.", zh: "文件大小必须小于10MB。", ja: "ファイルは10MB未満にしてください。",
+    ko: "파일 크기는 10MB 이하여야 합니다.", en: "File must be under 10MB.", ru: "Файл должен быть меньше 10МБ.", kz: "Файл 10МБ-тан аз болуы керек.", zh: "文件大小必须小于10MB。", ja: "ファイルは10MB未満にしてください。",
   },
 };
 

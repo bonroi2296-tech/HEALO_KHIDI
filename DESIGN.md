@@ -83,7 +83,7 @@ spacing:
 # 5. i18n — 6개 언어 대응 (우리만의 제약)
 # ============================================================
 i18n:
-  languages: ["ko", "en", "ru", "kk", "zh", "ja"]
+  languages: ["ko", "en", "ru", "kz", "zh", "ja"]   # 카자흐어는 kz (kk 아님 — i18n 시스템 표준)
   longest_lang: "ru"            # 러시아어가 한글 대비 1.5배 김
   fallback_chain: ["lang", "en", "ko"]
   rules:
