@@ -77,6 +77,7 @@ export const SignUpPage = ({ setView }) => {
     const [confirmPassword, setConfirmPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+    const [oauthRedirecting, setOauthRedirecting] = useState(false);
 
     useEffect(() => {
         setLangCode(getLangCodeFromCookie());
@@ -86,15 +87,37 @@ export const SignUpPage = ({ setView }) => {
     useEffect(() => {
         if (typeof window === 'undefined') return;
         const params = new URLSearchParams(window.location.search);
-        if (params.get('provider') === 'google') {
-            const redirectUrl = `${window.location.origin}/auth/callback`;
-            supabase.auth.signInWithOAuth({
-                provider: 'google',
-                options: { redirectTo: redirectUrl },
-            }).catch((err) => {
-                console.error('[SignUpPage] auto Google OAuth failed:', err);
-            });
-        }
+        if (params.get('provider') !== 'google') return;
+
+        // ?provider=google 제거 — 실패 후 새로고침 시 재트리거/루프 방지
+        try {
+            const url = new URL(window.location.href);
+            url.searchParams.delete('provider');
+            window.history.replaceState({}, '', url.toString());
+        } catch { /* ignore */ }
+
+        const lc = getLangCodeFromCookie();
+        setOauthRedirecting(true);
+        (async () => {
+            try {
+                const redirectUrl = `${window.location.origin}/auth/callback`;
+                // signInWithOAuth 는 throw 가 아니라 { error } 를 반환 — error 객체를 직접 검사
+                const { error } = await supabase.auth.signInWithOAuth({
+                    provider: 'google',
+                    options: { redirectTo: redirectUrl },
+                });
+                if (error) {
+                    console.error('[SignUpPage] Google OAuth error:', error);
+                    toast.error(t('signup.googleError', lc));
+                    setOauthRedirecting(false); // 오버레이 닫고 이메일 폼 노출
+                }
+                // 성공 시 브라우저가 Google 로 이동 → 이 화면은 사라짐
+            } catch (err) {
+                console.error('[SignUpPage] Google OAuth exception:', err);
+                toast.error(t('signup.googleError', lc));
+                setOauthRedirecting(false);
+            }
+        })();
     }, []);
 
     const pwCheck = validatePassword(password);
@@ -158,6 +181,12 @@ export const SignUpPage = ({ setView }) => {
 
     return (
         <div className="min-h-[calc(100vh-64px)] flex items-center justify-center bg-gray-50 px-4 animate-in fade-in slide-in-from-bottom-4">
+            {oauthRedirecting && (
+                <div className="fixed inset-0 z-50 bg-white/80 backdrop-blur-sm flex flex-col items-center justify-center gap-4">
+                    <div className="w-10 h-10 border-4 border-teal-200 border-t-teal-600 rounded-full animate-spin"></div>
+                    <p className="text-sm font-medium text-gray-600">{t("signup.googleConnecting", langCode)}</p>
+                </div>
+            )}
             <div className="bg-white rounded-3xl shadow-xl w-full max-w-md p-8 md:p-10 border border-gray-100">
                 <div className="text-center mb-8">
                     <h2 className="text-3xl font-extrabold text-gray-900">{t("signup.title", langCode)}</h2>

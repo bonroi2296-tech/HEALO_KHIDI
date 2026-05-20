@@ -20,7 +20,7 @@ import {
 import { useLang } from "../../../src/lib/i18n/LangContext";
 import { event } from "../../../src/lib/ga";
 import { SITE_INFO } from "../../../src/lib/siteSettings";
-import ThreadChat from "../ThreadChat";
+import { ThreadChat } from "../ThreadChat";
 
 // ─── 상수 ───────────────────────────────────────────────────────────
 const NATIONALITIES = [
@@ -967,7 +967,7 @@ export default function UnifiedInquiryFunnel() {
                 key={c.key}
                 type="button"
                 onClick={c.onClick}
-                className={`bg-white border border-gray-200 rounded-2xl p-6 text-left ${c.hoverBorder} hover:shadow-md transition-all`}
+                className={`bg-white border border-gray-200 rounded-xl p-6 text-left ${c.hoverBorder} hover:shadow-md transition-all`}
               >
                 <div className={`w-12 h-12 ${c.iconBg} rounded-xl flex items-center justify-center mb-4`}>
                   <Icon size={22} className={c.iconColor} />
@@ -1001,10 +1001,10 @@ export default function UnifiedInquiryFunnel() {
   // Phase: human-channels (4개 메신저 카드)
   if (phase === "human-channels") {
     const channels = [
-      { key: "whatsapp", name: "WhatsApp", url: SITE_INFO.messenger.whatsapp, color: "#25D366", iconUrl: "https://cdn.simpleicons.org/whatsapp/25D366" },
-      { key: "telegram", name: "Telegram", url: SITE_INFO.messenger.telegram, color: "#26A5E4", iconUrl: "https://cdn.simpleicons.org/telegram/26A5E4" },
-      { key: "wechat", name: "WeChat", url: SITE_INFO.messenger.wechat, color: "#07C160", iconUrl: "https://cdn.simpleicons.org/wechat/07C160" },
-      { key: "line", name: "LINE", url: SITE_INFO.messenger.line, color: "#06C755", iconUrl: "https://cdn.simpleicons.org/line/06C755" },
+      { key: "whatsapp", name: "WhatsApp", url: SITE_INFO.messenger.whatsapp, color: "#25D366", iconUrl: "/icons/messengers/whatsapp.svg" },
+      { key: "telegram", name: "Telegram", url: SITE_INFO.messenger.telegram, color: "#26A5E4", iconUrl: "/icons/messengers/telegram.svg" },
+      { key: "wechat", name: "WeChat", url: SITE_INFO.messenger.wechat, color: "#07C160", iconUrl: "/icons/messengers/wechat.svg" },
+      { key: "line", name: "LINE", url: SITE_INFO.messenger.line, color: "#06C755", iconUrl: "/icons/messengers/line.svg" },
     ];
 
     return (
@@ -1027,7 +1027,12 @@ export default function UnifiedInquiryFunnel() {
             const enabled = !!c.url;
             const inner = (
               <>
-                <img src={c.iconUrl} alt={c.name} className="w-10 h-10 mb-3" style={{ opacity: enabled ? 1 : 0.4 }} />
+                <img
+                  src={c.iconUrl}
+                  alt={c.name}
+                  className="w-10 h-10 mb-3"
+                  style={enabled ? undefined : { filter: "grayscale(100%)", opacity: 0.4 }}
+                />
                 <span className="text-sm font-bold text-gray-900">{c.name}</span>
                 {!enabled && (
                   <span className="mt-1.5 text-[10px] font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
@@ -1037,7 +1042,7 @@ export default function UnifiedInquiryFunnel() {
               </>
             );
 
-            const baseCls = "bg-white border border-gray-200 rounded-2xl p-5 flex flex-col items-center justify-center text-center transition-all aspect-square";
+            const baseCls = "bg-white border border-gray-200 rounded-xl p-5 flex flex-col items-center justify-center text-center transition-all aspect-square";
 
             if (enabled) {
               return (
@@ -1047,10 +1052,8 @@ export default function UnifiedInquiryFunnel() {
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={() => safeEvent("inquiry_messenger_click", { channel: c.key })}
-                  className={`${baseCls} hover:shadow-md hover:-translate-y-0.5`}
-                  style={{ borderColor: undefined }}
-                  onMouseEnter={(e) => (e.currentTarget.style.borderColor = c.color)}
-                  onMouseLeave={(e) => (e.currentTarget.style.borderColor = "")}
+                  className={`${baseCls} hover:shadow-md hover:-translate-y-0.5 hover:border-[var(--brand-hover)]`}
+                  style={{ "--brand-hover": c.color }}
                 >
                   {inner}
                 </a>
