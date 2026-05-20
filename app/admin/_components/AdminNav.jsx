@@ -33,6 +33,7 @@ const navGroups = [
       { id: "dashboard", label: "대시보드", icon: LayoutDashboard, href: "/admin" },
       { id: "agent", label: "Human Agent", icon: HeartPulse, href: "/admin/agent" },
       { id: "consultations", label: "원격협진", icon: Video, href: "/admin/consultations" },
+      { id: "staff", label: "직원 계정", icon: Users, href: "/admin/staff" },
       { id: "kpi-dashboard", label: "KPI 대시보드", icon: TrendingUp, href: "/admin/khidi/kpi-dashboard" },
       { id: "ai-quality", label: "AI 품질 모니터링", icon: Brain, href: "/admin/khidi/ai-quality" },
       { id: "ai-feedback", label: "AI 피드백", icon: ThumbsDown, href: "/admin/khidi/ai-feedback" },
