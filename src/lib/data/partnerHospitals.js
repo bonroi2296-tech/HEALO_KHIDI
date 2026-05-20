@@ -33,7 +33,7 @@ const PARTNER_HOSPITALS = {
       en: ["Registered for International Patient Care", "Multiple Certified Integrative Oncology Specialists", "Personalized Immune Programs via Sasang Diagnosis", "Integrated Herbal Medicine, Acupuncture & Pharmacopuncture", "8 Resident Specialists"],
     },
     doctorCount: 8,
-    image: "https://images.unsplash.com/photo-1538108149393-fbbd81895907?w=800&h=500&fit=crop",
+    image: "/images/hospitals/immune-magok.jpg",
   },
 
   "immunehospital-sinchon": {
@@ -62,7 +62,7 @@ const PARTNER_HOSPITALS = {
       en: ["Registered for International Patient Care", "Adjacent to Severance Hospital — Easy East-West Cooperation", "Large clinic across floors 8-14 of Fidelia Tower", "3 Resident Specialists"],
     },
     doctorCount: 3,
-    image: "https://images.unsplash.com/photo-1538108149393-fbbd81895907?w=800&h=500&fit=crop",
+    image: "/images/hospitals/immune-sinchon.jpg",
   },
 
   "immunehospital-gwangmyeong": {
@@ -91,7 +91,7 @@ const PARTNER_HOSPITALS = {
       en: ["7 Resident Specialists (Korean + Western Medicine)", "Former Swiss Government Scholar in Immunology", "Multiple Certified Integrative Oncology Specialists", "Direct KTX access via Gwangmyeong Station", "Western Anesthesiology & Pain Medicine Cooperation"],
     },
     doctorCount: 7,
-    image: "https://images.unsplash.com/photo-1538108149393-fbbd81895907?w=800&h=500&fit=crop",
+    image: "/images/hospitals/immune-gwangmyeong.jpg",
   },
 
   /* ════════════════════════════════════════════
@@ -149,7 +149,7 @@ const PARTNER_HOSPITALS = {
       ko: ["1985년 개원 — 40년 임상 경험", "소아청소년 암 전문 치료", "여성 암 (유방암·자궁경부암) 특화", "암센터 수술·항암·방사선 통합 진료", "풍부한 임상 연구 및 학술 성과"],
       en: ["Established 1985 — 40 Years of Clinical Expertise", "Specialized Pediatric Cancer Treatment", "Women's Cancer Specialization (Breast, Cervical)", "Cancer Center: Integrated Surgery, Chemo & Radiation", "Extensive Clinical Research & Academic Achievements"],
     },
-    image: "https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=800&h=500&fit=crop",
+    image: "https://images.unsplash.com/photo-1586773860418-d37222d8fce3?w=800&h=500&fit=crop",
   },
 
   "korea-guro": {
@@ -176,7 +176,7 @@ const PARTNER_HOSPITALS = {
       ko: ["간암·폐암·위암 정밀 수술 치료", "로봇수술센터 운영", "국제진료센터 — 외국인환자 전담", "다학제 암 진료 체계 (Tumor Board)", "첨단 방사선치료 (IMRT, SBRT)"],
       en: ["Precision Surgery for Liver, Lung & Stomach Cancer", "Robotic Surgery Center", "International Medical Center for Foreign Patients", "Multidisciplinary Tumor Board", "Advanced Radiation Therapy (IMRT, SBRT)"],
     },
-    image: "https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=800&h=500&fit=crop",
+    image: "https://images.unsplash.com/photo-1504439468489-c8920d796a29?w=800&h=500&fit=crop",
   },
 
   "severance-sinchon": {
@@ -203,7 +203,7 @@ const PARTNER_HOSPITALS = {
       ko: ["연세암병원 — 12개 암종 다학제 통합 진료", "다학제 통합 진료 (MDT) 운영", "양성자치료센터 보유", "신촌면력한방병원 인접 — 양·한방 협진", "JCI 인증 — 국제 의료 품질 기준 충족", "외국인환자 전담 국제진료센터"],
       en: ["Yonsei Cancer Hospital — MDT Care Across 12 Cancer Types", "Multidisciplinary Team (MDT) Consultations", "Proton Therapy Center", "Adjacent to Immune Hospital Sinchon — East-West Cooperation", "JCI Accredited — International Quality Standards", "International Patient Center"],
     },
-    image: "https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=800&h=500&fit=crop",
+    image: "https://images.unsplash.com/photo-1629909613654-28e377c37b09?w=800&h=500&fit=crop",
   },
 };
 
