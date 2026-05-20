@@ -1,125 +1,35 @@
 import Link from "next/link";
 
-export const metadata = { title: "Page Not Found | HEALO" };
+export const metadata = { title: "페이지를 찾을 수 없습니다 | HEALO" };
 
 export default function NotFound() {
   return (
-    <main
-      style={{
-        minHeight: "100vh",
-        background: "var(--ink-0, #0a0a0a)",
-        color: "var(--fg-on-dark-1, #f5f0e8)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: "64px 24px",
-        position: "relative",
-        overflow: "hidden",
-        fontFamily: "'Inter', system-ui, sans-serif",
-      }}
-    >
-      <div
-        aria-hidden
-        style={{
-          position: "absolute",
-          inset: 0,
-          pointerEvents: "none",
-          opacity: 0.04,
-          mixBlendMode: "overlay",
-          backgroundImage:
-            "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='a'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23a)'/%3E%3C/svg%3E\")",
-        }}
-      />
-      <div style={{ position: "relative", maxWidth: 560, textAlign: "center" }}>
-        <p
-          style={{
-            fontSize: 10,
-            letterSpacing: "0.3em",
-            textTransform: "uppercase",
-            color: "var(--gold-0, #c8a96a)",
-            fontWeight: 600,
-            margin: 0,
-          }}
-        >
-          Error · 404
+    <main className="min-h-[70vh] bg-white flex items-center justify-center px-4 py-16">
+      <div className="max-w-md text-center">
+        <p className="text-xs font-bold tracking-widest text-teal-600 uppercase mb-3">
+          Error 404
         </p>
-        <div
-          style={{
-            fontFamily: "'Playfair Display', Georgia, serif",
-            fontSize: "clamp(120px, 22vw, 256px)",
-            lineHeight: 1,
-            color: "var(--gold-0, #c8a96a)",
-            fontWeight: 400,
-            fontStyle: "italic",
-            margin: "16px 0",
-            letterSpacing: "-0.05em",
-          }}
-        >
-          404
-        </div>
-        <h1
-          style={{
-            fontFamily: "'Playfair Display', Georgia, serif",
-            fontSize: "clamp(28px, 4vw, 44px)",
-            fontWeight: 400,
-            lineHeight: 1.15,
-            margin: "0 0 16px",
-          }}
-        >
-          This page has{" "}
-          <span style={{ fontStyle: "italic", color: "var(--gold-0, #c8a96a)" }}>wandered off.</span>
+        <div className="text-6xl md:text-7xl font-extrabold text-gray-900 mb-4">404</div>
+        <h1 className="text-xl md:text-2xl font-bold text-gray-900 mb-3">
+          페이지를 찾을 수 없습니다
         </h1>
-        <hr
-          style={{
-            border: 0,
-            height: 1,
-            width: 64,
-            background: "var(--gold-0, #c8a96a)",
-            margin: "24px auto",
-          }}
-        />
-        <p
-          style={{
-            fontSize: 15,
-            lineHeight: 1.7,
-            color: "var(--fg-on-dark-2, #c7c2b8)",
-            margin: "0 auto 40px",
-            maxWidth: 440,
-          }}
-        >
-          The page you're looking for doesn't exist — or has moved to a quieter place.
-          Let's find you something that's still there.
+        <p className="text-sm md:text-base text-gray-500 leading-relaxed mb-8">
+          주소가 바뀌었거나 존재하지 않는 페이지예요.
+          <br />
+          The page you're looking for doesn't exist or has moved.
         </p>
-        <div style={{ display: "flex", gap: 24, justifyContent: "center", flexWrap: "wrap", alignItems: "center" }}>
+        <div className="flex flex-wrap items-center justify-center gap-3">
           <Link
             href="/"
-            style={{
-              background: "var(--gold-0, #c8a96a)",
-              color: "var(--ink-0, #0a0a0a)",
-              padding: "14px 26px",
-              fontSize: 11,
-              fontWeight: 600,
-              letterSpacing: "0.24em",
-              textTransform: "uppercase",
-              textDecoration: "none",
-            }}
+            className="inline-flex items-center px-6 py-3 bg-teal-600 hover:bg-teal-700 text-white rounded-xl font-bold transition-colors"
           >
-            Return home
+            홈으로
           </Link>
           <Link
-            href="/intake"
-            style={{
-              color: "var(--fg-on-dark-2, #c7c2b8)",
-              fontSize: 11,
-              fontWeight: 500,
-              letterSpacing: "0.24em",
-              textTransform: "uppercase",
-              textDecoration: "none",
-              borderBottom: "1px solid var(--ink-4, #3d3d3d)",
-              paddingBottom: 2,
-            }}
+            href="/inquiry"
+            className="inline-flex items-center px-6 py-3 text-teal-600 hover:text-teal-700 font-bold transition-colors"
           >
-            Request consultation →
+            상담 신청 →
           </Link>
         </div>
       </div>
