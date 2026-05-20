@@ -51,19 +51,19 @@ const L = {
 
   // Quick action buttons
   qaTitle: { ko: '자주 묻는 질문', en: 'Quick questions', ru: 'Частые вопросы', kz: 'Жиі қойылатын сұрақтар', zh: '常见问题', ja: 'よくある質問' },
-  qaFindHospital: { ko: '내 병에 맞는 병원 찾기', en: 'Find hospitals for my condition', ru: 'Подобрать больницу', kz: 'Ауруханамды табу', zh: '寻找合适医院', ja: '私に合う病院を探す' },
+  qaFindHospital: { ko: '치료 여정 안내받기', en: 'Get care journey guidance', ru: 'Узнать о маршруте лечения', kz: 'Емдеу жолы туралы білу', zh: '了解治疗流程', ja: '治療の流れを知る' },
   qaCost: { ko: '예상 진료비', en: 'Estimated costs', ru: 'Ориентировочная стоимость', kz: 'Шамамен құны', zh: '费用估算', ja: '費用の目安' },
   qaDuration: { ko: '치료 기간', en: 'Treatment duration', ru: 'Срок лечения', kz: 'Емдеу ұзақтығы', zh: '治疗期限', ja: '治療期間' },
   qaVisa: { ko: '비자 정보', en: 'Visa information', ru: 'Информация о визе', kz: 'Виза туралы', zh: '签证信息', ja: 'ビザ情報' },
 
   // Quick action prompts (sent to AI)
   qaFindHospitalQ: {
-    ko: '제 병(암)에 맞는 한국 병원을 추천해주세요. 협진 가능한 병원과 특화 분야를 알려주세요.',
-    en: 'Please recommend Korean hospitals suitable for my condition (cancer). Which partner hospitals are available and what are their specialties?',
-    ru: 'Порекомендуйте корейские больницы для лечения рака. Какие больницы-партнёры доступны и в чём их специализация?',
-    kz: 'Менің жағдайыма (рак) сай корей ауруханаларын ұсыныңыз. Қандай серіктес ауруханалар бар және олардың мамандануы қандай?',
-    zh: '请推荐适合我病情（癌症）的韩国医院。有哪些合作医院可供选择，它们的专长是什么？',
-    ja: '私の病気（がん）に合う韓国の病院を推薦してください。協力病院と専門分野を教えてください。',
+    ko: '제 상황(암)에 맞는 한국에서의 치료 여정을 안내해주세요. 진단부터 수술 연계, 면역·재활까지 어떻게 이어지는지, 협진 병원과 특화 분야도 함께 알려주세요.',
+    en: 'Please guide me through the care journey in Korea for my condition (cancer) — from diagnosis to surgery connection and immune/rehabilitation care. Also tell me about the partner hospitals and their specialties.',
+    ru: 'Расскажите о маршруте лечения в Корее при раке — от диагностики до операции и иммунно-реабилитационного ухода. Также расскажите о больницах-партнёрах и их специализации.',
+    kz: 'Маған Кореядағы емдеу жолын түсіндіріңіз (рак) — диагностикадан хирургияға және иммундық-оңалту еміне дейін. Серіктес ауруханалар мен олардың мамандануы туралы да айтыңыз.',
+    zh: '请为我介绍在韩国的治疗流程（癌症）——从诊断到手术衔接以及免疫·康复护理。也请告诉我合作医院及其专长。',
+    ja: '私の状況（がん）に合った韓国での治療の流れを案内してください。診断から手術連携、免疫・リハビリまでどうつながるか、協力病院と専門分野も教えてください。',
   },
   qaCostQ: {
     ko: '한국에서 암 치료를 받을 경우 예상 진료비는 얼마나 되나요? 수술·항암·방사선 기준으로 알려주세요.',
