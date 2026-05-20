@@ -18,12 +18,15 @@ import { requireAdminAuth } from "../../../../src/lib/auth/requireAdminAuth";
 
 const ALLOWED_ROLES = ["doctor", "coordinator"];
 
-// DELETE /api/admin/staff?userId=xxx — 소프트 삭제(역할 해제). 계정·기록은 보존.
-export async function DELETE(request: NextRequest) {
+// PATCH /api/admin/staff — { userId, disabled } 비활성/재활성 토글.
+// 역할은 유지(직원 목록에 계속 보임 + 환자 목록엔 안 섞임), disabled 플래그만 토글.
+export async function PATCH(request: NextRequest) {
   const auth = await requireAdminAuth(request);
   if (!auth.success) return auth.response;
   try {
-    const userId = request.nextUrl.searchParams.get("userId");
+    const body = await request.json();
+    const userId = String(body.userId || "");
+    const disabled = body.disabled === true;
     if (!userId) {
       return Response.json({ ok: false, error: "userId required" }, { status: 400 });
     }
@@ -33,19 +36,16 @@ export async function DELETE(request: NextRequest) {
     if (!current) {
       return Response.json({ ok: false, error: "user_not_found" }, { status: 404 });
     }
-    // app_metadata 에서 role 만 제거 (계정·상담기록 연결 유지 → 되돌리기 가능)
-    const nextMeta = { ...(current.app_metadata || {}) };
-    delete nextMeta.role;
     const { error } = await supabase.auth.admin.updateUserById(userId, {
-      app_metadata: { ...nextMeta, role: null },
+      app_metadata: { ...(current.app_metadata || {}), disabled },
     });
     if (error) {
-      console.error("[admin/staff] DELETE (role remove) failed:", error.message);
-      return Response.json({ ok: false, error: "role_remove_failed" }, { status: 500 });
+      console.error("[admin/staff] PATCH (disable toggle) failed:", error.message);
+      return Response.json({ ok: false, error: "toggle_failed" }, { status: 500 });
     }
-    return Response.json({ ok: true });
+    return Response.json({ ok: true, disabled });
   } catch (err: any) {
-    console.error("[admin/staff] DELETE error:", err.message);
+    console.error("[admin/staff] PATCH error:", err.message);
     return Response.json({ ok: false, error: "internal_error" }, { status: 500 });
   }
 }
@@ -69,6 +69,7 @@ export async function GET(request: NextRequest) {
         role: u.app_metadata?.role || null,
         full_name: u.user_metadata?.full_name || null,
         created_at: u.created_at,
+        disabled: u.app_metadata?.disabled === true,
       }));
     return Response.json({ ok: true, staff });
   } catch (err: any) {
@@ -120,7 +121,7 @@ export async function POST(request: NextRequest) {
         email,
         password,
         email_confirm: true,
-        app_metadata: { role },
+        app_metadata: { role, disabled: false },
         user_metadata: fullName ? { full_name: fullName } : undefined,
       });
       if (createErr || !created?.user) {
@@ -133,7 +134,7 @@ export async function POST(request: NextRequest) {
       // 기존: 역할 부여 + 비밀번호 재설정
       const { error: updErr } = await supabase.auth.admin.updateUserById(target.id, {
         password,
-        app_metadata: { ...(target.app_metadata || {}), role },
+        app_metadata: { ...(target.app_metadata || {}), role, disabled: false },
         ...(fullName
           ? { user_metadata: { ...(target.user_metadata || {}), full_name: fullName } }
           : {}),

@@ -39,19 +39,21 @@ export default function AdminStaffPage() {
     load();
   }, []);
 
-  async function handleRemove(s) {
-    if (!confirm(`${s.full_name || s.email} 의 ${ROLE_LABEL[s.role] || s.role} 역할을 해제할까요?\n(계정·기록은 보존되며 드롭다운·권한에서만 제외됩니다)`)) return;
+  async function handleToggleDisabled(s) {
+    const disabled = !s.disabled;
+    if (disabled && !confirm(`${s.full_name || s.email} 을(를) 비활성화할까요?\n(목록엔 '비활성'으로 남고, 상담 배정 드롭다운에서만 제외됩니다. 언제든 재활성화 가능)`)) return;
     try {
-      const res = await fetch(`/api/admin/staff?userId=${encodeURIComponent(s.id)}`, {
-        method: "DELETE",
-        headers: await authHeaders(),
+      const res = await fetch("/api/admin/staff", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", ...(await authHeaders()) },
+        body: JSON.stringify({ userId: s.id, disabled }),
       });
       const result = await res.json();
       if (!res.ok || !result.ok) {
         toast.error(`실패: ${result.error || "unknown"}`);
         return;
       }
-      toast.success("역할 해제 완료");
+      toast.success(disabled ? "비활성화됨" : "재활성화됨");
       load();
     } catch {
       toast.error("요청 실패");
@@ -191,9 +193,9 @@ export default function AdminStaffPage() {
       ) : (
         <div className="border border-gray-200 rounded-xl overflow-hidden divide-y divide-gray-100">
           {staff.map((s) => (
-            <div key={s.id} className="flex items-center justify-between px-4 py-3 bg-white gap-3">
+            <div key={s.id} className={`flex items-center justify-between px-4 py-3 gap-3 ${s.disabled ? "bg-gray-50" : "bg-white"}`}>
               <div className="min-w-0">
-                <span className="font-semibold text-gray-900 text-sm">
+                <span className={`font-semibold text-sm ${s.disabled ? "text-gray-400" : "text-gray-900"}`}>
                   {s.full_name || s.email}
                 </span>
                 {s.full_name && <span className="text-xs text-gray-400 ml-2">{s.email}</span>}
@@ -202,6 +204,9 @@ export default function AdminStaffPage() {
                 <span className="text-xs font-bold text-teal-700 bg-teal-50 border border-teal-100 rounded-full px-2.5 py-0.5">
                   {ROLE_LABEL[s.role] || s.role}
                 </span>
+                {s.disabled && (
+                  <span className="text-xs font-bold text-gray-500 bg-gray-100 border border-gray-200 rounded-full px-2.5 py-0.5">비활성</span>
+                )}
                 <button
                   onClick={() => {
                     setForm({ name: s.full_name || "", email: s.email, role: s.role, password: "healo1234" });
@@ -212,10 +217,10 @@ export default function AdminStaffPage() {
                   수정
                 </button>
                 <button
-                  onClick={() => handleRemove(s)}
-                  className="text-xs font-semibold text-red-500 hover:text-red-700 px-2 py-1"
+                  onClick={() => handleToggleDisabled(s)}
+                  className={`text-xs font-semibold px-2 py-1 ${s.disabled ? "text-teal-600 hover:text-teal-700" : "text-red-500 hover:text-red-700"}`}
                 >
-                  역할 해제
+                  {s.disabled ? "재활성화" : "비활성화"}
                 </button>
               </div>
             </div>

@@ -59,8 +59,8 @@ export async function GET(request: NextRequest) {
     const qLower = q.toLowerCase();
     const matched = (authData.users || [])
       .filter((u: any) => {
-        // role 모드: app_metadata.role 일치 (권한은 항상 app_metadata 기준)
-        if (role) return u.app_metadata?.role === role;
+        // role 모드: app_metadata.role 일치 + 비활성 제외 (드롭다운엔 활성 직원만)
+        if (role) return u.app_metadata?.role === role && u.app_metadata?.disabled !== true;
         // 검색 모드: 이메일 부분 매치
         return (u.email || "").toLowerCase().includes(qLower);
       })
