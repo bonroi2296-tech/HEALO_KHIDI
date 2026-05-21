@@ -544,14 +544,14 @@ function CreateConsultationModal({ onClose, onSuccess }) {
         // silent
       }
       try {
-        // Step1 이상 완료된 실제 문의만 — 코디가 이 목록에서 환자 선택
-        const { data: inquiriesData } = await supabase
-          .from("inquiries")
-          .select("id, first_name, nationality, cancer_type, preferred_language, contact_method, status, created_at")
-          .not("step1_completed_at", "is", null)
-          .order("created_at", { ascending: false })
-          .limit(50);
-        if (!cancelled && inquiriesData) setInquiryOptions(inquiriesData);
+        // 문의는 RLS상 service_role 만 읽기 가능 + 이름 암호화 → 서버 picker API 사용
+        const { data: sessionData } = await supabase.auth.getSession();
+        const token = sessionData?.session?.access_token;
+        const res = await fetch("/api/admin/inquiries/picker", {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
+        const result = await res.json();
+        if (!cancelled && result.ok) setInquiryOptions(result.inquiries || []);
       } catch {
         // silent
       }
@@ -572,7 +572,7 @@ function CreateConsultationModal({ onClose, onSuccess }) {
     setForm((f) => ({
       ...f,
       selected_inquiry_id: inquiryId,
-      inviteeName: inq.first_name || f.inviteeName,
+      inviteeName: inq.name && inq.name !== "(이름 미상)" ? inq.name : f.inviteeName,
       patient_language: inq.preferred_language || f.patient_language,
       inviteRoles: { ...f.inviteRoles, patient: true },
       notes: f.notes || `문의 #${inq.id} · ${inq.nationality || ""} · ${inq.cancer_type || ""}`.trim(),
@@ -864,7 +864,7 @@ function CreateConsultationModal({ onClose, onSuccess }) {
                 <option value="">— 문의 목록에서 선택 (이름·언어 자동 입력) —</option>
                 {inquiryOptions.map((inq) => (
                   <option key={inq.id} value={inq.id}>
-                    #{inq.id} · {inq.first_name || "(이름 미상)"} · {inq.nationality || "?"} · {inq.cancer_type || "?"} · {inq.status || ""}
+                    #{inq.id} · {inq.name || "(이름 미상)"} · {inq.nationality || "?"} · {inq.cancer_type || "?"} · {inq.status || ""}
                   </option>
                 ))}
               </select>
