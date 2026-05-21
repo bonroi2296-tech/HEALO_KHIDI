@@ -35,18 +35,45 @@ const NATIONALITIES = [
   { value: "OTHER", label: "Other / 기타" },
 ];
 
-// 타겟 시장 국가번호만 (전체 X — 너무 길어짐). 국적 선택 시 자동 매핑.
+// 국가번호 — 국적≠거주국이라 자동 매핑 안 함. 본인이 선택. 목록에 없으면 'OTHER'로 직접 입력.
+// 라벨은 국가명 먼저(브라우저 타이핑 자동완성용). 타겟·CIS 우선, 그 외 거주 많은 나라.
 const DIAL_CODES = [
-  { code: "+7", label: "Kazakhstan / Russia +7" },
+  // CIS · 중앙아시아 (타겟)
+  { code: "+7", label: "Kazakhstan +7" },
+  { code: "+7", label: "Russia +7" },
   { code: "+998", label: "Uzbekistan +998" },
   { code: "+996", label: "Kyrgyzstan +996" },
+  { code: "+992", label: "Tajikistan +992" },
+  { code: "+993", label: "Turkmenistan +993" },
+  { code: "+994", label: "Azerbaijan +994" },
+  { code: "+374", label: "Armenia +374" },
+  { code: "+995", label: "Georgia +995" },
+  { code: "+380", label: "Ukraine +380" },
+  { code: "+375", label: "Belarus +375" },
   { code: "+976", label: "Mongolia +976" },
+  // 동아시아
+  { code: "+82", label: "Korea +82" },
   { code: "+86", label: "China +86" },
   { code: "+81", label: "Japan +81" },
-  { code: "+82", label: "Korea +82" },
-  { code: "+1", label: "기타 / Other +1" },
+  { code: "+84", label: "Vietnam +84" },
+  { code: "+66", label: "Thailand +66" },
+  // 중동·서아시아 (거주 많음)
+  { code: "+90", label: "Turkey +90" },
+  { code: "+971", label: "UAE +971" },
+  { code: "+966", label: "Saudi Arabia +966" },
+  { code: "+98", label: "Iran +98" },
+  { code: "+91", label: "India +91" },
+  // 유럽·북미 (거주 많음)
+  { code: "+49", label: "Germany +49" },
+  { code: "+44", label: "United Kingdom +44" },
+  { code: "+33", label: "France +33" },
+  { code: "+39", label: "Italy +39" },
+  { code: "+34", label: "Spain +34" },
+  { code: "+48", label: "Poland +48" },
+  { code: "+1", label: "USA / Canada +1" },
+  // 그 외 — 번호에 +국가코드 직접 입력
+  { code: "OTHER", label: "기타 (번호에 +코드 직접 입력)" },
 ];
-const NATION_TO_DIAL = { KZ: "+7", RU: "+7", UZ: "+998", KG: "+996", MN: "+976", CN: "+86", JP: "+81", KR: "+82" };
 
 const PREFERRED_LANGUAGES = [
   { value: "ko", label: "한국어" },
@@ -204,6 +231,12 @@ const T = {
   },
   nationalityLabel: {
     ko: "국적", en: "Nationality", ru: "Гражданство", kz: "Азаматтық", zh: "国籍", ja: "国籍",
+  },
+  dialPlaceholder: {
+    ko: "국가번호 선택", en: "Country code", ru: "Код страны", kz: "Ел коды", zh: "国家区号", ja: "国番号",
+  },
+  dialRequired: {
+    ko: "국가번호를 선택해주세요.", en: "Please select a country code.", ru: "Выберите код страны.", kz: "Ел кодын таңдаңыз.", zh: "请选择国家区号。", ja: "国番号を選択してください。",
   },
   selectNationality: {
     ko: "국적 선택", en: "Select nationality", ru: "Выберите гражданство", kz: "Азаматтықты таңдаңыз", zh: "选择国籍", ja: "国籍を選択",
@@ -423,7 +456,7 @@ export default function UnifiedInquiryFunnel() {
     nationality: "",
     contactType: "email", // "email" | "phone"
     contactValue: "",
-    phoneDial: "+7", // 전화 국가번호 (국적 선택 시 자동 매핑)
+    phoneDial: "", // 전화 국가번호 — 본인이 직접 선택 (국적과 분리)
     preferredLanguage: lang,
     cancerType: "",
     shortMemo: "",
@@ -470,16 +503,19 @@ export default function UnifiedInquiryFunnel() {
   }
 
   // ─── Step 1 검증 ─────────────────────────────────────────────────
+  // 전화 선택 시 국가번호도 골라야 함 (OTHER면 번호에 +코드 직접 입력)
+  const phoneNeedsDial = form1.contactType === "phone" && form1.phoneDial === "";
   const step1Valid =
     form1.name.trim().length > 0 &&
     form1.nationality !== "" &&
     form1.contactValue.trim().length > 0 &&
+    !phoneNeedsDial &&
     form1.preferredLanguage !== "" &&
     form1.cancerType !== "";
 
   function validateStep1() {
     if (!step1Valid) {
-      setError(tl("required", lang));
+      setError(phoneNeedsDial ? tl("dialRequired", lang) : tl("required", lang));
       return false;
     }
     if (form1.contactType === "email") {
@@ -504,10 +540,12 @@ export default function UnifiedInquiryFunnel() {
       const firstName = nameParts[0] || form1.name.trim();
       const lastName = nameParts.slice(1).join(" ") || null;
 
-      // 전화는 국가번호 + 번호 합쳐서 저장 (예: "+7 701 234 5678")
+      // 전화는 국가번호 + 번호 합쳐서 저장. OTHER면 사용자가 +코드 직접 입력했으므로 그대로.
       const fullPhone =
         form1.contactType === "phone"
-          ? `${form1.phoneDial} ${form1.contactValue.trim()}`.trim()
+          ? (form1.phoneDial === "OTHER" || !form1.phoneDial
+              ? form1.contactValue.trim()
+              : `${form1.phoneDial} ${form1.contactValue.trim()}`.trim())
           : null;
 
       const body = {
@@ -1132,10 +1170,7 @@ export default function UnifiedInquiryFunnel() {
           </label>
           <select
             value={form1.nationality}
-            onChange={(e) => {
-              const nat = e.target.value;
-              setForm1((p) => ({ ...p, nationality: nat, phoneDial: NATION_TO_DIAL[nat] || p.phoneDial }));
-            }}
+            onChange={(e) => setForm1((p) => ({ ...p, nationality: e.target.value }))}
             className="w-full p-3 rounded-xl border border-gray-200 focus:border-teal-500 outline-none text-sm bg-white transition"
           >
             <option value="">{tl("selectNationality", lang)}</option>
@@ -1171,9 +1206,10 @@ export default function UnifiedInquiryFunnel() {
               <select
                 value={form1.phoneDial}
                 onChange={(e) => setForm1((p) => ({ ...p, phoneDial: e.target.value }))}
-                className="shrink-0 w-40 p-3 rounded-xl border border-gray-200 focus:border-teal-500 outline-none text-sm bg-white transition"
+                className="shrink-0 w-44 p-3 rounded-xl border border-gray-200 focus:border-teal-500 outline-none text-sm bg-white transition"
                 aria-label="국가번호"
               >
+                <option value="">{tl("dialPlaceholder", lang)}</option>
                 {DIAL_CODES.map((d) => (
                   <option key={d.code + d.label} value={d.code}>{d.label}</option>
                 ))}
@@ -1182,7 +1218,7 @@ export default function UnifiedInquiryFunnel() {
                 type="tel"
                 value={form1.contactValue}
                 onChange={(e) => setForm1((p) => ({ ...p, contactValue: e.target.value }))}
-                placeholder="701 234 5678"
+                placeholder={form1.phoneDial === "OTHER" ? "+49 170 1234567 (국가코드 포함)" : "701 234 5678"}
                 className="flex-1 p-3 rounded-xl border border-gray-200 focus:border-teal-500 focus:ring-1 focus:ring-teal-100 outline-none text-sm bg-gray-50/50 transition"
               />
             </div>
