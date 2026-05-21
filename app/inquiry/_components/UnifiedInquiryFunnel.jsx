@@ -35,6 +35,19 @@ const NATIONALITIES = [
   { value: "OTHER", label: "Other / 기타" },
 ];
 
+// 타겟 시장 국가번호만 (전체 X — 너무 길어짐). 국적 선택 시 자동 매핑.
+const DIAL_CODES = [
+  { code: "+7", label: "Kazakhstan / Russia +7" },
+  { code: "+998", label: "Uzbekistan +998" },
+  { code: "+996", label: "Kyrgyzstan +996" },
+  { code: "+976", label: "Mongolia +976" },
+  { code: "+86", label: "China +86" },
+  { code: "+81", label: "Japan +81" },
+  { code: "+82", label: "Korea +82" },
+  { code: "+1", label: "기타 / Other +1" },
+];
+const NATION_TO_DIAL = { KZ: "+7", RU: "+7", UZ: "+998", KG: "+996", MN: "+976", CN: "+86", JP: "+81", KR: "+82" };
+
 const PREFERRED_LANGUAGES = [
   { value: "ko", label: "한국어" },
   { value: "en", label: "English" },
@@ -410,6 +423,7 @@ export default function UnifiedInquiryFunnel() {
     nationality: "",
     contactType: "email", // "email" | "phone"
     contactValue: "",
+    phoneDial: "+7", // 전화 국가번호 (국적 선택 시 자동 매핑)
     preferredLanguage: lang,
     cancerType: "",
     shortMemo: "",
@@ -490,11 +504,17 @@ export default function UnifiedInquiryFunnel() {
       const firstName = nameParts[0] || form1.name.trim();
       const lastName = nameParts.slice(1).join(" ") || null;
 
+      // 전화는 국가번호 + 번호 합쳐서 저장 (예: "+7 701 234 5678")
+      const fullPhone =
+        form1.contactType === "phone"
+          ? `${form1.phoneDial} ${form1.contactValue.trim()}`.trim()
+          : null;
+
       const body = {
         firstName,
         lastName,
         email: form1.contactType === "email" ? form1.contactValue.trim() : null,
-        phone: form1.contactType === "phone" ? form1.contactValue.trim() : null,
+        phone: fullPhone,
         nationality: form1.nationality,
         preferredLanguage: form1.preferredLanguage,
         cancerType: form1.cancerType,
@@ -503,7 +523,7 @@ export default function UnifiedInquiryFunnel() {
         // 기존 create API 호환 필드
         spokenLanguage: form1.preferredLanguage,
         contactMethod: form1.contactType === "phone" ? "Phone" : null,
-        contactId: form1.contactType === "phone" ? form1.contactValue.trim() : null,
+        contactId: fullPhone,
         treatmentType: form1.cancerType,
       };
 
@@ -1112,7 +1132,10 @@ export default function UnifiedInquiryFunnel() {
           </label>
           <select
             value={form1.nationality}
-            onChange={(e) => setForm1((p) => ({ ...p, nationality: e.target.value }))}
+            onChange={(e) => {
+              const nat = e.target.value;
+              setForm1((p) => ({ ...p, nationality: nat, phoneDial: NATION_TO_DIAL[nat] || p.phoneDial }));
+            }}
             className="w-full p-3 rounded-xl border border-gray-200 focus:border-teal-500 outline-none text-sm bg-white transition"
           >
             <option value="">{tl("selectNationality", lang)}</option>
@@ -1143,13 +1166,35 @@ export default function UnifiedInquiryFunnel() {
               </button>
             ))}
           </div>
-          <input
-            type={form1.contactType === "email" ? "email" : "tel"}
-            value={form1.contactValue}
-            onChange={(e) => setForm1((p) => ({ ...p, contactValue: e.target.value }))}
-            placeholder={tl(form1.contactType === "email" ? "emailPlaceholder" : "phonePlaceholder", lang)}
-            className="w-full p-3 rounded-xl border border-gray-200 focus:border-teal-500 focus:ring-1 focus:ring-teal-100 outline-none text-sm bg-gray-50/50 transition"
-          />
+          {form1.contactType === "phone" ? (
+            <div className="flex gap-2">
+              <select
+                value={form1.phoneDial}
+                onChange={(e) => setForm1((p) => ({ ...p, phoneDial: e.target.value }))}
+                className="shrink-0 w-40 p-3 rounded-xl border border-gray-200 focus:border-teal-500 outline-none text-sm bg-white transition"
+                aria-label="국가번호"
+              >
+                {DIAL_CODES.map((d) => (
+                  <option key={d.code + d.label} value={d.code}>{d.label}</option>
+                ))}
+              </select>
+              <input
+                type="tel"
+                value={form1.contactValue}
+                onChange={(e) => setForm1((p) => ({ ...p, contactValue: e.target.value }))}
+                placeholder="701 234 5678"
+                className="flex-1 p-3 rounded-xl border border-gray-200 focus:border-teal-500 focus:ring-1 focus:ring-teal-100 outline-none text-sm bg-gray-50/50 transition"
+              />
+            </div>
+          ) : (
+            <input
+              type="email"
+              value={form1.contactValue}
+              onChange={(e) => setForm1((p) => ({ ...p, contactValue: e.target.value }))}
+              placeholder={tl("emailPlaceholder", lang)}
+              className="w-full p-3 rounded-xl border border-gray-200 focus:border-teal-500 focus:ring-1 focus:ring-teal-100 outline-none text-sm bg-gray-50/50 transition"
+            />
+          )}
         </div>
 
         {/* 선호 언어 */}
