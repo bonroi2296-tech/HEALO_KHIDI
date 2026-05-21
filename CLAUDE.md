@@ -49,6 +49,19 @@ PO(프로덕트 오너) 혼자 운영. Bonroi 개인사업자, KHIDI(한국보�
 
 ---
 
+## ⚠️ 출시 전 self-QA (PO가 일일이 테스트하지 않아도 되게 — 필수)
+
+**"빌드 통과 ≠ 동작."** `next build`는 문법만 검사함. 출시(커밋) 전 아래를 직접 검증:
+
+- **DB/데이터 기능**: 쿼리 짜기 전 RLS 정책 확인(`pg_policies`). `inquiries` 등 민감 테이블은 service_role 전용 → **브라우저 client 직접 쿼리 금지, 서버 API 경유**. 암호화 컬럼(`*_encrypted`, first_name 등)은 표시 전 복호화 필요.
+- **데이터 흐름 추적**: 폼→API→DB→표시 전 경로를 실제로 따라가 확인 (Supabase MCP로 실데이터 조회, Vercel 런타임 로그 확인).
+- **인증/권한**: 새 API는 `requireAdminAuth`/`requireConsultationAccess`. 권한은 `app_metadata.role` + `ADMIN_EMAIL_ALLOWLIST` 둘 다 고려.
+- **사용자 화면**: 가능하면 배포 후 실제 클릭/조회로 확인. 못 하면 "직접 동작 검증 못 함"이라고 명시.
+- **소프트 삭제 원칙**: 계정·기록은 하드 삭제 X (FK·기록 보존, 비활성/role 플래그 토글).
+- 검증 못 한 부분은 **"검증 못 했음"이라고 솔직히 보고** — "됐어요" 남발 금지.
+
+---
+
 ## 빌드 & 배포
 
 ```bash
