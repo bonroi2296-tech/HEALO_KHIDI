@@ -24,18 +24,28 @@ PO(프로덕트 오너) 혼자 운영. Bonroi 개인사업자, KHIDI(한국보�
 
 **기술 스택:**
 - Next.js 16 (App Router) + Supabase (PostgreSQL 17.6, RLS, pgvector)
-- AI: Gemini 2.5 Flash (via @ai-sdk/google) + 3-Tier RAG (`src/lib/chat/generateReply.ts`)
+- AI: `gemini-flash-latest` (via @ai-sdk/google, 자동 최신) + 3-Tier RAG (`src/lib/chat/generateReply.ts`)
+- 영상: **LiveKit** WebRTC (원격협진) — env 필수: `LIVEKIT_URL`·`LIVEKIT_API_KEY`·`LIVEKIT_API_SECRET` (NEXT_PUBLIC_LIVEKIT_URL은 선택)
 - Auth: @supabase/ssr cookie-based SSR + Bearer token
 - 암호화: AES-256-GCM (`src/lib/security/encryptionV2.ts`)
 - Hosting: Vercel — 프로젝트 `healo-khidi` (메인), Team `bonrois-projects`
 - 다국어: ko, en, ru, kz, zh, ja (6개 언어) — `src/lib/i18n/index.js`
 - Supabase 프로젝트: `hvwwlkawaxabhtumjhrg`
 
-**주요 라우트:**
-- `/` 홈 | `/intake` 암 치료 신청 | `/inquiry` 일반 문의
-- `/hospitals` `/treatments` 목록 | `/search` 검색
-- `/patient/*` 환자 대시보드 (미들웨어 보호)
-- `/admin/*` 어드민 | `/coordinator/*` 코디네이터 | `/partner/*` 파트너 병원
+**주요 라우트:** (2026-05 피벗·통합 반영)
+- `/` 홈
+- `/inquiry` **통합 문의 퍼널** — 진입 시 AI Agent / Human Agent / Inquiry Form 선택. `/intake`·`/consult/start`는 여기로 redirect (통폐합 완료). Human Agent = WhatsApp·Telegram·WeChat·LINE 4채널.
+- `/care-journey` 치료 여정 안내 (정적, 6개 언어)
+- `/telemedicine` 원격협진 (헤더 전면 배치, NEW)
+- `/hospitals` `/treatments` 목록 | `/treatments/[slug]` 암종 상세 | `/search` 검색
+- `/consultation/[id]` **LiveKit 영상 상담방** (게스트 초대 링크로 계정 없이 입장)
+- `/patient/*` 환자 | `/admin/*` 어드민 | `/coordinator/*` 코디네이터 | `/partner/*` 파트너
+- `/stories` 후기 — **비활성화**(홈 리다이렉트, 코드는 보존)
+
+**주요 시스템:**
+- **원격협진(LiveKit)**: 코디가 `/admin/consultations`에서 상담 생성(문의에서 환자 선택 + 의사/코디 드롭다운) → 게스트 초대 링크 발송 → `/consultation/[id]`에서 영상. 예약시각은 KST 입력·KST+UTC 병기 안내.
+- **회원관리**: `/admin/staff`(의사·코디 — role=doctor/coordinator 부여, 비활성=app_metadata.disabled 토글, 소프트 삭제) / `/admin/users`(환자 — 상담이력·소프트 ban). 계정 생성은 임시비번 직접 발급(최소 6자).
+- **어드민 메뉴**: 운영현황 / 환자여정 / 제휴자원·RAG / AI품질·시스템 / 레거시도구 (피벗 반영 재편)
 
 ---
 

@@ -61,9 +61,9 @@ colors:
   danger:            "red-500"
 
 radii:
-  default:   "rounded-xl"       # 12px — 카드/버튼 기본
-  card_lg:   "rounded-2xl"      # 16px — 큰 카드만
-  badge:     "rounded-full"
+  default:   "rounded-xl"       # 12px — 카드·버튼·이미지 기본 (신규 작업 우선)
+  card_lg:   "rounded-2xl"      # 16px — 큰 카드 예외적 허용 (홈 레퍼런스도 사용)
+  badge:     "rounded-full"     # 알약 배지·아바타만
   forbidden: "rounded-3xl"      # 24px — Premium 잔재. 신규 코드 금지.
 
 typography:
@@ -182,6 +182,7 @@ deprecated:
 ## 변경 이력
 
 - **2026-05-19**: 최초 작성. Legacy 모드 표준화. Premium 토큰 deprecated.
+- **2026-05-21**: /treatments·/telemedicine·/faq·/hospitals/immune·404·500 Legacy 재구성 완료. radii 기본값 rounded-xl 명확화.
 
 ---
 
