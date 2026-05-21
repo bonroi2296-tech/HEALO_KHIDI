@@ -41,7 +41,7 @@ const PARTNER_HOSPITALS = {
       ja: ["外国人患者誘致医療機関登録", "統合がん治療認定医を複数保有", "四象体質診断に基づく免疫プログラム", "韓薬・鍼・薬鍼の統合治療システム", "8名の専門医が常駐"],
     },
     doctorCount: 8,
-    image: "/images/hospitals/immune-magok.jpg",
+    image: "/images/hospitals/_coming-soon.svg",
   },
 
   "immunehospital-sinchon": {
@@ -78,7 +78,7 @@ const PARTNER_HOSPITALS = {
       ja: ["外国人患者誘致医療機関登録", "新村セブランス病院に隣接 — 洋韓方協診が容易", "フィデリアタワー8-14階の大規模診療空間", "3名の専門医が常駐"],
     },
     doctorCount: 3,
-    image: "/images/hospitals/immune-sinchon.jpg",
+    image: "/images/hospitals/_coming-soon.svg",
   },
 
   "immunehospital-gwangmyeong": {
@@ -115,7 +115,7 @@ const PARTNER_HOSPITALS = {
       ja: ["7名の専門医が常駐（韓方+西洋医学）", "スイス政府奨学生出身の免疫学研究員が在籍", "統合がん治療認定医を複数保有", "光明駅直結 — KTXアクセス良好", "西洋医学麻酔疼痛科との協診"],
     },
     doctorCount: 7,
-    image: "/images/hospitals/immune-gwangmyeong.jpg",
+    image: "/images/hospitals/_coming-soon.svg",
   },
 
   "immunehospital-seongdong": {
@@ -151,7 +151,7 @@ const PARTNER_HOSPITALS = {
       ja: ["8名の専門医が常駐（韓方+西洋医学）", "統合免疫・疼痛リハビリ・抗老化センター", "新規開院（ソウル城東区）", "洋韓方統合診療"],
     },
     doctorCount: 8,
-    image: "/images/hospitals/immune-seongdong.jpg",
+    image: "/images/hospitals/immunehospital-seongdong/1.jpg",
   },
 
   /* ════════════════════════════════════════════
@@ -295,7 +295,7 @@ const PARTNER_HOSPITALS = {
       zh: ["延世癌症医院 — 12种癌症多学科综合诊疗", "多学科会诊（MDT）运营", "配备质子治疗中心", "毗邻新村免疫医院 — 中西医协诊", "JCI认证 — 符合国际医疗质量标准", "外国患者专属国际诊疗中心"],
       ja: ["延世がん病院 — 12がん種の多職種統合診療", "多職種統合診療（MDT）運営", "陽子線治療センター保有", "新村免疫病院に隣接 — 洋韓方協診", "JCI認証 — 国際医療品質基準を充足", "外国人患者専門の国際診療センター"],
     },
-    image: "/images/hospitals/severance-sinchon.jpg",
+    image: "/images/hospitals/_coming-soon.svg",
   },
 };
 
@@ -334,9 +334,10 @@ export function convertPartnerToInitialData(partner) {
     address_detail: "",
     latitude: partner.lat || null,
     longitude: partner.lng || null,
-    images: partner.image ? [partner.image] : [],
+    // image = 메인 썸네일(1.jpg), gallery = 서브 이미지(2~5.jpg) — 폴더 구조: /images/hospitals/<slug>/N.jpg
+    images: [partner.image, ...(partner.gallery || [])].filter(Boolean),
     thumbnail_image: partner.image || null,
-    gallery_images: [],
+    gallery_images: partner.gallery || [],
     specialties: lArr(partner.specialties),
     website: partner.website || null,
     is_partner: true,
