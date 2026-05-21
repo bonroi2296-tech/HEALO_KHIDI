@@ -151,7 +151,7 @@ const PARTNER_HOSPITALS = {
       ja: ["8名の専門医が常駐（韓方+西洋医学）", "統合免疫・疼痛リハビリ・抗老化センター", "新規開院（ソウル城東区）", "洋韓方統合診療"],
     },
     doctorCount: 8,
-    image: "https://immunehospital.com/uploads/banners/6895edb5901f81.40373525.jpg",
+    image: "/images/hospitals/immune-seongdong.jpg",
   },
 
   /* ════════════════════════════════════════════
