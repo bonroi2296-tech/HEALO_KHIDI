@@ -118,6 +118,42 @@ const PARTNER_HOSPITALS = {
     image: "/images/hospitals/immune-gwangmyeong.jpg",
   },
 
+  "immunehospital-seongdong": {
+    slug: "immunehospital-seongdong",
+    badge: "partner",
+    name: { ko: "면력한방병원 성동점", en: "Immune Hospital Seongdong", ru: "Иммунная Клиника Сондон", kz: "Иммунная Клиника Сондон", zh: "免疫医院 城东院", ja: "免疫病院 城東院" },
+    type: { ko: "제휴 병원", en: "Partner Hospital", ru: "Больница-партнёр", kz: "Серіктес аурухана", zh: "合作医院", ja: "提携病院" },
+    description: {
+      ko: "면력한방병원 성동점은 서울 성동구에 신규 개원한 분원으로, 대표원장을 포함한 8명의 전문 의료진이 통합면역센터·통증재활센터·항노화센터를 운영합니다. 한방 면역치료, 한방내과, 정형외과, 한방피부과 등 양·한방 통합 진료를 제공합니다.",
+      en: "Immune Hospital Seongdong is a newly opened branch in Seongdong-gu, Seoul, with 8 specialist doctors operating an Integrative Immunity Center, Pain Rehabilitation Center, and Anti-Aging Center. It offers integrated Western-Korean Medicine care including immunotherapy, internal medicine, orthopedics, and dermatology.",
+      ru: "Иммунная Клиника Сондон — новый филиал в Сондон-гу, Сеул. 8 специалистов, центры иммунотерапии, реабилитации и антивозрастной медицины.",
+      kz: "Иммунная Клиника Сондон — Сеул Сондон-гудағы жаңа филиал. 8 маман дәрігер, иммунотерапия, оңалту және қартаюға қарсы орталықтар.",
+      zh: "免疫医院城东院是首尔城东区新开院的分院，8名专家医生运营综合免疫中心、疼痛康复中心和抗衰老中心。提供中西医结合诊疗。",
+      ja: "免疫病院城東院はソウル城東区に新規開院した分院で、8名の専門医が統合免疫センター・疼痛リハビリセンター・抗老化センターを運営しています。",
+    },
+    website: "https://sd.immunehospital.com",
+    phone: "02-2295-8510",
+    address: { ko: "서울특별시 성동구", en: "Seongdong-gu, Seoul" },
+    specialties: {
+      ko: ["한방 면역치료", "통합암치료", "한방내과", "통증재활", "정형외과", "한방피부과", "항노화"],
+      en: ["Korean Medicine Immunotherapy", "Integrative Oncology", "Korean Internal Medicine", "Pain Rehabilitation", "Orthopedics", "Korean Dermatology", "Anti-Aging"],
+      ru: ["Иммунотерапия корейской медицины", "Интегративная онкология", "Корейская терапия", "Реабилитация при боли", "Ортопедия", "Корейская дерматология", "Антивозрастная медицина"],
+      kz: ["Корей медицинасы иммунотерапиясы", "Интегративті онкология", "Корей ішкі аурулары", "Ауырсынуды оңалту", "Ортопедия", "Корей дерматологиясы", "Қартаюға қарсы медицина"],
+      zh: ["韩方免疫治疗", "综合肿瘤治疗", "韩方内科", "疼痛康复", "骨科", "韩方皮肤科", "抗衰老"],
+      ja: ["韓方免疫治療", "統合がん治療", "韓方内科", "疼痛リハビリ", "整形外科", "韓方皮膚科", "抗老化"],
+    },
+    highlights: {
+      ko: ["8명 전문의 상주 (한방 + 양방)", "통합면역·통증재활·항노화 센터 운영", "신규 개원 (서울 성동구)", "양·한방 통합 진료"],
+      en: ["8 Resident Specialists (Korean + Western Medicine)", "Integrative Immunity · Pain Rehab · Anti-Aging Centers", "Newly Opened (Seongdong-gu, Seoul)", "Integrated Western-Korean Medicine Care"],
+      ru: ["8 штатных специалистов (корейская + западная медицина)", "Центры иммунитета, реабилитации и антивозрастной медицины", "Новый филиал (Сондон-гу, Сеул)", "Интегрированная медицина"],
+      kz: ["8 штаттық маман (корей + батыс медицинасы)", "Иммунитет, оңалту және қартаюға қарсы орталықтар", "Жаңа филиал (Сондон-гу, Сеул)", "Кешенді ем"],
+      zh: ["8名专科医师常驻（韩方+西医）", "综合免疫·疼痛康复·抗衰老中心", "新开院（首尔城东区）", "中西医结合诊疗"],
+      ja: ["8名の専門医が常駐（韓方+西洋医学）", "統合免疫・疼痛リハビリ・抗老化センター", "新規開院（ソウル城東区）", "洋韓方統合診療"],
+    },
+    doctorCount: 8,
+    image: "https://immunehospital.com/uploads/banners/6895edb5901f81.40373525.jpg",
+  },
+
   /* ════════════════════════════════════════════
      협진 대학병원 4곳
      ════════════════════════════════════════════ */
