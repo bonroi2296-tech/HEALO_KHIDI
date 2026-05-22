@@ -359,14 +359,14 @@ export const HospitalDetailPage = ({ selectedId, setView, onTreatmentClick, init
           </div>
         ) : galleryImages.length === 1 ? (
           <div className="w-full aspect-[16/7] relative overflow-hidden rounded-2xl bg-gray-100">
-            <img src={galleryImages[0]} onError={handleImgError} className="w-full h-full object-cover" alt="Main" />
+            <img src={galleryImages[0]} onError={handleImgError} className="w-full h-full object-cover" alt={hospital?.name || "Hospital"} />
           </div>
         ) : (
           <>
             <div className="md:hidden w-full aspect-[4/3] relative group overflow-hidden rounded-2xl bg-gray-100">
               {galleryImages.map((img, index) => (
                 <div key={index} className={`absolute inset-0 transition-opacity duration-700 ease-in-out ${index === currentSlide ? "opacity-100" : "opacity-0"}`}>
-                  <img src={img} onError={handleImgError} className="w-full h-full object-cover" alt={`Slide ${index + 1}`} />
+                  <img src={img} onError={handleImgError} className="w-full h-full object-cover" alt={`${hospital?.name || "Hospital"} ${index + 1}`} />
                 </div>
               ))}
               <button onClick={prevSlide} className="absolute left-3 top-1/2 -translate-y-1/2 bg-black/20 hover:bg-black/40 text-white p-1.5 rounded-full backdrop-blur-sm transition z-20"><ChevronLeft size={20} /></button>
@@ -379,7 +379,7 @@ export const HospitalDetailPage = ({ selectedId, setView, onTreatmentClick, init
             </div>
             <div className="hidden md:flex flex-row gap-2 h-[420px]">
               <div className={`${galleryImages.length >= 2 ? "w-1/2" : "w-full"} h-full relative group cursor-pointer overflow-hidden rounded-xl`} onClick={() => setLightboxIdx(0)}>
-                <img src={galleryImages[0]} onError={handleImgError} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" alt="Main" referrerPolicy="no-referrer" />
+                <img src={galleryImages[0]} onError={handleImgError} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" alt={hospital?.name || "Hospital"} referrerPolicy="no-referrer" />
               </div>
               {galleryImages.length >= 2 && (
                 <div className="w-1/2 h-full grid grid-cols-2 grid-rows-2 gap-2">
@@ -388,7 +388,7 @@ export const HospitalDetailPage = ({ selectedId, setView, onTreatmentClick, init
                     const remaining = allGalleryImages.length - 5;
                     return (
                       <div key={idx} className="relative overflow-hidden cursor-pointer group rounded-xl" onClick={() => setLightboxIdx(idx + 1)}>
-                        <img src={img} onError={handleImgError} className="w-full h-full object-cover group-hover:scale-105 transition duration-700" alt={`Detail ${idx}`} referrerPolicy="no-referrer" />
+                        <img src={img} onError={handleImgError} className="w-full h-full object-cover group-hover:scale-105 transition duration-700" alt={`${hospital?.name || "Hospital"} ${idx + 2}`} referrerPolicy="no-referrer" />
                         {isLast && remaining > 0 && (
                           <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
                             <span className="text-white font-bold text-lg">+{remaining}</span>
@@ -412,7 +412,7 @@ export const HospitalDetailPage = ({ selectedId, setView, onTreatmentClick, init
             <div className="flex items-center gap-1 px-3 py-2 bg-gray-50 border-b overflow-x-auto shrink-0">
               {allGalleryImages.map((img, i) => (
                 <button key={i} onClick={() => setLightboxIdx(i)} className={`shrink-0 w-12 h-12 rounded-lg overflow-hidden border-2 transition ${i === lightboxIdx ? 'border-teal-500 ring-1 ring-teal-300' : 'border-transparent opacity-60 hover:opacity-100'}`}>
-                  <img src={img} onError={handleImgError} className="w-full h-full object-cover" alt="" referrerPolicy="no-referrer" />
+                  <img src={img} onError={handleImgError} className="w-full h-full object-cover" alt={hospital?.name || "Hospital"} referrerPolicy="no-referrer" />
                 </button>
               ))}
               <button onClick={() => setLightboxIdx(-1)} className="shrink-0 ml-auto text-gray-400 hover:text-gray-700 p-1"><X size={18} /></button>
@@ -420,7 +420,7 @@ export const HospitalDetailPage = ({ selectedId, setView, onTreatmentClick, init
             {/* Main image */}
             <div className="relative flex-1 min-h-0 bg-gray-900 flex items-center justify-center">
               <button onClick={() => setLightboxIdx((lightboxIdx - 1 + allGalleryImages.length) % allGalleryImages.length)} className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/20 hover:bg-white/40 text-white p-1.5 rounded-full backdrop-blur-sm transition z-10"><ChevronLeft size={22} /></button>
-              <img src={allGalleryImages[lightboxIdx]} onError={handleImgError} className="max-w-full max-h-[60vh] object-contain" alt="" referrerPolicy="no-referrer" />
+              <img src={allGalleryImages[lightboxIdx]} onError={handleImgError} className="max-w-full max-h-[60vh] object-contain" alt={hospital?.name || "Hospital"} referrerPolicy="no-referrer" />
               <button onClick={() => setLightboxIdx((lightboxIdx + 1) % allGalleryImages.length)} className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/20 hover:bg-white/40 text-white p-1.5 rounded-full backdrop-blur-sm transition z-10"><ArrowRight size={22} /></button>
             </div>
             <div className="px-4 py-2 bg-gray-50 text-center text-xs text-gray-500 border-t shrink-0">

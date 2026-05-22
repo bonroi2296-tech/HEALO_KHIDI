@@ -18,6 +18,12 @@ const isUuid = (value) => UUID_REGEX.test(String(value || ""));
 const getBaseUrl = () =>
   process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
 
+// 제휴 병원 메인 이미지(/images/hospitals/<slug>/1.jpg)의 절대 URL.
+// 폴더 규칙 기반 — 제휴 병원에만 사용(일반 디렉토리 병원은 DB 이미지 유지).
+// 사진 미등록 폴더는 404가 날 수 있으나 공유 미리보기 미표시일 뿐 무해.
+const partnerFolderImage = (slug) =>
+  slug ? `${getBaseUrl()}/images/hospitals/${slug}/1.jpg` : null;
+
 export async function generateMetadata({ params }) {
   const { slug } = await params;
 
@@ -31,11 +37,14 @@ export async function generateMetadata({ params }) {
   if (!hospital) {
     const partner = getPartnerHospital(slug);
     if (partner) {
+      const ogImg = partnerFolderImage(slug);
+      const ogImages = ogImg ? [{ url: ogImg }] : undefined;
       return {
         title: partner.name.en,
         description: partner.description.en,
         alternates: { canonical: `/hospitals/${slug}` },
-        openGraph: { title: partner.name.en, description: partner.description.en, type: "article" },
+        openGraph: { title: partner.name.en, description: partner.description.en, type: "article", images: ogImages },
+        twitter: ogImages ? { card: "summary_large_image", title: partner.name.en, description: partner.description.en, images: [ogImg] } : undefined,
       };
     }
     return {};
@@ -44,8 +53,10 @@ export async function generateMetadata({ params }) {
   const description =
     hospital.description || "Explore this HEALO partner hospital in Korea.";
   const canonical = `/hospitals/${hospital.slug || slug}`;
-  const ogImages =
-    Array.isArray(hospital.images) && hospital.images.length > 0
+  const folderOg = hospital.is_partner ? partnerFolderImage(hospital.slug || slug) : null;
+  const ogImages = folderOg
+    ? [{ url: folderOg }]
+    : Array.isArray(hospital.images) && hospital.images.length > 0
       ? [{ url: hospital.images[0] }]
       : undefined;
   return {
@@ -91,14 +102,16 @@ export default async function HospitalDetailPage({ params, searchParams }) {
   if (hospital) {
     const baseUrl = getBaseUrl();
     const canonical = `${baseUrl}/hospitals/${hospital.slug || slug}`;
+    const folderOg = hospital.is_partner ? partnerFolderImage(hospital.slug || slug) : null;
     const jsonLd = {
       "@context": "https://schema.org",
       "@type": "MedicalOrganization",
       name: hospital.name,
       description:
         hospital.description || "Explore this HEALO partner hospital in Korea.",
-      image:
-        Array.isArray(hospital.images) && hospital.images.length > 0
+      image: folderOg
+        ? [folderOg]
+        : Array.isArray(hospital.images) && hospital.images.length > 0
           ? hospital.images
           : undefined,
       url: canonical,
@@ -127,7 +140,31 @@ export default async function HospitalDetailPage({ params, searchParams }) {
   const partner = getPartnerHospital(slug);
   if (partner) {
     const initialData = convertPartnerToInitialData(partner);
-    return wrapIfPremium(<HospitalDetailClient id={slug} initialData={initialData} />);
+    const baseUrl = getBaseUrl();
+    const folderOg = partnerFolderImage(slug);
+    const partnerJsonLd = {
+      "@context": "https://schema.org",
+      "@type": "MedicalOrganization",
+      name: partner.name?.en || partner.name?.ko,
+      description: partner.description?.en || partner.description?.ko || "Explore this HEALO partner hospital in Korea.",
+      image: folderOg ? [folderOg] : undefined,
+      url: `${baseUrl}/hospitals/${slug}`,
+      areaServed: "KR",
+      ...(partner.address?.en || partner.address?.ko
+        ? { address: { "@type": "PostalAddress", streetAddress: partner.address?.en || partner.address?.ko, addressCountry: "KR" } }
+        : {}),
+      ...(partner.phone ? { telephone: partner.phone } : {}),
+    };
+    return wrapIfPremium(
+      <>
+        <Script
+          id="hospital-jsonld"
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(partnerJsonLd) }}
+        />
+        <HospitalDetailClient id={slug} initialData={initialData} />
+      </>
+    );
   }
 
   notFound();

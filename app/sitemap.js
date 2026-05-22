@@ -1,5 +1,6 @@
 import { getTreatmentList } from "../src/lib/data/treatments";
 import { getHospitalList } from "../src/lib/data/hospitals";
+import { getAllPartnerSlugs } from "../src/lib/data/partnerHospitals";
 
 const DEFAULT_LIMIT = 1000;
 
@@ -105,12 +106,25 @@ export default async function sitemap() {
     });
   }
 
+  const seenHospitalSlugs = new Set();
   for (const h of hospitals || []) {
     const slugOrId = h?.slug || h?.id;
     if (!slugOrId) continue;
+    seenHospitalSlugs.add(String(slugOrId));
     urls.push({
       url: `${baseUrl}/hospitals/${slugOrId}`,
       lastModified: h?.updated_at || h?.created_at || now,
+      changeFrequency: 'weekly',
+      priority: 0.8,
+    });
+  }
+
+  // 정적 제휴 병원(DB 미등록 — 예: 성동점)도 누락 없이 포함
+  for (const slug of getAllPartnerSlugs()) {
+    if (seenHospitalSlugs.has(slug)) continue;
+    urls.push({
+      url: `${baseUrl}/hospitals/${slug}`,
+      lastModified: now,
       changeFrequency: 'weekly',
       priority: 0.8,
     });
