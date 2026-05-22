@@ -15,11 +15,13 @@ import { getLangCodeFromCookie, t } from "../../../src/lib/i18n";
 import { formatDate } from "../../../src/lib/i18n/format";
 import { event } from "../../../src/lib/ga";
 
-// 병원 이미지 폴더 규칙: /images/hospitals/<slug>/1~5.jpg (1=메인, 2~5=서브)
+// 병원 이미지 폴더 규칙: /images/hospitals/<slug>/1~5.(jpg|png) (1=메인, 2~5=서브)
 const PLACEHOLDER_IMG = "/images/hospitals/_coming-soon.svg";
-// 없는 사진 칸은 자동으로 "이미지 준비 중" 플레이스홀더로 대체
+// .jpg 없으면 .png 시도 → 그것도 없으면 "이미지 준비 중" 플레이스홀더
 const handleImgError = (e) => {
-  if (!e.currentTarget.src.includes("_coming-soon")) e.currentTarget.src = PLACEHOLDER_IMG;
+  const src = e.currentTarget.src;
+  if (src.endsWith(".jpg")) { e.currentTarget.src = src.slice(0, -4) + ".png"; return; }
+  if (!src.includes("_coming-soon")) e.currentTarget.src = PLACEHOLDER_IMG;
   e.currentTarget.onerror = null;
 };
 

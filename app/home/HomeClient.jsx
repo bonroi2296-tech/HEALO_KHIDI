@@ -456,10 +456,10 @@ export default function HomeClient() {
                   className="bg-white rounded-xl md:rounded-2xl overflow-hidden border border-gray-100 hover:shadow-xl hover:border-teal-200 transition-all duration-300 cursor-pointer group"
                 >
                   <div className="h-24 sm:h-32 md:h-40 overflow-hidden bg-gray-100">
-                    {/* 폴더 규칙: /images/hospitals/<slug>/1.jpg(메인). 없으면 "준비 중" 플레이스홀더 자동 대체 */}
+                    {/* 폴더 규칙: /images/hospitals/<slug>/1.(jpg|png) 메인. 없으면 "준비 중" 플레이스홀더 자동 대체 */}
                     <img
                       src={`/images/hospitals/${h.slug}/1.jpg`}
-                      onError={(e) => { if (!e.currentTarget.src.includes("_coming-soon")) { e.currentTarget.src = "/images/hospitals/_coming-soon.svg"; } e.currentTarget.onerror = null; }}
+                      onError={(e) => { const s = e.currentTarget.src; if (s.endsWith(".jpg")) { e.currentTarget.src = s.slice(0, -4) + ".png"; return; } if (!s.includes("_coming-soon")) { e.currentTarget.src = "/images/hospitals/_coming-soon.svg"; } e.currentTarget.onerror = null; }}
                       alt={l(h.name)}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                     />
