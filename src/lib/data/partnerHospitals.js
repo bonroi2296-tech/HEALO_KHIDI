@@ -10,7 +10,7 @@ const PARTNER_HOSPITALS = {
   "immunehospital-magok": {
     slug: "immunehospital-magok",
     badge: "partner",
-    name: { ko: "면력한방병원 강서 (본원)", en: "Immune Hospital Gangseo (HQ)", ru: "Иммунная Клиника Кансо (главный)", kz: "Иммунная Клиника Кансо (бас)", zh: "免疫医院 江西本院", ja: "免疫病院 江西本院" },
+    name: { ko: "면력한방병원 강서점", en: "Immune Hospital Gangseo", ru: "Иммунная Клиника Кансо", kz: "Иммунная Клиника Кансо", zh: "免疫医院 江西院", ja: "免疫病院 江西院" },
     type: { ko: "제휴 병원", en: "Partner Hospital", ru: "Больница-партнёр", kz: "Серіктес аурухана", zh: "合作医院", ja: "提携病院" },
     description: {
       ko: "면력한방병원 강서점은 서울 마곡에 위치한 한방 면역치료 전문 본원입니다. 통합암치료 인정의를 포함한 8명의 전문 의료진이 한방 면역치료, 통증재활, 한방내과, 한방부인과, 한방신경정신과 등 다양한 분야에서 암환자의 면역력 강화와 항암 부작용 관리를 담당하고 있습니다. 사상체질 진단을 기반으로 한 맞춤형 면역 프로그램과 한약·침·약침 통합 치료를 제공합니다.",
@@ -47,7 +47,7 @@ const PARTNER_HOSPITALS = {
   "immunehospital-sinchon": {
     slug: "immunehospital-sinchon",
     badge: "partner",
-    name: { ko: "신촌면력한방병원", en: "Immune Hospital Sinchon", ru: "Иммунная Клиника Синчхон", kz: "Иммунная Клиника Синчон", zh: "新村免疫医院", ja: "新村免疫病院" },
+    name: { ko: "면력한방병원 신촌점", en: "Immune Hospital Sinchon", ru: "Иммунная Клиника Синчхон", kz: "Иммунная Клиника Синчон", zh: "免疫医院 新村院", ja: "免疫病院 新村院" },
     type: { ko: "제휴 병원", en: "Partner Hospital", ru: "Больница-партнёр", kz: "Серіктес аурухана", zh: "合作医院", ja: "提携病院" },
     description: {
       ko: "신촌면력한방병원은 서울 서대문구 연세로에 위치한 면력한방병원의 신촌 분원입니다. 피델리아타워 8-14층에 걸쳐 넓은 진료 공간을 운영하며, 대표원장을 포함한 3명의 전문 의료진이 한방 면역치료와 한방재활의학, 한방내과 분야에서 진료합니다. 신촌세브란스병원과 인접하여 양·한방 협진이 용이합니다.",
