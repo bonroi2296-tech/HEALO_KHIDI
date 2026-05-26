@@ -106,12 +106,13 @@ const nextConfig = {
         ],
       },
       {
-        // 이미지 파일 캐시
+        // 이미지 파일 캐시 — immutable 금지 (404가 1년 캐시되어 파일 추가 후에도
+        // 깨진 채 고정되는 문제 방지). 짧게 캐시하고 백그라운드 재검증.
         source: '/:path*\\.(jpg|jpeg|png|gif|webp|svg|ico)',
         headers: [
           {
             key: 'Cache-Control',
-            value: 'public, max-age=31536000, immutable',
+            value: 'public, max-age=3600, stale-while-revalidate=86400',
           },
         ],
       },
