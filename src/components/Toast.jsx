@@ -4,12 +4,23 @@
 // Toast = 화면에 잠깐 나타났다 사라지는 알림 메시지
 // alert() 대신 사용하는 더 예쁘고 사용자 친화적인 방법
 
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { CheckCircle2, XCircle, Info, AlertCircle, X } from 'lucide-react';
+import { getLangCodeFromCookie } from '../lib/i18n';
 
 // Toast 타입: success(성공), error(에러), info(정보), warning(경고)
 const ToastContext = createContext(null);
 const MAX_TOASTS = 5;
+
+// 토스트 UI 고정 문구 (6개 언어)
+const TOAST_COPY = {
+  ko: { notifications: "알림", dismissAll: "모두 닫기", close: "닫기" },
+  en: { notifications: "Notifications", dismissAll: "Dismiss all", close: "Close" },
+  ru: { notifications: "Уведомления", dismissAll: "Закрыть все", close: "Закрыть" },
+  kz: { notifications: "Хабарламалар", dismissAll: "Барлығын жабу", close: "Жабу" },
+  zh: { notifications: "通知", dismissAll: "全部关闭", close: "关闭" },
+  ja: { notifications: "通知", dismissAll: "すべて閉じる", close: "閉じる" },
+};
 
 function safeMessage(msg) {
   if (msg == null) return "";
@@ -18,13 +29,16 @@ function safeMessage(msg) {
   try {
     return String(msg);
   } catch {
-    return "알 수 없는 메시지";
+    return "Notification";
   }
 }
 
 // Toast Provider - 앱 전체에서 Toast를 사용할 수 있게 해주는 컴포넌트
 export const ToastProvider = ({ children }) => {
   const [toasts, setToasts] = useState([]);
+  const [lang, setLang] = useState("en");
+  useEffect(() => { setLang(getLangCodeFromCookie()); }, []);
+  const c = TOAST_COPY[lang] || TOAST_COPY.en;
 
   const addToast = useCallback((message, type = "info", duration = 3000) => {
     const id = `toast-${Date.now()}-${Math.random()}`;
@@ -64,7 +78,7 @@ export const ToastProvider = ({ children }) => {
       <div
         className="fixed top-4 left-1/2 -translate-x-1/2 z-[200] space-y-2 pointer-events-none"
         aria-live="polite"
-        aria-label="알림"
+        aria-label={c.notifications}
       >
         {toasts.length > 2 && (
           <div className="pointer-events-auto flex justify-end">
@@ -73,12 +87,12 @@ export const ToastProvider = ({ children }) => {
               onClick={removeAllToasts}
               className="text-xs text-gray-500 hover:text-gray-700 bg-white/90 px-2 py-1 rounded border border-gray-200"
             >
-              모두 닫기
+              {c.dismissAll}
             </button>
           </div>
         )}
         {toasts.map((t) => (
-          <ToastItem key={t.id} toast={t} onRemove={removeToast} />
+          <ToastItem key={t.id} toast={t} onRemove={removeToast} closeLabel={c.close} />
         ))}
       </div>
     </ToastContext.Provider>
@@ -86,7 +100,7 @@ export const ToastProvider = ({ children }) => {
 };
 
 // 개별 Toast 아이템 컴포넌트
-const ToastItem = ({ toast, onRemove }) => {
+const ToastItem = ({ toast, onRemove, closeLabel }) => {
   const { message, type } = toast;
 
   // 타입별 스타일 설정
@@ -136,7 +150,7 @@ const ToastItem = ({ toast, onRemove }) => {
       <div className="flex-1 text-sm font-medium whitespace-pre-line">{text}</div>
       <button
         type="button"
-        aria-label="닫기"
+        aria-label={closeLabel || "Close"}
         onClick={(e) => {
           e.preventDefault();
           e.stopPropagation();

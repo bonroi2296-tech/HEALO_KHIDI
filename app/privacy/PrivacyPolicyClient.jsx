@@ -217,15 +217,15 @@ export default function PrivacyPolicyClient() {
                 lineHeight: 1.7,
               }}
             >
-              <p style={{ margin: "0 0 12px" }}>
-                이 문서는 대한민국 개인정보보호법, 의료법, 의료해외진출법, 카자흐스탄 94-V
-                ЗРК, EU GDPR을 기반으로 작성되었습니다. 최종 법적 효력은 관할 법령 및
-                변호사의 검토에 따릅니다.
-              </p>
               <p style={{ margin: 0 }}>
-                This document is drafted based on Korean PIPA, Medical Service Act, Medical
-                Tourism Act, Kazakhstan Law 94-V, and EU GDPR. Final legal effect is subject
-                to applicable laws and professional review.
+                {(() => { const t = {
+                  ko: "이 문서는 대한민국 개인정보보호법, 의료법, 의료해외진출법, 카자흐스탄 94-V ЗРК, EU GDPR을 기반으로 작성되었습니다. 최종 법적 효력은 관할 법령 및 변호사의 검토에 따릅니다.",
+                  en: "This document is drafted based on Korean PIPA, the Medical Service Act, the Medical Tourism Act, Kazakhstan Law 94-V, and the EU GDPR. Final legal effect is subject to applicable laws and professional review.",
+                  ru: "Этот документ составлен на основе закона Кореи PIPA, закона о медицинском обслуживании, закона о медицинском туризме, закона Казахстана 94-V и Регламента ЕС GDPR. Окончательная юридическая сила определяется применимым законодательством и профессиональной проверкой.",
+                  kz: "Бұл құжат Корея PIPA заңы, медициналық қызмет туралы заң, медициналық туризм туралы заң, Қазақстанның 94-V заңы және ЕО GDPR негізінде жасалған. Түпкілікті заңды күші қолданыстағы заңнама мен кәсіби тексеруге байланысты.",
+                  zh: "本文件依据韩国《个人信息保护法（PIPA）》《医疗法》《医疗观光法》、哈萨克斯坦94-V法及欧盟《通用数据保护条例（GDPR）》制定。最终法律效力以适用法律及专业审核为准。",
+                  ja: "本書類は韓国の個人情報保護法（PIPA）、医療法、医療観光法、カザフスタン94-V法、EU GDPRに基づいて作成されています。最終的な法的効力は適用法令および専門家の確認に従います。",
+                }; return t[langCode] || t.en; })()}
               </p>
             </footer>
           </article>
