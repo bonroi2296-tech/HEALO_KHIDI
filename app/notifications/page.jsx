@@ -11,6 +11,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { createSupabaseBrowserClient } from "../../src/lib/supabase/browser";
+import { useLang } from "../../src/lib/i18n/LangContext";
 
 const PAGE_SIZE = 20;
 
@@ -21,23 +22,110 @@ const PRIORITY_DOT = {
   urgent: "#ef4444",
 };
 
-const TYPE_LABELS = {
-  symptom_alert: "증상 알림",
-  reminder: "리마인더",
-  survey: "만족도 조사",
-  system: "시스템",
+/* ───────── i18n (6개 언어) ───────── */
+const COPY = {
+  ko: {
+    locale: "ko-KR",
+    title: "알림",
+    markAllRead: "모두 읽음",
+    filterAll: "전체",
+    filterUnread: "미읽음",
+    filterRead: "읽음",
+    typeAll: "전체 타입",
+    read: "읽음",
+    more: "더 보기",
+    loading: "불러오는 중…",
+    empty: "알림이 없습니다",
+    types: { symptom_alert: "증상 알림", reminder: "리마인더", survey: "만족도 조사", system: "시스템" },
+    time: { now: "방금", min: (n) => `${n}분 전`, hour: (n) => `${n}시간 전`, day: (n) => `${n}일 전` },
+  },
+  en: {
+    locale: "en-US",
+    title: "Notifications",
+    markAllRead: "Mark all read",
+    filterAll: "All",
+    filterUnread: "Unread",
+    filterRead: "Read",
+    typeAll: "All types",
+    read: "Read",
+    more: "Load more",
+    loading: "Loading…",
+    empty: "No notifications",
+    types: { symptom_alert: "Symptom alert", reminder: "Reminder", survey: "Satisfaction survey", system: "System" },
+    time: { now: "Just now", min: (n) => `${n} min ago`, hour: (n) => `${n} h ago`, day: (n) => `${n} d ago` },
+  },
+  ru: {
+    locale: "ru-RU",
+    title: "Уведомления",
+    markAllRead: "Отметить всё",
+    filterAll: "Все",
+    filterUnread: "Непрочитанные",
+    filterRead: "Прочитанные",
+    typeAll: "Все типы",
+    read: "Прочитано",
+    more: "Загрузить ещё",
+    loading: "Загрузка…",
+    empty: "Нет уведомлений",
+    types: { symptom_alert: "Оповещение о симптомах", reminder: "Напоминание", survey: "Опрос удовлетворённости", system: "Система" },
+    time: { now: "Только что", min: (n) => `${n} мин назад`, hour: (n) => `${n} ч назад`, day: (n) => `${n} дн назад` },
+  },
+  kz: {
+    locale: "kk-KZ",
+    title: "Хабарламалар",
+    markAllRead: "Барлығын оқылды деп белгілеу",
+    filterAll: "Барлығы",
+    filterUnread: "Оқылмаған",
+    filterRead: "Оқылған",
+    typeAll: "Барлық түрлері",
+    read: "Оқылды",
+    more: "Тағы жүктеу",
+    loading: "Жүктелуде…",
+    empty: "Хабарлама жоқ",
+    types: { symptom_alert: "Симптом туралы хабарлама", reminder: "Еске салу", survey: "Қанағаттану сауалнамасы", system: "Жүйе" },
+    time: { now: "Жаңа ғана", min: (n) => `${n} мин бұрын`, hour: (n) => `${n} сағ бұрын`, day: (n) => `${n} күн бұрын` },
+  },
+  zh: {
+    locale: "zh-CN",
+    title: "通知",
+    markAllRead: "全部标为已读",
+    filterAll: "全部",
+    filterUnread: "未读",
+    filterRead: "已读",
+    typeAll: "全部类型",
+    read: "已读",
+    more: "加载更多",
+    loading: "加载中…",
+    empty: "暂无通知",
+    types: { symptom_alert: "症状提醒", reminder: "提醒", survey: "满意度调查", system: "系统" },
+    time: { now: "刚刚", min: (n) => `${n} 分钟前`, hour: (n) => `${n} 小时前`, day: (n) => `${n} 天前` },
+  },
+  ja: {
+    locale: "ja-JP",
+    title: "通知",
+    markAllRead: "すべて既読",
+    filterAll: "すべて",
+    filterUnread: "未読",
+    filterRead: "既読",
+    typeAll: "すべてのタイプ",
+    read: "既読",
+    more: "もっと見る",
+    loading: "読み込み中…",
+    empty: "通知はありません",
+    types: { symptom_alert: "症状アラート", reminder: "リマインダー", survey: "満足度調査", system: "システム" },
+    time: { now: "たった今", min: (n) => `${n} 分前`, hour: (n) => `${n} 時間前`, day: (n) => `${n} 日前` },
+  },
 };
 
-function timeAgo(dateStr) {
+function timeAgo(dateStr, c) {
   const diff = Date.now() - new Date(dateStr).getTime();
   const min = Math.floor(diff / 60000);
-  if (min < 1) return "방금";
-  if (min < 60) return `${min}분 전`;
+  if (min < 1) return c.time.now;
+  if (min < 60) return c.time.min(min);
   const hr = Math.floor(min / 60);
-  if (hr < 24) return `${hr}시간 전`;
+  if (hr < 24) return c.time.hour(hr);
   const d = Math.floor(hr / 24);
-  if (d < 30) return `${d}일 전`;
-  return new Date(dateStr).toLocaleDateString("ko-KR");
+  if (d < 30) return c.time.day(d);
+  return new Date(dateStr).toLocaleDateString(c.locale);
 }
 
 export default function NotificationsPage() {
@@ -50,6 +138,8 @@ export default function NotificationsPage() {
   const [userId, setUserId] = useState(null);
   const router = useRouter();
   const supabase = createSupabaseBrowserClient();
+  const lang = useLang();
+  const c = COPY[lang] || COPY.en;
 
   // 세션 확인
   useEffect(() => {
@@ -130,13 +220,13 @@ export default function NotificationsPage() {
   const unreadCount = items.filter((n) => !n.read_at).length;
 
   // 알림 타입 목록 (필터 옵션)
-  const allTypes = ["all", ...Object.keys(TYPE_LABELS)];
+  const allTypes = ["all", "symptom_alert", "reminder", "survey", "system"];
 
   return (
     <div style={{ maxWidth: 640, margin: "0 auto", padding: "32px 16px" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
         <h1 style={{ margin: 0, fontFamily: "var(--font-serif)", fontSize: 24, fontWeight: 500 }}>
-          알림
+          {c.title}
           {unreadCount > 0 && (
             <span
               style={{
@@ -168,7 +258,7 @@ export default function NotificationsPage() {
               color: "var(--gold-2, #b8860b)",
             }}
           >
-            모두 읽음
+            {c.markAllRead}
           </button>
         )}
       </div>
@@ -176,7 +266,7 @@ export default function NotificationsPage() {
       {/* 필터 바 */}
       <div style={{ display: "flex", gap: 8, marginBottom: 20, flexWrap: "wrap" }}>
         {/* 읽음 상태 필터 */}
-        {[["all", "전체"], ["unread", "미읽음"], ["read", "읽음"]].map(([val, label]) => (
+        {[["all", c.filterAll], ["unread", c.filterUnread], ["read", c.filterRead]].map(([val, label]) => (
           <button
             key={val}
             onClick={() => setFilterRead(val)}
@@ -215,17 +305,17 @@ export default function NotificationsPage() {
               cursor: "pointer",
             }}
           >
-            {t === "all" ? "전체 타입" : (TYPE_LABELS[t] || t)}
+            {t === "all" ? c.typeAll : (c.types[t] || t)}
           </button>
         ))}
       </div>
 
       {/* 알림 목록 */}
       {loading && items.length === 0 ? (
-        <div style={{ textAlign: "center", padding: "48px 0", color: "#9ca3af" }}>불러오는 중…</div>
+        <div style={{ textAlign: "center", padding: "48px 0", color: "#9ca3af" }}>{c.loading}</div>
       ) : items.length === 0 ? (
         <div style={{ textAlign: "center", padding: "48px 0", color: "#9ca3af", fontSize: 14 }}>
-          알림이 없습니다
+          {c.empty}
         </div>
       ) : (
         <div style={{ border: "1px solid var(--cream-2, #e5e0d8)", borderRadius: 8, overflow: "hidden" }}>
@@ -289,7 +379,7 @@ export default function NotificationsPage() {
                       flexShrink: 0,
                     }}
                   >
-                    {TYPE_LABELS[item.type] || item.type}
+                    {c.types[item.type] || item.type}
                   </span>
                 </div>
                 <p
@@ -305,8 +395,8 @@ export default function NotificationsPage() {
                   {item.body}
                 </p>
                 <span style={{ fontSize: 11, color: "#9ca3af", marginTop: 4, display: "block" }}>
-                  {timeAgo(item.created_at)}
-                  {item.read_at && " · 읽음"}
+                  {timeAgo(item.created_at, c)}
+                  {item.read_at && ` · ${c.read}`}
                 </span>
               </div>
             </button>
@@ -329,12 +419,12 @@ export default function NotificationsPage() {
               color: "var(--fg-on-light-2)",
             }}
           >
-            더 보기
+            {c.more}
           </button>
         </div>
       )}
       {loading && items.length > 0 && (
-        <div style={{ textAlign: "center", marginTop: 20, color: "#9ca3af", fontSize: 13 }}>불러오는 중…</div>
+        <div style={{ textAlign: "center", marginTop: 20, color: "#9ca3af", fontSize: 13 }}>{c.loading}</div>
       )}
     </div>
   );

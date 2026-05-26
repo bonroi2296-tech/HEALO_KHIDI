@@ -15,6 +15,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useNotifications } from "../../src/hooks/useNotifications";
+import { useLang } from "../../src/lib/i18n/LangContext";
 import NotificationToast from "./NotificationToast";
 
 const PRIORITY_DOT = {
@@ -24,14 +25,78 @@ const PRIORITY_DOT = {
   urgent: "#ef4444",
 };
 
-function timeAgo(dateStr) {
+/* ───────── i18n (6개 언어) ───────── */
+const COPY = {
+  ko: {
+    title: "알림",
+    markAllRead: "모두 읽음",
+    loading: "불러오는 중…",
+    empty: "알림이 없습니다",
+    viewAll: "전체 알림 보기 →",
+    ariaBell: "알림",
+    ariaUnread: (n) => `(미읽음 ${n}개)`,
+    time: { now: "방금", min: (n) => `${n}분 전`, hour: (n) => `${n}시간 전`, day: (n) => `${n}일 전` },
+  },
+  en: {
+    title: "Notifications",
+    markAllRead: "Mark all read",
+    loading: "Loading…",
+    empty: "No notifications",
+    viewAll: "View all notifications →",
+    ariaBell: "Notifications",
+    ariaUnread: (n) => `(${n} unread)`,
+    time: { now: "Just now", min: (n) => `${n} min ago`, hour: (n) => `${n} h ago`, day: (n) => `${n} d ago` },
+  },
+  ru: {
+    title: "Уведомления",
+    markAllRead: "Отметить всё",
+    loading: "Загрузка…",
+    empty: "Нет уведомлений",
+    viewAll: "Все уведомления →",
+    ariaBell: "Уведомления",
+    ariaUnread: (n) => `(${n} непрочитанных)`,
+    time: { now: "Только что", min: (n) => `${n} мин назад`, hour: (n) => `${n} ч назад`, day: (n) => `${n} дн назад` },
+  },
+  kz: {
+    title: "Хабарламалар",
+    markAllRead: "Барлығын оқылды деп белгілеу",
+    loading: "Жүктелуде…",
+    empty: "Хабарлама жоқ",
+    viewAll: "Барлық хабарламалар →",
+    ariaBell: "Хабарламалар",
+    ariaUnread: (n) => `(${n} оқылмаған)`,
+    time: { now: "Жаңа ғана", min: (n) => `${n} мин бұрын`, hour: (n) => `${n} сағ бұрын`, day: (n) => `${n} күн бұрын` },
+  },
+  zh: {
+    title: "通知",
+    markAllRead: "全部标为已读",
+    loading: "加载中…",
+    empty: "暂无通知",
+    viewAll: "查看全部通知 →",
+    ariaBell: "通知",
+    ariaUnread: (n) => `(${n} 条未读)`,
+    time: { now: "刚刚", min: (n) => `${n} 分钟前`, hour: (n) => `${n} 小时前`, day: (n) => `${n} 天前` },
+  },
+  ja: {
+    title: "通知",
+    markAllRead: "すべて既読",
+    loading: "読み込み中…",
+    empty: "通知はありません",
+    viewAll: "すべての通知を見る →",
+    ariaBell: "通知",
+    ariaUnread: (n) => `(未読 ${n}件)`,
+    time: { now: "たった今", min: (n) => `${n} 分前`, hour: (n) => `${n} 時間前`, day: (n) => `${n} 日前` },
+  },
+};
+
+function timeAgo(dateStr, c) {
   const diff = Date.now() - new Date(dateStr).getTime();
   const min = Math.floor(diff / 60000);
-  if (min < 1) return "방금";
-  if (min < 60) return `${min}분 전`;
+  if (min < 1) return c.time.now;
+  if (min < 60) return c.time.min(min);
   const hr = Math.floor(min / 60);
-  if (hr < 24) return `${hr}시간 전`;
-  return `${Math.floor(hr / 24)}일 전`;
+  if (hr < 24) return c.time.hour(hr);
+  return c.time.day(Math.floor(hr / 24));
 }
 
 export default function NotificationCenter() {
@@ -40,6 +105,8 @@ export default function NotificationCenter() {
   const dropRef = useRef(null);
   const prevCountRef = useRef(null);
   const router = useRouter();
+  const lang = useLang();
+  const c = COPY[lang] || COPY.en;
 
   const { items, unreadCount, loading, markAsRead, markAllRead } = useNotifications();
 
@@ -117,7 +184,7 @@ export default function NotificationCenter() {
       {/* 종 아이콘 + 드롭다운 */}
       <div ref={dropRef} style={{ position: "relative" }}>
         <button
-          aria-label={`알림 ${unreadCount > 0 ? `(미읽음 ${unreadCount}개)` : ""}`}
+          aria-label={`${c.ariaBell} ${unreadCount > 0 ? c.ariaUnread(unreadCount) : ""}`}
           aria-expanded={open}
           aria-haspopup="true"
           onClick={() => setOpen(!open)}
@@ -210,7 +277,7 @@ export default function NotificationCenter() {
                   color: "var(--fg-on-light-1)",
                 }}
               >
-                알림
+                {c.title}
                 {unreadCount > 0 && (
                   <span
                     style={{
@@ -240,7 +307,7 @@ export default function NotificationCenter() {
                     padding: "2px 6px",
                   }}
                 >
-                  모두 읽음
+                  {c.markAllRead}
                 </button>
               )}
             </div>
@@ -249,11 +316,11 @@ export default function NotificationCenter() {
             <div style={{ maxHeight: 360, overflowY: "auto" }}>
               {loading ? (
                 <div style={{ padding: "24px 16px", textAlign: "center", color: "#9ca3af", fontSize: 13 }}>
-                  불러오는 중…
+                  {c.loading}
                 </div>
               ) : preview.length === 0 ? (
                 <div style={{ padding: "24px 16px", textAlign: "center", color: "#9ca3af", fontSize: 13 }}>
-                  알림이 없습니다
+                  {c.empty}
                 </div>
               ) : (
                 preview.map((item) => (
@@ -316,7 +383,7 @@ export default function NotificationCenter() {
                         {item.body}
                       </p>
                       <span style={{ fontSize: 11, color: "#9ca3af", marginTop: 2, display: "block" }}>
-                        {timeAgo(item.created_at)}
+                        {timeAgo(item.created_at, c)}
                       </span>
                     </div>
                   </button>
@@ -341,7 +408,7 @@ export default function NotificationCenter() {
                   padding: "4px 0",
                 }}
               >
-                전체 알림 보기 →
+                {c.viewAll}
               </Link>
             </div>
           </div>

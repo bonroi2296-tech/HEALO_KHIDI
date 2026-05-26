@@ -11,6 +11,17 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useLang } from "../../src/lib/i18n/LangContext";
+
+/* ───────── i18n (6개 언어) ───────── */
+const COPY = {
+  ko: { close: "닫기" },
+  en: { close: "Close" },
+  ru: { close: "Закрыть" },
+  kz: { close: "Жабу" },
+  zh: { close: "关闭" },
+  ja: { close: "閉じる" },
+};
 
 const PRIORITY_STYLES = {
   low:    { border: "#d1d5db", bg: "#f9fafb", text: "#374151", dot: "#9ca3af" },
@@ -23,6 +34,8 @@ export default function NotificationToast({ notification, onClose }) {
   const router = useRouter();
   const timerRef = useRef(null);
   const [visible, setVisible] = useState(false);
+  const lang = useLang();
+  const c = COPY[lang] || COPY.en;
 
   // mount 시 슬라이드 인
   useEffect(() => {
@@ -117,7 +130,7 @@ export default function NotificationToast({ notification, onClose }) {
 
       {/* 닫기 버튼 */}
       <button
-        aria-label="닫기"
+        aria-label={c.close}
         onClick={(e) => { e.stopPropagation(); handleClose(); }}
         style={{
           background: "transparent",

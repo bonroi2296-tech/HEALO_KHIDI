@@ -172,15 +172,43 @@ const STRINGS = {
     required: "すべての質問にお答えください。",
     selectScore: "選択してください",
   },
+  kz: {
+    title: "Қызмет сапасы сауалнамасы",
+    subtitle: "HEALO қызметін пайдаланғаныңызға рахмет.\n2 минут ішінде толтырылатын қысқа сауалнамаға қатысыңыз.",
+    questions: [
+      "Кеңес берген медицина қызметкерлерінің біліктілігіне қанағаттандыңыз ба?",
+      "Аударма сапасына қанағаттандыңыз ба?",
+      "Жүйені пайдалану ыңғайлылығы қандай болды?",
+      "Жауап жылдамдығы мен координатор қызметіне қанағаттандыңыз ба?",
+      "Жалпы қанағаттану деңгейі қандай?",
+    ],
+    scaleLabels: ["Өте қанағаттанбадым", "", "", "", "Өте қанағаттандым"],
+    commentLabel: "Қосымша пікір (міндетті емес)",
+    commentPlaceholder: "Ұсыныстарыңыз бен пікіріңізді еркін жазыңыз.",
+    submit: "Жіберу",
+    submitting: "Жіберілуде...",
+    thankYouTitle: "Рахмет!",
+    thankYouDesc: "Пікіріңіз қабылданды. Бұл HEALO қызметін жақсартуға көп көмектеседі.",
+    expiredTitle: "Сауалнама мерзімі бітті",
+    expiredDesc: "Бұл сауалнама сілтемесі 14 күннен кейін жарамсыз болды.",
+    notFoundTitle: "Сауалнама табылмады",
+    notFoundDesc: "Сілтеме қате немесе сауалнама жойылған.",
+    alreadyTitle: "Сіз бұрын жауап бердіңіз",
+    alreadyDesc: "Бұл сауалнамаға бұрын жауап бердіңіз. Қатысқаныңызға рахмет.",
+    errorTitle: "Қате орын алды",
+    errorDesc: "Сәл кейін қайталап көріңіз.",
+    required: "Барлық сұраққа жауап беріңіз.",
+    selectScore: "Таңдаңыз",
+  },
 };
 
 // 브라우저 언어 → 지원 언어 매핑
 function detectLang() {
-  if (typeof navigator === "undefined") return "ko";
-  const nav = navigator.language || "ko";
+  if (typeof navigator === "undefined") return "en";
+  const nav = navigator.language || "en";
   if (nav.startsWith("ko")) return "ko";
   if (nav.startsWith("ru")) return "ru";
-  if (nav.startsWith("kk")) return "kk";
+  if (nav.startsWith("kk") || nav.startsWith("kz")) return "kz";
   if (nav.startsWith("zh")) return "zh";
   if (nav.startsWith("ja")) return "ja";
   return "en";
@@ -241,7 +269,7 @@ function ScoreSelector({ qIndex, value, onChange, scaleLabels }) {
 // ─── 메인 폼 ──────────────────────────────────────────────────────────────────
 export default function SurveyForm({ token, initialState, alreadyResponded }) {
   const lang = detectLang();
-  const s = STRINGS[lang] || STRINGS.ko;
+  const s = STRINGS[lang] || STRINGS.en;
 
   const [scores, setScores] = useState({ q1: 0, q2: 0, q3: 0, q4: 0, q5: 0 });
   const [comment, setComment] = useState("");
