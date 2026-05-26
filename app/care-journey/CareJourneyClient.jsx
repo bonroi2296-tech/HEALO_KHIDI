@@ -15,6 +15,12 @@ const COPY = {
     modelTitle: "왜 '병원 매칭'이 아니라 '케어 경로'인가",
     modelBody:
       "암 치료는 한 번의 수술로 끝나지 않습니다. HEALO는 면역·재활 전문 한방병원과 수술·항암 중심의 협진 대학병원이 하나의 네트워크로 연결되어, 진단 결과에 따라 필요한 치료를 단계별로 이어드립니다. 환자는 매번 새 병원을 찾을 필요가 없습니다.",
+    statsTitle: "숫자로 보는 한국 암치료",
+    stats: [
+      { value: "72.9%", label: "암 5년 생존율 (2018–2022)" },
+      { value: "117만+", label: "2024년 한국을 찾은 외국인 환자" },
+    ],
+    statsSource: "출처: 국립암센터 국가암등록통계, 한국보건산업진흥원(KHIDI) 외국인환자 유치 실적",
     whyCareTitle: "수술 후, 왜 면역·재활 케어가 필요할까요",
     whyCareLede:
       "암 치료는 수술이나 항암으로 끝나지 않습니다. 떨어진 면역력과 부작용을 회복기에 어떻게 관리하느냐가 그다음을 좌우합니다. HEALO 제휴 면력 한방병원은 이 회복 단계를 전문적으로 돕습니다.",
@@ -44,6 +50,12 @@ const COPY = {
     modelTitle: "Why a 'care path', not 'hospital matching'",
     modelBody:
       "Cancer treatment doesn't end with a single surgery. HEALO connects Korean Medicine hospitals specializing in immune and rehabilitation care with cooperating university hospitals focused on surgery and chemotherapy — as one network — so each stage of care follows your diagnosis. You never have to search for a new hospital each time.",
+    statsTitle: "Korea's cancer care, in numbers",
+    stats: [
+      { value: "72.9%", label: "5-year cancer survival rate (2018–2022)" },
+      { value: "1.17M+", label: "international patients chose Korea in 2024" },
+    ],
+    statsSource: "Sources: National Cancer Center Korea (national cancer registry); KHIDI foreign patient statistics",
     whyCareTitle: "After surgery, why immune & rehabilitation care matters",
     whyCareLede:
       "Cancer treatment doesn't end with surgery or chemotherapy. How you manage weakened immunity and side effects during recovery shapes what comes next. HEALO's partner Korean Medicine hospitals specialize in this recovery stage.",
@@ -73,6 +85,12 @@ const COPY = {
     modelTitle: "Почему «маршрут лечения», а не «подбор больницы»",
     modelBody:
       "Лечение рака не заканчивается одной операцией. HEALO объединяет в единую сеть больницы корейской медицины (иммунотерапия и реабилитация) и сотрудничающие университетские больницы (хирургия и химиотерапия), чтобы каждый этап следовал за вашим диагнозом. Вам не нужно каждый раз искать новую больницу.",
+    statsTitle: "Лечение рака в Корее в цифрах",
+    stats: [
+      { value: "72,9%", label: "5-летняя выживаемость при раке (2018–2022)" },
+      { value: "1,17 млн+", label: "иностранных пациентов выбрали Корею в 2024" },
+    ],
+    statsSource: "Источники: Национальный онкологический центр Кореи (национальный реестр рака); статистика иностранных пациентов KHIDI",
     whyCareTitle: "После операции: почему важен иммунный и реабилитационный уход",
     whyCareLede:
       "Лечение рака не заканчивается операцией или химиотерапией. То, как вы восстанавливаете ослабленный иммунитет и справляетесь с побочными эффектами, определяет дальнейшее. Партнёрские больницы корейской медицины HEALO специализируются на этом этапе восстановления.",
@@ -102,6 +120,12 @@ const COPY = {
     modelTitle: "Неге «аурухана таңдау» емес, «емдеу жолы»",
     modelBody:
       "Обырды емдеу бір операциямен бітпейді. HEALO иммундық және оңалту маманданған корей медицинасы ауруханалары мен хирургия, химиотерапияға бағытталған серіктес университет ауруханаларын бір желіге біріктіреді — әр кезең сіздің диагнозыңызға сай жалғасады. Сізге әр жолы жаңа аурухана іздеудің қажеті жоқ.",
+    statsTitle: "Кореядағы обыр емі — сандармен",
+    stats: [
+      { value: "72,9%", label: "обырдан 5 жылдық өмір сүру (2018–2022)" },
+      { value: "1,17 млн+", label: "2024 жылы Кореяны таңдаған шетелдік науқастар" },
+    ],
+    statsSource: "Дереккөздер: Корея Ұлттық онкология орталығы (ұлттық обыр тіркелімі); KHIDI шетелдік науқастар статистикасы",
     whyCareTitle: "Операциядан кейін иммундық және оңалту күтімі неге маңызды",
     whyCareLede:
       "Обырды емдеу операциямен немесе химиотерапиямен бітпейді. Әлсіреген иммунитет пен жанама әсерлерді қалпына келу кезінде қалай басқаратыныңыз келесі кезеңді айқындайды. HEALO серіктес корей медицинасы ауруханалары осы кезеңге маманданған.",
@@ -131,6 +155,12 @@ const COPY = {
     modelTitle: "为什么是「治疗路径」而非「医院匹配」",
     modelBody:
       "癌症治疗不会因一次手术而结束。HEALO 将专注免疫·康复的韩方医院与以手术·化疗为主的协诊大学医院连接为一个网络，根据诊断结果逐阶段衔接所需治疗。患者无需每次重新寻找医院。",
+    statsTitle: "数据看韩国癌症诊疗",
+    stats: [
+      { value: "72.9%", label: "癌症五年生存率（2018–2022）" },
+      { value: "117万+", label: "2024年赴韩就医的国际患者" },
+    ],
+    statsSource: "来源：韩国国立癌症中心（国家癌症登记统计）；KHIDI 外国患者统计",
     whyCareTitle: "手术后，为什么需要免疫与康复护理",
     whyCareLede:
       "癌症治疗不会因手术或化疗而结束。在康复期如何管理下降的免疫力和副作用，决定了之后的走向。HEALO 合作的韩方医院专注于这一康复阶段。",
@@ -160,6 +190,12 @@ const COPY = {
     modelTitle: "なぜ「病院マッチング」ではなく「ケア経路」なのか",
     modelBody:
       "がん治療は一度の手術で終わりません。HEALOは免疫・リハビリ専門の韓方病院と、手術・抗がん中心の協診大学病院を一つのネットワークでつなぎ、診断結果に応じて必要な治療を段階的につなげます。患者様は毎回新しい病院を探す必要がありません。",
+    statsTitle: "数字で見る韓国のがん医療",
+    stats: [
+      { value: "72.9%", label: "がん5年生存率（2018–2022）" },
+      { value: "117万+", label: "2024年に韓国を選んだ外国人患者" },
+    ],
+    statsSource: "出典：韓国国立がんセンター（国家がん登録統計）；KHIDI 外国人患者統計",
     whyCareTitle: "手術後、なぜ免疫・リハビリケアが必要か",
     whyCareLede:
       "がん治療は手術や抗がん剤で終わりません。回復期に低下した免疫力と副作用をどう管理するかが、その後を左右します。HEALO提携の韓方病院はこの回復段階を専門に支えます。",
@@ -215,8 +251,22 @@ export default function CareJourneyClient() {
         </div>
       </section>
 
-      {/* Why immune/rehab care matters */}
+      {/* Why Korea — credibility stats */}
       <section className="max-w-4xl mx-auto px-4 py-12 md:py-16">
+        <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-6 md:mb-8">{c.statsTitle}</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-5">
+          {c.stats.map((s, i) => (
+            <div key={i} className="border border-gray-200 rounded-2xl p-6 md:p-7">
+              <div className="text-3xl md:text-4xl font-extrabold text-teal-600 mb-2">{s.value}</div>
+              <p className="text-sm text-gray-500 leading-relaxed">{s.label}</p>
+            </div>
+          ))}
+        </div>
+        <p className="text-[11px] text-gray-400 mt-4 leading-relaxed">{c.statsSource}</p>
+      </section>
+
+      {/* Why immune/rehab care matters */}
+      <section className="max-w-4xl mx-auto px-4 pt-0 pb-12 md:pb-16">
         <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-4">{c.whyCareTitle}</h2>
         <p className="text-base text-gray-600 leading-relaxed max-w-3xl mb-8 md:mb-10">{c.whyCareLede}</p>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-5">
