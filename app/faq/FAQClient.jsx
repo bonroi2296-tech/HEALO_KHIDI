@@ -207,7 +207,7 @@ export default function FAQClient() {
             {copy.contactBody}
           </p>
           <Link
-            href="/intake"
+            href="/inquiry"
             className="inline-flex items-center gap-2 px-7 py-3.5 bg-white text-teal-700 rounded-xl font-bold hover:bg-teal-50 transition-colors"
           >
             {copy.contactBtn} <ArrowRight size={18} />
