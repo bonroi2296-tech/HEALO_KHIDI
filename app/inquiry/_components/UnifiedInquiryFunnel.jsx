@@ -250,6 +250,9 @@ const T = {
   contactPhone: {
     ko: "전화번호", en: "Phone", ru: "Телефон", kz: "Телефон", zh: "电话", ja: "電話",
   },
+  optionalTag: {
+    ko: "(선택)", en: "(optional)", ru: "(необязательно)", kz: "(міндетті емес)", zh: "(选填)", ja: "(任意)",
+  },
   emailPlaceholder: {
     ko: "example@email.com", en: "example@email.com", ru: "example@email.com", kz: "example@email.com", zh: "example@email.com", ja: "example@email.com",
   },
@@ -454,9 +457,9 @@ export default function UnifiedInquiryFunnel() {
   const [form1, setForm1] = useState({
     name: "",
     nationality: "",
-    contactType: "email", // "email" | "phone"
-    contactValue: "",
-    phoneDial: "", // 전화 국가번호 — 본인이 직접 선택 (국적과 분리)
+    email: "", // 필수 — 동일인 통합 기준
+    phoneDial: "", // 전화 국가번호 (선택)
+    phone: "", // 전화번호 (선택)
     preferredLanguage: lang,
     cancerType: "",
     shortMemo: "",
@@ -483,8 +486,8 @@ export default function UnifiedInquiryFunnel() {
         setForm1((prev) => ({
           ...prev,
           name: data.guest_name || prev.name,
-          contactType: data.guest_email ? "email" : prev.contactType,
-          contactValue: data.guest_email || data.guest_phone || prev.contactValue,
+          email: data.guest_email || prev.email,
+          phone: data.guest_phone || prev.phone,
           nationality: data.guest_country || prev.nationality,
         }));
       })
@@ -504,11 +507,12 @@ export default function UnifiedInquiryFunnel() {
 
   // ─── Step 1 검증 ─────────────────────────────────────────────────
   // 전화 선택 시 국가번호도 골라야 함 (OTHER면 번호에 +코드 직접 입력)
-  const phoneNeedsDial = form1.contactType === "phone" && form1.phoneDial === "";
+  // 전화는 선택 — 입력했을 때만 국가번호도 필요 (OTHER면 번호에 +코드 직접 입력)
+  const phoneNeedsDial = form1.phone.trim().length > 0 && form1.phoneDial === "";
   const step1Valid =
     form1.name.trim().length > 0 &&
     form1.nationality !== "" &&
-    form1.contactValue.trim().length > 0 &&
+    form1.email.trim().length > 0 &&
     !phoneNeedsDial &&
     form1.preferredLanguage !== "" &&
     form1.cancerType !== "";
@@ -518,12 +522,10 @@ export default function UnifiedInquiryFunnel() {
       setError(phoneNeedsDial ? tl("dialRequired", lang) : tl("required", lang));
       return false;
     }
-    if (form1.contactType === "email") {
-      const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRe.test(form1.contactValue)) {
-        setError(tl("invalidEmail", lang));
-        return false;
-      }
+    const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRe.test(form1.email)) {
+      setError(tl("invalidEmail", lang));
+      return false;
     }
     setError("");
     return true;
@@ -540,18 +542,18 @@ export default function UnifiedInquiryFunnel() {
       const firstName = nameParts[0] || form1.name.trim();
       const lastName = nameParts.slice(1).join(" ") || null;
 
-      // 전화는 국가번호 + 번호 합쳐서 저장. OTHER면 사용자가 +코드 직접 입력했으므로 그대로.
-      const fullPhone =
-        form1.contactType === "phone"
-          ? (form1.phoneDial === "OTHER" || !form1.phoneDial
-              ? form1.contactValue.trim()
-              : `${form1.phoneDial} ${form1.contactValue.trim()}`.trim())
-          : null;
+      // 전화는 선택 — 입력했을 때만 국가번호 + 번호 합쳐서 저장. OTHER면 사용자가 +코드 직접 입력.
+      const hasPhone = form1.phone.trim().length > 0;
+      const fullPhone = hasPhone
+        ? (form1.phoneDial === "OTHER" || !form1.phoneDial
+            ? form1.phone.trim()
+            : `${form1.phoneDial} ${form1.phone.trim()}`.trim())
+        : null;
 
       const body = {
         firstName,
         lastName,
-        email: form1.contactType === "email" ? form1.contactValue.trim() : null,
+        email: form1.email.trim(),
         phone: fullPhone,
         nationality: form1.nationality,
         preferredLanguage: form1.preferredLanguage,
@@ -560,7 +562,7 @@ export default function UnifiedInquiryFunnel() {
         aiChatThreadId: fromChat || null,
         // 기존 create API 호환 필드
         spokenLanguage: form1.preferredLanguage,
-        contactMethod: form1.contactType === "phone" ? "Phone" : null,
+        contactMethod: hasPhone ? "Phone" : null,
         contactId: fullPhone,
         treatmentType: form1.cancerType,
       };
@@ -647,7 +649,7 @@ export default function UnifiedInquiryFunnel() {
 
   function handleSignupEmail() {
     safeEvent("inquiry_signup_clicked", { method: "email" });
-    const email = form1.contactType === "email" ? form1.contactValue : "";
+    const email = form1.email || "";
     router.push(`/signup?from=inquiry${email ? `&email=${encodeURIComponent(email)}` : ""}`);
   }
 
@@ -1180,57 +1182,45 @@ export default function UnifiedInquiryFunnel() {
           </select>
         </div>
 
-        {/* 연락 수단 */}
+        {/* 이메일 (필수) */}
         <div>
           <label className="block text-sm font-bold text-gray-700 mb-1.5">
-            {tl("contactLabel", lang)} <span className="text-red-500">*</span>
+            {tl("contactEmail", lang)} <span className="text-red-500">*</span>
           </label>
-          <div className="flex gap-2 mb-2">
-            {["email", "phone"].map((type) => (
-              <button
-                key={type}
-                type="button"
-                onClick={() => setForm1((p) => ({ ...p, contactType: type, contactValue: "" }))}
-                className={`flex-1 py-2.5 rounded-xl border-2 text-sm font-semibold transition ${
-                  form1.contactType === type
-                    ? "border-teal-500 bg-teal-50 text-teal-700"
-                    : "border-gray-200 text-gray-600 hover:border-gray-300"
-                }`}
-              >
-                {type === "email" ? tl("contactEmail", lang) : tl("contactPhone", lang)}
-              </button>
-            ))}
-          </div>
-          {form1.contactType === "phone" ? (
-            <div className="flex gap-2">
-              <select
-                value={form1.phoneDial}
-                onChange={(e) => setForm1((p) => ({ ...p, phoneDial: e.target.value }))}
-                className="shrink-0 w-44 p-3 rounded-xl border border-gray-200 focus:border-teal-500 outline-none text-sm bg-white transition"
-                aria-label="국가번호"
-              >
-                <option value="">{tl("dialPlaceholder", lang)}</option>
-                {DIAL_CODES.map((d) => (
-                  <option key={d.code + d.label} value={d.code}>{d.label}</option>
-                ))}
-              </select>
-              <input
-                type="tel"
-                value={form1.contactValue}
-                onChange={(e) => setForm1((p) => ({ ...p, contactValue: e.target.value }))}
-                placeholder={form1.phoneDial === "OTHER" ? "+49 170 1234567 (국가코드 포함)" : "701 234 5678"}
-                className="flex-1 p-3 rounded-xl border border-gray-200 focus:border-teal-500 focus:ring-1 focus:ring-teal-100 outline-none text-sm bg-gray-50/50 transition"
-              />
-            </div>
-          ) : (
+          <input
+            type="email"
+            value={form1.email}
+            onChange={(e) => setForm1((p) => ({ ...p, email: e.target.value }))}
+            placeholder={tl("emailPlaceholder", lang)}
+            className="w-full p-3 rounded-xl border border-gray-200 focus:border-teal-500 focus:ring-1 focus:ring-teal-100 outline-none text-sm bg-gray-50/50 transition"
+          />
+        </div>
+
+        {/* 전화번호 (선택) */}
+        <div>
+          <label className="block text-sm font-bold text-gray-700 mb-1.5">
+            {tl("contactPhone", lang)} <span className="text-gray-400 font-normal">{tl("optionalTag", lang)}</span>
+          </label>
+          <div className="flex gap-2">
+            <select
+              value={form1.phoneDial}
+              onChange={(e) => setForm1((p) => ({ ...p, phoneDial: e.target.value }))}
+              className="shrink-0 w-44 p-3 rounded-xl border border-gray-200 focus:border-teal-500 outline-none text-sm bg-white transition"
+              aria-label="국가번호"
+            >
+              <option value="">{tl("dialPlaceholder", lang)}</option>
+              {DIAL_CODES.map((d) => (
+                <option key={d.code + d.label} value={d.code}>{d.label}</option>
+              ))}
+            </select>
             <input
-              type="email"
-              value={form1.contactValue}
-              onChange={(e) => setForm1((p) => ({ ...p, contactValue: e.target.value }))}
-              placeholder={tl("emailPlaceholder", lang)}
-              className="w-full p-3 rounded-xl border border-gray-200 focus:border-teal-500 focus:ring-1 focus:ring-teal-100 outline-none text-sm bg-gray-50/50 transition"
+              type="tel"
+              value={form1.phone}
+              onChange={(e) => setForm1((p) => ({ ...p, phone: e.target.value }))}
+              placeholder={form1.phoneDial === "OTHER" ? "+49 170 1234567 (국가코드 포함)" : "701 234 5678"}
+              className="flex-1 p-3 rounded-xl border border-gray-200 focus:border-teal-500 focus:ring-1 focus:ring-teal-100 outline-none text-sm bg-gray-50/50 transition"
             />
-          )}
+          </div>
         </div>
 
         {/* 선호 언어 */}
