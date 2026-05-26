@@ -594,8 +594,8 @@ export const HospitalDetailPage = ({ selectedId, setView, onTreatmentClick, init
               </section>
             )}
 
-            {/* Signature Programs */}
-            {hospitalTreatments.length > 0 && (
+            {/* Signature Programs — 비활성화 (PO 요청, 코드 보존). 다시 켜려면 false 제거 */}
+            {false && hospitalTreatments.length > 0 && (
               <section className="border-t border-gray-200 pt-8 pb-2">
                 <h2 className="text-lg font-bold text-gray-900 mb-4">{t("detail.signaturePrograms", langCode)}</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
