@@ -121,6 +121,27 @@ export default function ForKazakhPatientsPage() {
           </div>
         </section>
 
+        {/* ── Сандар (дереккөздермен) ──────────────────────── */}
+        <section className="mb-12">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="border border-gray-200 rounded-2xl p-6 text-center">
+              <div className="text-3xl font-extrabold text-teal-600 mb-1">72,9%</div>
+              <p className="text-sm text-gray-500">Кореяда обырдан 5 жылдық өмір сүру (2018–2022)</p>
+            </div>
+            <div className="border border-gray-200 rounded-2xl p-6 text-center">
+              <div className="text-3xl font-extrabold text-teal-600 mb-1">1,17 млн</div>
+              <p className="text-sm text-gray-500">2024 жылы Кореяны таңдаған шетелдік науқастар</p>
+            </div>
+            <div className="border border-gray-200 rounded-2xl p-6 text-center">
+              <div className="text-3xl font-extrabold text-teal-600 mb-1">14 000+</div>
+              <p className="text-sm text-gray-500">Қазақстаннан Кореяда емделген науқастар (2009–2024)</p>
+            </div>
+          </div>
+          <p className="text-[11px] text-gray-400 mt-3">
+            Дереккөздер: Корея Ұлттық онкология орталығы (ұлттық обыр тіркелімі); KHIDI шетелдік науқастар статистикасы.
+          </p>
+        </section>
+
         {/* ── Неге Корея ──────────────────────────────────── */}
         <section className="mb-12">
           <h2 className="text-2xl font-bold text-gray-800 mb-6">

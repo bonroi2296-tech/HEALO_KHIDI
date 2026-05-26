@@ -123,6 +123,27 @@ export default function ForRussianPatientsPage() {
           </div>
         </section>
 
+        {/* ── Цифры (с источниками) ────────────────────────── */}
+        <section className="mb-12">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="border border-gray-200 rounded-2xl p-6 text-center">
+              <div className="text-3xl font-extrabold text-teal-600 mb-1">72,9%</div>
+              <p className="text-sm text-gray-500">5-летняя выживаемость при раке в Корее (2018–2022)</p>
+            </div>
+            <div className="border border-gray-200 rounded-2xl p-6 text-center">
+              <div className="text-3xl font-extrabold text-teal-600 mb-1">1,17 млн</div>
+              <p className="text-sm text-gray-500">иностранных пациентов выбрали Корею в 2024 году</p>
+            </div>
+            <div className="border border-gray-200 rounded-2xl p-6 text-center">
+              <div className="text-3xl font-extrabold text-teal-600 mb-1">16 000+</div>
+              <p className="text-sm text-gray-500">пациентов из России прошли лечение в Корее (2009–2024)</p>
+            </div>
+          </div>
+          <p className="text-[11px] text-gray-400 mt-3">
+            Источники: Национальный онкологический центр Кореи (национальный реестр рака); статистика иностранных пациентов KHIDI.
+          </p>
+        </section>
+
         {/* ── Почему Корея ────────────────────────────────── */}
         <section className="mb-12">
           <h2 className="text-2xl font-bold text-gray-800 mb-6">
