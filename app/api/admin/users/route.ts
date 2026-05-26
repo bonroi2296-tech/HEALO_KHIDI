@@ -13,12 +13,56 @@ export const runtime = "nodejs";
 import { NextRequest } from "next/server";
 import { createServiceRoleClient } from "../../../../src/lib/supabase/server";
 import { requireAdminAuth } from "../../../../src/lib/auth/requireAdminAuth";
+import { decryptStringNullable } from "../../../../src/lib/security/encryptionV2";
 
 const STAFF_ROLES = ["doctor", "coordinator", "admin"];
 
 function isBanned(u: any) {
   const until = u.banned_until ? new Date(u.banned_until).getTime() : 0;
   return until > Date.now();
+}
+
+function safeDecrypt(enc: any): string {
+  try {
+    return decryptStringNullable(enc) || "";
+  } catch {
+    return "";
+  }
+}
+
+// 복호화 후 마스킹 — 첫 글자 + *** (식별 가능, 평문 대량 노출 방지)
+function maskName(enc: any): string {
+  const name = safeDecrypt(enc);
+  if (!name) return "(이름 미상)";
+  if (name.length === 1) return name;
+  return name[0] + "*".repeat(Math.max(1, name.length - 1));
+}
+
+/**
+ * 가입 계정 이메일과 동일한 게스트 문의를 찾아 반환.
+ * inquiries.email 은 AES 암호화(IV 랜덤)라 SQL 동등비교 불가 → 복호화 후 비교.
+ * 파일럿 규모(문의 소량) 전제. 대량화 시 이메일 해시 컬럼 도입 권장.
+ */
+async function findInquiriesByEmail(supabase: any, email: string | null | undefined) {
+  const target = (email || "").trim().toLowerCase();
+  if (!target) return [];
+  const { data, error } = await supabase
+    .from("inquiries")
+    .select("id, email, first_name, nationality, cancer_type, treatment_type, status, created_at")
+    .order("created_at", { ascending: false })
+    .limit(500);
+  if (error || !data) return [];
+  return data
+    .filter((i: any) => safeDecrypt(i.email).trim().toLowerCase() === target)
+    .map((i: any) => ({
+      id: i.id,
+      name: maskName(i.first_name),
+      nationality: i.nationality || null,
+      cancer_type: i.cancer_type || null,
+      treatment_type: i.treatment_type || null,
+      status: i.status || null,
+      created_at: i.created_at,
+    }));
 }
 
 export async function GET(request: NextRequest) {
@@ -42,6 +86,9 @@ export async function GET(request: NextRequest) {
         .order("scheduled_at", { ascending: false })
         .limit(50);
 
+      // 가입 전 남긴 게스트 문의를 이메일로 매칭 (동일인 통합 뷰)
+      const inquiries = await findInquiriesByEmail(supabase, u.email);
+
       return Response.json({
         ok: true,
         user: {
@@ -55,6 +102,7 @@ export async function GET(request: NextRequest) {
           banned: isBanned(u),
         },
         consultations: consultations || [],
+        inquiries,
       });
     }
 

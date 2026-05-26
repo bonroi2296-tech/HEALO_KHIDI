@@ -58,7 +58,7 @@ export default function AdminUsersPage() {
     try {
       const res = await fetch(`/api/admin/users?userId=${encodeURIComponent(id)}`, { headers: await authHeaders() });
       const result = await res.json();
-      if (result.ok) setDetail({ user: result.user, consultations: result.consultations });
+      if (result.ok) setDetail({ user: result.user, consultations: result.consultations, inquiries: result.inquiries || [] });
       else { toast.error("불러오기 실패"); setDetail(null); }
     } catch {
       toast.error("불러오기 실패");
@@ -191,6 +191,25 @@ export default function AdminUsersPage() {
                           <span className="text-xs text-gray-400 ml-2">{fmtDate(c.scheduled_at)}</span>
                         </div>
                         <span className="text-xs text-gray-500">{c.status}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* 가입 전 게스트 문의 — 이메일로 매칭 (동일인 통합) */}
+                <h3 className="text-sm font-bold text-gray-900 mb-2">과거 문의 ({(detail.inquiries || []).length})</h3>
+                {(detail.inquiries || []).length === 0 ? (
+                  <p className="text-sm text-gray-400 mb-5">이 이메일로 접수된 문의가 없습니다.</p>
+                ) : (
+                  <div className="border border-gray-200 rounded-lg divide-y divide-gray-100 mb-5">
+                    {detail.inquiries.map((q) => (
+                      <div key={q.id} className="px-3 py-2 flex items-center justify-between text-sm">
+                        <div className="min-w-0">
+                          <span className="font-medium text-gray-900">{q.cancer_type || q.treatment_type || "문의"}</span>
+                          {q.nationality && <span className="text-xs text-gray-400 ml-2">{q.nationality}</span>}
+                          <span className="text-xs text-gray-400 ml-2">{fmtDate(q.created_at)}</span>
+                        </div>
+                        {q.status && <span className="text-xs text-gray-500 shrink-0">{q.status}</span>}
                       </div>
                     ))}
                   </div>
