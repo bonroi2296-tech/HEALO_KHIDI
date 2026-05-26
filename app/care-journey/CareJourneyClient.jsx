@@ -15,6 +15,14 @@ const COPY = {
     modelTitle: "왜 '병원 매칭'이 아니라 '케어 경로'인가",
     modelBody:
       "암 치료는 한 번의 수술로 끝나지 않습니다. HEALO는 면역·재활 전문 한방병원과 수술·항암 중심의 협진 대학병원이 하나의 네트워크로 연결되어, 진단 결과에 따라 필요한 치료를 단계별로 이어드립니다. 환자는 매번 새 병원을 찾을 필요가 없습니다.",
+    whyCareTitle: "수술 후, 왜 면역·재활 케어가 필요할까요",
+    whyCareLede:
+      "암 치료는 수술이나 항암으로 끝나지 않습니다. 떨어진 면역력과 부작용을 회복기에 어떻게 관리하느냐가 그다음을 좌우합니다. HEALO 제휴 면력 한방병원은 이 회복 단계를 전문적으로 돕습니다.",
+    whyCare: [
+      { title: "체계적인 면역·재활 관리", body: "수술·항암 후 약해진 면역력과 통증·부작용을 한방 면역치료, 통증재활 등으로 전문 의료진이 환자 상태에 맞춰 단계별로 관리합니다." },
+      { title: "맞춤 영양·입원식", body: "암종과 회복 상태에 맞춘 입원식과 영양 관리로 체력을 보강합니다. 해외 환자의 식문화도 함께 고려합니다." },
+      { title: "편안한 회복 환경·언어 지원", body: "복잡한 상급병원과 달리 차분한 환경에서 회복에 집중할 수 있고, 외국인 환자를 위한 통역과 코디네이터가 함께합니다." },
+    ],
     stepsTitle: "당신의 치료 여정, 5단계",
     steps: [
       { title: "온라인 상담", body: "AI 상담사와 코디네이터가 6개 언어로 응대합니다. 한국에 오기 전, 집에서 궁금증을 먼저 해결하세요." },
@@ -36,6 +44,14 @@ const COPY = {
     modelTitle: "Why a 'care path', not 'hospital matching'",
     modelBody:
       "Cancer treatment doesn't end with a single surgery. HEALO connects Korean Medicine hospitals specializing in immune and rehabilitation care with cooperating university hospitals focused on surgery and chemotherapy — as one network — so each stage of care follows your diagnosis. You never have to search for a new hospital each time.",
+    whyCareTitle: "After surgery, why immune & rehabilitation care matters",
+    whyCareLede:
+      "Cancer treatment doesn't end with surgery or chemotherapy. How you manage weakened immunity and side effects during recovery shapes what comes next. HEALO's partner Korean Medicine hospitals specialize in this recovery stage.",
+    whyCare: [
+      { title: "Structured immune & rehab care", body: "Specialists manage weakened immunity, pain, and side effects after surgery or chemo — through Korean-medicine immunotherapy and pain rehabilitation, step by step, tailored to your condition." },
+      { title: "Tailored nutrition & meals", body: "Inpatient meals and nutrition planning matched to your cancer type and recovery state help rebuild strength. We also consider international patients' dietary needs." },
+      { title: "Calm recovery environment & language support", body: "Unlike a busy tertiary hospital, you can focus on recovery in a calm setting — with interpretation and a coordinator dedicated to international patients." },
+    ],
     stepsTitle: "Your care journey, in 5 steps",
     steps: [
       { title: "Online consultation", body: "Our AI assistant and coordinators respond in 6 languages. Resolve your questions from home, before you travel to Korea." },
@@ -57,6 +73,14 @@ const COPY = {
     modelTitle: "Почему «маршрут лечения», а не «подбор больницы»",
     modelBody:
       "Лечение рака не заканчивается одной операцией. HEALO объединяет в единую сеть больницы корейской медицины (иммунотерапия и реабилитация) и сотрудничающие университетские больницы (хирургия и химиотерапия), чтобы каждый этап следовал за вашим диагнозом. Вам не нужно каждый раз искать новую больницу.",
+    whyCareTitle: "После операции: почему важен иммунный и реабилитационный уход",
+    whyCareLede:
+      "Лечение рака не заканчивается операцией или химиотерапией. То, как вы восстанавливаете ослабленный иммунитет и справляетесь с побочными эффектами, определяет дальнейшее. Партнёрские больницы корейской медицины HEALO специализируются на этом этапе восстановления.",
+    whyCare: [
+      { title: "Системный иммунный и реабилитационный уход", body: "Специалисты поэтапно управляют ослабленным иммунитетом, болью и побочными эффектами после операции или химиотерапии — с помощью иммунотерапии корейской медицины и реабилитации, с учётом вашего состояния." },
+      { title: "Индивидуальное питание", body: "Стационарное питание и план питания, подобранные под тип рака и состояние, помогают восстановить силы. Учитываем и пищевые предпочтения иностранных пациентов." },
+      { title: "Спокойная среда и языковая поддержка", body: "В отличие от загруженной крупной больницы, вы можете сосредоточиться на восстановлении в спокойной обстановке — с переводом и координатором для иностранных пациентов." },
+    ],
     stepsTitle: "Ваш маршрут лечения в 5 шагов",
     steps: [
       { title: "Онлайн-консультация", body: "ИИ-консультант и координаторы отвечают на 6 языках. Решите вопросы из дома, до поездки в Корею." },
@@ -78,6 +102,14 @@ const COPY = {
     modelTitle: "Неге «аурухана таңдау» емес, «емдеу жолы»",
     modelBody:
       "Обырды емдеу бір операциямен бітпейді. HEALO иммундық және оңалту маманданған корей медицинасы ауруханалары мен хирургия, химиотерапияға бағытталған серіктес университет ауруханаларын бір желіге біріктіреді — әр кезең сіздің диагнозыңызға сай жалғасады. Сізге әр жолы жаңа аурухана іздеудің қажеті жоқ.",
+    whyCareTitle: "Операциядан кейін иммундық және оңалту күтімі неге маңызды",
+    whyCareLede:
+      "Обырды емдеу операциямен немесе химиотерапиямен бітпейді. Әлсіреген иммунитет пен жанама әсерлерді қалпына келу кезінде қалай басқаратыныңыз келесі кезеңді айқындайды. HEALO серіктес корей медицинасы ауруханалары осы кезеңге маманданған.",
+    whyCare: [
+      { title: "Жүйелі иммундық және оңалту күтімі", body: "Мамандар операциядан немесе химиотерапиядан кейінгі әлсіреген иммунитет, ауырсыну мен жанама әсерлерді корей медицинасы иммунотерапиясы мен оңалту арқылы кезең-кезеңімен басқарады." },
+      { title: "Жеке тамақтану", body: "Обыр түрі мен жағдайға сай стационарлық тамақ пен тамақтану жоспары күшті қалпына келтіруге көмектеседі. Шетелдік науқастардың тамақ мәдениетін де ескереміз." },
+      { title: "Тыныш орта және тілдік қолдау", body: "Қарбалас ірі ауруханадан айырмашылығы — тыныш ортада қалпына келуге назар аудара аласыз, аударма мен координатор қасыңызда." },
+    ],
     stepsTitle: "Сіздің емдеу жолыңыз, 5 қадам",
     steps: [
       { title: "Онлайн кеңес", body: "AI кеңесшісі мен координаторлар 6 тілде жауап береді. Кореяға келмес бұрын сұрақтарыңызды үйден шешіңіз." },
@@ -99,6 +131,14 @@ const COPY = {
     modelTitle: "为什么是「治疗路径」而非「医院匹配」",
     modelBody:
       "癌症治疗不会因一次手术而结束。HEALO 将专注免疫·康复的韩方医院与以手术·化疗为主的协诊大学医院连接为一个网络，根据诊断结果逐阶段衔接所需治疗。患者无需每次重新寻找医院。",
+    whyCareTitle: "手术后，为什么需要免疫与康复护理",
+    whyCareLede:
+      "癌症治疗不会因手术或化疗而结束。在康复期如何管理下降的免疫力和副作用，决定了之后的走向。HEALO 合作的韩方医院专注于这一康复阶段。",
+    whyCare: [
+      { title: "系统的免疫与康复管理", body: "专科医疗团队通过韩方免疫治疗、疼痛康复等，针对患者状态逐阶段管理术后或化疗后下降的免疫力、疼痛与副作用。" },
+      { title: "定制营养与住院餐", body: "根据癌种与康复状态定制的住院餐与营养管理帮助恢复体力，并兼顾海外患者的饮食文化。" },
+      { title: "安静的康复环境与语言支持", body: "不同于繁忙的大型医院，您可在安静环境中专注康复，并有为外国患者提供的翻译与协调员陪同。" },
+    ],
     stepsTitle: "您的治疗旅程，5个阶段",
     steps: [
       { title: "在线咨询", body: "AI 助手与协调员以6种语言为您服务。来韩之前，先在家中解决疑问。" },
@@ -120,6 +160,14 @@ const COPY = {
     modelTitle: "なぜ「病院マッチング」ではなく「ケア経路」なのか",
     modelBody:
       "がん治療は一度の手術で終わりません。HEALOは免疫・リハビリ専門の韓方病院と、手術・抗がん中心の協診大学病院を一つのネットワークでつなぎ、診断結果に応じて必要な治療を段階的につなげます。患者様は毎回新しい病院を探す必要がありません。",
+    whyCareTitle: "手術後、なぜ免疫・リハビリケアが必要か",
+    whyCareLede:
+      "がん治療は手術や抗がん剤で終わりません。回復期に低下した免疫力と副作用をどう管理するかが、その後を左右します。HEALO提携の韓方病院はこの回復段階を専門に支えます。",
+    whyCare: [
+      { title: "体系的な免疫・リハビリ管理", body: "手術や抗がん剤後に弱った免疫力・痛み・副作用を、韓方免疫治療や疼痛リハビリで専門医療陣が状態に合わせて段階的に管理します。" },
+      { title: "オーダーメイドの栄養・入院食", body: "がんの種類と回復状態に合わせた入院食と栄養管理で体力を回復します。海外患者の食文化にも配慮します。" },
+      { title: "落ち着いた回復環境・言語支援", body: "混雑した大病院と異なり、落ち着いた環境で回復に集中でき、外国人患者向けの通訳とコーディネーターが寄り添います。" },
+    ],
     stepsTitle: "あなたの治療の旅、5ステップ",
     steps: [
       { title: "オンライン相談", body: "AIアシスタントとコーディネーターが6言語で対応します。来韓前に、ご自宅で疑問を解決しましょう。" },
@@ -167,8 +215,25 @@ export default function CareJourneyClient() {
         </div>
       </section>
 
-      {/* 5 steps */}
+      {/* Why immune/rehab care matters */}
       <section className="max-w-4xl mx-auto px-4 py-12 md:py-16">
+        <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-4">{c.whyCareTitle}</h2>
+        <p className="text-base text-gray-600 leading-relaxed max-w-3xl mb-8 md:mb-10">{c.whyCareLede}</p>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-5">
+          {c.whyCare.map((w, i) => (
+            <div
+              key={i}
+              className="border border-gray-200 rounded-xl p-5 md:p-6 hover:border-teal-300 hover:shadow-sm transition-all"
+            >
+              <h3 className="text-base md:text-lg font-bold text-gray-900 mb-2">{w.title}</h3>
+              <p className="text-sm text-gray-500 leading-relaxed">{w.body}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* 5 steps */}
+      <section className="max-w-4xl mx-auto px-4 pt-0 pb-12 md:pb-16">
         <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-8 md:mb-10">{c.stepsTitle}</h2>
         <ol className="space-y-5">
           {c.steps.map((s, i) => (
