@@ -459,7 +459,7 @@ export default function HomeClient() {
                     {/* 폴더 규칙: /images/hospitals/<slug>/1.jpg 메인. 없으면 "준비 중" 플레이스홀더로 대체 (?v= 캐시버전) */}
                     <img
                       src={`/images/hospitals/${h.slug}/1.jpg?v=2`}
-                      onError={(e) => { if (e.currentTarget.src.includes("_coming-soon")) return; e.currentTarget.onerror = null; e.currentTarget.src = "/images/hospitals/_coming-soon.svg"; }}
+                      onError={(e) => { if (e.currentTarget.src.includes("_coming-soon")) return; e.currentTarget.onerror = null; e.currentTarget.src = "/images/hospitals/_coming-soon.svg?v=2"; }}
                       alt={l(h.name)}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                     />

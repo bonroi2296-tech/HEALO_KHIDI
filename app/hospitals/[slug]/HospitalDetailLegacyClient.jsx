@@ -16,7 +16,7 @@ import { formatDate } from "../../../src/lib/i18n/format";
 import { event } from "../../../src/lib/ga";
 
 // 병원 이미지 폴더 규칙: /images/hospitals/<slug>/1~5.jpg (1=메인, 2~5=서브)
-const PLACEHOLDER_IMG = "/images/hospitals/_coming-soon.svg";
+const PLACEHOLDER_IMG = "/images/hospitals/_coming-soon.svg?v=2";
 // 사진 없는 칸은 한 번에 "이미지 준비 중" 플레이스홀더로 대체 (체인 없이 확실하게)
 const handleImgError = (e) => {
   if (e.currentTarget.src.includes("_coming-soon")) return;
