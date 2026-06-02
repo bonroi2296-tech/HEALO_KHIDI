@@ -151,41 +151,41 @@ export const Header = ({ setView, view, _handleGlobalInquiry, isMobileMenuOpen, 
                   <span className="text-xl md:text-2xl font-extrabold tracking-tight notranslate">HEALO</span>
               )}
             </div>
-            <nav className="hidden md:flex items-center gap-1">
+            <nav className="hidden lg:flex items-center gap-0.5">
               <a
                 href="/telemedicine"
-                className="px-3.5 py-1.5 rounded-full text-sm font-semibold transition-all text-white/70 hover:text-white hover:bg-white/10 inline-flex items-center gap-1.5"
+                className="px-2.5 py-1.5 rounded-full text-sm font-semibold transition-all text-white/70 hover:text-white hover:bg-white/10 inline-flex items-center gap-1.5 whitespace-nowrap"
               >
                 {t("nav.telemedicine", langCode)}
                 <span className="text-[9px] font-extrabold bg-white/20 text-white px-1.5 py-0.5 rounded-full leading-none">NEW</span>
               </a>
               <button
                 onClick={() => onNavClick('list_treatment')}
-                className={`px-3.5 py-1.5 rounded-full text-sm font-semibold transition-all ${isActive('treatment') ? 'bg-white/15 text-white' : 'text-white/70 hover:text-white hover:bg-white/10'}`}
+                className={`px-2.5 py-1.5 rounded-full text-sm font-semibold transition-all whitespace-nowrap ${isActive('treatment') ? 'bg-white/15 text-white' : 'text-white/70 hover:text-white hover:bg-white/10'}`}
               >
                 {t("nav.treatments", langCode)}
               </button>
               <button
                 onClick={() => onNavClick('list_hospital')}
-                className={`px-3.5 py-1.5 rounded-full text-sm font-semibold transition-all ${isActive('hospital') ? 'bg-white/15 text-white' : 'text-white/70 hover:text-white hover:bg-white/10'}`}
+                className={`px-2.5 py-1.5 rounded-full text-sm font-semibold transition-all whitespace-nowrap ${isActive('hospital') ? 'bg-white/15 text-white' : 'text-white/70 hover:text-white hover:bg-white/10'}`}
               >
                 {t("nav.hospitals", langCode)}
               </button>
               <a
                 href="/care-journey"
-                className="px-3.5 py-1.5 rounded-full text-sm font-semibold transition-all text-white/70 hover:text-white hover:bg-white/10"
+                className="px-2.5 py-1.5 rounded-full text-sm font-semibold transition-all text-white/70 hover:text-white hover:bg-white/10 whitespace-nowrap"
               >
                 {t("nav.careJourney", langCode)}
               </a>
               <a
                 href="/visa"
-                className="px-3.5 py-1.5 rounded-full text-sm font-semibold transition-all text-white/70 hover:text-white hover:bg-white/10"
+                className="px-2.5 py-1.5 rounded-full text-sm font-semibold transition-all text-white/70 hover:text-white hover:bg-white/10 whitespace-nowrap"
               >
                 {t("nav.visa", langCode)}
               </a>
               <a
                 href="/education"
-                className="px-3.5 py-1.5 rounded-full text-sm font-semibold transition-all text-white/70 hover:text-white hover:bg-white/10"
+                className="px-2.5 py-1.5 rounded-full text-sm font-semibold transition-all text-white/70 hover:text-white hover:bg-white/10 whitespace-nowrap"
               >
                 {t("nav.education", langCode)}
               </a>
@@ -206,7 +206,7 @@ export const Header = ({ setView, view, _handleGlobalInquiry, isMobileMenuOpen, 
           )} */}
 
           {/* Right: Lang + Auth + Portal (desktop) */}
-          <div className="hidden md:flex items-center gap-1.5 z-20">
+          <div className="hidden lg:flex items-center gap-1.5 z-20">
             {/* Language */}
             <div className="relative" ref={langRef}>
               <button
@@ -261,7 +261,7 @@ export const Header = ({ setView, view, _handleGlobalInquiry, isMobileMenuOpen, 
           </div>
 
           {/* Mobile: right actions */}
-          <div className="md:hidden flex items-center gap-2 z-20">
+          <div className="lg:hidden flex items-center gap-2 z-20">
             {session && (
               <div className="w-7 h-7 rounded-full bg-white/15 border border-white/20 flex items-center justify-center text-white font-bold text-[10px]">
                 {session.user.email.split('@')[0].substring(0, 2).toUpperCase()}
