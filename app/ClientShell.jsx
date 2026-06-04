@@ -294,9 +294,11 @@ function ClientShellContent({
 }) {
   const langCode = useLang();
   const pathname = usePathname() || "/";
+  // 영상 상담방 — 전체화면 몰입(전역 헤더/푸터/하단네비/문의버튼 숨김)
+  const isConsultationPage = pathname.startsWith("/consultation/");
   return (
     <div className="font-sans text-gray-800 bg-gray-50 min-h-screen min-h-screen-safe relative">
-      {isPortalPage ? (
+      {isConsultationPage ? null : isPortalPage ? (
         <PortalTopBar session={session} onLogout={handleLogout} siteConfig={siteConfig} langCode={langCode} />
       ) : isPremiumPage ? null : (
         <Header
@@ -315,10 +317,10 @@ function ClientShellContent({
       )}
 
       <ErrorBoundary>
-        <main className={isPortalPage ? "" : "pb-24 pb-safe-area"}>{children}</main>
+        <main className={isPortalPage || isConsultationPage ? "" : "pb-24 pb-safe-area"}>{children}</main>
       </ErrorBoundary>
 
-      {!isPortalPage && !isPremiumPage && <footer className="bg-white border-t border-gray-100 pt-safe-area">
+      {!isPortalPage && !isPremiumPage && !isConsultationPage && <footer className="bg-white border-t border-gray-100 pt-safe-area">
         <div className="max-w-6xl mx-auto px-4 py-8 sm:py-10 text-sm text-gray-600">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div>
@@ -384,7 +386,7 @@ function ClientShellContent({
         </div>
       </footer>}
 
-      {!hideBottomNav && !isPortalPage && !isPremiumPage && (
+      {!hideBottomNav && !isPortalPage && !isPremiumPage && !isConsultationPage && (
         <>
           <MobileBottomNav
             setView={handleSetView}
