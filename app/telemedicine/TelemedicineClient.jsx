@@ -48,6 +48,9 @@ const COPY = {
       { title: "Coordinator follow-up", body: "Every session is followed by a written summary and next-step plan." },
       { title: "Transparent pricing", body: "Flat consultation fee. No hidden charges. Travel only if you choose." },
     ],
+    docsEyebrow: "Helpful documents to prepare",
+    docsNote: "Having these on hand makes your consultation more accurate. It's fine to start with just your contact details — your coordinator will guide you as the consultation proceeds.",
+    docsItems: ["Diagnosis / medical certificate", "Pathology (biopsy) report", "Surgery confirmation", "Blood test results", "Medication / prescription history"],
     useCasesEyebrow: "When to use telemedicine",
     useCases: [
       { title: "Second opinion", body: "You have a diagnosis at home and want a Korean oncologist's view before committing to treatment." },
@@ -97,6 +100,9 @@ const COPY = {
       { title: "사후 코디", body: "모든 상담 후 요약본 + 다음 단계 계획 발송." },
       { title: "투명한 가격", body: "정액 상담료. 숨은 비용 없음. 한국 방문은 선택입니다." },
     ],
+    docsEyebrow: "준비하면 좋은 서류",
+    docsNote: "아래 서류가 있으면 상담이 더 정확해집니다. 처음엔 연락처만 주셔도 괜찮아요 — 상담을 진행하며 코디네이터가 안내해드립니다.",
+    docsItems: ["진단서", "조직검사 결과지", "수술 확인서", "혈액검사 결과지", "투약 처방 내역"],
     useCasesEyebrow: "이럴 때 원격협진",
     useCases: [
       { title: "세컨드 오피니언", body: "자국 병원 진단을 받았지만 치료를 시작하기 전 한국 전문의 의견을 듣고 싶을 때." },
@@ -146,6 +152,9 @@ const COPY = {
       { title: "Сопровождение координатора", body: "После каждой сессии — письменное резюме и план дальнейших шагов." },
       { title: "Прозрачная цена", body: "Фиксированная стоимость консультации. Без скрытых платежей. Поездка — по вашему выбору." },
     ],
+    docsEyebrow: "Документы, которые полезно подготовить",
+    docsNote: "С этими документами консультация будет точнее. Для начала достаточно контактных данных — координатор подскажет остальное в ходе консультации.",
+    docsItems: ["Медицинское заключение / диагноз", "Результат гистологии (биопсии)", "Подтверждение операции", "Результаты анализа крови", "История назначений и приёма лекарств"],
     useCasesEyebrow: "Когда нужна телемедицина",
     useCases: [
       { title: "Второе мнение", body: "У вас есть диагноз дома, и вы хотите услышать мнение корейского онколога перед началом лечения." },
@@ -195,6 +204,9 @@ const COPY = {
       { title: "Координатор сүйемелдеуі", body: "Әр сессиядан кейін жазбаша қорытынды мен келесі қадам жоспары жіберіледі." },
       { title: "Ашық баға", body: "Тұрақты кеңес ақысы. Жасырын төлемдер жоқ. Сапар — сіздің таңдауыңыз." },
     ],
+    docsEyebrow: "Дайындаған пайдалы құжаттар",
+    docsNote: "Бұл құжаттар кеңесті дәлірек етеді. Алдымен байланыс деректерін берсеңіз де жеткілікті — координатор кеңес барысында қалғанын түсіндіреді.",
+    docsItems: ["Медициналық қорытынды / диагноз", "Гистология (биопсия) нәтижесі", "Операцияны растау", "Қан анализінің нәтижесі", "Дәрі тағайындау тарихы"],
     useCasesEyebrow: "Телемедицина қашан қажет",
     useCases: [
       { title: "Екінші пікір", body: "Үйде диагноз қойылды, бірақ емді бастамас бұрын корей онкологының пікірін естігіңіз келеді." },
@@ -244,6 +256,9 @@ const COPY = {
       { title: "协调员随访", body: "每次会话后发送书面总结与下一步计划。" },
       { title: "透明定价", body: "固定咨询费。无隐藏费用。是否前往由您选择。" },
     ],
+    docsEyebrow: "建议准备的资料",
+    docsNote: "备齐这些资料能让咨询更准确。一开始只需提供联系方式即可——协调员会在咨询过程中为您指引。",
+    docsItems: ["诊断书 / 病历证明", "病理（活检）报告", "手术确认书", "血液检查结果", "用药处方记录"],
     useCasesEyebrow: "何时使用远程协诊",
     useCases: [
       { title: "第二诊疗意见", body: "您已在本国获得诊断，希望在开始治疗前听取韩国肿瘤科医生的意见。" },
@@ -293,6 +308,9 @@ const COPY = {
       { title: "コーディネーターの事後対応", body: "すべての相談後に要約と次のステップ計画を送付。" },
       { title: "透明な料金", body: "定額の相談料。隠れた費用なし。訪問はご自身の選択です。" },
     ],
+    docsEyebrow: "ご準備いただくと役立つ書類",
+    docsNote: "これらがあると相談がより正確になります。最初は連絡先だけでも大丈夫です — 相談を進めながらコーディネーターがご案内します。",
+    docsItems: ["診断書 / 診療情報提供書", "病理（生検）結果", "手術確認書", "血液検査結果", "服薬・処方履歴"],
     useCasesEyebrow: "こんなときに遠隔協診",
     useCases: [
       { title: "セカンドオピニオン", body: "自国で診断を受けたが、治療を始める前に韓国の腫瘍専門医の意見を聞きたいとき。" },
@@ -478,6 +496,26 @@ export default function TelemedicineClient() {
               </article>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* 준비하면 좋은 서류 (안내 톤 — 필수 아님) */}
+      <section className="max-w-4xl mx-auto px-4 py-12 md:py-16">
+        <span className="inline-block text-xs font-bold tracking-wide text-teal-700 bg-teal-50 border border-teal-100 rounded-full px-3 py-1 mb-4">
+          {copy.docsEyebrow}
+        </span>
+        <p className="text-sm md:text-base text-gray-500 leading-relaxed max-w-2xl mb-6 md:mb-8">
+          {copy.docsNote}
+        </p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {copy.docsItems.map((d, i) => (
+            <div key={i} className="flex items-center gap-3 border border-gray-200 rounded-xl px-4 py-3">
+              <span className="inline-flex w-7 h-7 shrink-0 rounded-lg bg-teal-50 border border-teal-100 items-center justify-center">
+                <FileText size={15} className="text-teal-600" />
+              </span>
+              <span className="text-sm md:text-base text-gray-700">{d}</span>
+            </div>
+          ))}
         </div>
       </section>
 
