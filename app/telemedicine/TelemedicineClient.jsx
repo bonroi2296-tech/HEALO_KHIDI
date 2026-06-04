@@ -11,6 +11,9 @@ import {
   Mail,
   Users,
   CreditCard,
+  Mic,
+  PhoneOff,
+  ChevronLeft,
 } from "lucide-react";
 import { useLang } from "../../src/lib/i18n/LangContext";
 
@@ -25,7 +28,7 @@ const COPY = {
       "No visa, no flight needed. Real-time video consultation with Korea's cancer specialists — from Almaty, Astana, Moscow, or anywhere in the world. Decide whether to travel only after you know.",
     ctaPrimary: "Request consultation",
     ctaSecondary: "See how it works",
-    mockup: { caption: "Example of an actual consultation screen", connected: "Connected", live: "Live interpretation", doctor: "Dr. Kim · Oncology", patient: "Patient · Almaty", srcTag: "Doctor · speaking Korean", srcLine: "CT 검사상 종양이 줄었습니다. 다음 치료 단계를 설명드릴게요.", transTag: "AI live translation", transLine: "The tumor has shrunk on the CT scan. Let me explain the next treatment steps." },
+    mockup: { caption: "Example of an actual consultation screen", title: "Stomach cancer · Pre-consultation", endCall: "End", connected: "Connected", live: "Live interpretation", doctor: "Dr. Kim · Oncology", patient: "Patient · Almaty", srcTag: "Doctor · speaking Korean", srcLine: "CT 검사상 종양이 줄었습니다. 다음 치료 단계를 설명드릴게요.", transTag: "AI live translation", transLine: "The tumor has shrunk on the CT scan. Let me explain the next treatment steps." },
     stepsEyebrow: "How it works",
     stepsTitle: "From first request to consultation — under 48 hours.",
     steps: [
@@ -74,7 +77,7 @@ const COPY = {
       "비자도, 항공편도 필요 없습니다. 알마티 · 아스타나 · 모스크바 어디에서든 한국의 암 전문의와 실시간 영상 상담. 한국 방문은 확신이 든 뒤에 결정하세요.",
     ctaPrimary: "상담 신청",
     ctaSecondary: "진행 방식 보기",
-    mockup: { caption: "실제 상담 화면 예시", connected: "연결됨", live: "실시간 통역", doctor: "김민수 의사 · 종양내과", patient: "환자 · 알마티", srcTag: "의사 · 한국어", srcLine: "CT 검사상 종양이 줄었습니다. 다음 치료 단계를 설명드릴게요.", transTag: "AI 실시간 번역", transLine: "The tumor has shrunk on the CT scan. Let me explain the next steps." },
+    mockup: { caption: "실제 상담 화면 예시", title: "위암 · 사전 상담", endCall: "종료", connected: "연결됨", live: "실시간 통역", doctor: "김민수 의사 · 종양내과", patient: "환자 · 알마티", srcTag: "의사 · 한국어", srcLine: "CT 검사상 종양이 줄었습니다. 다음 치료 단계를 설명드릴게요.", transTag: "AI 실시간 번역", transLine: "The tumor has shrunk on the CT scan. Let me explain the next steps." },
     stepsEyebrow: "진행 방식",
     stepsTitle: "신청부터 상담까지 — 48시간 이내.",
     steps: [
@@ -123,7 +126,7 @@ const COPY = {
       "Не нужны ни виза, ни авиабилет. Видеоконсультация в реальном времени с онкологами Кореи — из Алматы, Астаны, Москвы или из любой точки мира. Решайте, ехать ли, только после того, как узнаете.",
     ctaPrimary: "Записаться на консультацию",
     ctaSecondary: "Как это работает",
-    mockup: { caption: "Пример реального экрана консультации", connected: "На связи", live: "Синхронный перевод", doctor: "Д-р Ким · онколог", patient: "Пациент · Алматы", srcTag: "Врач · говорит по-корейски", srcLine: "CT 검사상 종양이 줄었습니다. 다음 치료 단계를 설명드릴게요.", transTag: "ИИ-перевод в реальном времени", transLine: "На КТ опухоль уменьшилась. Объясню следующие этапы лечения." },
+    mockup: { caption: "Пример реального экрана консультации", title: "Рак желудка · Предварительная консультация", endCall: "Завершить", connected: "На связи", live: "Синхронный перевод", doctor: "Д-р Ким · онколог", patient: "Пациент · Алматы", srcTag: "Врач · говорит по-корейски", srcLine: "CT 검사상 종양이 줄었습니다. 다음 치료 단계를 설명드릴게요.", transTag: "ИИ-перевод в реальном времени", transLine: "На КТ опухоль уменьшилась. Объясню следующие этапы лечения." },
     stepsEyebrow: "Как это работает",
     stepsTitle: "От заявки до консультации — менее 48 часов.",
     steps: [
@@ -172,7 +175,7 @@ const COPY = {
       "Виза да, авиабилет те қажет емес. Алматы, Астана, Мәскеу немесе әлемнің кез келген нүктесінен Кореяның онкологтарымен нақты уақыттағы бейне кеңес. Бару-бармауды білгеннен кейін ғана шешіңіз.",
     ctaPrimary: "Кеңеске өтініш беру",
     ctaSecondary: "Қалай жұмыс істейді",
-    mockup: { caption: "Нақты кеңес экранының мысалы", connected: "Байланыста", live: "Синхронды аударма", doctor: "Д-р Ким · онколог", patient: "Пациент · Алматы", srcTag: "Дәрігер · корейше сөйлеп жатыр", srcLine: "CT 검사상 종양이 줄었습니다. 다음 치료 단계를 설명드릴게요.", transTag: "AI нақты уақыттағы аударма", transLine: "КТ-да ісік кішірейді. Келесі емдеу қадамдарын түсіндіремін." },
+    mockup: { caption: "Нақты кеңес экранының мысалы", title: "Асқазан обыры · Алдын ала кеңес", endCall: "Аяқтау", connected: "Байланыста", live: "Синхронды аударма", doctor: "Д-р Ким · онколог", patient: "Пациент · Алматы", srcTag: "Дәрігер · корейше сөйлеп жатыр", srcLine: "CT 검사상 종양이 줄었습니다. 다음 치료 단계를 설명드릴게요.", transTag: "AI нақты уақыттағы аударма", transLine: "КТ-да ісік кішірейді. Келесі емдеу қадамдарын түсіндіремін." },
     stepsEyebrow: "Қалай жұмыс істейді",
     stepsTitle: "Өтініштен кеңеске дейін — 48 сағаттан аз.",
     steps: [
@@ -221,7 +224,7 @@ const COPY = {
       "无需签证，无需航班。从阿拉木图、阿斯塔纳、莫斯科或世界任何地方，与韩国的癌症专科医生进行实时视频咨询。在确认之后，再决定是否前往韩国。",
     ctaPrimary: "申请咨询",
     ctaSecondary: "查看流程",
-    mockup: { caption: "实际咨询界面示例", connected: "已连接", live: "实时翻译", doctor: "金医生 · 肿瘤科", patient: "患者 · 阿拉木图", srcTag: "医生 · 正在说韩语", srcLine: "CT 검사상 종양이 줄었습니다. 다음 치료 단계를 설명드릴게요.", transTag: "AI 实时翻译", transLine: "CT 显示肿瘤已缩小。我来说明下一步的治疗。" },
+    mockup: { caption: "实际咨询界面示例", title: "胃癌 · 预咨询", endCall: "结束", connected: "已连接", live: "实时翻译", doctor: "金医生 · 肿瘤科", patient: "患者 · 阿拉木图", srcTag: "医生 · 正在说韩语", srcLine: "CT 검사상 종양이 줄었습니다. 다음 치료 단계를 설명드릴게요.", transTag: "AI 实时翻译", transLine: "CT 显示肿瘤已缩小。我来说明下一步的治疗。" },
     stepsEyebrow: "流程",
     stepsTitle: "从申请到咨询——48小时以内。",
     steps: [
@@ -270,7 +273,7 @@ const COPY = {
       "ビザも航空券も不要です。アルマトイ・アスタナ・モスクワ、世界のどこからでも、韓国のがん専門医とリアルタイムのビデオ相談。韓国訪問は、確信を得てから決めてください。",
     ctaPrimary: "相談を申し込む",
     ctaSecondary: "進め方を見る",
-    mockup: { caption: "実際の相談画面の例", connected: "接続中", live: "リアルタイム通訳", doctor: "キム医師 · 腫瘍内科", patient: "患者 · アルマトイ", srcTag: "医師 · 韓国語で話しています", srcLine: "CT 검사상 종양이 줄었습니다. 다음 치료 단계를 설명드릴게요.", transTag: "AIリアルタイム翻訳", transLine: "CTで腫瘍が縮小しています。次の治療ステップを説明します。" },
+    mockup: { caption: "実際の相談画面の例", title: "胃がん · 事前相談", endCall: "終了", connected: "接続中", live: "リアルタイム通訳", doctor: "キム医師 · 腫瘍内科", patient: "患者 · アルマトイ", srcTag: "医師 · 韓国語で話しています", srcLine: "CT 검사상 종양이 줄었습니다. 다음 치료 단계를 설명드릴게요.", transTag: "AIリアルタイム翻訳", transLine: "CTで腫瘍が縮小しています。次の治療ステップを説明します。" },
     stepsEyebrow: "進め方",
     stepsTitle: "申し込みから相談まで — 48時間以内。",
     steps: [
@@ -347,41 +350,67 @@ export default function TelemedicineClient() {
         </div>
       </section>
 
-      {/* CONSULTATION SCREEN MOCKUP — 지나가는 방문자도 "영상+실시간 번역"을 한눈에 */}
+      {/* CONSULTATION SCREEN MOCKUP — 실제 /consultation 화면 구조와 동일하게 (헤더+영상+자막오버레이+컨트롤바) */}
       <section className="max-w-4xl mx-auto px-4 pb-12 md:pb-16">
-        <div className="rounded-2xl bg-slate-900 p-3 md:p-4 shadow-xl border border-slate-800">
-          {/* 상단 상태바 */}
-          <div className="flex items-center justify-between mb-3 px-1">
-            <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-300">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" /> {copy.mockup.connected}
-            </span>
-            <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-teal-200 bg-teal-500/15 border border-teal-400/20 rounded-full px-2.5 py-1">
-              <Languages size={12} /> {copy.mockup.live}
-            </span>
-          </div>
-          {/* 영상 2칸 */}
-          <div className="grid grid-cols-2 gap-2 md:gap-3">
-            <div className="aspect-[4/3] rounded-xl bg-gradient-to-br from-slate-700 to-slate-800 flex items-center justify-center relative overflow-hidden">
-              <div className="w-16 h-16 md:w-20 md:h-20 rounded-full bg-teal-500/20 border border-teal-400/30 flex items-center justify-center">
-                <Stethoscope size={28} className="text-teal-300" />
+        <div className="rounded-2xl overflow-hidden shadow-xl border border-gray-700 bg-gray-900">
+          {/* 헤더 바 (실제와 동일: 제목 + Room + 연결됨 / 번역토글 + 종료) */}
+          <div className="bg-gray-800 border-b border-gray-700 px-3 py-2 md:px-4 md:py-2.5 flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 min-w-0">
+              <ChevronLeft size={18} className="text-gray-400 shrink-0" />
+              <div className="min-w-0">
+                <p className="text-sm font-bold text-white truncate">{copy.mockup.title}</p>
+                <p className="text-[10px] text-gray-400 truncate">
+                  Room: healo-xxxx <span className="text-green-400 ml-1">● {copy.mockup.connected}</span>
+                </p>
               </div>
-              <span className="absolute bottom-2 left-2 text-[11px] md:text-xs font-semibold text-white bg-black/40 rounded-md px-2 py-0.5">{copy.mockup.doctor}</span>
             </div>
-            <div className="aspect-[4/3] rounded-xl bg-gradient-to-br from-slate-700 to-slate-800 flex items-center justify-center relative overflow-hidden">
-              <div className="w-16 h-16 md:w-20 md:h-20 rounded-full bg-slate-500/20 border border-slate-400/30 flex items-center justify-center">
-                <Users size={28} className="text-slate-300" />
-              </div>
-              <span className="absolute bottom-2 left-2 text-[11px] md:text-xs font-semibold text-white bg-black/40 rounded-md px-2 py-0.5">{copy.mockup.patient}</span>
+            <div className="flex items-center gap-1.5 shrink-0">
+              <span className="hidden sm:inline-flex items-center gap-1 text-[11px] font-medium text-white bg-teal-600 rounded-lg px-2.5 py-1.5">
+                <Languages size={13} /> {copy.mockup.live}
+              </span>
+              <span className="inline-flex items-center gap-1 text-[11px] font-medium text-white bg-red-600 rounded-lg px-2.5 py-1.5">
+                <PhoneOff size={13} /> {copy.mockup.endCall}
+              </span>
             </div>
           </div>
-          {/* 실시간 번역 자막바 */}
-          <div className="mt-2 md:mt-3 rounded-xl bg-black/40 border border-white/5 p-3 md:p-4">
-            <div className="text-[11px] md:text-xs text-slate-400 mb-1">{copy.mockup.srcTag}</div>
-            <div className="text-sm md:text-base text-slate-300 mb-3">{copy.mockup.srcLine}</div>
-            <div className="inline-flex items-center gap-1 text-[11px] md:text-xs text-teal-300 font-semibold mb-1">
-              <Languages size={12} /> {copy.mockup.transTag}
+
+          {/* 영상 영역 (자막 오버레이가 영상 위에 떠있음) */}
+          <div className="relative bg-gray-950 p-3 md:p-4">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="aspect-[4/3] rounded-lg bg-gray-800 flex items-center justify-center relative overflow-hidden">
+                <div className="w-14 h-14 md:w-16 md:h-16 rounded-full bg-teal-500/20 border border-teal-400/30 flex items-center justify-center">
+                  <Stethoscope size={24} className="text-teal-300" />
+                </div>
+                <span className="absolute bottom-2 left-2 text-[11px] font-semibold text-white bg-black/50 rounded px-1.5 py-0.5">{copy.mockup.doctor}</span>
+              </div>
+              <div className="aspect-[4/3] rounded-lg bg-gray-800 flex items-center justify-center relative overflow-hidden">
+                <div className="w-14 h-14 md:w-16 md:h-16 rounded-full bg-gray-500/20 border border-gray-400/30 flex items-center justify-center">
+                  <Users size={24} className="text-gray-300" />
+                </div>
+                <span className="absolute bottom-2 left-2 text-[11px] font-semibold text-white bg-black/50 rounded px-1.5 py-0.5">{copy.mockup.patient}</span>
+              </div>
             </div>
-            <div className="text-base md:text-lg font-bold text-white leading-snug">{copy.mockup.transLine}</div>
+
+            {/* 자막 오버레이 (실제와 동일: 영상 하단에 중앙정렬 검은 박스, 원문 → 번역) */}
+            <div className="absolute bottom-5 left-5 right-5 md:bottom-6 md:left-7 md:right-7">
+              <div className="bg-black/80 backdrop-blur-sm rounded-lg px-4 py-3 text-center">
+                <p className="text-[11px] md:text-xs text-gray-400 mb-1">{copy.mockup.srcTag}</p>
+                <p className="text-sm md:text-base text-white mb-2">{copy.mockup.srcLine}</p>
+                <div className="border-t border-gray-600 pt-2">
+                  <p className="text-[11px] md:text-xs text-teal-400 mb-1 inline-flex items-center gap-1">
+                    <Languages size={12} /> {copy.mockup.transTag}
+                  </p>
+                  <p className="text-sm md:text-base font-bold text-teal-300 leading-snug">{copy.mockup.transLine}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* 컨트롤 바 (실제 LiveKit ControlBar 자리: 마이크·카메라·종료) */}
+          <div className="bg-gray-800 border-t border-gray-700 py-2.5 flex items-center justify-center gap-3">
+            <span className="w-9 h-9 rounded-full bg-gray-700 flex items-center justify-center"><Mic size={16} className="text-white" /></span>
+            <span className="w-9 h-9 rounded-full bg-gray-700 flex items-center justify-center"><Video size={16} className="text-white" /></span>
+            <span className="w-9 h-9 rounded-full bg-red-600 flex items-center justify-center"><PhoneOff size={16} className="text-white" /></span>
           </div>
         </div>
         <p className="text-center text-xs text-gray-400 mt-3">{copy.mockup.caption}</p>
