@@ -114,7 +114,9 @@ const COPY = {
     translationEmpty1: "상단의 [통번역] 버튼을 눌러",
     translationEmpty2: "실시간 번역을 시작하세요.",
     sttUnsupported1: "이 브라우저는 음성 인식을 지원하지 않습니다.",
-    sttUnsupported2: "Chrome 브라우저를 사용해 주세요.",
+    sttUnsupported2: "음성이 안 되면 아래에 직접 입력해 번역하세요.",
+    manualPlaceholder: "번역할 내용을 입력하세요...",
+    manualHint: "마이크가 안 되는 환경이면 직접 입력해 번역할 수 있어요.",
     you: "You",
     translationActive: "실시간 번역 활성",
     translatingNow: "번역 중...",
@@ -190,7 +192,9 @@ const COPY = {
     translationEmpty1: "Press the [Interpret] button above",
     translationEmpty2: "to start live translation.",
     sttUnsupported1: "This browser does not support speech recognition.",
-    sttUnsupported2: "Please use the Chrome browser.",
+    sttUnsupported2: "No voice? Type below to translate instead.",
+    manualPlaceholder: "Type text to translate...",
+    manualHint: "No microphone? You can type to translate instead.",
     you: "You",
     translationActive: "Live translation active",
     translatingNow: "Translating...",
@@ -265,7 +269,9 @@ const COPY = {
     translationEmpty1: "Нажмите кнопку [Перевод] вверху,",
     translationEmpty2: "чтобы начать перевод в реальном времени.",
     sttUnsupported1: "Этот браузер не поддерживает распознавание речи.",
-    sttUnsupported2: "Пожалуйста, используйте браузер Chrome.",
+    sttUnsupported2: "Нет голоса? Введите текст ниже для перевода.",
+    manualPlaceholder: "Введите текст для перевода...",
+    manualHint: "Нет микрофона? Можно ввести текст для перевода.",
     you: "Вы",
     translationActive: "Перевод в реальном времени активен",
     translatingNow: "Перевод...",
@@ -340,7 +346,9 @@ const COPY = {
     translationEmpty1: "Жоғарыдағы [Аударма] түймесін басып,",
     translationEmpty2: "нақты уақыттағы аударманы бастаңыз.",
     sttUnsupported1: "Бұл браузер сөзді тануды қолдамайды.",
-    sttUnsupported2: "Chrome браузерін пайдаланыңыз.",
+    sttUnsupported2: "Дауыс жоқ па? Аудару үшін төменге мәтін теріңіз.",
+    manualPlaceholder: "Аударылатын мәтінді енгізіңіз...",
+    manualHint: "Микрофон жоқ па? Мәтінді теріп аударуға болады.",
     you: "Сіз",
     translationActive: "Нақты уақыттағы аударма белсенді",
     translatingNow: "Аударылуда...",
@@ -415,7 +423,9 @@ const COPY = {
     translationEmpty1: "点击上方的 [口译] 按钮",
     translationEmpty2: "开始实时翻译。",
     sttUnsupported1: "此浏览器不支持语音识别。",
-    sttUnsupported2: "请使用 Chrome 浏览器。",
+    sttUnsupported2: "无法语音？可在下方输入文字进行翻译。",
+    manualPlaceholder: "输入要翻译的内容...",
+    manualHint: "没有麦克风？可直接输入文字进行翻译。",
     you: "您",
     translationActive: "实时翻译已启用",
     translatingNow: "翻译中...",
@@ -490,7 +500,9 @@ const COPY = {
     translationEmpty1: "上部の[通訳]ボタンを押して",
     translationEmpty2: "リアルタイム翻訳を開始してください。",
     sttUnsupported1: "このブラウザは音声認識に対応していません。",
-    sttUnsupported2: "Chromeブラウザをご使用ください。",
+    sttUnsupported2: "音声が使えない場合は下に入力して翻訳できます。",
+    manualPlaceholder: "翻訳する内容を入力...",
+    manualHint: "マイクが使えない場合は入力して翻訳できます。",
     you: "あなた",
     translationActive: "リアルタイム翻訳が有効",
     translatingNow: "翻訳中...",
@@ -657,6 +669,7 @@ export default function ConsultationRoomPage() {
   const [translations, setTranslations] = useState([]);
   const [currentSubtitle, setCurrentSubtitle] = useState(null);
   const [interimText, setInterimText] = useState("");
+  const [manualInput, setManualInput] = useState("");
   const [translationEnabled, setTranslationEnabled] = useState(false);
   const [ttsEnabled, setTtsEnabled] = useState(true);
   const [isTranslating, setIsTranslating] = useState(false);
@@ -1618,6 +1631,39 @@ export default function ConsultationRoomPage() {
                   </div>
                 </div>
               )}
+
+              {/* 수동 입력 — 마이크가 없거나 STT 미지원 브라우저(iOS Safari·삼성 등)에서도 번역 가능 */}
+              <div className="border-t border-gray-700 p-4">
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={manualInput}
+                    onChange={(e) => setManualInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && manualInput.trim()) {
+                        translateText(manualInput.trim());
+                        setManualInput("");
+                      }
+                    }}
+                    placeholder={c.manualPlaceholder}
+                    className="flex-1 bg-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  />
+                  <button
+                    onClick={() => {
+                      if (manualInput.trim()) {
+                        translateText(manualInput.trim());
+                        setManualInput("");
+                      }
+                    }}
+                    disabled={isTranslating || !manualInput.trim()}
+                    className="p-2 bg-teal-600 hover:bg-teal-700 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg transition"
+                    title={c.manualHint}
+                  >
+                    <Languages size={16} />
+                  </button>
+                </div>
+                <p className="mt-1.5 text-[11px] text-gray-500">{c.manualHint}</p>
+              </div>
             </div>
           )}
         </div>

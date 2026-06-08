@@ -146,8 +146,10 @@ export async function POST(
           text,
           tags: { type: "consultation_invite", consultation_id: consultationId, role },
         });
-        emailSent = sendResult.ok;
+        // provider === "console" 은 메일러 미설정(개발 폴백) → 실제 발송 안 됨. 정직하게 미발송 처리.
+        emailSent = sendResult.ok && sendResult.provider !== "console";
         if (!sendResult.ok) emailError = sendResult.error;
+        else if (sendResult.provider === "console") emailError = "email_not_configured";
       } catch (mailErr: any) {
         console.warn("[invite] email send failed:", mailErr.message);
         emailError = mailErr.message;
