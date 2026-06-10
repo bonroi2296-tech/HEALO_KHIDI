@@ -28,6 +28,7 @@ import {
   Paperclip,
   ExternalLink,
   FileText,
+  X,
 } from "lucide-react";
 import { createSupabaseBrowserClient } from "../../../src/lib/supabase/browser";
 import { useLang } from "../../../src/lib/i18n/LangContext";
@@ -120,6 +121,7 @@ const COPY = {
     sttUnsupported2: "음성이 안 되면 아래에 직접 입력해 번역하세요.",
     manualPlaceholder: "번역할 내용을 입력하세요...",
     manualHint: "마이크가 안 되는 환경이면 직접 입력해 번역할 수 있어요.",
+    togglePanel: "채팅·번역 열기/닫기",
     sttFailedNotice: "이 브라우저에서는 음성 인식이 안 됩니다. 아래 입력칸으로 번역하세요.",
     emptyActiveHint1: "말하면 자막이 표시됩니다.",
     emptyActiveHint2: "음성이 안 되면 아래 입력칸에 쓰고 번역 버튼을 누르세요.",
@@ -208,6 +210,7 @@ const COPY = {
     sttUnsupported2: "No voice? Type below to translate instead.",
     manualPlaceholder: "Type text to translate...",
     manualHint: "No microphone? You can type to translate instead.",
+    togglePanel: "Show/hide chat & translation",
     sttFailedNotice: "Voice recognition doesn't work in this browser. Type below to translate.",
     emptyActiveHint1: "Speak and subtitles will appear.",
     emptyActiveHint2: "If voice doesn't work, type below and press the translate button.",
@@ -295,6 +298,7 @@ const COPY = {
     sttUnsupported2: "Нет голоса? Введите текст ниже для перевода.",
     manualPlaceholder: "Введите текст для перевода...",
     manualHint: "Нет микрофона? Можно ввести текст для перевода.",
+    togglePanel: "Показать/скрыть чат и перевод",
     sttFailedNotice: "Распознавание речи не работает в этом браузере. Введите текст ниже.",
     emptyActiveHint1: "Говорите — появятся субтитры.",
     emptyActiveHint2: "Если голос не работает, введите текст ниже и нажмите кнопку перевода.",
@@ -382,6 +386,7 @@ const COPY = {
     sttUnsupported2: "Дауыс жоқ па? Аудару үшін төменге мәтін теріңіз.",
     manualPlaceholder: "Аударылатын мәтінді енгізіңіз...",
     manualHint: "Микрофон жоқ па? Мәтінді теріп аударуға болады.",
+    togglePanel: "Чат пен аударманы көрсету/жасыру",
     sttFailedNotice: "Бұл браузерде дауыс тану жұмыс істемейді. Төменге мәтін теріңіз.",
     emptyActiveHint1: "Сөйлесеңіз — субтитрлер шығады.",
     emptyActiveHint2: "Дауыс жұмыс істемесе, төменге теріп, аудару түймесін басыңыз.",
@@ -469,6 +474,7 @@ const COPY = {
     sttUnsupported2: "无法语音？可在下方输入文字进行翻译。",
     manualPlaceholder: "输入要翻译的内容...",
     manualHint: "没有麦克风？可直接输入文字进行翻译。",
+    togglePanel: "显示/隐藏聊天和翻译",
     sttFailedNotice: "此浏览器不支持语音识别。请在下方输入文字进行翻译。",
     emptyActiveHint1: "说话即可显示字幕。",
     emptyActiveHint2: "如语音不可用，请在下方输入并点击翻译按钮。",
@@ -556,6 +562,7 @@ const COPY = {
     sttUnsupported2: "音声が使えない場合は下に入力して翻訳できます。",
     manualPlaceholder: "翻訳する内容を入力...",
     manualHint: "マイクが使えない場合は入力して翻訳できます。",
+    togglePanel: "チャット・翻訳の表示/非表示",
     sttFailedNotice: "このブラウザでは音声認識が使えません。下に入力して翻訳してください。",
     emptyActiveHint1: "話すと字幕が表示されます。",
     emptyActiveHint2: "音声が使えない場合は下に入力して翻訳ボタンを押してください。",
@@ -723,8 +730,9 @@ export default function ConsultationRoomPage() {
   // 의사/관리자용 대기 목록 (pending 참가자)
   const [pendingAdmissions, setPendingAdmissions] = useState([]);
 
-  // Panel state
+  // Panel state — Zoom/Meet 식: 기본 숨김(영상 풀스크린 + 자막 오버레이), 버튼으로 토글
   const [activePanel, setActivePanel] = useState("translation"); // "chat" | "translation"
+  const [panelOpen, setPanelOpen] = useState(false);
   const [messages, setMessages] = useState([]);
   const [messageInput, setMessageInput] = useState("");
 
@@ -917,6 +925,8 @@ export default function ConsultationRoomPage() {
     } else {
       stt.start();
       setTranslationEnabled(true);
+      setActivePanel("translation");
+      setPanelOpen(true); // 번역 켜면 패널 자동 노출 — 자막 입력칸·기록 보이게
       toast.success(`${c.translationStartedPrefix} (${LANG_LABELS[myLang]} → ${LANG_LABELS[targetLang]})`);
     }
   }, [translationEnabled, stt, myLang, targetLang, toast]);
@@ -1746,6 +1756,23 @@ export default function ConsultationRoomPage() {
                 <option value="lg">{c.subtitleLarge}</option>
               </select>
             )}
+            {/* 채팅·번역 패널 토글 (Zoom/Meet 식 — 기본 숨김, 영상이 주인공) */}
+            <button
+              onClick={() => setPanelOpen((v) => !v)}
+              className={`relative p-2 rounded-lg transition ${
+                panelOpen
+                  ? "bg-teal-600 text-white"
+                  : "bg-gray-700 hover:bg-gray-600 text-gray-300"
+              }`}
+              title={c.togglePanel}
+            >
+              <MessageSquare size={16} />
+              {!panelOpen && translations.length + messages.length > 0 && (
+                <span className="absolute -top-1 -right-1 bg-teal-500 text-white text-[10px] leading-none px-1 py-0.5 rounded-full">
+                  {translations.length + messages.length > 9 ? "9+" : translations.length + messages.length}
+                </span>
+              )}
+            </button>
               </>
             )}
 
@@ -1772,8 +1799,8 @@ export default function ConsultationRoomPage() {
         </div>
       )}
 
-      {/* ── Main content ── */}
-      <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
+      {/* ── Main content ── (relative: 모바일 패널 바텀시트 오버레이 기준) */}
+      <div className="flex-1 flex flex-col lg:flex-row overflow-hidden relative">
         {/* Video area */}
         <div className="flex-1 flex flex-col relative min-h-[40vh] lg:min-h-0">
           {livekitToken && livekitUrl && admissionStatus === "rejected" ? (
@@ -1915,11 +1942,18 @@ export default function ConsultationRoomPage() {
           )}
         </div>
 
-        {/* ── Right panel: Chat + Translation log ── (대기실에선 숨김 — 글자 겹침·혼란 방지) */}
-        {!isWaitingScreen && (
-        <div className="w-full lg:w-96 flex flex-col border-t lg:border-t-0 lg:border-l border-gray-700 bg-gray-800 max-h-[45vh] lg:max-h-none">
-          {/* Tab selector */}
-          <div className="flex border-b border-gray-700">
+        {/* ── Chat + Translation 패널 ── Zoom/Meet 식: 기본 숨김, 버튼으로 토글.
+            모바일=영상 위 바텀시트 오버레이, 데스크톱=우측 사이드. 대기실에선 숨김. */}
+        {!isWaitingScreen && panelOpen && (
+        <div
+          className="
+            flex flex-col bg-gray-800 z-30
+            absolute inset-x-0 bottom-0 top-auto h-[68vh] border-t border-gray-700 rounded-t-2xl shadow-2xl
+            lg:static lg:inset-auto lg:h-auto lg:w-96 lg:rounded-none lg:border-t-0 lg:border-l lg:shadow-none
+          "
+        >
+          {/* Tab selector + 닫기 */}
+          <div className="flex items-center border-b border-gray-700">
             <button
               onClick={() => setActivePanel("chat")}
               className={`flex-1 px-4 py-3 text-sm font-semibold transition ${
@@ -1946,6 +1980,13 @@ export default function ConsultationRoomPage() {
                   {translations.length}
                 </span>
               )}
+            </button>
+            <button
+              onClick={() => setPanelOpen(false)}
+              className="px-3 py-3 text-gray-400 hover:text-white shrink-0"
+              title={c.togglePanel}
+            >
+              <X size={18} />
             </button>
           </div>
 
