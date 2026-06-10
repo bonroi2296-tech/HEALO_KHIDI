@@ -121,6 +121,8 @@ const COPY = {
     manualPlaceholder: "번역할 내용을 입력하세요...",
     manualHint: "마이크가 안 되는 환경이면 직접 입력해 번역할 수 있어요.",
     sttFailedNotice: "이 브라우저에서는 음성 인식이 안 됩니다. 아래 입력칸으로 번역하세요.",
+    emptyActiveHint1: "말하면 자막이 표시됩니다.",
+    emptyActiveHint2: "음성이 안 되면 아래 입력칸에 쓰고 번역 버튼을 누르세요.",
     inAppNotice: "앱 안 브라우저에서는 영상·음성이 제한될 수 있어요.",
     openExternal: "브라우저에서 열기",
     linkCopied: "링크 복사됨 — 브라우저 주소창에 붙여넣으세요.",
@@ -207,6 +209,8 @@ const COPY = {
     manualPlaceholder: "Type text to translate...",
     manualHint: "No microphone? You can type to translate instead.",
     sttFailedNotice: "Voice recognition doesn't work in this browser. Type below to translate.",
+    emptyActiveHint1: "Speak and subtitles will appear.",
+    emptyActiveHint2: "If voice doesn't work, type below and press the translate button.",
     inAppNotice: "In-app browsers may limit video and audio.",
     openExternal: "Open in browser",
     linkCopied: "Link copied — paste it into your browser.",
@@ -292,6 +296,8 @@ const COPY = {
     manualPlaceholder: "Введите текст для перевода...",
     manualHint: "Нет микрофона? Можно ввести текст для перевода.",
     sttFailedNotice: "Распознавание речи не работает в этом браузере. Введите текст ниже.",
+    emptyActiveHint1: "Говорите — появятся субтитры.",
+    emptyActiveHint2: "Если голос не работает, введите текст ниже и нажмите кнопку перевода.",
     inAppNotice: "Встроенные браузеры приложений могут ограничивать видео и звук.",
     openExternal: "Открыть в браузере",
     linkCopied: "Ссылка скопирована — вставьте её в браузер.",
@@ -377,6 +383,8 @@ const COPY = {
     manualPlaceholder: "Аударылатын мәтінді енгізіңіз...",
     manualHint: "Микрофон жоқ па? Мәтінді теріп аударуға болады.",
     sttFailedNotice: "Бұл браузерде дауыс тану жұмыс істемейді. Төменге мәтін теріңіз.",
+    emptyActiveHint1: "Сөйлесеңіз — субтитрлер шығады.",
+    emptyActiveHint2: "Дауыс жұмыс істемесе, төменге теріп, аудару түймесін басыңыз.",
     inAppNotice: "Қолданба ішіндегі браузер видео мен дыбысты шектеуі мүмкін.",
     openExternal: "Браузерде ашу",
     linkCopied: "Сілтеме көшірілді — браузерге қойыңыз.",
@@ -462,6 +470,8 @@ const COPY = {
     manualPlaceholder: "输入要翻译的内容...",
     manualHint: "没有麦克风？可直接输入文字进行翻译。",
     sttFailedNotice: "此浏览器不支持语音识别。请在下方输入文字进行翻译。",
+    emptyActiveHint1: "说话即可显示字幕。",
+    emptyActiveHint2: "如语音不可用，请在下方输入并点击翻译按钮。",
     inAppNotice: "应用内置浏览器可能限制视频和音频。",
     openExternal: "在浏览器中打开",
     linkCopied: "链接已复制——请粘贴到浏览器。",
@@ -547,6 +557,8 @@ const COPY = {
     manualPlaceholder: "翻訳する内容を入力...",
     manualHint: "マイクが使えない場合は入力して翻訳できます。",
     sttFailedNotice: "このブラウザでは音声認識が使えません。下に入力して翻訳してください。",
+    emptyActiveHint1: "話すと字幕が表示されます。",
+    emptyActiveHint2: "音声が使えない場合は下に入力して翻訳ボタンを押してください。",
     inAppNotice: "アプリ内ブラウザでは映像・音声が制限される場合があります。",
     openExternal: "ブラウザで開く",
     linkCopied: "リンクをコピーしました — ブラウザに貼り付けてください。",
@@ -1903,9 +1915,19 @@ export default function ConsultationRoomPage() {
                 {translations.length === 0 ? (
                   <div className="text-center text-gray-500 text-sm py-8">
                     <Languages size={32} className="mx-auto mb-3 text-gray-600" />
-                    <p>{c.translationEmpty1}</p>
-                    <p>{c.translationEmpty2}</p>
-                    {!stt.isSupported && (
+                    {translationEnabled ? (
+                      // 번역이 이미 켜져 있으면 "버튼 누르세요" 대신 사용법 안내
+                      <>
+                        <p>{c.emptyActiveHint1}</p>
+                        <p>{c.emptyActiveHint2}</p>
+                      </>
+                    ) : (
+                      <>
+                        <p>{c.translationEmpty1}</p>
+                        <p>{c.translationEmpty2}</p>
+                      </>
+                    )}
+                    {(!stt.isSupported || stt.failed) && (
                       <p className="mt-3 text-yellow-500 text-xs">
                         {c.sttUnsupported1}
                         <br />
