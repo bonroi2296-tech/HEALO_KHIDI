@@ -181,6 +181,52 @@ export async function verifyAndConsumeGuestToken(
 }
 
 /**
+ * 토큰 검증 (읽기 전용 — 사용 카운트 소모 없음).
+ *
+ * 용도: 이미 입장한 게스트(의사/코디)가 대기열 조회·승인 등 후속 API 를 호출할 때
+ * 자격 증명으로 재검증. "입장"이 아니므로 used_count 를 증가시키지도, 검사하지도 않음
+ * (유효·미폐기·미만료 토큰 보유 = 충분한 증명).
+ */
+export async function verifyGuestTokenReadOnly(
+  tokenPlain: string,
+  consultationId: string
+): Promise<VerifyGuestTokenResult> {
+  if (!tokenPlain || typeof tokenPlain !== "string" || tokenPlain.length < 32) {
+    return { valid: false, reason: "invalid_token_format" };
+  }
+
+  const tokenHash = hashToken(tokenPlain);
+
+  const { data: row, error } = await supabaseAdmin
+    .from("consultation_guest_tokens")
+    .select("id, consultation_id, role, invitee_name, invitee_email, expires_at, revoked_at")
+    .eq("token_hash", tokenHash)
+    .maybeSingle();
+
+  if (error) {
+    console.error("[guestToken/readOnly] DB error:", error.message);
+    return { valid: false, reason: "db_error" };
+  }
+  if (!row) return { valid: false, reason: "token_not_found" };
+  if (row.consultation_id !== consultationId) {
+    return { valid: false, reason: "consultation_mismatch" };
+  }
+  if (row.revoked_at) return { valid: false, reason: "token_revoked" };
+  if (new Date(row.expires_at) < new Date()) {
+    return { valid: false, reason: "token_expired" };
+  }
+
+  return {
+    valid: true,
+    consultationId: row.consultation_id,
+    role: row.role as GuestRole,
+    inviteeName: row.invitee_name,
+    inviteeEmail: row.invitee_email,
+    tokenId: row.id,
+  };
+}
+
+/**
  * 토큰 폐기 (관리자)
  */
 export async function revokeGuestToken(tokenId: string): Promise<boolean> {

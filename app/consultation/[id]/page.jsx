@@ -875,21 +875,31 @@ export default function ConsultationRoomPage() {
     }
   }, [inviteToken, consultationId, guestName]);
 
-  // ── 의사/관리자용 대기열 polling (인증 사용자만) ──
+  // ── 의사/관리자용 대기열 polling ──
+  // 게스트 의사/코디(초대링크 입장)도 X-Guest-Token 으로 대기열 조회·승인 가능
+  const isStaffGuest = isGuestMode && (myRole === "doctor" || myRole === "coordinator");
+
+  // 대기열 API 호출용 인증 헤더 (게스트 staff = invite 토큰 / 계정 = Bearer)
+  const getAdmissionsAuthHeaders = useCallback(async () => {
+    if (isStaffGuest) return { "X-Guest-Token": inviteToken };
+    const { data: sessionData } = await supabase.auth.getSession();
+    const token = sessionData?.session?.access_token;
+    return token ? { Authorization: `Bearer ${token}` } : null;
+  }, [isStaffGuest, inviteToken]);
+
   useEffect(() => {
-    if (isGuestMode) return; // 게스트는 대기열 조회 불가
+    if (isGuestMode && !isStaffGuest) return; // 게스트 환자/통역은 대기열 조회 불가
     if (!livekitToken) return;
 
     let cancelled = false;
 
     const fetchPending = async () => {
       try {
-        const { data: sessionData } = await supabase.auth.getSession();
-        const token = sessionData?.session?.access_token;
-        if (!token) return;
+        const headers = await getAdmissionsAuthHeaders();
+        if (!headers) return;
         const res = await fetch(
           `/api/khidi/consultation/${consultationId}/admissions`,
-          { headers: { Authorization: `Bearer ${token}` } }
+          { headers }
         );
         const result = await res.json();
         if (cancelled) return;
@@ -905,21 +915,20 @@ export default function ConsultationRoomPage() {
       cancelled = true;
       clearInterval(interval);
     };
-  }, [isGuestMode, livekitToken, consultationId]);
+  }, [isGuestMode, isStaffGuest, livekitToken, consultationId, getAdmissionsAuthHeaders]);
 
   const decideAdmission = useCallback(
     async (admissionIdToDecide, status) => {
       try {
-        const { data: sessionData } = await supabase.auth.getSession();
-        const token = sessionData?.session?.access_token;
-        if (!token) return;
+        const headers = await getAdmissionsAuthHeaders();
+        if (!headers) return;
         await fetch(
           `/api/khidi/consultation/${consultationId}/admissions?admissionId=${admissionIdToDecide}`,
           {
             method: "PATCH",
             headers: {
               "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
+              ...headers,
             },
             body: JSON.stringify({ status }),
           }
@@ -936,7 +945,7 @@ export default function ConsultationRoomPage() {
         toast.error(c.decideFailed);
       }
     },
-    [consultationId, toast]
+    [consultationId, toast, getAdmissionsAuthHeaders]
   );
 
   // ── Waiting Room polling: admissionId 가 있고 pending 인 동안 2초마다 상태 확인 ──
@@ -1369,8 +1378,8 @@ export default function ConsultationRoomPage() {
             </div>
           ) : livekitToken && livekitUrl ? (
             <>
-              {/* 의사용 대기자 승인 배너 — 1명 이상 대기 중일 때 표시 */}
-              {!isGuestMode && pendingAdmissions.length > 0 && (
+              {/* 의사용 대기자 승인 배너 — 1명 이상 대기 중일 때 표시 (게스트 의사/코디 포함) */}
+              {pendingAdmissions.length > 0 && (
                 <div className="absolute top-4 right-4 z-30 bg-teal-900/95 backdrop-blur border border-teal-500 rounded-xl shadow-2xl max-w-sm p-4 space-y-3">
                   <p className="text-sm font-semibold text-white flex items-center gap-2">
                     ⏳ {c.pendingWaiting} ({pendingAdmissions.length})
