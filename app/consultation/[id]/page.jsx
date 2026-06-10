@@ -1389,6 +1389,9 @@ export default function ConsultationRoomPage() {
     let stream = null;
     let recorder = null;
     let stopTimer = null;
+    let audioCtx = null;
+    let analyser = null;
+    let vadTimer = null;
 
     const mime = MediaRecorder.isTypeSupported?.("audio/webm")
       ? "audio/webm"
@@ -1401,6 +1404,22 @@ export default function ConsultationRoomPage() {
     const recordCycle = () => {
       if (stopped || !stream) return;
       const chunks = [];
+      // 무음 감지(VAD): 조각 동안 음량을 샘플링해, 말한 흔적이 없으면 서버로 안 보냄
+      // → Gemini 호출 대폭 절감 (무료 플랜 분당 한도·비용 보호)
+      let voicedFrames = 0;
+      if (analyser) {
+        const buf = new Uint8Array(analyser.fftSize);
+        vadTimer = setInterval(() => {
+          analyser.getByteTimeDomainData(buf);
+          let sum = 0;
+          for (let i = 0; i < buf.length; i++) {
+            const v = (buf[i] - 128) / 128;
+            sum += v * v;
+          }
+          const rms = Math.sqrt(sum / buf.length);
+          if (rms > 0.02) voicedFrames += 1;
+        }, 100);
+      }
       try {
         recorder = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
       } catch {
@@ -1410,9 +1429,11 @@ export default function ConsultationRoomPage() {
         if (e.data && e.data.size > 0) chunks.push(e.data);
       };
       recorder.onstop = async () => {
+        clearInterval(vadTimer);
         const blob = new Blob(chunks, { type: mime || "audio/webm" });
-        // 너무 작은 조각(무음)은 전송 생략
-        if (!stopped && blob.size > 4000) {
+        // 말한 흔적(0.3초 이상) + 최소 크기일 때만 전송 — 무음 조각 스킵
+        const hasSpeech = analyser ? voicedFrames >= 3 : true;
+        if (!stopped && hasSpeech && blob.size > 4000) {
           try {
             const headers = await getConsultAuthHeaders();
             if (headers) {
@@ -1454,18 +1475,31 @@ export default function ConsultationRoomPage() {
         stream.getTracks().forEach((t) => t.stop());
         return;
       }
+      // 음량 분석기 연결 (실패해도 녹음 자체는 진행)
+      try {
+        const AC = window.AudioContext || window.webkitAudioContext;
+        audioCtx = new AC();
+        const source = audioCtx.createMediaStreamSource(stream);
+        analyser = audioCtx.createAnalyser();
+        analyser.fftSize = 512;
+        source.connect(analyser);
+      } catch {
+        analyser = null;
+      }
       recordCycle();
     })();
 
     return () => {
       stopped = true;
       clearTimeout(stopTimer);
+      clearInterval(vadTimer);
       try {
         if (recorder && recorder.state !== "inactive") recorder.stop();
       } catch {
         /* ignore */
       }
       stream?.getTracks().forEach((t) => t.stop());
+      audioCtx?.close().catch(() => {});
     };
   }, [useServerStt, myLang, consultationId, getConsultAuthHeaders]);
 
