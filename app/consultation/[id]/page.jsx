@@ -691,12 +691,23 @@ export default function ConsultationRoomPage() {
   // DataChannel publish 함수 ref (LiveKitRoom 내부 DataChannelBridge 에서 주입)
   const publishSubtitleRef = useRef(null);
 
-  // ── Realtime subscription ──
+  // ── Realtime subscription (계정 사용자만 — 게스트는 RLS상 구독 불가, 아래 폴링으로 대체) ──
   useRealtimeMessages(consultationId, (msg) => {
-    // Avoid duplicating messages we sent ourselves (optimistic update)
+    const norm = {
+      id: msg.id,
+      sender_id: msg.sender_id || null,
+      sender_role: msg.sender_role || "patient",
+      sender_name:
+        msg.sender_role === "doctor" ? "Doctor"
+        : msg.sender_role === "coordinator" ? "Coordinator"
+        : msg.sender_role === "translator" ? "Interpreter"
+        : "Patient",
+      message_text: msg.message ?? msg.message_text ?? "",
+      created_at: msg.created_at || new Date().toISOString(),
+    };
     setMessages((prev) => {
-      if (prev.some((m) => m.id === msg.id)) return prev;
-      return [...prev, msg];
+      if (prev.some((m) => m.id === norm.id)) return prev;
+      return [...prev, norm];
     });
   });
 
@@ -1042,13 +1053,28 @@ export default function ConsultationRoomPage() {
           if (tokenResult.role) setMyRole(tokenResult.role);
         }
 
-        // Fetch existing messages
+        // Fetch existing messages (서버 row 필드 → 렌더 형태로 정규화)
         const msgRes = await fetch(
           `/api/khidi/consultation/${consultationId}/messages`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
         const msgResult = await msgRes.json();
-        if (msgResult.ok) setMessages(msgResult.data || []);
+        if (msgResult.ok) {
+          setMessages(
+            (msgResult.data || []).map((row) => ({
+              id: row.id,
+              sender_id: row.sender_id || null,
+              sender_role: row.sender_role || "patient",
+              sender_name:
+                row.sender_role === "doctor" ? "Doctor"
+                : row.sender_role === "coordinator" ? "Coordinator"
+                : row.sender_role === "translator" ? "Interpreter"
+                : "Patient",
+              message_text: row.message ?? row.message_text ?? "",
+              created_at: row.created_at || new Date().toISOString(),
+            }))
+          );
+        }
 
         // Fetch existing translation logs
         const transRes = await fetch(
@@ -1056,7 +1082,19 @@ export default function ConsultationRoomPage() {
           { headers: { Authorization: `Bearer ${token}` } }
         );
         const transResult = await transRes.json();
-        if (transResult.ok) setTranslations(transResult.data || []);
+        if (transResult.ok) {
+          setTranslations(
+            (transResult.data || []).map((row) => ({
+              id: row.id,
+              original_text: row.source_text ?? row.original_text ?? "",
+              translated_text: row.translated_text ?? "",
+              source_language: row.source_lang ?? row.source_language ?? "",
+              target_language: row.target_lang ?? row.target_language ?? "",
+              speaker_role: row.speaker_role || "unknown",
+              created_at: row.created_at || new Date().toISOString(),
+            }))
+          );
+        }
       } catch (error) {
         console.error("[ConsultationRoom] init error:", error);
         toast.error(c.loadFailed);
@@ -1068,43 +1106,118 @@ export default function ConsultationRoomPage() {
     init();
   }, [consultationId, isGuestMode]);
 
+  // ── 상담 API 공용 인증 헤더 (게스트=초대토큰 / 계정=Bearer) ──
+  const getConsultAuthHeaders = useCallback(async () => {
+    if (inviteToken) return { "X-Guest-Token": inviteToken };
+    const { data } = await supabase.auth.getSession();
+    const t = data?.session?.access_token;
+    return t ? { Authorization: `Bearer ${t}` } : null;
+  }, [inviteToken]);
+
+  // 서버 메시지 row(message/sender_role) → 렌더 형태(message_text/sender_name)로 정규화
+  const normalizeMsg = useCallback((row) => ({
+    id: row.id,
+    sender_id: row.sender_id || null,
+    sender_role: row.sender_role || "patient",
+    sender_name:
+      row.sender_role === "doctor"
+        ? "Doctor"
+        : row.sender_role === "coordinator"
+        ? "Coordinator"
+        : row.sender_role === "translator"
+        ? "Interpreter"
+        : "Patient",
+    message_text: row.message ?? row.message_text ?? "",
+    created_at: row.created_at || new Date().toISOString(),
+  }), []);
+
+  // 서버 번역 row(source_text/source_lang) → 렌더 형태(original_text/source_language)로 정규화
+  const normalizeTrans = useCallback((row) => ({
+    id: row.id,
+    original_text: row.source_text ?? row.original_text ?? "",
+    translated_text: row.translated_text ?? "",
+    source_language: row.source_lang ?? row.source_language ?? "",
+    target_language: row.target_lang ?? row.target_language ?? "",
+    speaker_role: row.speaker_role || "unknown",
+    created_at: row.created_at || new Date().toISOString(),
+  }), []);
+
   // ── Send message ──
   const handleSendMessage = useCallback(async () => {
     if (!messageInput.trim()) return;
-
-    const newMessage = {
-      id: Date.now(),
-      sender_id: "current-user",
-      sender_role: "patient",
-      sender_name: "You",
-      message_text: messageInput,
-      created_at: new Date().toISOString(),
-    };
-
-    setMessages((prev) => [...prev, newMessage]);
-    const text = messageInput;
+    const text = messageInput.trim();
     setMessageInput("");
 
     try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      const token = sessionData?.session?.access_token;
-      await fetch(`/api/khidi/consultation/${consultationId}/messages`, {
+      const headers = await getConsultAuthHeaders();
+      if (!headers) return;
+      const res = await fetch(`/api/khidi/consultation/${consultationId}/messages`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          senderId: "current-user",
-          senderRole: "patient",
-          senderName: "You",
-          messageText: text,
-        }),
+        headers: { "Content-Type": "application/json", ...headers },
+        body: JSON.stringify({ messageText: text }),
       });
+      const result = await res.json();
+      // 서버가 sender_role 을 인증 기준으로 강제 → 반환 row 를 그대로 표시
+      if (res.ok && result.ok && result.data) {
+        setMessages((prev) =>
+          prev.some((m) => m.id === result.data.id)
+            ? prev
+            : [...prev, normalizeMsg(result.data)]
+        );
+      }
     } catch (error) {
       console.error("[ConsultationRoom] Send message error:", error);
     }
-  }, [messageInput, consultationId]);
+  }, [messageInput, consultationId, getConsultAuthHeaders, normalizeMsg]);
+
+  // ── 게스트 메시지/번역 로그 폴링 ──
+  // 게스트는 RLS상 Supabase realtime 구독이 안 됨 → 서버 API 폴링으로 채팅·번역기록 동기화.
+  // (계정 사용자는 realtime + init 로드로 충분하므로 게스트일 때만 작동)
+  useEffect(() => {
+    if (!isGuestMode || !livekitToken || !inviteToken) return;
+    let cancelled = false;
+
+    const poll = async () => {
+      try {
+        const headers = { "X-Guest-Token": inviteToken };
+        const [mRes, tRes] = await Promise.all([
+          fetch(`/api/khidi/consultation/${consultationId}/messages?limit=200`, { headers }),
+          fetch(`/api/khidi/consultation/${consultationId}/translate?limit=200`, { headers }),
+        ]);
+        if (cancelled) return;
+        const mJson = await mRes.json().catch(() => null);
+        const tJson = await tRes.json().catch(() => null);
+        if (mJson?.ok) {
+          setMessages((prev) => {
+            const seen = new Set(prev.map((m) => m.id));
+            const incoming = (mJson.data || [])
+              .filter((row) => !seen.has(row.id))
+              .map(normalizeMsg);
+            return incoming.length ? [...prev, ...incoming] : prev;
+          });
+        }
+        if (tJson?.ok && Array.isArray(tJson.data)) {
+          // 번역 로그는 서버 기록 기준으로 갱신 (내 입력은 이미 로컬에 있음 → id 중복 제거)
+          setTranslations((prev) => {
+            const seen = new Set(prev.map((t) => t.id));
+            const incoming = tJson.data
+              .filter((row) => !seen.has(row.id))
+              .map(normalizeTrans);
+            return incoming.length ? [...prev, ...incoming] : prev;
+          });
+        }
+      } catch {
+        /* 폴링 실패는 무시 */
+      }
+    };
+
+    poll();
+    const interval = setInterval(poll, 4000);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [isGuestMode, livekitToken, inviteToken, consultationId, normalizeMsg, normalizeTrans]);
 
   // ── End call ──
   const handleEndCall = async () => {
@@ -1113,13 +1226,12 @@ export default function ConsultationRoomPage() {
       tts.stop();
 
       try {
-        const { data: sessionData } = await supabase.auth.getSession();
-        const token = sessionData?.session?.access_token;
+        const headers = await getConsultAuthHeaders();
         await fetch(`/api/khidi/consultation/${consultationId}`, {
           method: "PATCH",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
+            ...(headers || {}),
           },
           body: JSON.stringify({
             status: "completed",

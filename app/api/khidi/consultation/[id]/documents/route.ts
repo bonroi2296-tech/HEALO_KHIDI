@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseServerClient } from '../../../../../../src/lib/data/supabaseServerClient';
 import { uploadLimiter } from '../../../../../../src/lib/api/rateLimiter';
 import { sanitizeString } from '../../../../../../src/lib/api/sanitize';
-import { requireConsultationAccess } from '../../../../../../src/lib/auth/requireConsultationAccess';
+import { resolveConsultationActor } from '../../../../../../src/lib/auth/requireConsultationAccess';
 import { verifyFileMagic } from '../../../../../../src/lib/security/fileMagic';
 
 const ALLOWED_TYPES = [
@@ -30,8 +30,8 @@ export async function POST(
 
     const { id: consultationId } = await params;
 
-    // 인증 + 참가자 검증 (admin/doctor/patient/coordinator/translator)
-    const access = await requireConsultationAccess(request, consultationId);
+    // 인증 + 참가자 검증 (계정 또는 게스트 초대토큰)
+    const access = await resolveConsultationActor(request, consultationId);
     if (!access.success) return access.response;
 
     const formData = await request.formData();
@@ -130,7 +130,7 @@ export async function GET(
   try {
     const { id: consultationId } = await params;
 
-    const access = await requireConsultationAccess(request, consultationId);
+    const access = await resolveConsultationActor(request, consultationId);
     if (!access.success) return access.response;
 
     const supabase = getSupabaseServerClient();

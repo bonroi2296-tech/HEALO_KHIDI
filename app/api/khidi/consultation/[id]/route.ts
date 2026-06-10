@@ -13,7 +13,7 @@
 export const runtime = "nodejs";
 
 import { NextRequest } from "next/server";
-import { requireConsultationAccess } from "@/lib/auth/requireConsultationAccess";
+import { resolveConsultationActor } from "@/lib/auth/requireConsultationAccess";
 
 export async function GET(
   request: NextRequest,
@@ -22,7 +22,7 @@ export async function GET(
   try {
     const { id: consultationId } = await params;
 
-    const access = await requireConsultationAccess(request, consultationId);
+    const access = await resolveConsultationActor(request, consultationId);
     if (!access.success) return access.response;
 
     const { supabaseAdmin } = await import("@/lib/rag/supabaseAdmin");
@@ -93,8 +93,8 @@ export async function PATCH(
   try {
     const { id: consultationId } = await params;
 
-    // 노트/상태 수정은 의료 staff 또는 admin 만 가능
-    const access = await requireConsultationAccess(request, consultationId, {
+    // 노트/상태 수정은 의료 staff 또는 admin 만 가능 (게스트 의사/코디 포함)
+    const access = await resolveConsultationActor(request, consultationId, {
       requireRole: ["admin", "doctor", "coordinator"],
     });
     if (!access.success) return access.response;
