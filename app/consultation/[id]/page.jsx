@@ -1341,34 +1341,41 @@ export default function ConsultationRoomPage() {
     );
   }
 
+  // 대기실/거절 화면 — 영상·채팅·번역 UI 없이 안내만 (혼란 방지)
+  const isWaitingScreen =
+    !!livekitToken && (admissionStatus === "pending" || admissionStatus === "rejected");
+
   return (
     <div className="w-full h-screen bg-gray-900 text-white flex flex-col">
       {/* ── Header ── */}
       <div className="bg-gray-800 border-b border-gray-700 px-3 py-2 md:px-6 md:py-3">
         <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 md:gap-4 min-w-0">
             <button
               onClick={() => router.back()}
-              className="p-2 hover:bg-gray-700 rounded-lg transition"
+              className="p-2 hover:bg-gray-700 rounded-lg transition shrink-0"
             >
               <ChevronLeft size={24} />
             </button>
-            <div>
-              <h1 className="text-lg font-bold">
-                {consultation?.cancer_patient_intakes?.[0]?.cancer_type || c.consultationFallback} —{" "}
-                {consultation?.session_type === "pre_consultation" && c.sessionPre}
-                {consultation?.session_type === "follow_up" && c.sessionFollowUp}
-                {consultation?.session_type === "emergency" && c.sessionEmergency}
-                {consultation?.session_type === "diagnostic" && c.sessionDiagnostic}
+            <div className="min-w-0">
+              <h1 className="text-base md:text-lg font-bold truncate">
+                {consultation?.cancer_patient_intakes?.[0]?.cancer_type || c.consultationFallback}
+                {consultation?.session_type === "pre_consultation" && <> — {c.sessionPre}</>}
+                {consultation?.session_type === "follow_up" && <> — {c.sessionFollowUp}</>}
+                {consultation?.session_type === "emergency" && <> — {c.sessionEmergency}</>}
+                {consultation?.session_type === "diagnostic" && <> — {c.sessionDiagnostic}</>}
               </h1>
-              <p className="text-xs text-gray-400">
+              <p className="text-xs text-gray-400 truncate">
                 {consultation?.livekit_room_name && <>Room: {consultation.livekit_room_name}</>}
                 {connected && <span className="ml-2 text-green-400">● {c.connected}</span>}
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-1.5 md:gap-3 flex-wrap justify-end">
+          <div className="flex items-center gap-1.5 md:gap-3 shrink-0">
+            {/* 대기실에선 번역·언어 컨트롤 숨김 — 입장 후에만 의미 있음 */}
+            {!isWaitingScreen && (
+              <>
             {/* Translation toggle */}
             <button
               onClick={toggleTranslation}
@@ -1405,21 +1412,21 @@ export default function ConsultationRoomPage() {
               {ttsEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}
             </button>
 
-            {/* Language swap */}
+            {/* 언어쌍 선택 — 역할 기반 기본값이 있으므로 데스크톱에서만 노출 (모바일 단순화) */}
             <select
               value={myLang}
               onChange={(e) => setMyLang(e.target.value)}
-              className="bg-gray-700 text-white text-xs rounded px-2 py-1 border-0"
+              className="hidden md:inline-block bg-gray-700 text-white text-xs rounded px-2 py-1 border-0"
             >
               <option value="ko">한국어</option>
               <option value="en">English</option>
               <option value="ru">Русский</option>
             </select>
-            <span className="text-gray-500 text-xs">→</span>
+            <span className="hidden md:inline text-gray-500 text-xs">→</span>
             <select
               value={targetLang}
               onChange={(e) => setTargetLang(e.target.value)}
-              className="bg-gray-700 text-white text-xs rounded px-2 py-1 border-0"
+              className="hidden md:inline-block bg-gray-700 text-white text-xs rounded px-2 py-1 border-0"
             >
               <option value="ru">Русский</option>
               <option value="en">English</option>
@@ -1429,18 +1436,20 @@ export default function ConsultationRoomPage() {
               <option value="ja">日本語</option>
             </select>
 
-            {/* 자막 크기 선택 — 번역이 켜져 있을 때만 표시 */}
+            {/* 자막 크기 선택 — 번역이 켜져 있을 때만, 데스크톱에서만 */}
             {translationEnabled && (
               <select
                 value={subtitleSize}
                 onChange={(e) => setSubtitleSize(e.target.value)}
-                className="bg-gray-700 text-white text-xs rounded px-2 py-1 border-0"
+                className="hidden md:inline-block bg-gray-700 text-white text-xs rounded px-2 py-1 border-0"
                 title={c.subtitleSizeTitle}
               >
                 <option value="sm">{c.subtitleSmall}</option>
                 <option value="md">{c.subtitleMedium}</option>
                 <option value="lg">{c.subtitleLarge}</option>
               </select>
+            )}
+              </>
             )}
 
             <button
@@ -1596,7 +1605,8 @@ export default function ConsultationRoomPage() {
           )}
         </div>
 
-        {/* ── Right panel: Chat + Translation log ── */}
+        {/* ── Right panel: Chat + Translation log ── (대기실에선 숨김 — 글자 겹침·혼란 방지) */}
+        {!isWaitingScreen && (
         <div className="w-full lg:w-96 flex flex-col border-t lg:border-t-0 lg:border-l border-gray-700 bg-gray-800 max-h-[45vh] lg:max-h-none">
           {/* Tab selector */}
           <div className="flex border-b border-gray-700">
@@ -1790,6 +1800,7 @@ export default function ConsultationRoomPage() {
             </div>
           )}
         </div>
+        )}
       </div>
     </div>
   );
