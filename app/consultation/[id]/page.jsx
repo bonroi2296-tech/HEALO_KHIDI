@@ -7,7 +7,7 @@ import {
   RoomAudioRenderer,
   GridLayout,
   ParticipantTile,
-  ControlBar,
+  TrackToggle,
   useTracks,
 } from "@livekit/components-react";
 import "@livekit/components-styles";
@@ -1441,15 +1441,13 @@ export default function ConsultationRoomPage() {
                   size={subtitleSize}
                 />
               </div>
-              <ControlBar
-                variation="minimal"
-                controls={{
-                  microphone: true,
-                  camera: true,
-                  screenShare: true,
-                  leave: false,
-                }}
-              />
+              {/* 단순 컨트롤 — 기기 선택 메뉴 없이 켜기/끄기만.
+                  소리는 기기 기본 출력(이어폰 연결 시 이어폰), 카메라는 기본(전면) 1개 */}
+              <div className="lk-control-bar" style={{ justifyContent: "center" }}>
+                <TrackToggle source={Track.Source.Microphone} />
+                <TrackToggle source={Track.Source.Camera} />
+                <TrackToggle source={Track.Source.ScreenShare} className="hidden sm:inline-flex" />
+              </div>
             </LiveKitRoom>
             </>
           ) : (

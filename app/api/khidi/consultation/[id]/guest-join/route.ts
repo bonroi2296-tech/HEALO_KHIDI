@@ -21,6 +21,7 @@
 export const runtime = "nodejs";
 
 import { NextRequest } from "next/server";
+import { randomBytes } from "node:crypto";
 import { AccessToken } from "livekit-server-sdk";
 import { verifyAndConsumeGuestToken } from "@/lib/auth/guestToken";
 import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
@@ -133,9 +134,12 @@ export async function POST(
     const canSubscribe = true;
     const canPublishData = role !== "observer";
 
-    // identity: 게스트는 audit 시 추적 가능하도록 tokenId 일부 포함
+    // identity: 게스트는 audit 시 추적 가능하도록 tokenId 일부 포함.
+    // 입장마다 난수 suffix 추가 — 같은 링크를 두 기기에서 동시에 써도
+    // LiveKit 이 동일 참가자로 보고 한쪽을 끊지 않게 (재접속도 안전).
     const identitySuffix = verification.tokenId!.slice(0, 8);
-    const identity = `guest-${role}-${identitySuffix}`;
+    const joinNonce = randomBytes(3).toString("hex");
+    const identity = `guest-${role}-${identitySuffix}-${joinNonce}`;
     const name =
       safeDisplayName || verification.inviteeName || `${role} guest`;
 
