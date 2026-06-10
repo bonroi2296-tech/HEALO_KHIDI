@@ -17,6 +17,7 @@
 import "server-only";
 import { NextRequest } from "next/server";
 import { checkAdminAuth } from "./checkAdminAuth";
+import { verifyGuestTokenReadOnly } from "./guestToken";
 import { supabaseAdmin } from "../rag/supabaseAdmin";
 import { checkRateLimit, getClientIp, getRateLimitHeaders } from "../rateLimit";
 
@@ -196,6 +197,76 @@ export async function requireConsultationAccess(
     session,
     role,
   };
+}
+
+/**
+ * 상담 참가자 인증 — 계정(쿠키/Bearer) 또는 게스트(X-Guest-Token) 통합.
+ *
+ * 원격협진 기본 플로우는 "계정 없이 초대링크로 입장"이므로, 상담 중 호출하는
+ * 모든 API(messages·translate·상담종료 등)는 게스트도 통과해야 함.
+ * - X-Guest-Token 헤더 있으면: 읽기전용 검증(used_count 미소모) + IP 레이트리밋
+ * - 없으면: 기존 requireConsultationAccess (계정 참가자)
+ *
+ * @returns userId 는 게스트일 때 null (계정 없음), role 은 토큰/세션 기준
+ */
+export type ConsultationActorRole =
+  | "admin" | "patient" | "doctor" | "coordinator" | "translator" | "observer";
+
+export type ConsultationActorResult =
+  | { success: true; userId: string | null; role: ConsultationActorRole; isGuest: boolean }
+  | { success: false; response: Response };
+
+export async function resolveConsultationActor(
+  request: NextRequest,
+  consultationId: string,
+  options?: { requireRole?: ("admin" | "doctor" | "coordinator")[] }
+): Promise<ConsultationActorResult> {
+  const guestToken = request.headers.get("x-guest-token");
+
+  if (guestToken) {
+    // 게스트 경로 — IP 레이트리밋(브루트포스 방지)
+    const clientIp = getClientIp(request);
+    const rl = checkRateLimit(clientIp, CONSULTATION_RATE);
+    if (!rl.allowed) {
+      return {
+        success: false,
+        response: Response.json(
+          { ok: false, error: "rate_limited" },
+          { status: 429, headers: getRateLimitHeaders(rl) }
+        ),
+      };
+    }
+
+    if (!consultationId || typeof consultationId !== "string") {
+      return {
+        success: false,
+        response: Response.json({ ok: false, error: "invalid_consultation_id" }, { status: 400 }),
+      };
+    }
+
+    const v = await verifyGuestTokenReadOnly(guestToken, consultationId);
+    if (!v.valid || !v.role) {
+      return {
+        success: false,
+        response: Response.json({ ok: false, error: "forbidden" }, { status: 403 }),
+      };
+    }
+
+    const role = v.role as ConsultationActorRole;
+    if (options?.requireRole && !options.requireRole.includes(role as any)) {
+      return {
+        success: false,
+        response: Response.json({ ok: false, error: "insufficient_role" }, { status: 403 }),
+      };
+    }
+
+    return { success: true, userId: null, role, isGuest: true };
+  }
+
+  // 계정 경로 — 기존 로직 재사용
+  const access = await requireConsultationAccess(request, consultationId, options);
+  if (!access.success) return access;
+  return { success: true, userId: access.userId, role: access.role, isGuest: false };
 }
 
 /**

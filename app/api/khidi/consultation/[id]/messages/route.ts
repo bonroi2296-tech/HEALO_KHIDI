@@ -12,7 +12,7 @@
 export const runtime = "nodejs";
 
 import { NextRequest } from "next/server";
-import { requireConsultationAccess } from "@/lib/auth/requireConsultationAccess";
+import { resolveConsultationActor } from "@/lib/auth/requireConsultationAccess";
 
 export async function POST(
   request: NextRequest,
@@ -21,7 +21,7 @@ export async function POST(
   try {
     const { id: consultationId } = await params;
 
-    const access = await requireConsultationAccess(request, consultationId);
+    const access = await resolveConsultationActor(request, consultationId);
     if (!access.success) return access.response;
 
     const payload = await request.json();
@@ -82,7 +82,7 @@ export async function GET(
   try {
     const { id: consultationId } = await params;
 
-    const access = await requireConsultationAccess(request, consultationId);
+    const access = await resolveConsultationActor(request, consultationId);
     if (!access.success) return access.response;
 
     const { supabaseAdmin } = await import("@/lib/rag/supabaseAdmin");
