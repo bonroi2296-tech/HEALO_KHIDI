@@ -88,51 +88,17 @@ export default function EmergencyButton() {
         return;
       }
 
-      // Find or create an emergency chat_thread
-      const { data: existing } = await supabase
-        .from("chat_threads")
-        .select("id")
-        .eq("user_id", session.user.id)
-        .eq("subject", "🚨 Emergency alert")
-        .limit(1)
-        .maybeSingle();
-
-      let threadId = existing?.id;
-      if (!threadId) {
-        const { data: newThread } = await supabase
-          .from("chat_threads")
-          .insert({
-            user_id: session.user.id,
-            subject: "🚨 Emergency alert",
-            status: "waiting_coordinator",
-            metadata: { priority: "emergency", source: "sos_button" },
-          })
-          .select("id")
-          .single();
-        threadId = newThread?.id;
-      }
-
-      if (threadId) {
-        await supabase.from("chat_messages").insert({
-          thread_id: threadId,
-          actor_type: "user",
-          actor_id: session.user.id,
-          message_text: lang === "ko"
-            ? "🚨 긴급 도움이 필요합니다. 가능한 빨리 연락 부탁드립니다."
-            : "🚨 I need urgent help. Please contact me as soon as possible.",
-          is_internal: false,
-          metadata: { priority: "emergency" },
-        });
-
-        // Update thread to waiting_coordinator
-        await supabase
-          .from("chat_threads")
-          .update({
-            status: "waiting_coordinator",
-            updated_at: new Date().toISOString(),
-          })
-          .eq("id", threadId);
-      }
+      // chat_threads 는 service_role 전용 RLS → 서버 API가 스레드 생성+메시지+상태 일괄 처리
+      const res = await fetch("/api/portal/emergency", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ lang }),
+      });
+      const result = await res.json();
+      if (!res.ok || !result.ok) throw new Error(result.error || "sos_failed");
 
       setSent(true);
     } catch (e) {

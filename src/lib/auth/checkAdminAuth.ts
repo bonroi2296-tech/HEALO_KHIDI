@@ -65,6 +65,7 @@ export async function checkAdminAuth(request?: any): Promise<{
   isAdmin: boolean;
   userId?: string;
   email?: string;
+  appRole?: string;   // app_metadata.role (admin/coordinator/doctor 등) — staff 판정용
   reason?: string;
   authMethod?: string;
   error?: string;
@@ -191,6 +192,7 @@ export async function checkAdminAuth(request?: any): Promise<{
         isAdmin: true,
         userId,
         email: userEmail,
+        appRole: appMetadataRole,
         reason: "app_metadata_role",
         authMethod,
         debug: isDev ? debugInfo : undefined,
@@ -210,6 +212,7 @@ export async function checkAdminAuth(request?: any): Promise<{
         isAdmin: true,
         userId,
         email: userEmail,
+        appRole: appMetadataRole,
         reason: "email_allowlist",
         authMethod,
         debug: isDev ? debugInfo : undefined,
@@ -219,6 +222,7 @@ export async function checkAdminAuth(request?: any): Promise<{
       isAdmin: false,
       userId,
       email: userEmail,
+      appRole: appMetadataRole,
       authMethod,
       error: "not_admin",
       debug: isDev ? debugInfo : undefined,

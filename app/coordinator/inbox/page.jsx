@@ -50,17 +50,13 @@ export default function CoordinatorInboxPage() {
     if (!session) { setLoading(false); return; }
 
     try {
-      const { data, error } = await supabase
-        .from("inquiries")
-        .select(
-          "id, nationality, cancer_type, preferred_language, contact_method, match_accuracy, status, step1_completed_at, step2_completed_at, created_at, first_name"
-        )
-        .not("step1_completed_at", "is", null)
-        .order("created_at", { ascending: false })
-        .limit(200);
-
-      if (error) throw error;
-      setItems(data || []);
+      // inquiries 는 service_role 전용 RLS → 서버 API 경유 (이름은 복호화+마스킹돼서 옴)
+      const res = await fetch("/api/portal/inbox", {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+      const result = await res.json();
+      if (!res.ok || !result.ok) throw new Error(result.error || "fetch_failed");
+      setItems(result.items || []);
     } catch (e) {
       console.error("[inbox] fetch error:", e);
     }
@@ -174,7 +170,7 @@ export default function CoordinatorInboxPage() {
                           <User size={14} className="text-gray-500" />
                         </div>
                         <span className="font-medium text-gray-900 truncate max-w-[120px]">
-                          {item.first_name ? "[암호화됨]" : "—"}
+                          {item.name || "—"}
                         </span>
                       </div>
                     </td>

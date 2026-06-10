@@ -48,36 +48,50 @@ export default function CoordinatorMessagesClient() {
     if (!loading) loadThreads(statusFilter);
   }, [statusFilter]);
 
-  async function loadThreads(filter) {
+  // chat_threads/chat_messages 는 service_role 전용 RLS → 서버 API 경유 필수
+  async function getAccessToken() {
     const supabase = createSupabaseBrowserClient();
-    let q = supabase.from("chat_threads").select("*").order("updated_at", { ascending: false });
-    if (filter && filter !== "all") q = q.eq("status", filter);
-    const { data } = await q;
-    setThreads(data || []);
+    const { data: { session } } = await supabase.auth.getSession();
+    return session?.access_token || null;
   }
 
-  // Load messages when thread selected + realtime subscribe
+  async function loadThreads(filter) {
+    const token = await getAccessToken();
+    if (!token) return;
+    try {
+      const qs = filter && filter !== "all" ? `?status=${encodeURIComponent(filter)}` : "";
+      const res = await fetch(`/api/portal/threads${qs}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const result = await res.json();
+      setThreads(result.ok ? result.threads || [] : []);
+    } catch {
+      setThreads([]);
+    }
+  }
+
+  // Load messages when thread selected (+5초 폴링 — RLS상 realtime 구독 불가)
   useEffect(() => {
     if (!selectedId) { setMessages([]); return; }
-    (async () => {
-      const supabase = createSupabaseBrowserClient();
-      const { data } = await supabase
-        .from("chat_messages")
-        .select("*")
-        .eq("thread_id", selectedId)
-        .order("created_at", { ascending: true });
-      setMessages(data || []);
+    let cancelled = false;
 
-      const channel = supabase
-        .channel(`coord-thread-${selectedId}`)
-        .on(
-          "postgres_changes",
-          { event: "INSERT", schema: "public", table: "chat_messages", filter: `thread_id=eq.${selectedId}` },
-          (payload) => setMessages((m) => [...m, payload.new])
-        )
-        .subscribe();
-      return () => supabase.removeChannel(channel);
-    })();
+    async function loadMessages() {
+      const token = await getAccessToken();
+      if (!token || cancelled) return;
+      try {
+        const res = await fetch(`/api/portal/threads/${selectedId}/messages`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const result = await res.json();
+        if (!cancelled && result.ok) setMessages(result.messages || []);
+      } catch {
+        /* 폴링 실패는 무시 */
+      }
+    }
+
+    loadMessages();
+    const timer = setInterval(loadMessages, 5000);
+    return () => { cancelled = true; clearInterval(timer); };
   }, [selectedId]);
 
   useEffect(() => { msgEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
@@ -86,26 +100,21 @@ export default function CoordinatorMessagesClient() {
     if (!draft.trim() || !selectedId || sending) return;
     setSending(true);
     try {
-      const supabase = createSupabaseBrowserClient();
-      const { data, error } = await supabase
-        .from("chat_messages")
-        .insert({
-          thread_id: selectedId,
-          actor_type: "coordinator",
-          actor_id: me.id,
-          message_text: draft.trim(),
-          is_internal: false,
-        })
-        .select()
-        .single();
-      if (!error && data) {
-        setMessages((m) => [...m, data]);
+      const token = await getAccessToken();
+      if (!token) return;
+      // 서버가 staff 전송 시 스레드를 waiting_patient 로 자동 전환
+      const res = await fetch(`/api/portal/threads/${selectedId}/messages`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ text: draft.trim() }),
+      });
+      const result = await res.json();
+      if (res.ok && result.ok && result.message) {
+        setMessages((m) => [...m, result.message]);
         setDraft("");
-        // Update thread status to waiting_patient
-        await supabase
-          .from("chat_threads")
-          .update({ status: "waiting_patient", updated_at: new Date().toISOString() })
-          .eq("id", selectedId);
       }
     } finally {
       setSending(false);
@@ -114,9 +123,24 @@ export default function CoordinatorMessagesClient() {
 
   async function changeThreadStatus(newStatus) {
     if (!selectedId) return;
-    const supabase = createSupabaseBrowserClient();
-    await supabase.from("chat_threads").update({ status: newStatus }).eq("id", selectedId);
-    setThreads((prev) => prev.map((t) => (t.id === selectedId ? { ...t, status: newStatus } : t)));
+    const token = await getAccessToken();
+    if (!token) return;
+    try {
+      const res = await fetch(`/api/portal/threads/${selectedId}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ status: newStatus }),
+      });
+      const result = await res.json();
+      if (res.ok && result.ok) {
+        setThreads((prev) => prev.map((t) => (t.id === selectedId ? { ...t, status: newStatus } : t)));
+      }
+    } catch {
+      /* 상태 변경 실패 — UI 유지 */
+    }
   }
 
   const selectedThread = threads.find((t) => t.id === selectedId);
