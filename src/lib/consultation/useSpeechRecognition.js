@@ -31,6 +31,11 @@ export function useSpeechRecognition({ language = "ko", onResult, onInterim, ena
   const [failed, setFailed] = useState(false);
   const recognitionRef = useRef(null);
   const enabledRef = useRef(enabled);
+  // 삼성 인터넷 등은 API 가 정의돼 있지만 start 직후 결과 없이 즉시 종료를 반복함
+  // (에러도 안 냄) → "빠른 종료 3회 연속 + 결과 0" 이면 실질 미지원으로 판정
+  const lastStartRef = useRef(0);
+  const sawResultRef = useRef(false);
+  const quickEndCountRef = useRef(0);
 
   useEffect(() => {
     enabledRef.current = enabled;
@@ -51,7 +56,13 @@ export function useSpeechRecognition({ language = "ko", onResult, onInterim, ena
     recognition.interimResults = true;
     recognition.maxAlternatives = 1;
 
+    recognition.onstart = () => {
+      lastStartRef.current = Date.now();
+    };
+
     recognition.onresult = (event) => {
+      sawResultRef.current = true;
+      quickEndCountRef.current = 0;
       let interimTranscript = "";
       let finalTranscript = "";
 
@@ -87,6 +98,16 @@ export function useSpeechRecognition({ language = "ko", onResult, onInterim, ena
     };
 
     recognition.onend = () => {
+      // 결과 한 번도 없이 2.5초 내 종료가 3회 연속이면 실질 미지원으로 판정
+      if (!sawResultRef.current && Date.now() - lastStartRef.current < 2500) {
+        quickEndCountRef.current += 1;
+        if (quickEndCountRef.current >= 3) {
+          setFailed(true);
+          setIsListening(false);
+          enabledRef.current = false;
+          return;
+        }
+      }
       // Auto-restart if still enabled
       if (enabledRef.current && recognitionRef.current) {
         try {
