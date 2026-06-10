@@ -712,7 +712,11 @@ export default function ConsultationRoomPage() {
       try {
         const res = await fetch("/api/khidi/consultation/translate-realtime", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            // 게스트(초대링크)는 계정이 없으므로 invite 토큰으로 번역 API 인증
+            ...(inviteToken ? { "X-Guest-Token": inviteToken } : {}),
+          },
           body: JSON.stringify({
             text,
             sourceLang: myLang,
@@ -767,7 +771,7 @@ export default function ConsultationRoomPage() {
         setIsTranslating(false);
       }
     },
-    [myLang, targetLang, consultationId, ttsEnabled, tts, isTranslating]
+    [myLang, targetLang, consultationId, ttsEnabled, tts, isTranslating, inviteToken]
   );
 
   // ── 상대방 자막 수신 핸들러 (DataChannel) ──
