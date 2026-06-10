@@ -106,7 +106,8 @@ export default function ConsultationsPage() {
           body: JSON.stringify({
             role: "patient",
             expiresInHours: 72,
-            maxUses: 3,
+            // 재접속마다 1회 차감 → 끊김 잦은 모바일 환경 고려해 넉넉하게
+            maxUses: 20,
           }),
         }
       );
@@ -688,7 +689,8 @@ function CreateConsultationModal({ onClose, onSuccess }) {
                   inviteeName: role === "patient" ? form.inviteeName || undefined : undefined,
                   inviteeEmail: role === "patient" ? form.inviteeEmail || undefined : undefined,
                   expiresInHours: 72,
-                  maxUses: role === "patient" ? 3 : 5, // 의사/통역사는 더 여유
+                  // 재접속(네트워크 끊김·새로고침)마다 1회 차감되므로 넉넉하게 — API 상한 20
+                  maxUses: 20,
                 }),
               }
             );
