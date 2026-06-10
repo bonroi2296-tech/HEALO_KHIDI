@@ -10,21 +10,21 @@
 
 ---
 
-## 🔴 P1 — 클라이언트가 service_role 전용 테이블 직접 쿼리 (RLS로 빈 데이터)
+## ✅ P1 — 클라이언트 service_role 테이블 직접 쿼리 → 서버 API 이관 (2026-06-10 완료)
 
-`inquiries`·`chat_threads`·`consultation_sessions` 는 RLS상 **service_role(서버)만 읽기 가능**.
-아래는 브라우저 client로 직접 쿼리 → **항상 0건 반환** (기능 작동 안 함). 서버 API 경유로 바꿔야 함.
+`inquiries`·`chat_threads`·`chat_messages`·`consultation_sessions` 전부 service_role 전용 RLS (pg_policies 재확인됨).
+`/api/portal/*` 서버 API 신설 (`requirePortalAuth` — staff = app_metadata.role ∈ admin/coordinator/doctor) 후 일괄 이관:
 
-| 파일 | 테이블 | 상태 | 비고 |
-|---|---|---|---|
-| `app/admin/consultations/page.jsx` (picker) | inquiries | ✅ **수정 완료** | `/api/admin/inquiries/picker` 서버 API로 교체 |
-| `app/coordinator/inbox/page.jsx` | inquiries | ⬜ 미수정 | **메뉴 미연결(orphan)** — 코디 portal 활성화 시 서버 API 필요 |
-| `app/patient/messages/MessagesClient.jsx` | chat_threads | ⬜ 미수정 | 환자 메시지 — portal 활성화 시 필요 |
-| `app/coordinator/messages/CoordinatorMessagesClient.jsx` | chat_threads | ⬜ 미수정 | 코디 메시지 |
-| `components/healo/NotificationBadge.jsx` | chat_threads, consultation_sessions | ⬜ 미수정 | 알림 뱃지 |
-| `components/healo/EmergencyButton.jsx` | chat_threads | ⬜ 미수정 | |
+| 파일 | 상태 | 경유 API |
+|---|---|---|
+| `app/admin/consultations/page.jsx` (picker) | ✅ | `/api/admin/inquiries/picker` |
+| `app/coordinator/inbox/page.jsx` | ✅ | `/api/portal/inbox` (이름 복호화+마스킹) |
+| `app/patient/messages/MessagesClient.jsx` | ✅ | `/api/portal/threads`·`…/[id]/messages` (realtime→5초 폴링) |
+| `app/coordinator/messages/CoordinatorMessagesClient.jsx` | ✅ | 동일 + `PATCH /api/portal/threads/[id]` (상태변경) |
+| `components/healo/NotificationBadge.jsx` | ✅ | `/api/portal/badge` |
+| `components/healo/EmergencyButton.jsx` | ✅ | `/api/portal/emergency` |
 
-**권장:** 환자/코디 portal 본격 사용 전, 위 데이터 조회를 서버 API(역할 인증 + 필요시 복호화)로 일괄 이관. 별도 집중 작업(반나절~1일).
+**미검증:** 코드·빌드·단위테스트(106개)는 통과했으나 **실제 코디/환자 계정으로 화면 동작은 미확인** (portal 메뉴 미연결 상태 동일). portal 활성화 때 실계정으로 1회 점검 필요.
 
 ---
 

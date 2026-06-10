@@ -23,24 +23,12 @@ export default function NotificationBadge() {
         } = await supabase.auth.getSession();
         if (!session?.user) return;
 
-        // 열린 스레드 + 예정된 오늘 상담
-        const today = new Date().toISOString().slice(0, 10);
-        const [threadsRes, consRes] = await Promise.all([
-          supabase
-            .from("chat_threads")
-            .select("id", { count: "exact", head: true })
-            .eq("user_id", session.user.id)
-            .eq("status", "open"),
-          supabase
-            .from("consultation_sessions")
-            .select("id", { count: "exact", head: true })
-            .eq("patient_user_id", session.user.id)
-            .eq("status", "scheduled")
-            .gte("scheduled_at", `${today}T00:00:00Z`)
-            .lte("scheduled_at", `${today}T23:59:59Z`),
-        ]);
-        const total = (threadsRes.count || 0) + (consRes.count || 0);
-        setCount(total);
+        // 열린 스레드 + 오늘 예정 상담 — service_role 전용 테이블이라 서버 API 경유
+        const res = await fetch("/api/portal/badge", {
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        });
+        const result = await res.json();
+        if (result.ok) setCount(result.count || 0);
       } catch (_e) {
         /* ignore */
       }

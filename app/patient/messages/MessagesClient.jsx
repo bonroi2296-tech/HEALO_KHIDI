@@ -69,6 +69,15 @@ export default function MessagesClient() {
   const [draft, setDraft] = useState("");
   const messagesEndRef = useRef(null);
 
+  // chat_threads/chat_messages 는 service_role 전용 RLS → 서버 API 경유 필수
+  async function getAccessToken() {
+    const supabase = createSupabaseBrowserClient();
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    return session?.access_token || null;
+  }
+
   // Load threads on mount
   useEffect(() => {
     (async () => {
@@ -82,49 +91,47 @@ export default function MessagesClient() {
       }
       setUser(session.user);
 
-      const { data } = await supabase
-        .from("chat_threads")
-        .select("*")
-        .eq("user_id", session.user.id)
-        .order("updated_at", { ascending: false });
-
-      setThreads(data || []);
+      try {
+        const res = await fetch("/api/portal/threads", {
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        });
+        const result = await res.json();
+        setThreads(result.ok ? result.threads || [] : []);
+      } catch {
+        setThreads([]);
+      }
       setLoading(false);
     })();
   }, []);
 
-  // Load messages when thread selected
+  // Load messages when thread selected (+5초 폴링 — RLS상 realtime 구독 불가)
   useEffect(() => {
     if (!selectedId) {
       setMessages([]);
       return;
     }
-    (async () => {
-      const supabase = createSupabaseBrowserClient();
-      const { data } = await supabase
-        .from("chat_messages")
-        .select("*")
-        .eq("thread_id", selectedId)
-        .eq("is_internal", false)
-        .order("created_at", { ascending: true });
-      setMessages(data || []);
-      // Subscribe realtime
-      const channel = supabase
-        .channel(`thread-${selectedId}`)
-        .on(
-          "postgres_changes",
-          { event: "INSERT", schema: "public", table: "chat_messages", filter: `thread_id=eq.${selectedId}` },
-          (payload) => {
-            if (!payload.new.is_internal) {
-              setMessages((m) => [...m, payload.new]);
-            }
-          }
-        )
-        .subscribe();
-      return () => {
-        supabase.removeChannel(channel);
-      };
-    })();
+    let cancelled = false;
+
+    async function loadMessages() {
+      const token = await getAccessToken();
+      if (!token || cancelled) return;
+      try {
+        const res = await fetch(`/api/portal/threads/${selectedId}/messages`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const result = await res.json();
+        if (!cancelled && result.ok) setMessages(result.messages || []);
+      } catch {
+        /* 폴링 실패는 무시 (다음 주기에 재시도) */
+      }
+    }
+
+    loadMessages();
+    const timer = setInterval(loadMessages, 5000);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
   }, [selectedId]);
 
   // Scroll to bottom when messages change
@@ -165,22 +172,23 @@ export default function MessagesClient() {
     if (!draft.trim() || !selectedId || !user || sending) return;
     setSending(true);
     try {
-      const supabase = createSupabaseBrowserClient();
-      const { data, error } = await supabase
-        .from("chat_messages")
-        .insert({
-          thread_id: selectedId,
-          actor_type: "user",
-          actor_id: user.id,
-          message_text: draft.trim(),
-          is_internal: false,
-        })
-        .select()
-        .single();
-      if (!error && data) {
-        setMessages((m) => [...m, data]);
+      const token = await getAccessToken();
+      if (!token) return;
+      const res = await fetch(`/api/portal/threads/${selectedId}/messages`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ text: draft.trim() }),
+      });
+      const result = await res.json();
+      if (res.ok && result.ok && result.message) {
+        setMessages((m) => [...m, result.message]);
         setDraft("");
       }
+    } catch {
+      /* 전송 실패 — draft 유지해서 재시도 가능 */
     } finally {
       setSending(false);
     }
