@@ -1365,6 +1365,110 @@ export default function ConsultationRoomPage() {
     [consultationId, getConsultAuthHeaders, loadSharedDocs, uploadingDoc, toast, c]
   );
 
+  // ── 서버 STT 폴백 — 브라우저 음성인식이 미지원/무음 사망이면 자동 전환 ──
+  // 4초 단위로 녹음 조각을 서버(Gemini 전사)로 보내 자막 생성.
+  // 크롬 외 브라우저(삼성·iOS Safari·인앱)와 카자흐어 음성까지 커버.
+  const [mediaRecOk, setMediaRecOk] = useState(false);
+  useEffect(() => {
+    setMediaRecOk(
+      typeof MediaRecorder !== "undefined" && !!navigator.mediaDevices?.getUserMedia
+    );
+  }, []);
+  const useServerStt =
+    translationEnabled && (stt.failed || !stt.isSupported) && mediaRecOk;
+  const translateTextRef = useRef(translateText);
+  useEffect(() => {
+    translateTextRef.current = translateText;
+  }, [translateText]);
+
+  useEffect(() => {
+    if (!useServerStt) return;
+    if (typeof MediaRecorder === "undefined" || !navigator.mediaDevices?.getUserMedia) return;
+
+    let stopped = false;
+    let stream = null;
+    let recorder = null;
+    let stopTimer = null;
+
+    const mime = MediaRecorder.isTypeSupported?.("audio/webm")
+      ? "audio/webm"
+      : MediaRecorder.isTypeSupported?.("audio/mp4")
+      ? "audio/mp4"
+      : "";
+
+    // 조각마다 MediaRecorder 새로 시작 — 이어붙인 조각은 컨테이너 헤더가 없어
+    // 단독 디코딩이 안 되므로 stop/start 사이클로 자립적인 블롭을 만든다
+    const recordCycle = () => {
+      if (stopped || !stream) return;
+      const chunks = [];
+      try {
+        recorder = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
+      } catch {
+        return;
+      }
+      recorder.ondataavailable = (e) => {
+        if (e.data && e.data.size > 0) chunks.push(e.data);
+      };
+      recorder.onstop = async () => {
+        const blob = new Blob(chunks, { type: mime || "audio/webm" });
+        // 너무 작은 조각(무음)은 전송 생략
+        if (!stopped && blob.size > 4000) {
+          try {
+            const headers = await getConsultAuthHeaders();
+            if (headers) {
+              const fd = new FormData();
+              fd.append("audio", blob, "chunk.webm");
+              fd.append("lang", myLang);
+              const res = await fetch(
+                `/api/khidi/consultation/${consultationId}/stt`,
+                { method: "POST", headers, body: fd }
+              );
+              const result = await res.json();
+              if (result.ok && result.transcript) {
+                translateTextRef.current(result.transcript);
+              }
+            }
+          } catch {
+            /* 조각 실패는 무시 — 다음 사이클 */
+          }
+        }
+        if (!stopped) recordCycle();
+      };
+      recorder.start();
+      stopTimer = setTimeout(() => {
+        try {
+          if (recorder.state !== "inactive") recorder.stop();
+        } catch {
+          /* ignore */
+        }
+      }, 4000);
+    };
+
+    (async () => {
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      } catch {
+        return; // 마이크 거부 — 수동 입력 안내가 이미 떠 있음
+      }
+      if (stopped) {
+        stream.getTracks().forEach((t) => t.stop());
+        return;
+      }
+      recordCycle();
+    })();
+
+    return () => {
+      stopped = true;
+      clearTimeout(stopTimer);
+      try {
+        if (recorder && recorder.state !== "inactive") recorder.stop();
+      } catch {
+        /* ignore */
+      }
+      stream?.getTracks().forEach((t) => t.stop());
+    };
+  }, [useServerStt, myLang, consultationId, getConsultAuthHeaders]);
+
   // ── End call ──
   const handleEndCall = async () => {
     if (confirm(c.endConfirm)) {
@@ -1927,7 +2031,7 @@ export default function ConsultationRoomPage() {
                         <p>{c.translationEmpty2}</p>
                       </>
                     )}
-                    {(!stt.isSupported || stt.failed) && (
+                    {(!stt.isSupported || stt.failed) && !mediaRecOk && (
                       <p className="mt-3 text-yellow-500 text-xs">
                         {c.sttUnsupported1}
                         <br />
@@ -1990,8 +2094,8 @@ export default function ConsultationRoomPage() {
                 </div>
               )}
 
-              {/* 음성 인식 실패(인앱 브라우저 등) 안내 — 수동 입력 유도 */}
-              {translationEnabled && (stt.failed || !stt.isSupported) && (
+              {/* 음성 인식 실패 + 서버 폴백도 불가한 환경만 — 수동 입력 유도 */}
+              {translationEnabled && (stt.failed || !stt.isSupported) && !mediaRecOk && (
                 <div className="border-t border-gray-700 px-4 py-2 bg-yellow-500/10">
                   <p className="text-xs text-yellow-300">{c.sttFailedNotice}</p>
                 </div>
