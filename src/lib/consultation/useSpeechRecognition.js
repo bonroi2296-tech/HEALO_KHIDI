@@ -26,6 +26,9 @@ export function getEffectiveSttLang(lang) {
 export function useSpeechRecognition({ language = "ko", onResult, onInterim, enabled = true }) {
   const [isListening, setIsListening] = useState(false);
   const [isSupported, setIsSupported] = useState(false);
+  // 인앱 브라우저(카카오톡 등)는 webkitSpeechRecognition 이 존재해도 start 시
+  // service-not-allowed 로 조용히 죽음 → 사용자에게 알릴 수 있게 실패 상태 노출
+  const [failed, setFailed] = useState(false);
   const recognitionRef = useRef(null);
   const enabledRef = useRef(enabled);
 
@@ -72,8 +75,14 @@ export function useSpeechRecognition({ language = "ko", onResult, onInterim, ena
 
     recognition.onerror = (event) => {
       console.error("[STT] Error:", event.error);
-      if (event.error === "not-allowed") {
+      if (
+        event.error === "not-allowed" ||
+        event.error === "service-not-allowed" ||
+        event.error === "audio-capture"
+      ) {
+        setFailed(true);
         setIsListening(false);
+        enabledRef.current = false; // 영구 실패 — 자동 재시작 중지
       }
     };
 
@@ -150,5 +159,5 @@ export function useSpeechRecognition({ language = "ko", onResult, onInterim, ena
     }
   }, []);
 
-  return { isListening, isSupported, start, stop };
+  return { isListening, isSupported, failed, start, stop };
 }

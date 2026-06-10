@@ -25,6 +25,9 @@ import {
   Languages,
   Volume2,
   VolumeX,
+  Paperclip,
+  ExternalLink,
+  FileText,
 } from "lucide-react";
 import { createSupabaseBrowserClient } from "../../../src/lib/supabase/browser";
 import { useLang } from "../../../src/lib/i18n/LangContext";
@@ -117,6 +120,14 @@ const COPY = {
     sttUnsupported2: "음성이 안 되면 아래에 직접 입력해 번역하세요.",
     manualPlaceholder: "번역할 내용을 입력하세요...",
     manualHint: "마이크가 안 되는 환경이면 직접 입력해 번역할 수 있어요.",
+    sttFailedNotice: "이 브라우저에서는 음성 인식이 안 됩니다. 아래 입력칸으로 번역하세요.",
+    inAppNotice: "앱 안 브라우저에서는 영상·음성이 제한될 수 있어요.",
+    openExternal: "브라우저에서 열기",
+    linkCopied: "링크 복사됨 — 브라우저 주소창에 붙여넣으세요.",
+    attachFile: "자료 첨부",
+    sharedFiles: "공유 자료",
+    uploadingFile: "업로드 중...",
+    uploadFailed: "업로드 실패",
     you: "You",
     translationActive: "실시간 번역 활성",
     translatingNow: "번역 중...",
@@ -195,6 +206,14 @@ const COPY = {
     sttUnsupported2: "No voice? Type below to translate instead.",
     manualPlaceholder: "Type text to translate...",
     manualHint: "No microphone? You can type to translate instead.",
+    sttFailedNotice: "Voice recognition doesn't work in this browser. Type below to translate.",
+    inAppNotice: "In-app browsers may limit video and audio.",
+    openExternal: "Open in browser",
+    linkCopied: "Link copied — paste it into your browser.",
+    attachFile: "Attach file",
+    sharedFiles: "Shared files",
+    uploadingFile: "Uploading...",
+    uploadFailed: "Upload failed",
     you: "You",
     translationActive: "Live translation active",
     translatingNow: "Translating...",
@@ -272,6 +291,14 @@ const COPY = {
     sttUnsupported2: "Нет голоса? Введите текст ниже для перевода.",
     manualPlaceholder: "Введите текст для перевода...",
     manualHint: "Нет микрофона? Можно ввести текст для перевода.",
+    sttFailedNotice: "Распознавание речи не работает в этом браузере. Введите текст ниже.",
+    inAppNotice: "Встроенные браузеры приложений могут ограничивать видео и звук.",
+    openExternal: "Открыть в браузере",
+    linkCopied: "Ссылка скопирована — вставьте её в браузер.",
+    attachFile: "Прикрепить файл",
+    sharedFiles: "Общие файлы",
+    uploadingFile: "Загрузка...",
+    uploadFailed: "Ошибка загрузки",
     you: "Вы",
     translationActive: "Перевод в реальном времени активен",
     translatingNow: "Перевод...",
@@ -349,6 +376,14 @@ const COPY = {
     sttUnsupported2: "Дауыс жоқ па? Аудару үшін төменге мәтін теріңіз.",
     manualPlaceholder: "Аударылатын мәтінді енгізіңіз...",
     manualHint: "Микрофон жоқ па? Мәтінді теріп аударуға болады.",
+    sttFailedNotice: "Бұл браузерде дауыс тану жұмыс істемейді. Төменге мәтін теріңіз.",
+    inAppNotice: "Қолданба ішіндегі браузер видео мен дыбысты шектеуі мүмкін.",
+    openExternal: "Браузерде ашу",
+    linkCopied: "Сілтеме көшірілді — браузерге қойыңыз.",
+    attachFile: "Файл тіркеу",
+    sharedFiles: "Ортақ файлдар",
+    uploadingFile: "Жүктелуде...",
+    uploadFailed: "Жүктеу сәтсіз",
     you: "Сіз",
     translationActive: "Нақты уақыттағы аударма белсенді",
     translatingNow: "Аударылуда...",
@@ -426,6 +461,14 @@ const COPY = {
     sttUnsupported2: "无法语音？可在下方输入文字进行翻译。",
     manualPlaceholder: "输入要翻译的内容...",
     manualHint: "没有麦克风？可直接输入文字进行翻译。",
+    sttFailedNotice: "此浏览器不支持语音识别。请在下方输入文字进行翻译。",
+    inAppNotice: "应用内置浏览器可能限制视频和音频。",
+    openExternal: "在浏览器中打开",
+    linkCopied: "链接已复制——请粘贴到浏览器。",
+    attachFile: "附加文件",
+    sharedFiles: "共享资料",
+    uploadingFile: "上传中...",
+    uploadFailed: "上传失败",
     you: "您",
     translationActive: "实时翻译已启用",
     translatingNow: "翻译中...",
@@ -503,6 +546,14 @@ const COPY = {
     sttUnsupported2: "音声が使えない場合は下に入力して翻訳できます。",
     manualPlaceholder: "翻訳する内容を入力...",
     manualHint: "マイクが使えない場合は入力して翻訳できます。",
+    sttFailedNotice: "このブラウザでは音声認識が使えません。下に入力して翻訳してください。",
+    inAppNotice: "アプリ内ブラウザでは映像・音声が制限される場合があります。",
+    openExternal: "ブラウザで開く",
+    linkCopied: "リンクをコピーしました — ブラウザに貼り付けてください。",
+    attachFile: "ファイル添付",
+    sharedFiles: "共有資料",
+    uploadingFile: "アップロード中...",
+    uploadFailed: "アップロード失敗",
     you: "あなた",
     translationActive: "リアルタイム翻訳が有効",
     translatingNow: "翻訳中...",
@@ -671,6 +722,40 @@ export default function ConsultationRoomPage() {
   const [interimText, setInterimText] = useState("");
   const [manualInput, setManualInput] = useState("");
   const [translationEnabled, setTranslationEnabled] = useState(false);
+
+  // 인앱 브라우저(카카오톡·라인·인스타 등) — 영상·음성 제한 많음 → 외부 브라우저 유도
+  const [isInAppBrowser, setIsInAppBrowser] = useState(false);
+  useEffect(() => {
+    const ua = typeof navigator !== "undefined" ? navigator.userAgent || "" : "";
+    setIsInAppBrowser(
+      /KAKAOTALK|Line\/|Instagram|FBAN|FBAV|NAVER\(inapp|DaumApps|whale.*inapp|; wv\)/i.test(ua)
+    );
+  }, []);
+
+  const openInExternalBrowser = useCallback(() => {
+    const url = window.location.href;
+    const ua = navigator.userAgent || "";
+    if (/KAKAOTALK/i.test(ua)) {
+      // 카카오톡 공식 외부 브라우저 열기 스킴
+      window.location.href = `kakaotalk://web/openExternal?url=${encodeURIComponent(url)}`;
+      return;
+    }
+    if (/Android/i.test(ua)) {
+      // Android: 기본 브라우저로 강제 (intent)
+      window.location.href = `intent://${url.replace(/^https?:\/\//, "")}#Intent;scheme=https;action=android.intent.action.VIEW;end`;
+      return;
+    }
+    // iOS 등: 스킴 강제가 불가 → 링크 복사 안내
+    navigator.clipboard?.writeText(url).then(
+      () => toast.success(c.linkCopied),
+      () => prompt("URL", url)
+    );
+  }, [toast, c]);
+
+  // 공유 자료 (consultation_documents)
+  const [sharedDocs, setSharedDocs] = useState([]);
+  const [uploadingDoc, setUploadingDoc] = useState(false);
+  const fileInputRef = useRef(null);
   const [ttsEnabled, setTtsEnabled] = useState(true);
   const [isTranslating, setIsTranslating] = useState(false);
 
@@ -1219,6 +1304,55 @@ export default function ConsultationRoomPage() {
     };
   }, [isGuestMode, livekitToken, inviteToken, consultationId, normalizeMsg, normalizeTrans]);
 
+  // ── 공유 자료: 목록 로드 + 업로드 ──
+  const loadSharedDocs = useCallback(async () => {
+    try {
+      const headers = await getConsultAuthHeaders();
+      if (!headers) return;
+      const res = await fetch(`/api/khidi/consultation/${consultationId}/documents`, { headers });
+      const result = await res.json();
+      if (result.ok) setSharedDocs(result.data || []);
+    } catch {
+      /* 목록 로드 실패는 무시 */
+    }
+  }, [consultationId, getConsultAuthHeaders]);
+
+  useEffect(() => {
+    if (!livekitToken) return;
+    loadSharedDocs();
+  }, [livekitToken, loadSharedDocs]);
+
+  const handleFileUpload = useCallback(
+    async (file) => {
+      if (!file || uploadingDoc) return;
+      setUploadingDoc(true);
+      try {
+        const headers = await getConsultAuthHeaders();
+        if (!headers) return;
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("documentType", "other");
+        const res = await fetch(`/api/khidi/consultation/${consultationId}/documents`, {
+          method: "POST",
+          headers, // Content-Type 는 FormData 가 boundary 포함해 자동 설정
+          body: formData,
+        });
+        const result = await res.json();
+        if (res.ok && result.ok) {
+          await loadSharedDocs();
+        } else {
+          toast.error(`${c.uploadFailed}: ${result.error || res.status}`);
+        }
+      } catch {
+        toast.error(c.uploadFailed);
+      } finally {
+        setUploadingDoc(false);
+        if (fileInputRef.current) fileInputRef.current.value = "";
+      }
+    },
+    [consultationId, getConsultAuthHeaders, loadSharedDocs, uploadingDoc, toast, c]
+  );
+
   // ── End call ──
   const handleEndCall = async () => {
     if (confirm(c.endConfirm)) {
@@ -1260,6 +1394,19 @@ export default function ConsultationRoomPage() {
             <p className="text-sm text-gray-400 leading-relaxed">
               {c.guestLede}
             </p>
+            {/* 인앱 브라우저(카카오톡 등) → 영상·음성 제한 → 입장 전에 외부 브라우저 유도 */}
+            {isInAppBrowser && (
+              <div className="mt-4 flex items-center justify-between gap-3 bg-yellow-500/10 border border-yellow-600/40 rounded-lg px-3 py-2.5">
+                <p className="text-xs text-yellow-200 leading-snug">{c.inAppNotice}</p>
+                <button
+                  type="button"
+                  onClick={openInExternalBrowser}
+                  className="shrink-0 flex items-center gap-1.5 px-3 py-2 bg-yellow-500 hover:bg-yellow-400 text-gray-900 text-xs font-bold rounded-lg transition"
+                >
+                  <ExternalLink size={14} /> {c.openExternal}
+                </button>
+              </div>
+            )}
           </div>
 
           <form
@@ -1461,6 +1608,19 @@ export default function ConsultationRoomPage() {
           </div>
         </div>
       </div>
+
+      {/* 인앱 브라우저 경고 — 영상·음성 제한 가능 → 외부 브라우저 유도 */}
+      {isInAppBrowser && (
+        <div className="flex items-center justify-between gap-3 bg-yellow-500/10 border-b border-yellow-600/40 px-3 py-2">
+          <p className="text-xs text-yellow-200 leading-snug">{c.inAppNotice}</p>
+          <button
+            onClick={openInExternalBrowser}
+            className="shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 bg-yellow-500 hover:bg-yellow-400 text-gray-900 text-xs font-bold rounded-lg transition"
+          >
+            <ExternalLink size={13} /> {c.openExternal}
+          </button>
+        </div>
+      )}
 
       {/* ── Main content ── */}
       <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
@@ -1670,8 +1830,51 @@ export default function ConsultationRoomPage() {
                 )}
               </div>
 
+              {/* 공유 자료 목록 — 검사결과지·처방전 등 (양쪽 모두 보임) */}
+              {sharedDocs.length > 0 && (
+                <div className="border-t border-gray-700 px-4 py-2 max-h-28 overflow-y-auto">
+                  <p className="text-[11px] text-gray-500 mb-1.5">
+                    {c.sharedFiles} ({sharedDocs.length})
+                  </p>
+                  <div className="space-y-1">
+                    {sharedDocs.map((doc) => (
+                      <a
+                        key={doc.id}
+                        href={doc.url || "#"}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-2 text-xs text-teal-300 hover:text-teal-200 truncate"
+                      >
+                        <FileText size={13} className="shrink-0" />
+                        <span className="truncate">{doc.file_name}</span>
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <div className="border-t border-gray-700 p-4">
                 <div className="flex gap-2">
+                  {/* 자료 첨부 (PDF·이미지·DICOM, 20MB) */}
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".pdf,.jpg,.jpeg,.png,.webp,.dcm,application/pdf,image/jpeg,image/png,image/webp,application/dicom"
+                    className="hidden"
+                    onChange={(e) => handleFileUpload(e.target.files?.[0])}
+                  />
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploadingDoc}
+                    className="p-2 bg-gray-700 hover:bg-gray-600 disabled:opacity-40 rounded-lg transition text-gray-300"
+                    title={uploadingDoc ? c.uploadingFile : c.attachFile}
+                  >
+                    {uploadingDoc ? (
+                      <span className="block w-4 h-4 border-2 border-teal-400 border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <Paperclip size={16} />
+                    )}
+                  </button>
                   <input
                     type="text"
                     value={messageInput}
@@ -1762,6 +1965,13 @@ export default function ConsultationRoomPage() {
                       <span className="text-yellow-400 ml-auto">{c.translatingNow}</span>
                     )}
                   </div>
+                </div>
+              )}
+
+              {/* 음성 인식 실패(인앱 브라우저 등) 안내 — 수동 입력 유도 */}
+              {translationEnabled && (stt.failed || !stt.isSupported) && (
+                <div className="border-t border-gray-700 px-4 py-2 bg-yellow-500/10">
+                  <p className="text-xs text-yellow-300">{c.sttFailedNotice}</p>
                 </div>
               )}
 
