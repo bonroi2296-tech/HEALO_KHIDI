@@ -1230,14 +1230,14 @@ export default function ConsultationRoomPage() {
             </button>
             <div>
               <h1 className="text-lg font-bold">
-                {consultation.cancer_patient_intakes?.[0]?.cancer_type || c.consultationFallback} —{" "}
-                {consultation.session_type === "pre_consultation" && c.sessionPre}
-                {consultation.session_type === "follow_up" && c.sessionFollowUp}
-                {consultation.session_type === "emergency" && c.sessionEmergency}
-                {consultation.session_type === "diagnostic" && c.sessionDiagnostic}
+                {consultation?.cancer_patient_intakes?.[0]?.cancer_type || c.consultationFallback} —{" "}
+                {consultation?.session_type === "pre_consultation" && c.sessionPre}
+                {consultation?.session_type === "follow_up" && c.sessionFollowUp}
+                {consultation?.session_type === "emergency" && c.sessionEmergency}
+                {consultation?.session_type === "diagnostic" && c.sessionDiagnostic}
               </h1>
               <p className="text-xs text-gray-400">
-                Room: {consultation.livekit_room_name}
+                {consultation?.livekit_room_name && <>Room: {consultation.livekit_room_name}</>}
                 {connected && <span className="ml-2 text-green-400">● {c.connected}</span>}
               </p>
             </div>
