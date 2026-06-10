@@ -14,6 +14,7 @@ import { NextRequest } from "next/server";
 import { generateText } from "ai";
 import { google } from "@ai-sdk/google";
 import { requireConsultationAccess, requireAuthenticatedUser } from "@/lib/auth/requireConsultationAccess";
+import { verifyGuestTokenReadOnly } from "@/lib/auth/guestToken";
 
 // Origin 화이트리스트 (브라우저에서 진료 중 호출되므로 시크릿 대신 Origin 검증)
 const ALLOWED_ORIGINS = new Set<string>([
@@ -83,8 +84,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 인증: consultationId 가 있으면 참가자 검증, 없으면 인증된 사용자만
-    if (consultationId) {
+    // 인증: 게스트(초대링크 입장)는 계정이 없으므로 X-Guest-Token 으로 검증.
+    // 계정 사용자는 기존 참가자 권한 검증.
+    const guestToken = request.headers.get("x-guest-token");
+    if (consultationId && guestToken) {
+      const v = await verifyGuestTokenReadOnly(guestToken, String(consultationId));
+      if (!v.valid) {
+        return Response.json({ ok: false, error: "forbidden" }, { status: 403 });
+      }
+    } else if (consultationId) {
       const access = await requireConsultationAccess(request, String(consultationId));
       if (!access.success) return access.response;
     } else {
