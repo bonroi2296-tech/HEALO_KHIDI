@@ -123,6 +123,10 @@ const COPY = {
     manualHint: "마이크가 안 되는 환경이면 직접 입력해 번역할 수 있어요.",
     togglePanel: "채팅·번역 열기/닫기",
     sttFailedNotice: "이 브라우저에서는 음성 인식이 안 됩니다. 아래 입력칸으로 번역하세요.",
+    myLangLabel: "내가 말하는 언어",
+    langTheirLabel: "상대방 언어",
+    langChangeTitle: "번역 언어 설정",
+    done: "확인",
     emptyActiveHint1: "말하면 자막이 표시됩니다.",
     emptyActiveHint2: "음성이 안 되면 아래 입력칸에 쓰고 번역 버튼을 누르세요.",
     inAppNotice: "앱 안 브라우저에서는 영상·음성이 제한될 수 있어요.",
@@ -212,6 +216,10 @@ const COPY = {
     manualHint: "No microphone? You can type to translate instead.",
     togglePanel: "Show/hide chat & translation",
     sttFailedNotice: "Voice recognition doesn't work in this browser. Type below to translate.",
+    myLangLabel: "My language",
+    langTheirLabel: "Their language",
+    langChangeTitle: "Translation languages",
+    done: "Done",
     emptyActiveHint1: "Speak and subtitles will appear.",
     emptyActiveHint2: "If voice doesn't work, type below and press the translate button.",
     inAppNotice: "In-app browsers may limit video and audio.",
@@ -300,6 +308,10 @@ const COPY = {
     manualHint: "Нет микрофона? Можно ввести текст для перевода.",
     togglePanel: "Показать/скрыть чат и перевод",
     sttFailedNotice: "Распознавание речи не работает в этом браузере. Введите текст ниже.",
+    myLangLabel: "Мой язык",
+    langTheirLabel: "Язык собеседника",
+    langChangeTitle: "Языки перевода",
+    done: "Готово",
     emptyActiveHint1: "Говорите — появятся субтитры.",
     emptyActiveHint2: "Если голос не работает, введите текст ниже и нажмите кнопку перевода.",
     inAppNotice: "Встроенные браузеры приложений могут ограничивать видео и звук.",
@@ -388,6 +400,10 @@ const COPY = {
     manualHint: "Микрофон жоқ па? Мәтінді теріп аударуға болады.",
     togglePanel: "Чат пен аударманы көрсету/жасыру",
     sttFailedNotice: "Бұл браузерде дауыс тану жұмыс істемейді. Төменге мәтін теріңіз.",
+    myLangLabel: "Менің тілім",
+    langTheirLabel: "Әңгімелесушінің тілі",
+    langChangeTitle: "Аударма тілдері",
+    done: "Дайын",
     emptyActiveHint1: "Сөйлесеңіз — субтитрлер шығады.",
     emptyActiveHint2: "Дауыс жұмыс істемесе, төменге теріп, аудару түймесін басыңыз.",
     inAppNotice: "Қолданба ішіндегі браузер видео мен дыбысты шектеуі мүмкін.",
@@ -476,6 +492,10 @@ const COPY = {
     manualHint: "没有麦克风？可直接输入文字进行翻译。",
     togglePanel: "显示/隐藏聊天和翻译",
     sttFailedNotice: "此浏览器不支持语音识别。请在下方输入文字进行翻译。",
+    myLangLabel: "我说的语言",
+    langTheirLabel: "对方语言",
+    langChangeTitle: "翻译语言",
+    done: "确定",
     emptyActiveHint1: "说话即可显示字幕。",
     emptyActiveHint2: "如语音不可用，请在下方输入并点击翻译按钮。",
     inAppNotice: "应用内置浏览器可能限制视频和音频。",
@@ -564,6 +584,10 @@ const COPY = {
     manualHint: "マイクが使えない場合は入力して翻訳できます。",
     togglePanel: "チャット・翻訳の表示/非表示",
     sttFailedNotice: "このブラウザでは音声認識が使えません。下に入力して翻訳してください。",
+    myLangLabel: "話す言語",
+    langTheirLabel: "相手の言語",
+    langChangeTitle: "翻訳言語",
+    done: "完了",
     emptyActiveHint1: "話すと字幕が表示されます。",
     emptyActiveHint2: "音声が使えない場合は下に入力して翻訳ボタンを押してください。",
     inAppNotice: "アプリ内ブラウザでは映像・音声が制限される場合があります。",
@@ -724,6 +748,10 @@ export default function ConsultationRoomPage() {
   const [guestName, setGuestName] = useState("");
   const [guestJoining, setGuestJoining] = useState(false);
   const [guestError, setGuestError] = useState("");
+  // 입장 시 고르는 "내가 말하는 언어" — 사이트 UI 언어로 미리 선택돼 있어 보통은 탭 불필요
+  const [guestLang, setGuestLang] = useState(() =>
+    ["ko", "en", "ru", "kz", "zh", "ja"].includes(lang) ? lang : "ru"
+  );
   // Waiting Room — 의사 승인 대기
   const [admissionId, setAdmissionId] = useState(null);
   const [admissionStatus, setAdmissionStatus] = useState(null);
@@ -742,6 +770,8 @@ export default function ConsultationRoomPage() {
   const [interimText, setInterimText] = useState("");
   const [manualInput, setManualInput] = useState("");
   const [translationEnabled, setTranslationEnabled] = useState(false);
+  // 언어 변경 바텀시트 (모바일에서도 언어쌍 변경 가능하게)
+  const [langSheetOpen, setLangSheetOpen] = useState(false);
 
   // 인앱 브라우저(카카오톡·라인·인스타 등) — 영상·음성 제한 많음 → 외부 브라우저 유도
   const [isInAppBrowser, setIsInAppBrowser] = useState(false);
@@ -933,8 +963,7 @@ export default function ConsultationRoomPage() {
       // 이미 서버 STT 로 전환된 상태면 브라우저 STT 재시작 안 함 (이중 자막 방지)
       if (!forceServerStt) stt.start();
       setTranslationEnabled(true);
-      setActivePanel("translation");
-      setPanelOpen(true); // 번역 켜면 패널 자동 노출 — 자막 입력칸·기록 보이게
+      // 패널은 자동으로 안 엶 — 자막은 영상 위 오버레이, 입력은 하단 미니 바 (Zoom/Meet 식)
       toast.success(`${c.translationStartedPrefix} (${LANG_LABELS[myLang]} → ${LANG_LABELS[targetLang]})`);
     }
   }, [translationEnabled, forceServerStt, stt, myLang, targetLang, toast]);
@@ -986,16 +1015,13 @@ export default function ConsultationRoomPage() {
       setLivekitUrl(result.livekitUrl);
       setAdmissionId(result.admissionId || null);
       setAdmissionStatus(result.admissionStatus || "approved");
-      // 게스트도 번역/언어는 역할 기반 기본값
-      if (result.role === "patient") {
-        setMyLang("ru");
-        setTargetLang("ko");
-        setMyRole("patient");
-      } else {
-        setMyLang("ko");
-        setTargetLang("ru");
-        setMyRole(result.role || "patient");
-      }
+      // 언어: 입장 화면에서 고른 "내가 말하는 언어" 기준.
+      // 상대 기본값 — 내가 한국어면 러시아어(주 환자군), 아니면 한국어(의료진).
+      // 상담 중에도 언어 칩 탭으로 변경 가능.
+      const ml = guestLang || (result.role === "patient" ? "ru" : "ko");
+      setMyLang(ml);
+      setTargetLang(ml === "ko" ? "ru" : "ko");
+      setMyRole(result.role || "patient");
       setLoading(false);
     } catch (err) {
       console.error("[guest-join] error:", err);
@@ -1003,7 +1029,7 @@ export default function ConsultationRoomPage() {
     } finally {
       setGuestJoining(false);
     }
-  }, [inviteToken, consultationId, guestName]);
+  }, [inviteToken, consultationId, guestName, guestLang]);
 
   // ── 의사/관리자용 대기열 polling ──
   // 게스트 의사/코디(초대링크 입장)도 X-Guest-Token 으로 대기열 조회·승인 가능
@@ -1317,7 +1343,18 @@ export default function ConsultationRoomPage() {
             const seen = new Set(prev.map((t) => t.id));
             const incoming = tJson.data
               .filter((row) => !seen.has(row.id))
-              .map(normalizeTrans);
+              .map(normalizeTrans)
+              // 내 발화는 로컬 entry(다른 id)로 이미 추가됨 — 서버 기록이 같은 내용으로
+              // 다시 오면 중복 표시되므로 내용+20초 시간창 기준으로 걸러냄
+              .filter(
+                (row) =>
+                  !prev.some(
+                    (p) =>
+                      p.original_text === row.original_text &&
+                      p.translated_text === row.translated_text &&
+                      Math.abs(new Date(p.created_at) - new Date(row.created_at)) < 20000
+                  )
+              );
             return incoming.length ? [...prev, ...incoming] : prev;
           });
         }
@@ -1627,6 +1664,29 @@ export default function ConsultationRoomPage() {
                 className="w-full px-4 py-3 bg-gray-900 border border-gray-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500"
                 maxLength={50}
               />
+            </div>
+
+            {/* 내가 말하는 언어 — 사이트 언어로 미리 선택돼 있음, 자막·번역 방향 결정 */}
+            <div>
+              <label className="block text-sm font-semibold mb-2 text-gray-200">
+                {c.myLangLabel}
+              </label>
+              <div className="flex flex-wrap gap-2">
+                {["ko", "en", "ru", "kz", "zh", "ja"].map((l) => (
+                  <button
+                    key={l}
+                    type="button"
+                    onClick={() => setGuestLang(l)}
+                    className={`px-3 py-2 rounded-lg text-sm transition border ${
+                      guestLang === l
+                        ? "bg-teal-600 border-teal-500 text-white font-semibold"
+                        : "bg-gray-900 border-gray-600 text-gray-300 hover:border-gray-400"
+                    }`}
+                  >
+                    {LANG_LABELS[l]}
+                  </button>
+                ))}
+              </div>
             </div>
 
             {guestError && (
@@ -2194,9 +2254,13 @@ export default function ConsultationRoomPage() {
                 <div className="border-t border-gray-700 px-4 py-2 bg-gray-750">
                   <div className="flex items-center gap-2 text-xs">
                     <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                    <span className="text-gray-400">
-                      {c.translationActive} — {LANG_LABELS[myLang]} → {LANG_LABELS[targetLang]}
-                    </span>
+                    <span className="text-gray-400">{c.translationActive}</span>
+                    <button
+                      onClick={() => setLangSheetOpen(true)}
+                      className="px-2 py-1 bg-gray-700 hover:bg-gray-600 rounded text-teal-300 font-medium transition"
+                    >
+                      {LANG_LABELS[myLang]} → {LANG_LABELS[targetLang]}
+                    </button>
                     {isTranslating && (
                       <span className="text-yellow-400 ml-auto">{c.translatingNow}</span>
                     )}
@@ -2248,6 +2312,101 @@ export default function ConsultationRoomPage() {
         </div>
         )}
       </div>
+
+      {/* ── 통번역 미니 바 — 패널 닫혀 있어도 입력·언어변경 가능 (영상은 안 가림) ── */}
+      {!isWaitingScreen && translationEnabled && !panelOpen && (
+        <div className="bg-gray-800 border-t border-gray-700 px-3 py-2 flex items-center gap-2">
+          <button
+            onClick={() => setLangSheetOpen(true)}
+            className="shrink-0 px-2.5 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-xs text-teal-300 font-medium transition"
+          >
+            {LANG_LABELS[myLang]} → {LANG_LABELS[targetLang]}
+          </button>
+          <input
+            type="text"
+            value={manualInput}
+            onChange={(e) => setManualInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && manualInput.trim()) {
+                translateText(manualInput.trim());
+                setManualInput("");
+              }
+            }}
+            placeholder={c.manualPlaceholder}
+            className="flex-1 min-w-0 bg-gray-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+          />
+          <button
+            onClick={() => {
+              if (manualInput.trim()) {
+                translateText(manualInput.trim());
+                setManualInput("");
+              }
+            }}
+            disabled={isTranslating || !manualInput.trim()}
+            className="shrink-0 p-2 bg-teal-600 hover:bg-teal-700 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg transition"
+            title={c.manualHint}
+          >
+            <Languages size={16} />
+          </button>
+        </div>
+      )}
+
+      {/* ── 언어 변경 바텀시트 — 모바일에서도 언어쌍 변경 가능 ── */}
+      {langSheetOpen && (
+        <div
+          className="fixed inset-0 z-50 bg-black/60 flex items-end justify-center"
+          onClick={() => setLangSheetOpen(false)}
+        >
+          <div
+            className="w-full max-w-lg bg-gray-800 rounded-t-2xl p-5 space-y-4 border-t border-gray-700"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p className="text-sm font-bold text-white">{c.langChangeTitle}</p>
+            <div>
+              <p className="text-xs text-gray-400 mb-2">{c.myLangLabel}</p>
+              <div className="flex flex-wrap gap-2">
+                {["ko", "en", "ru", "kz", "zh", "ja"].map((l) => (
+                  <button
+                    key={l}
+                    onClick={() => setMyLang(l)}
+                    className={`px-3 py-2 rounded-lg text-sm transition border ${
+                      myLang === l
+                        ? "bg-teal-600 border-teal-500 text-white font-semibold"
+                        : "bg-gray-900 border-gray-600 text-gray-300 hover:border-gray-400"
+                    }`}
+                  >
+                    {LANG_LABELS[l]}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <p className="text-xs text-gray-400 mb-2">{c.langTheirLabel}</p>
+              <div className="flex flex-wrap gap-2">
+                {["ko", "en", "ru", "kz", "zh", "ja"].map((l) => (
+                  <button
+                    key={l}
+                    onClick={() => setTargetLang(l)}
+                    className={`px-3 py-2 rounded-lg text-sm transition border ${
+                      targetLang === l
+                        ? "bg-teal-600 border-teal-500 text-white font-semibold"
+                        : "bg-gray-900 border-gray-600 text-gray-300 hover:border-gray-400"
+                    }`}
+                  >
+                    {LANG_LABELS[l]}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <button
+              onClick={() => setLangSheetOpen(false)}
+              className="w-full py-2.5 bg-teal-600 hover:bg-teal-700 rounded-lg text-sm font-semibold transition"
+            >
+              {c.done}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
