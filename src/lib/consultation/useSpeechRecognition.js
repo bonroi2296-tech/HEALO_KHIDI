@@ -138,6 +138,10 @@ export function useSpeechRecognition({ language = "ko", onResult, onInterim, ena
     const recognition = recognitionRef.current;
 
     recognition.onresult = (event) => {
+      // 초기 onresult 를 덮어쓰므로 "결과 봤음" 기록도 같이 유지해야
+      // 빠른종료 휴리스틱이 정상 브라우저를 미지원으로 오판하지 않음
+      sawResultRef.current = true;
+      quickEndCountRef.current = 0;
       let interimTranscript = "";
       let finalTranscript = "";
 

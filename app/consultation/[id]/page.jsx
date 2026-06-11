@@ -902,12 +902,19 @@ export default function ConsultationRoomPage() {
   );
 
   // ── Speech Recognition ──
+  // 브라우저 STT 가 마지막으로 결과(중간자막 포함)를 낸 시각 — "조용한 사망" 워치독용
+  const lastBrowserSttRef = useRef(0);
+  const [forceServerStt, setForceServerStt] = useState(false);
   const stt = useSpeechRecognition({
     language: myLang,
     enabled: translationEnabled,
-    onInterim: useCallback((text) => setInterimText(text), []),
+    onInterim: useCallback((text) => {
+      lastBrowserSttRef.current = Date.now();
+      setInterimText(text);
+    }, []),
     onResult: useCallback(
       (text) => {
+        lastBrowserSttRef.current = Date.now();
         setInterimText("");
         translateText(text);
       },
@@ -923,13 +930,14 @@ export default function ConsultationRoomPage() {
       setInterimText("");
       toast.success(c.translationStopped);
     } else {
-      stt.start();
+      // 이미 서버 STT 로 전환된 상태면 브라우저 STT 재시작 안 함 (이중 자막 방지)
+      if (!forceServerStt) stt.start();
       setTranslationEnabled(true);
       setActivePanel("translation");
       setPanelOpen(true); // 번역 켜면 패널 자동 노출 — 자막 입력칸·기록 보이게
       toast.success(`${c.translationStartedPrefix} (${LANG_LABELS[myLang]} → ${LANG_LABELS[targetLang]})`);
     }
-  }, [translationEnabled, stt, myLang, targetLang, toast]);
+  }, [translationEnabled, forceServerStt, stt, myLang, targetLang, toast]);
 
   // Scroll to bottom of translations
   useEffect(() => {
@@ -1385,7 +1393,30 @@ export default function ConsultationRoomPage() {
     );
   }, []);
   const useServerStt =
-    translationEnabled && (stt.failed || !stt.isSupported) && mediaRecOk;
+    translationEnabled && (stt.failed || !stt.isSupported || forceServerStt) && mediaRecOk;
+
+  // 워치독: "지원된다"는 브라우저 STT 가 결과·에러·종료 이벤트 없이 조용히 죽는 환경
+  // (삼성 인터넷 등 실기기에서 확인) — 기존 휴리스틱(에러/빠른종료 3회)은 아무 신호도
+  // 없으면 영영 안 걸림. 통번역 켠 뒤 8초간 브라우저 STT 결과가 전혀 없으면 서버 STT 로
+  // 강제 전환. 크롬에서 8초간 말을 안 했어도 전환되지만, 서버 STT 도 같은 자막
+  // 파이프라인 + 무음 스킵(VAD)이라 동작·비용 차이 없음.
+  useEffect(() => {
+    if (!translationEnabled || forceServerStt || !mediaRecOk) return;
+    if (stt.failed || !stt.isSupported) return; // 이 경우는 기존 조건으로 이미 서버 STT
+    const enabledAt = Date.now();
+    const timer = setInterval(() => {
+      if (lastBrowserSttRef.current > enabledAt) {
+        clearInterval(timer); // 브라우저 STT 정상 동작 확인 — 전환 불필요
+        return;
+      }
+      if (Date.now() - enabledAt >= 8000) {
+        clearInterval(timer);
+        stt.stop(); // 마이크 점유 해제 — 서버 STT 녹음과 충돌 방지
+        setForceServerStt(true);
+      }
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [translationEnabled, forceServerStt, mediaRecOk, stt.failed, stt.isSupported, stt.stop]);
   const translateTextRef = useRef(translateText);
   useEffect(() => {
     translateTextRef.current = translateText;
@@ -1433,6 +1464,7 @@ export default function ConsultationRoomPage() {
       try {
         recorder = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
       } catch {
+        setMediaRecOk(false); // 녹음기 생성 불가 — "음성 안 됨" 안내로 정직하게 전환
         return;
       }
       recorder.ondataavailable = (e) => {
@@ -1479,7 +1511,10 @@ export default function ConsultationRoomPage() {
       try {
         stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       } catch {
-        return; // 마이크 거부 — 수동 입력 안내가 이미 떠 있음
+        // 마이크 확보 실패(거부·이중 점유 차단 등) — 조용히 죽지 말고
+        // "음성 안 됨 → 아래 입력칸" 안내가 뜨도록 서버 STT 불가로 표시
+        setMediaRecOk(false);
+        return;
       }
       if (stopped) {
         stream.getTracks().forEach((t) => t.stop());
@@ -2106,7 +2141,7 @@ export default function ConsultationRoomPage() {
                         <p>{c.translationEmpty2}</p>
                       </>
                     )}
-                    {(!stt.isSupported || stt.failed) && !mediaRecOk && (
+                    {(!stt.isSupported || stt.failed || forceServerStt) && !mediaRecOk && (
                       <p className="mt-3 text-yellow-500 text-xs">
                         {c.sttUnsupported1}
                         <br />
@@ -2170,7 +2205,7 @@ export default function ConsultationRoomPage() {
               )}
 
               {/* 음성 인식 실패 + 서버 폴백도 불가한 환경만 — 수동 입력 유도 */}
-              {translationEnabled && (stt.failed || !stt.isSupported) && !mediaRecOk && (
+              {translationEnabled && (stt.failed || !stt.isSupported || forceServerStt) && !mediaRecOk && (
                 <div className="border-t border-gray-700 px-4 py-2 bg-yellow-500/10">
                   <p className="text-xs text-yellow-300">{c.sttFailedNotice}</p>
                 </div>
