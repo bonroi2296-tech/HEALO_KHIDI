@@ -74,7 +74,9 @@ output/
 .vercel
 
 # Claude Code workspace (임시 작업장, 세션 파일, 백업 — 본판에 저장 안 함)
-.claude/
+# 단, commands(팀 공용 슬래시 커맨드)는 저장소에 포함
+.claude/*
+!.claude/commands/
 
 # i18n 작업 dump (임시)
 _missing_*.json
