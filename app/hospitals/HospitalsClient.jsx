@@ -671,7 +671,7 @@ export default function HospitalsClient() {
             const isUpcoming = branch.status === 'upcoming';
 
             return (
-              <div key={branch.id} className={`border-2 rounded-3xl overflow-hidden transition-all ${
+              <div key={branch.id} data-testid="hospital-card" className={`border-2 rounded-3xl overflow-hidden transition-all ${
                 branch.status === 'registered' ? 'border-emerald-200' :
                 branch.status === 'preparing' ? 'border-amber-200' : 'border-gray-200'
               } ${isOpen ? 'shadow-xl' : 'hover:shadow-md'}`}>
@@ -766,7 +766,7 @@ export default function HospitalsClient() {
         {partnerHospitals.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
             {partnerHospitals.map(h => (
-              <div key={h.id} onClick={() => router.push(`/hospitals/${h.slug || h.id}`)} className="bg-white border border-gray-200 rounded-2xl p-6 hover:shadow-lg hover:border-teal-300 transition cursor-pointer group">
+              <div key={h.id} data-testid="hospital-card" onClick={() => router.push(`/hospitals/${h.slug || h.id}`)} className="bg-white border border-gray-200 rounded-2xl p-6 hover:shadow-lg hover:border-teal-300 transition cursor-pointer group">
                 <div className="flex items-start gap-3 mb-3">
                   <div className="w-12 h-12 bg-teal-100 rounded-xl flex items-center justify-center shrink-0">
                     <Stethoscope size={24} className="text-teal-700" />

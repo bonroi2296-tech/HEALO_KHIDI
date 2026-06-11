@@ -29,9 +29,11 @@ test.describe("원격협진 CTA 흐름", () => {
 
     // 마지막 CTA (하단) 클릭
     await ctas.last().click();
-    await page.waitForLoadState("networkidle");
 
-    expect(page.url()).toMatch(/\/inquiry/);
+    // waitForLoadState("networkidle") 는 클라이언트 라우팅 시작 전에 즉시 통과해
+    // URL 검사가 네비게이션보다 먼저 실행되는 레이스가 있었음 (CI dev 서버는
+    // /inquiry 온디맨드 컴파일로 수 초 걸림) → 자동 대기하는 toHaveURL 사용
+    await expect(page).toHaveURL(/\/inquiry/, { timeout: 15000 });
   });
 
   test("모바일 뷰포트에서 원격협진 페이지가 정상 렌더링된다", async ({ browser }) => {
