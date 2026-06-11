@@ -127,6 +127,8 @@ const COPY = {
     langTheirLabel: "상대방 언어",
     langChangeTitle: "번역 언어 설정",
     done: "확인",
+    sttListening: "음성 인식 중",
+    sttProcessing: "자막 생성 중…",
     emptyActiveHint1: "말하면 자막이 표시됩니다.",
     emptyActiveHint2: "음성이 안 되면 아래 입력칸에 쓰고 번역 버튼을 누르세요.",
     inAppNotice: "앱 안 브라우저에서는 영상·음성이 제한될 수 있어요.",
@@ -220,6 +222,8 @@ const COPY = {
     langTheirLabel: "Their language",
     langChangeTitle: "Translation languages",
     done: "Done",
+    sttListening: "Listening",
+    sttProcessing: "Creating subtitles…",
     emptyActiveHint1: "Speak and subtitles will appear.",
     emptyActiveHint2: "If voice doesn't work, type below and press the translate button.",
     inAppNotice: "In-app browsers may limit video and audio.",
@@ -312,6 +316,8 @@ const COPY = {
     langTheirLabel: "Язык собеседника",
     langChangeTitle: "Языки перевода",
     done: "Готово",
+    sttListening: "Слушаю",
+    sttProcessing: "Создание субтитров…",
     emptyActiveHint1: "Говорите — появятся субтитры.",
     emptyActiveHint2: "Если голос не работает, введите текст ниже и нажмите кнопку перевода.",
     inAppNotice: "Встроенные браузеры приложений могут ограничивать видео и звук.",
@@ -404,6 +410,8 @@ const COPY = {
     langTheirLabel: "Әңгімелесушінің тілі",
     langChangeTitle: "Аударма тілдері",
     done: "Дайын",
+    sttListening: "Тыңдап тұр",
+    sttProcessing: "Субтитр жасалуда…",
     emptyActiveHint1: "Сөйлесеңіз — субтитрлер шығады.",
     emptyActiveHint2: "Дауыс жұмыс істемесе, төменге теріп, аудару түймесін басыңыз.",
     inAppNotice: "Қолданба ішіндегі браузер видео мен дыбысты шектеуі мүмкін.",
@@ -496,6 +504,8 @@ const COPY = {
     langTheirLabel: "对方语言",
     langChangeTitle: "翻译语言",
     done: "确定",
+    sttListening: "正在聆听",
+    sttProcessing: "正在生成字幕…",
     emptyActiveHint1: "说话即可显示字幕。",
     emptyActiveHint2: "如语音不可用，请在下方输入并点击翻译按钮。",
     inAppNotice: "应用内置浏览器可能限制视频和音频。",
@@ -588,6 +598,8 @@ const COPY = {
     langTheirLabel: "相手の言語",
     langChangeTitle: "翻訳言語",
     done: "完了",
+    sttListening: "音声認識中",
+    sttProcessing: "字幕を生成中…",
     emptyActiveHint1: "話すと字幕が表示されます。",
     emptyActiveHint2: "音声が使えない場合は下に入力して翻訳ボタンを押してください。",
     inAppNotice: "アプリ内ブラウザでは映像・音声が制限される場合があります。",
@@ -849,6 +861,47 @@ export default function ConsultationRoomPage() {
   // ── TTS ──
   const tts = useTTS({ language: targetLang });
 
+  // ── 번역 결과를 자막·기록·상대 전송·TTS 에 일괄 반영 ──
+  // (브라우저 STT→번역 / 수동입력→번역 / 서버 STT 전사+번역 통합응답 공용)
+  const applyTranslation = useCallback(
+    (original, translated) => {
+      const entry = {
+        id: Date.now(),
+        original_text: original,
+        translated_text: translated,
+        source_language: myLang,
+        target_language: targetLang,
+        speaker_role: "self",
+        created_at: new Date().toISOString(),
+      };
+
+      // Add to translation log
+      setTranslations((prev) => [...prev, entry]);
+
+      // Show subtitle
+      setCurrentSubtitle({ original, translated });
+
+      // DataChannel: 내 STT 결과를 상대방에게 전송 (번역된 텍스트 전송)
+      // 상대방은 본인 언어(targetLang)로 번역된 텍스트를 받아서 표시
+      if (publishSubtitleRef.current) {
+        publishSubtitleRef.current(translated, targetLang, myRole);
+      }
+
+      // Auto-hide subtitle after 6 seconds
+      if (subtitleTimerRef.current) clearTimeout(subtitleTimerRef.current);
+      subtitleTimerRef.current = setTimeout(() => setCurrentSubtitle(null), 6000);
+
+      // TTS playback
+      if (ttsEnabled) {
+        tts.speak(translated);
+      }
+
+      // Clear interim
+      setInterimText("");
+    },
+    [myLang, targetLang, myRole, ttsEnabled, tts]
+  );
+
   // ── Translate function ──
   const translateText = useCallback(
     async (text) => {
@@ -875,49 +928,14 @@ export default function ConsultationRoomPage() {
         const result = await res.json();
         if (!result.ok) return;
 
-        const entry = {
-          id: Date.now(),
-          original_text: text,
-          translated_text: result.translated,
-          source_language: myLang,
-          target_language: targetLang,
-          speaker_role: "self",
-          created_at: new Date().toISOString(),
-        };
-
-        // Add to translation log
-        setTranslations((prev) => [...prev, entry]);
-
-        // Show subtitle
-        setCurrentSubtitle({
-          original: text,
-          translated: result.translated,
-        });
-
-        // DataChannel: 내 STT 결과를 상대방에게 전송 (번역된 텍스트 전송)
-        // 상대방은 본인 언어(targetLang)로 번역된 텍스트를 받아서 표시
-        if (publishSubtitleRef.current) {
-          publishSubtitleRef.current(result.translated, targetLang, myRole);
-        }
-
-        // Auto-hide subtitle after 6 seconds
-        if (subtitleTimerRef.current) clearTimeout(subtitleTimerRef.current);
-        subtitleTimerRef.current = setTimeout(() => setCurrentSubtitle(null), 6000);
-
-        // TTS playback
-        if (ttsEnabled) {
-          tts.speak(result.translated);
-        }
-
-        // Clear interim
-        setInterimText("");
+        applyTranslation(text, result.translated);
       } catch (err) {
         console.error("[Translation] Error:", err);
       } finally {
         setIsTranslating(false);
       }
     },
-    [myLang, targetLang, consultationId, ttsEnabled, tts, isTranslating, inviteToken]
+    [myLang, targetLang, consultationId, isTranslating, inviteToken, applyTranslation]
   );
 
   // ── 상대방 자막 수신 핸들러 (DataChannel) ──
@@ -1458,9 +1476,18 @@ export default function ConsultationRoomPage() {
   useEffect(() => {
     translateTextRef.current = translateText;
   }, [translateText]);
+  const applyTranslationRef = useRef(applyTranslation);
+  useEffect(() => {
+    applyTranslationRef.current = applyTranslation;
+  }, [applyTranslation]);
+  // 서버 STT 상태 표시: idle(꺼짐) | listening(대기) | speaking(목소리 감지) | processing(자막 생성 중)
+  const [serverSttStatus, setServerSttStatus] = useState("idle");
 
   useEffect(() => {
-    if (!useServerStt) return;
+    if (!useServerStt) {
+      setServerSttStatus("idle");
+      return;
+    }
     if (typeof MediaRecorder === "undefined" || !navigator.mediaDevices?.getUserMedia) return;
 
     let stopped = false;
@@ -1470,6 +1497,13 @@ export default function ConsultationRoomPage() {
     let audioCtx = null;
     let analyser = null;
     let vadTimer = null;
+    // 상태 표시는 변할 때만 setState (100ms 샘플링이 리렌더 폭주하지 않게)
+    let lastStatus = "";
+    const setStatus = (s) => {
+      if (stopped || s === lastStatus) return;
+      lastStatus = s;
+      setServerSttStatus(s);
+    };
 
     const mime = MediaRecorder.isTypeSupported?.("audio/webm")
       ? "audio/webm"
@@ -1477,27 +1511,17 @@ export default function ConsultationRoomPage() {
       ? "audio/mp4"
       : "";
 
-    // 조각마다 MediaRecorder 새로 시작 — 이어붙인 조각은 컨테이너 헤더가 없어
-    // 단독 디코딩이 안 되므로 stop/start 사이클로 자립적인 블롭을 만든다
+    // 발화 단위 녹음 — 고정 4초 컷은 단어가 잘려 인식률이 떨어지고, 말 끝나고도
+    // 다음 컷까지 기다려 자막이 늦었음. 음량(RMS)으로 "말 끝(0.7초 무음)"을 감지해
+    // 그 즉시 잘라 보낸다. 조각마다 MediaRecorder 재시작(이어붙인 조각은 컨테이너
+    // 헤더가 없어 단독 디코딩 불가 → stop/start 사이클로 자립 블롭 생성).
     const recordCycle = () => {
       if (stopped || !stream) return;
       const chunks = [];
-      // 무음 감지(VAD): 조각 동안 음량을 샘플링해, 말한 흔적이 없으면 서버로 안 보냄
-      // → Gemini 호출 대폭 절감 (무료 플랜 분당 한도·비용 보호)
-      let voicedFrames = 0;
-      if (analyser) {
-        const buf = new Uint8Array(analyser.fftSize);
-        vadTimer = setInterval(() => {
-          analyser.getByteTimeDomainData(buf);
-          let sum = 0;
-          for (let i = 0; i < buf.length; i++) {
-            const v = (buf[i] - 128) / 128;
-            sum += v * v;
-          }
-          const rms = Math.sqrt(sum / buf.length);
-          if (rms > 0.02) voicedFrames += 1;
-        }, 100);
-      }
+      let voicedFrames = 0; // 100ms 프레임 기준 누적 발화량
+      let silentStreak = 0; // 발화 시작 후 연속 무음 프레임
+      const startedAt = Date.now();
+
       try {
         recorder = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
       } catch {
@@ -1509,39 +1533,85 @@ export default function ConsultationRoomPage() {
       };
       recorder.onstop = async () => {
         clearInterval(vadTimer);
+        clearTimeout(stopTimer);
         const blob = new Blob(chunks, { type: mime || "audio/webm" });
         // 말한 흔적(0.3초 이상) + 최소 크기일 때만 전송 — 무음 조각 스킵
         const hasSpeech = analyser ? voicedFrames >= 3 : true;
+        // 다음 발화는 즉시 듣기 시작 — 전송·전사와 병렬 (대기 공백 없음)
+        if (!stopped) recordCycle();
         if (!stopped && hasSpeech && blob.size > 4000) {
+          setStatus("processing");
           try {
             const headers = await getConsultAuthHeaders();
             if (headers) {
               const fd = new FormData();
               fd.append("audio", blob, "chunk.webm");
               fd.append("lang", myLang);
+              fd.append("targetLang", targetLang);
               const res = await fetch(
                 `/api/khidi/consultation/${consultationId}/stt`,
                 { method: "POST", headers, body: fd }
               );
               const result = await res.json();
               if (result.ok && result.transcript) {
-                translateTextRef.current(result.transcript);
+                if (result.translated) {
+                  // 전사+번역 통합 응답 — 추가 번역 호출 없이 바로 자막 반영
+                  applyTranslationRef.current(result.transcript, result.translated);
+                } else {
+                  // 번역이 비어 오면(파싱 실패 등) 기존 번역 API 로 폴백
+                  translateTextRef.current(result.transcript);
+                }
               }
             }
           } catch {
             /* 조각 실패는 무시 — 다음 사이클 */
           }
+          if (lastStatus === "processing") setStatus("listening");
         }
-        if (!stopped) recordCycle();
       };
       recorder.start();
-      stopTimer = setTimeout(() => {
-        try {
-          if (recorder.state !== "inactive") recorder.stop();
-        } catch {
-          /* ignore */
-        }
-      }, 4000);
+      setStatus("listening");
+
+      if (analyser) {
+        const buf = new Uint8Array(analyser.fftSize);
+        vadTimer = setInterval(() => {
+          analyser.getByteTimeDomainData(buf);
+          let sum = 0;
+          for (let i = 0; i < buf.length; i++) {
+            const v = (buf[i] - 128) / 128;
+            sum += v * v;
+          }
+          const rms = Math.sqrt(sum / buf.length);
+          if (rms > 0.02) {
+            voicedFrames += 1;
+            silentStreak = 0;
+            if (lastStatus === "listening") setStatus("speaking");
+          } else if (voicedFrames >= 3) {
+            silentStreak += 1;
+          }
+          const dur = Date.now() - startedAt;
+          const shouldCut =
+            (voicedFrames >= 3 && silentStreak >= 7) || // 말 끝남(0.7초 무음) → 즉시 전송
+            (voicedFrames >= 3 && dur >= 12000) || // 너무 긴 발화는 강제 컷 (블롭 상한 보호)
+            (voicedFrames < 3 && dur >= 5000); // 무음만 5초 — 버리고 새 사이클
+          if (shouldCut) {
+            try {
+              if (recorder.state !== "inactive") recorder.stop();
+            } catch {
+              /* ignore */
+            }
+          }
+        }, 100);
+      } else {
+        // 음량 분석 불가 환경 — 기존 4초 고정 컷으로 폴백
+        stopTimer = setTimeout(() => {
+          try {
+            if (recorder.state !== "inactive") recorder.stop();
+          } catch {
+            /* ignore */
+          }
+        }, 4000);
+      }
     };
 
     (async () => {
@@ -1582,8 +1652,9 @@ export default function ConsultationRoomPage() {
       }
       stream?.getTracks().forEach((t) => t.stop());
       audioCtx?.close().catch(() => {});
+      setServerSttStatus("idle");
     };
-  }, [useServerStt, myLang, consultationId, getConsultAuthHeaders]);
+  }, [useServerStt, myLang, targetLang, consultationId, getConsultAuthHeaders]);
 
   // ── End call ──
   const handleEndCall = async () => {
@@ -1997,6 +2068,25 @@ export default function ConsultationRoomPage() {
                   remoteSubtitle={remoteSubtitle}
                   size={subtitleSize}
                 />
+                {/* 서버 STT 상태 표시 — 듣는 중(회색)/목소리 감지(초록)/자막 생성 중(노랑).
+                    "되는 건지 알 수 없다"는 피드백 해소용 생존 신호 */}
+                {useServerStt && serverSttStatus !== "idle" && (
+                  <div className="absolute top-3 left-3 z-20 flex items-center gap-1.5 bg-black/60 backdrop-blur-sm rounded-full px-2.5 py-1.5 pointer-events-none">
+                    <span
+                      className={`w-2 h-2 rounded-full ${
+                        serverSttStatus === "processing"
+                          ? "bg-amber-400 animate-pulse"
+                          : serverSttStatus === "speaking"
+                          ? "bg-green-400 animate-pulse"
+                          : "bg-gray-400"
+                      }`}
+                    />
+                    <Mic size={12} className="text-gray-300" />
+                    <span className="text-[11px] text-gray-200">
+                      {serverSttStatus === "processing" ? c.sttProcessing : c.sttListening}
+                    </span>
+                  </div>
+                )}
               </div>
               {/* 단순 컨트롤 — 기기 선택 메뉴 없이 켜기/끄기만.
                   소리는 기기 기본 출력(이어폰 연결 시 이어폰), 카메라는 기본(전면) 1개 */}
