@@ -22,6 +22,7 @@ import { NextRequest } from "next/server";
 import { generateText } from "ai";
 import { google } from "@ai-sdk/google";
 import { resolveConsultationActor } from "@/lib/auth/requireConsultationAccess";
+import { isFillerOnly } from "@/lib/consultation/fillerFilter";
 
 const MAX_AUDIO_BYTES = 1.5 * 1024 * 1024;
 
@@ -83,11 +84,11 @@ export async function POST(
               {
                 type: "text",
                 text: `This audio clip is from a medical telemedicine consultation. The speaker is speaking ${langName}.
-1. Transcribe the speech verbatim in the original language.
+1. Transcribe the speech verbatim in the original language, but OMIT hesitation fillers (e.g. "음", "어", "그…", "uh", "um", "э-э", "ну", "えっと"). Keep all meaningful words.
 2. Translate the transcript into ${targetName} — formal/polite register, standard medical terminology, concise (for real-time subtitles).
 Respond with ONLY this JSON on one line, no markdown, no code fences:
-{"t":"<verbatim transcript>","x":"<translation>"}
-If there is no clear human speech, respond exactly: {"t":"","x":""}`,
+{"t":"<transcript>","x":"<translation>"}
+If there is no clear human speech, or the speech is ONLY hesitation fillers with no content, respond exactly: {"t":"","x":""}`,
               },
             ],
           },
@@ -119,7 +120,7 @@ If there is no clear human speech, respond exactly: {"t":"","x":""}`,
               { type: "file", data: buf, mediaType },
               {
                 type: "text",
-                text: `Transcribe the speech in this audio clip. The speaker is speaking ${langName} during a medical consultation. Output ONLY the verbatim transcript in the original language, nothing else. If there is no clear human speech, output exactly: [NO_SPEECH]`,
+                text: `Transcribe the speech in this audio clip. The speaker is speaking ${langName} during a medical consultation. Output ONLY the transcript in the original language, nothing else. OMIT hesitation fillers (e.g. "음", "어", "그…", "uh", "um", "э-э", "ну", "えっと") but keep all meaningful words. If there is no clear human speech, or the speech is ONLY hesitation fillers, output exactly: [NO_SPEECH]`,
               },
             ],
           },
@@ -131,6 +132,12 @@ If there is no clear human speech, respond exactly: {"t":"","x":""}`,
       transcript = raw === "[NO_SPEECH]" ? "" : raw;
       // 같은 언어면 자막 파이프라인이 그대로 표시할 수 있게 번역=원문
       if (targetLang === lang) translated = transcript;
+    }
+
+    // 2차 필터: 모델이 프롬프트 지시를 어기고 추임새만 전사해 와도 자막으로 안 내보냄
+    if (transcript && isFillerOnly(transcript)) {
+      transcript = "";
+      translated = "";
     }
 
     // 번역 로그 저장 — translate-realtime 와 동일 테이블/형식 (fire-and-forget)

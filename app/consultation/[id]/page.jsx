@@ -34,6 +34,7 @@ import { createSupabaseBrowserClient } from "../../../src/lib/supabase/browser";
 import { useLang } from "../../../src/lib/i18n/LangContext";
 import { useToast } from "../../../src/components/Toast";
 import { useSpeechRecognition, getEffectiveSttLang } from "../../../src/lib/consultation/useSpeechRecognition";
+import { isFillerOnly } from "../../../src/lib/consultation/fillerFilter";
 import { useTTS } from "../../../src/lib/consultation/useTTS";
 import { useRealtimeMessages } from "../../../src/lib/consultation/useRealtimeMessages";
 import { useLiveKitDataChannel } from "../../../src/lib/consultation/useLiveKitDataChannel";
@@ -927,6 +928,8 @@ export default function ConsultationRoomPage() {
 
         const result = await res.json();
         if (!result.ok) return;
+        // 번역 API 가 추임새 정리 후 빈 결과를 주면 자막 스킵
+        if (!result.translated || !String(result.translated).trim()) return;
 
         applyTranslation(text, result.translated);
       } catch (err) {
@@ -964,6 +967,8 @@ export default function ConsultationRoomPage() {
       (text) => {
         lastBrowserSttRef.current = Date.now();
         setInterimText("");
+        // "음", "어" 같은 추임새뿐인 조각은 자막 안 띄움 (번역 호출도 절약)
+        if (isFillerOnly(text)) return;
         translateText(text);
       },
       [translateText]
