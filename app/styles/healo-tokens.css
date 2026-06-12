@@ -97,11 +97,15 @@
      TYPOGRAPHY
      ========================================================== */
 
-  /* Base families */
-  --font-serif:     'Playfair Display', 'Noto Serif KR', Georgia, serif;
-  --font-sans:      'Inter', 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  --font-serif-kr:  'Noto Serif KR', 'Playfair Display', serif;
-  --font-sans-kr:   'Pretendard', 'Inter', sans-serif;
+  /* Base families
+     ⚠️ 2026-06-12: Premium 폐기 + 구글폰트 임포트 제거로 Playfair/Inter/Noto Serif KR 는
+     실제로 로드되지 않아 영문·숫자가 Times(시스템 세리프)로 폴백 — 전 페이지에서
+     로고·검색창·통계 숫자가 촌스럽게 렌더되던 원인. Legacy 표준(시스템 산세리프,
+     DESIGN.md)에 맞춰 전부 Pretendard 계열로 통일. Premium 부활 시 임포트와 함께 복원. */
+  --font-serif:     'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-sans:      'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-serif-kr:  'Pretendard', -apple-system, sans-serif;
+  --font-sans-kr:   'Pretendard', -apple-system, sans-serif;
   --font-mono:      'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace;
 
   /* Headlines — Playfair Display, regular weight (400) for editorial feel */

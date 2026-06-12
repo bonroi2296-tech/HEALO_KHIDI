@@ -342,7 +342,7 @@ export default function TelemedicineClient() {
   return (
     <div className="bg-white">
       {/* HERO */}
-      <section className="max-w-4xl mx-auto px-4 pt-14 pb-12 md:pt-20 md:pb-16">
+      <section className="max-w-4xl mx-auto px-4 pt-8 pb-10 md:pt-20 md:pb-16">
         <span className="inline-block text-xs font-bold tracking-wide text-teal-700 bg-teal-50 border border-teal-100 rounded-full px-3 py-1 mb-5">
           {copy.eyebrow}
         </span>

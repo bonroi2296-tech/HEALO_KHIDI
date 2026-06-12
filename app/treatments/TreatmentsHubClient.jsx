@@ -181,7 +181,7 @@ export default function TreatmentsHubClient() {
   return (
     <div className="bg-white">
       {/* HERO */}
-      <section className="max-w-4xl mx-auto px-4 pt-14 pb-12 md:pt-20 md:pb-16">
+      <section className="max-w-4xl mx-auto px-4 pt-8 pb-10 md:pt-20 md:pb-16">
         <span className="inline-block text-xs font-bold tracking-wide text-teal-700 bg-teal-50 border border-teal-100 rounded-full px-3 py-1 mb-5">
           {copy.eyebrow}
         </span>
@@ -198,8 +198,8 @@ export default function TreatmentsHubClient() {
           {copy.requestConsult} <ArrowRight size={18} />
         </Link>
 
-        {/* 통계 바 */}
-        <div className="mt-12 pt-8 border-t border-gray-200 flex flex-wrap gap-x-10 gap-y-6">
+        {/* 통계 바 — 모바일은 2×2 그리드 (flex-wrap 은 3+1 로 어색하게 깨졌음) */}
+        <div className="mt-8 md:mt-12 pt-6 md:pt-8 border-t border-gray-200 grid grid-cols-2 sm:flex sm:flex-wrap gap-x-10 gap-y-6">
           {[
             { num: "50,000+", label: lang === "ko" ? "누적 케이스" : lang === "ru" ? "Случаев" : lang === "kz" ? "Жағдай" : lang === "zh" ? "累计病例" : lang === "ja" ? "累計ケース" : "Cumulative cases" },
             { num: "5", label: lang === "ko" ? "ITCRN 5축" : "ITCRN axes" },
