@@ -30,7 +30,7 @@ PO(프로덕트 오너) 혼자 운영. Bonroi 개인사업자, KHIDI(한국보�
 
 **기술 스택:**
 - Next.js 16 (App Router) + Supabase (PostgreSQL 17.6, RLS, pgvector)
-- AI: `gemini-flash-latest` (via @ai-sdk/google, 자동 최신) + 3-Tier RAG (`src/lib/chat/generateReply.ts`)
+- AI: `gemini-2.5-flash` **고정** (별칭 `gemini-flash-latest` 금지 — 2026-05부터 별칭이 5배 비싼 3.5 Flash로 자동 전환되는 비용 폭탄. 모델 변경은 PO 결정으로만) + 3-Tier RAG (`src/lib/chat/generateReply.ts`)
 - 영상: **LiveKit** WebRTC (원격협진) — env 필수: `LIVEKIT_URL`·`LIVEKIT_API_KEY`·`LIVEKIT_API_SECRET` (NEXT_PUBLIC_LIVEKIT_URL은 선택)
 - Auth: @supabase/ssr cookie-based SSR + Bearer token
 - 암호화: AES-256-GCM (`src/lib/security/encryptionV2.ts`)

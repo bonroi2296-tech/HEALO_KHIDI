@@ -20,6 +20,13 @@ on:
   schedule:
     # 매일 KST 04:00 = UTC 19:00 전날
     - cron: "0 19 * * *"
+  # 수동 실행 — 작업본(브랜치)에서도 전체 E2E를 돌려볼 수 있게 (테스트 수리 검증 루프용)
+  workflow_dispatch:
+
+# 실패 시 GitHub Issue 자동 생성에 필요 (기본 토큰은 read-only라 그동안 이슈 생성이 403으로 죽어 있었음)
+permissions:
+  contents: read
+  issues: write
 
 concurrency:
   group: e2e-${{ github.ref }}
@@ -107,7 +114,7 @@ jobs:
   # ─────────────────────────────────────────────
   full:
     name: Full E2E (main push)
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 25
 

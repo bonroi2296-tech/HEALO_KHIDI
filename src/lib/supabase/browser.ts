@@ -39,19 +39,21 @@ export function createSupabaseBrowserClient(): TypedSupabaseClient {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-  // 빌드/SSR 시 env 없으면 더미 반환 (빌드 실패 방지). 브라우저에서는 없으면 throw.
-  const isServer = typeof window === 'undefined'
+  // env 없으면 placeholder 클라이언트 반환 (빌드/SSR/브라우저 공통).
+  // 과거엔 브라우저에서 throw 했는데, 이 클라이언트를 쓰는 컴포넌트가 전부
+  // 크래시해 페이지가 하얗게 죽었음(CI E2E 다수 실패 원인) → 네트워크 호출이
+  // 에러 객체로 돌아오는 placeholder 로 강등해 화면은 살리고 데이터만 비게 함.
   if (!supabaseUrl || !supabaseAnonKey) {
-    if (isServer) {
-      browserClient = createBrowserClient<Database>(
-        'https://build-placeholder.supabase.co',
-        'build-placeholder-anon-key'
+    if (typeof window !== 'undefined') {
+      console.error(
+        '[supabase/browser] NEXT_PUBLIC_SUPABASE_URL/ANON_KEY 미설정 — placeholder 클라이언트로 동작 (데이터 빈 상태)'
       )
-      return browserClient
     }
-    throw new Error(
-      '[supabase/browser] NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY are required'
+    browserClient = createBrowserClient<Database>(
+      'https://build-placeholder.supabase.co',
+      'build-placeholder-anon-key'
     )
+    return browserClient
   }
 
   // @supabase/ssr의 createBrowserClient 사용

@@ -75,7 +75,7 @@ export async function POST(
       // ── 전사+번역 단일 호출 — 왕복 1회로 자막 지연 절반 ──
       const targetName = LANG_NAMES[targetLang];
       const { text } = await generateText({
-        model: google("gemini-flash-latest") as any,
+        model: google("gemini-2.5-flash") as any,
         messages: [
           {
             role: "user",
@@ -112,7 +112,7 @@ If there is no clear human speech, or the speech is ONLY hesitation fillers with
     } else {
       // ── 전사만 (targetLang 없음 또는 같은 언어) ──
       const { text } = await generateText({
-        model: google("gemini-flash-latest") as any,
+        model: google("gemini-2.5-flash") as any,
         messages: [
           {
             role: "user",

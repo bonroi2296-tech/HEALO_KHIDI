@@ -7,7 +7,7 @@ import { google } from "@ai-sdk/google";
 import type { OfferItem, TreatmentOffer, OfferEvidence } from "./types";
 import type { EvidenceChunk } from "./evidenceCollector";
 
-const MODEL = (process.env.OFFERS_SUMMARY_MODEL || "gemini-flash-latest").trim();
+const MODEL = (process.env.OFFERS_SUMMARY_MODEL || "gemini-2.5-flash").trim();
 const TIMEOUT_MS = 10_000;
 const TEMPERATURE = 0;
 

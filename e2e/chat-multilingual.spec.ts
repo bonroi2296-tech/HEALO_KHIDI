@@ -23,8 +23,8 @@ test.describe("채팅 다국어 전환", () => {
     const hasSwitcher = await langSwitcher.isVisible().catch(() => false);
 
     if (!hasSwitcher) {
-      // /ru 경로로 직접 이동
-      await page.goto("/ru");
+      // /ru 단독 라우트는 없음 — 러시아 환자 전용 페이지로 직접 이동
+      await page.goto("/ru/for-russian-patients");
       await page.waitForLoadState("networkidle");
 
       const bodyText = await page.locator("body").innerText();
@@ -48,10 +48,11 @@ test.describe("채팅 다국어 전환", () => {
       if (hasRu) {
         await ruOption.click();
       } else {
-        await page.goto("/ru");
+        await page.goto("/ru/for-russian-patients");
       }
     }
 
+    // 언어 변경은 쿠키 저장 후 전체 새로고침(window.location.reload) 방식
     await page.waitForLoadState("networkidle");
 
     const bodyText = await page.locator("body").innerText();
@@ -59,8 +60,9 @@ test.describe("채팅 다국어 전환", () => {
     expect(hasCyrillic).toBeTruthy();
   });
 
-  test("/ru 경로로 직접 진입 시 러시아어 UI 표시", async ({ page }) => {
-    await page.goto("/ru");
+  test("러시아 환자 페이지 직접 진입 시 러시아어 UI 표시", async ({ page }) => {
+    // /ru 단독 라우트는 없음(404) — 실제 존재하는 러시아 환자 전용 페이지로 검증
+    await page.goto("/ru/for-russian-patients");
     await page.waitForLoadState("networkidle");
 
     const bodyText = await page.locator("body").innerText();

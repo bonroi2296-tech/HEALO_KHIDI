@@ -41,12 +41,20 @@ test.describe("인테이크 카자흐어 UI", () => {
       await intakeLink.click();
       await page.waitForLoadState("networkidle");
     } else {
+      // /intake 는 통합 퍼널 /inquiry 로 redirect (2026-05 통폐합)
       await page.goto("/intake");
       await page.waitForLoadState("networkidle");
     }
 
+    // 퍼널 선택 화면에서 "Inquiry Form" 선택 → 입력 폼 노출
+    const formChoice = page.getByText(/Inquiry Form/i).first();
+    if (await formChoice.isVisible().catch(() => false)) {
+      await formChoice.click();
+    }
+
     // 폼 요소가 있어야 함
-    const formExists = await page.locator("form, input, textarea").first().isVisible().catch(() => false);
-    expect(formExists).toBeTruthy();
+    await expect(
+      page.locator("form, input, textarea").first()
+    ).toBeVisible({ timeout: 10000 });
   });
 });

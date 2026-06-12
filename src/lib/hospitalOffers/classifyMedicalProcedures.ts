@@ -7,7 +7,7 @@
 import { generateText } from "ai";
 import { google } from "@ai-sdk/google";
 
-const MODEL = "gemini-flash-latest";
+const MODEL = "gemini-2.5-flash";
 const TIMEOUT_MS = 8_000;
 const TEMPERATURE = 0;
 

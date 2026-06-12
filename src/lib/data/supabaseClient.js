@@ -14,12 +14,13 @@ function initSupabaseClient() {
   const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
   if (!supabaseUrl || !supabaseKey) {
-    // 빌드 시점에는 더미 클라이언트 반환
-    if (typeof window === 'undefined') {
-      return createDummySupabaseClient();
+    // env 미설정 — 빌드든 브라우저든 더미 반환 (빈 데이터로 강등).
+    // 과거엔 브라우저에서 throw 해서 사용하는 컴포넌트가 전부 크래시했음
+    // (CI E2E 다수 실패 원인) → 화면은 살리고 데이터만 비게 함.
+    if (typeof window !== 'undefined') {
+      console.error(`[supabaseClient] env 미설정 (${!supabaseUrl ? 'NEXT_PUBLIC_SUPABASE_URL ' : ''}${!supabaseKey ? 'NEXT_PUBLIC_SUPABASE_ANON_KEY' : ''}) — 더미 클라이언트로 동작`);
     }
-    // 런타임에는 에러
-    throw new Error(`Supabase environment variables are missing: ${!supabaseUrl ? 'NEXT_PUBLIC_SUPABASE_URL' : ''} ${!supabaseKey ? 'NEXT_PUBLIC_SUPABASE_ANON_KEY' : ''}`);
+    return createDummySupabaseClient();
   }
 
   // ✅ 쿠키 기반 클라이언트로 변경 (OAuth callback과 동일한 세션 저장소)
@@ -44,29 +45,47 @@ function initSupabaseClient() {
   return supabaseClientInstance;
 }
 
-// 더미 클라이언트 (빌드 시점용)
-// 모든 메서드 체이닝을 지원하도록 재귀적으로 자기 자신을 반환
+// 더미 클라이언트 (빌드 시점/env 미설정 환경용)
+// 과거엔 메서드를 하나씩 나열했는데 .or/.in/.gte 등 누락분 호출 시 페이지가
+// 통째로 죽는 사고가 있었음(CI E2E /search SSR 크래시) → Proxy 로
+// "어떤 메서드를 어떤 순서로 불러도" 체이닝되고 await 하면 빈 결과를 주는
+// 만능 쿼리로 교체. single/maybeSingle 은 data: null, 그 외 data: [].
 function createDummySupabaseClient() {
   const createDummyQuery = () => {
-    const dummyQuery = {
-      select: () => dummyQuery,
-      eq: () => dummyQuery,
-      neq: () => dummyQuery,
-      ilike: () => dummyQuery,
-      order: () => dummyQuery, // 중복 호출 지원
-      limit: () => Promise.resolve({ data: [], error: null }),
-      range: () => Promise.resolve({ data: [], error: null }),
-      single: () => Promise.resolve({ data: null, error: null }),
-      maybeSingle: () => Promise.resolve({ data: null, error: null }),
-    };
-    return dummyQuery;
+    let singleMode = false;
+    const proxy = new Proxy(function () {}, {
+      get(_t, prop) {
+        if (prop === "then") {
+          const result = { data: singleMode ? null : [], error: null, count: 0 };
+          return (resolve, reject) => Promise.resolve(result).then(resolve, reject);
+        }
+        if (prop === "single" || prop === "maybeSingle") {
+          return () => {
+            singleMode = true;
+            return proxy;
+          };
+        }
+        return () => proxy;
+      },
+    });
+    return proxy;
   };
-  
+
   return {
     from: () => createDummyQuery(),
+    rpc: () => createDummyQuery(),
+    storage: {
+      from: () => ({
+        getPublicUrl: () => ({ data: { publicUrl: "" } }),
+        createSignedUrl: () => Promise.resolve({ data: null, error: null }),
+      }),
+    },
+    channel: () => ({ on: function () { return this; }, subscribe: () => ({}) }),
+    removeChannel: () => {},
     auth: {
       getSession: () => Promise.resolve({ data: { session: null }, error: null }),
-      onAuthStateChange: () => ({ data: { subscription: null } }),
+      getUser: () => Promise.resolve({ data: { user: null }, error: null }),
+      onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }),
       signOut: () => Promise.resolve({ error: null }),
     },
   };

@@ -211,6 +211,8 @@ export const Header = ({ setView, view, _handleGlobalInquiry, isMobileMenuOpen, 
             <div className="relative" ref={langRef}>
               <button
                 onClick={() => setIsLangOpen(!isLangOpen)}
+                data-testid="lang-switcher"
+                aria-label="Change language"
                 className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-white/70 hover:text-white hover:bg-white/10 transition-all notranslate"
               >
                 <Globe size={15} />
