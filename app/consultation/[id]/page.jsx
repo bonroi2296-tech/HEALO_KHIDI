@@ -138,6 +138,8 @@ const COPY = {
     attachFile: "자료 첨부",
     sharedFiles: "공유 자료",
     newSharedDoc: "새 자료가 도착했어요",
+    openNewTab: "새 탭에서 열기",
+    docFormatsHint: "PDF·사진 (HWP는 PDF로 변환 후 업로드)",
     uploadingFile: "업로드 중...",
     uploadFailed: "업로드 실패",
     you: "You",
@@ -234,6 +236,8 @@ const COPY = {
     attachFile: "Attach file",
     sharedFiles: "Shared files",
     newSharedDoc: "New file shared",
+    openNewTab: "Open in new tab",
+    docFormatsHint: "PDF·images (convert HWP to PDF first)",
     uploadingFile: "Uploading...",
     uploadFailed: "Upload failed",
     you: "You",
@@ -329,6 +333,8 @@ const COPY = {
     attachFile: "Прикрепить файл",
     sharedFiles: "Общие файлы",
     newSharedDoc: "Получен новый файл",
+    openNewTab: "Открыть в новой вкладке",
+    docFormatsHint: "PDF·фото (HWP конвертируйте в PDF)",
     uploadingFile: "Загрузка...",
     uploadFailed: "Ошибка загрузки",
     you: "Вы",
@@ -424,6 +430,8 @@ const COPY = {
     attachFile: "Файл тіркеу",
     sharedFiles: "Ортақ файлдар",
     newSharedDoc: "Жаңа файл келді",
+    openNewTab: "Жаңа қойындыда ашу",
+    docFormatsHint: "PDF·фото (HWP-ні PDF-ке айналдырыңыз)",
     uploadingFile: "Жүктелуде...",
     uploadFailed: "Жүктеу сәтсіз",
     you: "Сіз",
@@ -519,6 +527,8 @@ const COPY = {
     attachFile: "附加文件",
     sharedFiles: "共享资料",
     newSharedDoc: "收到新文件",
+    openNewTab: "在新标签页打开",
+    docFormatsHint: "PDF·图片 (HWP请先转为PDF)",
     uploadingFile: "上传中...",
     uploadFailed: "上传失败",
     you: "您",
@@ -614,6 +624,8 @@ const COPY = {
     attachFile: "ファイル添付",
     sharedFiles: "共有資料",
     newSharedDoc: "新しい資料が届きました",
+    openNewTab: "新しいタブで開く",
+    docFormatsHint: "PDF·写真 (HWPはPDFに変換)",
     uploadingFile: "アップロード中...",
     uploadFailed: "アップロード失敗",
     you: "あなた",
@@ -823,6 +835,8 @@ export default function ConsultationRoomPage() {
 
   // 공유 자료 (consultation_documents)
   const [sharedDocs, setSharedDocs] = useState([]);
+  // 같이 보기 2단계: 방 안 문서 뷰어 (하단 시트) — 새 탭 이탈 없이 소견서/검사지 열람
+  const [viewerDoc, setViewerDoc] = useState(null);
   const [uploadingDoc, setUploadingDoc] = useState(false);
   const fileInputRef = useRef(null);
   // TTS(번역 음성 읽어주기) 임시 비활성화 — 기기 기본 음성 품질 문제로 보류,
@@ -2133,6 +2147,48 @@ export default function ConsultationRoomPage() {
                 <TrackToggle source={Track.Source.ScreenShare} className="hidden sm:inline-flex" />
               </div>
             </LiveKitRoom>
+
+            {/* ── 문서 뷰어 (하단 시트) — 위 25%는 영상이 계속 보이고, 음성은 그대로 이어짐 ── */}
+            {viewerDoc && (
+              <div className="fixed inset-x-0 bottom-0 top-[25dvh] z-40 bg-gray-900 rounded-t-2xl border-t border-gray-700 flex flex-col shadow-2xl">
+                <div className="flex items-center gap-2 px-4 py-2.5 border-b border-gray-700">
+                  <FileText size={15} className="text-teal-400 shrink-0" />
+                  <span className="flex-1 min-w-0 truncate text-sm text-white">{viewerDoc.file_name}</span>
+                  <a
+                    href={viewerDoc.url || "#"}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="p-1.5 text-gray-400 hover:text-white"
+                    title={c.openNewTab}
+                  >
+                    <ExternalLink size={15} />
+                  </a>
+                  <button
+                    type="button"
+                    onClick={() => setViewerDoc(null)}
+                    className="p-1.5 text-gray-400 hover:text-white"
+                  >
+                    <X size={17} />
+                  </button>
+                </div>
+                <div className="flex-1 overflow-auto bg-gray-950">
+                  {/* 서명 URL 은 5분 만료 — 목록이 8초마다 갱신되므로 목록에서 다시 탭하면 새 URL */}
+                  {/^image\//.test(viewerDoc.file_type || "") ? (
+                    <img
+                      src={viewerDoc.url}
+                      alt={viewerDoc.file_name}
+                      className="w-full h-full object-contain"
+                    />
+                  ) : (
+                    <iframe
+                      src={viewerDoc.url}
+                      title={viewerDoc.file_name}
+                      className="w-full h-full bg-white border-0"
+                    />
+                  )}
+                </div>
+              </div>
+            )}
             </>
           ) : (
             <div className="flex-1 flex flex-col">
@@ -2243,24 +2299,34 @@ export default function ConsultationRoomPage() {
                 )}
               </div>
 
-              {/* 공유 자료 목록 — 검사결과지·처방전 등 (양쪽 모두 보임) */}
+              {/* 공유 자료 목록 — 검사결과지·처방전 등 (양쪽 모두 보임)
+                  탭하면 새 탭 대신 방 안 문서 뷰어(하단 시트) — 폰에서 영상 이탈 방지 */}
               {sharedDocs.length > 0 && (
                 <div className="border-t border-gray-700 px-4 py-2 max-h-28 overflow-y-auto">
                   <p className="text-[11px] text-gray-500 mb-1.5">
-                    {c.sharedFiles} ({sharedDocs.length})
+                    {c.sharedFiles} ({sharedDocs.length}) · {c.docFormatsHint}
                   </p>
                   <div className="space-y-1">
                     {sharedDocs.map((doc) => (
-                      <a
-                        key={doc.id}
-                        href={doc.url || "#"}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-2 text-xs text-teal-300 hover:text-teal-200 truncate"
-                      >
-                        <FileText size={13} className="shrink-0" />
-                        <span className="truncate">{doc.file_name}</span>
-                      </a>
+                      <div key={doc.id} className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setViewerDoc(doc)}
+                          className="flex-1 min-w-0 flex items-center gap-2 text-xs text-teal-300 hover:text-teal-200 text-left"
+                        >
+                          <FileText size={13} className="shrink-0" />
+                          <span className="truncate">{doc.file_name}</span>
+                        </button>
+                        <a
+                          href={doc.url || "#"}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="shrink-0 p-1 text-gray-500 hover:text-gray-300"
+                          title={c.openNewTab}
+                        >
+                          <ExternalLink size={12} />
+                        </a>
+                      </div>
                     ))}
                   </div>
                 </div>
