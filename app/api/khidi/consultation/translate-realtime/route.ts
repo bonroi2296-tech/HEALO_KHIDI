@@ -57,6 +57,7 @@ RULES:
 - Use formal/polite register appropriate for doctor-patient communication
 - For medical terms, use the standard term in the target language
 - Keep the translation concise — this is for real-time subtitles
+- Omit hesitation fillers (e.g. "음", "어", "그…", "uh", "um", "э-э", "ну", "えっと") from the translation; if the text is ONLY fillers with no content, output nothing at all
 - Output ONLY the translated text, nothing else — no quotes, no explanations`;
 }
 
@@ -116,7 +117,8 @@ export async function POST(request: NextRequest) {
     const translatedText = translated.trim();
 
     // Save to DB if consultationId provided (fire-and-forget)
-    if (consultationId) {
+    // 추임새 정리로 번역이 비면 기록도 남기지 않음
+    if (consultationId && translatedText) {
       saveTranslationLog(consultationId, {
         originalText: text,
         translatedText,

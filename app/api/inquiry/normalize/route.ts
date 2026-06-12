@@ -223,7 +223,7 @@ export async function POST(request: Request) {
       if (error) {
         console.error("[api/inquiry/normalize] inquiries fetch error:", error);
         return Response.json(
-          { ok: false, error: error?.message || "inquiry_fetch_failed" },
+          { ok: false, error: "inquiry_fetch_failed" },
           { status: 500 }
         );
       }
@@ -482,7 +482,7 @@ export async function POST(request: Request) {
   } catch (error: any) {
     console.error("[api/inquiry/normalize] error:", error);
     return Response.json(
-      { ok: false, error: error?.message || "normalize_failed" },
+      { ok: false, error: "normalize_failed" },
       { status: 500 }
     );
   }

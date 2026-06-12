@@ -53,8 +53,8 @@ const jsonError = (
     {
       ok: false,
       error: code,
-      detail: detail || undefined,
-      ...(isProd ? {} : { meta }),
+      // 에러 원문(detail)은 내부 정보 유출 방지를 위해 개발 환경에서만 응답에 포함
+      ...(isProd ? {} : { detail: detail || undefined, meta }),
     },
     { status }
   );

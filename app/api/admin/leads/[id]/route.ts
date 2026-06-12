@@ -172,7 +172,6 @@ export async function PATCH(
         {
           ok: false,
           error: "update_failed",
-          detail: updateError.message,
         },
         { status: 500 }
       );

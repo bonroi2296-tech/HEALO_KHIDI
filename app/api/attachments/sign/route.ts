@@ -109,7 +109,7 @@ export async function POST(request: NextRequest) {
     if (signedUrlError) {
       console.error("[api/attachments/sign] signed URL error:", signedUrlError);
       return Response.json(
-        { ok: false, error: signedUrlError.message || "signed_url_failed" },
+        { ok: false, error: "signed_url_failed" },
         { status: 500 }
       );
     }
@@ -122,7 +122,7 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error("[api/attachments/sign] error:", error);
     return Response.json(
-      { ok: false, error: error?.message || "sign_failed" },
+      { ok: false, error: "sign_failed" },
       { status: 500 }
     );
   }

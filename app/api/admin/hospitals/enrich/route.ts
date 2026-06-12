@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
       if (updateErr) {
         console.error("[enrich] DB update error:", updateErr.message);
         return NextResponse.json(
-          { ok: false, error: "db_update_failed", detail: updateErr.message },
+          { ok: false, error: "db_update_failed" },
           { status: 500 },
         );
       }

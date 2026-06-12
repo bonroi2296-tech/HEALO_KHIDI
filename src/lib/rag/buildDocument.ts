@@ -114,14 +114,15 @@ export const buildDocument = (sourceType: SourceType, row: any): BuildInput => {
         row?.constraints
           ? `Constraints: ${JSON.stringify(row.constraints)}`
           : null,
-        row?.raw_message ? `Raw Message: ${row.raw_message}` : null,
+        // raw_message 는 DB에 암호화 저장돼 있어 그대로 넣으면 암호문이 학습 문서를
+        // 오염시키고, 복호화해 넣으면 평문 PII 가 RAG 에 남음 — 둘 다 안 되므로 제외.
+        // contact(연락처)도 PII 라 제외. 문의 의도는 objective/constraints 로 충분.
         row?.extraction_confidence != null
           ? `Extraction Confidence: ${row.extraction_confidence}`
           : null,
         row?.missing_fields?.length
           ? `Missing Fields: ${row.missing_fields.join(", ")}`
           : null,
-        row?.contact ? `Contact: ${JSON.stringify(row.contact)}` : null,
       ]);
       return {
         source_type: sourceType,

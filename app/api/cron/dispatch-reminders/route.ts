@@ -267,6 +267,9 @@ async function dispatchInApp(
     priority: "high",
   });
 
-  if (error) return { ok: false, error: error.message };
+  if (error) {
+    console.error("[cron/dispatch-reminders] notify error:", error.message);
+    return { ok: false, error: "notify_failed" };
+  }
   return { ok: true };
 }

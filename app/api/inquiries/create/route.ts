@@ -141,7 +141,7 @@ export async function POST(request: NextRequest) {
         });
         
         return Response.json(
-          { ok: false, error: "insert_failed", detail: insertError.message },
+          { ok: false, error: "insert_failed" },
           { status: 500 }
         );
       }

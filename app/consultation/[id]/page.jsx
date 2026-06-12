@@ -34,6 +34,7 @@ import { createSupabaseBrowserClient } from "../../../src/lib/supabase/browser";
 import { useLang } from "../../../src/lib/i18n/LangContext";
 import { useToast } from "../../../src/components/Toast";
 import { useSpeechRecognition, getEffectiveSttLang } from "../../../src/lib/consultation/useSpeechRecognition";
+import { isFillerOnly } from "../../../src/lib/consultation/fillerFilter";
 import { useTTS } from "../../../src/lib/consultation/useTTS";
 import { useRealtimeMessages } from "../../../src/lib/consultation/useRealtimeMessages";
 import { useLiveKitDataChannel } from "../../../src/lib/consultation/useLiveKitDataChannel";
@@ -818,7 +819,10 @@ export default function ConsultationRoomPage() {
   const [sharedDocs, setSharedDocs] = useState([]);
   const [uploadingDoc, setUploadingDoc] = useState(false);
   const fileInputRef = useRef(null);
-  const [ttsEnabled, setTtsEnabled] = useState(true);
+  // TTS(번역 음성 읽어주기) 임시 비활성화 — 기기 기본 음성 품질 문제로 보류,
+  // 목소리 선택/개선 후 재활성화 예정. 켜려면 TTS_FEATURE_ON = true 한 줄만.
+  const TTS_FEATURE_ON = false;
+  const [ttsEnabled, setTtsEnabled] = useState(false);
   const [isTranslating, setIsTranslating] = useState(false);
 
   // 자막 크기: "sm" | "md" | "lg"
@@ -927,6 +931,8 @@ export default function ConsultationRoomPage() {
 
         const result = await res.json();
         if (!result.ok) return;
+        // 번역 API 가 추임새 정리 후 빈 결과를 주면 자막 스킵
+        if (!result.translated || !String(result.translated).trim()) return;
 
         applyTranslation(text, result.translated);
       } catch (err) {
@@ -964,6 +970,8 @@ export default function ConsultationRoomPage() {
       (text) => {
         lastBrowserSttRef.current = Date.now();
         setInterimText("");
+        // "음", "어" 같은 추임새뿐인 조각은 자막 안 띄움 (번역 호출도 절약)
+        if (isFillerOnly(text)) return;
         translateText(text);
       },
       [translateText]
@@ -1872,7 +1880,8 @@ export default function ConsultationRoomPage() {
               )}
             </button>
 
-            {/* TTS toggle */}
+            {/* TTS toggle — 임시 비활성화 중엔 버튼 숨김 */}
+            {TTS_FEATURE_ON && (
             <button
               onClick={() => setTtsEnabled(!ttsEnabled)}
               className={`p-2 rounded-lg transition ${
@@ -1884,6 +1893,7 @@ export default function ConsultationRoomPage() {
             >
               {ttsEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}
             </button>
+            )}
 
             {/* 언어쌍 선택 — 역할 기반 기본값이 있으므로 데스크톱에서만 노출 (모바일 단순화) */}
             <select

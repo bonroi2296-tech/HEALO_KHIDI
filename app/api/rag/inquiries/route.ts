@@ -29,8 +29,9 @@ export async function GET(request: NextRequest) {
     if (error) throw error;
     return Response.json({ ok: true, rows: data || [] });
   } catch (error: any) {
+    console.error("[rag/inquiries] error:", error?.message?.slice(0, 200));
     return Response.json(
-      { ok: false, error: error?.message || "fetch_failed" },
+      { ok: false, error: "fetch_failed" },
       { status: 500 }
     );
   }

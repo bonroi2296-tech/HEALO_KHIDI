@@ -79,7 +79,7 @@ export async function GET(request: NextRequest) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error("[admin/analytics] unexpected error:", msg);
     return Response.json(
-      { ok: false, error: "internal_error", detail: msg },
+      { ok: false, error: "internal_error" },
       { status: 500 }
     );
   }

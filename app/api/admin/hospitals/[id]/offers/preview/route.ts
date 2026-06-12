@@ -31,7 +31,7 @@ export async function POST(
 
   if (hospitalError || !hospital) {
     return Response.json(
-      { ok: false, error: "hospital_not_found", detail: hospitalError?.message },
+      { ok: false, error: "hospital_not_found" },
       { status: 404 }
     );
   }
@@ -93,7 +93,7 @@ export async function POST(
 
   if (insertErr || !newJob) {
     return Response.json(
-      { ok: false, error: "job_insert_failed", detail: insertErr?.message },
+      { ok: false, error: "job_insert_failed" },
       { status: 500 }
     );
   }

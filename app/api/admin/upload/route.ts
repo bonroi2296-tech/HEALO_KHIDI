@@ -140,7 +140,6 @@ export async function POST(request: NextRequest) {
         {
           ok: false,
           error: "upload_failed",
-          detail: uploadError.message,
         },
         { status: 500 }
       );
