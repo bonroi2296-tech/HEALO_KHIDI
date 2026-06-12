@@ -89,7 +89,8 @@ const nextConfig = {
               "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net",
               "img-src 'self' data: blob: https: http:",
               "font-src 'self' https://cdn.jsdelivr.net",
-              "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.livekit.cloud wss://*.livekit.cloud https://generativelanguage.googleapis.com https://www.google-analytics.com https://cdn.jsdelivr.net",
+              // Sentry 에러 수집 ingest 도메인 허용 — CSP 가 전송을 막으면 에러 보고가 조용히 버려짐
+              "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.livekit.cloud wss://*.livekit.cloud https://generativelanguage.googleapis.com https://www.google-analytics.com https://cdn.jsdelivr.net https://*.ingest.sentry.io https://*.ingest.de.sentry.io",
               "media-src 'self' blob:",
               "frame-ancestors 'none'",
               "base-uri 'self'",

@@ -10,7 +10,7 @@ export const metadata = {
 
 export default function InquiryPage() {
   return (
-    <div className="min-h-[calc(100vh-64px)] bg-gray-50 py-8">
+    <div className="min-h-[calc(100vh-64px)] bg-gray-50 py-3 md:py-8">
       <Suspense fallback={<div className="flex items-center justify-center py-24"><div className="w-8 h-8 border-2 border-teal-600 border-t-transparent rounded-full animate-spin" /></div>}>
         <UnifiedInquiryFunnel />
       </Suspense>

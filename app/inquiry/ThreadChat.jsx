@@ -479,7 +479,9 @@ export function ThreadChat() {
   const needsIdentification = !restoring && !threadId;
 
   return (
-    <div className="bg-white border border-gray-200 rounded-3xl shadow-xl h-[600px] flex flex-col p-4 animate-in fade-in slide-in-from-right-4">
+    // 높이: 작은 폰(iPhone SE 등)에서 600px 고정이 하단 탭바에 깔리던 문제 →
+    // 화면 높이에 맞춰 줄어들되(min 420px) 데스크톱은 기존 600px 유지
+    <div className="bg-white border border-gray-200 rounded-3xl shadow-xl h-[min(600px,calc(100dvh-200px))] min-h-[420px] flex flex-col p-4 animate-in fade-in slide-in-from-right-4">
       {restoring ? (
         <div className="flex-1 flex items-center justify-center text-gray-400 text-sm">
           <Loader2 size={20} className="animate-spin mr-2" />
