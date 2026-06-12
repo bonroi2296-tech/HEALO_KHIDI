@@ -24,9 +24,9 @@ test.describe("/telemedicine 랜딩", () => {
     await expect(page.getByText("01").first()).toBeVisible();
     await expect(page.getByText("04").first()).toBeVisible();
 
-    // Features (최소 일부 키워드)
-    await expect(page.getByText(/HD video|HD 영상/i)).toBeVisible();
-    await expect(page.getByText(/interpretation|통역/i)).toBeVisible();
+    // Features (최소 일부 키워드) — 같은 단어가 여러 곳에 나와도 통과하게 .first()
+    await expect(page.getByText(/HD video|HD 영상/i).first()).toBeVisible();
+    await expect(page.getByText(/interpretation|통역/i).first()).toBeVisible();
 
     // FAQ 존재
     await expect(page.getByText(/FAQ|자주 묻는|Frequently/i).first()).toBeVisible();

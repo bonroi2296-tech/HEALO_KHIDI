@@ -35,19 +35,20 @@ test.describe("채팅 신원 확인 폼", () => {
     const nameVisible = await nameField.isVisible().catch(() => false);
 
     if (!nameVisible) {
-      // /inquiry 에 폼이 있는 경우
+      // 통합 문의 퍼널(/inquiry): 진입 시 AI Agent / Human Agent / Inquiry Form 선택 화면 →
+      // 선택지를 클릭해야 입력 폼이 나타남 (2026-05 피벗 구조)
       await page.goto("/inquiry");
       await page.waitForLoadState("networkidle");
+      const formChoice = page.getByText(/Inquiry Form/i).first();
+      if (await formChoice.isVisible().catch(() => false)) {
+        await formChoice.click();
+      }
     }
 
     // 필수 필드가 최소 하나라도 있어야 함
-    const hasForm = await page
-      .locator('input[type="email"], input[type="text"], select')
-      .first()
-      .isVisible()
-      .catch(() => false);
-
-    expect(hasForm).toBeTruthy();
+    await expect(
+      page.locator('input[type="email"], input[type="text"], select, textarea').first()
+    ).toBeVisible({ timeout: 10000 });
   });
 
   test("신원 폼 제출 후 채팅/상담 인터페이스가 이어진다", async ({ page }) => {

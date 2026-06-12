@@ -1,4 +1,8 @@
 /**
+ * ⚠️ LEGACY (피벗 전 디렉토리 시절 도구) — 어드민 "시술 자동생성"에서만 사용.
+ * 환자 전면 기능 아님. 신규 코드에서 import 하지 말 것. (PROJECT_CONTEXT.md §2 참조)
+ * 참고: playwright 런타임 의존 — package.json dependencies 의 playwright 를 옮기면 깨짐.
+ *
  * HOSPITAL_OFFER_IMPORT_V1: 병원 웹사이트 크롤 파이프라인
  * - BFS 링크 확장: 내부 링크 최대 30페이지 (우선순위 키워드 적용)
  * - 탭/아코디언 클릭으로 동적 컨텐츠 로드

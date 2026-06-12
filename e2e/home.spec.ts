@@ -35,12 +35,13 @@ test.describe("홈페이지 진입점", () => {
     ).toBeVisible();
   });
 
-  test("히어로 하단 골드 배너 CTA 로 /telemedicine 이동", async ({ page }) => {
+  // "골드 배너"는 Legacy 리디자인에서 폐기됨 (DESIGN.md) — 히어로 + 주요 진입점 검증으로 교체
+  test("히어로 타이틀 렌더 + Care Journey 진입", async ({ page }) => {
     await page.goto("/");
-    // 배너 안의 "NEW · Telemedicine" 텍스트 근처 링크
-    const banner = page.getByText(/NEW · Telemedicine|NEW · 원격협진/i).first();
-    await expect(banner).toBeVisible();
-    await banner.click();
-    await expect(page).toHaveURL(/\/telemedicine/);
+    await expect(
+      page.getByRole("heading", { name: /second opinion|oncologist|암|종양/i }).first()
+    ).toBeVisible();
+    await page.getByRole("link", { name: /care journey|치료 여정/i }).first().click();
+    await expect(page).toHaveURL(/\/care-journey/, { timeout: 15000 });
   });
 });

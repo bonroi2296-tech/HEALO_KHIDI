@@ -30,11 +30,11 @@ const TIER_LABELS: Record<number, string> = {
 
 export function getModel() {
   if (!process.env.GOOGLE_GENERATIVE_AI_API_KEY) return null;
-  return google("gemini-flash-latest") as any;
+  return google("gemini-2.5-flash") as any;
 }
 
 export function getModelName() {
-  return "gemini-flash-latest";
+  return "gemini-2.5-flash";
 }
 
 export async function getEmbedding(text: string): Promise<number[] | null> {
@@ -511,6 +511,8 @@ export async function generateChatReply(
       model,
       system: fullSystemPrompt,
       messages: messages as any,
+      // 비용 가드: 응답 길이 상한 (악의적 "최대한 길게" 프롬프트로 인한 토큰 폭주 방지)
+      maxOutputTokens: 2048,
       providerOptions: useWebSearch ? { google: { useSearchGrounding: true } } : undefined,
     });
 

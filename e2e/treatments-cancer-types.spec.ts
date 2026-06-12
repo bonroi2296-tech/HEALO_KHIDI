@@ -51,9 +51,8 @@ test.describe("/treatments 암종 페이지", () => {
     }
 
     await firstLink.click();
-    await page.waitForLoadState("networkidle");
-
-    expect(page.url()).toMatch(/\/treatments\//);
+    // networkidle 은 클라이언트 라우팅 전에 즉시 통과하는 레이스가 있어 자동 대기로 교체
+    await expect(page).toHaveURL(/\/treatments\/.+/, { timeout: 15000 });
 
     const bodyText = await page.locator("body").innerText().catch(() => "");
     expect(bodyText.length).toBeGreaterThan(100);

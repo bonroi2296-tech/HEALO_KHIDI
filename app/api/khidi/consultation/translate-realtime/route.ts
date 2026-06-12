@@ -107,7 +107,7 @@ export async function POST(request: NextRequest) {
     }
 
     const { text: translated } = await generateText({
-      model: google("gemini-flash-latest") as any,
+      model: google("gemini-2.5-flash") as any,
       system: buildPrompt(sourceLang, targetLang),
       prompt: text,
       temperature: 0.1,
