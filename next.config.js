@@ -194,18 +194,24 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: false,
   },
+
+  // Sentry(@sentry/nextjs)가 의존하는 OpenTelemetry 계열을 번들에서 제외 —
+  // 빌드 chunks 에 require 주입되며 "Cannot find module" 나던 문제의 해법.
+  serverExternalPackages: [
+    "@sentry/nextjs",
+    "@opentelemetry/instrumentation",
+    "import-in-the-middle",
+    "require-in-the-middle",
+  ],
 };
 
-// 2026-05-19: Sentry withSentryConfig 일시 비활성.
-// 빌드 출력 chunks 에 @opentelemetry/instrumentation require 를 주입해
-// "Cannot find module" 에러 발생. 패키지 설치로도 sub-import 체인 미해결.
-// 추후 Sentry SDK 안정 버전 또는 next.config externalPackages 검토 후 재활성화.
-//
-// import { withSentryConfig } from "@sentry/nextjs";
-// const sentryConfig = { silent: true, org: process.env.SENTRY_ORG, project: process.env.SENTRY_PROJECT };
-// const sentryOptions = { widenClientFileUpload: true, tunnelRoute: "/monitoring", hideSourceMaps: true, disableLogger: true };
-// const finalConfig = process.env.NEXT_PUBLIC_SENTRY_DSN
-//   ? withSentryConfig(nextConfig, sentryConfig, sentryOptions)
-//   : nextConfig;
+// 2026-06-12: Sentry 재활성 (serverExternalPackages 로 OpenTelemetry 충돌 해소).
+// NEXT_PUBLIC_SENTRY_DSN 이 설정된 경우에만 래핑 — env 없으면 기존과 동일하게 동작.
+import { withSentryConfig } from "@sentry/nextjs";
+const sentryConfig = { silent: true, org: process.env.SENTRY_ORG, project: process.env.SENTRY_PROJECT };
+const sentryOptions = { widenClientFileUpload: true, tunnelRoute: "/monitoring", hideSourceMaps: true, disableLogger: true };
+const finalConfig = process.env.NEXT_PUBLIC_SENTRY_DSN
+  ? withSentryConfig(nextConfig, sentryConfig, sentryOptions)
+  : nextConfig;
 
-export default nextConfig;
+export default finalConfig;

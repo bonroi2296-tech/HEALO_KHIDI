@@ -44,7 +44,8 @@ const fetchSourceRows = async (sourceType: SourceType, sourceId?: string) => {
       let q = supabaseAdmin
         .from("normalized_inquiries")
         .select(
-          "id, language, country, treatment_id, treatment_slug, objective, constraints, raw_message, extraction_confidence, missing_fields, contact"
+          // raw_message(암호문)·contact(PII)는 RAG 문서에 넣지 않으므로 조회도 제외
+          "id, language, country, treatment_id, treatment_slug, objective, constraints, extraction_confidence, missing_fields"
         );
       if (sourceId) q = q.eq("id", sourceId);
       return q;

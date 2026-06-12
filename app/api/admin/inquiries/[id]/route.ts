@@ -139,7 +139,6 @@ export async function GET(
         {
           ok: false,
           error: "db_query_failed",
-          detail: inquiryError.message,
         },
         { status: 500 }
       );

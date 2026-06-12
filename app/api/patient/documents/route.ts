@@ -53,7 +53,7 @@ export async function GET(request: NextRequest) {
   if (sessionErr) {
     console.error("[patient/documents] sessions error:", sessionErr.message);
     return Response.json(
-      { ok: false, error: sessionErr.message },
+      { ok: false, error: "sessions_query_failed" },
       { status: 500 }
     );
   }
@@ -79,7 +79,7 @@ export async function GET(request: NextRequest) {
   if (docErr) {
     console.error("[patient/documents] docs error:", docErr.message);
     return Response.json(
-      { ok: false, error: docErr.message },
+      { ok: false, error: "documents_query_failed" },
       { status: 500 }
     );
   }

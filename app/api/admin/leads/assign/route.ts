@@ -118,7 +118,6 @@ export async function POST(request: NextRequest) {
         {
           ok: false,
           error: "hospital_fetch_failed",
-          detail: hospitalsError.message,
         },
         { status: 500 }
       );
@@ -169,7 +168,6 @@ export async function POST(request: NextRequest) {
         {
           ok: false,
           error: "insert_failed",
-          detail: insertError.message,
         },
         { status: 500 }
       );

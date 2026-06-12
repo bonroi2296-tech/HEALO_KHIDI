@@ -64,8 +64,9 @@ export async function POST(request: Request) {
       scoring: chunks.length > 0 ? "vector_cosine_similarity" : null,
     });
   } catch (error: any) {
+    console.error("[rag/search] error:", error?.message?.slice(0, 200));
     return Response.json(
-      { ok: false, error: error?.message || "search_failed" },
+      { ok: false, error: "search_failed" },
       { status: 500 }
     );
   }

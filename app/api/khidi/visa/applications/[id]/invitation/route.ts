@@ -210,7 +210,7 @@ export async function POST(
   } catch (error: any) {
     console.error("[VisaInvitation] exception:", error);
     return NextResponse.json(
-      { ok: false, error: "internal_error", detail: error?.message },
+      { ok: false, error: "internal_error" },
       { status: 500 }
     );
   }

@@ -60,7 +60,8 @@ export async function POST(
     .eq("id", id);
 
   if (updateErr) {
-    return Response.json({ ok: false, error: updateErr.message }, { status: 500 });
+    console.error("[admin/reminders/retry] update error:", updateErr.message);
+    return Response.json({ ok: false, error: "update_failed" }, { status: 500 });
   }
 
   return Response.json({ ok: true, id });

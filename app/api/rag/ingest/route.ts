@@ -25,8 +25,9 @@ export async function POST(request: NextRequest) {
     const results = await ingestSources(sourceTypes, sourceId);
     return Response.json({ ok: true, results });
   } catch (error: any) {
+    console.error("[rag/ingest] error:", error?.message?.slice(0, 200));
     return Response.json(
-      { ok: false, error: error?.message || "ingest_failed" },
+      { ok: false, error: "ingest_failed" },
       { status: 500 }
     );
   }
