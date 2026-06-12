@@ -21,7 +21,7 @@ const supabase = createClient(
   serviceKey
 );
 
-const llmModel = google("gemini-2.5-flash");
+const llmModel = google("gemini-flash-latest");
 
 const LANGS_TO_TRANSLATE = ["en", "zh", "ja", "ru", "kz"];
 

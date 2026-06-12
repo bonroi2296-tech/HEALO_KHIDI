@@ -8,7 +8,7 @@
  * 설계 원칙:
  * - 메인 응답 흐름을 절대 차단하지 않는다 (fire-and-forget)
  * - Judge 호출 실패 시 에러를 삼키고 로그만 남긴다
- * - 모델은 gemini-2.5-flash (메인과 동일, Flash Lite 미지원 시 fallback)
+ * - 모델은 gemini-flash-latest (메인과 동일, Flash Lite 미지원 시 fallback)
  */
 
 import "server-only";
@@ -97,7 +97,7 @@ judge_reasoning: 한 줄 한국어 평가 이유 (50자 이내)
 
 export async function evaluateResponse(input: JudgeInput): Promise<JudgeResult | null> {
   const t0 = Date.now();
-  const judgeModel = "gemini-2.5-flash";
+  const judgeModel = "gemini-flash-latest";
 
   try {
     const model = google(judgeModel) as any;

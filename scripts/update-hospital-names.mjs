@@ -177,7 +177,7 @@ async function main() {
     .or("tags.cs.{\"Korean Medicine\"}");
 
   const GEMINI_KEY = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
-  const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEY}`;
+  const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${GEMINI_KEY}`;
 
   const SYS = `You are a medical translation assistant for HEALO, a medical tourism platform.
 Translate hospital/treatment data to Korean (ko), Chinese Simplified (zh), and Japanese (ja).

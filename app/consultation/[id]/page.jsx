@@ -137,6 +137,7 @@ const COPY = {
     linkCopied: "링크 복사됨 — 브라우저 주소창에 붙여넣으세요.",
     attachFile: "자료 첨부",
     sharedFiles: "공유 자료",
+    newSharedDoc: "새 자료가 도착했어요",
     uploadingFile: "업로드 중...",
     uploadFailed: "업로드 실패",
     you: "You",
@@ -232,6 +233,7 @@ const COPY = {
     linkCopied: "Link copied — paste it into your browser.",
     attachFile: "Attach file",
     sharedFiles: "Shared files",
+    newSharedDoc: "New file shared",
     uploadingFile: "Uploading...",
     uploadFailed: "Upload failed",
     you: "You",
@@ -326,6 +328,7 @@ const COPY = {
     linkCopied: "Ссылка скопирована — вставьте её в браузер.",
     attachFile: "Прикрепить файл",
     sharedFiles: "Общие файлы",
+    newSharedDoc: "Получен новый файл",
     uploadingFile: "Загрузка...",
     uploadFailed: "Ошибка загрузки",
     you: "Вы",
@@ -420,6 +423,7 @@ const COPY = {
     linkCopied: "Сілтеме көшірілді — браузерге қойыңыз.",
     attachFile: "Файл тіркеу",
     sharedFiles: "Ортақ файлдар",
+    newSharedDoc: "Жаңа файл келді",
     uploadingFile: "Жүктелуде...",
     uploadFailed: "Жүктеу сәтсіз",
     you: "Сіз",
@@ -514,6 +518,7 @@ const COPY = {
     linkCopied: "链接已复制——请粘贴到浏览器。",
     attachFile: "附加文件",
     sharedFiles: "共享资料",
+    newSharedDoc: "收到新文件",
     uploadingFile: "上传中...",
     uploadFailed: "上传失败",
     you: "您",
@@ -608,6 +613,7 @@ const COPY = {
     linkCopied: "リンクをコピーしました — ブラウザに貼り付けてください。",
     attachFile: "ファイル添付",
     sharedFiles: "共有資料",
+    newSharedDoc: "新しい資料が届きました",
     uploadingFile: "アップロード中...",
     uploadFailed: "アップロード失敗",
     you: "あなた",
@@ -1398,21 +1404,41 @@ export default function ConsultationRoomPage() {
   }, [isGuestMode, livekitToken, inviteToken, consultationId, normalizeMsg, normalizeTrans]);
 
   // ── 공유 자료: 목록 로드 + 업로드 ──
+  // 상대가 올린 새 자료 감지용 — 직전 문서 id 집합과 "내가 방금 올림" 플래그
+  const knownDocIdsRef = useRef(null);
+  const skipNextDocToastRef = useRef(false);
   const loadSharedDocs = useCallback(async () => {
     try {
       const headers = await getConsultAuthHeaders();
       if (!headers) return;
       const res = await fetch(`/api/khidi/consultation/${consultationId}/documents`, { headers });
       const result = await res.json();
-      if (result.ok) setSharedDocs(result.data || []);
+      if (result.ok) {
+        const docs = result.data || [];
+        // 새 문서 도착 알림 — 첫 로드는 기준선만 잡고, 내 업로드 직후엔 침묵
+        const known = knownDocIdsRef.current;
+        if (known) {
+          const fresh = docs.filter((d) => !known.has(d.id));
+          if (fresh.length > 0 && !skipNextDocToastRef.current) {
+            toast.success(`📄 ${c.newSharedDoc}: ${fresh[0].file_name}`);
+          }
+        }
+        skipNextDocToastRef.current = false;
+        knownDocIdsRef.current = new Set(docs.map((d) => d.id));
+        setSharedDocs(docs);
+      }
     } catch {
       /* 목록 로드 실패는 무시 */
     }
-  }, [consultationId, getConsultAuthHeaders]);
+  }, [consultationId, getConsultAuthHeaders, toast, c]);
 
   useEffect(() => {
     if (!livekitToken) return;
     loadSharedDocs();
+    // 상담 중 상대가 올린 자료가 바로 보이게 8초 주기 갱신
+    // (기존엔 입장 시 1회만 불러와 상대 화면에 안 떴음 — 2026-06-12 자료공유 1단계)
+    const interval = setInterval(loadSharedDocs, 8000);
+    return () => clearInterval(interval);
   }, [livekitToken, loadSharedDocs]);
 
   const handleFileUpload = useCallback(
@@ -1432,6 +1458,7 @@ export default function ConsultationRoomPage() {
         });
         const result = await res.json();
         if (res.ok && result.ok) {
+          skipNextDocToastRef.current = true; // 내 업로드는 알림 안 띄움
           await loadSharedDocs();
         } else {
           toast.error(`${c.uploadFailed}: ${result.error || res.status}`);

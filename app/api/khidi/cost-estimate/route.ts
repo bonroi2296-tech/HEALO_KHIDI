@@ -257,7 +257,7 @@ export async function POST(request: NextRequest) {
 - 여행 일정: ${intake.travel_dates || "미정"}`;
 
           const { text } = await generateText({
-            model: google("gemini-2.5-flash") as any,
+            model: google("gemini-flash-latest") as any,
             system: systemPrompt,
             prompt: userPrompt,
             temperature: 0.2,

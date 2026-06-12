@@ -86,7 +86,7 @@ async function judgeWithExpected(
     return { overall_score: 0.5, flags: ["judge_unavailable"], reasoning: "No API key" };
   }
 
-  const model = google("gemini-2.5-flash") as any;
+  const model = google("gemini-flash-latest") as any;
   const userMsg = [
     `[User Query] (lang: ${language})`,
     query,
@@ -131,7 +131,7 @@ async function generateTestReply(query: string, language: string): Promise<{ rep
     return { reply: "[AI unavailable: no API key]", latencyMs: 0 };
   }
 
-  const model = google("gemini-2.5-flash") as any;
+  const model = google("gemini-flash-latest") as any;
 
   const systemPrompt = [
     "You are HEALO's AI agent — a medical concierge connecting international patients with Korean hospitals.",

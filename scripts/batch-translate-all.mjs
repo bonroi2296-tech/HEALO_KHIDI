@@ -20,7 +20,7 @@ const supabase = createClient(
   serviceKey
 );
 
-const llmModel = google("gemini-2.5-flash");
+const llmModel = google("gemini-flash-latest");
 
 const SUPPORTED_LANGS = ["ko", "en", "zh", "ja", "ru", "kz"];
 
