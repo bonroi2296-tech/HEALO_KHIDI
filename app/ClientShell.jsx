@@ -4,18 +4,18 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 import { LogOut } from "lucide-react";
-import { supabaseClient } from "../src/lib/data/supabaseClient";
-import { SITE_INFO } from "../src/lib/siteSettings";
-import { getLangCodeFromCookie, t } from "../src/lib/i18n";
-import { LangProvider, useLang } from "../src/lib/i18n/LangContext";
+import { supabaseClient } from "@/lib/data/supabaseClient";
+import { SITE_INFO } from "@/lib/siteSettings";
+import { getLangCodeFromCookie, t } from "@/lib/i18n";
+import { LangProvider, useLang } from "@/lib/i18n/LangContext";
 import {
   Header,
   MobileBottomNav,
   FloatingInquiryBtn,
-} from "../src/components.jsx";
-import ErrorBoundary from "../src/components/ErrorBoundary";
-import { useToast } from "../src/components/Toast";
-import CookieConsent from "../src/components/CookieConsent";
+} from "@/components.jsx";
+import ErrorBoundary from "@/components/ErrorBoundary";
+import { useToast } from "@/components/Toast";
+import CookieConsent from "@/components/CookieConsent";
 import EmergencyButton from "../components/healo/EmergencyButton";
 
 export default function ClientShell({ children }) {

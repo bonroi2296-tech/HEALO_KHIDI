@@ -10,9 +10,9 @@
 export const runtime = "nodejs";
 
 import { NextRequest } from "next/server";
-import { supabaseAdmin, assertSupabaseEnv } from "../../../../../../../src/lib/rag/supabaseAdmin";
-import { requireAdminAuth } from "../../../../../../../src/lib/auth/requireAdminAuth";
-import { chunkText } from "../../../../../../../src/lib/rag/chunker";
+import { supabaseAdmin, assertSupabaseEnv } from "@/lib/rag/supabaseAdmin";
+import { requireAdminAuth } from "@/lib/auth/requireAdminAuth";
+import { chunkText } from "@/lib/rag/chunker";
 
 const nowIso = () => new Date().toISOString();
 

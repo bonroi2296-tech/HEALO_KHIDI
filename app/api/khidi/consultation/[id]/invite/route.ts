@@ -10,11 +10,11 @@
 export const runtime = "nodejs";
 
 import { NextRequest } from "next/server";
-import { requireConsultationAccess } from "../../../../../../src/lib/auth/requireConsultationAccess";
-import { generateGuestToken, type GuestRole } from "../../../../../../src/lib/auth/guestToken";
-import { sendEmail } from "../../../../../../src/lib/email/sendEmail";
-import { renderConsultationInviteEmail } from "../../../../../../src/lib/email/templates/consultationInvite";
-import { supabaseAdmin } from "../../../../../../src/lib/rag/supabaseAdmin";
+import { requireConsultationAccess } from "@/lib/auth/requireConsultationAccess";
+import { generateGuestToken, type GuestRole } from "@/lib/auth/guestToken";
+import { sendEmail } from "@/lib/email/sendEmail";
+import { renderConsultationInviteEmail } from "@/lib/email/templates/consultationInvite";
+import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
 
 const VALID_ROLES: GuestRole[] = ["patient", "doctor", "translator", "coordinator", "observer"];
 

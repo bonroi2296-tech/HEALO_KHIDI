@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import CookiePolicyClient from "./CookiePolicyClient";
 import CookiePolicyPremium from "./CookiePolicyPremium";
-import { getServerDesignMode } from "../../src/lib/designMode";
+import { getServerDesignMode } from "@/lib/designMode";
 
 export const metadata = {
   title: "Cookie Policy | HEALO",

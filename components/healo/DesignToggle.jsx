@@ -10,8 +10,8 @@
  */
 
 import { useState, useEffect } from "react";
-import { getClientDesignMode, toggleDesignMode } from "../../src/lib/designMode";
-import { SHOW_DESIGN_TOGGLE } from "../../src/lib/designMode";
+import { getClientDesignMode, toggleDesignMode } from "@/lib/designMode";
+import { SHOW_DESIGN_TOGGLE } from "@/lib/designMode";
 
 export default function DesignToggle() {
   const [mode, setMode] = useState(null);

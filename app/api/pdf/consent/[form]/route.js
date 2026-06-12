@@ -24,7 +24,7 @@ async function generate(form, { patient = {}, lang = "ko" }) {
   if (!componentName) throw new Error(`unknown_form: ${form}`);
 
   const { renderToBuffer } = await import("@react-pdf/renderer");
-  const mod = await import("../../../../../src/lib/pdf/ConsentForms");
+  const mod = await import("@/lib/pdf/ConsentForms");
   const Component = mod[componentName];
   if (!Component) throw new Error(`component_not_found: ${componentName}`);
 

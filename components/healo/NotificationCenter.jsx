@@ -14,8 +14,8 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useNotifications } from "../../src/hooks/useNotifications";
-import { useLang } from "../../src/lib/i18n/LangContext";
+import { useNotifications } from "@/hooks/useNotifications";
+import { useLang } from "@/lib/i18n/LangContext";
 import NotificationToast from "./NotificationToast";
 
 const PRIORITY_DOT = {

@@ -83,7 +83,7 @@ export async function fetchRagChunks(query: string, lang: string, threadId?: str
 
   const embedding = await getEmbedding(query);
   let playbookChunks: any[] = [];
-  let generalChunks: any[] = [];
+  const generalChunks: any[] = [];
   const seenIds = new Set<string>();
 
   if (embedding) {

@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { getLangCodeFromCookie } from '../../src/lib/i18n';
-import { createSupabaseBrowserClient } from '../../src/lib/supabase/browser';
+import { getLangCodeFromCookie } from '@/lib/i18n';
+import { createSupabaseBrowserClient } from '@/lib/supabase/browser';
 import {
   FileText, Video, BookOpen, Activity, Calendar,
   Upload, ChevronRight, AlertCircle, User, MessageSquare, Phone, ArrowRight,

@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import TermsOfServiceClient from "./TermsOfServiceClient";
 import TermsOfServiceClientLegacy from "./TermsOfServiceClientLegacy";
-import { getServerDesignMode } from "../../src/lib/designMode";
+import { getServerDesignMode } from "@/lib/designMode";
 
 export const metadata = {
   title: "Terms of Service | HEALO",

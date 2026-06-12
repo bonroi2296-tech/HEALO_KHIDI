@@ -3,8 +3,8 @@
 import { useState } from "react";
 import Link from "next/link";
 import { ArrowRight, Plus } from "lucide-react";
-import { useLang } from "../../src/lib/i18n/LangContext";
-import { FAQ_CATEGORIES, FAQS } from "../../src/lib/faq/faqData";
+import { useLang } from "@/lib/i18n/LangContext";
+import { FAQ_CATEGORIES, FAQS } from "@/lib/faq/faqData";
 
 const COPY = {
   ko: {

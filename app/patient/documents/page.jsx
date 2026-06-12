@@ -2,7 +2,7 @@ import { cookies } from "next/headers";
 import DocumentsClient from "./DocumentsClient";
 import DocumentsPremium from "./DocumentsPremium";
 import PageShell from "../../../components/healo/PageShell";
-import { getServerDesignMode } from "../../../src/lib/designMode";
+import { getServerDesignMode } from "@/lib/designMode";
 
 export const metadata = {
   title: "의료 문서 관리",

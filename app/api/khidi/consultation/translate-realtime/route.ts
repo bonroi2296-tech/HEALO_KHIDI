@@ -156,7 +156,7 @@ async function saveTranslationLog(
   }
 ) {
   const { getSupabaseServerClient } = await import(
-    "../../../../../src/lib/data/supabaseServerClient"
+    "@/lib/data/supabaseServerClient"
   );
   const supabase = getSupabaseServerClient();
 

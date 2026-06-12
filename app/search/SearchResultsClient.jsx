@@ -4,10 +4,10 @@ import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { Search, X, Loader2, ArrowRight } from "lucide-react";
-import { supabaseClient } from "../../src/lib/data/supabaseClient";
-import { mapHospitalRow, mapTreatmentRow } from "../../src/lib/mapper";
-import { getCurrentLangCode } from "../../src/lib/language";
-import { getLangCodeFromCookie, t } from "../../src/lib/i18n";
+import { supabaseClient } from "@/lib/data/supabaseClient";
+import { mapHospitalRow, mapTreatmentRow } from "@/lib/mapper";
+import { getCurrentLangCode } from "@/lib/language";
+import { getLangCodeFromCookie, t } from "@/lib/i18n";
 
 const HOSPITAL_PUBLIC_COLS = `id,slug,name,location_en,location_kr,address_detail,description,tags,rating,reviews_count,images,thumbnail_image,gallery_images,latitude,longitude,operating_hours,doctor_profile,amenities,supported_languages,specialties,medical_equipment,certifications,insurance_accepted,insurance_details,annual_surgery_count,establishment_date,doctor_count,external_ratings,is_published,display_order,created_at,i18n,is_partner`;
 const TREATMENT_PUBLIC_COLS = `id,slug,name,description,full_description,hospital_id,price_min,price_max,tags,images,benefits,i18n`;

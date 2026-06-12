@@ -11,9 +11,9 @@
 export const runtime = "nodejs";
 
 import { NextRequest } from "next/server";
-import { createServiceRoleClient } from "../../../../src/lib/supabase/server";
-import { requireAdminAuth } from "../../../../src/lib/auth/requireAdminAuth";
-import { decryptStringNullable } from "../../../../src/lib/security/encryptionV2";
+import { createServiceRoleClient } from "@/lib/supabase/server";
+import { requireAdminAuth } from "@/lib/auth/requireAdminAuth";
+import { decryptStringNullable } from "@/lib/security/encryptionV2";
 
 const STAFF_ROLES = ["doctor", "coordinator", "admin"];
 

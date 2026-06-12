@@ -8,13 +8,13 @@
 export const runtime = "nodejs";
 
 import { NextRequest } from "next/server";
-import { defaultLimiter } from "../../../../src/lib/api/rateLimiter";
+import { defaultLimiter } from "@/lib/api/rateLimiter";
 import {
   getVisaInfo,
   getVisaChecklist,
   getAllVisaTypes,
   type VisaType,
-} from "../../../../src/lib/visa/visaGuide";
+} from "@/lib/visa/visaGuide";
 
 export async function GET(request: NextRequest) {
   const limited = defaultLimiter.check(request);

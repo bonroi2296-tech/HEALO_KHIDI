@@ -19,12 +19,12 @@
 export const runtime = "nodejs";
 
 import { NextRequest } from "next/server";
-import { supabaseAdmin, assertSupabaseEnv } from "../../../../src/lib/rag/supabaseAdmin";
-import { encryptString, encryptStringNullable } from "../../../../src/lib/security/encryptionV2";
-import { checkRateLimit, getClientIp, RATE_LIMITS, getRateLimitHeaders } from "../../../../src/lib/rateLimit";
-import { logInquiryReceived } from "../../../../src/lib/operationalLog";
-import { trackFunnelEvent } from "../../../../src/lib/events/funnelTracking";
-import { sendAdminNotification } from "../../../../src/lib/notifications/adminNotifier";
+import { supabaseAdmin, assertSupabaseEnv } from "@/lib/rag/supabaseAdmin";
+import { encryptString, encryptStringNullable } from "@/lib/security/encryptionV2";
+import { checkRateLimit, getClientIp, RATE_LIMITS, getRateLimitHeaders } from "@/lib/rateLimit";
+import { logInquiryReceived } from "@/lib/operationalLog";
+import { trackFunnelEvent } from "@/lib/events/funnelTracking";
+import { sendAdminNotification } from "@/lib/notifications/adminNotifier";
 
 export async function POST(request: NextRequest) {
   // ✅ 환경변수 검증

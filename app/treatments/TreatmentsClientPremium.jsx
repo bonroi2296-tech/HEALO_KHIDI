@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useLang } from "../../src/lib/i18n/LangContext";
+import { useLang } from "@/lib/i18n/LangContext";
 import { CANCERS, TREATMENTS_L } from "./TreatmentsClient";
 import {
   Eyebrow,

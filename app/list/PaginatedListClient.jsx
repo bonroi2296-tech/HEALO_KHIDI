@@ -3,11 +3,11 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2, X, Search } from "lucide-react";
-import { supabaseClient } from "../../src/lib/data/supabaseClient";
-import { mapHospitalRow, mapTreatmentRow } from "../../src/lib/mapper";
-import { getCurrentLangCode } from "../../src/lib/language";
-import { getLangCodeFromCookie, t } from "../../src/lib/i18n";
-import { CardListSection, PersonalConciergeCTA } from "../../src/components.jsx";
+import { supabaseClient } from "@/lib/data/supabaseClient";
+import { mapHospitalRow, mapTreatmentRow } from "@/lib/mapper";
+import { getCurrentLangCode } from "@/lib/language";
+import { getLangCodeFromCookie, t } from "@/lib/i18n";
+import { CardListSection, PersonalConciergeCTA } from "@/components.jsx";
 
 const TAG_CHIPS = {
   treatment: [

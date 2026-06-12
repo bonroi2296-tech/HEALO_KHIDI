@@ -1,8 +1,8 @@
 export const runtime = "nodejs";
 
 import { NextRequest } from "next/server";
-import { requireAdminAuth } from "../../../../src/lib/auth/requireAdminAuth";
-import { createServiceRoleClient } from "../../../../src/lib/supabase/server";
+import { requireAdminAuth } from "@/lib/auth/requireAdminAuth";
+import { createServiceRoleClient } from "@/lib/supabase/server";
 
 /**
  * GET: 특정 병원의 담당자 목록 조회

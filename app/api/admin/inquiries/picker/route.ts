@@ -10,9 +10,9 @@
 export const runtime = "nodejs";
 
 import { NextRequest } from "next/server";
-import { createServiceRoleClient } from "../../../../../src/lib/supabase/server";
-import { requireAdminAuth } from "../../../../../src/lib/auth/requireAdminAuth";
-import { decryptStringNullable } from "../../../../../src/lib/security/encryptionV2";
+import { createServiceRoleClient } from "@/lib/supabase/server";
+import { requireAdminAuth } from "@/lib/auth/requireAdminAuth";
+import { decryptStringNullable } from "@/lib/security/encryptionV2";
 
 // 복호화 후 마스킹 — 첫 글자 + ***  (평문 대량 노출 방지하되 식별 가능)
 function maskedName(enc: string | null | undefined): string {

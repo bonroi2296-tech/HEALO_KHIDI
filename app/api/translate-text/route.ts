@@ -14,7 +14,8 @@ export const runtime = "nodejs";
 import { NextRequest, NextResponse } from "next/server";
 import { google } from "@ai-sdk/google";
 import { generateText } from "ai";
-import { checkRateLimit, getClientIp, getRateLimitHeaders } from "../../../src/lib/rateLimit";
+import { checkRateLimitPersistent, getClientIp, getRateLimitHeaders } from "@/lib/rateLimit";
+import { checkAiGuards } from "@/lib/ai/aiGuard";
 
 const LANG_NAMES: Record<string, string> = {
   en: "English", zh: "Simplified Chinese", ja: "Japanese", ko: "Korean", ru: "Russian", kz: "Kazakh",
@@ -60,14 +61,18 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: false, error: "forbidden_origin" }, { status: 403 });
   }
 
-  // ✅ Rate limit
+  // ✅ Rate limit (DB 기반 — 인스턴스 간 공유) + AI 비용 가드
   const clientIp = getClientIp(request);
-  const rl = checkRateLimit(clientIp, TRANSLATE_RATE);
+  const rl = await checkRateLimitPersistent(clientIp, TRANSLATE_RATE);
   if (!rl.allowed) {
     return NextResponse.json(
       { ok: false, error: "rate_limited" },
       { status: 429, headers: getRateLimitHeaders(rl) }
     );
+  }
+  const aiGuard = await checkAiGuards(clientIp, "/api/translate-text");
+  if (!aiGuard.allowed) {
+    return NextResponse.json({ ok: false, error: aiGuard.code }, { status: aiGuard.status });
   }
 
   try {

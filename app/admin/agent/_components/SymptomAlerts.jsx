@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { AlertTriangle, Shield, Eye, CheckCircle2 } from "lucide-react";
-import { createSupabaseBrowserClient } from "../../../../src/lib/supabase/browser";
+import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 
 const URGENCY_CONFIG = {
   emergency: { label: "응급", color: "bg-red-100 text-red-700 border-red-200", icon: "🚨" },

@@ -3,8 +3,8 @@
 import { useState, useEffect, useRef } from "react";
 import { TreatmentManager } from "./_client/TreatmentManager";
 import { AdminGuideModal } from "../_components/AdminGuideModal";
-import { createSupabaseBrowserClient } from "../../../src/lib/supabase/browser";
-import { useToast } from "../../../src/components/Toast";
+import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
+import { useToast } from "@/components/Toast";
 import { X, UploadCloud, Loader2 } from "lucide-react";
 
 // ✅ Supabase는 이미지 업로드와 세션 확인용으로만 사용

@@ -13,9 +13,9 @@ export const runtime = "nodejs";
 
 import { NextRequest } from "next/server";
 import { timingSafeEqual } from "node:crypto";
-import { detectSilence } from "../../../../src/lib/symptoms/detect";
-import { saveAndNotifyAlerts } from "../../../../src/lib/symptoms/alertService";
-import { supabaseAdmin } from "../../../../src/lib/rag/supabaseAdmin";
+import { detectSilence } from "@/lib/symptoms/detect";
+import { saveAndNotifyAlerts } from "@/lib/symptoms/alertService";
+import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
 
 function verifyCronSecret(header: string | null): boolean {
   const expected = process.env.CRON_SECRET;

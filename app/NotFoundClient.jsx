@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { getLangCodeFromCookie } from "../src/lib/i18n";
+import { getLangCodeFromCookie } from "@/lib/i18n";
 
 const COPY = {
   ko: { title: "페이지를 찾을 수 없습니다", body: "주소가 바뀌었거나 존재하지 않는 페이지예요.", home: "홈으로", inquiry: "상담 신청 →" },

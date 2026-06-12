@@ -2,18 +2,18 @@ import Script from "next/script";
 import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import PageShell from "../../../components/healo/PageShell";
-import { getServerDesignMode } from "../../../src/lib/designMode";
+import { getServerDesignMode } from "@/lib/designMode";
 import {
   getTreatmentById,
   getTreatmentBySlug,
   getTreatmentSlugById,
-} from "../../../src/lib/data/treatments";
+} from "@/lib/data/treatments";
 import TreatmentDetailClient from "./TreatmentDetailClient";
 import CancerDetailClient from "./CancerDetailClient";
 import {
   CANCER_DETAILS,
   CANCER_IMAGES,
-} from "../../../src/lib/data/immuneCancerDetails";
+} from "@/lib/data/immuneCancerDetails";
 
 const UUID_REGEX =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;

@@ -17,9 +17,9 @@ import {
   Zap, Microscope, HelpCircle,
   Bot, MessageCircle, ClipboardList, Headset
 } from "lucide-react";
-import { useLang } from "../../../src/lib/i18n/LangContext";
-import { event } from "../../../src/lib/ga";
-import { SITE_INFO } from "../../../src/lib/siteSettings";
+import { useLang } from "@/lib/i18n/LangContext";
+import { event } from "@/lib/ga";
+import { SITE_INFO } from "@/lib/siteSettings";
 import { ThreadChat } from "../ThreadChat";
 
 // ─── 상수 ───────────────────────────────────────────────────────────

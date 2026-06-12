@@ -16,7 +16,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { generateText } from "ai";
 import { google } from "@ai-sdk/google";
-import { sendInAppNotification } from "../../../../src/lib/notifications/inApp";
+import { sendInAppNotification } from "@/lib/notifications/inApp";
 
 // ── Supabase admin 클라이언트 ──────────────────────────────────
 function getAdminDb() {

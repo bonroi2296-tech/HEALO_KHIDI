@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { AdminAuditPage } from "./_client/AdminAuditPage";
 import { AdminGuideModal } from "../_components/AdminGuideModal";
-import { createSupabaseBrowserClient } from "../../../src/lib/supabase/browser";
+import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 
 const supabase = createSupabaseBrowserClient();
 

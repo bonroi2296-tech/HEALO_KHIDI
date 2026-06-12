@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { getLangCodeFromCookie } from '../../src/lib/i18n';
+import { getLangCodeFromCookie } from '@/lib/i18n';
 import {
   Home, FileText, BookOpen, Activity, Calendar, Globe, MessageSquare,
   Video, MoreHorizontal, X,

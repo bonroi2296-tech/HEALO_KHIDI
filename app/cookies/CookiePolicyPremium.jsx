@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { getLangCodeFromCookie, t } from "../../src/lib/i18n";
+import { getLangCodeFromCookie, t } from "@/lib/i18n";
 import PageShell from "../../components/healo/PageShell";
 import { Eyebrow, Rule } from "../../components/healo/Primitives";
 

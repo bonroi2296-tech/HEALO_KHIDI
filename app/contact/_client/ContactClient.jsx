@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { SITE_INFO } from "../../../src/lib/siteSettings";
-import { getLangCodeFromCookie, t } from "../../../src/lib/i18n";
+import { SITE_INFO } from "@/lib/siteSettings";
+import { getLangCodeFromCookie, t } from "@/lib/i18n";
 
 export default function ContactClient() {
   const [langCode, setLangCode] = useState("en");

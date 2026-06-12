@@ -3,8 +3,8 @@
 import Link from "next/link";
 import PageShell from "../../components/healo/PageShell";
 import { Eyebrow, Rule, ButtonGold, LinkArrow, Chip, FilmGrain } from "../../components/healo/Primitives";
-import { useLang } from "../../src/lib/i18n/LangContext";
-import { STORIES } from "../../src/lib/stories/storiesData";
+import { useLang } from "@/lib/i18n/LangContext";
+import { STORIES } from "@/lib/stories/storiesData";
 import { PHOTO_FILTER } from "../../components/healo/Photos";
 
 const COPY = {

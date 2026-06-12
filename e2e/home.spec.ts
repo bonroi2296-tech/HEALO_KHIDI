@@ -13,8 +13,8 @@ test.describe("홈페이지 진입점", () => {
   test("HEALO 로고 + 원격협진 Nav 가 노출된다", async ({ page }) => {
     await page.goto("/");
 
-    // HEALO 워드마크
-    await expect(page.locator("nav").getByText("HEALO").first()).toBeVisible();
+    // HEALO 워드마크 — 워드마크는 <header> 안에 있고 <nav>는 메뉴 항목 전용
+    await expect(page.locator("header").getByText("HEALO").first()).toBeVisible();
 
     // 원격협진 메뉴 + NEW 배지
     const telemedicineLink = page.getByRole("link", {

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { getLangCodeFromCookie } from "../../src/lib/i18n";
+import { getLangCodeFromCookie } from "@/lib/i18n";
 import {
   ArrowRight,
   Shield,

@@ -18,7 +18,7 @@ export function HospitalGateClient({ children }) {
 
     const verify = async () => {
       try {
-        const { createSupabaseBrowserClient } = await import("../../../src/lib/supabase/browser");
+        const { createSupabaseBrowserClient } = await import("@/lib/supabase/browser");
         const supabase = createSupabaseBrowserClient();
         const { data: sessionData } = await supabase.auth.getSession();
         const accessToken = sessionData?.session?.access_token;

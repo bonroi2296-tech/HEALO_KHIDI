@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import VisaClient from "../patient/visa/VisaClient";
 import VisaClientPremium from "../patient/visa/VisaClientPremium";
-import { getServerDesignMode } from "../../src/lib/designMode";
+import { getServerDesignMode } from "@/lib/designMode";
 
 export const metadata = {
   title: "Medical Visa Guide | HEALO",

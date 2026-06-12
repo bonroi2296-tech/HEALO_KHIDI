@@ -7,12 +7,12 @@ import {
   Heart, Brain, Bone, Eye, Smile, Pill, Activity, Stethoscope,
   Sun, Sparkles, Search, Zap, Scale
 } from "lucide-react";
-import { getPrivacyPolicyText, getTermsPolicyText } from "../../src/lib/policies";
-import { PolicyModal } from "../../src/components/Modals";
-import { useToast } from "../../src/components/Toast";
-import { getLangCodeFromCookie, t } from "../../src/lib/i18n";
-import { useLang } from "../../src/lib/i18n/LangContext";
-import { event } from "../../src/lib/ga";
+import { getPrivacyPolicyText, getTermsPolicyText } from "@/lib/policies";
+import { PolicyModal } from "@/components/Modals";
+import { useToast } from "@/components/Toast";
+import { getLangCodeFromCookie, t } from "@/lib/i18n";
+import { useLang } from "@/lib/i18n/LangContext";
+import { event } from "@/lib/ga";
 
 const CONCERNS = [
   { value: "chronic-fatigue-low-immunity", label: "Fatigue / Low Immunity", icon: Zap, color: "text-amber-600 bg-amber-50" },

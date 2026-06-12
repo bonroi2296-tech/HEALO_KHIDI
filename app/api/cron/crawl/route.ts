@@ -11,10 +11,10 @@ export const runtime = "nodejs";
 export const maxDuration = 300;
 
 import { NextRequest, NextResponse } from "next/server";
-import { supabaseAdmin, assertSupabaseEnv } from "../../../../src/lib/rag/supabaseAdmin";
-import { runCrawlJob } from "../../../../src/lib/crawl/job-runner";
-import { initCrawlSources } from "../../../../src/lib/crawl";
-import { SPECIALTY_GROUPS } from "../../../../src/lib/crawl/specialty-groups";
+import { supabaseAdmin, assertSupabaseEnv } from "@/lib/rag/supabaseAdmin";
+import { runCrawlJob } from "@/lib/crawl/job-runner";
+import { initCrawlSources } from "@/lib/crawl";
+import { SPECIALTY_GROUPS } from "@/lib/crawl/specialty-groups";
 
 initCrawlSources();
 

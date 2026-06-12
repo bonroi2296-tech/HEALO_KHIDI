@@ -5,8 +5,8 @@
  * window 기본 7d. 24h/1d/7d 지원.
  */
 import { NextRequest } from "next/server";
-import { requireAdminAuth } from "../../../../../../src/lib/auth/requireAdminAuth";
-import { supabaseAdmin } from "../../../../../../src/lib/rag/supabaseAdmin";
+import { requireAdminAuth } from "@/lib/auth/requireAdminAuth";
+import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
 
 const DEFAULT_WINDOW = "7d";
 const ALERT_ZERO_RATE_THRESHOLD = 20;

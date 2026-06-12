@@ -2,10 +2,10 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { supabaseClient } from "../../src/lib/data/supabaseClient";
-import { mapHospitalRow } from "../../src/lib/mapper";
-import { getLangCodeFromCookie } from "../../src/lib/i18n";
-import { useLang } from "../../src/lib/i18n/LangContext";
+import { supabaseClient } from "@/lib/data/supabaseClient";
+import { mapHospitalRow } from "@/lib/mapper";
+import { getLangCodeFromCookie } from "@/lib/i18n";
+import { useLang } from "@/lib/i18n/LangContext";
 import {
   Eyebrow,
   Rule,

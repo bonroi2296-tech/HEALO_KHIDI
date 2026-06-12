@@ -4,9 +4,9 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import PageShell from "../../../components/healo/PageShell";
 import { Eyebrow, Rule, Chip, ButtonGold, LinkArrow } from "../../../components/healo/Primitives";
-import { useLang } from "../../../src/lib/i18n/LangContext";
-import { createSupabaseBrowserClient } from "../../../src/lib/supabase/browser";
-import { fetchPatientJourney } from "../../../src/lib/patient/journeyState";
+import { useLang } from "@/lib/i18n/LangContext";
+import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
+import { fetchPatientJourney } from "@/lib/patient/journeyState";
 
 const COPY = {
   en: {

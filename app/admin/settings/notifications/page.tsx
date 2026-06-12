@@ -20,7 +20,7 @@ import { RecipientList } from "./_components/RecipientList";
 import { AddRecipientForm } from "./_components/AddRecipientForm";
 import { EditRecipientModal } from "./_components/EditRecipientModal";
 import { Toast } from "./_components/Toast";
-import { cleanPhone } from "../../../../src/lib/utils/phoneFormat";
+import { cleanPhone } from "@/lib/utils/phoneFormat";
 import type { Recipient, EditModalState } from "./_types";
 
 export default function NotificationsSettingsPage() {

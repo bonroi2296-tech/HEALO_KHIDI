@@ -7,14 +7,14 @@ import {
   ShieldCheck, CheckCircle2, MessageCircle, ThumbsUp, Map, UserCheck,
   Clock, FileText, Globe, Activity, AlertTriangle, Syringe, BarChart3
 } from "lucide-react";
-import { supabase } from "../../../src/supabase";
-import { ReviewModal } from "../../../src/components/Modals";
-import { normalizeImages } from "../../../src/lib/mapper";
-import { localize, localizeArray, localizeLocation, getCurrentLangCode } from "../../../src/lib/language";
-import { GoogleMapComponent } from "../../../src/components/GoogleMap";
-import { formatDate, formatPriceRange } from "../../../src/lib/i18n/format";
-import { getLangCodeFromCookie, t } from "../../../src/lib/i18n";
-import { event } from "../../../src/lib/ga";
+import { supabase } from "@/supabase";
+import { ReviewModal } from "@/components/Modals";
+import { normalizeImages } from "@/lib/mapper";
+import { localize, localizeArray, localizeLocation, getCurrentLangCode } from "@/lib/language";
+import { GoogleMapComponent } from "@/components/GoogleMap";
+import { formatDate, formatPriceRange } from "@/lib/i18n/format";
+import { getLangCodeFromCookie, t } from "@/lib/i18n";
+import { event } from "@/lib/ga";
 
 export const TreatmentDetailPage = ({
   selectedId,

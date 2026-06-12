@@ -9,9 +9,9 @@ export const runtime = "nodejs";
 
 import { NextRequest } from "next/server";
 import { v4 as uuidv4 } from "uuid";
-import { defaultLimiter } from "../../../../../src/lib/api/rateLimiter";
-import { sanitizeString } from "../../../../../src/lib/api/sanitize";
-import { checkAdminAuth } from "../../../../../src/lib/auth/checkAdminAuth";
+import { defaultLimiter } from "@/lib/api/rateLimiter";
+import { sanitizeString } from "@/lib/api/sanitize";
+import { checkAdminAuth } from "@/lib/auth/checkAdminAuth";
 
 export async function POST(request: NextRequest) {
   const limited = defaultLimiter.check(request);
@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
     scheduledAt.setHours(10, 0, 0, 0); // Default to 10:00 AM
 
     const { getSupabaseServerClient } = await import(
-      "../../../../../src/lib/data/supabaseServerClient"
+      "@/lib/data/supabaseServerClient"
     );
     const supabase = getSupabaseServerClient();
 

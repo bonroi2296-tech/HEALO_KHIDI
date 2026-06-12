@@ -8,8 +8,8 @@
 export const runtime = "nodejs";
 
 import { NextRequest } from "next/server";
-import { checkAdminAuth } from "../../../../src/lib/auth/checkAdminAuth";
-import { getSupabaseServerClient } from "../../../../src/lib/data/supabaseServerClient";
+import { checkAdminAuth } from "@/lib/auth/checkAdminAuth";
+import { getSupabaseServerClient } from "@/lib/data/supabaseServerClient";
 
 /**
  * GET — 알림 목록 조회 (코디네이터 전용)

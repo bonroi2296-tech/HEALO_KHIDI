@@ -12,7 +12,7 @@ import {
   Menu,
   X,
 } from "lucide-react";
-import { createSupabaseBrowserClient } from "../../../src/lib/supabase/browser";
+import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { useHospitalContext } from "./HospitalGateClient";
 
 // KHIDI 방향성 기준 메뉴

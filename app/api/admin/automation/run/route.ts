@@ -1,9 +1,9 @@
 import { NextRequest } from "next/server";
-import { requireAdminAuth } from "../../../../../src/lib/auth/requireAdminAuth";
-import { supabaseAdmin } from "../../../../../src/lib/rag/supabaseAdmin";
-import { runDailyEval } from "../../../../../src/lib/automation/playbookDailyEval";
-import { runAutoImprove } from "../../../../../src/lib/automation/playbookAutoImprove";
-import { runAbFinalize } from "../../../../../src/lib/automation/playbookAbFinalize";
+import { requireAdminAuth } from "@/lib/auth/requireAdminAuth";
+import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
+import { runDailyEval } from "@/lib/automation/playbookDailyEval";
+import { runAutoImprove } from "@/lib/automation/playbookAutoImprove";
+import { runAbFinalize } from "@/lib/automation/playbookAbFinalize";
 
 const JOB_TYPES = ["daily_eval", "auto_improve", "ab_finalize"] as const;
 type JobType = (typeof JOB_TYPES)[number];

@@ -116,7 +116,7 @@ ${TEMPLATE_NAMES.map(
 
   try {
     const { render } = await import("@react-email/render");
-    const templatesMod = await import("../../../../src/emails/templates");
+    const templatesMod = await import("@/emails/templates");
 
     const componentMap = {
       inquiryReceived: templatesMod.InquiryReceived,

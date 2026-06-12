@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { getLangCodeFromCookie } from '../../../src/lib/i18n';
-import { getVisaChecklist } from '../../../src/lib/visa/visaGuide';
+import { getLangCodeFromCookie } from '@/lib/i18n';
+import { getVisaChecklist } from '@/lib/visa/visaGuide';
 
 const LABELS = {
   title: { ko: '재예약 관리', en: 'Rebooking Management', ru: 'Управление повторной записью', zh: '复诊管理', ja: '再予約管理', kz: 'Қайта жазылу басқару' },

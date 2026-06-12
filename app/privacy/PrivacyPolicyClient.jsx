@@ -6,8 +6,8 @@ import {
   getPrivacySectionsList,
   PRIVACY_EFFECTIVE_DATE,
   PRIVACY_VERSION,
-} from "../../src/lib/legal/privacyPolicy";
-import { useLang } from "../../src/lib/i18n/LangContext";
+} from "@/lib/legal/privacyPolicy";
+import { useLang } from "@/lib/i18n/LangContext";
 import { Eyebrow, Rule } from "../../components/healo/Primitives";
 
 export default function PrivacyPolicyClient() {

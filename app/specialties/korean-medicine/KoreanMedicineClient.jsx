@@ -6,10 +6,10 @@ import {
   Leaf, ShieldCheck, Sparkles, Globe, ChevronDown, MapPin,
   Star, ArrowRight, Building2, MessageCircle, Award, Microscope
 } from "lucide-react";
-import { supabaseClient } from "../../../src/lib/data/supabaseClient";
-import { mapHospitalRow, mapTreatmentRow } from "../../../src/lib/mapper";
-import { getCurrentLangCode } from "../../../src/lib/language";
-import { getLangCodeFromCookie, t } from "../../../src/lib/i18n";
+import { supabaseClient } from "@/lib/data/supabaseClient";
+import { mapHospitalRow, mapTreatmentRow } from "@/lib/mapper";
+import { getCurrentLangCode } from "@/lib/language";
+import { getLangCodeFromCookie, t } from "@/lib/i18n";
 
 export default function KoreanMedicineClient() {
   const router = useRouter();

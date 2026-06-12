@@ -10,8 +10,8 @@ export const runtime = "nodejs";
 export const maxDuration = 60;
 
 import { NextRequest, NextResponse } from "next/server";
-import { triggerMultiLangTranslation } from "../../../src/lib/translate";
-import { supabaseAdmin } from "../../../src/lib/rag/supabaseAdmin";
+import { triggerMultiLangTranslation } from "@/lib/translate";
+import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
 
 const INTERNAL_SECRET = process.env.INTERNAL_API_SECRET;
 

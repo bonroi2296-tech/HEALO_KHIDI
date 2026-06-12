@@ -1,7 +1,7 @@
 /**
  * 수신자 추가 폼 컴포넌트
  */
-import { formatPhoneInput } from "../../../../../src/lib/utils/phoneFormat";
+import { formatPhoneInput } from "@/lib/utils/phoneFormat";
 import { useRecipientForm } from "../_hooks/useRecipientForm";
 
 interface AddRecipientFormProps {

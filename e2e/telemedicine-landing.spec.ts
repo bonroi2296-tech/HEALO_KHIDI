@@ -31,8 +31,10 @@ test.describe("/telemedicine 랜딩", () => {
     // FAQ 존재
     await expect(page.getByText(/FAQ|자주 묻는|Frequently/i).first()).toBeVisible();
 
-    // Final CTA
-    await expect(page.getByText(/Start now|지금 시작/i).first()).toBeVisible();
+    // Final CTA — 현재 카피는 "Request consultation/상담 신청" (구버전 "지금 시작"도 호환 유지)
+    await expect(
+      page.getByText(/Request consultation|상담 신청|Start now|지금 시작/i).first()
+    ).toBeVisible();
   });
 
   test("상담 신청 CTA → /inquiry", async ({ page }) => {

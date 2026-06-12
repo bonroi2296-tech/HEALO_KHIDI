@@ -19,16 +19,16 @@
 export const runtime = "nodejs";
 
 import { NextRequest } from "next/server";
-import { supabaseAdmin, assertSupabaseEnv } from "../../../../src/lib/rag/supabaseAdmin";
-import { requireAdminAuth } from "../../../../src/lib/auth/requireAdminAuth";
+import { supabaseAdmin, assertSupabaseEnv } from "@/lib/rag/supabaseAdmin";
+import { requireAdminAuth } from "@/lib/auth/requireAdminAuth";
 // 🔒 복호화 import 제거 - 목록 API는 마스킹만 제공
-// import { decryptInquiriesForAdmin } from "../../../../src/lib/security/decryptForAdmin";
-import { maskInquiriesForList } from "../../../../src/lib/security/maskPii";
+// import { decryptInquiriesForAdmin } from "@/lib/security/decryptForAdmin";
+import { maskInquiriesForList } from "@/lib/security/maskPii";
 import {
   logAdminAction,
   getIpFromRequest,
   getUserAgentFromRequest,
-} from "../../../../src/lib/audit/adminAuditLog";
+} from "@/lib/audit/adminAuditLog";
 
 /**
  * GET: 문의 목록 조회 (관리자 전용, PII 마스킹 전용)

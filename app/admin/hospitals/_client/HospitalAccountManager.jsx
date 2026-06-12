@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { Users, Plus, Trash2, X, Loader2, Shield, Eye, Crown } from "lucide-react";
-import { createSupabaseBrowserClient } from "../../../../src/lib/supabase/browser";
+import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 
 const ROLE_CONFIG = {
   owner: { label: "소유자", icon: Crown, color: "bg-amber-100 text-amber-700" },

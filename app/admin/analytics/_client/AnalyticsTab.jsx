@@ -1,6 +1,6 @@
 ﻿import React from 'react';
 import { TrendingUp, DollarSign, Target, AlertCircle, Activity, Info, ArrowRightCircle } from 'lucide-react';
-import { formatCurrencyUSD } from "../../../../src/lib/i18n/format";
+import { formatCurrencyUSD } from "@/lib/i18n/format";
 
 export const AnalyticsTab = ({ analytics }) => (
   <div className="animate-in fade-in space-y-8">

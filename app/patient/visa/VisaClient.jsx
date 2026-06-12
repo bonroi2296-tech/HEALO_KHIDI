@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { getLangCodeFromCookie } from '../../../src/lib/i18n';
+import { getLangCodeFromCookie } from '@/lib/i18n';
 
 const NATIONALITIES = [
   { value: 'ru', label: { ko: '러시아', en: 'Russia', ru: 'Россия', zh: '俄罗斯', ja: 'ロシア', kz: 'Ресей' } },

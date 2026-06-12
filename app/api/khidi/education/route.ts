@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
     }
 
     const { getSupabaseServerClient } = await import(
-      "../../../../src/lib/data/supabaseServerClient"
+      "@/lib/data/supabaseServerClient"
     );
     const supabase = getSupabaseServerClient();
 

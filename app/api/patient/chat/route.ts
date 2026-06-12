@@ -15,15 +15,15 @@
 export const runtime = "nodejs";
 
 import { NextRequest } from "next/server";
-import { createSupabaseServerClientFromRequest } from "../../../../src/lib/supabase/server";
-import { supabaseAdmin } from "../../../../src/lib/rag/supabaseAdmin";
-import { checkRateLimit, getClientIp, RATE_LIMITS } from "../../../../src/lib/rateLimit";
+import { createSupabaseServerClientFromRequest } from "@/lib/supabase/server";
+import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
+import { checkRateLimit, getClientIp, RATE_LIMITS } from "@/lib/rateLimit";
 import {
   generateChatReply,
   detectHandOff,
   getModelName,
   logPlaybookUsage,
-} from "../../../../src/lib/chat/generateReply";
+} from "@/lib/chat/generateReply";
 
 // ─── Auth helper ───
 

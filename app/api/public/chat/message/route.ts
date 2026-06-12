@@ -11,19 +11,20 @@
 export const runtime = "nodejs";
 
 import { NextRequest } from "next/server";
-import { supabaseAdmin, assertSupabaseEnv } from "../../../../../src/lib/rag/supabaseAdmin";
-import { checkRateLimit, getClientIp, RATE_LIMITS } from "../../../../../src/lib/rateLimit";
+import { supabaseAdmin, assertSupabaseEnv } from "@/lib/rag/supabaseAdmin";
+import { checkRateLimitPersistent, getClientIp, RATE_LIMITS } from "@/lib/rateLimit";
+import { checkAiGuards } from "@/lib/ai/aiGuard";
 import {
   generateChatReply,
   detectHandOff,
   getModelName,
   logPlaybookUsage,
-} from "../../../../../src/lib/chat/generateReply";
+} from "@/lib/chat/generateReply";
 import {
   createEmptyIntake,
   computeMissingFields,
   computeExtractionConfidence,
-} from "../../../../../src/lib/intakeSchema";
+} from "@/lib/intakeSchema";
 import {
   bodyPartFromText,
   contraindicationsAndFlagsFromMessage,
@@ -31,8 +32,8 @@ import {
   extractBudgetFromQuery,
   extractDurationFromQuery,
   extractSeverityFromQuery,
-} from "../../../../../src/lib/intakeExtract";
-import { encryptStringNullable } from "../../../../../src/lib/security/encryptionV2";
+} from "@/lib/intakeExtract";
+import { encryptStringNullable } from "@/lib/security/encryptionV2";
 
 const INTAKE_EVERY_N_TURNS = 3;
 
@@ -40,9 +41,14 @@ export async function POST(request: NextRequest) {
   assertSupabaseEnv();
 
   const clientIp = getClientIp(request);
-  const rl = checkRateLimit(clientIp, RATE_LIMITS.CHAT);
+  // DB 기반 회수제한 + AI 비용 가드 (IP 일일 상한 · 전역 총량 차단기)
+  const rl = await checkRateLimitPersistent(clientIp, RATE_LIMITS.CHAT);
   if (!rl.allowed) {
     return Response.json({ ok: false, error: "rate_limited" }, { status: 429 });
+  }
+  const aiGuard = await checkAiGuards(clientIp, "/api/public/chat/message");
+  if (!aiGuard.allowed) {
+    return Response.json({ ok: false, error: aiGuard.code }, { status: aiGuard.status });
   }
 
   try {

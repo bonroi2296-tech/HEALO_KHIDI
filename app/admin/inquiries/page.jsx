@@ -3,8 +3,8 @@
 import { useState, useEffect } from "react";
 import { InquiryManager } from "./_client/InquiryManager";
 import { AdminGuideModal } from "../_components/AdminGuideModal";
-import { createSupabaseBrowserClient } from "../../../src/lib/supabase/browser";
-import { useToast } from "../../../src/components/Toast";
+import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
+import { useToast } from "@/components/Toast";
 import { X } from "lucide-react";
 
 const supabase = createSupabaseBrowserClient();

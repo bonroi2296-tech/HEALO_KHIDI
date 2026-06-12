@@ -10,9 +10,9 @@
  */
 export const runtime = "nodejs";
 
-import { supabaseAdmin, assertSupabaseEnv } from "../../../../src/lib/rag/supabaseAdmin";
+import { supabaseAdmin, assertSupabaseEnv } from "@/lib/rag/supabaseAdmin";
 import { NextRequest } from "next/server";
-import { checkRateLimit, getClientIp, getRateLimitHeaders } from "../../../../src/lib/rateLimit";
+import { checkRateLimit, getClientIp, getRateLimitHeaders } from "@/lib/rateLimit";
 
 const EVENT_RATE = {
   windowMs: 60 * 1000,

@@ -3,15 +3,15 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { getLangCodeFromCookie } from '../../../src/lib/i18n';
-import { createSupabaseBrowserClient } from '../../../src/lib/supabase/browser';
-import { getAllPartnerHospitals } from '../../../src/lib/data/partnerHospitals';
+import { getLangCodeFromCookie } from '@/lib/i18n';
+import { createSupabaseBrowserClient } from '@/lib/supabase/browser';
+import { getAllPartnerHospitals } from '@/lib/data/partnerHospitals';
 import {
   getAllCancerCosts,
   formatKRW,
   getDisclaimer as getCostDisclaimer,
   getSourceLabel as getCostSource,
-} from '../../../src/lib/data/hiraCancerCosts';
+} from '@/lib/data/hiraCancerCosts';
 import {
   Send, Loader2, Bot, User, Plus, ChevronLeft,
   MessageSquare, Shield, Globe, Database, AlertCircle,

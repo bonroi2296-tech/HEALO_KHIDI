@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { InquiryPage } from "./InquiryClient";
-import { supabaseClient } from "../../src/lib/data/supabaseClient";
+import { supabaseClient } from "@/lib/data/supabaseClient";
 
 export default function InquiryWrapper() {
   const router = useRouter();

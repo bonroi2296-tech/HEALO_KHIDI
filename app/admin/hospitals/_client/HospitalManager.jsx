@@ -545,7 +545,7 @@ function EnrichmentPanel({ editingHospitalId, enrichmentLog, onComplete, toast }
     if (!editingHospitalId) return;
     (async () => {
       try {
-        const { createSupabaseBrowserClient } = await import('../../../../src/lib/supabase/browser');
+        const { createSupabaseBrowserClient } = await import('@/lib/supabase/browser');
         const supabase = createSupabaseBrowserClient();
         const { data: { session } } = await supabase.auth.getSession();
         if (!session?.access_token) return;
@@ -574,7 +574,7 @@ function EnrichmentPanel({ editingHospitalId, enrichmentLog, onComplete, toast }
     const ids = [...selected];
     setRunning(new Set(ids));
     try {
-      const { createSupabaseBrowserClient } = await import('../../../../src/lib/supabase/browser');
+      const { createSupabaseBrowserClient } = await import('@/lib/supabase/browser');
       const supabase = createSupabaseBrowserClient();
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) { toast.error('세션 만료'); return; }

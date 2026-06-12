@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import EducationClient from "../patient/education/EducationClient";
 import EducationClientPremium from "../patient/education/EducationClientPremium";
-import { getServerDesignMode } from "../../src/lib/designMode";
+import { getServerDesignMode } from "@/lib/designMode";
 
 export const metadata = {
   title: "Patient Education | HEALO",

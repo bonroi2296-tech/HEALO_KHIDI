@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Calendar, Clock, Users, Video, ChevronRight, Stethoscope } from "lucide-react";
-import { createSupabaseBrowserClient } from "../../src/lib/supabase/browser";
+import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 
 const supabase = createSupabaseBrowserClient();
 

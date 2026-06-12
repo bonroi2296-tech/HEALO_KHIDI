@@ -13,8 +13,8 @@
 export const runtime = "nodejs";
 
 import { NextRequest } from "next/server";
-import { createServiceRoleClient } from "../../../../src/lib/supabase/server";
-import { requireAdminAuth } from "../../../../src/lib/auth/requireAdminAuth";
+import { createServiceRoleClient } from "@/lib/supabase/server";
+import { requireAdminAuth } from "@/lib/auth/requireAdminAuth";
 
 const ALLOWED_ROLES = ["doctor", "coordinator"];
 

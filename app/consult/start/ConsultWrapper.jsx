@@ -3,9 +3,9 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { ChevronLeft, AlertCircle, CheckCircle2, Sparkles } from 'lucide-react';
-import { useToast } from '../../../src/components/Toast';
-import { getLangCodeFromCookie, t } from '../../../src/lib/i18n';
-import { event } from '../../../src/lib/ga';
+import { useToast } from '@/components/Toast';
+import { getLangCodeFromCookie, t } from '@/lib/i18n';
+import { event } from '@/lib/ga';
 
 export default function ConsultWrapper() {
   const router = useRouter();

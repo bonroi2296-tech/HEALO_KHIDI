@@ -5,8 +5,8 @@ import {
   getTermsOfService,
   TERMS_EFFECTIVE_DATE,
   TERMS_VERSION,
-} from "../../src/lib/legal/termsOfService";
-import { useLang } from "../../src/lib/i18n/LangContext";
+} from "@/lib/legal/termsOfService";
+import { useLang } from "@/lib/i18n/LangContext";
 
 export default function TermsOfServiceClientLegacy() {
   const langCode = useLang();

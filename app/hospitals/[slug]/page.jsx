@@ -2,13 +2,13 @@ import Script from "next/script";
 import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import PageShell from "../../../components/healo/PageShell";
-import { getServerDesignMode } from "../../../src/lib/designMode";
+import { getServerDesignMode } from "@/lib/designMode";
 import {
   getHospitalById,
   getHospitalBySlug,
   getHospitalSlugById,
-} from "../../../src/lib/data/hospitals";
-import { getPartnerHospital, convertPartnerToInitialData } from "../../../src/lib/data/partnerHospitals";
+} from "@/lib/data/hospitals";
+import { getPartnerHospital, convertPartnerToInitialData } from "@/lib/data/partnerHospitals";
 import HospitalDetailClient from "./HospitalDetailClient";
 
 const UUID_REGEX =

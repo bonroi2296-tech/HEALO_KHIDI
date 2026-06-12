@@ -9,8 +9,8 @@
 export const runtime = "nodejs";
 
 import { NextRequest } from "next/server";
-import { ingestSources } from "../../../../src/lib/rag/ingest";
-import { requireAdminAuth } from "../../../../src/lib/auth/requireAdminAuth";
+import { ingestSources } from "@/lib/rag/ingest";
+import { requireAdminAuth } from "@/lib/auth/requireAdminAuth";
 
 export async function POST(request: NextRequest) {
   const auth = await requireAdminAuth(request);

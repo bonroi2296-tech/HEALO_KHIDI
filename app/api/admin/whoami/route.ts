@@ -9,8 +9,8 @@
 export const runtime = "nodejs";
 
 import { NextRequest } from "next/server";
-import { requireAdminAuth } from "../../../../src/lib/auth/requireAdminAuth";
-import { checkAdminAuth } from "../../../../src/lib/auth/checkAdminAuth";
+import { requireAdminAuth } from "@/lib/auth/requireAdminAuth";
+import { checkAdminAuth } from "@/lib/auth/checkAdminAuth";
 
 export async function GET(request: NextRequest) {
   const isDev = process.env.NODE_ENV !== "production";

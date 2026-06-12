@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
     // DB 업데이트 — best effort (웹훅 실패가 LiveKit 재시도 유발하지 않도록 try/catch)
     try {
       const { getSupabaseServerClient } = await import(
-        "../../../../src/lib/data/supabaseServerClient"
+        "@/lib/data/supabaseServerClient"
       );
       const supabase = getSupabaseServerClient();
 

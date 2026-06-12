@@ -19,8 +19,8 @@
 export const runtime = "nodejs";
 
 import { NextRequest } from "next/server";
-import { requireAdminAuth } from "../../../../../src/lib/auth/requireAdminAuth";
-import { compareTranslations } from "../../../../../src/lib/experimental/translation";
+import { requireAdminAuth } from "@/lib/auth/requireAdminAuth";
+import { compareTranslations } from "@/lib/experimental/translation";
 
 /**
  * POST: 번역 비교 실행

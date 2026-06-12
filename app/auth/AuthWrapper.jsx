@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 import { useRouter } from "next/navigation";
 
-// eslint-disable-next-line no-unused-vars
+ 
 export default function AuthWrapper({ Component }) {
   const router = useRouter();
 

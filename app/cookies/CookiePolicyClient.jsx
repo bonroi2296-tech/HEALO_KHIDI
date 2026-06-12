@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { getLangCodeFromCookie, t } from "../../src/lib/i18n";
+import { getLangCodeFromCookie, t } from "@/lib/i18n";
 
 export default function CookiePolicyClient() {
   const [langCode, setLangCode] = useState("en");

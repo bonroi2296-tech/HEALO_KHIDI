@@ -14,7 +14,7 @@ export async function register() {
   // 클라이언트 측 에러는 sentry.client.config.js 가 직접 처리하므로 영향 없음.
   return;
 
-  // eslint-disable-next-line no-unreachable
+   
   if (!process.env.NEXT_PUBLIC_SENTRY_DSN) return;
   if (process.env.NEXT_RUNTIME === "nodejs") {
     await import("./sentry.server.config");

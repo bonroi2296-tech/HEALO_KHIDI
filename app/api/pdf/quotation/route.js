@@ -25,7 +25,7 @@ export async function POST(request) {
     const lang = body.lang === "en" ? "en" : "ko";
 
     const { renderToBuffer } = await import("@react-pdf/renderer");
-    const MedicalQuotationMod = await import("../../../../src/lib/pdf/MedicalQuotation");
+    const MedicalQuotationMod = await import("@/lib/pdf/MedicalQuotation");
     const MedicalQuotation = MedicalQuotationMod.default;
 
     const React = (await import("react")).default;
@@ -88,7 +88,7 @@ export async function GET(request) {
   };
 
   const { renderToBuffer } = await import("@react-pdf/renderer");
-  const MedicalQuotationMod = await import("../../../../src/lib/pdf/MedicalQuotation");
+  const MedicalQuotationMod = await import("@/lib/pdf/MedicalQuotation");
   const React = (await import("react")).default;
   const buffer = await renderToBuffer(
     React.createElement(MedicalQuotationMod.default, { data: sampleData, lang })

@@ -6,7 +6,7 @@ import {
   Video, Calendar, Clock, Globe, User, Phone,
   Edit2, X, ChevronDown, Plus,
 } from 'lucide-react';
-import { createSupabaseBrowserClient } from '../../../src/lib/supabase/browser';
+import { createSupabaseBrowserClient } from '@/lib/supabase/browser';
 
 const SESSION_TYPE = {
   pre_consultation: '사전상담',

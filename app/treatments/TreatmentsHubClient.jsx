@@ -2,13 +2,13 @@
 
 import Link from "next/link";
 import { ArrowRight, HeartPulse, Activity, Droplet, Wind, Stethoscope, Microscope } from "lucide-react";
-import { useLang } from "../../src/lib/i18n/LangContext";
+import { useLang } from "@/lib/i18n/LangContext";
 import { CANCERS, TREATMENTS_L } from "./TreatmentsClient";
 import { PHOTOS, IMMUNE_PHOTOS } from "../../components/healo/Photos";
 import {
   CANCER_DETAILS,
   ITCRN_FRAMEWORK,
-} from "../../src/lib/data/immuneCancerDetails";
+} from "@/lib/data/immuneCancerDetails";
 
 const SECTION_PHOTOS = [
   PHOTOS.hero,

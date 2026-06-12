@@ -8,9 +8,9 @@
 export const runtime = "nodejs";
 
 import { NextRequest } from "next/server";
-import { supabaseAdmin, assertSupabaseEnv } from "../../../../../src/lib/rag/supabaseAdmin";
-import { requireAdminAuth } from "../../../../../src/lib/auth/requireAdminAuth";
-import { sanitizeResponse, computeQualityScore } from "../../../../../src/lib/playbook/sanitize";
+import { supabaseAdmin, assertSupabaseEnv } from "@/lib/rag/supabaseAdmin";
+import { requireAdminAuth } from "@/lib/auth/requireAdminAuth";
+import { sanitizeResponse, computeQualityScore } from "@/lib/playbook/sanitize";
 
 export async function POST(request: NextRequest) {
   assertSupabaseEnv();

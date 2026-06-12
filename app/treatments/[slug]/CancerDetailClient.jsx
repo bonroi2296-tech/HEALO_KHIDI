@@ -12,14 +12,14 @@ const CANCER_ICONS = {
   thyroid: Stethoscope,
   etc: Microscope,
 };
-import { useLang } from "../../../src/lib/i18n/LangContext";
+import { useLang } from "@/lib/i18n/LangContext";
 import {
   CANCER_DETAILS,
   ITCRN_FRAMEWORK,
   CANCER_IMAGES,
   POST_SURGICAL_CARE,
-} from "../../../src/lib/data/immuneCancerDetails";
-import { IMMUNE_THERAPIES } from "../../../src/lib/data/immuneTherapies";
+} from "@/lib/data/immuneCancerDetails";
+import { IMMUNE_THERAPIES } from "@/lib/data/immuneTherapies";
 
 // ── 다국어 CTA 레이블 ────────────────────────────────────────────
 const CTA = {

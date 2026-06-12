@@ -13,7 +13,7 @@ import {
   X,
   Stethoscope,
 } from "lucide-react";
-import { createSupabaseBrowserClient } from "../../src/lib/supabase/browser";
+import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 
 const NAV = [
   { id: "dashboard", label: "대시보드", icon: LayoutDashboard, href: "/doctor" },

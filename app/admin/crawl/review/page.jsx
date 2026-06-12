@@ -16,7 +16,7 @@ import {
   Building2,
   ArrowUpDown,
 } from "lucide-react";
-import { useToast } from "../../../../src/components/Toast";
+import { useToast } from "@/components/Toast";
 import { AdminGuideModal } from "../../_components/AdminGuideModal";
 import Link from "next/link";
 

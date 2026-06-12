@@ -12,8 +12,8 @@ import { NextRequest } from "next/server";
 import {
   updateRecipient,
   deleteRecipient,
-} from "../../../../../src/lib/notifications/recipients";
-import { requireAdminAuth } from "../../../../../src/lib/auth/requireAdminAuth";
+} from "@/lib/notifications/recipients";
+import { requireAdminAuth } from "@/lib/auth/requireAdminAuth";
 
 /**
  * PATCH: 수신자 수정
