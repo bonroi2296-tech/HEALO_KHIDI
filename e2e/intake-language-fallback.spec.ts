@@ -43,8 +43,12 @@ test.describe("인테이크 카자흐어 UI", () => {
     } else {
       // /intake 는 통합 퍼널 /inquiry 로 redirect (2026-05 통폐합)
       await page.goto("/intake");
-      await page.waitForLoadState("networkidle");
     }
+
+    // redirect 완료를 명시적으로 대기 — networkidle 만으로는 이동 전에 통과해
+    // "Inquiry Form" 버튼을 못 찾고 지나치는 레이스가 있었음
+    await page.waitForURL(/\/inquiry/, { timeout: 15000 }).catch(() => {});
+    await page.waitForLoadState("networkidle");
 
     // 퍼널 선택 화면에서 "Inquiry Form" 선택 → 입력 폼 노출
     const formChoice = page.getByText(/Inquiry Form/i).first();
