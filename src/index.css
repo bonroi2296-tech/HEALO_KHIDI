@@ -9,9 +9,13 @@ html {
   -webkit-overflow-scrolling: touch;
 }
 
-/* 🔥 한글 폰트 깨짐 방지: 한글 우선 폰트 스택 */
+/* 🔥 한글 폰트 깨짐 방지: 한글 우선 폰트 스택
+   html 에도 지정 — 아래 inherit 규칙의 상속 사슬이 브라우저 기본(명조)으로 끝나지 않게 */
+html,
 body {
   font-family: "Pretendard", -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", "맑은 고딕", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+}
+body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   /* 노치/홈 인디케이터 영역 피하기 */
@@ -19,8 +23,12 @@ body {
   padding-right: env(safe-area-inset-right, 0);
 }
 
-/* 번역된 텍스트도 이 폰트 따라가게 강제 */
-font, * {
+/* 번역된 텍스트(구글 번역이 끼워넣는 <font> 태그)도 우리 폰트 따라가게 강제.
+   ⚠️ 과거엔 `font, *` 로 모든 요소에 inherit !important 를 걸어 사이트 전체 폰트
+   시스템(타이포 토큰·tailwind font-*)이 무력화되고 브라우저 기본 명조체가 전 페이지에
+   강제되던 대형 버그가 있었음 — <font> 태그와 그 자식으로만 한정 */
+font,
+font * {
   font-family: inherit !important;
 }
 
