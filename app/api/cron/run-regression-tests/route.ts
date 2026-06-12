@@ -36,7 +36,7 @@ async function judgeOne(query: string, response: string, expectedBehavior: strin
   if (!process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
     return { overall_score: 0.5, flags: ["judge_unavailable"], reasoning: "No API key" };
   }
-  const model = google("gemini-2.5-flash") as any;
+  const model = google("gemini-flash-latest") as any;
   const msg = `[Query (${language})]\n${query}\n\n[Response]\n${response}\n\n[Expected]\n${expectedBehavior}`;
   try {
     const { text } = await generateText({
@@ -65,7 +65,7 @@ async function generateReply(query: string): Promise<{ reply: string; latency_ms
   if (!process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
     return { reply: "[AI unavailable]", latency_ms: 0 };
   }
-  const model = google("gemini-2.5-flash") as any;
+  const model = google("gemini-flash-latest") as any;
   const system = [
     "You are HEALO's AI agent — a medical concierge connecting international patients with Korean hospitals.",
     "NEVER invent hospital names, prices, or medical facts.",

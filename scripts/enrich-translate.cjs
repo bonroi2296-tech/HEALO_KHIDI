@@ -25,7 +25,7 @@ if (!GEMINI_KEY) {
   process.exit(1);
 }
 
-const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEY}`;
+const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${GEMINI_KEY}`;
 const BATCH_SIZE = 10;
 const REQUEST_DELAY_MS = 4500;
 const MAX_RETRIES = 5;
