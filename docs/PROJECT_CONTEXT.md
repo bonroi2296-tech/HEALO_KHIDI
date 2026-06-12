@@ -24,7 +24,7 @@
 **⏳ PO 액션 대기:** ① Gemini 콘솔 spend cap(5분) ② 폰 자막 실테스트 ③ AI 국외이전 고지 초안 검토(docs/AI_PRIVACY_NOTICE_DRAFT.md) ④ Resend 도메인 인증(실패 메일용)
 
 **🚧 다음 작업 후보 (우선순위):**
-1. 자료 "같이 보기" 2·3단계 — 설계 완료 `docs/PLAN_DOC_COVIEW.md`, 바로 구현 가능
+1. 자료 "같이 보기" — ✅2단계(방 안 뷰어) 구현됨(폰 PDF 렌더 실테스트 필요). 남은 건 3단계(페이지 동기화 "따라가기", 폰 2대 검증 필요) — `docs/PLAN_DOC_COVIEW.md`
 2. 외부 글 2건 분석 (네트워크 전체허용 완료): https://wikidocs.net/366542 · https://discuss.pytorch.kr/t/openai-ai-feat-codex/10577
 3. Gemini Live Translate PoC (카자흐어 확정, LiveKit 예제 있음 — 유료 전환과 묶어서)
 4. i18n 인라인 27페이지 중앙화 / lint 잔여 정리 / Supabase 신형 키 마이그레이션(연말 마감)
