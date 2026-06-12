@@ -3,6 +3,7 @@ import globals from 'globals'
 import reactHooks from 'eslint-plugin-react-hooks'
 import reactRefresh from 'eslint-plugin-react-refresh'
 import react from 'eslint-plugin-react'
+import tseslint from 'typescript-eslint'
 
 export default [
   {
@@ -73,6 +74,27 @@ export default [
         caughtErrorsIgnorePattern: '^_',
         destructuredArrayIgnorePattern: '^_',
       }],
+    },
+  },
+  // ── TypeScript (.ts/.tsx) — 그동안 파서 미설정으로 lint 가 TS 를 통째로 못 읽던 갭 해소 ──
+  // (KNOWN_ISSUES P2) 타입 정보 없는 가벼운 구문 검사부터 시작 — 점진 강화
+  ...tseslint.configs.recommended.map((c) => ({
+    ...c,
+    files: ['**/*.{ts,tsx,mts}'],
+  })),
+  {
+    files: ['**/*.{ts,tsx,mts}'],
+    rules: {
+      // strict:false 전환기 — any 사용은 경고로만 (감사에서 462건 확인, 점진 정리 대상)
+      '@typescript-eslint/no-explicit-any': 'warn',
+      '@typescript-eslint/no-unused-vars': ['error', {
+        varsIgnorePattern: '^[A-Z_]',
+        argsIgnorePattern: '^_',
+        caughtErrorsIgnorePattern: '^_',
+        destructuredArrayIgnorePattern: '^_',
+      }],
+      // require() 동적 임포트 등 기존 패턴 허용 (서버 모듈 lazy-load 관례)
+      '@typescript-eslint/no-require-imports': 'off',
     },
   },
 ]

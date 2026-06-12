@@ -8,15 +8,15 @@ export const runtime = "nodejs";
 
 import { NextRequest } from "next/server";
 import { z } from "zod";
-import { supabaseAdmin, assertSupabaseEnv } from "../../../../src/lib/rag/supabaseAdmin";
-import { encryptString, encryptStringNullable } from "../../../../src/lib/security/encryptionV2";
+import { supabaseAdmin, assertSupabaseEnv } from "@/lib/rag/supabaseAdmin";
+import { encryptString, encryptStringNullable } from "@/lib/security/encryptionV2";
 import {
   checkRateLimit,
   getClientIp,
   RATE_LIMITS,
   getRateLimitHeaders,
-} from "../../../../src/lib/rateLimit";
-import { sendAdminNotification } from "../../../../src/lib/notifications/adminNotifier";
+} from "@/lib/rateLimit";
+import { sendAdminNotification } from "@/lib/notifications/adminNotifier";
 
 const Step1Schema = z.object({
   firstName: z.string().min(1).max(100),

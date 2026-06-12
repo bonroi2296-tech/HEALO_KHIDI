@@ -1,6 +1,6 @@
-import { getTreatmentList } from "../src/lib/data/treatments";
-import { getHospitalList } from "../src/lib/data/hospitals";
-import { getAllPartnerSlugs } from "../src/lib/data/partnerHospitals";
+import { getTreatmentList } from "@/lib/data/treatments";
+import { getHospitalList } from "@/lib/data/hospitals";
+import { getAllPartnerSlugs } from "@/lib/data/partnerHospitals";
 
 const DEFAULT_LIMIT = 1000;
 

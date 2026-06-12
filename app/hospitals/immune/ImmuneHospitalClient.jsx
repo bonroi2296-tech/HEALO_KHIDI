@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { ArrowRight, Phone, MapPin, Clock, Car } from "lucide-react";
 import { IMMUNE_PHOTOS } from "../../../components/healo/Photos";
-import { useLang } from "../../../src/lib/i18n/LangContext";
-import { IMMUNE_HOSPITAL as H } from "../../../src/lib/data/immuneHospitalInfo";
+import { useLang } from "@/lib/i18n/LangContext";
+import { IMMUNE_HOSPITAL as H } from "@/lib/data/immuneHospitalInfo";
 
 /* ───────── 섹션 라벨 i18n (6개 언어) ───────── */
 const COPY = {

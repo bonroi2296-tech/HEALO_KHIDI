@@ -15,7 +15,7 @@ import {
   PhoneOff,
   ChevronLeft,
 } from "lucide-react";
-import { useLang } from "../../src/lib/i18n/LangContext";
+import { useLang } from "@/lib/i18n/LangContext";
 
 /* features 카드용 lucide 아이콘 (이모지 대체, 순서 고정) */
 const FEATURE_ICONS = [Video, Languages, FileText, Stethoscope, Lock, Mail, Users, CreditCard];

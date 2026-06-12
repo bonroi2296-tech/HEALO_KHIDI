@@ -5,14 +5,14 @@
  */
 
 import { NextRequest } from "next/server";
-import { supabaseAdmin, assertSupabaseEnv } from "../../../../../src/lib/rag/supabaseAdmin";
-import { requireAdminAuth } from "../../../../../src/lib/auth/requireAdminAuth";
-import { crawlHospitalWebsite, normalizeWebsiteUrl } from "../../../../../src/lib/hospitalOffers/crawlPipeline";
-import { selectRepresentativePages } from "../../../../../src/lib/hospitalOffers/selectRepresentativePages";
-import { chunkPages, chunksToLlmText } from "../../../../../src/lib/hospitalOffers/chunkPages";
-import { buildPriceHintsFromPages } from "../../../../../src/lib/hospitalOffers/priceHints";
-import { summarizeOffersBatch } from "../../../../../src/lib/hospitalOffers/summarizeOffersBatch";
-import { filterOffersByQualityRules } from "../../../../../src/lib/hospitalOffers/offerQualityFilter";
+import { supabaseAdmin, assertSupabaseEnv } from "@/lib/rag/supabaseAdmin";
+import { requireAdminAuth } from "@/lib/auth/requireAdminAuth";
+import { crawlHospitalWebsite, normalizeWebsiteUrl } from "@/lib/hospitalOffers/crawlPipeline";
+import { selectRepresentativePages } from "@/lib/hospitalOffers/selectRepresentativePages";
+import { chunkPages, chunksToLlmText } from "@/lib/hospitalOffers/chunkPages";
+import { buildPriceHintsFromPages } from "@/lib/hospitalOffers/priceHints";
+import { summarizeOffersBatch } from "@/lib/hospitalOffers/summarizeOffersBatch";
+import { filterOffersByQualityRules } from "@/lib/hospitalOffers/offerQualityFilter";
 
 export const runtime = "nodejs";
 export const maxDuration = 120;

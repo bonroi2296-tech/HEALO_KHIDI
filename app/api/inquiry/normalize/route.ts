@@ -10,23 +10,23 @@
  */
 export const runtime = "nodejs";
 
-import { supabaseAdmin, assertSupabaseEnv } from "../../../../src/lib/rag/supabaseAdmin";
+import { supabaseAdmin, assertSupabaseEnv } from "@/lib/rag/supabaseAdmin";
 import {
   createEmptyIntake,
   type Intake,
   type IntakeMeta,
-} from "../../../../src/lib/intakeSchema";
+} from "@/lib/intakeSchema";
 import {
   bodyPartFromText,
   contraindicationsAndFlagsFromMessage,
-} from "../../../../src/lib/intakeExtract";
-import { encryptString, encryptStringNullable } from "../../../../src/lib/security/encryptionV2";
+} from "@/lib/intakeExtract";
+import { encryptString, encryptStringNullable } from "@/lib/security/encryptionV2";
 import crypto from "crypto";
-import { checkRateLimit, getClientIp, RATE_LIMITS, getRateLimitHeaders } from "../../../../src/lib/rateLimit";
-import { logOperational, logRateLimitExceeded, logEncryptionFailed, logInquiryFailed } from "../../../../src/lib/operationalLog";
-import { evaluateLeadQuality } from "../../../../src/lib/leadQuality/scoring";
-import { trackFunnelEvent } from "../../../../src/lib/events/funnelTracking";
-import { checkEncryptionFailures, alertHighPriorityLead } from "../../../../src/lib/alerts/operationalAlerts";
+import { checkRateLimitPersistent, getClientIp, RATE_LIMITS, getRateLimitHeaders } from "@/lib/rateLimit";
+import { logOperational, logRateLimitExceeded, logEncryptionFailed, logInquiryFailed } from "@/lib/operationalLog";
+import { evaluateLeadQuality } from "@/lib/leadQuality/scoring";
+import { trackFunnelEvent } from "@/lib/events/funnelTracking";
+import { checkEncryptionFailures, alertHighPriorityLead } from "@/lib/alerts/operationalAlerts";
 
 const detectLanguage = (value: string | null | undefined) => {
   const v = String(value || "").toLowerCase();
@@ -157,8 +157,8 @@ export async function POST(request: Request) {
   const clientIp = getClientIp(request);
   const apiPath = '/api/inquiry/normalize';
 
-  // ✅ 운영 안정화: Rate limit 체크 (봇/도배 방지)
-  const rateLimitResult = checkRateLimit(clientIp, RATE_LIMITS.NORMALIZE);
+  // ✅ 운영 안정화: Rate limit 체크 (DB 기반 — 인스턴스 간 공유)
+  const rateLimitResult = await checkRateLimitPersistent(clientIp, RATE_LIMITS.NORMALIZE);
   if (!rateLimitResult.allowed) {
     logRateLimitExceeded(
       apiPath,

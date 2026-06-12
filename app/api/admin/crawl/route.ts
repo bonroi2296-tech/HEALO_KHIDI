@@ -12,14 +12,14 @@ export const runtime = "nodejs";
 export const maxDuration = 120;
 
 import { NextRequest, NextResponse } from "next/server";
-import { supabaseAdmin, assertSupabaseEnv } from "../../../../src/lib/rag/supabaseAdmin";
-import { requireAdminAuth } from "../../../../src/lib/auth/requireAdminAuth";
+import { supabaseAdmin, assertSupabaseEnv } from "@/lib/rag/supabaseAdmin";
+import { requireAdminAuth } from "@/lib/auth/requireAdminAuth";
 import {
   initCrawlSources,
   getCrawlSource,
   getCrawlSourceManifest,
-} from "../../../../src/lib/crawl";
-import type { CrawlHospitalRow } from "../../../../src/lib/crawl";
+} from "@/lib/crawl";
+import type { CrawlHospitalRow } from "@/lib/crawl";
 
 initCrawlSources();
 

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { cookies } from "next/headers";
 import PageShell from "../../../components/healo/PageShell";
-import { getServerDesignMode } from "../../../src/lib/designMode";
+import { getServerDesignMode } from "@/lib/designMode";
 import {
   Star,
   Shield,

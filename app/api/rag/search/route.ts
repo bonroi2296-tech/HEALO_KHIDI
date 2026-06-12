@@ -5,8 +5,8 @@
  */
 export const runtime = "nodejs";
 
-import { assertSupabaseEnv } from "../../../../src/lib/rag/supabaseAdmin";
-import { safeRagSearch } from "../../../../src/lib/rag/safeSearch";
+import { assertSupabaseEnv } from "@/lib/rag/supabaseAdmin";
+import { safeRagSearch } from "@/lib/rag/safeSearch";
 
 // ── 메인 핸들러 ─────────────────────────────────────────
 export async function POST(request: Request) {

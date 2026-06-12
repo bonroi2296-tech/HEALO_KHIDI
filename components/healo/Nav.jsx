@@ -2,10 +2,10 @@
 
 import Link from "next/link";
 import { useState, useRef, useEffect } from "react";
-import { useLang } from "../../src/lib/i18n/LangContext";
-import { setLangCookie } from "../../src/lib/i18n";
+import { useLang } from "@/lib/i18n/LangContext";
+import { setLangCookie } from "@/lib/i18n";
 import NotificationCenter from "./NotificationCenter";
-import { createSupabaseBrowserClient } from "../../src/lib/supabase/browser";
+import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 
 /**
  * HEALO Nav — cream background, sticky, hairline divider, backdrop blur.

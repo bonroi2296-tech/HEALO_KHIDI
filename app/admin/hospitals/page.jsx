@@ -5,9 +5,9 @@ import { HospitalManager } from "./_client/HospitalManager";
 import { HospitalAccountManager } from "./_client/HospitalAccountManager";
 import { AdminGuideModal } from "../_components/AdminGuideModal";
 import { AdminLoadingSkeleton } from "../_components/AdminLoadingSkeleton";
-import { createSupabaseBrowserClient } from "../../../src/lib/supabase/browser";
-import { useToast } from "../../../src/components/Toast";
-import { AddressInput } from "../../../src/components/AddressInput";
+import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
+import { useToast } from "@/components/Toast";
+import { AddressInput } from "@/components/AddressInput";
 import { X, UploadCloud, Loader2, Building2, Users } from "lucide-react";
 
 // ✅ Supabase는 이미지 업로드와 세션 확인용으로만 사용

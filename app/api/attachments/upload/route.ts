@@ -11,11 +11,11 @@
  */
 export const runtime = "nodejs";
 
-import { supabaseAdmin, assertSupabaseEnv } from "../../../../src/lib/rag/supabaseAdmin";
+import { supabaseAdmin, assertSupabaseEnv } from "@/lib/rag/supabaseAdmin";
 import { NextRequest } from "next/server";
-import { checkRateLimit, getClientIp, getRateLimitHeaders } from "../../../../src/lib/rateLimit";
+import { checkRateLimit, getClientIp, getRateLimitHeaders } from "@/lib/rateLimit";
 import { randomUUID } from "node:crypto";
-import { verifyFileMagic } from "../../../../src/lib/security/fileMagic";
+import { verifyFileMagic } from "@/lib/security/fileMagic";
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 

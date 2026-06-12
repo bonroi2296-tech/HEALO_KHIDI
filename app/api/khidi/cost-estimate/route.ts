@@ -20,7 +20,8 @@ import { supabaseAdmin as _sb } from "@/lib/rag/supabaseAdmin";
 // 신규 테이블(treatment_cost_benchmarks 등)이 아직 생성된 DB 타입에 반영되지 않아
 // `as any` 로 우회. 마이그레이션 후 `supabase gen types` 재생성 시 제거 가능.
 const supabaseAdmin: any = _sb;
-import { checkRateLimit, getClientIp, getRateLimitHeaders } from "@/lib/rateLimit";
+import { checkRateLimitPersistent, getClientIp, getRateLimitHeaders } from "@/lib/rateLimit";
+import { checkAiGuards } from "@/lib/ai/aiGuard";
 import { checkAdminAuth } from "@/lib/auth/checkAdminAuth";
 import { decryptStringNullable } from "@/lib/security/encryptionV2";
 
@@ -37,14 +38,18 @@ const VALID_STAGES = ["1", "2", "3", "4", "unknown"];
 const VALID_PHASES = ["pre_treatment", "during_treatment", "post_treatment"];
 
 export async function GET(request: NextRequest) {
-  // Rate limit
+  // Rate limit (DB 기반) + AI 비용 가드
   const ip = getClientIp(request);
-  const rl = checkRateLimit(ip, ESTIMATE_RATE);
+  const rl = await checkRateLimitPersistent(ip, ESTIMATE_RATE);
   if (!rl.allowed) {
     return Response.json(
       { ok: false, error: "rate_limited" },
       { status: 429, headers: getRateLimitHeaders(rl) }
     );
+  }
+  const aiGuard = await checkAiGuards(ip, "/api/khidi/cost-estimate");
+  if (!aiGuard.allowed) {
+    return Response.json({ ok: false, error: aiGuard.code }, { status: aiGuard.status });
   }
 
   const { searchParams } = new URL(request.url);
@@ -156,7 +161,7 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   const ip = getClientIp(request);
-  const rl = checkRateLimit(ip, { ...ESTIMATE_RATE, maxRequests: 10 });
+  const rl = await checkRateLimitPersistent(ip, { ...ESTIMATE_RATE, maxRequests: 10 });
   if (!rl.allowed) {
     return Response.json(
       { ok: false, error: "rate_limited" },

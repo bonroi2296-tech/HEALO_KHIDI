@@ -13,17 +13,17 @@
 export const runtime = "nodejs";
 
 import { NextRequest } from "next/server";
-import { supabaseAdmin, assertSupabaseEnv } from "../../../../../src/lib/rag/supabaseAdmin";
-import { requireAdminAuth } from "../../../../../src/lib/auth/requireAdminAuth";
+import { supabaseAdmin, assertSupabaseEnv } from "@/lib/rag/supabaseAdmin";
+import { requireAdminAuth } from "@/lib/auth/requireAdminAuth";
 import {
   logAdminAction,
   getIpFromRequest,
   getUserAgentFromRequest,
-} from "../../../../../src/lib/audit/adminAuditLog";
+} from "@/lib/audit/adminAuditLog";
 import {
   LeadUpdateSchema,
   validationErrorResponse,
-} from "../../../../../src/lib/validation/admin";
+} from "@/lib/validation/admin";
 
 /**
  * PATCH: 리드 상태/정보 업데이트

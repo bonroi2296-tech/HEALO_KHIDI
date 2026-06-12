@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { getLangCodeFromCookie } from "../../../src/lib/i18n";
-import { getPartnerHospital } from "../../../src/lib/data/partnerHospitals";
+import { getLangCodeFromCookie } from "@/lib/i18n";
+import { getPartnerHospital } from "@/lib/data/partnerHospitals";
 import {
   ArrowLeft, MapPin, Phone, Globe, Stethoscope,
   ChevronRight, ExternalLink, CheckCircle, Users, BedDouble,

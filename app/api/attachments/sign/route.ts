@@ -18,9 +18,9 @@
  */
 export const runtime = "nodejs";
 
-import { supabaseAdmin, assertSupabaseEnv } from "../../../../src/lib/rag/supabaseAdmin";
+import { supabaseAdmin, assertSupabaseEnv } from "@/lib/rag/supabaseAdmin";
 import { NextRequest } from "next/server";
-import { pathAuthorized } from "../../../../src/lib/security/attachmentAuth";
+import { pathAuthorized } from "@/lib/security/attachmentAuth";
 
 export async function POST(request: NextRequest) {
   assertSupabaseEnv();

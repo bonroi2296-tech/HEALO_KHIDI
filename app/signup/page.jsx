@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import SignupPremium from "./SignupPremium";
 import SignupLegacyWrapper from "./SignupLegacyWrapper";
-import { getServerDesignMode } from "../../src/lib/designMode";
+import { getServerDesignMode } from "@/lib/designMode";
 
 export const metadata = {
   title: "Sign up | HEALO",

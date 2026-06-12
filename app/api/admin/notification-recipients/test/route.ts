@@ -11,9 +11,9 @@
 export const runtime = "nodejs";
 
 import { NextRequest } from "next/server";
-import { requireAdminAuth } from "../../../../../src/lib/auth/requireAdminAuth";
-import { supabaseAdmin, assertSupabaseEnv } from "../../../../../src/lib/rag/supabaseAdmin";
-import { maskPhone } from "../../../../../src/lib/notifications/recipients";
+import { requireAdminAuth } from "@/lib/auth/requireAdminAuth";
+import { supabaseAdmin, assertSupabaseEnv } from "@/lib/rag/supabaseAdmin";
+import { maskPhone } from "@/lib/notifications/recipients";
 
 // 테스트 알림 발송 함수 import
 async function sendTestNotification(data: {

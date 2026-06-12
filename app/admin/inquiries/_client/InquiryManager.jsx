@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { RefreshCw, Paperclip, Eye, X, Loader2, BookOpen } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { formatDate } from "../../../../src/lib/i18n/format";
-import { createSupabaseBrowserClient } from "../../../../src/lib/supabase/browser";
+import { formatDate } from "@/lib/i18n/format";
+import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 
 const supabase = createSupabaseBrowserClient();
 

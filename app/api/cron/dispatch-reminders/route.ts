@@ -30,9 +30,9 @@ function verifyCronSecret(header: string | null): boolean {
   if (!header?.startsWith("Bearer ")) return false;
   const provided = header.slice(7);
   try {
-    const a = Buffer.from(provided.padEnd(expected.length));
+    const a = Buffer.from(provided);
     const b = Buffer.from(expected);
-    // 길이 먼저 체크 (timingSafeEqual 은 길이 다르면 throw)
+    // 길이 먼저 체크 (timingSafeEqual 은 길이 다르면 throw) — padEnd 불필요해 제거
     if (a.length !== b.length) return false;
     return timingSafeEqual(a, b);
   } catch {

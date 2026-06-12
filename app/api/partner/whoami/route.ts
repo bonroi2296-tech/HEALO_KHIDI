@@ -1,7 +1,7 @@
 export const runtime = "nodejs";
 
 import { NextRequest } from "next/server";
-import { checkHospitalAuth } from "../../../../src/lib/auth/checkHospitalAuth";
+import { checkHospitalAuth } from "@/lib/auth/checkHospitalAuth";
 
 export async function GET(request: NextRequest) {
   const result = await checkHospitalAuth(request);

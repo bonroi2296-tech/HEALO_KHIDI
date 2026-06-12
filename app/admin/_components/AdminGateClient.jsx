@@ -17,7 +17,7 @@ export function AdminGateClient({ children }) {
   useEffect(() => {
     const verifyAdmin = async () => {
       try {
-        const { createSupabaseBrowserClient } = await import('../../../src/lib/supabase/browser');
+        const { createSupabaseBrowserClient } = await import('@/lib/supabase/browser');
         const supabase = createSupabaseBrowserClient();
 
         // 로그인 직후 리다이렉트 시 세션이 아직 준비 안 됐을 수 있음 → 잠시 대기 후 재시도

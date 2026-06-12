@@ -8,15 +8,15 @@ export const runtime = "nodejs";
 export const maxDuration = 30;
 
 import { NextRequest } from "next/server";
-import { supabaseAdmin, assertSupabaseEnv } from "../../../../../../../src/lib/rag/supabaseAdmin";
-import { requireAdminAuth } from "../../../../../../../src/lib/auth/requireAdminAuth";
+import { supabaseAdmin, assertSupabaseEnv } from "@/lib/rag/supabaseAdmin";
+import { requireAdminAuth } from "@/lib/auth/requireAdminAuth";
 import {
   logAdminAction,
   getIpFromRequest,
   getUserAgentFromRequest,
-} from "../../../../../../../src/lib/audit/adminAuditLog";
-import { generateSlug } from "../../../../../../../src/lib/utils/slug";
-import type { OffersPreviewPayload, OfferItem } from "../../../../../../../src/lib/hospitalOffers/types";
+} from "@/lib/audit/adminAuditLog";
+import { generateSlug } from "@/lib/utils/slug";
+import type { OffersPreviewPayload, OfferItem } from "@/lib/hospitalOffers/types";
 
 export async function POST(
   request: NextRequest,

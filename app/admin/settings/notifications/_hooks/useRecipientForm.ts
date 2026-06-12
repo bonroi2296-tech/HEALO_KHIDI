@@ -2,7 +2,7 @@
  * 수신자 폼 상태 관리 커스텀 훅
  */
 import { useState, useCallback } from "react";
-import { cleanPhone, isValidKoreanMobile, isValidEmail } from "../../../../../src/lib/utils/phoneFormat";
+import { cleanPhone, isValidKoreanMobile, isValidEmail } from "@/lib/utils/phoneFormat";
 import type { RecipientFormData } from "../_types";
 
 export function useRecipientForm(onSuccess?: () => void) {

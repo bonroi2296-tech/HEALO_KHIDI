@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import KoreanMedicineClient from "./KoreanMedicineClient";
 import PageShell from "../../../components/healo/PageShell";
-import { getServerDesignMode } from "../../../src/lib/designMode";
+import { getServerDesignMode } from "@/lib/designMode";
 
 export const metadata = {
   title: "Korean Traditional Medicine | HEALO",

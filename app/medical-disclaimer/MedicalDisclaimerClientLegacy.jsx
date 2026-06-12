@@ -1,7 +1,7 @@
 "use client";
 
-import { getMedicalDisclaimer } from "../../src/lib/legal/medicalDisclaimer";
-import { useLang } from "../../src/lib/i18n/LangContext";
+import { getMedicalDisclaimer } from "@/lib/legal/medicalDisclaimer";
+import { useLang } from "@/lib/i18n/LangContext";
 
 export default function MedicalDisclaimerClientLegacy() {
   const langCode = useLang();

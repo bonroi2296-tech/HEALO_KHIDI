@@ -11,7 +11,7 @@ import {
   HeartPulse,
 } from "lucide-react";
 import PageShell from "../../../components/healo/PageShell";
-import { getServerDesignMode } from "../../../src/lib/designMode";
+import { getServerDesignMode } from "@/lib/designMode";
 
 export const metadata = {
   title: "Dental Treatment in Korea | Implants, Veneers & Prices | HEALO-KHIDI",

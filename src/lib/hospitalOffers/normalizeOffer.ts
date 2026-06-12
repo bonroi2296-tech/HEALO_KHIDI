@@ -122,7 +122,7 @@ function normalizeName(
   sourceUrl?: string
 ): string | null {
   if (raw == null || typeof raw !== "string") return null;
-  let s = stripNamePrefix(raw, hospitalName);
+  const s = stripNamePrefix(raw, hospitalName);
   if (!s || s.length < NAME_MIN) {
     pushRejected(raw, s.length > 0 ? "name_too_short" : "name_empty", sourceUrl);
     return null;

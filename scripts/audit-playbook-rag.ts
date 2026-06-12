@@ -500,7 +500,7 @@ async function main() {
   const report = await runAudit(supabase);
 
   // JSON 출력 (unblocked_count는 unblock 실행 후 병합)
-  let jsonOut: Record<string, unknown> = {
+  const jsonOut: Record<string, unknown> = {
     summary: {
       A_approved_null_rag_doc: report.A_approved_null_rag_doc.length,
       B_approved_doc_not_done: report.B_approved_doc_not_done.length,

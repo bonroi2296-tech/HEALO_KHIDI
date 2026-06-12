@@ -3,9 +3,9 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
-import { createSupabaseBrowserClient } from '../../src/lib/supabase/browser';
-import { useToast } from '../../src/components/Toast';
-import { getLangCodeFromCookie, t } from '../../src/lib/i18n';
+import { createSupabaseBrowserClient } from '@/lib/supabase/browser';
+import { useToast } from '@/components/Toast';
+import { getLangCodeFromCookie, t } from '@/lib/i18n';
 
 const supabase = createSupabaseBrowserClient();
 

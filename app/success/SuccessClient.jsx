@@ -3,8 +3,8 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { CheckCircle2, Clock, FileText, Sparkles, Check, MessageCircle } from 'lucide-react';
-import { useLang } from '../../src/lib/i18n/LangContext';
-import { t } from '../../src/lib/i18n';
+import { useLang } from '@/lib/i18n/LangContext';
+import { t } from '@/lib/i18n';
 
 export const SuccessPage = ({ setView }) => {
     const router = useRouter();

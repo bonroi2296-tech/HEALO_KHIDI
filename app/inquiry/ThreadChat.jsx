@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { ArrowRight, AlertCircle, Loader2, User, Bot, ThumbsUp, ThumbsDown, X } from "lucide-react";
-import { getLangCodeFromCookie, t } from "../../src/lib/i18n";
+import { getLangCodeFromCookie, t } from "@/lib/i18n";
 
 const TOKEN_COOKIE = "healo_chat_token";
 const SESSION_COOKIE = "healo_browser_session";

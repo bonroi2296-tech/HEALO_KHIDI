@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import MedicalDisclaimerClient from "./MedicalDisclaimerClient";
 import MedicalDisclaimerClientLegacy from "./MedicalDisclaimerClientLegacy";
-import { getServerDesignMode } from "../../src/lib/designMode";
+import { getServerDesignMode } from "@/lib/designMode";
 
 export const metadata = {
   title: "Medical Disclaimer | HEALO",

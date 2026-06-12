@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import PatientChatClient from "./PatientChatClient";
 import PageShell from "../../../components/healo/PageShell";
-import { getServerDesignMode } from "../../../src/lib/designMode";
+import { getServerDesignMode } from "@/lib/designMode";
 
 export const metadata = {
   title: "AI Health Consultation",

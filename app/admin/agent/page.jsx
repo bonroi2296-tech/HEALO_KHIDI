@@ -12,7 +12,7 @@ import {
   ChevronRight,
   RefreshCw,
 } from "lucide-react";
-import { createSupabaseBrowserClient } from "../../../src/lib/supabase/browser";
+import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { EscalationQueue } from "./_components/EscalationQueue";
 import { SymptomAlerts } from "./_components/SymptomAlerts";
 import { AccuracyPanel } from "./_components/AccuracyPanel";

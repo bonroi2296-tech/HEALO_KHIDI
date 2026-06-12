@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSupabaseServerClient } from '../../../../../../src/lib/data/supabaseServerClient';
-import { uploadLimiter } from '../../../../../../src/lib/api/rateLimiter';
-import { sanitizeString } from '../../../../../../src/lib/api/sanitize';
-import { resolveConsultationActor } from '../../../../../../src/lib/auth/requireConsultationAccess';
-import { verifyFileMagic } from '../../../../../../src/lib/security/fileMagic';
+import { getSupabaseServerClient } from '@/lib/data/supabaseServerClient';
+import { uploadLimiter } from '@/lib/api/rateLimiter';
+import { sanitizeString } from '@/lib/api/sanitize';
+import { resolveConsultationActor } from '@/lib/auth/requireConsultationAccess';
+import { verifyFileMagic } from '@/lib/security/fileMagic';
 
 const ALLOWED_TYPES = [
   'application/pdf',

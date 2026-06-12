@@ -3,9 +3,9 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { ChevronLeft, UploadCloud, File, X } from 'lucide-react';
-import { useToast } from '../../../src/components/Toast';
-import { t } from '../../../src/lib/i18n';
-import { useLang } from '../../../src/lib/i18n/LangContext';
+import { useToast } from '@/components/Toast';
+import { t } from '@/lib/i18n';
+import { useLang } from '@/lib/i18n/LangContext';
 
 
 const BODY_PARTS = ['knee', 'back', 'neck', 'shoulder', 'hip', 'wrist', 'ankle', 'head', 'chest', 'abdomen', 'other'];

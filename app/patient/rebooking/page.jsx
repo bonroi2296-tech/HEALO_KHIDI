@@ -2,7 +2,7 @@ import { cookies } from "next/headers";
 import RebookingClient from "./RebookingClient";
 import RebookingPremium from "./RebookingPremium";
 import PageShell from "../../../components/healo/PageShell";
-import { getServerDesignMode } from "../../../src/lib/designMode";
+import { getServerDesignMode } from "@/lib/designMode";
 
 export const metadata = {
   title: "Rebooking Management",

@@ -9,8 +9,8 @@
 export const runtime = "nodejs";
 
 import { NextRequest } from "next/server";
-import { requireAdminAuth } from "../../../../../src/lib/auth/requireAdminAuth";
-import { supabaseAdmin, assertSupabaseEnv } from "../../../../../src/lib/rag/supabaseAdmin";
+import { requireAdminAuth } from "@/lib/auth/requireAdminAuth";
+import { supabaseAdmin, assertSupabaseEnv } from "@/lib/rag/supabaseAdmin";
 
 export async function GET(request: NextRequest) {
   assertSupabaseEnv();
@@ -77,7 +77,7 @@ export async function GET(request: NextRequest) {
 
     // 메시지 내용 조회 (message_id 기준)
     const messageIds = (negativeList ?? []).map((f: any) => f.message_id).filter(Boolean);
-    let messageContents: Record<string, string> = {};
+    const messageContents: Record<string, string> = {};
 
     if (messageIds.length > 0) {
       const { data: msgData } = await (supabaseAdmin as any)

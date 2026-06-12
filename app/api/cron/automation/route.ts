@@ -11,10 +11,10 @@ export const runtime = "nodejs";
 export const maxDuration = 300;
 
 import { NextRequest } from "next/server";
-import { supabaseAdmin } from "../../../../src/lib/rag/supabaseAdmin";
-import { runDailyEval } from "../../../../src/lib/automation/playbookDailyEval";
-import { runAutoImprove } from "../../../../src/lib/automation/playbookAutoImprove";
-import { runAbFinalize } from "../../../../src/lib/automation/playbookAbFinalize";
+import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
+import { runDailyEval } from "@/lib/automation/playbookDailyEval";
+import { runAutoImprove } from "@/lib/automation/playbookAutoImprove";
+import { runAbFinalize } from "@/lib/automation/playbookAbFinalize";
 
 export async function GET(request: NextRequest) {
   const cronSecret = process.env.CRON_SECRET;

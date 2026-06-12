@@ -1,9 +1,9 @@
 export const runtime = "nodejs";
 
 import { NextRequest } from "next/server";
-import { checkHospitalAuth } from "../../../../src/lib/auth/checkHospitalAuth";
-import { createServiceRoleClient } from "../../../../src/lib/supabase/server";
-import { extractKrFields, detectPayloadLanguage, triggerMultiLangTranslation } from "../../../../src/lib/translate";
+import { checkHospitalAuth } from "@/lib/auth/checkHospitalAuth";
+import { createServiceRoleClient } from "@/lib/supabase/server";
+import { extractKrFields, detectPayloadLanguage, triggerMultiLangTranslation } from "@/lib/translate";
 
 const EDITABLE_FIELDS = [
   "name",

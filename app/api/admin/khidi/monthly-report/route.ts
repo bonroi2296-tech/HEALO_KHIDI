@@ -29,10 +29,10 @@ import { NextRequest } from "next/server";
 import ExcelJS from "exceljs";
 import path from "path";
 import fs from "fs";
-import { requireAdminAuth } from "../../../../../src/lib/auth/requireAdminAuth";
+import { requireAdminAuth } from "@/lib/auth/requireAdminAuth";
 import {
   getKpiForMonth,
-} from "../../../../../src/lib/khidi/kpi";
+} from "@/lib/khidi/kpi";
 import { createClient } from "@supabase/supabase-js";
 
 // ============================================================

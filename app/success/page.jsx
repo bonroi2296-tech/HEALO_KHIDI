@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { SuccessPage } from "./SuccessClient";
 import SuccessPremium from "./SuccessPremium";
-import { getServerDesignMode } from "../../src/lib/designMode";
+import { getServerDesignMode } from "@/lib/designMode";
 
 // Legacy fallback wrapper
 function SuccessLegacy() {

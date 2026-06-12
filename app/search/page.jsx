@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import { cookies } from "next/headers";
 import SearchResultsClient from "./SearchResultsClient";
 import PageShell from "../../components/healo/PageShell";
-import { getServerDesignMode } from "../../src/lib/designMode";
+import { getServerDesignMode } from "@/lib/designMode";
 
 export const metadata = {
   title: "Search Treatments & Hospitals | HEALO Korea",

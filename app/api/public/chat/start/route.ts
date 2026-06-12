@@ -11,8 +11,8 @@
 export const runtime = "nodejs";
 
 import { NextRequest } from "next/server";
-import { supabaseAdmin, assertSupabaseEnv } from "../../../../../src/lib/rag/supabaseAdmin";
-import { checkRateLimit, getClientIp, RATE_LIMITS } from "../../../../../src/lib/rateLimit";
+import { supabaseAdmin, assertSupabaseEnv } from "@/lib/rag/supabaseAdmin";
+import { checkRateLimit, getClientIp, RATE_LIMITS } from "@/lib/rateLimit";
 
 export async function POST(request: NextRequest) {
   assertSupabaseEnv();

@@ -19,7 +19,7 @@ const STATUS_CONFIG = {
 };
 
 function fetchWithAuth(url) {
-  return import("../../src/lib/supabase/browser").then(({ createSupabaseBrowserClient }) => {
+  return import("@/lib/supabase/browser").then(({ createSupabaseBrowserClient }) => {
     const supabase = createSupabaseBrowserClient();
     return supabase.auth.getSession().then(({ data }) => {
       const token = data?.session?.access_token;

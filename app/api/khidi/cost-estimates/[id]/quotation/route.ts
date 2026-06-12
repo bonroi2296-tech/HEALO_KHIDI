@@ -73,7 +73,7 @@ export async function POST(
     // 인테이크 (진단명 등)
     let diagnosis: string | null = null;
     let patientName: string | null = null;
-    let patientNationality: string | null = null;
+    const patientNationality: string | null = null;
     if (estimate.intake_id) {
       const { data: intake } = await supabaseAdmin
         .from("cancer_patient_intakes")

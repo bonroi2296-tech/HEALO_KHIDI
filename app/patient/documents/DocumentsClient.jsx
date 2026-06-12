@@ -3,8 +3,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Upload, FileText, AlertCircle, ChevronDown } from 'lucide-react';
-import { getLangCodeFromCookie } from '../../../src/lib/i18n';
-import { createSupabaseBrowserClient } from '../../../src/lib/supabase/browser';
+import { getLangCodeFromCookie } from '@/lib/i18n';
+import { createSupabaseBrowserClient } from '@/lib/supabase/browser';
 
 const LABELS = {
   title: { ko: '의료 문서 관리', en: 'Medical Documents', ru: 'Медицинские документы', zh: '医疗文档', ja: '医療書類', kz: 'Медициналық құжаттар' },

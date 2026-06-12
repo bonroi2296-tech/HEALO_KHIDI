@@ -48,7 +48,7 @@ export async function POST(request) {
 
     // Render HTML
     const { render } = await import("@react-email/render");
-    const templatesMod = await import("../../../../src/emails/templates");
+    const templatesMod = await import("@/emails/templates");
     const Component = templatesMod[componentName];
     const React = (await import("react")).default;
     const html = await render(React.createElement(Component, data));

@@ -8,10 +8,10 @@
 export const runtime = "nodejs";
 
 import { NextRequest } from "next/server";
-import { evaluateRebooking } from "../../../../../src/lib/followup/rebookingEngine";
-import type { FollowupSchedule } from "../../../../../src/lib/followup/scheduler";
-import type { SymptomReport } from "../../../../../src/lib/followup/symptomAnalyzer";
-import { defaultLimiter } from "../../../../../src/lib/api/rateLimiter";
+import { evaluateRebooking } from "@/lib/followup/rebookingEngine";
+import type { FollowupSchedule } from "@/lib/followup/scheduler";
+import type { SymptomReport } from "@/lib/followup/symptomAnalyzer";
+import { defaultLimiter } from "@/lib/api/rateLimiter";
 
 export async function POST(request: NextRequest) {
   const limited = defaultLimiter.check(request);

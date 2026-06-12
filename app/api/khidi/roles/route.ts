@@ -11,7 +11,7 @@ import { NextRequest } from "next/server";
 
 export async function GET(request: NextRequest) {
   try {
-    const { checkAdminAuth } = await import("../../../../src/lib/auth/checkAdminAuth");
+    const { checkAdminAuth } = await import("@/lib/auth/checkAdminAuth");
     const authResult = await checkAdminAuth(request);
 
     // For GET, we require authentication (either user checking own roles or admin)
@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const { getSupabaseServerClient } = await import("../../../../src/lib/data/supabaseServerClient");
+    const { getSupabaseServerClient } = await import("@/lib/data/supabaseServerClient");
     const supabaseAdmin = getSupabaseServerClient();
 
     // Get current user's roles
@@ -59,7 +59,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     // Admin-only: check authorization
-    const { checkAdminAuth } = await import("../../../../src/lib/auth/checkAdminAuth");
+    const { checkAdminAuth } = await import("@/lib/auth/checkAdminAuth");
     const authResult = await checkAdminAuth(request);
 
     if (!authResult.isAdmin) {
@@ -94,7 +94,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { getSupabaseServerClient } = await import("../../../../src/lib/data/supabaseServerClient");
+    const { getSupabaseServerClient } = await import("@/lib/data/supabaseServerClient");
     const supabaseAdmin = getSupabaseServerClient();
 
     const insertData = {

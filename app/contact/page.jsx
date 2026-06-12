@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import ContactClient from "./_client/ContactClient";
 import ContactPremium from "./ContactPremium";
-import { getServerDesignMode } from "../../src/lib/designMode";
+import { getServerDesignMode } from "@/lib/designMode";
 
 export const metadata = {
   title: "Contact Us | HEALO",

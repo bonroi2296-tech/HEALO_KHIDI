@@ -12,10 +12,10 @@ export const runtime = "nodejs";
 export const maxDuration = 120;
 
 import { NextRequest, NextResponse } from "next/server";
-import { supabaseAdmin, assertSupabaseEnv } from "../../../../../src/lib/rag/supabaseAdmin";
-import { requireAdminAuth } from "../../../../../src/lib/auth/requireAdminAuth";
-import { initSources, getSourceManifest, runPipeline } from "../../../../../src/lib/enrichment";
-import type { HospitalRow } from "../../../../../src/lib/enrichment";
+import { supabaseAdmin, assertSupabaseEnv } from "@/lib/rag/supabaseAdmin";
+import { requireAdminAuth } from "@/lib/auth/requireAdminAuth";
+import { initSources, getSourceManifest, runPipeline } from "@/lib/enrichment";
+import type { HospitalRow } from "@/lib/enrichment";
 
 initSources();
 

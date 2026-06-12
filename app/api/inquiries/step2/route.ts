@@ -8,13 +8,13 @@ export const runtime = "nodejs";
 
 import { NextRequest } from "next/server";
 import { z } from "zod";
-import { supabaseAdmin, assertSupabaseEnv } from "../../../../src/lib/rag/supabaseAdmin";
+import { supabaseAdmin, assertSupabaseEnv } from "@/lib/rag/supabaseAdmin";
 import {
   checkRateLimit,
   getClientIp,
   RATE_LIMITS,
   getRateLimitHeaders,
-} from "../../../../src/lib/rateLimit";
+} from "@/lib/rateLimit";
 
 const Step2Schema = z.object({
   inquiryId: z.union([z.string(), z.number()]),

@@ -13,12 +13,12 @@
 export const runtime = "nodejs";
 
 import { NextRequest } from "next/server";
-import { supabaseAdmin, assertSupabaseEnv } from "../../../../src/lib/rag/supabaseAdmin";
+import { supabaseAdmin, assertSupabaseEnv } from "@/lib/rag/supabaseAdmin";
 import {
   buildReferralSummaryJson,
   buildReferralSummaryMarkdown,
-} from "../../../../src/lib/referral/buildReferralSummary";
-import { checkRateLimit, getClientIp, getRateLimitHeaders } from "../../../../src/lib/rateLimit";
+} from "@/lib/referral/buildReferralSummary";
+import { checkRateLimit, getClientIp, getRateLimitHeaders } from "@/lib/rateLimit";
 
 const REFERRAL_RATE = {
   windowMs: 60 * 1000,

@@ -6,7 +6,7 @@ import {
   ClipboardList, User, Calendar, Globe, ChevronDown,
   UserPlus, CheckCircle, Clock, AlertCircle,
 } from 'lucide-react';
-import { createSupabaseBrowserClient } from '../../../src/lib/supabase/browser';
+import { createSupabaseBrowserClient } from '@/lib/supabase/browser';
 
 const STATUS_MAP = {
   pending: { label: '대기', color: 'bg-yellow-100 text-yellow-800' },

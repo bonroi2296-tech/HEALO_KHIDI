@@ -13,18 +13,19 @@ export const runtime = "nodejs";
 
 import { streamText } from "ai";
 import { google } from "@ai-sdk/google";
-import { supabaseAdmin, assertSupabaseEnv } from "../../../src/lib/rag/supabaseAdmin";
-import { checkRateLimit, getClientIp, RATE_LIMITS, getRateLimitHeaders } from "../../../src/lib/rateLimit";
-import { logRateLimitExceeded, logEncryptionFailed, logOperational } from "../../../src/lib/operationalLog";
-import { trackFunnelEvent } from "../../../src/lib/events/funnelTracking";
-import { checkBlockRate } from "../../../src/lib/alerts/operationalAlerts";
+import { supabaseAdmin, assertSupabaseEnv } from "@/lib/rag/supabaseAdmin";
+import { checkRateLimitPersistent, getClientIp, RATE_LIMITS, getRateLimitHeaders } from "@/lib/rateLimit";
+import { checkAiGuards } from "@/lib/ai/aiGuard";
+import { logRateLimitExceeded, logEncryptionFailed, logOperational } from "@/lib/operationalLog";
+import { trackFunnelEvent } from "@/lib/events/funnelTracking";
+import { checkBlockRate } from "@/lib/alerts/operationalAlerts";
 import {
   createEmptyIntake,
   computeMissingFields,
   computeExtractionConfidence,
   type Intake,
   type IntakeMeta,
-} from "../../../src/lib/intakeSchema";
+} from "@/lib/intakeSchema";
 import {
   bodyPartFromText,
   contraindicationsAndFlagsFromMessage,
@@ -32,11 +33,11 @@ import {
   extractBudgetFromQuery,
   extractDurationFromQuery,
   extractSeverityFromQuery,
-} from "../../../src/lib/intakeExtract";
-import { encryptStringNullable } from "../../../src/lib/security/encryptionV2";
-import { safeRagSearch } from "../../../src/lib/rag/safeSearch";
-import { searchHospitalsAndTreatments } from "../../../src/lib/chat/dbSearch";
-import { searchExternal } from "../../../src/lib/chat/externalSearch";
+} from "@/lib/intakeExtract";
+import { encryptStringNullable } from "@/lib/security/encryptionV2";
+import { safeRagSearch } from "@/lib/rag/safeSearch";
+import { searchHospitalsAndTreatments } from "@/lib/chat/dbSearch";
+import { searchExternal } from "@/lib/chat/externalSearch";
 
 type ChatMessage = { role: string; content: string };
 
@@ -147,7 +148,8 @@ export async function POST(request: Request) {
   const apiPath = '/api/chat';
 
   // ✅ 운영 안정화: Rate limit 체크 (봇/도배 방지)
-  const rateLimitResult = checkRateLimit(clientIp, RATE_LIMITS.CHAT);
+  // DB 기반(persistent) — 인메모리는 Vercel 인스턴스마다 리셋돼 분산 우회 가능했음
+  const rateLimitResult = await checkRateLimitPersistent(clientIp, RATE_LIMITS.CHAT);
   if (!rateLimitResult.allowed) {
     logRateLimitExceeded(
       apiPath,
@@ -174,6 +176,14 @@ export async function POST(request: Request) {
         headers: getRateLimitHeaders(rateLimitResult)
       }
     );
+  }
+
+  // ✅ AI 비용 가드: IP당 일일 상한 + 전역 일일 총량 차단기 (토큰 남용 방어)
+  const aiGuard = await checkAiGuards(clientIp, apiPath);
+  if (!aiGuard.allowed) {
+    return jsonError(aiGuard.status, aiGuard.code, undefined, {
+      retryAfter: aiGuard.retryAfterSec,
+    });
   }
 
   // ✅ Security: 암호화 키 검증 (fail-fast, V2 AES-256-GCM)
@@ -224,7 +234,7 @@ export async function POST(request: Request) {
    */
   // ✅ Log normalized inquiry (응답 전 완료)
   try {
-    let intake: Intake = buildIntakeFromQuery(query);
+    const intake: Intake = buildIntakeFromQuery(query);
     const meta: IntakeMeta = {
       pipeline_version: "v1",
       source_type: "ai_agent",

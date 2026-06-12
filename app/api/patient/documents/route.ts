@@ -12,10 +12,10 @@
 export const runtime = "nodejs";
 
 import { NextRequest } from "next/server";
-import { createSupabaseServerClientFromRequest } from "../../../../src/lib/supabase/server";
-import { supabaseAdmin } from "../../../../src/lib/rag/supabaseAdmin";
-import { uploadLimiter } from "../../../../src/lib/api/rateLimiter";
-import { sanitizeString } from "../../../../src/lib/api/sanitize";
+import { createSupabaseServerClientFromRequest } from "@/lib/supabase/server";
+import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
+import { uploadLimiter } from "@/lib/api/rateLimiter";
+import { sanitizeString } from "@/lib/api/sanitize";
 
 const ALLOWED_TYPES = [
   "application/pdf",

@@ -6,8 +6,8 @@ import {
   getPrivacySectionsList,
   PRIVACY_EFFECTIVE_DATE,
   PRIVACY_VERSION,
-} from "../../src/lib/legal/privacyPolicy";
-import { useLang } from "../../src/lib/i18n/LangContext";
+} from "@/lib/legal/privacyPolicy";
+import { useLang } from "@/lib/i18n/LangContext";
 
 export default function PrivacyPolicyClientLegacy() {
   const langCode = useLang();

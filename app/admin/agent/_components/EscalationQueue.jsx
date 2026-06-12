@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Clock, User, ChevronRight, CheckCircle2, AlertTriangle } from "lucide-react";
-import { createSupabaseBrowserClient } from "../../../../src/lib/supabase/browser";
+import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 
 const CANCER_TYPE_LABELS = {
   stomach: "위암",

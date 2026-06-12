@@ -7,10 +7,10 @@ export const maxDuration = 120;
 export const dynamic = "force-dynamic";
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createServiceRoleClient } from '../../../../../src/lib/supabase/server';
-import { requireAdminAuth } from '../../../../../src/lib/auth/requireAdminAuth';
-import { TreatmentCreateSchema } from '../../../../../src/lib/validation/admin';
-import { getFallbackImage, getTreatmentGalleryImages } from '../../../../../src/lib/utils/imageFallback';
+import { createServiceRoleClient } from '@/lib/supabase/server';
+import { requireAdminAuth } from '@/lib/auth/requireAdminAuth';
+import { TreatmentCreateSchema } from '@/lib/validation/admin';
+import { getFallbackImage, getTreatmentGalleryImages } from '@/lib/utils/imageFallback';
 import { z } from 'zod';
 
 interface ImportRow {

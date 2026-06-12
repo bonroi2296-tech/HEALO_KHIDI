@@ -9,9 +9,9 @@ import {
   Phone, GraduationCap, Briefcase, BookOpen, Activity,
   X,
 } from 'lucide-react';
-import { getLangCodeFromCookie } from '../../src/lib/i18n';
-import { supabaseClient } from '../../src/lib/data/supabaseClient';
-import { mapHospitalRow } from '../../src/lib/mapper';
+import { getLangCodeFromCookie } from '@/lib/i18n';
+import { supabaseClient } from '@/lib/data/supabaseClient';
+import { mapHospitalRow } from '@/lib/mapper';
 
 /* ───────────────── i18n Labels ───────────────── */
 const L = {

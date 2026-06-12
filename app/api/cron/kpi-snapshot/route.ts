@@ -19,7 +19,7 @@ export const runtime = "nodejs";
 export const maxDuration = 60;
 
 import { NextRequest, NextResponse } from "next/server";
-import { upsertDailySnapshot } from "../../../../src/lib/khidi/kpi";
+import { upsertDailySnapshot } from "@/lib/khidi/kpi";
 
 export async function GET(request: NextRequest) {
   // ── CRON_SECRET 검증 ──────────────────────────────────────

@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
     }
 
     const { getSupabaseServerClient } = await import(
-      "../../../../src/lib/data/supabaseServerClient"
+      "@/lib/data/supabaseServerClient"
     );
     const supabaseAdmin = getSupabaseServerClient();
 
@@ -138,13 +138,13 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   try {
     const { requireAdminAuth } = await import(
-      "../../../../src/lib/auth/requireAdminAuth"
+      "@/lib/auth/requireAdminAuth"
     );
     const auth = await requireAdminAuth(request);
     if (!auth.success) return auth.response;
 
     const { getSupabaseServerClient } = await import(
-      "../../../../src/lib/data/supabaseServerClient"
+      "@/lib/data/supabaseServerClient"
     );
     const supabaseAdmin = getSupabaseServerClient();
 

@@ -13,8 +13,8 @@ import {
   matchHospitals,
   type MatchingCriteria,
   type HospitalCapability,
-} from "../../../../src/lib/cancer/matchingEngine";
-import { checkRateLimit, getClientIp, getRateLimitHeaders } from "../../../../src/lib/rateLimit";
+} from "@/lib/cancer/matchingEngine";
+import { checkRateLimit, getClientIp, getRateLimitHeaders } from "@/lib/rateLimit";
 
 const MATCHING_RATE = {
   windowMs: 60 * 1000,
@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { getSupabaseServerClient } = await import("../../../../src/lib/data/supabaseServerClient");
+    const { getSupabaseServerClient } = await import("@/lib/data/supabaseServerClient");
     const supabaseAdmin = getSupabaseServerClient();
 
     // Fetch hospital cancer capabilities

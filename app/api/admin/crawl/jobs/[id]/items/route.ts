@@ -8,9 +8,9 @@
 export const runtime = "nodejs";
 
 import { NextRequest, NextResponse } from "next/server";
-import { supabaseAdmin, assertSupabaseEnv } from "../../../../../../../src/lib/rag/supabaseAdmin";
-import { requireAdminAuth } from "../../../../../../../src/lib/auth/requireAdminAuth";
-import { approveItems, rejectItems, skipItems } from "../../../../../../../src/lib/crawl/job-review";
+import { supabaseAdmin, assertSupabaseEnv } from "@/lib/rag/supabaseAdmin";
+import { requireAdminAuth } from "@/lib/auth/requireAdminAuth";
+import { approveItems, rejectItems, skipItems } from "@/lib/crawl/job-review";
 
 // ─── GET: list items ────────────────────────────────────
 export async function GET(

@@ -6,7 +6,7 @@ import {
   ArrowRight, ChevronDown, Stethoscope, Leaf, Shield,
   Activity, Clock, FileText, CheckCircle,
 } from 'lucide-react';
-import { getLangCodeFromCookie } from '../../src/lib/i18n';
+import { getLangCodeFromCookie } from '@/lib/i18n';
 
 export const TREATMENTS_L = {
   title: { ko: '암종별 치료 안내', en: 'Cancer Treatment Guide', ru: 'Руководство по лечению рака', kz: 'Рак емдеу нұсқаулығы', zh: '癌症治疗指南', ja: 'がん治療ガイド' },

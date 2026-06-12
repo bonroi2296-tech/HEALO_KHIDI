@@ -11,10 +11,10 @@
 export const runtime = "nodejs";
 
 import { NextRequest } from "next/server";
-import { supabaseAdmin, assertSupabaseEnv } from "../../../../../../../src/lib/rag/supabaseAdmin";
-import { requireAdminAuth } from "../../../../../../../src/lib/auth/requireAdminAuth";
-import { sanitizeResponse, computeQualityScore } from "../../../../../../../src/lib/playbook/sanitize";
-import { runPostResolve } from "../../../../../../../src/lib/automation/postResolveWorker";
+import { supabaseAdmin, assertSupabaseEnv } from "@/lib/rag/supabaseAdmin";
+import { requireAdminAuth } from "@/lib/auth/requireAdminAuth";
+import { sanitizeResponse, computeQualityScore } from "@/lib/playbook/sanitize";
+import { runPostResolve } from "@/lib/automation/postResolveWorker";
 
 function buildTranscript(
   messages: { actor_type: string; message_text: string; created_at: string; is_internal: boolean }[]

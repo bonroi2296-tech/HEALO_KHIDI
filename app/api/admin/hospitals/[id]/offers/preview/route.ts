@@ -8,8 +8,8 @@ export const runtime = "nodejs";
 export const maxDuration = 10;
 
 import { NextRequest } from "next/server";
-import { supabaseAdmin, assertSupabaseEnv } from "../../../../../../../src/lib/rag/supabaseAdmin";
-import { requireAdminAuth } from "../../../../../../../src/lib/auth/requireAdminAuth";
+import { supabaseAdmin, assertSupabaseEnv } from "@/lib/rag/supabaseAdmin";
+import { requireAdminAuth } from "@/lib/auth/requireAdminAuth";
 
 export async function POST(
   request: NextRequest,

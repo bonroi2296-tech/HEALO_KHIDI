@@ -6,8 +6,8 @@
  */
 
 import { useEffect, useState } from "react";
-import { useLang } from "../../src/lib/i18n/LangContext";
-import { createSupabaseBrowserClient } from "../../src/lib/supabase/browser";
+import { useLang } from "@/lib/i18n/LangContext";
+import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 
 const COPY = {
   en: {

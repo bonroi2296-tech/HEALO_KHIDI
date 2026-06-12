@@ -12,8 +12,8 @@
 export const runtime = "nodejs";
 
 import { NextRequest, NextResponse } from "next/server";
-import { supabaseAdmin } from "../../../../src/lib/rag/supabaseAdmin";
-import { requireAdminAuth } from "../../../../src/lib/auth/requireAdminAuth";
+import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
+import { requireAdminAuth } from "@/lib/auth/requireAdminAuth";
 
 /**
  * GET /api/admin/doctors

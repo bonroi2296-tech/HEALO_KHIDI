@@ -8,8 +8,8 @@
 export const runtime = "nodejs";
 
 import { NextRequest } from "next/server";
-import { analyzeSymptoms, type SymptomReport } from "../../../../src/lib/followup/symptomAnalyzer";
-import { checkAdminAuth } from "../../../../src/lib/auth/checkAdminAuth";
+import { analyzeSymptoms, type SymptomReport } from "@/lib/followup/symptomAnalyzer";
+import { checkAdminAuth } from "@/lib/auth/checkAdminAuth";
 
 export async function POST(request: NextRequest) {
   // ── 인증 확인: 로그인한 사용자만 증상 보고서 제출 가능 ──────────
@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
     const analysis = analyzeSymptoms(report);
 
     // Supabase에 결과 저장
-    const { getSupabaseServerClient } = await import("../../../../src/lib/data/supabaseServerClient");
+    const { getSupabaseServerClient } = await import("@/lib/data/supabaseServerClient");
     const supabaseAdmin = getSupabaseServerClient();
 
     const insertData = {
@@ -87,8 +87,8 @@ export async function POST(request: NextRequest) {
     // symptom_reports 의 첫 번째 증상을 SymptomEntry 형태로 변환하여 감지 실행
     ;(async () => {
       try {
-        const { detectAlerts } = await import("../../../../src/lib/symptoms/detect");
-        const { saveAndNotifyAlerts } = await import("../../../../src/lib/symptoms/alertService");
+        const { detectAlerts } = await import("@/lib/symptoms/detect");
+        const { saveAndNotifyAlerts } = await import("@/lib/symptoms/alertService");
 
         // 직전 보고 조회 (급격한 악화 감지용)
         // symptom_reports 에 patient_id 컬럼이 없으므로 followup_id 기반 조회 시도,
@@ -147,7 +147,7 @@ export async function POST(request: NextRequest) {
     if (analysis.recommendedAction === 'schedule_followup' ||
         analysis.recommendedAction === 'escalate_doctor' ||
         analysis.recommendedAction === 'emergency_refer') {
-      const { evaluateFromSymptoms } = await import("../../../../src/lib/followup/rebookingEngine");
+      const { evaluateFromSymptoms } = await import("@/lib/followup/rebookingEngine");
       rebookingSuggestion = evaluateFromSymptoms(report);
     }
 
@@ -169,7 +169,7 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
-    const { checkAdminAuth } = await import("../../../../src/lib/auth/checkAdminAuth");
+    const { checkAdminAuth } = await import("@/lib/auth/checkAdminAuth");
     const authResult = await checkAdminAuth(request);
 
     if (!authResult.isAdmin) {
@@ -179,7 +179,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const { getSupabaseServerClient } = await import("../../../../src/lib/data/supabaseServerClient");
+    const { getSupabaseServerClient } = await import("@/lib/data/supabaseServerClient");
     const supabaseAdmin = getSupabaseServerClient();
 
     const { searchParams } = new URL(request.url);

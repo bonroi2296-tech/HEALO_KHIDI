@@ -6,7 +6,7 @@ import {
   ClipboardList, Video, Users, AlertTriangle,
   Clock, CheckCircle, ArrowRight, TrendingUp,
 } from 'lucide-react';
-import { createSupabaseBrowserClient } from '../../src/lib/supabase/browser';
+import { createSupabaseBrowserClient } from '@/lib/supabase/browser';
 
 export default function CoordinatorDashboard() {
   const router = useRouter();

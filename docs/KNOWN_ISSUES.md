@@ -4,17 +4,16 @@
 
 ---
 
-## 🔴 P1 — AI 토큰 남용 방어 (PO 승인 대기 — 적용 시점 리마인드 필수)
+## ✅ P1 — AI 토큰 남용 방어 (2026-06-12 적용 완료)
 
-> 2026-06-11 자체감사에서 확인 (`docs/SELF_AUDIT_2026_06_11.md`). PO 지시: **"기록해두고 적당한 시점에 계속 리마인드하면서 적용 시점을 물어봐라."**
-> **리마인드 트리거: ① Gemini 유료(종량제) 전환 직전 — 이때는 필수 ② 실환자 오픈 전 ③ 다음 스프린트 계획 시.**
+> 2026-06-12 PO 승인("피버모드 — 안 했던 작업 다")으로 적용 완료. 남은 것: Gemini 콘솔 spend cap 은 PO 직접 설정(5분).
 
 봇/악성 사용자가 공개 AI(챗봇 등)를 반복 호출하면 현재 구조로는 못 막음:
 - 회수 제한이 메모리 기반 → Vercel 다중 인스턴스에서 분산 우회 가능 (DB 기반 `checkRateLimitPersistent`는 `inquiries/create`에만 적용)
 - `generateReply.ts`에 maxOutputTokens 없음 → 호출당 비용 상한 없음
 - 하루 총량 차단기 없음 → 밤새 봇 돌면 아침에야 인지
 
-**합의된 처방 (약 1일 작업, 별도 PR):**
+**적용 내역 (src/lib/ai/aiGuard.ts + 공개 AI 라우트 5곳):**
 1. 공개 AI 엔드포인트 전부 DB 기반 레이트리밋으로 전환
 2. AI 챗 maxOutputTokens 추가 (한 줄)
 3. 하루 총량 차단기 — 초과 시 공개 챗봇만 "상담사 연결 안내" 모드 + PO 이메일 알림 (상담방 자막은 참가자 전용이라 유지)
@@ -50,7 +49,7 @@
 
 ---
 
-## 🟡 P2 — ESLint 가 TS 파일 파싱 못 함 (설정 갭)
+## ✅ P2 — ESLint TS 파싱 (2026-06-12 해소 — typescript-eslint 도입. 잔여: 기존 코드 에러 64·경고 1천여 건 점진 정리)
 
 `eslint .` 실행 시 .ts/.tsx 에서 "Parsing error: Unexpected token interface/:" 다수 → eslint flat config 에 TS 파서 미설정. **실제 코드 버그 아님**(빌드는 통과). 다만 lint가 TS 파일 품질검사를 못 함.
 **권장:** eslint TS 파서 설정 보강 → CI lint 실효성 확보.

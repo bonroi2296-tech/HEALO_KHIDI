@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { getLangCodeFromCookie, t } from "../../../src/lib/i18n";
+import { getLangCodeFromCookie, t } from "@/lib/i18n";
 
 export default function AboutClient() {
   const [langCode, setLangCode] = useState("en");

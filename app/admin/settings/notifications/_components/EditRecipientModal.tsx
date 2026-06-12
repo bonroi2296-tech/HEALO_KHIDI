@@ -2,7 +2,7 @@
  * 수신자 수정 모달 컴포넌트
  */
 import { useState } from "react";
-import { formatPhoneInput } from "../../../../../src/lib/utils/phoneFormat";
+import { formatPhoneInput } from "@/lib/utils/phoneFormat";
 import type { EditModalState } from "../_types";
 
 interface EditRecipientModalProps {

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { getLangCodeFromCookie } from '../../../src/lib/i18n';
+import { getLangCodeFromCookie } from '@/lib/i18n';
 import { BookOpen, ChevronDown, ChevronUp, Stethoscope, AlertTriangle, Heart, Utensils, Dumbbell, Brain } from 'lucide-react';
 
 export const CANCER_TYPES = [

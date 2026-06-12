@@ -10,11 +10,11 @@
 export const runtime = "nodejs";
 
 import { NextRequest } from "next/server";
-import { requireAdminAuth } from "../../../../../src/lib/auth/requireAdminAuth";
+import { requireAdminAuth } from "@/lib/auth/requireAdminAuth";
 import {
   getKpiForMonth,
   getDailyKpiSeries,
-} from "../../../../../src/lib/khidi/kpi";
+} from "@/lib/khidi/kpi";
 
 // 사업 목표 (KHIDI 공고 기준)
 const KPI_TARGETS = {

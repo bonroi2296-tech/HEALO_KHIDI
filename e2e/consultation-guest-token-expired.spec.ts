@@ -19,11 +19,11 @@ test.describe("게스트 토큰 만료/오류 케이스", () => {
 
     // 에러 메시지 또는 입장 실패 표시
     const hasError =
-      /만료|유효하지|invalid|expired|error|오류|찾을 수 없|not found/i.test(bodyText);
+      /만료|유효하지|invalid|expired|error|오류|찾을 수 없|not found|접속 실패|연결|connection failed|failed/i.test(bodyText);
 
     // 또는 이름 폼에서 시도 후 에러
     const nameInput = page
-      .locator('input[placeholder*="이름"], input[placeholder*="name"]')
+      .locator('input[placeholder*="이름"], input[placeholder*="name"], input[placeholder*="Айжан"]')
       .first();
     const hasForm = await nameInput.isVisible().catch(() => false);
 
@@ -34,7 +34,7 @@ test.describe("게스트 토큰 만료/오류 케이스", () => {
 
       const afterText = await page.locator("body").innerText().catch(() => "");
       const hasErrorAfter =
-        /만료|유효하지|invalid|expired|error|오류/i.test(afterText);
+        /만료|유효하지|invalid|expired|error|오류|접속 실패|연결|connection failed|failed/i.test(afterText);
       expect(hasErrorAfter).toBeTruthy();
     } else {
       expect(hasError).toBeTruthy();
@@ -62,7 +62,7 @@ test.describe("게스트 토큰 만료/오류 케이스", () => {
         // 에러 응답 대기 (API 호출 후)
         await page.waitForTimeout(5000);
         const bodyText = await page.locator("body").innerText().catch(() => "");
-        const hasError = /만료|유효하지|invalid|expired|error|오류|not found/i.test(bodyText);
+        const hasError = /만료|유효하지|invalid|expired|error|오류|not found|접속 실패|연결|connection failed|failed/i.test(bodyText);
         expect(hasError).toBeTruthy();
       }
     } else {

@@ -10,9 +10,9 @@
 export const runtime = "nodejs";
 
 import { NextRequest } from "next/server";
-import { supabaseAdmin, assertSupabaseEnv } from "../../../../../src/lib/rag/supabaseAdmin";
-import { checkRateLimit, getClientIp, RATE_LIMITS } from "../../../../../src/lib/rateLimit";
-import { broadcastInAppNotification } from "../../../../../src/lib/notifications/inApp";
+import { supabaseAdmin, assertSupabaseEnv } from "@/lib/rag/supabaseAdmin";
+import { checkRateLimit, getClientIp, RATE_LIMITS } from "@/lib/rateLimit";
+import { broadcastInAppNotification } from "@/lib/notifications/inApp";
 
 const VALID_CATEGORIES = ["inaccurate", "irrelevant", "harmful", "other"] as const;
 type ReasonCategory = (typeof VALID_CATEGORIES)[number];

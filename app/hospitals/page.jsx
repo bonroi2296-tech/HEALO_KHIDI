@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import { cookies } from "next/headers";
 import HospitalsClient from "./HospitalsClient";
 import HospitalsClientPremium from "./HospitalsClientPremium";
-import { getServerDesignMode } from "../../src/lib/designMode";
+import { getServerDesignMode } from "@/lib/designMode";
 
 export const metadata = {
   title: "협력 병원 — HEALO 파트너 의료기관",

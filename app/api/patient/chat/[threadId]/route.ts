@@ -7,8 +7,8 @@
 export const runtime = "nodejs";
 
 import { NextRequest } from "next/server";
-import { createSupabaseServerClientFromRequest } from "../../../../../src/lib/supabase/server";
-import { supabaseAdmin } from "../../../../../src/lib/rag/supabaseAdmin";
+import { createSupabaseServerClientFromRequest } from "@/lib/supabase/server";
+import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
 
 async function getAuthUser(request: NextRequest) {
   const supabase = createSupabaseServerClientFromRequest(request);

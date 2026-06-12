@@ -12,7 +12,7 @@ import {
   Inbox, User, Globe, AlertCircle, CheckCircle2,
   Calendar, ChevronRight, RefreshCw,
 } from "lucide-react";
-import { createSupabaseBrowserClient } from "../../../src/lib/supabase/browser";
+import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 
 const CANCER_LABELS = {
   stomach: "위암", liver: "간암", lung: "폐암",

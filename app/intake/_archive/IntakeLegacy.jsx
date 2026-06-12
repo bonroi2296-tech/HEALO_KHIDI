@@ -8,7 +8,7 @@ import {
   ArrowRight, Sparkles, Clock,
 } from "lucide-react";
 
-import { getLangCodeFromCookie } from "../../src/lib/i18n";
+import { getLangCodeFromCookie } from "@/lib/i18n";
 
 // ─── i18n ───
 const LABELS = {

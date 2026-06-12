@@ -17,20 +17,20 @@
 export const runtime = "nodejs";
 
 import { NextRequest } from "next/server";
-import { supabaseAdmin, assertSupabaseEnv } from "../../../../src/lib/rag/supabaseAdmin";
-import { requireAdminAuth } from "../../../../src/lib/auth/requireAdminAuth";
+import { supabaseAdmin, assertSupabaseEnv } from "@/lib/rag/supabaseAdmin";
+import { requireAdminAuth } from "@/lib/auth/requireAdminAuth";
 import {
   logAdminAction,
   getIpFromRequest,
   getUserAgentFromRequest,
-} from "../../../../src/lib/audit/adminAuditLog";
-import { generateSlug, resolveSlugForUpdate } from "../../../../src/lib/utils/slug";
+} from "@/lib/audit/adminAuditLog";
+import { generateSlug, resolveSlugForUpdate } from "@/lib/utils/slug";
 import {
   HospitalCreateSchema,
   HospitalUpdateSchema,
   validationErrorResponse,
-} from "../../../../src/lib/validation/admin";
-import { extractKrFields, triggerMultiLangTranslation } from "../../../../src/lib/translate";
+} from "@/lib/validation/admin";
+import { extractKrFields, triggerMultiLangTranslation } from "@/lib/translate";
 
 /**
  * GET: 병원 목록 조회 (관리자 전용)

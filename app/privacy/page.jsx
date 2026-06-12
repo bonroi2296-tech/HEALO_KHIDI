@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import PrivacyPolicyClient from "./PrivacyPolicyClient";
 import PrivacyPolicyClientLegacy from "./PrivacyPolicyClientLegacy";
-import { getServerDesignMode } from "../../src/lib/designMode";
+import { getServerDesignMode } from "@/lib/designMode";
 
 export const metadata = {
   title: "Privacy Policy | HEALO",

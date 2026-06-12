@@ -3,7 +3,7 @@ import { cookies } from "next/headers";
 import HomeClient from "./home/HomeClient";
 import HomeClientPremium from "./home/HomeClientPremium";
 import Script from "next/script";
-import { getServerDesignMode } from "../src/lib/designMode";
+import { getServerDesignMode } from "@/lib/designMode";
 
 // 홈 페이지 메타 — 언어별 alternates 로 각 언어권 검색엔진이 올바른 버전 노출
 // Google·Yandex·Baidu 모두 hreflang 을 통해 언어별 title 매칭

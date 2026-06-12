@@ -7,13 +7,13 @@ import {
   MessageCircle, HelpCircle, CheckCircle2, Activity, Calendar, Users, ClipboardCheck,
   Clock, Coffee, Languages, Phone, ExternalLink, X
 } from "lucide-react";
-import { supabase } from "../../../src/supabase";
-import { mapHospitalRow, mapTreatmentRow } from "../../../src/lib/mapper";
-import { GoogleMapComponent } from "../../../src/components/GoogleMap";
+import { supabase } from "@/supabase";
+import { mapHospitalRow, mapTreatmentRow } from "@/lib/mapper";
+import { GoogleMapComponent } from "@/components/GoogleMap";
 
-import { getLangCodeFromCookie, t } from "../../../src/lib/i18n";
-import { formatDate } from "../../../src/lib/i18n/format";
-import { event } from "../../../src/lib/ga";
+import { getLangCodeFromCookie, t } from "@/lib/i18n";
+import { formatDate } from "@/lib/i18n/format";
+import { event } from "@/lib/ga";
 
 // 병원 이미지 폴더 규칙: /images/hospitals/<slug>/1~5.jpg (1=메인, 2~5=서브)
 const PLACEHOLDER_IMG = "/images/hospitals/_coming-soon.svg?v=2";

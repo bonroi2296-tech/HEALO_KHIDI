@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
-import { useLang } from "../../src/lib/i18n/LangContext";
+import { useLang } from "@/lib/i18n/LangContext";
 
 /* ───────── i18n (6개 언어) ───────── */
 const COPY = {

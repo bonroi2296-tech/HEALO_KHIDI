@@ -2,13 +2,13 @@
 
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { ChevronLeft, Bot, MessageCircle, ClipboardList, ArrowRight, AlertCircle, Headset, UploadCloud, File, X, Check } from 'lucide-react';
-import { getPrivacyPolicyText, getTermsPolicyText } from '../../src/lib/policies';
-import { PolicyModal } from '../../src/components/Modals';
-import { useToast } from '../../src/components/Toast';
-import { getLangCodeFromCookie, t } from '../../src/lib/i18n';
-import { SITE_INFO } from '../../src/lib/siteSettings';
-import { useLang } from '../../src/lib/i18n/LangContext';
-import { event } from '../../src/lib/ga';
+import { getPrivacyPolicyText, getTermsPolicyText } from '@/lib/policies';
+import { PolicyModal } from '@/components/Modals';
+import { useToast } from '@/components/Toast';
+import { getLangCodeFromCookie, t } from '@/lib/i18n';
+import { SITE_INFO } from '@/lib/siteSettings';
+import { useLang } from '@/lib/i18n/LangContext';
+import { event } from '@/lib/ga';
 import { useChat } from '@ai-sdk/react';
 import { InquiryFormB } from './InquiryFormB';
 import { ThreadChat } from './ThreadChat';

@@ -24,7 +24,7 @@ import {
   TrendingUp,
   ThumbsDown,
 } from "lucide-react";
-import { createSupabaseBrowserClient } from "../../../src/lib/supabase/browser";
+import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 
 // 2026-05: 피벗(암환자 컨시어지) 반영 메뉴 재편 — 환자 여정 중심으로 그룹화,
 // 디렉토리 시절 도구는 '레거시 도구'로 분리(코드 보존). 크롤링은 RAG Tier2 갱신으로 라벨 재정의.

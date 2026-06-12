@@ -1,8 +1,8 @@
 export const runtime = "nodejs";
 
 import { NextRequest } from "next/server";
-import { checkHospitalAuth } from "../../../../../src/lib/auth/checkHospitalAuth";
-import { createServiceRoleClient } from "../../../../../src/lib/supabase/server";
+import { checkHospitalAuth } from "@/lib/auth/checkHospitalAuth";
+import { createServiceRoleClient } from "@/lib/supabase/server";
 
 const VALID_STATUSES = ["sent", "viewed", "replied", "converted", "rejected"];
 

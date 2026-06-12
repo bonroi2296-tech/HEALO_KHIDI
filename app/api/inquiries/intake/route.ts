@@ -14,14 +14,14 @@
  */
 export const runtime = "nodejs";
 
-import { supabaseAdmin, assertSupabaseEnv } from "../../../../src/lib/rag/supabaseAdmin";
-import { encryptPiiInObject } from "../../../../src/lib/security/piiJson";
+import { supabaseAdmin, assertSupabaseEnv } from "@/lib/rag/supabaseAdmin";
+import { encryptPiiInObject } from "@/lib/security/piiJson";
 import { NextRequest } from "next/server";
-import { checkRateLimit, getClientIp, RATE_LIMITS, getRateLimitHeaders } from "../../../../src/lib/rateLimit";
-import { logRateLimitExceeded, logEncryptionFailed, logInquiryReceived, logInquiryFailed } from "../../../../src/lib/operationalLog";
-import { trackFunnelEvent } from "../../../../src/lib/events/funnelTracking";
-import { checkBlockRate } from "../../../../src/lib/alerts/operationalAlerts";
-import { sendAdminNotification } from "../../../../src/lib/notifications/adminNotifier";
+import { checkRateLimit, getClientIp, RATE_LIMITS, getRateLimitHeaders } from "@/lib/rateLimit";
+import { logRateLimitExceeded, logEncryptionFailed, logInquiryReceived, logInquiryFailed } from "@/lib/operationalLog";
+import { trackFunnelEvent } from "@/lib/events/funnelTracking";
+import { checkBlockRate } from "@/lib/alerts/operationalAlerts";
+import { sendAdminNotification } from "@/lib/notifications/adminNotifier";
 
 export async function POST(request: NextRequest) {
   assertSupabaseEnv();

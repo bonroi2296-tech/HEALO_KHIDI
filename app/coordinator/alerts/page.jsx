@@ -9,7 +9,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
-import { createSupabaseBrowserClient } from '../../../src/lib/supabase/browser';
+import { createSupabaseBrowserClient } from '@/lib/supabase/browser';
 import {
   AlertTriangle,
   CheckCircle,

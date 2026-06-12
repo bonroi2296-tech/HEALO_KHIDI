@@ -16,8 +16,8 @@ import {
   Plus,
   Video,
 } from "lucide-react";
-import { createSupabaseBrowserClient } from "../../../src/lib/supabase/browser";
-import { useToast } from "../../../src/components/Toast";
+import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
+import { useToast } from "@/components/Toast";
 import QRCode from "qrcode";
 
 const supabase = createSupabaseBrowserClient();

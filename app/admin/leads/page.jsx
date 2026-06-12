@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { createSupabaseBrowserClient } from "../../../src/lib/supabase/browser";
-import { useToast } from "../../../src/components/Toast";
+import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
+import { useToast } from "@/components/Toast";
 import { AdminGuideModal } from "../_components/AdminGuideModal";
 import { RefreshCw, ChevronDown } from "lucide-react";
 

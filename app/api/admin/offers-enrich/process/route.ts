@@ -5,15 +5,15 @@
  */
 
 import { NextRequest } from "next/server";
-import { supabaseAdmin, assertSupabaseEnv } from "../../../../../src/lib/rag/supabaseAdmin";
-import { requireAdminAuth } from "../../../../../src/lib/auth/requireAdminAuth";
-import { crawlHospitalWebsite, normalizeWebsiteUrl } from "../../../../../src/lib/hospitalOffers/crawlPipeline";
-import { programCandidateRanking } from "../../../../../src/lib/hospitalOffers/programCandidateRanking";
-import { extractRepresentativeCandidates } from "../../../../../src/lib/hospitalOffers/representativeCandidates";
-import { filterCandidatesByMedicalProcedure } from "../../../../../src/lib/hospitalOffers/isMedicalProcedure";
-import { buildPriceIndexFromTables, matchPrice } from "../../../../../src/lib/hospitalOffers/priceIndex";
-import { collectEvidenceChunks } from "../../../../../src/lib/hospitalOffers/evidenceCollector";
-import { buildOffersFromEvidenceBatch } from "../../../../../src/lib/hospitalOffers/evidenceBatchSummarizer";
+import { supabaseAdmin, assertSupabaseEnv } from "@/lib/rag/supabaseAdmin";
+import { requireAdminAuth } from "@/lib/auth/requireAdminAuth";
+import { crawlHospitalWebsite, normalizeWebsiteUrl } from "@/lib/hospitalOffers/crawlPipeline";
+import { programCandidateRanking } from "@/lib/hospitalOffers/programCandidateRanking";
+import { extractRepresentativeCandidates } from "@/lib/hospitalOffers/representativeCandidates";
+import { filterCandidatesByMedicalProcedure } from "@/lib/hospitalOffers/isMedicalProcedure";
+import { buildPriceIndexFromTables, matchPrice } from "@/lib/hospitalOffers/priceIndex";
+import { collectEvidenceChunks } from "@/lib/hospitalOffers/evidenceCollector";
+import { buildOffersFromEvidenceBatch } from "@/lib/hospitalOffers/evidenceBatchSummarizer";
 export const runtime = "nodejs";
 export const maxDuration = 120;
 

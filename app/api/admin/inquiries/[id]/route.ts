@@ -18,17 +18,17 @@
 export const runtime = "nodejs";
 
 import { NextRequest } from "next/server";
-import { supabaseAdmin, assertSupabaseEnv } from "../../../../../src/lib/rag/supabaseAdmin";
-import { requireAdminAuth } from "../../../../../src/lib/auth/requireAdminAuth";
+import { supabaseAdmin, assertSupabaseEnv } from "@/lib/rag/supabaseAdmin";
+import { requireAdminAuth } from "@/lib/auth/requireAdminAuth";
 import {
   decryptInquiryForAdmin,
   decryptNormalizedInquiryForAdmin,
-} from "../../../../../src/lib/security/decryptForAdmin";
+} from "@/lib/security/decryptForAdmin";
 import {
   logAdminAction,
   getIpFromRequest,
   getUserAgentFromRequest,
-} from "../../../../../src/lib/audit/adminAuditLog";
+} from "@/lib/audit/adminAuditLog";
 
 /**
  * GET: 문의 상세 조회 (관리자 전용, PII 복호화)

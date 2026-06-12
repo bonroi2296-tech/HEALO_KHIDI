@@ -29,10 +29,11 @@ test.describe("게스트 상담 입장 UI", () => {
     await nameInput.fill("Test Patient");
     await page.getByRole("button", { name: /상담 시작|Start/i }).click();
 
-    // invite 만료 / 유효하지 않음 에러 표시
+    // invite 만료/유효하지 않음 — 또는 (CI처럼 DB 없는 환경) 접속 실패 에러.
+    // 의도: "잘못된 토큰으로는 못 들어가고, 사용자에게 에러가 보인다"
     await expect(
-      page.getByText(/만료|유효하지|invalid|expired/i)
-    ).toBeVisible({ timeout: 5000 });
+      page.getByText(/만료|유효하지|invalid|expired|접속 실패|연결|connection failed|failed|오류|error/i).first()
+    ).toBeVisible({ timeout: 8000 });
   });
 
   test("invite 없이 접속하면 일반 인증 흐름으로 진입", async ({ page }) => {

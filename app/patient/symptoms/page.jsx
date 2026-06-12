@@ -2,7 +2,7 @@ import { cookies } from "next/headers";
 import SymptomsClient from "./SymptomsClient";
 import SymptomsPremium from "./SymptomsPremium";
 import PageShell from "../../../components/healo/PageShell";
-import { getServerDesignMode } from "../../../src/lib/designMode";
+import { getServerDesignMode } from "@/lib/designMode";
 
 export const metadata = {
   title: "증상 기록",

@@ -12,7 +12,7 @@ import {
 import Nav from "../../../components/healo/Nav";
 import Footer from "../../../components/healo/Footer";
 import { PHOTO_FILTER } from "../../../components/healo/Photos";
-import { useLang } from "../../../src/lib/i18n/LangContext";
+import { useLang } from "@/lib/i18n/LangContext";
 
 export default function EducationClientPremium() {
   const langCode = useLang();

@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { Building2, Save, Plus, X, ImageIcon, Globe, Clock, User, Stethoscope, Activity, Shield, UploadCloud, Loader2, Trophy, HelpCircle } from "lucide-react";
 
 function fetchWithAuth(url, options = {}) {
-  return import("../../../src/lib/supabase/browser").then(({ createSupabaseBrowserClient }) => {
+  return import("@/lib/supabase/browser").then(({ createSupabaseBrowserClient }) => {
     const supabase = createSupabaseBrowserClient();
     return supabase.auth.getSession().then(({ data }) => {
       const token = data?.session?.access_token;

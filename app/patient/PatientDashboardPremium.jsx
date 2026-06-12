@@ -22,8 +22,8 @@ import {
   Chip,
   FilmGrain,
 } from "../../components/healo/Primitives";
-import { useLang } from "../../src/lib/i18n/LangContext";
-import { createSupabaseBrowserClient } from "../../src/lib/supabase/browser";
+import { useLang } from "@/lib/i18n/LangContext";
+import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import {
   fetchPatientJourney,
   computeCurrentStage,
@@ -32,7 +32,7 @@ import {
   computeDayCount,
   aggregateSymptomsByDay,
   JOURNEY_STAGES,
-} from "../../src/lib/patient/journeyState";
+} from "@/lib/patient/journeyState";
 
 const COPY = {
   en: {

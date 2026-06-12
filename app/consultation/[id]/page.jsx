@@ -30,14 +30,14 @@ import {
   FileText,
   X,
 } from "lucide-react";
-import { createSupabaseBrowserClient } from "../../../src/lib/supabase/browser";
-import { useLang } from "../../../src/lib/i18n/LangContext";
-import { useToast } from "../../../src/components/Toast";
-import { useSpeechRecognition, getEffectiveSttLang } from "../../../src/lib/consultation/useSpeechRecognition";
-import { isFillerOnly } from "../../../src/lib/consultation/fillerFilter";
-import { useTTS } from "../../../src/lib/consultation/useTTS";
-import { useRealtimeMessages } from "../../../src/lib/consultation/useRealtimeMessages";
-import { useLiveKitDataChannel } from "../../../src/lib/consultation/useLiveKitDataChannel";
+import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
+import { useLang } from "@/lib/i18n/LangContext";
+import { useToast } from "@/components/Toast";
+import { useSpeechRecognition, getEffectiveSttLang } from "@/lib/consultation/useSpeechRecognition";
+import { isFillerOnly } from "@/lib/consultation/fillerFilter";
+import { useTTS } from "@/lib/consultation/useTTS";
+import { useRealtimeMessages } from "@/lib/consultation/useRealtimeMessages";
+import { useLiveKitDataChannel } from "@/lib/consultation/useLiveKitDataChannel";
 
 const supabase = createSupabaseBrowserClient();
 

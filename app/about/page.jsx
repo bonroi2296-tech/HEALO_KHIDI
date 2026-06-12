@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import AboutClient from "./_client/AboutClient";
 import AboutPremium from "./AboutPremium";
-import { getServerDesignMode } from "../../src/lib/designMode";
+import { getServerDesignMode } from "@/lib/designMode";
 
 export const metadata = {
   title: "About HEALO | AI Medical Concierge",
