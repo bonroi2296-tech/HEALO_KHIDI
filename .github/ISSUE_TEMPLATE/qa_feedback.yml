@@ -1,0 +1,48 @@
+name: "QA 피드백 / QA Feedback (현지 테스트)"
+description: "현지 직원 QA 보고 — 모국어(러/카자흐) OK / Сообщение о проблеме — можно на русском/казахском"
+title: "[QA] "
+labels: ["qa-feedback"]
+body:
+  - type: input
+    id: screen
+    attributes:
+      label: "어느 화면 / Какой экран / Қай экран"
+      placeholder: "예: AI 채팅 / Главная / Виза 페이지"
+    validations:
+      required: true
+  - type: textarea
+    id: what_doing
+    attributes:
+      label: "뭘 하려 했나 / Что вы делали / Не істедіңіз"
+      placeholder: "예: 위암 질문을 입력함 / Спросил(а) про рак желудка"
+    validations:
+      required: true
+  - type: textarea
+    id: what_wrong
+    attributes:
+      label: "뭐가 잘못됐나 / Что не так / Не дұрыс емес"
+      placeholder: "버튼 안 눌림 / 번역 어색 / 완치라고 답함 / 화면 깨짐 ..."
+    validations:
+      required: true
+  - type: dropdown
+    id: severity
+    attributes:
+      label: "심각도 / Серьёзность"
+      options:
+        - "치명적 — 안 됨 / Критично — не работает"
+        - "보통 — 어색/불편 / Средне — неудобно"
+        - "사소 / Мелочь"
+    validations:
+      required: true
+  - type: input
+    id: lang
+    attributes:
+      label: "테스트 언어 / Язык интерфейса"
+      placeholder: "ru / kz / en"
+  - type: textarea
+    id: screenshot
+    attributes:
+      label: "스크린샷 / Скриншот (필수)"
+      placeholder: "여기에 이미지를 끌어다 놓기 / Перетащите изображение сюда"
+    validations:
+      required: true
