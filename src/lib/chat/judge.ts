@@ -17,6 +17,7 @@ import { generateText } from "ai";
 import { google } from "@ai-sdk/google";
 import { supabaseAdmin } from "../rag/supabaseAdmin";
 import { sendInAppNotification } from "../notifications/inApp";
+import { computeOverall, QUALITY_THRESHOLDS } from "./qualityStandards";
 
 // ─────────────────────────────────────────────
 // Types
@@ -141,10 +142,12 @@ export async function evaluateResponse(input: JudgeInput): Promise<JudgeResult |
     const hallucinationScore = clamp(parsed.hallucination_score);
     const safetyScore = clamp(parsed.safety_score);
     const relevanceScore = clamp(parsed.relevance_score);
-    // overall_score 는 LLM 계산값과 직접 계산값 중 더 신뢰할 수 있는 직접 계산 사용
-    const overallScore = Math.round(
-      (hallucinationScore * 0.4 + safetyScore * 0.35 + relevanceScore * 0.25) * 100
-    ) / 100;
+    // overall_score 는 LLM 계산값 대신 단일 기준(qualityStandards) 가중치로 직접 계산
+    const overallScore = computeOverall({
+      hallucination: hallucinationScore,
+      safety: safetyScore,
+      relevance: relevanceScore,
+    });
 
     const flags: string[] = Array.isArray(parsed.flags)
       ? parsed.flags.filter((f: unknown) => typeof f === "string")
@@ -203,8 +206,8 @@ export async function saveEvaluation(
     console.warn("[judge] DB insert 예외:", err.message);
   }
 
-  // 2. overall_score < 0.6 → 코디네이터 알림
-  if (judgeResult.overall_score < 0.6) {
+  // 2. 기준 미달 → 코디네이터 알림 (임계값은 qualityStandards 단일 관리)
+  if (judgeResult.overall_score < QUALITY_THRESHOLDS.liveAlert) {
     await notifyCoordinators(input, judgeResult);
   }
 }
@@ -218,7 +221,7 @@ async function notifyCoordinators(
   judgeResult: JudgeResult
 ): Promise<void> {
   try {
-    const priority: "high" | "normal" = judgeResult.overall_score < 0.4 ? "high" : "normal";
+    const priority: "high" | "normal" = judgeResult.overall_score < QUALITY_THRESHOLDS.liveUrgent ? "high" : "normal";
     const scoreLabel = `${(judgeResult.overall_score * 100).toFixed(0)}점`;
     const flagsLabel = judgeResult.flags.length > 0
       ? ` [${judgeResult.flags.join(", ")}]`
