@@ -18,6 +18,7 @@ import { generateText } from "ai";
 import { google } from "@ai-sdk/google";
 import { sendInAppNotification } from "@/lib/notifications/inApp";
 import { buildSystemPrompt } from "@/lib/chat/generateReply";
+import { QUALITY_THRESHOLDS, REGRESSION_BATCH } from "@/lib/chat/qualityStandards";
 
 // ── Supabase admin 클라이언트 ──────────────────────────────────
 function getAdminDb() {
@@ -106,8 +107,8 @@ async function sendAlerts(
     if (adminIds.length === 0) return;
 
     const body = [
-      `통과율: ${passRate}% (기준: 90%)`,
-      `평균 점수: ${avgScore.toFixed(2)} (기준: 0.70)`,
+      `통과율: ${passRate}% (기준: ${REGRESSION_BATCH.minPassRatePct}%)`,
+      `평균 점수: ${avgScore.toFixed(2)} (기준: ${REGRESSION_BATCH.minAvgScore.toFixed(2)})`,
       failedIds.length > 0 ? `실패 시나리오: ${failedIds.slice(0, 5).join(", ")}${failedIds.length > 5 ? ` 외 ${failedIds.length - 5}개` : ""}` : "",
     ].filter(Boolean).join(" | ");
 
@@ -174,7 +175,7 @@ export async function POST(request: NextRequest) {
         batch.map(async (sc: any) => {
           const { reply, latency_ms } = await generateReply(sc.query_text);
           const judge = await judgeOne(sc.query_text, reply, sc.expected_behavior, sc.language);
-          const passed = judge.overall_score >= 0.6;
+          const passed = judge.overall_score >= QUALITY_THRESHOLDS.regressionPass;
 
           await db.from("ai_regression_runs").insert({
             test_id: sc.id,
@@ -209,8 +210,8 @@ export async function POST(request: NextRequest) {
 
     console.log(`[regression-cron] 완료 — 통과율: ${passRate}%, 평균점수: ${avgScore}, 평균latency: ${avgLatency}ms`);
 
-    // 알림 임계값: 통과율 < 90% 또는 평균 점수 < 0.7
-    if (passRate < 90 || avgScore < 0.7) {
+    // 알림 임계값 (qualityStandards 단일 관리): 통과율 또는 평균 점수 하한 미달 시
+    if (passRate < REGRESSION_BATCH.minPassRatePct || avgScore < REGRESSION_BATCH.minAvgScore) {
       await sendAlerts(db, passRate, avgScore, failedScenarioIds);
     }
 
