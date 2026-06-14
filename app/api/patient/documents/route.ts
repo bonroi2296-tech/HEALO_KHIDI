@@ -123,8 +123,12 @@ export async function POST(request: NextRequest) {
       formData.get("consultationId") as string,
       64
     );
+    // 일부 화면은 docType 키로 보냄 (DocumentsPremium) → 둘 다 수용해 문서 종류 보존.
     const documentType =
-      sanitizeString(formData.get("documentType") as string, 50) || "other";
+      sanitizeString(
+        (formData.get("documentType") ?? formData.get("docType")) as string,
+        50
+      ) || "other";
     const description = sanitizeString(
       formData.get("description") as string,
       500

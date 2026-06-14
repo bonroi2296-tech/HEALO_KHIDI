@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
     const report: SymptomReport = {
       followupId: payload.followupId || '',
       inquiryId: payload.inquiryId || '',
-      reportType: payload.reportType || 'ad_hoc',
+      reportType: payload.reportType || payload.report_type || 'ad_hoc',
       symptoms: payload.symptoms.map((s: any) => ({
         symptom: s.symptom || s.name || '',
         severity: parseInt(s.severity) || 1,

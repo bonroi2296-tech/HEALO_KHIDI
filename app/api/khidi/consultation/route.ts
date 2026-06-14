@@ -41,6 +41,9 @@ export async function POST(request: NextRequest) {
     const patientLanguage = payload.patientLanguage ?? payload.patient_language;
     const doctorLanguage = payload.doctorLanguage ?? payload.doctor_language;
     const notes = payload.notes;
+    // 코디가 지정한 병원·제휴의사 (드롭다운) — 과거엔 insertData 에서 누락돼 저장 안 됨.
+    const hospitalId = payload.hospitalId ?? payload.hospital_id ?? null;
+    const partnerDoctorId = payload.partnerDoctorId ?? payload.partner_doctor_id ?? null;
     // 유치 전환 깔때기의 핵심: 상담을 원래 문의(inquiry)와 연결해야 자동 집계가 동작.
     const inquiryIdRaw =
       payload.inquiryId ?? payload.inquiry_id ?? payload.selected_inquiry_id;
@@ -108,6 +111,8 @@ export async function POST(request: NextRequest) {
     const insertData: Record<string, any> = {
       patient_user_id: patientUserId,
       inquiry_id: inquiryId,
+      hospital_id: hospitalId || null,
+      partner_doctor_id: partnerDoctorId || null,
       doctor_user_id: doctorId || null,
       coordinator_user_id: coordinatorId || null,
       translator_id: translatorId || null,

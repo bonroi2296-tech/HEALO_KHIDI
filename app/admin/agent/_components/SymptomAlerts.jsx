@@ -170,18 +170,28 @@ export function SymptomAlerts() {
                   ) : null}
                   {(urgency === "high" || urgency === "medium") && (
                     <button
-                      onClick={() => {
-                        fetch("/api/khidi/rebooking/create", {
-                          method: "POST",
-                          headers: { "Content-Type": "application/json" },
-                          body: JSON.stringify({
-                            patientId: report.inquiry_id,
-                            source: "symptom",
-                            reason: report.ai_assessment || "증상 기반 재예약",
-                            sessionType: urgency === "high" ? "diagnostic" : "follow_up",
-                            daysFromNow: urgency === "high" ? 1 : 5,
-                          }),
-                        }).then(() => alert("재예약이 생성되었습니다."));
+                      onClick={async () => {
+                        try {
+                          const res = await fetch("/api/khidi/rebooking/create", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({
+                              inquiryId: report.inquiry_id,
+                              source: "symptom",
+                              reason: report.ai_assessment || "증상 기반 재예약",
+                              sessionType: urgency === "high" ? "diagnostic" : "follow_up",
+                              daysFromNow: urgency === "high" ? 1 : 5,
+                            }),
+                          });
+                          const json = await res.json().catch(() => ({}));
+                          if (res.ok && json.ok) {
+                            alert("재예약이 생성되었습니다.");
+                          } else {
+                            alert("재예약 생성 실패: " + (json.error || res.statusText));
+                          }
+                        } catch {
+                          alert("재예약 생성 실패: 서버 연결 오류");
+                        }
                       }}
                       className="px-3 py-1.5 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition"
                     >

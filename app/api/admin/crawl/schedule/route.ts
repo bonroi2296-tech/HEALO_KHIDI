@@ -56,7 +56,7 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({ ok: false, error: "invalid_json" }, { status: 400 });
   }
 
-  const { enabled, frequency, sources } = body;
+  const { enabled, frequency, sources, dayOfWeek, hour } = body;
 
   try {
     const { data: existing } = await supabaseAdmin
@@ -72,6 +72,9 @@ export async function PUT(request: NextRequest) {
     if (typeof enabled === "boolean") updates.enabled = enabled;
     if (frequency) updates.frequency = frequency;
     if (Array.isArray(sources)) updates.sources = sources;
+    // dayOfWeek·hour 가 누락돼 자동 크롤이 항상 일요일 03:00 으로만 돌던 문제 수정
+    if (Number.isInteger(dayOfWeek)) updates.dayOfWeek = dayOfWeek;
+    if (Number.isInteger(hour)) updates.hour = hour;
 
     const merged = { ...currentSchedule, ...updates };
 

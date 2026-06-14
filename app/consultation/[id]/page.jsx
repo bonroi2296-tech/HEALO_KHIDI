@@ -1216,21 +1216,14 @@ export default function ConsultationRoomPage() {
         if (session.patient_language) setTargetLang(session.patient_language);
         if (session.doctor_language) setMyLang(session.doctor_language);
 
-        // Get LiveKit token
-        const user = sessionData?.session?.user;
-        const participantName = user?.email || user?.id || "participant";
-
+        // Get LiveKit token (서버가 consultationId 로 참가자·역할을 검증·결정)
         const tokenRes = await fetch("/api/khidi/consultation/token", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify({
-            roomName: session.livekit_room_name,
-            participantName,
-            participantRole: "patient",
-          }),
+          body: JSON.stringify({ consultationId }),
         });
 
         const tokenResult = await tokenRes.json();

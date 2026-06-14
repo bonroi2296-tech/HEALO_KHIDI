@@ -41,9 +41,10 @@ export async function POST(request: NextRequest) {
       return Response.json({ ok: false, error: "invalid_reason_category" }, { status: 400 });
     }
 
-    // public_token으로 thread 확인
+    // public_token으로 thread 확인 (스레드 테이블은 chat_threads — 과거 존재하지
+    // 않는 inquiry_threads 를 조회해 모든 피드백이 403 으로 실패하던 버그 수정)
     const { data: thread, error: threadError } = await (supabaseAdmin as any)
-      .from("inquiry_threads")
+      .from("chat_threads")
       .select("id, guest_email, user_id")
       .eq("id", thread_id)
       .eq("public_token", public_token)
