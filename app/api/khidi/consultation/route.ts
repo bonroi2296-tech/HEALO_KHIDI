@@ -30,15 +30,43 @@ export async function POST(request: NextRequest) {
 
     const payload = await request.json();
 
+    // 입력 정규화: 어드민 폼은 snake_case(session_type 등), 일부 호출부는 camelCase 를
+    // 보낸다. 과거엔 API 가 camelCase 만 읽어 폼 생성이 400 으로 실패했음 → 양쪽 모두 수용.
+    const sessionType = payload.sessionType ?? payload.session_type;
+    const scheduledAt = payload.scheduledAt ?? payload.scheduled_at;
+    const patientId = payload.patientId ?? payload.patient_user_id;
+    const doctorId = payload.doctorId ?? payload.doctor_user_id;
+    const coordinatorId = payload.coordinatorId ?? payload.coordinator_user_id;
+    const translatorId = payload.translatorId ?? payload.translator_id;
+    const patientLanguage = payload.patientLanguage ?? payload.patient_language;
+    const doctorLanguage = payload.doctorLanguage ?? payload.doctor_language;
+    const notes = payload.notes;
+    // 유치 전환 깔때기의 핵심: 상담을 원래 문의(inquiry)와 연결해야 자동 집계가 동작.
+    const inquiryIdRaw =
+      payload.inquiryId ?? payload.inquiry_id ?? payload.selected_inquiry_id;
+    const inquiryId =
+      inquiryIdRaw === undefined || inquiryIdRaw === null || inquiryIdRaw === ""
+        ? null
+        : Number(inquiryIdRaw);
+
     // Validation
-    const requiredFields = ["sessionType", "scheduledAt"];
-    for (const field of requiredFields) {
-      if (payload[field] === undefined || payload[field] === null) {
-        return Response.json(
-          { ok: false, error: `${field} is required` },
-          { status: 400 }
-        );
-      }
+    if (sessionType === undefined || sessionType === null) {
+      return Response.json(
+        { ok: false, error: "sessionType is required" },
+        { status: 400 }
+      );
+    }
+    if (scheduledAt === undefined || scheduledAt === null) {
+      return Response.json(
+        { ok: false, error: "scheduledAt is required" },
+        { status: 400 }
+      );
+    }
+    if (inquiryId !== null && !Number.isFinite(inquiryId)) {
+      return Response.json(
+        { ok: false, error: "Invalid inquiryId" },
+        { status: 400 }
+      );
     }
 
     const validSessionTypes = [
@@ -47,7 +75,7 @@ export async function POST(request: NextRequest) {
       "emergency",
       "diagnostic",
     ];
-    if (!validSessionTypes.includes(payload.sessionType)) {
+    if (!validSessionTypes.includes(sessionType)) {
       return Response.json(
         { ok: false, error: "Invalid sessionType" },
         { status: 400 }
@@ -56,8 +84,8 @@ export async function POST(request: NextRequest) {
 
     const validLanguages = ["ru", "kz", "en"];
     if (
-      payload.patientLanguage &&
-      !validLanguages.includes(payload.patientLanguage)
+      patientLanguage &&
+      !validLanguages.includes(patientLanguage)
     ) {
       return Response.json(
         { ok: false, error: "Invalid patientLanguage" },
@@ -69,7 +97,7 @@ export async function POST(request: NextRequest) {
     // - admin: payload.patientId 임의 지정 가능
     // - 일반 사용자: 본인 user.id 강제 (남의 ID 로 세션 생성 불가)
     const patientUserId = auth.isAdmin
-      ? payload.patientId || auth.userId
+      ? patientId || auth.userId
       : auth.userId;
 
     const { supabaseAdmin } = await import("@/lib/rag/supabaseAdmin");
@@ -79,18 +107,19 @@ export async function POST(request: NextRequest) {
 
     const insertData: Record<string, any> = {
       patient_user_id: patientUserId,
-      doctor_user_id: payload.doctorId || null,
-      coordinator_user_id: payload.coordinatorId || null,
-      translator_id: payload.translatorId || null,
-      session_type: payload.sessionType,
-      scheduled_at: payload.scheduledAt,
-      patient_language: payload.patientLanguage || "ru",
-      doctor_language: payload.doctorLanguage || "ko",
+      inquiry_id: inquiryId,
+      doctor_user_id: doctorId || null,
+      coordinator_user_id: coordinatorId || null,
+      translator_id: translatorId || null,
+      session_type: sessionType,
+      scheduled_at: scheduledAt,
+      patient_language: patientLanguage || "ru",
+      doctor_language: doctorLanguage || "ko",
       status: "scheduled",
       livekit_room_name: liveroomName,
       // ⚠ livekit_token_*  필드는 더 이상 사전 발급하지 않음.
       //    참가자가 /api/khidi/consultation/token 에서 본인 인증으로 받음.
-      notes: payload.notes || null,
+      notes: notes || null,
     };
 
     const { data, error } = await supabaseAdmin
