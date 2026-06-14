@@ -9,6 +9,7 @@ export const runtime = "nodejs";
 import { NextRequest } from "next/server";
 import { z } from "zod";
 import { supabaseAdmin, assertSupabaseEnv } from "@/lib/rag/supabaseAdmin";
+import { encryptStringNullable } from "@/lib/security/encryptionV2";
 import {
   checkRateLimit,
   getClientIp,
@@ -105,11 +106,12 @@ export async function POST(request: NextRequest) {
       .update({
         step2_completed_at: now,
         match_accuracy: accuracy,
-        // intake JSONB에 step2 데이터 병합
+        // intake JSONB. 의료 민감 필드(진단일·치료상태)는 AES-256-GCM 암호화 저장
+        // (어드민 표시 시 decryptForAdmin 이 복호화). stage/일정/우선순위는 비민감 → 평문.
         intake: {
           stage: data.stage ?? null,
-          diagnosis_date: data.diagnosisDate ?? null,
-          treatment_state: data.treatmentState ?? null,
+          diagnosis_date: data.diagnosisDate ? encryptStringNullable(data.diagnosisDate) : null,
+          treatment_state: data.treatmentState ? encryptStringNullable(data.treatmentState) : null,
           travel_timing: data.travelTiming ?? null,
           priorities: data.priorities ?? [],
         },

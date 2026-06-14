@@ -477,10 +477,13 @@ export default function UnifiedInquiryFunnel() {
     priorities: [],
   });
 
-  // from_chat 자동채움
+  // from_chat 자동채움 (게스트 PII 라 chat 쿠키의 public_token 동봉 — 없으면 자동채움 생략)
   useEffect(() => {
     if (!fromChat) return;
-    fetch(`/api/chat/thread-summary?thread_id=${fromChat}`)
+    const chatToken = (typeof document !== "undefined" &&
+      document.cookie.match(/(?:^|;\s*)healo_chat_token=([^;]+)/)?.[1]) || null;
+    if (!chatToken) return;
+    fetch(`/api/chat/thread-summary?thread_id=${fromChat}&public_token=${encodeURIComponent(chatToken)}`)
       .then((r) => r.json())
       .then((data) => {
         if (!data.ok) return;
