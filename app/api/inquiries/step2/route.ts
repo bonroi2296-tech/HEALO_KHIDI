@@ -18,6 +18,8 @@ import {
 
 const Step2Schema = z.object({
   inquiryId: z.union([z.string(), z.number()]),
+  // 소유권 증명 토큰 (step1 응답값). 없으면 순번 정수 id 로 남의 문의를 변조 가능(IDOR).
+  publicToken: z.string().min(8).max(100),
   stage: z.string().max(10).nullable().optional(),
   diagnosisDate: z.string().max(30).nullable().optional(),
   treatmentState: z.string().max(50).nullable().optional(),
@@ -70,17 +72,24 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    // inquiry 존재 확인
+    // inquiry 존재 확인 + 소유권(public_token) 검증
     const { data: existingRaw, error: fetchErr } = await supabaseAdmin
       .from("inquiries")
-      .select("id, step1_completed_at")
+      .select("id, step1_completed_at, public_token")
       .eq("id", inquiryId)
       .maybeSingle();
 
-    const existing = existingRaw as (typeof existingRaw & { step1_completed_at?: string | null }) | null;
+    const existing = existingRaw as
+      | (typeof existingRaw & { step1_completed_at?: string | null; public_token?: string | null })
+      | null;
 
     if (fetchErr || !existing) {
       return Response.json({ ok: false, error: "inquiry_not_found" }, { status: 404 });
+    }
+
+    // IDOR 방지: 토큰 불일치면 거부 (남의 문의 변조 차단)
+    if (!existing.public_token || String(existing.public_token) !== String(data.publicToken)) {
+      return Response.json({ ok: false, error: "forbidden" }, { status: 403 });
     }
 
     if (!existing.step1_completed_at) {

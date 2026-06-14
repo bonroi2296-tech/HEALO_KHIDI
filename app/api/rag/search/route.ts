@@ -7,9 +7,14 @@ export const runtime = "nodejs";
 
 import { assertSupabaseEnv } from "@/lib/rag/supabaseAdmin";
 import { safeRagSearch } from "@/lib/rag/safeSearch";
+import { requireAdminAuth } from "@/lib/auth/requireAdminAuth";
 
 // ── 메인 핸들러 ─────────────────────────────────────────
 export async function POST(request: Request) {
+  // 임베딩+벡터 검색은 AI 비용 발생 → 과거엔 공개라 비용 남용 가능. 어드민 전용으로.
+  const auth = await requireAdminAuth(request as any);
+  if (!auth.success) return auth.response;
+
   assertSupabaseEnv();
   try {
     const body = await request.json();

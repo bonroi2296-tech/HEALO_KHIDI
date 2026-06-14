@@ -204,7 +204,6 @@ export async function POST(request: NextRequest) {
       {
         ok: false,
         error: 'internal_error',
-        message: error instanceof Error ? error.message : '서버 오류',
       },
       { status: 500 }
     );

@@ -18,6 +18,8 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 import { NextResponse } from "next/server";
+import { requireAdminAuth } from "@/lib/auth/requireAdminAuth";
+import { checkRateLimit, getClientIp, RATE_LIMITS } from "@/lib/rateLimit";
 
 const TEMPLATE_MAP = {
   inquiryReceived: "InquiryReceived",
@@ -30,6 +32,21 @@ const TEMPLATE_MAP = {
 
 export async function POST(request) {
   try {
+    // 과거엔 인증·rate limit 이 전혀 없어 누구나 임의 주소로 메일 발송 가능한
+    // 오픈 릴레이였음(스팸·비용 남용). 서버-서버(내부 시크릿) 또는 어드민만 허용.
+    const ip = getClientIp(request);
+    const rl = checkRateLimit(ip, RATE_LIMITS.INQUIRY);
+    if (!rl.allowed) {
+      return NextResponse.json({ ok: false, error: "rate_limited" }, { status: 429 });
+    }
+    const internalSecret = process.env.INTERNAL_API_SECRET;
+    const internalOk =
+      Boolean(internalSecret) && request.headers.get("x-internal-secret") === internalSecret;
+    if (!internalOk) {
+      const auth = await requireAdminAuth(request);
+      if (!auth.success) return auth.response;
+    }
+
     const body = await request.json();
     // `lang` 필드는 미래 확장 (번역된 메일 발송) 용으로 body 에서 받지만 현재 사용 X
     const { to, template, data = {}, lang: _lang = "en", subject: customSubject } = body;
@@ -91,13 +108,13 @@ export async function POST(request) {
 
     if (result.error) {
       console.error("[email/send] Resend error:", result.error);
-      return NextResponse.json({ ok: false, error: result.error.message }, { status: 500 });
+      return NextResponse.json({ ok: false, error: "send_failed" }, { status: 500 });
     }
 
     return NextResponse.json({ ok: true, id: result.data?.id, to, template, subject });
   } catch (err) {
     console.error("[/api/email/send] error:", err);
-    return NextResponse.json({ ok: false, error: err?.message || "send_failed" }, { status: 500 });
+    return NextResponse.json({ ok: false, error: "internal_error" }, { status: 500 });
   }
 }
 

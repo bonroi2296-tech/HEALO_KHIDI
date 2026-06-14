@@ -449,6 +449,7 @@ export default function UnifiedInquiryFunnel() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [inquiryId, setInquiryId] = useState(null);
+  const [publicToken, setPublicToken] = useState(null); // step1 응답값 — step2 소유권 증명
   const [uploadedFiles, setUploadedFiles] = useState([]); // [{path, name, type}]
   const fileInputRef = useRef(null);
   const dropZoneRef = useRef(null);
@@ -576,6 +577,7 @@ export default function UnifiedInquiryFunnel() {
       if (!result.ok) throw new Error(result.error || "submit_failed");
 
       setInquiryId(result.inquiryId);
+      setPublicToken(result.publicToken || null);
       setPhase("step1-success");
     } catch (e) {
       setError(e.message || "오류가 발생했습니다.");
@@ -616,6 +618,7 @@ export default function UnifiedInquiryFunnel() {
     try {
       const body = {
         inquiryId,
+        publicToken,
         stage: form2.stageUnknown ? null : form2.stage || null,
         diagnosisDate: form2.diagnosisUnknown ? null : form2.diagnosisDate || null,
         treatmentState: form2.treatmentState || null,

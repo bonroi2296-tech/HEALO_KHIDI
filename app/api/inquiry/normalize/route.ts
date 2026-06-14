@@ -27,6 +27,7 @@ import { logOperational, logRateLimitExceeded, logEncryptionFailed, logInquiryFa
 import { evaluateLeadQuality } from "@/lib/leadQuality/scoring";
 import { trackFunnelEvent } from "@/lib/events/funnelTracking";
 import { checkEncryptionFailures, alertHighPriorityLead } from "@/lib/alerts/operationalAlerts";
+import { requireAdminAuth } from "@/lib/auth/requireAdminAuth";
 
 const detectLanguage = (value: string | null | undefined) => {
   const v = String(value || "").toLowerCase();
@@ -153,6 +154,11 @@ function buildIntakeFromTextOnly(text: string): Intake {
 }
 
 export async function POST(request: Request) {
+  // IDOR 방지: 과거엔 인증 없이 body 의 inquiry_id(순번 정수)로 임의 문의를 조회·재스코어·
+  // 알림 발생시킬 수 있었음. 라이브 호출부는 어드민 RAG 도구뿐 → 어드민 전용으로 잠금.
+  const auth = await requireAdminAuth(request as any);
+  if (!auth.success) return auth.response;
+
   assertSupabaseEnv();
   const clientIp = getClientIp(request);
   const apiPath = '/api/inquiry/normalize';
