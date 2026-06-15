@@ -170,6 +170,46 @@ export default function ConversionDashboard() {
             )}
           </section>
 
+          {/* 기관별 (참여기관 한방 / 협진 대학병원) */}
+          <section className="bg-white border border-gray-200 rounded-2xl p-6 mb-6">
+            <h2 className="text-sm font-bold text-gray-700 mb-1">기관별 상담·사후관리</h2>
+            <p className="text-xs text-gray-400 mb-3">
+              참여기관(한방)·협진(대학병원)별 상담 세션 집계. 참여기관 「원격 사후관리」 실적 = 사후관리 열.
+            </p>
+            {(data?.byOrg ?? []).length === 0 ? (
+              <p className="text-sm text-gray-400">데이터 없음 (상담 생성 시 병원을 지정하면 집계됩니다)</p>
+            ) : (
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-left text-gray-400 border-b border-gray-100">
+                    <th className="py-2 font-medium">기관</th>
+                    <th className="py-2 font-medium">구분</th>
+                    <th className="py-2 font-medium text-right">전체 세션</th>
+                    <th className="py-2 font-medium text-right">사전상담</th>
+                    <th className="py-2 font-medium text-right">사후관리</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.byOrg.map((o, i) => (
+                    <tr key={o.hospital_id || `none-${i}`} className="border-b border-gray-50">
+                      <td className="py-2 font-medium text-gray-800">{o.hospital_name}</td>
+                      <td className="py-2">
+                        <span className={`text-xs px-2 py-0.5 rounded-full ${
+                          o.kind === "한방(참여기관)" ? "bg-teal-50 text-teal-700"
+                          : o.kind === "대학병원(협진)" ? "bg-blue-50 text-blue-700"
+                          : "bg-gray-100 text-gray-500"
+                        }`}>{o.kind}</span>
+                      </td>
+                      <td className="py-2 text-right text-gray-600">{o.total_sessions}</td>
+                      <td className="py-2 text-right text-gray-600">{o.pre_consult}</td>
+                      <td className="py-2 text-right font-semibold text-teal-700">{o.followup}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </section>
+
           {/* 유치확정 대기 — 코디 액션 */}
           <section className="bg-white border border-gray-200 rounded-2xl p-6">
             <h2 className="text-sm font-bold text-gray-700 mb-1">유치 확정 대기</h2>

@@ -47,14 +47,16 @@ export async function GET(request: NextRequest) {
     const { from, to } = resolveRange(searchParams);
     const nationality = searchParams.get("nationality") || null;
 
-    const [{ data: funnelRows, error: e1 }, { data: countryRows, error: e2 }] = await Promise.all([
+    const [{ data: funnelRows, error: e1 }, { data: countryRows, error: e2 }, { data: orgRows, error: e3 }] = await Promise.all([
       (supabaseAdmin as any).rpc("conversion_funnel", { p_from: from, p_to: to, p_nationality: nationality }),
       (supabaseAdmin as any).rpc("conversion_funnel_by_country", { p_from: from, p_to: to }),
+      (supabaseAdmin as any).rpc("conversion_funnel_by_org", { p_from: from, p_to: to }),
     ]);
     if (e1 || e2) {
       console.error("[conversion-funnel] rpc error:", e1?.message || e2?.message);
       return NextResponse.json({ ok: false, error: "funnel_query_failed" }, { status: 500 });
     }
+    if (e3) console.error("[conversion-funnel] by_org rpc error:", e3?.message);
 
     const f = funnelRows?.[0] ?? {
       total_inquiries: 0, pre_consult: 0, visa_or_quote: 0, admitted: 0, followup: 0, lost: 0,
@@ -112,7 +114,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    return NextResponse.json({ ok: true, range: { from, to }, funnel, byCountry: countryRows || [], pending });
+    return NextResponse.json({ ok: true, range: { from, to }, funnel, byCountry: countryRows || [], byOrg: orgRows || [], pending });
   } catch (err: any) {
     console.error("[conversion-funnel] error:", err?.message?.slice(0, 200));
     return NextResponse.json({ ok: false, error: "internal_error" }, { status: 500 });
