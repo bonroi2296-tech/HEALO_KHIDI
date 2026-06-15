@@ -16,7 +16,12 @@ WHERE inquiry_id IN (SELECT id FROM inquiries WHERE intake->>'_test_seed' = 'khi
 
 DELETE FROM cotreatment_referrals WHERE reason LIKE '[TEST]%';
 
+-- inquiries 삭제 시 case_status_history 는 FK CASCADE 로 함께 삭제됨
 DELETE FROM inquiries WHERE intake->>'_test_seed' = 'khidi_demo_20260615';
+
+-- 테스트 에이전시 + 담당자 연결 제거
+DELETE FROM agency_users WHERE agency_id = (SELECT id FROM agencies WHERE code = 'TEST_AGENCY');
+DELETE FROM agencies WHERE code = 'TEST_AGENCY';
 
 COMMIT;
 
