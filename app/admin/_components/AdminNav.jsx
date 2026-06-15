@@ -55,6 +55,7 @@ const navGroups = [
     title: "제휴 자원 · RAG",
     items: [
       { id: "hospitals", label: "제휴 병원", icon: Building2, href: "/admin/hospitals" },
+      { id: "agencies", label: "에이전시 관리", icon: Users, href: "/admin/khidi/agencies" },
       { id: "doctors", label: "의료진·지점", icon: Users, href: "/admin/doctors" },
       { id: "rag", label: "RAG 관리", icon: Brain, href: "/admin/rag" },
       { id: "rag-docs", label: "RAG 문서/Tier", icon: FileText, href: "/admin/rag/documents" },
