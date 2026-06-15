@@ -22,6 +22,7 @@ import {
   HeartPulse,
   Video,
   TrendingUp,
+  Filter,
   ThumbsDown,
 } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
@@ -34,6 +35,8 @@ const navGroups = [
     items: [
       { id: "dashboard", label: "대시보드", icon: LayoutDashboard, href: "/admin" },
       { id: "kpi-dashboard", label: "KPI 대시보드", icon: TrendingUp, href: "/admin/khidi/kpi-dashboard" },
+      { id: "conversion", label: "유치 전환 현황", icon: Filter, href: "/admin/khidi/conversion" },
+      { id: "evidence", label: "증빙 산출물", icon: FileText, href: "/admin/khidi/evidence" },
       { id: "analytics", label: "문의 현황", icon: BarChart3, href: "/admin/analytics" },
     ]
   },
@@ -41,8 +44,10 @@ const navGroups = [
     title: "환자 여정",
     items: [
       { id: "leads", label: "사전상담 리드", icon: Users, href: "/admin/leads" },
+      { id: "cases", label: "케이스 관리", icon: HeartPulse, href: "/admin/khidi/cases" },
       { id: "inquiries", label: "AI 핸드오프 문의", icon: MessageSquare, href: "/admin/inquiries" },
       { id: "consultations", label: "원격협진", icon: Video, href: "/admin/consultations" },
+      { id: "referrals", label: "양·한방 협진 의뢰", icon: Building2, href: "/admin/khidi/referrals" },
       { id: "agent", label: "Human Agent", icon: HeartPulse, href: "/admin/agent" },
     ]
   },
@@ -50,6 +55,7 @@ const navGroups = [
     title: "제휴 자원 · RAG",
     items: [
       { id: "hospitals", label: "제휴 병원", icon: Building2, href: "/admin/hospitals" },
+      { id: "agencies", label: "에이전시 관리", icon: Users, href: "/admin/khidi/agencies" },
       { id: "doctors", label: "의료진·지점", icon: Users, href: "/admin/doctors" },
       { id: "rag", label: "RAG 관리", icon: Brain, href: "/admin/rag" },
       { id: "rag-docs", label: "RAG 문서/Tier", icon: FileText, href: "/admin/rag/documents" },

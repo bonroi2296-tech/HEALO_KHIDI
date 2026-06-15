@@ -641,7 +641,9 @@ function CreateConsultationModal({ onClose, onSuccess }) {
       const payload = {
         ...form,
         patient_user_id: form.patient_user_id || sessionData.session.user.id,
-        scheduled_at: new Date(form.scheduled_at).toISOString(),
+        // datetime-local 은 tz 없는 naive 문자열 → KST(+09:00)로 해석해 UTC 저장.
+        // (과거엔 브라우저 로컬 tz 로 해석돼, 어드민 PC 가 KST 가 아니면 예약시각·리마인더가 틀어짐)
+        scheduled_at: new Date(`${form.scheduled_at}+09:00`).toISOString(),
       };
       // 게스트 관련 필드 / UI 플래그 제거
       delete payload.inviteRoles;

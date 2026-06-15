@@ -449,6 +449,7 @@ export default function UnifiedInquiryFunnel() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [inquiryId, setInquiryId] = useState(null);
+  const [publicToken, setPublicToken] = useState(null); // step1 응답값 — step2 소유권 증명
   const [uploadedFiles, setUploadedFiles] = useState([]); // [{path, name, type}]
   const fileInputRef = useRef(null);
   const dropZoneRef = useRef(null);
@@ -476,10 +477,13 @@ export default function UnifiedInquiryFunnel() {
     priorities: [],
   });
 
-  // from_chat 자동채움
+  // from_chat 자동채움 (게스트 PII 라 chat 쿠키의 public_token 동봉 — 없으면 자동채움 생략)
   useEffect(() => {
     if (!fromChat) return;
-    fetch(`/api/chat/thread-summary?thread_id=${fromChat}`)
+    const chatToken = (typeof document !== "undefined" &&
+      document.cookie.match(/(?:^|;\s*)healo_chat_token=([^;]+)/)?.[1]) || null;
+    if (!chatToken) return;
+    fetch(`/api/chat/thread-summary?thread_id=${fromChat}&public_token=${encodeURIComponent(chatToken)}`)
       .then((r) => r.json())
       .then((data) => {
         if (!data.ok) return;
@@ -576,6 +580,7 @@ export default function UnifiedInquiryFunnel() {
       if (!result.ok) throw new Error(result.error || "submit_failed");
 
       setInquiryId(result.inquiryId);
+      setPublicToken(result.publicToken || null);
       setPhase("step1-success");
     } catch (e) {
       setError(e.message || "오류가 발생했습니다.");
@@ -616,6 +621,7 @@ export default function UnifiedInquiryFunnel() {
     try {
       const body = {
         inquiryId,
+        publicToken,
         stage: form2.stageUnknown ? null : form2.stage || null,
         diagnosisDate: form2.diagnosisUnknown ? null : form2.diagnosisDate || null,
         treatmentState: form2.treatmentState || null,

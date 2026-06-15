@@ -20,13 +20,14 @@ import {
   bodyPartFromText,
   contraindicationsAndFlagsFromMessage,
 } from "@/lib/intakeExtract";
-import { encryptString, encryptStringNullable } from "@/lib/security/encryptionV2";
+import { encryptString, encryptStringNullable, decryptAuto } from "@/lib/security/encryptionV2";
 import crypto from "crypto";
 import { checkRateLimitPersistent, getClientIp, RATE_LIMITS, getRateLimitHeaders } from "@/lib/rateLimit";
 import { logOperational, logRateLimitExceeded, logEncryptionFailed, logInquiryFailed } from "@/lib/operationalLog";
 import { evaluateLeadQuality } from "@/lib/leadQuality/scoring";
 import { trackFunnelEvent } from "@/lib/events/funnelTracking";
 import { checkEncryptionFailures, alertHighPriorityLead } from "@/lib/alerts/operationalAlerts";
+import { requireAdminAuth } from "@/lib/auth/requireAdminAuth";
 
 const detectLanguage = (value: string | null | undefined) => {
   const v = String(value || "").toLowerCase();
@@ -153,6 +154,11 @@ function buildIntakeFromTextOnly(text: string): Intake {
 }
 
 export async function POST(request: Request) {
+  // IDOR 방지: 과거엔 인증 없이 body 의 inquiry_id(순번 정수)로 임의 문의를 조회·재스코어·
+  // 알림 발생시킬 수 있었음. 라이브 호출부는 어드민 RAG 도구뿐 → 어드민 전용으로 잠금.
+  const auth = await requireAdminAuth(request as any);
+  if (!auth.success) return auth.response;
+
   assertSupabaseEnv();
   const clientIp = getClientIp(request);
   const apiPath = '/api/inquiry/normalize';
@@ -230,7 +236,14 @@ export async function POST(request: Request) {
       inquiryRow = data;
     }
 
-    const rawMessage = text || inquiryRow?.message || null;
+    // inquiry_form 경로의 email/contact_id/message 는 이미 V2 암호문 → 재암호화/해시 전에
+    // 반드시 복호화한다. (과거엔 암호문을 또 암호화하고 암호문을 SHA256 해 연락처 PII·
+    // email_hash dedup·lead emailDomain 이 전부 깨졌음. AI agent 경로의 text 는 평문이라 무관.)
+    const plainEmail = inquiryRow?.email ? await decryptAuto(inquiryRow.email).catch(() => null) : null;
+    const plainContactId = inquiryRow?.contact_id ? await decryptAuto(inquiryRow.contact_id).catch(() => null) : null;
+    const plainInquiryMessage = inquiryRow?.message ? await decryptAuto(inquiryRow.message).catch(() => null) : null;
+
+    const rawMessage = text || plainInquiryMessage || null;
     const language = detectLanguage(inquiryRow?.spoken_language);
     const sourceType = inquiryRow ? "inquiry_form" : "ai_agent";
 
@@ -327,14 +340,14 @@ export async function POST(request: Request) {
     try {
       // ✅ 새 암호화 방식 (encryptionV2 - Node.js crypto 직접 사용)
       rawMessageEnc = rawMessage ? encryptString(rawMessage) : null;
-      emailEnc = inquiryRow?.email ? encryptString(inquiryRow.email) : null;
-      contactIdEnc = inquiryRow?.contact_id ? encryptString(inquiryRow.contact_id) : null;
-      
-      // ✅ 이메일 해시 (검색용 - SHA256)
-      if (inquiryRow?.email) {
+      emailEnc = plainEmail ? encryptString(plainEmail) : null;
+      contactIdEnc = plainContactId ? encryptString(plainContactId) : null;
+
+      // ✅ 이메일 해시 (검색용 - SHA256, 반드시 평문 기준)
+      if (plainEmail) {
         emailHash = crypto
           .createHash('sha256')
-          .update(inquiryRow.email.toLowerCase().trim())
+          .update(plainEmail.toLowerCase().trim())
           .digest('hex');
       }
     } catch (encryptErr: any) {
@@ -365,7 +378,7 @@ export async function POST(request: Request) {
         { status: 500 }
       );
     }
-    if (inquiryRow?.email && !emailEnc) {
+    if (plainEmail && !emailEnc) {
       console.error("[api/inquiry/normalize] email exists but encryption returned null");
       logInquiryFailed(apiPath, clientIp, 'encryption_returned_null', { field: 'email' });
       return Response.json(
@@ -417,7 +430,7 @@ export async function POST(request: Request) {
           utmSource: utm?.source,
           messageLength: rawMessage?.length || 0,
           missingFieldsCount: missing_fields.length,
-          emailDomain: inquiryRow.email?.split('@')[1],
+          emailDomain: plainEmail?.split('@')[1],
           intakeCompleteness: hasIntake ? 0.8 : 0.3,
         });
 

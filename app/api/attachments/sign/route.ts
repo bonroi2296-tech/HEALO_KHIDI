@@ -21,6 +21,7 @@ export const runtime = "nodejs";
 import { supabaseAdmin, assertSupabaseEnv } from "@/lib/rag/supabaseAdmin";
 import { NextRequest } from "next/server";
 import { pathAuthorized } from "@/lib/security/attachmentAuth";
+import { checkAdminAuth } from "@/lib/auth/checkAdminAuth";
 
 export async function POST(request: NextRequest) {
   assertSupabaseEnv();
@@ -30,11 +31,10 @@ export async function POST(request: NextRequest) {
     const path = body?.path ? String(body.path) : null;
     const publicToken = body?.publicToken ? String(body.publicToken) : null;
 
-    // 필수 파라미터 검증
-    if (!inquiryId || !path || !publicToken) {
-      console.error("[api/attachments/sign] missing required params:", { inquiryId: !!inquiryId, path: !!path, publicToken: !!publicToken });
+    // path 는 항상 필수. inquiryId·publicToken 은 비회원(공개 토큰) 경로에서만 필수.
+    if (!path) {
       return Response.json(
-        { ok: false, error: "inquiryId_path_publicToken_required" },
+        { ok: false, error: "path_required" },
         { status: 400 }
       );
     }
@@ -53,6 +53,28 @@ export async function POST(request: NextRequest) {
       console.error("[api/attachments/sign] path security violation:", path);
       return Response.json(
         { ok: false, error: "invalid_path" },
+        { status: 400 }
+      );
+    }
+
+    // 어드민 인증 시 공개 토큰 없이 바로 발급 (어드민은 모든 문의 첨부 열람 권한).
+    // 과거엔 공개 토큰 경로만 있어 어드민 첨부 미리보기가 항상 400 이었음.
+    const adminAuth = await checkAdminAuth(request);
+    if (adminAuth.isAdmin) {
+      const { data: signed, error: signErr } = await supabaseAdmin.storage
+        .from("attachments")
+        .createSignedUrl(path, 300);
+      if (signErr) {
+        console.error("[api/attachments/sign] admin signed URL error:", signErr);
+        return Response.json({ ok: false, error: "signed_url_failed" }, { status: 500 });
+      }
+      return Response.json({ ok: true, signedUrl: signed.signedUrl });
+    }
+
+    // ── 비회원: inquiryId + publicToken 필수 ──
+    if (!inquiryId || !publicToken) {
+      return Response.json(
+        { ok: false, error: "inquiryId_publicToken_required" },
         { status: 400 }
       );
     }

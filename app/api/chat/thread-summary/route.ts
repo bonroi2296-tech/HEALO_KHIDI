@@ -1,6 +1,6 @@
 /**
  * /api/chat/thread-summary — AI 채팅 thread 기본 정보 조회 (폼 자동채움용)
- * guest_name, guest_email, guest_country 반환. PII 민감하지 않은 필드만.
+ * guest_name, guest_email, guest_country 반환. 게스트 PII 이므로 public_token 소유 검증 필수.
  */
 export const runtime = "nodejs";
 
@@ -11,8 +11,8 @@ import { checkRateLimit, getClientIp, getRateLimitHeaders, RATE_LIMITS } from "@
 export async function GET(request: NextRequest) {
   assertSupabaseEnv();
 
-  // 인증 없이 thread UUID 로 게스트 PII(이름·이메일·국적)를 반환하므로
-  // UUID 열거 공격 방지를 위해 IP 레이트리밋 (자동채움 1회용이라 충분)
+  // 게스트 PII(이름·이메일) 반환 → UUID 만으로는 불충분. public_token 소유까지 확인.
+  // (과거엔 thread UUID 만 알면 인증 없이 이름·이메일을 가져갈 수 있었음)
   const ip = getClientIp(request);
   const rl = checkRateLimit(ip, RATE_LIMITS.INQUIRY);
   if (!rl.allowed) {
@@ -24,20 +24,28 @@ export async function GET(request: NextRequest) {
 
   const { searchParams } = new URL(request.url);
   const threadId = searchParams.get("thread_id");
+  const publicToken = searchParams.get("public_token");
 
   if (!threadId || !/^[0-9a-f-]{36}$/i.test(threadId)) {
     return Response.json({ ok: false, error: "invalid_thread_id" }, { status: 400 });
+  }
+  if (!publicToken || publicToken.length < 8) {
+    return Response.json({ ok: false, error: "public_token_required" }, { status: 400 });
   }
 
   try {
     const { data, error } = await supabaseAdmin
       .from("chat_threads")
-      .select("guest_name, guest_email, guest_country")
+      .select("guest_name, guest_email, guest_country, public_token")
       .eq("id", threadId)
       .maybeSingle();
 
     if (error || !data) {
       return Response.json({ ok: false, error: "thread_not_found" }, { status: 404 });
+    }
+    // 소유권: 토큰 불일치면 PII 반환 거부
+    if (!data.public_token || String(data.public_token) !== String(publicToken)) {
+      return Response.json({ ok: false, error: "forbidden" }, { status: 403 });
     }
 
     return Response.json({

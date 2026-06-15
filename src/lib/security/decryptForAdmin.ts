@@ -25,8 +25,26 @@
  */
 
 import "server-only";
-import { decryptAuto } from "./encryptionV2";
+import { decryptAuto, decryptString, isEncryptedPayload } from "./encryptionV2";
 import { decryptPiiInObject } from "./piiJson";
+
+/** intake JSONB 내 의료 민감 필드(별도 키셋 밖). 암호문일 때만 복호화하고
+ *  과거 평문 데이터는 그대로 통과 → 신·구 데이터 모두 안전(백필 불필요). */
+const INTAKE_MEDICAL_KEYS = ["diagnosis_date", "treatment_state"];
+function decryptIntakeMedical(intake: any): any {
+  if (!intake || typeof intake !== "object") return intake;
+  for (const k of INTAKE_MEDICAL_KEYS) {
+    const v = intake[k];
+    if (typeof v === "string" && isEncryptedPayload(v)) {
+      try {
+        intake[k] = decryptString(v);
+      } catch {
+        /* 복호화 실패 시 원본 유지 */
+      }
+    }
+  }
+  return intake;
+}
 
 /**
  * ✅ Inquiry 레코드 복호화 (관리자 전용)
@@ -104,7 +122,7 @@ export async function decryptInquiryForAdmin(inquiry: any): Promise<any> {
   // ========================================
   if (inquiry.intake && typeof inquiry.intake === "object") {
     try {
-      decrypted.intake = decryptPiiInObject(inquiry.intake, null, "intake");
+      decrypted.intake = decryptIntakeMedical(decryptPiiInObject(inquiry.intake, null, "intake"));
     } catch (error: any) {
       console.error(`[decryptForAdmin] intake decryption failed for inquiry ${inquiry.id}:`, error.message);
       // intake는 그대로 유지 (fail-safe)

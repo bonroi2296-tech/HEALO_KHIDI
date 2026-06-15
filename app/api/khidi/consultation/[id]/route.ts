@@ -119,15 +119,22 @@ export async function PATCH(
 
     const { supabaseAdmin } = await import("@/lib/rag/supabaseAdmin");
 
+    // 클라이언트별로 camelCase·snake_case 가 섞여 들어옴 (예: 통화 종료 시 ended_at).
+    // 과거엔 camelCase 만 읽어 ended_at 이 저장되지 않아 종료시각·통화시간이 누락됐음.
+    const startedAt = payload.startedAt ?? payload.started_at;
+    const endedAt = payload.endedAt ?? payload.ended_at;
+    const durationSeconds = payload.durationSeconds ?? payload.duration_seconds;
+    const clinicalSummary = payload.clinicalSummary ?? payload.clinical_summary;
+
     const updateData: Record<string, any> = {};
     if (payload.status) updateData.status = payload.status;
-    if (payload.startedAt) updateData.started_at = payload.startedAt;
-    if (payload.endedAt) updateData.ended_at = payload.endedAt;
-    if (payload.durationSeconds !== undefined)
-      updateData.duration_seconds = payload.durationSeconds;
+    if (startedAt) updateData.started_at = startedAt;
+    if (endedAt) updateData.ended_at = endedAt;
+    if (durationSeconds !== undefined)
+      updateData.duration_seconds = durationSeconds;
     if (payload.notes !== undefined) updateData.notes = payload.notes;
-    if (payload.clinicalSummary !== undefined)
-      updateData.clinical_summary = payload.clinicalSummary;
+    if (clinicalSummary !== undefined)
+      updateData.clinical_summary = clinicalSummary;
     if (payload.recommendations !== undefined)
       updateData.recommendations = payload.recommendations;
 

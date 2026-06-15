@@ -18,9 +18,26 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 import { NextResponse } from "next/server";
+import { requireAdminAuth } from "@/lib/auth/requireAdminAuth";
+import { checkRateLimit, getClientIp, RATE_LIMITS } from "@/lib/rateLimit";
 
 export async function POST(request) {
   try {
+    // 과거엔 공개라 누구나 HEALO 브랜드 의료 견적서 PDF 를 임의 내용으로 발급 가능
+    // (위조·브랜드 남용) + 비용 큰 렌더링. 어드민/내부 시크릿 + rate limit 으로 제한.
+    const ip = getClientIp(request);
+    const rl = checkRateLimit(ip, RATE_LIMITS.INQUIRY);
+    if (!rl.allowed) {
+      return NextResponse.json({ ok: false, error: "rate_limited" }, { status: 429 });
+    }
+    const internalSecret = process.env.INTERNAL_API_SECRET;
+    const internalOk =
+      Boolean(internalSecret) && request.headers.get("x-internal-secret") === internalSecret;
+    if (!internalOk) {
+      const auth = await requireAdminAuth(request);
+      if (!auth.success) return auth.response;
+    }
+
     const body = await request.json();
     const lang = body.lang === "en" ? "en" : "ko";
 
@@ -45,7 +62,7 @@ export async function POST(request) {
   } catch (err) {
     console.error("[/api/pdf/quotation] error:", err);
     return NextResponse.json(
-      { ok: false, error: err?.message || "pdf_generation_failed" },
+      { ok: false, error: "pdf_generation_failed" },
       { status: 500 }
     );
   }

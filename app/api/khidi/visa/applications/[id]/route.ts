@@ -106,26 +106,31 @@ export async function PATCH(
     // 환자 수정 가능 필드 (draft 상태일 때만)
     // ────────────────────────────────────────
     if (role === "patient") {
-      if (application.status !== "draft") {
+      // 환자 "코디 검수 요청": documents_pending → under_review (상태머신상 유효한 전이).
+      // 과거엔 이 전이가 환자 분기에 없어, 서류 준비 완료 후 검수 요청 버튼이 항상
+      // 실패(상태가 draft 가 아니라 read_only 403)했음.
+      if (payload.status === "under_review" && application.status === "documents_pending") {
+        updates.status = "under_review";
+      } else if (application.status === "draft") {
+        // draft 에서만 폼 필드 수정 + 제출(draft → documents_pending)
+        const patientFields = [
+          "purpose",
+          "duration_days",
+          "planned_arrival_date",
+          "planned_departure_date",
+          "nationality",
+        ];
+        for (const f of patientFields) {
+          if (payload[f] !== undefined) updates[f] = payload[f];
+        }
+        if (payload.status === "documents_pending") {
+          updates.status = "documents_pending";
+        }
+      } else {
         return Response.json(
           { ok: false, error: "read_only", detail: "제출 후에는 수정할 수 없습니다. 코디네이터에게 문의하세요." },
           { status: 403 }
         );
-      }
-      const patientFields = [
-        "purpose",
-        "duration_days",
-        "planned_arrival_date",
-        "planned_departure_date",
-        "nationality",
-      ];
-      for (const f of patientFields) {
-        if (payload[f] !== undefined) updates[f] = payload[f];
-      }
-
-      // 환자가 "제출" 눌렀을 때만 draft → documents_pending 전이 허용
-      if (payload.status === "documents_pending") {
-        updates.status = "documents_pending";
       }
     }
 

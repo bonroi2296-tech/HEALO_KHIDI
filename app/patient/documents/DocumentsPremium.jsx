@@ -131,25 +131,21 @@ export default function DocumentsPremium() {
       }
       setUser(session.user);
 
-      const [docsRes, consRes] = await Promise.all([
-        supabase
-          .from("consultation_documents")
-          .select("*")
-          .order("created_at", { ascending: false }),
-        supabase
-          .from("consultation_sessions")
-          .select("*")
-          .eq("patient_user_id", session.user.id)
-          .order("scheduled_at", { ascending: false }),
-      ]);
-
-      setUploads(docsRes.data || []);
-      setConsultations(consRes.data || []);
+      // 민감 테이블(consultation_documents 등)은 service_role 전용 → 브라우저 직접
+      // 쿼리는 RLS 로 빈 결과가 됨. 서버 API 경유로 조회. (과거엔 직접 쿼리라 항상 빈 목록)
+      const res = await fetch("/api/patient/documents", {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+      const result = await res.json().catch(() => ({}));
+      if (result.ok) {
+        setUploads(result.data || []);
+        setConsultations(result.consultations || []);
+      }
       setLoading(false);
     })();
   }, []);
 
-  const getUploadForKey = (key) => uploads.find((u) => u.doc_type === key);
+  const getUploadForKey = (key) => uploads.find((u) => u.document_type === key);
 
   async function handleFileChange(e) {
     const file = e.target.files?.[0];
@@ -180,16 +176,16 @@ export default function DocumentsPremium() {
       });
 
       if (res.ok) {
-        const data = await res.json();
-        if (data.document) {
-          setUploads((prev) => [data.document, ...prev]);
+        const data = await res.json().catch(() => ({}));
+        if (data.ok && data.data) {
+          setUploads((prev) => [data.data, ...prev]);
         } else {
-          // Reload all
-          const { data: fresh } = await supabase
-            .from("consultation_documents")
-            .select("*")
-            .order("created_at", { ascending: false });
-          setUploads(fresh || []);
+          // 서버 API 로 재조회 (브라우저 직접 쿼리는 RLS 로 비어버림)
+          const reload = await fetch("/api/patient/documents", {
+            headers: { Authorization: `Bearer ${session.access_token}` },
+          });
+          const fresh = await reload.json().catch(() => ({}));
+          if (fresh.ok) setUploads(fresh.data || []);
         }
       }
     } catch (err) {

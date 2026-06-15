@@ -13,9 +13,14 @@ export async function GET(request: NextRequest) {
   try {
     const supabase = createServiceRoleClient();
     const now = new Date();
-    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
-    const weekStart = new Date(now.getFullYear(), now.getMonth(), now.getDate() - now.getDay()).toISOString();
-    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+    // KST(한국 영업일) 기준 경계로 계산 후 UTC instant 로 변환.
+    // (과거엔 서버 로컬=UTC 자정 기준이라 오늘/주/월 집계가 ~9시간 어긋났음)
+    const KST = 9 * 60 * 60 * 1000;
+    const k = new Date(now.getTime() + KST);
+    const y = k.getUTCFullYear(), mo = k.getUTCMonth(), d = k.getUTCDate(), dow = k.getUTCDay();
+    const todayStart = new Date(Date.UTC(y, mo, d) - KST).toISOString();
+    const weekStart = new Date(Date.UTC(y, mo, d - dow) - KST).toISOString();
+    const monthStart = new Date(Date.UTC(y, mo, 1) - KST).toISOString();
 
     // Total leads
     const { count: totalLeads } = await supabase

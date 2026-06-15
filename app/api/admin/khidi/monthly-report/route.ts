@@ -203,9 +203,11 @@ export async function POST(request: NextRequest) {
         row.getCell(5).value = intake.gender === "male" ? "남" : intake.gender === "female" ? "여" : "";
         // F: 국적
         row.getCell(6).value = intake.nationality ?? "";
-        // G: 진료일자
+        // G: 진료일자 (KST 기준 — 월 필터도 KST 라 UTC 표기 시 하루 밀림 방지)
         row.getCell(7).value = session.scheduled_at
-          ? new Date(session.scheduled_at).toISOString().slice(0, 10)
+          ? new Date(new Date(session.scheduled_at).getTime() + 9 * 60 * 60 * 1000)
+              .toISOString()
+              .slice(0, 10)
           : "";
         // H: 진료과명 (한방 기본)
         row.getCell(8).value = "한방";

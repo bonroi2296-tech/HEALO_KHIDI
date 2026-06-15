@@ -146,7 +146,7 @@ ${TEMPLATE_NAMES.map(
   } catch (err) {
     console.error("[/api/email/preview] error:", err);
     return NextResponse.json(
-      { ok: false, error: err?.message || "render_failed" },
+      { ok: false, error: "render_failed" },
       { status: 500 }
     );
   }
