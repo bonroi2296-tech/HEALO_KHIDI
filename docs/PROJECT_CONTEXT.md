@@ -4,6 +4,37 @@
 
 ---
 
+## 🔖 세션 핸드오프 (2026-06-16) — 비자 K-ETA·의사사진·ponytail / 새 세션 인수인계
+
+> **이걸 먼저 읽고 이어서 작업.** 아래 "지금 막힌 것 / 새 세션이 할 일"이 핵심.
+
+### 현재 배포 상태 (production = main)
+- **PR #39 머지·배포 완료**: 유치 전환 대시보드·기관별 집계·협진 의뢰 워크플로우·증빙 export·케이스 진행상황·보험 입력·**에이전시 전용 포털**(`/agency`)·보안 전수조사 수정 13+건. 전부 라이브.
+- **PR #40 머지·배포 완료**: 의사 사진 깨질 때 회색 대체 아바타(onError 폴백).
+
+### ⏳ PR #41 — 머지 보류 중 (브랜치 `main-70uof-bzwxye`)
+내용 3가지가 한 PR에 묶임:
+1. **비자 K-ETA 입국정책 틀** (`src/lib/visa/visaGuide.ts`): `ENTRY_POLICY`(국적별)·`KETA_INFO`·`getEntryGuidance()`. `/api/khidi/visa` 가 `entry` 반환, `/visa`(legacy) 화면에 입국방식 카드(무비자/K-ETA/비자 + 신청링크 + "공식 확인" 경고). **미정의 국적=안전하게 비자필요 기본값.**
+2. **의사 사진 15명 로컬 전환** (강서7+성동8, 강주안 포함) — `public/immune/doctor/` 로컬 사진 사용.
+3. **ponytail 미니멀룰** — `CLAUDE.md`에 내장(상시 적용).
+- **머지 막은 이유**: ① **카자흐 비자 사실 확인 필요** — 검색 엇갈림(다수 "비자 필요", 일부 "무비자 30일"). 법적 민감 → **MedOcno 담당자/주카자흐 대사관에 "카자흐 환자 정확히 K-ETA냐 비자냐" 확인 후 머지.** (현재 코드는 카자흐=비자필요/C-3-3, 러시아=K-ETA, 일본=K-ETA면제.) ② ponytail을 main에 #41과 같이 올릴지(a) vs 별도 브랜치로 먼저(b) — (b)는 PO 허락 필요(지침상 다른 브랜치 푸시 금지).
+
+### 🔧 새 세션이 할 일 — 의사 사진 12장 self-host
+- **신촌 5명 + 광명 7명 = 12명**은 `public/immune/doctor/`에 파일이 없어 아직 immunehospital.com **핫링크 유지**(+폴백). `HospitalsClient.jsx`의 sinchon/gwangmyeong 의사 항목 `photo`/`thumb`가 `immunehospital.com/uploads/doctors/...` 그대로임.
+- **막혔던 이유**: 이 세션은 네트워크 egress allowlist 때문에 immunehospital.com 직접 접근 불가(`x-deny-reason: host_not_allowed`). PO가 네트워크 정책을 "전체"로 바꿈 → **새 세션에선 접근 가능할 수 있음.**
+- **새 세션 작업**: (egress 열려 있으면) immunehospital.com에서 신촌·광명 12명 사진 다운 → `public/immune/doctor/`에 `sinchon-dr-<이름>`, `gwangmyeong-dr-<이름>` 규칙으로 저장 → `HospitalsClient.jsx`에서 해당 의사 photo/thumb를 `/immune/doctor/...` 로컬 경로로 교체. (15명 매핑 방식은 이미 적용돼 있으니 동일 패턴.) egress 또 막히면 PO가 직접 다운로드.
+
+### ⚠️ 잊지 말 것
+- **데모 테스트 시드 삭제**: production DB에 시연용 데이터(문의8·세션11·협진4·견적6·에이전시1) 있음. **실제 KHIDI 보고 전 반드시** `scripts/cleanup_test_seed_20260615.sql` 실행. (마커: `intake._test_seed='khidi_demo_20260615'`, `agencies.code='TEST_AGENCY'`, referrals `reason LIKE '[TEST]%'`)
+- **라이브 클릭 검증 미완**: 영상통화·상담생성·재예약·비자제출·문서함·에이전시포털·케이스관리 — 코드/빌드/테스트(120개)는 통과했으나 실제 클릭은 PO 몫.
+- **라이브러리 취약점 high 5**(간접 의존성): `npm audit fix`도 빌드 깨져 보류 → 패키지별 수작업 필요.
+- **ponytail**: `/plugin`은 클라우드 세션 미지원. 룰은 CLAUDE.md에 내장돼 레포 읽는 세션엔 적용. 로컬 풀버전은 PO가 로컬 Claude Code에서 `/plugin ...`.
+
+### 도구
+kordoc(HWP/PDF→MD, `kordoc fill`로 양식 채우기)·poppler·olefile·Pillow 설치됨. 8월에 중간보고서 베이스(`docs/KHIDI_중간보고_베이스.md`)→양식 `.hwp` 출력에 사용.
+
+---
+
 ## 🔖 세션 핸드오프 (2026-06-15) — 유치 전환 대시보드 + 보안 전수조사 + 중간평가 베이스
 
 **🎯 최우선 상시 기준 — KHIDI 중간평가 2026-08-27 (70점=잔금 30%).**
