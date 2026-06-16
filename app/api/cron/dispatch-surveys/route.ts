@@ -26,6 +26,7 @@ import {
   generateSurveyToken,
   sendSurveyEmail,
 } from "@/lib/surveys/generateSurveyToken";
+import { alertIfKpiStale } from "@/lib/khidi/kpiHealthcheck";
 
 function verifyCronSecret(header: string | null): boolean {
   const expected = process.env.CRON_SECRET;
@@ -149,12 +150,18 @@ export async function GET(request: NextRequest) {
     }
   }
 
+  // KHIDI 데드맨 스위치: KPI 일일 집계 누락 감지(이 cron은 kpi-snapshot과 다른 시간대라
+  // kpi-snapshot 트리거가 죽어도 여기서 잡아 Sentry 경보). 본업에 영향 없게 흡수.
+  let kpiHealth: { stale: boolean; latest: string | null } = { stale: false, latest: null };
+  try { kpiHealth = await alertIfKpiStale(); } catch { /* noop */ }
+
   return Response.json({
     ok: true,
     sessionsChecked: (sessions as any[])?.length || 0,
     surveysDispatched,
     skipped,
     errors,
+    kpiHealth,
   });
 }
 
