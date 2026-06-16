@@ -7,7 +7,7 @@ import AnalyticsWrapper from "./AnalyticsWrapper";
 import DesignToggle from "../components/healo/DesignToggle";
 
 export const metadata = {
-  metadataBase: new URL("https://khidi.healo.kr"),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://khidi.healo.kr"),
   title: {
     default: "healwith | Korea Cancer Care for International Patients",
     template: "%s | healwith",
