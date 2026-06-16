@@ -1,5 +1,5 @@
 /**
- * HEALO: 리마인더 디스패처 cron 엔드포인트
+ * healwith: 리마인더 디스패처 cron 엔드포인트
  *
  * POST /api/cron/dispatch-reminders
  * Header: Authorization: Bearer <CRON_SECRET>
@@ -233,8 +233,8 @@ async function dispatchKakao(
       join_url: joinUrl,
     },
     smsFailover: {
-      subject: "[HEALO] 30분 후 상담",
-      content: `[HEALO] ${payload.name ?? "고객"}님, 30분 후 상담 시작.\n입장: ${joinUrl}`,
+      subject: "[healwith] 30분 후 상담",
+      content: `[healwith] ${payload.name ?? "고객"}님, 30분 후 상담 시작.\n입장: ${joinUrl}`,
     },
   });
 

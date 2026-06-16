@@ -1,5 +1,5 @@
 /**
- * HEALO: 30분 전 상담 리마인더 이메일 템플릿
+ * healwith: 30분 전 상담 리마인더 이메일 템플릿
  *
  * 지원 언어: ko / en / ru / kk / zh / ja
  * 순수 HTML (React Email 없이 — 이메일 클라이언트 호환성 최대화)
@@ -31,7 +31,7 @@ const STRINGS: Record<
   }
 > = {
   ko: {
-    subject: "⏰ [30분 후] HEALO 원격 상담이 시작됩니다",
+    subject: "⏰ [30분 후] healwith 원격 상담이 시작됩니다",
     preheader: "30분 뒤 상담 시작 — 지금 입장 준비하세요",
     greeting: (n: string) => `안녕하세요${n ? `, ${n}님` : ""}.`,
     countdown: "30분 후 상담 시작",
@@ -39,10 +39,10 @@ const STRINGS: Record<
     intro: "곧 원격 상담이 시작됩니다. 아래 버튼을 클릭해 상담 방에 입장해 주세요.",
     joinBtn: "지금 입장하기",
     alreadyHaveLink: "이미 초대 이메일을 받으신 경우 기존 링크로도 입장 가능합니다.",
-    footer: "HEALO · 한국 암 치료 컨시어지",
+    footer: "healwith · 한국 암 치료 컨시어지",
   },
   en: {
-    subject: "⏰ [30 min] Your HEALO consultation starts soon",
+    subject: "⏰ [30 min] Your healwith consultation starts soon",
     preheader: "Consultation starting in 30 minutes — get ready",
     greeting: (n: string) => `Hello${n ? `, ${n}` : ""},`,
     countdown: "Starting in 30 minutes",
@@ -50,10 +50,10 @@ const STRINGS: Record<
     intro: "Your telemedicine consultation is starting soon. Click the button below to join.",
     joinBtn: "Join now",
     alreadyHaveLink: "You can also use the link from your original invitation email.",
-    footer: "HEALO · Korea cancer-care concierge",
+    footer: "healwith · Korea cancer-care concierge",
   },
   ru: {
-    subject: "⏰ [30 мин] Ваша консультация HEALO скоро начнётся",
+    subject: "⏰ [30 мин] Ваша консультация healwith скоро начнётся",
     preheader: "Консультация через 30 минут — приготовьтесь",
     greeting: (n: string) => `Здравствуйте${n ? `, ${n}` : ""}!`,
     countdown: "Начало через 30 минут",
@@ -61,10 +61,10 @@ const STRINGS: Record<
     intro: "Ваша онлайн-консультация скоро начнётся. Нажмите кнопку ниже, чтобы войти.",
     joinBtn: "Войти сейчас",
     alreadyHaveLink: "Вы также можете использовать ссылку из исходного письма-приглашения.",
-    footer: "HEALO · Онкология в Корее",
+    footer: "healwith · Онкология в Корее",
   },
   kk: {
-    subject: "⏰ [30 мин] HEALO кеңесіңіз жақын арада басталады",
+    subject: "⏰ [30 мин] healwith кеңесіңіз жақын арада басталады",
     preheader: "30 минуттан кейін кеңес — дайындалыңыз",
     greeting: (n: string) => `Сәлеметсіз бе${n ? `, ${n}` : ""}!`,
     countdown: "30 минуттан кейін басталады",
@@ -72,10 +72,10 @@ const STRINGS: Record<
     intro: "Сіздің онлайн кеңесіңіз жақын арада басталады. Кіру үшін төмендегі түймені басыңыз.",
     joinBtn: "Қазір кіру",
     alreadyHaveLink: "Бастапқы шақыру хатындағы сілтемені де пайдалана аласыз.",
-    footer: "HEALO · Кореядағы онкология консьерж",
+    footer: "healwith · Кореядағы онкология консьерж",
   },
   zh: {
-    subject: "⏰ [30分钟后] 您的 HEALO 会诊即将开始",
+    subject: "⏰ [30分钟后] 您的 healwith 会诊即将开始",
     preheader: "30分钟后开始会诊——请做好准备",
     greeting: (n: string) => `您好${n ? `，${n}` : ""},`,
     countdown: "30分钟后开始",
@@ -83,10 +83,10 @@ const STRINGS: Record<
     intro: "您的在线会诊即将开始。请点击下方按钮进入会诊室。",
     joinBtn: "立即进入",
     alreadyHaveLink: "您也可以使用原始邀请邮件中的链接。",
-    footer: "HEALO · 韩国肿瘤医疗服务",
+    footer: "healwith · 韩国肿瘤医疗服务",
   },
   ja: {
-    subject: "⏰ [30分後] HEALO 遠隔診療がもうすぐ始まります",
+    subject: "⏰ [30分後] healwith 遠隔診療がもうすぐ始まります",
     preheader: "30分後に診療開始 — ご準備ください",
     greeting: (n: string) => `こんにちは${n ? `、${n}様` : ""}。`,
     countdown: "30分後に開始",
@@ -94,7 +94,7 @@ const STRINGS: Record<
     intro: "遠隔診療がもうすぐ始まります。下のボタンをクリックして入室してください。",
     joinBtn: "今すぐ入室",
     alreadyHaveLink: "元の招待メールのリンクからも入室できます。",
-    footer: "HEALO · 韓国がん治療コンシェルジュ",
+    footer: "healwith · 韓国がん治療コンシェルジュ",
   },
 };
 
@@ -166,7 +166,7 @@ export function renderConsultationReminderEmail(props: ConsultationReminderProps
       <!-- 헤더 -->
       <tr>
         <td style="background:#0a0a0a;padding:28px 32px 20px;">
-          <div style="font-family:'Playfair Display',Georgia,serif;color:#c8a96a;font-size:28px;letter-spacing:0.02em;">HEALO</div>
+          <div style="font-family:'Playfair Display',Georgia,serif;color:#c8a96a;font-size:28px;letter-spacing:0.02em;">healwith</div>
           <div style="font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#c7c2b8;margin-top:4px;">${esc(s.footer)}</div>
         </td>
       </tr>
@@ -206,7 +206,7 @@ export function renderConsultationReminderEmail(props: ConsultationReminderProps
       <!-- 푸터 -->
       <tr>
         <td style="background:#f8fafc;padding:16px 32px;font-size:10px;color:#94a3b8;text-align:center;line-height:1.6;">
-          HEALO is not a medical institution. Diagnosis / treatment by licensed Korean providers.
+          healwith is not a medical institution. Diagnosis / treatment by licensed Korean providers.
         </td>
       </tr>
     </table>
@@ -230,7 +230,7 @@ export function renderConsultationReminderEmail(props: ConsultationReminderProps
     "",
     s.alreadyHaveLink,
     "",
-    "— HEALO",
+    "— healwith",
   ]
     .filter((l) => l !== undefined && l !== null)
     .join("\n");

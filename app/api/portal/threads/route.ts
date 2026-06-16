@@ -1,5 +1,5 @@
 /**
- * HEALO: 채팅 스레드 목록 — 환자(본인) / staff(전체)
+ * healwith: 채팅 스레드 목록 — 환자(본인) / staff(전체)
  *
  * GET /api/portal/threads?status=open
  * - staff(coordinator/doctor/admin): 모든 스레드 (status 필터 가능)

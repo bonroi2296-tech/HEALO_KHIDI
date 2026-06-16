@@ -122,7 +122,7 @@ export function AdminNav() {
               <LayoutDashboard size={20} className="text-white" />
             </div>
             <div>
-              <h1 className="text-base lg:text-lg font-bold text-gray-900">HEALO</h1>
+              <h1 className="text-base lg:text-lg font-bold text-gray-900">healwith</h1>
               <p className="text-[10px] lg:text-xs text-gray-500">관리자 포털</p>
             </div>
           </div>
@@ -200,7 +200,7 @@ export function AdminNav() {
           <div className="w-8 h-8 bg-gradient-to-br from-teal-500 to-teal-600 rounded-lg flex items-center justify-center">
             <LayoutDashboard size={16} className="text-white" />
           </div>
-          <span className="font-bold text-gray-900">HEALO Admin</span>
+          <span className="font-bold text-gray-900">healwith Admin</span>
         </div>
         <button
           onClick={() => setIsMobileOpen(true)}

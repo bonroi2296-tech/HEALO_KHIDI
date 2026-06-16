@@ -1,5 +1,5 @@
 /**
- * HEALO AUTO-IMPROVEMENT: AB Test Finalize Worker
+ * healwith AUTO-IMPROVEMENT: AB Test Finalize Worker
  *
  * AB testing 중인 패턴 비교 → 승격 또는 퇴출
  */
@@ -122,7 +122,7 @@ export async function runAbFinalize(jobId: string): Promise<{ evaluated: number;
 
       if (parent.rag_document_id) {
         await supabaseAdmin.from("rag_documents").update({
-          trust_tier: 3, source_label: "HEALO Playbook (Auto-Retired)", updated_at: nowIso(),
+          trust_tier: 3, source_label: "healwith Playbook (Auto-Retired)", updated_at: nowIso(),
         }).eq("id", parent.rag_document_id);
       }
 
@@ -148,7 +148,7 @@ export async function runAbFinalize(jobId: string): Promise<{ evaluated: number;
 
       if (variant.rag_document_id) {
         await supabaseAdmin.from("rag_documents").update({
-          trust_tier: 3, source_label: "HEALO Playbook (AB-Failed)", updated_at: nowIso(),
+          trust_tier: 3, source_label: "healwith Playbook (AB-Failed)", updated_at: nowIso(),
         }).eq("id", variant.rag_document_id);
       }
 

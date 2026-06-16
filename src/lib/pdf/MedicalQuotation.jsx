@@ -1,5 +1,5 @@
 /**
- * HEALO Medical Quotation PDF
+ * healwith Medical Quotation PDF
  * 의료해외진출법 §15 "외국인환자의 권익 보호" 조항에 따라
  * 진료계약 체결 전 환자에게 서면으로 고지해야 할 진료비 예상 금액 + 수수료 + 분쟁 처리 절차
  *
@@ -14,7 +14,7 @@ import { styles, COLORS } from "./styles";
 
 const LABELS = {
   ko: {
-    eyebrow: "HEALO · 진료비 견적서",
+    eyebrow: "healwith · 진료비 견적서",
     titleA: "Medical",
     titleB: "Quotation.",
     subtitle: "의료 해외진출 및 외국인환자 유치 지원에 관한 법률 §15에 따라 발급",
@@ -26,7 +26,7 @@ const LABELS = {
     dispute: "불만·분쟁 처리",
     signature: "확인 서명",
     patientSig: "환자 서명",
-    healoSig: "HEALO 대표자",
+    healoSig: "healwith 대표자",
     disclaimer: "본 견적서는 예상 금액이며, 실제 비용은 진료 후 의료기관 청구서에 따릅니다. 본 문서를 확인하지 않고는 진료계약을 체결할 수 없습니다.",
     fields: {
       name: "성명", nationality: "국적", passport: "여권번호",
@@ -45,7 +45,7 @@ const LABELS = {
     ],
   },
   en: {
-    eyebrow: "HEALO · Medical Quotation",
+    eyebrow: "healwith · Medical Quotation",
     titleA: "Medical",
     titleB: "Quotation.",
     subtitle: "Issued under §15 of the Korean Medical Tourism Act (outbound healthcare & inbound patient attraction)",
@@ -57,7 +57,7 @@ const LABELS = {
     dispute: "Complaint & Dispute Resolution",
     signature: "Confirmation",
     patientSig: "Patient signature",
-    healoSig: "HEALO representative",
+    healoSig: "healwith representative",
     disclaimer: "This quotation is an estimate. Final amount follows the hospital's post-treatment invoice. No treatment contract may be concluded without acknowledging this document.",
     fields: {
       name: "Full name", nationality: "Nationality", passport: "Passport no.",
@@ -105,7 +105,7 @@ export default function MedicalQuotation({ data, lang = "ko" }) {
 
   const quotationNo =
     data?.quotationNo ||
-    `HEALO-${new Date().toISOString().slice(0, 10).replace(/-/g, "")}-${String(Math.floor(Math.random() * 1000)).padStart(3, "0")}`;
+    `healwith-${new Date().toISOString().slice(0, 10).replace(/-/g, "")}-${String(Math.floor(Math.random() * 1000)).padStart(3, "0")}`;
   const issuedAt = data?.issuedAt || new Date().toISOString().slice(0, 10);
 
   const patient = data?.patient || {};
@@ -121,7 +121,7 @@ export default function MedicalQuotation({ data, lang = "ko" }) {
         {/* Header */}
         <View style={styles.brandRow} fixed>
           <View>
-            <Text style={styles.wordmark}>HEALO</Text>
+            <Text style={styles.wordmark}>healwith</Text>
             <Text style={{ ...styles.small, marginTop: 4 }}>BONROI · Facilitator A-2026-01-02-06761</Text>
           </View>
           <View>

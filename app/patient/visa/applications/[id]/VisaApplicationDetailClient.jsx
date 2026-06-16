@@ -245,7 +245,7 @@ export default function VisaApplicationDetailClient({ applicationId }) {
         <section className="mt-8 border border-emerald-200 bg-emerald-50 rounded-lg p-5">
           <h2 className="font-medium text-emerald-900">✅ 초청장 발급 완료</h2>
           <p className="text-sm text-emerald-800 mt-1">
-            HEALO 코디네이터가 발급한 초청장을 다운로드 받아 대사관에 제출하세요.
+            healwith 코디네이터가 발급한 초청장을 다운로드 받아 대사관에 제출하세요.
           </p>
           <a
             href={invitationUrl}

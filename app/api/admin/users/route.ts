@@ -1,5 +1,5 @@
 /**
- * HEALO: 회원(환자) 관리 API — admin 전용
+ * healwith: 회원(환자) 관리 API — admin 전용
  *
  * GET  /api/admin/users              → 환자(직원/관리자 제외) 목록 + 상담 횟수
  * GET  /api/admin/users?userId=xxx   → 특정 환자 상세 (상담 이력 포함)

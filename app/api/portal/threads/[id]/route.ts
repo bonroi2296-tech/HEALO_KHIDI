@@ -1,5 +1,5 @@
 /**
- * HEALO: 스레드 상태 변경 — staff 전용
+ * healwith: 스레드 상태 변경 — staff 전용
  *
  * PATCH /api/portal/threads/:id  Body: { status }
  */

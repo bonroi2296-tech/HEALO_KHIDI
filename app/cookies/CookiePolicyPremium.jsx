@@ -18,7 +18,7 @@ export default function CookiePolicyPremium() {
   return (
     <PageShell
       current="cookies"
-      heroEyebrow="HEALO · Legal"
+      heroEyebrow="healwith · Legal"
       heroTitle={t("cookie.title", langCode)}
     >
       <section style={{ padding: "72px 24px 96px" }}>

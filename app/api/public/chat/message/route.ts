@@ -1,5 +1,5 @@
 /**
- * HEALO: Public Chat Message API
+ * healwith: Public Chat Message API
  *
  * POST /api/public/chat/message
  * - 비회원 사용 가능 (public_token 검증)

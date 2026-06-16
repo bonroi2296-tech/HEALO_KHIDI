@@ -44,8 +44,8 @@ const COPY = {
     notCheckedItem: "Still needed",
     requestConsult: "Request consultation",
     steps: [
-      { num: "01", title: "Inquiry", body: "Share your diagnosis and planned treatment with HEALO." },
-      { num: "02", title: "Invitation", body: "HEALO issues the invitation letter and medical confirmation." },
+      { num: "01", title: "Inquiry", body: "Share your diagnosis and planned treatment with healwith." },
+      { num: "02", title: "Invitation", body: "healwith issues the invitation letter and medical confirmation." },
       { num: "03", title: "Application", body: "Submit visa application to the Korean consulate in your country." },
       { num: "04", title: "Arrival", body: "Your coordinator meets you at the airport. Treatment begins." },
     ],
@@ -72,8 +72,8 @@ const COPY = {
     notCheckedItem: "아직 필요",
     requestConsult: "상담 신청",
     steps: [
-      { num: "01", title: "문의", body: "진단과 예정된 치료를 HEALO에 공유합니다." },
-      { num: "02", title: "초청장", body: "HEALO가 초청장과 의료 확인서를 발급합니다." },
+      { num: "01", title: "문의", body: "진단과 예정된 치료를 healwith에 공유합니다." },
+      { num: "02", title: "초청장", body: "healwith가 초청장과 의료 확인서를 발급합니다." },
       { num: "03", title: "비자 신청", body: "현지 주한국 대사관/영사관에 비자를 신청합니다." },
       { num: "04", title: "입국", body: "전담 코디네이터가 공항에서 영접하고, 치료가 시작됩니다." },
     ],

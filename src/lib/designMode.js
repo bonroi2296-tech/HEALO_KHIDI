@@ -1,5 +1,5 @@
 /**
- * HEALO Design Mode — Feature flag
+ * healwith Design Mode — Feature flag
  *
  * 롤백 방법 (우선순위 순):
  * 1. URL 쿼리: ?design=legacy 또는 ?design=premium

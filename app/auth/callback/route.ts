@@ -1,5 +1,5 @@
 /**
- * HEALO: OAuth Callback Handler
+ * healwith: OAuth Callback Handler
  * 
  * 경로: /auth/callback
  * 권한: 공개 (OAuth 콜백)

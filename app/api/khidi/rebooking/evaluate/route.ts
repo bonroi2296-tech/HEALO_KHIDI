@@ -1,5 +1,5 @@
 /**
- * HEALO: Rebooking Evaluation API
+ * healwith: Rebooking Evaluation API
  *
  * POST /api/khidi/rebooking/evaluate — 재예약 필요 여부 평가
  * Body: { inquiryId, schedules?, symptomReport? }

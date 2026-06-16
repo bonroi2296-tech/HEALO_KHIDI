@@ -36,7 +36,7 @@ export default function Footer() {
                 marginBottom: 16,
               }}
             >
-              HEALO
+              healwith
             </div>
             <Rule width={48} tone="gold" />
             <p

@@ -12,7 +12,7 @@ export default function MedicalDisclaimerClientLegacy() {
       <div className="max-w-3xl mx-auto px-4 py-12 md:py-16">
         <header className="mb-8">
           <p className="text-xs font-mono uppercase tracking-widest text-amber-700 mb-2">
-            HEALO · Medical Notice
+            healwith · Medical Notice
           </p>
           <h1 className="text-3xl md:text-4xl font-bold text-gray-900">
             {disclaimer.title}

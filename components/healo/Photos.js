@@ -1,5 +1,5 @@
 /**
- * HEALO Stock image registry
+ * healwith Stock image registry
  *
  * 두 카테고리:
  * 1. 중립 스톡 (Unsplash) — 파트너 병원 전용 사진 없을 때 폴백

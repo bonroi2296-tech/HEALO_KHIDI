@@ -1,5 +1,5 @@
 /**
- * HEALO: 브랜딩 이미지 업로드 API
+ * healwith: 브랜딩 이미지 업로드 API
  * 
  * 경로: /api/admin/site-settings/upload
  * 

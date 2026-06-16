@@ -1,5 +1,5 @@
 /**
- * HEALO: 병원에 리드 할당 API
+ * healwith: 병원에 리드 할당 API
  * 
  * 경로: /api/admin/leads/assign
  * 권한: 관리자 전용

@@ -1,5 +1,5 @@
 /**
- * HEALO: 관리자 유저 검색 API
+ * healwith: 관리자 유저 검색 API
  *
  * GET /api/admin/users/search?q=<email or name>&limit=10
  *

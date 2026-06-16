@@ -5,7 +5,7 @@
  */
 
 export const metadata = {
-  title: 'Design Preview | HEALO',
+  title: 'Design Preview | healwith',
   robots: { index: false, follow: false },
 };
 
@@ -22,7 +22,7 @@ export default function DesignPreview() {
         {/* Nav */}
         <nav className="sticky top-0 z-50 bg-white/90 backdrop-blur border-b border-gray-200">
           <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
-            <div className="text-sm font-semibold">HEALO Design Preview</div>
+            <div className="text-sm font-semibold">healwith Design Preview</div>
             <div className="flex gap-3 text-xs text-gray-600 overflow-x-auto">
               <a href="#current" className="whitespace-nowrap hover:text-black">Current</a>
               <a href="#a" className="whitespace-nowrap hover:text-black">A. Editorial</a>
@@ -282,7 +282,7 @@ export default function DesignPreview() {
                   <p className="text-gray-300 leading-relaxed text-[15px] font-light">
                     77.9% 5-year survival rate. 세계 최고 수준의 임상 경험과
                     다학제 협진 시스템. 당신의 치료 여정 전 과정을
-                    HEALO의 전담 코디네이터가 책임집니다.
+                    healwith의 전담 코디네이터가 책임집니다.
                   </p>
 
                   <div className="mt-12 flex items-center gap-6">

@@ -4,8 +4,8 @@ import SignupLegacyWrapper from "./SignupLegacyWrapper";
 import { getServerDesignMode } from "@/lib/designMode";
 
 export const metadata = {
-  title: "Sign up | HEALO",
-  description: "Create your HEALO account to start your medical care journey.",
+  title: "Sign up | healwith",
+  description: "Create your healwith account to start your medical care journey.",
   robots: { index: false, follow: false },
 };
 

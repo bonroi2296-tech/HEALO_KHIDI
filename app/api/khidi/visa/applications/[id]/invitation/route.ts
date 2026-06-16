@@ -1,5 +1,5 @@
 /**
- * HEALO: Visa Invitation Letter (초청장) Auto-Issue
+ * healwith: Visa Invitation Letter (초청장) Auto-Issue
  *
  * POST /api/khidi/visa/applications/[id]/invitation — 초청장 PDF 생성 + Storage 업로드 + 상태 전이 (코디/admin 만)
  * GET  /api/khidi/visa/applications/[id]/invitation — 발급된 초청장 signed URL
@@ -93,7 +93,7 @@ export async function POST(
 
     // PDF 데이터 구성
     const pdfData = {
-      letterNo: `HEALO-INV-${fullApp.id.slice(0, 8).toUpperCase()}`,
+      letterNo: `healwith-INV-${fullApp.id.slice(0, 8).toUpperCase()}`,
       issuedAt: new Date().toISOString().slice(0, 10),
       patient: {
         name: decryptedName || patientEmail,
@@ -184,7 +184,7 @@ export async function POST(
       application_id: applicationId,
       uploaded_by: userId,
       document_type: "invitation_letter",
-      document_label: "의료목적 사증 초청장 (HEALO 발급)",
+      document_label: "의료목적 사증 초청장 (healwith 발급)",
       file_name: `invitation_${applicationId.slice(0, 8)}.pdf`,
       file_type: "application/pdf",
       file_size: buffer.byteLength,

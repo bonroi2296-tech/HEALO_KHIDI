@@ -16,7 +16,7 @@ export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 
 const SAMPLES = {
-  inquiryReceived: { name: "Aigerim Nurlanova", inquiryId: "HEALO-2026-0420-001" },
+  inquiryReceived: { name: "Aigerim Nurlanova", inquiryId: "healwith-2026-0420-001" },
   coordinatorIntro: {
     patientName: "Aigerim Nurlanova",
     coordinatorName: "Ji-hyun Park",
@@ -55,7 +55,7 @@ const SAMPLES = {
     hospitalName: "Sinchon Severance Hospital",
     coordinatorName: "Ji-hyun Park",
     itinerary: [
-      { date: "2026-05-10", time: "08:30", event: "Airport pickup", location: "ICN Terminal 2", note: "HEALO driver will meet you at Gate 12." },
+      { date: "2026-05-10", time: "08:30", event: "Airport pickup", location: "ICN Terminal 2", note: "healwith driver will meet you at Gate 12." },
       { date: "2026-05-10", time: "14:00", event: "Hotel check-in", location: "Grand Hyatt Seoul (Yongsan)" },
       { date: "2026-05-11", time: "09:30", event: "Initial consultation", location: "Severance Cancer Center 8F", note: "With Dr. Kim Hyun-soo" },
       { date: "2026-05-15", time: "07:00", event: "Surgery admission", location: "Severance main building" },
@@ -84,7 +84,7 @@ export async function GET(request) {
   if (!templateName) {
     // Index page listing all templates
     const html = `<!DOCTYPE html>
-<html><head><title>HEALO Email Preview</title><meta charset="utf-8">
+<html><head><title>healwith Email Preview</title><meta charset="utf-8">
 <style>body{font-family:system-ui;padding:40px;max-width:600px;margin:0 auto;background:#f5f0e8;color:#0a0a0a}
 h1{font-family:Georgia,serif;font-size:32px;font-weight:400;margin:0 0 8px}
 .gold{color:#b89550;font-style:italic}
@@ -93,7 +93,7 @@ a{display:block;padding:16px 0;border-bottom:1px solid #e3dbcc;color:#0a0a0a;tex
 a:hover{color:#b89550}
 .note{margin-top:32px;padding:16px;background:#fbf8f2;border-left:2px solid #c8a96a;font-size:13px;color:#6b6458}
 </style></head><body>
-<p class="eyebrow">HEALO · Email Preview</p>
+<p class="eyebrow">healwith · Email Preview</p>
 <h1>6 transactional <span class="gold">templates.</span></h1>
 <p>Click to preview each template with sample data.</p>
 <div style="margin-top:32px">

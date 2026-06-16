@@ -1,5 +1,5 @@
 /**
- * HEALO: Step2 intake 저장 API (서버 전용)
+ * healwith: Step2 intake 저장 API (서버 전용)
  * inquiries.intake에 Step2 데이터 저장 (PII 없음)
  * public_token 검증 후 overwrite (MVP)
  * 

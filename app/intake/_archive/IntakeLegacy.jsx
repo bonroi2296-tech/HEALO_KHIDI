@@ -327,7 +327,7 @@ export default function IntakeLegacy() {
       <div className="bg-gradient-to-r from-teal-600 to-teal-700 text-white py-8 md:py-12 px-4">
         <div className="max-w-xl mx-auto text-center">
           <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm rounded-full px-4 py-1.5 text-xs font-medium mb-4">
-            <Sparkles size={12} /> HEALO Medical Concierge
+            <Sparkles size={12} /> healwith Medical Concierge
           </div>
           <h1 className="text-2xl md:text-3xl font-bold mb-2">{L.title}</h1>
           <p className="text-teal-100 text-sm">{L.subtitle}</p>

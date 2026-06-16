@@ -4,8 +4,8 @@ import LoginLegacyWrapper from "./LoginLegacyWrapper";
 import { getServerDesignMode } from "@/lib/designMode";
 
 export const metadata = {
-  title: "Sign in | HEALO",
-  description: "Sign in to your HEALO patient dashboard.",
+  title: "Sign in | healwith",
+  description: "Sign in to your healwith patient dashboard.",
   robots: { index: false, follow: false },
 };
 

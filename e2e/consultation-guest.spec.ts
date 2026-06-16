@@ -20,7 +20,7 @@ test.describe("게스트 상담 입장 UI", () => {
 
     // 이름 입력 폼 먼저 노출 (CI 기본 언어는 영어 — 영문 타이틀 포함)
     await expect(
-      page.getByText(/HEALO 원격 상담|원격협진|Remote Consultation/i).first()
+      page.getByText(/healwith 원격 상담|원격협진|Remote Consultation/i).first()
     ).toBeVisible();
     const nameInput = page.getByPlaceholder(/Айжан|이름|name/i);
     await expect(nameInput).toBeVisible();

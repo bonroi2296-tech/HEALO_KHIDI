@@ -1,5 +1,5 @@
 /**
- * HEALO: Visa Application Detail / Status Update
+ * healwith: Visa Application Detail / Status Update
  *
  * GET   /api/khidi/visa/applications/[id] — 상세 조회 (참가자 + admin/coordinator)
  * PATCH /api/khidi/visa/applications/[id] — 상태/배정/메모 업데이트

@@ -1,5 +1,5 @@
 /**
- * HEALO: 관리자 권한 체크 유틸 (SSR-safe)
+ * healwith: 관리자 권한 체크 유틸 (SSR-safe)
  *
  * 목적:
  * - API route에서 관리자 권한 확인

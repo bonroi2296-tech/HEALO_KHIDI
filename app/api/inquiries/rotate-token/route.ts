@@ -1,5 +1,5 @@
 /**
- * HEALO: public_token 회전(재발급) API (서버 전용)
+ * healwith: public_token 회전(재발급) API (서버 전용)
  * 유출 대응을 위해 토큰 재발급
  *
  * 보안:

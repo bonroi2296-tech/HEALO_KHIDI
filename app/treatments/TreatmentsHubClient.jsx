@@ -37,7 +37,7 @@ const COPY = {
     eyebrow: "치료 안내",
     heroTitle: "암종별 치료 안내",
     lede:
-      "HEALO는 한국의 종양학 치료와 한방 통합 케어를 함께 안내합니다. 진단에 따라 양방·한방 치료를 단계별로 연결하고, 코디네이터가 전 과정을 지원합니다.",
+      "healwith는 한국의 종양학 치료와 한방 통합 케어를 함께 안내합니다. 진단에 따라 양방·한방 치료를 단계별로 연결하고, 코디네이터가 전 과정을 지원합니다.",
     cancerHub: "6개 암종",
     cancerHubTitle: "암종을 선택하세요",
     cancerHubBody:
@@ -47,7 +47,7 @@ const COPY = {
     western: "양방 의학",
     eastern: "한방 의학",
     partnerLabel: "협진 병원",
-    kmLabel: "면력한방병원 (HEALO 직영)",
+    kmLabel: "면력한방병원 (healwith 직영)",
     strength: "한국의 강점",
     readGuide: "환자 가이드 보기",
     requestConsult: "상담 신청",
@@ -60,7 +60,7 @@ const COPY = {
     eyebrow: "Treatments",
     heroTitle: "Cancer Treatment Guide",
     lede:
-      "HEALO brings together Korea's oncology care and Korean Medicine integrative care. Treatments are connected stage by stage based on your diagnosis, and a coordinator supports the entire process.",
+      "healwith brings together Korea's oncology care and Korean Medicine integrative care. Treatments are connected stage by stage based on your diagnosis, and a coordinator supports the entire process.",
     cancerHub: "6 Cancer Types",
     cancerHubTitle: "Choose your cancer type",
     cancerHubBody:
@@ -70,7 +70,7 @@ const COPY = {
     western: "Western Medicine",
     eastern: "Korean Medicine",
     partnerLabel: "Partner hospital",
-    kmLabel: "Immune Hospital (HEALO direct)",
+    kmLabel: "Immune Hospital (healwith direct)",
     strength: "Korea's advantage",
     readGuide: "Read patient guide",
     requestConsult: "Request consultation",
@@ -83,7 +83,7 @@ const COPY = {
     eyebrow: "Лечение",
     heroTitle: "Руководство по лечению рака",
     lede:
-      "HEALO объединяет онкологическую помощь Кореи и интегративную корейскую медицину. В зависимости от диагноза западное и корейское лечение соединяются поэтапно, а координатор сопровождает весь процесс.",
+      "healwith объединяет онкологическую помощь Кореи и интегративную корейскую медицину. В зависимости от диагноза западное и корейское лечение соединяются поэтапно, а координатор сопровождает весь процесс.",
     cancerHub: "6 видов рака",
     cancerHubTitle: "Выберите тип рака",
     cancerHubBody:
@@ -93,7 +93,7 @@ const COPY = {
     western: "Западная медицина",
     eastern: "Корейская медицина",
     partnerLabel: "Партнёрская больница",
-    kmLabel: "Иммунная клиника (прямой партнёр HEALO)",
+    kmLabel: "Иммунная клиника (прямой партнёр healwith)",
     strength: "Преимущество Кореи",
     readGuide: "Руководство для пациентов",
     requestConsult: "Записаться на консультацию",
@@ -106,7 +106,7 @@ const COPY = {
     eyebrow: "Емдеу",
     heroTitle: "Обыр түрлері бойынша емдеу нұсқаулығы",
     lede:
-      "HEALO Кореяның онкологиялық емі мен корей медицинасының интегративті күтімін бірге ұсынады. Диагнозға қарай батыс және корей емі кезең-кезеңмен байланыстырылады, координатор бүкіл процесте қолдау көрсетеді.",
+      "healwith Кореяның онкологиялық емі мен корей медицинасының интегративті күтімін бірге ұсынады. Диагнозға қарай батыс және корей емі кезең-кезеңмен байланыстырылады, координатор бүкіл процесте қолдау көрсетеді.",
     cancerHub: "6 обыр түрі",
     cancerHubTitle: "Обыр түрін таңдаңыз",
     cancerHubBody:
@@ -116,7 +116,7 @@ const COPY = {
     western: "Батыс медицинасы",
     eastern: "Корей медицинасы",
     partnerLabel: "Серіктес аурухана",
-    kmLabel: "Immune Hospital (HEALO тікелей)",
+    kmLabel: "Immune Hospital (healwith тікелей)",
     strength: "Кореяның артықшылығы",
     readGuide: "Пациент нұсқаулығын қарау",
     requestConsult: "Кеңеске өтініш беру",
@@ -129,7 +129,7 @@ const COPY = {
     eyebrow: "治疗指南",
     heroTitle: "癌症治疗指南",
     lede:
-      "HEALO 将韩国的肿瘤治疗与韩方整合护理结合在一起。根据诊断分阶段衔接西医与韩方治疗，并由协调员全程提供支持。",
+      "healwith 将韩国的肿瘤治疗与韩方整合护理结合在一起。根据诊断分阶段衔接西医与韩方治疗，并由协调员全程提供支持。",
     cancerHub: "6种癌症",
     cancerHubTitle: "选择您的癌症类型",
     cancerHubBody:
@@ -139,7 +139,7 @@ const COPY = {
     western: "西方医学",
     eastern: "韩方医学",
     partnerLabel: "协诊医院",
-    kmLabel: "Immune Hospital（HEALO 直营）",
+    kmLabel: "Immune Hospital（healwith 直营）",
     strength: "韩国的优势",
     readGuide: "查看患者指南",
     requestConsult: "申请咨询",
@@ -152,7 +152,7 @@ const COPY = {
     eyebrow: "治療案内",
     heroTitle: "がん種別の治療ガイド",
     lede:
-      "HEALOは韓国の腫瘍治療と韓方統合ケアをあわせてご案内します。診断に応じて西洋医学と韓方の治療を段階的につなぎ、コーディネーターが全過程をサポートします。",
+      "healwithは韓国の腫瘍治療と韓方統合ケアをあわせてご案内します。診断に応じて西洋医学と韓方の治療を段階的につなぎ、コーディネーターが全過程をサポートします。",
     cancerHub: "6つのがん種",
     cancerHubTitle: "がん種を選んでください",
     cancerHubBody:
@@ -162,7 +162,7 @@ const COPY = {
     western: "西洋医学",
     eastern: "韓方医学",
     partnerLabel: "協診病院",
-    kmLabel: "面力韓方病院（HEALO直営）",
+    kmLabel: "面力韓方病院（healwith直営）",
     strength: "韓国の強み",
     readGuide: "患者ガイドを見る",
     requestConsult: "相談を申し込む",
@@ -389,16 +389,16 @@ export default function TreatmentsHubClient() {
           <div className="w-12 h-px bg-teal-600 mb-4" />
           <p className="text-sm md:text-base text-gray-600 leading-relaxed">
             {lang === "ko"
-              ? "HEALO 직영 면력한방병원(Immune Hospital)은 의료진·임상영양사·치료식 셰프가 함께 한 명의 환자를 돌봅니다. 누적 50,000건 이상의 케이스."
+              ? "healwith 직영 면력한방병원(Immune Hospital)은 의료진·임상영양사·치료식 셰프가 함께 한 명의 환자를 돌봅니다. 누적 50,000건 이상의 케이스."
               : lang === "ru"
-              ? "В Immune Hospital — прямом партнёре HEALO — врачи, диетологи и шеф-повар заботятся о каждом пациенте. Более 50 000 случаев."
+              ? "В Immune Hospital — прямом партнёре healwith — врачи, диетологи и шеф-повар заботятся о каждом пациенте. Более 50 000 случаев."
               : lang === "kz"
-              ? "HEALO тікелей басқаратын Immune Hospital-да дәрігерлер, клиникалық диетологтар мен емдік ас-су шефі әр пациентпен бірге жұмыс істейді. 50 000-нан астам жағдай."
+              ? "healwith тікелей басқаратын Immune Hospital-да дәрігерлер, клиникалық диетологтар мен емдік ас-су шефі әр пациентпен бірге жұмыс істейді. 50 000-нан астам жағдай."
               : lang === "zh"
-              ? "HEALO 直营的 Immune Hospital 由医疗团队、临床营养师与治疗膳食主厨共同照护每一位患者。累计超过 50,000 例。"
+              ? "healwith 直营的 Immune Hospital 由医疗团队、临床营养师与治疗膳食主厨共同照护每一位患者。累计超过 50,000 例。"
               : lang === "ja"
-              ? "HEALO直営の面力韓方病院(Immune Hospital)は、医療陣・臨床栄養士・治療食シェフが一人の患者を共にケアします。累計50,000件以上のケース。"
-              : "At Immune Hospital — HEALO's direct partner — physicians, clinical dietitians, and a full-time therapeutic chef care for each patient together. Over 50,000 cases to date."}
+              ? "healwith直営の面力韓方病院(Immune Hospital)は、医療陣・臨床栄養士・治療食シェフが一人の患者を共にケアします。累計50,000件以上のケース。"
+              : "At Immune Hospital — healwith's direct partner — physicians, clinical dietitians, and a full-time therapeutic chef care for each patient together. Over 50,000 cases to date."}
           </p>
           <div className="mt-5">
             <Link

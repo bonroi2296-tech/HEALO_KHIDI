@@ -1,5 +1,5 @@
 /**
- * HEALO: AI 비용 가드 (토큰 남용 방어)
+ * healwith: AI 비용 가드 (토큰 남용 방어)
  *
  * 배경 (docs/KNOWN_ISSUES.md P1, PO 승인 2026-06-12):
  * - 인메모리 회수제한은 Vercel 다중 인스턴스에서 분산 우회됨

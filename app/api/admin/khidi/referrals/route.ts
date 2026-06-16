@@ -1,5 +1,5 @@
 /**
- * HEALO: 양·한방 협진 의뢰/회신 워크플로우 API
+ * healwith: 양·한방 협진 의뢰/회신 워크플로우 API
  *
  * GET   /api/admin/khidi/referrals      → 협진 의뢰 목록 + 협진율 요약
  * POST  /api/admin/khidi/referrals      → 협진 의뢰 생성 (한방 → 대학병원)

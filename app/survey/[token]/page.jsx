@@ -7,8 +7,8 @@
 import SurveyForm from "./_client/SurveyForm";
 
 export const metadata = {
-  title: "HEALO 서비스 만족도 설문",
-  description: "HEALO 서비스 이용 후 만족도 설문에 참여해 주세요.",
+  title: "healwith 서비스 만족도 설문",
+  description: "healwith 서비스 이용 후 만족도 설문에 참여해 주세요.",
   robots: { index: false },
 };
 

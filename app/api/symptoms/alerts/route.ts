@@ -1,5 +1,5 @@
 /**
- * HEALO: symptom_alerts CRUD API (FR-16)
+ * healwith: symptom_alerts CRUD API (FR-16)
  *
  * GET  /api/symptoms/alerts — 코디네이터: 미확인 알림 목록
  * POST /api/symptoms/alerts — 코디네이터: acknowledge / resolve

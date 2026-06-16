@@ -1,5 +1,5 @@
 /**
- * HEALO: PII JSON 선택적 암호화 헬퍼
+ * healwith: PII JSON 선택적 암호화 헬퍼
  * 
  * 목적:
  * - JSONB 객체 내 PII 필드만 선택적으로 암호화

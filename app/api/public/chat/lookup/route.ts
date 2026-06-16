@@ -1,5 +1,5 @@
 /**
- * HEALO: Public Chat Lookup API
+ * healwith: Public Chat Lookup API
  *
  * POST /api/public/chat/lookup
  * - 이름 + 이메일 매칭으로 기존 thread 검색 (다른 기기 재방문 복구용)

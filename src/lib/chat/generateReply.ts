@@ -1,5 +1,5 @@
 /**
- * HEALO: 공통 AI 응답 생성 로직
+ * healwith: 공통 AI 응답 생성 로직
  *
  * /api/chat (스트리밍) 과 /api/public/chat/message (비스트리밍) 모두 사용
  * RAG: rag_search_chunks_v1_1 RPC 전용 (무필터 fallback 금지)
@@ -167,7 +167,7 @@ const HOSPITAL_HARD_GUARD = [
   "",
   "⚠️ STRICT HOSPITAL QUERY RULES (OVERRIDE ALL OTHER RULES):",
   "- PRESERVE THE USER'S ORIGINAL HOSPITAL NAME EXACTLY. Do NOT auto-correct, spell-fix, or replace it (e.g. do NOT change '면력' to '면역'). Use the name as-is.",
-  "- You MUST ONLY mention hospitals that appear in the [HEALO 등록 병원] section of the Context above.",
+  "- You MUST ONLY mention hospitals that appear in the [healwith 등록 병원] section of the Context above.",
   "- Do NOT mention, recommend, or compare ANY hospital NOT listed in the Context.",
   "- Do NOT generate facts not present in the Context (doctor count, treatment protocols, success rates, founding year, price ranges, etc.). For missing details, say '확인 필요' (or equivalent in the user's language).",
   "- Do NOT use external knowledge about this hospital. ONLY use the Context.",
@@ -175,16 +175,16 @@ const HOSPITAL_HARD_GUARD = [
   "  1) Hospital name (number of branches if multiple listed)",
   "  2) Branch list: branch name + location (only if present in Context)",
   "  3) Key treatments/specialties (only if present in Context)",
-  "  4) Next step: 'HEALO를 통해 자세한 상담을 받아보세요' (translate to user's language). Do NOT suggest direct contact.",
+  "  4) Next step: 'healwith를 통해 자세한 상담을 받아보세요' (translate to user's language). Do NOT suggest direct contact.",
   "",
 ].join("\n");
 
 const HOSPITAL_NO_MATCH_GUARD = [
   "",
-  "⚠️ HOSPITAL NOT FOUND IN HEALO:",
-  "- State clearly: 'HEALO에 등록된 정보가 없습니다' (translate to user's language).",
+  "⚠️ HOSPITAL NOT FOUND IN healwith:",
+  "- State clearly: 'healwith에 등록된 정보가 없습니다' (translate to user's language).",
   "- Do NOT fabricate hospital details. Do NOT hallucinate.",
-  "- You may use RAG/external context below, but prefix with '참고 정보 (HEALO 미등록):' and add disclaimer.",
+  "- You may use RAG/external context below, but prefix with '참고 정보 (healwith 미등록):' and add disclaimer.",
   "",
 ].join("\n");
 
@@ -201,13 +201,13 @@ export function buildSystemPrompt(
   hospitalGuard: HospitalGuardOptions = {},
 ): string {
   const hasContext = !!contextText;
-  const hasDbData = contextText.includes("HEALO 등록");
+  const hasDbData = contextText.includes("healwith 등록");
   const hasHira = externalSources.includes("hira");
   const hasNaver = externalSources.includes("naver");
   const { hospitalGuardActive = false, hospitalIntentNoMatch = false } = hospitalGuard;
 
   return [
-    "You are HEALO's AI agent — a medical concierge that CONNECTS international patients with Korean hospitals and oncology specialists.",
+    "You are healwith's AI agent — a medical concierge that CONNECTS international patients with Korean hospitals and oncology specialists.",
     "You are NOT the treating party: you do not diagnose, read scans/labs, or prescribe — licensed Korean doctors do that. Your job is to guide, inform from verified Context, and connect.",
     "",
     "ANTI-HALLUCINATION (CRITICAL — never violate):",
@@ -236,16 +236,16 @@ export function buildSystemPrompt(
     "- The CORE of cancer treatment is surgery/chemotherapy at partner university hospitals. Immune/rehab care is a complementary step, not a replacement.",
     "",
     hospitalGuardActive ? "" : "CORE BEHAVIOR (only when user expresses clear medical need):",
-    hospitalGuardActive ? "" : "- HEALO is NOT a marketplace for comparing or ranking hospitals. Frame answers as a CONTINUOUS CARE JOURNEY: diagnosis → surgery/chemo at partner university hospitals → immune/rehab recovery — with a coordinator accompanying the whole way.",
+    hospitalGuardActive ? "" : "- healwith is NOT a marketplace for comparing or ranking hospitals. Frame answers as a CONTINUOUS CARE JOURNEY: diagnosis → surgery/chemo at partner university hospitals → immune/rehab recovery — with a coordinator accompanying the whole way.",
     hospitalGuardActive ? "" : "- When mentioning hospitals from Context, present them as 'where this step of your care happens', NOT as a price-comparison shopping list. Do not lead with price tables.",
     hospitalGuardActive ? "" : "- If asked about cost, give the range from Context and note that a personalized quote follows after review.",
     hospitalGuardActive ? "" : "- Always orient toward the next step and our role of connecting + accompanying: e.g. 'Share your diagnosis and we'll connect you to the right hospital and stay with you through the process.'",
     "",
     "SOURCE LABELING (IMPORTANT):",
-    hasDbData ? "- [HEALO 등록 병원] / [HEALO 등록 시술/프로그램]: HEALO's verified partner database. Present confidently." : "",
+    hasDbData ? "- [healwith 등록 병원] / [healwith 등록 시술/프로그램]: healwith's verified partner database. Present confidently." : "",
     hasHira ? "- [공공 의료데이터 - HIRA]: Official Korean government medical data. Present as reliable public data." : "",
     hasNaver ? "- [네이버 검색]: Naver local search results. Mention it's from Naver search." : "",
-    useWebSearch ? "- [웹 검색 - 미검증]: Google Search results — clearly state: '웹 검색 결과입니다. HEALO에서 직접 검증한 정보가 아니므로 참고용으로 활용해 주세요.' (translate to user's language)" : "",
+    useWebSearch ? "- [웹 검색 - 미검증]: Google Search results — clearly state: '웹 검색 결과입니다. healwith에서 직접 검증한 정보가 아니므로 참고용으로 활용해 주세요.' (translate to user's language)" : "",
     "",
     "MEDICAL RED LINES (NEVER cross — these need a licensed doctor, not an AI):",
     "- Do NOT diagnose or name a disease from symptoms ('this sounds like X cancer').",
@@ -259,8 +259,8 @@ export function buildSystemPrompt(
     "",
     "SAFETY:",
     "- No medical diagnosis or outcome guarantees.",
-    "- HEALO connects patients to Korean medical institutions and their doctors; HEALO itself does not diagnose or treat.",
-    "- If the user asks for a human, connect them with a HEALO coordinator.",
+    "- healwith connects patients to Korean medical institutions and their doctors; healwith itself does not diagnose or treat.",
+    "- If the user asks for a human, connect them with a healwith coordinator.",
     "- DISCLAIMER: whenever you convey medical information, end with one short line that it is general reference and the actual decision is made by the medical team (translate to user's language). Keep it brief, not a wall of legalese.",
     hospitalGuardActive ? HOSPITAL_HARD_GUARD : "",
     hospitalIntentNoMatch ? HOSPITAL_NO_MATCH_GUARD : "",
@@ -386,37 +386,37 @@ function smallTalkReply(text: string, lang: string): string {
 
   const replies: Record<string, { greeting: string; thanks: string; bye: string; default: string }> = {
     ko: {
-      greeting: "안녕하세요! HEALO AI 에이전트입니다. 어떤 치료나 병원 정보가 필요하신가요? 증상이나 원하시는 진료를 말씀해 주세요.",
+      greeting: "안녕하세요! healwith AI 에이전트입니다. 어떤 치료나 병원 정보가 필요하신가요? 증상이나 원하시는 진료를 말씀해 주세요.",
       thanks: "별말씀을요. 더 궁금한 점이 있으면 언제든 물어보세요.",
       bye: "감사합니다. 추가 문의는 언제든 환영합니다.",
       default: "더 자세히 말씀해 주시면 적합한 한국 병원을 찾아드릴게요.",
     },
     en: {
-      greeting: "Hello! I'm HEALO's AI agent. What medical treatment or hospital information do you need? Please describe your symptoms or desired care.",
+      greeting: "Hello! I'm healwith's AI agent. What medical treatment or hospital information do you need? Please describe your symptoms or desired care.",
       thanks: "You're welcome. Feel free to ask anything else.",
       bye: "Thank you. Reach out anytime for more questions.",
       default: "Could you tell me more so I can find the right hospital in Korea for you?",
     },
     ru: {
-      greeting: "Здравствуйте! Я AI-агент HEALO. Какое лечение или информацию о больнице вас интересует? Расскажите о симптомах или нужном вам уходе.",
+      greeting: "Здравствуйте! Я AI-агент healwith. Какое лечение или информацию о больнице вас интересует? Расскажите о симптомах или нужном вам уходе.",
       thanks: "Пожалуйста. Спрашивайте, если что-то ещё нужно.",
       bye: "Спасибо. Обращайтесь в любое время.",
       default: "Расскажите подробнее, чтобы я подобрал подходящую корейскую клинику.",
     },
     kk: {
-      greeting: "Сәлеметсіз бе! Мен HEALO AI агентімін. Қандай емдеу немесе аурухана туралы ақпарат қажет? Симптомдарыңызды немесе керек көмек түрін айтыңыз.",
+      greeting: "Сәлеметсіз бе! Мен healwith AI агентімін. Қандай емдеу немесе аурухана туралы ақпарат қажет? Симптомдарыңызды немесе керек көмек түрін айтыңыз.",
       thanks: "Оқасы жоқ. Тағы сұрағыңыз болса айта беріңіз.",
       bye: "Рахмет. Қашан да хабарласа беріңіз.",
       default: "Толығырақ айтсаңыз, лайық корейлік клиниканы тапсам.",
     },
     zh: {
-      greeting: "您好！我是 HEALO 的 AI 助手。需要哪种治疗或医院信息？请告诉我您的症状或希望的诊疗。",
+      greeting: "您好！我是 healwith 的 AI 助手。需要哪种治疗或医院信息？请告诉我您的症状或希望的诊疗。",
       thanks: "不客气，有其他问题请随时提问。",
       bye: "谢谢，欢迎随时再来咨询。",
       default: "请详细说明，以便我为您找到合适的韩国医院。",
     },
     ja: {
-      greeting: "こんにちは！HEALOのAIエージェントです。どのような治療や病院情報をお探しですか？症状やご希望の診療をお聞かせください。",
+      greeting: "こんにちは！healwithのAIエージェントです。どのような治療や病院情報をお探しですか？症状やご希望の診療をお聞かせください。",
       thanks: "どういたしまして。他にもご質問があればお気軽にどうぞ。",
       bye: "ありがとうございました。いつでもご相談ください。",
       default: "もう少し詳しくお聞かせいただければ、最適な韓国の病院をお探しします。",
@@ -457,7 +457,7 @@ export async function generateChatReply(
   }
 
   try {
-    // 1단계: HEALO DB 직접 검색 (최우선) + RAG 벡터 검색 (병렬 실행)
+    // 1단계: healwith DB 직접 검색 (최우선) + RAG 벡터 검색 (병렬 실행)
     const [dbResult, ragChunks] = await Promise.all([
       searchHospitalsAndTreatments(query).catch((e) => {
         console.error("[generateReply] db search failed:", e);
@@ -481,7 +481,7 @@ export async function generateChatReply(
       console.log(`[generateReply] matchedHospitals:`, matchedHospitalNames);
     }
 
-    // DB 결과를 RAG보다 앞에 배치 (HEALO 등록 데이터 우선)
+    // DB 결과를 RAG보다 앞에 배치 (healwith 등록 데이터 우선)
     const internalContext = [dbContext, contextText].filter(Boolean).join("\n");
 
     // 외부 검색: hospital_intent+DB매칭 시 외부 검색 차단

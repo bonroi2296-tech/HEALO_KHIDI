@@ -1,5 +1,5 @@
 /**
- * HEALO: Rebooking Create API
+ * healwith: Rebooking Create API
  *
  * POST /api/khidi/rebooking/create — 재예약 세션 생성
  * Body: { inquiryId, patientId, source, reason, sessionType?, daysFromNow?, parentConsultationId? }

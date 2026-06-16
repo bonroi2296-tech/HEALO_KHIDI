@@ -31,7 +31,7 @@ export default function TermsOfServiceClient() {
     >
       <header style={{ background: "var(--paper)", borderBottom: "1px solid var(--cream-2)" }}>
         <div style={{ maxWidth: 1280, margin: "0 auto", padding: "80px 24px 48px" }}>
-          <Eyebrow>HEALO · Legal</Eyebrow>
+          <Eyebrow>healwith · Legal</Eyebrow>
           <h1
             style={{
               fontFamily: "var(--font-serif)",

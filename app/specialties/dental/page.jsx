@@ -322,7 +322,7 @@ function DentalContent() {
               informational purposes only and does not constitute medical
               advice. Prices are approximate and may vary depending on the
               clinic, materials, and individual patient needs. Individual
-              consultation is required before any dental procedure. HEALO
+              consultation is required before any dental procedure. healwith
               connects patients with clinics but does not provide dental
               services directly.
             </p>

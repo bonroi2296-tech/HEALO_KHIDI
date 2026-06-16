@@ -1,5 +1,5 @@
 /**
- * HEALO KHIDI KPI 집계 API
+ * healwith KHIDI KPI 집계 API
  *
  * GET /api/admin/khidi/kpi?year=2026&month=5
  *

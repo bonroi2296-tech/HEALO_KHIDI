@@ -307,7 +307,7 @@ export async function POST(request: Request) {
     });
   }
 
-  // 1단계: HEALO DB 직접 검색 (최우선) + RAG 벡터 검색 (병렬 실행)
+  // 1단계: healwith DB 직접 검색 (최우선) + RAG 벡터 검색 (병렬 실행)
   const [dbResult, ragResult] = await Promise.all([
     searchHospitalsAndTreatments(query).catch((e: any) => {
       console.error("[api/chat] db search failed:", e?.message || e);
@@ -338,7 +338,7 @@ export async function POST(request: Request) {
   }
   console.log(`[api/chat] context preview: db=${dbContext.length}chars, rag=${contextText.length}chars`);
 
-  // DB 결과를 RAG보다 앞에 배치 (HEALO 등록 데이터 우선)
+  // DB 결과를 RAG보다 앞에 배치 (healwith 등록 데이터 우선)
   const internalContext = [dbContext, contextText].filter(Boolean).join("\n");
 
   // 외부 검색: hospital_intent+DB매칭 시 외부 검색 차단 (환각 방지)
@@ -365,7 +365,7 @@ export async function POST(request: Request) {
     "",
     "⚠️ STRICT HOSPITAL QUERY RULES (OVERRIDE ALL OTHER RULES):",
     "- PRESERVE THE USER'S ORIGINAL HOSPITAL NAME EXACTLY. Do NOT auto-correct, spell-fix, or replace it (e.g. do NOT change '면력' to '면역'). Use the name as-is.",
-    "- You MUST ONLY mention hospitals that appear in the [HEALO 등록 병원] section of the Context above.",
+    "- You MUST ONLY mention hospitals that appear in the [healwith 등록 병원] section of the Context above.",
     "- Do NOT mention, recommend, or compare ANY hospital NOT listed in the Context.",
     "- Do NOT generate facts not present in the Context (doctor count, treatment protocols, success rates, founding year, price ranges, etc.). For missing details, say '확인 필요' (or equivalent in the user's language).",
     "- Do NOT use external knowledge about this hospital. ONLY use the Context.",
@@ -373,21 +373,21 @@ export async function POST(request: Request) {
     "  1) Hospital name (number of branches if multiple listed)",
     "  2) Branch list: branch name + location (only if present in Context)",
     "  3) Key treatments/specialties (only if present in Context)",
-    "  4) Next step: 'HEALO를 통해 자세한 상담을 받아보세요' (translate to user's language). Do NOT suggest direct contact.",
+    "  4) Next step: 'healwith를 통해 자세한 상담을 받아보세요' (translate to user's language). Do NOT suggest direct contact.",
     "",
   ].join("\n");
 
   const HOSPITAL_NO_MATCH_GUARD = [
     "",
-    "⚠️ HOSPITAL NOT FOUND IN HEALO:",
-    "- State clearly: 'HEALO에 등록된 정보가 없습니다' (translate to user's language).",
+    "⚠️ HOSPITAL NOT FOUND IN healwith:",
+    "- State clearly: 'healwith에 등록된 정보가 없습니다' (translate to user's language).",
     "- Do NOT fabricate hospital details. Do NOT hallucinate.",
-    "- You may use RAG/external context below, but prefix with '참고 정보 (HEALO 미등록):' and add disclaimer.",
+    "- You may use RAG/external context below, but prefix with '참고 정보 (healwith 미등록):' and add disclaimer.",
     "",
   ].join("\n");
 
   const systemPrompt = [
-    "You are HEALO's AI agent — a medical concierge connecting international patients with Korean hospitals.",
+    "You are healwith's AI agent — a medical concierge connecting international patients with Korean hospitals.",
     "",
     "RESPONSE RULES:",
     "- Keep answers SHORT and scannable: max 3-4 sentences per point, use bullet points.",
@@ -401,14 +401,14 @@ export async function POST(request: Request) {
     hospitalGuardActive ? "" : "- After recommendations, suggest submitting an inquiry for a personalized quote.",
     "",
     "SOURCE LABELING (IMPORTANT):",
-    hasDbData ? "- [HEALO 등록 병원] / [HEALO 등록 시술/프로그램]: HEALO's verified partner database. Present confidently." : "",
+    hasDbData ? "- [healwith 등록 병원] / [healwith 등록 시술/프로그램]: healwith's verified partner database. Present confidently." : "",
     externalSources.includes("hira") ? "- [공공 의료데이터 - HIRA]: Official Korean government medical data. Present as reliable public data." : "",
     externalSources.includes("naver") ? "- [네이버 검색]: Naver local search results. Mention it's from Naver search." : "",
-    useWebSearch ? "- [웹 검색 - 미검증]: Google Search results — clearly state: '웹 검색 결과입니다. HEALO에서 직접 검증한 정보가 아니므로 참고용으로 활용해 주세요.' (translate to user's language)" : "",
+    useWebSearch ? "- [웹 검색 - 미검증]: Google Search results — clearly state: '웹 검색 결과입니다. healwith에서 직접 검증한 정보가 아니므로 참고용으로 활용해 주세요.' (translate to user's language)" : "",
     "",
     "SAFETY:",
     "- No medical diagnosis or outcome guarantees.",
-    "- If the user asks for a human, connect them with a HEALO coordinator.",
+    "- If the user asks for a human, connect them with a healwith coordinator.",
     hospitalGuardActive ? HOSPITAL_HARD_GUARD : "",
     hospitalIntent && matchedHospitalNames.length === 0 ? HOSPITAL_NO_MATCH_GUARD : "",
     "",

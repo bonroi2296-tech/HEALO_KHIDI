@@ -1,5 +1,5 @@
 /**
- * HEALO: Public Chat Start API
+ * healwith: Public Chat Start API
  *
  * POST /api/public/chat/start
  * - 비회원도 사용 가능 (인증 불요)

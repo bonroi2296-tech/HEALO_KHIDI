@@ -1,5 +1,5 @@
 /**
- * HEALO: 리마인더 스케줄 등록
+ * healwith: 리마인더 스케줄 등록
  *
  * 목적:
  *   consultation_sessions.scheduled_at - 30분 시점에

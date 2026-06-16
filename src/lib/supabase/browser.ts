@@ -1,5 +1,5 @@
 /**
- * HEALO: Supabase Browser Client (SSR-safe)
+ * healwith: Supabase Browser Client (SSR-safe)
  * 
  * 목적:
  * - 브라우저(클라이언트)에서 사용하는 Supabase 클라이언트

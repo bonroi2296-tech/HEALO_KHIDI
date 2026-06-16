@@ -10,13 +10,13 @@ import { getLangCodeFromCookie } from '@/lib/i18n';
 
 export const TREATMENTS_L = {
   title: { ko: '암종별 치료 안내', en: 'Cancer Treatment Guide', ru: 'Руководство по лечению рака', kz: 'Рак емдеу нұсқаулығы', zh: '癌症治疗指南', ja: 'がん治療ガイド' },
-  subtitle: { ko: '한국의 첨단 암 치료와 한방 면역치료를 결합한 HEALO 통합 케어 프로세스', en: 'HEALO integrated care combining Korea\'s advanced cancer treatment with Korean Medicine immune therapy', ru: 'Интегрированная помощь HEALO: передовое лечение рака в Корее + корейская иммунная терапия', kz: 'HEALO кешенді көмек: Кореяның озық онкологиялық емі + корей иммундық терапиясы', zh: 'HEALO综合护理：韩国先进肿瘤治疗+韩方免疫治疗', ja: 'HEALO統合ケア：韓国の先端がん治療と韓方免疫治療の融合' },
-  processTitle: { ko: 'HEALO 통합 케어 프로세스', en: 'HEALO Integrated Care Process', ru: 'Процесс интегрированной помощи HEALO', kz: 'HEALO кешенді көмек процесі', zh: 'HEALO综合护理流程', ja: 'HEALO統合ケアプロセス' },
+  subtitle: { ko: '한국의 첨단 암 치료와 한방 면역치료를 결합한 healwith 통합 케어 프로세스', en: 'healwith integrated care combining Korea\'s advanced cancer treatment with Korean Medicine immune therapy', ru: 'Интегрированная помощь healwith: передовое лечение рака в Корее + корейская иммунная терапия', kz: 'healwith кешенді көмек: Кореяның озық онкологиялық емі + корей иммундық терапиясы', zh: 'healwith综合护理：韩国先进肿瘤治疗+韩方免疫治疗', ja: 'healwith統合ケア：韓国の先端がん治療と韓方免疫治療の融合' },
+  processTitle: { ko: 'healwith 통합 케어 프로세스', en: 'healwith Integrated Care Process', ru: 'Процесс интегрированной помощи healwith', kz: 'healwith кешенді көмек процесі', zh: 'healwith综合护理流程', ja: 'healwith統合ケアプロセス' },
   westernTitle: { ko: '양방 치료 (협진 병원)', en: 'Western Treatment (Partner Hospital)', ru: 'Западное лечение (партнёрская больница)', kz: 'Батыс емі (серіктес аурухана)', zh: '西医治疗（协诊医院）', ja: '西洋医学治療（協診病院）' },
   easternTitle: { ko: '한방 통합 케어 (면력한방병원)', en: 'Korean Medicine Care (Immune Hospital)', ru: 'Корейская медицина (Иммунная Клиника)', kz: 'Корей медицинасы (Иммунная Клиника)', zh: '韩方综合护理（免疫医院）', ja: '韓方統合ケア（免疫病院）' },
   cta: { ko: '사전상담 시작하기', en: 'Start Pre-consultation', ru: 'Начать консультацию', kz: 'Кеңес бастау', zh: '开始预咨询', ja: '事前相談を始める' },
   expandDetail: { ko: '상세 보기', en: 'View Details', ru: 'Подробнее', kz: 'Толығырақ', zh: '查看详情', ja: '詳細を見る' },
-  bottomTitle: { ko: '어떤 암종이든, HEALO가 함께합니다', en: 'Whatever the cancer type, HEALO is with you', ru: 'Какой бы ни был тип рака — HEALO поможет', kz: 'Қандай рак түрі болса да, HEALO жанында', zh: '无论哪种癌症，HEALO与您同在', ja: 'どのがん種でも、HEALOがそばにいます' },
+  bottomTitle: { ko: '어떤 암종이든, healwith가 함께합니다', en: 'Whatever the cancer type, healwith is with you', ru: 'Какой бы ни был тип рака — healwith поможет', kz: 'Қандай рак түрі болса да, healwith жанында', zh: '无论哪种癌症，healwith与您同在', ja: 'どのがん種でも、healwithがそばにいます' },
   bottomDesc: { ko: '인테이크 양식을 작성하면 24시간 이내에 최적의 치료 계획을 안내해드립니다.', en: 'Submit your intake form and we\'ll guide you to the optimal treatment plan within 24 hours.', ru: 'Заполните анкету, и мы предложим оптимальный план лечения в течение 24 часов.', kz: 'Сауалнаманы толтырыңыз, 24 сағат ішінде ең тиімді емдеу жоспарын ұсынамыз.', zh: '提交问诊表，我们将在24小时内为您提供最佳治疗方案。', ja: '問診票をご提出いただければ、24時間以内に最適な治療計画をご案内します。' },
 };
 

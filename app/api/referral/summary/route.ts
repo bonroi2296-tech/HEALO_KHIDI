@@ -1,5 +1,5 @@
 /**
- * HEALO: Referral Summary API
+ * healwith: Referral Summary API
  * normalizedInquiryId + publicToken → 병원 전달용 요약 (JSON + Markdown)
  * 보안: publicToken 검증 및 attachment path 검증 후 signed URL 발급
  * 

@@ -40,7 +40,7 @@ export default function CoordinatorLayout({ children }) {
               <ClipboardList size={18} className="text-white" />
             </div>
             <div>
-              <h1 className="text-base font-bold text-gray-900">HEALO</h1>
+              <h1 className="text-base font-bold text-gray-900">healwith</h1>
               <p className="text-[10px] text-gray-500">코디네이터</p>
             </div>
           </div>

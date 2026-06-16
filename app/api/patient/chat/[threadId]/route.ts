@@ -1,5 +1,5 @@
 /**
- * HEALO: Patient Chat Thread Messages API
+ * healwith: Patient Chat Thread Messages API
  *
  * GET /api/patient/chat/[threadId] — 특정 스레드의 메시지 이력 조회
  */

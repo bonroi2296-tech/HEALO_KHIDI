@@ -1,5 +1,5 @@
 /**
- * HEALO: In-app 알림 공통 헬퍼
+ * healwith: In-app 알림 공통 헬퍼
  *
  * notifications 테이블에 INSERT 하는 단일 진입점.
  * Fail-safe: 실패해도 throw 하지 않음.

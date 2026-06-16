@@ -1,5 +1,5 @@
 /**
- * HEALO: 병원 담당자 권한 체크 유틸
+ * healwith: 병원 담당자 권한 체크 유틸
  * 
  * checkAdminAuth.ts와 동일한 패턴으로 Bearer token / 쿠키 인증 후
  * hospital_users 테이블에서 병원 연결 정보를 조회

@@ -1,5 +1,5 @@
 /**
- * HEALO: Patient Education Content Engine
+ * healwith: Patient Education Content Engine
  *
  * 암종별 × 단계별 × 카테고리별 교육 콘텐츠를 조회.
  * i18n JSONB 패턴으로 다국어 지원 (localize() 재사용).

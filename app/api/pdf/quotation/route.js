@@ -23,7 +23,7 @@ import { checkRateLimit, getClientIp, RATE_LIMITS } from "@/lib/rateLimit";
 
 export async function POST(request) {
   try {
-    // 과거엔 공개라 누구나 HEALO 브랜드 의료 견적서 PDF 를 임의 내용으로 발급 가능
+    // 과거엔 공개라 누구나 healwith 브랜드 의료 견적서 PDF 를 임의 내용으로 발급 가능
     // (위조·브랜드 남용) + 비용 큰 렌더링. 어드민/내부 시크릿 + rate limit 으로 제한.
     const ip = getClientIp(request);
     const rl = checkRateLimit(ip, RATE_LIMITS.INQUIRY);
@@ -49,7 +49,7 @@ export async function POST(request) {
     const element = React.createElement(MedicalQuotation, { data: body, lang });
     const buffer = await renderToBuffer(element);
 
-    const filename = `HEALO-Quotation-${body?.quotationNo || new Date().toISOString().slice(0, 10)}.pdf`;
+    const filename = `healwith-Quotation-${body?.quotationNo || new Date().toISOString().slice(0, 10)}.pdf`;
 
     return new NextResponse(buffer, {
       status: 200,
@@ -76,7 +76,7 @@ export async function GET(request) {
   const url = new URL(request.url);
   const lang = url.searchParams.get("lang") === "en" ? "en" : "ko";
   const sampleData = {
-    quotationNo: "HEALO-SAMPLE-001",
+    quotationNo: "healwith-SAMPLE-001",
     patient: {
       name: "Aigerim Nurlanova",
       nationality: "Kazakhstan",
@@ -99,7 +99,7 @@ export async function GET(request) {
       { label: "Surgery (BCS)", note: "Hospital fee", krw: 12000000, usd: 8700 },
       { label: "Chemotherapy (4 cycles)", note: "Drugs + infusion", krw: 18000000, usd: 13000 },
       { label: "Hospital accommodation (7 days)", note: "", krw: 1400000, usd: 1000 },
-      { label: "HEALO facilitator fee", note: "Disclosed per §15", krw: 3000000, usd: 2170 },
+      { label: "healwith facilitator fee", note: "Disclosed per §15", krw: 3000000, usd: 2170 },
       { label: "Medical interpreter (KO ↔ RU)", note: "All sessions", krw: 1500000, usd: 1080 },
     ],
   };
@@ -114,7 +114,7 @@ export async function GET(request) {
     status: 200,
     headers: {
       "Content-Type": "application/pdf",
-      "Content-Disposition": `inline; filename="HEALO-Quotation-sample.pdf"`,
+      "Content-Disposition": `inline; filename="healwith-Quotation-sample.pdf"`,
     },
   });
 }

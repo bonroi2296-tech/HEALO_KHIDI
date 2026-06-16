@@ -1,5 +1,5 @@
 /**
- * HEALO: Admin Chat Threads API
+ * healwith: Admin Chat Threads API
  *
  * POST /api/admin/chat/threads — 새 thread 생성
  * GET  /api/admin/chat/threads — thread 목록 조회

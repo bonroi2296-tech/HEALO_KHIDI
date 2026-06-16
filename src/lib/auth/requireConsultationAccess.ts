@@ -1,5 +1,5 @@
 /**
- * HEALO: 진료(consultation) API 접근 권한 강제 체크
+ * healwith: 진료(consultation) API 접근 권한 강제 체크
  *
  * 목적:
  * - /api/khidi/consultation/[id]/* 엔드포인트들에서 IDOR 차단

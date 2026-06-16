@@ -13,6 +13,7 @@ import {
   MobileBottomNav,
   FloatingInquiryBtn,
 } from "@/components.jsx";
+import Logo from "../components/brand/Logo";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { useToast } from "@/components/Toast";
 import CookieConsent from "@/components/CookieConsent";
@@ -415,25 +416,25 @@ function ClientShellContent({
    ────────────────────────────────────────────── */
 function PortalTopBar({ session, onLogout, siteConfig, langCode }) {
   return (
-    <header className="fixed top-0 left-0 right-0 h-14 md:h-16 z-50 bg-teal-600 text-white shadow-sm flex items-center justify-between px-4 pt-safe-area">
+    <header className="fixed top-0 left-0 right-0 h-14 md:h-16 z-50 bg-teal-100 text-slate-700 border-b border-teal-200 shadow-sm flex items-center justify-between px-4 pt-safe-area">
       <Link href="/" className="flex items-center gap-2 shrink-0 hover:opacity-90 transition-opacity">
         {siteConfig?.logo ? (
-          <img src={siteConfig.logo} alt="HEALO" className="h-8 w-auto object-contain" />
+          <img src={siteConfig.logo} alt="healwith" className="h-8 w-auto object-contain" />
         ) : (
-          <span className="text-xl font-extrabold tracking-tight notranslate">HEALO</span>
+          <Logo tone="light" />
         )}
       </Link>
 
       <div className="flex items-center gap-3 text-sm">
         {session?.user?.email && (
-          <span className="hidden md:block text-white/70 truncate max-w-[180px]">
+          <span className="hidden md:block text-slate-500 truncate max-w-[180px]">
             {session.user.email}
           </span>
         )}
 
         <button
           onClick={onLogout}
-          className="flex items-center gap-1 text-white/80 hover:text-white transition-colors ml-1"
+          className="flex items-center gap-1 text-slate-600 hover:text-teal-700 transition-colors ml-1"
         >
           <LogOut size={15} />
           <span className="hidden sm:inline">{t("auth.logout", langCode)}</span>

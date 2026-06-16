@@ -1,5 +1,5 @@
 /**
- * HEALO: Patient Chat API (authenticated)
+ * healwith: Patient Chat API (authenticated)
  *
  * GET  /api/patient/chat         — 로그인 환자의 채팅 스레드 목록
  * POST /api/patient/chat         — 새 스레드 생성 또는 메시지 전송
@@ -7,7 +7,7 @@
  *   body.action = "message"      → 메시지 전송 + AI 응답
  *
  * 3-tier 답변 전략:
- *   Tier 1: HEALO 내부 DB (병원/시술) + RAG 벡터 검색
+ *   Tier 1: healwith 내부 DB (병원/시술) + RAG 벡터 검색
  *   Tier 2: 승인 외부소스 (HIRA 공공데이터, 네이버)
  *   Tier 3: LLM 일반지식 (Google Search Grounding + 면책 문구)
  */
@@ -263,7 +263,7 @@ function extractSourceInfo(chunks: any[]): SourceInfo[] {
   if (!chunks?.length) return [];
 
   const TIER_LABELS: Record<number, string> = {
-    1: "HEALO verified",
+    1: "healwith verified",
     2: "Partner verified",
     3: "Public source",
   };

@@ -9,7 +9,7 @@ import { IMMUNE_HOSPITAL as H } from "@/lib/data/immuneHospitalInfo";
 /* ───────── 섹션 라벨 i18n (6개 언어) ───────── */
 const COPY = {
   ko: {
-    eyebrow: "HEALO 직영 파트너",
+    eyebrow: "healwith 직영 파트너",
     heroLede:
       "한방과 현대의학을 결합한 통합 면역치료 전문 병원. 2017년 개원 이후 누적 50,000+ 사례. 의료진·임상 영양사·치료식 셰프가 함께 한 명의 환자를 돌봅니다.",
     requestConsult: "상담 신청",
@@ -37,10 +37,10 @@ const COPY = {
     branchesTitle: "전국 4개 지점",
     branchLabel: "지점",
     ctaTitle: "Immune Hospital에서 시작하세요",
-    ctaBody: "HEALO 코디네이터가 영업일 기준 하루 안에 선호 언어로 회신드립니다.",
+    ctaBody: "healwith 코디네이터가 영업일 기준 하루 안에 선호 언어로 회신드립니다.",
   },
   en: {
-    eyebrow: "HEALO direct partner",
+    eyebrow: "healwith direct partner",
     heroLede:
       "Integrative immune care combining Korean Medicine and modern oncology. Founded 2017, 50,000+ cumulative cases. Physicians, clinical dietitian, and in-house chef care for each patient together.",
     requestConsult: "Request consultation",
@@ -68,10 +68,10 @@ const COPY = {
     branchesTitle: "4 branches nationwide",
     branchLabel: "Branch",
     ctaTitle: "Start with Immune Hospital",
-    ctaBody: "A HEALO coordinator responds in your preferred language within one business day.",
+    ctaBody: "A healwith coordinator responds in your preferred language within one business day.",
   },
   ru: {
-    eyebrow: "Прямой партнёр HEALO",
+    eyebrow: "Прямой партнёр healwith",
     heroLede:
       "Специализированная клиника интегративной иммунотерапии, объединяющая корейскую медицину и современную онкологию. Открыта в 2017 году, более 50 000 случаев. Врачи, клинический диетолог и шеф-повар заботятся о каждом пациенте вместе.",
     requestConsult: "Записаться на консультацию",
@@ -99,10 +99,10 @@ const COPY = {
     branchesTitle: "4 филиала по всей стране",
     branchLabel: "Филиал",
     ctaTitle: "Начните с Immune Hospital",
-    ctaBody: "Координатор HEALO ответит на удобном вам языке в течение одного рабочего дня.",
+    ctaBody: "Координатор healwith ответит на удобном вам языке в течение одного рабочего дня.",
   },
   kz: {
-    eyebrow: "HEALO тікелей серіктесі",
+    eyebrow: "healwith тікелей серіктесі",
     heroLede:
       "Корей медицинасы мен заманауи онкологияны біріктірген интегративті иммунотерапия маманданған ауруханасы. 2017 жылы ашылған, 50 000-нан астам жағдай. Дәрігерлер, клиникалық диетолог және ас-су шефі әр пациентпен бірге жұмыс істейді.",
     requestConsult: "Кеңеске өтініш беру",
@@ -130,10 +130,10 @@ const COPY = {
     branchesTitle: "Ел бойынша 4 филиал",
     branchLabel: "Филиал",
     ctaTitle: "Immune Hospital-дан бастаңыз",
-    ctaBody: "HEALO координаторы бір жұмыс күні ішінде сізге қолайлы тілде хабарласады.",
+    ctaBody: "healwith координаторы бір жұмыс күні ішінде сізге қолайлы тілде хабарласады.",
   },
   zh: {
-    eyebrow: "HEALO 直营合作伙伴",
+    eyebrow: "healwith 直营合作伙伴",
     heroLede:
       "结合韩方医学与现代肿瘤学的整合免疫治疗专科医院。2017年开院，累计逾 50,000 例。医疗团队、临床营养师与治疗膳食主厨共同照护每一位患者。",
     requestConsult: "申请咨询",
@@ -161,10 +161,10 @@ const COPY = {
     branchesTitle: "全国 4 家分院",
     branchLabel: "分院",
     ctaTitle: "从 Immune Hospital 开始",
-    ctaBody: "HEALO 协调员将在一个工作日内以您偏好的语言与您联系。",
+    ctaBody: "healwith 协调员将在一个工作日内以您偏好的语言与您联系。",
   },
   ja: {
-    eyebrow: "HEALO直営パートナー",
+    eyebrow: "healwith直営パートナー",
     heroLede:
       "韓方と現代医学を融合した統合免疫治療の専門病院。2017年開院、累計50,000件以上のケース。医療陣・臨床栄養士・治療食シェフが一人の患者を共にケアします。",
     requestConsult: "相談を申し込む",
@@ -192,7 +192,7 @@ const COPY = {
     branchesTitle: "全国4拠点",
     branchLabel: "拠点",
     ctaTitle: "Immune Hospitalで始めましょう",
-    ctaBody: "HEALOコーディネーターが営業日基準で1日以内にご希望の言語でご返信します。",
+    ctaBody: "healwithコーディネーターが営業日基準で1日以内にご希望の言語でご返信します。",
   },
 };
 

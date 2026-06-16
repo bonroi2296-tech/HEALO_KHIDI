@@ -1,5 +1,5 @@
 /**
- * HEALO: 에이전시 관리 API (어드민)
+ * healwith: 에이전시 관리 API (어드민)
  *
  * GET    → 에이전시 목록 + 담당자 수
  * POST   { name, country?, code? }            → 에이전시 생성

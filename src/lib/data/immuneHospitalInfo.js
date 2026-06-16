@@ -2,7 +2,7 @@
  * Immune Hospital (면력한방병원) — 공식 정보
  *
  * 출처: https://immunehospital.com/ (2026-04-20 정밀 분석)
- * 한방 면역치료 전문 의료기관 / HEALO 직영 파트너
+ * 한방 면역치료 전문 의료기관 / healwith 직영 파트너
  */
 
 export const IMMUNE_HOSPITAL = {

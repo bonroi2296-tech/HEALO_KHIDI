@@ -1,5 +1,5 @@
 /**
- * HEALO: 관리자 알림 테스트 발송 API
+ * healwith: 관리자 알림 테스트 발송 API
  * 
  * 경로: /api/admin/notification-recipients/test
  * 권한: 관리자 전용
@@ -28,7 +28,7 @@ async function sendTestNotification(data: {
   const provider = process.env.SMS_PROVIDER || "console";
   
   const testMessage = `
-🧪 HEALO 알림 테스트
+🧪 healwith 알림 테스트
 
 수신자: ${data.recipientLabel}
 채널: ${data.channel}

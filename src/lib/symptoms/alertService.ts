@@ -1,5 +1,5 @@
 /**
- * HEALO: symptom_alerts 저장 + 코디네이터·환자 알림 발송 서비스 (FR-16)
+ * healwith: symptom_alerts 저장 + 코디네이터·환자 알림 발송 서비스 (FR-16)
  *
  * - symptom_alerts 테이블에 INSERT
  * - 코디네이터 in-app 알림 (notifications 테이블)
@@ -136,13 +136,13 @@ async function sendAlertEmail(
 
   await sendEmail({
     to: recipientEmail,
-    subject: `[HEALO] ${severityLabel} ${typeLabel} — 환자 이상치 감지`,
+    subject: `[healwith] ${severityLabel} ${typeLabel} — 환자 이상치 감지`,
     html: `
 <!DOCTYPE html><html><head><meta charset="utf-8"></head>
 <body style="font-family:sans-serif;max-width:600px;margin:0 auto;padding:20px">
   <div style="background:${alert.severity === "critical" ? "#dc2626" : "#ea580c"};color:white;padding:16px 20px;border-radius:8px 8px 0 0">
     <h2 style="margin:0">${severityLabel} ${typeLabel}</h2>
-    <p style="margin:4px 0 0;font-size:13px;opacity:.9">HEALO 사후 관리 이상치 감지 시스템</p>
+    <p style="margin:4px 0 0;font-size:13px;opacity:.9">healwith 사후 관리 이상치 감지 시스템</p>
   </div>
   <div style="background:#f9fafb;padding:20px;border:1px solid #e5e7eb;border-radius:0 0 8px 8px">
     <p style="color:#374151;margin:0 0 12px"><strong>감지 유형:</strong> ${typeLabel}</p>
@@ -160,7 +160,7 @@ async function sendAlertEmail(
     </a>
   </div>
 </body></html>`,
-    text: `[HEALO] ${severityLabel} ${typeLabel}\n환자 ID: ${alert.patient_id}\n감지 데이터: ${JSON.stringify(alert.data)}\n\n확인: ${appUrl}/coordinator/alerts?alert=${alertId}\n\n⚠️ 이 알림은 의학적 진단이 아닙니다.`,
+    text: `[healwith] ${severityLabel} ${typeLabel}\n환자 ID: ${alert.patient_id}\n감지 데이터: ${JSON.stringify(alert.data)}\n\n확인: ${appUrl}/coordinator/alerts?alert=${alertId}\n\n⚠️ 이 알림은 의학적 진단이 아닙니다.`,
     tags: { source: "symptom_alert", severity: alert.severity },
   });
 }

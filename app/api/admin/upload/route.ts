@@ -1,5 +1,5 @@
 /**
- * HEALO: 관리자 이미지 업로드 API
+ * healwith: 관리자 이미지 업로드 API
  * 
  * 경로: /api/admin/upload
  * 권한: 관리자 전용

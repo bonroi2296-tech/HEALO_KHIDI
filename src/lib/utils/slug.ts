@@ -1,5 +1,5 @@
 /**
- * HEALO: Slug Generation Utility
+ * healwith: Slug Generation Utility
  * 
  * 목적:
  * - Hospitals와 Treatments에서 사용하는 slug 생성 로직을 통합

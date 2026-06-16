@@ -4,8 +4,11 @@ import { getAllPartnerSlugs } from "@/lib/data/partnerHospitals";
 
 const DEFAULT_LIMIT = 1000;
 
+// ⚠️ NEXT_PUBLIC_SITE_URL 를 Vercel(Production·Preview)에 반드시 설정할 것.
+// 미설정 시에도 localhost 가 검색엔진에 노출되지 않도록 실도메인으로 폴백.
+// 도메인 변경(healwith.co.kr) 시 이 env 값만 바꾸면 sitemap/robots/canonical 전부 반영.
 const getBaseUrl = () =>
-  process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+  process.env.NEXT_PUBLIC_SITE_URL || "https://khidi.healo.kr";
 
 export default async function sitemap() {
   const baseUrl = getBaseUrl();
@@ -78,8 +81,7 @@ export default async function sitemap() {
     { url: `${baseUrl}/patient/education`, changeFrequency: 'monthly', priority: 0.7 },
     { url: `${baseUrl}/patient/visa`, changeFrequency: 'monthly', priority: 0.7 },
     { url: `${baseUrl}/visa`, changeFrequency: 'monthly', priority: 0.7 },
-    { url: `${baseUrl}/inquiry`, changeFrequency: 'monthly', priority: 0.7 },
-    { url: `${baseUrl}/consult/start`, changeFrequency: 'monthly', priority: 0.7 },
+    // /inquiry·/consult/start 는 robots.js 에서 Disallow(전환 퍼널·PII 폼) → sitemap 에서도 제외(모순 해소)
     { url: `${baseUrl}/about`, changeFrequency: 'monthly', priority: 0.5 },
     { url: `${baseUrl}/contact`, changeFrequency: 'monthly', priority: 0.5 },
     { url: `${baseUrl}/terms`, changeFrequency: 'yearly', priority: 0.3 },

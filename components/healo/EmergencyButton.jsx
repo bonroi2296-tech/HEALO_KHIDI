@@ -2,7 +2,7 @@
 
 /**
  * 응급 SOS 버튼 — 모든 환자 페이지에 떠있는 플로팅 버튼.
- * 클릭 시 각국 응급 전화 + HEALO 24시간 핫라인 + 코디네이터 즉시 알림 모달.
+ * 클릭 시 각국 응급 전화 + healwith 24시간 핫라인 + 코디네이터 즉시 알림 모달.
  */
 
 import { useEffect, useState } from "react";
@@ -16,7 +16,7 @@ const COPY = {
     titleItalic: "help.",
     body: "If you are in immediate danger, call your local emergency number.",
     local: "Local emergency",
-    healo: "HEALO coordinator",
+    healo: "healwith coordinator",
     healoNote: "24/7 urgent line (message + call back within 10 min)",
     sendAlert: "Alert my coordinator now",
     sent: "Alert sent. A coordinator will contact you within 10 minutes.",
@@ -44,7 +44,7 @@ const COPY = {
     titleItalic: "도움.",
     body: "즉각적인 위험에 처해 있다면 먼저 현지 응급번호로 전화하세요.",
     local: "현지 응급번호",
-    healo: "HEALO 코디네이터",
+    healo: "healwith 코디네이터",
     healoNote: "24시간 긴급 회선 (메시지 + 10분 내 콜백)",
     sendAlert: "지금 코디네이터에게 알리기",
     sent: "알림이 전송되었습니다. 10분 내 코디네이터가 연락드립니다.",
@@ -247,7 +247,7 @@ export default function EmergencyButton() {
               ))}
             </div>
 
-            {/* HEALO hotline */}
+            {/* healwith hotline */}
             <div
               style={{
                 padding: 20,

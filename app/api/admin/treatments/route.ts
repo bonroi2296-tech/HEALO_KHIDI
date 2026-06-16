@@ -1,5 +1,5 @@
 /**
- * HEALO: 관리자 시술 관리 API
+ * healwith: 관리자 시술 관리 API
  * 
  * 경로: /api/admin/treatments
  * 권한: 관리자 전용

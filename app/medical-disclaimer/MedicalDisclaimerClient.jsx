@@ -27,7 +27,7 @@ export default function MedicalDisclaimerClient() {
       >
         <FilmGrain />
         <div style={{ position: "relative", maxWidth: 1100, margin: "0 auto" }}>
-          <Eyebrow>HEALO · Medical Notice</Eyebrow>
+          <Eyebrow>healwith · Medical Notice</Eyebrow>
           <h1
             style={{
               fontFamily: "var(--font-serif)",

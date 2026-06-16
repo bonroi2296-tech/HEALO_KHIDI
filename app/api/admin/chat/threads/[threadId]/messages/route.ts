@@ -1,5 +1,5 @@
 /**
- * HEALO: Chat Thread Messages API
+ * healwith: Chat Thread Messages API
  *
  * POST /api/admin/chat/threads/:threadId/messages — 메시지 추가 (admin)
  * GET  /api/admin/chat/threads/:threadId/messages — 메시지 목록 조회

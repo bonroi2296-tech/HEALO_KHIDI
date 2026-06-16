@@ -1,5 +1,5 @@
 /**
- * HEALO: 운영 알림 시스템
+ * healwith: 운영 알림 시스템
  * 
  * 목적:
  * - error/abuse 누적 시 자동 알림

@@ -1,5 +1,5 @@
 /**
- * HEALO: 의료진 관리 API (admin 전용)
+ * healwith: 의료진 관리 API (admin 전용)
  *
  * 보안:
  * - requireAdminAuth (Bearer/쿠키 기반 app_metadata.role + ADMIN_EMAIL_ALLOWLIST)

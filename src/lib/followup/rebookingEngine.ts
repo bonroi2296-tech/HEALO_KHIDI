@@ -1,5 +1,5 @@
 /**
- * HEALO: Rebooking Engine
+ * healwith: Rebooking Engine
  *
  * 팔로업 스케줄, 증상 분석, 의사 권고에 기반한 재예약 자동 제안.
  * 기존 scheduler.ts와 symptomAnalyzer.ts를 재사용.

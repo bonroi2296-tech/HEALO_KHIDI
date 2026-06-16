@@ -1,5 +1,5 @@
 /**
- * HEALO: Playbook PII/정책 정제 유틸
+ * healwith: Playbook PII/정책 정제 유틸
  *
  * 최소 규칙: 이메일, 전화, 메신저ID, URL, 여권번호 마스킹
  * + "확정" 류 단정적 표현 완화

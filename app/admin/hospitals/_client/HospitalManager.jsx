@@ -851,7 +851,7 @@ function FormContent({ editingHospitalId, hospitalForm, setHospitalForm, uploadi
               </span>
             </div>
             <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
-              <label className="text-sm font-bold text-gray-700 flex-1">HEALO 제휴 병원</label>
+              <label className="text-sm font-bold text-gray-700 flex-1">healwith 제휴 병원</label>
               <button
                 type="button"
                 onClick={() => setHospitalForm({...hospitalForm, isPartner: !hospitalForm.isPartner})}

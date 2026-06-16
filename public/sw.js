@@ -1,5 +1,5 @@
 /**
- * HEALO Service Worker — v2 (2026-06-12 먹통 핫픽스)
+ * healwith Service Worker — v3 (2026-06-16 리브랜딩 캐시 버전업)
  *
  * 사고: v1 은 ① 캐시 이름 고정('healo-v1')이라 영영 안 비워지고
  * ② 첫 화면 HTML('/')을 설치 시점 그대로 보관 → 네트워크가 잠깐 불안하면
@@ -12,7 +12,8 @@
  * - 캐시 이름 버전업 → 활성화 시 옛 캐시 전부 삭제 (기존 먹통 폰 자동 회복)
  */
 
-const CACHE_NAME = 'healo-v2';
+// 리브랜딩(HEALO→healwith) 시 버전업: 기존 방문자 캐시 자동 무효화 → 새 UI 즉시 반영
+const CACHE_NAME = 'healwith-v3';
 const OFFLINE_URL = '/offline.html';
 
 const PRECACHE_URLS = [

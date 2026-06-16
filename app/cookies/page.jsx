@@ -4,8 +4,8 @@ import CookiePolicyPremium from "./CookiePolicyPremium";
 import { getServerDesignMode } from "@/lib/designMode";
 
 export const metadata = {
-  title: "Cookie Policy | HEALO",
-  description: "Learn about how HEALO uses cookies.",
+  title: "Cookie Policy | healwith",
+  description: "Learn about how healwith uses cookies.",
 };
 
 export default async function CookiePolicyPage({ searchParams }) {

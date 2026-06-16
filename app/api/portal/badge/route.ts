@@ -1,5 +1,5 @@
 /**
- * HEALO: 알림 배지 카운트 — 로그인 사용자 본인 기준
+ * healwith: 알림 배지 카운트 — 로그인 사용자 본인 기준
  *
  * GET /api/portal/badge → { count } = 열린 스레드 + 오늘 예정 상담
  */

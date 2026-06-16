@@ -1,5 +1,5 @@
 /**
- * HEALO: 관리자 감사 로그 조회 API
+ * healwith: 관리자 감사 로그 조회 API
  * 
  * 경로: /api/admin/audit-logs
  * 권한: 관리자 전용

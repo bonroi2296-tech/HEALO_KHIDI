@@ -1,5 +1,5 @@
 /**
- * HEALO: inquiries.status 정규화
+ * healwith: inquiries.status 정규화
  *
  * 목적: 한글/혼용 값이 DB에 저장되지 않도록 영문으로 매핑
  * 허용값: pending, received, completed, blocked, normalized, error

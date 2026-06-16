@@ -2,7 +2,7 @@ export const KO_FIXES = {
   "cta.freePlan": "무료 치료 플랜 받기",
   "nav.treatments": "진료 과목",
   "nav.hospitals": "병원",
-  "nav.about": "HEALO 소개",
+  "nav.about": "healwith 소개",
   "nav.contact": "문의하기",
   "nav.privacy": "개인정보처리방침",
   "nav.terms": "이용약관",
@@ -28,7 +28,7 @@ export const KO_FIXES = {
   "list.hospitals.title": "파트너 병원 목록",
   "meta.treatments.title": "진료 과목",
   "meta.treatments.desc":
-    "HEALO의 모든 진료 과목을 확인하고 한국 파트너 병원을 비교하세요.",
+    "healwith의 모든 진료 과목을 확인하고 한국 파트너 병원을 비교하세요.",
   "meta.hospitals.title": "병원",
   "meta.hospitals.desc":
     "한국 전역의 파트너 병원 및 클리닉을 둘러보세요.",
@@ -41,7 +41,7 @@ export const ZH_FIXES = {
   "cta.freePlan": "获取免费治疗方案",
   "nav.treatments": "诊疗项目",
   "nav.hospitals": "医院",
-  "nav.about": "关于 HEALO",
+  "nav.about": "关于 healwith",
   "nav.contact": "联系我们",
   "nav.privacy": "隐私政策",
   "nav.terms": "服务条款",
@@ -68,7 +68,7 @@ export const ZH_FIXES = {
   "list.hospitals.title": "合作医院",
   "meta.treatments.title": "诊疗项目",
   "meta.treatments.desc":
-    "浏览 HEALO 全部诊疗项目，比较韩国合作医院。",
+    "浏览 healwith 全部诊疗项目，比较韩国合作医院。",
   "meta.hospitals.title": "医院",
   "meta.hospitals.desc":
     "浏览韩国各地的合作医院和诊所。",

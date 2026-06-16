@@ -1,5 +1,5 @@
 /**
- * HEALO: 포털(환자·코디네이터) API 인증 헬퍼
+ * healwith: 포털(환자·코디네이터) API 인증 헬퍼
  *
  * 배경: inquiries / chat_threads / chat_messages / consultation_sessions 는
  * RLS상 service_role 전용 → 브라우저 client 직접 쿼리는 항상 빈 데이터.

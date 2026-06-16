@@ -4,20 +4,20 @@ import ContactPremium from "./ContactPremium";
 import { getServerDesignMode } from "@/lib/designMode";
 
 export const metadata = {
-  title: "Contact Us | HEALO",
+  title: "Contact Us | healwith",
   description:
-    "Get in touch with HEALO for medical concierge inquiries, partnership opportunities, or general questions about cancer treatment in Korea.",
-  keywords: ["contact HEALO", "Korea medical tourism inquiry", "cancer treatment inquiry Korea"],
+    "Get in touch with healwith for medical concierge inquiries, partnership opportunities, or general questions about cancer treatment in Korea.",
+  keywords: ["contact healwith", "Korea medical tourism inquiry", "cancer treatment inquiry Korea"],
   alternates: { canonical: "/contact" },
   openGraph: {
-    title: "Contact Us | HEALO",
-    description: "Get in touch with HEALO for medical concierge inquiries, partnership opportunities, or questions about cancer treatment in Korea.",
+    title: "Contact Us | healwith",
+    description: "Get in touch with healwith for medical concierge inquiries, partnership opportunities, or questions about cancer treatment in Korea.",
     type: "website",
   },
   twitter: {
     card: "summary",
-    title: "Contact Us | HEALO",
-    description: "Get in touch with HEALO for medical concierge inquiries and questions about cancer treatment in Korea.",
+    title: "Contact Us | healwith",
+    description: "Get in touch with healwith for medical concierge inquiries and questions about cancer treatment in Korea.",
   },
 };
 

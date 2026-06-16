@@ -1,5 +1,5 @@
 /**
- * HEALO: 코디네이터 인박스 — inquiries 목록 (staff 전용)
+ * healwith: 코디네이터 인박스 — inquiries 목록 (staff 전용)
  *
  * GET /api/portal/inbox → Step1 이상 완료 문의 200건.
  * inquiries 는 RLS상 service_role 전용 → 서버 경유 필수.

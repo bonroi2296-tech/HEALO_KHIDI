@@ -1,5 +1,5 @@
 /**
- * HEALO: 상담 생성용 문의 선택(picker) API — admin 전용
+ * healwith: 상담 생성용 문의 선택(picker) API — admin 전용
  *
  * GET /api/admin/inquiries/picker → Step1 완료 문의를 상담 생성 드롭다운용으로 반환.
  *

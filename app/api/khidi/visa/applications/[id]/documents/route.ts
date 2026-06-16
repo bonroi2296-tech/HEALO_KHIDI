@@ -1,5 +1,5 @@
 /**
- * HEALO: Visa Application Document Upload / List
+ * healwith: Visa Application Document Upload / List
  *
  * POST /api/khidi/visa/applications/[id]/documents — 서류 업로드 (환자/admin)
  * GET  /api/khidi/visa/applications/[id]/documents — 서류 목록 (참가자)

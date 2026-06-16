@@ -1,5 +1,5 @@
 /**
- * HEALO: RAG 검색 — RPC 전용, 무필터 fallback 금지
+ * healwith: RAG 검색 — RPC 전용, 무필터 fallback 금지
  *
  * 모든 RAG 검색은 rag_search_chunks_v1_1 RPC만 사용.
  * 임베딩 실패 또는 RPC 실패 시 빈 배열 반환 (안전 모드).

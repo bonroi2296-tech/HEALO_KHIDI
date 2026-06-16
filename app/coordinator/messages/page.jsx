@@ -1,7 +1,7 @@
 import CoordinatorMessagesClient from "./CoordinatorMessagesClient";
 
 export const metadata = {
-  title: "Patient Messages | HEALO Coordinator",
+  title: "Patient Messages | healwith Coordinator",
   description: "Reply to patient inquiries and ongoing conversations.",
   robots: { index: false, follow: false },
 };

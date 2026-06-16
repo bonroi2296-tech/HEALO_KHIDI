@@ -1,5 +1,5 @@
 /**
- * HEALO: Supabase Server Client (SSR-safe)
+ * healwith: Supabase Server Client (SSR-safe)
  * 
  * 목적:
  * - 서버(API Route, Server Component)에서 사용하는 Supabase 클라이언트

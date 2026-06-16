@@ -1,5 +1,5 @@
 /**
- * HEALO: 침묵 환자 감지 cron (FR-16)
+ * healwith: 침묵 환자 감지 cron (FR-16)
  *
  * GET /api/cron/detect-silent-patients
  * - 매일 자정 외부 스케줄러(Vercel Cron / cron-job.org)에서 호출

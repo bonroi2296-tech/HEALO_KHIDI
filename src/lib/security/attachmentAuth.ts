@@ -1,5 +1,5 @@
 /**
- * HEALO: Attachment 접근 권한 검증 유틸
+ * healwith: Attachment 접근 권한 검증 유틸
  * attachments/sign과 referral/summary에서 공통 사용
  */
 

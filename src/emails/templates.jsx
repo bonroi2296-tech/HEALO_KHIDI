@@ -1,5 +1,5 @@
 /**
- * HEALO 트랜잭셔널 이메일 템플릿 6종
+ * healwith 트랜잭셔널 이메일 템플릿 6종
  *
  * 1. inquiryReceived      — 문의 접수 확인
  * 2. coordinatorIntro     — 코디네이터 첫 연락
@@ -13,14 +13,14 @@
 
 import React from "react";
 import { Row, Column, Section, Text, Link as EmailLink } from "@react-email/components";
-import { HealoEmail, Eyebrow, Title, Rule, BodyText as Body, CTA, BilingualSplit, COLORS, BRAND } from "./shared";
+import { HealwithEmail, Eyebrow, Title, Rule, BodyText as Body, CTA, BilingualSplit, COLORS, BRAND } from "./shared";
 
 // ============ 1. 문의 접수 확인 ============
 
 export function InquiryReceived({ name = "", inquiryId = "" }) {
   const preview = "Your inquiry has arrived. We'll respond within one business day.";
   return (
-    <HealoEmail preview={preview}>
+    <HealwithEmail preview={preview}>
       <Eyebrow>Received</Eyebrow>
       <Title>
         Your inquiry{" "}
@@ -32,7 +32,7 @@ export function InquiryReceived({ name = "", inquiryId = "" }) {
           <>
             <Body>
               {name ? `${name} 님,` : "환자님,"} 안녕하세요.
-              HEALO에 문의주셔서 감사합니다. 전담 코디네이터가 영업일 기준 하루 안에
+              healwith에 문의주셔서 감사합니다. 전담 코디네이터가 영업일 기준 하루 안에
               선호 언어로 회신드립니다.
             </Body>
             <Body>
@@ -48,7 +48,7 @@ export function InquiryReceived({ name = "", inquiryId = "" }) {
         en={
           <>
             <Body>
-              Dear {name || "patient"}, thank you for reaching out to HEALO. A dedicated
+              Dear {name || "patient"}, thank you for reaching out to healwith. A dedicated
               coordinator will respond within one business day, in your preferred language.
             </Body>
             <Body>
@@ -63,7 +63,7 @@ export function InquiryReceived({ name = "", inquiryId = "" }) {
         }
       />
       <CTA href={`${BRAND.website}/education`}>View patient guides</CTA>
-    </HealoEmail>
+    </HealwithEmail>
   );
 }
 
@@ -76,7 +76,7 @@ export function CoordinatorIntro({
   calendarLink = "",
 }) {
   return (
-    <HealoEmail preview={`Hello from ${coordinatorName}, your HEALO coordinator.`}>
+    <HealwithEmail preview={`Hello from ${coordinatorName}, your healwith coordinator.`}>
       <Eyebrow>Your coordinator</Eyebrow>
       <Title italic>A personal introduction.</Title>
       <Rule />
@@ -84,7 +84,7 @@ export function CoordinatorIntro({
         ko={
           <>
             <Body>
-              {patientName ? `${patientName} 님,` : "안녕하세요,"} HEALO의 {coordinatorName} 코디네이터입니다.
+              {patientName ? `${patientName} 님,` : "안녕하세요,"} healwith의 {coordinatorName} 코디네이터입니다.
               앞으로 진료 여정의 모든 단계를 저와 함께 하시게 됩니다.
             </Body>
             <Body>
@@ -100,7 +100,7 @@ export function CoordinatorIntro({
         en={
           <>
             <Body>
-              Dear {patientName || "patient"}, I'm {coordinatorName}, your HEALO coordinator.
+              Dear {patientName || "patient"}, I'm {coordinatorName}, your healwith coordinator.
               I'll be with you through every step of this journey.
             </Body>
             <Body>
@@ -119,7 +119,7 @@ export function CoordinatorIntro({
       ) : (
         <CTA href={`mailto:${BRAND.email}?subject=Schedule%20intro%20call`}>Reply to schedule</CTA>
       )}
-    </HealoEmail>
+    </HealwithEmail>
   );
 }
 
@@ -127,7 +127,7 @@ export function CoordinatorIntro({
 
 export function HospitalMatch({ patientName = "", proposals = [], quotationLink = "" }) {
   return (
-    <HealoEmail preview="We've selected hospitals that match your case.">
+    <HealwithEmail preview="We've selected hospitals that match your case.">
       <Eyebrow>Matches proposed</Eyebrow>
       <Title>
         Selected for <span style={{ fontStyle: "italic", color: COLORS.goldDark }}>your case.</span>
@@ -219,7 +219,7 @@ export function HospitalMatch({ patientName = "", proposals = [], quotationLink 
         ko={<Body>회신 주시면 선호하는 병원에 맞춰 일정을 조율하겠습니다.</Body>}
         en={<Body>Reply with your preference and we'll arrange the schedule.</Body>}
       />
-    </HealoEmail>
+    </HealwithEmail>
   );
 }
 
@@ -234,7 +234,7 @@ export function VisaDocumentRequest({ patientName = "", visaType = "C-3-3", uplo
     { ko: "항공권 예약 확인서", en: "Flight reservation confirmation" },
   ];
   return (
-    <HealoEmail preview={`Visa documents needed for ${visaType}`}>
+    <HealwithEmail preview={`Visa documents needed for ${visaType}`}>
       <Eyebrow>Visa preparation</Eyebrow>
       <Title>
         We need <span style={{ fontStyle: "italic", color: COLORS.goldDark }}>a few documents.</span>
@@ -293,7 +293,7 @@ export function VisaDocumentRequest({ patientName = "", visaType = "C-3-3", uplo
       ) : (
         <CTA href={`mailto:${BRAND.email}?subject=Visa%20documents`}>Reply with attachments</CTA>
       )}
-    </HealoEmail>
+    </HealwithEmail>
   );
 }
 
@@ -306,7 +306,7 @@ export function TreatmentSchedule({
   itinerary = [],
 }) {
   return (
-    <HealoEmail preview="Your treatment schedule is confirmed.">
+    <HealwithEmail preview="Your treatment schedule is confirmed.">
       <Eyebrow>Schedule confirmed</Eyebrow>
       <Title>
         Everything is <span style={{ fontStyle: "italic", color: COLORS.goldDark }}>in place.</span>
@@ -401,7 +401,7 @@ export function TreatmentSchedule({
         ko={<Body>전체 일정은 PDF로 별도 첨부해드립니다. 공항 픽업 시간에 맞춰 입국 준비 부탁드립니다.</Body>}
         en={<Body>The full itinerary is attached as PDF. Please be ready for airport pickup on arrival.</Body>}
       />
-    </HealoEmail>
+    </HealwithEmail>
   );
 }
 
@@ -409,7 +409,7 @@ export function TreatmentSchedule({
 
 export function PostTreatmentFollowup({ patientName = "", daysSinceDischarge = 30, feedbackLink = "" }) {
   return (
-    <HealoEmail preview="Checking in on your recovery">
+    <HealwithEmail preview="Checking in on your recovery">
       <Eyebrow>Follow-up</Eyebrow>
       <Title italic>How are you?</Title>
       <Rule />
@@ -425,7 +425,7 @@ export function PostTreatmentFollowup({ patientName = "", daysSinceDischarge = 3
               필요 시 담당 의료진과 재진을 조율해드립니다.
             </Body>
             <Body>
-              1분 정도의 짧은 피드백도 부탁드립니다. HEALO가 다른 환자들을 더 잘
+              1분 정도의 짧은 피드백도 부탁드립니다. healwith가 다른 환자들을 더 잘
               도울 수 있게 됩니다.
             </Body>
           </>
@@ -441,7 +441,7 @@ export function PostTreatmentFollowup({ patientName = "", daysSinceDischarge = 3
               and general condition — we'll coordinate a follow-up consultation if needed.
             </Body>
             <Body>
-              We'd also appreciate a 1-minute feedback. It helps HEALO serve future
+              We'd also appreciate a 1-minute feedback. It helps healwith serve future
               patients better.
             </Body>
           </>
@@ -452,6 +452,6 @@ export function PostTreatmentFollowup({ patientName = "", daysSinceDischarge = 3
       ) : (
         <CTA href={`mailto:${BRAND.email}?subject=Follow-up%20check-in`}>Reply with update</CTA>
       )}
-    </HealoEmail>
+    </HealwithEmail>
   );
 }

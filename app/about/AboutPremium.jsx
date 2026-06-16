@@ -14,11 +14,11 @@ import { PHOTOS, IMMUNE_PHOTOS, PHOTO_FILTER, IMMUNE_PHOTO_FILTER } from "../../
 
 const COPY = {
   en: {
-    eyebrow: "About HEALO",
+    eyebrow: "About healwith",
     title: "Quiet expertise.",
     titleItalic: "Personal care.",
     lede:
-      "HEALO is a concierge platform that brings international cancer patients into Korea's most experienced oncology teams — and stays with them from first question to full recovery.",
+      "healwith is a concierge platform that brings international cancer patients into Korea's most experienced oncology teams — and stays with them from first question to full recovery.",
     mission: {
       eyebrow: "Our mission",
       body: "To make Korea's best cancer care accessible to anyone, in any language, at any stage of their diagnosis — without the chaos that usually surrounds medical travel.",
@@ -57,11 +57,11 @@ const COPY = {
     ctaBtn: "Request consultation",
   },
   ko: {
-    eyebrow: "HEALO 소개",
+    eyebrow: "healwith 소개",
     title: "조용한 전문성,",
     titleItalic: "개인적인 돌봄.",
     lede:
-      "HEALO는 해외 암환자를 한국의 가장 경험 많은 종양학 팀과 연결하는 컨시어지 플랫폼입니다. 첫 문의부터 완전한 회복까지, 옆에서 함께합니다.",
+      "healwith는 해외 암환자를 한국의 가장 경험 많은 종양학 팀과 연결하는 컨시어지 플랫폼입니다. 첫 문의부터 완전한 회복까지, 옆에서 함께합니다.",
     mission: {
       eyebrow: "우리의 미션",
       body: "누구든, 어떤 언어로든, 진단의 어떤 단계에서든 한국 최고의 암 치료에 접근할 수 있게 하는 것. 의료 해외여행에 따라붙는 혼란 없이.",
@@ -234,7 +234,7 @@ export default function AboutPremium() {
           <div>
             <img
               src={IMMUNE_PHOTOS.team}
-              alt="HEALO team — physicians, coordinators, and chef"
+              alt="healwith team — physicians, coordinators, and chef"
               style={{
                 width: "100%",
                 aspectRatio: "4 / 5",

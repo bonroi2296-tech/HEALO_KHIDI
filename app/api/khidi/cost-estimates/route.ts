@@ -1,5 +1,5 @@
 /**
- * HEALO: Cost Estimates (Tier 3 정식 견적) Workflow API
+ * healwith: Cost Estimates (Tier 3 정식 견적) Workflow API
  *
  * POST /api/khidi/cost-estimates — 정식 견적 요청 시작 (환자)
  * GET  /api/khidi/cost-estimates — 목록 (환자: 본인, 코디: 전체, admin: 전체)

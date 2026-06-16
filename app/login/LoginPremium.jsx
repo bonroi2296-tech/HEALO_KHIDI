@@ -22,7 +22,7 @@ const COPY = {
     or: "or",
     google: "Continue with Google",
     forgot: "Forgot password?",
-    noAccount: "New to HEALO?",
+    noAccount: "New to healwith?",
     createAccount: "Create an account",
     quote: "Care is a conversation, not a transaction.",
     errorInvalid: "Incorrect email or password.",
@@ -40,7 +40,7 @@ const COPY = {
     or: "또는",
     google: "Google로 계속하기",
     forgot: "비밀번호를 잊으셨나요?",
-    noAccount: "HEALO가 처음이신가요?",
+    noAccount: "healwith가 처음이신가요?",
     createAccount: "계정 만들기",
     quote: "치료는 거래가 아닌 대화입니다.",
     errorInvalid: "이메일 또는 비밀번호가 올바르지 않습니다.",
@@ -148,7 +148,7 @@ export default function LoginPremium() {
               letterSpacing: "0.04em",
             }}
           >
-            HEALO
+            healwith
           </Link>
           <blockquote
             style={{
@@ -191,7 +191,7 @@ export default function LoginPremium() {
               marginBottom: 32,
             }}
           >
-            ← HEALO
+            ← healwith
           </Link>
 
           <Eyebrow>{copy.eyebrow}</Eyebrow>

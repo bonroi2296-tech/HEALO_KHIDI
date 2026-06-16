@@ -1,5 +1,5 @@
 /**
- * HEALO: AI 품질 대시보드 API
+ * healwith: AI 품질 대시보드 API
  *
  * GET /api/admin/khidi/ai-quality
  *   ?from=YYYY-MM-DD&to=YYYY-MM-DD&score_max=0.6&limit=50&offset=0

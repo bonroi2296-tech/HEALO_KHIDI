@@ -1,5 +1,5 @@
 /**
- * HEALO 개인정보처리방침 (Privacy Policy)
+ * healwith 개인정보처리방침 (Privacy Policy)
  *
  * 법적 근거 (Legal Basis):
  * - 대한민국 개인정보보호법 (PIPA) §15, §17, §22, §23, §26, §28-8, §31
@@ -84,7 +84,7 @@ const KO = {
   introduction: {
     title: "1. 총칙",
     body: [
-      "본로이(BONROI, 이하 '회사')는 해외 환자의 대한민국 내 의료기관 이용을 돕는 메디컬 컨시어지 서비스 'HEALO'를 제공합니다. 회사는 의료기관이 아니며 진단·치료를 직접 제공하지 않습니다.",
+      "본로이(BONROI, 이하 '회사')는 해외 환자의 대한민국 내 의료기관 이용을 돕는 메디컬 컨시어지 서비스 'healwith'를 제공합니다. 회사는 의료기관이 아니며 진단·치료를 직접 제공하지 않습니다.",
       "본 방침은 대한민국 「개인정보보호법」, 「의료법」, 「의료 해외진출 및 외국인환자 유치 지원에 관한 법률」을 기본으로 하며, 이용자의 거주국 법제(예: EU GDPR, 카자흐스탄 94-V ЗРК, 러시아 152-ФЗ 등)의 관련 요구사항을 반영합니다. 각 관할별 상세 고지는 별도 섹션에 기술합니다.",
       "회사는 국적·거주지를 불문하고 모든 이용자의 개인정보를 소중히 다루며, 관련 법령을 준수하여 안전하게 처리합니다.",
     ],
@@ -93,7 +93,7 @@ const KO = {
   controller: {
     title: "2. 개인정보처리자 정보",
     body: [
-      "상호: 본로이 (BONROI) — 서비스명: HEALO",
+      "상호: 본로이 (BONROI) — 서비스명: healwith",
       "사업 형태: 개인사업자",
       "대표자: 강주영 (JUYOUNG KANG)",
       "사업자등록번호: 463-35-00902",
@@ -396,7 +396,7 @@ const EN = {
   introduction: {
     title: "1. Introduction",
     body: [
-      "BONROI (\"we\", \"us\") operates a medical concierge platform, HEALO, that helps international patients access medical care in the Republic of Korea. HEALO is not a medical institution and does not provide diagnosis or treatment.",
+      "BONROI (\"we\", \"us\") operates a medical concierge platform, healwith, that helps international patients access medical care in the Republic of Korea. healwith is not a medical institution and does not provide diagnosis or treatment.",
       "This Policy is primarily governed by the Korean Personal Information Protection Act (PIPA), the Medical Service Act, and the Act on Support for Overseas Expansion of Healthcare Systems and Attraction of International Patients. Where applicable, it also reflects the requirements of your country of residence (e.g., EU GDPR, Kazakhstan Law 94-V, Russian Federal Law 152-FZ, etc.). Jurisdiction-specific notices are provided in dedicated sections below.",
       "We treat the personal information of all users with care, regardless of nationality or residence, and handle it in accordance with applicable laws.",
     ],
@@ -405,7 +405,7 @@ const EN = {
   controller: {
     title: "2. Data Controller",
     body: [
-      "Trade name: BONROI (service: HEALO)",
+      "Trade name: BONROI (service: healwith)",
       "Entity type: Sole proprietorship",
       "Representative: JUYOUNG KANG",
       "Business Registration Number: 463-35-00902",
@@ -458,7 +458,7 @@ const EN = {
   sensitive_data: {
     title: "5. Sensitive Data (PIPA §23 / GDPR Art. 9)",
     body: [
-      "HEALO processes \"health-related information\" which constitutes Sensitive Data under PIPA §23 and a Special Category of personal data under GDPR Article 9. Such data is collected and used only with your explicit, separate consent.",
+      "healwith processes \"health-related information\" which constitutes Sensitive Data under PIPA §23 and a Special Category of personal data under GDPR Article 9. Such data is collected and used only with your explicit, separate consent.",
       "Sensitive data is used solely for hospital matching and appropriate care coordination, and is shared with healthcare providers only within the scope of your consent.",
       "You have the right to withhold consent for processing of sensitive data; doing so may restrict your ability to use medical matching services.",
     ],
@@ -474,7 +474,7 @@ const EN = {
       "· Payment and supply records: 5 years",
       "· Consumer complaints/dispute records: 3 years",
       "· Login records: 3 months (Protection of Communications Secrets Act §15-2)",
-      "· Medical records held by hospitals: 10 years (Medical Service Act §22). Note: HEALO does not retain copies of medical records; originals are maintained by the hospital.",
+      "· Medical records held by hospitals: 10 years (Medical Service Act §22). Note: healwith does not retain copies of medical records; originals are maintained by the hospital.",
       "",
       "【Service-Based Retention】",
       "· Account information: until account closure (dormant accounts archived after 1 year)",
@@ -570,7 +570,7 @@ const EN = {
   children: {
     title: "11. Children Under 14 (PIPA §22-2)",
     body: [
-      "HEALO may receive concierge requests involving minor patients (e.g., pediatric cancer). In such cases, we require verified consent from a legal guardian (parent/caretaker).",
+      "healwith may receive concierge requests involving minor patients (e.g., pediatric cancer). In such cases, we require verified consent from a legal guardian (parent/caretaker).",
       "Legal guardians may at any time request access, correction, deletion, or suspension of processing of the minor's personal data. We respond without delay.",
     ],
   },
@@ -634,7 +634,7 @@ const EN = {
     title: "17. Additional Notice for Residents of Russia",
     body: [
       "Russian Federal Law 152-FZ requires initial collection of personal data of Russian citizens within Russian territory.",
-      "HEALO is separately evaluating compliance with this requirement. By using the service, Russian residents acknowledge and explicitly consent to these terms.",
+      "healwith is separately evaluating compliance with this requirement. By using the service, Russian residents acknowledge and explicitly consent to these terms.",
       "Supervisory authority: Roskomnadzor (Роскомнадзор).",
     ],
   },

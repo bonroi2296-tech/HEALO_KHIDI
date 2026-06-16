@@ -1,5 +1,5 @@
 /**
- * HEALO: Admin Playbook Patterns List API
+ * healwith: Admin Playbook Patterns List API
  *
  * GET /api/admin/playbook/patterns
  */

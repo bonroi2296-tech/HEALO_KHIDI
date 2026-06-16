@@ -1,5 +1,5 @@
 /**
- * HEALO: AI 응답 피드백 API
+ * healwith: AI 응답 피드백 API
  *
  * POST /api/public/chat/feedback
  * - 비회원 사용 가능 (public_token 검증)

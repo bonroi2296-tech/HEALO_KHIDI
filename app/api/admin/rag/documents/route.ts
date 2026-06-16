@@ -1,5 +1,5 @@
 /**
- * HEALO: Admin RAG Documents API
+ * healwith: Admin RAG Documents API
  *
  * GET  /api/admin/rag/documents — 목록 조회 (필터/검색/페이지네이션)
  */

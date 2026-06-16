@@ -1,5 +1,5 @@
 /**
- * HEALO Multilingual Translation Engine
+ * healwith Multilingual Translation Engine
  *
  * Detects the input language, translates to all other supported languages,
  * and stores results in the i18n JSONB column.
@@ -68,7 +68,7 @@ function buildSystemPrompt(sourceLang: LangCode, targetLangs: LangCode[]): strin
   const sourceLabel = langNames[sourceLang];
   const targetLabels = targetLangs.map((l) => `"${l}" (${langNames[l]})`).join(", ");
 
-  return `You are a medical translation assistant for HEALO, a medical tourism platform.
+  return `You are a medical translation assistant for healwith, a medical tourism platform.
 Translate ${sourceLabel} hospital/treatment data to the following languages: ${targetLabels}.
 
 TRANSLATION RULES:

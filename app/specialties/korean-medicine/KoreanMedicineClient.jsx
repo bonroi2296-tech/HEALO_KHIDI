@@ -280,7 +280,7 @@ export default function KoreanMedicineClient() {
           __html: JSON.stringify({
             "@context": "https://schema.org",
             "@type": "MedicalBusiness",
-            name: "Korean Traditional Medicine at HEALO",
+            name: "Korean Traditional Medicine at healwith",
             description: "Experience Korea's unique traditional medicine — herbal formulas, acupuncture, and holistic healing programs for international patients.",
             url: "https://khidi.healo.kr/specialties/korean-medicine",
             medicalSpecialty: "Traditional Korean Medicine",

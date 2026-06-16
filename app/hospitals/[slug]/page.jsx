@@ -51,7 +51,7 @@ export async function generateMetadata({ params }) {
   }
 
   const description =
-    hospital.description || "Explore this HEALO partner hospital in Korea.";
+    hospital.description || "Explore this healwith partner hospital in Korea.";
   const canonical = `/hospitals/${hospital.slug || slug}`;
   const folderOg = hospital.is_partner ? partnerFolderImage(hospital.slug || slug) : null;
   const ogImages = folderOg
@@ -108,7 +108,7 @@ export default async function HospitalDetailPage({ params, searchParams }) {
       "@type": "MedicalOrganization",
       name: hospital.name,
       description:
-        hospital.description || "Explore this HEALO partner hospital in Korea.",
+        hospital.description || "Explore this healwith partner hospital in Korea.",
       image: folderOg
         ? [folderOg]
         : Array.isArray(hospital.images) && hospital.images.length > 0
@@ -146,7 +146,7 @@ export default async function HospitalDetailPage({ params, searchParams }) {
       "@context": "https://schema.org",
       "@type": "MedicalOrganization",
       name: partner.name?.en || partner.name?.ko,
-      description: partner.description?.en || partner.description?.ko || "Explore this HEALO partner hospital in Korea.",
+      description: partner.description?.en || partner.description?.ko || "Explore this healwith partner hospital in Korea.",
       image: folderOg ? [folderOg] : undefined,
       url: `${baseUrl}/hospitals/${slug}`,
       areaServed: "KR",

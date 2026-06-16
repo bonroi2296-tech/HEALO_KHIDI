@@ -10,6 +10,7 @@ import {
   FileText, UserCheck, Clock, ShieldCheck, Shield, Sparkles, User, LogOut, BookOpen, Video
 } from 'lucide-react';
 import { getLangCodeFromCookie, setLangCookie, LANG_OPTIONS as I18N_LANG_OPTIONS, LANG_OPTIONS_PRIMARY, t } from "./lib/i18n";
+import Logo from "../components/brand/Logo";
 
 /**
  * 유틸: 바깥 클릭 시 닫기
@@ -70,16 +71,16 @@ const UserMenu = ({ session, onLogout, langCode, isHospitalUser, isAdmin }) => {
     <div className="relative flex-shrink-0" ref={menuRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-1.5 rounded-full hover:bg-white/10 transition-all group px-1 py-1"
+        className="flex items-center gap-1.5 rounded-full hover:bg-teal-200/70 transition-all group px-1 py-1"
         title={session?.user?.email}
         aria-label="Account menu"
       >
-        <div className="h-8 w-8 rounded-full bg-white/15 border border-white/20 flex items-center justify-center text-white font-semibold text-xs group-hover:bg-white/25 transition-all">
+        <div className="h-8 w-8 rounded-full bg-teal-200 border border-teal-300 flex items-center justify-center text-teal-800 font-semibold text-xs group-hover:bg-teal-300 transition-all">
           {initials}
         </div>
         <ChevronDown
           size={14}
-          className={`text-white/50 group-hover:text-white/80 transition-all ${isOpen ? 'rotate-180' : ''}`}
+          className={`text-slate-400 group-hover:text-teal-600 transition-all ${isOpen ? 'rotate-180' : ''}`}
         />
       </button>
 
@@ -140,52 +141,52 @@ export const Header = ({ setView, view, _handleGlobalInquiry, isMobileMenuOpen, 
 
   return (
     <>
-      <header className="bg-teal-600 text-white sticky top-0 z-50 shadow-sm pt-safe-area">
+      <header className="bg-teal-100 text-slate-700 border-b border-teal-200 sticky top-0 z-50 shadow-sm pt-safe-area">
         <div className="max-w-6xl mx-auto px-4 h-14 md:h-16 flex items-center justify-between">
           {/* Left: Logo + Nav */}
           <div className="flex items-center gap-6 z-20">
             <div className="flex items-center cursor-pointer shrink-0" onClick={() => onNavClick('home')}>
               {siteConfig?.logo ? (
-                  <img src={siteConfig.logo} alt="HEALO" className="h-8 md:h-9 object-contain" />
+                  <img src={siteConfig.logo} alt="healwith" className="h-8 md:h-9 object-contain" />
               ) : (
-                  <span className="text-xl md:text-2xl font-extrabold tracking-tight notranslate">HEALO</span>
+                  <Logo tone="light" />
               )}
             </div>
             <nav className="hidden lg:flex items-center gap-0.5">
               <a
                 href="/telemedicine"
-                className="px-2.5 py-1.5 rounded-full text-sm font-semibold transition-all text-white/70 hover:text-white hover:bg-white/10 inline-flex items-center gap-1.5 whitespace-nowrap"
+                className="px-2.5 py-1.5 rounded-full text-sm font-semibold transition-all text-slate-600 hover:text-teal-700 hover:bg-teal-200/70 inline-flex items-center gap-1.5 whitespace-nowrap"
               >
                 {t("nav.telemedicine", langCode)}
-                <span className="text-[9px] font-extrabold bg-white/20 text-white px-1.5 py-0.5 rounded-full leading-none">NEW</span>
+                <span className="text-[9px] font-extrabold bg-teal-600 text-white px-1.5 py-0.5 rounded-full leading-none">NEW</span>
               </a>
               <button
                 onClick={() => onNavClick('list_treatment')}
-                className={`px-2.5 py-1.5 rounded-full text-sm font-semibold transition-all whitespace-nowrap ${isActive('treatment') ? 'bg-white/15 text-white' : 'text-white/70 hover:text-white hover:bg-white/10'}`}
+                className={`px-2.5 py-1.5 rounded-full text-sm font-semibold transition-all whitespace-nowrap ${isActive('treatment') ? 'bg-teal-200 text-teal-800' : 'text-slate-600 hover:text-teal-700 hover:bg-teal-200/70'}`}
               >
                 {t("nav.treatments", langCode)}
               </button>
               <button
                 onClick={() => onNavClick('list_hospital')}
-                className={`px-2.5 py-1.5 rounded-full text-sm font-semibold transition-all whitespace-nowrap ${isActive('hospital') ? 'bg-white/15 text-white' : 'text-white/70 hover:text-white hover:bg-white/10'}`}
+                className={`px-2.5 py-1.5 rounded-full text-sm font-semibold transition-all whitespace-nowrap ${isActive('hospital') ? 'bg-teal-200 text-teal-800' : 'text-slate-600 hover:text-teal-700 hover:bg-teal-200/70'}`}
               >
                 {t("nav.hospitals", langCode)}
               </button>
               <a
                 href="/care-journey"
-                className="px-2.5 py-1.5 rounded-full text-sm font-semibold transition-all text-white/70 hover:text-white hover:bg-white/10 whitespace-nowrap"
+                className="px-2.5 py-1.5 rounded-full text-sm font-semibold transition-all text-slate-600 hover:text-teal-700 hover:bg-teal-200/70 whitespace-nowrap"
               >
                 {t("nav.careJourney", langCode)}
               </a>
               <a
                 href="/visa"
-                className="px-2.5 py-1.5 rounded-full text-sm font-semibold transition-all text-white/70 hover:text-white hover:bg-white/10 whitespace-nowrap"
+                className="px-2.5 py-1.5 rounded-full text-sm font-semibold transition-all text-slate-600 hover:text-teal-700 hover:bg-teal-200/70 whitespace-nowrap"
               >
                 {t("nav.visa", langCode)}
               </a>
               <a
                 href="/education"
-                className="px-2.5 py-1.5 rounded-full text-sm font-semibold transition-all text-white/70 hover:text-white hover:bg-white/10 whitespace-nowrap"
+                className="px-2.5 py-1.5 rounded-full text-sm font-semibold transition-all text-slate-600 hover:text-teal-700 hover:bg-teal-200/70 whitespace-nowrap"
               >
                 {t("nav.education", langCode)}
               </a>
@@ -213,7 +214,7 @@ export const Header = ({ setView, view, _handleGlobalInquiry, isMobileMenuOpen, 
                 onClick={() => setIsLangOpen(!isLangOpen)}
                 data-testid="lang-switcher"
                 aria-label="Change language"
-                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-white/70 hover:text-white hover:bg-white/10 transition-all notranslate"
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-slate-600 hover:text-teal-700 hover:bg-teal-200/70 transition-all notranslate"
               >
                 <Globe size={15} />
                 <span className="text-sm font-medium">{currentLangLabel}</span>
@@ -240,10 +241,10 @@ export const Header = ({ setView, view, _handleGlobalInquiry, isMobileMenuOpen, 
               <UserMenu session={session} onLogout={onLogout} langCode={langCode} isHospitalUser={isHospitalUser} isAdmin={isAdmin} />
             ) : (
               <div className="flex items-center gap-1.5">
-                <button onClick={() => setView('login')} className="px-3 py-1.5 text-sm font-medium text-white/70 hover:text-white hover:bg-white/10 rounded-full transition-all whitespace-nowrap">
+                <button onClick={() => setView('login')} className="px-3 py-1.5 text-sm font-medium text-slate-600 hover:text-teal-700 hover:bg-teal-200/70 rounded-full transition-all whitespace-nowrap">
                   {t("auth.login", langCode)}
                 </button>
-                <button onClick={() => setView('signup')} className="px-4 py-1.5 text-sm font-semibold text-teal-700 bg-white rounded-full hover:bg-teal-50 transition-all whitespace-nowrap shadow-sm">
+                <button onClick={() => setView('signup')} className="px-4 py-1.5 text-sm font-semibold text-white bg-teal-600 rounded-full hover:bg-teal-700 transition-all whitespace-nowrap shadow-sm">
                   {t("auth.signup", langCode)}
                 </button>
               </div>
@@ -251,12 +252,12 @@ export const Header = ({ setView, view, _handleGlobalInquiry, isMobileMenuOpen, 
 
             {/* Portal links */}
             {isHospitalUser && !isAdmin && (
-              <a href="/partner" className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold text-white/70 hover:text-white hover:bg-white/10 rounded-full transition-all border border-white/20" title="Hospital Portal">
+              <a href="/partner" className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold text-slate-600 hover:text-teal-700 hover:bg-teal-200/70 rounded-full transition-all border border-teal-200" title="Hospital Portal">
                 <Building2 size={13} /> Portal
               </a>
             )}
             {isAdmin && (
-              <button onClick={() => setView('admin')} className="p-2 text-white/60 hover:text-white hover:bg-white/10 rounded-full transition-all" title="Admin Settings">
+              <button onClick={() => setView('admin')} className="p-2 text-slate-500 hover:text-teal-700 hover:bg-teal-200/70 rounded-full transition-all" title="Admin Settings">
                 <Settings size={18} />
               </button>
             )}
@@ -265,13 +266,13 @@ export const Header = ({ setView, view, _handleGlobalInquiry, isMobileMenuOpen, 
           {/* Mobile: right actions */}
           <div className="lg:hidden flex items-center gap-2 z-20">
             {session && (
-              <div className="w-7 h-7 rounded-full bg-white/15 border border-white/20 flex items-center justify-center text-white font-bold text-[10px]">
+              <div className="w-7 h-7 rounded-full bg-teal-200 border border-teal-300 flex items-center justify-center text-teal-800 font-bold text-[10px]">
                 {session.user.email.split('@')[0].substring(0, 2).toUpperCase()}
               </div>
             )}
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="p-1.5 text-white/80 hover:text-white hover:bg-white/10 rounded-lg transition-all"
+              className="p-1.5 text-slate-600 hover:text-teal-700 hover:bg-teal-200/70 rounded-lg transition-all"
             >
               {isMobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
             </button>
@@ -286,7 +287,7 @@ export const Header = ({ setView, view, _handleGlobalInquiry, isMobileMenuOpen, 
           <div className="relative w-[85%] max-w-[320px] h-full bg-white shadow-2xl flex flex-col animate-in slide-in-from-right duration-300">
             {/* Mobile header */}
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-              <span className="text-lg font-extrabold text-teal-600 notranslate">HEALO</span>
+              <Logo tone="light" size="sm" />
               <button onClick={() => setIsMobileMenuOpen(false)} className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
                 <X size={20} />
               </button>

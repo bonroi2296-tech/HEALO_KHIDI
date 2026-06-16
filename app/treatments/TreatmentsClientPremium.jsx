@@ -30,11 +30,11 @@ const COPY = {
     titleB: "fighting disease.",
     titleC: "It's restoring a life.",
     lede:
-      "HEALO combines Korea's world-class oncology with Korean Medicine integrative care. Same diagnosis, two disciplines, one coordinator.",
+      "healwith combines Korea's world-class oncology with Korean Medicine integrative care. Same diagnosis, two disciplines, one coordinator.",
     western: "Western Medicine",
     eastern: "Korean Medicine",
     partnerLabel: "Partner hospital",
-    kmLabel: "Immune Hospital (HEALO direct)",
+    kmLabel: "Immune Hospital (healwith direct)",
     strength: "Korea's advantage",
     readGuide: "Read patient guide",
     requestConsult: "Request consultation",
@@ -49,11 +49,11 @@ const COPY = {
     titleB: "것이 아니라,",
     titleC: "삶을 되찾는 과정입니다.",
     lede:
-      "HEALO는 한국의 세계 수준 종양학과 한방 통합 케어를 결합합니다. 같은 진단, 두 분야, 한 명의 코디네이터.",
+      "healwith는 한국의 세계 수준 종양학과 한방 통합 케어를 결합합니다. 같은 진단, 두 분야, 한 명의 코디네이터.",
     western: "양방 의학",
     eastern: "한방 의학",
     partnerLabel: "협진 병원",
-    kmLabel: "면력한방병원 (HEALO 직영)",
+    kmLabel: "면력한방병원 (healwith 직영)",
     strength: "한국의 강점",
     readGuide: "환자 가이드 보기",
     requestConsult: "상담 신청",
@@ -396,8 +396,8 @@ export default function TreatmentsClientPremium() {
               }}
             >
               {lang === "ko"
-                ? "HEALO 직영 면력한방병원(Immune Hospital)은 의료진·임상영양사·치료식 셰프가 함께 한 명의 환자를 돌봅니다. 누적 50,000건 이상의 케이스."
-                : "At Immune Hospital — HEALO's direct partner — physicians, clinical dietitians, and a full-time therapeutic chef care for each patient together. Over 50,000 cases to date."}
+                ? "healwith 직영 면력한방병원(Immune Hospital)은 의료진·임상영양사·치료식 셰프가 함께 한 명의 환자를 돌봅니다. 누적 50,000건 이상의 케이스."
+                : "At Immune Hospital — healwith's direct partner — physicians, clinical dietitians, and a full-time therapeutic chef care for each patient together. Over 50,000 cases to date."}
             </p>
           </div>
 

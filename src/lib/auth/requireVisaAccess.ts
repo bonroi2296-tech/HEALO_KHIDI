@@ -1,5 +1,5 @@
 /**
- * HEALO: 비자 신청(visa_applications) API 접근 권한 강제 체크
+ * healwith: 비자 신청(visa_applications) API 접근 권한 강제 체크
  *
  * 정부 요건: KHIDI #3, #6 — 비자발급지원 정보 제공 + 진행 관리
  *

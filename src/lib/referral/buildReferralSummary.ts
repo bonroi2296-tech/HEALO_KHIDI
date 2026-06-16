@@ -1,5 +1,5 @@
 /**
- * HEALO: Referral Summary 생성 유틸
+ * healwith: Referral Summary 생성 유틸
  * normalized_inquiries → 병원 전달용 요약 (JSON + Markdown)
  * 보안: pathAuthorized 검증 후 signed URL 발급
  */

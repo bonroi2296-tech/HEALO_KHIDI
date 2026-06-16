@@ -1,5 +1,5 @@
 /**
- * HEALO: Medical Visa Guide (Static Data)
+ * healwith: Medical Visa Guide (Static Data)
  *
  * 한국 의료비자 정보를 국적·치료기간별로 안내.
  * 법률 정보이므로 AI 생성이 아닌 정적 데이터 사용.
