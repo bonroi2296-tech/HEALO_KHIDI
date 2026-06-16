@@ -1,5 +1,5 @@
 /**
- * HEALO KHIDI 월간 보고 xlsx 자동 생성 API
+ * healwith KHIDI 월간 보고 xlsx 자동 생성 API
  *
  * POST /api/admin/khidi/monthly-report
  * Body: { year: number, month: number }
@@ -170,7 +170,7 @@ export async function POST(request: NextRequest) {
     // C12: 기타사항 (자동 생성 메모)
     const generatedAt = new Date().toLocaleString("ko-KR", { timeZone: "Asia/Seoul" });
     monthSheet.getCell("C12").value =
-      `HEALO 시스템 자동 생성 (${generatedAt})\n` +
+      `healwith 시스템 자동 생성 (${generatedAt})\n` +
       `만족도 평균: ${kpi.satisfactionAvg ?? "미집계"}점 (응답 ${kpi.satisfactionResponseCount}건, 응답률 ${kpi.satisfactionResponseRate ?? "—"}%)\n` +
       `고유 환자 수: ${kpi.uniquePatients}명`;
 

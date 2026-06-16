@@ -1,5 +1,5 @@
 /**
- * HEALO Email — 공통 레이아웃 + 브랜드 헤더/푸터
+ * healwith Email — 공통 레이아웃 + 브랜드 헤더/푸터
  * React Email 컴포넌트 사용. HTML 렌더 시 Gmail/Outlook 호환.
  */
 
@@ -20,7 +20,7 @@ import {
 } from "@react-email/components";
 
 export const BRAND = {
-  name: "HEALO",
+  name: "healwith",
   entity: "BONROI",
   rep: "JUYOUNG KANG",
   bizReg: "463-35-00902",
@@ -44,7 +44,7 @@ export const COLORS = {
   goldTint: "#e8d9b4",
 };
 
-export function HealoEmail({ preview, children }) {
+export function healwithEmail({ preview, children }) {
   return (
     <Html>
       <Head>

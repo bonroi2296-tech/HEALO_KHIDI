@@ -1,5 +1,5 @@
 /**
- * HEALO: Resolve Chat Thread → Playbook Draft 자동 생성
+ * healwith: Resolve Chat Thread → Playbook Draft 자동 생성
  *
  * POST /api/admin/chat/threads/:threadId/resolve
  *

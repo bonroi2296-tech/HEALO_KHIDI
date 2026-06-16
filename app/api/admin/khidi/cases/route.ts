@@ -1,5 +1,5 @@
 /**
- * HEALO: 케이스(환자 유치) 관리 API — 코디/어드민
+ * healwith: 케이스(환자 유치) 관리 API — 코디/어드민
  *
  * GET   /api/admin/khidi/cases     → 케이스 목록 + 에이전시/상태 옵션
  * PATCH /api/admin/khidi/cases     → 진행상황(case_status)·보험·에이전시 배정 업데이트

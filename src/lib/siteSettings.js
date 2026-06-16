@@ -6,12 +6,12 @@ export const SITE_INFO = {
     wechat: process.env.NEXT_PUBLIC_MESSENGER_WECHAT_URL || "",
   },
   brand: {
-    name: "HEALO",
+    name: "healwith",
     tagline: "AI Medical Concierge for Global Patients",
   },
   navigation: {
     company: [
-      { labelKey: "nav.about", label: "About HEALO", href: "/about" },
+      { labelKey: "nav.about", label: "About healwith", href: "/about" },
       { labelKey: "nav.contact", label: "Contact Us", href: "/contact" },
     ],
     legal: [
@@ -20,7 +20,7 @@ export const SITE_INFO = {
     ],
   },
   legal: {
-    serviceName: "HEALO",
+    serviceName: "healwith",
     operatedBy: "Bonroi",
     businessType: "Sole Proprietorship",
     representative: "Juyoung Kang",
@@ -31,6 +31,6 @@ export const SITE_INFO = {
     addressLine2: "Seoul, Republic of Korea",
     contactEmail: "contact@healo.com",
     privacyOfficer: "Juyoung Kang",
-    copyright: "© HEALO. All rights reserved.",
+    copyright: "© healwith. All rights reserved.",
   },
 };

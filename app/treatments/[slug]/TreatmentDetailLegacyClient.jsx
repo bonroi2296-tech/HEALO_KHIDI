@@ -696,14 +696,14 @@ export const TreatmentDetailPage = ({
 
                 <div className="space-y-2.5">
                   <button onClick={() => { setInquiryMode?.("select"); setView?.("inquiry"); }} className="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-3.5 rounded-xl transition flex items-center justify-center gap-2">
-                    <MessageCircle size={18} /> {t("detail.contactViaHealo", langCode)}
+                    <MessageCircle size={18} /> {t("detail.contactViahealwith", langCode)}
                   </button>
                   <button onClick={() => onHospitalClick?.(hospital?.slug || treatment.hospitalId)} className="w-full bg-white border-2 border-gray-200 text-gray-700 font-semibold py-3 rounded-xl hover:bg-gray-50 transition">
                     {t("detail.viewHospitalProfile", langCode)}
                   </button>
                 </div>
 
-                {/* HEALO Benefits */}
+                {/* healwith Benefits */}
                 <div className="mt-5 text-left bg-teal-50/80 rounded-xl p-4 border border-teal-100">
                   <p className="text-xs font-semibold text-teal-800 mb-2.5 uppercase tracking-wide flex items-center gap-1"><ShieldCheck size={13} /> {t("detail.healoGuarantee", langCode)}</p>
                   <ul className="space-y-2">
@@ -784,7 +784,7 @@ export const TreatmentDetailPage = ({
             <p className="text-xs text-gray-500 truncate">{treatment.title}</p>
           </div>
           <button onClick={() => { setInquiryMode?.("select"); setView?.("inquiry"); }} className="bg-teal-600 text-white font-bold py-3 px-5 rounded-xl hover:bg-teal-700 transition shrink-0 flex items-center gap-2 text-sm">
-            <MessageCircle size={16} /> {t("detail.contactViaHealo", langCode)}
+            <MessageCircle size={16} /> {t("detail.contactViahealwith", langCode)}
           </button>
         </div>
       </div>

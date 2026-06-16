@@ -30,7 +30,7 @@ export const normalizeImages = (raw) => {
 };
 
 // 2. 병원 데이터 변환 (DB -> UI 표준, 다국어 지원)
-// 표시되는 리뷰(필터된 Google 리뷰 + HEALO 리뷰) 기준으로 평점 산출
+// 표시되는 리뷰(필터된 Google 리뷰 + healwith 리뷰) 기준으로 평점 산출
 const resolveRating = (h) => {
   const ext = h.external_ratings;
   const googleReviews = Array.isArray(ext?.google_reviews) ? ext.google_reviews : [];

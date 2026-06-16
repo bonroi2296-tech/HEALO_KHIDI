@@ -1,5 +1,5 @@
 /**
- * HEALO: 환자 만족도 설문 이메일 템플릿
+ * healwith: 환자 만족도 설문 이메일 템플릿
  *
  * consultationInvite.ts 와 동일한 구조 — 단순 HTML (React Email 없음)
  * 6개 언어: ko / en / ru / kk / zh / ja
@@ -13,63 +13,63 @@ export interface SurveyEmailProps {
 
 const STRINGS = {
   ko: {
-    subject: "HEALO 서비스 만족도 설문에 참여해 주세요",
+    subject: "healwith 서비스 만족도 설문에 참여해 주세요",
     greeting: (n: string) => `안녕하세요${n ? `, ${n}님` : ""}.`,
     intro:
-      "저희 HEALO 서비스를 이용해 주셔서 감사합니다. 보다 나은 서비스를 위해 짧은 만족도 설문에 참여해 주시면 감사하겠습니다.",
+      "저희 healwith 서비스를 이용해 주셔서 감사합니다. 보다 나은 서비스를 위해 짧은 만족도 설문에 참여해 주시면 감사하겠습니다.",
     btnLabel: "설문 참여하기 (2분)",
     notice: "※ 본 링크는 14일 후 만료됩니다.",
-    footer: "HEALO · 한국 암 치료 컨시어지",
+    footer: "healwith · 한국 암 치료 컨시어지",
     closing: "소중한 의견 감사드립니다.",
   },
   en: {
-    subject: "Please share your HEALO experience",
+    subject: "Please share your healwith experience",
     greeting: (n: string) => `Hello${n ? `, ${n}` : ""},`,
     intro:
-      "Thank you for using HEALO. Please take 2 minutes to complete our satisfaction survey — your feedback helps us improve.",
+      "Thank you for using healwith. Please take 2 minutes to complete our satisfaction survey — your feedback helps us improve.",
     btnLabel: "Take the Survey (2 min)",
     notice: "※ This link expires in 14 days.",
-    footer: "HEALO · Korea Cancer-Care Concierge",
+    footer: "healwith · Korea Cancer-Care Concierge",
     closing: "We appreciate your feedback.",
   },
   ru: {
-    subject: "HEALO — поделитесь своим мнением",
+    subject: "healwith — поделитесь своим мнением",
     greeting: (n: string) => `Здравствуйте${n ? `, ${n}` : ""}!`,
     intro:
-      "Спасибо, что воспользовались услугами HEALO. Пожалуйста, уделите 2 минуты для заполнения анкеты — ваш отзыв поможет нам стать лучше.",
+      "Спасибо, что воспользовались услугами healwith. Пожалуйста, уделите 2 минуты для заполнения анкеты — ваш отзыв поможет нам стать лучше.",
     btnLabel: "Пройти опрос (2 мин)",
     notice: "※ Ссылка действительна 14 дней.",
-    footer: "HEALO · Корейский онкологический консьерж",
+    footer: "healwith · Корейский онкологический консьерж",
     closing: "Благодарим за ваш отзыв.",
   },
   kk: {
-    subject: "HEALO — пікіріңізбен бөлісіңіз",
+    subject: "healwith — пікіріңізбен бөлісіңіз",
     greeting: (n: string) => `Сәлеметсіз бе${n ? `, ${n}` : ""}!`,
     intro:
-      "HEALO қызметін пайдаланғаныңызға рахмет. 2 минутты сауалнамаға арнаңыз — сіздің пікіріңіз бізге жақсара түсуге көмектеседі.",
+      "healwith қызметін пайдаланғаныңызға рахмет. 2 минутты сауалнамаға арнаңыз — сіздің пікіріңіз бізге жақсара түсуге көмектеседі.",
     btnLabel: "Сауалнамаға қатысу (2 мин)",
     notice: "※ Сілтеме 14 күннен кейін жойылады.",
-    footer: "HEALO · Кореядағы онкология консьерж қызметі",
+    footer: "healwith · Кореядағы онкология консьерж қызметі",
     closing: "Пікіріңізге рахмет.",
   },
   zh: {
-    subject: "请分享您对HEALO的使用体验",
+    subject: "请分享您对healwith的使用体验",
     greeting: (n: string) => `您好${n ? `，${n}` : ""}！`,
     intro:
-      "感谢您使用HEALO服务。请花2分钟完成满意度调查——您的反馈将帮助我们不断改进。",
+      "感谢您使用healwith服务。请花2分钟完成满意度调查——您的反馈将帮助我们不断改进。",
     btnLabel: "参与调查（2分钟）",
     notice: "※ 此链接将在14天后过期。",
-    footer: "HEALO · 韩国癌症治疗礼宾服务",
+    footer: "healwith · 韩国癌症治疗礼宾服务",
     closing: "感谢您宝贵的意见。",
   },
   ja: {
-    subject: "HEALOサービスへのご意見をお聞かせください",
+    subject: "healwithサービスへのご意見をお聞かせください",
     greeting: (n: string) => `こんにちは${n ? `、${n}様` : ""}。`,
     intro:
-      "HEALOサービスをご利用いただきありがとうございます。2分ほどで完了する満足度アンケートにご協力ください。",
+      "healwithサービスをご利用いただきありがとうございます。2分ほどで完了する満足度アンケートにご協力ください。",
     btnLabel: "アンケートに答える（2分）",
     notice: "※ このリンクは14日後に無効になります。",
-    footer: "HEALO · 韓国がん治療コンシェルジュ",
+    footer: "healwith · 韓国がん治療コンシェルジュ",
     closing: "ご意見をお寄せいただきありがとうございます。",
   },
 } as const;
@@ -98,7 +98,7 @@ export function renderSurveyEmail(props: SurveyEmailProps) {
       style="max-width:560px;background:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 4px 16px rgba(0,0,0,0.06);">
       <tr>
         <td style="background:#0a0a0a;padding:32px 32px 24px;">
-          <div style="font-family:'Playfair Display',Georgia,serif;color:#c8a96a;font-size:28px;letter-spacing:0.02em;">HEALO</div>
+          <div style="font-family:'Playfair Display',Georgia,serif;color:#c8a96a;font-size:28px;letter-spacing:0.02em;">healwith</div>
           <div style="font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#c7c2b8;margin-top:4px;">${esc(s.footer)}</div>
         </td>
       </tr>
@@ -123,7 +123,7 @@ export function renderSurveyEmail(props: SurveyEmailProps) {
       </tr>
       <tr>
         <td style="background:#f8fafc;padding:16px 32px;font-size:10px;color:#94a3b8;text-align:center;line-height:1.6;">
-          HEALO is not a medical institution. Korea-licensed providers only.
+          healwith is not a medical institution. Korea-licensed providers only.
         </td>
       </tr>
     </table>
@@ -143,7 +143,7 @@ export function renderSurveyEmail(props: SurveyEmailProps) {
     "",
     s.closing,
     "",
-    "— HEALO",
+    "— healwith",
   ].join("\n");
 
   return { subject: s.subject, html, text };

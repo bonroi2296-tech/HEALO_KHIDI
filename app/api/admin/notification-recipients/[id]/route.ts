@@ -1,5 +1,5 @@
 /**
- * HEALO: 관리자 알림 수신자 API (개별)
+ * healwith: 관리자 알림 수신자 API (개별)
  * 
  * 경로: /api/admin/notification-recipients/[id]
  * 권한: 관리자 전용

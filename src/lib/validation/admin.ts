@@ -1,5 +1,5 @@
 /**
- * HEALO: Admin API 입력 검증 스키마
+ * healwith: Admin API 입력 검증 스키마
  * 
  * 목적:
  * - Zod를 사용한 타입 안전 검증

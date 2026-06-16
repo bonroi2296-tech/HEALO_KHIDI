@@ -28,7 +28,7 @@ const DOC_CHECKLIST = [
     items: [
       { key: "passport", required: true, labels: { en: "Passport copy (valid 6+ months)", ko: "여권 사본 (유효기간 6개월+)" } },
       { key: "passport_photo", required: true, labels: { en: "Passport photos (2)", ko: "여권 사진 2매" } },
-      { key: "invitation_letter", required: true, labels: { en: "Invitation letter (HEALO issues)", ko: "초청장 (HEALO 발급)" } },
+      { key: "invitation_letter", required: true, labels: { en: "Invitation letter (healwith issues)", ko: "초청장 (healwith 발급)" } },
       { key: "financial_proof", required: true, labels: { en: "Financial capability proof", ko: "재정증빙" } },
       { key: "flight_booking", required: false, labels: { en: "Flight reservation", ko: "항공권 예약" } },
     ],

@@ -1,5 +1,5 @@
 /**
- * HEALO: Waiting Room — Admissions API
+ * healwith: Waiting Room — Admissions API
  *
  * GET /api/khidi/consultation/:id/admissions
  *   → 대기열 조회 (의사/관리자 전용)

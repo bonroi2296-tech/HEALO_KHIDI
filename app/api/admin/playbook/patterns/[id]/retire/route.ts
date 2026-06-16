@@ -1,5 +1,5 @@
 /**
- * HEALO: Retire Playbook Pattern
+ * healwith: Retire Playbook Pattern
  *
  * POST /api/admin/playbook/patterns/:id/retire
  * - is_active=false, 연결된 rag_documents trust_tier=3 강등
@@ -57,7 +57,7 @@ export async function POST(
     if (pattern.rag_document_id) {
       await supabaseAdmin
         .from("rag_documents")
-        .update({ trust_tier: 3, source_label: "HEALO Playbook (Retired)", updated_at: nowIso() })
+        .update({ trust_tier: 3, source_label: "healwith Playbook (Retired)", updated_at: nowIso() })
         .eq("id", pattern.rag_document_id);
     }
 

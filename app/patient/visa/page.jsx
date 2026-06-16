@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 export const metadata = {
-  title: "Medical Visa · HEALO",
+  title: "Medical Visa · healwith",
   description: "비자 신청 진행 상태 확인과 비자 종류 안내.",
 };
 
@@ -10,7 +10,7 @@ export default function PatientVisaPage() {
     <div className="max-w-4xl mx-auto px-4 py-12">
       <h1 className="text-3xl font-semibold tracking-tight">비자 (Medical Visa)</h1>
       <p className="text-gray-500 mt-2 text-sm">
-        HEALO 코디네이터가 초청장 발급부터 대사관 제출까지 동행합니다.
+        healwith 코디네이터가 초청장 발급부터 대사관 제출까지 동행합니다.
       </p>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-10">

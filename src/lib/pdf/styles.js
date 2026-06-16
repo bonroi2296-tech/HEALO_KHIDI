@@ -1,5 +1,5 @@
 /**
- * HEALO PDF Styles — D.Premium 톤 React PDF용
+ * healwith PDF Styles — D.Premium 톤 React PDF용
  * 색상/타이포그래피는 design system과 매칭
  */
 

@@ -1,5 +1,5 @@
 /**
- * HEALO 동의 항목 (Consent Forms)
+ * healwith 동의 항목 (Consent Forms)
  *
  * PIPA §15, §17, §22, §23, §28-8에 따라 각 항목을 별도로 동의 수집해야 함.
  * 이 모듈은 인테이크 폼, 회원가입, 체크박스 UI에서 사용.

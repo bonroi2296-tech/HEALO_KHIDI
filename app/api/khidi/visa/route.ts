@@ -1,5 +1,5 @@
 /**
- * HEALO: Visa Guide API
+ * healwith: Visa Guide API
  *
  * GET /api/khidi/visa — 비자 가이드 조회
  * Query: nationality, duration, lang, visaType

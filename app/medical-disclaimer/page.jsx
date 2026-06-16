@@ -4,9 +4,9 @@ import MedicalDisclaimerClientLegacy from "./MedicalDisclaimerClientLegacy";
 import { getServerDesignMode } from "@/lib/designMode";
 
 export const metadata = {
-  title: "Medical Disclaimer | HEALO",
+  title: "Medical Disclaimer | healwith",
   description:
-    "Important medical information notice — HEALO is not a substitute for professional medical diagnosis, treatment, or prescription.",
+    "Important medical information notice — healwith is not a substitute for professional medical diagnosis, treatment, or prescription.",
   alternates: { canonical: "/medical-disclaimer" },
 };
 

@@ -1,5 +1,5 @@
 /**
- * HEALO Visa Invitation Letter (초청장) PDF
+ * healwith Visa Invitation Letter (초청장) PDF
  *
  * 대한민국 법무부 출입국·외국인정책본부 지침에 따른 의료목적 사증 초청 사유서.
  * 환자·국적, 초청 의료기관(또는 유치업자 BONROI), 치료 계획, 체류 예정일을 명시.
@@ -15,7 +15,7 @@ import { styles, COLORS } from "./styles";
 
 const LABELS = {
   ko: {
-    eyebrow: "HEALO · 의료목적 사증 초청장",
+    eyebrow: "healwith · 의료목적 사증 초청장",
     titleA: "Invitation",
     titleB: "Letter.",
     subtitle: "대한민국 출입국·외국인정책본부 — 의료목적 사증(C-3-3 / G-1-10) 초청 사유서",
@@ -45,7 +45,7 @@ const LABELS = {
     representative: "JUYOUNG KANG · BONROI",
   },
   en: {
-    eyebrow: "HEALO · Invitation Letter for Medical Visa",
+    eyebrow: "healwith · Invitation Letter for Medical Visa",
     titleA: "Invitation",
     titleB: "Letter.",
     subtitle: "Republic of Korea — Medical Visa (C-3-3 / G-1-10) Invitation Letter",
@@ -91,7 +91,7 @@ export default function VisaInvitationLetter({ data, lang = "en" }) {
 
   const letterNo =
     data?.letterNo ||
-    `HEALO-INV-${new Date().toISOString().slice(0, 10).replace(/-/g, "")}-${String(
+    `healwith-INV-${new Date().toISOString().slice(0, 10).replace(/-/g, "")}-${String(
       Math.floor(Math.random() * 1000)
     ).padStart(3, "0")}`;
   const issuedAt = data?.issuedAt || new Date().toISOString().slice(0, 10);
@@ -107,7 +107,7 @@ export default function VisaInvitationLetter({ data, lang = "en" }) {
         {/* Header */}
         <View style={styles.brandRow} fixed>
           <View>
-            <Text style={styles.wordmark}>HEALO</Text>
+            <Text style={styles.wordmark}>healwith</Text>
             <Text style={{ ...styles.small, marginTop: 4 }}>
               BONROI · Facilitator A-2026-01-02-06761
             </Text>

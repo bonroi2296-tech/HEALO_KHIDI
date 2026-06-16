@@ -1,5 +1,5 @@
 /**
- * HEALO: 에이전시(환자 유치 파트너) 담당자 권한 체크
+ * healwith: 에이전시(환자 유치 파트너) 담당자 권한 체크
  * checkHospitalAuth 와 동일 패턴 — Bearer token / 쿠키 인증 후 agency_users 조회.
  */
 

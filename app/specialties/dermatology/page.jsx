@@ -324,7 +324,7 @@ function DermatologyContent() {
               advice. Prices are approximate and may vary depending on the
               clinic, treatment complexity, and individual patient needs.
               Individual consultation is required before any medical procedure.
-              HEALO connects patients with clinics but does not provide medical
+              healwith connects patients with clinics but does not provide medical
               services directly.
             </p>
           </div>

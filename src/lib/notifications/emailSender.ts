@@ -1,5 +1,5 @@
 /**
- * HEALO: AWS SES Email 발송
+ * healwith: AWS SES Email 발송
  * 
  * 목적:
  * - AWS SES v3 SDK를 사용한 실제 이메일 발송
@@ -56,7 +56,7 @@ function generateEmailMessage(payload: AdminNotificationPayload): { subject: str
   const adminUrl = process.env.ADMIN_DASHBOARD_URL || process.env.NEXT_PUBLIC_URL || "https://healo.com";
   const inquiryUrl = `${adminUrl}/admin/inquiries/${payload.inquiryId}`;
 
-  const subject = `[HEALO] ${urgency} New inquiry received #${payload.inquiryId}`;
+  const subject = `[healwith] ${urgency} New inquiry received #${payload.inquiryId}`;
 
   const text = `
 ${urgency} 새 문의 #${payload.inquiryId}
@@ -117,7 +117,7 @@ ${urgency} 새 문의 #${payload.inquiryId}
       <a href="${inquiryUrl}" class="button">문의 확인하기</a>
     </div>
     <div class="footer">
-      HEALO - AI Medical Concierge for Global Patients
+      healwith - AI Medical Concierge for Global Patients
     </div>
   </div>
 </body>

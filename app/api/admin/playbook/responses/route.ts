@@ -1,5 +1,5 @@
 /**
- * HEALO: Admin Playbook Responses API
+ * healwith: Admin Playbook Responses API
  *
  * POST /api/admin/playbook/responses — 응대 원문 등록 (sanitize + draft)
  * GET  /api/admin/playbook/responses — 목록 조회 (필터/검색/페이지네이션)

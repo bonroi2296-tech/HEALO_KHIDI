@@ -27,7 +27,7 @@ export default function TermsOfServiceClientLegacy() {
       <header style={{ background: "linear-gradient(135deg, #0d9488 0%, #0f766e 100%)", color: "#fff", padding: "64px 24px 56px" }}>
         <div style={{ maxWidth: "64rem", margin: "0 auto" }}>
           <p style={{ fontSize: "0.6875rem", fontWeight: 700, letterSpacing: "0.2em", textTransform: "uppercase", color: "rgba(255,255,255,0.65)", marginBottom: 12 }}>
-            HEALO · Legal
+            healwith · Legal
           </p>
           <h1 style={{ fontSize: "clamp(2rem, 5vw, 3rem)", fontWeight: 800, lineHeight: 1.15, margin: "0 0 20px" }}>
             {policy.pageTitle}

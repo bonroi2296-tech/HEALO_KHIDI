@@ -1,7 +1,7 @@
 import CoordinatorVisaDetailClient from "./CoordinatorVisaDetailClient";
 
 export const metadata = {
-  title: "Visa Detail · Coordinator · HEALO",
+  title: "Visa Detail · Coordinator · healwith",
 };
 
 export default async function CoordinatorVisaDetailPage({ params }) {

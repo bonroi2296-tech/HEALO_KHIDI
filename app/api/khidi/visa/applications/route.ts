@@ -1,5 +1,5 @@
 /**
- * HEALO: Visa Application Workflow API
+ * healwith: Visa Application Workflow API
  *
  * POST /api/khidi/visa/applications — 신규 비자 신청 생성 (환자 본인)
  * GET  /api/khidi/visa/applications — 목록 조회 (환자: 본인 건, 코디: 전체, admin: 전체)

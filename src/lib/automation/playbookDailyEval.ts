@@ -1,5 +1,5 @@
 /**
- * HEALO AUTO-IMPROVEMENT: Daily Evaluation Worker
+ * healwith AUTO-IMPROVEMENT: Daily Evaluation Worker
  *
  * playbook_usage_events 최근 7일 집계 → per-pattern auto_score 산정 → candidate 마킹
  */

@@ -1,5 +1,5 @@
 /**
- * HEALO: AI 피드백 어드민 API
+ * healwith: AI 피드백 어드민 API
  *
  * GET /api/admin/khidi/ai-feedback
  * - 통계: 👍/👎 비율, 최근 7일 추이, 사유 분포

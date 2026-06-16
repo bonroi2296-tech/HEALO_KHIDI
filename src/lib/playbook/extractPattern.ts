@@ -1,5 +1,5 @@
 /**
- * HEALO: 대화 transcript에서 응대 논리 구조(패턴) 추출
+ * healwith: 대화 transcript에서 응대 논리 구조(패턴) 추출
  *
  * 1차: rule-based 최소 생성 (항상 유효 JSON)
  * 2차: LLM 키 있으면 JSON 고도화 (실패 시 fallback)
@@ -88,7 +88,7 @@ function ruleBasedExtract(
   const template = templateRaw.slice(0, 2000);
 
   const structure: ResponseStructure = {
-    opening: "Thank you for reaching out to HEALO.",
+    opening: "Thank you for reaching out to healwith.",
     disclaimers: [
       "This is general guidance, not medical advice.",
       "Final pricing depends on individual consultation.",

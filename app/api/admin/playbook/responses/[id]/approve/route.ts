@@ -1,5 +1,5 @@
 /**
- * HEALO: Admin Playbook — Approve Response
+ * healwith: Admin Playbook — Approve Response
  *
  * POST /api/admin/playbook/responses/:id/approve
  * - status -> approved
@@ -66,7 +66,7 @@ export async function POST(
           title: docTitle,
           content: resp.response_text_sanitized,
           trust_tier: 2,
-          source_label: "HEALO Coordinator Playbook",
+          source_label: "healwith Coordinator Playbook",
           updated_at: nowIso(),
         })
         .eq("id", ragDocId);
@@ -85,7 +85,7 @@ export async function POST(
           content: resp.response_text_sanitized,
           version: 1,
           trust_tier: 2,
-          source_label: "HEALO Coordinator Playbook",
+          source_label: "healwith Coordinator Playbook",
           created_at: nowIso(),
           updated_at: nowIso(),
         })

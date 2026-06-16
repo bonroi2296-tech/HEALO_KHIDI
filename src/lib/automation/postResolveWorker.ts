@@ -1,5 +1,5 @@
 /**
- * HEALO AUTO-IMPROVEMENT: Post-Resolve Worker
+ * healwith AUTO-IMPROVEMENT: Post-Resolve Worker
  *
  * 상담 종료(resolve) 후 자동 실행:
  * 1. 대화 메시지 조회
@@ -77,7 +77,7 @@ async function ingestPatternToRag(
         content: docContent,
         version: 1,
         trust_tier: 2,
-        source_label: "HEALO Playbook (Auto-Extracted)",
+        source_label: "healwith Playbook (Auto-Extracted)",
         metadata: { ingest_status: "pending" },
         created_at: nowIso(),
         updated_at: nowIso(),

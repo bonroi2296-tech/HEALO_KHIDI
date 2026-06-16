@@ -1,5 +1,5 @@
 /**
- * HEALO: 병원 전달용 템플릿
+ * healwith: 병원 전달용 템플릿
  * 
  * 목적:
  * - 병원이 빠르게 이해할 수 있는 포맷
@@ -19,7 +19,7 @@ export function generateLeadCardShort(summary: HospitalLeadSummary): string {
                        summary.priority === 'medium' ? '⭐' : '📋';
   
   return `
-${priorityIcon} HEALO 환자 문의 #${summary.leadId}
+${priorityIcon} healwith 환자 문의 #${summary.leadId}
 
 👤 환자 정보
 국적: ${summary.patient.nationality}
@@ -52,7 +52,7 @@ export function generateLeadCardFull(summary: HospitalLeadSummary, hospitalName:
   
   let card = `
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-         HEALO 환자 문의 리드
+         healwith 환자 문의 리드
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 🏥 수신 병원: ${hospitalName}
@@ -153,7 +153,7 @@ ${summary.notes}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 감사합니다.
-HEALO Team
+healwith Team
   `.trim();
 
   return card;
@@ -193,7 +193,7 @@ export function generateLeadCardHtml(summary: HospitalLeadSummary, hospitalName:
 <body>
   <div class="container">
     <div class="header">
-      <h2>🏥 HEALO 환자 문의 리드</h2>
+      <h2>🏥 healwith 환자 문의 리드</h2>
       <div>리드 #${summary.leadId} | 우선순위: ${priorityText}</div>
     </div>
 
@@ -258,7 +258,7 @@ export function generateLeadCardHtml(summary: HospitalLeadSummary, hospitalName:
     </div>
 
     <div style="text-align: center; margin-top: 30px; color: #999; font-size: 12px;">
-      HEALO - Medical Tourism Concierge<br>
+      healwith - Medical Tourism Concierge<br>
       이 리드는 ${new Date(summary.receivedAt).toLocaleDateString('ko-KR')}에 접수되었습니다.
     </div>
   </div>
@@ -314,7 +314,7 @@ ${index + 1}. ${priorityIcon} 리드 #${summary.leadId} (${summary.priority})
 예: #123 관심있음, #124 추가정보필요, #125 관심없음
 
 감사합니다.
-HEALO 팀
+healwith 팀
   `.trim();
 
   return content;

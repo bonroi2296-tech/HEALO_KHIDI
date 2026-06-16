@@ -1,5 +1,5 @@
 /**
- * HEALO: 관리자 문의 상세 조회 API
+ * healwith: 관리자 문의 상세 조회 API
  * 
  * 경로: /api/admin/inquiries/[id]
  * 권한: 관리자 전용

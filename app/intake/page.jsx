@@ -4,7 +4,7 @@
 import { redirect } from "next/navigation";
 
 export const metadata = {
-  title: "상담 신청 | HEALO",
+  title: "상담 신청 | healwith",
   alternates: { canonical: "/inquiry" },
 };
 

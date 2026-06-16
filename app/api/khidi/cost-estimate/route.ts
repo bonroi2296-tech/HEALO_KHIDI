@@ -1,5 +1,5 @@
 /**
- * HEALO: Cost Estimate API
+ * healwith: Cost Estimate API
  *
  * GET /api/khidi/cost-estimate
  *   Query: cancer_type, stage, treatment_phase (optional, default 'during_treatment')
@@ -317,7 +317,7 @@ export async function POST(request: NextRequest) {
             }
           : null,
         disclaimer:
-          "본 금액은 통계 기반 예상 범위이며 AI 보정은 참고용입니다. 정식 견적서는 진료 전 병원·HEALO 를 통해 수령하셔야 합니다 (의료해외진출법 §15).",
+          "본 금액은 통계 기반 예상 범위이며 AI 보정은 참고용입니다. 정식 견적서는 진료 전 병원·healwith 를 통해 수령하셔야 합니다 (의료해외진출법 §15).",
         tier: suggestedBand ? 2 : 1,
       },
     });

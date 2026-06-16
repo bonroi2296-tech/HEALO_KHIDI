@@ -37,7 +37,7 @@ export async function generateMetadata({ params }) {
   if (CANCER_SLUGS.includes(slug)) {
     const cancer = CANCER_DETAILS[slug];
     if (!cancer) return {};
-    const title = `${cancer.title.ko} — 면력한방병원 통합 면역치료 | HEALO`;
+    const title = `${cancer.title.ko} — 면력한방병원 통합 면역치료 | healwith`;
     const description = cancer.intro.ko.slice(0, 160);
     const ogImg = CANCER_IMAGES.healGraph;
     return {
@@ -77,7 +77,7 @@ export async function generateMetadata({ params }) {
   const description =
     treatment.desc ||
     treatment.fullDescription ||
-    "Explore this HEALO treatment in Korea.";
+    "Explore this healwith treatment in Korea.";
   const canonical = `/treatments/${treatment.slug || slug}`;
   const ogImages =
     Array.isArray(treatment.images) && treatment.images.length > 0
@@ -176,7 +176,7 @@ export default async function TreatmentDetailPage({ params, searchParams }) {
     description:
       treatment.desc ||
       treatment.fullDescription ||
-      "Explore this HEALO treatment in Korea.",
+      "Explore this healwith treatment in Korea.",
     image:
       Array.isArray(treatment.images) && treatment.images.length > 0
         ? treatment.images

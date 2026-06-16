@@ -9,7 +9,7 @@
  *
  * 환경변수:
  *   RESEND_API_KEY=re_xxx           ← Resend 가입 후 발급 (https://resend.com)
- *   HEALO_EMAIL_FROM=HEALO <roiimmunelab@immunelab.co.kr>  ← 발신자
+ *   HEALO_EMAIL_FROM=healwith <roiimmunelab@immunelab.co.kr>  ← 발신자
  *
  * Resend 미설정 시 렌더링만 하고 저장. (dry run)
  */
@@ -72,17 +72,17 @@ export async function POST(request) {
 
     // Default subjects per template
     const DEFAULT_SUBJECTS = {
-      inquiryReceived: "[HEALO] Your inquiry has been received",
-      coordinatorIntro: "[HEALO] Hello from your HEALO coordinator",
-      hospitalMatch: "[HEALO] Hospital matches for your care",
-      visaDocumentRequest: "[HEALO] Documents needed for your medical visa",
-      treatmentSchedule: "[HEALO] Your treatment schedule is confirmed",
-      postTreatmentFollowup: "[HEALO] Checking in on your recovery",
+      inquiryReceived: "[healwith] Your inquiry has been received",
+      coordinatorIntro: "[healwith] Hello from your healwith coordinator",
+      hospitalMatch: "[healwith] Hospital matches for your care",
+      visaDocumentRequest: "[healwith] Documents needed for your medical visa",
+      treatmentSchedule: "[healwith] Your treatment schedule is confirmed",
+      postTreatmentFollowup: "[healwith] Checking in on your recovery",
     };
     const subject = customSubject || DEFAULT_SUBJECTS[template];
 
     const apiKey = process.env.RESEND_API_KEY;
-    const from = process.env.HEALO_EMAIL_FROM || "HEALO <onboarding@resend.dev>";
+    const from = process.env.HEALO_EMAIL_FROM || "healwith <onboarding@resend.dev>";
 
     // Dry run mode (no API key)
     if (!apiKey) {

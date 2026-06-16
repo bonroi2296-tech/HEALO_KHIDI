@@ -418,9 +418,9 @@ function PortalTopBar({ session, onLogout, siteConfig, langCode }) {
     <header className="fixed top-0 left-0 right-0 h-14 md:h-16 z-50 bg-teal-600 text-white shadow-sm flex items-center justify-between px-4 pt-safe-area">
       <Link href="/" className="flex items-center gap-2 shrink-0 hover:opacity-90 transition-opacity">
         {siteConfig?.logo ? (
-          <img src={siteConfig.logo} alt="HEALO" className="h-8 w-auto object-contain" />
+          <img src={siteConfig.logo} alt="healwith" className="h-8 w-auto object-contain" />
         ) : (
-          <span className="text-xl font-extrabold tracking-tight notranslate">HEALO</span>
+          <span className="text-xl font-extrabold tracking-tight notranslate">heal<span className="text-teal-200">with</span></span>
         )}
       </Link>
 

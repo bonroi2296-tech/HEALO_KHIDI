@@ -8,7 +8,7 @@ import { getServerDesignMode } from "@/lib/designMode";
 // 홈 페이지 메타 — 언어별 alternates 로 각 언어권 검색엔진이 올바른 버전 노출
 // Google·Yandex·Baidu 모두 hreflang 을 통해 언어별 title 매칭
 export const metadata = {
-  title: "HEALO | Korea Cancer Care for International Patients · 해외 암환자 한국 치료 컨시어지",
+  title: "healwith | Korea Cancer Care for International Patients · 해외 암환자 한국 치료 컨시어지",
   description:
     "Korean cancer care concierge for international patients. 해외 암환자를 위한 한국 암 전문의 원격 사전상담. Video pre-consultation with top oncologists, 6-language interpretation (RU/KZ/EN/ZH/JA/KO), full-journey support from diagnosis to follow-up.",
   keywords: [
@@ -36,7 +36,7 @@ export const metadata = {
     "韓国腫瘍医",
   ],
   openGraph: {
-    title: "HEALO | Korea Cancer Care for International Patients",
+    title: "healwith | Korea Cancer Care for International Patients",
     description:
       "Video pre-consultation with Korea's top oncologists · 6-language interpretation · Full-journey concierge from diagnosis to follow-up.",
     type: "website",
@@ -45,7 +45,7 @@ export const metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "HEALO | Korea Cancer Care for International Patients",
+    title: "healwith | Korea Cancer Care for International Patients",
     description:
       "Pre-consultation + interpretation + full-journey concierge for cancer patients seeking treatment in Korea.",
   },
@@ -66,7 +66,7 @@ export const metadata = {
 const jsonLd = {
   "@context": "https://schema.org",
   "@type": "MedicalBusiness",
-  name: "HEALO",
+  name: "healwith",
   description:
     "ICT pre-consultation and post-care platform connecting international cancer patients with top Korean oncologists. Real-time interpretation in 6 languages.",
   url: "https://khidi.healo.kr",

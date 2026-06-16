@@ -1,5 +1,5 @@
 /**
- * HEALO: Public Chat Resume API
+ * healwith: Public Chat Resume API
  *
  * GET /api/public/chat/resume?token=<public_token>
  *   또는

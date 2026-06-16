@@ -1,5 +1,5 @@
 /**
- * HEALO Consent Forms PDF (3종)
+ * healwith Consent Forms PDF (3종)
  *
  * 1. PersonalInfoConsent — 개인정보 수집·이용 동의 (PIPA §15)
  * 2. SensitiveHealthConsent — 민감정보(건강) 처리 별도 동의 (PIPA §23 / GDPR Art 9)
@@ -17,7 +17,7 @@ function FormHeader({ formNo, formTitle, legalBasis, issuedAt }) {
     <>
       <View style={styles.brandRow} fixed>
         <View>
-          <Text style={styles.wordmark}>HEALO</Text>
+          <Text style={styles.wordmark}>healwith</Text>
           <Text style={{ ...styles.small, marginTop: 4 }}>
             BONROI · Consent Form {formNo}
           </Text>

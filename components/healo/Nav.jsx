@@ -8,7 +8,7 @@ import NotificationCenter from "./NotificationCenter";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 
 /**
- * HEALO Nav — cream background, sticky, hairline divider, backdrop blur.
+ * healwith Nav — cream background, sticky, hairline divider, backdrop blur.
  * D. Premium 디자인의 네비게이션. 기존 ClientShell의 Header를 대체합니다.
  */
 
@@ -167,7 +167,7 @@ export default function Nav({ current }) {
             flexShrink: 0,
           }}
         >
-          HEALO
+          healwith
         </Link>
 
         {/* Nav items — desktop */}

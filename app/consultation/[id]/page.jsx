@@ -55,7 +55,7 @@ const COPY = {
   ko: {
     aiSubtitleDisclaimer: "AI 자막은 참고용입니다. 의학적 판단은 의료진과 직접 확인하세요.",
     // Guest join form
-    guestTitle: "HEALO 원격 상담",
+    guestTitle: "healwith 원격 상담",
     guestLede: "초대 링크로 입장합니다. 본인 이름을 입력하고 카메라/마이크 사용을 허용해주세요.",
     nameLabel: "이름 (의료진에게 표시됨)",
     namePlaceholder: "예: Айжан Нурланова / Ji-hoon Park",
@@ -162,7 +162,7 @@ const COPY = {
   },
   en: {
     aiSubtitleDisclaimer: "AI subtitles are for reference only. Confirm any medical judgment directly with your medical team.",
-    guestTitle: "HEALO Remote Consultation",
+    guestTitle: "healwith Remote Consultation",
     guestLede: "You are joining via an invite link. Enter your name and allow camera/microphone access.",
     nameLabel: "Name (shown to the medical team)",
     namePlaceholder: "e.g. Айжан Нурланова / Ji-hoon Park",
@@ -259,7 +259,7 @@ const COPY = {
   },
   ru: {
     aiSubtitleDisclaimer: "Субтитры ИИ носят справочный характер. Любые медицинские решения уточняйте напрямую у врача.",
-    guestTitle: "Удалённая консультация HEALO",
+    guestTitle: "Удалённая консультация healwith",
     guestLede: "Вы входите по ссылке-приглашению. Введите своё имя и разрешите доступ к камере и микрофону.",
     nameLabel: "Имя (отображается медицинскому персоналу)",
     namePlaceholder: "напр.: Айжан Нурланова / Ji-hoon Park",
@@ -356,7 +356,7 @@ const COPY = {
   },
   kz: {
     aiSubtitleDisclaimer: "ЖИ субтитрлері тек анықтама үшін. Кез келген медициналық шешімді дәрігермен тікелей нақтылаңыз.",
-    guestTitle: "HEALO қашықтан консультациясы",
+    guestTitle: "healwith қашықтан консультациясы",
     guestLede: "Сіз шақыру сілтемесі арқылы кіресіз. Атыңызды енгізіп, камера/микрофонға рұқсат беріңіз.",
     nameLabel: "Аты-жөні (медициналық қызметкерге көрсетіледі)",
     namePlaceholder: "мыс.: Айжан Нұрланова / Ji-hoon Park",
@@ -453,7 +453,7 @@ const COPY = {
   },
   zh: {
     aiSubtitleDisclaimer: "AI 字幕仅供参考。任何医疗判断请直接向医疗团队确认。",
-    guestTitle: "HEALO 远程问诊",
+    guestTitle: "healwith 远程问诊",
     guestLede: "您正通过邀请链接进入。请输入您的姓名并允许使用摄像头/麦克风。",
     nameLabel: "姓名（向医疗团队显示）",
     namePlaceholder: "例如：Айжан Нурланова / Ji-hoon Park",
@@ -550,7 +550,7 @@ const COPY = {
   },
   ja: {
     aiSubtitleDisclaimer: "AI字幕は参考用です。医学的な判断は医療スタッフに直接ご確認ください。",
-    guestTitle: "HEALO オンライン診療",
+    guestTitle: "healwith オンライン診療",
     guestLede: "招待リンクから入室します。お名前を入力し、カメラ/マイクの使用を許可してください。",
     nameLabel: "お名前（医療スタッフに表示されます）",
     namePlaceholder: "例：Айжан Нурланова / Ji-hoon Park",

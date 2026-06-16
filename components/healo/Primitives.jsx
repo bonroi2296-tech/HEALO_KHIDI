@@ -1,5 +1,5 @@
 /**
- * HEALO Design System · Primitives (ES Module version)
+ * healwith Design System · Primitives (ES Module version)
  * Direction: D. Premium (Concierge · Private-bank meets boutique hospital)
  *
  * 원본: design-system-export/ui_kits/web/Primitives.jsx

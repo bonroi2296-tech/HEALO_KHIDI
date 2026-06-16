@@ -1,5 +1,5 @@
 /**
- * HEALO: Attachment Signed URL API (권한 검증 강화)
+ * healwith: Attachment Signed URL API (권한 검증 강화)
  * Storage 버킷을 private로 전환 후, 서버에서만 signed URL 발급
  * 만료 시간: 5분
  * 

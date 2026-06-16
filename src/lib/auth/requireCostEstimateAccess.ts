@@ -1,5 +1,5 @@
 /**
- * HEALO: cost_estimates 접근 권한 강제 체크
+ * healwith: cost_estimates 접근 권한 강제 체크
  *
  * 원칙: 환자는 본인 건, 코디·admin 은 전체.
  */

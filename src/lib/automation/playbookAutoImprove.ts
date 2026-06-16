@@ -1,5 +1,5 @@
 /**
- * HEALO AUTO-IMPROVEMENT: Auto-Improve Worker
+ * healwith AUTO-IMPROVEMENT: Auto-Improve Worker
  *
  * candidate 패턴 → LLM 개선 variant 생성 → safety check → 조건부 자동 승인 → AB 배정
  */
@@ -150,7 +150,7 @@ async function approveAndIngest(patternId: string, pattern: any): Promise<{ ok: 
         content: docContent,
         version: pattern.auto_version || 1,
         trust_tier: 2,
-        source_label: "HEALO Playbook (Auto-Approved)",
+        source_label: "healwith Playbook (Auto-Approved)",
         metadata: { ingest_status: "pending" },
         created_at: nowIso(),
         updated_at: nowIso(),

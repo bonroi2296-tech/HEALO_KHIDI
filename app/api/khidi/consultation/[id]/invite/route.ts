@@ -1,5 +1,5 @@
 /**
- * HEALO: Guest invite token 발급 — admin/coordinator/doctor 전용
+ * healwith: Guest invite token 발급 — admin/coordinator/doctor 전용
  *
  * POST /api/khidi/consultation/:id/invite
  * Body: { role, inviteeName?, inviteeEmail?, expiresInHours?, maxUses? }

@@ -49,7 +49,7 @@ function buildHospitalContext(h: HospitalRow): string {
   return parts.join("\n");
 }
 
-const SYSTEM_PROMPT = `You are a medical tourism content specialist for HEALO, a platform connecting international patients with Korean hospitals.
+const SYSTEM_PROMPT = `You are a medical tourism content specialist for healwith, a platform connecting international patients with Korean hospitals.
 
 Given hospital data, generate rich content. Respond ONLY with a valid JSON object (no markdown, no code fences).
 

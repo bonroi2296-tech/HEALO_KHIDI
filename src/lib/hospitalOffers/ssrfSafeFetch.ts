@@ -1,5 +1,5 @@
 /**
- * HEALO: SSRF 방지 외부 URL fetch
+ * healwith: SSRF 방지 외부 URL fetch
  * - 허용 스킴: http, https 만
  * - 사설/로컬 IP 대역 차단
  * - 최대 응답 크기, 타임아웃 제한

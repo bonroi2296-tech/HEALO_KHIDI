@@ -32,7 +32,7 @@ export default function AdminDashboard() {
         <AdminGuideModal title="대시보드 가이드" onClose={() => setShowGuide(false)}>
           <section>
             <h3 className="text-base font-semibold text-gray-900 mb-2">이 페이지는 무엇인가요?</h3>
-            <p>HEALO 관리자 포털의 <strong>홈</strong>입니다. 자주 쓰는 메뉴로 빠르게 이동할 수 있습니다.</p>
+            <p>healwith 관리자 포털의 <strong>홈</strong>입니다. 자주 쓰는 메뉴로 빠르게 이동할 수 있습니다.</p>
           </section>
           <section>
             <h3 className="text-base font-semibold text-gray-900 mb-2">카드 사용법</h3>
@@ -47,7 +47,7 @@ export default function AdminDashboard() {
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">관리자 대시보드</h1>
-          <p className="text-gray-500 mt-1 lg:mt-2 text-sm lg:text-base">HEALO 플랫폼 관리</p>
+          <p className="text-gray-500 mt-1 lg:mt-2 text-sm lg:text-base">healwith 플랫폼 관리</p>
         </div>
         <button
           type="button"

@@ -525,7 +525,7 @@ export default function HospitalsPage() {
         <AdminGuideModal title="병원관리 · 사용 가이드" onClose={() => setShowGuide(false)}>
           <section>
             <h3 className="text-base font-semibold text-gray-900 mb-2">이 페이지는 무엇인가요?</h3>
-            <p>HEALO에 등록된 <strong>병원 정보</strong>를 관리하고, 각 병원에 <strong>담당자(계정)</strong>를 붙여 Hospital Portal(파트너 페이지) 접근 권한을 부여하는 곳입니다.</p>
+            <p>healwith에 등록된 <strong>병원 정보</strong>를 관리하고, 각 병원에 <strong>담당자(계정)</strong>를 붙여 Hospital Portal(파트너 페이지) 접근 권한을 부여하는 곳입니다.</p>
           </section>
           <section>
             <h3 className="text-base font-semibold text-gray-900 mb-2">탭 1: 병원 관리</h3>

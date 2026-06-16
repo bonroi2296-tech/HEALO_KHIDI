@@ -1,5 +1,5 @@
 /**
- * HEALO 환자 여정(Journey) 상태 계산
+ * healwith 환자 여정(Journey) 상태 계산
  *
  * 환자 한 명의 여러 데이터(inquiry, consultation, followup 등)를 종합해
  * 현재 어느 단계에 있는지, 다음 할 일이 뭔지, 몇 일차인지 계산.

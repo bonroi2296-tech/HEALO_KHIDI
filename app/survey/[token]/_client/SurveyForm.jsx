@@ -6,7 +6,7 @@ import { useState } from "react";
 const STRINGS = {
   ko: {
     title: "서비스 만족도 설문",
-    subtitle: "HEALO 서비스를 이용해 주셔서 감사합니다.\n2분 내 완료 가능한 짧은 설문에 참여해 주세요.",
+    subtitle: "healwith 서비스를 이용해 주셔서 감사합니다.\n2분 내 완료 가능한 짧은 설문에 참여해 주세요.",
     questions: [
       "상담 의료진의 전문성에 만족하셨습니까?",
       "통역 품질에 만족하셨습니까?",
@@ -20,7 +20,7 @@ const STRINGS = {
     submit: "제출하기",
     submitting: "제출 중...",
     thankYouTitle: "감사합니다!",
-    thankYouDesc: "소중한 의견이 접수되었습니다. HEALO 서비스 개선에 큰 도움이 됩니다.",
+    thankYouDesc: "소중한 의견이 접수되었습니다. healwith 서비스 개선에 큰 도움이 됩니다.",
     expiredTitle: "설문이 만료되었습니다",
     expiredDesc: "이 설문 링크는 14일이 지나 만료되었습니다.",
     notFoundTitle: "설문을 찾을 수 없습니다",
@@ -34,7 +34,7 @@ const STRINGS = {
   },
   en: {
     title: "Service Satisfaction Survey",
-    subtitle: "Thank you for using HEALO.\nPlease take 2 minutes to complete this short survey.",
+    subtitle: "Thank you for using healwith.\nPlease take 2 minutes to complete this short survey.",
     questions: [
       "How satisfied were you with the medical staff's expertise?",
       "How satisfied were you with the interpretation quality?",
@@ -48,7 +48,7 @@ const STRINGS = {
     submit: "Submit",
     submitting: "Submitting...",
     thankYouTitle: "Thank You!",
-    thankYouDesc: "Your feedback has been received and will help us improve HEALO.",
+    thankYouDesc: "Your feedback has been received and will help us improve healwith.",
     expiredTitle: "Survey Expired",
     expiredDesc: "This survey link has expired (valid for 14 days).",
     notFoundTitle: "Survey Not Found",
@@ -62,7 +62,7 @@ const STRINGS = {
   },
   ru: {
     title: "Опрос об удовлетворённости сервисом",
-    subtitle: "Спасибо, что воспользовались HEALO.\nПожалуйста, уделите 2 минуты для заполнения анкеты.",
+    subtitle: "Спасибо, что воспользовались healwith.\nПожалуйста, уделите 2 минуты для заполнения анкеты.",
     questions: [
       "Насколько вы удовлетворены профессионализмом медицинского персонала?",
       "Насколько вы удовлетворены качеством перевода?",
@@ -76,7 +76,7 @@ const STRINGS = {
     submit: "Отправить",
     submitting: "Отправка...",
     thankYouTitle: "Спасибо!",
-    thankYouDesc: "Ваш отзыв получен и поможет нам улучшить HEALO.",
+    thankYouDesc: "Ваш отзыв получен и поможет нам улучшить healwith.",
     expiredTitle: "Срок опроса истёк",
     expiredDesc: "Срок действия ссылки истёк (действительна 14 дней).",
     notFoundTitle: "Опрос не найден",
@@ -90,7 +90,7 @@ const STRINGS = {
   },
   kk: {
     title: "Қызмет сапасы туралы сауалнама",
-    subtitle: "HEALO қызметін пайдаланғаныңызға рахмет.\n2 минутты сауалнамаға арнаңыз.",
+    subtitle: "healwith қызметін пайдаланғаныңызға рахмет.\n2 минутты сауалнамаға арнаңыз.",
     questions: [
       "Медицина қызметкерлерінің кәсібилігіне қаншалықты риза болдыңыз?",
       "Аударма сапасына қаншалықты риза болдыңыз?",
@@ -104,7 +104,7 @@ const STRINGS = {
     submit: "Жіберу",
     submitting: "Жіберілуде...",
     thankYouTitle: "Рахмет!",
-    thankYouDesc: "Сіздің пікіріңіз қабылданды және HEALO-ны жақсартуға көмектеседі.",
+    thankYouDesc: "Сіздің пікіріңіз қабылданды және healwith-ны жақсартуға көмектеседі.",
     expiredTitle: "Сауалнама мерзімі өтті",
     expiredDesc: "Бұл сауалнама сілтемесінің мерзімі өтті (14 күн жарамды).",
     notFoundTitle: "Сауалнама табылмады",
@@ -118,7 +118,7 @@ const STRINGS = {
   },
   zh: {
     title: "服务满意度调查",
-    subtitle: "感谢您使用HEALO服务。\n请花2分钟完成这份简短问卷。",
+    subtitle: "感谢您使用healwith服务。\n请花2分钟完成这份简短问卷。",
     questions: [
       "您对医疗人员专业水平的满意程度如何？",
       "您对翻译质量的满意程度如何？",
@@ -132,7 +132,7 @@ const STRINGS = {
     submit: "提交",
     submitting: "提交中...",
     thankYouTitle: "感谢您！",
-    thankYouDesc: "您的反馈已收到，将帮助我们改进HEALO服务。",
+    thankYouDesc: "您的反馈已收到，将帮助我们改进healwith服务。",
     expiredTitle: "调查已过期",
     expiredDesc: "此调查链接已过期（有效期14天）。",
     notFoundTitle: "调查未找到",
@@ -146,7 +146,7 @@ const STRINGS = {
   },
   ja: {
     title: "サービス満足度アンケート",
-    subtitle: "HEALOサービスをご利用いただきありがとうございます。\n2分で完了する簡単なアンケートにご協力ください。",
+    subtitle: "healwithサービスをご利用いただきありがとうございます。\n2分で完了する簡単なアンケートにご協力ください。",
     questions: [
       "医療スタッフの専門性についてはいかがでしたか？",
       "通訳の品質についてはいかがでしたか？",
@@ -160,7 +160,7 @@ const STRINGS = {
     submit: "送信する",
     submitting: "送信中...",
     thankYouTitle: "ありがとうございます！",
-    thankYouDesc: "ご意見を受け取りました。HEALOの改善に役立てます。",
+    thankYouDesc: "ご意見を受け取りました。healwithの改善に役立てます。",
     expiredTitle: "アンケートの期限が切れました",
     expiredDesc: "このアンケートリンクは期限切れです（有効期間14日）。",
     notFoundTitle: "アンケートが見つかりません",
@@ -174,7 +174,7 @@ const STRINGS = {
   },
   kz: {
     title: "Қызмет сапасы сауалнамасы",
-    subtitle: "HEALO қызметін пайдаланғаныңызға рахмет.\n2 минут ішінде толтырылатын қысқа сауалнамаға қатысыңыз.",
+    subtitle: "healwith қызметін пайдаланғаныңызға рахмет.\n2 минут ішінде толтырылатын қысқа сауалнамаға қатысыңыз.",
     questions: [
       "Кеңес берген медицина қызметкерлерінің біліктілігіне қанағаттандыңыз ба?",
       "Аударма сапасына қанағаттандыңыз ба?",
@@ -188,7 +188,7 @@ const STRINGS = {
     submit: "Жіберу",
     submitting: "Жіберілуде...",
     thankYouTitle: "Рахмет!",
-    thankYouDesc: "Пікіріңіз қабылданды. Бұл HEALO қызметін жақсартуға көп көмектеседі.",
+    thankYouDesc: "Пікіріңіз қабылданды. Бұл healwith қызметін жақсартуға көп көмектеседі.",
     expiredTitle: "Сауалнама мерзімі бітті",
     expiredDesc: "Бұл сауалнама сілтемесі 14 күннен кейін жарамсыз болды.",
     notFoundTitle: "Сауалнама табылмады",
@@ -222,7 +222,7 @@ function StatusScreen({ icon, title, desc }) {
         <div className="text-5xl mb-4">{icon}</div>
         <h1 className="text-xl font-semibold text-gray-900 mb-3">{title}</h1>
         <p className="text-sm text-gray-500 leading-relaxed">{desc}</p>
-        <div className="mt-6 text-xs text-[#c8a96a] font-semibold tracking-widest uppercase">HEALO</div>
+        <div className="mt-6 text-xs text-[#c8a96a] font-semibold tracking-widest uppercase">healwith</div>
       </div>
     </div>
   );
@@ -350,7 +350,7 @@ export default function SurveyForm({ token, initialState, alreadyResponded }) {
       <div className="max-w-lg mx-auto">
         {/* 헤더 */}
         <div className="text-center mb-8">
-          <div className="font-serif text-[#c8a96a] text-3xl tracking-wide mb-1">HEALO</div>
+          <div className="font-serif text-[#c8a96a] text-3xl tracking-wide mb-1">healwith</div>
           <h1 className="text-xl font-semibold text-gray-900 mt-4">{s.title}</h1>
           <p className="text-sm text-gray-500 mt-2 leading-relaxed whitespace-pre-line">{s.subtitle}</p>
         </div>
@@ -404,7 +404,7 @@ export default function SurveyForm({ token, initialState, alreadyResponded }) {
         </form>
 
         <p className="text-center text-xs text-gray-400 mt-6">
-          © HEALO · Korea Cancer-Care Concierge
+          © healwith · Korea Cancer-Care Concierge
         </p>
       </div>
     </div>

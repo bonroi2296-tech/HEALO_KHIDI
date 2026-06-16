@@ -77,7 +77,7 @@ export default function PatientConsultationsClient() {
             아직 예약된 원격협진이 없습니다
           </h2>
           <p className="text-gray-500 text-sm mb-6">
-            상담 신청 → HEALO 코디네이터 매칭 → 원격 영상 상담 순으로 진행됩니다.
+            상담 신청 → healwith 코디네이터 매칭 → 원격 영상 상담 순으로 진행됩니다.
           </p>
           <Link
             href="/telemedicine"

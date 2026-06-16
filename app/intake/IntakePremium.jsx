@@ -55,7 +55,7 @@ const COPY = {
     navSubmit: "Send consultation request",
     submittedTitle: "Thank you.",
     submittedBody: "Your inquiry has arrived. A coordinator will respond within one business day in your preferred language.",
-    consent: "I consent to the collection and processing of my personal and medical data in accordance with HEALO's Privacy Policy.",
+    consent: "I consent to the collection and processing of my personal and medical data in accordance with healwith's Privacy Policy.",
   },
   ko: {
     eyebrowPage: "상담 신청",
@@ -97,7 +97,7 @@ const COPY = {
     navSubmit: "상담 신청 보내기",
     submittedTitle: "감사합니다.",
     submittedBody: "문의가 접수되었습니다. 전담 코디네이터가 선호 언어로 영업일 기준 하루 안에 회신드립니다.",
-    consent: "HEALO의 개인정보처리방침에 따라 개인정보 및 의료 정보 처리에 동의합니다.",
+    consent: "healwith의 개인정보처리방침에 따라 개인정보 및 의료 정보 처리에 동의합니다.",
   },
 };
 

@@ -14,7 +14,7 @@ function getModel() {
   return null;
 }
 
-const SYSTEM_PROMPT = `You extract "representative treatments/programs" (up to 3) from hospital website text for HEALO.
+const SYSTEM_PROMPT = `You extract "representative treatments/programs" (up to 3) from hospital website text for healwith.
 
 Selection criteria (for consistency across runs):
 - Prefer treatments listed in main navigation, hero section, or treatment menu.

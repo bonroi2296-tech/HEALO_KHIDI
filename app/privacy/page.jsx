@@ -4,9 +4,9 @@ import PrivacyPolicyClientLegacy from "./PrivacyPolicyClientLegacy";
 import { getServerDesignMode } from "@/lib/designMode";
 
 export const metadata = {
-  title: "Privacy Policy | HEALO",
+  title: "Privacy Policy | healwith",
   description:
-    "How HEALO collects, uses, and protects personal information for medical concierge and hospital matching services.",
+    "How healwith collects, uses, and protects personal information for medical concierge and hospital matching services.",
   alternates: { canonical: "/privacy" },
 };
 

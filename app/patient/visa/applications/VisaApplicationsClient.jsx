@@ -99,7 +99,7 @@ export default function VisaApplicationsClient() {
         <div>
           <h1 className="text-3xl font-semibold tracking-tight">비자 발급 지원</h1>
           <p className="text-gray-500 mt-1 text-sm">
-            HEALO 코디네이터가 초청장 발급부터 대사관 제출까지 돕습니다.
+            healwith 코디네이터가 초청장 발급부터 대사관 제출까지 돕습니다.
           </p>
         </div>
         <div className="flex gap-2">

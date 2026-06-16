@@ -1,5 +1,5 @@
 /**
- * HEALO: 직원(의사/코디네이터) 계정 관리 API — admin 전용
+ * healwith: 직원(의사/코디네이터) 계정 관리 API — admin 전용
  *
  * GET  /api/admin/staff           → role=doctor/coordinator 회원 목록
  * POST /api/admin/staff           → { email, role, name? } 계정 생성(또는 기존 계정에 역할 부여)

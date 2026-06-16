@@ -1,5 +1,5 @@
 /**
- * HEALO: 스레드 메시지 조회/전송
+ * healwith: 스레드 메시지 조회/전송
  *
  * GET  /api/portal/threads/:id/messages — 환자(본인 스레드, is_internal 제외) / staff(전체)
  * POST /api/portal/threads/:id/messages — Body: { text }

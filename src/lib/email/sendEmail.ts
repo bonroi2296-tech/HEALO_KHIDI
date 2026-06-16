@@ -1,5 +1,5 @@
 /**
- * HEALO: 통합 이메일 발송 — Resend 우선, AWS SES fallback
+ * healwith: 통합 이메일 발송 — Resend 우선, AWS SES fallback
  *
  * 환경변수 우선순위:
  * 1. `RESEND_API_KEY` + `RESEND_FROM_EMAIL` 있으면 Resend 사용

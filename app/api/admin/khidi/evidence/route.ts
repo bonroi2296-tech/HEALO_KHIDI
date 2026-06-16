@@ -1,5 +1,5 @@
 /**
- * HEALO: 중간평가 증빙 산출물 API
+ * healwith: 중간평가 증빙 산출물 API
  *
  * GET /api/admin/khidi/evidence?from&to
  *   → 성과지표 증빙용 레코드 묶음 (상담기록·협진의뢰서) + 요약 카운트.

@@ -9,8 +9,8 @@ import DesignToggle from "../components/healo/DesignToggle";
 export const metadata = {
   metadataBase: new URL("https://khidi.healo.kr"),
   title: {
-    default: "HEALO | Korea Cancer Care for International Patients",
-    template: "%s | HEALO",
+    default: "healwith | Korea Cancer Care for International Patients",
+    template: "%s | healwith",
   },
   description:
     "Korean cancer care concierge for international patients from Kazakhstan, Russia, and Central Asia. Video pre-consultation with top oncologists, 6-language interpretation, and full-journey support — from diagnosis to post-treatment follow-up.",
@@ -39,17 +39,17 @@ export const metadata = {
     "韓国がん治療",
   ],
   openGraph: {
-    title: "HEALO | Korea Cancer Care for International Patients",
+    title: "healwith | Korea Cancer Care for International Patients",
     description:
       "Video pre-consultation with Korea's top oncologists. Real-time interpretation in 6 languages (RU/KZ/EN/ZH/JA/KO). Full-journey concierge for cancer patients — from diagnosis to follow-up.",
     type: "website",
     locale: "en_US",
     alternateLocale: ["ko_KR", "ru_RU", "kk_KZ", "zh_CN", "ja_JP"],
-    siteName: "HEALO",
+    siteName: "healwith",
   },
   twitter: {
     card: "summary_large_image",
-    title: "HEALO | Korea Cancer Care for International Patients",
+    title: "healwith | Korea Cancer Care for International Patients",
     description:
       "Video pre-consultation + 6-language interpretation + full-journey concierge for international cancer patients seeking treatment in Korea.",
   },
@@ -78,7 +78,7 @@ export const metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "HEALO",
+    title: "healwith",
   },
   other: {
     "mobile-web-app-capable": "yes",

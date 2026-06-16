@@ -1,5 +1,5 @@
 /**
- * HEALO KHIDI KPI 일별 스냅샷 Cron
+ * healwith KHIDI KPI 일별 스냅샷 Cron
  *
  * GET /api/cron/kpi-snapshot
  *

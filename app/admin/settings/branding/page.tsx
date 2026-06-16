@@ -1,5 +1,5 @@
 /**
- * HEALO: 브랜딩 설정 페이지
+ * healwith: 브랜딩 설정 페이지
  * 
  * 경로: /admin/settings/branding
  * 

@@ -1,5 +1,5 @@
 /**
- * HEALO: Visa Document Individual Actions
+ * healwith: Visa Document Individual Actions
  *
  * PATCH  /api/khidi/visa/applications/[id]/documents/[docId] — 검수 (코디/admin)
  * DELETE /api/khidi/visa/applications/[id]/documents/[docId] — 삭제 (본인 업로더 / admin)

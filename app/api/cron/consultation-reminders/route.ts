@@ -1,5 +1,5 @@
 /**
- * HEALO: 원격상담 리마인더 cron
+ * healwith: 원격상담 리마인더 cron
  *
  * 동작:
  * - 향후 25~35분 사이 예정된 consultation_sessions 조회

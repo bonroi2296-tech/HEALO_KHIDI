@@ -1,5 +1,5 @@
 /**
- * HEALO: Admission status polling (게스트 공개)
+ * healwith: Admission status polling (게스트 공개)
  *
  * GET /api/khidi/consultation/:id/admission-status?admissionId=xxx
  *   → 자기 admission 상태 확인 (2~5초 polling)

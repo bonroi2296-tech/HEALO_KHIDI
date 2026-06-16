@@ -4,7 +4,7 @@ import TreatmentsClient from "./TreatmentsClient";
 import TreatmentsHubClient from "./TreatmentsHubClient";
 
 export const metadata = {
-  title: "암종별 치료 안내 — 한국 암 치료와 한방 통합 케어 | HEALO",
+  title: "암종별 치료 안내 — 한국 암 치료와 한방 통합 케어 | healwith",
   description:
     "유방·자궁·난소암, 대장·위암, 간·담도·췌장암, 폐암, 갑상선암 등 6개 암종 전문 치료 안내. 면력한방병원 ITCRN 5축 통합 면역치료.",
   keywords: [
@@ -23,14 +23,14 @@ export const metadata = {
   ],
   alternates: { canonical: "/treatments" },
   openGraph: {
-    title: "암종별 치료 안내 — 한국 암 치료와 한방 통합 케어 | HEALO",
+    title: "암종별 치료 안내 — 한국 암 치료와 한방 통합 케어 | healwith",
     description:
       "유방·자궁·난소암, 대장·위암, 간·담도·췌장암, 폐암, 갑상선암 등 6개 암종 전문 치료 안내.",
     type: "website",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Korea Cancer Treatment Guide | HEALO",
+    title: "Korea Cancer Treatment Guide | healwith",
     description:
       "6 cancer types, ITCRN 5-axis integrative immune therapy, Immune Hospital direct partner.",
   },

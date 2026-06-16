@@ -1,5 +1,5 @@
 /**
- * HEALO: Inquiry Funnel 이벤트 수집 API (서버 전용)
+ * healwith: Inquiry Funnel 이벤트 수집 API (서버 전용)
  * step1_viewed, step1_submitted, step2_viewed, step2_submitted
  * 
  * ✅ P0 수정: 런타임 명시 (Node.js)

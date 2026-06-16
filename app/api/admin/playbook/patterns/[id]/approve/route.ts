@@ -1,5 +1,5 @@
 /**
- * HEALO: Approve Playbook Pattern → RAG Document + Embedding 자동 생성
+ * healwith: Approve Playbook Pattern → RAG Document + Embedding 자동 생성
  *
  * POST /api/admin/playbook/patterns/:id/approve
  * - 승인 → rag_documents upsert → rag_chunks + embedding insert
@@ -118,7 +118,7 @@ export async function POST(
           title,
           content: docContent,
           trust_tier: 2,
-          source_label: "HEALO Playbook (Approved)",
+          source_label: "healwith Playbook (Approved)",
           metadata: { ...(previousDocState?.metadata || {}), ingest_status: "pending" },
           updated_at: nowIso(),
         })
@@ -137,7 +137,7 @@ export async function POST(
           content: docContent,
           version: 1,
           trust_tier: 2,
-          source_label: "HEALO Playbook (Approved)",
+          source_label: "healwith Playbook (Approved)",
           metadata: { ingest_status: "pending" },
           created_at: nowIso(),
           updated_at: nowIso(),

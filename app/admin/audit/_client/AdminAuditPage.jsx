@@ -11,7 +11,7 @@ const AUDIT_METADATA_ALLOWED_KEYS = [
 ];
 
 /**
- * HEALO: 관리자 감사 로그 뷰어
+ * healwith: 관리자 감사 로그 뷰어
  * 
  * 목적:
  * - 관리자 조회 활동 기록 확인

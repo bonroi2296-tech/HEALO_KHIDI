@@ -1,5 +1,5 @@
 /**
- * HEALO: 응급 SOS 알림 — 응급 스레드 찾기/생성 + 긴급 메시지 + waiting_coordinator
+ * healwith: 응급 SOS 알림 — 응급 스레드 찾기/생성 + 긴급 메시지 + waiting_coordinator
  *
  * POST /api/portal/emergency  Body: { lang? }
  */

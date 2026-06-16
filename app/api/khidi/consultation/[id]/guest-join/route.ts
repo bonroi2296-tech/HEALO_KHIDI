@@ -1,5 +1,5 @@
 /**
- * HEALO: Guest consultation join — Zoom 스타일 링크로 계정 없이 입장
+ * healwith: Guest consultation join — Zoom 스타일 링크로 계정 없이 입장
  *
  * POST /api/khidi/consultation/:id/guest-join
  * Body: { token, displayName }

@@ -1,5 +1,5 @@
 /**
- * HEALO: 개별 리드 업데이트 API
+ * healwith: 개별 리드 업데이트 API
  * 
  * 경로: /api/admin/leads/[id]
  * 권한: 관리자 전용

@@ -36,7 +36,7 @@ async function generate(form, { patient = {}, lang = "ko" }) {
 
 export async function POST(request, context) {
   try {
-    // 과거엔 공개라 누구나 HEALO 브랜드 법적 동의서 PDF 를 임의 내용으로 발급 가능
+    // 과거엔 공개라 누구나 healwith 브랜드 법적 동의서 PDF 를 임의 내용으로 발급 가능
     // (위조·사회공학). 어드민/내부 시크릿 + rate limit 으로 제한.
     const ip = getClientIp(request);
     const rl = checkRateLimit(ip, RATE_LIMITS.INQUIRY);
@@ -55,7 +55,7 @@ export async function POST(request, context) {
     const body = await request.json();
     const lang = body.lang === "en" ? "en" : "ko";
     const buffer = await generate(form, { patient: body.patient || {}, lang });
-    const filename = `HEALO-Consent-${form}-${body.patient?.name || "unsigned"}.pdf`;
+    const filename = `healwith-Consent-${form}-${body.patient?.name || "unsigned"}.pdf`;
     return new NextResponse(buffer, {
       status: 200,
       headers: {
@@ -89,7 +89,7 @@ export async function GET(request, context) {
       status: 200,
       headers: {
         "Content-Type": "application/pdf",
-        "Content-Disposition": `inline; filename="HEALO-Consent-${form}-sample.pdf"`,
+        "Content-Disposition": `inline; filename="healwith-Consent-${form}-sample.pdf"`,
       },
     });
   } catch (err) {

@@ -1,5 +1,5 @@
 /**
- * HEALO: Consultation guest invite tokens
+ * healwith: Consultation guest invite tokens
  *
  * Zoom-스타일 공유 링크로 환자가 계정 없이 원격 상담 방에 참여할 수 있게 함.
  *

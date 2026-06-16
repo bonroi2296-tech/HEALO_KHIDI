@@ -1,5 +1,5 @@
 /**
- * HEALO: 병원 지점(Branch) 관리 API (admin 전용)
+ * healwith: 병원 지점(Branch) 관리 API (admin 전용)
  *
  * 보안: requireAdminAuth (Bearer/쿠키 기반).
  * ⚠️ 과거 checkAdmin(profiles.role) 패턴 제거 — 같은 escalation 벡터 가능.

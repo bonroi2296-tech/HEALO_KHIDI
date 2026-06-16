@@ -1,5 +1,5 @@
 /**
- * HEALO: Cost Estimate Detail / Update
+ * healwith: Cost Estimate Detail / Update
  *
  * GET   /api/khidi/cost-estimates/[id] — 상세 조회
  * PATCH /api/khidi/cost-estimates/[id] — 견적 항목 업데이트 / 상태 전이 / 환자 동의

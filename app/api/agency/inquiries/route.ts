@@ -1,5 +1,5 @@
 /**
- * HEALO: 에이전시 포털 — 내 에이전시가 의뢰한 환자들의 진행 상황 조회
+ * healwith: 에이전시 포털 — 내 에이전시가 의뢰한 환자들의 진행 상황 조회
  *
  * GET /api/agency/inquiries
  *   → 본 에이전시(agency_id)에 배정된 inquiries 의 진행상황·보험상태 + 단계 이력.

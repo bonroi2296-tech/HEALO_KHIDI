@@ -49,7 +49,7 @@ export default function DoctorLayout({ children }) {
             <Stethoscope size={20} className="text-white" />
           </div>
           <div>
-            <h1 className="text-base lg:text-lg font-bold text-gray-900">HEALO</h1>
+            <h1 className="text-base lg:text-lg font-bold text-gray-900">healwith</h1>
             <p className="text-[10px] lg:text-xs text-gray-500">의료진 포털</p>
           </div>
         </div>
@@ -103,7 +103,7 @@ export default function DoctorLayout({ children }) {
       <div className="lg:hidden fixed top-0 left-0 right-0 z-40 bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Stethoscope size={20} className="text-blue-600" />
-          <span className="font-bold text-gray-900">HEALO 의료진</span>
+          <span className="font-bold text-gray-900">healwith 의료진</span>
         </div>
         <button
           onClick={() => setIsMobileOpen(true)}

@@ -1,5 +1,5 @@
 /**
- * HEALO: 관리자 알림 설정 페이지 (리팩토링 버전)
+ * healwith: 관리자 알림 설정 페이지 (리팩토링 버전)
  * 
  * 경로: /admin/settings/notifications
  * 

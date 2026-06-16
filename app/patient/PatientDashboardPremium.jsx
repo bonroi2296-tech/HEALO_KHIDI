@@ -37,7 +37,7 @@ import {
 const COPY = {
   en: {
     loginTitle: "Sign in to your care",
-    loginBody: "Your HEALO care journey is private and secure. Please sign in to view your dashboard.",
+    loginBody: "Your healwith care journey is private and secure. Please sign in to view your dashboard.",
     loginBtn: "Sign in",
     welcome: "Welcome back",
     journey: "Your journey",
@@ -61,7 +61,7 @@ const COPY = {
   },
   ko: {
     loginTitle: "내 치료 여정에 로그인",
-    loginBody: "HEALO의 치료 여정은 비공개로 안전하게 관리됩니다. 대시보드 확인을 위해 로그인해 주세요.",
+    loginBody: "healwith의 치료 여정은 비공개로 안전하게 관리됩니다. 대시보드 확인을 위해 로그인해 주세요.",
     loginBtn: "로그인",
     welcome: "다시 오신 것을 환영합니다",
     journey: "당신의 여정",

@@ -27,7 +27,7 @@ const COPY = {
     heroTitleA: "Expert cancer care,",
     heroTitleB: "guided end to end.",
     heroLede:
-      "HEALO coordinates every step — from first consultation to follow-up — with Korea's most experienced oncology teams. For patients from anywhere in the world.",
+      "healwith coordinates every step — from first consultation to follow-up — with Korea's most experienced oncology teams. For patients from anywhere in the world.",
     ctaPrimary: "Request consultation",
     ctaSecondary: "How it works",
     heroCaption: "Immune Hospital · Gangseo",
@@ -167,12 +167,12 @@ const COPY = {
     heroTitleA: "국제 암환자의 한국 치료,",
     heroTitleB: "처음부터 끝까지.",
     heroLede:
-      "HEALO는 첫 상담부터 사후 관리까지 한국 최고 수준 종양학 팀과 함께 조용히 코디네이팅합니다. 전 세계 어디에서 오시든.",
+      "healwith는 첫 상담부터 사후 관리까지 한국 최고 수준 종양학 팀과 함께 조용히 코디네이팅합니다. 전 세계 어디에서 오시든.",
     ctaPrimary: "상담 신청",
     ctaSecondary: "진행 방식 보기",
     heroCaption: "면력한방병원 강서",
     disclaimer:
-      "HEALO는 의료기관이 아닙니다. 진단과 치료는 한국의 면허를 갖춘 의료진이 수행합니다.",
+      "healwith는 의료기관이 아닙니다. 진단과 치료는 한국의 면허를 갖춘 의료진이 수행합니다.",
 
     statsEyebrow: "02 — 숫자로 보는",
     stats: [
@@ -213,7 +213,7 @@ const COPY = {
     ],
 
     // 원격협진 — USP 전면
-    telemedicineEyebrow: "03 — 원격협진 · HEALO 의 USP",
+    telemedicineEyebrow: "03 — 원격협진 · healwith 의 USP",
     telemedicineTitle: "비행기 타기 전에",
     telemedicineTitleItalic: "한국 전문의와 먼저 만나세요.",
     telemedicineLede:
@@ -306,12 +306,12 @@ const COPY = {
     heroTitleA: "Лечение рака в Корее,",
     heroTitleB: "от начала до конца.",
     heroLede:
-      "HEALO координирует каждый шаг — от первой консультации до постлечения — с самыми опытными онкологическими командами Кореи. Для пациентов из любой страны.",
+      "healwith координирует каждый шаг — от первой консультации до постлечения — с самыми опытными онкологическими командами Кореи. Для пациентов из любой страны.",
     ctaPrimary: "Оставить заявку",
     ctaSecondary: "Как это работает",
     heroCaption: "Immune Hospital · Кансо",
     disclaimer:
-      "HEALO не является медицинским учреждением. Диагностика и лечение выполняются лицензированными корейскими специалистами.",
+      "healwith не является медицинским учреждением. Диагностика и лечение выполняются лицензированными корейскими специалистами.",
 
     statsEyebrow: "02 — В цифрах",
     stats: [
@@ -413,12 +413,12 @@ const COPY = {
     heroTitleA: "Кореяда онкологиялық емдеу,",
     heroTitleB: "басынан соңына дейін.",
     heroLede:
-      "HEALO бірінші консультациядан кейінгі бақылауға дейін әрбір қадамды Кореяның ең тәжірибелі онкология командаларымен үнсіз үйлестіреді. Әлемнің кез келген нүктесінен.",
+      "healwith бірінші консультациядан кейінгі бақылауға дейін әрбір қадамды Кореяның ең тәжірибелі онкология командаларымен үнсіз үйлестіреді. Әлемнің кез келген нүктесінен.",
     ctaPrimary: "Өтініш қалдыру",
     ctaSecondary: "Қалай жұмыс істейді",
     heroCaption: "Immune Hospital · Каңсо",
     disclaimer:
-      "HEALO медициналық мекеме емес. Диагностика мен емдеуді Кореяның лицензиясы бар мамандары жүргізеді.",
+      "healwith медициналық мекеме емес. Диагностика мен емдеуді Кореяның лицензиясы бар мамандары жүргізеді.",
 
     statsEyebrow: "02 — Сандармен",
     stats: [
@@ -484,11 +484,11 @@ const COPY = {
     heroTitleA: "韩国癌症治疗,",
     heroTitleB: "全程陪伴。",
     heroLede:
-      "HEALO 与韩国最有经验的肿瘤团队一起,从首次咨询到后续随访,全程安静地为您协调每一步。欢迎来自世界各地的患者。",
+      "healwith 与韩国最有经验的肿瘤团队一起,从首次咨询到后续随访,全程安静地为您协调每一步。欢迎来自世界各地的患者。",
     ctaPrimary: "申请咨询",
     ctaSecondary: "了解流程",
     heroCaption: "Immune Hospital · 江西",
-    disclaimer: "HEALO 不是医疗机构。诊断与治疗由韩国持证医疗人员执行。",
+    disclaimer: "healwith 不是医疗机构。诊断与治疗由韩国持证医疗人员执行。",
 
     statsEyebrow: "02 — 数据实绩",
     stats: [
@@ -552,11 +552,11 @@ const COPY = {
     heroTitleA: "韓国でのがん治療を、",
     heroTitleB: "最初から最後まで。",
     heroLede:
-      "HEALO は初回相談からアフターケアまで、韓国屈指の腫瘍チームとともに静かにコーディネートします。世界のどこからでも。",
+      "healwith は初回相談からアフターケアまで、韓国屈指の腫瘍チームとともに静かにコーディネートします。世界のどこからでも。",
     ctaPrimary: "相談を申し込む",
     ctaSecondary: "進め方を見る",
     heroCaption: "Immune Hospital · 江西",
-    disclaimer: "HEALO は医療機関ではありません。診断と治療は韓国の免許を持つ医療従事者が行います。",
+    disclaimer: "healwith は医療機関ではありません。診断と治療は韓国の免許を持つ医療従事者が行います。",
 
     statsEyebrow: "02 — 数字で見る",
     stats: [
@@ -784,7 +784,7 @@ export default function HomeClientPremium() {
           >
             <img
               src={IMMUNE_PHOTOS.team}
-              alt="HEALO · Immune Hospital team"
+              alt="healwith · Immune Hospital team"
               style={{
                 width: "100%",
                 height: "100%",

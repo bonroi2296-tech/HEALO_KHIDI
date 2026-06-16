@@ -1,5 +1,5 @@
 /**
- * HEALO: Merge Playbook Patterns
+ * healwith: Merge Playbook Patterns
  *
  * POST /api/admin/playbook/patterns/merge
  * - canonical_id: 대표 패턴
@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
       if (target.rag_document_id) {
         await supabaseAdmin
           .from("rag_documents")
-          .update({ trust_tier: 3, source_label: "HEALO Playbook (Merged)", updated_at: nowIso() })
+          .update({ trust_tier: 3, source_label: "healwith Playbook (Merged)", updated_at: nowIso() })
           .eq("id", target.rag_document_id);
       }
 

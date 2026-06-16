@@ -1,5 +1,5 @@
 /**
- * HEALO: 리마인더 수동 재발송 (관리자 전용)
+ * healwith: 리마인더 수동 재발송 (관리자 전용)
  *
  * POST /api/admin/reminders/:id/retry
  * Header: Authorization: Bearer <access_token>

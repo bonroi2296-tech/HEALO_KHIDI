@@ -1,5 +1,5 @@
 /**
- * HEALO: 유치 전환 깔때기 대시보드 API
+ * healwith: 유치 전환 깔때기 대시보드 API
  *
  * GET  /api/admin/khidi/conversion-funnel?from&to&nationality
  *   → 깔때기 단계별 수 + 전환율 + 국가별 + "유치확정 대기" 환자 리스트

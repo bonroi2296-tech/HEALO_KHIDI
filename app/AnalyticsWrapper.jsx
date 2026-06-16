@@ -5,7 +5,7 @@ import Script from "next/script";
 import { useEffect } from "react";
 
 /**
- * HEALO: Analytics 래퍼
+ * healwith: Analytics 래퍼
  * 
  * 목적:
  * - 개발환경에서 GTM 로딩 방지

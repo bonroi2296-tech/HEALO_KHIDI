@@ -1,5 +1,5 @@
 /**
- * HEALO: 관리자 병원 관리 API
+ * healwith: 관리자 병원 관리 API
  * 
  * 경로: /api/admin/hospitals
  * 권한: 관리자 전용

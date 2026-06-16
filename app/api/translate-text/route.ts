@@ -1,5 +1,5 @@
 /**
- * HEALO: Text 번역 API (브라우저 호출 허용 — 병원 리뷰 번역 등)
+ * healwith: Text 번역 API (브라우저 호출 허용 — 병원 리뷰 번역 등)
  *
  * 보안:
  * - Origin / Referer 체크 — 우리 도메인에서만 호출 가능

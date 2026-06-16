@@ -1,5 +1,5 @@
 /**
- * HEALO: 시술 출처 조회 (treatment_sources)
+ * healwith: 시술 출처 조회 (treatment_sources)
  * GET /api/admin/treatments/[id]/sources
  * 권한: 관리자 전용
  */

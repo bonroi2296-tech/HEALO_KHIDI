@@ -1,5 +1,5 @@
 /**
- * HEALO: 리드 목록 조회 API
+ * healwith: 리드 목록 조회 API
  * 
  * 경로: /api/admin/leads
  * 권한: 관리자 전용

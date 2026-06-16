@@ -1,5 +1,5 @@
 /**
- * HEALO AI 응답 품질 기준 — 단일 진실(Single Source of Truth)
+ * healwith AI 응답 품질 기준 — 단일 진실(Single Source of Truth)
  *
  * 문서 `docs/AI_QUALITY_ASSURANCE.md` 와 1:1 대응. 품질 임계값·가중치·평가 차원을
  * 여기 한 곳에서만 정의하고, 라이브 채점(judge.ts)·일일 회귀 크론이 모두 이걸 참조한다.

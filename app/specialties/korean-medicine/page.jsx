@@ -4,7 +4,7 @@ import PageShell from "../../../components/healo/PageShell";
 import { getServerDesignMode } from "@/lib/designMode";
 
 export const metadata = {
-  title: "Korean Traditional Medicine | HEALO",
+  title: "Korean Traditional Medicine | healwith",
   description:
     "Experience Korea's unique traditional medicine — herbal formulas, acupuncture, and holistic healing. Compare top Korean Medicine hospitals and treatment programs.",
   keywords: [
@@ -30,7 +30,7 @@ export const metadata = {
     },
   },
   openGraph: {
-    title: "Korean Traditional Medicine — Only in Korea | HEALO",
+    title: "Korean Traditional Medicine — Only in Korea | healwith",
     description:
       "Discover Korea's 1,000-year medical tradition. Immune therapy, postpartum care, fertility support & more.",
     type: "website",

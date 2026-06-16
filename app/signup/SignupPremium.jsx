@@ -251,7 +251,7 @@ export default function SignupPremium() {
               letterSpacing: "0.04em",
             }}
           >
-            HEALO
+            healwith
           </Link>
           <blockquote
             style={{
@@ -294,7 +294,7 @@ export default function SignupPremium() {
               marginBottom: 32,
             }}
           >
-            ← HEALO
+            ← healwith
           </Link>
 
           <Eyebrow>{copy.eyebrow}</Eyebrow>

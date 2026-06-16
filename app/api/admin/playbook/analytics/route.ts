@@ -1,5 +1,5 @@
 /**
- * HEALO: Playbook Analytics API
+ * healwith: Playbook Analytics API
  *
  * GET /api/admin/playbook/analytics
  * - summary: total, retrieved_any, used_count, used_rate, avg_latency_ms, handoff_rate

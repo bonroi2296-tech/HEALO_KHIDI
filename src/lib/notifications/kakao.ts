@@ -1,5 +1,5 @@
 /**
- * HEALO: 카카오 알림톡 어댑터
+ * healwith: 카카오 알림톡 어댑터
  *
  * 환경변수:
  *   KAKAO_BIZ_API_KEY  — 카카오 비즈니스 API 키
@@ -179,8 +179,8 @@ export async function sendReminder30MinKakao(opts: {
       join_url: opts.joinUrl,
     },
     smsFailover: {
-      subject: "[HEALO] 30분 후 상담",
-      content: `[HEALO] ${opts.patientName}님, 30분 후 상담이 시작됩니다.\n입장: ${opts.joinUrl}`,
+      subject: "[healwith] 30분 후 상담",
+      content: `[healwith] ${opts.patientName}님, 30분 후 상담이 시작됩니다.\n입장: ${opts.joinUrl}`,
     },
   });
 }

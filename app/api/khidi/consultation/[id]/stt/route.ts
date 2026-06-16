@@ -1,5 +1,5 @@
 /**
- * HEALO: 서버사이드 음성인식 (STT) — 브라우저 무관 음성 자막
+ * healwith: 서버사이드 음성인식 (STT) — 브라우저 무관 음성 자막
  *
  * POST /api/khidi/consultation/:id/stt
  * FormData: audio(블롭, ≤1.5MB), lang(ko|ru|en|kz|zh|ja), targetLang(선택)

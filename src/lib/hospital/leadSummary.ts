@@ -1,5 +1,5 @@
 /**
- * HEALO: 병원 전달용 리드 요약 생성
+ * healwith: 병원 전달용 리드 요약 생성
  * 
  * 목적:
  * - inquiries 데이터를 병원이 이해하기 쉬운 형태로 변환
@@ -250,7 +250,7 @@ ${summary.notes}
 - 예상 상담 가능 일정
 
 감사합니다.
-HEALO 팀
+healwith 팀
   `.trim();
 
   const body = plainText.replace(/\n/g, '<br>');

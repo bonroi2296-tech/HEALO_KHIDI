@@ -83,7 +83,7 @@ function formatHospital(h: any): string {
 
 function groupBranches(hospitals: any[], hospitalPhrase: string | null): string {
   if (!hospitalPhrase || hospitals.length <= 1) {
-    return "[HEALO 등록 병원]\n" + hospitals.map(formatHospital).join("\n");
+    return "[healwith 등록 병원]\n" + hospitals.map(formatHospital).join("\n");
   }
 
   const branches = hospitals.filter((h: any) =>
@@ -97,14 +97,14 @@ function groupBranches(hospitals: any[], hospitalPhrase: string | null): string 
 
   if (branches.length > 0) {
     parts.push(
-      `[HEALO 등록 병원 — ${hospitalPhrase} (${branches.length}개 지점)]`,
+      `[healwith 등록 병원 — ${hospitalPhrase} (${branches.length}개 지점)]`,
       ...branches.map(formatHospital)
     );
   }
 
   if (others.length > 0) {
     parts.push(
-      "[HEALO 등록 병원 — 기타]",
+      "[healwith 등록 병원 — 기타]",
       ...others.map(formatHospital)
     );
   }
@@ -219,7 +219,7 @@ export async function searchHospitalsAndTreatments(
     if (treatments?.length) {
       treatmentCount = treatments.length;
       context +=
-        "\n[HEALO 등록 시술/프로그램]\n" +
+        "\n[healwith 등록 시술/프로그램]\n" +
         treatments.map(formatTreatment).join("\n");
     }
   } catch (e: any) {

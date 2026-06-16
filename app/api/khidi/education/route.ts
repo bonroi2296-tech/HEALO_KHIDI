@@ -1,5 +1,5 @@
 /**
- * HEALO: Education Content API
+ * healwith: Education Content API
  *
  * GET /api/khidi/education — 교육 콘텐츠 조회
  * Query: cancerType, phase, category, lang

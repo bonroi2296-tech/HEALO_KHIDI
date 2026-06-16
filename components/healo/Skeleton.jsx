@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * HEALO 로딩 스켈레톤 — D.Premium 톤
+ * healwith 로딩 스켈레톤 — D.Premium 톤
  * Shimmer 효과 없이 차분한 pulsing opacity
  */
 

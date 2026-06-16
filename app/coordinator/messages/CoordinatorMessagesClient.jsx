@@ -455,8 +455,8 @@ function Message({ m, meId }) {
   const label =
     isMine ? "You (Coordinator)" :
     isPatient ? "Patient" :
-    m.actor_type === "bot" ? "HEALO AI" :
-    m.actor_type === "admin" ? "HEALO Admin" :
+    m.actor_type === "bot" ? "healwith AI" :
+    m.actor_type === "admin" ? "healwith Admin" :
     m.actor_type === "coordinator" ? "Other Coordinator" :
     "System";
 

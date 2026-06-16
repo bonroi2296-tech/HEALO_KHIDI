@@ -1,7 +1,7 @@
 import VisaApplicationDetailClient from "./VisaApplicationDetailClient";
 
 export const metadata = {
-  title: "Visa Application Detail · HEALO",
+  title: "Visa Application Detail · healwith",
 };
 
 export default async function PatientVisaApplicationDetailPage({ params }) {

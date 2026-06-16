@@ -1,5 +1,5 @@
 /**
- * HEALO: LLM-as-Judge — AI 응답 자기 검증 모듈
+ * healwith: LLM-as-Judge — AI 응답 자기 검증 모듈
  *
  * generateReply 가 응답을 생성한 뒤 별도 Judge LLM 이 품질을 채점한다.
  * 채점 결과는 ai_response_evaluations 테이블에 저장되고,
@@ -56,7 +56,7 @@ function buildJudgePrompt(input: JudgeInput): string {
     ? `\n\n[RETRIEVED CONTEXT]\n${input.context.slice(0, 3000)}`
     : "\n\n[RETRIEVED CONTEXT]\n(없음 — 컨텍스트 없이 생성된 응답)";
 
-  return `당신은 HEALO 의료관광 AI 챗봇의 품질 심사 판사입니다. 아래 사용자 질의와 AI 응답을 평가해 JSON을 반환하세요.
+  return `당신은 healwith 의료관광 AI 챗봇의 품질 심사 판사입니다. 아래 사용자 질의와 AI 응답을 평가해 JSON을 반환하세요.
 
 [사용자 질의]
 ${input.query}

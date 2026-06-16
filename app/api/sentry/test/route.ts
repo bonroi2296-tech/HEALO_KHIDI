@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
 
   // 의도된 에러 발생 → Sentry로 캡처됨
   const testError = new Error(
-    `[HEALO Sentry Test] 의도된 테스트 에러 — ${new Date().toISOString()}`
+    `[healwith Sentry Test] 의도된 테스트 에러 — ${new Date().toISOString()}`
   );
 
   try {

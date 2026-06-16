@@ -1,5 +1,5 @@
 /**
- * HEALO: Patient Documents API (authenticated, cross-consultation)
+ * healwith: Patient Documents API (authenticated, cross-consultation)
  *
  * GET  /api/patient/documents              — 로그인 환자 본인의 모든 의료 문서 목록
  * POST /api/patient/documents              — 의료 문서 업로드 (consultationId 선택)

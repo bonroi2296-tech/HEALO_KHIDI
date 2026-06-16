@@ -1,5 +1,5 @@
 /**
- * HEALO: Rate Limit 유틸리티 (운영 안정화)
+ * healwith: Rate Limit 유틸리티 (운영 안정화)
  * 
  * 목적:
  * - 봇/도배/자동화 요청으로 인한 DB 오염 방지

@@ -1,5 +1,5 @@
 /**
- * HEALO: Extract Playbook Pattern from Chat Thread
+ * healwith: Extract Playbook Pattern from Chat Thread
  *
  * POST /api/admin/playbook/patterns/from-thread
  * - thread의 메시지에서 응대 논리 구조(패턴) 추출 → draft 저장

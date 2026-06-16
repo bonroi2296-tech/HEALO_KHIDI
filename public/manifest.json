@@ -1,6 +1,6 @@
 {
-  "name": "HEALO - Korea Medical Tourism Concierge",
-  "short_name": "HEALO",
+  "name": "healwith - Korea Medical Tourism Concierge",
+  "short_name": "healwith",
   "description": "AI-powered medical concierge for international patients seeking treatment in Korea",
   "start_url": "/",
   "display": "standalone",

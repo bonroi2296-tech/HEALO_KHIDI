@@ -1,5 +1,5 @@
 /**
- * HEALO: Cost Estimate — 정식 견적서 PDF 자동 발급
+ * healwith: Cost Estimate — 정식 견적서 PDF 자동 발급
  *
  * POST /api/khidi/cost-estimates/[id]/quotation — PDF 생성 + Storage 업로드 + issued 전이 (코디/admin)
  * GET  /api/khidi/cost-estimates/[id]/quotation — 발급된 PDF signed URL
@@ -107,7 +107,7 @@ export async function POST(
       if (hospital?.name) hospitalName = hospital.name;
     }
 
-    const quotationNo = `HEALO-${new Date()
+    const quotationNo = `healwith-${new Date()
       .toISOString()
       .slice(0, 10)
       .replace(/-/g, "")}-${estimate.id.slice(0, 4).toUpperCase()}`;

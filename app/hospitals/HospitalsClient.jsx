@@ -26,7 +26,7 @@ const L = {
   consortium: {
     badge: { ko: '핵심 컨소시엄 파트너', en: 'Core Consortium Partner', ru: 'Основной партнёр консорциума', kz: 'Негізгі консорциум серіктес', zh: '核心联盟合作伙伴', ja: 'コアコンソーシアムパートナー' },
     name: { ko: '면력한방병원', en: 'Immune Hospital of Korean Medicine', ru: 'Клиника Мёнрёк', kz: 'Мёнрёк клиникасы', zh: '免疫医院', ja: '免疫病院' },
-    role: { ko: 'HEALO 플랫폼의 한방 면역치료 및 사후관리 총괄', en: 'Korean Medicine immune therapy & post-care for HEALO', ru: 'Иммунная терапия и послеоперационный уход', kz: 'Иммундық терапия және емнен кейінгі күтім', zh: '韩方免疫治疗及术后管理', ja: '韓方免疫治療・術後管理' },
+    role: { ko: 'healwith 플랫폼의 한방 면역치료 및 사후관리 총괄', en: 'Korean Medicine immune therapy & post-care for healwith', ru: 'Иммунная терапия и послеоперационный уход', kz: 'Иммундық терапия және емнен кейінгі күтім', zh: '韩方免疫治疗及术后管理', ja: '韓方免疫治療・術後管理' },
     desc: { ko: '면력한방병원은 서울 강서구에 본원을 두고 신촌·광명·성동에 분원을 운영하는 한방 면역치료 전문 의료기관입니다. 암 환자의 면역력 강화, 항암 부작용 완화, 체력 회복을 위한 통합 한방 프로그램을 제공합니다.', en: 'Immune Hospital is a Korean Medicine institution headquartered in Gangseo-gu, Seoul, with branches in Sinchon, Gwangmyeong, and Seongdong. We provide integrated Korean Medicine programs for cancer patients including immune enhancement, chemotherapy side-effect relief, and physical recovery.', ru: 'Иммунная Клиника — учреждение корейской медицины с главным офисом в Кансо-гу, Сеул, и филиалами в Синчоне, Кванмёне и Сондоне. Мы предоставляем комплексные программы для онкопациентов.', kz: 'Иммунная Клиника — Кансо-гудағы бас кеңсесі мен Синчон, Кванмён, Сондон филиалдары бар корей медицинасы мекемесі.', zh: '免疫医院总部位于首尔江西区，在新村、光明和城东设有分院。为癌症患者提供综合韩方项目。', ja: '免疫病院はソウル江西区に本院を置き、新村・光明・城東に分院を展開する免疫治療専門韓方医療機関です。' },
   },
   branches: { ko: '지점 네트워크', en: 'Branch Network', ru: 'Сеть филиалов', kz: 'Филиал желісі', zh: '分院网络', ja: '分院ネットワーク' },
@@ -55,11 +55,11 @@ const L = {
   },
   partnerHospitals: {
     title: { ko: '협진 암 전문 병원', en: 'Partner Oncology Hospitals', ru: 'Партнёрские онкобольницы', kz: 'Серіктес онкологиялық аурухналар', zh: '协诊肿瘤医院', ja: '協診がん専門病院' },
-    desc: { ko: 'HEALO가 연계하는 한국 주요 암 전문 의료기관입니다.', en: 'Leading Korean oncology hospitals partnered with HEALO.', ru: 'Ведущие корейские онкобольницы — партнёры HEALO.', kz: 'HEALO серіктес корей онкологиялық аурухналары.', zh: 'HEALO合作的韩国肿瘤专科医院。', ja: 'HEALO提携の韓国がん専門病院。' },
+    desc: { ko: 'healwith가 연계하는 한국 주요 암 전문 의료기관입니다.', en: 'Leading Korean oncology hospitals partnered with healwith.', ru: 'Ведущие корейские онкобольницы — партнёры healwith.', kz: 'healwith серіктес корей онкологиялық аурухналары.', zh: 'healwith合作的韩国肿瘤专科医院。', ja: 'healwith提携の韓国がん専門病院。' },
   },
   cancerCare: {
     title: { ko: '암종별 치료 안내', en: 'Treatment by Cancer Type', ru: 'Лечение по типу рака', kz: 'Рак түрі бойынша емдеу', zh: '按癌症类型治疗', ja: 'がん種別治療' },
-    desc: { ko: '각 암종에 대한 한국의 치료 접근법과 HEALO의 통합 케어를 확인하세요.', en: 'Korean treatment approaches for each cancer type with HEALO\'s integrated care.', ru: 'Корейские методы лечения с интегрированной помощью HEALO.', kz: 'HEALO кешенді көмегімен корей емдеу тәсілдері.', zh: '了解韩国治疗方法和HEALO综合护理。', ja: '韓国の治療アプローチとHEALO統合ケア。' },
+    desc: { ko: '각 암종에 대한 한국의 치료 접근법과 healwith의 통합 케어를 확인하세요.', en: 'Korean treatment approaches for each cancer type with healwith\'s integrated care.', ru: 'Корейские методы лечения с интегрированной помощью healwith.', kz: 'healwith кешенді көмегімен корей емдеу тәсілдері.', zh: '了解韩国治疗方法和healwith综合护理。', ja: '韓国の治療アプローチとhealwith統合ケア。' },
   },
   cta: { ko: '사전상담 신청하기', en: 'Request Pre-consultation', ru: 'Запросить консультацию', kz: 'Кеңес сұрау', zh: '申请预咨询', ja: '事前相談を申請' },
   viewDetails: { ko: '상세 보기', en: 'View Details', ru: 'Подробнее', kz: 'Толығырақ', zh: '查看详情', ja: '詳細を見る' },

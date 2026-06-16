@@ -1,5 +1,5 @@
 /**
- * HEALO: 사이트 설정 관리 API
+ * healwith: 사이트 설정 관리 API
  * 
  * 경로: /api/admin/site-settings
  * 

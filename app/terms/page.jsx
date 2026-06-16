@@ -4,9 +4,9 @@ import TermsOfServiceClientLegacy from "./TermsOfServiceClientLegacy";
 import { getServerDesignMode } from "@/lib/designMode";
 
 export const metadata = {
-  title: "Terms of Service | HEALO",
+  title: "Terms of Service | healwith",
   description:
-    "Terms and conditions for using HEALO's AI medical concierge and hospital matching services.",
+    "Terms and conditions for using healwith's AI medical concierge and hospital matching services.",
   alternates: { canonical: "/terms" },
 };
 

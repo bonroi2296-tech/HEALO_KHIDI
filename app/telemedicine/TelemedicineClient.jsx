@@ -33,7 +33,7 @@ const COPY = {
     stepsTitle: "From first request to consultation — under 48 hours.",
     steps: [
       { num: "01", title: "Request", body: "Share your diagnosis, past reports, and preferred language. Takes 10 minutes." },
-      { num: "02", title: "Care assignment", body: "HEALO assigns 2–3 specialists whose expertise fits your case." },
+      { num: "02", title: "Care assignment", body: "healwith assigns 2–3 specialists whose expertise fits your case." },
       { num: "03", title: "Receive link", body: "We email you a secure meeting link (patient + interpreter + family can join)." },
       { num: "04", title: "Consult", body: "30–60 min video session with live interpretation and document review." },
     ],
@@ -85,7 +85,7 @@ const COPY = {
     stepsTitle: "신청부터 상담까지 — 48시간 이내.",
     steps: [
       { num: "01", title: "신청", body: "진단명, 기존 검사지, 희망 언어를 알려주세요. 10분이면 충분합니다." },
-      { num: "02", title: "상담 배정", body: "HEALO가 증례에 맞는 전문의 2~3명을 배정합니다." },
+      { num: "02", title: "상담 배정", body: "healwith가 증례에 맞는 전문의 2~3명을 배정합니다." },
       { num: "03", title: "링크 전송", body: "보안 미팅 링크를 이메일로 전송합니다 (환자 + 통역사 + 가족 입장 가능)." },
       { num: "04", title: "상담", body: "30~60분 영상 세션 + 실시간 통역 + 문서 검토." },
     ],
@@ -137,7 +137,7 @@ const COPY = {
     stepsTitle: "От заявки до консультации — менее 48 часов.",
     steps: [
       { num: "01", title: "Заявка", body: "Укажите диагноз, прошлые обследования и удобный язык. Это займёт 10 минут." },
-      { num: "02", title: "Назначение консультации", body: "HEALO назначает 2–3 специалистов, чья экспертиза подходит вашему случаю." },
+      { num: "02", title: "Назначение консультации", body: "healwith назначает 2–3 специалистов, чья экспертиза подходит вашему случаю." },
       { num: "03", title: "Получение ссылки", body: "Мы отправляем по email защищённую ссылку на встречу (пациент + переводчик + семья)." },
       { num: "04", title: "Консультация", body: "Видеосессия 30–60 минут с синхронным переводом и разбором документов." },
     ],
@@ -189,7 +189,7 @@ const COPY = {
     stepsTitle: "Өтініштен кеңеске дейін — 48 сағаттан аз.",
     steps: [
       { num: "01", title: "Өтініш", body: "Диагнозыңызды, бұрынғы тексерулерді және қалаған тіліңізді көрсетіңіз. 10 минут жеткілікті." },
-      { num: "02", title: "Кеңес тағайындау", body: "HEALO сіздің жағдайыңызға сай 2–3 маман тағайындайды." },
+      { num: "02", title: "Кеңес тағайындау", body: "healwith сіздің жағдайыңызға сай 2–3 маман тағайындайды." },
       { num: "03", title: "Сілтеме жіберу", body: "Қауіпсіз кездесу сілтемесін email арқылы жібереміз (пациент + аудармашы + отбасы)." },
       { num: "04", title: "Кеңес", body: "Синхронды аударма мен құжаттарды талдаумен 30–60 минуттық бейне сессия." },
     ],
@@ -241,7 +241,7 @@ const COPY = {
     stepsTitle: "从申请到咨询——48小时以内。",
     steps: [
       { num: "01", title: "申请", body: "告知诊断、既往检查与偏好语言。仅需10分钟。" },
-      { num: "02", title: "安排咨询", body: "HEALO 为您安排2~3名与病例契合的专科医生。" },
+      { num: "02", title: "安排咨询", body: "healwith 为您安排2~3名与病例契合的专科医生。" },
       { num: "03", title: "发送链接", body: "通过邮件发送安全会议链接（患者 + 翻译 + 家属可加入）。" },
       { num: "04", title: "咨询", body: "30~60分钟视频会话，含实时翻译与文档审阅。" },
     ],
@@ -293,7 +293,7 @@ const COPY = {
     stepsTitle: "申し込みから相談まで — 48時間以内。",
     steps: [
       { num: "01", title: "申し込み", body: "診断名、これまでの検査結果、希望言語をお知らせください。10分で完了します。" },
-      { num: "02", title: "相談の割り当て", body: "HEALOが症例に合った専門医2~3名を割り当てます。" },
+      { num: "02", title: "相談の割り当て", body: "healwithが症例に合った専門医2~3名を割り当てます。" },
       { num: "03", title: "リンク送信", body: "安全なミーティングリンクをメールで送信します（患者 + 通訳 + 家族が参加可能）。" },
       { num: "04", title: "相談", body: "30~60分のビデオセッション + リアルタイム通訳 + 書類確認。" },
     ],

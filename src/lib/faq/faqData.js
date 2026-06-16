@@ -1,10 +1,10 @@
 /**
- * HEALO FAQ — 외국인 암환자가 가장 자주 묻는 Q&A
+ * healwith FAQ — 외국인 암환자가 가장 자주 묻는 Q&A
  * 카테고리: 서비스·상담·치료·비자·체류·결제·응급
  */
 
 export const FAQ_CATEGORIES = [
-  { id: "service", labels: { en: "About HEALO", ko: "HEALO 소개", ru: "О HEALO", kz: "HEALO туралы", zh: "关于 HEALO", ja: "HEALO について" } },
+  { id: "service", labels: { en: "About healwith", ko: "healwith 소개", ru: "О healwith", kz: "healwith туралы", zh: "关于 healwith", ja: "healwith について" } },
   { id: "consultation", labels: { en: "Consultation", ko: "상담", ru: "Консультация", kz: "Кеңес", zh: "咨询", ja: "相談" } },
   { id: "treatment", labels: { en: "Treatment", ko: "치료", ru: "Лечение", kz: "Емдеу", zh: "治疗", ja: "治療" } },
   { id: "recovery", labels: { en: "Recovery & immune care", ko: "회복·면역케어", ru: "Восстановление и иммунный уход", kz: "Қалпына келу және иммундық күтім", zh: "康复与免疫护理", ja: "回復・免疫ケア" } },
@@ -14,54 +14,54 @@ export const FAQ_CATEGORIES = [
 ];
 
 export const FAQS = [
-  // === About HEALO ===
+  // === About healwith ===
   {
     category: "service",
     q: {
-      en: "What exactly is HEALO?",
-      ko: "HEALO는 어떤 서비스인가요?",
-      ru: "Что такое HEALO?",
-      kz: "HEALO дегеніміз не?",
-      zh: "HEALO 是什么？",
-      ja: "HEALOとは何ですか？",
+      en: "What exactly is healwith?",
+      ko: "healwith는 어떤 서비스인가요?",
+      ru: "Что такое healwith?",
+      kz: "healwith дегеніміз не?",
+      zh: "healwith 是什么？",
+      ja: "healwithとは何ですか？",
     },
     a: {
-      en: "HEALO is a medical concierge platform that helps international cancer patients access care at Korea's top oncology hospitals. We handle hospital matching, visa support, translation, and end-to-end coordination — so you focus on recovery.",
-      ko: "HEALO는 외국인 암환자가 한국 최상위 종양학 병원의 진료를 받을 수 있도록 돕는 메디컬 컨시어지 플랫폼입니다. 병원 매칭, 비자 지원, 통역, 전 과정 코디네이션을 담당해 환자는 회복에만 집중할 수 있습니다.",
-      ru: "HEALO — платформа медицинского консьержа, которая помогает международным онкологическим пациентам получать помощь в ведущих корейских клиниках. Мы подбираем больницу, помогаем с визой, переводом и координируем весь процесс.",
-      kz: "HEALO — халықаралық онкологиялық науқастарға Кореяның жетекші клиникаларында емделуге көмектесетін медициналық консьерж платформасы. Біз клиника таңдау, виза, аударма және толық үйлестіруді қамтамасыз етеміз.",
-      zh: "HEALO 是一家医疗协调平台，帮助国际癌症患者在韩国顶级肿瘤医院就诊。我们负责医院匹配、签证支持、翻译和全程协调。",
-      ja: "HEALOは、外国人がん患者が韓国のトップがん専門病院で治療を受けられるよう支援するメディカルコンシェルジュプラットフォームです。病院の選定、ビザ支援、通訳、全工程のコーディネートを行います。",
+      en: "healwith is a medical concierge platform that helps international cancer patients access care at Korea's top oncology hospitals. We handle hospital matching, visa support, translation, and end-to-end coordination — so you focus on recovery.",
+      ko: "healwith는 외국인 암환자가 한국 최상위 종양학 병원의 진료를 받을 수 있도록 돕는 메디컬 컨시어지 플랫폼입니다. 병원 매칭, 비자 지원, 통역, 전 과정 코디네이션을 담당해 환자는 회복에만 집중할 수 있습니다.",
+      ru: "healwith — платформа медицинского консьержа, которая помогает международным онкологическим пациентам получать помощь в ведущих корейских клиниках. Мы подбираем больницу, помогаем с визой, переводом и координируем весь процесс.",
+      kz: "healwith — халықаралық онкологиялық науқастарға Кореяның жетекші клиникаларында емделуге көмектесетін медициналық консьерж платформасы. Біз клиника таңдау, виза, аударма және толық үйлестіруді қамтамасыз етеміз.",
+      zh: "healwith 是一家医疗协调平台，帮助国际癌症患者在韩国顶级肿瘤医院就诊。我们负责医院匹配、签证支持、翻译和全程协调。",
+      ja: "healwithは、外国人がん患者が韓国のトップがん専門病院で治療を受けられるよう支援するメディカルコンシェルジュプラットフォームです。病院の選定、ビザ支援、通訳、全工程のコーディネートを行います。",
     },
   },
   {
     category: "service",
     q: {
-      en: "Is HEALO a hospital?",
-      ko: "HEALO가 병원인가요?",
-      ru: "HEALO — это больница?",
-      kz: "HEALO аурухана ма?",
-      zh: "HEALO 是医院吗？",
-      ja: "HEALOは病院ですか？",
+      en: "Is healwith a hospital?",
+      ko: "healwith가 병원인가요?",
+      ru: "healwith — это больница?",
+      kz: "healwith аурухана ма?",
+      zh: "healwith 是医院吗？",
+      ja: "healwithは病院ですか？",
     },
     a: {
-      en: "No. HEALO is a registered international patient facilitator (Reg. A-2026-01-02-06761 by the Mayor of Seoul). We connect you with licensed Korean hospitals, but all diagnosis and treatment is performed by the hospital's medical team.",
-      ko: "아닙니다. HEALO는 서울특별시장이 등록한 외국인환자 유치업자(등록번호 A-2026-01-02-06761)입니다. 한국의 면허 의료기관과 연결해드리며, 진단·치료는 해당 병원의 의료진이 수행합니다.",
-      ru: "Нет. HEALO — зарегистрированный посредник по привлечению иностранных пациентов (Рег. A-2026-01-02-06761). Мы связываем вас с лицензированными корейскими клиниками, но диагностика и лечение проводятся врачами больницы.",
-      kz: "Жоқ. HEALO — шетелдік науқастарды тарту бойынша тіркелген делдал. Біз сізді Кореяның лицензияланған клиникаларымен байланыстырамыз, ал диагностика мен емдеу клиника дәрігерлерімен жасалады.",
-      zh: "不是。HEALO 是首尔市长注册的外国患者招揽服务商（注册号 A-2026-01-02-06761）。我们连接您和持牌韩国医院，但诊断和治疗由医院医疗团队执行。",
-      ja: "いいえ。HEALOはソウル特別市長が登録した外国人患者誘致事業者（登録番号 A-2026-01-02-06761）です。韓国の認可医療機関とつなぎますが、診断・治療は病院の医療陣が行います。",
+      en: "No. healwith is a registered international patient facilitator (Reg. A-2026-01-02-06761 by the Mayor of Seoul). We connect you with licensed Korean hospitals, but all diagnosis and treatment is performed by the hospital's medical team.",
+      ko: "아닙니다. healwith는 서울특별시장이 등록한 외국인환자 유치업자(등록번호 A-2026-01-02-06761)입니다. 한국의 면허 의료기관과 연결해드리며, 진단·치료는 해당 병원의 의료진이 수행합니다.",
+      ru: "Нет. healwith — зарегистрированный посредник по привлечению иностранных пациентов (Рег. A-2026-01-02-06761). Мы связываем вас с лицензированными корейскими клиниками, но диагностика и лечение проводятся врачами больницы.",
+      kz: "Жоқ. healwith — шетелдік науқастарды тарту бойынша тіркелген делдал. Біз сізді Кореяның лицензияланған клиникаларымен байланыстырамыз, ал диагностика мен емдеу клиника дәрігерлерімен жасалады.",
+      zh: "不是。healwith 是首尔市长注册的外国患者招揽服务商（注册号 A-2026-01-02-06761）。我们连接您和持牌韩国医院，但诊断和治疗由医院医疗团队执行。",
+      ja: "いいえ。healwithはソウル特別市長が登録した外国人患者誘致事業者（登録番号 A-2026-01-02-06761）です。韓国の認可医療機関とつなぎますが、診断・治療は病院の医療陣が行います。",
     },
   },
   {
     category: "service",
     q: {
-      en: "How much does HEALO cost?",
-      ko: "HEALO 이용료가 얼마인가요?",
-      ru: "Сколько стоит HEALO?",
-      kz: "HEALO қызметтерінің бағасы қандай?",
-      zh: "HEALO 费用多少？",
-      ja: "HEALOの費用は？",
+      en: "How much does healwith cost?",
+      ko: "healwith 이용료가 얼마인가요?",
+      ru: "Сколько стоит healwith?",
+      kz: "healwith қызметтерінің бағасы қандай?",
+      zh: "healwith 费用多少？",
+      ja: "healwithの費用は？",
     },
     a: {
       en: "Initial inquiry and consultation guidance are free. Our concierge fee is disclosed in the quotation before you commit — typically 5–10% of the total treatment cost, depending on complexity. Hospital fees are paid directly to the hospital.",
@@ -117,12 +117,12 @@ export const FAQS = [
   {
     category: "treatment",
     q: {
-      en: "What cancer types does HEALO specialize in?",
-      ko: "HEALO가 지원하는 암종은?",
+      en: "What cancer types does healwith specialize in?",
+      ko: "healwith가 지원하는 암종은?",
       ru: "Какие виды рака?",
       kz: "Қандай қатерлі ісік түрлерімен жұмыс жасайсыздар?",
-      zh: "HEALO 擅长哪些癌症？",
-      ja: "HEALOが対応するがんの種類は？",
+      zh: "healwith 擅长哪些癌症？",
+      ja: "healwithが対応するがんの種類は？",
     },
     a: {
       en: "Primary focus on stomach, breast, liver, lung, thyroid, and colorectal cancer — where Korea has world-leading survival rates. We also coordinate for other oncology cases through our partner hospital network.",
@@ -165,12 +165,12 @@ export const FAQS = [
       ja: "手術病院と免疫ケア（韓方）病院はどう違いますか？",
     },
     a: {
-      en: "At a cooperating university/general hospital you receive diagnosis, surgery, and chemotherapy. At our partner immune-care hospitals (Immune Hospital of Korean Medicine) you recover afterward — with Korean-medicine immunotherapy, pain rehabilitation, nutrition, and side-effect management. HEALO links both into one continuous care path.",
-      ko: "협진 대학·종합병원에서는 진단·수술·항암치료를 받습니다. 제휴 면역케어 병원(면력한방병원)에서는 그 이후의 회복을 돕습니다 — 한방 면역치료, 통증재활, 영양 관리, 부작용 관리 등. HEALO는 이 둘을 하나의 연속 케어 경로로 연결합니다.",
-      ru: "В сотрудничающей университетской/общей больнице вы проходите диагностику, операцию и химиотерапию. В партнёрских больницах иммунного ухода (больница корейской медицины) вы восстанавливаетесь после — иммунотерапия корейской медицины, реабилитация при боли, питание и управление побочными эффектами. HEALO связывает оба этапа в единый маршрут.",
-      kz: "Серіктес университеттік/жалпы ауруханада сіз диагностика, операция және химиотерапиядан өтесіз. Серіктес иммундық күтім ауруханаларында (корей медицинасы ауруханасы) одан кейінгі қалпына келуге көмектеседі — корей медицинасы иммунотерапиясы, ауырсынуды оңалту, тамақтану және жанама әсерлерді басқару. HEALO екеуін бір үздіксіз жолға біріктіреді.",
-      zh: "在协诊大学/综合医院，您接受诊断、手术和化疗。在我们合作的免疫护理医院（免疫韩方医院），您在之后进行康复——韩方免疫治疗、疼痛康复、营养管理和副作用管理。HEALO 将两者连接为一条连续护理路径。",
-      ja: "協診の大学・総合病院では診断・手術・抗がん治療を受けます。提携の免疫ケア病院（免疫韓方病院）ではその後の回復を支えます——韓方免疫治療、疼痛リハビリ、栄養管理、副作用管理など。HEALOはこの両方を一つの連続ケア経路でつなぎます。",
+      en: "At a cooperating university/general hospital you receive diagnosis, surgery, and chemotherapy. At our partner immune-care hospitals (Immune Hospital of Korean Medicine) you recover afterward — with Korean-medicine immunotherapy, pain rehabilitation, nutrition, and side-effect management. healwith links both into one continuous care path.",
+      ko: "협진 대학·종합병원에서는 진단·수술·항암치료를 받습니다. 제휴 면역케어 병원(면력한방병원)에서는 그 이후의 회복을 돕습니다 — 한방 면역치료, 통증재활, 영양 관리, 부작용 관리 등. healwith는 이 둘을 하나의 연속 케어 경로로 연결합니다.",
+      ru: "В сотрудничающей университетской/общей больнице вы проходите диагностику, операцию и химиотерапию. В партнёрских больницах иммунного ухода (больница корейской медицины) вы восстанавливаетесь после — иммунотерапия корейской медицины, реабилитация при боли, питание и управление побочными эффектами. healwith связывает оба этапа в единый маршрут.",
+      kz: "Серіктес университеттік/жалпы ауруханада сіз диагностика, операция және химиотерапиядан өтесіз. Серіктес иммундық күтім ауруханаларында (корей медицинасы ауруханасы) одан кейінгі қалпына келуге көмектеседі — корей медицинасы иммунотерапиясы, ауырсынуды оңалту, тамақтану және жанама әсерлерді басқару. healwith екеуін бір үздіксіз жолға біріктіреді.",
+      zh: "在协诊大学/综合医院，您接受诊断、手术和化疗。在我们合作的免疫护理医院（免疫韩方医院），您在之后进行康复——韩方免疫治疗、疼痛康复、营养管理和副作用管理。healwith 将两者连接为一条连续护理路径。",
+      ja: "協診の大学・総合病院では診断・手術・抗がん治療を受けます。提携の免疫ケア病院（免疫韓方病院）ではその後の回復を支えます——韓方免疫治療、疼痛リハビリ、栄養管理、副作用管理など。healwithはこの両方を一つの連続ケア経路でつなぎます。",
     },
   },
   {
@@ -203,12 +203,12 @@ export const FAQS = [
       ja: "手術後すぐ帰国せず、韓国で回復するほうが良いですか？",
     },
     a: {
-      en: "The weeks after surgery or chemotherapy are when immunity is lowest and side effects appear. Structured recovery care — monitored nutrition, immune and pain management, and a calm environment — can support a smoother recovery compared to managing alone. HEALO coordinates surgery and recovery so the transition is seamless, with interpretation throughout.",
-      ko: "수술·항암 직후 몇 주는 면역력이 가장 낮고 부작용이 나타나는 시기입니다. 영양 관리, 면역·통증 관리, 차분한 환경 속의 체계적 회복 케어는 혼자 관리하는 것보다 회복에 도움이 될 수 있습니다. HEALO는 수술과 회복을 끊김 없이 연결하고, 전 과정에 통역을 지원합니다.",
-      ru: "Недели после операции или химиотерапии — это время самого низкого иммунитета и появления побочных эффектов. Системный восстановительный уход — контроль питания, управление иммунитетом и болью, спокойная среда — может способствовать более плавному восстановлению, чем уход в одиночку. HEALO связывает операцию и восстановление без разрывов, с переводом на всех этапах.",
-      kz: "Операциядан немесе химиотерапиядан кейінгі бірнеше апта — иммунитет ең төмен және жанама әсерлер пайда болатын кез. Жүйелі қалпына келу күтімі — тамақтануды бақылау, иммунитет пен ауырсынуды басқару, тыныш орта — жалғыз басқарудан гөрі жеңіл қалпына келуге көмектесе алады. HEALO операция мен қалпына келуді үзіліссіз байланыстырады, барлық кезеңде аудармамен.",
-      zh: "术后或化疗后的数周是免疫力最低、副作用出现的时期。系统的康复护理——营养监控、免疫与疼痛管理、安静环境——相比独自管理更有助于平稳康复。HEALO 将手术与康复无缝衔接，全程提供翻译。",
-      ja: "手術や抗がん剤の直後の数週間は免疫力が最も低く、副作用が現れる時期です。栄養管理、免疫・痛みの管理、落ち着いた環境での体系的な回復ケアは、一人で管理するより回復をスムーズに支える場合があります。HEALOは手術と回復を途切れなくつなぎ、全工程で通訳を支援します。",
+      en: "The weeks after surgery or chemotherapy are when immunity is lowest and side effects appear. Structured recovery care — monitored nutrition, immune and pain management, and a calm environment — can support a smoother recovery compared to managing alone. healwith coordinates surgery and recovery so the transition is seamless, with interpretation throughout.",
+      ko: "수술·항암 직후 몇 주는 면역력이 가장 낮고 부작용이 나타나는 시기입니다. 영양 관리, 면역·통증 관리, 차분한 환경 속의 체계적 회복 케어는 혼자 관리하는 것보다 회복에 도움이 될 수 있습니다. healwith는 수술과 회복을 끊김 없이 연결하고, 전 과정에 통역을 지원합니다.",
+      ru: "Недели после операции или химиотерапии — это время самого низкого иммунитета и появления побочных эффектов. Системный восстановительный уход — контроль питания, управление иммунитетом и болью, спокойная среда — может способствовать более плавному восстановлению, чем уход в одиночку. healwith связывает операцию и восстановление без разрывов, с переводом на всех этапах.",
+      kz: "Операциядан немесе химиотерапиядан кейінгі бірнеше апта — иммунитет ең төмен және жанама әсерлер пайда болатын кез. Жүйелі қалпына келу күтімі — тамақтануды бақылау, иммунитет пен ауырсынуды басқару, тыныш орта — жалғыз басқарудан гөрі жеңіл қалпына келуге көмектесе алады. healwith операция мен қалпына келуді үзіліссіз байланыстырады, барлық кезеңде аудармамен.",
+      zh: "术后或化疗后的数周是免疫力最低、副作用出现的时期。系统的康复护理——营养监控、免疫与疼痛管理、安静环境——相比独自管理更有助于平稳康复。healwith 将手术与康复无缝衔接，全程提供翻译。",
+      ja: "手術や抗がん剤の直後の数週間は免疫力が最も低く、副作用が現れる時期です。栄養管理、免疫・痛みの管理、落ち着いた環境での体系的な回復ケアは、一人で管理するより回復をスムーズに支える場合があります。healwithは手術と回復を途切れなくつなぎ、全工程で通訳を支援します。",
     },
   },
   {
@@ -243,12 +243,12 @@ export const FAQS = [
       ja: "韓国での治療にビザは必要ですか？",
     },
     a: {
-      en: "It depends on nationality. Most patients need a medical visa (C-3-3 for short-term under 90 days, G-1 for longer treatment). HEALO prepares the invitation letter and supports the entire application.",
-      ko: "국적에 따라 다릅니다. 대부분 의료 비자(C-3-3 90일 이내 단기, G-1 장기)가 필요합니다. HEALO가 초청장을 발급하고 신청 전 과정을 지원합니다.",
-      ru: "Зависит от гражданства. Большинству пациентов нужна медицинская виза (C-3-3 до 90 дней, G-1 для длительного лечения). HEALO готовит приглашение и сопровождает подачу.",
-      kz: "Азаматтыққа байланысты. Көпшілігіне медициналық виза керек (C-3-3 қысқа мерзім, G-1 ұзақ мерзім). HEALO шақыру хатын дайындап, толық үдеріске қолдау көрсетеді.",
-      zh: "取决于国籍。大多数患者需要医疗签证（C-3-3 短期、G-1 长期）。HEALO 发放邀请函并协助全程申请。",
-      ja: "国籍によります。多くの場合、医療ビザ（C-3-3短期、G-1長期）が必要です。HEALOが招聘状を発行し、申請全体をサポートします。",
+      en: "It depends on nationality. Most patients need a medical visa (C-3-3 for short-term under 90 days, G-1 for longer treatment). healwith prepares the invitation letter and supports the entire application.",
+      ko: "국적에 따라 다릅니다. 대부분 의료 비자(C-3-3 90일 이내 단기, G-1 장기)가 필요합니다. healwith가 초청장을 발급하고 신청 전 과정을 지원합니다.",
+      ru: "Зависит от гражданства. Большинству пациентов нужна медицинская виза (C-3-3 до 90 дней, G-1 для длительного лечения). healwith готовит приглашение и сопровождает подачу.",
+      kz: "Азаматтыққа байланысты. Көпшілігіне медициналық виза керек (C-3-3 қысқа мерзім, G-1 ұзақ мерзім). healwith шақыру хатын дайындап, толық үдеріске қолдау көрсетеді.",
+      zh: "取决于国籍。大多数患者需要医疗签证（C-3-3 短期、G-1 长期）。healwith 发放邀请函并协助全程申请。",
+      ja: "国籍によります。多くの場合、医療ビザ（C-3-3短期、G-1長期）が必要です。healwithが招聘状を発行し、申請全体をサポートします。",
     },
   },
   {
@@ -283,12 +283,12 @@ export const FAQS = [
       ja: "支払いはどのように？",
     },
     a: {
-      en: "Hospital treatment fees are paid directly to the hospital (in KRW, by credit card, cash, or wire). HEALO's concierge fee, if applicable, is invoiced separately by your coordinator. No payment is collected by HEALO before you commit to treatment.",
-      ko: "병원 진료비는 병원에 직접 납부합니다(원화, 신용카드, 현금, 송금 중 선택). HEALO 컨시어지 수수료는 해당되는 경우 코디네이터가 별도로 청구합니다. 치료 확정 전에는 HEALO에 어떤 비용도 지불하지 않습니다.",
-      ru: "Расходы на лечение оплачиваются больнице напрямую (в KRW — картой, наличными или переводом). Наша комиссия выставляется координатором отдельно. До подтверждения лечения HEALO не взимает плату.",
+      en: "Hospital treatment fees are paid directly to the hospital (in KRW, by credit card, cash, or wire). healwith's concierge fee, if applicable, is invoiced separately by your coordinator. No payment is collected by healwith before you commit to treatment.",
+      ko: "병원 진료비는 병원에 직접 납부합니다(원화, 신용카드, 현금, 송금 중 선택). healwith 컨시어지 수수료는 해당되는 경우 코디네이터가 별도로 청구합니다. 치료 확정 전에는 healwith에 어떤 비용도 지불하지 않습니다.",
+      ru: "Расходы на лечение оплачиваются больнице напрямую (в KRW — картой, наличными или переводом). Наша комиссия выставляется координатором отдельно. До подтверждения лечения healwith не взимает плату.",
       kz: "Емдеу ақысы клиникаға тікелей төленеді (KRW — карта, қолма-қол немесе аударым). Біздің комиссия жеке есеп-шотпен беріледі. Емдеу расталғанға дейін төлем алмаймыз.",
-      zh: "医院治疗费用直接支付给医院（韩币，信用卡/现金/汇款）。如需支付 HEALO 协调费，由协调员单独开具。确认治疗前 HEALO 不收取任何费用。",
-      ja: "病院の治療費は病院に直接お支払いいただきます（韓国ウォン、クレジットカード・現金・送金）。HEALOのコーディネーション料は該当する場合のみコーディネーターが別途請求します。治療確定前の費用請求はありません。",
+      zh: "医院治疗费用直接支付给医院（韩币，信用卡/现金/汇款）。如需支付 healwith 协调费，由协调员单独开具。确认治疗前 healwith 不收取任何费用。",
+      ja: "病院の治療費は病院に直接お支払いいただきます（韓国ウォン、クレジットカード・現金・送金）。healwithのコーディネーション料は該当する場合のみコーディネーターが別途請求します。治療確定前の費用請求はありません。",
     },
   },
   {

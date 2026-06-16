@@ -34,7 +34,7 @@ export default function PartnerHospitalClient({ slug }) {
     location: { ko: "위치 안내", en: "Location", ru: "Расположение", zh: "位置信息", ja: "所在地", kz: "Орналасқан жері" },
     contact: { ko: "연락처", en: "Contact", ru: "Контакты", zh: "联系方式", ja: "連絡先", kz: "Байланыс" },
     cta_title: { ko: "이 병원에 대해 상담받고 싶으신가요?", en: "Want to learn more about this hospital?", ru: "Хотите узнать больше?", zh: "想了解更多？", ja: "この病院について相談しますか？", kz: "Көбірек білгіңіз келе ме?" },
-    cta_desc: { ko: "HEALO를 통해 무료 사전상담을 받아보세요", en: "Get a free pre-consultation through HEALO", ru: "Получите бесплатную консультацию через HEALO", zh: "通过HEALO获取免费预咨询", ja: "HEALOで無料事前相談を受けましょう", kz: "HEALO арқылы тегін кеңес алыңыз" },
+    cta_desc: { ko: "healwith를 통해 무료 사전상담을 받아보세요", en: "Get a free pre-consultation through healwith", ru: "Получите бесплатную консультацию через healwith", zh: "通过healwith获取免费预咨询", ja: "healwithで無料事前相談を受けましょう", kz: "healwith арқылы тегін кеңес алыңыз" },
     cta_btn: { ko: "상담 신청하기", en: "Request Consultation", ru: "Записаться", zh: "申请咨询", ja: "相談を申し込む", kz: "Кеңес сұрау" },
     back: { ko: "뒤로", en: "Back", ru: "Назад", zh: "返回", ja: "戻る", kz: "Артқа" },
     doctors: { ko: "명 전문의", en: " Specialists", ru: " специалистов", zh: "名专家", ja: "名の専門医", kz: " маман" },

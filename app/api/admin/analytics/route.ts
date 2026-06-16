@@ -1,5 +1,5 @@
 /**
- * HEALO: 관리자 애널리틱스 API
+ * healwith: 관리자 애널리틱스 API
  *
  * 경로: /api/admin/analytics
  * 권한: 관리자 전용

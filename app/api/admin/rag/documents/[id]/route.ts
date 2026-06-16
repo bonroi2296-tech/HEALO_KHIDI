@@ -1,5 +1,5 @@
 /**
- * HEALO: Admin RAG Document Detail API
+ * healwith: Admin RAG Document Detail API
  *
  * PATCH /api/admin/rag/documents/:id — trust_tier 등 운영 필드 업데이트
  */
