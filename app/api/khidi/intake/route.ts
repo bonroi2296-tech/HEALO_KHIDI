@@ -1,5 +1,5 @@
 /**
- * HEALO-KHIDI: Cancer Patient Intake API
+ * healwith: Cancer Patient Intake API
  *
  * POST /api/khidi/intake — 암환자 초기 상담 양식 제출 (공개 — 회원가입 전 가능)
  * GET  /api/khidi/intake — 인테이크 목록 (admin only, 평문 마스킹 + 복호화 옵션)

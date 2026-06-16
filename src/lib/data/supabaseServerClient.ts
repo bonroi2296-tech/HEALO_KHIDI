@@ -1,5 +1,5 @@
 /**
- * HEALO-KHIDI: Supabase server-side client for API routes
+ * healwith: Supabase server-side client for API routes
  *
  * ⚠️ SERVER ONLY — 이 파일은 절대 클라이언트 번들에 포함되면 안 됨.
  *    SUPABASE_SERVICE_ROLE_KEY 가 RLS 를 우회하기 때문.

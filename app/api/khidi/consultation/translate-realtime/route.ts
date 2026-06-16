@@ -27,8 +27,8 @@ function isAllowedOrigin(originHeader: string | null): boolean {
   try {
     const u = new URL(originHeader);
     if (u.hostname.endsWith(".vercel.app")) return true;
-    if (u.hostname.endsWith(".healo-khidi.com") || u.hostname === "healo-khidi.com") return true;
-    if (u.hostname.endsWith(".healo.com") || u.hostname === "healo.com") return true;
+    if (u.hostname.endsWith(".healo.kr") || u.hostname === "khidi.healo.kr") return true;
+    if (u.hostname.endsWith(".healwith.co.kr") || u.hostname === "healwith.co.kr") return true;
   } catch {}
   return false;
 }

@@ -1,5 +1,5 @@
 /**
- * HEALO-KHIDI: Consultation Translation Log API
+ * healwith: Consultation Translation Log API
  *
  * POST /api/khidi/consultation/[id]/translate — 번역 로그 기록 (참가자 only)
  * GET  /api/khidi/consultation/[id]/translate — 번역 로그 조회 (참가자 only)

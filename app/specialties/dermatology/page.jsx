@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 
 export const metadata = {
-  title: "Dermatology & Skin Treatments in Korea | HEALO-KHIDI",
+  title: "Dermatology & Skin Treatments in Korea | healwith",
   description:
     "Explore advanced dermatology and skin treatments in Korea. Laser therapy, Botox, fillers, and skin rejuvenation at competitive prices. Free consultation.",
   keywords: [
@@ -28,7 +28,7 @@ export const metadata = {
     "dermatologist Seoul",
   ],
   openGraph: {
-    title: "Dermatology & Skin Treatments in Korea | HEALO-KHIDI",
+    title: "Dermatology & Skin Treatments in Korea | healwith",
     description:
       "Explore advanced dermatology and skin treatments in Korea. Laser therapy, Botox, fillers, and rejuvenation at competitive prices.",
     type: "website",

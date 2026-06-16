@@ -21,5 +21,8 @@ jobs:
         run: node scripts/validate-vercel-config.js
       - name: 단위 테스트 (vitest — 로직 회귀 자동 검사)
         run: npm run test:run
+      - name: 콘텐츠 일관성 (옛 브랜드·이메일 잔재 + i18n 키 누락 자동 차단)
+        run: npm run check:content
+      - run: npm run check:i18n
       - run: npm run build
       - run: npm run verify:rag

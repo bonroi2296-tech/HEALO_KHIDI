@@ -1,5 +1,5 @@
 /**
- * HEALO-KHIDI: Consultation Schedule API
+ * healwith: Consultation Schedule API
  *
  * POST /api/khidi/consultation/schedule — Auto-generate recommended consultation schedule
  *   body: { patientId, cancerType, treatmentPhase }

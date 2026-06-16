@@ -176,7 +176,7 @@ export default function VisaInvitationLetter({ data, lang = "en" }) {
           />
           <DataRow
             label={L.fields.inviterContact}
-            value="roiimmunelab@immunelab.co.kr / +82 10 4772 1075"
+            value="admin@healwith.co.kr / +82 10 4772 1075"
           />
         </View>
 
@@ -228,7 +228,7 @@ export default function VisaInvitationLetter({ data, lang = "en" }) {
           </Text>
           <Text>
             Room 613, 385 Gangseo-ro, Gangseo-gu, Seoul ·
-            roiimmunelab@immunelab.co.kr · +82 10 4772 1075
+            admin@healwith.co.kr · +82 10 4772 1075
           </Text>
           <Text
             render={({ pageNumber, totalPages }) =>

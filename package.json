@@ -15,6 +15,7 @@
     "test:ui": "vitest --ui",
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage",
+    "check:content": "node scripts/check-content-consistency.mjs",
     "check:env": "node scripts/check-env.js",
     "check:i18n": "node scripts/check-i18n-coverage.mjs",
     "fix:lint-unused": "node scripts/fix-unused-vars.mjs",

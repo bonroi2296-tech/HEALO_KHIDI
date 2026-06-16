@@ -1,5 +1,5 @@
 /**
- * HEALO-KHIDI: Follow-up & Symptom Report API
+ * healwith: Follow-up & Symptom Report API
  *
  * POST /api/khidi/followup — 증상 보고서 제출 + AI 분석
  * GET  /api/khidi/followup — Follow-up 스케줄 조회

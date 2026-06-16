@@ -122,8 +122,8 @@ export default function Footer() {
                 lineHeight: 1.7,
               }}
             >
-              <a href="mailto:roiimmunelab@immunelab.co.kr" style={{ color: "inherit", textDecoration: "none" }}>
-                roiimmunelab@immunelab.co.kr
+              <a href="mailto:admin@healwith.co.kr" style={{ color: "inherit", textDecoration: "none" }}>
+                admin@healwith.co.kr
               </a>
               <a href="tel:+821047721075" style={{ color: "inherit", textDecoration: "none" }}>
                 +82 10 4772 1075

@@ -100,7 +100,7 @@ function CommonFooter() {
         Facilitator Reg. A-2026-01-02-06761
       </Text>
       <Text>
-        Data Protection Officer: JUYOUNG KANG · roiimmunelab@immunelab.co.kr · +82 10 4772 1075
+        Data Protection Officer: JUYOUNG KANG · admin@healwith.co.kr · +82 10 4772 1075
       </Text>
       <Text render={({ pageNumber, totalPages }) => `Page ${pageNumber} / ${totalPages}`} style={{ textAlign: "right", marginTop: 2 }} />
     </View>
@@ -158,8 +158,8 @@ export function PersonalInfoConsent({ patient = {}, lang = "ko" }) {
         <Text style={{ ...styles.sectionLabel, marginTop: 24 }}>{isKo ? "정보주체 권리" : "Your rights"}</Text>
         <Text style={styles.body}>
           {isKo
-            ? "열람·정정·삭제·처리정지·동의철회·손해배상 청구가 가능합니다. roiimmunelab@immunelab.co.kr 으로 요청하시면 10일 이내에 조치합니다."
-            : "You may request access, correction, deletion, suspension, consent withdrawal, or compensation. Contact roiimmunelab@immunelab.co.kr; we respond within 10 business days."}
+            ? "열람·정정·삭제·처리정지·동의철회·손해배상 청구가 가능합니다. admin@healwith.co.kr 으로 요청하시면 10일 이내에 조치합니다."
+            : "You may request access, correction, deletion, suspension, consent withdrawal, or compensation. Contact admin@healwith.co.kr; we respond within 10 business days."}
         </Text>
 
         <SignatureBlock patientName={patient.name} lang={lang} />

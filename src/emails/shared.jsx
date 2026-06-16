@@ -25,7 +25,7 @@ export const BRAND = {
   rep: "JUYOUNG KANG",
   bizReg: "463-35-00902",
   facilitatorReg: "A-2026-01-02-06761",
-  email: "roiimmunelab@immunelab.co.kr",
+  email: "admin@healwith.co.kr",
   phone: "+82 10 4772 1075",
   address: "Room 613, 385 Gangseo-ro, Gangseo-gu, Seoul, Republic of Korea",
   website: "https://healo-khidi.vercel.app",

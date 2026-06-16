@@ -38,8 +38,8 @@ function isAllowedOrigin(origin: string | null): boolean {
     const host = url.hostname;
     if (host === "localhost" || host === "127.0.0.1") return true;
     if (host.endsWith(".vercel.app")) return true;
-    if (host === "healo-khidi.com" || host.endsWith(".healo-khidi.com")) return true;
-    if (host === "healo.com" || host.endsWith(".healo.com")) return true;
+    if (host === "khidi.healo.kr" || host.endsWith(".healo.kr")) return true;
+    if (host === "healwith.co.kr" || host.endsWith(".healwith.co.kr")) return true;
     // ALLOWED_ORIGIN 환경변수로 추가 허용
     const extra = process.env.ALLOWED_TRANSLATE_ORIGINS;
     if (extra) {

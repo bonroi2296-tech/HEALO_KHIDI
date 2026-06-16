@@ -14,7 +14,7 @@ import PageShell from "../../../components/healo/PageShell";
 import { getServerDesignMode } from "@/lib/designMode";
 
 export const metadata = {
-  title: "Dental Treatment in Korea | Implants, Veneers & Prices | HEALO-KHIDI",
+  title: "Dental Treatment in Korea | Implants, Veneers & Prices | healwith",
   description:
     "Comprehensive guide to dental treatment in Korea. Dental implants, veneers, whitening, and orthodontics at competitive prices. Free consultation available.",
   keywords: [
@@ -28,7 +28,7 @@ export const metadata = {
     "dental tourism Korea",
   ],
   openGraph: {
-    title: "Dental Treatment in Korea | Implants, Veneers & Prices | HEALO-KHIDI",
+    title: "Dental Treatment in Korea | Implants, Veneers & Prices | healwith",
     description:
       "Comprehensive guide to dental treatment in Korea. Implants, veneers, whitening, and orthodontics at competitive prices.",
     type: "website",

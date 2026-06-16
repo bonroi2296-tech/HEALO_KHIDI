@@ -1,5 +1,5 @@
 /**
- * HEALO-KHIDI: Cancer Hospital Matching Engine
+ * healwith: Cancer Hospital Matching Engine
  *
  * 암종별 병원 매칭 알고리즘
  * - 연간 시술 건수 (40점)

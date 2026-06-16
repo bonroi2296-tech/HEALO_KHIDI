@@ -1,5 +1,5 @@
 /**
- * HEALO-KHIDI: Consultation Messages API
+ * healwith: Consultation Messages API
  *
  * POST /api/khidi/consultation/[id]/messages — 메시지 송신 (참가자 only)
  * GET  /api/khidi/consultation/[id]/messages — 메시지 조회 (참가자 only)

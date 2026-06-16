@@ -1,5 +1,5 @@
 /**
- * HEALO-KHIDI: Hospital Matching API
+ * healwith: Hospital Matching API
  *
  * POST /api/khidi/matching — 암종 기반 병원 매칭 실행
  * 입력: { cancerType, cancerStage?, preferredTreatments?, budgetMin?, budgetMax?, budgetCurrency? }

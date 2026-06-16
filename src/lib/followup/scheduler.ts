@@ -1,5 +1,5 @@
 /**
- * HEALO-KHIDI: Post-Care Follow-up Scheduler
+ * healwith: Post-Care Follow-up Scheduler
  *
  * 암종별 사후관리 스케줄을 생성하고 관리하는 모듈.
  * 기본 스케줄: week_1 → week_2 → month_1 → month_3 → month_6 → year_1
