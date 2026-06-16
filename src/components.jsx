@@ -148,7 +148,7 @@ export const Header = ({ setView, view, _handleGlobalInquiry, isMobileMenuOpen, 
               {siteConfig?.logo ? (
                   <img src={siteConfig.logo} alt="healwith" className="h-8 md:h-9 object-contain" />
               ) : (
-                  <span className="text-xl md:text-2xl font-extrabold tracking-tight notranslate"><span className="text-teal-600">heal</span><span className="text-slate-700">with</span></span>
+                  <span className="text-xl md:text-2xl font-extrabold tracking-tight notranslate">heal<span className="text-teal-200">with</span></span>
               )}
             </div>
             <nav className="hidden lg:flex items-center gap-0.5">
