@@ -9,6 +9,14 @@ import {
   Phone, GraduationCap, Briefcase, BookOpen, Activity,
   X,
 } from 'lucide-react';
+
+// 의사 사진은 외부(immunehospital.com)에서 핫링크 → 원본이 삭제/변경되면 깨짐.
+// 깨질 때 회색 아바타로 대체해 깨진 이미지 아이콘이 노출되지 않게.
+const DOCTOR_FALLBACK = "data:image/svg+xml," + encodeURIComponent(
+  '<svg xmlns="http://www.w3.org/2000/svg" width="160" height="160"><rect width="160" height="160" fill="#eef2f5"/><circle cx="80" cy="60" r="28" fill="#b6c2cc"/><rect x="34" y="98" width="92" height="70" rx="34" fill="#b6c2cc"/></svg>'
+);
+const onImgError = (e) => { e.currentTarget.onerror = null; e.currentTarget.src = DOCTOR_FALLBACK; };
+
 import { getLangCodeFromCookie } from '@/lib/i18n';
 import { supabaseClient } from '@/lib/data/supabaseClient';
 import { mapHospitalRow } from '@/lib/mapper';
@@ -457,7 +465,7 @@ function DoctorModal({ doc, l, lang, onClose }) {
             <X size={20} />
           </button>
           <div className="flex items-center gap-6">
-            <img src={doc.photo} alt={l(doc.name)} className="w-32 h-32 rounded-2xl object-cover border-4 border-white/30 shadow-lg bg-white/10" />
+            <img src={doc.photo} alt={l(doc.name)} onError={onImgError} className="w-32 h-32 rounded-2xl object-cover border-4 border-white/30 shadow-lg bg-white/10" />
             <div>
               <h3 className="text-2xl font-extrabold">{l(doc.name)}</h3>
               <p className="text-emerald-200 text-base font-semibold mt-1">{l(doc.position)}</p>
@@ -526,6 +534,7 @@ function DoctorCard({ doc, l, lang, onSelect }) {
           <img
             src={doc.thumb}
             alt={l(doc.name)}
+            onError={onImgError}
             className="w-full h-48 sm:h-full object-cover object-top bg-gray-100 group-hover:scale-[1.02] transition"
           />
         </div>
