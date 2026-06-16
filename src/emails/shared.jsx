@@ -44,7 +44,7 @@ export const COLORS = {
   goldTint: "#e8d9b4",
 };
 
-export function healwithEmail({ preview, children }) {
+export function HealwithEmail({ preview, children }) {
   return (
     <Html>
       <Head>

@@ -13,14 +13,14 @@
 
 import React from "react";
 import { Row, Column, Section, Text, Link as EmailLink } from "@react-email/components";
-import { healwithEmail, Eyebrow, Title, Rule, BodyText as Body, CTA, BilingualSplit, COLORS, BRAND } from "./shared";
+import { HealwithEmail, Eyebrow, Title, Rule, BodyText as Body, CTA, BilingualSplit, COLORS, BRAND } from "./shared";
 
 // ============ 1. 문의 접수 확인 ============
 
 export function InquiryReceived({ name = "", inquiryId = "" }) {
   const preview = "Your inquiry has arrived. We'll respond within one business day.";
   return (
-    <healwithEmail preview={preview}>
+    <HealwithEmail preview={preview}>
       <Eyebrow>Received</Eyebrow>
       <Title>
         Your inquiry{" "}
@@ -63,7 +63,7 @@ export function InquiryReceived({ name = "", inquiryId = "" }) {
         }
       />
       <CTA href={`${BRAND.website}/education`}>View patient guides</CTA>
-    </healwithEmail>
+    </HealwithEmail>
   );
 }
 
@@ -76,7 +76,7 @@ export function CoordinatorIntro({
   calendarLink = "",
 }) {
   return (
-    <healwithEmail preview={`Hello from ${coordinatorName}, your healwith coordinator.`}>
+    <HealwithEmail preview={`Hello from ${coordinatorName}, your healwith coordinator.`}>
       <Eyebrow>Your coordinator</Eyebrow>
       <Title italic>A personal introduction.</Title>
       <Rule />
@@ -119,7 +119,7 @@ export function CoordinatorIntro({
       ) : (
         <CTA href={`mailto:${BRAND.email}?subject=Schedule%20intro%20call`}>Reply to schedule</CTA>
       )}
-    </healwithEmail>
+    </HealwithEmail>
   );
 }
 
@@ -127,7 +127,7 @@ export function CoordinatorIntro({
 
 export function HospitalMatch({ patientName = "", proposals = [], quotationLink = "" }) {
   return (
-    <healwithEmail preview="We've selected hospitals that match your case.">
+    <HealwithEmail preview="We've selected hospitals that match your case.">
       <Eyebrow>Matches proposed</Eyebrow>
       <Title>
         Selected for <span style={{ fontStyle: "italic", color: COLORS.goldDark }}>your case.</span>
@@ -219,7 +219,7 @@ export function HospitalMatch({ patientName = "", proposals = [], quotationLink 
         ko={<Body>회신 주시면 선호하는 병원에 맞춰 일정을 조율하겠습니다.</Body>}
         en={<Body>Reply with your preference and we'll arrange the schedule.</Body>}
       />
-    </healwithEmail>
+    </HealwithEmail>
   );
 }
 
@@ -234,7 +234,7 @@ export function VisaDocumentRequest({ patientName = "", visaType = "C-3-3", uplo
     { ko: "항공권 예약 확인서", en: "Flight reservation confirmation" },
   ];
   return (
-    <healwithEmail preview={`Visa documents needed for ${visaType}`}>
+    <HealwithEmail preview={`Visa documents needed for ${visaType}`}>
       <Eyebrow>Visa preparation</Eyebrow>
       <Title>
         We need <span style={{ fontStyle: "italic", color: COLORS.goldDark }}>a few documents.</span>
@@ -293,7 +293,7 @@ export function VisaDocumentRequest({ patientName = "", visaType = "C-3-3", uplo
       ) : (
         <CTA href={`mailto:${BRAND.email}?subject=Visa%20documents`}>Reply with attachments</CTA>
       )}
-    </healwithEmail>
+    </HealwithEmail>
   );
 }
 
@@ -306,7 +306,7 @@ export function TreatmentSchedule({
   itinerary = [],
 }) {
   return (
-    <healwithEmail preview="Your treatment schedule is confirmed.">
+    <HealwithEmail preview="Your treatment schedule is confirmed.">
       <Eyebrow>Schedule confirmed</Eyebrow>
       <Title>
         Everything is <span style={{ fontStyle: "italic", color: COLORS.goldDark }}>in place.</span>
@@ -401,7 +401,7 @@ export function TreatmentSchedule({
         ko={<Body>전체 일정은 PDF로 별도 첨부해드립니다. 공항 픽업 시간에 맞춰 입국 준비 부탁드립니다.</Body>}
         en={<Body>The full itinerary is attached as PDF. Please be ready for airport pickup on arrival.</Body>}
       />
-    </healwithEmail>
+    </HealwithEmail>
   );
 }
 
@@ -409,7 +409,7 @@ export function TreatmentSchedule({
 
 export function PostTreatmentFollowup({ patientName = "", daysSinceDischarge = 30, feedbackLink = "" }) {
   return (
-    <healwithEmail preview="Checking in on your recovery">
+    <HealwithEmail preview="Checking in on your recovery">
       <Eyebrow>Follow-up</Eyebrow>
       <Title italic>How are you?</Title>
       <Rule />
@@ -452,6 +452,6 @@ export function PostTreatmentFollowup({ patientName = "", daysSinceDischarge = 3
       ) : (
         <CTA href={`mailto:${BRAND.email}?subject=Follow-up%20check-in`}>Reply with update</CTA>
       )}
-    </healwithEmail>
+    </HealwithEmail>
   );
 }
