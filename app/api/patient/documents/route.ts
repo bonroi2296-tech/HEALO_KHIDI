@@ -48,7 +48,8 @@ export async function GET(request: NextRequest) {
   const { data: sessions, error: sessionErr } = await supabaseAdmin
     .from("consultation_sessions")
     .select("id, session_type, scheduled_at, status")
-    .eq("patient_id", user.id);
+    // 계정 생성 세션은 patient_user_id 에 저장됨(레거시 일부만 patient_id). 둘 다 매칭.
+    .or(`patient_user_id.eq.${user.id},patient_id.eq.${user.id}`);
 
   if (sessionErr) {
     console.error("[patient/documents] sessions error:", sessionErr.message);
@@ -168,7 +169,7 @@ export async function POST(request: NextRequest) {
     // 본인 consultation인지 확인
     const { data: session, error: sessionErr } = await supabaseAdmin
       .from("consultation_sessions")
-      .select("id, patient_id")
+      .select("id, patient_id, patient_user_id")
       .eq("id", consultationId)
       .single();
 
@@ -178,7 +179,8 @@ export async function POST(request: NextRequest) {
         { status: 404 }
       );
     }
-    if (session.patient_id !== user.id) {
+    // 계정 세션은 patient_user_id, 레거시는 patient_id — 둘 중 하나라도 본인이면 허용
+    if (session.patient_user_id !== user.id && session.patient_id !== user.id) {
       return Response.json(
         { ok: false, error: "Forbidden" },
         { status: 403 }

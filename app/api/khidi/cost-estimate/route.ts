@@ -23,7 +23,7 @@ const supabaseAdmin: any = _sb;
 import { checkRateLimitPersistent, getClientIp, getRateLimitHeaders } from "@/lib/rateLimit";
 import { checkAiGuards } from "@/lib/ai/aiGuard";
 import { checkAdminAuth } from "@/lib/auth/checkAdminAuth";
-import { decryptStringNullable } from "@/lib/security/encryptionV2";
+import { decryptStringNullable, decryptAuto } from "@/lib/security/encryptionV2";
 
 const ESTIMATE_RATE = {
   windowMs: 60 * 1000,
@@ -212,21 +212,28 @@ export async function POST(request: NextRequest) {
     if (intake_id) {
       const { data: intake } = await supabaseAdmin
         .from("cancer_patient_intakes")
-        .select("cancer_type, cancer_stage, current_treatment_encrypted, diagnosis_date_encrypted, preferred_hospitals, budget_range, travel_dates")
+        .select("inquiry_id, cancer_type, cancer_stage, current_treatment_encrypted, diagnosis_date_encrypted, preferred_hospitals, budget_range, travel_dates")
         .eq("id", intake_id)
         .maybeSingle();
 
       if (intake) {
-        // 본인 또는 admin 만
-        const { data: intakeOwner } = await supabaseAdmin
-          .from("cancer_patient_intakes")
-          .select("id")
-          .eq("id", intake_id)
-          .maybeSingle();
-        if (!intakeOwner) {
-          return Response.json({ ok: false, error: "intake_not_found" }, { status: 404 });
+        // 소유권 확인 (IDOR 방지): cancer_patient_intakes 에는 owner 컬럼이 없으므로
+        // 연결된 inquiry 의 이메일 ↔ 로그인 이메일로 본인 여부 판정 (코드베이스의 "이메일=동일인" 모델).
+        // 불일치 시 타인의 PII(치료내역) 복호화·AI 개인화를 건너뛰고 Tier-1 기본 범위만 반환(에러 없이 graceful).
+        let ownsIntake = auth.isAdmin === true;
+        if (!ownsIntake && intake.inquiry_id && auth.email) {
+          const { data: inq } = await supabaseAdmin
+            .from("inquiries")
+            .select("email")
+            .eq("id", intake.inquiry_id)
+            .maybeSingle();
+          const inqEmail = inq?.email
+            ? ((await decryptAuto(inq.email).catch(() => null))?.trim().toLowerCase() || null)
+            : null;
+          ownsIntake = !!inqEmail && inqEmail === auth.email;
         }
 
+        if (ownsIntake) {
         const currentTreatment = intake.current_treatment_encrypted
           ? decryptStringNullable(intake.current_treatment_encrypted)
           : null;
@@ -275,6 +282,7 @@ export async function POST(request: NextRequest) {
           console.warn("[cost-estimate] AI personalization failed:", aiErr?.message);
           // AI 실패 시 silent fallback — Tier 1 만 반환
         }
+        } // end if (ownsIntake) — 소유자/admin 만 PII 개인화
       }
     }
 
