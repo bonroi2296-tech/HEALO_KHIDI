@@ -15,7 +15,7 @@
  *
  * 환경변수:
  * - ADMIN_EMAIL_ALLOWLIST: 쉼표로 구분된 관리자 이메일 목록
- *   예: "admin@healo.com,manager@healo.com"
+ *   예: "admin@healwith.co.kr,manager@healwith.co.kr"
  *
  * 사용법:
  * ```ts

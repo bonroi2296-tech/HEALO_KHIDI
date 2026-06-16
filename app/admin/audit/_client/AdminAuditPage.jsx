@@ -211,7 +211,7 @@ export const AdminAuditPage = ({ authToken }) => {
               type="text"
               value={filters.admin_email}
               onChange={(e) => setFilters({ ...filters, admin_email: e.target.value })}
-              placeholder="admin@healo.com"
+              placeholder="admin@healwith.co.kr"
               className="w-full p-2 border border-gray-300 rounded text-sm"
             />
           </div>

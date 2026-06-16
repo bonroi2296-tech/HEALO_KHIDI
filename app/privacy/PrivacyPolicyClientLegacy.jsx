@@ -8,6 +8,7 @@ import {
   PRIVACY_VERSION,
 } from "@/lib/legal/privacyPolicy";
 import { useLang } from "@/lib/i18n/LangContext";
+import { getTranslationPendingNotice } from "@/lib/legal/translationPendingNotice";
 
 export default function PrivacyPolicyClientLegacy() {
   const langCode = useLang();
@@ -46,8 +47,7 @@ export default function PrivacyPolicyClientLegacy() {
           </div>
           {translationPending && (
             <div style={{ marginTop: 20, padding: "12px 16px", background: "rgba(255,255,255,0.12)", borderRadius: 10, fontSize: "0.8125rem", color: "rgba(255,255,255,0.85)", lineHeight: 1.6 }}>
-              ⚠️ Translation for this language is pending professional legal review.
-              The English version is shown below. For legal interpretation, please refer to the Korean or English version.
+              ⚠️ {getTranslationPendingNotice(langCode)}
             </div>
           )}
         </div>

@@ -28,7 +28,7 @@ export const SITE_INFO = {
     foreignPatientAttractionRegistration: "A-2026-01-02-06761",
     addressLine1: "Room 613, 385 Gangseo-ro, Gangseo-gu,",
     addressLine2: "Seoul, Republic of Korea",
-    contactEmail: "contact@healo.com",
+    contactEmail: "admin@healwith.co.kr",
     privacyOfficer: "Juyoung Kang",
     copyright: "© healwith. All rights reserved.",
   },

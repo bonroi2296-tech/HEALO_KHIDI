@@ -42,7 +42,7 @@ export function isValidKoreanMobile(phone: string): boolean {
 
 /**
  * 이메일 형식 검증
- * 예: admin@healo.com
+ * 예: admin@healwith.co.kr
  */
 export function isValidEmail(email: string): boolean {
   // RFC 5322 간소화 버전

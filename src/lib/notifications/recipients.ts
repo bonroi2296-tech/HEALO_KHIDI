@@ -184,7 +184,7 @@ export async function addRecipient(data: {
       if (!isValidEmail(data.email)) {
         return {
           success: false,
-          error: "Invalid email format (예: admin@healo.com)",
+          error: "Invalid email format (예: admin@healwith.co.kr)",
         };
       }
     } else if (channel === "sms" || channel === "alimtalk") {
@@ -282,7 +282,7 @@ export async function updateRecipient(
       if (!isValidEmail(data.email)) {
         return {
           success: false,
-          error: "Invalid email format (예: admin@healo.com)",
+          error: "Invalid email format (예: admin@healwith.co.kr)",
         };
       }
     }

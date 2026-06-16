@@ -24,7 +24,7 @@ import "server-only";
  * 
  * @example
  * john.doe@gmail.com → j***@gmail.com
- * admin@healo.com → a***@healo.com
+ * admin@healwith.co.kr → a***@healwith.co.kr
  */
 export function maskEmail(email: string | null): string {
   if (!email || typeof email !== "string") return "***";
