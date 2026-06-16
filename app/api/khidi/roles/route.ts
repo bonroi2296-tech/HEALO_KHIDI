@@ -1,5 +1,5 @@
 /**
- * HEALO-KHIDI: User Roles API
+ * healwith: User Roles API
  *
  * GET /api/khidi/roles — Return current user's roles (authenticated)
  * POST /api/khidi/roles — Assign role to user (admin-only)

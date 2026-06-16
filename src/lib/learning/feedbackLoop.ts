@@ -1,5 +1,5 @@
 /**
- * HEALO-KHIDI: AI ↔ Human Agent Mutual Learning Feedback Loop
+ * healwith: AI ↔ Human Agent Mutual Learning Feedback Loop
  *
  * Human Agent가 AI 응답을 수정할 때 피드백을 기록하고,
  * 반복되는 수정 패턴을 자동으로 Playbook에 반영하는 시스템.

@@ -1,5 +1,5 @@
 /**
- * HEALO-KHIDI: Consultation Session Detail API
+ * healwith: Consultation Session Detail API
  *
  * GET   /api/khidi/consultation/[id] — 진료 상세 (참가자 또는 admin)
  * PATCH /api/khidi/consultation/[id] — 진료 상태/노트 수정 (의사/코디네이터/admin)

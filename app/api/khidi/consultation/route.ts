@@ -1,5 +1,5 @@
 /**
- * HEALO-KHIDI: Consultation Session API
+ * healwith: Consultation Session API
  *
  * POST /api/khidi/consultation — 신규 진료 세션 생성 (인증 필요)
  *   - 환자 본인은 자기 자신의 세션을 생성 가능

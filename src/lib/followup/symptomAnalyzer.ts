@@ -1,5 +1,5 @@
 /**
- * HEALO-KHIDI: AI Symptom Analyzer
+ * healwith: AI Symptom Analyzer
  *
  * 환자 증상 보고를 분석하여 위험도를 평가하고
  * 긴급 에스컬레이션 여부를 결정하는 모듈.
