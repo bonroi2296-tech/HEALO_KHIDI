@@ -13,6 +13,7 @@ import {
   getVisaInfo,
   getVisaChecklist,
   getAllVisaTypes,
+  getEntryGuidance,
   type VisaType,
 } from "@/lib/visa/visaGuide";
 
@@ -53,6 +54,7 @@ export async function GET(request: NextRequest) {
       recommended: recommendedChecklist,
       alternative: alternativeChecklist,
       embassy: embassy || null,
+      entry: getEntryGuidance(nationality, lang, duration),
       allVisaTypes: getAllVisaTypes(lang),
     });
   } catch (error: any) {

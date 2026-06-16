@@ -273,6 +273,146 @@ const EMBASSY_INFO: Record<string, Record<string, string>> = {
 };
 
 // ========================================
+// 입국 정책 (국적별) — 무비자 / K-ETA / 비자 필요
+// 출처: 한국 법무부 K-ETA(k-eta.go.kr), 2026년 기준. ※ 규정은 변동 가능 — 공식 확인 필수.
+// ========================================
+
+export type EntryType = 'keta_waived' | 'keta_required' | 'visa_required';
+
+export interface EntryPolicy {
+  entryType: EntryType;
+  /** 무비자 체류 가능 일수 (visa-exempt 국가만) */
+  visaFreeStayDays?: number;
+  note: Record<string, string>;
+}
+
+// K-ETA(전자여행허가) 공통 안내
+export const KETA_INFO = {
+  name: {
+    ko: '전자여행허가 (K-ETA)', en: 'Korea Electronic Travel Authorization (K-ETA)',
+    ru: 'Электронное разрешение на поездку (K-ETA)',
+    zh: '电子旅行许可 (K-ETA)', ja: '電子旅行許可 (K-ETA)', kz: 'Электрондық саяхат рұқсаты (K-ETA)',
+  },
+  description: {
+    ko: '비자가 아닙니다. 무비자 입국 가능 국민이 한국 출발 전 온라인으로 받는 사전 입국 허가입니다 (미국 ESTA 유사).',
+    en: 'Not a visa. An online pre-travel authorization for visa-free nationals, obtained before departure (similar to US ESTA).',
+    ru: 'Это не виза. Электронное предварительное разрешение для граждан безвизовых стран, оформляется онлайн до вылета (аналог ESTA США).',
+    zh: '不是签证。免签国民出发前在线申请的入境前许可（类似美国ESTA）。',
+    ja: 'ビザではありません。ビザ免除国民が出発前にオンラインで取得する事前入国許可です（米国ESTA類似）。',
+    kz: 'Бұл виза емес. Визасыз елдер азаматтары ұшардан бұрын онлайн алатын алдын ала рұқсат (АҚШ ESTA ұқсас).',
+  },
+  applyUrl: 'https://www.k-eta.go.kr',
+  fee: 'KRW 10,000 (약 USD 7~9, 처리수수료 별도)',
+  processingTime: {
+    ko: '보통 72시간 이내 (대개 수십 분~수 시간)', en: 'Usually within 72 hours (often minutes to a few hours)',
+    ru: 'Обычно в течение 72 часов (часто за минуты-часы)',
+    zh: '通常72小时内（多为数分钟至数小时）', ja: '通常72時間以内（多くは数十分〜数時間）',
+    kz: 'Әдетте 72 сағат ішінде (көбіне минут-сағат)',
+  },
+  notes: {
+    ko: '⚠️ 입국 규정은 수시로 바뀝니다. 출발 전 반드시 공식 K-ETA(k-eta.go.kr) 또는 주재 한국대사관에서 최신 정보를 확인하세요.',
+    en: '⚠️ Entry rules change frequently. Always verify on the official K-ETA site (k-eta.go.kr) or the Korean embassy before travel.',
+    ru: '⚠️ Правила въезда часто меняются. Перед поездкой обязательно проверьте на официальном сайте K-ETA (k-eta.go.kr) или в посольстве Кореи.',
+    zh: '⚠️ 入境规定经常变化。出行前请务必在官方K-ETA网站(k-eta.go.kr)或韩国大使馆确认最新信息。',
+    ja: '⚠️ 入国規定は頻繁に変わります。渡航前に必ず公式K-ETA(k-eta.go.kr)または韓国大使館で最新情報を確認してください。',
+    kz: '⚠️ Кіру ережелері жиі өзгереді. Сапардан бұрын ресми K-ETA (k-eta.go.kr) немесе Корея елшілігінен тексеріңіз.',
+  },
+} as const;
+
+// 국적별 입국 정책 (소문자 ISO 코드). 미정의 국적은 안전하게 '비자 필요' 기본값.
+const ENTRY_POLICY: Record<string, EntryPolicy> = {
+  ru: { entryType: 'keta_required', visaFreeStayDays: 60, note: {
+    ko: '러시아 국민은 무비자 60일 입국 가능하나, K-ETA 사전 신청이 필요합니다. 단기 치료는 보통 K-ETA로 입국합니다.',
+    en: 'Russian nationals: visa-free for 60 days, but K-ETA required in advance. Short treatments usually enter via K-ETA.',
+    ru: 'Граждане России: безвизовый въезд на 60 дней, но требуется K-ETA заранее. Краткосрочное лечение обычно по K-ETA.',
+  } },
+  ja: { entryType: 'keta_waived', visaFreeStayDays: 90, note: {
+    ko: '일본 국민은 무비자 90일이며 2026년 말까지 K-ETA도 면제 — 여권만으로 입국 가능합니다.',
+    en: 'Japanese nationals: visa-free 90 days and K-ETA-waived until end of 2026 — passport only.',
+    ru: 'Граждане Японии: безвиз 90 дней, K-ETA не требуется до конца 2026 — только паспорт.',
+  } },
+  kz: { entryType: 'visa_required', note: {
+    ko: '카자흐스탄 국민은 한국 입국 시 비자가 필요합니다 (단기 의료는 C-3-3). ※ 최신 여부는 주카자흐 한국대사관 확인 권장.',
+    en: 'Kazakhstan nationals require a visa for Korea (C-3-3 for short-term medical). Verify with the Korean embassy in Kazakhstan.',
+    ru: 'Гражданам Казахстана нужна виза в Корею (C-3-3 для краткосрочного лечения). Уточняйте в посольстве Кореи.',
+  } },
+  mn: { entryType: 'visa_required', note: {
+    ko: '몽골 국민은 한국 입국 시 비자가 필요합니다 (단기 의료는 C-3-3).',
+    en: 'Mongolian nationals require a visa for Korea (C-3-3 for short-term medical).',
+    ru: 'Гражданам Монголии нужна виза в Корею (C-3-3 для краткосрочного лечения).',
+  } },
+  uz: { entryType: 'visa_required', note: {
+    ko: '우즈베키스탄 국민은 한국 입국 시 비자가 필요합니다 (단기 의료는 C-3-3).',
+    en: 'Uzbekistan nationals require a visa for Korea (C-3-3 for short-term medical).',
+    ru: 'Гражданам Узбекистана нужна виза в Корею (C-3-3 для краткосрочного лечения).',
+  } },
+  zh: { entryType: 'visa_required', note: {
+    ko: '중국 국민은 한국 입국 시 비자가 필요합니다 (단기 의료는 C-3-3).',
+    en: 'Chinese nationals require a visa for Korea (C-3-3 for short-term medical).',
+    ru: 'Гражданам Китая нужна виза в Корею (C-3-3 для краткосрочного лечения).',
+  } },
+};
+
+const DEFAULT_ENTRY_POLICY: EntryPolicy = {
+  entryType: 'visa_required',
+  note: {
+    ko: '해당 국적의 입국 요건은 주재 한국대사관에서 확인하세요. 일반적으로 의료 목적은 C-3-3(단기)/G-1-10(장기) 비자를 신청합니다.',
+    en: 'Check entry requirements with the Korean embassy. Medical visits typically use C-3-3 (short) / G-1-10 (long) visas.',
+    ru: 'Уточните требования в посольстве Кореи. Для лечения обычно используют визы C-3-3 (кратко) / G-1-10 (долго).',
+  },
+};
+
+/**
+ * 국적별 입국 가이드 — 무비자/K-ETA/비자 여부 + (해당 시) K-ETA 안내.
+ * duration 이 무비자 체류 한도를 넘으면 비자가 필요함을 함께 안내.
+ */
+const ENTRY_HEADLINE: Record<EntryType, Record<string, string>> = {
+  keta_waived: {
+    ko: '비자·K-ETA 불필요 (여권만)', en: 'No visa or K-ETA needed (passport only)',
+    ru: 'Виза и K-ETA не нужны (только паспорт)', zh: '无需签证或K-ETA（仅护照）',
+    ja: 'ビザ・K-ETA不要（パスポートのみ）', kz: 'Виза да, K-ETA да қажет емес (тек паспорт)',
+  },
+  keta_required: {
+    ko: '무비자 입국 + K-ETA 필요', en: 'Visa-free entry + K-ETA required',
+    ru: 'Безвизовый въезд + нужен K-ETA', zh: '免签入境 + 需K-ETA',
+    ja: 'ビザ免除入国 + K-ETA必要', kz: 'Визасыз кіру + K-ETA қажет',
+  },
+  visa_required: {
+    ko: '비자 필요', en: 'Visa required', ru: 'Требуется виза',
+    zh: '需要签证', ja: 'ビザが必要', kz: 'Виза қажет',
+  },
+};
+
+export function getEntryGuidance(nationality: string, lang: string, durationDays: number) {
+  const l = lang || 'en';
+  const policy = ENTRY_POLICY[nationality] || DEFAULT_ENTRY_POLICY;
+  const pick = (m: Record<string, string>) => m[l] || m['en'] || m['ko'];
+
+  const withinVisaFree =
+    policy.entryType !== 'visa_required' &&
+    typeof policy.visaFreeStayDays === 'number' &&
+    durationDays <= policy.visaFreeStayDays;
+
+  return {
+    entryType: policy.entryType,
+    headline: pick(ENTRY_HEADLINE[policy.entryType]),
+    visaFreeStayDays: policy.visaFreeStayDays ?? null,
+    // 무비자 한도 내 단기 체류면 비자 없이(=K-ETA/면제) 입국 권장
+    recommendNoVisa: withinVisaFree,
+    requiresKeta: policy.entryType === 'keta_required',
+    note: pick(policy.note),
+    keta: {
+      name: KETA_INFO.name[l] || KETA_INFO.name['en'],
+      description: KETA_INFO.description[l] || KETA_INFO.description['en'],
+      applyUrl: KETA_INFO.applyUrl,
+      fee: KETA_INFO.fee,
+      processingTime: KETA_INFO.processingTime[l] || KETA_INFO.processingTime['en'],
+      notes: KETA_INFO.notes[l] || KETA_INFO.notes['en'],
+    },
+  };
+}
+
+// ========================================
 // Public API
 // ========================================
 

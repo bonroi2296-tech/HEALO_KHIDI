@@ -162,6 +162,27 @@ export default function VisaClient() {
         <p className="text-center text-gray-400 py-10">{l(LABELS.loading)}</p>
       ) : data ? (
         <div className="flex flex-col gap-5">
+          {/* 입국 방식 안내 (무비자 / K-ETA / 비자) */}
+          {data.entry && (
+            <div className={`border rounded-xl p-4 ${data.entry.entryType === 'visa_required' ? 'border-gray-200 bg-slate-50' : 'border-teal-200 bg-teal-50'}`}>
+              <div className="flex items-center justify-between gap-2 mb-1">
+                <h4 className="text-[15px] font-semibold">{data.entry.headline}</h4>
+                {data.entry.visaFreeStayDays && (
+                  <span className="text-xs font-medium text-teal-700">무비자 {data.entry.visaFreeStayDays}일</span>
+                )}
+              </div>
+              <p className="text-sm text-gray-700">{data.entry.note}</p>
+              {data.entry.entryType === 'keta_required' && (
+                <div className="mt-3 text-sm">
+                  <p className="font-medium">{data.entry.keta.name}</p>
+                  <p className="text-gray-600 mt-0.5">{data.entry.keta.description}</p>
+                  <p className="text-gray-500 text-[13px] mt-1">{data.entry.keta.processingTime} · {data.entry.keta.fee}</p>
+                  <a href={data.entry.keta.applyUrl} target="_blank" rel="noopener noreferrer" className="inline-block mt-2 text-blue-600 hover:underline text-[13px]">{data.entry.keta.applyUrl}</a>
+                </div>
+              )}
+              <p className="text-[12px] text-amber-700 mt-2">{data.entry.keta.notes}</p>
+            </div>
+          )}
           <VisaCard checklist={data.recommended} label={l(LABELS.recommended)} l={l} />
           {data.alternative && (
             <VisaCard checklist={data.alternative} label={l(LABELS.alternative)} l={l} />
