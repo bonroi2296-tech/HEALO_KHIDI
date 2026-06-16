@@ -25,8 +25,7 @@ export const SITE_INFO = {
     businessType: "Sole Proprietorship",
     representative: "Juyoung Kang",
     businessRegistrationNumber: "463-35-00902",
-    foreignPatientAttractionRegistration:
-      "Pending (Will be updated upon official issuance)",
+    foreignPatientAttractionRegistration: "A-2026-01-02-06761",
     addressLine1: "Room 613, 385 Gangseo-ro, Gangseo-gu,",
     addressLine2: "Seoul, Republic of Korea",
     contactEmail: "contact@healo.com",
