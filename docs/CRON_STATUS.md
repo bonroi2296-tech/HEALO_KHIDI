@@ -148,3 +148,12 @@ Pro 플랜($20/월) 업그레이드 후 vercel.json 에 추가 가능:
 ```
 
 단, **지금은 절대 추가 금지** (Hobby 한도 위반).
+
+---
+
+## 🛟 KHIDI 데드맨 스위치 (2026-06-16)
+
+`kpi-snapshot` cron(8/27 평가 점수 집계원)이 조용히 멈추는 걸 감지.
+- **방식**: 새 cron 추가(Hobby 한도) 대신, **다른 시간대 cron(`dispatch-surveys`)에 KPI 누락 감지를 얹음** → kpi-snapshot 트리거가 죽어도 잡힘.
+- `src/lib/khidi/kpiHealthcheck.ts` `alertIfKpiStale()`: `kpi_snapshots` 최신 날짜가 2일 이상 지나면 **Sentry 경보**(= PO 이메일 도달). 호출 cron 본업엔 영향 0.
+- **belt-and-suspenders (PO 권장)**: 모든 cron 트리거가 죽는 경우 대비, 외부 무료 모니터(UptimeRobot·cron-job.org)로 `/api/health`를 일 1회 핑 → 실패 시 메일. (Vercel cron 시스템과 독립이라 최종 방어선)
