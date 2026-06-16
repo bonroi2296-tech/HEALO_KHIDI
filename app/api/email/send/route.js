@@ -9,7 +9,7 @@
  *
  * 환경변수:
  *   RESEND_API_KEY=re_xxx           ← Resend 가입 후 발급 (https://resend.com)
- *   HEALO_EMAIL_FROM=healwith <roiimmunelab@immunelab.co.kr>  ← 발신자
+ *   HEALO_EMAIL_FROM=healwith <admin@healwith.co.kr>  ← 발신자
  *
  * Resend 미설정 시 렌더링만 하고 저장. (dry run)
  */
@@ -103,7 +103,7 @@ export async function POST(request) {
       to: Array.isArray(to) ? to : [to],
       subject,
       html,
-      reply_to: "roiimmunelab@immunelab.co.kr",
+      reply_to: "admin@healwith.co.kr",
     });
 
     if (result.error) {

@@ -244,7 +244,7 @@ export default function MedicalQuotation({ data, lang = "ko" }) {
             International Patient Facilitator Reg. A-2026-01-02-06761 (Mayor of Seoul)
           </Text>
           <Text>
-            Room 613, 385 Gangseo-ro, Gangseo-gu, Seoul · roiimmunelab@immunelab.co.kr · +82 10 4772 1075
+            Room 613, 385 Gangseo-ro, Gangseo-gu, Seoul · admin@healwith.co.kr · +82 10 4772 1075
           </Text>
           <Text render={({ pageNumber, totalPages }) => `Page ${pageNumber} / ${totalPages}`} style={{ textAlign: "right", marginTop: 2 }} />
         </View>

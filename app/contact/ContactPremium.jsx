@@ -12,7 +12,7 @@ const COPY = {
     titleItalic: "a coordinator.",
     lede: "We respond within one business day in your preferred language. Whatsapp, email, or the intake form — whatever works for you.",
     channels: [
-      { label: "Email", value: "roiimmunelab@immunelab.co.kr", href: "mailto:roiimmunelab@immunelab.co.kr" },
+      { label: "Email", value: "admin@healwith.co.kr", href: "mailto:admin@healwith.co.kr" },
       { label: "Phone (international)", value: "+82 10 4772 1075", href: "tel:+821047721075" },
       { label: "Phone (domestic)", value: "070-7500-7795", href: "tel:07075007795" },
     ],
@@ -36,7 +36,7 @@ const COPY = {
     titleItalic: "대화하세요.",
     lede: "선호 언어로 영업일 기준 하루 안에 답변드립니다. 이메일, 전화, 인테이크 폼 중 편하신 방법으로.",
     channels: [
-      { label: "이메일", value: "roiimmunelab@immunelab.co.kr", href: "mailto:roiimmunelab@immunelab.co.kr" },
+      { label: "이메일", value: "admin@healwith.co.kr", href: "mailto:admin@healwith.co.kr" },
       { label: "전화 (국제)", value: "+82 10 4772 1075", href: "tel:+821047721075" },
       { label: "전화 (국내)", value: "070-7500-7795", href: "tel:07075007795" },
     ],

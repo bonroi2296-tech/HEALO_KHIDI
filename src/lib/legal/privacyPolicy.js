@@ -100,7 +100,7 @@ const KO = {
       "외국인환자 유치업자 등록번호: A-2026-01-02-06761 (유효기간 2026-03-11 ~ 2029-03-10, 서울특별시장 등록)",
       "사업장 주소: 서울특별시 강서구 강서로 385, 613호 (마곡동, 우성에스비타워)",
       "연락처: +82-10-4772-1075 (국제) · 070-7500-7795 (국내)",
-      "이메일: roiimmunelab@immunelab.co.kr",
+      "이메일: admin@healwith.co.kr",
       "고객지원 운영시간: 평일 09:00-18:00 KST (공휴일 제외)",
     ],
   },
@@ -288,7 +288,7 @@ const KO = {
     body: [
       "성명: 강주영 (JUYOUNG KANG)",
       "직책: 대표 (겸임 — 개인정보보호법 §31, GDPR Art 37)",
-      "이메일: roiimmunelab@immunelab.co.kr",
+      "이메일: admin@healwith.co.kr",
       "전화: +82-10-4772-1075 (국제) · 070-7500-7795 (국내)",
       "",
       "이용자는 개인정보 관련 문의·불만·피해 구제를 개인정보보호책임자에게 직접 연락할 수 있습니다. 회사는 이용자의 문의에 영업일 10일 이내에 응답합니다.",
@@ -376,7 +376,7 @@ const KO = {
   contact: {
     title: "19. 연락처",
     body: [
-      "개인정보·일반 문의: roiimmunelab@immunelab.co.kr",
+      "개인정보·일반 문의: admin@healwith.co.kr",
       "주소: 서울특별시 강서구 강서로 385, 613호 (마곡동, 우성에스비타워)",
       "전화: +82-10-4772-1075 (국제) · 070-7500-7795 (국내)",
       "운영 시간: 평일 09:00-18:00 KST (공휴일 제외)",
@@ -412,7 +412,7 @@ const EN = {
       "International Patient Facilitator Registration Number: A-2026-01-02-06761 (valid 2026-03-11 ~ 2029-03-10, issued by the Mayor of Seoul)",
       "Registered address: Room 613, 385 Gangseo-ro, Gangseo-gu, Seoul, Republic of Korea",
       "Contact: +82-10-4772-1075 (international) · 070-7500-7795 (domestic)",
-      "Email: roiimmunelab@immunelab.co.kr",
+      "Email: admin@healwith.co.kr",
       "Business hours: Mon-Fri 09:00-18:00 KST (excluding Korean public holidays)",
     ],
   },
@@ -599,7 +599,7 @@ const EN = {
     body: [
       "Name: JUYOUNG KANG",
       "Title: Representative (concurrent — per Korean PIPA §31 and GDPR Art 37)",
-      "Email: roiimmunelab@immunelab.co.kr",
+      "Email: admin@healwith.co.kr",
       "Phone: +82-10-4772-1075 (international) · 070-7500-7795 (domestic)",
       "",
       "You may contact the DPO directly for any privacy-related inquiry, complaint, or remedy request. We respond within 10 business days.",
@@ -650,7 +650,7 @@ const EN = {
   contact: {
     title: "19. Contact",
     body: [
-      "Privacy and general inquiries: roiimmunelab@immunelab.co.kr",
+      "Privacy and general inquiries: admin@healwith.co.kr",
       "Address: Room 613, 385 Gangseo-ro, Gangseo-gu, Seoul, Republic of Korea",
       "Phone: +82-10-4772-1075 (international) · 070-7500-7795 (domestic)",
       "Business hours: Mon-Fri 09:00-18:00 KST",

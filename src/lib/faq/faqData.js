@@ -342,12 +342,12 @@ export const FAQS = [
       ja: "後でデータを削除できますか？",
     },
     a: {
-      en: "Yes. You can request access, correction, or deletion of your personal data at any time by contacting our DPO (roiimmunelab@immunelab.co.kr). Medical records retained by hospitals are subject to their own legal retention periods (typically 10 years under Korean Medical Service Act §22).",
-      ko: "네. 개인정보 열람·정정·삭제를 DPO(roiimmunelab@immunelab.co.kr)에게 언제든 요청할 수 있습니다. 병원이 보유한 진료기록은 해당 병원의 법적 보관 의무(의료법 §22에 따라 보통 10년)에 따릅니다.",
-      ru: "Да. Вы можете запросить доступ, исправление или удаление в любое время у DPO (roiimmunelab@immunelab.co.kr). Медицинские записи больницы хранятся согласно их правовым срокам (обычно 10 лет).",
-      kz: "Иә. Кез келген уақытта DPO-дан (roiimmunelab@immunelab.co.kr) сұрата аласыз. Клиникадағы медициналық жазбалар олардың заңды мерзімі бойынша сақталады (әдетте 10 жыл).",
-      zh: "可以。您可随时向 DPO（roiimmunelab@immunelab.co.kr）申请查询、更正或删除。医院保存的医疗记录按其法定保存期（通常10年）处理。",
-      ja: "はい。DPO（roiimmunelab@immunelab.co.kr）にいつでも閲覧・訂正・削除を請求できます。病院保有の診療記録は医療法§22により通常10年間保存されます。",
+      en: "Yes. You can request access, correction, or deletion of your personal data at any time by contacting our DPO (admin@healwith.co.kr). Medical records retained by hospitals are subject to their own legal retention periods (typically 10 years under Korean Medical Service Act §22).",
+      ko: "네. 개인정보 열람·정정·삭제를 DPO(admin@healwith.co.kr)에게 언제든 요청할 수 있습니다. 병원이 보유한 진료기록은 해당 병원의 법적 보관 의무(의료법 §22에 따라 보통 10년)에 따릅니다.",
+      ru: "Да. Вы можете запросить доступ, исправление или удаление в любое время у DPO (admin@healwith.co.kr). Медицинские записи больницы хранятся согласно их правовым срокам (обычно 10 лет).",
+      kz: "Иә. Кез келген уақытта DPO-дан (admin@healwith.co.kr) сұрата аласыз. Клиникадағы медициналық жазбалар олардың заңды мерзімі бойынша сақталады (әдетте 10 жыл).",
+      zh: "可以。您可随时向 DPO（admin@healwith.co.kr）申请查询、更正或删除。医院保存的医疗记录按其法定保存期（通常10年）处理。",
+      ja: "はい。DPO（admin@healwith.co.kr）にいつでも閲覧・訂正・削除を請求できます。病院保有の診療記録は医療法§22により通常10年間保存されます。",
     },
   },
 ];
