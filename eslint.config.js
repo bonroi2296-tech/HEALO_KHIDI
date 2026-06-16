@@ -8,6 +8,7 @@ import tseslint from 'typescript-eslint'
 export default [
   {
     ignores: [
+      'archive/**',
       'HEALO_full_snapshot/**',
       'HEALO_REVIEW/**',
       '.claude/**',
