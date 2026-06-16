@@ -2,7 +2,7 @@
  * E2E: 메인 홈페이지 기본 흐름
  *
  * 검증:
- * - 홈 로드 시 HEALO 로고 + 원격협진 nav 노출
+ * - 홈 로드 시 healwith 로고 + 원격협진 nav 노출
  * - 원격협진 Nav 클릭 → /telemedicine 이동
  * - 히어로 골드 리본 배너 클릭 → /telemedicine 이동
  */
@@ -10,11 +10,11 @@
 import { test, expect } from "@playwright/test";
 
 test.describe("홈페이지 진입점", () => {
-  test("HEALO 로고 + 원격협진 Nav 가 노출된다", async ({ page }) => {
+  test("healwith 로고 + 원격협진 Nav 가 노출된다", async ({ page }) => {
     await page.goto("/");
 
-    // HEALO 워드마크 — 워드마크는 <header> 안에 있고 <nav>는 메뉴 항목 전용
-    await expect(page.locator("header").getByText("HEALO").first()).toBeVisible();
+    // healwith 워드마크 — 워드마크는 <header> 안에 있고 <nav>는 메뉴 항목 전용
+    await expect(page.locator("header").getByText("healwith").first()).toBeVisible();
 
     // 원격협진 메뉴 + NEW 배지
     const telemedicineLink = page.getByRole("link", {

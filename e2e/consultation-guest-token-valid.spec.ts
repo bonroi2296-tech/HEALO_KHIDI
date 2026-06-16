@@ -26,7 +26,7 @@ test.describe("게스트 초대 토큰 — 유효 케이스 UI", () => {
     const bodyText = await page.locator("body").innerText().catch(() => "");
     const hasGuestUI =
       (await nameInput.isVisible().catch(() => false)) ||
-      /원격 상담|게스트|guest|상담 시작|HEALO/i.test(bodyText);
+      /원격 상담|게스트|guest|상담 시작|healwith/i.test(bodyText);
 
     expect(hasGuestUI).toBeTruthy();
   });
