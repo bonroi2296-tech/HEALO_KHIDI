@@ -188,7 +188,7 @@ export function AddRecipientForm({ onClose, onSubmit, showToast }: AddRecipientF
               value={formData.email}
               onChange={(e) => updateField("email", e.target.value)}
               className="w-full h-10 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
-              placeholder="admin@healo.com"
+              placeholder="admin@healwith.co.kr"
               required
             />
             <p className="text-xs text-gray-500 mt-1.5">

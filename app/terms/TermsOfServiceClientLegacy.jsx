@@ -7,6 +7,7 @@ import {
   TERMS_VERSION,
 } from "@/lib/legal/termsOfService";
 import { useLang } from "@/lib/i18n/LangContext";
+import { getTranslationPendingNotice } from "@/lib/legal/translationPendingNotice";
 
 export default function TermsOfServiceClientLegacy() {
   const langCode = useLang();
@@ -44,7 +45,7 @@ export default function TermsOfServiceClientLegacy() {
           </div>
           {translationPending && (
             <div style={{ marginTop: 20, padding: "12px 16px", background: "rgba(255,255,255,0.12)", borderRadius: 10, fontSize: "0.8125rem", color: "rgba(255,255,255,0.85)", lineHeight: 1.6 }}>
-              ⚠️ Translation for this language is pending professional legal review. Korean version shown below.
+              ⚠️ {getTranslationPendingNotice(langCode)}
             </div>
           )}
         </div>

@@ -25,7 +25,7 @@ import { requireAdminAuth } from "@/lib/auth/requireAdminAuth";
  *   "label": "새 이름",
  *   "channel": "sms" | "alimtalk" | "email",
  *   "phone_e164": "+821012345678",
- *   "email": "admin@healo.com",
+ *   "email": "admin@healwith.co.kr",
  *   "is_active": false,
  *   "notes": "메모"
  * }

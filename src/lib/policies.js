@@ -56,7 +56,7 @@ export const PRIVACY_SECTIONS = [
   {
     title: "Contact Information",
     content: [
-      "If you have any questions about this Privacy Policy or your data, contact us at contact@healo.com.",
+      "If you have any questions about this Privacy Policy or your data, contact us at admin@healwith.co.kr.",
     ],
   },
 ];
@@ -117,7 +117,7 @@ export const TERMS_SECTIONS = [
   {
     title: "Contact Information",
     content: [
-      "If you have questions about these Terms, contact us at contact@healo.com.",
+      "If you have questions about these Terms, contact us at admin@healwith.co.kr.",
     ],
   },
 ];
@@ -148,7 +148,7 @@ export const PRIVACY_SECTIONS_KO = [
   { title: "보관 기간", content: ["서비스 제공 또는 법적 의무에 필요한 기간만 보관합니다.", "법적 요건에 따라 계정 및 관련 데이터 삭제를 요청하실 수 있습니다."] },
   { title: "보안", content: ["무단 접근·유출·오용 방지를 위해 업계 표준 수준의 보안 조치를 적용합니다.", "완벽한 보안을 보장할 수 없습니다."] },
   { title: "이용자 권리", content: ["개인정보 열람·정정·삭제를 요청할 수 있습니다.", "데이터 공유 동의를 언제든 철회할 수 있으며, 이 경우 컨시어지 서비스 제공이 제한될 수 있습니다."] },
-  { title: "문의", content: ["개인정보처리방침 또는 데이터 관련 문의: contact@healo.com."] },
+  { title: "문의", content: ["개인정보처리방침 또는 데이터 관련 문의: admin@healwith.co.kr."] },
 ];
 
 /** 한국어 이용약관 (동일 구조) */
@@ -160,7 +160,7 @@ export const TERMS_SECTIONS_KO = [
   { title: "지적재산권", content: ["healwith 플랫폼의 콘텐츠·브랜드·소프트웨어는 healwith 또는 라이선스 제공자에게 귀속됩니다.", "허가 없이 복제·수정·배포할 수 없습니다."] },
   { title: "해지", content: ["이용약관 위반 또는 서비스 오용 시 이용을 정지하거나 종료할 수 있습니다.", "이용자는 언제든 서비스 이용을 중단할 수 있습니다."] },
   { title: "준거법", content: ["본 약관은 대한민국 법률에 따릅니다.", "분쟁은 서울중앙지방법원에서 해결합니다."] },
-  { title: "문의", content: ["이용약관 관련 문의: contact@healo.com."] },
+  { title: "문의", content: ["이용약관 관련 문의: admin@healwith.co.kr."] },
 ];
 
 export function getPrivacySections(lang) {

@@ -57,7 +57,7 @@ export function useRecipientForm(onSuccess?: () => void) {
         return { valid: false, error: "❌ 이메일 주소를 입력하세요" };
       }
       if (!isValidEmail(formData.email.trim())) {
-        return { valid: false, error: "❌ 유효한 이메일 주소를 입력하세요 (예: admin@healo.com)" };
+        return { valid: false, error: "❌ 유효한 이메일 주소를 입력하세요 (예: admin@healwith.co.kr)" };
       }
     }
 

@@ -54,7 +54,7 @@ export async function GET(request: NextRequest) {
  * {
  *   "label": "김주영",
  *   "phone": "+821012345678",
- *   "email": "admin@healo.com",
+ *   "email": "admin@healwith.co.kr",
  *   "channel": "sms" | "alimtalk" | "email",
  *   "notes": "메모"
  * }
@@ -63,7 +63,7 @@ export async function GET(request: NextRequest) {
  * {
  *   "label": "김주영",
  *   "phone": "+821012345678",
- *   "email": "admin@healo.com",
+ *   "email": "admin@healwith.co.kr",
  *   "channels": ["sms", "alimtalk", "email"],  // 여러 채널 선택
  *   "notes": "메모"
  * }
