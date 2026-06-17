@@ -16,7 +16,10 @@ esac
 # 변경분(추적/미추적/스테이지) 없으면 종료
 [ -z "$(git status --porcelain)" ] && exit 0
 
-git add -A || exit 0
+# add -u: 이미 추적 중인 파일의 변경만 저장. 미추적(새) 파일은 자동 저장 안 함.
+# (이유: -A 는 검토 대기 중이거나 잡파일인 미추적 파일까지 쓸어담아 본판을 오염시킴 —
+#  실제로 Hospitals_Rev1 중복 잡폴더가 이렇게 main에 섞인 사고가 있었음. 새 파일은 직접 커밋.)
+git add -u || exit 0
 ts=$(date '+%Y-%m-%d %H:%M')
 git commit -m "chore: 작업 자동 저장 (${ts})" >/dev/null 2>&1 || exit 0
 
