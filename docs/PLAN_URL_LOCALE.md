@@ -16,7 +16,8 @@
 - **패턴**: Next.js App Router 표준 `app/[lang]/...` 동적 세그먼트 + `generateStaticParams`(6 locale).
 - **URL 정책**: 항상 prefix(`/en/...` 포함). default도 prefix → hreflang 정합·redirect 단순.
 - **언어 감지**: middleware — prefix 없으면 쿠키 → `Accept-Language` → `en` 순으로 골라 308 redirect. prefix 있으면 통과 + 쿠키 갱신.
-- **내부 도구**(admin/patient/coordinator/partner): URL은 언어화하되 **UI는 한국어 단일 유지**(번역 안 함). prefix만 입힘. ← 실익 적어 마지막 단계, 진입 전 재검토.
+- **내부 도구**(admin/patient/coordinator/partner): 로그인벽 뒤 = SEO 무관 → **URL 언어화 대상에서 제외**(미들웨어 매처에서 빼고 prefix 안 붙임). PO 확정(2026-06-17). phase 4 사실상 삭제.
+- ⚠️ **별개 트랙(이 계획서 범위 밖, 나중)**: 헤드 어드민은 한국(PO) = 한국어로 충분. 단 **해외 에이전시·해외 의료기관에 어드민 계정 발급 예정** → 그 포털은 **UI 번역 필요**. 이건 "URL 언어화(SEO)"가 아니라 "내부화면 번역" 작업 = 협력사 온보딩 시점에 별도로. 지금 섞지 말 것.
 
 ## 단계 (각 단계 끝마다 `next build --webpack` + 누출 e2e 초록 확인)
 
@@ -34,8 +35,9 @@
   - 페이지별 `generateMetadata({params})`: 언어별 title/description + `alternates.languages`(hreflang 6) + canonical.
   - `sitemap.js`: 라우트 × 6 locale + hreflang. `robots.js` 점검. `layout` 메타 정리.
   - ← **탭 제목 한국어 문제 여기서 해결**(언어별로 맞춰짐).
-- **4. 내부 도구 이동** (진입 전 재검토 — 실익 낮음)
-  - admin/patient/coordinator/partner를 `[lang]` 아래로(UI는 ko 유지). 인증·미들웨어 매처 점검.
+- **4. ~~내부 도구 이동~~ — 삭제됨(PO 확정 2026-06-17)**
+  - admin/patient/coordinator/partner는 로그인벽 뒤 = SEO 무관 → URL 언어화 안 함. 미들웨어 매처에서 제외만 하면 끝.
+  - (해외 협력사용 포털 "번역"은 별개 트랙 — 위 결정사항 참고.)
 - **5. 가드**
   - 누출 e2e ROUTES **자동발견**화(app 폴더 스캔 → 새 페이지 자동 포함). dynamic segment 처리.
   - `hreflang`/canonical 정합 검사 추가 검토.
