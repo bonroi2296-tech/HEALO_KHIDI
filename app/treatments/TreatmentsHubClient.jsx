@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight, HeartPulse, Activity, Droplet, Wind, Stethoscope, Microscope } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { useLang } from "@/lib/i18n/LangContext";
 import { CANCERS, TREATMENTS_L } from "./TreatmentsClient";
 import { PHOTOS, IMMUNE_PHOTOS } from "../../components/healo/Photos";
@@ -19,14 +19,14 @@ const SECTION_PHOTOS = [
   PHOTOS.clinical2,
 ];
 
-// 6개 암종 카드용 아이콘 (사진 대신 깔끔한 플랫폼 톤)
-const CANCER_ICONS = {
-  female: HeartPulse,
-  digest: Activity,
-  liver: Droplet,
-  lung: Wind,
-  thyroid: Stethoscope,
-  etc: Microscope,
+// 6개 암종 카드 썸네일 — 면력 실사 + 임상 스톡 섞어 카드별로 다른 사진(DESIGN.md Airbnb 톤)
+const CANCER_PHOTOS = {
+  female: PHOTOS.clinical1,
+  digest: IMMUNE_PHOTOS.facilityTreatment,
+  liver: PHOTOS.clinical2,
+  lung: IMMUNE_PHOTOS.facilityCo2,
+  thyroid: IMMUNE_PHOTOS.facilityRoom,
+  etc: PHOTOS.hospital2,
 };
 
 const ITCRN_KEYS = ["immunity", "temperature", "circulation", "resistibility", "nutrition"];
@@ -263,21 +263,20 @@ export default function TreatmentsHubClient() {
               className="group block border border-gray-200 rounded-xl overflow-hidden hover:border-teal-300 hover:shadow-md transition-all"
             >
               <article>
-                <div className="w-full aspect-[16/9] bg-teal-50 border-b border-teal-100 flex items-center justify-between px-6">
-                  {(() => {
-                    const Icon = CANCER_ICONS[cancer.slug] || Activity;
-                    return <Icon size={34} strokeWidth={1.5} className="text-teal-600" />;
-                  })()}
-                  <span className="text-3xl font-extrabold text-teal-600/30">
-                    {String(idx + 1).padStart(2, "0")}
-                  </span>
+                <div className="w-full aspect-[16/9] overflow-hidden bg-gray-100 border-b border-gray-100">
+                  <img
+                    src={CANCER_PHOTOS[cancer.slug] || PHOTOS.clinical1}
+                    alt=""
+                    loading="lazy"
+                    className="w-full h-full object-cover"
+                  />
                 </div>
                 <div className="p-5 md:p-6">
                   <h3 className="text-lg font-bold text-gray-900 mb-2 leading-snug">{l(cancer.title)}</h3>
                   <p className="text-sm text-gray-500 leading-relaxed mb-4 line-clamp-3">{l(cancer.intro)}</p>
-                  {cancer.focusPrograms && (
+                  {l(cancer.focusPrograms)?.length > 0 && (
                     <div className="flex flex-wrap gap-1.5 mb-4">
-                      {cancer.focusPrograms.slice(0, 2).map((prog, i) => (
+                      {l(cancer.focusPrograms).slice(0, 2).map((prog, i) => (
                         <span
                           key={i}
                           className="text-xs font-semibold text-teal-700 bg-teal-50 border border-teal-100 rounded-full px-2.5 py-0.5"

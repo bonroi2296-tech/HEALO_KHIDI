@@ -24,5 +24,9 @@ jobs:
       - name: 콘텐츠 일관성 (옛 브랜드·이메일 잔재 + i18n 키 누락 자동 차단)
         run: npm run check:content
       - run: npm run check:i18n
+      - name: 법률 문서 6개 언어 정합성 (약관·개인정보방침 구조/번역 누락 차단)
+        run: npm run check:legal
+      - name: 암종 콘텐츠 6개 언어 완성 (합병증·FAQ·통계 번역 누락 차단)
+        run: npm run check:cancer-i18n
       - run: npm run build
       - run: npm run verify:rag

@@ -102,3 +102,7 @@ HEALO Design System.zip
 
 # 카자흐 제안서 작업물 — 공개repo 유출 방지 (절대 커밋 금지)
 _proposal/
+
+# Playwright
+test-results/
+playwright-report/

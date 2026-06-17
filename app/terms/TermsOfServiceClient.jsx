@@ -110,7 +110,7 @@ export default function TermsOfServiceClient() {
             }}
           >
             <div style={{ marginBottom: 16 }}>
-              <Eyebrow tone="muted">목차 · Contents</Eyebrow>
+              <Eyebrow tone="muted">{({ ko: "목차", en: "Contents", ru: "Содержание", kz: "Мазмұны", zh: "目录", ja: "目次" })[langCode] || "Contents"}</Eyebrow>
             </div>
             <nav style={{ display: "flex", flexDirection: "column", gap: 2 }}>
               {sections.map((s, idx) => (
