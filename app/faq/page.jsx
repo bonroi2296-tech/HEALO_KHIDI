@@ -6,7 +6,6 @@ export const metadata = {
   description:
     "Common questions about healwith's medical concierge service for international cancer patients — consultation, treatment, visa, payment, and privacy.",
   keywords: ["healwith FAQ", "Korea medical tourism FAQ", "cancer treatment Korea questions", "medical concierge FAQ"],
-  alternates: { canonical: "/faq" },
   openGraph: {
     title: "Frequently Asked Questions | healwith",
     description: "Everything international patients ask about treatment in Korea — consultation, visa, payment, and privacy.",

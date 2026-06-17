@@ -192,6 +192,7 @@ export async function proxy(request: NextRequest) {
         url.pathname = bare;
         const headers = new Headers(request.headers);
         headers.set("x-locale", seg);
+        headers.set("x-pathname", bare); // hreflang/canonical 생성용(언어 뗀 경로)
         const res = NextResponse.rewrite(url, { request: { headers } });
         res.cookies.set(LOCALE_COOKIE, seg, { path: "/", maxAge: 31536000 });
         return res;

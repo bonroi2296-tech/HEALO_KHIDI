@@ -17,7 +17,6 @@ export const metadata = {
     title: "Medical Visa Guide | healwith",
     description: "Korean medical visa guide with required documents and embassy info.",
   },
-  alternates: { canonical: "/visa" },
 };
 
 export default async function PublicVisaPage({ searchParams }) {

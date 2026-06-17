@@ -12,7 +12,6 @@ export const metadata = {
     "medical concierge Korea",
     "маршрут лечения рака Корея",
   ],
-  alternates: { canonical: "/care-journey" },
   openGraph: {
     title: "치료 여정 | healwith",
     description:

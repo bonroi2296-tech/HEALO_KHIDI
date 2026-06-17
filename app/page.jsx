@@ -49,18 +49,7 @@ export const metadata = {
     description:
       "Pre-consultation + interpretation + full-journey concierge for cancer patients seeking treatment in Korea.",
   },
-  alternates: {
-    canonical: "/",
-    languages: {
-      en: "/?lang=en",
-      ko: "/?lang=ko",
-      ru: "/?lang=ru",
-      kk: "/?lang=kz",
-      zh: "/?lang=zh",
-      ja: "/?lang=ja",
-      "x-default": "/",
-    },
-  },
+  // alternates(hreflang/canonical)는 layout generateMetadata가 요청 언어별로 생성.
 };
 
 const jsonLd = {

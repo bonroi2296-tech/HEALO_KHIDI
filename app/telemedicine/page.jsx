@@ -20,7 +20,6 @@ export const metadata = {
       "비행기 타기 전에, 한국 전문의와 먼저 영상 상담하세요. 실시간 통역 + 의료 등급 보안.",
     type: "website",
   },
-  alternates: { canonical: "/telemedicine" },
 };
 
 export default function TelemedicinePage() {

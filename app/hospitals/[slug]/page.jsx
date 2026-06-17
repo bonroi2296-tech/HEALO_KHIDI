@@ -10,6 +10,7 @@ import {
 } from "@/lib/data/hospitals";
 import { getPartnerHospital, convertPartnerToInitialData } from "@/lib/data/partnerHospitals";
 import HospitalDetailClient from "./HospitalDetailClient";
+import { localeAlternates } from "@/lib/i18n/metadata";
 
 const UUID_REGEX =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -42,7 +43,7 @@ export async function generateMetadata({ params }) {
       return {
         title: partner.name.en,
         description: partner.description.en,
-        alternates: { canonical: `/hospitals/${slug}` },
+        alternates: (await localeAlternates()) || { canonical: `/hospitals/${slug}` },
         openGraph: { title: partner.name.en, description: partner.description.en, type: "article", images: ogImages },
         twitter: ogImages ? { card: "summary_large_image", title: partner.name.en, description: partner.description.en, images: [ogImg] } : undefined,
       };
@@ -62,7 +63,7 @@ export async function generateMetadata({ params }) {
   return {
     title: hospital.name,
     description,
-    alternates: { canonical },
+    alternates: (await localeAlternates()) || { canonical },
     openGraph: {
       title: hospital.name,
       description,

@@ -5,7 +5,6 @@ export const metadata = {
   title: "상담 신청 | healwith — 한국 암 치료 연결",
   description:
     "1분 안에 암 치료 상담을 신청하세요. 코디네이터가 선호하시는 언어로 영업일 1일 이내에 연락드립니다.",
-  alternates: { canonical: "/inquiry" },
 };
 
 export default function InquiryPage() {

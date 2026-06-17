@@ -6,11 +6,23 @@ import Providers from "./providers";
 import ClientShell from "./ClientShell";
 import AnalyticsWrapper from "./AnalyticsWrapper";
 import DesignToggle from "../components/healo/DesignToggle";
+import { localeAlternates, OG_LOCALE, getRequestLocale } from "@/lib/i18n/metadata";
 
 // kz(우리 내부 코드) → kk(BCP47 표준 카자흐 언어코드). <html lang>·hreflang용.
 const HTML_LANG = { en: "en", ko: "ko", ru: "ru", kz: "kk", zh: "zh", ja: "ja" };
 
-export const metadata = {
+// 동적 메타데이터: 정적 필드 + 요청 언어별 hreflang/canonical/OG locale.
+// 공개 페이지가 alternates를 따로 안 주면 이 layout 값을 물려받아 언어별로 맞춰짐.
+export async function generateMetadata() {
+  const { locale } = await getRequestLocale();
+  // 언어화 안 된 요청(내부도구 등)은 alternates 생략 — 잘못된 canonical 방지.
+  if (!locale) return baseMetadata;
+  const alternates = await localeAlternates();
+  const og = { ...baseMetadata.openGraph, locale: OG_LOCALE[locale] || "en_US" };
+  return { ...baseMetadata, alternates, openGraph: og };
+}
+
+const baseMetadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://khidi.healo.kr"),
   title: {
     default: "healwith | Korea Cancer Care for International Patients",
@@ -57,18 +69,7 @@ export const metadata = {
     description:
       "Video pre-consultation + 6-language interpretation + full-journey concierge for international cancer patients seeking treatment in Korea.",
   },
-  alternates: {
-    canonical: "/",
-    languages: {
-      'en': '/',
-      'ko': '/?lang=ko',
-      'ru': '/?lang=ru',
-      'kk': '/?lang=kz',
-      'zh': '/?lang=zh',
-      'ja': '/?lang=ja',
-      'x-default': '/',
-    },
-  },
+  // alternates(hreflang/canonical)는 generateMetadata에서 요청 언어별로 동적 생성.
   icons: {
     icon: [
       { url: "/favicon.svg", type: "image/svg+xml" },
