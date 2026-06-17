@@ -1,5 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "env": {
+    "DISABLE_BUG_COMMAND": "1"
+  },
   "hooks": {
     "SessionStart": [
       {
