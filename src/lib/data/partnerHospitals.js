@@ -214,7 +214,13 @@ const PARTNER_HOSPITALS = {
       ja: ["2019年開院の最新施設（756床）", "がんセンター — 多職種統合診療", "麻谷の免疫病院江西本院に隣接", "外国人患者専門部署を運営", "最先端の画像・手術設備"],
     },
     bedCount: 756,
-    image: "https://images.unsplash.com/photo-1519494026892-80bbd2d6fd0d?w=800&h=500&fit=crop",
+    image: "/images/hospitals/ewha-seoul/1.jpg",
+    gallery: [
+      "/images/hospitals/ewha-seoul/2.jpg",
+      "/images/hospitals/ewha-seoul/3.jpg",
+      "/images/hospitals/ewha-seoul/4.jpg",
+      "/images/hospitals/ewha-seoul/5.jpg",
+    ],
   },
 
   "ewha-mokdong": {
@@ -249,7 +255,13 @@ const PARTNER_HOSPITALS = {
       zh: ["1985年开院 — 40年临床经验", "儿童青少年癌症专科治疗", "女性癌症（乳腺·宫颈）特化", "癌症中心：手术·化疗·放疗综合诊疗", "丰富的临床研究与学术成果"],
       ja: ["1985年開院 — 40年の臨床経験", "小児・青少年がん専門治療", "女性がん（乳がん・子宮頸がん）特化", "がんセンター：手術・抗がん・放射線の統合診療", "豊富な臨床研究・学術成果"],
     },
-    image: "https://images.unsplash.com/photo-1586773860418-d37222d8fce3?w=800&h=500&fit=crop",
+    image: "/images/hospitals/ewha-mokdong/1.jpg",
+    gallery: [
+      "/images/hospitals/ewha-mokdong/2.jpg",
+      "/images/hospitals/ewha-mokdong/3.jpg",
+      "/images/hospitals/ewha-mokdong/4.jpg",
+      "/images/hospitals/ewha-mokdong/5.jpg",
+    ],
   },
 
   "korea-guro": {
@@ -284,7 +296,13 @@ const PARTNER_HOSPITALS = {
       zh: ["肝癌·肺癌·胃癌精准手术治疗", "机器人手术中心", "国际诊疗中心 — 外国患者专属", "多学科肿瘤会诊（Tumor Board）", "尖端放射治疗（IMRT, SBRT）"],
       ja: ["肝がん・肺がん・胃がんの精密手術治療", "ロボット手術センター運営", "国際診療センター — 外国人患者専門", "多職種がん診療体制（Tumor Board）", "先端放射線治療（IMRT, SBRT）"],
     },
-    image: "https://images.unsplash.com/photo-1504439468489-c8920d796a29?w=800&h=500&fit=crop",
+    image: "/images/hospitals/korea-guro/1.jpg",
+    gallery: [
+      "/images/hospitals/korea-guro/2.jpg",
+      "/images/hospitals/korea-guro/3.png",
+      "/images/hospitals/korea-guro/4.jpg",
+      "/images/hospitals/korea-guro/5.jpg",
+    ],
   },
 
   "severance-sinchon": {
@@ -319,7 +337,13 @@ const PARTNER_HOSPITALS = {
       zh: ["延世癌症医院 — 12种癌症多学科综合诊疗", "多学科会诊（MDT）运营", "配备质子治疗中心", "毗邻新村免疫医院 — 中西医协诊", "JCI认证 — 符合国际医疗质量标准", "外国患者专属国际诊疗中心"],
       ja: ["延世がん病院 — 12がん種の多職種統合診療", "多職種統合診療（MDT）運営", "陽子線治療センター保有", "新村免疫病院に隣接 — 洋韓方協診", "JCI認証 — 国際医療品質基準を充足", "外国人患者専門の国際診療センター"],
     },
-    image: "/images/hospitals/_coming-soon.svg",
+    image: "/images/hospitals/severance-sinchon/1.jpg",
+    gallery: [
+      "/images/hospitals/severance-sinchon/2.jpg",
+      "/images/hospitals/severance-sinchon/3.webp",
+      "/images/hospitals/severance-sinchon/4.jpg",
+      "/images/hospitals/severance-sinchon/5.jpg",
+    ],
   },
 };
 
