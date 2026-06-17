@@ -9,6 +9,12 @@
             "command": "bash .claude/hooks/auto-pull.sh",
             "timeout": 30,
             "statusMessage": "GitHub 최신과 동기화 중..."
+          },
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/session-orient.sh",
+            "timeout": 15,
+            "statusMessage": "현재 작업 상태 파악 중..."
           }
         ]
       }

@@ -78,6 +78,7 @@ output/
 # (컨테이너 회수 후에도 자동 커밋·푸시 훅이 살아남게)
 .claude/*
 !.claude/commands/
+!.claude/skills/
 !.claude/settings.json
 !.claude/hooks/
 
