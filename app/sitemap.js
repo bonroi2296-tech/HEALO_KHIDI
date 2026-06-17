@@ -64,9 +64,6 @@ export default async function sitemap() {
     { url: `${baseUrl}/hospitals`, changeFrequency: 'weekly', priority: 0.9, alternates: makeAlternates('/hospitals') },
     { url: `${baseUrl}/telemedicine`, changeFrequency: 'weekly', priority: 0.9, alternates: makeAlternates('/telemedicine') },
     { url: `${baseUrl}/search`, changeFrequency: 'weekly', priority: 0.8, alternates: makeAlternates('/search') },
-    { url: `${baseUrl}/specialties/dental`, changeFrequency: 'monthly', priority: 0.8 },
-    { url: `${baseUrl}/specialties/dermatology`, changeFrequency: 'monthly', priority: 0.8 },
-    { url: `${baseUrl}/specialties/plastic-surgery`, changeFrequency: 'monthly', priority: 0.8 },
     { url: `${baseUrl}/specialties/korean-medicine`, changeFrequency: 'monthly', priority: 0.8 },
     { url: `${baseUrl}/hospitals/immune`, changeFrequency: 'monthly', priority: 0.85, alternates: makeAlternates('/hospitals/immune') },
     // ── 암종별 치료 상세 페이지 (면력한방병원 6개 암종)
