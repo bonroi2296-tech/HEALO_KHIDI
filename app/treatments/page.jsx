@@ -2,8 +2,13 @@ import { Suspense } from "react";
 import { cookies } from "next/headers";
 import TreatmentsClient from "./TreatmentsClient";
 import TreatmentsHubClient from "./TreatmentsHubClient";
+import { localizedMeta } from "@/lib/i18n/metadata";
 
-export const metadata = {
+export async function generateMetadata() {
+  return localizedMeta(baseMeta, "seo.treatments.title", "seo.treatments.desc");
+}
+
+const baseMeta = {
   title: "암종별 치료 안내 — 한국 암 치료와 한방 통합 케어 | healwith",
   description:
     "유방·자궁·난소암, 대장·위암, 간·담도·췌장암, 폐암, 갑상선암 등 6개 암종 전문 치료 안내. 면력한방병원 ITCRN 5축 통합 면역치료.",

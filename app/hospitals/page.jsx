@@ -3,8 +3,13 @@ import { cookies } from "next/headers";
 import HospitalsClient from "./HospitalsClient";
 import HospitalsClientPremium from "./HospitalsClientPremium";
 import { getServerDesignMode } from "@/lib/designMode";
+import { localizedMeta } from "@/lib/i18n/metadata";
 
-export const metadata = {
+export async function generateMetadata() {
+  return localizedMeta(baseMeta, "seo.hospitals.title", "seo.hospitals.desc");
+}
+
+const baseMeta = {
   title: "협력 병원 — healwith 파트너 의료기관",
   description:
     "healwith 컨소시엄 핵심 파트너 면력한방병원과 협진 암 전문 병원을 소개합니다. 한방 면역치료부터 암 수술·항암까지 원스톱 케어.",

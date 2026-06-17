@@ -4,10 +4,15 @@ import HomeClient from "./home/HomeClient";
 import HomeClientPremium from "./home/HomeClientPremium";
 import Script from "next/script";
 import { getServerDesignMode } from "@/lib/designMode";
+import { localizedMeta } from "@/lib/i18n/metadata";
 
 // 홈 페이지 메타 — 언어별 alternates 로 각 언어권 검색엔진이 올바른 버전 노출
 // Google·Yandex·Baidu 모두 hreflang 을 통해 언어별 title 매칭
-export const metadata = {
+export async function generateMetadata() {
+  return localizedMeta(baseMeta, "seo.home.title", "seo.home.desc");
+}
+
+const baseMeta = {
   title: "healwith | Korea Cancer Care for International Patients · 해외 암환자 한국 치료 컨시어지",
   description:
     "Korean cancer care concierge for international patients. 해외 암환자를 위한 한국 암 전문의 원격 사전상담. Video pre-consultation with top oncologists, 6-language interpretation (RU/KZ/EN/ZH/JA/KO), full-journey support from diagnosis to follow-up.",

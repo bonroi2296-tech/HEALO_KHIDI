@@ -1,7 +1,12 @@
 import { Suspense } from "react";
 import UnifiedInquiryFunnel from "./_components/UnifiedInquiryFunnel";
+import { localizedMeta } from "@/lib/i18n/metadata";
 
-export const metadata = {
+export async function generateMetadata() {
+  return localizedMeta(baseMeta, "seo.inquiry.title", "seo.inquiry.desc");
+}
+
+const baseMeta = {
   title: "상담 신청 | healwith — 한국 암 치료 연결",
   description:
     "1분 안에 암 치료 상담을 신청하세요. 코디네이터가 선호하시는 언어로 영업일 1일 이내에 연락드립니다.",
