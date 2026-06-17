@@ -41,7 +41,13 @@ const PARTNER_HOSPITALS = {
       ja: ["外国人患者誘致医療機関登録", "統合がん治療認定医を複数保有", "四象体質診断に基づく免疫プログラム", "韓薬・鍼・薬鍼の統合治療システム", "8名の専門医が常駐"],
     },
     doctorCount: 8,
-    image: "/images/hospitals/_coming-soon.svg",
+    image: "/images/hospitals/immunehospital-magok/1.jpg",
+    gallery: [
+      "/images/hospitals/immunehospital-magok/2.jpg",
+      "/images/hospitals/immunehospital-magok/3.jpg",
+      "/images/hospitals/immunehospital-magok/4.jpg",
+      "/images/hospitals/immunehospital-magok/5.jpg",
+    ],
   },
 
   "immunehospital-sinchon": {
@@ -78,7 +84,13 @@ const PARTNER_HOSPITALS = {
       ja: ["外国人患者誘致医療機関登録", "新村セブランス病院に隣接 — 洋韓方協診が容易", "フィデリアタワー8-14階の大規模診療空間", "3名の専門医が常駐"],
     },
     doctorCount: 3,
-    image: "/images/hospitals/_coming-soon.svg",
+    image: "/images/hospitals/immunehospital-sinchon/1.jpg",
+    gallery: [
+      "/images/hospitals/immunehospital-sinchon/2.jpg",
+      "/images/hospitals/immunehospital-sinchon/3.jpg",
+      "/images/hospitals/immunehospital-sinchon/4.jpg",
+      "/images/hospitals/immunehospital-sinchon/5.jpg",
+    ],
   },
 
   "immunehospital-gwangmyeong": {
@@ -115,7 +127,13 @@ const PARTNER_HOSPITALS = {
       ja: ["7名の専門医が常駐（韓方+西洋医学）", "スイス政府奨学生出身の免疫学研究員が在籍", "統合がん治療認定医を複数保有", "光明駅直結 — KTXアクセス良好", "西洋医学麻酔疼痛科との協診"],
     },
     doctorCount: 7,
-    image: "/images/hospitals/_coming-soon.svg",
+    image: "/images/hospitals/immunehospital-gwangmyeong/1.jpg",
+    gallery: [
+      "/images/hospitals/immunehospital-gwangmyeong/2.jpg",
+      "/images/hospitals/immunehospital-gwangmyeong/3.jpg",
+      "/images/hospitals/immunehospital-gwangmyeong/4.jpg",
+      "/images/hospitals/immunehospital-gwangmyeong/5.jpg",
+    ],
   },
 
   "immunehospital-seongdong": {
@@ -152,6 +170,12 @@ const PARTNER_HOSPITALS = {
     },
     doctorCount: 8,
     image: "/images/hospitals/immunehospital-seongdong/1.jpg",
+    gallery: [
+      "/images/hospitals/immunehospital-seongdong/2.jpg",
+      "/images/hospitals/immunehospital-seongdong/3.jpg",
+      "/images/hospitals/immunehospital-seongdong/4.jpg",
+      "/images/hospitals/immunehospital-seongdong/5.jpg",
+    ],
   },
 
   /* ════════════════════════════════════════════
