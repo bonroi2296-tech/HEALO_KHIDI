@@ -7,7 +7,8 @@ import { Search, X, Loader2, ArrowRight } from "lucide-react";
 import { supabaseClient } from "@/lib/data/supabaseClient";
 import { mapHospitalRow, mapTreatmentRow } from "@/lib/mapper";
 import { getCurrentLangCode } from "@/lib/language";
-import { getLangCodeFromCookie, t } from "@/lib/i18n";
+import { t } from "@/lib/i18n";
+import { useLang } from "@/lib/i18n/LangContext";
 
 const HOSPITAL_PUBLIC_COLS = `id,slug,name,location_en,location_kr,address_detail,description,tags,rating,reviews_count,images,thumbnail_image,gallery_images,latitude,longitude,operating_hours,doctor_profile,amenities,supported_languages,specialties,medical_equipment,certifications,insurance_accepted,insurance_details,annual_surgery_count,establishment_date,doctor_count,external_ratings,is_published,display_order,created_at,i18n,is_partner`;
 const TREATMENT_PUBLIC_COLS = `id,slug,name,description,full_description,hospital_id,price_min,price_max,tags,images,benefits,i18n`;
@@ -144,11 +145,7 @@ export default function SearchResultsClient() {
   const [treatments, setTreatments] = useState([]);
   const [hospitals, setHospitals] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [lang, setLang] = useState("en");
-
-  useEffect(() => {
-    setLang(getLangCodeFromCookie());
-  }, []);
+  const lang = useLang(); // 서버가 URL 언어로 렌더(SEO). 쿠키 직독 대신 LangContext.
 
   useEffect(() => {
     const q = searchParams?.get("q") || "";

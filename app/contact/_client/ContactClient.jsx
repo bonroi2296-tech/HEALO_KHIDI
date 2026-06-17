@@ -1,15 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
 import { SITE_INFO } from "@/lib/siteSettings";
-import { getLangCodeFromCookie, t } from "@/lib/i18n";
+import { t } from "@/lib/i18n";
+import { useLang } from "@/lib/i18n/LangContext";
 
 export default function ContactClient() {
-  const [langCode, setLangCode] = useState("en");
-  useEffect(() => {
-    setLangCode(getLangCodeFromCookie());
-  }, []);
+  const langCode = useLang(); // 서버가 URL 언어로 렌더(SEO). 쿠키 직독 대신 LangContext.
 
   const { legal } = SITE_INFO;
 

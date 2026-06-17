@@ -25,3 +25,12 @@ export function splitLocale(path) {
   if (isLocale(seg)) return [seg, path.slice(seg.length + 1) || "/"];
   return [null, path];
 }
+
+// 언어 스위처용: 현재 URL에서 언어만 바꾼 목적지. prefix 있으면 교체해 반환,
+// 없으면(언어화 안 된 내부 경로) null → 호출부에서 그냥 reload.
+export function localeSwitchTarget(pathname, search, code) {
+  const [loc] = splitLocale(pathname);
+  if (!loc) return null;
+  const [, rest] = splitLocale(pathname);
+  return localeHref(rest, code) + (search || "");
+}

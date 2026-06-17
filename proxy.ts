@@ -23,10 +23,30 @@ import { LOCALES, DEFAULT_LOCALE, LOCALE_COOKIE } from "@/lib/i18n/config";
 
 // ── URL 언어화(locale-in-path) ──────────────────────────────
 // 공개 마케팅 경로만 /{locale}/ 로 강제. /ru/treatments → 내부 /treatments rewrite + x-locale 헤더로 언어 전달.
-// phase 1: treatments 만. phase 2에서 공개 전체로 확장(배열에 추가).
-// ponytail: 공개경로 단일 목록.
-const PUBLIC_PREFIXES = ["/treatments"];
-// 옛 러/카 랜딩(폴더 /ru,/kk 가 언어 prefix와 충돌) — phase 2 relocate 전까지 건드리지 않음.
+// 내부도구(admin/patient/coordinator/partner/agency)·auth·게스트(consultation/survey)는 제외(SEO 무관·Korean UI).
+// ponytail: 공개경로 단일 목록. 새 공개페이지 추가 시 여기 한 줄. (phase 5에서 app 폴더 자동발견으로 대체 예정)
+const PUBLIC_PREFIXES = [
+  "/",                    // 홈 (정확히 "/" 만 매칭)
+  "/treatments",
+  "/hospitals",
+  "/telemedicine",
+  "/care-journey",
+  "/search",
+  "/specialties",
+  "/faq",
+  "/education",
+  "/visa",
+  "/about",
+  "/contact",
+  "/inquiry",
+  "/success",
+  "/stories",
+  "/terms",
+  "/privacy",
+  "/cookies",
+  "/medical-disclaimer",
+];
+// 옛 러/카 전용 랜딩(폴더가 /ru,/kk 라 언어 prefix와 충돌). Yandex 색인 자산이라 이동 안 함 — 이 두 주소만 통과시켜 그대로 유지.
 const LEGACY_SKIP = ["/ru/for-russian-patients", "/kk/for-kazakh-patients"];
 
 function isPublicLocalePath(pathname: string) {

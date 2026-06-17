@@ -1,3 +1,6 @@
+// 활성 콘텐츠 언어(라우팅·SEO 단일 목록). 언어 추가 = config.js LOCALES 한 곳.
+import { LOCALES } from "./config";
+
 const DICTIONARY = {
   en: {
     "cta.freePlan": "Get Free Treatment Plan",
@@ -5525,14 +5528,10 @@ export const LANG_OPTIONS = [
   { code: "kz", label: "Қазақша" },
 ];
 
-/** 상단 노출용 주요 언어 (스크롤 없이 바로 선택) — KHIDI: ru 포함 */
-export const LANG_OPTIONS_PRIMARY = LANG_OPTIONS.filter(l =>
-  ["en", "ko", "ru", "ja", "zh", "kz"].includes(l.code)
-);
+/** 상단 노출용 주요 언어 = 활성 콘텐츠 언어(LOCALES). 언어 추가 시 config.js만 고치면 따라옴 */
+export const LANG_OPTIONS_PRIMARY = LANG_OPTIONS.filter(l => LOCALES.includes(l.code));
 /** 기타 언어 (접었을 때 스크롤 영역으로 제한) */
-export const LANG_OPTIONS_OTHER = LANG_OPTIONS.filter(l =>
-  !["en", "ko", "ru", "ja", "zh", "kz"].includes(l.code)
-);
+export const LANG_OPTIONS_OTHER = LANG_OPTIONS.filter(l => !LOCALES.includes(l.code));
 
 export const getLangCodeFromCookie = () => {
   if (typeof document === "undefined") return "en";

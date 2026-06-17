@@ -9,24 +9,15 @@ import {
 import { supabaseClient } from "@/lib/data/supabaseClient";
 import { mapHospitalRow, mapTreatmentRow } from "@/lib/mapper";
 import { getCurrentLangCode } from "@/lib/language";
-import { getLangCodeFromCookie, t } from "@/lib/i18n";
+import { t } from "@/lib/i18n";
+import { useLang } from "@/lib/i18n/LangContext";
 
 export default function KoreanMedicineClient() {
   const router = useRouter();
-  const [langCode, setLangCode] = useState("en");
+  const langCode = useLang(); // 서버가 URL 언어로 렌더(SEO). 쿠키 폴링 대신 LangContext.
   const [hospitals, setHospitals] = useState([]);
   const [treatments, setTreatments] = useState([]);
   const [openFaqIdx, setOpenFaqIdx] = useState(-1);
-
-  useEffect(() => {
-    const update = () => setLangCode(prev => {
-      const next = getLangCodeFromCookie();
-      return prev !== next ? next : prev;
-    });
-    update();
-    const id = setInterval(update, 1500);
-    return () => clearInterval(id);
-  }, []);
 
   useEffect(() => {
     const fetchData = async () => {

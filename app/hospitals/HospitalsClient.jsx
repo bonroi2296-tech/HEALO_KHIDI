@@ -18,6 +18,7 @@ const DOCTOR_FALLBACK = "data:image/svg+xml," + encodeURIComponent(
 const onImgError = (e) => { e.currentTarget.onerror = null; e.currentTarget.src = DOCTOR_FALLBACK; };
 
 import { getLangCodeFromCookie } from '@/lib/i18n';
+import { useLang } from '@/lib/i18n/LangContext';
 import { supabaseClient } from '@/lib/data/supabaseClient';
 import { mapHospitalRow } from '@/lib/mapper';
 
@@ -594,12 +595,11 @@ function DoctorCard({ doc, l, lang, onSelect }) {
 /* ───────────────── Main Component ───────────────── */
 export default function HospitalsClient() {
   const router = useRouter();
-  const [lang, setLang] = useState('en');
+  const lang = useLang(); // 서버가 URL 언어로 렌더(SEO). 쿠키 직독 대신 LangContext.
   const [partnerHospitals, setPartnerHospitals] = useState([]);
   const [expandedBranch, setExpandedBranch] = useState('gangseo');
   const [selectedDoctor, setSelectedDoctor] = useState(null);
 
-  useEffect(() => { setLang(getLangCodeFromCookie()); }, []);
   const l = (obj) => {
     if (!obj) return '';
     if (typeof obj === 'string') return obj;

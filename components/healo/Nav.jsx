@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState, useRef, useEffect } from "react";
 import { useLang } from "@/lib/i18n/LangContext";
 import { setLangCookie } from "@/lib/i18n";
+import { localeSwitchTarget } from "@/lib/i18n/config";
 import NotificationCenter from "./NotificationCenter";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 
@@ -122,7 +123,10 @@ export default function Nav({ current }) {
     }
     setLangCookie(code);
     setLangOpen(false);
-    window.location.reload();
+    // URL 언어화: 공개 페이지면 새 언어 주소로 이동(reload는 미들웨어가 쿠키를 URL언어로 되돌려 안 바뀜)
+    const target = localeSwitchTarget(window.location.pathname, window.location.search, code);
+    if (target) window.location.href = target;
+    else window.location.reload();
   };
 
   const currentLangLabel = LANGS.find((l) => l.code === lang)?.label || "English";
