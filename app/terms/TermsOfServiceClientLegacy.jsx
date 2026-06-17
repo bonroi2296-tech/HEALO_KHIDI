@@ -58,7 +58,7 @@ export default function TermsOfServiceClientLegacy() {
           {/* TOC — sticky sidebar */}
           <aside style={{ position: "sticky", top: 24, alignSelf: "start", maxHeight: "calc(100vh - 48px)", overflowY: "auto", paddingRight: 8 }}>
             <p style={{ fontSize: "0.6875rem", fontWeight: 700, letterSpacing: "0.16em", textTransform: "uppercase", color: "#0d9488", marginBottom: 12 }}>
-              목차 · Contents
+              {({ ko: "목차", en: "Contents", ru: "Содержание", kz: "Мазмұны", zh: "目录", ja: "目次" })[langCode] || "Contents"}
             </p>
             <nav style={{ display: "flex", flexDirection: "column", gap: 2 }}>
               {sections.map((s, idx) => {
@@ -130,8 +130,14 @@ export default function TermsOfServiceClientLegacy() {
             {/* Footer notice */}
             <footer style={{ marginTop: 48, paddingTop: 24, borderTop: "2px solid #99f6e4", fontSize: "0.75rem", color: "#64748b", lineHeight: 1.7 }}>
               <p style={{ margin: 0 }}>
-                이 약관은 대한민국 전자상거래법, 의료법, 의료해외진출법을 기반으로
-                작성되었습니다. 최종 법적 효력은 관할 법령 및 변호사의 검토에 따릅니다.
+                {(() => { const t = {
+                  ko: "이 약관은 대한민국 전자상거래법, 의료법, 의료해외진출법을 기반으로 작성되었습니다. 최종 법적 효력은 관할 법령 및 변호사의 검토에 따릅니다.",
+                  en: "These terms are based on the Republic of Korea's E-Commerce Act, Medical Service Act, and Act on Support for Overseas Expansion of Healthcare. Final legal effect is subject to applicable law and attorney review.",
+                  ru: "Настоящие условия основаны на законах Республики Корея об электронной торговле, о медицинском обслуживании и о поддержке зарубежного развития здравоохранения. Окончательная юридическая сила определяется применимым законодательством и проверкой юриста.",
+                  kz: "Бұл шарттар Корея Республикасының электрондық сауда, медициналық қызмет және денсаулық сақтауды шетелде дамыту туралы заңдарына негізделген. Түпкілікті заңды күші қолданыстағы заңнама мен заңгердің тексеруіне байланысты.",
+                  zh: "本条款依据韩国《电子商务法》《医疗法》及《医疗海外拓展法》制定。最终法律效力以适用法律及律师审核为准。",
+                  ja: "本規約は韓国の電子商取引法、医療法、医療海外進出法に基づいて作成されています。最終的な法的効力は適用法令および弁護士の確認に従います。",
+                }; return t[langCode] || t.en; })()}
               </p>
             </footer>
           </article>

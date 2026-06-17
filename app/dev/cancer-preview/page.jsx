@@ -90,13 +90,13 @@ function CancerCard({ slug, data }) {
               {imgKeys[i] && diseaseImages[imgKeys[i]] && (
                 <img
                   src={diseaseImages[imgKeys[i]]}
-                  alt={c.name}
+                  alt={c.name.ko}
                   style={{ width: "100%", height: 80, objectFit: "cover", borderRadius: 4, marginBottom: 6 }}
                   onError={(e) => { e.currentTarget.style.display = "none"; }}
                 />
               )}
-              <div style={{ fontWeight: 600, fontSize: 13, color: "#111827" }}>{c.name}</div>
-              <div style={{ fontSize: 12, color: "#6b7280", marginTop: 2, lineHeight: 1.4 }}>{c.desc}</div>
+              <div style={{ fontWeight: 600, fontSize: 13, color: "#111827" }}>{c.name.ko}</div>
+              <div style={{ fontSize: 12, color: "#6b7280", marginTop: 2, lineHeight: 1.4 }}>{c.desc.ko}</div>
             </div>
           ))}
         </div>
@@ -106,7 +106,7 @@ function CancerCard({ slug, data }) {
       <div>
         <h4 style={{ margin: "0 0 8px", fontSize: 15, color: "#374151" }}>특화 치료 프로그램</h4>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-          {data.focusPrograms.map((p, i) => (
+          {(data.focusPrograms.ko || []).map((p, i) => (
             <span key={i} style={{ background: "#d1fae5", color: "#065f46", borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 500 }}>
               {p}
             </span>
@@ -117,7 +117,7 @@ function CancerCard({ slug, data }) {
       {/* 통계 (있는 경우) */}
       {data.stats && (
         <div style={{ marginTop: 12, background: "#fef3c7", borderRadius: 6, padding: 10, fontSize: 13, color: "#78350f" }}>
-          {data.stats.survivalImprovement}
+          {data.stats.survivalImprovement.ko}
         </div>
       )}
     </div>
