@@ -12,12 +12,16 @@
 - **phase 1 (`5a4f654`)**: 언어감지 미들웨어 + 서버가 URL 언어로 렌더(SEO 핵심). `proxy.ts`에 통합(별도 middleware.ts는 Next16에서 proxy.ts와 충돌). `app/[lang]/` 파일이동 대신 **rewrite 방식** 채택 — 같은 SEO, 깨질 위험 훨씬 적음(계획서 "락"이던 파일무브를 의도적으로 변경). treatments로 end-to-end 증명.
 - **phase 2 (`15bce8e`)**: 공개 페이지 **전체** 언어화(`PUBLIC_PREFIXES`). 내부도구·auth·게스트 제외. 옛 `/ru`·`/kk` 랜딩은 LEGACY_SKIP로 보존(Yandex 자산, 이동 안 함 — 결정). **구식 클라이언트 7개**(useEffect+쿠키, SSR=영어 → 구글봇이 영어로 봄)를 `useLang()`로 교체 = 서버가 URL 언어로 렌더. 언어 스위처가 reload→새 언어 URL 이동(미들웨어가 쿠키 덮어써 전환 깨지던 버그 수정). 언어목록 `config.js LOCALES` 단일화(태국어 등 추가 시 한 곳).
 - **phase 3a (`7233083`)**: hreflang/canonical 중앙화(`src/lib/i18n/metadata.js`, layout generateMetadata가 요청 언어별 생성, 공개페이지 상속). 공개페이지 16곳 자체 alternates 제거 + 옛 `?lang=` 폐기. 암종 상세 제목 언어화. sitemap 6언어 URL+hreflang.
+- **phase 3b (`02cf1c0`)**: 공개페이지 탭제목 한국어 잔존 제거. `seo.*` 키 14개×6언어 사전 추가(check:content 패리티 강제) + `localizedMeta` 헬퍼 + 7개 페이지 generateMetadata 전환(home·treatments·hospitals·telemedicine·care-journey·inquiry·immune). 제목 `{absolute}`로 template 중복 회피. **meta.* 가 기존 21곳 사용중이라 seo.* 신설(충돌 회피).** → **URL 언어화 phase 1~3 전부 완료.**
 
 **검증 상태(전부 직접 확인):** `next build --webpack` / `/ru/*` 서버가 러시아어 렌더(키릴 수천자)·`/en/*` 영어 / canonical=자기언어·hreflang 6+x-default / 내부페이지 hreflang 0·`/admin` 보호·게스트 상담링크·옛 러 랜딩 정상 / 언어스위처 헬퍼 단위검증 / **e2e 누출 40개 통과** / check:content·cancer-i18n·legal 통과. **단 라이브 실기기 클릭 검증은 PO 몫(미검증). 아직 main 미머지(브랜치에만).**
 
-**남은 일 (phase 3b — 마지막 SEO 항목):**
-- **정적 공개페이지 탭제목 한국어 잔존**: home·treatments허브·hospitals·telemedicine·care-journey·inquiry·hospitals/immune의 `metadata.title`이 한국어 하드코딩 → 언어별로. **권장 접근: 제목/설명을 DICTIONARY 키로 넣어 `check:content` 패리티 검사가 6언어 누락을 강제(기계가 잡게)** 후 각 page를 generateMetadata로 전환(`title:{absolute}`로 루트 template "%s | healwith" 중복 회피). 번역 28~84문자열 = 기계초안+검수 트랙.
-- 그 후: 브랜치 main 머지 → 도메인 결제되면 컷오버 SEO 제출.
+**남은 일:**
+- **브랜치 `feat/url-locale-i18n` → main 머지** (PR). 머지 전 라이브 실기기 클릭 검증 권장(언어 스위처·문의폼·화상상담).
+- 도메인 `healwith.co.kr` 결제되면 컷오버(`DOMAIN_CUTOVER_healwith.md`) — Vercel 연결 + SEO 제출은 **이 개편이 main에 올라간 뒤**. `NEXT_PUBLIC_SITE_URL` env만 새 도메인으로 바꾸면 sitemap/hreflang/canonical 전부 반영.
+- (선택) phase 5 가드: 누출 e2e·sitemap 라우트 자동발견(현재 `PUBLIC_PREFIXES`·ROUTES 수동). 새 공개페이지 추가 시 둘 다 손수 등록 필요.
+- (선택) seo.* 번역 정확도: 기계초안 수준 — ru/kz/zh/ja 현지 검수는 별도 트랙.
+- 옛 phase 3b(탭제목)는 **이번에 완료**.
 - (참고) phase 4=내부도구 언어화는 **삭제 확정**(SEO 무관). 해외 협력사 어드민 "번역"은 별개 트랙(기능 자체가 아직 없음 — 메모만).
 
 **주의·함정:**
