@@ -28,42 +28,42 @@ export const IMMUNE_PHOTOS = {
   team: "/images/immune-gangseo-team.jpg",
 
   // 시설
-  facilityRoom: "https://immunehospital.com/resource/images/new-facility1.jpg",      // 프리미엄 입원실
-  facilityTreatment: "https://immunehospital.com/resource/images/new-facility2.jpg",  // 온열 치료
-  facilityCo2: "https://immunehospital.com/resource/images/new-facility3.jpg",        // CO2 치료
+  facilityRoom: "/immune/site/resource/images/new-facility1.jpg",      // 프리미엄 입원실
+  facilityTreatment: "/immune/site/resource/images/new-facility2.jpg",  // 온열 치료
+  facilityCo2: "/immune/site/resource/images/new-facility3.jpg",        // CO2 치료
 
   // 프로그램 — 심신통합 케어
-  programWalking: "https://immunehospital.com/resource/images/cancer-program1.jpg",      // 야외 산책
-  programPicnic: "https://immunehospital.com/resource/images/cancer-program2.jpg",       // 힐링 소풍
-  programExercise: "https://immunehospital.com/resource/images/cancer-program3.jpg",     // 운동치료
-  programClass: "https://immunehospital.com/resource/images/cancer-program4.jpg",        // 원데이 클래스
-  programFoodTherapy: "https://immunehospital.com/resource/images/cancer-program5.jpg",  // 셰프 푸드테라피
+  programWalking: "/immune/site/resource/images/cancer-program1.jpg",      // 야외 산책
+  programPicnic: "/immune/site/resource/images/cancer-program2.jpg",       // 힐링 소풍
+  programExercise: "/immune/site/resource/images/cancer-program3.jpg",     // 운동치료
+  programClass: "/immune/site/resource/images/cancer-program4.jpg",        // 원데이 클래스
+  programFoodTherapy: "/immune/site/resource/images/cancer-program5.jpg",  // 셰프 푸드테라피
 
   // 배너
-  bannerMain: "https://immunehospital.com/uploads/banners/6895825b600130.26433858.jpg",
-  bannerSeason: "https://immunehospital.com/uploads/banners/68ad73ce876dc6.84077341.jpg",
+  bannerMain: "/immune/site/uploads/banners/6895825b600130.26433858.jpg",
+  bannerSeason: "/immune/site/uploads/banners/6895825b600130.26433858.jpg",
 
-  // 의료진
-  drHwang: "https://immunehospital.com/uploads/doctors/68a674036de695.54364290.png",     // 황이준 대표원장
-  drLee: "https://immunehospital.com/uploads/doctors/68a42d8de9e095.75488957.jpg",       // 이우석 양방대표
-  drIm: "https://immunehospital.com/uploads/doctors/68ff2829546a03.48601548.jpg",        // 임지성 의무원장
-  drKimJ: "https://immunehospital.com/uploads/doctors/68a42f470df8e0.51544383.jpg",      // 김지영
-  drKimE: "https://immunehospital.com/uploads/doctors/68a42d656c1818.66316770.jpg",      // 김은지
-  drBae: "https://immunehospital.com/uploads/doctors/690b00eb512ff3.09917549.jpg",       // 배상근
-  drKimJH: "https://immunehospital.com/uploads/doctors/69d6ee664689b0.12934912.jpg",     // 김정현
+  // 의료진 — self-host (핫링크 금지: 병원이 원본 교체/삭제하면 깨짐. 실제로 강주안 URL 死亡 확인됨)
+  drHwang: "/immune/doctor/gangeo-dr-hwang-ijun.png",     // 황이준 대표원장
+  drLee: "/immune/doctor/gangeo-dr-lee-useok.jpg",        // 이우석 양방대표
+  drIm: "/immune/doctor/gangeo-dr-im-jisung.jpg",         // 임지성 의무원장
+  drKimJ: "/immune/doctor/gangeo-dr-kim-jiyoung.jpg",     // 김지영
+  drKimE: "/immune/doctor/gangeo-dr-kim-eunji.jpg",       // 김은지
+  drBae: "/immune/doctor/gangeo-dr-bae-sanggeun.jpg",     // 배상근
+  drKimJH: "/immune/doctor/gangeo-dr-kim-junghyun.jpg",   // 김정현
 
-  // 성동 의료진
-  drKangJuan: "https://immunehospital.com/uploads/doctors/69e71eaa0bb548.83985851.png",      // 강주안 (성동 대표원장)
-  drSeungHyeonsuk: "https://immunehospital.com/uploads/doctors/6a040390c37997.97100336.jpg", // 승현석 (의무원장)
-  drImGyeongsu: "https://immunehospital.com/uploads/doctors/6a040420ccbe86.88350198.jpg",    // 임경수 (양방대표원장)
-  drGoEunsang: "https://immunehospital.com/uploads/doctors/6a0404b0869a76.89735854.jpg",     // 고은상
-  drLeeMunseong: "https://immunehospital.com/uploads/doctors/6a04046e2e7a86.09116902.jpg",   // 이문성
-  drParkJeonghyang: "https://immunehospital.com/uploads/doctors/6a0405363d4b90.26971351.jpg",// 박정향
-  drNohHyeonmin: "https://immunehospital.com/uploads/doctors/6a057a886c1dc8.77991002.jpg",   // 노현민
-  drLeeJinyeong: "https://immunehospital.com/uploads/doctors/6a057b078fe633.40987548.jpg",   // 이진영
+  // 성동 의료진 — self-host
+  drKangJuan: "/immune/doctor/seongdong-dr-kang-juan.png",        // 강주안 (성동 대표원장)
+  drSeungHyeonsuk: "/immune/doctor/seongdong-dr-seung-hyeonsuk.jpg", // 승현석 (의무원장)
+  drImGyeongsu: "/immune/doctor/seongdong-dr-im-gyeongsu.jpg",    // 임경수 (양방대표원장)
+  drGoEunsang: "/immune/doctor/seongdong-dr-go-eunsang.jpg",      // 고은상
+  drLeeMunseong: "/immune/doctor/seongdong-dr-lee-munseong.jpg",  // 이문성
+  drParkJeonghyang: "/immune/doctor/seongdong-dr-park-jeonghyang.jpg", // 박정향
+  drNohHyeonmin: "/immune/doctor/seongdong-dr-noh-hyeonmin.jpg",  // 노현민
+  drLeeJinyeong: "/immune/doctor/seongdong-dr-lee-jinyeong.jpg",  // 이진영
 
   // 로고
-  logo: "https://immunehospital.com/uploads/logo/68c380cc245ef6.75534933.svg",
+  logo: "/immune/site/uploads/logo/68c380cc245ef6.75534933.svg",
 };
 
 export const PHOTO_FILTER = "contrast(1.06) saturate(0.82) brightness(0.98)";
