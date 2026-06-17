@@ -1,10 +1,14 @@
 // ✅ 성능 최적화: CSS는 Next.js가 자동으로 최적화하지만, 명시적으로 처리
 import "./globals.css";
 import "./styles/healo-tokens.css";
+import { headers } from "next/headers";
 import Providers from "./providers";
 import ClientShell from "./ClientShell";
 import AnalyticsWrapper from "./AnalyticsWrapper";
 import DesignToggle from "../components/healo/DesignToggle";
+
+// kz(우리 내부 코드) → kk(BCP47 표준 카자흐 언어코드). <html lang>·hreflang용.
+const HTML_LANG = { en: "en", ko: "ko", ru: "ru", kz: "kk", zh: "zh", ja: "ja" };
 
 export const metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://khidi.healo.kr"),
@@ -106,9 +110,12 @@ export const metadata = {
   },
 };
 
-export default function RootLayout({ children }) {
+export default async function RootLayout({ children }) {
+  // 미들웨어가 URL 언어 prefix(/ru/ 등)에서 읽어 x-locale 헤더로 넘긴다.
+  // 없으면(내부도구·prefix 미적용 경로) en. → 서버가 그 언어로 렌더(SEO).
+  const lang = (await headers()).get("x-locale") || "en";
   return (
-    <html lang="en">
+    <html lang={HTML_LANG[lang] || "en"}>
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, viewport-fit=cover" />
@@ -125,7 +132,7 @@ export default function RootLayout({ children }) {
         {/* ✅ 성능 최적화: Google Analytics 조건부 로딩 */}
         <AnalyticsWrapper />
         <Providers>
-          <ClientShell>{children}</ClientShell>
+          <ClientShell initialLang={lang}>{children}</ClientShell>
           <DesignToggle />
         </Providers>
       </body>

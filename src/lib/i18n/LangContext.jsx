@@ -21,11 +21,12 @@ function subscribeLangChange(callback) {
 function getClientLang() {
   return getLangCodeFromCookie() || "en";
 }
-function getServerLang() {
-  return "en";
-}
 
-export function LangProvider({ children }) {
+export function LangProvider({ children, initialLang = "en" }) {
+  // initialLang = 서버가 URL 언어 prefix(미들웨어)에서 읽어 내려준 값.
+  // SSR/hydration 스냅샷으로 써서 서버가 그 언어로 화면을 그린다(SEO 핵심).
+  // 클라이언트는 쿠키를 읽는다(미들웨어가 URL 언어와 동기화해둠) → 보통 일치.
+  const getServerLang = () => initialLang || "en";
   const langCode = useSyncExternalStore(subscribeLangChange, getClientLang, getServerLang);
   return (
     <LangContext.Provider value={langCode}>
