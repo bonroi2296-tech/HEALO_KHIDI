@@ -1,12 +1,28 @@
 // ✅ 성능 최적화: CSS는 Next.js가 자동으로 최적화하지만, 명시적으로 처리
 import "./globals.css";
 import "./styles/healo-tokens.css";
+import { headers } from "next/headers";
 import Providers from "./providers";
 import ClientShell from "./ClientShell";
 import AnalyticsWrapper from "./AnalyticsWrapper";
 import DesignToggle from "../components/healo/DesignToggle";
+import { localeAlternates, OG_LOCALE, getRequestLocale } from "@/lib/i18n/metadata";
 
-export const metadata = {
+// kz(우리 내부 코드) → kk(BCP47 표준 카자흐 언어코드). <html lang>·hreflang용.
+const HTML_LANG = { en: "en", ko: "ko", ru: "ru", kz: "kk", zh: "zh", ja: "ja" };
+
+// 동적 메타데이터: 정적 필드 + 요청 언어별 hreflang/canonical/OG locale.
+// 공개 페이지가 alternates를 따로 안 주면 이 layout 값을 물려받아 언어별로 맞춰짐.
+export async function generateMetadata() {
+  const { locale } = await getRequestLocale();
+  // 언어화 안 된 요청(내부도구 등)은 alternates 생략 — 잘못된 canonical 방지.
+  if (!locale) return baseMetadata;
+  const alternates = await localeAlternates();
+  const og = { ...baseMetadata.openGraph, locale: OG_LOCALE[locale] || "en_US" };
+  return { ...baseMetadata, alternates, openGraph: og };
+}
+
+const baseMetadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://khidi.healo.kr"),
   title: {
     default: "healwith | Korea Cancer Care for International Patients",
@@ -53,18 +69,7 @@ export const metadata = {
     description:
       "Video pre-consultation + 6-language interpretation + full-journey concierge for international cancer patients seeking treatment in Korea.",
   },
-  alternates: {
-    canonical: "/",
-    languages: {
-      'en': '/',
-      'ko': '/?lang=ko',
-      'ru': '/?lang=ru',
-      'kk': '/?lang=kz',
-      'zh': '/?lang=zh',
-      'ja': '/?lang=ja',
-      'x-default': '/',
-    },
-  },
+  // alternates(hreflang/canonical)는 generateMetadata에서 요청 언어별로 동적 생성.
   icons: {
     icon: [
       { url: "/favicon.svg", type: "image/svg+xml" },
@@ -106,9 +111,12 @@ export const metadata = {
   },
 };
 
-export default function RootLayout({ children }) {
+export default async function RootLayout({ children }) {
+  // 미들웨어가 URL 언어 prefix(/ru/ 등)에서 읽어 x-locale 헤더로 넘긴다.
+  // 없으면(내부도구·prefix 미적용 경로) en. → 서버가 그 언어로 렌더(SEO).
+  const lang = (await headers()).get("x-locale") || "en";
   return (
-    <html lang="en">
+    <html lang={HTML_LANG[lang] || "en"}>
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, viewport-fit=cover" />
@@ -125,7 +133,7 @@ export default function RootLayout({ children }) {
         {/* ✅ 성능 최적화: Google Analytics 조건부 로딩 */}
         <AnalyticsWrapper />
         <Providers>
-          <ClientShell>{children}</ClientShell>
+          <ClientShell initialLang={lang}>{children}</ClientShell>
           <DesignToggle />
         </Providers>
       </body>

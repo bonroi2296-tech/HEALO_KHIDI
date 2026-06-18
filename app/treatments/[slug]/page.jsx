@@ -14,6 +14,7 @@ import {
   CANCER_DETAILS,
   CANCER_IMAGES,
 } from "@/lib/data/immuneCancerDetails";
+import { localeAlternates, getRequestLocale } from "@/lib/i18n/metadata";
 
 const UUID_REGEX =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -37,21 +38,16 @@ export async function generateMetadata({ params }) {
   if (CANCER_SLUGS.includes(slug)) {
     const cancer = CANCER_DETAILS[slug];
     if (!cancer) return {};
-    const title = `${cancer.title.ko} — 면력한방병원 통합 면역치료 | healwith`;
-    const description = cancer.intro.ko.slice(0, 160);
+    const { locale } = await getRequestLocale();
+    const lc = locale || "en";
+    const name = cancer.title?.[lc] || cancer.title?.en || cancer.title?.ko;
+    const title = name; // 루트 template "%s | healwith"가 접미사 자동 추가
+    const description = (cancer.intro?.[lc] || cancer.intro?.en || cancer.intro?.ko || "").slice(0, 160);
     const ogImg = CANCER_IMAGES.healGraph;
     return {
       title,
       description,
-      alternates: {
-        canonical: `/treatments/${slug}`,
-        languages: {
-          "x-default": `${getBaseUrl()}/treatments/${slug}`,
-          ko: `${getBaseUrl()}/treatments/${slug}?lang=ko`,
-          en: `${getBaseUrl()}/treatments/${slug}?lang=en`,
-          ru: `${getBaseUrl()}/treatments/${slug}?lang=ru`,
-        },
-      },
+      alternates: (await localeAlternates()) || undefined,
       openGraph: {
         title,
         description,
@@ -86,7 +82,7 @@ export async function generateMetadata({ params }) {
   return {
     title: treatment.title,
     description,
-    alternates: { canonical },
+    alternates: (await localeAlternates()) || { canonical },
     openGraph: {
       title: treatment.title,
       description,

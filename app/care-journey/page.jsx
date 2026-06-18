@@ -1,7 +1,12 @@
 import { Suspense } from "react";
 import CareJourneyClient from "./CareJourneyClient";
+import { localizedMeta } from "@/lib/i18n/metadata";
 
-export const metadata = {
+export async function generateMetadata() {
+  return localizedMeta(baseMeta, "seo.careJourney.title", "seo.careJourney.desc");
+}
+
+const baseMeta = {
   title: "치료 여정 | healwith — 진단부터 회복까지 토탈 케어",
   description:
     "healwith는 병원 하나를 고르는 매칭 서비스가 아닙니다. 온라인 상담 · 원격 진단 · 케어 경로 설계 · 체류 동행 · 귀국 후 관리까지, 암 치료의 전 과정을 함께 설계하는 토탈 케어 컨시어지입니다.",
@@ -12,7 +17,6 @@ export const metadata = {
     "medical concierge Korea",
     "маршрут лечения рака Корея",
   ],
-  alternates: { canonical: "/care-journey" },
   openGraph: {
     title: "치료 여정 | healwith",
     description:

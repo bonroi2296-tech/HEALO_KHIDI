@@ -10,6 +10,7 @@ import {
   FileText, UserCheck, Clock, ShieldCheck, Shield, Sparkles, User, LogOut, BookOpen, Video
 } from 'lucide-react';
 import { getLangCodeFromCookie, setLangCookie, LANG_OPTIONS as I18N_LANG_OPTIONS, LANG_OPTIONS_PRIMARY, t } from "./lib/i18n";
+import { localeSwitchTarget } from "./lib/i18n/config";
 import Logo from "../components/brand/Logo";
 
 /**
@@ -132,7 +133,10 @@ export const Header = ({ setView, view, _handleGlobalInquiry, isMobileMenuOpen, 
     if (langCode === code) { setIsLangOpen(false); return; }
     setLangCookie(code);
     setIsLangOpen(false);
-    window.location.reload();
+    // URL 언어화: 공개 페이지면 새 언어 주소로 이동(미들웨어가 쿠키를 URL언어로 덮어쓰므로 reload론 안 바뀜)
+    const target = localeSwitchTarget(window.location.pathname, window.location.search, code);
+    if (target) window.location.href = target;
+    else window.location.reload();
   };
 
   const currentLangLabel = LANG_OPTIONS.find((l) => l.code === langCode)?.label ?? langCode;

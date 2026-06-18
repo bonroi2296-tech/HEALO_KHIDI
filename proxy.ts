@@ -19,6 +19,46 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
+import { LOCALES, DEFAULT_LOCALE, LOCALE_COOKIE } from "@/lib/i18n/config";
+
+// ── URL 언어화(locale-in-path) ──────────────────────────────
+// 공개 마케팅 경로만 /{locale}/ 로 강제. /ru/treatments → 내부 /treatments rewrite + x-locale 헤더로 언어 전달.
+// 내부도구(admin/patient/coordinator/partner/agency)·auth·게스트(consultation/survey)는 제외(SEO 무관·Korean UI).
+// ponytail: 공개경로 단일 목록. 새 공개페이지 추가 시 여기 한 줄. (phase 5에서 app 폴더 자동발견으로 대체 예정)
+const PUBLIC_PREFIXES = [
+  "/",                    // 홈 (정확히 "/" 만 매칭)
+  "/treatments",
+  "/hospitals",
+  "/telemedicine",
+  "/care-journey",
+  "/search",
+  "/specialties",
+  "/faq",
+  "/education",
+  "/visa",
+  "/about",
+  "/contact",
+  "/inquiry",
+  "/success",
+  "/stories",
+  "/terms",
+  "/privacy",
+  "/cookies",
+  "/medical-disclaimer",
+];
+// 옛 러/카 전용 랜딩(폴더가 /ru,/kk 라 언어 prefix와 충돌). Yandex 색인 자산이라 이동 안 함 — 이 두 주소만 통과시켜 그대로 유지.
+const LEGACY_SKIP = ["/ru/for-russian-patients", "/kk/for-kazakh-patients"];
+
+function isPublicLocalePath(pathname: string) {
+  return PUBLIC_PREFIXES.some((p) => pathname === p || pathname.startsWith(p + "/"));
+}
+function detectLocale(request: NextRequest) {
+  const cookie = request.cookies.get(LOCALE_COOKIE)?.value;
+  if (cookie && LOCALES.includes(cookie)) return cookie;
+  const want = (request.headers.get("accept-language") || "").split(",")[0].split("-")[0].toLowerCase();
+  if (LOCALES.includes(want)) return want;
+  return DEFAULT_LOCALE;
+}
 
 /**
  * ✅ Middleware에서 admin 권한 체크
@@ -136,6 +176,34 @@ async function checkSessionInMiddleware(request: NextRequest): Promise<{
  */
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  // ========================================
+  // URL 언어화 (공개 마케팅 경로만) — 인증 로직보다 먼저
+  // ========================================
+  if (!LEGACY_SKIP.some((p) => pathname.startsWith(p))) {
+    const seg = pathname.split("/")[1];
+    const hasLocale = LOCALES.includes(seg);
+    const bare = hasLocale ? pathname.slice(seg.length + 1) || "/" : pathname;
+
+    if (isPublicLocalePath(bare)) {
+      if (hasLocale) {
+        // /ru/treatments → 내부 /treatments 로 rewrite, 언어는 x-locale 헤더 + 쿠키로 전달(주소는 유지)
+        const url = request.nextUrl.clone();
+        url.pathname = bare;
+        const headers = new Headers(request.headers);
+        headers.set("x-locale", seg);
+        headers.set("x-pathname", bare); // hreflang/canonical 생성용(언어 뗀 경로)
+        const res = NextResponse.rewrite(url, { request: { headers } });
+        res.cookies.set(LOCALE_COOKIE, seg, { path: "/", maxAge: 31536000 });
+        return res;
+      }
+      // prefix 없는 공개경로 → 감지 언어로 308 redirect
+      const url = request.nextUrl.clone();
+      url.pathname = `/${detectLocale(request)}${pathname}`;
+      return NextResponse.redirect(url, 308);
+    }
+    // 공개 언어화 대상 아님 → 아래 기존 인증 로직으로 (원래 pathname 사용)
+  }
 
   // ========================================
   // 예외 경로: 인증 없이 통과

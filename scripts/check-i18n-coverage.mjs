@@ -34,11 +34,16 @@ if (!fs.existsSync(i18nPath)) {
 
 const src = fs.readFileSync(i18nPath, "utf8");
 
-// DICTIONARY를 실제로 eval하여 정확한 키 카운트
-const evalSrc = src
-  .replace(/^export const /gm, "const ")
-  .replace(/^export function /gm, "function ")
-  .replace("const DICTIONARY =", "global.__I18N_DICT =");
+// DICTIONARY를 실제로 eval하여 정확한 키 카운트.
+// index.js 상단의 import문은 eval에서 막히므로 제거하고, 참조되는 심볼(LOCALES 등)은
+// 빈 stub으로 대체한다(DICTIONARY 키 카운트엔 값이 무관 — 평가만 통과하면 됨).
+const evalSrc =
+  "var LOCALES = [], DEFAULT_LOCALE = '', LOCALE_COOKIE = '';\n" +
+  src
+    .replace(/^import\s.*$/gm, "")
+    .replace(/^export const /gm, "const ")
+    .replace(/^export function /gm, "function ")
+    .replace("const DICTIONARY =", "global.__I18N_DICT =");
 
 try {
   eval(evalSrc);

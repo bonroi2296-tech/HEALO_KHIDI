@@ -8,7 +8,6 @@ export const metadata = {
   description:
     "healwith connects global patients with trusted hospitals and clinics in Korea through AI-powered medical concierge and matching services.",
   keywords: ["about healwith", "healwith medical concierge", "Korea medical tourism platform", "KHIDI"],
-  alternates: { canonical: "/about" },
   openGraph: {
     title: "About healwith | AI Medical Concierge",
     description: "healwith connects global cancer patients with trusted Korean hospitals through AI-powered concierge and real-time 6-language interpretation.",

@@ -8,7 +8,6 @@ export const metadata = {
   description:
     "Get in touch with healwith for medical concierge inquiries, partnership opportunities, or general questions about cancer treatment in Korea.",
   keywords: ["contact healwith", "Korea medical tourism inquiry", "cancer treatment inquiry Korea"],
-  alternates: { canonical: "/contact" },
   openGraph: {
     title: "Contact Us | healwith",
     description: "Get in touch with healwith for medical concierge inquiries, partnership opportunities, or questions about cancer treatment in Korea.",

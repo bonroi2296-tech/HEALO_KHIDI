@@ -1,12 +1,16 @@
 import ImmuneHospitalClient from "./ImmuneHospitalClient";
 import Script from "next/script";
+import { localizedMeta } from "@/lib/i18n/metadata";
 
-export const metadata = {
+export async function generateMetadata() {
+  return localizedMeta(baseMeta, "seo.immune.title", "seo.immune.desc");
+}
+
+const baseMeta = {
   title: "Immune Hospital — 면력한방병원 | healwith",
   description:
     "Immune Hospital — healwith's direct partner. Korean Medicine immune care for cancer patients. ITCR 5-principles, 50,000+ cases, chef-led therapeutic meals. 4 branches in Seoul & Gyeonggi.",
   keywords: ["면력한방병원", "Immune Hospital Korea", "Korean Medicine cancer immune therapy", "ITCR protocol", "cancer hospital Seoul"],
-  alternates: { canonical: "/hospitals/immune" },
   openGraph: {
     title: "Immune Hospital — Integrated cancer immune care in Korea",
     description:

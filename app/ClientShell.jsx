@@ -19,7 +19,7 @@ import { useToast } from "@/components/Toast";
 import CookieConsent from "@/components/CookieConsent";
 import EmergencyButton from "../components/healo/EmergencyButton";
 
-export default function ClientShell({ children }) {
+export default function ClientShell({ children, initialLang = "en" }) {
   const router = useRouter();
   const pathname = usePathname() || "/";
   // useSearchParams 제거: 자동 새로고침 문제 해결
@@ -255,7 +255,7 @@ export default function ClientShell({ children }) {
   }, [isPortalPage, session, resetActivity, router, toast]);
 
   return (
-    <LangProvider>
+    <LangProvider initialLang={initialLang}>
       <ClientShellContent
         isPortalPage={isPortalPage}
         session={session}

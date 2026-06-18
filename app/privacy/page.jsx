@@ -7,7 +7,6 @@ export const metadata = {
   title: "Privacy Policy | healwith",
   description:
     "How healwith collects, uses, and protects personal information for medical concierge and hospital matching services.",
-  alternates: { canonical: "/privacy" },
 };
 
 export default async function PrivacyPolicyPage({ searchParams }) {

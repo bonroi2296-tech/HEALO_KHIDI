@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { getLangCodeFromCookie } from "@/lib/i18n";
+import { useLang } from "@/lib/i18n/LangContext";
 import {
   ArrowRight,
   Shield,
@@ -248,10 +248,9 @@ const FAQ_DATA = {
    ═══════════════════════════════════════════════════════ */
 export default function HomeClient() {
   const router = useRouter();
-  const [lang, setLang] = useState("en");
+  const lang = useLang(); // 서버가 URL 언어로 렌더(SEO). 쿠키 직독 대신 LangContext.
   const [faqTab, setFaqTab] = useState("general");
   const [openFaq, setOpenFaq] = useState(null);
-  useEffect(() => { setLang(getLangCodeFromCookie()); }, []);
   const l = (obj) => obj?.[lang] || obj?.["en"] || "";
 
   return (

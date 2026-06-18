@@ -7,7 +7,6 @@ export const metadata = {
   title: "Terms of Service | healwith",
   description:
     "Terms and conditions for using healwith's AI medical concierge and hospital matching services.",
-  alternates: { canonical: "/terms" },
 };
 
 export default async function TermsOfServicePage({ searchParams }) {

@@ -6,6 +6,65 @@
 
 ---
 
+## 🔖 세션 핸드오프 (2026-06-17 추가 세션) — URL 언어화 phase 1~3a 구현·검증 완료
+
+**이번 세션 한 일 (브랜치 `feat/url-locale-i18n`, 커밋 3개):**
+- **phase 1 (`5a4f654`)**: 언어감지 미들웨어 + 서버가 URL 언어로 렌더(SEO 핵심). `proxy.ts`에 통합(별도 middleware.ts는 Next16에서 proxy.ts와 충돌). `app/[lang]/` 파일이동 대신 **rewrite 방식** 채택 — 같은 SEO, 깨질 위험 훨씬 적음(계획서 "락"이던 파일무브를 의도적으로 변경). treatments로 end-to-end 증명.
+- **phase 2 (`15bce8e`)**: 공개 페이지 **전체** 언어화(`PUBLIC_PREFIXES`). 내부도구·auth·게스트 제외. 옛 `/ru`·`/kk` 랜딩은 LEGACY_SKIP로 보존(Yandex 자산, 이동 안 함 — 결정). **구식 클라이언트 7개**(useEffect+쿠키, SSR=영어 → 구글봇이 영어로 봄)를 `useLang()`로 교체 = 서버가 URL 언어로 렌더. 언어 스위처가 reload→새 언어 URL 이동(미들웨어가 쿠키 덮어써 전환 깨지던 버그 수정). 언어목록 `config.js LOCALES` 단일화(태국어 등 추가 시 한 곳).
+- **phase 3a (`7233083`)**: hreflang/canonical 중앙화(`src/lib/i18n/metadata.js`, layout generateMetadata가 요청 언어별 생성, 공개페이지 상속). 공개페이지 16곳 자체 alternates 제거 + 옛 `?lang=` 폐기. 암종 상세 제목 언어화. sitemap 6언어 URL+hreflang.
+- **phase 3b (`02cf1c0`)**: 공개페이지 탭제목 한국어 잔존 제거. `seo.*` 키 14개×6언어 사전 추가(check:content 패리티 강제) + `localizedMeta` 헬퍼 + 7개 페이지 generateMetadata 전환(home·treatments·hospitals·telemedicine·care-journey·inquiry·immune). 제목 `{absolute}`로 template 중복 회피. **meta.* 가 기존 21곳 사용중이라 seo.* 신설(충돌 회피).** → **URL 언어화 phase 1~3 전부 완료.**
+
+**검증 상태(전부 직접 확인):** `next build --webpack` / `/ru/*` 서버가 러시아어 렌더(키릴 수천자)·`/en/*` 영어 / canonical=자기언어·hreflang 6+x-default / 내부페이지 hreflang 0·`/admin` 보호·게스트 상담링크·옛 러 랜딩 정상 / 언어스위처 헬퍼 단위검증 / **e2e 누출 40개 통과** / check:content·cancer-i18n·legal 통과. **단 라이브 실기기 클릭 검증은 PO 몫(미검증). 아직 main 미머지(브랜치에만).**
+
+**남은 일:**
+- **브랜치 `feat/url-locale-i18n` → main 머지** (PR). 머지 전 라이브 실기기 클릭 검증 권장(언어 스위처·문의폼·화상상담).
+- 도메인 `healwith.co.kr` 결제되면 컷오버(`DOMAIN_CUTOVER_healwith.md`) — Vercel 연결 + SEO 제출은 **이 개편이 main에 올라간 뒤**. `NEXT_PUBLIC_SITE_URL` env만 새 도메인으로 바꾸면 sitemap/hreflang/canonical 전부 반영.
+- (선택) phase 5 가드: 누출 e2e·sitemap 라우트 자동발견(현재 `PUBLIC_PREFIXES`·ROUTES 수동). 새 공개페이지 추가 시 둘 다 손수 등록 필요.
+- (선택) seo.* 번역 정확도: 기계초안 수준 — ru/kz/zh/ja 현지 검수는 별도 트랙.
+- 옛 phase 3b(탭제목)는 **이번에 완료**.
+- (참고) phase 4=내부도구 언어화는 **삭제 확정**(SEO 무관). 해외 협력사 어드민 "번역"은 별개 트랙(기능 자체가 아직 없음 — 메모만).
+
+**주의·함정:**
+- `next start` 재기동 시 옛 포트 프로세스가 안 죽어 stale 서버에 붙을 수 있음(Windows `pkill -f` 매칭 실패) → 검증 시 새 포트 쓰거나 `taskkill //F //IM node.exe`.
+- 기본 디자인모드=`legacy`라 쿠키 없는 첫 방문(구글봇)은 legacy 클라이언트 받음 → 새 공개페이지/클라이언트는 반드시 `useLang()` 패턴 써야 SSR 언어 맞음(구식 쿠키+useEffect 금지).
+- 미들웨어 `PUBLIC_PREFIXES`에 새 공개페이지 수동 추가 필요(phase 5에서 자동발견 예정).
+
+---
+
+## 🔖 세션 핸드오프 (2026-06-17 늦은 세션) — 다국어 누출 전수 차단 + URL 언어화 개편 착수
+
+**이번 세션 한 일:**
+- **법률문서 6개 언어 정합** (PR #61 머지): 개인정보처리방침 외국어 5개(en·ru·kz·zh·ja)가 한국어판보다 뒤처져 있던 것 동기화 — 자동화결정 고지(§37-2) 신규 삽입, 카자흐 관할 조항 6줄 stub→24줄 확장, 국외이전 안전조치 보강, 이메일 `admin@healwith.co.kr` 통일, 잘못된 교차참조(§15→§14) 수정. 가드 `scripts/check-legal-parity.mjs`(CI 편입).
+- **다국어 누출 전수 차단** (PR #61): "영어 화면인데 한국어가 뜨는" 부류를 **검사기로 전수 발견** → 8개 라우트 ~150건(암종 상세 6페이지의 합병증·통계·FAQ·칩·수술후관리 제목 + telemedicine 자막 + privacy/terms/medical-disclaimer 하단 고지 + terms 목차). 전부 6개 언어로 채움. FAQ는 클라이언트→데이터 파일(`immuneCancerDetails.js`)로 이동(검사 가능하게). 번역은 에이전트 2대로(약 330셀).
+- **가드 2개 신설**(이게 핵심 성과): `e2e/i18n-no-korean-leak.spec.ts`(@smoke, **PR마다**) — 공개 25개 라우트를 영어로 렌더해 한글 남으면 빌드 실패(출처 데이터·JSX·i18n키 불문). `scripts/check-cancer-i18n.mjs`(CI) — 암종 콘텐츠 6개 언어 완성 강제.
+- **/treatments**: 칩(`focusPrograms`) 한국어 평문→다국어, 빈 teal 썸네일 블록→암종별 실사진(DESIGN.md Airbnb 톤).
+- **URL 언어화 개편 착수** (브랜치 `feat/url-locale-i18n`, **phase 0만 커밋 66b077c**): 계획서 `docs/PLAN_URL_LOCALE.md`(6단계) + `src/lib/i18n/config.js`(LOCALES·localeHref 등, self-check 통과). **라우트는 아직 안 건드림 = 사이트 영향 0.**
+- 반성문 `docs/POSTMORTEMS.md` #2(법률 누락)·#3(다국어 누출).
+
+**왜 그렇게 했는지:**
+- PO가 /treatments 언어 섞임을 또 스크린샷으로 발견 → "전수조사 몇 번을 시켰는데 왜 또?" 격노. **근본원인: 자동검사가 i18n "키"·브랜드 토큰만 보고, i18n 안 거치고 데이터/JSX에 박힌 한국어 raw 문자열은 사각지대.** 게다가 폴백(lang→en→ko)이 번역 없을 때 조용히 한국어로 떨어져 빌드도 통과. → **렌더된 화면을 보는 검사**(누출 e2e)를 만들어 이 부류를 통째로 차단. "기계가 잡는다"(CLAUDE.md 상시 루틴) 실천.
+- URL 언어화 = PO가 "SEO 최강이면 개편 크더라도 정석대로 해" 결정. URL에 언어 박기(`/en/`·`/ru/` + hreflang)가 정석. **새 도메인 healwith.co.kr이 검색엔진에 색인되기 전에 끝내야** 함(색인 후 구조 변경 시 301·순위 손실). 새 도메인=색인 이력 0이라 지금이 적기.
+
+**안 끝났거나 보류:**
+- **URL 언어화 phase 1~5** (메인 작업): phase 0(계획+설정)만 됨. 다음이 본체 — 미들웨어·`app/[lang]/` 구조·전 라우트 이동·메타데이터/hreflang·내부도구·가드. **상세 단계·결정사항·위험 전부 `docs/PLAN_URL_LOCALE.md`에 박아둠.** PO가 "위험 작업이라 새 세션 맑은 정신에서" 하라고 2번(체크포인트) 택함.
+- **도메인 `healwith.co.kr` 등록**: 결제 담당자에게 요청해둠(장바구니 담김), 담당자가 바빠서 **미결제 — 우리 손 밖**. 그동안 "도메인 없이 할 수 있는 오픈준비 싹 다" 하는 게 이번 방향(= URL 개편이 그 핵심).
+- **앱아이콘 PNG**(옛 H마크): PO "일단 보류, 나중에"(`docs/KNOWN_ISSUES.md` P2).
+- 번역 품질: 완성도(빈칸 없음)는 검사로 보장, **정확도는 기계 수준** — 의료/법률 현지 검수는 별도 트랙(파일 헤더 캐비엇 유지).
+
+**주의·함정:**
+- **phase 1부터 위험 구간.** 전 사이트 주소 이동 → 내부 링크 하나 놓치면 언어 풀림, 잘못하면 화면 깨짐. `localeHref()` 헬퍼로 일괄 + grep 점검. 게스트 상담링크·survey 토큰·인증 콜백은 prefix 정책 명확히(`PLAN_URL_LOCALE.md` 위험 섹션).
+- 누출 e2e ROUTES 목록은 **아직 수동**(25개 하드코딩). phase 5에서 자동발견화 예정 — 그 전엔 새 공개페이지 추가 시 목록에 손수 넣어야 검사됨.
+- 활성 콘텐츠 언어 6개=`en·ko·ru·kz·zh·ja`(쿠키 `healo_lang`). `LANG_OPTIONS`엔 20+개 있지만 DICTIONARY는 6개뿐.
+
+**다음 세션이 먼저 할 일:**
+1. **URL 언어화 phase 1** — `docs/PLAN_URL_LOCALE.md` 보고 시작. 미들웨어 + `app/[lang]/layout` + `useLang` param 기반 전환 + treatments 한 섹션만 옮겨 end-to-end 검증(빌드+누출 e2e 초록 확인 후 다음).
+2. 이후 phase 2(공개 전체)→3(메타/hreflang, 탭제목 한국어 문제 여기서 해결)→4(내부도구, 진입 전 실익 재검토)→5(가드 자동발견).
+3. 도메인 결제되면: Vercel 연결 + 컷오버(`DOMAIN_CUTOVER_healwith.md`)의 SEO 제출은 **URL 개편 끝난 뒤**.
+
+**검증 상태:** PR #61 = CI(ci·smoke·Vercel) 전부 초록 + 머지 완료. 누출 e2e 25개 라우트·`check:legal`·`check:cancer-i18n`·`next build --webpack` 통과 확인. phase 0 커밋 = 설정 헬퍼 self-check 통과(라우트 미변경). **라이브 실기기 클릭 검증은 PO 몫 — 미검증.**
+
+---
+
 ## 🔖 세션 핸드오프 (2026-06-17) — 면력 사진 self-host + 법률 번역 + 하네스 개선 + specialty/docs 정리
 
 **이번 세션 한 일 (전부 main 머지):**

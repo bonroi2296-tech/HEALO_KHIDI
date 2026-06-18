@@ -17,7 +17,6 @@ export const metadata = {
     title: "Patient Education | healwith",
     description: "Cancer-specific education content for post-treatment care.",
   },
-  alternates: { canonical: "/education" },
 };
 
 export default async function PublicEducationPage({ searchParams }) {

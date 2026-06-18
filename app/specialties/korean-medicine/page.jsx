@@ -17,18 +17,7 @@ export const metadata = {
     "acupuncture Korea",
     "herbal medicine Korea",
   ],
-  alternates: {
-    canonical: "/specialties/korean-medicine",
-    languages: {
-      en: "/specialties/korean-medicine?lang=en",
-      ko: "/specialties/korean-medicine?lang=ko",
-      ru: "/specialties/korean-medicine?lang=ru",
-      kk: "/specialties/korean-medicine?lang=kz",
-      zh: "/specialties/korean-medicine?lang=zh",
-      ja: "/specialties/korean-medicine?lang=ja",
-      'x-default': "/specialties/korean-medicine",
-    },
-  },
+  // alternates(hreflang/canonical)는 layout generateMetadata가 요청 언어별로 생성.
   openGraph: {
     title: "Korean Traditional Medicine — Only in Korea | healwith",
     description:

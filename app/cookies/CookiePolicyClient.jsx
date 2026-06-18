@@ -1,14 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { getLangCodeFromCookie, t } from "@/lib/i18n";
+import { t } from "@/lib/i18n";
+import { useLang } from "@/lib/i18n/LangContext";
 
 export default function CookiePolicyClient() {
-  const [langCode, setLangCode] = useState("en");
-
-  useEffect(() => {
-    setLangCode(getLangCodeFromCookie());
-  }, []);
+  const langCode = useLang(); // 서버가 URL 언어로 렌더(SEO). 쿠키 직독 대신 LangContext.
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-12">

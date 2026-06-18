@@ -1,8 +1,12 @@
 import { getTreatmentList } from "@/lib/data/treatments";
 import { getHospitalList } from "@/lib/data/hospitals";
 import { getAllPartnerSlugs } from "@/lib/data/partnerHospitals";
+import { LOCALES, DEFAULT_LOCALE } from "@/lib/i18n/config";
 
 const DEFAULT_LIMIT = 1000;
+
+// kz(내부코드) → kk(BCP47). hreflang 표기용.
+const HREF_LANG = { en: "en", ko: "ko", ru: "ru", kz: "kk", zh: "zh", ja: "ja" };
 
 // ⚠️ NEXT_PUBLIC_SITE_URL 를 Vercel(Production·Preview)에 반드시 설정할 것.
 // 미설정 시에도 localhost 가 검색엔진에 노출되지 않도록 실도메인으로 폴백.
@@ -45,51 +49,53 @@ export default async function sitemap() {
     }
   }
 
-  // hreflang alternates 헬퍼 — Yandex/Google 모두 지원
-  const makeAlternates = (path) => ({
-    languages: {
-      'x-default': `${baseUrl}${path}`,
-      'en':        `${baseUrl}${path}`,
-      'ko':        `${baseUrl}${path}?lang=ko`,
-      // Yandex 크롤러가 우선 인식하는 ru·kk 별도 명시
-      'ru':        `${baseUrl}/ru/for-russian-patients`,
-      'kk':        `${baseUrl}/kk/for-kazakh-patients`,
-    },
-  });
+  // 언어화 공개경로 → 6개 언어 URL + hreflang. canonical/대표 URL = 기본언어(en).
+  // languages 맵의 키는 BCP47(kz→kk), 값의 경로는 우리 locale 코드(/kz/).
+  const localized = (path, { priority, changeFrequency }) => {
+    const clean = path === "/" ? "" : path;
+    const languages = {};
+    for (const l of LOCALES) languages[HREF_LANG[l]] = `${baseUrl}/${l}${clean}`;
+    languages["x-default"] = `${baseUrl}/${DEFAULT_LOCALE}${clean}`;
+    return {
+      url: `${baseUrl}/${DEFAULT_LOCALE}${clean}`,
+      changeFrequency,
+      priority,
+      alternates: { languages },
+    };
+  };
 
-  // Static pages
+  // Static pages (언어화 대상)
   const staticPages = [
-    { url: `${baseUrl}/`, changeFrequency: 'weekly', priority: 1.0, alternates: makeAlternates('/') },
-    { url: `${baseUrl}/treatments`, changeFrequency: 'weekly', priority: 0.9, alternates: makeAlternates('/treatments') },
-    { url: `${baseUrl}/hospitals`, changeFrequency: 'weekly', priority: 0.9, alternates: makeAlternates('/hospitals') },
-    { url: `${baseUrl}/telemedicine`, changeFrequency: 'weekly', priority: 0.9, alternates: makeAlternates('/telemedicine') },
-    { url: `${baseUrl}/search`, changeFrequency: 'weekly', priority: 0.8, alternates: makeAlternates('/search') },
-    { url: `${baseUrl}/specialties/korean-medicine`, changeFrequency: 'monthly', priority: 0.8 },
-    { url: `${baseUrl}/hospitals/immune`, changeFrequency: 'monthly', priority: 0.85, alternates: makeAlternates('/hospitals/immune') },
-    // ── 암종별 치료 상세 페이지 (면력한방병원 6개 암종)
-    { url: `${baseUrl}/treatments/female`, changeFrequency: 'monthly', priority: 0.88, alternates: makeAlternates('/treatments/female') },
-    { url: `${baseUrl}/treatments/digest`, changeFrequency: 'monthly', priority: 0.88, alternates: makeAlternates('/treatments/digest') },
-    { url: `${baseUrl}/treatments/liver`, changeFrequency: 'monthly', priority: 0.88, alternates: makeAlternates('/treatments/liver') },
-    { url: `${baseUrl}/treatments/lung`, changeFrequency: 'monthly', priority: 0.88, alternates: makeAlternates('/treatments/lung') },
-    { url: `${baseUrl}/treatments/thyroid`, changeFrequency: 'monthly', priority: 0.88, alternates: makeAlternates('/treatments/thyroid') },
-    { url: `${baseUrl}/treatments/etc`, changeFrequency: 'monthly', priority: 0.85, alternates: makeAlternates('/treatments/etc') },
-    { url: `${baseUrl}/faq`, changeFrequency: 'monthly', priority: 0.75 },
-    { url: `${baseUrl}/education`, changeFrequency: 'monthly', priority: 0.7 },
-    { url: `${baseUrl}/patient/education`, changeFrequency: 'monthly', priority: 0.7 },
-    { url: `${baseUrl}/patient/visa`, changeFrequency: 'monthly', priority: 0.7 },
-    { url: `${baseUrl}/visa`, changeFrequency: 'monthly', priority: 0.7 },
-    // /inquiry·/consult/start 는 robots.js 에서 Disallow(전환 퍼널·PII 폼) → sitemap 에서도 제외(모순 해소)
-    { url: `${baseUrl}/about`, changeFrequency: 'monthly', priority: 0.5 },
-    { url: `${baseUrl}/contact`, changeFrequency: 'monthly', priority: 0.5 },
-    { url: `${baseUrl}/terms`, changeFrequency: 'yearly', priority: 0.3 },
-    { url: `${baseUrl}/privacy`, changeFrequency: 'yearly', priority: 0.3 },
-    { url: `${baseUrl}/cookies`, changeFrequency: 'yearly', priority: 0.2 },
-    { url: `${baseUrl}/medical-disclaimer`, changeFrequency: 'yearly', priority: 0.2 },
-    // ── Yandex 대응 러시아어·카자흐어 전용 랜딩 (priority 0.9 — 중앙아시아 타겟)
+    localized('/', { changeFrequency: 'weekly', priority: 1.0 }),
+    localized('/treatments', { changeFrequency: 'weekly', priority: 0.9 }),
+    localized('/hospitals', { changeFrequency: 'weekly', priority: 0.9 }),
+    localized('/telemedicine', { changeFrequency: 'weekly', priority: 0.9 }),
+    localized('/search', { changeFrequency: 'weekly', priority: 0.8 }),
+    localized('/specialties/korean-medicine', { changeFrequency: 'monthly', priority: 0.8 }),
+    localized('/hospitals/immune', { changeFrequency: 'monthly', priority: 0.85 }),
+    localized('/care-journey', { changeFrequency: 'monthly', priority: 0.8 }),
+    // ── 암종별 치료 상세 (면력한방병원 6개 암종)
+    localized('/treatments/female', { changeFrequency: 'monthly', priority: 0.88 }),
+    localized('/treatments/digest', { changeFrequency: 'monthly', priority: 0.88 }),
+    localized('/treatments/liver', { changeFrequency: 'monthly', priority: 0.88 }),
+    localized('/treatments/lung', { changeFrequency: 'monthly', priority: 0.88 }),
+    localized('/treatments/thyroid', { changeFrequency: 'monthly', priority: 0.88 }),
+    localized('/treatments/etc', { changeFrequency: 'monthly', priority: 0.85 }),
+    localized('/faq', { changeFrequency: 'monthly', priority: 0.75 }),
+    localized('/education', { changeFrequency: 'monthly', priority: 0.7 }),
+    localized('/visa', { changeFrequency: 'monthly', priority: 0.7 }),
+    // /inquiry 는 robots.js 에서 Disallow(전환 퍼널·PII 폼) → sitemap 에서 제외
+    localized('/about', { changeFrequency: 'monthly', priority: 0.5 }),
+    localized('/contact', { changeFrequency: 'monthly', priority: 0.5 }),
+    localized('/terms', { changeFrequency: 'yearly', priority: 0.3 }),
+    localized('/privacy', { changeFrequency: 'yearly', priority: 0.3 }),
+    localized('/cookies', { changeFrequency: 'yearly', priority: 0.2 }),
+    localized('/medical-disclaimer', { changeFrequency: 'yearly', priority: 0.2 }),
+    // ── Yandex 대응 러시아어·카자흐어 전용 랜딩(언어 prefix와 별개 자산 — 그대로 유지)
     { url: `${baseUrl}/ru/for-russian-patients`, changeFrequency: 'weekly', priority: 0.9,
-      alternates: { languages: { 'ru': `${baseUrl}/ru/for-russian-patients`, 'x-default': `${baseUrl}/` } } },
+      alternates: { languages: { 'ru': `${baseUrl}/ru/for-russian-patients`, 'x-default': `${baseUrl}/${DEFAULT_LOCALE}` } } },
     { url: `${baseUrl}/kk/for-kazakh-patients`, changeFrequency: 'weekly', priority: 0.9,
-      alternates: { languages: { 'kk': `${baseUrl}/kk/for-kazakh-patients`, 'x-default': `${baseUrl}/` } } },
+      alternates: { languages: { 'kk': `${baseUrl}/kk/for-kazakh-patients`, 'x-default': `${baseUrl}/${DEFAULT_LOCALE}` } } },
   ].map(p => ({ ...p, lastModified: now }));
 
   const urls = [...staticPages];
@@ -98,10 +104,8 @@ export default async function sitemap() {
     const slugOrId = t?.slug || t?.id;
     if (!slugOrId) continue;
     urls.push({
-      url: `${baseUrl}/treatments/${slugOrId}`,
+      ...localized(`/treatments/${slugOrId}`, { changeFrequency: 'weekly', priority: 0.8 }),
       lastModified: t?.updated_at || t?.created_at || now,
-      changeFrequency: 'weekly',
-      priority: 0.8,
     });
   }
 
@@ -111,10 +115,8 @@ export default async function sitemap() {
     if (!slugOrId) continue;
     seenHospitalSlugs.add(String(slugOrId));
     urls.push({
-      url: `${baseUrl}/hospitals/${slugOrId}`,
+      ...localized(`/hospitals/${slugOrId}`, { changeFrequency: 'weekly', priority: 0.8 }),
       lastModified: h?.updated_at || h?.created_at || now,
-      changeFrequency: 'weekly',
-      priority: 0.8,
     });
   }
 
@@ -122,10 +124,8 @@ export default async function sitemap() {
   for (const slug of getAllPartnerSlugs()) {
     if (seenHospitalSlugs.has(slug)) continue;
     urls.push({
-      url: `${baseUrl}/hospitals/${slug}`,
+      ...localized(`/hospitals/${slug}`, { changeFrequency: 'weekly', priority: 0.8 }),
       lastModified: now,
-      changeFrequency: 'weekly',
-      priority: 0.8,
     });
   }
 
