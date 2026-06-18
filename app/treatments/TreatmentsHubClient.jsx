@@ -19,14 +19,15 @@ const SECTION_PHOTOS = [
   PHOTOS.clinical2,
 ];
 
-// 6개 암종 카드 썸네일 — 면력 실사 + 임상 스톡 섞어 카드별로 다른 사진(DESIGN.md Airbnb 톤)
+// 6개 암종 카드 썸네일 — 면력한방 회복프로그램/시설 실사진(따뜻·희망 톤, DESIGN.md Airbnb).
+// 차가운 기계·주사 이미지 대신 회복 장면으로(암환자 정서). 일부는 암종 주제와 연결(식이→푸드테라피, 폐암→운동).
 const CANCER_PHOTOS = {
-  female: PHOTOS.clinical1,
-  digest: IMMUNE_PHOTOS.facilityTreatment,
-  liver: PHOTOS.clinical2,
-  lung: IMMUNE_PHOTOS.facilityCo2,
-  thyroid: IMMUNE_PHOTOS.facilityRoom,
-  etc: PHOTOS.hospital2,
+  female: IMMUNE_PHOTOS.programWalking,      // 강변 산책 — 회복·일상복귀
+  digest: IMMUNE_PHOTOS.programFoodTherapy,  // 셰프 푸드테라피 — 식이관리 핵심
+  liver: IMMUNE_PHOTOS.facilityRoom,         // 프리미엄 입원실 휴식 — 회복
+  lung: IMMUNE_PHOTOS.programExercise,       // 운동치료 — 호흡 재활
+  thyroid: IMMUNE_PHOTOS.programPicnic,      // 야외 힐링 — 예후 좋음·희망적
+  etc: IMMUNE_PHOTOS.programClass,           // 원데이 클래스 — 케어 공동체
 };
 
 const ITCRN_KEYS = ["immunity", "temperature", "circulation", "resistibility", "nutrition"];
