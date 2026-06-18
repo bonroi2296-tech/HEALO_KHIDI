@@ -1,6 +1,6 @@
 export const SITE_INFO = {
   messenger: {
-    whatsapp: process.env.NEXT_PUBLIC_MESSENGER_WHATSAPP_URL || "",
+    whatsapp: process.env.NEXT_PUBLIC_MESSENGER_WHATSAPP_URL || "https://wa.me/821047721075",
     telegram: process.env.NEXT_PUBLIC_MESSENGER_TELEGRAM_URL || "",
     line: process.env.NEXT_PUBLIC_MESSENGER_LINE_URL || "",
     wechat: process.env.NEXT_PUBLIC_MESSENGER_WECHAT_URL || "",
