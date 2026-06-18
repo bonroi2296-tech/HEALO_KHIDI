@@ -569,9 +569,9 @@ export default function HomeClient() {
               <h2 className="text-xl md:text-3xl font-extrabold text-gray-900 mb-2 md:mb-3">{l(L.emergency.title)}</h2>
               <p className="text-gray-500 text-sm md:text-base mb-5 md:mb-8">{l(L.emergency.subtitle)}</p>
               <div className="flex flex-col sm:flex-row justify-center gap-2 md:gap-4">
-                <a href="mailto:contact@healo.kr" className="inline-flex items-center justify-center gap-2 bg-white border border-gray-200 rounded-xl px-4 md:px-6 py-2.5 md:py-3 text-gray-700 text-sm md:text-base font-medium hover:border-teal-300 hover:shadow-md transition-all">
+                <a href="mailto:admin@healwith.co.kr" className="inline-flex items-center justify-center gap-2 bg-white border border-gray-200 rounded-xl px-4 md:px-6 py-2.5 md:py-3 text-gray-700 text-sm md:text-base font-medium hover:border-teal-300 hover:shadow-md transition-all">
                   <Mail size={16} className="text-teal-600" />
-                  contact@healo.kr
+                  admin@healwith.co.kr
                 </a>
                 <button
                   onClick={() => router.push("/inquiry")}

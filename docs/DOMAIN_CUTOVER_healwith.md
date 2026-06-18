@@ -1,5 +1,12 @@
 # 도메인 전환 체크리스트 — healwith.co.kr
 
+> ## ⚠️ 등록 즉시 처리 (2026-06-18 라이브 검증으로 확인된 현 상태)
+> **지금 canonical·hreflang·sitemap·OG가 전부 `https://khidi.healo.kr`을 가리키는데 그 도메인은 DNS에 없고(구글 DNS로도 "존재하지 않는 도메인") Vercel에도 연결 안 됨 = 죽은 주소.** 진짜 라이브는 `healo-khidi.vercel.app`.
+> → **현재 공개페이지 전부가 검색엔진에 "내 정식주소는 [존재하지 않는 곳]"이라고 말하는 중 = 색인 0.** URL 언어화 SEO 작업이 도메인 붙기 전까진 헛돎(아직 GSC 제출 전이라 능동적 피해는 없음).
+> **healwith.co.kr 등록되면 §3의 env 전환이 이 문제를 자동 해결**(canonical/hreflang/sitemap이 새 도메인 따라옴) — 그러니 등록 후 §3을 반드시 끝까지.
+> ※ 4번(전환 후 검증)의 "구 도메인 301 리다이렉트"는 **불필요** — khidi.healo.kr은 살아있던 적이 없어 이전할 SEO 자산도, 죽일 트래픽도 없음.
+> ※ URL 언어화 엔진 자체는 라이브에서 정상(/ru→러시아어, /ko→한국어, /en→영어, hreflang 6+x-default). 도메인만이 문제.
+
 > 서비스명 healwith 확정 + 도메인 `healwith.co.kr` 등록 예정(후이즈).
 > **순서 중요**: 도메인이 Vercel에 "연결·검증 완료"된 다음에 코드/ENV를 바꾼다.
 > (먼저 바꾸면 죽은 주소가 canonical로 나가 SEO 손해)

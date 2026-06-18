@@ -39,7 +39,7 @@
 - DESIGN.md elevation/numeric/motion은 **신규 작업용 가이드**일 뿐 — 기존 코드의 그림자 5종·숫자 tabular 일괄정리는 **안 함**(요청 시 별도, 화면 손대는 작업).
 
 **다음 세션이 먼저 할 일 (우선순위):**
-1. **라이브 실기기 클릭 검증** — 실서비스(`khidi.healo.kr`)에서 언어 전환(스위처가 새 URL로 가나)·문의폼·화상상담 직접 확인. (이번 세션 미검증분.)
+1. **라이브 실기기 클릭 검증** — 진짜 라이브는 **`healo-khidi.vercel.app`** (핸드오프가 "실서비스"라던 `khidi.healo.kr`은 **DNS·Vercel 어디에도 없는 죽은 주소** — 2026-06-18 검증). 언어 전환(스위처가 새 URL로 가나)·문의폼·화상상담 클릭은 아직 미검증(클라이언트 JS라 curl 불가). **⚠️ SEO 치명타: canonical·hreflang·sitemap·OG가 전부 죽은 khidi.healo.kr을 가리킴 → 색인 0. 도메인(healwith.co.kr) 등록 시 처리 — ① env 전환(sitemap/hreflang/canonical/OG) + ② 하드코딩 JSON-LD 14곳 grep 치환(env 안 따라옴). 둘 다 `docs/DOMAIN_CUTOVER_healwith.md` 최상단 ⚠️ 배너+§3에 박아둠.** (URL 언어화 SSR 엔진 자체는 정상: /ru→러시아어·/ko→한국어·/en→영어, hreflang 6+x-default 확인.)
 2. 도메인 `healwith.co.kr` 결제되면 → 컷오버 + 구글/Yandex 제출.
 3. (선택) phase 5 가드 자동발견화 / seo.* 현지 번역 검수.
 4. KHIDI 중간평가(2026-08-27) 상시 기준 — `docs/KHIDI_중간보고_베이스.md`.
