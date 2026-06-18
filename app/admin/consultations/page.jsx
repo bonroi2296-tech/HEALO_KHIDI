@@ -15,6 +15,8 @@ import {
   AlertCircle,
   Plus,
   Video,
+  FileText,
+  Loader2,
 } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { useToast } from "@/components/Toast";
@@ -33,6 +35,8 @@ export default function ConsultationsPage() {
   const [_showScheduleModal, setShowScheduleModal] = useState(false);
   const [_selectedConsultation, setSelectedConsultation] = useState(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  // AI 회의록 생성 상태: { [consultationId]: { loading, data, error } }
+  const [summaryState, setSummaryState] = useState({});
 
   // Fetch consultations
   useEffect(() => {
@@ -154,6 +158,45 @@ export default function ConsultationsPage() {
     } catch (error) {
       console.error("[ConsultationsPage] handleCancel error:", error);
       toast.error("취소 실패");
+    }
+  };
+
+  const handleGenerateSummary = async (consultation) => {
+    const id = consultation.id;
+    setSummaryState((s) => ({ ...s, [id]: { loading: true } }));
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+      const res = await fetch(
+        `/api/khidi/consultation/${id}/summarize`,
+        {
+          method: "POST",
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        }
+      );
+      const json = await res.json();
+      if (!res.ok || !json.ok) {
+        const msg =
+          json.error === "billing_required"
+            ? "AI 회의록은 Gemini 유료 설정 후 켜집니다 (현재 비활성)."
+            : json.error === "no_transcript"
+            ? "번역 기록이 없어 회의록을 만들 수 없어요."
+            : json.error === "ai_failed" || json.error === "ai_parse_failed"
+            ? "AI 생성에 실패했어요. 잠시 후 다시 시도해 주세요."
+            : "회의록 생성 실패";
+        setSummaryState((s) => ({ ...s, [id]: { error: msg } }));
+        toast.error(msg);
+        return;
+      }
+      setSummaryState((s) => ({ ...s, [id]: { data: json.data } }));
+      setConsultations((cs) =>
+        cs.map((c) => (c.id === id ? { ...c, ai_summary: json.data } : c))
+      );
+      toast.success("AI 회의록을 만들었어요.");
+    } catch (error) {
+      console.error("[ConsultationsPage] handleGenerateSummary error:", error);
+      setSummaryState((s) => ({ ...s, [id]: { error: "회의록 생성 실패" } }));
+      toast.error("회의록 생성 실패");
     }
   };
 
@@ -461,15 +504,70 @@ export default function ConsultationsPage() {
                       </button>
                     )}
                     {consultation.status === "completed" && (
-                      <button
-                        onClick={() => handleJoinConsultation(consultation)}
-                        className="flex-1 px-4 py-2 bg-gray-400 text-white rounded-lg opacity-75 cursor-not-allowed"
-                        disabled
-                      >
-                        <span>완료됨</span>
-                      </button>
+                      <>
+                        <span className="px-4 py-2 bg-gray-200 text-gray-600 rounded-lg text-sm font-medium flex items-center">
+                          완료됨
+                        </span>
+                        <button
+                          onClick={() => handleGenerateSummary(consultation)}
+                          disabled={summaryState[consultation.id]?.loading}
+                          className="flex-1 min-w-[160px] px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition font-medium flex items-center justify-center gap-2 disabled:opacity-60"
+                        >
+                          {summaryState[consultation.id]?.loading ? (
+                            <>
+                              <Loader2 size={16} className="animate-spin" />
+                              회의록 생성 중…
+                            </>
+                          ) : (
+                            <>
+                              <FileText size={16} />
+                              {consultation.ai_summary
+                                ? "AI 회의록 다시 생성"
+                                : "AI 회의록 생성"}
+                            </>
+                          )}
+                        </button>
+                      </>
                     )}
                   </div>
+
+                  {/* AI 회의록 결과 */}
+                  {(() => {
+                    const ai =
+                      summaryState[consultation.id]?.data ||
+                      consultation.ai_summary;
+                    if (!ai) return null;
+                    const section = (title, items) =>
+                      Array.isArray(items) && items.length > 0 ? (
+                        <div className="mt-3">
+                          <p className="text-xs font-semibold text-gray-500 mb-1">
+                            {title}
+                          </p>
+                          <ul className="list-disc list-inside space-y-1 text-sm text-gray-700">
+                            {items.map((it, i) => (
+                              <li key={i}>{it}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      ) : null;
+                    return (
+                      <div className="p-4 bg-white rounded-lg border border-teal-200">
+                        <div className="flex items-center gap-2 mb-1">
+                          <FileText size={16} className="text-teal-600" />
+                          <p className="text-sm font-semibold text-gray-900">
+                            AI 회의록
+                          </p>
+                          <span className="text-xs text-gray-400">
+                            (AI 자동 생성 · 참고용, 의료진 확인 필요)
+                          </span>
+                        </div>
+                        {section("요약", ai.summary)}
+                        {section("결정사항", ai.decisions)}
+                        {section("다음 단계", ai.next_steps)}
+                        {section("환자 우려", ai.patient_concerns)}
+                      </div>
+                    );
+                  })()}
                 </div>
               )}
             </div>
