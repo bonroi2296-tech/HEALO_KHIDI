@@ -7,6 +7,52 @@
 
 ---
 
+## 🔖 세션 핸드오프 (2026-06-18 늦은 세션) — 라이브 검증·죽은 도메인 진단 + AI회의록/RAG출처/홈·치료 콘텐츠 7개 PR 머지 + 위키독스 MCP
+
+**이번 세션 한 일 (PR 7개 전부 main 머지·실서비스 배포):**
+- **홈 옛 도메인 이메일 정리 + 죽은 도메인 진단** ([#67](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/67)): 홈 "긴급 연락" 이메일 `contact@healo.kr`→`admin@healwith.co.kr`. `check:content` 가드에 `@healo.kr` 추가(.com만 막던 구멍). 반성문 POSTMORTEMS #4.
+- **⚠️ 죽은 도메인 발견**: 라이브 검증 결과 `khidi.healo.kr`이 **DNS·Vercel 어디에도 없음**(구글DNS도 "존재하지 않는 도메인"). 근데 canonical/hreflang/sitemap/OG가 전부 거길 가리켜 **색인 0**. 진짜 라이브=`healo-khidi.vercel.app`. PO 결정: 지금 안 고치고 `healwith.co.kr` 등록 시 처리. 경고 배너 `docs/DOMAIN_CUTOVER_healwith.md` 최상단. **URL 언어화 SSR 엔진 자체는 정상**(/ru→러시아어·/ko→한국어·hreflang 6+x-default 확인).
+- **AI 상담 회의록 (화상상담 Phase A)** ([#68](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/68)): 상담 번역기록(`consultation_translations`)→Gemini→요약·결정사항·다음단계·환자우려를 기존 `ai_summary`(jsonb) 컬럼에 저장. `POST /api/khidi/consultation/[id]/summarize` + 어드민 완료상담 "AI 회의록 생성" 버튼. **DB 마이그레이션 0**(컬럼 이미 존재). **⚠️ `GEMINI_PII_BILLING_CONFIRMED=true` 게이트로 비활성**(무료 Gemini PII 학습 방지).
+- **RAG 답변 출처 표기 + 책2권 학습노트** ([#69](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/69)): `generateReply.ts` 시스템 프롬프트에 "출처 표기" 규칙(병원·가격·통계에 `(출처:…)`, 출처 없으면 진술 금지). "모르면 코디"·안티환각은 **이미 구현돼 있어** 출처표기만 보강. `docs/RAG_AGENT_LEARNINGS.md` 신설(위키독스 책 2권 정독 증류).
+- **treatments 통계 라벨** ([#70](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/70)): "5 · ITCRN axes"→"5 · 면역 회복 요소"(6언어, ru/kz/zh/ja 누락분도 채움). ITCRN 약자는 설명섹션에만.
+- **treatments 암종 카드 사진** ([#71](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/71)): 차가운 스톡/기계 사진→면력한방 회복 실사진(산책·푸드테라피·운동·휴식 등, 기존 로컬 이미지 재매핑).
+- **홈 협진 대학병원 3곳 사진 연결** ([#72](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/72)): 이대서울·이대목동·고려대구로 사진이 업로드돼 있었으나 데이터가 `_coming-soon.svg` placeholder를 가리켜 안 떴음 → 실제 경로 연결.
+- **WhatsApp 문의 채널 연결** ([#73](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/73)): `/inquiry` Human Agent WhatsApp이 "준비 중"이었음 → `siteSettings.js` 기본값에 `https://wa.me/821047721075` 박음(비즈니스 번호 010-4772-1075).
+- **위키독스 MCP 연결**: Claude Code(`.claude.json`) + Claude Desktop(`claude_desktop_config.json`, `cmd /c npx` 형태 — 공백경로 문제 회피) 둘 다 연결. 토큰은 PO 위키독스 계정. **남의 공개책은 MCP 말고 URL 직접 긁기.**
+- 말투 규칙 훅(`session-orient.sh`)·메모리 추가(죽은 도메인·마케팅 취향).
+
+**왜 그렇게 했는지:**
+- **회의록 유료 게이트**: 무료 Gemini는 입력을 모델 학습·사람검수에 사용(약관이 PII 금지 명시) → 환자 상담 PII엔 부적합. PO가 빌링 켜고 env `GEMINI_PII_BILLING_CONFIRMED=true` 추가하면 즉시 활성(딸깍). 메인 챗은 이미 Gemini라 이건 신규 PII 흐름만 차단.
+- **카드 사진 회복톤**: 면력한방 치료제 제품샷(주사기로 암세포 찌르는 3D 등)은 (a)한 병원 광고처럼 (b)"면역치료=암치료" 오해/의료광고 리스크 → 의도 배제, 회복 프로그램 사진으로.
+- **ITCRN 전면 강등**: ITCRN은 면력한방 자사 브랜드 모델(immunehospital.com 출처). HEALO는 다병원 중립 컨시어지 + 한방은 보조케어 → 전면 헤드라인 부적합. 통계 라벨만 평이하게, 약자는 설명섹션에.
+- **자동검사 구멍**: `@healo.kr` 잔재가 통과한 건 검사기가 `.com`만 막아서 → 가드 추가로 영구 차단.
+
+**안 끝났거나 보류:**
+- **Gemini 유료 결제** (PO 나중) → **회의록(#68) 활성화 대기.** 결제 후 env 한 줄.
+- **RAG 개선 백로그** (`docs/RAG_AGENT_LEARNINGS.md`): ①출처강제·답변없음 프롬프트 ②LLM-judge 품질평가 ③크로스인코더 리랭킹 ④HyDE/청킹/BGE-M3. 책2권(위키독스 #2155 NLP·#19414 에이전트) 증류. 추천순서 A→D→B→C.
+- **도메인 `healwith.co.kr` 결제** (결제담당 손, 우리 밖) → 등록 시 env 전환 + JSON-LD 14곳 grep치환(`DOMAIN_CUTOVER` §3).
+- **로고**: PO가 SVG·PNG 옵션(h/hw/arc/h+) 다 거부("싹다 별로"). 전문 디자이너/도구 필요. 임시 파일은 `logo/`·바탕화면.
+- **treatments 히어로 ITCRN 전면 재구성**: 제안만 했고 미적용(통계 라벨만 변경).
+- 나머지 메신저 채널(Telegram·LINE·WeChat) 여전히 "준비 중"(링크 생기면 siteSettings에 추가).
+
+**주의·함정:**
+- **회의록 #68**: `GEMINI_PII_BILLING_CONFIRMED=true` 전엔 503(billing_required, 버튼 "유료 설정 후 켜집니다"). **실데이터 런타임 미검증.**
+- **RAG 출처표기 #69**: 실제 답변에 출처 자연스럽게 붙는지·톤 해치는지 **런타임 미검증**(환자화면이라 톤 PO 확인 권장).
+- **자동커밋 훅** 때문에 작업이 엉뚱한 브랜치에 섞일 수 있음(이번에 이메일PR에 회의록 섞여 분리수술함) → **기능별 브랜치 먼저 따고** 작업.
+- `logo/` 폴더(PNG들) untracked, `public/images/hospitals/Hospitals_Rev1.zip`이 공개 주소로 노출(정리 권장, 미처리).
+- **폰↔컴 세션 끊김/자동보관 = Claude Code 앱 동작**(우리 설정 무관, 끄는 설정 없음). "어디서나 싱크" 원하면 Remote Control(`claude --remote-control`, 컴 켜둬야). PO "일단 됐다".
+
+**다음 세션이 먼저 할 일 (우선순위):**
+1. **Gemini 유료 확인 → 회의록 활성화**(Vercel env `GEMINI_PII_BILLING_CONFIRMED=true`).
+2. **라이브 클릭 검증**(이번 세션 미검증분): 회의록 실데이터 / RAG 답변 출처·톤 / WhatsApp 버튼(/inquiry) / 새 카드사진·대학병원 사진.
+3. 도메인 `healwith.co.kr` 결제되면 컷오버.
+4. (선택) RAG 개선 착수 — `RAG_AGENT_LEARNINGS.md` A1(프롬프트 규칙)부터.
+5. KHIDI 중간평가(2026-08-27) 상시 — `docs/KHIDI_중간보고_베이스.md`.
+
+**검증 상태:** PR #67~#73 = **CI(ci·smoke·Vercel) 전부 초록 + main 머지 + 배포 완료.** `next build --webpack`·`check:content`·회의록 라우트 등록 확인. **런타임(실제 동작) 미검증 항목**: 회의록 실데이터 생성, RAG 출처 렌더/톤, WhatsApp 버튼·새 사진 라이브 클릭 — **솔직히 다 PO/다음 세션 몫(직접 클릭 안 함).**
+
+---
+
 ## 🔖 세션 핸드오프 (2026-06-18) — URL 언어화 phase 1~3 완료·main 머지 + DESIGN.md 정합성 보강
 
 **이번 세션 한 일:**
@@ -45,40 +91,6 @@
 4. KHIDI 중간평가(2026-08-27) 상시 기준 — `docs/KHIDI_중간보고_베이스.md`.
 
 **검증 상태:** PR #63·#64 = **CI(ci·smoke·Vercel) 전부 초록 + main 머지 완료.** `next build --webpack` / `/ru/*` 서버 러시아어 렌더·`/en/*` 영어 / canonical=자기언어·hreflang 6+x-default / 탭제목 언어별 / 내부페이지 hreflang 0·`/admin` 보호·게스트링크·옛 러 랜딩 정상 / e2e 누출 40개 / check:content·i18n·cancer-i18n·legal 통과. **라이브 실기기 클릭(스위처·문의폼·화상상담)은 미검증 — PO/다음 세션 몫.**
-
----
-
-## 🔖 세션 핸드오프 (2026-06-17 늦은 세션) — 다국어 누출 전수 차단 + URL 언어화 개편 착수
-
-**이번 세션 한 일:**
-- **법률문서 6개 언어 정합** (PR #61 머지): 개인정보처리방침 외국어 5개(en·ru·kz·zh·ja)가 한국어판보다 뒤처져 있던 것 동기화 — 자동화결정 고지(§37-2) 신규 삽입, 카자흐 관할 조항 6줄 stub→24줄 확장, 국외이전 안전조치 보강, 이메일 `admin@healwith.co.kr` 통일, 잘못된 교차참조(§15→§14) 수정. 가드 `scripts/check-legal-parity.mjs`(CI 편입).
-- **다국어 누출 전수 차단** (PR #61): "영어 화면인데 한국어가 뜨는" 부류를 **검사기로 전수 발견** → 8개 라우트 ~150건(암종 상세 6페이지의 합병증·통계·FAQ·칩·수술후관리 제목 + telemedicine 자막 + privacy/terms/medical-disclaimer 하단 고지 + terms 목차). 전부 6개 언어로 채움. FAQ는 클라이언트→데이터 파일(`immuneCancerDetails.js`)로 이동(검사 가능하게). 번역은 에이전트 2대로(약 330셀).
-- **가드 2개 신설**(이게 핵심 성과): `e2e/i18n-no-korean-leak.spec.ts`(@smoke, **PR마다**) — 공개 25개 라우트를 영어로 렌더해 한글 남으면 빌드 실패(출처 데이터·JSX·i18n키 불문). `scripts/check-cancer-i18n.mjs`(CI) — 암종 콘텐츠 6개 언어 완성 강제.
-- **/treatments**: 칩(`focusPrograms`) 한국어 평문→다국어, 빈 teal 썸네일 블록→암종별 실사진(DESIGN.md Airbnb 톤).
-- **URL 언어화 개편 착수** (브랜치 `feat/url-locale-i18n`, **phase 0만 커밋 66b077c**): 계획서 `docs/PLAN_URL_LOCALE.md`(6단계) + `src/lib/i18n/config.js`(LOCALES·localeHref 등, self-check 통과). **라우트는 아직 안 건드림 = 사이트 영향 0.**
-- 반성문 `docs/POSTMORTEMS.md` #2(법률 누락)·#3(다국어 누출).
-
-**왜 그렇게 했는지:**
-- PO가 /treatments 언어 섞임을 또 스크린샷으로 발견 → "전수조사 몇 번을 시켰는데 왜 또?" 격노. **근본원인: 자동검사가 i18n "키"·브랜드 토큰만 보고, i18n 안 거치고 데이터/JSX에 박힌 한국어 raw 문자열은 사각지대.** 게다가 폴백(lang→en→ko)이 번역 없을 때 조용히 한국어로 떨어져 빌드도 통과. → **렌더된 화면을 보는 검사**(누출 e2e)를 만들어 이 부류를 통째로 차단. "기계가 잡는다"(CLAUDE.md 상시 루틴) 실천.
-- URL 언어화 = PO가 "SEO 최강이면 개편 크더라도 정석대로 해" 결정. URL에 언어 박기(`/en/`·`/ru/` + hreflang)가 정석. **새 도메인 healwith.co.kr이 검색엔진에 색인되기 전에 끝내야** 함(색인 후 구조 변경 시 301·순위 손실). 새 도메인=색인 이력 0이라 지금이 적기.
-
-**안 끝났거나 보류:**
-- **URL 언어화 phase 1~5** (메인 작업): phase 0(계획+설정)만 됨. 다음이 본체 — 미들웨어·`app/[lang]/` 구조·전 라우트 이동·메타데이터/hreflang·내부도구·가드. **상세 단계·결정사항·위험 전부 `docs/PLAN_URL_LOCALE.md`에 박아둠.** PO가 "위험 작업이라 새 세션 맑은 정신에서" 하라고 2번(체크포인트) 택함.
-- **도메인 `healwith.co.kr` 등록**: 결제 담당자에게 요청해둠(장바구니 담김), 담당자가 바빠서 **미결제 — 우리 손 밖**. 그동안 "도메인 없이 할 수 있는 오픈준비 싹 다" 하는 게 이번 방향(= URL 개편이 그 핵심).
-- **앱아이콘 PNG**(옛 H마크): PO "일단 보류, 나중에"(`docs/KNOWN_ISSUES.md` P2).
-- 번역 품질: 완성도(빈칸 없음)는 검사로 보장, **정확도는 기계 수준** — 의료/법률 현지 검수는 별도 트랙(파일 헤더 캐비엇 유지).
-
-**주의·함정:**
-- **phase 1부터 위험 구간.** 전 사이트 주소 이동 → 내부 링크 하나 놓치면 언어 풀림, 잘못하면 화면 깨짐. `localeHref()` 헬퍼로 일괄 + grep 점검. 게스트 상담링크·survey 토큰·인증 콜백은 prefix 정책 명확히(`PLAN_URL_LOCALE.md` 위험 섹션).
-- 누출 e2e ROUTES 목록은 **아직 수동**(25개 하드코딩). phase 5에서 자동발견화 예정 — 그 전엔 새 공개페이지 추가 시 목록에 손수 넣어야 검사됨.
-- 활성 콘텐츠 언어 6개=`en·ko·ru·kz·zh·ja`(쿠키 `healo_lang`). `LANG_OPTIONS`엔 20+개 있지만 DICTIONARY는 6개뿐.
-
-**다음 세션이 먼저 할 일:**
-1. **URL 언어화 phase 1** — `docs/PLAN_URL_LOCALE.md` 보고 시작. 미들웨어 + `app/[lang]/layout` + `useLang` param 기반 전환 + treatments 한 섹션만 옮겨 end-to-end 검증(빌드+누출 e2e 초록 확인 후 다음).
-2. 이후 phase 2(공개 전체)→3(메타/hreflang, 탭제목 한국어 문제 여기서 해결)→4(내부도구, 진입 전 실익 재검토)→5(가드 자동발견).
-3. 도메인 결제되면: Vercel 연결 + 컷오버(`DOMAIN_CUTOVER_healwith.md`)의 SEO 제출은 **URL 개편 끝난 뒤**.
-
-**검증 상태:** PR #61 = CI(ci·smoke·Vercel) 전부 초록 + 머지 완료. 누출 e2e 25개 라우트·`check:legal`·`check:cancer-i18n`·`next build --webpack` 통과 확인. phase 0 커밋 = 설정 헬퍼 self-check 통과(라우트 미변경). **라이브 실기기 클릭 검증은 PO 몫 — 미검증.**
 
 ---
 
