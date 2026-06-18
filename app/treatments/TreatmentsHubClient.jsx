@@ -202,7 +202,7 @@ export default function TreatmentsHubClient() {
         <div className="mt-8 md:mt-12 pt-6 md:pt-8 border-t border-gray-200 grid grid-cols-2 sm:flex sm:flex-wrap gap-x-10 gap-y-6">
           {[
             { num: "50,000+", label: lang === "ko" ? "누적 케이스" : lang === "ru" ? "Случаев" : lang === "kz" ? "Жағдай" : lang === "zh" ? "累计病例" : lang === "ja" ? "累計ケース" : "Cumulative cases" },
-            { num: "5", label: lang === "ko" ? "ITCRN 5축" : "ITCRN axes" },
+            { num: "5", label: lang === "ko" ? "면역 회복 요소" : lang === "ru" ? "Факторы восстановления иммунитета" : lang === "kz" ? "Иммунитетті қалпына келтіру факторлары" : lang === "zh" ? "免疫恢复要素" : lang === "ja" ? "免疫回復の要素" : "Immune recovery factors" },
             { num: "6", label: lang === "ko" ? "암종 전문 케어" : lang === "ru" ? "Видов рака" : lang === "kz" ? "Обыр түрі" : lang === "zh" ? "癌症专科" : lang === "ja" ? "がん種専門" : "Cancer specialties" },
             { num: "2017", label: lang === "ko" ? "개원" : lang === "ru" ? "Основан" : lang === "kz" ? "Ашылды" : lang === "zh" ? "开院" : lang === "ja" ? "開院" : "Founded" },
           ].map((stat, i) => (
