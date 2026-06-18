@@ -62,6 +62,12 @@ export async function POST(
     });
     if (!access.success) return access.response;
 
+    // Gemini 유료(빌링) 확인 전엔 비활성 — 환자 상담 PII가 무료티어(학습·검수 대상)로 가지 않게.
+    // PO가 빌링 사용설정 후 Vercel env GEMINI_PII_BILLING_CONFIRMED=true 로 켠다(딸깍).
+    if (process.env.GEMINI_PII_BILLING_CONFIRMED !== "true") {
+      return Response.json({ ok: false, error: "billing_required" }, { status: 503 });
+    }
+
     const { supabaseAdmin } = await import("@/lib/rag/supabaseAdmin");
 
     // 1) 상담 언어 정보 (화자 추정용)

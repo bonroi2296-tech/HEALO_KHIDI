@@ -177,7 +177,9 @@ export default function ConsultationsPage() {
       const json = await res.json();
       if (!res.ok || !json.ok) {
         const msg =
-          json.error === "no_transcript"
+          json.error === "billing_required"
+            ? "AI 회의록은 Gemini 유료 설정 후 켜집니다 (현재 비활성)."
+            : json.error === "no_transcript"
             ? "번역 기록이 없어 회의록을 만들 수 없어요."
             : json.error === "ai_failed" || json.error === "ai_parse_failed"
             ? "AI 생성에 실패했어요. 잠시 후 다시 시도해 주세요."
