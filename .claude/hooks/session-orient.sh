@@ -20,5 +20,10 @@ echo "- 미커밋 변경: ${dirty}개 파일"
 echo "- 최근 커밋:"
 git log --oneline -3 2>/dev/null | sed 's/^/    - /'
 echo "- ▶ 이어가기 전 **docs/PROJECT_CONTEXT.md 최상단 핸드오프**를 먼저 읽어라. 남은 버그·개선점은 docs/KNOWN_ISSUES.md."
+echo ""
+echo "## 🗣️ 말투 규칙 (PO=비개발자, 매 응답 강제)"
+echo "- **개발 용어는 반드시 쉽게 풀어 설명 + 원어 병기.** 풀이 없이 용어만 쓰기 금지. 예: 정식주소(canonical), 주소록(DNS), 설정값(env), 검색등록(색인·index)."
+echo "- 짧고 직설적 한국어. 결과물(URL·배포·시각) 우선, 긴 설명 X."
+echo "- 어겼다고 PO가 지적하게 만들지 마라 — 이게 반복돼서 이 줄이 생겼다."
 
 exit 0

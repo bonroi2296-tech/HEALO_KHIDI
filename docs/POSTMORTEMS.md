@@ -87,3 +87,20 @@ PO가 /treatments에서 "제목은 영어인데 칩은 한국어" 섞임을 또 
 - **`e2e/i18n-no-korean-leak.spec.ts`** (`@smoke`): 공개 25개 라우트를 영어로 렌더해 화면(body)에 한글(가-힣) 남으면 실패. **출처가 데이터든 JSX든 i18n키든 불문하고** 잡음 → 키 검사의 사각지대를 메움. **PR마다 자동 실행.** (적법한 용어 병기는 ALLOW 등록.)
 - **`scripts/check-cancer-i18n.mjs`** (`npm run check:cancer-i18n`, CI 편입): 암종 콘텐츠 6개 언어 완성 강제(en 폴백이 가리는 "미완성"까지 잡음 — 누출검사가 못 보는 빈칸).
 - 두 검사가 짝: 누출검사=화면에 한글 없나, 완성검사=번역이 실제 다 찼나.
+
+---
+
+## #4 — 홈 화면에 옛 도메인 이메일 `contact@healo.kr` 잔존 (2026-06-18)
+
+**무슨 일**
+홈 "긴급 연락" 버튼이 `contact@healo.kr`(옛 도메인)을 표시·링크. 사이트 나머지(법률·개인정보·FAQ·로그인·siteSettings)는 전부 `admin@healwith.co.kr`로 통일됐는데 홈만 누락. 사용자가 보고 누르는 버튼.
+
+**왜 못 잡았나 (근본원인)**
+- `check:content`의 금지토큰에 `@healo.com`·`healo.com`만 있고 **`@healo.kr`이 없었음.** `.com`만 막고 `.kr` 변형은 안 막은 구멍 → 검사 통과.
+- 리브랜드 일괄치환(HEALO→healwith)이 "이메일 도메인" 변형(`healo.kr`)까지는 안 훑음.
+
+**어떻게 고쳤나**
+- `app/home/HomeClient.jsx` 2곳 `contact@healo.kr` → `admin@healwith.co.kr`(siteSettings.contactEmail과 일치).
+
+**재발 방지 (가드 룰)**
+- `scripts/check-content-consistency.mjs` FORBIDDEN에 `{ re: /@healo\.kr/i }` 추가 → 옛 도메인 이메일 영구 차단. **현 사이트 도메인 `khidi.healo.kr`(@ 없음)·api 호스트 allowlist(`.healo.kr`)는 안 걸리게 `@healo.kr`만 정밀 매칭**(회귀 1줄 검증 완료).
