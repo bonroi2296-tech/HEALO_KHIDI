@@ -2,6 +2,9 @@
 
 > AI 에이전트(Claude Code, Cursor 등)가 신규 UI 코드를 작성할 때 자동으로 참고하는 디자인 가이드. **읽지 않고 만든 UI는 PR 머지 거부.**
 
+> **핵심 원칙 — 정합성(coherence)이 미(美)보다 우선.**
+> "AI가 만든 느낌"은 못생긴 부품이 아니라 **부품끼리 안 맞아서** 난다. 축(색·모서리·그림자·간격·전환·숫자)마다 **값을 하나로 정하고 전부 거기 맞춘다.** 예쁜 부품이 아니라 **일관된 부품**이 "설계된" 느낌을 만든다. → 아래 토큰이 각 축의 "정해진 한 값". 벗어나면 정당화 필요.
+
 ---
 
 ```yaml
@@ -79,6 +82,27 @@ spacing:
   section_padding: "py-10 md:py-16"
   gap_default:     "gap-4 md:gap-5"
 
+# elevation 축 — 그림자는 "용도별 1값". 코드에 sm/md/lg/xl/2xl 5종이 난무 중(축 미고정)이라 신규는 아래로 통일.
+# 면(surface) 분리는 테두리(border)보다 **배경 톤(white vs gray-50) + 그림자**를 우선한다(테두리 남발 금지).
+elevation:
+  card_rest:    "shadow-sm"     # 정적 카드 기본
+  card_hover:   "shadow-md"     # 카드 호버 1단계 상승 (확대·회전 X — 그림자만)
+  floating:     "shadow-lg"     # 드롭다운·팝오버·툴팁 등 떠 있는 요소
+  overlay:      "shadow-xl"     # 모달·전면 시트만
+  forbidden:    "shadow-2xl 남발 — overlay에도 xl까지. 카드에 lg+ 금지(떠보임)"
+
+# numeric 축 — 가격·건수·통계 (의료 신뢰 = 숫자 정렬). 현재 tabular-nums 0회 적용.
+numeric:
+  align:       "tabular-nums"   # 숫자 폭 고정 → 표·카운터 흔들림 방지 (가격·건수·통계엔 필수)
+  hierarchy:   "숫자는 크고 굵게, 단위·라벨은 작게 (약 2:1). 예: 협진병원 '8'(text-3xl) + '곳'(text-base)"
+  rule:        "KHIDI 신뢰지표(협진병원 8·전문의료진 28·6개 언어 등) 표시에 적용. 가짜 숫자 금지(의료 광고법)."
+
+# motion 축 — 전환 시간 1값으로(현재 150~700 난무). 호버는 그림자/톤만.
+motion:
+  default:     "transition-all duration-200"   # 기본 전환 — 이거 하나로 통일
+  emphasis:    "duration-300"                   # 큰 요소(모달 등장 등) 예외만
+  forbidden:   "duration-500+ 남발 / 호버 확대(scale)·회전(rotate) / 의미 없는 fade"
+
 # ============================================================
 # 5. i18n — 6개 언어 대응 (우리만의 제약)
 # ============================================================
@@ -120,6 +144,11 @@ forbidden:
 # ============================================================
 medical_ui:
   pii_display: "환자 이름 마스킹 (홍O동 형태) — 풀네임 노출 시 인코딩 안 된 PII"
+  ux_states:
+    rule: "빈·로딩·에러 상태를 '실데이터처럼' 설계 — 빈 화면/날 에러코드 노출 = 의료 신뢰 즉시 붕괴."
+    loading: "스피너 단독 금지 → 맥락 문구(번역된, 예 '병원 정보 불러오는 중…') 동반. 목록은 스켈레톤 권장."
+    error:   "사용자 언어로 안내 + 재시도 동선. raw error.message·스택 노출 금지(보안 룰과 동일)."
+    empty:   "'결과 없음'만 띄우지 말고 왜 비었는지 + 다음 행동(검색 바꾸기·문의하기) 제시."
   emergency_color: "red-500 (warning·error)"
   data_freshness:
     rule: "병원·의료진 정보 변경 시 토스트 또는 모달로 사용자 안내"
@@ -176,6 +205,10 @@ deprecated:
 8. ✅ 환자 풀네임 노출되는가? → 마스킹 (홍O동)
 9. ✅ 의료 광고법 위반 카피 ('완치 보장' 등)? → 금지
 10. ✅ 이모지를 UI 크롬(헤더·버튼)에 썼는가? → 챗 말풍선만 허용
+11. ✅ 그림자를 용도와 무관하게 골랐는가? → `elevation` 축대로(카드 sm, 호버 md, 팝오버 lg, 모달 xl). 면 분리는 톤+그림자 우선, 테두리 남발 금지
+12. ✅ 가격·건수·통계 숫자에 `tabular-nums` 뺐는가? → 추가(흔들림 방지). 숫자:단위 위계 2:1
+13. ✅ 전환에 `duration-500+`·`scale`·`rotate` 호버 썼는가? → 기본 `duration-200`, 호버는 그림자/톤만
+14. ✅ 빈·로딩·에러 상태를 방치(빈 화면·날 에러코드)했는가? → 맥락 문구+재시도+다음행동(의료 신뢰)
 
 ---
 
@@ -183,6 +216,7 @@ deprecated:
 
 - **2026-05-19**: 최초 작성. Legacy 모드 표준화. Premium 토큰 deprecated.
 - **2026-05-21**: /treatments·/telemedicine·/faq·/hospitals/immune·404·500 Legacy 재구성 완료. radii 기본값 rounded-xl 명확화.
+- **2026-06-18**: 정합성(coherence) 원칙 명문화 + 빈 축 4개 보강 — elevation(그림자 용도별 1값), numeric(tabular-nums·숫자 위계), motion(전환 duration-200 통일), ux_states(빈/로딩/에러). StyleSeed(bitjaru) 칼럼 분석에서 우리 코드에 실재하던 축 미고정(그림자 5종 난무·tabular-nums 0회)을 발견해 반영. 도구는 미도입, 원칙만 흡수.
 
 ---
 
