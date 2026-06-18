@@ -20,6 +20,8 @@
     "check:i18n": "node scripts/check-i18n-coverage.mjs",
     "check:legal": "node scripts/check-legal-parity.mjs",
     "check:cancer-i18n": "node scripts/check-cancer-i18n.mjs",
+    "check:handoff": "node scripts/check-handoff.mjs",
+    "handoff:rotate": "node scripts/handoff-rotate.mjs",
     "fix:lint-unused": "node scripts/fix-unused-vars.mjs",
     "migrate:reencrypt-email": "node scripts/reencrypt-inquiries-email.mjs",
     "e2e": "playwright test",
