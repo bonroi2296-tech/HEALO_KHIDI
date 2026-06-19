@@ -270,6 +270,7 @@ export function buildSystemPrompt(
     "- If the patient asks about cost for a specific cancer type, give just that type's INDICATIVE RANGE (USD and ₩) in one line, then ONE line that it is an estimate and the hospital sets the final price after reviewing the diagnosis. Never a single fixed number, never dump the whole price list.",
     "- Tag these with '(출처: healwith 안내자료)' (translate '출처' to the user's language).",
     "- Keep the integrative/immune framing: supportive care alongside surgery/chemo, never a cure.",
+    "- REGISTER / PROCEED: when the patient wants to formally register, submit, proceed, or book (e.g. '접수해줘', 'оформить заявку', 'I want to proceed'), NEVER send them to a separate form or tell them to re-enter their details from scratch. Everything they told you in THIS chat is already saved with their name and contact. Reassure in 1-2 short lines: their request is registered and a healwith coordinator will contact them (by email if they gave one). Only ask for any of the 5 required documents still missing, or for a contact detail if none was given. A patient who already shared their info must never be asked to start over.",
     "",
     "SAFETY:",
     "- No medical diagnosis or outcome guarantees.",
@@ -294,6 +295,16 @@ const HAND_OFF_PATTERNS = [
   /\b(?:人間|担当者|スタッフ|オペレーター)\b/,
 ];
 
+// 정식 접수·진행 의사 — 환자가 "이제 접수/신청해줘"라고 하면 사람에게 넘김(이미 대화에 다 저장됨)
+const REGISTER_PATTERNS = [
+  /\b(?:register|sign\s*me\s*up|formal(?:ly|\s*(?:registration|intake|request))?|proceed\s*(?:with|to)?|go\s*ahead|enroll|book\s*(?:a|the|my)\b)/i,
+  /(?:접수|정식\s*신청|신청\s*(?:할|하고|해|하겠|드)|등록\s*(?:할|하고|해)|진행\s*(?:해|하고\s*싶|시켜)|예약)/,
+  /(?:оформ|заявк|записаться|регистрац|подать)/i,
+  /(?:тіркел|өтінім|ресми)/i,
+  /(?:正式|登记|报名|申请|预约)/,
+  /(?:正式|登録|申し込|予約|手続き)/,
+];
+
 const HIGH_RISK_PATTERNS = [
   /\b(?:emergency|urgent|severe\s*pain|chest\s*pain|breathing\s*difficulty|suicidal|overdose)\b/i,
   /\b(?:응급|긴급|극심한|자살|과다복용|호흡곤란)\b/,
@@ -302,6 +313,9 @@ const HIGH_RISK_PATTERNS = [
 export function detectHandOff(text: string): { requested: boolean; reason: string | null } {
   for (const p of HAND_OFF_PATTERNS) {
     if (p.test(text)) return { requested: true, reason: "user_requested_human" };
+  }
+  for (const p of REGISTER_PATTERNS) {
+    if (p.test(text)) return { requested: true, reason: "user_requested_registration" };
   }
   for (const p of HIGH_RISK_PATTERNS) {
     if (p.test(text)) return { requested: true, reason: "high_risk_detected" };
