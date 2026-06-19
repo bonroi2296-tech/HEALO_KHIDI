@@ -124,3 +124,29 @@ PO가 스크린샷 제보: 친구 유방암 상담을 자연스럽게 물었는�
 **재발 방지 (시스템 적용)**
 - **유사 스캔**: 같은 thinking-토큰 함정이 있는 LLM 호출 전수 확인 → 스트리밍 `/api/chat`도 동일 패치. (그 외 `translate`·`stt`·배치 요약 등은 상한이 충분히 크거나 thinking 불필요한 입출력이라 영향 적음.)
 - **가드 룰**: `scripts/check-content-consistency.mjs`에 "`gemini-flash`/2.5 계열 호출에서 `maxOutputTokens`가 작으면(<1024) `thinkingConfig.thinkingBudget:0`이 같은 호출에 없으면 경고/실패" 룰 추가 검토(다음 가드 작업으로). 우선은 본 반성문으로 함정 기록.
+
+---
+
+## #7 — KHIDI 핵심 KPI(유치·사전상담)가 존재하지 않는 컬럼을 쿼리해 항상 0 (2026-06-19)
+
+**무슨 일**
+8/27 중간평가의 핵심 정량지표를 자동집계하는 `src/lib/khidi/kpi.ts`가 **존재하지 않는 컬럼 3개**를 쿼리하고 있었음 → PostgREST 42703 오류 → 카운트 null → **유치·사전상담이 항상 0**으로 표시.
+- K-01 유치: `consultation_sessions.visit_confirmed_at` (해당 컬럼 없음). 실제 유치확정 신호는 `inquiries.outcome='admitted'`(전환 깔때기 RPC가 쓰는 정의)인데 엉뚱한 테이블·컬럼을 봄. → 실제 4건인데 **0** 표시.
+- K-02 사전상담: `consultation_sessions.actual_duration_minutes` (실제 컬럼은 `duration_seconds`). 게다가 `duration_seconds`는 전 세션 NULL(미추적)이라 `>=5분` 필터를 살려도 0. → 실제 9건인데 **0** 표시.
+- 더해 대시보드·API·만족도가 옛 목표(유치 10 / 상담 80 / 만족도 80)를 박아둬, 공식 목표(12 / 120 / 90)와 불일치.
+
+**왜 못 잡았나 (근본원인)**
+1. `kpi.ts`의 supabase 클라가 **제네릭 없는 느슨한 타입**(`as unknown as SupabaseClient`)이라, 잘못된 컬럼명을 tsc가 못 잡음(런타임 오류로만 드러남).
+2. 쿼리 오류 시 **조용히 `?? 0`으로 폴백** → "데이터 없음"처럼 보여 버그가 위장됨(PO가 "아직 0건"으로 오해).
+3. 실DB 스키마 대조 없이 컬럼명을 가정해 작성. 단위테스트는 DB를 안 침.
+4. PR #98이 "헤드라인 유치건수는 무사"라고 적었으나 실제로는 그때도 깨져 있었음(컬럼 미존재 미확인).
+
+**어떻게 고쳤나**
+- K-01: `inquiries.outcome='admitted'`(created_at 기준)로 재작성 — 전환 깔때기 RPC와 **정의 통일**(두 대시보드 수치 일치). 실DB 검증 = 4건.
+- K-02: duration 필터 제거(컬럼 오류 + 미추적). 완료 세션 수로 집계 = 9건.
+- 공식 목표 SoR `src/lib/khidi/targets.ts`(유치 12 / 상담+사후 120 / 만족도 90) 신설 → API·대시보드·만족도가 전부 참조. 대시보드에 **사업 누적 달성률**(8/27 평가표의 "현재(B)") 섹션 추가.
+
+**재발 방지 (시스템 적용)**
+- **조용한 0 제거(가시화 가드)**: `KpiResult.errors[]`에 집계 쿼리 오류를 모아 **대시보드 상단 빨간 경고 배너**로 노출 → 앞으로 컬럼 오류가 나면 0이 아니라 "집계 오류"로 보임(PO가 화면에서 바로 인지).
+- 실DB 스키마 대조를 KPI 수정 시 필수로(본 세션은 Supabase MCP로 `information_schema.columns` 확인 후 작성).
+- (백로그) `kpi.ts` 쿼리를 생성 타입(`database.types.ts`)으로 타이핑하면 tsc가 컬럼 오류를 잡음 — 느슨한 캐스팅 제거 과제와 연계.

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import { KHIDI_TARGETS } from "@/lib/khidi/targets";
 
 // ============================================================
 // 사업 기간 (2026-04-01 ~ 2026-11-30)
@@ -8,11 +9,8 @@ import { useState, useEffect, useCallback } from "react";
 const PROJECT_START = new Date("2026-04-01");
 const PROJECT_END   = new Date("2026-11-30");
 
-const KPI_TARGETS = {
-  preConsultation: 80,
-  attraction: 10,
-  satisfaction: 80,
-};
+// 공식 목표(8/27 중간평가, 사업 누적) — src/lib/khidi/targets.ts SoR
+const KPI_TARGETS = KHIDI_TARGETS;
 
 // 월 이름 한글
 const MONTH_NAMES = ["1월","2월","3월","4월","5월","6월","7월","8월","9월","10월","11월","12월"];
@@ -206,8 +204,16 @@ export default function KpiDashboardPage() {
   };
 
   const kpi = data?.kpi ?? null;
+  const cum = data?.cumulative ?? null; // 사업 누적 (8/27 평가 기준)
   const daily = data?.daily ?? [];
   const projPct = projectProgress();
+
+  // 집계 쿼리 오류(컬럼명 오류 등) — 조용한 0 대신 화면에 경고로 노출
+  const kpiErrors = [...(kpi?.errors ?? []), ...(cum?.errors ?? [])];
+
+  // 사업 누적: 사전상담+사후관리 합산 (공식 120 목표)
+  const cumConsultCare =
+    cum != null ? (cum.preConsultation ?? 0) + (cum.followUp ?? 0) : null;
 
   // 월별 바 차트용 데이터 (daily → 일별 누적)
   const dailyChartData = daily.slice(-30).map((d) => ({
@@ -268,6 +274,18 @@ export default function KpiDashboardPage() {
         </div>
       )}
 
+      {/* 집계 쿼리 오류 경고 (조용한 0 방지) */}
+      {kpiErrors.length > 0 && (
+        <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700">
+          ⚠️ 일부 지표 집계에 오류가 있어 값이 부정확할 수 있습니다:
+          <ul className="list-disc ml-5 mt-1">
+            {kpiErrors.map((e, i) => (
+              <li key={i} className="font-mono text-xs">{e}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       {/* 사업 기간 진척률 */}
       <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
         <div className="flex items-center justify-between mb-3">
@@ -281,39 +299,82 @@ export default function KpiDashboardPage() {
         </div>
       </div>
 
-      {/* KPI 카드 4종 */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <KpiCard
-          kpiId="K-02"
-          title="원격 사전상담"
-          actual={kpi?.preConsultation ?? null}
-          target={80}
-          accentColor="teal"
-        />
-        <KpiCard
-          kpiId="K-04"
-          title="사후관리"
-          actual={kpi?.followUp ?? null}
-          target={null}
-          note="가산점 지표"
-          accentColor="blue"
-        />
-        <KpiCard
-          kpiId="K-01"
-          title="환자유치"
-          actual={kpi?.attraction ?? null}
-          target={10}
-          accentColor="green"
-        />
-        <KpiCard
-          kpiId="K-03"
-          title="만족도 평균"
-          actual={kpi?.satisfactionAvg ?? null}
-          target={80}
-          unit="점"
-          note={kpi ? `응답 ${kpi.satisfactionResponseCount}건` : ""}
-          accentColor="amber"
-        />
+      {/* 공식 정량지표 달성률 (사업 누적 — 8/27 중간평가표 기준) */}
+      <div>
+        <div className="flex items-center justify-between mb-2">
+          <h2 className="text-sm font-bold text-gray-800">
+            공식 정량지표 달성률 <span className="text-gray-400 font-normal">· 사업 누적 (8/27 중간평가 기준)</span>
+          </h2>
+          <span className="text-xs text-gray-400">2026.04 ~ 현재</span>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <KpiCard
+            kpiId="K-01"
+            title="외국인환자 유치 (admitted)"
+            actual={cum?.attraction ?? null}
+            target={KPI_TARGETS.attraction}
+            accentColor="green"
+          />
+          <KpiCard
+            kpiId="K-02+K-04"
+            title="사전상담 + 사후관리 (합산)"
+            actual={cumConsultCare}
+            target={KPI_TARGETS.consultAndCare}
+            note={cum ? `사전 ${cum.preConsultation ?? 0} · 사후 ${cum.followUp ?? 0}` : ""}
+            accentColor="teal"
+          />
+          <KpiCard
+            kpiId="K-03"
+            title="환자 만족도 평균"
+            actual={cum?.satisfactionAvg ?? null}
+            target={KPI_TARGETS.satisfaction}
+            unit="점"
+            note={cum ? `응답 ${cum.satisfactionResponseCount ?? 0}건` : ""}
+            accentColor="amber"
+          />
+        </div>
+      </div>
+
+      {/* 월별 상세 (선택한 달의 운영 수치 — 목표 바 없음) */}
+      <div>
+        <h2 className="text-sm font-bold text-gray-800 mb-2">
+          이번 달 상세 <span className="text-gray-400 font-normal">· {year}년 {month}월 운영 수치</span>
+        </h2>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <KpiCard
+            kpiId="K-02"
+            title="원격 사전상담"
+            actual={kpi?.preConsultation ?? null}
+            target={null}
+            note="이번 달 완료"
+            accentColor="teal"
+          />
+          <KpiCard
+            kpiId="K-04"
+            title="사후관리"
+            actual={kpi?.followUp ?? null}
+            target={null}
+            note="이번 달 완료"
+            accentColor="blue"
+          />
+          <KpiCard
+            kpiId="K-01"
+            title="환자유치"
+            actual={kpi?.attraction ?? null}
+            target={null}
+            note="이번 달 확정"
+            accentColor="green"
+          />
+          <KpiCard
+            kpiId="K-03"
+            title="만족도 평균"
+            actual={kpi?.satisfactionAvg ?? null}
+            target={null}
+            unit="점"
+            note={kpi ? `응답 ${kpi.satisfactionResponseCount}건` : ""}
+            accentColor="amber"
+          />
+        </div>
       </div>
 
       {/* 일별 추이 차트 (최근 30일) */}
@@ -399,8 +460,8 @@ export default function KpiDashboardPage() {
             <GaugeCircle
               pct={kpi?.satisfactionAvg !== null ? Math.round(((kpi?.satisfactionAvg ?? 0) / 100) * 100) : 0}
               label="만족도"
-              sublabel="목표 80점"
-              color={kpi?.satisfactionAvg !== null && (kpi?.satisfactionAvg ?? 0) >= 80 ? "#14b8a6" : "#f59e0b"}
+              sublabel={`목표 ${KPI_TARGETS.satisfaction}점`}
+              color={kpi?.satisfactionAvg !== null && (kpi?.satisfactionAvg ?? 0) >= KPI_TARGETS.satisfaction ? "#14b8a6" : "#f59e0b"}
             />
           </div>
           <div className="text-xs text-gray-400 text-center">

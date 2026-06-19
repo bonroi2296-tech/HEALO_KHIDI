@@ -1,10 +1,15 @@
 /**
  * healwith KHIDI KPI 집계 라이브러리
  *
- * K-01 외국인환자 유치 건수 (목표: 10건)
- * K-02 원격 사전상담 건수   (목표: 80건)
- * K-03 환자 만족도 평균     (목표: 80점)
- * K-04 사후관리 건수        (가산점, 목표 없음)
+ * 공식 목표(8/27 중간평가, src/lib/khidi/targets.ts):
+ *   K-01 외국인환자 유치        목표 12건  (inquiries.outcome='admitted')
+ *   K-02+K-04 사전상담+사후관리  목표 120건 (consultation_sessions 완료 건수 합산)
+ *   K-03 환자 만족도 평균        목표 90점
+ *
+ * ⚠️ 2026-06-19 수정: K-01·K-02 가 존재하지 않는 컬럼(visit_confirmed_at,
+ *    actual_duration_minutes)을 쿼리해 PostgREST 오류로 항상 0이었음(POSTMORTEMS #7).
+ *    유치확정은 전환 깔때기 RPC(conversion_funnel)와 동일하게 inquiries.outcome='admitted'
+ *    로 집계. 사전상담은 duration 필터 제거(duration_seconds 미추적 + 컬럼명 오류).
  *
  * 기준 SQL: docs/government-project/KPI_측정방법_명세.md
  * DB 스키마: migrations/20260501_may_features_bundle.sql
@@ -35,6 +40,8 @@ export interface KpiResult {
   uniquePatients: number;
   /** 국가별 분포 [{ nationality, count }] */
   countries: Array<{ nationality: string; count: number }>;
+  /** 집계 중 발생한 쿼리 오류(컬럼명 오류 등). 비어있으면 정상. 화면에 경고로 표시. */
+  errors: string[];
 }
 
 export interface DailyKpiPoint {
@@ -94,20 +101,26 @@ async function _fetchKpiInRange(
   toISO: string
 ): Promise<KpiResult> {
   const supabase = getAdminClient();
+  const errors: string[] = [];
+  const noteErr = (label: string, msg: string) => {
+    console.error(`[kpi] ${label} error:`, msg);
+    errors.push(`${label}: ${msg}`);
+  };
 
-  // --- K-02: 사전상담 건수 ---
+  // --- K-02: 사전상담 건수 (완료 세션 수) ---
+  // duration 필터 제거: duration_seconds 가 미추적(전부 null)이고, 옛 코드의
+  // actual_duration_minutes 는 존재하지 않는 컬럼이었음.
   const { count: preCount, error: e1 } = await supabase
     .from("consultation_sessions")
     .select("*", { count: "exact", head: true })
     .eq("session_type", "pre_consultation")
     .eq("status", "completed")
     .gte("scheduled_at", fromISO)
-    .lt("scheduled_at", toISO)
-    .gte("actual_duration_minutes", 5);
+    .lt("scheduled_at", toISO);
 
-  if (e1) console.error("[kpi] pre_consultation count error:", e1.message);
+  if (e1) noteErr("pre_consultation count", e1.message);
 
-  // --- K-04: 사후관리 건수 ---
+  // --- K-04: 사후관리 건수 (완료 세션 수) ---
   const { count: followCount, error: e2 } = await supabase
     .from("consultation_sessions")
     .select("*", { count: "exact", head: true })
@@ -116,18 +129,20 @@ async function _fetchKpiInRange(
     .gte("scheduled_at", fromISO)
     .lt("scheduled_at", toISO);
 
-  if (e2) console.error("[kpi] follow_up count error:", e2.message);
+  if (e2) noteErr("follow_up count", e2.message);
 
-  // --- K-01: 환자유치 건수 (visit_confirmed_at IS NOT NULL 로 판단) ---
+  // --- K-01: 환자유치 건수 (inquiries.outcome='admitted') ---
+  // 전환 깔때기 RPC(conversion_funnel)와 동일 정의로 통일 → 두 대시보드 수치 일치.
+  // 날짜 기준 = inquiries.created_at (코호트, 깔때기와 동일). 옛 코드는 존재하지 않는
+  // consultation_sessions.visit_confirmed_at 를 쿼리해 항상 0이었음.
   const { count: attractionCount, error: e3 } = await supabase
-    .from("consultation_sessions")
+    .from("inquiries")
     .select("*", { count: "exact", head: true })
-    .eq("status", "completed")
-    .not("visit_confirmed_at", "is", null)
-    .gte("visit_confirmed_at", fromISO)
-    .lt("visit_confirmed_at", toISO);
+    .eq("outcome", "admitted")
+    .gte("created_at", fromISO)
+    .lt("created_at", toISO);
 
-  if (e3) console.error("[kpi] attraction count error:", e3.message);
+  if (e3) noteErr("attraction count", e3.message);
 
   // --- K-03: 만족도 평균 + 응답률 ---
   // (survey_type 필터링은 surveys 테이블 JOIN 필요. 현재는 모든 응답 평균.)
@@ -137,7 +152,7 @@ async function _fetchKpiInRange(
     .gte("submitted_at", fromISO)
     .lt("submitted_at", toISO);
 
-  if (e4b) console.error("[kpi] survey_responses error:", e4b.message);
+  if (e4b) noteErr("survey_responses", e4b.message);
 
   const responses = surveyResponsesFull ?? [];
   let satisfactionAvg: number | null = null;
@@ -181,7 +196,7 @@ async function _fetchKpiInRange(
     .gte("scheduled_at", fromISO)
     .lt("scheduled_at", toISO);
 
-  if (e5) console.error("[kpi] unique_patients/countries error:", e5.message);
+  if (e5) noteErr("unique_patients/countries", e5.message);
 
   const sessions = (sessRows ?? []) as Array<{
     patient_id: string | null;
@@ -215,7 +230,7 @@ async function _fetchKpiInRange(
       .select("id, nationality")
       .in("id", inquiryIds);
 
-    if (e6) console.error("[kpi] countries(nationality) error:", e6.message);
+    if (e6) noteErr("countries(nationality)", e6.message);
 
     (inqRows ?? []).forEach((r: { id: number; nationality: string | null }) => {
       natByInquiry.set(r.id, normalizeNationality(r.nationality));
@@ -247,6 +262,7 @@ async function _fetchKpiInRange(
     satisfactionResponseRate,
     uniquePatients,
     countries,
+    errors,
   };
 }
 
