@@ -7,6 +7,37 @@
 
 ---
 
+## 🔖 세션 핸드오프 (2026-06-19 오후) — 외부 아티클(요즘IT "AI PRD") 분석 → 우리 AI 품질체계 대조 (코드 변경 없음)
+
+**이번 세션 한 일 (커밋·PR 없음 — 순수 분석/리서치):**
+- PO가 요즘IT 글 [《AI PRD는 무엇이 달라야 하는가》](https://yozm.wishket.com/magazine/detail/3809/) (김영욱, AI 프로덕트 매니지먼트 시리즈 ④)를 던지며 "참고해서 적용할 게 있나 분석" 요청.
+- **본문 접근 막힘 우회**: CloudFront가 봇 차단(403) → WebFetch·r.jina·allorigins·corsproxy·microlink 전부 실패 → **구글 번역 프록시(`yozm-wishket-com.translate.goog`)로 HTTP 200 본문 확보** (구글 서버가 한국에서 대신 받아옴). 같은 봇차단 사이트 만나면 이 수법 재사용.
+- **글 핵심**: 기존 PRD(기획서)는 결정론적이라 "무엇이 일어나야"만 적으면 됐지만, AI는 같은 질문에도 답이 달라짐 → AI 기획서는 "어떤 답이 합격이고 어떻게 판단할지"를 정의해야. 심장 = **Eval Plan(평가셋)**, **3층 평가 피라미드**(규칙기반→LLM-as-Judge→사람), **회귀테스트**(프롬프트 수렁 방지), **실패 정의**(에어캐나다 챗봇 사고), AI 기획서 8항목, **토큰 비용/가격**.
+- **우리 코드 대조 결과 = 우리가 이미 거의 다 구현해놨음** (오히려 앞서감): `src/lib/chat/judge.ts`(LLM-as-Judge), `qualityStandards.ts`(가중치·임계값·`MEDICAL_REDLINE_FLAGS` 8종), `scripts/run-regression-tests.ts`+`/api/cron/run-regression-tests`(일일 회귀), `/admin/khidi/ai-regression`·`/admin/khidi/ai-quality`(대시보드), `docs/AI_QUALITY_ASSURANCE.md`, aiGuard(비용통제).
+- **PO에게 보고한 진짜 구멍 3개 + 추천**: ①⭐**규칙기반(rule-based) 0층 부재** — 의료 레드라인 감시를 전부 LLM 판사한테만 맡김(판사도 틀릴 수 있음). 완치·생존율 숫자·약물용량 패턴·면책문구누락·PII 같은 확정적 금칙 검사를 싸고 빠르게 까는 게 가성비 최고(CLAUDE.md "오류는 기계가 잡는다"와 정합). ②다국어 Eval 커버리지(ru·kz·zh·ja 실패케이스 점검). ③신규 AI기능에 글의 8항목 체크리스트 적용. + **KHIDI 8/27 어필**: 이 품질체계 자체가 정성지표 "ICT 체계 구축"·"만족도 90점" 직접 증거물.
+
+**왜 그렇게 했는지:**
+- 분석 결론을 "글이 좋다"로 끝내지 않고 **우리 실제 코드와 1:1 대조**해 "이미 있는 것 / 진짜 없는 것"을 갈라줘야 PO에게 실행가능한 답이 됨. grep으로 eval/judge/regression 자산 존재 먼저 확인 후 결론냄.
+- 규칙기반 0층을 1순위 추천한 이유: 비용 거의 0 + 의료 책임 리스크를 기계적(비확률적)으로 막음 + KHIDI 어필 재료 + 기존 철학과 일치.
+
+**안 끝났거나 보류:**
+- **규칙기반 안전망 0층 구현은 미착수** — PO가 "바로 할까 / 다국어 커버리지 점검부터 할까" 둘 중 고르면 진행. 분석만 하고 코드 손 안 댐(PO 지시가 "분석해봐"였음).
+
+**주의·함정:**
+- 이 세션은 **코드 0줄 변경**. 차단된 커밋 3개는 전부 직전 세션(#74·#77 등) 잔여분이지 이번 세션 산출물 아님.
+- 요즘IT 본문은 저작권 보호 — 분석/인용 참고용으로만. 원문 재배포 금지.
+
+**다음 세션이 먼저 할 일 (우선순위):**
+1. **PO 선택 대기**: 위 "보류"의 규칙기반 0층 구현 vs 다국어 Eval 커버리지 점검 — 둘 중 하나 착수.
+2. (이전 트랙) 종료 문지기(handoff-gate.sh) 실작동 관찰 — 아래 06-19 핸드오프 1번 참고. (이번 세션 종료 시 문지기가 실제로 막았다면 = 실작동 1차 확인됨.)
+3. (이전 트랙) Gemini 유료 확인 → 회의록 활성화(env `GEMINI_PII_BILLING_CONFIRMED=true`).
+4. (이전 트랙) 라이브 클릭 검증 / 도메인 `healwith.co.kr` 컷오버.
+5. KHIDI 중간평가(2026-08-27) 상시 — `docs/KHIDI_중간보고_베이스.md`.
+
+**검증 상태:** 코드 변경 없음 → 빌드·CI·check 해당 없음. **검증한 것**: 외부 글 본문 실제 확보(구글 번역 프록시 HTTP 200, 제목 "AI PRD는 무엇이 달라야 하는가" 확인) + 우리 AI 품질 자산 파일 실재 확인(`judge.ts`·`qualityStandards.ts`·회귀 크론·대시보드 grep으로 확인). **미검증**: 규칙기반 0층이 정말 없는지(부재)는 grep 기반 추정 — 구현 착수 시 generateReply 출력 후처리 경로 정밀 재확인 필요.
+
+---
+
 ## 🔖 세션 핸드오프 (2026-06-19) — 핸드오프 시스템 고도화: 닫힌 고리(A~G) + 종료 문지기(강제) + PO 취향 누적 원장
 
 **이번 세션 한 일 (PR [#74](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/74) main 머지·squash `5c5d4a4`):**
@@ -42,52 +73,6 @@
 5. KHIDI 중간평가(2026-08-27) 상시 — `docs/KHIDI_중간보고_베이스.md`.
 
 **검증 상태:** PR #74 = **CI(`ci`·`Smoke Tests`·`Vercel`) 전부 초록 + main 머지(squash `5c5d4a4`) + 배포 완료.** E2E류는 스킵(정상, main 푸시 전용). 직접 검증한 것: `check:handoff`·`handoff:rotate`(--keep 1로 3블록 회전 시나리오 임시복사본 검증)·`session-orient.sh` 실행·`handoff-gate.sh` 모의 stdin 전 경로(차단 JSON 인용/줄바꿈 이스케이프 포함). **미검증**: 종료 문지기의 실제 Claude Code Stop 이벤트 차단(시뮬만 함) — 위 1번으로 승격.
-
----
-
-## 🔖 세션 핸드오프 (2026-06-18 늦은 세션) — 라이브 검증·죽은 도메인 진단 + AI회의록/RAG출처/홈·치료 콘텐츠 7개 PR 머지 + 위키독스 MCP
-
-**이번 세션 한 일 (PR 7개 전부 main 머지·실서비스 배포):**
-- **홈 옛 도메인 이메일 정리 + 죽은 도메인 진단** ([#67](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/67)): 홈 "긴급 연락" 이메일 `contact@healo.kr`→`admin@healwith.co.kr`. `check:content` 가드에 `@healo.kr` 추가(.com만 막던 구멍). 반성문 POSTMORTEMS #4.
-- **⚠️ 죽은 도메인 발견**: 라이브 검증 결과 `khidi.healo.kr`이 **DNS·Vercel 어디에도 없음**(구글DNS도 "존재하지 않는 도메인"). 근데 canonical/hreflang/sitemap/OG가 전부 거길 가리켜 **색인 0**. 진짜 라이브=`healo-khidi.vercel.app`. PO 결정: 지금 안 고치고 `healwith.co.kr` 등록 시 처리. 경고 배너 `docs/DOMAIN_CUTOVER_healwith.md` 최상단. **URL 언어화 SSR 엔진 자체는 정상**(/ru→러시아어·/ko→한국어·hreflang 6+x-default 확인).
-- **AI 상담 회의록 (화상상담 Phase A)** ([#68](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/68)): 상담 번역기록(`consultation_translations`)→Gemini→요약·결정사항·다음단계·환자우려를 기존 `ai_summary`(jsonb) 컬럼에 저장. `POST /api/khidi/consultation/[id]/summarize` + 어드민 완료상담 "AI 회의록 생성" 버튼. **DB 마이그레이션 0**(컬럼 이미 존재). **⚠️ `GEMINI_PII_BILLING_CONFIRMED=true` 게이트로 비활성**(무료 Gemini PII 학습 방지).
-- **RAG 답변 출처 표기 + 책2권 학습노트** ([#69](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/69)): `generateReply.ts` 시스템 프롬프트에 "출처 표기" 규칙(병원·가격·통계에 `(출처:…)`, 출처 없으면 진술 금지). "모르면 코디"·안티환각은 **이미 구현돼 있어** 출처표기만 보강. `docs/RAG_AGENT_LEARNINGS.md` 신설(위키독스 책 2권 정독 증류).
-- **treatments 통계 라벨** ([#70](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/70)): "5 · ITCRN axes"→"5 · 면역 회복 요소"(6언어, ru/kz/zh/ja 누락분도 채움). ITCRN 약자는 설명섹션에만.
-- **treatments 암종 카드 사진** ([#71](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/71)): 차가운 스톡/기계 사진→면력한방 회복 실사진(산책·푸드테라피·운동·휴식 등, 기존 로컬 이미지 재매핑).
-- **홈 협진 대학병원 3곳 사진 연결** ([#72](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/72)): 이대서울·이대목동·고려대구로 사진이 업로드돼 있었으나 데이터가 `_coming-soon.svg` placeholder를 가리켜 안 떴음 → 실제 경로 연결.
-- **WhatsApp 문의 채널 연결** ([#73](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/73)): `/inquiry` Human Agent WhatsApp이 "준비 중"이었음 → `siteSettings.js` 기본값에 `https://wa.me/821047721075` 박음(비즈니스 번호 010-4772-1075).
-- **위키독스 MCP 연결**: Claude Code(`.claude.json`) + Claude Desktop(`claude_desktop_config.json`, `cmd /c npx` 형태 — 공백경로 문제 회피) 둘 다 연결. 토큰은 PO 위키독스 계정. **남의 공개책은 MCP 말고 URL 직접 긁기.**
-- 말투 규칙 훅(`session-orient.sh`)·메모리 추가(죽은 도메인·마케팅 취향).
-
-**왜 그렇게 했는지:**
-- **회의록 유료 게이트**: 무료 Gemini는 입력을 모델 학습·사람검수에 사용(약관이 PII 금지 명시) → 환자 상담 PII엔 부적합. PO가 빌링 켜고 env `GEMINI_PII_BILLING_CONFIRMED=true` 추가하면 즉시 활성(딸깍). 메인 챗은 이미 Gemini라 이건 신규 PII 흐름만 차단.
-- **카드 사진 회복톤**: 면력한방 치료제 제품샷(주사기로 암세포 찌르는 3D 등)은 (a)한 병원 광고처럼 (b)"면역치료=암치료" 오해/의료광고 리스크 → 의도 배제, 회복 프로그램 사진으로.
-- **ITCRN 전면 강등**: ITCRN은 면력한방 자사 브랜드 모델(immunehospital.com 출처). HEALO는 다병원 중립 컨시어지 + 한방은 보조케어 → 전면 헤드라인 부적합. 통계 라벨만 평이하게, 약자는 설명섹션에.
-- **자동검사 구멍**: `@healo.kr` 잔재가 통과한 건 검사기가 `.com`만 막아서 → 가드 추가로 영구 차단.
-
-**안 끝났거나 보류:**
-- **Gemini 유료 결제** (PO 나중) → **회의록(#68) 활성화 대기.** 결제 후 env 한 줄.
-- **RAG 개선 백로그** (`docs/RAG_AGENT_LEARNINGS.md`): ①출처강제·답변없음 프롬프트 ②LLM-judge 품질평가 ③크로스인코더 리랭킹 ④HyDE/청킹/BGE-M3. 책2권(위키독스 #2155 NLP·#19414 에이전트) 증류. 추천순서 A→D→B→C.
-- **도메인 `healwith.co.kr` 결제** (결제담당 손, 우리 밖) → 등록 시 env 전환 + JSON-LD 14곳 grep치환(`DOMAIN_CUTOVER` §3).
-- **로고**: PO가 SVG·PNG 옵션(h/hw/arc/h+) 다 거부("싹다 별로"). 전문 디자이너/도구 필요. 임시 파일은 `logo/`·바탕화면.
-- **treatments 히어로 ITCRN 전면 재구성**: 제안만 했고 미적용(통계 라벨만 변경).
-- 나머지 메신저 채널(Telegram·LINE·WeChat) 여전히 "준비 중"(링크 생기면 siteSettings에 추가).
-
-**주의·함정:**
-- **회의록 #68**: `GEMINI_PII_BILLING_CONFIRMED=true` 전엔 503(billing_required, 버튼 "유료 설정 후 켜집니다"). **실데이터 런타임 미검증.**
-- **RAG 출처표기 #69**: 실제 답변에 출처 자연스럽게 붙는지·톤 해치는지 **런타임 미검증**(환자화면이라 톤 PO 확인 권장).
-- **자동커밋 훅** 때문에 작업이 엉뚱한 브랜치에 섞일 수 있음(이번에 이메일PR에 회의록 섞여 분리수술함) → **기능별 브랜치 먼저 따고** 작업.
-- `logo/` 폴더(PNG들) untracked, `public/images/hospitals/Hospitals_Rev1.zip`이 공개 주소로 노출(정리 권장, 미처리).
-- **폰↔컴 세션 끊김/자동보관 = Claude Code 앱 동작**(우리 설정 무관, 끄는 설정 없음). "어디서나 싱크" 원하면 Remote Control(`claude --remote-control`, 컴 켜둬야). PO "일단 됐다".
-
-**다음 세션이 먼저 할 일 (우선순위):**
-1. **Gemini 유료 확인 → 회의록 활성화**(Vercel env `GEMINI_PII_BILLING_CONFIRMED=true`).
-2. **라이브 클릭 검증**(이번 세션 미검증분): 회의록 실데이터 / RAG 답변 출처·톤 / WhatsApp 버튼(/inquiry) / 새 카드사진·대학병원 사진.
-3. 도메인 `healwith.co.kr` 결제되면 컷오버.
-4. (선택) RAG 개선 착수 — `RAG_AGENT_LEARNINGS.md` A1(프롬프트 규칙)부터.
-5. KHIDI 중간평가(2026-08-27) 상시 — `docs/KHIDI_중간보고_베이스.md`.
-
-**검증 상태:** PR #67~#73 = **CI(ci·smoke·Vercel) 전부 초록 + main 머지 + 배포 완료.** `next build --webpack`·`check:content`·회의록 라우트 등록 확인. **런타임(실제 동작) 미검증 항목**: 회의록 실데이터 생성, RAG 출처 렌더/톤, WhatsApp 버튼·새 사진 라이브 클릭 — **솔직히 다 PO/다음 세션 몫(직접 클릭 안 함).**
 
 ---
 
