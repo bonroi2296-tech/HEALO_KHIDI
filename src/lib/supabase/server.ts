@@ -29,6 +29,7 @@ import { cookies } from 'next/headers'
 import type { NextRequest } from 'next/server'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@/types/database.types'
+import { supabaseAdmin } from '@/lib/rag/supabaseAdmin'
 
 export type TypedSupabaseServerClient = SupabaseClient<Database>
 
@@ -100,29 +101,19 @@ export function createSupabaseServerClientFromRequest(request: NextRequest): Typ
 }
 
 /**
- * ✅ Service Role 클라이언트 생성 (관리자 전용, DB 타입 바인딩)
+ * ✅ Service Role 클라이언트 (관리자 전용, DB 타입 바인딩)
  *
  * ⚠️ 주의: Service Role Key는 모든 RLS를 무시합니다.
  * 관리자 API에서만 사용하고, 반드시 권한 체크를 선행하세요.
  *
- * @returns Supabase client with service role key
+ * 중복정리(3단계): service_role 클라이언트 생성 지점을 정본 `supabaseAdmin` 싱글톤
+ * 한 곳으로 단일화. 과거엔 호출마다 새 createClient 를 만들었으나(서버에 다중 인스턴스),
+ * 이제 fail-closed 싱글톤을 위임 반환한다. 호출부 무변경.
+ *
+ * @returns 정본 service_role Supabase client (싱글톤)
  */
 export function createServiceRoleClient(): TypedSupabaseServerClient {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-
-  if (!supabaseUrl || !supabaseServiceKey) {
-    throw new Error(
-      '[supabase/server] NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are required'
-    )
-  }
-
-  return createClient<Database>(supabaseUrl, supabaseServiceKey, {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false,
-    },
-  })
+  return supabaseAdmin as unknown as TypedSupabaseServerClient
 }
 
 /**
