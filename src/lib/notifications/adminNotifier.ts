@@ -16,7 +16,7 @@
 import { supabaseAdmin } from "../rag/supabaseAdmin";
 import { logOperational } from "../operationalLog";
 import { getActiveRecipients, maskPhone, updateRecipientStats } from "./recipients";
-import { sendEmail } from "./emailSender";
+import { sendEmail } from "../email/sendEmail";
 
 /**
  * 알림 제공자 타입
@@ -79,8 +79,71 @@ function generateNotificationMessage(payload: AdminNotificationPayload): string 
   if (adminUrl) {
     message += `\n확인: ${adminUrl}/admin/inquiries/${payload.inquiryId}`;
   }
-  
+
   return message;
+}
+
+/**
+ * 관리자 알림 이메일 본문 생성 (subject/html/text)
+ * (2026-06-19 중복정리: 옛 notifications/emailSender.ts 의 generateEmailMessage 를 이리로 이전)
+ */
+function generateAdminEmail(payload: AdminNotificationPayload): { subject: string; html: string; text: string } {
+  const urgency = payload.leadQuality === "hot" ? "🔥 긴급" : "📬";
+  const adminUrl = process.env.ADMIN_DASHBOARD_URL || process.env.NEXT_PUBLIC_URL || "https://healo-khidi.vercel.app";
+  const inquiryUrl = `${adminUrl}/admin/inquiries/${payload.inquiryId}`;
+
+  const subject = `[healwith] ${urgency} New inquiry received #${payload.inquiryId}`;
+
+  const text = `
+${urgency} 새 문의 #${payload.inquiryId}
+
+국가: ${payload.nationality || "미표기"}
+시술: ${payload.treatmentType || "미표기"}
+연락: ${payload.contactMethod || "미표기"}
+점수: ${payload.priorityScore || 0}
+
+시각: ${new Date(payload.createdAt).toLocaleString("ko-KR")}
+
+확인: ${inquiryUrl}
+`.trim();
+
+  const html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; }
+    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+    .header { background: ${payload.leadQuality === "hot" ? "#dc2626" : "#059669"}; color: white; padding: 20px; border-radius: 8px 8px 0 0; }
+    .content { background: #f9fafb; padding: 20px; border: 1px solid #e5e7eb; border-radius: 0 0 8px 8px; }
+    .field { margin: 10px 0; }
+    .label { font-weight: bold; color: #374151; }
+    .value { color: #6b7280; }
+    .button { display: inline-block; background: #059669; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin-top: 20px; }
+    .footer { margin-top: 20px; padding-top: 20px; border-top: 1px solid #e5e7eb; color: #9ca3af; font-size: 12px; text-align: center; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h2 style="margin: 0;">${urgency} New Inquiry #${payload.inquiryId}</h2>
+    </div>
+    <div class="content">
+      <div class="field"><span class="label">국가:</span> <span class="value">${payload.nationality || "미표기"}</span></div>
+      <div class="field"><span class="label">시술:</span> <span class="value">${payload.treatmentType || "미표기"}</span></div>
+      <div class="field"><span class="label">연락:</span> <span class="value">${payload.contactMethod || "미표기"}</span></div>
+      <div class="field"><span class="label">점수:</span> <span class="value">${payload.priorityScore || 0}</span></div>
+      <div class="field"><span class="label">시각:</span> <span class="value">${new Date(payload.createdAt).toLocaleString("ko-KR")}</span></div>
+      <a href="${inquiryUrl}" class="button">문의 확인하기</a>
+    </div>
+    <div class="footer">healwith - AI Medical Concierge for Global Patients</div>
+  </div>
+</body>
+</html>
+`.trim();
+
+  return { subject, html, text };
 }
 
 /**
@@ -418,11 +481,17 @@ async function _sendAdminNotificationInternal(
     // 2. Email 발송 (email이 있으면)
     if (recipient.email) {
       const startTime = Date.now();
-      
-      // AWS SES로 실제 발송
-      const emailResult = await sendEmail(recipient.email, payload);
+
+      // 통합 이메일 발송기(email/sendEmail): Resend 우선 → SES(신규·레거시 env) → console
+      const { subject, html, text } = generateAdminEmail(payload);
+      const sendResult = await sendEmail({ to: recipient.email, subject, html, text });
+      const emailResult = {
+        success: sendResult.ok,
+        messageId: sendResult.messageId,
+        error: sendResult.error,
+      };
       const deliveryTimeMs = Date.now() - startTime;
-      
+
       if (emailResult.success) hasSuccess = true;
       
       const result: NotificationResult = {
