@@ -37,6 +37,16 @@ import { encryptStringNullable } from "@/lib/security/encryptionV2";
 
 const INTAKE_EVERY_N_TURNS = 3;
 
+// 핸드오프 확인 멘트 (6개 언어) — "다시 입력 안 해도 됨" 명시. 대화 내용은 이미 서버 저장됨.
+const HANDOFF_CONFIRM: Record<string, string> = {
+  ko: "🔔 접수됐어요. 지금까지 말씀해주신 내용은 그대로 저장됐고, healwith 코디네이터가 곧 연락드립니다. 다시 입력하실 필요 없어요.",
+  en: "🔔 You're registered. Everything you shared here is saved — a healwith coordinator will reach out shortly. No need to re-enter anything.",
+  ru: "🔔 Заявка принята. Всё, что вы рассказали, сохранено — координатор healwith скоро свяжется с вами. Повторно вводить ничего не нужно.",
+  kk: "🔔 Өтінім қабылданды. Айтқандарыңыз сақталды — healwith үйлестірушісі жақын арада хабарласады. Қайта енгізудің қажеті жоқ.",
+  zh: "🔔 已为您登记。您在此提供的信息都已保存，healwith 协调员会尽快与您联系，无需重新填写。",
+  ja: "🔔 受付しました。お話しいただいた内容は保存済みです。healwithのコーディネーターからまもなくご連絡します。再入力は不要です。",
+};
+
 export async function POST(request: NextRequest) {
   assertSupabaseEnv();
 
@@ -133,7 +143,7 @@ export async function POST(request: NextRequest) {
 
     let finalReply = reply;
     if (handOff.requested) {
-      finalReply += "\n\n🔔 I've flagged your request to be connected with a human coordinator. A team member will reach out to you shortly.";
+      finalReply += "\n\n" + (HANDOFF_CONFIRM[lang] || HANDOFF_CONFIRM.en);
     }
 
     const { data: aiMsg, error: aiInsertErr } = await (supabaseAdmin as any)

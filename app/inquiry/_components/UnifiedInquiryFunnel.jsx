@@ -1019,13 +1019,13 @@ export default function UnifiedInquiryFunnel() {
     ];
 
     return (
-      <div className="max-w-3xl mx-auto px-4 py-10 md:py-16 animate-in fade-in slide-in-from-bottom-4 duration-300">
-        <div className="text-center mb-10">
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">{tl("chooseTitle", lang)}</h1>
+      <div className="max-w-3xl mx-auto px-4 py-6 md:py-16 animate-in fade-in slide-in-from-bottom-4 duration-300">
+        <div className="text-center mb-6 md:mb-10">
+          <h1 className="text-xl md:text-3xl font-bold text-gray-900 mb-1 md:mb-2">{tl("chooseTitle", lang)}</h1>
           <p className="text-gray-500 text-sm md:text-base">{tl("chooseSubtitle", lang)}</p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-5">
           {channels.map((c) => {
             const Icon = c.Icon;
             return (
@@ -1033,13 +1033,15 @@ export default function UnifiedInquiryFunnel() {
                 key={c.key}
                 type="button"
                 onClick={c.onClick}
-                className={`bg-white border border-gray-200 rounded-xl p-6 text-left ${c.hoverBorder} hover:shadow-md transition-all`}
+                className={`bg-white border border-gray-200 rounded-xl p-4 md:p-6 text-left flex md:block items-center gap-4 md:gap-0 ${c.hoverBorder} hover:shadow-md transition-all`}
               >
-                <div className={`w-12 h-12 ${c.iconBg} rounded-xl flex items-center justify-center mb-4`}>
+                <div className={`w-11 h-11 md:w-12 md:h-12 ${c.iconBg} rounded-xl flex items-center justify-center mb-0 md:mb-4 shrink-0`}>
                   <Icon size={22} className={c.iconColor} />
                 </div>
-                <h3 className="text-lg font-bold text-gray-900 mb-1.5">{c.title}</h3>
-                <p className="text-gray-500 text-sm leading-relaxed">{c.desc}</p>
+                <div className="min-w-0">
+                  <h3 className="text-base md:text-lg font-bold text-gray-900 mb-0.5 md:mb-1.5">{c.title}</h3>
+                  <p className="text-gray-500 text-xs md:text-sm leading-snug md:leading-relaxed">{c.desc}</p>
+                </div>
               </button>
             );
           })}
@@ -1051,15 +1053,17 @@ export default function UnifiedInquiryFunnel() {
   // Phase: ai-chat (AI 상담사 인라인 챗)
   if (phase === "ai-chat") {
     return (
-      <div className="max-w-3xl mx-auto px-4 py-2 md:py-8 animate-in fade-in slide-in-from-right-4 duration-300">
+      <div className="max-w-3xl w-full mx-auto px-2 sm:px-4 flex flex-col h-[calc(100dvh-5rem)] md:h-auto md:py-8 animate-in fade-in slide-in-from-right-4 duration-300">
         <button
           type="button"
           onClick={() => setPhase("channel-select")}
-          className="flex items-center gap-1 text-sm font-medium text-gray-500 mb-2 md:mb-4 hover:text-teal-600 transition"
+          className="flex items-center gap-1 text-sm font-medium text-gray-500 mb-1 md:mb-4 hover:text-teal-600 transition shrink-0"
         >
           <ChevronLeft size={16} /> {tl("back", lang)}
         </button>
-        <ThreadChat />
+        <div className="flex-1 min-h-0 md:flex-none md:h-[600px]">
+          <ThreadChat />
+        </div>
       </div>
     );
   }
