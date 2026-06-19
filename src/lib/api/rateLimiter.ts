@@ -64,7 +64,6 @@ export function createRateLimiter(options: RateLimiterOptions = {}) {
         record.count++;
       }
 
-      const remaining = Math.max(0, max - record.count);
       const resetSeconds = Math.ceil((record.resetAt - now) / 1000);
 
       if (record.count > max) {

@@ -164,7 +164,7 @@ healwith Team
  * 
  * 이메일에 적합한 스타일링
  */
-export function generateLeadCardHtml(summary: HospitalLeadSummary, hospitalName: string): string {
+export function generateLeadCardHtml(summary: HospitalLeadSummary, _hospitalName: string): string {
   const priorityColor = summary.priority === 'high' ? '#ff4444' : 
                         summary.priority === 'medium' ? '#ff9944' : '#999999';
   const priorityText = summary.priority === 'high' ? '긴급' : 

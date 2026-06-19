@@ -24,7 +24,6 @@ function shouldRunNow(schedule: any): boolean {
   // KST = UTC+9
   const now = new Date();
   const kstHour = (now.getUTCHours() + 9) % 24;
-  const kstDay = now.getUTCDay();
   if ((now.getUTCHours() + 9) >= 24) {
     // Day rolled over in KST
   }

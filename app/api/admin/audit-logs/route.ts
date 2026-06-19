@@ -50,7 +50,6 @@ export async function GET(request: NextRequest) {
   if (!auth.success) {
     return auth.response; // 403 + audit log 자동 처리
   }
-  const { authResult } = auth;
 
   // ========================================
   // 2. Query Parameters 파싱

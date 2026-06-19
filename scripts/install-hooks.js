@@ -6,7 +6,7 @@
  */
 
 import { writeFileSync, chmodSync, mkdirSync, existsSync } from "fs";
-import { resolve, join } from "path";
+import { join } from "path";
 
 const ROOT = process.cwd();
 const HOOKS_DIR = join(ROOT, ".git", "hooks");

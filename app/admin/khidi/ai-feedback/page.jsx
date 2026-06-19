@@ -116,7 +116,7 @@ export default function AiFeedbackPage() {
         return;
       }
       setData(json);
-    } catch (e) {
+    } catch {
       setError("서버 연결 실패");
     } finally {
       setLoading(false);

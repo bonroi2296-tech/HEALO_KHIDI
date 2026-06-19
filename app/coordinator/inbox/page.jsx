@@ -156,7 +156,6 @@ export default function CoordinatorInboxPage() {
             </thead>
             <tbody>
               {filtered.map((item) => {
-                const step1Done = !!item.step1_completed_at;
                 const step2Done = !!item.step2_completed_at;
                 return (
                   <tr

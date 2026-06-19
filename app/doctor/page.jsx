@@ -11,7 +11,7 @@ export default function DoctorDashboard() {
   const [user, setUser] = useState(null);
   const [upcomingCount, setUpcomingCount] = useState(0);
   const [activeCount, setActiveCount] = useState(0);
-  const [pendingAdmissions, setPendingAdmissions] = useState(0);
+  const [_pendingAdmissions, _setPendingAdmissions] = useState(0);
   const [todayConsultations, setTodayConsultations] = useState([]);
   const [loading, setLoading] = useState(true);
 

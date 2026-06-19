@@ -595,6 +595,7 @@ export const HospitalDetailPage = ({ selectedId, setView, onTreatmentClick, init
             )}
 
             {/* Signature Programs — 비활성화 (PO 요청, 코드 보존). 다시 켜려면 false 제거 */}
+            {/* eslint-disable-next-line no-constant-binary-expression -- 의도적 기능 토글(false 로 끔) */}
             {false && hospitalTreatments.length > 0 && (
               <section className="border-t border-gray-200 pt-8 pb-2">
                 <h2 className="text-lg font-bold text-gray-900 mb-4">{t("detail.signaturePrograms", langCode)}</h2>

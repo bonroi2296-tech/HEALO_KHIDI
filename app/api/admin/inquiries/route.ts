@@ -82,7 +82,7 @@ export async function GET(request: NextRequest) {
   
   // 🔒 보안 정책: decrypt 파라미터 완전 봉인 (목록은 항상 마스킹만)
   // decrypt 파라미터가 오더라도 무시하고 항상 false로 고정
-  const shouldDecrypt = false; // 🚫 ALWAYS FALSE - 평문 대량 노출 차단
+  const _shouldDecrypt = false; // 🚫 ALWAYS FALSE - 평문 대량 노출 차단
 
   // ========================================
   // 3. DB 조회

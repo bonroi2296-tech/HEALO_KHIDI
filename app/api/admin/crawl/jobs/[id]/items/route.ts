@@ -33,7 +33,6 @@ export async function GET(
   const type = url.searchParams.get("type");
   const specialty = url.searchParams.get("specialty");
 
-  const hasTextFilters = search || region || type || specialty;
 
   // For large datasets: select minimal columns, use planned count to avoid timeout
   let query = supabaseAdmin

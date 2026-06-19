@@ -38,6 +38,11 @@ export default function NotificationToast({ notification, onClose }) {
   const c = COPY[lang] || COPY.en;
 
   // mount 시 슬라이드 인
+  function handleClose() {
+    setVisible(false);
+    setTimeout(() => onClose?.(), 300); // 애니메이션 후 언마운트
+  }
+
   useEffect(() => {
     const raf = requestAnimationFrame(() => setVisible(true));
     timerRef.current = setTimeout(() => handleClose(), 5000);
@@ -46,11 +51,6 @@ export default function NotificationToast({ notification, onClose }) {
       clearTimeout(timerRef.current);
     };
   }, []);
-
-  function handleClose() {
-    setVisible(false);
-    setTimeout(() => onClose?.(), 300); // 애니메이션 후 언마운트
-  }
 
   function handleClick() {
     onClose?.();

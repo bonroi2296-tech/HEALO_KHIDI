@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
 
     // 6) Supabase Storage에 업로드 (upsert)
     const fileBuffer = await file.arrayBuffer();
-    const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
+    const { error: uploadError } = await supabaseAdmin.storage
       .from("public-assets")
       .upload(storagePath, fileBuffer, {
         contentType: file.type,

@@ -179,7 +179,7 @@ export function checkAndUpdatePlaybook(): PlaybookPattern[] {
 export function calculateConfidenceScore(
   cancerType: string,
   language: string,
-  responseText: string
+  _responseText: string
 ): number {
   let score = 0.7; // 기본 신뢰도
 

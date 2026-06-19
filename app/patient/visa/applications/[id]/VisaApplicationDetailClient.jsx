@@ -39,7 +39,7 @@ const DOCUMENT_TYPES = [
 export default function VisaApplicationDetailClient({ applicationId }) {
   const [application, setApplication] = useState(null);
   const [documents, setDocuments] = useState([]);
-  const [role, setRole] = useState(null);
+  const [_role, setRole] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [invitationUrl, setInvitationUrl] = useState(null);

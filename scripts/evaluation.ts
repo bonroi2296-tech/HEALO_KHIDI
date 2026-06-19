@@ -150,7 +150,7 @@ function getModel() {
 /**
  * 일반 LLM 응답 (RAG 없이)
  */
-async function getBaselineResponse(inquiry: string, lang: string): Promise<string> {
+async function getBaselineResponse(inquiry: string, _lang: string): Promise<string> {
   const model = getModel();
   const systemPrompt = [
     "You are a medical concierge assistant for HEALO.",

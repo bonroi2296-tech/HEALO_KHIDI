@@ -124,7 +124,7 @@ async function judgeWithExpected(
 // ── AI 응답 생성 (generateChatReply 대신 직접 Gemini 호출) ───────
 // scripts 환경은 server-only 모듈을 import할 수 없으므로
 // generateChatReply 로직을 간소화해서 재현한다
-async function generateTestReply(query: string, language: string): Promise<{ reply: string; latencyMs: number }> {
+async function generateTestReply(query: string, _language: string): Promise<{ reply: string; latencyMs: number }> {
   const t0 = Date.now();
   const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
   if (!apiKey) {

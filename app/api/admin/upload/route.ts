@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
   let formData: FormData;
   try {
     formData = await request.formData();
-  } catch (error) {
+  } catch {
     return Response.json(
       { ok: false, error: "invalid_form_data", detail: "FormData 파싱 실패" },
       { status: 400 }

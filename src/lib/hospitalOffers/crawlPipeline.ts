@@ -113,7 +113,7 @@ function extractAndScoreLinks(html: string, baseUrl: string, limit: number): { u
 }
 
 /** 하위 호환: 키워드 링크만 반환 */
-function extractLinks(html: string, baseUrl: string): string[] {
+function _extractLinks(html: string, baseUrl: string): string[] {
   return extractAndScoreLinks(html, baseUrl, MAX_CANDIDATE_PAGES).map((x) => x.url);
 }
 
@@ -331,8 +331,8 @@ function countAssets(html: string): { pdf_count: number; image_count: number } {
   const pdfRe = /href\s*=\s*["'][^"']*\.pdf["']/gi;
   const imgRe = /<img[^>]+>/gi;
   let pdf_count = 0;
-  let m: RegExpExecArray | null;
-  while ((m = pdfRe.exec(html)) !== null) pdf_count++;
+  let _m: RegExpExecArray | null;
+  while ((_m = pdfRe.exec(html)) !== null) pdf_count++;
   const imgs = html.match(imgRe) || [];
   const priceImgRe = /(price|menu|fee|가격표|메뉴|비용)/i;
   let image_count = 0;

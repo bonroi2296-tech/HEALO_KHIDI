@@ -72,7 +72,7 @@ export async function GET(
     }
 
     // 응답에서 암호화 컬럼은 감춤
-    const { coordinator_notes_encrypted, ...rest } = data;
+    const { coordinator_notes_encrypted: _drop, ...rest } = data;
 
     return Response.json({
       ok: true,
@@ -211,7 +211,7 @@ export async function PATCH(
       });
     }
 
-    const { coordinator_notes_encrypted, ...rest } = data;
+    const { coordinator_notes_encrypted: _drop, ...rest } = data;
     return Response.json({ ok: true, data: rest });
   } catch (error: any) {
     console.error("[api/khidi/visa/applications/[id]] PATCH exception:", error?.message);

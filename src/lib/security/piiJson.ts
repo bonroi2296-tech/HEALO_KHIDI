@@ -14,7 +14,7 @@
  * - 로그에 평문 출력 금지
  */
 
-import { encryptString, decryptString, encryptStringNullable, decryptStringNullable } from "./encryptionV2";
+import { encryptString, decryptString } from "./encryptionV2";
 
 // ========================================
 // PII 키 정의 (컨텍스트별)

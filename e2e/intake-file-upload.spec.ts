@@ -37,7 +37,7 @@ test.describe("인테이크 파일 업로드", () => {
 
     // 파일 업로드 input 찾기
     const fileInput = page.locator('input[type="file"]').first();
-    const hasFile = await fileInput.isVisible().catch(() =>
+    await fileInput.isVisible().catch(() =>
       fileInput.isHidden().then(() => false).catch(() => false)
     );
 

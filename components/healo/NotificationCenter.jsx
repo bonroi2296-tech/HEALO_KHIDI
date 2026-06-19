@@ -11,7 +11,7 @@
  * 실시간 토스트는 이 컴포넌트가 담당 (신규 알림 감지 → NotificationToast 렌더).
  */
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useNotifications } from "@/hooks/useNotifications";

@@ -44,8 +44,8 @@ function scoreChunk(chunkText: string, candidateName: string, exactMatch: boolea
   if (lower.includes(nameLower)) score += 30;
   let medCount = 0;
   const re = new RegExp(MEDICAL_KEYWORDS.source, "gi");
-  let m: RegExpExecArray | null;
-  while ((m = re.exec(chunkText)) !== null) {
+  let _m: RegExpExecArray | null;
+  while ((_m = re.exec(chunkText)) !== null) {
     medCount++;
     if (medCount >= 8) break;
   }

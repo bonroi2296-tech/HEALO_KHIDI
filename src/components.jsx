@@ -135,7 +135,7 @@ export const Header = ({ setView, view, _handleGlobalInquiry, isMobileMenuOpen, 
     setIsLangOpen(false);
     // URL 언어화: 공개 페이지면 새 언어 주소로 이동(미들웨어가 쿠키를 URL언어로 덮어쓰므로 reload론 안 바뀜)
     const target = localeSwitchTarget(window.location.pathname, window.location.search, code);
-    if (target) window.location.href = target;
+    if (target) window.location.assign(target);
     else window.location.reload();
   };
 

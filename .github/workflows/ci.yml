@@ -23,12 +23,10 @@ jobs:
         run: npm run typecheck
       - name: 단위 테스트 (vitest — 로직 회귀 자동 검사)
         run: npm run test:run
-      # lint 는 기존 에러(69건)·경고(1100여건)가 남아 있어 아직 머지를 막지 않는다(정보용).
-      # 결과는 PR 로그에서 확인 가능. 기존 에러를 정리한 뒤 continue-on-error 를 제거해
-      # blocking 게이트로 승격할 것. (감리 2026-06-19)
-      - name: 코드 린트 (eslint — 정보용, 아직 비차단)
+      # lint: 기존 에러 67건을 0으로 정리(2026-06-19) → blocking 게이트로 승격.
+      # 이제 eslint ERROR 가 1건이라도 생기면 머지 차단(경고 1100여건은 비차단 — 점진 정리).
+      - name: 코드 린트 (eslint — 에러 발생 시 머지 차단)
         run: npm run lint
-        continue-on-error: true
       - name: 콘텐츠 일관성 (옛 브랜드·이메일 잔재 + i18n 키 누락 자동 차단)
         run: npm run check:content
       - run: npm run check:i18n

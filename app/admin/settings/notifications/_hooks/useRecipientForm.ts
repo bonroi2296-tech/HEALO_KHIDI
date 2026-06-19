@@ -5,7 +5,7 @@ import { useState, useCallback } from "react";
 import { cleanPhone, isValidKoreanMobile, isValidEmail } from "@/lib/utils/phoneFormat";
 import type { RecipientFormData } from "../_types";
 
-export function useRecipientForm(onSuccess?: () => void) {
+export function useRecipientForm(_onSuccess?: () => void) {
   const [formData, setFormData] = useState<RecipientFormData>({
     label: "",
     channels: ["sms"],
