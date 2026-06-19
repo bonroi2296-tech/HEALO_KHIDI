@@ -130,6 +130,33 @@ if (typeof process !== 'undefined' && process.env.NODE_ENV) {
 }
 
 /**
+ * ✅ 누적 임계 카운터 — DB sliding window (cross-isolate)
+ *
+ * 인메모리(AlertCounter)는 Vercel isolate 마다 독립이라 "5분 내 N건" 류 누적 임계가
+ * 단일 인스턴스 안에서만 정확 → 분산 환경에서 임계 도달을 놓침.
+ * `alert_counter_increment(key, window_ms)` RPC 로 DB 집계(migrations/20260619_alert_counters.sql).
+ *
+ * RPC 실패/미적용 시 → 인메모리로 fallback(알림을 잃지 않음, 현행 동작 유지).
+ * 마이그레이션 적용 전에도 안전하게 동작하고, 적용되면 자동으로 DB 집계로 전환된다.
+ */
+async function incrementCounter(key: string, windowMs: number): Promise<number> {
+  try {
+    const { supabaseAdmin } = await import("../rag/supabaseAdmin");
+    const { data, error } = await (supabaseAdmin as any).rpc("alert_counter_increment", {
+      p_key: key,
+      p_window_ms: windowMs,
+    });
+    if (error || typeof data !== "number") {
+      // RPC 미적용(함수 없음)·DB 오류 → 인메모리로 fallback
+      return alertCounter.increment(key, windowMs);
+    }
+    return data;
+  } catch {
+    return alertCounter.increment(key, windowMs);
+  }
+}
+
+/**
  * 운영자에게 알림 도달 — 실제 채널 연결.
  *
  * 1) 콘솔 로그 (Vercel 로그)
@@ -137,9 +164,8 @@ if (typeof process !== 'undefined' && process.env.NODE_ENV) {
  * 3) 이메일 (critical/warning 만, Resend/SES via sendEmail). 수신자:
  *    OPERATIONAL_ALERT_EMAIL → 없으면 ADMIN_EMAIL_ALLOWLIST 첫 주소.
  *
- * ⚠️ 한계: 임계값 카운터(AlertCounter)는 인메모리라 Vercel 서버리스 콜드스타트마다
- * 리셋된다 → "5분 내 N건" 류 누적 임계는 단일 인스턴스 안에서만 정확. 정밀한 누적
- * 집계가 필요하면 DB 기반 카운터로 옮겨야 함(백로그). 단 개별 알림 전송 자체는 정상.
+ * 누적 임계 집계는 DB sliding window(`incrementCounter` → `alert_counter_increment` RPC)로
+ * cross-isolate 정확. RPC 미적용/실패 시 인메모리(AlertCounter)로 fallback(현행 동작 유지).
  */
 async function sendAlert(alert: AlertMeta): Promise<void> {
   // 1) 콘솔 출력 (개발/운영 로그) — 실패해도 나머지 채널 시도
@@ -209,7 +235,7 @@ async function sendAlert(alert: AlertMeta): Promise<void> {
  * ✅ 에러율 모니터링
  */
 export async function checkErrorRate(): Promise<void> {
-  const count = alertCounter.increment('errors', ALERT_THRESHOLDS.ERROR_RATE.window);
+  const count = await incrementCounter('errors', ALERT_THRESHOLDS.ERROR_RATE.window);
 
   if (count >= ALERT_THRESHOLDS.ERROR_RATE.critical) {
     await sendAlert({
@@ -238,7 +264,7 @@ export async function checkErrorRate(): Promise<void> {
  * ✅ 차단율 모니터링 (스팸 공격 감지)
  */
 export async function checkBlockRate(): Promise<void> {
-  const count = alertCounter.increment('blocks', ALERT_THRESHOLDS.BLOCK_RATE.window);
+  const count = await incrementCounter('blocks', ALERT_THRESHOLDS.BLOCK_RATE.window);
 
   if (count >= ALERT_THRESHOLDS.BLOCK_RATE.critical) {
     await sendAlert({
@@ -270,7 +296,7 @@ export async function checkBlockRate(): Promise<void> {
  * ✅ 암호화 실패 모니터링
  */
 export async function checkEncryptionFailures(): Promise<void> {
-  const count = alertCounter.increment('encryption_failures', 10 * 60 * 1000); // 10분
+  const count = await incrementCounter('encryption_failures', 10 * 60 * 1000); // 10분
 
   if (count >= ALERT_THRESHOLDS.ENCRYPTION_FAILURES.critical) {
     await sendAlert({
@@ -325,10 +351,20 @@ export async function alertHighPriorityLead(leadInfo: {
 }
 
 /**
- * ✅ 알림 카운터 리셋 (수동)
+ * ✅ 알림 카운터 리셋 (수동) — 인메모리 + DB 둘 다 비움
+ * DB 리셋은 best-effort 비동기(실패해도 인메모리는 즉시 리셋).
  */
 export function resetAlertCounter(type: 'errors' | 'blocks' | 'encryption_failures'): void {
   alertCounter.reset(type);
+  // DB 카운터도 비움(미적용/실패 시 조용히 무시)
+  (async () => {
+    try {
+      const { supabaseAdmin } = await import("../rag/supabaseAdmin");
+      await (supabaseAdmin as any).rpc("alert_counter_reset", { p_key: type });
+    } catch {
+      /* best-effort */
+    }
+  })();
 }
 
 /**
