@@ -7,6 +7,44 @@
 
 ---
 
+## 🔖 세션 핸드오프 (2026-06-19) — 핸드오프 시스템 고도화: 닫힌 고리(A~G) + 종료 문지기(강제) + PO 취향 누적 원장
+
+**이번 세션 한 일 (PR [#74](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/74) main 머지·squash `5c5d4a4`):**
+- **인수인계(핸드오프) 시스템을 "쓰고 끝"→"닫힌 고리"로 고도화.** PO 질문("정기 핸드오프 vs 한 세션 길게?")에서 출발 → 답은 *"한 덩어리는 끝까지, 끝나면 핸드오프하고 새 세션"*, 그게 안 깨지게 시스템으로 강제.
+- **A 미검증 자동 승격**: `/handoff` 스킬에 — 검증상태의 "미검증"을 다음할일 1번으로 끌어올리는 규칙.
+- **B 핵심 직접 표시**: `session-orient.sh` 훅이 세션 시작 시 *다음할일·보류·검증상태* 3칸을 PROJECT_CONTEXT에서 긁어 직접 띄움(안 읽어도 눈앞). awk로 `**헤더**` 섹션 추출.
+- **C 뒤처짐 경보**: 마지막 핸드오프 커밋 이후 5커밋+/2일+ 경과 시 훅이 경고.
+- **D 자동 보관**: `scripts/handoff-rotate.mjs` — 핸드오프 3개+면 가장 오래된 걸 `docs/archive/`로 회전(`npm run handoff:rotate`). 2개 이하면 무동작.
+- **E PR/CI 수집**: 스킬이 열린 PR·CI 상태를 기억 말고 GitHub MCP로 확인해 검증상태에 기재.
+- **F 완결성 검사**: `scripts/check-handoff.mjs` — 6칸·절대날짜·상대표기(어제/오늘 금지) 자동 점검(`npm run check:handoff`).
+- **G PO 취향 누적 원장 신설**: `docs/PO_PREFERENCES.md` — 고정 규칙(CLAUDE.md) 밖의 유동적 PO 취향을 `/handoff`가 대화 분석해 「활성 취향」에 누적, 훅이 매 세션 시작 시 자동 표시. 시작값 5개 박음(3D의료이미지 거부·어설픈디자인 거부·"일단 됐다"=종료·결과물우선·⭐질문찔끔금지).
+- **세션 종료 문지기(강제) — PO가 "강제로 막아라" 결정**: `.claude/hooks/handoff-gate.sh` (Stop 훅). 종료 시 ①check:handoff 실패 또는 ②직전 핸드오프 이후 커밋 2개+ 면 `decision:block`으로 **세션을 못 끝내게 막고** /handoff 강제. `stop_hook_active` 가드로 최대 1회만(무한루프 방지). settings.json Stop 배열에 연결(auto-commit-push 다음).
+- CLAUDE.md·스킬·package.json(check:handoff·handoff:rotate) 갱신.
+
+**왜 그렇게 했는지:**
+- **지시문 vs 훅 구분이 핵심**: PO 우려 "다른 세션이 제대로 안 하면 비개발자인 내가 어떻게 교정?" → 답: **지시문(스킬)은 게으른 세션이 건너뛸 수 있으나, 훅은 도구(Claude Code)가 강제 실행 → 못 건너뜀.** 그래서 중요 규칙을 훅/검사로 박음. PO 교정수단 = "말 한마디"면 그 세션이 검사룰/훅으로 변환·영구화.
+- **문지기를 강제(hard block)로**: PO가 경고/강제 중 "강제" 선택. 단 stop_hook_active로 1회 제한 + 판단불가/에러는 통과 → 작업을 인질로 잡지 않음.
+- **취향 원장을 CLAUDE.md와 분리**: 고정 규칙은 무겁고, 유동적 취향은 자주 바뀜 → 별도 원장 + 훅 자동표시가 가볍고 누적에 적합. 3회+ 확정되면 CLAUDE.md로 승격.
+
+**안 끝났거나 보류:**
+- 없음(이 세션 작업은 PR #74로 전부 머지·배포 완료). 다른 트랙(Gemini 유료·도메인·RAG 등)은 아래 "이전 세션에서 이어지는 보류" 참고 — 이 세션과 무관하게 그대로 유효.
+
+**주의·함정:**
+- **종료 문지기 실차단은 시뮬레이션만 검증**: 모의 stdin(루프가드/무차단/차단 JSON 이스케이프)으로 전 경로 통과 확인했으나, **실제 Claude Code Stop 이벤트에서 진짜로 막히는지는 다음 세션 첫 종료 때 처음 확인됨.** 만약 안 막거나 과하게 막으면 `handoff-gate.sh` 조건(since>=2, stop_hook_active) 조정.
+- **문지기가 너무 자주 막으면**: 커밋 2개+ 기준이 빡세면 잡담성 세션도 막힐 수 있음 → 거슬리면 threshold 상향 또는 경고 모드로 전환(PO 한마디면 조정).
+- **취향 원장 군살**: 「활성 취향」이 길어지면 훅 출력이 길어짐 → 오래된 건 「보관」으로 내릴 것.
+
+**다음 세션이 먼저 할 일 (우선순위):**
+1. **⚠️ 직전 미검증분 먼저 확인**: 이 세션 종료 시 **종료 문지기가 실제로 작동하는지**(핸드오프 강제) 첫 관찰. + session-orient 훅의 B/C/G 출력이 이 세션 시작 때 정상 떴는지(이미 resume에서 정상 확인됨).
+2. (이전 트랙) Gemini 유료 확인 → 회의록 활성화(env `GEMINI_PII_BILLING_CONFIRMED=true`).
+3. (이전 트랙) 라이브 클릭 검증: 회의록 실데이터 / RAG 출처·톤 / WhatsApp 버튼 / 새 사진.
+4. (이전 트랙) 도메인 `healwith.co.kr` 결제되면 컷오버.
+5. KHIDI 중간평가(2026-08-27) 상시 — `docs/KHIDI_중간보고_베이스.md`.
+
+**검증 상태:** PR #74 = **CI(`ci`·`Smoke Tests`·`Vercel`) 전부 초록 + main 머지(squash `5c5d4a4`) + 배포 완료.** E2E류는 스킵(정상, main 푸시 전용). 직접 검증한 것: `check:handoff`·`handoff:rotate`(--keep 1로 3블록 회전 시나리오 임시복사본 검증)·`session-orient.sh` 실행·`handoff-gate.sh` 모의 stdin 전 경로(차단 JSON 인용/줄바꿈 이스케이프 포함). **미검증**: 종료 문지기의 실제 Claude Code Stop 이벤트 차단(시뮬만 함) — 위 1번으로 승격.
+
+---
+
 ## 🔖 세션 핸드오프 (2026-06-18 늦은 세션) — 라이브 검증·죽은 도메인 진단 + AI회의록/RAG출처/홈·치료 콘텐츠 7개 PR 머지 + 위키독스 MCP
 
 **이번 세션 한 일 (PR 7개 전부 main 머지·실서비스 배포):**
@@ -50,47 +88,6 @@
 5. KHIDI 중간평가(2026-08-27) 상시 — `docs/KHIDI_중간보고_베이스.md`.
 
 **검증 상태:** PR #67~#73 = **CI(ci·smoke·Vercel) 전부 초록 + main 머지 + 배포 완료.** `next build --webpack`·`check:content`·회의록 라우트 등록 확인. **런타임(실제 동작) 미검증 항목**: 회의록 실데이터 생성, RAG 출처 렌더/톤, WhatsApp 버튼·새 사진 라이브 클릭 — **솔직히 다 PO/다음 세션 몫(직접 클릭 안 함).**
-
----
-
-## 🔖 세션 핸드오프 (2026-06-18) — URL 언어화 phase 1~3 완료·main 머지 + DESIGN.md 정합성 보강
-
-**이번 세션 한 일:**
-- **URL 언어화(locale-in-path) phase 1~3 전부 완료 → main 머지** (PR [#63](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/63), 머지 `944d56f`, 2026-06-18 실서비스 배포됨):
-  - **phase 1 (`5a4f654`)**: 언어감지 미들웨어 + 서버가 URL 언어로 렌더(SEO 핵심). 기존 `proxy.ts`(Next16, 구 middleware)에 통합 — 별도 `middleware.ts`는 Next16에서 proxy.ts와 **충돌 에러**. `app/[lang]/` 파일이동 대신 **rewrite 방식** 채택(같은 SEO·깨질 위험 훨씬 적음. 계획서 "락"이던 파일무브를 의도적으로 변경).
-  - **phase 2 (`15bce8e`)**: 공개 페이지 **전체** 언어화(`proxy.ts`의 `PUBLIC_PREFIXES`). 내부도구(admin/patient 등)·auth·게스트(consultation/survey) 제외. 옛 `/ru`·`/kk` 랜딩은 `LEGACY_SKIP`로 보존(Yandex 자산). **구식 클라이언트 7개**(useEffect+쿠키 직독 → SSR이 영어 → 구글봇이 영어로 봄)를 `useLang()`로 교체. 언어 스위처가 reload→새 언어 URL 이동(`localeSwitchTarget`. 미들웨어가 쿠키를 URL언어로 덮어써 전환 깨지던 버그 수정). 언어목록 `src/lib/i18n/config.js` `LOCALES`로 단일화.
-  - **phase 3a (`7233083`)**: hreflang/canonical 중앙화(`src/lib/i18n/metadata.js` — layout generateMetadata가 요청 언어별 생성, 공개페이지 상속). 공개페이지 16곳 자체 alternates 제거 + 옛 `?lang=` 폐기. 암종 상세 제목 언어화. sitemap 6언어 URL+hreflang.
-  - **phase 3b (`02cf1c0`)**: 공개페이지 탭제목 한국어 잔존 제거. `seo.*` 사전키 14개×6언어(`check:content` 패리티가 누락 강제) + `localizedMeta` 헬퍼 + 7개 페이지 generateMetadata 전환(home·treatments·hospitals·telemedicine·care-journey·inquiry·immune). 제목 `{absolute}`로 루트 template "%s | healwith" 중복 회피. **`meta.*`가 기존 21곳 사용중이라 `seo.*` 신설(키 충돌 회피).**
-  - **CI 막판 수정 (`d631fc2`)**: `check:i18n`(index.js를 eval하는 검사기)이 phase2에서 추가한 import문에서 깨짐 → import 제거+심볼 stub으로 견디게. **자동검사가 잡아준 케이스("기계가 잡는다" 실천).**
-- **DESIGN.md 정합성(coherence) 보강 → main 머지** (PR [#64](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/64), `396d2d0`): StyleSeed(bitjaru) 칼럼 4편 분석 → **도구 미도입, 원칙만 흡수.** 우리 코드에 실재하던 "축 미고정"을 발견해 가이드에 명문화: elevation(그림자 5종 난무→용도별 1값), numeric(`tabular-nums` 0회→적용+숫자:단위 2:1), motion(duration 난무→200 통일), ux_states(빈/로딩/에러). **문서만 변경, 페이지 UI 미변경(change_authority=guide_only).**
-- **세션 자동보관(archive) 진단**: PO가 "세션이 자꾸 보관됨" 문의 → 훅·예약루틴·settings 전수 확인 결과 **우리 설정 원인 아님(보관시키는 자동화 0).** = Claude Code 앱 차원 세션관리 동작. 거슬리면 앱 피드백으로 신고 사안.
-
-**왜 그렇게 했는지:**
-- **rewrite 방식 채택**: 계획서는 `app/[lang]/`로 39개 파일이동(위험 큰 방식)이었으나, 같은 SEO 결과를 내며 파일 안 옮기는 rewrite로 변경 → PO 최우선 가치("안 깨지게")에 부합. (PO에게 "같은 결과·덜 위험"으로 설명·승인).
-- **구식 클라이언트 교체가 SEO 핵심**: 기본 디자인모드=`legacy`라 쿠키 없는 첫 방문(=구글봇)이 legacy 클라이언트를 받는데, 걔네가 SSR을 영어로 그려서 `/ru/`도 구글엔 영어로 보임 = URL 언어화가 헛수고될 뻔. 발견·수정함.
-- **StyleSeed는 도구 미도입**: 우리 DESIGN.md가 이미 70%(단일강조색·모서리고정·AI느낌금지·자가체크) 보유 → 도구 도입은 락인·중복. 칼럼 통찰로 "우리 코드의 빈 축"만 점검해 흡수가 실속.
-
-**안 끝났거나 보류:**
-- **도메인 `healwith.co.kr` 결제** — 결제담당자 손(미결제, 우리 손 밖). 결제되면 컷오버(`docs/DOMAIN_CUTOVER_healwith.md`): Vercel 연결 + 구글 제출. **SEO 제출은 이 개편이 이미 main에 올라갔으니 도메인만 붙으면 됨.** `NEXT_PUBLIC_SITE_URL` env 한 줄만 새 도메인으로 바꾸면 sitemap/hreflang/canonical 전부 따라옴.
-- **seo.* + 제목/콘텐츠 번역 정확도**: 기계초안 수준(빈칸은 검사가 보장, 정확도는 미보장). ru/kz/zh/ja 현지 검수 별도 트랙.
-- **(선택) phase 5 가드 자동화**: 누출 e2e ROUTES·미들웨어 `PUBLIC_PREFIXES`가 아직 수동. app 폴더 자동발견화 미구현.
-- **앱아이콘 PNG**(옛 H마크): 보류(`docs/KNOWN_ISSUES.md` P2).
-- 해외 협력사 어드민 "번역": 기능 자체가 아직 없음 → 메모만(별개 트랙). phase 4=내부도구 언어화는 **삭제 확정**(SEO 무관).
-
-**주의·함정:**
-- **새 공개페이지 추가 시**: ① `proxy.ts`의 `PUBLIC_PREFIXES`에 경로 추가, ② 누출 e2e ROUTES에 추가 — 둘 다 수동(안 하면 언어화 안 되거나 검사 누락).
-- **새 공개 클라이언트는 반드시 `useLang()` 패턴** (구식 `getLangCodeFromCookie()`+useEffect 금지) — 아니면 SSR이 영어로 그려져 SEO 깨짐.
-- **제목/메타는 `seo.*` 네임스페이스** 사용(`meta.*`는 기존 다른 용도로 쓰임 — 충돌). 페이지 title은 `{absolute}`로 줘야 루트 template 중복 안 됨.
-- `next start` 로컬 검증 시 옛 포트 프로세스가 안 죽어 stale 서버에 붙을 수 있음(Windows `pkill -f` 매칭 실패) → 새 포트 쓰거나 `taskkill //F //IM node.exe`.
-- DESIGN.md elevation/numeric/motion은 **신규 작업용 가이드**일 뿐 — 기존 코드의 그림자 5종·숫자 tabular 일괄정리는 **안 함**(요청 시 별도, 화면 손대는 작업).
-
-**다음 세션이 먼저 할 일 (우선순위):**
-1. **라이브 실기기 클릭 검증** — 진짜 라이브는 **`healo-khidi.vercel.app`** (핸드오프가 "실서비스"라던 `khidi.healo.kr`은 **DNS·Vercel 어디에도 없는 죽은 주소** — 2026-06-18 검증). 언어 전환(스위처가 새 URL로 가나)·문의폼·화상상담 클릭은 아직 미검증(클라이언트 JS라 curl 불가). **⚠️ SEO 치명타: canonical·hreflang·sitemap·OG가 전부 죽은 khidi.healo.kr을 가리킴 → 색인 0. 도메인(healwith.co.kr) 등록 시 처리 — ① env 전환(sitemap/hreflang/canonical/OG) + ② 하드코딩 JSON-LD 14곳 grep 치환(env 안 따라옴). 둘 다 `docs/DOMAIN_CUTOVER_healwith.md` 최상단 ⚠️ 배너+§3에 박아둠.** (URL 언어화 SSR 엔진 자체는 정상: /ru→러시아어·/ko→한국어·/en→영어, hreflang 6+x-default 확인.)
-2. 도메인 `healwith.co.kr` 결제되면 → 컷오버 + 구글/Yandex 제출.
-3. (선택) phase 5 가드 자동발견화 / seo.* 현지 번역 검수.
-4. KHIDI 중간평가(2026-08-27) 상시 기준 — `docs/KHIDI_중간보고_베이스.md`.
-
-**검증 상태:** PR #63·#64 = **CI(ci·smoke·Vercel) 전부 초록 + main 머지 완료.** `next build --webpack` / `/ru/*` 서버 러시아어 렌더·`/en/*` 영어 / canonical=자기언어·hreflang 6+x-default / 탭제목 언어별 / 내부페이지 hreflang 0·`/admin` 보호·게스트링크·옛 러 랜딩 정상 / e2e 누출 40개 / check:content·i18n·cancer-i18n·legal 통과. **라이브 실기기 클릭(스위처·문의폼·화상상담)은 미검증 — PO/다음 세션 몫.**
 
 ---
 
