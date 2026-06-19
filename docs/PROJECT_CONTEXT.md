@@ -7,6 +7,47 @@
 
 ---
 
+## 🔖 세션 핸드오프 (2026-06-19 저녁) — 화상상담방 줌화(스피커뷰·화면공유포커스·화질·언어전환) ⚠️작업 진행중·이어감
+
+> **이 트랙은 아직 안 끝났다. PO가 "이어나갈 것"이라 명시.** 아래 5번(다음 할 일) + 미검증분부터 그대로 이어가라. 같은 날 "오후" 블록(↓)의 연장선.
+
+**이번 세션 한 일 (PR 4건 전부 main 머지·실서비스 배포):**
+- **참가자 수 + 경과 시간 오버레이** ([#79](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/79), `4cd07eb`): 영상 좌상단 `👥N · mm:ss`. 다자 미팅 인원·진행시간(줌 벤치).
+- **화면공유 자동 포커스 + 화질 720p/simulcast** ([#80](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/80), `8cf0deb`): 화면 공유 시 자동으로 크게(FocusLayout). `ROOM_OPTIONS`(LiveKit): 720p 캡처+h180/360/720 simulcast+adaptiveStream/dynacast.
+- **스피커 뷰 기본(발화자 자동 메인) + 화면공유 1080p 인코딩** ([#81](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/81), `33ab84e`): 균등 그리드 폐기 → 말하는 사람이 자동 메인. 우선순위 **수동핀 > 화면공유 > 발화자(`useSpeakingParticipants`) > 첫 원격카메라**. `screenShareEncoding` 1080p(3Mbps).
+- **입장 시 언어 선택 → 전체 UI 그 언어로 전환** ([#82](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/82), `58c2b61`): 기존엔 'My language'가 번역 방향만 바꾸고 화면은 영어 고정이었음(PO 지적). → `setLangCookie`+`healo:langchange` 이벤트로 `useLang()` 전역 갱신. 입장 폼 + 방 안 언어시트 양쪽. **프리뷰에서 한국어 전환 실제 확인.**
+- (세션 전반 인프라) **종료 문지기 강제차단 OFF**(`handoff-gate.sh` ENFORCE=0) — 핸드오프는 PO 트리거 + 과부하 시 어시스턴트 제안 방식으로(PO 결정). PO_PREFERENCES 갱신.
+- **테스트 상담 운영**: id `87710d1d-dbae-4fe2-8810-93ee6d6ef7e1`, 의사/환자 게스트토큰 2개(14일·각10회). 의사 invite=`cf3678…9bca6b0` / 환자 invite=`2ce242…4062a7c5`. **PO가 "종료" 누르면 토큰 자동 폐기됨 → `revoked_at=NULL, used_count=0`로 리셋하면 재사용**(이번 세션 4번 리셋함).
+
+**왜 그렇게 했는지:**
+- **스피커 뷰로 전환**: PO가 "1:1:1 균등 그리드면 누가 말하는지·공유화면 집중 안 됨, 줌처럼 발화자가 메인에" 요청. 마지막 발화자 유지(`dominantId` state)로 깜빡임 방지.
+- **화질은 "큰 화면이 고화질 계층 받게"가 핵심**: adaptiveStream은 작은 타일엔 저화질을 보냄 → 메인을 항상 크게 잡아야 선명. 단 웹캠·회선 자체 한계는 코드로 못 넘음(PO에 명시).
+- **언어 전환은 쿠키+이벤트**: 사이트 메인 스위처는 URL 이동 방식인데, 게스트 상담 페이지는 이탈하면 안 됨 → 쿠키 세팅 + `healo:langchange` 발송으로 페이지 내에서 전역 `useLang` 갱신(이탈 없음).
+
+**안 끝났거나 보류:**
+- **⛔ 방 안 영상 UI 전부 PO 라이브 미검증** — 스피커뷰·화면공유 자동포커스·화질·참가자수/타이머·재연결/음소거 배너·핀. 나(어시스턴트)는 **로컬에 LiveKit env가 없어 영상방을 못 띄움** → 빌드만 통과. PO가 시크릿 2창으로 확인해야 함.
+- **화질 추가 손볼 여지**: 720p/1080p 적용했는데도 흐리면 카메라/회선 문제 or 추가 인코딩 튜닝 필요(다음 트랙).
+- **발화자 역할 DB 미저장**: `saveTranslationLog`가 speaker_role 안 넣음 → AI 회의록 화자 구분 불가(작은 마이그레이션).
+- **테스트 상담 데이터 정리**: 트랙 끝나면 토큰/세션 정리(id `87710d1d-…`).
+- TTS 비활성 유지. `Volume2/VolumeX` import 미사용(무해).
+
+**주의·함정:**
+- **배포해도 PO가 옛 화면 보면 캐시 때문** — 이번 세션 내내 반복됨. **테스트는 반드시 새 시크릿 창**(Ctrl+Shift+N) 또는 `Ctrl+Shift+R`. 일반 탭은 옛 버전 캐시.
+- **"종료" 버튼 = 상담 completed → 게스트 토큰 일괄 폐기**(보안상 정상). 테스트 중엔 종료 누르지 말고 탭만 닫기. 폐기되면 SQL로 리셋.
+- **로컬 LiveKit 검증 불가**: `.env.local`에 LIVEKIT_* 없음 → 게스트 입장폼까진 로컬 검증되나 영상방은 production에서만. (언어전환·폼은 로컬 검증 가능.)
+- 파일이 2,600줄+ 단일 컴포넌트라 Edit 전 Read 자주 필요(상태 무효화 잦음).
+
+**다음 세션이 먼저 할 일 (우선순위):**
+1. **⚠️ 직전 미검증분 먼저 확인 (PO 테스트 결과 수령)**: 시크릿 2창(의사+환자)으로 **스피커뷰(발화자 자동 메인)·화면공유 자동 크게·화질·참가자수/타이머·언어전환** 실제 동작 확인. 안 되는 항목을 정확히 받아서 잇기.
+2. 화질 여전히 불만이면 → 카메라/회선 점검 or 인코딩 추가 튜닝.
+3. 발화자 역할 DB 저장 추가 → AI 회의록 화자 구분.
+4. **Gemini 유료 확인 → AI 회의록(#68) 활성화** (env `GEMINI_PII_BILLING_CONFIRMED=true`) — 이전 세션부터 대기.
+5. 도메인 `healwith.co.kr` 결제되면 컷오버 / KHIDI 중간평가(2026-08-27) 상시.
+
+**검증 상태:** PR [#79](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/79)·[#80](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/80)·[#81](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/81)·[#82](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/82) = **CI(ci·smoke·Vercel) 전부 초록 + main 머지 + 프로덕션 배포 완료.** `next build --webpack` 매 PR 통과. **언어 전환(#82)은 프리뷰에서 직접 클릭 검증 ✅**(한국어로 h1·라벨·버튼 전환, 쿠키 ko). **❌ 방 안 영상 UI(#79~81: 스피커뷰·화면공유포커스·화질·오버레이)는 라이브 클릭 미검증 — 로컬 LiveKit 부재로 어시스턴트가 못 봄. PO 시크릿 2창 테스트가 유일한 검증.** 열린 PR: 없음(전부 머지).
+
+---
+
 ## 🔖 세션 핸드오프 (2026-06-19 오후) — 화상상담방 품질 개선 6종(줌·미트 벤치) + 실서비스 배포 + 테스트 상담 생성
 
 **이번 세션 한 일 (PR [#77](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/77) main 머지·배포 완료, merge `34f6aa0`):**
@@ -48,44 +89,6 @@
 5. KHIDI 중간평가(2026-08-27) 상시 — `docs/KHIDI_중간보고_베이스.md`. (이번 화상상담방 개선은 "ICT 체계 구축" 정성평가에 직접 기여.)
 
 **검증 상태:** PR [#77](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/77) = **CI(ci·smoke) 초록 + main 머지 + 프로덕션 배포 READY 확인**(Vercel `dpl_6dd7…`, `34f6aa0`). `next build --webpack`·`check:content` 통과. 게스트 입장폼·셀프뷰·권한차단 안내 **라이브 렌더 확인**(콘솔 에러 0). **❌ 방 안 UI(헤더·하단바·핀·재연결/음소거 배너)는 실상담 토큰 필요해 라이브 클릭 미검증** — 다음 세션/PO가 테스트 링크로 확인(위 1번). 열린 PR: 없음(#77 머지됨).
-
----
-
-## 🔖 세션 핸드오프 (2026-06-19) — 핸드오프 시스템 고도화: 닫힌 고리(A~G) + 종료 문지기(강제) + PO 취향 누적 원장
-
-**이번 세션 한 일 (PR [#74](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/74) main 머지·squash `5c5d4a4`):**
-- **인수인계(핸드오프) 시스템을 "쓰고 끝"→"닫힌 고리"로 고도화.** PO 질문("정기 핸드오프 vs 한 세션 길게?")에서 출발 → 답은 *"한 덩어리는 끝까지, 끝나면 핸드오프하고 새 세션"*, 그게 안 깨지게 시스템으로 강제.
-- **A 미검증 자동 승격**: `/handoff` 스킬에 — 검증상태의 "미검증"을 다음할일 1번으로 끌어올리는 규칙.
-- **B 핵심 직접 표시**: `session-orient.sh` 훅이 세션 시작 시 *다음할일·보류·검증상태* 3칸을 PROJECT_CONTEXT에서 긁어 직접 띄움(안 읽어도 눈앞). awk로 `**헤더**` 섹션 추출.
-- **C 뒤처짐 경보**: 마지막 핸드오프 커밋 이후 5커밋+/2일+ 경과 시 훅이 경고.
-- **D 자동 보관**: `scripts/handoff-rotate.mjs` — 핸드오프 3개+면 가장 오래된 걸 `docs/archive/`로 회전(`npm run handoff:rotate`). 2개 이하면 무동작.
-- **E PR/CI 수집**: 스킬이 열린 PR·CI 상태를 기억 말고 GitHub MCP로 확인해 검증상태에 기재.
-- **F 완결성 검사**: `scripts/check-handoff.mjs` — 6칸·절대날짜·상대표기(어제/오늘 금지) 자동 점검(`npm run check:handoff`).
-- **G PO 취향 누적 원장 신설**: `docs/PO_PREFERENCES.md` — 고정 규칙(CLAUDE.md) 밖의 유동적 PO 취향을 `/handoff`가 대화 분석해 「활성 취향」에 누적, 훅이 매 세션 시작 시 자동 표시. 시작값 5개 박음(3D의료이미지 거부·어설픈디자인 거부·"일단 됐다"=종료·결과물우선·⭐질문찔끔금지).
-- **세션 종료 문지기(강제) — PO가 "강제로 막아라" 결정**: `.claude/hooks/handoff-gate.sh` (Stop 훅). 종료 시 ①check:handoff 실패 또는 ②직전 핸드오프 이후 커밋 2개+ 면 `decision:block`으로 **세션을 못 끝내게 막고** /handoff 강제. `stop_hook_active` 가드로 최대 1회만(무한루프 방지). settings.json Stop 배열에 연결(auto-commit-push 다음).
-- CLAUDE.md·스킬·package.json(check:handoff·handoff:rotate) 갱신.
-
-**왜 그렇게 했는지:**
-- **지시문 vs 훅 구분이 핵심**: PO 우려 "다른 세션이 제대로 안 하면 비개발자인 내가 어떻게 교정?" → 답: **지시문(스킬)은 게으른 세션이 건너뛸 수 있으나, 훅은 도구(Claude Code)가 강제 실행 → 못 건너뜀.** 그래서 중요 규칙을 훅/검사로 박음. PO 교정수단 = "말 한마디"면 그 세션이 검사룰/훅으로 변환·영구화.
-- **문지기를 강제(hard block)로**: PO가 경고/강제 중 "강제" 선택. 단 stop_hook_active로 1회 제한 + 판단불가/에러는 통과 → 작업을 인질로 잡지 않음.
-- **취향 원장을 CLAUDE.md와 분리**: 고정 규칙은 무겁고, 유동적 취향은 자주 바뀜 → 별도 원장 + 훅 자동표시가 가볍고 누적에 적합. 3회+ 확정되면 CLAUDE.md로 승격.
-
-**안 끝났거나 보류:**
-- 없음(이 세션 작업은 PR #74로 전부 머지·배포 완료). 다른 트랙(Gemini 유료·도메인·RAG 등)은 아래 "이전 세션에서 이어지는 보류" 참고 — 이 세션과 무관하게 그대로 유효.
-
-**주의·함정:**
-- **종료 문지기 실차단은 시뮬레이션만 검증**: 모의 stdin(루프가드/무차단/차단 JSON 이스케이프)으로 전 경로 통과 확인했으나, **실제 Claude Code Stop 이벤트에서 진짜로 막히는지는 다음 세션 첫 종료 때 처음 확인됨.** 만약 안 막거나 과하게 막으면 `handoff-gate.sh` 조건(since>=2, stop_hook_active) 조정.
-- **문지기가 너무 자주 막으면**: 커밋 2개+ 기준이 빡세면 잡담성 세션도 막힐 수 있음 → 거슬리면 threshold 상향 또는 경고 모드로 전환(PO 한마디면 조정).
-- **취향 원장 군살**: 「활성 취향」이 길어지면 훅 출력이 길어짐 → 오래된 건 「보관」으로 내릴 것.
-
-**다음 세션이 먼저 할 일 (우선순위):**
-1. **⚠️ 직전 미검증분 먼저 확인**: 이 세션 종료 시 **종료 문지기가 실제로 작동하는지**(핸드오프 강제) 첫 관찰. + session-orient 훅의 B/C/G 출력이 이 세션 시작 때 정상 떴는지(이미 resume에서 정상 확인됨).
-2. (이전 트랙) Gemini 유료 확인 → 회의록 활성화(env `GEMINI_PII_BILLING_CONFIRMED=true`).
-3. (이전 트랙) 라이브 클릭 검증: 회의록 실데이터 / RAG 출처·톤 / WhatsApp 버튼 / 새 사진.
-4. (이전 트랙) 도메인 `healwith.co.kr` 결제되면 컷오버.
-5. KHIDI 중간평가(2026-08-27) 상시 — `docs/KHIDI_중간보고_베이스.md`.
-
-**검증 상태:** PR #74 = **CI(`ci`·`Smoke Tests`·`Vercel`) 전부 초록 + main 머지(squash `5c5d4a4`) + 배포 완료.** E2E류는 스킵(정상, main 푸시 전용). 직접 검증한 것: `check:handoff`·`handoff:rotate`(--keep 1로 3블록 회전 시나리오 임시복사본 검증)·`session-orient.sh` 실행·`handoff-gate.sh` 모의 stdin 전 경로(차단 JSON 인용/줄바꿈 이스케이프 포함). **미검증**: 종료 문지기의 실제 Claude Code Stop 이벤트 차단(시뮬만 함) — 위 1번으로 승격.
 
 ---
 
