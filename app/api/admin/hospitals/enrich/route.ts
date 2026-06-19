@@ -112,7 +112,7 @@ export async function POST(request: NextRequest) {
       results: summary,
       enriched: buildLegacySummary(pipelineResult.results),
     });
-  } catch (e: any) {
+  } catch {
     return NextResponse.json(
       { ok: false, error: "pipeline_error" },
       { status: 502 },

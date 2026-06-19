@@ -3,7 +3,7 @@ export const runtime = "nodejs";
 import { NextRequest } from "next/server";
 import { checkHospitalAuth } from "@/lib/auth/checkHospitalAuth";
 import { createServiceRoleClient } from "@/lib/supabase/server";
-import { extractKrFields, detectPayloadLanguage, triggerMultiLangTranslation } from "@/lib/translate";
+import { extractKrFields, triggerMultiLangTranslation } from "@/lib/translate";
 
 const EDITABLE_FIELDS = [
   "name",

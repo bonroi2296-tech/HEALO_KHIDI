@@ -18,7 +18,6 @@ import { NextRequest } from "next/server";
 import {
   encryptStringNullable,
   decryptStringNullable,
-  maskEmail,
 } from "@/lib/security/encryptionV2";
 import {
   checkRateLimit,

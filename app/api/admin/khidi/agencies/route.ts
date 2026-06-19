@@ -117,7 +117,7 @@ export async function DELETE(request: NextRequest) {
       .eq("user_id", userId).eq("agency_id", agencyId);
     if (error) return Response.json({ ok: false, error: "update_failed" }, { status: 500 });
     return Response.json({ ok: true });
-  } catch (err: any) {
+  } catch {
     return Response.json({ ok: false, error: "internal_error" }, { status: 500 });
   }
 }

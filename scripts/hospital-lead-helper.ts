@@ -165,7 +165,7 @@ async function listPendingResponses() {
     const rpcResult = await supabaseAdmin.rpc("get_pending_responses_with_wait_time");
     data = rpcResult.data;
     error = rpcResult.error;
-  } catch (rpcError: any) {
+  } catch {
     // RPC 함수가 없으면 직접 쿼리
     console.log("ℹ️  RPC 함수 없음, 직접 쿼리 사용");
     try {

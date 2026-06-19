@@ -20,7 +20,7 @@ import {
   bodyPartFromText,
   contraindicationsAndFlagsFromMessage,
 } from "@/lib/intakeExtract";
-import { encryptString, encryptStringNullable, decryptAuto } from "@/lib/security/encryptionV2";
+import { encryptString, decryptAuto } from "@/lib/security/encryptionV2";
 import crypto from "crypto";
 import { checkRateLimitPersistent, getClientIp, RATE_LIMITS, getRateLimitHeaders } from "@/lib/rateLimit";
 import { logOperational, logRateLimitExceeded, logEncryptionFailed, logInquiryFailed } from "@/lib/operationalLog";
@@ -129,7 +129,7 @@ function buildIntakeFromForm(row: {
   return intake;
 }
 
-function buildIntakeFromTextOnly(text: string): Intake {
+function _buildIntakeFromTextOnly(text: string): Intake {
   const { intake } = createEmptyIntake("ai_agent");
   try {
     const s = String(text || "").trim().slice(0, 300);
