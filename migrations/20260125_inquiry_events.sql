@@ -23,6 +23,7 @@ create index if not exists inquiry_events_created_at_idx
 -- RLS 활성화 (서버만 접근)
 alter table public.inquiry_events enable row level security;
 
+drop policy if exists "inquiry_events_all_service_role" on public.inquiry_events;
 create policy "inquiry_events_all_service_role"
   on public.inquiry_events
   for all

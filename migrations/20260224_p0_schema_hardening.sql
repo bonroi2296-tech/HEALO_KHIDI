@@ -3,11 +3,13 @@
 -- ============================================================
 
 -- 1. rag_chunks: 동일 문서 내 중복 chunk_index 방지
+ALTER TABLE public.rag_chunks DROP CONSTRAINT IF EXISTS rag_chunks_document_chunk_unique;
 ALTER TABLE public.rag_chunks
   ADD CONSTRAINT rag_chunks_document_chunk_unique
   UNIQUE (document_id, chunk_index);
 
 -- 2. rag_documents: 동일 소스 중복 문서 방지
+ALTER TABLE public.rag_documents DROP CONSTRAINT IF EXISTS rag_documents_source_unique;
 ALTER TABLE public.rag_documents
   ADD CONSTRAINT rag_documents_source_unique
   UNIQUE (source_type, source_id, lang, version);

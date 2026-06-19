@@ -25,6 +25,7 @@ ALTER TABLE public.treatments ENABLE ROW LEVEL SECURITY;
 -- ==========================================
 
 -- ✅ anon + authenticated: SELECT는 is_published = true만
+DROP POLICY IF EXISTS "hospitals_select_published" ON public.hospitals;
 CREATE POLICY "hospitals_select_published"
   ON public.hospitals
   FOR SELECT
@@ -34,6 +35,7 @@ CREATE POLICY "hospitals_select_published"
 -- ❌ anon + authenticated: INSERT/UPDATE/DELETE 금지 (정책 없음 = 거부)
 
 -- ✅ service_role: 모든 작업 허용 (Admin API용)
+DROP POLICY IF EXISTS "hospitals_all_service_role" ON public.hospitals;
 CREATE POLICY "hospitals_all_service_role"
   ON public.hospitals
   FOR ALL
@@ -46,6 +48,7 @@ CREATE POLICY "hospitals_all_service_role"
 -- ==========================================
 
 -- ✅ anon + authenticated: SELECT는 is_published = true만
+DROP POLICY IF EXISTS "treatments_select_published" ON public.treatments;
 CREATE POLICY "treatments_select_published"
   ON public.treatments
   FOR SELECT
@@ -55,6 +58,7 @@ CREATE POLICY "treatments_select_published"
 -- ❌ anon + authenticated: INSERT/UPDATE/DELETE 금지 (정책 없음 = 거부)
 
 -- ✅ service_role: 모든 작업 허용 (Admin API용)
+DROP POLICY IF EXISTS "treatments_all_service_role" ON public.treatments;
 CREATE POLICY "treatments_all_service_role"
   ON public.treatments
   FOR ALL

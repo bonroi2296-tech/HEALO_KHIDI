@@ -108,6 +108,7 @@ ALTER TABLE public.hospital_leads ENABLE ROW LEVEL SECURITY;
 --   );
 
 -- ✅ service_role: 모든 작업 허용 (Admin API 전용)
+DROP POLICY IF EXISTS "hospital_leads_all_service_role" ON public.hospital_leads;
 CREATE POLICY "hospital_leads_all_service_role"
   ON public.hospital_leads
   FOR ALL

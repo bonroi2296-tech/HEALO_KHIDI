@@ -58,7 +58,7 @@
 - **`any` 813개**(인증·복호화 66개) 점진 축소, God컴포넌트 `consultation/[id]/page.jsx` 2,883줄 분할.
 - **얕은 헬스체크**: `api/health`가 정적 `{ok}`만 → DB 죽어도 200.
 - **남은 7취약점**: vitest(dev)·exceljs→uuid·sentry→postcss = major 강제 필요(깨질 수 있어 보류).
-- **DB 마이그레이션 위생**: 수동 추적·정책 `DROP ... IF EXISTS` 가드 누락(재실행 충돌 위험).
+- ~~**DB 마이그레이션 위생**: 수동 추적·정책 `DROP ... IF EXISTS` 가드 누락(재실행 충돌 위험).~~ ✅ **해결(2026-06-19)**: 19개 파일에 멱등 가드 추가(정책 39·트리거 4·인덱스 10·제약 2) + `scripts/check-migration-idempotency.mjs` CI 게이트 신설로 재발 영구 차단. 상세 POSTMORTEMS #6. (수동 추적 자체는 유지 — supabase 히스토리 도입은 별도 과제.)
 - **알림 카운터 인메모리**: 서버리스 콜드스타트 리셋 → 누적 임계 정밀 집계는 DB 카운터 필요(개별 알림 전송은 정상).
 
 ---

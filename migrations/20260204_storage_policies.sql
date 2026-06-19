@@ -25,6 +25,13 @@ DROP POLICY IF EXISTS "Public read access" ON storage.objects;
 DROP POLICY IF EXISTS "Authenticated users can upload" ON storage.objects;
 DROP POLICY IF EXISTS "Public upload access" ON storage.objects;
 
+-- 멱등성: 이 마이그레이션이 생성하는 정책도 미리 제거(재실행 안전)
+DROP POLICY IF EXISTS "images_public_read" ON storage.objects;
+DROP POLICY IF EXISTS "images_service_role_write" ON storage.objects;
+DROP POLICY IF EXISTS "images_service_role_update" ON storage.objects;
+DROP POLICY IF EXISTS "images_service_role_delete" ON storage.objects;
+DROP POLICY IF EXISTS "attachments_service_role_all" ON storage.objects;
+
 -- ==========================================
 -- 2. images bucket 정책 (공개 읽기, 관리자만 쓰기)
 -- ==========================================

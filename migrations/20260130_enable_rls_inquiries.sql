@@ -21,6 +21,7 @@ COMMENT ON TABLE public.inquiries IS 'RLS 활성화: 암호화(1차) + RLS(2차)
 
 -- 🚫 SELECT: 일반 사용자는 조회 불가
 -- 근거: 메타데이터(국적, 상태, 생성일 등)도 민감 정보로 간주
+DROP POLICY IF EXISTS "Block all SELECT for public/anon" ON public.inquiries;
 CREATE POLICY "Block all SELECT for public/anon"
 ON public.inquiries
 FOR SELECT
@@ -30,6 +31,7 @@ USING (false);
 -- 🚫 INSERT: 일반 사용자는 직접 insert 불가
 -- 근거: 모든 문의는 /api/inquiries/* 서버 경유로만 생성
 --       서버에서 암호화, 검증, 감사로그 등 보안 로직 수행
+DROP POLICY IF EXISTS "Block all INSERT for public/anon" ON public.inquiries;
 CREATE POLICY "Block all INSERT for public/anon"
 ON public.inquiries
 FOR INSERT
@@ -38,6 +40,7 @@ WITH CHECK (false);
 
 -- 🚫 UPDATE: 일반 사용자는 수정 불가
 -- 근거: 문의 수정은 /api/admin/* 관리자 API로만 수행
+DROP POLICY IF EXISTS "Block all UPDATE for public/anon" ON public.inquiries;
 CREATE POLICY "Block all UPDATE for public/anon"
 ON public.inquiries
 FOR UPDATE
@@ -46,6 +49,7 @@ USING (false);
 
 -- 🚫 DELETE: 일반 사용자는 삭제 불가
 -- 근거: 문의 삭제는 /api/admin/* 관리자 API로만 수행
+DROP POLICY IF EXISTS "Block all DELETE for public/anon" ON public.inquiries;
 CREATE POLICY "Block all DELETE for public/anon"
 ON public.inquiries
 FOR DELETE

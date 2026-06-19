@@ -71,16 +71,20 @@ ALTER TABLE partner_branches ENABLE ROW LEVEL SECURITY;
 ALTER TABLE partner_doctors ENABLE ROW LEVEL SECURITY;
 
 -- Public read access (for frontend)
+DROP POLICY IF EXISTS "partner_branches_public_read" ON partner_branches;
 CREATE POLICY "partner_branches_public_read" ON partner_branches
   FOR SELECT USING (true);
+DROP POLICY IF EXISTS "partner_doctors_public_read" ON partner_doctors;
 CREATE POLICY "partner_doctors_public_read" ON partner_doctors
   FOR SELECT USING (is_active = true);
 
 -- Admin full access
+DROP POLICY IF EXISTS "partner_branches_admin_all" ON partner_branches;
 CREATE POLICY "partner_branches_admin_all" ON partner_branches
   FOR ALL USING (
     auth.uid() IN (SELECT id FROM profiles WHERE role IN ('admin', 'super_admin'))
   );
+DROP POLICY IF EXISTS "partner_doctors_admin_all" ON partner_doctors;
 CREATE POLICY "partner_doctors_admin_all" ON partner_doctors
   FOR ALL USING (
     auth.uid() IN (SELECT id FROM profiles WHERE role IN ('admin', 'super_admin'))

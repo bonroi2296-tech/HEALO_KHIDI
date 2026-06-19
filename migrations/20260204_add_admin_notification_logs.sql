@@ -88,6 +88,7 @@ COMMENT ON COLUMN admin_notification_logs.delivery_time_ms IS '발송 소요 시
 ALTER TABLE admin_notification_logs ENABLE ROW LEVEL SECURITY;
 
 -- 정책: 관리자만 조회 가능 (service_role은 모든 작업 가능)
+DROP POLICY IF EXISTS "관리자만 로그 조회 가능" ON admin_notification_logs;
 CREATE POLICY "관리자만 로그 조회 가능" ON admin_notification_logs
 FOR SELECT
 USING (
@@ -97,6 +98,7 @@ USING (
 );
 
 -- 정책: service_role만 insert 가능 (알림 시스템에서 자동 기록)
+DROP POLICY IF EXISTS "서버만 로그 작성 가능" ON admin_notification_logs;
 CREATE POLICY "서버만 로그 작성 가능" ON admin_notification_logs
 FOR INSERT
 WITH CHECK (true); -- service_role은 RLS 무시

@@ -74,6 +74,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS trigger_hospital_responses_updated_at ON hospital_responses;
 CREATE TRIGGER trigger_hospital_responses_updated_at
 BEFORE UPDATE ON hospital_responses
 FOR EACH ROW
