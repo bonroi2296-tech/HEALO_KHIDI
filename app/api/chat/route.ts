@@ -428,8 +428,14 @@ export async function POST(request: Request) {
       system: systemPrompt,
       messages: messages as any,
       // 비용 가드: 응답 길이 상한 (토큰 폭주 방지)
+      // gemini-flash-latest: thinking 토큰이 maxOutputTokens 에 포함 → 컨시어지 답변엔 불필요해 끈다(답변 잘림 방지).
       maxOutputTokens: 2048,
-      providerOptions: useWebSearch ? { google: { useSearchGrounding: true } } : undefined,
+      providerOptions: {
+        google: {
+          thinkingConfig: { thinkingBudget: 0 },
+          ...(useWebSearch ? { useSearchGrounding: true } : {}),
+        },
+      },
       onError: ({ error }) => {
         console.error("[api/chat] stream onError:", error instanceof Error ? error.message : error);
       },
