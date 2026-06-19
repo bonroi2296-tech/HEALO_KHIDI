@@ -9,9 +9,10 @@ import {
   ParticipantTile,
   TrackToggle,
   useTracks,
+  useConnectionState,
 } from "@livekit/components-react";
 import "@livekit/components-styles";
-import { Track } from "livekit-client";
+import { Track, ConnectionState } from "livekit-client";
 import {
   Mic,
   MicOff,
@@ -81,6 +82,9 @@ const COPY = {
     sessionDiagnostic: "진단 검토",
     consultationFallback: "Consultation",
     connected: "연결됨",
+    reconnecting: "연결이 불안정해요 — 다시 연결 중…",
+    cameraPreviewHint: "입장 전 카메라와 마이크를 확인하세요.",
+    cameraBlocked: "카메라·마이크 권한이 막혀 있어요. 브라우저 주소창의 자물쇠 아이콘에서 허용해주세요.",
     // Header controls
     stopTranslation: "번역 중지",
     startTranslation: "실시간 번역 시작",
@@ -185,6 +189,9 @@ const COPY = {
     sessionDiagnostic: "Diagnostic review",
     consultationFallback: "Consultation",
     connected: "Connected",
+    reconnecting: "Connection unstable — reconnecting…",
+    cameraPreviewHint: "Check your camera and microphone before joining.",
+    cameraBlocked: "Camera/microphone permission is blocked. Allow it from the lock icon in your browser's address bar.",
     stopTranslation: "Stop translation",
     startTranslation: "Start live translation",
     interpretation: "Interpret",
@@ -282,6 +289,9 @@ const COPY = {
     sessionDiagnostic: "Анализ диагностики",
     consultationFallback: "Консультация",
     connected: "Подключено",
+    reconnecting: "Нестабильное соединение — переподключение…",
+    cameraPreviewHint: "Проверьте камеру и микрофон перед входом.",
+    cameraBlocked: "Доступ к камере/микрофону заблокирован. Разрешите его, нажав на значок замка в адресной строке браузера.",
     stopTranslation: "Остановить перевод",
     startTranslation: "Начать перевод в реальном времени",
     interpretation: "Перевод",
@@ -379,6 +389,9 @@ const COPY = {
     sessionDiagnostic: "Диагностиканы қарау",
     consultationFallback: "Консультация",
     connected: "Қосылды",
+    reconnecting: "Байланыс тұрақсыз — қайта қосылуда…",
+    cameraPreviewHint: "Кіру алдында камера мен микрофонды тексеріңіз.",
+    cameraBlocked: "Камера/микрофон рұқсаты бұғатталған. Браузердің мекенжай жолындағы құлып белгісінен рұқсат беріңіз.",
     stopTranslation: "Аударманы тоқтату",
     startTranslation: "Нақты уақыттағы аударманы бастау",
     interpretation: "Аударма",
@@ -476,6 +489,9 @@ const COPY = {
     sessionDiagnostic: "诊断复核",
     consultationFallback: "问诊",
     connected: "已连接",
+    reconnecting: "连接不稳定 — 正在重新连接…",
+    cameraPreviewHint: "进入前请检查摄像头和麦克风。",
+    cameraBlocked: "摄像头/麦克风权限被阻止。请在浏览器地址栏的锁形图标中允许。",
     stopTranslation: "停止翻译",
     startTranslation: "开始实时翻译",
     interpretation: "口译",
@@ -573,6 +589,9 @@ const COPY = {
     sessionDiagnostic: "診断レビュー",
     consultationFallback: "診療",
     connected: "接続済み",
+    reconnecting: "接続が不安定です — 再接続中…",
+    cameraPreviewHint: "入室前にカメラとマイクを確認してください。",
+    cameraBlocked: "カメラ／マイクの許可がブロックされています。ブラウザのアドレスバーの鍵アイコンから許可してください。",
     stopTranslation: "翻訳を停止",
     startTranslation: "リアルタイム翻訳を開始",
     interpretation: "通訳",
@@ -658,6 +677,22 @@ function DataChannelBridge({ onRemoteSubtitle, publishRef }) {
   }, [publishSubtitle, publishRef]);
 
   return null; // 렌더링 없음
+}
+
+// ── 연결 상태 배너 (LiveKitRoom 내부 전용) ──
+// 회선이 끊겨 재연결 중일 때 영상 위에 안내 — 카자흐/러시아 불안정 회선에서
+// "멈춘 줄 알았다"는 혼란 방지. 정상 연결되면 자동으로 사라짐.
+function ConnectionBanner() {
+  const lang = useLang();
+  const c = COPY[lang] || COPY.en;
+  const state = useConnectionState();
+  if (state !== ConnectionState.Reconnecting) return null;
+  return (
+    <div className="absolute top-3 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2 bg-amber-500/95 text-gray-900 text-xs font-semibold px-3 py-1.5 rounded-full shadow-lg pointer-events-none">
+      <span className="w-3 h-3 border-2 border-gray-900 border-t-transparent rounded-full animate-spin" />
+      {c.reconnecting}
+    </div>
+  );
 }
 
 // ── LiveKit Video Grid ──
@@ -779,6 +814,15 @@ export default function ConsultationRoomPage() {
   const [guestName, setGuestName] = useState("");
   const [guestJoining, setGuestJoining] = useState(false);
   const [guestError, setGuestError] = useState("");
+  // 입장 전 셀프뷰(카메라 미리보기) — 환자가 카메라 각도·권한을 미리 확인.
+  // ponytail: 단일 카메라 가정, 기기 선택 메뉴는 생략(환자 폰=카메라 1개). 게스트 전용.
+  const previewVideoRef = useRef(null);
+  const previewStreamRef = useRef(null);
+  const [previewBlocked, setPreviewBlocked] = useState(false);
+  const stopPreview = useCallback(() => {
+    previewStreamRef.current?.getTracks().forEach((t) => t.stop());
+    previewStreamRef.current = null;
+  }, []);
   // 입장 시 고르는 "내가 말하는 언어" — 사이트 UI 언어로 미리 선택돼 있어 보통은 탭 불필요
   const [guestLang, setGuestLang] = useState(() =>
     ["ko", "en", "ru", "kz", "zh", "ja"].includes(lang) ? lang : "ru"
@@ -812,6 +856,30 @@ export default function ConsultationRoomPage() {
       /KAKAOTALK|Line\/|Instagram|FBAN|FBAV|NAVER\(inapp|DaumApps|whale.*inapp|; wv\)/i.test(ua)
     );
   }, []);
+
+  // 게스트 입장 폼이 떠 있는 동안 카메라 미리보기 — 권한도 미리 받아 통화 중 권한팝업 방지
+  useEffect(() => {
+    if (!isGuestMode || livekitToken) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        if (cancelled) {
+          stream.getTracks().forEach((t) => t.stop());
+          return;
+        }
+        previewStreamRef.current = stream;
+        setPreviewBlocked(false);
+        if (previewVideoRef.current) previewVideoRef.current.srcObject = stream;
+      } catch {
+        if (!cancelled) setPreviewBlocked(true);
+      }
+    })();
+    return () => {
+      cancelled = true;
+      stopPreview();
+    };
+  }, [isGuestMode, livekitToken, stopPreview]);
 
   const openInExternalBrowser = useCallback(() => {
     const url = window.location.href;
@@ -1027,6 +1095,8 @@ export default function ConsultationRoomPage() {
       return;
     }
 
+    // 미리보기 카메라를 먼저 놓아줘야 LiveKit이 카메라를 잡을 수 있음 (장치 점유 충돌 방지)
+    stopPreview();
     setGuestJoining(true);
     setGuestError("");
 
@@ -1075,7 +1145,7 @@ export default function ConsultationRoomPage() {
     } finally {
       setGuestJoining(false);
     }
-  }, [inviteToken, consultationId, guestName, guestLang]);
+  }, [inviteToken, consultationId, guestName, guestLang, stopPreview]);
 
   // ── 의사/관리자용 대기열 polling ──
   // 게스트 의사/코디(초대링크 입장)도 X-Guest-Token 으로 대기열 조회·승인 가능
@@ -1761,6 +1831,25 @@ export default function ConsultationRoomPage() {
             }}
             className="p-8 space-y-4"
           >
+            {/* 셀프뷰 — 입장 전 카메라·권한 확인 (거울 모드) */}
+            <div className="rounded-xl overflow-hidden bg-black aspect-video relative border border-gray-700">
+              {previewBlocked ? (
+                <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-4">
+                  <VideoOff size={32} className="text-gray-500 mb-2" />
+                  <p className="text-xs text-gray-400 leading-snug">{c.cameraBlocked}</p>
+                </div>
+              ) : (
+                <video
+                  ref={previewVideoRef}
+                  autoPlay
+                  muted
+                  playsInline
+                  className="w-full h-full object-cover -scale-x-100"
+                />
+              )}
+            </div>
+            <p className="text-xs text-gray-400 -mt-1">{c.cameraPreviewHint}</p>
+
             <div>
               <label className="block text-sm font-semibold mb-2 text-gray-200">
                 {c.nameLabel}
@@ -1860,6 +1949,69 @@ export default function ConsultationRoomPage() {
   const isWaitingScreen =
     !!livekitToken && (admissionStatus === "pending" || admissionStatus === "rejected");
 
+  // ── 컨트롤 버튼 (헤더에서 공용 재사용 — 중복 정의 방지) ──
+  const endButton = (
+    <button
+      onClick={handleEndCall}
+      className="px-4 py-2.5 rounded-lg bg-red-600 hover:bg-red-700 transition flex items-center gap-1.5 text-sm font-medium"
+    >
+      <Phone size={16} /> <span className="hidden sm:inline">{c.endCall}</span>
+    </button>
+  );
+
+  const languageButton = (
+    <button
+      onClick={() => setLangSheetOpen(true)}
+      title={c.langChangeTitle}
+      className="px-3 py-2.5 rounded-lg bg-gray-700 hover:bg-gray-600 text-gray-200 transition flex items-center gap-1.5 text-xs"
+    >
+      <Globe size={18} />
+      <span className="hidden md:inline">
+        {LANG_LABELS[myLang]} → {LANG_LABELS[targetLang]}
+      </span>
+    </button>
+  );
+
+  const sessionActions = (
+    <>
+      <button
+        onClick={toggleTranslation}
+        className={`px-3 py-2.5 rounded-lg text-sm font-medium flex items-center gap-2 transition ${
+          translationEnabled
+            ? "bg-teal-600 hover:bg-teal-700 text-white"
+            : "bg-gray-700 hover:bg-gray-600 text-gray-200"
+        }`}
+        title={translationEnabled ? c.stopTranslation : c.startTranslation}
+      >
+        <Languages size={18} />
+        <span className="hidden sm:inline">
+          {translationEnabled
+            ? `${LANG_LABELS[myLang]} → ${LANG_LABELS[targetLang]}`
+            : c.interpretation}
+        </span>
+        {translationEnabled && isTranslating && (
+          <span className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse" />
+        )}
+      </button>
+      <button
+        onClick={() => setPanelOpen((v) => !v)}
+        className={`relative p-2.5 rounded-lg transition ${
+          panelOpen ? "bg-teal-600 text-white" : "bg-gray-700 hover:bg-gray-600 text-gray-200"
+        }`}
+        title={c.togglePanel}
+      >
+        <MessageSquare size={18} />
+        {!panelOpen && translations.length + messages.length > 0 && (
+          <span className="absolute -top-1 -right-1 bg-teal-500 text-white text-[10px] leading-none px-1 py-0.5 rounded-full">
+            {translations.length + messages.length > 9
+              ? "9+"
+              : translations.length + messages.length}
+          </span>
+        )}
+      </button>
+    </>
+  );
+
   return (
     <div className="w-full h-screen bg-gray-900 text-white flex flex-col">
       {/* ── Header ── */}
@@ -1881,117 +2033,22 @@ export default function ConsultationRoomPage() {
                 {consultation?.session_type === "diagnostic" && <> — {c.sessionDiagnostic}</>}
               </h1>
               <p className="text-xs text-gray-400 truncate">
-                {consultation?.livekit_room_name && <>Room: {consultation.livekit_room_name}</>}
-                {connected && <span className="ml-2 text-green-400">● {c.connected}</span>}
+                {livekitToken &&
+                  (connected ? (
+                    <span className="text-green-400">● {c.connected}</span>
+                  ) : (
+                    <span>{c.connecting}</span>
+                  ))}
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-1.5 md:gap-3 shrink-0">
-            {/* 대기실에선 번역·언어 컨트롤 숨김 — 입장 후에만 의미 있음 */}
-            {!isWaitingScreen && (
-              <>
-            {/* Translation toggle */}
-            <button
-              onClick={toggleTranslation}
-              className={`px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition ${
-                translationEnabled
-                  ? "bg-teal-600 hover:bg-teal-700 text-white"
-                  : "bg-gray-700 hover:bg-gray-600 text-gray-300"
-              }`}
-              title={translationEnabled ? c.stopTranslation : c.startTranslation}
-            >
-              <Languages size={16} />
-              {translationEnabled ? (
-                <span className="hidden sm:inline">
-                  {LANG_LABELS[myLang]} → {LANG_LABELS[targetLang]}
-                  {isTranslating && (
-                    <span className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse" />
-                  )}
-                </span>
-              ) : (
-                <span className="hidden sm:inline">{c.interpretation}</span>
-              )}
-            </button>
-
-            {/* TTS toggle — 임시 비활성화 중엔 버튼 숨김 */}
-            {TTS_FEATURE_ON && (
-            <button
-              onClick={() => setTtsEnabled(!ttsEnabled)}
-              className={`p-2 rounded-lg transition ${
-                ttsEnabled
-                  ? "bg-gray-700 hover:bg-gray-600 text-teal-400"
-                  : "bg-gray-700 hover:bg-gray-600 text-gray-500"
-              }`}
-              title={ttsEnabled ? c.ttsOff : c.ttsOn}
-            >
-              {ttsEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}
-            </button>
-            )}
-
-            {/* 언어쌍 선택 — 역할 기반 기본값이 있으므로 데스크톱에서만 노출 (모바일 단순화) */}
-            <select
-              value={myLang}
-              onChange={(e) => setMyLang(e.target.value)}
-              className="hidden md:inline-block bg-gray-700 text-white text-xs rounded px-2 py-1 border-0"
-            >
-              <option value="ko">한국어</option>
-              <option value="en">English</option>
-              <option value="ru">Русский</option>
-            </select>
-            <span className="hidden md:inline text-gray-500 text-xs">→</span>
-            <select
-              value={targetLang}
-              onChange={(e) => setTargetLang(e.target.value)}
-              className="hidden md:inline-block bg-gray-700 text-white text-xs rounded px-2 py-1 border-0"
-            >
-              <option value="ru">Русский</option>
-              <option value="en">English</option>
-              <option value="ko">한국어</option>
-              <option value="kz">Қазақша</option>
-              <option value="zh">中文</option>
-              <option value="ja">日本語</option>
-            </select>
-
-            {/* 자막 크기 선택 — 번역이 켜져 있을 때만, 데스크톱에서만 */}
-            {translationEnabled && (
-              <select
-                value={subtitleSize}
-                onChange={(e) => setSubtitleSize(e.target.value)}
-                className="hidden md:inline-block bg-gray-700 text-white text-xs rounded px-2 py-1 border-0"
-                title={c.subtitleSizeTitle}
-              >
-                <option value="sm">{c.subtitleSmall}</option>
-                <option value="md">{c.subtitleMedium}</option>
-                <option value="lg">{c.subtitleLarge}</option>
-              </select>
-            )}
-            {/* 채팅·번역 패널 토글 (Zoom/Meet 식 — 기본 숨김, 영상이 주인공) */}
-            <button
-              onClick={() => setPanelOpen((v) => !v)}
-              className={`relative p-2 rounded-lg transition ${
-                panelOpen
-                  ? "bg-teal-600 text-white"
-                  : "bg-gray-700 hover:bg-gray-600 text-gray-300"
-              }`}
-              title={c.togglePanel}
-            >
-              <MessageSquare size={16} />
-              {!panelOpen && translations.length + messages.length > 0 && (
-                <span className="absolute -top-1 -right-1 bg-teal-500 text-white text-[10px] leading-none px-1 py-0.5 rounded-full">
-                  {translations.length + messages.length > 9 ? "9+" : translations.length + messages.length}
-                </span>
-              )}
-            </button>
-              </>
-            )}
-
-            <button
-              onClick={handleEndCall}
-              className="px-3 py-2 md:px-4 rounded-lg bg-red-600 hover:bg-red-700 transition flex items-center gap-1.5 md:gap-2 text-sm"
-            >
-              <Phone size={16} /> <span className="hidden xs:inline">{c.endCall}</span>
-            </button>
+            {/* 헤더엔 세션 조작(번역·패널)+언어+종료만. 언어쌍/자막크기는 언어 시트로,
+                마이크·카메라·화면공유는 영상 하단 컨트롤 바로 분리해 정리 (Meet 식). */}
+            {!isWaitingScreen && sessionActions}
+            {!isWaitingScreen && languageButton}
+            {endButton}
           </div>
         </div>
       </div>
@@ -2103,6 +2160,7 @@ export default function ConsultationRoomPage() {
               <div className="flex-1 relative" style={{ height: "calc(100% - 64px)" }}>
                 <VideoGrid />
                 <RoomAudioRenderer />
+                <ConnectionBanner />
                 <SubtitleOverlay
                   original={currentSubtitle?.original}
                   translated={currentSubtitle?.translated}
@@ -2580,6 +2638,28 @@ export default function ConsultationRoomPage() {
                     }`}
                   >
                     {LANG_LABELS[l]}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <p className="text-xs text-gray-400 mb-2">{c.subtitleSizeTitle}</p>
+              <div className="flex gap-2">
+                {[
+                  ["sm", c.subtitleSmall],
+                  ["md", c.subtitleMedium],
+                  ["lg", c.subtitleLarge],
+                ].map(([v, label]) => (
+                  <button
+                    key={v}
+                    onClick={() => setSubtitleSize(v)}
+                    className={`px-3 py-2 rounded-lg text-sm transition border ${
+                      subtitleSize === v
+                        ? "bg-teal-600 border-teal-500 text-white font-semibold"
+                        : "bg-gray-900 border-gray-600 text-gray-300 hover:border-gray-400"
+                    }`}
+                  >
+                    {label}
                   </button>
                 ))}
               </div>
