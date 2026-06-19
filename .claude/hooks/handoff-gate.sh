@@ -1,16 +1,20 @@
 #!/usr/bin/env bash
-# Stop 훅 — 세션 종료 문지기 (PO 결정 2026-06-18: 강제/hard block).
-# 목적: 세션이 실제 작업을 해놓고 핸드오프(인수인계) 없이 끝나는 걸 "막는다".
-#       지시문(스킬)은 게으른 세션이 건너뛸 수 있으나, 훅은 도구가 강제 실행 → 못 건너뜀.
-# 무한루프 방지: stop_hook_active=true(이미 한 번 막힌 뒤)면 다시 안 막는다(최대 1회 강제).
-# 안전: 판단 불가/에러면 막지 않는다(작업 흐름을 인질로 잡지 않음).
+# Stop 훅 — 세션 종료 문지기.
+# PO 결정(2026-06-19): 강제 차단 OFF (기본). 핸드오프는 "커밋 N개" 같은 대용지표로
+#   강제하지 않는다. 대신 (1) PO가 마칠 때("핸드오프"/"오늘 끝") 또는
+#   (2) 어시스턴트가 세션 과부하를 감지해 제안 → PO 동의 시에만 한다.
+#   까먹음 방지: 세션 *시작* 시 session-orient.sh 의 "뒤처짐 경보"가 받쳐줌.
+# 되살리려면 ENFORCE=1 로 바꿔라 (아래에 직전 강제 차단 로직 그대로 보존).
+ENFORCE=0
+[ "$ENFORCE" = "1" ] || exit 0
 
+# ───────────────────────── ENFORCE=1 일 때만 동작 ─────────────────────────
+# (PO 결정 2026-06-18 의 강제 차단 로직 — 보존. 무한루프 방지·에러 시 통과 동일.)
 set -uo pipefail
 cd "${CLAUDE_PROJECT_DIR:-.}" 2>/dev/null || exit 0
 git rev-parse --git-dir >/dev/null 2>&1 || exit 0
 
 input=$(cat 2>/dev/null || echo "")
-# 이미 이 훅 때문에 멈춤이 막힌 상태면 통과(루프 방지 — 1회만 강제).
 if echo "$input" | grep -q '"stop_hook_active"[[:space:]]*:[[:space:]]*true'; then
   exit 0
 fi
@@ -18,11 +22,9 @@ fi
 CTX="docs/PROJECT_CONTEXT.md"
 [ -f "$CTX" ] || exit 0
 
-# 1) 핸드오프 형식 검사(6칸·절대날짜)
 ck=$(node scripts/check-handoff.mjs 2>&1)
 ck_status=$?
 
-# 2) 직전 핸드오프 이후 실제 작업(커밋)이 쌓였는지
 hc=$(git log -1 --format=%H --grep='핸드오프' 2>/dev/null)
 since=0
 [ -n "$hc" ] && since=$(git rev-list --count "${hc}..HEAD" 2>/dev/null || echo 0)

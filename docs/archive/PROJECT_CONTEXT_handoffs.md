@@ -1,5 +1,55 @@
 # PR
 
+
+## 🔖 세션 핸드오프 (2026-06-18 늦은 세션) — 라이브 검증·죽은 도메인 진단 + AI회의록/RAG출처/홈·치료 콘텐츠 7개 PR 머지 + 위키독스 MCP
+
+**이번 세션 한 일 (PR 7개 전부 main 머지·실서비스 배포):**
+- **홈 옛 도메인 이메일 정리 + 죽은 도메인 진단** ([#67](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/67)): 홈 "긴급 연락" 이메일 `contact@healo.kr`→`admin@healwith.co.kr`. `check:content` 가드에 `@healo.kr` 추가(.com만 막던 구멍). 반성문 POSTMORTEMS #4.
+- **⚠️ 죽은 도메인 발견**: 라이브 검증 결과 `khidi.healo.kr`이 **DNS·Vercel 어디에도 없음**(구글DNS도 "존재하지 않는 도메인"). 근데 canonical/hreflang/sitemap/OG가 전부 거길 가리켜 **색인 0**. 진짜 라이브=`healo-khidi.vercel.app`. PO 결정: 지금 안 고치고 `healwith.co.kr` 등록 시 처리. 경고 배너 `docs/DOMAIN_CUTOVER_healwith.md` 최상단. **URL 언어화 SSR 엔진 자체는 정상**(/ru→러시아어·/ko→한국어·hreflang 6+x-default 확인).
+- **AI 상담 회의록 (화상상담 Phase A)** ([#68](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/68)): 상담 번역기록(`consultation_translations`)→Gemini→요약·결정사항·다음단계·환자우려를 기존 `ai_summary`(jsonb) 컬럼에 저장. `POST /api/khidi/consultation/[id]/summarize` + 어드민 완료상담 "AI 회의록 생성" 버튼. **DB 마이그레이션 0**(컬럼 이미 존재). **⚠️ `GEMINI_PII_BILLING_CONFIRMED=true` 게이트로 비활성**(무료 Gemini PII 학습 방지).
+- **RAG 답변 출처 표기 + 책2권 학습노트** ([#69](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/69)): `generateReply.ts` 시스템 프롬프트에 "출처 표기" 규칙(병원·가격·통계에 `(출처:…)`, 출처 없으면 진술 금지). "모르면 코디"·안티환각은 **이미 구현돼 있어** 출처표기만 보강. `docs/RAG_AGENT_LEARNINGS.md` 신설(위키독스 책 2권 정독 증류).
+- **treatments 통계 라벨** ([#70](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/70)): "5 · ITCRN axes"→"5 · 면역 회복 요소"(6언어, ru/kz/zh/ja 누락분도 채움). ITCRN 약자는 설명섹션에만.
+- **treatments 암종 카드 사진** ([#71](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/71)): 차가운 스톡/기계 사진→면력한방 회복 실사진(산책·푸드테라피·운동·휴식 등, 기존 로컬 이미지 재매핑).
+- **홈 협진 대학병원 3곳 사진 연결** ([#72](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/72)): 이대서울·이대목동·고려대구로 사진이 업로드돼 있었으나 데이터가 `_coming-soon.svg` placeholder를 가리켜 안 떴음 → 실제 경로 연결.
+- **WhatsApp 문의 채널 연결** ([#73](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/73)): `/inquiry` Human Agent WhatsApp이 "준비 중"이었음 → `siteSettings.js` 기본값에 `https://wa.me/821047721075` 박음(비즈니스 번호 010-4772-1075).
+- **위키독스 MCP 연결**: Claude Code(`.claude.json`) + Claude Desktop(`claude_desktop_config.json`, `cmd /c npx` 형태 — 공백경로 문제 회피) 둘 다 연결. 토큰은 PO 위키독스 계정. **남의 공개책은 MCP 말고 URL 직접 긁기.**
+- 말투 규칙 훅(`session-orient.sh`)·메모리 추가(죽은 도메인·마케팅 취향).
+
+**왜 그렇게 했는지:**
+- **회의록 유료 게이트**: 무료 Gemini는 입력을 모델 학습·사람검수에 사용(약관이 PII 금지 명시) → 환자 상담 PII엔 부적합. PO가 빌링 켜고 env `GEMINI_PII_BILLING_CONFIRMED=true` 추가하면 즉시 활성(딸깍). 메인 챗은 이미 Gemini라 이건 신규 PII 흐름만 차단.
+- **카드 사진 회복톤**: 면력한방 치료제 제품샷(주사기로 암세포 찌르는 3D 등)은 (a)한 병원 광고처럼 (b)"면역치료=암치료" 오해/의료광고 리스크 → 의도 배제, 회복 프로그램 사진으로.
+- **ITCRN 전면 강등**: ITCRN은 면력한방 자사 브랜드 모델(immunehospital.com 출처). HEALO는 다병원 중립 컨시어지 + 한방은 보조케어 → 전면 헤드라인 부적합. 통계 라벨만 평이하게, 약자는 설명섹션에.
+- **자동검사 구멍**: `@healo.kr` 잔재가 통과한 건 검사기가 `.com`만 막아서 → 가드 추가로 영구 차단.
+
+**안 끝났거나 보류:**
+- **Gemini 유료 결제** (PO 나중) → **회의록(#68) 활성화 대기.** 결제 후 env 한 줄.
+- **RAG 개선 백로그** (`docs/RAG_AGENT_LEARNINGS.md`): ①출처강제·답변없음 프롬프트 ②LLM-judge 품질평가 ③크로스인코더 리랭킹 ④HyDE/청킹/BGE-M3. 책2권(위키독스 #2155 NLP·#19414 에이전트) 증류. 추천순서 A→D→B→C.
+- **도메인 `healwith.co.kr` 결제** (결제담당 손, 우리 밖) → 등록 시 env 전환 + JSON-LD 14곳 grep치환(`DOMAIN_CUTOVER` §3).
+- **로고**: PO가 SVG·PNG 옵션(h/hw/arc/h+) 다 거부("싹다 별로"). 전문 디자이너/도구 필요. 임시 파일은 `logo/`·바탕화면.
+- **treatments 히어로 ITCRN 전면 재구성**: 제안만 했고 미적용(통계 라벨만 변경).
+- 나머지 메신저 채널(Telegram·LINE·WeChat) 여전히 "준비 중"(링크 생기면 siteSettings에 추가).
+
+**주의·함정:**
+- **회의록 #68**: `GEMINI_PII_BILLING_CONFIRMED=true` 전엔 503(billing_required, 버튼 "유료 설정 후 켜집니다"). **실데이터 런타임 미검증.**
+- **RAG 출처표기 #69**: 실제 답변에 출처 자연스럽게 붙는지·톤 해치는지 **런타임 미검증**(환자화면이라 톤 PO 확인 권장).
+- **자동커밋 훅** 때문에 작업이 엉뚱한 브랜치에 섞일 수 있음(이번에 이메일PR에 회의록 섞여 분리수술함) → **기능별 브랜치 먼저 따고** 작업.
+- `logo/` 폴더(PNG들) untracked, `public/images/hospitals/Hospitals_Rev1.zip`이 공개 주소로 노출(정리 권장, 미처리).
+- **폰↔컴 세션 끊김/자동보관 = Claude Code 앱 동작**(우리 설정 무관, 끄는 설정 없음). "어디서나 싱크" 원하면 Remote Control(`claude --remote-control`, 컴 켜둬야). PO "일단 됐다".
+
+**다음 세션이 먼저 할 일 (우선순위):**
+1. **Gemini 유료 확인 → 회의록 활성화**(Vercel env `GEMINI_PII_BILLING_CONFIRMED=true`).
+2. **라이브 클릭 검증**(이번 세션 미검증분): 회의록 실데이터 / RAG 답변 출처·톤 / WhatsApp 버튼(/inquiry) / 새 카드사진·대학병원 사진.
+3. 도메인 `healwith.co.kr` 결제되면 컷오버.
+4. (선택) RAG 개선 착수 — `RAG_AGENT_LEARNINGS.md` A1(프롬프트 규칙)부터.
+5. KHIDI 중간평가(2026-08-27) 상시 — `docs/KHIDI_중간보고_베이스.md`.
+
+**검증 상태:** PR #67~#73 = **CI(ci·smoke·Vercel) 전부 초록 + main 머지 + 배포 완료.** `next build --webpack`·`check:content`·회의록 라우트 등록 확인. **런타임(실제 동작) 미검증 항목**: 회의록 실데이터 생성, RAG 출처 렌더/톤, WhatsApp 버튼·새 사진 라이브 클릭 — **솔직히 다 PO/다음 세션 몫(직접 클릭 안 함).**
+
+---
+
+
+---
+
 ## 🔖 세션 핸드오프 (2026-06-18) — URL 언어화 phase 1~3 완료·main 머지 + DESIGN.md 정합성 보강
 
 **이번 세션 한 일:**
