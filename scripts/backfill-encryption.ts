@@ -55,7 +55,7 @@ if (fs.existsSync(envLocalPath)) {
 // 모듈 import
 // ========================================
 import { supabaseAdmin, assertSupabaseEnv } from "../src/lib/rag/supabaseAdmin";
-import { encryptString, encryptStringNullable, isEncryptedPayload, maskEmail, maskPhone } from "../src/lib/security/encryptionV2";
+import { encryptString, isEncryptedPayload, maskEmail, maskPhone } from "../src/lib/security/encryptionV2";
 import { encryptPiiInObject, hasEncryptedPii } from "../src/lib/security/piiJson";
 
 // ========================================

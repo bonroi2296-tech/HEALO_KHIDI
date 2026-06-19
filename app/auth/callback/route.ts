@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
   
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
-  const next = searchParams.get("next") || "/";
+  const _next = searchParams.get("next") || "/";
 
   console.log("[auth/callback] code:", code ? "exists" : "missing");
   console.log("[auth/callback] origin:", origin);

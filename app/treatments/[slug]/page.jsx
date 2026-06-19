@@ -110,7 +110,6 @@ export default async function TreatmentDetailPage({ params, searchParams }) {
     const cancer = CANCER_DETAILS[slug];
     if (!cancer) notFound();
 
-    const baseUrl = getBaseUrl();
     // MedicalCondition JSON-LD
     const jsonLd = {
       "@context": "https://schema.org",

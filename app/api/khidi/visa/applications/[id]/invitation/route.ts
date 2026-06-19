@@ -224,7 +224,6 @@ export async function GET(
     const { id: applicationId } = await params;
     const access = await requireVisaAccess(request, applicationId);
     if (!access.success) return access.response;
-    const { application } = access;
 
     const { data: fullApp } = await supabaseAdmin
       .from("visa_applications")

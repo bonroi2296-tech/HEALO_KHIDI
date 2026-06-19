@@ -125,7 +125,7 @@ async function setAdminRole(email: string, role: "admin" | "none"): Promise<void
 
   const updateData: any = { app_metadata: nextAppMetadata };
 
-  const { data, error } = await supabase.auth.admin.updateUserById(user.id, updateData);
+  const { error } = await supabase.auth.admin.updateUserById(user.id, updateData);
 
   if (error) {
     throw new Error(`Role 업데이트 실패: ${error.message}`);

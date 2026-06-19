@@ -55,7 +55,7 @@ import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { useLang } from "@/lib/i18n/LangContext";
 import { setLangCookie } from "@/lib/i18n";
 import { useToast } from "@/components/Toast";
-import { useSpeechRecognition, getEffectiveSttLang } from "@/lib/consultation/useSpeechRecognition";
+import { useSpeechRecognition } from "@/lib/consultation/useSpeechRecognition";
 import { isFillerOnly } from "@/lib/consultation/fillerFilter";
 import { useTTS } from "@/lib/consultation/useTTS";
 import { useRealtimeMessages } from "@/lib/consultation/useRealtimeMessages";
@@ -1096,7 +1096,7 @@ export default function ConsultationRoomPage() {
   // TTS(번역 음성 읽어주기) 임시 비활성화 — 기기 기본 음성 품질 문제로 보류,
   // 목소리 선택/개선 후 재활성화 예정. 켜려면 TTS_FEATURE_ON = true 한 줄만.
   const TTS_FEATURE_ON = false;
-  const [ttsEnabled, setTtsEnabled] = useState(false);
+  const [ttsEnabled, _setTtsEnabled] = useState(false);
   const [isTranslating, setIsTranslating] = useState(false);
 
   // 자막 크기: "sm" | "md" | "lg"

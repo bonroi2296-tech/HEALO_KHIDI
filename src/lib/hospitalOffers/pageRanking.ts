@@ -73,8 +73,8 @@ function scoreUrlPath(url: string): number {
 function scoreTextKeywords(text: string): number {
   let count = 0;
   const re = new RegExp(TEXT_GOOD.source, "gi");
-  let m: RegExpExecArray | null;
-  while ((m = re.exec(text)) !== null) {
+  let _m: RegExpExecArray | null;
+  while ((_m = re.exec(text)) !== null) {
     count++;
     if (count >= 20) break;
   }
@@ -84,8 +84,8 @@ function scoreTextKeywords(text: string): number {
 function scorePricePattern(text: string): number {
   let count = 0;
   const re = new RegExp(PRICE_PATTERN.source, "g");
-  let m: RegExpExecArray | null;
-  while ((m = re.exec(text)) !== null) {
+  let _m: RegExpExecArray | null;
+  while ((_m = re.exec(text)) !== null) {
     count++;
     if (count >= 3) break;
   }

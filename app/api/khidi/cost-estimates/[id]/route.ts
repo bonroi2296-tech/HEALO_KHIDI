@@ -56,7 +56,7 @@ export async function GET(
     }
   }
 
-  const { coordinator_notes_encrypted, ...rest } = data;
+  const { coordinator_notes_encrypted: _drop, ...rest } = data;
   return Response.json({
     ok: true,
     data: { ...rest, coordinator_notes: coordinatorNotes },
@@ -183,7 +183,7 @@ export async function PATCH(
       });
     }
 
-    const { coordinator_notes_encrypted, ...rest } = data;
+    const { coordinator_notes_encrypted: _drop, ...rest } = data;
     return Response.json({ ok: true, data: rest });
   } catch (error: any) {
     console.error("[cost-estimates/[id]] PATCH exception:", error?.message);

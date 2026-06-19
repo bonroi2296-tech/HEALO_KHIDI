@@ -8,7 +8,7 @@
 
 import "server-only";
 
-import { sanitizeResponse, computeQualityScore as computeSanitizeScore } from "./sanitize";
+import { sanitizeResponse } from "./sanitize";
 
 export interface PatternMessage {
   actor_type: string;

@@ -49,7 +49,7 @@ function MiniBar({ value, max, colorClass = "bg-teal-500" }) {
 }
 
 /** 30일 시계열 선 차트 — CSS 기반 */
-function TrendChart({ data, label, colorClass = "bg-teal-500", yMax = 100 }) {
+function TrendChart({ data, label, colorClass: _colorClass = "bg-teal-500", yMax = 100 }) {
   if (!data || data.length === 0) {
     return (
       <div className="h-32 flex items-center justify-center text-gray-400 text-sm">
@@ -58,7 +58,6 @@ function TrendChart({ data, label, colorClass = "bg-teal-500", yMax = 100 }) {
     );
   }
 
-  const w = 100 / data.length;
 
   return (
     <div>
@@ -193,7 +192,6 @@ export default function AiRegressionPage() {
     setLoading(true);
     setError(null);
     try {
-      const today = new Date().toISOString().slice(0, 10);
       const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
 
       // 최근 30일 일별 집계 (run_date별)

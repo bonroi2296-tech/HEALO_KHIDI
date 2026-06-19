@@ -136,8 +136,6 @@ export function renderConsultationInviteEmail(props: ConsultationInviteProps) {
 </td></tr>`
       : "";
 
-  const doctorLine = ""; // 위 카드로 대체
-  const hospitalLine = ""; // 위 카드로 대체
 
   const html = `
 <!DOCTYPE html>

@@ -69,8 +69,8 @@ function scoreUrlProgram(url: string): number {
 function scoreTextProgram(text: string): number {
   let count = 0;
   const re = new RegExp(TEXT_PROGRAM.source, "gi");
-  let m: RegExpExecArray | null;
-  while ((m = re.exec(text)) !== null) {
+  let _m: RegExpExecArray | null;
+  while ((_m = re.exec(text)) !== null) {
     count++;
     if (count >= 15) break;
   }

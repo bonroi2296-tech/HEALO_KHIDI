@@ -257,7 +257,7 @@ export default function TreatmentsHubClient() {
         <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-3">{copy.cancerHubTitle}</h2>
         <p className="text-sm md:text-base text-gray-500 leading-relaxed max-w-2xl mb-8 md:mb-10">{copy.cancerHubBody}</p>
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5">
-          {Object.values(CANCER_DETAILS).map((cancer, idx) => (
+          {Object.values(CANCER_DETAILS).map((cancer, _idx) => (
             <Link
               key={cancer.slug}
               href={`/treatments/${cancer.slug}`}

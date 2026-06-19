@@ -68,7 +68,6 @@ export function maskPhone(phone: string | null): string {
 
   // 마지막 4자리만 표시
   const last4 = digits.slice(-4);
-  const masked = "*".repeat(digits.length - 4) + last4;
 
   // 원본 형식에 맞춰 재구성 (간단한 버전)
   if (phone.includes("+")) {

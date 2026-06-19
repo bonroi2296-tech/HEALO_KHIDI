@@ -157,7 +157,7 @@ ${urgency} 새 문의 #${payload.inquiryId}
  * Provider 연동 예정:
  * - Twilio / AWS SNS / 기타 SMS API
  */
-async function sendSMS(to: string, message: string): Promise<NotificationResult> {
+async function sendSMS(_to: string, _message: string): Promise<NotificationResult> {
   // ⚠️ 실제 SMS provider(Twilio/Solapi 등) 미연동.
   // 과거엔 success:true + mock messageId 를 반환해 DB 에 'sent' 로 거짓 기록됐다
   // (실제로는 아무것도 안 보냄). 거짓 'sent' 를 없애고 미설정을 정직하게 반환한다.
@@ -191,7 +191,7 @@ function isPhoneChannelConfigured(provider: NotificationProvider): boolean {
  * 
  * 주의: 알림톡은 사전 템플릿 승인 필요
  */
-async function sendAlimtalk(to: string, payload: AdminNotificationPayload): Promise<NotificationResult> {
+async function sendAlimtalk(to: string, _payload: AdminNotificationPayload): Promise<NotificationResult> {
   try {
     // 알림톡 벤더 API (예: NHN Cloud, Aligo 등)
     const apiKey = process.env.ALIMTALK_API_KEY;
@@ -200,14 +200,6 @@ async function sendAlimtalk(to: string, payload: AdminNotificationPayload): Prom
     if (!apiKey) {
       throw new Error("Alimtalk API key not configured");
     }
-    
-    // 템플릿 파라미터
-    const templateParams = {
-      inquiry_id: payload.inquiryId.toString(),
-      nationality: payload.nationality || "미표기",
-      treatment: payload.treatmentType || "미표기",
-      created_at: new Date(payload.createdAt).toLocaleString("ko-KR"),
-    };
     
     if (process.env.NODE_ENV !== "production") {
       console.log(`[Alimtalk] -> ${maskPhone(to)}, template: ${templateCode}`);

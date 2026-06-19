@@ -64,7 +64,6 @@ export async function GET(request: NextRequest) {
 
     const total_requests = Number((agg as any).total_requests) || 0;
     const byStatus = (agg as any).by_status || {};
-    const ok = Number(byStatus.ok) || 0;
     const zero_results = Number(byStatus.zero_results) || 0;
     const embedding_failed = Number(byStatus.embedding_failed) || 0;
     const rpc_failed = Number(byStatus.rpc_failed) || 0;
