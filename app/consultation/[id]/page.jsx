@@ -10,6 +10,10 @@ import {
   TrackToggle,
   useTracks,
   useConnectionState,
+  useLocalParticipant,
+  FocusLayout,
+  FocusLayoutContainer,
+  CarouselLayout,
 } from "@livekit/components-react";
 import "@livekit/components-styles";
 import { Track, ConnectionState } from "livekit-client";
@@ -85,6 +89,8 @@ const COPY = {
     reconnecting: "연결이 불안정해요 — 다시 연결 중…",
     cameraPreviewHint: "입장 전 카메라와 마이크를 확인하세요.",
     cameraBlocked: "카메라·마이크 권한이 막혀 있어요. 브라우저 주소창의 자물쇠 아이콘에서 허용해주세요.",
+    micMutedWarning: "마이크가 꺼져 있어요 — 말하는 중이라면 켜주세요",
+    unpinLabel: "고정 해제",
     // Header controls
     stopTranslation: "번역 중지",
     startTranslation: "실시간 번역 시작",
@@ -192,6 +198,8 @@ const COPY = {
     reconnecting: "Connection unstable — reconnecting…",
     cameraPreviewHint: "Check your camera and microphone before joining.",
     cameraBlocked: "Camera/microphone permission is blocked. Allow it from the lock icon in your browser's address bar.",
+    micMutedWarning: "Your microphone is off — turn it on if you're speaking",
+    unpinLabel: "Unpin",
     stopTranslation: "Stop translation",
     startTranslation: "Start live translation",
     interpretation: "Interpret",
@@ -292,6 +300,8 @@ const COPY = {
     reconnecting: "Нестабильное соединение — переподключение…",
     cameraPreviewHint: "Проверьте камеру и микрофон перед входом.",
     cameraBlocked: "Доступ к камере/микрофону заблокирован. Разрешите его, нажав на значок замка в адресной строке браузера.",
+    micMutedWarning: "Микрофон выключен — включите его, если говорите",
+    unpinLabel: "Открепить",
     stopTranslation: "Остановить перевод",
     startTranslation: "Начать перевод в реальном времени",
     interpretation: "Перевод",
@@ -392,6 +402,8 @@ const COPY = {
     reconnecting: "Байланыс тұрақсыз — қайта қосылуда…",
     cameraPreviewHint: "Кіру алдында камера мен микрофонды тексеріңіз.",
     cameraBlocked: "Камера/микрофон рұқсаты бұғатталған. Браузердің мекенжай жолындағы құлып белгісінен рұқсат беріңіз.",
+    micMutedWarning: "Микрофон өшірулі — сөйлеп тұрсаңыз, қосыңыз",
+    unpinLabel: "Бекітуді алу",
     stopTranslation: "Аударманы тоқтату",
     startTranslation: "Нақты уақыттағы аударманы бастау",
     interpretation: "Аударма",
@@ -492,6 +504,8 @@ const COPY = {
     reconnecting: "连接不稳定 — 正在重新连接…",
     cameraPreviewHint: "进入前请检查摄像头和麦克风。",
     cameraBlocked: "摄像头/麦克风权限被阻止。请在浏览器地址栏的锁形图标中允许。",
+    micMutedWarning: "麦克风已关闭 — 如果您正在讲话请打开",
+    unpinLabel: "取消固定",
     stopTranslation: "停止翻译",
     startTranslation: "开始实时翻译",
     interpretation: "口译",
@@ -592,6 +606,8 @@ const COPY = {
     reconnecting: "接続が不安定です — 再接続中…",
     cameraPreviewHint: "入室前にカメラとマイクを確認してください。",
     cameraBlocked: "カメラ／マイクの許可がブロックされています。ブラウザのアドレスバーの鍵アイコンから許可してください。",
+    micMutedWarning: "マイクがオフです — 話す場合はオンにしてください",
+    unpinLabel: "固定解除",
     stopTranslation: "翻訳を停止",
     startTranslation: "リアルタイム翻訳を開始",
     interpretation: "通訳",
@@ -695,8 +711,75 @@ function ConnectionBanner() {
   );
 }
 
-// ── LiveKit Video Grid ──
+// 트랙 식별 키 (참가자 + 소스) — 핀(고정) 매칭용
+function trackKey(t) {
+  return `${t?.participant?.identity ?? ""}_${t?.source ?? ""}`;
+}
+
+// ── 음소거 상태에서 말하면 경고 (LiveKitRoom 내부 전용) ──
+// 마이크가 꺼져 있는데 목소리가 감지되면 "마이크 꺼져 있어요" 안내. 비기술 환자 배려.
+// ponytail: 단순 진폭 임계 휴리스틱. 음소거 시 기기가 해제되면 감지 불가(그땐 조용히 패스).
+function MutedSpeakingWarning() {
+  const lang = useLang();
+  const c = COPY[lang] || COPY.en;
+  const { localParticipant, isMicrophoneEnabled } = useLocalParticipant();
+  const [warn, setWarn] = useState(false);
+
+  useEffect(() => {
+    if (isMicrophoneEnabled) {
+      setWarn(false);
+      return;
+    }
+    const pub = localParticipant?.getTrackPublication?.(Track.Source.Microphone);
+    const mst = pub?.track?.mediaStreamTrack;
+    if (!mst) return; // 음소거 시 기기 해제됨 → 감지 불가
+
+    let raf = 0;
+    let ctx;
+    let aboveSince = 0;
+    try {
+      ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const analyser = ctx.createAnalyser();
+      analyser.fftSize = 512;
+      ctx.createMediaStreamSource(new MediaStream([mst])).connect(analyser);
+      const data = new Uint8Array(analyser.frequencyBinCount);
+      const tick = () => {
+        analyser.getByteTimeDomainData(data);
+        let peak = 0;
+        for (let i = 0; i < data.length; i++) peak = Math.max(peak, Math.abs(data[i] - 128));
+        const now = Date.now();
+        if (peak > 18) {
+          if (!aboveSince) aboveSince = now;
+          if (now - aboveSince > 700) setWarn(true);
+        } else {
+          aboveSince = 0;
+          setWarn(false);
+        }
+        raf = requestAnimationFrame(tick);
+      };
+      tick();
+    } catch {
+      /* AudioContext 미지원 환경 — 조용히 패스 */
+    }
+    return () => {
+      if (raf) cancelAnimationFrame(raf);
+      ctx?.close?.().catch(() => {});
+    };
+  }, [isMicrophoneEnabled, localParticipant]);
+
+  if (!warn) return null;
+  return (
+    <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2 bg-red-600/95 text-white text-xs font-semibold px-3 py-1.5 rounded-full shadow-lg pointer-events-none">
+      <MicOff size={14} /> {c.micMutedWarning}
+    </div>
+  );
+}
+
+// ── LiveKit Video Grid (타일 클릭 = 그 화면 크게 고정 = 핀/포커스. 다자 미팅 대응) ──
+// 발화자 강조·이름표·연결품질·음소거표시는 ParticipantTile 기본 제공(@livekit/components-styles).
 function VideoGrid() {
+  const lang = useLang();
+  const c = COPY[lang] || COPY.en;
   const tracks = useTracks(
     [
       { source: Track.Source.Camera, withPlaceholder: true },
@@ -705,9 +788,43 @@ function VideoGrid() {
     { onlySubscribed: false }
   );
 
+  const [pinnedKey, setPinnedKey] = useState(null);
+  const focusTrack = pinnedKey ? tracks.find((t) => trackKey(t) === pinnedKey) : null;
+  const pinFromEvent = (e) =>
+    setPinnedKey(
+      `${e?.participant?.identity ?? ""}_${e?.track?.source ?? Track.Source.Camera}`
+    );
+
+  // 고정한 참가자가 나가면 자동 해제 (빈 포커스 방지)
+  useEffect(() => {
+    if (pinnedKey && !focusTrack) setPinnedKey(null);
+  }, [pinnedKey, focusTrack]);
+
+  if (focusTrack) {
+    const others = tracks.filter((t) => trackKey(t) !== pinnedKey);
+    return (
+      <div className="relative h-full">
+        <FocusLayoutContainer style={{ height: "100%" }}>
+          {others.length > 0 && (
+            <CarouselLayout tracks={others}>
+              <ParticipantTile onParticipantClick={pinFromEvent} />
+            </CarouselLayout>
+          )}
+          <FocusLayout trackRef={focusTrack} />
+        </FocusLayoutContainer>
+        <button
+          onClick={() => setPinnedKey(null)}
+          className="absolute top-3 right-3 z-20 flex items-center gap-1 bg-black/60 hover:bg-black/80 text-white text-xs px-2.5 py-1.5 rounded-full"
+        >
+          <X size={13} /> {c.unpinLabel}
+        </button>
+      </div>
+    );
+  }
+
   return (
     <GridLayout tracks={tracks} style={{ height: "100%" }}>
-      <ParticipantTile />
+      <ParticipantTile onParticipantClick={pinFromEvent} />
     </GridLayout>
   );
 }
@@ -2044,11 +2161,9 @@ export default function ConsultationRoomPage() {
           </div>
 
           <div className="flex items-center gap-1.5 md:gap-3 shrink-0">
-            {/* 헤더엔 세션 조작(번역·패널)+언어+종료만. 언어쌍/자막크기는 언어 시트로,
-                마이크·카메라·화면공유는 영상 하단 컨트롤 바로 분리해 정리 (Meet 식). */}
-            {!isWaitingScreen && sessionActions}
-            {!isWaitingScreen && languageButton}
-            {endButton}
+            {/* 헤더는 정보만. 조작 버튼은 전부 영상 하단 컨트롤 바로 통합 (Meet/Zoom 식).
+                대기/거절 화면엔 하단 바가 없어 종료 버튼만 escape 용으로 노출. */}
+            {isWaitingScreen && endButton}
           </div>
         </div>
       </div>
@@ -2161,6 +2276,7 @@ export default function ConsultationRoomPage() {
                 <VideoGrid />
                 <RoomAudioRenderer />
                 <ConnectionBanner />
+                <MutedSpeakingWarning />
                 <SubtitleOverlay
                   original={currentSubtitle?.original}
                   translated={currentSubtitle?.translated}
@@ -2192,10 +2308,14 @@ export default function ConsultationRoomPage() {
               </div>
               {/* 단순 컨트롤 — 기기 선택 메뉴 없이 켜기/끄기만.
                   소리는 기기 기본 출력(이어폰 연결 시 이어폰), 카메라는 기본(전면) 1개 */}
-              <div className="lk-control-bar" style={{ justifyContent: "center" }}>
+              <div className="lk-control-bar flex-wrap" style={{ justifyContent: "center" }}>
                 <TrackToggle source={Track.Source.Microphone} />
                 <TrackToggle source={Track.Source.Camera} />
                 <TrackToggle source={Track.Source.ScreenShare} className="hidden sm:inline-flex" />
+                <span className="hidden sm:block w-px h-7 bg-gray-600 mx-1" />
+                {sessionActions}
+                {languageButton}
+                {endButton}
               </div>
             </LiveKitRoom>
 
@@ -2267,6 +2387,14 @@ export default function ConsultationRoomPage() {
               <div className="bg-gray-800 border-t border-gray-700 px-6 py-3 text-center text-sm text-yellow-400">
                 {c.livekitDisabled}
               </div>
+              {/* LiveKit 비활성 시에도 번역·채팅·종료는 가능 — 하단 바 제공 */}
+              {!isWaitingScreen && (
+                <div className="bg-gray-800 border-t border-gray-700 px-3 py-3 flex items-center justify-center gap-2 flex-wrap">
+                  {sessionActions}
+                  {languageButton}
+                  {endButton}
+                </div>
+              )}
             </div>
           )}
         </div>
