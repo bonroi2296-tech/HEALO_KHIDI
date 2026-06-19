@@ -20,8 +20,14 @@
 - **핵심경로 테스트 + 커버리지 복구**: `encryptionV2.test.ts`(9), `@vitest/coverage-v8` 추가.
 - **README** 피벗 반영 전면 재작성.
 
+### ✅ 중복 정리 완료 (PR #86·#89)
+- **브라우저 클라 3벌→1**(#86): `src/supabase.js` 삭제, `data/supabaseClient.js`를 정본 `supabase/browser.ts` 위임 프록시로. "Multiple GoTrueClient" 경고 해소.
+- **이메일 발송 2벌→1**(#86): `notifications/emailSender.ts` 삭제, 통합 `email/sendEmail.ts`(레거시 env fallback 포함). `withErrorHandler` 데드 추상화 제거.
+- **서버 클라 4벌→통합**(#89, 보안등급별 3단계): service_role 생성 지점 3벌(`supabaseAdmin`·`getSupabaseServerClient`·`createServiceRoleClient`)→**1벌**(`supabaseAdmin` 싱글톤, 나머지 위임). `getSupabaseServerClient`의 **위험한 anon 폴백 제거**(fail-closed). anon no-session `data/supabaseServer.js`→정본 `supabase/server.ts`(`supabaseAnonServer`)로 통합·삭제. anon 쿠키세션(`createSupabaseServerClient*`)은 역할 달라 유지. 호출부 전부 무변경. tsc·129테스트·content·`next build` 통과.
+
 ### 🔴 남은 백로그 (다음 세션 권장)
-- **⭐ 중복 정리 (위생, 큰 리팩터)**: Supabase 클라이언트 6벌(server `supabaseAdmin.ts`108·`server.ts`16·`supabaseServerClient.ts`5 / browser `browser.ts`53·`supabaseClient.js`7·`supabase.js`2) → 정책 정하고 1~2벌로. 이메일 발송 2벌(`email/sendEmail.ts` vs `notifications/emailSender.ts`, env 규약 상이) → 1벌로. `withErrorHandler` 데드 추상화(155라우트 중 0 사용). **108+ import 사이트 영향 → 실서비스 리스크라 깨끗한 세션에서 단계적으로.**
+- **(선택) 브라우저 클라 `data/supabaseClient.js` 완전 흡수**: 현재 정본 `supabase/browser.ts` 위임 프록시(호출부 9곳). 호출부를 직접 repoint하면 프록시 파일도 제거 가능(저우선).
+- **(소) 죽은 라우트 `/api/chat` 프롬프트 일관성**: UI 미사용이나 공개 위젯(`generateReply.ts`)과 달리 비가격 질문에도 가격표를 토함 — 같은 "가격은 명시 요청 시만" 규칙 미반영. 정리하거나 라우트 자체 제거 검토.
 - **`any` 813개**(인증·복호화 66개) 점진 축소, God컴포넌트 `consultation/[id]/page.jsx` 2,883줄 분할.
 - **얕은 헬스체크**: `api/health`가 정적 `{ok}`만 → DB 죽어도 200.
 - **남은 7취약점**: vitest(dev)·exceljs→uuid·sentry→postcss = major 강제 필요(깨질 수 있어 보류).
