@@ -7,6 +7,40 @@
 
 ---
 
+## 🔖 세션 핸드오프 (2026-06-19 늦은오후) — AI 품질: 규칙기반 안전 0층 + 다국어 안전 회귀 커버리지 (PR #83 초안)
+
+**이번 세션 한 일 (PR [#83](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/83) 초안·미머지, 커밋 `64e017f`):**
+- 직전 분석(아래 "오후" 블록)에서 찾은 **진짜 구멍 2개**를 PO "싹다 해" 지시로 둘 다 구현.
+- **[A] 규칙기반 안전 0층 신설** — `src/lib/chat/safetyGuard.ts`(신규, 순수 모듈=server-only 아님). 완치 보장·약물 용량·예후(생존율) 수치를 6개 언어(ko·en·ru·kz·zh·ja) **정규식으로 확정 탐지**. critical 적중 시 안전·overall 점수에 **바닥(floor: safety≤0.2, overall≤0.3)** 강제 → LLM 판사(judge)가 놓쳐도 0.6 미만으로 떨궈 코디 경보 보장. `judge.ts`(라이브)·`scripts/run-regression-tests.ts`(회귀) 둘 다에 연결. 자가검증 `scripts/test-safety-guard.ts`(신규, `npm run test:safety`) 25케이스(위반17+오탐방지 정상8) 전부 통과.
+- **[B] 다국어 안전 회귀 커버리지** — `migrations/20260619_ai_regression_multilang_safety.sql`(신규). **라이브 DB 점검 결과 중국어(zh)·일본어(ja)는 안전 시나리오 0개**, 일부 위험 카테고리는 단일 언어뿐이었음. zh·ja에 위험 6종(완치주장·진단·치료선택·약물·생존율·판독·사례보장) 전부 추가 + ru/kz/en/ko 교차 보강. 신규 21개. **DB에 execute_sql로 직접 적용 완료**(23→44개, zh/ja 0→각 7개).
+- **문서·스크립트**: `docs/AI_QUALITY_ASSURANCE.md`(Eval 피라미드 3층 명시, 회귀 23/4언어→44/6언어, 규칙 0층 구축완료), `package.json`(test:safety 스크립트).
+
+**왜 그렇게 했는지:**
+- **규칙 0층을 LLM 판사 위가 아니라 아래(병합)로**: 기계적으로 100% 잡히는 고위험 패턴은 확률적 LLM에 맡기지 않고 확정적 정규식으로 먼저 막는 게 글(요즘IT)·CLAUDE.md("오류는 기계가 잡는다") 둘 다와 정합. 비용 0.
+- **점수 바닥을 safety뿐 아니라 overall까지 강제**: safety만 0.2로 깎으면 가중치(0.35) 때문에 overall이 0.6 위에 남아 경보가 안 뜸 → critical은 overall도 0.3으로 직접 캡.
+- **safetyGuard를 server-only 아닌 순수 모듈로**: 회귀 스크립트(scripts/)는 server-only 모듈을 import 못 함 → 서버·스크립트 공용 위해 의존성 0으로 설계.
+- **마이그레이션을 DB 컨벤션에 맞춤**: 라이브 DB는 `<category>_<lang>` id·언어코드 `kz`·`redline_*`/`policy_*` 카테고리를 씀(내가 처음 쓴 `safety-*`/`kk` 양식은 폐기하고 맞춤).
+
+**안 끝났거나 보류:**
+- **PR #83 미머지(초안)** — PO가 검토 후 "Ready for review" → 머지. CI 결과 확인 필요(아래 검증상태).
+- **유령 시드 파일 `migrations/20260519_ai_regression_seed.sql`(105개)이 실제 DB(44개, 다른 양식)와 불일치** — 적용된 적 없는 것으로 보임. 이번엔 안 건드림. 정리(삭제/아카이브) 여부는 PO 판단 대기. PR 본문에도 적어둠.
+
+**주의·함정:**
+- **safetyGuard 정규식은 고정밀만**(오탐 방지). 애매한 진단/치료권유는 일부러 LLM 판사에 맡김 — 0층은 "확실한 것만" 잡는 그물. 패턴 추가 시 `npm run test:safety`로 오탐 케이스(정상8) 깨지는지 꼭 확인.
+- **키릴 문자에 `\w` 안 먹음**(JS 정규식 비유니코드 모드) — ru/kz 패턴에서 `\w*` 대신 `[^.?!\n]{0,N}` 써야 함(이번에 이 버그로 자가검증 5개 깨졌다 고침).
+- **DB 직접 반영함**(execute_sql) — 마이그레이션 파일은 SoR로 커밋했지만, 자동 적용 파이프라인이 따로 없어 보임(5월 시드가 DB에 안 들어가 있던 게 증거). 다음에 시나리오 추가하면 파일만 만들지 말고 DB 적용까지 직접 해야 함.
+
+**다음 세션이 먼저 할 일 (우선순위):**
+1. **⚠️ 직전 미검증분 먼저 확인**: PR #83의 **CI(자동검사) 초록 여부** 확인 후 머지(이 세션 종료 시점엔 Vercel 미리보기 빌드 중, ci/Smoke 워크플로 아직 안 뜸). + **라이브 end-to-end 미검증**: 실제 채팅에서 위반 답변→점수 바닥→코디 경보까지 가는지 직접 확인 못 함(로직·점수는 단위검증됨).
+2. 유령 시드 파일(20260519) 정리할지 PO 결정.
+3. (이전 트랙) Gemini 유료 확인 → 회의록 활성화(env `GEMINI_PII_BILLING_CONFIRMED=true`).
+4. (이전 트랙) 종료 문지기 실작동 관찰 / 도메인 `healwith.co.kr` 컷오버.
+5. KHIDI 중간평가(2026-08-27) 상시 — 이번 AI 품질체계가 "ICT 체계 구축"·"만족도 90점" 어필 재료.
+
+**검증 상태:** ✅ `next build --webpack` 통과(npm ci로 의존성 설치 후) · ✅ `npm run test:safety` 25/25 · ✅ `npm run check:content` 통과 · ✅ DB 적용 확인(총 44/zh 7/ja 7, execute_sql). **PR/CI**: PR #83 초안 생성, 현재 check-run은 `Vercel Preview Comments`(success) 1개뿐 — **ci·Smoke Tests 워크플로는 아직 미실행**(트리거 지연 또는 draft). **미검증**: ①PR #83 CI 최종 초록 여부 ②라이브 채팅 end-to-end(위반→경보) 직접 클릭. → 위 1번으로 승격.
+
+---
+
 ## 🔖 세션 핸드오프 (2026-06-19 오후) — 외부 아티클(요즘IT "AI PRD") 분석 → 우리 AI 품질체계 대조 (코드 변경 없음)
 
 **이번 세션 한 일 (커밋·PR 없음 — 순수 분석/리서치):**
@@ -35,44 +69,6 @@
 5. KHIDI 중간평가(2026-08-27) 상시 — `docs/KHIDI_중간보고_베이스.md`.
 
 **검증 상태:** 코드 변경 없음 → 빌드·CI·check 해당 없음. **검증한 것**: 외부 글 본문 실제 확보(구글 번역 프록시 HTTP 200, 제목 "AI PRD는 무엇이 달라야 하는가" 확인) + 우리 AI 품질 자산 파일 실재 확인(`judge.ts`·`qualityStandards.ts`·회귀 크론·대시보드 grep으로 확인). **미검증**: 규칙기반 0층이 정말 없는지(부재)는 grep 기반 추정 — 구현 착수 시 generateReply 출력 후처리 경로 정밀 재확인 필요.
-
----
-
-## 🔖 세션 핸드오프 (2026-06-19) — 핸드오프 시스템 고도화: 닫힌 고리(A~G) + 종료 문지기(강제) + PO 취향 누적 원장
-
-**이번 세션 한 일 (PR [#74](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/74) main 머지·squash `5c5d4a4`):**
-- **인수인계(핸드오프) 시스템을 "쓰고 끝"→"닫힌 고리"로 고도화.** PO 질문("정기 핸드오프 vs 한 세션 길게?")에서 출발 → 답은 *"한 덩어리는 끝까지, 끝나면 핸드오프하고 새 세션"*, 그게 안 깨지게 시스템으로 강제.
-- **A 미검증 자동 승격**: `/handoff` 스킬에 — 검증상태의 "미검증"을 다음할일 1번으로 끌어올리는 규칙.
-- **B 핵심 직접 표시**: `session-orient.sh` 훅이 세션 시작 시 *다음할일·보류·검증상태* 3칸을 PROJECT_CONTEXT에서 긁어 직접 띄움(안 읽어도 눈앞). awk로 `**헤더**` 섹션 추출.
-- **C 뒤처짐 경보**: 마지막 핸드오프 커밋 이후 5커밋+/2일+ 경과 시 훅이 경고.
-- **D 자동 보관**: `scripts/handoff-rotate.mjs` — 핸드오프 3개+면 가장 오래된 걸 `docs/archive/`로 회전(`npm run handoff:rotate`). 2개 이하면 무동작.
-- **E PR/CI 수집**: 스킬이 열린 PR·CI 상태를 기억 말고 GitHub MCP로 확인해 검증상태에 기재.
-- **F 완결성 검사**: `scripts/check-handoff.mjs` — 6칸·절대날짜·상대표기(어제/오늘 금지) 자동 점검(`npm run check:handoff`).
-- **G PO 취향 누적 원장 신설**: `docs/PO_PREFERENCES.md` — 고정 규칙(CLAUDE.md) 밖의 유동적 PO 취향을 `/handoff`가 대화 분석해 「활성 취향」에 누적, 훅이 매 세션 시작 시 자동 표시. 시작값 5개 박음(3D의료이미지 거부·어설픈디자인 거부·"일단 됐다"=종료·결과물우선·⭐질문찔끔금지).
-- **세션 종료 문지기(강제) — PO가 "강제로 막아라" 결정**: `.claude/hooks/handoff-gate.sh` (Stop 훅). 종료 시 ①check:handoff 실패 또는 ②직전 핸드오프 이후 커밋 2개+ 면 `decision:block`으로 **세션을 못 끝내게 막고** /handoff 강제. `stop_hook_active` 가드로 최대 1회만(무한루프 방지). settings.json Stop 배열에 연결(auto-commit-push 다음).
-- CLAUDE.md·스킬·package.json(check:handoff·handoff:rotate) 갱신.
-
-**왜 그렇게 했는지:**
-- **지시문 vs 훅 구분이 핵심**: PO 우려 "다른 세션이 제대로 안 하면 비개발자인 내가 어떻게 교정?" → 답: **지시문(스킬)은 게으른 세션이 건너뛸 수 있으나, 훅은 도구(Claude Code)가 강제 실행 → 못 건너뜀.** 그래서 중요 규칙을 훅/검사로 박음. PO 교정수단 = "말 한마디"면 그 세션이 검사룰/훅으로 변환·영구화.
-- **문지기를 강제(hard block)로**: PO가 경고/강제 중 "강제" 선택. 단 stop_hook_active로 1회 제한 + 판단불가/에러는 통과 → 작업을 인질로 잡지 않음.
-- **취향 원장을 CLAUDE.md와 분리**: 고정 규칙은 무겁고, 유동적 취향은 자주 바뀜 → 별도 원장 + 훅 자동표시가 가볍고 누적에 적합. 3회+ 확정되면 CLAUDE.md로 승격.
-
-**안 끝났거나 보류:**
-- 없음(이 세션 작업은 PR #74로 전부 머지·배포 완료). 다른 트랙(Gemini 유료·도메인·RAG 등)은 아래 "이전 세션에서 이어지는 보류" 참고 — 이 세션과 무관하게 그대로 유효.
-
-**주의·함정:**
-- **종료 문지기 실차단은 시뮬레이션만 검증**: 모의 stdin(루프가드/무차단/차단 JSON 이스케이프)으로 전 경로 통과 확인했으나, **실제 Claude Code Stop 이벤트에서 진짜로 막히는지는 다음 세션 첫 종료 때 처음 확인됨.** 만약 안 막거나 과하게 막으면 `handoff-gate.sh` 조건(since>=2, stop_hook_active) 조정.
-- **문지기가 너무 자주 막으면**: 커밋 2개+ 기준이 빡세면 잡담성 세션도 막힐 수 있음 → 거슬리면 threshold 상향 또는 경고 모드로 전환(PO 한마디면 조정).
-- **취향 원장 군살**: 「활성 취향」이 길어지면 훅 출력이 길어짐 → 오래된 건 「보관」으로 내릴 것.
-
-**다음 세션이 먼저 할 일 (우선순위):**
-1. **⚠️ 직전 미검증분 먼저 확인**: 이 세션 종료 시 **종료 문지기가 실제로 작동하는지**(핸드오프 강제) 첫 관찰. + session-orient 훅의 B/C/G 출력이 이 세션 시작 때 정상 떴는지(이미 resume에서 정상 확인됨).
-2. (이전 트랙) Gemini 유료 확인 → 회의록 활성화(env `GEMINI_PII_BILLING_CONFIRMED=true`).
-3. (이전 트랙) 라이브 클릭 검증: 회의록 실데이터 / RAG 출처·톤 / WhatsApp 버튼 / 새 사진.
-4. (이전 트랙) 도메인 `healwith.co.kr` 결제되면 컷오버.
-5. KHIDI 중간평가(2026-08-27) 상시 — `docs/KHIDI_중간보고_베이스.md`.
-
-**검증 상태:** PR #74 = **CI(`ci`·`Smoke Tests`·`Vercel`) 전부 초록 + main 머지(squash `5c5d4a4`) + 배포 완료.** E2E류는 스킵(정상, main 푸시 전용). 직접 검증한 것: `check:handoff`·`handoff:rotate`(--keep 1로 3블록 회전 시나리오 임시복사본 검증)·`session-orient.sh` 실행·`handoff-gate.sh` 모의 stdin 전 경로(차단 JSON 인용/줄바꿈 이스케이프 포함). **미검증**: 종료 문지기의 실제 Claude Code Stop 이벤트 차단(시뮬만 함) — 위 1번으로 승격.
 
 ---
 
