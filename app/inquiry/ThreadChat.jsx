@@ -252,12 +252,41 @@ export function ThreadChat() {
     if (chatRef.current) chatRef.current.scrollTop = chatRef.current.scrollHeight;
   }, [messages]);
 
-  // 초기 진입 시 쿠키 토큰으로 복구 시도
+  // 진입장벽 제거: 이름/이메일/국가 안 묻고 익명으로 즉시 채팅 시작.
+  // 언어는 이미 선택된 사이트 언어(langCode) 그대로 상속. 연락처는 대화 중 필요할 때만.
+  const startAnonymousThread = useCallback(async () => {
+    try {
+      const browserSessionId = ensureBrowserSessionId();
+      const res = await fetch("/api/public/chat/start", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          language: langCode,
+          browser_session_id: browserSessionId,
+          landing_path: typeof window !== "undefined" ? window.location.pathname : null,
+          referrer: typeof document !== "undefined" ? document.referrer || null : null,
+        }),
+      });
+      const json = await res.json();
+      if (!json.ok) throw new Error(json.error || "start_failed");
+      setThreadId(json.thread_id);
+      setPublicToken(json.public_token);
+      writeCookie(TOKEN_COOKIE, json.public_token);
+      setMessages([{ id: "intro", role: "assistant", content: t("chat.intro", langCode) }]);
+      return true;
+    } catch (e) {
+      console.warn("[ThreadChat] anonymous start failed, fallback to form:", e);
+      return false;
+    }
+  }, [langCode]);
+
+  // 초기 진입 시 쿠키 토큰으로 복구 시도 (없으면 익명으로 바로 시작)
   useEffect(() => {
     let cancelled = false;
     async function tryResume() {
       const token = readCookie(TOKEN_COOKIE);
       if (!token) {
+        await startAnonymousThread();
         if (!cancelled) setRestoring(false);
         return;
       }
@@ -299,7 +328,7 @@ export function ThreadChat() {
     return () => {
       cancelled = true;
     };
-  }, [langCode]);
+  }, [langCode, startAnonymousThread]);
 
   // 기존 thread 복구 (이름·이메일 매칭 후 사용자 확인 거친 토큰)
   const resumeWithToken = useCallback(
