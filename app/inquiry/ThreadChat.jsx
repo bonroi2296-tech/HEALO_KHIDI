@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { ArrowRight, AlertCircle, Loader2, User, Bot, ThumbsUp, ThumbsDown, X } from "lucide-react";
 import { getLangCodeFromCookie, t } from "@/lib/i18n";
+import MessageContent from "./MessageContent";
 
 const TOKEN_COOKIE = "healo_chat_token";
 const SESSION_COOKIE = "healo_browser_session";
@@ -533,7 +534,11 @@ export function ThreadChat() {
                         : "bg-teal-600 text-white border-teal-600 rounded-tr-none"
                     }`}
                   >
-                    <p className="whitespace-pre-wrap">{msg.content}</p>
+                    {msg.role === "assistant" ? (
+                      <MessageContent text={msg.content} />
+                    ) : (
+                      <p className="whitespace-pre-wrap">{msg.content}</p>
+                    )}
                   </div>
                   {/* assistant 메시지만 피드백 버튼 표시 (intro/resume 제외) */}
                   {msg.role === "assistant" && !["intro", "resume_note"].includes(msg.id) && !msg.id.startsWith("resumed_") && !msg.id.startsWith("greet_") && threadId && (

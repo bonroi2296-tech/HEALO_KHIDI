@@ -167,12 +167,12 @@ const T = {
     ko: "Human Agent", en: "Human Agent", ru: "Human Agent", kz: "Human Agent", zh: "Human Agent", ja: "Human Agent",
   },
   humanAgentDesc: {
-    ko: "WhatsApp · Telegram · WeChat · LINE 으로 직접 연결.",
-    en: "Connect via WhatsApp, Telegram, WeChat, or LINE.",
-    ru: "Связаться через WhatsApp, Telegram, WeChat, LINE.",
-    kz: "WhatsApp, Telegram, WeChat немесе LINE арқылы.",
-    zh: "通过 WhatsApp、Telegram、WeChat 或 LINE 联系。",
-    ja: "WhatsApp・Telegram・WeChat・LINEで直接連絡。",
+    ko: "선호하는 메신저로 코디네이터와 직접 연결.",
+    en: "Connect directly with a coordinator on your messenger.",
+    ru: "Прямая связь с координатором в мессенджере.",
+    kz: "Үйлестірушімен мессенджер арқылы тікелей байланыс.",
+    zh: "通过即时通讯与协调员直接联系。",
+    ja: "メッセンジャーでコーディネーターと直接つながる。",
   },
   inquiryForm: {
     ko: "Inquiry Form", en: "Inquiry Form", ru: "Inquiry Form", kz: "Inquiry Form", zh: "Inquiry Form", ja: "Inquiry Form",
