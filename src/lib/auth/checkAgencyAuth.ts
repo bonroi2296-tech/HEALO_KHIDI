@@ -3,6 +3,7 @@
  * checkHospitalAuth 와 동일 패턴 — Bearer token / 쿠키 인증 후 agency_users 조회.
  */
 
+import type { NextRequest } from "next/server";
 import { createSupabaseServerClient, createServiceRoleClient } from "../supabase/server";
 
 export interface AgencyAuthResult {
@@ -15,10 +16,10 @@ export interface AgencyAuthResult {
   error?: string;
 }
 
-export async function checkAgencyAuth(request?: any): Promise<AgencyAuthResult> {
+export async function checkAgencyAuth(request?: NextRequest): Promise<AgencyAuthResult> {
   try {
-    let user: any = null;
-    let userError: any = null;
+    let user: import("@supabase/supabase-js").User | null = null;
+    let userError: unknown = null;
 
     if (request?.headers) {
       const authHeader = request.headers.get?.("authorization") || request.headers.get?.("Authorization");
@@ -29,7 +30,7 @@ export async function checkAgencyAuth(request?: any): Promise<AgencyAuthResult> 
           const { data, error } = await supabaseAdmin.auth.getUser(token);
           user = data?.user;
           userError = error;
-        } catch (err: any) {
+        } catch (err: unknown) {
           userError = err;
         }
       }
@@ -40,15 +41,19 @@ export async function checkAgencyAuth(request?: any): Promise<AgencyAuthResult> 
         const { data, error } = await supabase.auth.getUser();
         user = data?.user;
         userError = error;
-      } catch (err: any) {
+      } catch (err: unknown) {
         userError = err;
       }
     }
     if (userError || !user) {
-      return { isAgencyUser: false, error: userError?.message || "no_user" };
+      return {
+        isAgencyUser: false,
+        error: (userError instanceof Error ? userError.message : userError ? String((userError as { message?: unknown }).message ?? userError) : undefined) || "no_user",
+      };
     }
 
     const userId = user.id;
+    // service_role 클라이언트: agency_users 테이블/조인이 생성 스키마 타입에 없어 캐스팅 유지
     const serviceClient = createServiceRoleClient() as any;
     const { data: au, error: auErr } = await serviceClient
       .from("agency_users")
@@ -61,7 +66,7 @@ export async function checkAgencyAuth(request?: any): Promise<AgencyAuthResult> 
     if (auErr || !au) {
       return { isAgencyUser: false, userId, email: user.email, error: "not_agency_user" };
     }
-    const agency = (au as any).agencies;
+    const agency = (au as { agencies?: { id?: string; name?: string; is_active?: boolean } | null }).agencies;
     if (agency && agency.is_active === false) {
       return { isAgencyUser: false, userId, email: user.email, error: "agency_inactive" };
     }
@@ -74,7 +79,7 @@ export async function checkAgencyAuth(request?: any): Promise<AgencyAuthResult> 
       agencyName: agency?.name || "Unknown",
       role: au.role ?? undefined,
     };
-  } catch (error: any) {
-    return { isAgencyUser: false, error: error.message };
+  } catch (error: unknown) {
+    return { isAgencyUser: false, error: error instanceof Error ? error.message : String(error) };
   }
 }

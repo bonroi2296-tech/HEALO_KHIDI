@@ -76,7 +76,7 @@ export async function generateGuestToken(
       created_by: params.createdBy ?? null,
       expires_at: expiresAt.toISOString(),
       max_uses: params.maxUses ?? 1,
-    } as any)
+    })
     .select("id")
     .single();
 
@@ -164,7 +164,7 @@ export async function verifyAndConsumeGuestToken(
         last_used_at: new Date().toISOString(),
         last_used_ip: metadata?.ip ?? null,
         last_used_user_agent: metadata?.userAgent?.slice(0, 500) ?? null,
-      } as any)
+      })
       .eq("id", row.id);
   } catch (e) {
     console.warn("[guestToken] usage update failed (non-critical):", (e as Error).message);
@@ -232,7 +232,7 @@ export async function verifyGuestTokenReadOnly(
 export async function revokeGuestToken(tokenId: string): Promise<boolean> {
   const { error } = await supabaseAdmin
     .from("consultation_guest_tokens")
-    .update({ revoked_at: new Date().toISOString() } as any)
+    .update({ revoked_at: new Date().toISOString() })
     .eq("id", tokenId);
 
   return !error;
@@ -246,7 +246,7 @@ export async function revokeAllGuestTokensForConsultation(
 ): Promise<number> {
   const { error, count } = await supabaseAdmin
     .from("consultation_guest_tokens")
-    .update({ revoked_at: new Date().toISOString() } as any, { count: "exact" })
+    .update({ revoked_at: new Date().toISOString() }, { count: "exact" })
     .eq("consultation_id", consultationId)
     .is("revoked_at", null);
 

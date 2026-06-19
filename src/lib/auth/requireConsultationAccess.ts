@@ -253,7 +253,7 @@ export async function resolveConsultationActor(
     }
 
     const role = v.role as ConsultationActorRole;
-    if (options?.requireRole && !options.requireRole.includes(role as any)) {
+    if (options?.requireRole && !options.requireRole.includes(role as "admin" | "doctor" | "coordinator")) {
       return {
         success: false,
         response: Response.json({ ok: false, error: "insufficient_role" }, { status: 403 }),

@@ -26,6 +26,8 @@
  * ```
  */
 
+import type { NextRequest } from "next/server";
+import type { User } from "@supabase/supabase-js";
 import { createSupabaseServerClient, createSupabaseServerClientFromRequest } from "../supabase/server";
 
 /**
@@ -61,7 +63,7 @@ function getAdminEmailAllowlist(): string[] {
  * @param request NextRequest (optional, for Bearer token)
  * @returns { isAdmin: boolean, userId?: string, email?: string, reason?: string, error?: string, debug?: object }
  */
-export async function checkAdminAuth(request?: any): Promise<{
+export async function checkAdminAuth(request?: NextRequest): Promise<{
   isAdmin: boolean;
   userId?: string;
   email?: string;
@@ -69,14 +71,14 @@ export async function checkAdminAuth(request?: any): Promise<{
   reason?: string;
   authMethod?: string;
   error?: string;
-  debug?: any;
+  debug?: Record<string, unknown>;
 }> {
   const isDev = process.env.NODE_ENV !== "production";
-  const debugInfo: any = {};
+  const debugInfo: Record<string, unknown> = {};
 
   try {
-    let user: any = null;
-    let userError: any = null;
+    let user: User | null = null;
+    let userError: unknown = null;
     let authMethod = "unknown";
 
     // ========================================
@@ -106,8 +108,8 @@ export async function checkAdminAuth(request?: any): Promise<{
             debugInfo.bearerTokenValid = !!user;
             debugInfo.bearerTokenError = error?.message;
           }
-        } catch (err: any) {
-          console.error("[checkAdminAuth] Bearer token validation error:", err.message);
+        } catch (err: unknown) {
+          console.error("[checkAdminAuth] Bearer token validation error:", err instanceof Error ? err.message : String(err));
           userError = err;
         }
       }
@@ -128,8 +130,8 @@ export async function checkAdminAuth(request?: any): Promise<{
           debugInfo.cookieAuthValid = !!user;
           debugInfo.cookieAuthError = error?.message;
         }
-      } catch (err: any) {
-        console.error("[checkAdminAuth] Cookie (request) auth error:", err.message);
+      } catch (err: unknown) {
+        console.error("[checkAdminAuth] Cookie (request) auth error:", err instanceof Error ? err.message : String(err));
         userError = err;
       }
     }
@@ -145,8 +147,8 @@ export async function checkAdminAuth(request?: any): Promise<{
           debugInfo.cookieAuthValid = !!user;
           debugInfo.cookieAuthError = error?.message;
         }
-      } catch (err: any) {
-        console.error("[checkAdminAuth] Cookie auth error:", err.message);
+      } catch (err: unknown) {
+        console.error("[checkAdminAuth] Cookie auth error:", err instanceof Error ? err.message : String(err));
         userError = err;
       }
     }
@@ -154,20 +156,26 @@ export async function checkAdminAuth(request?: any): Promise<{
     // ========================================
     // 3. 유저 확인
     // ========================================
+    const userErrorMessage =
+      userError instanceof Error
+        ? userError.message
+        : userError
+          ? String((userError as { message?: unknown }).message ?? userError)
+          : undefined;
     if (isDev) {
       debugInfo.hasUser = !!user;
-      debugInfo.userError = userError?.message;
+      debugInfo.userError = userErrorMessage;
       debugInfo.authMethod = authMethod;
     }
 
     if (userError || !user) {
       if (isDev) {
-        console.warn('[checkAdminAuth] No user:', userError?.message || 'no session', 'method:', authMethod);
+        console.warn('[checkAdminAuth] No user:', userErrorMessage || 'no session', 'method:', authMethod);
       }
       return {
         isAdmin: false,
         authMethod,
-        error: userError?.message || "no_user",
+        error: userErrorMessage || "no_user",
         debug: isDev ? debugInfo : undefined,
       };
     }
@@ -227,12 +235,13 @@ export async function checkAdminAuth(request?: any): Promise<{
       error: "not_admin",
       debug: isDev ? debugInfo : undefined,
     };
-  } catch (error: any) {
-    console.error("[checkAdminAuth] Error:", error.message);
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : String(error);
+    console.error("[checkAdminAuth] Error:", msg);
     return {
       isAdmin: false,
-      error: error.message,
-      debug: isDev ? { ...debugInfo, exception: error.message } : undefined,
+      error: msg,
+      debug: isDev ? { ...debugInfo, exception: msg } : undefined,
     };
   }
 }
@@ -243,7 +252,7 @@ export async function checkAdminAuth(request?: any): Promise<{
  * @param request NextRequest (optional)
  * @returns boolean
  */
-export async function isAdmin(request?: any): Promise<boolean> {
+export async function isAdmin(request?: NextRequest): Promise<boolean> {
   const result = await checkAdminAuth(request);
   return result.isAdmin;
 }

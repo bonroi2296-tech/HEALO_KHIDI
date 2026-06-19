@@ -7,8 +7,7 @@
 import "server-only";
 import { NextRequest } from "next/server";
 import { checkAdminAuth } from "./checkAdminAuth";
-import { supabaseAdmin as _sb } from "../rag/supabaseAdmin";
-const supabaseAdmin: any = _sb;
+import { supabaseAdmin } from "../rag/supabaseAdmin";
 import { checkRateLimit, getClientIp, getRateLimitHeaders } from "../rateLimit";
 
 const COST_RATE = {
@@ -44,7 +43,7 @@ async function isCoordinatorUser(userId: string): Promise<boolean> {
     .select("role")
     .eq("user_id", userId)
     .maybeSingle();
-  return (data as any)?.role === "coordinator";
+  return (data as { role?: string } | null)?.role === "coordinator";
 }
 
 export async function requireCostEstimateAccess(
