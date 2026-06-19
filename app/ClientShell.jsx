@@ -144,7 +144,8 @@ export default function ClientShell({ children, initialLang = "en" }) {
     return "";
   }, [pathname]);
 
-  const hideBottomNav = pathname.includes("success");
+  // 인콰이어리(문의 퍼널)는 집중 태스크 흐름 → 하단 탭바 숨겨 채팅·폼 공간 확보(모바일)
+  const hideBottomNav = pathname.includes("success") || pathname.includes("/inquiry");
   const isPortalPage = pathname.startsWith("/admin") || pathname.startsWith("/partner");
 
   // D. Premium 디자인 적용 라우트 — 자체 Nav/Footer를 가지므로 ClientShell의 Header/Footer 숨김
@@ -318,7 +319,7 @@ function ClientShellContent({
       )}
 
       <ErrorBoundary>
-        <main className={isPortalPage || isConsultationPage ? "" : "pb-24 pb-safe-area"}>{children}</main>
+        <main className={isPortalPage || isConsultationPage || hideBottomNav ? "" : "pb-24 pb-safe-area"}>{children}</main>
       </ErrorBoundary>
 
       {!isPortalPage && !isPremiumPage && !isConsultationPage && <footer className="bg-white border-t border-gray-100 pt-safe-area">

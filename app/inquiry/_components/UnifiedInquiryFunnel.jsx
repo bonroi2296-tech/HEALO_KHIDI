@@ -1051,15 +1051,17 @@ export default function UnifiedInquiryFunnel() {
   // Phase: ai-chat (AI 상담사 인라인 챗)
   if (phase === "ai-chat") {
     return (
-      <div className="max-w-3xl mx-auto px-4 py-2 md:py-8 animate-in fade-in slide-in-from-right-4 duration-300">
+      <div className="max-w-3xl w-full mx-auto px-2 sm:px-4 flex flex-col h-[calc(100dvh-5rem)] md:h-auto md:py-8 animate-in fade-in slide-in-from-right-4 duration-300">
         <button
           type="button"
           onClick={() => setPhase("channel-select")}
-          className="flex items-center gap-1 text-sm font-medium text-gray-500 mb-2 md:mb-4 hover:text-teal-600 transition"
+          className="flex items-center gap-1 text-sm font-medium text-gray-500 mb-1 md:mb-4 hover:text-teal-600 transition shrink-0"
         >
           <ChevronLeft size={16} /> {tl("back", lang)}
         </button>
-        <ThreadChat />
+        <div className="flex-1 min-h-0 md:flex-none md:h-[600px]">
+          <ThreadChat />
+        </div>
       </div>
     );
   }

@@ -481,7 +481,7 @@ export function ThreadChat() {
   return (
     // 높이: 작은 폰(iPhone SE 등)에서 600px 고정이 하단 탭바에 깔리던 문제 →
     // 화면 높이에 맞춰 줄어들되(min 420px) 데스크톱은 기존 600px 유지
-    <div className="bg-white border border-gray-200 rounded-3xl shadow-xl h-[min(600px,calc(100dvh-200px))] min-h-[420px] flex flex-col p-4 animate-in fade-in slide-in-from-right-4">
+    <div className="bg-white border border-gray-200 rounded-3xl shadow-xl h-full min-h-0 flex flex-col p-3 sm:p-4 animate-in fade-in slide-in-from-right-4">
       {restoring ? (
         <div className="flex-1 flex items-center justify-center text-gray-400 text-sm">
           <Loader2 size={20} className="animate-spin mr-2" />
@@ -492,7 +492,7 @@ export function ThreadChat() {
       ) : (
         <>
           {/* 채팅 메시지 */}
-          <div className="flex-1 overflow-y-auto mb-4 bg-gray-50 rounded-2xl p-4 text-left space-y-4" ref={chatRef}>
+          <div className="flex-1 overflow-y-auto mb-3 bg-gray-50 rounded-2xl p-3 sm:p-4 text-left space-y-4" ref={chatRef}>
             {guest?.name && (
               <div className="flex items-center justify-between pb-2 border-b border-gray-200">
                 <div className="text-[11px] text-gray-400">
@@ -611,10 +611,10 @@ export function ThreadChat() {
             </button>
           </div>
 
-          <div className="mt-3 bg-gray-50 border border-gray-200 rounded-xl p-3 flex items-start gap-2.5 text-left">
-            <AlertCircle size={16} className="text-gray-500 shrink-0 mt-0.5" />
-            <p className="text-xs text-gray-600 leading-relaxed">
-              <span className="font-bold text-gray-800">{t("chat.noteLabel", langCode)}</span> {t("chat.noteText", langCode)}
+          <div className="mt-2 bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 flex items-start gap-2 text-left">
+            <AlertCircle size={13} className="text-gray-400 shrink-0 mt-0.5" />
+            <p className="text-[11px] text-gray-500 leading-snug">
+              <span className="font-semibold text-gray-700">{t("chat.noteLabel", langCode)}</span> {t("chat.noteText", langCode)}
             </p>
           </div>
         </>
