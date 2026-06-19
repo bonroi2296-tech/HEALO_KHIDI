@@ -134,13 +134,15 @@ export async function GET(request: NextRequest) {
     // ========================================
     // 4. PII 마스킹 (항상 마스킹만 - 복호화 봉인)
     // ========================================
-    let inquiries = data || [];
+    // supabase 동적 select(LIST_FIELDS 문자열)는 row 타입 추론이 안 돼 data 가 에러유니온으로
+    // 잡힌다 → 실제 row 형태(Record)로 명시 캐스팅(런타임 무영향). 마스킹 입력 타입과 정합.
+    let inquiries: Record<string, unknown>[] = (data ?? []) as unknown as Record<string, unknown>[];
     // ✅ inquiry_ids는 INT4[] (number[]) - DB row의 id는 integer
-    const inquiryIds: number[] = inquiries.map((inq: any) => inq.id);
+    const inquiryIds: number[] = inquiries.map((inq) => inq.id as number);
 
     // 🔒 보안 정책: 목록 API는 항상 마스킹만 반환
     // 복호화 로직 자체를 제거하여 평문 대량 노출 가능성 차단
-    inquiries = maskInquiriesForList(inquiries);
+    inquiries = maskInquiriesForList(inquiries) as Record<string, unknown>[];
     console.log(`[admin/inquiries] ✅ Masked ${inquiries.length} inquiries (decrypt sealed)`);
     
     // 성능 최적화: 복호화 단계를 건너뛰므로 API 응답 속도 향상

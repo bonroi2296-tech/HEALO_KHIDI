@@ -99,10 +99,10 @@ export function maskMessage(message: string | null): string {
  * - 이 함수는 복호화하지 않고 마스킹만 수행
  * - 암호화된 JSON 객체가 있으면 "***" 반환
  */
-export function maskInquiryForList(inquiry: any): any {
+export function maskInquiryForList(inquiry: Record<string, unknown> | null): Record<string, unknown> | null {
   if (!inquiry) return null;
 
-  const masked = { ...inquiry };
+  const masked: Record<string, unknown> = { ...inquiry };
 
   // 이메일 마스킹
   if (typeof inquiry.email === "string" && inquiry.email.includes("@")) {
@@ -146,6 +146,6 @@ export function maskInquiryForList(inquiry: any): any {
 /**
  * ✅ Inquiries 배열 마스킹
  */
-export function maskInquiriesForList(inquiries: any[]): any[] {
+export function maskInquiriesForList(inquiries: Record<string, unknown>[]): (Record<string, unknown> | null)[] {
   return inquiries.map(maskInquiryForList);
 }

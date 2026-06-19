@@ -31,7 +31,7 @@ import { decryptPiiInObject } from "./piiJson";
 /** intake JSONB 내 의료 민감 필드(별도 키셋 밖). 암호문일 때만 복호화하고
  *  과거 평문 데이터는 그대로 통과 → 신·구 데이터 모두 안전(백필 불필요). */
 const INTAKE_MEDICAL_KEYS = ["diagnosis_date", "treatment_state"];
-function decryptIntakeMedical(intake: any): any {
+function decryptIntakeMedical(intake: Record<string, unknown> | null | undefined): Record<string, unknown> | null | undefined {
   if (!intake || typeof intake !== "object") return intake;
   for (const k of INTAKE_MEDICAL_KEYS) {
     const v = intake[k];
@@ -63,8 +63,8 @@ export async function decryptInquiryForAdmin(inquiry: any): Promise<any> {
   if (inquiry.email && typeof inquiry.email === "string") {
     try {
       decrypted.email = await decryptAuto(inquiry.email);
-    } catch (error: any) {
-      console.error(`[decryptForAdmin] email decryption failed for inquiry ${inquiry.id}:`, error.message);
+    } catch (error: unknown) {
+      console.error(`[decryptForAdmin] email decryption failed for inquiry ${inquiry.id}:`, error instanceof Error ? error.message : String(error));
       decrypted.email = null; // fail-safe
     }
   }
@@ -75,8 +75,8 @@ export async function decryptInquiryForAdmin(inquiry: any): Promise<any> {
   if (inquiry.contact_id && typeof inquiry.contact_id === "string") {
     try {
       decrypted.contact_id = await decryptAuto(inquiry.contact_id);
-    } catch (error: any) {
-      console.error(`[decryptForAdmin] contact_id decryption failed for inquiry ${inquiry.id}:`, error.message);
+    } catch (error: unknown) {
+      console.error(`[decryptForAdmin] contact_id decryption failed for inquiry ${inquiry.id}:`, error instanceof Error ? error.message : String(error));
       decrypted.contact_id = null; // fail-safe
     }
   }
@@ -87,8 +87,8 @@ export async function decryptInquiryForAdmin(inquiry: any): Promise<any> {
   if (inquiry.message && typeof inquiry.message === "string") {
     try {
       decrypted.message = await decryptAuto(inquiry.message);
-    } catch (error: any) {
-      console.error(`[decryptForAdmin] message decryption failed for inquiry ${inquiry.id}:`, error.message);
+    } catch (error: unknown) {
+      console.error(`[decryptForAdmin] message decryption failed for inquiry ${inquiry.id}:`, error instanceof Error ? error.message : String(error));
       decrypted.message = null; // fail-safe
     }
   }
@@ -99,8 +99,8 @@ export async function decryptInquiryForAdmin(inquiry: any): Promise<any> {
   if (inquiry.first_name && typeof inquiry.first_name === "string") {
     try {
       decrypted.first_name = await decryptAuto(inquiry.first_name);
-    } catch (error: any) {
-      console.error(`[decryptForAdmin] first_name decryption failed for inquiry ${inquiry.id}:`, error.message);
+    } catch (error: unknown) {
+      console.error(`[decryptForAdmin] first_name decryption failed for inquiry ${inquiry.id}:`, error instanceof Error ? error.message : String(error));
       decrypted.first_name = null; // fail-safe
     }
   }
@@ -111,8 +111,8 @@ export async function decryptInquiryForAdmin(inquiry: any): Promise<any> {
   if (inquiry.last_name && typeof inquiry.last_name === "string") {
     try {
       decrypted.last_name = await decryptAuto(inquiry.last_name);
-    } catch (error: any) {
-      console.error(`[decryptForAdmin] last_name decryption failed for inquiry ${inquiry.id}:`, error.message);
+    } catch (error: unknown) {
+      console.error(`[decryptForAdmin] last_name decryption failed for inquiry ${inquiry.id}:`, error instanceof Error ? error.message : String(error));
       decrypted.last_name = null; // fail-safe
     }
   }
@@ -123,8 +123,8 @@ export async function decryptInquiryForAdmin(inquiry: any): Promise<any> {
   if (inquiry.intake && typeof inquiry.intake === "object") {
     try {
       decrypted.intake = decryptIntakeMedical(decryptPiiInObject(inquiry.intake, null, "intake"));
-    } catch (error: any) {
-      console.error(`[decryptForAdmin] intake decryption failed for inquiry ${inquiry.id}:`, error.message);
+    } catch (error: unknown) {
+      console.error(`[decryptForAdmin] intake decryption failed for inquiry ${inquiry.id}:`, error instanceof Error ? error.message : String(error));
       // intake는 그대로 유지 (fail-safe)
     }
   }
@@ -166,8 +166,8 @@ export async function decryptNormalizedInquiryForAdmin(normalized: any): Promise
   if (normalized.raw_message && typeof normalized.raw_message === "string") {
     try {
       decrypted.raw_message = await decryptAuto(normalized.raw_message);
-    } catch (error: any) {
-      console.error(`[decryptForAdmin] raw_message decryption failed:`, error.message);
+    } catch (error: unknown) {
+      console.error(`[decryptForAdmin] raw_message decryption failed:`, error instanceof Error ? error.message : String(error));
       decrypted.raw_message = null; // fail-safe
     }
   }
@@ -178,8 +178,8 @@ export async function decryptNormalizedInquiryForAdmin(normalized: any): Promise
   if (normalized.contact && typeof normalized.contact === "object") {
     try {
       decrypted.contact = decryptPiiInObject(normalized.contact, null, "contact");
-    } catch (error: any) {
-      console.error(`[decryptForAdmin] contact decryption failed:`, error.message);
+    } catch (error: unknown) {
+      console.error(`[decryptForAdmin] contact decryption failed:`, error instanceof Error ? error.message : String(error));
       // contact는 그대로 유지 (fail-safe)
     }
   }

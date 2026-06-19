@@ -69,9 +69,9 @@ function assertKeyV1(): Buffer {
         return keyBuffer;
       }
       throw new Error(`base64 decoded to ${keyBuffer.length} bytes, expected ${REQUIRED_KEY_BYTES}`);
-    } catch (error: any) {
+    } catch (error: unknown) {
       throw new Error(
-        `[encryptionV2] ENCRYPTION_KEY_V1 looks like base64 but failed validation: ${error.message}`
+        `[encryptionV2] ENCRYPTION_KEY_V1 looks like base64 but failed validation: ${error instanceof Error ? error.message : String(error)}`
       );
     }
   }
@@ -84,9 +84,9 @@ function assertKeyV1(): Buffer {
         return keyBuffer;
       }
       throw new Error(`hex decoded to ${keyBuffer.length} bytes, expected ${REQUIRED_KEY_BYTES}`);
-    } catch (error: any) {
+    } catch (error: unknown) {
       throw new Error(
-        `[encryptionV2] ENCRYPTION_KEY_V1 looks like hex but failed validation: ${error.message}`
+        `[encryptionV2] ENCRYPTION_KEY_V1 looks like hex but failed validation: ${error instanceof Error ? error.message : String(error)}`
       );
     }
   }
@@ -188,8 +188,8 @@ export function decryptString(payloadJson: string): string {
   let payload: EncryptedPayload;
   try {
     payload = JSON.parse(payloadJson) as EncryptedPayload;
-  } catch (error: any) {
-    throw new Error(`[encryptionV2] Payload JSON parse failed: ${error.message}`);
+  } catch (error: unknown) {
+    throw new Error(`[encryptionV2] Payload JSON parse failed: ${error instanceof Error ? error.message : String(error)}`);
   }
 
   // 3. 페이로드 검증
@@ -219,8 +219,8 @@ export function decryptString(payloadJson: string): string {
   try {
     decrypted = decipher.update(encrypted, "base64", "utf8");
     decrypted += decipher.final("utf8");
-  } catch (error: any) {
-    throw new Error(`[encryptionV2] Decryption failed (auth tag mismatch?): ${error.message}`);
+  } catch (error: unknown) {
+    throw new Error(`[encryptionV2] Decryption failed (auth tag mismatch?): ${error instanceof Error ? error.message : String(error)}`);
   }
 
   return decrypted;
@@ -371,8 +371,8 @@ export async function encryptTextRPC(
 
     if (error) throw error;
     return data as string | null;
-  } catch (error: any) {
-    throw new Error(`[encryptionV2] RPC encryption failed: ${error.message}`);
+  } catch (error: unknown) {
+    throw new Error(`[encryptionV2] RPC encryption failed: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
 
@@ -397,8 +397,8 @@ export async function decryptTextRPC(
 
     if (error) throw error;
     return data as string | null;
-  } catch (error: any) {
-    throw new Error(`[encryptionV2] RPC decryption failed: ${error.message}`);
+  } catch (error: unknown) {
+    throw new Error(`[encryptionV2] RPC decryption failed: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
 

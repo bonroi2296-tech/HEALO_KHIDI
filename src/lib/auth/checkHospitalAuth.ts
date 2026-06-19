@@ -5,6 +5,7 @@
  * hospital_users 테이블에서 병원 연결 정보를 조회
  */
 
+import type { NextRequest } from "next/server";
 import { createSupabaseServerClient, createServiceRoleClient } from "../supabase/server";
 
 export interface HospitalAuthResult {
@@ -17,10 +18,10 @@ export interface HospitalAuthResult {
   error?: string;
 }
 
-export async function checkHospitalAuth(request?: any): Promise<HospitalAuthResult> {
+export async function checkHospitalAuth(request?: NextRequest): Promise<HospitalAuthResult> {
   try {
-    let user: any = null;
-    let userError: any = null;
+    let user: import("@supabase/supabase-js").User | null = null;
+    let userError: unknown = null;
 
     // 1. Bearer token
     if (request?.headers) {
@@ -32,8 +33,8 @@ export async function checkHospitalAuth(request?: any): Promise<HospitalAuthResu
           const { data, error } = await supabaseAdmin.auth.getUser(token);
           user = data?.user;
           userError = error;
-        } catch (err: any) {
-          console.error("[checkHospitalAuth] Bearer token error:", err.message);
+        } catch (err: unknown) {
+          console.error("[checkHospitalAuth] Bearer token error:", err instanceof Error ? err.message : String(err));
           userError = err;
         }
       }
@@ -46,14 +47,17 @@ export async function checkHospitalAuth(request?: any): Promise<HospitalAuthResu
         const { data, error } = await supabase.auth.getUser();
         user = data?.user;
         userError = error;
-      } catch (err: any) {
-        console.error("[checkHospitalAuth] Cookie auth error:", err.message);
+      } catch (err: unknown) {
+        console.error("[checkHospitalAuth] Cookie auth error:", err instanceof Error ? err.message : String(err));
         userError = err;
       }
     }
 
     if (userError || !user) {
-      return { isHospitalUser: false, error: userError?.message || "no_user" };
+      return {
+        isHospitalUser: false,
+        error: (userError instanceof Error ? userError.message : userError ? String((userError as { message?: unknown }).message ?? userError) : undefined) || "no_user",
+      };
     }
 
     const userId = user.id;
@@ -79,7 +83,7 @@ export async function checkHospitalAuth(request?: any): Promise<HospitalAuthResu
       };
     }
 
-    const hospital = (hospitalUser as any).hospitals;
+    const hospital = (hospitalUser as { hospitals?: { id?: string; name?: string } | null }).hospitals;
 
     return {
       isHospitalUser: true,
@@ -89,8 +93,9 @@ export async function checkHospitalAuth(request?: any): Promise<HospitalAuthResu
       hospitalName: hospital?.name || "Unknown",
       role: hospitalUser.role ?? undefined,
     };
-  } catch (error: any) {
-    console.error("[checkHospitalAuth] Error:", error.message);
-    return { isHospitalUser: false, error: error.message };
+  } catch (error: unknown) {
+    const msg = error instanceof Error ? error.message : String(error);
+    console.error("[checkHospitalAuth] Error:", msg);
+    return { isHospitalUser: false, error: msg };
   }
 }

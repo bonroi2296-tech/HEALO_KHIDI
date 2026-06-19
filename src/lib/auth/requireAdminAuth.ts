@@ -107,7 +107,7 @@ export async function requireAdminAuth(
     });
 
     // 403 응답 반환 (운영에서도 힌트 제공: Vercel env / Supabase role)
-    const response: any = {
+    const response: Record<string, unknown> = {
       ok: false,
       error: "unauthorized",
       detail: "관리자 권한이 필요합니다",
