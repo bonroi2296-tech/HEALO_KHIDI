@@ -3,11 +3,16 @@
  *
  * 환경변수 우선순위:
  * 1. `RESEND_API_KEY` + `RESEND_FROM_EMAIL` 있으면 Resend 사용
- * 2. `AWS_SES_REGION` + `AWS_SES_ACCESS_KEY_ID` 있으면 SES 사용
+ * 2. SES 자격: `AWS_SES_*`(신규 규약) 또는 레거시 `AWS_REGION`/`AWS_ACCESS_KEY_ID`/
+ *    `AWS_SECRET_ACCESS_KEY`/`SES_FROM_EMAIL`(옛 notifications/emailSender 규약) 둘 다 인식
  * 3. 둘 다 없으면 console.log 만 (개발용)
  *
  * Resend 가 Setup 훨씬 간단 (도메인 인증만 하면 바로 발송) — 권장.
  * AWS SES 는 production 승인 + IAM 키 관리 필요.
+ *
+ * (2026-06-19) 중복정리: 옛 `notifications/emailSender.ts`(SES 전용, 레거시 AWS_REGION/
+ *   AWS_ACCESS_KEY_ID/SES_FROM_EMAIL 규약)를 이 모듈로 통합. 프로덕션이 옛 env 이름만
+ *   설정돼 있어도 끊기지 않도록 레거시 이름을 fallback 으로 함께 인식한다.
  */
 
 import "server-only";
@@ -59,23 +64,23 @@ export async function sendEmail(opts: SendEmailOptions): Promise<SendEmailResult
   }
 
   // ── AWS SES ─────────────────────────
-  if (
-    process.env.AWS_SES_REGION &&
-    process.env.AWS_SES_ACCESS_KEY_ID &&
-    process.env.AWS_SES_SECRET_ACCESS_KEY &&
-    process.env.AWS_SES_FROM_EMAIL
-  ) {
+  // 신규(AWS_SES_*) 우선, 없으면 레거시(AWS_*/SES_FROM_EMAIL) 규약으로 fallback
+  const sesRegion = process.env.AWS_SES_REGION || process.env.AWS_REGION;
+  const sesAccessKey = process.env.AWS_SES_ACCESS_KEY_ID || process.env.AWS_ACCESS_KEY_ID;
+  const sesSecretKey = process.env.AWS_SES_SECRET_ACCESS_KEY || process.env.AWS_SECRET_ACCESS_KEY;
+  const sesFrom = process.env.AWS_SES_FROM_EMAIL || process.env.SES_FROM_EMAIL;
+  if (sesRegion && sesAccessKey && sesSecretKey && sesFrom) {
     try {
       const { SESClient, SendEmailCommand } = await import("@aws-sdk/client-ses");
       const client = new SESClient({
-        region: process.env.AWS_SES_REGION,
+        region: sesRegion,
         credentials: {
-          accessKeyId: process.env.AWS_SES_ACCESS_KEY_ID,
-          secretAccessKey: process.env.AWS_SES_SECRET_ACCESS_KEY,
+          accessKeyId: sesAccessKey,
+          secretAccessKey: sesSecretKey,
         },
       });
       const cmd = new SendEmailCommand({
-        Source: process.env.AWS_SES_FROM_EMAIL,
+        Source: sesFrom,
         Destination: { ToAddresses: toArr },
         Message: {
           Subject: { Data: opts.subject, Charset: "UTF-8" },

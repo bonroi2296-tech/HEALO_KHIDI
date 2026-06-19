@@ -1,5 +1,4 @@
 export { createRateLimiter, defaultLimiter, authLimiter, uploadLimiter } from './rateLimiter';
-export { withErrorHandler } from './withErrorHandler';
 export { retryWithBackoff, batchWithLimit } from './retry';
 export {
   stripHtml,

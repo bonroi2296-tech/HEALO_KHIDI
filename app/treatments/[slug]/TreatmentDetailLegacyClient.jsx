@@ -7,7 +7,7 @@ import {
   ShieldCheck, CheckCircle2, MessageCircle, ThumbsUp, Map, UserCheck,
   Clock, FileText, Globe, Activity, AlertTriangle, Syringe, BarChart3
 } from "lucide-react";
-import { supabase } from "@/supabase";
+import { supabaseClient as supabase } from "@/lib/data/supabaseClient";
 import { ReviewModal } from "@/components/Modals";
 import { normalizeImages } from "@/lib/mapper";
 import { localize, localizeArray, localizeLocation, getCurrentLangCode } from "@/lib/language";

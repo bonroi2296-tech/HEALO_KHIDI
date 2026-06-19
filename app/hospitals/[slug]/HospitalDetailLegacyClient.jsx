@@ -7,7 +7,7 @@ import {
   MessageCircle, HelpCircle, CheckCircle2, Activity, Calendar, Users, ClipboardCheck,
   Clock, Coffee, Languages, Phone, ExternalLink, X
 } from "lucide-react";
-import { supabase } from "@/supabase";
+import { supabaseClient as supabase } from "@/lib/data/supabaseClient";
 import { mapHospitalRow, mapTreatmentRow } from "@/lib/mapper";
 import { GoogleMapComponent } from "@/components/GoogleMap";
 
