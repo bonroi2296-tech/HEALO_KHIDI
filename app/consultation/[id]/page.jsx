@@ -72,6 +72,22 @@ const LANG_LABELS = {
   ja: "日本語",
 };
 
+// 역할 라벨을 현재 UI 언어로 — 자막·채팅·번역패널에서 공통 사용(언어 선택 시 전체 전환).
+// sender_role/speaker_role: doctor | coordinator | translator/interpreter | patient
+function roleLabel(role, c) {
+  switch (role) {
+    case "doctor":
+      return c.roleDoctor;
+    case "coordinator":
+      return c.roleCoordinator;
+    case "translator":
+    case "interpreter":
+      return c.roleInterpreter;
+    default:
+      return c.rolePatient;
+  }
+}
+
 /* ───────── i18n (6개 언어) ───────── */
 const COPY = {
   ko: {
@@ -136,6 +152,10 @@ const COPY = {
     // Placeholder video tiles
     doctorTile: "Doctor (의사)",
     patientTile: "Patient (환자)",
+    roleDoctor: "의사",
+    rolePatient: "환자",
+    roleCoordinator: "코디네이터",
+    roleInterpreter: "통역",
     waiting: "대기 중...",
     myScreen: "내 화면",
     livekitDisabled: "LiveKit 미설정 — 화상 연결이 비활성화되었습니다. 채팅과 통번역은 사용 가능합니다.",
@@ -241,6 +261,10 @@ const COPY = {
     reject: "Decline",
     doctorTile: "Doctor",
     patientTile: "Patient",
+    roleDoctor: "Doctor",
+    rolePatient: "Patient",
+    roleCoordinator: "Coordinator",
+    roleInterpreter: "Interpreter",
     waiting: "Waiting...",
     myScreen: "My view",
     livekitDisabled: "LiveKit not configured — video connection is disabled. Chat and interpretation are available.",
@@ -343,6 +367,10 @@ const COPY = {
     reject: "Отклонить",
     doctorTile: "Врач",
     patientTile: "Пациент",
+    roleDoctor: "Врач",
+    rolePatient: "Пациент",
+    roleCoordinator: "Координатор",
+    roleInterpreter: "Переводчик",
     waiting: "Ожидание...",
     myScreen: "Моё изображение",
     livekitDisabled: "LiveKit не настроен — видеосвязь отключена. Чат и перевод доступны.",
@@ -445,6 +473,10 @@ const COPY = {
     reject: "Бас тарту",
     doctorTile: "Дәрігер",
     patientTile: "Науқас",
+    roleDoctor: "Дәрігер",
+    rolePatient: "Науқас",
+    roleCoordinator: "Үйлестіруші",
+    roleInterpreter: "Аудармашы",
     waiting: "Күтуде...",
     myScreen: "Менің бейнем",
     livekitDisabled: "LiveKit бапталмаған — бейнебайланыс өшірілген. Чат пен аударма қолжетімді.",
@@ -547,6 +579,10 @@ const COPY = {
     reject: "拒绝",
     doctorTile: "医生",
     patientTile: "患者",
+    roleDoctor: "医生",
+    rolePatient: "患者",
+    roleCoordinator: "协调员",
+    roleInterpreter: "翻译",
     waiting: "等待中...",
     myScreen: "我的画面",
     livekitDisabled: "LiveKit 未配置——视频连接已禁用。聊天和口译仍可使用。",
@@ -649,6 +685,10 @@ const COPY = {
     reject: "拒否",
     doctorTile: "医師",
     patientTile: "患者",
+    roleDoctor: "医師",
+    rolePatient: "患者",
+    roleCoordinator: "コーディネーター",
+    roleInterpreter: "通訳",
     waiting: "待機中...",
     myScreen: "自分の画面",
     livekitDisabled: "LiveKit未設定 — ビデオ接続が無効です。チャットと通訳はご利用いただけます。",
@@ -931,7 +971,7 @@ function SubtitleOverlay({
       {remoteSubtitle?.text && (
         <div className="bg-black/75 backdrop-blur-sm rounded-lg px-4 py-2 text-center border border-yellow-500/20">
           <p className="text-yellow-500/70 text-xs mb-0.5">
-            {remoteSubtitle.role === "doctor" ? "Doctor" : "Patient"} — {LANG_LABELS[remoteSubtitle.lang] || remoteSubtitle.lang}
+            {roleLabel(remoteSubtitle.role, c)} — {LANG_LABELS[remoteSubtitle.lang] || remoteSubtitle.lang}
           </p>
           <p className={`${remoteColor} ${sz.trans} font-medium`}>{remoteSubtitle.text}</p>
         </div>
@@ -2544,7 +2584,7 @@ export default function ConsultationRoomPage() {
                             : "bg-gray-700 text-gray-100"
                         }`}
                       >
-                        <p className="font-semibold text-xs mb-1">{msg.sender_name}</p>
+                        <p className="font-semibold text-xs mb-1">{roleLabel(msg.sender_role, c)}</p>
                         <p>{msg.message_text}</p>
                       </div>
                     </div>
@@ -2664,9 +2704,9 @@ export default function ConsultationRoomPage() {
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-xs text-gray-500">
                           {trans.speaker_role === "doctor"
-                            ? "Doctor"
+                            ? c.roleDoctor
                             : trans.speaker_role === "patient"
-                            ? "Patient"
+                            ? c.rolePatient
                             : c.you}
                         </span>
                         <span className="text-xs text-gray-600">
