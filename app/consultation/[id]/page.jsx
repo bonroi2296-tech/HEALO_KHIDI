@@ -11,6 +11,7 @@ import {
   useTracks,
   useConnectionState,
   useLocalParticipant,
+  useParticipants,
   FocusLayout,
   FocusLayoutContainer,
   CarouselLayout,
@@ -34,6 +35,7 @@ import {
   ExternalLink,
   FileText,
   X,
+  Users,
 } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { useLang } from "@/lib/i18n/LangContext";
@@ -707,6 +709,29 @@ function ConnectionBanner() {
     <div className="absolute top-3 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2 bg-amber-500/95 text-gray-900 text-xs font-semibold px-3 py-1.5 rounded-full shadow-lg pointer-events-none">
       <span className="w-3 h-3 border-2 border-gray-900 border-t-transparent rounded-full animate-spin" />
       {c.reconnecting}
+    </div>
+  );
+}
+
+// ── 방 정보 오버레이 (LiveKitRoom 내부 전용) — 참가자 수 + 경과 시간 ──
+// 줌 벤치: 다자 미팅에서 몇 명 들어왔는지 + 상담 진행 시간(전문적 느낌).
+function RoomInfoOverlay() {
+  const participants = useParticipants(); // 로컬 포함 전원
+  const [sec, setSec] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => setSec((s) => s + 1), 1000);
+    return () => clearInterval(t);
+  }, []);
+  const mm = String(Math.floor(sec / 60)).padStart(2, "0");
+  const ss = String(sec % 60).padStart(2, "0");
+  return (
+    <div className="absolute top-3 left-3 z-20 flex items-center gap-3 bg-black/55 backdrop-blur-sm rounded-full px-3 py-1.5 text-xs text-gray-100 pointer-events-none">
+      <span className="flex items-center gap-1">
+        <Users size={13} /> {participants.length}
+      </span>
+      <span className="tabular-nums">
+        {mm}:{ss}
+      </span>
     </div>
   );
 }
@@ -2277,6 +2302,7 @@ export default function ConsultationRoomPage() {
                 <RoomAudioRenderer />
                 <ConnectionBanner />
                 <MutedSpeakingWarning />
+                <RoomInfoOverlay />
                 <SubtitleOverlay
                   original={currentSubtitle?.original}
                   translated={currentSubtitle?.translated}
@@ -2289,7 +2315,7 @@ export default function ConsultationRoomPage() {
                 {/* 서버 STT 상태 표시 — 듣는 중(회색)/목소리 감지(초록)/자막 생성 중(노랑).
                     "되는 건지 알 수 없다"는 피드백 해소용 생존 신호 */}
                 {useServerStt && serverSttStatus !== "idle" && (
-                  <div className="absolute top-3 left-3 z-20 flex items-center gap-1.5 bg-black/60 backdrop-blur-sm rounded-full px-2.5 py-1.5 pointer-events-none">
+                  <div className="absolute top-14 left-3 z-20 flex items-center gap-1.5 bg-black/60 backdrop-blur-sm rounded-full px-2.5 py-1.5 pointer-events-none">
                     <span
                       className={`w-2 h-2 rounded-full ${
                         serverSttStatus === "processing"
