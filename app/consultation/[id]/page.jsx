@@ -53,6 +53,7 @@ import {
 } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { useLang } from "@/lib/i18n/LangContext";
+import { setLangCookie } from "@/lib/i18n";
 import { useToast } from "@/components/Toast";
 import { useSpeechRecognition, getEffectiveSttLang } from "@/lib/consultation/useSpeechRecognition";
 import { isFillerOnly } from "@/lib/consultation/fillerFilter";
@@ -1005,6 +1006,13 @@ export default function ConsultationRoomPage() {
   const [guestLang, setGuestLang] = useState(() =>
     ["ko", "en", "ru", "kz", "zh", "ja"].includes(lang) ? lang : "ru"
   );
+  // 언어 선택 시 화면 전체 UI 텍스트도 그 언어로 전환 (쿠키 + langchange 이벤트 → useLang 전역 갱신)
+  const switchUiLang = useCallback((code) => {
+    setLangCookie(code);
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new Event("healo:langchange"));
+    }
+  }, []);
   // Waiting Room — 의사 승인 대기
   const [admissionId, setAdmissionId] = useState(null);
   const [admissionStatus, setAdmissionStatus] = useState(null);
@@ -2056,7 +2064,10 @@ export default function ConsultationRoomPage() {
                   <button
                     key={l}
                     type="button"
-                    onClick={() => setGuestLang(l)}
+                    onClick={() => {
+                      setGuestLang(l);
+                      switchUiLang(l);
+                    }}
                     className={`px-3 py-2 rounded-lg text-sm transition border ${
                       guestLang === l
                         ? "bg-teal-600 border-teal-500 text-white font-semibold"
@@ -2803,7 +2814,10 @@ export default function ConsultationRoomPage() {
                 {["ko", "en", "ru", "kz", "zh", "ja"].map((l) => (
                   <button
                     key={l}
-                    onClick={() => setMyLang(l)}
+                    onClick={() => {
+                      setMyLang(l);
+                      switchUiLang(l);
+                    }}
                     className={`px-3 py-2 rounded-lg text-sm transition border ${
                       myLang === l
                         ? "bg-teal-600 border-teal-500 text-white font-semibold"
