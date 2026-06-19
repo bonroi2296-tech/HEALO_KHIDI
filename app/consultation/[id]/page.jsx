@@ -12,6 +12,7 @@ import {
   useConnectionState,
   useLocalParticipant,
   useParticipants,
+  useSpeakingParticipants,
   FocusLayout,
   FocusLayoutContainer,
   CarouselLayout,
@@ -27,6 +28,8 @@ const ROOM_OPTIONS = {
   videoCaptureDefaults: { resolution: VideoPresets.h720.resolution },
   publishDefaults: {
     videoSimulcastLayers: [VideoPresets.h180, VideoPresets.h360, VideoPresets.h720],
+    // 화면 공유는 글자·이미지가 선명해야 함 → 1080p 인코딩
+    screenShareEncoding: VideoPresets.h1080.encoding,
   },
 };
 import {
@@ -824,12 +827,26 @@ function VideoGrid() {
     { onlySubscribed: false }
   );
 
+  // 발화자 추적 — 현재 말하는 사람을 메인으로 (줌 스피커 뷰). 끊기지 않게 마지막 발화자 유지.
+  const speaking = useSpeakingParticipants();
+  const [dominantId, setDominantId] = useState(null);
+  useEffect(() => {
+    const top = speaking[0];
+    if (top && top.identity !== dominantId) setDominantId(top.identity);
+  }, [speaking, dominantId]);
+
   const [pinnedKey, setPinnedKey] = useState(null);
-  // 수동 핀(타일 클릭) — 있으면 최우선
+  const cameraTracks = tracks.filter((t) => t.source === Track.Source.Camera);
+  // 메인 화면 우선순위: 수동 핀 > 화면 공유 > 발화자 > 첫 원격 카메라 > 첫 트랙
   const manualFocus = pinnedKey ? tracks.find((t) => trackKey(t) === pinnedKey) : null;
-  // 화면 공유는 자동으로 크게 (줌/미트식). 수동 핀이 없을 때만.
   const screenTrack = tracks.find((t) => t.source === Track.Source.ScreenShare);
-  const focusTrack = manualFocus || screenTrack || null;
+  const speakerTrack = dominantId
+    ? cameraTracks.find((t) => t.participant?.identity === dominantId)
+    : null;
+  const remoteCam =
+    cameraTracks.find((t) => !t.participant?.isLocal) || cameraTracks[0];
+  const focusTrack =
+    manualFocus || screenTrack || speakerTrack || remoteCam || tracks[0] || null;
   const isManual = !!manualFocus;
   const pinFromEvent = (e) =>
     setPinnedKey(
