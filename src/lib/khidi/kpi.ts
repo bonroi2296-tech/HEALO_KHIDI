@@ -55,6 +55,38 @@ function getAdminClient(): SupabaseClient {
 }
 
 // ============================================================
+// 내부 유틸: 국적 코드 → 한국어 표기 (KHIDI 리포트 가독성)
+// inquiries.nationality 는 ISO 2자리 코드(KZ/RU/UZ…)로 저장됨.
+// 대시보드 진행바 색상은 "카자흐"/"러시아" 또는 "KZ"/"RU" 둘 다 매칭하므로
+// 한국어로 바꿔도 색상 로직 유지됨. 모르는 코드는 원문 그대로 둔다.
+// ============================================================
+const NATIONALITY_NAMES: Record<string, string> = {
+  KZ: "카자흐스탄",
+  RU: "러시아",
+  UZ: "우즈베키스탄",
+  KG: "키르기스스탄",
+  TJ: "타지키스탄",
+  TM: "투르크메니스탄",
+  AZ: "아제르바이잔",
+  GE: "조지아",
+  AM: "아르메니아",
+  BY: "벨라루스",
+  UA: "우크라이나",
+  MN: "몽골",
+  KR: "한국",
+  CN: "중국",
+  JP: "일본",
+  US: "미국",
+};
+
+function normalizeNationality(raw: string | null | undefined): string {
+  if (!raw) return "기타";
+  const v = raw.trim();
+  if (!v) return "기타";
+  return NATIONALITY_NAMES[v.toUpperCase()] ?? v;
+}
+
+// ============================================================
 // 내부: 날짜 범위 → KPI 집계 (SQL)
 // ============================================================
 async function _fetchKpiInRange(
@@ -136,32 +168,72 @@ async function _fetchKpiInRange(
       ? Math.round((satisfactionResponseCount / surveysSentCount) * 1000) / 10
       : null;
 
-  // --- 고유 환자 수 ---
-  const { data: patientsData, error: e5 } = await supabase
+  // --- 고유 환자 수 + 국가별 분포 ---
+  // 환자 식별·국적 매핑: consultation_sessions.patient_id 는 현재 전부 null(미사용)이라
+  // 실제 연결고리는 inquiry_id → inquiries.nationality 다. 옛 코드는 존재하지 않는
+  // 테이블 khidi_intakes 를 쿼리해 국가분포·고유환자수가 항상 비어 있었음
+  // (KNOWN_ISSUES 2026-06-19). patient_id 가 채워지는 미래도 대비해
+  // "환자키 = patient_id ?? inq:<inquiry_id>" 로 중복제거한다.
+  const { data: sessRows, error: e5 } = await supabase
     .from("consultation_sessions")
-    .select("patient_id")
+    .select("patient_id, inquiry_id")
     .eq("status", "completed")
     .gte("scheduled_at", fromISO)
     .lt("scheduled_at", toISO);
 
-  if (e5) console.error("[kpi] unique_patients error:", e5.message);
+  if (e5) console.error("[kpi] unique_patients/countries error:", e5.message);
 
-  const uniquePatientIds = new Set((patientsData ?? []).map((r) => r.patient_id));
-  const uniquePatients = uniquePatientIds.size;
+  const sessions = (sessRows ?? []) as Array<{
+    patient_id: string | null;
+    inquiry_id: number | null;
+  }>;
 
-  // --- 국가별 분포 ---
-  const { data: intakesData, error: e6 } = await supabase
-    .from("khidi_intakes")
-    .select("user_id, nationality")
-    .in("user_id", Array.from(uniquePatientIds) as string[]);
+  const patientKey = (r: {
+    patient_id: string | null;
+    inquiry_id: number | null;
+  }): string | null =>
+    r.patient_id ?? (r.inquiry_id != null ? `inq:${r.inquiry_id}` : null);
 
-  if (e6) console.error("[kpi] countries error:", e6.message);
+  const uniqueKeys = new Set(
+    sessions.map(patientKey).filter((k): k is string => k != null)
+  );
+  const uniquePatients = uniqueKeys.size;
 
+  // inquiry_id → nationality 조회 (inquiries.nationality = ISO 국가코드 KZ/RU/UZ…)
+  const inquiryIds = Array.from(
+    new Set(
+      sessions
+        .map((r) => r.inquiry_id)
+        .filter((id): id is number => id != null)
+    )
+  );
+
+  const natByInquiry = new Map<number, string>();
+  if (inquiryIds.length > 0) {
+    const { data: inqRows, error: e6 } = await supabase
+      .from("inquiries")
+      .select("id, nationality")
+      .in("id", inquiryIds);
+
+    if (e6) console.error("[kpi] countries(nationality) error:", e6.message);
+
+    (inqRows ?? []).forEach((r: { id: number; nationality: string | null }) => {
+      natByInquiry.set(r.id, normalizeNationality(r.nationality));
+    });
+  }
+
+  // 환자(중복제거) 1명당 국적 1회 카운트
   const countryMap: Record<string, number> = {};
-  (intakesData ?? []).forEach((row) => {
-    const nat = row.nationality ?? "기타";
+  const counted = new Set<string>();
+  for (const r of sessions) {
+    const key = patientKey(r);
+    if (!key || counted.has(key)) continue;
+    counted.add(key);
+    const nat =
+      (r.inquiry_id != null ? natByInquiry.get(r.inquiry_id) : undefined) ??
+      "기타";
     countryMap[nat] = (countryMap[nat] ?? 0) + 1;
-  });
+  }
   const countries = Object.entries(countryMap)
     .map(([nationality, count]) => ({ nationality, count }))
     .sort((a, b) => b.count - a.count);
