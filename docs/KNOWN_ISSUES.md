@@ -4,6 +4,17 @@
 
 ---
 
+## 🐛 발견 (2026-06-19) — KPI 국가별 분포 집계가 없는 테이블을 쿼리 (KHIDI 영향)
+
+> 서버 클라 통합 중 `kpi.ts`를 타입 박힌 정본 `supabaseAdmin`에 위임하자 숨어있던 불일치가 드러남(옛 클라는 제네릭 없는 createClient라 무검사 통과했음).
+
+- **증상**: `src/lib/khidi/kpi.ts` 의 "국가별 분포"가 **존재하지 않는 테이블 `khidi_intakes`** 를 `select("user_id, nationality")` 로 쿼리 → 에러 로깅 후 빈 배열 → **KHIDI 리포트 국가분포가 항상 비어있음**. (헤드라인 K-01 유치건수 등은 다른 테이블이라 정상.)
+- **실DB 확인**: `khidi_intakes` 테이블 없음. `nationality` 컬럼은 `inquiries`·`visa_applications` 에 존재(둘 다 user_id/patient_id 없음 → 환자 연결 경로 재설계 필요).
+- **현 조치**: 통합 변경은 **동작보존**(깨진 쿼리 그대로, 느슨한 타입 캐스팅). 실수정은 데이터모델 재설계 필요라 별도 과제 — **PO 결정 대기**.
+- **권장 수정**: 환자(`consultation_sessions.patient_id`) → 국적 매핑 경로를 `inquiries`/`visa_applications` 기준으로 다시 정의하거나, 생성 DB 타입(`database.types.ts`) 최신화 후 정식 타입으로 재작성.
+
+---
+
 ## 🧭 기초 감리 (2026-06-19) — 5축 제3자 점검
 
 > "기능만 빨리, 기초 부실" 가설을 5축(보안/테스트·CI/타입·품질/관측/의존성·DB·문서)으로 코드 직접 검증.

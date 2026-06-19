@@ -12,7 +12,8 @@
 
 import "server-only";
 
-import { createClient } from "@supabase/supabase-js";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
 
 // ============================================================
 // 타입 정의
@@ -45,14 +46,12 @@ export interface DailyKpiPoint {
 
 // ============================================================
 // 내부 유틸: service_role 클라이언트 (RLS 우회)
+// 중복정리: 자체 createClient 제거 → 정본 supabaseAdmin 싱글톤 위임(fail-closed).
 // ============================================================
-function getAdminClient() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!url || !key) {
-    throw new Error("[khidi/kpi] NEXT_PUBLIC_SUPABASE_URL / SUPABASE_SERVICE_ROLE_KEY missing");
-  }
-  return createClient(url, key, { auth: { persistSession: false } });
+function getAdminClient(): SupabaseClient {
+  // 옛 getAdminClient 는 제네릭 없는 createClient(=느슨한 타입)였다. kpi 쿼리들이
+  // 그 느슨한 타입에 의존하므로(드러난 스키마-타입 불일치는 별도 과제) 동일 타입으로 캐스팅.
+  return supabaseAdmin as unknown as SupabaseClient;
 }
 
 // ============================================================
