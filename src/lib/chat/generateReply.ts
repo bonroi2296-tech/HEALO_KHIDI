@@ -225,10 +225,12 @@ export function buildSystemPrompt(
     "- Off-topic (non-medical) → politely redirect to medical assistance topic.",
     "",
     "RESPONSE RULES (this is a small MOBILE chat bubble — brevity is mandatory):",
-    "- KEEP THE WHOLE REPLY SHORT: aim for 3-5 short lines, under ~70 words total. A wall of text makes the patient leave. If there is more to say, end with ONE line offering to continue (e.g. 'Want the price ranges too?').",
+    "- ANSWER THE ACTUAL QUESTION the user asked, in a warm, human, conversational way — like a caring coordinator texting back, NOT a textbook or a price sheet. Talk WITH them, do not recite data AT them.",
+    "- KEEP THE WHOLE REPLY SHORT: aim for 3-5 short lines, under ~70 words total. A wall of text makes the patient leave. If there is more to say, end with ONE short line offering to continue (e.g. 'Want the rough cost range too?').",
+    "- DO NOT lead with a price or a number unless the user EXPLICITLY asked the cost (e.g. '얼마', 'how much', 'cost', 'цена'). For open or emotional questions (e.g. 'what should I tell my friend', 'where do we start', 'she has lots of questions'), reply conversationally: acknowledge them, briefly say how healwith helps and accompanies them, then ask what they most want to know. Numbers come ONLY when asked.",
+    "- NEVER dump a bare figure like '₩18M' or '$13,500' as the answer. A price, when asked, is a gentle range inside a full sentence, never the opening words.",
     "- PLAIN TEXT ONLY. The chat does NOT render markdown — never use **, *, ***, ##, ---, backticks, or tables; they appear as literal symbols and look broken. For a short list use a simple '- ' prefix or '1. 2. 3.' only.",
     "- No preamble, no restating the question, no 'If you sent me X, I would say...'. Answer directly.",
-    "- Lead with the answer, skip lengthy introductions.",
     "- Respond in the same language the user writes in.",
     "- If unsure, say 'I'm not sure — let me connect a coordinator'. Honesty > confident wrong answer.",
     "- TONE: the user is often an anxious cancer patient or family. If they share distressing news (advanced-stage cancer, fear, a sick family member), open with ONE brief empathetic sentence before guidance. Warm but never exaggerated — no emoji spam, no hollow marketing phrases.",
@@ -267,7 +269,7 @@ export function buildSystemPrompt(
     "",
     "INTAKE & ESTIMATE (use the [healwith 안내자료] reference below — it is always available):",
     "- If the patient asks what to prepare / how to start / how to get a cost estimate, list the 5 REQUIRED DOCUMENTS as a compact '- ' list (one short line each, no extra commentary), then ONE line: share them with a coordinator for a personalized quote (free preliminary review).",
-    "- If the patient asks about cost for a specific cancer type, give just that type's INDICATIVE RANGE (USD and ₩) in one line, then ONE line that it is an estimate and the hospital sets the final price after reviewing the diagnosis. Never a single fixed number, never dump the whole price list.",
+    "- ONLY when the patient EXPLICITLY asks the price (e.g. '얼마', 'how much', 'cost'): give just that cancer type's INDICATIVE RANGE (USD and ₩) woven into a full sentence, then ONE line that it is an estimate and the hospital sets the final price after reviewing the diagnosis. Never a single fixed number, never a bare figure, never dump the whole price list. If they did NOT ask about cost, do NOT volunteer a price — answer their real question instead.",
     "- Tag these with '(출처: healwith 안내자료)' (translate '출처' to the user's language).",
     "- Keep the integrative/immune framing: supportive care alongside surgery/chemo, never a cure.",
     "- REGISTER / PROCEED: when the patient wants to formally register, submit, proceed, or book (e.g. '접수해줘', 'оформить заявку', 'I want to proceed'), NEVER send them to a separate form or tell them to re-enter their details from scratch. Everything they told you in THIS chat is already saved with their name and contact. Reassure in 1-2 short lines: their request is registered and a healwith coordinator will contact them (by email if they gave one). Only ask for any of the 5 required documents still missing, or for a contact detail if none was given. A patient who already shared their info must never be asked to start over.",
@@ -560,8 +562,16 @@ export async function generateChatReply(
       system: fullSystemPrompt,
       messages: messages as any,
       // 비용·가독성 가드: 응답 길이 상한 (모바일 채팅 벽지 방지 + 토큰 폭주 차단)
-      maxOutputTokens: 768,
-      providerOptions: useWebSearch ? { google: { useSearchGrounding: true } } : undefined,
+      // ⚠️ gemini-flash-latest 는 thinking(추론) 토큰이 maxOutputTokens 에 포함됨 →
+      //    상한이 낮으면 추론이 예산을 다 먹고 실제 답변이 문장 중간에 잘림(2026-06-19 버그).
+      //    컨시어지 짧은 답변엔 추론 불필요 → thinkingBudget:0 으로 끄고 답변에 예산 전부 할당.
+      maxOutputTokens: 1024,
+      providerOptions: {
+        google: {
+          thinkingConfig: { thinkingBudget: 0 },
+          ...(useWebSearch ? { useSearchGrounding: true } : {}),
+        },
+      },
     });
 
     let finalReply: string;
