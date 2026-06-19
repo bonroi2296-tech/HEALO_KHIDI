@@ -130,44 +130,78 @@ if (typeof process !== 'undefined' && process.env.NODE_ENV) {
 }
 
 /**
- * ✅ 알림 전송 (확장 가능)
- * 
- * 현재: 콘솔 로그
- * 추후: Slack, Email, SMS 등
+ * 운영자에게 알림 도달 — 실제 채널 연결.
+ *
+ * 1) 콘솔 로그 (Vercel 로그)
+ * 2) Sentry (NEXT_PUBLIC_SENTRY_DSN 설정 시 — 서버 Sentry 가 instrumentation.ts 로 활성)
+ * 3) 이메일 (critical/warning 만, Resend/SES via sendEmail). 수신자:
+ *    OPERATIONAL_ALERT_EMAIL → 없으면 ADMIN_EMAIL_ALLOWLIST 첫 주소.
+ *
+ * ⚠️ 한계: 임계값 카운터(AlertCounter)는 인메모리라 Vercel 서버리스 콜드스타트마다
+ * 리셋된다 → "5분 내 N건" 류 누적 임계는 단일 인스턴스 안에서만 정확. 정밀한 누적
+ * 집계가 필요하면 DB 기반 카운터로 옮겨야 함(백로그). 단 개별 알림 전송 자체는 정상.
  */
 async function sendAlert(alert: AlertMeta): Promise<void> {
+  // 1) 콘솔 출력 (개발/운영 로그) — 실패해도 나머지 채널 시도
+  const logLevel = alert.severity === 'critical' ? 'error' : 'warn';
+  console[logLevel](`[ALERT:${alert.severity}] ${alert.type}:`, {
+    message: alert.message,
+    details: alert.details,
+    threshold: alert.threshold,
+    currentValue: alert.currentValue,
+    timestamp: alert.timestamp,
+  });
+
+  // 2) Sentry — 서버 Sentry 활성 시 이벤트로 보고
   try {
-    // 콘솔 출력 (개발/운영 로그)
-    const logLevel = alert.severity === 'critical' ? 'error' : 'warn';
-    console[logLevel](`[ALERT:${alert.severity}] ${alert.type}:`, {
-      message: alert.message,
-      details: alert.details,
-      threshold: alert.threshold,
-      currentValue: alert.currentValue,
-      timestamp: alert.timestamp,
-    });
-
-    // TODO: 외부 알림 시스템 연동
-    // - Slack Webhook
-    // - Email (SendGrid, AWS SES)
-    // - SMS (Twilio)
-    // - Push Notification
-    
-    // 예시: Slack 연동
-    // if (process.env.SLACK_WEBHOOK_URL) {
-    //   await fetch(process.env.SLACK_WEBHOOK_URL, {
-    //     method: 'POST',
-    //     headers: { 'Content-Type': 'application/json' },
-    //     body: JSON.stringify({
-    //       text: `🚨 ${alert.severity.toUpperCase()}: ${alert.message}`,
-    //       attachments: [{ text: JSON.stringify(alert.details, null, 2) }]
-    //     })
-    //   });
-    // }
-
+    if (process.env.NEXT_PUBLIC_SENTRY_DSN) {
+      const Sentry = await import("@sentry/nextjs");
+      const level =
+        alert.severity === 'critical' ? 'error'
+        : alert.severity === 'warning' ? 'warning'
+        : 'info';
+      Sentry.captureMessage(`[ALERT:${alert.type}] ${alert.message}`, {
+        level: level as any,
+        extra: {
+          details: alert.details,
+          threshold: alert.threshold,
+          currentValue: alert.currentValue,
+        },
+      });
+    }
   } catch (error) {
-    // 알림 실패해도 조용히 넘어감 (메인 로직에 영향 없음)
-    console.error('[operationalAlerts] Failed to send alert:', error);
+    console.error('[operationalAlerts] Sentry 보고 실패:', error);
+  }
+
+  // 3) 이메일 — critical/warning 만 (info=고가치리드 등은 피로도 방지로 제외)
+  try {
+    if (alert.severity !== 'info') {
+      const recipient =
+        process.env.OPERATIONAL_ALERT_EMAIL ||
+        (process.env.ADMIN_EMAIL_ALLOWLIST || "").split(",")[0]?.trim();
+      if (recipient) {
+        const { sendEmail } = await import("@/lib/email/sendEmail");
+        const rows = [
+          `type: ${alert.type}`,
+          `severity: ${alert.severity}`,
+          `message: ${alert.message}`,
+          alert.threshold != null ? `threshold: ${alert.threshold}` : "",
+          alert.currentValue != null ? `currentValue: ${alert.currentValue}` : "",
+          `timestamp: ${alert.timestamp}`,
+          alert.details ? `details: ${JSON.stringify(alert.details)}` : "",
+        ].filter(Boolean);
+        await sendEmail({
+          to: recipient,
+          subject: `[healwith ${alert.severity}] ${alert.type}`,
+          html: `<pre style="font:13px/1.5 monospace">${rows.join("\n")}</pre>`,
+          text: rows.join("\n"),
+          tags: { kind: "operational_alert", severity: alert.severity },
+        });
+      }
+    }
+  } catch (error) {
+    // 알림 실패해도 메인 로직에 영향 없음
+    console.error('[operationalAlerts] 이메일 알림 실패:', error);
   }
 }
 

@@ -95,26 +95,32 @@ function generateNotificationMessage(payload: AdminNotificationPayload): string 
  * - Twilio / AWS SNS / 기타 SMS API
  */
 async function sendSMS(to: string, message: string): Promise<NotificationResult> {
-  try {
-    if (process.env.NODE_ENV !== "production") {
-      console.log(`[SMS Mock] -> ${maskPhone(to)}`);
-    }
-    
-    // DB 기록을 위해 success=true 반환
-    return {
-      success: true,
-      provider: "sms",
-      messageId: `mock-sms-${Date.now()}`,
-    };
-  } catch (error: any) {
-    console.error(`[SMS] Mock 실패: ${maskPhone(to)}`, error.message);
-    
-    return {
-      success: false,
-      provider: "sms",
-      error: error.message,
-    };
+  // ⚠️ 실제 SMS provider(Twilio/Solapi 등) 미연동.
+  // 과거엔 success:true + mock messageId 를 반환해 DB 에 'sent' 로 거짓 기록됐다
+  // (실제로는 아무것도 안 보냄). 거짓 'sent' 를 없애고 미설정을 정직하게 반환한다.
+  // 실제 발송 채널은 이메일(sendEmail). SMS 연동 시 이 함수만 교체.
+  return {
+    success: false,
+    provider: "sms",
+    error: "sms_not_configured",
+  };
+}
+
+/**
+ * 전화 채널(SMS/알림톡)이 실제로 설정됐는지 — 미설정이면 발송 시도 자체를 건너뛴다.
+ * (거짓 'sent' 로그·불필요한 실패 알림 방지)
+ */
+function isPhoneChannelConfigured(provider: NotificationProvider): boolean {
+  if (provider === "alimtalk") return !!process.env.ALIMTALK_API_KEY;
+  if (provider === "sms") {
+    return !!(
+      process.env.SMS_API_KEY ||
+      process.env.TWILIO_AUTH_TOKEN ||
+      process.env.SOLAPI_API_KEY
+    );
   }
+  // "console" 등은 실제 발송 채널이 아님
+  return false;
 }
 
 /**
@@ -342,8 +348,9 @@ async function _sendAdminNotificationInternal(
     const message = generateNotificationMessage(payload);
     let hasSuccess = false;
     
-    // 1. SMS/Alimtalk 발송 (phone이 있으면)
-    if (recipient.phone) {
+    // 1. SMS/Alimtalk 발송 (phone이 있고 + 실제 provider 설정됐을 때만)
+    //    미설정이면 거짓 'sent' 를 남기지 않도록 건너뛴다. 이메일은 아래에서 별도 발송.
+    if (recipient.phone && isPhoneChannelConfigured(provider)) {
       const startTime = Date.now();
       let result: NotificationResult;
       

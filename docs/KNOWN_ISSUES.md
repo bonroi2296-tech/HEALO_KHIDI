@@ -4,6 +4,32 @@
 
 ---
 
+## 🧭 기초 감리 (2026-06-19) — 5축 제3자 점검
+
+> "기능만 빨리, 기초 부실" 가설을 5축(보안/테스트·CI/타입·품질/관측/의존성·DB·문서)으로 코드 직접 검증.
+> 종합 ≈56/100. 보안 뼈대(82)는 견고, 관측(42)이 최약점. 이번 PR에서 **위험3+근본원인 4건 수리**, 나머지는 아래 백로그.
+
+### ✅ 이번에 수리 완료 (PR #85)
+- **서버 Sentry 부활**: `instrumentation.ts`의 `return;` 제거 → 서버·SSR·크론 에러 수집 재활성(DSN 있을 때). **프로덕션(DSN 설정) 배포로 실수집 확인 필요.**
+- **`supabaseAdmin` fail-closed**: 더미 fallback 을 빌드 단계(`NEXT_PHASE`)로만 한정, 런타임 env 누락 시 throw → 조용한 데이터 유실 차단.
+- **`pg` 오배치 교정** + **취약점 31→7**(axios 1.18.0·ws 8.21.0 등 prod·high 패치, 죽은 `@ai-sdk/openai`·`@ai-sdk/react` 제거).
+- **CI 게이트**: `tsc --noEmit` 머지 차단 추가. `eslint` 정보용(비차단).
+- **기본 임시비번 healo1234 제거** → 계정마다 crypto 랜덤 14자(`admin/staff`).
+- **게스트 채팅 PII 평문저장 차단**: `public/chat/start` 가 이름·이메일·전화를 AES-256-GCM 암호화 저장, 검색은 metadata SHA256 블라인드 인덱스. 읽기 경로 `decryptMaybe` 로 복호화(옛 평문 행 호환).
+- **운영 알림 실제 연결**: `operationalAlerts.sendAlert` → Sentry+이메일(critical/warning). `adminNotifier.sendSMS` 가짜 'sent' 제거(미설정은 정직하게 skip).
+- **핵심경로 테스트 + 커버리지 복구**: `encryptionV2.test.ts`(9), `@vitest/coverage-v8` 추가.
+- **README** 피벗 반영 전면 재작성.
+
+### 🔴 남은 백로그 (다음 세션 권장)
+- **⭐ 중복 정리 (위생, 큰 리팩터)**: Supabase 클라이언트 6벌(server `supabaseAdmin.ts`108·`server.ts`16·`supabaseServerClient.ts`5 / browser `browser.ts`53·`supabaseClient.js`7·`supabase.js`2) → 정책 정하고 1~2벌로. 이메일 발송 2벌(`email/sendEmail.ts` vs `notifications/emailSender.ts`, env 규약 상이) → 1벌로. `withErrorHandler` 데드 추상화(155라우트 중 0 사용). **108+ import 사이트 영향 → 실서비스 리스크라 깨끗한 세션에서 단계적으로.**
+- **`any` 813개**(인증·복호화 66개) 점진 축소, God컴포넌트 `consultation/[id]/page.jsx` 2,883줄 분할.
+- **얕은 헬스체크**: `api/health`가 정적 `{ok}`만 → DB 죽어도 200.
+- **남은 7취약점**: vitest(dev)·exceljs→uuid·sentry→postcss = major 강제 필요(깨질 수 있어 보류).
+- **DB 마이그레이션 위생**: 수동 추적·정책 `DROP ... IF EXISTS` 가드 누락(재실행 충돌 위험).
+- **알림 카운터 인메모리**: 서버리스 콜드스타트 리셋 → 누적 임계 정밀 집계는 DB 카운터 필요(개별 알림 전송은 정상).
+
+---
+
 ## ✅ P1 — AI 토큰 남용 방어 (2026-06-12 적용 완료)
 
 > 2026-06-12 PO 승인("피버모드 — 안 했던 작업 다")으로 적용 완료. 남은 것: Gemini 콘솔 spend cap 은 PO 직접 설정(5분).

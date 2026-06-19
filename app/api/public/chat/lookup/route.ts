@@ -15,6 +15,7 @@ export const runtime = "nodejs";
 import { NextRequest } from "next/server";
 import { supabaseAdmin, assertSupabaseEnv } from "@/lib/rag/supabaseAdmin";
 import { checkRateLimit, getClientIp, RATE_LIMITS } from "@/lib/rateLimit";
+import { safeHash } from "@/lib/security/encryptionV2";
 
 const MAX_INACTIVE_DAYS = 30;
 
@@ -39,12 +40,17 @@ export async function POST(request: NextRequest) {
 
     const cutoff = new Date(Date.now() - MAX_INACTIVE_DAYS * 24 * 60 * 60 * 1000).toISOString();
 
-    // 정확 일치: guest_name + guest_email (lower case)
+    // guest_name/guest_email 은 암호화 저장되어 평문 ilike 불가 →
+    // start 에서 metadata 에 심은 SHA256 블라인드 인덱스(이름·이메일 모두 소문자)로 매칭.
+    // (암호화 도입 이전 평문 행은 해시가 없어 매칭 안 됨 = 토큰/세션 복구는 그대로 동작)
+    const emailHash = safeHash(rawEmail);
+    const nameHash = safeHash(rawName.toLowerCase());
+
     const { data, error } = await (supabaseAdmin as any)
       .from("chat_threads")
-      .select("id, public_token, guest_name, guest_email, last_active_at")
-      .ilike("guest_name", rawName) // 대소문자 무시
-      .ilike("guest_email", rawEmail)
+      .select("id, public_token, last_active_at")
+      .filter("metadata->>guest_email_hash", "eq", emailHash)
+      .filter("metadata->>guest_name_hash", "eq", nameHash)
       .gte("last_active_at", cutoff)
       .order("last_active_at", { ascending: false })
       .limit(1)

@@ -12,7 +12,7 @@ export default function AdminStaffPage() {
   const toast = useToast();
   const [staff, setStaff] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [form, setForm] = useState({ name: "", email: "", role: "doctor", password: "healo1234" });
+  const [form, setForm] = useState({ name: "", email: "", role: "doctor", password: "" });
   const [submitting, setSubmitting] = useState(false);
   const [lastCreated, setLastCreated] = useState(null);
 
@@ -66,8 +66,9 @@ export default function AdminStaffPage() {
       toast.error("이메일을 입력하세요");
       return;
     }
-    if (form.password.trim().length < 6) {
-      toast.error("임시 비밀번호는 최소 6자 (예: healo1234)");
+    // 비우면 서버가 강한 임시 비번을 자동 생성. 직접 입력 시에만 최소 6자 검증.
+    if (form.password.trim() && form.password.trim().length < 6) {
+      toast.error("임시 비밀번호는 최소 6자 (비우면 자동 생성)");
       return;
     }
     setSubmitting(true);
@@ -90,7 +91,7 @@ export default function AdminStaffPage() {
           : `기존 계정에 ${ROLE_LABEL[form.role]} 역할 부여 + 비번 재설정`
       );
       setLastCreated({ email: result.loginEmail, password: result.tempPassword });
-      setForm({ name: "", email: "", role: "doctor", password: "healo1234" });
+      setForm({ name: "", email: "", role: "doctor", password: "" });
       load();
     } catch {
       toast.error("요청 실패");
@@ -143,12 +144,12 @@ export default function AdminStaffPage() {
           </div>
         </div>
         <div className="mt-4 max-w-xs">
-          <label className="block text-xs font-semibold text-gray-600 mb-1">임시 비밀번호 (최소 6자)</label>
+          <label className="block text-xs font-semibold text-gray-600 mb-1">임시 비밀번호 (비우면 자동 생성)</label>
           <input
             type="text"
             value={form.password}
             onChange={(e) => setForm({ ...form, password: e.target.value })}
-            placeholder="healo1234"
+            placeholder="비우면 자동 생성"
             className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
           />
           <p className="text-[11px] text-gray-400 mt-1">직원에게 이메일+이 비번을 전달하면 바로 로그인. 본인이 나중에 변경 가능.</p>
@@ -209,7 +210,7 @@ export default function AdminStaffPage() {
                 )}
                 <button
                   onClick={() => {
-                    setForm({ name: s.full_name || "", email: s.email, role: s.role, password: "healo1234" });
+                    setForm({ name: s.full_name || "", email: s.email, role: s.role, password: "" });
                     window.scrollTo({ top: 0, behavior: "smooth" });
                   }}
                   className="text-xs font-semibold text-gray-500 hover:text-teal-600 px-2 py-1"

@@ -126,8 +126,15 @@ export const supabaseAdmin = new Proxy({} as ReturnType<typeof createClient<Data
       }
       return value;
     } catch (error) {
-      // 빌드 시점에 환경 변수가 없으면 더미 클라이언트 반환
-      if (typeof window === 'undefined') {
+      // ⚠️ 더미 클라이언트는 "빌드 단계"에서만 허용한다.
+      // 과거엔 `typeof window === 'undefined'`(=모든 서버 실행) 조건이라
+      // 런타임 서버에서 env 가 누락돼도 더미를 조용히 반환 → insert 가 성공한 척하고
+      // 데이터가 유실됐다(이 파일 상단 주석이 경고하던 바로 그 사고).
+      // 이제 Next 빌드 단계(NEXT_PHASE=phase-production-build)일 때만 더미를 쓰고,
+      // 런타임에는 항상 에러를 던져 fail-closed 한다.
+      const isBuildPhase =
+        process.env.NEXT_PHASE === 'phase-production-build';
+      if (isBuildPhase && typeof window === 'undefined') {
         const dummy = createDummyAdminClient();
         const value = dummy[prop as keyof typeof dummy];
         if (typeof value === 'function') {
@@ -135,7 +142,7 @@ export const supabaseAdmin = new Proxy({} as ReturnType<typeof createClient<Data
         }
         return value;
       }
-      // 런타임에는 에러 재발생
+      // 런타임(또는 클라이언트)에는 에러 재발생 — 조용한 데이터 유실 방지
       throw error;
     }
   },

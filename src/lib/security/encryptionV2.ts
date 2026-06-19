@@ -260,6 +260,18 @@ export function decryptStringNullable(payloadJson: string | null | undefined): s
   return decryptString(payloadJson);
 }
 
+/**
+ * ✅ 혼합 데이터 안전 복호화 (마이그레이션 호환)
+ *
+ * 암호화 도입 이전에 평문으로 저장된 기존 행과, 이후 암호문으로 저장된 행이
+ * 한 컬럼에 섞여 있을 때 사용. 암호화 페이로드면 복호화하고, 평문이면 그대로 반환.
+ * (chat_threads.guest_* 처럼 점진 암호화하는 컬럼의 읽기 경로용)
+ */
+export function decryptMaybe(value: string | null | undefined): string | null {
+  if (value === null || value === undefined || value === "") return null;
+  return isEncryptedPayload(value) ? decryptString(value) : value;
+}
+
 // ========================================
 // 마스킹 (로그용)
 // ========================================
