@@ -995,9 +995,9 @@ export default function UnifiedInquiryFunnel() {
         title: tl("humanAgent", lang),
         desc: tl("humanAgentDesc", lang),
         Icon: Headset,
-        iconColor: "text-green-700",
-        iconBg: "bg-green-50",
-        hoverBorder: "hover:border-green-500",
+        iconColor: "text-teal-700",
+        iconBg: "bg-teal-50",
+        hoverBorder: "hover:border-teal-500",
         onClick: () => {
           safeEvent("inquiry_choose_channel", { channel: "human" });
           setPhase("human-channels");
@@ -1008,9 +1008,9 @@ export default function UnifiedInquiryFunnel() {
         title: tl("inquiryForm", lang),
         desc: tl("inquiryFormDesc", lang),
         Icon: ClipboardList,
-        iconColor: "text-blue-700",
-        iconBg: "bg-blue-50",
-        hoverBorder: "hover:border-blue-500",
+        iconColor: "text-teal-700",
+        iconBg: "bg-teal-50",
+        hoverBorder: "hover:border-teal-500",
         onClick: () => {
           safeEvent("inquiry_choose_channel", { channel: "form" });
           setPhase("step1");
@@ -1033,7 +1033,7 @@ export default function UnifiedInquiryFunnel() {
                 key={c.key}
                 type="button"
                 onClick={c.onClick}
-                className={`bg-white border border-gray-200 rounded-xl p-6 text-left ${c.hoverBorder} hover:shadow-md transition-all`}
+                className={`bg-white border border-gray-200 rounded-xl p-5 text-left ${c.hoverBorder} hover:shadow-md transition-all duration-200`}
               >
                 <div className={`w-12 h-12 ${c.iconBg} rounded-xl flex items-center justify-center mb-4`}>
                   <Icon size={22} className={c.iconColor} />
@@ -1055,7 +1055,7 @@ export default function UnifiedInquiryFunnel() {
         <button
           type="button"
           onClick={() => setPhase("channel-select")}
-          className="flex items-center gap-1 text-sm font-medium text-gray-500 mb-2 md:mb-4 hover:text-teal-600 transition"
+          className="flex items-center gap-1 text-sm font-medium text-gray-500 mb-3 hover:text-teal-600 transition"
         >
           <ChevronLeft size={16} /> {tl("back", lang)}
         </button>
@@ -1144,7 +1144,7 @@ export default function UnifiedInquiryFunnel() {
         <button
           type="button"
           onClick={() => setPhase("channel-select")}
-          className="flex items-center gap-1 text-sm font-medium text-gray-500 mb-4 hover:text-teal-600 transition"
+          className="flex items-center gap-1 text-sm font-medium text-gray-500 mb-6 hover:text-teal-600 transition"
         >
           <ChevronLeft size={16} /> {tl("back", lang)}
         </button>

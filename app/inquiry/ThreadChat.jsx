@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { ArrowRight, AlertCircle, Loader2, User, Bot, ThumbsUp, ThumbsDown, X } from "lucide-react";
+import { ArrowRight, AlertCircle, Loader2, Bot, ThumbsUp, ThumbsDown, X } from "lucide-react";
 import { getLangCodeFromCookie, t } from "@/lib/i18n";
 import MessageContent from "./MessageContent";
 
@@ -482,7 +482,7 @@ export function ThreadChat() {
   return (
     // 높이: 작은 폰(iPhone SE 등)에서 600px 고정이 하단 탭바에 깔리던 문제 →
     // 화면 높이에 맞춰 줄어들되(min 420px) 데스크톱은 기존 600px 유지
-    <div className="bg-white border border-gray-200 rounded-3xl shadow-xl h-[min(600px,calc(100dvh-200px))] min-h-[420px] flex flex-col p-4 animate-in fade-in slide-in-from-right-4">
+    <div className="bg-white border border-gray-200 rounded-2xl shadow-lg h-[min(600px,calc(100dvh-200px))] min-h-[420px] flex flex-col p-3 md:p-4 animate-in fade-in slide-in-from-right-4">
       {restoring ? (
         <div className="flex-1 flex items-center justify-center text-gray-400 text-sm">
           <Loader2 size={20} className="animate-spin mr-2" />
@@ -493,7 +493,7 @@ export function ThreadChat() {
       ) : (
         <>
           {/* 채팅 메시지 */}
-          <div className="flex-1 overflow-y-auto mb-4 bg-gray-50 rounded-2xl p-4 text-left space-y-4" ref={chatRef}>
+          <div className="flex-1 overflow-y-auto mb-3 bg-gray-50 rounded-xl px-3 py-4 text-left space-y-4" ref={chatRef}>
             {guest?.name && (
               <div className="flex items-center justify-between pb-2 border-b border-gray-200">
                 <div className="text-[11px] text-gray-400">
@@ -517,32 +517,28 @@ export function ThreadChat() {
                 </button>
               </div>
             )}
-            {messages.map((msg) => (
-              <div key={msg.id} className={`flex gap-3 ${msg.role === "user" ? "flex-row-reverse" : ""}`}>
-                <div
-                  className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0 ${
-                    msg.role === "assistant" ? "bg-teal-600" : "bg-gray-400"
-                  }`}
-                >
-                  {msg.role === "assistant" ? <Bot size={16} /> : <User size={16} />}
-                </div>
-                <div className="flex flex-col gap-1 max-w-[80%]">
-                  <div
-                    className={`p-3 rounded-2xl shadow-sm text-sm border ${
-                      msg.role === "assistant"
-                        ? "bg-white border-gray-100 rounded-tl-none"
-                        : "bg-teal-600 text-white border-teal-600 rounded-tr-none"
-                    }`}
-                  >
-                    {msg.role === "assistant" ? (
-                      <MessageContent text={msg.content} />
-                    ) : (
+            {messages.map((msg) => {
+              // 사용자: 우측 정렬 + teal 말풍선(좌측 여백으로 시각 구분)
+              if (msg.role === "user") {
+                return (
+                  <div key={msg.id} className="flex justify-end">
+                    <div className="max-w-[82%] bg-teal-600 text-white rounded-2xl rounded-tr-sm px-3.5 py-2.5 text-[13px] leading-relaxed">
                       <p className="whitespace-pre-wrap">{msg.content}</p>
-                    )}
+                    </div>
                   </div>
-                  {/* assistant 메시지만 피드백 버튼 표시 (intro/resume 제외) */}
-                  {msg.role === "assistant" && !["intro", "resume_note"].includes(msg.id) && !msg.id.startsWith("resumed_") && !msg.id.startsWith("greet_") && threadId && (
-                    <div className="flex items-center gap-1 pl-1">
+                );
+              }
+              // AI: 아바타·말풍선 없이 전체 폭 사용(대화 영역 최대 확보)
+              const showFeedback =
+                !["intro", "resume_note"].includes(msg.id) &&
+                !msg.id.startsWith("resumed_") &&
+                !msg.id.startsWith("greet_") &&
+                threadId;
+              return (
+                <div key={msg.id} className="w-full text-[13px] leading-relaxed text-gray-800">
+                  <MessageContent text={msg.content} />
+                  {showFeedback && (
+                    <div className="flex items-center gap-1 mt-1.5">
                       {feedbackThanks === msg.id ? (
                         <span className="text-[11px] text-teal-600 font-medium">
                           {t("chat.feedback.thanks", langCode) || "Thank you!"}
@@ -574,16 +570,11 @@ export function ThreadChat() {
                     </div>
                   )}
                 </div>
-              </div>
-            ))}
+              );
+            })}
             {sending && (
-              <div className="flex gap-3">
-                <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0 bg-teal-600">
-                  <Bot size={16} />
-                </div>
-                <div className="p-3 rounded-2xl shadow-sm text-sm border bg-white border-gray-100 rounded-tl-none">
-                  <Loader2 size={16} className="animate-spin text-teal-500" />
-                </div>
+              <div className="w-full flex items-center gap-2 text-gray-400 text-[13px]">
+                <Loader2 size={15} className="animate-spin text-teal-500" />
               </div>
             )}
           </div>
