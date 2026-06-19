@@ -113,9 +113,9 @@ export function encryptPiiInObject<T extends Record<string, any>>(
       if (typeof value === "string" && value.trim() !== "") {
         try {
           (result as Record<string, unknown>)[key] = encryptString(value);
-        } catch (error: any) {
+        } catch (error: unknown) {
           // Fail-Closed: 암호화 실패 시 즉시 throw
-          throw new Error(`[piiJson] Encryption failed for key "${key}": ${error.message}`);
+          throw new Error(`[piiJson] Encryption failed for key "${key}": ${error instanceof Error ? error.message : String(error)}`);
         }
       }
     }
@@ -157,9 +157,9 @@ export function decryptPiiInObject<T extends Record<string, any>>(
       if (typeof value === "string" && value.trim() !== "") {
         try {
           (result as Record<string, unknown>)[key] = decryptString(value);
-        } catch (error: any) {
+        } catch (error: unknown) {
           // 복호화 실패 시 경고 후 null 처리 (복호화는 덜 엄격하게)
-          console.warn(`[piiJson] Decryption failed for key "${key}": ${error.message}`);
+          console.warn(`[piiJson] Decryption failed for key "${key}": ${error instanceof Error ? error.message : String(error)}`);
           (result as Record<string, unknown>)[key] = null;
         }
       }
@@ -239,14 +239,14 @@ export function encryptPiiByPath<T extends Record<string, any>>(
 
   for (const path of paths) {
     const keys = path.split(".");
-    let current: any = result;
+    let current: Record<string, unknown> = result;
 
     // 경로 탐색
     for (let i = 0; i < keys.length - 1; i++) {
       if (!(keys[i] in current) || typeof current[keys[i]] !== "object") {
         break; // 경로 없음
       }
-      current = current[keys[i]];
+      current = current[keys[i]] as Record<string, unknown>;
     }
 
     // 마지막 키 암호화
@@ -257,8 +257,8 @@ export function encryptPiiByPath<T extends Record<string, any>>(
       if (typeof value === "string" && value.trim() !== "") {
         try {
           current[lastKey] = encryptString(value);
-        } catch (error: any) {
-          throw new Error(`[piiJson] Encryption failed for path "${path}": ${error.message}`);
+        } catch (error: unknown) {
+          throw new Error(`[piiJson] Encryption failed for path "${path}": ${error instanceof Error ? error.message : String(error)}`);
         }
       }
     }
@@ -282,14 +282,14 @@ export function decryptPiiByPath<T extends Record<string, any>>(
 
   for (const path of paths) {
     const keys = path.split(".");
-    let current: any = result;
+    let current: Record<string, unknown> = result;
 
     // 경로 탐색
     for (let i = 0; i < keys.length - 1; i++) {
       if (!(keys[i] in current) || typeof current[keys[i]] !== "object") {
         break;
       }
-      current = current[keys[i]];
+      current = current[keys[i]] as Record<string, unknown>;
     }
 
     // 마지막 키 복호화
@@ -300,8 +300,8 @@ export function decryptPiiByPath<T extends Record<string, any>>(
       if (typeof value === "string" && value.trim() !== "") {
         try {
           current[lastKey] = decryptString(value);
-        } catch (error: any) {
-          console.warn(`[piiJson] Decryption failed for path "${path}": ${error.message}`);
+        } catch (error: unknown) {
+          console.warn(`[piiJson] Decryption failed for path "${path}": ${error instanceof Error ? error.message : String(error)}`);
           current[lastKey] = null;
         }
       }
