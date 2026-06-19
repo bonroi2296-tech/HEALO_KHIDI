@@ -13,10 +13,22 @@
 export const runtime = "nodejs";
 
 import { NextRequest } from "next/server";
+import crypto from "node:crypto";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { requireAdminAuth } from "@/lib/auth/requireAdminAuth";
 
 const ALLOWED_ROLES = ["doctor", "coordinator"];
+
+// 잘 알려진 기본값(healo1234) 대신 계정마다 강한 임시 비번을 무작위 생성.
+// 관리자가 직접 password 를 지정하면 그것을 쓰고, 없을 때만 이 값을 발급한다.
+// 응답(tempPassword)으로 관리자에게 1회 노출 → 직원에게 전달, 첫 로그인 후 변경 권장.
+function generateTempPassword(): string {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789";
+  const bytes = crypto.randomBytes(14);
+  let out = "";
+  for (let i = 0; i < bytes.length; i++) out += chars[bytes[i] % chars.length];
+  return out;
+}
 
 // PATCH /api/admin/staff — { userId, disabled } 비활성/재활성 토글.
 // 역할은 유지(직원 목록에 계속 보임 + 환자 목록엔 안 섞임), disabled 플래그만 토글.
@@ -90,8 +102,8 @@ export async function POST(request: NextRequest) {
       typeof body.name === "string" && body.name.trim()
         ? body.name.trim().slice(0, 100)
         : undefined;
-    // 관리자가 지정한 임시 비밀번호 (없으면 기본값). 직원이 이메일+이 비번으로 바로 로그인.
-    const password = String(body.password || "").trim() || "healo1234";
+    // 관리자가 지정한 임시 비밀번호 (없으면 무작위 생성). 직원이 이메일+이 비번으로 바로 로그인.
+    const password = String(body.password || "").trim() || generateTempPassword();
 
     if (!email || !role) {
       return Response.json({ ok: false, error: "email and role required" }, { status: 400 });
