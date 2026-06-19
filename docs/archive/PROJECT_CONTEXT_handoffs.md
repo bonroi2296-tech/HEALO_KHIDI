@@ -1,5 +1,56 @@
 # PR
 
+## 🔖 세션 핸드오프 (2026-06-19 밤) — 5축 기초 감리 + 토대 수리 (PR #85, 중복정리만 다음 세션)
+
+> **트리거**: PO가 "다른 클로드 세션이 전체 리뷰해서 '기능만 하다 기초가 부실하다'는 문서를 만들었다"며 제3자 시선의 객관 분석을 요청 → 그 문서는 PO 로컬에만 있어 못 봄(본판 미푸시). 대신 코드로 직접 5축 감리 후, PO가 "싹 다 수리"·"핸드오프+중복정리는 새 세션" 선택.
+
+**이번 세션 한 일 (PR [#85](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/85) — 초안, 커밋 7개):**
+- **5축 제3자 기초 감리**(병렬 에이전트 5): 보안 82 / 의존성·DB·문서 58 / 테스트·CI 52 / 타입·품질 48 / **관측 42(최약점)**, 종합 ≈56/100. 결론="보안 뼈대는 튼튼한데 고장 감지 배선·부채 차단 가드레일이 빔".
+- **수리(위험3+근본원인+백로그, ≈56→71 추정):**
+  1. **서버 Sentry 부활** (`instrumentation.ts`): `register()`/`onRequestError`의 `return;` 제거 → 서버·SSR·크론 에러 수집 재활성(DSN 시). 그간 한 개도 안 잡혔음(KPI 데드맨스위치·AI 차단기 경보 무음).
+  2. **`supabaseAdmin` fail-closed** (`src/lib/rag/supabaseAdmin.ts`): 더미 fallback 을 빌드단계(`NEXT_PHASE`)로만 한정, 런타임 env 누락 시 throw → 조용한 데이터 유실 차단.
+  3. **`pg` 오배치 교정 + 취약점 31→7** (`package.json`): pg devDeps→deps(런타임 30파일 import), axios 1.18.0·ws 8.21.0 patch, 죽은 `@ai-sdk/openai`·`@ai-sdk/react` 제거. `playwright`→devDeps.
+  4. **CI 타입검사 게이트** (`.github/workflows/ci.yml`): `tsc --noEmit` 머지 차단 추가(현재 통과). `eslint`는 기존 에러 69건 정리 전까지 정보용(비차단).
+  5. **기본 임시비번 healo1234 제거** (`admin/staff` route+page): 계정마다 crypto 랜덤 14자.
+  6. **게스트 채팅 PII 평문저장 차단** (`public/chat/start` 외 6파일): 이름·이메일·전화 AES-256-GCM 암호화 + metadata SHA256 블라인드 인덱스(검색용), 읽기 경로 `decryptMaybe` 복호화. 마이그레이션 불요·옛 평문 행 호환.
+  7. **운영 알림 실제 연결**: `operationalAlerts.sendAlert` 콘솔스텁→Sentry+이메일(critical/warning). `adminNotifier.sendSMS` 가짜 'sent' 제거(미설정 채널 정직하게 skip).
+  8. **핵심경로 테스트 + 커버리지 복구**: `encryptionV2.test.ts`(9개), `@vitest/coverage-v8` 추가(불가→58% 측정). 총 129 테스트.
+  9. **README** 피벗 반영 전면 재작성, **KNOWN_ISSUES** 감리 결과·백로그 기록.
+
+**왜 그렇게 했는지:**
+- 게스트 PII는 `lookup`이 `ilike`로 이메일·이름 검색해서 단순 암호화하면 검색이 깨짐 → 기존 `safeHash`/`isEncryptedPayload` 패턴으로 **블라인드 인덱스(metadata 해시)** 채택 → DB 마이그레이션 없이 코드만으로 해결, 옛 평문 행은 `decryptMaybe`로 자동 호환.
+- 알림은 PO가 실제로 쓰는 채널(SES/Resend 이메일)이 살아있어 거기로 연결. SMS/알림톡은 provider 미연동이라 "가짜 성공" 대신 정직하게 skip(설정 시에만 시도).
+- lint를 CI 차단 게이트로 바로 못 건 이유: 기존 에러 69건 → 막으면 PO 합치기가 다 막힘. typecheck는 통과하므로 그것만 차단 게이트로.
+
+**안 끝났거나 보류:**
+- **⭐ 중복 정리(다음 세션 — PO가 새 세션으로 결정)**: Supabase 클라이언트 6벌(server 3·browser 3)·이메일 발송 2벌(env 규약 상이)·`withErrorHandler` 데드 추상화. **108+ import 사이트 영향이라 실서비스 리스크 → 깨끗한 세션에서 단계적으로.**
+- `any` 813개(인증·복호화 66) 점진 축소, God컴포넌트 `consultation/[id]/page.jsx` 2,883줄 분할, 얕은 헬스체크, 남은 7취약점(major 강제 필요라 보류), 마이그레이션 DROP 가드.
+- (이전 트랙) 화상상담방 라이브 UI 검증·발화자 역할 DB 저장·Gemini 유료 AI 회의록(#68)은 그대로 대기.
+
+**주의·함정:**
+- **서버 Sentry·게스트 PII 암호화는 코드·typecheck·테스트만 통과 — 프로덕션(DSN·암호화키 설정) 배포로 실동작 미검증.** Sentry는 CI 빌드(DSN 없음)로는 증명 안 됨, 프로덕션에서만 활성.
+- `lookup` 해시 매칭은 **새 행만** 찾음(옛 평문 행은 해시 없음) → 재방문 이력 복구가 옛 행엔 안 됨(토큰/세션 복구는 정상). 의도된 비파괴 전환.
+- 알림 카운터는 인메모리 → 서버리스 콜드스타트마다 리셋(누적 임계 부정확, 개별 전송은 정상).
+- `package-lock.json`이 npm install로 크게 재생성됨(1223→1110 패키지) — `npm ci` 통과 확인했으나 diff 큼(무해).
+
+**다음 세션이 먼저 할 일 (우선순위):**
+1. **⚠️ 직전 미검증분 먼저 확인**: PR #85 머지·배포 후 **프로덕션에서 (a) 서버 Sentry 에러 실수집되는지** (`NEXT_PUBLIC_SENTRY_DSN` 설정 전제, 테스트 에러 1건 발생시켜 Sentry 도착 확인) **(b) 게스트 채팅 시작→PII 암호문 저장·resume 복호화·lookup 재방문 검색** 실제 동작. 안 되는 항목 받아서 잇기.
+2. **중복 정리 트랙**(이번 세션 보류분): Supabase 6벌→1~2벌, 이메일 2벌→1벌. 단계적·테스트 동반.
+3. (대기) 화상상담방 라이브 검증 / 발화자 역할 DB 저장 / Gemini 유료 AI 회의록(#68).
+4. KHIDI 중간평가(2026-08-27) 상시 — 이번 기초 감리·관측 복구는 "ICT 체계 구축" 정성평가 기여.
+
+**검증 상태:** PR [#85](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/85) **초안**. 로컬 `npm ci`·`tsc --noEmit`·`test:run`(129)·`test:coverage`·`verify:rag` **전부 통과**. GitHub CI(`ci`·`Smoke Tests`)는 핸드오프 시점 **실행 중**(로컬 동일 단계 통과 확인). 직전 커밋들 **Vercel 프리뷰 배포 Ready**(빌드 안 깨짐 = Sentry 재활성으로도 빌드 정상). **❌ 서버 Sentry 실수집·게스트 PII 암호화 실저장은 프로덕션 배포로만 최종 확인 — 미검증(위 1번).** check:content 류는 미실행(콘텐츠 미변경).
+
+**다음 세션 첫 프롬프트 (PO 복붙용):**
+> 먼저 `docs/PROJECT_CONTEXT.md` 최상단 핸드오프(2026-06-19 밤) 읽어. 그다음 순서대로:
+> **1) 직전 미검증분 먼저 확인** (PR #85 머지·프로덕션 배포된 뒤) — 서버 에러감시(Sentry)가 실제로 에러를 수집하는지(`NEXT_PUBLIC_SENTRY_DSN` 설정 확인 + 테스트 에러 1건 내서 도착 확인), 게스트 채팅이 이름·이메일·전화를 **암호문으로** 저장하고 새로고침(resume) 시 복호화돼 보이며 이름+이메일 **재방문 검색(lookup)** 되는지. 안 되는 거 있으면 고쳐.
+> **2) 중복 정리 (이번 메인)** — Supabase 접속 클라이언트 6벌→1~2벌, 이메일 발송 2벌→1벌, `withErrorHandler` 죽은 추상화 처리. **108개+ 파일이 물려 실서비스가 깨질 수 있으니 한 방에 말고 단계적으로 + 매 단계 `tsc --noEmit`·`test:run` 통과 확인.** 끝나면 점수표 before→after로 보고.
+> 상세 백로그는 `docs/KNOWN_ISSUES.md` 「남은 백로그」 참고.
+
+---
+
+---
+
 ## 🔖 세션 핸드오프 (2026-06-19 저녁) — 화상상담방 줌화(스피커뷰·화면공유포커스·화질·언어전환) ⚠️작업 진행중·이어감
 
 > **이 트랙은 아직 안 끝났다. PO가 "이어나갈 것"이라 명시.** 아래 5번(다음 할 일) + 미검증분부터 그대로 이어가라. 같은 날 "오후" 블록(↓)의 연장선.
