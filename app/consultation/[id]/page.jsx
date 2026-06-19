@@ -17,7 +17,18 @@ import {
   CarouselLayout,
 } from "@livekit/components-react";
 import "@livekit/components-styles";
-import { Track, ConnectionState } from "livekit-client";
+import { Track, ConnectionState, VideoPresets } from "livekit-client";
+
+// LiveKit 방 옵션 — 화질 보강: 720p 캡처 + 화질 계층(simulcast)으로 큰 화면이 선명.
+// adaptiveStream: 작은 타일엔 저화질 자동(대역폭 절약), 큰 화면엔 고화질. dynacast: 안 보는 트랙 안 보냄.
+const ROOM_OPTIONS = {
+  adaptiveStream: true,
+  dynacast: true,
+  videoCaptureDefaults: { resolution: VideoPresets.h720.resolution },
+  publishDefaults: {
+    videoSimulcastLayers: [VideoPresets.h180, VideoPresets.h360, VideoPresets.h720],
+  },
+};
 import {
   Mic,
   MicOff,
@@ -814,7 +825,12 @@ function VideoGrid() {
   );
 
   const [pinnedKey, setPinnedKey] = useState(null);
-  const focusTrack = pinnedKey ? tracks.find((t) => trackKey(t) === pinnedKey) : null;
+  // 수동 핀(타일 클릭) — 있으면 최우선
+  const manualFocus = pinnedKey ? tracks.find((t) => trackKey(t) === pinnedKey) : null;
+  // 화면 공유는 자동으로 크게 (줌/미트식). 수동 핀이 없을 때만.
+  const screenTrack = tracks.find((t) => t.source === Track.Source.ScreenShare);
+  const focusTrack = manualFocus || screenTrack || null;
+  const isManual = !!manualFocus;
   const pinFromEvent = (e) =>
     setPinnedKey(
       `${e?.participant?.identity ?? ""}_${e?.track?.source ?? Track.Source.Camera}`
@@ -822,11 +838,11 @@ function VideoGrid() {
 
   // 고정한 참가자가 나가면 자동 해제 (빈 포커스 방지)
   useEffect(() => {
-    if (pinnedKey && !focusTrack) setPinnedKey(null);
-  }, [pinnedKey, focusTrack]);
+    if (pinnedKey && !manualFocus) setPinnedKey(null);
+  }, [pinnedKey, manualFocus]);
 
   if (focusTrack) {
-    const others = tracks.filter((t) => trackKey(t) !== pinnedKey);
+    const others = tracks.filter((t) => trackKey(t) !== trackKey(focusTrack));
     return (
       <div className="relative h-full">
         <FocusLayoutContainer style={{ height: "100%" }}>
@@ -837,12 +853,15 @@ function VideoGrid() {
           )}
           <FocusLayout trackRef={focusTrack} />
         </FocusLayoutContainer>
-        <button
-          onClick={() => setPinnedKey(null)}
-          className="absolute top-3 right-3 z-20 flex items-center gap-1 bg-black/60 hover:bg-black/80 text-white text-xs px-2.5 py-1.5 rounded-full"
-        >
-          <X size={13} /> {c.unpinLabel}
-        </button>
+        {/* 수동 핀일 때만 해제 버튼 — 화면공유 자동 포커스는 자연스러운 기본뷰 */}
+        {isManual && (
+          <button
+            onClick={() => setPinnedKey(null)}
+            className="absolute top-3 right-3 z-20 flex items-center gap-1 bg-black/60 hover:bg-black/80 text-white text-xs px-2.5 py-1.5 rounded-full"
+          >
+            <X size={13} /> {c.unpinLabel}
+          </button>
+        )}
       </div>
     );
   }
@@ -2287,6 +2306,7 @@ export default function ConsultationRoomPage() {
               token={livekitToken}
               serverUrl={livekitUrl}
               connect={true}
+              options={ROOM_OPTIONS}
               onConnected={() => setConnected(true)}
               onDisconnected={() => setConnected(false)}
               style={{ height: "100%" }}
