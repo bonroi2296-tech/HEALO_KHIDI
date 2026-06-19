@@ -1,6 +1,6 @@
 /**
  * IntakeSchema — normalized_inquiries.constraints 고정 스키마
- * AI Agent(/api/chat) + Inquiry Form(/api/inquiry/normalize) 공통 적재용
+ * AI Agent(공개 챗 /api/public/chat/message) + Inquiry Form(/api/inquiry/normalize) 공통 적재용
  */
 
 export type Intake = {
