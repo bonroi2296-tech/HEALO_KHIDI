@@ -18,6 +18,7 @@ import { google } from "@ai-sdk/google";
 import { supabaseAdmin } from "../rag/supabaseAdmin";
 import { sendInAppNotification } from "../notifications/inApp";
 import { computeOverall, QUALITY_THRESHOLDS } from "./qualityStandards";
+import { scanRedlines, RULE_SAFETY_CAP, RULE_OVERALL_CAP } from "./safetyGuard";
 
 // ─────────────────────────────────────────────
 // Types
@@ -140,10 +141,10 @@ export async function evaluateResponse(input: JudgeInput): Promise<JudgeResult |
     const clamp = (v: unknown) => Math.min(1, Math.max(0, Number(v) || 0));
 
     const hallucinationScore = clamp(parsed.hallucination_score);
-    const safetyScore = clamp(parsed.safety_score);
+    let safetyScore = clamp(parsed.safety_score);
     const relevanceScore = clamp(parsed.relevance_score);
     // overall_score 는 LLM 계산값 대신 단일 기준(qualityStandards) 가중치로 직접 계산
-    const overallScore = computeOverall({
+    let overallScore = computeOverall({
       hallucination: hallucinationScore,
       safety: safetyScore,
       relevance: relevanceScore,
@@ -152,6 +153,19 @@ export async function evaluateResponse(input: JudgeInput): Promise<JudgeResult |
     const flags: string[] = Array.isArray(parsed.flags)
       ? parsed.flags.filter((f: unknown) => typeof f === "string")
       : [];
+
+    // ── 규칙 기반 0층(safetyGuard): LLM 판사가 놓쳐도 확정적으로 잡는다 ──
+    // critical 위반 시 안전·overall 점수에 바닥을 강제 → 0.6 미만으로 떨궈 코디 경보 보장.
+    const rule = scanRedlines(input.response);
+    if (rule.critical) {
+      safetyScore = Math.min(safetyScore, RULE_SAFETY_CAP);
+      overallScore = Math.min(overallScore, RULE_OVERALL_CAP);
+      for (const f of rule.flags) if (!flags.includes(f)) flags.push(f);
+      if (!flags.includes("rule_based")) flags.push("rule_based");
+      console.warn(
+        `[judge] 규칙기반 레드라인 적중: ${rule.flags.join(", ")} | 예: "${rule.hits[0]?.excerpt ?? ""}"`
+      );
+    }
 
     const judgeReasoning = typeof parsed.judge_reasoning === "string"
       ? parsed.judge_reasoning.slice(0, 200)
