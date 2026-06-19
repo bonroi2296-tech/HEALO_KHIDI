@@ -7,6 +7,7 @@ export const runtime = "nodejs";
 import { NextRequest } from "next/server";
 import { supabaseAdmin, assertSupabaseEnv } from "@/lib/rag/supabaseAdmin";
 import { checkRateLimit, getClientIp, getRateLimitHeaders, RATE_LIMITS } from "@/lib/rateLimit";
+import { decryptMaybe } from "@/lib/security/encryptionV2";
 
 export async function GET(request: NextRequest) {
   assertSupabaseEnv();
@@ -50,8 +51,8 @@ export async function GET(request: NextRequest) {
 
     return Response.json({
       ok: true,
-      guest_name: data.guest_name ?? null,
-      guest_email: data.guest_email ?? null,
+      guest_name: decryptMaybe(data.guest_name),
+      guest_email: decryptMaybe(data.guest_email),
       guest_country: data.guest_country ?? null,
     });
   } catch (e: any) {

@@ -14,6 +14,7 @@ export const runtime = "nodejs";
 
 import { NextRequest } from "next/server";
 import { supabaseAdmin, assertSupabaseEnv } from "@/lib/rag/supabaseAdmin";
+import { decryptMaybe } from "@/lib/security/encryptionV2";
 
 const MAX_INACTIVE_DAYS = 30;
 
@@ -73,10 +74,10 @@ async function resume(token: string | null) {
       status: data.status,
       subject: data.subject,
       guest: {
-        name: data.guest_name,
-        email: data.guest_email,
+        name: decryptMaybe(data.guest_name),
+        email: decryptMaybe(data.guest_email),
         country: data.guest_country,
-        phone: data.guest_phone,
+        phone: decryptMaybe(data.guest_phone),
       },
       created_at: data.created_at,
       last_active_at: data.last_active_at,

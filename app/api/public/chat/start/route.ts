@@ -13,6 +13,7 @@ export const runtime = "nodejs";
 import { NextRequest } from "next/server";
 import { supabaseAdmin, assertSupabaseEnv } from "@/lib/rag/supabaseAdmin";
 import { checkRateLimit, getClientIp, RATE_LIMITS } from "@/lib/rateLimit";
+import { encryptStringNullable, safeHash } from "@/lib/security/encryptionV2";
 
 export async function POST(request: NextRequest) {
   assertSupabaseEnv();
@@ -50,16 +51,23 @@ export async function POST(request: NextRequest) {
 
     const publicToken = crypto.randomUUID();
 
+    // 게스트 PII(이름·이메일·전화)는 AES-256-GCM 암호화 후 저장(평문 저장 금지).
+    // 재방문 검색(lookup)은 평문 대신 SHA256 해시로 매칭 → metadata 에 보관.
+    // 국가코드(ctry)는 PII 가 아니고 필터·통계에 쓰여 평문 유지.
+    const emailHash = email ? safeHash(email.toLowerCase()) : null;
+    const nameHash = name ? safeHash(name.trim().toLowerCase()) : null;
+
     const { data, error } = await (supabaseAdmin as any)
       .from("chat_threads")
       .insert({
         status: "open",
         public_token: publicToken,
-        subject: treatment_slug ? `Inquiry: ${treatment_slug}` : (name ? `${name} — New Chat` : "New Chat"),
-        guest_name: name,
-        guest_email: email,
+        // 주의: subject 에 게스트 이름을 평문으로 넣지 않는다(PII 누출 방지).
+        subject: treatment_slug ? `Inquiry: ${treatment_slug}` : "New Chat",
+        guest_name: encryptStringNullable(name),
+        guest_email: encryptStringNullable(email),
         guest_country: ctry,
-        guest_phone: phone,
+        guest_phone: encryptStringNullable(phone),
         browser_session_id: sessionId,
         last_active_at: new Date().toISOString(),
         channel: "web",
@@ -71,6 +79,9 @@ export async function POST(request: NextRequest) {
           client_meta: client_meta || null,
           treatment_slug: treatment_slug || null,
           started_at: new Date().toISOString(),
+          // 재방문 검색용 블라인드 인덱스(평문 저장 아님)
+          guest_email_hash: emailHash,
+          guest_name_hash: nameHash,
         },
       })
       .select("id, public_token, created_at")

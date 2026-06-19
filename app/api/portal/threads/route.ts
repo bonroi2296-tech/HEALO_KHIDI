@@ -12,6 +12,7 @@ export const runtime = "nodejs";
 import { NextRequest } from "next/server";
 import { requirePortalAuth } from "@/lib/auth/requirePortalAuth";
 import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
+import { decryptMaybe } from "@/lib/security/encryptionV2";
 
 const VALID_STATUS = ["open", "waiting_coordinator", "waiting_patient", "resolved"];
 
@@ -44,7 +45,13 @@ export async function GET(request: NextRequest) {
       return Response.json({ ok: false, error: "query_failed" }, { status: 500 });
     }
 
-    return Response.json({ ok: true, threads: data || [] });
+    // guest_name 은 암호화 저장 → 표시 전 복호화(옛 평문 행은 그대로)
+    const threads = (data || []).map((t: any) => ({
+      ...t,
+      guest_name: decryptMaybe(t.guest_name),
+    }));
+
+    return Response.json({ ok: true, threads });
   } catch (err: any) {
     console.error("[portal/threads] error:", err.message);
     return Response.json({ ok: false, error: "internal_error" }, { status: 500 });

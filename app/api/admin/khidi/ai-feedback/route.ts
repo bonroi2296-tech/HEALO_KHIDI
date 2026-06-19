@@ -11,6 +11,7 @@ export const runtime = "nodejs";
 import { NextRequest } from "next/server";
 import { requireAdminAuth } from "@/lib/auth/requireAdminAuth";
 import { supabaseAdmin, assertSupabaseEnv } from "@/lib/rag/supabaseAdmin";
+import { decryptMaybe } from "@/lib/security/encryptionV2";
 
 export async function GET(request: NextRequest) {
   assertSupabaseEnv();
@@ -92,6 +93,7 @@ export async function GET(request: NextRequest) {
 
     const enrichedList = (negativeList ?? []).map((f: any) => ({
       ...f,
+      guest_email: decryptMaybe(f.guest_email),
       message_content: messageContents[f.message_id] ?? null,
     }));
 
