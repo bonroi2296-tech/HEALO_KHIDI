@@ -16,6 +16,7 @@ import { hashQuery, logRagDisabled } from "../rag/ragQueryEvents";
 import { searchHospitalsAndTreatments } from "./dbSearch";
 import { searchExternal } from "./externalSearch";
 import { runJudgeInBackground } from "./judge";
+import { CARE_REFERENCE } from "./careReference";
 
 type ChatMessage = { role: "user" | "assistant" | "system"; content: string };
 
@@ -262,6 +263,12 @@ export function buildSystemPrompt(
     "- Do NOT give fixed cost/duration ('exactly ₩X, Y days') — ranges/estimates from Context only.",
     "- For ANY of the above, say it needs a doctor and offer to connect via remote consultation (원격협진) or a coordinator.",
     "",
+    "INTAKE & ESTIMATE (use the [healwith 안내자료] reference below — it is always available):",
+    "- If the patient asks what to prepare / how to start / how to get a cost estimate, list the 5 REQUIRED DOCUMENTS from the reference and explain that sharing them with a coordinator yields a personalized quote (preliminary review is free).",
+    "- If the patient asks about cost for a specific cancer type, give the INDICATIVE RANGE from the reference (both USD and ₩), then stress it is an estimate and the final price is set by the hospital after reviewing the diagnosis. Never state a single fixed number.",
+    "- Tag these with '(출처: healwith 안내자료)' (translate '출처' to the user's language).",
+    "- Keep the integrative/immune framing: supportive care alongside surgery/chemo, never a cure.",
+    "",
     "SAFETY:",
     "- No medical diagnosis or outcome guarantees.",
     "- healwith connects patients to Korean medical institutions and their doctors; healwith itself does not diagnose or treat.",
@@ -270,6 +277,7 @@ export function buildSystemPrompt(
     hospitalGuardActive ? HOSPITAL_HARD_GUARD : "",
     hospitalIntentNoMatch ? HOSPITAL_NO_MATCH_GUARD : "",
     "",
+    CARE_REFERENCE,
     hasContext ? "Context:\n" + contextText : "",
     useWebSearch ? "No internal or public data found. Use Google Search to find relevant Korean hospitals and treatments. Present findings concisely. ALWAYS add a disclaimer that these are unverified web search results." : "",
     hasTier3 ? "\nNote: Some info is from public sources (Tier 3) — briefly note when citing." : "",
