@@ -7,6 +7,43 @@
 
 ---
 
+## 🔖 세션 핸드오프 (2026-06-19 야간 자율) — 죽은라우트 정리·마이그레이션 멱등·알림DB·KHIDI KPI 깨진컬럼 수정·상담방 i18n (PR 5건, 1머지+4 PO대기)
+
+**이번 세션 한 일 (야간 자율 — PR 5건):**
+- **A. 죽은 `/api/chat` 라우트 제거 ([#99](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/99) — 머지·배포 완료):** UI 미사용(아카이브 dead-code만 참조)인 옛 AI SDK 스트리밍 라우트 삭제. 활성 챗은 `ThreadChat.jsx`→`/api/public/chat/message`→`generateReply.ts`. 폼 자동채움 쓰는 `/api/chat/thread-summary`는 보존. **저위험이라 CI 초록 확인 후 직접 머지.**
+- **B. 마이그레이션 멱등 가드 ([#100](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/100) — draft, PO 대기):** 80개 중 19개 파일이 재실행 시 `duplicate_object(42710)` 하드실패 상태였음 → 정책39·트리거4·인덱스10·제약2에 `DROP IF EXISTS`/`IF NOT EXISTS` 가드 추가(스키마 결과 불변, 실DB 미적용). 재발방지로 `scripts/check-migration-idempotency.mjs` 신설 + CI 게이트(`npm run check:migrations`). POSTMORTEMS #6.
+- **C. 알림 카운터 인메모리→DB ([#101](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/101) — draft, PO 대기):** 콜드스타트 리셋 문제. `migrations/20260619_alert_counters.sql`(append-only 테이블 + `alert_counter_increment` RPC, `check_rate_limit` 패턴) + `operationalAlerts.ts`가 RPC 호출(실패/미적용 시 인메모리 fallback). 개별 알림(`sendAlert`)은 무변경. **실DB BEGIN/ROLLBACK으로 로직 검증 후 롤백(미적용).**
+- **F. 🔴 KHIDI KPI 깨진 컬럼 수정 ([#102](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/102) — draft, PO 대기):** **평가 핵심 버그 발견** — `kpi.ts`가 없는 컬럼(`visit_confirmed_at`·`actual_duration_minutes`)을 쿼리해 **유치·사전상담이 항상 0**(PostgREST 오류→`?? 0` 위장). 실DB 대조로 실제는 유치 4·사전상담 9·사후관리 3. 유치=`inquiries.outcome='admitted'`(전환 깔때기와 정의 통일), 사전상담=duration필터 제거. 공식 목표 SoR `targets.ts`(12/120/90) + 대시보드 "사업 누적 달성률" 섹션 + 집계오류 가시화 배너. POSTMORTEMS #7, KHIDI 베이스 §4 6월 로그.
+- **E. 상담방 역할 라벨 i18n ([#103](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/103) — 저위험, CI 초록 시 머지 예정):** 화상상담방 조사 결과 **표준 동작(스피커뷰·화면공유 자동확대·720/1080p·언어 전체전환)은 이미 다 구현돼 있었음.** 유일한 갭 = 역할 라벨 3곳(자막·채팅·번역패널)이 영어 하드코딩 → 6언어 `roleX` 키 + `roleLabel()` 헬퍼로 렌더 시점 번역. 영상·STT 로직 무변경.
+
+**왜 그렇게 했는지:**
+- **작업 1건=브랜치1개=PR1개** 원칙으로 분리(섞으면 리뷰·롤백 어려움). 저위험(A·E)은 직접 머지 방침, 보안민감·DB변경·평가숫자 바뀌는 건(B·C·F)은 PO 확인 대기.
+- **F가 최고가치**: "ICT가 자기 ICT로 성과 자동측정"이 평가 스토리인데 그 숫자가 0이면 치명적 → 실DB 대조로 근본원인(없는 컬럼) 찾아 수정. 전환 깔때기 RPC와 정의 통일해 두 대시보드 일치.
+- **E는 통째 분할 안 함**: 2883줄 화상방 리팩터는 LiveKit 라이브 검증(2+참가자) 필요해 자동검증 불가 → "반쪽 구현" 위험. 검증 가능한 i18n 갭만 수정하고 분할은 계획만 기록.
+
+**안 끝났거나 보류:**
+- **D. 타입 강화(any 축소): 안 함** — 남은 any가 좁히면 타 파일 tsc 깨지는 것(decryptForAdmin·agency_users)이라 저가치·고위험으로 판단해 스킵. 안전한 슬라이스 나오면 별도 진행.
+- **E. God 컴포넌트(2883줄) 분할**: 안전 추출 seam(VideoGrid·SubtitleOverlay·RoomInfoOverlay) 식별만 함. 실제 분할은 LiveKit 라이브 검증 환경 필요 → PO 확인 후 별도 세션.
+- **PR #100·#101·#102 머지 대기**: DB/평가 영향이라 PO 결정 필요(특히 #101·#102는 머지 후 마이그레이션 적용 결정도).
+
+**주의·함정:**
+- **POSTMORTEMS.md·KHIDI 베이스 머지 충돌**: #100(#6)·#102(#7)·이 핸드오프가 같은 파일 끝부분을 건드림 → 머지 순서에 따라 trivial 충돌 가능(번호 재정렬만).
+- **#101·#102는 마이그레이션 미적용**: 코드는 fallback/읽기전용이라 미적용 상태에서도 안전 동작. #101은 적용 전까지 인메모리, #102는 DB 읽기만(스키마 변경 없음 — #102는 마이그레이션 파일 없음, 코드만).
+- **로컬 node_modules 없으면 `npx tsc`가 전역 TS6로 폴백**(baseUrl deprecation 에러) → `npm ci` 후 `./node_modules/.bin/tsc`로 검증(CI는 lock의 5.9.3).
+
+**다음 세션이 먼저 할 일 (우선순위):**
+1. **⚠️ 직전 미검증분 먼저 확인:** (a) **서버 Sentry 실수집**(이전 세션 미해결) — 관리자 로그인 → `https://healo-khidi.vercel.app/api/sentry/test` 1회 → JSON "전송됐습니다"면 Sentry 대시보드 도착 확인. (b) **#103 상담방 i18n** — 머지·배포됐으면 상담방에서 언어 바꿔 역할 라벨 전환 확인(못 하면 다음 세션이).
+2. **PR 4건 결정·머지:** [#100](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/100)(마이그레이션 멱등)·[#101](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/101)(알림DB)·[#102](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/102)(KHIDI KPI 수정)·[#103](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/103)(상담 i18n) 검토. **#102는 평가 직결이라 우선** — 정의(유치=admitted, 상담=세션완료) 확인 후 머지 → 머지 후 #101 마이그레이션 적용 결정.
+3. (보류) God 컴포넌트 분할 / 타입 any 축소 / 화상방 라이브 검증.
+4. KHIDI 중간평가(2026-08-27) 상시 — 이번 KPI 수정은 평가항목 ④(성과지표) 직결.
+
+**검증 상태:** 매 PR `tsc --noEmit`(에러0)·`vitest 129`·`eslint 에러0`·`check:content`·`next build --webpack` **로컬 통과**. PR별 CI: **[#99](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/99) ci·smoke·Vercel 전부 초록 + main 머지·배포 완료.** [#100](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/100)·[#101](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/101)·[#102](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/102) **CI 초록 확인(draft, PO 대기).** [#103](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/103) CI 진행 중(초록 시 자동 머지 예정). **F(#102) KPI 실측치는 실DB 조회로 검증(유치4·사전상담9·사후관리3)** — 단 **대시보드 화면 실제 클릭은 관리자 세션 없어 미확인**(다음 세션/PO가 `/admin/khidi/kpi-dashboard`에서 확인). **C(#101) RPC는 트랜잭션 롤백으로 로직만 검증, 프로덕션 미적용.** **서버 Sentry 런타임은 이전 세션부터 계속 미검증(PO 1클릭).**
+
+**다음 세션 첫 프롬프트 (PO 복붙용):**
+> 먼저 docs/PROJECT_CONTEXT.md 최상단 핸드오프(2026-06-19 야간 자율) 읽어. 그다음: 1) 야간에 연 PR 4개 봐줘 — #102(KHIDI KPI 깨진거 수정, 유치·사전상담이 0으로 나오던 버그)가 평가 직결이라 제일 중요, #100(마이그레이션 멱등)·#101(알림 DB)·#103(상담방 언어 전환). CI 다 초록이야. #102 정의(유치=admitted 확정, 상담=세션완료 수)만 확인되면 머지하고, 머지 후 #101은 마이그레이션 적용할지 정해줘. 2) 직전 미검증분: 관리자로 https://healo-khidi.vercel.app/api/sentry/test 한번 열어서 JSON 알려줘(서버 에러감시 마지막 확인). 3) #102 머지·배포되면 /admin/khidi/kpi-dashboard 열어서 유치 4/12·사전상담+사후관리 12/120 뜨는지 봐줘. 새 작업은 origin/main 최신 동기화부터.
+
+---
+
 ## 🔖 세션 핸드오프 (2026-06-19 오후·저녁) — 직전 미검증분 확인 + 5축 점수 올리기(서버클라 통합·관측·CI게이트·타입) PR 6건 머지
 
 **이번 세션 한 일 (PR 6건 전부 main 머지·실서비스 배포):**
@@ -44,44 +81,6 @@
 
 **다음 세션 첫 프롬프트 (PO 복붙용):**
 > 먼저 docs/PROJECT_CONTEXT.md 최상단 핸드오프(2026-06-19 오후·저녁) 읽어. 그다음: 1) 직전 미검증분 — 관리자로 로그인한 채 https://healo-khidi.vercel.app/api/sentry/test 한 번 열어서 나온 JSON 알려줘("전송됐습니다" or "미설정"). 서버 에러감시(Sentry)가 실제로 도는지 마지막 확인. 2) KPI 국가별 분포가 없는 테이블을 쿼리해서 항상 비어있는 버그 있음(docs/KNOWN_ISSUES.md 최상단) — 환자→국적 매핑 어떻게 할지 정하고 고쳐줘. 3) 그 외 백로그는 KNOWN_ISSUES 참고. 새 작업은 origin/main 최신 동기화부터.
-
----
-
-## 🔖 세션 핸드오프 (2026-06-19 밤늦게) — AI 챗 응답 깨짐 긴급수정 + #85 배포 + 게스트채팅 실검증 + 중복정리 1·2단계
-
-**이번 세션 한 일 (PR 3건 전부 main 머지·실서비스 배포):**
-- **🔥 AI 챗 응답 깨짐 긴급수정 ([#87](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/87) 머지·배포):** PO 스크린샷 제보 — 답변이 "1,800만 원) 선이며…(출처: healwith" 처럼 앞뒤 잘림 + 인사·공감 없이 가격부터 들이미는 이론식. 원인 2개: ①`gemini-flash-latest`(Gemini 2.5 Flash)의 thinking(추론) 토큰이 `maxOutputTokens`에 포함 → 같은 날 가독성 커밋(`6470e5d`)이 상한 768로 낮추자 추론이 예산 다 먹고 답변이 문장 중간에 잘림. ②견적자료 커밋(`f1d8d87`)의 INTAKE&ESTIMATE 규칙이 일반·감정 질문에도 가격 토해냄. 수정: `generateReply.ts`+`app/api/chat/route.ts`에 `thinkingConfig.thinkingBudget=0`(추론 끔·지연/비용↓), 공개챗 상한 768→1024, 프롬프트를 "가격은 명시적으로 물을 때만, 일반질문엔 따뜻하게+되묻기"로 교정. `docs/POSTMORTEMS.md #5` 기록.
-- **PR [#85](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/85) 머지·배포:** 직전 세션의 초안(미배포)이었음 → PO 승인으로 머지(서버 Sentry 부활 + 게스트채팅 PII 암호화 + 기초수리 24파일). 이게 안 합쳐져 있어서 1번 검증이 막혀 있던 것.
-- **중복정리 1단계 ([#86](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/86) 머지·배포):** ①죽은 `withErrorHandler`(0 사용) 제거. ②이메일 발송기 2벌→1벌(`notifications/emailSender.ts` 삭제, `adminNotifier`를 통합 `email/sendEmail.ts`로; **프로덕션 무중단 위해 통합 sendEmail이 레거시 env 이름 `AWS_REGION`/`AWS_ACCESS_KEY_ID`/`SES_FROM_EMAIL`도 인식하도록 fallback 추가**).
-- **중복정리 2단계 ([#86](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/86) 동일 PR):** 브라우저 Supabase 접속코드 3벌→1 구현. `src/supabase.js` 삭제(import 2곳 repoint), `data/supabaseClient.js`를 정본 `supabase/browser.ts` 싱글톤 위임 프록시로 축소(호출부 9곳 무변경). 효과: 실제 브라우저 클라 1개 통일 → "Multiple GoTrueClient instances" 경고 해소.
-
-**왜 그렇게 했는지:**
-- **AI 수정을 dedup PR과 분리해 먼저 머지(PO 결정):** 긴급 수정이 큰 리팩터에 묶여 배포 지연되면 안 됨 → 새 브랜치 `claude/ai-chat-reply-fix`로 빼서 #87 단독 머지(PO가 새 브랜치 권한 부여).
-- **#85를 먼저 머지(PO 결정):** 1번 검증(Sentry·채팅암호화)이 #85에만 있고, dedup도 #85가 건드린 supabaseAdmin·deps 위에서 해야 충돌 없음 → "#85 먼저 머지·배포" 선택.
-- **서버 클라 통합은 일부러 안 함:** service_role(RLS 우회) vs anon(RLS 적용)으로 **보안등급이 달라** 잘못 합치면 보안사고. 15+곳 사이트별 "어느 권한 기대하나" 검토가 필요 → 깨끗한 별도 세션으로.
-- **이메일 레거시 env fallback:** 두 발송기의 env 규약이 달라서, 프로덕션이 옛 이름만 설정돼 있으면 통합 시 관리자 메일이 조용히 끊길 위험 → 신규·레거시 둘 다 인식하게 해 무중단.
-
-**안 끝났거나 보류:**
-- **⭐ 서버 Supabase 클라 4벌 통합(다음 세션 메인):** `supabaseAdmin`(116)·`supabase/server.ts`(16)·`data/supabaseServerClient.ts`(15)·`data/supabaseServer.js`(2). 보안등급(service_role/anon) 사이트별 검토 필수. 안전 패스로 단계적.
-- **서버 Sentry 실수집(런타임) 미확인:** 코드·배포·라우트(403 보호)는 확인했으나 **DSN 실제 켜짐 + 에러가 Sentry 대시보드 도착**은 못 봄(관리자 세션·Sentry 접근 없음). PO 1클릭 필요.
-- (이전 트랙 그대로 대기) 화상상담방 라이브 UI 검증 / 발화자 역할 DB 저장 / Gemini 유료 AI 회의록(#68).
-
-**주의·함정:**
-- **배포돼도 PO가 옛 화면 보면 캐시** — AI 챗 테스트는 반드시 **새 시크릿 창**(Ctrl+Shift+N).
-- **JSDoc 주석에 `AWS_*` 뒤에 슬래시를 붙이면 주석이 조기 종료**돼 빌드 깨짐(이번에 한 번 밟음, 즉시 수정). 주석 안 와일드카드 경로 표기 주의.
-- **이메일 통합 검증은 코드·타입까지만** — 실제 관리자 메일 발송(SES/Resend)은 프로덕션 env 의존이라 실전송 미확인. 레거시 fallback으로 안전하게 했으나 실발송 1건은 다음에 문의 들어오면 확인.
-- 중복정리 브라우저 변경은 공개 SSR 페이지(홈·병원·검색) 영향 → CI smoke E2E가 검증(초록 확인 후 머지). 과거 이 검사가 SSR 크래시 잡았음.
-
-**다음 세션이 먼저 할 일 (우선순위):**
-1. **⚠️ 직전 미검증분 먼저 확인:** (a) **서버 Sentry 실수집** — 관리자 로그인 → `/api/sentry/test` 1회 열기 → Sentry 대시보드에 "의도된 테스트 에러" 도착 확인(DSN 켜짐 전제). (b) **AI 챗 품질** — 새 시크릿 창에서 PO 스크린샷의 그 질문("친구 유방암…") 재현 → 잘림 없이 따뜻하게 답하는지. 안 되면 받아서 잇기.
-2. **중복정리 3단계 — 서버 Supabase 클라 4벌 통합:** 보안등급(service_role/anon) 사이트별 검토하며 단계적, 매 단계 `tsc`·`vitest`·CI 통과. (브라우저 클라 `data/supabaseClient.js`도 추후 `supabase/browser.ts`로 완전 흡수 가능하나 호출부 변경 필요 — 선택.)
-3. (대기) 화상상담방 라이브 검증 / 발화자 역할 DB 저장 / Gemini 유료 AI 회의록(#68).
-4. KHIDI 중간평가(2026-08-27) 상시 — `docs/KHIDI_중간보고_베이스.md`.
-
-**검증 상태:** PR [#85](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/85)·[#86](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/86)·[#87](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/87) = **CI(ci·smoke·Vercel) 전부 초록 + main 머지 + 프로덕션 배포 완료.** 매 단계 `tsc --noEmit`·`vitest 129개`·`check:content` 통과. **게스트 채팅은 프로덕션에서 실검증 완료 ✅** — 실제 채팅 1건 생성→DB 확인(이름·이메일·전화 AES-256-GCM 암호문 저장, 국가코드 평문, 블라인드 해시 존재)→resume 복호화 정상→이름+이메일 lookup 찾음→테스트행 삭제. **❌ 서버 Sentry 런타임 실수집은 미검증**(코드·배포·403보호만 확인, 대시보드 못 봄 → 위 1-(a)). 열린 PR: 없음(#85·#86·#87 전부 머지). 남은 브랜치 `claude/validation-dedup-refactor-vc9lr4`는 머지 완료분이라 정리 가능.
-
-**다음 세션 첫 프롬프트 (PO 복붙용):**
-> 먼저 docs/PROJECT_CONTEXT.md 최상단 핸드오프(2026-06-19 밤늦게) 읽어. 그다음 순서로: 1) 직전 미검증분 확인 — (a) 관리자로 /api/sentry/test 열어서 Sentry 대시보드에 테스트 에러 도착하는지(서버 에러감시 실작동) 봐주고, (b) AI 챗 새 시크릿창에서 "친구가 유방암인데 한국 오고싶대 뭐라고 설명해줘" 물어서 답 안 잘리고 가격부터 안 들이미는지 확인. 안 되는 거 있으면 고쳐. 2) 메인 작업 = 중복정리 3단계: 서버 Supabase 접속코드 4벌(supabaseAdmin·supabase/server·data/supabaseServerClient·data/supabaseServer)을 통합하는데, service_role(보안우회)/anon(보안적용) 등급이 사이트마다 달라서 한 방에 하지 말고 사이트별 검토하며 단계적으로 + 매 단계 tsc·test·CI 통과. 끝나면 before→after 보고. 상세는 docs/KNOWN_ISSUES.md 남은 백로그.
 
 ---
 

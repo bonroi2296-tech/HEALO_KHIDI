@@ -4,6 +4,22 @@
 
 ---
 
+## 🌙 야간 자율 세션 진행 (2026-06-19) — 백로그 다수 PR화
+
+> 아래 백로그 항목들이 PR로 진행됨(머지·배포는 PROJECT_CONTEXT 최상단 핸드오프 참조).
+
+- **죽은 `/api/chat` 정리** → **[#99](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/99) 머지·배포 완료**.
+- **DB 마이그레이션 위생(멱등 가드)** → **[#100](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/100)**(draft, PO 대기) + `check:migrations` CI 게이트 신설.
+- **알림 카운터 인메모리→DB** → **[#101](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/101)**(draft, PO 대기 — 마이그레이션 적용도 결정 필요).
+- **🔴 KHIDI KPI 깨진 컬럼**(유치·사전상담이 없는 컬럼 쿼리로 항상 0) → **[#102](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/102)**(draft, PO 대기 — 평가 직결, POSTMORTEMS #7).
+- **상담방 역할 라벨 i18n** → **[#103](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/103)**(저위험, CI 초록 시 머지).
+
+### 화상상담방(God 컴포넌트 2883줄) 조사 결과 — 분할 계획
+- **표준 동작은 이미 구현됨**(PO 우려 해소): 발화자 자동 메인(스피커뷰, `useSpeakingParticipants`+FocusLayout), 화면공유 자동 확대(우선순위 pin>screenshare>speaker), 화질(720p 캡처+simulcast 180/360/720+화면공유 1080p+adaptiveStream/dynacast), 언어 선택 시 전체 UI 전환(COPY 6언어+`switchUiLang`).
+- **분할 안전 seam(향후 PO 확인 후)**: `VideoGrid`(820~), `SubtitleOverlay`(904~), `RoomInfoOverlay`(733~), `MutedSpeakingWarning`(762~)는 의존성 적어 추출 후보. STT/번역 로직은 `useTranslation()` 커스텀훅으로 묶는 게 안전(prop-drilling 큼). **실제 분할은 LiveKit 라이브 검증(2+참가자) 필요 → 자동검증 불가**라 이번엔 미실행.
+
+---
+
 ## ✅ 해결 (2026-06-19) — KPI 국가별 분포 집계 버그 (PR #98)
 
 > 서버 클라 통합 중 `kpi.ts`를 타입 박힌 정본 `supabaseAdmin`에 위임하자 숨어있던 불일치가 드러남(옛 클라는 제네릭 없는 createClient라 무검사 통과했음).

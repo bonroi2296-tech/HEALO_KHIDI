@@ -1,5 +1,45 @@
 # PR
 
+## 🔖 세션 핸드오프 (2026-06-19 밤늦게) — AI 챗 응답 깨짐 긴급수정 + #85 배포 + 게스트채팅 실검증 + 중복정리 1·2단계
+
+**이번 세션 한 일 (PR 3건 전부 main 머지·실서비스 배포):**
+- **🔥 AI 챗 응답 깨짐 긴급수정 ([#87](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/87) 머지·배포):** PO 스크린샷 제보 — 답변이 "1,800만 원) 선이며…(출처: healwith" 처럼 앞뒤 잘림 + 인사·공감 없이 가격부터 들이미는 이론식. 원인 2개: ①`gemini-flash-latest`(Gemini 2.5 Flash)의 thinking(추론) 토큰이 `maxOutputTokens`에 포함 → 같은 날 가독성 커밋(`6470e5d`)이 상한 768로 낮추자 추론이 예산 다 먹고 답변이 문장 중간에 잘림. ②견적자료 커밋(`f1d8d87`)의 INTAKE&ESTIMATE 규칙이 일반·감정 질문에도 가격 토해냄. 수정: `generateReply.ts`+`app/api/chat/route.ts`에 `thinkingConfig.thinkingBudget=0`(추론 끔·지연/비용↓), 공개챗 상한 768→1024, 프롬프트를 "가격은 명시적으로 물을 때만, 일반질문엔 따뜻하게+되묻기"로 교정. `docs/POSTMORTEMS.md #5` 기록.
+- **PR [#85](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/85) 머지·배포:** 직전 세션의 초안(미배포)이었음 → PO 승인으로 머지(서버 Sentry 부활 + 게스트채팅 PII 암호화 + 기초수리 24파일). 이게 안 합쳐져 있어서 1번 검증이 막혀 있던 것.
+- **중복정리 1단계 ([#86](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/86) 머지·배포):** ①죽은 `withErrorHandler`(0 사용) 제거. ②이메일 발송기 2벌→1벌(`notifications/emailSender.ts` 삭제, `adminNotifier`를 통합 `email/sendEmail.ts`로; **프로덕션 무중단 위해 통합 sendEmail이 레거시 env 이름 `AWS_REGION`/`AWS_ACCESS_KEY_ID`/`SES_FROM_EMAIL`도 인식하도록 fallback 추가**).
+- **중복정리 2단계 ([#86](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/86) 동일 PR):** 브라우저 Supabase 접속코드 3벌→1 구현. `src/supabase.js` 삭제(import 2곳 repoint), `data/supabaseClient.js`를 정본 `supabase/browser.ts` 싱글톤 위임 프록시로 축소(호출부 9곳 무변경). 효과: 실제 브라우저 클라 1개 통일 → "Multiple GoTrueClient instances" 경고 해소.
+
+**왜 그렇게 했는지:**
+- **AI 수정을 dedup PR과 분리해 먼저 머지(PO 결정):** 긴급 수정이 큰 리팩터에 묶여 배포 지연되면 안 됨 → 새 브랜치 `claude/ai-chat-reply-fix`로 빼서 #87 단독 머지(PO가 새 브랜치 권한 부여).
+- **#85를 먼저 머지(PO 결정):** 1번 검증(Sentry·채팅암호화)이 #85에만 있고, dedup도 #85가 건드린 supabaseAdmin·deps 위에서 해야 충돌 없음 → "#85 먼저 머지·배포" 선택.
+- **서버 클라 통합은 일부러 안 함:** service_role(RLS 우회) vs anon(RLS 적용)으로 **보안등급이 달라** 잘못 합치면 보안사고. 15+곳 사이트별 "어느 권한 기대하나" 검토가 필요 → 깨끗한 별도 세션으로.
+- **이메일 레거시 env fallback:** 두 발송기의 env 규약이 달라서, 프로덕션이 옛 이름만 설정돼 있으면 통합 시 관리자 메일이 조용히 끊길 위험 → 신규·레거시 둘 다 인식하게 해 무중단.
+
+**안 끝났거나 보류:**
+- **⭐ 서버 Supabase 클라 4벌 통합(다음 세션 메인):** `supabaseAdmin`(116)·`supabase/server.ts`(16)·`data/supabaseServerClient.ts`(15)·`data/supabaseServer.js`(2). 보안등급(service_role/anon) 사이트별 검토 필수. 안전 패스로 단계적.
+- **서버 Sentry 실수집(런타임) 미확인:** 코드·배포·라우트(403 보호)는 확인했으나 **DSN 실제 켜짐 + 에러가 Sentry 대시보드 도착**은 못 봄(관리자 세션·Sentry 접근 없음). PO 1클릭 필요.
+- (이전 트랙 그대로 대기) 화상상담방 라이브 UI 검증 / 발화자 역할 DB 저장 / Gemini 유료 AI 회의록(#68).
+
+**주의·함정:**
+- **배포돼도 PO가 옛 화면 보면 캐시** — AI 챗 테스트는 반드시 **새 시크릿 창**(Ctrl+Shift+N).
+- **JSDoc 주석에 `AWS_*` 뒤에 슬래시를 붙이면 주석이 조기 종료**돼 빌드 깨짐(이번에 한 번 밟음, 즉시 수정). 주석 안 와일드카드 경로 표기 주의.
+- **이메일 통합 검증은 코드·타입까지만** — 실제 관리자 메일 발송(SES/Resend)은 프로덕션 env 의존이라 실전송 미확인. 레거시 fallback으로 안전하게 했으나 실발송 1건은 다음에 문의 들어오면 확인.
+- 중복정리 브라우저 변경은 공개 SSR 페이지(홈·병원·검색) 영향 → CI smoke E2E가 검증(초록 확인 후 머지). 과거 이 검사가 SSR 크래시 잡았음.
+
+**다음 세션이 먼저 할 일 (우선순위):**
+1. **⚠️ 직전 미검증분 먼저 확인:** (a) **서버 Sentry 실수집** — 관리자 로그인 → `/api/sentry/test` 1회 열기 → Sentry 대시보드에 "의도된 테스트 에러" 도착 확인(DSN 켜짐 전제). (b) **AI 챗 품질** — 새 시크릿 창에서 PO 스크린샷의 그 질문("친구 유방암…") 재현 → 잘림 없이 따뜻하게 답하는지. 안 되면 받아서 잇기.
+2. **중복정리 3단계 — 서버 Supabase 클라 4벌 통합:** 보안등급(service_role/anon) 사이트별 검토하며 단계적, 매 단계 `tsc`·`vitest`·CI 통과. (브라우저 클라 `data/supabaseClient.js`도 추후 `supabase/browser.ts`로 완전 흡수 가능하나 호출부 변경 필요 — 선택.)
+3. (대기) 화상상담방 라이브 검증 / 발화자 역할 DB 저장 / Gemini 유료 AI 회의록(#68).
+4. KHIDI 중간평가(2026-08-27) 상시 — `docs/KHIDI_중간보고_베이스.md`.
+
+**검증 상태:** PR [#85](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/85)·[#86](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/86)·[#87](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/87) = **CI(ci·smoke·Vercel) 전부 초록 + main 머지 + 프로덕션 배포 완료.** 매 단계 `tsc --noEmit`·`vitest 129개`·`check:content` 통과. **게스트 채팅은 프로덕션에서 실검증 완료 ✅** — 실제 채팅 1건 생성→DB 확인(이름·이메일·전화 AES-256-GCM 암호문 저장, 국가코드 평문, 블라인드 해시 존재)→resume 복호화 정상→이름+이메일 lookup 찾음→테스트행 삭제. **❌ 서버 Sentry 런타임 실수집은 미검증**(코드·배포·403보호만 확인, 대시보드 못 봄 → 위 1-(a)). 열린 PR: 없음(#85·#86·#87 전부 머지). 남은 브랜치 `claude/validation-dedup-refactor-vc9lr4`는 머지 완료분이라 정리 가능.
+
+**다음 세션 첫 프롬프트 (PO 복붙용):**
+> 먼저 docs/PROJECT_CONTEXT.md 최상단 핸드오프(2026-06-19 밤늦게) 읽어. 그다음 순서로: 1) 직전 미검증분 확인 — (a) 관리자로 /api/sentry/test 열어서 Sentry 대시보드에 테스트 에러 도착하는지(서버 에러감시 실작동) 봐주고, (b) AI 챗 새 시크릿창에서 "친구가 유방암인데 한국 오고싶대 뭐라고 설명해줘" 물어서 답 안 잘리고 가격부터 안 들이미는지 확인. 안 되는 거 있으면 고쳐. 2) 메인 작업 = 중복정리 3단계: 서버 Supabase 접속코드 4벌(supabaseAdmin·supabase/server·data/supabaseServerClient·data/supabaseServer)을 통합하는데, service_role(보안우회)/anon(보안적용) 등급이 사이트마다 달라서 한 방에 하지 말고 사이트별 검토하며 단계적으로 + 매 단계 tsc·test·CI 통과. 끝나면 before→after 보고. 상세는 docs/KNOWN_ISSUES.md 남은 백로그.
+
+---
+
+---
+
 ## 🔖 세션 핸드오프 (2026-06-19 밤) — 5축 기초 감리 + 토대 수리 (PR #85, 중복정리만 다음 세션)
 
 > **트리거**: PO가 "다른 클로드 세션이 전체 리뷰해서 '기능만 하다 기초가 부실하다'는 문서를 만들었다"며 제3자 시선의 객관 분석을 요청 → 그 문서는 PO 로컬에만 있어 못 봄(본판 미푸시). 대신 코드로 직접 5축 감리 후, PO가 "싹 다 수리"·"핸드오프+중복정리는 새 세션" 선택.
