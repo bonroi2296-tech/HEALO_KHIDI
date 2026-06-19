@@ -4,14 +4,14 @@
 
 ---
 
-## 🐛 발견 (2026-06-19) — KPI 국가별 분포 집계가 없는 테이블을 쿼리 (KHIDI 영향)
+## ✅ 해결 (2026-06-19) — KPI 국가별 분포 집계 버그 (PR #98)
 
 > 서버 클라 통합 중 `kpi.ts`를 타입 박힌 정본 `supabaseAdmin`에 위임하자 숨어있던 불일치가 드러남(옛 클라는 제네릭 없는 createClient라 무검사 통과했음).
 
-- **증상**: `src/lib/khidi/kpi.ts` 의 "국가별 분포"가 **존재하지 않는 테이블 `khidi_intakes`** 를 `select("user_id, nationality")` 로 쿼리 → 에러 로깅 후 빈 배열 → **KHIDI 리포트 국가분포가 항상 비어있음**. (헤드라인 K-01 유치건수 등은 다른 테이블이라 정상.)
-- **실DB 확인**: `khidi_intakes` 테이블 없음. `nationality` 컬럼은 `inquiries`·`visa_applications` 에 존재(둘 다 user_id/patient_id 없음 → 환자 연결 경로 재설계 필요).
-- **현 조치**: 통합 변경은 **동작보존**(깨진 쿼리 그대로, 느슨한 타입 캐스팅). 실수정은 데이터모델 재설계 필요라 별도 과제 — **PO 결정 대기**.
-- **권장 수정**: 환자(`consultation_sessions.patient_id`) → 국적 매핑 경로를 `inquiries`/`visa_applications` 기준으로 다시 정의하거나, 생성 DB 타입(`database.types.ts`) 최신화 후 정식 타입으로 재작성.
+- **증상(원인)**: `src/lib/khidi/kpi.ts` 의 "국가별 분포"가 **존재하지 않는 테이블 `khidi_intakes`** 를 쿼리 → 항상 빈 값. 더해 환자 식별에 쓰던 `consultation_sessions.patient_id` 가 **프로덕션에서 전부 NULL**(14건 중 0건)이라 고유환자수도 같은 뿌리원인으로 깨져 있었음.
+- **실DB 확인**: `nationality` 컬럼은 `inquiries`·`visa_applications` 에 존재. `cancer_patient_intakes` 엔 nationality 컬럼 없음. **실제 연결고리 = `consultation_sessions.inquiry_id` → `inquiries.nationality`** (11/14 세션에 inquiry_id 있고 해당 inquiries 모두 nationality 보유).
+- **수정(PR #98)**: 국가분포·고유환자수를 `inquiry_id → inquiries.nationality` 기준으로 재정의. 환자키 = `patient_id ?? inq:<inquiry_id>` 로 중복제거(patient_id 채워질 미래 자동 대응). ISO 코드(KZ/RU/UZ)→한국어 표기 매핑 추가.
+- **검증**: 실DB 집계 = 카자흐스탄 6 · 러시아 1 · 우즈베키스탄 1(이전엔 0). tsc/vitest129/eslint0/check:content/next build 통과. 대시보드 `/admin/khidi/kpi-dashboard` 5·6월 조회 시 표시.
 
 ---
 
