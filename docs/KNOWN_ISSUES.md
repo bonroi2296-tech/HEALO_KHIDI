@@ -4,6 +4,28 @@
 
 ---
 
+## 🧭 기초 감리 (2026-06-19) — 5축 제3자 점검
+
+> "기능만 빨리, 기초 부실" 가설을 5축(보안/테스트·CI/타입·품질/관측/의존성·DB·문서)으로 코드 직접 검증.
+> 종합 ≈56/100. 보안 뼈대(82)는 견고, 관측(42)이 최약점. 이번 PR에서 **위험3+근본원인 4건 수리**, 나머지는 아래 백로그.
+
+### ✅ 이번에 수리 (PR)
+- **서버 Sentry 부활**: `instrumentation.ts`의 `register()`/`onRequestError`가 `return;`으로 막혀 **서버·SSR·크론 에러가 하나도 수집 안 됐음**(KPI 데드맨스위치·AI 차단기 경보 포함 무음). next.config는 6/12에 이미 충돌 해소했는데 이 파일만 5/19 비활성 방치. → 재활성(DSN 있을 때만). **프로덕션(DSN 설정) 배포로 실수집 확인 필요.**
+- **`supabaseAdmin` fail-closed**: 더미 fallback 조건이 `typeof window==='undefined'`(=모든 서버 실행)라 런타임 env 누락 시에도 더미 반환→데이터 조용히 유실. → 빌드 단계(`NEXT_PHASE`)만 더미, 런타임은 throw.
+- **`pg` 오배치 교정**: devDependencies인데 런타임 30파일이 import → dependencies로 이동(`npm ci --production` 시 모듈 누락 위험 제거). `playwright`는 devDeps로.
+- **취약점 31→9**: `npm audit fix`(semver 안전)로 axios 1.7.9→1.18.0, ws 8.21.0 등 prod·high 전부 패치. 남은 9는 major 강제 필요(아래).
+- **CI 게이트 강화**: `tsc --noEmit`(타입검사) 머지 차단 게이트 추가(현재 통과). `eslint`는 정보용(비차단) — 기존 에러 69건 정리 후 blocking 승격.
+
+### 🔴 남은 백로그 (우선순위순)
+- **운영 알림이 가짜**: `adminNotifier.ts:107` SMS/알림톡이 실발송 없이 success=true+DB 'sent' 기록(실동작 채널=이메일뿐). `operationalAlerts.ts:148` Slack/메일 경보 console 스텁+인메모리 카운터(서버리스 리셋). `inquiries/step1:126` 알림실패 `.catch(()=>{})` 삼킴.
+- **보안 진짜 구멍 2개**(나머진 견고): ① `public/chat/start/route.ts:59` 게스트 채팅 PII **평문 저장**(문의 흐름은 암호화하는데 채팅만 누락) ② 기본 임시비번 `healo1234`(`admin/staff`). 이 둘만 막으면 보안 90점대.
+- **핵심 경로 무테스트**: PII 암호화·AI 정규화·결제견적·화상토큰 백엔드 테스트 0건. 커버리지 측정은 `@vitest/coverage-v8` 미설치로 불가.
+- **중복/위생**: Supabase 클라이언트 6벌·이메일 발송 2벌(env 규약 상이), `withErrorHandler` 데드 추상화(155라우트 중 0 사용), `any` 813개(인증·복호화 66개), God컴포넌트 `consultation/[id]/page.jsx` 2,883줄.
+- **의존성/문서**: 죽은 `@ai-sdk/openai`·`@ai-sdk/react`(0 import, 취약점 1건도 여기서), README 2026-02-20 피벗 전 모델 멈춤, 마이그레이션 수동 추적·정책 DROP 가드 누락, 남은 9취약점(vitest=dev, exceljs→uuid, sentry→postcss = major 강제 필요).
+- **얕은 헬스체크**: `api/health`가 정적 `{ok}`만 → DB 죽어도 200.
+
+---
+
 ## ✅ P1 — AI 토큰 남용 방어 (2026-06-12 적용 완료)
 
 > 2026-06-12 PO 승인("피버모드 — 안 했던 작업 다")으로 적용 완료. 남은 것: Gemini 콘솔 spend cap 은 PO 직접 설정(5분).
