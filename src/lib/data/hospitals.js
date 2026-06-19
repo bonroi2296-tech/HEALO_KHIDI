@@ -1,5 +1,6 @@
 import { mapHospitalRow, mapTreatmentRow } from "../mapper";
-import { supabaseServer } from "./supabaseServer";
+// 중복정리(3단계): anon 서버 클라이언트는 정본 @/lib/supabase/server 로 통합됨.
+import { supabaseAnonServer as supabaseServer } from "@/lib/supabase/server";
 import { logError } from "../logger";
 
 const HOSPITAL_SELECT =

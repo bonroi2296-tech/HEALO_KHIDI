@@ -29,6 +29,7 @@ import { cookies } from 'next/headers'
 import type { NextRequest } from 'next/server'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@/types/database.types'
+import { supabaseAdmin } from '@/lib/rag/supabaseAdmin'
 
 export type TypedSupabaseServerClient = SupabaseClient<Database>
 
@@ -100,27 +101,93 @@ export function createSupabaseServerClientFromRequest(request: NextRequest): Typ
 }
 
 /**
- * ✅ Service Role 클라이언트 생성 (관리자 전용, DB 타입 바인딩)
+ * ✅ Service Role 클라이언트 (관리자 전용, DB 타입 바인딩)
  *
  * ⚠️ 주의: Service Role Key는 모든 RLS를 무시합니다.
  * 관리자 API에서만 사용하고, 반드시 권한 체크를 선행하세요.
  *
- * @returns Supabase client with service role key
+ * 중복정리(3단계): service_role 클라이언트 생성 지점을 정본 `supabaseAdmin` 싱글톤
+ * 한 곳으로 단일화. 과거엔 호출마다 새 createClient 를 만들었으나(서버에 다중 인스턴스),
+ * 이제 fail-closed 싱글톤을 위임 반환한다. 호출부 무변경.
+ *
+ * @returns 정본 service_role Supabase client (싱글톤)
  */
 export function createServiceRoleClient(): TypedSupabaseServerClient {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+  return supabaseAdmin as unknown as TypedSupabaseServerClient
+}
 
-  if (!supabaseUrl || !supabaseServiceKey) {
+/**
+ * ✅ Anonymous(no-session) 서버 클라이언트 — 공개 읽기 전용 데이터(병원·시술 목록 등).
+ *
+ * 보안등급: **anon** (RLS 가 익명 사용자로 적용됨 — service_role 우회 아님).
+ * 쿠키/세션 없음 → 공개 SSR 페이지·빌드 정적생성에서 사용.
+ *
+ * 중복정리(3단계): 옛 `src/lib/data/supabaseServer.js` 의 `supabaseServer` 를 이 정본으로 통합.
+ * 동작은 그대로 보존(공개 페이지 무변화): env 누락 시 더미 클라이언트(빈 데이터)로 폴백해
+ * 빌드/렌더가 깨지지 않게 한다. 공개·비민감 데이터라 service_role 의 fail-closed 와 달리 graceful.
+ */
+let anonServerInstance: TypedSupabaseServerClient | null = null
+
+function buildAnonServerClient(): TypedSupabaseServerClient {
+  if (anonServerInstance) return anonServerInstance
+
+  const supabaseUrl =
+    process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.VITE_SUPABASE_URL
+  const supabaseAnonKey =
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_KEY
+
+  if (!supabaseUrl || !supabaseAnonKey) {
     throw new Error(
-      '[supabase/server] NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are required'
+      '[supabase/server] anon client env missing: NEXT_PUBLIC_SUPABASE_URL / NEXT_PUBLIC_SUPABASE_ANON_KEY'
     )
   }
 
-  return createClient<Database>(supabaseUrl, supabaseServiceKey, {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false,
-    },
+  anonServerInstance = createClient<Database>(supabaseUrl, supabaseAnonKey, {
+    auth: { persistSession: false },
   })
+  return anonServerInstance
 }
+
+// 더미 쿼리(빌드 시점 env 없을 때) — 체이닝 전부 자기 자신 반환
+const anonDummyQuery: any = {
+  select: () => anonDummyQuery,
+  eq: () => anonDummyQuery,
+  neq: () => anonDummyQuery,
+  ilike: () => anonDummyQuery,
+  order: () => anonDummyQuery,
+  limit: () => Promise.resolve({ data: [], error: null }),
+  range: () => Promise.resolve({ data: [], error: null }),
+  single: () => Promise.resolve({ data: null, error: null }),
+  maybeSingle: () => Promise.resolve({ data: null, error: null }),
+}
+
+const createAnonDummyClient = (): any => ({
+  from: () => anonDummyQuery,
+  storage: {
+    from: () => ({
+      createSignedUrl: () => Promise.resolve({ data: { signedUrl: '' }, error: null }),
+    }),
+  },
+  auth: {
+    getSession: () => Promise.resolve({ data: { session: null }, error: null }),
+    onAuthStateChange: () => ({ data: { subscription: null } }),
+    signOut: () => Promise.resolve({ error: null }),
+  },
+})
+
+/**
+ * 공개 읽기 전용 anon 클라이언트(싱글톤 Proxy). env 누락 시 더미로 graceful 폴백.
+ */
+export const supabaseAnonServer = new Proxy({} as TypedSupabaseServerClient, {
+  get(_target, prop) {
+    try {
+      const client = buildAnonServerClient()
+      const value = (client as any)[prop]
+      return typeof value === 'function' ? value.bind(client) : value
+    } catch {
+      const dummy = createAnonDummyClient()
+      const value = dummy[prop]
+      return typeof value === 'function' ? value.bind(dummy) : value
+    }
+  },
+})
