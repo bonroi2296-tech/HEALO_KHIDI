@@ -17,6 +17,7 @@ import { NextRequest } from "next/server";
 import { supabaseAdmin, assertSupabaseEnv } from "@/lib/rag/supabaseAdmin";
 import { requireAdminAuth } from "@/lib/auth/requireAdminAuth";
 import { KHIDI_TARGETS } from "@/lib/khidi/targets";
+import { likertTo100, avgSatisfaction100 } from "@/lib/khidi/satisfaction";
 
 export async function GET(request: NextRequest) {
   const auth = await requireAdminAuth(request);
@@ -52,12 +53,10 @@ export async function GET(request: NextRequest) {
     q5Avg = responses.reduce((s: number, r: any) => s + (r.q5_score || 0), 0) / totalResponses;
   }
 
-  // Likert(1~5) → 100점 환산
-  const to100 = (v: number) => Math.round(v * 20 * 10) / 10;
-  const overallAvg100 =
-    totalResponses > 0
-      ? Math.round(((q1Avg + q2Avg + q3Avg + q4Avg + q5Avg) / 5) * 20 * 10) / 10
-      : 0;
+  // Likert(1~5) → 100점 환산 (kpi.ts 와 단일 소스: satisfaction.ts).
+  // 응답 없으면 기존 동작대로 0.
+  const to100 = likertTo100;
+  const overallAvg100 = avgSatisfaction100(responses) ?? 0;
 
   // 자유 의견 최근 50건
   const { data: comments } = await db

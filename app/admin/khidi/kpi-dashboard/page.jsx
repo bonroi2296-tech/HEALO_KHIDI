@@ -2,6 +2,13 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { KHIDI_TARGETS } from "@/lib/khidi/targets";
+import {
+  achievementPct,
+  barPct,
+  projectProgressPct,
+  consultCareTotal,
+  sharePct,
+} from "@/lib/khidi/dashboardMetrics";
 
 // ============================================================
 // 사업 기간 (2026-04-01 ~ 2026-11-30)
@@ -16,10 +23,7 @@ const KPI_TARGETS = KHIDI_TARGETS;
 const MONTH_NAMES = ["1월","2월","3월","4월","5월","6월","7월","8월","9월","10월","11월","12월"];
 
 function projectProgress() {
-  const now = new Date();
-  const total = PROJECT_END - PROJECT_START;
-  const elapsed = Math.min(now - PROJECT_START, total);
-  return Math.max(0, Math.round((elapsed / total) * 100));
+  return projectProgressPct(new Date(), PROJECT_START, PROJECT_END);
 }
 
 // ============================================================
@@ -27,7 +31,7 @@ function projectProgress() {
 // ============================================================
 
 function ProgressBar({ value, max, colorClass = "bg-teal-700", height = "h-2" }) {
-  const pct = max > 0 ? Math.min(100, Math.round((value / max) * 100)) : 0;
+  const pct = barPct(value, max);
   return (
     <div className={`w-full bg-gray-200 rounded-full ${height} overflow-hidden`}>
       <div
@@ -39,7 +43,7 @@ function ProgressBar({ value, max, colorClass = "bg-teal-700", height = "h-2" })
 }
 
 function KpiCard({ title, kpiId, actual, target, unit = "건", note, accentColor = "teal" }) {
-  const pct = target ? Math.min(100, Math.round((actual / target) * 100)) : null;
+  const pct = achievementPct(actual, target);
   const colorMap = {
     teal: { bar: "bg-teal-700", badge: "bg-teal-50 text-teal-700 border-teal-200", ring: "ring-teal-200" },
     blue: { bar: "bg-blue-500", badge: "bg-blue-50 text-blue-700 border-blue-200", ring: "ring-blue-200" },
@@ -213,7 +217,7 @@ export default function KpiDashboardPage() {
 
   // 사업 누적: 사전상담+사후관리 합산 (공식 120 목표)
   const cumConsultCare =
-    cum != null ? (cum.preConsultation ?? 0) + (cum.followUp ?? 0) : null;
+    cum != null ? consultCareTotal(cum.preConsultation, cum.followUp) : null;
 
   // 월별 바 차트용 데이터 (daily → 일별 누적)
   const dailyChartData = daily.slice(-30).map((d) => ({
@@ -423,7 +427,7 @@ export default function KpiDashboardPage() {
                   <div className="flex justify-between text-sm mb-0.5">
                     <span className="text-gray-700">{c.nationality}</span>
                     <span className="text-gray-500 font-medium">
-                      {c.count}명 ({totalPatients > 0 ? Math.round((c.count / totalPatients) * 100) : 0}%)
+                      {c.count}명 ({sharePct(c.count, totalPatients)}%)
                     </span>
                   </div>
                   <ProgressBar
