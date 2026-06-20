@@ -40,6 +40,57 @@ const PARTNER_SECTION = {
   },
 };
 
+/* ───────── ⚠️ 후기 카드 "예시"(SAMPLE) — 실제 후기 아님 ─────────
+   PO가 카드 방식 레이아웃을 눈으로 보고 결정할 수 있게 보여주는 데모.
+   텍스트는 전부 예시이며 실제 환자 후기가 아님(머지 전 제거 또는 PO 제공 실후기로 교체). */
+const SAMPLE_REVIEW_NOTE = {
+  badge: { ko: "예시 (SAMPLE)", en: "SAMPLE", ru: "ПРИМЕР", kz: "ҮЛГІ", zh: "示例", ja: "サンプル" },
+  title: { ko: "후기 카드 — 이런 모양 (예시)", en: "Review cards — how they look (sample)", ru: "Карточки отзывов — пример вида", kz: "Пікір карталары — үлгі", zh: "评价卡片 — 示例样式", ja: "レビューカード — 表示例（サンプル）" },
+  note: {
+    ko: "⚠️ 아래 카드 텍스트는 전부 예시이며 실제 환자 후기가 아닙니다. 카드 방식으로 갈지 보시고, 가시면 동의받은 실제 후기를 주세요(의료광고법 검토 필요).",
+    en: "⚠️ All card text below is a sample, not real patient reviews. Decide if you want this card style; if so, provide consented real reviews (medical-advertising law review needed).",
+    ru: "⚠️ Текст карточек ниже — пример, а не реальные отзывы. Решите, нужен ли такой стиль; если да — предоставьте реальные отзывы с согласия.",
+    kz: "⚠️ Төмендегі мәтін — үлгі, нақты пікір емес. Осы стиль қажет пе, шешіңіз; қажет болса нақты пікірлер беріңіз.",
+    zh: "⚠️ 以下卡片文字均为示例，非真实患者评价。请决定是否采用此卡片样式；如采用请提供经同意的真实评价。",
+    ja: "⚠️ 以下のカード文はすべてサンプルで、実際の患者レビューではありません。このカード形式にするか判断し、採用する場合は同意済みの実レビューをご提供ください。",
+  },
+};
+const SAMPLE_REVIEWS = [
+  {
+    text: {
+      ko: "한국에 오기 전부터 화상 상담으로 치료 방향을 정할 수 있어 막막함이 줄었습니다. 통역이 함께해 언어 걱정도 없었어요.",
+      en: "Being able to set the treatment direction by video before coming to Korea eased my anxiety. With an interpreter, language was no worry.",
+      ru: "Возможность определить направление лечения по видео до приезда уменьшила тревогу. С переводчиком язык не был проблемой.",
+      kz: "Кореяға келмес бұрын бейне арқылы емдеу бағытын белгілеу алаңдаушылықты азайтты. Аудармашымен тіл мәселе болмады.",
+      zh: "来韩之前就能通过视频确定治疗方向，减轻了迷茫。有翻译陪同，语言也不担心。",
+      ja: "来韓前にビデオで治療方針を決められ、不安が減りました。通訳がいて言葉の心配もありませんでした。",
+    },
+    author: { ko: "예시 후기 · 실제 후기로 교체 예정", en: "Sample · to be replaced with a real review", ru: "Пример · заменится реальным отзывом", kz: "Үлгі · нақты пікірмен ауыстырылады", zh: "示例 · 将替换为真实评价", ja: "サンプル · 実レビューに差し替え予定" },
+  },
+  {
+    text: {
+      ko: "수술 후 면역·재활 단계까지 같은 팀이 이어서 챙겨주니, 매번 새 병원을 찾을 필요가 없었습니다.",
+      en: "The same team carried me through the post-surgery immune and rehab stages, so I never had to find a new hospital each time.",
+      ru: "Одна команда сопровождала меня на этапах иммунного и реабилитационного ухода — не нужно было искать новую больницу.",
+      kz: "Операциядан кейінгі иммундық және оңалту кезеңдерінде бір топ қолдады, жаңа аурухана іздеудің қажеті болмады.",
+      zh: "术后免疫与康复阶段都由同一团队衔接，无需每次重新找医院。",
+      ja: "手術後の免疫・リハビリ段階まで同じチームが続けて見てくれ、毎回新しい病院を探す必要がありませんでした。",
+    },
+    author: { ko: "예시 후기 · 실제 후기로 교체 예정", en: "Sample · to be replaced with a real review", ru: "Пример · заменится реальным отзывом", kz: "Үлгі · нақты пікірмен ауыстырылады", zh: "示例 · 将替换为真实评价", ja: "サンプル · 実レビューに差し替え予定" },
+  },
+  {
+    text: {
+      ko: "귀국 후에도 원격으로 후속 관리를 이어가서 마음이 놓였습니다. 치료가 한 번의 방문으로 끝나지 않는다는 걸 느꼈어요.",
+      en: "Follow-up continued remotely after I returned home, which was reassuring. I felt that care doesn't end with a single visit.",
+      ru: "После возвращения наблюдение продолжалось дистанционно — это успокаивало. Я почувствовал, что лечение не заканчивается одним визитом.",
+      kz: "Үйге оралғаннан кейін де қашықтан бақылау жалғасты, бұл сенім берді. Емдеу бір сапармен бітпейтінін сездім.",
+      zh: "回国后仍可远程持续随访，让我安心。我感到治疗不会因一次到访而结束。",
+      ja: "帰国後も遠隔でフォローが続き安心でした。治療は一度の訪問で終わらないと感じました。",
+    },
+    author: { ko: "예시 후기 · 실제 후기로 교체 예정", en: "Sample · to be replaced with a real review", ru: "Пример · заменится реальным отзывом", kz: "Үлгі · нақты пікірмен ауыстырылады", zh: "示例 · 将替换为真实评价", ja: "サンプル · 実レビューに差し替え予定" },
+  },
+];
+
 /* ───────── i18n (6개 언어) ───────── */
 const COPY = {
   ko: {
@@ -277,10 +328,10 @@ export default function CareJourneyClient() {
         >
           {c.heroCta} <ArrowRight size={18} />
         </Link>
-        {/* 회복톤 실사진 (스토리 커버에서 검수된 Unsplash) — 프리뷰에서 교체 가능 */}
+        {/* 회복톤 실사진 — 공원 산책(회복·동행) / PO 1차 교체 2026-06-20 */}
         <div className="mt-10 md:mt-12 overflow-hidden rounded-2xl border border-gray-100">
           <img
-            src="https://images.unsplash.com/photo-1587854692152-cbe660dbde88?w=1600&auto=format&fit=crop&q=85"
+            src="https://images.unsplash.com/photo-1671530725345-cc4a2cf5db04?w=1600&auto=format&fit=crop&q=85"
             alt={c.eyebrow}
             loading="lazy"
             className="w-full h-56 md:h-80 object-cover"
@@ -338,10 +389,10 @@ export default function CareJourneyClient() {
       <section className="max-w-4xl mx-auto px-4 pt-0 pb-12 md:pb-16">
         <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-4">{c.whyCareTitle}</h2>
         <p className="text-base text-gray-600 leading-relaxed max-w-3xl mb-8 md:mb-10">{c.whyCareLede}</p>
-        {/* 회복톤 실사진 — 프리뷰에서 교체 가능 */}
+        {/* 회복톤 실사진 — 푸드테라피(맞춤 영양·입원식) / PO 1차 교체 2026-06-20 */}
         <div className="mb-8 md:mb-10 overflow-hidden rounded-2xl border border-gray-100">
           <img
-            src="https://images.unsplash.com/photo-1538108149393-fbbd81895907?w=1600&auto=format&fit=crop&q=85"
+            src="https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=1600&auto=format&fit=crop&q=85"
             alt={c.whyCareTitle}
             loading="lazy"
             className="w-full h-48 md:h-64 object-cover"
@@ -387,6 +438,39 @@ export default function CareJourneyClient() {
       <div className="border-t border-gray-100">
         <SocialProofSection />
       </div>
+
+      {/* ⚠️ 후기 카드 "예시"(SAMPLE) — PO 결정용 데모. 실제 후기 아님(머지 전 제거/교체) */}
+      <section className="bg-amber-50/60 border-y border-amber-200">
+        <div className="max-w-5xl mx-auto px-4 py-10 md:py-14">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="inline-block text-[11px] font-extrabold tracking-wide text-amber-900 bg-amber-200 rounded px-2 py-0.5">
+              {SAMPLE_REVIEW_NOTE.badge[lang] || SAMPLE_REVIEW_NOTE.badge.ko}
+            </span>
+            <h2 className="text-xl md:text-2xl font-bold text-gray-900">{SAMPLE_REVIEW_NOTE.title[lang] || SAMPLE_REVIEW_NOTE.title.ko}</h2>
+          </div>
+          <p className="text-xs md:text-sm text-amber-900/80 leading-relaxed max-w-3xl mb-6">
+            {SAMPLE_REVIEW_NOTE.note[lang] || SAMPLE_REVIEW_NOTE.note.ko}
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-5">
+            {SAMPLE_REVIEWS.map((t, i) => (
+              <div key={i} className="relative bg-white rounded-xl p-5 md:p-6 border border-amber-200 flex flex-col">
+                <span className="absolute top-3 right-3 text-[10px] font-bold text-amber-700 bg-amber-100 rounded px-1.5 py-0.5">
+                  {SAMPLE_REVIEW_NOTE.badge[lang] || SAMPLE_REVIEW_NOTE.badge.ko}
+                </span>
+                <p className="text-sm text-gray-600 leading-relaxed flex-1">{t.text[lang] || t.text.ko}</p>
+                <div className="mt-4 pt-3 border-t border-gray-100">
+                  <div className="flex gap-0.5 mb-1">
+                    {[...Array(5)].map((_, j) => (
+                      <span key={j} className="text-amber-300" aria-hidden="true">★</span>
+                    ))}
+                  </div>
+                  <p className="text-[11px] text-gray-400">{t.author[lang] || t.author.ko}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
 
       {/* Closing CTA */}
       <section className="bg-teal-700">
