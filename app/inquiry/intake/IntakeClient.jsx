@@ -125,7 +125,7 @@ export function InquiryIntakePage({ setView }) {
     return (
       <div className="max-w-lg mx-auto px-4 py-12 text-center">
         <p className="text-lg font-bold text-teal-700 mb-4">{t('intake.saved', langCode)}</p>
-        <button onClick={() => setView?.('home') || router.push('/')} className="text-teal-600 font-bold hover:underline">
+        <button onClick={() => setView?.('home') || router.push('/')} className="text-teal-700 font-bold hover:underline">
           {t('intake.returnHome', langCode)}
         </button>
       </div>
@@ -134,7 +134,7 @@ export function InquiryIntakePage({ setView }) {
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-8">
-      <button onClick={() => router.back()} className="flex items-center text-sm font-bold text-gray-500 mb-6 hover:text-teal-600">
+      <button onClick={() => router.back()} className="flex items-center text-sm font-bold text-gray-500 mb-6 hover:text-teal-700">
         <ChevronLeft size={16}/> {t('intake.back', langCode)}
       </button>
       <h1 className="text-xl font-bold text-gray-900 mb-2">{t('intake.title', langCode)}</h1>
@@ -224,7 +224,7 @@ export function InquiryIntakePage({ setView }) {
           )}
         </div>
 
-        <button onClick={handleSubmit} disabled={submitting} className="w-full bg-teal-600 text-white py-4 rounded-xl font-bold hover:bg-teal-700 disabled:opacity-50">
+        <button onClick={handleSubmit} disabled={submitting} className="w-full bg-teal-700 text-white py-4 rounded-xl font-bold hover:bg-teal-800 disabled:opacity-50">
           {submitting ? t('intake.saving', langCode) : t('intake.save', langCode)}
         </button>
       </div>

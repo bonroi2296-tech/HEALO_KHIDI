@@ -130,7 +130,7 @@ export function HospitalAccountManager({ hospitals }) {
           <div className="flex justify-end">
             <button
               onClick={() => setShowAddForm(!showAddForm)}
-              className="flex items-center gap-2 bg-teal-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-teal-700 transition"
+              className="flex items-center gap-2 bg-teal-700 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-teal-800 transition"
             >
               {showAddForm ? <X size={16} /> : <Plus size={16} />}
               {showAddForm ? "취소" : "담당자 추가"}
@@ -168,7 +168,7 @@ export function HospitalAccountManager({ hospitals }) {
               <button
                 onClick={handleAdd}
                 disabled={adding || !newEmail.trim()}
-                className="flex items-center gap-2 bg-teal-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-teal-700 transition disabled:opacity-50"
+                className="flex items-center gap-2 bg-teal-700 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-teal-800 transition disabled:opacity-50"
               >
                 {adding && <Loader2 size={14} className="animate-spin" />}
                 {adding ? "등록 중..." : "등록"}

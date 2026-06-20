@@ -7,7 +7,7 @@ export function ModeSelector({ onSelectMode }) {
   const modes = [
     {
       id: 'chat',
-      icon: <Bot className="w-8 h-8 text-teal-600" />,
+      icon: <Bot className="w-8 h-8 text-teal-700" />,
       title: 'AI Consultation',
       description: 'Chat with our AI assistant about your treatment options',
       badge: 'Instant',

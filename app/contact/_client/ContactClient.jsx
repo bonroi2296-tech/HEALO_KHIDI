@@ -31,7 +31,7 @@ export default function ContactClient() {
             <p className="mt-1">
               <a
                 href={`mailto:${legal.contactEmail}`}
-                className="text-teal-600 hover:text-teal-700 underline"
+                className="text-teal-700 hover:text-teal-700 underline"
               >
                 {legal.contactEmail}
               </a>
@@ -57,14 +57,14 @@ export default function ContactClient() {
               {t("contact.privacyTermsDesc", langCode)}{" "}
               <Link
                 href="/privacy"
-                className="text-teal-600 hover:text-teal-700 underline"
+                className="text-teal-700 hover:text-teal-700 underline"
               >
                 {t("nav.privacy", langCode)}
               </Link>
               {" "}
               <Link
                 href="/terms"
-                className="text-teal-600 hover:text-teal-700 underline"
+                className="text-teal-700 hover:text-teal-700 underline"
               >
                 {t("nav.terms", langCode)}
               </Link>

@@ -146,7 +146,7 @@ export default function CasesPage() {
                   </label>
                   <div className="sm:col-span-2 flex gap-2">
                     <button disabled={saving} onClick={() => save(c.id)}
-                      className="px-4 py-2 rounded-lg text-sm font-bold bg-teal-600 text-white hover:bg-teal-700 disabled:opacity-40">저장</button>
+                      className="px-4 py-2 rounded-lg text-sm font-bold bg-teal-700 text-white hover:bg-teal-800 disabled:opacity-40">저장</button>
                     <button onClick={() => setOpenId(null)} className="px-4 py-2 rounded-lg text-sm bg-gray-100 text-gray-600 hover:bg-gray-200">닫기</button>
                   </div>
                 </div>

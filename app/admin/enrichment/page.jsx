@@ -158,7 +158,7 @@ export default function EnrichmentPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
-            <Database className="text-teal-600" size={28} />
+            <Database className="text-teal-700" size={28} />
             데이터 수집
           </h1>
           <p className="text-sm text-gray-500 mt-1">
@@ -190,7 +190,7 @@ export default function EnrichmentPage() {
           {/* Source Selection */}
           <div className="bg-white rounded-xl border border-gray-200 p-5">
             <h3 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
-              <Sparkles size={16} className="text-teal-600" />
+              <Sparkles size={16} className="text-teal-700" />
               수집 소스
             </h3>
             <div className="space-y-2">
@@ -219,7 +219,7 @@ export default function EnrichmentPage() {
                       <div className="text-sm font-medium text-gray-800">{meta.label}</div>
                       <div className="text-xs text-gray-500 truncate">{src.description}</div>
                     </div>
-                    {isSelected && <CheckCircle2 size={18} className="text-teal-600 shrink-0" />}
+                    {isSelected && <CheckCircle2 size={18} className="text-teal-700 shrink-0" />}
                     {!src.available && (
                       <span className="text-xs text-red-500 shrink-0">키 없음</span>
                     )}
@@ -235,7 +235,7 @@ export default function EnrichmentPage() {
           {/* Filter */}
           <div className="bg-white rounded-xl border border-gray-200 p-5">
             <h3 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
-              <Filter size={16} className="text-teal-600" />
+              <Filter size={16} className="text-teal-700" />
               필터 조건
             </h3>
             <div className="space-y-3">
@@ -312,7 +312,7 @@ export default function EnrichmentPage() {
 
               <div className="pt-2 text-sm text-gray-500">
                 대상: <span className="font-medium text-gray-800">{filteredCount}</span>건 중{" "}
-                <span className="font-medium text-teal-600">{Math.min(filteredCount, batchLimit)}</span>건 처리 예정
+                <span className="font-medium text-teal-700">{Math.min(filteredCount, batchLimit)}</span>건 처리 예정
               </div>
             </div>
           </div>
@@ -324,7 +324,7 @@ export default function EnrichmentPage() {
             className={`w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-white font-medium transition ${
               running || selectedSources.length === 0
                 ? "bg-gray-300 cursor-not-allowed"
-                : "bg-teal-600 hover:bg-teal-700 shadow-lg shadow-teal-200"
+                : "bg-teal-700 hover:bg-teal-800 shadow-lg shadow-teal-200"
             }`}
           >
             {running ? (
@@ -356,7 +356,7 @@ export default function EnrichmentPage() {
 
           {running && (
             <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
-              <Loader2 size={48} className="mx-auto text-teal-500 mb-4 animate-spin" />
+              <Loader2 size={48} className="mx-auto text-teal-700 mb-4 animate-spin" />
               <h3 className="text-lg font-medium text-gray-700 mb-2">수집 진행 중...</h3>
               <p className="text-sm text-gray-400">
                 선택된 소스: {selectedSources.map((s) => SOURCE_META[s]?.label || s).join(", ")}

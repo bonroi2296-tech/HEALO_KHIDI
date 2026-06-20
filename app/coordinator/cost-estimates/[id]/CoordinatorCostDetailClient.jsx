@@ -367,7 +367,7 @@ export default function CoordinatorCostDetailClient({ estimateId }) {
             <button
               onClick={handleIssue}
               disabled={issuing || items.length === 0}
-              className="bg-emerald-600 text-white px-5 py-2 rounded text-sm hover:bg-emerald-700 disabled:opacity-50"
+              className="bg-emerald-700 text-white px-5 py-2 rounded text-sm hover:bg-emerald-700 disabled:opacity-50"
             >
               {issuing ? "발급 중..." : "견적서 PDF 발급"}
             </button>

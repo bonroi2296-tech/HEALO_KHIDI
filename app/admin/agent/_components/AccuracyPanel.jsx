@@ -67,7 +67,7 @@ export function AccuracyPanel() {
             {/* Progress Bar */}
             <div className="mt-2 h-2 bg-gray-200 rounded-full overflow-hidden">
               <div
-                className="h-full bg-teal-500 rounded-full transition-all"
+                className="h-full bg-teal-700 rounded-full transition-all"
                 style={{
                   width: `${Math.min((data.current / data.target) * 100, 100)}%`,
                 }}
@@ -93,7 +93,7 @@ export function AccuracyPanel() {
               <div className="text-sm font-semibold text-gray-900 mb-2">
                 {m.phase}
                 {i === 0 && (
-                  <span className="ml-2 text-xs bg-teal-600 text-white px-2 py-0.5 rounded">
+                  <span className="ml-2 text-xs bg-teal-700 text-white px-2 py-0.5 rounded">
                     현재
                   </span>
                 )}

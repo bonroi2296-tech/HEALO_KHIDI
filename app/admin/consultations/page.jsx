@@ -241,7 +241,7 @@ export default function ConsultationsPage() {
         </div>
         <button
           onClick={() => setShowCreateModal(true)}
-          className="inline-flex items-center gap-2 px-5 py-3 bg-teal-600 text-white rounded-lg font-semibold shadow-md hover:bg-teal-700 active:scale-[0.98] transition"
+          className="inline-flex items-center gap-2 px-5 py-3 bg-teal-700 text-white rounded-lg font-semibold shadow-md hover:bg-teal-800 active:scale-[0.98] transition"
         >
           <Plus size={18} />
           새 상담 예약
@@ -261,7 +261,7 @@ export default function ConsultationsPage() {
             onClick={() => setFilter(tab.key)}
             className={`px-4 py-3 font-medium transition border-b-2 ${
               filter === tab.key
-                ? "border-teal-600 text-teal-600"
+                ? "border-teal-600 text-teal-700"
                 : "border-transparent text-gray-600 hover:text-gray-900"
             }`}
           >
@@ -411,7 +411,7 @@ export default function ConsultationsPage() {
                   {/* Doctor info */}
                   {consultation.doctor_id && (
                     <div className="flex items-start gap-3 p-4 bg-white rounded-lg border border-gray-200">
-                      <Stethoscope size={20} className="text-teal-600 mt-1" />
+                      <Stethoscope size={20} className="text-teal-700 mt-1" />
                       <div className="flex-1">
                         <p className="text-sm font-semibold text-gray-900">
                           담당 의사
@@ -426,7 +426,7 @@ export default function ConsultationsPage() {
                   {/* Coordinator info */}
                   {consultation.coordinator_id && (
                     <div className="flex items-start gap-3 p-4 bg-white rounded-lg border border-gray-200">
-                      <User size={20} className="text-teal-600 mt-1" />
+                      <User size={20} className="text-teal-700 mt-1" />
                       <div className="flex-1">
                         <p className="text-sm font-semibold text-gray-900">
                           코디네이터
@@ -469,7 +469,7 @@ export default function ConsultationsPage() {
                       <>
                         <button
                           onClick={() => handleJoinConsultation(consultation)}
-                          className="flex-1 min-w-[140px] px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition font-medium flex items-center justify-center gap-2"
+                          className="flex-1 min-w-[140px] px-4 py-2 bg-teal-700 text-white rounded-lg hover:bg-teal-800 transition font-medium flex items-center justify-center gap-2"
                         >
                           <Phone size={16} />
                           상담 시작
@@ -511,7 +511,7 @@ export default function ConsultationsPage() {
                         <button
                           onClick={() => handleGenerateSummary(consultation)}
                           disabled={summaryState[consultation.id]?.loading}
-                          className="flex-1 min-w-[160px] px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition font-medium flex items-center justify-center gap-2 disabled:opacity-60"
+                          className="flex-1 min-w-[160px] px-4 py-2 bg-teal-700 text-white rounded-lg hover:bg-teal-800 transition font-medium flex items-center justify-center gap-2 disabled:opacity-60"
                         >
                           {summaryState[consultation.id]?.loading ? (
                             <>
@@ -553,7 +553,7 @@ export default function ConsultationsPage() {
                     return (
                       <div className="p-4 bg-white rounded-lg border border-teal-200">
                         <div className="flex items-center gap-2 mb-1">
-                          <FileText size={16} className="text-teal-600" />
+                          <FileText size={16} className="text-teal-700" />
                           <p className="text-sm font-semibold text-gray-900">
                             AI 회의록
                           </p>
@@ -898,7 +898,7 @@ function CreateConsultationModal({ onClose, onSuccess }) {
       >
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center">
+            <div className="w-10 h-10 rounded-xl bg-teal-50 text-teal-700 flex items-center justify-center">
               <Video size={20} />
             </div>
             <div>
@@ -1132,7 +1132,7 @@ function CreateConsultationModal({ onClose, onSuccess }) {
             <button
               type="submit"
               disabled={submitting}
-              className="flex-1 px-4 py-3 bg-teal-600 text-white rounded-lg font-semibold hover:bg-teal-700 disabled:opacity-60"
+              className="flex-1 px-4 py-3 bg-teal-700 text-white rounded-lg font-semibold hover:bg-teal-800 disabled:opacity-60"
             >
               {submitting ? "생성 중…" : "상담 예약 생성"}
             </button>
@@ -1262,7 +1262,7 @@ function UserSearchField({ label, value, onSelect, placeholder }) {
             <button
               type="button"
               onClick={handleClear}
-              className="text-teal-600 hover:text-teal-800 text-sm"
+              className="text-teal-700 hover:text-teal-800 text-sm"
             >
               변경
             </button>
@@ -1373,7 +1373,7 @@ function InviteLinkBlock({ url, expiresAt, toast, label = "환자 초대 링크 
                 () => toast.error("복사 실패")
               );
             }}
-            className="px-4 py-2 bg-teal-600 text-white rounded-lg text-sm font-semibold hover:bg-teal-700"
+            className="px-4 py-2 bg-teal-700 text-white rounded-lg text-sm font-semibold hover:bg-teal-800"
           >
             복사
           </button>

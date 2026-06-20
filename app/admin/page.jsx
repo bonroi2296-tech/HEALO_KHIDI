@@ -68,12 +68,12 @@ export default function AdminDashboard() {
               onClick={() => router.push(link.href)}
               className="bg-white p-4 lg:p-6 rounded-xl border border-gray-200 hover:border-teal-300 hover:shadow-lg transition text-left group min-h-[100px] sm:min-h-[120px] lg:min-h-0"
             >
-              <Icon size={28} className="text-teal-600 mb-2 lg:mb-4 lg:w-9 lg:h-9" />
-              <h3 className="text-sm lg:text-lg font-bold text-gray-900 mb-1 lg:mb-2 group-hover:text-teal-600 transition">
+              <Icon size={28} className="text-teal-700 mb-2 lg:mb-4 lg:w-9 lg:h-9" />
+              <h3 className="text-sm lg:text-lg font-bold text-gray-900 mb-1 lg:mb-2 group-hover:text-teal-700 transition">
                 {link.title}
               </h3>
               <p className="text-xs lg:text-sm text-gray-500 mb-2 lg:mb-4 hidden sm:block">{link.description}</p>
-              <div className="flex items-center text-teal-600 text-xs lg:text-sm font-medium">
+              <div className="flex items-center text-teal-700 text-xs lg:text-sm font-medium">
                 바로가기 <ArrowRight size={14} className="ml-1 group-hover:translate-x-1 transition" />
               </div>
             </button>

@@ -132,7 +132,7 @@ export default function RagAdminPage() {
               </option>
             ))}
           </select>
-          <button className="bg-teal-600 text-white px-4 py-2 rounded-lg hover:bg-teal-700" onClick={handleNormalize}>
+          <button className="bg-teal-700 text-white px-4 py-2 rounded-lg hover:bg-teal-800" onClick={handleNormalize}>
             정규화 실행
           </button>
         </div>
@@ -160,7 +160,7 @@ export default function RagAdminPage() {
             value={ingestSourceId}
             onChange={(e) => setIngestSourceId(e.target.value)}
           />
-          <button className="bg-teal-600 text-white px-4 py-2 rounded-lg hover:bg-teal-700" onClick={handleIngest}>
+          <button className="bg-teal-700 text-white px-4 py-2 rounded-lg hover:bg-teal-800" onClick={handleIngest}>
             수집 실행
           </button>
         </div>
@@ -187,7 +187,7 @@ export default function RagAdminPage() {
             <option value="ko">ko</option>
             <option value="ja">ja</option>
           </select>
-          <button className="bg-teal-600 text-white px-4 py-2 rounded-lg hover:bg-teal-700" onClick={handleSearch}>
+          <button className="bg-teal-700 text-white px-4 py-2 rounded-lg hover:bg-teal-800" onClick={handleSearch}>
             검색
           </button>
         </div>
