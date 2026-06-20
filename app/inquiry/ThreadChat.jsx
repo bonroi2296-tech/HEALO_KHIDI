@@ -611,7 +611,7 @@ export function ThreadChat() {
               <div key={msg.id} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
                 <div className={`flex flex-col gap-1 max-w-[90%] ${msg.role === "user" ? "items-end" : "items-start"}`}>
                   <div
-                    className={`p-3 rounded-2xl shadow-sm text-[13px] border ${
+                    className={`p-3 rounded-2xl shadow-sm text-xs leading-relaxed border ${
                       msg.role === "assistant"
                         ? "bg-white border-gray-100"
                         : "bg-teal-600 text-white border-teal-600"
@@ -753,7 +753,7 @@ export function ThreadChat() {
                 }
               }}
               placeholder={t("chat.placeholder", langCode)}
-              className="flex-1 resize-none border-0 bg-transparent outline-none py-1.5 leading-relaxed text-[13px] max-h-32 overflow-y-auto"
+              className="flex-1 resize-none border-0 bg-transparent outline-none py-1.5 leading-relaxed text-xs max-h-32 overflow-y-auto"
               disabled={sending}
             />
             <button
