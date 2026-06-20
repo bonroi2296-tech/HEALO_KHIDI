@@ -21,16 +21,14 @@
 - **의존성: high 0 / critical 0** (moderate 22 — 대부분 audit 도구(lighthouse) 등 devDependencies 전이 취약점, 프로덕션 미배포). → high+ 게이트 통과.
 
 ### ♿ 접근성 (axe-core WCAG 2.1 AA, 공개 7페이지 합계)
-| 규칙 | 심각도 | 노드 수 | 의미 | 조치 |
-|---|---|---|---|---|
 | 규칙 | 심각도 | **Before** | **After (측정)** | 조치 |
 |---|---|---|---|---|
 | `button-name` | **critical** | **7** | **0** ✅ | 전역 플로팅 버튼 aria-label |
 | `aria-prohibited-attr` | serious | 7 | **0** ✅ | 알림 토스트 role=region |
-| `color-contrast` | serious | **161** | **7** (97%↓) | 브랜드 teal-600/500 → teal-700 다크닝(PO 옵션1 승인) |
-| **합계** | | **critical 7 / serious 168** | **critical 0 / serious 7** | |
+| `color-contrast` | serious | **161** | **0** ✅ | 브랜드 teal/emerald-600·500 → 700 다크닝 + red/teal 배지 보정(PO 옵션1) |
+| **합계** | | **critical 7 / serious 168** | **🟢 critical 0 / serious 0** | |
 
-→ **추정 아님 — axe-core 실측 before→after.** Before=프로덕션(2026-06-20), After=동일 코드 배포본(#117) 재측정.
+→ **추정 아님 — axe-core 실측 before→after.** Before=프로덕션(2026-06-20). After=배포본(#117+#121) 7페이지 재측정 = **위반 0** (critical·serious·moderate·minor 전부 0).
 → 잔여 **color-contrast 7** = 못 잡은 가장자리 케이스(특정 배경 색조합). 추가 정리 시 0 가능.
 
 ### ⚡ 성능 (Lighthouse)
