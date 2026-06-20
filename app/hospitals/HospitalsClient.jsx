@@ -462,7 +462,7 @@ function DoctorModal({ doc, l, lang, onClose }) {
       <div className="bg-white rounded-3xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
         {/* Header */}
         <div className="relative bg-gradient-to-br from-emerald-700 to-teal-600 rounded-t-3xl p-8 text-white">
-          <button onClick={onClose} className="absolute top-5 right-5 w-10 h-10 rounded-full bg-white/20 flex items-center justify-center hover:bg-white/30 transition">
+          <button onClick={onClose} aria-label="Close" className="absolute top-5 right-5 w-10 h-10 rounded-full bg-white/20 flex items-center justify-center hover:bg-white/30 transition focus:outline-none focus:ring-2 focus:ring-teal-400">
             <X size={20} />
           </button>
           <div className="flex items-center gap-6">
@@ -523,8 +523,11 @@ function DoctorCard({ doc, l, lang, onSelect }) {
 
   return (
     <div
+      role="button"
+      tabIndex={0}
       onClick={() => onSelect(doc)}
-      className={`bg-white rounded-2xl border cursor-pointer hover:shadow-xl transition-all group overflow-hidden ${
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onSelect(doc); } }}
+      className={`bg-white rounded-2xl border cursor-pointer hover:shadow-xl transition-all group overflow-hidden focus:outline-none focus:ring-2 focus:ring-teal-400 ${
         isLeader ? 'border-emerald-200 ring-1 ring-emerald-50' : 'border-gray-200'
       }`}
     >
@@ -550,7 +553,7 @@ function DoctorCard({ doc, l, lang, onSelect }) {
           </div>
           <p className="text-emerald-700 font-semibold text-sm">{l(doc.position)}</p>
           {doc.subspecialty && (
-            <p className="text-gray-400 text-xs mt-0.5">{l(doc.subspecialty)}</p>
+            <p className="text-gray-500 text-xs mt-0.5">{l(doc.subspecialty)}</p>
           )}
 
           {/* Keywords */}
@@ -566,7 +569,7 @@ function DoctorCard({ doc, l, lang, onSelect }) {
           {previewLines.length > 0 && (
             <div className="mt-3 space-y-0.5 hidden sm:block">
               {previewLines.map((line, i) => (
-                <p key={i} className="text-xs text-gray-400 truncate">{line}</p>
+                <p key={i} className="text-xs text-gray-500 truncate">{line}</p>
               ))}
             </div>
           )}
@@ -574,13 +577,13 @@ function DoctorCard({ doc, l, lang, onSelect }) {
           {/* Footer stats */}
           <div className="flex items-center gap-4 mt-auto pt-3 text-xs text-gray-300">
             {la(doc.논문, lang).length > 0 && (
-              <span className="flex items-center gap-1 text-gray-400"><BookOpen size={11} /> {la(doc.논문, lang).length}</span>
+              <span className="flex items-center gap-1 text-gray-500"><BookOpen size={11} /> {la(doc.논문, lang).length}</span>
             )}
             {career.length > 0 && (
-              <span className="flex items-center gap-1 text-gray-400"><Briefcase size={11} /> {career.length}</span>
+              <span className="flex items-center gap-1 text-gray-500"><Briefcase size={11} /> {career.length}</span>
             )}
             {la(doc.활동, lang).length > 0 && (
-              <span className="flex items-center gap-1 text-gray-400"><Activity size={11} /> {la(doc.활동, lang).length}</span>
+              <span className="flex items-center gap-1 text-gray-500"><Activity size={11} /> {la(doc.활동, lang).length}</span>
             )}
             <span className="ml-auto text-emerald-600 font-semibold group-hover:text-emerald-700 transition text-xs">
               {l(L.view_profile)} →
@@ -686,8 +689,11 @@ export default function HospitalsClient() {
               } ${isOpen ? 'shadow-xl' : 'hover:shadow-md'}`}>
                 {/* Branch header */}
                 <div
-                  className={`p-6 md:p-8 cursor-pointer transition ${isOpen ? 'bg-gray-50/50' : 'hover:bg-gray-50/30'}`}
+                  role="button"
+                  tabIndex={0}
+                  className={`p-6 md:p-8 cursor-pointer transition focus:outline-none focus:ring-2 focus:ring-teal-400 ${isOpen ? 'bg-gray-50/50' : 'hover:bg-gray-50/30'}`}
                   onClick={() => !isUpcoming && docs.length > 0 && toggleBranch(branch.id)}
+                  onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); if (!isUpcoming && docs.length > 0) toggleBranch(branch.id); } }}
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
@@ -702,7 +708,7 @@ export default function HospitalsClient() {
                       </div>
                       <div>
                         <h3 className="font-bold text-xl md:text-2xl">{l(branch.name)}</h3>
-                        <p className="text-sm text-gray-400 flex items-center gap-1 mt-1">
+                        <p className="text-sm text-gray-500 flex items-center gap-1 mt-1">
                           <MapPin size={14} /> {l(branch.addr)}
                         </p>
                       </div>
@@ -715,7 +721,7 @@ export default function HospitalsClient() {
                         </span>
                       )}
                       {branch.tel && (
-                        <span className="text-sm text-gray-400 hidden md:flex items-center gap-1">
+                        <span className="text-sm text-gray-500 hidden md:flex items-center gap-1">
                           <Phone size={14} /> {branch.tel}
                         </span>
                       )}
@@ -775,14 +781,14 @@ export default function HospitalsClient() {
         {partnerHospitals.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
             {partnerHospitals.map(h => (
-              <div key={h.id} data-testid="hospital-card" onClick={() => router.push(`/hospitals/${h.slug || h.id}`)} className="bg-white border border-gray-200 rounded-2xl p-6 hover:shadow-lg hover:border-teal-300 transition cursor-pointer group">
+              <div key={h.id} data-testid="hospital-card" role="button" tabIndex={0} onClick={() => router.push(`/hospitals/${h.slug || h.id}`)} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); router.push(`/hospitals/${h.slug || h.id}`); } }} className="bg-white border border-gray-200 rounded-2xl p-6 hover:shadow-lg hover:border-teal-300 transition cursor-pointer group focus:outline-none focus:ring-2 focus:ring-teal-400">
                 <div className="flex items-start gap-3 mb-3">
                   <div className="w-12 h-12 bg-teal-100 rounded-xl flex items-center justify-center shrink-0">
                     <Stethoscope size={24} className="text-teal-700" />
                   </div>
                   <div className="min-w-0">
                     <h3 className="font-bold text-base group-hover:text-teal-600 transition line-clamp-1">{h.name}</h3>
-                    <p className="text-sm text-gray-400 flex items-center gap-1 mt-0.5"><MapPin size={12} /><span className="truncate">{h.location}</span></p>
+                    <p className="text-sm text-gray-500 flex items-center gap-1 mt-0.5"><MapPin size={12} /><span className="truncate">{h.location}</span></p>
                   </div>
                 </div>
                 <p className="text-sm text-gray-600 line-clamp-2 mb-3">{h.description}</p>
@@ -802,7 +808,7 @@ export default function HospitalsClient() {
         ) : (
           <div className="text-center py-16 bg-gray-50 rounded-2xl">
             <Building2 size={40} className="mx-auto text-gray-300 mb-3" />
-            <p className="text-gray-400">{l(L.comingSoon)}</p>
+            <p className="text-gray-500">{l(L.comingSoon)}</p>
           </div>
         )}
       </section>
@@ -814,7 +820,7 @@ export default function HospitalsClient() {
           <p className="text-gray-500 text-base mb-8">{l(L.cancerCare.desc)}</p>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
             {CANCER_GUIDES.map((guide, i) => (
-              <div key={i} onClick={() => router.push('/inquiry')} className="bg-white border border-gray-200 rounded-2xl p-6 hover:shadow-md hover:border-teal-200 transition cursor-pointer group">
+              <div key={i} role="button" tabIndex={0} onClick={() => router.push('/inquiry')} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); router.push('/inquiry'); } }} className="bg-white border border-gray-200 rounded-2xl p-6 hover:shadow-md hover:border-teal-200 transition cursor-pointer group focus:outline-none focus:ring-2 focus:ring-teal-400">
                 <div className="flex items-center gap-3 mb-3">
                   <span className="text-3xl">{guide.emoji}</span>
                   <h3 className="font-bold text-lg group-hover:text-teal-600 transition">{l(guide.type)}</h3>

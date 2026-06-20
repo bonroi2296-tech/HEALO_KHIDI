@@ -227,7 +227,7 @@ export default function CostEstimateCard({
                 </span>{" "}
                 · {fmtUSD(b.range_usd.min)}~{fmtUSD(b.range_usd.max)}
                 {b.confidence && (
-                  <span className="text-gray-400 ml-2">[{b.confidence}]</span>
+                  <span className="text-gray-500 ml-2">[{b.confidence}]</span>
                 )}
               </li>
             ))}

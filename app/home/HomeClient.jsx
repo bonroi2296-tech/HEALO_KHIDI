@@ -334,7 +334,7 @@ export default function HomeClient() {
                 <div className="p-3 md:p-5">
                   <h3 className="font-bold text-sm md:text-lg text-gray-900 leading-snug">{l(doc.name)}</h3>
                   <p className="text-teal-600 text-xs md:text-sm font-medium mt-0.5 md:mt-1 leading-snug">{l(doc.title)}</p>
-                  <p className="text-gray-400 text-[10px] md:text-xs mt-0.5 md:mt-1 line-clamp-1">{l(doc.specialty)}</p>
+                  <p className="text-gray-500 text-[10px] md:text-xs mt-0.5 md:mt-1 line-clamp-1">{l(doc.specialty)}</p>
                 </div>
               </div>
             ))}
@@ -400,7 +400,7 @@ export default function HomeClient() {
                 </div>
                 <div>
                   <h3 className="font-bold text-xs md:text-lg text-gray-900 mb-0.5 md:mb-1">{l(step.title)}</h3>
-                  <p className="text-gray-400 text-[10px] md:text-sm leading-snug">{l(step.desc)}</p>
+                  <p className="text-gray-500 text-[10px] md:text-sm leading-snug">{l(step.desc)}</p>
                 </div>
               </div>
             ))}

@@ -349,7 +349,7 @@ export default function CancerDetailClient({ slug }) {
         {/* 암종 특화 포커스 배지 */}
         {l(cancer.focusPrograms)?.length > 0 && (
           <div className="flex flex-wrap items-center gap-2 mb-8">
-            <span className="text-xs font-bold tracking-wide text-gray-400 uppercase mr-1">
+            <span className="text-xs font-bold tracking-wide text-gray-500 uppercase mr-1">
               {s.itcrnFocus}
             </span>
             {l(cancer.focusPrograms).map((prog, i) => (
@@ -503,7 +503,7 @@ export default function CancerDetailClient({ slug }) {
                 <div className="text-3xl md:text-4xl font-bold text-teal-600 leading-none mb-3">
                   {care.items}
                 </div>
-                <div className="text-xs font-bold tracking-wide text-gray-400 uppercase mb-1.5">
+                <div className="text-xs font-bold tracking-wide text-gray-500 uppercase mb-1.5">
                   {s.postProtocols}
                 </div>
                 <h3 className="text-base md:text-lg font-bold text-gray-900 leading-snug">

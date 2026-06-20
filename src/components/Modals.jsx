@@ -45,9 +45,9 @@ export const ReviewModal = ({ isOpen, onClose, reviews }) => {
                                     <div>
                                         <div className="flex items-center gap-2">
                                             <p className="font-bold text-gray-900">{review.name}</p>
-                                            <span className="text-[10px] text-gray-400 font-bold uppercase">{review.country}</span>
+                                            <span className="text-[10px] text-gray-500 font-bold uppercase">{review.country}</span>
                                         </div>
-                                        <p className="text-xs text-gray-400">{review.date}</p>
+                                        <p className="text-xs text-gray-500">{review.date}</p>
                                     </div>
                                 </div>
                                 <div className="flex text-yellow-400 gap-0.5">
@@ -55,7 +55,7 @@ export const ReviewModal = ({ isOpen, onClose, reviews }) => {
                                 </div>
                             </div>
                             <p className="text-sm text-gray-600 leading-relaxed mb-4">{review.content}</p>
-                            <div className="flex items-center gap-1 text-xs text-gray-400">
+                            <div className="flex items-center gap-1 text-xs text-gray-500">
                                 <ThumbsUp size={12}/> Helpful ({review.helpful})
                             </div>
                         </div>

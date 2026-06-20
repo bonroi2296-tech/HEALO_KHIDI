@@ -361,7 +361,7 @@ export default function ImmuneHospitalClient() {
               </div>
             ))}
           </div>
-          <p className="mt-8 text-xs text-gray-400 leading-relaxed max-w-2xl">
+          <p className="mt-8 text-xs text-gray-500 leading-relaxed max-w-2xl">
             ※ {l(H.evidenceNote)}
           </p>
         </div>
@@ -473,7 +473,7 @@ export default function ImmuneHospitalClient() {
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5">
             {H.branches.map((b) => (
               <div key={b.id} className="bg-white border border-gray-200 rounded-xl p-5 md:p-6">
-                <div className="text-xs font-bold tracking-wide text-gray-400 uppercase mb-2">
+                <div className="text-xs font-bold tracking-wide text-gray-500 uppercase mb-2">
                   {c.branchLabel} · {b.id}
                 </div>
                 <h3 translate="no" className="text-lg font-bold text-gray-900 mb-4 leading-snug">

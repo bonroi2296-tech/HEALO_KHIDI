@@ -307,7 +307,7 @@ export const TreatmentDetailPage = ({
       {/* Gallery */}
       <div className="max-w-6xl mx-auto px-4 py-6">
         {galleryImages.length === 0 ? (
-          <div className="w-full aspect-[16/7] bg-gray-100 rounded-2xl flex flex-col items-center justify-center text-gray-400">
+          <div className="w-full aspect-[16/7] bg-gray-100 rounded-2xl flex flex-col items-center justify-center text-gray-500">
             <ImageIcon size={48} className="mb-2" /><p className="font-bold text-sm">No Images Available</p>
           </div>
         ) : galleryImages.length === 1 ? (
@@ -318,8 +318,8 @@ export const TreatmentDetailPage = ({
           <>
             <div className="md:hidden w-full aspect-[4/3] relative group overflow-hidden rounded-2xl bg-gray-100">
               <img src={galleryImages[currentSlide]} className="w-full h-full object-cover" alt="Main" />
-              <button onClick={prevSlide} className="absolute left-3 top-1/2 -translate-y-1/2 bg-black/20 hover:bg-black/40 text-white p-1.5 rounded-full backdrop-blur-sm transition z-20"><ChevronLeft size={20} /></button>
-              <button onClick={nextSlide} className="absolute right-3 top-1/2 -translate-y-1/2 bg-black/20 hover:bg-black/40 text-white p-1.5 rounded-full backdrop-blur-sm transition z-20"><ArrowRight size={20} /></button>
+              <button onClick={prevSlide} aria-label="Previous" className="absolute left-3 top-1/2 -translate-y-1/2 bg-black/20 hover:bg-black/40 text-white p-1.5 rounded-full backdrop-blur-sm transition z-20"><ChevronLeft size={20} /></button>
+              <button onClick={nextSlide} aria-label="Next" className="absolute right-3 top-1/2 -translate-y-1/2 bg-black/20 hover:bg-black/40 text-white p-1.5 rounded-full backdrop-blur-sm transition z-20"><ArrowRight size={20} /></button>
               <div className="absolute bottom-3 right-3 z-20">
                 <div className="bg-black/60 backdrop-blur-md text-white px-2.5 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1"><ImageIcon size={10} /> {currentSlide + 1}/{galleryImages.length}</div>
               </div>
@@ -362,7 +362,7 @@ export const TreatmentDetailPage = ({
               <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">{treatment.title}</h1>
               <div className="flex items-center gap-2 text-sm text-gray-500">
                 {t("detail.providedByLabel", langCode)}
-                <span onClick={() => onHospitalClick?.(hospital?.slug || treatment.hospitalId)} className="font-semibold text-teal-600 underline cursor-pointer hover:text-teal-800 ml-0.5">
+                <span onClick={() => onHospitalClick?.(hospital?.slug || treatment.hospitalId)} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { if (e.key === " ") e.preventDefault(); onHospitalClick?.(hospital?.slug || treatment.hospitalId); } }} className="font-semibold text-teal-600 underline cursor-pointer hover:text-teal-800 ml-0.5 focus:outline-none focus:ring-2 focus:ring-teal-400">
                   {hospital?.name || "Hospital"}
                 </span>
                 <Shield size={13} className="text-teal-500 fill-teal-500" />
@@ -557,12 +557,12 @@ export const TreatmentDetailPage = ({
                   )}
                 </div>
                 {realReviews.length > 0 && (
-                  <span onClick={() => setIsReviewModalOpen(true)} className="text-teal-600 text-sm font-semibold cursor-pointer hover:underline">View All ({realReviews.length})</span>
+                  <span onClick={() => setIsReviewModalOpen(true)} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { if (e.key === " ") e.preventDefault(); setIsReviewModalOpen(true); } }} className="text-teal-600 text-sm font-semibold cursor-pointer hover:underline focus:outline-none focus:ring-2 focus:ring-teal-400">View All ({realReviews.length})</span>
                 )}
               </div>
 
               {loadingReviews ? (
-                <div className="text-center py-8 text-gray-400 text-sm animate-pulse">{t("detail.checkingReviews", langCode)}</div>
+                <div className="text-center py-8 text-gray-500 text-sm animate-pulse">{t("detail.checkingReviews", langCode)}</div>
               ) : realReviews.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   {realReviews.slice(0, 3).map((review) => (
@@ -571,14 +571,14 @@ export const TreatmentDetailPage = ({
                         <div className="flex items-center gap-2">
                           <div className="w-8 h-8 bg-teal-50 rounded-full flex items-center justify-center text-teal-600 font-bold text-xs uppercase">{review.user_name?.[0] || "U"}</div>
                           <div>
-                            <p className="font-semibold text-gray-900 text-sm line-clamp-1">{review.user_name} <span className="text-[10px] text-gray-400 uppercase">{review.country}</span></p>
-                            <p className="text-xs text-gray-400">{review.created_at ? formatDate(review.created_at, "en") : ""}</p>
+                            <p className="font-semibold text-gray-900 text-sm line-clamp-1">{review.user_name} <span className="text-[10px] text-gray-500 uppercase">{review.country}</span></p>
+                            <p className="text-xs text-gray-500">{review.created_at ? formatDate(review.created_at, "en") : ""}</p>
                           </div>
                         </div>
                         <div className="flex text-yellow-400 gap-0.5">{[...Array(review.rating || 5)].map((_, i) => <Star key={i} size={11} fill="currentColor" />)}</div>
                       </div>
                       <p className="text-sm text-gray-600 leading-relaxed mb-3 line-clamp-4">&ldquo;{review.content}&rdquo;</p>
-                      <div className="mt-auto flex items-center gap-1 text-xs text-gray-400"><ThumbsUp size={11} /> {t("detail.helpful", langCode)} ({review.helpful_count || 0})</div>
+                      <div className="mt-auto flex items-center gap-1 text-xs text-gray-500"><ThumbsUp size={11} /> {t("detail.helpful", langCode)} ({review.helpful_count || 0})</div>
                     </div>
                   ))}
                 </div>
@@ -586,7 +586,7 @@ export const TreatmentDetailPage = ({
                 <div className="text-center py-8 rounded-xl border border-dashed border-gray-200 bg-gray-50/50">
                   <MessageCircle size={28} className="mx-auto text-gray-300 mb-2" />
                   <p className="text-gray-500 text-sm font-medium">{t("detail.noReviews", langCode)}</p>
-                  <p className="text-xs text-gray-400 mt-1">{t("detail.beFirstReview", langCode)}</p>
+                  <p className="text-xs text-gray-500 mt-1">{t("detail.beFirstReview", langCode)}</p>
                 </div>
               )}
             </section>
@@ -631,14 +631,14 @@ export const TreatmentDetailPage = ({
                 <h3 className="text-lg font-bold text-gray-900 mb-4">{t("detail.compareSimilar", langCode)}</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {similarTreatments.map((item) => (
-                    <div key={item.id} onClick={() => onTreatmentClick?.(item.slug || item.id)} className="flex items-start gap-3 p-4 bg-white border border-gray-100 rounded-xl hover:shadow-md hover:border-teal-200 transition cursor-pointer group">
+                    <div key={item.id} onClick={() => onTreatmentClick?.(item.slug || item.id)} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { if (e.key === " ") e.preventDefault(); onTreatmentClick?.(item.slug || item.id); } }} className="flex items-start gap-3 p-4 bg-white border border-gray-100 rounded-xl hover:shadow-md hover:border-teal-200 transition cursor-pointer group focus:outline-none focus:ring-2 focus:ring-teal-400">
                       {item.image && <div className="w-14 h-14 rounded-lg overflow-hidden bg-gray-100 shrink-0"><img src={item.image} className="w-full h-full object-cover" alt={item.name} /></div>}
                       <div className="flex-1 min-w-0">
                         <h4 className="font-semibold text-sm text-gray-900 group-hover:text-teal-600 line-clamp-1">{item.name}</h4>
                         {item.hospitalName && <p className="text-xs text-gray-500 mt-0.5">{item.hospitalName}</p>}
                         <div className="flex items-center gap-3 mt-1.5">
                           <span className="text-teal-600 font-bold text-sm">{item.price}</span>
-                          {item.recovery && <span className="text-xs text-gray-400 flex items-center gap-1"><Clock size={10} /> {item.recovery}</span>}
+                          {item.recovery && <span className="text-xs text-gray-500 flex items-center gap-1"><Clock size={10} /> {item.recovery}</span>}
                         </div>
                       </div>
                       <ArrowRight size={14} className="text-gray-300 group-hover:text-teal-500 transition shrink-0 mt-1" />
@@ -656,7 +656,7 @@ export const TreatmentDetailPage = ({
                   {relatedTreatments.map((item) => {
                     const thumb = normalizeImages(item.images)?.[0] || null;
                     return (
-                      <div key={item.id} onClick={() => onTreatmentClick?.(item.slug || item.id)} className="bg-white border border-gray-100 rounded-xl overflow-hidden hover:shadow-md transition cursor-pointer group flex flex-col">
+                      <div key={item.id} onClick={() => onTreatmentClick?.(item.slug || item.id)} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { if (e.key === " ") e.preventDefault(); onTreatmentClick?.(item.slug || item.id); } }} className="bg-white border border-gray-100 rounded-xl overflow-hidden hover:shadow-md transition cursor-pointer group flex flex-col focus:outline-none focus:ring-2 focus:ring-teal-400">
                         {thumb ? (
                           <div className="aspect-[4/3] bg-gray-200 overflow-hidden">
                             <img src={thumb} className="w-full h-full object-cover group-hover:scale-105 transition duration-500" alt={item.name} />
@@ -680,7 +680,7 @@ export const TreatmentDetailPage = ({
           <div className="hidden lg:block lg:col-span-1">
             <div className="sticky top-24 space-y-4">
               <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm text-center">
-                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">{t("detail.estimatedPrice", langCode)}</p>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">{t("detail.estimatedPrice", langCode)}</p>
                 <div className="text-2xl font-bold text-teal-600 mb-5">{treatment.price}</div>
 
                 {treatment.price_includes?.length > 0 && (

@@ -78,7 +78,7 @@ const GoogleReviewsList = ({ reviews, langCode }) => {
                 )}
                 <div>
                   <p className="font-semibold text-gray-900 text-sm">{review.author}</p>
-                  <p className="text-xs text-gray-400">{review.time}</p>
+                  <p className="text-xs text-gray-500">{review.time}</p>
                 </div>
               </div>
               <div className="flex text-yellow-400 gap-0.5">{[...Array(review.rating || 5)].map((_, i) => <Star key={i} size={11} fill="currentColor" />)}</div>
@@ -353,7 +353,7 @@ export const HospitalDetailPage = ({ selectedId, setView, onTreatmentClick, init
       {/* Gallery */}
       <div className="max-w-6xl mx-auto px-4 py-6">
         {galleryImages.length === 0 ? (
-          <div className="w-full aspect-[16/7] bg-gray-100 rounded-2xl flex flex-col items-center justify-center text-gray-400">
+          <div className="w-full aspect-[16/7] bg-gray-100 rounded-2xl flex flex-col items-center justify-center text-gray-500">
             <ImageIcon size={48} className="mb-2" /><p className="font-bold text-sm">{t("detail.noImages", langCode)}</p>
           </div>
         ) : galleryImages.length === 1 ? (
@@ -368,8 +368,8 @@ export const HospitalDetailPage = ({ selectedId, setView, onTreatmentClick, init
                   <img src={img} onError={handleImgError} className="w-full h-full object-cover" alt={`${hospital?.name || "Hospital"} ${index + 1}`} />
                 </div>
               ))}
-              <button onClick={prevSlide} className="absolute left-3 top-1/2 -translate-y-1/2 bg-black/20 hover:bg-black/40 text-white p-1.5 rounded-full backdrop-blur-sm transition z-20"><ChevronLeft size={20} /></button>
-              <button onClick={nextSlide} className="absolute right-3 top-1/2 -translate-y-1/2 bg-black/20 hover:bg-black/40 text-white p-1.5 rounded-full backdrop-blur-sm transition z-20"><ArrowRight size={20} /></button>
+              <button onClick={prevSlide} aria-label="Previous image" className="absolute left-3 top-1/2 -translate-y-1/2 bg-black/20 hover:bg-black/40 text-white p-1.5 rounded-full backdrop-blur-sm transition z-20 focus:outline-none focus:ring-2 focus:ring-teal-400"><ChevronLeft size={20} /></button>
+              <button onClick={nextSlide} aria-label="Next image" className="absolute right-3 top-1/2 -translate-y-1/2 bg-black/20 hover:bg-black/40 text-white p-1.5 rounded-full backdrop-blur-sm transition z-20 focus:outline-none focus:ring-2 focus:ring-teal-400"><ArrowRight size={20} /></button>
               <div className="absolute bottom-3 right-3 z-20">
                 <div className="bg-black/60 backdrop-blur-md text-white px-2.5 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1">
                   <ImageIcon size={10} /> {currentSlide + 1}/{galleryImages.length}
@@ -377,7 +377,7 @@ export const HospitalDetailPage = ({ selectedId, setView, onTreatmentClick, init
               </div>
             </div>
             <div className="hidden md:flex flex-row gap-2 h-[420px]">
-              <div className={`${galleryImages.length >= 2 ? "w-1/2" : "w-full"} h-full relative group cursor-pointer overflow-hidden rounded-xl`} onClick={() => setLightboxIdx(0)}>
+              <div role="button" tabIndex={0} aria-label="View gallery" className={`${galleryImages.length >= 2 ? "w-1/2" : "w-full"} h-full relative group cursor-pointer overflow-hidden rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-400`} onClick={() => setLightboxIdx(0)} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setLightboxIdx(0); } }}>
                 <img src={galleryImages[0]} onError={handleImgError} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" alt={hospital?.name || "Hospital"} referrerPolicy="no-referrer" />
               </div>
               {galleryImages.length >= 2 && (
@@ -386,7 +386,7 @@ export const HospitalDetailPage = ({ selectedId, setView, onTreatmentClick, init
                     const isLast = idx === Math.min(galleryImages.length - 2, 3);
                     const remaining = allGalleryImages.length - 5;
                     return (
-                      <div key={idx} className="relative overflow-hidden cursor-pointer group rounded-xl" onClick={() => setLightboxIdx(idx + 1)}>
+                      <div key={idx} role="button" tabIndex={0} aria-label="View gallery" className="relative overflow-hidden cursor-pointer group rounded-xl focus:outline-none focus:ring-2 focus:ring-teal-400" onClick={() => setLightboxIdx(idx + 1)} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setLightboxIdx(idx + 1); } }}>
                         <img src={img} onError={handleImgError} className="w-full h-full object-cover group-hover:scale-105 transition duration-700" alt={`${hospital?.name || "Hospital"} ${idx + 2}`} referrerPolicy="no-referrer" />
                         {isLast && remaining > 0 && (
                           <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
@@ -414,13 +414,13 @@ export const HospitalDetailPage = ({ selectedId, setView, onTreatmentClick, init
                   <img src={img} onError={handleImgError} className="w-full h-full object-cover" alt={hospital?.name || "Hospital"} referrerPolicy="no-referrer" />
                 </button>
               ))}
-              <button onClick={() => setLightboxIdx(-1)} className="shrink-0 ml-auto text-gray-400 hover:text-gray-700 p-1"><X size={18} /></button>
+              <button onClick={() => setLightboxIdx(-1)} aria-label="Close" className="shrink-0 ml-auto text-gray-400 hover:text-gray-700 p-1 focus:outline-none focus:ring-2 focus:ring-teal-400"><X size={18} /></button>
             </div>
             {/* Main image */}
             <div className="relative flex-1 min-h-0 bg-gray-900 flex items-center justify-center">
-              <button onClick={() => setLightboxIdx((lightboxIdx - 1 + allGalleryImages.length) % allGalleryImages.length)} className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/20 hover:bg-white/40 text-white p-1.5 rounded-full backdrop-blur-sm transition z-10"><ChevronLeft size={22} /></button>
+              <button onClick={() => setLightboxIdx((lightboxIdx - 1 + allGalleryImages.length) % allGalleryImages.length)} aria-label="Previous image" className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/20 hover:bg-white/40 text-white p-1.5 rounded-full backdrop-blur-sm transition z-10 focus:outline-none focus:ring-2 focus:ring-teal-400"><ChevronLeft size={22} /></button>
               <img src={allGalleryImages[lightboxIdx]} onError={handleImgError} className="max-w-full max-h-[60vh] object-contain" alt={hospital?.name || "Hospital"} referrerPolicy="no-referrer" />
-              <button onClick={() => setLightboxIdx((lightboxIdx + 1) % allGalleryImages.length)} className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/20 hover:bg-white/40 text-white p-1.5 rounded-full backdrop-blur-sm transition z-10"><ArrowRight size={22} /></button>
+              <button onClick={() => setLightboxIdx((lightboxIdx + 1) % allGalleryImages.length)} aria-label="Next image" className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/20 hover:bg-white/40 text-white p-1.5 rounded-full backdrop-blur-sm transition z-10 focus:outline-none focus:ring-2 focus:ring-teal-400"><ArrowRight size={22} /></button>
             </div>
             <div className="px-4 py-2 bg-gray-50 text-center text-xs text-gray-500 border-t shrink-0">
               {lightboxIdx + 1} / {allGalleryImages.length}
@@ -603,7 +603,7 @@ export const HospitalDetailPage = ({ selectedId, setView, onTreatmentClick, init
                   {hospitalTreatments.map((item) => {
                     const thumb = normalizeImages(item.images)?.[0] || item.logo;
                     return (
-                      <div key={item.id} onClick={() => onTreatmentClick?.(item.slug || item.id)} className="flex bg-white border border-gray-100 rounded-xl overflow-hidden hover:shadow-md hover:border-teal-200 transition cursor-pointer group">
+                      <div key={item.id} role="button" tabIndex={0} onClick={() => onTreatmentClick?.(item.slug || item.id)} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onTreatmentClick?.(item.slug || item.id); } }} className="flex bg-white border border-gray-100 rounded-xl overflow-hidden hover:shadow-md hover:border-teal-200 transition cursor-pointer group focus:outline-none focus:ring-2 focus:ring-teal-400">
                         {thumb ? (
                           <div className="w-28 h-20 bg-gray-200 shrink-0">
                             <img src={thumb} className="w-full h-full object-cover group-hover:scale-105 transition duration-500" alt="img" />
@@ -649,7 +649,7 @@ export const HospitalDetailPage = ({ selectedId, setView, onTreatmentClick, init
               })()}
 
               {loadingReviews ? (
-                <div className="text-center py-8 text-gray-400 text-sm animate-pulse">Loading reviews...</div>
+                <div className="text-center py-8 text-gray-500 text-sm animate-pulse">Loading reviews...</div>
               ) : (
                 <>
                   {realReviews.length > 0 && (
@@ -660,8 +660,8 @@ export const HospitalDetailPage = ({ selectedId, setView, onTreatmentClick, init
                             <div className="flex items-center gap-2">
                               <div className="w-8 h-8 bg-teal-50 rounded-full flex items-center justify-center text-teal-600 font-bold text-xs uppercase">{review.user_name?.[0] || "U"}</div>
                               <div>
-                                <p className="font-semibold text-gray-900 text-sm">{review.user_name} <span className="text-[10px] text-gray-400 uppercase">{review.country}</span></p>
-                                <p className="text-xs text-gray-400">{review.created_at ? formatDate(review.created_at, "en") : ""}</p>
+                                <p className="font-semibold text-gray-900 text-sm">{review.user_name} <span className="text-[10px] text-gray-500 uppercase">{review.country}</span></p>
+                                <p className="text-xs text-gray-500">{review.created_at ? formatDate(review.created_at, "en") : ""}</p>
                               </div>
                             </div>
                             <div className="flex text-yellow-400 gap-0.5">{[...Array(review.rating || 5)].map((_, i) => <Star key={i} size={11} fill="currentColor" />)}</div>
@@ -676,7 +676,7 @@ export const HospitalDetailPage = ({ selectedId, setView, onTreatmentClick, init
                     <div className="text-center py-8 rounded-xl border border-dashed border-gray-200 bg-gray-50/50">
                       <MessageCircle size={28} className="mx-auto text-gray-300 mb-2" />
                       <p className="text-gray-500 text-sm font-medium">{t("review.empty", langCode)}</p>
-                      <p className="text-xs text-gray-400 mt-1">{t("review.beFirst", langCode)}</p>
+                      <p className="text-xs text-gray-500 mt-1">{t("review.beFirst", langCode)}</p>
                     </div>
                   )}
                 </>
@@ -710,7 +710,7 @@ export const HospitalDetailPage = ({ selectedId, setView, onTreatmentClick, init
             <div className="sticky top-32 space-y-4">
               <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
                 <h3 className="font-bold text-base mb-1">{t("sidebar.makeInquiry", langCode)}</h3>
-                <p className="text-xs text-gray-400 mb-5">{t("sidebar.directResponse", langCode)}</p>
+                <p className="text-xs text-gray-500 mb-5">{t("sidebar.directResponse", langCode)}</p>
                 <button onClick={() => setView("inquiry")} className="w-full bg-teal-600 text-white font-bold py-3.5 rounded-xl hover:bg-teal-700 transition flex items-center justify-center gap-2">
                   <MessageCircle size={18} /> {isPartner ? t("sidebar.contactVia", langCode) : t("sidebar.inquireAboutHospital", langCode)}
                 </button>
@@ -780,7 +780,7 @@ export const HospitalDetailPage = ({ selectedId, setView, onTreatmentClick, init
                 <>
                   <Star size={12} className="text-yellow-400 fill-yellow-400" />
                   <span className="font-semibold text-gray-700">{hospital.rating}</span>
-                  {hospital.ratingCount > 0 && <span className="text-gray-400">({hospital.ratingCount})</span>}
+                  {hospital.ratingCount > 0 && <span className="text-gray-500">({hospital.ratingCount})</span>}
                 </>
               )}
             </div>

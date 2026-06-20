@@ -158,8 +158,8 @@ export function InquiryIntakePage({ setView }) {
         </div>
 
         <div>
-          <label className="block text-xs font-bold text-gray-700 mb-1">{t('intake.duration', langCode)}</label>
-          <select value={step2.duration} onChange={(e) => setStep2({ ...step2, duration: e.target.value })} className="w-full p-3 rounded-xl border border-gray-200 focus:border-teal-500 outline-none text-sm">
+          <label htmlFor="intake-duration" className="block text-xs font-bold text-gray-700 mb-1">{t('intake.duration', langCode)}</label>
+          <select id="intake-duration" value={step2.duration} onChange={(e) => setStep2({ ...step2, duration: e.target.value })} className="w-full p-3 rounded-xl border border-gray-200 focus:border-teal-500 outline-none text-sm">
             <option value="">Select...</option>
             {DURATIONS.map((d) => (
               <option key={d} value={d}>{d}</option>
@@ -168,8 +168,8 @@ export function InquiryIntakePage({ setView }) {
         </div>
 
         <div>
-          <label className="block text-xs font-bold text-gray-700 mb-1">{t('intake.severity', langCode)}</label>
-          <input type="number" min={1} max={10} value={step2.severity} onChange={(e) => setStep2({ ...step2, severity: e.target.value })} className="w-full p-3 rounded-xl border border-gray-200 focus:border-teal-500 outline-none text-sm" placeholder="e.g. 7"/>
+          <label htmlFor="intake-severity" className="block text-xs font-bold text-gray-700 mb-1">{t('intake.severity', langCode)}</label>
+          <input id="intake-severity" type="number" min={1} max={10} value={step2.severity} onChange={(e) => setStep2({ ...step2, severity: e.target.value })} className="w-full p-3 rounded-xl border border-gray-200 focus:border-teal-500 outline-none text-sm" placeholder="e.g. 7"/>
         </div>
 
         <div>
@@ -196,7 +196,19 @@ export function InquiryIntakePage({ setView }) {
 
         <div>
           <input type="file" id="step2file" className="hidden" onChange={handleFileChange}/>
-          <div onClick={() => document.getElementById('step2file')?.click()} className="border border-dashed border-gray-300 rounded-xl p-3 text-center hover:bg-gray-50 cursor-pointer flex items-center justify-center gap-2">
+          <div
+            role="button"
+            tabIndex={0}
+            aria-label={t('intake.uploadMore', langCode)}
+            onClick={() => document.getElementById('step2file')?.click()}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                if (e.key === ' ') e.preventDefault();
+                document.getElementById('step2file')?.click();
+              }
+            }}
+            className="border border-dashed border-gray-300 rounded-xl p-3 text-center hover:bg-gray-50 cursor-pointer flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-teal-400"
+          >
             <UploadCloud size={18} className="text-gray-400"/>
             <span className="text-xs text-gray-500">{t('intake.uploadMore', langCode)}</span>
           </div>
@@ -205,7 +217,7 @@ export function InquiryIntakePage({ setView }) {
               {files.map((f, i) => (
                 <div key={i} className="flex items-center gap-2 text-sm">
                   <File size={14}/><span className="truncate">{f.name}</span>
-                  <button type="button" onClick={() => setFiles((p) => p.filter((_, j) => j !== i))} className="text-red-500"><X size={14}/></button>
+                  <button type="button" aria-label="Remove file" onClick={() => setFiles((p) => p.filter((_, j) => j !== i))} className="text-red-500"><X size={14}/></button>
                 </div>
               ))}
             </div>

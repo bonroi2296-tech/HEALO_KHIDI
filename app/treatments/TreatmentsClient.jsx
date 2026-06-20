@@ -146,7 +146,7 @@ export default function TreatmentsClient() {
                     <Icon size={20} className="text-teal-700" />
                   </div>
                   <div className="font-bold text-sm mb-1">{l(step.label)}</div>
-                  <div className="text-xs text-gray-400">{l(step.desc)}</div>
+                  <div className="text-xs text-gray-500">{l(step.desc)}</div>
                 </div>
                 {i < PROCESS_STEPS.length - 1 && (
                   <div className="hidden md:block text-gray-300 px-1">

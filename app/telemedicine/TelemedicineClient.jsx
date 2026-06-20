@@ -431,7 +431,7 @@ export default function TelemedicineClient() {
             <span className="w-9 h-9 rounded-full bg-red-600 flex items-center justify-center"><PhoneOff size={16} className="text-white" /></span>
           </div>
         </div>
-        <p className="text-center text-xs text-gray-400 mt-3">{copy.mockup.caption}</p>
+        <p className="text-center text-xs text-gray-500 mt-3">{copy.mockup.caption}</p>
       </section>
 
       {/* STEPS */}

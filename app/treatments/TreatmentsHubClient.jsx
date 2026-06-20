@@ -332,7 +332,7 @@ export default function TreatmentsHubClient() {
                     ].map((col, ci) => (
                       <div key={ci}>
                         <div className="text-xs font-bold tracking-wide text-gray-900 uppercase">{col.label}</div>
-                        <div className="text-xs text-gray-400 mb-3">{col.sub}</div>
+                        <div className="text-xs text-gray-500 mb-3">{col.sub}</div>
                         <ul className="divide-y divide-gray-200 border-t border-gray-200">
                           {col.items?.map((t, i) => (
                             <li key={i} className="flex gap-2 py-2.5 text-sm text-gray-600 leading-relaxed">

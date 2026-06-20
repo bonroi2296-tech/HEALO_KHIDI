@@ -113,7 +113,7 @@ export default function FAQClient() {
       {/* Category filter */}
       <section className="sticky top-14 md:top-16 z-20 bg-white/90 backdrop-blur border-y border-gray-200">
         <div className="max-w-4xl mx-auto px-4 py-4 flex flex-wrap items-center gap-2.5">
-          <span className="text-xs text-gray-400 mr-1 shrink-0">
+          <span className="text-xs text-gray-500 mr-1 shrink-0">
             {filtered.length} {copy.qaSuffix}
           </span>
           <FilterBtn
@@ -187,7 +187,7 @@ export default function FAQClient() {
           })}
 
           {filtered.length === 0 && (
-            <p className="py-16 text-center text-sm text-gray-400">
+            <p className="py-16 text-center text-sm text-gray-500">
               {copy.empty}
             </p>
           )}

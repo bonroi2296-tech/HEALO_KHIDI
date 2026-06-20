@@ -196,20 +196,22 @@ export const SignUpPage = ({ setView }) => {
                 <div className="space-y-4">
                     <div className="grid grid-cols-2 gap-3">
                         <div>
-                            <label className="block text-xs font-bold text-gray-700 mb-1 ml-1">{t("signup.firstName", langCode)}</label>
-                            <input 
-                                type="text" 
-                                placeholder="John" 
+                            <label htmlFor="signup-first-name" className="block text-xs font-bold text-gray-700 mb-1 ml-1">{t("signup.firstName", langCode)}</label>
+                            <input
+                                id="signup-first-name"
+                                type="text"
+                                placeholder="John"
                                 value={firstName}
                                 onChange={(e) => setFirstName(e.target.value)}
                                 className="w-full p-3 rounded-xl border border-gray-200 focus:border-teal-500 focus:ring-2 focus:ring-teal-100 outline-none transition text-sm"
                             />
                         </div>
                         <div>
-                            <label className="block text-xs font-bold text-gray-700 mb-1 ml-1">{t("signup.lastName", langCode)}</label>
-                            <input 
-                                type="text" 
-                                placeholder="Doe" 
+                            <label htmlFor="signup-last-name" className="block text-xs font-bold text-gray-700 mb-1 ml-1">{t("signup.lastName", langCode)}</label>
+                            <input
+                                id="signup-last-name"
+                                type="text"
+                                placeholder="Doe"
                                 value={lastName}
                                 onChange={(e) => setLastName(e.target.value)}
                                 className="w-full p-3 rounded-xl border border-gray-200 focus:border-teal-500 focus:ring-2 focus:ring-teal-100 outline-none transition text-sm"
@@ -223,9 +225,10 @@ export const SignUpPage = ({ setView }) => {
                     <div>
                         <div className="relative">
                             <Mail className="absolute left-4 top-3.5 text-gray-400" size={20}/>
-                            <input 
-                                type="email" 
-                                placeholder={t("signup.emailPlaceholder", langCode)} 
+                            <input
+                                aria-label="Email"
+                                type="email"
+                                placeholder={t("signup.emailPlaceholder", langCode)}
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                                 className="w-full pl-12 pr-4 py-3 rounded-xl border border-gray-200 focus:border-teal-500 focus:ring-2 focus:ring-teal-100 outline-none transition text-sm"
@@ -235,15 +238,17 @@ export const SignUpPage = ({ setView }) => {
                     
                     <div className="relative">
                         <Lock className="absolute left-4 top-3.5 text-gray-400" size={20}/>
-                        <input 
-                            type={showPassword ? "text" : "password"} 
+                        <input
+                            aria-label="Password"
+                            type={showPassword ? "text" : "password"}
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
-                            placeholder={t("signup.passwordPlaceholder", langCode)} 
+                            placeholder={t("signup.passwordPlaceholder", langCode)}
                             className="w-full pl-12 pr-12 py-3 rounded-xl border border-gray-200 focus:border-teal-500 focus:ring-2 focus:ring-teal-100 outline-none transition text-sm"
                         />
-                        <button 
+                        <button
                             type="button"
+                            aria-label={showPassword ? "Hide password" : "Show password"}
                             onClick={() => setShowPassword(!showPassword)}
                             className="absolute right-4 top-3.5 text-gray-400 hover:text-gray-600 focus:outline-none"
                         >
@@ -265,19 +270,21 @@ export const SignUpPage = ({ setView }) => {
 
                     <div className="relative">
                         <Lock className="absolute left-4 top-3.5 text-gray-400" size={20}/>
-                        <input 
-                            type={showConfirmPassword ? "text" : "password"} 
+                        <input
+                            aria-label="Confirm password"
+                            type={showConfirmPassword ? "text" : "password"}
                             value={confirmPassword}
                             onChange={(e) => setConfirmPassword(e.target.value)}
-                            placeholder={t("signup.confirmPassword", langCode)} 
+                            placeholder={t("signup.confirmPassword", langCode)}
                             className={`w-full pl-12 pr-12 py-3 rounded-xl border focus:ring-2 outline-none transition text-sm ${
                                 confirmPassword && password !== confirmPassword 
                                 ? 'border-red-300 focus:border-red-500 focus:ring-red-100' 
                                 : 'border-gray-200 focus:border-teal-500 focus:ring-teal-100'
                             }`}
                         />
-                        <button 
+                        <button
                             type="button"
+                            aria-label={showConfirmPassword ? "Hide password" : "Show password"}
                             onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                             className="absolute right-4 top-3.5 text-gray-400 hover:text-gray-600 focus:outline-none"
                         >

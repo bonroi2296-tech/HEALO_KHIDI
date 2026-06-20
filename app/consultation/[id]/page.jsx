@@ -2224,6 +2224,7 @@ export default function ConsultationRoomPage() {
       </button>
       <button
         onClick={() => setPanelOpen((v) => !v)}
+        aria-label="Toggle chat panel"
         className={`relative p-2.5 rounded-lg transition ${
           panelOpen ? "bg-teal-600 text-white" : "bg-gray-700 hover:bg-gray-600 text-gray-200"
         }`}
@@ -2249,6 +2250,7 @@ export default function ConsultationRoomPage() {
           <div className="flex items-center gap-2 md:gap-4 min-w-0">
             <button
               onClick={() => router.back()}
+              aria-label="Back"
               className="p-2 hover:bg-gray-700 rounded-lg transition shrink-0"
             >
               <ChevronLeft size={24} />
@@ -2445,12 +2447,14 @@ export default function ConsultationRoomPage() {
                     rel="noopener noreferrer"
                     className="p-1.5 text-gray-400 hover:text-white"
                     title={c.openNewTab}
+                    aria-label="Open in new tab"
                   >
                     <ExternalLink size={15} />
                   </a>
                   <button
                     type="button"
                     onClick={() => setViewerDoc(null)}
+                    aria-label="Close"
                     className="p-1.5 text-gray-400 hover:text-white"
                   >
                     <X size={17} />
@@ -2554,6 +2558,7 @@ export default function ConsultationRoomPage() {
             </button>
             <button
               onClick={() => setPanelOpen(false)}
+              aria-label="Close panel"
               className="px-3 py-3 text-gray-400 hover:text-white shrink-0"
               title={c.togglePanel}
             >
@@ -2616,6 +2621,7 @@ export default function ConsultationRoomPage() {
                           rel="noopener noreferrer"
                           className="shrink-0 p-1 text-gray-500 hover:text-gray-300"
                           title={c.openNewTab}
+                          aria-label="Open in new tab"
                         >
                           <ExternalLink size={12} />
                         </a>
@@ -2638,6 +2644,7 @@ export default function ConsultationRoomPage() {
                   <button
                     onClick={() => fileInputRef.current?.click()}
                     disabled={uploadingDoc}
+                    aria-label="Attach file"
                     className="p-2 bg-gray-700 hover:bg-gray-600 disabled:opacity-40 rounded-lg transition text-gray-300"
                     title={uploadingDoc ? c.uploadingFile : c.attachFile}
                   >
@@ -2659,6 +2666,7 @@ export default function ConsultationRoomPage() {
                   />
                   <button
                     onClick={handleSendMessage}
+                    aria-label="Send message"
                     className="p-2 bg-teal-600 hover:bg-teal-700 rounded-lg transition"
                   >
                     <Send size={16} />
@@ -2785,6 +2793,7 @@ export default function ConsultationRoomPage() {
                       }
                     }}
                     disabled={isTranslating || !manualInput.trim()}
+                    aria-label="Translate"
                     className="p-2 bg-teal-600 hover:bg-teal-700 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg transition"
                     title={c.manualHint}
                   >
@@ -2829,6 +2838,7 @@ export default function ConsultationRoomPage() {
               }
             }}
             disabled={isTranslating || !manualInput.trim()}
+            aria-label="Translate"
             className="shrink-0 p-2 bg-teal-600 hover:bg-teal-700 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg transition"
             title={c.manualHint}
           >
