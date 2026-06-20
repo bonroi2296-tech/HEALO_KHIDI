@@ -197,7 +197,7 @@ export default function FAQClient() {
       {/* Final CTA */}
       <section className="bg-teal-700">
         <div className="max-w-4xl mx-auto px-4 py-14 md:py-20 text-center">
-          <span className="inline-block text-xs font-bold tracking-wide text-teal-50 bg-teal-500 rounded-full px-3 py-1 mb-5">
+          <span className="inline-block text-xs font-bold tracking-wide text-teal-50 bg-teal-700 rounded-full px-3 py-1 mb-5">
             {copy.contactEyebrow}
           </span>
           <h2 className="text-2xl md:text-3xl font-bold text-white mb-4 leading-snug">

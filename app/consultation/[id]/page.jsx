@@ -2028,7 +2028,7 @@ export default function ConsultationRoomPage() {
       <div className="w-full min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-slate-900 to-teal-950 text-white p-4">
         <div className="max-w-md w-full bg-gray-800/90 backdrop-blur rounded-2xl shadow-2xl overflow-hidden border border-gray-700">
           <div className="p-8 border-b border-gray-700">
-            <div className="w-14 h-14 rounded-2xl bg-teal-500/10 text-teal-400 flex items-center justify-center mb-4">
+            <div className="w-14 h-14 rounded-2xl bg-teal-700/10 text-teal-400 flex items-center justify-center mb-4">
               <Video size={28} />
             </div>
             <h1 className="text-2xl font-bold mb-2">{c.guestTitle}</h1>
@@ -2232,7 +2232,7 @@ export default function ConsultationRoomPage() {
       >
         <MessageSquare size={18} />
         {!panelOpen && translations.length + messages.length > 0 && (
-          <span className="absolute -top-1 -right-1 bg-teal-500 text-white text-[10px] leading-none px-1 py-0.5 rounded-full">
+          <span className="absolute -top-1 -right-1 bg-teal-700 text-white text-[10px] leading-none px-1 py-0.5 rounded-full">
             {translations.length + messages.length > 9
               ? "9+"
               : translations.length + messages.length}
@@ -2314,7 +2314,7 @@ export default function ConsultationRoomPage() {
           ) : livekitToken && livekitUrl && admissionStatus === "pending" ? (
             <div className="flex-1 flex items-center justify-center bg-gradient-to-br from-gray-900 via-slate-900 to-teal-950 p-8">
               <div className="text-center max-w-md">
-                <div className="w-20 h-20 rounded-full bg-teal-500/10 text-teal-400 flex items-center justify-center text-4xl mx-auto mb-6 animate-pulse">
+                <div className="w-20 h-20 rounded-full bg-teal-700/10 text-teal-400 flex items-center justify-center text-4xl mx-auto mb-6 animate-pulse">
                   ⏳
                 </div>
                 <h2 className="text-2xl font-bold mb-3 text-white">{c.waitingRoomTitle}</h2>
@@ -2324,7 +2324,7 @@ export default function ConsultationRoomPage() {
                   {c.waitingRoomBody2}
                 </p>
                 <div className="flex items-center justify-center gap-2 text-xs text-gray-400">
-                  <span className="inline-block w-2 h-2 rounded-full bg-teal-500 animate-pulse" />
+                  <span className="inline-block w-2 h-2 rounded-full bg-teal-700 animate-pulse" />
                   <span>{c.checkingStatus}</span>
                 </div>
                 <p className="text-xs text-gray-500 mt-6 border-t border-gray-800 pt-4">
@@ -2357,7 +2357,7 @@ export default function ConsultationRoomPage() {
                       </div>
                       <button
                         onClick={() => decideAdmission(adm.id, "approved")}
-                        className="px-3 py-1 bg-teal-500 hover:bg-teal-700 text-white text-xs font-semibold rounded"
+                        className="px-3 py-1 bg-teal-700 hover:bg-teal-700 text-white text-xs font-semibold rounded"
                       >
                         {c.approve}
                       </button>

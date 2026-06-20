@@ -39,7 +39,7 @@ const SOURCE_COLORS = {
   hira: "bg-blue-50 text-blue-600 border-blue-200",
   google_places: "bg-green-50 text-green-600 border-green-200",
   kakao_local: "bg-yellow-50 text-yellow-600 border-yellow-200",
-  naver_local: "bg-emerald-50 text-emerald-600 border-emerald-200",
+  naver_local: "bg-emerald-50 text-emerald-700 border-emerald-200",
 };
 
 const SOURCE_GUIDES = {
@@ -1020,7 +1020,7 @@ function FieldGuideModal({ sourceId, onClose }) {
   if (!guide) return null;
 
   const CATEGORY_DOT = {
-    basic: "bg-teal-500",
+    basic: "bg-teal-700",
     location: "bg-blue-500",
     contact: "bg-green-500",
     medical: "bg-purple-500",

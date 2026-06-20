@@ -206,7 +206,7 @@ export default function TreatmentsClient() {
                       {/* 한방 */}
                       <div className="bg-emerald-50 rounded-xl p-4 border border-emerald-100">
                         <div className="flex items-center gap-2 mb-3">
-                          <Leaf size={16} className="text-emerald-600" />
+                          <Leaf size={16} className="text-emerald-700" />
                           <h4 className="font-bold text-sm text-emerald-900">{l(TREATMENTS_L.easternTitle)}</h4>
                         </div>
                         <ul className="space-y-2">

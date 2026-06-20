@@ -396,7 +396,7 @@ export default function TelemedicineClient() {
           <div className="relative bg-gray-950 p-3 md:p-4">
             <div className="grid grid-cols-2 gap-3">
               <div className="aspect-[4/3] rounded-lg bg-gray-800 flex items-center justify-center relative overflow-hidden">
-                <div className="w-14 h-14 md:w-16 md:h-16 rounded-full bg-teal-500/20 border border-teal-400/30 flex items-center justify-center">
+                <div className="w-14 h-14 md:w-16 md:h-16 rounded-full bg-teal-700/20 border border-teal-400/30 flex items-center justify-center">
                   <Stethoscope size={24} className="text-teal-300" />
                 </div>
                 <span className="absolute bottom-2 left-2 text-[11px] font-semibold text-white bg-black/50 rounded px-1.5 py-0.5">{copy.mockup.doctor}</span>

@@ -724,7 +724,7 @@ export default function UnifiedInquiryFunnel() {
     return (
       <div className="max-w-md mx-auto px-4 py-12 animate-in fade-in slide-in-from-bottom-4 duration-300">
         <div className="text-center mb-6">
-          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-teal-500 flex items-center justify-center shadow-lg shadow-teal-200">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-teal-700 flex items-center justify-center shadow-lg shadow-teal-200">
             <Check size={32} className="text-white" strokeWidth={3} />
           </div>
           <h2 className="text-2xl font-bold text-gray-900 mb-2">{tl("step2SuccessTitle", lang)}</h2>
@@ -771,7 +771,7 @@ export default function UnifiedInquiryFunnel() {
     return (
       <div className="max-w-md mx-auto px-4 py-12 animate-in fade-in slide-in-from-bottom-4 duration-300">
         <div className="text-center mb-6">
-          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-teal-500 flex items-center justify-center shadow-lg shadow-teal-200">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-teal-700 flex items-center justify-center shadow-lg shadow-teal-200">
             <Check size={32} className="text-white" strokeWidth={3} />
           </div>
           <h2 className="text-2xl font-bold text-gray-900 mb-2">{tl("successTitle", lang)}</h2>
@@ -1346,7 +1346,7 @@ export default function UnifiedInquiryFunnel() {
                     {ct.label[lang] || ct.label.en}
                   </span>
                   {selected && (
-                    <div className="absolute top-1 right-1 w-4 h-4 bg-teal-500 rounded-full flex items-center justify-center">
+                    <div className="absolute top-1 right-1 w-4 h-4 bg-teal-700 rounded-full flex items-center justify-center">
                       <Check size={10} className="text-white" />
                     </div>
                   )}

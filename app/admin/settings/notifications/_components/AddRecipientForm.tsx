@@ -114,7 +114,7 @@ export function AddRecipientForm({ onClose, onSubmit, showToast }: AddRecipientF
                 type="checkbox"
                 checked={formData.channels.includes("sms")}
                 onChange={() => toggleChannel("sms")}
-                className="mt-0.5 w-4 h-4 text-emerald-600 border-gray-300 rounded focus:ring-emerald-500"
+                className="mt-0.5 w-4 h-4 text-emerald-700 border-gray-300 rounded focus:ring-emerald-500"
               />
               <div className="flex-1">
                 <div className="font-medium text-gray-900">SMS</div>
@@ -128,7 +128,7 @@ export function AddRecipientForm({ onClose, onSubmit, showToast }: AddRecipientF
                 type="checkbox"
                 checked={formData.channels.includes("alimtalk")}
                 onChange={() => toggleChannel("alimtalk")}
-                className="mt-0.5 w-4 h-4 text-emerald-600 border-gray-300 rounded focus:ring-emerald-500"
+                className="mt-0.5 w-4 h-4 text-emerald-700 border-gray-300 rounded focus:ring-emerald-500"
               />
               <div className="flex-1">
                 <div className="font-medium text-gray-900">알림톡 (Alimtalk)</div>
@@ -144,7 +144,7 @@ export function AddRecipientForm({ onClose, onSubmit, showToast }: AddRecipientF
                 type="checkbox"
                 checked={formData.channels.includes("email")}
                 onChange={() => toggleChannel("email")}
-                className="mt-0.5 w-4 h-4 text-emerald-600 border-gray-300 rounded focus:ring-emerald-500"
+                className="mt-0.5 w-4 h-4 text-emerald-700 border-gray-300 rounded focus:ring-emerald-500"
               />
               <div className="flex-1">
                 <div className="font-medium text-gray-900">Email</div>
@@ -217,7 +217,7 @@ export function AddRecipientForm({ onClose, onSubmit, showToast }: AddRecipientF
               type="checkbox"
               checked={formData.isActive}
               onChange={(e) => updateField("isActive", e.target.checked)}
-              className="w-4 h-4 text-emerald-600 border-gray-300 rounded focus:ring-emerald-500"
+              className="w-4 h-4 text-emerald-700 border-gray-300 rounded focus:ring-emerald-500"
             />
             <span className="text-sm text-gray-700">생성 즉시 활성화</span>
           </label>
@@ -241,7 +241,7 @@ export function AddRecipientForm({ onClose, onSubmit, showToast }: AddRecipientF
           <button
             type="submit"
             disabled={submitting}
-            className="px-4 py-2 bg-emerald-600 text-white rounded hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="px-4 py-2 bg-emerald-700 text-white rounded hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             {submitting ? "추가 중..." : "추가"}
           </button>

@@ -128,7 +128,7 @@ export const AnalyticsTab = ({ analytics }) => (
               </div>
               <div className="w-full bg-gray-100 rounded-full h-2.5">
                 <div 
-                  className="bg-teal-500 h-2.5 rounded-full shadow-sm" 
+                  className="bg-teal-700 h-2.5 rounded-full shadow-sm" 
                   style={{ width: `${t.percent}%` }}
                 ></div>
               </div>

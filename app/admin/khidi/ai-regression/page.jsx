@@ -39,7 +39,7 @@ function StatCard({ label, value, sub, colorClass = "text-gray-900" }) {
   );
 }
 
-function MiniBar({ value, max, colorClass = "bg-teal-500" }) {
+function MiniBar({ value, max, colorClass = "bg-teal-700" }) {
   const pct = max > 0 ? Math.min(100, Math.round((value / max) * 100)) : 0;
   return (
     <div className="w-full bg-gray-200 rounded-full h-1.5 overflow-hidden">
@@ -49,7 +49,7 @@ function MiniBar({ value, max, colorClass = "bg-teal-500" }) {
 }
 
 /** 30일 시계열 선 차트 — CSS 기반 */
-function TrendChart({ data, label, colorClass: _colorClass = "bg-teal-500", yMax = 100 }) {
+function TrendChart({ data, label, colorClass: _colorClass = "bg-teal-700", yMax = 100 }) {
   if (!data || data.length === 0) {
     return (
       <div className="h-32 flex items-center justify-center text-gray-400 text-sm">
@@ -66,7 +66,7 @@ function TrendChart({ data, label, colorClass: _colorClass = "bg-teal-500", yMax
         {data.map((d, i) => {
           const pct = yMax > 0 ? Math.min(100, Math.round((d.value / yMax) * 100)) : 0;
           const barColor = label.includes("점수")
-            ? (d.value >= 0.7 ? "bg-teal-500" : d.value >= 0.5 ? "bg-amber-400" : "bg-red-400")
+            ? (d.value >= 0.7 ? "bg-teal-700" : d.value >= 0.5 ? "bg-amber-400" : "bg-red-400")
             : BAR_COLOR(d.value);
           return (
             <div

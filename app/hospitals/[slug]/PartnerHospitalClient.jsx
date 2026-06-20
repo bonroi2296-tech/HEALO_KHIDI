@@ -24,7 +24,7 @@ export default function PartnerHospitalClient({ slug }) {
   if (!hospital) return null;
 
   const isPartner = hospital.badge === "partner";
-  const badgeClass = isPartner ? "bg-teal-500/80" : "bg-blue-500/80";
+  const badgeClass = isPartner ? "bg-teal-700/80" : "bg-blue-500/80";
   const badgeText = l(hospital.type);
 
   const T = {
@@ -91,7 +91,7 @@ export default function PartnerHospitalClient({ slug }) {
             <ul className="space-y-2.5">
               {lArr(hospital.highlights).map((item, i) => (
                 <li key={i} className="flex items-start gap-3">
-                  <div className={`w-1.5 h-1.5 rounded-full mt-2 flex-shrink-0 ${isPartner ? "bg-teal-500" : "bg-blue-500"}`} />
+                  <div className={`w-1.5 h-1.5 rounded-full mt-2 flex-shrink-0 ${isPartner ? "bg-teal-700" : "bg-blue-500"}`} />
                   <span className="text-gray-700 text-sm leading-relaxed">{item}</span>
                 </li>
               ))}
