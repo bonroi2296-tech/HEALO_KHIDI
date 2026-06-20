@@ -69,12 +69,12 @@ export async function POST(request: NextRequest) {
 
     if (error) {
       console.error("[api/khidi/followup] Insert error:", error);
-      // 저장 실패해도 분석 결과는 반환
+      // 저장 실패해도 분석 결과는 반환. (DB error.message 는 클라이언트에 노출 금지 —
+      // 내부 상세는 위 console.error 로만, 응답엔 코드형 플래그만.)
       return Response.json({
         ok: true,
         analysis,
         saved: false,
-        saveError: error.message,
       });
     }
 

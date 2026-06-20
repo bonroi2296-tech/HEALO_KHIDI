@@ -193,3 +193,29 @@ PO가 스크린샷 제보: 친구 유방암 상담을 자연스럽게 물었는�
 - 단일일 cron → **N일 백필**이 곧 가드: 일시적 cron 누락이 자동 치유돼 사람이 테이블을 들여다볼 필요가 없어짐.
 - `recentSnapshotDates` 단위테스트로 날짜 경계 회귀 차단.
 - (관찰) cron 정기실행 자체가 죽는 경우는 별개 — `kpi_snapshots` 최신 행이 2일 이상 오래되면 알리는 가드는 추후 백로그(현재는 인프라 생존을 `dispatch-reminders` 30분 주기로 간접 확인).
+
+---
+
+## #9 — 의료데이터 API 권한우회(IDOR)·PII 엔드포인트 무제한 — 제3자 감리에서 발견 (2026-06-20)
+
+**무슨 일**
+ISO/IEC 25010(TTA GS) 기준 제3자 보안 감리 중, 환자 의료데이터를 다루는 API 몇 곳이 "로그인만 했으면 통과"(userId 존재만 확인)로 되어 있어 수평적 권한우회가 가능했음:
+- `app/api/symptoms/alerts`: 헤더엔 "코디네이터 전용"이라 적혀 있으나 실제론 `auth.userId` 만 확인 → **로그인한 환자 누구나 다른 모든 환자의 증상알림을 조회·해제** 가능.
+- `app/api/khidi/followup` POST: 인서트 실패 시 `saveError: error.message` 로 **DB 내부 오류 메시지를 클라이언트에 노출**(코드형 원칙 위반).
+- `app/api/public/chat/resume`: 복호화된 게스트 PII(이름·이메일·전화)를 반환하는데 **속도제한 없음** → token 추측형 PII 오라클.
+- (부수) `app/api/cron/consultation-reminders`: `(SITE_URL || VERCEL_URL) ? https://${VERCEL_URL} : fallback` 연산자 우선순위 버그로 특정 env 조합에서 리마인더 링크가 `https://undefined/...`.
+
+**왜 못 잡았나 (근본원인)**
+1. 인증 헬퍼가 `userId`(로그인 여부)와 `isAdmin/appRole`(권한)을 **둘 다 주는데, 권한이 필요한 곳에서 `userId` 만 확인**하는 패턴이 복붙으로 번짐.
+2. 신규 API 추가 시 "민감 테이블을 만지면 역할(role) 게이트 필수"를 **자동 검사하는 가드가 없음** → 사람이 리뷰할 때만 걸림.
+3. `error.message` 비노출 규칙이 대부분 지켜졌으나 한 곳(저장 실패 경로)에서 빠짐.
+
+**어떻게 고쳤나 (묶음 A)**
+- `symptoms/alerts`: `isStaff(auth)` 게이트(admin·coordinator·doctor) 추가 — 코디 정상 접근은 유지, 환자 차단.
+- `khidi/followup`: 응답에서 `saveError` 제거(내부 상세는 console.error 로만).
+- `public/chat/resume`: `thread-summary` 와 동일한 IP 속도제한(`checkRateLimit`) 추가.
+- `consultation-reminders`: `??`/괄호로 우선순위 교정.
+
+**재발 방지 (시스템 적용)**
+- (백로그·권장) `scripts/check-content-consistency.mjs` 류에 **API 라우트 정적 검사 룰 추가**: `app/api/**` 가 민감 테이블(`inquiries`·`symptom_*`·`chat_threads`·`consultation_sessions`)을 만지면서 `isAdmin`/`appRole`/`requireConsultationAccess`/`checkRateLimit` 중 어느 것도 호출하지 않으면 경고. 이 부류(인증≠인가 혼동)를 사람 리뷰 없이 차단.
+- **보류(묶음 C)**: `khidi/followup` POST 의 inquiry 소유권 검증(#3)은 inquiry↔환자 연결이 코드상 모호해 잘못 막으면 정상 환자 제출이 깨짐 → PO 동석/라이브 검증 필요. `NEXT_PUBLIC_CRON_SECRET` 클라이언트 노출(HIGH)도 관리자 화면 동작 재확인이 필요해 별도 처리.
