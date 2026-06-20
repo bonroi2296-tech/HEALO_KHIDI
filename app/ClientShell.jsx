@@ -298,6 +298,9 @@ function ClientShellContent({
   const pathname = usePathname() || "/";
   // 영상 상담방 — 전체화면 몰입(전역 헤더/푸터/하단네비/문의버튼 숨김)
   const isConsultationPage = pathname.startsWith("/consultation/");
+  // 문의 퍼널(/inquiry) — AI 챗·폼 집중 흐름. 하단 사이트 푸터(회사정보 등)가 채팅 밑에
+  // 붙어 화면이 길어지고 "풀스크린 챗" 느낌을 깨므로 푸터 숨김(하단탭바는 이미 숨김).
+  const hideFooter = pathname.includes("/inquiry");
   // 본문 바로가기(skip link) — 키보드/스크린리더 사용자가 반복 영역(헤더·네비)을 건너뛰게.
   // KWCAG 2.4.1(반복 영역 건너뛰기) — 정부 웹접근성 평가 필수 항목.
   const SKIP_LABEL = {
@@ -334,7 +337,7 @@ function ClientShellContent({
         <main id="main-content" className={isPortalPage || isConsultationPage || hideBottomNav ? "" : "pb-24 pb-safe-area"}>{children}</main>
       </ErrorBoundary>
 
-      {!isPortalPage && !isPremiumPage && !isConsultationPage && <footer className="bg-white border-t border-gray-100 pt-safe-area">
+      {!isPortalPage && !isPremiumPage && !isConsultationPage && !hideFooter && <footer className="bg-white border-t border-gray-100 pt-safe-area">
         <div className="max-w-6xl mx-auto px-4 py-8 sm:py-10 text-sm text-gray-600">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div>

@@ -214,6 +214,16 @@ export function ThreadChat() {
   const [sending, setSending] = useState(false);
   const [handOff, setHandOff] = useState(false);
   const chatRef = useRef(null);
+  const inputRef = useRef(null);
+
+  // textarea 자동 높이 — 한 줄에서 시작해 입력에 맞춰 늘어남(최대 128px), 전송 후 한 줄로 복귀.
+  // 긴 질문(암환자 상세 문의)도 잘리지 않게 + 입력 영역이 채팅을 가리지 않게.
+  useEffect(() => {
+    const el = inputRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = Math.min(el.scrollHeight, 128) + "px";
+  }, [input]);
 
   // 피드백 상태
   const [feedbackModal, setFeedbackModal] = useState(null); // { messageId }
@@ -622,22 +632,28 @@ export function ThreadChat() {
             </div>
           )}
 
-          {/* Input */}
-          <div className="relative">
-            <input
-              type="text"
+          {/* Input — 자동 높이 textarea + 분리된 전송 버튼(글자 안 가림·정렬 정확) */}
+          <div className="flex items-end gap-2">
+            <textarea
+              ref={inputRef}
+              rows={1}
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleSend()}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSend();
+                }
+              }}
               placeholder={t("chat.placeholder", langCode)}
-              className="w-full border border-gray-300 rounded-full py-3 px-5 pr-12 focus:outline-none focus:ring-2 focus:ring-teal-500 text-sm"
+              className="flex-1 resize-none border border-gray-300 rounded-3xl py-3 px-5 leading-relaxed focus:outline-none focus:ring-2 focus:ring-teal-500 text-sm max-h-32 overflow-y-auto"
               disabled={sending}
             />
             <button
               onClick={handleSend}
               aria-label="Send message"
               disabled={sending || !input.trim()}
-              className="absolute right-2 top-1.5 bg-teal-600 text-white p-1.5 rounded-full hover:bg-teal-700 transition disabled:opacity-50"
+              className="shrink-0 w-11 h-11 flex items-center justify-center bg-teal-600 text-white rounded-full hover:bg-teal-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {sending ? <Loader2 size={18} className="animate-spin" /> : <ArrowRight size={18} />}
             </button>
