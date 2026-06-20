@@ -218,4 +218,25 @@ ISO/IEC 25010(TTA GS) 기준 제3자 보안 감리 중, 환자 의료데이터�
 
 **재발 방지 (시스템 적용)**
 - (백로그·권장) `scripts/check-content-consistency.mjs` 류에 **API 라우트 정적 검사 룰 추가**: `app/api/**` 가 민감 테이블(`inquiries`·`symptom_*`·`chat_threads`·`consultation_sessions`)을 만지면서 `isAdmin`/`appRole`/`requireConsultationAccess`/`checkRateLimit` 중 어느 것도 호출하지 않으면 경고. 이 부류(인증≠인가 혼동)를 사람 리뷰 없이 차단.
-- **보류(묶음 C)**: `khidi/followup` POST 의 inquiry 소유권 검증(#3)은 inquiry↔환자 연결이 코드상 모호해 잘못 막으면 정상 환자 제출이 깨짐 → PO 동석/라이브 검증 필요. `NEXT_PUBLIC_CRON_SECRET` 클라이언트 노출(HIGH)도 관리자 화면 동작 재확인이 필요해 별도 처리.
+- **보류(묶음 C)**: `khidi/followup` POST 의 inquiry 소유권 검증은 inquiry↔환자 연결이 코드상 모호해 잘못 막으면 정상 환자 제출이 깨짐 → PO 동석/라이브 검증 필요. (cron 비밀키 클라이언트 노출 HIGH 는 #10 에서 해결.)
+
+---
+
+## #10 — cron 비밀키가 클라이언트 번들에 노출(HIGH) + 죽은 학습코드 "미완성 기능" 오인 (2026-06-20)
+
+**무슨 일**
+- **HIGH 보안**: 어드민 화면(`app/admin/khidi/ai-regression/page.jsx`)이 회귀테스트 cron 을 `Bearer ${NEXT_PUBLIC_CRON_SECRET}` 로 직접 호출 → **공개 접두사 때문에 cron 비밀키가 클라이언트 번들에 그대로 박혀** 소스만 보면 8개 cron 트리거 키 획득 가능.
+- **죽은 코드**: `src/lib/learning/feedbackLoop.ts`(인메모리 학습 스토어)가 **어디서도 호출되지 않는 dead code** — 감리에서 "데이터 유실 미완성 기능"으로 오인될 소지(실제론 아무것도 안 먹여 유실도 없음). 진짜 피드백은 `chat_feedback`(👍/👎) DB 저장으로 정상.
+
+**왜 못 잡았나 (근본원인)**
+1. 클라이언트에서 보호된 엔드포인트 호출 시 비밀키가 필요해지자 **공개 접두사로 노출하는 안티패턴**(서버 프록시로 감쌌어야 함).
+2. 공개 접두사 + SECRET 류를 막는 **자동 검사 부재**.
+3. 미완성 PoC 코드를 안 지우고 방치.
+
+**어떻게 고쳤나**
+- 회귀 로직을 `src/lib/chat/regressionRunner.ts`(server-only `runRegressionBatch`)로 추출 → cron(CRON_SECRET)·신규 관리자 라우트 `app/api/admin/khidi/run-regression`(requireAdminAuth) 공용. 화면은 비밀키 없이 관리자 라우트만 호출. 공개 비밀키 사용 0.
+- `feedbackLoop.ts` 삭제.
+
+**재발 방지 (시스템 적용)**
+- `scripts/check-content-consistency.mjs` 에 **`NEXT_PUBLIC_[A-Z0-9_]*SECRET` 금지 룰 추가** → 비밀키를 공개 접두사로 두면 **CI 빌드 실패**(영구 차단).
+- (관찰) PO 가 어드민 "지금 실행" 버튼 1회 클릭검증 필요(인증 경로 cron→관리자 세션으로 변경).

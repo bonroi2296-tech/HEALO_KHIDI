@@ -264,12 +264,11 @@ export default function AiRegressionPage() {
     setTriggering(true);
     setTriggerResult(null);
     try {
-      const res = await fetch("/api/cron/run-regression-tests", {
+      // 관리자 세션(쿠키)으로 트리거 — cron 비밀키를 클라이언트에 노출하지 않는다.
+      const res = await fetch("/api/admin/khidi/run-regression", {
         method: "POST",
-        headers: {
-          "Authorization": `Bearer ${process.env.NEXT_PUBLIC_CRON_SECRET ?? ""}`,
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
       });
       const json = await res.json();
       setTriggerResult(json);
