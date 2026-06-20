@@ -1104,7 +1104,7 @@ export default function UnifiedInquiryFunnel() {
   // Phase: ai-chat (AI 상담사 인라인 챗)
   if (phase === "ai-chat") {
     return (
-      <div className="max-w-3xl w-full mx-auto px-2 sm:px-4 flex flex-col h-[calc(100dvh-5rem)] md:h-auto md:py-8 animate-in fade-in slide-in-from-right-4 duration-300">
+      <div className="max-w-3xl w-full mx-auto px-2 sm:px-4 flex flex-col h-[calc(100dvh-4rem)] -my-3 md:my-0 md:h-auto md:py-8 animate-in fade-in slide-in-from-right-4 duration-300">
         <button
           type="button"
           onClick={() => setPhase("channel-select")}

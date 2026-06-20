@@ -171,14 +171,14 @@ export default function SocialProofSection({ className = "" }) {
               ))}
             </div>
             <p className="text-sm font-semibold text-gray-800">{c.ratingLabel}</p>
-            <p className="text-xs text-gray-500 mt-0.5">{c.ratingSub}</p>
+            {/* PO 결정(2026-06-21): 인라인 출처/건수 라벨 제거 — 숫자 깔끔하게.
+                실제 출처는 하단 고지 한 줄 + 외부 후기 링크로 유지(의료광고법 안전장치). */}
           </div>
 
           {/* 치료사례 */}
           <div className="border border-gray-200 rounded-2xl p-5 md:p-6 text-center">
             <div className="text-3xl md:text-4xl font-extrabold text-teal-700 mb-2">{c.casesValue}</div>
             <p className="text-sm font-semibold text-gray-800">{c.casesLabel}</p>
-            <p className="text-xs text-gray-500 mt-0.5">{c.casesSub}</p>
           </div>
 
           {/* 등록 */}

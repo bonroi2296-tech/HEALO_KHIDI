@@ -377,6 +377,52 @@ Schema:
 Only include a PATTERN_ID in used_pattern_ids if you directly used that playbook context to form your answer.
 `.trim();
 
+// 일시적(transient) Gemini 오류 판별 — 503 과부하·타임아웃·연결 끊김·일시 한도.
+// 이런 오류는 같은 요청을 잠깐 뒤 다시 보내면 대개 성공 → 사용자에게 에러 안 보이게 재시도.
+function isTransientModelError(err: any): boolean {
+  const msg = String(err?.message || err || "");
+  const code = (err?.statusCode ?? err?.status ?? "").toString();
+  return (
+    /503|502|500|overload|unavailable|timeout|timed out|ETIMEDOUT|ECONNRESET|ECONNREFUSED|fetch failed|network|deadline|temporar/i.test(msg) ||
+    /^5\d\d$/.test(code) ||
+    code === "429"
+  );
+}
+
+const sleepMs = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+// generateText 재시도 래퍼: 일시 오류 또는 빈 응답이면 짧은 백오프로 재시도.
+// 빈 응답까지 재시도하는 이유 — 모델이 드물게 빈 텍스트를 반환(안전필터·구조화 흔들림)하는데
+// 한 번 더 보내면 정상 응답이 오는 경우가 많음. 최종 빈 응답은 상위의 EMPTY 가드가 처리.
+async function generateTextWithRetry(params: any, maxAttempts = 3): Promise<any> {
+  let lastResult: any = null;
+  let lastError: any = null;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      const result = await generateText(params);
+      if (result?.text && result.text.trim()) return result;
+      lastResult = result;
+      console.warn(
+        `[generateChatReply] empty text attempt ${attempt}/${maxAttempts} ` +
+        `finishReason=${(result as any)?.finishReason}`
+      );
+    } catch (e: any) {
+      lastError = e;
+      const transient = isTransientModelError(e);
+      console.warn(
+        `[generateChatReply] generateText error attempt ${attempt}/${maxAttempts} ` +
+        `transient=${transient} msg=${String(e?.message || e).slice(0, 120)}`
+      );
+      // 영구성 오류(잘못된 키·요청)면 즉시 중단 — 재시도해도 똑같음
+      if (!transient) throw e;
+    }
+    if (attempt < maxAttempts) await sleepMs(400 * attempt);
+  }
+  // 모든 시도 소진: 마지막이 예외였으면 던지고(상위 catch), 빈 결과였으면 그대로 반환(EMPTY 가드行)
+  if (lastError && !lastResult) throw lastError;
+  return lastResult;
+}
+
 function parseStructuredReply(
   raw: string,
   injectedPatternIds: string[]
@@ -568,7 +614,7 @@ export async function generateChatReply(
       ? systemPrompt + "\n\n" + JSON_OUTPUT_INSTRUCTION
       : systemPrompt;
 
-    const result = await generateText({
+    const result = await generateTextWithRetry({
       model,
       system: fullSystemPrompt,
       messages: messages as any,
@@ -576,8 +622,9 @@ export async function generateChatReply(
       // ⚠️ gemini-flash-latest 는 thinking(추론) 토큰이 maxOutputTokens 에 포함됨 →
       //    상한이 낮으면 추론이 예산을 다 먹고 실제 답변이 잘리거나 통째로 빈칸(2026-06-20 빈답 버그).
       //    thinkingBudget:0 으로 추론을 끄되, 별칭(latest)이 옵션을 무시할 경우까지 대비해
-      //    상한을 2048 로 올려 답변 토큰 여유 확보(빈답 방어는 아래 EMPTY 가드가 최종 안전망).
-      maxOutputTokens: 2048,
+      //    상한을 3072 로 올려 답변 토큰 여유 확보(빈답·잘림 방어). 일시 오류·빈답은
+      //    generateTextWithRetry 가 재시도하고, 그래도 비면 아래 EMPTY 가드가 최종 안전망.
+      maxOutputTokens: 3072,
       providerOptions: {
         google: {
           thinkingConfig: { thinkingBudget: 0 },
