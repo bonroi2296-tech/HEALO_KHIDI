@@ -41,44 +41,40 @@
 **다음 세션 첫 프롬프트 (PO 복붙용):**
 > 먼저 docs/PROJECT_CONTEXT.md 최상단 핸드오프(2026-06-20 저녁·B) 읽어. 새 작업 전 git fetch origin main 동기화부터. 그다음: 1) fix 6 후기 — 면력한방병원(강서·신촌점) 구글/네이버 반응 좋은 실리뷰 내가 줄게(없으면 니가 웹서 후보 제시) 출처표시해서 care-journey/홈에 후기 섹션(가짜 금지). 2) care-journey 더 채워 — 제휴병원 띠 + 5단계 타임라인, 프리뷰로. 3) 회복톤 사진 내가 따로 줌. 그리고 직전 미검증 3개(관리자): KPI 대시보드 / api/sentry/test / kpi-snapshot cron.
 
----
+## 🔖 세션 핸드오프 (2026-06-20 저녁·병렬) — KPI 집계·대시보드 계산 순수함수 추출+테스트 +50 머지·배포(#118·#122)
 
-## 🔖 세션 핸드오프 (2026-06-20 저녁) — 제3자 전체 감리(ISO/IEC 25010) + 실측도구 도입 + 접근성 위반 0 + 보안 핫픽스 (PR 8건 머지·배포)
-
-**이번 세션 한 일 (전부 main 머지·배포 완료):**
-- **#109 KPI 스냅샷 cron 자가복구 백필(`upsertRecentSnapshots`)**: Vercel cron이 최선노력이라 가끔 하루를 거름(실측: `kpi_snapshots`에 06-16·06-19 누락). 매 실행마다 최근 7일을 idempotent 백필 → 빈 칸 자동복구 + canary(#107) 7일 커버리지. 부수로 **KPI cron이 실제 매일 도는 것 DB로 확정**(`computed_at` 매일 15:0x UTC). 순수함수 `recentSnapshotDates` 분리+단위테스트. POSTMORTEMS #8.
-- **#111 AI 빈 응답(빈 말풍선) 핫픽스**: PO 스크린샷 — 모델(`gemini-flash-latest`)이 빈 텍스트 반환 시 그대로 저장돼 빈 풍선 노출. `generateReply.ts`에 **빈답 최종 안전망**(6언어 안내 + `error=empty_model_text`) + `maxOutputTokens 1024→2048` + finishReason 로깅.
-- **#110 보안 권한우회(IDOR) + 접근성·다국어**: `symptoms/alerts` 스태프 게이트(환자가 남 증상알림 보던 IDOR 차단)·`khidi/followup` error.message 노출 제거·`public/chat/resume` rate limit·`consultation-reminders` `https://undefined` 버그. + 퍼널/전역 접근성 기본기(폼 라벨·skip링크·키보드)·상담초대 이메일 zh·ja. POSTMORTEMS #9.
-- **#113 cron 비밀키 클라이언트 노출(HIGH) 제거**: 어드민 회귀화면이 `NEXT_PUBLIC_CRON_SECRET`로 cron 직접호출 → 비밀키가 번들에 노출됐음. 회귀로직을 `src/lib/chat/regressionRunner.ts`(server-only)로 추출 + **신규 관리자 인증 라우트** `app/api/admin/khidi/run-regression`로 감쌈. 죽은코드 `feedbackLoop.ts` 삭제. `check:content`에 `NEXT_PUBLIC_*SECRET` 금지 가드. POSTMORTEMS #10.
-- **#117·#121 실측 감리 도구 + 접근성 위반 0**: `npm run audit:secret`(시크릿)·`audit:deps`(npm audit high+)·`audit:a11y`(axe-core)·`audit:lighthouse`. CI(`ci.yml`)에 secret·deps 게이트, 신규 `audit-live.yml`(매주+수동, 프로덕션 대상 axe+Lighthouse 실측→아티팩트). **접근성 실측 critical 7→0 / serious 168→0**(button-name·aria-prohibited-attr 수정 + 브랜드 teal/emerald/red 다크닝 600·500→700, PO 옵션1 승인). 증거: `docs/audit/AUDIT.md`.
+**이번 세션 한 일:**
+- **🟢 KPI/대시보드 계산 로직 순수함수 추출 + 단위테스트 +50 — PR [#118](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/118)·[#122](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/122) 둘 다 머지·배포(`af6d58c`·`bb5b058`):** 평가 항목 ④(성과지표 자동집계) 핵심 계산이 테스트 0이었고, 만족도 ×20 환산식이 두 파일에 복붙돼 있었음. server-only 아닌 순수 모듈로 떼어 **단일 소스화 + 테스트로 고정**. 원본 파일은 import만 교체 → **출력 수학적으로 동일(화면 숫자·UI 불변)**.
+  - 새 모듈: `src/lib/khidi/satisfaction.ts`(만족도 환산 `likertTo100`·`avgSatisfaction100`), `nationality.ts`(`normalizeNationality`), `funnelMetrics.ts`(`pct`·`maskName`), `dashboardMetrics.ts`(달성률 `achievementPct`·진척률 등), `patientAggregation.ts`(고유환자수·국가분포 `aggregatePatients`).
+  - 영향받은 원본: `kpi.ts`, `satisfaction/route.ts`, `conversion-funnel/route.ts`, `kpi-dashboard/page.jsx` — 전부 위임만.
+  - 테스트: +28(#118 1차) +13(#118 2차) +9(#122) = **+50**, 전 188개 통과.
+- **PO 취향 1건 누적**(`PO_PREFERENCES.md`): 여러 세션 병렬 운영 → "병렬 안전" 작업 고르기 + squash 후 브랜치 리셋.
 
 **왜 그렇게 했는지:**
-- 시작은 직전 미검증 확인(KPI 대시보드/Sentry/cron)이었는데, 파다가 **PO가 "전체 시스템 감리"를 요청** → ISO/IEC 25010(TTA GS인증 토대)+OWASP+KWCAG로 7축 자가진단(점수표). 그 뒤 PO가 **"제대로 기준 정해 감리한 거 맞냐"**고 추정점수의 신뢰성을 지적 → **표준 도구 실측으로 전환**(axe·Lighthouse·시크릿·npm audit)이 핵심 전환점.
-- 색상대비 161건이 브랜드 `teal-600`(3.3:1)이라 DESIGN.md 헌법색과 충돌 → PO에게 옵션 제시 후 **옵션1(teal-700 다크닝) 승인** 받고 전수 치환.
-- 보안 IDOR·cron키는 평가 전 꼭 막아야 할 실제 구멍이라 우선 처리. cron키는 PO가 #1로 지정.
+- **작업 선정**: PO가 "토큰 활용 위해 세션 여러개 돌리는데 너랑 뭐하면 효과적이냐" → **다른 세션과 파일 안 겹치고 자동검증으로 닫히는 독립 작업**이 병렬에 최적이라 판단. 그중 평가직결·저위험인 KPI 계산 순수화를 골랐음.
+- **저위험이라 직접 머지**: 추가형(테스트+순수모듈), 출력 불변, 로컬 전수검증 초록 → PO의 "저위험 CI초록=머지" 위임 적용.
 
 **안 끝났거나 보류:**
-- **⚡ 성능(Lighthouse)**: 이 작업 샌드박스는 프록시 망 제약으로 lighthouse 로컬 실행 실패 → **`audit-live.yml`이 CI(깨끗한 망)에서 매주 프로덕션 실측**하게 해둠. **첫 실행 결과(perf/LCP 숫자)를 다음 세션이 확인**하고 이미지(병원사진 3MB대 다수·`next/image` 미적용)·번들·LiveKit 즉시로딩 개선 착수.
-- **#2 메신저 채널 "준비 중"**: Telegram·LINE·WeChat env URL 미설정 → 문의 퍼널에 회색 "Coming Soon". **PO가 Vercel env에 URL 넣어야 켜짐**(어시스턴트 불가).
-- **followup inquiry 소유권 검증**(IDOR 잔여, 소유모델 모호)·**God 컴포넌트(2900줄)·any 807·내부 어드민 접근성**: 고위험/범위 밖으로 보류.
-- 정식 정보시스템 감리 전범위(DB설계·문서·요구사항추적)는 안 봄 — 소프트웨어 품질+보안+접근성만.
+- **`kpi/route.ts` 누적 종료일 클램프**: UTC/KST 변환 얽혀 종료일 경계가 미묘(off-by-one 의심). 시간대 민감해 자리 비운 동안 안 건드림 → **PO와 함께 봐야 할 별도 사안**.
+- **D. any 축소·E. God 컴포넌트(2883줄) 분할·화상방 라이브검증**: 변함없이 보류(고위험/라이브검증 필요).
+- **다른 세션 열린 PR(무관)**: [#124](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/124)(다른 세션 핸드오프, draft)·[#119](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/119)(AI챗·자료업로드, draft)·[#116](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/116)(성장계획, draft)·[#83](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/83)(AI안전, draft)·[#41](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/41)(비자).
 
 **주의·함정:**
-- **이 저장소에 다른 claude 세션들이 동시 작업 중**(원격 브랜치 다수: ai-chat-reply-fix·competitor-review·service-analysis 등 + #115·#116·#118 머지됨). 머지충돌 가능 → 작업 전 `git fetch origin main && git merge`로 최신화. 이번에도 #118(KPI 순수함수)과 `kpi-dashboard/page.jsx` 1줄 충돌나 양쪽 살려 해결함.
-- **자동저장 훅이 작업 중 커밋·푸시**해 브랜치 HEAD SHA가 자꾸 바뀜 → CI가 중간커밋에 안 붙는 일 있었음. 머지 전 최신 HEAD CI 초록 확인할 것.
-- **접근성 0은 "공개 7페이지(/en·treatments·hospitals·telemedicine·care-journey·faq·/ru)" 기준.** 다른 세션이 새로 추가한 페이지(ad-budget·cost-calculator 등)나 내부 어드민은 미측정 → 다음 `audit-live.yml` 실행이 잡아줄 것.
+- **⚠️ squash 머지 후 같은 브랜치 이어쓰기 = 충돌**: #118을 squash로 합친 뒤 같은 작업본(`claude/session-planning-4o5319`)에서 #122를 이어가니 main과 머지 충돌남(원본 커밋이 squash와 갈라져서 + 그새 다른 세션이 main 전진). 해소함(대시보드 색 `teal-500→700`은 다른 세션 것 채택). **다음엔 머지 직후 `git fetch origin main` 후 브랜치를 main 기준으로 다시 잡고 이어갈 것.**
+- **⚠️ CI(자동검사)가 내 브랜치 특정 커밋에 트리거 안 됨**: `e3a70e0`·`96f03d5`에 깃허브 Actions(`ci`·`Smoke`)가 안 돎(다른 병렬 브랜치는 정상). 빈 커밋·닫고열기 다 시도해도 안 떠서, **CI 전 단계를 로컬에서 전수 통과**시킨 근거로 머지함. → 깃허브 이벤트 유실 추정. **다른 PR에서도 재발하면 GitHub Actions 설정/쿼터 점검 필요.**
+- **로컬 `main` 작업본이 옛 커밋(`7458a83`)에 묶여 있음**: `git checkout main` 시 옛 파일로 보임 → 원격·배포엔 영향 0. 작업 전 origin/main 기준으로 잡을 것.
 
 **다음 세션이 먼저 할 일 (우선순위):**
-1. **⚠️ 직전 미검증분 먼저 확인 (관리자 로그인 필요 — 환경상 내가 못 함):** (a) **KPI 대시보드**: `/admin/khidi/kpi-dashboard`에 유치 4/12·사전상담+사후관리 12/120·만족도 뜨는지(숫자·로직 검증됨, 픽셀만). (b) **Sentry 실전송**: 관리자로 `https://healo-khidi.vercel.app/api/sentry/test` 1회→JSON. (c) **어드민 "지금 실행" 버튼**: `/admin/khidi/ai-regression`에서 회귀테스트 트리거 — #113로 인증경로가 cron비밀키→관리자세션으로 바뀜, 정상 동작하는지 클릭확인.
-2. **`audit-live.yml` 첫 실측 확인**: GitHub Actions에서 수동 실행(workflow_dispatch) 또는 매주 월 16:00 UTC 자동 → 아티팩트의 **Lighthouse 성능 점수·LCP** 확인 후 이미지/번들 개선 착수.
-3. (보류) #2 메신저 채널 env / God 컴포넌트 분할 / any 축소 / 내부 어드민 접근성 / 화상방 라이브검증 — PO 동석·env 가능할 때.
-4. KHIDI 중간평가(2026-08-27) 상시 — 이번 실측 감리는 평가 정성(ICT 자가관측·품질관리 체계) 직결.
+1. **⚠️ 직전 미검증분 먼저 확인 (관리자 로그인 필요 — 환경상 내가 못 함):** (a) **KPI 대시보드 화면**: `/admin/khidi/kpi-dashboard`에 **유치 4/12·사전상담+사후관리 12/120**·만족도 뜨는지(숫자·로직은 검증됨, 픽셀만). (b) **서버 Sentry 실전송**: 관리자로 `https://healo-khidi.vercel.app/api/sentry/test` 1회 → JSON "전송됐습니다"면 도착 확인.
+2. **KPI cron 실동작 확정**: 15:05 UTC 이후 Vercel 프로덕션 로그에서 `/api/cron/kpi-snapshot` 200 떴는지.
+3. (선택) `kpi/route.ts` 누적 종료일 클램프 시간대 경계 PO와 함께 점검.
+4. (보류) God 컴포넌트 분할 / any 축소 / 화상방 라이브 — PO 동석·라이브검증 가능할 때만.
+5. KHIDI 중간평가(2026-08-27) 상시 — 이번 테스트 보강은 평가항목 ④(성과지표 자동집계 정확성) 직결(숫자 깨지면 CI가 잡음).
 
-**검증 상태:** PR **#109·#111·#110·#113·#117·#121 전부 CI(`ci`·`Smoke`) 초록 + squash 머지·배포 완료**(GitHub MCP check_runs로 확인). 접근성 **axe-core 실측 critical 7→0·serious 168→0**(배포 프리뷰 7페이지 재측정). 시크릿 0·npm audit high/critical 0. 로컬 tsc 0/check:content/audit:secret/next build 통과. **❌ 미검증(관리자 로그인 필요, 내 환경 불가): KPI 대시보드 화면 / Sentry 실전송 / 어드민 회귀버튼 — 셋 다 PO 1클릭.** **❌ 미실측: Lighthouse 성능(샌드박스 망 제약 → audit-live.yml CI가 측정 예정).** 열린 PR: #83·#41(지난 세션, 무관) + 동시작업 세션 브랜치 다수.
+**검증 상태:** PR **[#118](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/118)(`af6d58c`)·[#122](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/122)(`bb5b058`) = 합치기(squash 머지)·배포 완료**. 로컬 **tsc 0 / vitest 188개(+50) / eslint 0에러 / check:content / check:migrations(81) / check:i18n / check:legal / check:cancer-i18n / verify:rag / next build --webpack** 전부 통과(=CI 전 단계 로컬 전수검증). **⚠️ #118·#122는 깃허브 CI(`ci`·`Smoke`)가 트리거 안 돼 "CI 봇 초록"은 못 받음 — 로컬 전수검증으로 대체.** **❌ 미검증(관리자 로그인 필요): KPI 대시보드 화면 렌더 / 서버 Sentry 실전송 — 둘 다 PO 1클릭.** **❌ 미검증: KPI cron 프로덕션 실행.** 다른 세션 열린 PR: #124·#119·#116·#83·#41(무관).
 
 **다음 세션 첫 프롬프트 (PO 복붙용):**
-> 먼저 docs/PROJECT_CONTEXT.md 최상단 핸드오프(2026-06-20 저녁) 읽어. 그다음: 1) 관리자로 로그인해서 (a) /admin/khidi/kpi-dashboard 숫자 뜨는지 (b) /api/sentry/test JSON (c) /admin/khidi/ai-regression "지금 실행" 버튼 동작 — 셋 다 확인해줘. 2) GitHub Actions에서 "Audit (live)" 워크플로 수동 실행해서 Lighthouse 성능 점수·LCP 뽑고, 그거 보고 병원사진 3MB·이미지 최적화부터 성능 개선 착수해. 새 작업은 git fetch origin main && git merge 로 최신화부터(다른 세션들이 동시에 main 바꿈).
-
+> 먼저 docs/PROJECT_CONTEXT.md 최상단 핸드오프(2026-06-20 저녁) 읽어. 그다음 직전 미검증 확인: 1) 관리자로 /admin/khidi/kpi-dashboard 열어서 유치 4/12·사전상담+사후관리 12/120 뜨는지. 2) 관리자로 https://healo-khidi.vercel.app/api/sentry/test 한번 열어 JSON 알려줘. 3) 15:05 UTC 지났으면 Vercel 프로덕션 로그에서 /api/cron/kpi-snapshot 200 떴는지 봐줘. 새 작업은 git fetch origin main 후 origin/main 기준으로 브랜치 잡고 시작(squash 머지 후 옛 브랜치 이어쓰면 충돌함).
 ---
 
 ## 🏷️ 서비스명 변경 — HEALO → **healwith** (2026-06-16 확정·적용)
