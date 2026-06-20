@@ -99,7 +99,7 @@ export async function GET(request: NextRequest) {
           inviteUrl,
           scheduledAt: session.scheduled_at,
           role: token.role,
-          lang: ["ko", "en", "ru", "kz"].includes(lang) ? lang : "ko",
+          lang: ["ko", "en", "ru", "kz", "zh", "ja"].includes(lang) ? lang : "ko",
         });
 
         const result = await sendEmail({

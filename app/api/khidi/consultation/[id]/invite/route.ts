@@ -119,7 +119,7 @@ export async function POST(
         }
 
         const preferredLang =
-          typeof body.lang === "string" && ["ko", "en", "ru", "kz"].includes(body.lang)
+          typeof body.lang === "string" && ["ko", "en", "ru", "kz", "zh", "ja"].includes(body.lang)
             ? body.lang
             : role === "patient"
             ? sessionAny?.patient_language || "ru"
@@ -134,7 +134,7 @@ export async function POST(
           hospitalAddress,
           doctorName,
           doctorSpecialty,
-          lang: ["ko", "en", "ru", "kz"].includes(preferredLang)
+          lang: ["ko", "en", "ru", "kz", "zh", "ja"].includes(preferredLang)
             ? (preferredLang as any)
             : "ko",
         });

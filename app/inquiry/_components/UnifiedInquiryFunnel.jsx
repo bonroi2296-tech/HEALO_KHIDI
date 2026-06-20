@@ -253,6 +253,18 @@ const T = {
   optionalTag: {
     ko: "(선택)", en: "(optional)", ru: "(необязательно)", kz: "(міндетті емес)", zh: "(选填)", ja: "(任意)",
   },
+  trustEncryption: {
+    ko: "AES-256 암호화", en: "AES-256 encrypted", ru: "Шифрование AES-256", kz: "AES-256 шифрлау", zh: "AES-256 加密", ja: "AES-256 暗号化",
+  },
+  trustResponse: {
+    ko: "영업일 1일 이내 응답", en: "Reply within 1 business day", ru: "Ответ в течение 1 рабочего дня", kz: "1 жұмыс күні ішінде жауап", zh: "1个工作日内回复", ja: "1営業日以内に返信",
+  },
+  dialAria: {
+    ko: "국가번호", en: "Country calling code", ru: "Телефонный код страны", kz: "Ел телефон коды", zh: "国家区号", ja: "国番号",
+  },
+  genericError: {
+    ko: "오류가 발생했습니다. 잠시 후 다시 시도해주세요.", en: "Something went wrong. Please try again.", ru: "Произошла ошибка. Попробуйте ещё раз.", kz: "Қате орын алды. Қайталап көріңіз.", zh: "发生错误，请重试。", ja: "エラーが発生しました。もう一度お試しください。",
+  },
   emailPlaceholder: {
     ko: "example@email.com", en: "example@email.com", ru: "example@email.com", kz: "example@email.com", zh: "example@email.com", ja: "example@email.com",
   },
@@ -583,7 +595,8 @@ export default function UnifiedInquiryFunnel() {
       setPublicToken(result.publicToken || null);
       setPhase("step1-success");
     } catch (e) {
-      setError(e.message || "오류가 발생했습니다.");
+      // 원시 에러메시지(영문 네트워크 오류 등)를 그대로 노출하지 않고 6개 언어 일반 메시지로.
+      setError(tl("genericError", lang));
     } finally {
       setSubmitting(false);
     }
@@ -641,7 +654,8 @@ export default function UnifiedInquiryFunnel() {
 
       setPhase("step2-success");
     } catch (e) {
-      setError(e.message || "오류가 발생했습니다.");
+      // 원시 에러메시지(영문 네트워크 오류 등)를 그대로 노출하지 않고 6개 언어 일반 메시지로.
+      setError(tl("genericError", lang));
     } finally {
       setSubmitting(false);
     }
@@ -1163,10 +1177,11 @@ export default function UnifiedInquiryFunnel() {
       <div className="space-y-5">
         {/* 성함 */}
         <div>
-          <label className="block text-sm font-bold text-gray-700 mb-1.5">
+          <label htmlFor="funnel-name" className="block text-sm font-bold text-gray-700 mb-1.5">
             {tl("nameLabel", lang)} <span className="text-red-500">*</span>
           </label>
           <input
+            id="funnel-name"
             type="text"
             value={form1.name}
             onChange={(e) => setForm1((p) => ({ ...p, name: e.target.value }))}
@@ -1177,10 +1192,11 @@ export default function UnifiedInquiryFunnel() {
 
         {/* 국적 */}
         <div>
-          <label className="block text-sm font-bold text-gray-700 mb-1.5">
+          <label htmlFor="funnel-nationality" className="block text-sm font-bold text-gray-700 mb-1.5">
             {tl("nationalityLabel", lang)} <span className="text-red-500">*</span>
           </label>
           <select
+            id="funnel-nationality"
             value={form1.nationality}
             onChange={(e) => setForm1((p) => ({ ...p, nationality: e.target.value }))}
             className="w-full p-3 rounded-xl border border-gray-200 focus:border-teal-500 outline-none text-sm bg-white transition"
@@ -1194,10 +1210,11 @@ export default function UnifiedInquiryFunnel() {
 
         {/* 이메일 (필수) */}
         <div>
-          <label className="block text-sm font-bold text-gray-700 mb-1.5">
+          <label htmlFor="funnel-email" className="block text-sm font-bold text-gray-700 mb-1.5">
             {tl("contactEmail", lang)} <span className="text-red-500">*</span>
           </label>
           <input
+            id="funnel-email"
             type="email"
             value={form1.email}
             onChange={(e) => setForm1((p) => ({ ...p, email: e.target.value }))}
@@ -1208,15 +1225,15 @@ export default function UnifiedInquiryFunnel() {
 
         {/* 전화번호 (선택) */}
         <div>
-          <label className="block text-sm font-bold text-gray-700 mb-1.5">
-            {tl("contactPhone", lang)} <span className="text-gray-400 font-normal">{tl("optionalTag", lang)}</span>
+          <label htmlFor="funnel-phone" className="block text-sm font-bold text-gray-700 mb-1.5">
+            {tl("contactPhone", lang)} <span className="text-gray-500 font-normal">{tl("optionalTag", lang)}</span>
           </label>
           <div className="flex gap-2">
             <select
               value={form1.phoneDial}
               onChange={(e) => setForm1((p) => ({ ...p, phoneDial: e.target.value }))}
               className="shrink-0 w-44 p-3 rounded-xl border border-gray-200 focus:border-teal-500 outline-none text-sm bg-white transition"
-              aria-label="국가번호"
+              aria-label={tl("dialAria", lang)}
             >
               <option value="">{tl("dialPlaceholder", lang)}</option>
               {DIAL_CODES.map((d) => (
@@ -1224,10 +1241,11 @@ export default function UnifiedInquiryFunnel() {
               ))}
             </select>
             <input
+              id="funnel-phone"
               type="tel"
               value={form1.phone}
               onChange={(e) => setForm1((p) => ({ ...p, phone: e.target.value }))}
-              placeholder={form1.phoneDial === "OTHER" ? "+49 170 1234567 (국가코드 포함)" : "701 234 5678"}
+              placeholder={form1.phoneDial === "OTHER" ? "+49 170 1234567" : "701 234 5678"}
               className="flex-1 p-3 rounded-xl border border-gray-200 focus:border-teal-500 focus:ring-1 focus:ring-teal-100 outline-none text-sm bg-gray-50/50 transition"
             />
           </div>
@@ -1235,10 +1253,11 @@ export default function UnifiedInquiryFunnel() {
 
         {/* 선호 언어 */}
         <div>
-          <label className="block text-sm font-bold text-gray-700 mb-1.5">
+          <label htmlFor="funnel-lang" className="block text-sm font-bold text-gray-700 mb-1.5">
             {tl("langLabel", lang)} <span className="text-red-500">*</span>
           </label>
           <select
+            id="funnel-lang"
             value={form1.preferredLanguage}
             onChange={(e) => setForm1((p) => ({ ...p, preferredLanguage: e.target.value }))}
             className="w-full p-3 rounded-xl border border-gray-200 focus:border-teal-500 outline-none text-sm bg-white transition"
@@ -1252,10 +1271,10 @@ export default function UnifiedInquiryFunnel() {
 
         {/* 암종 */}
         <div>
-          <label className="block text-sm font-bold text-gray-700 mb-1.5">
+          <label id="funnel-cancerType-label" className="block text-sm font-bold text-gray-700 mb-1.5">
             {tl("cancerTypeLabel", lang)} <span className="text-red-500">*</span>
           </label>
-          <div className="grid grid-cols-4 gap-2">
+          <div className="grid grid-cols-4 gap-2" role="group" aria-labelledby="funnel-cancerType-label">
             {CANCER_TYPES.map((ct) => {
               const Icon = ct.icon;
               const selected = form1.cancerType === ct.value;
@@ -1290,10 +1309,11 @@ export default function UnifiedInquiryFunnel() {
 
         {/* 메모 */}
         <div>
-          <label className="block text-sm font-bold text-gray-700 mb-1.5">
+          <label htmlFor="funnel-memo" className="block text-sm font-bold text-gray-700 mb-1.5">
             {tl("memoLabel", lang)}
           </label>
           <textarea
+            id="funnel-memo"
             value={form1.shortMemo}
             onChange={(e) => setForm1((p) => ({ ...p, shortMemo: e.target.value.slice(0, 200) }))}
             placeholder={tl("memoPlaceholder", lang)}
@@ -1305,9 +1325,9 @@ export default function UnifiedInquiryFunnel() {
       </div>
 
       {/* 신뢰 배지 */}
-      <div className="flex items-center justify-center gap-6 mt-5 text-[11px] text-gray-400">
-        <span className="flex items-center gap-1"><Shield size={12} /> AES-256 암호화</span>
-        <span className="flex items-center gap-1"><Clock size={12} /> 영업일 1일 이내 응답</span>
+      <div className="flex items-center justify-center gap-6 mt-5 text-[11px] text-gray-500">
+        <span className="flex items-center gap-1"><Shield size={12} /> {tl("trustEncryption", lang)}</span>
+        <span className="flex items-center gap-1"><Clock size={12} /> {tl("trustResponse", lang)}</span>
       </div>
 
       {error && (

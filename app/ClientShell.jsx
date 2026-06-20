@@ -298,8 +298,20 @@ function ClientShellContent({
   const pathname = usePathname() || "/";
   // 영상 상담방 — 전체화면 몰입(전역 헤더/푸터/하단네비/문의버튼 숨김)
   const isConsultationPage = pathname.startsWith("/consultation/");
+  // 본문 바로가기(skip link) — 키보드/스크린리더 사용자가 반복 영역(헤더·네비)을 건너뛰게.
+  // KWCAG 2.4.1(반복 영역 건너뛰기) — 정부 웹접근성 평가 필수 항목.
+  const SKIP_LABEL = {
+    ko: "본문 바로가기", en: "Skip to main content", ru: "Перейти к содержимому",
+    kz: "Негізгі мазмұнға өту", zh: "跳到主要内容", ja: "本文へスキップ",
+  };
   return (
     <div className="font-sans text-gray-800 bg-gray-50 min-h-screen min-h-screen-safe relative">
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:z-[100] focus:top-2 focus:left-2 focus:rounded-lg focus:bg-teal-600 focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-white focus:shadow-lg"
+      >
+        {SKIP_LABEL[langCode] || SKIP_LABEL.en}
+      </a>
       {isConsultationPage ? null : isPortalPage ? (
         <PortalTopBar session={session} onLogout={handleLogout} siteConfig={siteConfig} langCode={langCode} />
       ) : isPremiumPage ? null : (
@@ -319,7 +331,7 @@ function ClientShellContent({
       )}
 
       <ErrorBoundary>
-        <main className={isPortalPage || isConsultationPage || hideBottomNav ? "" : "pb-24 pb-safe-area"}>{children}</main>
+        <main id="main-content" className={isPortalPage || isConsultationPage || hideBottomNav ? "" : "pb-24 pb-safe-area"}>{children}</main>
       </ErrorBoundary>
 
       {!isPortalPage && !isPremiumPage && !isConsultationPage && <footer className="bg-white border-t border-gray-100 pt-safe-area">
