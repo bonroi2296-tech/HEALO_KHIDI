@@ -1,5 +1,47 @@
 # PR
 
+## 🔖 세션 핸드오프 (2026-06-19 오후·저녁) — 직전 미검증분 확인 + 5축 점수 올리기(서버클라 통합·관측·CI게이트·타입) PR 6건 머지
+
+**이번 세션 한 일 (PR 6건 전부 main 머지·실서비스 배포):**
+- **직전 미검증분 확인:** (a) **AI 챗 ✅ 프로덕션 실검증** — 공개 위젯(`/api/public/chat/message`, PO 실경로)에 그 질문("친구 유방암…") 실제 호출 → 따뜻한 공감으로 시작·가격 안 들이밂·잘림 없음(테스트 데이터 정리함). (b) **Sentry ⚠️ 못 함** — 코드·배포·관리자보호 정상이나 대시보드 도착은 관리자 세션·Sentry 접근 없어 내가 검증 불가(=PO 1클릭). (참고: UI에서 안 쓰는 죽은 라우트 `/api/chat`은 아직 비가격 질문에도 가격표 토함 — 공개 위젯과 별개, 백로그.)
+- **중복정리 3단계 ([#89](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/89)) — 서버 Supabase 클라 4벌 통합:** service_role 생성 3벌(`supabaseAdmin`·`getSupabaseServerClient`·`createServiceRoleClient`)→**1벌**(supabaseAdmin 싱글톤, 나머지 위임). **위험한 anon 폴백 제거**(fail-closed). anon no-session `data/supabaseServer.js`→정본 `supabase/server.ts`(`supabaseAnonServer`)로 통합·삭제. 쿠키세션 클라는 역할 달라 유지. 호출부 30곳 무변경.
+- **관측 강화 ([#91](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/91)) — 헬스체크 실측화:** `/api/health`가 정적 `{ok}`(DB 죽어도 200)→공개 테이블 head count로 **실제 DB 프로브**(실패 시 503). **프로덕션 실검증 완료**(`db:"up", latency_ms:705`).
+- **kpi 통합 + 버그발견 ([#92](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/92)):** `khidi/kpi.ts` 자체 service_role 클라도 정본 위임. **발견: KPI "국가별 분포"가 없는 테이블 `khidi_intakes`를 쿼리 → 항상 빈 값**(헤드라인 유치건수는 무사). KNOWN_ISSUES 기록.
+- **eslint 0 + CI 차단게이트 ([#93](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/93)):** eslint 에러 67→0(미사용변수 62 안전정리 + react-hooks/constant 5건), `ci.yml`에서 `continue-on-error` 제거 → **에러 생기면 머지 차단**.
+- **타입 박기 ([#94](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/94)):** auth·security `any` 66→11(catch unknown·NextRequest·User 등). **보너스: 잠복 tsc 에러 수정** — `app/api/admin/inquiries/route.ts:143`의 supabase 동적 select 결과 캐스팅(아래 함정 참조).
+- **점수 before→after:** 보안 88→89 / 관측 60→64 / 테스트·CI 64→72 / 타입·품질 54→60 / 의존성·DB·문서 66 = **종합 66→약 70/100**.
+
+**왜 그렇게 했는지:**
+- 서버 클라는 보안등급(service_role=RLS우회 / anon=RLS적용)이 파일마다 달라 한 방에 합치면 사고 → 보안등급별 단계 PR로.
+- C(any)에서 `khidi/kpi.ts`·`inquiries` 라우트의 supabase 타입 불일치가 드러남: **옛 코드는 제네릭 없는 `createClient`(무검사)라 숨어있던 것**. kpi는 동작보존(느슨 캐스팅)하고 버그는 기록, inquiries는 제대로 캐스팅해 고침.
+- "좋은건 다 해, 토큰 걱정 말라"는 PO 지시로 점수 4축을 전부 구현·배포(부분 안 함).
+
+**안 끝났거나 보류:**
+- **서버 Sentry 런타임 실수집 미검증:** 코드·배포·403보호만 확인, DSN 실제 켜짐+대시보드 도착 못 봄 → **PO 1클릭 필요**.
+- **🐛 KPI 국가분포 버그:** `khidi/kpi.ts`가 없는 테이블 `khidi_intakes` 쿼리. `nationality`는 `inquiries`·`visa_applications`에 있음(환자→국적 매핑 재설계 필요) → **PO 결정 대기**(KHIDI 리포트 국가분포 영향).
+- **남은 any 11(auth/security):** 테스트 모킹·생성스키마에 없는 `agency_users`·범위밖 14라우트가 쓰는 `decryptForAdmin` 반환 → 좁히면 타 파일 tsc 깨짐(별도 과제, 0 강행 금지).
+- **죽은 라우트 `/api/chat` 가격표:** 공개 위젯과 프롬프트 규칙 불일치(백로그) / (이전 트랙) 화상상담방 라이브 검증·발화자 역할 DB 저장·Gemini 유료 회의록(#68).
+
+**주의·함정:**
+- **PR 베이스 skew 주의:** #92·#93을 각각 다른 베이스에서 따서 각자 CI 통과 후 머지 → **합쳐진 main에 잠복 tsc 에러**가 생겼다(어느 PR CI도 그 조합을 안 봄). #94에서 노출돼 잡음. 교훈: 연속 PR은 **직전 머지 후 origin/main 재동기화**하고 따라(이번에 로컬 main이 자꾸 뒤처져 헷갈렸음).
+- **로컬 tsc ≠ CI일 수 있음(supabase 타입):** supabase 동적 select(`GenericStringError`)는 의존성 트리·tsbuildinfo에 민감. 헷갈리면 `rm -f tsconfig.tsbuildinfo` 후 재실행. **최종 판정은 CI tsc.**
+- 헬스체크는 `force-dynamic`+`no-store`(매번 실측). anon 최소권한이라 hospitals에 anon read 정책 있어야 작동(현재 작동 확인).
+
+**다음 세션이 먼저 할 일 (우선순위):**
+1. **⚠️ 직전 미검증분 먼저 확인:** **서버 Sentry 실수집** — 관리자 로그인 → `https://healo-khidi.vercel.app/api/sentry/test` 1회 열기 → JSON이 "전송됐습니다"면 Sentry 대시보드에서 "의도된 테스트 에러" 도착 확인(=서버 에러감시 실작동). "미설정"이면 Vercel에 `NEXT_PUBLIC_SENTRY_DSN` 추가 필요.
+2. **🐛 KPI 국가분포 버그 결정:** 환자→국적 매핑을 `inquiries`/`visa_applications` 기준으로 재정의할지 PO 결정 → 구현(KHIDI 리포트용).
+3. (대기) 화상상담방 라이브 검증 / 발화자 역할 DB 저장 / Gemini 유료 AI 회의록(#68) / 죽은 `/api/chat` 정리.
+4. KHIDI 중간평가(2026-08-27) 상시 — `docs/KHIDI_중간보고_베이스.md`. 이번 관측·CI게이트·타입 강화는 "ICT 체계 구축" 정성평가 기여.
+
+**검증 상태:** PR [#89](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/89)·[#91](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/91)·[#92](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/92)·[#93](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/93)·[#94](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/94) = **CI(ci·smoke·Vercel) 전부 초록 + main 머지 + 프로덕션 배포 완료.** (문서 PR #90도 머지.) 매 단계 `tsc --noEmit`(실에러0)·`vitest 129`·`eslint 에러0`·`check:content`·`next build` 통과. **AI 챗·헬스체크는 프로덕션 실검증 ✅.** **❌ 서버 Sentry 런타임은 미검증(PO 1클릭).** **열린 PR(이번 세션 것): 없음.** 기존 열린 PR [#83](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/83)(AI 안전 0층, draft)·[#41](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/41)(비자)은 **이전 세션 것 — 이번 작업과 무관, 그대로 열려있음**(PO가 따로 검토).
+
+**다음 세션 첫 프롬프트 (PO 복붙용):**
+> 먼저 docs/PROJECT_CONTEXT.md 최상단 핸드오프(2026-06-19 오후·저녁) 읽어. 그다음: 1) 직전 미검증분 — 관리자로 로그인한 채 https://healo-khidi.vercel.app/api/sentry/test 한 번 열어서 나온 JSON 알려줘("전송됐습니다" or "미설정"). 서버 에러감시(Sentry)가 실제로 도는지 마지막 확인. 2) KPI 국가별 분포가 없는 테이블을 쿼리해서 항상 비어있는 버그 있음(docs/KNOWN_ISSUES.md 최상단) — 환자→국적 매핑 어떻게 할지 정하고 고쳐줘. 3) 그 외 백로그는 KNOWN_ISSUES 참고. 새 작업은 origin/main 최신 동기화부터.
+
+---
+
+---
+
 ## 🔖 세션 핸드오프 (2026-06-19 밤늦게) — AI 챗 응답 깨짐 긴급수정 + #85 배포 + 게스트채팅 실검증 + 중복정리 1·2단계
 
 **이번 세션 한 일 (PR 3건 전부 main 머지·실서비스 배포):**
