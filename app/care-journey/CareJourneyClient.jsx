@@ -241,6 +241,15 @@ export default function CareJourneyClient() {
         >
           {c.heroCta} <ArrowRight size={18} />
         </Link>
+        {/* 회복톤 실사진 (스토리 커버에서 검수된 Unsplash) — 프리뷰에서 교체 가능 */}
+        <div className="mt-10 md:mt-12 overflow-hidden rounded-2xl border border-gray-100">
+          <img
+            src="https://images.unsplash.com/photo-1587854692152-cbe660dbde88?w=1600&auto=format&fit=crop&q=85"
+            alt={c.eyebrow}
+            loading="lazy"
+            className="w-full h-56 md:h-80 object-cover"
+          />
+        </div>
       </section>
 
       {/* Model explanation */}
@@ -269,6 +278,15 @@ export default function CareJourneyClient() {
       <section className="max-w-4xl mx-auto px-4 pt-0 pb-12 md:pb-16">
         <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-4">{c.whyCareTitle}</h2>
         <p className="text-base text-gray-600 leading-relaxed max-w-3xl mb-8 md:mb-10">{c.whyCareLede}</p>
+        {/* 회복톤 실사진 — 프리뷰에서 교체 가능 */}
+        <div className="mb-8 md:mb-10 overflow-hidden rounded-2xl border border-gray-100">
+          <img
+            src="https://images.unsplash.com/photo-1538108149393-fbbd81895907?w=1600&auto=format&fit=crop&q=85"
+            alt={c.whyCareTitle}
+            loading="lazy"
+            className="w-full h-48 md:h-64 object-cover"
+          />
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-5">
           {c.whyCare.map((w, i) => (
             <div
