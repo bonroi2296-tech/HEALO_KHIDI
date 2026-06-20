@@ -3,6 +3,43 @@
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { useLang } from "@/lib/i18n/LangContext";
+import SocialProofSection from "@/components/SocialProofSection";
+
+/* ───────── 제휴 병원 네트워크 (실제 제휴/협진 병원만) ─────────
+   ⚠️ 서울아산·삼성서울 등은 실제 제휴기관이 아니므로 넣지 않음(가짜 금지).
+   실제: 면력한방병원 4개 지점(제휴) + 협진 대학병원 4곳. */
+const PARTNER_GROUPS = {
+  immune: {
+    label: { ko: "제휴 한방병원", en: "Partner Korean Medicine Hospitals", ru: "Партнёрские больницы корейской медицины", kz: "Серіктес корей медицинасы ауруханалары", zh: "合作韩方医院", ja: "提携韓方病院" },
+    items: [
+      { ko: "면력한방병원 강서점", en: "Immune Hospital Gangseo", ru: "Иммунная Клиника Кансо", kz: "Иммунная Клиника Кансо", zh: "免疫医院 江西院", ja: "免疫病院 江西院" },
+      { ko: "면력한방병원 신촌점", en: "Immune Hospital Sinchon", ru: "Иммунная Клиника Синчхон", kz: "Иммунная Клиника Синчон", zh: "免疫医院 新村院", ja: "免疫病院 新村院" },
+      { ko: "면력한방병원 광명점", en: "Immune Hospital Gwangmyeong", ru: "Иммунная Клиника Кванмён", kz: "Иммунная Клиника Кванмён", zh: "免疫医院 光明院", ja: "免疫病院 光明院" },
+      { ko: "면력한방병원 성동점", en: "Immune Hospital Seongdong", ru: "Иммунная Клиника Сондон", kz: "Иммунная Клиника Сондон", zh: "免疫医院 城东院", ja: "免疫病院 城東院" },
+    ],
+  },
+  university: {
+    label: { ko: "협진 대학병원", en: "Cooperating University Hospitals", ru: "Сотрудничающие университетские больницы", kz: "Серіктес университеттік ауруханалар", zh: "协诊大学医院", ja: "協診大学病院" },
+    items: [
+      { ko: "이대서울병원", en: "Ewha Seoul Hospital", ru: "Больница Ихва Сеул", kz: "Ихва Сеул ауруханасы", zh: "梨大首尔医院", ja: "梨大ソウル病院" },
+      { ko: "이대목동병원", en: "Ewha Mokdong Hospital", ru: "Больница Ихва Мокдон", kz: "Ихва Мокдон ауруханасы", zh: "梨大木洞医院", ja: "梨大木洞病院" },
+      { ko: "고려대 구로병원", en: "Korea Univ. Guro Hospital", ru: "Больница Куро", kz: "Куро ауруханасы", zh: "高丽大九老医院", ja: "高麗大九老病院" },
+      { ko: "신촌세브란스병원", en: "Sinchon Severance Hospital", ru: "Больница Северанс Синчхон", kz: "Синчон Северанс ауруханасы", zh: "新村世福兰斯医院", ja: "新村セブランス病院" },
+    ],
+  },
+};
+const PARTNER_SECTION = {
+  title: { ko: "함께하는 병원 네트워크", en: "Our hospital network", ru: "Наша сеть больниц", kz: "Біздің аурухана желісі", zh: "我们的医院网络", ja: "私たちの病院ネットワーク" },
+  lede: {
+    ko: "수술·항암은 협진 대학병원에서, 면역·재활은 면력한방병원에서 — 하나의 네트워크로 끊김 없이 이어집니다.",
+    en: "Surgery and chemotherapy at cooperating university hospitals; immune and rehabilitation care at Immune Hospital — connected as one seamless network.",
+    ru: "Хирургия и химиотерапия — в университетских больницах-партнёрах; иммунный и реабилитационный уход — в Иммуногоспитале, как единая бесшовная сеть.",
+    kz: "Хирургия мен химиотерапия — серіктес университет ауруханаларында; иммундық және оңалту күтімі — Иммунная Клиникада, бір үзіліссіз желі ретінде.",
+    zh: "手术与化疗在协诊大学医院，免疫与康复在免疫医院 — 连接为一个无缝网络。",
+    ja: "手術・抗がんは協診大学病院で、免疫・リハビリは免疫病院で — 一つのネットワークとして途切れなくつながります。",
+  },
+};
+
 
 /* ───────── i18n (6개 언어) ───────── */
 const COPY = {
@@ -241,10 +278,10 @@ export default function CareJourneyClient() {
         >
           {c.heroCta} <ArrowRight size={18} />
         </Link>
-        {/* 회복톤 실사진 (스토리 커버에서 검수된 Unsplash) — 프리뷰에서 교체 가능 */}
+        {/* 회복톤 실사진 — 공원 산책(회복·동행) / PO 1차 교체 2026-06-20 */}
         <div className="mt-10 md:mt-12 overflow-hidden rounded-2xl border border-gray-100">
           <img
-            src="https://images.unsplash.com/photo-1587854692152-cbe660dbde88?w=1600&auto=format&fit=crop&q=85"
+            src="https://images.unsplash.com/photo-1671530725345-cc4a2cf5db04?w=1600&auto=format&fit=crop&q=85"
             alt={c.eyebrow}
             loading="lazy"
             className="w-full h-56 md:h-80 object-cover"
@@ -257,6 +294,30 @@ export default function CareJourneyClient() {
         <div className="max-w-4xl mx-auto px-4 py-12 md:py-16">
           <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-4">{c.modelTitle}</h2>
           <p className="text-base text-gray-600 leading-relaxed max-w-3xl">{c.modelBody}</p>
+        </div>
+      </section>
+
+      {/* Partner hospital network */}
+      <section className="max-w-4xl mx-auto px-4 py-12 md:py-16">
+        <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-3">{PARTNER_SECTION.title[lang] || PARTNER_SECTION.title.ko}</h2>
+        <p className="text-base text-gray-600 leading-relaxed max-w-3xl mb-8 md:mb-10">{PARTNER_SECTION.lede[lang] || PARTNER_SECTION.lede.ko}</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-6">
+          {["university", "immune"].map((key) => {
+            const g = PARTNER_GROUPS[key];
+            return (
+              <div key={key} className="border border-gray-200 rounded-2xl p-6 md:p-7">
+                <h3 className="text-sm font-bold text-teal-700 mb-4">{g.label[lang] || g.label.ko}</h3>
+                <ul className="space-y-2.5">
+                  {g.items.map((h, i) => (
+                    <li key={i} className="flex items-center gap-2.5 text-sm md:text-base text-gray-800">
+                      <span className="shrink-0 w-1.5 h-1.5 rounded-full bg-teal-600" aria-hidden="true" />
+                      {h[lang] || h.ko}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            );
+          })}
         </div>
       </section>
 
@@ -278,10 +339,10 @@ export default function CareJourneyClient() {
       <section className="max-w-4xl mx-auto px-4 pt-0 pb-12 md:pb-16">
         <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-4">{c.whyCareTitle}</h2>
         <p className="text-base text-gray-600 leading-relaxed max-w-3xl mb-8 md:mb-10">{c.whyCareLede}</p>
-        {/* 회복톤 실사진 — 프리뷰에서 교체 가능 */}
+        {/* 회복톤 실사진 — 푸드테라피(맞춤 영양·입원식) / PO 1차 교체 2026-06-20 */}
         <div className="mb-8 md:mb-10 overflow-hidden rounded-2xl border border-gray-100">
           <img
-            src="https://images.unsplash.com/photo-1538108149393-fbbd81895907?w=1600&auto=format&fit=crop&q=85"
+            src="https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=1600&auto=format&fit=crop&q=85"
             alt={c.whyCareTitle}
             loading="lazy"
             className="w-full h-48 md:h-64 object-cover"
@@ -300,19 +361,21 @@ export default function CareJourneyClient() {
         </div>
       </section>
 
-      {/* 5 steps */}
+      {/* 5 steps — connected vertical timeline */}
       <section className="max-w-4xl mx-auto px-4 pt-0 pb-12 md:pb-16">
         <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-8 md:mb-10">{c.stepsTitle}</h2>
-        <ol className="space-y-5">
+        <ol className="relative">
+          {/* 세로 연결선 (타임라인) */}
+          <span
+            className="absolute left-[18px] top-3 bottom-3 w-px bg-teal-200"
+            aria-hidden="true"
+          />
           {c.steps.map((s, i) => (
-            <li
-              key={i}
-              className="flex gap-4 md:gap-5 border border-gray-200 rounded-xl p-5 md:p-6 hover:border-teal-300 hover:shadow-sm transition-all"
-            >
-              <span className="shrink-0 w-9 h-9 rounded-lg bg-teal-700 text-white font-bold flex items-center justify-center text-sm">
+            <li key={i} className="relative flex gap-4 md:gap-6 pb-7 last:pb-0">
+              <span className="relative z-10 shrink-0 w-9 h-9 rounded-full bg-teal-700 text-white font-bold flex items-center justify-center text-sm ring-4 ring-white">
                 {String(i + 1).padStart(2, "0")}
               </span>
-              <div>
+              <div className="flex-1 border border-gray-200 rounded-xl p-5 md:p-6 hover:border-teal-300 hover:shadow-sm transition-all">
                 <h3 className="text-lg font-bold text-gray-900 mb-1">{s.title}</h3>
                 <p className="text-sm md:text-base text-gray-500 leading-relaxed">{s.body}</p>
               </div>
@@ -320,6 +383,12 @@ export default function CareJourneyClient() {
           ))}
         </ol>
       </section>
+
+      {/* Social proof — 실제·검증 가능한 평가 (가짜 후기 금지) */}
+      <div className="border-t border-gray-100">
+        <SocialProofSection />
+      </div>
+
 
       {/* Closing CTA */}
       <section className="bg-teal-700">
