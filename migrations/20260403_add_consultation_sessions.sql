@@ -147,6 +147,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS trigger_consultation_sessions_updated_at ON consultation_sessions;
 CREATE TRIGGER trigger_consultation_sessions_updated_at
 BEFORE UPDATE ON consultation_sessions
 FOR EACH ROW

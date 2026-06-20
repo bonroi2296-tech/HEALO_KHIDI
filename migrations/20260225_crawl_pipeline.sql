@@ -18,8 +18,8 @@ CREATE TABLE IF NOT EXISTS crawl_jobs (
   created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_crawl_jobs_status ON crawl_jobs (status);
-CREATE INDEX idx_crawl_jobs_created ON crawl_jobs (created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_crawl_jobs_status ON crawl_jobs (status);
+CREATE INDEX IF NOT EXISTS idx_crawl_jobs_created ON crawl_jobs (created_at DESC);
 
 -- 2) crawl_raw_items: 수집된 로우 데이터 스테이징
 CREATE TABLE IF NOT EXISTS crawl_raw_items (
@@ -38,10 +38,10 @@ CREATE TABLE IF NOT EXISTS crawl_raw_items (
   created_at       TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX idx_crawl_raw_items_job ON crawl_raw_items (job_id);
-CREATE INDEX idx_crawl_raw_items_source ON crawl_raw_items (source_id, source_unique_id);
-CREATE INDEX idx_crawl_raw_items_status ON crawl_raw_items (status, review_action);
-CREATE INDEX idx_crawl_raw_items_hospital ON crawl_raw_items (hospital_id) WHERE hospital_id IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_crawl_raw_items_job ON crawl_raw_items (job_id);
+CREATE INDEX IF NOT EXISTS idx_crawl_raw_items_source ON crawl_raw_items (source_id, source_unique_id);
+CREATE INDEX IF NOT EXISTS idx_crawl_raw_items_status ON crawl_raw_items (status, review_action);
+CREATE INDEX IF NOT EXISTS idx_crawl_raw_items_hospital ON crawl_raw_items (hospital_id) WHERE hospital_id IS NOT NULL;
 
 -- 3) hospitals 테이블 확장 컬럼
 ALTER TABLE hospitals ADD COLUMN IF NOT EXISTS data_source       TEXT;

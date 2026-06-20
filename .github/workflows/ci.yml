@@ -29,6 +29,8 @@ jobs:
         run: npm run lint
       - name: 콘텐츠 일관성 (옛 브랜드·이메일 잔재 + i18n 키 누락 자동 차단)
         run: npm run check:content
+      - name: 마이그레이션 멱등성 (재실행 충돌 위험·DROP IF EXISTS 가드 누락 차단)
+        run: npm run check:migrations
       - run: npm run check:i18n
       - name: 법률 문서 6개 언어 정합성 (약관·개인정보방침 구조/번역 누락 차단)
         run: npm run check:legal

@@ -127,6 +127,25 @@ PO가 스크린샷 제보: 친구 유방암 상담을 자연스럽게 물었는�
 
 ---
 
+## #6 — 마이그레이션 다수가 재실행 시 하드 실패(멱등성 가드 누락) (2026-06-19)
+
+**무슨 일**
+서버 클라 통합(#89) 중 `kpi.ts`를 타입 박힌 정본으로 위임하자 숨은 버그가 드러난 것처럼, DB 마이그레이션 80개를 전수 점검하니 **19개 파일**이 재실행(re-apply) 시 `duplicate_object(42710)` 로 하드 실패하는 상태였음: `CREATE POLICY` 39건·`CREATE TRIGGER` 4건이 앞에 `DROP ... IF EXISTS` 가드가 없고, 일부 `CREATE INDEX` 10건이 `IF NOT EXISTS` 누락, `ADD CONSTRAINT` 2건이 가드 없음. 새 Supabase 브랜치·로컬 개발·재해복구처럼 마이그레이션을 처음부터 다시 적용하는 상황에서 중간에 깨짐.
+
+**왜 못 잡았나 (근본원인)**
+1. 마이그레이션을 **수동 추적**(supabase 마이그레이션 히스토리/체크섬 아님)으로 운영 → "한 번 적용되면 끝"이라 재실행 안전성을 아무도 안 봄.
+2. 일부 파일은 처음부터 멱등 패턴(`DROP POLICY IF EXISTS` 후 `CREATE`)을 잘 지켰지만(예: `20260225_chat_threads.sql`), **표준이 강제되지 않아** 파일마다 들쭉날쭉.
+3. **자동 가드 부재** → 새 마이그레이션이 비멱등이어도 CI가 안 막음.
+
+**어떻게 고쳤나**
+- 19개 파일에 가드 추가: 각 `CREATE POLICY/TRIGGER` 앞에 같은 이름·테이블의 `DROP ... IF EXISTS`, bare `CREATE INDEX`에 `IF NOT EXISTS`, `ADD CONSTRAINT` 앞에 `DROP CONSTRAINT IF EXISTS`. **스키마 결과는 불변**(이미 적용된 DB엔 영향 없음) — 재실행 안전성만 추가. 실제 DB 재적용은 하지 않음(파일만).
+
+**재발 방지 (시스템 적용)**
+- **가드 룰 신설**: `scripts/check-migration-idempotency.mjs` → CI 매 PR 자동(`npm run check:migrations`). `migrations/*.sql`에서 ①가드 없는 `CREATE POLICY/TRIGGER` ②`IF NOT EXISTS` 없는 `CREATE INDEX/TABLE` ③가드 없는 `ADD CONSTRAINT`(DO/pg_constraint 블록은 허용)를 **빌드 실패**로 차단. 오탐 0 룰만 채택, 음성 테스트로 회귀 탐지 확인.
+- 앞으로 **새 마이그레이션은 멱등이 기본** — 비멱등이면 CI가 머지 차단.
+
+---
+
 ## #7 — KHIDI 핵심 KPI(유치·사전상담)가 존재하지 않는 컬럼을 쿼리해 항상 0 (2026-06-19)
 
 **무슨 일**

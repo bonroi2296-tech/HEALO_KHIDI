@@ -84,6 +84,7 @@ alter table public.inquiry_contacts enable row level security;
 alter table public.inquiry_medical enable row level security;
 
 -- inquiry_contacts: 서버만 접근
+drop policy if exists "inquiry_contacts_all_service_role" on public.inquiry_contacts;
 create policy "inquiry_contacts_all_service_role"
   on public.inquiry_contacts
   for all
@@ -92,6 +93,7 @@ create policy "inquiry_contacts_all_service_role"
   with check (true);
 
 -- inquiry_medical: 서버만 접근
+drop policy if exists "inquiry_medical_all_service_role" on public.inquiry_medical;
 create policy "inquiry_medical_all_service_role"
   on public.inquiry_medical
   for all

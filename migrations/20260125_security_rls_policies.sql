@@ -20,6 +20,7 @@ alter table public.human_touchpoints enable row level security;
 -- ==========================================
 
 -- 클라이언트: INSERT만 허용 (본인 레코드 읽기 금지)
+drop policy if exists "inquiries_insert_public" on public.inquiries;
 create policy "inquiries_insert_public"
   on public.inquiries
   for insert
@@ -35,6 +36,7 @@ create policy "inquiries_insert_public"
 --   using (auth.uid()::text = user_id::text);
 
 -- 서버(service_role): 모든 작업 허용
+drop policy if exists "inquiries_all_service_role" on public.inquiries;
 create policy "inquiries_all_service_role"
   on public.inquiries
   for all
@@ -50,6 +52,7 @@ create policy "inquiries_all_service_role"
 -- 주석: 필요시 본인 레코드만 읽기 정책 추가 가능
 
 -- 서버(service_role): 모든 작업 허용
+drop policy if exists "normalized_inquiries_all_service_role" on public.normalized_inquiries;
 create policy "normalized_inquiries_all_service_role"
   on public.normalized_inquiries
   for all
@@ -64,6 +67,7 @@ create policy "normalized_inquiries_all_service_role"
 -- 클라이언트: SELECT 금지 (서버만 읽기 가능)
 
 -- 서버(service_role): 모든 작업 허용
+drop policy if exists "human_touchpoints_all_service_role" on public.human_touchpoints;
 create policy "human_touchpoints_all_service_role"
   on public.human_touchpoints
   for all

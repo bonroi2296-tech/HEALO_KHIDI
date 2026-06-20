@@ -30,6 +30,7 @@ CREATE INDEX IF NOT EXISTS idx_treatment_sources_raw_hash ON public.treatment_so
 -- RLS: hospitals/treatments와 동일하게 service_role만 전체 접근 (Admin API에서 사용)
 ALTER TABLE public.treatment_sources ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "treatment_sources_all_service_role" ON public.treatment_sources;
 CREATE POLICY "treatment_sources_all_service_role"
   ON public.treatment_sources
   FOR ALL

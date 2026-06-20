@@ -29,15 +29,16 @@ CREATE TABLE IF NOT EXISTS public.admin_audit_logs (
 );
 
 -- 2. 인덱스 생성 (조회 성능 향상)
-CREATE INDEX idx_admin_audit_logs_admin_email ON public.admin_audit_logs(admin_email);
-CREATE INDEX idx_admin_audit_logs_action ON public.admin_audit_logs(action);
-CREATE INDEX idx_admin_audit_logs_created_at ON public.admin_audit_logs(created_at DESC);
-CREATE INDEX idx_admin_audit_logs_inquiry_ids ON public.admin_audit_logs USING GIN(inquiry_ids);
+CREATE INDEX IF NOT EXISTS idx_admin_audit_logs_admin_email ON public.admin_audit_logs(admin_email);
+CREATE INDEX IF NOT EXISTS idx_admin_audit_logs_action ON public.admin_audit_logs(action);
+CREATE INDEX IF NOT EXISTS idx_admin_audit_logs_created_at ON public.admin_audit_logs(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_admin_audit_logs_inquiry_ids ON public.admin_audit_logs USING GIN(inquiry_ids);
 
 -- 3. RLS 정책 (관리자만 조회 가능)
 ALTER TABLE public.admin_audit_logs ENABLE ROW LEVEL SECURITY;
 
 -- 관리자만 조회 가능
+DROP POLICY IF EXISTS "Admin can view audit logs" ON public.admin_audit_logs;
 CREATE POLICY "Admin can view audit logs" ON public.admin_audit_logs
     FOR SELECT
     USING (
@@ -48,6 +49,7 @@ CREATE POLICY "Admin can view audit logs" ON public.admin_audit_logs
     );
 
 -- 서비스 역할은 insert 가능 (API route에서 로그 기록)
+DROP POLICY IF EXISTS "Service role can insert audit logs" ON public.admin_audit_logs;
 CREATE POLICY "Service role can insert audit logs" ON public.admin_audit_logs
     FOR INSERT
     WITH CHECK (true);  -- API route는 service_role_key 사용

@@ -34,6 +34,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS site_settings_updated_at ON public.site_settings;
 CREATE TRIGGER site_settings_updated_at
   BEFORE UPDATE ON public.site_settings
   FOR EACH ROW
@@ -44,12 +45,14 @@ ALTER TABLE public.site_settings ENABLE ROW LEVEL SECURITY;
 
 -- 5. RLS 정책
 -- 모든 사용자가 읽기 가능 (공개 설정)
+DROP POLICY IF EXISTS "Anyone can read site_settings" ON public.site_settings;
 CREATE POLICY "Anyone can read site_settings"
 ON public.site_settings
 FOR SELECT
 USING (true);
 
 -- 관리자만 쓰기 가능 (service_role은 RLS 우회)
+DROP POLICY IF EXISTS "Admin can write site_settings" ON public.site_settings;
 CREATE POLICY "Admin can write site_settings"
 ON public.site_settings
 FOR ALL

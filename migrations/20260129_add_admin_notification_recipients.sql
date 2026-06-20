@@ -57,6 +57,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS trigger_recipients_updated_at ON admin_notification_recipients;
 CREATE TRIGGER trigger_recipients_updated_at
 BEFORE UPDATE ON admin_notification_recipients
 FOR EACH ROW
@@ -85,6 +86,7 @@ ALTER TABLE admin_notification_recipients ENABLE ROW LEVEL SECURITY;
 -- 예시 2: auth.jwt()->>'role' = 'admin'
 
 -- 모든 작업 허용 (관리자 확인 조건 추가 필요)
+DROP POLICY IF EXISTS "관리자만 접근 가능" ON admin_notification_recipients;
 CREATE POLICY "관리자만 접근 가능" ON admin_notification_recipients
 FOR ALL
 USING (

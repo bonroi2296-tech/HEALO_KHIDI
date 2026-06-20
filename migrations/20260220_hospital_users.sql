@@ -73,6 +73,7 @@ ALTER TABLE public.hospital_users ENABLE ROW LEVEL SECURITY;
 -- anon/authenticated는 직접 테이블 접근 불가 (API route를 통해서만)
 
 -- 병원 담당자가 자기 레코드만 조회
+DROP POLICY IF EXISTS "hospital_users_select_own" ON public.hospital_users;
 CREATE POLICY "hospital_users_select_own"
   ON public.hospital_users
   FOR SELECT
@@ -83,6 +84,7 @@ CREATE POLICY "hospital_users_select_own"
 -- 5. hospital_leads에 병원별 SELECT 정책 활성화
 -- ==========================================
 
+DROP POLICY IF EXISTS "hospital_leads_select_own_hospital" ON public.hospital_leads;
 CREATE POLICY "hospital_leads_select_own_hospital"
   ON public.hospital_leads
   FOR SELECT
@@ -97,6 +99,7 @@ CREATE POLICY "hospital_leads_select_own_hospital"
   );
 
 -- 병원 담당자가 자기 병원의 리드 상태 업데이트
+DROP POLICY IF EXISTS "hospital_leads_update_own_hospital" ON public.hospital_leads;
 CREATE POLICY "hospital_leads_update_own_hospital"
   ON public.hospital_leads
   FOR UPDATE
