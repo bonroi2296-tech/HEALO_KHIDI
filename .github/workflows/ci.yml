@@ -40,5 +40,7 @@ jobs:
         run: npm run audit:secret
       - name: 의존성 취약점 (high/critical 발견 시 머지 차단 — 감리 실측)
         run: npm run audit:deps
+      - name: 이미지 용량 게이트 (과대 public 이미지 재유입 차단 — 성능)
+        run: npm run audit:images
       - run: npm run build
       - run: npm run verify:rag

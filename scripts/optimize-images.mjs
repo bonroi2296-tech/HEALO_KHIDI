@@ -13,6 +13,7 @@
  *
  * 실행: node scripts/optimize-images.mjs        (적용)
  *       node scripts/optimize-images.mjs --dry   (계산만, 미적용)
+ *       node scripts/optimize-images.mjs --check (CI 게이트: 과대 이미지 있으면 비정상 종료)
  */
 import { readdirSync, statSync, writeFileSync } from "node:fs";
 import { join, extname } from "node:path";
@@ -23,8 +24,22 @@ const SCAN_DIRS = ["public/images", "public/immune"];
 const MAX_W = 1920;
 const SIZE_THRESHOLD = 350 * 1024; // 350KB 초과만
 const DIM_THRESHOLD = 2000;        // 또는 폭 2000px 초과
+const HARD_MAX = 900 * 1024;       // CI 게이트: 단일 이미지 상한(이 위면 최적화 안 된 것)
 const DRY = process.argv.includes("--dry");
+const CHECK = process.argv.includes("--check");
 const EXT = /\.(jpe?g|png|webp)$/i;
+
+// --check: 재인코딩 없이 stat만 — 900KB 초과 이미지가 있으면 CI 실패(3MB 원본 재유입 차단).
+if (CHECK) {
+  const offenders = SCAN_DIRS.flatMap(walk).filter((f) => f.size > HARD_MAX);
+  if (offenders.length) {
+    console.error(`❌ 과대 이미지 ${offenders.length}개 (>${(HARD_MAX/1024).toFixed(0)}KB) — \`npm run optimize:images\` 실행 후 커밋하세요:`);
+    for (const o of offenders) console.error(`   ${(o.size/1024).toFixed(0)}KB  ${o.rel}`);
+    process.exit(1);
+  }
+  console.log(`✓ 이미지 용량 게이트 통과 (스캔 ${SCAN_DIRS.join("·")} — >${(HARD_MAX/1024).toFixed(0)}KB 0개)`);
+  process.exit(0);
+}
 
 function walk(dir) {
   const out = [];

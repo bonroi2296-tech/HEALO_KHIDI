@@ -17,7 +17,7 @@
     "test:coverage": "vitest run --coverage",
     "check:content": "node scripts/check-content-consistency.mjs",
     "optimize:images": "node scripts/optimize-images.mjs",
-    "audit:images": "node scripts/optimize-images.mjs --dry",
+    "audit:images": "node scripts/optimize-images.mjs --check",
     "check:env": "node scripts/check-env.js",
     "check:i18n": "node scripts/check-i18n-coverage.mjs",
     "check:legal": "node scripts/check-legal-parity.mjs",
