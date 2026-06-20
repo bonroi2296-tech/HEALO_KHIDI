@@ -27,7 +27,8 @@ export type AlertType =
   | 'db_connection_issues'     // DB 연결 문제
   | 'spam_attack'              // 스팸 공격
   | 'no_inquiries'             // 문의 급감 (시스템 문제?)
-  | 'high_priority_lead';      // 고가치 리드 유입
+  | 'high_priority_lead'       // 고가치 리드 유입
+  | 'kpi_aggregation_error';   // KHIDI KPI 집계 쿼리 오류 (평가 숫자 깨짐 — #102 부류)
 
 /**
  * 알림 메타데이터
@@ -348,6 +349,39 @@ export async function alertHighPriorityLead(leadInfo: {
       timestamp: new Date().toISOString(),
     });
   }
+}
+
+/**
+ * ✅ KHIDI KPI 집계 오류 알림 (평가 직결 — #102 부류 재발 방지)
+ *
+ * 왜: 2026-06-19 #102 에서 KPI 가 존재하지 않는 컬럼을 쿼리해 유치·사전상담이
+ *     "조용히 0" 이던 평가 핵심 버그가 있었다. 당시엔 대시보드를 "직접 열어야만"
+ *     경고 배너로 보였다 → PO 가 대시보드를 안 열면 평가 숫자가 또 깨져도 모른다.
+ *     이제 매일 도는 KPI 스냅샷 cron(`upsertDailySnapshot`)이 집계 오류를 만나면
+ *     이 함수로 즉시 알림(critical)을 쏜다 = 자동 canary.
+ *
+ * 누적 임계 카운터 불필요(하루 1회 cron 저빈도) → 바로 sendAlert.
+ * 알림 실패는 cron 메인 로직에 영향 없도록 호출부에서 try/catch.
+ */
+export async function alertKpiAggregationErrors(
+  errors: string[],
+  context: string
+): Promise<void> {
+  if (!errors || errors.length === 0) return; // 정상이면 no-op
+
+  await sendAlert({
+    type: 'kpi_aggregation_error',
+    severity: 'critical',
+    message: `KHIDI KPI 집계 오류 ${errors.length}건 (${context}) — 평가 숫자가 부정확할 수 있음`,
+    details: {
+      context,
+      errors,
+      action: 'src/lib/khidi/kpi.ts 쿼리 컬럼/스키마 확인 (#102 부류)',
+    },
+    threshold: 0,
+    currentValue: errors.length,
+    timestamp: new Date().toISOString(),
+  });
 }
 
 /**
