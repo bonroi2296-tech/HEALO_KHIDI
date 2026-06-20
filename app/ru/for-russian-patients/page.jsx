@@ -131,8 +131,8 @@ export default function ForRussianPatientsPage() {
               <p className="text-sm text-gray-500">5-летняя выживаемость при раке в Корее (2018–2022)</p>
             </div>
             <div className="border border-gray-200 rounded-2xl p-6 text-center">
-              <div className="text-3xl font-extrabold text-teal-600 mb-1">1,17 млн</div>
-              <p className="text-sm text-gray-500">иностранных пациентов выбрали Корею в 2024 году</p>
+              <div className="text-3xl font-extrabold text-teal-600 mb-1">2,01 млн</div>
+              <p className="text-sm text-gray-500">иностранных пациентов выбрали Корею в 2025 году</p>
             </div>
             <div className="border border-gray-200 rounded-2xl p-6 text-center">
               <div className="text-3xl font-extrabold text-teal-600 mb-1">16 000+</div>
