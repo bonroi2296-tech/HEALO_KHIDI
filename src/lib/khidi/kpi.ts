@@ -22,6 +22,7 @@ import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
 import { recentSnapshotDates } from "@/lib/khidi/snapshotDates";
 import { normalizeNationality } from "@/lib/khidi/nationality";
 import { avgSatisfaction100 } from "@/lib/khidi/satisfaction";
+import { aggregatePatients } from "@/lib/khidi/patientAggregation";
 
 export { recentSnapshotDates };
 
@@ -166,17 +167,6 @@ async function _fetchKpiInRange(
     inquiry_id: number | null;
   }>;
 
-  const patientKey = (r: {
-    patient_id: string | null;
-    inquiry_id: number | null;
-  }): string | null =>
-    r.patient_id ?? (r.inquiry_id != null ? `inq:${r.inquiry_id}` : null);
-
-  const uniqueKeys = new Set(
-    sessions.map(patientKey).filter((k): k is string => k != null)
-  );
-  const uniquePatients = uniqueKeys.size;
-
   // inquiry_id → nationality 조회 (inquiries.nationality = ISO 국가코드 KZ/RU/UZ…)
   const inquiryIds = Array.from(
     new Set(
@@ -200,21 +190,8 @@ async function _fetchKpiInRange(
     });
   }
 
-  // 환자(중복제거) 1명당 국적 1회 카운트
-  const countryMap: Record<string, number> = {};
-  const counted = new Set<string>();
-  for (const r of sessions) {
-    const key = patientKey(r);
-    if (!key || counted.has(key)) continue;
-    counted.add(key);
-    const nat =
-      (r.inquiry_id != null ? natByInquiry.get(r.inquiry_id) : undefined) ??
-      "기타";
-    countryMap[nat] = (countryMap[nat] ?? 0) + 1;
-  }
-  const countries = Object.entries(countryMap)
-    .map(([nationality, count]) => ({ nationality, count }))
-    .sort((a, b) => b.count - a.count);
+  // 환자 중복제거(고유환자수) + 국가별 분포 — 순수 변환(patientAggregation.ts)으로 위임.
+  const { uniquePatients, countries } = aggregatePatients(sessions, natByInquiry);
 
   return {
     preConsultation: preCount ?? 0,
