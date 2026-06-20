@@ -40,8 +40,8 @@ import SocialProofSection from "@/components/SocialProofSection";
    - 히어로 배경: 1920x1080px 이상
    ═══════════════════════════════════════════════════════ */
 const PLACEHOLDER = {
-  // 📸 히어로 배경 — 교체: 실제 병원 또는 한국 의료 이미지 (1920x1080+)
-  heroBg: "https://images.unsplash.com/photo-1538108149393-fbbd81895907?w=1920&q=80",
+  // 📸 히어로 배경 — 회복톤(공원 산책) 2026-06-20 PO 취향 반영. 어두운 그라데이션 뒤 배경.
+  heroBg: "https://images.unsplash.com/photo-1671530725345-cc4a2cf5db04?w=1920&q=80",
   // 📸 병원 2곳 — 교체: 면력한방병원 실제 사진으로 교체 권장 (800x500)
   hospitals: [
     "https://images.unsplash.com/photo-1538108149393-fbbd81895907?w=800&h=500&fit=crop",
