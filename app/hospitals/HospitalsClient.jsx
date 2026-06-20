@@ -45,6 +45,7 @@ const L = {
   },
   doctors_label: { ko: '명 전문의', en: ' Doctors', ru: ' врачей', kz: ' дәрігер', zh: '名医生', ja: '名の医師' },
   view_profile: { ko: '상세 프로필', en: 'Full Profile', ru: 'Полный профиль', kz: 'Толық профиль', zh: '详细简历', ja: '詳細プロフィール' },
+  specialist: { ko: '전문의', en: 'Specialist', ru: 'Специалист', kz: 'Маман дәрігер', zh: '专科医师', ja: '専門医' },
   close: { ko: '닫기', en: 'Close', ru: 'Закрыть', kz: 'Жабу', zh: '关闭', ja: '閉じる' },
   strengths: {
     title: { ko: '면력한방병원의 강점', en: 'Our Strengths', ru: 'Наши преимущества', kz: 'Артықшылықтарымыз', zh: '我们的优势', ja: '強み' },
@@ -549,6 +550,12 @@ function DoctorCard({ doc, l, lang, onSelect }) {
             <h4 className="font-extrabold text-lg">{l(doc.name)}</h4>
             {roleBadge && (
               <span className={`px-2 py-0.5 text-[10px] font-bold rounded ${roleBadge.color}`}>{roleBadge.label}</span>
+            )}
+            {/* 전문의 검증 칩 — 실제 '전문의' 자격이 데이터에 있을 때만(전부 도배 금지·과장 금지) */}
+            {doc.subspecialty?.ko?.includes("전문의") && (
+              <span className="inline-flex items-center gap-0.5 px-2 py-0.5 text-[10px] font-bold rounded-full bg-teal-50 text-teal-700 border border-teal-100">
+                <CheckCircle2 size={11} /> {l(L.specialist)}
+              </span>
             )}
           </div>
           <p className="text-emerald-700 font-semibold text-sm">{l(doc.position)}</p>
