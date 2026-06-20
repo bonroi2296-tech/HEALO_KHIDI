@@ -23,18 +23,20 @@
 ### ♿ 접근성 (axe-core WCAG 2.1 AA, 공개 7페이지 합계)
 | 규칙 | 심각도 | 노드 수 | 의미 | 조치 |
 |---|---|---|---|---|
-| `color-contrast` | serious | **161** | 명도대비 4.5:1 미달 | ⚠️ 대부분 **브랜드 teal-600**(흰글자/teal배경 ≈3.3:1) — 브랜드색 변경이라 **PO 디자인 결정** |
-| `button-name` | **critical** | **7** | 이름 없는 버튼(전역 플로팅 버튼) | ✅ 이 PR에서 수정(aria-label) |
-| `aria-prohibited-attr` | serious | 7 | role 없는 div의 aria-label(알림 토스트) | ✅ 이 PR에서 수정(role=region) |
+| 규칙 | 심각도 | **Before** | **After (측정)** | 조치 |
+|---|---|---|---|---|
+| `button-name` | **critical** | **7** | **0** ✅ | 전역 플로팅 버튼 aria-label |
+| `aria-prohibited-attr` | serious | 7 | **0** ✅ | 알림 토스트 role=region |
+| `color-contrast` | serious | **161** | **7** (97%↓) | 브랜드 teal-600/500 → teal-700 다크닝(PO 옵션1 승인) |
+| **합계** | | **critical 7 / serious 168** | **critical 0 / serious 7** | |
 
-→ **이 PR 후 예상: critical 7→0, serious 168→161**(잔여 161 = teal 대비, 디자인 결정). 배포 후 `npm run audit:a11y` 재측정으로 before→after 확정.
+→ **추정 아님 — axe-core 실측 before→after.** Before=프로덕션(2026-06-20), After=동일 코드 배포본(#117) 재측정.
+→ 잔여 **color-contrast 7** = 못 잡은 가장자리 케이스(특정 배경 색조합). 추가 정리 시 0 가능.
 
 ### ⚡ 성능 (Lighthouse)
 - 도구는 붙였으나 **이 작업 샌드박스에선 외부망/프록시 제약으로 실측 실패**(`FAILED_DOCUMENT_REQUEST`). 깨끗한 망(로컬 `next start` 또는 CI)에서 `AUDIT_BASE_URL=... npm run audit:lighthouse` 로 측정.
 - 정적 분석상 알려진 부담: 병원 갤러리 원본 JPEG 3MB대(다수)·`next/image` 미적용 `<img>`·LiveKit 정적 즉시 로딩. (성능 개선은 별도 트랙)
 
-## 색상 대비(teal-600) — PO 결정 필요
-브랜드 기본색 `teal-600(#0d9488)`는 흰 배경/흰 글자 조합에서 ≈3.3:1 로 **일반 텍스트 AA(4.5:1) 미달**(큰/굵은 텍스트 AA 3:1 은 통과). 161건 대부분 이 색이다. 선택지:
-1. **본문/작은 텍스트용 teal 를 `teal-700(#0f766e, ≈4.7:1)` 로 다크닝** (버튼·배지·캡션) — 디자인 톤 약간 진해짐.
-2. 현행 유지(큰/굵은 요소엔 통과하므로 일부만) — 감리에서 contrast 지적은 남음.
-→ `DESIGN.md` 헌법(teal-600)과 충돌하므로 **AI가 임의 변경 안 함.** PO가 1/2 결정.
+## 색상 대비(teal) — PO 옵션1 적용 완료 (#117)
+브랜드 기본색 `teal-600(#0d9488)`가 흰 배경/흰 글자에서 ≈3.3:1 로 일반 텍스트 AA(4.5:1) 미달이었음(161건). PO 승인으로 **옵션1: 텍스트/배경 teal-600·500 → `teal-700(#0f766e, ≈4.7:1)` 전수 다크닝**(89파일, hover는 teal-800 폴백, border/ring/gradient는 비텍스트라 teal-600 유지). → 실측 161→7.
+- `DESIGN.md` 의 teal 톤 기준은 이 변경에 맞춰 추후 갱신 검토.
