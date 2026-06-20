@@ -157,7 +157,7 @@ export default function CostCalculatorClient() {
     `${c.fromPrefix}${fmtUSD(low)}${perMonth ? c.perMonthWord : ""}${c.fromSuffix}`;
 
   const [cancerIdx, setCancerIdx] = useState(0);
-  const [programKey, setProgramKey] = useState("immuno");
+  const [programKey, setProgramKey] = useState("diagnostics");
   const program = PROGRAMS.find((p) => p.key === programKey);
 
   const calc = useMemo(() => {
