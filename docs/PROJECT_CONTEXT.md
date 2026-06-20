@@ -7,6 +7,43 @@
 
 ---
 
+## 🔖 세션 핸드오프 (2026-06-20 저녁·병렬) — KPI 집계·대시보드 계산 순수함수 추출+테스트 +50 머지·배포(#118·#122)
+
+**이번 세션 한 일:**
+- **🟢 KPI/대시보드 계산 로직 순수함수 추출 + 단위테스트 +50 — PR [#118](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/118)·[#122](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/122) 둘 다 머지·배포(`af6d58c`·`bb5b058`):** 평가 항목 ④(성과지표 자동집계) 핵심 계산이 테스트 0이었고, 만족도 ×20 환산식이 두 파일에 복붙돼 있었음. server-only 아닌 순수 모듈로 떼어 **단일 소스화 + 테스트로 고정**. 원본 파일은 import만 교체 → **출력 수학적으로 동일(화면 숫자·UI 불변)**.
+  - 새 모듈: `src/lib/khidi/satisfaction.ts`(만족도 환산 `likertTo100`·`avgSatisfaction100`), `nationality.ts`(`normalizeNationality`), `funnelMetrics.ts`(`pct`·`maskName`), `dashboardMetrics.ts`(달성률 `achievementPct`·진척률 등), `patientAggregation.ts`(고유환자수·국가분포 `aggregatePatients`).
+  - 영향받은 원본: `kpi.ts`, `satisfaction/route.ts`, `conversion-funnel/route.ts`, `kpi-dashboard/page.jsx` — 전부 위임만.
+  - 테스트: +28(#118 1차) +13(#118 2차) +9(#122) = **+50**, 전 188개 통과.
+- **PO 취향 1건 누적**(`PO_PREFERENCES.md`): 여러 세션 병렬 운영 → "병렬 안전" 작업 고르기 + squash 후 브랜치 리셋.
+
+**왜 그렇게 했는지:**
+- **작업 선정**: PO가 "토큰 활용 위해 세션 여러개 돌리는데 너랑 뭐하면 효과적이냐" → **다른 세션과 파일 안 겹치고 자동검증으로 닫히는 독립 작업**이 병렬에 최적이라 판단. 그중 평가직결·저위험인 KPI 계산 순수화를 골랐음.
+- **저위험이라 직접 머지**: 추가형(테스트+순수모듈), 출력 불변, 로컬 전수검증 초록 → PO의 "저위험 CI초록=머지" 위임 적용.
+
+**안 끝났거나 보류:**
+- **`kpi/route.ts` 누적 종료일 클램프**: UTC/KST 변환 얽혀 종료일 경계가 미묘(off-by-one 의심). 시간대 민감해 자리 비운 동안 안 건드림 → **PO와 함께 봐야 할 별도 사안**.
+- **D. any 축소·E. God 컴포넌트(2883줄) 분할·화상방 라이브검증**: 변함없이 보류(고위험/라이브검증 필요).
+- **다른 세션 열린 PR(무관)**: [#124](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/124)(다른 세션 핸드오프, draft)·[#119](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/119)(AI챗·자료업로드, draft)·[#116](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/116)(성장계획, draft)·[#83](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/83)(AI안전, draft)·[#41](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/41)(비자).
+
+**주의·함정:**
+- **⚠️ squash 머지 후 같은 브랜치 이어쓰기 = 충돌**: #118을 squash로 합친 뒤 같은 작업본(`claude/session-planning-4o5319`)에서 #122를 이어가니 main과 머지 충돌남(원본 커밋이 squash와 갈라져서 + 그새 다른 세션이 main 전진). 해소함(대시보드 색 `teal-500→700`은 다른 세션 것 채택). **다음엔 머지 직후 `git fetch origin main` 후 브랜치를 main 기준으로 다시 잡고 이어갈 것.**
+- **⚠️ CI(자동검사)가 내 브랜치 특정 커밋에 트리거 안 됨**: `e3a70e0`·`96f03d5`에 깃허브 Actions(`ci`·`Smoke`)가 안 돎(다른 병렬 브랜치는 정상). 빈 커밋·닫고열기 다 시도해도 안 떠서, **CI 전 단계를 로컬에서 전수 통과**시킨 근거로 머지함. → 깃허브 이벤트 유실 추정. **다른 PR에서도 재발하면 GitHub Actions 설정/쿼터 점검 필요.**
+- **로컬 `main` 작업본이 옛 커밋(`7458a83`)에 묶여 있음**: `git checkout main` 시 옛 파일로 보임 → 원격·배포엔 영향 0. 작업 전 origin/main 기준으로 잡을 것.
+
+**다음 세션이 먼저 할 일 (우선순위):**
+1. **⚠️ 직전 미검증분 먼저 확인 (관리자 로그인 필요 — 환경상 내가 못 함):** (a) **KPI 대시보드 화면**: `/admin/khidi/kpi-dashboard`에 **유치 4/12·사전상담+사후관리 12/120**·만족도 뜨는지(숫자·로직은 검증됨, 픽셀만). (b) **서버 Sentry 실전송**: 관리자로 `https://healo-khidi.vercel.app/api/sentry/test` 1회 → JSON "전송됐습니다"면 도착 확인.
+2. **KPI cron 실동작 확정**: 15:05 UTC 이후 Vercel 프로덕션 로그에서 `/api/cron/kpi-snapshot` 200 떴는지.
+3. (선택) `kpi/route.ts` 누적 종료일 클램프 시간대 경계 PO와 함께 점검.
+4. (보류) God 컴포넌트 분할 / any 축소 / 화상방 라이브 — PO 동석·라이브검증 가능할 때만.
+5. KHIDI 중간평가(2026-08-27) 상시 — 이번 테스트 보강은 평가항목 ④(성과지표 자동집계 정확성) 직결(숫자 깨지면 CI가 잡음).
+
+**검증 상태:** PR **[#118](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/118)(`af6d58c`)·[#122](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/122)(`bb5b058`) = 합치기(squash 머지)·배포 완료**. 로컬 **tsc 0 / vitest 188개(+50) / eslint 0에러 / check:content / check:migrations(81) / check:i18n / check:legal / check:cancer-i18n / verify:rag / next build --webpack** 전부 통과(=CI 전 단계 로컬 전수검증). **⚠️ #118·#122는 깃허브 CI(`ci`·`Smoke`)가 트리거 안 돼 "CI 봇 초록"은 못 받음 — 로컬 전수검증으로 대체.** **❌ 미검증(관리자 로그인 필요): KPI 대시보드 화면 렌더 / 서버 Sentry 실전송 — 둘 다 PO 1클릭.** **❌ 미검증: KPI cron 프로덕션 실행.** 다른 세션 열린 PR: #124·#119·#116·#83·#41(무관).
+
+**다음 세션 첫 프롬프트 (PO 복붙용):**
+> 먼저 docs/PROJECT_CONTEXT.md 최상단 핸드오프(2026-06-20 저녁) 읽어. 그다음 직전 미검증 확인: 1) 관리자로 /admin/khidi/kpi-dashboard 열어서 유치 4/12·사전상담+사후관리 12/120 뜨는지. 2) 관리자로 https://healo-khidi.vercel.app/api/sentry/test 한번 열어 JSON 알려줘. 3) 15:05 UTC 지났으면 Vercel 프로덕션 로그에서 /api/cron/kpi-snapshot 200 떴는지 봐줘. 새 작업은 git fetch origin main 후 origin/main 기준으로 브랜치 잡고 시작(squash 머지 후 옛 브랜치 이어쓰면 충돌함).
+
+---
+
 ## 🔖 세션 핸드오프 (2026-06-20 오후·자율) — KPI 집계오류 자동 canary 신설·머지·배포(#107) + 직전 미검증 2건 추가검증
 
 **이번 세션 한 일:**
@@ -40,41 +77,6 @@
 
 **다음 세션 첫 프롬프트 (PO 복붙용):**
 > 먼저 docs/PROJECT_CONTEXT.md 최상단 핸드오프(2026-06-20 오후) 읽어. 그다음 직전 미검증 확인: 1) 관리자로 /admin/khidi/kpi-dashboard 열어서 유치 4/12·사전상담+사후관리 12/120 뜨는지. 2) 관리자로 https://healo-khidi.vercel.app/api/sentry/test 한번 열어 JSON 알려줘(서버 에러감시 + 새 KPI 경보 알림 경로 둘 다 이걸로 증명). 3) 15:05 UTC 지났으면 Vercel 프로덕션 로그에서 /api/cron/kpi-snapshot 200 떴는지 봐줘(매일 KPI 점검 cron이 실제 도는지). 새 작업은 git fetch origin main && git reset --hard origin/main 부터.
-
----
-
-## 🔖 세션 핸드오프 (2026-06-20) — 야간 PR 3건 머지(#102 KPI수정·#100 멱등·#101 알림DB) + 알림 마이그레이션 실DB 적용
-
-**이번 세션 한 일 (PR 3건 머지 + DB 마이그레이션 1건 적용):**
-- **🔴 #102 KHIDI KPI 깨진 컬럼 수정 — 머지·실서비스 배포(`1f0bdfe`):** 평가 직결 버그(유치·사전상담이 없는 컬럼 쿼리로 항상 0). 머지 전 **실DB 대조로 정의·숫자 재검증** = 유치(`inquiries.outcome='admitted'`) **4** / 사전상담(완료세션) **9** / 사후관리(완료세션) **3** → 새 쿼리와 정확히 일치. `getKpiCumulative` 함수 존재·CI(ci·smoke) 초록도 확인. 대시보드엔 **유치 4/12·사전상담+사후관리 12/120**으로 표시될 것. 전환 깔때기(`conversion_funnel`)와 유치 정의 통일됨.
-- **#100 마이그레이션 멱등 가드 + CI 검사기 — 머지(`61dd6ed`):** `docs/POSTMORTEMS.md`가 #102(#7)와 같은 위치를 건드려 머지 충돌 → 로컬에서 최신 main에 리베이스, **#6·#7 둘 다 보존(번호순 #6→#7)**으로 충돌 풀고 재푸시. 로컬 `node scripts/check-migration-idempotency.mjs` 통과(81개 파일) 확인 후 머지.
-- **#101 알림 카운터 인메모리→DB — 머지(`202840d`) + 마이그레이션 실DB 적용:** PO가 "적용할지 정해줘" 위임 → **적용 결정**(추가형 `alert_counter_events` 테이블 + RPC 2개, RLS·service_role 전용, 검증된 `check_rate_limit` 패턴, SECURITY DEFINER+search_path 고정). Supabase MCP `apply_migration`으로 **실DB 적용 후 BEGIN/ROLLBACK 동작검증**(같은 키 증가 누적·리셋 후 0). #100 머지 후 베이스 skew 방지로 최신 main 리베이스(검사기가 새 마이그레이션까지 검증) → CI 초록 후 머지.
-- **#103(상담방 i18n)은 지난 세션에 이미 머지됨**(`13b561b`) — 이번엔 재확인만.
-
-**왜 그렇게 했는지:**
-- **#102 우선·신중 검증**: 평가 핵심 숫자가 바뀌는 변경이라 머지 전 실DB(`information_schema` 아닌 실제 count)로 4/9/3 재확인. PO가 확인하라던 정의(유치=admitted, 상담/사후=세션완료)와 일치 확인 후에만 머지.
-- **#101 마이그레이션 적용 결정**: 적용 안 하면 코드가 인메모리 fallback으로 남아 콜드스타트 리셋 버그가 안 고쳐짐(=기능 죽은 상태). 추가형·service_role 전용·롤백테스트 통과라 위험 낮다고 판단해 적용. 코드 fallback 덕에 적용·배포 순서는 무관.
-- **베이스 skew 회피**: 지난 세션 교훈(#92/#93 잠복 tsc) 따라, #100 머지 후 #101을 최신 main에 리베이스해 새 마이그레이션이 멱등 검사기까지 통과하는지 합쳐서 검증.
-
-**안 끝났거나 보류:**
-- **D. 타입 강화(any 축소)·E. God 컴포넌트(2883줄) 분할**: 지난 세션과 동일하게 보류(저가치·고위험 / LiveKit 라이브 검증 필요). 안전 슬라이스 나오면 별도.
-- **열린 PR #83(AI 안전 0층, draft)·#41(비자)**: 이번 작업과 무관한 지난 세션 것 — 그대로 열려있음(PO 별도 검토).
-
-**주의·함정:**
-- **#101 마이그레이션은 실DB에 이미 적용됨**(`alert_counter_events` + `alert_counter_increment`/`alert_counter_reset`). 재적용해도 멱등(IF NOT EXISTS/CREATE OR REPLACE)이라 안전.
-- **CI 러너가 느릴 때 있음**: 이번에 ci·smoke가 평소(3분)보다 큐 지연 있었음(5분+). 초록 확인 후 머지하면 됨(조급하게 머지 금지).
-- POSTMORTEMS·KNOWN_ISSUES는 여러 PR이 끝부분을 동시에 건드려 머지 충돌 잦음 → 리베이스로 양쪽 보존하며 풀 것.
-
-**다음 세션이 먼저 할 일 (우선순위):**
-1. **⚠️ 직전 미검증분 먼저 확인 (관리자 로그인 필요 — 내가 환경상 못 함):** (a) **KPI 대시보드 화면**: `/admin/khidi/kpi-dashboard` 열어서 상단 "공식 정량지표 달성률"에 **유치 4/12·사전상담+사후관리 12/120**·만족도 뜨는지(숫자는 실DB로 검증됨, 화면 렌더만 미확인). (b) **서버 Sentry 실수집**: 관리자로 `https://healo-khidi.vercel.app/api/sentry/test` 1회 → JSON "전송됐습니다"면 Sentry 대시보드 도착 확인(라우트 403 보호는 확인됨, 실전송만 PO 1클릭).
-2. **#101 효과 확인(선택)**: 알림 누적 임계가 이제 DB 집계로 도는지(콜드스타트 리셋 안 되는지) 운영 중 관찰.
-3. (보류) God 컴포넌트 분할 / 타입 any 축소 / 화상방 라이브 검증.
-4. KHIDI 중간평가(2026-08-27) 상시 — 이번 KPI 수정·멱등·알림DB는 평가항목 ④(성과지표 자동집계 정확성)·정성(ICT 체계) 직결.
-
-**검증 상태:** PR **#102(`1f0bdfe`)·#100(`61dd6ed`)·#101(`202840d`) = CI(ci·smoke) 초록 + main 머지 + 배포 완료**(GitHub MCP로 check_runs 확인). 로컬 `check-migration-idempotency.mjs` 통과(81파일). **#102 KPI 실측치 = 실DB 조회로 검증(유치4·사전상담9·사후관리3 → 4/12·12/120).** **#101 마이그레이션 = 실DB 적용 + BEGIN/ROLLBACK 동작검증 완료.** **❌ 미검증(관리자 로그인 필요, 내 환경서 불가): KPI 대시보드 화면 실제 렌더 / 서버 Sentry 실전송·도착** — 둘 다 PO 1클릭. 열린 PR: #83·#41(지난 세션, 무관).
-
-**다음 세션 첫 프롬프트 (PO 복붙용):**
-> 먼저 docs/PROJECT_CONTEXT.md 최상단 핸드오프(2026-06-20) 읽어. 그다음 직전 미검증 2개 확인해줘(관리자 로그인 필요): 1) /admin/khidi/kpi-dashboard 열어서 "공식 정량지표 달성률"에 유치 4/12·사전상담+사후관리 12/120 뜨는지. 2) 관리자로 https://healo-khidi.vercel.app/api/sentry/test 한번 열어서 JSON 알려줘(서버 에러감시 마지막 확인). 그 외 백로그는 KNOWN_ISSUES 참고. 새 작업은 origin/main 최신 동기화부터.
 
 ---
 
