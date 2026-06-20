@@ -31,6 +31,7 @@ const PUBLIC_PREFIXES = [
   "/hospitals",
   "/telemedicine",
   "/care-journey",
+  "/cost-calculator",
   "/search",
   "/specialties",
   "/faq",

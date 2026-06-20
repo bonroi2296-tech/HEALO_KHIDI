@@ -74,6 +74,7 @@ export default async function sitemap() {
     localized('/specialties/korean-medicine', { changeFrequency: 'monthly', priority: 0.8 }),
     localized('/hospitals/immune', { changeFrequency: 'monthly', priority: 0.85 }),
     localized('/care-journey', { changeFrequency: 'monthly', priority: 0.8 }),
+    localized('/cost-calculator', { changeFrequency: 'weekly', priority: 0.92 }),
     // ── 암종별 치료 상세 (면력한방병원 6개 암종)
     localized('/treatments/female', { changeFrequency: 'monthly', priority: 0.88 }),
     localized('/treatments/digest', { changeFrequency: 'monthly', priority: 0.88 }),
@@ -96,9 +97,6 @@ export default async function sitemap() {
       alternates: { languages: { 'ru': `${baseUrl}/ru/for-russian-patients`, 'x-default': `${baseUrl}/${DEFAULT_LOCALE}` } } },
     { url: `${baseUrl}/kk/for-kazakh-patients`, changeFrequency: 'weekly', priority: 0.9,
       alternates: { languages: { 'kk': `${baseUrl}/kk/for-kazakh-patients`, 'x-default': `${baseUrl}/${DEFAULT_LOCALE}` } } },
-    // ── 러시아어 비용 계산기 (가격 의도 키워드 — 전환 핵심 자산)
-    { url: `${baseUrl}/ru/cost-calculator`, changeFrequency: 'weekly', priority: 0.92,
-      alternates: { languages: { 'ru': `${baseUrl}/ru/cost-calculator`, 'x-default': `${baseUrl}/${DEFAULT_LOCALE}` } } },
   ].map(p => ({ ...p, lastModified: now }));
 
   const urls = [...staticPages];
