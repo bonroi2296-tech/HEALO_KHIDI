@@ -594,7 +594,7 @@ export default function UnifiedInquiryFunnel() {
       setInquiryId(result.inquiryId);
       setPublicToken(result.publicToken || null);
       setPhase("step1-success");
-    } catch (e) {
+    } catch (_e) {
       // 원시 에러메시지(영문 네트워크 오류 등)를 그대로 노출하지 않고 6개 언어 일반 메시지로.
       setError(tl("genericError", lang));
     } finally {
@@ -653,7 +653,7 @@ export default function UnifiedInquiryFunnel() {
       if (!result.ok) throw new Error(result.error || "step2_failed");
 
       setPhase("step2-success");
-    } catch (e) {
+    } catch (_e) {
       // 원시 에러메시지(영문 네트워크 오류 등)를 그대로 노출하지 않고 6개 언어 일반 메시지로.
       setError(tl("genericError", lang));
     } finally {
