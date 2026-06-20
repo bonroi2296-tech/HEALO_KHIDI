@@ -334,7 +334,7 @@ export default function HomeClient() {
                 <div className="p-3 md:p-5">
                   <h3 className="font-bold text-sm md:text-lg text-gray-900 leading-snug">{l(doc.name)}</h3>
                   <p className="text-teal-600 text-xs md:text-sm font-medium mt-0.5 md:mt-1 leading-snug">{l(doc.title)}</p>
-                  <p className="text-gray-400 text-[10px] md:text-xs mt-0.5 md:mt-1 line-clamp-1">{l(doc.specialty)}</p>
+                  <p className="text-gray-500 text-[10px] md:text-xs mt-0.5 md:mt-1 line-clamp-1">{l(doc.specialty)}</p>
                 </div>
               </div>
             ))}
@@ -400,7 +400,7 @@ export default function HomeClient() {
                 </div>
                 <div>
                   <h3 className="font-bold text-xs md:text-lg text-gray-900 mb-0.5 md:mb-1">{l(step.title)}</h3>
-                  <p className="text-gray-400 text-[10px] md:text-sm leading-snug">{l(step.desc)}</p>
+                  <p className="text-gray-500 text-[10px] md:text-sm leading-snug">{l(step.desc)}</p>
                 </div>
               </div>
             ))}
@@ -416,7 +416,7 @@ export default function HomeClient() {
           <h2 className="text-2xl md:text-3xl lg:text-4xl font-extrabold text-center text-gray-900 mb-8 md:mb-12">{l(L.cancers.title)}</h2>
           <div className="grid grid-cols-3 md:grid-cols-6 gap-2 md:gap-4">
             {L.cancers.items.map((c, i) => (
-              <div key={i} onClick={() => router.push("/treatments")} className="bg-white rounded-xl md:rounded-2xl p-3 md:p-5 text-center cursor-pointer hover:shadow-xl hover:-translate-y-1 transition-all duration-300 border border-gray-100 group">
+              <div key={i} role="button" tabIndex={0} onClick={() => router.push("/treatments")} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); router.push("/treatments"); } }} className="bg-white rounded-xl md:rounded-2xl p-3 md:p-5 text-center cursor-pointer hover:shadow-xl hover:-translate-y-1 transition-all duration-300 border border-gray-100 group focus:outline-none focus:ring-2 focus:ring-teal-400">
                 <div className="text-2xl md:text-4xl mb-1 md:mb-3">{c.emoji}</div>
                 <div className="font-bold text-xs md:text-sm text-gray-800 mb-0.5 md:mb-1">{l(c.label)}</div>
                 <div className="text-[9px] md:text-[11px] text-teal-600 font-semibold leading-tight">{l(c.stat)}</div>
@@ -451,8 +451,11 @@ export default function HomeClient() {
               return (
                 <div
                   key={i}
+                  role="button"
+                  tabIndex={0}
                   onClick={() => router.push(`/hospitals/${h.slug}`)}
-                  className="bg-white rounded-xl md:rounded-2xl overflow-hidden border border-gray-100 hover:shadow-xl hover:border-teal-200 transition-all duration-300 cursor-pointer group"
+                  onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); router.push(`/hospitals/${h.slug}`); } }}
+                  className="bg-white rounded-xl md:rounded-2xl overflow-hidden border border-gray-100 hover:shadow-xl hover:border-teal-200 transition-all duration-300 cursor-pointer group focus:outline-none focus:ring-2 focus:ring-teal-400"
                 >
                   <div className="h-24 sm:h-32 md:h-40 overflow-hidden bg-gray-100">
                     {/* img 필드를 직접 사용(SSR에 올바른 src 박힘) — 사진 있으면 폴더 경로, 없으면 준비중 플레이스홀더. onError는 안전망. */}

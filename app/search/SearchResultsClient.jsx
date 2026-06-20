@@ -264,6 +264,7 @@ export default function SearchResultsClient() {
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               placeholder={t("search.placeholder", lang)}
+              aria-label={t("search.placeholder", lang)}
               className="flex-1 p-3 md:p-4 text-gray-800 placeholder-gray-400 outline-none bg-transparent text-sm md:text-lg min-w-0 font-medium"
               onKeyDown={(e) => e.key === "Enter" && handleSearch()}
               autoFocus
@@ -271,6 +272,7 @@ export default function SearchResultsClient() {
             {inputValue && (
               <button
                 onClick={handleClear}
+                aria-label={t("search.clear", lang)}
                 className="p-2 mr-1 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100 transition"
               >
                 <X size={18} />

@@ -13,7 +13,7 @@ export interface ConsultationInviteProps {
   doctorSpecialty?: string;      // 전공 / 직위 (예: 종양학, 교수)
   hospitalName?: string;
   hospitalAddress?: string;
-  lang?: "ko" | "en" | "ru" | "kz";
+  lang?: "ko" | "en" | "ru" | "kz" | "zh" | "ja";
 }
 
 const STRINGS = {
@@ -65,6 +65,26 @@ const STRINGS = {
       "Интернеті бар кез келген құрылғыда жұмыс істейді (ДК / планшет / телефон). Chrome немесе Safari ұсынылады.",
     footer: "healwith · Кореядағы онкология консьерж қызметі",
   },
+  zh: {
+    subject: "healwith 远程会诊邀请 — 请确认",
+    greeting: (n: string) => `您好${n ? `，${n}` : ""}，`,
+    intro: "您的 healwith 远程会诊已确认。请在预约时间点击下方按钮加入。",
+    timeLabel: "预约时间",
+    joinBtn: "进入会诊",
+    reminder: "※ 此链接仅供您本人使用，请勿分享给他人。无需注册账户即可进入。",
+    compat: "可在任何联网设备（电脑／平板／手机）上使用，推荐 Chrome 或 Safari，无需安装应用。",
+    footer: "healwith · 韩国癌症诊疗礼宾服务",
+  },
+  ja: {
+    subject: "healwith オンライン診療のご招待 — ご確認ください",
+    greeting: (n: string) => `こんにちは${n ? `、${n}様` : ""}。`,
+    intro: "healwith のオンライン診療が確定しました。予約時間に下のボタンからご参加ください。",
+    timeLabel: "予約時間",
+    joinBtn: "診療ルームに入る",
+    reminder: "※ このリンクはご本人専用です。他の方と共有しないでください。アカウント登録は不要です。",
+    compat: "インターネットに接続できるPC／タブレット／スマートフォンからご参加いただけます（Chrome・Safari推奨）。アプリのインストールは不要です。",
+    footer: "healwith · 韓国がん治療コンシェルジュ",
+  },
 };
 
 export function renderConsultationInviteEmail(props: ConsultationInviteProps) {
@@ -74,7 +94,11 @@ export function renderConsultationInviteEmail(props: ConsultationInviteProps) {
   // 시간대 명시 — 코디는 KST로 입력하지만 환자는 해외(CIS 등)라 시간대 라벨이 없으면 혼란.
   // KST(상담이 진행되는 한국 시간) + UTC(글로벌 표준) 를 모두 라벨과 함께 표기.
   const locale =
-    lang === "ko" ? "ko-KR" : lang === "ru" || lang === "kz" ? "ru-RU" : "en-US";
+    lang === "ko" ? "ko-KR"
+    : lang === "ru" || lang === "kz" ? "ru-RU"
+    : lang === "zh" ? "zh-CN"
+    : lang === "ja" ? "ja-JP"
+    : "en-US";
   const fmtIn = (timeZone: string) =>
     new Date(props.scheduledAt).toLocaleString(locale, {
       year: "numeric",
@@ -97,7 +121,7 @@ export function renderConsultationInviteEmail(props: ConsultationInviteProps) {
   <table cellpadding="0" cellspacing="0" role="presentation" style="width:100%;background:linear-gradient(180deg,#ffffff 0%,#fafafa 100%);border:1px solid #c8a96a;border-left:3px solid #c8a96a;border-radius:4px;">
     <tr><td style="padding:18px 20px;">
       <div style="font-family:'Helvetica Neue',Arial,sans-serif;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:#c8a96a;margin-bottom:10px;">
-        ${lang === "ko" ? "담당 기관 및 의료진" : lang === "ru" ? "Медицинское учреждение" : lang === "kz" ? "Медициналық мекеме" : "Medical provider"}
+        ${lang === "ko" ? "담당 기관 및 의료진" : lang === "ru" ? "Медицинское учреждение" : lang === "kz" ? "Медициналық мекеме" : lang === "zh" ? "医疗机构及医生" : lang === "ja" ? "担当機関・医療スタッフ" : "Medical provider"}
       </div>
       ${
         props.hospitalName

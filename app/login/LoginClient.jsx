@@ -82,11 +82,12 @@ export const LoginPage = ({ setView }) => {
 
                 <form onSubmit={handleLogin} className="space-y-6">
                     <div>
-                        <label className="block text-sm font-bold text-gray-700 mb-1">{t("login.email", langCode)}</label>
+                        <label htmlFor="login-email" className="block text-sm font-bold text-gray-700 mb-1">{t("login.email", langCode)}</label>
                         <div className="relative">
                             <Mail className="absolute left-4 top-3.5 text-gray-400" size={20}/>
-                            <input 
-                                type="email" 
+                            <input
+                                id="login-email"
+                                type="email"
                                 required
                                 className="w-full pl-12 pr-4 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none transition-all bg-gray-50"
                                 placeholder={t("login.emailPlaceholder", langCode)}
@@ -98,21 +99,23 @@ export const LoginPage = ({ setView }) => {
 
                     <div>
                         <div className="flex justify-between items-center mb-1">
-                            <label className="block text-sm font-bold text-gray-700">{t("login.password", langCode)}</label>
+                            <label htmlFor="login-password" className="block text-sm font-bold text-gray-700">{t("login.password", langCode)}</label>
                             <button type="button" onClick={() => toast.info(t("login.forgotHint", langCode))} className="text-xs font-bold text-teal-600 hover:underline">{t("login.forgot", langCode)}</button>
                         </div>
                         <div className="relative">
                             <Lock className="absolute left-4 top-3.5 text-gray-400" size={20}/>
-                            <input 
-                                type={showPassword ? "text" : "password"} 
+                            <input
+                                id="login-password"
+                                type={showPassword ? "text" : "password"}
                                 required
                                 className="w-full pl-12 pr-12 py-3 rounded-xl border border-gray-200 focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none transition-all bg-gray-50"
                                 placeholder="••••••••"
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
                             />
-                            <button 
+                            <button
                                 type="button"
+                                aria-label={showPassword ? "Hide password" : "Show password"}
                                 onClick={() => setShowPassword(!showPassword)}
                                 className="absolute right-4 top-3.5 text-gray-400 hover:text-gray-600 focus:outline-none"
                             >

@@ -152,7 +152,7 @@ function FeedbackModal({ langCode, messageId, threadId, publicToken, onClose, on
           <h3 className="text-sm font-bold text-gray-900">
             {t("chat.feedback.modalTitle", langCode) || "What was wrong with this response?"}
           </h3>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition">
+          <button onClick={onClose} aria-label="Close" className="text-gray-400 hover:text-gray-600 transition">
             <X size={18} />
           </button>
         </div>
@@ -581,6 +581,7 @@ export function ThreadChat() {
                         <>
                           <button
                             onClick={() => handleThumbsUp(msg.id)}
+                            aria-label="Helpful"
                             title={t("chat.feedback.helpful", langCode) || "Helpful"}
                             className="p-1 rounded-lg text-gray-300 hover:text-teal-500 hover:bg-teal-50 transition"
                           >
@@ -588,6 +589,7 @@ export function ThreadChat() {
                           </button>
                           <button
                             onClick={() => handleThumbsDown(msg.id)}
+                            aria-label="Not helpful"
                             title={t("chat.feedback.notHelpful", langCode) || "Not helpful"}
                             className="p-1 rounded-lg text-gray-300 hover:text-red-500 hover:bg-red-50 transition"
                           >
@@ -633,6 +635,7 @@ export function ThreadChat() {
             />
             <button
               onClick={handleSend}
+              aria-label="Send message"
               disabled={sending || !input.trim()}
               className="absolute right-2 top-1.5 bg-teal-600 text-white p-1.5 rounded-full hover:bg-teal-700 transition disabled:opacity-50"
             >

@@ -262,7 +262,7 @@ export default function CareJourneyClient() {
             </div>
           ))}
         </div>
-        <p className="text-[11px] text-gray-400 mt-4 leading-relaxed">{c.statsSource}</p>
+        <p className="text-[11px] text-gray-500 mt-4 leading-relaxed">{c.statsSource}</p>
       </section>
 
       {/* Why immune/rehab care matters */}
