@@ -129,8 +129,8 @@ export default function ForKazakhPatientsPage() {
               <p className="text-sm text-gray-500">Кореяда обырдан 5 жылдық өмір сүру (2018–2022)</p>
             </div>
             <div className="border border-gray-200 rounded-2xl p-6 text-center">
-              <div className="text-3xl font-extrabold text-teal-700 mb-1">1,17 млн</div>
-              <p className="text-sm text-gray-500">2024 жылы Кореяны таңдаған шетелдік науқастар</p>
+              <div className="text-3xl font-extrabold text-teal-700 mb-1">2,01 млн</div>
+              <p className="text-sm text-gray-500">2025 жылы Кореяны таңдаған шетелдік науқастар</p>
             </div>
             <div className="border border-gray-200 rounded-2xl p-6 text-center">
               <div className="text-3xl font-extrabold text-teal-700 mb-1">14 000+</div>
