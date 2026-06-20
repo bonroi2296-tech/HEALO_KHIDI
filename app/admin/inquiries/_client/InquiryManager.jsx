@@ -183,7 +183,7 @@ export const InquiryManager = ({ inquiries, fetchInquiries, handleFileClick }) =
       <td className="px-4 lg:px-6 py-3 lg:py-4">
         <button
           onClick={() => handleViewDetail(item.id)}
-          className="flex items-center gap-1 px-3 py-1.5 bg-teal-500 hover:bg-teal-700 text-white text-xs rounded-lg transition"
+          className="flex items-center gap-1 px-3 py-1.5 bg-teal-700 hover:bg-teal-700 text-white text-xs rounded-lg transition"
           disabled={loadingDetail}
         >
           <Eye size={14} />
@@ -218,7 +218,7 @@ export const InquiryManager = ({ inquiries, fetchInquiries, handleFileClick }) =
         </div>
         <button
           onClick={() => handleViewDetail(item.id)}
-          className="flex items-center gap-1 px-3 py-1.5 bg-teal-500 hover:bg-teal-700 text-white text-xs rounded-lg transition"
+          className="flex items-center gap-1 px-3 py-1.5 bg-teal-700 hover:bg-teal-700 text-white text-xs rounded-lg transition"
           disabled={loadingDetail}
         >
           <Eye size={14} />

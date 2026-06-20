@@ -267,7 +267,7 @@ export default function HomeClient() {
         </div>
         {/* Glow effects */}
         <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-teal-500/10 rounded-full blur-3xl" />
+          <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-teal-700/10 rounded-full blur-3xl" />
           <div className="absolute bottom-0 right-1/4 w-[400px] h-[400px] bg-emerald-500/10 rounded-full blur-3xl" />
         </div>
 
@@ -365,7 +365,7 @@ export default function HomeClient() {
               const colors = [
                 { bg: "bg-teal-100", icon: "text-teal-700", border: "border-teal-200" },
                 { bg: "bg-blue-100", icon: "text-blue-600", border: "border-blue-200" },
-                { bg: "bg-emerald-100", icon: "text-emerald-600", border: "border-emerald-200" },
+                { bg: "bg-emerald-100", icon: "text-emerald-700", border: "border-emerald-200" },
                 { bg: "bg-purple-100", icon: "text-purple-600", border: "border-purple-200" },
               ][i];
               return (
@@ -565,7 +565,7 @@ export default function HomeClient() {
         <div className="max-w-4xl mx-auto px-4">
           <div className="bg-gradient-to-r from-red-50 to-orange-50 rounded-xl md:rounded-2xl p-5 md:p-10 border border-red-100">
             <div className="text-center">
-              <div className="inline-flex items-center gap-2 bg-red-100 rounded-full px-3 md:px-4 py-1 md:py-1.5 text-red-600 text-xs md:text-sm font-semibold mb-3 md:mb-4">
+              <div className="inline-flex items-center gap-2 bg-red-100 rounded-full px-3 md:px-4 py-1 md:py-1.5 text-red-700 text-xs md:text-sm font-semibold mb-3 md:mb-4">
                 <Phone size={12} />
                 24/7
               </div>
@@ -618,7 +618,7 @@ export default function HomeClient() {
           ══════════════════════════════════════════ */}
       <section className="relative bg-gradient-to-br from-slate-900 via-teal-900 to-slate-900 text-white py-14 md:py-24 overflow-hidden">
         <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-0 right-0 w-[300px] h-[300px] md:w-[400px] md:h-[400px] bg-teal-500/10 rounded-full blur-3xl" />
+          <div className="absolute top-0 right-0 w-[300px] h-[300px] md:w-[400px] md:h-[400px] bg-teal-700/10 rounded-full blur-3xl" />
           <div className="absolute bottom-0 left-0 w-[200px] h-[200px] md:w-[300px] md:h-[300px] bg-emerald-500/10 rounded-full blur-3xl" />
         </div>
         <div className="relative max-w-3xl mx-auto px-4 text-center">

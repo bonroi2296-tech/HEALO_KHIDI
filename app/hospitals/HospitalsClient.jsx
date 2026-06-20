@@ -488,7 +488,7 @@ function DoctorModal({ doc, l, lang, onClose }) {
             return (
               <div key={sec.key}>
                 <h4 className="flex items-center gap-2 text-base font-bold text-gray-700 mb-3">
-                  <span className="text-emerald-600">{sec.icon}</span>{sec.label}
+                  <span className="text-emerald-700">{sec.icon}</span>{sec.label}
                 </h4>
                 <ul className="space-y-1.5">
                   {sec.data.map((item, i) => (
@@ -509,7 +509,7 @@ function DoctorModal({ doc, l, lang, onClose }) {
 /* ── Doctor Card (Large PC / Compact Mobile) ── */
 function DoctorCard({ doc, l, lang, onSelect }) {
   const isLeader = !!doc.role;
-  const roleBadge = doc.role === 'ceo' ? { label: 'CEO', color: 'bg-emerald-600 text-white' }
+  const roleBadge = doc.role === 'ceo' ? { label: 'CEO', color: 'bg-emerald-700 text-white' }
     : doc.role === 'wm' ? { label: 'WM', color: 'bg-blue-600 text-white' }
     : doc.role === 'cmo' ? { label: 'CMO', color: 'bg-purple-600 text-white' }
     : null;
@@ -585,7 +585,7 @@ function DoctorCard({ doc, l, lang, onSelect }) {
             {la(doc.활동, lang).length > 0 && (
               <span className="flex items-center gap-1 text-gray-500"><Activity size={11} /> {la(doc.활동, lang).length}</span>
             )}
-            <span className="ml-auto text-emerald-600 font-semibold group-hover:text-emerald-700 transition text-xs">
+            <span className="ml-auto text-emerald-700 font-semibold group-hover:text-emerald-700 transition text-xs">
               {l(L.view_profile)} →
             </span>
           </div>

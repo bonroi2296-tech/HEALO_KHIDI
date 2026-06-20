@@ -67,7 +67,7 @@ export function AccuracyPanel() {
             {/* Progress Bar */}
             <div className="mt-2 h-2 bg-gray-200 rounded-full overflow-hidden">
               <div
-                className="h-full bg-teal-500 rounded-full transition-all"
+                className="h-full bg-teal-700 rounded-full transition-all"
                 style={{
                   width: `${Math.min((data.current / data.target) * 100, 100)}%`,
                 }}

@@ -92,7 +92,7 @@ export const SuccessPage = ({ setView }) => {
                             
                             <div className="relative flex gap-4 pb-6">
                                 <div className="w-6 h-6 rounded-full bg-white border-2 border-teal-500 flex items-center justify-center shrink-0 z-10 ring-4 ring-white">
-                                    <div className="w-2 h-2 bg-teal-500 rounded-full animate-pulse"></div>
+                                    <div className="w-2 h-2 bg-teal-700 rounded-full animate-pulse"></div>
                                 </div>
                                 <div>
                                     <p className="text-sm font-bold text-teal-700 leading-none mb-1">{t('success.step2Title', langCode)}</p>

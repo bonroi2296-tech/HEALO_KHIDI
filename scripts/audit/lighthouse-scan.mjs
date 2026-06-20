@@ -14,15 +14,21 @@ import { execSync } from "node:child_process";
 const BASE = process.env.AUDIT_BASE_URL || "https://healo-khidi.vercel.app";
 const PATHS = (process.env.AUDIT_PATHS || "/en,/en/treatments,/en/hospitals").split(",");
 
-function findChrome() {
+async function findChrome() {
   if (process.env.CHROME_PATH) return process.env.CHROME_PATH;
+  // playwright 가 설치한 chromium 사용(로컬·CI 모두) — 가장 이식성 높음.
+  try {
+    const { chromium } = await import("playwright");
+    const p = chromium.executablePath();
+    if (p) return p;
+  } catch { /* playwright 없으면 아래 폴백 */ }
   try {
     return execSync("ls -d /opt/pw-browsers/chromium-*/chrome-linux64/chrome 2>/dev/null | head -1", { encoding: "utf8" }).trim() || undefined;
   } catch { return undefined; }
 }
 
 const chrome = await chromeLauncher.launch({
-  chromePath: findChrome(),
+  chromePath: await findChrome(),
   chromeFlags: ["--headless=new", "--no-sandbox", "--disable-gpu", "--disable-dev-shm-usage", "--ignore-certificate-errors"],
 });
 

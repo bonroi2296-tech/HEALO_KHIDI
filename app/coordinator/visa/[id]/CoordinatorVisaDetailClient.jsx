@@ -241,7 +241,7 @@ export default function CoordinatorVisaDetailClient({ applicationId }) {
             <button
               onClick={handleIssueInvitation}
               disabled={!canIssueInvitation || issuing}
-              className="bg-emerald-600 text-white px-4 py-2 rounded text-sm hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="bg-emerald-700 text-white px-4 py-2 rounded text-sm hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed"
               title={!canIssueInvitation ? `현재 상태(${STATUS_LABELS[application.status]})에서는 발급 불가` : ""}
             >
               {issuing ? "발급 중..." : "초청장 발급"}

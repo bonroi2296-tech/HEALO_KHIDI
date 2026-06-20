@@ -367,7 +367,7 @@ export default function PipelinePage() {
                 onClick={() => saveSchedule({ enabled: !schedule.enabled })}
                 disabled={scheduleSaving}
                 className={`relative w-11 h-6 rounded-full transition-colors ${
-                  schedule.enabled ? "bg-teal-500" : "bg-gray-300"
+                  schedule.enabled ? "bg-teal-700" : "bg-gray-300"
                 }`}
               >
                 <span

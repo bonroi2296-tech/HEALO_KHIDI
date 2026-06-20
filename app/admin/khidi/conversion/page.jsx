@@ -112,7 +112,7 @@ export default function ConversionDashboard() {
                   <div className="w-28 text-sm text-gray-600 shrink-0">{s.label}</div>
                   <div className="flex-1 bg-gray-100 rounded-lg overflow-hidden h-9 relative">
                     <div
-                      className="h-full bg-teal-500 rounded-lg transition-all"
+                      className="h-full bg-teal-700 rounded-lg transition-all"
                       style={{ width: `${Math.max(4, (s.count / maxCount) * 100)}%` }}
                     />
                     <span className="absolute inset-y-0 left-3 flex items-center text-sm font-bold text-gray-900">

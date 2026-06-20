@@ -293,7 +293,7 @@ export default function RagDocumentsPage() {
                         <button
                           onClick={() => handleSave(doc)}
                           disabled={saving[doc.id]}
-                          className="p-1.5 bg-teal-500 hover:bg-teal-700 text-white rounded-lg disabled:opacity-50 transition"
+                          className="p-1.5 bg-teal-700 hover:bg-teal-700 text-white rounded-lg disabled:opacity-50 transition"
                           title="저장"
                         >
                           <Save size={14} />
