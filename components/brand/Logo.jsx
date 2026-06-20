@@ -10,9 +10,9 @@
 // ─────────────────────────────────────────────────────────────
 
 const SIZES = {
-  sm: "h-4",
-  md: "h-5 md:h-6",
-  lg: "h-7 md:h-8",
+  sm: "h-3.5",
+  md: "h-4 md:h-5",
+  lg: "h-6 md:h-7",
 };
 
 export default function Logo({ tone = "light", size = "md", className = "" }) {
