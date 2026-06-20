@@ -1,5 +1,44 @@
 # PR
 
+## 🔖 세션 핸드오프 (2026-06-19 야간 자율) — 죽은라우트 정리·마이그레이션 멱등·알림DB·KHIDI KPI 깨진컬럼 수정·상담방 i18n (PR 5건, 1머지+4 PO대기)
+
+**이번 세션 한 일 (야간 자율 — PR 5건):**
+- **A. 죽은 `/api/chat` 라우트 제거 ([#99](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/99) — 머지·배포 완료):** UI 미사용(아카이브 dead-code만 참조)인 옛 AI SDK 스트리밍 라우트 삭제. 활성 챗은 `ThreadChat.jsx`→`/api/public/chat/message`→`generateReply.ts`. 폼 자동채움 쓰는 `/api/chat/thread-summary`는 보존. **저위험이라 CI 초록 확인 후 직접 머지.**
+- **B. 마이그레이션 멱등 가드 ([#100](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/100) — draft, PO 대기):** 80개 중 19개 파일이 재실행 시 `duplicate_object(42710)` 하드실패 상태였음 → 정책39·트리거4·인덱스10·제약2에 `DROP IF EXISTS`/`IF NOT EXISTS` 가드 추가(스키마 결과 불변, 실DB 미적용). 재발방지로 `scripts/check-migration-idempotency.mjs` 신설 + CI 게이트(`npm run check:migrations`). POSTMORTEMS #6.
+- **C. 알림 카운터 인메모리→DB ([#101](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/101) — draft, PO 대기):** 콜드스타트 리셋 문제. `migrations/20260619_alert_counters.sql`(append-only 테이블 + `alert_counter_increment` RPC, `check_rate_limit` 패턴) + `operationalAlerts.ts`가 RPC 호출(실패/미적용 시 인메모리 fallback). 개별 알림(`sendAlert`)은 무변경. **실DB BEGIN/ROLLBACK으로 로직 검증 후 롤백(미적용).**
+- **F. 🔴 KHIDI KPI 깨진 컬럼 수정 ([#102](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/102) — draft, PO 대기):** **평가 핵심 버그 발견** — `kpi.ts`가 없는 컬럼(`visit_confirmed_at`·`actual_duration_minutes`)을 쿼리해 **유치·사전상담이 항상 0**(PostgREST 오류→`?? 0` 위장). 실DB 대조로 실제는 유치 4·사전상담 9·사후관리 3. 유치=`inquiries.outcome='admitted'`(전환 깔때기와 정의 통일), 사전상담=duration필터 제거. 공식 목표 SoR `targets.ts`(12/120/90) + 대시보드 "사업 누적 달성률" 섹션 + 집계오류 가시화 배너. POSTMORTEMS #7, KHIDI 베이스 §4 6월 로그.
+- **E. 상담방 역할 라벨 i18n ([#103](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/103) — 저위험, CI 초록 시 머지 예정):** 화상상담방 조사 결과 **표준 동작(스피커뷰·화면공유 자동확대·720/1080p·언어 전체전환)은 이미 다 구현돼 있었음.** 유일한 갭 = 역할 라벨 3곳(자막·채팅·번역패널)이 영어 하드코딩 → 6언어 `roleX` 키 + `roleLabel()` 헬퍼로 렌더 시점 번역. 영상·STT 로직 무변경.
+
+**왜 그렇게 했는지:**
+- **작업 1건=브랜치1개=PR1개** 원칙으로 분리(섞으면 리뷰·롤백 어려움). 저위험(A·E)은 직접 머지 방침, 보안민감·DB변경·평가숫자 바뀌는 건(B·C·F)은 PO 확인 대기.
+- **F가 최고가치**: "ICT가 자기 ICT로 성과 자동측정"이 평가 스토리인데 그 숫자가 0이면 치명적 → 실DB 대조로 근본원인(없는 컬럼) 찾아 수정. 전환 깔때기 RPC와 정의 통일해 두 대시보드 일치.
+- **E는 통째 분할 안 함**: 2883줄 화상방 리팩터는 LiveKit 라이브 검증(2+참가자) 필요해 자동검증 불가 → "반쪽 구현" 위험. 검증 가능한 i18n 갭만 수정하고 분할은 계획만 기록.
+
+**안 끝났거나 보류:**
+- **D. 타입 강화(any 축소): 안 함** — 남은 any가 좁히면 타 파일 tsc 깨지는 것(decryptForAdmin·agency_users)이라 저가치·고위험으로 판단해 스킵. 안전한 슬라이스 나오면 별도 진행.
+- **E. God 컴포넌트(2883줄) 분할**: 안전 추출 seam(VideoGrid·SubtitleOverlay·RoomInfoOverlay) 식별만 함. 실제 분할은 LiveKit 라이브 검증 환경 필요 → PO 확인 후 별도 세션.
+- **PR #100·#101·#102 머지 대기**: DB/평가 영향이라 PO 결정 필요(특히 #101·#102는 머지 후 마이그레이션 적용 결정도).
+
+**주의·함정:**
+- **POSTMORTEMS.md·KHIDI 베이스 머지 충돌**: #100(#6)·#102(#7)·이 핸드오프가 같은 파일 끝부분을 건드림 → 머지 순서에 따라 trivial 충돌 가능(번호 재정렬만).
+- **#101·#102는 마이그레이션 미적용**: 코드는 fallback/읽기전용이라 미적용 상태에서도 안전 동작. #101은 적용 전까지 인메모리, #102는 DB 읽기만(스키마 변경 없음 — #102는 마이그레이션 파일 없음, 코드만).
+- **로컬 node_modules 없으면 `npx tsc`가 전역 TS6로 폴백**(baseUrl deprecation 에러) → `npm ci` 후 `./node_modules/.bin/tsc`로 검증(CI는 lock의 5.9.3).
+
+**다음 세션이 먼저 할 일 (우선순위):**
+1. **⚠️ 직전 미검증분 먼저 확인:** (a) **서버 Sentry 실수집**(이전 세션 미해결) — 관리자 로그인 → `https://healo-khidi.vercel.app/api/sentry/test` 1회 → JSON "전송됐습니다"면 Sentry 대시보드 도착 확인. (b) **#103 상담방 i18n** — 머지·배포됐으면 상담방에서 언어 바꿔 역할 라벨 전환 확인(못 하면 다음 세션이).
+2. **PR 4건 결정·머지:** [#100](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/100)(마이그레이션 멱등)·[#101](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/101)(알림DB)·[#102](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/102)(KHIDI KPI 수정)·[#103](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/103)(상담 i18n) 검토. **#102는 평가 직결이라 우선** — 정의(유치=admitted, 상담=세션완료) 확인 후 머지 → 머지 후 #101 마이그레이션 적용 결정.
+3. (보류) God 컴포넌트 분할 / 타입 any 축소 / 화상방 라이브 검증.
+4. KHIDI 중간평가(2026-08-27) 상시 — 이번 KPI 수정은 평가항목 ④(성과지표) 직결.
+
+**검증 상태:** 매 PR `tsc --noEmit`(에러0)·`vitest 129`·`eslint 에러0`·`check:content`·`next build --webpack` **로컬 통과**. PR별 CI: **[#99](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/99) ci·smoke·Vercel 전부 초록 + main 머지·배포 완료.** [#100](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/100)·[#101](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/101)·[#102](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/102) **CI 초록 확인(draft, PO 대기).** [#103](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/103) CI 진행 중(초록 시 자동 머지 예정). **F(#102) KPI 실측치는 실DB 조회로 검증(유치4·사전상담9·사후관리3)** — 단 **대시보드 화면 실제 클릭은 관리자 세션 없어 미확인**(다음 세션/PO가 `/admin/khidi/kpi-dashboard`에서 확인). **C(#101) RPC는 트랜잭션 롤백으로 로직만 검증, 프로덕션 미적용.** **서버 Sentry 런타임은 이전 세션부터 계속 미검증(PO 1클릭).**
+
+**다음 세션 첫 프롬프트 (PO 복붙용):**
+> 먼저 docs/PROJECT_CONTEXT.md 최상단 핸드오프(2026-06-19 야간 자율) 읽어. 그다음: 1) 야간에 연 PR 4개 봐줘 — #102(KHIDI KPI 깨진거 수정, 유치·사전상담이 0으로 나오던 버그)가 평가 직결이라 제일 중요, #100(마이그레이션 멱등)·#101(알림 DB)·#103(상담방 언어 전환). CI 다 초록이야. #102 정의(유치=admitted 확정, 상담=세션완료 수)만 확인되면 머지하고, 머지 후 #101은 마이그레이션 적용할지 정해줘. 2) 직전 미검증분: 관리자로 https://healo-khidi.vercel.app/api/sentry/test 한번 열어서 JSON 알려줘(서버 에러감시 마지막 확인). 3) #102 머지·배포되면 /admin/khidi/kpi-dashboard 열어서 유치 4/12·사전상담+사후관리 12/120 뜨는지 봐줘. 새 작업은 origin/main 최신 동기화부터.
+
+---
+
+---
+
 ## 🔖 세션 핸드오프 (2026-06-19 오후·저녁) — 직전 미검증분 확인 + 5축 점수 올리기(서버클라 통합·관측·CI게이트·타입) PR 6건 머지
 
 **이번 세션 한 일 (PR 6건 전부 main 머지·실서비스 배포):**
