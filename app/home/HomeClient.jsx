@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useLang } from "@/lib/i18n/LangContext";
 import {
@@ -251,7 +252,7 @@ export default function HomeClient() {
       <section className="relative text-white overflow-hidden">
         {/* 📸 교체: 실제 병원/의료진 사진 (1920x1080 이상) */}
         <div className="absolute inset-0">
-          <img src={PLACEHOLDER.heroBg} alt="" className="w-full h-full object-cover" />
+          <Image src={PLACEHOLDER.heroBg} alt="" fill priority sizes="100vw" className="object-cover" />
           <div className="absolute inset-0 bg-gradient-to-br from-slate-900/95 via-teal-900/90 to-slate-900/95" />
         </div>
         {/* Glow effects */}
