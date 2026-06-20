@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { ArrowRight } from "lucide-react";
 import { useLang } from "@/lib/i18n/LangContext";
 import SocialProofSection from "@/components/SocialProofSection";
@@ -279,12 +280,14 @@ export default function CareJourneyClient() {
           {c.heroCta} <ArrowRight size={18} />
         </Link>
         {/* 회복톤 실사진 — 공원 산책(회복·동행) / PO 1차 교체 2026-06-20 */}
-        <div className="mt-10 md:mt-12 overflow-hidden rounded-2xl border border-gray-100">
-          <img
+        <div className="relative mt-10 md:mt-12 h-56 md:h-80 overflow-hidden rounded-2xl border border-gray-100">
+          <Image
             src="https://images.unsplash.com/photo-1671530725345-cc4a2cf5db04?w=1600&auto=format&fit=crop&q=85"
             alt={c.eyebrow}
-            loading="lazy"
-            className="w-full h-56 md:h-80 object-cover"
+            fill
+            priority
+            sizes="(max-width: 896px) 100vw, 896px"
+            className="object-cover"
           />
         </div>
       </section>
@@ -340,12 +343,13 @@ export default function CareJourneyClient() {
         <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-4">{c.whyCareTitle}</h2>
         <p className="text-base text-gray-600 leading-relaxed max-w-3xl mb-8 md:mb-10">{c.whyCareLede}</p>
         {/* 회복톤 실사진 — 푸드테라피(맞춤 영양·입원식) / PO 1차 교체 2026-06-20 */}
-        <div className="mb-8 md:mb-10 overflow-hidden rounded-2xl border border-gray-100">
-          <img
+        <div className="relative mb-8 md:mb-10 h-48 md:h-64 overflow-hidden rounded-2xl border border-gray-100">
+          <Image
             src="https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=1600&auto=format&fit=crop&q=85"
             alt={c.whyCareTitle}
-            loading="lazy"
-            className="w-full h-48 md:h-64 object-cover"
+            fill
+            sizes="(max-width: 896px) 100vw, 896px"
+            className="object-cover"
           />
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-5">
