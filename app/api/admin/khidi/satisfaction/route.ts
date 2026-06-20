@@ -16,6 +16,7 @@ export const runtime = "nodejs";
 import { NextRequest } from "next/server";
 import { supabaseAdmin, assertSupabaseEnv } from "@/lib/rag/supabaseAdmin";
 import { requireAdminAuth } from "@/lib/auth/requireAdminAuth";
+import { KHIDI_TARGETS } from "@/lib/khidi/targets";
 
 export async function GET(request: NextRequest) {
   const auth = await requireAdminAuth(request);
@@ -86,8 +87,8 @@ export async function GET(request: NextRequest) {
       q5: { avg5: Math.round(q5Avg * 100) / 100, avg100: to100(q5Avg) },
     },
     overallAvg100,
-    kpiK03Target: 80,
-    kpiK03Met: overallAvg100 >= 80,
+    kpiK03Target: KHIDI_TARGETS.satisfaction,
+    kpiK03Met: overallAvg100 >= KHIDI_TARGETS.satisfaction,
     recentComments: ((comments as any[]) || []).map((c: any) => ({
       comment: c.comment,
       submittedAt: c.submitted_at,

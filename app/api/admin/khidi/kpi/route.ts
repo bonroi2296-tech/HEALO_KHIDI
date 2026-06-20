@@ -13,16 +13,13 @@ import { NextRequest } from "next/server";
 import { requireAdminAuth } from "@/lib/auth/requireAdminAuth";
 import {
   getKpiForMonth,
+  getKpiCumulative,
   getDailyKpiSeries,
 } from "@/lib/khidi/kpi";
+import { KHIDI_TARGETS, PROJECT_START_DATE, PROJECT_END_DATE } from "@/lib/khidi/targets";
 
-// 사업 목표 (KHIDI 공고 기준)
-const KPI_TARGETS = {
-  preConsultation: 80,  // K-02
-  followUp: null,       // K-04: 목표 없음 (가산점)
-  attraction: 10,       // K-01
-  satisfaction: 80,     // K-03
-};
+// 공식 목표 (8/27 중간평가 기준 — src/lib/khidi/targets.ts SoR). 누적(사업 전체) 기준.
+const KPI_TARGETS = KHIDI_TARGETS;
 
 export async function GET(request: NextRequest) {
   const auth = await requireAdminAuth(request);
@@ -41,9 +38,20 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const [kpi, daily] = await Promise.all([
+    // 누적(사업 전체) 종료일: min(오늘+1, 사업종료+1) — toDate 는 exclusive
+    const now2 = new Date();
+    const projEndExclusive = new Date(`${PROJECT_END_DATE}T00:00:00+09:00`);
+    projEndExclusive.setDate(projEndExclusive.getDate() + 1);
+    const tomorrow = new Date(now2);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const cumToDate = (tomorrow < projEndExclusive ? tomorrow : projEndExclusive)
+      .toISOString()
+      .slice(0, 10);
+
+    const [kpi, daily, cumulative] = await Promise.all([
       getKpiForMonth(year, month),
       getDailyKpiSeries(year, month),
+      getKpiCumulative(PROJECT_START_DATE, cumToDate),
     ]);
 
     return Response.json({
@@ -51,6 +59,8 @@ export async function GET(request: NextRequest) {
       year,
       month,
       kpi,
+      // 사업 누적 집계 (8/27 평가표의 "현재(B)" 값 — 유치/상담+사후/만족도)
+      cumulative,
       targets: KPI_TARGETS,
       daily,
     });
