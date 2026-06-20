@@ -172,7 +172,7 @@ export default function InquiriesPage() {
                     href={selectedFile}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-teal-600 underline hover:text-teal-700"
+                    className="text-teal-700 underline hover:text-teal-700"
                   >
                     새 탭에서 열기
                   </a>
@@ -202,7 +202,7 @@ export default function InquiriesPage() {
                         href={selectedFile}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-block px-6 py-3 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition"
+                        className="inline-block px-6 py-3 bg-teal-700 text-white rounded-lg hover:bg-teal-800 transition"
                       >
                         다운로드
                       </a>

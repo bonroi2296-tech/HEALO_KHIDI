@@ -118,7 +118,7 @@ export default function AgentDashboardPage() {
           color="green"
         />
         <StatCard
-          icon={<Activity className="text-teal-500" size={24} />}
+          icon={<Activity className="text-teal-700" size={24} />}
           label="AI 정확도"
           value={`${stats.aiAccuracy}%`}
           color="teal"

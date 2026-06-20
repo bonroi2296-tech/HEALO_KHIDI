@@ -488,7 +488,7 @@ function DoctorModal({ doc, l, lang, onClose }) {
             return (
               <div key={sec.key}>
                 <h4 className="flex items-center gap-2 text-base font-bold text-gray-700 mb-3">
-                  <span className="text-emerald-600">{sec.icon}</span>{sec.label}
+                  <span className="text-emerald-700">{sec.icon}</span>{sec.label}
                 </h4>
                 <ul className="space-y-1.5">
                   {sec.data.map((item, i) => (
@@ -509,7 +509,7 @@ function DoctorModal({ doc, l, lang, onClose }) {
 /* ── Doctor Card (Large PC / Compact Mobile) ── */
 function DoctorCard({ doc, l, lang, onSelect }) {
   const isLeader = !!doc.role;
-  const roleBadge = doc.role === 'ceo' ? { label: 'CEO', color: 'bg-emerald-600 text-white' }
+  const roleBadge = doc.role === 'ceo' ? { label: 'CEO', color: 'bg-emerald-700 text-white' }
     : doc.role === 'wm' ? { label: 'WM', color: 'bg-blue-600 text-white' }
     : doc.role === 'cmo' ? { label: 'CMO', color: 'bg-purple-600 text-white' }
     : null;
@@ -585,7 +585,7 @@ function DoctorCard({ doc, l, lang, onSelect }) {
             {la(doc.활동, lang).length > 0 && (
               <span className="flex items-center gap-1 text-gray-500"><Activity size={11} /> {la(doc.활동, lang).length}</span>
             )}
-            <span className="ml-auto text-emerald-600 font-semibold group-hover:text-emerald-700 transition text-xs">
+            <span className="ml-auto text-emerald-700 font-semibold group-hover:text-emerald-700 transition text-xs">
               {l(L.view_profile)} →
             </span>
           </div>
@@ -787,7 +787,7 @@ export default function HospitalsClient() {
                     <Stethoscope size={24} className="text-teal-700" />
                   </div>
                   <div className="min-w-0">
-                    <h3 className="font-bold text-base group-hover:text-teal-600 transition line-clamp-1">{h.name}</h3>
+                    <h3 className="font-bold text-base group-hover:text-teal-700 transition line-clamp-1">{h.name}</h3>
                     <p className="text-sm text-gray-500 flex items-center gap-1 mt-0.5"><MapPin size={12} /><span className="truncate">{h.location}</span></p>
                   </div>
                 </div>
@@ -799,7 +799,7 @@ export default function HospitalsClient() {
                     ))}
                   </div>
                 )}
-                <div className="flex items-center gap-1 text-sm text-teal-600 font-medium">
+                <div className="flex items-center gap-1 text-sm text-teal-700 font-medium">
                   {l(L.viewDetails)} <ArrowRight size={14} />
                 </div>
               </div>
@@ -823,10 +823,10 @@ export default function HospitalsClient() {
               <div key={i} role="button" tabIndex={0} onClick={() => router.push('/inquiry')} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); router.push('/inquiry'); } }} className="bg-white border border-gray-200 rounded-2xl p-6 hover:shadow-md hover:border-teal-200 transition cursor-pointer group focus:outline-none focus:ring-2 focus:ring-teal-400">
                 <div className="flex items-center gap-3 mb-3">
                   <span className="text-3xl">{guide.emoji}</span>
-                  <h3 className="font-bold text-lg group-hover:text-teal-600 transition">{l(guide.type)}</h3>
+                  <h3 className="font-bold text-lg group-hover:text-teal-700 transition">{l(guide.type)}</h3>
                 </div>
                 <p className="text-base text-gray-500 leading-relaxed">{l(guide.approach)}</p>
-                <div className="flex items-center gap-1 mt-4 text-sm text-teal-600 font-medium">
+                <div className="flex items-center gap-1 mt-4 text-sm text-teal-700 font-medium">
                   {l(L.cta)} <ArrowRight size={14} />
                 </div>
               </div>

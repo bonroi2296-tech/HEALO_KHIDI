@@ -81,7 +81,7 @@ const UserMenu = ({ session, onLogout, langCode, isHospitalUser, isAdmin }) => {
         </div>
         <ChevronDown
           size={14}
-          className={`text-slate-400 group-hover:text-teal-600 transition-all ${isOpen ? 'rotate-180' : ''}`}
+          className={`text-slate-400 group-hover:text-teal-700 transition-all ${isOpen ? 'rotate-180' : ''}`}
         />
       </button>
 
@@ -101,7 +101,7 @@ const UserMenu = ({ session, onLogout, langCode, isHospitalUser, isAdmin }) => {
               onClick={() => setIsOpen(false)}
               className="w-full text-left px-4 py-2.5 text-sm hover:bg-teal-50 transition-colors flex items-center gap-2.5 text-gray-700 font-medium border-b border-gray-100"
             >
-              <User size={15} className="text-teal-600" />
+              <User size={15} className="text-teal-700" />
               <span>{myPageLabel}</span>
             </a>
             <button
@@ -162,7 +162,7 @@ export const Header = ({ setView, view, _handleGlobalInquiry, isMobileMenuOpen, 
                 className="px-2.5 py-1.5 rounded-full text-sm font-semibold transition-all text-slate-600 hover:text-teal-700 hover:bg-teal-200/70 inline-flex items-center gap-1.5 whitespace-nowrap"
               >
                 {t("nav.telemedicine", langCode)}
-                <span className="text-[9px] font-extrabold bg-teal-600 text-white px-1.5 py-0.5 rounded-full leading-none">NEW</span>
+                <span className="text-[9px] font-extrabold bg-teal-700 text-white px-1.5 py-0.5 rounded-full leading-none">NEW</span>
               </a>
               <button
                 onClick={() => onNavClick('list_treatment')}
@@ -204,7 +204,7 @@ export const Header = ({ setView, view, _handleGlobalInquiry, isMobileMenuOpen, 
                 onClick={handleGlobalInquiry}
                 className="flex items-center gap-2 text-sm font-bold bg-white text-teal-700 px-6 py-2 rounded-full hover:bg-teal-50 transition shadow-md"
               >
-                <Zap size={15} className="text-teal-600 fill-teal-600" />
+                <Zap size={15} className="text-teal-700 fill-teal-600" />
                 {t("cta.freePlan", langCode)}
               </button>
             </div>
@@ -233,7 +233,7 @@ export const Header = ({ setView, view, _handleGlobalInquiry, isMobileMenuOpen, 
                       className={`w-full text-left px-3.5 py-2 text-sm flex items-center gap-2.5 transition-colors ${langCode === lang.code ? 'bg-teal-50 text-teal-700 font-medium' : 'text-gray-700 hover:bg-gray-50'}`}
                     >
                       <span>{lang.label}</span>
-                      {langCode === lang.code && <CheckCircle size={13} className="ml-auto text-teal-500 shrink-0" />}
+                      {langCode === lang.code && <CheckCircle size={13} className="ml-auto text-teal-700 shrink-0" />}
                     </button>
                   ))}
                 </div>
@@ -248,7 +248,7 @@ export const Header = ({ setView, view, _handleGlobalInquiry, isMobileMenuOpen, 
                 <button onClick={() => setView('login')} className="px-3 py-1.5 text-sm font-medium text-slate-600 hover:text-teal-700 hover:bg-teal-200/70 rounded-full transition-all whitespace-nowrap">
                   {t("auth.login", langCode)}
                 </button>
-                <button onClick={() => setView('signup')} className="px-4 py-1.5 text-sm font-semibold text-white bg-teal-600 rounded-full hover:bg-teal-700 transition-all whitespace-nowrap shadow-sm">
+                <button onClick={() => setView('signup')} className="px-4 py-1.5 text-sm font-semibold text-white bg-teal-700 rounded-full hover:bg-teal-800 transition-all whitespace-nowrap shadow-sm">
                   {t("auth.signup", langCode)}
                 </button>
               </div>
@@ -302,7 +302,7 @@ export const Header = ({ setView, view, _handleGlobalInquiry, isMobileMenuOpen, 
               {session && (
                 <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/50">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-teal-600 flex items-center justify-center text-white font-bold text-sm">
+                    <div className="w-10 h-10 rounded-full bg-teal-700 flex items-center justify-center text-white font-bold text-sm">
                       {session.user.email.split('@')[0].substring(0, 2).toUpperCase()}
                     </div>
                     <div className="min-w-0">
@@ -317,12 +317,12 @@ export const Header = ({ setView, view, _handleGlobalInquiry, isMobileMenuOpen, 
               {session && (
                 <div className="px-5 pt-4 pb-2 space-y-2">
                   {!isHospitalUser && !isAdmin && (
-                    <a href="/patient" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center gap-2.5 py-3 px-4 bg-teal-600 text-white rounded-xl text-sm font-semibold shadow-sm">
+                    <a href="/patient" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center gap-2.5 py-3 px-4 bg-teal-700 text-white rounded-xl text-sm font-semibold shadow-sm">
                       <User size={16} /> {MY_PAGE_LABEL[langCode] || MY_PAGE_LABEL.en}
                     </a>
                   )}
                   {isHospitalUser && !isAdmin && (
-                    <a href="/partner" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center gap-2.5 py-3 px-4 bg-teal-600 text-white rounded-xl text-sm font-semibold shadow-sm">
+                    <a href="/partner" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center gap-2.5 py-3 px-4 bg-teal-700 text-white rounded-xl text-sm font-semibold shadow-sm">
                       <Building2 size={16} /> Hospital Portal
                     </a>
                   )}
@@ -341,7 +341,7 @@ export const Header = ({ setView, view, _handleGlobalInquiry, isMobileMenuOpen, 
                     onClick={() => { handleGlobalInquiry(); setIsMobileMenuOpen(false); }}
                     className="w-full flex items-center justify-center gap-2 py-3.5 px-4 bg-white text-teal-700 rounded-xl text-sm font-bold shadow-md border border-teal-100 hover:bg-teal-50 transition"
                   >
-                    <Zap size={18} className="text-teal-600" />
+                    <Zap size={18} className="text-teal-700" />
                     {t("cta.freePlan", langCode)}
                   </button>
                 </div>
@@ -351,14 +351,14 @@ export const Header = ({ setView, view, _handleGlobalInquiry, isMobileMenuOpen, 
               <div className="px-5 py-3">
                 <div className="text-[10px] uppercase tracking-widest text-gray-400 font-semibold mb-2 px-1">Menu</div>
                 <a href="/telemedicine" onClick={() => setIsMobileMenuOpen(false)} className="w-full text-left py-3 px-3 rounded-lg text-sm font-medium flex items-center justify-between transition-colors min-h-[44px] text-gray-700 hover:bg-gray-50">
-                  <span className="flex items-center gap-2.5"><Video size={16} className="text-teal-500 shrink-0" /> {t("nav.telemedicine", langCode)} <span className="text-[9px] font-extrabold bg-teal-100 text-teal-700 px-1.5 py-0.5 rounded-full leading-none">NEW</span></span>
+                  <span className="flex items-center gap-2.5"><Video size={16} className="text-teal-700 shrink-0" /> {t("nav.telemedicine", langCode)} <span className="text-[9px] font-extrabold bg-teal-100 text-teal-700 px-1.5 py-0.5 rounded-full leading-none">NEW</span></span>
                   <ArrowRight size={14} className="text-gray-300 shrink-0" />
                 </a>
-                <button onClick={() => onNavClick('list_treatment')} className={`w-full text-left py-3 px-3 rounded-lg text-sm font-medium flex items-center justify-between transition-colors min-h-[44px] ${isActive('treatment') ? 'text-teal-600 bg-teal-50' : 'text-gray-700 hover:bg-gray-50'}`}>
+                <button onClick={() => onNavClick('list_treatment')} className={`w-full text-left py-3 px-3 rounded-lg text-sm font-medium flex items-center justify-between transition-colors min-h-[44px] ${isActive('treatment') ? 'text-teal-700 bg-teal-50' : 'text-gray-700 hover:bg-gray-50'}`}>
                   <span className="flex items-center gap-2.5"><Stethoscope size={16} className="text-gray-400 shrink-0" /> {t("nav.treatments", langCode)}</span>
                   <ArrowRight size={14} className="text-gray-300 shrink-0" />
                 </button>
-                <button onClick={() => onNavClick('list_hospital')} className={`w-full text-left py-3 px-3 rounded-lg text-sm font-medium flex items-center justify-between transition-colors min-h-[44px] ${isActive('hospital') ? 'text-teal-600 bg-teal-50' : 'text-gray-700 hover:bg-gray-50'}`}>
+                <button onClick={() => onNavClick('list_hospital')} className={`w-full text-left py-3 px-3 rounded-lg text-sm font-medium flex items-center justify-between transition-colors min-h-[44px] ${isActive('hospital') ? 'text-teal-700 bg-teal-50' : 'text-gray-700 hover:bg-gray-50'}`}>
                   <span className="flex items-center gap-2.5"><Building2 size={16} className="text-gray-400 shrink-0" /> {t("nav.hospitals", langCode)}</span>
                   <ArrowRight size={14} className="text-gray-300 shrink-0" />
                 </button>
@@ -405,7 +405,7 @@ export const Header = ({ setView, view, _handleGlobalInquiry, isMobileMenuOpen, 
                   <button onClick={() => { setView('login'); setIsMobileMenuOpen(false); }} className="flex-1 py-2.5 text-center text-sm font-medium text-gray-600 hover:text-gray-900 border border-gray-200 rounded-lg transition-colors">
                     {t("auth.login", langCode)}
                   </button>
-                  <button onClick={() => { setView('signup'); setIsMobileMenuOpen(false); }} className="flex-1 py-2.5 text-center text-sm font-medium text-white bg-teal-600 hover:bg-teal-700 rounded-lg transition-colors">
+                  <button onClick={() => { setView('signup'); setIsMobileMenuOpen(false); }} className="flex-1 py-2.5 text-center text-sm font-medium text-white bg-teal-700 hover:bg-teal-800 rounded-lg transition-colors">
                     {t("auth.signup", langCode)}
                   </button>
                 </div>
@@ -454,7 +454,7 @@ export const HeroSection = ({ setView, searchTerm, setSearchTerm, siteConfig }) 
       </div>
       <div className="relative z-20 max-w-2xl mx-auto px-4 -mt-8 md:-mt-10">
         <div className="bg-white p-2 md:p-2.5 rounded-full shadow-2xl flex items-center border border-gray-100">
-            <Search className="text-teal-600 ml-3 md:ml-4 shrink-0" size={20} />
+            <Search className="text-teal-700 ml-3 md:ml-4 shrink-0" size={20} />
             <input
             type="text"
             value={searchTerm}
@@ -465,7 +465,7 @@ export const HeroSection = ({ setView, searchTerm, setSearchTerm, siteConfig }) 
             />
             <button
             onClick={() => setView('list_treatment')}
-            className="bg-teal-600 text-white px-5 md:px-8 py-2.5 md:py-3.5 rounded-full font-bold text-sm md:text-base hover:bg-teal-700 transition shadow-lg shrink-0"
+            className="bg-teal-700 text-white px-5 md:px-8 py-2.5 md:py-3.5 rounded-full font-bold text-sm md:text-base hover:bg-teal-800 transition shadow-lg shrink-0"
             >
             {t("search.button", langCode)}
             </button>
@@ -521,7 +521,7 @@ export const CardListSection = ({ title, items, onCardClick, type, showPartnerBa
                       {t("badge.healoPartner", langCode)}
                     </span>
                   )}
-                  <h3 className="font-extrabold text-sm md:text-base text-gray-900 line-clamp-2 leading-snug group-hover:text-teal-600 transition">
+                  <h3 className="font-extrabold text-sm md:text-base text-gray-900 line-clamp-2 leading-snug group-hover:text-teal-700 transition">
                     {item.name}
                   </h3>
                 </div>
@@ -532,7 +532,7 @@ export const CardListSection = ({ title, items, onCardClick, type, showPartnerBa
                       {item.hospital}
                     </p>
                   </div>
-                  <h3 className="font-extrabold text-base md:text-lg text-gray-900 mb-1 line-clamp-2 leading-snug group-hover:text-teal-600 transition">
+                  <h3 className="font-extrabold text-base md:text-lg text-gray-900 mb-1 line-clamp-2 leading-snug group-hover:text-teal-700 transition">
                     {item.title}
                   </h3>
                 </>
@@ -572,7 +572,7 @@ export const CardListSection = ({ title, items, onCardClick, type, showPartnerBa
                   {item.ratingCount > 0 && <span className="text-gray-400 font-medium">({item.ratingCount})</span>}
                 </div>
               ) : type === 'hospital' && (
-                <span className="text-[10px] md:text-xs bg-teal-50 text-teal-600 px-2 py-0.5 rounded-full font-bold border border-teal-100 shrink-0">New</span>
+                <span className="text-[10px] md:text-xs bg-teal-50 text-teal-700 px-2 py-0.5 rounded-full font-bold border border-teal-100 shrink-0">New</span>
               )}
             </div>
           </div>
@@ -591,7 +591,7 @@ export const FloatingInquiryBtn = ({ onClick }) => {
       <div className="bg-white text-gray-800 text-xs font-extrabold px-3 py-2 rounded-xl shadow-md border border-gray-100 mb-1 animate-bounce">
         {t("floatingHelp", langCode)} 💬
       </div>
-      <button className="w-14 h-14 min-w-[56px] min-h-[56px] bg-teal-600 hover:bg-teal-700 text-white rounded-full shadow-2xl flex items-center justify-center transition-transform transform hover:scale-110 active:scale-95 relative touch-target">
+      <button aria-label={t("floatingHelp", langCode)} className="w-14 h-14 min-w-[56px] min-h-[56px] bg-teal-700 hover:bg-teal-800 text-white rounded-full shadow-2xl flex items-center justify-center transition-transform transform hover:scale-110 active:scale-95 relative touch-target">
         <MessageCircle size={28} fill="currentColor" className="text-teal-100" />
         <span className="absolute top-0 right-0 w-4 h-4 bg-red-500 border-2 border-white rounded-full"></span>
       </button>
@@ -617,7 +617,7 @@ export const PersonalConciergeCTA = ({ onClick, className = "" }) => {
           </p>
         </div>
         <div className="shrink-0 mt-2 md:mt-0">
-          <button onClick={onClick} className="w-full md:w-auto px-6 md:px-8 py-3 md:py-4 rounded-full bg-teal-600 text-white font-extrabold text-sm md:text-base shadow-lg hover:bg-teal-700 transition">
+          <button onClick={onClick} className="w-full md:w-auto px-6 md:px-8 py-3 md:py-4 rounded-full bg-teal-700 text-white font-extrabold text-sm md:text-base shadow-lg hover:bg-teal-800 transition">
             {t("cta.button", langCode)}
           </button>
         </div>
@@ -631,19 +631,19 @@ export const MobileBottomNav = ({ view, onInquiry, onNavClick }) => {
   return (
     <div className="md:hidden fixed bottom-0 left-0 right-0 z-[80] bg-white border-t border-gray-200 pb-safe-area shadow-[0_-4px_10px_rgba(0,0,0,0.03)]">
       <div className="grid grid-cols-3 h-16 items-center relative">
-        <button onClick={() => onNavClick('list_treatment')} className={`flex flex-col items-center justify-center gap-1 h-full w-full active:scale-95 transition ${String(view).includes('treatment') ? 'text-teal-600' : 'text-gray-400 hover:text-gray-600'}`}>
+        <button onClick={() => onNavClick('list_treatment')} className={`flex flex-col items-center justify-center gap-1 h-full w-full active:scale-95 transition ${String(view).includes('treatment') ? 'text-teal-700' : 'text-gray-400 hover:text-gray-600'}`}>
             <Stethoscope size={24} strokeWidth={String(view).includes('treatment') ? 2.5 : 2} />
             <span className="text-[10px] font-bold">{t("nav.treatments", langCode)}</span>
         </button>
         <div className="relative flex justify-center h-full pointer-events-none"> 
            <button onClick={onInquiry} className="pointer-events-auto absolute -top-5 flex flex-col items-center group">
-              <div className="w-14 h-14 rounded-full bg-teal-600 shadow-lg shadow-teal-100 flex items-center justify-center text-white mb-1 transform group-active:scale-95 transition border-[3px] border-white">
+              <div className="w-14 h-14 rounded-full bg-teal-700 shadow-lg shadow-teal-100 flex items-center justify-center text-white mb-1 transform group-active:scale-95 transition border-[3px] border-white">
                   <MessageCircle size={24} fill="currentColor" className="text-white" />
               </div>
               <span className="text-[10px] font-bold text-teal-700">{t("process.inquiry", langCode)}</span>
            </button>
         </div>
-        <button onClick={() => onNavClick('list_hospital')} className={`flex flex-col items-center justify-center gap-1 h-full w-full active:scale-95 transition ${String(view).includes('hospital') ? 'text-teal-600' : 'text-gray-400 hover:text-gray-600'}`}>
+        <button onClick={() => onNavClick('list_hospital')} className={`flex flex-col items-center justify-center gap-1 h-full w-full active:scale-95 transition ${String(view).includes('hospital') ? 'text-teal-700' : 'text-gray-400 hover:text-gray-600'}`}>
             <Building2 size={24} strokeWidth={String(view).includes('hospital') ? 2.5 : 2} />
             <span className="text-[10px] font-bold">{t("nav.hospitals", langCode)}</span>
         </button>
@@ -658,32 +658,32 @@ export const OfferBanner = ({ onClick }) => {
   return (
     <div className="bg-teal-50 border border-teal-100 rounded-2xl p-5 mb-8">
       <h4 className="text-sm font-bold text-teal-900 mb-4 uppercase tracking-wider flex items-center gap-2">
-        <Sparkles size={16} className="text-teal-600"/> {t("offer.title", langCode)}
+        <Sparkles size={16} className="text-teal-700"/> {t("offer.title", langCode)}
       </h4>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="flex items-start gap-3">
-          <div className="p-2 bg-white rounded-lg shadow-sm text-teal-600"><FileText size={20}/></div>
+          <div className="p-2 bg-white rounded-lg shadow-sm text-teal-700"><FileText size={20}/></div>
           <div>
             <div className="font-bold text-sm text-gray-900">{t("offer.freeComparison", langCode)}</div>
             <div className="text-xs text-gray-500 mt-0.5">{t("offer.freeComparisonDesc", langCode)}</div>
           </div>
         </div>
         <div className="flex items-start gap-3">
-          <div className="p-2 bg-white rounded-lg shadow-sm text-teal-600"><UserCheck size={20}/></div>
+          <div className="p-2 bg-white rounded-lg shadow-sm text-teal-700"><UserCheck size={20}/></div>
           <div>
             <div className="font-bold text-sm text-gray-900">{t("offer.fullConcierge", langCode)}</div>
             <div className="text-xs text-gray-500 mt-0.5">{t("offer.fullConciergeDesc", langCode)}</div>
           </div>
         </div>
         <div className="flex items-start gap-3">
-          <div className="p-2 bg-white rounded-lg shadow-sm text-teal-600"><Clock size={20}/></div>
+          <div className="p-2 bg-white rounded-lg shadow-sm text-teal-700"><Clock size={20}/></div>
           <div>
             <div className="font-bold text-sm text-gray-900">{t("offer.fastResponse", langCode)}</div>
             <div className="text-xs text-gray-500 mt-0.5">{t("offer.fastResponseDesc", langCode)}</div>
           </div>
         </div>
       </div>
-      <button onClick={onClick} className="w-full mt-5 py-3 bg-teal-600 text-white rounded-xl font-bold text-sm shadow-md hover:bg-teal-700 transition flex items-center justify-center gap-2">
+      <button onClick={onClick} className="w-full mt-5 py-3 bg-teal-700 text-white rounded-xl font-bold text-sm shadow-md hover:bg-teal-800 transition flex items-center justify-center gap-2">
         {t("offer.getQuoteNow", langCode)} <ArrowRight size={16}/>
       </button>
     </div>
@@ -706,7 +706,7 @@ export const ProcessSteps = () => {
         <div className="hidden md:block absolute top-4 left-0 right-0 h-0.5 bg-gray-100 -z-10 translate-y-2"></div>
         {steps.map((s, i) => (
           <div key={i} className="flex flex-col items-center text-center">
-            <div className="w-12 h-12 rounded-full bg-white border-2 border-teal-500 text-teal-600 flex items-center justify-center font-bold text-lg shadow-sm mb-2 z-10">
+            <div className="w-12 h-12 rounded-full bg-white border-2 border-teal-500 text-teal-700 flex items-center justify-center font-bold text-lg shadow-sm mb-2 z-10">
               <s.icon size={20} />
             </div>
             <div className="text-xs font-bold text-gray-900">{t(s.key, langCode)}</div>

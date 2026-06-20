@@ -89,7 +89,7 @@ export default function AgenciesAdmin() {
           <input className="border border-gray-200 rounded-lg px-3 py-2 text-sm" placeholder="코드 (선택)"
             value={form.code} onChange={(e) => setForm({ ...form, code: e.target.value })} />
           <div className="sm:col-span-3">
-            <button disabled={busy} className="px-4 py-2 rounded-lg text-sm font-bold bg-teal-600 text-white hover:bg-teal-700 disabled:opacity-40">등록</button>
+            <button disabled={busy} className="px-4 py-2 rounded-lg text-sm font-bold bg-teal-700 text-white hover:bg-teal-800 disabled:opacity-40">등록</button>
           </div>
         </form>
       </section>

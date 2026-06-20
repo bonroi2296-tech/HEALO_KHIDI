@@ -30,7 +30,7 @@ function projectProgress() {
 // 서브 컴포넌트들
 // ============================================================
 
-function ProgressBar({ value, max, colorClass = "bg-teal-500", height = "h-2" }) {
+function ProgressBar({ value, max, colorClass = "bg-teal-700", height = "h-2" }) {
   const pct = barPct(value, max);
   return (
     <div className={`w-full bg-gray-200 rounded-full ${height} overflow-hidden`}>
@@ -45,7 +45,7 @@ function ProgressBar({ value, max, colorClass = "bg-teal-500", height = "h-2" })
 function KpiCard({ title, kpiId, actual, target, unit = "건", note, accentColor = "teal" }) {
   const pct = achievementPct(actual, target);
   const colorMap = {
-    teal: { bar: "bg-teal-500", badge: "bg-teal-50 text-teal-700 border-teal-200", ring: "ring-teal-200" },
+    teal: { bar: "bg-teal-700", badge: "bg-teal-50 text-teal-700 border-teal-200", ring: "ring-teal-200" },
     blue: { bar: "bg-blue-500", badge: "bg-blue-50 text-blue-700 border-blue-200", ring: "ring-blue-200" },
     amber: { bar: "bg-amber-400", badge: "bg-amber-50 text-amber-700 border-amber-200", ring: "ring-amber-200" },
     green: { bar: "bg-green-500", badge: "bg-green-50 text-green-700 border-green-200", ring: "ring-green-200" },
@@ -265,7 +265,7 @@ export default function KpiDashboardPage() {
           <button
             onClick={fetchKpi}
             disabled={loading}
-            className="text-sm px-3 py-1.5 bg-teal-600 text-white rounded-lg hover:bg-teal-700 disabled:opacity-50 transition"
+            className="text-sm px-3 py-1.5 bg-teal-700 text-white rounded-lg hover:bg-teal-800 disabled:opacity-50 transition"
           >
             {loading ? "로딩..." : "조회"}
           </button>
@@ -296,7 +296,7 @@ export default function KpiDashboardPage() {
           <span className="text-sm font-semibold text-gray-700">사업 기간 진척률</span>
           <span className="text-sm font-bold text-teal-700">{projPct}%</span>
         </div>
-        <ProgressBar value={projPct} max={100} colorClass="bg-teal-500" height="h-3" />
+        <ProgressBar value={projPct} max={100} colorClass="bg-teal-700" height="h-3" />
         <div className="flex justify-between mt-1.5 text-xs text-gray-400">
           <span>2026년 4월</span>
           <span>2026년 11월</span>
@@ -501,7 +501,7 @@ export default function KpiDashboardPage() {
           <button
             onClick={handleDownload}
             disabled={dlLoading}
-            className="flex items-center gap-2 px-4 py-2 bg-teal-600 text-white text-sm font-medium rounded-lg hover:bg-teal-700 disabled:opacity-50 transition shadow-sm"
+            className="flex items-center gap-2 px-4 py-2 bg-teal-700 text-white text-sm font-medium rounded-lg hover:bg-teal-800 disabled:opacity-50 transition shadow-sm"
           >
             {dlLoading ? (
               <>

@@ -170,7 +170,7 @@ export default function NotificationsSettingsPage() {
             className={`px-4 py-2 rounded-lg font-medium transition ${
               tableMissing || showAddForm
                 ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                : "bg-emerald-600 text-white hover:bg-emerald-700"
+                : "bg-emerald-700 text-white hover:bg-emerald-700"
             }`}
           >
             + 수신자 추가

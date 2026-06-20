@@ -226,20 +226,20 @@ export default function ImmuneHospitalClient() {
             <p className="mt-3 text-base md:text-lg text-teal-700 font-semibold">
               {l(H.tagline)}
             </p>
-            <div className="w-12 h-px bg-teal-600 mt-5 mb-5" />
+            <div className="w-12 h-px bg-teal-700 mt-5 mb-5" />
             <p className="text-sm md:text-base text-gray-500 leading-relaxed max-w-xl">
               {c.heroLede}
             </p>
             <div className="flex flex-wrap items-center gap-4 mt-8">
               <Link
                 href="/inquiry"
-                className="inline-flex items-center gap-2 px-6 py-3 bg-teal-600 hover:bg-teal-700 text-white rounded-xl font-bold transition-colors"
+                className="inline-flex items-center gap-2 px-6 py-3 bg-teal-700 hover:bg-teal-800 text-white rounded-xl font-bold transition-colors"
               >
                 {c.requestConsult} <ArrowRight size={18} />
               </Link>
               <a
                 href={`tel:${H.mainPhone.replace(/[^\d+]/g, "")}`}
-                className="inline-flex items-center gap-1.5 text-sm font-bold text-teal-600 hover:text-teal-700 transition-colors"
+                className="inline-flex items-center gap-1.5 text-sm font-bold text-teal-700 hover:text-teal-700 transition-colors"
               >
                 <Phone size={16} /> {H.mainPhone}
               </a>
@@ -286,7 +286,7 @@ export default function ImmuneHospitalClient() {
               <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-4 leading-tight">
                 {c.philosophyTitle}
               </h2>
-              <div className="w-12 h-px bg-teal-600 mb-4" />
+              <div className="w-12 h-px bg-teal-700 mb-4" />
               <p className="text-sm md:text-base text-gray-600 leading-relaxed max-w-md">
                 {c.philosophyBody}
               </p>
@@ -294,7 +294,7 @@ export default function ImmuneHospitalClient() {
             <div className="divide-y divide-gray-200">
               {H.principles.map((p) => (
                 <div key={p.id} className="flex gap-4 py-4 items-start">
-                  <span className="shrink-0 w-9 h-9 rounded-lg bg-teal-600 text-white font-bold flex items-center justify-center text-sm">
+                  <span className="shrink-0 w-9 h-9 rounded-lg bg-teal-700 text-white font-bold flex items-center justify-center text-sm">
                     {p.letter}
                   </span>
                   <div>
@@ -348,7 +348,7 @@ export default function ImmuneHospitalClient() {
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5">
             {Object.entries(H.treatments).map(([key, t]) => (
               <div key={key} className="bg-white border border-gray-200 rounded-xl p-5 md:p-6">
-                <div className="text-xs font-bold tracking-wide text-teal-600 uppercase mb-3">
+                <div className="text-xs font-bold tracking-wide text-teal-700 uppercase mb-3">
                   {l(t.category)}
                 </div>
                 <ul className="divide-y divide-gray-200 border-t border-gray-200">
@@ -387,7 +387,7 @@ export default function ImmuneHospitalClient() {
                 />
               </div>
               <div className="p-4 md:p-5">
-                <div className="text-xs font-bold tracking-wide text-teal-600 mb-1.5">
+                <div className="text-xs font-bold tracking-wide text-teal-700 mb-1.5">
                   {String(i + 1).padStart(2, "0")}
                 </div>
                 <h3 className="text-base font-bold text-gray-900 mb-1.5 leading-snug">{l(prog.label)}</h3>
@@ -419,7 +419,7 @@ export default function ImmuneHospitalClient() {
                   />
                 </div>
                 <div className="p-4">
-                  <div className="text-xs font-bold tracking-wide text-teal-600 mb-1">{l(d.role)}</div>
+                  <div className="text-xs font-bold tracking-wide text-teal-700 mb-1">{l(d.role)}</div>
                   <h3 translate="no" className="text-base font-bold text-gray-900 mb-1 leading-snug">
                     {l(d.name)}
                   </h3>
@@ -481,14 +481,14 @@ export default function ImmuneHospitalClient() {
                 </h3>
                 {b.address && (
                   <p className="flex gap-2 text-sm text-gray-600 leading-relaxed mb-3">
-                    <MapPin size={15} className="shrink-0 mt-0.5 text-teal-600" />
+                    <MapPin size={15} className="shrink-0 mt-0.5 text-teal-700" />
                     <span>{l(b.address)}</span>
                   </p>
                 )}
                 {b.phone && (
                   <a
                     href={`tel:${b.phone.replace(/[^\d+]/g, "")}`}
-                    className="flex items-center gap-2 text-sm font-bold text-teal-600 hover:text-teal-700 transition-colors mb-3"
+                    className="flex items-center gap-2 text-sm font-bold text-teal-700 hover:text-teal-700 transition-colors mb-3"
                   >
                     <Phone size={15} className="shrink-0" /> {b.phone}
                   </a>
@@ -518,7 +518,7 @@ export default function ImmuneHospitalClient() {
       </section>
 
       {/* ── Final CTA ────────────────────────────── */}
-      <section className="bg-teal-600">
+      <section className="bg-teal-700">
         <div className="max-w-4xl mx-auto px-4 py-14 md:py-20 text-center">
           <h2 className="text-2xl md:text-3xl font-bold text-white mb-3 leading-snug">{c.ctaTitle}</h2>
           <p className="text-teal-50 text-sm md:text-base mb-8 max-w-xl mx-auto leading-relaxed">{c.ctaBody}</p>

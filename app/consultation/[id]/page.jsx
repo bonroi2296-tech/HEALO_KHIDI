@@ -2028,7 +2028,7 @@ export default function ConsultationRoomPage() {
       <div className="w-full min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-slate-900 to-teal-950 text-white p-4">
         <div className="max-w-md w-full bg-gray-800/90 backdrop-blur rounded-2xl shadow-2xl overflow-hidden border border-gray-700">
           <div className="p-8 border-b border-gray-700">
-            <div className="w-14 h-14 rounded-2xl bg-teal-500/10 text-teal-400 flex items-center justify-center mb-4">
+            <div className="w-14 h-14 rounded-2xl bg-teal-700/10 text-teal-400 flex items-center justify-center mb-4">
               <Video size={28} />
             </div>
             <h1 className="text-2xl font-bold mb-2">{c.guestTitle}</h1>
@@ -2110,7 +2110,7 @@ export default function ConsultationRoomPage() {
                     }}
                     className={`px-3 py-2 rounded-lg text-sm transition border ${
                       guestLang === l
-                        ? "bg-teal-600 border-teal-500 text-white font-semibold"
+                        ? "bg-teal-700 border-teal-500 text-white font-semibold"
                         : "bg-gray-900 border-gray-600 text-gray-300 hover:border-gray-400"
                     }`}
                   >
@@ -2129,7 +2129,7 @@ export default function ConsultationRoomPage() {
             <button
               type="submit"
               disabled={guestJoining || !guestName.trim()}
-              className="w-full py-3 bg-teal-600 hover:bg-teal-700 disabled:opacity-60 disabled:cursor-not-allowed rounded-lg font-semibold transition"
+              className="w-full py-3 bg-teal-700 hover:bg-teal-800 disabled:opacity-60 disabled:cursor-not-allowed rounded-lg font-semibold transition"
             >
               {guestJoining ? c.joining : c.startConsult}
             </button>
@@ -2165,7 +2165,7 @@ export default function ConsultationRoomPage() {
           <p className="mb-4">{c.sessionNotFound}</p>
           <button
             onClick={() => router.push("/")}
-            className="px-4 py-2 bg-teal-600 hover:bg-teal-700 rounded-lg"
+            className="px-4 py-2 bg-teal-700 hover:bg-teal-800 rounded-lg"
           >
             {c.goBack}
           </button>
@@ -2207,7 +2207,7 @@ export default function ConsultationRoomPage() {
         onClick={toggleTranslation}
         className={`px-3 py-2.5 rounded-lg text-sm font-medium flex items-center gap-2 transition ${
           translationEnabled
-            ? "bg-teal-600 hover:bg-teal-700 text-white"
+            ? "bg-teal-700 hover:bg-teal-800 text-white"
             : "bg-gray-700 hover:bg-gray-600 text-gray-200"
         }`}
         title={translationEnabled ? c.stopTranslation : c.startTranslation}
@@ -2226,13 +2226,13 @@ export default function ConsultationRoomPage() {
         onClick={() => setPanelOpen((v) => !v)}
         aria-label="Toggle chat panel"
         className={`relative p-2.5 rounded-lg transition ${
-          panelOpen ? "bg-teal-600 text-white" : "bg-gray-700 hover:bg-gray-600 text-gray-200"
+          panelOpen ? "bg-teal-700 text-white" : "bg-gray-700 hover:bg-gray-600 text-gray-200"
         }`}
         title={c.togglePanel}
       >
         <MessageSquare size={18} />
         {!panelOpen && translations.length + messages.length > 0 && (
-          <span className="absolute -top-1 -right-1 bg-teal-500 text-white text-[10px] leading-none px-1 py-0.5 rounded-full">
+          <span className="absolute -top-1 -right-1 bg-teal-700 text-white text-[10px] leading-none px-1 py-0.5 rounded-full">
             {translations.length + messages.length > 9
               ? "9+"
               : translations.length + messages.length}
@@ -2314,7 +2314,7 @@ export default function ConsultationRoomPage() {
           ) : livekitToken && livekitUrl && admissionStatus === "pending" ? (
             <div className="flex-1 flex items-center justify-center bg-gradient-to-br from-gray-900 via-slate-900 to-teal-950 p-8">
               <div className="text-center max-w-md">
-                <div className="w-20 h-20 rounded-full bg-teal-500/10 text-teal-400 flex items-center justify-center text-4xl mx-auto mb-6 animate-pulse">
+                <div className="w-20 h-20 rounded-full bg-teal-700/10 text-teal-400 flex items-center justify-center text-4xl mx-auto mb-6 animate-pulse">
                   ⏳
                 </div>
                 <h2 className="text-2xl font-bold mb-3 text-white">{c.waitingRoomTitle}</h2>
@@ -2324,7 +2324,7 @@ export default function ConsultationRoomPage() {
                   {c.waitingRoomBody2}
                 </p>
                 <div className="flex items-center justify-center gap-2 text-xs text-gray-400">
-                  <span className="inline-block w-2 h-2 rounded-full bg-teal-500 animate-pulse" />
+                  <span className="inline-block w-2 h-2 rounded-full bg-teal-700 animate-pulse" />
                   <span>{c.checkingStatus}</span>
                 </div>
                 <p className="text-xs text-gray-500 mt-6 border-t border-gray-800 pt-4">
@@ -2357,7 +2357,7 @@ export default function ConsultationRoomPage() {
                       </div>
                       <button
                         onClick={() => decideAdmission(adm.id, "approved")}
-                        className="px-3 py-1 bg-teal-500 hover:bg-teal-600 text-white text-xs font-semibold rounded"
+                        className="px-3 py-1 bg-teal-700 hover:bg-teal-700 text-white text-xs font-semibold rounded"
                       >
                         {c.approve}
                       </button>
@@ -2551,7 +2551,7 @@ export default function ConsultationRoomPage() {
               <Globe size={16} className="inline mr-2" />
               Translation
               {translations.length > 0 && (
-                <span className="ml-1 bg-teal-600 text-white text-xs px-1.5 py-0.5 rounded-full">
+                <span className="ml-1 bg-teal-700 text-white text-xs px-1.5 py-0.5 rounded-full">
                   {translations.length}
                 </span>
               )}
@@ -2585,7 +2585,7 @@ export default function ConsultationRoomPage() {
                       <div
                         className={`max-w-xs rounded-lg px-3 py-2 text-sm ${
                           msg.sender_role === "patient"
-                            ? "bg-teal-600 text-white"
+                            ? "bg-teal-700 text-white"
                             : "bg-gray-700 text-gray-100"
                         }`}
                       >
@@ -2667,7 +2667,7 @@ export default function ConsultationRoomPage() {
                   <button
                     onClick={handleSendMessage}
                     aria-label="Send message"
-                    className="p-2 bg-teal-600 hover:bg-teal-700 rounded-lg transition"
+                    className="p-2 bg-teal-700 hover:bg-teal-800 rounded-lg transition"
                   >
                     <Send size={16} />
                   </button>
@@ -2732,7 +2732,7 @@ export default function ConsultationRoomPage() {
                         <p className="text-sm text-gray-200">{trans.original_text}</p>
                       </div>
                       <div className="pt-2 border-t border-gray-700">
-                        <p className="text-xs text-teal-600 mb-0.5">
+                        <p className="text-xs text-teal-700 mb-0.5">
                           {LANG_LABELS[trans.target_language] || trans.target_language}
                         </p>
                         <p className="text-sm text-teal-300">{trans.translated_text}</p>
@@ -2794,7 +2794,7 @@ export default function ConsultationRoomPage() {
                     }}
                     disabled={isTranslating || !manualInput.trim()}
                     aria-label="Translate"
-                    className="p-2 bg-teal-600 hover:bg-teal-700 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg transition"
+                    className="p-2 bg-teal-700 hover:bg-teal-800 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg transition"
                     title={c.manualHint}
                   >
                     <Languages size={16} />
@@ -2839,7 +2839,7 @@ export default function ConsultationRoomPage() {
             }}
             disabled={isTranslating || !manualInput.trim()}
             aria-label="Translate"
-            className="shrink-0 p-2 bg-teal-600 hover:bg-teal-700 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg transition"
+            className="shrink-0 p-2 bg-teal-700 hover:bg-teal-800 disabled:opacity-40 disabled:cursor-not-allowed rounded-lg transition"
             title={c.manualHint}
           >
             <Languages size={16} />
@@ -2870,7 +2870,7 @@ export default function ConsultationRoomPage() {
                     }}
                     className={`px-3 py-2 rounded-lg text-sm transition border ${
                       myLang === l
-                        ? "bg-teal-600 border-teal-500 text-white font-semibold"
+                        ? "bg-teal-700 border-teal-500 text-white font-semibold"
                         : "bg-gray-900 border-gray-600 text-gray-300 hover:border-gray-400"
                     }`}
                   >
@@ -2888,7 +2888,7 @@ export default function ConsultationRoomPage() {
                     onClick={() => setTargetLang(l)}
                     className={`px-3 py-2 rounded-lg text-sm transition border ${
                       targetLang === l
-                        ? "bg-teal-600 border-teal-500 text-white font-semibold"
+                        ? "bg-teal-700 border-teal-500 text-white font-semibold"
                         : "bg-gray-900 border-gray-600 text-gray-300 hover:border-gray-400"
                     }`}
                   >
@@ -2910,7 +2910,7 @@ export default function ConsultationRoomPage() {
                     onClick={() => setSubtitleSize(v)}
                     className={`px-3 py-2 rounded-lg text-sm transition border ${
                       subtitleSize === v
-                        ? "bg-teal-600 border-teal-500 text-white font-semibold"
+                        ? "bg-teal-700 border-teal-500 text-white font-semibold"
                         : "bg-gray-900 border-gray-600 text-gray-300 hover:border-gray-400"
                     }`}
                   >
@@ -2921,7 +2921,7 @@ export default function ConsultationRoomPage() {
             </div>
             <button
               onClick={() => setLangSheetOpen(false)}
-              className="w-full py-2.5 bg-teal-600 hover:bg-teal-700 rounded-lg text-sm font-semibold transition"
+              className="w-full py-2.5 bg-teal-700 hover:bg-teal-800 rounded-lg text-sm font-semibold transition"
             >
               {c.done}
             </button>

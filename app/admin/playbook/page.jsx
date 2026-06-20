@@ -159,7 +159,7 @@ export default function PlaybookPage() {
           </button>
           <button
             onClick={() => setShowCreate(!showCreate)}
-            className="flex items-center gap-1.5 px-4 py-2 bg-teal-500 hover:bg-teal-600 text-white rounded-lg text-sm font-medium transition"
+            className="flex items-center gap-1.5 px-4 py-2 bg-teal-700 hover:bg-teal-700 text-white rounded-lg text-sm font-medium transition"
           >
             <Plus size={16} />
             응대 등록
@@ -211,7 +211,7 @@ export default function PlaybookPage() {
             <button
               onClick={handleCreate}
               disabled={creating || !createForm.raw.trim()}
-              className="flex items-center gap-1.5 px-4 py-1.5 bg-teal-500 hover:bg-teal-600 text-white text-sm rounded-lg disabled:opacity-50 transition"
+              className="flex items-center gap-1.5 px-4 py-1.5 bg-teal-700 hover:bg-teal-700 text-white text-sm rounded-lg disabled:opacity-50 transition"
             >
               <Send size={14} />
               {creating ? "처리중..." : "등록"}
@@ -318,7 +318,7 @@ export default function PlaybookPage() {
                         <button
                           onClick={(e) => { e.stopPropagation(); handleApprove(r.id); }}
                           disabled={approving[r.id]}
-                          className="p-1.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg disabled:opacity-50 transition"
+                          className="p-1.5 bg-emerald-500 hover:bg-emerald-700 text-white rounded-lg disabled:opacity-50 transition"
                           title="승인"
                         >
                           <Check size={14} />
@@ -405,7 +405,7 @@ export default function PlaybookPage() {
               <button
                 onClick={() => handleApprove(selected.id)}
                 disabled={approving[selected.id]}
-                className="w-full flex items-center justify-center gap-2 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg font-medium text-sm disabled:opacity-50 transition"
+                className="w-full flex items-center justify-center gap-2 py-2.5 bg-emerald-500 hover:bg-emerald-700 text-white rounded-lg font-medium text-sm disabled:opacity-50 transition"
               >
                 <Check size={16} />
                 {approving[selected.id] ? "승인 처리중..." : "승인 → RAG 반영"}
@@ -413,7 +413,7 @@ export default function PlaybookPage() {
             )}
 
             {selected.status === "approved" && selected.rag_document_id && (
-              <div className="text-xs text-emerald-600 bg-emerald-50 border border-emerald-200 rounded-lg p-3">
+              <div className="text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg p-3">
                 RAG 문서 ID: <span className="font-mono">{selected.rag_document_id}</span>
                 <br />
                 승인 일시: {selected.approved_at ? new Date(selected.approved_at).toLocaleString("ko-KR") : "-"}

@@ -17,7 +17,7 @@ export const PolicyModal = ({ isOpen, onClose, title, content, closeLabel }) => 
                     {content}
                 </div>
                 <div className="p-5 border-t border-gray-100 sticky bottom-0 bg-white rounded-b-2xl">
-                    <button onClick={onClose} className="w-full bg-teal-600 text-white font-bold py-3 rounded-xl hover:bg-teal-700 transition">{label}</button>
+                    <button onClick={onClose} className="w-full bg-teal-700 text-white font-bold py-3 rounded-xl hover:bg-teal-800 transition">{label}</button>
                 </div>
             </div>
         </div>
@@ -39,7 +39,7 @@ export const ReviewModal = ({ isOpen, onClose, reviews }) => {
                         <div key={review.id} className="border border-gray-100 rounded-2xl p-5 shadow-sm bg-white">
                             <div className="flex justify-between items-start mb-3">
                                 <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 bg-teal-50 text-teal-600 rounded-full flex items-center justify-center font-bold text-sm">
+                                    <div className="w-10 h-10 bg-teal-50 text-teal-700 rounded-full flex items-center justify-center font-bold text-sm">
                                         {review.name[0]}
                                     </div>
                                     <div>

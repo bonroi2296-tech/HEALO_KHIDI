@@ -112,7 +112,7 @@ export const AnalyticsTab = ({ analytics }) => (
       {/* 2. Market Demand Trends */}
       <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm flex flex-col">
         <h3 className="text-lg font-bold text-gray-900 mb-2 flex items-center gap-2">
-          <Activity size={20} className="text-teal-600"/> 
+          <Activity size={20} className="text-teal-700"/> 
           시장 수요 트렌드 (Market Trends)
         </h3>
         <p className="text-xs text-gray-500 mb-6">
@@ -124,11 +124,11 @@ export const AnalyticsTab = ({ analytics }) => (
             <div key={i}>
               <div className="flex justify-between text-xs font-bold mb-1.5">
                 <span className="text-gray-800">{t.name}</span>
-                <span className="text-teal-600">{t.percent}% 점유율</span>
+                <span className="text-teal-700">{t.percent}% 점유율</span>
               </div>
               <div className="w-full bg-gray-100 rounded-full h-2.5">
                 <div 
-                  className="bg-teal-500 h-2.5 rounded-full shadow-sm" 
+                  className="bg-teal-700 h-2.5 rounded-full shadow-sm" 
                   style={{ width: `${t.percent}%` }}
                 ></div>
               </div>

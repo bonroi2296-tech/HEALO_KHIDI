@@ -49,7 +49,7 @@ export const AddressInput = ({
           <button
             type="button"
             onClick={() => setIsOpen(true)}
-            className="text-xs font-bold text-teal-600 px-2 py-1 rounded border border-teal-200 hover:bg-teal-50 transition"
+            className="text-xs font-bold text-teal-700 px-2 py-1 rounded border border-teal-200 hover:bg-teal-50 transition"
           >
             검색
           </button>

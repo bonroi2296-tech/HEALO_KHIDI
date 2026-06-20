@@ -303,14 +303,14 @@ export const SignUpPage = ({ setView }) => {
                                     id="terms" 
                                     checked={isAgreed}
                                     onChange={(e) => setIsAgreed(e.target.checked)}
-                                    className="peer h-5 w-5 cursor-pointer appearance-none rounded-md border border-gray-300 transition-all checked:border-teal-600 checked:bg-teal-600"
+                                    className="peer h-5 w-5 cursor-pointer appearance-none rounded-md border border-gray-300 transition-all checked:border-teal-600 checked:bg-teal-700"
                                 />
                                 <div className="pointer-events-none absolute top-2/4 left-2/4 -translate-x-2/4 -translate-y-2/4 text-white opacity-0 peer-checked:opacity-100">
                                     <Check size={14} strokeWidth={4} />
                                 </div>
                             </div>
                             <label htmlFor="terms" className="text-xs text-gray-500 cursor-pointer select-none leading-snug">
-                                {t("signup.agreePrefix", langCode)}<span onClick={(e) => { e.preventDefault(); setActiveModal('privacy'); }} className="text-teal-600 font-bold hover:underline">{t("signup.privacyPolicy", langCode)}</span>{t("signup.agreeAnd", langCode)}<span onClick={(e) => { e.preventDefault(); setActiveModal('terms'); }} className="text-teal-600 font-bold hover:underline">{t("signup.terms", langCode)}</span>. <span className="text-red-500">*</span>
+                                {t("signup.agreePrefix", langCode)}<span onClick={(e) => { e.preventDefault(); setActiveModal('privacy'); }} className="text-teal-700 font-bold hover:underline">{t("signup.privacyPolicy", langCode)}</span>{t("signup.agreeAnd", langCode)}<span onClick={(e) => { e.preventDefault(); setActiveModal('terms'); }} className="text-teal-700 font-bold hover:underline">{t("signup.terms", langCode)}</span>. <span className="text-red-500">*</span>
                             </label>
                         </div>
 
@@ -321,7 +321,7 @@ export const SignUpPage = ({ setView }) => {
                                     id="marketing" 
                                     checked={isMarketing}
                                     onChange={(e) => setIsMarketing(e.target.checked)}
-                                    className="peer h-5 w-5 cursor-pointer appearance-none rounded-md border border-gray-300 transition-all checked:border-teal-600 checked:bg-teal-600"
+                                    className="peer h-5 w-5 cursor-pointer appearance-none rounded-md border border-gray-300 transition-all checked:border-teal-600 checked:bg-teal-700"
                                 />
                                 <div className="pointer-events-none absolute top-2/4 left-2/4 -translate-x-2/4 -translate-y-2/4 text-white opacity-0 peer-checked:opacity-100">
                                     <Check size={14} strokeWidth={4} />
@@ -336,7 +336,7 @@ export const SignUpPage = ({ setView }) => {
                     <button 
                         onClick={handleSignUp}
                         disabled={loading}
-                        className={`w-full font-bold py-3.5 rounded-xl transition shadow-lg ${isAgreed && !loading ? 'bg-teal-600 text-white hover:bg-teal-700 shadow-teal-100' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
+                        className={`w-full font-bold py-3.5 rounded-xl transition shadow-lg ${isAgreed && !loading ? 'bg-teal-700 text-white hover:bg-teal-800 shadow-teal-100' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
                     >
                         {loading ? t("signup.creatingAccount", langCode) : t("auth.signup", langCode)}
                     </button>
@@ -391,7 +391,7 @@ export const SignUpPage = ({ setView }) => {
                 </div>
 
                 <div className="text-center text-sm text-gray-500">
-                    {t("signup.hasAccount", langCode)} <span onClick={() => setView('login')} className="text-teal-600 font-bold cursor-pointer hover:underline">{t("signup.loginLink", langCode)}</span>
+                    {t("signup.hasAccount", langCode)} <span onClick={() => setView('login')} className="text-teal-700 font-bold cursor-pointer hover:underline">{t("signup.loginLink", langCode)}</span>
                 </div>
             </div>
 

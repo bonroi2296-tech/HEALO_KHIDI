@@ -177,7 +177,7 @@ function PlasticSurgeryContent() {
             </span>
             <h1 className="text-3xl md:text-5xl font-bold text-gray-900 mb-4 leading-tight">
               Your Guide to{" "}
-              <span className="text-teal-600">Plastic Surgery</span> in Korea
+              <span className="text-teal-700">Plastic Surgery</span> in Korea
             </h1>
             <p className="text-lg md:text-xl text-gray-600 max-w-2xl mx-auto mb-8">
               Korea is a global leader in cosmetic and reconstructive surgery.
@@ -186,7 +186,7 @@ function PlasticSurgeryContent() {
             </p>
             <Link
               href="/inquiry"
-              className="inline-flex items-center gap-2 px-6 py-3 bg-teal-600 text-white font-semibold rounded-xl hover:bg-teal-700 transition-colors"
+              className="inline-flex items-center gap-2 px-6 py-3 bg-teal-700 text-white font-semibold rounded-xl hover:bg-teal-800 transition-colors"
             >
               Get Your Free Treatment Plan
               <ArrowRight size={18} />
@@ -212,7 +212,7 @@ function PlasticSurgeryContent() {
                   className="bg-gray-50 rounded-xl p-4 md:p-6 text-center"
                 >
                   <item.icon
-                    className="mx-auto mb-3 text-teal-600"
+                    className="mx-auto mb-3 text-teal-700"
                     size={28}
                   />
                   <div className="text-xl md:text-2xl font-bold text-gray-900 mb-1">
@@ -246,7 +246,7 @@ function PlasticSurgeryContent() {
                     {proc.description}
                   </p>
                   <div className="flex items-center gap-2 mb-4">
-                    <DollarSign size={16} className="text-teal-600" />
+                    <DollarSign size={16} className="text-teal-700" />
                     <span className="text-sm font-semibold text-teal-700">
                       {proc.priceRange}
                     </span>
@@ -280,10 +280,10 @@ function PlasticSurgeryContent() {
             <div className="grid md:grid-cols-3 gap-6">
               {steps.map((step) => (
                 <div key={step.number} className="text-center">
-                  <div className="w-12 h-12 rounded-full bg-teal-100 text-teal-600 flex items-center justify-center mx-auto mb-4">
+                  <div className="w-12 h-12 rounded-full bg-teal-100 text-teal-700 flex items-center justify-center mx-auto mb-4">
                     <step.icon size={22} />
                   </div>
-                  <div className="text-xs font-semibold text-teal-600 mb-1">
+                  <div className="text-xs font-semibold text-teal-700 mb-1">
                     STEP {step.number}
                   </div>
                   <h3 className="text-lg font-bold text-gray-900 mb-2">
@@ -297,7 +297,7 @@ function PlasticSurgeryContent() {
         </section>
 
         {/* CTA */}
-        <section className="bg-teal-600 px-4 py-12 md:py-16">
+        <section className="bg-teal-700 px-4 py-12 md:py-16">
           <div className="max-w-3xl mx-auto text-center">
             <h2 className="text-2xl md:text-3xl font-bold text-white mb-4">
               Ready to Explore Your Options?
