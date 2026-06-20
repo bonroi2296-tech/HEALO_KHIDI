@@ -15,7 +15,7 @@ import {
   AlertCircle, Loader2, Shield, Clock,
   Activity, Heart, Brain, Stethoscope, Wind,
   Zap, Microscope, HelpCircle,
-  Bot, MessageCircle, ClipboardList, Headset
+  Bot, MessageCircle, ClipboardList, Headset, BadgeCheck
 } from "lucide-react";
 import { useLang } from "@/lib/i18n/LangContext";
 import { event } from "@/lib/ga";
@@ -258,6 +258,26 @@ const T = {
   },
   trustResponse: {
     ko: "영업일 1일 이내 응답", en: "Reply within 1 business day", ru: "Ответ в течение 1 рабочего дня", kz: "1 жұмыс күні ішінде жауап", zh: "1个工作日内回复", ja: "1営業日以内に返信",
+  },
+  trustFree: {
+    ko: "상담 무료 · 비구속", en: "Free consultation · No obligation", ru: "Бесплатная консультация · Без обязательств", kz: "Тегін кеңес · Міндеттемесіз", zh: "免费咨询 · 无义务", ja: "無料相談 · 拘束なし",
+  },
+  certKhidi: {
+    ko: "KHIDI 정부지원 선정", en: "KHIDI government-supported", ru: "При поддержке KHIDI (госпрограмма)", kz: "KHIDI мемлекеттік қолдауымен", zh: "KHIDI 政府支持项目", ja: "KHIDI 政府支援プロジェクト",
+  },
+  certForeignPatient: {
+    ko: "외국인환자 유치기관 등록", en: "Registered foreign-patient provider", ru: "Зарег. оператор по приёму иностранных пациентов", kz: "Шетелдік науқастарды қабылдау бойынша тіркелген", zh: "外国患者诱致机构注册", ja: "外国人患者受入登録機関",
+  },
+  humanFallbackText: {
+    ko: "원하시는 메신저가 아직 없으신가요? 1분 상담 신청서로 바로 시작하세요.",
+    en: "Don't see your messenger yet? Start now with our 1-minute form.",
+    ru: "Нет нужного мессенджера? Начните с анкеты — это займёт 1 минуту.",
+    kz: "Қалаған мессенджер жоқ па? 1 минуттық сауалнамадан бастаңыз.",
+    zh: "没有您想要的通讯软件？用1分钟表单立即开始。",
+    ja: "ご希望のメッセンジャーがまだありませんか？1分のフォームで今すぐ開始。",
+  },
+  humanFallbackCta: {
+    ko: "상담 신청서 (1분)", en: "Inquiry form (1 min)", ru: "Анкета (1 мин)", kz: "Сауалнама (1 мин)", zh: "咨询表单（1分钟）", ja: "相談フォーム（1分）",
   },
   dialAria: {
     ko: "국가번호", en: "Country calling code", ru: "Телефонный код страны", kz: "Ел телефон коды", zh: "国家区号", ja: "国番号",
@@ -1060,6 +1080,23 @@ export default function UnifiedInquiryFunnel() {
             );
           })}
         </div>
+
+        {/* 신뢰 스트립 — 무료·비구속 + 보안·응답 + 인증 배지 (진입 첫 화면) */}
+        <div className="mt-6 md:mt-8 flex flex-col items-center gap-2.5">
+          <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-1.5 text-[11px] md:text-xs text-gray-500">
+            <span className="flex items-center gap-1"><Check size={12} className="text-teal-600" /> {tl("trustFree", lang)}</span>
+            <span className="flex items-center gap-1"><Shield size={12} className="text-teal-600" /> {tl("trustEncryption", lang)}</span>
+            <span className="flex items-center gap-1"><Clock size={12} className="text-teal-600" /> {tl("trustResponse", lang)}</span>
+          </div>
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            <span className="inline-flex items-center gap-1 text-[10px] md:text-[11px] font-semibold text-gray-600 bg-gray-50 border border-gray-200 rounded-full px-2.5 py-1">
+              <BadgeCheck size={12} className="text-teal-600" /> {tl("certKhidi", lang)}
+            </span>
+            <span className="inline-flex items-center gap-1 text-[10px] md:text-[11px] font-semibold text-gray-600 bg-gray-50 border border-gray-200 rounded-full px-2.5 py-1">
+              <BadgeCheck size={12} className="text-teal-600" /> {tl("certForeignPatient", lang)}
+            </span>
+          </div>
+        </div>
       </div>
     );
   }
@@ -1149,6 +1186,18 @@ export default function UnifiedInquiryFunnel() {
               </div>
             );
           })}
+        </div>
+
+        {/* 폴백 — 원하는 채널이 없어도 막다른 길이 아니게 (항상 동작하는 경로 제공) */}
+        <div className="mt-8 text-center">
+          <p className="text-sm text-gray-500 mb-3">{tl("humanFallbackText", lang)}</p>
+          <button
+            type="button"
+            onClick={() => { safeEvent("inquiry_human_fallback_to_form"); setPhase("step1"); }}
+            className="inline-flex items-center gap-2 px-6 py-3 bg-teal-600 text-white rounded-xl font-semibold text-sm hover:bg-teal-700 transition"
+          >
+            <ClipboardList size={16} /> {tl("humanFallbackCta", lang)} <ChevronRight size={16} />
+          </button>
         </div>
       </div>
     );
@@ -1325,7 +1374,8 @@ export default function UnifiedInquiryFunnel() {
       </div>
 
       {/* 신뢰 배지 */}
-      <div className="flex items-center justify-center gap-6 mt-5 text-[11px] text-gray-500">
+      <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-1.5 mt-5 text-[11px] text-gray-500">
+        <span className="flex items-center gap-1"><Check size={12} className="text-teal-600" /> {tl("trustFree", lang)}</span>
         <span className="flex items-center gap-1"><Shield size={12} /> {tl("trustEncryption", lang)}</span>
         <span className="flex items-center gap-1"><Clock size={12} /> {tl("trustResponse", lang)}</span>
       </div>
