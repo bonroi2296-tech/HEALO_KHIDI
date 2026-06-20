@@ -96,6 +96,9 @@ export default async function sitemap() {
       alternates: { languages: { 'ru': `${baseUrl}/ru/for-russian-patients`, 'x-default': `${baseUrl}/${DEFAULT_LOCALE}` } } },
     { url: `${baseUrl}/kk/for-kazakh-patients`, changeFrequency: 'weekly', priority: 0.9,
       alternates: { languages: { 'kk': `${baseUrl}/kk/for-kazakh-patients`, 'x-default': `${baseUrl}/${DEFAULT_LOCALE}` } } },
+    // ── 러시아어 비용 계산기 (가격 의도 키워드 — 전환 핵심 자산)
+    { url: `${baseUrl}/ru/cost-calculator`, changeFrequency: 'weekly', priority: 0.92,
+      alternates: { languages: { 'ru': `${baseUrl}/ru/cost-calculator`, 'x-default': `${baseUrl}/${DEFAULT_LOCALE}` } } },
   ].map(p => ({ ...p, lastModified: now }));
 
   const urls = [...staticPages];

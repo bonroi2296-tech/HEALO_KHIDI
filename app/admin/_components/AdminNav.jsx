@@ -24,6 +24,7 @@ import {
   TrendingUp,
   Filter,
   ThumbsDown,
+  Calculator,
 } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 
@@ -36,6 +37,7 @@ const navGroups = [
       { id: "dashboard", label: "대시보드", icon: LayoutDashboard, href: "/admin" },
       { id: "kpi-dashboard", label: "KPI 대시보드", icon: TrendingUp, href: "/admin/khidi/kpi-dashboard" },
       { id: "conversion", label: "유치 전환 현황", icon: Filter, href: "/admin/khidi/conversion" },
+      { id: "ad-budget", label: "광고 예산 계산기", icon: Calculator, href: "/admin/khidi/ad-budget" },
       { id: "evidence", label: "증빙 산출물", icon: FileText, href: "/admin/khidi/evidence" },
       { id: "analytics", label: "문의 현황", icon: BarChart3, href: "/admin/analytics" },
     ]
