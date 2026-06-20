@@ -1,43 +1,33 @@
 "use client";
 
 /**
- * 한국 암치료 비용 계산기 (다국어 6개 언어).
- * ⚠️ 청구서/확정 견적/의료 제안 아님 — 어디까지나 예상치. 정확한 견적은 무료 상담으로(/inquiry).
- * 설계: 환자는 질환·프로그램만 고른다(기간은 환자가 모름 → 보통 4~8주 자동 반영).
- *       숙소·항공은 토글이 아니라 비용 내역에 항상 표시(가격 투명성).
- * 언어는 useLang(). 가격대는 /ru/for-russian-patients 와 정합(보수적 추정).
+ * 한국 암치료 안내 + 무료 견적 (다국어 6개 언어).
+ * ⚠️ 임시: 가격 수치 숨김(2=B). PO 실제 가격 확보 후 금액 복원 예정.
+ * 설계: 환자는 질환 + 치료 단계만 고른다 → 그 단계에 무엇이 포함되는지 + "정확한 비용은 무료 상담".
+ * 치료 단계 = 우리 실제 케어경로: 진단 → 수술·항암(상급종합) → 면역·재활(한방 보조).
+ * 의료 레드라인: 한방 면역·재활은 '보조'(치료/완치 아님).
  */
 
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { useLang } from "@/lib/i18n/LangContext";
 
-// 프로그램: oneTime=진단(일회성), 나머지는 월단위 × 예상 체류(개월) 범위.
-const PROGRAMS = [
-  { key: "diagnostics", oneTime: true, low: 500, high: 1500, mL: 0.5, mH: 1 },   // 2~4주
-  { key: "immuno", low: 3000, high: 6000, mL: 1, mH: 2 },                          // 4~8주
-  { key: "complex", low: 5000, high: 12000, mL: 1.5, mH: 3 },                      // 6~12주
-];
-const LODGING = { low: 800, high: 1500 };   // 월
-const FLIGHT = { low: 400, high: 800 };       // 왕복 1회
-const DIAGNOSTICS_ONCE = { low: 500, high: 1500 }; // 치료 코스에 포함되는 초기 진단
-
-const NUM_LOCALE = { ko: "ko-KR", en: "en-US", ru: "ru-RU", kz: "ru-RU", zh: "zh-CN", ja: "ja-JP" };
+const PROGRAM_KEYS = ["diagnosis", "surgery", "immune"];
 
 const COPY = {
   en: {
     heroTitle: "How much does cancer treatment in Korea cost?",
-    heroLede: "See an estimate in 30 seconds. We provide an exact quote and a consultation in your language for free.",
-    labelType: "Condition", labelProgram: "Program",
-    weeksUnit: "wk", stayLabel: "Est. stay",
-    breakdownTitle: "Estimated breakdown",
-    lineTreatment: "Diagnosis & treatment", lineLodging: "Lodging (during stay)", lineFlight: "Round-trip flight", lineTotal: "Total (estimated)",
-    durationNote: "Based on a typical stay — varies by duration and condition.",
-    fromPrefix: "from ", fromSuffix: "", perMonthWord: "/mo",
-    resultLabel: "Estimated total", cta: "Get an exact quote — free →",
+    heroLede: "Pick a treatment stage to see what's included. We provide an exact quote and a consultation in your language — free.",
+    labelType: "Condition", labelProgram: "Treatment stage", includesLabel: "What's included",
     cancers: ["Stomach cancer", "Lung cancer", "Breast cancer", "Liver cancer", "Thyroid cancer", "Colorectal cancer", "Other / not sure"],
-    programs: { diagnostics: "Diagnostics & second opinion", immuno: "Course of immunotherapy (Korean medicine)", complex: "Comprehensive treatment (oncology + support)" },
-    disclaimer: "⚠️ This is an estimate only and is not a bill, offer, or medical proposal. The final cost is determined by the clinic after reviewing your medical records. An exact quote and treatment plan are provided free after consultation.",
+    programs: {
+      diagnosis: { name: "Diagnosis & second opinion", desc: "Review of your medical records and imaging, a second opinion from a Korean oncologist, and a recommended care plan." },
+      surgery: { name: "Surgery & oncology (tertiary hospital)", desc: "Standard cancer treatment — surgery, chemotherapy, radiation — at our partner tertiary hospitals." },
+      immune: { name: "Immune & rehab care (Korean medicine, supportive)", desc: "Supportive immune care, side-effect management and rehabilitation at Myeonryeok Korean-medicine hospital. Supportive care — not a cancer cure." },
+    },
+    quoteTitle: "Exact cost? Free consultation.", quoteText: "Cost depends on the cancer type, stage and plan. Send your records and we'll prepare a personalized quote for free — no obligation.",
+    cta: "Get a free quote →",
+    disclaimer: "⚠️ Treatment stages and costs vary by patient condition. An exact cost and care plan are provided free after a review of your medical records. Korean-medicine immune/rehab care is supportive and does not guarantee a cure.",
     benefits: [
       { t: "Visa-free from Kazakhstan", d: "Visa-free entry to Korea for KZ citizens. We help with documents." },
       { t: "Support in your language", d: "Interpreter and personal manager at every step — from inquiry to discharge." },
@@ -47,17 +37,17 @@ const COPY = {
   },
   ko: {
     heroTitle: "한국 암치료, 얼마나 들까요?",
-    heroLede: "30초 만에 예상 비용을 확인하세요. 정확한 견적과 상담은 무료입니다.",
-    labelType: "질환 종류", labelProgram: "프로그램",
-    weeksUnit: "주", stayLabel: "예상 체류",
-    breakdownTitle: "예상 비용 내역",
-    lineTreatment: "진단·치료", lineLodging: "숙소(체류 중)", lineFlight: "왕복 항공", lineTotal: "합계(예상)",
-    durationNote: "보통 체류 기준 — 기간·환자 상태에 따라 달라집니다.",
-    fromPrefix: "", fromSuffix: "부터", perMonthWord: "/월",
-    resultLabel: "예상 합계", cta: "정확한 견적 무료로 받기 →",
+    heroLede: "치료 단계를 고르면 무엇이 포함되는지 보여드려요. 정확한 견적과 상담은 무료입니다.",
+    labelType: "질환 종류", labelProgram: "치료 단계", includesLabel: "포함 내용",
     cancers: ["위암", "폐암", "유방암", "간암", "갑상선암", "대장암", "기타 / 잘 모름"],
-    programs: { diagnostics: "진단 및 2차 소견", immuno: "면역치료 코스(한방)", complex: "종합 치료(종양 + 지원)" },
-    disclaimer: "⚠️ 본 계산은 예상치이며 청구서·확정 견적·의료 제안이 아닙니다. 최종 비용은 병원이 의료기록 검토 후 결정합니다. 정확한 견적과 치료계획은 상담 후 무료로 제공됩니다.",
+    programs: {
+      diagnosis: { name: "진단 및 2차 소견", desc: "의료기록·영상 검토, 한국 전문의의 2차 소견, 권장 케어 계획 안내." },
+      surgery: { name: "수술·항암 (상급종합병원)", desc: "협진 상급종합병원에서 수술·항암·방사선 등 표준 암치료." },
+      immune: { name: "면역·재활 케어 (한방 보조)", desc: "면력한방병원에서 면역지원·부작용 관리·재활. 보조 요법이며 암 치료/완치가 아닙니다." },
+    },
+    quoteTitle: "정확한 비용? 무료 상담으로.", quoteText: "비용은 암종·병기·치료계획에 따라 달라집니다. 의료기록을 보내주시면 맞춤 견적을 무료로 준비해 드립니다(부담 없음).",
+    cta: "무료 견적 받기 →",
+    disclaimer: "⚠️ 치료 단계·비용은 환자 상태에 따라 달라집니다. 정확한 비용·치료계획은 의료기록 검토 후 무료 상담에서 안내합니다. 한방 면역·재활은 보조 요법이며 완치를 보장하지 않습니다.",
     benefits: [
       { t: "카자흐스탄 무비자", d: "카자흐 국민은 한국 무비자 입국. 서류를 도와드립니다." },
       { t: "모국어 지원", d: "문의부터 퇴원까지 통역사·전담 매니저가 모든 단계 동행." },
@@ -67,17 +57,17 @@ const COPY = {
   },
   ru: {
     heroTitle: "Сколько стоит лечение рака в Корее?",
-    heroLede: "Получите оценку за 30 секунд. Точный расчёт и консультацию на русском языке мы предоставляем бесплатно.",
-    labelType: "Тип заболевания", labelProgram: "Программа",
-    weeksUnit: "нед.", stayLabel: "Ориент. срок",
-    breakdownTitle: "Ориентировочный расчёт",
-    lineTreatment: "Диагностика и лечение", lineLodging: "Проживание (на время лечения)", lineFlight: "Перелёт (туда-обратно)", lineTotal: "Итого (ориентировочно)",
-    durationNote: "Исходя из типичного срока — зависит от длительности и состояния.",
-    fromPrefix: "от ", fromSuffix: "", perMonthWord: "/мес.",
-    resultLabel: "Ориентировочная стоимость", cta: "Получить точный расчёт бесплатно →",
+    heroLede: "Выберите этап лечения, чтобы увидеть, что входит. Точный расчёт и консультацию на русском мы предоставляем бесплатно.",
+    labelType: "Тип заболевания", labelProgram: "Этап лечения", includesLabel: "Что входит",
     cancers: ["Рак желудка", "Рак лёгких", "Рак молочной железы", "Рак печени", "Рак щитовидной железы", "Колоректальный рак", "Другое / не уверен(а)"],
-    programs: { diagnostics: "Диагностика и второе мнение", immuno: "Курс иммунотерапии (корейская медицина)", complex: "Комплексное лечение (онкология + поддержка)" },
-    disclaimer: "⚠️ Расчёт является ориентировочным и не является счётом, офертой или медицинским предложением. Итоговая стоимость определяется клиникой после изучения медицинских документов. Точный расчёт и план лечения предоставляются бесплатно после консультации.",
+    programs: {
+      diagnosis: { name: "Диагностика и второе мнение", desc: "Изучение медицинских документов и снимков, второе мнение корейского онколога и рекомендованный план." },
+      surgery: { name: "Хирургия и онкология (клиника 3-го уровня)", desc: "Стандартное лечение рака — операция, химиотерапия, лучевая терапия — в наших партнёрских клиниках." },
+      immune: { name: "Иммунная поддержка и реабилитация (корейская медицина)", desc: "Поддерживающая иммунотерапия, управление побочными эффектами и реабилитация в клинике Myeonryeok. Поддерживающая терапия — не лечение рака." },
+    },
+    quoteTitle: "Точная стоимость? Бесплатная консультация.", quoteText: "Стоимость зависит от типа рака, стадии и плана. Пришлите документы — мы бесплатно подготовим персональный расчёт, без обязательств.",
+    cta: "Получить бесплатный расчёт →",
+    disclaimer: "⚠️ Этапы лечения и стоимость зависят от состояния пациента. Точная стоимость и план предоставляются бесплатно после изучения медицинских документов. Иммунная/реабилитационная терапия корейской медицины является поддерживающей и не гарантирует излечения.",
     benefits: [
       { t: "Без визы из Казахстана", d: "Безвизовый въезд в Корею для граждан РК. Помогаем с документами." },
       { t: "Сопровождение на русском", d: "Переводчик и личный менеджер на всех этапах — от заявки до выписки." },
@@ -87,17 +77,17 @@ const COPY = {
   },
   kz: {
     heroTitle: "Кореяда қатерлі ісікті емдеу қанша тұрады?",
-    heroLede: "30 секундта бағасын көріңіз. Нақты есеп пен кеңесті тегін береміз.",
-    labelType: "Ауру түрі", labelProgram: "Бағдарлама",
-    weeksUnit: "апта", stayLabel: "Шамамен мерзім",
-    breakdownTitle: "Шамамен есеп",
-    lineTreatment: "Диагностика және емдеу", lineLodging: "Тұру (емделу кезінде)", lineFlight: "Ұшу (екі жаққа)", lineTotal: "Барлығы (шамамен)",
-    durationNote: "Әдеттегі мерзім бойынша — ұзақтығы мен жағдайға байланысты өзгереді.",
-    fromPrefix: "", fromSuffix: " бастап", perMonthWord: "/айына",
-    resultLabel: "Шамамен құны", cta: "Нақты есепті тегін алу →",
+    heroLede: "Емдеу кезеңін таңдаңыз — не кіретінін көрсетеміз. Нақты есеп пен кеңесті тегін береміз.",
+    labelType: "Ауру түрі", labelProgram: "Емдеу кезеңі", includesLabel: "Не кіреді",
     cancers: ["Асқазан қатерлі ісігі", "Өкпе қатерлі ісігі", "Сүт безі қатерлі ісігі", "Бауыр қатерлі ісігі", "Қалқанша без қатерлі ісігі", "Колоректальды қатерлі ісік", "Басқа / сенімді емеспін"],
-    programs: { diagnostics: "Диагностика және екінші пікір", immuno: "Иммунотерапия курсы (корей медицинасы)", complex: "Кешенді емдеу (онкология + қолдау)" },
-    disclaimer: "⚠️ Бұл тек шамамен есеп, шот, оферта немесе медициналық ұсыныс емес. Түпкілікті құнды клиника медициналық құжаттарды қарағаннан кейін анықтайды. Нақты есеп пен емдеу жоспары кеңестен кейін тегін беріледі.",
+    programs: {
+      diagnosis: { name: "Диагностика және екінші пікір", desc: "Медициналық құжаттар мен суреттерді қарау, корей онкологінің екінші пікірі және ұсынылған жоспар." },
+      surgery: { name: "Хирургия және онкология (жоғары деңгейлі аурухана)", desc: "Серіктес ауруханаларда операция, химиотерапия, сәулелік терапия — стандартты ем." },
+      immune: { name: "Иммундық қолдау және оңалту (корей медицинасы)", desc: "Myeonryeok клиникасында қолдау иммунотерапиясы, жанама әсерлерді басқару және оңалту. Қолдау терапиясы — ісікті емдеу емес." },
+    },
+    quoteTitle: "Нақты құны? Тегін кеңес.", quoteText: "Құны ісік түріне, сатысына және жоспарға байланысты. Құжаттарды жіберсеңіз, жеке есепті тегін дайындаймыз — міндеттемесіз.",
+    cta: "Тегін есеп алу →",
+    disclaimer: "⚠️ Емдеу кезеңдері мен құны пациент жағдайына байланысты. Нақты құн мен жоспар медициналық құжаттарды қарағаннан кейін тегін беріледі. Корей медицинасының иммундық/оңалту терапиясы қолдау болып табылады және сауығуға кепілдік бермейді.",
     benefits: [
       { t: "Қазақстаннан визасыз", d: "ҚР азаматтары үшін Кореяға визасыз кіру. Құжаттарға көмектесеміз." },
       { t: "Тіліңізде қолдау", d: "Өтініштен шығуға дейін аудармашы мен жеке менеджер әр кезеңде." },
@@ -107,17 +97,17 @@ const COPY = {
   },
   zh: {
     heroTitle: "在韩国治疗癌症需要多少钱？",
-    heroLede: "30 秒查看预估。精确报价与咨询均免费提供。",
-    labelType: "疾病类型", labelProgram: "项目",
-    weeksUnit: "周", stayLabel: "预计停留",
-    breakdownTitle: "费用预估明细",
-    lineTreatment: "诊断与治疗", lineLodging: "住宿（治疗期间）", lineFlight: "往返机票", lineTotal: "合计（预估）",
-    durationNote: "按常规疗程估算 — 因疗程与病情而异。",
-    fromPrefix: "", fromSuffix: "起", perMonthWord: "/月",
-    resultLabel: "预计总费用", cta: "免费获取精确报价 →",
+    heroLede: "选择治疗阶段，查看包含内容。精确报价与咨询均免费提供。",
+    labelType: "疾病类型", labelProgram: "治疗阶段", includesLabel: "包含内容",
     cancers: ["胃癌", "肺癌", "乳腺癌", "肝癌", "甲状腺癌", "结直肠癌", "其他 / 不确定"],
-    programs: { diagnostics: "诊断与第二意见", immuno: "免疫治疗疗程（韩医）", complex: "综合治疗（肿瘤 + 支持）" },
-    disclaimer: "⚠️ 此为预估，并非账单、要约或医疗建议。最终费用由医院在审阅病历后确定。咨询后免费提供精确报价与治疗方案。",
+    programs: {
+      diagnosis: { name: "诊断与第二意见", desc: "审阅病历与影像，韩国肿瘤专家第二意见，并提供推荐方案。" },
+      surgery: { name: "手术与肿瘤治疗（三级医院）", desc: "在合作三级医院进行手术、化疗、放疗等标准癌症治疗。" },
+      immune: { name: "免疫与康复护理（韩医辅助）", desc: "在Myeonryeok韩医医院进行免疫支持、副作用管理与康复。辅助疗法 — 并非治愈癌症。" },
+    },
+    quoteTitle: "精确费用？免费咨询。", quoteText: "费用因癌种、分期与方案而异。发送病历，我们免费为您准备个性化报价，无需承诺。",
+    cta: "获取免费报价 →",
+    disclaimer: "⚠️ 治疗阶段与费用因患者病情而异。精确费用与方案在审阅病历后免费提供。韩医免疫/康复护理为辅助性质，不保证治愈。",
     benefits: [
       { t: "哈萨克斯坦免签", d: "哈萨克公民免签入境韩国。我们协助办理材料。" },
       { t: "母语支持", d: "从咨询到出院，翻译与专属经理全程陪同。" },
@@ -127,17 +117,17 @@ const COPY = {
   },
   ja: {
     heroTitle: "韓国でのがん治療はいくら？",
-    heroLede: "30秒で概算を確認。正確な見積もりとご相談は無料です。",
-    labelType: "疾患の種類", labelProgram: "プログラム",
-    weeksUnit: "週", stayLabel: "目安の滞在",
-    breakdownTitle: "概算の内訳",
-    lineTreatment: "診断・治療", lineLodging: "宿泊（滞在中）", lineFlight: "往復航空券", lineTotal: "合計（概算）",
-    durationNote: "標準的な滞在を基準 — 期間や状態により変動します。",
-    fromPrefix: "", fromSuffix: "〜", perMonthWord: "/月",
-    resultLabel: "概算合計", cta: "正確な見積もりを無料で →",
+    heroLede: "治療段階を選ぶと、含まれる内容が分かります。正確な見積もりとご相談は無料です。",
+    labelType: "疾患の種類", labelProgram: "治療段階", includesLabel: "含まれる内容",
     cancers: ["胃がん", "肺がん", "乳がん", "肝臓がん", "甲状腺がん", "大腸がん", "その他 / わからない"],
-    programs: { diagnostics: "診断・セカンドオピニオン", immuno: "免疫療法コース（韓方）", complex: "総合治療（腫瘍＋サポート）" },
-    disclaimer: "⚠️ これは概算であり、請求書・確定見積もり・医療提案ではありません。最終費用は医療機関が診療記録を確認のうえ決定します。正確な見積もりと治療計画はご相談後に無料で提供します。",
+    programs: {
+      diagnosis: { name: "診断・セカンドオピニオン", desc: "診療記録・画像の確認、韓国の腫瘍専門医によるセカンドオピニオン、推奨ケアプランのご案内。" },
+      surgery: { name: "手術・腫瘍治療（高度医療機関）", desc: "提携の高度医療機関で手術・化学療法・放射線などの標準的ながん治療。" },
+      immune: { name: "免疫・リハビリケア（韓方・補助）", desc: "Myeonryeok韓方病院での免疫サポート・副作用管理・リハビリ。補助療法であり、がんの治癒ではありません。" },
+    },
+    quoteTitle: "正確な費用は？無料相談で。", quoteText: "費用はがんの種類・進行度・計画により異なります。記録をお送りいただければ、無料で個別見積もりを作成します（義務なし）。",
+    cta: "無料見積もりを受ける →",
+    disclaimer: "⚠️ 治療段階・費用は患者の状態により異なります。正確な費用と計画は診療記録の確認後に無料で提供します。韓方の免疫・リハビリケアは補助的なもので、治癒を保証しません。",
     benefits: [
       { t: "カザフスタンからビザ不要", d: "カザフ国民は韓国へビザ不要で入国。書類をサポートします。" },
       { t: "母国語サポート", d: "問い合わせから退院まで、通訳と専任マネージャーが全段階で同行。" },
@@ -150,33 +140,10 @@ const COPY = {
 export default function CostCalculatorClient() {
   const lang = useLang();
   const c = COPY[lang] || COPY.en;
-  const numLocale = NUM_LOCALE[lang] || "en-US";
-  const fmtUSD = (n) => "$" + Math.round(n).toLocaleString(numLocale, { maximumFractionDigits: 0 });
-  const range = (lo, hi) => `${fmtUSD(lo)} – ${fmtUSD(hi)}`;
-  const priceHint = (low, perMonth) =>
-    `${c.fromPrefix}${fmtUSD(low)}${perMonth ? c.perMonthWord : ""}${c.fromSuffix}`;
 
   const [cancerIdx, setCancerIdx] = useState(0);
-  const [programKey, setProgramKey] = useState("diagnostics");
-  const program = PROGRAMS.find((p) => p.key === programKey);
-
-  const calc = useMemo(() => {
-    const { oneTime, low, high, mL, mH } = program;
-    // 진단·치료
-    const treatLow = oneTime ? low : low * mL + DIAGNOSTICS_ONCE.low;
-    const treatHigh = oneTime ? high : high * mH + DIAGNOSTICS_ONCE.high;
-    // 숙소(체류 개월 비례)
-    const lodgeLow = LODGING.low * mL;
-    const lodgeHigh = LODGING.high * mH;
-    // 항공(왕복 1회)
-    const flightLow = FLIGHT.low, flightHigh = FLIGHT.high;
-    return {
-      treatLow, treatHigh, lodgeLow, lodgeHigh, flightLow, flightHigh,
-      totalLow: treatLow + lodgeLow + flightLow,
-      totalHigh: treatHigh + lodgeHigh + flightHigh,
-      weeksLow: Math.round(mL * 4), weeksHigh: Math.round(mH * 4),
-    };
-  }, [program]);
+  const [programKey, setProgramKey] = useState("diagnosis");
+  const program = c.programs[programKey];
 
   return (
     <main className="max-w-3xl mx-auto px-4 py-12 text-gray-800">
@@ -200,60 +167,42 @@ export default function CostCalculatorClient() {
           </select>
         </div>
 
-        {/* 프로그램 */}
+        {/* 치료 단계 */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">{c.labelProgram}</label>
           <div className="grid sm:grid-cols-3 gap-2">
-            {PROGRAMS.map((p) => (
+            {PROGRAM_KEYS.map((key, i) => (
               <button
-                key={p.key}
-                onClick={() => setProgramKey(p.key)}
+                key={key}
+                onClick={() => setProgramKey(key)}
                 className={`text-left px-4 py-3 rounded-lg border text-sm transition-all ${
-                  programKey === p.key
+                  programKey === key
                     ? "bg-teal-50 text-teal-800 border-teal-200 shadow-sm"
                     : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
                 }`}
               >
-                <span className="font-medium block">{c.programs[p.key]}</span>
-                <span className="text-xs text-gray-400 tabular-nums">{priceHint(p.low, !p.oneTime)}</span>
+                <span className="text-xs text-gray-400 tabular-nums">{i + 1}</span>
+                <span className="font-medium block mt-0.5">{c.programs[key].name}</span>
               </button>
             ))}
           </div>
         </div>
+
+        {/* 선택 단계 포함 내용 */}
+        <div className="bg-gray-50 rounded-lg p-4">
+          <p className="text-xs font-semibold text-gray-500 mb-1">{c.includesLabel}</p>
+          <p className="text-sm text-gray-700 leading-relaxed">{program.desc}</p>
+        </div>
       </section>
 
-      {/* 합계(예상) */}
+      {/* 무료 견적 CTA (금액 대신) */}
       <section className="bg-teal-600 text-white rounded-xl p-6 md:p-8 mt-5 text-center">
-        <p className="text-sm text-teal-100 mb-1">{c.resultLabel}</p>
-        <div className="text-3xl md:text-4xl font-bold tabular-nums">{range(calc.totalLow, calc.totalHigh)}</div>
-        <p className="text-sm text-teal-100 mt-2">
-          {c.cancers[cancerIdx]} · {c.programs[programKey]} · {c.stayLabel} {calc.weeksLow}–{calc.weeksHigh} {c.weeksUnit}
-        </p>
+        <h2 className="text-xl md:text-2xl font-bold mb-2">{c.quoteTitle}</h2>
+        <p className="text-sm text-teal-100 max-w-xl mx-auto">{c.quoteText}</p>
+        <p className="text-xs text-teal-100/80 mt-3">{c.cancers[cancerIdx]} · {program.name}</p>
         <Link href="/inquiry" className="inline-block mt-5 bg-white text-teal-700 px-8 py-3 rounded-lg font-semibold hover:bg-teal-50 transition">
           {c.cta}
         </Link>
-      </section>
-
-      {/* 비용 내역 (항상 표시 — 가격 투명성) */}
-      <section className="bg-white rounded-xl border border-gray-200 shadow-sm p-5 md:p-8 mt-5">
-        <h2 className="text-sm font-bold text-gray-800 mb-4">{c.breakdownTitle}</h2>
-        <dl className="divide-y divide-gray-100">
-          {[
-            { label: c.lineTreatment, lo: calc.treatLow, hi: calc.treatHigh },
-            { label: c.lineLodging, lo: calc.lodgeLow, hi: calc.lodgeHigh },
-            { label: c.lineFlight, lo: calc.flightLow, hi: calc.flightHigh },
-          ].map((row) => (
-            <div key={row.label} className="flex items-center justify-between py-2.5">
-              <dt className="text-sm text-gray-600">{row.label}</dt>
-              <dd className="text-sm text-gray-800 tabular-nums">{range(row.lo, row.hi)}</dd>
-            </div>
-          ))}
-          <div className="flex items-center justify-between pt-3">
-            <dt className="text-sm font-bold text-gray-900">{c.lineTotal}</dt>
-            <dd className="text-base font-bold text-teal-700 tabular-nums">{range(calc.totalLow, calc.totalHigh)}</dd>
-          </div>
-        </dl>
-        <p className="text-xs text-gray-400 mt-3">{c.durationNote}</p>
       </section>
 
       <p className="text-xs text-gray-400 leading-relaxed mt-4">{c.disclaimer}</p>
