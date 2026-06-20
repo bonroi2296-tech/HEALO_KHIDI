@@ -7,6 +7,41 @@
 
 ---
 
+## 🔖 세션 핸드오프 (2026-06-20 심야·피버모드) — 성능(이미지 −86%·히어로 LCP)+SEO+테스트 +20 (PR #135·#138·#140·#141 전부 ✅머지·배포)
+
+**이번 세션 한 일:** (PO가 "자는 동안 토큰 100% 활용" 위임 → **자동검사로 닫히는 안전·비시각 작업만** 골라 끝까지. 전부 main 머지·배포)
+- **🟢 #135 이미지 재압축 −86%**: 과대 public 이미지 51개를 폭 1920·JPEG q82·PNG 무손실로 재압축(전송량 43.5MB→6.1MB). 코드/레이아웃 0 변경. **프로덕션 실측 확인**: `ewha-seoul/5.jpg` 3,764,350B→206,379B(**−95% 라이브**). + `scripts/optimize-images.mjs`(`optimize:images`/`audit:images`) + **CI 게이트**(900KB↑ 재유입 차단). POSTMORTEMS 없음(개선성).
+- **🟢 #138 히어로 next/image 전환**: 홈/care-journey 히어로·회복 섹션 3장을 `next/image`(fill+priority)로 → 첫화면 LCP 개선·기기별 자동 크기·AVIF/WebP. `next.config.js`에 `images.unsplash.com` 허용. PO가 프리뷰 "ㅇㅋ" 후 머지.
+- **🟢 #140 SEO 구조화데이터(JSON-LD)**: `src/lib/seo/structuredData.js`(MedicalBusiness+BreadcrumbList+실제 제휴/협진 병원 네트워크) → care-journey. **화면 변화 0**(검색엔진 전용). 가짜 평점/후기 schema 금지(테스트 가드).
+- **🟢 #141 단위테스트 +20**: `normalizeInquiryStatus`·`isFillerOnly`(추임새)·`evaluateLeadQuality`(리드)·`slug` 4종. 동작 기준 테스트(매직넘버 의존 X). 전 208개 통과.
+- **앞선 동일세션분(아래 '2026-06-20 밤' 블록)**: #127(가짜 후기 제거·실제평가·제휴띠·타임라인·회복톤 사진)·#134(문서) 머지 완료.
+
+**왜 그렇게 했는지:**
+- PO 자리 비움(취침)+토큰 위임 → 취향 "PO 자리 비움=자동검증·저위험만, 위험·라이브·시각검증 필요한 건 보류" 적용. **레이아웃 바뀌는 건(갤러리 next/image 등) 일부러 안 함**(내가 픽셀 확인 불가·PO 못 봄).
+- 이미지 압축을 첫 타깃으로: 측정가능·무위험·해외 모바일 환자 체감속도(LCP)=KHIDI 정성평가(ICT) 직결.
+- 저위험·비시각·CI초록이라 PO 위임("저위험 CI초록=머지")대로 직접 머지.
+
+**안 끝났거나 보류:**
+- **갤러리 이미지 next/image**: 병원 상세 갤러리(캐러셀·onError 폴백)는 레이아웃 위험+내 픽셀검증 불가라 보류. PO 동석 시 프리뷰 확인하며 진행 권장(이미 #135로 86% 압축은 됨).
+- **`any` 813개 축소**: 런타임 무위험(타입은 실행 때 사라짐)이나 광범위·call site 리플 → 가치 대비 churn이라 자는 동안 안 함. PO와 우선순위 정해 진행.
+- **God 컴포넌트(2883줄) 분할 / 화상방 라이브 / KPI 클램프**: 변함없이 고위험·라이브검증 필요로 보류.
+
+**주의·함정 (이번 세션 발견한 실제 이슈 2건 — 기록만, 동작 안 바꿈):**
+- **slug 한글 미변환**: `generateSlug`의 JSDoc은 "강남→gangnam" 로마자 예시지만 **실제론 `\w`(ASCII)만 남겨 한글 전부 제거 → `item-<타임스탬프>` 폴백**(비서술적 URL). 현재 병원 slug는 하드코딩(immunehospital-magok 등)이라 실피해 적음. 로마자화는 기능추가/동작변경이라 보류 — 테스트로 현재 동작은 잠가둠(`slug.test.ts`).
+- **일본어 추임새 `えーと` 누락**: `fillerFilter`가 `えっと`는 잡지만 `えー+と`(장음 표기)는 미커버 → 자막에 가끔 노출. 1줄 정규식 보강 후보(STT 동작변경이라 보류).
+
+**다음 세션이 먼저 할 일 (우선순위):**
+1. **⚠️ 직전 미검증분 먼저 확인(관리자 로그인 — 환경상 자동 불가):** (a) `/admin/khidi/kpi-dashboard` 숫자(유치 4/12·상담+사후관리 12/120) (b) 관리자로 `/api/sentry/test` JSON (c) prod 홈/care-journey 후기섹션·병원네트워크·**히어로/사진 잘 보이는지**(이미지 변경 반영됨) 눈으로 1회.
+2. **PO와 다음 성능/품질 방향 정하기**: 갤러리 next/image(시각확인 필요) / `any` 축소(타입안정) / God 컴포넌트 분할 중 택. 위 '발견 이슈 2건'(slug·추임새) 고칠지도.
+3. KHIDI 중간평가(2026-08-27) 상시 — 이번 성능·SEO·테스트는 정성(ICT 품질)·④(집계 정확성 회귀방지) 기여.
+
+**검증 상태:** **PR #135·#138·#140·#141 전부 CI(`ci`·`Smoke`) 초록 + squash 머지·배포 완료**(GitHub check_runs로 확인). 로컬 tsc 0/eslint 0/**vitest 208개**/check:content/audit:images/next build 통과. **프로덕션 이미지 −95% 실측 확인**(curl). **❌ 미검증(관리자 로그인 필요, 자동 불가): KPI 대시보드 렌더 / Sentry 실전송 / prod 히어로·사진 시각 / 갤러리 화질 — PO 1클릭.** 동일세션 앞 블록(#127·#134)도 머지 완료.
+
+**다음 세션 첫 프롬프트 (PO 복붙용):**
+> 먼저 docs/PROJECT_CONTEXT.md 최상단 핸드오프(2026-06-20 심야·피버모드) 읽어. 어젯밤 자동안전작업으로 이미지 −86%(프로덕션 −95% 실측)·히어로 빠른로딩·SEO·테스트+20 전부 머지·배포됨. 그다음: 1) prod(healo-khidi.vercel.app) 홈·care-journey 열어서 히어로/병원사진 깨짐 없는지, 후기·병원네트워크 잘 보이는지 눈으로 확인. 2) 관리자로 /admin/khidi/kpi-dashboard 숫자 + /api/sentry/test JSON 확인. 3) 다음 성능방향(갤러리 next/image vs any축소 vs God컴포넌트 분할) 골라줘. 새 작업은 git fetch origin main 후 origin/main 기준 브랜치로 시작.
+
+---
+
 ## 🔖 세션 핸드오프 (2026-06-20 밤) — 가짜 후기 제거 + 출처표시 실제 평가 + 제휴병원 네트워크 + 연결형 타임라인 + 회복톤 사진 1차 (PR #127 ✅머지·배포 완료)
 
 **이번 세션 한 일:** (작업본 `claude/care-journey-reviews-hospitals-ajlwdg`, **PR [#127](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/127) = PO가 직접 머지(2026-06-20 11:42 UTC)·본판(main) 반영·프로덕션 배포**)
@@ -80,42 +115,6 @@
 
 **다음 세션 첫 프롬프트 (PO 복붙용):**
 > 먼저 docs/PROJECT_CONTEXT.md 최상단 핸드오프(2026-06-20 저녁·B) 읽어. 새 작업 전 git fetch origin main 동기화부터. 그다음: 1) fix 6 후기 — 면력한방병원(강서·신촌점) 구글/네이버 반응 좋은 실리뷰 내가 줄게(없으면 니가 웹서 후보 제시) 출처표시해서 care-journey/홈에 후기 섹션(가짜 금지). 2) care-journey 더 채워 — 제휴병원 띠 + 5단계 타임라인, 프리뷰로. 3) 회복톤 사진 내가 따로 줌. 그리고 직전 미검증 3개(관리자): KPI 대시보드 / api/sentry/test / kpi-snapshot cron.
-
-## 🔖 세션 핸드오프 (2026-06-20 저녁·병렬) — KPI 집계·대시보드 계산 순수함수 추출+테스트 +50 머지·배포(#118·#122)
-
-**이번 세션 한 일:**
-- **🟢 KPI/대시보드 계산 로직 순수함수 추출 + 단위테스트 +50 — PR [#118](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/118)·[#122](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/122) 둘 다 머지·배포(`af6d58c`·`bb5b058`):** 평가 항목 ④(성과지표 자동집계) 핵심 계산이 테스트 0이었고, 만족도 ×20 환산식이 두 파일에 복붙돼 있었음. server-only 아닌 순수 모듈로 떼어 **단일 소스화 + 테스트로 고정**. 원본 파일은 import만 교체 → **출력 수학적으로 동일(화면 숫자·UI 불변)**.
-  - 새 모듈: `src/lib/khidi/satisfaction.ts`(만족도 환산 `likertTo100`·`avgSatisfaction100`), `nationality.ts`(`normalizeNationality`), `funnelMetrics.ts`(`pct`·`maskName`), `dashboardMetrics.ts`(달성률 `achievementPct`·진척률 등), `patientAggregation.ts`(고유환자수·국가분포 `aggregatePatients`).
-  - 영향받은 원본: `kpi.ts`, `satisfaction/route.ts`, `conversion-funnel/route.ts`, `kpi-dashboard/page.jsx` — 전부 위임만.
-  - 테스트: +28(#118 1차) +13(#118 2차) +9(#122) = **+50**, 전 188개 통과.
-- **PO 취향 1건 누적**(`PO_PREFERENCES.md`): 여러 세션 병렬 운영 → "병렬 안전" 작업 고르기 + squash 후 브랜치 리셋.
-
-**왜 그렇게 했는지:**
-- **작업 선정**: PO가 "토큰 활용 위해 세션 여러개 돌리는데 너랑 뭐하면 효과적이냐" → **다른 세션과 파일 안 겹치고 자동검증으로 닫히는 독립 작업**이 병렬에 최적이라 판단. 그중 평가직결·저위험인 KPI 계산 순수화를 골랐음.
-- **저위험이라 직접 머지**: 추가형(테스트+순수모듈), 출력 불변, 로컬 전수검증 초록 → PO의 "저위험 CI초록=머지" 위임 적용.
-
-**안 끝났거나 보류:**
-- **`kpi/route.ts` 누적 종료일 클램프**: UTC/KST 변환 얽혀 종료일 경계가 미묘(off-by-one 의심). 시간대 민감해 자리 비운 동안 안 건드림 → **PO와 함께 봐야 할 별도 사안**.
-- **D. any 축소·E. God 컴포넌트(2883줄) 분할·화상방 라이브검증**: 변함없이 보류(고위험/라이브검증 필요).
-- **다른 세션 열린 PR(무관)**: [#124](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/124)(다른 세션 핸드오프, draft)·[#119](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/119)(AI챗·자료업로드, draft)·[#116](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/116)(성장계획, draft)·[#83](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/83)(AI안전, draft)·[#41](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/41)(비자).
-
-**주의·함정:**
-- **⚠️ squash 머지 후 같은 브랜치 이어쓰기 = 충돌**: #118을 squash로 합친 뒤 같은 작업본(`claude/session-planning-4o5319`)에서 #122를 이어가니 main과 머지 충돌남(원본 커밋이 squash와 갈라져서 + 그새 다른 세션이 main 전진). 해소함(대시보드 색 `teal-500→700`은 다른 세션 것 채택). **다음엔 머지 직후 `git fetch origin main` 후 브랜치를 main 기준으로 다시 잡고 이어갈 것.**
-- **⚠️ CI(자동검사)가 내 브랜치 특정 커밋에 트리거 안 됨**: `e3a70e0`·`96f03d5`에 깃허브 Actions(`ci`·`Smoke`)가 안 돎(다른 병렬 브랜치는 정상). 빈 커밋·닫고열기 다 시도해도 안 떠서, **CI 전 단계를 로컬에서 전수 통과**시킨 근거로 머지함. → 깃허브 이벤트 유실 추정. **다른 PR에서도 재발하면 GitHub Actions 설정/쿼터 점검 필요.**
-- **로컬 `main` 작업본이 옛 커밋(`7458a83`)에 묶여 있음**: `git checkout main` 시 옛 파일로 보임 → 원격·배포엔 영향 0. 작업 전 origin/main 기준으로 잡을 것.
-
-**다음 세션이 먼저 할 일 (우선순위):**
-1. **⚠️ 직전 미검증분 먼저 확인 (관리자 로그인 필요 — 환경상 내가 못 함):** (a) **KPI 대시보드 화면**: `/admin/khidi/kpi-dashboard`에 **유치 4/12·사전상담+사후관리 12/120**·만족도 뜨는지(숫자·로직은 검증됨, 픽셀만). (b) **서버 Sentry 실전송**: 관리자로 `https://healo-khidi.vercel.app/api/sentry/test` 1회 → JSON "전송됐습니다"면 도착 확인.
-2. **KPI cron 실동작 확정**: 15:05 UTC 이후 Vercel 프로덕션 로그에서 `/api/cron/kpi-snapshot` 200 떴는지.
-3. (선택) `kpi/route.ts` 누적 종료일 클램프 시간대 경계 PO와 함께 점검.
-4. (보류) God 컴포넌트 분할 / any 축소 / 화상방 라이브 — PO 동석·라이브검증 가능할 때만.
-5. KHIDI 중간평가(2026-08-27) 상시 — 이번 테스트 보강은 평가항목 ④(성과지표 자동집계 정확성) 직결(숫자 깨지면 CI가 잡음).
-
-**검증 상태:** PR **[#118](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/118)(`af6d58c`)·[#122](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/122)(`bb5b058`) = 합치기(squash 머지)·배포 완료**. 로컬 **tsc 0 / vitest 188개(+50) / eslint 0에러 / check:content / check:migrations(81) / check:i18n / check:legal / check:cancer-i18n / verify:rag / next build --webpack** 전부 통과(=CI 전 단계 로컬 전수검증). **⚠️ #118·#122는 깃허브 CI(`ci`·`Smoke`)가 트리거 안 돼 "CI 봇 초록"은 못 받음 — 로컬 전수검증으로 대체.** **❌ 미검증(관리자 로그인 필요): KPI 대시보드 화면 렌더 / 서버 Sentry 실전송 — 둘 다 PO 1클릭.** **❌ 미검증: KPI cron 프로덕션 실행.** 다른 세션 열린 PR: #124·#119·#116·#83·#41(무관).
-
-**다음 세션 첫 프롬프트 (PO 복붙용):**
-> 먼저 docs/PROJECT_CONTEXT.md 최상단 핸드오프(2026-06-20 저녁) 읽어. 그다음 직전 미검증 확인: 1) 관리자로 /admin/khidi/kpi-dashboard 열어서 유치 4/12·사전상담+사후관리 12/120 뜨는지. 2) 관리자로 https://healo-khidi.vercel.app/api/sentry/test 한번 열어 JSON 알려줘. 3) 15:05 UTC 지났으면 Vercel 프로덕션 로그에서 /api/cron/kpi-snapshot 200 떴는지 봐줘. 새 작업은 git fetch origin main 후 origin/main 기준으로 브랜치 잡고 시작(squash 머지 후 옛 브랜치 이어쓰면 충돌함).
----
 
 ## 🏷️ 서비스명 변경 — HEALO → **healwith** (2026-06-16 확정·적용)
 

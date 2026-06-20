@@ -1,5 +1,43 @@
 # PR
 
+## 🔖 세션 핸드오프 (2026-06-20 저녁·병렬) — KPI 집계·대시보드 계산 순수함수 추출+테스트 +50 머지·배포(#118·#122)
+
+**이번 세션 한 일:**
+- **🟢 KPI/대시보드 계산 로직 순수함수 추출 + 단위테스트 +50 — PR [#118](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/118)·[#122](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/122) 둘 다 머지·배포(`af6d58c`·`bb5b058`):** 평가 항목 ④(성과지표 자동집계) 핵심 계산이 테스트 0이었고, 만족도 ×20 환산식이 두 파일에 복붙돼 있었음. server-only 아닌 순수 모듈로 떼어 **단일 소스화 + 테스트로 고정**. 원본 파일은 import만 교체 → **출력 수학적으로 동일(화면 숫자·UI 불변)**.
+  - 새 모듈: `src/lib/khidi/satisfaction.ts`(만족도 환산 `likertTo100`·`avgSatisfaction100`), `nationality.ts`(`normalizeNationality`), `funnelMetrics.ts`(`pct`·`maskName`), `dashboardMetrics.ts`(달성률 `achievementPct`·진척률 등), `patientAggregation.ts`(고유환자수·국가분포 `aggregatePatients`).
+  - 영향받은 원본: `kpi.ts`, `satisfaction/route.ts`, `conversion-funnel/route.ts`, `kpi-dashboard/page.jsx` — 전부 위임만.
+  - 테스트: +28(#118 1차) +13(#118 2차) +9(#122) = **+50**, 전 188개 통과.
+- **PO 취향 1건 누적**(`PO_PREFERENCES.md`): 여러 세션 병렬 운영 → "병렬 안전" 작업 고르기 + squash 후 브랜치 리셋.
+
+**왜 그렇게 했는지:**
+- **작업 선정**: PO가 "토큰 활용 위해 세션 여러개 돌리는데 너랑 뭐하면 효과적이냐" → **다른 세션과 파일 안 겹치고 자동검증으로 닫히는 독립 작업**이 병렬에 최적이라 판단. 그중 평가직결·저위험인 KPI 계산 순수화를 골랐음.
+- **저위험이라 직접 머지**: 추가형(테스트+순수모듈), 출력 불변, 로컬 전수검증 초록 → PO의 "저위험 CI초록=머지" 위임 적용.
+
+**안 끝났거나 보류:**
+- **`kpi/route.ts` 누적 종료일 클램프**: UTC/KST 변환 얽혀 종료일 경계가 미묘(off-by-one 의심). 시간대 민감해 자리 비운 동안 안 건드림 → **PO와 함께 봐야 할 별도 사안**.
+- **D. any 축소·E. God 컴포넌트(2883줄) 분할·화상방 라이브검증**: 변함없이 보류(고위험/라이브검증 필요).
+- **다른 세션 열린 PR(무관)**: [#124](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/124)(다른 세션 핸드오프, draft)·[#119](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/119)(AI챗·자료업로드, draft)·[#116](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/116)(성장계획, draft)·[#83](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/83)(AI안전, draft)·[#41](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/41)(비자).
+
+**주의·함정:**
+- **⚠️ squash 머지 후 같은 브랜치 이어쓰기 = 충돌**: #118을 squash로 합친 뒤 같은 작업본(`claude/session-planning-4o5319`)에서 #122를 이어가니 main과 머지 충돌남(원본 커밋이 squash와 갈라져서 + 그새 다른 세션이 main 전진). 해소함(대시보드 색 `teal-500→700`은 다른 세션 것 채택). **다음엔 머지 직후 `git fetch origin main` 후 브랜치를 main 기준으로 다시 잡고 이어갈 것.**
+- **⚠️ CI(자동검사)가 내 브랜치 특정 커밋에 트리거 안 됨**: `e3a70e0`·`96f03d5`에 깃허브 Actions(`ci`·`Smoke`)가 안 돎(다른 병렬 브랜치는 정상). 빈 커밋·닫고열기 다 시도해도 안 떠서, **CI 전 단계를 로컬에서 전수 통과**시킨 근거로 머지함. → 깃허브 이벤트 유실 추정. **다른 PR에서도 재발하면 GitHub Actions 설정/쿼터 점검 필요.**
+- **로컬 `main` 작업본이 옛 커밋(`7458a83`)에 묶여 있음**: `git checkout main` 시 옛 파일로 보임 → 원격·배포엔 영향 0. 작업 전 origin/main 기준으로 잡을 것.
+
+**다음 세션이 먼저 할 일 (우선순위):**
+1. **⚠️ 직전 미검증분 먼저 확인 (관리자 로그인 필요 — 환경상 내가 못 함):** (a) **KPI 대시보드 화면**: `/admin/khidi/kpi-dashboard`에 **유치 4/12·사전상담+사후관리 12/120**·만족도 뜨는지(숫자·로직은 검증됨, 픽셀만). (b) **서버 Sentry 실전송**: 관리자로 `https://healo-khidi.vercel.app/api/sentry/test` 1회 → JSON "전송됐습니다"면 도착 확인.
+2. **KPI cron 실동작 확정**: 15:05 UTC 이후 Vercel 프로덕션 로그에서 `/api/cron/kpi-snapshot` 200 떴는지.
+3. (선택) `kpi/route.ts` 누적 종료일 클램프 시간대 경계 PO와 함께 점검.
+4. (보류) God 컴포넌트 분할 / any 축소 / 화상방 라이브 — PO 동석·라이브검증 가능할 때만.
+5. KHIDI 중간평가(2026-08-27) 상시 — 이번 테스트 보강은 평가항목 ④(성과지표 자동집계 정확성) 직결(숫자 깨지면 CI가 잡음).
+
+**검증 상태:** PR **[#118](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/118)(`af6d58c`)·[#122](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/122)(`bb5b058`) = 합치기(squash 머지)·배포 완료**. 로컬 **tsc 0 / vitest 188개(+50) / eslint 0에러 / check:content / check:migrations(81) / check:i18n / check:legal / check:cancer-i18n / verify:rag / next build --webpack** 전부 통과(=CI 전 단계 로컬 전수검증). **⚠️ #118·#122는 깃허브 CI(`ci`·`Smoke`)가 트리거 안 돼 "CI 봇 초록"은 못 받음 — 로컬 전수검증으로 대체.** **❌ 미검증(관리자 로그인 필요): KPI 대시보드 화면 렌더 / 서버 Sentry 실전송 — 둘 다 PO 1클릭.** **❌ 미검증: KPI cron 프로덕션 실행.** 다른 세션 열린 PR: #124·#119·#116·#83·#41(무관).
+
+**다음 세션 첫 프롬프트 (PO 복붙용):**
+> 먼저 docs/PROJECT_CONTEXT.md 최상단 핸드오프(2026-06-20 저녁) 읽어. 그다음 직전 미검증 확인: 1) 관리자로 /admin/khidi/kpi-dashboard 열어서 유치 4/12·사전상담+사후관리 12/120 뜨는지. 2) 관리자로 https://healo-khidi.vercel.app/api/sentry/test 한번 열어 JSON 알려줘. 3) 15:05 UTC 지났으면 Vercel 프로덕션 로그에서 /api/cron/kpi-snapshot 200 떴는지 봐줘. 새 작업은 git fetch origin main 후 origin/main 기준으로 브랜치 잡고 시작(squash 머지 후 옛 브랜치 이어쓰면 충돌함).
+---
+
+---
+
 ## 🔖 세션 핸드오프 (2026-06-20 저녁) — 제3자 전체 감리(ISO/IEC 25010) + 실측도구 도입 + 접근성 위반 0 + 보안 핫픽스 (PR 8건 머지·배포)
 
 **이번 세션 한 일 (전부 main 머지·배포 완료):**
