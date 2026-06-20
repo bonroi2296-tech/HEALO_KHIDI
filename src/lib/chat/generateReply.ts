@@ -38,6 +38,17 @@ export function getModelName() {
   return "gemini-flash-latest";
 }
 
+// 빈 응답 방어용 안내 메시지(6개 언어). 모델이 빈 텍스트를 반환(추론이 토큰을
+// 소진/안전필터/구조화 파싱 실패)할 때 빈 말풍선 대신 노출 + 코디 연결 유도.
+const EMPTY_REPLY_FALLBACK: Record<string, string> = {
+  ko: "죄송합니다, 지금 답변을 만들지 못했어요. 질문을 조금 더 구체적으로 다시 적어주시거나, 상단 메뉴에서 코디네이터 연결을 눌러주세요.",
+  en: "Sorry, I couldn't generate a response right now. Please rephrase your question, or use the menu to connect with a human coordinator.",
+  ru: "Извините, не удалось сформировать ответ. Пожалуйста, переформулируйте вопрос или свяжитесь с координатором через меню.",
+  kz: "Кешіріңіз, қазір жауап жасай алмадым. Сұрағыңызды нақтырақ қайта жазыңыз немесе мәзірден үйлестірушіге хабарласыңыз.",
+  zh: "抱歉，暂时无法生成回复。请重新描述您的问题，或通过菜单联系人工协调员。",
+  ja: "申し訳ありません、ただいま回答を生成できませんでした。質問を言い換えていただくか、メニューからコーディネーターにおつなぎください。",
+};
+
 export async function getEmbedding(text: string): Promise<number[] | null> {
   const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
   if (!apiKey) return null;
@@ -563,9 +574,10 @@ export async function generateChatReply(
       messages: messages as any,
       // 비용·가독성 가드: 응답 길이 상한 (모바일 채팅 벽지 방지 + 토큰 폭주 차단)
       // ⚠️ gemini-flash-latest 는 thinking(추론) 토큰이 maxOutputTokens 에 포함됨 →
-      //    상한이 낮으면 추론이 예산을 다 먹고 실제 답변이 문장 중간에 잘림(2026-06-19 버그).
-      //    컨시어지 짧은 답변엔 추론 불필요 → thinkingBudget:0 으로 끄고 답변에 예산 전부 할당.
-      maxOutputTokens: 1024,
+      //    상한이 낮으면 추론이 예산을 다 먹고 실제 답변이 잘리거나 통째로 빈칸(2026-06-20 빈답 버그).
+      //    thinkingBudget:0 으로 추론을 끄되, 별칭(latest)이 옵션을 무시할 경우까지 대비해
+      //    상한을 2048 로 올려 답변 토큰 여유 확보(빈답 방어는 아래 EMPTY 가드가 최종 안전망).
+      maxOutputTokens: 2048,
       providerOptions: {
         google: {
           thinkingConfig: { thinkingBudget: 0 },
@@ -589,9 +601,24 @@ export async function generateChatReply(
       fallback = false;
     }
 
+    // 🛟 빈 응답 최종 안전망: 모델이 빈 텍스트를 반환하면(추론 토큰 소진·안전필터·
+    // 구조화 파싱 실패 등) 빈 말풍선이 그대로 사용자에게 노출되던 버그(2026-06-20).
+    // → 6개 언어 안내로 치환 + 원인진단용 finishReason/usage 로깅 + error 플래그.
+    let emptyError: string | undefined;
+    if (!finalReply || !finalReply.trim()) {
+      console.error(
+        `[generateChatReply] EMPTY reply — finishReason=${(result as any)?.finishReason} ` +
+        `usage=${JSON.stringify((result as any)?.usage)} structured=${injectedPatternIds.length > 0} ` +
+        `query="${query.slice(0, 60)}"`
+      );
+      finalReply = EMPTY_REPLY_FALLBACK[lang] || EMPTY_REPLY_FALLBACK.en;
+      emptyError = "empty_model_text";
+    }
+
     const finalResult: ChatReplyResult = {
       reply: finalReply,
       ragChunks,
+      ...(emptyError ? { error: emptyError } : {}),
       _analytics: {
         retrievedPatternIds,
         usedPatternIds: fallback ? injectedPatternIds : declaredUsedIds,
