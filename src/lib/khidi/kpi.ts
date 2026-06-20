@@ -19,6 +19,9 @@ import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
+import { recentSnapshotDates } from "@/lib/khidi/snapshotDates";
+
+export { recentSnapshotDates };
 
 // ============================================================
 // 타입 정의
@@ -336,10 +339,17 @@ export async function getDailyKpiSeries(
 }
 
 /**
- * 어제 날짜 KPI → kpi_snapshots upsert
- * /api/cron/kpi-snapshot 에서 호출
+ * 특정 하루치 KPI → kpi_snapshots upsert.
+ * 반환값 = 그날 집계 중 발생한 쿼리 오류 배열(#102 부류). 정상이면 [].
+ *
+ * @param opts.suppressCanary true면 이 함수 안에서 canary 알림을 쏘지 않는다.
+ *   (백필 루프 `upsertRecentSnapshots` 가 윈도우 전체에서 한 번만 묶어서 쏘기 위함 —
+ *    같은 컬럼 오류가 N일 반복돼도 critical 알림이 N통 가지 않게 중복 방지.)
  */
-export async function upsertDailySnapshot(date: string): Promise<void> {
+export async function upsertDailySnapshot(
+  date: string,
+  opts: { suppressCanary?: boolean } = {}
+): Promise<string[]> {
   // date: YYYY-MM-DD (KST)
   const [year, month] = date.split("-").map(Number);
   const dayNum = parseInt(date.split("-")[2], 10);
@@ -352,7 +362,7 @@ export async function upsertDailySnapshot(date: string): Promise<void> {
 
   // 평가 직결: 집계 쿼리 오류(없는 컬럼·연결 등 #102 부류)가 있으면 자동 알림.
   // 매일 도는 cron 이라 = 평가 숫자 깨짐 canary. 알림 실패는 스냅샷에 영향 없게 격리.
-  if (kpi.errors.length > 0) {
+  if (!opts.suppressCanary && kpi.errors.length > 0) {
     try {
       const { alertKpiAggregationErrors } = await import(
         "@/lib/alerts/operationalAlerts"
@@ -383,4 +393,66 @@ export async function upsertDailySnapshot(date: string): Promise<void> {
     console.error("[kpi] upsertDailySnapshot error:", error.message);
     throw error;
   }
+
+  return kpi.errors;
+}
+
+export interface SnapshotBackfillResult {
+  date: string;
+  ok: boolean;
+  error?: string;
+}
+
+/**
+ * 자가복구 백필: endDate 포함 최근 `days`일치 스냅샷을 매번 idempotent upsert 한다.
+ *
+ * 왜: Vercel cron 은 최선노력(best-effort)이라 가끔 하루를 거른다(실측: 2026-06-16·
+ *     06-19 스냅샷 누락 — POSTMORTEMS). 매 실행마다 최근 며칠을 다시 메우면
+ *     (1) 하루 걸러도 다음 날 자동 복구돼 일별 시계열에 빈 칸이 안 남고,
+ *     (2) 그 날짜들의 집계 쿼리를 다시 돌려 #102 canary 커버리지도 넓어진다.
+ *
+ * - upsert 는 onConflict=snapshot_date 라 재실행해도 안전(idempotent).
+ * - 하루가 실패해도 나머지 날은 계속 진행(격리).
+ * - canary 는 윈도우 전체에서 **한 번만** 발사(같은 오류 N일 반복 시 중복 알림 방지).
+ */
+export async function upsertRecentSnapshots(
+  endDate: string,
+  days = 7
+): Promise<SnapshotBackfillResult[]> {
+  const dates = recentSnapshotDates(endDate, days);
+  const results: SnapshotBackfillResult[] = [];
+  const uniqueErrors = new Set<string>();
+  let daysWithErrors = 0;
+
+  for (const d of dates) {
+    try {
+      const errs = await upsertDailySnapshot(d, { suppressCanary: true });
+      results.push({ date: d, ok: true });
+      if (errs.length > 0) {
+        daysWithErrors += 1;
+        errs.forEach((e) => uniqueErrors.add(e));
+      }
+    } catch (err) {
+      const msg = (err as Error).message;
+      console.error(`[kpi] upsertRecentSnapshots ${d} 실패:`, msg);
+      results.push({ date: d, ok: false, error: msg });
+    }
+  }
+
+  // 집계 쿼리 오류(#102 부류)는 윈도우 전체에서 한 번만 canary 발사(중복 압축).
+  if (uniqueErrors.size > 0) {
+    try {
+      const { alertKpiAggregationErrors } = await import(
+        "@/lib/alerts/operationalAlerts"
+      );
+      await alertKpiAggregationErrors(
+        Array.from(uniqueErrors),
+        `snapshot backfill ${dates[0]}..${dates[dates.length - 1]} (${daysWithErrors}/${dates.length}일 영향)`
+      );
+    } catch (alertErr) {
+      console.error("[kpi] KPI 오류 알림 발송 실패:", (alertErr as Error).message);
+    }
+  }
+
+  return results;
 }

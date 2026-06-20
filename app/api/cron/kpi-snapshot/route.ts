@@ -19,7 +19,7 @@ export const runtime = "nodejs";
 export const maxDuration = 60;
 
 import { NextRequest, NextResponse } from "next/server";
-import { upsertDailySnapshot } from "@/lib/khidi/kpi";
+import { upsertRecentSnapshots } from "@/lib/khidi/kpi";
 
 export async function GET(request: NextRequest) {
   // ── CRON_SECRET 검증 ──────────────────────────────────────
@@ -59,11 +59,42 @@ export async function GET(request: NextRequest) {
     );
   }
 
+  // 백필 윈도우(기본 7일): Vercel cron 은 최선노력이라 가끔 하루를 거른다
+  // (실측: 06-16·06-19 누락). 매번 최근 며칠을 다시 메워 빈 칸을 자동 복구한다.
+  // ?days= 로 조정(테스트·수동 대량 백필), 1~60 범위로 클램프.
+  const daysRaw = Number(searchParams.get("days") ?? "7");
+  const backfillDays =
+    Number.isFinite(daysRaw) && daysRaw >= 1 && daysRaw <= 60
+      ? Math.floor(daysRaw)
+      : 7;
+
   try {
-    console.log(`[cron/kpi-snapshot] Computing snapshot for ${targetDate}`);
-    await upsertDailySnapshot(targetDate);
-    console.log(`[cron/kpi-snapshot] Done: ${targetDate}`);
-    return NextResponse.json({ ok: true, date: targetDate });
+    console.log(
+      `[cron/kpi-snapshot] Computing snapshots ending ${targetDate} (${backfillDays}d window)`
+    );
+    const results = await upsertRecentSnapshots(targetDate, backfillDays);
+    const failed = results.filter((r) => !r.ok).map((r) => r.date);
+    const primary = results.find((r) => r.date === targetDate);
+
+    // 주 대상일(어제) 실패는 가시화(500)해 cron 재시도·알림을 유도.
+    // 과거 백필 날짜 실패는 다음 실행에서 또 메우므로 로그만 남기고 200 유지.
+    if (primary && !primary.ok) {
+      console.error(`[cron/kpi-snapshot] primary ${targetDate} 실패`);
+      return NextResponse.json(
+        { ok: false, error: "internal_error", date: targetDate },
+        { status: 500 }
+      );
+    }
+
+    console.log(
+      `[cron/kpi-snapshot] Done: ${targetDate} (${results.length - failed.length}/${results.length} ok)`
+    );
+    return NextResponse.json({
+      ok: true,
+      date: targetDate,
+      backfilled: results.length,
+      failed,
+    });
   } catch (err) {
     console.error("[cron/kpi-snapshot] error:", (err as Error).message);
     return NextResponse.json({ ok: false, error: "internal_error" }, { status: 500 });
