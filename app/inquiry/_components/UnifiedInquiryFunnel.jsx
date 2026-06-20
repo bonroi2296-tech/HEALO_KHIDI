@@ -260,7 +260,7 @@ const T = {
     ko: "영업일 1일 이내 응답", en: "Reply within 1 business day", ru: "Ответ в течение 1 рабочего дня", kz: "1 жұмыс күні ішінде жауап", zh: "1个工作日内回复", ja: "1営業日以内に返信",
   },
   trustFree: {
-    ko: "상담 무료 · 비구속", en: "Free consultation · No obligation", ru: "Бесплатная консультация · Без обязательств", kz: "Тегін кеңес · Міндеттемесіз", zh: "免费咨询 · 无义务", ja: "無料相談 · 拘束なし",
+    ko: "상담 무료 · 부담 없이", en: "Free consultation · No obligation", ru: "Бесплатная консультация · Без обязательств", kz: "Тегін кеңес · Еркін шешім", zh: "免费咨询 · 无需承诺", ja: "相談無料 · 強制なし",
   },
   certKhidi: {
     ko: "KHIDI 정부지원 선정", en: "KHIDI government-supported", ru: "При поддержке KHIDI (госпрограмма)", kz: "KHIDI мемлекеттік қолдауымен", zh: "KHIDI 政府支持项目", ja: "KHIDI 政府支援プロジェクト",
