@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { ArrowRight, AlertCircle, Loader2, User, Bot, ThumbsUp, ThumbsDown, X, Paperclip, FileText, Image as ImageIcon } from "lucide-react";
+import { ArrowRight, AlertCircle, Loader2, Bot, ThumbsUp, ThumbsDown, X, Paperclip, FileText, Image as ImageIcon } from "lucide-react";
 import { getLangCodeFromCookie, t } from "@/lib/i18n";
 
 const TOKEN_COOKIE = "healo_chat_token";
@@ -608,20 +608,13 @@ export function ThreadChat() {
               </div>
             )}
             {messages.map((msg) => (
-              <div key={msg.id} className={`flex gap-3 ${msg.role === "user" ? "flex-row-reverse" : ""}`}>
-                <div
-                  className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0 ${
-                    msg.role === "assistant" ? "bg-teal-600" : "bg-gray-400"
-                  }`}
-                >
-                  {msg.role === "assistant" ? <Bot size={16} /> : <User size={16} />}
-                </div>
-                <div className="flex flex-col gap-1 max-w-[80%]">
+              <div key={msg.id} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+                <div className={`flex flex-col gap-1 max-w-[90%] ${msg.role === "user" ? "items-end" : "items-start"}`}>
                   <div
                     className={`p-3 rounded-2xl shadow-sm text-sm border ${
                       msg.role === "assistant"
-                        ? "bg-white border-gray-100 rounded-tl-none"
-                        : "bg-teal-600 text-white border-teal-600 rounded-tr-none"
+                        ? "bg-white border-gray-100"
+                        : "bg-teal-600 text-white border-teal-600"
                     }`}
                   >
                     {msg.content && <p className="whitespace-pre-wrap">{msg.content}</p>}
@@ -683,11 +676,8 @@ export function ThreadChat() {
               </div>
             ))}
             {sending && (
-              <div className="flex gap-3">
-                <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0 bg-teal-600">
-                  <Bot size={16} />
-                </div>
-                <div className="p-3 rounded-2xl shadow-sm text-sm border bg-white border-gray-100 rounded-tl-none">
+              <div className="flex justify-start">
+                <div className="p-3 rounded-2xl shadow-sm text-sm border bg-white border-gray-100">
                   <Loader2 size={16} className="animate-spin text-teal-500" />
                 </div>
               </div>
@@ -731,8 +721,8 @@ export function ThreadChat() {
             </div>
           )}
 
-          {/* Input — 첨부 버튼 + 자동 높이 textarea + 분리된 전송 버튼(글자 안 가림·정렬 정확) */}
-          <div className="flex items-end gap-2">
+          {/* Input — 통합 입력 박스(클립·입력칸·전송이 한 테두리 안 → 회색 막대 없음, Claude/GPT 방식) */}
+          <div className="flex items-end gap-1.5 border border-gray-300 rounded-3xl px-2 py-1.5 bg-white focus-within:ring-2 focus-within:ring-teal-500 transition">
             <input
               ref={fileInputRef}
               type="file"
@@ -747,7 +737,7 @@ export function ThreadChat() {
               disabled={sending || uploading || attachments.length >= MAX_ATTACHMENTS}
               aria-label={t("chat.upload.attach", langCode) || "Attach file (test results, photos)"}
               title={t("chat.upload.attach", langCode) || "Attach file (test results, photos)"}
-              className="shrink-0 w-11 h-11 flex items-center justify-center text-gray-400 hover:text-teal-600 hover:bg-teal-50 rounded-full transition disabled:opacity-40 disabled:cursor-not-allowed"
+              className="shrink-0 w-9 h-9 flex items-center justify-center text-gray-400 hover:text-teal-600 rounded-full transition disabled:opacity-40 disabled:cursor-not-allowed"
             >
               <Paperclip size={18} />
             </button>
@@ -763,14 +753,14 @@ export function ThreadChat() {
                 }
               }}
               placeholder={t("chat.placeholder", langCode)}
-              className="flex-1 resize-none border border-gray-300 rounded-3xl py-3 px-5 leading-relaxed focus:outline-none focus:ring-2 focus:ring-teal-500 text-sm max-h-32 overflow-y-auto"
+              className="flex-1 resize-none border-0 bg-transparent outline-none py-1.5 leading-relaxed text-sm max-h-32 overflow-y-auto"
               disabled={sending}
             />
             <button
               onClick={handleSend}
               aria-label="Send message"
               disabled={sending || uploading || (!input.trim() && attachments.length === 0)}
-              className="shrink-0 w-11 h-11 flex items-center justify-center bg-teal-600 text-white rounded-full hover:bg-teal-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              className="shrink-0 w-9 h-9 flex items-center justify-center bg-teal-600 text-white rounded-full hover:bg-teal-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {sending ? <Loader2 size={18} className="animate-spin" /> : <ArrowRight size={18} />}
             </button>
