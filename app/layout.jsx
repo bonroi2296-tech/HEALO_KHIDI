@@ -62,12 +62,14 @@ const baseMetadata = {
     locale: "en_US",
     alternateLocale: ["ko_KR", "ru_RU", "kk_KZ", "zh_CN", "ja_JP"],
     siteName: "healwith",
+    images: [{ url: "/og-image.png", width: 1200, height: 630, alt: "healwith" }],
   },
   twitter: {
     card: "summary_large_image",
     title: "healwith | Korea Cancer Care for International Patients",
     description:
       "Video pre-consultation + 6-language interpretation + full-journey concierge for international cancer patients seeking treatment in Korea.",
+    images: ["/og-image.png"],
   },
   // alternates(hreflang/canonical)는 generateMetadata에서 요청 언어별로 동적 생성.
   icons: {
