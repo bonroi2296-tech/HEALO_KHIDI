@@ -28,8 +28,8 @@ import {
   MapPin,
   Mail,
   GraduationCap,
-  Quote,
 } from "lucide-react";
+import SocialProofSection from "@/components/SocialProofSection";
 
 /* ═══════════════════════════════════════════════════════
    PLACEHOLDER IMAGES (Unsplash — free, no auth required)
@@ -149,10 +149,6 @@ const L = {
     title: { ko: "협력 의료기관", en: "Our Partner Hospitals", ru: "Наши партнёрские больницы", kz: "Біздің серіктес аурухналар", zh: "合作医疗机构", ja: "協力医療機関" },
     subtitle: { ko: "healwith와 함께하는 제휴 병원 및 협진 대학병원", en: "Partner hospitals and cooperating university hospitals working with healwith", ru: "Больницы-партнёры, работающие с healwith", kz: "healwith-мен жұмыс істейтін серіктес аурухналар", zh: "与healwith合作的医院", ja: "healwithと連携する医療機関" },
   },
-  /* ── 환자 후기 ── */
-  testimonials: {
-    title: { ko: "환자 후기", en: "Patient Stories", ru: "Истории пациентов", kz: "Пациент тарихтары", zh: "患者故事", ja: "患者さんの声" },
-  },
   /* ── FAQ ── */
   faq: {
     title: { ko: "자주 묻는 질문", en: "Frequently Asked Questions", ru: "Часто задаваемые вопросы", kz: "Жиі қойылатын сұрақтар", zh: "常见问题", ja: "よくある質問" },
@@ -218,13 +214,6 @@ const PARTNERS_DATA = [
   { slug: "ewha-mokdong", badge: "university", name: { ko: "이대목동병원", en: "Ewha Mokdong Hospital", ru: "Больница Ихва Мокдон", kz: "Ихва Мокдон ауруханасы", zh: "梨大木洞医院", ja: "梨大木洞病院" }, desc: { ko: "이화여자대학교 의료원 목동", en: "Ewha Medical Center, Mokdong", ru: "Медицинский центр Ихва, Мокдон", kz: "Ихва медициналық орталығы, Мокдон", zh: "梨花医疗院木洞", ja: "梨花医療院木洞" }, img: "/images/hospitals/ewha-mokdong/1.jpg?v=2" },
   { slug: "korea-guro", badge: "university", name: { ko: "고려대 구로병원", en: "Korea Univ. Guro Hospital", ru: "Больница Куро", kz: "Куро ауруханасы", zh: "高丽大九老医院", ja: "高麗大九老病院" }, desc: { ko: "고려대학교 의과대학 부속", en: "Korea University College of Medicine", ru: "При медфакультете Корёского университета", kz: "Корё университеті медицина факультеті", zh: "高丽大学医学院附属", ja: "高麗大学医学部附属" }, img: "/images/hospitals/korea-guro/1.jpg?v=2" },
   { slug: "severance-sinchon", badge: "university", name: { ko: "신촌세브란스병원", en: "Severance Hospital", ru: "Больница Северанс", kz: "Северанс ауруханасы", zh: "世福兰斯医院", ja: "セブランス病院" }, desc: { ko: "연세대학교 세브란스병원", en: "Yonsei University Severance Hospital", ru: "Больница Северанс университета Ёнсе", kz: "Ёнсе университетінің Северанс ауруханасы", zh: "延世大学世福兰斯医院", ja: "延世大学セブランス病院" }, img: "/images/hospitals/severance-sinchon/1.jpg?v=2" },
-];
-
-// 📸 교체 대상: 환자 후기 — 실제 환자 리뷰로 교체 (익명 가능)
-const TESTIMONIALS_DATA = [
-  { text: { ko: "카자흐스탄에서 위암 진단을 받고 막막했는데, healwith를 통해 한국 전문의와 상담하고 치료 계획을 세울 수 있었습니다. 러시아어 통역이 실시간으로 되어서 정말 편했어요.", en: "I was diagnosed with stomach cancer in Kazakhstan and felt lost. Through healwith, I consulted with a Korean specialist and planned my treatment. The real-time Russian interpretation made everything so easy.", ru: "Мне диагностировали рак желудка в Казахстане, и я был в растерянности. Через healwith я проконсультировался с корейским специалистом. Синхронный перевод на русский сделал всё простым.", kz: "Қазақстанда асқазан обыры диагнозы қойылды, не істерімді білмедім. healwith арқылы кореялық маманмен кеңестім.", zh: "在哈萨克斯坦被诊断出胃癌时很迷茫。通过healwith咨询了韩国专家，实时俄语翻译让一切变得简单。", ja: "カザフスタンで胃がんと診断され途方に暮れていましたが、healwithで韓国の専門医に相談できました。" }, author: { ko: "A.K. / 카자흐스탄 / 위암", en: "A.K. / Kazakhstan / Stomach Cancer", ru: "А.К. / Казахстан / Рак желудка", kz: "А.К. / Қазақстан / Асқазан обыры", zh: "A.K. / 哈萨克斯坦 / 胃癌", ja: "A.K. / カザフスタン / 胃がん" } },
-  { text: { ko: "유방암 수술 후 면력한방병원에서 한방 면역치료를 병행했더니 항암 부작용이 확실히 줄었습니다. 원스톱으로 연결해주니 정말 편리했어요.", en: "After breast cancer surgery, I combined Korean Medicine immunotherapy at Immune Hospital. The side effects from chemo were noticeably reduced. The one-stop connection was so convenient.", ru: "После операции по раку молочной железы я совместила иммунотерапию в Иммуногоспитале. Побочные эффекты химиотерапии заметно уменьшились.", kz: "Сүт безі обырынан кейін Иммунная Клиникаде иммунотерапияны біріктірдім. Химиотерапия жанама әсерлері байқаларлықтай азайды.", zh: "乳腺癌手术后在免疫医院配合韩方免疫治疗，化疗副作用明显减少。一站式连接非常方便。", ja: "乳がん手術後、免疫病院で韓方免疫治療を併用したら副作用が明らかに減りました。" }, author: { ko: "M.S. / 러시아 / 유방암", en: "M.S. / Russia / Breast Cancer", ru: "М.С. / Россия / Рак молочной железы", kz: "М.С. / Ресей / Сүт безі обыры", zh: "M.S. / 俄罗斯 / 乳腺癌", ja: "M.S. / ロシア / 乳がん" } },
-  { text: { ko: "일본에서 간암 세컨드오피니언을 위해 이용했습니다. 화상으로 편하게 상담받고, 한국 치료 비용이 일본보다 훨씬 합리적이라는 것도 알게 되었어요.", en: "I used healwith from Japan for a second opinion on liver cancer. The video consultation was very comfortable, and I learned that treatment costs in Korea are much more reasonable than in Japan.", ru: "Я обратился из Японии за вторым мнением по раку печени. Видеоконсультация была очень удобной.", kz: "Жапониядан бауыр обыры бойынша екінші пікір алу үшін healwith-ны пайдаландым.", zh: "我从日本使用healwith咨询肝癌第二意见。视频咨询很方便，了解到韩国的治疗费用比日本合理得多。", ja: "日本から肝がんのセカンドオピニオンで利用しました。ビデオ相談が快適で、韓国の治療費が日本より合理的だと分かりました。" }, author: { ko: "T.Y. / 일본 / 간암", en: "T.Y. / Japan / Liver Cancer", ru: "Т.Я. / Япония / Рак печени", kz: "Т.Я. / Жапония / Бауыр обыры", zh: "T.Y. / 日本 / 肝癌", ja: "T.Y. / 日本 / 肝がん" } },
 ];
 
 // FAQ 데이터 (실제 내용 — 교체 불필요)
@@ -481,35 +470,9 @@ export default function HomeClient() {
       </section>
 
       {/* ══════════════════════════════════════════
-          TESTIMONIALS — 환자 후기
-          📸 교체 방법: TESTIMONIALS_DATA 배열에서 text, author 수정
+          SOCIAL PROOF — 실제·검증 가능한 평가 (가짜 후기 금지)
           ══════════════════════════════════════════ */}
-      <section className="bg-white py-10 md:py-16">
-        <div className="max-w-6xl mx-auto px-4">
-          <h2 className="text-2xl md:text-3xl lg:text-4xl font-extrabold text-center text-gray-900 mb-8 md:mb-12">{l(L.testimonials.title)}</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-6">
-            {TESTIMONIALS_DATA.map((t, i) => (
-              <div key={i} className="bg-gradient-to-b from-slate-50 to-white rounded-xl md:rounded-2xl p-5 md:p-7 border border-slate-100 flex flex-col">
-                <Quote size={20} className="text-teal-200 mb-2 md:mb-4" />
-                <p className="text-gray-600 text-xs md:text-sm leading-relaxed flex-1 line-clamp-4 md:line-clamp-none">{l(t.text)}</p>
-                <div className="mt-4 md:mt-6 pt-3 md:pt-4 border-t border-gray-100">
-                  <div className="flex items-center gap-2 md:gap-3">
-                    <div className="w-8 h-8 md:w-10 md:h-10 bg-gradient-to-br from-teal-400 to-emerald-400 rounded-full flex items-center justify-center text-white font-bold text-xs md:text-sm">
-                      {l(t.author).charAt(0)}
-                    </div>
-                    <div>
-                      <p className="text-xs md:text-sm font-semibold text-gray-800">{l(t.author)}</p>
-                      <div className="flex gap-0.5 mt-0.5">
-                        {[...Array(5)].map((_, j) => <Star key={j} size={12} className="text-amber-400 fill-amber-400" />)}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      <SocialProofSection />
 
       {/* ══════════════════════════════════════════
           FAQ — 탭 + 아코디언
