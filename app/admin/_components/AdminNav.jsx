@@ -46,6 +46,7 @@ const navGroups = [
       { id: "leads", label: "사전상담 리드", icon: Users, href: "/admin/leads" },
       { id: "cases", label: "케이스 관리", icon: HeartPulse, href: "/admin/khidi/cases" },
       { id: "inquiries", label: "AI 핸드오프 문의", icon: MessageSquare, href: "/admin/inquiries" },
+      { id: "chat", label: "AI 대화·환자자료", icon: MessageSquare, href: "/admin/chat" },
       { id: "consultations", label: "원격협진", icon: Video, href: "/admin/consultations" },
       { id: "referrals", label: "양·한방 협진 의뢰", icon: Building2, href: "/admin/khidi/referrals" },
       { id: "agent", label: "Human Agent", icon: HeartPulse, href: "/admin/agent" },
