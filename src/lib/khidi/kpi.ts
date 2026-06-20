@@ -20,6 +20,8 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
 import { recentSnapshotDates } from "@/lib/khidi/snapshotDates";
+import { normalizeNationality } from "@/lib/khidi/nationality";
+import { avgSatisfaction100 } from "@/lib/khidi/satisfaction";
 
 export { recentSnapshotDates };
 
@@ -64,37 +66,8 @@ function getAdminClient(): SupabaseClient {
   return supabaseAdmin as unknown as SupabaseClient;
 }
 
-// ============================================================
-// 내부 유틸: 국적 코드 → 한국어 표기 (KHIDI 리포트 가독성)
-// inquiries.nationality 는 ISO 2자리 코드(KZ/RU/UZ…)로 저장됨.
-// 대시보드 진행바 색상은 "카자흐"/"러시아" 또는 "KZ"/"RU" 둘 다 매칭하므로
-// 한국어로 바꿔도 색상 로직 유지됨. 모르는 코드는 원문 그대로 둔다.
-// ============================================================
-const NATIONALITY_NAMES: Record<string, string> = {
-  KZ: "카자흐스탄",
-  RU: "러시아",
-  UZ: "우즈베키스탄",
-  KG: "키르기스스탄",
-  TJ: "타지키스탄",
-  TM: "투르크메니스탄",
-  AZ: "아제르바이잔",
-  GE: "조지아",
-  AM: "아르메니아",
-  BY: "벨라루스",
-  UA: "우크라이나",
-  MN: "몽골",
-  KR: "한국",
-  CN: "중국",
-  JP: "일본",
-  US: "미국",
-};
-
-function normalizeNationality(raw: string | null | undefined): string {
-  if (!raw) return "기타";
-  const v = raw.trim();
-  if (!v) return "기타";
-  return NATIONALITY_NAMES[v.toUpperCase()] ?? v;
-}
+// 국적 코드 → 한국어 표기(normalizeNationality)·만족도 환산(avgSatisfaction100)은
+// server-only 가 아닌 순수 모듈(nationality.ts·satisfaction.ts)로 분리해 단위테스트로 고정.
 
 // ============================================================
 // 내부: 날짜 범위 → KPI 집계 (SQL)
@@ -158,20 +131,7 @@ async function _fetchKpiInRange(
   if (e4b) noteErr("survey_responses", e4b.message);
 
   const responses = surveyResponsesFull ?? [];
-  let satisfactionAvg: number | null = null;
-  if (responses.length > 0) {
-    const sum = responses.reduce((acc, r) => {
-      const avg5 =
-        ((r.q1_score ?? 0) +
-          (r.q2_score ?? 0) +
-          (r.q3_score ?? 0) +
-          (r.q4_score ?? 0) +
-          (r.q5_score ?? 0)) /
-        5;
-      return acc + avg5 * 20; // Likert 5점 → 100점
-    }, 0);
-    satisfactionAvg = Math.round((sum / responses.length) * 10) / 10;
-  }
+  const satisfactionAvg = avgSatisfaction100(responses);
 
   // 응답률: 해당 기간 발송된 surveys 대비 responded=true
   const { count: surveysSentCount } = await supabase
