@@ -65,7 +65,7 @@ const GoogleReviewsList = ({ reviews, langCode }) => {
 
   return (
     <div>
-      {translating && <p className="text-xs text-teal-500 animate-pulse mb-2">{t("status.translating", langCode) || "Translating..."}</p>}
+      {translating && <p className="text-xs text-teal-700 animate-pulse mb-2">{t("status.translating", langCode) || "Translating..."}</p>}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {translatedReviews.map((review, idx) => (
           <div key={idx} className="p-4 bg-gray-50 rounded-xl">
@@ -332,7 +332,7 @@ export const HospitalDetailPage = ({ selectedId, setView, onTreatmentClick, init
       <div className="min-h-[60vh] flex flex-col items-center justify-center text-center px-6">
         <div className="text-teal-700 font-extrabold text-lg mb-2">{t("status.hospitalNotFound", langCode)}</div>
         {error && isDev && <div className="text-red-500 text-xs mb-2 max-w-md">{error.message || JSON.stringify(error)}</div>}
-        <button onClick={() => setView?.("list_hospital")} className="px-5 py-3 rounded-xl bg-teal-600 text-white font-bold hover:bg-teal-700 mt-4">{t("btn.backToHospitals", langCode)}</button>
+        <button onClick={() => setView?.("list_hospital")} className="px-5 py-3 rounded-xl bg-teal-700 text-white font-bold hover:bg-teal-800 mt-4">{t("btn.backToHospitals", langCode)}</button>
       </div>
     );
   }
@@ -431,7 +431,7 @@ export const HospitalDetailPage = ({ selectedId, setView, onTreatmentClick, init
 
       {/* Content */}
       <div className="max-w-6xl mx-auto px-4">
-        <button onClick={() => setView("list_hospital")} className="flex items-center text-sm text-gray-500 mb-6 hover:text-teal-600">
+        <button onClick={() => setView("list_hospital")} className="flex items-center text-sm text-gray-500 mb-6 hover:text-teal-700">
           <ChevronLeft size={16} /> {t("detail.backToHospitals", langCode)}
         </button>
 
@@ -445,7 +445,7 @@ export const HospitalDetailPage = ({ selectedId, setView, onTreatmentClick, init
                 {hospital?.tags?.map((tag, i) => (
                   <span key={i} className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs font-medium rounded-full">{tag}</span>
                 ))}
-                <span className={`px-2 py-0.5 text-xs font-medium rounded-full border flex items-center gap-1 ${isPartner ? "bg-teal-600 text-white border-teal-600" : "bg-gray-50 text-gray-500 border-gray-200"}`}>
+                <span className={`px-2 py-0.5 text-xs font-medium rounded-full border flex items-center gap-1 ${isPartner ? "bg-teal-700 text-white border-teal-600" : "bg-gray-50 text-gray-500 border-gray-200"}`}>
                   {isPartner ? <ShieldCheck size={11} /> : <Info size={11} />}
                   {isPartner ? t("badge.verified", langCode) : t("detail.publicInfo", langCode)}
                 </span>
@@ -464,19 +464,19 @@ export const HospitalDetailPage = ({ selectedId, setView, onTreatmentClick, init
               {(hospital?.external_ratings?.phone || hospital?.external_ratings?.website) && (
                 <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-gray-500 mt-1.5">
                   {hospital.external_ratings.phone && (
-                    <a href={`tel:${hospital.external_ratings.phone}`} className="flex items-center gap-1 hover:text-teal-600 transition">
+                    <a href={`tel:${hospital.external_ratings.phone}`} className="flex items-center gap-1 hover:text-teal-700 transition">
                       <Phone size={14} className="text-gray-400" />
                       <span>{hospital.external_ratings.phone}</span>
                     </a>
                   )}
                   {hospital.external_ratings.website && (
-                    <a href={hospital.external_ratings.website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 hover:text-teal-600 transition">
+                    <a href={hospital.external_ratings.website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 hover:text-teal-700 transition">
                       <ExternalLink size={14} className="text-gray-400" />
                       <span className="truncate max-w-[200px]">{t("detail.website", langCode)}</span>
                     </a>
                   )}
                   {hospital.external_ratings.google_maps_url && (
-                    <a href={hospital.external_ratings.google_maps_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 hover:text-teal-600 transition">
+                    <a href={hospital.external_ratings.google_maps_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 hover:text-teal-700 transition">
                       <MapPin size={14} className="text-gray-400" />
                       <span>{t("detail.googleMaps", langCode)}</span>
                     </a>
@@ -497,13 +497,13 @@ export const HospitalDetailPage = ({ selectedId, setView, onTreatmentClick, init
                     <div className="shrink-0">
                       <div className="w-24 h-24 mx-auto md:mx-0 rounded-full p-0.5 border-2 border-teal-100 relative">
                         <img src={doctor.image} className="w-full h-full object-cover rounded-full" alt="Doctor" />
-                        <div className="absolute bottom-0 right-0 bg-teal-600 text-white p-1 rounded-full border-2 border-white"><Check size={10} strokeWidth={4} /></div>
+                        <div className="absolute bottom-0 right-0 bg-teal-700 text-white p-1 rounded-full border-2 border-white"><Check size={10} strokeWidth={4} /></div>
                       </div>
                     </div>
                   )}
                   <div className="flex-1 text-center md:text-left">
                     <h3 className="text-base font-bold text-gray-900">{doctor.name}</h3>
-                    {doctor.title && <p className="text-teal-600 text-sm mb-3">{doctor.title}</p>}
+                    {doctor.title && <p className="text-teal-700 text-sm mb-3">{doctor.title}</p>}
                     <div className="flex flex-wrap justify-center md:justify-start gap-2 mb-3">
                       {doctor.school && <span className="flex items-center gap-1 px-2.5 py-1 bg-gray-50 rounded-lg text-xs text-gray-600 border border-gray-100"><GraduationCap size={13} className="text-gray-400" /> {doctor.school}</span>}
                       {doctor.years && <span className="flex items-center gap-1 px-2.5 py-1 bg-gray-50 rounded-lg text-xs text-gray-600 border border-gray-100"><Award size={13} className="text-gray-400" /> {doctor.years} {t("detail.experience", langCode)}</span>}
@@ -533,7 +533,7 @@ export const HospitalDetailPage = ({ selectedId, setView, onTreatmentClick, init
                     href={hospital.website.startsWith("http") ? hospital.website : `https://${hospital.website}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 text-sm text-teal-600 hover:text-teal-700 hover:underline mb-4"
+                    className="inline-flex items-center gap-1.5 text-sm text-teal-700 hover:text-teal-700 hover:underline mb-4"
                   >
                     <Globe size={14} />
                     {hospital.website.replace(/^https?:\/\//, "").replace(/\/$/, "")}
@@ -612,11 +612,11 @@ export const HospitalDetailPage = ({ selectedId, setView, onTreatmentClick, init
                           <div className="w-28 h-20 bg-gray-100 shrink-0 flex items-center justify-center"><ImageIcon size={20} className="text-gray-300" /></div>
                         )}
                         <div className="p-3 flex flex-col justify-center flex-1 min-w-0">
-                          <h4 className="font-semibold text-gray-900 text-sm group-hover:text-teal-600 line-clamp-1 mb-0.5">{item.title || item.name}</h4>
+                          <h4 className="font-semibold text-gray-900 text-sm group-hover:text-teal-700 line-clamp-1 mb-0.5">{item.title || item.name}</h4>
                           <p className="text-xs text-gray-500 line-clamp-1 mb-1">{item.desc || item.description}</p>
                           <div className="flex items-center justify-between">
-                            <p className="text-teal-600 font-bold text-sm">{item.price || item.price_min || ""}</p>
-                            <ArrowRight size={13} className="text-gray-300 group-hover:text-teal-500 transition" />
+                            <p className="text-teal-700 font-bold text-sm">{item.price || item.price_min || ""}</p>
+                            <ArrowRight size={13} className="text-gray-300 group-hover:text-teal-700 transition" />
                           </div>
                         </div>
                       </div>
@@ -642,7 +642,7 @@ export const HospitalDetailPage = ({ selectedId, setView, onTreatmentClick, init
                         {avgRating}/5.0 ({allDisplayed.length})
                       </span>
                     ) : (
-                      <span className="bg-teal-50 text-teal-600 text-xs font-semibold px-2 py-0.5 rounded-full border border-teal-100">New</span>
+                      <span className="bg-teal-50 text-teal-700 text-xs font-semibold px-2 py-0.5 rounded-full border border-teal-100">New</span>
                     )}
                   </div>
                 );
@@ -658,7 +658,7 @@ export const HospitalDetailPage = ({ selectedId, setView, onTreatmentClick, init
                         <div key={review.id} className="p-4 bg-gray-50 rounded-xl">
                           <div className="flex justify-between items-start mb-2">
                             <div className="flex items-center gap-2">
-                              <div className="w-8 h-8 bg-teal-50 rounded-full flex items-center justify-center text-teal-600 font-bold text-xs uppercase">{review.user_name?.[0] || "U"}</div>
+                              <div className="w-8 h-8 bg-teal-50 rounded-full flex items-center justify-center text-teal-700 font-bold text-xs uppercase">{review.user_name?.[0] || "U"}</div>
                               <div>
                                 <p className="font-semibold text-gray-900 text-sm">{review.user_name} <span className="text-[10px] text-gray-500 uppercase">{review.country}</span></p>
                                 <p className="text-xs text-gray-500">{review.created_at ? formatDate(review.created_at, "en") : ""}</p>
@@ -711,15 +711,15 @@ export const HospitalDetailPage = ({ selectedId, setView, onTreatmentClick, init
               <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm">
                 <h3 className="font-bold text-base mb-1">{t("sidebar.makeInquiry", langCode)}</h3>
                 <p className="text-xs text-gray-500 mb-5">{t("sidebar.directResponse", langCode)}</p>
-                <button onClick={() => setView("inquiry")} className="w-full bg-teal-600 text-white font-bold py-3.5 rounded-xl hover:bg-teal-700 transition flex items-center justify-center gap-2">
+                <button onClick={() => setView("inquiry")} className="w-full bg-teal-700 text-white font-bold py-3.5 rounded-xl hover:bg-teal-800 transition flex items-center justify-center gap-2">
                   <MessageCircle size={18} /> {isPartner ? t("sidebar.contactVia", langCode) : t("sidebar.inquireAboutHospital", langCode)}
                 </button>
                 <div className="mt-4 bg-gray-50 rounded-xl p-4">
-                  <p className="text-xs font-semibold text-gray-900 flex items-center gap-1.5 mb-2"><ShieldCheck size={14} className="text-teal-600" /> {t("sidebar.whyContact", langCode)}</p>
+                  <p className="text-xs font-semibold text-gray-900 flex items-center gap-1.5 mb-2"><ShieldCheck size={14} className="text-teal-700" /> {t("sidebar.whyContact", langCode)}</p>
                   <ul className="space-y-1.5 text-[11px] text-gray-600">
-                    <li className="flex items-start gap-2"><CheckCircle2 size={13} className="text-teal-600 mt-0.5 shrink-0" />{t("sidebar.compareOptions", langCode)}</li>
-                    <li className="flex items-start gap-2"><CheckCircle2 size={13} className="text-teal-600 mt-0.5 shrink-0" />{t("sidebar.coordinatorSupport", langCode)}</li>
-                    <li className="flex items-start gap-2"><CheckCircle2 size={13} className="text-teal-600 mt-0.5 shrink-0" />{t("sidebar.consentSharing", langCode)}</li>
+                    <li className="flex items-start gap-2"><CheckCircle2 size={13} className="text-teal-700 mt-0.5 shrink-0" />{t("sidebar.compareOptions", langCode)}</li>
+                    <li className="flex items-start gap-2"><CheckCircle2 size={13} className="text-teal-700 mt-0.5 shrink-0" />{t("sidebar.coordinatorSupport", langCode)}</li>
+                    <li className="flex items-start gap-2"><CheckCircle2 size={13} className="text-teal-700 mt-0.5 shrink-0" />{t("sidebar.consentSharing", langCode)}</li>
                   </ul>
                 </div>
               </div>
@@ -754,7 +754,7 @@ export const HospitalDetailPage = ({ selectedId, setView, onTreatmentClick, init
                     { icon: <Globe size={14} />, text: t("sidebar.internationalSupport", langCode) },
                   ].map((item, idx) => (
                     <div key={idx} className="flex items-center gap-2.5">
-                      <span className={isPartner ? "text-teal-600" : "text-amber-600"}>{item.icon}</span>
+                      <span className={isPartner ? "text-teal-700" : "text-amber-600"}>{item.icon}</span>
                       <span className="text-gray-700">{item.text}</span>
                     </div>
                   ))}
@@ -775,7 +775,7 @@ export const HospitalDetailPage = ({ selectedId, setView, onTreatmentClick, init
             <p className="font-semibold text-gray-900 text-sm truncate">{hospital?.name}</p>
             <div className="flex items-center gap-1 text-xs text-gray-500">
               {!hospital?.rating || hospital.rating <= 0 ? (
-                <span className="text-teal-600 font-medium">New</span>
+                <span className="text-teal-700 font-medium">New</span>
               ) : (
                 <>
                   <Star size={12} className="text-yellow-400 fill-yellow-400" />
@@ -785,7 +785,7 @@ export const HospitalDetailPage = ({ selectedId, setView, onTreatmentClick, init
               )}
             </div>
           </div>
-          <button onClick={() => setView("inquiry")} className="bg-teal-600 text-white font-bold py-3 px-5 rounded-xl hover:bg-teal-700 transition shrink-0 flex items-center gap-2 text-sm">
+          <button onClick={() => setView("inquiry")} className="bg-teal-700 text-white font-bold py-3 px-5 rounded-xl hover:bg-teal-800 transition shrink-0 flex items-center gap-2 text-sm">
             <MessageCircle size={16} /> {t("sidebar.makeInquiry", langCode)}
           </button>
         </div>

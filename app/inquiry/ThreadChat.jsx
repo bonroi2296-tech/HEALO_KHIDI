@@ -42,7 +42,7 @@ function IdentificationForm({ langCode, onSubmit, submitting }) {
     <div className="flex-1 flex items-center justify-center px-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-6">
-          <div className="w-14 h-14 mx-auto mb-3 rounded-full bg-teal-600 flex items-center justify-center text-white">
+          <div className="w-14 h-14 mx-auto mb-3 rounded-full bg-teal-700 flex items-center justify-center text-white">
             <Bot size={28} />
           </div>
           <h3 className="text-lg font-bold text-gray-900 mb-1">
@@ -94,7 +94,7 @@ function IdentificationForm({ langCode, onSubmit, submitting }) {
         <button
           onClick={() => onSubmit({ name, email, country })}
           disabled={!canSubmit || submitting}
-          className="mt-4 w-full bg-teal-600 hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium py-3 rounded-xl flex items-center justify-center gap-2 text-sm transition"
+          className="mt-4 w-full bg-teal-700 hover:bg-teal-800 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium py-3 rounded-xl flex items-center justify-center gap-2 text-sm transition"
         >
           {submitting ? <Loader2 size={16} className="animate-spin" /> : null}
           {t("chat.identify.startButton", langCode) || "Start chat"}
@@ -614,7 +614,7 @@ export function ThreadChat() {
                     className={`p-3 rounded-2xl shadow-sm text-xs leading-relaxed border ${
                       msg.role === "assistant"
                         ? "bg-white border-gray-100"
-                        : "bg-teal-600 text-white border-teal-600"
+                        : "bg-teal-700 text-white border-teal-700"
                     }`}
                   >
                     {msg.content && <p className="whitespace-pre-wrap">{msg.content}</p>}
@@ -641,7 +641,7 @@ export function ThreadChat() {
                   {msg.role === "assistant" && !["intro", "resume_note"].includes(msg.id) && !msg.id.startsWith("resumed_") && !msg.id.startsWith("greet_") && threadId && (
                     <div className="flex items-center gap-1 pl-1">
                       {feedbackThanks === msg.id ? (
-                        <span className="text-[11px] text-teal-600 font-medium">
+                        <span className="text-[11px] text-teal-700 font-medium">
                           {t("chat.feedback.thanks", langCode) || "Thank you!"}
                         </span>
                       ) : feedbackDone[msg.id] ? (
@@ -656,7 +656,7 @@ export function ThreadChat() {
                             onClick={() => handleThumbsUp(msg.id)}
                             aria-label="Helpful"
                             title={t("chat.feedback.helpful", langCode) || "Helpful"}
-                            className="p-1 rounded-lg text-gray-300 hover:text-teal-500 hover:bg-teal-50 transition"
+                            className="p-1 rounded-lg text-gray-300 hover:text-teal-700 hover:bg-teal-50 transition"
                           >
                             <ThumbsUp size={12} />
                           </button>
@@ -678,7 +678,7 @@ export function ThreadChat() {
             {sending && (
               <div className="flex justify-start">
                 <div className="p-3 rounded-2xl shadow-sm text-sm border bg-white border-gray-100">
-                  <Loader2 size={16} className="animate-spin text-teal-500" />
+                  <Loader2 size={16} className="animate-spin text-teal-700" />
                 </div>
               </div>
             )}
@@ -760,7 +760,7 @@ export function ThreadChat() {
               onClick={handleSend}
               aria-label="Send message"
               disabled={sending || uploading || (!input.trim() && attachments.length === 0)}
-              className="shrink-0 w-9 h-9 flex items-center justify-center bg-teal-600 text-white rounded-full hover:bg-teal-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              className="shrink-0 w-9 h-9 flex items-center justify-center bg-teal-700 text-white rounded-full hover:bg-teal-800 transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {sending ? <Loader2 size={18} className="animate-spin" /> : <ArrowRight size={18} />}
             </button>

@@ -311,7 +311,7 @@ function ClientShellContent({
     <div className="font-sans text-gray-800 bg-gray-50 min-h-screen min-h-screen-safe relative">
       <a
         href="#main-content"
-        className="sr-only focus:not-sr-only focus:absolute focus:z-[100] focus:top-2 focus:left-2 focus:rounded-lg focus:bg-teal-600 focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-white focus:shadow-lg"
+        className="sr-only focus:not-sr-only focus:absolute focus:z-[100] focus:top-2 focus:left-2 focus:rounded-lg focus:bg-teal-700 focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-white focus:shadow-lg"
       >
         {SKIP_LABEL[langCode] || SKIP_LABEL.en}
       </a>
@@ -353,7 +353,7 @@ function ClientShellContent({
               <ul className="space-y-1">
                 {SITE_INFO.navigation.company.map((item) => (
                   <li key={item.href}>
-                    <a className="hover:text-teal-600" href={item.href}>
+                    <a className="hover:text-teal-700" href={item.href}>
                       {t(item.labelKey, langCode)}
                     </a>
                   </li>
@@ -367,7 +367,7 @@ function ClientShellContent({
               <ul className="space-y-1">
                 {SITE_INFO.navigation.legal.map((item) => (
                   <li key={item.href}>
-                    <a className="hover:text-teal-600" href={item.href}>
+                    <a className="hover:text-teal-700" href={item.href}>
                       {t(item.labelKey, langCode)}
                     </a>
                   </li>

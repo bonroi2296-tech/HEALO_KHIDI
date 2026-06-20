@@ -104,7 +104,7 @@ export function HospitalGateClient({ children }) {
             </button>
             <Link
               href="/"
-              className="block w-full py-3 rounded-xl bg-teal-600 text-white text-sm font-semibold hover:bg-teal-700 transition"
+              className="block w-full py-3 rounded-xl bg-teal-700 text-white text-sm font-semibold hover:bg-teal-800 transition"
             >
               홈으로 돌아가기
             </Link>

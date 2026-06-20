@@ -16,6 +16,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAdminAuth } from "@/lib/auth/requireAdminAuth";
 import { supabaseAdmin, assertSupabaseEnv } from "@/lib/rag/supabaseAdmin";
 import { decryptInquiryForAdmin } from "@/lib/security/decryptForAdmin";
+import { pct, maskName } from "@/lib/khidi/funnelMetrics";
 
 const DAY = 86_400_000;
 
@@ -27,14 +28,6 @@ function resolveRange(searchParams: URLSearchParams) {
   // to 는 그 날 끝까지 포함하도록 +1일
   const toExclusive = new Date(toBase.getTime() + DAY);
   return { from: from.toISOString(), to: toExclusive.toISOString() };
-}
-
-/** 이름 마스킹: 첫 글자 + *** (PII 최소 노출) */
-function maskName(first?: string | null, last?: string | null): string {
-  const n = `${(first || "").trim()} ${(last || "").trim()}`.trim();
-  if (!n) return "(이름 없음)";
-  const head = [...n][0] || "";
-  return `${head}***`;
 }
 
 export async function GET(request: NextRequest) {
@@ -61,8 +54,6 @@ export async function GET(request: NextRequest) {
     const f = funnelRows?.[0] ?? {
       total_inquiries: 0, pre_consult: 0, visa_or_quote: 0, admitted: 0, followup: 0, lost: 0,
     };
-    const pct = (num: number, den: number) => (den > 0 ? Math.round((num / den) * 1000) / 10 : 0);
-
     const funnel = {
       stages: [
         { key: "inquiry", label: "문의 접수", count: Number(f.total_inquiries) },

@@ -100,7 +100,7 @@ const L = {
     subtitle: { ko: "한국은 세계 최고 수준의 암 생존율과 최첨단 의료 기술을 보유하고 있습니다", en: "Korea leads the world in cancer survival rates and cutting-edge medical technology", ru: "Корея — мировой лидер по выживаемости при раке и передовым медицинским технологиям", kz: "Корея рак бойынша тірі қалу көрсеткіштері мен озық медициналық технологиялар бойынша әлем көшбасшысы", zh: "韩国在癌症生存率和尖端医疗技术方面处于世界领先地位", ja: "韓国はがん生存率と最先端医療技術で世界をリード" },
     items: [
       { value: "78.4%", label: { ko: "위암 5년 생존율\n(세계 1위)", en: "Stomach Cancer\n5-year Survival\n(World #1)", ru: "Рак желудка\n5-летняя выживаемость\n(№1 в мире)", kz: "Асқазан обыры\n5 жылдық тірі қалу\n(Әлемде №1)", zh: "胃癌5年生存率\n（世界第一）", ja: "胃がん5年生存率\n（世界1位）" } },
-      { value: { ko: "117만+", en: "1.17M+", ru: "1,17 млн+", kz: "1,17 млн+", zh: "117万+", ja: "117万+" }, label: { ko: "2024 외국인 환자\n한국 방문", en: "Foreign Patients\nVisited Korea\nin 2024", ru: "Иностранных\nпациентов в Корее\nв 2024", kz: "2024 жылы Кореяға\nкелген шетелдік\nнауқастар", zh: "2024年访韩\n外国患者", ja: "2024年韓国訪問\n外国人患者" } },
+      { value: { ko: "201만+", en: "2.01M+", ru: "2,01 млн+", kz: "2,01 млн+", zh: "201万+", ja: "201万+" }, label: { ko: "2025 외국인 환자\n한국 방문", en: "Foreign Patients\nVisited Korea\nin 2025", ru: "Иностранных\nпациентов в Корее\nв 2025", kz: "2025 жылы Кореяға\nкелген шетелдік\nнауқастар", zh: "2025年访韩\n外国患者", ja: "2025年韓国訪問\n外国人患者" } },
       { value: "60~80%", label: { ko: "미국 대비\n치료비 절감", en: "Cost Savings\nvs. United States", ru: "Экономия\nvs. США", kz: "АҚШ-қа қарағанда\nүнемдеу", zh: "与美国相比\n节省费用", ja: "米国比\nコスト削減" } },
       { value: "Top 10", label: { ko: "의료 시설 품질\n세계 순위", en: "Global Ranking\nHealthcare Quality\n& Facilities", ru: "Мировой рейтинг\nкачества медицины", kz: "Медицина сапасы\nбойынша әлемдік\nрейтинг", zh: "医疗设施质量\n世界排名", ja: "医療施設の質\n世界ランキング" } },
     ],
@@ -267,7 +267,7 @@ export default function HomeClient() {
         </div>
         {/* Glow effects */}
         <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-teal-500/10 rounded-full blur-3xl" />
+          <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-teal-700/10 rounded-full blur-3xl" />
           <div className="absolute bottom-0 right-1/4 w-[400px] h-[400px] bg-emerald-500/10 rounded-full blur-3xl" />
         </div>
 
@@ -303,7 +303,7 @@ export default function HomeClient() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-6">
             {L.stats.items.map((item, i) => (
               <div key={i} className="text-center p-4 md:p-6 rounded-xl md:rounded-2xl bg-gradient-to-b from-teal-50 to-white border border-teal-100 hover:shadow-lg transition-shadow">
-                <div className="text-2xl sm:text-3xl md:text-5xl font-black text-teal-600 mb-1 md:mb-3">{typeof item.value === 'string' ? item.value : l(item.value)}</div>
+                <div className="text-2xl sm:text-3xl md:text-5xl font-black text-teal-700 mb-1 md:mb-3">{typeof item.value === 'string' ? item.value : l(item.value)}</div>
                 <div className="text-[10px] sm:text-xs md:text-sm text-gray-500 font-medium whitespace-pre-line leading-snug md:leading-relaxed">{l(item.label)}</div>
               </div>
             ))}
@@ -333,7 +333,7 @@ export default function HomeClient() {
                 </div>
                 <div className="p-3 md:p-5">
                   <h3 className="font-bold text-sm md:text-lg text-gray-900 leading-snug">{l(doc.name)}</h3>
-                  <p className="text-teal-600 text-xs md:text-sm font-medium mt-0.5 md:mt-1 leading-snug">{l(doc.title)}</p>
+                  <p className="text-teal-700 text-xs md:text-sm font-medium mt-0.5 md:mt-1 leading-snug">{l(doc.title)}</p>
                   <p className="text-gray-500 text-[10px] md:text-xs mt-0.5 md:mt-1 line-clamp-1">{l(doc.specialty)}</p>
                 </div>
               </div>
@@ -342,7 +342,7 @@ export default function HomeClient() {
           <div className="text-center mt-5 md:mt-8">
             <button
               onClick={() => router.push("/hospitals")}
-              className="text-teal-600 font-semibold text-xs md:text-sm hover:text-teal-700 inline-flex items-center gap-1 transition"
+              className="text-teal-700 font-semibold text-xs md:text-sm hover:text-teal-700 inline-flex items-center gap-1 transition"
             >
               {l(L.doctors.viewAll)} <ChevronRight size={14} />
             </button>
@@ -363,9 +363,9 @@ export default function HomeClient() {
             {L.services.items.map((item, i) => {
               const Icon = ICON_MAP[item.icon];
               const colors = [
-                { bg: "bg-teal-100", icon: "text-teal-600", border: "border-teal-200" },
+                { bg: "bg-teal-100", icon: "text-teal-700", border: "border-teal-200" },
                 { bg: "bg-blue-100", icon: "text-blue-600", border: "border-blue-200" },
-                { bg: "bg-emerald-100", icon: "text-emerald-600", border: "border-emerald-200" },
+                { bg: "bg-emerald-100", icon: "text-emerald-700", border: "border-emerald-200" },
                 { bg: "bg-purple-100", icon: "text-purple-600", border: "border-purple-200" },
               ][i];
               return (
@@ -419,12 +419,12 @@ export default function HomeClient() {
               <div key={i} role="button" tabIndex={0} onClick={() => router.push("/treatments")} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); router.push("/treatments"); } }} className="bg-white rounded-xl md:rounded-2xl p-3 md:p-5 text-center cursor-pointer hover:shadow-xl hover:-translate-y-1 transition-all duration-300 border border-gray-100 group focus:outline-none focus:ring-2 focus:ring-teal-400">
                 <div className="text-2xl md:text-4xl mb-1 md:mb-3">{c.emoji}</div>
                 <div className="font-bold text-xs md:text-sm text-gray-800 mb-0.5 md:mb-1">{l(c.label)}</div>
-                <div className="text-[9px] md:text-[11px] text-teal-600 font-semibold leading-tight">{l(c.stat)}</div>
+                <div className="text-[9px] md:text-[11px] text-teal-700 font-semibold leading-tight">{l(c.stat)}</div>
               </div>
             ))}
           </div>
           <div className="text-center mt-5 md:mt-8">
-            <button onClick={() => router.push("/treatments")} className="text-teal-600 font-semibold text-xs md:text-sm hover:text-teal-700 inline-flex items-center gap-1 transition">
+            <button onClick={() => router.push("/treatments")} className="text-teal-700 font-semibold text-xs md:text-sm hover:text-teal-700 inline-flex items-center gap-1 transition">
               {l(L.misc.viewTreatments)} <ChevronRight size={14} />
             </button>
           </div>
@@ -526,7 +526,7 @@ export default function HomeClient() {
                 onClick={() => { setFaqTab(key); setOpenFaq(null); }}
                 className={`px-3 md:px-5 py-2 md:py-2.5 rounded-full text-xs md:text-sm font-medium transition-all ${
                   faqTab === key
-                    ? "bg-teal-600 text-white shadow-lg shadow-teal-500/20"
+                    ? "bg-teal-700 text-white shadow-lg shadow-teal-500/20"
                     : "bg-white text-gray-500 hover:bg-gray-100 border border-gray-200"
                 }`}
               >
@@ -565,7 +565,7 @@ export default function HomeClient() {
         <div className="max-w-4xl mx-auto px-4">
           <div className="bg-gradient-to-r from-red-50 to-orange-50 rounded-xl md:rounded-2xl p-5 md:p-10 border border-red-100">
             <div className="text-center">
-              <div className="inline-flex items-center gap-2 bg-red-100 rounded-full px-3 md:px-4 py-1 md:py-1.5 text-red-600 text-xs md:text-sm font-semibold mb-3 md:mb-4">
+              <div className="inline-flex items-center gap-2 bg-red-100 rounded-full px-3 md:px-4 py-1 md:py-1.5 text-red-700 text-xs md:text-sm font-semibold mb-3 md:mb-4">
                 <Phone size={12} />
                 24/7
               </div>
@@ -573,12 +573,12 @@ export default function HomeClient() {
               <p className="text-gray-500 text-sm md:text-base mb-5 md:mb-8">{l(L.emergency.subtitle)}</p>
               <div className="flex flex-col sm:flex-row justify-center gap-2 md:gap-4">
                 <a href="mailto:admin@healwith.co.kr" className="inline-flex items-center justify-center gap-2 bg-white border border-gray-200 rounded-xl px-4 md:px-6 py-2.5 md:py-3 text-gray-700 text-sm md:text-base font-medium hover:border-teal-300 hover:shadow-md transition-all">
-                  <Mail size={16} className="text-teal-600" />
+                  <Mail size={16} className="text-teal-700" />
                   admin@healwith.co.kr
                 </a>
                 <button
                   onClick={() => router.push("/inquiry")}
-                  className="inline-flex items-center justify-center gap-2 bg-teal-600 text-white rounded-xl px-4 md:px-6 py-2.5 md:py-3 text-sm md:text-base font-medium hover:bg-teal-700 transition-colors shadow-lg shadow-teal-600/20"
+                  className="inline-flex items-center justify-center gap-2 bg-teal-700 text-white rounded-xl px-4 md:px-6 py-2.5 md:py-3 text-sm md:text-base font-medium hover:bg-teal-800 transition-colors shadow-lg shadow-teal-600/20"
                 >
                   <MessageCircle size={16} />
                   {l(L.misc.onlineInquiry)}
@@ -600,7 +600,7 @@ export default function HomeClient() {
               return (
                 <div key={i} className="flex items-start gap-3 md:gap-4 bg-white rounded-xl p-4 md:p-6 border border-gray-100">
                   <div className="w-10 h-10 md:w-12 md:h-12 bg-teal-50 rounded-lg md:rounded-xl flex items-center justify-center shrink-0">
-                    <Icon size={18} className="text-teal-600" />
+                    <Icon size={18} className="text-teal-700" />
                   </div>
                   <div>
                     <h3 className="font-bold text-sm md:text-base text-gray-900 mb-0.5 md:mb-1">{l(item.title)}</h3>
@@ -618,7 +618,7 @@ export default function HomeClient() {
           ══════════════════════════════════════════ */}
       <section className="relative bg-gradient-to-br from-slate-900 via-teal-900 to-slate-900 text-white py-14 md:py-24 overflow-hidden">
         <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-0 right-0 w-[300px] h-[300px] md:w-[400px] md:h-[400px] bg-teal-500/10 rounded-full blur-3xl" />
+          <div className="absolute top-0 right-0 w-[300px] h-[300px] md:w-[400px] md:h-[400px] bg-teal-700/10 rounded-full blur-3xl" />
           <div className="absolute bottom-0 left-0 w-[200px] h-[200px] md:w-[300px] md:h-[300px] bg-emerald-500/10 rounded-full blur-3xl" />
         </div>
         <div className="relative max-w-3xl mx-auto px-4 text-center">

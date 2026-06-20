@@ -207,7 +207,7 @@ function LeadDetailSheet({ lead, onClose, onUpdateStatus }) {
 
   const statusActions = [];
   if (lead.status === "viewed") statusActions.push({ status: "replied", label: "응답 완료", color: "bg-green-600 hover:bg-green-700" });
-  if (["replied", "viewed"].includes(lead.status)) statusActions.push({ status: "converted", label: "진료 전환", color: "bg-emerald-600 hover:bg-emerald-700" });
+  if (["replied", "viewed"].includes(lead.status)) statusActions.push({ status: "converted", label: "진료 전환", color: "bg-emerald-700 hover:bg-emerald-700" });
   if (!["converted", "rejected", "expired"].includes(lead.status)) statusActions.push({ status: "rejected", label: "거절", color: "bg-red-500 hover:bg-red-600" });
 
   return (

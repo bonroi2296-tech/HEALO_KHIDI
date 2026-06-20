@@ -179,7 +179,7 @@ export default function DocumentsClient() {
         <p className="text-gray-500 mb-6">{l(LABELS.loginRequired)}</p>
         <button
           onClick={() => router.push('/login')}
-          className="bg-teal-600 text-white font-semibold px-6 py-3 rounded-xl hover:bg-teal-700 transition"
+          className="bg-teal-700 text-white font-semibold px-6 py-3 rounded-xl hover:bg-teal-800 transition"
         >
           Login
         </button>
@@ -202,7 +202,7 @@ export default function DocumentsClient() {
           <p className="text-sm text-amber-700 mb-4">{l(LABELS.noConsultDesc)}</p>
           <button
             onClick={() => router.push('/inquiry')}
-            className="bg-teal-600 text-white font-semibold px-5 py-2.5 rounded-xl hover:bg-teal-700 transition text-sm"
+            className="bg-teal-700 text-white font-semibold px-5 py-2.5 rounded-xl hover:bg-teal-800 transition text-sm"
           >
             {l(LABELS.requestConsult)}
           </button>
@@ -293,7 +293,7 @@ export default function DocumentsClient() {
           </div>
 
           {uploading && (
-            <div className="text-center py-3 text-teal-600 font-medium text-sm">
+            <div className="text-center py-3 text-teal-700 font-medium text-sm">
               {l(LABELS.uploading)}
             </div>
           )}
@@ -346,7 +346,7 @@ export default function DocumentsClient() {
                   href={doc.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="ml-3 text-sm text-teal-600 hover:text-teal-700 font-semibold whitespace-nowrap"
+                  className="ml-3 text-sm text-teal-700 hover:text-teal-700 font-semibold whitespace-nowrap"
                 >
                   View
                 </a>

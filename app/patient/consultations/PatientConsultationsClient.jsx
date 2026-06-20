@@ -55,7 +55,7 @@ export default function PatientConsultationsClient() {
 
       {/* Info card */}
       <div className="bg-teal-50 border border-teal-200 rounded-2xl p-5 flex items-start gap-3">
-        <Info size={20} className="text-teal-600 flex-shrink-0 mt-0.5" />
+        <Info size={20} className="text-teal-700 flex-shrink-0 mt-0.5" />
         <div className="text-sm text-teal-900">
           <p className="font-semibold mb-1">새 상담을 예약하고 싶으신가요?</p>
           <p className="text-teal-800 leading-relaxed">
@@ -81,7 +81,7 @@ export default function PatientConsultationsClient() {
           </p>
           <Link
             href="/telemedicine"
-            className="inline-flex items-center gap-2 px-5 py-2.5 bg-teal-600 text-white rounded-lg font-semibold hover:bg-teal-700"
+            className="inline-flex items-center gap-2 px-5 py-2.5 bg-teal-700 text-white rounded-lg font-semibold hover:bg-teal-800"
           >
             원격협진 안내 보기 <ChevronRight size={16} />
           </Link>
@@ -200,7 +200,7 @@ function ConsultationCard({ session, past }) {
         {!past && (
           <Link
             href={`/consultation/${session.id}`}
-            className="flex items-center gap-2 px-4 py-2 bg-teal-600 text-white rounded-lg font-semibold hover:bg-teal-700 transition flex-shrink-0"
+            className="flex items-center gap-2 px-4 py-2 bg-teal-700 text-white rounded-lg font-semibold hover:bg-teal-800 transition flex-shrink-0"
           >
             <Phone size={16} />
             입장

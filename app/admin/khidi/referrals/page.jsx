@@ -136,7 +136,7 @@ export default function ReferralsPage() {
               </label>
               <div className="sm:col-span-2">
                 <button disabled={submitting}
-                  className="px-4 py-2 rounded-lg text-sm font-bold bg-teal-600 text-white hover:bg-teal-700 disabled:opacity-40">
+                  className="px-4 py-2 rounded-lg text-sm font-bold bg-teal-700 text-white hover:bg-teal-800 disabled:opacity-40">
                   의뢰 등록
                 </button>
               </div>
@@ -172,7 +172,7 @@ export default function ReferralsPage() {
                             </>
                           )}
                           {r.status === "accepted" && (
-                            <Btn disabled={busyId === r.id} onClick={() => setStatus(r.id, "completed")} cls="bg-teal-600 text-white hover:bg-teal-700">협진 완료</Btn>
+                            <Btn disabled={busyId === r.id} onClick={() => setStatus(r.id, "completed")} cls="bg-teal-700 text-white hover:bg-teal-800">협진 완료</Btn>
                           )}
                           {(r.status === "requested" || r.status === "accepted") && (
                             <Btn disabled={busyId === r.id} onClick={() => setStatus(r.id, "cancelled")} cls="bg-gray-100 text-gray-400 hover:bg-gray-200">취소</Btn>

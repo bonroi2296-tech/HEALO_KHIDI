@@ -87,7 +87,7 @@ export default function ConversionDashboard() {
               onClick={() => setRangeKey(r.key)}
               className={`px-3 py-1.5 rounded-lg text-sm font-medium transition ${
                 rangeKey === r.key
-                  ? "bg-teal-600 text-white"
+                  ? "bg-teal-700 text-white"
                   : "bg-gray-100 text-gray-600 hover:bg-gray-200"
               }`}
             >
@@ -112,7 +112,7 @@ export default function ConversionDashboard() {
                   <div className="w-28 text-sm text-gray-600 shrink-0">{s.label}</div>
                   <div className="flex-1 bg-gray-100 rounded-lg overflow-hidden h-9 relative">
                     <div
-                      className="h-full bg-teal-500 rounded-lg transition-all"
+                      className="h-full bg-teal-700 rounded-lg transition-all"
                       style={{ width: `${Math.max(4, (s.count / maxCount) * 100)}%` }}
                     />
                     <span className="absolute inset-y-0 left-3 flex items-center text-sm font-bold text-gray-900">
@@ -238,7 +238,7 @@ export default function ConversionDashboard() {
                       <button
                         disabled={busyId === p.inquiry_id}
                         onClick={() => setOutcome(p.inquiry_id, "admitted")}
-                        className="px-3 py-1.5 rounded-lg text-xs font-bold bg-teal-600 text-white hover:bg-teal-700 disabled:opacity-40 transition"
+                        className="px-3 py-1.5 rounded-lg text-xs font-bold bg-teal-700 text-white hover:bg-teal-800 disabled:opacity-40 transition"
                       >
                         유치 확정
                       </button>

@@ -182,7 +182,7 @@ export default function ReviewPage() {
     return (
       <div className="max-w-4xl mx-auto py-12 text-center text-gray-400">
         <p>jobId 파라미터가 필요합니다.</p>
-        <Link href="/admin/crawl/pipeline" className="text-teal-600 hover:underline mt-2 inline-block">
+        <Link href="/admin/crawl/pipeline" className="text-teal-700 hover:underline mt-2 inline-block">
           파이프라인으로 돌아가기
         </Link>
       </div>
@@ -192,7 +192,7 @@ export default function ReviewPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <Loader2 className="animate-spin text-teal-500" size={32} />
+        <Loader2 className="animate-spin text-teal-700" size={32} />
       </div>
     );
   }
@@ -336,7 +336,7 @@ export default function ReviewPage() {
               type="checkbox"
               checked={selected.size === items.length && items.length > 0}
               onChange={selectAll}
-              className="w-4 h-4 rounded border-gray-300 text-teal-600"
+              className="w-4 h-4 rounded border-gray-300 text-teal-700"
             />
             <span className="text-xs text-gray-500">
               {selected.size > 0 ? `${selected.size}건 선택` : "전체 선택"}
@@ -370,7 +370,7 @@ export default function ReviewPage() {
         {/* Table */}
         {itemsLoading ? (
           <div className="flex items-center justify-center py-12">
-            <Loader2 className="animate-spin text-teal-500" size={24} />
+            <Loader2 className="animate-spin text-teal-700" size={24} />
           </div>
         ) : items.length === 0 ? (
           <div className="py-12 text-center text-gray-400">
@@ -476,7 +476,7 @@ function TableRow({ item, isSelected, onToggle, tab }) {
           type="checkbox"
           checked={isSelected}
           onChange={() => {}}
-          className="w-3.5 h-3.5 rounded border-gray-300 text-teal-600"
+          className="w-3.5 h-3.5 rounded border-gray-300 text-teal-700"
         />
       </td>
       <td className="px-3 py-2">
@@ -518,7 +518,7 @@ function TableRow({ item, isSelected, onToggle, tab }) {
             target="_blank"
             rel="noopener noreferrer"
             onClick={(e) => e.stopPropagation()}
-            className="text-teal-600 hover:underline truncate block max-w-[100px]"
+            className="text-teal-700 hover:underline truncate block max-w-[100px]"
             title={d.hospUrl || d.website}
           >
             링크

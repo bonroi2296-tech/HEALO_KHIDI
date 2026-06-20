@@ -175,7 +175,7 @@ export default function CoordinatorConsultationsPage() {
                       {(c.status === 'scheduled' || c.status === 'active') && (
                         <button
                           onClick={() => handleJoin(c.id)}
-                          className="flex items-center gap-2 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition text-sm font-medium"
+                          className="flex items-center gap-2 px-4 py-2 bg-teal-700 text-white rounded-lg hover:bg-teal-800 transition text-sm font-medium"
                         >
                           <Phone size={14} />
                           {c.status === 'active' ? '상담 재진입' : '상담 시작'}

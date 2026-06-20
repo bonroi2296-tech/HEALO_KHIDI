@@ -169,7 +169,7 @@ export function AdminNav() {
                     <Icon
                       size={18}
                       className={
-                        strongActive ? "text-teal-600" : parentOpen ? "text-gray-500" : "text-gray-400"
+                        strongActive ? "text-teal-700" : parentOpen ? "text-gray-500" : "text-gray-400"
                       }
                     />
                     <span>{item.label}</span>

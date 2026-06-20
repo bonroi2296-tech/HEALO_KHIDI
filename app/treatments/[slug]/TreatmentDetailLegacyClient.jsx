@@ -290,14 +290,14 @@ export const TreatmentDetailPage = ({
     ? (realReviews.reduce((acc, r) => acc + (r.rating || 5), 0) / realReviews.length).toFixed(1)
     : null;
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center text-teal-600 font-bold">{t("status.loadingTreatment", langCode)}</div>;
+  if (loading) return <div className="min-h-screen flex items-center justify-center text-teal-700 font-bold">{t("status.loadingTreatment", langCode)}</div>;
 
   if (!treatment || loadError) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center p-6 text-center">
         <div className="text-teal-700 font-extrabold text-lg mb-2">{t("status.treatmentNotFound", langCode)}</div>
         {loadError && isDev && <div className="text-red-500 text-xs mb-2 max-w-md">{loadError?.message || JSON.stringify(loadError)}</div>}
-        <button onClick={goBackToTreatments} className="px-5 py-3 rounded-xl bg-teal-600 text-white font-bold hover:bg-teal-700 mt-4">{t("btn.backToTreatments", langCode)}</button>
+        <button onClick={goBackToTreatments} className="px-5 py-3 rounded-xl bg-teal-700 text-white font-bold hover:bg-teal-800 mt-4">{t("btn.backToTreatments", langCode)}</button>
       </div>
     );
   }
@@ -344,7 +344,7 @@ export const TreatmentDetailPage = ({
 
       {/* Content */}
       <div className="max-w-6xl mx-auto px-4">
-        <button onClick={goBackToTreatments} className="flex items-center text-sm text-gray-500 mb-6 hover:text-teal-600">
+        <button onClick={goBackToTreatments} className="flex items-center text-sm text-gray-500 mb-6 hover:text-teal-700">
           <ChevronLeft size={16} /> {t("btn.backToTreatments", langCode)}
         </button>
 
@@ -362,10 +362,10 @@ export const TreatmentDetailPage = ({
               <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">{treatment.title}</h1>
               <div className="flex items-center gap-2 text-sm text-gray-500">
                 {t("detail.providedByLabel", langCode)}
-                <span onClick={() => onHospitalClick?.(hospital?.slug || treatment.hospitalId)} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { if (e.key === " ") e.preventDefault(); onHospitalClick?.(hospital?.slug || treatment.hospitalId); } }} className="font-semibold text-teal-600 underline cursor-pointer hover:text-teal-800 ml-0.5 focus:outline-none focus:ring-2 focus:ring-teal-400">
+                <span onClick={() => onHospitalClick?.(hospital?.slug || treatment.hospitalId)} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { if (e.key === " ") e.preventDefault(); onHospitalClick?.(hospital?.slug || treatment.hospitalId); } }} className="font-semibold text-teal-700 underline cursor-pointer hover:text-teal-800 ml-0.5 focus:outline-none focus:ring-2 focus:ring-teal-400">
                   {hospital?.name || "Hospital"}
                 </span>
-                <Shield size={13} className="text-teal-500 fill-teal-500" />
+                <Shield size={13} className="text-teal-700 fill-teal-500" />
               </div>
             </div>
 
@@ -377,7 +377,7 @@ export const TreatmentDetailPage = ({
                 <div className="space-y-2.5">
                   {treatment.benefits.map((benefit, idx) => (
                     <div key={idx} className="flex items-start gap-2.5">
-                      <div className="mt-0.5 bg-teal-50 rounded-full p-1 shrink-0"><Check size={12} className="text-teal-600 stroke-[3]" /></div>
+                      <div className="mt-0.5 bg-teal-50 rounded-full p-1 shrink-0"><Check size={12} className="text-teal-700 stroke-[3]" /></div>
                       <span className="text-gray-700 text-sm">{benefit}</span>
                     </div>
                   ))}
@@ -399,7 +399,7 @@ export const TreatmentDetailPage = ({
                         </div>
                         <div className="relative aspect-square bg-gray-100">
                           <img src={pair.after} className="w-full h-full object-cover" alt={`After ${idx + 1}`} />
-                          <span className="absolute top-2 left-2 bg-teal-600/90 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">AFTER</span>
+                          <span className="absolute top-2 left-2 bg-teal-700/90 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">AFTER</span>
                         </div>
                       </div>
                       {pair.caption && <p className="px-4 py-2.5 text-xs text-gray-600 text-center border-t border-gray-100">{pair.caption}</p>}
@@ -439,9 +439,9 @@ export const TreatmentDetailPage = ({
                   )}
                   {(treatment.recovery_time_min || treatment.recovery_time_max) && (
                     <div className="flex items-center gap-3 p-3 rounded-xl bg-teal-50">
-                      <Clock size={18} className="text-teal-600 shrink-0" />
+                      <Clock size={18} className="text-teal-700 shrink-0" />
                       <div>
-                        <p className="text-xs text-teal-600">{t("detail.recovery", langCode)}</p>
+                        <p className="text-xs text-teal-700">{t("detail.recovery", langCode)}</p>
                         <p className="text-sm font-semibold text-teal-800">
                           {treatment.recovery_time_min && treatment.recovery_time_max
                             ? `${treatment.recovery_time_min}-${treatment.recovery_time_max} days`
@@ -496,10 +496,10 @@ export const TreatmentDetailPage = ({
                 )}
                 {treatment.precautions?.length > 0 && (
                   <div>
-                    <p className="text-sm font-semibold text-gray-900 mb-2 flex items-center gap-1.5"><ShieldCheck size={15} className="text-teal-600" /> {t("detail.precautions", langCode)}</p>
+                    <p className="text-sm font-semibold text-gray-900 mb-2 flex items-center gap-1.5"><ShieldCheck size={15} className="text-teal-700" /> {t("detail.precautions", langCode)}</p>
                     <ul className="space-y-1.5">
                       {treatment.precautions.map((precaution, idx) => (
-                        <li key={idx} className="flex items-start gap-2 text-sm text-gray-700"><CheckCircle2 size={14} className="text-teal-600 mt-0.5 shrink-0" />{precaution}</li>
+                        <li key={idx} className="flex items-start gap-2 text-sm text-gray-700"><CheckCircle2 size={14} className="text-teal-700 mt-0.5 shrink-0" />{precaution}</li>
                       ))}
                     </ul>
                   </div>
@@ -522,7 +522,7 @@ export const TreatmentDetailPage = ({
                   )}
                   {treatment.success_rate && (
                     <div className="flex items-center gap-3 p-3 rounded-xl bg-gray-50">
-                      <CheckCircle2 size={18} className="text-teal-600 shrink-0" />
+                      <CheckCircle2 size={18} className="text-teal-700 shrink-0" />
                       <div>
                         <p className="text-sm font-semibold text-gray-900">{treatment.success_rate}%</p>
                         <p className="text-xs text-gray-500">{t("detail.successRate", langCode)}</p>
@@ -553,11 +553,11 @@ export const TreatmentDetailPage = ({
                   {realReviews.length > 0 ? (
                     <span className="bg-yellow-50 text-yellow-700 text-xs font-semibold px-2 py-0.5 rounded-full border border-yellow-100">{averageRating}/5.0</span>
                   ) : (
-                    <span className="bg-teal-50 text-teal-600 text-xs font-semibold px-2 py-0.5 rounded-full border border-teal-100">New</span>
+                    <span className="bg-teal-50 text-teal-700 text-xs font-semibold px-2 py-0.5 rounded-full border border-teal-100">New</span>
                   )}
                 </div>
                 {realReviews.length > 0 && (
-                  <span onClick={() => setIsReviewModalOpen(true)} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { if (e.key === " ") e.preventDefault(); setIsReviewModalOpen(true); } }} className="text-teal-600 text-sm font-semibold cursor-pointer hover:underline focus:outline-none focus:ring-2 focus:ring-teal-400">View All ({realReviews.length})</span>
+                  <span onClick={() => setIsReviewModalOpen(true)} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { if (e.key === " ") e.preventDefault(); setIsReviewModalOpen(true); } }} className="text-teal-700 text-sm font-semibold cursor-pointer hover:underline focus:outline-none focus:ring-2 focus:ring-teal-400">View All ({realReviews.length})</span>
                 )}
               </div>
 
@@ -569,7 +569,7 @@ export const TreatmentDetailPage = ({
                     <div key={review.id} className="p-4 bg-gray-50 rounded-xl flex flex-col h-full">
                       <div className="flex justify-between items-start mb-2">
                         <div className="flex items-center gap-2">
-                          <div className="w-8 h-8 bg-teal-50 rounded-full flex items-center justify-center text-teal-600 font-bold text-xs uppercase">{review.user_name?.[0] || "U"}</div>
+                          <div className="w-8 h-8 bg-teal-50 rounded-full flex items-center justify-center text-teal-700 font-bold text-xs uppercase">{review.user_name?.[0] || "U"}</div>
                           <div>
                             <p className="font-semibold text-gray-900 text-sm line-clamp-1">{review.user_name} <span className="text-[10px] text-gray-500 uppercase">{review.country}</span></p>
                             <p className="text-xs text-gray-500">{review.created_at ? formatDate(review.created_at, "en") : ""}</p>
@@ -603,7 +603,7 @@ export const TreatmentDetailPage = ({
                       <span className="line-clamp-2">{getAddressText(hospital)}</span>
                     </div>
                     <p className="text-xs text-gray-500 leading-relaxed mb-3 line-clamp-3">{hospital?.description || "—"}</p>
-                    <button onClick={() => onHospitalClick?.(hospital?.slug || treatment.hospitalId)} className="text-teal-600 font-semibold text-xs hover:underline flex items-center gap-1">
+                    <button onClick={() => onHospitalClick?.(hospital?.slug || treatment.hospitalId)} className="text-teal-700 font-semibold text-xs hover:underline flex items-center gap-1">
                       {t("detail.viewHospitalDetails", langCode)} <ArrowRight size={12} />
                     </button>
                   </div>
@@ -634,14 +634,14 @@ export const TreatmentDetailPage = ({
                     <div key={item.id} onClick={() => onTreatmentClick?.(item.slug || item.id)} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { if (e.key === " ") e.preventDefault(); onTreatmentClick?.(item.slug || item.id); } }} className="flex items-start gap-3 p-4 bg-white border border-gray-100 rounded-xl hover:shadow-md hover:border-teal-200 transition cursor-pointer group focus:outline-none focus:ring-2 focus:ring-teal-400">
                       {item.image && <div className="w-14 h-14 rounded-lg overflow-hidden bg-gray-100 shrink-0"><img src={item.image} className="w-full h-full object-cover" alt={item.name} /></div>}
                       <div className="flex-1 min-w-0">
-                        <h4 className="font-semibold text-sm text-gray-900 group-hover:text-teal-600 line-clamp-1">{item.name}</h4>
+                        <h4 className="font-semibold text-sm text-gray-900 group-hover:text-teal-700 line-clamp-1">{item.name}</h4>
                         {item.hospitalName && <p className="text-xs text-gray-500 mt-0.5">{item.hospitalName}</p>}
                         <div className="flex items-center gap-3 mt-1.5">
-                          <span className="text-teal-600 font-bold text-sm">{item.price}</span>
+                          <span className="text-teal-700 font-bold text-sm">{item.price}</span>
                           {item.recovery && <span className="text-xs text-gray-500 flex items-center gap-1"><Clock size={10} /> {item.recovery}</span>}
                         </div>
                       </div>
-                      <ArrowRight size={14} className="text-gray-300 group-hover:text-teal-500 transition shrink-0 mt-1" />
+                      <ArrowRight size={14} className="text-gray-300 group-hover:text-teal-700 transition shrink-0 mt-1" />
                     </div>
                   ))}
                 </div>
@@ -665,8 +665,8 @@ export const TreatmentDetailPage = ({
                           <div className="aspect-[4/3] bg-gray-100 flex items-center justify-center"><ImageIcon size={24} className="text-gray-300" /></div>
                         )}
                         <div className="p-3 flex flex-col flex-1">
-                          <h4 className="font-semibold text-sm text-gray-900 line-clamp-2 mb-1 group-hover:text-teal-600">{item.name}</h4>
-                          <p className="text-teal-600 font-bold text-sm mt-auto">{item.price}</p>
+                          <h4 className="font-semibold text-sm text-gray-900 line-clamp-2 mb-1 group-hover:text-teal-700">{item.name}</h4>
+                          <p className="text-teal-700 font-bold text-sm mt-auto">{item.price}</p>
                         </div>
                       </div>
                     );
@@ -681,21 +681,21 @@ export const TreatmentDetailPage = ({
             <div className="sticky top-24 space-y-4">
               <div className="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm text-center">
                 <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">{t("detail.estimatedPrice", langCode)}</p>
-                <div className="text-2xl font-bold text-teal-600 mb-5">{treatment.price}</div>
+                <div className="text-2xl font-bold text-teal-700 mb-5">{treatment.price}</div>
 
                 {treatment.price_includes?.length > 0 && (
                   <div className="mb-4 text-left">
                     <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">{t("detail.includes", langCode)}</p>
                     <ul className="space-y-1.5">
                       {treatment.price_includes.map((item, idx) => (
-                        <li key={idx} className="flex items-center gap-2 text-xs text-gray-700"><CheckCircle2 size={12} className="text-teal-500 shrink-0" />{item}</li>
+                        <li key={idx} className="flex items-center gap-2 text-xs text-gray-700"><CheckCircle2 size={12} className="text-teal-700 shrink-0" />{item}</li>
                       ))}
                     </ul>
                   </div>
                 )}
 
                 <div className="space-y-2.5">
-                  <button onClick={() => { setInquiryMode?.("select"); setView?.("inquiry"); }} className="w-full bg-teal-600 hover:bg-teal-700 text-white font-bold py-3.5 rounded-xl transition flex items-center justify-center gap-2">
+                  <button onClick={() => { setInquiryMode?.("select"); setView?.("inquiry"); }} className="w-full bg-teal-700 hover:bg-teal-800 text-white font-bold py-3.5 rounded-xl transition flex items-center justify-center gap-2">
                     <MessageCircle size={18} /> {t("detail.contactViahealwith", langCode)}
                   </button>
                   <button onClick={() => onHospitalClick?.(hospital?.slug || treatment.hospitalId)} className="w-full bg-white border-2 border-gray-200 text-gray-700 font-semibold py-3 rounded-xl hover:bg-gray-50 transition">
@@ -713,7 +713,7 @@ export const TreatmentDetailPage = ({
                       { icon: <Clock size={12} />, title: t("offer.fastResponse", langCode), desc: t("offer.fastResponseDesc", langCode) },
                     ].map((b, i) => (
                       <li key={i} className="flex items-start gap-2">
-                        <div className="bg-white p-1 rounded-full text-teal-600 mt-0.5">{b.icon}</div>
+                        <div className="bg-white p-1 rounded-full text-teal-700 mt-0.5">{b.icon}</div>
                         <div>
                           <span className="text-xs font-semibold text-gray-800 block">{b.title}</span>
                           <span className="text-[10px] text-gray-500">{b.desc}</span>
@@ -735,7 +735,7 @@ export const TreatmentDetailPage = ({
                       { icon: <Globe size={13} />, text: t("sidebar.internationalSupport", langCode) },
                     ].map((item, i) => (
                       <div key={i} className="flex items-center gap-2 text-gray-600">
-                        <span className="text-teal-600">{item.icon}</span>
+                        <span className="text-teal-700">{item.icon}</span>
                         <span>{item.text}</span>
                       </div>
                     ))}
@@ -753,7 +753,7 @@ export const TreatmentDetailPage = ({
               <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">{t("detail.includes", langCode)}</p>
               <ul className="space-y-1.5">
                 {treatment.price_includes.map((item, idx) => (
-                  <li key={idx} className="flex items-center gap-2 text-xs text-gray-700"><CheckCircle2 size={12} className="text-teal-500 shrink-0" />{item}</li>
+                  <li key={idx} className="flex items-center gap-2 text-xs text-gray-700"><CheckCircle2 size={12} className="text-teal-700 shrink-0" />{item}</li>
                 ))}
               </ul>
             </div>
@@ -767,7 +767,7 @@ export const TreatmentDetailPage = ({
                 { icon: <Clock size={12} />, title: t("offer.fastResponse", langCode) },
               ].map((b, i) => (
                 <li key={i} className="flex items-center gap-2">
-                  <div className="bg-white p-1 rounded-full text-teal-600">{b.icon}</div>
+                  <div className="bg-white p-1 rounded-full text-teal-700">{b.icon}</div>
                   <span className="text-xs font-semibold text-gray-800">{b.title}</span>
                 </li>
               ))}
@@ -780,10 +780,10 @@ export const TreatmentDetailPage = ({
       <div className="fixed bottom-0 left-0 right-0 z-50 lg:hidden bg-white border-t border-gray-200 shadow-[0_-4px_20px_rgba(0,0,0,0.08)]">
         <div className="flex items-center justify-between gap-3 max-w-6xl mx-auto px-4 py-3">
           <div className="min-w-0">
-            <p className="font-bold text-teal-600 text-lg">{treatment.price}</p>
+            <p className="font-bold text-teal-700 text-lg">{treatment.price}</p>
             <p className="text-xs text-gray-500 truncate">{treatment.title}</p>
           </div>
-          <button onClick={() => { setInquiryMode?.("select"); setView?.("inquiry"); }} className="bg-teal-600 text-white font-bold py-3 px-5 rounded-xl hover:bg-teal-700 transition shrink-0 flex items-center gap-2 text-sm">
+          <button onClick={() => { setInquiryMode?.("select"); setView?.("inquiry"); }} className="bg-teal-700 text-white font-bold py-3 px-5 rounded-xl hover:bg-teal-800 transition shrink-0 flex items-center gap-2 text-sm">
             <MessageCircle size={16} /> {t("detail.contactViahealwith", langCode)}
           </button>
         </div>

@@ -175,7 +175,7 @@ export const AdminAuditPage = ({ authToken }) => {
       {/* 헤더 */}
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-          <Clock className="text-teal-600" />
+          <Clock className="text-teal-700" />
           관리자 감사 로그
         </h1>
         <p className="text-sm text-gray-600 mt-1">
@@ -237,7 +237,7 @@ export const AdminAuditPage = ({ authToken }) => {
         <div className="flex gap-2 mt-3">
           <button
             onClick={handleApplyFilters}
-            className="px-4 py-2 bg-teal-600 text-white rounded hover:bg-teal-700 text-sm"
+            className="px-4 py-2 bg-teal-700 text-white rounded hover:bg-teal-800 text-sm"
           >
             적용
           </button>
@@ -313,7 +313,7 @@ export const AdminAuditPage = ({ authToken }) => {
                             {log.inquiry_ids.length > 3 && (
                               <button
                                 onClick={() => toggleInquiryIds(log.id)}
-                                className="text-teal-600 hover:text-teal-800 text-xs underline"
+                                className="text-teal-700 hover:text-teal-800 text-xs underline"
                               >
                                 {expandedInquiryIds[log.id] ? '접기' : '전체'}
                               </button>
@@ -330,7 +330,7 @@ export const AdminAuditPage = ({ authToken }) => {
                         {log.metadata ? (
                           <button
                             onClick={() => toggleMetadata(log.id)}
-                            className="flex items-center gap-1 text-xs text-teal-600 hover:text-teal-800"
+                            className="flex items-center gap-1 text-xs text-teal-700 hover:text-teal-800"
                           >
                             {showMetadata[log.id] ? (
                               <>

@@ -1,0 +1,96 @@
+{
+  "base": "https://healo-khidi-git-claude-audit-results-doc-bonrois-projects.vercel.app",
+  "ts": "2026-06-20T09:09:11.523Z",
+  "totalsByImpact": {
+    "critical": 0,
+    "serious": 0,
+    "moderate": 0,
+    "minor": 0
+  },
+  "pages": [
+    {
+      "path": "/en",
+      "ruleViolations": 0,
+      "nodes": 0,
+      "byImpact": {
+        "critical": 0,
+        "serious": 0,
+        "moderate": 0,
+        "minor": 0
+      },
+      "rules": []
+    },
+    {
+      "path": "/en/treatments",
+      "ruleViolations": 0,
+      "nodes": 0,
+      "byImpact": {
+        "critical": 0,
+        "serious": 0,
+        "moderate": 0,
+        "minor": 0
+      },
+      "rules": []
+    },
+    {
+      "path": "/en/hospitals",
+      "ruleViolations": 0,
+      "nodes": 0,
+      "byImpact": {
+        "critical": 0,
+        "serious": 0,
+        "moderate": 0,
+        "minor": 0
+      },
+      "rules": []
+    },
+    {
+      "path": "/en/telemedicine",
+      "ruleViolations": 0,
+      "nodes": 0,
+      "byImpact": {
+        "critical": 0,
+        "serious": 0,
+        "moderate": 0,
+        "minor": 0
+      },
+      "rules": []
+    },
+    {
+      "path": "/en/care-journey",
+      "ruleViolations": 0,
+      "nodes": 0,
+      "byImpact": {
+        "critical": 0,
+        "serious": 0,
+        "moderate": 0,
+        "minor": 0
+      },
+      "rules": []
+    },
+    {
+      "path": "/en/faq",
+      "ruleViolations": 0,
+      "nodes": 0,
+      "byImpact": {
+        "critical": 0,
+        "serious": 0,
+        "moderate": 0,
+        "minor": 0
+      },
+      "rules": []
+    },
+    {
+      "path": "/ru",
+      "ruleViolations": 0,
+      "nodes": 0,
+      "byImpact": {
+        "critical": 0,
+        "serious": 0,
+        "moderate": 0,
+        "minor": 0
+      },
+      "rules": []
+    }
+  ]
+}

@@ -110,7 +110,7 @@ export default function ForRussianPatientsPage() {
           <div className="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
             <Link
               href="/consult/start"
-              className="bg-teal-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-teal-700 transition"
+              className="bg-teal-700 text-white px-8 py-3 rounded-lg font-semibold hover:bg-teal-800 transition"
             >
               Бесплатная консультация
             </Link>
@@ -127,15 +127,15 @@ export default function ForRussianPatientsPage() {
         <section className="mb-12">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="border border-gray-200 rounded-2xl p-6 text-center">
-              <div className="text-3xl font-extrabold text-teal-600 mb-1">72,9%</div>
+              <div className="text-3xl font-extrabold text-teal-700 mb-1">72,9%</div>
               <p className="text-sm text-gray-500">5-летняя выживаемость при раке в Корее (2018–2022)</p>
             </div>
             <div className="border border-gray-200 rounded-2xl p-6 text-center">
-              <div className="text-3xl font-extrabold text-teal-600 mb-1">1,17 млн</div>
-              <p className="text-sm text-gray-500">иностранных пациентов выбрали Корею в 2024 году</p>
+              <div className="text-3xl font-extrabold text-teal-700 mb-1">2,01 млн</div>
+              <p className="text-sm text-gray-500">иностранных пациентов выбрали Корею в 2025 году</p>
             </div>
             <div className="border border-gray-200 rounded-2xl p-6 text-center">
-              <div className="text-3xl font-extrabold text-teal-600 mb-1">16 000+</div>
+              <div className="text-3xl font-extrabold text-teal-700 mb-1">16 000+</div>
               <p className="text-sm text-gray-500">пациентов из России прошли лечение в Корее (2009–2024)</p>
             </div>
           </div>
@@ -194,7 +194,7 @@ export default function ForRussianPatientsPage() {
           </ul>
           <Link
             href="/hospitals/immune"
-            className="text-teal-600 font-medium hover:underline"
+            className="text-teal-700 font-medium hover:underline"
           >
             Подробнее об Immune Hospital →
           </Link>
@@ -214,7 +214,7 @@ export default function ForRussianPatientsPage() {
               { step: "5", title: "Поддержка после выезда", desc: "Телемедицинские консультации с врачом, мониторинг состояния онлайн через приложение healwith." },
             ].map(({ step, title, desc }) => (
               <li key={step} className="flex gap-4">
-                <span className="flex-shrink-0 w-8 h-8 bg-teal-600 text-white rounded-full flex items-center justify-center font-bold text-sm">
+                <span className="flex-shrink-0 w-8 h-8 bg-teal-700 text-white rounded-full flex items-center justify-center font-bold text-sm">
                   {step}
                 </span>
                 <div>
@@ -240,7 +240,7 @@ export default function ForRussianPatientsPage() {
                 <li>• Документы: паспорт, письмо клиники, страховка</li>
                 <li>• healwith готовит пакет документов</li>
               </ul>
-              <Link href="/visa" className="mt-4 block text-teal-600 text-sm hover:underline">
+              <Link href="/visa" className="mt-4 block text-teal-700 text-sm hover:underline">
                 Подробнее о визе →
               </Link>
             </div>
@@ -252,7 +252,7 @@ export default function ForRussianPatientsPage() {
                 <li>• Перелёт (Алматы — Сеул): от $400</li>
                 <li>• Диагностика: от $500</li>
               </ul>
-              <Link href="/consult/start" className="mt-4 block text-teal-600 text-sm hover:underline">
+              <Link href="/consult/start" className="mt-4 block text-teal-700 text-sm hover:underline">
                 Получить точный расчёт →
               </Link>
             </div>
@@ -275,7 +275,7 @@ export default function ForRussianPatientsPage() {
         </section>
 
         {/* ── CTA ─────────────────────────────────────────── */}
-        <section className="bg-teal-600 text-white rounded-2xl p-8 text-center">
+        <section className="bg-teal-700 text-white rounded-2xl p-8 text-center">
           <h2 className="text-2xl font-bold mb-3">Начните бесплатную консультацию</h2>
           <p className="mb-6 text-teal-100">
             Наши менеджеры ответят в течение 24 часов. Консультация бесплатна и ни к чему
@@ -290,7 +290,7 @@ export default function ForRussianPatientsPage() {
             </Link>
             <Link
               href="/treatments"
-              className="border border-white text-white px-8 py-3 rounded-lg font-semibold hover:bg-teal-700 transition"
+              className="border border-white text-white px-8 py-3 rounded-lg font-semibold hover:bg-teal-800 transition"
             >
               Виды лечения →
             </Link>
@@ -299,12 +299,12 @@ export default function ForRussianPatientsPage() {
 
         {/* ── Internal links ─────────────────────────────── */}
         <nav className="mt-10 pt-6 border-t text-sm text-gray-500 flex flex-wrap gap-4">
-          <Link href="/ru" className="hover:text-teal-600">Главная (RU)</Link>
-          <Link href="/treatments" className="hover:text-teal-600">Виды лечения</Link>
-          <Link href="/hospitals" className="hover:text-teal-600">Больницы</Link>
-          <Link href="/hospitals/immune" className="hover:text-teal-600">Immune Hospital</Link>
-          <Link href="/visa" className="hover:text-teal-600">Виза</Link>
-          <Link href="/faq" className="hover:text-teal-600">FAQ</Link>
+          <Link href="/ru" className="hover:text-teal-700">Главная (RU)</Link>
+          <Link href="/treatments" className="hover:text-teal-700">Виды лечения</Link>
+          <Link href="/hospitals" className="hover:text-teal-700">Больницы</Link>
+          <Link href="/hospitals/immune" className="hover:text-teal-700">Immune Hospital</Link>
+          <Link href="/visa" className="hover:text-teal-700">Виза</Link>
+          <Link href="/faq" className="hover:text-teal-700">FAQ</Link>
         </nav>
       </main>
     </>

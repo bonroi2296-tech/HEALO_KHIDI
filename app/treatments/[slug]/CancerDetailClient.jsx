@@ -271,13 +271,13 @@ export default function CancerDetailClient({ slug }) {
         <div className="mt-8 flex flex-wrap items-center gap-4">
           <Link
             href="/inquiry"
-            className="inline-flex items-center gap-2 px-6 py-3 bg-teal-600 hover:bg-teal-700 text-white rounded-xl font-bold transition-colors"
+            className="inline-flex items-center gap-2 px-6 py-3 bg-teal-700 hover:bg-teal-800 text-white rounded-xl font-bold transition-colors"
           >
             {cta.consult} <ArrowRight size={18} />
           </Link>
           <Link
             href="/intake"
-            className="inline-flex items-center gap-1.5 px-2 py-2 text-sm font-bold text-teal-600 hover:text-teal-700 transition-colors"
+            className="inline-flex items-center gap-1.5 px-2 py-2 text-sm font-bold text-teal-700 hover:text-teal-700 transition-colors"
           >
             {cta.intake} <ArrowRight size={16} />
           </Link>
@@ -287,7 +287,7 @@ export default function CancerDetailClient({ slug }) {
         <div className="mt-10 w-full aspect-[16/7] rounded-xl bg-teal-50 border border-teal-100 flex items-center justify-center">
           {(() => {
             const Icon = CANCER_ICONS[slug] || Activity;
-            return <Icon size={64} strokeWidth={1.25} className="text-teal-600/70" />;
+            return <Icon size={64} strokeWidth={1.25} className="text-teal-700/70" />;
           })()}
         </div>
       </section>
@@ -301,7 +301,7 @@ export default function CancerDetailClient({ slug }) {
           <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-3 leading-tight">
             {s.compTitle}
           </h2>
-          <div className="w-12 h-px bg-teal-600 mb-8 md:mb-10" />
+          <div className="w-12 h-px bg-teal-700 mb-8 md:mb-10" />
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5">
             {cancer.complications.map((comp, idx) => (
               <article
@@ -320,7 +320,7 @@ export default function CancerDetailClient({ slug }) {
                   </div>
                 )}
                 <div className="p-4 md:p-5">
-                  <div className="text-xs font-bold tracking-wide text-teal-600 mb-1.5">
+                  <div className="text-xs font-bold tracking-wide text-teal-700 mb-1.5">
                     {String(idx + 1).padStart(2, "0")}
                   </div>
                   <h3 className="text-base font-bold text-gray-900 mb-1.5 leading-snug">
@@ -344,7 +344,7 @@ export default function CancerDetailClient({ slug }) {
         <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-3 leading-tight">
           {s.itcrnTitle}
         </h2>
-        <div className="w-12 h-px bg-teal-600 mb-6" />
+        <div className="w-12 h-px bg-teal-700 mb-6" />
 
         {/* 암종 특화 포커스 배지 */}
         {l(cancer.focusPrograms)?.length > 0 && (
@@ -376,7 +376,7 @@ export default function CancerDetailClient({ slug }) {
                   className="w-full flex items-center justify-between gap-4 py-5 text-left"
                 >
                   <div className="flex items-center gap-4">
-                    <span className="shrink-0 w-9 h-9 rounded-lg bg-teal-600 text-white font-bold flex items-center justify-center text-sm">
+                    <span className="shrink-0 w-9 h-9 rounded-lg bg-teal-700 text-white font-bold flex items-center justify-center text-sm">
                       {ITCRN_LETTERS[idx]}
                     </span>
                     <span className="text-base md:text-lg font-bold text-gray-900">
@@ -385,7 +385,7 @@ export default function CancerDetailClient({ slug }) {
                   </div>
                   <Plus
                     size={20}
-                    className={`shrink-0 text-teal-600 transition-transform ${isOpen ? "rotate-45" : ""}`}
+                    className={`shrink-0 text-teal-700 transition-transform ${isOpen ? "rotate-45" : ""}`}
                   />
                 </button>
                 {isOpen && (
@@ -431,7 +431,7 @@ export default function CancerDetailClient({ slug }) {
           <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-3 leading-tight">
             {s.therapyTitle}
           </h2>
-          <div className="w-12 h-px bg-teal-600 mb-8 md:mb-10" />
+          <div className="w-12 h-px bg-teal-700 mb-8 md:mb-10" />
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5">
             {therapyKeys.map((key, idx) => {
               const therapy = IMMUNE_THERAPIES[key];
@@ -453,7 +453,7 @@ export default function CancerDetailClient({ slug }) {
                     </div>
                   )}
                   <div className="p-4 md:p-5">
-                    <div className="text-xs font-bold tracking-wide text-teal-600 uppercase mb-1.5">
+                    <div className="text-xs font-bold tracking-wide text-teal-700 uppercase mb-1.5">
                       {therapy.axis?.toUpperCase()} — {String(idx + 1).padStart(2, "0")}
                     </div>
                     <h3 className="text-base font-bold text-gray-900 mb-1.5 leading-snug">
@@ -493,14 +493,14 @@ export default function CancerDetailClient({ slug }) {
           <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-3 leading-tight">
             {s.postTitle}
           </h2>
-          <div className="w-12 h-px bg-teal-600 mb-8 md:mb-10" />
+          <div className="w-12 h-px bg-teal-700 mb-8 md:mb-10" />
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5">
             {Object.entries(POST_SURGICAL_CARE).map(([key, care]) => (
               <div
                 key={key}
                 className="bg-gray-50 border border-gray-200 rounded-xl p-5 md:p-6 text-center"
               >
-                <div className="text-3xl md:text-4xl font-bold text-teal-600 leading-none mb-3">
+                <div className="text-3xl md:text-4xl font-bold text-teal-700 leading-none mb-3">
                   {care.items}
                 </div>
                 <div className="text-xs font-bold tracking-wide text-gray-500 uppercase mb-1.5">
@@ -524,11 +524,11 @@ export default function CancerDetailClient({ slug }) {
           <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-3 leading-tight">
             {s.journeyTitle}
           </h2>
-          <div className="w-12 h-px bg-teal-600 mb-8 md:mb-10" />
+          <div className="w-12 h-px bg-teal-700 mb-8 md:mb-10" />
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
             {JOURNEY_STEPS.map((step) => (
               <div key={step.num} className="bg-white border border-gray-200 rounded-xl p-4 text-center">
-                <div className="text-2xl font-bold text-teal-600 leading-none mb-2.5">{step.num}</div>
+                <div className="text-2xl font-bold text-teal-700 leading-none mb-2.5">{step.num}</div>
                 <div className="text-sm font-bold text-gray-900 mb-1 leading-snug">
                   {step[lang] || step.en}
                 </div>
@@ -564,9 +564,9 @@ export default function CancerDetailClient({ slug }) {
       </section>
 
       {/* ── 8. CTA ──────────────────────────────────── */}
-      <section className="bg-teal-600">
+      <section className="bg-teal-700">
         <div className="max-w-4xl mx-auto px-4 py-14 md:py-20 text-center">
-          <span className="inline-block text-xs font-bold tracking-wide text-teal-50 bg-teal-500/40 border border-teal-400/40 rounded-full px-3 py-1 mb-5">
+          <span className="inline-block text-xs font-bold tracking-wide text-teal-50 bg-teal-700/40 border border-teal-400/40 rounded-full px-3 py-1 mb-5">
             {s.ctaEyebrow}
           </span>
           <h2 className="text-2xl md:text-3xl font-bold text-white mb-4 leading-snug">
