@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { ArrowRight, AlertCircle, Loader2, User, Bot, ThumbsUp, ThumbsDown, X } from "lucide-react";
+import { ArrowRight, AlertCircle, Loader2, Bot, ThumbsUp, ThumbsDown, X, Paperclip, FileText, Image as ImageIcon } from "lucide-react";
 import { getLangCodeFromCookie, t } from "@/lib/i18n";
 
 const TOKEN_COOKIE = "healo_chat_token";
@@ -214,6 +214,60 @@ export function ThreadChat() {
   const [sending, setSending] = useState(false);
   const [handOff, setHandOff] = useState(false);
   const chatRef = useRef(null);
+  const inputRef = useRef(null);
+  const fileInputRef = useRef(null);
+
+  // 첨부(검사결과지·사진) 업로드 — 환자가 자료 올려서 의료진 검토 받게.
+  const [attachments, setAttachments] = useState([]); // [{path,name,type}]
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState("");
+
+  const MAX_ATTACHMENTS = 5;
+  const MAX_FILE_MB = 10;
+
+  const handleFilePick = async (fileList) => {
+    setUploadError("");
+    const files = Array.from(fileList || []);
+    if (files.length === 0) return;
+    const remaining = MAX_ATTACHMENTS - attachments.length;
+    if (remaining <= 0) {
+      setUploadError(t("chat.upload.tooMany", langCode) || `Up to ${MAX_ATTACHMENTS} files.`);
+      return;
+    }
+    setUploading(true);
+    try {
+      for (const file of files.slice(0, remaining)) {
+        if (file.size > MAX_FILE_MB * 1024 * 1024) {
+          setUploadError(t("chat.upload.tooLarge", langCode) || `Each file must be under ${MAX_FILE_MB}MB.`);
+          continue;
+        }
+        const fd = new FormData();
+        fd.append("file", file);
+        const res = await fetch("/api/attachments/upload", { method: "POST", body: fd });
+        const data = await res.json();
+        if (!data.ok) {
+          setUploadError(t("chat.upload.failed", langCode) || "Upload failed. Please try again.");
+          continue;
+        }
+        setAttachments((prev) => [...prev, { path: data.path, name: data.name, type: data.type }]);
+      }
+    } catch (e) {
+      console.warn("[ThreadChat] upload failed:", e);
+      setUploadError(t("chat.upload.failed", langCode) || "Upload failed. Please try again.");
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
+  // textarea 자동 높이 — 한 줄에서 시작해 입력에 맞춰 늘어남(최대 128px), 전송 후 한 줄로 복귀.
+  // 긴 질문(암환자 상세 문의)도 잘리지 않게 + 입력 영역이 채팅을 가리지 않게.
+  useEffect(() => {
+    const el = inputRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = Math.min(el.scrollHeight, 128) + "px";
+  }, [input]);
 
   // 피드백 상태
   const [feedbackModal, setFeedbackModal] = useState(null); // { messageId }
@@ -439,11 +493,18 @@ export function ThreadChat() {
 
   const handleSend = async () => {
     const trimmed = input.trim();
-    if (!trimmed || sending || !threadId || !publicToken) return;
+    const outgoingFiles = attachments;
+    if ((!trimmed && outgoingFiles.length === 0) || sending || uploading || !threadId || !publicToken) return;
 
-    const userMsg = { id: `u_${Date.now()}`, role: "user", content: trimmed };
+    const userMsg = {
+      id: `u_${Date.now()}`,
+      role: "user",
+      content: trimmed,
+      attachments: outgoingFiles,
+    };
     setMessages((prev) => [...prev, userMsg]);
     setInput("");
+    setAttachments([]);
     setSending(true);
 
     try {
@@ -454,6 +515,7 @@ export function ThreadChat() {
           thread_id: threadId,
           public_token: publicToken,
           message_text: trimmed,
+          attachments: outgoingFiles,
         }),
       });
 
@@ -546,23 +608,34 @@ export function ThreadChat() {
               </div>
             )}
             {messages.map((msg) => (
-              <div key={msg.id} className={`flex gap-3 ${msg.role === "user" ? "flex-row-reverse" : ""}`}>
-                <div
-                  className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0 ${
-                    msg.role === "assistant" ? "bg-teal-700" : "bg-gray-400"
-                  }`}
-                >
-                  {msg.role === "assistant" ? <Bot size={16} /> : <User size={16} />}
-                </div>
-                <div className="flex flex-col gap-1 max-w-[80%]">
+              <div key={msg.id} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+                <div className={`flex flex-col gap-1 max-w-[90%] ${msg.role === "user" ? "items-end" : "items-start"}`}>
                   <div
-                    className={`p-3 rounded-2xl shadow-sm text-sm border ${
+                    className={`p-3 rounded-2xl shadow-sm text-xs leading-relaxed border ${
                       msg.role === "assistant"
-                        ? "bg-white border-gray-100 rounded-tl-none"
-                        : "bg-teal-700 text-white border-teal-600 rounded-tr-none"
+                        ? "bg-white border-gray-100"
+                        : "bg-teal-700 text-white border-teal-700"
                     }`}
                   >
-                    <p className="whitespace-pre-wrap">{msg.content}</p>
+                    {msg.content && <p className="whitespace-pre-wrap">{msg.content}</p>}
+                    {Array.isArray(msg.attachments) && msg.attachments.length > 0 && (
+                      <div className={`flex flex-col gap-1.5 ${msg.content ? "mt-2" : ""}`}>
+                        {msg.attachments.map((f, i) => {
+                          const isImg = (f.type || "").startsWith("image/");
+                          return (
+                            <div
+                              key={i}
+                              className={`flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs ${
+                                msg.role === "user" ? "bg-teal-700/40" : "bg-gray-100 text-gray-700"
+                              }`}
+                            >
+                              {isImg ? <ImageIcon size={14} className="shrink-0" /> : <FileText size={14} className="shrink-0" />}
+                              <span className="truncate max-w-[180px]">{f.name || "file"}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
                   {/* assistant 메시지만 피드백 버튼 표시 (intro/resume 제외) */}
                   {msg.role === "assistant" && !["intro", "resume_note"].includes(msg.id) && !msg.id.startsWith("resumed_") && !msg.id.startsWith("greet_") && threadId && (
@@ -603,11 +676,8 @@ export function ThreadChat() {
               </div>
             ))}
             {sending && (
-              <div className="flex gap-3">
-                <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0 bg-teal-700">
-                  <Bot size={16} />
-                </div>
-                <div className="p-3 rounded-2xl shadow-sm text-sm border bg-white border-gray-100 rounded-tl-none">
+              <div className="flex justify-start">
+                <div className="p-3 rounded-2xl shadow-sm text-sm border bg-white border-gray-100">
                   <Loader2 size={16} className="animate-spin text-teal-700" />
                 </div>
               </div>
@@ -622,22 +692,75 @@ export function ThreadChat() {
             </div>
           )}
 
-          {/* Input */}
-          <div className="relative">
+          {/* 대기 중 첨부 미리보기 칩 */}
+          {(attachments.length > 0 || uploading || uploadError) && (
+            <div className="mb-2 flex flex-wrap items-center gap-2">
+              {attachments.map((f, i) => {
+                const isImg = (f.type || "").startsWith("image/");
+                return (
+                  <span key={i} className="inline-flex items-center gap-1.5 bg-teal-50 border border-teal-200 text-teal-800 rounded-lg pl-2 pr-1 py-1 text-xs">
+                    {isImg ? <ImageIcon size={13} /> : <FileText size={13} />}
+                    <span className="truncate max-w-[140px]">{f.name || "file"}</span>
+                    <button
+                      type="button"
+                      onClick={() => setAttachments((prev) => prev.filter((_, j) => j !== i))}
+                      className="p-0.5 hover:bg-teal-100 rounded-full"
+                      aria-label="Remove file"
+                    >
+                      <X size={12} />
+                    </button>
+                  </span>
+                );
+              })}
+              {uploading && (
+                <span className="inline-flex items-center gap-1.5 text-xs text-gray-400">
+                  <Loader2 size={13} className="animate-spin" /> {t("chat.upload.uploading", langCode) || "Uploading..."}
+                </span>
+              )}
+              {uploadError && <span className="text-xs text-red-500">{uploadError}</span>}
+            </div>
+          )}
+
+          {/* Input — 통합 입력 박스(클립·입력칸·전송이 한 테두리 안 → 회색 막대 없음, Claude/GPT 방식) */}
+          <div className="flex items-end gap-1.5 border border-gray-300 rounded-3xl px-2 py-1.5 bg-white focus-within:ring-2 focus-within:ring-teal-500 transition">
             <input
-              type="text"
+              ref={fileInputRef}
+              type="file"
+              multiple
+              accept=".pdf,.jpg,.jpeg,.png,.gif,.webp,.doc,.docx"
+              className="hidden"
+              onChange={(e) => handleFilePick(e.target.files)}
+            />
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={sending || uploading || attachments.length >= MAX_ATTACHMENTS}
+              aria-label={t("chat.upload.attach", langCode) || "Attach file (test results, photos)"}
+              title={t("chat.upload.attach", langCode) || "Attach file (test results, photos)"}
+              className="shrink-0 w-9 h-9 flex items-center justify-center text-gray-400 hover:text-teal-600 rounded-full transition disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              <Paperclip size={18} />
+            </button>
+            <textarea
+              ref={inputRef}
+              rows={1}
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleSend()}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSend();
+                }
+              }}
               placeholder={t("chat.placeholder", langCode)}
-              className="w-full border border-gray-300 rounded-full py-3 px-5 pr-12 focus:outline-none focus:ring-2 focus:ring-teal-500 text-sm"
+              className="flex-1 resize-none border-0 bg-transparent outline-none py-1.5 leading-relaxed text-xs max-h-32 overflow-y-auto"
               disabled={sending}
             />
             <button
               onClick={handleSend}
               aria-label="Send message"
-              disabled={sending || !input.trim()}
-              className="absolute right-2 top-1.5 bg-teal-700 text-white p-1.5 rounded-full hover:bg-teal-800 transition disabled:opacity-50"
+              disabled={sending || uploading || (!input.trim() && attachments.length === 0)}
+              className="shrink-0 w-9 h-9 flex items-center justify-center bg-teal-700 text-white rounded-full hover:bg-teal-800 transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {sending ? <Loader2 size={18} className="animate-spin" /> : <ArrowRight size={18} />}
             </button>

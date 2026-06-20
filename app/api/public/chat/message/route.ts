@@ -36,6 +36,37 @@ import {
 import { encryptStringNullable } from "@/lib/security/encryptionV2";
 
 const INTAKE_EVERY_N_TURNS = 3;
+const MAX_ATTACHMENTS = 5;
+
+// 환자가 자료(검사결과지·사진)를 올렸을 때 접수 확인 멘트 (6개 언어).
+// ⚠️ AI는 의료자료를 판독/진단하지 않음(의료법·안전규칙) → "접수+의료진 검토"로만 안내.
+const ATTACHMENT_ACK: Record<string, string> = {
+  ko: "📎 자료 잘 받았습니다. 안전하게 보관됐고, 의료진·코디네이터가 직접 검토한 뒤 정확히 안내드릴게요. (AI는 검사결과를 판독하지 않습니다.)",
+  en: "📎 Got your file — it's safely stored. Our medical team/coordinator will review it personally and follow up. (The AI does not interpret medical results.)",
+  ru: "📎 Файл получен и надёжно сохранён. Наш врач/координатор лично изучит его и свяжется с вами. (ИИ не интерпретирует медицинские результаты.)",
+  kz: "📎 Файл қабылданып, қауіпсіз сақталды. Дәрігер/үйлестіруші оны жеке қарап, хабарласады. (AI медициналық нәтижелерді оқымайды.)",
+  kk: "📎 Файл қабылданып, қауіпсіз сақталды. Дәрігер/үйлестіруші оны жеке қарап, хабарласады. (AI медициналық нәтижелерді оқымайды.)",
+  zh: "📎 已收到您的文件并安全保存。我们的医疗团队/协调员会亲自查看并与您联系。（AI 不会解读医疗检查结果。）",
+  ja: "📎 ファイルを受け取り安全に保管しました。医療チーム・コーディネーターが直接確認しご連絡します。（AIは検査結果を判読しません。）",
+};
+
+// 클라이언트가 보낸 첨부 목록 검증·정제. 업로드 라우트가 항상 inquiry/ 접두사로
+// 저장하므로 그 외 경로는 거부(경로조작·임의참조 차단). 최대 5개.
+function sanitizeAttachments(input: unknown): Array<{ path: string; name: string | null; type: string | null }> {
+  if (!Array.isArray(input)) return [];
+  const out: Array<{ path: string; name: string | null; type: string | null }> = [];
+  for (const a of input.slice(0, MAX_ATTACHMENTS)) {
+    if (!a || typeof a !== "object") continue;
+    const path = typeof (a as any).path === "string" ? (a as any).path : "";
+    if (!path.startsWith("inquiry/") || path.includes("..") || path.length > 500) continue;
+    out.push({
+      path,
+      name: typeof (a as any).name === "string" ? (a as any).name.slice(0, 300) : null,
+      type: typeof (a as any).type === "string" ? (a as any).type.slice(0, 100) : null,
+    });
+  }
+  return out;
+}
 
 // 핸드오프 확인 멘트 (6개 언어) — "다시 입력 안 해도 됨" 명시. 대화 내용은 이미 서버 저장됨.
 const HANDOFF_CONFIRM: Record<string, string> = {
@@ -64,10 +95,13 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { thread_id, public_token, message_text } = body;
+    const attachments = sanitizeAttachments(body?.attachments);
+    const hasAttachments = attachments.length > 0;
 
-    if (!thread_id || !public_token || !message_text?.trim()) {
+    // 텍스트 또는 첨부 중 하나는 있어야 함(자료만 올리는 케이스 허용).
+    if (!thread_id || !public_token || (!message_text?.trim() && !hasAttachments)) {
       return Response.json(
-        { ok: false, error: "thread_id, public_token, and message_text are required" },
+        { ok: false, error: "thread_id, public_token, and message_text or attachments are required" },
         { status: 400 }
       );
     }
@@ -87,15 +121,18 @@ export async function POST(request: NextRequest) {
       return Response.json({ ok: false, error: "Thread is closed" }, { status: 410 });
     }
 
-    const trimmedMsg = message_text.trim();
+    const trimmedMsg = (message_text || "").trim();
+    // 자료만 올린 경우 빈 말풍선 대신 표시·이력용 마커 텍스트.
+    const patientMsgText = trimmedMsg || `📎 ${attachments.length}`;
 
     const { error: patientErr } = await (supabaseAdmin as any)
       .from("chat_messages")
       .insert({
         thread_id,
         actor_type: "patient",
-        message_text: trimmedMsg,
-        metadata: { ip: clientIp },
+        message_text: patientMsgText,
+        attachments,
+        metadata: { ip: clientIp, ...(hasAttachments ? { has_attachments: true } : {}) },
       });
     if (patientErr) {
       console.error("[public/chat/message] patient insert:", patientErr.message);
@@ -103,9 +140,12 @@ export async function POST(request: NextRequest) {
     }
 
     const handOff = detectHandOff(trimmedMsg);
+    // 자료 업로드 = 사람(의료진) 검토 필요 → 자동 에스컬레이션(코디 알림).
+    const escalate = handOff.requested || hasAttachments;
+    const escalateReason = handOff.reason || (hasAttachments ? "attachment_uploaded" : null);
 
     const threadMeta: any = (thread.metadata && typeof thread.metadata === "object" && !Array.isArray(thread.metadata)) ? thread.metadata : {};
-    if (handOff.requested) {
+    if (escalate) {
       await (supabaseAdmin as any)
       .from("chat_threads")
         .update({
@@ -113,8 +153,9 @@ export async function POST(request: NextRequest) {
           metadata: {
             ...threadMeta,
             hand_off_requested: true,
-            hand_off_reason: handOff.reason,
+            hand_off_reason: escalateReason,
             hand_off_at: new Date().toISOString(),
+            ...(hasAttachments ? { has_attachments: true } : {}),
           },
         })
         .eq("id", thread_id);
@@ -134,14 +175,26 @@ export async function POST(request: NextRequest) {
 
     const lang = threadMeta.language || "en";
 
-    const { reply, ragChunks, error: aiError, _analytics } = await generateChatReply(
-      chatMessages,
-      trimmedMsg,
-      lang,
-      thread_id
-    );
+    // 자료만 올린 경우(질문 텍스트 없음)는 AI를 호출하지 않음 — AI는 자료 판독을 하지 않으므로
+    // 빈 질의로 모델을 돌릴 이유가 없음. 접수 확인(ACK)만 즉시 응답.
+    let reply = "";
+    let ragChunks: any[] = [];
+    let aiError: string | undefined;
+    let _analytics: any = undefined;
+    if (trimmedMsg) {
+      const r = await generateChatReply(chatMessages, trimmedMsg, lang, thread_id);
+      reply = r.reply;
+      ragChunks = r.ragChunks;
+      aiError = r.error;
+      _analytics = r._analytics;
+    }
 
     let finalReply = reply;
+    // 자료 접수 확인(판독 아님) — 첨부가 있으면 항상 덧붙임.
+    if (hasAttachments) {
+      const ack = ATTACHMENT_ACK[lang] || ATTACHMENT_ACK.en;
+      finalReply = finalReply ? `${finalReply}\n\n${ack}` : ack;
+    }
     if (handOff.requested) {
       finalReply += "\n\n" + (HANDOFF_CONFIRM[lang] || HANDOFF_CONFIRM.en);
     }
@@ -155,7 +208,8 @@ export async function POST(request: NextRequest) {
         metadata: {
           model: getModelName(),
           rag_chunks_used: ragChunks.length,
-          hand_off: handOff.requested ? handOff.reason : null,
+          hand_off: escalate ? escalateReason : null,
+          ...(hasAttachments ? { attachment_ack: true } : {}),
           ...(aiError ? { ai_error: aiError } : {}),
         },
       })
@@ -202,7 +256,7 @@ export async function POST(request: NextRequest) {
       ok: true,
       reply: finalReply,
       thread_id,
-      hand_off: handOff.requested ? handOff : undefined,
+      hand_off: escalate ? { requested: true, reason: escalateReason } : undefined,
       ...(aiError ? { ai_error: aiError } : {}),
     });
   } catch (err: any) {
