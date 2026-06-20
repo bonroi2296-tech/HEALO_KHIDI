@@ -54,12 +54,15 @@
 
 ### 🔴 남은 백로그 (다음 세션 권장)
 - **(선택) 브라우저 클라 `data/supabaseClient.js` 완전 흡수**: 현재 정본 `supabase/browser.ts` 위임 프록시(호출부 9곳). 호출부를 직접 repoint하면 프록시 파일도 제거 가능(저우선).
-- **(소) 죽은 라우트 `/api/chat` 프롬프트 일관성**: UI 미사용이나 공개 위젯(`generateReply.ts`)과 달리 비가격 질문에도 가격표를 토함 — 같은 "가격은 명시 요청 시만" 규칙 미반영. 정리하거나 라우트 자체 제거 검토.
+- ~~**(소) 죽은 라우트 `/api/chat` 프롬프트 일관성**~~ ✅ **해결**: 라우트 자체가 [#99](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/99)에서 제거됨(폼 자동채움용 `/api/chat/thread-summary`만 보존). 일관성 우려 소멸.
 - **`any` 813개**(인증·복호화 66개) 점진 축소, God컴포넌트 `consultation/[id]/page.jsx` 2,883줄 분할.
-- **얕은 헬스체크**: `api/health`가 정적 `{ok}`만 → DB 죽어도 200.
+- ~~**얕은 헬스체크**: `api/health`가 정적 `{ok}`만 → DB 죽어도 200.~~ ✅ **해결**: `app/api/health/route.ts`가 이제 anon 클라로 `hospitals` head count 실측(3초 타임아웃) → 실패 시 503(degraded). uptime 모니터가 장애를 잡는다.
 - **남은 7취약점**: vitest(dev)·exceljs→uuid·sentry→postcss = major 강제 필요(깨질 수 있어 보류).
 - ~~**DB 마이그레이션 위생**: 수동 추적·정책 `DROP ... IF EXISTS` 가드 누락(재실행 충돌 위험).~~ ✅ **해결(2026-06-19)**: 19개 파일에 멱등 가드 추가(정책 39·트리거 4·인덱스 10·제약 2) + `scripts/check-migration-idempotency.mjs` CI 게이트 신설로 재발 영구 차단. 상세 POSTMORTEMS #6. (수동 추적 자체는 유지 — supabase 히스토리 도입은 별도 과제.)
-- **알림 카운터 인메모리**: 서버리스 콜드스타트 리셋 → 누적 임계 정밀 집계는 DB 카운터 필요(개별 알림 전송은 정상).
+- ~~**알림 카운터 인메모리**: 서버리스 콜드스타트 리셋 → 누적 임계 정밀 집계는 DB 카운터 필요.~~ ✅ **해결([#101](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/101))**: `alert_counter_events` 테이블 + RPC sliding window 로 cross-isolate 정확 집계(실패 시 인메모리 fallback).
+
+### ✅ 신규 (2026-06-20) — KHIDI KPI 집계 오류 자동 canary
+- **무엇**: 매일 도는 KPI 스냅샷 cron(`/api/cron/kpi-snapshot` → `upsertDailySnapshot`)이 집계 쿼리 오류(없는 컬럼·연결 등 [#102](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/102) 부류)를 만나면 `operationalAlerts.alertKpiAggregationErrors()`로 **critical 알림**(콘솔+Sentry+이메일)을 자동 발사. 이전엔 대시보드를 직접 열어야만 errors 배너로 보였음 → 이제 평가 숫자가 깨지면 PO가 자동 통보받음. 단위테스트 3개(`operationalAlerts.test.ts`).
 
 ---
 

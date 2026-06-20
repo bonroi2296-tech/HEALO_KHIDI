@@ -350,6 +350,19 @@ export async function upsertDailySnapshot(date: string): Promise<void> {
 
   const kpi = await _fetchKpiInRange(fromISO, toISO);
 
+  // 평가 직결: 집계 쿼리 오류(없는 컬럼·연결 등 #102 부류)가 있으면 자동 알림.
+  // 매일 도는 cron 이라 = 평가 숫자 깨짐 canary. 알림 실패는 스냅샷에 영향 없게 격리.
+  if (kpi.errors.length > 0) {
+    try {
+      const { alertKpiAggregationErrors } = await import(
+        "@/lib/alerts/operationalAlerts"
+      );
+      await alertKpiAggregationErrors(kpi.errors, `snapshot ${date}`);
+    } catch (alertErr) {
+      console.error("[kpi] KPI 오류 알림 발송 실패:", (alertErr as Error).message);
+    }
+  }
+
   const supabase = getAdminClient();
   const { error } = await supabase.from("kpi_snapshots").upsert(
     {
