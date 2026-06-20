@@ -74,7 +74,7 @@ export function SymptomAlerts() {
             onClick={() => setFilter(f.id)}
             className={`px-3 py-1.5 rounded-lg text-sm font-medium transition ${
               filter === f.id
-                ? "bg-teal-600 text-white"
+                ? "bg-teal-700 text-white"
                 : "bg-gray-100 text-gray-600 hover:bg-gray-200"
             }`}
           >

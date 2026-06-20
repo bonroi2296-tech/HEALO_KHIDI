@@ -240,7 +240,7 @@ export default function HospitalTreatmentsPage() {
                 {editing === "new" ? "새 시술 추가" : "시술 수정"}
               </h1>
             </div>
-            <button onClick={handleSave} disabled={saving} className="bg-teal-600 text-white px-5 py-2.5 rounded-xl font-bold hover:bg-teal-700 transition flex items-center gap-2 disabled:opacity-50 text-sm shadow-sm">
+            <button onClick={handleSave} disabled={saving} className="bg-teal-700 text-white px-5 py-2.5 rounded-xl font-bold hover:bg-teal-800 transition flex items-center gap-2 disabled:opacity-50 text-sm shadow-sm">
               {saving ? <Loader2 size={16} className="animate-spin"/> : <Save size={16}/>}
               {saving ? '저장 중...' : '저장'}
             </button>
@@ -264,7 +264,7 @@ export default function HospitalTreatmentsPage() {
             </div>
             <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
               <label className="text-sm font-bold text-gray-700 flex-1">프론트 노출 여부</label>
-              <button type="button" onClick={() => setForm({ ...form, is_published: !form.is_published })} className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${form.is_published ? 'bg-teal-600' : 'bg-gray-300'}`}>
+              <button type="button" onClick={() => setForm({ ...form, is_published: !form.is_published })} className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${form.is_published ? 'bg-teal-700' : 'bg-gray-300'}`}>
                 <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${form.is_published ? 'translate-x-6' : 'translate-x-1'}`}/>
               </button>
               <span className="text-xs text-gray-600 w-16">{form.is_published ? '노출' : '숨김'}</span>
@@ -281,7 +281,7 @@ export default function HospitalTreatmentsPage() {
           {/* 이미지 */}
           <div className="space-y-3">
             <label className="block text-sm font-bold text-gray-500">시술 관련 이미지</label>
-            <p className="text-xs text-teal-600 bg-teal-50 p-2 rounded-lg flex items-center gap-2">
+            <p className="text-xs text-teal-700 bg-teal-50 p-2 rounded-lg flex items-center gap-2">
               <Info size={14}/> 권장: 800x800px (1:1 비율)
             </p>
             {(form.images || []).length > 0 && (
@@ -444,7 +444,7 @@ export default function HospitalTreatmentsPage() {
             <h1 className="text-lg lg:text-2xl font-extrabold text-gray-900">시술 관리</h1>
             <p className="text-xs text-gray-400 mt-0.5">시술을 추가하고 관리하세요</p>
           </div>
-          <button onClick={startCreate} className="bg-teal-600 text-white px-5 py-2.5 rounded-xl font-bold hover:bg-teal-700 transition flex items-center gap-2 text-sm shadow-sm">
+          <button onClick={startCreate} className="bg-teal-700 text-white px-5 py-2.5 rounded-xl font-bold hover:bg-teal-800 transition flex items-center gap-2 text-sm shadow-sm">
             <Plus size={16} /> 새 시술 추가
           </button>
         </div>
@@ -458,7 +458,7 @@ export default function HospitalTreatmentsPage() {
         <div className="bg-white rounded-2xl border border-gray-200 text-center py-20 text-gray-400 mb-6">
           <Stethoscope size={48} className="mx-auto mb-3 opacity-50" />
           <p className="text-sm">등록된 시술이 없습니다</p>
-          <button onClick={startCreate} className="mt-4 text-teal-600 text-sm font-medium hover:underline">
+          <button onClick={startCreate} className="mt-4 text-teal-700 text-sm font-medium hover:underline">
             첫 시술을 추가해보세요
           </button>
         </div>
@@ -498,7 +498,7 @@ export default function HospitalTreatmentsPage() {
                   <button
                     onClick={(e) => { e.stopPropagation(); togglePublish(treatment); }}
                     className={`p-2 rounded-lg text-xs transition ${
-                      treatment.is_published ? "text-teal-600 hover:bg-teal-50" : "text-gray-400 hover:bg-gray-100"
+                      treatment.is_published ? "text-teal-700 hover:bg-teal-50" : "text-gray-400 hover:bg-gray-100"
                     }`}
                     title={treatment.is_published ? "비공개로 변경" : "공개로 변경"}
                   >
@@ -506,7 +506,7 @@ export default function HospitalTreatmentsPage() {
                   </button>
                   <button
                     onClick={(e) => { e.stopPropagation(); startEdit(treatment); }}
-                    className="p-2 rounded-lg text-gray-400 hover:bg-teal-50 hover:text-teal-600 transition"
+                    className="p-2 rounded-lg text-gray-400 hover:bg-teal-50 hover:text-teal-700 transition"
                     title="수정"
                   >
                     <Pencil size={16} />

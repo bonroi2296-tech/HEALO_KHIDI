@@ -77,13 +77,13 @@ export default function CoordinatorInboxPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            <Inbox size={24} className="text-teal-600" /> 신규 상담 인박스
+            <Inbox size={24} className="text-teal-700" /> 신규 상담 인박스
           </h1>
           <p className="text-gray-500 text-sm mt-1">funnel Step 1 이상 완료된 상담 목록입니다.</p>
         </div>
         <button
           onClick={load}
-          className="flex items-center gap-2 px-3 py-2 text-sm text-gray-500 hover:text-teal-600 hover:bg-teal-50 rounded-lg transition"
+          className="flex items-center gap-2 px-3 py-2 text-sm text-gray-500 hover:text-teal-700 hover:bg-teal-50 rounded-lg transition"
         >
           <RefreshCw size={16} /> 새로 고침
         </button>
@@ -110,7 +110,7 @@ export default function CoordinatorInboxPage() {
             onClick={() => setFilter(tab.key)}
             className={`px-4 py-3 text-sm font-medium transition border-b-2 flex items-center gap-2 ${
               filter === tab.key
-                ? "border-teal-600 text-teal-600"
+                ? "border-teal-600 text-teal-700"
                 : "border-transparent text-gray-500 hover:text-gray-700"
             }`}
           >

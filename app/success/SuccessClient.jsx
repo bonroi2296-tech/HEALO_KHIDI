@@ -69,7 +69,7 @@ export const SuccessPage = ({ setView }) => {
                         <div className="flex justify-between items-center text-sm relative z-10">
                             <span className="text-gray-500 font-medium">{t('success.estResponse', langCode)}</span>
                             <span className="font-bold text-gray-900 flex items-center gap-1.5">
-                                <Clock size={14} className="text-teal-500"/> {t('success.within24h', langCode)}
+                                <Clock size={14} className="text-teal-700"/> {t('success.within24h', langCode)}
                             </span>
                         </div>
                     </div>
@@ -81,7 +81,7 @@ export const SuccessPage = ({ setView }) => {
                             <div className="absolute left-[11px] top-2 bottom-6 w-0.5 bg-gray-100"></div>
 
                             <div className="relative flex gap-4 pb-6">
-                                <div className="w-6 h-6 rounded-full bg-teal-600 flex items-center justify-center shrink-0 z-10 ring-4 ring-white shadow-sm">
+                                <div className="w-6 h-6 rounded-full bg-teal-700 flex items-center justify-center shrink-0 z-10 ring-4 ring-white shadow-sm">
                                     <Check size={12} className="text-white" strokeWidth={3}/>
                                 </div>
                                 <div>
@@ -95,7 +95,7 @@ export const SuccessPage = ({ setView }) => {
                                     <div className="w-2 h-2 bg-teal-500 rounded-full animate-pulse"></div>
                                 </div>
                                 <div>
-                                    <p className="text-sm font-bold text-teal-600 leading-none mb-1">{t('success.step2Title', langCode)}</p>
+                                    <p className="text-sm font-bold text-teal-700 leading-none mb-1">{t('success.step2Title', langCode)}</p>
                                     <p className="text-xs text-gray-500">{t('success.step2Desc', langCode)}</p>
                                 </div>
                             </div>
@@ -127,7 +127,7 @@ export const SuccessPage = ({ setView }) => {
                         {/* 핵심 CTA: 계정 생성 → 진행 상황 추적 */}
                         <button
                             onClick={() => router.push('/signup?redirect=/patient')}
-                            className="w-full bg-teal-600 text-white font-bold py-4 rounded-xl hover:bg-teal-700 transition shadow-lg shadow-teal-100 transform active:scale-[0.98] flex items-center justify-center gap-2"
+                            className="w-full bg-teal-700 text-white font-bold py-4 rounded-xl hover:bg-teal-800 transition shadow-lg shadow-teal-100 transform active:scale-[0.98] flex items-center justify-center gap-2"
                         >
                             {t('success.createAccountCta', langCode)}
                         </button>

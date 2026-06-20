@@ -194,7 +194,7 @@ export default function TreatmentsHubClient() {
         </p>
         <Link
           href="/intake"
-          className="inline-flex items-center gap-2 mt-8 px-6 py-3 bg-teal-600 hover:bg-teal-700 text-white rounded-xl font-bold transition-colors"
+          className="inline-flex items-center gap-2 mt-8 px-6 py-3 bg-teal-700 hover:bg-teal-800 text-white rounded-xl font-bold transition-colors"
         >
           {copy.requestConsult} <ArrowRight size={18} />
         </Link>
@@ -224,7 +224,7 @@ export default function TreatmentsHubClient() {
           <div className="grid md:grid-cols-[5fr_7fr] gap-8 md:gap-12 items-start">
             <div>
               <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-3">{copy.itcrnTitle}</h2>
-              <div className="w-12 h-px bg-teal-600 mb-4" />
+              <div className="w-12 h-px bg-teal-700 mb-4" />
               <p className="text-sm md:text-base text-gray-600 leading-relaxed max-w-md">{copy.itcrnBody}</p>
             </div>
             <div className="divide-y divide-gray-200">
@@ -234,7 +234,7 @@ export default function TreatmentsHubClient() {
                 const letter = ["I", "T", "C", "R", "N"][idx];
                 return (
                   <div key={key} className="flex gap-4 py-4 items-start">
-                    <span className="shrink-0 w-9 h-9 rounded-lg bg-teal-600 text-white font-bold flex items-center justify-center text-sm">
+                    <span className="shrink-0 w-9 h-9 rounded-lg bg-teal-700 text-white font-bold flex items-center justify-center text-sm">
                       {letter}
                     </span>
                     <div>
@@ -287,7 +287,7 @@ export default function TreatmentsHubClient() {
                       ))}
                     </div>
                   )}
-                  <span className="inline-flex items-center gap-1.5 text-sm font-bold text-teal-600">
+                  <span className="inline-flex items-center gap-1.5 text-sm font-bold text-teal-700">
                     {copy.viewPage} <ArrowRight size={16} />
                   </span>
                 </div>
@@ -315,7 +315,7 @@ export default function TreatmentsHubClient() {
                   />
                 </div>
                 <div className="p-5 md:p-8">
-                  <div className="text-xs font-bold tracking-wide text-teal-600 mb-3">
+                  <div className="text-xs font-bold tracking-wide text-teal-700 mb-3">
                     {String(idx + 1).padStart(2, "0")}
                   </div>
                   <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-3 leading-tight">
@@ -324,7 +324,7 @@ export default function TreatmentsHubClient() {
                   <p className="text-base text-teal-700 font-semibold leading-relaxed mb-5">
                     {l(c.koreaStrength)}
                   </p>
-                  <div className="w-12 h-px bg-teal-600 mb-6" />
+                  <div className="w-12 h-px bg-teal-700 mb-6" />
                   <div className="grid sm:grid-cols-2 gap-6">
                     {[
                       { label: copy.western, sub: copy.partnerLabel, items: c.western },
@@ -336,7 +336,7 @@ export default function TreatmentsHubClient() {
                         <ul className="divide-y divide-gray-200 border-t border-gray-200">
                           {col.items?.map((t, i) => (
                             <li key={i} className="flex gap-2 py-2.5 text-sm text-gray-600 leading-relaxed">
-                              <span className="shrink-0 text-xs font-bold text-teal-600 mt-0.5">
+                              <span className="shrink-0 text-xs font-bold text-teal-700 mt-0.5">
                                 {String(i + 1).padStart(2, "0")}
                               </span>
                               <span>{l(t)}</span>
@@ -349,13 +349,13 @@ export default function TreatmentsHubClient() {
                   <div className="flex flex-wrap items-center gap-4 mt-6">
                     <Link
                       href="/education"
-                      className="inline-flex items-center gap-1.5 text-sm font-bold text-teal-600 hover:text-teal-700 transition-colors"
+                      className="inline-flex items-center gap-1.5 text-sm font-bold text-teal-700 hover:text-teal-700 transition-colors"
                     >
                       {copy.readGuide} <ArrowRight size={16} />
                     </Link>
                     <Link
                       href="/intake"
-                      className="inline-flex items-center gap-2 px-6 py-2.5 bg-teal-600 hover:bg-teal-700 text-white rounded-xl font-bold transition-colors"
+                      className="inline-flex items-center gap-2 px-6 py-2.5 bg-teal-700 hover:bg-teal-800 text-white rounded-xl font-bold transition-colors"
                     >
                       {copy.requestConsult} <ArrowRight size={16} />
                     </Link>
@@ -386,7 +386,7 @@ export default function TreatmentsHubClient() {
               ? "医療・栄養・生活管理の統合ケア"
               : "Integrated care: medical, nutrition, daily life"}
           </h2>
-          <div className="w-12 h-px bg-teal-600 mb-4" />
+          <div className="w-12 h-px bg-teal-700 mb-4" />
           <p className="text-sm md:text-base text-gray-600 leading-relaxed">
             {lang === "ko"
               ? "healwith 직영 면력한방병원(Immune Hospital)은 의료진·임상영양사·치료식 셰프가 함께 한 명의 환자를 돌봅니다. 누적 50,000건 이상의 케이스."
@@ -403,7 +403,7 @@ export default function TreatmentsHubClient() {
           <div className="mt-5">
             <Link
               href="/hospitals/immune"
-              className="inline-flex items-center gap-1.5 text-sm font-bold text-teal-600 hover:text-teal-700 transition-colors"
+              className="inline-flex items-center gap-1.5 text-sm font-bold text-teal-700 hover:text-teal-700 transition-colors"
             >
               {lang === "ko" ? "면력한방병원 자세히 보기" : lang === "ru" ? "Подробнее об Immune Hospital" : lang === "kz" ? "Immune Hospital туралы толығырақ" : lang === "zh" ? "了解 Immune Hospital 详情" : lang === "ja" ? "面力韓方病院の詳細を見る" : "Learn more about Immune Hospital"}
               <ArrowRight size={16} />
@@ -477,7 +477,7 @@ export default function TreatmentsHubClient() {
                   />
                 </div>
                 <div className="p-4 md:p-5">
-                  <div className="text-xs font-bold tracking-wide text-teal-600 mb-1.5">
+                  <div className="text-xs font-bold tracking-wide text-teal-700 mb-1.5">
                     {String(i + 1).padStart(2, "0")}
                   </div>
                   <h3 className="text-base font-bold text-gray-900 mb-1.5 leading-snug">{label}</h3>
@@ -515,7 +515,7 @@ export default function TreatmentsHubClient() {
               { num: "05", ko: "추적 관찰", en: "Follow-up", ru: "Наблюдение", kz: "Бақылау", zh: "随访观察", ja: "追跡観察", sub: { ko: "장기 관리", en: "Long-term care", ru: "Долгосрочно", kz: "Ұзақ мерзімді күтім", zh: "长期管理", ja: "長期管理" } },
             ].map((step) => (
               <div key={step.num} className="bg-white border border-gray-200 rounded-xl p-4 text-center">
-                <div className="text-2xl font-bold text-teal-600 leading-none mb-2.5">{step.num}</div>
+                <div className="text-2xl font-bold text-teal-700 leading-none mb-2.5">{step.num}</div>
                 <div className="text-sm font-bold text-gray-900 mb-1 leading-snug">
                   {lang === "ko" ? step.ko : lang === "ru" ? step.ru : lang === "kz" ? step.kz : lang === "zh" ? step.zh : lang === "ja" ? step.ja : step.en}
                 </div>
@@ -529,7 +529,7 @@ export default function TreatmentsHubClient() {
       </section>
 
       {/* Final CTA */}
-      <section className="bg-teal-600">
+      <section className="bg-teal-700">
         <div className="max-w-4xl mx-auto px-4 py-14 md:py-20 text-center">
           <h2 className="text-2xl md:text-3xl font-bold text-white mb-4 leading-snug">{copy.bottomTitle}</h2>
           <p className="text-teal-50 text-sm md:text-base mb-8 max-w-2xl mx-auto leading-relaxed">{copy.bottomBody}</p>

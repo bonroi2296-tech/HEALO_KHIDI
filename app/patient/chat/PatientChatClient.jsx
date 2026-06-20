@@ -130,7 +130,7 @@ function PartnerHospitalsCard({ lang }) {
   return (
     <div className="mt-3 bg-white border border-teal-100 rounded-2xl p-4 shadow-sm">
       <div className="flex items-center gap-2 mb-3">
-        <Building2 size={16} className="text-teal-600" />
+        <Building2 size={16} className="text-teal-700" />
         <h3 className="text-sm font-bold text-gray-800">{L.partnerCardTitle[lang] || L.partnerCardTitle.en}</h3>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -226,14 +226,14 @@ function ChatBubble({ msg, lang }) {
   return (
     <div className={`flex gap-2.5 ${isUser ? 'flex-row-reverse' : ''}`}>
       <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
-        isUser ? 'bg-gray-200 text-gray-600' : 'bg-teal-600 text-white'
+        isUser ? 'bg-gray-200 text-gray-600' : 'bg-teal-700 text-white'
       }`}>
         {isUser ? <User size={15} /> : <Bot size={15} />}
       </div>
       <div className={`max-w-[85%] sm:max-w-[75%]`}>
         <div className={`px-4 py-3 rounded-2xl text-sm leading-relaxed ${
           isUser
-            ? 'bg-teal-600 text-white rounded-tr-sm'
+            ? 'bg-teal-700 text-white rounded-tr-sm'
             : 'bg-white border border-gray-100 shadow-sm rounded-tl-sm text-gray-800'
         }`}>
           {msg.content.split('\n').map((line, i) => (
@@ -454,7 +454,7 @@ export default function PatientChatClient() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <Loader2 className="w-8 h-8 animate-spin text-teal-600" />
+        <Loader2 className="w-8 h-8 animate-spin text-teal-700" />
       </div>
     );
   }
@@ -466,7 +466,7 @@ export default function PatientChatClient() {
         <p className="text-gray-500 text-center">{l(L.login)}</p>
         <button
           onClick={() => router.push('/login?redirect=/patient/chat')}
-          className="px-6 py-2.5 bg-teal-600 text-white rounded-full text-sm font-medium hover:bg-teal-700 transition"
+          className="px-6 py-2.5 bg-teal-700 text-white rounded-full text-sm font-medium hover:bg-teal-800 transition"
         >
           Log In
         </button>
@@ -482,7 +482,7 @@ export default function PatientChatClient() {
           <h2 className="text-lg font-bold text-gray-900">{l(L.history)}</h2>
           <button
             onClick={() => setShowHistory(false)}
-            className="text-sm text-teal-600 font-medium"
+            className="text-sm text-teal-700 font-medium"
           >
             {l(L.title)}
           </button>
@@ -551,7 +551,7 @@ export default function PatientChatClient() {
         </div>
         <button
           onClick={startNewChat}
-          className="p-2 rounded-xl hover:bg-teal-50 transition text-teal-600"
+          className="p-2 rounded-xl hover:bg-teal-50 transition text-teal-700"
           title={l(L.newChat)}
         >
           <Plus size={18} />
@@ -566,7 +566,7 @@ export default function PatientChatClient() {
         {messages.length === 0 && !activeThread && (
           <div className="flex flex-col items-center justify-center min-h-full gap-5 text-center py-6">
             <div className="w-16 h-16 rounded-2xl bg-teal-50 flex items-center justify-center">
-              <Bot size={32} className="text-teal-600" />
+              <Bot size={32} className="text-teal-700" />
             </div>
             <p className="text-sm text-gray-500 whitespace-pre-line max-w-xs">{l(L.intro)}</p>
 
@@ -578,7 +578,7 @@ export default function PatientChatClient() {
                   onClick={() => handleSend(l(L.qaFindHospitalQ), 'find_hospital')}
                   className="flex items-center gap-2 p-3 bg-white border border-teal-100 rounded-xl hover:border-teal-300 hover:bg-teal-50/50 transition text-left"
                 >
-                  <Building2 size={14} className="text-teal-600 shrink-0" />
+                  <Building2 size={14} className="text-teal-700 shrink-0" />
                   <span className="text-[11px] font-medium text-gray-700 leading-tight">{l(L.qaFindHospital)}</span>
                 </button>
                 <button
@@ -631,7 +631,7 @@ export default function PatientChatClient() {
 
         {sending && (
           <div className="flex gap-2.5">
-            <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 bg-teal-600 text-white">
+            <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0 bg-teal-700 text-white">
               <Bot size={15} />
             </div>
             <div className="px-4 py-3 rounded-2xl rounded-tl-sm bg-white border border-gray-100 shadow-sm">
@@ -674,7 +674,7 @@ export default function PatientChatClient() {
           <button
             onClick={() => handleSend()}
             disabled={sending || !input.trim()}
-            className="w-10 h-10 flex items-center justify-center bg-teal-600 text-white rounded-full hover:bg-teal-700 transition disabled:opacity-40 shrink-0"
+            className="w-10 h-10 flex items-center justify-center bg-teal-700 text-white rounded-full hover:bg-teal-800 transition disabled:opacity-40 shrink-0"
           >
             {sending ? (
               <Loader2 size={18} className="animate-spin" />

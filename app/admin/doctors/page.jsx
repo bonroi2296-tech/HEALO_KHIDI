@@ -35,7 +35,7 @@ function ArrayEditor({ label, items, onChange }) {
     <div className="space-y-2">
       <div className="flex items-center justify-between">
         <label className="text-xs font-semibold text-gray-600">{label}</label>
-        <button onClick={addItem} className="text-xs text-teal-600 hover:text-teal-800 flex items-center gap-1">
+        <button onClick={addItem} className="text-xs text-teal-700 hover:text-teal-800 flex items-center gap-1">
           <Plus size={12} /> 추가
         </button>
       </div>
@@ -152,7 +152,7 @@ function BranchForm({ branch, onSave, onCancel }) {
       </div>
       <div className="flex gap-2 pt-2">
         <button onClick={() => onSave(form)}
-          className="flex items-center gap-1.5 bg-teal-600 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-teal-700 transition">
+          className="flex items-center gap-1.5 bg-teal-700 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-teal-800 transition">
           <Save size={14} /> 저장
         </button>
         <button onClick={onCancel}
@@ -260,14 +260,14 @@ function DoctorForm({ doctor, branches, onSave, onCancel }) {
       <div className="flex items-center gap-3 pt-2">
         <label className="flex items-center gap-2 cursor-pointer">
           <input type="checkbox" checked={form.is_active} onChange={e => set("is_active", e.target.checked)}
-            className="rounded border-gray-300 text-teal-600 focus:ring-teal-500" />
+            className="rounded border-gray-300 text-teal-700 focus:ring-teal-500" />
           <span className="text-sm text-gray-700">활성 상태</span>
         </label>
       </div>
 
       <div className="flex gap-2 pt-2 border-t border-gray-100">
         <button onClick={() => onSave(form)}
-          className="flex items-center gap-1.5 bg-teal-600 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-teal-700 transition">
+          className="flex items-center gap-1.5 bg-teal-700 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-teal-800 transition">
           <Save size={14} /> 저장
         </button>
         <button onClick={onCancel}
@@ -458,7 +458,7 @@ export default function AdminDoctorsPage() {
             </div>
             <button
               onClick={() => setEditingDoctor("new")}
-              className="flex items-center gap-1.5 bg-teal-600 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-teal-700 transition whitespace-nowrap"
+              className="flex items-center gap-1.5 bg-teal-700 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-teal-800 transition whitespace-nowrap"
             >
               <Plus size={14} /> 의료진 추가
             </button>
@@ -532,7 +532,7 @@ export default function AdminDoctorsPage() {
                       <div className="flex items-center justify-end gap-1">
                         <button
                           onClick={() => setEditingDoctor(doc)}
-                          className="text-xs text-teal-600 hover:text-teal-800 px-2 py-1 rounded hover:bg-teal-50 transition"
+                          className="text-xs text-teal-700 hover:text-teal-800 px-2 py-1 rounded hover:bg-teal-50 transition"
                         >
                           수정
                         </button>
@@ -565,7 +565,7 @@ export default function AdminDoctorsPage() {
           <div className="flex justify-end">
             <button
               onClick={() => setEditingBranch("new")}
-              className="flex items-center gap-1.5 bg-teal-600 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-teal-700 transition"
+              className="flex items-center gap-1.5 bg-teal-700 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-teal-800 transition"
             >
               <Plus size={14} /> 지점 추가
             </button>
@@ -587,7 +587,7 @@ export default function AdminDoctorsPage() {
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-1">
-                        <Building2 size={18} className="text-teal-600" />
+                        <Building2 size={18} className="text-teal-700" />
                         <h3 className="font-bold text-gray-900">{branch.name_ko}</h3>
                         <StatusBadge status={branch.status} />
                       </div>
@@ -595,14 +595,14 @@ export default function AdminDoctorsPage() {
                       {branch.address_ko && <p className="text-xs text-gray-400 ml-8 mt-1">{branch.address_ko}</p>}
                       <div className="flex items-center gap-4 ml-8 mt-2">
                         <span className="text-xs text-gray-500">코드: <code className="bg-gray-100 px-1.5 py-0.5 rounded">{branch.branch_code}</code></span>
-                        <span className="text-xs text-gray-500">의료진: <strong className="text-teal-600">{doctorCount}</strong>명</span>
+                        <span className="text-xs text-gray-500">의료진: <strong className="text-teal-700">{doctorCount}</strong>명</span>
                         {branch.phone && <span className="text-xs text-gray-500">TEL: {branch.phone}</span>}
                       </div>
                     </div>
                     <div className="flex items-center gap-1">
                       <button
                         onClick={() => setEditingBranch(branch)}
-                        className="text-xs text-teal-600 hover:text-teal-800 px-3 py-1.5 rounded-lg hover:bg-teal-50 transition"
+                        className="text-xs text-teal-700 hover:text-teal-800 px-3 py-1.5 rounded-lg hover:bg-teal-50 transition"
                       >
                         수정
                       </button>

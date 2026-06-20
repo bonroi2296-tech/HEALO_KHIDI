@@ -90,7 +90,7 @@ export default function PatientLayout({ children }) {
                       : 'text-gray-600 hover:bg-gray-50'
                   }`}
                 >
-                  <Icon size={20} className={active ? 'text-teal-600' : 'text-gray-400'} />
+                  <Icon size={20} className={active ? 'text-teal-700' : 'text-gray-400'} />
                   <span className="text-sm font-medium">{l(tab.label)}</span>
                 </Link>
               );
@@ -110,7 +110,7 @@ export default function PatientLayout({ children }) {
                 key={tab.href}
                 href={tab.href}
                 className={`flex flex-col items-center justify-center gap-0.5 min-w-[56px] min-h-[44px] rounded-xl px-2 py-1.5 transition-all ${
-                  active ? 'text-teal-600' : 'text-gray-400 hover:text-gray-600'
+                  active ? 'text-teal-700' : 'text-gray-400 hover:text-gray-600'
                 }`}
               >
                 <div className={`p-1 rounded-lg transition-all ${active ? 'bg-teal-50' : ''}`}>
@@ -125,7 +125,7 @@ export default function PatientLayout({ children }) {
           <button
             onClick={() => setMoreOpen(!moreOpen)}
             className={`flex flex-col items-center justify-center gap-0.5 min-w-[56px] min-h-[44px] rounded-xl px-2 py-1.5 transition-all ${
-              isMoreActive || moreOpen ? 'text-teal-600' : 'text-gray-400 hover:text-gray-600'
+              isMoreActive || moreOpen ? 'text-teal-700' : 'text-gray-400 hover:text-gray-600'
             }`}
           >
             <div className={`p-1 rounded-lg transition-all ${isMoreActive || moreOpen ? 'bg-teal-50' : ''}`}>

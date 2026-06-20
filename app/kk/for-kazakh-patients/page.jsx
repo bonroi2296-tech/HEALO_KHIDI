@@ -108,7 +108,7 @@ export default function ForKazakhPatientsPage() {
           <div className="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
             <Link
               href="/consult/start"
-              className="bg-teal-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-teal-700 transition"
+              className="bg-teal-700 text-white px-8 py-3 rounded-lg font-semibold hover:bg-teal-800 transition"
             >
               Тегін кеңес алу
             </Link>
@@ -125,15 +125,15 @@ export default function ForKazakhPatientsPage() {
         <section className="mb-12">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="border border-gray-200 rounded-2xl p-6 text-center">
-              <div className="text-3xl font-extrabold text-teal-600 mb-1">72,9%</div>
+              <div className="text-3xl font-extrabold text-teal-700 mb-1">72,9%</div>
               <p className="text-sm text-gray-500">Кореяда обырдан 5 жылдық өмір сүру (2018–2022)</p>
             </div>
             <div className="border border-gray-200 rounded-2xl p-6 text-center">
-              <div className="text-3xl font-extrabold text-teal-600 mb-1">1,17 млн</div>
+              <div className="text-3xl font-extrabold text-teal-700 mb-1">1,17 млн</div>
               <p className="text-sm text-gray-500">2024 жылы Кореяны таңдаған шетелдік науқастар</p>
             </div>
             <div className="border border-gray-200 rounded-2xl p-6 text-center">
-              <div className="text-3xl font-extrabold text-teal-600 mb-1">14 000+</div>
+              <div className="text-3xl font-extrabold text-teal-700 mb-1">14 000+</div>
               <p className="text-sm text-gray-500">Қазақстаннан Кореяда емделген науқастар (2009–2024)</p>
             </div>
           </div>
@@ -192,7 +192,7 @@ export default function ForKazakhPatientsPage() {
           </ul>
           <Link
             href="/hospitals/immune"
-            className="text-teal-600 font-medium hover:underline"
+            className="text-teal-700 font-medium hover:underline"
           >
             Immune Hospital туралы толығырақ →
           </Link>
@@ -212,7 +212,7 @@ export default function ForKazakhPatientsPage() {
               { step: "5", title: "Кетуден кейінгі қолдау", desc: "Дәрігермен телемедициналық кеңестер, healwith қосымшасы арқылы онлайн мониторинг." },
             ].map(({ step, title, desc }) => (
               <li key={step} className="flex gap-4">
-                <span className="flex-shrink-0 w-8 h-8 bg-teal-600 text-white rounded-full flex items-center justify-center font-bold text-sm">
+                <span className="flex-shrink-0 w-8 h-8 bg-teal-700 text-white rounded-full flex items-center justify-center font-bold text-sm">
                   {step}
                 </span>
                 <div>
@@ -238,7 +238,7 @@ export default function ForKazakhPatientsPage() {
                 <li>• Алматы консулдығынан немесе онлайн өтінім</li>
                 <li>• healwith құжаттар пакетін дайындайды</li>
               </ul>
-              <Link href="/visa" className="mt-4 block text-teal-600 text-sm hover:underline">
+              <Link href="/visa" className="mt-4 block text-teal-700 text-sm hover:underline">
                 Виза туралы толығырақ →
               </Link>
             </div>
@@ -270,7 +270,7 @@ export default function ForKazakhPatientsPage() {
         </section>
 
         {/* ── CTA ─────────────────────────────────────────── */}
-        <section className="bg-teal-600 text-white rounded-2xl p-8 text-center">
+        <section className="bg-teal-700 text-white rounded-2xl p-8 text-center">
           <h2 className="text-2xl font-bold mb-3">Тегін кеңес алыңыз</h2>
           <p className="mb-6 text-teal-100">
             Менеджерлеріміз 24 сағат ішінде жауап береді. Кеңес тегін және ешқандай
@@ -285,7 +285,7 @@ export default function ForKazakhPatientsPage() {
             </Link>
             <Link
               href="/treatments"
-              className="border border-white text-white px-8 py-3 rounded-lg font-semibold hover:bg-teal-700 transition"
+              className="border border-white text-white px-8 py-3 rounded-lg font-semibold hover:bg-teal-800 transition"
             >
               Емдеу түрлері →
             </Link>
@@ -294,12 +294,12 @@ export default function ForKazakhPatientsPage() {
 
         {/* ── Internal links ─────────────────────────────── */}
         <nav className="mt-10 pt-6 border-t text-sm text-gray-500 flex flex-wrap gap-4">
-          <Link href="/ru/for-russian-patients" className="hover:text-teal-600">Орысша нұсқа</Link>
-          <Link href="/treatments" className="hover:text-teal-600">Емдеу түрлері</Link>
-          <Link href="/hospitals" className="hover:text-teal-600">Емханалар</Link>
-          <Link href="/hospitals/immune" className="hover:text-teal-600">Immune Hospital</Link>
-          <Link href="/visa" className="hover:text-teal-600">Виза</Link>
-          <Link href="/faq" className="hover:text-teal-600">FAQ</Link>
+          <Link href="/ru/for-russian-patients" className="hover:text-teal-700">Орысша нұсқа</Link>
+          <Link href="/treatments" className="hover:text-teal-700">Емдеу түрлері</Link>
+          <Link href="/hospitals" className="hover:text-teal-700">Емханалар</Link>
+          <Link href="/hospitals/immune" className="hover:text-teal-700">Immune Hospital</Link>
+          <Link href="/visa" className="hover:text-teal-700">Виза</Link>
+          <Link href="/faq" className="hover:text-teal-700">FAQ</Link>
         </nav>
       </main>
     </>

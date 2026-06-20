@@ -123,7 +123,7 @@ export default function ConsultWrapper() {
             <div className="bg-gray-50 rounded-2xl p-5 border border-gray-100 mb-8">
               <div className="flex justify-between items-center text-sm">
                 <span className="text-gray-500 font-medium">{t("consult.status", langCode)}</span>
-                <span className="font-bold text-teal-600 bg-teal-100/50 px-3 py-1 rounded-lg border border-teal-100">
+                <span className="font-bold text-teal-700 bg-teal-100/50 px-3 py-1 rounded-lg border border-teal-100">
                   {t("consult.underReview", langCode)}
                 </span>
               </div>
@@ -134,7 +134,7 @@ export default function ConsultWrapper() {
 
             <button 
               onClick={() => router.push('/')} 
-              className="w-full bg-teal-600 text-white font-bold py-4 rounded-xl hover:bg-teal-700 transition shadow-lg shadow-teal-100 transform active:scale-[0.98]"
+              className="w-full bg-teal-700 text-white font-bold py-4 rounded-xl hover:bg-teal-800 transition shadow-lg shadow-teal-100 transform active:scale-[0.98]"
             >
               {t("success.returnHome", langCode)}
             </button>
@@ -149,14 +149,14 @@ export default function ConsultWrapper() {
       <div className="max-w-lg w-full">
         <button 
           onClick={() => router.back()} 
-          className="flex items-center text-sm font-bold text-gray-500 mb-6 hover:text-teal-600"
+          className="flex items-center text-sm font-bold text-gray-500 mb-6 hover:text-teal-700"
         >
           <ChevronLeft size={16}/> {t("consult.back", langCode)}
         </button>
 
         <div className="bg-white rounded-3xl shadow-xl p-8 border border-gray-100">
           <div className="text-center mb-8">
-            <div className="inline-block bg-teal-50 text-teal-600 text-xs font-bold px-3 py-1 rounded-full mb-3">
+            <div className="inline-block bg-teal-50 text-teal-700 text-xs font-bold px-3 py-1 rounded-full mb-3">
               {t("consult.beta", langCode)}
             </div>
             <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">
@@ -252,7 +252,7 @@ export default function ConsultWrapper() {
             </div>
 
             <div className="bg-teal-50 border border-teal-200 rounded-xl p-4 flex items-start gap-3">
-              <AlertCircle size={18} className="text-teal-600 shrink-0 mt-0.5" />
+              <AlertCircle size={18} className="text-teal-700 shrink-0 mt-0.5" />
               <p className="text-xs text-teal-800 leading-relaxed">
                 <span className="font-bold">{t("consult.whatsNextLabel", langCode)}</span> {t("consult.whatsNextDesc", langCode)}
               </p>
@@ -261,7 +261,7 @@ export default function ConsultWrapper() {
             <button
               onClick={handleSubmit}
               disabled={loading}
-              className="w-full bg-teal-600 text-white py-4 rounded-xl font-bold text-lg hover:bg-teal-700 transition-colors shadow-lg shadow-teal-600/20 disabled:bg-gray-400 disabled:cursor-not-allowed transform active:scale-[0.98]"
+              className="w-full bg-teal-700 text-white py-4 rounded-xl font-bold text-lg hover:bg-teal-800 transition-colors shadow-lg shadow-teal-600/20 disabled:bg-gray-400 disabled:cursor-not-allowed transform active:scale-[0.98]"
             >
               {loading ? t("consult.submitting", langCode) : t("consult.connectMe", langCode)}
             </button>

@@ -44,7 +44,7 @@ function SourceListCollapsible({ sources }) {
               href={s.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-sm text-teal-600 hover:underline flex items-center gap-1 truncate"
+              className="text-sm text-teal-700 hover:underline flex items-center gap-1 truncate"
             >
               <ExternalLink size={12} className="shrink-0" />
               <span className="truncate">{s.title || s.url}</span>
@@ -108,7 +108,7 @@ function OfferCard({ offer, index }) {
           <button
             type="button"
             onClick={() => setShowEvidence((e) => !e)}
-            className="flex items-center gap-1 text-xs text-teal-600 hover:underline"
+            className="flex items-center gap-1 text-xs text-teal-700 hover:underline"
           >
             <FileText size={12} />
             근거 텍스트 {showEvidence ? '숨기기' : '보기'}
@@ -124,7 +124,7 @@ function OfferCard({ offer, index }) {
                 href={v?.source_url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-teal-600 hover:underline"
+                className="text-teal-700 hover:underline"
               >
                 Source
               </a>
@@ -355,7 +355,7 @@ export function HospitalOffersPreviewModal({
               type="button"
               onClick={handleApply}
               disabled={saving || offers.length === 0}
-              className="px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 disabled:opacity-50 flex items-center gap-2"
+              className="px-4 py-2 bg-teal-700 text-white rounded-lg hover:bg-teal-800 disabled:opacity-50 flex items-center gap-2"
             >
               {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
               {saving ? '저장 중...' : '확정 저장'}

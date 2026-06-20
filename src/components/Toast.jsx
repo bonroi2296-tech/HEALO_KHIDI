@@ -77,6 +77,7 @@ export const ToastProvider = ({ children }) => {
       {children}
       <div
         className="fixed top-4 left-1/2 -translate-x-1/2 z-[200] space-y-2 pointer-events-none"
+        role="region"
         aria-live="polite"
         aria-label={c.notifications}
       >

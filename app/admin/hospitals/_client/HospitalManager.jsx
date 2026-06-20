@@ -358,7 +358,7 @@ export const HospitalManager = ({
                 <button
                   key={opt.value}
                   onClick={() => { setSortBy(opt.value); setShowSortMenu(false); }}
-                  className={`block w-full text-left px-3 py-1.5 text-xs hover:bg-gray-50 ${sortBy === opt.value ? 'text-teal-600 font-bold' : 'text-gray-700'}`}
+                  className={`block w-full text-left px-3 py-1.5 text-xs hover:bg-gray-50 ${sortBy === opt.value ? 'text-teal-700 font-bold' : 'text-gray-700'}`}
                 >
                   {opt.label}
                 </button>
@@ -386,7 +386,7 @@ export const HospitalManager = ({
           <div className="p-4 space-y-3 border-b border-gray-100 shrink-0">
             <div className="flex justify-between items-center">
               <h2 className="font-bold">등록된 병원</h2>
-              <button onClick={handleNew} className="bg-teal-600 text-white p-1 rounded">
+              <button onClick={handleNew} className="bg-teal-700 text-white p-1 rounded">
                 <Plus size={16}/>
               </button>
             </div>
@@ -456,7 +456,7 @@ export const HospitalManager = ({
           <div className="bg-white rounded-2xl border border-gray-200 p-4">
             <div className="flex justify-between items-center mb-3">
               <h2 className="font-bold text-lg">등록된 병원</h2>
-              <button onClick={handleNew} className="bg-teal-600 text-white px-3 py-1.5 rounded-lg flex items-center gap-1 text-sm">
+              <button onClick={handleNew} className="bg-teal-700 text-white px-3 py-1.5 rounded-lg flex items-center gap-1 text-sm">
                 <Plus size={14}/> 추가
               </button>
             </div>
@@ -497,7 +497,7 @@ export const HospitalManager = ({
           </div>
         ) : (
           <div>
-            <button onClick={() => setShowForm(false)} className="flex items-center gap-1 text-sm text-gray-600 mb-3 hover:text-teal-600">
+            <button onClick={() => setShowForm(false)} className="flex items-center gap-1 text-sm text-gray-600 mb-3 hover:text-teal-700">
               <ChevronLeft size={16}/> 목록으로
             </button>
             <FormContent
@@ -809,7 +809,7 @@ function FormContent({ editingHospitalId, hospitalForm, setHospitalForm, uploadi
           <button 
             onClick={handleSaveHospital} 
             disabled={loading}
-            className="bg-teal-600 text-white px-4 lg:px-6 py-2 lg:py-2.5 rounded-lg font-bold shadow-md hover:bg-teal-700 transition flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-sm lg:text-base"
+            className="bg-teal-700 text-white px-4 lg:px-6 py-2 lg:py-2.5 rounded-lg font-bold shadow-md hover:bg-teal-800 transition flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed text-sm lg:text-base"
           >
             {loading ? <Loader2 size={16} className="animate-spin"/> : <Save size={16}/>}
             {loading ? '저장 중...' : '저장'}
@@ -837,7 +837,7 @@ function FormContent({ editingHospitalId, hospitalForm, setHospitalForm, uploadi
                 type="button"
                 onClick={() => setHospitalForm({...hospitalForm, isPublished: !hospitalForm.isPublished})}
                 className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                  hospitalForm.isPublished ? 'bg-teal-600' : 'bg-gray-300'
+                  hospitalForm.isPublished ? 'bg-teal-700' : 'bg-gray-300'
                 }`}
               >
                 <span
@@ -915,11 +915,11 @@ function FormContent({ editingHospitalId, hospitalForm, setHospitalForm, uploadi
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 lg:gap-6">
             <div>
-              <h3 className="text-sm font-bold text-teal-600 mb-2 flex items-center gap-1"><Globe size={14}/> 지원 언어</h3>
+              <h3 className="text-sm font-bold text-teal-700 mb-2 flex items-center gap-1"><Globe size={14}/> 지원 언어</h3>
               <DynamicListInput items={hospitalForm.languages} onAdd={t=>setHospitalForm({...hospitalForm, languages:[...hospitalForm.languages, t]})} onRemove={i=>setHospitalForm({...hospitalForm, languages:hospitalForm.languages.filter((_,x)=>x!==i)})} placeholder="예: 영어, 중국어"/>
             </div>
             <div>
-              <h3 className="text-sm font-bold text-teal-600 mb-2 flex items-center gap-1"><Coffee size={14}/> 편의시설</h3>
+              <h3 className="text-sm font-bold text-teal-700 mb-2 flex items-center gap-1"><Coffee size={14}/> 편의시설</h3>
               <DynamicListInput items={hospitalForm.amenities} onAdd={t=>setHospitalForm({...hospitalForm, amenities:[...hospitalForm.amenities, t]})} onRemove={i=>setHospitalForm({...hospitalForm, amenities:hospitalForm.amenities.filter((_,x)=>x!==i)})} placeholder="예: 와이파이, 픽업"/>
             </div>
           </div>
@@ -929,7 +929,7 @@ function FormContent({ editingHospitalId, hospitalForm, setHospitalForm, uploadi
             <DynamicListInput items={hospitalForm.tags} onAdd={t=>setHospitalForm({...hospitalForm, tags:[...hospitalForm.tags, t]})} onRemove={i=>setHospitalForm({...hospitalForm, tags:hospitalForm.tags.filter((_,x)=>x!==i)})} placeholder="태그 입력 (예: 피부과)"/>
             
             <label className="block text-sm font-bold text-gray-500 mt-2">병원 갤러리 이미지</label>
-            <p className="text-xs text-teal-600 bg-teal-50 p-2 rounded-lg mb-2 flex items-center gap-2">
+            <p className="text-xs text-teal-700 bg-teal-50 p-2 rounded-lg mb-2 flex items-center gap-2">
               <Info size={14}/> 클릭하여 대표 썸네일 선택 | 파일 업로드 또는 URL 직접 입력 가능
             </p>
             <ImageUploader 
@@ -979,7 +979,7 @@ function FormContent({ editingHospitalId, hospitalForm, setHospitalForm, uploadi
             
             <div className="mt-2">
               <label className="text-xs text-gray-400 font-bold mb-1 block">원장님 프로필 사진</label>
-              <p className="text-[10px] text-teal-600 mb-2">1:1 정방형 (400x400px) 필수</p>
+              <p className="text-[10px] text-teal-700 mb-2">1:1 정방형 (400x400px) 필수</p>
               <div className="flex gap-2 items-center">
                 {hospitalForm.doctorImage ? (
                   <div className="relative group w-16 h-16 rounded-full overflow-hidden border">
@@ -997,7 +997,7 @@ function FormContent({ editingHospitalId, hospitalForm, setHospitalForm, uploadi
           </div>
 
           <div className="space-y-2">
-            <h3 className="text-sm font-bold text-teal-600 flex items-center gap-1"><Calendar size={14}/> 운영 시간</h3>
+            <h3 className="text-sm font-bold text-teal-700 flex items-center gap-1"><Calendar size={14}/> 운영 시간</h3>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
               <div>
                 <label className="text-xs text-gray-500 mb-1 block">평일</label>
@@ -1016,11 +1016,11 @@ function FormContent({ editingHospitalId, hospitalForm, setHospitalForm, uploadi
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 lg:gap-6">
             <div>
-              <h3 className="text-sm font-bold text-teal-600 mb-2 flex items-center gap-1"><Stethoscope size={14}/> 진료과목</h3>
+              <h3 className="text-sm font-bold text-teal-700 mb-2 flex items-center gap-1"><Stethoscope size={14}/> 진료과목</h3>
               <DynamicListInput items={hospitalForm.specialties || []} onAdd={t=>setHospitalForm({...hospitalForm, specialties:[...(hospitalForm.specialties||[]), t]})} onRemove={i=>setHospitalForm({...hospitalForm, specialties:(hospitalForm.specialties||[]).filter((_,x)=>x!==i)})} placeholder="예: 피부과, 성형외과"/>
             </div>
             <div>
-              <h3 className="text-sm font-bold text-teal-600 mb-2 flex items-center gap-1"><Activity size={14}/> 의료 장비</h3>
+              <h3 className="text-sm font-bold text-teal-700 mb-2 flex items-center gap-1"><Activity size={14}/> 의료 장비</h3>
               <DynamicListInput items={hospitalForm.medicalEquipment || []} onAdd={t=>setHospitalForm({...hospitalForm, medicalEquipment:[...(hospitalForm.medicalEquipment||[]), t]})} onRemove={i=>setHospitalForm({...hospitalForm, medicalEquipment:(hospitalForm.medicalEquipment||[]).filter((_,x)=>x!==i)})} placeholder="예: 3D CT, 레이저"/>
             </div>
           </div>
@@ -1146,7 +1146,7 @@ function FormContent({ editingHospitalId, hospitalForm, setHospitalForm, uploadi
                 <button onClick={()=>setHospitalForm({...hospitalForm, certifications:(hospitalForm.certifications||[]).filter((_,i)=>i!==idx)})} className="text-red-400 hover:text-red-600"><X size={14}/></button>
               </div>
             ))}
-            <button type="button" onClick={()=>setHospitalForm({...hospitalForm, certifications:[...(hospitalForm.certifications||[]), {type:'',issuer:'',date:''}]})} className="text-teal-600 text-xs font-bold flex items-center gap-1 hover:underline">
+            <button type="button" onClick={()=>setHospitalForm({...hospitalForm, certifications:[...(hospitalForm.certifications||[]), {type:'',issuer:'',date:''}]})} className="text-teal-700 text-xs font-bold flex items-center gap-1 hover:underline">
               <Plus size={12}/> 인증 추가
             </button>
           </div>

@@ -216,7 +216,7 @@ export default function AdminUsersPage() {
                 )}
 
                 <div className="flex flex-wrap gap-2 pt-2 border-t border-gray-100">
-                  <button onClick={() => handleBan(detail.user)} className={`px-4 py-2 rounded-lg text-sm font-bold ${detail.user.banned ? "bg-teal-600 hover:bg-teal-700 text-white" : "bg-red-50 hover:bg-red-100 text-red-700 border border-red-200"}`}>
+                  <button onClick={() => handleBan(detail.user)} className={`px-4 py-2 rounded-lg text-sm font-bold ${detail.user.banned ? "bg-teal-700 hover:bg-teal-800 text-white" : "bg-red-50 hover:bg-red-100 text-red-700 border border-red-200"}`}>
                     {detail.user.banned ? "활성화" : "비활성화"}
                   </button>
                   <button onClick={() => handleResetPw(detail.user)} className="px-4 py-2 rounded-lg text-sm font-bold text-gray-600 border border-gray-300 hover:bg-gray-50">

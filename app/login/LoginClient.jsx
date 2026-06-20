@@ -100,7 +100,7 @@ export const LoginPage = ({ setView }) => {
                     <div>
                         <div className="flex justify-between items-center mb-1">
                             <label htmlFor="login-password" className="block text-sm font-bold text-gray-700">{t("login.password", langCode)}</label>
-                            <button type="button" onClick={() => toast.info(t("login.forgotHint", langCode))} className="text-xs font-bold text-teal-600 hover:underline">{t("login.forgot", langCode)}</button>
+                            <button type="button" onClick={() => toast.info(t("login.forgotHint", langCode))} className="text-xs font-bold text-teal-700 hover:underline">{t("login.forgot", langCode)}</button>
                         </div>
                         <div className="relative">
                             <Lock className="absolute left-4 top-3.5 text-gray-400" size={20}/>
@@ -127,7 +127,7 @@ export const LoginPage = ({ setView }) => {
                     <button 
                         type="submit" 
                         disabled={loading}
-                        className="w-full bg-teal-600 text-white py-4 rounded-xl font-bold text-lg hover:bg-teal-700 transition-colors shadow-lg shadow-teal-600/20 disabled:bg-gray-400"
+                        className="w-full bg-teal-700 text-white py-4 rounded-xl font-bold text-lg hover:bg-teal-800 transition-colors shadow-lg shadow-teal-600/20 disabled:bg-gray-400"
                     >
                         {loading ? t("login.loggingIn", langCode) : t("auth.login", langCode)}
                     </button>
@@ -192,7 +192,7 @@ export const LoginPage = ({ setView }) => {
 
                 <p className="mt-8 text-center text-gray-500">
                     {t("login.noAccount", langCode)}{' '}
-                    <button onClick={() => setView('signup')} className="text-teal-600 font-bold hover:underline">
+                    <button onClick={() => setView('signup')} className="text-teal-700 font-bold hover:underline">
                         {t("auth.signup", langCode)}
                     </button>
                 </p>

@@ -126,7 +126,7 @@ export default function SymptomsClient() {
         <p className="text-gray-500 mb-4">{l(L.loginRequired)}</p>
         <button
           onClick={() => router.push('/login')}
-          className="bg-teal-600 text-white font-semibold px-6 py-3 rounded-xl hover:bg-teal-700 transition"
+          className="bg-teal-700 text-white font-semibold px-6 py-3 rounded-xl hover:bg-teal-800 transition"
         >
           {l(L.loginBtn)}
         </button>
@@ -201,7 +201,7 @@ export default function SymptomsClient() {
         <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-100">
           <button
             onClick={addSymptom}
-            className="flex items-center gap-1.5 text-sm text-teal-600 hover:text-teal-700 font-medium"
+            className="flex items-center gap-1.5 text-sm text-teal-700 hover:text-teal-700 font-medium"
           >
             <Plus size={16} />
             {l(L.addSymptom)}
@@ -209,7 +209,7 @@ export default function SymptomsClient() {
           <button
             onClick={handleSubmit}
             disabled={submitting || symptoms.every(s => !s.name.trim())}
-            className="flex items-center gap-2 px-5 py-2.5 bg-teal-600 text-white rounded-xl hover:bg-teal-700 transition text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center gap-2 px-5 py-2.5 bg-teal-700 text-white rounded-xl hover:bg-teal-800 transition text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Send size={16} />
             {submitting ? l(L.submitting) : l(L.submit)}
@@ -221,7 +221,7 @@ export default function SymptomsClient() {
       {result && (
         <div className="bg-white rounded-2xl border border-gray-100 p-5 mb-6">
           <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
-            <CheckCircle size={20} className="text-teal-600" />
+            <CheckCircle size={20} className="text-teal-700" />
             {l(L.result)}
           </h2>
 

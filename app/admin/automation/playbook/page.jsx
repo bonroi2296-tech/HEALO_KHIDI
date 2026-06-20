@@ -291,7 +291,7 @@ export default function AutomationPlaybookPage() {
             >
               <span className="text-sm font-medium text-gray-900">{jt.label}</span>
               <span className="text-xs text-gray-500 mt-0.5">{jt.desc}</span>
-              {running === jt.key && <span className="text-xs text-teal-600 mt-1 animate-pulse">실행 중...</span>}
+              {running === jt.key && <span className="text-xs text-teal-700 mt-1 animate-pulse">실행 중...</span>}
             </button>
           ))}
         </div>

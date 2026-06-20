@@ -168,7 +168,7 @@ export function EscalationQueue() {
               </div>
 
               <div className="flex gap-2 mt-3">
-                <button className="flex-1 px-4 py-2 bg-teal-600 text-white rounded-lg text-sm font-medium hover:bg-teal-700 transition">
+                <button className="flex-1 px-4 py-2 bg-teal-700 text-white rounded-lg text-sm font-medium hover:bg-teal-800 transition">
                   병원 매칭 시작
                 </button>
                 <button className="px-4 py-2 border border-gray-200 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50 transition">
