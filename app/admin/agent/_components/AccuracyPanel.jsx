@@ -93,7 +93,7 @@ export function AccuracyPanel() {
               <div className="text-sm font-semibold text-gray-900 mb-2">
                 {m.phase}
                 {i === 0 && (
-                  <span className="ml-2 text-xs bg-teal-600 text-white px-2 py-0.5 rounded">
+                  <span className="ml-2 text-xs bg-teal-700 text-white px-2 py-0.5 rounded">
                     현재
                   </span>
                 )}

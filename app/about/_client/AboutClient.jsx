@@ -47,7 +47,7 @@ export default function AboutClient() {
               {t("about.contactDesc", langCode)}{" "}
               <Link
                 href="/contact"
-                className="text-teal-600 hover:text-teal-700 underline"
+                className="text-teal-700 hover:text-teal-700 underline"
               >
                 {t("about.contactLink", langCode)}
               </Link>

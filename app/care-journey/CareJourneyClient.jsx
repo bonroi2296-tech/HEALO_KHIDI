@@ -237,7 +237,7 @@ export default function CareJourneyClient() {
         </p>
         <Link
           href="/inquiry"
-          className="inline-flex items-center gap-2 mt-8 px-6 py-3 bg-teal-600 hover:bg-teal-700 text-white rounded-xl font-bold transition-colors"
+          className="inline-flex items-center gap-2 mt-8 px-6 py-3 bg-teal-700 hover:bg-teal-800 text-white rounded-xl font-bold transition-colors"
         >
           {c.heroCta} <ArrowRight size={18} />
         </Link>
@@ -257,7 +257,7 @@ export default function CareJourneyClient() {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-5">
           {c.stats.map((s, i) => (
             <div key={i} className="border border-gray-200 rounded-2xl p-6 md:p-7">
-              <div className="text-3xl md:text-4xl font-extrabold text-teal-600 mb-2">{s.value}</div>
+              <div className="text-3xl md:text-4xl font-extrabold text-teal-700 mb-2">{s.value}</div>
               <p className="text-sm text-gray-500 leading-relaxed">{s.label}</p>
             </div>
           ))}
@@ -291,7 +291,7 @@ export default function CareJourneyClient() {
               key={i}
               className="flex gap-4 md:gap-5 border border-gray-200 rounded-xl p-5 md:p-6 hover:border-teal-300 hover:shadow-sm transition-all"
             >
-              <span className="shrink-0 w-9 h-9 rounded-lg bg-teal-600 text-white font-bold flex items-center justify-center text-sm">
+              <span className="shrink-0 w-9 h-9 rounded-lg bg-teal-700 text-white font-bold flex items-center justify-center text-sm">
                 {String(i + 1).padStart(2, "0")}
               </span>
               <div>
@@ -304,7 +304,7 @@ export default function CareJourneyClient() {
       </section>
 
       {/* Closing CTA */}
-      <section className="bg-teal-600">
+      <section className="bg-teal-700">
         <div className="max-w-4xl mx-auto px-4 py-14 md:py-20 text-center">
           <h2 className="text-2xl md:text-3xl font-bold text-white mb-3">{c.closingTitle}</h2>
           <p className="text-teal-50 text-sm md:text-base mb-8 max-w-xl mx-auto leading-relaxed">{c.closingBody}</p>

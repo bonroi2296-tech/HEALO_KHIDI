@@ -65,7 +65,7 @@ export default function EvidencePage() {
           {RANGES.map((r) => (
             <button key={r.key} onClick={() => setRangeKey(r.key)}
               className={`px-3 py-1.5 rounded-lg text-sm font-medium transition ${
-                rangeKey === r.key ? "bg-teal-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
+                rangeKey === r.key ? "bg-teal-700 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
               {r.label}
             </button>
           ))}
@@ -88,8 +88,8 @@ export default function EvidencePage() {
               <Kpi label="협진율" value={`${s?.referral_rate ?? 0}%`} />
             </div>
             <p className="text-xs text-gray-400 mt-4">
-              유치 건수·만족도 증빙은 <a className="text-teal-600 underline" href="/admin/khidi/conversion">유치 전환 현황</a> ·{" "}
-              <a className="text-teal-600 underline" href="/admin/khidi/satisfaction">만족도</a> 페이지 참조.
+              유치 건수·만족도 증빙은 <a className="text-teal-700 underline" href="/admin/khidi/conversion">유치 전환 현황</a> ·{" "}
+              <a className="text-teal-700 underline" href="/admin/khidi/satisfaction">만족도</a> 페이지 참조.
             </p>
           </section>
 
@@ -119,7 +119,7 @@ function EvidenceTable({ title, rows, onDownload }) {
       <div className="flex items-center justify-between mb-3">
         <h2 className="text-sm font-bold text-gray-700">{title} <span className="text-gray-400 font-normal">({rows.length})</span></h2>
         <button onClick={onDownload} disabled={rows.length === 0}
-          className="px-3 py-1.5 rounded-lg text-sm font-medium bg-teal-600 text-white hover:bg-teal-700 disabled:opacity-40">
+          className="px-3 py-1.5 rounded-lg text-sm font-medium bg-teal-700 text-white hover:bg-teal-800 disabled:opacity-40">
           CSV 다운로드
         </button>
       </div>

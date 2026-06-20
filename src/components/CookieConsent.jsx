@@ -23,14 +23,14 @@ export default function CookieConsent() {
         <div className="flex-1 text-sm text-gray-600">
           <p className="font-semibold text-gray-900 mb-1">Cookie Settings</p>
           <p>We use essential cookies for site functionality and analytics cookies to improve our service.{" "}
-            <a href="/cookies" className="text-teal-600 underline">Learn more</a>
+            <a href="/cookies" className="text-teal-700 underline">Learn more</a>
           </p>
         </div>
         <div className="flex gap-2 shrink-0">
           <button onClick={() => accept("essential")} className="px-4 py-2 text-sm font-medium text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50 transition">
             Essential Only
           </button>
-          <button onClick={() => accept("all")} className="px-4 py-2 text-sm font-bold text-white bg-teal-600 rounded-lg hover:bg-teal-700 transition">
+          <button onClick={() => accept("all")} className="px-4 py-2 text-sm font-bold text-white bg-teal-700 rounded-lg hover:bg-teal-800 transition">
             Accept All
           </button>
         </div>

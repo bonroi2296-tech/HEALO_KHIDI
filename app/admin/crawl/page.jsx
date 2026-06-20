@@ -423,7 +423,7 @@ export default function CrawlPage() {
 
           {loading ? (
             <div className="flex items-center justify-center py-12">
-              <Loader2 className="animate-spin text-teal-500" size={32} />
+              <Loader2 className="animate-spin text-teal-700" size={32} />
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -518,13 +518,13 @@ export default function CrawlPage() {
               <label className="text-sm font-semibold text-gray-700">
                 지역
                 {selectedRegions.length > 0 && (
-                  <span className="ml-1.5 text-xs font-normal text-teal-600">{selectedRegions.length}개 선택</span>
+                  <span className="ml-1.5 text-xs font-normal text-teal-700">{selectedRegions.length}개 선택</span>
                 )}
               </label>
               <div className="flex gap-2">
                 <button
                   onClick={() => setSelectedRegions(sourceConfig.regions.map((r) => r.key))}
-                  className="text-xs text-teal-600 hover:underline"
+                  className="text-xs text-teal-700 hover:underline"
                 >전체</button>
                 <button
                   onClick={() => setSelectedRegions([])}
@@ -541,7 +541,7 @@ export default function CrawlPage() {
                     onClick={() => toggleRegion(r.key)}
                     className={`px-2 py-1.5 rounded-md text-xs text-center transition ${
                       active
-                        ? "bg-teal-600 text-white font-medium shadow-sm"
+                        ? "bg-teal-700 text-white font-medium shadow-sm"
                         : "bg-gray-50 text-gray-600 hover:bg-gray-100 border border-gray-200"
                     }`}
                   >
@@ -568,7 +568,7 @@ export default function CrawlPage() {
               <div className="flex gap-2">
                 <button
                   onClick={() => setSelectedSpecs(sourceConfig.specialties.map((s) => s.key))}
-                  className="text-xs text-teal-600 hover:underline"
+                  className="text-xs text-teal-700 hover:underline"
                 >전체</button>
                 <button
                   onClick={() => setSelectedSpecs([])}
@@ -680,7 +680,7 @@ export default function CrawlPage() {
                 <div className="flex gap-2">
                   <button
                     onClick={() => setSelectedFields(sourceConfig.fields.map((f) => f.key))}
-                    className="text-xs text-teal-600 hover:underline"
+                    className="text-xs text-teal-700 hover:underline"
                   >전체 선택</button>
                   <button
                     onClick={() => setSelectedFields(sourceConfig.fields.filter((f) => f.defaultOn).map((f) => f.key))}
@@ -738,7 +738,7 @@ export default function CrawlPage() {
                                 }`}
                               >
                                 <div className={`w-3.5 h-3.5 rounded-sm border flex items-center justify-center ${
-                                  active ? "bg-teal-600 border-teal-600" : "border-gray-300"
+                                  active ? "bg-teal-700 border-teal-600" : "border-gray-300"
                                 }`}>
                                   {active && <Check size={10} className="text-white" />}
                                 </div>
@@ -798,7 +798,7 @@ export default function CrawlPage() {
             onClick={handleSearch}
             disabled={searching}
             className={`w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-white font-medium transition ${
-              searching ? "bg-gray-300 cursor-not-allowed" : "bg-teal-600 hover:bg-teal-700 shadow-lg shadow-teal-200"
+              searching ? "bg-gray-300 cursor-not-allowed" : "bg-teal-700 hover:bg-teal-800 shadow-lg shadow-teal-200"
             }`}
           >
             {searching ? (
@@ -861,7 +861,7 @@ export default function CrawlPage() {
               className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition ${
                 importing || selectedItems.size === 0
                   ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-                  : "bg-teal-600 text-white hover:bg-teal-700"
+                  : "bg-teal-700 text-white hover:bg-teal-800"
               }`}
             >
               {importing ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
@@ -887,7 +887,7 @@ export default function CrawlPage() {
                   {exists ? (
                     <XCircle size={20} className="text-orange-400" />
                   ) : isSelected ? (
-                    <CheckCircle2 size={20} className="text-teal-600" />
+                    <CheckCircle2 size={20} className="text-teal-700" />
                   ) : (
                     <Square size={20} className="text-gray-300" />
                   )}
@@ -914,7 +914,7 @@ export default function CrawlPage() {
                         href={item.website.startsWith("http") ? item.website : `https://${item.website}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center gap-1 text-teal-600 hover:underline"
+                        className="flex items-center gap-1 text-teal-700 hover:underline"
                         onClick={(e) => e.stopPropagation()}
                       >
                         <ExternalLink size={11} /> 웹사이트
@@ -1003,7 +1003,7 @@ export default function CrawlPage() {
             <button onClick={resetAll} className="flex-1 py-2.5 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition">
               새로 검색
             </button>
-            <a href="/admin/hospitals" className="flex-1 py-2.5 bg-teal-600 text-white rounded-lg text-sm font-medium hover:bg-teal-700 transition text-center">
+            <a href="/admin/hospitals" className="flex-1 py-2.5 bg-teal-700 text-white rounded-lg text-sm font-medium hover:bg-teal-800 transition text-center">
               병원 관리로 이동
             </a>
           </div>
@@ -1109,7 +1109,7 @@ function Header({ onGuideClick }) {
     <div className="flex items-center justify-between">
       <div>
         <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
-          <Search className="text-teal-600" size={28} />
+          <Search className="text-teal-700" size={28} />
           병원 데이터 크롤링
         </h1>
         <p className="text-sm text-gray-500 mt-1">외부 공개 데이터에서 병원 정보를 검색하고 선택적으로 DB에 등록합니다</p>
@@ -1127,7 +1127,7 @@ function Header({ onGuideClick }) {
         )}
         <a
           href="/admin/crawl/pipeline"
-          className="px-3 py-2 text-sm text-teal-600 bg-teal-50 rounded-lg hover:bg-teal-100 transition font-medium"
+          className="px-3 py-2 text-sm text-teal-700 bg-teal-50 rounded-lg hover:bg-teal-100 transition font-medium"
         >
           파이프라인
         </a>

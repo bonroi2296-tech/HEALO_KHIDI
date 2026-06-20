@@ -35,7 +35,7 @@ export default function AgencyPortal() {
   }, []);
 
   if (loading) return <Center>불러오는 중…</Center>;
-  if (error === "login") return <Center>로그인이 필요합니다. <a className="text-teal-600 underline ml-1" href="/login">로그인</a></Center>;
+  if (error === "login") return <Center>로그인이 필요합니다. <a className="text-teal-700 underline ml-1" href="/login">로그인</a></Center>;
   if (error === "forbidden") return <Center>에이전시 권한이 없는 계정입니다. 관리자에게 문의하세요.</Center>;
   if (error) return <Center className="text-red-500">{error}</Center>;
 

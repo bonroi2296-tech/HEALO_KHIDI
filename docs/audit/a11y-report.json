@@ -1,20 +1,20 @@
 {
-  "base": "https://healo-khidi.vercel.app",
-  "ts": "2026-06-20T08:20:27.409Z",
+  "base": "http://localhost:3100",
+  "ts": "2026-06-20T08:40:11.331Z",
   "totalsByImpact": {
-    "critical": 7,
-    "serious": 168,
+    "critical": 4,
+    "serious": 2,
     "moderate": 0,
     "minor": 0
   },
   "pages": [
     {
       "path": "/en",
-      "ruleViolations": 3,
-      "nodes": 21,
+      "ruleViolations": 2,
+      "nodes": 3,
       "byImpact": {
-        "critical": 1,
-        "serious": 20,
+        "critical": 2,
+        "serious": 1,
         "moderate": 0,
         "minor": 0
       },
@@ -28,117 +28,18 @@
         {
           "id": "button-name",
           "impact": "critical",
-          "count": 1,
+          "count": 2,
           "help": "Buttons must have discernible text"
-        },
-        {
-          "id": "color-contrast",
-          "impact": "serious",
-          "count": 19,
-          "help": "Elements must meet minimum color contrast ratio thresholds"
-        }
-      ]
-    },
-    {
-      "path": "/en/treatments",
-      "ruleViolations": 3,
-      "nodes": 56,
-      "byImpact": {
-        "critical": 1,
-        "serious": 55,
-        "moderate": 0,
-        "minor": 0
-      },
-      "rules": [
-        {
-          "id": "aria-prohibited-attr",
-          "impact": "serious",
-          "count": 1,
-          "help": "Elements must only use permitted ARIA attributes"
-        },
-        {
-          "id": "button-name",
-          "impact": "critical",
-          "count": 1,
-          "help": "Buttons must have discernible text"
-        },
-        {
-          "id": "color-contrast",
-          "impact": "serious",
-          "count": 54,
-          "help": "Elements must meet minimum color contrast ratio thresholds"
-        }
-      ]
-    },
-    {
-      "path": "/en/hospitals",
-      "ruleViolations": 3,
-      "nodes": 20,
-      "byImpact": {
-        "critical": 1,
-        "serious": 19,
-        "moderate": 0,
-        "minor": 0
-      },
-      "rules": [
-        {
-          "id": "aria-prohibited-attr",
-          "impact": "serious",
-          "count": 1,
-          "help": "Elements must only use permitted ARIA attributes"
-        },
-        {
-          "id": "button-name",
-          "impact": "critical",
-          "count": 1,
-          "help": "Buttons must have discernible text"
-        },
-        {
-          "id": "color-contrast",
-          "impact": "serious",
-          "count": 18,
-          "help": "Elements must meet minimum color contrast ratio thresholds"
-        }
-      ]
-    },
-    {
-      "path": "/en/telemedicine",
-      "ruleViolations": 3,
-      "nodes": 18,
-      "byImpact": {
-        "critical": 1,
-        "serious": 17,
-        "moderate": 0,
-        "minor": 0
-      },
-      "rules": [
-        {
-          "id": "aria-prohibited-attr",
-          "impact": "serious",
-          "count": 1,
-          "help": "Elements must only use permitted ARIA attributes"
-        },
-        {
-          "id": "button-name",
-          "impact": "critical",
-          "count": 1,
-          "help": "Buttons must have discernible text"
-        },
-        {
-          "id": "color-contrast",
-          "impact": "serious",
-          "count": 16,
-          "help": "Elements must meet minimum color contrast ratio thresholds"
         }
       ]
     },
     {
       "path": "/en/care-journey",
-      "ruleViolations": 3,
-      "nodes": 13,
+      "ruleViolations": 2,
+      "nodes": 3,
       "byImpact": {
-        "critical": 1,
-        "serious": 12,
+        "critical": 2,
+        "serious": 1,
         "moderate": 0,
         "minor": 0
       },
@@ -152,76 +53,8 @@
         {
           "id": "button-name",
           "impact": "critical",
-          "count": 1,
+          "count": 2,
           "help": "Buttons must have discernible text"
-        },
-        {
-          "id": "color-contrast",
-          "impact": "serious",
-          "count": 11,
-          "help": "Elements must meet minimum color contrast ratio thresholds"
-        }
-      ]
-    },
-    {
-      "path": "/en/faq",
-      "ruleViolations": 3,
-      "nodes": 26,
-      "byImpact": {
-        "critical": 1,
-        "serious": 25,
-        "moderate": 0,
-        "minor": 0
-      },
-      "rules": [
-        {
-          "id": "aria-prohibited-attr",
-          "impact": "serious",
-          "count": 1,
-          "help": "Elements must only use permitted ARIA attributes"
-        },
-        {
-          "id": "button-name",
-          "impact": "critical",
-          "count": 1,
-          "help": "Buttons must have discernible text"
-        },
-        {
-          "id": "color-contrast",
-          "impact": "serious",
-          "count": 24,
-          "help": "Elements must meet minimum color contrast ratio thresholds"
-        }
-      ]
-    },
-    {
-      "path": "/ru",
-      "ruleViolations": 3,
-      "nodes": 21,
-      "byImpact": {
-        "critical": 1,
-        "serious": 20,
-        "moderate": 0,
-        "minor": 0
-      },
-      "rules": [
-        {
-          "id": "aria-prohibited-attr",
-          "impact": "serious",
-          "count": 1,
-          "help": "Elements must only use permitted ARIA attributes"
-        },
-        {
-          "id": "button-name",
-          "impact": "critical",
-          "count": 1,
-          "help": "Buttons must have discernible text"
-        },
-        {
-          "id": "color-contrast",
-          "impact": "serious",
-          "count": 19,
-          "help": "Elements must meet minimum color contrast ratio thresholds"
         }
       ]
     }

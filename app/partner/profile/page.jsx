@@ -191,7 +191,7 @@ export default function HospitalProfilePage() {
             <h1 className="text-lg lg:text-2xl font-extrabold text-gray-900">병원 정보</h1>
             <p className="text-xs text-gray-400 mt-0.5">병원 프로필을 수정하세요</p>
           </div>
-          <button onClick={handleSave} disabled={saving} className="bg-teal-600 text-white px-5 py-2.5 rounded-xl font-bold hover:bg-teal-700 transition flex items-center gap-2 disabled:opacity-50 text-sm shadow-sm">
+          <button onClick={handleSave} disabled={saving} className="bg-teal-700 text-white px-5 py-2.5 rounded-xl font-bold hover:bg-teal-800 transition flex items-center gap-2 disabled:opacity-50 text-sm shadow-sm">
             {saving ? <Loader2 size={16} className="animate-spin"/> : <Save size={16}/>}
             {saving ? '저장 중...' : '저장'}
           </button>
@@ -225,7 +225,7 @@ export default function HospitalProfilePage() {
         {/* Gallery Images */}
         <div className="space-y-3">
           <label className="block text-sm font-bold text-gray-500">병원 갤러리 이미지</label>
-          <p className="text-xs text-teal-600 bg-teal-50 p-2 rounded-lg flex items-center gap-2"><ImageIcon size={14}/> 권장: 800x800px (1:1 비율)</p>
+          <p className="text-xs text-teal-700 bg-teal-50 p-2 rounded-lg flex items-center gap-2"><ImageIcon size={14}/> 권장: 800x800px (1:1 비율)</p>
           {galleryImages.length > 0 && (
             <div className="grid grid-cols-5 sm:grid-cols-6 lg:grid-cols-8 gap-2">
               {galleryImages.map((url, idx) => (
@@ -245,11 +245,11 @@ export default function HospitalProfilePage() {
         {/* Tags & Specialties */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 lg:gap-6">
           <div>
-            <h3 className="text-sm font-bold text-teal-600 mb-2 flex items-center gap-1"><Globe size={14}/> 지원 언어</h3>
+            <h3 className="text-sm font-bold text-teal-700 mb-2 flex items-center gap-1"><Globe size={14}/> 지원 언어</h3>
             <TagListEditor items={languages} onAdd={t => setLanguages([...languages, t])} onRemove={i => setLanguages(languages.filter((_, x) => x !== i))} placeholder="예: Korean, English" colorClass="bg-purple-50 text-purple-700"/>
           </div>
           <div>
-            <h3 className="text-sm font-bold text-teal-600 mb-2 flex items-center gap-1"><Activity size={14}/> 편의시설</h3>
+            <h3 className="text-sm font-bold text-teal-700 mb-2 flex items-center gap-1"><Activity size={14}/> 편의시설</h3>
             <TagListEditor items={amenities} onAdd={t => setAmenities([...amenities, t])} onRemove={i => setAmenities(amenities.filter((_, x) => x !== i))} placeholder="예: 와이파이, 픽업" colorClass="bg-green-50 text-green-700"/>
           </div>
         </div>
@@ -274,7 +274,7 @@ export default function HospitalProfilePage() {
           <TagListEditor items={doctorProfile.specialties || []} onAdd={t => setDoctorProfile({ ...doctorProfile, specialties: [...(doctorProfile.specialties || []), t] })} onRemove={i => setDoctorProfile({ ...doctorProfile, specialties: (doctorProfile.specialties || []).filter((_, x) => x !== i) })} placeholder="전문 분야 (예: 코성형)" colorClass="bg-yellow-50 text-yellow-700"/>
           <div className="mt-2">
             <label className="text-xs text-gray-400 font-bold mb-1 block">원장님 프로필 사진</label>
-            <p className="text-[10px] text-teal-600 mb-2">1:1 정방형 (400x400px) 필수</p>
+            <p className="text-[10px] text-teal-700 mb-2">1:1 정방형 (400x400px) 필수</p>
             <div className="flex gap-2 items-center">
               {doctorProfile.image ? (
                 <div className="relative group w-16 h-16 rounded-full overflow-hidden border">
@@ -295,7 +295,7 @@ export default function HospitalProfilePage() {
 
         {/* Operating Hours */}
         <div className="space-y-2">
-          <h3 className="text-sm font-bold text-teal-600 flex items-center gap-1"><Clock size={14}/> 운영 시간</h3>
+          <h3 className="text-sm font-bold text-teal-700 flex items-center gap-1"><Clock size={14}/> 운영 시간</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <div>
               <label className="text-xs text-gray-500 mb-1 block">평일</label>
@@ -311,11 +311,11 @@ export default function HospitalProfilePage() {
         {/* Specialties & Equipment */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 lg:gap-6">
           <div>
-            <h3 className="text-sm font-bold text-teal-600 mb-2 flex items-center gap-1"><Stethoscope size={14}/> 진료과목</h3>
+            <h3 className="text-sm font-bold text-teal-700 mb-2 flex items-center gap-1"><Stethoscope size={14}/> 진료과목</h3>
             <TagListEditor items={specialties} onAdd={t => setSpecialties([...specialties, t])} onRemove={i => setSpecialties(specialties.filter((_, x) => x !== i))} placeholder="예: 피부과, 성형외과" colorClass="bg-teal-50 text-teal-700"/>
           </div>
           <div>
-            <h3 className="text-sm font-bold text-teal-600 mb-2 flex items-center gap-1"><Activity size={14}/> 의료 장비</h3>
+            <h3 className="text-sm font-bold text-teal-700 mb-2 flex items-center gap-1"><Activity size={14}/> 의료 장비</h3>
             <TagListEditor items={medicalEquipment} onAdd={t => setMedicalEquipment([...medicalEquipment, t])} onRemove={i => setMedicalEquipment(medicalEquipment.filter((_, x) => x !== i))} placeholder="예: 3D CT, 레이저" colorClass="bg-orange-50 text-orange-700"/>
           </div>
         </div>
@@ -330,7 +330,7 @@ export default function HospitalProfilePage() {
               <button onClick={() => setCertifications(certifications.filter((_, i) => i !== idx))} className="text-red-400 hover:text-red-600"><X size={14}/></button>
             </div>
           ))}
-          <button onClick={() => setCertifications([...certifications, { type: "", issuer: "" }])} className="text-teal-600 text-xs font-bold flex items-center gap-1 hover:underline">
+          <button onClick={() => setCertifications([...certifications, { type: "", issuer: "" }])} className="text-teal-700 text-xs font-bold flex items-center gap-1 hover:underline">
             <Plus size={12}/> 인증 추가
           </button>
         </div>

@@ -685,13 +685,13 @@ export default function UnifiedInquiryFunnel() {
     return (
       <div className="max-w-md mx-auto px-4 py-16 text-center animate-in fade-in duration-300">
         <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-teal-100 flex items-center justify-center">
-          <Check size={32} className="text-teal-600" />
+          <Check size={32} className="text-teal-700" />
         </div>
         <h2 className="text-2xl font-bold text-gray-900 mb-3">{tl("doneTitle", lang)}</h2>
         <p className="text-gray-500 text-sm leading-relaxed">{tl("doneBody", lang)}</p>
         <button
           onClick={() => router.push("/")}
-          className="mt-8 px-6 py-3 bg-teal-600 text-white rounded-xl font-semibold hover:bg-teal-700 transition"
+          className="mt-8 px-6 py-3 bg-teal-700 text-white rounded-xl font-semibold hover:bg-teal-800 transition"
         >
           {lang === "ko" ? "홈으로" : "Back to Home"}
         </button>
@@ -728,7 +728,7 @@ export default function UnifiedInquiryFunnel() {
           </button>
           <button
             onClick={handleSignupEmail}
-            className="w-full py-3.5 bg-teal-600 text-white rounded-xl font-semibold hover:bg-teal-700 transition text-sm"
+            className="w-full py-3.5 bg-teal-700 text-white rounded-xl font-semibold hover:bg-teal-800 transition text-sm"
           >
             {tl("signupEmail", lang)}
           </button>
@@ -771,7 +771,7 @@ export default function UnifiedInquiryFunnel() {
               safeEvent("inquiry_step2_started");
               setPhase("step2");
             }}
-            className="w-full py-3.5 bg-teal-600 text-white rounded-xl font-bold hover:bg-teal-700 transition flex items-center justify-center gap-2"
+            className="w-full py-3.5 bg-teal-700 text-white rounded-xl font-bold hover:bg-teal-800 transition flex items-center justify-center gap-2"
           >
             {tl("yesUpgrade", lang)} <ChevronRight size={18} />
           </button>
@@ -900,13 +900,13 @@ export default function UnifiedInquiryFunnel() {
                 {uploadedFiles.map((f, i) => (
                   <li key={i} className="flex items-center justify-between bg-teal-50 border border-teal-200 rounded-xl px-3 py-2">
                     <div className="flex items-center gap-2 overflow-hidden">
-                      <File size={14} className="text-teal-600 shrink-0" />
+                      <File size={14} className="text-teal-700 shrink-0" />
                       <span className="text-xs font-medium text-teal-800 truncate">{f.name}</span>
                     </div>
                     <button
                       type="button"
                       onClick={() => setUploadedFiles((prev) => prev.filter((_, j) => j !== i))}
-                      className="p-1 hover:bg-teal-100 rounded-full text-teal-500"
+                      className="p-1 hover:bg-teal-100 rounded-full text-teal-700"
                     >
                       <X size={14} />
                     </button>
@@ -980,7 +980,7 @@ export default function UnifiedInquiryFunnel() {
         <button
           onClick={handleStep2Submit}
           disabled={submitting}
-          className="w-full mt-8 py-4 bg-teal-600 text-white rounded-xl font-bold hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed transition shadow-lg shadow-teal-100 flex items-center justify-center gap-2"
+          className="w-full mt-8 py-4 bg-teal-700 text-white rounded-xl font-bold hover:bg-teal-800 disabled:opacity-50 disabled:cursor-not-allowed transition shadow-lg shadow-teal-100 flex items-center justify-center gap-2"
         >
           {submitting ? <><Loader2 size={18} className="animate-spin" /> {tl("submitting", lang)}</> : tl("submitStep2", lang)}
         </button>
@@ -1071,7 +1071,7 @@ export default function UnifiedInquiryFunnel() {
         <button
           type="button"
           onClick={() => setPhase("channel-select")}
-          className="flex items-center gap-1 text-sm font-medium text-gray-500 mb-1 md:mb-4 hover:text-teal-600 transition shrink-0"
+          className="flex items-center gap-1 text-sm font-medium text-gray-500 mb-1 md:mb-4 hover:text-teal-700 transition shrink-0"
         >
           <ChevronLeft size={16} /> {tl("back", lang)}
         </button>
@@ -1096,7 +1096,7 @@ export default function UnifiedInquiryFunnel() {
         <button
           type="button"
           onClick={() => setPhase("channel-select")}
-          className="flex items-center gap-1 text-sm font-medium text-gray-500 mb-6 hover:text-teal-600 transition"
+          className="flex items-center gap-1 text-sm font-medium text-gray-500 mb-6 hover:text-teal-700 transition"
         >
           <ChevronLeft size={16} /> {tl("back", lang)}
         </button>
@@ -1162,7 +1162,7 @@ export default function UnifiedInquiryFunnel() {
         <button
           type="button"
           onClick={() => setPhase("channel-select")}
-          className="flex items-center gap-1 text-sm font-medium text-gray-500 mb-4 hover:text-teal-600 transition"
+          className="flex items-center gap-1 text-sm font-medium text-gray-500 mb-4 hover:text-teal-700 transition"
         >
           <ChevronLeft size={16} /> {tl("back", lang)}
         </button>
@@ -1340,7 +1340,7 @@ export default function UnifiedInquiryFunnel() {
       <button
         onClick={handleStep1Submit}
         disabled={!step1Valid || submitting}
-        className="w-full mt-6 py-4 bg-teal-600 text-white rounded-xl font-bold hover:bg-teal-700 disabled:opacity-40 disabled:cursor-not-allowed transition shadow-lg shadow-teal-100 flex items-center justify-center gap-2"
+        className="w-full mt-6 py-4 bg-teal-700 text-white rounded-xl font-bold hover:bg-teal-800 disabled:opacity-40 disabled:cursor-not-allowed transition shadow-lg shadow-teal-100 flex items-center justify-center gap-2"
       >
         {submitting
           ? <><Loader2 size={18} className="animate-spin" /> {tl("submitting", lang)}</>

@@ -157,7 +157,7 @@ export default function AdminStaffPage() {
         <button
           type="submit"
           disabled={submitting}
-          className="mt-4 px-6 py-2.5 bg-teal-600 hover:bg-teal-700 text-white rounded-xl font-bold text-sm transition-colors disabled:opacity-50"
+          className="mt-4 px-6 py-2.5 bg-teal-700 hover:bg-teal-800 text-white rounded-xl font-bold text-sm transition-colors disabled:opacity-50"
         >
           {submitting ? "처리 중…" : "계정 생성 / 역할 부여"}
         </button>
@@ -178,7 +178,7 @@ export default function AdminStaffPage() {
               navigator.clipboard.writeText(`이메일: ${lastCreated.email}\n비밀번호: ${lastCreated.password}\n로그인: ${window.location.origin}/login`);
               toast.success("로그인 정보 복사됨");
             }}
-            className="mt-3 px-4 py-2 bg-teal-600 hover:bg-teal-700 text-white rounded-lg text-sm font-bold"
+            className="mt-3 px-4 py-2 bg-teal-700 hover:bg-teal-800 text-white rounded-lg text-sm font-bold"
           >
             로그인 정보 복사
           </button>
@@ -213,13 +213,13 @@ export default function AdminStaffPage() {
                     setForm({ name: s.full_name || "", email: s.email, role: s.role, password: "" });
                     window.scrollTo({ top: 0, behavior: "smooth" });
                   }}
-                  className="text-xs font-semibold text-gray-500 hover:text-teal-600 px-2 py-1"
+                  className="text-xs font-semibold text-gray-500 hover:text-teal-700 px-2 py-1"
                 >
                   수정
                 </button>
                 <button
                   onClick={() => handleToggleDisabled(s)}
-                  className={`text-xs font-semibold px-2 py-1 ${s.disabled ? "text-teal-600 hover:text-teal-700" : "text-red-500 hover:text-red-700"}`}
+                  className={`text-xs font-semibold px-2 py-1 ${s.disabled ? "text-teal-700 hover:text-teal-700" : "text-red-500 hover:text-red-700"}`}
                 >
                   {s.disabled ? "재활성화" : "비활성화"}
                 </button>

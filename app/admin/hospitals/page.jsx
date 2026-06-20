@@ -92,7 +92,7 @@ const ImageUploader = ({ images, onUpload, onRemove, uploading, thumbnailImage, 
             placeholder="https://example.com/image.jpg"
             className="flex-1 p-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 outline-none"
           />
-          <button type="button" onClick={handleUrlAdd} className="px-3 py-2 bg-teal-600 text-white text-sm rounded-lg hover:bg-teal-700">추가</button>
+          <button type="button" onClick={handleUrlAdd} className="px-3 py-2 bg-teal-700 text-white text-sm rounded-lg hover:bg-teal-800">추가</button>
         </div>
       )}
       {images.length > 0 && (
@@ -103,7 +103,7 @@ const ImageUploader = ({ images, onUpload, onRemove, uploading, thumbnailImage, 
               <div key={idx} className={`relative group aspect-square rounded-lg overflow-hidden border-2 bg-gray-100 cursor-pointer ${isThumbnail ? 'border-teal-500 ring-2 ring-teal-200' : 'border-gray-200'}`} onClick={() => onThumbnailSelect?.(url)} title={url}>
                 <img src={url} alt="upload" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                 {isThumbnail && (
-                  <div className="absolute top-0.5 left-0.5 bg-teal-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded">대표</div>
+                  <div className="absolute top-0.5 left-0.5 bg-teal-700 text-white text-[9px] font-bold px-1.5 py-0.5 rounded">대표</div>
                 )}
                 <button onClick={(e) => { e.stopPropagation(); onRemove(idx); }} className="absolute top-0.5 right-0.5 bg-red-500 text-white p-0.5 rounded-full opacity-0 group-hover:opacity-100 transition shadow-sm">
                   <X size={10} />
@@ -123,7 +123,7 @@ const ImageUploader = ({ images, onUpload, onRemove, uploading, thumbnailImage, 
       )}
       {thumbnailImage && !images.includes(thumbnailImage) && (
         <div className="text-xs text-gray-500 bg-gray-50 p-2 rounded-lg">
-          현재 대표 이미지: <span className="text-teal-600 font-mono truncate inline-block max-w-[300px] align-bottom">{thumbnailImage}</span>
+          현재 대표 이미지: <span className="text-teal-700 font-mono truncate inline-block max-w-[300px] align-bottom">{thumbnailImage}</span>
         </div>
       )}
     </div>

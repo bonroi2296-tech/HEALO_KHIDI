@@ -159,7 +159,7 @@ export default function PlaybookPage() {
           </button>
           <button
             onClick={() => setShowCreate(!showCreate)}
-            className="flex items-center gap-1.5 px-4 py-2 bg-teal-500 hover:bg-teal-600 text-white rounded-lg text-sm font-medium transition"
+            className="flex items-center gap-1.5 px-4 py-2 bg-teal-500 hover:bg-teal-700 text-white rounded-lg text-sm font-medium transition"
           >
             <Plus size={16} />
             응대 등록
@@ -211,7 +211,7 @@ export default function PlaybookPage() {
             <button
               onClick={handleCreate}
               disabled={creating || !createForm.raw.trim()}
-              className="flex items-center gap-1.5 px-4 py-1.5 bg-teal-500 hover:bg-teal-600 text-white text-sm rounded-lg disabled:opacity-50 transition"
+              className="flex items-center gap-1.5 px-4 py-1.5 bg-teal-500 hover:bg-teal-700 text-white text-sm rounded-lg disabled:opacity-50 transition"
             >
               <Send size={14} />
               {creating ? "처리중..." : "등록"}

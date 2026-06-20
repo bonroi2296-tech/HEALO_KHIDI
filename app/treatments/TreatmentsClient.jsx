@@ -176,7 +176,7 @@ export default function TreatmentsClient() {
                       <span className="text-3xl">{cancer.emoji}</span>
                       <div>
                         <h3 className="font-bold text-lg">{l(cancer.type)}</h3>
-                        <p className="text-xs text-teal-600 font-medium mt-0.5">{l(cancer.koreaStrength)}</p>
+                        <p className="text-xs text-teal-700 font-medium mt-0.5">{l(cancer.koreaStrength)}</p>
                       </div>
                     </div>
                     <ChevronDown size={20} className={`text-gray-400 transition ${isExpanded ? 'rotate-180' : ''}`} />
@@ -223,7 +223,7 @@ export default function TreatmentsClient() {
                     <div className="text-center mt-5">
                       <button
                         onClick={() => router.push('/intake')}
-                        className="inline-flex items-center gap-2 px-5 py-2.5 bg-teal-600 text-white rounded-xl hover:bg-teal-700 transition text-sm font-semibold"
+                        className="inline-flex items-center gap-2 px-5 py-2.5 bg-teal-700 text-white rounded-xl hover:bg-teal-800 transition text-sm font-semibold"
                       >
                         {l(TREATMENTS_L.cta)} <ArrowRight size={14} />
                       </button>
@@ -246,7 +246,7 @@ export default function TreatmentsClient() {
         </p>
         <button
           onClick={() => router.push('/intake')}
-          className="bg-teal-600 text-white font-bold px-8 py-4 rounded-2xl shadow-lg hover:bg-teal-700 hover:shadow-xl hover:scale-105 transition-all inline-flex items-center gap-2"
+          className="bg-teal-700 text-white font-bold px-8 py-4 rounded-2xl shadow-lg hover:bg-teal-800 hover:shadow-xl hover:scale-105 transition-all inline-flex items-center gap-2"
         >
           {l(TREATMENTS_L.cta)} <ArrowRight size={18} />
         </button>

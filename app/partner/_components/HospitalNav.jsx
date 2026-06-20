@@ -88,7 +88,7 @@ export function HospitalNav() {
                   : "text-gray-700 hover:bg-gray-50"
               }`}
             >
-              <Icon size={18} className={isActive ? "text-teal-600" : "text-gray-400"} />
+              <Icon size={18} className={isActive ? "text-teal-700" : "text-gray-400"} />
               <span>{item.label}</span>
             </Link>
           );

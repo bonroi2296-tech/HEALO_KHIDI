@@ -104,7 +104,7 @@ export default function FAQClient() {
         <h1 className="text-3xl md:text-4xl font-bold text-gray-900 leading-tight">
           {copy.title}
         </h1>
-        <div className="w-12 h-px bg-teal-600 mt-5 mb-5" />
+        <div className="w-12 h-px bg-teal-700 mt-5 mb-5" />
         <p className="text-base md:text-lg text-gray-500 leading-relaxed max-w-2xl">
           {copy.lede}
         </p>
@@ -160,7 +160,7 @@ export default function FAQClient() {
                   className="w-full text-left flex items-start justify-between gap-4 p-5 md:p-6 cursor-pointer"
                 >
                   <div className="flex-1 min-w-0">
-                    <div className="text-xs font-bold tracking-wide text-teal-600 mb-1.5">
+                    <div className="text-xs font-bold tracking-wide text-teal-700 mb-1.5">
                       {String(idx + 1).padStart(2, "0")} · {catLabel}
                     </div>
                     <div className="text-base md:text-lg font-bold text-gray-900 leading-snug">
@@ -169,7 +169,7 @@ export default function FAQClient() {
                   </div>
                   <span
                     className={`shrink-0 mt-0.5 text-gray-400 transition-transform duration-200 ${
-                      open ? "rotate-45 text-teal-600" : ""
+                      open ? "rotate-45 text-teal-700" : ""
                     }`}
                   >
                     <Plus size={22} />
@@ -195,7 +195,7 @@ export default function FAQClient() {
       </section>
 
       {/* Final CTA */}
-      <section className="bg-teal-600">
+      <section className="bg-teal-700">
         <div className="max-w-4xl mx-auto px-4 py-14 md:py-20 text-center">
           <span className="inline-block text-xs font-bold tracking-wide text-teal-50 bg-teal-500 rounded-full px-3 py-1 mb-5">
             {copy.contactEyebrow}
@@ -224,7 +224,7 @@ function FilterBtn({ active, onClick, children }) {
       onClick={onClick}
       className={`px-3.5 py-1.5 rounded-full text-sm font-semibold transition-colors ${
         active
-          ? "bg-teal-600 text-white"
+          ? "bg-teal-700 text-white"
           : "bg-white text-gray-600 border border-gray-200 hover:border-teal-300 hover:text-teal-700"
       }`}
     >

@@ -110,7 +110,7 @@ function SectionHeader({ title, count, actionLabel, onAction }) {
       {actionLabel && onAction && (
         <button
           onClick={onAction}
-          className="text-sm font-semibold text-teal-600 hover:text-teal-800 transition flex items-center gap-1"
+          className="text-sm font-semibold text-teal-700 hover:text-teal-800 transition flex items-center gap-1"
         >
           {actionLabel} <ArrowRight size={14} />
         </button>
@@ -258,7 +258,7 @@ export default function SearchResultsClient() {
           </div>
 
           <div className="bg-white/95 backdrop-blur-sm p-2 md:p-2.5 rounded-full shadow-2xl flex items-center border border-white/30 focus-within:ring-2 focus-within:ring-teal-300/50 transition">
-            <Search className="text-teal-600 ml-3 md:ml-4 shrink-0" size={20} />
+            <Search className="text-teal-700 ml-3 md:ml-4 shrink-0" size={20} />
             <input
               type="text"
               value={inputValue}
@@ -280,7 +280,7 @@ export default function SearchResultsClient() {
             )}
             <button
               onClick={handleSearch}
-              className="bg-teal-600 text-white px-5 md:px-8 py-2.5 md:py-3.5 rounded-full font-bold text-sm md:text-base hover:bg-teal-700 transition shadow-lg shrink-0"
+              className="bg-teal-700 text-white px-5 md:px-8 py-2.5 md:py-3.5 rounded-full font-bold text-sm md:text-base hover:bg-teal-800 transition shadow-lg shrink-0"
             >
               {t("search.button", lang)}
             </button>
@@ -388,13 +388,13 @@ export default function SearchResultsClient() {
               <div className="flex gap-3 justify-center flex-wrap">
                 <button
                   onClick={() => router.push("/treatments")}
-                  className="px-6 py-3 bg-teal-600 text-white rounded-full font-bold text-sm hover:bg-teal-700 transition shadow-sm"
+                  className="px-6 py-3 bg-teal-700 text-white rounded-full font-bold text-sm hover:bg-teal-800 transition shadow-sm"
                 >
                   {t("search.browseTreatments", lang)}
                 </button>
                 <button
                   onClick={() => router.push("/hospitals")}
-                  className="px-6 py-3 bg-white text-gray-700 border border-gray-200 rounded-full font-bold text-sm hover:border-teal-400 hover:text-teal-600 transition"
+                  className="px-6 py-3 bg-white text-gray-700 border border-gray-200 rounded-full font-bold text-sm hover:border-teal-400 hover:text-teal-700 transition"
                 >
                   {t("search.browseHospitals", lang)}
                 </button>
