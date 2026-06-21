@@ -60,6 +60,21 @@ export default function PatientDashboardClient() {
       const { data: { session } } = await supabase.auth.getSession();
 
       if (session?.user) {
+        // 비환자 계정(에이전시·병원·코디·의사·관리자)은 환자 대시보드 대신
+        // 자기 포털로 자동 이동 — 이미 로그인된 채 /patient 로 와도 튕겨냄.
+        try {
+          const meRes = await fetch('/api/me', {
+            headers: { Authorization: `Bearer ${session.access_token}` },
+            credentials: 'include',
+            cache: 'no-store',
+          });
+          const me = await meRes.json();
+          if (me?.ok && me.landing && me.landing !== '/patient') {
+            router.replace(me.landing);
+            return;
+          }
+        } catch (_ignore) { /* 실패 시 환자 대시보드 그대로 */ }
+
         setUser(session.user);
 
         // Fetch patient's consultations
