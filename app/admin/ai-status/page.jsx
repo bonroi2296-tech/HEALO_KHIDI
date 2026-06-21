@@ -50,10 +50,34 @@ const TONE_TEXT = {
 };
 
 // "이렇게 답했어야 해" — PO가 올바른 답을 직접 적어 AI에게 가르치는 박스(카드별 자체 상태).
+// 박스를 열면 AI가 '이상적인 답변 초안'을 먼저 채워줌 → PO는 고치기만 하면 됨.
 function TeachBox({ item }) {
   const [open, setOpen] = useState(false);
   const [text, setText] = useState("");
   const [state, setState] = useState("idle"); // idle | saving | done | error
+  const [suggesting, setSuggesting] = useState(false);
+
+  const fetchSuggestion = async () => {
+    setSuggesting(true);
+    try {
+      const res = await fetch("/api/admin/playbook/suggest", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ question: item.query_text }),
+      });
+      const json = await res.json();
+      if (json.ok && json.suggestion) setText(json.suggestion);
+    } catch {
+      /* 실패해도 빈칸으로 직접 작성 가능 */
+    } finally {
+      setSuggesting(false);
+    }
+  };
+
+  const openBox = () => {
+    setOpen(true);
+    fetchSuggestion(); // 열자마자 AI 초안 받아오기
+  };
 
   const submit = async () => {
     const answer = text.trim();
@@ -88,7 +112,7 @@ function TeachBox({ item }) {
   if (!open) {
     return (
       <button
-        onClick={() => setOpen(true)}
+        onClick={openBox}
         className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-teal-700 bg-teal-50 hover:bg-teal-100 border border-teal-200 rounded-lg px-3 py-1.5 transition"
       >
         ✏️ 이렇게 답했어야 해 (AI 가르치기)
@@ -98,11 +122,23 @@ function TeachBox({ item }) {
 
   return (
     <div className="mt-3 space-y-2">
+      <div className="flex items-center justify-between">
+        <span className="text-xs text-gray-500">
+          {suggesting ? "🤖 AI가 추천 초안을 쓰는 중…" : "🤖 AI 추천 초안이에요. 고쳐서 저장하세요."}
+        </span>
+        <button
+          onClick={fetchSuggestion}
+          disabled={suggesting}
+          className="text-xs text-teal-700 hover:text-teal-800 disabled:opacity-50"
+        >
+          다시 추천
+        </button>
+      </div>
       <textarea
         value={text}
         onChange={(e) => setText(e.target.value)}
-        placeholder="이 질문에 AI가 했어야 할 올바른 답을 한국어로 적어주세요. (예: 대장암은 대학병원 수술·항암이 기본이고, 저희가 병원 연결과 통역까지 도와드립니다.)"
-        rows={4}
+        placeholder={suggesting ? "AI가 초안을 작성하고 있어요…" : "이 질문에 AI가 했어야 할 올바른 답을 적어주세요. (AI 초안을 고치거나, 직접 새로 써도 됩니다.)"}
+        rows={5}
         maxLength={2000}
         className="w-full text-sm rounded-lg border border-gray-300 p-3 focus:outline-none focus:ring-2 focus:ring-teal-200 focus:border-teal-400"
       />
