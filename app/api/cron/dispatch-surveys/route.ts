@@ -2,12 +2,13 @@
  * healwith: 환자 만족도 설문 자동 발송 cron
  *
  * 동작:
- * - 사전상담 종료 24~30시간 전 세션 중 설문 미발송인 것 조회
- * - 환자 이메일 확인 → generateSurveyToken → sendSurveyEmail
- * - reminders_scheduled 에 발송 기록 (사후 추적)
+ * - 완료(completed) 된 지 24~30시간 지난 상담 세션 중 설문 미발송인 것 조회
+ * - 수신자 결정(resolveSurveyRecipient): patients.email → inquiries.email 폴백
+ *   (patient_id 가 전부 null 이라 inquiries 폴백이 없으면 영구 0건 — POSTMORTEMS #12)
+ * - generateSurveyToken → sendSurveyEmail → reminders_scheduled 기록
  *
  * 스케줄:
- * - vercel.json crons 에 `0 * * * *` (매시간) 등록됨
+ * - vercel.json crons 에 `0 9 * * *` (매일 09:00 UTC) 등록됨
  * - Authorization: Bearer {CRON_SECRET} 필수
  *
  * KHIDI KPI K-03 측정 핵심 수단
@@ -26,6 +27,7 @@ import {
   generateSurveyToken,
   sendSurveyEmail,
 } from "@/lib/surveys/generateSurveyToken";
+import { resolveSurveyRecipient } from "@/lib/surveys/resolveRecipient";
 import { alertIfKpiStale } from "@/lib/khidi/kpiHealthcheck";
 
 function verifyCronSecret(header: string | null): boolean {
@@ -54,9 +56,10 @@ export async function GET(request: NextRequest) {
   const windowEnd = new Date(now - 24 * 60 * 60 * 1000).toISOString();
 
   // 종료된 사전상담 세션 조회 (completed 상태)
+  // inquiry_id 도 함께 조회: patient_id 가 전부 null 이라 이메일은 inquiries 로 폴백한다.
   const { data: sessions, error: sessErr } = await db
     .from("consultation_sessions")
-    .select("id, patient_id, patient_language, updated_at")
+    .select("id, patient_id, inquiry_id, patient_language, updated_at")
     .eq("status", "completed")
     .gte("updated_at", windowStart)
     .lte("updated_at", windowEnd);
@@ -84,30 +87,47 @@ export async function GET(request: NextRequest) {
         continue;
       }
 
-      // 환자 이메일 확인 (patients 테이블 fallback)
-      let toEmail: string | null = null;
-
+      // 환자 이메일·언어·이름 결정.
+      // patient_id 는 현재 전부 null(미사용)이라 patients 만으로는 항상 skip 됐다
+      // (= 설문 0건, KPI K-03 측정 불능 POSTMORTEMS #12). 실제 연결고리인
+      // inquiry_id → inquiries 로 폴백한다. 결정 로직은 순수함수 resolveSurveyRecipient
+      // (단위 테스트로 고정).
+      let patientRow: { email?: string | null } | null = null;
       if (session.patient_id) {
-        const { data: userRow } = await db
+        const { data } = await db
           .from("patients")
           .select("email")
           .eq("user_id", session.patient_id)
           .maybeSingle();
-        toEmail = userRow?.email || null;
+        patientRow = data || null;
       }
 
-      if (!toEmail) {
+      let inquiryRow:
+        | {
+            email?: string | null;
+            preferred_language?: string | null;
+            spoken_language?: string | null;
+            first_name?: string | null;
+            last_name?: string | null;
+          }
+        | null = null;
+      if (!patientRow?.email && session.inquiry_id) {
+        const { data } = await db
+          .from("inquiries")
+          .select("email, preferred_language, spoken_language, first_name, last_name")
+          .eq("id", session.inquiry_id)
+          .maybeSingle();
+        inquiryRow = data || null;
+      }
+
+      const recipient = resolveSurveyRecipient(session, patientRow, inquiryRow);
+      if (!recipient) {
         skipped++;
         continue;
       }
 
-      // 언어 결정
-      const rawLang = session.patient_language || "ko";
-      const supportedLangs = ["ko", "en", "ru", "kk", "zh", "ja"] as const;
-      type SupportedLang = (typeof supportedLangs)[number];
-      const lang: SupportedLang = supportedLangs.includes(rawLang as SupportedLang)
-        ? (rawLang as SupportedLang)
-        : "ko";
+      const toEmail = recipient.email;
+      const lang = recipient.lang;
 
       // 토큰 생성
       const tokenResult = await generateSurveyToken(session.id, session.patient_id);
@@ -122,6 +142,7 @@ export async function GET(request: NextRequest) {
         surveyId: tokenResult.surveyId,
         token: tokenResult.token,
         toEmail,
+        patientName: recipient.name,
         lang,
       });
 
