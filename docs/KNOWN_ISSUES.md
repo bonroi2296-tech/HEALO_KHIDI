@@ -4,12 +4,12 @@
 
 ---
 
-## 🟠 침묵 환자 감지 cron 이 항상 0건 (2026-06-21 발견 — 만족도 설문 버그와 같은 부류)
+## ✅ 침묵 환자 감지 cron 이 항상 0건 (2026-06-21 발견 → **2026-06-21 수정 완료**)
 
 - **증상**: `app/api/cron/detect-silent-patients/route.ts` 가 `consultation_sessions` 를 `.not("patient_id","is",null)` 로 거르는데 **patient_id 가 전 행 null**(미사용 컬럼) → 대상 0건 → 침묵(장기 미응답) 환자 알림이 한 번도 안 뜸.
-- **뿌리원인**: POSTMORTEMS #7·#12 와 동일 — 실제 환자 연결고리는 `inquiry_id → inquiries` 인데 옛 `patient_id` 경로에 의존.
-- **왜 이번에 안 고쳤나**: 이 cron 은 `symptom_reports`(증상 보고)도 `patient_id` 로 묶여 있어 inquiry 폴백이 단순치 않음 → **설문 cron(#12)보다 큰 리팩터**라 범위 분리. 코디네이터 알림 흐름까지 영향이라 PO 우선순위 확인 후 별도 진행 권장.
-- **연결**: 만족도 설문 cron 은 #12(PR)로 수정됨. 같은 가정(`patient_id` null)을 쓰는 마지막 소비자가 이것.
+- **뿌리원인**: POSTMORTEMS #7·#12 와 동일 — 실제 환자 연결고리는 `inquiry_id → inquiries` 인데 옛 `patient_id` 경로에 의존. 게다가 `consultation_sessions.patient_id` 는 사실 **uuid 가 아니라 bigint(→cancer_patient_intakes)** 라 `symptom_alerts.patient_id`(uuid→auth.users)와 타입도 안 맞아 `getCoordinatorIds` 도 깨져 있었음.
+- **수정(PR 침묵환자 inquiry_id 리팩터)**: ① 마이그레이션 `symptom_alerts` 에 `inquiry_id bigint` 추가 + `patient_id` nullable(둘 중 하나 필수 CHECK) ② 순수 로직 `src/lib/symptoms/silence.ts`(`buildSilenceAlert`) 분리 + 단위테스트 ③ cron 을 inquiry_id 기준으로 재작성(활성 문의→최근 증상보고→3일↑ 무입력→알림) ④ `alertService.getCoordinatorIds` 를 inquiry_id/patient_user_id 기준으로 + 메신저 문의 환자는 안심알림 skip ⑤ 코디 알림 화면 patient_id 없으면 `문의 #N` 표시 ⑥ cron 계약 테스트로 잠금. POSTMORTEMS #14.
+- **남은 한계**: 증상 보고를 한 번도 안 한 문의는 알림 대상 아님(전원 알림 폭주 방지 — 의도). 현재 증상보고 데이터가 적어 당장 알림은 거의 없음. 데이터 쌓이면 동작.
 
 ---
 
