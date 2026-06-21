@@ -31,4 +31,13 @@ describe("system prompt behavioral guards (regression lock)", () => {
     expect(SRC).toMatch(/OUTPUT ONLY THE FINAL MESSAGE TO THE PATIENT/);
     expect(SRC).toMatch(/no word counts/);
   });
+
+  it("현재 메시지에 암종 없을 때 최상단 강제 지시(코드 게이트)가 있다", () => {
+    expect(SRC).toMatch(/TOP PRIORITY — THE USER'S CURRENT MESSAGE DOES NOT NAME A CANCER TYPE/);
+    expect(SRC).toMatch(/currentMentionsCancer/);
+  });
+
+  it("화제 정정 감지 시 결정적 short-circuit 이 두 응답 경로에 있다", () => {
+    expect(SRC).toMatch(/if \(isTopicCorrection\(query\)\)/);
+  });
 });
