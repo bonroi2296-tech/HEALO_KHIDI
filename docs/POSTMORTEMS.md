@@ -363,3 +363,24 @@ ISO/IEC 25010(TTA GS) 기준 제3자 보안 감리 중, 환자 의료데이터�
 - AI 행동 규칙은 사람 신고로만 잡지 말고, 핵심 규칙은 **소스 텍스트 회귀 테스트로 잠근다**(server-only 모듈이라 직접 import 불가 → 파일 grep 방식). **확률적 LLM 행동을 "반드시" 보장해야 하면 프롬프트가 아니라 코드 게이트(결정적 분기)로 강제**한다(프롬프트는 best-effort).
 - "환자가 안 밝힌 진단을 AI 가 지어내는 것"은 단순 UX 가 아니라 **의료 레드라인(진단명 임의 명명)** 으로 취급. 새 암종/진단 관련 프롬프트 작업 시 "현재 메시지 근거"와 "정정 수용"을 항상 점검.
 - **"행동" 버그는 PO 스크린샷이 아니라 자동 점검으로 먼저 잡는다**: 빌드·단위테스트는 문법·순수로직만 본다. 실제 대화 행동(암종 단정·정정 무시·언어 불일치)을 재생해 검사하는 `npm run check:ai-behavior [URL]`(`scripts/check-ai-behavior.mjs`) 추가 — 배포 후/의심 시 실서비스나 프리뷰 URL 에 대고 1회 돌린다(실 AI 호출이라 CI 매PR 게이트가 아닌 배포후 점검). 새 "행동" 버그 부류가 나오면 이 스크립트에 시나리오를 한 줄 추가해 영구 차단한다.
+
+## #17 — 에이전시→병원 의뢰로 '치료 확정'된 케이스가 유치 전환 점수판(KHIDI 평가)에서 누락 (2026-06-21)
+
+**무슨 일**
+- 유치 전환 대시보드(`/admin/khidi/conversion`)의 "유치 확정(admitted)" 카운트는 KHIDI 중간평가 정량지표(외국인환자 유치 12건)에 직결되는데, **자동집계가 `inquiries.outcome='admitted'` 한 곳에만 의존**.
+- 그런데 새 의뢰 흐름(에이전시 포털 의뢰 #194 → 코디 검토·병원 배정 #200 → 병원 응답 역방향 #202)은 전혀 다른 데이터(`inquiries.case_status` + `hospital_leads.status`)로만 진행. **병원이 '치료 확정(converted)'을 눌러도 `outcome` 은 그대로 null** → 유치 카운트 0.
+- 게다가 점수판의 "유치확정 대기" 목록은 **사전상담(pre_consultation) 완료 의뢰만** 보여줘서, 상담세션 없이 에이전시→병원으로만 진행된 케이스는 코디가 확정 누를 기회조차 없음(완전 사각지대). 실데이터 #13이 그 상태였음(병원 converted인데 outcome null, 대기목록에도 없음).
+
+**왜 그랬나 (근본원인)**
+- 두 워크플로가 **각자 다른 시기에 추가**되며 데이터 트랙이 분리됨: (구) 상담세션 기반 유치 집계(outcome) vs (신) 에이전시·병원 백오피스(case_status/hospital_leads). 둘을 잇는 다리가 없었음.
+- 자동집계 KPI가 **단일 컬럼(outcome)**에만 의존하는데, 그 컬럼을 갱신하는 경로가 코디 수동 1곳뿐이라 새 경로가 생기면 조용히 누락.
+
+**어떻게 고쳤나** (PO 결정 2026-06-21: 병원 확정 → 자동 유치 집계)
+- 순수 매핑 함수 `outcomeForHospitalLeadStatus(status)` 를 `src/lib/khidi/caseStatus.ts` 에 추가('converted'→'admitted', 그 외 null).
+- `/api/partner/leads/[id]` PATCH 의 역방향 반영(`syncLeadStatusToCase`)에서 병원이 'converted' 로 바꾸면 `inquiries.outcome='admitted'`(+outcome_note/updated_at/updated_by) 도 함께 기록 → 점수판 유치 카운트에 즉시 반영.
+- 단위테스트 `caseStatus.test.ts` 에 3개 추가(converted→admitted, 그 외/빈값→null) 로 매핑 고정.
+
+**재발 방지 (시스템 적용)**
+- **자동집계 KPI 가 의존하는 컬럼(`outcome` 등)은, 그 상태를 만들어내는 *모든* 사용자 경로에서 갱신되는지 점검**한다. 새 워크플로(포털·역할)를 추가하면 "이게 평가지표 컬럼을 건드려야 하나?"를 체크리스트에 포함.
+- 상태→KPI 매핑은 라우트 안에 묻지 말고 **순수 함수로 빼서 단위테스트로 잠근다**(이번 `outcomeForHospitalLeadStatus`).
+- 잔여 위험(미해결): 코디가 `case_status` 를 'treatment'/'completed' 로 수동 전진시키면서 `outcome` 을 안 박는 경우는 여전히 누락 가능 → 후속으로 "치료/완료 단계인데 outcome null" 케이스를 점수판 대기목록에 노출하는 안 검토 필요(이번엔 병원 confirmed 경로만 닫음).
