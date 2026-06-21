@@ -14,6 +14,7 @@ export const runtime = "nodejs";
 import { NextRequest } from "next/server";
 import { checkAdminAuth } from "@/lib/auth/checkAdminAuth";
 import { STAFF_TIERS, type AccountTier } from "@/lib/auth/accountTiers";
+import { resolveLandingPath } from "@/lib/auth/resolveLanding";
 
 export async function GET(request: NextRequest) {
   const auth = await checkAdminAuth(request);
@@ -23,6 +24,11 @@ export async function GET(request: NextRequest) {
   const appRole = auth.appRole ?? null;
   const isStaff =
     auth.isAdmin || (appRole ? STAFF_TIERS.includes(appRole as AccountTier) : false);
+  const landing = await resolveLandingPath({
+    userId: auth.userId,
+    appRole,
+    isAdmin: auth.isAdmin,
+  });
   return Response.json({
     ok: true,
     userId: auth.userId,
@@ -30,5 +36,6 @@ export async function GET(request: NextRequest) {
     isAdmin: auth.isAdmin,
     appRole,
     isStaff,
+    landing,
   });
 }
