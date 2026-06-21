@@ -109,6 +109,17 @@ function IdentificationForm({ langCode, onSubmit, submitting }) {
   );
 }
 
+// 생각 중(타이핑) 점 — 스트리밍 첫 글자 도착 전 표시. 언어 무관(ChatGPT식).
+function TypingDots() {
+  return (
+    <span className="flex items-center gap-1 py-0.5" aria-label="AI is typing">
+      <span className="w-1.5 h-1.5 rounded-full bg-teal-600/70 animate-bounce [animation-delay:-0.3s]" />
+      <span className="w-1.5 h-1.5 rounded-full bg-teal-600/70 animate-bounce [animation-delay:-0.15s]" />
+      <span className="w-1.5 h-1.5 rounded-full bg-teal-600/70 animate-bounce" />
+    </span>
+  );
+}
+
 // 피드백 모달 컴포넌트
 function FeedbackModal({ langCode, messageId, threadId, publicToken, onClose, onSubmitted }) {
   const [selectedReason, setSelectedReason] = useState("");
@@ -677,6 +688,12 @@ export function ThreadChat() {
                     }`}
                   >
                     {msg.content && <p className="whitespace-pre-wrap">{msg.content}</p>}
+                    {/* 스트리밍 첫 글자 도착 전 빈 말풍선 → 타이핑 점(생각 중) 표시 */}
+                    {!msg.content &&
+                      msg.role === "assistant" &&
+                      (!Array.isArray(msg.attachments) || msg.attachments.length === 0) && (
+                        <TypingDots />
+                      )}
                     {Array.isArray(msg.attachments) && msg.attachments.length > 0 && (
                       <div className={`flex flex-col gap-1.5 ${msg.content ? "mt-2" : ""}`}>
                         {msg.attachments.map((f, i) => {
@@ -734,10 +751,12 @@ export function ThreadChat() {
                 </div>
               </div>
             ))}
-            {sending && (
+            {/* 응답 말풍선이 아직 안 뜬 짧은 순간(요청~응답 헤더)만 생각 중 점 표시.
+                말풍선이 뜨면 그 안의 TypingDots 가 이어받아 중복·잔존 스피너를 없앤다. */}
+            {sending && messages[messages.length - 1]?.role === "user" && (
               <div className="flex justify-start">
                 <div className="p-3 rounded-2xl shadow-sm text-sm border bg-white border-gray-100">
-                  <Loader2 size={16} className="animate-spin text-teal-700" />
+                  <TypingDots />
                 </div>
               </div>
             )}

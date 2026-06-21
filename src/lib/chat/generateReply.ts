@@ -17,6 +17,7 @@ import { searchHospitalsAndTreatments } from "./dbSearch";
 import { searchExternal } from "./externalSearch";
 import { runJudgeInBackground } from "./judge";
 import { CARE_REFERENCE } from "./careReference";
+import { BoundedCache } from "../util/boundedCache";
 
 type ChatMessage = { role: "user" | "assistant" | "system"; content: string };
 
@@ -62,9 +63,21 @@ const EMPTY_REPLY_FALLBACK: Record<string, string> = {
   ja: "申し訳ありません、ただいま回答を生成できませんでした。質問を言い換えていただくか、メニューからコーディネーターにおつなぎください。",
 };
 
+// 쿼리 임베딩 메모이즈: 같은 텍스트는 항상 같은 벡터(결정적)라 캐시가 100% 안전.
+// 반복 질문(인사·흔한 암 질문·재시도)에서 임베딩 네트워크 왕복(~0.6~1s)을 건너뛰어
+// 첫 글자까지 시간(TTFT)을 줄인다. 서버리스 인스턴스 수명 동안만 유지(상한 200).
+const EMBEDDING_CACHE = new BoundedCache<string, number[]>(200);
+
 export async function getEmbedding(text: string): Promise<number[] | null> {
   const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
   if (!apiKey) return null;
+
+  const cacheKey = (text || "").trim();
+  if (cacheKey) {
+    const cached = EMBEDDING_CACHE.get(cacheKey);
+    if (cached) return cached;
+  }
+
   try {
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${EMBEDDING_MODEL}:embedContent?key=${apiKey}`;
     const res = await fetch(url, {
@@ -80,7 +93,9 @@ export async function getEmbedding(text: string): Promise<number[] | null> {
     });
     if (!res.ok) return null;
     const data = await res.json();
-    return data?.embedding?.values ?? null;
+    const values = data?.embedding?.values ?? null;
+    if (values && cacheKey) EMBEDDING_CACHE.set(cacheKey, values);
+    return values;
   } catch {
     return null;
   }
