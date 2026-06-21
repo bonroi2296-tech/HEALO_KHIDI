@@ -18,6 +18,10 @@
     {
       "path": "/api/cron/run-regression-tests",
       "schedule": "0 18 * * *"
+    },
+    {
+      "path": "/api/cron/automation",
+      "schedule": "0 16 * * *"
     }
   ],
   "headers": [
