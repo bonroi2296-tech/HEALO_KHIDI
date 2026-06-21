@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
       const stats = await runDailyEval(jobRow.id);
       await supabaseAdmin
         .from("auto_jobs")
-        .update({ status: "done", finished_at: new Date().toISOString(), stats })
+        .update({ status: "done", completed_at: new Date().toISOString(), output: stats })
         .eq("id", jobRow.id);
       results.daily_eval = stats;
     }
@@ -61,7 +61,7 @@ export async function GET(request: NextRequest) {
       const stats = await runAutoImprove(jobRow.id);
       await supabaseAdmin
         .from("auto_jobs")
-        .update({ status: "done", finished_at: new Date().toISOString(), stats })
+        .update({ status: "done", completed_at: new Date().toISOString(), output: stats })
         .eq("id", jobRow.id);
       results.auto_improve = stats;
     }
@@ -82,7 +82,7 @@ export async function GET(request: NextRequest) {
       const stats = await runAbFinalize(jobRow.id);
       await supabaseAdmin
         .from("auto_jobs")
-        .update({ status: "done", finished_at: new Date().toISOString(), stats })
+        .update({ status: "done", completed_at: new Date().toISOString(), output: stats })
         .eq("id", jobRow.id);
       results.ab_finalize = stats;
     }
