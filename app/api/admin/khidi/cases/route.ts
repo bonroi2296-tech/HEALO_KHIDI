@@ -10,11 +10,21 @@
 export const runtime = "nodejs";
 
 import { NextRequest, NextResponse } from "next/server";
-import { requireAdminAuth } from "@/lib/auth/requireAdminAuth";
+import { requirePortalAuth } from "@/lib/auth/requirePortalAuth";
 import { supabaseAdmin, assertSupabaseEnv } from "@/lib/rag/supabaseAdmin";
 import { decryptInquiryForAdmin } from "@/lib/security/decryptForAdmin";
 import { encryptStringNullable, decryptStringNullable } from "@/lib/security/encryptionV2";
 import { CASE_STATUS_KEYS, CASE_STATUS_STEPS } from "@/lib/khidi/caseStatus";
+
+// 케이스 보드는 관리자 + 코디네이터가 쓴다(의사 제외 — 보험 PII 쓰기 포함이라 범위 최소화).
+async function requireCaseStaff(request: NextRequest) {
+  const auth = await requirePortalAuth(request, { staffOnly: true });
+  if (!auth.success) return auth;
+  if (!(auth.isAdmin || auth.appRole === "coordinator")) {
+    return { success: false as const, response: NextResponse.json({ ok: false, error: "forbidden" }, { status: 403 }) };
+  }
+  return auth;
+}
 
 function maskName(first?: string | null, last?: string | null): string {
   const n = `${(first || "").trim()} ${(last || "").trim()}`.trim();
@@ -23,7 +33,7 @@ function maskName(first?: string | null, last?: string | null): string {
 }
 
 export async function GET(request: NextRequest) {
-  const auth = await requireAdminAuth(request);
+  const auth = await requireCaseStaff(request);
   if (!auth.success) return auth.response;
   try {
     assertSupabaseEnv();
@@ -38,6 +48,39 @@ export async function GET(request: NextRequest) {
     }
     const { data: agencies } = await (supabaseAdmin as any).from("agencies").select("id, name").eq("is_active", true);
     const aMap = new Map((agencies || []).map((a: any) => [a.id, a.name]));
+
+    // 국내 병원(파트너) 목록 — 코디가 배정 대상으로 고름
+    const { data: hospitals } = await (supabaseAdmin as any).from("hospitals").select("id, name, slug").order("name");
+    const hMap = new Map<string, string>(
+      (hospitals || []).map((h: any): [string, string] => [String(h.id), String(h.name)])
+    );
+
+    // 케이스별 "이미 배정된 병원" 매핑: inquiries → normalized_inquiries(source_inquiry_id) → hospital_leads
+    const inquiryIds = (rows || []).map((r: any) => r.id);
+    const assignedByInquiry = new Map<number, { id: string; name: string }[]>();
+    if (inquiryIds.length > 0) {
+      const { data: norms } = await (supabaseAdmin as any)
+        .from("normalized_inquiries")
+        .select("id, source_inquiry_id")
+        .in("source_inquiry_id", inquiryIds);
+      const normIdToInquiry = new Map<string, number>(
+        (norms || []).map((n: any): [string, number] => [String(n.id), Number(n.source_inquiry_id)])
+      );
+      const normIds = (norms || []).map((n: any) => n.id);
+      if (normIds.length > 0) {
+        const { data: leads } = await (supabaseAdmin as any)
+          .from("hospital_leads")
+          .select("normalized_inquiry_id, hospital_id")
+          .in("normalized_inquiry_id", normIds);
+        for (const l of leads || []) {
+          const inqId = normIdToInquiry.get(l.normalized_inquiry_id);
+          if (inqId == null) continue;
+          const arr = assignedByInquiry.get(inqId) || [];
+          arr.push({ id: l.hospital_id, name: hMap.get(l.hospital_id) || "(미상)" });
+          assignedByInquiry.set(inqId, arr);
+        }
+      }
+    }
 
     const cases = await Promise.all((rows || []).map(async (r: any) => {
       const dec = await decryptInquiryForAdmin(r).catch(() => r);
@@ -59,6 +102,7 @@ export async function GET(request: NextRequest) {
         insurance_coverage: r.insurance_coverage,
         insurance_status: r.insurance_status,
         outcome: r.outcome,
+        assigned_hospitals: assignedByInquiry.get(r.id) || [],
       };
     }));
 
@@ -66,6 +110,7 @@ export async function GET(request: NextRequest) {
       ok: true,
       cases,
       agencies: agencies || [],
+      hospitals: (hospitals || []).map((h: any) => ({ id: h.id, name: h.name })),
       statusSteps: CASE_STATUS_STEPS,
     });
   } catch (err: any) {
@@ -75,7 +120,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function PATCH(request: NextRequest) {
-  const auth = await requireAdminAuth(request);
+  const auth = await requireCaseStaff(request);
   if (!auth.success) return auth.response;
   try {
     assertSupabaseEnv();
@@ -124,7 +169,7 @@ export async function PATCH(request: NextRequest) {
         inquiry_id: id,
         status: patch.case_status,
         note: patch.case_status_note ?? body.case_status_note ?? null,
-        created_by: auth.authResult.userId,
+        created_by: auth.userId,
       });
     }
 
