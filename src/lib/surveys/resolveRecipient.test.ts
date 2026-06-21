@@ -61,6 +61,17 @@ describe("resolveSurveyRecipient", () => {
     ).toBeNull();
   });
 
+  it("암호문(AES blob)을 그대로 넘기면 '@' 없어 null — 반드시 cron 에서 복호화해야 함 (POSTMORTEMS #13)", () => {
+    // inquiries.email 은 AES-256-GCM 암호화 저장 → 암호문은 {"v":"v1","iv":...} 형태.
+    // 복호화 없이 넘기면 '@' 가 없어 영구 0건이 된다. 이 계약을 테스트로 고정해
+    // cron 이 decryptMaybe 로 복호화하도록 강제한다.
+    const encryptedBlob =
+      '{"v":"v1","iv":"AAAAAAAAAAAAAAAA","tag":"BBBBBBBBBBBBBBBBBBBBBB==","data":"CCCC"}';
+    expect(
+      resolveSurveyRecipient(session, null, { email: encryptedBlob })
+    ).toBeNull();
+  });
+
   it("언어 우선순위: session.patient_language > inquiry.preferred > spoken > ko", () => {
     expect(
       resolveSurveyRecipient(

@@ -5,6 +5,8 @@
  * - 완료(completed) 된 지 24~30시간 지난 상담 세션 중 설문 미발송인 것 조회
  * - 수신자 결정(resolveSurveyRecipient): patients.email → inquiries.email 폴백
  *   (patient_id 가 전부 null 이라 inquiries 폴백이 없으면 영구 0건 — POSTMORTEMS #12)
+ *   inquiries 의 email/이름은 AES 암호화 저장 → decryptMaybe 로 복호화 후 사용
+ *   (복호화 안 하면 암호문에 '@' 없어 또 영구 0건 — POSTMORTEMS #13)
  * - generateSurveyToken → sendSurveyEmail → reminders_scheduled 기록
  *
  * 스케줄:
@@ -29,6 +31,7 @@ import {
 } from "@/lib/surveys/generateSurveyToken";
 import { resolveSurveyRecipient } from "@/lib/surveys/resolveRecipient";
 import { alertIfKpiStale } from "@/lib/khidi/kpiHealthcheck";
+import { decryptMaybe } from "@/lib/security/encryptionV2";
 
 function verifyCronSecret(header: string | null): boolean {
   const expected = process.env.CRON_SECRET;
@@ -117,7 +120,21 @@ export async function GET(request: NextRequest) {
           .select("email, preferred_language, spoken_language, first_name, last_name")
           .eq("id", session.inquiry_id)
           .maybeSingle();
-        inquiryRow = data || null;
+        // ⚠️ inquiries 의 email/first_name/last_name 은 AES-256-GCM 으로 암호화돼
+        // 저장된다(inquiries/create 가 encryptString). 복호화 없이 그대로 쓰면
+        // 암호문(JSON blob)에 '@' 가 없어 resolveSurveyRecipient 가 항상 null →
+        // 설문 영구 0건(= #157 수정 후에도 K-03 측정 불능). decryptMaybe 로 복호화한다
+        // (옛 평문 행은 그대로 통과 — 마이그레이션 호환). POSTMORTEMS #13.
+        if (data) {
+          inquiryRow = {
+            ...data,
+            email: decryptMaybe(data.email),
+            first_name: decryptMaybe(data.first_name),
+            last_name: decryptMaybe(data.last_name),
+          };
+        } else {
+          inquiryRow = null;
+        }
       }
 
       const recipient = resolveSurveyRecipient(session, patientRow, inquiryRow);

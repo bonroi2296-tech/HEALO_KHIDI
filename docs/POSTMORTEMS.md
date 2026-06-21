@@ -285,3 +285,25 @@ ISO/IEC 25010(TTA GS) 기준 제3자 보안 감리 중, 환자 의료데이터�
 **재발 방지 (시스템 적용)**
 - `consultation_sessions.patient_id` 에 의존하는 코드는 **inquiry_id 폴백을 기본값으로** 간주(이 컬럼은 현재 미사용 = null). 새 cron/집계 작성 시 점검.
 - 수신자 결정 같은 "조용히 skip 되는" 분기는 **순수 함수로 빼서 단위테스트로 잠금**(라이브 cron 자체는 못 돌려도 로직은 CI 로 닫힘).
+
+---
+
+## #13 — 설문 cron 이 암호화된 이메일을 복호화 없이 읽어 #12 수정 후에도 설문 영구 0건 (2026-06-21)
+
+**무슨 일**
+- #12 에서 설문 cron 을 `inquiry_id → inquiries.email` 폴백으로 고쳤는데도, **배포 후 실DB 확인 결과 여전히 설문 0건 / 응답 0건**.
+- 진짜 원인: `inquiries.email`(과 `first_name`/`last_name`)은 가입 시 **AES-256-GCM 으로 암호화**돼 저장된다(`app/api/inquiries/create` 가 `encryptString(body.email)`). DB 의 `email` 컬럼 실제 값은 `{"v":"v1","iv":...,"tag":...,"data":...}` 형태 암호문(샘플 3행 길이 105자, `@` 없음).
+- 설문 cron 은 이 **암호문을 그대로** `resolveSurveyRecipient` 에 넘겼고, `cleanEmail` 은 `@` 가 없으면 버린다 → 항상 null → **여전히 영구 0건**. (#12 는 "어떤 행을 보느냐"를 고쳤고, 이건 "그 값을 복호화하느냐"를 빠뜨린 것.)
+
+**왜 못 잡았나 (근본원인)**
+1. #12 단위테스트가 **평문 이메일**(`patient@example.com`)만 가정 → CI 초록인데 실데이터(암호문)에서는 깨짐. 테스트 픽스처가 실제 저장 형태(암호문)를 반영 안 함.
+2. PII 암호화 컬럼(`email`/`first_name`/`last_name`)을 **읽는 쪽이 복호화 책임을 빠뜨림** — 관리자 화면 경로는 `decryptInquiryForAdmin` 으로 복호화하지만, 새로 추가된 cron 경로는 그 규약을 안 따랐다.
+3. cron 이 또 "대상 없음(skipped)"으로 **조용히 정상 종료** → 0건이 버그로 안 보임(#12 와 동일한 위장).
+
+**어떻게 고쳤나**
+- cron 에서 `inquiries` 조회 직후 `decryptMaybe(email/first_name/last_name)` 로 복호화한 뒤 `resolveSurveyRecipient` 에 전달. `decryptMaybe` 는 암호문이면 복호화, 평문이면 그대로 통과 → **옛 평문 행도 안전**(마이그레이션 호환).
+- 계약 고정 테스트 추가: `resolveRecipient.test.ts` 에 **"암호문 blob(`@` 없음) → null"** 케이스 → "반드시 cron 에서 복호화해야 한다"는 규약을 CI 로 잠금.
+
+**재발 방지 (시스템 적용)**
+- **규칙: 암호화 컬럼(`*_encrypted`, 그리고 `inquiries.email`/`first_name`/`last_name`/`contact_id`/`message` 처럼 암호문이 들어가는 텍스트 컬럼)을 읽어 사용·발송하는 모든 새 경로(cron·API·집계)는 `decryptMaybe`/`decrypt*ForAdmin` 으로 복호화 후 사용.** 화면 표시뿐 아니라 "메일 보낼 주소"로 쓸 때도 동일.
+- 순수 로직 테스트의 픽스처는 **실제 저장 형태(암호문)** 케이스를 최소 1개 포함해 "읽는 쪽 복호화 누락"을 잡는다.
