@@ -71,7 +71,23 @@ export default function LoginPremium() {
         );
         return;
       }
-      router.push("/patient");
+      // 역할별 착지 경로 — 에이전시·병원·코디·의사·관리자는 각자 포털로.
+      // (예전엔 무조건 /patient 라 비환자 계정이 환자 화면을 봤음)
+      let dest = "/patient";
+      try {
+        const token = _data?.session?.access_token;
+        const res = await fetch("/api/me", {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+          credentials: "include",
+          cache: "no-store",
+        });
+        const j = await res.json();
+        if (j?.ok && j.landing) dest = j.landing;
+      } catch (_ignore) { /* 폴백 /patient */ }
+      // ?redirect= 내부 경로가 있으면 우선(스태프 포털 게이트에서 옴)
+      const rp = new URLSearchParams(window.location.search).get("redirect");
+      const safeRp = rp && rp.startsWith("/") && !rp.startsWith("//") ? rp : null;
+      router.push(safeRp || dest);
     } catch (_e) {
       setErr(copy.errorGeneric);
     } finally {
@@ -85,7 +101,7 @@ export default function LoginPremium() {
       await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: typeof window !== "undefined" ? `${window.location.origin}/patient` : undefined,
+          redirectTo: typeof window !== "undefined" ? `${window.location.origin}/auth/callback` : undefined,
         },
       });
     } catch (_e) {

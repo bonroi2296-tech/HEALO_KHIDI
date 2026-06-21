@@ -98,8 +98,13 @@ export async function GET(request: NextRequest) {
         }
       }
 
-      // Redirect 결정
-      const redirectTo = isAdmin ? "/admin" : "/";
+      // Redirect 결정 — 역할별 포털로 (admin/coordinator/doctor/agency/병원/환자)
+      const { resolveLandingPath } = await import("@/lib/auth/resolveLanding");
+      const redirectTo = await resolveLandingPath({
+        userId: user?.id,
+        appRole: user?.app_metadata?.role,
+        isAdmin,
+      });
       console.log(
         `[auth/callback] ✅ Redirecting to ${redirectTo} (isAdmin: ${isAdmin})`
       );

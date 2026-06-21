@@ -45,7 +45,7 @@ export default function AgencyPortal() {
   const partnerKind = isClinic ? "해외 의료기관" : "해외 에이전시";
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-8">
+    <div className="max-w-3xl mx-auto px-4 pt-20 md:pt-24 pb-10">
       <div className="mb-6">
         <span className={`inline-block text-[11px] font-semibold px-2 py-0.5 rounded-full mb-2 ${isClinic ? "bg-indigo-50 text-indigo-700" : "bg-teal-50 text-teal-700"}`}>{partnerKind}</span>
         <h1 className="text-2xl font-bold text-gray-900">{data?.agency?.name} · 환자 진행 현황</h1>

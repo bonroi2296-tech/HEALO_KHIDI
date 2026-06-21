@@ -146,7 +146,11 @@ export default function ClientShell({ children, initialLang = "en" }) {
 
   // 인콰이어리(문의 퍼널)는 집중 태스크 흐름 → 하단 탭바 숨겨 채팅·폼 공간 확보(모바일)
   const hideBottomNav = pathname.includes("success") || pathname.includes("/inquiry");
-  const isPortalPage = pathname.startsWith("/admin") || pathname.startsWith("/partner");
+  // 포털(자체 깔끔한 상단바 + 환자용 하단탭바/SOS 숨김): 관리자·국내병원·해외에이전시/의료기관
+  const isPortalPage =
+    pathname.startsWith("/admin") ||
+    pathname.startsWith("/partner") ||
+    pathname.startsWith("/agency");
 
   // D. Premium 디자인 적용 라우트 — 자체 Nav/Footer를 가지므로 ClientShell의 Header/Footer 숨김
   // Premium 디자인 적용된 정확한 경로 (prefix 매칭은 아래 isPremiumPath 함수에서)
