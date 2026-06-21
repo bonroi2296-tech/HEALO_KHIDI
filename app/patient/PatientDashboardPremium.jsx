@@ -116,6 +116,25 @@ export default function PatientDashboardPremium() {
         setLoading(false);
         return;
       }
+
+      // 비환자 계정(에이전시·병원·코디·의사·관리자)은 환자 대시보드 대신
+      // 자기 포털로 자동 이동 — 이미 로그인된 채 /patient 로 와도 튕겨냄.
+      try {
+        const token = session.access_token;
+        const meRes = await fetch("/api/me", {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+          credentials: "include",
+          cache: "no-store",
+        });
+        const me = await meRes.json();
+        if (me?.ok && me.landing && me.landing !== "/patient") {
+          _router.replace(me.landing);
+          return;
+        }
+      } catch (_ignore) {
+        /* 실패 시 환자 대시보드 그대로 표시 */
+      }
+
       setUser(session.user);
 
       try {
