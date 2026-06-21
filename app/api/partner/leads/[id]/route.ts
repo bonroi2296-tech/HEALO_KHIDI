@@ -3,7 +3,7 @@ export const runtime = "nodejs";
 import { NextRequest } from "next/server";
 import { checkHospitalAuth } from "@/lib/auth/checkHospitalAuth";
 import { createServiceRoleClient } from "@/lib/supabase/server";
-import { caseStatusOrder } from "@/lib/khidi/caseStatus";
+import { caseStatusOrder, outcomeForHospitalLeadStatus } from "@/lib/khidi/caseStatus";
 
 const VALID_STATUSES = ["sent", "viewed", "replied", "converted", "rejected"];
 
@@ -66,6 +66,26 @@ async function syncLeadStatusToCase(
       note,
       created_by: userId ?? null,
     });
+
+    // 병원이 '치료 확정'하면 실제 유치 → 유치 전환 점수판(KHIDI 평가 지표)에 자동 집계.
+    //   (PO 결정 2026-06-21) 에이전시→병원 의뢰 경로 확정분이 유치 카운트에서 누락되던 구멍.
+    //   단 '자동은 하되 되돌리기 가능': 코디가 이미 내린 결정(admitted/lost)은 절대 덮어쓰지
+    //   않는다(outcome IS NULL 일 때만 자동 기록). 코디가 점수판에서 '유치 취소'(→null)/'이탈'
+    //   하면 그게 유지된다(병원 상태가 다시 바뀌지 않는 한 재집계 안 함). 시스템 자동분은
+    //   outcome_updated_by=null 로 표시해 점수판이 '자동' 배지로 구분·되돌리기 가능.
+    const autoOutcome = outcomeForHospitalLeadStatus(newStatus);
+    if (autoOutcome) {
+      await supabase
+        .from("inquiries")
+        .update({
+          outcome: autoOutcome,
+          outcome_note: `🏥 ${hName} 치료 확정 (자동 유치 집계)`,
+          outcome_updated_at: now,
+          outcome_updated_by: null, // 시스템 자동 — 코디 수동분과 구분(되돌리기 UI에서 '자동' 배지)
+        })
+        .eq("id", inquiryId)
+        .is("outcome", null); // 코디가 이미 정한 결정은 보존(되돌리기 우선)
+    }
   } catch (e: any) {
     console.error("[partner/leads/id] case sync error:", e?.message?.slice(0, 200));
     // 케이스 반영 실패해도 리드 업데이트 자체는 성공 처리(베스트에포트).
