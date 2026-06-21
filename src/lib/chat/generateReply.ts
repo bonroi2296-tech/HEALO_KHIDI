@@ -627,26 +627,40 @@ export async function generateChatReply(
       ? systemPrompt + "\n\n" + JSON_OUTPUT_INSTRUCTION
       : systemPrompt;
 
-    const result = await generateTextWithRetry({
+    const baseParams = {
       model,
       system: fullSystemPrompt,
-      messages: messages as any,
       // 비용·가독성 가드: 응답 길이 상한 (모바일 채팅 벽지 방지 + 토큰 폭주 차단)
       // ⚠️ gemini-flash-latest 는 thinking(추론) 토큰이 maxOutputTokens 에 포함됨 →
       //    상한이 낮으면 추론이 예산을 다 먹고 실제 답변이 잘리거나 통째로 빈칸(2026-06-20 빈답 버그).
       //    thinkingBudget:0 으로 추론을 끄되, 별칭(latest)이 옵션을 무시할 경우까지 대비해
-      //    상한을 8192 로 올려 답변 토큰 여유 확보(빈답·잘림 방어). 일시 오류·빈답은
-      //    generateTextWithRetry 가 재시도하고, 그래도 비면 아래 EMPTY 가드가 최종 안전망.
+      //    상한을 8192 로 올려 답변 토큰 여유 확보(빈답·잘림 방어).
       maxOutputTokens: 8192,
       providerOptions: {
         google: {
           thinkingConfig: { thinkingBudget: 0 },
-          // 의료(암 치료) 질의가 안전필터에 걸려 빈 응답으로 떨어지는 것 방지 — 위 SAFETY_SETTINGS 주석 참고.
+          // 의료(암 치료) 질의가 안전필터에 걸려 빈 응답으로 떨어지는 것 방지(방어).
           safetySettings: SAFETY_SETTINGS as any,
           ...(useWebSearch ? { useSearchGrounding: true } : {}),
         },
       },
-    });
+    };
+
+    let result = await generateTextWithRetry({ ...baseParams, messages: messages as any });
+
+    // 🔁 빈 응답 복구(핵심 수정 2026-06-21): 대화 기록이 길고 반복적으로 쌓이면 Gemini 가
+    // finishReason=stop 으로 빈 텍스트를 반환한다(A/B 실측: 새 스레드 0/12 vs 기록누적 스레드 2/12,
+    // 둘 다 11~12번째 턴). 같은 긴 기록으로 재시도하면 모델이 '더 답할 것 없음'으로 또 비므로,
+    // 직전 1~2턴만 남겨 호출해 그 루프를 끊는다(짧은 기록은 위 A 테스트에서 빈응답 0%).
+    if ((!result?.text || !result.text.trim()) && messages.length > 2) {
+      console.warn(
+        `[generateChatReply] empty after retries (finishReason=${(result as any)?.finishReason}) ` +
+        `— retrying with reduced history (last 2 of ${messages.length} msgs)`
+      );
+      const reduced = messages.slice(-2);
+      const reducedResult = await generateTextWithRetry({ ...baseParams, messages: reduced as any }, 2);
+      if (reducedResult?.text && reducedResult.text.trim()) result = reducedResult;
+    }
 
     let finalReply: string;
     let declaredUsedIds: string[];
