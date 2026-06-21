@@ -82,7 +82,7 @@ export async function POST(request: NextRequest) {
   try {
     const { data: inquiry, error: inquiryError } = await supabaseAdmin
       .from("normalized_inquiries")
-      .select("id")
+      .select("id, source_inquiry_id")
       .eq("id", normalized_inquiry_id)
       .maybeSingle();
 
@@ -175,6 +175,24 @@ export async function POST(request: NextRequest) {
 
     const assignedCount = insertedLeads?.length || 0;
     const skippedCount = foundHospitalIds.length - assignedCount;
+
+    // EDGE-4 (POSTMORTEM #18→#20): coordinator/cases/assign 와 대칭 — admin 경로로 병원
+    //   배정해도 케이스 진행단계를 '병원 치료가능 검토 중'으로 전진+이력 기록(이전엔 admin
+    //   배정만 하면 에이전시·환자 타임라인이 안 움직였음). source_inquiry_id 로 연결.
+    if ((inquiry as any)?.source_inquiry_id) {
+      try {
+        const { advanceCaseStatus } = await import("@/lib/khidi/advanceCaseStatus");
+        await advanceCaseStatus(
+          supabaseAdmin,
+          (inquiry as any).source_inquiry_id,
+          "hospital_review",
+          `병원 배정 (${assignedCount}곳, admin)`,
+          authResult.userId ?? null
+        );
+      } catch (csErr: any) {
+        console.warn("[admin/leads/assign] case_status advance failed:", csErr?.message);
+      }
+    }
 
     // ========================================
     // 6. 감사 로그 기록
