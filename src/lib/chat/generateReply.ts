@@ -38,6 +38,19 @@ export function getModelName() {
   return "gemini-flash-latest";
 }
 
+// Gemini 안전필터(safety filter) 설정.
+// 왜: 이 서비스의 핵심 질의가 "암 치료/항암/수술" 등 의료 내용인데, Gemini 기본값
+// (BLOCK_MEDIUM_AND_ABOVE)은 DANGEROUS_CONTENT 카테고리에서 암·치료 논의를 간헐적으로
+// 차단 → 빈 응답(finishReason=SAFETY)으로 떨어지는 버그(2026-06-21 재현). 이 챗봇은
+// 시스템 프롬프트에 진단·처방 금지 등 의료 레드라인 가드가 이미 강하게 박혀 있으므로,
+// 모델 단의 확률적 안전차단은 끄고(애플리케이션 가드가 진짜 안전선) 빈 응답을 없앤다.
+const SAFETY_SETTINGS = [
+  { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
+  { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
+  { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
+  { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" },
+] as const;
+
 // 빈 응답 방어용 안내 메시지(6개 언어). 모델이 빈 텍스트를 반환(추론이 토큰을
 // 소진/안전필터/구조화 파싱 실패)할 때 빈 말풍선 대신 노출 + 코디 연결 유도.
 const EMPTY_REPLY_FALLBACK: Record<string, string> = {
@@ -614,24 +627,42 @@ export async function generateChatReply(
       ? systemPrompt + "\n\n" + JSON_OUTPUT_INSTRUCTION
       : systemPrompt;
 
-    const result = await generateTextWithRetry({
+    const baseParams = {
       model,
       system: fullSystemPrompt,
-      messages: messages as any,
       // 비용·가독성 가드: 응답 길이 상한 (모바일 채팅 벽지 방지 + 토큰 폭주 차단)
       // ⚠️ gemini-flash-latest 는 thinking(추론) 토큰이 maxOutputTokens 에 포함됨 →
       //    상한이 낮으면 추론이 예산을 다 먹고 실제 답변이 잘리거나 통째로 빈칸(2026-06-20 빈답 버그).
       //    thinkingBudget:0 으로 추론을 끄되, 별칭(latest)이 옵션을 무시할 경우까지 대비해
-      //    상한을 3072 로 올려 답변 토큰 여유 확보(빈답·잘림 방어). 일시 오류·빈답은
-      //    generateTextWithRetry 가 재시도하고, 그래도 비면 아래 EMPTY 가드가 최종 안전망.
-      maxOutputTokens: 3072,
+      //    상한을 8192 로 올려 답변 토큰 여유 확보(빈답·잘림 방어).
+      maxOutputTokens: 8192,
       providerOptions: {
         google: {
           thinkingConfig: { thinkingBudget: 0 },
+          // 의료(암 치료) 질의가 안전필터에 걸려 빈 응답으로 떨어지는 것 방지(방어).
+          safetySettings: SAFETY_SETTINGS as any,
           ...(useWebSearch ? { useSearchGrounding: true } : {}),
         },
       },
-    });
+    };
+
+    let result = await generateTextWithRetry({ ...baseParams, messages: messages as any });
+
+    // 🔁 빈 응답 복구(핵심 수정 2026-06-21): 대화 기록이 길고 반복적으로 쌓이면 Gemini 가
+    // finishReason=stop 으로 빈 텍스트를 반환한다(A/B 실측: 새 스레드 0/12 vs 기록누적 스레드 2/12).
+    // 원인은 "모델이 직전 자기 답변을 다시 보고 '이미 답했음'으로 종료"하는 것 → 직전 어시스턴트
+    // 답변을 포함해 재시도하면(slice(-2)) 똑같이 빈다(14/24 재현). 그래서 복구는 마지막 사용자
+    // 질문 1건만 보낸다(slice(-1)) — 새 스레드와 동일 조건이라 위 A 테스트에서 빈응답 0%.
+    // 트레이드오프: 직전 맥락 없이 답하지만, 빈 말풍선보다 낫다(이 경로는 빈 응답일 때만 탐).
+    const lastUser = [...messages].reverse().find((m) => m.role === "user");
+    if ((!result?.text || !result.text.trim()) && lastUser && messages.length > 1) {
+      console.warn(
+        `[generateChatReply] empty after retries (finishReason=${(result as any)?.finishReason}) ` +
+        `— retrying with last user message only (of ${messages.length} msgs)`
+      );
+      const reducedResult = await generateTextWithRetry({ ...baseParams, messages: [lastUser] as any }, 2);
+      if (reducedResult?.text && reducedResult.text.trim()) result = reducedResult;
+    }
 
     let finalReply: string;
     let declaredUsedIds: string[];
@@ -659,7 +690,8 @@ export async function generateChatReply(
         `query="${query.slice(0, 60)}"`
       );
       finalReply = EMPTY_REPLY_FALLBACK[lang] || EMPTY_REPLY_FALLBACK.en;
-      emptyError = "empty_model_text";
+      // finishReason 을 에러코드에 실어 다음 발생 시 원인(SAFETY/MAX_TOKENS/…)을 API 응답·메타데이터에서 바로 확인 가능하게.
+      emptyError = `empty_model_text:${(result as any)?.finishReason ?? "unknown"}`;
     }
 
     const finalResult: ChatReplyResult = {
