@@ -539,34 +539,63 @@ export function ThreadChat() {
         return;
       }
 
-      // 빈 말풍선을 먼저 띄우고 토큰이 올 때마다 내용을 채운다(타이핑 효과).
+      // 빈 말풍선을 먼저 띄우고 채운다.
       setMessages((prev) => [...prev, { id: aiId, role: "assistant", content: "" }]);
 
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = "";
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        buffer += decoder.decode(value, { stream: true });
-        const idx = buffer.indexOf(META_DELIM);
-        const display = idx === -1 ? buffer : buffer.slice(0, idx);
-        setMessages((prev) => prev.map((m) => (m.id === aiId ? { ...m, content: display } : m)));
-      }
-
-      // 스트림 종료 후 메타(JSON) 분리.
-      const idx = buffer.indexOf(META_DELIM);
-      const finalText = (idx === -1 ? buffer : buffer.slice(0, idx)).trim();
+      // 받기(network) ↔ 보여주기(display)를 분리한다.
+      // 모델/네트워크는 토큰을 뭉텅뭉텅 보내므로, 그걸 그대로 그리면 끊겨 보인다.
+      // target 에 받은 전체 텍스트를 쌓고, 화면에는 일정 속도로 글자를 흘려보내(타자기 버퍼)
+      // 도착이 들쭉날쭉해도 매끄럽게 타이핑되는 것처럼 보이게 한다(ChatGPT 방식).
+      let target = "";        // 지금까지 받은 응답 본문(메타 제외)
       let meta = null;
-      if (idx !== -1) {
-        try {
-          meta = JSON.parse(buffer.slice(idx + META_DELIM.length));
-        } catch {
-          /* 메타 파싱 실패는 무시 — 텍스트는 이미 표시됨 */
-        }
-      }
+      let streamDone = false;
 
+      const readLoop = (async () => {
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+        try {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            buffer += decoder.decode(value, { stream: true });
+            const i = buffer.indexOf(META_DELIM);
+            target = i === -1 ? buffer : buffer.slice(0, i);
+          }
+          const i = buffer.indexOf(META_DELIM);
+          target = i === -1 ? buffer : buffer.slice(0, i);
+          if (i !== -1) {
+            try {
+              meta = JSON.parse(buffer.slice(i + META_DELIM.length));
+            } catch {
+              /* 메타 파싱 실패는 무시 */
+            }
+          }
+        } finally {
+          // 읽기 오류가 나도 타자기 루프가 멈추도록 항상 종료 표시(무한대기 방지).
+          streamDone = true;
+        }
+      })();
+
+      // 타자기 버퍼: 25ms마다 남은 글자의 일부를 드러낸다(뒤처지면 더 빨리 따라잡음).
+      let shown = 0;
+      await new Promise((resolve) => {
+        const timer = setInterval(() => {
+          if (shown < target.length) {
+            const remaining = target.length - shown;
+            const step = Math.max(2, Math.ceil(remaining / 8));
+            shown = Math.min(target.length, shown + step);
+            const slice = target.slice(0, shown);
+            setMessages((prev) => prev.map((m) => (m.id === aiId ? { ...m, content: slice } : m)));
+          } else if (streamDone) {
+            clearInterval(timer);
+            resolve();
+          }
+        }, 25);
+      });
+      await readLoop; // 메타 캡처 보장
+
+      const finalText = (target || "").trim();
       const safeText =
         finalText ||
         (t("chat.aiUnavailable", langCode) ||
