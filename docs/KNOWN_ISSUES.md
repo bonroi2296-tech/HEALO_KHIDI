@@ -4,13 +4,13 @@
 
 ---
 
-## 🔴 크롬 카자흐어 사용자 = 깨진 러시아어 STT 폴백에 머묾 (2026-06-21 발견, 미수정 — 제안만)
+## ✅ 크롬 카자흐어 사용자 = 깨진 러시아어 STT 폴백에 머묾 (2026-06-21 발견 → **2026-06-21 수정 완료**)
 
 - **증상**: 크롬을 쓰는 **카자흐어 사용자**의 화상방 통역이, 카자흐어를 지원하는 서버 STT(경로 ②)로 안 넘어가고 **러시아어 인식기(ru-RU 폴백)** 로 처리됨 → 부정확.
-- **원인**: `useServerStt` 분기(`app/consultation/[id]/page.jsx:1139`)가 "브라우저 STT 실패/미지원"일 때만 서버 STT로 전환하는데, 크롬은 카자흐어를 `ru-RU`로 폴백해 **"지원"으로 판정**(`useSpeechRecognition.js` `LANG_MAP.kz='ru-RU'`)되어 전환 조건에 안 걸림.
+- **원인**: `useServerStt` 분기(`app/consultation/[id]/page.jsx`)가 "브라우저 STT 실패/미지원"일 때만 서버 STT로 전환하는데, 크롬은 카자흐어를 `ru-RU`로 폴백해 **"지원"으로 판정**(`useSpeechRecognition.js` `LANG_MAP.kz='ru-RU'`)되어 전환 조건에 안 걸림.
 - **영향**: 카자흐스탄 = **1순위 타깃 시장** → 통역 정확도·KHIDI 평가 직결.
-- **제안 수정(저위험·자동검증 가능, 라이브 오디오 불필요)**: 화자 언어가 브라우저 네이티브 미지원(kz)이면 처음부터 서버 STT 강제. `useSpeechRecognition`이 "네이티브 지원 여부"를 노출 → `page.jsx`가 폴백 전용 언어면 `forceServerStt` ON. 순수 분기 로직이라 단위테스트로 잠금.
-- **상태**: PO "오늘 코드개선 말라" 지침 존중 → 미구현. 그린라이트 시 별도 PR. 상세: `docs/LIVE_TRANSLATE_EVAL.md` §4.
+- **수정**: ① `useSpeechRecognition.js`에 순수 헬퍼 `isBrowserSttNative(lang)` 추가(`STT_FALLBACK_LANGS={kz}` → kz 는 false). ② `page.jsx`가 통역 켤 때 화자 언어가 폴백 전용(kz)이면 `forceServerStt` ON + 브라우저 STT 시작 안 함 → 서버 STT(Gemini, kz 직접 지원)로 라우팅. ③ 순수 로직 단위테스트 `sttRouting.test.ts`(6개)로 잠금.
+- **검증**: vitest 285개 전부 통과(+6) / tsc 0. **라이브(화상방 카자흐어 발화) 실동작은 PO 동석 검증 필요**(자동 불가). 상세: `docs/LIVE_TRANSLATE_EVAL.md` §4.
 
 ## 🟡 관망 — Gemini 3.5 Live Translate (실시간 음성통역 신모델, 2026-06-09 공개)
 
