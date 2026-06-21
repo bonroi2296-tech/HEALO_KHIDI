@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useLang } from "@/lib/i18n/LangContext";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { Eyebrow, Rule, ButtonGold, LinkArrow, FilmGrain } from "../../components/healo/Primitives";
@@ -49,7 +48,6 @@ const COPY = {
 };
 
 export default function LoginPremium() {
-  const router = useRouter();
   const lang = useLang();
   const copy = COPY[lang] || COPY.en;
 
