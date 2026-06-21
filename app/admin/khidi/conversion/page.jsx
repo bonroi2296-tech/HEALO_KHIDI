@@ -211,11 +211,11 @@ export default function ConversionDashboard() {
           </section>
 
           {/* 유치확정 대기 — 코디 액션 */}
-          <section className="bg-white border border-gray-200 rounded-2xl p-6">
+          <section className="bg-white border border-gray-200 rounded-2xl p-6 mb-6">
             <h2 className="text-sm font-bold text-gray-700 mb-1">유치 확정 대기</h2>
             <p className="text-xs text-gray-400 mb-4">
-              사전상담을 마쳤지만 결과가 입력되지 않은 환자입니다. 실제 입국·치료를 시작했으면
-              「유치 확정」, 연락이 끊겼으면 「이탈」을 눌러 주세요.
+              사전상담을 마쳤거나 병원이 응답한 환자 중 결과가 입력되지 않은 건입니다. 실제
+              입국·치료를 시작했으면 「유치 확정」, 연락이 끊겼으면 「이탈」을 눌러 주세요.
             </p>
             {(data?.pending ?? []).length === 0 ? (
               <p className="text-sm text-gray-400">대기 중인 환자가 없습니다.</p>
@@ -241,6 +241,57 @@ export default function ConversionDashboard() {
                         className="px-3 py-1.5 rounded-lg text-xs font-bold bg-teal-700 text-white hover:bg-teal-800 disabled:opacity-40 transition"
                       >
                         유치 확정
+                      </button>
+                      <button
+                        disabled={busyId === p.inquiry_id}
+                        onClick={() => setOutcome(p.inquiry_id, "lost")}
+                        className="px-3 py-1.5 rounded-lg text-xs font-medium bg-gray-200 text-gray-600 hover:bg-gray-300 disabled:opacity-40 transition"
+                      >
+                        이탈
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+
+          {/* 유치 확정됨 — 되돌리기(코디) */}
+          <section className="bg-white border border-gray-200 rounded-2xl p-6 mt-6">
+            <h2 className="text-sm font-bold text-gray-700 mb-1">유치 확정됨 (되돌리기)</h2>
+            <p className="text-xs text-gray-400 mb-4">
+              유치로 집계된 환자입니다. 「자동」 배지는 병원이 「치료 확정」해 자동 집계된 건이며,
+              실제 유치가 아니면 「유치 취소」(집계 제외) 또는 「이탈」로 코디가 되돌릴 수 있습니다.
+            </p>
+            {(data?.admitted ?? []).length === 0 ? (
+              <p className="text-sm text-gray-400">유치 확정된 환자가 없습니다.</p>
+            ) : (
+              <div className="space-y-2">
+                {data.admitted.map((p) => (
+                  <div
+                    key={p.inquiry_id}
+                    className="flex items-center justify-between gap-3 bg-gray-50 rounded-xl px-4 py-3"
+                  >
+                    <div className="min-w-0">
+                      <div className="text-sm font-semibold text-gray-800 truncate flex items-center gap-1.5">
+                        {p.name} · {p.nationality}
+                        {p.auto && (
+                          <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-50 text-amber-700 font-medium shrink-0">
+                            자동
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-xs text-gray-400 truncate">
+                        {p.cancer_type} · {new Date(p.created_at).toLocaleDateString("ko-KR")}
+                      </div>
+                    </div>
+                    <div className="flex gap-1.5 shrink-0">
+                      <button
+                        disabled={busyId === p.inquiry_id}
+                        onClick={() => setOutcome(p.inquiry_id, null)}
+                        className="px-3 py-1.5 rounded-lg text-xs font-medium bg-gray-200 text-gray-600 hover:bg-gray-300 disabled:opacity-40 transition"
+                      >
+                        유치 취소
                       </button>
                       <button
                         disabled={busyId === p.inquiry_id}
