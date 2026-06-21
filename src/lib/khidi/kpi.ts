@@ -30,11 +30,12 @@ export { recentSnapshotDates };
 // 타입 정의
 // ============================================================
 export interface KpiResult {
-  /** K-02: 사전상담 건수 (session_type='pre_consultation', status='completed', duration>=5) */
+  /** K-02: 사전상담 건수 (session_type='pre_consultation', status='completed') — scheduled_at 기준 */
   preConsultation: number;
-  /** K-04: 사후관리 건수 (session_type='follow_up', status='completed') */
+  /** K-04: 사후관리 건수 (session_type='follow_up', status='completed') — scheduled_at 기준 */
   followUp: number;
-  /** K-01: 환자유치 건수 (patient_visited_korea=true 또는 visit_confirmed_at IS NOT NULL) */
+  /** K-01: 환자유치 건수 (inquiries.outcome='admitted', created_at 코호트). 코디 수동 확정
+   *  + 병원 '치료 확정'(hospital_leads converted) 자동 반영 — 전환 깔때기와 동일 정의. */
   attraction: number;
   /** K-03: 만족도 평균 (100점 환산) — 응답 없으면 null */
   satisfactionAvg: number | null;
