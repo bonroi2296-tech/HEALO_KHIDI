@@ -7,38 +7,42 @@
 
 ---
 
-## 🔖 세션 핸드오프 (2026-06-20 심야·피버모드) — 성능(이미지 −86%·히어로 LCP)+SEO+테스트 +20 (PR #135·#138·#140·#141 전부 ✅머지·배포)
+## 🔖 세션 핸드오프 (2026-06-20~21 피버모드) — 가짜후기 제거→당당한 신뢰섹션 + 성능(이미지−86%·히어로LCP) + SEO + 테스트+28 + 화상방 정리1차 (PR 다수 전부 ✅머지·배포)
 
-**이번 세션 한 일:** (PO가 "자는 동안 토큰 100% 활용" 위임 → **자동검사로 닫히는 안전·비시각 작업만** 골라 끝까지. 전부 main 머지·배포)
-- **🟢 #135 이미지 재압축 −86%**: 과대 public 이미지 51개를 폭 1920·JPEG q82·PNG 무손실로 재압축(전송량 43.5MB→6.1MB). 코드/레이아웃 0 변경. **프로덕션 실측 확인**: `ewha-seoul/5.jpg` 3,764,350B→206,379B(**−95% 라이브**). + `scripts/optimize-images.mjs`(`optimize:images`/`audit:images`) + **CI 게이트**(900KB↑ 재유입 차단). POSTMORTEMS 없음(개선성).
-- **🟢 #138 히어로 next/image 전환**: 홈/care-journey 히어로·회복 섹션 3장을 `next/image`(fill+priority)로 → 첫화면 LCP 개선·기기별 자동 크기·AVIF/WebP. `next.config.js`에 `images.unsplash.com` 허용. PO가 프리뷰 "ㅇㅋ" 후 머지.
-- **🟢 #140 SEO 구조화데이터(JSON-LD)**: `src/lib/seo/structuredData.js`(MedicalBusiness+BreadcrumbList+실제 제휴/협진 병원 네트워크) → care-journey. **화면 변화 0**(검색엔진 전용). 가짜 평점/후기 schema 금지(테스트 가드).
-- **🟢 #141 단위테스트 +20**: `normalizeInquiryStatus`·`isFillerOnly`(추임새)·`evaluateLeadQuality`(리드)·`slug` 4종. 동작 기준 테스트(매직넘버 의존 X). 전 208개 통과.
-- **앞선 동일세션분(아래 '2026-06-20 밤' 블록)**: #127(가짜 후기 제거·실제평가·제휴띠·타임라인·회복톤 사진)·#134(문서) 머지 완료.
+**이번 세션 한 일:** (밤=PO 취침 중 안전·자동검사 작업 → 아침=PO 깨어 피드백 반영·승인. 전부 main 머지·배포)
+- **🟢 #135 이미지 재압축 −86%**: 과대 public 이미지 51개 폭 1920·JPEG q82·PNG 무손실(전송량 43.5→6.1MB). **프로덕션 실측 −95%**(ewha-seoul/5.jpg 3.6MB→206KB). + `scripts/optimize-images.mjs` + **CI 게이트**(900KB↑ 차단).
+- **🟢 #138 히어로 next/image**: 홈/care-journey 히어로·회복 섹션 3장 fill+priority(LCP·기기별 크기·AVIF). `next.config.js`에 unsplash 허용.
+- **🟢 #140·#148 SEO 구조화데이터(JSON-LD)**: `src/lib/seo/structuredData.js`(MedicalBusiness+BreadcrumbList+실제 병원 네트워크) → care-journey + **홈**(병원 네트워크·CIS 타깃국). 화면 변화 0.
+- **🟢 #141·#147 단위테스트 +28**: 문의상태·추임새필터·리드스코어·slug·협진요약(`buildReferralSummaryMarkdown`)·병원매칭(`matchHospitals`). 전 216개 통과.
+- **🟢 #146 일본어 자막 추임새 `えーと` 수정**: `fillerFilter` 정규식 `え+ー*と+` 추가(자막에 새던 것 차단).
+- **🟢 #150 ⭐ 후기 섹션(SocialProofSection) 재설계 — PO 피드백**: 기존이 **방어적**("지어낸 후기 대신…"·"임의 작성 아님")이고 **외국인에게 모두닥·네이버(한국 평점 플랫폼) 링크**라 마케팅 부적합 → **당당한 톤**으로 전면 교체. 평점9.3·별점·외부링크·변명문구 전부 제거. 긍정·실제 자격만(누적 5만건+·제휴협진 8곳·6개언어 통역·유치의료기관 등록). 가짜 금지 원칙은 유지.
+- **🟢 #153 화상상담방 God 컴포넌트 정리 1차**: `app/consultation/[id]/page.jsx`의 i18n `COPY`(650줄, 순수데이터)를 `_roomCopy.js`로 분리 → **2933→2285줄(−22%)**. 로직·렌더 0 변경.
+- **🟢 #134·#142 문서**(핸드오프) 머지. (앞선 동일세션 #127=가짜후기 제거·실제평가·제휴띠·타임라인·회복톤사진도 머지.)
 
 **왜 그렇게 했는지:**
-- PO 자리 비움(취침)+토큰 위임 → 취향 "PO 자리 비움=자동검증·저위험만, 위험·라이브·시각검증 필요한 건 보류" 적용. **레이아웃 바뀌는 건(갤러리 next/image 등) 일부러 안 함**(내가 픽셀 확인 불가·PO 못 봄).
-- 이미지 압축을 첫 타깃으로: 측정가능·무위험·해외 모바일 환자 체감속도(LCP)=KHIDI 정성평가(ICT) 직결.
-- 저위험·비시각·CI초록이라 PO 위임("저위험 CI초록=머지")대로 직접 머지.
+- 밤엔 PO 못 보니 **비시각·자동검증 작업만**(이미지·SEO·테스트·정규식수정·문서). 아침엔 PO가 깨어 **보이는 변경(#150 재설계·#153 정리)을 프리뷰/요청으로 승인**받고 진행.
+- #150: PO가 "오바·방어적·외국인한테 한국링크 웃기다"고 정확히 지적 → 마케팅 톤으로. (가짜후기 금지에 매여 방어적으로 만든 게 실수.)
+- #153: 화상방 로직은 **2인 영상 라이브 검증 필요**라 못 건드리고, **순수 데이터(COPY)만** 안전 분리.
 
-**안 끝났거나 보류:**
-- **갤러리 이미지 next/image**: 병원 상세 갤러리(캐러셀·onError 폴백)는 레이아웃 위험+내 픽셀검증 불가라 보류. PO 동석 시 프리뷰 확인하며 진행 권장(이미 #135로 86% 압축은 됨).
-- **`any` 813개 축소**: 런타임 무위험(타입은 실행 때 사라짐)이나 광범위·call site 리플 → 가치 대비 churn이라 자는 동안 안 함. PO와 우선순위 정해 진행.
-- **God 컴포넌트(2883줄) 분할 / 화상방 라이브 / KPI 클램프**: 변함없이 고위험·라이브검증 필요로 보류.
+**안 끝났거나 보류 (전부 PO 동석/라이브 필요):**
+- **화상방 추가 분리**: 라이브 컴포넌트(VideoGrid·MutedSpeakingWarning·SubtitleOverlay 등)는 LiveKit 훅 사용 → 2인 영상 켜고 테스트해야 안전. 다음에 PO 동석.
+- **갤러리 이미지 next/image**: 병원 상세 갤러리(캐러셀·onError 폴백) 레이아웃 위험·픽셀검증 불가. (이미 #135로 86% 압축됨.)
+- **`any` 813 축소 / KPI 클램프**: 광범위/시간대 민감 — PO와 우선순위.
+- **slug 한글 미변환**(발견): `generateSlug`가 한글 제거→`item-<ts>` 폴백. 현재 병원 slug는 하드코딩이라 실피해 적음. 로마자화는 기능추가라 보류(테스트로 현재 동작 잠금).
 
-**주의·함정 (이번 세션 발견한 실제 이슈 2건 — 기록만, 동작 안 바꿈):**
-- **slug 한글 미변환**: `generateSlug`의 JSDoc은 "강남→gangnam" 로마자 예시지만 **실제론 `\w`(ASCII)만 남겨 한글 전부 제거 → `item-<타임스탬프>` 폴백**(비서술적 URL). 현재 병원 slug는 하드코딩(immunehospital-magok 등)이라 실피해 적음. 로마자화는 기능추가/동작변경이라 보류 — 테스트로 현재 동작은 잠가둠(`slug.test.ts`).
-- **일본어 추임새 `えーと` 누락**: `fillerFilter`가 `えっと`는 잡지만 `えー+と`(장음 표기)는 미커버 → 자막에 가끔 노출. 1줄 정규식 보강 후보(STT 동작변경이라 보류).
+**주의·함정:**
+- **#150·#153은 보이는·핵심기능 변경**: #150은 PO 프리뷰 승인받음. #153은 데이터 이동뿐(런타임 동일 tsc·build 보장)이나 **화상방은 단독 프리뷰가 어려움** → 편할 때 실제 상담방 1회 열어보면 확실.
+- **다른 세션 동시 작업**: 작업 전 `git fetch origin main` 습관. 이번에도 main 자동머지·충돌해소 있었음.
 
 **다음 세션이 먼저 할 일 (우선순위):**
-1. **⚠️ 직전 미검증분 먼저 확인(관리자 로그인 — 환경상 자동 불가):** (a) `/admin/khidi/kpi-dashboard` 숫자(유치 4/12·상담+사후관리 12/120) (b) 관리자로 `/api/sentry/test` JSON (c) prod 홈/care-journey 후기섹션·병원네트워크·**히어로/사진 잘 보이는지**(이미지 변경 반영됨) 눈으로 1회.
-2. **PO와 다음 성능/품질 방향 정하기**: 갤러리 next/image(시각확인 필요) / `any` 축소(타입안정) / God 컴포넌트 분할 중 택. 위 '발견 이슈 2건'(slug·추임새) 고칠지도.
-3. KHIDI 중간평가(2026-08-27) 상시 — 이번 성능·SEO·테스트는 정성(ICT 품질)·④(집계 정확성 회귀방지) 기여.
+1. **⚠️ 직전 미검증분(관리자 로그인 — 자동 불가):** (a) `/admin/khidi/kpi-dashboard` 숫자(유치 4/12·상담+사후관리 12/120) (b) `/api/sentry/test` JSON (c) prod 홈/care-journey 신뢰섹션(#150 새 톤)·히어로·사진 눈으로 1회 (d) **실제 상담방 1회 열어 화상방(#153 분리 후) 정상인지**.
+2. **PO 동석 작업**: 화상방 추가 분리(라이브 2인 테스트) / 갤러리 next/image(프리뷰 확인) 중 택.
+3. KHIDI 중간평가(2026-08-27) 상시.
 
-**검증 상태:** **PR #135·#138·#140·#141 전부 CI(`ci`·`Smoke`) 초록 + squash 머지·배포 완료**(GitHub check_runs로 확인). 로컬 tsc 0/eslint 0/**vitest 208개**/check:content/audit:images/next build 통과. **프로덕션 이미지 −95% 실측 확인**(curl). **❌ 미검증(관리자 로그인 필요, 자동 불가): KPI 대시보드 렌더 / Sentry 실전송 / prod 히어로·사진 시각 / 갤러리 화질 — PO 1클릭.** 동일세션 앞 블록(#127·#134)도 머지 완료.
+**검증 상태:** **PR #135·#138·#140·#141·#146·#147·#148·#150·#153 전부 CI(`ci`·`Smoke`) 초록 + squash 머지·배포**(check_runs 확인). 로컬 tsc 0/eslint 0(경고만)/**vitest 216개**/check:content/audit:images/next build 통과. **프로덕션 이미지 −95% 실측**. **❌ 미검증(관리자/라이브 필요): KPI 대시보드·Sentry 실전송·화상방 실세션 렌더 — PO 클릭.**
 
 **다음 세션 첫 프롬프트 (PO 복붙용):**
-> 먼저 docs/PROJECT_CONTEXT.md 최상단 핸드오프(2026-06-20 심야·피버모드) 읽어. 어젯밤 자동안전작업으로 이미지 −86%(프로덕션 −95% 실측)·히어로 빠른로딩·SEO·테스트+20 전부 머지·배포됨. 그다음: 1) prod(healo-khidi.vercel.app) 홈·care-journey 열어서 히어로/병원사진 깨짐 없는지, 후기·병원네트워크 잘 보이는지 눈으로 확인. 2) 관리자로 /admin/khidi/kpi-dashboard 숫자 + /api/sentry/test JSON 확인. 3) 다음 성능방향(갤러리 next/image vs any축소 vs God컴포넌트 분할) 골라줘. 새 작업은 git fetch origin main 후 origin/main 기준 브랜치로 시작.
+> 먼저 docs/PROJECT_CONTEXT.md 최상단 핸드오프(2026-06-20~21 피버모드) 읽어. 지난 세션에 가짜후기 제거→당당한 신뢰섹션 재설계·이미지 −86%·히어로 빠른로딩·SEO·테스트+28·화상방 정리1차 전부 머지·배포됨. 그다음: 1) prod(healo-khidi.vercel.app) 홈/care-journey 신뢰섹션·사진 눈으로 OK인지. 2) 관리자로 /admin/khidi/kpi-dashboard 숫자 + /api/sentry/test JSON 확인. 3) 실제 상담방 한 번 열어 화상이 정상인지(#153 정리 후). 4) 더 할 거 있으면: 화상방 추가 분리나 갤러리 사진 최적화는 너랑 라이브로 같이. 새 작업은 git fetch origin main 후 origin/main 기준 브랜치로.
 
 ---
 
@@ -81,40 +85,6 @@
 > 먼저 docs/PROJECT_CONTEXT.md 최상단 핸드오프(2026-06-20 밤) 읽어. PR #127은 이미 머지·배포됨(가짜 후기 제거 완료). 그다음: 1) 관리자로 /admin/khidi/kpi-dashboard 숫자(유치 4/12·상담+사후관리 12/120) 뜨는지 + /api/sentry/test JSON 확인. 2) prod(healo-khidi.vercel.app/care-journey·홈)에서 후기 섹션·병원 네트워크·회복톤 사진 잘 보이는지 1회 확인(별로면 사진 교체·9.3/5만 숫자 빼달라 하면 바로 해줌). 새 작업은 git fetch origin main 후 origin/main 기준으로 브랜치 잡고 시작.
 
 ---
-
-## 🔖 세션 핸드오프 (2026-06-20 저녁·B) — PO 싱크(작업계약) + 경쟁사 벤치마크 + /inquiry·/hospitals·care-journey 품질개선 fix 1~5 머지·배포 + 유치실적 2025(201만) 업데이트
-
-> ⚠️ 같은 날 저녁 다른 세션(아래 "제3자 전체 감리" 블록)과 **병렬 진행**됨 — 둘은 독립 작업. 머지 충돌은 양쪽 보존으로 풀었음.
-
-**이번 세션 한 일:**
-- **PO 싱크(working contract) 확정 → `docs/PO_PREFERENCES.md` 영구 기록 (PR [#114](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/114)·[#115](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/115) 머지):** 세션 본론은 "코드"가 아니라 "PO와 어시스턴트 싱크". 작업계약 = ①내 역할: 기본 **기술 파트너**(먼저 제안), 상황 따라 실행자 ②돈 나가는 건 "알려만", **보이는 UI 변경은 프리뷰 URL로 먼저 보여주고 OK 받기**, 그 외는 내 판단 ③반대·지적은 톤 무관 사실만.
-- **경쟁사 벤치마크 → `docs/COMPETITOR_BENCHMARK.md` (PR #115):** 1·2위 **Bookimed·Qunomedical** 기준 before = `/inquiry` **78** / `/care-journey` **79** / 신뢰표시 **61**. 격차 TOP6 도출.
-- **fix 1·2·3 — /inquiry (PR #115 배포 `2666d6e`):** ①"상담 무료·**부담 없이**"(처음 "비구속"→PO 번역투 지적→교체)+신뢰줄, ②인증배지(KHIDI·외국인환자 유치등록 — **보유한 것만**), ③Human 채널 "준비 중" 막다른길→"상담 신청서(1분)" 폴백. `app/inquiry/_components/UnifiedInquiryFunnel.jsx`.
-- **fix 4·5 + 통계 — (PR [#120](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/120) 배포 `84bb8d6`):** ④`/hospitals` 의사 카드 **"전문의" 검증 칩**(실제 전문의만, 가짜점수·도배 금지). ⑤`/care-journey` **회복톤 실사진 2장**(검수된 Unsplash 재사용 — **임시, PO 본인 사진 줄 예정**). ⑥**유치실적 2024(117만)→2025(201만)** 6곳 일관 업데이트(care-journey 6언어·홈·러시아·카자흐) — 보건복지부 2026-04-24 발표(첫 200만 돌파, 201만).
-
-**왜 그렇게 했는지:**
-- **fix 6(후기) 보류 = 법적 레드라인:** `src/lib/stories/storiesData.js`에 현재 후기가 **"샘플/데모"라 명시** → 켜면 **가짜 환자후기 = 의료법 §27 위반**. PO "싹다해"에도 안 켰고, PO가 수긍 → **"구글/네이버 실리뷰 활용"**으로 전환(다음 세션 과제).
-- **사진 프리뷰 먼저:** UI라 머지 전 프리뷰로 PO 확인(작업계약). PO "이거 좋은데 사진은 따로 줄게" → 구조 OK, 임시사진으로 머지.
-
-**안 끝났거나 보류:**
-- **fix 6 후기(구글/네이버 실리뷰):** 다음 세션. 소스 = (a) PO/코디가 반응 좋은 리뷰 텍스트 3~5개 줌(추천·정확) / (b) 내가 웹서 후보 찾음. 리뷰 본문 정확히 긁기 어려움. reviews 테이블/API 없음.
-- **care-journey 추가개선:** PO "단순함" 지적 → **제휴병원 띠 + 5단계 여정 타임라인**(신뢰↑·사진 없이 가능). 다음 세션.
-- **care-journey 사진 교체:** PO가 본인 사진 주면 임시 Unsplash와 교체(`CareJourneyClient.jsx` 히어로·whyCare img src).
-
-**주의·함정:**
-- **이 브랜치는 squash 머지마다 main과 어긋남(`dirty` 반복).** 다음 세션은 **새 작업 전 `git fetch origin main` 후 main 기준 새로 시작**. 이번에도 PROJECT_CONTEXT·PO_PREFERENCES가 병렬 세션과 충돌 → 양쪽 보존으로 해소.
-- **로컬 컨테이너 node_modules 없음** → `npm ci` 먼저.
-
-**다음 세션이 먼저 할 일 (우선순위):**
-1. **⚠️ 직전 미검증 확인(관리자 필요):** (a) `/admin/khidi/kpi-dashboard` 유치 4/12·상담+사후 12/120 / (b) `api/sentry/test` JSON / (c) `kpi-snapshot` cron 로그.
-2. **fix 6 구글/네이버 실리뷰 후기 섹션**(가짜 금지·실리뷰만, 출처표시).
-3. **care-journey 제휴병원 띠 + 5단계 타임라인**(프리뷰로 PO 확인).
-4. **care-journey 사진 교체**(PO 사진 받으면).
-
-**검증 상태:** PR **#114·#115(`2666d6e`)·#120(`84bb8d6`) = CI(`ci`·`Smoke`) 초록 + 머지·배포 완료**. 로컬 check:content·next build --webpack 매 단계 통과. **PO가 프리뷰로 시각 확인함**. 통계 6곳 잔재 0. **❌ 미검증(관리자 1클릭): KPI 대시보드 / Sentry 실전송 / KPI cron — 이월.**
-
-**다음 세션 첫 프롬프트 (PO 복붙용):**
-> 먼저 docs/PROJECT_CONTEXT.md 최상단 핸드오프(2026-06-20 저녁·B) 읽어. 새 작업 전 git fetch origin main 동기화부터. 그다음: 1) fix 6 후기 — 면력한방병원(강서·신촌점) 구글/네이버 반응 좋은 실리뷰 내가 줄게(없으면 니가 웹서 후보 제시) 출처표시해서 care-journey/홈에 후기 섹션(가짜 금지). 2) care-journey 더 채워 — 제휴병원 띠 + 5단계 타임라인, 프리뷰로. 3) 회복톤 사진 내가 따로 줌. 그리고 직전 미검증 3개(관리자): KPI 대시보드 / api/sentry/test / kpi-snapshot cron.
 
 ## 🏷️ 서비스명 변경 — HEALO → **healwith** (2026-06-16 확정·적용)
 

@@ -1,5 +1,41 @@
 # PR
 
+## 🔖 세션 핸드오프 (2026-06-20 저녁·B) — PO 싱크(작업계약) + 경쟁사 벤치마크 + /inquiry·/hospitals·care-journey 품질개선 fix 1~5 머지·배포 + 유치실적 2025(201만) 업데이트
+
+> ⚠️ 같은 날 저녁 다른 세션(아래 "제3자 전체 감리" 블록)과 **병렬 진행**됨 — 둘은 독립 작업. 머지 충돌은 양쪽 보존으로 풀었음.
+
+**이번 세션 한 일:**
+- **PO 싱크(working contract) 확정 → `docs/PO_PREFERENCES.md` 영구 기록 (PR [#114](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/114)·[#115](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/115) 머지):** 세션 본론은 "코드"가 아니라 "PO와 어시스턴트 싱크". 작업계약 = ①내 역할: 기본 **기술 파트너**(먼저 제안), 상황 따라 실행자 ②돈 나가는 건 "알려만", **보이는 UI 변경은 프리뷰 URL로 먼저 보여주고 OK 받기**, 그 외는 내 판단 ③반대·지적은 톤 무관 사실만.
+- **경쟁사 벤치마크 → `docs/COMPETITOR_BENCHMARK.md` (PR #115):** 1·2위 **Bookimed·Qunomedical** 기준 before = `/inquiry` **78** / `/care-journey` **79** / 신뢰표시 **61**. 격차 TOP6 도출.
+- **fix 1·2·3 — /inquiry (PR #115 배포 `2666d6e`):** ①"상담 무료·**부담 없이**"(처음 "비구속"→PO 번역투 지적→교체)+신뢰줄, ②인증배지(KHIDI·외국인환자 유치등록 — **보유한 것만**), ③Human 채널 "준비 중" 막다른길→"상담 신청서(1분)" 폴백. `app/inquiry/_components/UnifiedInquiryFunnel.jsx`.
+- **fix 4·5 + 통계 — (PR [#120](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/120) 배포 `84bb8d6`):** ④`/hospitals` 의사 카드 **"전문의" 검증 칩**(실제 전문의만, 가짜점수·도배 금지). ⑤`/care-journey` **회복톤 실사진 2장**(검수된 Unsplash 재사용 — **임시, PO 본인 사진 줄 예정**). ⑥**유치실적 2024(117만)→2025(201만)** 6곳 일관 업데이트(care-journey 6언어·홈·러시아·카자흐) — 보건복지부 2026-04-24 발표(첫 200만 돌파, 201만).
+
+**왜 그렇게 했는지:**
+- **fix 6(후기) 보류 = 법적 레드라인:** `src/lib/stories/storiesData.js`에 현재 후기가 **"샘플/데모"라 명시** → 켜면 **가짜 환자후기 = 의료법 §27 위반**. PO "싹다해"에도 안 켰고, PO가 수긍 → **"구글/네이버 실리뷰 활용"**으로 전환(다음 세션 과제).
+- **사진 프리뷰 먼저:** UI라 머지 전 프리뷰로 PO 확인(작업계약). PO "이거 좋은데 사진은 따로 줄게" → 구조 OK, 임시사진으로 머지.
+
+**안 끝났거나 보류:**
+- **fix 6 후기(구글/네이버 실리뷰):** 다음 세션. 소스 = (a) PO/코디가 반응 좋은 리뷰 텍스트 3~5개 줌(추천·정확) / (b) 내가 웹서 후보 찾음. 리뷰 본문 정확히 긁기 어려움. reviews 테이블/API 없음.
+- **care-journey 추가개선:** PO "단순함" 지적 → **제휴병원 띠 + 5단계 여정 타임라인**(신뢰↑·사진 없이 가능). 다음 세션.
+- **care-journey 사진 교체:** PO가 본인 사진 주면 임시 Unsplash와 교체(`CareJourneyClient.jsx` 히어로·whyCare img src).
+
+**주의·함정:**
+- **이 브랜치는 squash 머지마다 main과 어긋남(`dirty` 반복).** 다음 세션은 **새 작업 전 `git fetch origin main` 후 main 기준 새로 시작**. 이번에도 PROJECT_CONTEXT·PO_PREFERENCES가 병렬 세션과 충돌 → 양쪽 보존으로 해소.
+- **로컬 컨테이너 node_modules 없음** → `npm ci` 먼저.
+
+**다음 세션이 먼저 할 일 (우선순위):**
+1. **⚠️ 직전 미검증 확인(관리자 필요):** (a) `/admin/khidi/kpi-dashboard` 유치 4/12·상담+사후 12/120 / (b) `api/sentry/test` JSON / (c) `kpi-snapshot` cron 로그.
+2. **fix 6 구글/네이버 실리뷰 후기 섹션**(가짜 금지·실리뷰만, 출처표시).
+3. **care-journey 제휴병원 띠 + 5단계 타임라인**(프리뷰로 PO 확인).
+4. **care-journey 사진 교체**(PO 사진 받으면).
+
+**검증 상태:** PR **#114·#115(`2666d6e`)·#120(`84bb8d6`) = CI(`ci`·`Smoke`) 초록 + 머지·배포 완료**. 로컬 check:content·next build --webpack 매 단계 통과. **PO가 프리뷰로 시각 확인함**. 통계 6곳 잔재 0. **❌ 미검증(관리자 1클릭): KPI 대시보드 / Sentry 실전송 / KPI cron — 이월.**
+
+**다음 세션 첫 프롬프트 (PO 복붙용):**
+> 먼저 docs/PROJECT_CONTEXT.md 최상단 핸드오프(2026-06-20 저녁·B) 읽어. 새 작업 전 git fetch origin main 동기화부터. 그다음: 1) fix 6 후기 — 면력한방병원(강서·신촌점) 구글/네이버 반응 좋은 실리뷰 내가 줄게(없으면 니가 웹서 후보 제시) 출처표시해서 care-journey/홈에 후기 섹션(가짜 금지). 2) care-journey 더 채워 — 제휴병원 띠 + 5단계 타임라인, 프리뷰로. 3) 회복톤 사진 내가 따로 줌. 그리고 직전 미검증 3개(관리자): KPI 대시보드 / api/sentry/test / kpi-snapshot cron.
+
+---
+
 ## 🔖 세션 핸드오프 (2026-06-20 저녁·병렬) — KPI 집계·대시보드 계산 순수함수 추출+테스트 +50 머지·배포(#118·#122)
 
 **이번 세션 한 일:**
