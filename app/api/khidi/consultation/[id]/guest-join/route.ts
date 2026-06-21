@@ -130,9 +130,12 @@ export async function POST(
     // 3. LiveKit access token 발급
     // ───────────────────────────────────────────────
     const role = verification.role!;
-    const canPublish = role === "patient" || role === "doctor";
+    // 송신 권한: 게스트도 전원 카메라·마이크 송신 가능 (PO 결정 2026-06-21 — 다자 회의).
+    //   입장은 여전히 유효한 초대 토큰(verification)으로만 가능 — 외부인 난입은 차단된 채
+    //   초대받은 게스트의 방 안 송신만 허용한다.
+    const canPublish = true;
     const canSubscribe = true;
-    const canPublishData = role !== "observer";
+    const canPublishData = true;
 
     // identity: 게스트는 audit 시 추적 가능하도록 tokenId 일부 포함.
     // 입장마다 난수 suffix 추가 — 같은 링크를 두 기기에서 동시에 써도
