@@ -7,6 +7,53 @@
 
 ---
 
+## 🔖 세션 핸드오프 (2026-06-21 밤 — #209 실서비스 배포·실검증 세션) — 병원 '치료확정'→유치 자동집계 '되돌리기 가능' prod 배포+실검증 / 생애주기 지도 문서 / #160 카메라 데모방·초대링크 발급
+
+**이번 세션 한 일:**
+- **#209 (✅머지·prod배포·실검증): 병원 '치료 확정' → 유치 자동집계 '되돌리기 가능'.** 옆 세션이 만든 **PR #208**(같은 자동집계지만 **되돌리기 UI가 빠진 옛 버전** + 생애주기 지도 문서)을 닫고, 그 안의 **생애주기 지도 문서는 살려서** 되돌리기 버전(`8a24df1`)과 **합쳐** 지정 작업본에 정리. 방식: 지정 브랜치를 #208 clean base(`j1d0se`)에 ff-merge → `8a24df1`의 되돌리기 3파일(`conversion/page.jsx`·`conversion-funnel/route.ts`·`partner/leads/[id]/route.ts`)만 overlay → 1커밋. 자동검사(CI) `ci`·`Smoke` 초록 → squash 머지(`fa8a6c7`).
+  - **점수판(`/admin/khidi/conversion`)에 '유치 확정됨(되돌리기)' 섹션 신설** — 자동집계분엔 **'자동' 배지**, '유치 취소'(→null)/'이탈' 버튼. 화면은 **실제 JSX 로컬 렌더 스크린샷으로 PO 확인**받고 진행("이대로 진행").
+  - 핵심 로직: 병원 `converted` 시 `inquiries.outcome='admitted'` 자동 기록하되 **`outcome IS NULL`일 때만**(`.is`) — 코디가 이미 정한 결정(admitted/lost/취소)은 안 덮음. 자동분 `outcome_updated_by=null`로 '자동' 배지 구분.
+- **실서비스(prod) 배포:** 머지 후 Vercel이 prod 자동배포를 **또 안 띄워서**(#202 때와 동일) **PO 승인("지금 띄워줘") 받고 main에 빈 커밋(`5695146`) 푸시** → prod alias가 `010c398`(#209 포함)로 promote. `healo-khidi.vercel.app` 새 점수판 라이브.
+- **prod 실검증 (병원 계정 `hospital@test.com` 실 API + DB 추적):** ① 병원 `converted` → 데모 #13 `outcome='admitted'`(`updated_by=null`=자동) **유치 +1** ✅ ② **유치 취소** → `outcome=null` ✅(취소 PATCH는 admin 전용 API라 admin 테스트계정 없음 → **DB로 동일효과 재현 확인**) ③ **가드**: 코디가 `lost`(이탈) 정한 뒤 병원이 다시 `converted` 해도 **자동집계가 안 덮어씀**(`lost` 유지) ✅. **데모 #13은 원상복구**(outcome null / lead `replied`) — 평가 점수판 오집계 방지.
+- **#160 카메라 테스트 준비:** 전용 데모방 `consultation_sessions` id=`5b71a48d-c8a7-44ab-a407-689b5ee360e8`(`livekit_room_name` 세팅) + **카메라 송출 초대링크 2개**(patient/doctor, 72h, 10회 재입장) 발급. **prod guest-join으로 LiveKit 입장토큰 발급 실확인**. PO 폰 2대 라이브 테스트만 남음.
+- **작업 #3 (생애주기 지도 문서) 완료:** `docs/CASE_LIFECYCLE_MAP.md`가 #209에 함께 main 반영.
+
+**왜 그렇게 했는지:**
+- PO가 원한 건 '되돌리기 가능' 버전(`8a24df1`) — 무조건 자동인 #207/#208은 PO가 닫음. 자동집계는 KPI 누락(에이전시→병원 경로) 차단, 되돌리기는 데모/오집계 방어.
+- prod 자동배포 누락은 무료플랜 특성 → 빈 커밋 트리거(지난 #202와 동일 수법, PO 승인).
+- admin 점수판 API는 admin 전용인데 **admin 테스트계정을 의도적으로 안 만듦**(test1234 admin=PII 복호화 위험) → '유치 취소'는 DB로 동일효과 검증(정직 표기).
+
+**안 끝났거나 보류:**
+- **#160 라이브 2명+ 카메라 동시 송출** — 코드·초대링크·LiveKit 토큰 다 준비됐고 **PO 폰 2대 실테스트만** 남음(자동/원격 불가). 초대링크 만료 2026-06-24.
+- (참고) main 빈 커밋 `5695146`이 prod 빌드 하나 더 돌 수 있음 — `010c398`과 동일 코드라 무해.
+
+**주의·함정:**
+- **admin 점수판 API**(`/api/admin/khidi/conversion-funnel` GET/PATCH)는 `requireAdminAuth`=`app_metadata.role==='admin'` 또는 `ADMIN_EMAIL_ALLOWLIST`만 통과. **coordinator@test.com 안 통함, admin 테스트계정 없음** → prod에서 점수판 API 직접 검증하려면 PO 실 admin 계정 필요.
+- 자동 outcome은 **`outcome IS NULL`일 때만** 기록(`.is`). 자동분 `outcome_updated_by=null`(='자동' 배지), 코디 수동분은 그의 user_id.
+- 병원 lead PATCH 자동집계는 `hospital_leads.normalized_inquiry_id`→`normalized_inquiries.source_inquiry_id` 연결이 있어야 동작(없으면 무음 스킵).
+- **데모 #13**(TEST 병원 lead `4f22e5b2…`, "유방암 (데모)")로 또 테스트하면 outcome이 다시 채워짐 → **끝나면 `outcome=null`·lead `replied`로 복구**(평가 점수판 오집계 방지).
+- 화상 데모방 초대링크 토큰 평문은 **발급 시 1회만** 노출(분실 시 재발급). 세션은 `livekit_room_name` 없으면 guest-join이 `consultation_has_no_room`(409).
+
+**다음 세션이 먼저 할 일 (우선순위):**
+1. **⚠️ 직전 미검증분 먼저:** **#160 화상방에 폰 2대로 2명 입장 → 서로 카메라 보이는지 라이브 확인**(PO 동석). 아래 두 초대링크(만료 2026-06-24). 카메라 안 보이면 보고.
+2. (선택) 점수판 '유치 확정됨(되돌리기)' 섹션을 **PO 실 admin 로그인으로 prod에서 눈으로** 한 번 확인('자동' 배지·버튼 동작).
+3. KHIDI 중간평가(2026-08-27) 상시 — 유치전환 대시보드·만족도(K-03) 직결.
+
+**검증 상태:**
+- 로컬: tsc 0(tsconfig `baseUrl` deprecation 경고만, 내 코드 0) / vitest khidi **59 통과** / `check:content` 통과 / `next build --webpack` 통과.
+- CI: **PR #209 `ci`·`Smoke` 초록 확인 후 squash 머지**(`fa8a6c7`). 열린 PR: **#197**(STT, DRAFT) — 무관. **#208 닫음**(이 PR로 대체).
+- prod 실검증: 병원 `converted`→**유치 +1 ✅**(실 API+DB), **가드(lost 보존) ✅**(실 API+DB), **유치 취소→null ✅**(DB 동일효과 — admin API 직접호출은 admin 토큰 없어 **미실행**). **데모 #13 원상복구 확인 ✅.**
+- prod alias=`010c398`(#209 포함) **READY**. **#160 초대링크: guest-join LiveKit 토큰 발급 ✅, 라이브 2명 카메라 렌더 ❌미검증(PO 폰 테스트 필요).**
+
+**#160 카메라 테스트 초대링크 (만료 2026-06-24, 폰 2대로 각각 열기):**
+- A(환자): `https://healo-khidi.vercel.app/consultation/5b71a48d-c8a7-44ab-a407-689b5ee360e8?invite=f8b9214eca7856dc443395266875612c6dc6671816c79e334713ce68bafe64ab`
+- B(의사): `https://healo-khidi.vercel.app/consultation/5b71a48d-c8a7-44ab-a407-689b5ee360e8?invite=7f9868fa5678d35e7e0c8facb2aa59a1c8b6a8de7a347105470ce536d36179d0`
+
+**다음 세션 첫 프롬프트:**
+> 먼저 docs/PROJECT_CONTEXT.md 최상단 핸드오프(2026-06-21 밤) 읽어. #209(병원 '치료확정'→유치 자동집계 '되돌리기 가능')는 실서비스에 배포·실검증 다 끝났어(유치+1·되돌리기·가드 OK, 데모 #13 원상복구). 생애주기 지도 문서도 들어갔고. 남은 건 화상방 카메라(#160)야 — 핸드오프 맨 아래 초대링크 2개(만료 6/24)를 폰 2대로 각각 열어서 2명 입장 → 서로 카메라 보이는지 같이 확인하자(준비만 시켜줘, 안 보이면 재발급). 그담에 점수판 '유치 확정됨(되돌리기)' 화면을 내 admin 계정으로 prod에서 한번 눈으로 보고 싶어.
+
+---
+
 ## 🔖 세션 핸드오프 (2026-06-21 추가 — prod 배포확인 세션) — #202 역방향 프리뷰 실검증 + cron 3종 전수 점검(전부 정상) + #160 다자카메라 코드·prod 확인
 
 **이번 세션 한 일 (코드 변경 0 — 전부 검증·진단):**
@@ -42,42 +89,6 @@
 
 ---
 
-## 🔖 세션 핸드오프 (2026-06-21 밤) — 계정 계층 8종 정리 + 해외 의료기관 신규 + 역할별 로그인 착지 + 에이전시 '환자 의뢰하기' + ⚠️Vercel 배포한도 대기
-
-**이번 세션 한 일:**
-- **#178 (✅머지·배포): 계정 계층 8종 단일 표준 확정 + 해외 의료기관 신규.** 실제 인증코드(`app_metadata.role`+`hospital_users`+`agency_users`)와 어긋난 유령 역할묶음(`roles.ts`/`user_roles`: korean_hospital/local_clinic/agent) 통일. `src/lib/auth/accountTiers.ts`가 단일 SoR(게스트·환자·코디·의사·관리자·국내병원·해외에이전시·해외의료기관). **해외 의료기관(8번째)** = 에이전시와 기능 동일 → 별도 테이블/포털 안 만들고 `agencies.partner_type`('agency'|'medical_institution') 한 컬럼으로 구분(마이그레이션 `20260621` **prod 적용 완료**, additive). 코디·의사 포털에 역할 문지기(`StaffPortalGate`+`/api/me`) 추가(전엔 로그인만 하면 뚫림). `docs/ACCOUNT_TIERS.md`+가드 테스트 14개.
-- **#184 (✅머지·배포): 로그인 후 역할별 포털 착지 + /agency 크롬 정리.** 전엔 로그인 시 무조건 `/patient`로 보내 에이전시가 환자 대시보드를 봄. `src/lib/auth/resolveLanding.ts`(역할→착지경로), `/api/me`가 `landing` 반환, `LoginPremium`이 그걸 보고 분기, `auth/callback`도 역할별. `ClientShell` `isPortalPage`에 `/agency` 포함 → 환자용 헤더·하단탭바(SOS·병원) 숨기고 깔끔한 포털 상단바.
-- **#187 (머지됨·⚠️prod 미배포): 프리미엄 환자 대시보드 비환자 가드.** 이미 로그인된 채 `/patient`에 머물면 #184가 안 먹혀서 가드 추가.
-- **#191 (머지됨·⚠️prod 미배포): 레거시 환자 대시보드에도 같은 가드.** 환자 대시보드가 **두 버전**인데 디자인 **기본값이 LEGACY**라 실제로 뜨는 건 `PatientDashboardClient`였음 — #187(프리미엄만)으론 안 고쳐져 PO가 "아직 그대로"라 재신고 → 레거시에도 추가. `/api/me` 에이전시 landing=`/agency` **실측 확인**(프리뷰 토큰 호출).
-- **#194 (📝DRAFT·배포한도로 프리뷰 못 만듦): 에이전시 '환자 의뢰하기'.** 에이전시 포털이 조회전용이라 직접 환자 의뢰 불가(관리자가 `/admin/khidi/cases`에서 수동 배정해야만 노출)였음. `POST /api/agency/refer`(checkAgencyAuth, 본인 agency_id 강제, PII AES-256-GCM 암호화, case_status='received'+이력+관리자 알림) + `/agency`에 '+환자 의뢰하기' 폼.
-- **테스트 계정 6종 생성**(Supabase auth 직접 insert): `patient/coordinator/doctor/hospital/agency/clinic @test.com` / **`test1234`**. agency·clinic·hospital은 **TEST 전용 기관**에 연결(실데이터 격리). **admin은 의도적으로 안 만듦**(test1234 관리자=환자PII 복호화 위험).
-
-**왜 그렇게 했는지:**
-- 해외 의료기관은 PO가 8번째 계층으로 "만든다" 결정 → 에이전시 인프라 재활용이 가장 안전·DRY(별도 포털 중복 X).
-- #191은 "환자 대시보드가 2개(레거시/프리미엄), 기본이 레거시"란 함정 때문 — 프리미엄만 고치면 안 보임. 둘 다 고쳐야.
-- #194는 머지 안 함: **보이는 새 기능 → 프리뷰로 PO 확인 먼저**(PO 취향). 그런데 Vercel 한도로 프리뷰조차 못 만들어 대기.
-
-**안 끝났거나 보류:**
-- **⚠️ Vercel 무료 배포 한도(하루 100회) 초과** — 한 세션에서 PR을 많이 만들어 초과. 약 24시간 뒤(2026-06-22) 풀림. **PO 결정: 유료(Pro $20/월) 안 쓰고 2026-06-22까지 무료 대기.** 그래서 #187·#191(머지됨)이 **prod 미반영**(현재 prod=`6bc613b` #187빌드라 #191 없음), #194 프리뷰도 못 만듦.
-- **TEST 에이전시에 환자 진행 예시 1건 넣기** — PO가 "넣을까요?"에 답 안 함(데모용, 미실행).
-
-**주의·함정:**
-- **Vercel 배포 한도**: 한 세션에서 PR/푸시 남발하면 하루 100 배포 초과 → 프리뷰·prod 다 막힘. PR 묶어서.
-- **환자 대시보드 2종**: `PatientDashboardClient`(레거시·**기본값**) + `PatientDashboardPremium`. 환자 화면 손대면 **둘 다** 고쳐라(레거시가 실제로 뜸).
-- **`@/*`=`src/*` alias** — `app/` 컴포넌트는 상대경로 import(`StaffPortalGate` 빌드 실패 경험). `case_status_history`는 생성타입에 없어 `(supabaseAdmin as any)`.
-- **squash 머지 후 같은 브랜치 이어쓰면 충돌**(#184 dirty 경험) → `git fetch origin main` 후 origin/main 기준 새 브랜치, 옛 커밋 cherry-pick.
-- **테스트 계정**: coordinator/doctor는 실환자 PII 봄 → 외부 에이전시엔 `agency@test.com`만. admin 미생성.
-
-**다음 세션이 먼저 할 일 (우선순위):**
-1. **⚠️ 배포 대기분 먼저 처리(자동 불가):** Vercel 한도 풀렸는지 확인 → (a) **#194 프리뷰 빌드되면 PO에게 '환자 의뢰하기' 화면 보여주고 OK받고 머지** (b) **#187·#191이 prod 반영되게 main 배포 트리거**(#194 머지가 곧 트리거, 아니면 빈 커밋). (c) prod에서 **에이전시 로그인→/agency·자동튕김·의뢰 폼 end-to-end 1회 실클릭 확인**(`agency@test.com`/`test1234`).
-2. (선택) PO가 원하면 TEST 에이전시에 환자 진행 예시 1건 넣어 데모.
-3. 직전(2026-06-21 저녁) 미검증분 그대로: 화상방 다자 카메라(#160)·만족도/침묵 알림 수신(데이터 쌓여야).
-4. KHIDI 중간평가(2026-08-27) 상시.
-
-**검증 상태:** 각 변경 **로컬 tsc 0 / eslint 0 error / next build --webpack 통과**. vitest accountTiers 14개 추가(#178 때 총 259). **#178·#184: CI(`ci`·`Smoke`) 초록 + squash 머지 + prod 배포 확인.** **#187·#191: CI 초록 + 머지됐으나 ⚠️prod 배포 실패(Vercel 한도) → prod 미반영.** **#194: DRAFT, 로컬 빌드만 통과, 프리뷰/CI 미생성(한도).** 마이그레이션 `20260621`(agencies.partner_type) prod 적용·확인. `/api/me` 에이전시 landing=`/agency` 실측 확인. **❌ 미검증: #194 화면(프리뷰 못 만듦) / #191 prod 동작 / 에이전시 의뢰 end-to-end(폼→DB→목록) — 전부 2026-06-22 배포 후.**
-
-**다음 세션 첫 프롬프트:**
-> 먼저 docs/PROJECT_CONTEXT.md 최상단 핸드오프 읽어. 2026-06-21에 Vercel 배포 한도(하루 100회)에 걸려서 #187·#191(머지됨)이 실서비스에 아직 안 올라갔고 #194(에이전시 '환자 의뢰하기')는 초안 상태야. 한도 풀렸는지 확인하고: ①#194 프리뷰 만들어서 나한테 '환자 의뢰하기' 화면 보여주고 OK받으면 머지 ②#187·#191도 실서비스 반영되게 배포 트리거 ③에이전시 계정(agency@test.com / test1234)으로 로그인→에이전시 화면·환자 의뢰 폼 실제 작동 1회 확인해줘.
 ## 🏷️ 서비스명 변경 — HEALO → **healwith** (2026-06-16 확정·적용)
 
 **상표 문제로 서비스명을 `HEALO` → `healwith`(항상 소문자 표기)로 최종 변경. 앞으로 모든 신규 작업은 `healwith`로 한다.**
