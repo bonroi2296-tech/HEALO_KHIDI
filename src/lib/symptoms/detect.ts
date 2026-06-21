@@ -39,7 +39,10 @@ export interface SymptomEntry {
 }
 
 export interface DetectedAlert {
-  patient_id: string;
+  /** 로그인 환자(auth.users uuid). 메신저 문의 환자는 null 이고 inquiry_id 로 식별. */
+  patient_id?: string | null;
+  /** 메신저 문의 환자(inquiries.id bigint). 둘 중 하나는 반드시 있어야 함. */
+  inquiry_id?: number | null;
   symptom_entry_id?: string;
   alert_type: AlertType;
   severity: AlertSeverity;
@@ -98,34 +101,10 @@ function detectPain(entry: SymptomEntry): DetectedAlert | null {
 // ─────────────────────────────────────────────
 // 규칙 3: 침묵 감지 (cron에서 호출)
 // — 마지막 입력 후 N일 이상 무입력
+// 순수 로직은 silence.ts(서버전용 아님)로 분리 — 단위 테스트로 잠금(POSTMORTEMS #13).
+// inquiry_id 식별을 지원하므로 cron 은 buildSilenceAlert 를 직접 쓴다.
 // ─────────────────────────────────────────────
-export function detectSilence(
-  patientId: string,
-  lastEntryAt: Date | null,
-  silenceDays = 3
-): DetectedAlert | null {
-  if (!lastEntryAt) {
-    // 한 번도 입력 없으면 무시 (처음 가입한 환자 포함)
-    return null;
-  }
-  const diffMs = Date.now() - lastEntryAt.getTime();
-  const diffDays = diffMs / (1000 * 60 * 60 * 24);
-  if (diffDays >= silenceDays) {
-    return {
-      patient_id: patientId,
-      alert_type: "silence_long",
-      severity: diffDays >= 7 ? "high" : "medium",
-      detected_by: "rule",
-      data: {
-        last_entry_at: lastEntryAt.toISOString(),
-        silence_days: Math.floor(diffDays),
-        threshold_days: silenceDays,
-        rule: "silence_long",
-      },
-    };
-  }
-  return null;
-}
+export { buildSilenceAlert } from "./silence";
 
 // ─────────────────────────────────────────────
 // 규칙 4: 급격한 악화 (직전 대비)

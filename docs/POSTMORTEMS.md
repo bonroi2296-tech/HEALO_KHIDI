@@ -307,3 +307,27 @@ ISO/IEC 25010(TTA GS) 기준 제3자 보안 감리 중, 환자 의료데이터�
 **재발 방지 (시스템 적용)**
 - **규칙: 암호화 컬럼(`*_encrypted`, 그리고 `inquiries.email`/`first_name`/`last_name`/`contact_id`/`message` 처럼 암호문이 들어가는 텍스트 컬럼)을 읽어 사용·발송하는 모든 새 경로(cron·API·집계)는 `decryptMaybe`/`decrypt*ForAdmin` 으로 복호화 후 사용.** 화면 표시뿐 아니라 "메일 보낼 주소"로 쓸 때도 동일.
 - 순수 로직 테스트의 픽스처는 **실제 저장 형태(암호문)** 케이스를 최소 1개 포함해 "읽는 쪽 복호화 누락"을 잡는다.
+
+---
+
+## #14 — 침묵환자 감지 cron 도 같은 `patient_id` null 의존 + uuid/bigint 타입 혼선으로 항상 0건 (2026-06-21)
+
+**무슨 일**
+- 사후관리 기능 중 "증상 입력이 3일 이상 끊긴 환자를 코디에게 자동 알림"(silence_long)이 **한 번도 안 떴음**(symptom_alerts 0행).
+- 원인 ①: cron 이 `consultation_sessions` 를 `.not("patient_id","is",null)` 로 걸렀는데 `patient_id` 가 전 행 null → 대상 0건(#12·#13 와 같은 부류).
+- 원인 ②(더 깊음): `consultation_sessions.patient_id` 는 사실 **bigint(→cancer_patient_intakes)** 인데 `symptom_alerts.patient_id` 는 **uuid(→auth.users)** 다. 두 컬럼을 같은 "환자키"로 본 설계 자체가 어긋나, `alertService.getCoordinatorIds` 가 uuid 로 bigint 컬럼을 조회하는 등 알림 흐름도 깨져 있었음. 실제 환자 연결고리는 메신저 문의(계정 없음)의 `inquiry_id`.
+
+**왜 못 잡았나 (근본원인)**
+1. 증상 모니터링 서브시스템 전체가 "로그인 환자(uuid)" 전제로 설계됐는데, 실제 퍼널은 메신저 문의(bigint, 계정 없음)라 전제가 틀림.
+2. cron 이 또 "대상 없음"으로 조용히 0건 종료(#12·#13 와 동일한 위장).
+3. 라이브 cron + 서버전용 모듈이라 자동 테스트로 안 닫혀 있었음.
+
+**어떻게 고쳤나**
+- 마이그레이션: `symptom_alerts` 에 `inquiry_id bigint` 추가 + `patient_id` nullable + `CHECK(patient_id IS NOT NULL OR inquiry_id IS NOT NULL)` + inquiry 활성 인덱스. (0행 테이블이라 안전, 멱등 작성.)
+- 순수 로직을 서버전용 아닌 `src/lib/symptoms/silence.ts`(`buildSilenceAlert`·`uniqueInquiryIds`)로 분리 → 단위테스트 9개. cron 은 inquiry_id 기준으로 재작성(활성 문의 → 최근 증상보고 → 3일↑ 무입력 → inquiry 기준 알림, 중복방지).
+- `alertService`: insert 에 inquiry_id 포함, `getCoordinatorIds` 를 inquiry_id/patient_user_id 기준으로, 메신저 문의 환자(계정 없음)는 안심 in-app 알림 skip. 코디 화면은 patient_id 없으면 `문의 #N` 표시.
+- cron 계약 테스트(`route.contract.test.ts`)로 "inquiry_id 기준 조회·알림" 잠금.
+
+**재발 방지 (시스템 적용)**
+- `consultation_sessions.patient_id`(bigint·전 행 null)를 "로그인 환자키(uuid)"로 쓰지 말 것 — 실제 키는 `inquiry_id`(문의) 또는 `patient_user_id`(auth uuid). (#12·#13·#14 동일 뿌리.)
+- "조용히 0건" cron 의 순수 분기는 비서버전용 모듈로 빼서 단위·계약 테스트로 닫는다(#12·#13 와 동일 처방).

@@ -37,18 +37,27 @@ const ALERT_TYPE_LABEL: Record<string, string> = {
 };
 
 // ─────────────────────────────────────────────
-// 코디네이터 user_id 조회 (해당 환자 담당 코디네이터)
-// coordinator 테이블이 없으면 app_metadata.role='coordinator' 전체에게
+// 코디네이터 user_id 조회 (해당 환자/문의 담당 코디네이터)
+// - inquiry_id 가 있으면 그 문의의 세션에서 담당 코디 조회(메신저 문의 환자 경로).
+// - patient_user_id(로그인 환자)면 그 사용자의 세션에서 조회.
+//   ⚠️ consultation_sessions.patient_id 는 bigint(cancer_patient_intakes)·전 행 null 이라
+//      쓰지 않는다(POSTMORTEMS #12/#13). 실제 연결고리는 inquiry_id / patient_user_id.
+// 없으면 COORDINATOR_FALLBACK_EMAIL 로 fallback.
 // ─────────────────────────────────────────────
-async function getCoordinatorIds(patientId: string): Promise<string[]> {
+async function getCoordinatorIds(alert: DetectedAlert): Promise<string[]> {
   const supabase = getSupabaseServerClient();
-  // consultation_sessions에서 coordinator_id 조회 시도
-  const { data: sessions } = await supabase
+  // 해당 문의/환자의 최근 세션에서 담당 코디 조회
+  let q = supabase
     .from("consultation_sessions")
     .select("coordinator_id, coordinator_user_id")
-    .eq("patient_id", patientId)
     .order("created_at", { ascending: false })
     .limit(1);
+  if (alert.inquiry_id != null) {
+    q = q.eq("inquiry_id", alert.inquiry_id);
+  } else if (alert.patient_id) {
+    q = q.eq("patient_user_id", alert.patient_id);
+  }
+  const { data: sessions } = await q;
 
   const session = sessions?.[0] as any;
   const coordId = session?.coordinator_user_id || session?.coordinator_id;
@@ -133,6 +142,12 @@ async function sendAlertEmail(
   const typeLabel = ALERT_TYPE_LABEL[alert.alert_type] || alert.alert_type;
   const severityLabel = SEVERITY_LABEL[alert.severity] || "";
   const appUrl = process.env.NEXT_PUBLIC_URL || "https://khidi.healo.kr";
+  // 식별자: 로그인 환자면 patient_id, 메신저 문의 환자면 문의번호
+  const subjectId = alert.patient_id
+    ? alert.patient_id
+    : alert.inquiry_id != null
+      ? `문의 #${alert.inquiry_id}`
+      : "미상";
 
   await sendEmail({
     to: recipientEmail,
@@ -147,7 +162,7 @@ async function sendAlertEmail(
   <div style="background:#f9fafb;padding:20px;border:1px solid #e5e7eb;border-radius:0 0 8px 8px">
     <p style="color:#374151;margin:0 0 12px"><strong>감지 유형:</strong> ${typeLabel}</p>
     <p style="color:#374151;margin:0 0 12px"><strong>심각도:</strong> ${alert.severity}</p>
-    <p style="color:#374151;margin:0 0 12px"><strong>환자 ID:</strong> ${alert.patient_id}</p>
+    <p style="color:#374151;margin:0 0 12px"><strong>환자 ID:</strong> ${subjectId}</p>
     <p style="color:#374151;margin:0 0 20px"><strong>감지 데이터:</strong><br>
       <code style="background:#e5e7eb;padding:8px;display:block;border-radius:4px;font-size:12px;white-space:pre-wrap">${JSON.stringify(alert.data, null, 2)}</code>
     </p>
@@ -160,7 +175,7 @@ async function sendAlertEmail(
     </a>
   </div>
 </body></html>`,
-    text: `[healwith] ${severityLabel} ${typeLabel}\n환자 ID: ${alert.patient_id}\n감지 데이터: ${JSON.stringify(alert.data)}\n\n확인: ${appUrl}/coordinator/alerts?alert=${alertId}\n\n⚠️ 이 알림은 의학적 진단이 아닙니다.`,
+    text: `[healwith] ${severityLabel} ${typeLabel}\n환자 ID: ${subjectId}\n감지 데이터: ${JSON.stringify(alert.data)}\n\n확인: ${appUrl}/coordinator/alerts?alert=${alertId}\n\n⚠️ 이 알림은 의학적 진단이 아닙니다.`,
     tags: { source: "symptom_alert", severity: alert.severity },
   });
 }
@@ -182,7 +197,8 @@ export async function saveAndNotifyAlerts(
       const { data: inserted, error } = await (supabase as any)
         .from("symptom_alerts")
         .insert({
-          patient_id: alert.patient_id,
+          patient_id: alert.patient_id ?? null,
+          inquiry_id: alert.inquiry_id ?? null,
           symptom_entry_id: alert.symptom_entry_id || null,
           alert_type: alert.alert_type,
           severity: alert.severity,
@@ -201,7 +217,7 @@ export async function saveAndNotifyAlerts(
       savedIds.push(alertId);
 
       // 2. 코디네이터 in-app 알림
-      const coordinatorIds = await getCoordinatorIds(alert.patient_id);
+      const coordinatorIds = await getCoordinatorIds(alert);
       for (const cId of coordinatorIds) {
         await insertNotification(cId, alert, alertId, "coordinator").catch((e) =>
           console.warn("[alertService] 코디 알림 실패:", e.message)
@@ -215,8 +231,9 @@ export async function saveAndNotifyAlerts(
         );
       }
 
-      // 4. 환자 안심 알림 (중복 방지: ai_risk 제외)
-      if (alert.alert_type !== "silence_long") {
+      // 4. 환자 안심 알림 (silence_long 제외 + 로그인 환자(patient_id)만 — 메신저 문의
+      //    환자는 auth 계정이 없어 in-app 알림 대상이 아님)
+      if (alert.alert_type !== "silence_long" && alert.patient_id) {
         await insertNotification(alert.patient_id, alert, alertId, "patient").catch(
           (e) => console.warn("[alertService] 환자 알림 실패:", e.message)
         );
