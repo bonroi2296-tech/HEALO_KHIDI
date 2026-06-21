@@ -649,16 +649,18 @@ export async function generateChatReply(
     let result = await generateTextWithRetry({ ...baseParams, messages: messages as any });
 
     // 🔁 빈 응답 복구(핵심 수정 2026-06-21): 대화 기록이 길고 반복적으로 쌓이면 Gemini 가
-    // finishReason=stop 으로 빈 텍스트를 반환한다(A/B 실측: 새 스레드 0/12 vs 기록누적 스레드 2/12,
-    // 둘 다 11~12번째 턴). 같은 긴 기록으로 재시도하면 모델이 '더 답할 것 없음'으로 또 비므로,
-    // 직전 1~2턴만 남겨 호출해 그 루프를 끊는다(짧은 기록은 위 A 테스트에서 빈응답 0%).
-    if ((!result?.text || !result.text.trim()) && messages.length > 2) {
+    // finishReason=stop 으로 빈 텍스트를 반환한다(A/B 실측: 새 스레드 0/12 vs 기록누적 스레드 2/12).
+    // 원인은 "모델이 직전 자기 답변을 다시 보고 '이미 답했음'으로 종료"하는 것 → 직전 어시스턴트
+    // 답변을 포함해 재시도하면(slice(-2)) 똑같이 빈다(14/24 재현). 그래서 복구는 마지막 사용자
+    // 질문 1건만 보낸다(slice(-1)) — 새 스레드와 동일 조건이라 위 A 테스트에서 빈응답 0%.
+    // 트레이드오프: 직전 맥락 없이 답하지만, 빈 말풍선보다 낫다(이 경로는 빈 응답일 때만 탐).
+    const lastUser = [...messages].reverse().find((m) => m.role === "user");
+    if ((!result?.text || !result.text.trim()) && lastUser && messages.length > 1) {
       console.warn(
         `[generateChatReply] empty after retries (finishReason=${(result as any)?.finishReason}) ` +
-        `— retrying with reduced history (last 2 of ${messages.length} msgs)`
+        `— retrying with last user message only (of ${messages.length} msgs)`
       );
-      const reduced = messages.slice(-2);
-      const reducedResult = await generateTextWithRetry({ ...baseParams, messages: reduced as any }, 2);
+      const reducedResult = await generateTextWithRetry({ ...baseParams, messages: [lastUser] as any }, 2);
       if (reducedResult?.text && reducedResult.text.trim()) result = reducedResult;
     }
 
