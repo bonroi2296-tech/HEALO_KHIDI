@@ -163,15 +163,29 @@ export async function POST(request: NextRequest) {
 
     const { data: history } = await (supabaseAdmin as any)
       .from("chat_messages")
-      .select("actor_type, message_text")
+      .select("actor_type, message_text, metadata")
       .eq("thread_id", thread_id)
       .order("created_at", { ascending: true })
-      .limit(20);
+      .limit(30);
 
-    const chatMessages = (history || []).map((m: any) => ({
-      role: m.actor_type === "patient" ? "user" as const : "assistant" as const,
-      content: m.message_text,
-    }));
+    // 모델에 넣을 대화 맥락 구성 — '비답변' 시스템 메시지를 제외하고 최근 N개로 제한한다.
+    // 왜(2026-06-21 실데이터 확인): 빈응답 에러 폴백("죄송합니다 답변을 만들지 못했어요")·자료접수
+    // ACK·빈 텍스트 같은 비답변 메시지가 기록에 쌓이면, 모델이 그 사과·되묻기 패턴을 흉내 내
+    // 명확한 질문("대장암 치료법 알려줘")에도 인사로만 답하는 버그가 발생. 또 오래된 잘린 답변·
+    // 누수된 추론 텍스트의 오염을 끊기 위해 최근 MODEL_HISTORY_LIMIT 개만 사용. (저장 자체는 보존)
+    const MODEL_HISTORY_LIMIT = 12;
+    const chatMessages = (history || [])
+      .filter((m: any) => {
+        if (m.actor_type !== "system") return true;          // 환자 메시지는 항상 유지
+        if (m?.metadata?.ai_error) return false;             // 빈응답·에러 폴백 제외
+        if (m?.metadata?.attachment_ack) return false;       // 자료접수 안내(비답변) 제외
+        return !!String(m.message_text || "").trim();        // 빈 텍스트 제외
+      })
+      .slice(-MODEL_HISTORY_LIMIT)
+      .map((m: any) => ({
+        role: m.actor_type === "patient" ? "user" as const : "assistant" as const,
+        content: m.message_text,
+      }));
 
     const lang = threadMeta.language || "en";
 
