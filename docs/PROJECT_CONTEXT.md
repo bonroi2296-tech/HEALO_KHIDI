@@ -7,6 +7,45 @@
 
 ---
 
+## 🔖 세션 핸드오프 (2026-06-21 마감) — 에이전시 다국어·환자의뢰 prod 반영(#194) + 코디↔국내병원 백오피스 풀체인(#200) + 병원응답 역방향 반영(#202) + 숨은 배정버그 복구
+
+> (아래 "2026-06-21 밤" 블록의 후속·갱신본 — 그 블록은 #194가 초안/한도대기 시점 기록이고, 이후 #194·#200·#202까지 머지·검증된 최종 상태가 이 블록이다.)
+
+**이번 세션 한 일:**
+- **#194 (✅머지·prod 라이브·실클릭 검증): 에이전시 포털 다국어 + 깜빡임 수정 + 환자 의뢰하기.** 6개 언어(ko·en·ru·kz·zh·ja) 로컬 사전(`app/agency/page.jsx` TR) + **포털 상단바 언어 스위처**(`ClientShell` PortalTopBar — 쿠키+`healo:langchange`로 리로드 없이 전환) + 진행단계 라벨 다국어(`src/lib/khidi/caseStatus.ts` `CASE_STATUS_LABELS`/`caseStatusLabelL`). 로그인→포털 **옛 UI 깜빡임 제거**(`LoginPremium` `router.push`→`window.location.assign` 하드내비, 미사용 `router` 제거). 에이전시 '환자 의뢰하기'(`POST /api/agency/refer`, `cancer_type`도 저장). prod `/agency` 신버전·`/api/coordinator/cases/assign` 405로 라이브 확인. **데모 의뢰 #13** 생성(TEST 에이전시).
+- **#200 (✅머지·prod 라이브·end-to-end 검증): 코디↔국내병원 백오피스 풀체인.** PO 지적("의뢰 접수돼도 코디·병원이 백오피스에서 검토할 연결이 빠져 반쪽")→ ① `/api/admin/khidi/cases` 가드 `requireAdminAuth`→`requireCaseStaff`(requirePortalAuth staffOnly + **admin·coordinator만**, 의사 제외) + GET에 병원목록·케이스별 배정현황. ② 신규 `/api/coordinator/cases/assign`(의뢰→`normalized_inquiries` 재사용/최소생성→`hospital_leads` upsert status='sent'→`case_status='hospital_review'`+이력). ③ `/coordinator/cases`(admin 케이스화면 재사용) + 코디 네비 '의뢰·케이스/병원배정'. ④ 케이스 화면에 '국내 병원 배정' UI. **검증: 코디 로그인→#13을 TEST 병원 배정→병원계정 `/partner/leads`에서 봄, 환자=403·무인증=401.**
+- **🐛 숨은 배정버그 복구(#200): `hospital_leads(normalized_inquiry_id,hospital_id)`·`normalized_inquiries(source_inquiry_id)`에 UNIQUE 인덱스가 없어** 기존 admin 배정의 `onConflict` upsert가 런타임 실패중이었음(`hospital_leads` 0행 = 배정 한 번도 성공 못함). 마이그레이션 `20260621_lead_assign_unique_indexes` prod 적용.
+- **#202 (✅머지·⏳prod 미배포: 한도): 병원 응답 → 코디·에이전시 역방향 반영.** PO 지적("병원이 ㅇㅋ 하면 코디·에이전시한테 다시 넘어가야지"). `/api/partner/leads/[id]` PATCH에 `syncLeadStatusToCase`: 병원이 replied/converted→`case_status` 'scheduling'으로 전진(코디가 더 간 단계면 유지)+메모 "🏥 {병원} 회신/치료확정"+`case_status_history`; rejected→단계 후퇴 안 함(다른병원 수락가능)+메모·이력만. 에이전시 타임라인(history 읽음)·코디 케이스 배지로 자동 반영. 베스트에포트(try/catch — 반영 실패해도 리드 업데이트는 성공).
+
+**왜 그렇게 했는지:**
+- 다국어는 거대 중앙 i18n파일 대신 **로컬 사전**(PatientDashboard 패턴) + 상태라벨만 중앙 caseStatus에(코디/어드민 화면은 ko 유지).
+- 백오피스: 코디 받은함(`/api/portal/inbox`)이 `step1_completed_at` 필터라 에이전시 의뢰가 안 뜨고, 케이스보드는 admin전용이라 코디가 못 봄 = 반쪽. → 케이스보드를 staff로 열고, 병원배정은 **거대 normalize 스코어링 파이프라인 안 타고** 최소 normalized_inquiry만 생성(병원화면은 언어·국가·치료만 표시, PII 미보관).
+- 역방향은 `hospital_leads.status`와 `case_status`가 따로 놀던 끊김. rejected는 다른 병원이 수락 가능하므로 단계 후퇴 금지(코디 큐레이션 존중).
+
+**안 끝났거나 보류:**
+- **⚠️ #202 prod 배포 — Vercel 무료 일일 빌드한도(100/day) 또 초과**로 머지 후 새 배포 0건. 한도 풀리면 자동 배포(2026-06-21에 #194·#200도 그렇게 prod에 올라감). 그 전엔 **역방향 코드가 prod에 없음**(현재 prod=#200 `19ab034`).
+- (이월) 화상방 다자 카메라(#160) 실렌더 / 만족도·침묵 알림 실수신(데이터 쌓여야).
+
+**주의·함정:**
+- **현재 prod = #200(`19ab034`).** #202(역방향)는 아직 prod에 없음 → 지금 prod에서 병원이 회신해도 case 반영 안 됨(한도 풀려 배포돼야 작동).
+- **데모 의뢰 #13**: TEST 에이전시 의뢰 + TEST 병원(`f9047d8b`) 배정됨(lead `4f22e5b2`, status='sent', case_status='hospital_review'). #202 역방향 검증용으로 그대로 둠.
+- **케이스보드 `app/admin/khidi/cases/page.jsx`는 admin·coordinator 공유**(코디가 re-export로 재사용). 배정 UI·HOSP_STATUS 배지도 양쪽 공유 → 한쪽만 고치면 양쪽 바뀜.
+- **두 inquiry 시스템 주의**: `inquiries`(case_status — 에이전시·코디·환자용) vs `normalized_inquiries`→`hospital_leads`(병원 배정용). 배정 시 `source_inquiry_id`(bigint=inquiries.id)로 연결.
+- **squash 머지 후 같은 브랜치 이어쓰기 금지** — 매번 `git fetch origin main` 후 origin/main 기준 새 브랜치(이번 세션 3번 그렇게 함: agency-refer→coordinator-backoffice→hospital-response-backflow).
+
+**다음 세션이 먼저 할 일 (우선순위):**
+1. **⚠️ 직전 미검증분 먼저 — #202 역방향 실검증:** Vercel 한도 풀려 **prod에 #202 배포됐는지 확인** → 됐으면 병원계정(`hospital@test.com`/`test1234`)으로 lead `4f22e5b2`를 'replied'로 바꿔서 → 의뢰 #13 진행단계가 '치료 일정·견적 조율 중(scheduling)'으로 바뀌고 **에이전시(`agency@test.com`) 타임라인 + 코디 케이스 배지에 "🏥 TEST 병원 회신"** 뜨는지 1회 확인. (안 떴으면 #202 prod 미배포 — 한도 더 기다리거나 Promote.)
+2. 한도 풀렸는지 확인 → 2026-06-21 머지분(#196·#197 등 포함) 전부 prod 반영됐는지 점검.
+3. (이월) 화상방 다자 카메라(#160)·만족도/침묵 알림.
+4. KHIDI 중간평가(2026-08-27) 상시 — 유치 전환 대시보드(`/admin/khidi/conversion`) 자동집계가 곧 점수.
+
+**검증 상태:** 각 변경 **로컬 tsc 0 / eslint 0 error / next build --webpack / check:content 통과**. **#194·#200·#202 셋 다 CI(`ci`·`Smoke`) 초록 + squash 머지(열린 PR 없음).** **#194·#200: prod 라이브 + 실클릭 검증완료**(에이전시 다국어 SSR·번들에 ru/kz 문자열 / 코디→TEST병원 배정→병원 `/partner/leads`에서 봄 / 권한 403·401). 마이그레이션 `20260621_lead_assign_unique_indexes` prod 적용·인덱스 확인. DB 연결경로(lead `4f22e5b2`→의뢰 #13) SQL로 확인. **❌ 미검증: #202 역방향 런타임 — prod 미배포(Vercel 한도)라 실제 병원PATCH→case 동기화를 클릭 못 함.** 코드·CI·DB경로는 통과, **실행 검증은 배포 후 필요(다음 세션 1번).**
+
+**다음 세션 첫 프롬프트:**
+> 먼저 docs/PROJECT_CONTEXT.md 최상단 핸드오프 읽어. 직전 세션(2026-06-21)에 에이전시 다국어(#194)·코디↔병원 백오피스(#200)는 실서비스 반영·검증 끝났는데, #202(병원이 회신하면 코디·에이전시한테 역방향으로 반영되는 기능)가 Vercel 빌드 한도 때문에 실서비스 배포가 안 돼서 실제 작동 확인을 못 했어. 한도 풀려서 #202가 실서비스에 올라갔는지 확인하고, 올라갔으면 병원 계정(hospital@test.com / test1234)으로 데모 환자(#13, TEST 병원 배정된 리드)를 '회신'으로 바꿔서 → 그게 에이전시(agency@test.com)랑 코디 화면에 "병원 회신"으로 자동으로 뜨는지 1번 확인해줘.
+
+---
+
 ## 🔖 세션 핸드오프 (2026-06-21 밤) — 계정 계층 8종 정리 + 해외 의료기관 신규 + 역할별 로그인 착지 + 에이전시 '환자 의뢰하기' + ⚠️Vercel 배포한도 대기
 
 **이번 세션 한 일:**
@@ -43,41 +82,6 @@
 
 **다음 세션 첫 프롬프트:**
 > 먼저 docs/PROJECT_CONTEXT.md 최상단 핸드오프 읽어. 2026-06-21에 Vercel 배포 한도(하루 100회)에 걸려서 #187·#191(머지됨)이 실서비스에 아직 안 올라갔고 #194(에이전시 '환자 의뢰하기')는 초안 상태야. 한도 풀렸는지 확인하고: ①#194 프리뷰 만들어서 나한테 '환자 의뢰하기' 화면 보여주고 OK받으면 머지 ②#187·#191도 실서비스 반영되게 배포 트리거 ③에이전시 계정(agency@test.com / test1234)으로 로그인→에이전시 화면·환자 의뢰 폼 실제 작동 1회 확인해줘.
-## 🔖 세션 핸드오프 (2026-06-21 심야) — AI 챗 "대장암 단정·정정 무시" 버그 코드강제 수정(#183·#188) + 재발방지 행동점검(#193) + Vercel 무료플랜 일일 배포한도(100/day) 초과로 prod 배포 지연
-
-**이번 세션 한 일:** (PR 3개 모두 ✅머지)
-- **🔴 AI 챗 핵심 버그 수정 — PO 신고**: PO가 /inquiry AI Agent에서 ① 암종을 안 밝혔는데 AI가 "대장암"으로 멋대로 단정, ② "대장암 아니라고" 정정해도 계속 대장암 우김, ③ 모델 내부 사고("Wait, let's keep it short"·"(32 words)")가 답변에 노출 — 스크린샷 신고.
-  - **원인(DB 실측)**: 데이터 편중 아님(treatments·hospitals·rag 모두 대장암 0건). 그 스레드 앞부분에서 PO가 "대장암 치료법"을 6번+ 반복 → 대화기록에 깔린 옛 화제를 generic 질문에 **단정으로 끌고 오는 over-anchoring** + 정정 수용/최종출력 규칙 부재.
-  - **#183 (1차, 프롬프트)**: `buildSystemPrompt`에 행동가드 3종(현재 메시지 안 밝힌 암종 단정 금지·정정 즉시 수용·최종메시지만 출력) + `systemPromptGuards.test.ts`. → **프리뷰는 됐지만 누적 스레드(대장암 6회+)에선 안 꺾임**(프롬프트는 확률적 LLM에 best-effort).
-  - **#188 (2차, 코드 강제)**: 순수모듈 `src/lib/chat/topicGuards.ts` 분리(`mentionsCancerType`·`isTopicCorrection`·`correctionReply` 6언어) → 두 응답경로에서 **정정 감지 시 모델 미경유로 결정적 사과+재질문(화제 100% 리셋)** + 암종 미명시 시 프롬프트 최상단 강제 차단. `topicGuards.test.ts` 15개(PO 실패 문장 전부 검출·오탐 방지). **#188 프리뷰에서 before→after 100% 작동 확인.**
-- **🟢 #193 재발방지 (PO 요청 "그냥 고치지 말고 앞으로 이런 일 없게")**: `scripts/check-ai-behavior.mjs`(`npm run check:ai-behavior [URL]`) — 실제 라우트로 적대적 대화(대장암 누적→정정→generic→영어정정) 재생해 invariant(정정 후 암종 언급 0·사과 수용) 자동 감지. **#188 프리뷰에 돌려 통과 확인.** POSTMORTEMS #15(1·2차) 기록.
-- **만족도 설문 테스트 셋업(아침)**: 테스트 문의 #12(inquiry_id 12)+완료 상담(session `f0a36145-b593-4ded-a36d-ccd898a087e0`, updated_at `2026-06-20 06:00 UTC`)을 09:00 UTC cron 윈도(완료 후 24~30h)에 맞춰 심음. 이메일=`bonroi2296@gmail.com` 평문(decryptMaybe 통과). **→ 09:00 cron이 발송 안 함(설문 0건+cron 런타임로그 0).**
-
-**왜 그렇게 했는지:**
-- AI 챗 행동은 의료서비스 기본기라 PO가 직접 신고 → 끝까지(코드강제+테스트+행동점검) 수정. UI 레이아웃 변경 아니고 AI 응답 행동 교정이라 프리뷰로 보여주고 #183은 PO OK("바로 합쳐 배포"), #188·#193은 저위험(테스트·CI 초록)이라 머지.
-- **프롬프트→코드 전환이 핵심 교훈**: "반드시 지켜야 할 AI 행동"은 프롬프트(부탁)가 아니라 코드 게이트(결정적 분기)로 강제해야 함. #183이 누적 스레드에서 깨진 게 증거.
-
-**안 끝났거나 보류 (⚠️ 둘 다 인프라/타이밍 — 코드는 끝):**
-- **#188이 본서비스(prod)에 아직 안 떴음 — 진짜 원인 = Vercel 무료플랜 일일 배포 100건 한도 초과**: 머지·검증 다 됐는데 2026-06-21에 여러 세션이 PR을 쏟아내 **Vercel 무료플랜 일일 배포한도(100/day)를 넘김**(에러 `api-deployments-free-per-day` → "try again in 24 hours"). 그래서 c9b9bb3·afec814(main HEAD)의 production 배포가 **아예 생성도 안 됨**(새 배포 전면 차단). **24시간 지나 한도 리셋되면**, 다음 main 변경 시 자동 배포로 #188 올라옴. 즉시 원하면 **Pro 업그레이드(유료)** — PO 결정 사항(돈). 이 클라우드 env엔 Vercel CLI 없고 main 직접 푸시 불가라 어시스턴트가 강제 못 함.
-- **만족도 설문 cron 미발송**: 09:00 UTC dispatch-surveys가 안 돔(또는 로그 미수집). 2026-06-21 배포 혼잡 영향 가능. KHIDI K-03 직결이라 **cron이 매일 진짜 도는지 점검 필요.** 테스트 상담은 2026-06-21 12:00 UTC까지만 윈도 내.
-
-**주의·함정:**
-- **prod 현재 = #187(6bc613b)**, #188 없음. healo-khidi.vercel.app에서 정정 테스트하면 아직 옛 동작(모델이 사과하되 대장암 언급)일 수 있음 → **#188 떴는지 확인법: 정정 시 "앗, 죄송합니다. 제가 잘못 짚었어요. 말씀하지 않으신 내용을…"(고정 문구) 나오면 #188 라이브.**
-- **AI 챗 테스트는 일일 회수제한(aiGuard) 소모** — 2026-06-21 어시스턴트가 많이 때려 `ai_daily_limit` 걸림. prod 확인은 한도 회복 후(2026-06-22 이후).
-- `topicGuards.ts`는 server-only 아님(테스트 위해). 정정 패턴은 "A 말고 B"(새 화제) 제외 — 순수 부정만.
-
-**다음 세션이 먼저 할 일 (우선순위):**
-1. **⚠️ 직전 미검증분 먼저 확인:** (a) **prod에 #188 떴는지** — healo-khidi.vercel.app/inquiry에서 대장암 여러 번→"난 대장암 안 물어봤는데?" → 고정 사과문구 나오면 OK(안 떴으면 Vercel 대시보드 c905ed5 Promote to Production). (b) **만족도 설문 cron이 매일 도는지** — Vercel cron 로그/`reminders_scheduled` 확인, 안 돌면 KHIDI K-03 위해 수리(테스트 상담 다시 윈도 맞춰 심기).
-2. `npm run check:ai-behavior https://healo-khidi.vercel.app` 한 번 돌려 prod 행동 자동 점검(한도 회복 후).
-3. KHIDI 중간평가(2026-08-27) 상시 — 설문(K-03)·사후관리 알림 작동 복구 직결.
-
-**검증 상태:** **PR #183·#188·#193 셋 다 CI(`ci`·`Smoke`) 초록 + squash 머지**(main에 2964b19·c9b9bb3·afec814). 로컬 **vitest 279개(+29) / tsc 0 / check:content / next build --webpack** 통과. **#188 프리뷰에서 정정→사과리셋·generic 암종0·영어정정 before→after 실측 통과**(check-ai-behavior도 프리뷰 통과). **❌ 미검증(인프라/타이밍): prod 본서비스 #188 미반영(Vercel 무료 빌드큐 백로그) / 만족도 설문 cron 09:00 미발송(원인 미규명) / prod 챗 행동 실클릭(일일한도).** 열린 PR: 내 것 없음(셋 다 머지).
-
-**다음 세션 첫 프롬프트 (PO 복붙용):**
-> 먼저 docs/PROJECT_CONTEXT.md 최상단 핸드오프(2026-06-21 심야) 읽어. 지난 세션에 AI 챗 "대장암 멋대로 단정·정정 무시" 버그를 코드로 강제 수정(#188)하고 재발방지 점검(#193)까지 머지했는데, Vercel 무료플랜 일일 배포한도(100/day)를 2026-06-21에 초과해서 본서비스 배포만 안 떴어(24h 뒤 리셋되면 자동으로 올라옴). 1) healo-khidi.vercel.app/inquiry에서 대장암 여러 번→"난 대장암 안 물어봤는데?" 쳐서 "앗, 죄송합니다 제가 잘못 짚었어요…" 고정 문구 나오면 #188 라이브(안 나오면 Vercel 대시보드에서 c905ed5를 Promote to Production). 2) 만족도 설문 09:00 cron이 2026-06-21 발송을 안 했어 — Vercel cron 로그/reminders_scheduled 확인해서 매일 진짜 도는지 점검(KHIDI K-03 직결). 3) ai_daily_limit 회복됐으면 npm run check:ai-behavior로 prod 자동점검.
-
----
-
 ## 🏷️ 서비스명 변경 — HEALO → **healwith** (2026-06-16 확정·적용)
 
 **상표 문제로 서비스명을 `HEALO` → `healwith`(항상 소문자 표기)로 최종 변경. 앞으로 모든 신규 작업은 `healwith`로 한다.**
