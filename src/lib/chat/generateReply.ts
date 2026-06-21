@@ -75,7 +75,8 @@ export async function getEmbedding(text: string): Promise<number[] | null> {
         taskType: "RETRIEVAL_QUERY",
         outputDimensionality: EMBEDDING_DIMS,
       }),
-      signal: AbortSignal.timeout(8000),
+      // 4초 상한: 임베딩이 느리면 응답 전체가 인질이 됨. 초과 시 RAG만 우아하게 포기(null→[]).
+      signal: AbortSignal.timeout(4000),
     });
     if (!res.ok) return null;
     const data = await res.json();
@@ -112,15 +113,32 @@ export async function fetchRagChunks(query: string, lang: string, threadId?: str
   const seenIds = new Set<string>();
 
   if (embedding) {
-    const { data: pbData } = await supabaseAdmin.rpc("rag_search_chunks_v1_1", {
-      query_embedding: JSON.stringify(embedding),
-      match_count: PLAYBOOK_LIMIT,
-      p_lang: lang,
-      p_source_type: "playbook_pattern",
-      p_partner_only: false,
-      p_ab_enabled: abEnabled,
-      p_thread_hash: threadHash,
-    });
+    // playbook 검색과 일반검색을 병렬로(둘은 독립 RPC). 일반검색은 playbook 회수량을
+    // 모르는 상태에서 미리 던지므로 넉넉히(TOTAL+2) 받아와, 아래에서 playbook 우선 채운
+    // 뒤 남는 자리만큼만 dedup해서 채운다(기존 결과 구성과 동일, 왕복만 2→1로 단축).
+    const embStr = JSON.stringify(embedding);
+    const [pbRes, genRes] = await Promise.all([
+      supabaseAdmin.rpc("rag_search_chunks_v1_1", {
+        query_embedding: embStr,
+        match_count: PLAYBOOK_LIMIT,
+        p_lang: lang,
+        p_source_type: "playbook_pattern",
+        p_partner_only: false,
+        p_ab_enabled: abEnabled,
+        p_thread_hash: threadHash,
+      }),
+      supabaseAdmin.rpc("rag_search_chunks_v1_1", {
+        query_embedding: embStr,
+        match_count: TOTAL_LIMIT + 2,
+        p_lang: lang,
+        p_source_type: undefined,
+        p_partner_only: false,
+        p_ab_enabled: abEnabled,
+        p_thread_hash: threadHash,
+      }),
+    ]);
+
+    const pbData = pbRes.data;
     if (pbData?.length) {
       playbookChunks = pbData.map((row: any) => {
         seenIds.add(row.chunk_id);
@@ -137,31 +155,21 @@ export async function fetchRagChunks(query: string, lang: string, threadId?: str
     }
 
     const remaining = TOTAL_LIMIT - playbookChunks.length;
-    if (remaining > 0) {
-      const { data: genData } = await supabaseAdmin.rpc("rag_search_chunks_v1_1", {
-        query_embedding: JSON.stringify(embedding),
-        match_count: remaining + 2,
-        p_lang: lang,
-        p_source_type: undefined,
-        p_partner_only: false,
-        p_ab_enabled: abEnabled,
-        p_thread_hash: threadHash,
-      });
-      if (genData?.length) {
-        for (const row of genData) {
-          if (seenIds.has(row.chunk_id)) continue;
-          if (generalChunks.length >= remaining) break;
-          seenIds.add(row.chunk_id);
-          generalChunks.push({
-            content: row.content,
-            trust_tier: row.trust_tier,
-            source_label: row.source_label,
-            doc_title: row.doc_title,
-            doc_source_type: row.doc_source_type,
-            doc_source_id: row.doc_source_id,
-            rag_documents: { source_type: row.doc_source_type, title: row.doc_title },
-          });
-        }
+    const genData = genRes.data;
+    if (remaining > 0 && genData?.length) {
+      for (const row of genData) {
+        if (seenIds.has(row.chunk_id)) continue;
+        if (generalChunks.length >= remaining) break;
+        seenIds.add(row.chunk_id);
+        generalChunks.push({
+          content: row.content,
+          trust_tier: row.trust_tier,
+          source_label: row.source_label,
+          doc_title: row.doc_title,
+          doc_source_type: row.doc_source_type,
+          doc_source_id: row.doc_source_id,
+          rag_documents: { source_type: row.doc_source_type, title: row.doc_title },
+        });
       }
     }
   }

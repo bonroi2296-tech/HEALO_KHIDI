@@ -43,8 +43,12 @@ export async function checkAiGuards(
   clientIp: string | null | undefined,
   api: string
 ): Promise<AiGuardResult> {
-  // 1) IP당 일일 상한
-  const ipDaily = await checkRateLimitPersistent(clientIp, PER_IP_DAILY);
+  // 1+2) IP당 일일 상한 + 전역 일일 총량 — 서로 독립이라 DB 왕복을 병렬로(지연 단축).
+  //       오류 우선순위는 아래에서 순서대로 평가(IP 일일 → 전역)하여 기존 동작 유지.
+  const [ipDaily, global] = await Promise.all([
+    checkRateLimitPersistent(clientIp, PER_IP_DAILY),
+    checkRateLimitPersistent("global", GLOBAL_DAILY),
+  ]);
   if (!ipDaily.allowed) {
     logOperational("warn", {
       event: "ai_guard_ip_daily_block",
@@ -61,8 +65,7 @@ export async function checkAiGuards(
     };
   }
 
-  // 2) 전역 일일 총량 — key 고정("global")으로 전 트래픽 합산
-  const global = await checkRateLimitPersistent("global", GLOBAL_DAILY);
+  // 2) 전역 일일 총량 — key 고정("global")으로 전 트래픽 합산 (위에서 병렬 조회됨)
   if (!global.allowed) {
     if (Date.now() - globalBlockNotifiedAt > 60 * 60 * 1000) {
       globalBlockNotifiedAt = Date.now();

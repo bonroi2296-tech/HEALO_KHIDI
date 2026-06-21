@@ -10,7 +10,7 @@
 
 export const runtime = "nodejs";
 
-import { NextRequest } from "next/server";
+import { NextRequest, after } from "next/server";
 import { supabaseAdmin, assertSupabaseEnv } from "@/lib/rag/supabaseAdmin";
 import { checkRateLimitPersistent, getClientIp, RATE_LIMITS } from "@/lib/rateLimit";
 import { checkAiGuards } from "@/lib/ai/aiGuard";
@@ -82,12 +82,16 @@ export async function POST(request: NextRequest) {
   assertSupabaseEnv();
 
   const clientIp = getClientIp(request);
-  // DB 기반 회수제한 + AI 비용 가드 (IP 일일 상한 · 전역 총량 차단기)
-  const rl = await checkRateLimitPersistent(clientIp, RATE_LIMITS.CHAT);
+  // DB 기반 회수제한 + AI 비용 가드 (IP 일일 상한 · 전역 총량 차단기).
+  // 분당 회수제한과 aiGuard(일일·전역)는 서로 독립이라 DB 왕복을 병렬로(지연 단축).
+  // 오류 우선순위는 분당 → aiGuard 순으로 평가하여 기존 동작 유지.
+  const [rl, aiGuard] = await Promise.all([
+    checkRateLimitPersistent(clientIp, RATE_LIMITS.CHAT),
+    checkAiGuards(clientIp, "/api/public/chat/message"),
+  ]);
   if (!rl.allowed) {
     return Response.json({ ok: false, error: "rate_limited" }, { status: 429 });
   }
-  const aiGuard = await checkAiGuards(clientIp, "/api/public/chat/message");
   if (!aiGuard.allowed) {
     return Response.json({ ok: false, error: aiGuard.code }, { status: aiGuard.status });
   }
@@ -168,10 +172,14 @@ export async function POST(request: NextRequest) {
       .order("created_at", { ascending: true })
       .limit(20);
 
-    const chatMessages = (history || []).map((m: any) => ({
-      role: m.actor_type === "patient" ? "user" as const : "assistant" as const,
-      content: m.message_text,
-    }));
+    // 모델에는 최근 10개만 전달: 입력 토큰을 줄여 첫 응답을 앞당기고(지연↓),
+    // 긴 기록 누적 시 빈응답이 늘던 현상도 완화. 문의서 초안은 아래에서 전체 history 사용.
+    const chatMessages = (history || [])
+      .map((m: any) => ({
+        role: m.actor_type === "patient" ? ("user" as const) : ("assistant" as const),
+        content: m.message_text,
+      }))
+      .slice(-10);
 
     const lang = threadMeta.language || "en";
 
@@ -240,12 +248,15 @@ export async function POST(request: NextRequest) {
       (m: any) => m.actor_type === "patient"
     ).length;
 
+    // 문의서 초안 생성은 응답을 막을 필요가 없음 → 응답 전송 후 백그라운드로(해당 턴 지연 제거).
     if (patientMsgCount > 0 && patientMsgCount % INTAKE_EVERY_N_TURNS === 0) {
-      try {
-        await createDraftIntake(thread, (history || []) as any, lang);
-      } catch (e: any) {
-        console.error("[public/chat/message] intake error:", e.message);
-      }
+      after(async () => {
+        try {
+          await createDraftIntake(thread, (history || []) as any, lang);
+        } catch (e: any) {
+          console.error("[public/chat/message] intake error:", e.message);
+        }
+      });
     }
 
     if (aiError) {
