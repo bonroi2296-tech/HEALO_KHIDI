@@ -67,6 +67,7 @@ const navGroups = [
   {
     title: "AI 품질 · 시스템",
     items: [
+      { id: "ai-status", label: "AI 상태 (한눈에)", icon: Brain, href: "/admin/ai-status" },
       { id: "ai-quality", label: "AI 품질 모니터링", icon: Brain, href: "/admin/khidi/ai-quality" },
       { id: "ai-feedback", label: "AI 피드백", icon: ThumbsDown, href: "/admin/khidi/ai-feedback" },
       { id: "users", label: "회원(환자) 관리", icon: Users, href: "/admin/users" },
