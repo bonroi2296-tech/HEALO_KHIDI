@@ -43,42 +43,38 @@
 
 **다음 세션 첫 프롬프트:**
 > 먼저 docs/PROJECT_CONTEXT.md 최상단 핸드오프 읽어. 2026-06-21에 Vercel 배포 한도(하루 100회)에 걸려서 #187·#191(머지됨)이 실서비스에 아직 안 올라갔고 #194(에이전시 '환자 의뢰하기')는 초안 상태야. 한도 풀렸는지 확인하고: ①#194 프리뷰 만들어서 나한테 '환자 의뢰하기' 화면 보여주고 OK받으면 머지 ②#187·#191도 실서비스 반영되게 배포 트리거 ③에이전시 계정(agency@test.com / test1234)으로 로그인→에이전시 화면·환자 의뢰 폼 실제 작동 1회 확인해줘.
+## 🔖 세션 핸드오프 (2026-06-21 심야) — AI 챗 "대장암 단정·정정 무시" 버그 코드강제 수정(#183·#188) + 재발방지 행동점검(#193) + Vercel 무료플랜 일일 배포한도(100/day) 초과로 prod 배포 지연
 
----
-
-## 🔖 세션 핸드오프 (2026-06-21 저녁) — 만족도 설문 진짜 복구(#167) + 침묵환자 cron 전면 리팩터(#171) + AI 스트리밍 체감속도(#176) + prod 스트리밍 실측
-
-**이번 세션 한 일:** (PR 3개 모두 ✅머지·배포)
-- **🔴 #167 만족도 설문 — #157이 반쪽이라 여전히 0건이던 걸 진짜로 복구 (8/27 평가 K-03 직결)**: 실DB 재확인 결과 #157(patient_id→inquiry_id 폴백) 배포 후에도 설문 0건. 진짜 원인 = `inquiries.email`이 **AES-256-GCM 암호화 저장**인데 cron이 암호문을 복호화 없이 `resolveSurveyRecipient`에 넘겨 `@` 없어 전부 버려짐 → 영구 0건. 수정: `dispatch-surveys` cron에서 `decryptMaybe(email/first_name/last_name)` 복호화 후 사용(옛 평문 행도 통과·하위호환). 계약 테스트(암호문 blob→null) + POSTMORTEMS #13.
-- **🟠 #171 침묵환자 감지 cron — inquiry_id 기준 전면 리팩터 (PO "제대로 싹 다 고침" 선택)**: 같은 patient_id null 부류 + 더 깊은 문제(`consultation_sessions.patient_id`는 사실 bigint→cancer_patient_intakes, `symptom_alerts.patient_id`는 uuid→auth.users라 타입 불일치로 `getCoordinatorIds`도 깨짐). **마이그레이션 프로덕션 적용 완료**(`symptom_alerts.inquiry_id` bigint 추가 + patient_id nullable + CHECK 둘 중 하나 필수 + 인덱스, 0행이라 안전·멱등). 순수 로직 `src/lib/symptoms/silence.ts`(`buildSilenceAlert`·`uniqueInquiryIds`) 분리 + cron 재작성(활성 문의→최근 증상보고→3일↑ 무입력→inquiry 기준 알림) + `alertService` inquiry_id 대응 + 코디 화면 `문의 #N` 표기 + 계약 테스트. POSTMORTEMS #14, KNOWN_ISSUES 해결 표기.
-- **🟢 #176 AI 스트리밍 체감속도 (prod 실측 후)**: prod /inquiry 스트리밍을 실제 호출해 측정 → 타이핑은 매끄러우나 **첫 글자까지 ~1.7~2.2초(웜)·2.75초(콜드)**, 그동안 빈 말풍선+스피너 겹쳐 어색. 수정: ①ChatGPT식 '생각중' 타이핑 점(`TypingDots`)으로 통일(빈 말풍선·잔존 스피너 제거, 언어무관). ②`getEmbedding` 결과를 `BoundedCache`(LRU 200) 메모이즈 — 같은 텍스트=같은 벡터(결정적)라 100% 안전, 반복 질문 임베딩 왕복(~0.6~1s) 제거. PO 프리뷰 확인 후 "머지 ㄱㄱ".
-- **검증(요청 1~2)**: prod AI Agent 스트리밍 **실측**(200·토큰단위 4청크·메타 구분자 정상). 만족도 설문 **DB 실측 0건 — 정상**(발송 윈도(완료 24~30h) 내 완료 상담 0건이라 보낼 게 없음. #167로 새 상담 완료 시 발송 시작).
+**이번 세션 한 일:** (PR 3개 모두 ✅머지)
+- **🔴 AI 챗 핵심 버그 수정 — PO 신고**: PO가 /inquiry AI Agent에서 ① 암종을 안 밝혔는데 AI가 "대장암"으로 멋대로 단정, ② "대장암 아니라고" 정정해도 계속 대장암 우김, ③ 모델 내부 사고("Wait, let's keep it short"·"(32 words)")가 답변에 노출 — 스크린샷 신고.
+  - **원인(DB 실측)**: 데이터 편중 아님(treatments·hospitals·rag 모두 대장암 0건). 그 스레드 앞부분에서 PO가 "대장암 치료법"을 6번+ 반복 → 대화기록에 깔린 옛 화제를 generic 질문에 **단정으로 끌고 오는 over-anchoring** + 정정 수용/최종출력 규칙 부재.
+  - **#183 (1차, 프롬프트)**: `buildSystemPrompt`에 행동가드 3종(현재 메시지 안 밝힌 암종 단정 금지·정정 즉시 수용·최종메시지만 출력) + `systemPromptGuards.test.ts`. → **프리뷰는 됐지만 누적 스레드(대장암 6회+)에선 안 꺾임**(프롬프트는 확률적 LLM에 best-effort).
+  - **#188 (2차, 코드 강제)**: 순수모듈 `src/lib/chat/topicGuards.ts` 분리(`mentionsCancerType`·`isTopicCorrection`·`correctionReply` 6언어) → 두 응답경로에서 **정정 감지 시 모델 미경유로 결정적 사과+재질문(화제 100% 리셋)** + 암종 미명시 시 프롬프트 최상단 강제 차단. `topicGuards.test.ts` 15개(PO 실패 문장 전부 검출·오탐 방지). **#188 프리뷰에서 before→after 100% 작동 확인.**
+- **🟢 #193 재발방지 (PO 요청 "그냥 고치지 말고 앞으로 이런 일 없게")**: `scripts/check-ai-behavior.mjs`(`npm run check:ai-behavior [URL]`) — 실제 라우트로 적대적 대화(대장암 누적→정정→generic→영어정정) 재생해 invariant(정정 후 암종 언급 0·사과 수용) 자동 감지. **#188 프리뷰에 돌려 통과 확인.** POSTMORTEMS #15(1·2차) 기록.
+- **만족도 설문 테스트 셋업(아침)**: 테스트 문의 #12(inquiry_id 12)+완료 상담(session `f0a36145-b593-4ded-a36d-ccd898a087e0`, updated_at `2026-06-20 06:00 UTC`)을 09:00 UTC cron 윈도(완료 후 24~30h)에 맞춰 심음. 이메일=`bonroi2296@gmail.com` 평문(decryptMaybe 통과). **→ 09:00 cron이 발송 안 함(설문 0건+cron 런타임로그 0).**
 
 **왜 그렇게 했는지:**
-- #167은 "어느 행을 보느냐"(#157)에서 "그 값을 복호화하느냐"가 누락된 후속 버그 → 완료한 기능을 진짜 작동시키는 거라 바로 수정·머지(저위험 백엔드, 화면변화 0).
-- #171은 PO가 보류 추천 대신 "제대로 싹 다 고침" 선택 → 스키마까지 손대는 큰 작업이지만 끝까지. 단 기존 증상보고 제출 경로(로그인 환자 patient_id)는 안 건드리고 보존(CHECK·테스트로 보장).
-- #176 백엔드 추가 단축은 답변 품질(검색 정확도) 깎을 위험이라 **의료 AI 레드라인**으로 보고 안전한 부분(임베딩 캐시)만. 남은 ~1.5초는 구글 임베딩·모델 응답 시간이라 우리가 못 줄이는 영역.
+- AI 챗 행동은 의료서비스 기본기라 PO가 직접 신고 → 끝까지(코드강제+테스트+행동점검) 수정. UI 레이아웃 변경 아니고 AI 응답 행동 교정이라 프리뷰로 보여주고 #183은 PO OK("바로 합쳐 배포"), #188·#193은 저위험(테스트·CI 초록)이라 머지.
+- **프롬프트→코드 전환이 핵심 교훈**: "반드시 지켜야 할 AI 행동"은 프롬프트(부탁)가 아니라 코드 게이트(결정적 분기)로 강제해야 함. #183이 누적 스레드에서 깨진 게 증거.
 
-**안 끝났거나 보류:**
-- **화상방 다자 카메라(#160) 실렌더**: 여러 명 동시 입장 라이브 필요 → PO 동석.
-- **만족도 응답·침묵 알림 실제 수신**: 둘 다 새 상담/증상보고가 쌓여야 발생 → 며칠 뒤 KPI 대시보드·코디 알림에서 확인.
-- 스트리밍 타이핑 속도(25ms·step remaining/8)는 기본값 — PO가 빠르게/느리게 원하면 숫자 조정(미요청).
-- (기존) 갤러리 next/image·any 813 축소·slug 한글 — 변동 없음.
+**안 끝났거나 보류 (⚠️ 둘 다 인프라/타이밍 — 코드는 끝):**
+- **#188이 본서비스(prod)에 아직 안 떴음 — 진짜 원인 = Vercel 무료플랜 일일 배포 100건 한도 초과**: 머지·검증 다 됐는데 2026-06-21에 여러 세션이 PR을 쏟아내 **Vercel 무료플랜 일일 배포한도(100/day)를 넘김**(에러 `api-deployments-free-per-day` → "try again in 24 hours"). 그래서 c9b9bb3·afec814(main HEAD)의 production 배포가 **아예 생성도 안 됨**(새 배포 전면 차단). **24시간 지나 한도 리셋되면**, 다음 main 변경 시 자동 배포로 #188 올라옴. 즉시 원하면 **Pro 업그레이드(유료)** — PO 결정 사항(돈). 이 클라우드 env엔 Vercel CLI 없고 main 직접 푸시 불가라 어시스턴트가 강제 못 함.
+- **만족도 설문 cron 미발송**: 09:00 UTC dispatch-surveys가 안 돔(또는 로그 미수집). 2026-06-21 배포 혼잡 영향 가능. KHIDI K-03 직결이라 **cron이 매일 진짜 도는지 점검 필요.** 테스트 상담은 2026-06-21 12:00 UTC까지만 윈도 내.
 
 **주의·함정:**
-- **암호화 컬럼은 읽는 쪽이 복호화 책임**(POSTMORTEMS #13 규칙): `inquiries.email`/`first_name`/`last_name`/`contact_id`/`message`는 암호문 저장 → cron·집계·발송에서 쓸 때 `decryptMaybe`/`decrypt*ForAdmin` 필수.
-- **`consultation_sessions.patient_id` 쓰지 마라**(bigint·전 행 null): 실제 키는 `inquiry_id`(문의) 또는 `patient_user_id`(auth uuid). #12·#13·#14 동일 뿌리.
-- **다른 세션 동시 작업**: 이번에 #169·#172·#175(AI 가르치기·상태화면)가 다른 세션에서 main에 머지됨. 새 작업 전 `git fetch origin main` 후 origin/main 기준 새 브랜치(squash 머지한 브랜치 이어쓰면 충돌).
+- **prod 현재 = #187(6bc613b)**, #188 없음. healo-khidi.vercel.app에서 정정 테스트하면 아직 옛 동작(모델이 사과하되 대장암 언급)일 수 있음 → **#188 떴는지 확인법: 정정 시 "앗, 죄송합니다. 제가 잘못 짚었어요. 말씀하지 않으신 내용을…"(고정 문구) 나오면 #188 라이브.**
+- **AI 챗 테스트는 일일 회수제한(aiGuard) 소모** — 2026-06-21 어시스턴트가 많이 때려 `ai_daily_limit` 걸림. prod 확인은 한도 회복 후(2026-06-22 이후).
+- `topicGuards.ts`는 server-only 아님(테스트 위해). 정정 패턴은 "A 말고 B"(새 화제) 제외 — 순수 부정만.
 
 **다음 세션이 먼저 할 일 (우선순위):**
-1. **⚠️ 직전 미검증분 먼저 확인(라이브/시간 — 자동 불가):** (a) **화상방에 여러 명 들어가 전원 카메라 켜지는지**(#160 — PO 동석 라이브) (b) prod /inquiry AI Agent 눌러 **'생각중' 점→타이핑 전환** 눈으로 1회(#176 배포분) (c) 며칠 뒤 `/admin/khidi/kpi-dashboard` 만족도 응답·코디 알림에 침묵 알림 들어오기 시작하는지(#167·#171 효과).
-2. 스트리밍 속도감 PO 피드백 있으면 `app/inquiry/ThreadChat.jsx` 타자기 상수(25ms·÷8) 조정.
-3. KHIDI 중간평가(2026-08-27) 상시 — #167(만족도)·#171(사후관리 알림) 둘 다 측정/작동 복구로 평가 직결.
+1. **⚠️ 직전 미검증분 먼저 확인:** (a) **prod에 #188 떴는지** — healo-khidi.vercel.app/inquiry에서 대장암 여러 번→"난 대장암 안 물어봤는데?" → 고정 사과문구 나오면 OK(안 떴으면 Vercel 대시보드 c905ed5 Promote to Production). (b) **만족도 설문 cron이 매일 도는지** — Vercel cron 로그/`reminders_scheduled` 확인, 안 돌면 KHIDI K-03 위해 수리(테스트 상담 다시 윈도 맞춰 심기).
+2. `npm run check:ai-behavior https://healo-khidi.vercel.app` 한 번 돌려 prod 행동 자동 점검(한도 회복 후).
+3. KHIDI 중간평가(2026-08-27) 상시 — 설문(K-03)·사후관리 알림 작동 복구 직결.
 
-**검증 상태:** **PR #167·#171·#176 셋 다 CI(`ci`·`Smoke`) 초록 + squash 머지·배포 확인**(check_runs로 확인, main에 984a732·cdb3c6e·49205eb). 로컬 **tsc 0 / vitest 250개(+19) / check:content / next build --webpack** 통과. #171 마이그레이션 프로덕션 적용·컬럼 확인. prod 스트리밍 **실측**(TTFT·청크). 만족도 0건은 **DB 실측 + 원인규명(윈도 내 완료상담 0)**. **❌ 미검증(라이브/시간 필요, 자동 불가): 화상방 다자 영상 실렌더 / '생각중' 점 prod 실클릭(프리뷰는 PO 확인) / 만족도·침묵 알림 실제 수신(데이터 쌓여야).**
+**검증 상태:** **PR #183·#188·#193 셋 다 CI(`ci`·`Smoke`) 초록 + squash 머지**(main에 2964b19·c9b9bb3·afec814). 로컬 **vitest 279개(+29) / tsc 0 / check:content / next build --webpack** 통과. **#188 프리뷰에서 정정→사과리셋·generic 암종0·영어정정 before→after 실측 통과**(check-ai-behavior도 프리뷰 통과). **❌ 미검증(인프라/타이밍): prod 본서비스 #188 미반영(Vercel 무료 빌드큐 백로그) / 만족도 설문 cron 09:00 미발송(원인 미규명) / prod 챗 행동 실클릭(일일한도).** 열린 PR: 내 것 없음(셋 다 머지).
 
 **다음 세션 첫 프롬프트 (PO 복붙용):**
-> 먼저 docs/PROJECT_CONTEXT.md 최상단 핸드오프(2026-06-21 저녁) 읽어. 지난 세션에 만족도 설문 진짜 복구(#167)·침묵환자 감지 cron 전면 리팩터(#171)·AI '생각중' 점+속도(#176) 다 머지·배포함. 그다음: 1) prod healo-khidi.vercel.app /inquiry에서 AI Agent 눌러 '생각중' 점→타이핑 매끄러운지 1회. 2) 화상방 다자 카메라(#160)는 너랑 라이브로 같이 확인. 3) 며칠 됐으면 /admin/khidi/kpi-dashboard 만족도 응답·코디 침묵알림 들어왔는지 확인. 새 작업은 git fetch origin main 후 origin/main 기준 새 브랜치로.
+> 먼저 docs/PROJECT_CONTEXT.md 최상단 핸드오프(2026-06-21 심야) 읽어. 지난 세션에 AI 챗 "대장암 멋대로 단정·정정 무시" 버그를 코드로 강제 수정(#188)하고 재발방지 점검(#193)까지 머지했는데, Vercel 무료플랜 일일 배포한도(100/day)를 2026-06-21에 초과해서 본서비스 배포만 안 떴어(24h 뒤 리셋되면 자동으로 올라옴). 1) healo-khidi.vercel.app/inquiry에서 대장암 여러 번→"난 대장암 안 물어봤는데?" 쳐서 "앗, 죄송합니다 제가 잘못 짚었어요…" 고정 문구 나오면 #188 라이브(안 나오면 Vercel 대시보드에서 c905ed5를 Promote to Production). 2) 만족도 설문 09:00 cron이 2026-06-21 발송을 안 했어 — Vercel cron 로그/reminders_scheduled 확인해서 매일 진짜 도는지 점검(KHIDI K-03 직결). 3) ai_daily_limit 회복됐으면 npm run check:ai-behavior로 prod 자동점검.
 
 ---
 
