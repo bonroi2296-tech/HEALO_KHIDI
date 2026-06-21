@@ -7,7 +7,7 @@
 
 ---
 
-## 🔖 세션 핸드오프 (2026-06-21 심야) — AI 챗 "대장암 단정·정정 무시" 버그 코드강제 수정(#183·#188) + 재발방지 행동점검(#193) + Vercel 무료플랜 빌드큐로 prod 배포 지연
+## 🔖 세션 핸드오프 (2026-06-21 심야) — AI 챗 "대장암 단정·정정 무시" 버그 코드강제 수정(#183·#188) + 재발방지 행동점검(#193) + Vercel 무료플랜 일일 배포한도(100/day) 초과로 prod 배포 지연
 
 **이번 세션 한 일:** (PR 3개 모두 ✅머지)
 - **🔴 AI 챗 핵심 버그 수정 — PO 신고**: PO가 /inquiry AI Agent에서 ① 암종을 안 밝혔는데 AI가 "대장암"으로 멋대로 단정, ② "대장암 아니라고" 정정해도 계속 대장암 우김, ③ 모델 내부 사고("Wait, let's keep it short"·"(32 words)")가 답변에 노출 — 스크린샷 신고.
@@ -22,7 +22,7 @@
 - **프롬프트→코드 전환이 핵심 교훈**: "반드시 지켜야 할 AI 행동"은 프롬프트(부탁)가 아니라 코드 게이트(결정적 분기)로 강제해야 함. #183이 누적 스레드에서 깨진 게 증거.
 
 **안 끝났거나 보류 (⚠️ 둘 다 인프라/타이밍 — 코드는 끝):**
-- **#188이 본서비스(prod)에 아직 안 떴음**: 머지·검증 다 됐는데 **Vercel 무료플랜 = 빌드 동시 1개**라, 2026-06-21에 여러 세션이 PR 쏟아내 빌드큐 백로그. c9b9bb3·afec814(main HEAD)의 production 배포가 큐에 안 잡힘(이 클라우드 env엔 Vercel CLI 없고 main 직접 푸시 불가 → 어시스턴트가 강제 못 함). **큐 풀리면/다음 main 머지 때 자동으로 올라옴.** PO가 Vercel 대시보드에서 c905ed5(#193, =main HEAD 내용)를 "Promote to Production" 하면 즉시(단 PO가 누른 Redeploy는 Preview로 떠서 prod 반영 X).
+- **#188이 본서비스(prod)에 아직 안 떴음 — 진짜 원인 = Vercel 무료플랜 일일 배포 100건 한도 초과**: 머지·검증 다 됐는데 2026-06-21에 여러 세션이 PR을 쏟아내 **Vercel 무료플랜 일일 배포한도(100/day)를 넘김**(에러 `api-deployments-free-per-day` → "try again in 24 hours"). 그래서 c9b9bb3·afec814(main HEAD)의 production 배포가 **아예 생성도 안 됨**(새 배포 전면 차단). **24시간 지나 한도 리셋되면**, 다음 main 변경 시 자동 배포로 #188 올라옴. 즉시 원하면 **Pro 업그레이드(유료)** — PO 결정 사항(돈). 이 클라우드 env엔 Vercel CLI 없고 main 직접 푸시 불가라 어시스턴트가 강제 못 함.
 - **만족도 설문 cron 미발송**: 09:00 UTC dispatch-surveys가 안 돔(또는 로그 미수집). 2026-06-21 배포 혼잡 영향 가능. KHIDI K-03 직결이라 **cron이 매일 진짜 도는지 점검 필요.** 테스트 상담은 2026-06-21 12:00 UTC까지만 윈도 내.
 
 **주의·함정:**
@@ -38,7 +38,7 @@
 **검증 상태:** **PR #183·#188·#193 셋 다 CI(`ci`·`Smoke`) 초록 + squash 머지**(main에 2964b19·c9b9bb3·afec814). 로컬 **vitest 279개(+29) / tsc 0 / check:content / next build --webpack** 통과. **#188 프리뷰에서 정정→사과리셋·generic 암종0·영어정정 before→after 실측 통과**(check-ai-behavior도 프리뷰 통과). **❌ 미검증(인프라/타이밍): prod 본서비스 #188 미반영(Vercel 무료 빌드큐 백로그) / 만족도 설문 cron 09:00 미발송(원인 미규명) / prod 챗 행동 실클릭(일일한도).** 열린 PR: 내 것 없음(셋 다 머지).
 
 **다음 세션 첫 프롬프트 (PO 복붙용):**
-> 먼저 docs/PROJECT_CONTEXT.md 최상단 핸드오프(2026-06-21 심야) 읽어. 지난 세션에 AI 챗 "대장암 멋대로 단정·정정 무시" 버그를 코드로 강제 수정(#188)하고 재발방지 점검(#193)까지 머지했는데, Vercel 무료 빌드큐가 밀려서 본서비스 배포만 안 떴어. 1) healo-khidi.vercel.app/inquiry에서 대장암 여러 번→"난 대장암 안 물어봤는데?" 쳐서 "앗, 죄송합니다 제가 잘못 짚었어요…" 고정 문구 나오면 #188 라이브(안 나오면 Vercel 대시보드에서 c905ed5를 Promote to Production). 2) 만족도 설문 09:00 cron이 2026-06-21 발송을 안 했어 — Vercel cron 로그/reminders_scheduled 확인해서 매일 진짜 도는지 점검(KHIDI K-03 직결). 3) ai_daily_limit 회복됐으면 npm run check:ai-behavior로 prod 자동점검.
+> 먼저 docs/PROJECT_CONTEXT.md 최상단 핸드오프(2026-06-21 심야) 읽어. 지난 세션에 AI 챗 "대장암 멋대로 단정·정정 무시" 버그를 코드로 강제 수정(#188)하고 재발방지 점검(#193)까지 머지했는데, Vercel 무료플랜 일일 배포한도(100/day)를 2026-06-21에 초과해서 본서비스 배포만 안 떴어(24h 뒤 리셋되면 자동으로 올라옴). 1) healo-khidi.vercel.app/inquiry에서 대장암 여러 번→"난 대장암 안 물어봤는데?" 쳐서 "앗, 죄송합니다 제가 잘못 짚었어요…" 고정 문구 나오면 #188 라이브(안 나오면 Vercel 대시보드에서 c905ed5를 Promote to Production). 2) 만족도 설문 09:00 cron이 2026-06-21 발송을 안 했어 — Vercel cron 로그/reminders_scheduled 확인해서 매일 진짜 도는지 점검(KHIDI K-03 직결). 3) ai_daily_limit 회복됐으면 npm run check:ai-behavior로 prod 자동점검.
 
 ---
 
