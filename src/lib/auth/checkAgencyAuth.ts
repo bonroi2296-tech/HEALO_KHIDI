@@ -13,6 +13,8 @@ export interface AgencyAuthResult {
   agencyId?: string;
   agencyName?: string;
   role?: string;
+  /** agencies.partner_type — 'agency'(해외 에이전시) | 'medical_institution'(해외 의료기관) */
+  partnerType?: string;
   error?: string;
 }
 
@@ -57,7 +59,7 @@ export async function checkAgencyAuth(request?: NextRequest): Promise<AgencyAuth
     const serviceClient = createServiceRoleClient() as any;
     const { data: au, error: auErr } = await serviceClient
       .from("agency_users")
-      .select("agency_id, role, is_active, agencies(id, name, is_active)")
+      .select("agency_id, role, is_active, agencies(id, name, is_active, partner_type)")
       .eq("user_id", userId)
       .eq("is_active", true)
       .limit(1)
@@ -66,7 +68,7 @@ export async function checkAgencyAuth(request?: NextRequest): Promise<AgencyAuth
     if (auErr || !au) {
       return { isAgencyUser: false, userId, email: user.email, error: "not_agency_user" };
     }
-    const agency = (au as { agencies?: { id?: string; name?: string; is_active?: boolean } | null }).agencies;
+    const agency = (au as { agencies?: { id?: string; name?: string; is_active?: boolean; partner_type?: string } | null }).agencies;
     if (agency && agency.is_active === false) {
       return { isAgencyUser: false, userId, email: user.email, error: "agency_inactive" };
     }
@@ -78,6 +80,7 @@ export async function checkAgencyAuth(request?: NextRequest): Promise<AgencyAuth
       agencyId: au.agency_id ?? undefined,
       agencyName: agency?.name || "Unknown",
       role: au.role ?? undefined,
+      partnerType: agency?.partner_type ?? "agency",
     };
   } catch (error: unknown) {
     return { isAgencyUser: false, error: error instanceof Error ? error.message : String(error) };

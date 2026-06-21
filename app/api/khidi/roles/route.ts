@@ -86,13 +86,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const validRoles = ['patient', 'korean_hospital', 'local_clinic', 'agent', 'admin'];
-    if (!validRoles.includes(payload.role)) {
+    // 계정 계층 표준은 src/lib/auth/accountTiers.ts (단일 SoR).
+    // 옛 역할 이름(korean_hospital/local_clinic/agent 등)도 표준으로 자동 변환해 받는다.
+    const { normalizeRole } = await import("@/lib/auth/roles");
+    const normalizedRole = normalizeRole(String(payload.role));
+    if (!normalizedRole) {
       return Response.json(
         { ok: false, error: "Invalid role" },
         { status: 400 }
       );
     }
+    payload.role = normalizedRole;
 
     const { getSupabaseServerClient } = await import("@/lib/data/supabaseServerClient");
     const supabaseAdmin = getSupabaseServerClient();

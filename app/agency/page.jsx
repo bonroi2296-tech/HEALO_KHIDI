@@ -36,15 +36,18 @@ export default function AgencyPortal() {
 
   if (loading) return <Center>불러오는 중…</Center>;
   if (error === "login") return <Center>로그인이 필요합니다. <a className="text-teal-700 underline ml-1" href="/login">로그인</a></Center>;
-  if (error === "forbidden") return <Center>에이전시 권한이 없는 계정입니다. 관리자에게 문의하세요.</Center>;
+  if (error === "forbidden") return <Center>파트너 포털 권한이 없는 계정입니다. 관리자에게 문의하세요.</Center>;
   if (error) return <Center className="text-red-500">{error}</Center>;
 
   const steps = data?.statusSteps?.filter((s) => s.order < 90) ?? [];
   const orderOf = (k) => data?.statusSteps?.find((s) => s.key === k)?.order ?? 0;
+  const isClinic = data?.agency?.partnerType === "medical_institution";
+  const partnerKind = isClinic ? "해외 의료기관" : "해외 에이전시";
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-8">
       <div className="mb-6">
+        <span className={`inline-block text-[11px] font-semibold px-2 py-0.5 rounded-full mb-2 ${isClinic ? "bg-indigo-50 text-indigo-700" : "bg-teal-50 text-teal-700"}`}>{partnerKind}</span>
         <h1 className="text-2xl font-bold text-gray-900">{data?.agency?.name} · 환자 진행 현황</h1>
         <p className="text-sm text-gray-500 mt-1">의뢰하신 환자들의 현재 진행 단계입니다. 단계를 누르면 상세 이력이 보입니다.</p>
       </div>

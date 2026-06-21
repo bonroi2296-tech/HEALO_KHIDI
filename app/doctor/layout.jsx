@@ -14,6 +14,7 @@ import {
   Stethoscope,
 } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
+import StaffPortalGate from "../_components/StaffPortalGate";
 
 const NAV = [
   { id: "dashboard", label: "대시보드", icon: LayoutDashboard, href: "/doctor" },
@@ -98,6 +99,7 @@ export default function DoctorLayout({ children }) {
   );
 
   return (
+    <StaffPortalGate allow={["doctor"]} portalName="의료진 포털" redirect="/doctor">
     <div className="flex min-h-screen bg-gray-50">
       {/* Mobile top bar */}
       <div className="lg:hidden fixed top-0 left-0 right-0 z-40 bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
@@ -143,5 +145,6 @@ export default function DoctorLayout({ children }) {
         <div className="p-4 lg:p-8 max-w-7xl mx-auto">{children}</div>
       </main>
     </div>
+    </StaffPortalGate>
   );
 }

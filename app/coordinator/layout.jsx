@@ -8,6 +8,7 @@ import {
   LogOut, Menu, X, LayoutDashboard,
 } from 'lucide-react';
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser';
+import StaffPortalGate from '../_components/StaffPortalGate';
 
 const NAV_ITEMS = [
   { id: 'dashboard', label: '대시보드', icon: LayoutDashboard, href: '/coordinator' },
@@ -82,6 +83,7 @@ export default function CoordinatorLayout({ children }) {
   );
 
   return (
+    <StaffPortalGate allow={["coordinator"]} portalName="코디네이터 포털" redirect="/coordinator">
     <div className="flex min-h-screen bg-gray-50 pt-12">
       {/* Mobile top bar */}
       <div className="lg:hidden fixed top-12 left-0 right-0 z-40 bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
@@ -118,5 +120,6 @@ export default function CoordinatorLayout({ children }) {
         </div>
       </main>
     </div>
+    </StaffPortalGate>
   );
 }
