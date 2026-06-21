@@ -81,6 +81,7 @@ export async function POST(request: NextRequest) {
         contact_method: body.contactMethod || null,
         contact_id: encryptedContactId,
         treatment_type: String(body.treatmentType).trim(),
+        cancer_type: String(body.treatmentType).trim(),
         message: encryptedMessage,
         attachments: [],
         intake: {},
