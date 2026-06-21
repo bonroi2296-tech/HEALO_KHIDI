@@ -259,3 +259,29 @@ ISO/IEC 25010(TTA GS) 기준 제3자 보안 감리 중, 환자 의료데이터�
 
 **재발 방지 (시스템 적용)**
 - `scripts/check-content-consistency.mjs` 에 **조작된 환자 후기 시그니처 가드 추가**: `이니셜 / 국가 / 암종`(예 `A.K. / Kazakhstan / Stomach Cancer`, `A.K. / 카자흐스탄 / 위암`) 형식이 제품 코드에 있으면 CI 빌드 실패. 실제 후기는 동의받은 것만, 출처표시 또는 외부 플랫폼 링크로.
+
+---
+
+## #12 — 만족도 설문 발송 cron 이 "항상 null 인 컬럼"에만 의존해 설문 영구 0건 (KPI K-03 측정 불능) (2026-06-21)
+
+**무슨 일**
+- 8/27 중간평가 공식 성과지표 3개 중 하나인 **환자 만족도(K-03, 목표 90점)** 가 **측정 자체가 안 되고 있었음**: 설문 발송 0건 / 응답 0건(실DB 확인 `surveys`·`survey_responses` 모두 0행).
+- 원인: `app/api/cron/dispatch-surveys/route.ts` 가 환자 이메일을 `consultation_sessions.patient_id → patients` 로만 찾는데, **`consultation_sessions.patient_id` 가 전 행 null**(미사용 컬럼). → 모든 완료 세션이 `toEmail` 못 찾아 `skipped` → 설문이 단 한 건도 안 나감.
+- 실제 환자 연결고리는 `inquiry_id → inquiries`(email/preferred_language/이름). 이는 **#7과 정확히 같은 부류**(kpi.ts 도 같은 이유로 patient_id→inquiry_id 전환했었는데, 설문 cron 만 옛 경로에 남아 있었음).
+
+**왜 못 잡았나 (근본원인)**
+1. `patient_id` 가 항상 null 이라는 사실이 #7 에서 KPI 쪽만 고쳐졌고, **같은 가정을 쓰는 다른 소비자(설문·침묵환자 cron)는 전수 점검이 안 됨**.
+2. cron 이 "대상 없음(skipped)"으로 **조용히 정상 종료** → 0건이 "아직 상담이 적어서"처럼 위장됨(만족도 미측정이 버그로 안 보임).
+3. 설문 발송은 라이브 cron + 실제 이메일이라 **자동 테스트로 안 닫혀 있었음**(수신자 결정 로직이 cron 안에 인라인).
+
+**어떻게 고쳤나**
+- 수신자 결정을 순수 함수 `src/lib/surveys/resolveRecipient.ts`(`resolveSurveyRecipient`)로 추출: 이메일 `patients.email → inquiries.email` 폴백, 언어 `session.patient_language → inquiry.preferred_language → spoken_language → ko`(카자흐 `kz→kk` 매핑), 이름 `inquiries.first_name+last_name`. → cron 이 이 함수를 사용.
+- 단위테스트 `resolveRecipient.test.ts` 12개로 **고정**(patient_id null→inquiry 폴백·우선순위·잘못된 이메일 skip·언어매핑).
+- ⚠️ **운영 주의**: 머지·배포되면 앞으로 완료된 상담 24~30시간 뒤 **이메일이 있는** 환자에게 실제 설문 메일이 나간다(현재 inquiries 11건 중 이메일 보유 3건). 기존 완료 세션은 발송 윈도(24~30h)를 지나 **소급 발송 안 됨**(블라스트 반경 작음).
+
+**유사 이슈 (같은 부류 — 별도 추적)**
+- `app/api/cron/detect-silent-patients/route.ts` 도 `consultation_sessions` 를 `.not("patient_id","is",null)` 로 거름 → 전 행 null 이라 **항상 0건 감지**(침묵 환자 알림이 한 번도 안 뜸). `symptom_reports` 도 patient_id 로 묶여 있어 폴백이 단순치 않음 → 더 큰 리팩터라 이번 PR 범위에서 분리, `docs/KNOWN_ISSUES.md` 에 기록.
+
+**재발 방지 (시스템 적용)**
+- `consultation_sessions.patient_id` 에 의존하는 코드는 **inquiry_id 폴백을 기본값으로** 간주(이 컬럼은 현재 미사용 = null). 새 cron/집계 작성 시 점검.
+- 수신자 결정 같은 "조용히 skip 되는" 분기는 **순수 함수로 빼서 단위테스트로 잠금**(라이브 cron 자체는 못 돌려도 로직은 CI 로 닫힘).
