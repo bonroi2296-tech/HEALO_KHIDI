@@ -63,22 +63,14 @@ async function fetchPatientList(year: number, month: number) {
   const nextYear = month === 12 ? year + 1 : year;
   const toISO = `${nextYear}-${String(nextMonth).padStart(2, "0")}-01T00:00:00+09:00`;
 
-  const { data, error } = await supabase
+  // ⚠️ 옛 코드는 존재하지 않는 테이블 khidi_intakes 를 `!inner` 조인해 명단이 항상
+  //    빈칸이었다(쿼리 에러 → []). KNOWN_ISSUES/kpi.ts 가 못박은 실제 연결고리는
+  //    consultation_sessions.inquiry_id → inquiries 다. 2단계로 합류한다.
+  //    (국적·주상병명은 inquiries 에 있으나 '성별·출생연도'는 어느 테이블에도 수집되지
+  //    않아 빈칸 — 데이터 수집 갭, PO 보고.) POSTMORTEMS #19.
+  const { data: sessions, error } = await supabase
     .from("consultation_sessions")
-    .select(`
-      id,
-      patient_id,
-      session_type,
-      scheduled_at,
-      notes,
-      khidi_intakes!inner(
-        user_id,
-        nationality,
-        gender,
-        birth_date,
-        diagnosis
-      )
-    `)
+    .select("id, patient_id, inquiry_id, session_type, scheduled_at, notes")
     .eq("status", "completed")
     .gte("scheduled_at", fromISO)
     .lt("scheduled_at", toISO)
@@ -89,7 +81,23 @@ async function fetchPatientList(year: number, month: number) {
     return [];
   }
 
-  return data ?? [];
+  const rows = (sessions ?? []) as any[];
+  const inquiryIds = [...new Set(rows.map((r) => r.inquiry_id).filter((v) => v != null))];
+
+  const inquiryMap = new Map<number, any>();
+  if (inquiryIds.length > 0) {
+    const { data: inqs, error: inqErr } = await supabase
+      .from("inquiries")
+      .select("id, nationality, cancer_type, treatment_type")
+      .in("id", inquiryIds);
+    if (inqErr) {
+      console.error("[monthly-report] inquiry join error:", inqErr.message);
+    } else {
+      (inqs ?? []).forEach((q: any) => inquiryMap.set(q.id, q));
+    }
+  }
+
+  return rows.map((r) => ({ ...r, inquiry: inquiryMap.get(r.inquiry_id) ?? null }));
 }
 
 export async function POST(request: NextRequest) {
@@ -180,10 +188,7 @@ export async function POST(request: NextRequest) {
       // 5행부터 데이터 시작 (헤더: 1~4행)
       const startRow = 5;
       patients.forEach((session: any, idx: number) => {
-        const intake = Array.isArray(session.khidi_intakes)
-          ? session.khidi_intakes[0]
-          : session.khidi_intakes;
-        if (!intake) return;
+        const inq = session.inquiry || {};
 
         const rowNum = startRow + idx;
         const row = patientSheet.getRow(rowNum);
@@ -193,16 +198,16 @@ export async function POST(request: NextRequest) {
         // B: 진료유형 (사전상담/사후관리)
         row.getCell(2).value =
           session.session_type === "pre_consultation" ? "사전상담" : "사후관리";
-        // C: 환자등록번호 (UUID 앞 8자리 — PII 최소화)
-        row.getCell(3).value = String(session.patient_id ?? "").slice(0, 8).toUpperCase();
-        // D: 출생연도 (YYYY)
-        row.getCell(4).value = intake.birth_date
-          ? new Date(intake.birth_date).getFullYear()
-          : "";
-        // E: 성별
-        row.getCell(5).value = intake.gender === "male" ? "남" : intake.gender === "female" ? "여" : "";
-        // F: 국적
-        row.getCell(6).value = intake.nationality ?? "";
+        // C: 환자등록번호 (PII 최소화 — patient_id 없으면 inquiry_id 로 식별)
+        row.getCell(3).value = String(session.patient_id ?? session.inquiry_id ?? "")
+          .slice(0, 8)
+          .toUpperCase();
+        // D: 출생연도 — 현재 수집 안 함(데이터 갭) → 빈칸
+        row.getCell(4).value = "";
+        // E: 성별 — 현재 수집 안 함(데이터 갭) → 빈칸
+        row.getCell(5).value = "";
+        // F: 국적 (inquiries.nationality)
+        row.getCell(6).value = inq.nationality ?? "";
         // G: 진료일자 (KST 기준 — 월 필터도 KST 라 UTC 표기 시 하루 밀림 방지)
         row.getCell(7).value = session.scheduled_at
           ? new Date(new Date(session.scheduled_at).getTime() + 9 * 60 * 60 * 1000)
@@ -211,8 +216,8 @@ export async function POST(request: NextRequest) {
           : "";
         // H: 진료과명 (한방 기본)
         row.getCell(8).value = "한방";
-        // I: 주상병명
-        row.getCell(9).value = intake.diagnosis ?? "";
+        // I: 주상병명 (inquiries.cancer_type → treatment_type 폴백)
+        row.getCell(9).value = inq.cancer_type ?? inq.treatment_type ?? "";
         // J: 사전사후관리 내용
         row.getCell(10).value = session.notes ?? "";
 
