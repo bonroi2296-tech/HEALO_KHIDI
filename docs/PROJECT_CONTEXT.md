@@ -15,7 +15,7 @@
 - **#194 (✅머지·prod 라이브·실클릭 검증): 에이전시 포털 다국어 + 깜빡임 수정 + 환자 의뢰하기.** 6개 언어(ko·en·ru·kz·zh·ja) 로컬 사전(`app/agency/page.jsx` TR) + **포털 상단바 언어 스위처**(`ClientShell` PortalTopBar — 쿠키+`healo:langchange`로 리로드 없이 전환) + 진행단계 라벨 다국어(`src/lib/khidi/caseStatus.ts` `CASE_STATUS_LABELS`/`caseStatusLabelL`). 로그인→포털 **옛 UI 깜빡임 제거**(`LoginPremium` `router.push`→`window.location.assign` 하드내비, 미사용 `router` 제거). 에이전시 '환자 의뢰하기'(`POST /api/agency/refer`, `cancer_type`도 저장). prod `/agency` 신버전·`/api/coordinator/cases/assign` 405로 라이브 확인. **데모 의뢰 #13** 생성(TEST 에이전시).
 - **#200 (✅머지·prod 라이브·end-to-end 검증): 코디↔국내병원 백오피스 풀체인.** PO 지적("의뢰 접수돼도 코디·병원이 백오피스에서 검토할 연결이 빠져 반쪽")→ ① `/api/admin/khidi/cases` 가드 `requireAdminAuth`→`requireCaseStaff`(requirePortalAuth staffOnly + **admin·coordinator만**, 의사 제외) + GET에 병원목록·케이스별 배정현황. ② 신규 `/api/coordinator/cases/assign`(의뢰→`normalized_inquiries` 재사용/최소생성→`hospital_leads` upsert status='sent'→`case_status='hospital_review'`+이력). ③ `/coordinator/cases`(admin 케이스화면 재사용) + 코디 네비 '의뢰·케이스/병원배정'. ④ 케이스 화면에 '국내 병원 배정' UI. **검증: 코디 로그인→#13을 TEST 병원 배정→병원계정 `/partner/leads`에서 봄, 환자=403·무인증=401.**
 - **🐛 숨은 배정버그 복구(#200): `hospital_leads(normalized_inquiry_id,hospital_id)`·`normalized_inquiries(source_inquiry_id)`에 UNIQUE 인덱스가 없어** 기존 admin 배정의 `onConflict` upsert가 런타임 실패중이었음(`hospital_leads` 0행 = 배정 한 번도 성공 못함). 마이그레이션 `20260621_lead_assign_unique_indexes` prod 적용.
-- **#202 (✅머지·⏳prod 미배포: 한도): 병원 응답 → 코디·에이전시 역방향 반영.** PO 지적("병원이 ㅇㅋ 하면 코디·에이전시한테 다시 넘어가야지"). `/api/partner/leads/[id]` PATCH에 `syncLeadStatusToCase`: 병원이 replied/converted→`case_status` 'scheduling'으로 전진(코디가 더 간 단계면 유지)+메모 "🏥 {병원} 회신/치료확정"+`case_status_history`; rejected→단계 후퇴 안 함(다른병원 수락가능)+메모·이력만. 에이전시 타임라인(history 읽음)·코디 케이스 배지로 자동 반영. 베스트에포트(try/catch — 반영 실패해도 리드 업데이트는 성공).
+- **#202 (✅머지·✅#204 프리뷰서 end-to-end 검증): 병원 응답 → 코디·에이전시 역방향 반영.** PO 지적("병원이 ㅇㅋ 하면 코디·에이전시한테 다시 넘어가야지"). `/api/partner/leads/[id]` PATCH에 `syncLeadStatusToCase`: 병원이 replied/converted→`case_status` 'scheduling'으로 전진(코디가 더 간 단계면 유지)+메모 "🏥 {병원} 회신/치료확정"+`case_status_history`; rejected→단계 후퇴 안 함(다른병원 수락가능)+메모·이력만. 에이전시 타임라인(history 읽음)·코디 케이스 배지로 자동 반영. 베스트에포트(try/catch — 반영 실패해도 리드 업데이트는 성공). **검증: 병원계정으로 lead `4f22e5b2`→replied+견적 → 코디 #13=scheduling·배지 replied(견적8000~12000)·에이전시 타임라인 "🏥 TEST 병원 회신" 동기화 확인.** (curl은 `-X PATCH` 필수 — `-d`만 쓰면 POST라 405. 라우트는 PATCH만 export.) 그래서 **데모 #13은 현재 case_status='scheduling', lead='replied'** 상태로 진행됨.
 
 **왜 그렇게 했는지:**
 - 다국어는 거대 중앙 i18n파일 대신 **로컬 사전**(PatientDashboard 패턴) + 상태라벨만 중앙 caseStatus에(코디/어드민 화면은 ko 유지).
@@ -23,7 +23,7 @@
 - 역방향은 `hospital_leads.status`와 `case_status`가 따로 놀던 끊김. rejected는 다른 병원이 수락 가능하므로 단계 후퇴 금지(코디 큐레이션 존중).
 
 **안 끝났거나 보류:**
-- **⚠️ #202 prod 배포 — Vercel 무료 일일 빌드한도(100/day) 또 초과**로 머지 후 새 배포 0건. 한도 풀리면 자동 배포(2026-06-21에 #194·#200도 그렇게 prod에 올라감). 그 전엔 **역방향 코드가 prod에 없음**(현재 prod=#200 `19ab034`).
+- **#202 코드·검증은 끝.** prod 반영은 **#204(이 핸드오프 PR) 머지로 main 배포에 함께 올라감**(한도 풀려 #204 프리뷰 빌드 성공함). 머지 후 prod에 #202 떴는지만 확인하면 됨.
 - (이월) 화상방 다자 카메라(#160) 실렌더 / 만족도·침묵 알림 실수신(데이터 쌓여야).
 
 **주의·함정:**
@@ -34,15 +34,14 @@
 - **squash 머지 후 같은 브랜치 이어쓰기 금지** — 매번 `git fetch origin main` 후 origin/main 기준 새 브랜치(이번 세션 3번 그렇게 함: agency-refer→coordinator-backoffice→hospital-response-backflow).
 
 **다음 세션이 먼저 할 일 (우선순위):**
-1. **⚠️ 직전 미검증분 먼저 — #202 역방향 실검증:** Vercel 한도 풀려 **prod에 #202 배포됐는지 확인** → 됐으면 병원계정(`hospital@test.com`/`test1234`)으로 lead `4f22e5b2`를 'replied'로 바꿔서 → 의뢰 #13 진행단계가 '치료 일정·견적 조율 중(scheduling)'으로 바뀌고 **에이전시(`agency@test.com`) 타임라인 + 코디 케이스 배지에 "🏥 TEST 병원 회신"** 뜨는지 1회 확인. (안 떴으면 #202 prod 미배포 — 한도 더 기다리거나 Promote.)
-2. 한도 풀렸는지 확인 → 2026-06-21 머지분(#196·#197 등 포함) 전부 prod 반영됐는지 점검.
-3. (이월) 화상방 다자 카메라(#160)·만족도/침묵 알림.
-4. KHIDI 중간평가(2026-08-27) 상시 — 유치 전환 대시보드(`/admin/khidi/conversion`) 자동집계가 곧 점수.
+1. **prod 반영 확인:** #204 머지로 #202가 prod에 올라갔는지 확인(`https://healo-khidi.vercel.app` 에서 병원→코디·에이전시 역방향이 prod에서도 되는지 1회). #202 역방향 자체는 **프리뷰에서 이미 end-to-end 검증됨**(데모 #13으로) — prod 확인만 남음. 2026-06-21 머지분(#196·#197 등) 전부 prod 반영됐는지도 같이 점검.
+2. (이월) 화상방 다자 카메라(#160)·만족도/침묵 알림.
+3. KHIDI 중간평가(2026-08-27) 상시 — 유치 전환 대시보드(`/admin/khidi/conversion`) 자동집계가 곧 점수.
 
-**검증 상태:** 각 변경 **로컬 tsc 0 / eslint 0 error / next build --webpack / check:content 통과**. **#194·#200·#202 셋 다 CI(`ci`·`Smoke`) 초록 + squash 머지(열린 PR 없음).** **#194·#200: prod 라이브 + 실클릭 검증완료**(에이전시 다국어 SSR·번들에 ru/kz 문자열 / 코디→TEST병원 배정→병원 `/partner/leads`에서 봄 / 권한 403·401). 마이그레이션 `20260621_lead_assign_unique_indexes` prod 적용·인덱스 확인. DB 연결경로(lead `4f22e5b2`→의뢰 #13) SQL로 확인. **❌ 미검증: #202 역방향 런타임 — prod 미배포(Vercel 한도)라 실제 병원PATCH→case 동기화를 클릭 못 함.** 코드·CI·DB경로는 통과, **실행 검증은 배포 후 필요(다음 세션 1번).**
+**검증 상태:** 각 변경 **로컬 tsc 0 / eslint 0 error / next build --webpack / check:content 통과**. **#194·#200·#202 셋 다 CI(`ci`·`Smoke`) 초록 + squash 머지(열린 PR 없음).** **#194·#200: prod 라이브 + 실클릭 검증완료**(에이전시 다국어 SSR·번들에 ru/kz 문자열 / 코디→TEST병원 배정→병원 `/partner/leads`에서 봄 / 권한 403·401). 마이그레이션 `20260621_lead_assign_unique_indexes` prod 적용·인덱스 확인. **#202 역방향 = #204 프리뷰에서 end-to-end 실검증 완료**(병원 replied+견적 → 코디 #13 scheduling·배지 replied·에이전시 타임라인 "🏥 TEST 병원 회신" 동기화). **남은 미확인: prod 반영** — #204 머지 후 prod에서 한 번 더 확인(다음 세션 1번, 가벼움).
 
 **다음 세션 첫 프롬프트:**
-> 먼저 docs/PROJECT_CONTEXT.md 최상단 핸드오프 읽어. 직전 세션(2026-06-21)에 에이전시 다국어(#194)·코디↔병원 백오피스(#200)는 실서비스 반영·검증 끝났는데, #202(병원이 회신하면 코디·에이전시한테 역방향으로 반영되는 기능)가 Vercel 빌드 한도 때문에 실서비스 배포가 안 돼서 실제 작동 확인을 못 했어. 한도 풀려서 #202가 실서비스에 올라갔는지 확인하고, 올라갔으면 병원 계정(hospital@test.com / test1234)으로 데모 환자(#13, TEST 병원 배정된 리드)를 '회신'으로 바꿔서 → 그게 에이전시(agency@test.com)랑 코디 화면에 "병원 회신"으로 자동으로 뜨는지 1번 확인해줘.
+> 먼저 docs/PROJECT_CONTEXT.md 최상단 핸드오프 읽어. 직전 세션(2026-06-21)에 에이전시 다국어(#194)·코디↔병원 백오피스(#200)·병원응답 역방향(#202)까지 다 만들고 검증했어(역방향은 프리뷰에서 데모 #13으로 확인). 이제 실서비스(healo-khidi.vercel.app)에 #202까지 다 올라갔는지 확인하고, 병원 계정(hospital@test.com / test1234)으로 데모 환자(#13)를 다른 상태로 바꿔서 코디·에이전시 화면에 그대로 반영되는지 prod에서 1번만 확인해줘. 그다음 화상방 다자 카메라(#160)나 만족도/침묵 알림 쪽 볼지 정하자.
 
 ---
 
