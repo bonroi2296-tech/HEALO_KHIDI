@@ -57,14 +57,14 @@ export async function POST(request: NextRequest) {
 
     await supabaseAdmin
       .from("auto_jobs")
-      .update({ status: "done", finished_at: new Date().toISOString(), stats })
+      .update({ status: "done", completed_at: new Date().toISOString(), output: stats })
       .eq("id", jobId);
 
     return Response.json({ ok: true, job_id: jobId, job_type: job, stats });
   } catch (err: any) {
     await supabaseAdmin
       .from("auto_jobs")
-      .update({ status: "failed", finished_at: new Date().toISOString(), error: err.message })
+      .update({ status: "failed", completed_at: new Date().toISOString(), error: err.message })
       .eq("id", jobId);
 
     console.error("[admin/automation/run] job failed:", err);
