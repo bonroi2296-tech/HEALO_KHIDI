@@ -18,6 +18,7 @@ import { searchExternal } from "./externalSearch";
 import { runJudgeInBackground } from "./judge";
 import { CARE_REFERENCE } from "./careReference";
 import { BoundedCache } from "../util/boundedCache";
+import { mentionsCancerType, isTopicCorrection, correctionReply } from "./topicGuards";
 
 type ChatMessage = { role: "user" | "assistant" | "system"; content: string };
 
@@ -247,6 +248,7 @@ export function buildSystemPrompt(
   useWebSearch = false,
   externalSources: string[] = [],
   hospitalGuard: HospitalGuardOptions = {},
+  currentMentionsCancer = true,
 ): string {
   const hasContext = !!contextText;
   const hasDbData = contextText.includes("healwith 등록");
@@ -255,6 +257,11 @@ export function buildSystemPrompt(
   const { hospitalGuardActive = false, hospitalIntentNoMatch = false } = hospitalGuard;
 
   return [
+    // 코드 강제 가드(맨 위 = 최우선): 현재 메시지에 암종이 없으면 옛 화제(대장암 등)를 끌어와
+    // 단정하는 over-anchoring 을 막는다. 프롬프트 중간 규칙만으론 누적 스레드에서 안 꺾여 최상단에 둠.
+    !currentMentionsCancer
+      ? "⚠️ TOP PRIORITY — THE USER'S CURRENT MESSAGE DOES NOT NAME A CANCER TYPE: Do NOT mention, assume, or bring up ANY specific cancer (대장암/colorectal, 유방암/breast, 폐암/lung, 위암/stomach, etc.). Earlier messages in this chat do NOT give you permission. Answer ONLY the current question, in general terms ('your cancer' / 'the treatment'), and reply in the SAME language as the user's current message."
+      : "",
     "You are healwith's AI agent — a medical concierge that CONNECTS international patients with Korean hospitals and oncology specialists.",
     "You are NOT the treating party: you do not diagnose, read scans/labs, or prescribe — licensed Korean doctors do that. Your job is to guide, inform from verified Context, and connect.",
     "",
@@ -561,6 +568,21 @@ function smallTalkReply(text: string, lang: string): string {
   return set.default;
 }
 
+function correctionResult(reply: string, t0: number): ChatReplyResult {
+  return {
+    reply,
+    ragChunks: [],
+    _analytics: {
+      retrievedPatternIds: [],
+      usedPatternIds: [],
+      declaredUsedPatternIds: [],
+      analyticsFallback: false,
+      ragScoring: "topic_correction_reset",
+      latencyMs: Date.now() - t0,
+    },
+  };
+}
+
 // 검색(DB+RAG+외부) → 컨텍스트 → 시스템 프롬프트 → 생성설정까지의 공통 준비 단계.
 // generateChatReply(비스트리밍)와 streamChatReply(스트리밍)가 동일 로직을 공유해 분기로 인한
 // 품질 드리프트를 막는다. systemPrompt 에는 JSON 출력 지시를 붙이지 않음(호출자가 결정).
@@ -625,7 +647,7 @@ async function prepareGeneration(
   const systemPrompt = buildSystemPrompt(allContext, hasTier3, useWebSearch, externalSources, {
     hospitalGuardActive,
     hospitalIntentNoMatch: hospitalIntent && matchedHospitalNames.length === 0,
-  });
+  }, mentionsCancerType(query));
   const retrievedPatternIds = extractRetrievedPatternIds(ragChunks);
   const model = getModel();
 
@@ -674,6 +696,13 @@ export async function generateChatReply(
         latencyMs: Date.now() - t0,
       },
     };
+  }
+
+  // 화제 정정("그거 안 물어봤다 / 아니라고") — 모델을 거치면 누적된 옛 화제(대장암)를 또 우기므로
+  // 결정적 사과+재질문으로 화제를 리셋한다. 정정 문장 속 암종어는 "거부 대상"이라 게이트하지
+  // 않는다("난 대장암 안 물어봤는데"=대장암 거부). "A 말고 B"처럼 새 화제를 주는 건 패턴에서 제외됨.
+  if (isTopicCorrection(query)) {
+    return correctionResult(correctionReply(lang), t0);
   }
 
   try {
@@ -835,6 +864,13 @@ export async function streamChatReply(
         latencyMs: Date.now() - t0,
       },
     };
+  }
+
+  // 화제 정정 — 모델 미경유 결정적 사과+재질문(누적 over-anchoring 방지). 비스트림과 동일 규칙.
+  if (isTopicCorrection(query)) {
+    const reply = correctionReply(lang);
+    onChunk(reply);
+    return correctionResult(reply, t0);
   }
 
   try {
