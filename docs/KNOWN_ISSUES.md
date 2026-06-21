@@ -12,6 +12,12 @@
 - **수정**: ① `useSpeechRecognition.js`에 순수 헬퍼 `isBrowserSttNative(lang)` 추가(`STT_FALLBACK_LANGS={kz}` → kz 는 false). ② `page.jsx`가 통역 켤 때 화자 언어가 폴백 전용(kz)이면 `forceServerStt` ON + 브라우저 STT 시작 안 함 → 서버 STT(Gemini, kz 직접 지원)로 라우팅. ③ 순수 로직 단위테스트 `sttRouting.test.ts`(6개)로 잠금.
 - **검증**: vitest 285개 전부 통과(+6) / tsc 0. **라이브(화상방 카자흐어 발화) 실동작은 PO 동석 검증 필요**(자동 불가). 상세: `docs/LIVE_TRANSLATE_EVAL.md` §4.
 
+## 🟢 P3 — 카자흐어 TTS(자막 음성낭독) 브라우저 음성 부재 (2026-06-21 스캔, 미수정)
+
+- **증상**: `src/lib/consultation/useTTS.js` 가 `kz="kk-KZ"` 로 음성합성 시도하나 브라우저에 카자흐어(kk) 음성이 거의 없어 매칭 실패 → 기본 음성으로 엉뚱하게 읽거나 무음.
+- **심각도 낮음**: TTS 는 **선택 기능(자막을 소리로 읽어주기, 토글)** 이고 자막 텍스트 자체는 정상. STT(인식)와 달리 데이터 오염 아님.
+- **미수정 이유**: 클라이언트 브라우저만으론 깔끔한 해결책 없음(서버 TTS 도입 필요 = 별도 과제·비용). 카자흐 STT 라우팅 수정(위)과 같은 부류지만 우선순위 낮음. POSTMORTEMS #16 유사스캔에서 기록.
+
 ## 🟡 관망 — Gemini 3.5 Live Translate (실시간 음성통역 신모델, 2026-06-09 공개)
 
 - 연속 스트리밍 음성통역(70+ 언어, LiveKit 기본연동). 단 우리는 **이미 서버 STT(Gemini 멀티모달)로 카자흐어 전사+번역 가능** → Live Translate의 증분은 "끊김 없는 연속성"뿐.

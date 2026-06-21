@@ -7,11 +7,14 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 
-const LANG_MAP = {
+// 앱 언어코드 → 브라우저 Web Speech API 인식기 로케일.
+// ⚠️ 교차언어 폴백(키와 다른 언어의 로케일을 매핑 — 예: kz→ru-RU)을 새로 추가하면
+//    반드시 STT_FALLBACK_LANGS 에도 등록할 것. sttRouting.test.ts 가드가 강제한다.
+export const LANG_MAP = {
   ko: "ko-KR",
   ru: "ru-RU",
   en: "en-US",
-  // kk-KZ는 Chrome SpeechRecognition 미지원 → ru-RU 폴백
+  // kk-KZ는 Chrome SpeechRecognition 미지원 → ru-RU 폴백 (STT_FALLBACK_LANGS 에 등록됨)
   kz: "ru-RU",
   zh: "zh-CN",
   ja: "ja-JP",
