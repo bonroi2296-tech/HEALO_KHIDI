@@ -9,7 +9,7 @@
 import "server-only";
 
 import { createHash } from "crypto";
-import { generateText } from "ai";
+import { generateText, streamText } from "ai";
 import { google } from "@ai-sdk/google";
 import { supabaseAdmin } from "../rag/supabaseAdmin";
 import { hashQuery, logRagDisabled } from "../rag/ragQueryEvents";
@@ -540,6 +540,96 @@ function smallTalkReply(text: string, lang: string): string {
   return set.default;
 }
 
+// 검색(DB+RAG+외부) → 컨텍스트 → 시스템 프롬프트 → 생성설정까지의 공통 준비 단계.
+// generateChatReply(비스트리밍)와 streamChatReply(스트리밍)가 동일 로직을 공유해 분기로 인한
+// 품질 드리프트를 막는다. systemPrompt 에는 JSON 출력 지시를 붙이지 않음(호출자가 결정).
+interface PreparedGeneration {
+  model: any | null;
+  systemPrompt: string;
+  genConfig: { maxOutputTokens: number; providerOptions: any };
+  ragChunks: any[];
+  injectedPatternIds: string[];
+  retrievedPatternIds: string[];
+  allContext: string;
+  ragScoring: string;
+}
+
+async function prepareGeneration(
+  query: string,
+  lang: string,
+  threadId?: string
+): Promise<PreparedGeneration> {
+  // 1단계: healwith DB 직접 검색 (최우선) + RAG 벡터 검색 (병렬 실행)
+  const [dbResult, ragChunks] = await Promise.all([
+    searchHospitalsAndTreatments(query).catch((e) => {
+      console.error("[generateReply] db search failed:", e);
+      return { context: "", hospitalCount: 0, treatmentCount: 0 } as const;
+    }),
+    fetchRagChunks(query, lang, threadId),
+  ]);
+
+  const ragScoring = ragChunks.length > 0 ? "vector_cosine_similarity" : "no_results";
+  const { text: contextText, hasTier3, usedPatternIds: injectedPatternIds } = buildContext(ragChunks);
+  const dbContext = dbResult.context;
+  const matchedHospitalNames = (dbResult as any).matchedHospitalNames ?? [];
+  const hospitalMatchType = (dbResult as any).hospitalMatchType ?? "none";
+
+  const HOSPITAL_KEYWORDS = /병원|의원|한방병원|클리닉|clinic|hospital/i;
+  const hospitalIntent = HOSPITAL_KEYWORDS.test(query) || matchedHospitalNames.length > 0;
+  const hospitalGuardActive = hospitalIntent && matchedHospitalNames.length > 0;
+
+  console.log(`[generateReply] query="${query.slice(0, 80)}" | hospitalIntent=${hospitalIntent} | matchType=${hospitalMatchType} | dbHospitals=${matchedHospitalNames.length} | ragChunks=${ragChunks.length}`);
+  if (matchedHospitalNames.length > 0) {
+    console.log(`[generateReply] matchedHospitals:`, matchedHospitalNames);
+  }
+
+  // DB 결과를 RAG보다 앞에 배치 (healwith 등록 데이터 우선)
+  const internalContext = [dbContext, contextText].filter(Boolean).join("\n");
+
+  // 외부 검색: hospital_intent+DB매칭 시 외부 검색 차단
+  let externalContext = "";
+  let externalSources: string[] = [];
+  if (!internalContext && !hospitalGuardActive) {
+    try {
+      const ext = await searchExternal(query);
+      externalContext = ext.context;
+      externalSources = ext.sources;
+    } catch (e) {
+      console.error("[generateReply] external search failed:", e);
+    }
+  }
+
+  const allContext = [internalContext, externalContext].filter(Boolean).join("\n\n");
+  const useWebSearch = !allContext && !hospitalGuardActive;
+  const systemPrompt = buildSystemPrompt(allContext, hasTier3, useWebSearch, externalSources, {
+    hospitalGuardActive,
+    hospitalIntentNoMatch: hospitalIntent && matchedHospitalNames.length === 0,
+  });
+  const retrievedPatternIds = extractRetrievedPatternIds(ragChunks);
+  const model = getModel();
+
+  return {
+    model,
+    systemPrompt,
+    genConfig: {
+      // 비용·가독성 가드 + 빈답/잘림 방어 (thinkingBudget:0, 상한 8192) — 상세는 아래 주석 참조.
+      maxOutputTokens: 8192,
+      providerOptions: {
+        google: {
+          thinkingConfig: { thinkingBudget: 0 },
+          safetySettings: SAFETY_SETTINGS as any,
+          ...(useWebSearch ? { useSearchGrounding: true } : {}),
+        },
+      },
+    },
+    ragChunks,
+    injectedPatternIds,
+    retrievedPatternIds,
+    allContext,
+    ragScoring,
+  };
+}
+
 export async function generateChatReply(
   messages: ChatMessage[],
   query: string,
@@ -566,56 +656,11 @@ export async function generateChatReply(
   }
 
   try {
-    // 1단계: healwith DB 직접 검색 (최우선) + RAG 벡터 검색 (병렬 실행)
-    const [dbResult, ragChunks] = await Promise.all([
-      searchHospitalsAndTreatments(query).catch((e) => {
-        console.error("[generateReply] db search failed:", e);
-        return { context: "", hospitalCount: 0, treatmentCount: 0 } as const;
-      }),
-      fetchRagChunks(query, lang, threadId),
-    ]);
+    const prep = await prepareGeneration(query, lang, threadId);
+    ragScoring = prep.ragScoring;
+    const { ragChunks, injectedPatternIds, retrievedPatternIds, allContext } = prep;
 
-    ragScoring = ragChunks.length > 0 ? "vector_cosine_similarity" : "no_results";
-    const { text: contextText, hasTier3, usedPatternIds: injectedPatternIds } = buildContext(ragChunks);
-    const dbContext = dbResult.context;
-    const matchedHospitalNames = (dbResult as any).matchedHospitalNames ?? [];
-    const hospitalMatchType = (dbResult as any).hospitalMatchType ?? "none";
-
-    const HOSPITAL_KEYWORDS = /병원|의원|한방병원|클리닉|clinic|hospital/i;
-    const hospitalIntent = HOSPITAL_KEYWORDS.test(query) || matchedHospitalNames.length > 0;
-    const hospitalGuardActive = hospitalIntent && matchedHospitalNames.length > 0;
-
-    console.log(`[generateReply] query="${query.slice(0, 80)}" | hospitalIntent=${hospitalIntent} | matchType=${hospitalMatchType} | dbHospitals=${matchedHospitalNames.length} | ragChunks=${ragChunks.length}`);
-    if (matchedHospitalNames.length > 0) {
-      console.log(`[generateReply] matchedHospitals:`, matchedHospitalNames);
-    }
-
-    // DB 결과를 RAG보다 앞에 배치 (healwith 등록 데이터 우선)
-    const internalContext = [dbContext, contextText].filter(Boolean).join("\n");
-
-    // 외부 검색: hospital_intent+DB매칭 시 외부 검색 차단
-    let externalContext = "";
-    let externalSources: string[] = [];
-    if (!internalContext && !hospitalGuardActive) {
-      try {
-        const ext = await searchExternal(query);
-        externalContext = ext.context;
-        externalSources = ext.sources;
-      } catch (e) {
-        console.error("[generateReply] external search failed:", e);
-      }
-    }
-
-    const allContext = [internalContext, externalContext].filter(Boolean).join("\n\n");
-    const useWebSearch = !allContext && !hospitalGuardActive;
-    const systemPrompt = buildSystemPrompt(allContext, hasTier3, useWebSearch, externalSources, {
-      hospitalGuardActive,
-      hospitalIntentNoMatch: hospitalIntent && matchedHospitalNames.length === 0,
-    });
-    const retrievedPatternIds = extractRetrievedPatternIds(ragChunks);
-
-    const model = getModel();
-    if (!model) {
+    if (!prep.model) {
       return {
         reply: "I'm sorry, the AI service is temporarily unavailable. Please try again later.",
         ragChunks,
@@ -632,26 +677,13 @@ export async function generateChatReply(
     }
 
     const fullSystemPrompt = injectedPatternIds.length > 0
-      ? systemPrompt + "\n\n" + JSON_OUTPUT_INSTRUCTION
-      : systemPrompt;
+      ? prep.systemPrompt + "\n\n" + JSON_OUTPUT_INSTRUCTION
+      : prep.systemPrompt;
 
     const baseParams = {
-      model,
+      model: prep.model,
       system: fullSystemPrompt,
-      // 비용·가독성 가드: 응답 길이 상한 (모바일 채팅 벽지 방지 + 토큰 폭주 차단)
-      // ⚠️ gemini-flash-latest 는 thinking(추론) 토큰이 maxOutputTokens 에 포함됨 →
-      //    상한이 낮으면 추론이 예산을 다 먹고 실제 답변이 잘리거나 통째로 빈칸(2026-06-20 빈답 버그).
-      //    thinkingBudget:0 으로 추론을 끄되, 별칭(latest)이 옵션을 무시할 경우까지 대비해
-      //    상한을 8192 로 올려 답변 토큰 여유 확보(빈답·잘림 방어).
-      maxOutputTokens: 8192,
-      providerOptions: {
-        google: {
-          thinkingConfig: { thinkingBudget: 0 },
-          // 의료(암 치료) 질의가 안전필터에 걸려 빈 응답으로 떨어지는 것 방지(방어).
-          safetySettings: SAFETY_SETTINGS as any,
-          ...(useWebSearch ? { useSearchGrounding: true } : {}),
-        },
-      },
+      ...prep.genConfig,
     };
 
     let result = await generateTextWithRetry({ ...baseParams, messages: messages as any });
@@ -731,6 +763,168 @@ export async function generateChatReply(
     console.error("[generateChatReply] error:", err.message);
     return {
       reply: "I'm sorry, something went wrong. Please try again.",
+      ragChunks: [],
+      error: err.message,
+      _analytics: {
+        retrievedPatternIds: [],
+        usedPatternIds: [],
+        declaredUsedPatternIds: [],
+        analyticsFallback: true,
+        ragScoring,
+        latencyMs: Date.now() - t0,
+      },
+    };
+  }
+}
+
+/**
+ * 스트리밍 AI 응답 생성 — 토큰을 받는 즉시 onChunk 로 흘려보내 체감 지연을 줄인다.
+ * 비스트리밍 generateChatReply 와 동일한 검색·프롬프트(prepareGeneration)를 공유한다.
+ *
+ * 차이점(의도된 트레이드오프):
+ * - 평문만 스트리밍하므로 JSON 출력(used_pattern_ids 선언)을 쓰지 않는다 → playbook 사용
+ *   분석은 fallback(회수=사용 간주)로 기록. 정밀 귀속이 필요하면 비스트리밍 경로를 쓴다.
+ * - 빈 응답이면 마지막 사용자 메시지만으로 비스트리밍 1회 복구 시도 후, 그래도 비면 안내문 치환.
+ *
+ * @returns 스트림이 끝난 뒤의 최종 결과(reply 전문 + 분석). onChunk 콜백으로 토큰이 전달됨.
+ */
+export async function streamChatReply(
+  messages: ChatMessage[],
+  query: string,
+  lang: string,
+  threadId: string | undefined,
+  onChunk: (text: string) => void
+): Promise<ChatReplyResult> {
+  const t0 = Date.now();
+  let ragScoring = "none";
+
+  // 짧은 인사·잡담 — RAG 검색 없이 즉시 응답(한 덩어리로 스트림)
+  if (isSmallTalk(query)) {
+    const reply = smallTalkReply(query, lang);
+    onChunk(reply);
+    return {
+      reply,
+      ragChunks: [],
+      _analytics: {
+        retrievedPatternIds: [],
+        usedPatternIds: [],
+        declaredUsedPatternIds: [],
+        analyticsFallback: false,
+        ragScoring: "small_talk_bypass",
+        latencyMs: Date.now() - t0,
+      },
+    };
+  }
+
+  try {
+    const prep = await prepareGeneration(query, lang, threadId);
+    ragScoring = prep.ragScoring;
+    const { ragChunks, injectedPatternIds, retrievedPatternIds, allContext } = prep;
+
+    if (!prep.model) {
+      const reply = "I'm sorry, the AI service is temporarily unavailable. Please try again later.";
+      onChunk(reply);
+      return {
+        reply,
+        ragChunks,
+        error: "model_unavailable",
+        _analytics: {
+          retrievedPatternIds,
+          usedPatternIds: injectedPatternIds,
+          declaredUsedPatternIds: [],
+          analyticsFallback: true,
+          ragScoring,
+          latencyMs: Date.now() - t0,
+        },
+      };
+    }
+
+    // 스트리밍은 평문만 보냄 → JSON 출력 지시 미부착(비스트리밍과의 유일한 프롬프트 차이).
+    const baseParams = {
+      model: prep.model,
+      system: prep.systemPrompt,
+      ...prep.genConfig,
+    };
+
+    let fullText = "";
+    let finishReason: any = undefined;
+    try {
+      const sr = streamText({ ...baseParams, messages: messages as any });
+      for await (const chunk of sr.textStream) {
+        fullText += chunk;
+        onChunk(chunk);
+      }
+      try {
+        finishReason = await sr.finishReason;
+      } catch {
+        /* finishReason 조회 실패는 무시 */
+      }
+    } catch (e: any) {
+      console.warn(`[streamChatReply] stream error: ${String(e?.message || e).slice(0, 120)}`);
+    }
+
+    // 🔁 빈 응답 복구: 스트림이 비면(안전필터·기록누적 등) 마지막 사용자 메시지만으로 비스트리밍 1회.
+    if (!fullText.trim() && messages.length > 1) {
+      const lastUser = [...messages].reverse().find((m) => m.role === "user");
+      if (lastUser) {
+        console.warn(
+          `[streamChatReply] empty stream (finishReason=${finishReason}) — retrying with last user message only`
+        );
+        const reduced = await generateTextWithRetry(
+          { ...baseParams, messages: [lastUser] as any },
+          2
+        ).catch(() => null);
+        if (reduced?.text && reduced.text.trim()) {
+          fullText = reduced.text;
+          finishReason = (reduced as any)?.finishReason ?? finishReason;
+          onChunk(fullText);
+        }
+      }
+    }
+
+    // 🛟 최종 안전망: 그래도 비면 6개 언어 안내로 치환.
+    let emptyError: string | undefined;
+    if (!fullText.trim()) {
+      console.error(
+        `[streamChatReply] EMPTY reply — finishReason=${finishReason} query="${query.slice(0, 60)}"`
+      );
+      fullText = EMPTY_REPLY_FALLBACK[lang] || EMPTY_REPLY_FALLBACK.en;
+      onChunk(fullText);
+      emptyError = `empty_model_text:${finishReason ?? "unknown"}`;
+    }
+
+    const result: ChatReplyResult = {
+      reply: fullText,
+      ragChunks,
+      ...(emptyError ? { error: emptyError } : {}),
+      _analytics: {
+        retrievedPatternIds,
+        // 스트리밍은 JSON 선언이 없으므로 회수=사용으로 간주(fallback)
+        usedPatternIds: injectedPatternIds,
+        declaredUsedPatternIds: [],
+        analyticsFallback: true,
+        ragScoring,
+        latencyMs: Date.now() - t0,
+      },
+    };
+
+    // Judge: 메인 흐름 차단 없이 백그라운드 평가
+    runJudgeInBackground({
+      query,
+      response: fullText,
+      context: allContext || undefined,
+      lang,
+      messageId: null,
+      threadId: threadId ?? null,
+    });
+
+    return result;
+  } catch (err: any) {
+    console.error("[streamChatReply] error:", err.message);
+    const reply = "I'm sorry, something went wrong. Please try again.";
+    onChunk(reply);
+    return {
+      reply,
       ragChunks: [],
       error: err.message,
       _analytics: {

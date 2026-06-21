@@ -507,8 +507,12 @@ export function ThreadChat() {
     setAttachments([]);
     setSending(true);
 
+    // 메타 프레임 구분자(RS, U+001E) — 서버 STREAM_META_DELIM 와 동일해야 함.
+    const META_DELIM = "";
+    const aiId = `ai_${Date.now()}`;
+
     try {
-      const res = await fetch("/api/public/chat/message", {
+      const res = await fetch("/api/public/chat/stream", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -519,49 +523,75 @@ export function ThreadChat() {
         }),
       });
 
-      let json;
-      try {
-        json = await res.json();
-      } catch (parseErr) {
-        console.error("[ThreadChat] response parse failed:", parseErr, "status:", res.status);
+      // 스트림 시작 전 차단(회수제한·토큰오류·닫힌 스레드)은 JSON 오류로 옴.
+      if (!res.ok || !res.body) {
+        let errMsg = res.statusText;
+        try {
+          const j = await res.json();
+          errMsg = j.error || errMsg;
+        } catch {
+          /* 본문이 JSON 이 아님 */
+        }
         setMessages((prev) => [
           ...prev,
-          { id: `err_${Date.now()}`, role: "assistant", content: t("chat.errorRetry", langCode) || "Something went wrong. Please try again." },
+          { id: `err_${Date.now()}`, role: "assistant", content: `Error: ${errMsg}. Please try again.` },
         ]);
         return;
       }
 
-      if (!res.ok || !json.ok) {
-        setMessages((prev) => [
-          ...prev,
-          { id: `err_${Date.now()}`, role: "assistant", content: `Error: ${json.error || res.statusText}. Please try again.` },
-        ]);
-        return;
+      // 빈 말풍선을 먼저 띄우고 토큰이 올 때마다 내용을 채운다(타이핑 효과).
+      setMessages((prev) => [...prev, { id: aiId, role: "assistant", content: "" }]);
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const idx = buffer.indexOf(META_DELIM);
+        const display = idx === -1 ? buffer : buffer.slice(0, idx);
+        setMessages((prev) => prev.map((m) => (m.id === aiId ? { ...m, content: display } : m)));
       }
 
-      if (json.ai_error) {
-        console.warn("[ThreadChat] AI returned error reply:", json.ai_error);
-        setMessages((prev) => [
-          ...prev,
-          { id: `ai_${Date.now()}`, role: "assistant", content: t("chat.aiUnavailable", langCode) || "I'm having trouble generating a response right now. Please try again in a moment." },
-        ]);
-        return;
+      // 스트림 종료 후 메타(JSON) 분리.
+      const idx = buffer.indexOf(META_DELIM);
+      const finalText = (idx === -1 ? buffer : buffer.slice(0, idx)).trim();
+      let meta = null;
+      if (idx !== -1) {
+        try {
+          meta = JSON.parse(buffer.slice(idx + META_DELIM.length));
+        } catch {
+          /* 메타 파싱 실패는 무시 — 텍스트는 이미 표시됨 */
+        }
       }
 
-      setMessages((prev) => [
-        ...prev,
-        { id: `ai_${Date.now()}`, role: "assistant", content: json.reply },
-      ]);
+      const safeText =
+        finalText ||
+        (t("chat.aiUnavailable", langCode) ||
+          "I'm having trouble generating a response right now. Please try again in a moment.");
+      setMessages((prev) => prev.map((m) => (m.id === aiId ? { ...m, content: safeText } : m)));
 
-      if (json.hand_off?.requested) {
+      if (meta?.ai_error) {
+        console.warn("[ThreadChat] AI returned error reply:", meta.ai_error);
+      }
+      if (meta?.hand_off?.requested) {
         setHandOff(true);
       }
     } catch (e) {
       console.error("[ThreadChat] unexpected error:", e);
-      setMessages((prev) => [
-        ...prev,
-        { id: `err_${Date.now()}`, role: "assistant", content: t("chat.errorRetry", langCode) || "Something went wrong. Please try again." },
-      ]);
+      const errText = t("chat.errorRetry", langCode) || "Something went wrong. Please try again.";
+      // 스트림 도중 끊긴 경우: 비어 있는 응답 말풍선이 있으면 그 자리에 오류를 채우고,
+      // 없으면(요청 자체 실패) 새 오류 말풍선을 추가한다(중복 방지).
+      setMessages((prev) => {
+        const bubble = prev.find((m) => m.id === aiId);
+        if (bubble && !bubble.content) {
+          return prev.map((m) => (m.id === aiId ? { ...m, content: errText } : m));
+        }
+        if (bubble) return prev; // 부분 응답이라도 표시됨 → 그대로 둠
+        return [...prev, { id: `err_${Date.now()}`, role: "assistant", content: errText }];
+      });
     } finally {
       setSending(false);
     }
