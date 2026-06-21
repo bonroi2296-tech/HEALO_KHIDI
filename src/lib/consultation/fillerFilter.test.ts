@@ -23,9 +23,10 @@ describe("isFillerOnly", () => {
     expect(isFillerOnly("ну")).toBe(true);
     // zh
     expect(isFillerOnly("嗯")).toBe(true);
-    // ja (현재 정규식이 커버하는 표기: えっと / えー / あのー)
+    // ja (えっと / えー / あのー / えーと(장음 표기) 모두 커버)
     expect(isFillerOnly("えっと")).toBe(true);
     expect(isFillerOnly("えー")).toBe(true);
+    expect(isFillerOnly("えーと")).toBe(true);
     expect(isFillerOnly("あのー")).toBe(true);
   });
 
