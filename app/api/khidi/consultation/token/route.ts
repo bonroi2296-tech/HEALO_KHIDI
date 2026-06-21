@@ -61,14 +61,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 역할별 권한 분리
-    // - 환자: 본인 영상/오디오 송신 + 의사/통역사 영상 수신
-    // - 의사: 본인 영상/오디오 송신 + 환자 영상 수신
-    // - 코디네이터/통역사: subscribe only (영상 송신 불필요시)
-    // - admin: 모니터링 목적 subscribe only
-    const canPublish = role === "patient" || role === "doctor";
+    // 송신 권한: 모든 참가자가 카메라·마이크 송신 가능 (PO 결정 2026-06-21 — 다자 회의).
+    //   이전엔 환자·의사만 송신, 코디/통역사/admin 은 보기 전용이었으나
+    //   "전원 카메라·마이크" 요구로 전 역할 publish 허용. (입장 자체는 여전히
+    //   requireConsultationAccess 로 인증된 참가자만 — 권한 확대는 방 안 동작 한정.)
+    const canPublish = true;
     const canSubscribe = true;
-    const canPublishData = role !== "admin"; // admin 은 메시지 송신 X
+    const canPublishData = true; // 채팅·자막 데이터도 전원 송신 허용
 
     const token = new AccessToken(apiKey, apiSecret, {
       identity: `${role}-${userId}`,

@@ -118,18 +118,26 @@ export async function POST(request: NextRequest) {
 
   const { data: history } = await (supabaseAdmin as any)
     .from("chat_messages")
-    .select("actor_type, message_text")
+    .select("actor_type, message_text, metadata")
     .eq("thread_id", thread_id)
     .order("created_at", { ascending: true })
-    .limit(20);
+    .limit(30);
 
-  // 모델에는 최근 10개만 전달(토큰↓·빈응답 완화). 문의서 초안은 전체 history 사용.
+  // 모델 맥락: '비답변' 시스템 메시지(에러폴백·자료ACK·빈텍스트)를 제외하고 최근 N개만.
+  // (#158과 동일 — 비답변이 쌓이면 모델이 인사·되묻기만 흉내내는 버그 방지. 저장은 보존.)
+  const MODEL_HISTORY_LIMIT = 12;
   const chatMessages = (history || [])
+    .filter((m: any) => {
+      if (m.actor_type !== "system") return true;
+      if (m?.metadata?.ai_error) return false;
+      if (m?.metadata?.attachment_ack) return false;
+      return !!String(m.message_text || "").trim();
+    })
+    .slice(-MODEL_HISTORY_LIMIT)
     .map((m: any) => ({
       role: m.actor_type === "patient" ? ("user" as const) : ("assistant" as const),
       content: m.message_text,
-    }))
-    .slice(-10);
+    }));
 
   const lang = threadMeta.language || "en";
 
