@@ -7,6 +7,15 @@
 
 import { useState, useEffect, useCallback } from "react";
 
+// 병원 리드 응답 상태 라벨/색 (병원이 파트너 화면에서 바꾼 값이 여기로 반영됨)
+const HOSP_STATUS = {
+  sent: { ko: "전송됨", cls: "bg-gray-100 text-gray-500" },
+  viewed: { ko: "열람", cls: "bg-blue-50 text-blue-600" },
+  replied: { ko: "회신함", cls: "bg-teal-50 text-teal-700" },
+  converted: { ko: "치료 확정", cls: "bg-green-100 text-green-700" },
+  rejected: { ko: "거절", cls: "bg-red-50 text-red-600" },
+};
+
 export default function CasesPage() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -171,12 +180,18 @@ export default function CasesPage() {
                   <div className="sm:col-span-2 border-t border-gray-200 pt-3 mt-1">
                     <div className="flex items-center justify-between mb-1.5">
                       <span className="text-gray-700 text-xs font-semibold">국내 병원 배정 (협진 의뢰)</span>
-                      {(c.assigned_hospitals ?? []).length > 0 && (
-                        <span className="text-[11px] text-teal-700">
-                          배정됨: {c.assigned_hospitals.map((h) => h.name).join(", ")}
-                        </span>
-                      )}
                     </div>
+                    {(c.assigned_hospitals ?? []).length > 0 && (
+                      <div className="flex flex-wrap gap-1 mb-1.5">
+                        {c.assigned_hospitals.map((h) => (
+                          <span key={h.id} className={`text-[11px] px-2 py-0.5 rounded-full ${HOSP_STATUS[h.status]?.cls || "bg-gray-100 text-gray-500"}`}>
+                            {h.name}: {HOSP_STATUS[h.status]?.ko || h.status}
+                            {(h.quoted_price_min != null || h.quoted_price_max != null) ? ` (견적 ${h.quoted_price_min ?? "?"}~${h.quoted_price_max ?? "?"})` : ""}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    <p className="text-[11px] text-gray-400 mb-1.5">배정할 병원을 선택해 "배정"하면 병원 파트너 화면에 뜨고, 병원이 회신하면 위 진행상황에 자동 반영됩니다.</p>
                     {hospitals.length === 0 ? (
                       <p className="text-xs text-gray-400">등록된 병원이 없습니다.</p>
                     ) : (

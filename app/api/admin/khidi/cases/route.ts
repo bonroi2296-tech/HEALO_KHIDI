@@ -57,7 +57,7 @@ export async function GET(request: NextRequest) {
 
     // 케이스별 "이미 배정된 병원" 매핑: inquiries → normalized_inquiries(source_inquiry_id) → hospital_leads
     const inquiryIds = (rows || []).map((r: any) => r.id);
-    const assignedByInquiry = new Map<number, { id: string; name: string }[]>();
+    const assignedByInquiry = new Map<number, { id: string; name: string; status: string; quoted_price_min: number | null; quoted_price_max: number | null }[]>();
     if (inquiryIds.length > 0) {
       const { data: norms } = await (supabaseAdmin as any)
         .from("normalized_inquiries")
@@ -70,13 +70,19 @@ export async function GET(request: NextRequest) {
       if (normIds.length > 0) {
         const { data: leads } = await (supabaseAdmin as any)
           .from("hospital_leads")
-          .select("normalized_inquiry_id, hospital_id")
+          .select("normalized_inquiry_id, hospital_id, status, quoted_price_min, quoted_price_max")
           .in("normalized_inquiry_id", normIds);
         for (const l of leads || []) {
           const inqId = normIdToInquiry.get(l.normalized_inquiry_id);
           if (inqId == null) continue;
           const arr = assignedByInquiry.get(inqId) || [];
-          arr.push({ id: l.hospital_id, name: hMap.get(l.hospital_id) || "(미상)" });
+          arr.push({
+            id: l.hospital_id,
+            name: hMap.get(l.hospital_id) || "(미상)",
+            status: l.status || "sent",
+            quoted_price_min: l.quoted_price_min ?? null,
+            quoted_price_max: l.quoted_price_max ?? null,
+          });
           assignedByInquiry.set(inqId, arr);
         }
       }
