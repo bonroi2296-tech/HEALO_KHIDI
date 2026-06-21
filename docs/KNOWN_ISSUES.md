@@ -4,6 +4,34 @@
 
 ---
 
+## 🌙 2026-06-21 야간 자율 감사 — 병렬 5축 감사 발견사항 (일부 수정·일부 PO 판단 필요)
+
+> 평가지표(KPI)·보안·문의 퍼널·역할 연결·화상방을 병렬 감사. **고친 것은 draft PR**(PO 검토 전 배포 안 됨), **나머지는 아래에 정밀 기록**(런타임 검증/제품 판단/스키마 변경이 필요해 야간 임의 수정 보류).
+
+### ✅ 이번에 수정함 (draft PR)
+- **만족도 설문 발송 윈도우 누수**(K-03 대부분 미발송) → 14일 backfill. **PR #216**. POSTMORTEMS #19.
+- **월간보고 명단**이 없는 테이블(`khidi_intakes`) 조인으로 항상 빈칸 → inquiries 기반 교체. **PR #216**.
+- **KPI 집계오류가 대시보드/월간보고에서 0으로 조용히** 보이던 것 → canary 발사. **PR #216**.
+- **EDGE-2: 코디 case_status→treatment/완료 시 유치(K-01) 누락**(POSTMORTEM #17 잔여위험) → outcome 자동집계(가드). **PR #216**.
+- **AI상담(게스트) 리드 PII가 코디 인박스에 암호문**으로 떠 연락 불가(#13 부류) → `admin/chat/threads` GET 복호화. **PR(이 브랜치)**.
+- **화상방 탭 'Chat'/'Translation' 하드코딩 영어** → 6언어화 + `_roomCopy.js` 패리티 가드 신설. **PR(이 브랜치)**.
+
+### 🟡 PO 판단/런타임 검증 필요 (야간 임의 수정 보류 — 이유 명시)
+
+1. **🔴 [데모 직격, iOS] 서버 STT 2차 getUserMedia 가 LiveKit 마이크를 가로챌 수 있음** — `app/consultation/[id]/page.jsx:1306-1314`. 브라우저 STT 미지원(iOS Safari) 환자에서 서버 STT 경로가 `getUserMedia({audio:true})`를 **별도로** 한 번 더 잡는데, iOS Safari 는 두 번째 오디오 캡처가 첫 번째(LiveKit 송출 마이크)를 빼앗는 경우가 잦음 → **환자 마이크가 죽어 의사가 못 들음**(throw 없이 조용히). 카자흐/러시아 환자 아이폰 = 정확히 이 경로. **수정안**: 별도 getUserMedia 대신 LiveKit 이 이미 잡은 마이크 트랙(`localParticipant.getTrackPublication(Track.Source.Microphone).track.mediaStreamTrack`)을 MediaRecorder 에 물려 2차 점유 제거. **실 아이폰 검증 필요**해 보류.
+2. **[K-01 구조적] 환자 포털이 `case_status` 를 못 봄 (EDGE-1)** — 환자 여정바(`src/lib/patient/journeyState.js:123`)는 `inquiry_events` 만 보는데 그 이벤트를 쓰는 코드가 funnel 4종뿐(`app/api/inquiries/event/route.ts:23`) → 코디/병원이 case_status 를 visa/treatment/completed 로 올려도 **환자 대시보드가 안 움직임**. 구조적(두 추적 그래프 분리) → 단일화 설계는 PO 판단.
+3. **[가시성] 완료된 상담이 case_status 를 전진 안 시킴 (EDGE-3)** — `consultation/[id]` 완료 시 `case_status`/이력 미기록 → KPI(K-02/04)는 오르지만 **에이전시·코디 타임라인은 정체**. (lifecycle 지도와 코드 불일치.)
+4. **[가시성] admin/leads/assign 가 case_status 안 올림 (EDGE-4)** — `coordinator/cases/assign` 과 비대칭(`app/api/admin/leads/assign/route.ts`엔 case_status 기록 없음).
+5. **[가시성] 점수판 outcome 확정/이탈이 case_status_history 에 안 남음 (EDGE-5)** — `conversion-funnel` PATCH 가 outcome 만 써 **에이전시가 '확정/이탈'을 타임라인에서 못 봄**.
+6. **[데이터 유실+PII] step2 의 `cancer_patient_intakes` upsert 가 항상 무음 실패** — `inquiry_id` UNIQUE 제약이 없어(`onConflict:"inquiry_id"`) 매번 throw→catch 로 버려짐 → 구조적 intake 저장 안 됨. 게다가 `current_treatment` 를 **평문**으로 쓰려 함(같은 값 inquiries.intake 엔 암호화). **수정이 엉킴**: 고치면 step2 인콰이어리가 `/api/khidi/intake` 큐(EscalationQueue)에 cancer_type 빈 채로 등장하는 등 **제품 동작이 바뀜** → select-then-write + `current_treatment_encrypted` 사용 + EscalationQueue 영향 검토를 PO 와 함께.
+7. **[KPI 정확도] 공개 문의 POST 레이트리밋이 인메모리** — `inquiries/step1·step2·create`·`guest-join` 등은 `checkRateLimit`(인스턴스별 Map, 콜드스타트 리셋)라 분산 봇에 약함. `checkRateLimitPersistent`(DB, 이미 chat 에 적용)로 이관 권장 → 스팸 리드가 퍼널 KPI 오염 방지.
+8. **[K-01 잠재] 화상방 게스트 targetLang 하드코딩** — `page.jsx:714-716` `ml==="ko"?"ru":"ko"`. 표준 데모(한 의사↔러/카 환자)는 정상이나 다국 CIS·게스트 의사 조합에선 오타겟. 의사/환자 언어쌍에서 유도하도록 권장.
+9. **[저] 만족도 환산이 null 점수를 0 으로** — `satisfaction.ts:38-45`. 현재 submit 이 5문항 필수라 발현 안 함. 부분응답 유입 시 K-03 끌어내림. (의도된 정의라 변경은 K-03 공식 변경 = PO 판단.)
+
+> **보안 감사 결과**: 고신뢰 취약점 0(인증·암호화·게스트토큰 견고). 위 #7 인메모리 레이트리밋만 하드닝 권장.
+
+---
+
 ## ✅ 침묵 환자 감지 cron 이 항상 0건 (2026-06-21 발견 → **2026-06-21 수정 완료**)
 
 - **증상**: `app/api/cron/detect-silent-patients/route.ts` 가 `consultation_sessions` 를 `.not("patient_id","is",null)` 로 거르는데 **patient_id 가 전 행 null**(미사용 컬럼) → 대상 0건 → 침묵(장기 미응답) 환자 알림이 한 번도 안 뜸.
