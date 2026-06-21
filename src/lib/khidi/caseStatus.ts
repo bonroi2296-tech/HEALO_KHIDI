@@ -69,3 +69,22 @@ export function outcomeForHospitalLeadStatus(
 ): "admitted" | null {
   return leadStatus === "converted" ? "admitted" : null;
 }
+
+/**
+ * 케이스 진행상황(case_status) → 유치 전환 점수판(KHIDI 평가)의 outcome 매핑.
+ * 코디가 케이스를 **실제 입국·치료 이후 단계**로 전진시키면 = 실제 유치 → outcome='admitted'.
+ *   - treatment(입국·치료 중) / follow_up(사후관리 중) / completed(완료) → 'admitted'
+ *   - 그 이전(received…visa_prep)·보류(on_hold) 는 아직 유치 확정 아님 → null
+ * (POSTMORTEM #17 의 미해결 잔여위험 #19: 코디가 case_status 만 올리고 outcome 을 안 박아
+ *  유치가 누락되던 구멍. 병원 'converted' 자동집계와 대칭. 호출부는 outcome IS NULL 가드로
+ *  코디가 이미 정한 결정은 덮지 않는다.)
+ */
+export function outcomeForCaseStatus(
+  caseStatus?: string | null
+): "admitted" | null {
+  return caseStatus === "treatment" ||
+    caseStatus === "follow_up" ||
+    caseStatus === "completed"
+    ? "admitted"
+    : null;
+}
