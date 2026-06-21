@@ -1,5 +1,44 @@
 # PR
 
+## 🔖 세션 핸드오프 (2026-06-21 밤) — 계정 계층 8종 정리 + 해외 의료기관 신규 + 역할별 로그인 착지 + 에이전시 '환자 의뢰하기' + ⚠️Vercel 배포한도 대기
+
+**이번 세션 한 일:**
+- **#178 (✅머지·배포): 계정 계층 8종 단일 표준 확정 + 해외 의료기관 신규.** 실제 인증코드(`app_metadata.role`+`hospital_users`+`agency_users`)와 어긋난 유령 역할묶음(`roles.ts`/`user_roles`: korean_hospital/local_clinic/agent) 통일. `src/lib/auth/accountTiers.ts`가 단일 SoR(게스트·환자·코디·의사·관리자·국내병원·해외에이전시·해외의료기관). **해외 의료기관(8번째)** = 에이전시와 기능 동일 → 별도 테이블/포털 안 만들고 `agencies.partner_type`('agency'|'medical_institution') 한 컬럼으로 구분(마이그레이션 `20260621` **prod 적용 완료**, additive). 코디·의사 포털에 역할 문지기(`StaffPortalGate`+`/api/me`) 추가(전엔 로그인만 하면 뚫림). `docs/ACCOUNT_TIERS.md`+가드 테스트 14개.
+- **#184 (✅머지·배포): 로그인 후 역할별 포털 착지 + /agency 크롬 정리.** 전엔 로그인 시 무조건 `/patient`로 보내 에이전시가 환자 대시보드를 봄. `src/lib/auth/resolveLanding.ts`(역할→착지경로), `/api/me`가 `landing` 반환, `LoginPremium`이 그걸 보고 분기, `auth/callback`도 역할별. `ClientShell` `isPortalPage`에 `/agency` 포함 → 환자용 헤더·하단탭바(SOS·병원) 숨기고 깔끔한 포털 상단바.
+- **#187 (머지됨·⚠️prod 미배포): 프리미엄 환자 대시보드 비환자 가드.** 이미 로그인된 채 `/patient`에 머물면 #184가 안 먹혀서 가드 추가.
+- **#191 (머지됨·⚠️prod 미배포): 레거시 환자 대시보드에도 같은 가드.** 환자 대시보드가 **두 버전**인데 디자인 **기본값이 LEGACY**라 실제로 뜨는 건 `PatientDashboardClient`였음 — #187(프리미엄만)으론 안 고쳐져 PO가 "아직 그대로"라 재신고 → 레거시에도 추가. `/api/me` 에이전시 landing=`/agency` **실측 확인**(프리뷰 토큰 호출).
+- **#194 (📝DRAFT·배포한도로 프리뷰 못 만듦): 에이전시 '환자 의뢰하기'.** 에이전시 포털이 조회전용이라 직접 환자 의뢰 불가(관리자가 `/admin/khidi/cases`에서 수동 배정해야만 노출)였음. `POST /api/agency/refer`(checkAgencyAuth, 본인 agency_id 강제, PII AES-256-GCM 암호화, case_status='received'+이력+관리자 알림) + `/agency`에 '+환자 의뢰하기' 폼.
+- **테스트 계정 6종 생성**(Supabase auth 직접 insert): `patient/coordinator/doctor/hospital/agency/clinic @test.com` / **`test1234`**. agency·clinic·hospital은 **TEST 전용 기관**에 연결(실데이터 격리). **admin은 의도적으로 안 만듦**(test1234 관리자=환자PII 복호화 위험).
+
+**왜 그렇게 했는지:**
+- 해외 의료기관은 PO가 8번째 계층으로 "만든다" 결정 → 에이전시 인프라 재활용이 가장 안전·DRY(별도 포털 중복 X).
+- #191은 "환자 대시보드가 2개(레거시/프리미엄), 기본이 레거시"란 함정 때문 — 프리미엄만 고치면 안 보임. 둘 다 고쳐야.
+- #194는 머지 안 함: **보이는 새 기능 → 프리뷰로 PO 확인 먼저**(PO 취향). 그런데 Vercel 한도로 프리뷰조차 못 만들어 대기.
+
+**안 끝났거나 보류:**
+- **⚠️ Vercel 무료 배포 한도(하루 100회) 초과** — 한 세션에서 PR을 많이 만들어 초과. 약 24시간 뒤(2026-06-22) 풀림. **PO 결정: 유료(Pro $20/월) 안 쓰고 2026-06-22까지 무료 대기.** 그래서 #187·#191(머지됨)이 **prod 미반영**(현재 prod=`6bc613b` #187빌드라 #191 없음), #194 프리뷰도 못 만듦.
+- **TEST 에이전시에 환자 진행 예시 1건 넣기** — PO가 "넣을까요?"에 답 안 함(데모용, 미실행).
+
+**주의·함정:**
+- **Vercel 배포 한도**: 한 세션에서 PR/푸시 남발하면 하루 100 배포 초과 → 프리뷰·prod 다 막힘. PR 묶어서.
+- **환자 대시보드 2종**: `PatientDashboardClient`(레거시·**기본값**) + `PatientDashboardPremium`. 환자 화면 손대면 **둘 다** 고쳐라(레거시가 실제로 뜸).
+- **`@/*`=`src/*` alias** — `app/` 컴포넌트는 상대경로 import(`StaffPortalGate` 빌드 실패 경험). `case_status_history`는 생성타입에 없어 `(supabaseAdmin as any)`.
+- **squash 머지 후 같은 브랜치 이어쓰면 충돌**(#184 dirty 경험) → `git fetch origin main` 후 origin/main 기준 새 브랜치, 옛 커밋 cherry-pick.
+- **테스트 계정**: coordinator/doctor는 실환자 PII 봄 → 외부 에이전시엔 `agency@test.com`만. admin 미생성.
+
+**다음 세션이 먼저 할 일 (우선순위):**
+1. **⚠️ 배포 대기분 먼저 처리(자동 불가):** Vercel 한도 풀렸는지 확인 → (a) **#194 프리뷰 빌드되면 PO에게 '환자 의뢰하기' 화면 보여주고 OK받고 머지** (b) **#187·#191이 prod 반영되게 main 배포 트리거**(#194 머지가 곧 트리거, 아니면 빈 커밋). (c) prod에서 **에이전시 로그인→/agency·자동튕김·의뢰 폼 end-to-end 1회 실클릭 확인**(`agency@test.com`/`test1234`).
+2. (선택) PO가 원하면 TEST 에이전시에 환자 진행 예시 1건 넣어 데모.
+3. 직전(2026-06-21 저녁) 미검증분 그대로: 화상방 다자 카메라(#160)·만족도/침묵 알림 수신(데이터 쌓여야).
+4. KHIDI 중간평가(2026-08-27) 상시.
+
+**검증 상태:** 각 변경 **로컬 tsc 0 / eslint 0 error / next build --webpack 통과**. vitest accountTiers 14개 추가(#178 때 총 259). **#178·#184: CI(`ci`·`Smoke`) 초록 + squash 머지 + prod 배포 확인.** **#187·#191: CI 초록 + 머지됐으나 ⚠️prod 배포 실패(Vercel 한도) → prod 미반영.** **#194: DRAFT, 로컬 빌드만 통과, 프리뷰/CI 미생성(한도).** 마이그레이션 `20260621`(agencies.partner_type) prod 적용·확인. `/api/me` 에이전시 landing=`/agency` 실측 확인. **❌ 미검증: #194 화면(프리뷰 못 만듦) / #191 prod 동작 / 에이전시 의뢰 end-to-end(폼→DB→목록) — 전부 2026-06-22 배포 후.**
+
+**다음 세션 첫 프롬프트:**
+> 먼저 docs/PROJECT_CONTEXT.md 최상단 핸드오프 읽어. 2026-06-21에 Vercel 배포 한도(하루 100회)에 걸려서 #187·#191(머지됨)이 실서비스에 아직 안 올라갔고 #194(에이전시 '환자 의뢰하기')는 초안 상태야. 한도 풀렸는지 확인하고: ①#194 프리뷰 만들어서 나한테 '환자 의뢰하기' 화면 보여주고 OK받으면 머지 ②#187·#191도 실서비스 반영되게 배포 트리거 ③에이전시 계정(agency@test.com / test1234)으로 로그인→에이전시 화면·환자 의뢰 폼 실제 작동 1회 확인해줘.
+
+---
+
 ## 🔖 세션 핸드오프 (2026-06-21 심야) — AI 챗 "대장암 단정·정정 무시" 버그 코드강제 수정(#183·#188) + 재발방지 행동점검(#193) + Vercel 무료플랜 일일 배포한도(100/day) 초과로 prod 배포 지연
 
 **이번 세션 한 일:** (PR 3개 모두 ✅머지)
