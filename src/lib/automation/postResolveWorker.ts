@@ -43,7 +43,7 @@ function canAutoApprove(pattern: {
 }
 
 /** RAG ingest: pattern → rag_documents + rag_chunks */
-async function ingestPatternToRag(
+export async function ingestPatternToRag(
   patternId: string,
   pattern: {
     treatment_slug?: string;

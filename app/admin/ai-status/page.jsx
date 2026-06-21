@@ -49,6 +49,86 @@ const TONE_TEXT = {
   gray: "text-gray-500",
 };
 
+// "이렇게 답했어야 해" — PO가 올바른 답을 직접 적어 AI에게 가르치는 박스(카드별 자체 상태).
+function TeachBox({ item }) {
+  const [open, setOpen] = useState(false);
+  const [text, setText] = useState("");
+  const [state, setState] = useState("idle"); // idle | saving | done | error
+
+  const submit = async () => {
+    const answer = text.trim();
+    if (!answer) return;
+    setState("saving");
+    try {
+      const res = await fetch("/api/admin/playbook/teach", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          question: item.query_text,
+          answer,
+          evaluation_id: item.id,
+          thread_id: item.thread_id,
+        }),
+      });
+      const json = await res.json();
+      setState(json.ok ? "done" : "error");
+    } catch {
+      setState("error");
+    }
+  };
+
+  if (state === "done") {
+    return (
+      <div className="mt-3 text-sm bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-lg px-3 py-2">
+        ✅ AI에게 가르쳤어요. 다음부터 비슷한 질문엔 이 답을 참고합니다.
+      </div>
+    );
+  }
+
+  if (!open) {
+    return (
+      <button
+        onClick={() => setOpen(true)}
+        className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-teal-700 bg-teal-50 hover:bg-teal-100 border border-teal-200 rounded-lg px-3 py-1.5 transition"
+      >
+        ✏️ 이렇게 답했어야 해 (AI 가르치기)
+      </button>
+    );
+  }
+
+  return (
+    <div className="mt-3 space-y-2">
+      <textarea
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        placeholder="이 질문에 AI가 했어야 할 올바른 답을 한국어로 적어주세요. (예: 대장암은 대학병원 수술·항암이 기본이고, 저희가 병원 연결과 통역까지 도와드립니다.)"
+        rows={4}
+        maxLength={2000}
+        className="w-full text-sm rounded-lg border border-gray-300 p-3 focus:outline-none focus:ring-2 focus:ring-teal-200 focus:border-teal-400"
+      />
+      <div className="flex items-center gap-2">
+        <button
+          onClick={submit}
+          disabled={state === "saving" || !text.trim()}
+          className="text-sm font-medium text-white bg-teal-600 hover:bg-teal-700 rounded-lg px-4 py-1.5 transition disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {state === "saving" ? "가르치는 중…" : "저장하고 가르치기"}
+        </button>
+        <button
+          onClick={() => { setOpen(false); setText(""); setState("idle"); }}
+          className="text-sm text-gray-500 hover:text-gray-700 px-2 py-1.5"
+        >
+          취소
+        </button>
+        {state === "error" && <span className="text-sm text-red-600">저장 실패 — 잠시 후 다시 시도해 주세요.</span>}
+      </div>
+      <p className="text-xs text-gray-400">
+        저장하면 개인정보는 자동 제거되고, AI의 의료 안전 규칙(진단·가격 단정 금지 등)은 그대로 적용됩니다.
+      </p>
+    </div>
+  );
+}
+
 function StatCard({ label, value, sub, tone }) {
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
@@ -198,6 +278,8 @@ export default function AiStatusPage() {
                       ))}
                     </div>
                   )}
+
+                  <TeachBox item={item} />
                 </div>
               );
             })}
