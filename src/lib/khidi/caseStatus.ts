@@ -57,3 +57,15 @@ export function caseStatusOrder(key?: string | null): number {
   if (!key) return 0;
   return CASE_STATUS_STEPS.find((s) => s.key === key)?.order || 0;
 }
+
+/**
+ * 병원 리드 상태 → 유치 전환 점수판(KHIDI 평가)의 outcome 매핑.
+ * 병원이 '치료 확정(converted)'하면 실제 유치 → outcome='admitted' 자동 집계.
+ * 그 외(sent/viewed/replied/rejected)는 outcome 을 건드리지 않는다(null 반환).
+ * (PO 결정 2026-06-21: 에이전시→병원 의뢰 경로 확정분이 유치 카운트에서 누락되던 구멍 차단.)
+ */
+export function outcomeForHospitalLeadStatus(
+  leadStatus?: string | null
+): "admitted" | null {
+  return leadStatus === "converted" ? "admitted" : null;
+}

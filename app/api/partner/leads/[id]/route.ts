@@ -3,7 +3,7 @@ export const runtime = "nodejs";
 import { NextRequest } from "next/server";
 import { checkHospitalAuth } from "@/lib/auth/checkHospitalAuth";
 import { createServiceRoleClient } from "@/lib/supabase/server";
-import { caseStatusOrder } from "@/lib/khidi/caseStatus";
+import { caseStatusOrder, outcomeForHospitalLeadStatus } from "@/lib/khidi/caseStatus";
 
 const VALID_STATUSES = ["sent", "viewed", "replied", "converted", "rejected"];
 
@@ -66,6 +66,22 @@ async function syncLeadStatusToCase(
       note,
       created_by: userId ?? null,
     });
+
+    // 병원이 '치료 확정'하면 실제 유치 → 유치 전환 점수판(KHIDI 평가 지표)에 자동 집계.
+    //   (PO 결정 2026-06-21) 그동안 outcome 은 코디 수동 입력에만 의존해, 에이전시→병원
+    //   의뢰 경로로 확정된 케이스가 유치 카운트에서 누락됐다. 병원 확정을 곧 유치로 반영.
+    const autoOutcome = outcomeForHospitalLeadStatus(newStatus);
+    if (autoOutcome) {
+      await supabase
+        .from("inquiries")
+        .update({
+          outcome: autoOutcome,
+          outcome_note: `🏥 ${hName} 치료 확정 (자동 유치 집계)`,
+          outcome_updated_at: now,
+          outcome_updated_by: userId ?? null,
+        })
+        .eq("id", inquiryId);
+    }
   } catch (e: any) {
     console.error("[partner/leads/id] case sync error:", e?.message?.slice(0, 200));
     // 케이스 반영 실패해도 리드 업데이트 자체는 성공 처리(베스트에포트).
