@@ -156,6 +156,17 @@ export async function POST(request: NextRequest) {
       fetchPatientList(year, month),
     ]);
 
+    // 평가 직결: 공식 제출용 보고서에 집계 오류로 인한 0 이 조용히 들어가지 않게 canary 발사
+    // (cron 스냅샷 경로와 동일. POSTMORTEMS #19.) 알림 실패는 보고서 생성에 영향 없게 격리.
+    if (((kpi.errors as string[]) || []).length > 0) {
+      try {
+        const { alertKpiAggregationErrors } = await import("@/lib/alerts/operationalAlerts");
+        await alertKpiAggregationErrors(kpi.errors as string[], `monthly-report ${year}-${month}`);
+      } catch (alertErr) {
+        console.error("[monthly-report] canary 발송 실패:", (alertErr as Error).message);
+      }
+    }
+
     // ── 3. 템플릿 로드 (메모리 내 사본 — 원본 파일 절대 쓰기 금지) ──
     const wb = new ExcelJS.Workbook();
     await wb.xlsx.readFile(templatePath);
