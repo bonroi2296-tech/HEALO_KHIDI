@@ -186,6 +186,32 @@ export async function PATCH(request: NextRequest) {
       console.error("[conversion-funnel] outcome update error:", error.message);
       return NextResponse.json({ ok: false, error: "update_failed" }, { status: 500 });
     }
+
+    // EDGE-5 (POSTMORTEM #18→#20): 유치 확정/이탈/취소를 case_status_history 에 남겨
+    //   에이전시 포털 타임라인에 반영(이전엔 outcome 만 바뀌고 에이전시는 확정/이탈을 못 봤음).
+    //   admitted = 입국·치료 단계로 전진(뒤로 안 감), lost/취소 = 단계 유지하고 이력만.
+    try {
+      const uid = auth.authResult.userId ?? null;
+      if (outcome === "admitted") {
+        const { advanceCaseStatus } = await import("@/lib/khidi/advanceCaseStatus");
+        await advanceCaseStatus(supabaseAdmin, inquiryId, "treatment", "🎯 유치 확정", uid);
+      } else {
+        const { data: inq } = await (supabaseAdmin as any)
+          .from("inquiries")
+          .select("case_status")
+          .eq("id", inquiryId)
+          .maybeSingle();
+        await (supabaseAdmin as any).from("case_status_history").insert({
+          inquiry_id: inquiryId,
+          status: inq?.case_status ?? "received",
+          note: outcome === "lost" ? "🚫 이탈 처리" : "↩️ 유치 취소 (집계 제외)",
+          created_by: uid,
+        });
+      }
+    } catch (histErr: any) {
+      console.error("[conversion-funnel] case_status_history 기록 실패:", histErr?.message);
+    }
+
     return NextResponse.json({ ok: true });
   } catch (err: any) {
     console.error("[conversion-funnel] PATCH error:", err?.message?.slice(0, 200));
