@@ -94,11 +94,14 @@ const baseMetadata = {
   //    사이트를 추가한 뒤, HTML-tag 검증을 선택하면 아래와 같은 코드가 발급됩니다.
   //    예: <meta name="yandex-verification" content="xxxxxxxxxxxxxxxx" />
   //    발급된 16자리 값으로 아래 플레이스홀더를 교체하세요.
+  // Google·Yandex 는 DNS TXT 로 소유권 인증 완료(2026-06-22). 메타는 보조.
   verification: {
-    // Google Search Console 코드 (기존 유지 or 추가)
-    // google: "REPLACE_WITH_GOOGLE_SITE_VERIFICATION",
-    // Yandex Webmaster 검증 코드
-    yandex: "REPLACE_WITH_YANDEX_WEBMASTER_CODE",
+    // Yandex Webmaster (DNS 인증 완료, 메타는 백업)
+    yandex: "0b937ceaae803c46",
+    // Naver 서치어드바이저 — naver-site-verification (verification.other 로 렌더)
+    other: {
+      "naver-site-verification": "84eb0689784dd76b4841a4feba55a6c557f680ad",
+    },
   },
   // ────────────────────────────────────────────────
   // Geo 메타 — Yandex 지역 신호 (면력한방병원 강서점 기준)
