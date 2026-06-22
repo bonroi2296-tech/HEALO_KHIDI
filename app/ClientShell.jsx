@@ -84,6 +84,13 @@ export default function ClientShell({ children, initialLang = "en" }) {
     };
   }, []);
 
+  // 네이티브 앱(Capacitor)에서만 푸시 알림 등록. 웹 브라우저면 즉시 no-op(동적 import라 번들 무영향).
+  useEffect(() => {
+    import("@/lib/push/registerPush")
+      .then((m) => m.registerPushNotifications())
+      .catch(() => { /* 네이티브 아님/플러그인 없음 → 무시 */ });
+  }, []);
+
   // pageview 추적 임시 비활성화: 자동 새로고침 문제 해결
   // const lastPageviewRef = useRef("");
   // useEffect(() => {
