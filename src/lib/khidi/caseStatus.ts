@@ -59,6 +59,34 @@ export function caseStatusOrder(key?: string | null): number {
 }
 
 /**
+ * 케이스 진행상황(case_status, 코디/병원이 설정) → 환자 여정바 단계(journey stage) 매핑.
+ *
+ * 환자 여정바(`src/lib/patient/journeyState.js`)는 원래 inquiry_events 만 보고 단계를 계산해,
+ * 코디/병원이 case_status 를 올려도 환자/에이전시 화면이 정체됐다(EDGE-1, POSTMORTEM #18 반쪽금지).
+ * 이 매핑으로 case_status 를 여정 단계에 반영한다. 여정 단계: inquiry·consultation·proposal·
+ * visa·travel·treatment·recovery (journeyState.JOURNEY_STAGES).
+ *
+ * on_hold(보류)는 의도적으로 제외 — 보류는 단계를 전진/후퇴시키지 않고 기존 계산을 유지한다.
+ */
+export const CASE_STATUS_TO_JOURNEY_STAGE: Record<string, string> = {
+  received: "inquiry",
+  pre_consult: "consultation",
+  hospital_review: "proposal",
+  scheduling: "proposal",
+  visa_prep: "visa",
+  treatment: "treatment",
+  follow_up: "recovery",
+  completed: "recovery",
+};
+
+export function caseStatusToJourneyStage(
+  caseStatus?: string | null
+): string | null {
+  if (!caseStatus) return null;
+  return CASE_STATUS_TO_JOURNEY_STAGE[caseStatus] || null;
+}
+
+/**
  * 병원 리드 상태 → 유치 전환 점수판(KHIDI 평가)의 outcome 매핑.
  * 병원이 '치료 확정(converted)'하면 실제 유치 → outcome='admitted' 자동 집계.
  * 그 외(sent/viewed/replied/rejected)는 outcome 을 건드리지 않는다(null 반환).

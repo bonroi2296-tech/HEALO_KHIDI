@@ -19,6 +19,11 @@
 3. **[다국어 엣지] 영상방 게스트 `targetLang` 하드코딩 `ru`** — `page.jsx`. 표준 데모(한 의사↔러/카 환자)는 정상, 비표준 언어쌍에서 오타겟. 환자 언어에서 유도 권장(소).
 4. **soft-404(P2, 위 별도 섹션)** — PO 이미 "보류" 결정.
 
+### ✅ 이번 세션 수정 적용 (PR #269)
+- **iOS 마이크 탈취 → 안전 폴백(PO 택1: 옵션A)**: `app/consultation/[id]/page.jsx` 서버 STT effect 진입부에서 **iOS(WebKit) 감지 시 2차 getUserMedia 자체를 안 함** → `mediaRecOk=false`로 "음성자막 불가 → 텍스트 입력" 폴백. iOS는 브라우저STT 또는 텍스트로(자동자막만 포기, 마이크 사망 차단). **실아이폰 라이브 검증은 여전히 PO 권장**(코드 가드는 결정적). 견고판(LiveKit 트랙 재사용)은 추후.
+- **intake 저장버그 정상화**: `app/api/inquiries/step2/route.ts` — ①마이그레이션 `cancer_patient_intakes.inquiry_id` **UNIQUE 인덱스 추가**(prod 적용+`migrations/20260622_...sql`) ②`cancer_type`을 inquiry에서 가져와 NOT NULL 충족 ③민감필드를 `*_encrypted` 컬럼에 AES 저장(평문 중단). **동작 변화 주의**: 이제 퍼널 step2 인테이크가 `cancer_patient_intakes`에도 쌓임 → `GET /api/khidi/intake` 어드민 인테이크 목록에 퍼널 문의도 표시됨(정상이나 inquiries 목록과 중복 표시 가능). 정본은 여전히 `inquiries.intake`.
+- **EDGE-1 환자 여정바 case_status 반영**: `src/lib/khidi/caseStatus.ts`에 `caseStatusToJourneyStage` 추가 + `src/lib/patient/journeyState.js` `computeCurrentStage`가 이벤트단계와 case_status단계 중 **더 진행된 쪽** 반환(후퇴 방지). 회귀테스트 추가(caseStatus.test.ts·journeyState.test.ts). **⚠️ 단 화면 표시는 아직**: `fetchPatientJourney`가 브라우저에서 service_role 테이블 직접 조회 + 암호화 email 매칭이라 **데이터가 client로 안 옴**(포털 미활성과 동일). 로직·테스트는 정확하나, 환자 여정바가 실제 뜨려면 **포털 데이터 서버 API 이관(P1)**이 선행돼야 함 → 별도 과제로 남김.
+
 ### 🔵 이미 다른 세션이 처리 중 (중복 금지)
 - **PR #267**(다른 세션): 🔴**카자흐어(`kz`) 문의가 step1 zod에서 400 거부되던 핵심시장 블로커** 수정(POSTMORTEMS #24) + 공개 퍼널 6라우트 레이트리밋 DB화(KNOWN_ISSUES #7). → 이 두 건은 **#267로 해결 예정**이라 본 세션은 손대지 않음. **PO 추천: #267 CI 초록 시 머지**(카자흐 차단은 실유치 직격).
 
