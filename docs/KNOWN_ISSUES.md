@@ -4,6 +4,15 @@
 
 ---
 
+## 🟡 P2 — soft-404: 없는 치료/병원 슬러그가 HTTP 200 반환 (2026-06-22 기록·진단)
+
+- **증상(실측)**: 없는 슬러그 `https://www.healwith.co.kr/treatments/<없는값>`·`/hospitals/<없는값>`이 **HTTP 200** 반환. 대조군(없는 일반경로 `/totally-random-path`)은 정상 **404**. 즉 `[slug]` 동적 라우트만 soft-404.
+- **근본원인(코드는 정상)**: 서버 코드는 맞다 — `getTreatmentBySlug`는 없는 슬러그에 `null` 반환(`mapTreatmentRow(null)→null`, `.eq("is_published",true)` 포함), `app/treatments/[slug]/page.jsx:164`가 `notFound()`를 **정상 호출**. 실제로 응답 바디도 글로벌 `app/not-found.jsx`(NotFoundClient, "Error 404" UI)가 **올바르게 렌더**됨. **문제는 상태코드만 200으로 샘** — Next 16 동적 렌더(이 라우트는 `cookies()` 호출로 dynamic) + `notFound()` 상호작용에서 스트리밍 응답의 status가 404로 전파 안 되는 프레임워크 동작. (`hospitals/[slug]`도 동일 구조 → 같은 증상.)
+- **영향(낮음)**: ①사용자 UX는 정상(올바른 404 화면 보임). ②비공개/없는 published 슬러그는 **sitemap에 없음**(#235에서 `is_published` 필터 + item- 3건 비활성, sitemap 40 URL 확인) → 크롤러가 이 URL에 도달할 경로가 거의 없음. ③유일한 손해 = soft-404의 약한 SEO 품질 신호(구글이 "200인데 빈 페이지"로 오인 가능). 내부 링크·sitemap 노출이 없어 **실질 위험 작음**.
+- **판단: 지금은 보류(고치지 않음) 권장.** 진짜 404 상태코드를 동적 라우트에서 강제하려면 라우트 구조 변경 또는 Next 버전별 워크어라운드가 필요하고 **preview 배포로 실검증해야** 함(한 줄 아님). 평가(8/27)·앱스토어 우선. 고친다면 후보: (a) 슬러그 존재 여부를 `generateStaticParams`로 미리 굳혀 정적 404 경로화, (b) Next 16 `notFound` status 회귀 업스트림 확인 후 업그레이드, (c) 정 급하면 얇은 라우트 핸들러/리라이트에서 미존재 슬러그를 사전 404. **PO가 "SEO 깐깐하게 가자" 하면 그때 (a) 우선 착수.**
+
+---
+
 ## 🌙 2026-06-21 야간 자율 감사 — 병렬 5축 감사 발견사항 (일부 수정·일부 PO 판단 필요)
 
 > 평가지표(KPI)·보안·문의 퍼널·역할 연결·화상방을 병렬 감사. **고친 것은 draft PR**(PO 검토 전 배포 안 됨), **나머지는 아래에 정밀 기록**(런타임 검증/제품 판단/스키마 변경이 필요해 야간 임의 수정 보류).
