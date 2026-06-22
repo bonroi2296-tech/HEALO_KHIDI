@@ -53,6 +53,37 @@ if [ -n "$hc" ]; then
   fi
 fi
 
+# ── 열린 작업 목록 (병렬 세션 네비게이션) ─────────────────────────
+# main 에 아직 안 들어간 claude/* 작업본(브랜치)을 최신순으로 번호 매겨 띄운다.
+# PO가 여러 세션을 병렬로 돌릴 때 "지금 열린 일이 뭐뭐였지"를 한눈에 보고,
+# "1번 이어가" / "<이름> 이어가" 한마디로 고르면 그 브랜치로 이어가게 한다.
+# (GitHub 조회 없이 git 원격추적 브랜치만 사용 — 훅은 네트워크를 쓰지 않는다.)
+open_raw=$(git for-each-ref --sort=-committerdate \
+  --format='%(refname:short)|%(committerdate:relative)|%(contents:subject)' \
+  refs/remotes/origin/claude 2>/dev/null | head -12)
+if [ -n "$open_raw" ]; then
+  rows=""
+  i=0
+  while IFS='|' read -r ref rel subj; do
+    [ -z "$ref" ] && continue
+    # main 에 이미 머지된 브랜치는 제외(잔재 거르기). squash 머지분은 원격 브랜치 삭제로 사라짐.
+    if git merge-base --is-ancestor "$ref" origin/main 2>/dev/null; then continue; fi
+    short=${ref#origin/}
+    i=$((i+1))
+    rows="${rows}  ${i}. \`${short}\` — ${subj} (${rel})
+"
+    [ "$i" -ge 8 ] && break
+  done <<EOF
+$open_raw
+EOF
+  if [ "$i" -gt 0 ]; then
+    echo ""
+    echo "## 🗂️ 열린 작업(작업본 브랜치) — 병렬 세션용"
+    printf '%s' "$rows"
+    echo "  → PO가 \"N번 이어가\" 또는 \"<이름> 이어가\"라고 하면: 그 브랜치로 \`git checkout\` 한 뒤 ${CTX} 최상단·해당 PR을 보고 이어가라. (PO가 매번 프롬프트를 복붙하지 않게 하기 위함)"
+  fi
+fi
+
 echo "- ▶ 이어가기 전 **${CTX} 최상단 핸드오프** 전체를 읽어라. 남은 버그·개선점은 docs/KNOWN_ISSUES.md."
 
 # ── 핸드오프 핵심 3칸을 직접 띄움 (B) — 안 읽어도 눈앞에 ──────────
