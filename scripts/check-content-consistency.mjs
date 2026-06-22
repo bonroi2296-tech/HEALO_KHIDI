@@ -101,6 +101,41 @@ try {
   errors.push(`[i18n] ${I18N} 읽기 실패: ${e.message}`);
 }
 
+// ── 3) 화상 상담방 카피(_roomCopy.js) 6개 언어 키 패리티 ─────────────
+// 화상방은 별도 COPY 객체(_roomCopy.js)를 쓰는데 위 i18n 검사(index.js)가 안 본다.
+// 한 언어에만 키가 빠지면 그 언어 환자 화면에 undefined/빈칸이 뜬다(화상방=KHIDI 시연 핵심).
+const ROOMCOPY = "app/consultation/[id]/_roomCopy.js";
+try {
+  const text = readFileSync(join(ROOT, ROOMCOPY), "utf8").split("\n");
+  const blocks = {}; // lang -> Set(keys)
+  let cur = null;
+  for (const line of text) {
+    const m = line.match(/^ {2}([a-z]{2}): \{\s*$/); // "  ko: {"
+    if (m) { cur = m[1]; blocks[cur] = new Set(); continue; }
+    if (/^ {2}\},?\s*$/.test(line)) { cur = null; continue; } // 언어 블록 종료 "  },"
+    if (cur) {
+      const k = line.match(/^ {4}([A-Za-z0-9_]+):/); // 4칸 들여쓰기 키(따옴표 없음)
+      if (k) blocks[cur].add(k[1]);
+    }
+  }
+  const ref = blocks.en;
+  if (!ref || ref.size === 0) {
+    errors.push(`[roomCopy] 기준(en) 블록을 못 읽음 — 검사 스크립트 점검 필요`);
+  } else {
+    for (const lang of ACTIVE) {
+      if (lang === "en") continue;
+      const b = blocks[lang];
+      if (!b) { errors.push(`[roomCopy] 활성 언어 '${lang}' 블록이 없음`); continue; }
+      const missing = [...ref].filter((k) => !b.has(k));
+      const extra = [...b].filter((k) => !ref.has(k));
+      if (missing.length) errors.push(`[roomCopy] '${lang}' 에 키 ${missing.length}개 누락 (en 기준): ${missing.slice(0, 8).join(", ")}${missing.length > 8 ? " …" : ""}`);
+      if (extra.length) errors.push(`[roomCopy] '${lang}' 에 en 에 없는 키 ${extra.length}개: ${extra.slice(0, 8).join(", ")}`);
+    }
+  }
+} catch (e) {
+  errors.push(`[roomCopy] ${ROOMCOPY} 읽기 실패: ${e.message}`);
+}
+
 // ── 결과 ────────────────────────────────────────────────────────
 if (errors.length) {
   console.error(`\n❌ 콘텐츠 일관성 검사 실패 (${errors.length}건)\n`);
@@ -108,4 +143,4 @@ if (errors.length) {
   console.error("→ 고친 뒤 다시 커밋하세요. (옛 브랜드/이메일 잔재·언어별 키 누락 방지)\n");
   process.exit(1);
 }
-console.log("✓ 콘텐츠 일관성 검사 통과 (금지토큰 0 · i18n 활성6 키 패리티 OK)");
+console.log("✓ 콘텐츠 일관성 검사 통과 (금지토큰 0 · i18n+화상방 활성6 키 패리티 OK)");

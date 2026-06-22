@@ -1889,7 +1889,7 @@ export default function ConsultationRoomPage() {
               }`}
             >
               <MessageSquare size={16} className="inline mr-2" />
-              Chat
+              {c.tabChat}
             </button>
             <button
               onClick={() => setActivePanel("translation")}
@@ -1900,7 +1900,7 @@ export default function ConsultationRoomPage() {
               }`}
             >
               <Globe size={16} className="inline mr-2" />
-              Translation
+              {c.tabTranslation}
               {translations.length > 0 && (
                 <span className="ml-1 bg-teal-700 text-white text-xs px-1.5 py-0.5 rounded-full">
                   {translations.length}
