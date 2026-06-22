@@ -19,7 +19,8 @@
   - ③**로그인 계정연결**: 공개챗이 same-origin Supabase 인증쿠키로 로그인 식별 → `chat_threads.user_id` 연결(+`metadata.is_logged_in`). 익명(인증쿠키 없음)은 auth 왕복 생략. `hasReachableContact = guest_email ∥ guest_phone ∥ user_id`. patient 포털 챗도 `{isLoggedIn:true,...}` 전달.
   - ④**세션/로그인/저장 질문이 `isTopicCorrection`에 오탐**돼(="안 했"·"유지 안될") 세션안내 대신 엉뚱한 사과로 빠지던 것 수정 — `topicGuards.ts`에 `SESSION_STATE_TERMS` 예외.
   - ⑤회귀잠금 테스트(`systemPromptGuards.test.ts`·`topicGuards.test.ts`) + **POSTMORTEM #22**.
-- **배포 한도 절약** — 커밋 7d1ab3e: Vercel 무료 100/일 초과 발생 → `scripts/vercel-ignore-build.sh`(문서-only 커밋 배포 스킵, exit0=스킵/exit1=배포) 추가.
+- **배포 한도 절약** — `scripts/vercel-ignore-build.sh`(문서-only 커밋 배포 스킵) + **`vercel.json`의 `ignoreCommand`로 연결**(공식 지원 확인) → main 머지되면 **대시보드 설정 없이** 자동 적용. 교통정리 ① 캐논화(다른 세션 `vercel-deploy-throttle`·#259 닫아도 됨).
+- **반복업무 자동화(PO "싹다해")**: ①접수 게이트 로직을 순수 모듈 `contactGate.ts`로 추출→`contactGate.test.ts` 진짜 단위테스트(server-only 텍스트잠금 대체). ②`scripts/smoke-chat.mjs` 라이브 AI챗 스모크(접수게이트·세션안내, 테스트 스레드 service_role 자동삭제로 DB오염 0) — **프리뷰 2/2 통과 검증**. ③`.github/workflows/chat-smoke.yml` 매일 프로덕션 자동점검(실패=빨강 알림). 내 curl 테스트 데이터(qa-verify·smoke 5건)는 Supabase MCP로 정리 완료.
 - **소통 지침**: CLAUDE.md에 "쉽게 설명 + **선택지는 텍스트 나열 말고 AskUserQuestion 버튼으로**" PO취향 고정(PO_PREFERENCES #41·#50 누적분 승격) + "폰↔컴 이어가기(push=저장≠배포)" 취향 PO_PREFERENCES 추가.
 
 **2. 왜 그렇게 했는지:**
@@ -47,9 +48,10 @@
 
 **5. 다음 세션이 먼저 할 일 (우선순위):**
 1. **⚠️ 직전 미검증분 먼저**: **TEST3(로그인 상태에서 "나 로그인했어?"→"계정 연결됨" 안내)** 실화면 확인 — curl로 로그인 흉내 불가라 미검증. PO 브라우저 또는 머지 후 prod에서. (TEST1·TEST2는 2026-06-22 라이브 실증 완료.)
-2. PO가 **Vercel Ignored Build Step** 설정했는지 확인(`bash scripts/vercel-ignore-build.sh`).
-3. 위 OK면 **PR #254 초안 해제·머지 판단**.
-4. (보류) 로그인 사용자 **이름 호칭(displayName)**·마이페이지 "이력 보기" UI 붙일지 PO와 결정.
+2. **PR #254 초안 해제·머지 판단** — 머지되면 ①배포스킵(vercel.json ignoreCommand, 대시보드 설정 불필요) ②세션시작 열린작업 목록판 ③매일 챗 스모크 자동점검이 전 세션/프로덕션에 적용됨.
+3. **(선택) 스모크 자동점검 완전가동** — GitHub Secrets에 `SUPABASE_URL`·`SUPABASE_SERVICE_ROLE_KEY` 추가(없어도 테스트는 돌고 테스트 스레드 정리만 생략). 점검대상 바꾸려면 변수 `SMOKE_BASE_URL`.
+4. **교통정리 실행**(PO 지시 시): ②안전가드 #256 살리고 #83 닫기 / ③AI챗 #254 먼저 머지 후 #260·#255 rebase / ①배포 dup(`vercel-deploy-throttle`·#259) 닫기 — #254가 캐논.
+5. (보류) 로그인 사용자 **이름 호칭(displayName)**·마이페이지 "이력 보기" UI 붙일지 PO와 결정.
 
 **6. 검증 상태:**
 - **CI(PR #254, 커밋 7e9c59e)**: `ci`(타입 tsc + vitest) ✅ success, `Smoke Tests (PR)` ✅ success. (E2E류는 PR에선 skip — 정상.)
