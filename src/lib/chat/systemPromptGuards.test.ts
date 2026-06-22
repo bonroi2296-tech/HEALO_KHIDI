@@ -41,3 +41,34 @@ describe("system prompt behavioral guards (regression lock)", () => {
     expect(SRC).toMatch(/if \(isTopicCorrection\(query\)\)/);
   });
 });
+
+// 🔑 마스터키 '힐로'/'healo' — 자기분석 모드 회귀 잠금.
+// server-only 모듈이라 직접 import 불가 → 소스에 트리거·분석 배선이 살아있는지 텍스트로 잠근다.
+describe("master key (힐로/healo) self-analysis (regression lock)", () => {
+  it("트리거 정규식이 힐로/healo 두 멘트를 모두 인식한다", () => {
+    const m = SRC.match(/const MASTER_KEY_RE = (\/.*\/i);/);
+    expect(m).toBeTruthy();
+    // 소스의 실제 정규식을 그대로 평가해 동작을 검증(문자열 잠금이 아니라 행동 잠금)
+    // eslint-disable-next-line no-eval
+    const re: RegExp = eval(m![1]);
+    expect(re.test("힐로")).toBe(true);
+    expect(re.test("healo")).toBe(true);
+    expect(re.test("HEALO")).toBe(true);
+    expect(re.test("힐로 마지막 답변만 분석해줘")).toBe(true);
+    expect(re.test("healo focus on tone")).toBe(true);
+    // 오탐 방지: 일반 질의는 트리거가 아니어야
+    expect(re.test("폐암 치료비 얼마예요")).toBe(false);
+    expect(re.test("hello")).toBe(false);
+    expect(re.test("힐로분석")).toBe(false); // 바로 글자가 붙으면 일반 질의
+  });
+
+  it("자기분석 코어와 두 응답 경로 배선이 있다", () => {
+    expect(SRC).toMatch(/export async function generateMasterKeyAnalysis/);
+    expect(SRC).toMatch(/if \(isMasterKey\(query\)\)/);
+  });
+
+  it("전체 스레드 기반 분석(라우트 12개 한계 우회)을 한다", () => {
+    expect(SRC).toMatch(/buildThreadTranscript/);
+    expect(SRC).toMatch(/MASTER_KEY_TRANSCRIPT_LIMIT/);
+  });
+});
