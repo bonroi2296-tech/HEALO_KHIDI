@@ -25,6 +25,7 @@ import {
   Filter,
   ThumbsDown,
   Calculator,
+  Sparkles,
 } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 
@@ -70,6 +71,7 @@ const navGroups = [
     title: "AI 품질 · 시스템",
     items: [
       { id: "ai-status", label: "AI 상태", icon: Brain, href: "/admin/ai-status" },
+      { id: "agent-analysis", label: "에이전트 자기분석", icon: Sparkles, href: "/admin/khidi/agent-analysis" },
       { id: "ai-feedback", label: "AI 피드백", icon: ThumbsDown, href: "/admin/khidi/ai-feedback" },
       { id: "users", label: "회원(환자) 관리", icon: Users, href: "/admin/users" },
       { id: "staff", label: "직원 계정", icon: Users, href: "/admin/staff" },
