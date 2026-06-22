@@ -40,4 +40,43 @@ describe("system prompt behavioral guards (regression lock)", () => {
   it("화제 정정 감지 시 결정적 short-circuit 이 두 응답 경로에 있다", () => {
     expect(SRC).toMatch(/if \(isTopicCorrection\(query\)\)/);
   });
+
+  // ── 2026-06-22 PO 재현: 비로그인·연락처 없는 사용자에게 "접수 완료/코디가 연락"이라는
+  //    거짓 약속 + 세션 유실 질문에 즉흥 오답. 상태 사실 주입으로 차단. (state-detection)
+  it("접수(REGISTER) 멘트가 연락처 유무(hasReachableContact)로 분기된다", () => {
+    expect(SRC).toMatch(/hasReachableContact/);
+    expect(SRC).toMatch(/Do NOT claim they are 'registered'/);
+    expect(SRC).toMatch(/FALSE promise/);
+  });
+
+  it("세션·로그인 상태 사실(SESSION & IDENTITY FACTS) 블록이 있다", () => {
+    expect(SRC).toMatch(/SESSION & IDENTITY FACTS/);
+    expect(SRC).toMatch(/auto-resumes for 30 days/);
+    expect(SRC).toMatch(/The patient is LOGGED IN/);
+    expect(SRC).toMatch(/never guess or improvise/);
+  });
+
+  it("감정 격앙 시 정보 덤프 금지(DE-ESCALATION) 규칙이 있다", () => {
+    expect(SRC).toMatch(/DE-ESCALATION/);
+    expect(SRC).toMatch(/do NOT respond by dumping documents/);
+  });
+});
+
+// publicChatHelpers 도 server-only 라 직접 import 불가 → 소스 텍스트로 잠근다.
+const HELPERS_SRC = readFileSync(path.resolve(__dirname, "publicChatHelpers.ts"), "utf8");
+
+describe("handoff confirm 연락처 게이트 (regression lock)", () => {
+  it("연락 가능 여부 판별 헬퍼와 멘트 선택기가 있다", () => {
+    expect(HELPERS_SRC).toMatch(/export function hasReachableContact/);
+    expect(HELPERS_SRC).toMatch(/export function pickHandoffConfirm/);
+    // user_id(로그인)·guest_email·guest_phone 중 하나라도 있으면 연락 가능.
+    expect(HELPERS_SRC).toMatch(/thread\?\.guest_email \|\| thread\?\.guest_phone \|\| thread\?\.user_id/);
+  });
+
+  it("연락처 없을 때용 '연락처부터' 멘트가 6개 언어로 있다", () => {
+    expect(HELPERS_SRC).toMatch(/HANDOFF_NEED_CONTACT/);
+    for (const lang of ["ko", "en", "ru", "kz", "zh", "ja"]) {
+      expect(HELPERS_SRC).toMatch(new RegExp(`HANDOFF_NEED_CONTACT[\\s\\S]*\\b${lang}:`));
+    }
+  });
 });

@@ -13,6 +13,7 @@ export const runtime = "nodejs";
 
 import { NextRequest, after } from "next/server";
 import { supabaseAdmin, assertSupabaseEnv } from "@/lib/rag/supabaseAdmin";
+import { createSupabaseServerClientFromRequest } from "@/lib/supabase/server";
 import { checkRateLimitPersistent, getClientIp, RATE_LIMITS } from "@/lib/rateLimit";
 import { checkAiGuards } from "@/lib/ai/aiGuard";
 import {
@@ -24,10 +25,25 @@ import {
 import {
   INTAKE_EVERY_N_TURNS,
   ATTACHMENT_ACK,
-  HANDOFF_CONFIRM,
   sanitizeAttachments,
   createDraftIntake,
+  hasReachableContact,
+  pickHandoffConfirm,
 } from "@/lib/chat/publicChatHelpers";
+
+// 공개 라우트지만 same-origin fetch 라 Supabase 인증 쿠키가 함께 옴 → 로그인 사용자면 식별 가능.
+// 실패(비로그인·토큰 만료)는 조용히 null (이 라우트는 비로그인도 허용).
+async function getOptionalUser(request: NextRequest) {
+  // 인증 쿠키가 아예 없으면 익명 확정 → Supabase auth 네트워크 왕복 생략(매 턴 지연 방지).
+  if (!request.cookies.getAll().some((c) => /auth-token/.test(c.name))) return null;
+  try {
+    const supabase = createSupabaseServerClientFromRequest(request);
+    const { data: { user } } = await supabase.auth.getUser();
+    return user || null;
+  } catch {
+    return null;
+  }
+}
 
 // 메타 프레임 구분자(RS, U+001E) — 일반 대화 텍스트에 거의 나오지 않음.
 const STREAM_META_DELIM = "";
@@ -74,6 +90,23 @@ export async function POST(request: NextRequest) {
   if (thread.status === "resolved" || thread.status === "closed") {
     return jsonError("Thread is closed", 410);
   }
+
+  // 로그인 연동: 익명으로 시작한 스레드라도 로그인 사용자가 쓰면 계정에 연결한다(아직 미연결일 때만
+  // 인증 조회 — 매 턴 auth 왕복 방지). 연결되면 reachable=true → "접수완료" 정상 안내 + 세션 사실 정확.
+  if (!thread.user_id) {
+    const user = await getOptionalUser(request);
+    if (user) {
+      thread.user_id = user.id;
+      await (supabaseAdmin as any)
+        .from("chat_threads")
+        .update({
+          user_id: user.id,
+          metadata: { ...((thread.metadata && typeof thread.metadata === "object" && !Array.isArray(thread.metadata)) ? thread.metadata : {}), is_logged_in: true },
+        })
+        .eq("id", thread_id);
+    }
+  }
+  const reachable = hasReachableContact(thread);
 
   const trimmedMsg = (message_text || "").trim();
   const patientMsgText = trimmedMsg || `📎 ${attachments.length}`;
@@ -157,8 +190,13 @@ export async function POST(request: NextRequest) {
       try {
         // 1) AI 응답 — 텍스트 없이 자료만 올린 경우는 모델을 부르지 않음(판독 안 함).
         if (trimmedMsg) {
-          const r = await streamChatReply(chatMessages, trimmedMsg, lang, thread_id, (chunk) =>
-            enqueue(chunk)
+          const r = await streamChatReply(
+            chatMessages,
+            trimmedMsg,
+            lang,
+            thread_id,
+            (chunk) => enqueue(chunk),
+            { isLoggedIn: !!thread.user_id, hasReachableContact: reachable }
           );
           aiReply = r.reply;
           ragChunksLen = r.ragChunks.length;
@@ -175,9 +213,9 @@ export async function POST(request: NextRequest) {
           finalReply = finalReply ? `${finalReply}${piece}` : ack;
         }
 
-        // 3) 핸드오프 확인 멘트.
+        // 3) 핸드오프 확인 멘트 — 연락 가능하면 "접수완료", 아니면 연락처부터 요청(거짓 약속 방지).
         if (handOff.requested) {
-          const piece = "\n\n" + (HANDOFF_CONFIRM[lang] || HANDOFF_CONFIRM.en);
+          const piece = "\n\n" + pickHandoffConfirm(lang, reachable);
           enqueue(piece);
           finalReply += piece;
         }

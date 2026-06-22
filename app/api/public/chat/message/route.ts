@@ -12,6 +12,7 @@ export const runtime = "nodejs";
 
 import { NextRequest, after } from "next/server";
 import { supabaseAdmin, assertSupabaseEnv } from "@/lib/rag/supabaseAdmin";
+import { createSupabaseServerClientFromRequest } from "@/lib/supabase/server";
 import { checkRateLimitPersistent, getClientIp, RATE_LIMITS } from "@/lib/rateLimit";
 import { checkAiGuards } from "@/lib/ai/aiGuard";
 import {
@@ -23,10 +24,24 @@ import {
 import {
   INTAKE_EVERY_N_TURNS,
   ATTACHMENT_ACK,
-  HANDOFF_CONFIRM,
   sanitizeAttachments,
   createDraftIntake,
+  hasReachableContact,
+  pickHandoffConfirm,
 } from "@/lib/chat/publicChatHelpers";
+
+// 공개 라우트지만 same-origin fetch 라 Supabase 인증 쿠키가 함께 옴 → 로그인 사용자면 식별 가능.
+async function getOptionalUser(request: NextRequest) {
+  // 인증 쿠키가 아예 없으면 익명 확정 → Supabase auth 네트워크 왕복 생략(매 턴 지연 방지).
+  if (!request.cookies.getAll().some((c) => /auth-token/.test(c.name))) return null;
+  try {
+    const supabase = createSupabaseServerClientFromRequest(request);
+    const { data: { user } } = await supabase.auth.getUser();
+    return user || null;
+  } catch {
+    return null;
+  }
+}
 
 export async function POST(request: NextRequest) {
   assertSupabaseEnv();
@@ -74,6 +89,22 @@ export async function POST(request: NextRequest) {
     if (thread.status === "resolved" || thread.status === "closed") {
       return Response.json({ ok: false, error: "Thread is closed" }, { status: 410 });
     }
+
+    // 로그인 연동: 익명 시작 스레드라도 로그인 사용자가 쓰면 계정 연결(미연결일 때만 auth 조회).
+    if (!thread.user_id) {
+      const user = await getOptionalUser(request);
+      if (user) {
+        thread.user_id = user.id;
+        await (supabaseAdmin as any)
+          .from("chat_threads")
+          .update({
+            user_id: user.id,
+            metadata: { ...((thread.metadata && typeof thread.metadata === "object" && !Array.isArray(thread.metadata)) ? thread.metadata : {}), is_logged_in: true },
+          })
+          .eq("id", thread_id);
+      }
+    }
+    const reachable = hasReachableContact(thread);
 
     const trimmedMsg = (message_text || "").trim();
     // 자료만 올린 경우 빈 말풍선 대신 표시·이력용 마커 텍스트.
@@ -150,7 +181,10 @@ export async function POST(request: NextRequest) {
     let aiError: string | undefined;
     let _analytics: any = undefined;
     if (trimmedMsg) {
-      const r = await generateChatReply(chatMessages, trimmedMsg, lang, thread_id);
+      const r = await generateChatReply(chatMessages, trimmedMsg, lang, thread_id, {
+        isLoggedIn: !!thread.user_id,
+        hasReachableContact: reachable,
+      });
       reply = r.reply;
       ragChunks = r.ragChunks;
       aiError = r.error;
@@ -164,7 +198,7 @@ export async function POST(request: NextRequest) {
       finalReply = finalReply ? `${finalReply}\n\n${ack}` : ack;
     }
     if (handOff.requested) {
-      finalReply += "\n\n" + (HANDOFF_CONFIRM[lang] || HANDOFF_CONFIRM.en);
+      finalReply += "\n\n" + pickHandoffConfirm(lang, reachable);
     }
 
     const { data: aiMsg, error: aiInsertErr } = await (supabaseAdmin as any)

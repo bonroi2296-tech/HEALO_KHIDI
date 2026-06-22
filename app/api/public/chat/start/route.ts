@@ -12,8 +12,22 @@ export const runtime = "nodejs";
 
 import { NextRequest } from "next/server";
 import { supabaseAdmin, assertSupabaseEnv } from "@/lib/rag/supabaseAdmin";
+import { createSupabaseServerClientFromRequest } from "@/lib/supabase/server";
 import { checkRateLimit, getClientIp, RATE_LIMITS } from "@/lib/rateLimit";
 import { encryptStringNullable, safeHash } from "@/lib/security/encryptionV2";
+
+// 공개 라우트지만 same-origin 쿠키로 로그인 사용자 식별 가능 → 새 스레드를 계정에 연결.
+async function getOptionalUser(request: NextRequest) {
+  // 인증 쿠키가 아예 없으면 익명 확정 → Supabase auth 네트워크 왕복 생략.
+  if (!request.cookies.getAll().some((c) => /auth-token/.test(c.name))) return null;
+  try {
+    const supabase = createSupabaseServerClientFromRequest(request);
+    const { data: { user } } = await supabase.auth.getUser();
+    return user || null;
+  } catch {
+    return null;
+  }
+}
 
 export async function POST(request: NextRequest) {
   assertSupabaseEnv();
@@ -49,6 +63,9 @@ export async function POST(request: NextRequest) {
     const phone = typeof guest_phone === "string" ? guest_phone.trim().slice(0, 32) : null;
     const sessionId = typeof browser_session_id === "string" ? browser_session_id.trim().slice(0, 64) : null;
 
+    // 로그인 사용자면 스레드를 계정에 연결(user_id) — 비로그인은 그대로 익명 게스트.
+    const authUser = await getOptionalUser(request);
+
     const publicToken = crypto.randomUUID();
 
     // 게스트 PII(이름·이메일·전화)는 AES-256-GCM 암호화 후 저장(평문 저장 금지).
@@ -62,6 +79,7 @@ export async function POST(request: NextRequest) {
       .insert({
         status: "open",
         public_token: publicToken,
+        user_id: authUser?.id ?? null,
         // 주의: subject 에 게스트 이름을 평문으로 넣지 않는다(PII 누출 방지).
         subject: treatment_slug ? `Inquiry: ${treatment_slug}` : "New Chat",
         guest_name: encryptStringNullable(name),
@@ -79,6 +97,7 @@ export async function POST(request: NextRequest) {
           client_meta: client_meta || null,
           treatment_slug: treatment_slug || null,
           started_at: new Date().toISOString(),
+          ...(authUser ? { is_logged_in: true } : {}),
           // 재방문 검색용 블라인드 인덱스(평문 저장 아님)
           guest_email_hash: emailHash,
           guest_name_hash: nameHash,
