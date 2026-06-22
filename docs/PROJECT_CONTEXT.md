@@ -7,6 +7,50 @@
 
 ---
 
+## 🔖 세션 핸드오프 (2026-06-22 오전 — 도메인 컷오버 + 검색등록 3사) — healwith.co.kr 정식 가동
+
+**이번 세션 한 일:**
+- **도메인 컷오버 완료**: PO가 가비아(Gabia)에서 `healwith.co.kr` 정식 구매(만기 2027-06-18) → 실서비스 가동.
+  - 가비아 DNS: A `@`→`216.198.79.1`, CNAME `www`→`cname.vercel-dns.com`, TXT 2개(구글·얀덱스 인증). 네임서버는 가비아 유지(`ns.gabia.co.kr`).
+  - Vercel 프로젝트 `healo-khidi`에 도메인 추가 + SSL 발급 + Production 연결. `healwith.co.kr/sitemap.xml`이 새 주소로 출력 확인.
+  - 코드 `khidi.healo.kr`→`healwith.co.kr` 일괄 치환 **PR [#226](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/226) 머지·배포**(canonical·sitemap·OG·JSON-LD·env 폴백 15파일). 번역 API 호스트 허용목록의 옛 도메인은 의도적 유지(healwith 이미 추가).
+- **검색등록 3사 완료**:
+  - **구글 서치콘솔**: 도메인 속성 소유권 인증(DNS TXT) + sitemap.xml(43페이지) "성공".
+  - **얀덱스 웹마스터**: 소유권 인증(DNS TXT) + sitemap 제출.
+  - **네이버 서치어드바이저**: 소유확인(메타태그) + sitemap 제출. 메타태그는 **PR [#229](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/229) 머지·배포**(`app/layout.jsx` baseMetadata.verification — naver-site-verification 추가 + 기존 yandex 플레이스홀더 실값 정리).
+
+**왜 그렇게 했는지:**
+- 검색등록은 **사이트가 라이브여야** 의미 있어 도메인 머지·배포를 먼저 끝낸 뒤 진행.
+- 구글·얀덱스는 DNS TXT 인증(사이트 배포와 무관·즉시), 네이버는 DNS 방식이 없어 메타태그 방식 → 코드 머지+배포 후 소유확인.
+- env `NEXT_PUBLIC_SITE_URL`은 Vercel에 **미설정** 확인 → 코드 폴백을 healwith로 바꿔 미설정이어도 정상.
+
+**안 끝났거나 보류:**
+- **Performance(라이트하우스) 39점(모바일)** — 이번 세션 미착수. SEO 100·접근성 100·Best Practices 92는 양호. 주범 후보: **히어로 배경 이미지(LCP)·폰트·JS 번들**. 타겟이 회선 느린 CIS(러·카자흐)라 체감·Core Web Vitals(SEO 랭킹요소) 영향.
+- **검색 노출 자체는 대기**: 등록=색인 후보 진입일 뿐, 실제 노출은 각 엔진 색인에 며칠~2주. 브랜드명("healwith")은 곧, 일반 경쟁키워드("korea medical" 등)는 장기 SEO/마케팅 과제(등록만으론 안 됨 — PO에게 설명함).
+- (선택) Vercel 비밀키 "Needs Attention" = 비밀키가 평문 저장이라 Sensitive 표시 권장(보안, 동작 무관).
+
+**주의·함정:**
+- **자동저장 훅(`.claude/hooks/auto-commit-push.sh`)이 작업 중 PO 미커밋 변경분을 feature 브랜치에 얹어 첫 배포가 ERROR**났음(turn 종료마다 `git add -u` 커밋·푸시). → 깨끗한 커밋만 분리해 재작업(PR #226). **PO의 옛 로컬 WIP(세션시작 시 56개 수정파일)는 `po-wip-backup-20260622` 브랜치에 백업**(복원 필요시 PO가 요청). 상당수는 CRLF 줄바꿈 노이즈로 보였음.
+- **`npm run handoff:rotate` 스크립트 버그**: 오래된 블록을 archive로 옮길 때 **헤더만 이동하고 본문은 PROJECT_CONTEXT에 남겨 고아 블록**을 만듦(이번에 수동 제거함). 다음에 rotate 쓰기 전 스크립트 점검 필요.
+- 미추적 파일 `docs/CODEX_CERTAIN_FIX_MEMO.md`·`logo/`는 커밋 안 함(잡파일·로고 후보).
+- 첫 PR(#225)은 옛 stale main에서 갈라져 충돌 → 닫고 최신 main 기준 #226으로 재작성.
+
+**다음 세션이 먼저 할 일 (우선순위):**
+1. **⭐ Performance 최적화** (PO 지시): 라이트하우스 모바일 39 → **70~80+ 목표**. 진단부터: 히어로 이미지 크기·포맷(WebP/AVIF·next/image 우선순위)·폰트 로딩·JS 번들·Vercel 콜드스타트. 한 번 더 측정해 콜드스타트 변수 제거하고 시작.
+2. (직전 세션 잔여, 별개) #160 화상방 폰 2대 카메라 라이브 확인·PR #216 등 KPI 작업 — 아래 「새벽」·「2026-06-21」 핸드오프 블록 참조.
+3. KHIDI 중간평가(2026-08-27) 상시.
+
+**검증 상태:**
+- **도메인 컷오버 = 실검증 완료**: `healwith.co.kr/sitemap.xml` 새 주소 출력(HTTP 200·application/xml) curl 확인, robots.txt 크롤 허용 확인, 네이버 메타태그 실제 페이지 `<head>` 렌더 curl 확인.
+- **PR #226·#229 = CI(ci·smoke·Vercel) 전부 초록 + main squash 머지 + production 배포 완료.** `check:content` 통과, structuredData 테스트 통과.
+- 검색등록 3사 소유권 인증·sitemap 제출 = **콘솔 화면에서 "성공/Owner/등록" 직접 확인**(구글 sitemap 43페이지 "성공", 얀덱스 Owner, 네이버 등록). 단 **실제 검색 노출은 색인 대기(미확인·구조상 며칠~2주 걸림)**.
+- 열린 PR: 직전 세션 #216·#217·#219 상태는 이 세션에서 미확인(도메인 작업만 함).
+
+**다음 세션 첫 프롬프트:**
+> 먼저 docs/PROJECT_CONTEXT.md 최상단 핸드오프 읽어. 그담 우리 사이트(healwith.co.kr) 라이트하우스 모바일 퍼포먼스가 39점으로 너무 낮아 — 70~80점 이상으로 끌어올려줘. 히어로 이미지·폰트·JS 번들 같은 거 진단하고 싹 최적화해서 배포까지. (SEO·접근성은 이미 만점이니 퍼포먼스만)
+
+---
+
 ## 🔖 세션 핸드오프 (2026-06-22 새벽 — 야간 자율 감사 세션) — 5축 병렬 감사 + PR 5개(#215~219) + ⚠️평가 현실 발견(real KPI≈0)
 
 **이번 세션 한 일:**
