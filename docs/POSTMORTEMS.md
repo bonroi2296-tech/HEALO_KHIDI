@@ -431,3 +431,23 @@ ISO/IEC 25010(TTA GS) 기준 제3자 보안 감리 중, 환자 의료데이터�
 - **가드 룰 신설**: `scripts/check-content-consistency.mjs` 에 `.from("khidi_intakes")`·`khidi_intakes!inner` 패턴 차단 룰 추가(설명 주석은 통과하도록 정밀 패턴). 없는 테이블을 다시 쿼리하면 CI 가 매 PR 막는다.
 - **유사 이슈 전수 스캔 완료**: `khidi_intakes` 잔재는 이제 설명 주석 2곳만 남고 실제 쿼리 0.
 - **남은 권장(미적용 — PO 결정 필요)**: ①대시보드/월간보고 경로(`getKpiForMonth`/`getKpiCumulative`)도 집계 에러를 0 으로 삼키지 말고 `errors[]` 를 표면화(현재 canary 는 cron 경로만 커버). ②설문 발송 커버리지(완료 대비 설문 발송률)용 데드맨 스위치 추가. ③성별·출생연도 수집 여부(문진/인테이크에 추가할지) 결정.
+
+---
+
+## #20 — 비공개(`is_published=false`) 치료·병원이 sitemap·상세페이지에 계속 노출 (검색에서 안 빠짐) (2026-06-22)
+
+**무슨 일**
+도메인 컷오버 후 검색노출 점검 중, `treatments` 테이블에 슬러그가 자동생성 쓰레기값(`item-<타임스탬프>`)인 실콘텐츠 3건(신경회복 도수치료·주사요법·면역플러스/개인맞춤한약)이 sitemap·검색에 그대로 노출됨. PO 요청으로 이 3건을 **소프트 비활성(`is_published=false`)** 하려 했으나, 코드를 보니 비활성해도 **목록에선 빠지지만 sitemap·상세페이지엔 계속 200으로 남는** 더 큰 버그가 있었다.
+
+**왜 못 잡았나 (근본원인)**
+1. `getTreatmentList`/`getHospitalList`(sitemap 공급) 와 `getTreatmentBySlug`/`getHospitalBySlug`(상세페이지 공급)가 **`is_published` 필터를 안 걸었다.** 같은 파일의 `getAllTreatments`·`getFeaturedTreatments` 는 `.eq("is_published", true)` 가 있는데, **list/bySlug 4개만 빠져 있어** 비공개 데이터가 검색·직링크로 샜다.
+2. "비공개 처리" 가 **목록 노출만** 막고 *검색 인덱싱 경로(sitemap·상세 404)* 는 안 막는다는 걸 아무도 대조 안 함 → 소프트 비활성의 의미가 반쪽이었다.
+3. 슬러그 자동생성(`item-<ts>`) 자체가 검색에 추한 URL을 만드는 부류인데 가드가 없었음.
+
+**어떻게 고쳤나**
+- `src/lib/data/treatments.js`·`hospitals.js` 의 `get*List`·`get*BySlug` 4개 함수에 `.eq("is_published", true)` 추가 → 비공개는 **sitemap에서 빠지고 상세페이지는 `notFound()` 로 404**(상세 page.jsx 가 null→notFound 확인). 폴백 `get*ById`(uuid 직링크)는 비공개를 안 거르는 엣지가 남으나 sitemap이 비공개를 더는 노출 안 하므로 표면화 안 됨(YAGNI, 다른 호출처 영향 회피).
+- 문제 3건은 `is_published=false` 로 소프트 비활성(하드삭제 X — PO가 "포맷 나중에 쓸 수도" 라 보존).
+
+**재발 방지 (시스템 적용)**
+- **유사 이슈 전수 스캔 완료**: 공개 데이터 페처 중 list/bySlug 4개만 누락이었고 전부 수정. 그 외 공개 경로(`getFeatured*`·`getAll*`·`getRelated*`·`getHospitalTreatments`)는 이미 필터 있음.
+- **남은 권장(미적용)**: ①슬러그 `item-<숫자>`·`etc` 같은 자동/플레이스홀더 슬러그를 `check-content-consistency.mjs` 또는 sitemap 생성 시 경고하는 가드 추가(검색에 추한 URL 차단). ②`get*ById` 도 공개 경로에서 쓰일 때 `is_published` 거를지 검토.
