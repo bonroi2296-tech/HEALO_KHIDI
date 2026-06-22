@@ -43,7 +43,7 @@ const jsonLd = {
   name: "Кореядағы онкологиялық емдеу — healwith",
   description:
     "Қазақстандық онкологиялық науқастарға арналған Оңтүстік Кореяда медициналық туризм нұсқаулығы.",
-  url: "https://khidi.healo.kr/kk/for-kazakh-patients",
+  url: "https://healwith.co.kr/kk/for-kazakh-patients",
   inLanguage: "kk",
   audience: {
     "@type": "MedicalAudience",
@@ -62,7 +62,7 @@ const jsonLd = {
   provider: {
     "@type": "Organization",
     name: "healwith",
-    url: "https://khidi.healo.kr",
+    url: "https://healwith.co.kr",
   },
 };
 

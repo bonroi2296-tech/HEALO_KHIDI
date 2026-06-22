@@ -1,5 +1,5 @@
 const getBaseUrl = () =>
-  process.env.NEXT_PUBLIC_SITE_URL || "https://khidi.healo.kr";
+  process.env.NEXT_PUBLIC_SITE_URL || "https://healwith.co.kr";
 
 export default function robots() {
   const baseUrl = getBaseUrl();

@@ -9,7 +9,7 @@
 
 import { getAllPartnerHospitals } from "@/lib/data/partnerHospitals";
 
-const SITE_URL = "https://khidi.healo.kr";
+const SITE_URL = "https://healwith.co.kr";
 const ORG_NAME = "healwith";
 
 /** 빵부스러기(BreadcrumbList) — 검색결과에 경로 표시 */

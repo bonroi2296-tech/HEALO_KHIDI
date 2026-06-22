@@ -7,7 +7,7 @@ import { t } from "./index";
 // 미들웨어가 넘긴 x-locale(현재 언어)·x-pathname(언어 뗀 경로)을 읽어 생성한다.
 // 공개 페이지 어디서나 generateMetadata에서 (await localeAlternates()) 펼쳐 쓰면 됨.
 
-const siteUrl = () => process.env.NEXT_PUBLIC_SITE_URL || "https://khidi.healo.kr";
+const siteUrl = () => process.env.NEXT_PUBLIC_SITE_URL || "https://healwith.co.kr";
 
 // BCP47 표기 (kz→kk) + OG locale 태그
 const HREF_LANG = { en: "en", ko: "ko", ru: "ru", kz: "kk", zh: "zh", ja: "ja" };

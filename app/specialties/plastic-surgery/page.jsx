@@ -34,7 +34,7 @@ export const metadata = {
     description:
       "Complete guide to plastic surgery in Korea. Compare prices, find verified clinics, and get a free personalized treatment plan.",
     type: "website",
-    url: "https://khidi.healo.kr/specialties/plastic-surgery",
+    url: "https://healwith.co.kr/specialties/plastic-surgery",
   },
   alternates: {
     canonical: "/specialties/plastic-surgery",
@@ -56,7 +56,7 @@ const jsonLd = {
   name: "Plastic Surgery",
   description:
     "Comprehensive plastic and cosmetic surgery services in South Korea, including rhinoplasty, double eyelid surgery, facial contouring, and facelifts.",
-  url: "https://khidi.healo.kr/specialties/plastic-surgery",
+  url: "https://healwith.co.kr/specialties/plastic-surgery",
   medicalSpecialty: "PlasticSurgery",
   availableService: [
     {
