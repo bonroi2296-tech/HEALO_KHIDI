@@ -74,6 +74,7 @@ export default async function sitemap() {
     localized('/specialties/korean-medicine', { changeFrequency: 'monthly', priority: 0.8 }),
     localized('/hospitals/immune', { changeFrequency: 'monthly', priority: 0.85 }),
     localized('/care-journey', { changeFrequency: 'monthly', priority: 0.8 }),
+    localized('/cost-calculator', { changeFrequency: 'weekly', priority: 0.92 }),
     // ── 암종별 치료 상세 (면력한방병원 6개 암종)
     localized('/treatments/female', { changeFrequency: 'monthly', priority: 0.88 }),
     localized('/treatments/digest', { changeFrequency: 'monthly', priority: 0.88 }),
