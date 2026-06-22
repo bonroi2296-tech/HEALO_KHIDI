@@ -47,6 +47,26 @@ const nextConfig = {
               priority: 20,
               reuseExistingChunk: true,
             },
+            // 무거운 라우트 전용 라이브러리 분리 — 공개 홈이 통째로 받지 않도록
+            // (exceljs=어드민 엑셀, recharts=환자 대시보드, livekit=영상방 전용)
+            excel: {
+              test: /[\\/]node_modules[\\/]exceljs[\\/]/,
+              name: 'excel-vendor',
+              priority: 24,
+              reuseExistingChunk: true,
+            },
+            charts: {
+              test: /[\\/]node_modules[\\/](recharts|victory-vendor|d3-[^\\/]+|internmap)[\\/]/,
+              name: 'charts-vendor',
+              priority: 24,
+              reuseExistingChunk: true,
+            },
+            livekit: {
+              test: /[\\/]node_modules[\\/](@livekit|livekit-client)[\\/]/,
+              name: 'livekit-vendor',
+              priority: 24,
+              reuseExistingChunk: true,
+            },
             // 기타 vendor
             vendor: {
               test: /[\\/]node_modules[\\/]/,
