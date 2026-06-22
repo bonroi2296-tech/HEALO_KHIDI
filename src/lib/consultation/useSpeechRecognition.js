@@ -7,11 +7,14 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 
-const LANG_MAP = {
+// 앱 언어코드 → 브라우저 Web Speech API 인식기 로케일.
+// ⚠️ 교차언어 폴백(키와 다른 언어의 로케일을 매핑 — 예: kz→ru-RU)을 새로 추가하면
+//    반드시 STT_FALLBACK_LANGS 에도 등록할 것. sttRouting.test.ts 가드가 강제한다.
+export const LANG_MAP = {
   ko: "ko-KR",
   ru: "ru-RU",
   en: "en-US",
-  // kk-KZ는 Chrome SpeechRecognition 미지원 → ru-RU 폴백
+  // kk-KZ는 Chrome SpeechRecognition 미지원 → ru-RU 폴백 (STT_FALLBACK_LANGS 에 등록됨)
   kz: "ru-RU",
   zh: "zh-CN",
   ja: "ja-JP",
@@ -21,6 +24,17 @@ const LANG_MAP = {
 export function getEffectiveSttLang(lang) {
   if (lang === "kz") return "ru"; // 카자흐어 STT → 러시아어로 폴백
   return lang;
+}
+
+// 브라우저 Web Speech API 가 이 언어를 폴백(다른 언어 인식기)으로 처리하는 언어 집합.
+// 예: 카자흐어(kz)는 Chrome 에 kk-KZ 인식기가 없어 ru-RU 로 폴백 → 카자흐 발화를
+// 러시아어 인식기로 처리해 부정확. 이런 언어는 서버 STT(Gemini, kz 직접 지원)로 보내야 함.
+const STT_FALLBACK_LANGS = new Set(["kz"]);
+
+// 브라우저 Web Speech API 가 해당 언어를 '진짜' 네이티브로 인식하는가(폴백이 아닌가).
+// false 면 브라우저 STT 정확도가 낮으므로 서버 STT 로 라우팅해야 한다.
+export function isBrowserSttNative(lang) {
+  return !STT_FALLBACK_LANGS.has(lang);
 }
 
 export function useSpeechRecognition({ language = "ko", onResult, onInterim, enabled = true }) {

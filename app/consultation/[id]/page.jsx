@@ -61,7 +61,7 @@ import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { useLang } from "@/lib/i18n/LangContext";
 import { setLangCookie } from "@/lib/i18n";
 import { useToast } from "@/components/Toast";
-import { useSpeechRecognition } from "@/lib/consultation/useSpeechRecognition";
+import { useSpeechRecognition, isBrowserSttNative } from "@/lib/consultation/useSpeechRecognition";
 import { isFillerOnly } from "@/lib/consultation/fillerFilter";
 import { useTTS } from "@/lib/consultation/useTTS";
 import { useRealtimeMessages } from "@/lib/consultation/useRealtimeMessages";
@@ -656,8 +656,9 @@ export default function ConsultationRoomPage() {
       setInterimText("");
       toast.success(c.translationStopped);
     } else {
-      // 이미 서버 STT 로 전환된 상태면 브라우저 STT 재시작 안 함 (이중 자막 방지)
-      if (!forceServerStt) stt.start();
+      // 이미 서버 STT 로 전환됐거나, 브라우저가 폴백으로만 처리하는 언어(kz)면
+      // 브라우저 STT 시작 안 함 (이중 자막·오인식 방지) → 서버 STT 로 라우팅
+      if (!forceServerStt && isBrowserSttNative(myLang)) stt.start();
       setTranslationEnabled(true);
       // 패널은 자동으로 안 엶 — 자막은 영상 위 오버레이, 입력은 하단 미니 바 (Zoom/Meet 식)
       toast.success(`${c.translationStartedPrefix} (${LANG_LABELS[myLang]} → ${LANG_LABELS[targetLang]})`);
@@ -1143,6 +1144,17 @@ export default function ConsultationRoomPage() {
   }, []);
   const useServerStt =
     translationEnabled && (stt.failed || !stt.isSupported || forceServerStt) && mediaRecOk;
+
+  // 카자흐어 등 브라우저가 '폴백'(딴 언어 인식기)으로만 처리하는 언어는 처음부터
+  // 서버 STT(Gemini — kz 직접 지원)로 보낸다. 브라우저 STT 는 kz 를 ru-RU 로 폴백해
+  // 카자흐 발화를 러시아어로 오인식하기 때문. 카자흐 = 1순위 시장이라 정확도 직결.
+  // 상세: docs/LIVE_TRANSLATE_EVAL.md §4 / KNOWN_ISSUES.md
+  useEffect(() => {
+    if (!translationEnabled || forceServerStt) return;
+    if (isBrowserSttNative(myLang)) return;
+    stt.stop(); // 혹시 시작된 브라우저 STT 의 마이크 점유 해제 (서버 STT 녹음과 충돌 방지)
+    setForceServerStt(true);
+  }, [translationEnabled, forceServerStt, myLang, stt.stop]);
 
   // 워치독: "지원된다"는 브라우저 STT 가 결과·에러·종료 이벤트 없이 조용히 죽는 환경
   // (삼성 인터넷 등 실기기에서 확인) — 기존 휴리스틱(에러/빠른종료 3회)은 아무 신호도
