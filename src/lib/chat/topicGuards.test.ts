@@ -56,6 +56,20 @@ describe("isTopicCorrection — 화제 부정·정정 신호", () => {
       expect(isTopicCorrection(s)).toBe(false);
     }
   });
+
+  // 2026-06-22 라이브 재현: 로그인·세션·저장 질문의 '안 했'/'유지 안될' 이 정정으로 오탐돼
+  // 모델의 SESSION & IDENTITY FACTS 안내를 못 타고 엉뚱한 사과로 빠지던 것 방지.
+  it("로그인·세션·저장 상태 질문은 정정 아님(모델로 보냄)", () => {
+    for (const s of [
+      "나 로그인 안 했는데 이거 저장돼?",
+      "아니 나 로그인안해서 세션 유지 안될텐데?",
+      "창 닫으면 대화 사라져?",
+      "I'm not logged in, will this be saved?",
+      "is my chat saved if I didn't sign in?",
+    ]) {
+      expect(isTopicCorrection(s)).toBe(false);
+    }
+  });
 });
 
 describe("correctionReply — 6개 언어 결정적 응답", () => {

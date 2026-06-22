@@ -26,9 +26,17 @@ const TOPIC_CORRECTION_PATTERNS = [
   /聞いてな|言ってな|そうじゃな|違います/,
 ];
 
+// 로그인·세션·저장·계정 관련 "제품 상태 질문"은 화제 정정이 아니다. 모델(시스템 프롬프트의
+// SESSION & IDENTITY FACTS)이 정직하게 답해야 함. 이 예외가 없으면 "로그인 안 했는데 저장돼?"의
+// '안 했'/"세션 유지 안될텐데"가 정정 패턴에 오탐돼 엉뚱한 사과로 빠짐 (2026-06-22 라이브 재현).
+const SESSION_STATE_TERMS =
+  /로그인|로그아웃|세션|계정|가입|저장|사라(?:지|져|질)|날아가|남아\s*있|복구|유지\s*(?:안|되|돼|될|할)|log\s*?(?:in|ged|out)|sign(?:ed)?\s*[- ]?in|session|account|save[ds]?|saving|stored|persist|войти|вход|сохран|сесси|аккаунт|登录|账户|保存|セッション|ログイン|アカウント/i;
+
 export function isTopicCorrection(text: string): boolean {
   const t = (text || "").trim();
   if (!t) return false;
+  // 제품 상태(로그인·세션·저장) 질문이면 정정 단축경로를 타지 않고 모델로 보낸다.
+  if (SESSION_STATE_TERMS.test(t)) return false;
   return TOPIC_CORRECTION_PATTERNS.some((p) => p.test(t));
 }
 
