@@ -45,6 +45,7 @@ const L = {
   },
   doctors_label: { ko: '명 전문의', en: ' Doctors', ru: ' врачей', kz: ' дәрігер', zh: '名医生', ja: '名の医師' },
   view_profile: { ko: '상세 프로필', en: 'Full Profile', ru: 'Полный профиль', kz: 'Толық профиль', zh: '详细简历', ja: '詳細プロフィール' },
+  specialist: { ko: '전문의', en: 'Specialist', ru: 'Специалист', kz: 'Маман дәрігер', zh: '专科医师', ja: '専門医' },
   close: { ko: '닫기', en: 'Close', ru: 'Закрыть', kz: 'Жабу', zh: '关闭', ja: '閉じる' },
   strengths: {
     title: { ko: '면력한방병원의 강점', en: 'Our Strengths', ru: 'Наши преимущества', kz: 'Артықшылықтарымыз', zh: '我们的优势', ja: '強み' },
@@ -488,7 +489,7 @@ function DoctorModal({ doc, l, lang, onClose }) {
             return (
               <div key={sec.key}>
                 <h4 className="flex items-center gap-2 text-base font-bold text-gray-700 mb-3">
-                  <span className="text-emerald-600">{sec.icon}</span>{sec.label}
+                  <span className="text-emerald-700">{sec.icon}</span>{sec.label}
                 </h4>
                 <ul className="space-y-1.5">
                   {sec.data.map((item, i) => (
@@ -509,7 +510,7 @@ function DoctorModal({ doc, l, lang, onClose }) {
 /* ── Doctor Card (Large PC / Compact Mobile) ── */
 function DoctorCard({ doc, l, lang, onSelect }) {
   const isLeader = !!doc.role;
-  const roleBadge = doc.role === 'ceo' ? { label: 'CEO', color: 'bg-emerald-600 text-white' }
+  const roleBadge = doc.role === 'ceo' ? { label: 'CEO', color: 'bg-emerald-700 text-white' }
     : doc.role === 'wm' ? { label: 'WM', color: 'bg-blue-600 text-white' }
     : doc.role === 'cmo' ? { label: 'CMO', color: 'bg-purple-600 text-white' }
     : null;
@@ -550,6 +551,12 @@ function DoctorCard({ doc, l, lang, onSelect }) {
             {roleBadge && (
               <span className={`px-2 py-0.5 text-[10px] font-bold rounded ${roleBadge.color}`}>{roleBadge.label}</span>
             )}
+            {/* 전문의 검증 칩 — 실제 '전문의' 자격이 데이터에 있을 때만(전부 도배 금지·과장 금지) */}
+            {doc.subspecialty?.ko?.includes("전문의") && (
+              <span className="inline-flex items-center gap-0.5 px-2 py-0.5 text-[10px] font-bold rounded-full bg-teal-50 text-teal-700 border border-teal-100">
+                <CheckCircle2 size={11} /> {l(L.specialist)}
+              </span>
+            )}
           </div>
           <p className="text-emerald-700 font-semibold text-sm">{l(doc.position)}</p>
           {doc.subspecialty && (
@@ -585,7 +592,7 @@ function DoctorCard({ doc, l, lang, onSelect }) {
             {la(doc.활동, lang).length > 0 && (
               <span className="flex items-center gap-1 text-gray-500"><Activity size={11} /> {la(doc.활동, lang).length}</span>
             )}
-            <span className="ml-auto text-emerald-600 font-semibold group-hover:text-emerald-700 transition text-xs">
+            <span className="ml-auto text-emerald-700 font-semibold group-hover:text-emerald-700 transition text-xs">
               {l(L.view_profile)} →
             </span>
           </div>
@@ -787,7 +794,7 @@ export default function HospitalsClient() {
                     <Stethoscope size={24} className="text-teal-700" />
                   </div>
                   <div className="min-w-0">
-                    <h3 className="font-bold text-base group-hover:text-teal-600 transition line-clamp-1">{h.name}</h3>
+                    <h3 className="font-bold text-base group-hover:text-teal-700 transition line-clamp-1">{h.name}</h3>
                     <p className="text-sm text-gray-500 flex items-center gap-1 mt-0.5"><MapPin size={12} /><span className="truncate">{h.location}</span></p>
                   </div>
                 </div>
@@ -799,7 +806,7 @@ export default function HospitalsClient() {
                     ))}
                   </div>
                 )}
-                <div className="flex items-center gap-1 text-sm text-teal-600 font-medium">
+                <div className="flex items-center gap-1 text-sm text-teal-700 font-medium">
                   {l(L.viewDetails)} <ArrowRight size={14} />
                 </div>
               </div>
@@ -823,10 +830,10 @@ export default function HospitalsClient() {
               <div key={i} role="button" tabIndex={0} onClick={() => router.push('/inquiry')} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); router.push('/inquiry'); } }} className="bg-white border border-gray-200 rounded-2xl p-6 hover:shadow-md hover:border-teal-200 transition cursor-pointer group focus:outline-none focus:ring-2 focus:ring-teal-400">
                 <div className="flex items-center gap-3 mb-3">
                   <span className="text-3xl">{guide.emoji}</span>
-                  <h3 className="font-bold text-lg group-hover:text-teal-600 transition">{l(guide.type)}</h3>
+                  <h3 className="font-bold text-lg group-hover:text-teal-700 transition">{l(guide.type)}</h3>
                 </div>
                 <p className="text-base text-gray-500 leading-relaxed">{l(guide.approach)}</p>
-                <div className="flex items-center gap-1 mt-4 text-sm text-teal-600 font-medium">
+                <div className="flex items-center gap-1 mt-4 text-sm text-teal-700 font-medium">
                   {l(L.cta)} <ArrowRight size={14} />
                 </div>
               </div>

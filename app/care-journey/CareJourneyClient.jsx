@@ -1,8 +1,46 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { ArrowRight } from "lucide-react";
 import { useLang } from "@/lib/i18n/LangContext";
+import SocialProofSection from "@/components/SocialProofSection";
+
+/* ───────── 제휴 병원 네트워크 (실제 제휴/협진 병원만) ─────────
+   ⚠️ 서울아산·삼성서울 등은 실제 제휴기관이 아니므로 넣지 않음(가짜 금지).
+   실제: 면력한방병원 4개 지점(제휴) + 협진 대학병원 4곳. */
+const PARTNER_GROUPS = {
+  immune: {
+    label: { ko: "제휴 한방병원", en: "Partner Korean Medicine Hospitals", ru: "Партнёрские больницы корейской медицины", kz: "Серіктес корей медицинасы ауруханалары", zh: "合作韩方医院", ja: "提携韓方病院" },
+    items: [
+      { ko: "면력한방병원 강서점", en: "Immune Hospital Gangseo", ru: "Иммунная Клиника Кансо", kz: "Иммунная Клиника Кансо", zh: "免疫医院 江西院", ja: "免疫病院 江西院" },
+      { ko: "면력한방병원 신촌점", en: "Immune Hospital Sinchon", ru: "Иммунная Клиника Синчхон", kz: "Иммунная Клиника Синчон", zh: "免疫医院 新村院", ja: "免疫病院 新村院" },
+      { ko: "면력한방병원 광명점", en: "Immune Hospital Gwangmyeong", ru: "Иммунная Клиника Кванмён", kz: "Иммунная Клиника Кванмён", zh: "免疫医院 光明院", ja: "免疫病院 光明院" },
+      { ko: "면력한방병원 성동점", en: "Immune Hospital Seongdong", ru: "Иммунная Клиника Сондон", kz: "Иммунная Клиника Сондон", zh: "免疫医院 城东院", ja: "免疫病院 城東院" },
+    ],
+  },
+  university: {
+    label: { ko: "협진 대학병원", en: "Cooperating University Hospitals", ru: "Сотрудничающие университетские больницы", kz: "Серіктес университеттік ауруханалар", zh: "协诊大学医院", ja: "協診大学病院" },
+    items: [
+      { ko: "이대서울병원", en: "Ewha Seoul Hospital", ru: "Больница Ихва Сеул", kz: "Ихва Сеул ауруханасы", zh: "梨大首尔医院", ja: "梨大ソウル病院" },
+      { ko: "이대목동병원", en: "Ewha Mokdong Hospital", ru: "Больница Ихва Мокдон", kz: "Ихва Мокдон ауруханасы", zh: "梨大木洞医院", ja: "梨大木洞病院" },
+      { ko: "고려대 구로병원", en: "Korea Univ. Guro Hospital", ru: "Больница Куро", kz: "Куро ауруханасы", zh: "高丽大九老医院", ja: "高麗大九老病院" },
+      { ko: "신촌세브란스병원", en: "Sinchon Severance Hospital", ru: "Больница Северанс Синчхон", kz: "Синчон Северанс ауруханасы", zh: "新村世福兰斯医院", ja: "新村セブランス病院" },
+    ],
+  },
+};
+const PARTNER_SECTION = {
+  title: { ko: "함께하는 병원 네트워크", en: "Our hospital network", ru: "Наша сеть больниц", kz: "Біздің аурухана желісі", zh: "我们的医院网络", ja: "私たちの病院ネットワーク" },
+  lede: {
+    ko: "수술·항암은 협진 대학병원에서, 면역·재활은 면력한방병원에서 — 하나의 네트워크로 끊김 없이 이어집니다.",
+    en: "Surgery and chemotherapy at cooperating university hospitals; immune and rehabilitation care at Immune Hospital — connected as one seamless network.",
+    ru: "Хирургия и химиотерапия — в университетских больницах-партнёрах; иммунный и реабилитационный уход — в Иммуногоспитале, как единая бесшовная сеть.",
+    kz: "Хирургия мен химиотерапия — серіктес университет ауруханаларында; иммундық және оңалту күтімі — Иммунная Клиникада, бір үзіліссіз желі ретінде.",
+    zh: "手术与化疗在协诊大学医院，免疫与康复在免疫医院 — 连接为一个无缝网络。",
+    ja: "手術・抗がんは協診大学病院で、免疫・リハビリは免疫病院で — 一つのネットワークとして途切れなくつながります。",
+  },
+};
+
 
 /* ───────── i18n (6개 언어) ───────── */
 const COPY = {
@@ -18,7 +56,7 @@ const COPY = {
     statsTitle: "숫자로 보는 한국 암치료",
     stats: [
       { value: "72.9%", label: "암 5년 생존율 (2018–2022)" },
-      { value: "117만+", label: "2024년 한국을 찾은 외국인 환자" },
+      { value: "201만+", label: "2025년 한국을 찾은 외국인 환자" },
     ],
     statsSource: "출처: 국립암센터 국가암등록통계, 한국보건산업진흥원(KHIDI) 외국인환자 유치 실적",
     whyCareTitle: "수술 후, 왜 면역·재활 케어가 필요할까요",
@@ -53,7 +91,7 @@ const COPY = {
     statsTitle: "Korea's cancer care, in numbers",
     stats: [
       { value: "72.9%", label: "5-year cancer survival rate (2018–2022)" },
-      { value: "1.17M+", label: "international patients chose Korea in 2024" },
+      { value: "2.01M+", label: "international patients chose Korea in 2025" },
     ],
     statsSource: "Sources: National Cancer Center Korea (national cancer registry); KHIDI foreign patient statistics",
     whyCareTitle: "After surgery, why immune & rehabilitation care matters",
@@ -88,7 +126,7 @@ const COPY = {
     statsTitle: "Лечение рака в Корее в цифрах",
     stats: [
       { value: "72,9%", label: "5-летняя выживаемость при раке (2018–2022)" },
-      { value: "1,17 млн+", label: "иностранных пациентов выбрали Корею в 2024" },
+      { value: "2,01 млн+", label: "иностранных пациентов выбрали Корею в 2025" },
     ],
     statsSource: "Источники: Национальный онкологический центр Кореи (национальный реестр рака); статистика иностранных пациентов KHIDI",
     whyCareTitle: "После операции: почему важен иммунный и реабилитационный уход",
@@ -123,7 +161,7 @@ const COPY = {
     statsTitle: "Кореядағы обыр емі — сандармен",
     stats: [
       { value: "72,9%", label: "обырдан 5 жылдық өмір сүру (2018–2022)" },
-      { value: "1,17 млн+", label: "2024 жылы Кореяны таңдаған шетелдік науқастар" },
+      { value: "2,01 млн+", label: "2025 жылы Кореяны таңдаған шетелдік науқастар" },
     ],
     statsSource: "Дереккөздер: Корея Ұлттық онкология орталығы (ұлттық обыр тіркелімі); KHIDI шетелдік науқастар статистикасы",
     whyCareTitle: "Операциядан кейін иммундық және оңалту күтімі неге маңызды",
@@ -158,7 +196,7 @@ const COPY = {
     statsTitle: "数据看韩国癌症诊疗",
     stats: [
       { value: "72.9%", label: "癌症五年生存率（2018–2022）" },
-      { value: "117万+", label: "2024年赴韩就医的国际患者" },
+      { value: "201万+", label: "2025年赴韩就医的国际患者" },
     ],
     statsSource: "来源：韩国国立癌症中心（国家癌症登记统计）；KHIDI 外国患者统计",
     whyCareTitle: "手术后，为什么需要免疫与康复护理",
@@ -193,7 +231,7 @@ const COPY = {
     statsTitle: "数字で見る韓国のがん医療",
     stats: [
       { value: "72.9%", label: "がん5年生存率（2018–2022）" },
-      { value: "117万+", label: "2024年に韓国を選んだ外国人患者" },
+      { value: "201万+", label: "2025年に韓国を選んだ外国人患者" },
     ],
     statsSource: "出典：韓国国立がんセンター（国家がん登録統計）；KHIDI 外国人患者統計",
     whyCareTitle: "手術後、なぜ免疫・リハビリケアが必要か",
@@ -237,10 +275,21 @@ export default function CareJourneyClient() {
         </p>
         <Link
           href="/inquiry"
-          className="inline-flex items-center gap-2 mt-8 px-6 py-3 bg-teal-600 hover:bg-teal-700 text-white rounded-xl font-bold transition-colors"
+          className="inline-flex items-center gap-2 mt-8 px-6 py-3 bg-teal-700 hover:bg-teal-800 text-white rounded-xl font-bold transition-colors"
         >
           {c.heroCta} <ArrowRight size={18} />
         </Link>
+        {/* 회복톤 실사진 — 공원 산책(회복·동행) / PO 1차 교체 2026-06-20 */}
+        <div className="relative mt-10 md:mt-12 h-56 md:h-80 overflow-hidden rounded-2xl border border-gray-100">
+          <Image
+            src="https://images.unsplash.com/photo-1671530725345-cc4a2cf5db04?w=1600&auto=format&fit=crop&q=85"
+            alt={c.eyebrow}
+            fill
+            priority
+            sizes="(max-width: 896px) 100vw, 896px"
+            className="object-cover"
+          />
+        </div>
       </section>
 
       {/* Model explanation */}
@@ -251,13 +300,37 @@ export default function CareJourneyClient() {
         </div>
       </section>
 
+      {/* Partner hospital network */}
+      <section className="max-w-4xl mx-auto px-4 py-12 md:py-16">
+        <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-3">{PARTNER_SECTION.title[lang] || PARTNER_SECTION.title.ko}</h2>
+        <p className="text-base text-gray-600 leading-relaxed max-w-3xl mb-8 md:mb-10">{PARTNER_SECTION.lede[lang] || PARTNER_SECTION.lede.ko}</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-6">
+          {["university", "immune"].map((key) => {
+            const g = PARTNER_GROUPS[key];
+            return (
+              <div key={key} className="border border-gray-200 rounded-2xl p-6 md:p-7">
+                <h3 className="text-sm font-bold text-teal-700 mb-4">{g.label[lang] || g.label.ko}</h3>
+                <ul className="space-y-2.5">
+                  {g.items.map((h, i) => (
+                    <li key={i} className="flex items-center gap-2.5 text-sm md:text-base text-gray-800">
+                      <span className="shrink-0 w-1.5 h-1.5 rounded-full bg-teal-600" aria-hidden="true" />
+                      {h[lang] || h.ko}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
       {/* Why Korea — credibility stats */}
       <section className="max-w-4xl mx-auto px-4 py-12 md:py-16">
         <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-6 md:mb-8">{c.statsTitle}</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-5">
           {c.stats.map((s, i) => (
             <div key={i} className="border border-gray-200 rounded-2xl p-6 md:p-7">
-              <div className="text-3xl md:text-4xl font-extrabold text-teal-600 mb-2">{s.value}</div>
+              <div className="text-3xl md:text-4xl font-extrabold text-teal-700 mb-2">{s.value}</div>
               <p className="text-sm text-gray-500 leading-relaxed">{s.label}</p>
             </div>
           ))}
@@ -269,6 +342,16 @@ export default function CareJourneyClient() {
       <section className="max-w-4xl mx-auto px-4 pt-0 pb-12 md:pb-16">
         <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-4">{c.whyCareTitle}</h2>
         <p className="text-base text-gray-600 leading-relaxed max-w-3xl mb-8 md:mb-10">{c.whyCareLede}</p>
+        {/* 회복톤 실사진 — 푸드테라피(맞춤 영양·입원식) / PO 1차 교체 2026-06-20 */}
+        <div className="relative mb-8 md:mb-10 h-48 md:h-64 overflow-hidden rounded-2xl border border-gray-100">
+          <Image
+            src="https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=1600&auto=format&fit=crop&q=85"
+            alt={c.whyCareTitle}
+            fill
+            sizes="(max-width: 896px) 100vw, 896px"
+            className="object-cover"
+          />
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-5">
           {c.whyCare.map((w, i) => (
             <div
@@ -282,19 +365,21 @@ export default function CareJourneyClient() {
         </div>
       </section>
 
-      {/* 5 steps */}
+      {/* 5 steps — connected vertical timeline */}
       <section className="max-w-4xl mx-auto px-4 pt-0 pb-12 md:pb-16">
         <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-8 md:mb-10">{c.stepsTitle}</h2>
-        <ol className="space-y-5">
+        <ol className="relative">
+          {/* 세로 연결선 (타임라인) */}
+          <span
+            className="absolute left-[18px] top-3 bottom-3 w-px bg-teal-200"
+            aria-hidden="true"
+          />
           {c.steps.map((s, i) => (
-            <li
-              key={i}
-              className="flex gap-4 md:gap-5 border border-gray-200 rounded-xl p-5 md:p-6 hover:border-teal-300 hover:shadow-sm transition-all"
-            >
-              <span className="shrink-0 w-9 h-9 rounded-lg bg-teal-600 text-white font-bold flex items-center justify-center text-sm">
+            <li key={i} className="relative flex gap-4 md:gap-6 pb-7 last:pb-0">
+              <span className="relative z-10 shrink-0 w-9 h-9 rounded-full bg-teal-700 text-white font-bold flex items-center justify-center text-sm ring-4 ring-white">
                 {String(i + 1).padStart(2, "0")}
               </span>
-              <div>
+              <div className="flex-1 border border-gray-200 rounded-xl p-5 md:p-6 hover:border-teal-300 hover:shadow-sm transition-all">
                 <h3 className="text-lg font-bold text-gray-900 mb-1">{s.title}</h3>
                 <p className="text-sm md:text-base text-gray-500 leading-relaxed">{s.body}</p>
               </div>
@@ -303,8 +388,14 @@ export default function CareJourneyClient() {
         </ol>
       </section>
 
+      {/* Social proof — 실제·검증 가능한 평가 (가짜 후기 금지) */}
+      <div className="border-t border-gray-100">
+        <SocialProofSection />
+      </div>
+
+
       {/* Closing CTA */}
-      <section className="bg-teal-600">
+      <section className="bg-teal-700">
         <div className="max-w-4xl mx-auto px-4 py-14 md:py-20 text-center">
           <h2 className="text-2xl md:text-3xl font-bold text-white mb-3">{c.closingTitle}</h2>
           <p className="text-teal-50 text-sm md:text-base mb-8 max-w-xl mx-auto leading-relaxed">{c.closingBody}</p>

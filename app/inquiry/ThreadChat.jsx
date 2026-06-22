@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { ArrowRight, AlertCircle, Loader2, User, Bot, ThumbsUp, ThumbsDown, X } from "lucide-react";
+import { ArrowRight, AlertCircle, Loader2, Bot, ThumbsUp, ThumbsDown, X, Paperclip, FileText, Image as ImageIcon } from "lucide-react";
 import { getLangCodeFromCookie, t } from "@/lib/i18n";
 
 const TOKEN_COOKIE = "healo_chat_token";
@@ -42,7 +42,7 @@ function IdentificationForm({ langCode, onSubmit, submitting }) {
     <div className="flex-1 flex items-center justify-center px-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-6">
-          <div className="w-14 h-14 mx-auto mb-3 rounded-full bg-teal-600 flex items-center justify-center text-white">
+          <div className="w-14 h-14 mx-auto mb-3 rounded-full bg-teal-700 flex items-center justify-center text-white">
             <Bot size={28} />
           </div>
           <h3 className="text-lg font-bold text-gray-900 mb-1">
@@ -94,7 +94,7 @@ function IdentificationForm({ langCode, onSubmit, submitting }) {
         <button
           onClick={() => onSubmit({ name, email, country })}
           disabled={!canSubmit || submitting}
-          className="mt-4 w-full bg-teal-600 hover:bg-teal-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium py-3 rounded-xl flex items-center justify-center gap-2 text-sm transition"
+          className="mt-4 w-full bg-teal-700 hover:bg-teal-800 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium py-3 rounded-xl flex items-center justify-center gap-2 text-sm transition"
         >
           {submitting ? <Loader2 size={16} className="animate-spin" /> : null}
           {t("chat.identify.startButton", langCode) || "Start chat"}
@@ -106,6 +106,17 @@ function IdentificationForm({ langCode, onSubmit, submitting }) {
         </p>
       </div>
     </div>
+  );
+}
+
+// 생각 중(타이핑) 점 — 스트리밍 첫 글자 도착 전 표시. 언어 무관(ChatGPT식).
+function TypingDots() {
+  return (
+    <span className="flex items-center gap-1 py-0.5" aria-label="AI is typing">
+      <span className="w-1.5 h-1.5 rounded-full bg-teal-600/70 animate-bounce [animation-delay:-0.3s]" />
+      <span className="w-1.5 h-1.5 rounded-full bg-teal-600/70 animate-bounce [animation-delay:-0.15s]" />
+      <span className="w-1.5 h-1.5 rounded-full bg-teal-600/70 animate-bounce" />
+    </span>
   );
 }
 
@@ -214,6 +225,60 @@ export function ThreadChat() {
   const [sending, setSending] = useState(false);
   const [handOff, setHandOff] = useState(false);
   const chatRef = useRef(null);
+  const inputRef = useRef(null);
+  const fileInputRef = useRef(null);
+
+  // 첨부(검사결과지·사진) 업로드 — 환자가 자료 올려서 의료진 검토 받게.
+  const [attachments, setAttachments] = useState([]); // [{path,name,type}]
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState("");
+
+  const MAX_ATTACHMENTS = 5;
+  const MAX_FILE_MB = 10;
+
+  const handleFilePick = async (fileList) => {
+    setUploadError("");
+    const files = Array.from(fileList || []);
+    if (files.length === 0) return;
+    const remaining = MAX_ATTACHMENTS - attachments.length;
+    if (remaining <= 0) {
+      setUploadError(t("chat.upload.tooMany", langCode) || `Up to ${MAX_ATTACHMENTS} files.`);
+      return;
+    }
+    setUploading(true);
+    try {
+      for (const file of files.slice(0, remaining)) {
+        if (file.size > MAX_FILE_MB * 1024 * 1024) {
+          setUploadError(t("chat.upload.tooLarge", langCode) || `Each file must be under ${MAX_FILE_MB}MB.`);
+          continue;
+        }
+        const fd = new FormData();
+        fd.append("file", file);
+        const res = await fetch("/api/attachments/upload", { method: "POST", body: fd });
+        const data = await res.json();
+        if (!data.ok) {
+          setUploadError(t("chat.upload.failed", langCode) || "Upload failed. Please try again.");
+          continue;
+        }
+        setAttachments((prev) => [...prev, { path: data.path, name: data.name, type: data.type }]);
+      }
+    } catch (e) {
+      console.warn("[ThreadChat] upload failed:", e);
+      setUploadError(t("chat.upload.failed", langCode) || "Upload failed. Please try again.");
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
+  // textarea 자동 높이 — 한 줄에서 시작해 입력에 맞춰 늘어남(최대 128px), 전송 후 한 줄로 복귀.
+  // 긴 질문(암환자 상세 문의)도 잘리지 않게 + 입력 영역이 채팅을 가리지 않게.
+  useEffect(() => {
+    const el = inputRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = Math.min(el.scrollHeight, 128) + "px";
+  }, [input]);
 
   // 피드백 상태
   const [feedbackModal, setFeedbackModal] = useState(null); // { messageId }
@@ -439,67 +504,134 @@ export function ThreadChat() {
 
   const handleSend = async () => {
     const trimmed = input.trim();
-    if (!trimmed || sending || !threadId || !publicToken) return;
+    const outgoingFiles = attachments;
+    if ((!trimmed && outgoingFiles.length === 0) || sending || uploading || !threadId || !publicToken) return;
 
-    const userMsg = { id: `u_${Date.now()}`, role: "user", content: trimmed };
+    const userMsg = {
+      id: `u_${Date.now()}`,
+      role: "user",
+      content: trimmed,
+      attachments: outgoingFiles,
+    };
     setMessages((prev) => [...prev, userMsg]);
     setInput("");
+    setAttachments([]);
     setSending(true);
 
+    // 메타 프레임 구분자(RS, U+001E) — 서버 STREAM_META_DELIM 와 동일해야 함.
+    const META_DELIM = "";
+    const aiId = `ai_${Date.now()}`;
+
     try {
-      const res = await fetch("/api/public/chat/message", {
+      const res = await fetch("/api/public/chat/stream", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           thread_id: threadId,
           public_token: publicToken,
           message_text: trimmed,
+          attachments: outgoingFiles,
         }),
       });
 
-      let json;
-      try {
-        json = await res.json();
-      } catch (parseErr) {
-        console.error("[ThreadChat] response parse failed:", parseErr, "status:", res.status);
+      // 스트림 시작 전 차단(회수제한·토큰오류·닫힌 스레드)은 JSON 오류로 옴.
+      if (!res.ok || !res.body) {
+        let errMsg = res.statusText;
+        try {
+          const j = await res.json();
+          errMsg = j.error || errMsg;
+        } catch {
+          /* 본문이 JSON 이 아님 */
+        }
         setMessages((prev) => [
           ...prev,
-          { id: `err_${Date.now()}`, role: "assistant", content: t("chat.errorRetry", langCode) || "Something went wrong. Please try again." },
+          { id: `err_${Date.now()}`, role: "assistant", content: `Error: ${errMsg}. Please try again.` },
         ]);
         return;
       }
 
-      if (!res.ok || !json.ok) {
-        setMessages((prev) => [
-          ...prev,
-          { id: `err_${Date.now()}`, role: "assistant", content: `Error: ${json.error || res.statusText}. Please try again.` },
-        ]);
-        return;
+      // 빈 말풍선을 먼저 띄우고 채운다.
+      setMessages((prev) => [...prev, { id: aiId, role: "assistant", content: "" }]);
+
+      // 받기(network) ↔ 보여주기(display)를 분리한다.
+      // 모델/네트워크는 토큰을 뭉텅뭉텅 보내므로, 그걸 그대로 그리면 끊겨 보인다.
+      // target 에 받은 전체 텍스트를 쌓고, 화면에는 일정 속도로 글자를 흘려보내(타자기 버퍼)
+      // 도착이 들쭉날쭉해도 매끄럽게 타이핑되는 것처럼 보이게 한다(ChatGPT 방식).
+      let target = "";        // 지금까지 받은 응답 본문(메타 제외)
+      let meta = null;
+      let streamDone = false;
+
+      const readLoop = (async () => {
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+        try {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            buffer += decoder.decode(value, { stream: true });
+            const i = buffer.indexOf(META_DELIM);
+            target = i === -1 ? buffer : buffer.slice(0, i);
+          }
+          const i = buffer.indexOf(META_DELIM);
+          target = i === -1 ? buffer : buffer.slice(0, i);
+          if (i !== -1) {
+            try {
+              meta = JSON.parse(buffer.slice(i + META_DELIM.length));
+            } catch {
+              /* 메타 파싱 실패는 무시 */
+            }
+          }
+        } finally {
+          // 읽기 오류가 나도 타자기 루프가 멈추도록 항상 종료 표시(무한대기 방지).
+          streamDone = true;
+        }
+      })();
+
+      // 타자기 버퍼: 25ms마다 남은 글자의 일부를 드러낸다(뒤처지면 더 빨리 따라잡음).
+      let shown = 0;
+      await new Promise((resolve) => {
+        const timer = setInterval(() => {
+          if (shown < target.length) {
+            const remaining = target.length - shown;
+            const step = Math.max(2, Math.ceil(remaining / 8));
+            shown = Math.min(target.length, shown + step);
+            const slice = target.slice(0, shown);
+            setMessages((prev) => prev.map((m) => (m.id === aiId ? { ...m, content: slice } : m)));
+          } else if (streamDone) {
+            clearInterval(timer);
+            resolve();
+          }
+        }, 25);
+      });
+      await readLoop; // 메타 캡처 보장
+
+      const finalText = (target || "").trim();
+      const safeText =
+        finalText ||
+        (t("chat.aiUnavailable", langCode) ||
+          "I'm having trouble generating a response right now. Please try again in a moment.");
+      setMessages((prev) => prev.map((m) => (m.id === aiId ? { ...m, content: safeText } : m)));
+
+      if (meta?.ai_error) {
+        console.warn("[ThreadChat] AI returned error reply:", meta.ai_error);
       }
-
-      if (json.ai_error) {
-        console.warn("[ThreadChat] AI returned error reply:", json.ai_error);
-        setMessages((prev) => [
-          ...prev,
-          { id: `ai_${Date.now()}`, role: "assistant", content: t("chat.aiUnavailable", langCode) || "I'm having trouble generating a response right now. Please try again in a moment." },
-        ]);
-        return;
-      }
-
-      setMessages((prev) => [
-        ...prev,
-        { id: `ai_${Date.now()}`, role: "assistant", content: json.reply },
-      ]);
-
-      if (json.hand_off?.requested) {
+      if (meta?.hand_off?.requested) {
         setHandOff(true);
       }
     } catch (e) {
       console.error("[ThreadChat] unexpected error:", e);
-      setMessages((prev) => [
-        ...prev,
-        { id: `err_${Date.now()}`, role: "assistant", content: t("chat.errorRetry", langCode) || "Something went wrong. Please try again." },
-      ]);
+      const errText = t("chat.errorRetry", langCode) || "Something went wrong. Please try again.";
+      // 스트림 도중 끊긴 경우: 비어 있는 응답 말풍선이 있으면 그 자리에 오류를 채우고,
+      // 없으면(요청 자체 실패) 새 오류 말풍선을 추가한다(중복 방지).
+      setMessages((prev) => {
+        const bubble = prev.find((m) => m.id === aiId);
+        if (bubble && !bubble.content) {
+          return prev.map((m) => (m.id === aiId ? { ...m, content: errText } : m));
+        }
+        if (bubble) return prev; // 부분 응답이라도 표시됨 → 그대로 둠
+        return [...prev, { id: `err_${Date.now()}`, role: "assistant", content: errText }];
+      });
     } finally {
       setSending(false);
     }
@@ -546,29 +678,46 @@ export function ThreadChat() {
               </div>
             )}
             {messages.map((msg) => (
-              <div key={msg.id} className={`flex gap-3 ${msg.role === "user" ? "flex-row-reverse" : ""}`}>
-                <div
-                  className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0 ${
-                    msg.role === "assistant" ? "bg-teal-600" : "bg-gray-400"
-                  }`}
-                >
-                  {msg.role === "assistant" ? <Bot size={16} /> : <User size={16} />}
-                </div>
-                <div className="flex flex-col gap-1 max-w-[80%]">
+              <div key={msg.id} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+                <div className={`flex flex-col gap-1 max-w-[90%] ${msg.role === "user" ? "items-end" : "items-start"}`}>
                   <div
-                    className={`p-3 rounded-2xl shadow-sm text-sm border ${
+                    className={`p-3 rounded-2xl shadow-sm text-xs leading-relaxed border ${
                       msg.role === "assistant"
-                        ? "bg-white border-gray-100 rounded-tl-none"
-                        : "bg-teal-600 text-white border-teal-600 rounded-tr-none"
+                        ? "bg-white border-gray-100"
+                        : "bg-teal-700 text-white border-teal-700"
                     }`}
                   >
-                    <p className="whitespace-pre-wrap">{msg.content}</p>
+                    {msg.content && <p className="whitespace-pre-wrap">{msg.content}</p>}
+                    {/* 스트리밍 첫 글자 도착 전 빈 말풍선 → 타이핑 점(생각 중) 표시 */}
+                    {!msg.content &&
+                      msg.role === "assistant" &&
+                      (!Array.isArray(msg.attachments) || msg.attachments.length === 0) && (
+                        <TypingDots />
+                      )}
+                    {Array.isArray(msg.attachments) && msg.attachments.length > 0 && (
+                      <div className={`flex flex-col gap-1.5 ${msg.content ? "mt-2" : ""}`}>
+                        {msg.attachments.map((f, i) => {
+                          const isImg = (f.type || "").startsWith("image/");
+                          return (
+                            <div
+                              key={i}
+                              className={`flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs ${
+                                msg.role === "user" ? "bg-teal-700/40" : "bg-gray-100 text-gray-700"
+                              }`}
+                            >
+                              {isImg ? <ImageIcon size={14} className="shrink-0" /> : <FileText size={14} className="shrink-0" />}
+                              <span className="truncate max-w-[180px]">{f.name || "file"}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
                   {/* assistant 메시지만 피드백 버튼 표시 (intro/resume 제외) */}
                   {msg.role === "assistant" && !["intro", "resume_note"].includes(msg.id) && !msg.id.startsWith("resumed_") && !msg.id.startsWith("greet_") && threadId && (
                     <div className="flex items-center gap-1 pl-1">
                       {feedbackThanks === msg.id ? (
-                        <span className="text-[11px] text-teal-600 font-medium">
+                        <span className="text-[11px] text-teal-700 font-medium">
                           {t("chat.feedback.thanks", langCode) || "Thank you!"}
                         </span>
                       ) : feedbackDone[msg.id] ? (
@@ -583,7 +732,7 @@ export function ThreadChat() {
                             onClick={() => handleThumbsUp(msg.id)}
                             aria-label="Helpful"
                             title={t("chat.feedback.helpful", langCode) || "Helpful"}
-                            className="p-1 rounded-lg text-gray-300 hover:text-teal-500 hover:bg-teal-50 transition"
+                            className="p-1 rounded-lg text-gray-300 hover:text-teal-700 hover:bg-teal-50 transition"
                           >
                             <ThumbsUp size={12} />
                           </button>
@@ -602,13 +751,12 @@ export function ThreadChat() {
                 </div>
               </div>
             ))}
-            {sending && (
-              <div className="flex gap-3">
-                <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0 bg-teal-600">
-                  <Bot size={16} />
-                </div>
-                <div className="p-3 rounded-2xl shadow-sm text-sm border bg-white border-gray-100 rounded-tl-none">
-                  <Loader2 size={16} className="animate-spin text-teal-500" />
+            {/* 응답 말풍선이 아직 안 뜬 짧은 순간(요청~응답 헤더)만 생각 중 점 표시.
+                말풍선이 뜨면 그 안의 TypingDots 가 이어받아 중복·잔존 스피너를 없앤다. */}
+            {sending && messages[messages.length - 1]?.role === "user" && (
+              <div className="flex justify-start">
+                <div className="p-3 rounded-2xl shadow-sm text-sm border bg-white border-gray-100">
+                  <TypingDots />
                 </div>
               </div>
             )}
@@ -622,22 +770,75 @@ export function ThreadChat() {
             </div>
           )}
 
-          {/* Input */}
-          <div className="relative">
+          {/* 대기 중 첨부 미리보기 칩 */}
+          {(attachments.length > 0 || uploading || uploadError) && (
+            <div className="mb-2 flex flex-wrap items-center gap-2">
+              {attachments.map((f, i) => {
+                const isImg = (f.type || "").startsWith("image/");
+                return (
+                  <span key={i} className="inline-flex items-center gap-1.5 bg-teal-50 border border-teal-200 text-teal-800 rounded-lg pl-2 pr-1 py-1 text-xs">
+                    {isImg ? <ImageIcon size={13} /> : <FileText size={13} />}
+                    <span className="truncate max-w-[140px]">{f.name || "file"}</span>
+                    <button
+                      type="button"
+                      onClick={() => setAttachments((prev) => prev.filter((_, j) => j !== i))}
+                      className="p-0.5 hover:bg-teal-100 rounded-full"
+                      aria-label="Remove file"
+                    >
+                      <X size={12} />
+                    </button>
+                  </span>
+                );
+              })}
+              {uploading && (
+                <span className="inline-flex items-center gap-1.5 text-xs text-gray-400">
+                  <Loader2 size={13} className="animate-spin" /> {t("chat.upload.uploading", langCode) || "Uploading..."}
+                </span>
+              )}
+              {uploadError && <span className="text-xs text-red-500">{uploadError}</span>}
+            </div>
+          )}
+
+          {/* Input — 통합 입력 박스(클립·입력칸·전송이 한 테두리 안 → 회색 막대 없음, Claude/GPT 방식) */}
+          <div className="flex items-end gap-1.5 border border-gray-300 rounded-3xl px-2 py-1.5 bg-white focus-within:ring-2 focus-within:ring-teal-500 transition">
             <input
-              type="text"
+              ref={fileInputRef}
+              type="file"
+              multiple
+              accept=".pdf,.jpg,.jpeg,.png,.gif,.webp,.doc,.docx"
+              className="hidden"
+              onChange={(e) => handleFilePick(e.target.files)}
+            />
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={sending || uploading || attachments.length >= MAX_ATTACHMENTS}
+              aria-label={t("chat.upload.attach", langCode) || "Attach file (test results, photos)"}
+              title={t("chat.upload.attach", langCode) || "Attach file (test results, photos)"}
+              className="shrink-0 w-9 h-9 flex items-center justify-center text-gray-400 hover:text-teal-600 rounded-full transition disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              <Paperclip size={18} />
+            </button>
+            <textarea
+              ref={inputRef}
+              rows={1}
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleSend()}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSend();
+                }
+              }}
               placeholder={t("chat.placeholder", langCode)}
-              className="w-full border border-gray-300 rounded-full py-3 px-5 pr-12 focus:outline-none focus:ring-2 focus:ring-teal-500 text-sm"
+              className="flex-1 resize-none border-0 bg-transparent outline-none py-1.5 leading-relaxed text-xs max-h-32 overflow-y-auto"
               disabled={sending}
             />
             <button
               onClick={handleSend}
               aria-label="Send message"
-              disabled={sending || !input.trim()}
-              className="absolute right-2 top-1.5 bg-teal-600 text-white p-1.5 rounded-full hover:bg-teal-700 transition disabled:opacity-50"
+              disabled={sending || uploading || (!input.trim() && attachments.length === 0)}
+              className="shrink-0 w-9 h-9 flex items-center justify-center bg-teal-700 text-white rounded-full hover:bg-teal-800 transition disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {sending ? <Loader2 size={18} className="animate-spin" /> : <ArrowRight size={18} />}
             </button>

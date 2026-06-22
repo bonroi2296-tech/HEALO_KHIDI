@@ -12,7 +12,7 @@ const HREF_LANG = { en: "en", ko: "ko", ru: "ru", kz: "kk", zh: "zh", ja: "ja" }
 // 미설정 시에도 localhost 가 검색엔진에 노출되지 않도록 실도메인으로 폴백.
 // 도메인 변경(healwith.co.kr) 시 이 env 값만 바꾸면 sitemap/robots/canonical 전부 반영.
 const getBaseUrl = () =>
-  process.env.NEXT_PUBLIC_SITE_URL || "https://khidi.healo.kr";
+  process.env.NEXT_PUBLIC_SITE_URL || "https://healwith.co.kr";
 
 export default async function sitemap() {
   const baseUrl = getBaseUrl();

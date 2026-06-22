@@ -291,7 +291,7 @@ export default function AutomationPlaybookPage() {
             >
               <span className="text-sm font-medium text-gray-900">{jt.label}</span>
               <span className="text-xs text-gray-500 mt-0.5">{jt.desc}</span>
-              {running === jt.key && <span className="text-xs text-teal-600 mt-1 animate-pulse">실행 중...</span>}
+              {running === jt.key && <span className="text-xs text-teal-700 mt-1 animate-pulse">실행 중...</span>}
             </button>
           ))}
         </div>
@@ -394,8 +394,8 @@ export default function AutomationPlaybookPage() {
               {[...runningJobs, ...recentDone].length === 0 ? (
                 <tr><td colSpan={5} className="p-4 text-center text-gray-400">없음</td></tr>
               ) : [...runningJobs, ...recentDone].map((j) => {
-                const dur = j.finished_at && j.started_at
-                  ? `${((new Date(j.finished_at) - new Date(j.started_at)) / 1000).toFixed(1)}s`
+                const dur = j.completed_at && j.started_at
+                  ? `${((new Date(j.completed_at) - new Date(j.started_at)) / 1000).toFixed(1)}s`
                   : j.status === "running" ? "..." : "-";
                 return (
                   <tr key={j.id} className="hover:bg-gray-50">
@@ -409,7 +409,7 @@ export default function AutomationPlaybookPage() {
                     </td>
                     <td className="p-3 text-xs text-gray-500">{j.started_at ? new Date(j.started_at).toLocaleString("ko-KR") : "-"}</td>
                     <td className="p-3 text-xs">{dur}</td>
-                    <td className="p-3 text-xs text-gray-500 max-w-[200px] truncate">{j.stats ? JSON.stringify(j.stats) : j.error || "-"}</td>
+                    <td className="p-3 text-xs text-gray-500 max-w-[200px] truncate">{j.output ? JSON.stringify(j.output) : j.error || "-"}</td>
                   </tr>
                 );
               })}
@@ -428,9 +428,9 @@ export default function AutomationPlaybookPage() {
             <thead className="bg-gray-50 text-gray-600">
               <tr>
                 <th className="text-left p-3 font-medium">Time</th>
-                <th className="text-left p-3 font-medium">Action</th>
+                <th className="text-left p-3 font-medium">Event</th>
+                <th className="text-left p-3 font-medium">Step</th>
                 <th className="text-left p-3 font-medium">Pattern</th>
-                <th className="text-left p-3 font-medium">Result</th>
                 <th className="text-left p-3 font-medium">Detail</th>
               </tr>
             </thead>
@@ -440,10 +440,10 @@ export default function AutomationPlaybookPage() {
               ) : events.map((e) => (
                 <tr key={e.id} className="hover:bg-gray-50">
                   <td className="p-3 text-xs text-gray-500">{new Date(e.created_at).toLocaleString("ko-KR")}</td>
-                  <td className="p-3 font-medium">{e.action}</td>
-                  <td className="p-3 font-mono text-xs text-gray-500">{e.pattern_id?.slice(0, 8) || "-"}</td>
-                  <td className="p-3"><Badge status={e.result || "?"} /></td>
-                  <td className="p-3 text-xs text-gray-500 max-w-[250px] truncate">{e.detail ? JSON.stringify(e.detail) : "-"}</td>
+                  <td className="p-3 font-medium">{e.event_type}</td>
+                  <td className="p-3 text-xs text-gray-500">{e.step || "-"}</td>
+                  <td className="p-3 font-mono text-xs text-gray-500">{e.data?.pattern_id?.slice(0, 8) || "-"}</td>
+                  <td className="p-3 text-xs text-gray-500 max-w-[250px] truncate">{e.data ? JSON.stringify(e.data) : "-"}</td>
                 </tr>
               ))}
             </tbody>

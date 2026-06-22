@@ -34,7 +34,7 @@ export const metadata = {
     description:
       "Comprehensive guide to dental treatment in Korea. Implants, veneers, whitening, and orthodontics at competitive prices.",
     type: "website",
-    url: "https://khidi.healo.kr/specialties/dental",
+    url: "https://healwith.co.kr/specialties/dental",
   },
   alternates: {
     canonical: "/specialties/dental",
@@ -56,7 +56,7 @@ const jsonLd = {
   name: "Dentistry",
   description:
     "Comprehensive dental treatment services in South Korea, including dental implants, porcelain veneers, teeth whitening, and orthodontics.",
-  url: "https://khidi.healo.kr/specialties/dental",
+  url: "https://healwith.co.kr/specialties/dental",
   medicalSpecialty: "Dentistry",
   availableService: [
     {
@@ -185,7 +185,7 @@ function DentalContent() {
             </span>
             <h1 className="text-3xl md:text-5xl font-bold text-gray-900 mb-4 leading-tight">
               Your Guide to{" "}
-              <span className="text-teal-600">Dental Treatment</span> in Korea
+              <span className="text-teal-700">Dental Treatment</span> in Korea
             </h1>
             <p className="text-lg md:text-xl text-gray-600 max-w-2xl mx-auto mb-8">
               Korea offers world-class dental care with advanced technology and
@@ -194,7 +194,7 @@ function DentalContent() {
             </p>
             <Link
               href="/inquiry"
-              className="inline-flex items-center gap-2 px-6 py-3 bg-teal-600 text-white font-semibold rounded-xl hover:bg-teal-700 transition-colors"
+              className="inline-flex items-center gap-2 px-6 py-3 bg-teal-700 text-white font-semibold rounded-xl hover:bg-teal-800 transition-colors"
             >
               Get Your Free Treatment Plan
               <ArrowRight size={18} />
@@ -214,7 +214,7 @@ function DentalContent() {
                   key={item.title}
                   className="flex gap-4 bg-gray-50 rounded-xl p-5"
                 >
-                  <div className="flex-shrink-0 w-10 h-10 rounded-full bg-teal-100 text-teal-600 flex items-center justify-center">
+                  <div className="flex-shrink-0 w-10 h-10 rounded-full bg-teal-100 text-teal-700 flex items-center justify-center">
                     <item.icon size={20} />
                   </div>
                   <div>
@@ -246,7 +246,7 @@ function DentalContent() {
                   </h3>
                   <p className="text-sm text-gray-600 mb-4">{t.description}</p>
                   <div className="flex items-center gap-2 mb-4">
-                    <DollarSign size={16} className="text-teal-600" />
+                    <DollarSign size={16} className="text-teal-700" />
                     <span className="text-sm font-semibold text-teal-700">
                       {t.priceRange}
                     </span>
@@ -280,10 +280,10 @@ function DentalContent() {
             <div className="grid md:grid-cols-3 gap-6">
               {steps.map((step) => (
                 <div key={step.number} className="text-center">
-                  <div className="w-12 h-12 rounded-full bg-teal-100 text-teal-600 flex items-center justify-center mx-auto mb-4">
+                  <div className="w-12 h-12 rounded-full bg-teal-100 text-teal-700 flex items-center justify-center mx-auto mb-4">
                     <step.icon size={22} />
                   </div>
-                  <div className="text-xs font-semibold text-teal-600 mb-1">
+                  <div className="text-xs font-semibold text-teal-700 mb-1">
                     STEP {step.number}
                   </div>
                   <h3 className="text-lg font-bold text-gray-900 mb-2">
@@ -297,7 +297,7 @@ function DentalContent() {
         </section>
 
         {/* CTA */}
-        <section className="bg-teal-600 px-4 py-12 md:py-16">
+        <section className="bg-teal-700 px-4 py-12 md:py-16">
           <div className="max-w-3xl mx-auto text-center">
             <h2 className="text-2xl md:text-3xl font-bold text-white mb-4">
               Ready to Start Your Dental Journey?

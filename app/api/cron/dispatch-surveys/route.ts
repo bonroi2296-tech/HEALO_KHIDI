@@ -2,12 +2,16 @@
  * healwith: 환자 만족도 설문 자동 발송 cron
  *
  * 동작:
- * - 사전상담 종료 24~30시간 전 세션 중 설문 미발송인 것 조회
- * - 환자 이메일 확인 → generateSurveyToken → sendSurveyEmail
- * - reminders_scheduled 에 발송 기록 (사후 추적)
+ * - 완료(completed) 된 지 24시간 이상 ~ 14일 이내인 상담 세션 중 설문 미발송인 것 조회
+ *   (하루 1회 cron 이 놓친 세션을 소급 발송 — surveyDispatchWindow, 재발송은 surveys 존재검사로 멱등)
+ * - 수신자 결정(resolveSurveyRecipient): patients.email → inquiries.email 폴백
+ *   (patient_id 가 전부 null 이라 inquiries 폴백이 없으면 영구 0건 — POSTMORTEMS #12)
+ *   inquiries 의 email/이름은 AES 암호화 저장 → decryptMaybe 로 복호화 후 사용
+ *   (복호화 안 하면 암호문에 '@' 없어 또 영구 0건 — POSTMORTEMS #13)
+ * - generateSurveyToken → sendSurveyEmail → reminders_scheduled 기록
  *
  * 스케줄:
- * - vercel.json crons 에 `0 * * * *` (매시간) 등록됨
+ * - vercel.json crons 에 `0 9 * * *` (매일 09:00 UTC) 등록됨
  * - Authorization: Bearer {CRON_SECRET} 필수
  *
  * KHIDI KPI K-03 측정 핵심 수단
@@ -26,7 +30,10 @@ import {
   generateSurveyToken,
   sendSurveyEmail,
 } from "@/lib/surveys/generateSurveyToken";
+import { resolveSurveyRecipient } from "@/lib/surveys/resolveRecipient";
+import { surveyDispatchWindow } from "@/lib/surveys/dispatchWindow";
 import { alertIfKpiStale } from "@/lib/khidi/kpiHealthcheck";
+import { decryptMaybe } from "@/lib/security/encryptionV2";
 
 function verifyCronSecret(header: string | null): boolean {
   const expected = process.env.CRON_SECRET;
@@ -49,14 +56,17 @@ export async function GET(request: NextRequest) {
 
   const db = supabaseAdmin as any;
   const now = Date.now();
-  // 24시간 ~ 30시간 전에 종료된 세션 (24h 후 발송 = 현재에서 24~30h 전 completed)
-  const windowStart = new Date(now - 30 * 60 * 60 * 1000).toISOString();
-  const windowEnd = new Date(now - 24 * 60 * 60 * 1000).toISOString();
+  // 완료 24h 후 발송하되, 하한을 14일로 넓게 잡아 하루 1회 cron 이 놓친 세션도
+  // 다음 실행에서 소급(backfill) 발송한다. (이전엔 24~30h 6시간 슬라이스만 봐서
+  // 그 외 시간대 완료분이 영구 누락 → K-03 표본 급감. surveys 존재검사로 멱등.)
+  // 윈도우 계산은 순수함수 surveyDispatchWindow (단위테스트로 고정). POSTMORTEMS #19.
+  const { windowStart, windowEnd } = surveyDispatchWindow(now);
 
   // 종료된 사전상담 세션 조회 (completed 상태)
+  // inquiry_id 도 함께 조회: patient_id 가 전부 null 이라 이메일은 inquiries 로 폴백한다.
   const { data: sessions, error: sessErr } = await db
     .from("consultation_sessions")
-    .select("id, patient_id, patient_language, updated_at")
+    .select("id, patient_id, inquiry_id, patient_language, updated_at")
     .eq("status", "completed")
     .gte("updated_at", windowStart)
     .lte("updated_at", windowEnd);
@@ -84,30 +94,61 @@ export async function GET(request: NextRequest) {
         continue;
       }
 
-      // 환자 이메일 확인 (patients 테이블 fallback)
-      let toEmail: string | null = null;
-
+      // 환자 이메일·언어·이름 결정.
+      // patient_id 는 현재 전부 null(미사용)이라 patients 만으로는 항상 skip 됐다
+      // (= 설문 0건, KPI K-03 측정 불능 POSTMORTEMS #12). 실제 연결고리인
+      // inquiry_id → inquiries 로 폴백한다. 결정 로직은 순수함수 resolveSurveyRecipient
+      // (단위 테스트로 고정).
+      let patientRow: { email?: string | null } | null = null;
       if (session.patient_id) {
-        const { data: userRow } = await db
+        const { data } = await db
           .from("patients")
           .select("email")
           .eq("user_id", session.patient_id)
           .maybeSingle();
-        toEmail = userRow?.email || null;
+        patientRow = data || null;
       }
 
-      if (!toEmail) {
+      let inquiryRow:
+        | {
+            email?: string | null;
+            preferred_language?: string | null;
+            spoken_language?: string | null;
+            first_name?: string | null;
+            last_name?: string | null;
+          }
+        | null = null;
+      if (!patientRow?.email && session.inquiry_id) {
+        const { data } = await db
+          .from("inquiries")
+          .select("email, preferred_language, spoken_language, first_name, last_name")
+          .eq("id", session.inquiry_id)
+          .maybeSingle();
+        // ⚠️ inquiries 의 email/first_name/last_name 은 AES-256-GCM 으로 암호화돼
+        // 저장된다(inquiries/create 가 encryptString). 복호화 없이 그대로 쓰면
+        // 암호문(JSON blob)에 '@' 가 없어 resolveSurveyRecipient 가 항상 null →
+        // 설문 영구 0건(= #157 수정 후에도 K-03 측정 불능). decryptMaybe 로 복호화한다
+        // (옛 평문 행은 그대로 통과 — 마이그레이션 호환). POSTMORTEMS #13.
+        if (data) {
+          inquiryRow = {
+            ...data,
+            email: decryptMaybe(data.email),
+            first_name: decryptMaybe(data.first_name),
+            last_name: decryptMaybe(data.last_name),
+          };
+        } else {
+          inquiryRow = null;
+        }
+      }
+
+      const recipient = resolveSurveyRecipient(session, patientRow, inquiryRow);
+      if (!recipient) {
         skipped++;
         continue;
       }
 
-      // 언어 결정
-      const rawLang = session.patient_language || "ko";
-      const supportedLangs = ["ko", "en", "ru", "kk", "zh", "ja"] as const;
-      type SupportedLang = (typeof supportedLangs)[number];
-      const lang: SupportedLang = supportedLangs.includes(rawLang as SupportedLang)
-        ? (rawLang as SupportedLang)
-        : "ko";
+      const toEmail = recipient.email;
+      const lang = recipient.lang;
 
       // 토큰 생성
       const tokenResult = await generateSurveyToken(session.id, session.patient_id);
@@ -122,6 +163,7 @@ export async function GET(request: NextRequest) {
         surveyId: tokenResult.surveyId,
         token: tokenResult.token,
         toEmail,
+        patientName: recipient.name,
         lang,
       });
 

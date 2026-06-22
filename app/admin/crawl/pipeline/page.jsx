@@ -294,7 +294,7 @@ export default function PipelinePage() {
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-3">
-            <BarChart3 className="text-teal-600" size={28} />
+            <BarChart3 className="text-teal-700" size={28} />
             크롤링 파이프라인
           </h1>
           <p className="text-sm text-gray-500 mt-1">
@@ -318,7 +318,7 @@ export default function PipelinePage() {
           className="w-full flex items-center justify-between px-6 py-4 hover:bg-gray-50 transition"
         >
           <div className="flex items-center gap-3">
-            <Calendar size={20} className="text-teal-600" />
+            <Calendar size={20} className="text-teal-700" />
             <div className="text-left">
               <span className="text-base font-semibold text-gray-800">자동 수집 스케줄</span>
               <div className="flex items-center gap-2 mt-0.5">
@@ -367,7 +367,7 @@ export default function PipelinePage() {
                 onClick={() => saveSchedule({ enabled: !schedule.enabled })}
                 disabled={scheduleSaving}
                 className={`relative w-11 h-6 rounded-full transition-colors ${
-                  schedule.enabled ? "bg-teal-500" : "bg-gray-300"
+                  schedule.enabled ? "bg-teal-700" : "bg-gray-300"
                 }`}
               >
                 <span
@@ -549,7 +549,7 @@ export default function PipelinePage() {
             className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium transition shrink-0 ${
               starting || jobs.some((j) => j.status === "running")
                 ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-                : "bg-teal-600 text-white hover:bg-teal-700 shadow-lg shadow-teal-200"
+                : "bg-teal-700 text-white hover:bg-teal-800 shadow-lg shadow-teal-200"
             }`}
           >
             {starting ? (
@@ -592,7 +592,7 @@ export default function PipelinePage() {
 
         {loading ? (
           <div className="flex items-center justify-center py-12">
-            <Loader2 className="animate-spin text-teal-500" size={32} />
+            <Loader2 className="animate-spin text-teal-700" size={32} />
           </div>
         ) : jobs.length === 0 ? (
           <div className="py-12 text-center text-gray-400">
@@ -724,7 +724,7 @@ function JobRow({ job, onCancel, onDelete }) {
         {(job.status === "completed" || isCancelled) && hasReviewItems && (
           <Link
             href={`/admin/crawl/review?jobId=${job.id}`}
-            className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-teal-600 bg-teal-50 rounded-lg hover:bg-teal-100 transition shrink-0"
+            className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-teal-700 bg-teal-50 rounded-lg hover:bg-teal-100 transition shrink-0"
           >
             <Eye size={14} />
             검토 ({stats.new || 0}건)
@@ -817,7 +817,7 @@ function NextRunInfo({ schedule }) {
           <Calendar size={12} />
           다음 수집 예정
         </span>
-        <span className="text-xs text-teal-600 font-medium">
+        <span className="text-xs text-teal-700 font-medium">
           {formatRelative(nextRun)}
         </span>
       </div>
@@ -825,7 +825,7 @@ function NextRunInfo({ schedule }) {
         {nextRun.getFullYear()}년 {nextRun.getMonth() + 1}월 {nextRun.getDate()}일 ({dayLabel}) {String(nextRun.getHours()).padStart(2, "0")}:00
       </div>
       {schedule.last_auto_run && (
-        <div className="text-[10px] text-teal-600/70">
+        <div className="text-[10px] text-teal-700/70">
           마지막 실행: {new Date(schedule.last_auto_run).toLocaleString("ko-KR")}
         </div>
       )}

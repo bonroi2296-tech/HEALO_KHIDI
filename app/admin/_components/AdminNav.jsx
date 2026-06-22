@@ -48,6 +48,7 @@ const navGroups = [
       { id: "leads", label: "사전상담 리드", icon: Users, href: "/admin/leads" },
       { id: "cases", label: "케이스 관리", icon: HeartPulse, href: "/admin/khidi/cases" },
       { id: "inquiries", label: "AI 핸드오프 문의", icon: MessageSquare, href: "/admin/inquiries" },
+      { id: "chat", label: "AI 대화·환자자료", icon: MessageSquare, href: "/admin/chat" },
       { id: "consultations", label: "원격협진", icon: Video, href: "/admin/consultations" },
       { id: "referrals", label: "양·한방 협진 의뢰", icon: Building2, href: "/admin/khidi/referrals" },
       { id: "agent", label: "Human Agent", icon: HeartPulse, href: "/admin/agent" },
@@ -68,7 +69,7 @@ const navGroups = [
   {
     title: "AI 품질 · 시스템",
     items: [
-      { id: "ai-quality", label: "AI 품질 모니터링", icon: Brain, href: "/admin/khidi/ai-quality" },
+      { id: "ai-status", label: "AI 상태", icon: Brain, href: "/admin/ai-status" },
       { id: "ai-feedback", label: "AI 피드백", icon: ThumbsDown, href: "/admin/khidi/ai-feedback" },
       { id: "users", label: "회원(환자) 관리", icon: Users, href: "/admin/users" },
       { id: "staff", label: "직원 계정", icon: Users, href: "/admin/staff" },
@@ -170,7 +171,7 @@ export function AdminNav() {
                     <Icon
                       size={18}
                       className={
-                        strongActive ? "text-teal-600" : parentOpen ? "text-gray-500" : "text-gray-400"
+                        strongActive ? "text-teal-700" : parentOpen ? "text-gray-500" : "text-gray-400"
                       }
                     />
                     <span>{item.label}</span>

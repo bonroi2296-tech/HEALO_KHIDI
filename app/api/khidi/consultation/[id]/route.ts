@@ -119,6 +119,14 @@ export async function PATCH(
 
     const { supabaseAdmin } = await import("@/lib/rag/supabaseAdmin");
 
+    // EDGE-3: 완료 전환 시 case_status 전진을 위해 사전 메타(이전 상태·문의·유형) 조회.
+    const { data: prevSession } = await supabaseAdmin
+      .from("consultation_sessions")
+      .select("status, inquiry_id, session_type")
+      .eq("id", consultationId)
+      .maybeSingle();
+    const priorStatus = (prevSession as any)?.status ?? null;
+
     // 클라이언트별로 camelCase·snake_case 가 섞여 들어옴 (예: 통화 종료 시 ended_at).
     // 과거엔 camelCase 만 읽어 ended_at 이 저장되지 않아 종료시각·통화시간이 누락됐음.
     const startedAt = payload.startedAt ?? payload.started_at;
@@ -190,6 +198,34 @@ export async function PATCH(
         console.warn(
           `[api/khidi/consultation/${consultationId}] token revoke failed:`,
           revokeErr.message
+        );
+      }
+    }
+
+    // EDGE-3 (POSTMORTEM #18→#20): 상담이 '완료'로 전환되면 케이스 진행상황을 전진시켜
+    //   에이전시·코디 타임라인에 반영(이전엔 상담만 완료되고 case_status 는 정체했음).
+    //   사전상담→'pre_consult', 사후관리→'follow_up'. 뒤로 가지 않음(advanceCaseStatus 가드).
+    if (
+      payload.status === "completed" &&
+      priorStatus !== "completed" &&
+      (prevSession as any)?.inquiry_id
+    ) {
+      try {
+        const sType = (prevSession as any).session_type;
+        const target = sType === "follow_up" ? "follow_up" : "pre_consult";
+        const label = sType === "follow_up" ? "사후관리 완료" : "사전상담 완료";
+        const { advanceCaseStatus } = await import("@/lib/khidi/advanceCaseStatus");
+        await advanceCaseStatus(
+          supabaseAdmin,
+          (prevSession as any).inquiry_id,
+          target,
+          `🩺 ${label} (원격상담)`,
+          access.userId ?? null
+        );
+      } catch (csErr: any) {
+        console.warn(
+          `[api/khidi/consultation/${consultationId}] case_status advance failed:`,
+          csErr?.message
         );
       }
     }

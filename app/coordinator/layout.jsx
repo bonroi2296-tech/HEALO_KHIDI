@@ -5,13 +5,15 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import {
   ClipboardList, Video, Users, Activity, Bell,
-  LogOut, Menu, X, LayoutDashboard,
+  LogOut, Menu, X, LayoutDashboard, Building2,
 } from 'lucide-react';
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser';
+import StaffPortalGate from '../_components/StaffPortalGate';
 
 const NAV_ITEMS = [
   { id: 'dashboard', label: '대시보드', icon: LayoutDashboard, href: '/coordinator' },
   { id: 'intakes', label: '인테이크 관리', icon: ClipboardList, href: '/coordinator/intakes' },
+  { id: 'cases', label: '의뢰·케이스/병원배정', icon: Building2, href: '/coordinator/cases' },
   { id: 'consultations', label: '상담 일정', icon: Video, href: '/coordinator/consultations' },
   { id: 'patients', label: '환자 목록', icon: Users, href: '/coordinator/patients' },
   { id: 'alerts', label: '증상 알림', icon: Bell, href: '/coordinator/alerts' },
@@ -82,6 +84,7 @@ export default function CoordinatorLayout({ children }) {
   );
 
   return (
+    <StaffPortalGate allow={["coordinator"]} portalName="코디네이터 포털" redirect="/coordinator">
     <div className="flex min-h-screen bg-gray-50 pt-12">
       {/* Mobile top bar */}
       <div className="lg:hidden fixed top-12 left-0 right-0 z-40 bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
@@ -118,5 +121,6 @@ export default function CoordinatorLayout({ children }) {
         </div>
       </main>
     </div>
+    </StaffPortalGate>
   );
 }

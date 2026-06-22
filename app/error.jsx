@@ -50,13 +50,13 @@ export default function Error({ error, reset }) {
         <div className="flex flex-wrap items-center justify-center gap-3">
           <button
             onClick={() => reset()}
-            className="inline-flex items-center px-6 py-3 bg-teal-600 hover:bg-teal-700 text-white rounded-xl font-bold transition-colors"
+            className="inline-flex items-center px-6 py-3 bg-teal-700 hover:bg-teal-800 text-white rounded-xl font-bold transition-colors"
           >
             {c.retry}
           </button>
           <a
             href="/"
-            className="inline-flex items-center px-6 py-3 text-teal-600 hover:text-teal-700 font-bold transition-colors"
+            className="inline-flex items-center px-6 py-3 text-teal-700 hover:text-teal-700 font-bold transition-colors"
           >
             {c.home}
           </a>

@@ -36,5 +36,11 @@ jobs:
         run: npm run check:legal
       - name: 암종 콘텐츠 6개 언어 완성 (합병증·FAQ·통계 번역 누락 차단)
         run: npm run check:cancer-i18n
+      - name: 시크릿 스캔 (하드코딩 비밀키·NEXT_PUBLIC_ 비밀키 노출 차단 — 감리 실측)
+        run: npm run audit:secret
+      - name: 의존성 취약점 (high/critical 발견 시 머지 차단 — 감리 실측)
+        run: npm run audit:deps
+      - name: 이미지 용량 게이트 (과대 public 이미지 재유입 차단 — 성능)
+        run: npm run audit:images
       - run: npm run build
       - run: npm run verify:rag

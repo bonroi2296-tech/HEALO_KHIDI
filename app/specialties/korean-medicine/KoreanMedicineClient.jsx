@@ -151,7 +151,7 @@ export default function KoreanMedicineClient() {
                       <Building2 size={20} className="text-emerald-700" />
                     </div>
                     <div className="min-w-0">
-                      <h3 className="font-bold text-gray-900 group-hover:text-emerald-600 transition line-clamp-2 text-sm">{h.name}</h3>
+                      <h3 className="font-bold text-gray-900 group-hover:text-emerald-700 transition line-clamp-2 text-sm">{h.name}</h3>
                       <p className="text-xs text-gray-500 flex items-center gap-1 mt-0.5">
                         <MapPin size={11} className="shrink-0" />
                         <span className="truncate">{h.location}</span>
@@ -190,13 +190,13 @@ export default function KoreanMedicineClient() {
                 >
                   <div className="flex items-start justify-between gap-3 mb-3">
                     <div>
-                      <h3 className="font-bold text-gray-900 group-hover:text-emerald-600 transition mb-1">{item.title}</h3>
+                      <h3 className="font-bold text-gray-900 group-hover:text-emerald-700 transition mb-1">{item.title}</h3>
                       {item.hospitalName && (
                         <p className="text-xs text-gray-500">{item.hospitalName}</p>
                       )}
                     </div>
                     {price && (
-                      <span className="text-emerald-600 font-bold text-sm whitespace-nowrap">{price}</span>
+                      <span className="text-emerald-700 font-bold text-sm whitespace-nowrap">{price}</span>
                     )}
                   </div>
                   <p className="text-sm text-gray-600 line-clamp-2 mb-3">{item.desc}</p>
@@ -214,7 +214,7 @@ export default function KoreanMedicineClient() {
           <div className="text-center mt-8">
             <button
               onClick={() => router.push("/treatments?tag=Korean+Medicine")}
-              className="inline-flex items-center gap-2 px-6 py-3 bg-emerald-600 text-white font-bold rounded-full hover:bg-emerald-700 transition"
+              className="inline-flex items-center gap-2 px-6 py-3 bg-emerald-700 text-white font-bold rounded-full hover:bg-emerald-700 transition"
             >
               {t("km.viewAll", langCode)} <ArrowRight size={16} />
             </button>
@@ -273,7 +273,7 @@ export default function KoreanMedicineClient() {
             "@type": "MedicalBusiness",
             name: "Korean Traditional Medicine at healwith",
             description: "Experience Korea's unique traditional medicine — herbal formulas, acupuncture, and holistic healing programs for international patients.",
-            url: "https://khidi.healo.kr/specialties/korean-medicine",
+            url: "https://healwith.co.kr/specialties/korean-medicine",
             medicalSpecialty: "Traditional Korean Medicine",
             availableService: treatments.map((t) => ({
               "@type": "MedicalProcedure",

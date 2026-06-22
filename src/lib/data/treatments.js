@@ -44,6 +44,7 @@ export const getTreatmentList = async ({ limit = 1000 } = {}) => {
   const { data, error } = await supabaseServer
     .from("treatments")
     .select(TREATMENT_LIST_SELECT)
+    .eq("is_published", true)
     .order("updated_at", { ascending: false, nullsFirst: false })
     .limit(limit);
 
@@ -76,6 +77,7 @@ export const getTreatmentBySlug = async (slug) => {
     .from("treatments")
     .select(TREATMENT_SELECT)
     .eq("slug", slug)
+    .eq("is_published", true)
     .maybeSingle();
 
   if (error) {

@@ -20,6 +20,9 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
 import { recentSnapshotDates } from "@/lib/khidi/snapshotDates";
+import { normalizeNationality } from "@/lib/khidi/nationality";
+import { avgSatisfaction100 } from "@/lib/khidi/satisfaction";
+import { aggregatePatients } from "@/lib/khidi/patientAggregation";
 
 export { recentSnapshotDates };
 
@@ -27,11 +30,12 @@ export { recentSnapshotDates };
 // 타입 정의
 // ============================================================
 export interface KpiResult {
-  /** K-02: 사전상담 건수 (session_type='pre_consultation', status='completed', duration>=5) */
+  /** K-02: 사전상담 건수 (session_type='pre_consultation', status='completed') — scheduled_at 기준 */
   preConsultation: number;
-  /** K-04: 사후관리 건수 (session_type='follow_up', status='completed') */
+  /** K-04: 사후관리 건수 (session_type='follow_up', status='completed') — scheduled_at 기준 */
   followUp: number;
-  /** K-01: 환자유치 건수 (patient_visited_korea=true 또는 visit_confirmed_at IS NOT NULL) */
+  /** K-01: 환자유치 건수 (inquiries.outcome='admitted', created_at 코호트). 코디 수동 확정
+   *  + 병원 '치료 확정'(hospital_leads converted) 자동 반영 — 전환 깔때기와 동일 정의. */
   attraction: number;
   /** K-03: 만족도 평균 (100점 환산) — 응답 없으면 null */
   satisfactionAvg: number | null;
@@ -64,37 +68,8 @@ function getAdminClient(): SupabaseClient {
   return supabaseAdmin as unknown as SupabaseClient;
 }
 
-// ============================================================
-// 내부 유틸: 국적 코드 → 한국어 표기 (KHIDI 리포트 가독성)
-// inquiries.nationality 는 ISO 2자리 코드(KZ/RU/UZ…)로 저장됨.
-// 대시보드 진행바 색상은 "카자흐"/"러시아" 또는 "KZ"/"RU" 둘 다 매칭하므로
-// 한국어로 바꿔도 색상 로직 유지됨. 모르는 코드는 원문 그대로 둔다.
-// ============================================================
-const NATIONALITY_NAMES: Record<string, string> = {
-  KZ: "카자흐스탄",
-  RU: "러시아",
-  UZ: "우즈베키스탄",
-  KG: "키르기스스탄",
-  TJ: "타지키스탄",
-  TM: "투르크메니스탄",
-  AZ: "아제르바이잔",
-  GE: "조지아",
-  AM: "아르메니아",
-  BY: "벨라루스",
-  UA: "우크라이나",
-  MN: "몽골",
-  KR: "한국",
-  CN: "중국",
-  JP: "일본",
-  US: "미국",
-};
-
-function normalizeNationality(raw: string | null | undefined): string {
-  if (!raw) return "기타";
-  const v = raw.trim();
-  if (!v) return "기타";
-  return NATIONALITY_NAMES[v.toUpperCase()] ?? v;
-}
+// 국적 코드 → 한국어 표기(normalizeNationality)·만족도 환산(avgSatisfaction100)은
+// server-only 가 아닌 순수 모듈(nationality.ts·satisfaction.ts)로 분리해 단위테스트로 고정.
 
 // ============================================================
 // 내부: 날짜 범위 → KPI 집계 (SQL)
@@ -158,20 +133,7 @@ async function _fetchKpiInRange(
   if (e4b) noteErr("survey_responses", e4b.message);
 
   const responses = surveyResponsesFull ?? [];
-  let satisfactionAvg: number | null = null;
-  if (responses.length > 0) {
-    const sum = responses.reduce((acc, r) => {
-      const avg5 =
-        ((r.q1_score ?? 0) +
-          (r.q2_score ?? 0) +
-          (r.q3_score ?? 0) +
-          (r.q4_score ?? 0) +
-          (r.q5_score ?? 0)) /
-        5;
-      return acc + avg5 * 20; // Likert 5점 → 100점
-    }, 0);
-    satisfactionAvg = Math.round((sum / responses.length) * 10) / 10;
-  }
+  const satisfactionAvg = avgSatisfaction100(responses);
 
   // 응답률: 해당 기간 발송된 surveys 대비 responded=true
   const { count: surveysSentCount } = await supabase
@@ -206,17 +168,6 @@ async function _fetchKpiInRange(
     inquiry_id: number | null;
   }>;
 
-  const patientKey = (r: {
-    patient_id: string | null;
-    inquiry_id: number | null;
-  }): string | null =>
-    r.patient_id ?? (r.inquiry_id != null ? `inq:${r.inquiry_id}` : null);
-
-  const uniqueKeys = new Set(
-    sessions.map(patientKey).filter((k): k is string => k != null)
-  );
-  const uniquePatients = uniqueKeys.size;
-
   // inquiry_id → nationality 조회 (inquiries.nationality = ISO 국가코드 KZ/RU/UZ…)
   const inquiryIds = Array.from(
     new Set(
@@ -240,21 +191,8 @@ async function _fetchKpiInRange(
     });
   }
 
-  // 환자(중복제거) 1명당 국적 1회 카운트
-  const countryMap: Record<string, number> = {};
-  const counted = new Set<string>();
-  for (const r of sessions) {
-    const key = patientKey(r);
-    if (!key || counted.has(key)) continue;
-    counted.add(key);
-    const nat =
-      (r.inquiry_id != null ? natByInquiry.get(r.inquiry_id) : undefined) ??
-      "기타";
-    countryMap[nat] = (countryMap[nat] ?? 0) + 1;
-  }
-  const countries = Object.entries(countryMap)
-    .map(([nationality, count]) => ({ nationality, count }))
-    .sort((a, b) => b.count - a.count);
+  // 환자 중복제거(고유환자수) + 국가별 분포 — 순수 변환(patientAggregation.ts)으로 위임.
+  const { uniquePatients, countries } = aggregatePatients(sessions, natByInquiry);
 
   return {
     preConsultation: preCount ?? 0,
@@ -274,8 +212,9 @@ async function _fetchKpiInRange(
 // ============================================================
 
 /**
- * 특정 연월의 KPI 집계
- * kpi_snapshots 에 없으면 직접 계산 후 upsert (캐시)
+ * 특정 연월의 KPI 집계 — 항상 실시간 직접 계산(_fetchKpiInRange).
+ * (캐시/upsert 안 함 — 스냅샷 upsert 는 cron 의 upsertDailySnapshot 전용.
+ *  대시보드/보고서는 항상 최신값을 보여야 하므로 의도적으로 매번 재계산.)
  */
 export async function getKpiForMonth(
   year: number,

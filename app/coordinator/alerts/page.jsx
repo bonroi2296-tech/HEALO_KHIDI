@@ -286,7 +286,11 @@ export default function AlertsPage() {
                     <div className="flex items-center gap-3 text-xs text-gray-400">
                       <span className="flex items-center gap-1">
                         <User size={10} />
-                        환자: {alert.patient_id?.slice(0, 8)}…
+                        환자: {alert.patient_id
+                          ? `${alert.patient_id.slice(0, 8)}…`
+                          : alert.inquiry_id != null
+                            ? `문의 #${alert.inquiry_id}`
+                            : '미상'}
                       </span>
                       <span className="flex items-center gap-1">
                         <Clock size={10} />

@@ -4,6 +4,52 @@
 
 ---
 
+## 🟡 P2 — soft-404: 없는 치료/병원 슬러그가 HTTP 200 반환 (2026-06-22 기록·진단)
+
+- **증상(실측)**: 없는 슬러그 `https://www.healwith.co.kr/treatments/<없는값>`·`/hospitals/<없는값>`이 **HTTP 200** 반환. 대조군(없는 일반경로 `/totally-random-path`)은 정상 **404**. 즉 `[slug]` 동적 라우트만 soft-404.
+- **근본원인(코드는 정상)**: 서버 코드는 맞다 — `getTreatmentBySlug`는 없는 슬러그에 `null` 반환(`mapTreatmentRow(null)→null`, `.eq("is_published",true)` 포함), `app/treatments/[slug]/page.jsx:164`가 `notFound()`를 **정상 호출**. 실제로 응답 바디도 글로벌 `app/not-found.jsx`(NotFoundClient, "Error 404" UI)가 **올바르게 렌더**됨. **문제는 상태코드만 200으로 샘** — Next 16 동적 렌더(이 라우트는 `cookies()` 호출로 dynamic) + `notFound()` 상호작용에서 스트리밍 응답의 status가 404로 전파 안 되는 프레임워크 동작. (`hospitals/[slug]`도 동일 구조 → 같은 증상.)
+- **영향(낮음)**: ①사용자 UX는 정상(올바른 404 화면 보임). ②비공개/없는 published 슬러그는 **sitemap에 없음**(#235에서 `is_published` 필터 + item- 3건 비활성, sitemap 40 URL 확인) → 크롤러가 이 URL에 도달할 경로가 거의 없음. ③유일한 손해 = soft-404의 약한 SEO 품질 신호(구글이 "200인데 빈 페이지"로 오인 가능). 내부 링크·sitemap 노출이 없어 **실질 위험 작음**.
+- **판단: 지금은 보류(고치지 않음) 권장.** 진짜 404 상태코드를 동적 라우트에서 강제하려면 라우트 구조 변경 또는 Next 버전별 워크어라운드가 필요하고 **preview 배포로 실검증해야** 함(한 줄 아님). 평가(8/27)·앱스토어 우선. 고친다면 후보: (a) 슬러그 존재 여부를 `generateStaticParams`로 미리 굳혀 정적 404 경로화, (b) Next 16 `notFound` status 회귀 업스트림 확인 후 업그레이드, (c) 정 급하면 얇은 라우트 핸들러/리라이트에서 미존재 슬러그를 사전 404. **PO가 "SEO 깐깐하게 가자" 하면 그때 (a) 우선 착수.**
+
+---
+
+## 🌙 2026-06-21 야간 자율 감사 — 병렬 5축 감사 발견사항 (일부 수정·일부 PO 판단 필요)
+
+> 평가지표(KPI)·보안·문의 퍼널·역할 연결·화상방을 병렬 감사. **고친 것은 draft PR**(PO 검토 전 배포 안 됨), **나머지는 아래에 정밀 기록**(런타임 검증/제품 판단/스키마 변경이 필요해 야간 임의 수정 보류).
+
+### ✅ 이번에 수정함 (draft PR)
+- **만족도 설문 발송 윈도우 누수**(K-03 대부분 미발송) → 14일 backfill. **PR #216**. POSTMORTEMS #19.
+- **월간보고 명단**이 없는 테이블(`khidi_intakes`) 조인으로 항상 빈칸 → inquiries 기반 교체. **PR #216**.
+- **KPI 집계오류가 대시보드/월간보고에서 0으로 조용히** 보이던 것 → canary 발사. **PR #216**.
+- **EDGE-2: 코디 case_status→treatment/완료 시 유치(K-01) 누락**(POSTMORTEM #17 잔여위험) → outcome 자동집계(가드). **PR #216**.
+- **AI상담(게스트) 리드 PII가 코디 인박스에 암호문**으로 떠 연락 불가(#13 부류) → `admin/chat/threads` GET 복호화. **PR(이 브랜치)**.
+- **화상방 탭 'Chat'/'Translation' 하드코딩 영어** → 6언어화 + `_roomCopy.js` 패리티 가드 신설. **PR(이 브랜치)**.
+
+### 🟡 PO 판단/런타임 검증 필요 (야간 임의 수정 보류 — 이유 명시)
+
+1. **🔴 [데모 직격, iOS] 서버 STT 2차 getUserMedia 가 LiveKit 마이크를 가로챌 수 있음** — `app/consultation/[id]/page.jsx:1306-1314`. 브라우저 STT 미지원(iOS Safari) 환자에서 서버 STT 경로가 `getUserMedia({audio:true})`를 **별도로** 한 번 더 잡는데, iOS Safari 는 두 번째 오디오 캡처가 첫 번째(LiveKit 송출 마이크)를 빼앗는 경우가 잦음 → **환자 마이크가 죽어 의사가 못 들음**(throw 없이 조용히). 카자흐/러시아 환자 아이폰 = 정확히 이 경로. **수정안**: 별도 getUserMedia 대신 LiveKit 이 이미 잡은 마이크 트랙(`localParticipant.getTrackPublication(Track.Source.Microphone).track.mediaStreamTrack`)을 MediaRecorder 에 물려 2차 점유 제거. **실 아이폰 검증 필요**해 보류.
+2. **[K-01 구조적] 환자 포털이 `case_status` 를 못 봄 (EDGE-1)** — 환자 여정바(`src/lib/patient/journeyState.js:123`)는 `inquiry_events` 만 보는데 그 이벤트를 쓰는 코드가 funnel 4종뿐(`app/api/inquiries/event/route.ts:23`) → 코디/병원이 case_status 를 visa/treatment/completed 로 올려도 **환자 대시보드가 안 움직임**. 구조적(두 추적 그래프 분리) → 단일화 설계는 PO 판단.
+3. **[가시성] 완료된 상담이 case_status 를 전진 안 시킴 (EDGE-3)** — `consultation/[id]` 완료 시 `case_status`/이력 미기록 → KPI(K-02/04)는 오르지만 **에이전시·코디 타임라인은 정체**. (lifecycle 지도와 코드 불일치.)
+4. **[가시성] admin/leads/assign 가 case_status 안 올림 (EDGE-4)** — `coordinator/cases/assign` 과 비대칭(`app/api/admin/leads/assign/route.ts`엔 case_status 기록 없음).
+5. **[가시성] 점수판 outcome 확정/이탈이 case_status_history 에 안 남음 (EDGE-5)** — `conversion-funnel` PATCH 가 outcome 만 써 **에이전시가 '확정/이탈'을 타임라인에서 못 봄**.
+6. **[데이터 유실+PII] step2 의 `cancer_patient_intakes` upsert 가 항상 무음 실패** — `inquiry_id` UNIQUE 제약이 없어(`onConflict:"inquiry_id"`) 매번 throw→catch 로 버려짐 → 구조적 intake 저장 안 됨. 게다가 `current_treatment` 를 **평문**으로 쓰려 함(같은 값 inquiries.intake 엔 암호화). **수정이 엉킴**: 고치면 step2 인콰이어리가 `/api/khidi/intake` 큐(EscalationQueue)에 cancer_type 빈 채로 등장하는 등 **제품 동작이 바뀜** → select-then-write + `current_treatment_encrypted` 사용 + EscalationQueue 영향 검토를 PO 와 함께.
+7. **[KPI 정확도] 공개 문의 POST 레이트리밋이 인메모리** — `inquiries/step1·step2·create`·`guest-join` 등은 `checkRateLimit`(인스턴스별 Map, 콜드스타트 리셋)라 분산 봇에 약함. `checkRateLimitPersistent`(DB, 이미 chat 에 적용)로 이관 권장 → 스팸 리드가 퍼널 KPI 오염 방지.
+8. **[K-01 잠재] 화상방 게스트 targetLang 하드코딩** — `page.jsx:714-716` `ml==="ko"?"ru":"ko"`. 표준 데모(한 의사↔러/카 환자)는 정상이나 다국 CIS·게스트 의사 조합에선 오타겟. 의사/환자 언어쌍에서 유도하도록 권장.
+9. **[저] 만족도 환산이 null 점수를 0 으로** — `satisfaction.ts:38-45`. 현재 submit 이 5문항 필수라 발현 안 함. 부분응답 유입 시 K-03 끌어내림. (의도된 정의라 변경은 K-03 공식 변경 = PO 판단.)
+
+> **보안 감사 결과**: 고신뢰 취약점 0(인증·암호화·게스트토큰 견고). 위 #7 인메모리 레이트리밋만 하드닝 권장.
+
+---
+
+## ✅ 침묵 환자 감지 cron 이 항상 0건 (2026-06-21 발견 → **2026-06-21 수정 완료**)
+
+- **증상**: `app/api/cron/detect-silent-patients/route.ts` 가 `consultation_sessions` 를 `.not("patient_id","is",null)` 로 거르는데 **patient_id 가 전 행 null**(미사용 컬럼) → 대상 0건 → 침묵(장기 미응답) 환자 알림이 한 번도 안 뜸.
+- **뿌리원인**: POSTMORTEMS #7·#12 와 동일 — 실제 환자 연결고리는 `inquiry_id → inquiries` 인데 옛 `patient_id` 경로에 의존. 게다가 `consultation_sessions.patient_id` 는 사실 **uuid 가 아니라 bigint(→cancer_patient_intakes)** 라 `symptom_alerts.patient_id`(uuid→auth.users)와 타입도 안 맞아 `getCoordinatorIds` 도 깨져 있었음.
+- **수정(PR 침묵환자 inquiry_id 리팩터)**: ① 마이그레이션 `symptom_alerts` 에 `inquiry_id bigint` 추가 + `patient_id` nullable(둘 중 하나 필수 CHECK) ② 순수 로직 `src/lib/symptoms/silence.ts`(`buildSilenceAlert`) 분리 + 단위테스트 ③ cron 을 inquiry_id 기준으로 재작성(활성 문의→최근 증상보고→3일↑ 무입력→알림) ④ `alertService.getCoordinatorIds` 를 inquiry_id/patient_user_id 기준으로 + 메신저 문의 환자는 안심알림 skip ⑤ 코디 알림 화면 patient_id 없으면 `문의 #N` 표시 ⑥ cron 계약 테스트로 잠금. POSTMORTEMS #14.
+- **남은 한계**: 증상 보고를 한 번도 안 한 문의는 알림 대상 아님(전원 알림 폭주 방지 — 의도). 현재 증상보고 데이터가 적어 당장 알림은 거의 없음. 데이터 쌓이면 동작.
+
+---
+
 ## 🌙 야간 자율 세션 진행 (2026-06-19) — 백로그 다수 PR화
 
 > 아래 백로그 항목들이 PR로 진행됨(머지·배포는 PROJECT_CONTEXT 최상단 핸드오프 참조).
@@ -132,3 +178,13 @@
 
 ## 예방 (적용됨)
 - `CLAUDE.md` 출시 전 self-QA 체크리스트 → service_role 테이블 client 직접 쿼리 금지 명시 (신규 코드 재발 방지)
+
+---
+
+## 🟡 P1 — K-01 유치 점수판 admitted 4건 = 시드 데모데이터 (진짜 유치 0건) — 8/27 전 실데이터 대체 필요
+
+`/admin/khidi/conversion` 점수판의 **K-01 외국인환자 유치 = 4건이 전부 시드/데모**(inquiries id 4·5·6·10, 위암·유방암·폐암·갑상선암, 2026-05 동일 타임스탬프 일괄삽입, lead·outcome_note 없음). **진짜 외국인환자 유치 = 0건**(이전 핸드오프 "KPI real 0"과 일치). 케이스 지도(`CASE_LIFECYCLE_MAP.md`) §2 경고대로 테스트 데이터도 점수판에 그대로 집계됨.
+
+- **PO 결정(2026-06-22): 데모용으로 그대로 유지.** 8/27 PT에서 "깔때기가 채워진 화면"을 보여주기 위함.
+- **⚠️ 리스크/숙제: KHIDI 중간평가(8/27) 점수판 숫자는 실적이 아니라 가짜다.** 평가 전까지 **실제 유치로 대체**하거나, 시연 시 데모데이터임을 명확히 구분할 것. 잔금(30%)이 걸린 공식 성과지표(목표 12건)라 정직성 중요.
+- 참고: "병원 치료확정 → 유치 자동집계(#207)" 엣지 자체는 2026-06-22 라이브 prod DB로 **실증 완료**(병원 포털 실버튼 클릭 → outcome 자동 admitted → K-01 +1). 검증용 테스트분(id 13)은 원복함.

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useLang } from "@/lib/i18n/LangContext";
 import {
@@ -28,8 +29,8 @@ import {
   MapPin,
   Mail,
   GraduationCap,
-  Quote,
 } from "lucide-react";
+import SocialProofSection from "@/components/SocialProofSection";
 
 /* ═══════════════════════════════════════════════════════
    PLACEHOLDER IMAGES (Unsplash — free, no auth required)
@@ -40,8 +41,9 @@ import {
    - 히어로 배경: 1920x1080px 이상
    ═══════════════════════════════════════════════════════ */
 const PLACEHOLDER = {
-  // 📸 히어로 배경 — 교체: 실제 병원 또는 한국 의료 이미지 (1920x1080+)
-  heroBg: "https://images.unsplash.com/photo-1538108149393-fbbd81895907?w=1920&q=80",
+  // 📸 히어로 배경 — 회복톤(공원 산책) 2026-06-20 PO 취향 반영. 어두운 그라데이션 뒤 배경.
+  // 히어로 배경은 90~95% 어두운 그라데이션에 덮여 거의 안 보임 → 원본 화질·폭 축소(LCP 바이트 절감).
+  heroBg: "https://images.unsplash.com/photo-1671530725345-cc4a2cf5db04?w=1280&q=55",
   // 📸 병원 2곳 — 교체: 면력한방병원 실제 사진으로 교체 권장 (800x500)
   hospitals: [
     "https://images.unsplash.com/photo-1538108149393-fbbd81895907?w=800&h=500&fit=crop",
@@ -100,7 +102,7 @@ const L = {
     subtitle: { ko: "한국은 세계 최고 수준의 암 생존율과 최첨단 의료 기술을 보유하고 있습니다", en: "Korea leads the world in cancer survival rates and cutting-edge medical technology", ru: "Корея — мировой лидер по выживаемости при раке и передовым медицинским технологиям", kz: "Корея рак бойынша тірі қалу көрсеткіштері мен озық медициналық технологиялар бойынша әлем көшбасшысы", zh: "韩国在癌症生存率和尖端医疗技术方面处于世界领先地位", ja: "韓国はがん生存率と最先端医療技術で世界をリード" },
     items: [
       { value: "78.4%", label: { ko: "위암 5년 생존율\n(세계 1위)", en: "Stomach Cancer\n5-year Survival\n(World #1)", ru: "Рак желудка\n5-летняя выживаемость\n(№1 в мире)", kz: "Асқазан обыры\n5 жылдық тірі қалу\n(Әлемде №1)", zh: "胃癌5年生存率\n（世界第一）", ja: "胃がん5年生存率\n（世界1位）" } },
-      { value: { ko: "117만+", en: "1.17M+", ru: "1,17 млн+", kz: "1,17 млн+", zh: "117万+", ja: "117万+" }, label: { ko: "2024 외국인 환자\n한국 방문", en: "Foreign Patients\nVisited Korea\nin 2024", ru: "Иностранных\nпациентов в Корее\nв 2024", kz: "2024 жылы Кореяға\nкелген шетелдік\nнауқастар", zh: "2024年访韩\n外国患者", ja: "2024年韓国訪問\n外国人患者" } },
+      { value: { ko: "201만+", en: "2.01M+", ru: "2,01 млн+", kz: "2,01 млн+", zh: "201万+", ja: "201万+" }, label: { ko: "2025 외국인 환자\n한국 방문", en: "Foreign Patients\nVisited Korea\nin 2025", ru: "Иностранных\nпациентов в Корее\nв 2025", kz: "2025 жылы Кореяға\nкелген шетелдік\nнауқастар", zh: "2025年访韩\n外国患者", ja: "2025年韓国訪問\n外国人患者" } },
       { value: "60~80%", label: { ko: "미국 대비\n치료비 절감", en: "Cost Savings\nvs. United States", ru: "Экономия\nvs. США", kz: "АҚШ-қа қарағанда\nүнемдеу", zh: "与美国相比\n节省费用", ja: "米国比\nコスト削減" } },
       { value: "Top 10", label: { ko: "의료 시설 품질\n세계 순위", en: "Global Ranking\nHealthcare Quality\n& Facilities", ru: "Мировой рейтинг\nкачества медицины", kz: "Медицина сапасы\nбойынша әлемдік\nрейтинг", zh: "医疗设施质量\n世界排名", ja: "医療施設の質\n世界ランキング" } },
     ],
@@ -149,10 +151,6 @@ const L = {
     title: { ko: "협력 의료기관", en: "Our Partner Hospitals", ru: "Наши партнёрские больницы", kz: "Біздің серіктес аурухналар", zh: "合作医疗机构", ja: "協力医療機関" },
     subtitle: { ko: "healwith와 함께하는 제휴 병원 및 협진 대학병원", en: "Partner hospitals and cooperating university hospitals working with healwith", ru: "Больницы-партнёры, работающие с healwith", kz: "healwith-мен жұмыс істейтін серіктес аурухналар", zh: "与healwith合作的医院", ja: "healwithと連携する医療機関" },
   },
-  /* ── 환자 후기 ── */
-  testimonials: {
-    title: { ko: "환자 후기", en: "Patient Stories", ru: "Истории пациентов", kz: "Пациент тарихтары", zh: "患者故事", ja: "患者さんの声" },
-  },
   /* ── FAQ ── */
   faq: {
     title: { ko: "자주 묻는 질문", en: "Frequently Asked Questions", ru: "Часто задаваемые вопросы", kz: "Жиі қойылатын сұрақтар", zh: "常见问题", ja: "よくある質問" },
@@ -200,10 +198,10 @@ const ICON_MAP = { FileText, Shield, Video, Heart, Globe, Clock, Leaf, Stethosco
 // 면력한방병원 실제 의료진 (강서점 + 신촌점 — 이번 사업 참여기관)
 // 📸 사진은 면력한방병원 공식 사이트에서 가져옴
 const DOCTORS_DATA = [
-  { name: { ko: "황이준 대표원장", en: "Dr. Hwang Yi-jun", ru: "Д-р Хван Иджун", kz: "Д-р Хван Иджун", zh: "黄以准 代表院长", ja: "黄以準 代表院長" }, title: { ko: "면력한방병원 강서점 대표원장", en: "Chief Director, Immune Hospital Gangseo", ru: "Главный директор, Иммунная Клиника Кансо", kz: "Бас директор, Иммунная Клиника Кансо", zh: "免疫医院 江西 代表院长", ja: "免疫病院 江西 代表院長" }, specialty: { ko: "한방 면역 종양학 · 통합 암 케어", en: "Korean Medicine Immuno-Oncology", ru: "Иммуноонкология корейской медицины", kz: "Корей медицинасы иммуноонкологиясы", zh: "韩方免疫肿瘤学", ja: "韓方免疫腫瘍学" }, exp: "", img: "https://immunehospital.com/uploads/doctors/68a674036de695.54364290.png" },
-  { name: { ko: "유형진 대표원장", en: "Dr. Yu Hyung-jin", ru: "Д-р Ю Хёнджин", kz: "Д-р Ю Хёнджин", zh: "柳炯进 代表院长", ja: "柳炯進 代表院長" }, title: { ko: "면력한방병원 신촌점 대표원장", en: "Chief Director, Immune Hospital Sinchon", ru: "Главный директор, Иммунная Клиника Синчхон", kz: "Бас директор, Иммунная Клиника Синчхон", zh: "免疫医院 新村 代表院长", ja: "免疫病院 新村 代表院長" }, specialty: { ko: "한방 면역 치료 · 암 통합 케어", en: "Korean Medicine Immunotherapy · Cancer Care", ru: "Иммунотерапия · Онкологическая помощь", kz: "Иммунотерапия · Онкологиялық көмек", zh: "韩方免疫治疗 · 癌症综合护理", ja: "韓方免疫治療 · がん統合ケア" }, exp: "", img: "https://immunehospital.com/uploads/doctors/68ac46bd439598.83386960.png" },
-  { name: { ko: "이우석 양방대표원장", en: "Dr. Lee Woo-seok", ru: "Д-р Ли Усок", kz: "Д-р Ли Усок", zh: "李宇锡 西医代表院长", ja: "李宇錫 洋方代表院長" }, title: { ko: "면력한방병원 강서점 양방대표원장", en: "Western Medicine Director, Gangseo", ru: "Директор западной медицины, Кансо", kz: "Батыс медицинасы директоры, Кансо", zh: "江西 西医代表院长", ja: "江西 洋方代表院長" }, specialty: { ko: "통합면역 · 산부인과", en: "Integrated Immunity · Obstetrics/Gynecology", ru: "Интегративный иммунитет · Акушерство", kz: "Кешенді иммунитет · Акушерлік", zh: "综合免疫 · 妇产科", ja: "統合免疫 · 産婦人科" }, exp: "", img: "https://immunehospital.com/uploads/doctors/68a42d8de9e095.75488957.jpg" },
-  { name: { ko: "정유진 진료원장", en: "Dr. Jung Yu-jin", ru: "Д-р Чон Юджин", kz: "Д-р Чон Юджин", zh: "郑有进 诊疗院长", ja: "鄭有進 診療院長" }, title: { ko: "면력한방병원 신촌점 한방내과 전문의", en: "Korean Internal Medicine Specialist, Sinchon", ru: "Специалист корейской внутренней медицины, Синчхон", kz: "Корей ішкі медицина маманы, Синчхон", zh: "新村 韩方内科专家", ja: "新村 韓方内科専門医" }, specialty: { ko: "한방내과 · 면역 치료", en: "Korean Internal Medicine · Immunotherapy", ru: "Корейская внутренняя медицина · Иммунотерапия", kz: "Корей ішкі медицинасы · Иммунотерапия", zh: "韩方内科 · 免疫治疗", ja: "韓方内科 · 免疫治療" }, exp: "", img: "https://immunehospital.com/uploads/doctors/68ac464c6fdee2.09872274.jpg" },
+  { name: { ko: "황이준 대표원장", en: "Dr. Hwang Yi-jun", ru: "Д-р Хван Иджун", kz: "Д-р Хван Иджун", zh: "黄以准 代表院长", ja: "黄以準 代表院長" }, title: { ko: "면력한방병원 강서점 대표원장", en: "Chief Director, Immune Hospital Gangseo", ru: "Главный директор, Иммунная Клиника Кансо", kz: "Бас директор, Иммунная Клиника Кансо", zh: "免疫医院 江西 代表院长", ja: "免疫病院 江西 代表院長" }, specialty: { ko: "한방 면역 종양학 · 통합 암 케어", en: "Korean Medicine Immuno-Oncology", ru: "Иммуноонкология корейской медицины", kz: "Корей медицинасы иммуноонкологиясы", zh: "韩方免疫肿瘤学", ja: "韓方免疫腫瘍学" }, exp: "", img: "/immune/doctor/gangeo-dr-hwang-ijun.png" },
+  { name: { ko: "유형진 대표원장", en: "Dr. Yu Hyung-jin", ru: "Д-р Ю Хёнджин", kz: "Д-р Ю Хёнджин", zh: "柳炯进 代表院长", ja: "柳炯進 代表院長" }, title: { ko: "면력한방병원 신촌점 대표원장", en: "Chief Director, Immune Hospital Sinchon", ru: "Главный директор, Иммунная Клиника Синчхон", kz: "Бас директор, Иммунная Клиника Синчхон", zh: "免疫医院 新村 代表院长", ja: "免疫病院 新村 代表院長" }, specialty: { ko: "한방 면역 치료 · 암 통합 케어", en: "Korean Medicine Immunotherapy · Cancer Care", ru: "Иммунотерапия · Онкологическая помощь", kz: "Иммунотерапия · Онкологиялық көмек", zh: "韩方免疫治疗 · 癌症综合护理", ja: "韓方免疫治療 · がん統合ケア" }, exp: "", img: "/immune/doctor/sinchon-dr-yoo-hyeongjin.png" },
+  { name: { ko: "이우석 양방대표원장", en: "Dr. Lee Woo-seok", ru: "Д-р Ли Усок", kz: "Д-р Ли Усок", zh: "李宇锡 西医代表院长", ja: "李宇錫 洋方代表院長" }, title: { ko: "면력한방병원 강서점 양방대표원장", en: "Western Medicine Director, Gangseo", ru: "Директор западной медицины, Кансо", kz: "Батыс медицинасы директоры, Кансо", zh: "江西 西医代表院长", ja: "江西 洋方代表院長" }, specialty: { ko: "통합면역 · 산부인과", en: "Integrated Immunity · Obstetrics/Gynecology", ru: "Интегративный иммунитет · Акушерство", kz: "Кешенді иммунитет · Акушерлік", zh: "综合免疫 · 妇产科", ja: "統合免疫 · 産婦人科" }, exp: "", img: "/immune/doctor/gangeo-dr-lee-useok.jpg" },
+  { name: { ko: "정유진 진료원장", en: "Dr. Jung Yu-jin", ru: "Д-р Чон Юджин", kz: "Д-р Чон Юджин", zh: "郑有进 诊疗院长", ja: "鄭有進 診療院長" }, title: { ko: "면력한방병원 신촌점 한방내과 전문의", en: "Korean Internal Medicine Specialist, Sinchon", ru: "Специалист корейской внутренней медицины, Синчхон", kz: "Корей ішкі медицина маманы, Синчхон", zh: "新村 韩方内科专家", ja: "新村 韓方内科専門医" }, specialty: { ko: "한방내과 · 면역 치료", en: "Korean Internal Medicine · Immunotherapy", ru: "Корейская внутренняя медицина · Иммунотерапия", kz: "Корей ішкі медицинасы · Иммунотерапия", zh: "韩方内科 · 免疫治疗", ja: "韓方内科 · 免疫治療" }, exp: "", img: "/immune/doctor/sinchon-dr-jeong-yujin.jpg" },
 ];
 
 // 📸 교체 대상: 병원 로고 이미지 — 실제 로고 URL로 교체
@@ -218,13 +216,6 @@ const PARTNERS_DATA = [
   { slug: "ewha-mokdong", badge: "university", name: { ko: "이대목동병원", en: "Ewha Mokdong Hospital", ru: "Больница Ихва Мокдон", kz: "Ихва Мокдон ауруханасы", zh: "梨大木洞医院", ja: "梨大木洞病院" }, desc: { ko: "이화여자대학교 의료원 목동", en: "Ewha Medical Center, Mokdong", ru: "Медицинский центр Ихва, Мокдон", kz: "Ихва медициналық орталығы, Мокдон", zh: "梨花医疗院木洞", ja: "梨花医療院木洞" }, img: "/images/hospitals/ewha-mokdong/1.jpg?v=2" },
   { slug: "korea-guro", badge: "university", name: { ko: "고려대 구로병원", en: "Korea Univ. Guro Hospital", ru: "Больница Куро", kz: "Куро ауруханасы", zh: "高丽大九老医院", ja: "高麗大九老病院" }, desc: { ko: "고려대학교 의과대학 부속", en: "Korea University College of Medicine", ru: "При медфакультете Корёского университета", kz: "Корё университеті медицина факультеті", zh: "高丽大学医学院附属", ja: "高麗大学医学部附属" }, img: "/images/hospitals/korea-guro/1.jpg?v=2" },
   { slug: "severance-sinchon", badge: "university", name: { ko: "신촌세브란스병원", en: "Severance Hospital", ru: "Больница Северанс", kz: "Северанс ауруханасы", zh: "世福兰斯医院", ja: "セブランス病院" }, desc: { ko: "연세대학교 세브란스병원", en: "Yonsei University Severance Hospital", ru: "Больница Северанс университета Ёнсе", kz: "Ёнсе университетінің Северанс ауруханасы", zh: "延世大学世福兰斯医院", ja: "延世大学セブランス病院" }, img: "/images/hospitals/severance-sinchon/1.jpg?v=2" },
-];
-
-// 📸 교체 대상: 환자 후기 — 실제 환자 리뷰로 교체 (익명 가능)
-const TESTIMONIALS_DATA = [
-  { text: { ko: "카자흐스탄에서 위암 진단을 받고 막막했는데, healwith를 통해 한국 전문의와 상담하고 치료 계획을 세울 수 있었습니다. 러시아어 통역이 실시간으로 되어서 정말 편했어요.", en: "I was diagnosed with stomach cancer in Kazakhstan and felt lost. Through healwith, I consulted with a Korean specialist and planned my treatment. The real-time Russian interpretation made everything so easy.", ru: "Мне диагностировали рак желудка в Казахстане, и я был в растерянности. Через healwith я проконсультировался с корейским специалистом. Синхронный перевод на русский сделал всё простым.", kz: "Қазақстанда асқазан обыры диагнозы қойылды, не істерімді білмедім. healwith арқылы кореялық маманмен кеңестім.", zh: "在哈萨克斯坦被诊断出胃癌时很迷茫。通过healwith咨询了韩国专家，实时俄语翻译让一切变得简单。", ja: "カザフスタンで胃がんと診断され途方に暮れていましたが、healwithで韓国の専門医に相談できました。" }, author: { ko: "A.K. / 카자흐스탄 / 위암", en: "A.K. / Kazakhstan / Stomach Cancer", ru: "А.К. / Казахстан / Рак желудка", kz: "А.К. / Қазақстан / Асқазан обыры", zh: "A.K. / 哈萨克斯坦 / 胃癌", ja: "A.K. / カザフスタン / 胃がん" } },
-  { text: { ko: "유방암 수술 후 면력한방병원에서 한방 면역치료를 병행했더니 항암 부작용이 확실히 줄었습니다. 원스톱으로 연결해주니 정말 편리했어요.", en: "After breast cancer surgery, I combined Korean Medicine immunotherapy at Immune Hospital. The side effects from chemo were noticeably reduced. The one-stop connection was so convenient.", ru: "После операции по раку молочной железы я совместила иммунотерапию в Иммуногоспитале. Побочные эффекты химиотерапии заметно уменьшились.", kz: "Сүт безі обырынан кейін Иммунная Клиникаде иммунотерапияны біріктірдім. Химиотерапия жанама әсерлері байқаларлықтай азайды.", zh: "乳腺癌手术后在免疫医院配合韩方免疫治疗，化疗副作用明显减少。一站式连接非常方便。", ja: "乳がん手術後、免疫病院で韓方免疫治療を併用したら副作用が明らかに減りました。" }, author: { ko: "M.S. / 러시아 / 유방암", en: "M.S. / Russia / Breast Cancer", ru: "М.С. / Россия / Рак молочной железы", kz: "М.С. / Ресей / Сүт безі обыры", zh: "M.S. / 俄罗斯 / 乳腺癌", ja: "M.S. / ロシア / 乳がん" } },
-  { text: { ko: "일본에서 간암 세컨드오피니언을 위해 이용했습니다. 화상으로 편하게 상담받고, 한국 치료 비용이 일본보다 훨씬 합리적이라는 것도 알게 되었어요.", en: "I used healwith from Japan for a second opinion on liver cancer. The video consultation was very comfortable, and I learned that treatment costs in Korea are much more reasonable than in Japan.", ru: "Я обратился из Японии за вторым мнением по раку печени. Видеоконсультация была очень удобной.", kz: "Жапониядан бауыр обыры бойынша екінші пікір алу үшін healwith-ны пайдаландым.", zh: "我从日本使用healwith咨询肝癌第二意见。视频咨询很方便，了解到韩国的治疗费用比日本合理得多。", ja: "日本から肝がんのセカンドオピニオンで利用しました。ビデオ相談が快適で、韓国の治療費が日本より合理的だと分かりました。" }, author: { ko: "T.Y. / 일본 / 간암", en: "T.Y. / Japan / Liver Cancer", ru: "Т.Я. / Япония / Рак печени", kz: "Т.Я. / Жапония / Бауыр обыры", zh: "T.Y. / 日本 / 肝癌", ja: "T.Y. / 日本 / 肝がん" } },
 ];
 
 // FAQ 데이터 (실제 내용 — 교체 불필요)
@@ -262,12 +253,12 @@ export default function HomeClient() {
       <section className="relative text-white overflow-hidden">
         {/* 📸 교체: 실제 병원/의료진 사진 (1920x1080 이상) */}
         <div className="absolute inset-0">
-          <img src={PLACEHOLDER.heroBg} alt="" className="w-full h-full object-cover" />
+          <Image src={PLACEHOLDER.heroBg} alt="" fill priority fetchPriority="high" quality={55} sizes="100vw" className="object-cover" />
           <div className="absolute inset-0 bg-gradient-to-br from-slate-900/95 via-teal-900/90 to-slate-900/95" />
         </div>
         {/* Glow effects */}
         <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-teal-500/10 rounded-full blur-3xl" />
+          <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-teal-700/10 rounded-full blur-3xl" />
           <div className="absolute bottom-0 right-1/4 w-[400px] h-[400px] bg-emerald-500/10 rounded-full blur-3xl" />
         </div>
 
@@ -303,7 +294,7 @@ export default function HomeClient() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-6">
             {L.stats.items.map((item, i) => (
               <div key={i} className="text-center p-4 md:p-6 rounded-xl md:rounded-2xl bg-gradient-to-b from-teal-50 to-white border border-teal-100 hover:shadow-lg transition-shadow">
-                <div className="text-2xl sm:text-3xl md:text-5xl font-black text-teal-600 mb-1 md:mb-3">{typeof item.value === 'string' ? item.value : l(item.value)}</div>
+                <div className="text-2xl sm:text-3xl md:text-5xl font-black text-teal-700 mb-1 md:mb-3">{typeof item.value === 'string' ? item.value : l(item.value)}</div>
                 <div className="text-[10px] sm:text-xs md:text-sm text-gray-500 font-medium whitespace-pre-line leading-snug md:leading-relaxed">{l(item.label)}</div>
               </div>
             ))}
@@ -328,12 +319,14 @@ export default function HomeClient() {
                   <img
                     src={doc.img}
                     alt={l(doc.name)}
+                    loading="lazy"
+                    decoding="async"
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                   />
                 </div>
                 <div className="p-3 md:p-5">
                   <h3 className="font-bold text-sm md:text-lg text-gray-900 leading-snug">{l(doc.name)}</h3>
-                  <p className="text-teal-600 text-xs md:text-sm font-medium mt-0.5 md:mt-1 leading-snug">{l(doc.title)}</p>
+                  <p className="text-teal-700 text-xs md:text-sm font-medium mt-0.5 md:mt-1 leading-snug">{l(doc.title)}</p>
                   <p className="text-gray-500 text-[10px] md:text-xs mt-0.5 md:mt-1 line-clamp-1">{l(doc.specialty)}</p>
                 </div>
               </div>
@@ -342,7 +335,7 @@ export default function HomeClient() {
           <div className="text-center mt-5 md:mt-8">
             <button
               onClick={() => router.push("/hospitals")}
-              className="text-teal-600 font-semibold text-xs md:text-sm hover:text-teal-700 inline-flex items-center gap-1 transition"
+              className="text-teal-700 font-semibold text-xs md:text-sm hover:text-teal-700 inline-flex items-center gap-1 transition"
             >
               {l(L.doctors.viewAll)} <ChevronRight size={14} />
             </button>
@@ -363,9 +356,9 @@ export default function HomeClient() {
             {L.services.items.map((item, i) => {
               const Icon = ICON_MAP[item.icon];
               const colors = [
-                { bg: "bg-teal-100", icon: "text-teal-600", border: "border-teal-200" },
+                { bg: "bg-teal-100", icon: "text-teal-700", border: "border-teal-200" },
                 { bg: "bg-blue-100", icon: "text-blue-600", border: "border-blue-200" },
-                { bg: "bg-emerald-100", icon: "text-emerald-600", border: "border-emerald-200" },
+                { bg: "bg-emerald-100", icon: "text-emerald-700", border: "border-emerald-200" },
                 { bg: "bg-purple-100", icon: "text-purple-600", border: "border-purple-200" },
               ][i];
               return (
@@ -419,12 +412,12 @@ export default function HomeClient() {
               <div key={i} role="button" tabIndex={0} onClick={() => router.push("/treatments")} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); router.push("/treatments"); } }} className="bg-white rounded-xl md:rounded-2xl p-3 md:p-5 text-center cursor-pointer hover:shadow-xl hover:-translate-y-1 transition-all duration-300 border border-gray-100 group focus:outline-none focus:ring-2 focus:ring-teal-400">
                 <div className="text-2xl md:text-4xl mb-1 md:mb-3">{c.emoji}</div>
                 <div className="font-bold text-xs md:text-sm text-gray-800 mb-0.5 md:mb-1">{l(c.label)}</div>
-                <div className="text-[9px] md:text-[11px] text-teal-600 font-semibold leading-tight">{l(c.stat)}</div>
+                <div className="text-[9px] md:text-[11px] text-teal-700 font-semibold leading-tight">{l(c.stat)}</div>
               </div>
             ))}
           </div>
           <div className="text-center mt-5 md:mt-8">
-            <button onClick={() => router.push("/treatments")} className="text-teal-600 font-semibold text-xs md:text-sm hover:text-teal-700 inline-flex items-center gap-1 transition">
+            <button onClick={() => router.push("/treatments")} className="text-teal-700 font-semibold text-xs md:text-sm hover:text-teal-700 inline-flex items-center gap-1 transition">
               {l(L.misc.viewTreatments)} <ChevronRight size={14} />
             </button>
           </div>
@@ -457,13 +450,16 @@ export default function HomeClient() {
                   onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); router.push(`/hospitals/${h.slug}`); } }}
                   className="bg-white rounded-xl md:rounded-2xl overflow-hidden border border-gray-100 hover:shadow-xl hover:border-teal-200 transition-all duration-300 cursor-pointer group focus:outline-none focus:ring-2 focus:ring-teal-400"
                 >
-                  <div className="h-24 sm:h-32 md:h-40 overflow-hidden bg-gray-100">
-                    {/* img 필드를 직접 사용(SSR에 올바른 src 박힘) — 사진 있으면 폴더 경로, 없으면 준비중 플레이스홀더. onError는 안전망. */}
-                    <img
-                      src={h.img}
-                      onError={(e) => { if (e.currentTarget.src.includes("_coming-soon")) return; e.currentTarget.onerror = null; e.currentTarget.src = "/images/hospitals/_coming-soon.svg?v=2"; }}
+                  <div className="relative h-24 sm:h-32 md:h-40 overflow-hidden bg-gray-100">
+                    {/* next/image: 로컬 병원 사진을 webp/avif·디바이스 크기로 자동 최적화 + 기본 lazy.
+                        (각 원본 JPEG 180~456KB → 모바일 수십 KB) onError는 사진 없을 때 안전망. */}
+                    <Image
+                      src={h.img.split("?")[0]}
                       alt={l(h.name)}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      fill
+                      sizes="(min-width:1024px) 25vw, (min-width:640px) 33vw, 50vw"
+                      onError={(e) => { if (e.currentTarget.src.includes("_coming-soon")) return; e.currentTarget.onerror = null; e.currentTarget.src = "/images/hospitals/_coming-soon.svg?v=2"; }}
+                      className="object-cover group-hover:scale-105 transition-transform duration-500"
                     />
                   </div>
                   <div className="p-2.5 md:p-4">
@@ -481,35 +477,9 @@ export default function HomeClient() {
       </section>
 
       {/* ══════════════════════════════════════════
-          TESTIMONIALS — 환자 후기
-          📸 교체 방법: TESTIMONIALS_DATA 배열에서 text, author 수정
+          SOCIAL PROOF — 실제·검증 가능한 평가 (가짜 후기 금지)
           ══════════════════════════════════════════ */}
-      <section className="bg-white py-10 md:py-16">
-        <div className="max-w-6xl mx-auto px-4">
-          <h2 className="text-2xl md:text-3xl lg:text-4xl font-extrabold text-center text-gray-900 mb-8 md:mb-12">{l(L.testimonials.title)}</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 md:gap-6">
-            {TESTIMONIALS_DATA.map((t, i) => (
-              <div key={i} className="bg-gradient-to-b from-slate-50 to-white rounded-xl md:rounded-2xl p-5 md:p-7 border border-slate-100 flex flex-col">
-                <Quote size={20} className="text-teal-200 mb-2 md:mb-4" />
-                <p className="text-gray-600 text-xs md:text-sm leading-relaxed flex-1 line-clamp-4 md:line-clamp-none">{l(t.text)}</p>
-                <div className="mt-4 md:mt-6 pt-3 md:pt-4 border-t border-gray-100">
-                  <div className="flex items-center gap-2 md:gap-3">
-                    <div className="w-8 h-8 md:w-10 md:h-10 bg-gradient-to-br from-teal-400 to-emerald-400 rounded-full flex items-center justify-center text-white font-bold text-xs md:text-sm">
-                      {l(t.author).charAt(0)}
-                    </div>
-                    <div>
-                      <p className="text-xs md:text-sm font-semibold text-gray-800">{l(t.author)}</p>
-                      <div className="flex gap-0.5 mt-0.5">
-                        {[...Array(5)].map((_, j) => <Star key={j} size={12} className="text-amber-400 fill-amber-400" />)}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      <SocialProofSection />
 
       {/* ══════════════════════════════════════════
           FAQ — 탭 + 아코디언
@@ -526,7 +496,7 @@ export default function HomeClient() {
                 onClick={() => { setFaqTab(key); setOpenFaq(null); }}
                 className={`px-3 md:px-5 py-2 md:py-2.5 rounded-full text-xs md:text-sm font-medium transition-all ${
                   faqTab === key
-                    ? "bg-teal-600 text-white shadow-lg shadow-teal-500/20"
+                    ? "bg-teal-700 text-white shadow-lg shadow-teal-500/20"
                     : "bg-white text-gray-500 hover:bg-gray-100 border border-gray-200"
                 }`}
               >
@@ -565,7 +535,7 @@ export default function HomeClient() {
         <div className="max-w-4xl mx-auto px-4">
           <div className="bg-gradient-to-r from-red-50 to-orange-50 rounded-xl md:rounded-2xl p-5 md:p-10 border border-red-100">
             <div className="text-center">
-              <div className="inline-flex items-center gap-2 bg-red-100 rounded-full px-3 md:px-4 py-1 md:py-1.5 text-red-600 text-xs md:text-sm font-semibold mb-3 md:mb-4">
+              <div className="inline-flex items-center gap-2 bg-red-100 rounded-full px-3 md:px-4 py-1 md:py-1.5 text-red-700 text-xs md:text-sm font-semibold mb-3 md:mb-4">
                 <Phone size={12} />
                 24/7
               </div>
@@ -573,12 +543,12 @@ export default function HomeClient() {
               <p className="text-gray-500 text-sm md:text-base mb-5 md:mb-8">{l(L.emergency.subtitle)}</p>
               <div className="flex flex-col sm:flex-row justify-center gap-2 md:gap-4">
                 <a href="mailto:admin@healwith.co.kr" className="inline-flex items-center justify-center gap-2 bg-white border border-gray-200 rounded-xl px-4 md:px-6 py-2.5 md:py-3 text-gray-700 text-sm md:text-base font-medium hover:border-teal-300 hover:shadow-md transition-all">
-                  <Mail size={16} className="text-teal-600" />
+                  <Mail size={16} className="text-teal-700" />
                   admin@healwith.co.kr
                 </a>
                 <button
                   onClick={() => router.push("/inquiry")}
-                  className="inline-flex items-center justify-center gap-2 bg-teal-600 text-white rounded-xl px-4 md:px-6 py-2.5 md:py-3 text-sm md:text-base font-medium hover:bg-teal-700 transition-colors shadow-lg shadow-teal-600/20"
+                  className="inline-flex items-center justify-center gap-2 bg-teal-700 text-white rounded-xl px-4 md:px-6 py-2.5 md:py-3 text-sm md:text-base font-medium hover:bg-teal-800 transition-colors shadow-lg shadow-teal-600/20"
                 >
                   <MessageCircle size={16} />
                   {l(L.misc.onlineInquiry)}
@@ -600,7 +570,7 @@ export default function HomeClient() {
               return (
                 <div key={i} className="flex items-start gap-3 md:gap-4 bg-white rounded-xl p-4 md:p-6 border border-gray-100">
                   <div className="w-10 h-10 md:w-12 md:h-12 bg-teal-50 rounded-lg md:rounded-xl flex items-center justify-center shrink-0">
-                    <Icon size={18} className="text-teal-600" />
+                    <Icon size={18} className="text-teal-700" />
                   </div>
                   <div>
                     <h3 className="font-bold text-sm md:text-base text-gray-900 mb-0.5 md:mb-1">{l(item.title)}</h3>
@@ -618,7 +588,7 @@ export default function HomeClient() {
           ══════════════════════════════════════════ */}
       <section className="relative bg-gradient-to-br from-slate-900 via-teal-900 to-slate-900 text-white py-14 md:py-24 overflow-hidden">
         <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-0 right-0 w-[300px] h-[300px] md:w-[400px] md:h-[400px] bg-teal-500/10 rounded-full blur-3xl" />
+          <div className="absolute top-0 right-0 w-[300px] h-[300px] md:w-[400px] md:h-[400px] bg-teal-700/10 rounded-full blur-3xl" />
           <div className="absolute bottom-0 left-0 w-[200px] h-[200px] md:w-[300px] md:h-[300px] bg-emerald-500/10 rounded-full blur-3xl" />
         </div>
         <div className="relative max-w-3xl mx-auto px-4 text-center">

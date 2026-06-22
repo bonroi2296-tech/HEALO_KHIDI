@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useLang } from "@/lib/i18n/LangContext";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { Eyebrow, Rule, ButtonGold, LinkArrow, FilmGrain } from "../../components/healo/Primitives";
@@ -49,7 +48,6 @@ const COPY = {
 };
 
 export default function LoginPremium() {
-  const router = useRouter();
   const lang = useLang();
   const copy = COPY[lang] || COPY.en;
 
@@ -71,7 +69,25 @@ export default function LoginPremium() {
         );
         return;
       }
-      router.push("/patient");
+      // 역할별 착지 경로 — 에이전시·병원·코디·의사·관리자는 각자 포털로.
+      // (예전엔 무조건 /patient 라 비환자 계정이 환자 화면을 봤음)
+      let dest = "/patient";
+      try {
+        const token = _data?.session?.access_token;
+        const res = await fetch("/api/me", {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+          credentials: "include",
+          cache: "no-store",
+        });
+        const j = await res.json();
+        if (j?.ok && j.landing) dest = j.landing;
+      } catch (_ignore) { /* 폴백 /patient */ }
+      // ?redirect= 내부 경로가 있으면 우선(스태프 포털 게이트에서 옴)
+      const rp = new URLSearchParams(window.location.search).get("redirect");
+      const safeRp = rp && rp.startsWith("/") && !rp.startsWith("//") ? rp : null;
+      // 하드 내비게이션: 로그인 페이지(레거시 헤더)→포털 전환 시 옛 UI가 잠깐
+      // 보이던 깜빡임 제거. 목적지를 깨끗한 SSR 상태로 새로 로드한다.
+      window.location.assign(safeRp || dest);
     } catch (_e) {
       setErr(copy.errorGeneric);
     } finally {
@@ -85,7 +101,7 @@ export default function LoginPremium() {
       await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: typeof window !== "undefined" ? `${window.location.origin}/patient` : undefined,
+          redirectTo: typeof window !== "undefined" ? `${window.location.origin}/auth/callback` : undefined,
         },
       });
     } catch (_e) {

@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
   try {
     const supabase = createServiceRoleClient() as any;
     const { data: agencies, error } = await supabase
-      .from("agencies").select("id, name, country, code, is_active, created_at")
+      .from("agencies").select("id, name, country, code, partner_type, is_active, created_at")
       .order("created_at", { ascending: false });
     if (error) return Response.json({ ok: false, error: "query_failed" }, { status: 500 });
 
@@ -85,13 +85,16 @@ export async function POST(request: NextRequest) {
       return Response.json({ ok: true, email, tempPassword, agencyName: agency.name });
     }
 
-    // (B) 에이전시 생성
+    // (B) 에이전시 / 해외 의료기관 생성 (partner_type 으로 구분)
     if (body.name) {
+      const partnerType =
+        body.partner_type === "medical_institution" ? "medical_institution" : "agency";
       const { data, error } = await supabase.from("agencies").insert({
         name: String(body.name).slice(0, 200),
         country: body.country ? String(body.country).slice(0, 100) : null,
         code: body.code ? String(body.code).slice(0, 50) : null,
         contact_email: body.contact_email ? String(body.contact_email).slice(0, 200) : null,
+        partner_type: partnerType,
       }).select("id").single();
       if (error) return Response.json({ ok: false, error: "create_failed" }, { status: 500 });
       return Response.json({ ok: true, id: data.id });

@@ -75,7 +75,11 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       ok: true,
-      agency: { id: auth.agencyId, name: auth.agencyName },
+      agency: {
+        id: auth.agencyId,
+        name: auth.agencyName,
+        partnerType: auth.partnerType || "agency",
+      },
       cases,
       statusSteps: CASE_STATUS_STEPS,
     });

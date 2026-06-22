@@ -85,7 +85,7 @@ export const TreatmentManager = ({
       <div className="flex justify-between items-center mb-4">
         <h2 className="font-bold">시술 목록</h2>
         {selectedHospitalId && (
-          <button onClick={handleNew} className="bg-teal-600 text-white p-1 lg:p-1 rounded flex items-center gap-1 text-sm">
+          <button onClick={handleNew} className="bg-teal-700 text-white p-1 lg:p-1 rounded flex items-center gap-1 text-sm">
             <Plus size={14}/>
             <span className="lg:hidden">추가</span>
           </button>
@@ -94,7 +94,7 @@ export const TreatmentManager = ({
       {treatmentsList.map(t=>(
         <div key={t.id} onClick={()=>handleSelectTreatment(t)} className={`p-3 border-b lg:border-b cursor-pointer hover:bg-gray-50 rounded-lg lg:rounded-none mb-1 lg:mb-0 border lg:border-0 ${editingTreatmentId===t.id?'bg-teal-50 border-teal-300 lg:border-l-4 lg:border-l-teal-500':'border-gray-200 lg:border-gray-100'}`}>
           <div className="font-bold text-sm">{t.name}</div>
-          <div className="text-xs text-teal-600">${t.price_min}</div>
+          <div className="text-xs text-teal-700">${t.price_min}</div>
         </div>
       ))}
     </>
@@ -122,7 +122,7 @@ export const TreatmentManager = ({
               <button 
                 onClick={handleSaveTreatment} 
                 disabled={loading}
-                className="bg-teal-600 text-white px-4 lg:px-6 py-2 lg:py-2.5 rounded-lg font-bold shadow-md hover:bg-teal-700 transition flex items-center gap-2 disabled:opacity-50 text-sm lg:text-base"
+                className="bg-teal-700 text-white px-4 lg:px-6 py-2 lg:py-2.5 rounded-lg font-bold shadow-md hover:bg-teal-800 transition flex items-center gap-2 disabled:opacity-50 text-sm lg:text-base"
               >
                 {loading ? <Loader2 size={16} className="animate-spin"/> : <Save size={16}/>}
                 {loading ? '저장 중...' : '저장'}
@@ -148,7 +148,7 @@ export const TreatmentManager = ({
                           href={s.url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-sm text-teal-600 hover:underline flex items-center gap-1"
+                          className="text-sm text-teal-700 hover:underline flex items-center gap-1"
                         >
                           <ExternalLink size={10} />
                           {s.title || s.url}
@@ -170,7 +170,7 @@ export const TreatmentManager = ({
                 </div>
                 <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
                   <label className="text-sm font-bold text-gray-700 flex-1">프론트 노출 여부</label>
-                  <button type="button" onClick={()=>setTreatmentForm({...treatmentForm, isPublished: !treatmentForm.isPublished})} className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${treatmentForm.isPublished?'bg-teal-600':'bg-gray-300'}`}>
+                  <button type="button" onClick={()=>setTreatmentForm({...treatmentForm, isPublished: !treatmentForm.isPublished})} className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${treatmentForm.isPublished?'bg-teal-700':'bg-gray-300'}`}>
                     <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${treatmentForm.isPublished?'translate-x-6':'translate-x-1'}`}/>
                   </button>
                   <span className="text-xs text-gray-600 w-16">{treatmentForm.isPublished?'노출':'숨김'}</span>
@@ -266,7 +266,7 @@ export const TreatmentManager = ({
               <DynamicListInput items={treatmentForm.tags||[]} onAdd={t=>setTreatmentForm({...treatmentForm, tags:[...(treatmentForm.tags||[]),t]})} onRemove={i=>setTreatmentForm({...treatmentForm, tags:(treatmentForm.tags||[]).filter((_,x)=>x!==i)})} placeholder="검색 태그"/>
               
               <label className="block text-sm font-bold text-gray-500 mt-2">시술 관련 이미지</label>
-              <p className="text-xs text-teal-600 bg-teal-50 p-2 rounded-lg mb-2 flex items-center gap-2">
+              <p className="text-xs text-teal-700 bg-teal-50 p-2 rounded-lg mb-2 flex items-center gap-2">
                 <Info size={14}/> 권장: 800x800px (1:1 비율)
               </p>
               <ImageUploader 
@@ -335,7 +335,7 @@ export const TreatmentManager = ({
           </div>
         ) : (
           <div>
-            <button onClick={() => setShowForm(false)} className="flex items-center gap-1 text-sm text-gray-600 mb-3 hover:text-teal-600">
+            <button onClick={() => setShowForm(false)} className="flex items-center gap-1 text-sm text-gray-600 mb-3 hover:text-teal-700">
               <ChevronLeft size={16}/> 목록으로
             </button>
             {formPanel}

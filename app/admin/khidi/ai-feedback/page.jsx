@@ -141,7 +141,7 @@ export default function AiFeedbackPage() {
         <button
           onClick={fetchData}
           disabled={loading}
-          className="flex items-center gap-2 px-4 py-2 text-sm bg-teal-600 text-white rounded-lg hover:bg-teal-700 disabled:opacity-50 transition"
+          className="flex items-center gap-2 px-4 py-2 text-sm bg-teal-700 text-white rounded-lg hover:bg-teal-800 disabled:opacity-50 transition"
         >
           <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
           새로고침
@@ -162,7 +162,7 @@ export default function AiFeedbackPage() {
           <p className="text-xs text-gray-400 mt-1">건</p>
         </div>
         <div className="bg-white rounded-xl border border-teal-200 p-5 shadow-sm text-center">
-          <p className="text-xs font-semibold text-teal-600 mb-1 flex items-center justify-center gap-1">
+          <p className="text-xs font-semibold text-teal-700 mb-1 flex items-center justify-center gap-1">
             <ThumbsUp size={12} /> 긍정
           </p>
           <p className="text-3xl font-bold text-teal-700">{stats.positive.toLocaleString()}</p>
@@ -247,7 +247,7 @@ export default function AiFeedbackPage() {
                   </div>
                   <Link
                     href={`/admin/inquiries?thread=${item.thread_id}`}
-                    className="shrink-0 flex items-center gap-1 text-xs text-teal-600 hover:text-teal-700 font-medium"
+                    className="shrink-0 flex items-center gap-1 text-xs text-teal-700 hover:text-teal-700 font-medium"
                   >
                     스레드 보기
                     <ExternalLink size={12} />

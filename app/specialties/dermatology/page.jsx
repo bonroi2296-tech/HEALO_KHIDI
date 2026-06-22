@@ -34,7 +34,7 @@ export const metadata = {
     description:
       "Explore advanced dermatology and skin treatments in Korea. Laser therapy, Botox, fillers, and rejuvenation at competitive prices.",
     type: "website",
-    url: "https://khidi.healo.kr/specialties/dermatology",
+    url: "https://healwith.co.kr/specialties/dermatology",
   },
   alternates: {
     canonical: "/specialties/dermatology",
@@ -56,7 +56,7 @@ const jsonLd = {
   name: "Dermatology",
   description:
     "Advanced dermatology and skin treatment services in South Korea, including laser therapy, Botox, dermal fillers, and skin rejuvenation programs.",
-  url: "https://khidi.healo.kr/specialties/dermatology",
+  url: "https://healwith.co.kr/specialties/dermatology",
   medicalSpecialty: "Dermatology",
   availableService: [
     {
@@ -185,7 +185,7 @@ function DermatologyContent() {
             </span>
             <h1 className="text-3xl md:text-5xl font-bold text-gray-900 mb-4 leading-tight">
               Advanced{" "}
-              <span className="text-teal-600">Dermatology & Skin Treatments</span>{" "}
+              <span className="text-teal-700">Dermatology & Skin Treatments</span>{" "}
               in Korea
             </h1>
             <p className="text-lg md:text-xl text-gray-600 max-w-2xl mx-auto mb-8">
@@ -195,7 +195,7 @@ function DermatologyContent() {
             </p>
             <Link
               href="/inquiry"
-              className="inline-flex items-center gap-2 px-6 py-3 bg-teal-600 text-white font-semibold rounded-xl hover:bg-teal-700 transition-colors"
+              className="inline-flex items-center gap-2 px-6 py-3 bg-teal-700 text-white font-semibold rounded-xl hover:bg-teal-800 transition-colors"
             >
               Get Your Free Consultation
               <ArrowRight size={18} />
@@ -215,7 +215,7 @@ function DermatologyContent() {
                   key={item.title}
                   className="flex gap-4 bg-gray-50 rounded-xl p-5"
                 >
-                  <div className="flex-shrink-0 w-10 h-10 rounded-full bg-teal-100 text-teal-600 flex items-center justify-center">
+                  <div className="flex-shrink-0 w-10 h-10 rounded-full bg-teal-100 text-teal-700 flex items-center justify-center">
                     <item.icon size={20} />
                   </div>
                   <div>
@@ -247,7 +247,7 @@ function DermatologyContent() {
                   </h3>
                   <p className="text-sm text-gray-600 mb-4">{t.description}</p>
                   <div className="flex items-center gap-2 mb-4">
-                    <DollarSign size={16} className="text-teal-600" />
+                    <DollarSign size={16} className="text-teal-700" />
                     <span className="text-sm font-semibold text-teal-700">
                       {t.priceRange}
                     </span>
@@ -281,10 +281,10 @@ function DermatologyContent() {
             <div className="grid md:grid-cols-3 gap-6">
               {steps.map((step) => (
                 <div key={step.number} className="text-center">
-                  <div className="w-12 h-12 rounded-full bg-teal-100 text-teal-600 flex items-center justify-center mx-auto mb-4">
+                  <div className="w-12 h-12 rounded-full bg-teal-100 text-teal-700 flex items-center justify-center mx-auto mb-4">
                     <step.icon size={22} />
                   </div>
-                  <div className="text-xs font-semibold text-teal-600 mb-1">
+                  <div className="text-xs font-semibold text-teal-700 mb-1">
                     STEP {step.number}
                   </div>
                   <h3 className="text-lg font-bold text-gray-900 mb-2">
@@ -298,7 +298,7 @@ function DermatologyContent() {
         </section>
 
         {/* CTA */}
-        <section className="bg-teal-600 px-4 py-12 md:py-16">
+        <section className="bg-teal-700 px-4 py-12 md:py-16">
           <div className="max-w-3xl mx-auto text-center">
             <h2 className="text-2xl md:text-3xl font-bold text-white mb-4">
               Ready to Transform Your Skin?

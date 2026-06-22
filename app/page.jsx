@@ -5,6 +5,7 @@ import HomeClientPremium from "./home/HomeClientPremium";
 import Script from "next/script";
 import { getServerDesignMode } from "@/lib/designMode";
 import { localizedMeta } from "@/lib/i18n/metadata";
+import { partnerHospitalLdList } from "@/lib/seo/structuredData";
 
 // 홈 페이지 메타 — 언어별 alternates 로 각 언어권 검색엔진이 올바른 버전 노출
 // Google·Yandex·Baidu 모두 hreflang 을 통해 언어별 title 매칭
@@ -63,10 +64,12 @@ const jsonLd = {
   name: "healwith",
   description:
     "ICT pre-consultation and post-care platform connecting international cancer patients with top Korean oncologists. Real-time interpretation in 6 languages.",
-  url: "https://khidi.healo.kr",
-  logo: "https://khidi.healo.kr/icons/icon-512x512.png",
+  url: "https://healwith.co.kr",
+  logo: "https://healwith.co.kr/icons/icon-512x512.png",
   areaServed: [
     { "@type": "Country", name: "South Korea" },
+    { "@type": "Country", name: "Kazakhstan" },
+    { "@type": "Country", name: "Russia" },
   ],
   availableLanguage: [
     { "@type": "Language", name: "Korean" },
@@ -78,6 +81,8 @@ const jsonLd = {
   ],
   medicalSpecialty: ["Oncology"],
   serviceType: "Cancer Pre-consultation & Post-care Platform",
+  // 실제 제휴/협진 병원 네트워크(partnerHospitals 실데이터) — 검색엔진 전용, 화면 변화 0
+  department: partnerHospitalLdList(),
 };
 
 export default async function HomePage({ searchParams }) {

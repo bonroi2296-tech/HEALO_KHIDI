@@ -9,7 +9,7 @@
 import "server-only";
 
 import { createHash } from "crypto";
-import { generateText } from "ai";
+import { generateText, streamText } from "ai";
 import { google } from "@ai-sdk/google";
 import { supabaseAdmin } from "../rag/supabaseAdmin";
 import { hashQuery, logRagDisabled } from "../rag/ragQueryEvents";
@@ -17,6 +17,8 @@ import { searchHospitalsAndTreatments } from "./dbSearch";
 import { searchExternal } from "./externalSearch";
 import { runJudgeInBackground } from "./judge";
 import { CARE_REFERENCE } from "./careReference";
+import { BoundedCache } from "../util/boundedCache";
+import { mentionsCancerType, isTopicCorrection, correctionReply } from "./topicGuards";
 
 type ChatMessage = { role: "user" | "assistant" | "system"; content: string };
 
@@ -38,6 +40,19 @@ export function getModelName() {
   return "gemini-flash-latest";
 }
 
+// Gemini 안전필터(safety filter) 설정.
+// 왜: 이 서비스의 핵심 질의가 "암 치료/항암/수술" 등 의료 내용인데, Gemini 기본값
+// (BLOCK_MEDIUM_AND_ABOVE)은 DANGEROUS_CONTENT 카테고리에서 암·치료 논의를 간헐적으로
+// 차단 → 빈 응답(finishReason=SAFETY)으로 떨어지는 버그(2026-06-21 재현). 이 챗봇은
+// 시스템 프롬프트에 진단·처방 금지 등 의료 레드라인 가드가 이미 강하게 박혀 있으므로,
+// 모델 단의 확률적 안전차단은 끄고(애플리케이션 가드가 진짜 안전선) 빈 응답을 없앤다.
+const SAFETY_SETTINGS = [
+  { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
+  { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
+  { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
+  { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" },
+] as const;
+
 // 빈 응답 방어용 안내 메시지(6개 언어). 모델이 빈 텍스트를 반환(추론이 토큰을
 // 소진/안전필터/구조화 파싱 실패)할 때 빈 말풍선 대신 노출 + 코디 연결 유도.
 const EMPTY_REPLY_FALLBACK: Record<string, string> = {
@@ -49,9 +64,21 @@ const EMPTY_REPLY_FALLBACK: Record<string, string> = {
   ja: "申し訳ありません、ただいま回答を生成できませんでした。質問を言い換えていただくか、メニューからコーディネーターにおつなぎください。",
 };
 
+// 쿼리 임베딩 메모이즈: 같은 텍스트는 항상 같은 벡터(결정적)라 캐시가 100% 안전.
+// 반복 질문(인사·흔한 암 질문·재시도)에서 임베딩 네트워크 왕복(~0.6~1s)을 건너뛰어
+// 첫 글자까지 시간(TTFT)을 줄인다. 서버리스 인스턴스 수명 동안만 유지(상한 200).
+const EMBEDDING_CACHE = new BoundedCache<string, number[]>(200);
+
 export async function getEmbedding(text: string): Promise<number[] | null> {
   const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
   if (!apiKey) return null;
+
+  const cacheKey = (text || "").trim();
+  if (cacheKey) {
+    const cached = EMBEDDING_CACHE.get(cacheKey);
+    if (cached) return cached;
+  }
+
   try {
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${EMBEDDING_MODEL}:embedContent?key=${apiKey}`;
     const res = await fetch(url, {
@@ -62,11 +89,14 @@ export async function getEmbedding(text: string): Promise<number[] | null> {
         taskType: "RETRIEVAL_QUERY",
         outputDimensionality: EMBEDDING_DIMS,
       }),
-      signal: AbortSignal.timeout(8000),
+      // 4초 상한: 임베딩이 느리면 응답 전체가 인질이 됨. 초과 시 RAG만 우아하게 포기(null→[]).
+      signal: AbortSignal.timeout(4000),
     });
     if (!res.ok) return null;
     const data = await res.json();
-    return data?.embedding?.values ?? null;
+    const values = data?.embedding?.values ?? null;
+    if (values && cacheKey) EMBEDDING_CACHE.set(cacheKey, values);
+    return values;
   } catch {
     return null;
   }
@@ -99,15 +129,32 @@ export async function fetchRagChunks(query: string, lang: string, threadId?: str
   const seenIds = new Set<string>();
 
   if (embedding) {
-    const { data: pbData } = await supabaseAdmin.rpc("rag_search_chunks_v1_1", {
-      query_embedding: JSON.stringify(embedding),
-      match_count: PLAYBOOK_LIMIT,
-      p_lang: lang,
-      p_source_type: "playbook_pattern",
-      p_partner_only: false,
-      p_ab_enabled: abEnabled,
-      p_thread_hash: threadHash,
-    });
+    // playbook 검색과 일반검색을 병렬로(둘은 독립 RPC). 일반검색은 playbook 회수량을
+    // 모르는 상태에서 미리 던지므로 넉넉히(TOTAL+2) 받아와, 아래에서 playbook 우선 채운
+    // 뒤 남는 자리만큼만 dedup해서 채운다(기존 결과 구성과 동일, 왕복만 2→1로 단축).
+    const embStr = JSON.stringify(embedding);
+    const [pbRes, genRes] = await Promise.all([
+      supabaseAdmin.rpc("rag_search_chunks_v1_1", {
+        query_embedding: embStr,
+        match_count: PLAYBOOK_LIMIT,
+        p_lang: lang,
+        p_source_type: "playbook_pattern",
+        p_partner_only: false,
+        p_ab_enabled: abEnabled,
+        p_thread_hash: threadHash,
+      }),
+      supabaseAdmin.rpc("rag_search_chunks_v1_1", {
+        query_embedding: embStr,
+        match_count: TOTAL_LIMIT + 2,
+        p_lang: lang,
+        p_source_type: undefined,
+        p_partner_only: false,
+        p_ab_enabled: abEnabled,
+        p_thread_hash: threadHash,
+      }),
+    ]);
+
+    const pbData = pbRes.data;
     if (pbData?.length) {
       playbookChunks = pbData.map((row: any) => {
         seenIds.add(row.chunk_id);
@@ -124,31 +171,21 @@ export async function fetchRagChunks(query: string, lang: string, threadId?: str
     }
 
     const remaining = TOTAL_LIMIT - playbookChunks.length;
-    if (remaining > 0) {
-      const { data: genData } = await supabaseAdmin.rpc("rag_search_chunks_v1_1", {
-        query_embedding: JSON.stringify(embedding),
-        match_count: remaining + 2,
-        p_lang: lang,
-        p_source_type: undefined,
-        p_partner_only: false,
-        p_ab_enabled: abEnabled,
-        p_thread_hash: threadHash,
-      });
-      if (genData?.length) {
-        for (const row of genData) {
-          if (seenIds.has(row.chunk_id)) continue;
-          if (generalChunks.length >= remaining) break;
-          seenIds.add(row.chunk_id);
-          generalChunks.push({
-            content: row.content,
-            trust_tier: row.trust_tier,
-            source_label: row.source_label,
-            doc_title: row.doc_title,
-            doc_source_type: row.doc_source_type,
-            doc_source_id: row.doc_source_id,
-            rag_documents: { source_type: row.doc_source_type, title: row.doc_title },
-          });
-        }
+    const genData = genRes.data;
+    if (remaining > 0 && genData?.length) {
+      for (const row of genData) {
+        if (seenIds.has(row.chunk_id)) continue;
+        if (generalChunks.length >= remaining) break;
+        seenIds.add(row.chunk_id);
+        generalChunks.push({
+          content: row.content,
+          trust_tier: row.trust_tier,
+          source_label: row.source_label,
+          doc_title: row.doc_title,
+          doc_source_type: row.doc_source_type,
+          doc_source_id: row.doc_source_id,
+          rag_documents: { source_type: row.doc_source_type, title: row.doc_title },
+        });
       }
     }
   }
@@ -211,6 +248,7 @@ export function buildSystemPrompt(
   useWebSearch = false,
   externalSources: string[] = [],
   hospitalGuard: HospitalGuardOptions = {},
+  currentMentionsCancer = true,
 ): string {
   const hasContext = !!contextText;
   const hasDbData = contextText.includes("healwith 등록");
@@ -219,6 +257,11 @@ export function buildSystemPrompt(
   const { hospitalGuardActive = false, hospitalIntentNoMatch = false } = hospitalGuard;
 
   return [
+    // 코드 강제 가드(맨 위 = 최우선): 현재 메시지에 암종이 없으면 옛 화제(대장암 등)를 끌어와
+    // 단정하는 over-anchoring 을 막는다. 프롬프트 중간 규칙만으론 누적 스레드에서 안 꺾여 최상단에 둠.
+    !currentMentionsCancer
+      ? "⚠️ TOP PRIORITY — THE USER'S CURRENT MESSAGE DOES NOT NAME A CANCER TYPE: Do NOT mention, assume, or bring up ANY specific cancer (대장암/colorectal, 유방암/breast, 폐암/lung, 위암/stomach, etc.). Earlier messages in this chat do NOT give you permission. Answer ONLY the current question, in general terms ('your cancer' / 'the treatment'), and reply in the SAME language as the user's current message."
+      : "",
     "You are healwith's AI agent — a medical concierge that CONNECTS international patients with Korean hospitals and oncology specialists.",
     "You are NOT the treating party: you do not diagnose, read scans/labs, or prescribe — licensed Korean doctors do that. Your job is to guide, inform from verified Context, and connect.",
     "",
@@ -235,6 +278,11 @@ export function buildSystemPrompt(
     "- Specific medical need (cancer type, symptoms, treatment) → recommend from Context only.",
     "- Off-topic (non-medical) → politely redirect to medical assistance topic.",
     "",
+    "STAY ON THE PATIENT'S ACTUAL QUESTION — DO NOT ASSUME THEIR DIAGNOSIS (CRITICAL — caused real complaints):",
+    "- NEVER name or assume a specific cancer type (대장암/colorectal, 유방암/breast, 폐암/lung, 위암/stomach, etc.) unless the user EXPLICITLY named it in their CURRENT message. The reference data below lists many cancers as examples ONLY — never pick one on the patient's behalf.",
+    "- Earlier mentions in the chat are NOT permission to keep assuming. If the current message is general (e.g. 'what's the procedure', 'how do I start', '절차 알려줘'), answer generally ('your cancer', 'the treatment') WITHOUT naming a cancer type.",
+    "- HONOR CORRECTIONS INSTANTLY: if the user pushes back or corrects you ('I didn't say X', 'that's not what I asked', 'not X', '아니', '말고', '아니라고', '안했는데'), apologize in ONE short line, DROP that topic completely, and ask what they actually want. NEVER repeat or keep explaining the rejected topic — repeating a cancer type after the user rejected it is the single worst failure.",
+    "",
     "RESPONSE RULES (this is a small MOBILE chat bubble — brevity is mandatory):",
     "- ANSWER THE ACTUAL QUESTION the user asked, in a warm, human, conversational way — like a caring coordinator texting back, NOT a textbook or a price sheet. Talk WITH them, do not recite data AT them.",
     "- KEEP THE WHOLE REPLY SHORT: aim for 3-5 short lines, under ~70 words total. A wall of text makes the patient leave. If there is more to say, end with ONE short line offering to continue (e.g. 'Want the rough cost range too?').",
@@ -242,6 +290,7 @@ export function buildSystemPrompt(
     "- NEVER dump a bare figure like '₩18M' or '$13,500' as the answer. A price, when asked, is a gentle range inside a full sentence, never the opening words.",
     "- PLAIN TEXT ONLY. The chat does NOT render markdown — never use **, *, ***, ##, ---, backticks, or tables; they appear as literal symbols and look broken. For a short list use a simple '- ' prefix or '1. 2. 3.' only.",
     "- No preamble, no restating the question, no 'If you sent me X, I would say...'. Answer directly.",
+    "- OUTPUT ONLY THE FINAL MESSAGE TO THE PATIENT. Never reveal your own planning or self-talk: no 'Wait,', no 'let's keep it short / shorter / cleaner', no word counts like '(32 words)', no notes-to-self in asterisks or brackets. If you start writing a note about HOW to answer, delete it — send only the answer itself.",
     "- Respond in the same language the user writes in.",
     "- If unsure, say 'I'm not sure — let me connect a coordinator'. Honesty > confident wrong answer.",
     "- TONE: the user is often an anxious cancer patient or family. If they share distressing news (advanced-stage cancer, fear, a sick family member), open with ONE brief empathetic sentence before guidance. Warm but never exaggerated — no emoji spam, no hollow marketing phrases.",
@@ -377,6 +426,52 @@ Schema:
 Only include a PATTERN_ID in used_pattern_ids if you directly used that playbook context to form your answer.
 `.trim();
 
+// 일시적(transient) Gemini 오류 판별 — 503 과부하·타임아웃·연결 끊김·일시 한도.
+// 이런 오류는 같은 요청을 잠깐 뒤 다시 보내면 대개 성공 → 사용자에게 에러 안 보이게 재시도.
+function isTransientModelError(err: any): boolean {
+  const msg = String(err?.message || err || "");
+  const code = (err?.statusCode ?? err?.status ?? "").toString();
+  return (
+    /503|502|500|overload|unavailable|timeout|timed out|ETIMEDOUT|ECONNRESET|ECONNREFUSED|fetch failed|network|deadline|temporar/i.test(msg) ||
+    /^5\d\d$/.test(code) ||
+    code === "429"
+  );
+}
+
+const sleepMs = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+// generateText 재시도 래퍼: 일시 오류 또는 빈 응답이면 짧은 백오프로 재시도.
+// 빈 응답까지 재시도하는 이유 — 모델이 드물게 빈 텍스트를 반환(안전필터·구조화 흔들림)하는데
+// 한 번 더 보내면 정상 응답이 오는 경우가 많음. 최종 빈 응답은 상위의 EMPTY 가드가 처리.
+async function generateTextWithRetry(params: any, maxAttempts = 3): Promise<any> {
+  let lastResult: any = null;
+  let lastError: any = null;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      const result = await generateText(params);
+      if (result?.text && result.text.trim()) return result;
+      lastResult = result;
+      console.warn(
+        `[generateChatReply] empty text attempt ${attempt}/${maxAttempts} ` +
+        `finishReason=${(result as any)?.finishReason}`
+      );
+    } catch (e: any) {
+      lastError = e;
+      const transient = isTransientModelError(e);
+      console.warn(
+        `[generateChatReply] generateText error attempt ${attempt}/${maxAttempts} ` +
+        `transient=${transient} msg=${String(e?.message || e).slice(0, 120)}`
+      );
+      // 영구성 오류(잘못된 키·요청)면 즉시 중단 — 재시도해도 똑같음
+      if (!transient) throw e;
+    }
+    if (attempt < maxAttempts) await sleepMs(400 * attempt);
+  }
+  // 모든 시도 소진: 마지막이 예외였으면 던지고(상위 catch), 빈 결과였으면 그대로 반환(EMPTY 가드行)
+  if (lastError && !lastResult) throw lastError;
+  return lastResult;
+}
+
 function parseStructuredReply(
   raw: string,
   injectedPatternIds: string[]
@@ -473,6 +568,111 @@ function smallTalkReply(text: string, lang: string): string {
   return set.default;
 }
 
+function correctionResult(reply: string, t0: number): ChatReplyResult {
+  return {
+    reply,
+    ragChunks: [],
+    _analytics: {
+      retrievedPatternIds: [],
+      usedPatternIds: [],
+      declaredUsedPatternIds: [],
+      analyticsFallback: false,
+      ragScoring: "topic_correction_reset",
+      latencyMs: Date.now() - t0,
+    },
+  };
+}
+
+// 검색(DB+RAG+외부) → 컨텍스트 → 시스템 프롬프트 → 생성설정까지의 공통 준비 단계.
+// generateChatReply(비스트리밍)와 streamChatReply(스트리밍)가 동일 로직을 공유해 분기로 인한
+// 품질 드리프트를 막는다. systemPrompt 에는 JSON 출력 지시를 붙이지 않음(호출자가 결정).
+interface PreparedGeneration {
+  model: any | null;
+  systemPrompt: string;
+  genConfig: { maxOutputTokens: number; providerOptions: any };
+  ragChunks: any[];
+  injectedPatternIds: string[];
+  retrievedPatternIds: string[];
+  allContext: string;
+  ragScoring: string;
+}
+
+async function prepareGeneration(
+  query: string,
+  lang: string,
+  threadId?: string
+): Promise<PreparedGeneration> {
+  // 1단계: healwith DB 직접 검색 (최우선) + RAG 벡터 검색 (병렬 실행)
+  const [dbResult, ragChunks] = await Promise.all([
+    searchHospitalsAndTreatments(query).catch((e) => {
+      console.error("[generateReply] db search failed:", e);
+      return { context: "", hospitalCount: 0, treatmentCount: 0 } as const;
+    }),
+    fetchRagChunks(query, lang, threadId),
+  ]);
+
+  const ragScoring = ragChunks.length > 0 ? "vector_cosine_similarity" : "no_results";
+  const { text: contextText, hasTier3, usedPatternIds: injectedPatternIds } = buildContext(ragChunks);
+  const dbContext = dbResult.context;
+  const matchedHospitalNames = (dbResult as any).matchedHospitalNames ?? [];
+  const hospitalMatchType = (dbResult as any).hospitalMatchType ?? "none";
+
+  const HOSPITAL_KEYWORDS = /병원|의원|한방병원|클리닉|clinic|hospital/i;
+  const hospitalIntent = HOSPITAL_KEYWORDS.test(query) || matchedHospitalNames.length > 0;
+  const hospitalGuardActive = hospitalIntent && matchedHospitalNames.length > 0;
+
+  console.log(`[generateReply] query="${query.slice(0, 80)}" | hospitalIntent=${hospitalIntent} | matchType=${hospitalMatchType} | dbHospitals=${matchedHospitalNames.length} | ragChunks=${ragChunks.length}`);
+  if (matchedHospitalNames.length > 0) {
+    console.log(`[generateReply] matchedHospitals:`, matchedHospitalNames);
+  }
+
+  // DB 결과를 RAG보다 앞에 배치 (healwith 등록 데이터 우선)
+  const internalContext = [dbContext, contextText].filter(Boolean).join("\n");
+
+  // 외부 검색: hospital_intent+DB매칭 시 외부 검색 차단
+  let externalContext = "";
+  let externalSources: string[] = [];
+  if (!internalContext && !hospitalGuardActive) {
+    try {
+      const ext = await searchExternal(query);
+      externalContext = ext.context;
+      externalSources = ext.sources;
+    } catch (e) {
+      console.error("[generateReply] external search failed:", e);
+    }
+  }
+
+  const allContext = [internalContext, externalContext].filter(Boolean).join("\n\n");
+  const useWebSearch = !allContext && !hospitalGuardActive;
+  const systemPrompt = buildSystemPrompt(allContext, hasTier3, useWebSearch, externalSources, {
+    hospitalGuardActive,
+    hospitalIntentNoMatch: hospitalIntent && matchedHospitalNames.length === 0,
+  }, mentionsCancerType(query));
+  const retrievedPatternIds = extractRetrievedPatternIds(ragChunks);
+  const model = getModel();
+
+  return {
+    model,
+    systemPrompt,
+    genConfig: {
+      // 비용·가독성 가드 + 빈답/잘림 방어 (thinkingBudget:0, 상한 8192) — 상세는 아래 주석 참조.
+      maxOutputTokens: 8192,
+      providerOptions: {
+        google: {
+          thinkingConfig: { thinkingBudget: 0 },
+          safetySettings: SAFETY_SETTINGS as any,
+          ...(useWebSearch ? { useSearchGrounding: true } : {}),
+        },
+      },
+    },
+    ragChunks,
+    injectedPatternIds,
+    retrievedPatternIds,
+    allContext,
+    ragScoring,
+  };
+}
+
 export async function generateChatReply(
   messages: ChatMessage[],
   query: string,
@@ -498,57 +698,19 @@ export async function generateChatReply(
     };
   }
 
+  // 화제 정정("그거 안 물어봤다 / 아니라고") — 모델을 거치면 누적된 옛 화제(대장암)를 또 우기므로
+  // 결정적 사과+재질문으로 화제를 리셋한다. 정정 문장 속 암종어는 "거부 대상"이라 게이트하지
+  // 않는다("난 대장암 안 물어봤는데"=대장암 거부). "A 말고 B"처럼 새 화제를 주는 건 패턴에서 제외됨.
+  if (isTopicCorrection(query)) {
+    return correctionResult(correctionReply(lang), t0);
+  }
+
   try {
-    // 1단계: healwith DB 직접 검색 (최우선) + RAG 벡터 검색 (병렬 실행)
-    const [dbResult, ragChunks] = await Promise.all([
-      searchHospitalsAndTreatments(query).catch((e) => {
-        console.error("[generateReply] db search failed:", e);
-        return { context: "", hospitalCount: 0, treatmentCount: 0 } as const;
-      }),
-      fetchRagChunks(query, lang, threadId),
-    ]);
+    const prep = await prepareGeneration(query, lang, threadId);
+    ragScoring = prep.ragScoring;
+    const { ragChunks, injectedPatternIds, retrievedPatternIds, allContext } = prep;
 
-    ragScoring = ragChunks.length > 0 ? "vector_cosine_similarity" : "no_results";
-    const { text: contextText, hasTier3, usedPatternIds: injectedPatternIds } = buildContext(ragChunks);
-    const dbContext = dbResult.context;
-    const matchedHospitalNames = (dbResult as any).matchedHospitalNames ?? [];
-    const hospitalMatchType = (dbResult as any).hospitalMatchType ?? "none";
-
-    const HOSPITAL_KEYWORDS = /병원|의원|한방병원|클리닉|clinic|hospital/i;
-    const hospitalIntent = HOSPITAL_KEYWORDS.test(query) || matchedHospitalNames.length > 0;
-    const hospitalGuardActive = hospitalIntent && matchedHospitalNames.length > 0;
-
-    console.log(`[generateReply] query="${query.slice(0, 80)}" | hospitalIntent=${hospitalIntent} | matchType=${hospitalMatchType} | dbHospitals=${matchedHospitalNames.length} | ragChunks=${ragChunks.length}`);
-    if (matchedHospitalNames.length > 0) {
-      console.log(`[generateReply] matchedHospitals:`, matchedHospitalNames);
-    }
-
-    // DB 결과를 RAG보다 앞에 배치 (healwith 등록 데이터 우선)
-    const internalContext = [dbContext, contextText].filter(Boolean).join("\n");
-
-    // 외부 검색: hospital_intent+DB매칭 시 외부 검색 차단
-    let externalContext = "";
-    let externalSources: string[] = [];
-    if (!internalContext && !hospitalGuardActive) {
-      try {
-        const ext = await searchExternal(query);
-        externalContext = ext.context;
-        externalSources = ext.sources;
-      } catch (e) {
-        console.error("[generateReply] external search failed:", e);
-      }
-    }
-
-    const allContext = [internalContext, externalContext].filter(Boolean).join("\n\n");
-    const useWebSearch = !allContext && !hospitalGuardActive;
-    const systemPrompt = buildSystemPrompt(allContext, hasTier3, useWebSearch, externalSources, {
-      hospitalGuardActive,
-      hospitalIntentNoMatch: hospitalIntent && matchedHospitalNames.length === 0,
-    });
-    const retrievedPatternIds = extractRetrievedPatternIds(ragChunks);
-
-    const model = getModel();
-    if (!model) {
+    if (!prep.model) {
       return {
         reply: "I'm sorry, the AI service is temporarily unavailable. Please try again later.",
         ragChunks,
@@ -565,26 +727,32 @@ export async function generateChatReply(
     }
 
     const fullSystemPrompt = injectedPatternIds.length > 0
-      ? systemPrompt + "\n\n" + JSON_OUTPUT_INSTRUCTION
-      : systemPrompt;
+      ? prep.systemPrompt + "\n\n" + JSON_OUTPUT_INSTRUCTION
+      : prep.systemPrompt;
 
-    const result = await generateText({
-      model,
+    const baseParams = {
+      model: prep.model,
       system: fullSystemPrompt,
-      messages: messages as any,
-      // 비용·가독성 가드: 응답 길이 상한 (모바일 채팅 벽지 방지 + 토큰 폭주 차단)
-      // ⚠️ gemini-flash-latest 는 thinking(추론) 토큰이 maxOutputTokens 에 포함됨 →
-      //    상한이 낮으면 추론이 예산을 다 먹고 실제 답변이 잘리거나 통째로 빈칸(2026-06-20 빈답 버그).
-      //    thinkingBudget:0 으로 추론을 끄되, 별칭(latest)이 옵션을 무시할 경우까지 대비해
-      //    상한을 2048 로 올려 답변 토큰 여유 확보(빈답 방어는 아래 EMPTY 가드가 최종 안전망).
-      maxOutputTokens: 2048,
-      providerOptions: {
-        google: {
-          thinkingConfig: { thinkingBudget: 0 },
-          ...(useWebSearch ? { useSearchGrounding: true } : {}),
-        },
-      },
-    });
+      ...prep.genConfig,
+    };
+
+    let result = await generateTextWithRetry({ ...baseParams, messages: messages as any });
+
+    // 🔁 빈 응답 복구(핵심 수정 2026-06-21): 대화 기록이 길고 반복적으로 쌓이면 Gemini 가
+    // finishReason=stop 으로 빈 텍스트를 반환한다(A/B 실측: 새 스레드 0/12 vs 기록누적 스레드 2/12).
+    // 원인은 "모델이 직전 자기 답변을 다시 보고 '이미 답했음'으로 종료"하는 것 → 직전 어시스턴트
+    // 답변을 포함해 재시도하면(slice(-2)) 똑같이 빈다(14/24 재현). 그래서 복구는 마지막 사용자
+    // 질문 1건만 보낸다(slice(-1)) — 새 스레드와 동일 조건이라 위 A 테스트에서 빈응답 0%.
+    // 트레이드오프: 직전 맥락 없이 답하지만, 빈 말풍선보다 낫다(이 경로는 빈 응답일 때만 탐).
+    const lastUser = [...messages].reverse().find((m) => m.role === "user");
+    if ((!result?.text || !result.text.trim()) && lastUser && messages.length > 1) {
+      console.warn(
+        `[generateChatReply] empty after retries (finishReason=${(result as any)?.finishReason}) ` +
+        `— retrying with last user message only (of ${messages.length} msgs)`
+      );
+      const reducedResult = await generateTextWithRetry({ ...baseParams, messages: [lastUser] as any }, 2);
+      if (reducedResult?.text && reducedResult.text.trim()) result = reducedResult;
+    }
 
     let finalReply: string;
     let declaredUsedIds: string[];
@@ -612,7 +780,8 @@ export async function generateChatReply(
         `query="${query.slice(0, 60)}"`
       );
       finalReply = EMPTY_REPLY_FALLBACK[lang] || EMPTY_REPLY_FALLBACK.en;
-      emptyError = "empty_model_text";
+      // finishReason 을 에러코드에 실어 다음 발생 시 원인(SAFETY/MAX_TOKENS/…)을 API 응답·메타데이터에서 바로 확인 가능하게.
+      emptyError = `empty_model_text:${(result as any)?.finishReason ?? "unknown"}`;
     }
 
     const finalResult: ChatReplyResult = {
@@ -644,6 +813,175 @@ export async function generateChatReply(
     console.error("[generateChatReply] error:", err.message);
     return {
       reply: "I'm sorry, something went wrong. Please try again.",
+      ragChunks: [],
+      error: err.message,
+      _analytics: {
+        retrievedPatternIds: [],
+        usedPatternIds: [],
+        declaredUsedPatternIds: [],
+        analyticsFallback: true,
+        ragScoring,
+        latencyMs: Date.now() - t0,
+      },
+    };
+  }
+}
+
+/**
+ * 스트리밍 AI 응답 생성 — 토큰을 받는 즉시 onChunk 로 흘려보내 체감 지연을 줄인다.
+ * 비스트리밍 generateChatReply 와 동일한 검색·프롬프트(prepareGeneration)를 공유한다.
+ *
+ * 차이점(의도된 트레이드오프):
+ * - 평문만 스트리밍하므로 JSON 출력(used_pattern_ids 선언)을 쓰지 않는다 → playbook 사용
+ *   분석은 fallback(회수=사용 간주)로 기록. 정밀 귀속이 필요하면 비스트리밍 경로를 쓴다.
+ * - 빈 응답이면 마지막 사용자 메시지만으로 비스트리밍 1회 복구 시도 후, 그래도 비면 안내문 치환.
+ *
+ * @returns 스트림이 끝난 뒤의 최종 결과(reply 전문 + 분석). onChunk 콜백으로 토큰이 전달됨.
+ */
+export async function streamChatReply(
+  messages: ChatMessage[],
+  query: string,
+  lang: string,
+  threadId: string | undefined,
+  onChunk: (text: string) => void
+): Promise<ChatReplyResult> {
+  const t0 = Date.now();
+  let ragScoring = "none";
+
+  // 짧은 인사·잡담 — RAG 검색 없이 즉시 응답(한 덩어리로 스트림)
+  if (isSmallTalk(query)) {
+    const reply = smallTalkReply(query, lang);
+    onChunk(reply);
+    return {
+      reply,
+      ragChunks: [],
+      _analytics: {
+        retrievedPatternIds: [],
+        usedPatternIds: [],
+        declaredUsedPatternIds: [],
+        analyticsFallback: false,
+        ragScoring: "small_talk_bypass",
+        latencyMs: Date.now() - t0,
+      },
+    };
+  }
+
+  // 화제 정정 — 모델 미경유 결정적 사과+재질문(누적 over-anchoring 방지). 비스트림과 동일 규칙.
+  if (isTopicCorrection(query)) {
+    const reply = correctionReply(lang);
+    onChunk(reply);
+    return correctionResult(reply, t0);
+  }
+
+  try {
+    const prep = await prepareGeneration(query, lang, threadId);
+    ragScoring = prep.ragScoring;
+    const { ragChunks, injectedPatternIds, retrievedPatternIds, allContext } = prep;
+
+    if (!prep.model) {
+      const reply = "I'm sorry, the AI service is temporarily unavailable. Please try again later.";
+      onChunk(reply);
+      return {
+        reply,
+        ragChunks,
+        error: "model_unavailable",
+        _analytics: {
+          retrievedPatternIds,
+          usedPatternIds: injectedPatternIds,
+          declaredUsedPatternIds: [],
+          analyticsFallback: true,
+          ragScoring,
+          latencyMs: Date.now() - t0,
+        },
+      };
+    }
+
+    // 스트리밍은 평문만 보냄 → JSON 출력 지시 미부착(비스트리밍과의 유일한 프롬프트 차이).
+    const baseParams = {
+      model: prep.model,
+      system: prep.systemPrompt,
+      ...prep.genConfig,
+    };
+
+    let fullText = "";
+    let finishReason: any = undefined;
+    try {
+      const sr = streamText({ ...baseParams, messages: messages as any });
+      for await (const chunk of sr.textStream) {
+        fullText += chunk;
+        onChunk(chunk);
+      }
+      try {
+        finishReason = await sr.finishReason;
+      } catch {
+        /* finishReason 조회 실패는 무시 */
+      }
+    } catch (e: any) {
+      console.warn(`[streamChatReply] stream error: ${String(e?.message || e).slice(0, 120)}`);
+    }
+
+    // 🔁 빈 응답 복구: 스트림이 비면(안전필터·기록누적 등) 마지막 사용자 메시지만으로 비스트리밍 1회.
+    if (!fullText.trim() && messages.length > 1) {
+      const lastUser = [...messages].reverse().find((m) => m.role === "user");
+      if (lastUser) {
+        console.warn(
+          `[streamChatReply] empty stream (finishReason=${finishReason}) — retrying with last user message only`
+        );
+        const reduced = await generateTextWithRetry(
+          { ...baseParams, messages: [lastUser] as any },
+          2
+        ).catch(() => null);
+        if (reduced?.text && reduced.text.trim()) {
+          fullText = reduced.text;
+          finishReason = (reduced as any)?.finishReason ?? finishReason;
+          onChunk(fullText);
+        }
+      }
+    }
+
+    // 🛟 최종 안전망: 그래도 비면 6개 언어 안내로 치환.
+    let emptyError: string | undefined;
+    if (!fullText.trim()) {
+      console.error(
+        `[streamChatReply] EMPTY reply — finishReason=${finishReason} query="${query.slice(0, 60)}"`
+      );
+      fullText = EMPTY_REPLY_FALLBACK[lang] || EMPTY_REPLY_FALLBACK.en;
+      onChunk(fullText);
+      emptyError = `empty_model_text:${finishReason ?? "unknown"}`;
+    }
+
+    const result: ChatReplyResult = {
+      reply: fullText,
+      ragChunks,
+      ...(emptyError ? { error: emptyError } : {}),
+      _analytics: {
+        retrievedPatternIds,
+        // 스트리밍은 JSON 선언이 없으므로 회수=사용으로 간주(fallback)
+        usedPatternIds: injectedPatternIds,
+        declaredUsedPatternIds: [],
+        analyticsFallback: true,
+        ragScoring,
+        latencyMs: Date.now() - t0,
+      },
+    };
+
+    // Judge: 메인 흐름 차단 없이 백그라운드 평가
+    runJudgeInBackground({
+      query,
+      response: fullText,
+      context: allContext || undefined,
+      lang,
+      messageId: null,
+      threadId: threadId ?? null,
+    });
+
+    return result;
+  } catch (err: any) {
+    console.error("[streamChatReply] error:", err.message);
+    const reply = "I'm sorry, something went wrong. Please try again.";
+    onChunk(reply);
+    return {
+      reply,
       ragChunks: [],
       error: err.message,
       _analytics: {

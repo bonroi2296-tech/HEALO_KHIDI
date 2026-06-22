@@ -7,74 +7,91 @@
 
 ---
 
-## 🔖 세션 핸드오프 (2026-06-20 오후·자율) — KPI 집계오류 자동 canary 신설·머지·배포(#107) + 직전 미검증 2건 추가검증
+## 🔖 세션 핸드오프 (2026-06-22 늦은오후 — 협력기관 런타임 검증 + 라벨통일(#250) + 역할·프로세스 기획안)
 
 **이번 세션 한 일:**
-- **🟢 KPI 집계오류 자동 canary(경보) 신설 — PR [#107](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/107) 머지·배포(`829bf27`):** #102 때 KPI가 없는 컬럼을 쿼리해 유치·사전상담이 "조용히 0"이던 평가 핵심 버그가, **대시보드를 직접 열어야만** errors 배너로 보이는 사각지대였음. 이제 **매일 KST 00:05 도는 KPI 스냅샷 cron(정기실행)**(`/api/cron/kpi-snapshot`→`upsertDailySnapshot`)이 집계 errors를 만나면 `operationalAlerts.alertKpiAggregationErrors()`로 **critical 알림(콘솔+Sentry+이메일)** 자동 발사. 파일: `src/lib/alerts/operationalAlerts.ts`(타입 `kpi_aggregation_error` + 함수 신설), `src/lib/khidi/kpi.ts`(`upsertDailySnapshot`에 try/catch 격리 훅), `src/lib/alerts/operationalAlerts.test.ts`(테스트 3개).
-- **직전 미검증 2건 — 내가 할 수 있는 만큼 추가검증:**
-  - **KPI 대시보드 숫자·로직**: 실DB 재조회로 유치 **4**/사전상담 **9**/사후관리 **3** 재확인(불변) → 대시보드 코드가 **유치 4/12·사전상담+사후관리 12/120**으로 렌더하는 경로까지 확인. **화면 픽셀 클릭만 PO 몫**(관리자 로그인 필요).
-  - **서버 Sentry**: 인증 없이 `/api/sentry/test` 호출 → **403(관리자 보호 정상)**. 프로덕션 런타임 로그에도 이 403 probe가 기록됨(로그 정상 작동 확인). **실전송 JSON은 PO 1클릭**(관리자 세션 필요).
-- **문서 정리**: `KNOWN_ISSUES.md`의 이미 해결된 stale 항목 3개(얕은 헬스체크·죽은 `/api/chat`·알림 인메모리)를 ✅표시 + canary 기록. `KHIDI_중간보고_베이스.md` §4 6월 로그 1줄(ICT 자가관측).
+- **시작 상황 정리**: PO가 컴에서 토큰 끊겨 핸드오프 못 하고 옴. git log 보니 직전 핸드오프(오후) 이후 **PR 4개(#242 vendor청크분리·#244 a11y 91→100·#246 푸시 실발송 stub→FCM·#247 GA지연)가 이미 main에 머지됨** — 문서엔 누락(이번 핸드오프로 기록).
+- **협력기관 업무프로세스 완성도 진단**: 병원(`/partner`)·에이전시·해외의료기관(`/agency`)·코디(`/coordinator`) 포털 전수 조사. 핵심 루프(에이전시→코디→병원→유치 KPI)·역방향 반영(#202)·자동집계(#207)·계정 발급 다 구현됨 확인. 코디 계정 생성=`/admin/staff`, 상담·비용추정도 inquiry_id 연결됨(에이전트가 "반쪽"이라던 것 다수는 실제론 구현돼 있었음).
+- **⭐ 런타임 검증(라이브 prod DB 직접)**: 케이스 지도 §4 반쪽탐지 쿼리 0행. 실제 리드 1건 추적해 병원 replied→case_status='scheduling' 역방향(#202) **실증**. 이어 **PO가 라이브 병원포털(`hospital@test.com`)에서 "치료확정" 버튼 실클릭 → `inquiries.outcome` 자동 `admitted` + `outcome_note` 자동생성 + K-01 4→5** = 자동집계 엣지(#207) **실데이터 실증 완료**. 검증 후 **테스트분(lead·outcome) 원복**(KPI 오염 0).
+- **라벨 불일치 버그 수정 → PR [#250](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/250)(초안)**: 같은 상태 `converted`를 화면마다 "진료 전환/전환됨/치료 확정"으로 제각각 부름(PO 지적). **"치료 확정"으로 통일**(partner/leads·partner·admin/leads 6곳) + `check-content-consistency.mjs`에 잔재 차단 가드룰 + POSTMORTEMS #21.
+- **K-01 점수판 정리**: admitted **4건 전부 시드/데모데이터**(진짜 유치 0) 확인. PO 결정=**데모용 유지**. `KNOWN_ISSUES.md`에 "8/27 전 실데이터 대체 필요" 리스크 기록.
+- **⭐ 역할·프로세스 기획안 신설 → `docs/KHIDI_역할_프로세스_기획.md`**: PO가 8계층 모델 재설계 요청. 2025·2026 KHIDI 공고문(PO 제공 PDF 2개) 정독→**6대 ICT 공식 정의**를 앵커로. 결정: ①의사 계층 제거(상담방 참여자) ②해외 에이전시(`/agency`, 사전까지)↔해외 의료기관(`/clinic`, 사후 경과 업로드) **분리** ③경과 업로드=전 채널(앱·웹·메신저) ④URL `/partner`→`/hospital`, 언어는 계정 기준(URL 로케일 X) ⑤권한 세부는 프로세스 돌려보고(보류).
 
 **왜 그렇게 했는지:**
-- **canary 선정 이유**: PO가 "다 해, 일요일까지 확인 못 하니 니가 판단" 위임 → 백로그 중 **자동검증 가능+저위험+평가 직결**만 골라야 했음. 헬스체크는 이미 깊어져 있었고(stale 백로그), any축소·God컴포넌트는 라이브검증 필요(고위험). #102 재발을 사람 개입 없이 막는 canary가 명백한 "좋은 것"이라 판단.
-- **거짓경보 안 나는 설계**: 집계 `errors[]`는 쿼리 오류(없는 컬럼·연결 실패)에만 채워지고 데이터 0건(한가한 날)엔 안 채워짐 → 오알림 없음.
-- **저위험이라 직접 머지**: 추가형(알림+테스트+문서), CI 초록, 프리뷰 Ready 확인 후 합치기(squash 머지)(PO의 "저위험 CI초록=머지" 위임 적용).
+- **에이전시↔해외의료기관 분리 근거**: 공고 공식 사후관리 3대(경과f/u·모니터링·재이용)가 **전부 임상**(검사·영상 전송, 모니터링, 교육)이라 비의료 에이전시는 구조적으로 사후관리 불가. 분리하면 `/agency` 이름도 정확해짐.
+- **의사 계층 제거**: 의사는 상시 케이스 관리자가 아니라 예약된 화상상담 때만 참여 → 별도 계정 불필요(초대링크 게스트 입장 이미 구현). 원격협진 기능은 유지, 구조만 단순.
+- **숫자는 수행계획서 기준**: 공고 최소(유치10/상담80/만족도80) < 우리 도전목표(12/120/90). 2025↔2026 공고 6대 ICT 정의·평가틀 동일(연도 무관). 우리=2026 코호트(중간평가 8월·지원~11.20·국고 8천만 상한).
+- **테스트 데이터 원복**: 케이스 지도 §2 경고(테스트도 KPI 집계됨). 단 lead가 converted인데 outcome=null이면 그게 §4 반쪽이라 **둘 다** 원복.
 
 **안 끝났거나 보류:**
-- **KPI cron 실동작(프로덕션) 미확인**: Vercel 런타임 로그 보존이 짧아(~최근 1시간) 2026-06-19 15:05 UTC 실행분이 만료돼 못 봄. 정기실행(cron) 인프라 자체는 살아있음 확인(`dispatch-reminders`가 30분마다 200). → **kpi-snapshot이 실제 매일 도는지는 다음 세션이 15:05 UTC 이후 로그로 확정** 필요(안 돌면 canary도 안 도는 셈).
-- **D. any(타입 느슨) 축소·E. God 컴포넌트(2883줄) 분할**: 변함없이 보류(고위험/LiveKit 라이브검증 필요). 자리 비운 PO가 검증 못 하므로 일부러 안 건드림.
-- **열린 PR [#83](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/83)(AI 안전 0층, draft)·[#41](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/41)(비자)**: 지난 세션 것, 무관, 그대로 열림.
+- **역할 기획 = 합의안(문서)만.** 실제 코드 마이그레이션(`/doctor` 제거·`/partner`→`/hospital`·`/agency`+`/clinic` 분리·경과 업로드 기능·해외 포털 러·영 번역)은 **별도 작업, 미착수**. KHIDI 8/27 우선순위와 조율해 착수.
+- **권한 세부 = 보류**(프로세스 1바퀴 실제로 돌려본 뒤 — PO 방침).
+- **PR #250 = 초안**. 머지 안 함(PO 검토·머지 대기). 라벨수정+KNOWN_ISSUES+기획안 3개가 한 PR에 섞여 있음(같은 브랜치 `claude/token-handoff-status-eo2vzd`).
+- **직전 4개 PR(#242·244·246·247) prod 실동작 미검증**. 특히 #246 푸시 실발송(FCM)은 Firebase·실기기 없어 여전히 발송 자체 미검증(직전 핸드오프 이월).
+- **오래된 열린 PR 7개**(#41·83·116·126·128·197·204) — 대부분 직전 세션 잔여·draft. PO triage(머지/닫기) 필요.
 
 **주의·함정:**
-- **로컬 `main` 작업본(브랜치)이 한때 옛 커밋(`7458a83`)이라** `git checkout main` 시 작업트리가 옛 파일로 보였던 사고 있었음 → `git reset --hard origin/main`(`829bf27`)으로 정상화. **원격·배포 코드엔 영향 0.** 다음 세션도 작업 전 `git fetch origin main && git reset --hard origin/main` 권장.
-- **canary 알림이 PO에 실제로 닿으려면** 프로덕션 설정값(env)에 **Sentry DSN**(`NEXT_PUBLIC_SENTRY_DSN`)과 **알림 수신 이메일**(`OPERATIONAL_ALERT_EMAIL` 또는 `ADMIN_EMAIL_ALLOWLIST`)이 박혀 있어야 함. 안 박혀 있으면 콘솔에만 찍힘. → **PO의 `/api/sentry/test` 1클릭이 DSN 설정 여부도 같이 증명**(JSON "전송됐습니다"=DSN OK / "DSN 미설정"=설정 필요).
+- **자동저장 훅(`.claude/hooks/auto-commit-push.sh`) 주의** — 과거 멀티파일 작업 시 타 변경 혼입 사고(이전 핸드오프). 이번 세션은 문제 없었음.
+- **K-01 점수판 숫자(유치4)는 전부 가짜(시드)** — 8/27 PT에서 실적으로 발표 금지(데모임을 구분). `KNOWN_ISSUES.md` 참조.
+- 기획안의 `/clinic`·계정모델은 **미구현 합의안** — 코드는 아직 옛 구조(`/partner`·`/agency` 통합·`/doctor` 존재).
 
 **다음 세션이 먼저 할 일 (우선순위):**
-1. **⚠️ 직전 미검증분 먼저 확인 (관리자 로그인 필요 — 환경상 내가 못 함):** (a) **KPI 대시보드 화면**: `/admin/khidi/kpi-dashboard`에 **유치 4/12·사전상담+사후관리 12/120**·만족도 뜨는지(숫자·로직은 검증됨, 픽셀만). (b) **서버 Sentry 실전송**: 관리자로 `https://healo-khidi.vercel.app/api/sentry/test` 1회 → JSON "전송됐습니다"면 Sentry 도착 확인(이게 canary 알림 경로 + DSN 설정 여부도 같이 증명).
-2. **KPI cron 실동작 확정**: 15:05 UTC 이후 Vercel 프로덕션 로그에서 `/api/cron/kpi-snapshot` 200 떴는지 확인(안 떴으면 Vercel 정기실행 스케줄 미적용 의심 → canary 숙주가 안 도는 것).
-3. (보류) God 컴포넌트 분할 / any 축소 / 화상방 라이브 검증 — PO 동석·라이브검증 가능할 때만.
-4. KHIDI 중간평가(2026-08-27) 상시 — 이번 canary는 평가항목 ④(성과지표 자동집계 정확성)·정성(ICT 자가관측 체계) 직결.
+1. **⚠️ 직전 미검증분 먼저:** (a) **PR #250 라벨이 실화면에 "치료 확정"으로 뜨는지** 프리뷰/배포 클릭 확인(난 DB·코드만 검증, 화면 클릭 안 함). (b) **#246 푸시 실발송**은 PO Firebase 계정 후 실기기 검증.
+2. **PR #250 머지 판단** — PO 검토 후 초안 해제·머지(또는 기획안만 분리 요청 가능).
+3. **역할·프로세스 기획 실행 착수 여부 결정** — `docs/KHIDI_역할_프로세스_기획.md` 보고, 8/27 우선순위 대비 언제 코드 마이그레이션 시작할지(착수 시 권한은 프로세스 돌려보며 확정).
+4. **오래된 열린 PR 7개 triage**(#41·83·116·126·128·197·204) — 머지/닫기.
+5. KHIDI 중간평가(2026-08-27) 상시 — 정량 real 0 끌어올리기(실환자 유입).
 
-**검증 상태:** PR **[#107](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/107)(`829bf27`) = CI(`ci`·`Smoke`) 초록 + Vercel 프리뷰 Ready + 합치기(squash 머지)·배포 완료**(GitHub MCP check_runs로 확인). 로컬 **tsc 0 / vitest 132개(+3) / check:content / check:migrations(81) / next build --webpack** 전부 통과. canary 알림 함수는 단위테스트로 검증(no-op·발사·throw격리). **❌ 미검증(관리자 로그인 필요): KPI 대시보드 화면 렌더 / 서버 Sentry 실전송 — 둘 다 PO 1클릭.** **❌ 미검증: KPI cron 프로덕션 실행(로그 보존 짧아 못 봄).** 열린 PR: #83·#41(지난 세션, 무관).
+**검증 상태:**
+- **#207 자동집계 엣지**: 라이브 prod DB로 **실증 완료**(PO 실버튼 클릭→outcome admitted→K-01 +1, 반쪽탐지 0행). 검증 후 원복.
+- **#202 역방향**: 실리드 1건으로 case_status='scheduling' 확인.
+- **PR #250**: CI(Vercel) **Ready(초록)** 확인. `node scripts/check-content-consistency.mjs` **통과**(잔재 0). 단 **라벨 실화면 클릭 검증은 안 함**(코드·DB만).
+- **기획안**: 문서만 — 빌드·동작 무관.
+- **열린 PR**: #250(초안·CI초록) + 오래된 7개(#41·83·116·126·128·197·204, 대부분 draft·CI 미확인).
+- 로컬 `next build`는 이 클라우드 환경에 env키·node_modules 없어 못 돌림 → CI에 위임.
 
-**다음 세션 첫 프롬프트 (PO 복붙용):**
-> 먼저 docs/PROJECT_CONTEXT.md 최상단 핸드오프(2026-06-20 오후) 읽어. 그다음 직전 미검증 확인: 1) 관리자로 /admin/khidi/kpi-dashboard 열어서 유치 4/12·사전상담+사후관리 12/120 뜨는지. 2) 관리자로 https://healo-khidi.vercel.app/api/sentry/test 한번 열어 JSON 알려줘(서버 에러감시 + 새 KPI 경보 알림 경로 둘 다 이걸로 증명). 3) 15:05 UTC 지났으면 Vercel 프로덕션 로그에서 /api/cron/kpi-snapshot 200 떴는지 봐줘(매일 KPI 점검 cron이 실제 도는지). 새 작업은 git fetch origin main && git reset --hard origin/main 부터.
+**다음 세션 첫 프롬프트:**
+> 먼저 docs/PROJECT_CONTEXT.md 최상단 핸드오프 읽어. ①PR #250 라벨("치료 확정")이 실제 화면에 제대로 뜨는지 확인하고 머지할지 판단해줘. ②docs/KHIDI_역할_프로세스_기획.md 보고 — 협력기관 역할 재설계(의사 제거·에이전시/clinic 분리·경과 업로드) 코드로 언제 착수할지, 8/27 평가 우선순위랑 같이 정하자. ③오래된 열린 PR 7개(#41·83·116·126·128·197·204) 머지할지 닫을지 정리해줘.
 
 ---
 
-## 🔖 세션 핸드오프 (2026-06-20) — 야간 PR 3건 머지(#102 KPI수정·#100 멱등·#101 알림DB) + 알림 마이그레이션 실DB 적용
+## 🔖 세션 핸드오프 (2026-06-22 오후 — 이메일 셋업 + SEO 누수수정 배포 + 앱스토어 1단계)
 
-**이번 세션 한 일 (PR 3건 머지 + DB 마이그레이션 1건 적용):**
-- **🔴 #102 KHIDI KPI 깨진 컬럼 수정 — 머지·실서비스 배포(`1f0bdfe`):** 평가 직결 버그(유치·사전상담이 없는 컬럼 쿼리로 항상 0). 머지 전 **실DB 대조로 정의·숫자 재검증** = 유치(`inquiries.outcome='admitted'`) **4** / 사전상담(완료세션) **9** / 사후관리(완료세션) **3** → 새 쿼리와 정확히 일치. `getKpiCumulative` 함수 존재·CI(ci·smoke) 초록도 확인. 대시보드엔 **유치 4/12·사전상담+사후관리 12/120**으로 표시될 것. 전환 깔때기(`conversion_funnel`)와 유치 정의 통일됨.
-- **#100 마이그레이션 멱등 가드 + CI 검사기 — 머지(`61dd6ed`):** `docs/POSTMORTEMS.md`가 #102(#7)와 같은 위치를 건드려 머지 충돌 → 로컬에서 최신 main에 리베이스, **#6·#7 둘 다 보존(번호순 #6→#7)**으로 충돌 풀고 재푸시. 로컬 `node scripts/check-migration-idempotency.mjs` 통과(81개 파일) 확인 후 머지.
-- **#101 알림 카운터 인메모리→DB — 머지(`202840d`) + 마이그레이션 실DB 적용:** PO가 "적용할지 정해줘" 위임 → **적용 결정**(추가형 `alert_counter_events` 테이블 + RPC 2개, RLS·service_role 전용, 검증된 `check_rate_limit` 패턴, SECURITY DEFINER+search_path 고정). Supabase MCP `apply_migration`으로 **실DB 적용 후 BEGIN/ROLLBACK 동작검증**(같은 키 증가 누적·리셋 후 0). #100 머지 후 베이스 skew 방지로 최신 main 리베이스(검사기가 새 마이그레이션까지 검증) → CI 초록 후 머지.
-- **#103(상담방 i18n)은 지난 세션에 이미 머지됨**(`13b561b`) — 이번엔 재확인만.
+**이번 세션 한 일:**
+- **이메일 `admin@healwith.co.kr` 가동(Zoho 무료)**: 가비아 DNS에 소유확인 TXT + MX 3개(mx/mx2/mx3.zoho.com, 끝에 점 필수) + SPF(`v=spf1 include:zoho.com ~all`) 추가 → 전파·수신 확인. **운영원칙 합의**: 협력기관(병원·에이전시)·코디 계정은 **본인 업무메일을 로그인ID로** admin이 생성(코드 이미 admin-provisioning), healwith 메일은 안 파줌. 자율가입+등급승격은 안 함(보안·과설계). 메모리 `email-hosting` 저장.
+- **SEO 점검 + 버그수정 배포**: Gemini 감사 7항목을 live로 실측 → 대부분 이미 정상(라우팅·http→https/www 308·hreflang `kk`·robots). **진짜 버그 1개**: 비공개(`is_published=false`) 치료·병원이 **sitemap·상세페이지에 계속 노출**(get\*List·get\*BySlug 4곳이 필터 누락) → `.eq("is_published",true)` 추가 **PR [#235](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/235) 머지·배포**. 슬러그가 자동생성 쓰레기값(`item-<ts>`)인 실치료 3건(신경회복 도수치료·주사요법·면역플러스) **소프트 비활성**(DB `is_published=false`, 보존). POSTMORTEMS #20.
+- **앱스토어 1단계(Capacitor) — PR [#240](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/240) 머지**: ①셸 — `capacitor.config.ts` healwith 브랜드(`kr.co.healwith.app`), SSR이라 정적추출 불가 → `server.url=https://healwith.co.kr` **라이브 로드**. android/ios 네이티브 프로젝트. ②**푸시 등록 파이프라인** — `device_tokens` 테이블(prod 적용)·`/api/push/register`·`src/lib/push/*`(클라이언트 등록·buildPushMessage 단위테스트3). ③앱 아이콘(브랜드 심볼 1024²→android87·iOS10). 메모리 `app-store-capacitor` 저장.
 
 **왜 그렇게 했는지:**
-- **#102 우선·신중 검증**: 평가 핵심 숫자가 바뀌는 변경이라 머지 전 실DB(`information_schema` 아닌 실제 count)로 4/9/3 재확인. PO가 확인하라던 정의(유치=admitted, 상담/사후=세션완료)와 일치 확인 후에만 머지.
-- **#101 마이그레이션 적용 결정**: 적용 안 하면 코드가 인메모리 fallback으로 남아 콜드스타트 리셋 버그가 안 고쳐짐(=기능 죽은 상태). 추가형·service_role 전용·롤백테스트 통과라 위험 낮다고 판단해 적용. 코드 fallback 덕에 적용·배포 순서는 무관.
-- **베이스 skew 회피**: 지난 세션 교훈(#92/#93 잠복 tsc) 따라, #100 머지 후 #101을 최신 main에 리베이스해 새 마이그레이션이 멱등 검사기까지 통과하는지 합쳐서 검증.
+- **이메일 Zoho 무료**: Google Workspace는 유료, 나중에 **MX만 교체로 이전**(락인 없음). 파트너 메일 안 파주는 건 Zoho 5계정 한도 + 외부기관 관리·보안 부담. (네이버웍스·가비아메일도 검토했으나 PO가 Zoho 선택)
+- **앱 라이브로드**: SSR(API·미들웨어 투성이)이라 `next export` 불가 → 정적번들 대신 라이브 URL. 애플 가이드라인 4.2(웹뷰 래퍼 반려) 회피용으로 **푸시 알림이 네이티브 가치(사실상 필수)**.
+- **`@capacitor/assets` 제거**: 아이콘 생성 도구일 뿐인데 취약 `uuid`(GHSA-w5hq-g745-h8pq)를 끌어와 CI 의존성 게이트(high/critical 차단) 실패 → 제거(아이콘은 이미 생성·커밋됨, 재생성은 일회성 npx).
 
 **안 끝났거나 보류:**
-- **D. 타입 강화(any 축소)·E. God 컴포넌트(2883줄) 분할**: 지난 세션과 동일하게 보류(저가치·고위험 / LiveKit 라이브 검증 필요). 안전 슬라이스 나오면 별도.
-- **열린 PR #83(AI 안전 0층, draft)·#41(비자)**: 이번 작업과 무관한 지난 세션 것 — 그대로 열려있음(PO 별도 검토).
+- **앱 푸시 발송(`fcm.ts sendPush`) = stub**. Firebase(FCM)·실기기 없어 미구현·미검증. PO 계정 후 구현.
+- **앱 빌드·스토어 제출 = PO 외부작업 선결**(내가 못 함, 결제·신원): ①애플 개발자 $99/년 ②구글 플레이 $25 ③Firebase 무료. **iOS 빌드는 macOS 필수(PO 윈도우) → 클라우드 맥(Codemagic 등).**
+- **soft-404 버그(기존)**: 치료/병원 `[slug]` 상세가 **없는 슬러그에도 HTTP 200**(notFound 화면은 뜨나 상태코드 404 아님). 로케일 rewrite가 404를 삼킴. 비공개 3건은 sitemap서 빠져 급하진 않으나 **KNOWN_ISSUES 기록 못 했음**(다음 세션 숙제).
+- **앱 아이콘 = 플레이스홀더**(브랜드 심볼). PO가 4종(logo/options/A~D) 봤으나 "다 별로, 힘들다"로 **최종안 보류**.
 
 **주의·함정:**
-- **#101 마이그레이션은 실DB에 이미 적용됨**(`alert_counter_events` + `alert_counter_increment`/`alert_counter_reset`). 재적용해도 멱등(IF NOT EXISTS/CREATE OR REPLACE)이라 안전.
-- **CI 러너가 느릴 때 있음**: 이번에 ci·smoke가 평소(3분)보다 큐 지연 있었음(5분+). 초록 확인 후 머지하면 됨(조급하게 머지 금지).
-- POSTMORTEMS·KNOWN_ISSUES는 여러 PR이 끝부분을 동시에 건드려 머지 충돌 잦음 → 리베이스로 양쪽 보존하며 풀 것.
+- **자동저장 훅(`.claude/hooks/auto-commit-push.sh`)이 이번 세션 4회+ 가로챔**: 내 스테이징을 먼저 커밋(`nothing to commit`)하거나, `git add -A`로 **타 태스크 미커밋 변경(의사사진 셀프호스팅, 이미 #238 머지)을 내 브랜치에 혼입**시킴 → 오염된 #237 닫고 최신 main 기준 **클린 #240**으로 대체. **멀티파일 작업 전 이 훅 끄는 게 안전.** 메모리 `autosave-hook-hazard` 저장.
+- soft-404는 미들웨어 수정 필요(한 줄 아님 — 별도 작업).
+- 이메일/검색등록/스토어계정은 **PO가 직접**(결제·신원). 내가 대신 못 함.
 
 **다음 세션이 먼저 할 일 (우선순위):**
-1. **⚠️ 직전 미검증분 먼저 확인 (관리자 로그인 필요 — 내가 환경상 못 함):** (a) **KPI 대시보드 화면**: `/admin/khidi/kpi-dashboard` 열어서 상단 "공식 정량지표 달성률"에 **유치 4/12·사전상담+사후관리 12/120**·만족도 뜨는지(숫자는 실DB로 검증됨, 화면 렌더만 미확인). (b) **서버 Sentry 실수집**: 관리자로 `https://healo-khidi.vercel.app/api/sentry/test` 1회 → JSON "전송됐습니다"면 Sentry 대시보드 도착 확인(라우트 403 보호는 확인됨, 실전송만 PO 1클릭).
-2. **#101 효과 확인(선택)**: 알림 누적 임계가 이제 DB 집계로 도는지(콜드스타트 리셋 안 되는지) 운영 중 관찰.
-3. (보류) God 컴포넌트 분할 / 타입 any 축소 / 화상방 라이브 검증.
-4. KHIDI 중간평가(2026-08-27) 상시 — 이번 KPI 수정·멱등·알림DB는 평가항목 ④(성과지표 자동집계 정확성)·정성(ICT 체계) 직결.
+1. **⚠️ 직전 미검증분 먼저:** (a) **#235·#240 prod 배포 정상 확인**(#235는 sitemap서 item- 3건 빠짐 curl 확인됨; #240은 web 영향0이나 배포 후 홈·치료 페이지 실동작 미확인). (b) **soft-404를 `KNOWN_ISSUES.md`에 기록** + 고칠지 판단. (c) **외부→`admin@healwith.co.kr` 수신 테스트**(내부 Welcome만 확인함).
+2. **앱스토어 2단계** — PO 계정(애플·구글·Firebase) 생기면 → **푸시 발송 구현(stub→실동작)** → iOS 클라우드 맥 빌드 세팅 → 스토어 등록정보(스샷·설명 6언어)·제출. 아이콘 최종안 PO 확정 시 `npx @capacitor/assets` 재생성.
+3. (이전 세션 잔여) 라이트하우스 Performance 39→70+, #160 화상방 카메라, KPI real 0 끌어올리기.
+4. KHIDI 중간평가(2026-08-27) 상시.
 
-**검증 상태:** PR **#102(`1f0bdfe`)·#100(`61dd6ed`)·#101(`202840d`) = CI(ci·smoke) 초록 + main 머지 + 배포 완료**(GitHub MCP로 check_runs 확인). 로컬 `check-migration-idempotency.mjs` 통과(81파일). **#102 KPI 실측치 = 실DB 조회로 검증(유치4·사전상담9·사후관리3 → 4/12·12/120).** **#101 마이그레이션 = 실DB 적용 + BEGIN/ROLLBACK 동작검증 완료.** **❌ 미검증(관리자 로그인 필요, 내 환경서 불가): KPI 대시보드 화면 실제 렌더 / 서버 Sentry 실전송·도착** — 둘 다 PO 1클릭. 열린 PR: #83·#41(지난 세션, 무관).
+**검증 상태:**
+- **이메일**: MX·SPF·zoho-verification TXT 구글DNS(8.8.8.8) 전파 `nslookup` 확인, `admin@`로 Zoho Welcome 메일 수신 확인. **외부 발신→수신은 미테스트**(PO 몫).
+- **SEO #235**: CI(ci·Smoke) 초록 + main squash 머지 + 배포. 배포 후 **sitemap item- 3건 제거(43→40) curl 확인**. 단 상세페이지는 **soft-404(200) 잔존(검증함)**.
+- **앱 #240**: CI(ci·Smoke·**의존성 게이트**) 초록 + squash 머지·브랜치 삭제. `buildPushMessage` 단위테스트 통과. **푸시 발송·네이티브 빌드는 미검증**(계정·기기 없음). 로컬 `next build`는 프리뷰서버 `.next` 락으로 못 돌려 CI에 위임함.
+- 열린 PR: 이전 세션 **#216·#217·#219 상태 이번에도 미확인**.
 
-**다음 세션 첫 프롬프트 (PO 복붙용):**
-> 먼저 docs/PROJECT_CONTEXT.md 최상단 핸드오프(2026-06-20) 읽어. 그다음 직전 미검증 2개 확인해줘(관리자 로그인 필요): 1) /admin/khidi/kpi-dashboard 열어서 "공식 정량지표 달성률"에 유치 4/12·사전상담+사후관리 12/120 뜨는지. 2) 관리자로 https://healo-khidi.vercel.app/api/sentry/test 한번 열어서 JSON 알려줘(서버 에러감시 마지막 확인). 그 외 백로그는 KNOWN_ISSUES 참고. 새 작업은 origin/main 최신 동기화부터.
+**다음 세션 첫 프롬프트:**
+> 먼저 docs/PROJECT_CONTEXT.md 최상단 핸드오프 읽어. ①#235·#240 실서비스 배포 정상인지 확인하고 ②soft-404(없는 치료/병원 주소가 404 안 뜨고 200 뜨는 버그) KNOWN_ISSUES에 적고 고칠지 판단해줘. 그리고 나 애플·구글·Firebase 계정 만들었으면(아직이면 말할게) 앱스토어 다음 단계 — 푸시 알림 실제 발송되게(지금 stub) + iOS 클라우드 맥 빌드 + 스토어 등록정보까지 진행해줘.
 
 ---
 

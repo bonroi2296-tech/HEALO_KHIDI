@@ -150,9 +150,37 @@ export async function searchHospitalsAndTreatments(
 
   if (keywords.length === 0 && !hospitalPhrase) return { ...EMPTY_RESULT };
 
+  // 병원검색(이름 우선→키워드 폴백, 내부는 직렬 의존)과 시술검색(독립)을 병렬로 던진다.
+  // context 조립 순서(병원 먼저, 시술 다음)는 두 결과를 받은 뒤 맞춘다.
+  const [hospitalPart, treatmentPart] = await Promise.all([
+    searchHospitals(keywords, hospitalPhrase),
+    searchTreatments(keywords),
+  ]);
+
+  let context = "";
+  if (hospitalPart.context) context += "\n" + hospitalPart.context;
+  if (treatmentPart.context) context += "\n" + treatmentPart.context;
+
+  return {
+    context,
+    hospitalCount: hospitalPart.hospitalCount,
+    treatmentCount: treatmentPart.treatmentCount,
+    matchedHospitalNames: hospitalPart.matchedHospitalNames,
+    hospitalMatchType: hospitalPart.hospitalMatchType,
+  };
+}
+
+async function searchHospitals(
+  keywords: string[],
+  hospitalPhrase: string | null
+): Promise<{
+  context: string;
+  hospitalCount: number;
+  matchedHospitalNames: string[];
+  hospitalMatchType: HospitalMatchType;
+}> {
   let context = "";
   let hospitalCount = 0;
-  let treatmentCount = 0;
   let matchedHospitalNames: string[] = [];
   let hospitalMatchType: HospitalMatchType = "none";
 
@@ -172,7 +200,7 @@ export async function searchHospitalsAndTreatments(
         hospitalCount = nameMatched.length;
         matchedHospitalNames = nameMatched.map((h: any) => h.name);
         hospitalMatchType = "exact";
-        context += "\n" + groupBranches(nameMatched, hospitalPhrase);
+        context = groupBranches(nameMatched, hospitalPhrase);
         console.log(`[dbSearch] EXACT name match (${hospitalCount}):`, matchedHospitalNames);
       }
     }
@@ -195,7 +223,7 @@ export async function searchHospitalsAndTreatments(
         hospitalCount = broadMatched.length;
         matchedHospitalNames = broadMatched.map((h: any) => h.name);
         hospitalMatchType = "keyword";
-        context += "\n" + groupBranches(broadMatched, hospitalPhrase);
+        context = groupBranches(broadMatched, hospitalPhrase);
         console.log(`[dbSearch] KEYWORD match (${hospitalCount}):`, matchedHospitalNames);
       } else {
         console.log(`[dbSearch] no hospital match for keywords:`, keywords, "phrase:", hospitalPhrase);
@@ -205,6 +233,12 @@ export async function searchHospitalsAndTreatments(
     console.error("[dbSearch] hospital search failed:", e?.message || e);
   }
 
+  return { context, hospitalCount, matchedHospitalNames, hospitalMatchType };
+}
+
+async function searchTreatments(
+  keywords: string[]
+): Promise<{ context: string; treatmentCount: number }> {
   try {
     const treatFilter = buildTreatmentFilter(keywords);
     const { data: treatments } = await supabaseAdmin
@@ -217,14 +251,15 @@ export async function searchHospitalsAndTreatments(
       .limit(5);
 
     if (treatments?.length) {
-      treatmentCount = treatments.length;
-      context +=
-        "\n[healwith 등록 시술/프로그램]\n" +
-        treatments.map(formatTreatment).join("\n");
+      return {
+        context:
+          "[healwith 등록 시술/프로그램]\n" +
+          treatments.map(formatTreatment).join("\n"),
+        treatmentCount: treatments.length,
+      };
     }
   } catch (e: any) {
     console.error("[dbSearch] treatment search failed:", e?.message || e);
   }
-
-  return { context, hospitalCount, treatmentCount, matchedHospitalNames, hospitalMatchType };
+  return { context: "", treatmentCount: 0 };
 }

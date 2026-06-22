@@ -455,7 +455,7 @@ export default function EducationClient() {
     <main className="max-w-3xl mx-auto px-4 py-8" aria-label={l(PAGE_LABELS.title)}>
       {/* Header */}
       <div className="mb-8">
-        <div className="flex items-center gap-2 text-teal-600 mb-2">
+        <div className="flex items-center gap-2 text-teal-700 mb-2">
           <BookOpen size={20} />
           <span className="text-sm font-semibold uppercase tracking-wide">healwith Guide</span>
         </div>

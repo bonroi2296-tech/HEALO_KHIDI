@@ -103,7 +103,7 @@ export function EditRecipientModal({ editModal, onCancel, onSave }: EditRecipien
                 type="checkbox"
                 checked={modal.isActive}
                 onChange={(e) => updateModal("isActive", e.target.checked)}
-                className="w-4 h-4 text-emerald-600 border-gray-300 rounded"
+                className="w-4 h-4 text-emerald-700 border-gray-300 rounded"
               />
               <span className="text-sm">활성화</span>
             </label>
@@ -131,7 +131,7 @@ export function EditRecipientModal({ editModal, onCancel, onSave }: EditRecipien
           </button>
           <button
             onClick={() => onSave(modal)}
-            className="flex-1 px-4 py-2 bg-emerald-600 text-white rounded hover:bg-emerald-700"
+            className="flex-1 px-4 py-2 bg-emerald-700 text-white rounded hover:bg-emerald-700"
           >
             저장
           </button>

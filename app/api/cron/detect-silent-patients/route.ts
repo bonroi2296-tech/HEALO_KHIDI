@@ -13,7 +13,7 @@ export const runtime = "nodejs";
 
 import { NextRequest } from "next/server";
 import { timingSafeEqual } from "node:crypto";
-import { detectSilence } from "@/lib/symptoms/detect";
+import { buildSilenceAlert, uniqueInquiryIds } from "@/lib/symptoms/silence";
 import { saveAndNotifyAlerts } from "@/lib/symptoms/alertService";
 import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
 
@@ -41,16 +41,18 @@ export async function GET(request: NextRequest) {
   let detected = 0;
 
   try {
-    // consultation_sessions 에서 최근 활성 환자 목록 조회
+    // consultation_sessions 에서 최근 활성 환자(문의) 목록 조회
     // (치료 종료 후 30일 이내인 환자만 대상)
+    // ⚠️ 실제 환자 연결고리는 inquiry_id 다. patient_id 는 전 행 null(미사용)이라
+    //    예전엔 .not("patient_id",...) 로 걸러 항상 0건이었음(POSTMORTEMS #12/#13).
     const cutoff = new Date();
     cutoff.setDate(cutoff.getDate() - 30);
 
     const { data: sessions, error: sessErr } = await supabaseAdmin
       .from("consultation_sessions")
-      .select("patient_id, updated_at")
+      .select("inquiry_id, updated_at")
       .gte("updated_at", cutoff.toISOString())
-      .not("patient_id", "is", null)
+      .not("inquiry_id", "is", null)
       .order("updated_at", { ascending: false });
 
     if (sessErr) {
@@ -58,27 +60,21 @@ export async function GET(request: NextRequest) {
       return Response.json({ ok: false, error: "query_failed" }, { status: 500 });
     }
 
-    // 중복 환자 제거
-    const uniquePatients = new Map<string, string>();
-    for (const s of (sessions || []) as any[]) {
-      if (s.patient_id && !uniquePatients.has(s.patient_id)) {
-        uniquePatients.set(s.patient_id, s.updated_at);
-      }
-    }
+    // 중복 문의 제거 (가장 최근 세션 기준)
+    const inquiryIds = uniqueInquiryIds((sessions || []) as any[]);
 
     const alerts = [];
 
-    for (const [patientId] of uniquePatients) {
+    for (const inquiryId of inquiryIds) {
       checked++;
-      // 해당 환자의 가장 최근 symptom_reports 조회
+      // 해당 문의의 가장 최근 증상 보고 조회 (symptom_reports 는 inquiry_id 로 묶임)
       const { data: latestReports } = await supabaseAdmin
         .from("symptom_reports")
         .select("created_at")
-        .eq("inquiry_id" as any, null)  // 범위 제한 없이 최신
+        .eq("inquiry_id" as any, inquiryId)
         .order("created_at", { ascending: false })
         .limit(1);
 
-      // symptom_reports에 patient_id가 없으므로, consultation session 업데이트 시각 기준
       const lastEntryAt = latestReports?.[0]?.created_at
         ? new Date(latestReports[0].created_at)
         : null;
@@ -87,7 +83,7 @@ export async function GET(request: NextRequest) {
       const { data: existingAlert } = await (supabaseAdmin as any)
         .from("symptom_alerts")
         .select("id")
-        .eq("patient_id", patientId)
+        .eq("inquiry_id", inquiryId)
         .eq("alert_type", "silence_long")
         .is("resolved_at", null)
         .limit(1);
@@ -96,7 +92,7 @@ export async function GET(request: NextRequest) {
         continue; // 이미 미해결 알림 존재 — 중복 건너뜀
       }
 
-      const alert = detectSilence(patientId, lastEntryAt, 3);
+      const alert = buildSilenceAlert({ inquiryId }, lastEntryAt, 3);
       if (alert) {
         (alerts as any[]).push(alert);
         detected++;

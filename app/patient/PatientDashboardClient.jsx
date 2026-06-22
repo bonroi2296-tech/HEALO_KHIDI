@@ -35,12 +35,12 @@ const L = {
 };
 
 const MENU_ITEMS = [
-  { key: 'aiChat', icon: MessageSquare, href: '/patient/chat', color: 'bg-teal-50 text-teal-600' },
+  { key: 'aiChat', icon: MessageSquare, href: '/patient/chat', color: 'bg-teal-50 text-teal-700' },
   { key: 'consultations', icon: Video, href: '#consultations', color: 'bg-blue-50 text-blue-600' },
   { key: 'documents', icon: Upload, href: '/patient/documents', color: 'bg-purple-50 text-purple-600' },
   { key: 'education', icon: BookOpen, href: '/education', color: 'bg-green-50 text-green-600' },
   { key: 'symptoms', icon: Activity, href: '/patient/symptoms', color: 'bg-orange-50 text-orange-600' },
-  { key: 'rebooking', icon: Calendar, href: '/patient/rebooking', color: 'bg-teal-50 text-teal-600' },
+  { key: 'rebooking', icon: Calendar, href: '/patient/rebooking', color: 'bg-teal-50 text-teal-700' },
   { key: 'visa', icon: FileText, href: '/visa', color: 'bg-indigo-50 text-indigo-600' },
 ];
 
@@ -60,6 +60,21 @@ export default function PatientDashboardClient() {
       const { data: { session } } = await supabase.auth.getSession();
 
       if (session?.user) {
+        // 비환자 계정(에이전시·병원·코디·의사·관리자)은 환자 대시보드 대신
+        // 자기 포털로 자동 이동 — 이미 로그인된 채 /patient 로 와도 튕겨냄.
+        try {
+          const meRes = await fetch('/api/me', {
+            headers: { Authorization: `Bearer ${session.access_token}` },
+            credentials: 'include',
+            cache: 'no-store',
+          });
+          const me = await meRes.json();
+          if (me?.ok && me.landing && me.landing !== '/patient') {
+            router.replace(me.landing);
+            return;
+          }
+        } catch (_ignore) { /* 실패 시 환자 대시보드 그대로 */ }
+
         setUser(session.user);
 
         // Fetch patient's consultations
@@ -95,7 +110,7 @@ export default function PatientDashboardClient() {
         <p className="text-gray-500 mb-6">{l(L.login)}</p>
         <button
           onClick={() => router.push('/login')}
-          className="bg-teal-600 text-white font-semibold px-6 py-3 rounded-xl hover:bg-teal-700 transition"
+          className="bg-teal-700 text-white font-semibold px-6 py-3 rounded-xl hover:bg-teal-800 transition"
         >
           {l(L.loginBtn)}
         </button>
@@ -193,7 +208,7 @@ export default function PatientDashboardClient() {
               ].map((s, i) => (
                 <div key={i} className="flex items-center gap-2 flex-1">
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
-                    s.done ? 'bg-teal-100 text-teal-700' : i === 0 ? 'bg-teal-600 text-white' : 'bg-gray-100 text-gray-400'
+                    s.done ? 'bg-teal-100 text-teal-700' : i === 0 ? 'bg-teal-700 text-white' : 'bg-gray-100 text-gray-400'
                   }`}>
                     {i + 1}
                   </div>
@@ -209,7 +224,7 @@ export default function PatientDashboardClient() {
             <p className="text-gray-400 text-sm mb-4">{l(L.startFirst)}</p>
             <button
               onClick={() => router.push('/intake')}
-              className="inline-flex items-center gap-2 bg-teal-600 text-white font-semibold px-5 py-2.5 rounded-xl hover:bg-teal-700 transition text-sm"
+              className="inline-flex items-center gap-2 bg-teal-700 text-white font-semibold px-5 py-2.5 rounded-xl hover:bg-teal-800 transition text-sm"
             >
               {l(L.newIntake)} <ArrowRight size={16} />
             </button>

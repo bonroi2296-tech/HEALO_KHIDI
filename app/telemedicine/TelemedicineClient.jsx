@@ -355,13 +355,13 @@ export default function TelemedicineClient() {
         <div className="mt-8 flex flex-wrap items-center gap-4">
           <Link
             href="/inquiry"
-            className="inline-flex items-center gap-2 px-6 py-3 bg-teal-600 hover:bg-teal-700 text-white rounded-xl font-bold transition-colors"
+            className="inline-flex items-center gap-2 px-6 py-3 bg-teal-700 hover:bg-teal-800 text-white rounded-xl font-bold transition-colors"
           >
             {copy.ctaPrimary} <ArrowRight size={18} />
           </Link>
           <Link
             href="#how-it-works"
-            className="inline-flex items-center gap-1.5 text-sm font-bold text-teal-600 hover:text-teal-700 transition-colors"
+            className="inline-flex items-center gap-1.5 text-sm font-bold text-teal-700 hover:text-teal-700 transition-colors"
           >
             {copy.ctaSecondary} <ArrowRight size={16} />
           </Link>
@@ -383,7 +383,7 @@ export default function TelemedicineClient() {
               </div>
             </div>
             <div className="flex items-center gap-1.5 shrink-0">
-              <span className="hidden sm:inline-flex items-center gap-1 text-[11px] font-medium text-white bg-teal-600 rounded-lg px-2.5 py-1.5">
+              <span className="hidden sm:inline-flex items-center gap-1 text-[11px] font-medium text-white bg-teal-700 rounded-lg px-2.5 py-1.5">
                 <Languages size={13} /> {copy.mockup.live}
               </span>
               <span className="inline-flex items-center gap-1 text-[11px] font-medium text-white bg-red-600 rounded-lg px-2.5 py-1.5">
@@ -396,7 +396,7 @@ export default function TelemedicineClient() {
           <div className="relative bg-gray-950 p-3 md:p-4">
             <div className="grid grid-cols-2 gap-3">
               <div className="aspect-[4/3] rounded-lg bg-gray-800 flex items-center justify-center relative overflow-hidden">
-                <div className="w-14 h-14 md:w-16 md:h-16 rounded-full bg-teal-500/20 border border-teal-400/30 flex items-center justify-center">
+                <div className="w-14 h-14 md:w-16 md:h-16 rounded-full bg-teal-700/20 border border-teal-400/30 flex items-center justify-center">
                   <Stethoscope size={24} className="text-teal-300" />
                 </div>
                 <span className="absolute bottom-2 left-2 text-[11px] font-semibold text-white bg-black/50 rounded px-1.5 py-0.5">{copy.mockup.doctor}</span>
@@ -443,11 +443,11 @@ export default function TelemedicineClient() {
           <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-3 leading-snug max-w-2xl">
             {copy.stepsTitle}
           </h2>
-          <div className="w-12 h-px bg-teal-600 mb-8 md:mb-10" />
+          <div className="w-12 h-px bg-teal-700 mb-8 md:mb-10" />
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5">
             {copy.steps.map((step, i) => (
               <div key={i} className="bg-white border border-gray-200 rounded-xl p-5 md:p-6">
-                <span className="inline-flex w-9 h-9 rounded-lg bg-teal-600 text-white font-bold items-center justify-center text-sm mb-3">
+                <span className="inline-flex w-9 h-9 rounded-lg bg-teal-700 text-white font-bold items-center justify-center text-sm mb-3">
                   {step.num}
                 </span>
                 <h3 className="text-lg font-bold text-gray-900 mb-1.5 leading-snug">{step.title}</h3>
@@ -469,7 +469,7 @@ export default function TelemedicineClient() {
             return (
               <div key={i} className="border border-gray-200 rounded-xl p-5 hover:border-teal-300 hover:shadow-sm transition-all">
                 <span className="inline-flex w-10 h-10 rounded-xl bg-teal-50 border border-teal-100 items-center justify-center mb-3">
-                  <Icon size={18} className="text-teal-600" />
+                  <Icon size={18} className="text-teal-700" />
                 </span>
                 <h3 className="text-base font-bold text-gray-900 mb-1.5 leading-snug">{f.title}</h3>
                 <p className="text-sm text-gray-500 leading-relaxed">{f.body}</p>
@@ -488,7 +488,7 @@ export default function TelemedicineClient() {
           <div className="grid sm:grid-cols-2 gap-4 md:gap-5">
             {copy.useCases.map((uc, i) => (
               <article key={i} className="bg-white border border-gray-200 rounded-xl p-5 md:p-6">
-                <div className="text-xs font-bold tracking-wide text-teal-600 mb-2">
+                <div className="text-xs font-bold tracking-wide text-teal-700 mb-2">
                   {String(i + 1).padStart(2, "0")}
                 </div>
                 <h3 className="text-lg font-bold text-gray-900 mb-2 leading-snug">{uc.title}</h3>
@@ -511,7 +511,7 @@ export default function TelemedicineClient() {
           {copy.docsItems.map((d, i) => (
             <div key={i} className="flex items-center gap-3 border border-gray-200 rounded-xl px-4 py-3">
               <span className="inline-flex w-7 h-7 shrink-0 rounded-lg bg-teal-50 border border-teal-100 items-center justify-center">
-                <FileText size={15} className="text-teal-600" />
+                <FileText size={15} className="text-teal-700" />
               </span>
               <span className="text-sm md:text-base text-gray-700">{d}</span>
             </div>
@@ -531,7 +531,7 @@ export default function TelemedicineClient() {
                 <span>{faq.q}</span>
                 <ArrowRight
                   size={18}
-                  className="shrink-0 mt-1 text-teal-600 transition-transform group-open:rotate-90"
+                  className="shrink-0 mt-1 text-teal-700 transition-transform group-open:rotate-90"
                 />
               </summary>
               <p className="mt-3 text-sm md:text-base text-gray-500 leading-relaxed">{faq.a}</p>
@@ -541,7 +541,7 @@ export default function TelemedicineClient() {
       </section>
 
       {/* FINAL CTA */}
-      <section className="bg-teal-600">
+      <section className="bg-teal-700">
         <div className="max-w-4xl mx-auto px-4 py-14 md:py-20 text-center">
           <h2 className="text-2xl md:text-3xl font-bold text-white mb-4 leading-snug">
             {copy.ctaSection.title}

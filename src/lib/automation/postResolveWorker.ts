@@ -43,7 +43,7 @@ function canAutoApprove(pattern: {
 }
 
 /** RAG ingest: pattern → rag_documents + rag_chunks */
-async function ingestPatternToRag(
+export async function ingestPatternToRag(
   patternId: string,
   pattern: {
     treatment_slug?: string;
@@ -157,7 +157,7 @@ export async function runPostResolve(threadId: string): Promise<{
   // 1. auto_jobs에 기록
   const { data: jobRow, error: jobErr } = await (supabaseAdmin as any)
       .from("auto_jobs")
-    .insert({ job_type: jobType, status: "running", started_at: nowIso(), stats: { thread_id: threadId } })
+    .insert({ job_type: jobType, status: "running", started_at: nowIso(), output: { thread_id: threadId } })
     .select("id")
     .single();
 
@@ -179,7 +179,7 @@ export async function runPostResolve(threadId: string): Promise<{
     if (!messages || messages.length < 2) {
       await (supabaseAdmin as any)
       .from("auto_jobs")
-        .update({ status: "done", finished_at: nowIso(), stats: { thread_id: threadId, skipped: true, reason: "too few messages" } })
+        .update({ status: "done", completed_at: nowIso(), output: { thread_id: threadId, skipped: true, reason: "too few messages" } })
         .eq("id", jobId);
       return { auto_approved: false, error: "too few messages" };
     }
@@ -227,7 +227,7 @@ export async function runPostResolve(threadId: string): Promise<{
     if (existing && existing.length > 0) {
       await (supabaseAdmin as any)
       .from("auto_jobs")
-        .update({ status: "done", finished_at: nowIso(), stats: { thread_id: threadId, skipped: true, reason: "pattern already exists" } })
+        .update({ status: "done", completed_at: nowIso(), output: { thread_id: threadId, skipped: true, reason: "pattern already exists" } })
         .eq("id", jobId);
       return { pattern_id: existing[0].id, auto_approved: false, error: "pattern already exists for this thread" };
     }
@@ -291,8 +291,8 @@ export async function runPostResolve(threadId: string): Promise<{
       .from("auto_jobs")
         .update({
           status: "done",
-          finished_at: nowIso(),
-          stats: { thread_id: threadId, pattern_id: newPattern.id, auto_approved: false, gate_errors: gate.errors },
+          completed_at: nowIso(),
+          output: { thread_id: threadId, pattern_id: newPattern.id, auto_approved: false, gate_errors: gate.errors },
         })
         .eq("id", jobId);
 
@@ -334,8 +334,8 @@ export async function runPostResolve(threadId: string): Promise<{
       .from("auto_jobs")
       .update({
         status: "done",
-        finished_at: nowIso(),
-        stats: {
+        completed_at: nowIso(),
+        output: {
           thread_id: threadId,
           pattern_id: newPattern.id,
           auto_approved: ingestResult.ok,
@@ -354,7 +354,7 @@ export async function runPostResolve(threadId: string): Promise<{
     console.error("[postResolve] Error:", err.message);
     await (supabaseAdmin as any)
       .from("auto_jobs")
-      .update({ status: "failed", finished_at: nowIso(), error: err.message })
+      .update({ status: "failed", completed_at: nowIso(), error: err.message })
       .eq("id", jobId);
     return { auto_approved: false, error: err.message };
   }
