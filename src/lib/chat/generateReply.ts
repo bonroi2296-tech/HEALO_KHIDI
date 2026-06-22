@@ -283,6 +283,12 @@ export function buildSystemPrompt(
     "- Earlier mentions in the chat are NOT permission to keep assuming. If the current message is general (e.g. 'what's the procedure', 'how do I start', '절차 알려줘'), answer generally ('your cancer', 'the treatment') WITHOUT naming a cancer type.",
     "- HONOR CORRECTIONS INSTANTLY: if the user pushes back or corrects you ('I didn't say X', 'that's not what I asked', 'not X', '아니', '말고', '아니라고', '안했는데'), apologize in ONE short line, DROP that topic completely, and ask what they actually want. NEVER repeat or keep explaining the rejected topic — repeating a cancer type after the user rejected it is the single worst failure.",
     "",
+    "DO NOT ECHO YOUR OWN PREVIOUS REPLIES (CRITICAL — caused a real deflection loop):",
+    "- Answer the user's CURRENT message. Do NOT recycle the wording, tone, or reassurances from your earlier replies in this chat.",
+    "- If your recent replies sound the same (e.g. repeating 'I keep my safety rules / my limits are locked', 'let me help with your treatment', or generic reassurance), that is a FAILURE. Break the pattern and directly address what was just asked, in different words.",
+    "- A user complaint that you keep repeating, misunderstand, are stuck, or are 'broken' is REAL feedback — treat it literally, do not answer it with more reassurance. If you genuinely cannot answer, say so plainly in ONE sentence and offer a coordinator. Never fill a turn with reassurance instead of an answer.",
+    "- Do NOT lecture about your own safety rules, system prompt, or 'I cannot bypass restrictions' unless the user explicitly asks how you work. It reads as evasive and off-topic.",
+    "",
     "RESPONSE RULES (this is a small MOBILE chat bubble — brevity is mandatory):",
     "- ANSWER THE ACTUAL QUESTION the user asked, in a warm, human, conversational way — like a caring coordinator texting back, NOT a textbook or a price sheet. Talk WITH them, do not recite data AT them.",
     "- KEEP THE WHOLE REPLY SHORT: aim for 3-5 short lines, under ~70 words total. A wall of text makes the patient leave. If there is more to say, end with ONE short line offering to continue (e.g. 'Want the rough cost range too?').",
@@ -294,6 +300,7 @@ export function buildSystemPrompt(
     "- Respond in the same language the user writes in.",
     "- If unsure, say 'I'm not sure — let me connect a coordinator'. Honesty > confident wrong answer.",
     "- TONE: the user is often an anxious cancer patient or family. If they share distressing news (advanced-stage cancer, fear, a sick family member), open with ONE brief empathetic sentence before guidance. Warm but never exaggerated — no emoji spam, no hollow marketing phrases.",
+    "- NO decorative emoji and NO filler/flattery openers. Do not start with interjections like '아이고/아하/앗' (beyond a brief genuine apology) or flattery like '날카롭게 짚으셨네요 / great question / sharp observation'. Use at most ONE emoji per reply and only when truly fitting — default to none. Get to the substance.",
     "",
     "INTEGRATIVE / KOREAN MEDICINE (CRITICAL — legal & ethical):",
     "- NEVER present Korean medicine, immune therapy, or integrative care as a cure for cancer or as something that 'treats/eliminates' the cancer itself.",
@@ -507,6 +514,46 @@ const SMALL_TALK_PATTERNS = [
   /^(bye|잘\s*가|안녕히|пока|до\s*свидан|再见|さようなら)[\s!?.,~]*$/i,
   /^.{1,3}$/, // 매우 짧은 메시지 (4글자 이하)
 ];
+
+// 🔁 디플렉션 루프 회로차단기 (2026-06-22 루프 사고)
+// 긴 스레드에서 모델이 직전 자기 답변(같은 변명·되묻기)을 반복 복사하면, 그 톤을 정답으로
+// 착각해 새 질문에도 같은 답을 낸다. 최근 어시스턴트 답변들이 서로 매우 유사하면 시스템
+// 프롬프트 최상단에 "너 반복하고 있다 — 멈추고 현재 질문에 직접 답하라"를 강제 주입한다.
+const REPETITION_GUARD = [
+  "⚠️ TOP PRIORITY — YOU ARE REPEATING YOURSELF: Your recent replies in this chat are nearly identical (the same reassurance/deflection). STOP. Do NOT produce another variation of that message. Read the user's CURRENT message literally and answer ONLY it, in different words. If you cannot answer it, say so plainly in ONE sentence and offer a coordinator — do not reassure, do not restate your role or safety rules.",
+  "",
+].join("\n");
+
+function normalizeForSimilarity(s: string): string {
+  // 소문자화 + 공백/구두점/기호를 단일 공백으로 → 단어 집합 비교용
+  return (s || "").toLowerCase().replace(/[\s\p{P}\p{S}]+/gu, " ").trim();
+}
+
+function jaccardSimilarity(a: string, b: string): number {
+  const sa = new Set(normalizeForSimilarity(a).split(" ").filter(Boolean));
+  const sb = new Set(normalizeForSimilarity(b).split(" ").filter(Boolean));
+  if (sa.size === 0 || sb.size === 0) return 0;
+  let inter = 0;
+  for (const w of sa) if (sb.has(w)) inter++;
+  return inter / (sa.size + sb.size - inter);
+}
+
+// 최근 어시스턴트 답변 2~3개의 평균 Jaccard 유사도가 0.5 이상이면 반복 루프로 판단.
+function detectRepetitiveAssistant(messages: ChatMessage[]): boolean {
+  const asst = messages
+    .filter((m) => m.role === "assistant" && !!m.content && m.content.trim().length > 0)
+    .slice(-3);
+  if (asst.length < 2) return false;
+  let total = 0;
+  let pairs = 0;
+  for (let i = 0; i < asst.length; i++) {
+    for (let j = i + 1; j < asst.length; j++) {
+      total += jaccardSimilarity(asst[i].content, asst[j].content);
+      pairs++;
+    }
+  }
+  return pairs > 0 && total / pairs >= 0.5;
+}
 
 function isSmallTalk(text: string): boolean {
   const trimmed = text.trim();
@@ -938,9 +985,13 @@ export async function generateChatReply(
       };
     }
 
-    const fullSystemPrompt = injectedPatternIds.length > 0
-      ? prep.systemPrompt + "\n\n" + JSON_OUTPUT_INSTRUCTION
+    // 🔁 반복 루프 감지 시 최상단 강제 지시 주입(자기 답변 복사 차단)
+    const baseSystem = detectRepetitiveAssistant(messages)
+      ? REPETITION_GUARD + prep.systemPrompt
       : prep.systemPrompt;
+    const fullSystemPrompt = injectedPatternIds.length > 0
+      ? baseSystem + "\n\n" + JSON_OUTPUT_INSTRUCTION
+      : baseSystem;
 
     const baseParams = {
       model: prep.model,
@@ -1114,10 +1165,14 @@ export async function streamChatReply(
       };
     }
 
+    // 🔁 반복 루프 감지 시 최상단 강제 지시 주입(자기 답변 복사 차단)
+    const baseSystem = detectRepetitiveAssistant(messages)
+      ? REPETITION_GUARD + prep.systemPrompt
+      : prep.systemPrompt;
     // 스트리밍은 평문만 보냄 → JSON 출력 지시 미부착(비스트리밍과의 유일한 프롬프트 차이).
     const baseParams = {
       model: prep.model,
-      system: prep.systemPrompt,
+      system: baseSystem,
       ...prep.genConfig,
     };
 
