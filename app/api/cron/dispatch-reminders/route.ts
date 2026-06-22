@@ -177,7 +177,10 @@ async function dispatchEmail(
 
   const scheduledAt = session?.scheduled_at ?? row.fire_at;
   const payload = row.payload as Record<string, string>;
-  const lang = (payload.lang ?? session?.patient_language ?? "ko") as any;
+  // 카자흐: 앱·DB 는 활성코드 'kz' 를 쓰지만 리마인더 템플릿 키는 'kk'(설문과 동일 경계 매핑).
+  // 매핑 안 하면 'kz' 가 템플릿에서 'ko' 로 폴백돼 카자흐 환자에게 한국어 리마인더가 발송됨(POSTMORTEMS #23).
+  const rawLang = (payload.lang ?? session?.patient_language ?? "ko");
+  const lang = (rawLang === "kz" ? "kk" : rawLang) as any;
 
   // 입장 URL
   const baseUrl =
