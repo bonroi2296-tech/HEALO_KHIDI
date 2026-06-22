@@ -184,7 +184,9 @@ export async function POST(request: NextRequest) {
     chatMessages,
     trimmed,
     lang,
-    thread_id
+    thread_id,
+    // 환자 포털은 항상 로그인 상태 → 계정 연결·연락 가능. 세션 사실을 정확히 주입.
+    { isLoggedIn: true, hasReachableContact: true }
   );
 
   // 소스 정보 추출 (프론트엔드 표시용)

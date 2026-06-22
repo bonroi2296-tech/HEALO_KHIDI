@@ -53,6 +53,40 @@ if [ -n "$hc" ]; then
   fi
 fi
 
+# ── 열린 작업 목록 (병렬 세션 네비게이션) ─────────────────────────
+# main 에 아직 안 들어간 claude/* 작업본(브랜치)을 최신순으로 번호 매겨 띄운다.
+# PO가 여러 세션을 병렬로 돌릴 때 "지금 열린 일이 뭐뭐였지"를 한눈에 보고,
+# "1번 이어가" / "<이름> 이어가" 한마디로 고르면 그 브랜치로 이어가게 한다.
+# (GitHub 조회 없이 git 원격추적 브랜치만 사용 — 훅은 네트워크를 쓰지 않는다.)
+open_raw=$(git for-each-ref --sort=-committerdate \
+  --format='%(refname:short)|%(committerdate:relative)|%(contents:subject)' \
+  refs/remotes/origin/claude 2>/dev/null | head -12)
+if [ -n "$open_raw" ]; then
+  rows=""
+  i=0
+  while IFS='|' read -r ref rel subj; do
+    [ -z "$ref" ] && continue
+    # main 에 이미 머지된 브랜치는 제외(잔재 거르기). squash 머지분은 원격 브랜치 삭제로 사라짐.
+    if git merge-base --is-ancestor "$ref" origin/main 2>/dev/null; then continue; fi
+    short=${ref#origin/}
+    i=$((i+1))
+    rows="${rows}  ${i}. \`${short}\` — ${subj} (${rel})
+"
+    [ "$i" -ge 8 ] && break
+  done <<EOF
+$open_raw
+EOF
+  if [ "$i" -gt 0 ]; then
+    echo ""
+    echo "## 🗂️ 열린 작업(작업본 브랜치) — 병렬 세션용"
+    echo "  ⚠️ 새 작업 시작 전 이 목록에서 **중복 확인**: 같은 영역(배포·AI챗·안전가드 등)을 이미 하는 브랜치가 있으면 새로 만들지 말고 그걸 이어가거나 PO에게 알려라(3중복 재발 방지)."
+    printf '%s' "$rows"
+    echo "  → PO가 \"N번 이어가\" 또는 \"<이름> 이어가\"라고 하면: 그 브랜치로 \`git checkout\` 한 뒤 이어가라."
+    echo "     · 핸드오프가 있으면 ${CTX}·해당 PR을 보고 이어간다."
+    echo "     · **핸드오프가 없어도(까먹음·토큰끊김·세션죽음) 반드시 복원해서 이어가라**: \`git log origin/main..<브랜치>\`(커밋 기록) + \`git diff origin/main...<브랜치>\`(실제 변경) + 해당 PR 설명으로 '무슨 작업이었는지'를 재구성. 매 턴 자동 커밋·푸시되므로 코드는 항상 남아 있다 — 핸드오프 유무와 무관하게 모든 작업을 이어갈 수 있어야 한다."
+  fi
+fi
+
 echo "- ▶ 이어가기 전 **${CTX} 최상단 핸드오프** 전체를 읽어라. 남은 버그·개선점은 docs/KNOWN_ISSUES.md."
 
 # ── 핸드오프 핵심 3칸을 직접 띄움 (B) — 안 읽어도 눈앞에 ──────────
@@ -84,6 +118,7 @@ echo ""
 echo "## 🗣️ 말투 규칙 (PO=비개발자, 매 응답 강제)"
 echo "- **개발 용어는 반드시 쉽게 풀어 설명 + 원어 병기.** 풀이 없이 용어만 쓰기 금지. 예: 정식주소(canonical), 주소록(DNS), 설정값(env), 검색등록(색인·index)."
 echo "- 짧고 직설적 한국어. 결과물(URL·배포·시각) 우선, 긴 설명 X."
+echo "- **PO에게 던지는 모든 질문은 예외 없이 AskUserQuestion 버튼으로** — 평문 '~할까요?'·예/아니오도 금지(버튼으로). 답 명백하면 묻지 말고 추천안 실행."
 echo "- 어겼다고 PO가 지적하게 만들지 마라 — 이게 반복돼서 이 줄이 생겼다."
 
 exit 0

@@ -475,6 +475,27 @@ ISO/IEC 25010(TTA GS) 기준 제3자 보안 감리 중, 환자 의료데이터�
 
 ---
 
+## #23 — AI 에이전트가 비로그인·연락처 없는 사용자에게 "접수 완료/코디가 연락"이라는 거짓 약속 + 세션 유실 질문에 즉흥 오답 (2026-06-22)
+
+**무슨 일**
+PO가 `/inquiry` AI Agent를 직접 테스트(위암 친구 상담 시나리오). AI가 ①연락처가 하나도 없는 익명 사용자에게 "신속하게 접수해 드렸습니다, 코디네이터가 곧 연락드립니다"라고 한 뒤 곧바로 "연락처를 남겨달라"고 모순된 안내 → "접수했다면서 왜 연락처를 또 묻냐"는 지적을 받음. ②"로그인 안 해서 세션 유지 안 될 텐데?"라는 질문에 근거 없이 즉흥 답(브라우저 닫으면 사라진다 등)을 만들어내다 꼬임. ③질책받자 위암 비용표·필수서류를 맥락 없이 쏟아냄(data dumping). ④실제로는 사용자가 로그인 상태였는데 그걸 전혀 몰랐음.
+
+**왜 못 잡았나 (근본원인)**
+1. **상태 사실 미주입**: `/inquiry` AI 챗은 설계상 익명·공개(`/api/public/chat/*`)인데, 시스템 프롬프트가 로그인 여부·연락 가능 여부·세션 저장 메커니즘(쿠키 30일 복구·DB 저장)을 **하나도 모름**. 그래서 세션 질문에 즉흥 창작을 함.
+2. **접수 멘트가 무조건 "접수완료"**: 시스템 프롬프트가 "이미 이름·연락처가 저장돼 있다"고 **무조건 가정**(generateReply.ts 구 335줄), 라우트도 `HANDOFF_CONFIRM`("🔔 접수됐어요")을 **연락처 유무와 무관하게 무조건** 덧붙임 → 연락 불가인데 거짓 약속.
+3. **감정 신호 처리 규칙 부재**: 화난 사용자에게 정보 덤프로 도망치는 패턴을 막는 규칙이 없었음.
+4. 로그인 사용자라도 공개 챗이 `user_id`를 안 붙여 계정과 분리돼 있었음.
+
+**어떻게 고쳤나**
+- **상태 사실 주입**: `ChatSession{isLoggedIn,hasReachableContact}`를 `buildSystemPrompt`까지 관통. 프롬프트에 **SESSION & IDENTITY FACTS** 블록 추가(로그인=계정연결·any device / 게스트=이 브라우저 30일 복구를 정직하게 안내, "나중에 와서 메시지 남겨라" 금지).
+- **접수 멘트 연락처 게이트**: REGISTER 규칙을 `hasReachableContact`로 분기 — 연락 가능하면 "접수완료", 불가하면 **거짓 "접수완료" 금지 + 연락처 하나만 요청**(대화는 저장돼 있음 안심). 라우트의 하드코딩 멘트도 `pickHandoffConfirm(lang, reachable)`로 분기(`HANDOFF_NEED_CONTACT` 신설, 6개 언어).
+- **감정 대응 규칙**: TONE에 DE-ESCALATION 추가(화난 사용자에게 문서·가격 덤프 금지, 공감 1줄+질문 1개).
+- **로그인 계정 연결**: 공개 챗 3개 라우트(start/message/stream)가 same-origin 인증쿠키로 로그인 사용자 식별 → `chat_threads.user_id` 연결(+`metadata.is_logged_in`). 익명(인증쿠키 없음)은 auth 왕복 생략(매 턴 지연 방지). `hasReachableContact=guest_email∥guest_phone∥user_id`.
+
+**재발 방지 (시스템 적용)**
+- **가드 룰(회귀잠금) 신설**: `systemPromptGuards.test.ts`에 ①접수 멘트가 `hasReachableContact`로 분기 + "거짓 약속 금지" 문구 ②SESSION & IDENTITY FACTS 블록 ③DE-ESCALATION 규칙 ④`publicChatHelpers`의 `hasReachableContact`·`pickHandoffConfirm`·`HANDOFF_NEED_CONTACT`(6언어) 존재를 텍스트로 잠금 → 누가 지우면 CI가 막음.
+- **`HANDOFF_CONFIRM` `kz` 키 누락 보강**(기존 `kk`만 있어 카자흐어가 영어로 폴백되던 잔버그).
+- **남은 권장(미적용)**: ①이름으로 인사(displayName)는 PII 최소화 위해 보류 ②연락처 없이 여러 턴 지나면 코디 대시보드에서 "연락불가 리드"로 분류하는 운영 가드.
 ## #22 — 긴 채팅 스레드에서 AI가 같은 변명을 무한 반복(디플렉션 루프) — 앱은 바보 같고 새 대화(브라우저)는 멀쩡 (2026-06-22)
 
 **무슨 일**

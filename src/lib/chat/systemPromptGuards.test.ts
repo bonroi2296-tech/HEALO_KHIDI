@@ -40,7 +40,30 @@ describe("system prompt behavioral guards (regression lock)", () => {
   it("화제 정정 감지 시 결정적 short-circuit 이 두 응답 경로에 있다", () => {
     expect(SRC).toMatch(/if \(isTopicCorrection\(query\)\)/);
   });
+
+  // ── 2026-06-22 PO 재현: 비로그인·연락처 없는 사용자에게 "접수 완료/코디가 연락"이라는
+  //    거짓 약속 + 세션 유실 질문에 즉흥 오답. 상태 사실 주입으로 차단. (state-detection)
+  it("접수(REGISTER) 멘트가 연락처 유무(hasReachableContact)로 분기된다", () => {
+    expect(SRC).toMatch(/hasReachableContact/);
+    expect(SRC).toMatch(/Do NOT claim they are 'registered'/);
+    expect(SRC).toMatch(/FALSE promise/);
+  });
+
+  it("세션·로그인 상태 사실(SESSION & IDENTITY FACTS) 블록이 있다", () => {
+    expect(SRC).toMatch(/SESSION & IDENTITY FACTS/);
+    expect(SRC).toMatch(/auto-resumes for 30 days/);
+    expect(SRC).toMatch(/The patient is LOGGED IN/);
+    expect(SRC).toMatch(/never guess or improvise/);
+  });
+
+  it("감정 격앙 시 정보 덤프 금지(DE-ESCALATION) 규칙이 있다", () => {
+    expect(SRC).toMatch(/DE-ESCALATION/);
+    expect(SRC).toMatch(/do NOT respond by dumping documents/);
+  });
 });
+
+// 접수 연락처 게이트의 실제 동작 검증은 ./contactGate.test.ts 에서(순수 모듈이라 직접 import 가능).
+// (과거엔 server-only 라 텍스트로만 잠갔으나, contactGate.ts 로 분리해 진짜 단위테스트로 대체.)
 
 // 🔑 마스터키 '힐로'/'healo' — 자기분석 모드 회귀 잠금.
 // server-only 모듈이라 직접 import 불가 → 소스에 트리거·분석 배선이 살아있는지 텍스트로 잠근다.

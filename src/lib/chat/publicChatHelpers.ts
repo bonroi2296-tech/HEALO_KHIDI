@@ -39,15 +39,13 @@ export const ATTACHMENT_ACK: Record<string, string> = {
   ja: "📎 ファイルを受け取り安全に保管しました。医療チーム・コーディネーターが直接確認しご連絡します。（AIは検査結果を判読しません。）",
 };
 
-// 핸드오프 확인 멘트 (6개 언어) — "다시 입력 안 해도 됨" 명시. 대화 내용은 이미 서버 저장됨.
-export const HANDOFF_CONFIRM: Record<string, string> = {
-  ko: "🔔 접수됐어요. 지금까지 말씀해주신 내용은 그대로 저장됐고, healwith 코디네이터가 곧 연락드립니다. 다시 입력하실 필요 없어요.",
-  en: "🔔 You're registered. Everything you shared here is saved — a healwith coordinator will reach out shortly. No need to re-enter anything.",
-  ru: "🔔 Заявка принята. Всё, что вы рассказали, сохранено — координатор healwith скоро свяжется с вами. Повторно вводить ничего не нужно.",
-  kk: "🔔 Өтінім қабылданды. Айтқандарыңыз сақталды — healwith үйлестірушісі жақын арада хабарласады. Қайта енгізудің қажеті жоқ.",
-  zh: "🔔 已为您登记。您在此提供的信息都已保存，healwith 协调员会尽快与您联系，无需重新填写。",
-  ja: "🔔 受付しました。お話しいただいた内容は保存済みです。healwithのコーディネーターからまもなくご連絡します。再入力は不要です。",
-};
+// 접수(핸드오프) 연락처 게이트 멘트·로직은 순수 모듈로 분리(단위테스트 가능) — 여기선 재노출만.
+export {
+  HANDOFF_CONFIRM,
+  HANDOFF_NEED_CONTACT,
+  hasReachableContact,
+  pickHandoffConfirm,
+} from "./contactGate";
 
 // 클라이언트가 보낸 첨부 목록 검증·정제. 업로드 라우트가 항상 inquiry/ 접두사로
 // 저장하므로 그 외 경로는 거부(경로조작·임의참조 차단). 최대 5개.

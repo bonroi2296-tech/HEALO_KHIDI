@@ -1,0 +1,29 @@
+name: Chat Smoke (AI agent guards)
+
+# AI 챗 핵심 가드를 프로덕션에서 매일 자동 점검(PO 수동 클릭 대체):
+#   A) 연락처 없이 "접수해줘" → 거짓 "접수완료" 금지·연락처 요청
+#   B) "로그인 안 했는데 저장돼?" → 정직한 저장/30일 안내
+# 실패하면 이 워크플로가 빨강 → 알림. 테스트 스레드는 끝나면 service_role 로 자동 삭제(DB 오염 0).
+
+on:
+  schedule:
+    - cron: "30 18 * * *" # 매일 18:30 UTC (KST 03:30)
+  workflow_dispatch: {}
+
+jobs:
+  smoke:
+    name: AI 챗 스모크
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Run chat smoke test
+        env:
+          # 점검 대상(미설정 시 스크립트 기본값 https://healo-khidi.vercel.app)
+          BASE_URL: ${{ vars.SMOKE_BASE_URL }}
+          # 테스트 스레드 자동 정리용(없으면 정리 건너뜀 — DB에 테스트 스레드 남음)
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: node scripts/smoke-chat.mjs

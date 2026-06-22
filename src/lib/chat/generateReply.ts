@@ -242,6 +242,16 @@ export interface HospitalGuardOptions {
   hospitalIntentNoMatch?: boolean;
 }
 
+// 대화 세션의 "상태 사실"(state facts) — 모델이 로그인·저장·연락 가능 여부를 추측하지 않고
+// 사실대로 답하게 주입한다. 비로그인·연락처 미보유 사용자에게 "접수 완료/코디가 연락"이라는
+// 거짓 약속을 하던 버그(2026-06-22 PO 재현)를 막는 핵심 입력.
+export interface ChatSession {
+  // 로그인 여부 — chat_thread.user_id 가 있으면 true. 세션 유지·계정 연결 안내에 사용.
+  isLoggedIn?: boolean;
+  // 코디네이터가 연락할 수단(이메일·전화) 또는 계정이 있는가. 접수 멘트 분기의 기준.
+  hasReachableContact?: boolean;
+}
+
 export function buildSystemPrompt(
   contextText: string,
   hasTier3: boolean,
@@ -249,12 +259,14 @@ export function buildSystemPrompt(
   externalSources: string[] = [],
   hospitalGuard: HospitalGuardOptions = {},
   currentMentionsCancer = true,
+  session: ChatSession = {},
 ): string {
   const hasContext = !!contextText;
   const hasDbData = contextText.includes("healwith 등록");
   const hasHira = externalSources.includes("hira");
   const hasNaver = externalSources.includes("naver");
   const { hospitalGuardActive = false, hospitalIntentNoMatch = false } = hospitalGuard;
+  const { isLoggedIn = false, hasReachableContact = false } = session;
 
   return [
     // 코드 강제 가드(맨 위 = 최우선): 현재 메시지에 암종이 없으면 옛 화제(대장암 등)를 끌어와
@@ -300,6 +312,7 @@ export function buildSystemPrompt(
     "- Respond in the same language the user writes in.",
     "- If unsure, say 'I'm not sure — let me connect a coordinator'. Honesty > confident wrong answer.",
     "- TONE: the user is often an anxious cancer patient or family. If they share distressing news (advanced-stage cancer, fear, a sick family member), open with ONE brief empathetic sentence before guidance. Warm but never exaggerated — no emoji spam, no hollow marketing phrases.",
+    "- DE-ESCALATION (important): if the user is upset, frustrated, angry, or criticizing the service (swearing, sarcasm, 'this is useless', 'why do I have to explain this to you'), do NOT respond by dumping documents, price lists, or feature explanations. First acknowledge their frustration in ONE short sincere line, then ask ONE simple question to fix the actual problem. Reciting reference data at an upset person makes it worse.",
     "- NO decorative emoji and NO filler/flattery openers. Do not start with interjections like '아이고/아하/앗' (beyond a brief genuine apology) or flattery like '날카롭게 짚으셨네요 / great question / sharp observation'. Use at most ONE emoji per reply and only when truly fitting — default to none. Get to the substance.",
     "",
     "INTEGRATIVE / KOREAN MEDICINE (CRITICAL — legal & ethical):",
@@ -334,12 +347,21 @@ export function buildSystemPrompt(
     "- Do NOT give fixed cost/duration ('exactly ₩X, Y days') — ranges/estimates from Context only.",
     "- For ANY of the above, say it needs a doctor and offer to connect via remote consultation (원격협진) or a coordinator.",
     "",
+    "SESSION & IDENTITY FACTS (about THIS conversation — answer any 'will I lose this / am I logged in / how do I get a reply' question with these FACTS, never guess or improvise):",
+    "- This chat is saved on healwith's server the moment each message is sent. Nothing the patient typed is lost.",
+    isLoggedIn
+      ? "- The patient is LOGGED IN. This conversation is linked to their account, so they can close it and return anytime, on ANY device, from their My Page. Their contact is already on file — do NOT ask for an email/phone just to 'save' the chat."
+      : "- The patient is a GUEST (not logged in). This conversation also auto-resumes for 30 days on THIS browser/device via a secure cookie. So if they worry 'I'll lose this if I close it' or 'I'm not logged in so it won't be saved' — reassure them HONESTLY: it reopens right here when they return on this device. It only won't follow them to a DIFFERENT device unless they leave an email or sign in (optional, never demanded).",
+    "- You reply LIVE in this chat. NEVER tell the patient to 'leave a message and come back later for my answer' — you respond now; a human coordinator follows up through their contact detail.",
+    "",
     "INTAKE & ESTIMATE (use the [healwith 안내자료] reference below — it is always available):",
     "- If the patient asks what to prepare / how to start / how to get a cost estimate, list the 5 REQUIRED DOCUMENTS as a compact '- ' list (one short line each, no extra commentary), then ONE line: share them with a coordinator for a personalized quote (free preliminary review).",
     "- ONLY when the patient EXPLICITLY asks the price (e.g. '얼마', 'how much', 'cost'): give just that cancer type's INDICATIVE RANGE (USD and ₩) woven into a full sentence, then ONE line that it is an estimate and the hospital sets the final price after reviewing the diagnosis. Never a single fixed number, never a bare figure, never dump the whole price list. If they did NOT ask about cost, do NOT volunteer a price — answer their real question instead.",
     "- Tag these with '(출처: healwith 안내자료)' (translate '출처' to the user's language).",
     "- Keep the integrative/immune framing: supportive care alongside surgery/chemo, never a cure.",
-    "- REGISTER / PROCEED: when the patient wants to formally register, submit, proceed, or book (e.g. '접수해줘', 'оформить заявку', 'I want to proceed'), NEVER send them to a separate form or tell them to re-enter their details from scratch. Everything they told you in THIS chat is already saved with their name and contact. Reassure in 1-2 short lines: their request is registered and a healwith coordinator will contact them (by email if they gave one). Only ask for any of the 5 required documents still missing, or for a contact detail if none was given. A patient who already shared their info must never be asked to start over.",
+    hasReachableContact
+      ? "- REGISTER / PROCEED: when the patient wants to formally register, submit, proceed, or book (e.g. '접수해줘', 'оформить заявку', 'I want to proceed'), we ALREADY have a way to reach them. NEVER send them to a separate form or tell them to re-enter anything. Reassure in 1-2 short lines: their request is registered and a healwith coordinator will follow up. Only ask for any of the 5 required documents still missing. A patient who already shared their info must never be asked to start over."
+      : "- REGISTER / PROCEED: when the patient wants to register, submit, proceed, or book (e.g. '접수해줘', 'I want to proceed'), we currently have NO way to reach them (no email, phone, or account on file). Do NOT claim they are 'registered' and do NOT promise 'a coordinator will contact you' — with no contact that is a FALSE promise (this caused a real complaint). Instead: warmly say you'll get them set up, and ask for ONE contact detail — an email, or a messenger ID (WhatsApp/Telegram/WeChat/LINE) — so a coordinator can reach them. Reassure that this chat is already saved and reopens on this device, so nothing is lost. Ask for at most one contact + any missing required document; never make them start over.",
     "",
     "SAFETY:",
     "- No medical diagnosis or outcome guarantees.",
@@ -853,7 +875,8 @@ interface PreparedGeneration {
 async function prepareGeneration(
   query: string,
   lang: string,
-  threadId?: string
+  threadId?: string,
+  session: ChatSession = {}
 ): Promise<PreparedGeneration> {
   // 1단계: healwith DB 직접 검색 (최우선) + RAG 벡터 검색 (병렬 실행)
   const [dbResult, ragChunks] = await Promise.all([
@@ -900,7 +923,7 @@ async function prepareGeneration(
   const systemPrompt = buildSystemPrompt(allContext, hasTier3, useWebSearch, externalSources, {
     hospitalGuardActive,
     hospitalIntentNoMatch: hospitalIntent && matchedHospitalNames.length === 0,
-  }, mentionsCancerType(query));
+  }, mentionsCancerType(query), session);
   const retrievedPatternIds = extractRetrievedPatternIds(ragChunks);
   const model = getModel();
 
@@ -930,7 +953,8 @@ export async function generateChatReply(
   messages: ChatMessage[],
   query: string,
   lang: string,
-  threadId?: string
+  threadId?: string,
+  session: ChatSession = {}
 ): Promise<ChatReplyResult> {
   const t0 = Date.now();
   let ragScoring = "none";
@@ -965,7 +989,7 @@ export async function generateChatReply(
   }
 
   try {
-    const prep = await prepareGeneration(query, lang, threadId);
+    const prep = await prepareGeneration(query, lang, threadId, session);
     ragScoring = prep.ragScoring;
     const { ragChunks, injectedPatternIds, retrievedPatternIds, allContext } = prep;
 
@@ -1106,7 +1130,8 @@ export async function streamChatReply(
   query: string,
   lang: string,
   threadId: string | undefined,
-  onChunk: (text: string) => void
+  onChunk: (text: string) => void,
+  session: ChatSession = {}
 ): Promise<ChatReplyResult> {
   const t0 = Date.now();
   let ragScoring = "none";
@@ -1143,7 +1168,7 @@ export async function streamChatReply(
   }
 
   try {
-    const prep = await prepareGeneration(query, lang, threadId);
+    const prep = await prepareGeneration(query, lang, threadId, session);
     ragScoring = prep.ragScoring;
     const { ragChunks, injectedPatternIds, retrievedPatternIds, allContext } = prep;
 
