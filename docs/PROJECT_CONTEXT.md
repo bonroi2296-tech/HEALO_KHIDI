@@ -7,6 +7,31 @@
 
 ---
 
+## 🔖 세션 핸드오프 (2026-06-22 저녁 — AI 에이전트 상태인지 수정 [작업 중·폰→컴 인계])
+
+> ⏸ **작업 중 일시정지(WIP).** 폰→컴 이어가려고 짧게 남김(정식 /handoff 아님 — 다음 정식 핸드오프 때 이 블록 정리·로테이션). 코드 전부 push됨 — 브랜치 `claude/ai-agent-state-detection-0ag4tj`, **PR [#254](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/254)(초안)**. 컴에서 이 세션 그대로 열거나(claude.ai/code), 새 세션이 이 노트 읽고 이어가면 됨.
+
+**이번 세션 한 일:**
+- PO가 `/inquiry` AI Agent 테스트 → AI가 **연락처 없는 익명 사용자에게 거짓 "접수완료"** + 세션질문 즉흥 오답 + 질책에 정보덤프 + 로그인 무인지. AI 자기리포트는 "로그인 상태값 못 받음"이라 했으나 코드 보니 **절반만 맞음**(이 챗은 설계상 익명·공개 `/api/public/chat/*`).
+- **고침(백엔드만, 프론트 무변경)**: ①`ChatSession{isLoggedIn,hasReachableContact}`를 `buildSystemPrompt`까지 주입 → 프롬프트에 **SESSION & IDENTITY FACTS** 블록 + **접수멘트 연락처 게이트**(연락 불가 시 거짓 "접수완료" 금지·연락처 1개 요청) + **DE-ESCALATION**(화난 사용자 정보덤프 금지). ②라우트(start/message/stream) `pickHandoffConfirm(lang,reachable)` + `HANDOFF_NEED_CONTACT` 6언어 신설 + `HANDOFF_CONFIRM` kz키 보강. ③**로그인 계정연결**: 공개챗이 same-origin 인증쿠키로 로그인 식별→`chat_threads.user_id` 연결(익명=인증쿠키 없음→auth 왕복 생략). ④**세션/로그인/저장 질문이 `isTopicCorrection`에 오탐**돼 세션안내 못 타던 것 수정(`topicGuards.ts` SESSION_STATE_TERMS 예외). ⑤회귀잠금 테스트(`systemPromptGuards.test.ts`·`topicGuards.test.ts`) + POSTMORTEM #22.
+- **배포 한도 절약**: Vercel 무료 100/일 초과 발생 → `scripts/vercel-ignore-build.sh`(문서-only 커밋 배포 스킵) 추가. **⚠️ PO 할일: Vercel Settings>Git>Ignored Build Step 에 `bash scripts/vercel-ignore-build.sh` 1회 설정**(아직 안 함).
+- CLAUDE.md 소통지침에 "쉽게 설명 + 선택지는 AskUserQuestion 버튼으로" PO취향 고정.
+
+**검증 상태:**
+- ✅ **TEST1(거짓 접수 차단)**: 미리보기 라이브 curl로 **실증** — 연락처 없이 "접수해줘"→"이메일/메신저 ID 하나만 남겨주세요"(거짓 접수완료 안 함).
+- ⏳ **TEST2(세션질문 정직 안내)**: 수정 코드+단위테스트 통과하나 **실화면 미검증** — 그 수정분(30b0eec) 배포가 Vercel 일일한도에 막힘. 라이브 재시도 시 아직 옛 동작(엉뚱한 사과) 보임=미배포 확인. 한도 ~24h 뒤 해제되면 재확인.
+- ⏳ **TEST3(로그인 인지)**: curl로 로그인 흉내 불가 → 코드만 검토, 실화면 미검증.
+- CI(`ci`·`Smoke`) 마지막 푸시분 결과 미확인.
+
+**다음 세션이 먼저 할 일:**
+1. **CI(PR #254) 초록인지 확인** — 빨강이면 로그 보고 수정.
+2. **Vercel 한도 풀린 뒤** 미리보기서 TEST2·TEST3 실화면 확인(또는 머지 후 prod에서).
+3. PO가 **Ignored Build Step 설정**했는지 확인.
+4. 다 OK면 **PR #254 초안 해제·머지 판단**.
+5. (보류) 로그인 사용자 **이름 호칭(displayName)**·마이페이지 UI — PO 결정 대기.
+
+---
+
 ## 🔖 세션 핸드오프 (2026-06-22 늦은오후 — 협력기관 런타임 검증 + 라벨통일(#250) + 역할·프로세스 기획안)
 
 **이번 세션 한 일:**
