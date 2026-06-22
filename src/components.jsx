@@ -146,7 +146,7 @@ export const Header = ({ setView, view, _handleGlobalInquiry, isMobileMenuOpen, 
   return (
     <>
       <header className="bg-teal-100 text-slate-700 border-b border-teal-200 sticky top-0 z-50 shadow-sm pt-safe-area">
-        <div className="max-w-6xl mx-auto px-4 h-14 md:h-16 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-4 h-14 md:h-16 flex items-center justify-between">
           {/* Left: Logo + Nav */}
           <div className="flex items-center gap-6 z-20">
             <div className="flex items-center cursor-pointer shrink-0" onClick={() => onNavClick('home')}>
@@ -156,7 +156,7 @@ export const Header = ({ setView, view, _handleGlobalInquiry, isMobileMenuOpen, 
                   <Logo tone="light" />
               )}
             </div>
-            <nav className="hidden lg:flex items-center gap-0.5">
+            <nav className="hidden xl:flex items-center gap-0.5">
               <a
                 href="/telemedicine"
                 className="px-2.5 py-1.5 rounded-full text-sm font-semibold transition-all text-slate-600 hover:text-teal-700 hover:bg-teal-200/70 inline-flex items-center gap-1.5 whitespace-nowrap"
@@ -211,7 +211,7 @@ export const Header = ({ setView, view, _handleGlobalInquiry, isMobileMenuOpen, 
           )} */}
 
           {/* Right: Lang + Auth + Portal (desktop) */}
-          <div className="hidden lg:flex items-center gap-1.5 z-20">
+          <div className="hidden xl:flex items-center gap-1.5 z-20">
             {/* Language */}
             <div className="relative" ref={langRef}>
               <button
@@ -268,7 +268,7 @@ export const Header = ({ setView, view, _handleGlobalInquiry, isMobileMenuOpen, 
           </div>
 
           {/* Mobile: right actions */}
-          <div className="lg:hidden flex items-center gap-2 z-20">
+          <div className="xl:hidden flex items-center gap-2 z-20">
             {session && (
               <div className="w-7 h-7 rounded-full bg-teal-200 border border-teal-300 flex items-center justify-center text-teal-800 font-bold text-[10px]">
                 {session.user.email.split('@')[0].substring(0, 2).toUpperCase()}
