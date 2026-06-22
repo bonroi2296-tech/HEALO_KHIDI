@@ -10,6 +10,21 @@ export const runtime = "nodejs";
 import { NextRequest } from "next/server";
 import { supabaseAdmin, assertSupabaseEnv } from "@/lib/rag/supabaseAdmin";
 import { requireAdminAuth } from "@/lib/auth/requireAdminAuth";
+import { decryptMaybe } from "@/lib/security/encryptionV2";
+
+// AI상담(게스트) 리드의 이름·이메일·전화는 chat/start 에서 AES-256-GCM 암호화 저장된다
+// (encryptStringNullable). 복호화 없이 그대로 내보내면 코디 인박스에 암호문이 떠 환자에게
+// 연락할 수 없다 = 리드 유실(POSTMORTEMS #13 재발 부류). 읽기 경로에서 복호화한다
+// (decryptMaybe: 옛 평문 행은 그대로 통과). 이 엔드포인트는 requireAdminAuth 로 게이트됨.
+function decryptThreadGuestPii<T extends Record<string, any>>(row: T): T {
+  if (!row) return row;
+  return {
+    ...row,
+    guest_name: decryptMaybe(row.guest_name),
+    guest_email: decryptMaybe(row.guest_email),
+    guest_phone: decryptMaybe(row.guest_phone),
+  };
+}
 
 export async function POST(request: NextRequest) {
   assertSupabaseEnv();
@@ -73,7 +88,8 @@ export async function GET(request: NextRequest) {
       return Response.json({ ok: false, error: "query_failed" }, { status: 500 });
     }
 
-    return Response.json({ ok: true, threads: data, total: count ?? 0 });
+    const threads = Array.isArray(data) ? data.map(decryptThreadGuestPii) : data;
+    return Response.json({ ok: true, threads, total: count ?? 0 });
   } catch (err: any) {
     console.error("[GET /api/admin/chat/threads] Unexpected:", err.message);
     return Response.json({ ok: false, error: "Internal server error" }, { status: 500 });

@@ -21,14 +21,19 @@ import "@livekit/components-styles";
 import { COPY } from "./_roomCopy";
 import { Track, ConnectionState, VideoPresets } from "livekit-client";
 
-// LiveKit 방 옵션 — 화질 보강: 720p 캡처 + 화질 계층(simulcast)으로 큰 화면이 선명.
+// LiveKit 방 옵션 — 화질 보강: 1080p 캡처 + 명시적 1080p 인코딩.
 // adaptiveStream: 작은 타일엔 저화질 자동(대역폭 절약), 큰 화면엔 고화질. dynacast: 안 보는 트랙 안 보냄.
+// degradationPreference 'maintain-resolution': 대역폭·CPU 부족 시 프레임을 양보하고 해상도는 유지
+//   → 의료상담은 '부드러움'보다 '선명함'(얼굴·환부 디테일)이 우선이라 이 쪽이 맞다.
+// simulcast 는 저대역(h360) 폴백 1개만 둠 — 1:1~3인 상담에서 3계층은 폰 인코딩 CPU만 잡아먹어 역효과.
 const ROOM_OPTIONS = {
   adaptiveStream: true,
   dynacast: true,
-  videoCaptureDefaults: { resolution: VideoPresets.h720.resolution },
+  videoCaptureDefaults: { resolution: VideoPresets.h1080.resolution },
   publishDefaults: {
-    videoSimulcastLayers: [VideoPresets.h180, VideoPresets.h360, VideoPresets.h720],
+    videoSimulcastLayers: [VideoPresets.h360, VideoPresets.h1080],
+    videoEncoding: VideoPresets.h1080.encoding, // 명시 1080p(≈3Mbps) — 기본 720p 압축 탈출
+    degradationPreference: "maintain-resolution",
     // 화면 공유는 글자·이미지가 선명해야 함 → 1080p 인코딩
     screenShareEncoding: VideoPresets.h1080.encoding,
   },
@@ -1901,7 +1906,7 @@ export default function ConsultationRoomPage() {
               }`}
             >
               <MessageSquare size={16} className="inline mr-2" />
-              Chat
+              {c.tabChat}
             </button>
             <button
               onClick={() => setActivePanel("translation")}
@@ -1912,7 +1917,7 @@ export default function ConsultationRoomPage() {
               }`}
             >
               <Globe size={16} className="inline mr-2" />
-              Translation
+              {c.tabTranslation}
               {translations.length > 0 && (
                 <span className="ml-1 bg-teal-700 text-white text-xs px-1.5 py-0.5 rounded-full">
                   {translations.length}

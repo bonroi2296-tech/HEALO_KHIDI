@@ -15,7 +15,7 @@ const STATUS_LABELS = {
   sent: "발송됨",
   viewed: "조회됨",
   replied: "응답함",
-  converted: "전환됨",
+  converted: "치료 확정",
   rejected: "거부됨",
   expired: "만료됨",
 };
@@ -181,7 +181,7 @@ export default function LeadsPage() {
           </section>
           <section>
             <h3 className="text-base font-semibold text-gray-900 mb-2">상태 의미</h3>
-            <p className="text-gray-600 text-sm">대기 → 발송됨 → 조회됨 → 응답함 → 전환됨(또는 거부/만료). 필터로 상태·병원별로 목록을 좁힐 수 있습니다.</p>
+            <p className="text-gray-600 text-sm">대기 → 발송됨 → 조회됨 → 응답함 → 치료 확정(또는 거부/만료). 필터로 상태·병원별로 목록을 좁힐 수 있습니다.</p>
           </section>
           <section>
             <h3 className="text-base font-semibold text-gray-900 mb-2">사용법</h3>

@@ -1,5 +1,296 @@
 # PR
 
+## 🔖 세션 핸드오프 (2026-06-22 오전 — 도메인 컷오버 + 검색등록 3사) — healwith.co.kr 정식 가동
+
+**이번 세션 한 일:**
+- **도메인 컷오버 완료**: PO가 가비아(Gabia)에서 `healwith.co.kr` 정식 구매(만기 2027-06-18) → 실서비스 가동.
+  - 가비아 DNS: A `@`→`216.198.79.1`, CNAME `www`→`cname.vercel-dns.com`, TXT 2개(구글·얀덱스 인증). 네임서버는 가비아 유지(`ns.gabia.co.kr`).
+  - Vercel 프로젝트 `healo-khidi`에 도메인 추가 + SSL 발급 + Production 연결. `healwith.co.kr/sitemap.xml`이 새 주소로 출력 확인.
+  - 코드 `khidi.healo.kr`→`healwith.co.kr` 일괄 치환 **PR [#226](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/226) 머지·배포**(canonical·sitemap·OG·JSON-LD·env 폴백 15파일). 번역 API 호스트 허용목록의 옛 도메인은 의도적 유지(healwith 이미 추가).
+- **검색등록 3사 완료**:
+  - **구글 서치콘솔**: 도메인 속성 소유권 인증(DNS TXT) + sitemap.xml(43페이지) "성공".
+  - **얀덱스 웹마스터**: 소유권 인증(DNS TXT) + sitemap 제출.
+  - **네이버 서치어드바이저**: 소유확인(메타태그) + sitemap 제출. 메타태그는 **PR [#229](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/229) 머지·배포**(`app/layout.jsx` baseMetadata.verification — naver-site-verification 추가 + 기존 yandex 플레이스홀더 실값 정리).
+
+**왜 그렇게 했는지:**
+- 검색등록은 **사이트가 라이브여야** 의미 있어 도메인 머지·배포를 먼저 끝낸 뒤 진행.
+- 구글·얀덱스는 DNS TXT 인증(사이트 배포와 무관·즉시), 네이버는 DNS 방식이 없어 메타태그 방식 → 코드 머지+배포 후 소유확인.
+- env `NEXT_PUBLIC_SITE_URL`은 Vercel에 **미설정** 확인 → 코드 폴백을 healwith로 바꿔 미설정이어도 정상.
+
+**안 끝났거나 보류:**
+- **Performance(라이트하우스) 39점(모바일)** — 이번 세션 미착수. SEO 100·접근성 100·Best Practices 92는 양호. 주범 후보: **히어로 배경 이미지(LCP)·폰트·JS 번들**. 타겟이 회선 느린 CIS(러·카자흐)라 체감·Core Web Vitals(SEO 랭킹요소) 영향.
+- **검색 노출 자체는 대기**: 등록=색인 후보 진입일 뿐, 실제 노출은 각 엔진 색인에 며칠~2주. 브랜드명("healwith")은 곧, 일반 경쟁키워드("korea medical" 등)는 장기 SEO/마케팅 과제(등록만으론 안 됨 — PO에게 설명함).
+- (선택) Vercel 비밀키 "Needs Attention" = 비밀키가 평문 저장이라 Sensitive 표시 권장(보안, 동작 무관).
+
+**주의·함정:**
+- **자동저장 훅(`.claude/hooks/auto-commit-push.sh`)이 작업 중 PO 미커밋 변경분을 feature 브랜치에 얹어 첫 배포가 ERROR**났음(turn 종료마다 `git add -u` 커밋·푸시). → 깨끗한 커밋만 분리해 재작업(PR #226). **PO의 옛 로컬 WIP(세션시작 시 56개 수정파일)는 `po-wip-backup-20260622` 브랜치에 백업**(복원 필요시 PO가 요청). 상당수는 CRLF 줄바꿈 노이즈로 보였음.
+- **`npm run handoff:rotate` 스크립트 버그**: 오래된 블록을 archive로 옮길 때 **헤더만 이동하고 본문은 PROJECT_CONTEXT에 남겨 고아 블록**을 만듦(이번에 수동 제거함). 다음에 rotate 쓰기 전 스크립트 점검 필요.
+- 미추적 파일 `docs/CODEX_CERTAIN_FIX_MEMO.md`·`logo/`는 커밋 안 함(잡파일·로고 후보).
+- 첫 PR(#225)은 옛 stale main에서 갈라져 충돌 → 닫고 최신 main 기준 #226으로 재작성.
+
+**다음 세션이 먼저 할 일 (우선순위):**
+1. **⭐ Performance 최적화** (PO 지시): 라이트하우스 모바일 39 → **70~80+ 목표**. 진단부터: 히어로 이미지 크기·포맷(WebP/AVIF·next/image 우선순위)·폰트 로딩·JS 번들·Vercel 콜드스타트. 한 번 더 측정해 콜드스타트 변수 제거하고 시작.
+2. (직전 세션 잔여, 별개) #160 화상방 폰 2대 카메라 라이브 확인·PR #216 등 KPI 작업 — 아래 「새벽」·「2026-06-21」 핸드오프 블록 참조.
+3. KHIDI 중간평가(2026-08-27) 상시.
+
+**검증 상태:**
+- **도메인 컷오버 = 실검증 완료**: `healwith.co.kr/sitemap.xml` 새 주소 출력(HTTP 200·application/xml) curl 확인, robots.txt 크롤 허용 확인, 네이버 메타태그 실제 페이지 `<head>` 렌더 curl 확인.
+- **PR #226·#229 = CI(ci·smoke·Vercel) 전부 초록 + main squash 머지 + production 배포 완료.** `check:content` 통과, structuredData 테스트 통과.
+- 검색등록 3사 소유권 인증·sitemap 제출 = **콘솔 화면에서 "성공/Owner/등록" 직접 확인**(구글 sitemap 43페이지 "성공", 얀덱스 Owner, 네이버 등록). 단 **실제 검색 노출은 색인 대기(미확인·구조상 며칠~2주 걸림)**.
+- 열린 PR: 직전 세션 #216·#217·#219 상태는 이 세션에서 미확인(도메인 작업만 함).
+
+**다음 세션 첫 프롬프트:**
+> 먼저 docs/PROJECT_CONTEXT.md 최상단 핸드오프 읽어. 그담 우리 사이트(healwith.co.kr) 라이트하우스 모바일 퍼포먼스가 39점으로 너무 낮아 — 70~80점 이상으로 끌어올려줘. 히어로 이미지·폰트·JS 번들 같은 거 진단하고 싹 최적화해서 배포까지. (SEO·접근성은 이미 만점이니 퍼포먼스만)
+
+---
+
+---
+
+## 🔖 세션 핸드오프 (2026-06-22 새벽 — 야간 자율 감사 세션) — 5축 병렬 감사 + PR 5개(#215~219) + ⚠️평가 현실 발견(real KPI≈0)
+
+**이번 세션 한 일:**
+- **5축 병렬 심층 감사**(KPI / 보안 / 문의퍼널 / 역할연결 / 화상방) → 진짜 버그 다수 발견·수정. **draft PR 5개**(전부 PO 검토 전 배포 금지):
+  - **PR #216 — KHIDI 평가지표(KPI) 정확성 4종**: ①만족도(K-03) 설문 발송 윈도우 누수(6시간 슬라이스 vs 하루 1회 cron → 대부분 미발송) → 14일 backfill ②월간보고 환자명단이 없는 테이블(`khidi_intakes`) 조인으로 항상 빈칸 → inquiries 기반 교체 ③KPI 집계오류가 대시보드·월간보고에서 0으로 조용히 → canary 발사 ④코디 case_status→treatment/완료 시 유치(K-01) 누락(POSTMORTEM #17 잔여위험) → 자동집계(EDGE-2). 테스트 9개 추가, POSTMORTEMS #19.
+  - **PR #217 — PII·i18n·문서**: AI상담(게스트) 리드 이름·이메일·전화가 코디 인박스에 **암호문 그대로**(연락 불가=리드 유실, #13 부류) → `admin/chat/threads` GET 복호화 / 화상방 탭 'Chat·Translation' 6언어화 + `_roomCopy.js` 패리티 가드 / **고치지 않은 9건을 이유와 함께 `KNOWN_ISSUES.md`에 정밀 기록**.
+  - **PR #218 — 평가준비 문서**: `KHIDI_중간보고_베이스.md`에 현재 자가진단·리스크 순위(아래 발견 반영)·시스템 규모 실측(135,325 LOC·157 API·108페이지)·6월 로그·**PT 20분 발표 스켈레톤** 추가.
+  - **PR #219 — '반쪽' 패턴 3곳 실제 수정(EDGE-3/4/5)**: 공용 헬퍼 `src/lib/khidi/advanceCaseStatus.ts`로 ①상담 완료→case_status 전진+이력 ②점수판 유치 확정/이탈→case_status_history ③admin 배정→case_status 전진(coordinator와 대칭). PO가 세 번 지적한 #18 부류를 안전 3곳 닫음.
+  - **PR #215 — 화상방 카메라 자동검증 스크립트**(#160). CI **초록 확인**.
+- **⚠️ 평가 현실 발견(실DB)**: 대시보드의 유치 4·사전상담 9·사후관리 3이 **거의 전부 데모 시드(`khidi_demo_20260615`)**. 데모 제외 **진짜(real) = 유치 0 / 사전상담 1 / 사후관리 0 / 만족도 0**. 진짜 문의 5건뿐(최근 30일 2건), 챗 스레드 176개(실/테스트 섞임).
+- **prod 스모크 체크 = 그린**: 공개 페이지 전부 200, 타깃 ru·kz 실번역 콘텐츠(폴백 아님), 암종 SEO 제목 정상, health·DB up.
+- **보안 감사 = 고신뢰 취약점 0**(인증·암호화·게스트토큰 견고).
+
+**왜 그렇게 했는지:**
+- PO가 "밤새 토큰 다 써서 뭐든 해라(피버모드), 코드 아니어도" + "조기 종료 금지"를 반복 지시 → **안전·고가치 수정 위주로 5개 PR**, 구조적/런타임검증 필요 건은 무리한 야간 수정 대신 **정밀 문서화**(품질 우선).
+- 코드 외 가치 = KHIDI 평가(잔금 30% 직결) 준비 문서를 실측·전략으로 진전(PR #218).
+- 여러 브랜치로 쪼갠 이유: 평가지표/PII/문서/케이스연결이 **별개 concern**이라 PO가 골라 머지하게(한 PR에 grab-bag 방지).
+
+**안 끝났거나 보류:**
+- **PR 5개 전부 draft = 미배포.** 특히 **#216 배포 안 하면 만족도(K-03) 설문이 계속 0** → 평가일 빈칸.
+- **KNOWN_ISSUES에 문서화만 한 미수정 건**: ①🔴화상방 iOS Safari 환자 마이크가 서버 STT 2차 getUserMedia에 가로채일 수 있음(실 아이폰 검증 필요) ②EDGE-1 환자 포털이 case_status를 못 봄(구조적, 설계 결정) ③step2의 `cancer_patient_intakes` upsert가 UNIQUE 제약 부재로 항상 무음 실패+평문(고치면 제품 동작 바뀜) ④인메모리 레이트리밋 ⑤게스트 targetLang 하드코딩.
+- **PO 영역(내가 못 함)**: 실환자 운영·유입, 데모 시드 정리, 사업비 집행.
+
+**주의·함정:**
+- **데모 시드가 KPI를 부풀린다**: 보고 전 `scripts/cleanup_test_seed_20260615.sql` 실행하면 대시보드 유치 4→0. "유치 4 깨끗"(옛 핸드오프)은 **사실 전부 데모**였음.
+- **Vercel 무료 빌드한도(100/day) 소진**(내 야간 푸시) → **한도 리셋 전엔 prod 배포가 막힐 수 있음**. GitHub CI(`ci`·`Smoke`)는 별개로 정상.
+- **POSTMORTEMS.md·KNOWN_ISSUES.md가 브랜치마다 분산**(#216에 #19, #217에 KNOWN_ISSUES 9건, #219는 PR본문만) → 여러 PR 머지 시 **이 문서들 append 충돌 가능**. 머지 순서 주의(충돌 나면 양쪽 다 살리기).
+- #218 평가 doc의 자가진단은 **real≈0으로 정정 완료**(데모 분리 반영). #216 본문의 "유치 4/12 🟢"는 데모 포함 옛 표기라 무시.
+
+**다음 세션이 먼저 할 일 (우선순위):**
+1. **⚠️ 직전 미검증분 먼저:** (a) **#160 화상방 폰 2대 카메라 라이브 확인**(PO 동석, 초대링크 만료 2026-06-24 — 만료면 재발급). 대기실 함정: 의사 먼저 입장→환자 입장→의사화면 [승인]. (b) **PR 5개 CI 초록 확인**(#215만 확인됨, #216·#217·#219 미확인).
+2. **🔴 PR #216 리뷰→머지→배포** = 만족도(K-03) 설문 살리기(평가 최우선). 그 후 **데모 시드 정리 → 진짜 KPI 숫자로 대시보드 확인**.
+3. PR #217·#219 리뷰·머지(PII 연락가능·타임라인 가시성). #218 평가 doc 확인.
+4. (PO 본질 과제) 8월까지 실환자 운영으로 정량지표 real 0 → 끌어올리기. KHIDI 중간평가(2026-08-27) 상시.
+
+**검증 상태:**
+- 로컬(각 브랜치): **tsc 0 / vitest 통과(#216은 291, 그 외 282) / check:content 통과 / next build --webpack 통과** — 전부 확인함.
+- CI(자동검사): **#215 `ci`·`Smoke` 초록 확인**. **#216·#217·#218·#219 CI는 미확인**(푸시 후 진행 중이었고 실패 웹훅 안 옴 — 로컬 통과라 초록 예상하나 직접 확인 안 함). Vercel 프리뷰는 빌드한도로 일부 실패(코드 무관).
+- prod 스모크: 공개 페이지·ru·kz·health 그린(실호출 확인). **데모 분리 실DB 확인**(real KPI≈0).
+- **런타임 미검증**: EDGE-3/4/5 케이스단계 전파는 코드·빌드만 통과, **실제 상담완료·배정·확정 클릭으로 타임라인 반영은 미확인**(코디/에이전시 계정 실동작 필요). 화상방 카메라 라이브·iOS 마이크도 미검증.
+
+**다음 세션 첫 프롬프트:**
+> 먼저 docs/PROJECT_CONTEXT.md 최상단 핸드오프(2026-06-22 새벽) 읽어. 어젯밤 자율로 5축 감사해서 PR 5개(#215~219) 만들었고 전부 draft(미배포)야. ⚠️핵심: 대시보드 유치 4건은 전부 데모였고 진짜 KPI는 0이야. 1) PR 5개 CI 초록인지 확인하고(특히 #216·#217·#219), 2) #216(만족도 설문 살리기)부터 리뷰해서 머지·배포하자 — 그래야 평가 만족도가 0을 벗어나. 3) 그담 화상방 카메라 폰 2대 라이브 테스트 같이 하고(대기실에서 의사가 승인해야 영상 뜸), 4) 데모 시드 정리하고 진짜 숫자로 대시보드 보자. EDGE-3/4/5(케이스단계 타임라인)는 코드만 됐고 실클릭 검증은 안 했어.
+
+---
+
+
+**이번 세션 한 일:**
+- **#209 (✅머지·prod배포·실검증): 병원 '치료 확정' → 유치 자동집계 '되돌리기 가능'.** 옆 세션이 만든 **PR #208**(같은 자동집계지만 **되돌리기 UI가 빠진 옛 버전** + 생애주기 지도 문서)을 닫고, 그 안의 **생애주기 지도 문서는 살려서** 되돌리기 버전(`8a24df1`)과 **합쳐** 지정 작업본에 정리. 방식: 지정 브랜치를 #208 clean base(`j1d0se`)에 ff-merge → `8a24df1`의 되돌리기 3파일(`conversion/page.jsx`·`conversion-funnel/route.ts`·`partner/leads/[id]/route.ts`)만 overlay → 1커밋. 자동검사(CI) `ci`·`Smoke` 초록 → squash 머지(`fa8a6c7`).
+  - **점수판(`/admin/khidi/conversion`)에 '유치 확정됨(되돌리기)' 섹션 신설** — 자동집계분엔 **'자동' 배지**, '유치 취소'(→null)/'이탈' 버튼. 화면은 **실제 JSX 로컬 렌더 스크린샷으로 PO 확인**받고 진행("이대로 진행").
+  - 핵심 로직: 병원 `converted` 시 `inquiries.outcome='admitted'` 자동 기록하되 **`outcome IS NULL`일 때만**(`.is`) — 코디가 이미 정한 결정(admitted/lost/취소)은 안 덮음. 자동분 `outcome_updated_by=null`로 '자동' 배지 구분.
+- **실서비스(prod) 배포:** 머지 후 Vercel이 prod 자동배포를 **또 안 띄워서**(#202 때와 동일) **PO 승인("지금 띄워줘") 받고 main에 빈 커밋(`5695146`) 푸시** → prod alias가 `010c398`(#209 포함)로 promote. `healo-khidi.vercel.app` 새 점수판 라이브.
+- **prod 실검증 (병원 계정 `hospital@test.com` 실 API + DB 추적):** ① 병원 `converted` → 데모 #13 `outcome='admitted'`(`updated_by=null`=자동) **유치 +1** ✅ ② **유치 취소** → `outcome=null` ✅(취소 PATCH는 admin 전용 API라 admin 테스트계정 없음 → **DB로 동일효과 재현 확인**) ③ **가드**: 코디가 `lost`(이탈) 정한 뒤 병원이 다시 `converted` 해도 **자동집계가 안 덮어씀**(`lost` 유지) ✅. **데모 #13은 원상복구**(outcome null / lead `replied`) — 평가 점수판 오집계 방지.
+- **#160 카메라 테스트 준비:** 전용 데모방 `consultation_sessions` id=`5b71a48d-c8a7-44ab-a407-689b5ee360e8`(`livekit_room_name` 세팅) + **카메라 송출 초대링크 2개**(patient/doctor, 72h, 10회 재입장) 발급. **prod guest-join으로 LiveKit 입장토큰 발급 실확인**. PO 폰 2대 라이브 테스트만 남음.
+- **작업 #3 (생애주기 지도 문서) 완료:** `docs/CASE_LIFECYCLE_MAP.md`가 #209에 함께 main 반영.
+
+**왜 그렇게 했는지:**
+- PO가 원한 건 '되돌리기 가능' 버전(`8a24df1`) — 무조건 자동인 #207/#208은 PO가 닫음. 자동집계는 KPI 누락(에이전시→병원 경로) 차단, 되돌리기는 데모/오집계 방어.
+- prod 자동배포 누락은 무료플랜 특성 → 빈 커밋 트리거(지난 #202와 동일 수법, PO 승인).
+- admin 점수판 API는 admin 전용인데 **admin 테스트계정을 의도적으로 안 만듦**(test1234 admin=PII 복호화 위험) → '유치 취소'는 DB로 동일효과 검증(정직 표기).
+
+**안 끝났거나 보류:**
+- **#160 라이브 2명+ 카메라 동시 송출** — 코드·초대링크·LiveKit 토큰 다 준비됐고 **PO 폰 2대 실테스트만** 남음(자동/원격 불가). 초대링크 만료 2026-06-24.
+- (참고) main 빈 커밋 `5695146`이 prod 빌드 하나 더 돌 수 있음 — `010c398`과 동일 코드라 무해.
+
+**주의·함정:**
+- **admin 점수판 API**(`/api/admin/khidi/conversion-funnel` GET/PATCH)는 `requireAdminAuth`=`app_metadata.role==='admin'` 또는 `ADMIN_EMAIL_ALLOWLIST`만 통과. **coordinator@test.com 안 통함, admin 테스트계정 없음** → prod에서 점수판 API 직접 검증하려면 PO 실 admin 계정 필요.
+- 자동 outcome은 **`outcome IS NULL`일 때만** 기록(`.is`). 자동분 `outcome_updated_by=null`(='자동' 배지), 코디 수동분은 그의 user_id.
+- 병원 lead PATCH 자동집계는 `hospital_leads.normalized_inquiry_id`→`normalized_inquiries.source_inquiry_id` 연결이 있어야 동작(없으면 무음 스킵).
+- **데모 #13**(TEST 병원 lead `4f22e5b2…`, "유방암 (데모)")로 또 테스트하면 outcome이 다시 채워짐 → **끝나면 `outcome=null`·lead `replied`로 복구**(평가 점수판 오집계 방지).
+- 화상 데모방 초대링크 토큰 평문은 **발급 시 1회만** 노출(분실 시 재발급). 세션은 `livekit_room_name` 없으면 guest-join이 `consultation_has_no_room`(409).
+
+**다음 세션이 먼저 할 일 (우선순위):**
+1. **⚠️ 직전 미검증분 먼저:** **#160 화상방에 폰 2대로 2명 입장 → 서로 카메라 보이는지 라이브 확인**(PO 동석). 아래 두 초대링크(만료 2026-06-24). 카메라 안 보이면 보고.
+2. (선택) 점수판 '유치 확정됨(되돌리기)' 섹션을 **PO 실 admin 로그인으로 prod에서 눈으로** 한 번 확인('자동' 배지·버튼 동작).
+3. KHIDI 중간평가(2026-08-27) 상시 — 유치전환 대시보드·만족도(K-03) 직결.
+
+**검증 상태:**
+- 로컬: tsc 0(tsconfig `baseUrl` deprecation 경고만, 내 코드 0) / vitest khidi **59 통과** / `check:content` 통과 / `next build --webpack` 통과.
+- CI: **PR #209 `ci`·`Smoke` 초록 확인 후 squash 머지**(`fa8a6c7`). 열린 PR: **#197**(STT, DRAFT) — 무관. **#208 닫음**(이 PR로 대체).
+- prod 실검증: 병원 `converted`→**유치 +1 ✅**(실 API+DB), **가드(lost 보존) ✅**(실 API+DB), **유치 취소→null ✅**(DB 동일효과 — admin API 직접호출은 admin 토큰 없어 **미실행**). **데모 #13 원상복구 확인 ✅.**
+- prod alias=`010c398`(#209 포함) **READY**. **#160 초대링크: guest-join LiveKit 토큰 발급 ✅, 라이브 2명 카메라 렌더 ❌미검증(PO 폰 테스트 필요).**
+
+**#160 카메라 테스트 초대링크 (만료 2026-06-24, 폰 2대로 각각 열기):**
+- A(환자): `https://healo-khidi.vercel.app/consultation/5b71a48d-c8a7-44ab-a407-689b5ee360e8?invite=f8b9214eca7856dc443395266875612c6dc6671816c79e334713ce68bafe64ab`
+- B(의사): `https://healo-khidi.vercel.app/consultation/5b71a48d-c8a7-44ab-a407-689b5ee360e8?invite=7f9868fa5678d35e7e0c8facb2aa59a1c8b6a8de7a347105470ce536d36179d0`
+
+**다음 세션 첫 프롬프트:**
+> 먼저 docs/PROJECT_CONTEXT.md 최상단 핸드오프(2026-06-21 밤) 읽어. #209(병원 '치료확정'→유치 자동집계 '되돌리기 가능')는 실서비스에 배포·실검증 다 끝났어(유치+1·되돌리기·가드 OK, 데모 #13 원상복구). 생애주기 지도 문서도 들어갔고. 남은 건 화상방 카메라(#160)야 — 핸드오프 맨 아래 초대링크 2개(만료 6/24)를 폰 2대로 각각 열어서 2명 입장 → 서로 카메라 보이는지 같이 확인하자(준비만 시켜줘, 안 보이면 재발급). 그담에 점수판 '유치 확정됨(되돌리기)' 화면을 내 admin 계정으로 prod에서 한번 눈으로 보고 싶어.
+
+---
+
+
+## 🔖 세션 핸드오프 (2026-06-21 추가 — prod 배포확인 세션) — #202 역방향 프리뷰 실검증 + cron 3종 전수 점검(전부 정상) + #160 다자카메라 코드·prod 확인
+
+**이번 세션 한 일 (코드 변경 0 — 전부 검증·진단):**
+- **#202(병원응답 역방향) end-to-end 실검증 (프리뷰):** prod에 아직 안 떠서(아래) #204 프리뷰(=#202와 동일 코드)에서 검증. `hospital@test.com`(TEST 병원 owner)으로 데모 #13 리드를 `replied → converted(치료 확정)`로 실제 `PATCH /api/partner/leads/[id]` 호출 → ① DB `case_status_history`에 "🏥 TEST 병원 치료 확정 (견적 8000~12000)" 새 이력 추가 ② **코디 보드**(`/api/admin/khidi/cases`, coordinator@test.com) 배정병원 배지 = `converted`+견적 ③ **에이전시 포털**(`/api/agency/inquiries`, agency@test.com) 타임라인에 치료확정 단계 노출. **닫힌 고리(병원→코디·에이전시 자동 반영) 실데이터로 작동 확인.**
+- **만족도/침묵/KPI cron 3종 전수 점검 → 전부 정상 (직전 "cron 미발송"은 오해였음):**
+  - **dispatch-surveys ✅**: 2026-06-21 **09:32 UTC에 설문 1건 발송**됨(`surveys`·`reminders_scheduled` 각 1행, 09:32:04). 무료플랜이 cron을 정시(09:00)가 아니라 **그 시간대 ±59분 내**에 돌려서 09:32에 발사 → 심야 세션이 09:32 전에 봐서 "0건"으로 오판한 것. KPI K-03 측정 파이프라인 살아있음.
+  - **kpi-snapshot ✅**: `kpi_snapshots` 34행, 마지막 2026-06-20(오늘치는 15:05 UTC 예정).
+  - **detect-silent-patients ✅(버그 아님)**: `symptom_alerts` 0행이지만, `buildSilenceAlert`가 **증상기록을 한 번이라도 한 환자만** 침묵 판정(전원 알림 폭주 방지 설계 — `lastEntryAt==null`이면 null 반환). 현재 DB에 `symptom_reports` 1건뿐이라 0건이 정상 결과. 순수함수+단위테스트로 잠겨 있음.
+- **#160(화상방 전원 카메라·마이크 = 다자회의) 코드·배포 확인:** 영상 그리드는 원래부터 다자 대응(`GridLayout`+핀/포커스+발화자 강조, `app/consultation/[id]/page.jsx`). #160이 바꾼 건 **서버 토큰 권한**뿐 — `token/route.ts`·`guest-join/route.ts` 둘 다 전 역할 `canPublish/canSubscribe/canPublishData=true` 확인. **prod 커밋(19ab034 #200)에 이미 포함 = 실서비스 라이브.**
+
+**왜 그렇게 했는지:**
+- #202 prod 미배포라 prod 검증 불가 → PO가 "프리뷰에서 지금 검증" 선택(무료 한도 대기 선호와 일관). 브라우저 없어서 클릭 대신 **각 역할 토큰으로 실제 API 호출 + DB 추적**(CLAUDE.md 데이터흐름 추적 self-QA 방식)으로 검증.
+- cron은 KHIDI 만족도(K-03) 직결이라 "안 돈다"는 직전 메모를 의심하고 DB 실데이터로 재확인 → 실은 무료플랜 cron 지연(±59분) 특성이었음.
+
+**안 끝났거나 보류:**
+- **#202가 실서비스(prod) 미배포** — prod=`19ab034`(#200)까지만. #202(`eb73623`)는 main에 머지됐으나 2026-06-21 11:53 머지 직후 **Vercel 무료 일일 빌드한도** 때문에 자동배포가 안 떴음(#204 PR 본문에도 명시). **2026-06-22 한도 리셋되면 다음 main 변경 시 자동 배포.**
+- **#160 라이브 2명+ 카메라 동시 송출 렌더 테스트** — 코드·prod 라이브는 끝났으나 실제 여러 명이 카메라 켜고 보이는지는 **PO 동석 실테스트만 가능**(자동/원격 불가).
+
+**주의·함정:**
+- **데모 #13은 `converted`/`scheduling`까지 진행된 상태로 그대로 둠**(자연스러운 진행이라 안 되돌림). 다음에 #13으로 또 테스트하면 이미 끝단계임을 감안.
+- **cron은 무료플랜에서 정시±59분**에 돈다 — "정시에 로그 없다"고 안 돈 걸로 오판 금지. **무료플랜 런타임 로그 보존이 짧음(≈최근 1시간)** → 과거 cron 실행 여부는 로그 말고 **side-effect(DB 행)**로 확인.
+- #160 토큰은 **전원 송신 허용**이지만 입장은 여전히 `requireConsultationAccess`/유효 초대토큰만 — 난입 차단 유지.
+
+**다음 세션이 먼저 할 일 (우선순위):**
+1. **⚠️ 직전 미검증분 먼저 확인:** (a) **2026-06-22 한도 풀렸으면 #202가 prod에 떴는지 확인** → 떴으면 prod healo-khidi.vercel.app에서 병원 계정으로 #13(또는 새 케이스) 상태 변경 1회 클릭해 코디·에이전시 반영 재확인. (안 떴으면 main 빈 커밋/다음 머지로 배포 트리거.) (b) **#160 화상방에 2명+ 들어가 카메라 동시 송출 라이브 확인**(PO 동석).
+2. (선택) 침묵 알림이 실제로 의미 있으려면 **환자가 증상기록을 쓰기 시작해야** 데이터가 쌓임 — 필요시 테스트 증상기록 심어 detect-silent 1회 검증.
+3. KHIDI 중간평가(2026-08-27) 상시 — 만족도(K-03)·유치전환 대시보드 직결.
+
+**검증 상태:** 이번 세션 **코드 변경 없음**(검증·진단만). **#202 역방향: #204 프리뷰에서 실API+DB로 end-to-end 검증 ✅(단 prod 아님).** **cron 3종(survey/kpi/silent): DB 실데이터로 정상 확인 ✅.** **#160: 코드(토큰 canPublish=true 2파일)·prod 포함 확인 ✅, 라이브 다자 렌더는 ❌미검증(PO 동석 필요).** prod 현재=`19ab034`(#200), **#202 prod ❌미반영(Vercel 한도, 2026-06-22 대기).** 열린 PR: #204(핸드오프 문서·DRAFT아님)·#197(STT, DRAFT) — 둘 다 이번 세션 무관. CI 상태는 이번 세션 미확인(코드 변경 없어 불필요).
+
+**다음 세션 첫 프롬프트:**
+> 먼저 docs/PROJECT_CONTEXT.md 최상단 핸드오프(2026-06-21 추가) 읽어. 2026-06-21에 #202(병원응답 역방향)는 프리뷰에서 검증 끝났는데 Vercel 무료 빌드한도 때문에 실서비스엔 아직 #200까지만 올라가 있어(prod=19ab034). 1) 한도 풀렸으면 #202가 prod에 떴는지 확인하고, 떴으면 healo-khidi.vercel.app에서 병원 계정(hospital@test.com / test1234)으로 데모 #13 상태 바꿔서 코디·에이전시 반영 prod에서 1회 확인. 안 떴으면 배포 트리거해줘. 2) 화상방 다자 카메라(#160)는 코드·배포 다 됐으니, 나랑 2명 들어가서 카메라 켜고 보이는지 라이브로 확인하자(준비만 시켜줘). 3) cron(만족도·KPI·침묵)은 다 정상 확인됨 — 추가로 볼 거 있으면 추천해줘.
+
+---
+
+
+---
+
+## 🔖 세션 핸드오프 (2026-06-21 밤) — 계정 계층 8종 정리 + 해외 의료기관 신규 + 역할별 로그인 착지 + 에이전시 '환자 의뢰하기' + ⚠️Vercel 배포한도 대기
+
+**이번 세션 한 일:**
+- **#178 (✅머지·배포): 계정 계층 8종 단일 표준 확정 + 해외 의료기관 신규.** 실제 인증코드(`app_metadata.role`+`hospital_users`+`agency_users`)와 어긋난 유령 역할묶음(`roles.ts`/`user_roles`: korean_hospital/local_clinic/agent) 통일. `src/lib/auth/accountTiers.ts`가 단일 SoR(게스트·환자·코디·의사·관리자·국내병원·해외에이전시·해외의료기관). **해외 의료기관(8번째)** = 에이전시와 기능 동일 → 별도 테이블/포털 안 만들고 `agencies.partner_type`('agency'|'medical_institution') 한 컬럼으로 구분(마이그레이션 `20260621` **prod 적용 완료**, additive). 코디·의사 포털에 역할 문지기(`StaffPortalGate`+`/api/me`) 추가(전엔 로그인만 하면 뚫림). `docs/ACCOUNT_TIERS.md`+가드 테스트 14개.
+- **#184 (✅머지·배포): 로그인 후 역할별 포털 착지 + /agency 크롬 정리.** 전엔 로그인 시 무조건 `/patient`로 보내 에이전시가 환자 대시보드를 봄. `src/lib/auth/resolveLanding.ts`(역할→착지경로), `/api/me`가 `landing` 반환, `LoginPremium`이 그걸 보고 분기, `auth/callback`도 역할별. `ClientShell` `isPortalPage`에 `/agency` 포함 → 환자용 헤더·하단탭바(SOS·병원) 숨기고 깔끔한 포털 상단바.
+- **#187 (머지됨·⚠️prod 미배포): 프리미엄 환자 대시보드 비환자 가드.** 이미 로그인된 채 `/patient`에 머물면 #184가 안 먹혀서 가드 추가.
+- **#191 (머지됨·⚠️prod 미배포): 레거시 환자 대시보드에도 같은 가드.** 환자 대시보드가 **두 버전**인데 디자인 **기본값이 LEGACY**라 실제로 뜨는 건 `PatientDashboardClient`였음 — #187(프리미엄만)으론 안 고쳐져 PO가 "아직 그대로"라 재신고 → 레거시에도 추가. `/api/me` 에이전시 landing=`/agency` **실측 확인**(프리뷰 토큰 호출).
+- **#194 (📝DRAFT·배포한도로 프리뷰 못 만듦): 에이전시 '환자 의뢰하기'.** 에이전시 포털이 조회전용이라 직접 환자 의뢰 불가(관리자가 `/admin/khidi/cases`에서 수동 배정해야만 노출)였음. `POST /api/agency/refer`(checkAgencyAuth, 본인 agency_id 강제, PII AES-256-GCM 암호화, case_status='received'+이력+관리자 알림) + `/agency`에 '+환자 의뢰하기' 폼.
+- **테스트 계정 6종 생성**(Supabase auth 직접 insert): `patient/coordinator/doctor/hospital/agency/clinic @test.com` / **`test1234`**. agency·clinic·hospital은 **TEST 전용 기관**에 연결(실데이터 격리). **admin은 의도적으로 안 만듦**(test1234 관리자=환자PII 복호화 위험).
+
+**왜 그렇게 했는지:**
+- 해외 의료기관은 PO가 8번째 계층으로 "만든다" 결정 → 에이전시 인프라 재활용이 가장 안전·DRY(별도 포털 중복 X).
+- #191은 "환자 대시보드가 2개(레거시/프리미엄), 기본이 레거시"란 함정 때문 — 프리미엄만 고치면 안 보임. 둘 다 고쳐야.
+- #194는 머지 안 함: **보이는 새 기능 → 프리뷰로 PO 확인 먼저**(PO 취향). 그런데 Vercel 한도로 프리뷰조차 못 만들어 대기.
+
+**안 끝났거나 보류:**
+- **⚠️ Vercel 무료 배포 한도(하루 100회) 초과** — 한 세션에서 PR을 많이 만들어 초과. 약 24시간 뒤(2026-06-22) 풀림. **PO 결정: 유료(Pro $20/월) 안 쓰고 2026-06-22까지 무료 대기.** 그래서 #187·#191(머지됨)이 **prod 미반영**(현재 prod=`6bc613b` #187빌드라 #191 없음), #194 프리뷰도 못 만듦.
+- **TEST 에이전시에 환자 진행 예시 1건 넣기** — PO가 "넣을까요?"에 답 안 함(데모용, 미실행).
+
+**주의·함정:**
+- **Vercel 배포 한도**: 한 세션에서 PR/푸시 남발하면 하루 100 배포 초과 → 프리뷰·prod 다 막힘. PR 묶어서.
+- **환자 대시보드 2종**: `PatientDashboardClient`(레거시·**기본값**) + `PatientDashboardPremium`. 환자 화면 손대면 **둘 다** 고쳐라(레거시가 실제로 뜸).
+- **`@/*`=`src/*` alias** — `app/` 컴포넌트는 상대경로 import(`StaffPortalGate` 빌드 실패 경험). `case_status_history`는 생성타입에 없어 `(supabaseAdmin as any)`.
+- **squash 머지 후 같은 브랜치 이어쓰면 충돌**(#184 dirty 경험) → `git fetch origin main` 후 origin/main 기준 새 브랜치, 옛 커밋 cherry-pick.
+- **테스트 계정**: coordinator/doctor는 실환자 PII 봄 → 외부 에이전시엔 `agency@test.com`만. admin 미생성.
+
+**다음 세션이 먼저 할 일 (우선순위):**
+1. **⚠️ 배포 대기분 먼저 처리(자동 불가):** Vercel 한도 풀렸는지 확인 → (a) **#194 프리뷰 빌드되면 PO에게 '환자 의뢰하기' 화면 보여주고 OK받고 머지** (b) **#187·#191이 prod 반영되게 main 배포 트리거**(#194 머지가 곧 트리거, 아니면 빈 커밋). (c) prod에서 **에이전시 로그인→/agency·자동튕김·의뢰 폼 end-to-end 1회 실클릭 확인**(`agency@test.com`/`test1234`).
+2. (선택) PO가 원하면 TEST 에이전시에 환자 진행 예시 1건 넣어 데모.
+3. 직전(2026-06-21 저녁) 미검증분 그대로: 화상방 다자 카메라(#160)·만족도/침묵 알림 수신(데이터 쌓여야).
+4. KHIDI 중간평가(2026-08-27) 상시.
+
+**검증 상태:** 각 변경 **로컬 tsc 0 / eslint 0 error / next build --webpack 통과**. vitest accountTiers 14개 추가(#178 때 총 259). **#178·#184: CI(`ci`·`Smoke`) 초록 + squash 머지 + prod 배포 확인.** **#187·#191: CI 초록 + 머지됐으나 ⚠️prod 배포 실패(Vercel 한도) → prod 미반영.** **#194: DRAFT, 로컬 빌드만 통과, 프리뷰/CI 미생성(한도).** 마이그레이션 `20260621`(agencies.partner_type) prod 적용·확인. `/api/me` 에이전시 landing=`/agency` 실측 확인. **❌ 미검증: #194 화면(프리뷰 못 만듦) / #191 prod 동작 / 에이전시 의뢰 end-to-end(폼→DB→목록) — 전부 2026-06-22 배포 후.**
+
+**다음 세션 첫 프롬프트:**
+> 먼저 docs/PROJECT_CONTEXT.md 최상단 핸드오프 읽어. 2026-06-21에 Vercel 배포 한도(하루 100회)에 걸려서 #187·#191(머지됨)이 실서비스에 아직 안 올라갔고 #194(에이전시 '환자 의뢰하기')는 초안 상태야. 한도 풀렸는지 확인하고: ①#194 프리뷰 만들어서 나한테 '환자 의뢰하기' 화면 보여주고 OK받으면 머지 ②#187·#191도 실서비스 반영되게 배포 트리거 ③에이전시 계정(agency@test.com / test1234)으로 로그인→에이전시 화면·환자 의뢰 폼 실제 작동 1회 확인해줘.
+
+---
+
+## 🔖 세션 핸드오프 (2026-06-21 심야) — AI 챗 "대장암 단정·정정 무시" 버그 코드강제 수정(#183·#188) + 재발방지 행동점검(#193) + Vercel 무료플랜 일일 배포한도(100/day) 초과로 prod 배포 지연
+
+**이번 세션 한 일:** (PR 3개 모두 ✅머지)
+- **🔴 AI 챗 핵심 버그 수정 — PO 신고**: PO가 /inquiry AI Agent에서 ① 암종을 안 밝혔는데 AI가 "대장암"으로 멋대로 단정, ② "대장암 아니라고" 정정해도 계속 대장암 우김, ③ 모델 내부 사고("Wait, let's keep it short"·"(32 words)")가 답변에 노출 — 스크린샷 신고.
+  - **원인(DB 실측)**: 데이터 편중 아님(treatments·hospitals·rag 모두 대장암 0건). 그 스레드 앞부분에서 PO가 "대장암 치료법"을 6번+ 반복 → 대화기록에 깔린 옛 화제를 generic 질문에 **단정으로 끌고 오는 over-anchoring** + 정정 수용/최종출력 규칙 부재.
+  - **#183 (1차, 프롬프트)**: `buildSystemPrompt`에 행동가드 3종(현재 메시지 안 밝힌 암종 단정 금지·정정 즉시 수용·최종메시지만 출력) + `systemPromptGuards.test.ts`. → **프리뷰는 됐지만 누적 스레드(대장암 6회+)에선 안 꺾임**(프롬프트는 확률적 LLM에 best-effort).
+  - **#188 (2차, 코드 강제)**: 순수모듈 `src/lib/chat/topicGuards.ts` 분리(`mentionsCancerType`·`isTopicCorrection`·`correctionReply` 6언어) → 두 응답경로에서 **정정 감지 시 모델 미경유로 결정적 사과+재질문(화제 100% 리셋)** + 암종 미명시 시 프롬프트 최상단 강제 차단. `topicGuards.test.ts` 15개(PO 실패 문장 전부 검출·오탐 방지). **#188 프리뷰에서 before→after 100% 작동 확인.**
+- **🟢 #193 재발방지 (PO 요청 "그냥 고치지 말고 앞으로 이런 일 없게")**: `scripts/check-ai-behavior.mjs`(`npm run check:ai-behavior [URL]`) — 실제 라우트로 적대적 대화(대장암 누적→정정→generic→영어정정) 재생해 invariant(정정 후 암종 언급 0·사과 수용) 자동 감지. **#188 프리뷰에 돌려 통과 확인.** POSTMORTEMS #15(1·2차) 기록.
+- **만족도 설문 테스트 셋업(아침)**: 테스트 문의 #12(inquiry_id 12)+완료 상담(session `f0a36145-b593-4ded-a36d-ccd898a087e0`, updated_at `2026-06-20 06:00 UTC`)을 09:00 UTC cron 윈도(완료 후 24~30h)에 맞춰 심음. 이메일=`bonroi2296@gmail.com` 평문(decryptMaybe 통과). **→ 09:00 cron이 발송 안 함(설문 0건+cron 런타임로그 0).**
+
+**왜 그렇게 했는지:**
+- AI 챗 행동은 의료서비스 기본기라 PO가 직접 신고 → 끝까지(코드강제+테스트+행동점검) 수정. UI 레이아웃 변경 아니고 AI 응답 행동 교정이라 프리뷰로 보여주고 #183은 PO OK("바로 합쳐 배포"), #188·#193은 저위험(테스트·CI 초록)이라 머지.
+- **프롬프트→코드 전환이 핵심 교훈**: "반드시 지켜야 할 AI 행동"은 프롬프트(부탁)가 아니라 코드 게이트(결정적 분기)로 강제해야 함. #183이 누적 스레드에서 깨진 게 증거.
+
+**안 끝났거나 보류 (⚠️ 둘 다 인프라/타이밍 — 코드는 끝):**
+- **#188이 본서비스(prod)에 아직 안 떴음 — 진짜 원인 = Vercel 무료플랜 일일 배포 100건 한도 초과**: 머지·검증 다 됐는데 2026-06-21에 여러 세션이 PR을 쏟아내 **Vercel 무료플랜 일일 배포한도(100/day)를 넘김**(에러 `api-deployments-free-per-day` → "try again in 24 hours"). 그래서 c9b9bb3·afec814(main HEAD)의 production 배포가 **아예 생성도 안 됨**(새 배포 전면 차단). **24시간 지나 한도 리셋되면**, 다음 main 변경 시 자동 배포로 #188 올라옴. 즉시 원하면 **Pro 업그레이드(유료)** — PO 결정 사항(돈). 이 클라우드 env엔 Vercel CLI 없고 main 직접 푸시 불가라 어시스턴트가 강제 못 함.
+- **만족도 설문 cron 미발송**: 09:00 UTC dispatch-surveys가 안 돔(또는 로그 미수집). 2026-06-21 배포 혼잡 영향 가능. KHIDI K-03 직결이라 **cron이 매일 진짜 도는지 점검 필요.** 테스트 상담은 2026-06-21 12:00 UTC까지만 윈도 내.
+
+**주의·함정:**
+- **prod 현재 = #187(6bc613b)**, #188 없음. healo-khidi.vercel.app에서 정정 테스트하면 아직 옛 동작(모델이 사과하되 대장암 언급)일 수 있음 → **#188 떴는지 확인법: 정정 시 "앗, 죄송합니다. 제가 잘못 짚었어요. 말씀하지 않으신 내용을…"(고정 문구) 나오면 #188 라이브.**
+- **AI 챗 테스트는 일일 회수제한(aiGuard) 소모** — 2026-06-21 어시스턴트가 많이 때려 `ai_daily_limit` 걸림. prod 확인은 한도 회복 후(2026-06-22 이후).
+- `topicGuards.ts`는 server-only 아님(테스트 위해). 정정 패턴은 "A 말고 B"(새 화제) 제외 — 순수 부정만.
+
+**다음 세션이 먼저 할 일 (우선순위):**
+1. **⚠️ 직전 미검증분 먼저 확인:** (a) **prod에 #188 떴는지** — healo-khidi.vercel.app/inquiry에서 대장암 여러 번→"난 대장암 안 물어봤는데?" → 고정 사과문구 나오면 OK(안 떴으면 Vercel 대시보드 c905ed5 Promote to Production). (b) **만족도 설문 cron이 매일 도는지** — Vercel cron 로그/`reminders_scheduled` 확인, 안 돌면 KHIDI K-03 위해 수리(테스트 상담 다시 윈도 맞춰 심기).
+2. `npm run check:ai-behavior https://healo-khidi.vercel.app` 한 번 돌려 prod 행동 자동 점검(한도 회복 후).
+3. KHIDI 중간평가(2026-08-27) 상시 — 설문(K-03)·사후관리 알림 작동 복구 직결.
+
+**검증 상태:** **PR #183·#188·#193 셋 다 CI(`ci`·`Smoke`) 초록 + squash 머지**(main에 2964b19·c9b9bb3·afec814). 로컬 **vitest 279개(+29) / tsc 0 / check:content / next build --webpack** 통과. **#188 프리뷰에서 정정→사과리셋·generic 암종0·영어정정 before→after 실측 통과**(check-ai-behavior도 프리뷰 통과). **❌ 미검증(인프라/타이밍): prod 본서비스 #188 미반영(Vercel 무료 빌드큐 백로그) / 만족도 설문 cron 09:00 미발송(원인 미규명) / prod 챗 행동 실클릭(일일한도).** 열린 PR: 내 것 없음(셋 다 머지).
+
+**다음 세션 첫 프롬프트 (PO 복붙용):**
+> 먼저 docs/PROJECT_CONTEXT.md 최상단 핸드오프(2026-06-21 심야) 읽어. 지난 세션에 AI 챗 "대장암 멋대로 단정·정정 무시" 버그를 코드로 강제 수정(#188)하고 재발방지 점검(#193)까지 머지했는데, Vercel 무료플랜 일일 배포한도(100/day)를 2026-06-21에 초과해서 본서비스 배포만 안 떴어(24h 뒤 리셋되면 자동으로 올라옴). 1) healo-khidi.vercel.app/inquiry에서 대장암 여러 번→"난 대장암 안 물어봤는데?" 쳐서 "앗, 죄송합니다 제가 잘못 짚었어요…" 고정 문구 나오면 #188 라이브(안 나오면 Vercel 대시보드에서 c905ed5를 Promote to Production). 2) 만족도 설문 09:00 cron이 2026-06-21 발송을 안 했어 — Vercel cron 로그/reminders_scheduled 확인해서 매일 진짜 도는지 점검(KHIDI K-03 직결). 3) ai_daily_limit 회복됐으면 npm run check:ai-behavior로 prod 자동점검.
+
+---
+
+---
+
+## 🔖 세션 핸드오프 (2026-06-21 저녁) — 만족도 설문 진짜 복구(#167) + 침묵환자 cron 전면 리팩터(#171) + AI 스트리밍 체감속도(#176) + prod 스트리밍 실측
+
+**이번 세션 한 일:** (PR 3개 모두 ✅머지·배포)
+- **🔴 #167 만족도 설문 — #157이 반쪽이라 여전히 0건이던 걸 진짜로 복구 (8/27 평가 K-03 직결)**: 실DB 재확인 결과 #157(patient_id→inquiry_id 폴백) 배포 후에도 설문 0건. 진짜 원인 = `inquiries.email`이 **AES-256-GCM 암호화 저장**인데 cron이 암호문을 복호화 없이 `resolveSurveyRecipient`에 넘겨 `@` 없어 전부 버려짐 → 영구 0건. 수정: `dispatch-surveys` cron에서 `decryptMaybe(email/first_name/last_name)` 복호화 후 사용(옛 평문 행도 통과·하위호환). 계약 테스트(암호문 blob→null) + POSTMORTEMS #13.
+- **🟠 #171 침묵환자 감지 cron — inquiry_id 기준 전면 리팩터 (PO "제대로 싹 다 고침" 선택)**: 같은 patient_id null 부류 + 더 깊은 문제(`consultation_sessions.patient_id`는 사실 bigint→cancer_patient_intakes, `symptom_alerts.patient_id`는 uuid→auth.users라 타입 불일치로 `getCoordinatorIds`도 깨짐). **마이그레이션 프로덕션 적용 완료**(`symptom_alerts.inquiry_id` bigint 추가 + patient_id nullable + CHECK 둘 중 하나 필수 + 인덱스, 0행이라 안전·멱등). 순수 로직 `src/lib/symptoms/silence.ts`(`buildSilenceAlert`·`uniqueInquiryIds`) 분리 + cron 재작성(활성 문의→최근 증상보고→3일↑ 무입력→inquiry 기준 알림) + `alertService` inquiry_id 대응 + 코디 화면 `문의 #N` 표기 + 계약 테스트. POSTMORTEMS #14, KNOWN_ISSUES 해결 표기.
+- **🟢 #176 AI 스트리밍 체감속도 (prod 실측 후)**: prod /inquiry 스트리밍을 실제 호출해 측정 → 타이핑은 매끄러우나 **첫 글자까지 ~1.7~2.2초(웜)·2.75초(콜드)**, 그동안 빈 말풍선+스피너 겹쳐 어색. 수정: ①ChatGPT식 '생각중' 타이핑 점(`TypingDots`)으로 통일(빈 말풍선·잔존 스피너 제거, 언어무관). ②`getEmbedding` 결과를 `BoundedCache`(LRU 200) 메모이즈 — 같은 텍스트=같은 벡터(결정적)라 100% 안전, 반복 질문 임베딩 왕복(~0.6~1s) 제거. PO 프리뷰 확인 후 "머지 ㄱㄱ".
+- **검증(요청 1~2)**: prod AI Agent 스트리밍 **실측**(200·토큰단위 4청크·메타 구분자 정상). 만족도 설문 **DB 실측 0건 — 정상**(발송 윈도(완료 24~30h) 내 완료 상담 0건이라 보낼 게 없음. #167로 새 상담 완료 시 발송 시작).
+
+**왜 그렇게 했는지:**
+- #167은 "어느 행을 보느냐"(#157)에서 "그 값을 복호화하느냐"가 누락된 후속 버그 → 완료한 기능을 진짜 작동시키는 거라 바로 수정·머지(저위험 백엔드, 화면변화 0).
+- #171은 PO가 보류 추천 대신 "제대로 싹 다 고침" 선택 → 스키마까지 손대는 큰 작업이지만 끝까지. 단 기존 증상보고 제출 경로(로그인 환자 patient_id)는 안 건드리고 보존(CHECK·테스트로 보장).
+- #176 백엔드 추가 단축은 답변 품질(검색 정확도) 깎을 위험이라 **의료 AI 레드라인**으로 보고 안전한 부분(임베딩 캐시)만. 남은 ~1.5초는 구글 임베딩·모델 응답 시간이라 우리가 못 줄이는 영역.
+
+**안 끝났거나 보류:**
+- **화상방 다자 카메라(#160) 실렌더**: 여러 명 동시 입장 라이브 필요 → PO 동석.
+- **만족도 응답·침묵 알림 실제 수신**: 둘 다 새 상담/증상보고가 쌓여야 발생 → 며칠 뒤 KPI 대시보드·코디 알림에서 확인.
+- 스트리밍 타이핑 속도(25ms·step remaining/8)는 기본값 — PO가 빠르게/느리게 원하면 숫자 조정(미요청).
+- (기존) 갤러리 next/image·any 813 축소·slug 한글 — 변동 없음.
+
+**주의·함정:**
+- **암호화 컬럼은 읽는 쪽이 복호화 책임**(POSTMORTEMS #13 규칙): `inquiries.email`/`first_name`/`last_name`/`contact_id`/`message`는 암호문 저장 → cron·집계·발송에서 쓸 때 `decryptMaybe`/`decrypt*ForAdmin` 필수.
+- **`consultation_sessions.patient_id` 쓰지 마라**(bigint·전 행 null): 실제 키는 `inquiry_id`(문의) 또는 `patient_user_id`(auth uuid). #12·#13·#14 동일 뿌리.
+- **다른 세션 동시 작업**: 이번에 #169·#172·#175(AI 가르치기·상태화면)가 다른 세션에서 main에 머지됨. 새 작업 전 `git fetch origin main` 후 origin/main 기준 새 브랜치(squash 머지한 브랜치 이어쓰면 충돌).
+
+**다음 세션이 먼저 할 일 (우선순위):**
+1. **⚠️ 직전 미검증분 먼저 확인(라이브/시간 — 자동 불가):** (a) **화상방에 여러 명 들어가 전원 카메라 켜지는지**(#160 — PO 동석 라이브) (b) prod /inquiry AI Agent 눌러 **'생각중' 점→타이핑 전환** 눈으로 1회(#176 배포분) (c) 며칠 뒤 `/admin/khidi/kpi-dashboard` 만족도 응답·코디 알림에 침묵 알림 들어오기 시작하는지(#167·#171 효과).
+2. 스트리밍 속도감 PO 피드백 있으면 `app/inquiry/ThreadChat.jsx` 타자기 상수(25ms·÷8) 조정.
+3. KHIDI 중간평가(2026-08-27) 상시 — #167(만족도)·#171(사후관리 알림) 둘 다 측정/작동 복구로 평가 직결.
+
+**검증 상태:** **PR #167·#171·#176 셋 다 CI(`ci`·`Smoke`) 초록 + squash 머지·배포 확인**(check_runs로 확인, main에 984a732·cdb3c6e·49205eb). 로컬 **tsc 0 / vitest 250개(+19) / check:content / next build --webpack** 통과. #171 마이그레이션 프로덕션 적용·컬럼 확인. prod 스트리밍 **실측**(TTFT·청크). 만족도 0건은 **DB 실측 + 원인규명(윈도 내 완료상담 0)**. **❌ 미검증(라이브/시간 필요, 자동 불가): 화상방 다자 영상 실렌더 / '생각중' 점 prod 실클릭(프리뷰는 PO 확인) / 만족도·침묵 알림 실제 수신(데이터 쌓여야).**
+
+**다음 세션 첫 프롬프트 (PO 복붙용):**
+> 먼저 docs/PROJECT_CONTEXT.md 최상단 핸드오프(2026-06-21 저녁) 읽어. 지난 세션에 만족도 설문 진짜 복구(#167)·침묵환자 감지 cron 전면 리팩터(#171)·AI '생각중' 점+속도(#176) 다 머지·배포함. 그다음: 1) prod healo-khidi.vercel.app /inquiry에서 AI Agent 눌러 '생각중' 점→타이핑 매끄러운지 1회. 2) 화상방 다자 카메라(#160)는 너랑 라이브로 같이 확인. 3) 며칠 됐으면 /admin/khidi/kpi-dashboard 만족도 응답·코디 침묵알림 들어왔는지 확인. 새 작업은 git fetch origin main 후 origin/main 기준 새 브랜치로.
+
+---
+
+---
+
 ## 🔖 세션 핸드오프 (2026-06-21 오후) — AI 응답 속도 개선: 백엔드 병렬화 + 응답 스트리밍 (#162 ✅머지·배포)
 
 **이번 세션 한 일:**

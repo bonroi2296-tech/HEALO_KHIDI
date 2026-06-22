@@ -3,10 +3,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
-import { LogOut } from "lucide-react";
+import { LogOut, Globe, ChevronDown, Check } from "lucide-react";
 import { supabaseClient } from "@/lib/data/supabaseClient";
 import { SITE_INFO } from "@/lib/siteSettings";
-import { getLangCodeFromCookie, t } from "@/lib/i18n";
+import { getLangCodeFromCookie, setLangCookie, LANG_OPTIONS_PRIMARY, t } from "@/lib/i18n";
 import { LangProvider, useLang } from "@/lib/i18n/LangContext";
 import {
   Header,
@@ -82,6 +82,13 @@ export default function ClientShell({ children, initialLang = "en" }) {
       mounted = false;
       if (data?.subscription) data.subscription.unsubscribe();
     };
+  }, []);
+
+  // 네이티브 앱(Capacitor)에서만 푸시 알림 등록. 웹 브라우저면 즉시 no-op(동적 import라 번들 무영향).
+  useEffect(() => {
+    import("@/lib/push/registerPush")
+      .then((m) => m.registerPushNotifications())
+      .catch(() => { /* 네이티브 아님/플러그인 없음 → 무시 */ });
   }, []);
 
   // pageview 추적 임시 비활성화: 자동 새로고침 문제 해결
@@ -452,6 +459,8 @@ function PortalTopBar({ session, onLogout, siteConfig, langCode }) {
           </span>
         )}
 
+        <PortalLangSwitcher langCode={langCode} />
+
         <button
           onClick={onLogout}
           className="flex items-center gap-1 text-slate-600 hover:text-teal-700 transition-colors ml-1"
@@ -461,5 +470,51 @@ function PortalTopBar({ session, onLogout, siteConfig, langCode }) {
         </button>
       </div>
     </header>
+  );
+}
+
+/* 포털 전용 언어 스위처 — 해외 에이전시/의료기관·병원·코디·관리자가 자기 언어로.
+   공개 페이지처럼 URL 언어화/리로드 없이 쿠키만 바꾸고 healo:langchange 로 즉시 리렌더. */
+function PortalLangSwitcher({ langCode }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+  useEffect(() => {
+    const onDoc = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, []);
+  const current = LANG_OPTIONS_PRIMARY.find((l) => l.code === langCode) || LANG_OPTIONS_PRIMARY[0];
+  const pick = (code) => {
+    setOpen(false);
+    if (code === langCode) return;
+    setLangCookie(code);
+    if (typeof window !== "undefined") window.dispatchEvent(new Event("healo:langchange"));
+  };
+  return (
+    <div className="relative notranslate" ref={ref}>
+      <button
+        onClick={() => setOpen((v) => !v)}
+        aria-label="Change language"
+        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-slate-600 hover:text-teal-700 hover:bg-teal-200/70 transition-colors"
+      >
+        <Globe size={15} />
+        <span className="text-sm font-medium hidden sm:inline">{current?.label}</span>
+        <ChevronDown size={13} className={`opacity-60 transition-transform ${open ? "rotate-180" : ""}`} />
+      </button>
+      {open && (
+        <div className="absolute right-0 mt-2 w-44 bg-white rounded-xl shadow-xl border border-gray-100 z-50 py-1">
+          {LANG_OPTIONS_PRIMARY.map((l) => (
+            <button
+              key={l.code}
+              onClick={() => pick(l.code)}
+              className={`w-full text-left px-3.5 py-2 text-sm flex items-center gap-2.5 transition-colors ${langCode === l.code ? "bg-teal-50 text-teal-700 font-medium" : "text-gray-700 hover:bg-gray-50"}`}
+            >
+              <span>{l.label}</span>
+              {langCode === l.code && <Check size={13} className="ml-auto text-teal-700 shrink-0" />}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }

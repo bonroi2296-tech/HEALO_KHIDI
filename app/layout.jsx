@@ -23,7 +23,7 @@ export async function generateMetadata() {
 }
 
 const baseMetadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://khidi.healo.kr"),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://healwith.co.kr"),
   title: {
     default: "healwith | Korea Cancer Care for International Patients",
     template: "%s | healwith",
@@ -94,11 +94,14 @@ const baseMetadata = {
   //    사이트를 추가한 뒤, HTML-tag 검증을 선택하면 아래와 같은 코드가 발급됩니다.
   //    예: <meta name="yandex-verification" content="xxxxxxxxxxxxxxxx" />
   //    발급된 16자리 값으로 아래 플레이스홀더를 교체하세요.
+  // Google·Yandex 는 DNS TXT 로 소유권 인증 완료(2026-06-22). 메타는 보조.
   verification: {
-    // Google Search Console 코드 (기존 유지 or 추가)
-    // google: "REPLACE_WITH_GOOGLE_SITE_VERIFICATION",
-    // Yandex Webmaster 검증 코드
-    yandex: "REPLACE_WITH_YANDEX_WEBMASTER_CODE",
+    // Yandex Webmaster (DNS 인증 완료, 메타는 백업)
+    yandex: "0b937ceaae803c46",
+    // Naver 서치어드바이저 — naver-site-verification (verification.other 로 렌더)
+    other: {
+      "naver-site-verification": "84eb0689784dd76b4841a4feba55a6c557f680ad",
+    },
   },
   // ────────────────────────────────────────────────
   // Geo 메타 — Yandex 지역 신호 (면력한방병원 강서점 기준)
@@ -121,8 +124,18 @@ export default async function RootLayout({ children }) {
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, viewport-fit=cover" />
         <meta name="theme-color" content="#0d9488" />
-        <link rel="preconnect" href="https://cdn.jsdelivr.net" />
-        <link rel="stylesheet" as="style" crossOrigin="anonymous" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+        <link rel="preconnect" href="https://cdn.jsdelivr.net" crossOrigin="anonymous" />
+        {/* Pretendard — dynamic-subset(페이지에 쓰인 글리프만 다운로드: 한글 풀폰트 수 MB → 수십 KB)
+            + 비차단 로딩(렌더 차단 제거 → FCP/LCP 개선). font-display:swap 이라 폰트 도착 전엔
+            시스템 폰트로 즉시 표시(텍스트 안 보임 현상 없음). 느린 CIS 회선 대응. */}
+        <noscript>
+          <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-dynamic-subset.min.css" />
+        </noscript>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){var l=document.createElement('link');l.rel='stylesheet';l.href='https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-dynamic-subset.min.css';l.media='print';l.onload=function(){this.media='all'};document.head.appendChild(l)})()`,
+          }}
+        />
       </head>
       <body className="font-sans text-gray-800 bg-gray-50 min-h-screen">
         <script

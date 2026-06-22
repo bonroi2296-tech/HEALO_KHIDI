@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useLang } from "@/lib/i18n/LangContext";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { Eyebrow, Rule, ButtonGold, LinkArrow, FilmGrain } from "../../components/healo/Primitives";
@@ -49,7 +48,6 @@ const COPY = {
 };
 
 export default function LoginPremium() {
-  const router = useRouter();
   const lang = useLang();
   const copy = COPY[lang] || COPY.en;
 
@@ -87,7 +85,9 @@ export default function LoginPremium() {
       // ?redirect= 내부 경로가 있으면 우선(스태프 포털 게이트에서 옴)
       const rp = new URLSearchParams(window.location.search).get("redirect");
       const safeRp = rp && rp.startsWith("/") && !rp.startsWith("//") ? rp : null;
-      router.push(safeRp || dest);
+      // 하드 내비게이션: 로그인 페이지(레거시 헤더)→포털 전환 시 옛 UI가 잠깐
+      // 보이던 깜빡임 제거. 목적지를 깨끗한 SSR 상태로 새로 로드한다.
+      window.location.assign(safeRp || dest);
     } catch (_e) {
       setErr(copy.errorGeneric);
     } finally {

@@ -146,7 +146,7 @@ export const Header = ({ setView, view, _handleGlobalInquiry, isMobileMenuOpen, 
   return (
     <>
       <header className="bg-teal-100 text-slate-700 border-b border-teal-200 sticky top-0 z-50 shadow-sm pt-safe-area">
-        <div className="max-w-6xl mx-auto px-4 h-14 md:h-16 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-4 h-14 md:h-16 flex items-center justify-between">
           {/* Left: Logo + Nav */}
           <div className="flex items-center gap-6 z-20">
             <div className="flex items-center cursor-pointer shrink-0" onClick={() => onNavClick('home')}>
@@ -156,7 +156,7 @@ export const Header = ({ setView, view, _handleGlobalInquiry, isMobileMenuOpen, 
                   <Logo tone="light" />
               )}
             </div>
-            <nav className="hidden lg:flex items-center gap-0.5">
+            <nav className="hidden xl:flex items-center gap-0.5">
               <a
                 href="/telemedicine"
                 className="px-2.5 py-1.5 rounded-full text-sm font-semibold transition-all text-slate-600 hover:text-teal-700 hover:bg-teal-200/70 inline-flex items-center gap-1.5 whitespace-nowrap"
@@ -211,7 +211,7 @@ export const Header = ({ setView, view, _handleGlobalInquiry, isMobileMenuOpen, 
           )} */}
 
           {/* Right: Lang + Auth + Portal (desktop) */}
-          <div className="hidden lg:flex items-center gap-1.5 z-20">
+          <div className="hidden xl:flex items-center gap-1.5 z-20">
             {/* Language */}
             <div className="relative" ref={langRef}>
               <button
@@ -268,7 +268,7 @@ export const Header = ({ setView, view, _handleGlobalInquiry, isMobileMenuOpen, 
           </div>
 
           {/* Mobile: right actions */}
-          <div className="lg:hidden flex items-center gap-2 z-20">
+          <div className="xl:hidden flex items-center gap-2 z-20">
             {session && (
               <div className="w-7 h-7 rounded-full bg-teal-200 border border-teal-300 flex items-center justify-center text-teal-800 font-bold text-[10px]">
                 {session.user.email.split('@')[0].substring(0, 2).toUpperCase()}
@@ -276,6 +276,8 @@ export const Header = ({ setView, view, _handleGlobalInquiry, isMobileMenuOpen, 
             )}
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              aria-label="Menu"
+              aria-expanded={isMobileMenuOpen}
               className="p-1.5 text-slate-600 hover:text-teal-700 hover:bg-teal-200/70 rounded-lg transition-all"
             >
               {isMobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
@@ -631,7 +633,7 @@ export const MobileBottomNav = ({ view, onInquiry, onNavClick }) => {
   return (
     <div className="md:hidden fixed bottom-0 left-0 right-0 z-[80] bg-white border-t border-gray-200 pb-safe-area shadow-[0_-4px_10px_rgba(0,0,0,0.03)]">
       <div className="grid grid-cols-3 h-16 items-center relative">
-        <button onClick={() => onNavClick('list_treatment')} className={`flex flex-col items-center justify-center gap-1 h-full w-full active:scale-95 transition ${String(view).includes('treatment') ? 'text-teal-700' : 'text-gray-400 hover:text-gray-600'}`}>
+        <button onClick={() => onNavClick('list_treatment')} className={`flex flex-col items-center justify-center gap-1 h-full w-full active:scale-95 transition ${String(view).includes('treatment') ? 'text-teal-700' : 'text-gray-500 hover:text-gray-700'}`}>
             <Stethoscope size={24} strokeWidth={String(view).includes('treatment') ? 2.5 : 2} />
             <span className="text-[10px] font-bold">{t("nav.treatments", langCode)}</span>
         </button>
@@ -643,7 +645,7 @@ export const MobileBottomNav = ({ view, onInquiry, onNavClick }) => {
               <span className="text-[10px] font-bold text-teal-700">{t("process.inquiry", langCode)}</span>
            </button>
         </div>
-        <button onClick={() => onNavClick('list_hospital')} className={`flex flex-col items-center justify-center gap-1 h-full w-full active:scale-95 transition ${String(view).includes('hospital') ? 'text-teal-700' : 'text-gray-400 hover:text-gray-600'}`}>
+        <button onClick={() => onNavClick('list_hospital')} className={`flex flex-col items-center justify-center gap-1 h-full w-full active:scale-95 transition ${String(view).includes('hospital') ? 'text-teal-700' : 'text-gray-500 hover:text-gray-700'}`}>
             <Building2 size={24} strokeWidth={String(view).includes('hospital') ? 2.5 : 2} />
             <span className="text-[10px] font-bold">{t("nav.hospitals", langCode)}</span>
         </button>

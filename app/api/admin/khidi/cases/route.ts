@@ -10,11 +10,21 @@
 export const runtime = "nodejs";
 
 import { NextRequest, NextResponse } from "next/server";
-import { requireAdminAuth } from "@/lib/auth/requireAdminAuth";
+import { requirePortalAuth } from "@/lib/auth/requirePortalAuth";
 import { supabaseAdmin, assertSupabaseEnv } from "@/lib/rag/supabaseAdmin";
 import { decryptInquiryForAdmin } from "@/lib/security/decryptForAdmin";
 import { encryptStringNullable, decryptStringNullable } from "@/lib/security/encryptionV2";
-import { CASE_STATUS_KEYS, CASE_STATUS_STEPS } from "@/lib/khidi/caseStatus";
+import { CASE_STATUS_KEYS, CASE_STATUS_STEPS, outcomeForCaseStatus } from "@/lib/khidi/caseStatus";
+
+// 케이스 보드는 관리자 + 코디네이터가 쓴다(의사 제외 — 보험 PII 쓰기 포함이라 범위 최소화).
+async function requireCaseStaff(request: NextRequest) {
+  const auth = await requirePortalAuth(request, { staffOnly: true });
+  if (!auth.success) return auth;
+  if (!(auth.isAdmin || auth.appRole === "coordinator")) {
+    return { success: false as const, response: NextResponse.json({ ok: false, error: "forbidden" }, { status: 403 }) };
+  }
+  return auth;
+}
 
 function maskName(first?: string | null, last?: string | null): string {
   const n = `${(first || "").trim()} ${(last || "").trim()}`.trim();
@@ -23,7 +33,7 @@ function maskName(first?: string | null, last?: string | null): string {
 }
 
 export async function GET(request: NextRequest) {
-  const auth = await requireAdminAuth(request);
+  const auth = await requireCaseStaff(request);
   if (!auth.success) return auth.response;
   try {
     assertSupabaseEnv();
@@ -38,6 +48,45 @@ export async function GET(request: NextRequest) {
     }
     const { data: agencies } = await (supabaseAdmin as any).from("agencies").select("id, name").eq("is_active", true);
     const aMap = new Map((agencies || []).map((a: any) => [a.id, a.name]));
+
+    // 국내 병원(파트너) 목록 — 코디가 배정 대상으로 고름
+    const { data: hospitals } = await (supabaseAdmin as any).from("hospitals").select("id, name, slug").order("name");
+    const hMap = new Map<string, string>(
+      (hospitals || []).map((h: any): [string, string] => [String(h.id), String(h.name)])
+    );
+
+    // 케이스별 "이미 배정된 병원" 매핑: inquiries → normalized_inquiries(source_inquiry_id) → hospital_leads
+    const inquiryIds = (rows || []).map((r: any) => r.id);
+    const assignedByInquiry = new Map<number, { id: string; name: string; status: string; quoted_price_min: number | null; quoted_price_max: number | null }[]>();
+    if (inquiryIds.length > 0) {
+      const { data: norms } = await (supabaseAdmin as any)
+        .from("normalized_inquiries")
+        .select("id, source_inquiry_id")
+        .in("source_inquiry_id", inquiryIds);
+      const normIdToInquiry = new Map<string, number>(
+        (norms || []).map((n: any): [string, number] => [String(n.id), Number(n.source_inquiry_id)])
+      );
+      const normIds = (norms || []).map((n: any) => n.id);
+      if (normIds.length > 0) {
+        const { data: leads } = await (supabaseAdmin as any)
+          .from("hospital_leads")
+          .select("normalized_inquiry_id, hospital_id, status, quoted_price_min, quoted_price_max")
+          .in("normalized_inquiry_id", normIds);
+        for (const l of leads || []) {
+          const inqId = normIdToInquiry.get(l.normalized_inquiry_id);
+          if (inqId == null) continue;
+          const arr = assignedByInquiry.get(inqId) || [];
+          arr.push({
+            id: l.hospital_id,
+            name: hMap.get(l.hospital_id) || "(미상)",
+            status: l.status || "sent",
+            quoted_price_min: l.quoted_price_min ?? null,
+            quoted_price_max: l.quoted_price_max ?? null,
+          });
+          assignedByInquiry.set(inqId, arr);
+        }
+      }
+    }
 
     const cases = await Promise.all((rows || []).map(async (r: any) => {
       const dec = await decryptInquiryForAdmin(r).catch(() => r);
@@ -59,6 +108,7 @@ export async function GET(request: NextRequest) {
         insurance_coverage: r.insurance_coverage,
         insurance_status: r.insurance_status,
         outcome: r.outcome,
+        assigned_hospitals: assignedByInquiry.get(r.id) || [],
       };
     }));
 
@@ -66,6 +116,7 @@ export async function GET(request: NextRequest) {
       ok: true,
       cases,
       agencies: agencies || [],
+      hospitals: (hospitals || []).map((h: any) => ({ id: h.id, name: h.name })),
       statusSteps: CASE_STATUS_STEPS,
     });
   } catch (err: any) {
@@ -75,7 +126,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function PATCH(request: NextRequest) {
-  const auth = await requireAdminAuth(request);
+  const auth = await requireCaseStaff(request);
   if (!auth.success) return auth.response;
   try {
     assertSupabaseEnv();
@@ -124,8 +175,26 @@ export async function PATCH(request: NextRequest) {
         inquiry_id: id,
         status: patch.case_status,
         note: patch.case_status_note ?? body.case_status_note ?? null,
-        created_by: auth.authResult.userId,
+        created_by: auth.userId,
       });
+    }
+
+    // EDGE-2 (POSTMORTEM #17 잔여위험 → #19): 코디가 케이스를 입국·치료 이후 단계
+    //   (treatment/follow_up/completed)로 전진시키면 = 실제 유치 → outcome='admitted' 집계.
+    //   병원 'converted' 자동집계와 대칭. outcome IS NULL 가드로 코디가 이미 정한 결정
+    //   (admitted/lost/취소)은 절대 덮지 않는다. 점수판 '유치 확정됨(되돌리기)'에서 되돌리기 가능.
+    if (statusChanged && outcomeForCaseStatus(patch.case_status)) {
+      const { error: outErr } = await (supabaseAdmin as any)
+        .from("inquiries")
+        .update({
+          outcome: "admitted",
+          outcome_note: `케이스 '${patch.case_status}' 전진 → 유치 자동 집계`,
+          outcome_updated_at: new Date().toISOString(),
+          outcome_updated_by: auth.userId, // 코디 행동분(병원 자동집계와 달리 '자동' 배지 아님)
+        })
+        .eq("id", id)
+        .is("outcome", null);
+      if (outErr) console.error("[cases] outcome auto-set error:", outErr.message);
     }
 
     return NextResponse.json({ ok: true });

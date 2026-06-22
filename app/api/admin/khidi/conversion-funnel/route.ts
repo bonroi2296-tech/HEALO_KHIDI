@@ -71,14 +71,51 @@ export async function GET(request: NextRequest) {
       lost: Number(f.lost),
     };
 
-    // ── 유치확정 "대기" 환자: 사전상담 완료했지만 결과 미입력(outcome null) ──
+    // 표시용 행(이름 복호화+마스킹) 변환 — pending/admitted 공용.
+    const toDisplayRow = async (r: any) => {
+      const dec = await decryptInquiryForAdmin(r).catch(() => r);
+      return {
+        inquiry_id: r.id,
+        name: maskName(dec?.first_name, dec?.last_name),
+        nationality: r.nationality || "(미상)",
+        cancer_type: r.cancer_type || r.treatment_type || "-",
+        created_at: r.created_at,
+      };
+    };
+
+    // ── 유치확정 "대기" 환자: 결과 미입력(outcome null) 이면서
+    //    (a) 사전상담 완료했거나 (b) 병원이 응답/확정한 케이스(에이전시→병원 의뢰 경로).
+    //    (b) 를 포함해야 상담세션 없이 의뢰만 진행된 케이스도 코디가 보고 확정/이탈 가능. ──
     const { data: preRows } = await supabaseAdmin
       .from("consultation_sessions")
       .select("inquiry_id")
       .eq("session_type", "pre_consultation")
       .eq("status", "completed")
       .not("inquiry_id", "is", null);
-    const inquiryIds = Array.from(new Set((preRows || []).map((r: any) => r.inquiry_id))).filter(Boolean);
+    const candidateIds = new Set<number>(
+      (preRows || []).map((r: any) => r.inquiry_id).filter(Boolean)
+    );
+
+    // 병원 응답(replied/converted) 리드 → normalized_inquiry → 원본 의뢰 id 합류
+    const { data: hlRows } = await supabaseAdmin
+      .from("hospital_leads")
+      .select("normalized_inquiry_id")
+      .in("status", ["replied", "converted"])
+      .not("normalized_inquiry_id", "is", null);
+    const normIds = Array.from(
+      new Set((hlRows || []).map((r: any) => r.normalized_inquiry_id).filter(Boolean))
+    );
+    if (normIds.length > 0) {
+      const { data: normRows } = await supabaseAdmin
+        .from("normalized_inquiries")
+        .select("source_inquiry_id")
+        .in("id", normIds)
+        .not("source_inquiry_id", "is", null);
+      (normRows || []).forEach((r: any) => {
+        if (r.source_inquiry_id != null) candidateIds.add(r.source_inquiry_id);
+      });
+    }
+    const inquiryIds = Array.from(candidateIds);
 
     let pending: any[] = [];
     if (inquiryIds.length > 0) {
@@ -90,22 +127,27 @@ export async function GET(request: NextRequest) {
         .gte("created_at", from)
         .lt("created_at", to)
         .order("created_at", { ascending: true });
-
-      pending = await Promise.all(
-        (pendRows || []).map(async (r: any) => {
-          const dec = await decryptInquiryForAdmin(r).catch(() => r);
-          return {
-            inquiry_id: r.id,
-            name: maskName(dec?.first_name, dec?.last_name),
-            nationality: r.nationality || "(미상)",
-            cancer_type: r.cancer_type || r.treatment_type || "-",
-            created_at: r.created_at,
-          };
-        })
-      );
+      pending = await Promise.all((pendRows || []).map(toDisplayRow));
     }
 
-    return NextResponse.json({ ok: true, range: { from, to }, funnel, byCountry: countryRows || [], byOrg: orgRows || [], pending });
+    // ── 유치확정된 목록(되돌리기용): outcome='admitted'. 코디가 잘못된 건 취소(→null)/이탈
+    //    가능. auto=true(outcome_updated_by IS NULL) = 병원 확정 자동집계분(코디 미확인). ──
+    const { data: admRows } = await (supabaseAdmin as any)
+      .from("inquiries")
+      .select("id, created_at, nationality, cancer_type, treatment_type, first_name, last_name, encrypted_name, outcome_updated_by, outcome_note")
+      .eq("outcome", "admitted")
+      .gte("created_at", from)
+      .lt("created_at", to)
+      .order("outcome_updated_at", { ascending: false, nullsFirst: false });
+    const admitted = await Promise.all(
+      (admRows || []).map(async (r: any) => ({
+        ...(await toDisplayRow(r)),
+        auto: r.outcome_updated_by == null,
+        note: r.outcome_note || null,
+      }))
+    );
+
+    return NextResponse.json({ ok: true, range: { from, to }, funnel, byCountry: countryRows || [], byOrg: orgRows || [], pending, admitted });
   } catch (err: any) {
     console.error("[conversion-funnel] error:", err?.message?.slice(0, 200));
     return NextResponse.json({ ok: false, error: "internal_error" }, { status: 500 });
@@ -144,6 +186,32 @@ export async function PATCH(request: NextRequest) {
       console.error("[conversion-funnel] outcome update error:", error.message);
       return NextResponse.json({ ok: false, error: "update_failed" }, { status: 500 });
     }
+
+    // EDGE-5 (POSTMORTEM #18→#20): 유치 확정/이탈/취소를 case_status_history 에 남겨
+    //   에이전시 포털 타임라인에 반영(이전엔 outcome 만 바뀌고 에이전시는 확정/이탈을 못 봤음).
+    //   admitted = 입국·치료 단계로 전진(뒤로 안 감), lost/취소 = 단계 유지하고 이력만.
+    try {
+      const uid = auth.authResult.userId ?? null;
+      if (outcome === "admitted") {
+        const { advanceCaseStatus } = await import("@/lib/khidi/advanceCaseStatus");
+        await advanceCaseStatus(supabaseAdmin, inquiryId, "treatment", "🎯 유치 확정", uid);
+      } else {
+        const { data: inq } = await (supabaseAdmin as any)
+          .from("inquiries")
+          .select("case_status")
+          .eq("id", inquiryId)
+          .maybeSingle();
+        await (supabaseAdmin as any).from("case_status_history").insert({
+          inquiry_id: inquiryId,
+          status: inq?.case_status ?? "received",
+          note: outcome === "lost" ? "🚫 이탈 처리" : "↩️ 유치 취소 (집계 제외)",
+          created_by: uid,
+        });
+      }
+    } catch (histErr: any) {
+      console.error("[conversion-funnel] case_status_history 기록 실패:", histErr?.message);
+    }
+
     return NextResponse.json({ ok: true });
   } catch (err: any) {
     console.error("[conversion-funnel] PATCH error:", err?.message?.slice(0, 200));

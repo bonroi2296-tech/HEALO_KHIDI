@@ -34,7 +34,7 @@ export const metadata = {
     description:
       "Explore advanced dermatology and skin treatments in Korea. Laser therapy, Botox, fillers, and rejuvenation at competitive prices.",
     type: "website",
-    url: "https://khidi.healo.kr/specialties/dermatology",
+    url: "https://healwith.co.kr/specialties/dermatology",
   },
   alternates: {
     canonical: "/specialties/dermatology",
@@ -56,7 +56,7 @@ const jsonLd = {
   name: "Dermatology",
   description:
     "Advanced dermatology and skin treatment services in South Korea, including laser therapy, Botox, dermal fillers, and skin rejuvenation programs.",
-  url: "https://khidi.healo.kr/specialties/dermatology",
+  url: "https://healwith.co.kr/specialties/dermatology",
   medicalSpecialty: "Dermatology",
   availableService: [
     {

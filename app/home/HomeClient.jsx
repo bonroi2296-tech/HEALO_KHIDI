@@ -42,7 +42,8 @@ import SocialProofSection from "@/components/SocialProofSection";
    ═══════════════════════════════════════════════════════ */
 const PLACEHOLDER = {
   // 📸 히어로 배경 — 회복톤(공원 산책) 2026-06-20 PO 취향 반영. 어두운 그라데이션 뒤 배경.
-  heroBg: "https://images.unsplash.com/photo-1671530725345-cc4a2cf5db04?w=1920&q=80",
+  // 히어로 배경은 90~95% 어두운 그라데이션에 덮여 거의 안 보임 → 원본 화질·폭 축소(LCP 바이트 절감).
+  heroBg: "https://images.unsplash.com/photo-1671530725345-cc4a2cf5db04?w=1280&q=55",
   // 📸 병원 2곳 — 교체: 면력한방병원 실제 사진으로 교체 권장 (800x500)
   hospitals: [
     "https://images.unsplash.com/photo-1538108149393-fbbd81895907?w=800&h=500&fit=crop",
@@ -197,10 +198,10 @@ const ICON_MAP = { FileText, Shield, Video, Heart, Globe, Clock, Leaf, Stethosco
 // 면력한방병원 실제 의료진 (강서점 + 신촌점 — 이번 사업 참여기관)
 // 📸 사진은 면력한방병원 공식 사이트에서 가져옴
 const DOCTORS_DATA = [
-  { name: { ko: "황이준 대표원장", en: "Dr. Hwang Yi-jun", ru: "Д-р Хван Иджун", kz: "Д-р Хван Иджун", zh: "黄以准 代表院长", ja: "黄以準 代表院長" }, title: { ko: "면력한방병원 강서점 대표원장", en: "Chief Director, Immune Hospital Gangseo", ru: "Главный директор, Иммунная Клиника Кансо", kz: "Бас директор, Иммунная Клиника Кансо", zh: "免疫医院 江西 代表院长", ja: "免疫病院 江西 代表院長" }, specialty: { ko: "한방 면역 종양학 · 통합 암 케어", en: "Korean Medicine Immuno-Oncology", ru: "Иммуноонкология корейской медицины", kz: "Корей медицинасы иммуноонкологиясы", zh: "韩方免疫肿瘤学", ja: "韓方免疫腫瘍学" }, exp: "", img: "https://immunehospital.com/uploads/doctors/68a674036de695.54364290.png" },
-  { name: { ko: "유형진 대표원장", en: "Dr. Yu Hyung-jin", ru: "Д-р Ю Хёнджин", kz: "Д-р Ю Хёнджин", zh: "柳炯进 代表院长", ja: "柳炯進 代表院長" }, title: { ko: "면력한방병원 신촌점 대표원장", en: "Chief Director, Immune Hospital Sinchon", ru: "Главный директор, Иммунная Клиника Синчхон", kz: "Бас директор, Иммунная Клиника Синчхон", zh: "免疫医院 新村 代表院长", ja: "免疫病院 新村 代表院長" }, specialty: { ko: "한방 면역 치료 · 암 통합 케어", en: "Korean Medicine Immunotherapy · Cancer Care", ru: "Иммунотерапия · Онкологическая помощь", kz: "Иммунотерапия · Онкологиялық көмек", zh: "韩方免疫治疗 · 癌症综合护理", ja: "韓方免疫治療 · がん統合ケア" }, exp: "", img: "https://immunehospital.com/uploads/doctors/68ac46bd439598.83386960.png" },
-  { name: { ko: "이우석 양방대표원장", en: "Dr. Lee Woo-seok", ru: "Д-р Ли Усок", kz: "Д-р Ли Усок", zh: "李宇锡 西医代表院长", ja: "李宇錫 洋方代表院長" }, title: { ko: "면력한방병원 강서점 양방대표원장", en: "Western Medicine Director, Gangseo", ru: "Директор западной медицины, Кансо", kz: "Батыс медицинасы директоры, Кансо", zh: "江西 西医代表院长", ja: "江西 洋方代表院長" }, specialty: { ko: "통합면역 · 산부인과", en: "Integrated Immunity · Obstetrics/Gynecology", ru: "Интегративный иммунитет · Акушерство", kz: "Кешенді иммунитет · Акушерлік", zh: "综合免疫 · 妇产科", ja: "統合免疫 · 産婦人科" }, exp: "", img: "https://immunehospital.com/uploads/doctors/68a42d8de9e095.75488957.jpg" },
-  { name: { ko: "정유진 진료원장", en: "Dr. Jung Yu-jin", ru: "Д-р Чон Юджин", kz: "Д-р Чон Юджин", zh: "郑有进 诊疗院长", ja: "鄭有進 診療院長" }, title: { ko: "면력한방병원 신촌점 한방내과 전문의", en: "Korean Internal Medicine Specialist, Sinchon", ru: "Специалист корейской внутренней медицины, Синчхон", kz: "Корей ішкі медицина маманы, Синчхон", zh: "新村 韩方内科专家", ja: "新村 韓方内科専門医" }, specialty: { ko: "한방내과 · 면역 치료", en: "Korean Internal Medicine · Immunotherapy", ru: "Корейская внутренняя медицина · Иммунотерапия", kz: "Корей ішкі медицинасы · Иммунотерапия", zh: "韩方内科 · 免疫治疗", ja: "韓方内科 · 免疫治療" }, exp: "", img: "https://immunehospital.com/uploads/doctors/68ac464c6fdee2.09872274.jpg" },
+  { name: { ko: "황이준 대표원장", en: "Dr. Hwang Yi-jun", ru: "Д-р Хван Иджун", kz: "Д-р Хван Иджун", zh: "黄以准 代表院长", ja: "黄以準 代表院長" }, title: { ko: "면력한방병원 강서점 대표원장", en: "Chief Director, Immune Hospital Gangseo", ru: "Главный директор, Иммунная Клиника Кансо", kz: "Бас директор, Иммунная Клиника Кансо", zh: "免疫医院 江西 代表院长", ja: "免疫病院 江西 代表院長" }, specialty: { ko: "한방 면역 종양학 · 통합 암 케어", en: "Korean Medicine Immuno-Oncology", ru: "Иммуноонкология корейской медицины", kz: "Корей медицинасы иммуноонкологиясы", zh: "韩方免疫肿瘤学", ja: "韓方免疫腫瘍学" }, exp: "", img: "/immune/doctor/gangeo-dr-hwang-ijun.png" },
+  { name: { ko: "유형진 대표원장", en: "Dr. Yu Hyung-jin", ru: "Д-р Ю Хёнджин", kz: "Д-р Ю Хёнджин", zh: "柳炯进 代表院长", ja: "柳炯進 代表院長" }, title: { ko: "면력한방병원 신촌점 대표원장", en: "Chief Director, Immune Hospital Sinchon", ru: "Главный директор, Иммунная Клиника Синчхон", kz: "Бас директор, Иммунная Клиника Синчхон", zh: "免疫医院 新村 代表院长", ja: "免疫病院 新村 代表院長" }, specialty: { ko: "한방 면역 치료 · 암 통합 케어", en: "Korean Medicine Immunotherapy · Cancer Care", ru: "Иммунотерапия · Онкологическая помощь", kz: "Иммунотерапия · Онкологиялық көмек", zh: "韩方免疫治疗 · 癌症综合护理", ja: "韓方免疫治療 · がん統合ケア" }, exp: "", img: "/immune/doctor/sinchon-dr-yoo-hyeongjin.png" },
+  { name: { ko: "이우석 양방대표원장", en: "Dr. Lee Woo-seok", ru: "Д-р Ли Усок", kz: "Д-р Ли Усок", zh: "李宇锡 西医代表院长", ja: "李宇錫 洋方代表院長" }, title: { ko: "면력한방병원 강서점 양방대표원장", en: "Western Medicine Director, Gangseo", ru: "Директор западной медицины, Кансо", kz: "Батыс медицинасы директоры, Кансо", zh: "江西 西医代表院长", ja: "江西 洋方代表院長" }, specialty: { ko: "통합면역 · 산부인과", en: "Integrated Immunity · Obstetrics/Gynecology", ru: "Интегративный иммунитет · Акушерство", kz: "Кешенді иммунитет · Акушерлік", zh: "综合免疫 · 妇产科", ja: "統合免疫 · 産婦人科" }, exp: "", img: "/immune/doctor/gangeo-dr-lee-useok.jpg" },
+  { name: { ko: "정유진 진료원장", en: "Dr. Jung Yu-jin", ru: "Д-р Чон Юджин", kz: "Д-р Чон Юджин", zh: "郑有进 诊疗院长", ja: "鄭有進 診療院長" }, title: { ko: "면력한방병원 신촌점 한방내과 전문의", en: "Korean Internal Medicine Specialist, Sinchon", ru: "Специалист корейской внутренней медицины, Синчхон", kz: "Корей ішкі медицина маманы, Синчхон", zh: "新村 韩方内科专家", ja: "新村 韓方内科専門医" }, specialty: { ko: "한방내과 · 면역 치료", en: "Korean Internal Medicine · Immunotherapy", ru: "Корейская внутренняя медицина · Иммунотерапия", kz: "Корей ішкі медицинасы · Иммунотерапия", zh: "韩方内科 · 免疫治疗", ja: "韓方内科 · 免疫治療" }, exp: "", img: "/immune/doctor/sinchon-dr-jeong-yujin.jpg" },
 ];
 
 // 📸 교체 대상: 병원 로고 이미지 — 실제 로고 URL로 교체
@@ -252,7 +253,7 @@ export default function HomeClient() {
       <section className="relative text-white overflow-hidden">
         {/* 📸 교체: 실제 병원/의료진 사진 (1920x1080 이상) */}
         <div className="absolute inset-0">
-          <Image src={PLACEHOLDER.heroBg} alt="" fill priority sizes="100vw" className="object-cover" />
+          <Image src={PLACEHOLDER.heroBg} alt="" fill priority fetchPriority="high" quality={55} sizes="100vw" className="object-cover" />
           <div className="absolute inset-0 bg-gradient-to-br from-slate-900/95 via-teal-900/90 to-slate-900/95" />
         </div>
         {/* Glow effects */}
@@ -318,6 +319,8 @@ export default function HomeClient() {
                   <img
                     src={doc.img}
                     alt={l(doc.name)}
+                    loading="lazy"
+                    decoding="async"
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                   />
                 </div>
@@ -447,13 +450,16 @@ export default function HomeClient() {
                   onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); router.push(`/hospitals/${h.slug}`); } }}
                   className="bg-white rounded-xl md:rounded-2xl overflow-hidden border border-gray-100 hover:shadow-xl hover:border-teal-200 transition-all duration-300 cursor-pointer group focus:outline-none focus:ring-2 focus:ring-teal-400"
                 >
-                  <div className="h-24 sm:h-32 md:h-40 overflow-hidden bg-gray-100">
-                    {/* img 필드를 직접 사용(SSR에 올바른 src 박힘) — 사진 있으면 폴더 경로, 없으면 준비중 플레이스홀더. onError는 안전망. */}
-                    <img
-                      src={h.img}
-                      onError={(e) => { if (e.currentTarget.src.includes("_coming-soon")) return; e.currentTarget.onerror = null; e.currentTarget.src = "/images/hospitals/_coming-soon.svg?v=2"; }}
+                  <div className="relative h-24 sm:h-32 md:h-40 overflow-hidden bg-gray-100">
+                    {/* next/image: 로컬 병원 사진을 webp/avif·디바이스 크기로 자동 최적화 + 기본 lazy.
+                        (각 원본 JPEG 180~456KB → 모바일 수십 KB) onError는 사진 없을 때 안전망. */}
+                    <Image
+                      src={h.img.split("?")[0]}
                       alt={l(h.name)}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      fill
+                      sizes="(min-width:1024px) 25vw, (min-width:640px) 33vw, 50vw"
+                      onError={(e) => { if (e.currentTarget.src.includes("_coming-soon")) return; e.currentTarget.onerror = null; e.currentTarget.src = "/images/hospitals/_coming-soon.svg?v=2"; }}
+                      className="object-cover group-hover:scale-105 transition-transform duration-500"
                     />
                   </div>
                   <div className="p-2.5 md:p-4">

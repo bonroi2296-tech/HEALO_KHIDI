@@ -8,7 +8,7 @@ const STATUS_CONFIG = {
   sent: { label: "전송됨", color: "bg-blue-100 text-blue-700", icon: Send },
   viewed: { label: "조회됨", color: "bg-yellow-100 text-yellow-700", icon: Eye },
   replied: { label: "응답함", color: "bg-green-100 text-green-700", icon: Reply },
-  converted: { label: "전환됨", color: "bg-emerald-100 text-emerald-700", icon: CheckCircle },
+  converted: { label: "치료 확정", color: "bg-emerald-100 text-emerald-700", icon: CheckCircle },
   rejected: { label: "거절", color: "bg-red-100 text-red-700", icon: XCircle },
   expired: { label: "만료", color: "bg-gray-100 text-gray-500", icon: Clock },
 };
@@ -18,7 +18,7 @@ const STATUS_FILTERS = [
   { value: "sent", label: "전송됨" },
   { value: "viewed", label: "조회됨" },
   { value: "replied", label: "응답함" },
-  { value: "converted", label: "전환됨" },
+  { value: "converted", label: "치료 확정" },
   { value: "rejected", label: "거절" },
 ];
 
@@ -207,7 +207,7 @@ function LeadDetailSheet({ lead, onClose, onUpdateStatus }) {
 
   const statusActions = [];
   if (lead.status === "viewed") statusActions.push({ status: "replied", label: "응답 완료", color: "bg-green-600 hover:bg-green-700" });
-  if (["replied", "viewed"].includes(lead.status)) statusActions.push({ status: "converted", label: "진료 전환", color: "bg-emerald-700 hover:bg-emerald-700" });
+  if (["replied", "viewed"].includes(lead.status)) statusActions.push({ status: "converted", label: "치료 확정", color: "bg-emerald-700 hover:bg-emerald-700" });
   if (!["converted", "rejected", "expired"].includes(lead.status)) statusActions.push({ status: "rejected", label: "거절", color: "bg-red-500 hover:bg-red-600" });
 
   return (
