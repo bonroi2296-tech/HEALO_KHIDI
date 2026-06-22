@@ -16,6 +16,7 @@
 - **공개 퍼널 레이트리밋 DB화(KNOWN_ISSUES #7)** — 공개 무인증 DB쓰기 6개 라우트(`inquiries` create/step1/step2/intake, `survey/submit`, `khidi/intake`)를 인메모리 `checkRateLimit`→`checkRateLimitPersistent`(DB sliding window, 인메모리 폴백 내장)로 이관. 서버리스 다중 isolate에서 분산 봇이 스팸 리드로 유치/만족도 KPI 오염시키던 구멍 차단.
 - **`operationalLog` maskIp IPv4 마스킹 오타** 수정(`192.168.***,100`→`192.168.***.100`).
 - **직전 세션 잔무 정리**: ①**PR #83 닫음**(AI 안전가드 0층은 클린 재구성 #256이 이미 머지돼 main에 있음 — 중복). ②**PR #254 머지 확인**(직전 핸드오프엔 초안이었으나 그새 머지됨, 커밋 a4faaaa). ③**배포 스킵 설정 확인** — `vercel.json`에 `ignoreCommand` 이미 연결돼 있어 **대시보드 손댈 필요 없음**(직전 핸드오프의 "PO가 1회 설정" 항목은 불필요로 판명). ④**TEST2 prod 실증** — 라이브 챗에 "로그인 안 해서 세션 유지 안될텐데?" 던져 "대화 안전 저장+연락처 남기면 코디 연락" 정직 응답 확인(옛 사과 사라짐). 테스트 스레드 DB 삭제.
+- **핸드오프 자동화 수정(PO 지적)**: PO가 "다음 세션 복붙 프롬프트 자동화하라 했는데 왜 또 주냐"고 지적 → 핸드오프 스킬 `SKILL.md` 규칙 H를 "복붙 프롬프트를 PO에게 내밀지 마라(세션 시작 훅이 자동 표시)"로 교체 + `PO_PREFERENCES` 누적 + **반성문 POSTMORTEMS #25**(지시 미반영·재발). 커밋 cb8840f·ed32005. (이 항목 이후로 마무리 보고는 복붙 프롬프트 없이 3줄 요약으로만.)
 
 **2. 왜 그렇게 했는지:**
 - **언어코드 정본 불일치가 근본원인**: 앱 전반은 `kz`, 이메일/설문 서브시스템은 의도적으로 내부키 `kk`(ISO 639-1)를 쓰고 경계에서 `kz→kk` 정규화(`resolveRecipient.normalizeSurveyLang`). 이 경계규칙을 입력검증(step1)·리마인더가 안 따라서 터짐. hreflang(`sitemap`·`i18n/metadata`)의 `kz:"kk"`는 SEO 정답이라 안 건드림.
