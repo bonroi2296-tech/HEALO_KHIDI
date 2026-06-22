@@ -1,0 +1,83 @@
+# healwith 스토어 앱 — 클라우드 맥/리눅스 빌드 (Codemagic)
+#
+# 이 앱은 Capacitor 라이브로드(server.url=https://healwith.co.kr)라 웹 빌드 단계가 없다.
+# 빌드는 네이티브 셸만: npm 설치 → cap sync → 서명 → 스토어 업로드.
+#
+# ── 결제/계정 후 Codemagic UI 에서 1회 세팅하면 그대로 돌아간다 ──────────────
+# iOS:
+#   1. Codemagic → Teams → Integrations → App Store Connect: API 키 등록(이름 예: "healwith_asc").
+#   2. Apple Developer 에서 App ID `kr.co.healwith.app` 등록 + 푸시(APNs) Capability 켜기.
+#   3. Firebase 콘솔 → iOS 앱(`kr.co.healwith.app`) 추가 → GoogleService-Info.plist 다운로드
+#      → ios/App/App/GoogleService-Info.plist 로 커밋(또는 Codemagic 환경변수 파일로 주입).
+#      + Firebase → Cloud Messaging → APNs 인증키(.p8) 업로드.
+# Android:
+#   1. Codemagic → 환경변수 그룹 "google_play": GCLOUD_SERVICE_ACCOUNT_CREDENTIALS(Play 서비스계정 JSON).
+#   2. 키스토어: Codemagic → Code signing identities → Android keystore 업로드(reference 이름 "healwith_keystore").
+#   3. Firebase 콘솔 → Android 앱(`kr.co.healwith.app`) 추가 → google-services.json 다운로드
+#      → android/app/google-services.json 로 커밋.
+# 공통: 서버 푸시 발송용 env(FCM_PROJECT_ID·GOOGLE_SERVICE_ACCOUNT_JSON)는 앱이 아니라 Vercel 에 설정.
+
+workflows:
+  ios-release:
+    name: healwith iOS (App Store / TestFlight)
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    integrations:
+      app_store_connect: healwith_asc   # ← Codemagic Integrations 에 등록한 이름
+    environment:
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: kr.co.healwith.app
+      node: 20
+      xcode: latest
+      cocoapods: default
+    scripts:
+      - name: npm 의존성 설치
+        script: npm ci
+      - name: Capacitor iOS 동기화
+        script: npx cap sync ios
+      - name: CocoaPods 설치
+        script: cd ios/App && pod install
+      - name: 서명 프로필 적용
+        script: xcode-project use-profiles
+      - name: IPA 빌드
+        script: |
+          xcode-project build-ipa \
+            --workspace "ios/App/App.xcworkspace" \
+            --scheme "App"
+    artifacts:
+      - build/ios/ipa/*.ipa
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
+        # 외부 심사 제출은 첫 빌드 수동 확인 후 켠다:
+        # submit_to_app_store: false
+
+  android-release:
+    name: healwith Android (Google Play)
+    instance_type: linux_x2
+    max_build_duration: 60
+    environment:
+      groups:
+        - google_play          # GCLOUD_SERVICE_ACCOUNT_CREDENTIALS
+      android_signing:
+        - healwith_keystore     # ← Codemagic Code signing identities 의 reference 이름
+      node: 20
+      java: 17
+    scripts:
+      - name: npm 의존성 설치
+        script: npm ci
+      - name: Capacitor Android 동기화
+        script: npx cap sync android
+      - name: AAB 빌드 (서명)
+        script: |
+          cd android
+          ./gradlew bundleRelease
+    artifacts:
+      - android/app/build/outputs/**/*.aab
+    publishing:
+      google_play:
+        credentials: $GCLOUD_SERVICE_ACCOUNT_CREDENTIALS
+        track: internal        # internal → 검증 후 production 으로 승격
+        submit_as_draft: true
