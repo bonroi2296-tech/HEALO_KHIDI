@@ -62,21 +62,5 @@ describe("system prompt behavioral guards (regression lock)", () => {
   });
 });
 
-// publicChatHelpers 도 server-only 라 직접 import 불가 → 소스 텍스트로 잠근다.
-const HELPERS_SRC = readFileSync(path.resolve(__dirname, "publicChatHelpers.ts"), "utf8");
-
-describe("handoff confirm 연락처 게이트 (regression lock)", () => {
-  it("연락 가능 여부 판별 헬퍼와 멘트 선택기가 있다", () => {
-    expect(HELPERS_SRC).toMatch(/export function hasReachableContact/);
-    expect(HELPERS_SRC).toMatch(/export function pickHandoffConfirm/);
-    // user_id(로그인)·guest_email·guest_phone 중 하나라도 있으면 연락 가능.
-    expect(HELPERS_SRC).toMatch(/thread\?\.guest_email \|\| thread\?\.guest_phone \|\| thread\?\.user_id/);
-  });
-
-  it("연락처 없을 때용 '연락처부터' 멘트가 6개 언어로 있다", () => {
-    expect(HELPERS_SRC).toMatch(/HANDOFF_NEED_CONTACT/);
-    for (const lang of ["ko", "en", "ru", "kz", "zh", "ja"]) {
-      expect(HELPERS_SRC).toMatch(new RegExp(`HANDOFF_NEED_CONTACT[\\s\\S]*\\b${lang}:`));
-    }
-  });
-});
+// 접수 연락처 게이트의 실제 동작 검증은 ./contactGate.test.ts 에서(순수 모듈이라 직접 import 가능).
+// (과거엔 server-only 라 텍스트로만 잠갔으나, contactGate.ts 로 분리해 진짜 단위테스트로 대체.)

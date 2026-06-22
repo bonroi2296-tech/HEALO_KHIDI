@@ -10,10 +10,8 @@
 #   - exit 0  → 배포 "스킵"(취소)
 #   - exit 1  → 배포 "진행"
 #
-# 설정 방법(PO, 1회):
-#   Vercel 대시보드 → 프로젝트 healo-khidi → Settings → Git → "Ignored Build Step"
-#   → "Custom" 선택 후 아래 한 줄 입력 → Save:
-#       bash scripts/vercel-ignore-build.sh
+# ✅ vercel.json 의 "ignoreCommand": "bash scripts/vercel-ignore-build.sh" 로 자동 연결됨
+#    → main 에 머지되면 별도 대시보드 설정 없이 모든 배포에 적용된다(설정 불필요).
 #
 # 주의: 앱이 .md 파일을 직접 콘텐츠로 쓰게 되면(MDX 등) 아래 제외 목록을 조정할 것.
 

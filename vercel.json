@@ -2,6 +2,7 @@
   "buildCommand": "next build --webpack",
   "framework": "nextjs",
   "regions": ["icn1"],
+  "ignoreCommand": "bash scripts/vercel-ignore-build.sh",
   "crons": [
     {
       "path": "/api/cron/kpi-snapshot",
