@@ -212,8 +212,9 @@ async function _fetchKpiInRange(
 // ============================================================
 
 /**
- * 특정 연월의 KPI 집계
- * kpi_snapshots 에 없으면 직접 계산 후 upsert (캐시)
+ * 특정 연월의 KPI 집계 — 항상 실시간 직접 계산(_fetchKpiInRange).
+ * (캐시/upsert 안 함 — 스냅샷 upsert 는 cron 의 upsertDailySnapshot 전용.
+ *  대시보드/보고서는 항상 최신값을 보여야 하므로 의도적으로 매번 재계산.)
  */
 export async function getKpiForMonth(
   year: number,

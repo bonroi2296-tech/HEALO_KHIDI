@@ -54,6 +54,22 @@ export async function GET(request: NextRequest) {
       getKpiCumulative(PROJECT_START_DATE, cumToDate),
     ]);
 
+    // 평가 직결: 대시보드 조회 경로에서도 집계 쿼리 오류를 흘려보내지 않고 canary 발사.
+    // (이전엔 cron 스냅샷 경로만 알림 → PO 가 대시보드로 먼저 보면 깨진 지표가 0 으로
+    //  조용히 보였음. POSTMORTEMS #19.) 알림 실패는 응답에 영향 없게 격리.
+    const aggErrors = [
+      ...((kpi.errors as string[]) || []).map((e) => `month ${year}-${month}: ${e}`),
+      ...((cumulative.errors as string[]) || []).map((e) => `cumulative: ${e}`),
+    ];
+    if (aggErrors.length > 0) {
+      try {
+        const { alertKpiAggregationErrors } = await import("@/lib/alerts/operationalAlerts");
+        await alertKpiAggregationErrors(aggErrors, `dashboard ${year}-${month}`);
+      } catch (alertErr) {
+        console.error("[api/admin/khidi/kpi] canary 발송 실패:", (alertErr as Error).message);
+      }
+    }
+
     return Response.json({
       ok: true,
       year,
@@ -63,6 +79,8 @@ export async function GET(request: NextRequest) {
       cumulative,
       targets: KPI_TARGETS,
       daily,
+      // 집계 오류가 있으면 대시보드가 경고 배너를 띄울 수 있게 표면화(숫자 0 을 정상으로 오인 방지)
+      aggregationOk: aggErrors.length === 0,
     });
   } catch (err) {
     console.error("[api/admin/khidi/kpi] error:", (err as Error).message);

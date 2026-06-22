@@ -3,6 +3,7 @@ import {
   caseStatusLabel,
   caseStatusOrder,
   outcomeForHospitalLeadStatus,
+  outcomeForCaseStatus,
   CASE_STATUS_KEYS,
   CASE_STATUS_STEPS,
 } from "./caseStatus";
@@ -79,5 +80,26 @@ describe("outcomeForHospitalLeadStatus (병원 확정 → 유치 자동 집계)"
     expect(outcomeForHospitalLeadStatus(undefined)).toBeNull();
     expect(outcomeForHospitalLeadStatus("")).toBeNull();
     expect(outcomeForHospitalLeadStatus("nope")).toBeNull();
+  });
+});
+
+describe("outcomeForCaseStatus (코디 case_status 전진 → 유치 자동 집계, EDGE-2/POSTMORTEM #17 잔여위험)", () => {
+  it("입국·치료 이후 단계(treatment/follow_up/completed)는 유치(admitted)", () => {
+    expect(outcomeForCaseStatus("treatment")).toBe("admitted");
+    expect(outcomeForCaseStatus("follow_up")).toBe("admitted");
+    expect(outcomeForCaseStatus("completed")).toBe("admitted");
+  });
+
+  it("입국 전 단계는 아직 유치 아님(null) — 비자준비도 아직 미확정", () => {
+    for (const s of ["received", "pre_consult", "hospital_review", "scheduling", "visa_prep", "on_hold"]) {
+      expect(outcomeForCaseStatus(s)).toBeNull();
+    }
+  });
+
+  it("빈 값·미상도 null", () => {
+    expect(outcomeForCaseStatus(null)).toBeNull();
+    expect(outcomeForCaseStatus(undefined)).toBeNull();
+    expect(outcomeForCaseStatus("")).toBeNull();
+    expect(outcomeForCaseStatus("nope")).toBeNull();
   });
 });

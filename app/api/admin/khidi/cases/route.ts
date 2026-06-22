@@ -14,7 +14,7 @@ import { requirePortalAuth } from "@/lib/auth/requirePortalAuth";
 import { supabaseAdmin, assertSupabaseEnv } from "@/lib/rag/supabaseAdmin";
 import { decryptInquiryForAdmin } from "@/lib/security/decryptForAdmin";
 import { encryptStringNullable, decryptStringNullable } from "@/lib/security/encryptionV2";
-import { CASE_STATUS_KEYS, CASE_STATUS_STEPS } from "@/lib/khidi/caseStatus";
+import { CASE_STATUS_KEYS, CASE_STATUS_STEPS, outcomeForCaseStatus } from "@/lib/khidi/caseStatus";
 
 // 케이스 보드는 관리자 + 코디네이터가 쓴다(의사 제외 — 보험 PII 쓰기 포함이라 범위 최소화).
 async function requireCaseStaff(request: NextRequest) {
@@ -177,6 +177,24 @@ export async function PATCH(request: NextRequest) {
         note: patch.case_status_note ?? body.case_status_note ?? null,
         created_by: auth.userId,
       });
+    }
+
+    // EDGE-2 (POSTMORTEM #17 잔여위험 → #19): 코디가 케이스를 입국·치료 이후 단계
+    //   (treatment/follow_up/completed)로 전진시키면 = 실제 유치 → outcome='admitted' 집계.
+    //   병원 'converted' 자동집계와 대칭. outcome IS NULL 가드로 코디가 이미 정한 결정
+    //   (admitted/lost/취소)은 절대 덮지 않는다. 점수판 '유치 확정됨(되돌리기)'에서 되돌리기 가능.
+    if (statusChanged && outcomeForCaseStatus(patch.case_status)) {
+      const { error: outErr } = await (supabaseAdmin as any)
+        .from("inquiries")
+        .update({
+          outcome: "admitted",
+          outcome_note: `케이스 '${patch.case_status}' 전진 → 유치 자동 집계`,
+          outcome_updated_at: new Date().toISOString(),
+          outcome_updated_by: auth.userId, // 코디 행동분(병원 자동집계와 달리 '자동' 배지 아님)
+        })
+        .eq("id", id)
+        .is("outcome", null);
+      if (outErr) console.error("[cases] outcome auto-set error:", outErr.message);
     }
 
     return NextResponse.json({ ok: true });
