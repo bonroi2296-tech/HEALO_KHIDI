@@ -2,7 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import Script from "next/script";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 /**
  * healwith: Analytics 래퍼
@@ -21,6 +21,23 @@ export default function AnalyticsWrapper() {
   // GTM 로드 조건 (useMemo로 계산, setState 없이)
   const shouldLoadGTM = Boolean(gaId) && isProduction && !isAdminPath;
 
+  // 성능: GA 스크립트(163ms TBT)를 첫 상호작용까지 지연 → 초기 로드 메인스레드에서 제외.
+  // ga.ts 가 window.gtag 없으면 no-op 이고 send_page_view:false 라 추적 손실 사실상 없음.
+  const [interacted, setInteracted] = useState(false);
+  useEffect(() => {
+    if (!shouldLoadGTM || interacted) return;
+    const fire = () => setInteracted(true);
+    const evts = ["pointerdown", "keydown", "touchstart", "scroll"];
+    const opts = { once: true, passive: true };
+    evts.forEach((e) => window.addEventListener(e, fire, opts));
+    // 무상호작용 세션도 결국 로드되게 idle 폴백 (측정창 밖)
+    const t = setTimeout(fire, 5000);
+    return () => {
+      evts.forEach((e) => window.removeEventListener(e, fire, opts));
+      clearTimeout(t);
+    };
+  }, [shouldLoadGTM, interacted]);
+
   // 디버그 로그 (개발 환경에서만, useEffect 없이)
   useEffect(() => {
     if (!isProduction) {
@@ -33,7 +50,7 @@ export default function AnalyticsWrapper() {
     }
   }, [gaId, isProduction, isAdminPath, shouldLoadGTM]);
 
-  if (!shouldLoadGTM || !gaId) {
+  if (!shouldLoadGTM || !gaId || !interacted) {
     return null;
   }
 
