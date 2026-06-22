@@ -11,7 +11,7 @@ describe("structuredData", () => {
     expect(ld.itemListElement).toHaveLength(2);
     expect(ld.itemListElement[0].position).toBe(1);
     expect(ld.itemListElement[1].position).toBe(2);
-    expect(ld.itemListElement[1].item).toBe("https://khidi.healo.kr/care-journey");
+    expect(ld.itemListElement[1].item).toBe("https://healwith.co.kr/care-journey");
   });
 
   it("partnerHospitalLdList: 실제 제휴/협진 병원이 비어있지 않고 종양 전문 표기", () => {

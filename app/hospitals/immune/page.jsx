@@ -35,7 +35,7 @@ const hospitalJsonLd = {
   ],
   description:
     "Immune Hospital is healwith's direct partner specializing in Korean Medicine immune therapy for cancer patients. Operating with the ITCR 5-principle protocol and over 50,000 cancer patient cases.",
-  url: "https://khidi.healo.kr/hospitals/immune",
+  url: "https://healwith.co.kr/hospitals/immune",
   address: {
     "@type": "PostalAddress",
     addressCountry: "KR",
@@ -76,7 +76,7 @@ const hospitalJsonLd = {
   parentOrganization: {
     "@type": "Organization",
     name: "healwith",
-    url: "https://khidi.healo.kr",
+    url: "https://healwith.co.kr",
   },
 };
 

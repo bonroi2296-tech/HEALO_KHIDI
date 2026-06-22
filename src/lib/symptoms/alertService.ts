@@ -141,7 +141,7 @@ async function sendAlertEmail(
 
   const typeLabel = ALERT_TYPE_LABEL[alert.alert_type] || alert.alert_type;
   const severityLabel = SEVERITY_LABEL[alert.severity] || "";
-  const appUrl = process.env.NEXT_PUBLIC_URL || "https://khidi.healo.kr";
+  const appUrl = process.env.NEXT_PUBLIC_URL || "https://healwith.co.kr";
   // 식별자: 로그인 환자면 patient_id, 메신저 문의 환자면 문의번호
   const subjectId = alert.patient_id
     ? alert.patient_id
