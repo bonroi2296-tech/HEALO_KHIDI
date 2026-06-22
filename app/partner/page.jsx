@@ -13,7 +13,7 @@ const STATUS_CONFIG = {
   sent: { label: "전송됨", color: "text-blue-600", icon: Send },
   viewed: { label: "조회됨", color: "text-yellow-600", icon: Eye },
   replied: { label: "응답함", color: "text-green-600", icon: Reply },
-  converted: { label: "전환됨", color: "text-emerald-700", icon: CheckCircle },
+  converted: { label: "치료 확정", color: "text-emerald-700", icon: CheckCircle },
   rejected: { label: "거절", color: "text-red-500", icon: XCircle },
   expired: { label: "만료", color: "text-gray-400", icon: Clock },
 };
