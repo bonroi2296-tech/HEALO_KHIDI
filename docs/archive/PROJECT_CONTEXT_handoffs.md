@@ -1,5 +1,47 @@
 # PR
 
+## 🔖 세션 핸드오프 (2026-06-22 오후 — 이메일 셋업 + SEO 누수수정 배포 + 앱스토어 1단계)
+
+**이번 세션 한 일:**
+- **이메일 `admin@healwith.co.kr` 가동(Zoho 무료)**: 가비아 DNS에 소유확인 TXT + MX 3개(mx/mx2/mx3.zoho.com, 끝에 점 필수) + SPF(`v=spf1 include:zoho.com ~all`) 추가 → 전파·수신 확인. **운영원칙 합의**: 협력기관(병원·에이전시)·코디 계정은 **본인 업무메일을 로그인ID로** admin이 생성(코드 이미 admin-provisioning), healwith 메일은 안 파줌. 자율가입+등급승격은 안 함(보안·과설계). 메모리 `email-hosting` 저장.
+- **SEO 점검 + 버그수정 배포**: Gemini 감사 7항목을 live로 실측 → 대부분 이미 정상(라우팅·http→https/www 308·hreflang `kk`·robots). **진짜 버그 1개**: 비공개(`is_published=false`) 치료·병원이 **sitemap·상세페이지에 계속 노출**(get\*List·get\*BySlug 4곳이 필터 누락) → `.eq("is_published",true)` 추가 **PR [#235](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/235) 머지·배포**. 슬러그가 자동생성 쓰레기값(`item-<ts>`)인 실치료 3건(신경회복 도수치료·주사요법·면역플러스) **소프트 비활성**(DB `is_published=false`, 보존). POSTMORTEMS #20.
+- **앱스토어 1단계(Capacitor) — PR [#240](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/240) 머지**: ①셸 — `capacitor.config.ts` healwith 브랜드(`kr.co.healwith.app`), SSR이라 정적추출 불가 → `server.url=https://healwith.co.kr` **라이브 로드**. android/ios 네이티브 프로젝트. ②**푸시 등록 파이프라인** — `device_tokens` 테이블(prod 적용)·`/api/push/register`·`src/lib/push/*`(클라이언트 등록·buildPushMessage 단위테스트3). ③앱 아이콘(브랜드 심볼 1024²→android87·iOS10). 메모리 `app-store-capacitor` 저장.
+
+**왜 그렇게 했는지:**
+- **이메일 Zoho 무료**: Google Workspace는 유료, 나중에 **MX만 교체로 이전**(락인 없음). 파트너 메일 안 파주는 건 Zoho 5계정 한도 + 외부기관 관리·보안 부담. (네이버웍스·가비아메일도 검토했으나 PO가 Zoho 선택)
+- **앱 라이브로드**: SSR(API·미들웨어 투성이)이라 `next export` 불가 → 정적번들 대신 라이브 URL. 애플 가이드라인 4.2(웹뷰 래퍼 반려) 회피용으로 **푸시 알림이 네이티브 가치(사실상 필수)**.
+- **`@capacitor/assets` 제거**: 아이콘 생성 도구일 뿐인데 취약 `uuid`(GHSA-w5hq-g745-h8pq)를 끌어와 CI 의존성 게이트(high/critical 차단) 실패 → 제거(아이콘은 이미 생성·커밋됨, 재생성은 일회성 npx).
+
+**안 끝났거나 보류:**
+- **앱 푸시 발송(`fcm.ts sendPush`) = stub**. Firebase(FCM)·실기기 없어 미구현·미검증. PO 계정 후 구현.
+- **앱 빌드·스토어 제출 = PO 외부작업 선결**(내가 못 함, 결제·신원): ①애플 개발자 $99/년 ②구글 플레이 $25 ③Firebase 무료. **iOS 빌드는 macOS 필수(PO 윈도우) → 클라우드 맥(Codemagic 등).**
+- **soft-404 버그(기존)**: 치료/병원 `[slug]` 상세가 **없는 슬러그에도 HTTP 200**(notFound 화면은 뜨나 상태코드 404 아님). 로케일 rewrite가 404를 삼킴. 비공개 3건은 sitemap서 빠져 급하진 않으나 **KNOWN_ISSUES 기록 못 했음**(다음 세션 숙제).
+- **앱 아이콘 = 플레이스홀더**(브랜드 심볼). PO가 4종(logo/options/A~D) 봤으나 "다 별로, 힘들다"로 **최종안 보류**.
+
+**주의·함정:**
+- **자동저장 훅(`.claude/hooks/auto-commit-push.sh`)이 이번 세션 4회+ 가로챔**: 내 스테이징을 먼저 커밋(`nothing to commit`)하거나, `git add -A`로 **타 태스크 미커밋 변경(의사사진 셀프호스팅, 이미 #238 머지)을 내 브랜치에 혼입**시킴 → 오염된 #237 닫고 최신 main 기준 **클린 #240**으로 대체. **멀티파일 작업 전 이 훅 끄는 게 안전.** 메모리 `autosave-hook-hazard` 저장.
+- soft-404는 미들웨어 수정 필요(한 줄 아님 — 별도 작업).
+- 이메일/검색등록/스토어계정은 **PO가 직접**(결제·신원). 내가 대신 못 함.
+
+**다음 세션이 먼저 할 일 (우선순위):**
+1. **⚠️ 직전 미검증분 먼저:** (a) **#235·#240 prod 배포 정상 확인**(#235는 sitemap서 item- 3건 빠짐 curl 확인됨; #240은 web 영향0이나 배포 후 홈·치료 페이지 실동작 미확인). (b) **soft-404를 `KNOWN_ISSUES.md`에 기록** + 고칠지 판단. (c) **외부→`admin@healwith.co.kr` 수신 테스트**(내부 Welcome만 확인함).
+2. **앱스토어 2단계** — PO 계정(애플·구글·Firebase) 생기면 → **푸시 발송 구현(stub→실동작)** → iOS 클라우드 맥 빌드 세팅 → 스토어 등록정보(스샷·설명 6언어)·제출. 아이콘 최종안 PO 확정 시 `npx @capacitor/assets` 재생성.
+3. (이전 세션 잔여) 라이트하우스 Performance 39→70+, #160 화상방 카메라, KPI real 0 끌어올리기.
+4. KHIDI 중간평가(2026-08-27) 상시.
+
+**검증 상태:**
+- **이메일**: MX·SPF·zoho-verification TXT 구글DNS(8.8.8.8) 전파 `nslookup` 확인, `admin@`로 Zoho Welcome 메일 수신 확인. **외부 발신→수신은 미테스트**(PO 몫).
+- **SEO #235**: CI(ci·Smoke) 초록 + main squash 머지 + 배포. 배포 후 **sitemap item- 3건 제거(43→40) curl 확인**. 단 상세페이지는 **soft-404(200) 잔존(검증함)**.
+- **앱 #240**: CI(ci·Smoke·**의존성 게이트**) 초록 + squash 머지·브랜치 삭제. `buildPushMessage` 단위테스트 통과. **푸시 발송·네이티브 빌드는 미검증**(계정·기기 없음). 로컬 `next build`는 프리뷰서버 `.next` 락으로 못 돌려 CI에 위임함.
+- 열린 PR: 이전 세션 **#216·#217·#219 상태 이번에도 미확인**.
+
+**다음 세션 첫 프롬프트:**
+> 먼저 docs/PROJECT_CONTEXT.md 최상단 핸드오프 읽어. ①#235·#240 실서비스 배포 정상인지 확인하고 ②soft-404(없는 치료/병원 주소가 404 안 뜨고 200 뜨는 버그) KNOWN_ISSUES에 적고 고칠지 판단해줘. 그리고 나 애플·구글·Firebase 계정 만들었으면(아직이면 말할게) 앱스토어 다음 단계 — 푸시 알림 실제 발송되게(지금 stub) + iOS 클라우드 맥 빌드 + 스토어 등록정보까지 진행해줘.
+
+---
+
+---
+
 ## 🔖 세션 핸드오프 (2026-06-22 오전 — 도메인 컷오버 + 검색등록 3사) — healwith.co.kr 정식 가동
 
 **이번 세션 한 일:**
