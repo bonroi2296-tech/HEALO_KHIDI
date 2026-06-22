@@ -63,8 +63,8 @@ const jsonLd = {
   name: "healwith",
   description:
     "ICT pre-consultation and post-care platform connecting international cancer patients with top Korean oncologists. Real-time interpretation in 6 languages.",
-  url: "https://khidi.healo.kr",
-  logo: "https://khidi.healo.kr/icons/icon-512x512.png",
+  url: "https://healwith.co.kr",
+  logo: "https://healwith.co.kr/icons/icon-512x512.png",
   areaServed: [
     { "@type": "Country", name: "South Korea" },
   ],

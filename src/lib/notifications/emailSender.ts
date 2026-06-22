@@ -53,7 +53,7 @@ export interface AdminNotificationPayload {
  */
 function generateEmailMessage(payload: AdminNotificationPayload): { subject: string; html: string; text: string } {
   const urgency = payload.leadQuality === "hot" ? "🔥 긴급" : "📬";
-  const adminUrl = process.env.ADMIN_DASHBOARD_URL || process.env.NEXT_PUBLIC_URL || "https://khidi.healo.kr";
+  const adminUrl = process.env.ADMIN_DASHBOARD_URL || process.env.NEXT_PUBLIC_URL || "https://healwith.co.kr";
   const inquiryUrl = `${adminUrl}/admin/inquiries/${payload.inquiryId}`;
 
   const subject = `[healwith] ${urgency} New inquiry received #${payload.inquiryId}`;

@@ -23,7 +23,7 @@ export async function generateMetadata() {
 }
 
 const baseMetadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://khidi.healo.kr"),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || "https://healwith.co.kr"),
   title: {
     default: "healwith | Korea Cancer Care for International Patients",
     template: "%s | healwith",

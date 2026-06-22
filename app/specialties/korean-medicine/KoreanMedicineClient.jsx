@@ -273,7 +273,7 @@ export default function KoreanMedicineClient() {
             "@type": "MedicalBusiness",
             name: "Korean Traditional Medicine at healwith",
             description: "Experience Korea's unique traditional medicine — herbal formulas, acupuncture, and holistic healing programs for international patients.",
-            url: "https://khidi.healo.kr/specialties/korean-medicine",
+            url: "https://healwith.co.kr/specialties/korean-medicine",
             medicalSpecialty: "Traditional Korean Medicine",
             availableService: treatments.map((t) => ({
               "@type": "MedicalProcedure",

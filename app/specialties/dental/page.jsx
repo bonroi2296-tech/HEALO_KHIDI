@@ -34,7 +34,7 @@ export const metadata = {
     description:
       "Comprehensive guide to dental treatment in Korea. Implants, veneers, whitening, and orthodontics at competitive prices.",
     type: "website",
-    url: "https://khidi.healo.kr/specialties/dental",
+    url: "https://healwith.co.kr/specialties/dental",
   },
   alternates: {
     canonical: "/specialties/dental",
@@ -56,7 +56,7 @@ const jsonLd = {
   name: "Dentistry",
   description:
     "Comprehensive dental treatment services in South Korea, including dental implants, porcelain veneers, teeth whitening, and orthodontics.",
-  url: "https://khidi.healo.kr/specialties/dental",
+  url: "https://healwith.co.kr/specialties/dental",
   medicalSpecialty: "Dentistry",
   availableService: [
     {
