@@ -72,3 +72,23 @@ describe("master key (힐로/healo) self-analysis (regression lock)", () => {
     expect(SRC).toMatch(/MASTER_KEY_TRANSCRIPT_LIMIT/);
   });
 });
+
+// 🔁 디플렉션 루프 방지(2026-06-22 사고) 회귀 잠금.
+describe("deflection-loop guards (regression lock)", () => {
+  it("자기 답변 복사 금지 프롬프트 규칙이 있다", () => {
+    expect(SRC).toMatch(/DO NOT ECHO YOUR OWN PREVIOUS REPLIES/);
+    expect(SRC).toMatch(/do not answer it with more reassurance|Never fill a turn with reassurance/);
+  });
+
+  it("이모지·필러 톤 가드가 있다", () => {
+    expect(SRC).toMatch(/NO decorative emoji and NO filler/);
+  });
+
+  it("반복 감지 회로차단기(Jaccard)와 두 경로 주입 배선이 있다", () => {
+    expect(SRC).toMatch(/function detectRepetitiveAssistant/);
+    expect(SRC).toMatch(/REPETITION_GUARD/);
+    expect(SRC).toMatch(/jaccardSimilarity/);
+    // 두 응답 경로(비스트리밍·스트리밍)에 baseSystem 주입이 들어가 있어야
+    expect((SRC.match(/detectRepetitiveAssistant\(messages\)/g) || []).length).toBeGreaterThanOrEqual(2);
+  });
+});

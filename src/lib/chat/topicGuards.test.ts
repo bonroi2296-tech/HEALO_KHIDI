@@ -46,6 +46,20 @@ describe("isTopicCorrection — 화제 부정·정정 신호", () => {
     }
   });
 
+  it("메타 정정·반복 항의(2026-06-22 루프 사고 실문장)도 잡는다", () => {
+    for (const s of [
+      "아니 이건 전달해달란 게 아니고 니 응답에 대해 리마인드 해준거잖아",
+      "씁..내가 블랙컨슈머인가..너 고장났는데",
+      "갑자기 또 이러네 내가 니 개발자라고",
+      "이쉑 갑자기 왜 이래 아깐 술술불더니",
+      "헛소리하지말고 이 맥락을 얘기하는거잖아",
+      "you keep repeating the same answer",
+      "you misunderstood me",
+    ]) {
+      expect(isTopicCorrection(s)).toBe(true);
+    }
+  });
+
   it("'A 말고 B'처럼 새 화제를 주는 건 정정으로 보지 않음(모델이 B 처리)", () => {
     expect(isTopicCorrection("위암 말고 대장암 알려줘")).toBe(false);
     expect(isTopicCorrection("아니 유방암 물어봤다고")).toBe(false); // '안 물어'가 아님
