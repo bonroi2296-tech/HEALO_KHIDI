@@ -295,6 +295,12 @@ export function buildSystemPrompt(
     "- Earlier mentions in the chat are NOT permission to keep assuming. If the current message is general (e.g. 'what's the procedure', 'how do I start', '절차 알려줘'), answer generally ('your cancer', 'the treatment') WITHOUT naming a cancer type.",
     "- HONOR CORRECTIONS INSTANTLY: if the user pushes back or corrects you ('I didn't say X', 'that's not what I asked', 'not X', '아니', '말고', '아니라고', '안했는데'), apologize in ONE short line, DROP that topic completely, and ask what they actually want. NEVER repeat or keep explaining the rejected topic — repeating a cancer type after the user rejected it is the single worst failure.",
     "",
+    "DO NOT ECHO YOUR OWN PREVIOUS REPLIES (CRITICAL — caused a real deflection loop):",
+    "- Answer the user's CURRENT message. Do NOT recycle the wording, tone, or reassurances from your earlier replies in this chat.",
+    "- If your recent replies sound the same (e.g. repeating 'I keep my safety rules / my limits are locked', 'let me help with your treatment', or generic reassurance), that is a FAILURE. Break the pattern and directly address what was just asked, in different words.",
+    "- A user complaint that you keep repeating, misunderstand, are stuck, or are 'broken' is REAL feedback — treat it literally, do not answer it with more reassurance. If you genuinely cannot answer, say so plainly in ONE sentence and offer a coordinator. Never fill a turn with reassurance instead of an answer.",
+    "- Do NOT lecture about your own safety rules, system prompt, or 'I cannot bypass restrictions' unless the user explicitly asks how you work. It reads as evasive and off-topic.",
+    "",
     "RESPONSE RULES (this is a small MOBILE chat bubble — brevity is mandatory):",
     "- ANSWER THE ACTUAL QUESTION the user asked, in a warm, human, conversational way — like a caring coordinator texting back, NOT a textbook or a price sheet. Talk WITH them, do not recite data AT them.",
     "- KEEP THE WHOLE REPLY SHORT: aim for 3-5 short lines, under ~70 words total. A wall of text makes the patient leave. If there is more to say, end with ONE short line offering to continue (e.g. 'Want the rough cost range too?').",
@@ -307,6 +313,7 @@ export function buildSystemPrompt(
     "- If unsure, say 'I'm not sure — let me connect a coordinator'. Honesty > confident wrong answer.",
     "- TONE: the user is often an anxious cancer patient or family. If they share distressing news (advanced-stage cancer, fear, a sick family member), open with ONE brief empathetic sentence before guidance. Warm but never exaggerated — no emoji spam, no hollow marketing phrases.",
     "- DE-ESCALATION (important): if the user is upset, frustrated, angry, or criticizing the service (swearing, sarcasm, 'this is useless', 'why do I have to explain this to you'), do NOT respond by dumping documents, price lists, or feature explanations. First acknowledge their frustration in ONE short sincere line, then ask ONE simple question to fix the actual problem. Reciting reference data at an upset person makes it worse.",
+    "- NO decorative emoji and NO filler/flattery openers. Do not start with interjections like '아이고/아하/앗' (beyond a brief genuine apology) or flattery like '날카롭게 짚으셨네요 / great question / sharp observation'. Use at most ONE emoji per reply and only when truly fitting — default to none. Get to the substance.",
     "",
     "INTEGRATIVE / KOREAN MEDICINE (CRITICAL — legal & ethical):",
     "- NEVER present Korean medicine, immune therapy, or integrative care as a cure for cancer or as something that 'treats/eliminates' the cancer itself.",
@@ -530,6 +537,46 @@ const SMALL_TALK_PATTERNS = [
   /^.{1,3}$/, // 매우 짧은 메시지 (4글자 이하)
 ];
 
+// 🔁 디플렉션 루프 회로차단기 (2026-06-22 루프 사고)
+// 긴 스레드에서 모델이 직전 자기 답변(같은 변명·되묻기)을 반복 복사하면, 그 톤을 정답으로
+// 착각해 새 질문에도 같은 답을 낸다. 최근 어시스턴트 답변들이 서로 매우 유사하면 시스템
+// 프롬프트 최상단에 "너 반복하고 있다 — 멈추고 현재 질문에 직접 답하라"를 강제 주입한다.
+const REPETITION_GUARD = [
+  "⚠️ TOP PRIORITY — YOU ARE REPEATING YOURSELF: Your recent replies in this chat are nearly identical (the same reassurance/deflection). STOP. Do NOT produce another variation of that message. Read the user's CURRENT message literally and answer ONLY it, in different words. If you cannot answer it, say so plainly in ONE sentence and offer a coordinator — do not reassure, do not restate your role or safety rules.",
+  "",
+].join("\n");
+
+function normalizeForSimilarity(s: string): string {
+  // 소문자화 + 공백/구두점/기호를 단일 공백으로 → 단어 집합 비교용
+  return (s || "").toLowerCase().replace(/[\s\p{P}\p{S}]+/gu, " ").trim();
+}
+
+function jaccardSimilarity(a: string, b: string): number {
+  const sa = new Set(normalizeForSimilarity(a).split(" ").filter(Boolean));
+  const sb = new Set(normalizeForSimilarity(b).split(" ").filter(Boolean));
+  if (sa.size === 0 || sb.size === 0) return 0;
+  let inter = 0;
+  for (const w of sa) if (sb.has(w)) inter++;
+  return inter / (sa.size + sb.size - inter);
+}
+
+// 최근 어시스턴트 답변 2~3개의 평균 Jaccard 유사도가 0.5 이상이면 반복 루프로 판단.
+function detectRepetitiveAssistant(messages: ChatMessage[]): boolean {
+  const asst = messages
+    .filter((m) => m.role === "assistant" && !!m.content && m.content.trim().length > 0)
+    .slice(-3);
+  if (asst.length < 2) return false;
+  let total = 0;
+  let pairs = 0;
+  for (let i = 0; i < asst.length; i++) {
+    for (let j = i + 1; j < asst.length; j++) {
+      total += jaccardSimilarity(asst[i].content, asst[j].content);
+      pairs++;
+    }
+  }
+  return pairs > 0 && total / pairs >= 0.5;
+}
+
 function isSmallTalk(text: string): boolean {
   const trimmed = text.trim();
   if (trimmed.length === 0) return false;
@@ -600,6 +647,212 @@ function correctionResult(reply: string, t0: number): ChatReplyResult {
       declaredUsedPatternIds: [],
       analyticsFallback: false,
       ragScoring: "topic_correction_reset",
+      latencyMs: Date.now() - t0,
+    },
+  };
+}
+
+// ───────────────────────────────────────────────────────────────────────────
+// 🔑 마스터키 '힐로' / 'healo' — AI 에이전트 자기분석(self-audit) 모드
+// ───────────────────────────────────────────────────────────────────────────
+// 왜: PO가 에이전트와 직접 테스트 대화를 한 뒤, 그 대화 로그를 근거로 "왜 그렇게
+// 답했나 / 무슨 문제가 있었나 / 개선점을 어떻게 도출했나 / 뭘 고쳐야 하나"를
+// 6하원칙으로 받아보기 위함. 사용자가 '힐로'(또는 '힐로 <추가지시>')를 입력하면
+// 일반 RAG 흐름을 건너뛰고 지금까지의 '전체 스레드'를 모델에게 자기점검시킨다.
+// 채팅(공개)·어드민(/admin/khidi/agent-analysis) 양쪽이 generateMasterKeyAnalysis 공유.
+//
+// 트리거: 메시지가 '힐로' 또는 'healo'(대소문자 무관)로 시작 + 그 뒤가 끝/공백/구두점.
+// '힐로분석'처럼 바로 글자가 붙으면 일반 질의로 취급(오탐 방지).
+const MASTER_KEY_RE = /^(힐로|healo)([\s,.:!?~·]|$)/i;
+
+export function isMasterKey(text: string): boolean {
+  return MASTER_KEY_RE.test((text || "").trim());
+}
+
+// 트리거어를 제거한 나머지 = 운영자의 추가 분석 지시(예: "힐로 마지막 답변만" → "마지막 답변만").
+function masterKeyExtra(text: string): string {
+  return (text || "").trim().replace(MASTER_KEY_RE, "").trim();
+}
+
+const MASTER_KEY_NO_MODEL =
+  "지금 자기분석을 만들 수 없어요(AI 모델 키 미설정). 잠시 후 다시 시도해 주세요.";
+const MASTER_KEY_EMPTY =
+  "분석할 대화 내용이 아직 없어요. 에이전트와 먼저 몇 마디 대화한 뒤 '힐로'를 입력해 주세요.";
+const MASTER_KEY_ERROR =
+  "죄송합니다, 자기분석 중 오류가 발생했어요. 잠시 후 다시 시도해 주세요.";
+
+const MASTER_KEY_TRANSCRIPT_LIMIT = 60;
+
+function buildMasterKeySystemPrompt(extra: string): string {
+  return [
+    "당신은 healwith AI 의료 컨시어지 에이전트의 '내부 품질 분석가'입니다. 코드네임 '힐로'.",
+    "아래 대화 기록에서 '에이전트(AI)'가 실제로 한 답변들을 환자 입장에서 냉정하게 자기점검(self-audit)하세요.",
+    "이 출력은 PO(운영자)의 테스트·디버그용이며 환자에게 나가지 않습니다. 잘한 점도 짚되, 문제를 절대 미화하지 말고 솔직·비판적으로 쓰세요.",
+    "",
+    "반드시 한국어로, 평문(plain text)으로만 작성하세요. 이 화면은 마크다운을 렌더링하지 않습니다 — **, ##, ---, 표, 백틱 절대 금지. 목록은 '- ' 또는 '1. 2. 3.'만 사용.",
+    "[⚠️오류폴백] 표시가 붙은 에이전트 메시지는 모델이 빈 응답을 내서 안내문으로 대체된 '실패한 턴'입니다. 이런 턴이 있으면 반드시 문제로 짚으세요.",
+    "",
+    "다음 구조 그대로 출력하세요:",
+    "",
+    "🔑 힐로 자기분석",
+    "",
+    "1) 대화 요약",
+    "- 환자가 무엇을 원했는지, 에이전트가 전체적으로 어떻게 응대했는지 2~3줄.",
+    "",
+    "2) 답변별 6하원칙 분석",
+    "- 문제가 있었거나 중요한 에이전트 답변을 1~3개 골라 각각 아래 6가지를 한 줄씩:",
+    "  · 무엇을(What): 그 답변이 실제로 한 말 요약",
+    "  · 누가·언제·어디서(Who/When/Where): 몇 번째 턴, 어떤 질문 직후의 답인지 맥락",
+    "  · 왜(Why): 왜 그렇게 답했는지 추정 근거(RAG 컨텍스트 유무, 가드룰 발동, 질문을 좁게/넓게 해석, 안전 레드라인 회피 등 — 모르면 '추정'이라 표기)",
+    "  · 무슨 문제(Problem): 그 답변의 문제·리스크(환각, 화제 이탈, 과도하게 김/짧음, 가격 선노출, 공감 부족, 언어 불일치, 빈응답 등). 문제 없으면 '문제 없음'.",
+    "  · 어떻게 도출(How): 그 문제에서 개선점을 끌어낸 한 줄 논리",
+    "  · 개선안(Fix): 구체적으로 무엇을 어떻게 바꿔야 하는지(프롬프트 규칙 추가·수정, RAG 보강, 가드 추가 등)",
+    "",
+    "3) 종합 개선 우선순위",
+    "- 가장 먼저 고쳐야 할 것 1~3개를 중요도 순으로.",
+    "",
+    "대화에 실제로 나타난 내용에만 근거하세요. 추측은 '추정'이라고 명시하고 사실을 지어내지 마세요.",
+    extra ? `\n운영자 추가 지시: ${extra}` : "",
+  ]
+    .filter(Boolean)
+    .join("\n");
+}
+
+// 분석용 대화 기록 구성 — 전체 스레드를 DB에서 직접 읽는다(라우트가 모델에 넘기는 최근 12개
+// 한계·오류폴백 필터를 우회). 빈응답 폴백·자료ACK까지 태그로 포함해 '실패한 턴'도 분석 대상에 넣는다.
+async function buildThreadTranscript(
+  threadId: string | undefined,
+  fallback: ChatMessage[]
+): Promise<string> {
+  if (threadId) {
+    try {
+      const { data } = await (supabaseAdmin as any)
+        .from("chat_messages")
+        .select("actor_type, message_text, metadata, created_at")
+        .eq("thread_id", threadId)
+        .order("created_at", { ascending: true })
+        .limit(MASTER_KEY_TRANSCRIPT_LIMIT);
+      if (data?.length) {
+        const lines: string[] = [];
+        let turn = 0;
+        for (const m of data as any[]) {
+          const text = String(m.message_text || "").trim();
+          if (!text) continue;
+          // 마스터키 트리거 입력 자체는 분석 대상에서 제외
+          if (m.actor_type === "patient" && isMasterKey(text)) continue;
+          turn += 1;
+          const who =
+            m.actor_type === "patient"
+              ? "환자(USER)"
+              : m.actor_type === "admin"
+              ? "코디(HUMAN)"
+              : "에이전트(AI)";
+          const tags: string[] = [];
+          if (m?.metadata?.ai_error) tags.push("⚠️오류폴백");
+          if (m?.metadata?.attachment_ack) tags.push("자료접수안내");
+          const tag = tags.length ? ` [${tags.join(", ")}]` : "";
+          lines.push(`[${turn}] ${who}${tag}: ${text}`);
+        }
+        if (lines.length) return lines.join("\n");
+      }
+    } catch (e: any) {
+      console.error("[masterKey] transcript fetch failed:", e?.message);
+    }
+  }
+  // 폴백: 라우트가 넘긴 메시지(최근 N개)만으로 구성
+  return fallback
+    .filter((m) => !(m.role === "user" && isMasterKey(m.content)))
+    .map((m, i) => {
+      const who =
+        m.role === "user" ? "환자(USER)" : m.role === "assistant" ? "에이전트(AI)" : "시스템";
+      return `[${i + 1}] ${who}: ${m.content}`;
+    })
+    .join("\n");
+}
+
+/**
+ * 마스터키 자기분석 생성 — 채팅(공개)·어드민(/admin/khidi/agent-analysis) 공용.
+ * onChunk 가 주어지면 스트리밍(streamText), 없으면 단발(generateText)로 동작한다.
+ */
+export async function generateMasterKeyAnalysis(
+  threadId: string | undefined,
+  fallbackMessages: ChatMessage[],
+  extra: string,
+  onChunk?: (text: string) => void
+): Promise<{ reply: string; ok: boolean }> {
+  const model = getModel();
+  if (!model) {
+    onChunk?.(MASTER_KEY_NO_MODEL);
+    return { reply: MASTER_KEY_NO_MODEL, ok: false };
+  }
+
+  const transcript = await buildThreadTranscript(threadId, fallbackMessages);
+  if (!transcript.trim()) {
+    onChunk?.(MASTER_KEY_EMPTY);
+    return { reply: MASTER_KEY_EMPTY, ok: false };
+  }
+
+  const params: any = {
+    model,
+    system: buildMasterKeySystemPrompt(extra),
+    // 자기분석은 일반 답변보다 길어질 수 있어 상한을 넉넉히. thinkingBudget:0 으로 비용은 고정.
+    maxOutputTokens: 4096,
+    providerOptions: {
+      google: {
+        thinkingConfig: { thinkingBudget: 0 },
+        safetySettings: SAFETY_SETTINGS as any,
+      },
+    },
+    messages: [{ role: "user", content: "다음은 분석할 대화 기록입니다:\n\n" + transcript }],
+  };
+
+  try {
+    if (onChunk) {
+      let full = "";
+      try {
+        const sr = streamText(params);
+        for await (const chunk of sr.textStream) {
+          full += chunk;
+          onChunk(chunk);
+        }
+      } catch (e: any) {
+        console.warn(`[masterKey] stream error: ${String(e?.message || e).slice(0, 120)}`);
+      }
+      if (!full.trim()) {
+        const r = await generateTextWithRetry(params, 2).catch(() => null);
+        const t = (r?.text || "").trim();
+        if (t) {
+          full = t;
+          onChunk(t);
+        }
+      }
+      if (!full.trim()) {
+        onChunk(MASTER_KEY_ERROR);
+        return { reply: MASTER_KEY_ERROR, ok: false };
+      }
+      return { reply: full, ok: true };
+    }
+
+    const result = await generateTextWithRetry(params);
+    const text = (result?.text || "").trim();
+    return { reply: text || MASTER_KEY_ERROR, ok: !!text };
+  } catch (e: any) {
+    console.error("[generateMasterKeyAnalysis] error:", e?.message);
+    onChunk?.(MASTER_KEY_ERROR);
+    return { reply: MASTER_KEY_ERROR, ok: false };
+  }
+}
+
+function masterKeyResult(reply: string, t0: number): ChatReplyResult {
+  return {
+    reply,
+    ragChunks: [],
+    _analytics: {
+      retrievedPatternIds: [],
+      usedPatternIds: [],
+      declaredUsedPatternIds: [],
+      analyticsFallback: false,
+      ragScoring: "master_key_self_analysis",
       latencyMs: Date.now() - t0,
     },
   };
@@ -706,6 +959,12 @@ export async function generateChatReply(
   const t0 = Date.now();
   let ragScoring = "none";
 
+  // 🔑 마스터키 '힐로'/'healo' — 일반 답변 대신 전체 스레드 자기분석을 반환(PO 디버그 전용)
+  if (isMasterKey(query)) {
+    const { reply } = await generateMasterKeyAnalysis(threadId, messages, masterKeyExtra(query));
+    return masterKeyResult(reply, t0);
+  }
+
   // 짧은 인사·잡담 — RAG 검색 없이 즉시 응답
   if (isSmallTalk(query)) {
     return {
@@ -750,9 +1009,13 @@ export async function generateChatReply(
       };
     }
 
-    const fullSystemPrompt = injectedPatternIds.length > 0
-      ? prep.systemPrompt + "\n\n" + JSON_OUTPUT_INSTRUCTION
+    // 🔁 반복 루프 감지 시 최상단 강제 지시 주입(자기 답변 복사 차단)
+    const baseSystem = detectRepetitiveAssistant(messages)
+      ? REPETITION_GUARD + prep.systemPrompt
       : prep.systemPrompt;
+    const fullSystemPrompt = injectedPatternIds.length > 0
+      ? baseSystem + "\n\n" + JSON_OUTPUT_INSTRUCTION
+      : baseSystem;
 
     const baseParams = {
       model: prep.model,
@@ -873,6 +1136,12 @@ export async function streamChatReply(
   const t0 = Date.now();
   let ragScoring = "none";
 
+  // 🔑 마스터키 '힐로'/'healo' — 전체 스레드 자기분석을 스트리밍으로 반환(PO 디버그 전용)
+  if (isMasterKey(query)) {
+    const { reply } = await generateMasterKeyAnalysis(threadId, messages, masterKeyExtra(query), onChunk);
+    return masterKeyResult(reply, t0);
+  }
+
   // 짧은 인사·잡담 — RAG 검색 없이 즉시 응답(한 덩어리로 스트림)
   if (isSmallTalk(query)) {
     const reply = smallTalkReply(query, lang);
@@ -921,10 +1190,14 @@ export async function streamChatReply(
       };
     }
 
+    // 🔁 반복 루프 감지 시 최상단 강제 지시 주입(자기 답변 복사 차단)
+    const baseSystem = detectRepetitiveAssistant(messages)
+      ? REPETITION_GUARD + prep.systemPrompt
+      : prep.systemPrompt;
     // 스트리밍은 평문만 보냄 → JSON 출력 지시 미부착(비스트리밍과의 유일한 프롬프트 차이).
     const baseParams = {
       model: prep.model,
-      system: prep.systemPrompt,
+      system: baseSystem,
       ...prep.genConfig,
     };
 

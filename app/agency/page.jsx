@@ -166,6 +166,59 @@ const TR = {
   },
 };
 
+// 경과 업로드(사후관리·해외 의료기관 전용) 문구 — 6개 언어. 위 TR 에 병합한다.
+const TR_PROGRESS = {
+  en: {
+    progressTitle: "Progress records (follow-up)", progressUpload: "Upload progress",
+    progressType_test_result: "Test result", progressType_imaging: "Medical image",
+    progressType_clinical_note: "Clinical note", progressType_progress: "General progress",
+    progressNotePh: "Findings / note (optional)", progressFile: "Choose file (PDF / image / DICOM, max 20MB)",
+    progressSubmit: "Upload", progressSubmitting: "Uploading…", progressEmpty: "No progress uploaded yet.",
+    progressErr: "Upload failed.", progressOk: "Progress uploaded.", progressView: "View", progressNoFile: "(note only)",
+  },
+  ko: {
+    progressTitle: "경과 기록 (사후관리)", progressUpload: "경과 업로드",
+    progressType_test_result: "검사결과", progressType_imaging: "영상정보",
+    progressType_clinical_note: "임상소견", progressType_progress: "일반 경과",
+    progressNotePh: "소견 / 메모 (선택)", progressFile: "파일 선택 (PDF / 이미지 / DICOM, 최대 20MB)",
+    progressSubmit: "업로드", progressSubmitting: "업로드 중…", progressEmpty: "아직 업로드된 경과가 없습니다.",
+    progressErr: "업로드 실패.", progressOk: "경과가 업로드되었습니다.", progressView: "보기", progressNoFile: "(메모만)",
+  },
+  ru: {
+    progressTitle: "Записи о ходе (постлечение)", progressUpload: "Загрузить ход лечения",
+    progressType_test_result: "Результат анализа", progressType_imaging: "Медицинский снимок",
+    progressType_clinical_note: "Клиническая заметка", progressType_progress: "Общий ход",
+    progressNotePh: "Заключение / заметка (необязательно)", progressFile: "Выбрать файл (PDF / изображение / DICOM, до 20МБ)",
+    progressSubmit: "Загрузить", progressSubmitting: "Загрузка…", progressEmpty: "Записи о ходе ещё не загружены.",
+    progressErr: "Не удалось загрузить.", progressOk: "Ход загружен.", progressView: "Открыть", progressNoFile: "(только заметка)",
+  },
+  kz: {
+    progressTitle: "Барыс жазбалары (емнен кейінгі)", progressUpload: "Барысты жүктеу",
+    progressType_test_result: "Талдау нәтижесі", progressType_imaging: "Медициналық сурет",
+    progressType_clinical_note: "Клиникалық жазба", progressType_progress: "Жалпы барыс",
+    progressNotePh: "Қорытынды / жазба (міндетті емес)", progressFile: "Файл таңдау (PDF / сурет / DICOM, 20МБ дейін)",
+    progressSubmit: "Жүктеу", progressSubmitting: "Жүктелуде…", progressEmpty: "Барыс жазбалары әлі жүктелмеген.",
+    progressErr: "Жүктеу сәтсіз.", progressOk: "Барыс жүктелді.", progressView: "Ашу", progressNoFile: "(тек жазба)",
+  },
+  zh: {
+    progressTitle: "进展记录（术后随访）", progressUpload: "上传进展",
+    progressType_test_result: "检查结果", progressType_imaging: "医学影像",
+    progressType_clinical_note: "临床记录", progressType_progress: "总体进展",
+    progressNotePh: "意见 / 备注（选填）", progressFile: "选择文件（PDF / 图片 / DICOM，最大 20MB）",
+    progressSubmit: "上传", progressSubmitting: "上传中…", progressEmpty: "尚未上传进展记录。",
+    progressErr: "上传失败。", progressOk: "进展已上传。", progressView: "查看", progressNoFile: "（仅备注）",
+  },
+  ja: {
+    progressTitle: "経過記録（術後フォローアップ）", progressUpload: "経過をアップロード",
+    progressType_test_result: "検査結果", progressType_imaging: "医療画像",
+    progressType_clinical_note: "臨床所見", progressType_progress: "全体の経過",
+    progressNotePh: "所見 / メモ（任意）", progressFile: "ファイルを選択（PDF / 画像 / DICOM、最大20MB）",
+    progressSubmit: "アップロード", progressSubmitting: "アップロード中…", progressEmpty: "経過はまだアップロードされていません。",
+    progressErr: "アップロードに失敗しました。", progressOk: "経過をアップロードしました。", progressView: "表示", progressNoFile: "（メモのみ）",
+  },
+};
+for (const l of Object.keys(TR)) Object.assign(TR[l], TR_PROGRESS[l] || TR_PROGRESS.en);
+
 export default function AgencyPortal() {
   const lang = useLang();
   const tt = (k) => (TR[lang] || TR.en)[k] || TR.en[k];
@@ -364,6 +417,8 @@ export default function AgencyPortal() {
                 {openId === c.id && c.timeline.length === 0 && (
                   <p className="mt-4 pt-4 border-t border-gray-100 text-xs text-gray-400">{tt("timelineEmpty")}</p>
                 )}
+
+                {isClinic && openId === c.id && <ClinicProgressPanel inquiryId={c.id} tt={tt} />}
               </div>
             );
           })}
@@ -375,4 +430,107 @@ export default function AgencyPortal() {
 
 function Center({ children, className = "" }) {
   return <div className={`max-w-3xl mx-auto px-4 py-24 text-center text-gray-500 ${className}`}>{children}</div>;
+}
+
+// 해외 의료기관 전용: 케이스별 경과(검사결과·영상·소견) 업로드 + 목록 (사후관리 ICT ④)
+function ClinicProgressPanel({ inquiryId, tt }) {
+  const TYPES = ["test_result", "imaging", "clinical_note", "progress"];
+  const [records, setRecords] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [recordType, setRecordType] = useState("test_result");
+  const [note, setNote] = useState("");
+  const [file, setFile] = useState(null);
+  const [fileKey, setFileKey] = useState(0); // 업로드 후 file input 초기화용
+  const [busy, setBusy] = useState(false);
+  const [msg, setMsg] = useState(null);
+
+  const load = async () => {
+    setLoading(true);
+    try {
+      const { data: sess } = await supabase.auth.getSession();
+      const token = sess?.session?.access_token;
+      const res = await fetch(`/api/khidi/progress?inquiryId=${inquiryId}`, {
+        headers: { Authorization: `Bearer ${token}` }, cache: "no-store",
+      });
+      const json = await res.json();
+      if (json.ok) setRecords(json.records || []);
+    } catch { /* noop */ } finally { setLoading(false); }
+  };
+  useEffect(() => { load(); }, [inquiryId]);
+
+  const submit = async (e) => {
+    e.preventDefault();
+    setMsg(null);
+    if (!file && !note.trim()) { setMsg({ type: "err", text: tt("progressErr") }); return; }
+    setBusy(true);
+    try {
+      const { data: sess } = await supabase.auth.getSession();
+      const token = sess?.session?.access_token;
+      const fd = new FormData();
+      fd.append("inquiryId", String(inquiryId));
+      fd.append("recordType", recordType);
+      if (note.trim()) fd.append("note", note.trim());
+      if (file) fd.append("file", file);
+      const res = await fetch("/api/khidi/progress", {
+        method: "POST", headers: { Authorization: `Bearer ${token}` }, body: fd,
+      });
+      const json = await res.json();
+      if (json.ok) {
+        setMsg({ type: "ok", text: tt("progressOk") });
+        setNote(""); setFile(null); setFileKey((k) => k + 1);
+        await load();
+      } else { setMsg({ type: "err", text: tt("progressErr") }); }
+    } catch { setMsg({ type: "err", text: tt("progressErr") }); }
+    finally { setBusy(false); }
+  };
+
+  return (
+    <div className="mt-4 pt-4 border-t border-gray-100">
+      <h4 className="text-xs font-bold text-indigo-700 mb-2">{tt("progressTitle")}</h4>
+
+      {loading ? (
+        <p className="text-xs text-gray-400">…</p>
+      ) : records.length === 0 ? (
+        <p className="text-xs text-gray-400 mb-3">{tt("progressEmpty")}</p>
+      ) : (
+        <div className="space-y-1.5 mb-3">
+          {records.map((r) => (
+            <div key={r.id} className="flex items-center justify-between gap-2 text-xs bg-gray-50 rounded-lg px-3 py-2">
+              <span className="text-gray-700 truncate">
+                <b>{r.record_type_label}</b>
+                {r.file_name ? ` · ${r.file_name}` : ` · ${tt("progressNoFile")}`}
+                {r.note ? ` — ${r.note}` : ""}
+              </span>
+              <span className="flex items-center gap-2 shrink-0">
+                <span className="text-gray-400">{new Date(r.created_at).toLocaleDateString()}</span>
+                {r.url && <a href={r.url} target="_blank" rel="noopener noreferrer" className="text-teal-700 underline">{tt("progressView")}</a>}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <form onSubmit={submit} className="space-y-2 bg-indigo-50/40 rounded-xl p-3">
+        <div className="flex gap-2">
+          <select value={recordType} onChange={(e) => setRecordType(e.target.value)}
+            className="border border-gray-200 rounded-lg px-2 py-2 text-xs bg-white shrink-0">
+            {TYPES.map((t) => <option key={t} value={t}>{tt(`progressType_${t}`)}</option>)}
+          </select>
+          <input value={note} onChange={(e) => setNote(e.target.value)} placeholder={tt("progressNotePh")}
+            className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-xs" />
+        </div>
+        <input key={fileKey} type="file" accept=".pdf,.jpg,.jpeg,.png,.webp,.dcm,application/pdf,image/jpeg,image/png,image/webp,application/dicom"
+          onChange={(e) => setFile(e.target.files?.[0] || null)}
+          className="block w-full text-xs text-gray-600 file:mr-2 file:rounded-lg file:border-0 file:bg-indigo-100 file:px-3 file:py-1.5 file:text-indigo-700" />
+        <p className="text-[11px] text-gray-400">{tt("progressFile")}</p>
+        {msg && <p className={`text-xs ${msg.type === "ok" ? "text-teal-700" : "text-red-600"}`}>{msg.text}</p>}
+        <div className="flex justify-end">
+          <button type="submit" disabled={busy}
+            className="px-4 py-2 rounded-lg text-xs font-bold bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-40">
+            {busy ? tt("progressSubmitting") : tt("progressUpload")}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
 }

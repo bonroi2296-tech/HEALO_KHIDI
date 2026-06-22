@@ -64,3 +64,54 @@ describe("system prompt behavioral guards (regression lock)", () => {
 
 // 접수 연락처 게이트의 실제 동작 검증은 ./contactGate.test.ts 에서(순수 모듈이라 직접 import 가능).
 // (과거엔 server-only 라 텍스트로만 잠갔으나, contactGate.ts 로 분리해 진짜 단위테스트로 대체.)
+
+// 🔑 마스터키 '힐로'/'healo' — 자기분석 모드 회귀 잠금.
+// server-only 모듈이라 직접 import 불가 → 소스에 트리거·분석 배선이 살아있는지 텍스트로 잠근다.
+describe("master key (힐로/healo) self-analysis (regression lock)", () => {
+  it("트리거 정규식이 힐로/healo 두 멘트를 모두 인식한다", () => {
+    const m = SRC.match(/const MASTER_KEY_RE = (\/.*\/i);/);
+    expect(m).toBeTruthy();
+    // 소스의 실제 정규식을 그대로 평가해 동작을 검증(문자열 잠금이 아니라 행동 잠금)
+    // eslint-disable-next-line no-eval
+    const re: RegExp = eval(m![1]);
+    expect(re.test("힐로")).toBe(true);
+    expect(re.test("healo")).toBe(true);
+    expect(re.test("HEALO")).toBe(true);
+    expect(re.test("힐로 마지막 답변만 분석해줘")).toBe(true);
+    expect(re.test("healo focus on tone")).toBe(true);
+    // 오탐 방지: 일반 질의는 트리거가 아니어야
+    expect(re.test("폐암 치료비 얼마예요")).toBe(false);
+    expect(re.test("hello")).toBe(false);
+    expect(re.test("힐로분석")).toBe(false); // 바로 글자가 붙으면 일반 질의
+  });
+
+  it("자기분석 코어와 두 응답 경로 배선이 있다", () => {
+    expect(SRC).toMatch(/export async function generateMasterKeyAnalysis/);
+    expect(SRC).toMatch(/if \(isMasterKey\(query\)\)/);
+  });
+
+  it("전체 스레드 기반 분석(라우트 12개 한계 우회)을 한다", () => {
+    expect(SRC).toMatch(/buildThreadTranscript/);
+    expect(SRC).toMatch(/MASTER_KEY_TRANSCRIPT_LIMIT/);
+  });
+});
+
+// 🔁 디플렉션 루프 방지(2026-06-22 사고) 회귀 잠금.
+describe("deflection-loop guards (regression lock)", () => {
+  it("자기 답변 복사 금지 프롬프트 규칙이 있다", () => {
+    expect(SRC).toMatch(/DO NOT ECHO YOUR OWN PREVIOUS REPLIES/);
+    expect(SRC).toMatch(/do not answer it with more reassurance|Never fill a turn with reassurance/);
+  });
+
+  it("이모지·필러 톤 가드가 있다", () => {
+    expect(SRC).toMatch(/NO decorative emoji and NO filler/);
+  });
+
+  it("반복 감지 회로차단기(Jaccard)와 두 경로 주입 배선이 있다", () => {
+    expect(SRC).toMatch(/function detectRepetitiveAssistant/);
+    expect(SRC).toMatch(/REPETITION_GUARD/);
+    expect(SRC).toMatch(/jaccardSimilarity/);
+    // 두 응답 경로(비스트리밍·스트리밍)에 baseSystem 주입이 들어가 있어야
+    expect((SRC.match(/detectRepetitiveAssistant\(messages\)/g) || []).length).toBeGreaterThanOrEqual(2);
+  });
+});

@@ -18,6 +18,7 @@ import { google } from "@ai-sdk/google";
 import { supabaseAdmin } from "../rag/supabaseAdmin";
 import { sendInAppNotification } from "../notifications/inApp";
 import { computeOverall, QUALITY_THRESHOLDS } from "./qualityStandards";
+import { scanRedlines, applyRedlineFloor } from "./safetyGuard";
 
 // ─────────────────────────────────────────────
 // Types
@@ -153,15 +154,23 @@ export async function evaluateResponse(input: JudgeInput): Promise<JudgeResult |
       ? parsed.flags.filter((f: unknown) => typeof f === "string")
       : [];
 
+    // 규칙 기반 안전 0층(safetyGuard): LLM 판사 점수와 무관하게 확정적 레드라인 위반을
+    // 먼저 잡아 점수 바닥을 강제한다(완치보장·약물용량·예후수치). 판사가 놓쳐도 경보 보장.
+    const scan = scanRedlines(input.response);
+    const floored = applyRedlineFloor(scan, { safety: safetyScore, overall: overallScore });
+    const finalSafety = floored.safety ?? safetyScore;
+    const finalOverall = floored.overall;
+    for (const f of scan.flags) if (!flags.includes(f)) flags.push(f);
+
     const judgeReasoning = typeof parsed.judge_reasoning === "string"
       ? parsed.judge_reasoning.slice(0, 200)
       : "평가 이유 없음";
 
     return {
       hallucination_score: hallucinationScore,
-      safety_score: safetyScore,
+      safety_score: finalSafety,
       relevance_score: relevanceScore,
-      overall_score: overallScore,
+      overall_score: finalOverall,
       flags,
       judge_reasoning: judgeReasoning,
       judge_model: judgeModel,
