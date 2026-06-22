@@ -42,7 +42,8 @@ import SocialProofSection from "@/components/SocialProofSection";
    ═══════════════════════════════════════════════════════ */
 const PLACEHOLDER = {
   // 📸 히어로 배경 — 회복톤(공원 산책) 2026-06-20 PO 취향 반영. 어두운 그라데이션 뒤 배경.
-  heroBg: "https://images.unsplash.com/photo-1671530725345-cc4a2cf5db04?w=1920&q=80",
+  // 히어로 배경은 90~95% 어두운 그라데이션에 덮여 거의 안 보임 → 원본 화질·폭 축소(LCP 바이트 절감).
+  heroBg: "https://images.unsplash.com/photo-1671530725345-cc4a2cf5db04?w=1280&q=55",
   // 📸 병원 2곳 — 교체: 면력한방병원 실제 사진으로 교체 권장 (800x500)
   hospitals: [
     "https://images.unsplash.com/photo-1538108149393-fbbd81895907?w=800&h=500&fit=crop",
@@ -252,7 +253,7 @@ export default function HomeClient() {
       <section className="relative text-white overflow-hidden">
         {/* 📸 교체: 실제 병원/의료진 사진 (1920x1080 이상) */}
         <div className="absolute inset-0">
-          <Image src={PLACEHOLDER.heroBg} alt="" fill priority sizes="100vw" className="object-cover" />
+          <Image src={PLACEHOLDER.heroBg} alt="" fill priority fetchPriority="high" quality={55} sizes="100vw" className="object-cover" />
           <div className="absolute inset-0 bg-gradient-to-br from-slate-900/95 via-teal-900/90 to-slate-900/95" />
         </div>
         {/* Glow effects */}
@@ -318,6 +319,8 @@ export default function HomeClient() {
                   <img
                     src={doc.img}
                     alt={l(doc.name)}
+                    loading="lazy"
+                    decoding="async"
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                   />
                 </div>
@@ -447,13 +450,16 @@ export default function HomeClient() {
                   onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); router.push(`/hospitals/${h.slug}`); } }}
                   className="bg-white rounded-xl md:rounded-2xl overflow-hidden border border-gray-100 hover:shadow-xl hover:border-teal-200 transition-all duration-300 cursor-pointer group focus:outline-none focus:ring-2 focus:ring-teal-400"
                 >
-                  <div className="h-24 sm:h-32 md:h-40 overflow-hidden bg-gray-100">
-                    {/* img 필드를 직접 사용(SSR에 올바른 src 박힘) — 사진 있으면 폴더 경로, 없으면 준비중 플레이스홀더. onError는 안전망. */}
-                    <img
-                      src={h.img}
-                      onError={(e) => { if (e.currentTarget.src.includes("_coming-soon")) return; e.currentTarget.onerror = null; e.currentTarget.src = "/images/hospitals/_coming-soon.svg?v=2"; }}
+                  <div className="relative h-24 sm:h-32 md:h-40 overflow-hidden bg-gray-100">
+                    {/* next/image: 로컬 병원 사진을 webp/avif·디바이스 크기로 자동 최적화 + 기본 lazy.
+                        (각 원본 JPEG 180~456KB → 모바일 수십 KB) onError는 사진 없을 때 안전망. */}
+                    <Image
+                      src={h.img.split("?")[0]}
                       alt={l(h.name)}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                      fill
+                      sizes="(min-width:1024px) 25vw, (min-width:640px) 33vw, 50vw"
+                      onError={(e) => { if (e.currentTarget.src.includes("_coming-soon")) return; e.currentTarget.onerror = null; e.currentTarget.src = "/images/hospitals/_coming-soon.svg?v=2"; }}
+                      className="object-cover group-hover:scale-105 transition-transform duration-500"
                     />
                   </div>
                   <div className="p-2.5 md:p-4">
