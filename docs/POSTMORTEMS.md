@@ -21,12 +21,13 @@
 5. **검증 부채를 다음 세션으로 계속 미룸** → 누적돼 PO가 떠안음.
 
 **어떻게 고쳤나 (시스템)**
-- **자동 클릭 검사(E2E @smoke) 추가**: `patient-mobile-chrome.spec.ts`(모바일 375px, 환자 포털 단일 크롬), `consultation-create-modal.spec.ts`(새 상담→모달 열림·참여 링크 단일·/inquiry 이탈 없음). 매 PR 자동 클릭.
-- **정적 가드 추가**: (a) 목록→없는 상세 링크 404 차단(#31), (b) 직원/포털 화면이 환자용 퍼널(/inquiry·/intake)로 보내면 빌드 실패(이번). `check:content`(CI).
+- **자동 클릭 검사(E2E @smoke) 추가**: `patient-mobile-chrome.spec.ts`(모바일 375px, 환자 포털 단일 크롬), `consultation-create-modal.spec.ts`(코디 새 상담→모달 열림·참여 링크 단일·/inquiry 이탈 없음). 매 PR 자동 클릭.
+  - ⚠️ **활성화 조건(미완)**: 로그인 필요라 GitHub secrets(`E2E_TEST_USER_EMAIL/PASSWORD`·`E2E_COORDINATOR_EMAIL/PASSWORD` = patient@test.com·coordinator@test.com / test1234)이 **없으면 자동 skip**. 현재 미설정이라 **잠자는 상태** → PO가 GitHub repo Settings→Secrets에 등록해야 실제로 돈다. (admin 테스트계정은 의도적 미생성이라 모달은 코디 경로로 검증.)
+- **정적 가드 추가(즉시 활성 — secrets 불필요)**: (a) 목록→없는 상세 링크 404 차단(#31), (b) 직원/포털 화면이 환자용 퍼널(/inquiry·/intake)로 보내면 빌드 실패(이번). `check:content`(CI). **이 둘은 지금 바로 보호 중.**
 - **습관 규칙**: "완료"는 컴포넌트가 아니라 여정 끝까지 동작. 레이아웃은 375px부터.
 
 **재발 방지 (시스템 적용)**
-- 위 E2E·정적 가드가 CI 게이트. 새 포털/목록/직원 화면 추가 시 같은 자동 검사로 회귀 차단. 검증 못 한 건 "검증 못 함"으로 솔직히 표기하고 다음 세션 1순위로 승격(미루지 말 것).
+- 정적 가드는 즉시 CI 게이트(활성). E2E는 secrets 등록 시 활성. 새 포털/목록/직원 화면 추가 시 같은 자동 검사로 회귀 차단. 검증 못 한 건 "검증 못 함"으로 솔직히 표기하고 다음 세션 1순위로 승격(미루지 말 것).
 
 ## #32 — 환자 포털 모바일 레이아웃 깨짐 (공개 크롬 + 환자 크롬 이중 노출) (2026-06-23)
 
