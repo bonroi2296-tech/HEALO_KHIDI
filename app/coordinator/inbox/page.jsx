@@ -79,7 +79,7 @@ export default function CoordinatorInboxPage() {
           <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
             <Inbox size={24} className="text-teal-700" /> 신규 상담 인박스
           </h1>
-          <p className="text-gray-500 text-sm mt-1">funnel Step 1 이상 완료된 상담 목록입니다.</p>
+          <p className="text-gray-500 text-sm mt-1">접수된 모든 상담 문의 목록입니다 (퍼널·메신저·에이전시 포함).</p>
         </div>
         <button
           onClick={load}

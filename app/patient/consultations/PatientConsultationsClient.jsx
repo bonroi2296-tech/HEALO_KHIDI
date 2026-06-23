@@ -15,8 +15,21 @@ import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 
 const supabase = createSupabaseBrowserClient();
 
+const STATUS_LABELS = {
+  received: { ko: "접수됨", cls: "bg-yellow-100 text-yellow-700" },
+  reviewing: { ko: "검토 중", cls: "bg-blue-100 text-blue-700" },
+  matched: { ko: "매칭 완료", cls: "bg-teal-100 text-teal-700" },
+  completed: { ko: "완료", cls: "bg-gray-100 text-gray-600" },
+};
+
+const CANCER_LABELS = {
+  stomach: "위암", liver: "간암", lung: "폐암", breast: "유방암",
+  thyroid: "갑상선암", colorectal: "대장암", pancreatic: "췌장암", other: "기타",
+};
+
 export default function PatientConsultationsClient() {
   const [sessions, setSessions] = useState([]);
+  const [inquiries, setInquiries] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -25,11 +38,18 @@ export default function PatientConsultationsClient() {
         const { data: sessionData } = await supabase.auth.getSession();
         const token = sessionData?.session?.access_token;
         if (!token) return;
-        const res = await fetch("/api/khidi/consultation?limit=50", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const result = await res.json();
+        const [consultRes, inqRes] = await Promise.all([
+          fetch("/api/khidi/consultation?limit=50", {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+          fetch("/api/portal/my-inquiries", {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+        ]);
+        const result = await consultRes.json();
         if (result.ok) setSessions(result.data || []);
+        const inqResult = await inqRes.json();
+        if (inqResult.ok) setInquiries(inqResult.items || []);
       } catch (err) {
         console.error("[patient/consultations]", err);
       } finally {
@@ -67,6 +87,50 @@ export default function PatientConsultationsClient() {
           </p>
         </div>
       </div>
+
+      {/* 내 문의 — 접수한 상담 신청 내역 */}
+      {!loading && inquiries.length > 0 && (
+        <section>
+          <h2 className="text-xl font-bold text-gray-900 mb-3">
+            내 문의 ({inquiries.length})
+          </h2>
+          <div className="space-y-3">
+            {inquiries.map((q) => {
+              const st = STATUS_LABELS[q.status] || STATUS_LABELS.received;
+              return (
+                <div
+                  key={q.id}
+                  className="bg-white border border-gray-200 rounded-2xl p-5 flex items-start justify-between gap-4"
+                >
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h3 className="font-bold text-gray-900">
+                        {CANCER_LABELS[q.cancer_type] || q.cancer_type || "상담 신청"}
+                      </h3>
+                      <span className={`px-2 py-0.5 text-xs font-semibold rounded-full ${st.cls}`}>
+                        {st.ko}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-3 mt-2 text-sm text-gray-500 flex-wrap">
+                      <span className="flex items-center gap-1">
+                        <Calendar size={14} />
+                        {q.created_at
+                          ? new Date(q.created_at).toLocaleDateString("ko-KR")
+                          : "—"}
+                      </span>
+                      {q.step2_completed_at ? (
+                        <span className="text-teal-700">추가 정보 제출 완료</span>
+                      ) : (
+                        <span className="text-gray-400">기본 정보 접수</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       {loading ? (
         <div className="text-center py-16 text-gray-500">로딩 중...</div>

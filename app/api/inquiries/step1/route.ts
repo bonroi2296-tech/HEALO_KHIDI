@@ -76,6 +76,17 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  // 로그인 상태로 제출했으면 본인 계정에 귀속(환자 마이페이지 '내 문의'에 노출용).
+  // 게스트 제출은 토큰 없음 → NULL 유지(공개 폼 보존). 토큰 검증 실패도 게스트로 처리.
+  let userId: string | null = null;
+  const authHeader = request.headers.get("authorization") || request.headers.get("Authorization");
+  if (authHeader?.startsWith("Bearer ")) {
+    try {
+      const { data: u } = await supabaseAdmin.auth.getUser(authHeader.substring(7));
+      userId = u?.user?.id ?? null;
+    } catch { /* 게스트로 처리 */ }
+  }
+
   try {
     const encFirstName = encryptString(data.firstName);
     const encLastName = encryptStringNullable(data.lastName ?? null);
@@ -109,6 +120,7 @@ export async function POST(request: NextRequest) {
         match_accuracy: 60,
         step1_completed_at: new Date().toISOString(),
         ai_chat_thread_id: data.aiChatThreadId ?? null,
+        user_id: userId,
       })
       .select("id, public_token")
       .single();

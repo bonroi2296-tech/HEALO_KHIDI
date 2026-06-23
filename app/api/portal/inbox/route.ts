@@ -29,12 +29,13 @@ export async function GET(request: NextRequest) {
   if (!auth.success) return auth.response;
 
   try {
+    // 모든 문의 노출. 과거엔 step1_completed_at 있는 퍼널 문의만 보여줘서
+    // 메신저·에이전시 등 다른 경로로 들어온 문의(도장 없음)가 코디에게 안 보였음.
     const { data, error } = await supabaseAdmin
       .from("inquiries")
       .select(
         "id, nationality, cancer_type, preferred_language, contact_method, match_accuracy, status, step1_completed_at, step2_completed_at, created_at, first_name"
       )
-      .not("step1_completed_at", "is", null)
       .order("created_at", { ascending: false })
       .limit(200);
 
