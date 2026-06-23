@@ -5,13 +5,12 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { getLangCodeFromCookie } from '@/lib/i18n';
 import {
-  Home, FileText, BookOpen, Activity, Calendar, Globe, MessageSquare,
-  Video, MoreHorizontal, X,
+  Home, FileText, BookOpen, Activity, Calendar, Globe,
+  MoreHorizontal, X,
 } from 'lucide-react';
 
 const PRIMARY_TABS = [
   { href: '/patient', icon: Home, label: { ko: '홈', en: 'Home', ru: 'Главная', kz: 'Басты', zh: '首页', ja: 'ホーム' } },
-  { href: '/patient/chat', icon: MessageSquare, label: { ko: 'AI상담', en: 'AI Chat', ru: 'AI Чат', kz: 'AI Чат', zh: 'AI咨询', ja: 'AI相談' } },
   { href: '/patient/documents', icon: FileText, label: { ko: '문서', en: 'Docs', ru: 'Документы', kz: 'Құжаттар', zh: '文档', ja: '文書' } },
 ];
 

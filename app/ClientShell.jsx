@@ -17,7 +17,6 @@ import Logo from "../components/brand/Logo";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { useToast } from "@/components/Toast";
 import CookieConsent from "@/components/CookieConsent";
-import EmergencyButton from "../components/healo/EmergencyButton";
 
 export default function ClientShell({ children, initialLang = "en" }) {
   const router = useRouter();
@@ -371,11 +370,6 @@ function ClientShellContent({
       )}
 
       <CookieConsent />
-
-      {/* SOS — 로그인한 환자 페이지에만 표시 */}
-      {pathname.startsWith("/patient") && !pathname.startsWith("/patient/education") && (
-        <EmergencyButton />
-      )}
     </div>
   );
 }

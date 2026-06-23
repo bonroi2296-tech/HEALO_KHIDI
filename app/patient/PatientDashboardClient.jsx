@@ -6,7 +6,7 @@ import { useLang } from '@/lib/i18n/LangContext';
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser';
 import {
   FileText, Video, BookOpen, Activity, Calendar,
-  Upload, ChevronRight, AlertCircle, User, MessageSquare, Phone, ArrowRight,
+  Upload, ChevronRight, AlertCircle, User, Phone, ArrowRight,
 } from 'lucide-react';
 
 const L = {
@@ -35,7 +35,6 @@ const L = {
 };
 
 const MENU_ITEMS = [
-  { key: 'aiChat', icon: MessageSquare, href: '/patient/chat', color: 'bg-teal-50 text-teal-700' },
   { key: 'consultations', icon: Video, href: '#consultations', color: 'bg-blue-50 text-blue-600' },
   { key: 'documents', icon: Upload, href: '/patient/documents', color: 'bg-purple-50 text-purple-600' },
   { key: 'education', icon: BookOpen, href: '/education', color: 'bg-green-50 text-green-600' },
@@ -50,6 +49,7 @@ export default function PatientDashboardClient() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [consultations, setConsultations] = useState([]);
+  const [inquiries, setInquiries] = useState([]);
 
   const l = (obj) => obj?.[lang] || obj?.['en'] || '';
 
@@ -76,13 +76,20 @@ export default function PatientDashboardClient() {
 
         setUser(session.user);
 
-        // Fetch patient's consultations
+        // Fetch patient's consultations + 본인 문의(접수 내역)
         try {
-          const res = await fetch('/api/khidi/consultation', {
-            headers: { Authorization: `Bearer ${session.access_token}` },
-          });
+          const [res, inqRes] = await Promise.all([
+            fetch('/api/khidi/consultation', {
+              headers: { Authorization: `Bearer ${session.access_token}` },
+            }),
+            fetch('/api/portal/my-inquiries', {
+              headers: { Authorization: `Bearer ${session.access_token}` },
+            }),
+          ]);
           const result = await res.json();
           if (result.ok) setConsultations(result.data || []);
+          const inqResult = await inqRes.json();
+          if (inqResult.ok) setInquiries(inqResult.items || []);
         } catch (e) { console.error(e); }
       }
       setLoading(false);
@@ -191,6 +198,40 @@ export default function PatientDashboardClient() {
         })}
       </div>
 
+      {/* 내 문의 — 접수한 상담 신청 내역 */}
+      {inquiries.length > 0 && (
+        <div className="mb-6">
+          <h2 className="text-lg font-semibold mb-3">{l({ ko: '내 문의', en: 'My Inquiries', ru: 'Мои заявки', kz: 'Менің өтінімдерім', zh: '我的咨询', ja: 'お問い合わせ' })}</h2>
+          <div className="flex flex-col gap-3">
+            {inquiries.map((q) => {
+              const stLabel = {
+                received: { ko: '접수됨', cls: 'bg-yellow-100 text-yellow-700' },
+                reviewing: { ko: '검토 중', cls: 'bg-blue-100 text-blue-700' },
+                matched: { ko: '매칭 완료', cls: 'bg-teal-100 text-teal-700' },
+                completed: { ko: '완료', cls: 'bg-gray-100 text-gray-500' },
+              }[q.status] || { ko: q.status || '접수됨', cls: 'bg-yellow-100 text-yellow-700' };
+              const cancer = { stomach: '위암', liver: '간암', lung: '폐암', breast: '유방암', thyroid: '갑상선암', colorectal: '대장암', pancreatic: '췌장암', other: '기타' }[q.cancer_type] || q.cancer_type || '상담 신청';
+              return (
+                <div key={q.id} className="flex items-center justify-between p-4 bg-white rounded-xl border border-gray-100">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg flex items-center justify-center bg-teal-50 text-teal-700">
+                      <FileText size={20} />
+                    </div>
+                    <div>
+                      <div className="font-medium text-sm">{cancer}</div>
+                      <div className="text-xs text-gray-400">
+                        {q.created_at ? new Date(q.created_at).toLocaleDateString('ko-KR') : '-'}
+                      </div>
+                    </div>
+                  </div>
+                  <span className={`text-xs px-3 py-1 rounded-full font-medium ${stLabel.cls}`}>{stLabel.ko}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Consultations List */}
       <h2 id="consultations" className="text-lg font-semibold mb-4 scroll-mt-20">{l(L.sections.consultations)}</h2>
       {consultations.length === 0 ? (
@@ -199,22 +240,26 @@ export default function PatientDashboardClient() {
           <div className="px-6 pt-6 pb-4">
             <h3 className="text-sm font-semibold text-gray-500 mb-4">{l(L.journeySteps)}</h3>
             <div className="flex items-center gap-2 mb-6">
-              {[
-                { label: { ko: '신청서 작성', en: 'Apply', ru: 'Заявка', kz: 'Өтінім', zh: '申请', ja: '申請' }, done: false },
-                { label: { ko: '매칭', en: 'Matching', ru: 'Подбор', kz: 'Сәйкестендіру', zh: '匹配', ja: 'マッチング' }, done: false },
-                { label: { ko: '사전상담', en: 'Consult', ru: 'Консультация', kz: 'Кеңес', zh: '咨询', ja: '相談' }, done: false },
-                { label: { ko: '치료', en: 'Treatment', ru: 'Лечение', kz: 'Емдеу', zh: '治疗', ja: '治療' }, done: false },
+              {(() => {
+                // 문의를 접수했으면 1단계(신청서 작성) 완료 → 현재 단계는 매칭.
+                const stepsDone = inquiries.length > 0 ? 1 : 0;
+                return [
+                { label: { ko: '신청서 작성', en: 'Apply', ru: 'Заявка', kz: 'Өтінім', zh: '申请', ja: '申請' } },
+                { label: { ko: '매칭', en: 'Matching', ru: 'Подбор', kz: 'Сәйкестендіру', zh: '匹配', ja: 'マッチング' } },
+                { label: { ko: '사전상담', en: 'Consult', ru: 'Консультация', kz: 'Кеңес', zh: '咨询', ja: '相談' } },
+                { label: { ko: '치료', en: 'Treatment', ru: 'Лечение', kz: 'Емдеу', zh: '治疗', ja: '治療' } },
               ].map((s, i) => (
                 <div key={i} className="flex items-center gap-2 flex-1">
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
-                    s.done ? 'bg-teal-100 text-teal-700' : i === 0 ? 'bg-teal-700 text-white' : 'bg-gray-100 text-gray-400'
+                    i < stepsDone ? 'bg-teal-100 text-teal-700' : i === stepsDone ? 'bg-teal-700 text-white' : 'bg-gray-100 text-gray-400'
                   }`}>
                     {i + 1}
                   </div>
                   <span className="text-xs text-gray-500 hidden sm:block">{l(s.label)}</span>
                   {i < 3 && <div className="flex-1 h-px bg-gray-200 hidden sm:block" />}
                 </div>
-              ))}
+              ));
+              })()}
             </div>
           </div>
           <div className="bg-gray-50 px-6 py-6 text-center border-t border-gray-100">
