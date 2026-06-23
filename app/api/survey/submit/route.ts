@@ -17,7 +17,7 @@ export const runtime = "nodejs";
 import { NextRequest } from "next/server";
 import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
 import { hashIp } from "@/lib/surveys/generateSurveyToken";
-import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
+import { checkRateLimitPersistent, getClientIp } from "@/lib/rateLimit";
 
 const SURVEY_RATE_LIMIT = {
   windowMs: 5 * 60 * 1000,
@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
   const clientIp = getClientIp(request);
 
   // rate limit
-  const rl = checkRateLimit(clientIp || "unknown", SURVEY_RATE_LIMIT);
+  const rl = await checkRateLimitPersistent(clientIp || "unknown", SURVEY_RATE_LIMIT);
   if (!rl.allowed) {
     return Response.json(
       { ok: false, error: "rate_limit_exceeded" },

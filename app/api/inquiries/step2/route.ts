@@ -11,7 +11,7 @@ import { z } from "zod";
 import { supabaseAdmin, assertSupabaseEnv } from "@/lib/rag/supabaseAdmin";
 import { encryptStringNullable } from "@/lib/security/encryptionV2";
 import {
-  checkRateLimit,
+  checkRateLimitPersistent,
   getClientIp,
   RATE_LIMITS,
   getRateLimitHeaders,
@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
   assertSupabaseEnv();
 
   const clientIp = getClientIp(request);
-  const rl = checkRateLimit(clientIp, RATE_LIMITS.INQUIRY);
+  const rl = await checkRateLimitPersistent(clientIp, RATE_LIMITS.INQUIRY);
   if (!rl.allowed) {
     return Response.json(
       { ok: false, error: "rate_limit_exceeded" },

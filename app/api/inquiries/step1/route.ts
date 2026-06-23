@@ -11,7 +11,7 @@ import { z } from "zod";
 import { supabaseAdmin, assertSupabaseEnv } from "@/lib/rag/supabaseAdmin";
 import { encryptString, encryptStringNullable } from "@/lib/security/encryptionV2";
 import {
-  checkRateLimit,
+  checkRateLimitPersistent,
   getClientIp,
   RATE_LIMITS,
   getRateLimitHeaders,
@@ -24,7 +24,9 @@ const Step1Schema = z.object({
   email: z.string().email().nullable().optional(),
   phone: z.string().max(30).nullable().optional(),
   nationality: z.string().min(1).max(10),
-  preferredLanguage: z.enum(["ko", "en", "ru", "kk", "zh", "ja"]),
+  // 활성 언어 코드는 'kz'(i18n·문의 퍼널 드롭다운과 동일). 'kk'(BCP47)도 하위호환으로 허용.
+  // 과거 'kk'만 받아 카자흐어('kz') 문의가 400 거부되던 버그 수정(POSTMORTEMS #23 — 핵심 타겟 카자흐스탄 퍼널 차단).
+  preferredLanguage: z.enum(["ko", "en", "ru", "kz", "kk", "zh", "ja"]),
   cancerType: z.string().min(1).max(50),
   shortMemo: z.string().max(200).nullable().optional(),
   aiChatThreadId: z.string().uuid().nullable().optional(),
@@ -39,7 +41,7 @@ export async function POST(request: NextRequest) {
   assertSupabaseEnv();
 
   const clientIp = getClientIp(request);
-  const rl = checkRateLimit(clientIp, RATE_LIMITS.INQUIRY);
+  const rl = await checkRateLimitPersistent(clientIp, RATE_LIMITS.INQUIRY);
   if (!rl.allowed) {
     return Response.json(
       { ok: false, error: "rate_limit_exceeded" },
