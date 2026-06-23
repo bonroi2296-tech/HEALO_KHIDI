@@ -16,7 +16,7 @@ import { formatDate } from "@/lib/i18n/format";
 import { event } from "@/lib/ga";
 
 // 병원 이미지 폴더 규칙: /images/hospitals/<slug>/1~5.jpg (1=메인, 2~5=서브)
-const PLACEHOLDER_IMG = "/images/hospitals/_coming-soon.svg?v=2";
+const PLACEHOLDER_IMG = "/images/hospitals/_coming-soon.svg?v=3";
 // 사진 없는 칸은 한 번에 "이미지 준비 중" 플레이스홀더로 대체 (체인 없이 확실하게)
 const handleImgError = (e) => {
   if (e.currentTarget.src.includes("_coming-soon")) return;
@@ -247,7 +247,7 @@ export const HospitalDetailPage = ({ selectedId, setView, onTreatmentClick, init
     // 파트너 병원: 폴더 규칙(/images/hospitals/<slug>/1~5.jpg) 5칸 고정.
     // 폴더에 사진을 넣으면 자동으로 채워지고, 없는 칸은 onError로 플레이스홀더 표시.
     if (isPartnerHospital && slug) {
-      return [1, 2, 3, 4, 5].map((n) => `/images/hospitals/${slug}/${n}.jpg?v=2`);
+      return [1, 2, 3, 4, 5].map((n) => `/images/hospitals/${slug}/${n}.jpg?v=3`);
     }
     const thumb = hospital?.thumbnail_image;
     const gallery = normalizeImages(hospital?.gallery_images);
