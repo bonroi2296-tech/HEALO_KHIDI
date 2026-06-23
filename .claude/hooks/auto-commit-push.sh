@@ -23,6 +23,20 @@ git add -u || exit 0
 ts=$(date '+%Y-%m-%d %H:%M')
 git commit -m "chore: 작업 자동 저장 (${ts})" >/dev/null 2>&1 || exit 0
 
+# 푸시 쓰로틀: 마지막 자동푸시가 THROTTLE 초 이내면 푸시 생략(로컬 커밋은 유지).
+# 왜: Stop 훅이 턴마다 푸시 → 푸시마다 Vercel 프리뷰 배포 → 무료 플랜 일일 배포한도 소진
+#     (2026-06-23 사고: 이 폭증으로 프로덕션 배포까지 24h 막힘, POSTMORTEMS #30).
+#     로컬 커밋은 매 턴 남고 이 머신은 영속이라 작업 유실 없음 — 푸시만 주기적으로.
+# 즉시 올려야 하면 평소처럼 `git push` 하면 됨(쓰로틀은 자동푸시에만 적용).
+THROTTLE=600   # 10분
+stamp="$(git rev-parse --git-dir)/.last-autopush"
+now=$(date +%s)
+last=0; [ -f "$stamp" ] && last=$(cat "$stamp" 2>/dev/null || echo 0)
+if [ $((now - last)) -lt "$THROTTLE" ]; then
+  printf '{"systemMessage":"✅ 자동 커밋 완료(로컬). 푸시는 쓰로틀(10분 내 재푸시 생략) — 배포 폭증 방지. 즉시 올리려면 git push.","suppressOutput":true}\n'
+  exit 0
+fi
+
 # 네트워크 실패 대비 간단 재시도 (2s, 4s, 8s)
 pushed=0
 for delay in 0 2 4 8; do
@@ -34,6 +48,7 @@ for delay in 0 2 4 8; do
 done
 
 if [ "$pushed" -eq 1 ]; then
+  echo "$now" > "$stamp" 2>/dev/null || true
   printf '{"systemMessage":"✅ 변경분 자동 커밋·푸시 완료 → %s","suppressOutput":true}\n' "$branch"
 else
   printf '{"systemMessage":"⚠️ 자동 커밋은 됐으나 푸시 실패 (네트워크 확인). 로컬 커밋은 안전.","suppressOutput":true}\n'
