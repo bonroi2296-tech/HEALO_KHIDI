@@ -75,7 +75,7 @@ PO(프로덕트 오너) 혼자 운영. Bonroi 개인사업자, KHIDI(한국보�
 - `/telemedicine` 원격협진 (헤더 전면 배치, NEW)
 - `/hospitals` `/treatments` 목록 | `/treatments/[slug]` 암종 상세 | `/search` 검색
 - `/consultation/[id]` **LiveKit 영상 상담방** (게스트 초대 링크로 계정 없이 입장)
-- `/patient/*` 환자 | `/admin/*` 어드민 | `/coordinator/*` 코디네이터 | `/partner/*` 파트너
+- `/patient/*` 환자 | `/admin/*` 어드민 | `/coordinator/*` 코디네이터 | `/hospital/*` 국내병원(구 `/partner`, 리다이렉트) | `/agency` 해외 에이전시 · `/clinic` 해외 의료기관 | `/doctor` 비활성화(상담방 초대링크 참여)
 - `/stories` 후기 — **비활성화**(홈 리다이렉트, 코드는 보존)
 
 **주요 시스템:**

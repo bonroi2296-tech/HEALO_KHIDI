@@ -147,5 +147,6 @@
 ---
 
 ## 변경 이력
+- 2026-06-23: **§7 URL 마이그레이션 실행.** `/partner`→`/hospital`(리다이렉트), `/agency`↔`/clinic` 분리(partner_type 게이팅·불일치 자동이동), `/doctor` 비활성화(코드·계정 보존). 표준(`accountTiers.ts`·`resolveLanding.ts`·`proxy.ts`)·문서(`ACCOUNT_TIERS.md`·`TEST_ACCOUNTS.md`) 갱신. 빌드 통과. **권한 세부(§6)는 여전히 프로세스 1바퀴 후 확정으로 보류.** 의사 계정 완전제거(역할/드롭다운)는 PO 지시로 '비활성화만'에서 멈춤.
 - 2026-06-22(2): §7 경과 업로드 **1차 구현 착수·완료**(해외 의료기관 경과 업로드 vertical slice — progress_records·API·포털 패널). 환자 업로드·메신저·코디 검토화면은 다음 증분.
 - 2026-06-22: v0 초안 신설. 2026 공고 6대 ICT 정의 앵커. 의사 계층 제거·해외 에이전시/의료기관 분리·경과 업로드(사후관리) 결정. URL `/hospital`·`/agency`·`/clinic`, 언어 계정기준. 권한은 프로세스 검증 후로 보류. §8 미결 3건 PO 확정(/clinic·업로드 전채널·화면만 분리).

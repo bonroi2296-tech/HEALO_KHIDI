@@ -59,7 +59,7 @@ export const LoginPage = ({ setView }) => {
                 if (adminData?.isAdmin) {
                     router.push('/admin');
                 } else if (partnerData?.isHospitalUser) {
-                    router.push('/partner');
+                    router.push('/hospital');
                 } else {
                     router.push('/');
                 }

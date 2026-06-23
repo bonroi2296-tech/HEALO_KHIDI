@@ -24,7 +24,7 @@ export function HospitalGateClient({ children }) {
         const accessToken = sessionData?.session?.access_token;
 
         if (!accessToken) {
-          router.push("/login?redirect=/partner");
+          router.push("/login?redirect=/hospital");
           return;
         }
 

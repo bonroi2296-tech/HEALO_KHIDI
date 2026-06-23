@@ -9,7 +9,7 @@ export default function robots() {
     "/signup",
     "/inquiry",
     "/consultation",
-    "/partner",
+    "/hospital",
     "/coordinator",
     "/doctor",
     "/patient/rebooking",

@@ -5,7 +5,7 @@
  * 권한: 관리자 + 코디네이터 (의사 제외)
  *
  * 흐름: inquiries(의뢰) → normalized_inquiries(없으면 최소 1건 생성, 있으면 재사용)
- *       → hospital_leads(병원별 status='sent') → 병원이 /partner/leads 에서 확인.
+ *       → hospital_leads(병원별 status='sent') → 병원이 /hospital/leads 에서 확인.
  * 거대한 normalize 스코어링 파이프라인은 타지 않는다(병원 화면은 언어·국가·치료·출처만 표시).
  * PII(이름·연락처)는 normalized 행에 넣지 않음 → 복호화/재암호화 책임 없음.
  */

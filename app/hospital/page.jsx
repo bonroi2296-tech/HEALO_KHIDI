@@ -126,7 +126,7 @@ export default function HospitalDashboardPage() {
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-sm font-semibold text-gray-900">최근 리드</h2>
           <Link
-            href="/partner/leads"
+            href="/hospital/leads"
             className="text-xs text-blue-600 hover:underline flex items-center gap-1"
           >
             전체 보기 <ArrowRight size={12} />
@@ -146,7 +146,7 @@ export default function HospitalDashboardPage() {
               return (
                 <Link
                   key={lead.id}
-                  href="/partner/leads"
+                  href="/hospital/leads"
                   className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 transition"
                 >
                   <div className="flex items-center gap-3 min-w-0">
@@ -175,21 +175,21 @@ export default function HospitalDashboardPage() {
       {/* Quick Links */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <QuickLink
-          href="/partner/leads"
+          href="/hospital/leads"
           icon={MessageSquare}
           label="리드 관리"
           desc="배정된 문의 확인"
           color="blue"
         />
         <QuickLink
-          href="/partner/profile"
+          href="/hospital/profile"
           icon={LayoutDashboard}
           label="병원 정보"
           desc="프로필 수정"
           color="green"
         />
         <QuickLink
-          href="/partner/treatments"
+          href="/hospital/treatments"
           icon={Stethoscope}
           label="시술 관리"
           desc="시술 추가/수정"

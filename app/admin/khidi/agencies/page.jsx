@@ -65,7 +65,7 @@ export default function AgenciesAdmin() {
     <div className="max-w-3xl mx-auto px-4 py-8">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900">해외 파트너 관리</h1>
-        <p className="text-sm text-gray-500 mt-1">해외 에이전시·해외 의료기관을 등록하고 담당자 계정을 발급합니다. 계정으로 /agency 포털에서 의뢰 환자 진행상황을 확인합니다.</p>
+        <p className="text-sm text-gray-500 mt-1">해외 에이전시·해외 의료기관을 등록하고 담당자 계정을 발급합니다. 로그인하면 에이전시는 /agency, 의료기관은 /clinic 포털에서 의뢰 환자 진행상황을 확인합니다.</p>
       </div>
 
       {issued && (
@@ -75,7 +75,7 @@ export default function AgenciesAdmin() {
             이메일: {issued.email}<br />
             임시비번: {issued.tempPassword || "(기존 계정 — 비번 유지)"}
           </div>
-          <div className="text-xs text-gray-500 mt-1">로그인: /login → 포털: /agency</div>
+          <div className="text-xs text-gray-500 mt-1">로그인: /login → 포털: 에이전시 /agency · 의료기관 /clinic (계정 유형에 따라 자동 이동)</div>
         </div>
       )}
 
