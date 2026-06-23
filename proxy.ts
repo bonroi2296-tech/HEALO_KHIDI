@@ -58,7 +58,8 @@ function detectLocale(request: NextRequest) {
   const cookie = request.cookies.get(LOCALE_COOKIE)?.value;
   if (cookie && LOCALES.includes(cookie)) return cookie;
   // 2) 첫 진입 = 브라우저/시스템 언어가 우리 6개 중 하나면 그걸로(한→ko, 카→kz, 일→ja…).
-  const want = (request.headers.get("accept-language") || "").split(",")[0].split("-")[0].toLowerCase();
+  let want = (request.headers.get("accept-language") || "").split(",")[0].split("-")[0].toLowerCase();
+  if (want === "kk") want = "kz"; // 카자흐어 ISO코드(kk) → 내부코드(kz). 안 맞추면 1순위 타겟이 영어로 샘.
   if (LOCALES.includes(want)) return want;
   // 3) 우리에 없는 언어면 영어(DEFAULT_LOCALE). PO 지정.
   return DEFAULT_LOCALE;
