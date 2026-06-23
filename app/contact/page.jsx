@@ -1,7 +1,4 @@
-import { cookies } from "next/headers";
 import ContactClient from "./_client/ContactClient";
-import ContactPremium from "./ContactPremium";
-import { getServerDesignMode } from "@/lib/designMode";
 
 export const metadata = {
   title: "Contact Us | healwith",
@@ -20,9 +17,6 @@ export const metadata = {
   },
 };
 
-export default async function ContactPage({ searchParams }) {
-  const sp = (await searchParams) || {};
-  const ck = await cookies();
-  const mode = getServerDesignMode({ searchParams: sp, cookies: ck });
-  return mode === "legacy" ? <ContactClient /> : <ContactPremium />;
+export default function ContactPage() {
+  return <ContactClient />;
 }

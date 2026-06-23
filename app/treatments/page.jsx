@@ -1,7 +1,5 @@
 import { Suspense } from "react";
-import { cookies } from "next/headers";
 import TreatmentsClient from "./TreatmentsClient";
-import TreatmentsHubClient from "./TreatmentsHubClient";
 import { localizedMeta } from "@/lib/i18n/metadata";
 
 export async function generateMetadata() {
@@ -41,17 +39,10 @@ const baseMeta = {
   },
 };
 
-export default async function TreatmentsPage({ searchParams }) {
-  const sp = (await searchParams) || {};
-  const ck = await cookies();
-
-  // legacy 모드 폴백
-  const isLegacy = sp?.mode === "legacy" || ck.get("design_mode")?.value === "legacy";
-  const Client = isLegacy ? TreatmentsClient : TreatmentsHubClient;
-
+export default async function TreatmentsPage() {
   return (
     <Suspense>
-      <Client />
+      <TreatmentsClient />
     </Suspense>
   );
 }

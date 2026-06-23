@@ -1,8 +1,4 @@
-import { cookies } from "next/headers";
 import SymptomsClient from "./SymptomsClient";
-import SymptomsPremium from "./SymptomsPremium";
-import PageShell from "../../../components/healo/PageShell";
-import { getServerDesignMode } from "@/lib/designMode";
 
 export const metadata = {
   title: "증상 기록",
@@ -10,16 +6,6 @@ export const metadata = {
   robots: { index: false, follow: false },
 };
 
-export default async function SymptomsPage({ searchParams }) {
-  const sp = (await searchParams) || {};
-  const ck = await cookies();
-  const mode = getServerDesignMode({ searchParams: sp, cookies: ck });
-  if (mode === "legacy") {
-    return (
-      <PageShell current="" noHero>
-        <SymptomsClient />
-      </PageShell>
-    );
-  }
-  return <SymptomsPremium />;
+export default function SymptomsPage() {
+  return <SymptomsClient />;
 }

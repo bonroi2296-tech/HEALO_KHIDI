@@ -5,7 +5,6 @@ import { headers } from "next/headers";
 import Providers from "./providers";
 import ClientShell from "./ClientShell";
 import AnalyticsWrapper from "./AnalyticsWrapper";
-import DesignToggle from "../components/healo/DesignToggle";
 import InstallPrompt from "./InstallPrompt";
 import { localeAlternates, OG_LOCALE, getRequestLocale } from "@/lib/i18n/metadata";
 
@@ -147,7 +146,6 @@ export default async function RootLayout({ children }) {
         <AnalyticsWrapper />
         <Providers>
           <ClientShell initialLang={lang}>{children}</ClientShell>
-          <DesignToggle />
         </Providers>
         <InstallPrompt lang={lang} />
       </body>

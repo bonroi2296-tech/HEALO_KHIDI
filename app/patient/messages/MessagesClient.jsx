@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
-import PageShell from "../../../components/healo/PageShell";
 import { Eyebrow, Rule, ButtonGold, LinkArrow, Chip } from "../../../components/healo/Primitives";
 import { useLang } from "@/lib/i18n/LangContext";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
@@ -141,12 +140,11 @@ export default function MessagesClient() {
 
   if (!loading && !user) {
     return (
-      <PageShell
-        current=""
-        heroEyebrow={copy.heroEyebrow}
-        heroTitle={copy.heroTitle}
-        heroTitleItalic={copy.heroTitleItalic}
-      >
+      <main style={{ maxWidth: 1240, margin: "0 auto", paddingTop: 64 }}>
+        <div style={{ padding: "24px" }}>
+          <p style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "#0f766e" }}>{copy.heroEyebrow}</p>
+          <h1 style={{ fontSize: 28, fontWeight: 700, color: "#111827", marginTop: 4 }}>{copy.heroTitle}{copy.heroTitleItalic ? ` ${copy.heroTitleItalic}` : ""}</h1>
+        </div>
         <div style={{ padding: "72px 24px", textAlign: "center" }}>
           <p
             style={{
@@ -162,7 +160,7 @@ export default function MessagesClient() {
             <ButtonGold>Sign in</ButtonGold>
           </Link>
         </div>
-      </PageShell>
+      </main>
     );
   }
 
@@ -195,12 +193,11 @@ export default function MessagesClient() {
   }
 
   return (
-    <PageShell
-      current=""
-      heroEyebrow={copy.heroEyebrow}
-      heroTitle={copy.heroTitle}
-      heroTitleItalic={copy.heroTitleItalic}
-    >
+    <main style={{ maxWidth: 1240, margin: "0 auto", paddingTop: 64 }}>
+      <div style={{ padding: "24px" }}>
+        <p style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "#0f766e" }}>{copy.heroEyebrow}</p>
+        <h1 style={{ fontSize: 28, fontWeight: 700, color: "#111827", marginTop: 4 }}>{copy.heroTitle}{copy.heroTitleItalic ? ` ${copy.heroTitleItalic}` : ""}</h1>
+      </div>
       <section style={{ padding: "48px 24px 96px" }}>
         <div
           className="healo-msg-grid"
@@ -453,7 +450,7 @@ export default function MessagesClient() {
           }
         }
       `}</style>
-    </PageShell>
+    </main>
   );
 }
 

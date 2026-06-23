@@ -1,7 +1,4 @@
-import { cookies } from "next/headers";
 import VisaClient from "../patient/visa/VisaClient";
-import VisaClientPremium from "../patient/visa/VisaClientPremium";
-import { getServerDesignMode } from "@/lib/designMode";
 
 export const metadata = {
   title: "Medical Visa Guide | healwith",
@@ -19,9 +16,6 @@ export const metadata = {
   },
 };
 
-export default async function PublicVisaPage({ searchParams }) {
-  const sp = (await searchParams) || {};
-  const ck = await cookies();
-  const mode = getServerDesignMode({ searchParams: sp, cookies: ck });
-  return mode === "legacy" ? <VisaClient /> : <VisaClientPremium />;
+export default function PublicVisaPage() {
+  return <VisaClient />;
 }

@@ -1,7 +1,4 @@
-import { cookies } from "next/headers";
 import EducationClient from "../patient/education/EducationClient";
-import EducationClientPremium from "../patient/education/EducationClientPremium";
-import { getServerDesignMode } from "@/lib/designMode";
 
 export const metadata = {
   title: "Patient Education | healwith",
@@ -19,9 +16,6 @@ export const metadata = {
   },
 };
 
-export default async function PublicEducationPage({ searchParams }) {
-  const sp = (await searchParams) || {};
-  const ck = await cookies();
-  const mode = getServerDesignMode({ searchParams: sp, cookies: ck });
-  return mode === "legacy" ? <EducationClient /> : <EducationClientPremium />;
+export default function PublicEducationPage() {
+  return <EducationClient />;
 }

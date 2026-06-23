@@ -1,8 +1,5 @@
 import { Suspense } from "react";
-import { cookies } from "next/headers";
 import HospitalsClient from "./HospitalsClient";
-import HospitalsClientPremium from "./HospitalsClientPremium";
-import { getServerDesignMode } from "@/lib/designMode";
 import { localizedMeta } from "@/lib/i18n/metadata";
 
 export async function generateMetadata() {
@@ -33,14 +30,10 @@ const baseMeta = {
   },
 };
 
-export default async function HospitalsPage({ searchParams }) {
-  const sp = (await searchParams) || {};
-  const ck = await cookies();
-  const mode = getServerDesignMode({ searchParams: sp, cookies: ck });
-  const Client = mode === "legacy" ? HospitalsClient : HospitalsClientPremium;
+export default function HospitalsPage() {
   return (
     <Suspense>
-      <Client />
+      <HospitalsClient />
     </Suspense>
   );
 }
