@@ -61,16 +61,22 @@ export default function RebookingClient() {
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(null);
 
+  // 확정/무시 → 환자 전용 엔드포인트. 성공했을 때만 UI 갱신(실패를 조용히 삼키지 않음).
   const handleConfirm = async (rb) => {
     setActionLoading(rb.id);
     try {
-      await fetch(`/api/khidi/consultation/${rb.id}`, {
+      const res = await fetch(`/api/khidi/rebooking/${rb.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'scheduled', notes: rb.notes + ' [Confirmed by patient]' }),
+        body: JSON.stringify({ action: 'confirm' }),
       });
-      setRebookings(prev => prev.filter(r => r.id !== rb.id));
-      setHistory(prev => [rb, ...prev]);
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.ok) {
+        setRebookings(prev => prev.filter(r => r.id !== rb.id));
+        setHistory(prev => [rb, ...prev]);
+      } else {
+        console.error('[rebooking] confirm failed', data);
+      }
     } catch (e) { console.error(e); }
     setActionLoading(null);
   };
@@ -78,12 +84,17 @@ export default function RebookingClient() {
   const handleDismiss = async (rb) => {
     setActionLoading(rb.id);
     try {
-      await fetch(`/api/khidi/consultation/${rb.id}`, {
+      const res = await fetch(`/api/khidi/rebooking/${rb.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'cancelled' }),
+        body: JSON.stringify({ action: 'dismiss' }),
       });
-      setRebookings(prev => prev.filter(r => r.id !== rb.id));
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.ok) {
+        setRebookings(prev => prev.filter(r => r.id !== rb.id));
+      } else {
+        console.error('[rebooking] dismiss failed', data);
+      }
     } catch (e) { console.error(e); }
     setActionLoading(null);
   };

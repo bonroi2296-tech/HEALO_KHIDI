@@ -53,6 +53,7 @@ export async function POST(request: NextRequest) {
     const insertData = {
       followup_id: payload.followupId || null,
       inquiry_id: payload.inquiryId || null,
+      patient_user_id: auth.userId, // 작성자(환자) — 본인 기록 조회/차트에 필수
       report_type: report.reportType,
       symptoms: report.symptoms,
       ai_risk_score: analysis.riskScore,
@@ -172,9 +173,19 @@ export async function GET(request: NextRequest) {
     const { checkAdminAuth } = await import("@/lib/auth/checkAdminAuth");
     const authResult = await checkAdminAuth(request);
 
-    if (!authResult.isAdmin) {
+    if (!authResult.userId) {
       return Response.json(
         { ok: false, error: "unauthorized" },
+        { status: 401 }
+      );
+    }
+
+    const { searchParams } = new URL(request.url);
+    // mine=true → 본인(환자) 증상기록만. 그 외 전체 목록은 admin 전용.
+    const mine = searchParams.get("mine") === "true";
+    if (!mine && !authResult.isAdmin) {
+      return Response.json(
+        { ok: false, error: "forbidden" },
         { status: 403 }
       );
     }
@@ -182,7 +193,6 @@ export async function GET(request: NextRequest) {
     const { getSupabaseServerClient } = await import("@/lib/data/supabaseServerClient");
     const supabaseAdmin = getSupabaseServerClient();
 
-    const { searchParams } = new URL(request.url);
     const limit = Math.min(parseInt(searchParams.get("limit") || "50"), 200);
     const offset = parseInt(searchParams.get("offset") || "0");
     const urgency = searchParams.get("urgency"); // filter by urgency
@@ -192,6 +202,11 @@ export async function GET(request: NextRequest) {
       .select("*", { count: "exact" })
       .order("created_at", { ascending: false })
       .range(offset, offset + limit - 1);
+
+    // 본인 기록만 (권한경계)
+    if (mine) {
+      query = query.eq("patient_user_id" as any, authResult.userId);
+    }
 
     // Filter: high risk reports only
     if (urgency === "high") {
