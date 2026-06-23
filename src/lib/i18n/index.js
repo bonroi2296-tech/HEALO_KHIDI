@@ -5649,13 +5649,18 @@ export const LANG_OPTIONS = [
   { code: "kz", label: "Қазақша" },
 ];
 
-/** 상단 노출용 주요 언어 = 활성 콘텐츠 언어(LOCALES). 언어 추가 시 config.js만 고치면 따라옴 */
-export const LANG_OPTIONS_PRIMARY = LANG_OPTIONS.filter(l => LOCALES.includes(l.code));
+/** 상단 노출용 주요 언어 = 활성 콘텐츠 언어(LOCALES). 표시 순서 = PO 지정(러·카 우선) */
+const PRIMARY_ORDER = ["ru", "kz", "en", "ja", "zh", "ko"];
+export const LANG_OPTIONS_PRIMARY = PRIMARY_ORDER
+  .filter(c => LOCALES.includes(c))
+  .map(c => LANG_OPTIONS.find(l => l.code === c))
+  .filter(Boolean);
 /** 기타 언어 (접었을 때 스크롤 영역으로 제한) */
 export const LANG_OPTIONS_OTHER = LANG_OPTIONS.filter(l => !LOCALES.includes(l.code));
 
+// 기본값 = 러시아어(PO 지정). 사용자가 직접 고른 언어는 healo_lang 쿠키로 항상 우선.
 export const getLangCodeFromCookie = () => {
-  if (typeof document === "undefined") return "en";
+  if (typeof document === "undefined") return "ru";
   const cookies = document.cookie.split(";");
   const healoLang = cookies.find((row) => row.trim().startsWith("healo_lang="));
   if (healoLang) {
@@ -5663,12 +5668,12 @@ export const getLangCodeFromCookie = () => {
     if (DICTIONARY[code]) return code;
   }
   const langCookie = cookies.find((row) => row.trim().startsWith("googtrans="));
-  if (!langCookie) return "en";
+  if (!langCookie) return "ru";
   const langCode = langCookie.split("=")[1].split("/").pop();
   if (langCode === "ko") return "ko";
   if (langCode === "zh-CN") return "zh";
   if (langCode === "ja") return "ja";
-  return "en";
+  return "ru";
 };
 
 /** 언어 선택 시 쿠키 저장 (healo_lang). googtrans는 제거해 우리 번역만 사용 */

@@ -19,7 +19,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
-import { LOCALES, DEFAULT_LOCALE, LOCALE_COOKIE } from "@/lib/i18n/config";
+import { LOCALES, LOCALE_COOKIE } from "@/lib/i18n/config";
 
 // ── URL 언어화(locale-in-path) ──────────────────────────────
 // 공개 마케팅 경로만 /{locale}/ 로 강제. /ru/treatments → 내부 /treatments rewrite + x-locale 헤더로 언어 전달.
@@ -54,11 +54,11 @@ function isPublicLocalePath(pathname: string) {
   return PUBLIC_PREFIXES.some((p) => pathname === p || pathname.startsWith(p + "/"));
 }
 function detectLocale(request: NextRequest) {
+  // 직접 고른 언어(healo_lang 쿠키)는 항상 우선 — 다음 방문에도 유지.
   const cookie = request.cookies.get(LOCALE_COOKIE)?.value;
   if (cookie && LOCALES.includes(cookie)) return cookie;
-  const want = (request.headers.get("accept-language") || "").split(",")[0].split("-")[0].toLowerCase();
-  if (LOCALES.includes(want)) return want;
-  return DEFAULT_LOCALE;
+  // 기본값 = 러시아어(PO 지정). 브라우저 언어 자동감지 안 함.
+  return "ru";
 }
 
 /**
