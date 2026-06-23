@@ -78,12 +78,16 @@ export default function RebookingPremium() {
         return;
       }
       setUser(session.user);
-      const { data } = await supabase
-        .from("followup_schedules")
-        .select("*")
-        .eq("patient_user_id", session.user.id)
-        .order("created_at", { ascending: false });
-      setSchedules(data || []);
+      // followup_schedules 는 service_role 전용 → 서버 API 경유(브라우저 직접조회 시 빈 데이터)
+      try {
+        const res = await fetch("/api/portal/followup", {
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        });
+        const result = await res.json();
+        setSchedules(result?.ok ? result.schedules || [] : []);
+      } catch {
+        setSchedules([]);
+      }
       setLoading(false);
     })();
   }, []);
@@ -92,8 +96,19 @@ export default function RebookingPremium() {
     setActingId(id);
     try {
       const supabase = createSupabaseBrowserClient();
-      await supabase.from("followup_schedules").update({ status }).eq("id", id);
-      setSchedules((prev) => prev.map((s) => (s.id === id ? { ...s, status } : s)));
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch("/api/portal/followup", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          ...(session ? { Authorization: `Bearer ${session.access_token}` } : {}),
+        },
+        body: JSON.stringify({ id, status }),
+      });
+      const result = await res.json();
+      if (result?.ok) {
+        setSchedules((prev) => prev.map((s) => (s.id === id ? { ...s, status } : s)));
+      }
     } finally {
       setActingId(null);
     }

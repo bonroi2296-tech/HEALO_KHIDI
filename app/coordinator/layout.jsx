@@ -4,20 +4,23 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import {
-  ClipboardList, Video, Users, Activity, Bell,
+  ClipboardList, Video, Bell, Inbox, MessageSquare, Plane, Calculator,
   LogOut, Menu, X, LayoutDashboard, Building2,
 } from 'lucide-react';
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser';
 import StaffPortalGate from '../_components/StaffPortalGate';
 
+// 메뉴 = 실제 존재하는 라우트만 (옛 patients·kpi 화면은 미구현 → 404라 제거).
 const NAV_ITEMS = [
   { id: 'dashboard', label: '대시보드', icon: LayoutDashboard, href: '/coordinator' },
-  { id: 'intakes', label: '인테이크 관리', icon: ClipboardList, href: '/coordinator/intakes' },
+  { id: 'inbox', label: '문의함', icon: Inbox, href: '/coordinator/inbox' },
   { id: 'cases', label: '의뢰·케이스/병원배정', icon: Building2, href: '/coordinator/cases' },
   { id: 'consultations', label: '상담 일정', icon: Video, href: '/coordinator/consultations' },
-  { id: 'patients', label: '환자 목록', icon: Users, href: '/coordinator/patients' },
+  { id: 'intakes', label: '인테이크 관리', icon: ClipboardList, href: '/coordinator/intakes' },
+  { id: 'messages', label: '메시지', icon: MessageSquare, href: '/coordinator/messages' },
+  { id: 'visa', label: '비자 트래킹', icon: Plane, href: '/coordinator/visa' },
+  { id: 'cost-estimates', label: '견적', icon: Calculator, href: '/coordinator/cost-estimates' },
   { id: 'alerts', label: '증상 알림', icon: Bell, href: '/coordinator/alerts' },
-  { id: 'kpi', label: '성과 지표', icon: Activity, href: '/coordinator/kpi' },
 ];
 
 export default function CoordinatorLayout({ children }) {
