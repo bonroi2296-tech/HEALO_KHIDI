@@ -603,9 +603,17 @@ export default function UnifiedInquiryFunnel() {
         treatmentType: form1.cancerType,
       };
 
+      // 로그인 상태면 토큰 동봉 → 서버가 본인 계정에 문의 귀속(마이페이지 '내 문의' 노출).
+      const headers = { "Content-Type": "application/json" };
+      try {
+        const { createSupabaseBrowserClient } = await import("@/lib/supabase/browser");
+        const { data: { session } } = await createSupabaseBrowserClient().auth.getSession();
+        if (session?.access_token) headers.Authorization = `Bearer ${session.access_token}`;
+      } catch { /* 게스트 제출 */ }
+
       const res = await fetch("/api/inquiries/step1", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers,
         body: JSON.stringify(body),
       });
       const result = await res.json();

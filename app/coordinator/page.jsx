@@ -47,8 +47,18 @@ export default function CoordinatorDashboard() {
         const alertData = await alertRes.json();
         const urgentCount = alertData.ok ? (alertData.total || 0) : 0;
 
+        // Fetch 접수 문의 (inquiries) — '대기 인테이크'는 화상상담이 아니라 미처리 문의 수.
+        const inboxRes = await fetch('/api/portal/inbox', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const inboxData = await inboxRes.json();
+        const inquiries = inboxData.ok ? (inboxData.items || []) : [];
+        const pendingInquiries = inquiries.filter(
+          i => !['matched', 'completed'].includes(i.status)
+        ).length;
+
         setStats({
-          pendingIntakes: scheduled.length,
+          pendingIntakes: pendingInquiries,
           todayConsultations: todayOnes.length,
           activePatients: consultations.filter(c => c.status === 'active').length,
           urgentAlerts: urgentCount,
@@ -64,7 +74,7 @@ export default function CoordinatorDashboard() {
   }, [router]);
 
   const STAT_CARDS = [
-    { label: '대기 인테이크', value: stats.pendingIntakes, icon: ClipboardList, color: 'bg-blue-50 text-blue-600', href: '/coordinator/intakes' },
+    { label: '대기 인테이크', value: stats.pendingIntakes, icon: ClipboardList, color: 'bg-blue-50 text-blue-600', href: '/coordinator/inbox' },
     { label: '오늘 상담', value: stats.todayConsultations, icon: Video, color: 'bg-green-50 text-green-600', href: '/coordinator/consultations' },
     { label: '활성 환자', value: stats.activePatients, icon: Users, color: 'bg-purple-50 text-purple-600', href: '/coordinator/patients' },
     { label: '긴급 알림', value: stats.urgentAlerts, icon: AlertTriangle, color: 'bg-red-50 text-red-600', href: '/coordinator/alerts' },
