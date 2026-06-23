@@ -32,14 +32,8 @@ export function CreateConsultationModal({ onClose, onSuccess }) {
       hospital_id: "",
       partner_doctor_id: "",
       notes: "",
-      // 역할별 초대 링크 생성 여부 (multi-party 지원)
-      inviteRoles: {
-        patient: true,
-        doctor: false,
-        translator: false,
-        coordinator: false,
-        observer: false,
-      },
+      // 통합 초대 링크 1개(role=guest) — 환자·의사 등 모두 이 링크로 입장.
+      // inviteeName/Email 은 자동 발송용 대표 수신자(보통 환자).
       inviteeName: "",
       inviteeEmail: "",
     };
@@ -84,8 +78,8 @@ export function CreateConsultationModal({ onClose, onSuccess }) {
     };
   }, []);
 
-  // 문의 선택 시 환자 정보 자동 채움
-  function applyInquiry(inquiryId) {
+  // 문의 선택 시 환자 정보 자동 채움 (이름·언어·메모 즉시 + 이메일은 서버에서 복호화해 보강)
+  async function applyInquiry(inquiryId) {
     const inq = inquiryOptions.find((i) => String(i.id) === String(inquiryId));
     if (!inq) {
       setForm((f) => ({ ...f, selected_inquiry_id: "" }));
@@ -96,9 +90,27 @@ export function CreateConsultationModal({ onClose, onSuccess }) {
       selected_inquiry_id: inquiryId,
       inviteeName: inq.name && inq.name !== "(이름 미상)" ? inq.name : f.inviteeName,
       patient_language: inq.preferred_language || f.patient_language,
-      inviteRoles: { ...f.inviteRoles, patient: true },
       notes: f.notes || `문의 #${inq.id} · ${inq.nationality || ""} · ${inq.cancer_type || ""}`.trim(),
     }));
+    // 이메일은 암호화돼 있어 picker 목록엔 없음 → 단건 상세 API로 복호화해 자동 채움(자동 발송용)
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+      const res = await fetch(`/api/portal/inbox/${inquiryId}`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      const result = await res.json();
+      if (res.ok && result.ok && result.inquiry) {
+        const full = [result.inquiry.first_name, result.inquiry.last_name].filter(Boolean).join(" ").trim();
+        setForm((f) => ({
+          ...f,
+          inviteeEmail: result.inquiry.email && result.inquiry.email.includes("@") ? result.inquiry.email : f.inviteeEmail,
+          inviteeName: full || f.inviteeName,
+        }));
+      }
+    } catch {
+      // silent — 이메일 자동 채움 실패해도 수동 입력 가능
+    }
   }
 
   // 병원 변경 시 해당 병원의 의사 목록 로드
@@ -139,14 +151,6 @@ export function CreateConsultationModal({ onClose, onSuccess }) {
 
   async function handleSubmit(e) {
     e.preventDefault();
-
-    // 환자 계정 or 최소 1개 역할 초대 필수
-    const hasAnyInvite = Object.values(form.inviteRoles).some((v) => v);
-    if (!form.patient_user_id && !hasAnyInvite) {
-      toast.error("환자 계정 ID 또는 초대 링크 역할 중 하나는 필요합니다");
-      return;
-    }
-
     setSubmitting(true);
     try {
       const { data: sessionData } = await supabase.auth.getSession();
@@ -167,7 +171,6 @@ export function CreateConsultationModal({ onClose, onSuccess }) {
         scheduled_at: new Date(`${form.scheduled_at}+09:00`).toISOString(),
       };
       // 게스트 관련 필드 / UI 플래그 제거
-      delete payload.inviteRoles;
       delete payload.inviteeName;
       delete payload.inviteeEmail;
       Object.keys(payload).forEach((k) => {
@@ -190,46 +193,41 @@ export function CreateConsultationModal({ onClose, onSuccess }) {
 
       const sessionId = result.data?.id;
 
-      // 2. (옵션) 선택된 역할별로 게스트 초대 링크 일괄 발급
+      // 2. 통합 초대 링크(role=guest) 1개 발급 — 환자·의사 등 모든 참여자가 이 링크로 입장.
+      //    inviteeName/Email 이 있으면(보통 환자) 자동 발송 + 리마인더에 사용.
       const invites = [];
       if (sessionId) {
-        const rolesToInvite = Object.entries(form.inviteRoles)
-          .filter(([, enabled]) => enabled)
-          .map(([role]) => role);
-
-        for (const role of rolesToInvite) {
-          try {
-            const inviteRes = await fetch(
-              `/api/khidi/consultation/${sessionId}/invite`,
-              {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                  Authorization: `Bearer ${token}`,
-                },
-                body: JSON.stringify({
-                  role,
-                  inviteeName: role === "patient" ? form.inviteeName || undefined : undefined,
-                  inviteeEmail: role === "patient" ? form.inviteeEmail || undefined : undefined,
-                  expiresInHours: 72,
-                  // 재접속(네트워크 끊김·새로고침)마다 1회 차감되므로 넉넉하게 — API 상한 20
-                  maxUses: 20,
-                }),
-              }
-            );
-            const inviteResult = await inviteRes.json();
-            if (inviteRes.ok && inviteResult.ok) {
-              invites.push({
-                role,
-                url: inviteResult.inviteUrl,
-                expiresAt: inviteResult.expiresAt,
-              });
-            } else {
-              console.warn(`[invite:${role}] 실패:`, inviteResult.error);
+        try {
+          const inviteRes = await fetch(
+            `/api/khidi/consultation/${sessionId}/invite`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+              },
+              body: JSON.stringify({
+                role: "guest",
+                inviteeName: form.inviteeName || undefined,
+                inviteeEmail: form.inviteeEmail || undefined,
+                expiresInHours: 72,
+                // 재접속(끊김·새로고침)·여러 참여자 공용이라 넉넉하게 — API 상한 20
+                maxUses: 20,
+              }),
             }
-          } catch (inviteErr) {
-            console.error(`[invite:${role}] 예외:`, inviteErr);
+          );
+          const inviteResult = await inviteRes.json();
+          if (inviteRes.ok && inviteResult.ok) {
+            invites.push({
+              role: "guest",
+              url: inviteResult.inviteUrl,
+              expiresAt: inviteResult.expiresAt,
+            });
+          } else {
+            console.warn("[invite:guest] 실패:", inviteResult.error);
           }
+        } catch (inviteErr) {
+          console.error("[invite:guest] 예외:", inviteErr);
         }
       }
 
@@ -265,7 +263,7 @@ export function CreateConsultationModal({ onClose, onSuccess }) {
             <div>
               <h2 className="text-xl font-bold text-gray-900">상담 예약 생성 완료</h2>
               <p className="text-sm text-gray-500">
-                아래 링크를 환자에게 공유하세요.
+                아래 참여 링크를 모든 참여자에게 공유하세요.
               </p>
             </div>
           </div>
@@ -286,9 +284,9 @@ export function CreateConsultationModal({ onClose, onSuccess }) {
               <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 text-sm text-amber-800">
                 <p className="font-semibold mb-1">📋 전달 시 참고사항</p>
                 <ul className="text-xs space-y-1 list-disc list-inside">
-                  <li>각 참여자에게 역할별 링크를 분리해 공유 (링크가 역할을 고정함)</li>
+                  <li>이 링크 <b>하나</b>를 환자·의사·통역 등 모든 참여자에게 공유 (각자 이름 입력 후 입장)</li>
                   <li>환자는 이메일/카카오톡/SMS, 의료진은 내부 메신저 권장</li>
-                  <li>링크 유출 방지 — 공용 채팅방에 올리지 않기</li>
+                  <li>링크 유출 방지 — 공개된 곳에 올리지 않기</li>
                   <li>예정 30분 전 자동 리마인더 발송됨 (환자 이메일 입력 시)</li>
                 </ul>
               </div>
@@ -335,85 +333,50 @@ export function CreateConsultationModal({ onClose, onSuccess }) {
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          {/* 게스트 초대 링크 — 역할별 다중 선택 (Multi-party) */}
+          {/* 통합 초대 링크 — 1개로 모두 입장 */}
           <div className="bg-teal-50 border border-teal-200 rounded-xl p-4">
             <p className="font-semibold text-sm text-gray-900 mb-1">
-              🔗 초대 링크 생성 (Zoom 스타일, 계정 불필요)
+              🔗 참여 링크 (계정 불필요)
             </p>
             <p className="text-xs text-gray-600 mb-3 leading-relaxed">
-              참여자 역할별로 초대 링크를 각각 발급합니다. 각 링크는 만료 72시간 +
-              접속 횟수 제한 + 고정 역할 부여.
+              상담을 만들면 <b>참여 링크 1개</b>가 생성됩니다. 환자·의사·통역 등 모든 참여자에게
+              이 링크 하나만 공유하세요. 각자 이름을 입력하고 입장합니다 (만료 72시간).
             </p>
-            <div className="grid grid-cols-2 gap-2">
-              {[
-                { key: "patient", label: "🧑 환자", desc: "카메라/마이크 송수신" },
-                { key: "doctor", label: "👨‍⚕️ 의사", desc: "카메라/마이크 송수신 + 주도권" },
-                { key: "translator", label: "🗣 통역사", desc: "음성 송수신" },
-                { key: "coordinator", label: "🤝 코디네이터", desc: "참관 + 채팅" },
-                { key: "observer", label: "👁 참관자", desc: "시청만 (보호자 등)" },
-              ].map((r) => (
-                <label
-                  key={r.key}
-                  className="flex items-start gap-2 cursor-pointer p-2 rounded-lg hover:bg-white"
-                >
-                  <input
-                    type="checkbox"
-                    checked={!!form.inviteRoles[r.key]}
-                    onChange={(e) =>
-                      setForm({
-                        ...form,
-                        inviteRoles: {
-                          ...form.inviteRoles,
-                          [r.key]: e.target.checked,
-                        },
-                      })
-                    }
-                    className="mt-1 accent-teal-600"
-                  />
-                  <div className="flex-1 text-xs">
-                    <p className="font-semibold text-gray-800">{r.label}</p>
-                    <p className="text-gray-500">{r.desc}</p>
-                  </div>
-                </label>
-              ))}
-            </div>
 
             {/* 문의에서 환자 선택 — 직접 타이핑 대신 실제 문의 목록에서 (오타·중복 입력 방지) */}
-            <div className="mt-3">
-              <label className="block text-xs font-semibold text-gray-600 mb-1">문의에서 환자 선택</label>
+            <div>
+              <label className="block text-xs font-semibold text-gray-600 mb-1">문의에서 환자 선택 (선택)</label>
               <select
                 value={form.selected_inquiry_id}
                 onChange={(e) => applyInquiry(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-teal-500"
               >
-                <option value="">— 문의 목록에서 선택 (이름·언어 자동 입력) —</option>
+                <option value="">— 문의 목록에서 선택 (이름·이메일·언어 자동 입력) —</option>
                 {inquiryOptions.map((inq) => (
                   <option key={inq.id} value={inq.id}>
                     #{inq.id} · {inq.name || "(이름 미상)"} · {inq.nationality || "?"} · {inq.cancer_type || "?"} · {inq.status || ""}
                   </option>
                 ))}
               </select>
-              <p className="text-[11px] text-gray-400 mt-1">연락처(이메일/전화)는 보안상 암호화되어 있어 자동 표시되지 않습니다. 초대 링크를 복사해 해당 문의 연락수단으로 전달하세요.</p>
+              <p className="text-[11px] text-gray-400 mt-1">문의를 고르면 환자 이름·이메일이 자동 입력됩니다(자동 발송용). 이메일이 없으면 링크를 복사해 직접 전달하세요.</p>
             </div>
 
-            {form.inviteRoles.patient && (
-              <div className="mt-3 pt-3 border-t border-teal-200 space-y-2">
-                <input
-                  type="text"
-                  value={form.inviteeName}
-                  onChange={(e) => setForm({ ...form, inviteeName: e.target.value })}
-                  placeholder="환자 이름 (문의 선택 시 자동) — 예: Айжан Нурланова"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
-                />
-                <input
-                  type="email"
-                  value={form.inviteeEmail}
-                  onChange={(e) => setForm({ ...form, inviteeEmail: e.target.value })}
-                  placeholder="환자 이메일 (선택) — 자동 발송 시 사용"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
-                />
-              </div>
-            )}
+            <div className="mt-3 pt-3 border-t border-teal-200 space-y-2">
+              <input
+                type="text"
+                value={form.inviteeName}
+                onChange={(e) => setForm({ ...form, inviteeName: e.target.value })}
+                placeholder="대표 수신자(환자) 이름 — 문의 선택 시 자동"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+              />
+              <input
+                type="email"
+                value={form.inviteeEmail}
+                onChange={(e) => setForm({ ...form, inviteeEmail: e.target.value })}
+                placeholder="대표 수신자(환자) 이메일 (선택) — 입력 시 자동 발송·리마인더"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+              />
+            </div>
           </div>
 
           <UserSearchField
@@ -748,6 +711,7 @@ function roleLabelKo(role) {
       translator: "🗣 통역사",
       coordinator: "🤝 코디네이터",
       observer: "👁 참관자",
+      guest: "🔗 참여",
     }[role] || role
   );
 }

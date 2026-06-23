@@ -16,7 +16,7 @@ import { sendEmail } from "@/lib/email/sendEmail";
 import { renderConsultationInviteEmail } from "@/lib/email/templates/consultationInvite";
 import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
 
-const VALID_ROLES: GuestRole[] = ["patient", "doctor", "translator", "coordinator", "observer"];
+const VALID_ROLES: GuestRole[] = ["patient", "doctor", "translator", "coordinator", "observer", "guest"];
 
 export async function POST(
   request: NextRequest,
