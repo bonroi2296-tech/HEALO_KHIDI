@@ -38,7 +38,7 @@
 
 **5. 다음 세션이 먼저 할 일 (우선순위):**
 1. **⚠️ 직전 미검증분 먼저**: (a) **#274 CI 초록 확인** 후 머지 판단. (b) **환자 여정바 실계정 검증** — 환자 로그인 → `/patient` 대시보드에 여정 단계·다음할일이 실제로 뜨는지(프리뷰 또는 prod). (c) **iOS 영상 마이크** 실아이폰 1회(환자가 아이폰으로 상담 입장 → 의사가 환자 소리 들리는지).
-2. **포털 실작동화 2단계**: 코디/에이전시/병원 포털의 남은 브라우저 직접조회(service_role) 빈틈 매핑→서버API화. ("외부 협력기관도 실제로 쓸 수 있게"가 PO 핵심.)
+2. **포털 실작동화 — 남은 건 환자 symptoms 1곳뿐**(2026-06-23 전수확인): 코디·에이전시(`/api/agency/*`)·병원(`/api/partner/*`)·환자 메시지/상담 포털은 **이미 서버 API 경유라 멀쩡**. 환자 rebooking은 이번에 `/api/portal/followup`로 고침. **남은 건 `app/patient/symptoms/SymptomsPremium.jsx`** — symptom_reports를 브라우저 직접조회(읽기 line 102)+직접 insert(line 143)라 깨짐. 수정안: 읽기=환자 본인 GET(여정 endpoint의 symptoms 재사용 또는 `/api/portal/symptoms` 신설), 쓰기=기존 `POST /api/khidi/followup`(이미 인증+AI분석+이상치감지 있음, inquiryId 필요 — 본인 문의 매칭 경유). **사후관리 KPI(120건) 직결이라 가치 높음.**
 3. **#274 머지되면** 환자 캘린더(`CalendarClient`)도 데이터 뜨는지 확인.
 4. KHIDI 중간평가(8/27) 상시 — 실유치 0 끌어올리기.
 
