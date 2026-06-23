@@ -612,3 +612,27 @@ PO가 면력한방병원 각 지점 메인사진(`/images/hospitals/<slug>/1.jpg
 **재발 방지 (시스템 적용)**
 - 인라인 주석으로 위험(`kk≠kz, 안 맞추면 1순위 타겟이 영어로 샘`) 명시.
 - 교훈: **언어/로케일 기능은 6개 언어 전부 + 특히 핵심 타겟(러·카) 케이스로 검증한다.** 내부 코드가 ISO 표준과 다른 `kz`는 외부 입력(Accept-Language·hreflang·OS locale) 경계에서 항상 매핑이 필요.
+
+---
+
+## #29 — 환자 포털 통합: 증상·재진을 한 메커니즘으로 + 재진 '유령 컬럼' 발견 (2026-06-23)
+
+**무슨 일**
+환자 포털 실작동화 작업이 **두 갈래로 갈려** 있었다(같은 버그, 다른 화면 버전·다른 테이블):
+- 증상기록: legacy 화면은 `/api/khidi/followup`, premium 화면은 `/api/portal/symptoms` — 저장 연결도 한쪽은 `patient_user_id`, 한쪽은 `inquiry_id`.
+- 재진예약: legacy는 `consultation_sessions.rebooking_source`, premium은 `followup_schedules`.
+PO가 "둘을 하나로 합쳐줘" → 통합 중 **결정적 사실**을 실DB에서 발견: **`consultation_sessions`에 `rebooking_source` 컬럼이 아예 없다.** 즉 legacy 재진화면·재진 엔진(`/api/khidi/rebooking/create`)·그 계약테스트가 전부 **존재하지 않는 컬럼**을 참조 = 실DB에서 깨짐. 진짜 테이블은 `followup_schedules`(존재, 0행).
+
+**왜 못 잡았나 (근본원인)**
+- 코드(엔진·테스트)가 `rebooking_source`를 당연히 있다고 가정했는데 마이그레이션이 안 됨 → **빌드·타입검사는 통과**(컬럼명은 문자열). 실DB 조회로만 드러남.
+- 같은 기능이 두 디자인모드(legacy 기본 / premium 숨김)로 갈려 각자 다른 데이터원을 봄.
+
+**어떻게 고쳤나**
+- **증상**: `/api/portal/symptoms` 하나로 통합. `patient_user_id`(소유) **+** 본인 inquiry 해석(KPI 연결) 둘 다 저장, 조회는 `patient_user_id OR inquiry`로 견고화. legacy·premium 화면 **둘 다** 이 엔드포인트로 연결. 이상치 감지(코디 알림)도 이 경로에 포함.
+- **재진**: 정식 테이블 = `followup_schedules`(`/api/portal/followup`)로 통일. legacy·premium 화면 둘 다 이쪽으로. 깨진 `consultation_sessions.rebooking_source` 참조 제거.
+- 코디 메뉴를 실제 라우트로 정합(별건이지만 같은 점검에서 발견).
+
+**재발 방지 (시스템 적용)**
+- 교훈: **DB 기능은 코드가 아니라 실스키마(`information_schema`)로 확인**한다. "엔진이 X 컬럼에 쓴다"는 코드는 그 컬럼의 존재를 보장하지 않는다.
+- 후속(미적용·중요): 재진 **엔진(`rebooking/create`)이 유령 컬럼에 써서 `followup_schedules`가 0행** — 재진 기능은 엔진을 정식 테이블로 고치기 전까진 휴면. 별도 근본수정 필요.
+- 교훈: 한 기능을 두 디자인모드로 가르면 데이터원이 갈리기 쉽다 — 서버 엔드포인트를 단일화(SoR)하고 화면은 거기에만 붙인다.
