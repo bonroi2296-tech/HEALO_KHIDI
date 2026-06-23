@@ -41,9 +41,23 @@ export async function generateMetadata({ params }) {
     const title = name; // 루트 template "%s | healwith"가 접미사 자동 추가
     const description = (cancer.intro?.[lc] || cancer.intro?.en || cancer.intro?.ko || "").slice(0, 160);
     const ogImg = CANCER_IMAGES.healGraph;
+    // 전환 의도 키워드(가격·비자·이동) — GROWTH_PLAN 리서치 기반. 문법 안전한 일반형만
+    // (암종명 보간은 러시아어 격변화가 깨질 수 있어 생략). 카자흐=Google, 러시아=Yandex 타겟.
+    const keywords = [
+      "лечение рака в Корее цена",
+      "стоимость лечения рака в Корее",
+      "лечение рака в Корее без визы",
+      "лечение рака в Корее из Алматы",
+      "медицинская виза в Корею",
+      "Кореяда рак емдеу бағасы",
+      "cancer treatment Korea cost",
+      "medical visa South Korea",
+      "한국 암 치료 비용",
+    ];
     return {
       title,
       description,
+      keywords,
       alternates: (await localeAlternates()) || undefined,
       openGraph: {
         title,
