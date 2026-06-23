@@ -6,6 +6,10 @@
 
 set -uo pipefail
 
+# 세션 활동 도장(heartbeat) — 같은 폴더 동시작업 감지용(session-guard.sh가 읽음).
+# 매 턴 갱신해야 하므로 브랜치/변경분 체크(아래 early-exit)보다 먼저, 무조건 찍는다.
+_gd=$(git rev-parse --git-dir 2>/dev/null) && date +%s > "$_gd/.claude-active-session" 2>/dev/null || true
+
 branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null) || exit 0
 [ -z "$branch" ] && exit 0
 [ "$branch" = "HEAD" ] && exit 0          # detached HEAD: 건너뜀

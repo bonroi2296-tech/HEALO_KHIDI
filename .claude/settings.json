@@ -18,6 +18,12 @@
             "command": "bash .claude/hooks/session-orient.sh",
             "timeout": 15,
             "statusMessage": "현재 작업 상태 파악 중..."
+          },
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/session-guard.sh",
+            "timeout": 10,
+            "statusMessage": "다른 세션 동시작업 확인 중..."
           }
         ]
       }
