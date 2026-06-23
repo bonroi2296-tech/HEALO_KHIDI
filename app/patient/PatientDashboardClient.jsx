@@ -6,7 +6,7 @@ import { useLang } from '@/lib/i18n/LangContext';
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser';
 import {
   FileText, Video, BookOpen, Activity, Calendar,
-  Upload, ChevronRight, AlertCircle, User, MessageSquare, Phone, ArrowRight,
+  Upload, ChevronRight, AlertCircle, User, Phone, ArrowRight,
 } from 'lucide-react';
 
 const L = {
@@ -35,7 +35,6 @@ const L = {
 };
 
 const MENU_ITEMS = [
-  { key: 'aiChat', icon: MessageSquare, href: '/patient/chat', color: 'bg-teal-50 text-teal-700' },
   { key: 'consultations', icon: Video, href: '#consultations', color: 'bg-blue-50 text-blue-600' },
   { key: 'documents', icon: Upload, href: '/patient/documents', color: 'bg-purple-50 text-purple-600' },
   { key: 'education', icon: BookOpen, href: '/education', color: 'bg-green-50 text-green-600' },
