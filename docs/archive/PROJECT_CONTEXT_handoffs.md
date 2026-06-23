@@ -1,6 +1,42 @@
 # PR
 
+## 🔖 세션 핸드오프 (2026-06-23 오전 — 앱아이콘 교체 + PWA "앱 설치" 배너 복구 + iOS 사파리 안내 배너)
 
+> 작업본(브랜치)은 세션 내내 다른 세션/자동저장 훅이 계속 바꿔 끼움(`feat/tier-restructure-hospital-clinic`→`-clean`). **내 작업은 전부 main에 직접 올림(별도 worktree로 cherry-pick)** — 진행 중이던 partner→hospital 작업과 안 섞이게. 3건 모두 프로덕션 배포 완료(Vercel READY 확인).
+
+**1. 이번 세션 한 일:**
+- **앱 아이콘 교체** — PO가 "말풍선(채팅 버블) 안에 굵은 h" 새 디자인 이미지 제공(`icons/icon.png`, 1254² 정사각). `node scripts/gen-app-icons.mjs`로 PWA 8종·파비콘 16/32·apple-touch·iOS 1024·Android 6밀도(런처·라운드·적응형) 일괄 재생성. 커밋 943481c (main).
+- **🔴 버그 복구: 모바일 "앱 설치" 배너가 안 뜨던 것** — 직전 아이콘 교체(a9a6673)가 `public/favicon.svg`를 지웠는데 서비스워커(`public/sw.js`) `PRECACHE_URLS`에 `/favicon.svg`가 남아 있었음. SW 설치 시 `cache.addAll`(원자적)이 404로 전체 실패 → **서비스워커 설치 자체가 실패** → Chrome PWA 설치조건(installability) 깨짐 → "앱 설치(홈 화면에 추가)" 배너 사라짐. 죽은 항목 제거 + `addAll`→개별 `cache.add`+`Promise.allSettled`(파일 하나 빠져도 SW 안 죽음) + `CACHE_NAME` v3→v4. **POSTMORTEMS #27**. 커밋 0fd822b (main).
+- **iOS 사파리 "홈 화면에 추가" 안내 배너 신설** — iOS 사파리는 애플 정책상 자동 설치 배너가 없음(공유→홈화면 수동만). iOS 사파리 + 비standalone + 미닫힘일 때만 하단에 안내 배너 노출(닫으면 localStorage 기억), 6개 언어(ko·en·ru·kz·zh·ja). 새 파일 `app/IosInstallHint.jsx` + `app/layout.jsx`에 연결. 커밋 9b4740c (main).
+
+**2. 왜 그렇게 했는지:**
+- **아이콘은 PO가 디자인 리드** — 내가 SVG 시안을 띄웠지만 PO가 직접 다듬은 이미지를 줘서 그걸 원본으로 채택(내가 단어/디자인 지어내지 말고 PO 결정본을 6개언어/전사이즈로 실행만 — 누적 취향과 일관).
+- **main에 직접 푸시(PR 없이)** — 저위험 자산/버그수정 + PO 승인 끝 + 같은 폴더에 다른 세션의 미완성 작업(partner→hospital)이 떠 있어 그 브랜치에 얹으면 안 섞임. 깨끗한 임시 worktree로 main 꺼내 cherry-pick→push 반복.
+- **SW를 allSettled로 구조 변경** = 단순 favicon 제거가 아니라 "프리캐시 파일 하나 사라지면 SW 통째로 죽는" 부류 자체를 영구 차단(재발방지가 곧 구조).
+
+**3. 안 끝났거나 보류:**
+- (보류 없음 — 3건 다 배포 완료) 다만 **실기기 클릭 검증은 못 함**(아래 6번).
+
+**4. 주의·함정:**
+- **같은 폴더에서 다른 세션이 동시 작업 중** — 작업본 브랜치가 수시로 바뀌고(`feat/tier-restructure-*`), 2분마다 자동저장 훅이 `git add -A` 커밋함. 멀티파일 작업 시 **내 파일만 콕 집어 add/commit**하고, main 반영은 **별도 worktree에서 cherry-pick**해라(이번에 그렇게 함). 진행 중 partner→hospital(/agency↔/clinic 분리, /doctor 비활성)은 **건드리지 말 것**.
+- 이미 홈화면에 설치한 폰은 아이콘이 **재설치 전까지 옛것**으로 보일 수 있음(OS 캐시) — 버그 아님.
+
+**5. 다음 세션이 먼저 할 일 (우선순위):**
+1. **⚠️ 직전 미검증분 먼저(실기기 확인)**: ①안드로이드 크롬 시크릿으로 healwith.co.kr → "앱 설치" 배너 + 새 말풍선 아이콘 뜨는지. ②iOS 사파리 시크릿 → 하단 "공유→홈화면 추가" 안내 배너 뜨는지(닫으면 안 다시 뜨는지). 안 뜨면 `IosInstallHint.jsx`의 Safari 판정(`/crios|fxios|edgios|opios/` 제외) 점검.
+2. (다른 세션 영역) partner→hospital 계층 재편은 그쪽 세션/PR에 맡김 — 중복 작업 금지.
+
+**6. 검증 상태:**
+- **3건 모두 Vercel 프로덕션 빌드 READY 확인**(get_deployment): 아이콘 943481c, SW수정 0fd822b, iOS배너 9b4740c → **빌드 통과 = 코드 정상**.
+- 아이콘 전사이즈 생성 ✅(스크립트 로그 + 32px 파비콘 육안 확인). favicon.svg 잔재 전수스캔 ✅(sw.js 한 곳뿐, 제거).
+- **실기기 런타임 미검증** — 안드로이드 "앱 설치" 배너 실제 노출/iOS 안내 배너 실제 표시는 **직접 클릭 확인 못 함**(데스크톱 프리뷰로는 installability·iOS UA 재현 불가). → 5번 1순위로 승격.
+- PR 없음(main 직접 푸시). `check:content`/`tsc`/`vitest` 로컬 미실행(node_modules 환경 이슈) → Vercel 빌드가 게이트 역할.
+
+**7. 다음 세션 첫 프롬프트:**
+> 먼저 docs/PROJECT_CONTEXT.md 최상단 핸드오프 읽어. 어제(2026-06-23) 앱아이콘 교체·PWA 설치배너 복구·iOS 안내배너를 prod에 올렸는데 **실기기 확인이 안 됐어**. ①안드로이드 폰 크롬 시크릿으로 healwith.co.kr 들어가서 "앱 설치" 배너랑 새 말풍선 아이콘 뜨는지, ②아이폰 사파리 시크릿으로 하단 "공유→홈화면 추가" 안내 배너 뜨는지 확인해줘(안 뜨면 IosInstallHint.jsx 점검). partner→hospital 작업은 다른 세션 거니 건드리지 마.
+
+---
+
+---
 
 ## 🔖 세션 핸드오프 (2026-06-22 심야 — 자율감사: 카자흐어 문의 차단 버그 발견·수정 + 공개 퍼널 레이트리밋 DB화 + 직전 잔무 정리)
 
