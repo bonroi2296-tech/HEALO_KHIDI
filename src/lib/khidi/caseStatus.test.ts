@@ -4,6 +4,7 @@ import {
   caseStatusOrder,
   outcomeForHospitalLeadStatus,
   outcomeForCaseStatus,
+  caseStatusToJourneyStage,
   CASE_STATUS_KEYS,
   CASE_STATUS_STEPS,
 } from "./caseStatus";
@@ -101,5 +102,36 @@ describe("outcomeForCaseStatus (코디 case_status 전진 → 유치 자동 집�
     expect(outcomeForCaseStatus(undefined)).toBeNull();
     expect(outcomeForCaseStatus("")).toBeNull();
     expect(outcomeForCaseStatus("nope")).toBeNull();
+  });
+});
+
+describe("caseStatusToJourneyStage (EDGE-1: 코디 case_status → 환자 여정바 단계)", () => {
+  it("각 case_status 를 알맞은 여정 단계로 매핑", () => {
+    expect(caseStatusToJourneyStage("received")).toBe("inquiry");
+    expect(caseStatusToJourneyStage("pre_consult")).toBe("consultation");
+    expect(caseStatusToJourneyStage("hospital_review")).toBe("proposal");
+    expect(caseStatusToJourneyStage("scheduling")).toBe("proposal");
+    expect(caseStatusToJourneyStage("visa_prep")).toBe("visa");
+    expect(caseStatusToJourneyStage("treatment")).toBe("treatment");
+    expect(caseStatusToJourneyStage("follow_up")).toBe("recovery");
+    expect(caseStatusToJourneyStage("completed")).toBe("recovery");
+  });
+
+  it("보류(on_hold)는 단계를 강제하지 않는다(null → 기존 계산 유지)", () => {
+    expect(caseStatusToJourneyStage("on_hold")).toBeNull();
+  });
+
+  it("빈 값·미상도 null", () => {
+    expect(caseStatusToJourneyStage(null)).toBeNull();
+    expect(caseStatusToJourneyStage(undefined)).toBeNull();
+    expect(caseStatusToJourneyStage("")).toBeNull();
+    expect(caseStatusToJourneyStage("nope")).toBeNull();
+  });
+
+  it("on_hold 외 모든 case_status 키가 매핑을 가진다", () => {
+    for (const k of CASE_STATUS_KEYS) {
+      if (k === "on_hold") continue;
+      expect(caseStatusToJourneyStage(k)).not.toBeNull();
+    }
   });
 });

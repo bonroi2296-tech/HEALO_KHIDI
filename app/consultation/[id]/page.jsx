@@ -1196,6 +1196,24 @@ export default function ConsultationRoomPage() {
     }
     if (typeof MediaRecorder === "undefined" || !navigator.mediaDevices?.getUserMedia) return;
 
+    // ⚠️ iOS(WebKit) 안전 폴백 (2026-06-22): iOS Safari/모든 iOS 브라우저는
+    // 2차 getUserMedia({audio}) 가 LiveKit 이 이미 잡은 송출 마이크를 "조용히" 빼앗아
+    // 환자 마이크가 죽는다(throw 없음 → 아래 catch 도 안 걸림 → 의사는 무음). 카자흐/러
+    // 환자 아이폰이 정확히 이 경로. → iOS 에선 서버 STT 2차 캡처를 아예 시작하지 않고
+    // "음성 자막 불가 → 텍스트 입력" 폴백 UI(mediaRecOk=false)로 안전하게 전환한다.
+    // (제대로 된 수리=LiveKit 기존 트랙 재사용은 실아이폰 검증 필요 — 별도 트랙.)
+    const ua = typeof navigator !== "undefined" ? navigator.userAgent || "" : "";
+    const isIosWebkit =
+      /iP(hone|ad|od)/.test(ua) ||
+      (typeof navigator !== "undefined" &&
+        navigator.platform === "MacIntel" &&
+        (navigator.maxTouchPoints || 0) > 1);
+    if (isIosWebkit) {
+      setServerSttStatus("idle");
+      setMediaRecOk(false);
+      return;
+    }
+
     let stopped = false;
     let stream = null;
     let recorder = null;

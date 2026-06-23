@@ -4,6 +4,31 @@
 
 ---
 
+## 🚀 2026-06-22 "정식 운영" 출시 점검 (3축 병렬 감사 + 실코드·실DB 검증)
+
+> PO 지시 "내일 당장 운영해도 버그 0·만족도 100%(사용자=외부 협력기관 포함)". 환자/협력기관/인프라 3축을 병렬 감사 후 **추정 그대로 안 믿고 실코드·실DB로 재검증**. 핵심: 감사봇이 "런치블로커"로 올린 것 중 상당수가 검증 결과 등급이 내려감(=검증의 가치).
+
+### ✅ 검증 결과 — 이미 해결됐거나 영향 낮음(과대평가 정정)
+- **EDGE-3/4/5(케이스상태 전파)**: 현 코드에 **이미 구현됨**. 상담완료→`advanceCaseStatus`(`app/api/khidi/consultation/[id]/route.ts`), admin leads/assign 대칭화, conversion-funnel PATCH가 `case_status_history` 기록. → 블로커 아님.
+- **`cancer_patient_intakes` step2 무음 upsert 실패(KNOWN_ISSUES #6)**: **실재하나 영향 낮음**으로 정정. 실DB 확인 = 총 3행·`inquiry_id` 있는 행 **0개**·평문치료 **0행**(퍼널이 여기 쓴 적 없음). 그러나 **진짜 데이터는 `inquiries.intake`에 AES 암호화로 안전**하고, 코디 화면(`/coordinator/intakes`)은 이 테이블이 아니라 `consultation_sessions`(`/api/khidi/consultation`)를 읽음 → 보조 리포팅 테이블만 비어있음. **실패 원인(검증 확정)**: ①`inquiry_id`에 UNIQUE 제약 없음 → `onConflict:"inquiry_id"` upsert는 Postgres가 무조건 거부 ②`cancer_type` NOT NULL인데 payload에 없음(이중 결함) ③코드가 평문 `current_treatment`에 쓰려 함(옆에 `current_treatment_encrypted` 존재). **수정=스키마 변경+EscalationQueue 동작 변경이라 RISKY → PO 결정**(긴급 아님).
+- **AI 디플렉션 루프 / 거짓 접수**: 현 코드에 가드·세션상태 주입 반영됨(이전 세션). 블로커 아님.
+
+### 🟡 진짜 남은 출시 리스크 (PO 결정/라이브 검증 필요 — 자율 보류)
+1. **🔴 [영상상담, iOS] 서버 STT 2차 getUserMedia가 LiveKit 마이크 탈취** — `app/consultation/[id]/page.jsx:1325`(2차 `getUserMedia({audio:true})`). iOS Safari는 2차 오디오 캡처가 1차(LiveKit 송출 마이크)를 **조용히** 빼앗아 환자 마이크가 죽음(throw 없음 → 코드의 catch도 안 걸림). 카자흐/러 환자 아이폰 = 정확히 이 경로. **영상상담은 헤더 전면배치 = 고객대면 핵심 → 최우선 실리스크.** 수정안 (a)iOS Safari는 서버STT 진입 자체를 막고 텍스트입력 폴백(작음·저위험, 단 iOS 자막 기능 degrade) (b)2차 캡처 대신 LiveKit 기존 마이크 트랙 재사용(견고하나 God컴포넌트 수정+**실아이폰 2인 검증 필수**). **빌드·iOS 검증 불가 환경이라 blind 수정 보류** — PO가 (a)/(b) 택1 + 라이브 검증.
+2. **[협력기관 가시성] EDGE-1: 환자 여정바가 `case_status`를 안 읽음** — `src/lib/patient/journeyState.js`(`computeCurrentStage`)가 `inquiry_events`만 봄 → 코디/병원이 case_status를 올려도 환자 대시보드 정체. **단 환자/코디 포털은 현재 미활성(메뉴 미연결·계정 없음)** → 내일 고객영향 0. 평가관이 환자로 로그인해 여정 볼 시나리오면 문제 → **포털 활성/평가 전 수정**. RISKY(환자 화면 단계 재정렬 가능, 라이브 검증).
+3. **[다국어 엣지] 영상방 게스트 `targetLang` 하드코딩 `ru`** — `page.jsx`. 표준 데모(한 의사↔러/카 환자)는 정상, 비표준 언어쌍에서 오타겟. 환자 언어에서 유도 권장(소).
+4. **soft-404(P2, 위 별도 섹션)** — PO 이미 "보류" 결정.
+
+### ✅ 이번 세션 수정 적용 (PR #269)
+- **iOS 마이크 탈취 → 안전 폴백(PO 택1: 옵션A)**: `app/consultation/[id]/page.jsx` 서버 STT effect 진입부에서 **iOS(WebKit) 감지 시 2차 getUserMedia 자체를 안 함** → `mediaRecOk=false`로 "음성자막 불가 → 텍스트 입력" 폴백. iOS는 브라우저STT 또는 텍스트로(자동자막만 포기, 마이크 사망 차단). **실아이폰 라이브 검증은 여전히 PO 권장**(코드 가드는 결정적). 견고판(LiveKit 트랙 재사용)은 추후.
+- **intake 저장버그 정상화**: `app/api/inquiries/step2/route.ts` — ①마이그레이션 `cancer_patient_intakes.inquiry_id` **UNIQUE 인덱스 추가**(prod 적용+`migrations/20260622_...sql`) ②`cancer_type`을 inquiry에서 가져와 NOT NULL 충족 ③민감필드를 `*_encrypted` 컬럼에 AES 저장(평문 중단). **동작 변화 주의**: 이제 퍼널 step2 인테이크가 `cancer_patient_intakes`에도 쌓임 → `GET /api/khidi/intake` 어드민 인테이크 목록에 퍼널 문의도 표시됨(정상이나 inquiries 목록과 중복 표시 가능). 정본은 여전히 `inquiries.intake`.
+- **EDGE-1 환자 여정바 case_status 반영**: `src/lib/khidi/caseStatus.ts`에 `caseStatusToJourneyStage` 추가 + `src/lib/patient/journeyState.js` `computeCurrentStage`가 이벤트단계와 case_status단계 중 **더 진행된 쪽** 반환(후퇴 방지). 회귀테스트 추가(caseStatus.test.ts·journeyState.test.ts). **⚠️ 단 화면 표시는 아직**: `fetchPatientJourney`가 브라우저에서 service_role 테이블 직접 조회 + 암호화 email 매칭이라 **데이터가 client로 안 옴**(포털 미활성과 동일). 로직·테스트는 정확하나, 환자 여정바가 실제 뜨려면 **포털 데이터 서버 API 이관(P1)**이 선행돼야 함 → 별도 과제로 남김.
+
+### 🔵 이미 다른 세션이 처리 중 (중복 금지)
+- **PR #267**(다른 세션): 🔴**카자흐어(`kz`) 문의가 step1 zod에서 400 거부되던 핵심시장 블로커** 수정(POSTMORTEMS #24) + 공개 퍼널 6라우트 레이트리밋 DB화(KNOWN_ISSUES #7). → 이 두 건은 **#267로 해결 예정**이라 본 세션은 손대지 않음. **PO 추천: #267 CI 초록 시 머지**(카자흐 차단은 실유치 직격).
+
+---
+
 ## 🟡 P2 — soft-404: 없는 치료/병원 슬러그가 HTTP 200 반환 (2026-06-22 기록·진단)
 
 - **증상(실측)**: 없는 슬러그 `https://www.healwith.co.kr/treatments/<없는값>`·`/hospitals/<없는값>`이 **HTTP 200** 반환. 대조군(없는 일반경로 `/totally-random-path`)은 정상 **404**. 즉 `[slug]` 동적 라우트만 soft-404.
