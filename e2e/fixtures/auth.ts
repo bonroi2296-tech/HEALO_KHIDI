@@ -22,14 +22,21 @@ export const ADMIN_USER = {
   password: process.env.E2E_ADMIN_PASSWORD || "E2eAdmin1234!",
 };
 
+// 코디네이터 테스트 계정 (docs/TEST_ACCOUNTS.md: coordinator@test.com / test1234)
+export const COORDINATOR_USER = {
+  email: process.env.E2E_COORDINATOR_EMAIL || "e2e-coordinator@healo-test.invalid",
+  password: process.env.E2E_COORDINATOR_PASSWORD || "E2eCoord1234!",
+};
+
 /**
  * Supabase email/password 로그인 (공통)
  */
 export async function loginAs(
   page: Page,
-  role: "patient" | "admin" = "patient"
+  role: "patient" | "admin" | "coordinator" = "patient"
 ): Promise<void> {
-  const creds = role === "admin" ? ADMIN_USER : TEST_USER;
+  const creds =
+    role === "admin" ? ADMIN_USER : role === "coordinator" ? COORDINATOR_USER : TEST_USER;
 
   await page.goto("/login");
   await page.waitForLoadState("networkidle");
