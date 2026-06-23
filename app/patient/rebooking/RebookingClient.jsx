@@ -61,43 +61,37 @@ export default function RebookingClient() {
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(null);
 
-  const handleConfirm = async (rb) => {
+  // 정식 테이블 = followup_schedules (/api/portal/followup). 본인 patient_user_id 행만.
+  const patchStatus = async (rb, status) => {
     setActionLoading(rb.id);
     try {
-      await fetch(`/api/khidi/consultation/${rb.id}`, {
+      const res = await fetch('/api/portal/followup', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'scheduled', notes: rb.notes + ' [Confirmed by patient]' }),
+        body: JSON.stringify({ id: rb.id, status }),
       });
-      setRebookings(prev => prev.filter(r => r.id !== rb.id));
-      setHistory(prev => [rb, ...prev]);
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.ok) {
+        setRebookings(prev => prev.filter(r => r.id !== rb.id));
+        if (status === 'confirmed') setHistory(prev => [{ ...rb, status }, ...prev]);
+      } else {
+        console.error('[rebooking] patch failed', data);
+      }
     } catch (e) { console.error(e); }
     setActionLoading(null);
   };
-
-  const handleDismiss = async (rb) => {
-    setActionLoading(rb.id);
-    try {
-      await fetch(`/api/khidi/consultation/${rb.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'cancelled' }),
-      });
-      setRebookings(prev => prev.filter(r => r.id !== rb.id));
-    } catch (e) { console.error(e); }
-    setActionLoading(null);
-  };
+  const handleConfirm = (rb) => patchStatus(rb, 'confirmed');
+  const handleDismiss = (rb) => patchStatus(rb, 'dismissed');
 
   useEffect(() => {
-    // Fetch rebooking consultations
-    fetch('/api/khidi/consultation?status=scheduled')
+    // followup_schedules: 대기 = pending/proposed, 이력 = confirmed/completed/dismissed
+    fetch('/api/portal/followup')
       .then(r => r.json())
       .then(res => {
         if (res.ok) {
-          const rebooks = (res.data || []).filter(s => s.rebooking_source);
-          const hist = (res.data || []).filter(s => !s.rebooking_source);
-          setRebookings(rebooks);
-          setHistory(hist);
+          const all = res.schedules || [];
+          setRebookings(all.filter(s => ['pending', 'proposed'].includes(s.status)));
+          setHistory(all.filter(s => !['pending', 'proposed'].includes(s.status)));
         }
       })
       .catch(() => {})
@@ -109,13 +103,6 @@ export default function RebookingClient() {
     return new Date(dateStr).toLocaleDateString(lang === 'ko' ? 'ko-KR' : lang === 'ja' ? 'ja-JP' : lang === 'zh' ? 'zh-CN' : lang === 'ru' || lang === 'kz' ? 'ru-RU' : 'en-US', {
       year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
     });
-  };
-
-  const getSourceLabel = (source) => {
-    if (source === 'followup') return l(LABELS.followup);
-    if (source === 'symptom') return l(LABELS.symptom);
-    if (source === 'doctor') return l(LABELS.doctor);
-    return source;
   };
 
   const visaShort = getVisaChecklist('C-3-3', lang);
@@ -138,7 +125,7 @@ export default function RebookingClient() {
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginBottom: 32 }}>
           {rebookings.map(rb => {
-            const sourceStyle = SOURCE_COLORS[rb.rebooking_source] || SOURCE_COLORS.followup;
+            const sourceStyle = SOURCE_COLORS.followup;
             return (
               <div
                 key={rb.id}
@@ -152,16 +139,16 @@ export default function RebookingClient() {
                     fontSize: 12, fontWeight: 600, padding: '4px 10px', borderRadius: 12,
                     background: sourceStyle.bg, color: sourceStyle.color,
                   }}>
-                    {getSourceLabel(rb.rebooking_source)}
+                    {rb.current_phase || l(LABELS.followup)}
                   </span>
                   <span style={{ fontSize: 13, color: '#666' }}>
-                    {l(LABELS.scheduledAt)}: {formatDate(rb.scheduled_at)}
+                    {l(LABELS.scheduledAt)}: {formatDate(rb.next_action_at)}
                   </span>
                 </div>
 
-                {rb.notes && (
+                {rb.cancer_type && (
                   <p style={{ fontSize: 14, color: '#444', marginBottom: 12, lineHeight: 1.5 }}>
-                    {rb.notes.replace('[Auto-rebooking] ', '')}
+                    {rb.cancer_type}
                   </p>
                 )}
 
@@ -260,10 +247,10 @@ export default function RebookingClient() {
               >
                 <div>
                   <span style={{ fontSize: 14, fontWeight: 500 }}>
-                    {h.session_type === 'follow_up' ? 'Follow-up' : h.session_type === 'emergency' ? 'Emergency' : h.session_type === 'diagnostic' ? 'Diagnostic' : 'Pre-consultation'}
+                    {h.current_phase || l(LABELS.followup)}
                   </span>
                   <span style={{ fontSize: 13, color: '#888', marginLeft: 8 }}>
-                    {formatDate(h.scheduled_at)}
+                    {formatDate(h.next_action_at)}
                   </span>
                 </div>
                 <span style={{
