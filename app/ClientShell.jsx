@@ -152,12 +152,15 @@ export default function ClientShell({ children, initialLang = "en" }) {
 
   // 인콰이어리(문의 퍼널)는 집중 태스크 흐름 → 하단 탭바 숨겨 채팅·폼 공간 확보(모바일)
   const hideBottomNav = pathname.includes("success") || pathname.includes("/inquiry");
-  // 포털(자체 깔끔한 상단바 + 환자용 하단탭바/SOS 숨김): 관리자·국내병원·해외에이전시/의료기관
+  // 포털(자체 깔끔한 상단바 + 공개 헤더/하단바/푸터 숨김): 관리자·국내병원·해외에이전시/의료기관·환자
+  // ⚠️ /patient 누락 시: 공개 헤더+공개 하단바(진료과목/문의/병원)+푸터가 환자 레이아웃의
+  //    자체 하단탭(홈/문서/더보기) 위에 겹쳐 모바일 레이아웃이 깨짐(2026-06-23 PO 신고, POSTMORTEMS #32).
   const isPortalPage =
     pathname.startsWith("/admin") ||
     pathname.startsWith("/hospital") ||
     pathname.startsWith("/agency") ||
-    pathname.startsWith("/clinic");
+    pathname.startsWith("/clinic") ||
+    pathname.startsWith("/patient");
 
   // --- Idle timeout (portal pages only, 10 min) ---
   const IDLE_LIMIT_MS = 10 * 60 * 1000;
@@ -178,7 +181,8 @@ export default function ClientShell({ children, initialLang = "en" }) {
   }, []);
 
   useEffect(() => {
-    if (!isPortalPage || !session) return;
+    // 환자 포털은 portal 크롬은 쓰되 10분 자동 로그아웃은 제외 — 환자가 콘텐츠 읽는 중 끊기지 않게
+    if (!isPortalPage || pathname.startsWith("/patient") || !session) return;
 
     lastActivityRef.current = Date.now();
     warningShownRef.current = false;
@@ -207,7 +211,7 @@ export default function ClientShell({ children, initialLang = "en" }) {
       clearInterval(timer);
       events.forEach((e) => window.removeEventListener(e, resetActivity));
     };
-  }, [isPortalPage, session, resetActivity, router, toast]);
+  }, [isPortalPage, pathname, session, resetActivity, router, toast]);
 
   return (
     <LangProvider initialLang={initialLang}>
