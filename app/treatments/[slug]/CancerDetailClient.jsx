@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { ArrowRight, Plus, HeartPulse, Activity, Droplet, Wind, Stethoscope, Microscope } from "lucide-react";
+import { ArrowRight, Plus, HeartPulse, Activity, Droplet, Wind, Stethoscope, Microscope, Calculator, FileText } from "lucide-react";
 
 const CANCER_ICONS = {
   female: HeartPulse,
@@ -30,6 +30,53 @@ const CTA = {
   kz: { consult: "Қашықтан кеңес сұрау", intake: "Сұрау жіберу", intakeShort: "Сұрау" },
   ja: { consult: "オンライン相談を申し込む", intake: "お問い合わせ", intakeShort: "問い合わせ" },
   zh: { consult: "申请远程咨询", intake: "提交咨询", intakeShort: "咨询" },
+};
+
+// ── 비용·비자 안내 밴드 카피 (전환 의도: 가격·비자·이동) ─────────
+// ⚠️ 카피 톤은 PO 검토 대상(초안). 가격 숫자는 하드코딩 금지 → /cost-calculator로 연결.
+const COST_VISA = {
+  ko: {
+    eyebrow: "비용 · 비자 안내",
+    title: "한국 치료, 비용과 비자를 미리 확인하세요",
+    desc: "예상 치료 비용과 의료 비자 절차를 한눈에. 카자흐스탄·러시아·중앙아시아에서 오시는 분들을 위한 안내입니다.",
+    costTitle: "예상 치료 비용", costSub: "비용 계산기로 바로 확인",
+    visaTitle: "비자 · 입국 안내", visaSub: "의료 비자 절차 안내",
+  },
+  en: {
+    eyebrow: "Cost & Visa",
+    title: "Check costs and visa before traveling to Korea",
+    desc: "See estimated treatment costs and the medical visa process at a glance — for patients coming from Kazakhstan, Russia and Central Asia.",
+    costTitle: "Estimated treatment cost", costSub: "Open the cost calculator",
+    visaTitle: "Visa & entry guide", visaSub: "Medical visa process",
+  },
+  ru: {
+    eyebrow: "Стоимость и виза",
+    title: "Узнайте стоимость лечения и визу в Корею заранее",
+    desc: "Ориентировочная стоимость лечения и порядок оформления медицинской визы — для пациентов из Казахстана, России и Центральной Азии.",
+    costTitle: "Стоимость лечения", costSub: "Открыть калькулятор стоимости",
+    visaTitle: "Виза и въезд", visaSub: "Оформление медицинской визы",
+  },
+  kz: {
+    eyebrow: "Құны және виза",
+    title: "Кореяда емделу құны мен визаны алдын ала біліңіз",
+    desc: "Болжамды емделу құны және медициналық виза рәсімі — Қазақстан, Ресей және Орталық Азиядан келетін науқастарға арналған.",
+    costTitle: "Емделу құны", costSub: "Құн калькуляторын ашу",
+    visaTitle: "Виза және кіру", visaSub: "Медициналық виза рәсімі",
+  },
+  zh: {
+    eyebrow: "费用与签证",
+    title: "赴韩治疗前，提前了解费用与签证",
+    desc: "预估治疗费用与医疗签证流程一目了然 — 为来自哈萨克斯坦、俄罗斯及中亚的患者提供。",
+    costTitle: "预估治疗费用", costSub: "打开费用计算器",
+    visaTitle: "签证与入境指南", visaSub: "医疗签证流程",
+  },
+  ja: {
+    eyebrow: "費用とビザ",
+    title: "韓国での治療、費用とビザを事前に確認",
+    desc: "治療費の目安と医療ビザの手続きをひと目で — カザフスタン・ロシア・中央アジアからお越しの方向け。",
+    costTitle: "治療費の目安", costSub: "費用計算ツールを開く",
+    visaTitle: "ビザ・入国案内", visaSub: "医療ビザの手続き",
+  },
 };
 
 // 암종별 관련 치료법 매핑
@@ -241,6 +288,7 @@ export default function CancerDetailClient({ slug }) {
   const l = (obj) => obj?.[lang] || obj?.en || obj?.ko || "";
   const cta = CTA[lang] || CTA.en;
   const s = SECTION_COPY[lang] || SECTION_COPY.en;
+  const cv = COST_VISA[lang] || COST_VISA.en;
 
   const therapyKeys = SLUG_THERAPIES[slug] || [];
   const complicationImgs = COMPLICATION_IMAGES[slug] || [];
@@ -289,6 +337,49 @@ export default function CancerDetailClient({ slug }) {
             const Icon = CANCER_ICONS[slug] || Activity;
             return <Icon size={64} strokeWidth={1.25} className="text-teal-700/70" />;
           })()}
+        </div>
+      </section>
+
+      {/* ── 1.5 비용·비자 안내 밴드 (전환 의도: 가격·비자·이동) ── */}
+      <section className="max-w-4xl mx-auto px-4 pb-10 md:pb-14">
+        <div className="rounded-xl border border-teal-100 bg-teal-50 p-5 md:p-8">
+          <span className="inline-block text-xs font-bold tracking-wide text-teal-700 mb-2">
+            {cv.eyebrow}
+          </span>
+          <h2 className="text-lg md:text-xl font-bold text-gray-900 leading-snug">
+            {cv.title}
+          </h2>
+          <p className="mt-2 text-sm md:text-base text-gray-500 leading-relaxed max-w-2xl">
+            {cv.desc}
+          </p>
+          <div className="mt-5 grid sm:grid-cols-2 gap-4">
+            <Link
+              href="/cost-calculator"
+              className="flex items-center gap-3 bg-white border border-gray-200 rounded-xl px-5 py-4 shadow-sm hover:shadow-md transition-all"
+            >
+              <span className="w-10 h-10 rounded-xl bg-teal-50 border border-teal-100 flex items-center justify-center shrink-0">
+                <Calculator size={20} className="text-teal-700" />
+              </span>
+              <span className="min-w-0">
+                <span className="block text-sm md:text-base font-bold text-gray-900">{cv.costTitle}</span>
+                <span className="block text-xs md:text-sm text-gray-500">{cv.costSub}</span>
+              </span>
+              <ArrowRight size={18} className="ml-auto text-teal-700 shrink-0" />
+            </Link>
+            <Link
+              href="/visa"
+              className="flex items-center gap-3 bg-white border border-gray-200 rounded-xl px-5 py-4 shadow-sm hover:shadow-md transition-all"
+            >
+              <span className="w-10 h-10 rounded-xl bg-teal-50 border border-teal-100 flex items-center justify-center shrink-0">
+                <FileText size={20} className="text-teal-700" />
+              </span>
+              <span className="min-w-0">
+                <span className="block text-sm md:text-base font-bold text-gray-900">{cv.visaTitle}</span>
+                <span className="block text-xs md:text-sm text-gray-500">{cv.visaSub}</span>
+              </span>
+              <ArrowRight size={18} className="ml-auto text-teal-700 shrink-0" />
+            </Link>
+          </div>
         </div>
       </section>
 
