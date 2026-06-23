@@ -17,7 +17,7 @@ export const runtime = "nodejs";
 import { supabaseAdmin, assertSupabaseEnv } from "@/lib/rag/supabaseAdmin";
 import { encryptPiiInObject } from "@/lib/security/piiJson";
 import { NextRequest } from "next/server";
-import { checkRateLimit, getClientIp, RATE_LIMITS, getRateLimitHeaders } from "@/lib/rateLimit";
+import { checkRateLimitPersistent, getClientIp, RATE_LIMITS, getRateLimitHeaders } from "@/lib/rateLimit";
 import { logRateLimitExceeded, logEncryptionFailed, logInquiryReceived, logInquiryFailed } from "@/lib/operationalLog";
 import { trackFunnelEvent } from "@/lib/events/funnelTracking";
 import { checkBlockRate } from "@/lib/alerts/operationalAlerts";
@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
   const apiPath = '/api/inquiries/intake';
 
   // ✅ 운영 안정화: Rate limit 체크 (봇/도배 방지)
-  const rateLimitResult = checkRateLimit(clientIp, RATE_LIMITS.INQUIRY);
+  const rateLimitResult = await checkRateLimitPersistent(clientIp, RATE_LIMITS.INQUIRY);
   if (!rateLimitResult.allowed) {
     logRateLimitExceeded(
       apiPath,

@@ -79,7 +79,7 @@ function maskIp(ip: string | null | undefined): string {
   if (ip.includes('.')) {
     const parts = ip.split('.');
     if (parts.length === 4) {
-      return `${parts[0]}.${parts[1]}.***,${parts[3]}`;
+      return `${parts[0]}.${parts[1]}.***.${parts[3]}`;
     }
   }
   

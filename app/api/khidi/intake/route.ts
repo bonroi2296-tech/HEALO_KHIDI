@@ -20,7 +20,7 @@ import {
   decryptStringNullable,
 } from "@/lib/security/encryptionV2";
 import {
-  checkRateLimit,
+  checkRateLimitPersistent,
   getClientIp,
   getRateLimitHeaders,
 } from "@/lib/rateLimit";
@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
     // Rate limit (스팸/대량 enum 방지)
     // ────────────────────────────────────────────
     const ip = getClientIp(request);
-    const rl = checkRateLimit(ip, INTAKE_RATE);
+    const rl = await checkRateLimitPersistent(ip, INTAKE_RATE);
     if (!rl.allowed) {
       return Response.json(
         { ok: false, error: "rate_limited" },

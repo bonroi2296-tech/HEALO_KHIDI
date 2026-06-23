@@ -21,7 +21,7 @@ export const runtime = "nodejs";
 import { NextRequest } from "next/server";
 import { supabaseAdmin, assertSupabaseEnv } from "@/lib/rag/supabaseAdmin";
 import { encryptString, encryptStringNullable } from "@/lib/security/encryptionV2";
-import { checkRateLimit, getClientIp, RATE_LIMITS, getRateLimitHeaders } from "@/lib/rateLimit";
+import { checkRateLimitPersistent, getClientIp, RATE_LIMITS, getRateLimitHeaders } from "@/lib/rateLimit";
 import { logInquiryReceived } from "@/lib/operationalLog";
 import { trackFunnelEvent } from "@/lib/events/funnelTracking";
 import { sendAdminNotification } from "@/lib/notifications/adminNotifier";
@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
   // ========================================
   // 1. Rate limiting (봇/도배 방지)
   // ========================================
-  const rateLimitResult = checkRateLimit(clientIp, RATE_LIMITS.INQUIRY);
+  const rateLimitResult = await checkRateLimitPersistent(clientIp, RATE_LIMITS.INQUIRY);
   if (!rateLimitResult.allowed) {
     console.warn(`[${apiPath}] Rate limit exceeded: ${clientIp}`);
     
