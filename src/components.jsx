@@ -53,10 +53,22 @@ const MY_PAGE_LABEL = {
   ko: '내 페이지', en: 'My Page', ru: 'Мой кабинет', kz: 'Менің бетім', zh: '我的页面', ja: 'マイページ',
 };
 
+// "내 페이지" 링크를 역할별로 곧장 보낸다. (코디·에이전시가 /patient 들렀다 튕기는 hop 방지)
+//   app_metadata.role 기준 — admin/coordinator/agency, 병원담당자(hospital_users)=isHospitalUser, 그 외 환자.
+//   doctor 는 전용 포털 비활성화라 /patient 폴백(거의 안 쓰임).
+function resolveMyPageHref(session, isAdmin, isHospitalUser) {
+  const appRole = session?.user?.app_metadata?.role;
+  if (isAdmin || appRole === 'admin') return '/admin';
+  if (appRole === 'coordinator') return '/coordinator';
+  if (appRole === 'agency') return '/agency';
+  if (isHospitalUser) return '/hospital';
+  return '/patient';
+}
+
 const UserMenu = ({ session, onLogout, langCode, isHospitalUser, isAdmin }) => {
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useOutsideClose(isOpen, () => setIsOpen(false));
-  const myPageHref = isAdmin ? '/admin' : isHospitalUser ? '/hospital' : '/patient';
+  const myPageHref = resolveMyPageHref(session, isAdmin, isHospitalUser);
   const myPageLabel = MY_PAGE_LABEL[langCode] || MY_PAGE_LABEL.en;
 
   const getInitials = (email) => {
@@ -319,7 +331,7 @@ export const Header = ({ setView, view, _handleGlobalInquiry, isMobileMenuOpen, 
               {session && (
                 <div className="px-5 pt-4 pb-2 space-y-2">
                   {!isHospitalUser && !isAdmin && (
-                    <a href="/patient" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center gap-2.5 py-3 px-4 bg-teal-700 text-white rounded-xl text-sm font-semibold shadow-sm">
+                    <a href={resolveMyPageHref(session, isAdmin, isHospitalUser)} onClick={() => setIsMobileMenuOpen(false)} className="flex items-center gap-2.5 py-3 px-4 bg-teal-700 text-white rounded-xl text-sm font-semibold shadow-sm">
                       <User size={16} /> {MY_PAGE_LABEL[langCode] || MY_PAGE_LABEL.en}
                     </a>
                   )}
