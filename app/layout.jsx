@@ -6,6 +6,7 @@ import Providers from "./providers";
 import ClientShell from "./ClientShell";
 import AnalyticsWrapper from "./AnalyticsWrapper";
 import DesignToggle from "../components/healo/DesignToggle";
+import IosInstallHint from "./IosInstallHint";
 import { localeAlternates, OG_LOCALE, getRequestLocale } from "@/lib/i18n/metadata";
 
 // kz(우리 내부 코드) → kk(BCP47 표준 카자흐 언어코드). <html lang>·hreflang용.
@@ -148,6 +149,7 @@ export default async function RootLayout({ children }) {
           <ClientShell initialLang={lang}>{children}</ClientShell>
           <DesignToggle />
         </Providers>
+        <IosInstallHint lang={lang} />
       </body>
     </html>
   );
