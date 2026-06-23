@@ -10,6 +10,7 @@ import {
   FileText, UserCheck, Clock, ShieldCheck, Shield, Sparkles, User, LogOut, BookOpen, Video
 } from 'lucide-react';
 import { getLangCodeFromCookie, setLangCookie, LANG_OPTIONS as I18N_LANG_OPTIONS, LANG_OPTIONS_PRIMARY, t } from "./lib/i18n";
+import { useLang } from "./lib/i18n/LangContext";
 import { localeSwitchTarget } from "./lib/i18n/config";
 import Logo from "../components/brand/Logo";
 
@@ -30,24 +31,8 @@ const useOutsideClose = (isOpen, onClose) => {
   return ref;
 };
 
-// 언어 코드는 i18n getLangCodeFromCookie() 사용 (healo_lang 우선, 20개 언어)
-
-const useLangCode = () => {
-  // SSR에서는 쿠키 접근 불가 → "en" 고정, 클라이언트에서 hydration 후 실제 값 반영
-  const [langCode, setLangCode] = useState("en");
-  useEffect(() => {
-    // 마운트 시 즉시 쿠키에서 언어 읽기
-    setLangCode(getLangCodeFromCookie());
-    const id = setInterval(() => {
-      setLangCode(prev => {
-        const next = getLangCodeFromCookie();
-        return prev !== next ? next : prev;
-      });
-    }, 1500);
-    return () => clearInterval(id);
-  }, []);
-  return langCode;
-};
+// 렌더 언어: useLang()(LangContext, 서버가 initialLang 주입) — SSR부터 올바른 언어로 그린다(POSTMORTEMS #30).
+const useLangCode = () => useLang();
 
 const MY_PAGE_LABEL = {
   ko: '내 페이지', en: 'My Page', ru: 'Мой кабинет', kz: 'Менің бетім', zh: '我的页面', ja: 'マイページ',
