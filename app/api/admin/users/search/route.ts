@@ -17,11 +17,12 @@
 export const runtime = "nodejs";
 
 import { NextRequest } from "next/server";
-import { requireAdminAuth } from "@/lib/auth/requireAdminAuth";
+import { requirePortalAuth } from "@/lib/auth/requirePortalAuth";
 import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
 
 export async function GET(request: NextRequest) {
-  const auth = await requireAdminAuth(request);
+  // 상담 생성 시 의사/코디 드롭다운 + 환자 계정 검색 — admin·coordinator(staff) 모두 사용
+  const auth = await requirePortalAuth(request, { staffOnly: true });
   if (!auth.success) return auth.response;
 
   const q = (request.nextUrl.searchParams.get("q") || "").trim();

@@ -7,6 +7,8 @@ import {
   Edit2, X, ChevronDown, Plus,
 } from 'lucide-react';
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser';
+import { useToast } from '@/components/Toast';
+import { CreateConsultationModal } from '@/components/consultation/CreateConsultationModal';
 
 const SESSION_TYPE = {
   pre_consultation: '사전상담',
@@ -25,32 +27,33 @@ const STATUS_STYLE = {
 
 export default function CoordinatorConsultationsPage() {
   const router = useRouter();
+  const toast = useToast();
   const [consultations, setConsultations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('scheduled');
   const [expandedId, setExpandedId] = useState(null);
+  const [showCreateModal, setShowCreateModal] = useState(false);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      const supabase = createSupabaseBrowserClient();
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) return;
+  const fetchData = async () => {
+    setLoading(true);
+    const supabase = createSupabaseBrowserClient();
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) { setLoading(false); return; }
 
-      try {
-        const url = filter === 'all'
-          ? '/api/khidi/consultation?limit=100'
-          : `/api/khidi/consultation?status=${filter}&limit=100`;
-        const res = await fetch(url, {
-          headers: { Authorization: `Bearer ${session.access_token}` },
-        });
-        const data = await res.json();
-        if (data.ok) setConsultations(data.data || []);
-      } catch (e) { console.error(e); }
-      setLoading(false);
-    };
-    fetchData();
-  }, [filter]);
+    try {
+      const url = filter === 'all'
+        ? '/api/khidi/consultation?limit=100'
+        : `/api/khidi/consultation?status=${filter}&limit=100`;
+      const res = await fetch(url, {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+      const data = await res.json();
+      if (data.ok) setConsultations(data.data || []);
+    } catch (e) { console.error(e); }
+    setLoading(false);
+  };
+
+  useEffect(() => { fetchData(); }, [filter]);
 
   const handleJoin = (id) => router.push(`/consultation/${id}`);
 
@@ -62,7 +65,7 @@ export default function CoordinatorConsultationsPage() {
           <p className="text-gray-500 text-sm mt-1">원격 화상 상담 스케줄링 및 진행 관리</p>
         </div>
         <button
-          onClick={() => router.push('/intake')}
+          onClick={() => setShowCreateModal(true)}
           className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium"
         >
           <Plus size={16} />
@@ -188,6 +191,18 @@ export default function CoordinatorConsultationsPage() {
             );
           })}
         </div>
+      )}
+
+      {/* 새 상담 예약 모달 (admin 과 동일한 공용 컴포넌트) */}
+      {showCreateModal && (
+        <CreateConsultationModal
+          onClose={() => setShowCreateModal(false)}
+          onSuccess={() => {
+            setShowCreateModal(false);
+            fetchData();
+            toast.success('상담 예약이 생성되었습니다');
+          }}
+        />
       )}
     </div>
   );
