@@ -13,18 +13,21 @@
  */
 
 // 리브랜딩(HEALO→healwith) 시 버전업: 기존 방문자 캐시 자동 무효화 → 새 UI 즉시 반영
-const CACHE_NAME = 'healwith-v3';
+const CACHE_NAME = 'healwith-v4';
 const OFFLINE_URL = '/offline.html';
 
 const PRECACHE_URLS = [
   '/manifest.json',
-  '/favicon.svg',
   '/offline.html',
 ];
 
 self.addEventListener('install', (event) => {
+  // 개별 캐싱 + allSettled: 프리캐시 파일 하나가 404여도 SW 설치 전체가 죽지 않게.
+  // (v3 사고: favicon.svg 삭제 → addAll 원자성으로 SW 설치 실패 → PWA "앱 설치" 배너 사라짐)
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(PRECACHE_URLS))
+    caches.open(CACHE_NAME).then((cache) =>
+      Promise.allSettled(PRECACHE_URLS.map((u) => cache.add(u)))
+    )
   );
   self.skipWaiting();
 });

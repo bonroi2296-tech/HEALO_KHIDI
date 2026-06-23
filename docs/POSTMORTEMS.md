@@ -572,3 +572,23 @@ PO가 면력한방병원 각 지점 메인사진(`/images/hospitals/<slug>/1.jpg
 **재발 방지 (시스템 적용)**
 - `scripts/optimize-images.mjs`에 `SKIP` 룰 추가: `images/hospitals/<slug>/1.jpg`(지점 메인사진)는 재압축·CI 게이트 양쪽에서 **제외**. 서브사진(2~5)·갤러리는 계속 최적화 대상(전송량 이득 유지). dry-run으로 메인 제외 검증함.
 - 교훈: **자동 최적화/정리 스크립트는 "사람이 고른 자산"을 건드리지 않게 화이트리스트/스킵 경계를 둔다.**
+
+---
+
+## #27 — 앱아이콘 교체가 favicon.svg를 지웠는데 서비스워커는 계속 프리캐시 → SW 설치 실패 → PWA "앱 설치" 배너 사라짐 (2026-06-23)
+
+**무슨 일**
+모바일 브라우저 첫 방문 시 뜨던 Chrome PWA "앱 설치(홈 화면에 추가)" 배너가 어느 순간 안 뜸. 추적해보니 앱아이콘 교체 커밋(#a9a6673)이 `public/favicon.svg`를 삭제했는데, `public/sw.js`의 `PRECACHE_URLS`에 `/favicon.svg`가 그대로 남아 있었음. 서비스워커 설치 시 `cache.addAll([...])`은 **원자적(all-or-nothing)** — `/favicon.svg`가 404나면 addAll 전체가 reject → `event.waitUntil` reject → **서비스워커 설치 자체가 실패**. 활성 SW가 없으면 Chrome의 installability 조건이 깨져 설치 배너가 안 뜸. (favicon.svg 삭제 전 SW를 이미 설치한 폰은 옛 워커가 돌아 멀쩡 → 새 방문자만 증상, 그래서 발견이 늦음.)
+
+**왜 못 잡았나 (근본원인)**
+1. 자산 삭제(favicon.svg) 시 그 파일을 **참조하는 다른 곳(SW 프리캐시 목록)을 안 따라감** — #26과 같은 "조용한 결합" 부류.
+2. `cache.addAll`의 **원자성**을 간과 — 목록 중 단 하나만 404여도 SW 전체가 죽는데, 실패가 콘솔에만 남고 화면엔 "배너 안 뜸"으로만 드러남.
+3. **자동 가드 부재** + 빌드는 정적파일 404를 검사 안 함 → 사람(PO)이 증상으로 발견할 때까지 남음.
+
+**어떻게 고쳤나**
+- `sw.js`: 죽은 `/favicon.svg` 항목 제거 + `addAll` → 개별 `cache.add` + `Promise.allSettled`로 전환(파일 하나 빠져도 SW 설치는 성공). `CACHE_NAME` v3→v4로 버전업(반쯤 깨진 캐시 상태 정리).
+- favicon.svg 잔재 전수 스캔 — sw.js 한 곳뿐이었음(확인 완료).
+
+**재발 방지 (시스템 적용)**
+- **구조적 차단**: `addAll`(원자적) → `allSettled`(개별)로 바꿔, 앞으로 **어떤 프리캐시 파일이 사라져도 SW가 죽지 않음** — 이 부류(프리캐시 단일파일 404 → 설치배너 실종)를 영구 무력화.
+- 교훈: **public 자산을 삭제할 때 sw.js `PRECACHE_URLS`·manifest·layout `<head>` 참조를 같이 확인한다.** 원자적 일괄작업(addAll 등)은 가능하면 부분실패 허용형으로.
