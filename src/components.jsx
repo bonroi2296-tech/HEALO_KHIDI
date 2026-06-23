@@ -56,7 +56,7 @@ const MY_PAGE_LABEL = {
 const UserMenu = ({ session, onLogout, langCode, isHospitalUser, isAdmin }) => {
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useOutsideClose(isOpen, () => setIsOpen(false));
-  const myPageHref = isAdmin ? '/admin' : isHospitalUser ? '/partner' : '/patient';
+  const myPageHref = isAdmin ? '/admin' : isHospitalUser ? '/hospital' : '/patient';
   const myPageLabel = MY_PAGE_LABEL[langCode] || MY_PAGE_LABEL.en;
 
   const getInitials = (email) => {
@@ -256,7 +256,7 @@ export const Header = ({ setView, view, _handleGlobalInquiry, isMobileMenuOpen, 
 
             {/* Portal links */}
             {isHospitalUser && !isAdmin && (
-              <a href="/partner" className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold text-slate-600 hover:text-teal-700 hover:bg-teal-200/70 rounded-full transition-all border border-teal-200" title="Hospital Portal">
+              <a href="/hospital" className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold text-slate-600 hover:text-teal-700 hover:bg-teal-200/70 rounded-full transition-all border border-teal-200" title="Hospital Portal">
                 <Building2 size={13} /> Portal
               </a>
             )}
@@ -324,7 +324,7 @@ export const Header = ({ setView, view, _handleGlobalInquiry, isMobileMenuOpen, 
                     </a>
                   )}
                   {isHospitalUser && !isAdmin && (
-                    <a href="/partner" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center gap-2.5 py-3 px-4 bg-teal-700 text-white rounded-xl text-sm font-semibold shadow-sm">
+                    <a href="/hospital" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center gap-2.5 py-3 px-4 bg-teal-700 text-white rounded-xl text-sm font-semibold shadow-sm">
                       <Building2 size={16} /> Hospital Portal
                     </a>
                   )}

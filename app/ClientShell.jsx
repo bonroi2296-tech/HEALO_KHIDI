@@ -156,8 +156,9 @@ export default function ClientShell({ children, initialLang = "en" }) {
   // 포털(자체 깔끔한 상단바 + 환자용 하단탭바/SOS 숨김): 관리자·국내병원·해외에이전시/의료기관
   const isPortalPage =
     pathname.startsWith("/admin") ||
-    pathname.startsWith("/partner") ||
-    pathname.startsWith("/agency");
+    pathname.startsWith("/hospital") ||
+    pathname.startsWith("/agency") ||
+    pathname.startsWith("/clinic");
 
   // D. Premium 디자인 적용 라우트 — 자체 Nav/Footer를 가지므로 ClientShell의 Header/Footer 숨김
   // Premium 디자인 적용된 정확한 경로 (prefix 매칭은 아래 isPremiumPath 함수에서)

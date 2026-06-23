@@ -106,7 +106,7 @@ export const ACCOUNT_TIERS: Record<AccountTier, AccountTierDef> = {
     labelKo: "국내 의료기관",
     labelEn: "Domestic hospital",
     storage: "hospital_users",
-    portal: "/partner",
+    portal: "/hospital",
     description:
       "제휴 한국 병원 담당자. hospital_users 테이블(owner/manager/viewer)로 연결. 리드·프로필 관리.",
   },
@@ -128,7 +128,7 @@ export const ACCOUNT_TIERS: Record<AccountTier, AccountTierDef> = {
     storage: "agency_users",
     appRole: "agency",
     partnerType: "medical_institution",
-    portal: "/agency",
+    portal: "/clinic",
     description:
       "환자를 한국으로 의뢰하는 현지 병원/클리닉. agency_users + agencies.partner_type='medical_institution'. 에이전시와 동일 인프라 재활용.",
   },

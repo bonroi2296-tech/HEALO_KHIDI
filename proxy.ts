@@ -19,7 +19,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
-import { LOCALES, DEFAULT_LOCALE, LOCALE_COOKIE } from "@/lib/i18n/config";
+import { LOCALES, LOCALE_COOKIE, DEFAULT_LOCALE } from "@/lib/i18n/config";
 
 // ── URL 언어화(locale-in-path) ──────────────────────────────
 // 공개 마케팅 경로만 /{locale}/ 로 강제. /ru/treatments → 내부 /treatments rewrite + x-locale 헤더로 언어 전달.
@@ -54,7 +54,7 @@ function isPublicLocalePath(pathname: string) {
   return PUBLIC_PREFIXES.some((p) => pathname === p || pathname.startsWith(p + "/"));
 }
 function detectLocale(request: NextRequest) {
-  // 1) 직접 고른 언어(healo_lang 쿠키)는 항상 우선 — 다음 방문에도 유지.
+  // 직접 고른 언어(healo_lang 쿠키)는 항상 우선 — 다음 방문에도 유지.
   const cookie = request.cookies.get(LOCALE_COOKIE)?.value;
   if (cookie && LOCALES.includes(cookie)) return cookie;
   // 2) 첫 진입 = 브라우저/시스템 언어가 우리 6개 중 하나면 그걸로(한→ko, 카→kz, 일→ja…).
@@ -226,6 +226,23 @@ export async function proxy(request: NextRequest) {
   }
 
   // ========================================
+  // 레거시 경로 리다이렉트 (계층 재편 — 옛 링크/북마크 안 깨지게)
+  // 로그인 벽 안이라 SEO 무관 → 되돌리기 쉽게 임시(307) redirect.
+  // ========================================
+  // /partner/* → /hospital/* (국내 병원 포털 리네임, 의사 흡수)
+  if (pathname === "/partner" || pathname.startsWith("/partner/")) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/hospital" + pathname.slice("/partner".length);
+    return NextResponse.redirect(url);
+  }
+  // /doctor/* → 비활성화 (의사는 별도 포털 없이 상담방 초대링크 참여자). 홈으로.
+  if (pathname === "/doctor" || pathname.startsWith("/doctor/")) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/";
+    return NextResponse.redirect(url);
+  }
+
+  // ========================================
   // /admin 경로 보호 (서버 레벨)
   // ========================================
   if (pathname.startsWith("/admin")) {
@@ -248,9 +265,9 @@ export async function proxy(request: NextRequest) {
   }
 
   // ========================================
-  // /partner 경로 보호 (로그인 여부만 체크, 세부 권한은 GateClient에서)
+  // /hospital 경로 보호 (로그인 여부만 체크, 세부 권한은 GateClient에서)
   // ========================================
-  if (pathname.startsWith("/partner")) {
+  if (pathname.startsWith("/hospital")) {
     const { hasSession, response: partnerResponse } = await checkSessionInMiddleware(request);
     if (!hasSession) {
       const loginUrl = new URL("/login", request.url);

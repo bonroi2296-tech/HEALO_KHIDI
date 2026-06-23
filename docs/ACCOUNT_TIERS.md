@@ -12,11 +12,11 @@
 | 1 | **비회원(게스트)** | 화상상담 초대받은 사람 | 초대링크 토큰(계정 없음) | 상담방 |
 | 2 | **사용자(환자)** | 로그인한 일반 회원 | 기본값(role 없음) | `/patient/*` |
 | 3 | **코디네이터** | 내부 스태프 | `app_metadata.role=coordinator` | `/coordinator/*` |
-| 4 | **의사** | 한국 종양 전문의 | `app_metadata.role=doctor` | `/doctor/*` |
+| 4 | **의사** | 한국 종양 전문의 | `app_metadata.role=doctor` | ⚠️ 포털 비활성화 — 상담방 초대링크 참여 |
 | 5 | **관리자** | 운영자(PO) | `app_metadata.role=admin` 또는 `ADMIN_EMAIL_ALLOWLIST` | `/admin/*` |
-| 6 | **국내 의료기관** | 제휴 한국 병원 담당자 | `hospital_users` 테이블(owner/manager/viewer) | `/partner/*` |
+| 6 | **국내 의료기관** | 제휴 한국 병원 담당자 | `hospital_users` 테이블(owner/manager/viewer) | `/hospital/*` |
 | 7 | **해외 에이전시** | 해외 환자 유치 파트너 | `agency_users` + `agencies.partner_type='agency'` | `/agency` |
-| 8 | **해외 의료기관** | 환자를 의뢰하는 현지 병원 | `agency_users` + `agencies.partner_type='medical_institution'` | `/agency` |
+| 8 | **해외 의료기관** | 환자를 의뢰하는 현지 병원 | `agency_users` + `agencies.partner_type='medical_institution'` | `/clinic` |
 
 ## 권한이 저장되는 4가지 방식
 
@@ -48,6 +48,11 @@
 
 ## 변경 이력
 
+- 2026-06-23: **계층 재편 마이그레이션(기획 `KHIDI_역할_프로세스_기획.md` §7 반영).** 국내 병원 포털
+  `/partner`→`/hospital`(옛 주소 자동 리다이렉트, `/api/partner/*` API 경로는 유지). 해외 의료기관
+  포털 `/agency`→`/clinic` 분리(에이전시는 `/agency` 유지, URL↔partner_type 불일치 시 자동 이동).
+  의사 전용 포털 `/doctor` 비활성화(접속 시 홈으로 — 코드·계정은 보존, 상담 '담당 의사' 배정엔 계속 사용).
+  `accountTiers.ts` portal 값·`resolveLanding.ts`·`proxy.ts` 갱신. 8계층 골격은 유지.
 - 2026-06-21: 8계층 표준 확정. `accountTiers.ts` 단일 SoR 신설. 옛 `roles.ts`
   (`korean_hospital/local_clinic/agent`)는 표준에 맞춰 정리(레거시 별칭만 유지).
   해외 의료기관(8번) 신규 추가 — `agencies.partner_type` 재활용. 코디·의사 포털에

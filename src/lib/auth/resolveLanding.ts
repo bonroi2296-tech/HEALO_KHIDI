@@ -6,8 +6,8 @@
  *   포털로 보낸다. 계층 정의는 accountTiers.ts 표준을 따른다.
  *
  * - admin → /admin, coordinator → /coordinator, doctor → /doctor
- * - agency(해외 에이전시/의료기관) → /agency
- * - 병원 담당자(hospital_users) → /partner
+ * - agency(해외 에이전시) → /agency, 해외 의료기관(medical_institution) → /clinic
+ * - 병원 담당자(hospital_users) → /hospital
  * - 그 외(환자) → /patient
  */
 
@@ -22,7 +22,26 @@ export async function resolveLandingPath(opts: {
   if (opts.isAdmin || opts.appRole === "admin") return "/admin";
   if (opts.appRole === "coordinator") return "/coordinator";
   if (opts.appRole === "doctor") return "/doctor";
-  if (opts.appRole === "agency") return "/agency";
+  if (opts.appRole === "agency") {
+    // 해외 파트너: agencies.partner_type 으로 에이전시(/agency) vs 의료기관(/clinic) 구분
+    if (opts.userId) {
+      try {
+        // agency_users 는 자동생성 타입 목록에 없어 any 캐스팅(checkAgencyAuth 와 동일 패턴)
+        const { data } = await (supabaseAdmin as any)
+          .from("agency_users")
+          .select("agencies(partner_type)")
+          .eq("user_id", opts.userId)
+          .eq("is_active", true)
+          .limit(1)
+          .maybeSingle();
+        const pt = (data as any)?.agencies?.partner_type;
+        if (pt === "medical_institution") return "/clinic";
+      } catch {
+        /* 조회 실패 시 /agency 폴백 */
+      }
+    }
+    return "/agency";
+  }
 
   // 병원 담당자는 app_metadata.role 이 아니라 hospital_users 테이블로 판정
   if (opts.userId) {
@@ -34,7 +53,7 @@ export async function resolveLandingPath(opts: {
         .eq("is_active", true)
         .limit(1)
         .maybeSingle();
-      if (data) return "/partner";
+      if (data) return "/hospital";
     } catch {
       /* 조회 실패 시 환자로 폴백 */
     }
