@@ -46,20 +46,22 @@ export async function GET(request: NextRequest) {
 
   try {
     const ids = await findOwnInquiryIds(auth.email || "");
-    if (ids.length === 0) {
-      return Response.json({ ok: true, reports: [], inquiryId: null });
-    }
-    const { data, error } = await supabaseAdmin
+    // 본인 기록 = patient_user_id(직접 소유) 또는 본인 inquiry 연결분.
+    // patient_user_id 만으로도 잡히게 해 문의 없는 환자도 본인 기록을 본다.
+    let q = supabaseAdmin
       .from("symptom_reports")
       .select("*")
-      .in("inquiry_id", ids)
       .order("created_at", { ascending: false })
       .limit(60);
+    q = ids.length > 0
+      ? q.or(`patient_user_id.eq.${auth.userId},inquiry_id.in.(${ids.join(",")})`)
+      : q.eq("patient_user_id" as any, auth.userId);
+    const { data, error } = await q;
     if (error) {
       console.error("[portal/symptoms] GET error:", error.message);
       return Response.json({ ok: false, error: "query_failed" }, { status: 500 });
     }
-    return Response.json({ ok: true, reports: data || [], inquiryId: ids[0] });
+    return Response.json({ ok: true, reports: data || [], inquiryId: ids[0] ?? null });
   } catch (err: any) {
     console.error("[portal/symptoms] GET exception:", err?.message);
     return Response.json({ ok: false, error: "internal_error" }, { status: 500 });
@@ -108,6 +110,7 @@ export async function POST(request: NextRequest) {
         {
           followup_id: null,
           inquiry_id: inquiryId, // 본인 문의에 연결(없으면 null — 사후관리 KPI는 inquiry 연결분만)
+          patient_user_id: auth.userId, // 작성자(환자) — 문의 없어도 본인 기록 조회 가능
           report_type: report.reportType,
           symptoms: report.symptoms,
           ai_risk_score: analysis.riskScore,
@@ -124,6 +127,26 @@ export async function POST(request: NextRequest) {
       // 분석은 돌려주되 저장 실패 표시
       return Response.json({ ok: true, analysis, saved: false });
     }
+
+    // 이상치 자동 감지 → 코디 알림 (비동기, 응답 차단 X)
+    ;(async () => {
+      try {
+        const { detectAlerts } = await import("@/lib/symptoms/detect");
+        const { saveAndNotifyAlerts } = await import("@/lib/symptoms/alertService");
+        const firstSym = report.symptoms[0];
+        const entry = {
+          id: data.id,
+          patient_id: auth.userId,
+          pain_score: firstSym?.severity ?? undefined,
+          notes: report.symptoms.map((s: any) => s.symptom).filter(Boolean).join(" "),
+          created_at: new Date().toISOString(),
+        };
+        const detected = await detectAlerts(entry, null);
+        if (detected.length > 0) await saveAndNotifyAlerts(detected);
+      } catch (e: any) {
+        console.error("[portal/symptoms] 감지 오류(무시):", e?.message);
+      }
+    })();
 
     return Response.json({ ok: true, analysis, report: data, saved: true });
   } catch (err: any) {
