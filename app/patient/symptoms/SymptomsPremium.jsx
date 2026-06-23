@@ -98,13 +98,16 @@ export default function SymptomsPremium() {
       }
       setUser(session.user);
 
-      const { data } = await supabase
-        .from("symptom_reports")
-        .select("*")
-        .order("created_at", { ascending: false })
-        .limit(60);
-
-      setReports(data || []);
+      // symptom_reports 는 service_role 전용 → 서버 API 경유(본인 것만, inquiry 매칭)
+      try {
+        const res = await fetch("/api/portal/symptoms", {
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        });
+        const result = await res.json();
+        setReports(result?.ok ? result.reports || [] : []);
+      } catch {
+        setReports([]);
+      }
       setLoading(false);
     })();
   }, []);
@@ -118,7 +121,8 @@ export default function SymptomsPremium() {
       const supabase = createSupabaseBrowserClient();
       const { data: { session } } = await supabase.auth.getSession();
 
-      const res = await fetch("/api/khidi/followup", {
+      // 서버가 본인 inquiry 를 해석해 연결 + AI분석 + 저장 (IDOR 방지)
+      const res = await fetch("/api/portal/symptoms", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -138,13 +142,16 @@ export default function SymptomsPremium() {
       });
 
       if (res.ok) {
-        // Reload
-        const { data } = await supabase
-          .from("symptom_reports")
-          .select("*")
-          .order("created_at", { ascending: false })
-          .limit(60);
-        setReports(data || []);
+        // 목록 새로고침 (서버 API 경유)
+        try {
+          const r2 = await fetch("/api/portal/symptoms", {
+            headers: { Authorization: `Bearer ${session.access_token}` },
+          });
+          const result = await r2.json();
+          if (result?.ok) setReports(result.reports || []);
+        } catch {
+          /* 무시 — 다음 로드에서 반영 */
+        }
         setForm({ name: "", severity: 5, durationValue: "1", durationUnit: "days", notes: "" });
       }
     } finally {
