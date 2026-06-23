@@ -28,10 +28,14 @@ const HARD_MAX = 900 * 1024;       // CI 게이트: 단일 이미지 상한(이 
 const DRY = process.argv.includes("--dry");
 const CHECK = process.argv.includes("--check");
 const EXT = /\.(jpe?g|png|webp)$/i;
+// PO가 큐레이션한 병원 지점 메인사진(<slug>/1.jpg)은 자동 재압축에서 제외한다.
+// 과거 재압축(#135)이 PO가 설정한 메인사진을 덮어써 수동 복구한 사고(2026-06-23, POSTMORTEM #26).
+// 서브사진(2~5.jpg)·갤러리는 계속 최적화 대상. 메인만 화질 보존.
+const SKIP = /[\\/]images[\\/]hospitals[\\/][^\\/]+[\\/]1\.(jpe?g|png|webp)$/i;
 
 // --check: 재인코딩 없이 stat만 — 900KB 초과 이미지가 있으면 CI 실패(3MB 원본 재유입 차단).
 if (CHECK) {
-  const offenders = SCAN_DIRS.flatMap(walk).filter((f) => f.size > HARD_MAX);
+  const offenders = SCAN_DIRS.flatMap(walk).filter((f) => f.size > HARD_MAX && !SKIP.test(f.rel));
   if (offenders.length) {
     console.error(`❌ 과대 이미지 ${offenders.length}개 (>${(HARD_MAX/1024).toFixed(0)}KB) — \`npm run optimize:images\` 실행 후 커밋하세요:`);
     for (const o of offenders) console.error(`   ${(o.size/1024).toFixed(0)}KB  ${o.rel}`);
@@ -59,6 +63,7 @@ const files = SCAN_DIRS.flatMap(walk);
 let before = 0, after = 0, changed = 0, scanned = 0;
 
 for (const f of files) {
+  if (SKIP.test(f.rel)) continue; // 큐레이션 메인사진 보존
   const abs = join(ROOT, f.rel);
   let meta;
   try { meta = await sharp(abs).metadata(); } catch { continue; }
