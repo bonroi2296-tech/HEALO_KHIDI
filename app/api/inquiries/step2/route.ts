@@ -76,12 +76,16 @@ export async function POST(request: NextRequest) {
     // inquiry 존재 확인 + 소유권(public_token) 검증
     const { data: existingRaw, error: fetchErr } = await supabaseAdmin
       .from("inquiries")
-      .select("id, step1_completed_at, public_token")
+      .select("id, step1_completed_at, public_token, cancer_type")
       .eq("id", inquiryId)
       .maybeSingle();
 
     const existing = existingRaw as
-      | (typeof existingRaw & { step1_completed_at?: string | null; public_token?: string | null })
+      | (typeof existingRaw & {
+          step1_completed_at?: string | null;
+          public_token?: string | null;
+          cancer_type?: string | null;
+        })
       | null;
 
     if (fetchErr || !existing) {
@@ -125,24 +129,44 @@ export async function POST(request: NextRequest) {
       return Response.json({ ok: false, error: "update_failed" }, { status: 500 });
     }
 
-    // cancer_patient_intakes — inquiry_id 컬럼 존재 여부를 동적으로 처리
-    // inquiry_id 컬럼이 없는 구버전 스키마에서도 실패하지 않도록 try/catch 감싸기
+    // cancer_patient_intakes — 보조 리포팅 테이블에도 인테이크 반영(upsert).
+    // ⚠️ 과거 버그(2026-06-22 수정): ① inquiry_id 에 UNIQUE 제약이 없어
+    //   onConflict:"inquiry_id" upsert 가 항상 거부→무음 실패 ② cancer_type 이
+    //   NOT NULL 인데 미전달 ③ 민감필드(current_treatment·diagnosis_date)를 평문에 쓰려 함.
+    //   → UNIQUE 인덱스 추가(마이그레이션) + cancer_type 을 inquiry 에서 가져오고
+    //     민감필드는 *_encrypted 컬럼에 AES 저장으로 정상화.
+    // 진짜 데이터는 inquiries.intake(암호화)에 이미 안전 → 실패해도 비치명적이라 try/catch 유지.
     try {
-      // inquiry_id / current_treatment_state / travel_timing / priorities 등 신규 컬럼은
-      // 타입 정의 재생성 전까지 any 캐스팅 사용
       const intakePayload: Record<string, unknown> = {
         inquiry_id: inquiryId,
-        cancer_stage: data.stage ?? null,
-        current_treatment: data.treatmentState ?? null, // 기존 컬럼명 호환
+        cancer_type: existing.cancer_type ?? "other", // step1 에서 저장된 암종(NOT NULL)
+        cancer_stage: data.stage ?? null, // 카테고리(비민감) → 평문
+        current_treatment_encrypted: data.treatmentState
+          ? encryptStringNullable(data.treatmentState)
+          : null,
+        diagnosis_date_encrypted: data.diagnosisDate
+          ? encryptStringNullable(data.diagnosisDate)
+          : null,
         updated_at: now,
       };
-      await (supabaseAdmin.from("cancer_patient_intakes") as any).upsert(
-        intakePayload,
-        { onConflict: "inquiry_id", ignoreDuplicates: false }
-      );
+      const { error: intakeErr } = await (supabaseAdmin.from(
+        "cancer_patient_intakes"
+      ) as any).upsert(intakePayload, {
+        onConflict: "inquiry_id",
+        ignoreDuplicates: false,
+      });
+      if (intakeErr) {
+        console.warn(
+          "[/api/inquiries/step2] cancer_patient_intakes upsert failed:",
+          intakeErr.message
+        );
+      }
     } catch (intakeErr: any) {
-      // 치명적이지 않음 — inquiries 는 이미 업데이트 완료
-      console.warn("[/api/inquiries/step2] cancer_patient_intakes upsert skipped:", intakeErr.message);
+      // 치명적이지 않음 — inquiries 는 이미 업데이트 완료(정본 데이터 안전)
+      console.warn(
+        "[/api/inquiries/step2] cancer_patient_intakes upsert error:",
+        intakeErr?.message
+      );
     }
 
     return Response.json({ ok: true, inquiryId, matchAccuracy: accuracy });

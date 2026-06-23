@@ -15,6 +15,7 @@
  */
 
 import { createSupabaseBrowserClient } from "../supabase/browser";
+import { caseStatusToJourneyStage } from "../khidi/caseStatus";
 
 export const JOURNEY_STAGES = [
   { id: "inquiry", order: 1, label: { en: "Inquiry", ko: "문의", ru: "Заявка", kz: "Өтінім", zh: "咨询", ja: "問い合わせ" } },
@@ -120,41 +121,56 @@ export async function fetchPatientJourney() {
  * - coordinator_response 있음 → proposal
  * - inquiry 있음 → inquiry
  */
+/**
+ * 추가(EDGE-1, 2026-06-22): 코디/병원이 설정한 inquiry.case_status 도 단계에 반영한다.
+ * 이벤트 기반 단계와 case_status 기반 단계 중 **더 진행된 쪽**을 택해(환자 진행이 뒤로
+ * 가지 않게) 반환 → 코디가 case_status 만 올려도 환자/에이전시 여정바가 따라 움직인다.
+ */
+const STAGE_ORDER = (id) => JOURNEY_STAGES.find((s) => s.id === id)?.order || 1;
+
 export function computeCurrentStage(data) {
   if (!data) return "inquiry";
 
   const { consultations, coordinatorResponses, followup, inquiry, events } = data;
 
-  if (followup) return "recovery";
+  // 1) 기존 이벤트/상담/제안 기반 단계 계산
+  const eventStage = (() => {
+    if (followup) return "recovery";
 
-  const anyTreatmentEvent = events?.some((e) =>
-    ["treatment_started", "hospitalized", "surgery_completed"].includes(e.event_type)
-  );
-  if (anyTreatmentEvent) return "treatment";
+    const anyTreatmentEvent = events?.some((e) =>
+      ["treatment_started", "hospitalized", "surgery_completed"].includes(e.event_type)
+    );
+    if (anyTreatmentEvent) return "treatment";
 
-  const anyTravelEvent = events?.some((e) =>
-    ["arrived_in_korea", "visa_issued"].includes(e.event_type)
-  );
-  if (anyTravelEvent) return "travel";
+    const anyTravelEvent = events?.some((e) =>
+      ["arrived_in_korea", "visa_issued"].includes(e.event_type)
+    );
+    if (anyTravelEvent) return "travel";
 
-  const visaInProgress = events?.some((e) =>
-    ["visa_started", "visa_documents_requested"].includes(e.event_type)
-  );
-  if (visaInProgress) return "visa";
+    const visaInProgress = events?.some((e) =>
+      ["visa_started", "visa_documents_requested"].includes(e.event_type)
+    );
+    if (visaInProgress) return "visa";
 
-  const hasFinalProposal = coordinatorResponses?.some((r) => r.is_final);
-  const hasAnyProposal = coordinatorResponses?.length > 0;
-  const hasScheduledConsultation = consultations?.some((c) =>
-    ["scheduled", "in_progress"].includes(c.status)
-  );
-  const hasCompletedConsultation = consultations?.some((c) => c.status === "completed");
+    const hasFinalProposal = coordinatorResponses?.some((r) => r.is_final);
+    const hasAnyProposal = coordinatorResponses?.length > 0;
+    const hasScheduledConsultation = consultations?.some((c) =>
+      ["scheduled", "in_progress"].includes(c.status)
+    );
+    const hasCompletedConsultation = consultations?.some((c) => c.status === "completed");
 
-  if (hasFinalProposal) return "visa";
-  if (hasAnyProposal || hasCompletedConsultation) return "proposal";
-  if (hasScheduledConsultation) return "consultation";
-  if (inquiry) return "inquiry";
+    if (hasFinalProposal) return "visa";
+    if (hasAnyProposal || hasCompletedConsultation) return "proposal";
+    if (hasScheduledConsultation) return "consultation";
+    return "inquiry";
+  })();
 
-  return "inquiry";
+  // 2) 코디/병원이 설정한 case_status 기반 단계 — 더 진행된 쪽 선택(후퇴 방지)
+  const caseStage = caseStatusToJourneyStage(inquiry?.case_status);
+  if (caseStage && STAGE_ORDER(caseStage) > STAGE_ORDER(eventStage)) {
+    return caseStage;
+  }
+  return eventStage;
 }
 
 /**
