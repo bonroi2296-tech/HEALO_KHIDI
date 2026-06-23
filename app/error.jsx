@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getLangCodeFromCookie } from "@/lib/i18n";
+import { useLang } from "@/lib/i18n/LangContext";
 
 const COPY = {
   ko: { title: "일시적인 오류가 발생했어요", body1: "페이지를 준비하는 중 예기치 못한 문제가 생겼어요. 데이터는 안전합니다.", body2: "다시 시도하시고, 계속되면 코디네이터에게 문의해 주세요.", retry: "다시 시도", home: "홈으로 →" },
@@ -13,8 +13,7 @@ const COPY = {
 };
 
 export default function Error({ error, reset }) {
-  const [lang, setLang] = useState("en");
-  useEffect(() => { setLang(getLangCodeFromCookie()); }, []);
+  const lang = useLang();
   const c = COPY[lang] || COPY.en;
 
   useEffect(() => {

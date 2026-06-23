@@ -6,7 +6,8 @@ import { Loader2, X, Search } from "lucide-react";
 import { supabaseClient } from "@/lib/data/supabaseClient";
 import { mapHospitalRow, mapTreatmentRow } from "@/lib/mapper";
 import { getCurrentLangCode } from "@/lib/language";
-import { getLangCodeFromCookie, t } from "@/lib/i18n";
+import { t } from "@/lib/i18n";
+import { useLang } from "@/lib/i18n/LangContext";
 import { CardListSection, PersonalConciergeCTA } from "@/components.jsx";
 
 const TAG_CHIPS = {
@@ -43,16 +44,7 @@ export default function PaginatedListClient({ type, withCta = false }) {
   const [searchQuery, setSearchQuery] = useState(initialSearch);
   const ITEMS_PER_PAGE = 6;
   const isDev = process.env.NODE_ENV !== "production";
-  const [lang, setLang] = useState("en");
-  useEffect(() => {
-    const update = () => {
-      const newLang = getLangCodeFromCookie();
-      setLang(prev => prev !== newLang ? newLang : prev);
-    };
-    update();
-    const id = setInterval(update, 1500);
-    return () => clearInterval(id);
-  }, []);
+  const lang = useLang();
   const localTitle = type === "treatment" ? t("list.treatments.title", lang) : t("list.hospitals.title", lang);
 
   const buildUrl = (path, params) => {

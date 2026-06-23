@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { getLangCodeFromCookie } from '@/lib/i18n';
+import { useLang } from '@/lib/i18n/LangContext';
 import { getVisaChecklist } from '@/lib/visa/visaGuide';
 
 const LABELS = {
@@ -52,8 +52,7 @@ const STATUS_LABELS = {
 };
 
 export default function RebookingClient() {
-  const [lang, setLang] = useState('en');
-  useEffect(() => { setLang(getLangCodeFromCookie()); }, []);
+  const lang = useLang();
   const l = (obj) => obj?.[lang] || obj?.['en'] || '';
 
   const [rebookings, setRebookings] = useState([]);

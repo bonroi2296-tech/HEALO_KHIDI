@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { getLangCodeFromCookie } from '@/lib/i18n';
+import { useLang } from '@/lib/i18n/LangContext';
 
 const NATIONALITIES = [
   { value: 'ru', label: { ko: '러시아', en: 'Russia', ru: 'Россия', zh: '俄罗斯', ja: 'ロシア', kz: 'Ресей' } },
@@ -101,8 +101,7 @@ function VisaCard({ checklist, label, l }) {
 }
 
 export default function VisaClient() {
-  const [lang, setLang] = useState('en');
-  useEffect(() => { setLang(getLangCodeFromCookie()); }, []);
+  const lang = useLang();
   const l = (obj) => obj[lang] || obj['en'] || '';
 
   const [nationality, setNationality] = useState('ru');

@@ -13,7 +13,8 @@ import { normalizeImages } from "@/lib/mapper";
 import { localize, localizeArray, localizeLocation, getCurrentLangCode } from "@/lib/language";
 import { GoogleMapComponent } from "@/components/GoogleMap";
 import { formatDate, formatPriceRange } from "@/lib/i18n/format";
-import { getLangCodeFromCookie, t } from "@/lib/i18n";
+import { t } from "@/lib/i18n";
+import { useLang } from "@/lib/i18n/LangContext";
 import { event } from "@/lib/ga";
 
 export const TreatmentDetailPage = ({
@@ -41,16 +42,7 @@ export const TreatmentDetailPage = ({
   const [relatedTreatments, setRelatedTreatments] = useState([]);
   const [similarTreatments, setSimilarTreatments] = useState([]);
   const [currentSlide, setCurrentSlide] = useState(0);
-  const [langCode, setLangCode] = useState("en");
-  useEffect(() => {
-    const update = () => setLangCode(prev => {
-      const next = getLangCodeFromCookie();
-      return prev !== next ? next : prev;
-    });
-    update();
-    const timer = setInterval(update, 1500);
-    return () => clearInterval(timer);
-  }, []);
+  const langCode = useLang();
 
   // Helper: build treatment view object from raw DB row
   const buildTreatmentView = (tRow, lang) => {

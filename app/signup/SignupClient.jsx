@@ -8,6 +8,7 @@ import { useToast } from '@/components/Toast';
 import { PolicyModal } from '@/components/Modals';
 import { PRIVACY_CONTENT, TERMS_CONTENT } from '@/lib/policyContent';
 import { getLangCodeFromCookie, t } from '@/lib/i18n';
+import { useLang } from '@/lib/i18n/LangContext';
 
 const supabase = createSupabaseBrowserClient();
 
@@ -63,7 +64,7 @@ const PW_ERROR_MSG = {
 export const SignUpPage = ({ setView }) => {
     const toast = useToast();
     const router = useRouter();
-    const [langCode, setLangCode] = useState('en');
+    const langCode = useLang();
     const [firstName, setFirstName] = useState('');
     const [lastName, setLastName] = useState('');
     const [email, setEmail] = useState('');
@@ -78,10 +79,6 @@ export const SignUpPage = ({ setView }) => {
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [oauthRedirecting, setOauthRedirecting] = useState(false);
-
-    useEffect(() => {
-        setLangCode(getLangCodeFromCookie());
-    }, []);
 
     // /inquiry → /signup?provider=google 자동 OAuth 트리거
     useEffect(() => {

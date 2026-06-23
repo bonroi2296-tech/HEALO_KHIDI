@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { getLangCodeFromCookie } from "@/lib/i18n";
+import { useLang } from "@/lib/i18n/LangContext";
 
 const COPY = {
   ko: { title: "페이지를 찾을 수 없습니다", body: "주소가 바뀌었거나 존재하지 않는 페이지예요.", home: "홈으로", inquiry: "상담 신청 →" },
@@ -14,8 +14,7 @@ const COPY = {
 };
 
 export default function NotFoundClient() {
-  const [lang, setLang] = useState("en");
-  useEffect(() => { setLang(getLangCodeFromCookie()); }, []);
+  const lang = useLang();
   const c = COPY[lang] || COPY.en;
 
   return (

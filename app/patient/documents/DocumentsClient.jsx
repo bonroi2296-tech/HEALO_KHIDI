@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Upload, FileText, AlertCircle, ChevronDown } from 'lucide-react';
-import { getLangCodeFromCookie } from '@/lib/i18n';
+import { useLang } from '@/lib/i18n/LangContext';
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser';
 
 const LABELS = {
@@ -44,8 +44,7 @@ function formatFileSize(bytes) {
 
 export default function DocumentsClient() {
   const router = useRouter();
-  const [lang, setLang] = useState('en');
-  useEffect(() => { setLang(getLangCodeFromCookie()); }, []);
+  const lang = useLang();
   const l = (obj) => obj?.[lang] || obj?.['en'] || '';
 
   const [authChecked, setAuthChecked] = useState(false);

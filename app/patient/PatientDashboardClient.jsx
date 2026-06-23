@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { getLangCodeFromCookie } from '@/lib/i18n';
+import { useLang } from '@/lib/i18n/LangContext';
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser';
 import {
   FileText, Video, BookOpen, Activity, Calendar,
@@ -46,12 +46,11 @@ const MENU_ITEMS = [
 
 export default function PatientDashboardClient() {
   const router = useRouter();
-  const [lang, setLang] = useState('en');
+  const lang = useLang();
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [consultations, setConsultations] = useState([]);
 
-  useEffect(() => { setLang(getLangCodeFromCookie()); }, []);
   const l = (obj) => obj?.[lang] || obj?.['en'] || '';
 
   useEffect(() => {

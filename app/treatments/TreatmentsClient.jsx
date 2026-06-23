@@ -6,7 +6,7 @@ import {
   ArrowRight, ChevronDown, Stethoscope, Leaf, Shield,
   Activity, Clock, FileText, CheckCircle,
 } from 'lucide-react';
-import { getLangCodeFromCookie } from '@/lib/i18n';
+import { useLang } from '@/lib/i18n/LangContext';
 
 export const TREATMENTS_L = {
   title: { ko: '암종별 치료 안내', en: 'Cancer Treatment Guide', ru: 'Руководство по лечению рака', kz: 'Рак емдеу нұсқаулығы', zh: '癌症治疗指南', ja: 'がん治療ガイド' },
@@ -117,10 +117,9 @@ const PROCESS_STEPS = [
 
 export default function TreatmentsClient() {
   const router = useRouter();
-  const [lang, setLang] = useState('en');
+  const lang = useLang();
   const [expandedIdx, setExpandedIdx] = useState(-1);
 
-  useEffect(() => { setLang(getLangCodeFromCookie()); }, []);
   const l = (obj) => obj?.[lang] || obj?.['en'] || obj?.['ko'] || '';
 
   return (

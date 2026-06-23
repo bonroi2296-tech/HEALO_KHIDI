@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { getLangCodeFromCookie } from '@/lib/i18n';
+import { useLang } from '@/lib/i18n/LangContext';
 import { BookOpen, ChevronDown, ChevronUp, Stethoscope, AlertTriangle, Heart, Utensils, Dumbbell, Brain } from 'lucide-react';
 
 export const CANCER_TYPES = [
@@ -428,8 +428,7 @@ GUIDES.thyroid = {
 };
 
 export default function EducationClient() {
-  const [lang, setLang] = useState('en');
-  useEffect(() => { setLang(getLangCodeFromCookie()); }, []);
+  const lang = useLang();
   const l = (obj) => obj?.[lang] || obj?.['en'] || '';
 
   const [cancerType, setCancerType] = useState('stomach');

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { getLangCodeFromCookie } from '@/lib/i18n';
+import { useLang } from '@/lib/i18n/LangContext';
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser';
 import {
   Activity, AlertTriangle, Plus, Send, Trash2,
@@ -42,7 +42,7 @@ const URGENCY_STYLE = {
 
 export default function SymptomsClient() {
   const router = useRouter();
-  const [lang, setLang] = useState('en');
+  const lang = useLang();
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -51,7 +51,6 @@ export default function SymptomsClient() {
   const [previousReports, setPreviousReports] = useState([]);
   const [showPrevious, setShowPrevious] = useState(false);
 
-  useEffect(() => { setLang(getLangCodeFromCookie()); }, []);
   const l = (obj) => obj?.[lang] || obj?.['en'] || '';
 
   // 본인 증상기록 불러오기 (mine=true → patient_user_id 본인 것만)
