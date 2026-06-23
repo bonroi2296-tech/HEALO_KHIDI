@@ -11,7 +11,8 @@ import { supabaseClient as supabase } from "@/lib/data/supabaseClient";
 import { mapHospitalRow, mapTreatmentRow } from "@/lib/mapper";
 import { GoogleMapComponent } from "@/components/GoogleMap";
 
-import { getLangCodeFromCookie, t } from "@/lib/i18n";
+import { t } from "@/lib/i18n";
+import { useLang } from "@/lib/i18n/LangContext";
 import { formatDate } from "@/lib/i18n/format";
 import { event } from "@/lib/ga";
 
@@ -107,16 +108,7 @@ export const HospitalDetailPage = ({ selectedId, setView, onTreatmentClick, init
   const [loadingReviews, setLoadingReviews] = useState(false);
   const [realReviews, setRealReviews] = useState([]);
   const [openFaqIdx, setOpenFaqIdx] = useState(-1);
-  const [langCode, setLangCode] = useState("en");
-  useEffect(() => {
-    const update = () => setLangCode(prev => {
-      const next = getLangCodeFromCookie();
-      return prev !== next ? next : prev;
-    });
-    update();
-    const id = setInterval(update, 1500);
-    return () => clearInterval(id);
-  }, []);
+  const langCode = useLang();
 
   // Re-map data when language changes (normal hospitals, without re-fetching)
   useEffect(() => {

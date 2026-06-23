@@ -1,8 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { getLangCodeFromCookie } from "@/lib/i18n";
+import { useLang } from "@/lib/i18n/LangContext";
 import { getPartnerHospital } from "@/lib/data/partnerHospitals";
 import {
   ArrowLeft, MapPin, Phone, Globe, Stethoscope,
@@ -11,8 +10,7 @@ import {
 
 export default function PartnerHospitalClient({ slug }) {
   const router = useRouter();
-  const [lang, setLang] = useState("en");
-  useEffect(() => { setLang(getLangCodeFromCookie()); }, []);
+  const lang = useLang();
   const l = (obj) => obj?.[lang] || obj?.["en"] || obj?.["ko"] || "";
   const lArr = (obj) => {
     if (!obj) return [];

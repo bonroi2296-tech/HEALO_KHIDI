@@ -1,19 +1,20 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ChevronLeft, AlertCircle, CheckCircle2, Sparkles } from 'lucide-react';
 import { useToast } from '@/components/Toast';
 import { getLangCodeFromCookie, t } from '@/lib/i18n';
+import { useLang } from '@/lib/i18n/LangContext';
 import { event } from '@/lib/ga';
 
 export default function ConsultWrapper() {
   const router = useRouter();
   const toast = useToast();
-  const [langCode, setLangCode] = useState('en');
+  const langCode = useLang();
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
-  
+
   const [formData, setFormData] = useState({
     concern: '',
     country: '',
@@ -21,10 +22,6 @@ export default function ConsultWrapper() {
     contactMethod: '',
     contactId: '',
   });
-
-  useEffect(() => {
-    setLangCode(getLangCodeFromCookie());
-  }, []);
 
   const handleSubmit = async () => {
     if (!formData.concern?.trim()) {

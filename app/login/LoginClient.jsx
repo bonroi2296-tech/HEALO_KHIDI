@@ -1,27 +1,24 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser';
 import { useToast } from '@/components/Toast';
-import { getLangCodeFromCookie, t } from '@/lib/i18n';
+import { t } from '@/lib/i18n';
+import { useLang } from '@/lib/i18n/LangContext';
 
 const supabase = createSupabaseBrowserClient();
 
 export const LoginPage = ({ setView }) => {
     const toast = useToast();
     const router = useRouter();
-    const [langCode, setLangCode] = useState('en');
+    const langCode = useLang();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const [oauthLoading, setOauthLoading] = useState(false);
-
-    useEffect(() => {
-        setLangCode(getLangCodeFromCookie());
-    }, []);
 
     const handleLogin = async (e) => {
         if(e) e.preventDefault();

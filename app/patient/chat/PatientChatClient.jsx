@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { getLangCodeFromCookie } from '@/lib/i18n';
+import { useLang } from '@/lib/i18n/LangContext';
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser';
 import { getAllPartnerHospitals } from '@/lib/data/partnerHospitals';
 import {
@@ -261,7 +261,7 @@ function ChatBubble({ msg, lang }) {
 
 export default function PatientChatClient() {
   const router = useRouter();
-  const [lang, setLang] = useState('en');
+  const lang = useLang();
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -287,7 +287,6 @@ export default function PatientChatClient() {
 
   // Init auth
   useEffect(() => {
-    setLang(getLangCodeFromCookie());
     const init = async () => {
       const supabase = createSupabaseBrowserClient();
       const { data: { session } } = await supabase.auth.getSession();
