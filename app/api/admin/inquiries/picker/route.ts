@@ -11,7 +11,7 @@ export const runtime = "nodejs";
 
 import { NextRequest } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/server";
-import { requireAdminAuth } from "@/lib/auth/requireAdminAuth";
+import { requirePortalAuth } from "@/lib/auth/requirePortalAuth";
 import { decryptStringNullable } from "@/lib/security/encryptionV2";
 
 // 복호화 후 마스킹 — 첫 글자 + ***  (평문 대량 노출 방지하되 식별 가능)
@@ -28,7 +28,8 @@ function maskedName(enc: string | null | undefined): string {
 }
 
 export async function GET(request: NextRequest) {
-  const auth = await requireAdminAuth(request);
+  // 상담 생성 드롭다운용 — admin·coordinator(staff) 모두 사용(코디도 상담 생성 가능)
+  const auth = await requirePortalAuth(request, { staffOnly: true });
   if (!auth.success) return auth.response;
 
   try {
