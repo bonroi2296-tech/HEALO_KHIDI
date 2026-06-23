@@ -1,5 +1,68 @@
 # PR
 
+
+## 🔖 세션 핸드오프 (2026-06-22 저녁 — AI 에이전트 상태인지: 거짓 접수 차단 + 세션/로그인 인지 + 배포 한도 절약)
+
+> 브랜치 `claude/ai-agent-state-detection-0ag4tj`, **PR [#254](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/254)(초안)**. CI(타입+테스트+Smoke) 초록. 실화면 검증은 **TEST1만 완료**(TEST2·3은 Vercel 일일 배포한도로 보류).
+
+**1. 이번 세션 한 일:**
+- **발단**: PO가 `/inquiry` AI Agent를 직접 테스트(위암 친구 상담 시나리오) → AI가 ①**연락처 없는 익명 사용자에게 거짓 "접수완료"**(직후 연락처 요구하는 모순) ②"로그인 안 해서 세션 유지 안될텐데?" 질문에 즉흥 오답 ③질책에 비용표·서류 정보덤프 ④실제 로그인 상태 무인지. AI가 직접 쓴 자기리포트는 "로그인 상태값 못 받음"이라 자기변호했으나 **코드 확인 결과 절반만 맞음**(이 챗은 설계상 익명·공개 `/api/public/chat/*`라 로그인 원래 안 봄).
+- **고침(백엔드만, 프론트 무변경)** — 커밋 cc6b473·30b0eec:
+  - ①`ChatSession{isLoggedIn,hasReachableContact}`를 `generateReply.buildSystemPrompt`까지 관통 → 프롬프트에 **SESSION & IDENTITY FACTS**(로그인=계정연결·any device / 게스트=이 브라우저 30일 쿠키복구를 정직 안내) + **접수멘트 연락처 게이트**(연락 불가 시 거짓 "접수완료" 금지·연락처 1개 요청) + **DE-ESCALATION**(화난 사용자에게 문서·가격 덤프 금지).
+  - ②라우트(`start`/`message`/`stream`/`stream`) — `pickHandoffConfirm(lang,reachable)`로 접수멘트 분기 + `HANDOFF_NEED_CONTACT` 6언어 신설 + `HANDOFF_CONFIRM` `kz`키 누락 보강.
+  - ③**로그인 계정연결**: 공개챗이 same-origin Supabase 인증쿠키로 로그인 식별 → `chat_threads.user_id` 연결(+`metadata.is_logged_in`). 익명(인증쿠키 없음)은 auth 왕복 생략. `hasReachableContact = guest_email ∥ guest_phone ∥ user_id`. patient 포털 챗도 `{isLoggedIn:true,...}` 전달.
+  - ④**세션/로그인/저장 질문이 `isTopicCorrection`에 오탐**돼(="안 했"·"유지 안될") 세션안내 대신 엉뚱한 사과로 빠지던 것 수정 — `topicGuards.ts`에 `SESSION_STATE_TERMS` 예외.
+  - ⑤회귀잠금 테스트(`systemPromptGuards.test.ts`·`topicGuards.test.ts`) + **POSTMORTEM #22**.
+- **배포 한도 절약** — `scripts/vercel-ignore-build.sh`(문서-only 커밋 배포 스킵) + **`vercel.json`의 `ignoreCommand`로 연결**(공식 지원 확인) → main 머지되면 **대시보드 설정 없이** 자동 적용. 교통정리 ① 캐논화(다른 세션 `vercel-deploy-throttle`·#259 닫아도 됨).
+- **반복업무 자동화(PO "싹다해")**: ①접수 게이트 로직을 순수 모듈 `contactGate.ts`로 추출→`contactGate.test.ts` 진짜 단위테스트(server-only 텍스트잠금 대체). ②`scripts/smoke-chat.mjs` 라이브 AI챗 스모크(접수게이트·세션안내, 테스트 스레드 service_role 자동삭제로 DB오염 0) — **프리뷰 2/2 통과 검증**. ③`.github/workflows/chat-smoke.yml` 매일 프로덕션 자동점검(실패=빨강 알림). 내 curl 테스트 데이터(qa-verify·smoke 5건)는 Supabase MCP로 정리 완료.
+- **소통 지침**: CLAUDE.md에 "쉽게 설명 + **선택지는 텍스트 나열 말고 AskUserQuestion 버튼으로**" PO취향 고정(PO_PREFERENCES #41·#50 누적분 승격) + "폰↔컴 이어가기(push=저장≠배포)" 취향 PO_PREFERENCES 추가.
+
+**2. 왜 그렇게 했는지:**
+- AI 자기제안(`is_logged_in` 메타데이터 파이프라인)을 곧이곧대로 만들면 **안 써도 될 복잡도만 늘고 진짜 버그(거짓 접수)는 안 고쳐짐** — 이 퍼널은 의도된 익명 흐름이라 핵심은 "상태값 주입"이 아니라 **제품 사실(저장·복구·연락가능)을 프롬프트에 알려주는 것**.
+- 거짓 "접수완료"는 **프롬프트(가정) + 라우트(무조건 멘트)** 두 군데서 동시에 터져서 둘 다 고침.
+- 확률적 AI 행동이라 프롬프트만 고치면 "또 터질 것" → **코드 분기(연락처 게이트·정정 예외) + 단위테스트로 결정적 강제**(PO 취향: "고쳤다보다 다신 안 터진다").
+- 로그인 감지는 프론트 수정 없이 가능 — same-origin fetch에 Supabase 인증쿠키가 자동 동봉되므로 서버에서 읽음(익명은 쿠키 자체가 없어 auth 왕복 스킵 → 지연 0).
+- displayName(이름 호칭)은 PII 최소화 위해 일부러 뺌(필요하면 추가).
+
+**3. 안 끝났거나 보류:**
+- **TEST2·3 실화면 검증** — Vercel 일일 배포한도(100/일) 초과로 수정분(30b0eec) 배포가 막힘. ~24h 뒤 한도 풀리거나 머지 후 prod에서 확인 가능.
+- **Vercel Ignored Build Step 설정** — PO가 대시보드에서 1회 설정해야 효과(아직 안 함). Settings>Git>Ignored Build Step에 `bash scripts/vercel-ignore-build.sh`.
+- **로그인 사용자 이름 호칭(displayName)·마이페이지 UI** — PO 결정 대기(급하지 않음).
+- PR #254 = **초안**(머지 안 함, PO 검토 대기).
+
+**4. 주의·함정:**
+- **이 작업 중 Vercel 일일 배포한도를 소진**시킴(작은 커밋 여러 번 푸시 + 문서 커밋도 배포됨). 그래서 ignore-build 스크립트 추가 — 하지만 **머지 전까진 효과 없음**(설정도 PO 몫). 당분간 새 배포 안 뜰 수 있음(코드 문제 아님).
+- 라이브 curl로 TEST2 재시도하면 아직 **옛 동작(엉뚱한 사과)** 나옴 → 이건 미배포 탓이지 코드 미수정 아님(코드·단위테스트는 통과).
+- `HANDOFF_CONFIRM`은 기존에 `kz` 없이 `kk`만 있어 카자흐어가 영어로 폴백되던 잔버그가 있었음(이번에 둘 다 채움) — 다른 메시지 맵도 `kz/kk` 둘 다 있는지 볼 것.
+- **⚠️ 병렬 세션 중복(2026-06-22 저녁 시점) — 머지 전 교통정리 필요** (PO 지시=계획만, 아무것도 안 닫음/머지 안 함):
+  - **① 배포한도**: 내 #254 `scripts/vercel-ignore-build.sh`(스크립트+대시보드) ↔ `vercel-deploy-throttle`의 `vercel.json ignoreCommand`(설정 불필요, 단 전브랜치 프리뷰 OFF) ↔ #259 = **3중복**. 추천: vercel.json 방식 1개만(문서-only 스킵으로 튜닝), 나머지 폐기.
+  - **② AI 안전가드**: #83 ↔ `ai-safety-guard-reextract`(#256, "#83 클린 재구성") = 중복. 추천: **#256 살리고 #83 닫기**.
+  - **③ AI 챗 행동**: 내 #254 ↔ `fix-ai-deflection-loop`(#260) ↔ `ai-agent-analysis-masterkey`(힐로 #255)가 **`generateReply.ts`(3개 다)·`topicGuards.ts`(#254·#260) 동시 수정 → 따로 머지 시 충돌**. 추천: **#254 먼저 머지 → #260·#255 rebase 후 머지**(또는 셋 통합).
+  - 다수 브랜치가 25~65분 전 활동 = **활성 세션일 수 있음** → 닫기/머지 전 해당 세션과 조율.
+
+**5. 다음 세션이 먼저 할 일 (우선순위):**
+1. **⚠️ 직전 미검증분 먼저**: **TEST3(로그인 상태에서 "나 로그인했어?"→"계정 연결됨" 안내)** 실화면 확인 — curl로 로그인 흉내 불가라 미검증. PO 브라우저 또는 머지 후 prod에서. (TEST1·TEST2는 2026-06-22 라이브 실증 완료.)
+2. **PR #254 초안 해제·머지 판단** — 머지되면 ①배포스킵(vercel.json ignoreCommand, 대시보드 설정 불필요) ②세션시작 열린작업 목록판 ③매일 챗 스모크 자동점검이 전 세션/프로덕션에 적용됨.
+3. **(선택) 스모크 자동점검 완전가동** — GitHub Secrets에 `SUPABASE_URL`·`SUPABASE_SERVICE_ROLE_KEY` 추가(없어도 테스트는 돌고 테스트 스레드 정리만 생략). 점검대상 바꾸려면 변수 `SMOKE_BASE_URL`.
+4. **교통정리 실행**(PO 지시 시): ②안전가드 #256 살리고 #83 닫기 / ③AI챗 #254 먼저 머지 후 #260·#255 rebase / ①배포 dup(`vercel-deploy-throttle`·#259) 닫기 — #254가 캐논.
+5. (보류) 로그인 사용자 **이름 호칭(displayName)**·마이페이지 "이력 보기" UI 붙일지 PO와 결정.
+
+**6. 검증 상태:**
+- **CI(PR #254, 커밋 7e9c59e)**: `ci`(타입 tsc + vitest) ✅ success, `Smoke Tests (PR)` ✅ success. (E2E류는 PR에선 skip — 정상.)
+- **`check:content`**: 로컬 통과(금지토큰 0·활성6언어 패리티).
+- **TEST1(거짓 접수 차단)**: ✅ 미리보기 라이브 curl로 **실증**(연락처 없이 "접수해줘"→연락처 요청).
+- **TEST2(세션 질문)**: ✅ 미리보기 라이브 curl로 **실증**(2026-06-22, PO 실제 문구 "로그인안해서 세션 유지 안될텐데?"→"서버 자동저장+이 브라우저 30일 유지" 정직 안내. 옛 "잘못 짚었어요" 사과 사라짐).
+- **TEST3(로그인 인지)**: ⏳ **실화면 미검증** — curl로 로그인 흉내 불가. 코드+로직 검토만. PO 브라우저 또는 머지 후 prod에서 확인 필요.
+- **로컬 `next build`**: 이 환경에 node_modules 없어 못 돌림 → CI에 위임(ci 초록).
+
+**7. 다음 세션 첫 프롬프트:**
+> 먼저 docs/PROJECT_CONTEXT.md 최상단 핸드오프 읽어. "AI 에이전트 상태인지 수정"(PR #254, 브랜치 claude/ai-agent-state-detection-0ag4tj) 이어가자. ①Vercel 배포 한도 풀렸으면 미리보기에서 TEST2(로그인 안 했는데 저장되냐고 물어→30일 저장 안내 뜨는지)·TEST3(로그인하고 나 로그인했냐 물어→계정 연결 안내 뜨는지) 실화면 확인해줘. ②내가 Vercel Ignored Build Step 설정했는지 봐주고. ③다 되면 PR #254 머지할지 판단해줘.
+
+---
+
+
+---
+
 ## 🔖 세션 핸드오프 (2026-06-22 저녁 — '힐로' 마스터키 자기분석(#255) + AI 디플렉션 루프 수정(#260))
 
 **이번 세션 한 일:**
