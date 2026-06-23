@@ -43,7 +43,8 @@ import SocialProofSection from "@/components/SocialProofSection";
 const PLACEHOLDER = {
   // 📸 히어로 배경 — 회복톤(공원 산책) 2026-06-20 PO 취향 반영. 어두운 그라데이션 뒤 배경.
   // 히어로 배경은 90~95% 어두운 그라데이션에 덮여 거의 안 보임 → 원본 화질·폭 축소(LCP 바이트 절감).
-  heroBg: "https://images.unsplash.com/photo-1671530725345-cc4a2cf5db04?w=1280&q=55",
+  // 2026-06-23: 외부 Unsplash → 로컬화(LCP 경로에서 외부 fetch 의존성 제거, 엣지 캐시). next/image가 AVIF 변환.
+  heroBg: "/images/hero/recovery-walk.jpg",
   // 📸 병원 2곳 — 교체: 면력한방병원 실제 사진으로 교체 권장 (800x500)
   hospitals: [
     "https://images.unsplash.com/photo-1538108149393-fbbd81895907?w=800&h=500&fit=crop",
