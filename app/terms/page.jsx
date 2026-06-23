@@ -1,7 +1,4 @@
-import { cookies } from "next/headers";
-import TermsOfServiceClient from "./TermsOfServiceClient";
 import TermsOfServiceClientLegacy from "./TermsOfServiceClientLegacy";
-import { getServerDesignMode } from "@/lib/designMode";
 
 export const metadata = {
   title: "Terms of Service | healwith",
@@ -9,9 +6,6 @@ export const metadata = {
     "Terms and conditions for using healwith's AI medical concierge and hospital matching services.",
 };
 
-export default async function TermsOfServicePage({ searchParams }) {
-  const sp = (await searchParams) || {};
-  const ck = await cookies();
-  const mode = getServerDesignMode({ searchParams: sp, cookies: ck });
-  return mode === "legacy" ? <TermsOfServiceClientLegacy /> : <TermsOfServiceClient />;
+export default function TermsOfServicePage() {
+  return <TermsOfServiceClientLegacy />;
 }

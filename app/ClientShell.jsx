@@ -160,63 +160,6 @@ export default function ClientShell({ children, initialLang = "en" }) {
     pathname.startsWith("/agency") ||
     pathname.startsWith("/clinic");
 
-  // D. Premium 디자인 적용 라우트 — 자체 Nav/Footer를 가지므로 ClientShell의 Header/Footer 숨김
-  // Premium 디자인 적용된 정확한 경로 (prefix 매칭은 아래 isPremiumPath 함수에서)
-  const PREMIUM_ROUTES = [
-    "/",
-    "/intake",
-    "/education",
-    "/privacy",
-    "/terms",
-    "/medical-disclaimer",
-    "/cookies",
-    "/treatments",
-    "/hospitals",
-    "/visa",
-    "/about",
-    "/contact",
-    "/success",
-    "/search",
-    "/faq",
-    "/stories",
-    "/hospitals/immune",
-  ];
-  const PREMIUM_PREFIXES = [
-    "/hospitals/",     // /hospitals/[slug]
-    "/treatments/",    // /treatments/[slug]
-    "/specialties/",   // /specialties/*
-    "/patient",        // /patient, /patient/chat, /patient/messages, /patient/calendar, etc.
-  ];
-  const isPremiumPath = (p) =>
-    PREMIUM_ROUTES.includes(p) || PREMIUM_PREFIXES.some((pre) => p.startsWith(pre));
-  // 2026-04: 기본값 LEGACY 로 변경. 쿠키 이름도 v2 로 동기화.
-  // DEFAULT_MODE/COOKIE_NAME 은 src/lib/designMode.js 의 단일 진실 소스 참조.
-  const [isPremiumMode, setIsPremiumMode] = useState(false);
-  useEffect(() => {
-    try {
-      // 우선순위: ?design= 쿼리 > 쿠키(v2) > env > 기본 LEGACY
-      const qs = new URLSearchParams(window.location.search);
-      const q = qs.get("design")?.toLowerCase();
-      if (q === "legacy" || q === "premium") {
-        setIsPremiumMode(q === "premium");
-        return;
-      }
-      const m = document.cookie.match(/(?:^|; )healo_design_v2=([^;]*)/);
-      if (m) {
-        const v = decodeURIComponent(m[1]).toLowerCase();
-        if (v === "legacy" || v === "premium") {
-          setIsPremiumMode(v === "premium");
-          return;
-        }
-      }
-      const env = process.env.NEXT_PUBLIC_DESIGN?.toLowerCase();
-      setIsPremiumMode(env === "premium");
-    } catch {
-      setIsPremiumMode(false);
-    }
-  }, [pathname]);
-  const isPremiumPage = isPremiumMode && isPremiumPath(pathname);
-
   // --- Idle timeout (portal pages only, 10 min) ---
   const IDLE_LIMIT_MS = 10 * 60 * 1000;
   const WARNING_MS = 9 * 60 * 1000;
@@ -282,7 +225,6 @@ export default function ClientShell({ children, initialLang = "en" }) {
         handleNavClick={handleNavClick}
         isHospitalUser={isHospitalUser}
         hideBottomNav={hideBottomNav}
-        isPremiumPage={isPremiumPage}
       >
         {children}
       </ClientShellContent>
@@ -303,7 +245,6 @@ function ClientShellContent({
   handleNavClick,
   isHospitalUser,
   hideBottomNav,
-  isPremiumPage = false,
   children,
 }) {
   const langCode = useLang();
@@ -329,7 +270,7 @@ function ClientShellContent({
       </a>
       {isConsultationPage ? null : isPortalPage ? (
         <PortalTopBar session={session} onLogout={handleLogout} siteConfig={siteConfig} langCode={langCode} />
-      ) : isPremiumPage ? null : (
+      ) : (
         <Header
           setView={handleSetView}
           view={getCurrentView}
@@ -349,7 +290,7 @@ function ClientShellContent({
         <main id="main-content" className={isPortalPage || isConsultationPage || hideBottomNav ? "" : "pb-24 pb-safe-area"}>{children}</main>
       </ErrorBoundary>
 
-      {!isPortalPage && !isPremiumPage && !isConsultationPage && !hideFooter && <footer className="bg-white border-t border-gray-100 pt-safe-area">
+      {!isPortalPage && !isConsultationPage && !hideFooter && <footer className="bg-white border-t border-gray-100 pt-safe-area">
         <div className="max-w-6xl mx-auto px-4 py-8 sm:py-10 text-sm text-gray-600">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div>
@@ -415,7 +356,7 @@ function ClientShellContent({
         </div>
       </footer>}
 
-      {!hideBottomNav && !isPortalPage && !isPremiumPage && !isConsultationPage && (
+      {!hideBottomNav && !isPortalPage && !isConsultationPage && (
         <>
           <MobileBottomNav
             setView={handleSetView}

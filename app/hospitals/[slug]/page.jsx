@@ -1,8 +1,5 @@
 import Script from "next/script";
-import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
-import PageShell from "../../../components/healo/PageShell";
-import { getServerDesignMode } from "@/lib/designMode";
 import {
   getHospitalById,
   getHospitalBySlug,
@@ -80,13 +77,8 @@ export async function generateMetadata({ params }) {
   };
 }
 
-export default async function HospitalDetailPage({ params, searchParams }) {
+export default async function HospitalDetailPage({ params }) {
   const { slug } = await params;
-  const sp = (await searchParams) || {};
-  const ck = await cookies();
-  const mode = getServerDesignMode({ searchParams: sp, cookies: ck });
-  const wrapIfPremium = (node) =>
-    mode === "legacy" ? node : <PageShell current="hospitals" noHero>{node}</PageShell>;
 
   if (slug && isUuid(slug)) {
     const resolvedSlug = await getHospitalSlugById(slug);
@@ -125,7 +117,7 @@ export default async function HospitalDetailPage({ params, searchParams }) {
           }
         : undefined,
     };
-    return wrapIfPremium(
+    return (
       <>
         <Script
           id="hospital-jsonld"
@@ -156,7 +148,7 @@ export default async function HospitalDetailPage({ params, searchParams }) {
         : {}),
       ...(partner.phone ? { telephone: partner.phone } : {}),
     };
-    return wrapIfPremium(
+    return (
       <>
         <Script
           id="hospital-jsonld"

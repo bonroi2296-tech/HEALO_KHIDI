@@ -1,7 +1,4 @@
-import { cookies } from "next/headers";
-import SignupPremium from "./SignupPremium";
 import SignupLegacyWrapper from "./SignupLegacyWrapper";
-import { getServerDesignMode } from "@/lib/designMode";
 
 export const metadata = {
   title: "Sign up | healwith",
@@ -9,9 +6,6 @@ export const metadata = {
   robots: { index: false, follow: false },
 };
 
-export default async function SignUp({ searchParams }) {
-  const sp = (await searchParams) || {};
-  const ck = await cookies();
-  const mode = getServerDesignMode({ searchParams: sp, cookies: ck });
-  return mode === "legacy" ? <SignupLegacyWrapper /> : <SignupPremium />;
+export default function SignUp() {
+  return <SignupLegacyWrapper />;
 }

@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { cookies } from "next/headers";
 import {
   Star,
   Shield,
@@ -10,8 +9,6 @@ import {
   Smile,
   HeartPulse,
 } from "lucide-react";
-import PageShell from "../../../components/healo/PageShell";
-import { getServerDesignMode } from "@/lib/designMode";
 
 export const metadata = {
   // 암환자 컨시어지 피벗과 안 맞아 검색 제외(2026-06-17 PO 결정). 코드·라우트는 보존.
@@ -335,14 +332,6 @@ function DentalContent() {
   );
 }
 
-export default async function DentalPage({ searchParams }) {
-  const sp = (await searchParams) || {};
-  const ck = await cookies();
-  const mode = getServerDesignMode({ searchParams: sp, cookies: ck });
-  if (mode === "legacy") return <DentalContent />;
-  return (
-    <PageShell current="treatments" noHero>
-      <DentalContent />
-    </PageShell>
-  );
+export default function DentalPage() {
+  return <DentalContent />;
 }

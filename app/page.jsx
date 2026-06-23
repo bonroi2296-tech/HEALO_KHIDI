@@ -1,9 +1,6 @@
 import { Suspense } from "react";
-import { cookies } from "next/headers";
 import HomeClient from "./home/HomeClient";
-import HomeClientPremium from "./home/HomeClientPremium";
 import Script from "next/script";
-import { getServerDesignMode } from "@/lib/designMode";
 import { localizedMeta } from "@/lib/i18n/metadata";
 import { partnerHospitalLdList } from "@/lib/seo/structuredData";
 
@@ -85,11 +82,7 @@ const jsonLd = {
   department: partnerHospitalLdList(),
 };
 
-export default async function HomePage({ searchParams }) {
-  const sp = (await searchParams) || {};
-  const ck = await cookies();
-  const mode = getServerDesignMode({ searchParams: sp, cookies: ck });
-  const Client = mode === "legacy" ? HomeClient : HomeClientPremium;
+export default async function HomePage() {
   return (
     <>
       <Script
@@ -98,7 +91,7 @@ export default async function HomePage({ searchParams }) {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
       <Suspense>
-        <Client />
+        <HomeClient />
       </Suspense>
     </>
   );

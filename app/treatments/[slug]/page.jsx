@@ -1,8 +1,5 @@
 import Script from "next/script";
-import { cookies } from "next/headers";
 import { notFound, redirect } from "next/navigation";
-import PageShell from "../../../components/healo/PageShell";
-import { getServerDesignMode } from "@/lib/designMode";
 import {
   getTreatmentById,
   getTreatmentBySlug,
@@ -99,11 +96,8 @@ export async function generateMetadata({ params }) {
   };
 }
 
-export default async function TreatmentDetailPage({ params, searchParams }) {
+export default async function TreatmentDetailPage({ params }) {
   const { slug } = await params;
-  const sp = (await searchParams) || {};
-  const ck = await cookies();
-  const mode = getServerDesignMode({ searchParams: sp, cookies: ck });
 
   // ── 암종 페이지 분기 ────────────────────────────────
   if (CANCER_SLUGS.includes(slug)) {
@@ -200,10 +194,5 @@ export default async function TreatmentDetailPage({ params, searchParams }) {
       <TreatmentDetailClient id={slug} />
     </>
   );
-  if (mode === "legacy") return content;
-  return (
-    <PageShell current="treatments" noHero>
-      {content}
-    </PageShell>
-  );
+  return content;
 }
