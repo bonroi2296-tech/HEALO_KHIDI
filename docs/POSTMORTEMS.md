@@ -628,9 +628,10 @@ PO가 "둘을 하나로 합쳐줘" → 통합 중 **결정적 사실**을 실DB�
 - 같은 기능이 두 디자인모드(legacy 기본 / premium 숨김)로 갈려 각자 다른 데이터원을 봄.
 
 **어떻게 고쳤나**
-- **증상**: `/api/portal/symptoms` 하나로 통합. `patient_user_id`(소유) **+** 본인 inquiry 해석(KPI 연결) 둘 다 저장, 조회는 `patient_user_id OR inquiry`로 견고화. legacy·premium 화면 **둘 다** 이 엔드포인트로 연결. 이상치 감지(코디 알림)도 이 경로에 포함.
-- **재진**: 정식 테이블 = `followup_schedules`(`/api/portal/followup`)로 통일. legacy·premium 화면 둘 다 이쪽으로. 깨진 `consultation_sessions.rebooking_source` 참조 제거.
+- **증상**: `/api/portal/symptoms` 하나로 통합. `patient_user_id`(소유) **+** 본인 inquiry 해석(KPI 연결) 둘 다 저장, 조회는 `patient_user_id OR inquiry`로 견고화. **활성 화면(legacy)**만 연결. 이상치 감지(코디 알림)도 이 경로에 포함.
+- **재진**: 정식 테이블 = `followup_schedules`(`/api/portal/followup`)로 통일. 활성 화면(legacy) 연결. 깨진 `consultation_sessions.rebooking_source` 참조 제거.
 - 코디 메뉴를 실제 라우트로 정합(별건이지만 같은 점검에서 발견).
+- ⚠️ **PO 정정(중요)**: premium 화면은 "나중 쓸까봐 남겨두고 **비활성**"이 의도 → 활성 화면에 재활용 금지. 처음엔 premium도 같이 배선했다가 **되돌려 손 안 댄 원본 그대로** 둠. 활성 = legacy 단일. → `PO_PREFERENCES`에도 누적.
 
 **재발 방지 (시스템 적용)**
 - 교훈: **DB 기능은 코드가 아니라 실스키마(`information_schema`)로 확인**한다. "엔진이 X 컬럼에 쓴다"는 코드는 그 컬럼의 존재를 보장하지 않는다.

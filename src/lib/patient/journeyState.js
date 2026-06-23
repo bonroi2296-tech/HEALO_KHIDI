@@ -30,10 +30,6 @@ export const JOURNEY_STAGES = [
 /**
  * 환자 전체 데이터 fetch
  * 로그인된 사용자 기준.
- *
- * ⚠️ 2026-06-22: 브라우저에서 service_role 테이블 직접 조회는 RLS상 항상 빈 데이터였고,
- * inquiries.email 이 AES(IV 랜덤)라 본인 문의 매칭도 브라우저에선 불가했음(P1·EDGE-1).
- * → 서버 엔드포인트 `/api/portal/journey` 가 복호화-매칭+집계해 돌려준다. 여기선 그 결과만 받음.
  */
 export async function fetchPatientJourney() {
   const supabase = createSupabaseBrowserClient();
@@ -42,17 +38,77 @@ export async function fetchPatientJourney() {
   } = await supabase.auth.getSession();
   if (!session?.user) return null;
 
-  try {
-    const res = await fetch("/api/portal/journey", {
-      headers: { Authorization: `Bearer ${session.access_token}` },
-    });
-    if (!res.ok) return null;
-    const result = await res.json();
-    if (!result?.ok) return null;
-    return result.data;
-  } catch {
-    return null;
+  const userId = session.user.id;
+  const userEmail = session.user.email;
+
+  // 1. 가장 최근 inquiry (이메일 매칭으로 찾기)
+  const { data: inquiriesRaw } = await supabase
+    .from("inquiries")
+    .select("*")
+    .or(`email.eq.${userEmail}`)
+    .order("created_at", { ascending: false })
+    .limit(1);
+  const inquiry = inquiriesRaw?.[0] || null;
+
+  // user_id 기준으로도 찾을 수 있게
+  let patientUserId = userId;
+  if (!inquiry) {
+    // inquiry 없으면 cancer_patient_intakes 쪽에서 user_id 직접 연결된 것도 찾기
   }
+
+  const inquiryId = inquiry?.id;
+
+  // 병렬 fetch
+  const [
+    intakesRes,
+    consultationsRes,
+    coordResponsesRes,
+    followupRes,
+    symptomsRes,
+    threadsRes,
+    eventsRes,
+  ] = await Promise.all([
+    inquiryId
+      ? supabase.from("cancer_patient_intakes").select("*").eq("inquiry_id", inquiryId).order("created_at", { ascending: false }).limit(1)
+      : Promise.resolve({ data: [] }),
+    supabase
+      .from("consultation_sessions")
+      .select("*")
+      .eq("patient_user_id", patientUserId)
+      .order("scheduled_at", { ascending: true }),
+    inquiryId
+      ? supabase.from("coordinator_responses").select("*").eq("inquiry_id", inquiryId).order("created_at", { ascending: false })
+      : Promise.resolve({ data: [] }),
+    supabase
+      .from("followup_schedules")
+      .select("*")
+      .eq("patient_user_id", patientUserId)
+      .order("created_at", { ascending: false })
+      .limit(1),
+    inquiryId
+      ? supabase.from("symptom_reports").select("*").eq("inquiry_id", inquiryId).order("created_at", { ascending: false }).limit(60)
+      : Promise.resolve({ data: [] }),
+    supabase
+      .from("chat_threads")
+      .select("*, chat_messages(count)")
+      .eq("user_id", patientUserId)
+      .order("updated_at", { ascending: false }),
+    inquiryId
+      ? supabase.from("inquiry_events").select("*").eq("inquiry_id", inquiryId).order("created_at", { ascending: false }).limit(30)
+      : Promise.resolve({ data: [] }),
+  ]);
+
+  return {
+    user: { id: userId, email: userEmail },
+    inquiry,
+    intake: intakesRes.data?.[0] || null,
+    consultations: consultationsRes.data || [],
+    coordinatorResponses: coordResponsesRes.data || [],
+    followup: followupRes.data?.[0] || null,
+    symptoms: symptomsRes.data || [],
+    threads: threadsRes.data || [],
+    events: eventsRes.data || [],
+  };
 }
 
 /**
