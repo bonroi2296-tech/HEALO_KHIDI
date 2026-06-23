@@ -7,6 +7,51 @@
 
 ---
 
+## 🔖 세션 핸드오프 (2026-06-23 오후·저녁 — 계층 재편 + 백오피스 점검 + 프리미엄 전면 폐기)
+
+> 이번 세션은 4개 PR을 머지·프로덕션 배포까지 완료(#280·#286·#288·#290). 모두 healwith.co.kr 라이브.
+> ⚠️ 세션 내내 어시스턴트가 **legacy/premium을 헷갈려 PO가 여러 번 바로잡음** — 4번(주의) 꼭 읽을 것.
+
+**1. 이번 세션 한 일:**
+- **계층별 테스트 계정 정리** → `docs/TEST_ACCOUNTS.md` 신설(환자/코디/병원/에이전시/의료기관 @test.com, 비번 test1234 / clinic만 clinic1234, admin은 의도적 미생성).
+- **계층 재편 마이그레이션 [#280](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/280)** (머지·배포·**prod curl 리다이렉트 검증 ✅**): 국내병원 `/partner`→`/hospital`(옛주소 307 리다이렉트, `/api/partner/*` API경로는 유지) · 해외의료기관 `/agency`→`/clinic` 분리(partner_type 게이팅+불일치 자동이동) · 의사 `/doctor` **비활성화**(proxy→홈, 코드·role=doctor 계정·상담 배정은 보존). 표준 `accountTiers.ts`·`resolveLanding.ts`·`proxy.ts` + 문서 갱신. 기획 `KHIDI_역할_프로세스_기획.md` §7 실행.
+- **백오피스 전수 점검**(5포털): 바깥(병원 `/hospital`·해외 `/agency`·`/clinic`)=🟢건강, 안쪽(환자·코디)에 구멍 발견.
+- **환자·코디 수리 [#286](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/286)** (머지·배포): 증상기록 `symptom_reports.patient_user_id` 컬럼 추가(가역·prod 적용)+저장+`?mine` 조회로 본인 기록 표시 / 재진예약은 정식 테이블 `followup_schedules`(`/api/portal/followup`)로 배선 / 코디 메뉴를 실제 라우트로 정합(404 링크 제거). 반성문 #29.
+- **프리미엄 디자인 전면 폐기 [#288](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/288)** (머지·배포): 토글(legacy/premium) 제거·legacy 단일화, `*Premium` 16개+healo `Nav/Footer/PageShell/Notification류/Skeleton/DesignToggle`+`designMode.js` **총 28파일 삭제**(−10,212줄). 보존: Primitives·EmergencyButton(SOS)·Photos·healo-tokens·모든 `*Legacy`. `PREMIUM_TEARDOWN_PLAN.md` 참고.
+- **헤더 '내 페이지' hop 수정 [#290](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/290)** (머지·배포): 코디·에이전시가 `/patient` 들렀다 튕기던 것 → `app_metadata.role` 기준 곧장 라우팅.
+
+**2. 왜 그렇게 했는지:**
+- **`/doctor`는 삭제 아니라 비활성화** — PO "냅두고 비활성화만 해봐". 의사 계정·상담 '담당 의사' 배정은 계속 쓰임.
+- **프리미엄 폐기** — PO: premium은 A/B 실험용으로 만들었다 **안 쓰기로 함**. 근데 `PageShell`(=프리미엄 Nav 껍데기)이 legacy 페이지까지 감싸 **이중 헤더** + 프리미엄 누수 발생 → 단일 legacy로 통일. (premium은 **앞으로 추가 개발 안 함** — PO 명시.)
+- **재진 정식 테이블 = `followup_schedules`** — 실DB 확인 결과 `consultation_sessions.rebooking_source` **컬럼이 아예 없음**(코드/엔진은 있다고 가정). 코드 아닌 실스키마가 진실.
+
+**3. 안 끝났거나 보류:**
+- **[#274](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/274)(초안) 닫아야 함** — #286/#288로 대체됨(코멘트 남김). 머지 금지, 닫기만.
+- **재진예약 기능 휴면** — 엔진 `/api/khidi/rebooking/create`가 **없는 컬럼 `consultation_sessions.rebooking_source`에 씀** → `followup_schedules`(0행)는 안 채워짐. 화면은 정식 테이블로 배선했으나 **엔진을 followup_schedules로 고쳐야** 데이터가 생김(근본수정 별도).
+- **`/patient/messages`·`/patient/calendar` 본문** 아직 프리미엄 톤(serif/gold) — PageShell만 떼고 본문·Primitives 유지. legacy 리스타일 필요.
+- **`stories/StoriesClient.jsx`** 가 삭제된 PageShell을 import — stories는 비활성(홈 redirect)이라 빌드 영향 0. stories 재활성 시 손볼 것.
+
+**4. 주의·함정:**
+- ⚠️ **legacy/premium 헷갈리지 마라**: `components/healo/`가 프리미엄 디자인시스템, `PageShell`이 프리미엄 Nav 래퍼였음. 이번에 대부분 제거. **premium은 추가 개발 안 함**(PO). 활성 화면=legacy 단일. (자세히: `design_mode_premium_legacy` 메모리)
+- ⚠️ **변경 적용할 때 불필요한 것(서비스 이름·브랜드 등) 건드리지 마라** — PO가 "서비스 이름도 바꿨냐"고 추궁(실제론 안 바꿈, HEALO→healwith는 2026-06-17 #43). 요청 범위만 정확히.
+- ⚠️ **단정 전에 실제 코드·실DB로 확인** — `information_schema`로 컬럼 존재 확인(rebooking_source 유령 컬럼 사례). 코드가 X를 쓴다고 X가 있는 건 아님.
+- **자동저장 훅 2분마다 `git add -A` 커밋** — 멀티파일 작업 시 무관 파일 섞임. 깨끗한 새 브랜치(origin/main 기준)에 내 파일만 모아 PR, `git diff origin/main...HEAD` net으로 확인.
+
+**5. 다음 세션이 먼저 할 일 (우선순위):**
+1. **⚠️ 직전 미검증분 먼저(로그인 실클릭)**: 배포는 됐으나 **로그인 화면은 직접 클릭 검증 못 함**. `/coordinator`·`/patient`로 로그인해서 ①헤더가 1개만 뜨는지(이중헤더 해소) ②'내 페이지' 눌러 곧장 가는지(hop 없음) ③환자 증상기록 입력→본인 기록 표시되는지 확인.
+2. **#274 닫기**(대체됨).
+3. (선택) **재진 엔진 근본수정** — `rebooking/create`를 `followup_schedules`에 쓰도록(현재 유령 컬럼).
+4. (선택) `/patient/messages`·`/calendar` 본문 legacy 리스타일.
+
+**6. 검증 상태:**
+- ✅ 빌드(`next build --webpack`, 239p)·`check:content`·CI(ci+smoke) — **4개 PR 다 통과·머지·prod 배포 READY**(Vercel 확인).
+- ✅ 계층 재편 리다이렉트: **prod curl로 검증**(`/partner`→`/hospital`, `/doctor`→`/`, `/clinic`·`/agency` 200).
+- ❌ **로그인 화면 실클릭 미검증**: 환자·코디 대시보드/헤더/내페이지/증상기록은 로그인 필요라 curl로 못 봄(→ 5번 1).
+- 열린 PR: **#274**(초안, 대체됨 → 닫을 것).
+
+**7. 다음 세션 첫 프롬프트:**
+> 먼저 docs/PROJECT_CONTEXT.md 최상단 핸드오프 읽어. 어제(2026-06-23) 계층 재편·환자코디 수리·프리미엄 전면 폐기·헤더 hop 수정을 prod에 다 올렸는데 **로그인 화면 실클릭 검증이 안 됐어**. ①코디/환자로 로그인해서 헤더 1개만 뜨는지·'내 페이지' 곧장 가는지·증상기록 본인 것 표시되는지 봐줘. ②안 닫힌 PR #274 닫고. 그담에 재진예약 엔진(없는 컬럼 rebooking_source 대신 followup_schedules에 쓰게) 근본수정 할지 정하자.
+
 ## 🔖 세션 핸드오프 (2026-06-23 오전 — 앱아이콘 교체 + PWA "앱 설치" 배너 복구 + iOS 사파리 안내 배너)
 
 > 작업본(브랜치)은 세션 내내 다른 세션/자동저장 훅이 계속 바꿔 끼움(`feat/tier-restructure-hospital-clinic`→`-clean`). **내 작업은 전부 main에 직접 올림(별도 worktree로 cherry-pick)** — 진행 중이던 partner→hospital 작업과 안 섞이게. 3건 모두 프로덕션 배포 완료(Vercel READY 확인).
@@ -40,53 +85,6 @@
 
 **7. 다음 세션 첫 프롬프트:**
 > 먼저 docs/PROJECT_CONTEXT.md 최상단 핸드오프 읽어. 어제(2026-06-23) 앱아이콘 교체·PWA 설치배너 복구·iOS 안내배너를 prod에 올렸는데 **실기기 확인이 안 됐어**. ①안드로이드 폰 크롬 시크릿으로 healwith.co.kr 들어가서 "앱 설치" 배너랑 새 말풍선 아이콘 뜨는지, ②아이폰 사파리 시크릿으로 하단 "공유→홈화면 추가" 안내 배너 뜨는지 확인해줘(안 뜨면 IosInstallHint.jsx 점검). partner→hospital 작업은 다른 세션 거니 건드리지 마.
-
----
-
-## 🔖 세션 핸드오프 (2026-06-22 심야 — 자율감사: 카자흐어 문의 차단 버그 발견·수정 + 공개 퍼널 레이트리밋 DB화 + 직전 잔무 정리)
-
-> 브랜치 `claude/session-recovery-7ol6xh`, **PR [#267](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/267)(초안)**. PO 지시="밤새 피버모드, 기획·개선·디자인 뭐든". 라이브 배포·검증은 Vercel 일일 배포한도(>100/일) 소진으로 막힘(코드 무관).
-
-**1. 이번 세션 한 일:**
-- **🔴 핵심 발견: 카자흐어(`kz`) 문의가 그동안 거부되고 있었음** — 통합 문의 퍼널 언어 드롭다운은 활성코드 `kz`를 보내는데 `/api/inquiries/step1` zod 검증이 `kk`만 받아(`z.enum([...,"kk",...])`) **카자흐어 문의를 400 거부**. 카자흐스탄=본 사업 핵심 타겟 시장(KHIDI 성과지표=카자흐 암환자 유치)이라 유치·상담 KPI 직격. + `dispatch-reminders` cron도 `kz`를 못 통과시켜 카자흐 환자에게 **한국어 리마인더** 발송. → step1 enum에 `kz` 추가(kk 하위호환 유지) / 리마인더는 설문과 동일하게 경계에서 `kz→kk` 매핑. **POSTMORTEMS #24** + `check:content`에 "z.enum 언어검증에 kk만 있고 kz 누락 시 CI 실패" 가드 신설(이메일/설문 템플릿 kk·hreflang `kz:"kk"`는 정밀 제외, 오탐 0 확인). 커밋 96701d8.
-- **공개 퍼널 레이트리밋 DB화(KNOWN_ISSUES #7)** — 공개 무인증 DB쓰기 6개 라우트(`inquiries` create/step1/step2/intake, `survey/submit`, `khidi/intake`)를 인메모리 `checkRateLimit`→`checkRateLimitPersistent`(DB sliding window, 인메모리 폴백 내장)로 이관. 서버리스 다중 isolate에서 분산 봇이 스팸 리드로 유치/만족도 KPI 오염시키던 구멍 차단.
-- **`operationalLog` maskIp IPv4 마스킹 오타** 수정(`192.168.***,100`→`192.168.***.100`).
-- **직전 세션 잔무 정리**: ①**PR #83 닫음**(AI 안전가드 0층은 클린 재구성 #256이 이미 머지돼 main에 있음 — 중복). ②**PR #254 머지 확인**(직전 핸드오프엔 초안이었으나 그새 머지됨, 커밋 a4faaaa). ③**배포 스킵 설정 확인** — `vercel.json`에 `ignoreCommand` 이미 연결돼 있어 **대시보드 손댈 필요 없음**(직전 핸드오프의 "PO가 1회 설정" 항목은 불필요로 판명). ④**TEST2 prod 실증** — 라이브 챗에 "로그인 안 해서 세션 유지 안될텐데?" 던져 "대화 안전 저장+연락처 남기면 코디 연락" 정직 응답 확인(옛 사과 사라짐). 테스트 스레드 DB 삭제.
-- **핸드오프 자동화 수정(PO 지적)**: PO가 "다음 세션 복붙 프롬프트 자동화하라 했는데 왜 또 주냐"고 지적 → 핸드오프 스킬 `SKILL.md` 규칙 H를 "복붙 프롬프트를 PO에게 내밀지 마라(세션 시작 훅이 자동 표시)"로 교체 + `PO_PREFERENCES` 누적 + **반성문 POSTMORTEMS #25**(지시 미반영·재발). 커밋 cb8840f·ed32005. (이 항목 이후로 마무리 보고는 복붙 프롬프트 없이 3줄 요약으로만.)
-
-**2. 왜 그렇게 했는지:**
-- **언어코드 정본 불일치가 근본원인**: 앱 전반은 `kz`, 이메일/설문 서브시스템은 의도적으로 내부키 `kk`(ISO 639-1)를 쓰고 경계에서 `kz→kk` 정규화(`resolveRecipient.normalizeSurveyLang`). 이 경계규칙을 입력검증(step1)·리마인더가 안 따라서 터짐. hreflang(`sitemap`·`i18n/metadata`)의 `kz:"kk"`는 SEO 정답이라 안 건드림.
-- **탐색 에이전트 결과를 맹신 안 함**: 서브에이전트가 "kk/kz 중복이 테스트를 깬다"고 3건 보고했으나 직접 확인하니 **오탐**(테스트는 활성6키만 검사·통과 중, kk는 의도된 폴백). 진짜는 maskIp 오타 1건뿐. 그러다 더 큰 진짜 버그(step1 카자흐어 거부)를 직접 추적해 발견.
-- **레이트리밋은 인증 필요한 `agency/refer`는 제외**(공개 스팸 벡터 아님), 공개 무인증 DB쓰기만 DB화(스코프 절제).
-- **가드를 `z.enum`만 정밀 타겟**: 넓게 잡으니 의도된 kk 패턴 6곳을 오탐 → 입력검증만 잡게 좁혀 노이즈 0.
-
-**3. 안 끝났거나 보류:**
-- **PR #267 = 초안** — CI(타입+테스트+스모크) 통과 확인 후 PO 머지 판단. (저위험 백엔드 정확성·하드닝이라 CI 초록이면 어시스턴트 머지 가능 범주, 단 카자흐어 퍼널 동작 변화라 PO 인지 권장.)
-- **TEST3(로그인 인지) 실화면 미검증** — 직전 세션 이월. curl로 로그인 흉내 불가 → PO 브라우저 또는 배포 후 prod에서 확인 필요.
-- **카자흐어 step1 수정 라이브 end-to-end 미검증** — Vercel 배포한도로 못 띄움. 한도 풀리거나 머지 후 prod에서 `preferredLanguage:"kz"`로 step1 제출이 200 되는지 확인 권장(단 실제 문의 제출은 PO에게 admin 알림 메일 감 → 주의).
-- **(참고·보류) `khidi/intake` POST의 `VALID_CANCER_TYPES`가 6종**(colorectal·pancreatic 빠짐, 퍼널은 8종) — 단 이 POST를 호출하는 프론트가 없음(GET만) → 라이브 영향 없어 보류.
-
-**4. 주의·함정:**
-- **Vercel 배포 한도 소진 지속** — PR #267의 Vercel 체크는 "Deployment rate limited — retry in 24 hours"로 **빨강이지만 코드 문제 아님**(직전 세션들과 동일 환경 이슈). 진짜 CI는 GitHub Actions `ci`·`Smoke Tests (PR)`.
-- **이 환경엔 node_modules 없음** → `tsc`/`vitest`/`next build` 로컬 실행 불가. `node scripts/check-content-consistency.mjs`(빌트인만 씀)는 돌아감(통과 확인). 타입·테스트는 CI에 위임.
-- 카자흐어 코드는 맥락별로 다름: **입력/저장/UI=`kz`(정본)**, **이메일/설문 템플릿 키·hreflang 출력=`kk`(경계에서 변환)**. 새 코드에서 헷갈리지 말 것 — 가드가 z.enum만 잡으니 plain array 검증에서 재발 가능성은 남음.
-
-**5. 다음 세션이 먼저 할 일 (우선순위):**
-1. **⚠️ 직전 미검증분 먼저**: ①**PR #267 CI 초록 확인 후 머지 판단**(카자흐어 퍼널 복구라 빠를수록 좋음). ②**TEST3(로그인 인지)** 실화면 확인(PO 브라우저/머지 후 prod). ③배포 한도 풀리면 카자흐어 step1 제출이 prod에서 200 되는지 확인.
-2. (선택) 언어코드 정본(`kz`)·경계매핑(`kz↔kk`)을 단일 헬퍼로 모아 부류 자체 제거(저우선 리팩터).
-3. (이월) 스모크 자동점검 완전가동(GitHub Secrets `SUPABASE_URL`·`SUPABASE_SERVICE_ROLE_KEY`) / 로그인 displayName·마이페이지 UI PO 결정.
-
-**6. 검증 상태:**
-- **PR #267 CI**: `ci`(타입+vitest)·`Smoke Tests (PR)` = 푸시 직후 **in_progress(미확인)**. E2E류는 PR에서 skip(정상). Vercel = **failure(배포한도, 코드 무관)**. → 다음 세션/이 세션 후속에서 초록 재확인 필요.
-- **`node scripts/check-content-consistency.mjs`**: ✅ 로컬 통과(가드 신설 후 오탐 0·금지토큰 0·활성6언어 패리티).
-- **레이트리밋 6파일**: ✅ 전부 `await checkRateLimitPersistent` 정합 + 미사용 import 0(grep 확인).
-- **TEST2(세션 안내)**: ✅ prod 라이브 curl 실증(2026-06-22 심야).
-- **TEST3(로그인 인지)**: ⏳ 실화면 미검증(이월).
-- **카자흐어 step1 수정**: 코드·가드는 결정적 / **라이브 end-to-end 미검증**(배포한도).
-- **로컬 `tsc`/`vitest`/`next build`**: 환경에 node_modules 없어 못 돌림 → CI 위임.
-
-**7. 다음 세션 첫 프롬프트:**
-> 먼저 docs/PROJECT_CONTEXT.md 최상단 핸드오프 읽어. 자율감사 세션(PR #267, 브랜치 claude/session-recovery-7ol6xh) 이어가자. ①PR #267 자동검사(CI) 초록인지 확인하고 초록이면 머지할지 판단해줘(카자흐어 문의 퍼널이 그동안 막혀 있던 버그 수정이라 빨리 반영하면 좋음). ②Vercel 배포한도 풀렸으면 미리보기에서 카자흐어로 문의 step1 제출이 잘 되는지(전엔 막혔음)랑 TEST3(로그인하고 "나 로그인했어?" 물어→계정 연결 안내) 실화면 확인해줘. ③배포 한도 막혀 있으면 코드 무관이니 그냥 알려만 줘.
 
 ---
 
