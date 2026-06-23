@@ -159,6 +159,43 @@ try {
   errors.push(`[roomCopy] ${ROOMCOPY} 읽기 실패: ${e.message}`);
 }
 
+// ── 4) 목록→상세 동적 링크가 실제 라우트로 연결되는지 (404 방지) ──────────
+// 왜: 목록 화면이 router.push(`/coordinator/inbox/${id}`)·href={`/...${id}`} 처럼 동적 상세로
+//     보내는데 그 [id] 라우트가 없으면 클릭 시 404 (2026-06-23 코디 인박스 사고, POSTMORTEMS #31).
+//     사람이 클릭해봐야만 보이던 부류 → 내부 동적 네비게이션의 대상 라우트 존재를 매번 자동 확인.
+function hasDynamicRoute(prefixSegs) {
+  const dir = join(ROOT, "app", ...prefixSegs);
+  let entries;
+  try { entries = readdirSync(dir); } catch { return false; }
+  for (const e of entries) {
+    if (/^\[.+\]$/.test(e)) {
+      for (const f of ["page.jsx", "page.tsx", "page.js", "page.ts"]) {
+        try { statSync(join(dir, e, f)); return true; } catch { /* 다음 */ }
+      }
+    }
+  }
+  return false;
+}
+// 캡처: (1)정적 접두 경로, (2)`${…}` 직후 1글자. 2번이 영숫자/.-_ 면 같은 세그먼트에
+// 리터럴이 더 붙는 것(예: `/templates/${x}-import.csv` = 정적 파일) → 라우트 아님, 제외.
+const NAV_RE = /(?:router\.(?:push|replace)\(|href=\{)`(\/[A-Za-z0-9/_-]+)\/\$\{[^}]*\}([^`]?)/g;
+const navSeen = new Set();
+for (const file of walk("app")) {
+  const text = readFileSync(join(ROOT, file), "utf8");
+  let m;
+  while ((m = NAV_RE.exec(text)) !== null) {
+    const prefix = m[1]; // 예: "/coordinator/inbox"
+    const after = m[2];  // `${…}` 직후 글자
+    if (prefix.startsWith("/api")) continue;
+    if (after && /[A-Za-z0-9._-]/.test(after)) continue; // 세그먼트 일부(파일명 등) → 라우트 아님
+    if (navSeen.has(prefix)) continue;
+    navSeen.add(prefix);
+    if (!hasDynamicRoute(prefix.split("/").filter(Boolean))) {
+      errors.push(`[동적링크] '${prefix}/\${…}' 로 보내는 화면이 있는데 app${prefix}/[*]/page 라우트가 없음 → 클릭 시 404 (POSTMORTEMS #31). 상세 페이지를 만들거나 링크를 고칠 것`);
+    }
+  }
+}
+
 // ── 결과 ────────────────────────────────────────────────────────
 if (errors.length) {
   console.error(`\n❌ 콘텐츠 일관성 검사 실패 (${errors.length}건)\n`);

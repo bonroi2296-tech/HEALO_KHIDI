@@ -8,6 +8,24 @@
 
 ---
 
+## #31 — 코디 인박스에서 문의 클릭 시 404 (목록이 없는 상세 라우트로 링크) (2026-06-23)
+
+**무슨 일**
+- 코디네이터 인박스 목록(`/coordinator/inbox`)에서 문의를 클릭하면 `/coordinator/inbox/17` 같은 상세 주소로 이동하는데, **그 상세 라우트(`app/coordinator/inbox/[id]/page`)가 아예 없어 404**. 목록 조회까진 되는데 "진행"하려고 누르면 에러 → PO가 직접 클릭하다 발견.
+
+**왜 못 잡았나 (근본원인)**
+1. 목록 페이지(`page.jsx`)는 `router.push(\`/coordinator/inbox/${item.id}\`)`로 상세로 보내는데, **상세 페이지를 만들지 않은 채 링크만** 배선됨(목록만 구현되고 상세는 누락).
+2. `next build`는 **존재하지 않는 동적 링크 대상을 검증하지 않음**(런타임 404라 빌드 통과). → 사람이 클릭해봐야만 보임.
+3. 동적 링크(목록→상세)는 흔한 패턴인데 **대상 라우트 존재를 확인하는 자동 가드가 없었음**.
+
+**어떻게 고쳤나**
+- **신설 `GET /api/portal/inbox/[id]`**: `requirePortalAuth({ staffOnly:true })` 인증 후 `inquiries` 단건 조회 + 서버 PII 복호화(`decryptInquiryForAdmin`). 에러는 코드형만.
+- **신설 `/coordinator/inbox/[id]` 상세 화면(legacy 톤)**: 연락·의료/여정·메시지·인테이크·진행상태 + '상담 일정'·'케이스 배정' 연결.
+- 전수 스캔: 다른 목록→상세 동적 링크 8곳(`/consultation`·`/coordinator/cost-estimates`·`/coordinator/visa`·`/patient/cost-estimates`·`/patient/visa/applications`·`/treatments`·`/hospitals`)은 **모두 대상 라우트 존재 확인 ✅** — 끊긴 건 인박스뿐이었음.
+
+**재발 방지 (시스템 적용)**
+- `scripts/check-content-consistency.mjs`에 **동적 링크 검사 룰 추가**(CI 매 PR): 코드에서 `router.push(\`/…/${…}\`)`·`href={\`/…/${…}\`}` 같은 내부 동적 네비게이션을 찾아 **대상 `app/…/[*]/page` 라우트가 없으면 빌드 실패**. 쿼리스트링(`?q=${}`)·정적 파일명 보간(`/templates/${}-x.csv`)·`/api`·외부 URL은 오탐 제외.
+
 ## #1 — 옛 모델 콘텐츠 잔재가 PO가 찾을 때까지 남음 (2026-06-16)
 
 **무슨 일**
