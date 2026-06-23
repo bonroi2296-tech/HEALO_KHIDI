@@ -19,7 +19,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
-import { LOCALES, LOCALE_COOKIE } from "@/lib/i18n/config";
+import { LOCALES, LOCALE_COOKIE, DEFAULT_LOCALE } from "@/lib/i18n/config";
 
 // ── URL 언어화(locale-in-path) ──────────────────────────────
 // 공개 마케팅 경로만 /{locale}/ 로 강제. /ru/treatments → 내부 /treatments rewrite + x-locale 헤더로 언어 전달.
@@ -57,8 +57,12 @@ function detectLocale(request: NextRequest) {
   // 직접 고른 언어(healo_lang 쿠키)는 항상 우선 — 다음 방문에도 유지.
   const cookie = request.cookies.get(LOCALE_COOKIE)?.value;
   if (cookie && LOCALES.includes(cookie)) return cookie;
-  // 기본값 = 러시아어(PO 지정). 브라우저 언어 자동감지 안 함.
-  return "ru";
+  // 2) 첫 진입 = 브라우저/시스템 언어가 우리 6개 중 하나면 그걸로(한→ko, 카→kz, 일→ja…).
+  let want = (request.headers.get("accept-language") || "").split(",")[0].split("-")[0].toLowerCase();
+  if (want === "kk") want = "kz"; // 카자흐어 ISO코드(kk) → 내부코드(kz). 안 맞추면 1순위 타겟이 영어로 샘.
+  if (LOCALES.includes(want)) return want;
+  // 3) 우리에 없는 언어면 영어(DEFAULT_LOCALE). PO 지정.
+  return DEFAULT_LOCALE;
 }
 
 /**
