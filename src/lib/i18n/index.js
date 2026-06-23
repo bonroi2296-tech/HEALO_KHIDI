@@ -5658,9 +5658,9 @@ export const LANG_OPTIONS_PRIMARY = PRIMARY_ORDER
 /** 기타 언어 (접었을 때 스크롤 영역으로 제한) */
 export const LANG_OPTIONS_OTHER = LANG_OPTIONS.filter(l => !LOCALES.includes(l.code));
 
-// 기본값 = 러시아어(PO 지정). 사용자가 직접 고른 언어는 healo_lang 쿠키로 항상 우선.
+// 직접 고른 언어(healo_lang 쿠키)는 항상 우선. 공개 페이지는 proxy가 URL 언어로 쿠키를 맞춰줌.
 export const getLangCodeFromCookie = () => {
-  if (typeof document === "undefined") return "ru";
+  if (typeof document === "undefined") return "en";
   const cookies = document.cookie.split(";");
   const healoLang = cookies.find((row) => row.trim().startsWith("healo_lang="));
   if (healoLang) {
@@ -5668,12 +5668,12 @@ export const getLangCodeFromCookie = () => {
     if (DICTIONARY[code]) return code;
   }
   const langCookie = cookies.find((row) => row.trim().startsWith("googtrans="));
-  if (!langCookie) return "ru";
+  if (!langCookie) return "en";
   const langCode = langCookie.split("=")[1].split("/").pop();
   if (langCode === "ko") return "ko";
   if (langCode === "zh-CN") return "zh";
   if (langCode === "ja") return "ja";
-  return "ru";
+  return "en";
 };
 
 /** 언어 선택 시 쿠키 저장 (healo_lang). googtrans는 제거해 우리 번역만 사용 */
