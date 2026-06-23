@@ -105,13 +105,6 @@ export default function RebookingClient() {
     });
   };
 
-  const getSourceLabel = (source) => {
-    if (source === 'followup') return l(LABELS.followup);
-    if (source === 'symptom') return l(LABELS.symptom);
-    if (source === 'doctor') return l(LABELS.doctor);
-    return source;
-  };
-
   const visaShort = getVisaChecklist('C-3-3', lang);
   const visaLong = getVisaChecklist('G-1-10', lang);
 
