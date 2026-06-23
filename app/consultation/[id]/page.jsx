@@ -89,6 +89,8 @@ function roleLabel(role, c) {
     case "translator":
     case "interpreter":
       return c.roleInterpreter;
+    case "guest":
+      return c.roleGuest;
     default:
       return c.rolePatient;
   }
@@ -522,6 +524,7 @@ export default function ConsultationRoomPage() {
         msg.sender_role === "doctor" ? "Doctor"
         : msg.sender_role === "coordinator" ? "Coordinator"
         : msg.sender_role === "translator" ? "Interpreter"
+        : msg.sender_role === "guest" ? "Guest"
         : "Patient",
       message_text: msg.message ?? msg.message_text ?? "",
       created_at: msg.created_at || new Date().toISOString(),
@@ -902,6 +905,7 @@ export default function ConsultationRoomPage() {
                 row.sender_role === "doctor" ? "Doctor"
                 : row.sender_role === "coordinator" ? "Coordinator"
                 : row.sender_role === "translator" ? "Interpreter"
+                : row.sender_role === "guest" ? "Guest"
                 : "Patient",
               message_text: row.message ?? row.message_text ?? "",
               created_at: row.created_at || new Date().toISOString(),

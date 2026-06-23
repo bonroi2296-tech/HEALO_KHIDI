@@ -12,16 +12,13 @@ import { requirePortalAuth } from "@/lib/auth/requirePortalAuth";
 import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
 import { decryptStringNullable } from "@/lib/security/encryptionV2";
 
-function maskedName(enc: string | null | undefined): string {
-  let name = "";
+// staff(코디·관리자) 전용 인박스라 실명 표시 — 마스킹하면 문의 많을 때 식별 불가(PO 요청 2026-06-23).
+function decryptName(enc: string | null | undefined): string {
   try {
-    name = decryptStringNullable(enc) || "";
+    return decryptStringNullable(enc) || "";
   } catch {
-    name = "";
+    return "";
   }
-  if (!name) return "(이름 미상)";
-  if (name.length === 1) return name;
-  return name[0] + "*".repeat(Math.max(1, name.length - 1));
 }
 
 export async function GET(request: NextRequest) {
@@ -34,7 +31,7 @@ export async function GET(request: NextRequest) {
     const { data, error } = await supabaseAdmin
       .from("inquiries")
       .select(
-        "id, nationality, cancer_type, preferred_language, contact_method, match_accuracy, status, step1_completed_at, step2_completed_at, created_at, first_name"
+        "id, nationality, cancer_type, preferred_language, contact_method, match_accuracy, status, step1_completed_at, step2_completed_at, created_at, first_name, last_name"
       )
       .order("created_at", { ascending: false })
       .limit(200);
@@ -46,7 +43,9 @@ export async function GET(request: NextRequest) {
 
     const items = (data || []).map((i: any) => ({
       id: i.id,
-      name: maskedName(i.first_name),
+      name:
+        [decryptName(i.first_name), decryptName(i.last_name)].filter(Boolean).join(" ").trim() ||
+        "(이름 미상)",
       nationality: i.nationality || null,
       cancer_type: i.cancer_type || null,
       preferred_language: i.preferred_language || null,

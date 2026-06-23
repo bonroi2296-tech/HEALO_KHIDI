@@ -22,7 +22,8 @@ import "server-only";
 import { randomBytes, createHash } from "node:crypto";
 import { supabaseAdmin } from "../rag/supabaseAdmin";
 
-export type GuestRole = "patient" | "doctor" | "translator" | "coordinator" | "observer";
+// "guest" = 범용 참여자(통합 초대 링크). 누구나 이 링크로 입장 → 이름 직접 입력.
+export type GuestRole = "patient" | "doctor" | "translator" | "coordinator" | "observer" | "guest";
 
 export interface GenerateGuestTokenParams {
   consultationId: string;
