@@ -61,8 +61,8 @@ export default function ConfirmClient() {
 
         {status === "success" && (
           <div className="flex flex-col items-center gap-3 py-6">
-            <div className="w-14 h-14 rounded-full bg-teal-100 flex items-center justify-center">
-              <CheckCircle2 className="text-teal-700" size={28} />
+            <div className="w-12 h-12 rounded-xl bg-teal-50 flex items-center justify-center">
+              <CheckCircle2 className="text-teal-700" size={22} />
             </div>
             <h2 className="text-2xl font-extrabold text-gray-900">{pick(L.successTitle, langCode)}</h2>
             <p className="text-sm text-gray-500">{pick(L.successBody, langCode)}</p>
@@ -71,8 +71,8 @@ export default function ConfirmClient() {
 
         {status === "error" && (
           <div className="flex flex-col items-center gap-3 py-4">
-            <div className="w-14 h-14 rounded-full bg-red-50 flex items-center justify-center">
-              <XCircle className="text-red-500" size={28} />
+            <div className="w-12 h-12 rounded-xl bg-red-50 flex items-center justify-center">
+              <XCircle className="text-red-500" size={22} />
             </div>
             <h2 className="text-xl font-extrabold text-gray-900">{pick(L.errorTitle, langCode)}</h2>
             <p className="text-sm text-gray-500 leading-relaxed">{pick(L.errorBody, langCode)}</p>

@@ -184,8 +184,8 @@ export const SignUpPage = ({ setView }) => {
         return (
             <div className="min-h-[calc(100vh-64px)] flex items-center justify-center bg-gray-50 px-4 animate-in fade-in slide-in-from-bottom-4">
                 <div className="bg-white rounded-3xl shadow-xl w-full max-w-md p-8 md:p-10 border border-gray-100 text-center">
-                    <div className="w-14 h-14 rounded-full bg-teal-100 flex items-center justify-center mx-auto mb-5">
-                        <Mail className="text-teal-700" size={26} />
+                    <div className="w-12 h-12 rounded-xl bg-teal-50 flex items-center justify-center mx-auto mb-5">
+                        <Mail className="text-teal-700" size={22} />
                     </div>
                     <h2 className="text-2xl font-extrabold text-gray-900">{CONFIRM_PENDING.title[langCode] || CONFIRM_PENDING.title.en}</h2>
                     <p className="text-gray-500 mt-3 text-sm">{CONFIRM_PENDING.sentTo[langCode] || CONFIRM_PENDING.sentTo.en}</p>
