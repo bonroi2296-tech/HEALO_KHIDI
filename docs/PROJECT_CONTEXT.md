@@ -7,6 +7,54 @@
 
 ---
 
+## 🔖 세션 핸드오프 (2026-06-23 늦은밤 — 코디·환자 버그 수정 + 배포최적화 + 검증 자동화)
+
+> 갈무리 세션이 길게 이어져 PO가 실서비스를 직접 클릭하며 버그를 연달아 발견 → 그때마다 원인+재발방지(가드/E2E)까지 한 세트로 수리. **PR 9개 머지**(#274 닫음 포함). ⚠️ **단, 한도 때문에 #311·#313·#315는 아직 프로덕션 미반영**(5번·6번 필독).
+
+**1. 이번 세션 한 일 (머지·배포):**
+- **갈무리**: [#274](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/274) 닫음(대체됨) / **[#298](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/298)** 암종 비용·비자 콘텐츠 머지 / **[#301](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/301)** 갈무리 핸드오프.
+- **[#303](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/303) 배포 폭증 차단**: 자동저장(`chore: 작업 자동 저장`) 커밋은 Vercel 배포 스킵(`scripts/vercel-ignore-build.sh`). 백업(커밋·푸시)은 그대로. **prod 반영됨**.
+- **[#305](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/305) 코디 인박스 404 수리**: 목록이 `/coordinator/inbox/[id]`로 보내는데 상세 라우트가 없어 404 → 상세 페이지 + `GET /api/portal/inbox/[id]`(staff 복호화) 신설. **prod 반영됨**.
+- **[#306](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/306) 404 자동가드**: `check:content`에 "목록→없는 상세 링크" 검사 추가(POSTMORTEMS #31). **prod 반영됨**.
+- **[#309](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/309) 코디 '새 상담 생성'이 환자 문의창으로 가던 것 수리**: `/intake`(→`/inquiry` 리다이렉트) → 실제 상담 생성 모달. admin 인라인 모달을 **공용 `src/components/consultation/CreateConsultationModal.jsx`로 추출**해 admin·coordinator 공유 + 드롭다운 API(`/api/admin/inquiries/picker`·`/api/admin/users/search`)를 `requirePortalAuth(staffOnly)`로 확대. **prod 반영됨**.
+- **[#311](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/311) 상담 모달 3종 개선**: ①역할 5개 링크 → **통합 '참여 링크' 1개**(`role=guest`, DB CHECK 마이그레이션 `migrations/20260623_guest_token_role_add_guest.sql` 적용 + `_roomCopy.js` 6언어 `roleGuest`) ②문의 선택 시 환자 이메일·이름 **자동 채움**(`/api/portal/inbox/[id]` 재사용) ③picker·inbox 목록 **실명 표시**(마스킹 제거, staff 전용). **⚠️ prod 미반영**.
+- **[#313](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/313) 환자 모바일 레이아웃 깨짐 수리**: `ClientShell.isPortalPage`에 `/patient` 누락 → 공개 헤더+하단바+푸터가 환자 자체 하단탭과 **이중**으로 겹침. `/patient` 추가 + `patient/layout` `pt-14 md:pt-16` + 환자는 idle 자동로그아웃 제외(POSTMORTEMS #32). **⚠️ prod 미반영**.
+- **[#315](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/315) 검증 자동화**: E2E `@smoke` 2개(`patient-mobile-chrome`·`consultation-create-modal`) + 정적가드 "직원→환자퍼널(/inquiry·/intake) 링크 금지" + **POSTMORTEMS #33(메타 반성)**. **⚠️ prod 미반영**(테스트·문서라 무관하지만 코드상 미반영).
+
+**2. 왜 그렇게 했는지:**
+- **통합 링크(role=guest)**: PO "관련자 다 여기로 들어오셈 한 링크가 편하다". 화상방은 role 무관 전원 송출(`canPublish=true` 고정)이라 권한 영향 0 — role은 채팅 이름표·대기실 자동승인(의사만)·이메일 언어에만 쓰임. 그래서 통합 링크 안전.
+- **모달 공용 추출**: 두 벌로 복제하면 데이터원 갈림(POSTMORTEM #28 교훈) → 단일 컴포넌트.
+- **실명 표시**: PO "코디·관리자는 담당자라 실명 봐야 식별됨". 공개 화면 노출 없음(staff API만).
+- **E2E가 정답이지만 정적가드부터**: 빌드는 문법만 봐서 404·이중레이아웃·엉뚱한 링크를 못 잡음 → 기계가 클릭하게(E2E) + 소스에서 차단(정적가드).
+
+**3. 안 끝났거나 보류:**
+- **🚧 #311·#313·#315 프로덕션 미반영** — 2026-06-23 Vercel 무료 일일한도(100/일) 소진으로 프로덕션 빌드가 막힘. **현 프로덕션 = #309(`ab220aa`)**. 그래서 PO가 실서비스에서 "안 바뀌었다"고 함(맞음). → 5번 1번.
+- **🚧 E2E 2개 잠자는 상태** — 로그인 필요라 GitHub Secrets 없으면 자동 skip(현재 미설정). 정적가드 2개(404·직원퍼널)는 secrets 없이 **즉시 활성**.
+- **머지된 원격 브랜치 100개+** — 정리 스크립트를 PO에게 파일로 전달(로컬에서 `bash`로 실행). git 프록시가 원격 브랜치 삭제(403)를 막아 이 환경선 못 지움.
+- 직전 보류분(재진 엔진 `rebooking_source` 유령컬럼 / `/patient/messages`·`/calendar` legacy 리스타일)은 그대로.
+
+**4. 주의·함정:**
+- ⚠️ **이 환경엔 `node_modules` 없음 → 로컬 풀빌드·E2E 실행 불가.** CI가 게이트. 검증은 `check:content`(돌아감)+CI+Vercel 프리뷰로.
+- ⚠️ **`git reset --hard`로 추적파일 편집 날린 사고 2회** — 커밋 전 reset 금지. 최신 main 위로는 `git rebase --onto origin/main <BASE>`로(이번에 그렇게 함).
+- ⚠️ **프리뷰를 프로덕션으로 승격**하면 프리뷰 env로 도는 점 유의(이 프로젝트는 env 공유라 대체로 무해).
+- **role=guest 라벨**: 방 화면 `roleLabel`/채팅 폴백/`_roomCopy` 6언어에 `roleGuest`("참여자") 추가됨 — 새 역할 만질 때 6언어 패리티 가드(`check:content`) 주의.
+
+**5. 다음 세션이 먼저 할 일 (우선순위):**
+1. **⚠️ 직전 미검증분 먼저(프로덕션 반영 확인)**: Vercel 한도 풀렸으면 **#311·#313·#315가 프로덕션에 올라갔는지** 확인(`healwith.co.kr` 최신 커밋 = `1a3ca8f` 이상인지). 안 올라갔으면 최신 프리뷰를 **Promote to Production**. 그 뒤 PO에게 실클릭 검증 요청: ①환자 폰/375px → 하단바 1개 ②코디 '새 상담' → 참여 링크 1개·실명·이메일 자동.
+2. **(PO 액션) GitHub Secrets 4개 등록** 안내·확인: `E2E_TEST_USER_EMAIL/PASSWORD`(patient@test.com/test1234)·`E2E_COORDINATOR_EMAIL/PASSWORD`(coordinator@test.com/test1234) → 그래야 E2E 클릭검사 활성.
+3. (선택) 머지된 브랜치 100개 정리(PO가 로컬 스크립트 실행).
+4. (선택) 재진 엔진 근본수정 / `/patient/messages`·`/calendar` legacy 리스타일.
+
+**6. 검증 상태:**
+- ✅ 머지된 9개 PR **전부 CI(빌드·스모크·`check:content`·마이그레이션 멱등성) 통과**(GitHub MCP 확인). 열린 PR 없음.
+- ✅ `check:content`(가드 3종 포함)·`check:migrations` 이 환경서 직접 돌려 통과.
+- ❌ **로컬 풀빌드·E2E 직접 실행 못 함**(node_modules 미설치) — CI가 검증.
+- ❌ **#311·#313 prod 실클릭 미검증** — 프로덕션 미반영이라(한도) PO가 못 봄 → 5번 1번.
+- ⚠️ E2E 2개는 CI에서 **skip**(secrets 미설정) — 아직 실제 클릭 안 함.
+
+**7. 다음 세션 첫 프롬프트:**
+> 먼저 docs/PROJECT_CONTEXT.md 최상단 핸드오프 읽어. 2026-06-23 코디 인박스 404·새상담 모달·환자 모바일 레이아웃·통합 초대링크를 다 고쳐 머지했는데 **#311·#313·#315가 Vercel 일일한도로 프로덕션에 아직 안 올라갔어**(현 prod=#309). ①한도 풀렸으면 프로덕션 반영됐는지 보고(healwith.co.kr 최신커밋 1a3ca8f 이상), 안 됐으면 최신 프리뷰 Promote to Production 안내해. 그담에 PO한테 환자 모바일 하단바 1개·코디 새상담 참여링크1개/실명/이메일자동 실클릭 확인 받자. ②E2E 자동검사 켜려면 GitHub Secrets 4개(patient·coordinator 계정/test1234) 넣어야 한다고 PO한테 알려.
+
 ## 🔖 세션 핸드오프 (2026-06-23 밤 — 세션 갈무리: 열린 PR 정리)
 
 > 여러 세션이 작업을 끝낸 뒤 흩어진 상태를 정리한 "갈무리" 세션. 코드 변경 없음(열린 PR 처리 + 핸드오프 정리만). PO 지시: "세션들 작업 종료는 다 했으니 갈무리해라."
@@ -43,51 +91,6 @@
 
 **7. 다음 세션 첫 프롬프트:**
 > 먼저 docs/PROJECT_CONTEXT.md 최상단 핸드오프 읽어. 갈무리 세션에서 #274(대체됨) 닫았고, 지금 열린 PR은 #298(암종 비용·비자 콘텐츠) 하나 — CI는 초록인데 Vercel 일일배포한도로 프리뷰 대기였어. ①Vercel 한도 풀렸으면 #298 프리뷰로 6개 언어 카피(특히 러시아·카자흐) 톤 봐주고. ②그보다 먼저: 2026-06-23 배포분 로그인 실클릭 검증이 아직 안 됐어 — 코디/환자로 로그인해서 헤더 1개만 뜨는지·'내 페이지' 곧장 가는지·증상기록 본인 것 표시되는지 확인해줘. ③원격 브랜치 100개+ 쌓였는데 머지된 것 정리할지도 정하자.
-
-## 🔖 세션 핸드오프 (2026-06-23 오후·저녁 — 계층 재편 + 백오피스 점검 + 프리미엄 전면 폐기)
-
-> 이번 세션은 4개 PR을 머지·프로덕션 배포까지 완료(#280·#286·#288·#290). 모두 healwith.co.kr 라이브.
-> ⚠️ 세션 내내 어시스턴트가 **legacy/premium을 헷갈려 PO가 여러 번 바로잡음** — 4번(주의) 꼭 읽을 것.
-
-**1. 이번 세션 한 일:**
-- **계층별 테스트 계정 정리** → `docs/TEST_ACCOUNTS.md` 신설(환자/코디/병원/에이전시/의료기관 @test.com, 비번 test1234 / clinic만 clinic1234, admin은 의도적 미생성).
-- **계층 재편 마이그레이션 [#280](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/280)** (머지·배포·**prod curl 리다이렉트 검증 ✅**): 국내병원 `/partner`→`/hospital`(옛주소 307 리다이렉트, `/api/partner/*` API경로는 유지) · 해외의료기관 `/agency`→`/clinic` 분리(partner_type 게이팅+불일치 자동이동) · 의사 `/doctor` **비활성화**(proxy→홈, 코드·role=doctor 계정·상담 배정은 보존). 표준 `accountTiers.ts`·`resolveLanding.ts`·`proxy.ts` + 문서 갱신. 기획 `KHIDI_역할_프로세스_기획.md` §7 실행.
-- **백오피스 전수 점검**(5포털): 바깥(병원 `/hospital`·해외 `/agency`·`/clinic`)=🟢건강, 안쪽(환자·코디)에 구멍 발견.
-- **환자·코디 수리 [#286](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/286)** (머지·배포): 증상기록 `symptom_reports.patient_user_id` 컬럼 추가(가역·prod 적용)+저장+`?mine` 조회로 본인 기록 표시 / 재진예약은 정식 테이블 `followup_schedules`(`/api/portal/followup`)로 배선 / 코디 메뉴를 실제 라우트로 정합(404 링크 제거). 반성문 #29.
-- **프리미엄 디자인 전면 폐기 [#288](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/288)** (머지·배포): 토글(legacy/premium) 제거·legacy 단일화, `*Premium` 16개+healo `Nav/Footer/PageShell/Notification류/Skeleton/DesignToggle`+`designMode.js` **총 28파일 삭제**(−10,212줄). 보존: Primitives·EmergencyButton(SOS)·Photos·healo-tokens·모든 `*Legacy`. `PREMIUM_TEARDOWN_PLAN.md` 참고.
-- **헤더 '내 페이지' hop 수정 [#290](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/290)** (머지·배포): 코디·에이전시가 `/patient` 들렀다 튕기던 것 → `app_metadata.role` 기준 곧장 라우팅.
-
-**2. 왜 그렇게 했는지:**
-- **`/doctor`는 삭제 아니라 비활성화** — PO "냅두고 비활성화만 해봐". 의사 계정·상담 '담당 의사' 배정은 계속 쓰임.
-- **프리미엄 폐기** — PO: premium은 A/B 실험용으로 만들었다 **안 쓰기로 함**. 근데 `PageShell`(=프리미엄 Nav 껍데기)이 legacy 페이지까지 감싸 **이중 헤더** + 프리미엄 누수 발생 → 단일 legacy로 통일. (premium은 **앞으로 추가 개발 안 함** — PO 명시.)
-- **재진 정식 테이블 = `followup_schedules`** — 실DB 확인 결과 `consultation_sessions.rebooking_source` **컬럼이 아예 없음**(코드/엔진은 있다고 가정). 코드 아닌 실스키마가 진실.
-
-**3. 안 끝났거나 보류:**
-- **[#274](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/274)(초안) 닫아야 함** — #286/#288로 대체됨(코멘트 남김). 머지 금지, 닫기만.
-- **재진예약 기능 휴면** — 엔진 `/api/khidi/rebooking/create`가 **없는 컬럼 `consultation_sessions.rebooking_source`에 씀** → `followup_schedules`(0행)는 안 채워짐. 화면은 정식 테이블로 배선했으나 **엔진을 followup_schedules로 고쳐야** 데이터가 생김(근본수정 별도).
-- **`/patient/messages`·`/patient/calendar` 본문** 아직 프리미엄 톤(serif/gold) — PageShell만 떼고 본문·Primitives 유지. legacy 리스타일 필요.
-- **`stories/StoriesClient.jsx`** 가 삭제된 PageShell을 import — stories는 비활성(홈 redirect)이라 빌드 영향 0. stories 재활성 시 손볼 것.
-
-**4. 주의·함정:**
-- ⚠️ **legacy/premium 헷갈리지 마라**: `components/healo/`가 프리미엄 디자인시스템, `PageShell`이 프리미엄 Nav 래퍼였음. 이번에 대부분 제거. **premium은 추가 개발 안 함**(PO). 활성 화면=legacy 단일. (자세히: `design_mode_premium_legacy` 메모리)
-- ⚠️ **변경 적용할 때 불필요한 것(서비스 이름·브랜드 등) 건드리지 마라** — PO가 "서비스 이름도 바꿨냐"고 추궁(실제론 안 바꿈, HEALO→healwith는 2026-06-17 #43). 요청 범위만 정확히.
-- ⚠️ **단정 전에 실제 코드·실DB로 확인** — `information_schema`로 컬럼 존재 확인(rebooking_source 유령 컬럼 사례). 코드가 X를 쓴다고 X가 있는 건 아님.
-- **자동저장 훅 2분마다 `git add -A` 커밋** — 멀티파일 작업 시 무관 파일 섞임. 깨끗한 새 브랜치(origin/main 기준)에 내 파일만 모아 PR, `git diff origin/main...HEAD` net으로 확인.
-
-**5. 다음 세션이 먼저 할 일 (우선순위):**
-1. **⚠️ 직전 미검증분 먼저(로그인 실클릭)**: 배포는 됐으나 **로그인 화면은 직접 클릭 검증 못 함**. `/coordinator`·`/patient`로 로그인해서 ①헤더가 1개만 뜨는지(이중헤더 해소) ②'내 페이지' 눌러 곧장 가는지(hop 없음) ③환자 증상기록 입력→본인 기록 표시되는지 확인.
-2. **#274 닫기**(대체됨).
-3. (선택) **재진 엔진 근본수정** — `rebooking/create`를 `followup_schedules`에 쓰도록(현재 유령 컬럼).
-4. (선택) `/patient/messages`·`/calendar` 본문 legacy 리스타일.
-
-**6. 검증 상태:**
-- ✅ 빌드(`next build --webpack`, 239p)·`check:content`·CI(ci+smoke) — **4개 PR 다 통과·머지·prod 배포 READY**(Vercel 확인).
-- ✅ 계층 재편 리다이렉트: **prod curl로 검증**(`/partner`→`/hospital`, `/doctor`→`/`, `/clinic`·`/agency` 200).
-- ❌ **로그인 화면 실클릭 미검증**: 환자·코디 대시보드/헤더/내페이지/증상기록은 로그인 필요라 curl로 못 봄(→ 5번 1).
-- 열린 PR: **#274**(초안, 대체됨 → 닫을 것).
-
-**7. 다음 세션 첫 프롬프트:**
-> 먼저 docs/PROJECT_CONTEXT.md 최상단 핸드오프 읽어. 어제(2026-06-23) 계층 재편·환자코디 수리·프리미엄 전면 폐기·헤더 hop 수정을 prod에 다 올렸는데 **로그인 화면 실클릭 검증이 안 됐어**. ①코디/환자로 로그인해서 헤더 1개만 뜨는지·'내 페이지' 곧장 가는지·증상기록 본인 것 표시되는지 봐줘. ②안 닫힌 PR #274 닫고. 그담에 재진예약 엔진(없는 컬럼 rebooking_source 대신 followup_schedules에 쓰게) 근본수정 할지 정하자.
 
 ## 🏷️ 서비스명 변경 — HEALO → **healwith** (2026-06-16 확정·적용)
 
