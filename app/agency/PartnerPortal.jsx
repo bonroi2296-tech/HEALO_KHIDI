@@ -16,8 +16,12 @@ const supabase = createSupabaseBrowserClient();
 
 const EMPTY_FORM = {
   firstName: "", lastName: "", nationality: "", treatmentType: "",
+  sex: "", birthYear: "", stage: "", diagnosisDate: "", diagnosedHospital: "", priorTreatment: "",
   contactMethod: "whatsapp", contactId: "", email: "", message: "",
 };
+
+// 폼 입력 공통 스타일 (DESIGN: border gray-200 / rounded-lg / text-sm)
+const INP = "border border-gray-200 rounded-lg px-3 py-2 text-sm";
 
 // 포털 정적 UI 문구 — 6개 언어. (환자가 입력한 자유 텍스트·국적·암종은 번역 대상 아님)
 const TR = {
@@ -220,6 +224,135 @@ const TR_PROGRESS = {
 };
 for (const l of Object.keys(TR)) Object.assign(TR[l], TR_PROGRESS[l] || TR_PROGRESS.en);
 
+// 의뢰 폼 강화(상세 진단정보 + 첨부서류) + 상단 요약 문구 — 6개 언어. 위 TR 에 병합.
+const TR_FORM2 = {
+  ko: {
+    statTotal: "총 의뢰", statActive: "진행 중", statDone: "완료",
+    secPatient: "환자 기본정보", secDiagnosis: "진단 정보", secDocs: "첨부 서류",
+    phSex: "성별", optMale: "남성", optFemale: "여성", phBirthYear: "출생연도 (예: 1968)",
+    phStage: "병기 (예: II기 / Stage II)", phDiagnosisDate: "진단 시기 (예: 2025-03)",
+    phDiagnosedHospital: "진단받은 병원·지역", phPriorTreatment: "기존 치료 이력 (수술·항암·방사선 등)",
+    docsHint: "환자 차트·진단서·검사결과 등 — PDF·이미지·Word, 각 10MB",
+    docAdd: "+ 파일 추가", docUploading: "파일 올리는 중…", docRemove: "삭제",
+    catChart: "환자 차트", catDiagnosis: "진단서", catTest: "검사결과", catOther: "기타",
+    errUpload: "파일 업로드 실패. 다시 시도해 주세요.",
+  },
+  en: {
+    statTotal: "Total referrals", statActive: "In progress", statDone: "Completed",
+    secPatient: "Patient basics", secDiagnosis: "Diagnosis", secDocs: "Documents",
+    phSex: "Sex", optMale: "Male", optFemale: "Female", phBirthYear: "Birth year (e.g. 1968)",
+    phStage: "Stage (e.g. Stage II)", phDiagnosisDate: "Diagnosed (e.g. 2025-03)",
+    phDiagnosedHospital: "Diagnosing hospital / region", phPriorTreatment: "Prior treatment (surgery, chemo, radiation…)",
+    docsHint: "Patient chart, diagnosis, test results — PDF / image / Word, 10MB each",
+    docAdd: "+ Add file", docUploading: "Uploading files…", docRemove: "Remove",
+    catChart: "Patient chart", catDiagnosis: "Diagnosis report", catTest: "Test result", catOther: "Other",
+    errUpload: "File upload failed. Please try again.",
+  },
+  ru: {
+    statTotal: "Всего направлений", statActive: "В процессе", statDone: "Завершено",
+    secPatient: "Данные пациента", secDiagnosis: "Диагноз", secDocs: "Документы",
+    phSex: "Пол", optMale: "Мужской", optFemale: "Женский", phBirthYear: "Год рождения (напр. 1968)",
+    phStage: "Стадия (напр. Stage II)", phDiagnosisDate: "Дата диагноза (напр. 2025-03)",
+    phDiagnosedHospital: "Больница / регион диагноза", phPriorTreatment: "Предыдущее лечение (операция, химио, лучевая…)",
+    docsHint: "Карта пациента, диагноз, результаты анализов — PDF / изображение / Word, до 10МБ каждый",
+    docAdd: "+ Добавить файл", docUploading: "Загрузка файлов…", docRemove: "Удалить",
+    catChart: "Карта пациента", catDiagnosis: "Заключение", catTest: "Результат анализа", catOther: "Другое",
+    errUpload: "Не удалось загрузить файл. Попробуйте ещё раз.",
+  },
+  kz: {
+    statTotal: "Барлық жолдамалар", statActive: "Орындалуда", statDone: "Аяқталды",
+    secPatient: "Науқас деректері", secDiagnosis: "Диагноз", secDocs: "Құжаттар",
+    phSex: "Жынысы", optMale: "Ер", optFemale: "Әйел", phBirthYear: "Туған жылы (мыс. 1968)",
+    phStage: "Сатысы (мыс. Stage II)", phDiagnosisDate: "Диагноз қойылған кез (мыс. 2025-03)",
+    phDiagnosedHospital: "Диагноз қойылған аурухана / аймақ", phPriorTreatment: "Бұрынғы емі (операция, химия, сәулелік…)",
+    docsHint: "Науқас картасы, диагноз, талдау нәтижелері — PDF / сурет / Word, әрқайсысы 10МБ",
+    docAdd: "+ Файл қосу", docUploading: "Файлдар жүктелуде…", docRemove: "Жою",
+    catChart: "Науқас картасы", catDiagnosis: "Диагноз қорытындысы", catTest: "Талдау нәтижесі", catOther: "Басқа",
+    errUpload: "Файл жүктелмеді. Қайталап көріңіз.",
+  },
+  zh: {
+    statTotal: "转介总数", statActive: "进行中", statDone: "已完成",
+    secPatient: "患者基本信息", secDiagnosis: "诊断信息", secDocs: "附件资料",
+    phSex: "性别", optMale: "男", optFemale: "女", phBirthYear: "出生年份（如 1968）",
+    phStage: "分期（如 II 期）", phDiagnosisDate: "确诊时间（如 2025-03）",
+    phDiagnosedHospital: "确诊医院 / 地区", phPriorTreatment: "既往治疗（手术、化疗、放疗等）",
+    docsHint: "患者病历、诊断书、检查结果 — PDF / 图片 / Word，每个 10MB",
+    docAdd: "+ 添加文件", docUploading: "正在上传文件…", docRemove: "删除",
+    catChart: "患者病历", catDiagnosis: "诊断书", catTest: "检查结果", catOther: "其他",
+    errUpload: "文件上传失败，请重试。",
+  },
+  ja: {
+    statTotal: "紹介の総数", statActive: "進行中", statDone: "完了",
+    secPatient: "患者基本情報", secDiagnosis: "診断情報", secDocs: "添付書類",
+    phSex: "性別", optMale: "男性", optFemale: "女性", phBirthYear: "生年（例: 1968）",
+    phStage: "病期（例: ステージII）", phDiagnosisDate: "診断時期（例: 2025-03）",
+    phDiagnosedHospital: "診断を受けた病院・地域", phPriorTreatment: "既往治療（手術・抗がん剤・放射線など）",
+    docsHint: "患者カルテ・診断書・検査結果など — PDF / 画像 / Word、各10MB",
+    docAdd: "+ ファイル追加", docUploading: "ファイルをアップロード中…", docRemove: "削除",
+    catChart: "患者カルテ", catDiagnosis: "診断書", catTest: "検査結果", catOther: "その他",
+    errUpload: "ファイルのアップロードに失敗しました。もう一度お試しください。",
+  },
+};
+for (const l of Object.keys(TR)) Object.assign(TR[l], TR_FORM2[l] || TR_FORM2.en);
+
+// 케이스 액션(화상상담 요청·메시지·자료추가·첨부보기) 문구 — 6개 언어. 위 TR 에 병합.
+const TR_ACT = {
+  ko: {
+    actConsult: "화상상담 요청", actMessage: "메시지", actAttach: "자료 추가",
+    consultConfirm: "코디네이터에게 화상상담을 요청할까요?",
+    actSent: "코디네이터에게 전달했습니다.", actErr: "요청 실패. 다시 시도해 주세요.",
+    msgPh: "코디네이터에게 전할 메시지", msgSend: "보내기", msgSending: "보내는 중…",
+    attTitle: "첨부 서류", attView: "보기", attUploading: "올리는 중…",
+  },
+  en: {
+    actConsult: "Request video consult", actMessage: "Message", actAttach: "Add documents",
+    consultConfirm: "Request a video consultation from the coordinator?",
+    actSent: "Sent to the coordinator.", actErr: "Request failed. Please try again.",
+    msgPh: "Message to the coordinator", msgSend: "Send", msgSending: "Sending…",
+    attTitle: "Attached documents", attView: "View", attUploading: "Uploading…",
+  },
+  ru: {
+    actConsult: "Запросить видеоконсультацию", actMessage: "Сообщение", actAttach: "Добавить документы",
+    consultConfirm: "Запросить видеоконсультацию у координатора?",
+    actSent: "Отправлено координатору.", actErr: "Не удалось отправить. Попробуйте ещё раз.",
+    msgPh: "Сообщение координатору", msgSend: "Отправить", msgSending: "Отправка…",
+    attTitle: "Прикреплённые документы", attView: "Открыть", attUploading: "Загрузка…",
+  },
+  kz: {
+    actConsult: "Бейнекеңес сұрау", actMessage: "Хабарлама", actAttach: "Құжат қосу",
+    consultConfirm: "Үйлестірушіден бейнекеңес сұрайсыз ба?",
+    actSent: "Үйлестірушіге жіберілді.", actErr: "Жіберілмеді. Қайталап көріңіз.",
+    msgPh: "Үйлестірушіге хабарлама", msgSend: "Жіберу", msgSending: "Жіберілуде…",
+    attTitle: "Тіркелген құжаттар", attView: "Ашу", attUploading: "Жүктелуде…",
+  },
+  zh: {
+    actConsult: "申请视频会诊", actMessage: "留言", actAttach: "添加资料",
+    consultConfirm: "向协调员申请视频会诊吗？",
+    actSent: "已发送给协调员。", actErr: "请求失败，请重试。",
+    msgPh: "给协调员的留言", msgSend: "发送", msgSending: "发送中…",
+    attTitle: "附件资料", attView: "查看", attUploading: "上传中…",
+  },
+  ja: {
+    actConsult: "ビデオ相談を依頼", actMessage: "メッセージ", actAttach: "資料を追加",
+    consultConfirm: "コーディネーターにビデオ相談を依頼しますか？",
+    actSent: "コーディネーターに送信しました。", actErr: "依頼に失敗しました。もう一度お試しください。",
+    msgPh: "コーディネーターへのメッセージ", msgSend: "送信", msgSending: "送信中…",
+    attTitle: "添付書類", attView: "表示", attUploading: "アップロード中…",
+  },
+};
+for (const l of Object.keys(TR)) Object.assign(TR[l], TR_ACT[l] || TR_ACT.en);
+
+// 필터·검색 문구 — 6개 언어. 위 TR 에 병합.
+const TR_FILTER = {
+  ko: { fltAll: "전체", fltActive: "진행 중", fltDone: "완료", fltHold: "보류", searchPh: "이름·국적·암종 검색", noMatch: "검색 결과가 없습니다." },
+  en: { fltAll: "All", fltActive: "In progress", fltDone: "Completed", fltHold: "On hold", searchPh: "Search name / country / cancer", noMatch: "No matching cases." },
+  ru: { fltAll: "Все", fltActive: "В процессе", fltDone: "Завершено", fltHold: "Приостановлено", searchPh: "Поиск: имя / страна / рак", noMatch: "Совпадений не найдено." },
+  kz: { fltAll: "Барлығы", fltActive: "Орындалуда", fltDone: "Аяқталды", fltHold: "Кідіртілген", searchPh: "Іздеу: аты / ел / ісік", noMatch: "Сәйкестік табылмады." },
+  zh: { fltAll: "全部", fltActive: "进行中", fltDone: "已完成", fltHold: "暂停", searchPh: "搜索 姓名 / 国家 / 癌种", noMatch: "没有匹配的病例。" },
+  ja: { fltAll: "すべて", fltActive: "進行中", fltDone: "完了", fltHold: "保留", searchPh: "氏名・国・がん種で検索", noMatch: "該当する症例がありません。" },
+};
+for (const l of Object.keys(TR)) Object.assign(TR[l], TR_FILTER[l] || TR_FILTER.en);
+
 // 해외 파트너 포털 본체. expected 로 이 URL이 어느 파트너 유형 전용인지 지정한다.
 //  - /agency  → expected="agency"            (해외 에이전시)
 //  - /clinic  → expected="medical_institution" (해외 의료기관, 경과 업로드 가능)
@@ -233,10 +366,13 @@ export default function PartnerPortal({ expected = "agency" }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [openId, setOpenId] = useState(null);
+  const [filter, setFilter] = useState("all"); // all | active | done | hold
+  const [query, setQuery] = useState("");
 
   // 환자 의뢰하기 폼
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
+  const [files, setFiles] = useState([]); // [{ file, category }]
   const [submitting, setSubmitting] = useState(false);
   const [submitMsg, setSubmitMsg] = useState(null);
 
@@ -277,15 +413,34 @@ export default function PartnerPortal({ expected = "agency" }) {
     try {
       const { data: sess } = await supabase.auth.getSession();
       const token = sess?.session?.access_token;
+
+      // 1) 첨부서류 먼저 업로드(순차) → path 참조 수집. ponytail: 몇 개라 순차로 충분.
+      const attachments = [];
+      for (const item of files) {
+        const fd = new FormData();
+        fd.append("file", item.file);
+        const up = await fetch("/api/attachments/upload", { method: "POST", body: fd });
+        const upJson = await up.json().catch(() => ({}));
+        if (!upJson.ok) { setSubmitMsg({ type: "err", text: tt("errUpload") }); setSubmitting(false); return; }
+        attachments.push({ path: upJson.path, name: upJson.name, type: upJson.type, category: item.category });
+      }
+
+      // 2) 상세 진단정보(intake) — 빈 값은 제외
+      const intake = {};
+      for (const k of ["sex", "birthYear", "stage", "diagnosisDate", "diagnosedHospital", "priorTreatment"]) {
+        if (form[k] && String(form[k]).trim()) intake[k] = String(form[k]).trim();
+      }
+
       const res = await fetch("/api/agency/refer", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify(form),
+        body: JSON.stringify({ ...form, intake, attachments }),
       });
       const json = await res.json();
       if (json.ok) {
         setSubmitMsg({ type: "ok", text: tt("okSubmitted") });
         setForm(EMPTY_FORM);
+        setFiles([]);
         setShowForm(false);
         await load();
       } else {
@@ -311,6 +466,32 @@ export default function PartnerPortal({ expected = "agency" }) {
   const isClinic = wantMedical;
   const partnerKind = isClinic ? tt("kindClinic") : tt("kindAgency");
 
+  const cases = data?.cases ?? [];
+  const isActive = (c) => c.case_status && c.case_status !== "completed" && c.case_status !== "on_hold";
+  const cnt = {
+    total: cases.length,
+    active: cases.filter(isActive).length,
+    done: cases.filter((c) => c.case_status === "completed").length,
+    hold: cases.filter((c) => c.case_status === "on_hold").length,
+  };
+  const matchFilter = (c) =>
+    filter === "all" ? true
+      : filter === "done" ? c.case_status === "completed"
+      : filter === "hold" ? c.case_status === "on_hold"
+      : isActive(c);
+  const matchQuery = (c) => {
+    const q = query.trim().toLowerCase();
+    if (!q) return true;
+    return [c.name, c.nationality, c.cancer_type, c.case_status_note].some((v) => (v || "").toLowerCase().includes(q));
+  };
+  const filtered = cases.filter((c) => matchFilter(c) && matchQuery(c));
+  const TABS = [
+    { key: "all", label: "fltAll", count: cnt.total },
+    { key: "active", label: "fltActive", count: cnt.active },
+    { key: "done", label: "fltDone", count: cnt.done },
+    ...(cnt.hold > 0 ? [{ key: "hold", label: "fltHold", count: cnt.hold }] : []),
+  ];
+
   return (
     <div className="max-w-3xl mx-auto px-4 pt-20 md:pt-24 pb-10">
       <div className="mb-6">
@@ -329,6 +510,15 @@ export default function PartnerPortal({ expected = "agency" }) {
         </div>
       </div>
 
+      {/* 요약 — 백오피스 한눈 지표 (DESIGN: tabular-nums, 숫자:라벨 위계) */}
+      {cnt.total > 0 && (
+        <div className="flex flex-wrap items-center gap-x-6 gap-y-2 mb-6 pb-4 border-b border-gray-100">
+          <Stat n={cnt.total} label={tt("statTotal")} accent />
+          <Stat n={cnt.active} label={tt("statActive")} />
+          <Stat n={cnt.done} label={tt("statDone")} />
+        </div>
+      )}
+
       {submitMsg && (
         <div className={`mb-4 rounded-xl px-4 py-3 text-sm ${submitMsg.type === "ok" ? "bg-teal-50 text-teal-800 border border-teal-200" : "bg-red-50 text-red-700 border border-red-200"}`}>
           {submitMsg.text}
@@ -336,41 +526,91 @@ export default function PartnerPortal({ expected = "agency" }) {
       )}
 
       {showForm && (
-        <form onSubmit={submitReferral} className="bg-white border border-gray-200 rounded-2xl p-5 mb-6 space-y-3">
-          <h2 className="text-sm font-bold text-gray-800">{tt("formHeading")}</h2>
-          <p className="text-xs text-gray-400 -mt-1">{tt("formDesc")}</p>
-
-          <div className="grid sm:grid-cols-2 gap-3">
-            <input className="border border-gray-200 rounded-lg px-3 py-2 text-sm" placeholder={tt("phFirst")}
-              value={form.firstName} onChange={(e) => setForm({ ...form, firstName: e.target.value })} />
-            <input className="border border-gray-200 rounded-lg px-3 py-2 text-sm" placeholder={tt("phLast")}
-              value={form.lastName} onChange={(e) => setForm({ ...form, lastName: e.target.value })} />
-            <input className="border border-gray-200 rounded-lg px-3 py-2 text-sm" placeholder={tt("phNationality")}
-              value={form.nationality} onChange={(e) => setForm({ ...form, nationality: e.target.value })} />
-            <input className="border border-gray-200 rounded-lg px-3 py-2 text-sm" placeholder={tt("phCancer")}
-              value={form.treatmentType} onChange={(e) => setForm({ ...form, treatmentType: e.target.value })} />
+        <form onSubmit={submitReferral} className="bg-white border border-gray-200 rounded-2xl p-5 md:p-6 mb-6 space-y-5">
+          <div>
+            <h2 className="text-sm font-bold text-gray-800">{tt("formHeading")}</h2>
+            <p className="text-xs text-gray-400 mt-0.5">{tt("formDesc")}</p>
           </div>
 
-          <div className="pt-1">
-            <p className="text-xs font-semibold text-gray-500 mb-1.5">{tt("contactLabel")}</p>
-            <input className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mb-2" placeholder={tt("phEmail")}
-              value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+          {/* 환자 기본정보 */}
+          <fieldset className="space-y-3">
+            <legend className="text-xs font-semibold text-teal-700 mb-1">{tt("secPatient")}</legend>
+            <div className="grid sm:grid-cols-2 gap-3">
+              <input className={INP} placeholder={tt("phFirst")} value={form.firstName} onChange={(e) => setForm({ ...form, firstName: e.target.value })} />
+              <input className={INP} placeholder={tt("phLast")} value={form.lastName} onChange={(e) => setForm({ ...form, lastName: e.target.value })} />
+              <select className={`${INP} bg-white`} value={form.sex} onChange={(e) => setForm({ ...form, sex: e.target.value })}>
+                <option value="">{tt("phSex")}</option>
+                <option value="male">{tt("optMale")}</option>
+                <option value="female">{tt("optFemale")}</option>
+              </select>
+              <input className={INP} inputMode="numeric" placeholder={tt("phBirthYear")} value={form.birthYear} onChange={(e) => setForm({ ...form, birthYear: e.target.value })} />
+              <input className={`${INP} sm:col-span-2`} placeholder={tt("phNationality")} value={form.nationality} onChange={(e) => setForm({ ...form, nationality: e.target.value })} />
+            </div>
+          </fieldset>
+
+          {/* 진단 정보 */}
+          <fieldset className="space-y-3">
+            <legend className="text-xs font-semibold text-teal-700 mb-1">{tt("secDiagnosis")}</legend>
+            <div className="grid sm:grid-cols-2 gap-3">
+              <input className={INP} placeholder={tt("phCancer")} value={form.treatmentType} onChange={(e) => setForm({ ...form, treatmentType: e.target.value })} />
+              <input className={INP} placeholder={tt("phStage")} value={form.stage} onChange={(e) => setForm({ ...form, stage: e.target.value })} />
+              <input className={INP} placeholder={tt("phDiagnosisDate")} value={form.diagnosisDate} onChange={(e) => setForm({ ...form, diagnosisDate: e.target.value })} />
+              <input className={INP} placeholder={tt("phDiagnosedHospital")} value={form.diagnosedHospital} onChange={(e) => setForm({ ...form, diagnosedHospital: e.target.value })} />
+            </div>
+            <textarea className={`${INP} w-full`} rows={2} placeholder={tt("phPriorTreatment")} value={form.priorTreatment} onChange={(e) => setForm({ ...form, priorTreatment: e.target.value })} />
+          </fieldset>
+
+          {/* 첨부 서류 */}
+          <fieldset className="space-y-2">
+            <legend className="text-xs font-semibold text-teal-700 mb-1">{tt("secDocs")}</legend>
+            <p className="text-[11px] text-gray-400">{tt("docsHint")}</p>
+            {files.length > 0 && (
+              <div className="space-y-1.5">
+                {files.map((it, i) => (
+                  <div key={i} className="flex items-center gap-2 bg-gray-50 rounded-lg px-3 py-2 text-xs">
+                    <span className="flex-1 truncate text-gray-700">{it.file.name}</span>
+                    <select className="border border-gray-200 rounded-md px-1.5 py-1 bg-white text-gray-600"
+                      value={it.category} onChange={(e) => setFiles(files.map((f, j) => (j === i ? { ...f, category: e.target.value } : f)))}>
+                      <option value="chart">{tt("catChart")}</option>
+                      <option value="diagnosis">{tt("catDiagnosis")}</option>
+                      <option value="test">{tt("catTest")}</option>
+                      <option value="other">{tt("catOther")}</option>
+                    </select>
+                    <button type="button" onClick={() => setFiles(files.filter((_, j) => j !== i))}
+                      className="text-gray-400 hover:text-red-500">{tt("docRemove")}</button>
+                  </div>
+                ))}
+              </div>
+            )}
+            <label className="inline-flex items-center px-3 py-2 rounded-lg border border-dashed border-gray-300 text-xs font-medium text-teal-700 hover:bg-teal-50 cursor-pointer">
+              {tt("docAdd")}
+              <input type="file" multiple className="hidden"
+                accept=".pdf,.jpg,.jpeg,.png,.gif,.webp,.doc,.docx,application/pdf,image/jpeg,image/png,image/gif,image/webp"
+                onChange={(e) => {
+                  const fs = Array.from(e.target.files || []).map((file) => ({ file, category: "other" }));
+                  setFiles((prev) => [...prev, ...fs].slice(0, 20));
+                  e.target.value = "";
+                }} />
+            </label>
+          </fieldset>
+
+          {/* 연락처 */}
+          <fieldset className="space-y-2">
+            <legend className="text-xs font-semibold text-teal-700 mb-1">{tt("secContact")}</legend>
+            <p className="text-[11px] text-gray-400 -mt-1">{tt("contactLabel")}</p>
+            <input className={`${INP} w-full`} placeholder={tt("phEmail")} value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
             <div className="flex gap-2">
-              <select className="border border-gray-200 rounded-lg px-2 py-2 text-sm bg-white shrink-0"
-                value={form.contactMethod} onChange={(e) => setForm({ ...form, contactMethod: e.target.value })}>
+              <select className={`${INP} bg-white shrink-0`} value={form.contactMethod} onChange={(e) => setForm({ ...form, contactMethod: e.target.value })}>
                 <option value="whatsapp">WhatsApp</option>
                 <option value="telegram">Telegram</option>
                 <option value="wechat">WeChat</option>
                 <option value="line">LINE</option>
                 <option value="phone">{tt("optPhone")}</option>
               </select>
-              <input className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm" placeholder={tt("phContactId")}
-                value={form.contactId} onChange={(e) => setForm({ ...form, contactId: e.target.value })} />
+              <input className={`${INP} flex-1`} placeholder={tt("phContactId")} value={form.contactId} onChange={(e) => setForm({ ...form, contactId: e.target.value })} />
             </div>
-          </div>
-
-          <textarea className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" rows={2} placeholder={tt("phMemo") || ""}
-            value={form.message} onChange={(e) => setForm({ ...form, message: e.target.value })} />
+            <textarea className={`${INP} w-full`} rows={2} placeholder={tt("phMemo") || ""} value={form.message} onChange={(e) => setForm({ ...form, message: e.target.value })} />
+          </fieldset>
 
           <div className="flex justify-end gap-2 pt-1">
             <button type="button" onClick={() => { setShowForm(false); setSubmitMsg(null); }}
@@ -383,11 +623,27 @@ export default function PartnerPortal({ expected = "agency" }) {
         </form>
       )}
 
-      {(data?.cases ?? []).length === 0 ? (
+      {cases.length === 0 ? (
         <p className="text-sm text-gray-400">{tt("emptyList")}</p>
       ) : (
-        <div className="space-y-3">
-          {data.cases.map((c) => {
+        <>
+          {/* 필터 탭 + 검색 (DESIGN: 알약 rounded-full, tabular-nums, duration-200) */}
+          <div className="flex flex-wrap items-center gap-2 mb-4">
+            {TABS.map((t) => (
+              <button key={t.key} type="button" onClick={() => setFilter(t.key)}
+                className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 ${filter === t.key ? "bg-teal-700 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
+                {tt(t.label)} <span className="tabular-nums opacity-70">{t.count}</span>
+              </button>
+            ))}
+            <input className={`${INP} ml-auto w-full sm:w-56`} placeholder={tt("searchPh")}
+              value={query} onChange={(e) => setQuery(e.target.value)} />
+          </div>
+
+          {filtered.length === 0 ? (
+            <p className="text-sm text-gray-400">{tt("noMatch")}</p>
+          ) : (
+            <div className="space-y-3">
+          {filtered.map((c) => {
             const curOrder = orderOf(c.case_status);
             return (
               <div key={c.id} className="bg-white border border-gray-200 rounded-2xl p-5">
@@ -432,11 +688,14 @@ export default function PartnerPortal({ expected = "agency" }) {
                   <p className="mt-4 pt-4 border-t border-gray-100 text-xs text-gray-400">{tt("timelineEmpty")}</p>
                 )}
 
+                {!isClinic && openId === c.id && <CaseActions c={c} tt={tt} onDone={load} />}
                 {isClinic && openId === c.id && <ClinicProgressPanel inquiryId={c.id} tt={tt} />}
               </div>
             );
           })}
-        </div>
+            </div>
+          )}
+        </>
       )}
     </div>
   );
@@ -444,6 +703,111 @@ export default function PartnerPortal({ expected = "agency" }) {
 
 function Center({ children, className = "" }) {
   return <div className={`max-w-3xl mx-auto px-4 py-24 text-center text-gray-500 ${className}`}>{children}</div>;
+}
+
+function Stat({ n, label, accent = false }) {
+  return (
+    <div className="flex items-baseline gap-1.5">
+      <span className={`text-2xl font-bold tabular-nums ${accent ? "text-teal-700" : "text-gray-900"}`}>{n}</span>
+      <span className="text-xs text-gray-500">{label}</span>
+    </div>
+  );
+}
+
+const catKey = (c) => ({ chart: "catChart", diagnosis: "catDiagnosis", test: "catTest" }[c] || "catOther");
+
+// 에이전시 케이스 액션: 화상상담 요청 / 자료 추가 / 메시지 + 올린 첨부 보기 ("보기만" → 행동)
+function CaseActions({ c, tt, onDone }) {
+  const [busy, setBusy] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [showMsg, setShowMsg] = useState(false);
+  const [text, setText] = useState("");
+  const [msg, setMsg] = useState(null);
+
+  const getToken = async () => (await supabase.auth.getSession()).data?.session?.access_token;
+
+  const post = async (payload) => {
+    setBusy(true); setMsg(null);
+    try {
+      const token = await getToken();
+      const res = await fetch(`/api/agency/cases/${c.id}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify(payload),
+      });
+      const json = await res.json();
+      if (json.ok) { setMsg({ type: "ok", text: tt("actSent") }); setText(""); setShowMsg(false); await onDone(); }
+      else setMsg({ type: "err", text: tt("actErr") });
+    } catch { setMsg({ type: "err", text: tt("actErr") }); }
+    finally { setBusy(false); }
+  };
+
+  const onFiles = async (e) => {
+    const fs = Array.from(e.target.files || []);
+    e.target.value = "";
+    if (!fs.length) return;
+    setUploading(true); setMsg(null);
+    try {
+      const attachments = [];
+      for (const file of fs) {
+        const fd = new FormData();
+        fd.append("file", file);
+        const up = await fetch("/api/attachments/upload", { method: "POST", body: fd });
+        const uj = await up.json().catch(() => ({}));
+        if (!uj.ok) { setMsg({ type: "err", text: tt("errUpload") }); return; }
+        attachments.push({ path: uj.path, name: uj.name, type: uj.type, category: "other" });
+      }
+      await post({ action: "attach", attachments });
+    } finally { setUploading(false); }
+  };
+
+  return (
+    <div className="mt-4 pt-4 border-t border-gray-100">
+      {c.attachments?.length > 0 && (
+        <div className="mb-3">
+          <p className="text-xs font-bold text-gray-600 mb-1.5">{tt("attTitle")}</p>
+          <div className="space-y-1">
+            {c.attachments.map((a, i) => (
+              <div key={i} className="flex items-center justify-between gap-2 text-xs bg-gray-50 rounded-lg px-3 py-1.5">
+                <span className="truncate text-gray-700"><b>{tt(catKey(a.category))}</b>{a.name ? ` · ${a.name}` : ""}</span>
+                {a.url && <a href={a.url} target="_blank" rel="noopener noreferrer" className="text-teal-700 underline shrink-0">{tt("attView")}</a>}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="flex flex-wrap gap-2">
+        <button type="button" disabled={busy}
+          onClick={() => { if (window.confirm(tt("consultConfirm"))) post({ action: "request_consult" }); }}
+          className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-teal-50 text-teal-700 hover:bg-teal-100 disabled:opacity-40">
+          {tt("actConsult")}
+        </button>
+        <label className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-gray-50 text-gray-700 hover:bg-gray-100 cursor-pointer">
+          {uploading ? tt("attUploading") : tt("actAttach")}
+          <input type="file" multiple className="hidden"
+            accept=".pdf,.jpg,.jpeg,.png,.gif,.webp,.doc,.docx,application/pdf,image/jpeg,image/png,image/gif,image/webp"
+            onChange={onFiles} />
+        </label>
+        <button type="button" disabled={busy} onClick={() => setShowMsg((v) => !v)}
+          className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-gray-50 text-gray-700 hover:bg-gray-100 disabled:opacity-40">
+          {tt("actMessage")}
+        </button>
+      </div>
+
+      {showMsg && (
+        <div className="mt-2 flex gap-2">
+          <input className={`${INP} flex-1`} placeholder={tt("msgPh")} value={text} onChange={(e) => setText(e.target.value)} />
+          <button type="button" disabled={busy || !text.trim()} onClick={() => post({ action: "message", message: text })}
+            className="px-3 py-2 rounded-lg text-xs font-bold bg-teal-700 text-white hover:bg-teal-800 disabled:opacity-40 shrink-0">
+            {busy ? tt("msgSending") : tt("msgSend")}
+          </button>
+        </div>
+      )}
+
+      {msg && <p className={`mt-2 text-xs ${msg.type === "ok" ? "text-teal-700" : "text-red-600"}`}>{msg.text}</p>}
+    </div>
+  );
 }
 
 // 해외 의료기관 전용: 케이스별 경과(검사결과·영상·소견) 업로드 + 목록 (사후관리 ICT ④)
