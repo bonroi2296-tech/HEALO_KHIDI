@@ -28,7 +28,8 @@ export type AlertType =
   | 'spam_attack'              // 스팸 공격
   | 'no_inquiries'             // 문의 급감 (시스템 문제?)
   | 'high_priority_lead'       // 고가치 리드 유입
-  | 'kpi_aggregation_error';   // KHIDI KPI 집계 쿼리 오류 (평가 숫자 깨짐 — #102 부류)
+  | 'kpi_aggregation_error'    // KHIDI KPI 집계 쿼리 오류 (평가 숫자 깨짐 — #102 부류)
+  | 'deadman_coverage';        // "있어야 할 신호가 없음" — cron 멈춤·설문 0 등 (#35 S1)
 
 /**
  * 알림 메타데이터
@@ -382,6 +383,25 @@ export async function alertKpiAggregationErrors(
     currentValue: errors.length,
     timestamp: new Date().toISOString(),
   });
+}
+
+/**
+ * ✅ 데드맨 알림 — "있어야 할 신호가 없음"을 시끄럽게 (POSTMORTEMS #35 S1)
+ * 순수 판정은 src/lib/alerts/deadman.ts(evaluateDeadman, 단위테스트). 여기선 발신만.
+ */
+export async function alertDeadman(
+  alerts: import("./deadman").DeadmanAlert[]
+): Promise<void> {
+  if (!alerts || alerts.length === 0) return; // 정상이면 no-op
+  for (const a of alerts) {
+    await sendAlert({
+      type: 'deadman_coverage',
+      severity: a.severity,
+      message: a.message,
+      details: { key: a.key, ...a.details },
+      timestamp: new Date().toISOString(),
+    });
+  }
 }
 
 /**
