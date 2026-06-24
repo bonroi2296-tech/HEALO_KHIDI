@@ -33,7 +33,7 @@ test.describe("인테이크 파일 업로드", () => {
 
   test("파일 업로드 후 파일명이 미리보기에 표시된다", async ({ page }) => {
     await page.goto("/intake");
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("domcontentloaded");
 
     // 파일 업로드 input 찾기
     const fileInput = page.locator('input[type="file"]').first();
@@ -69,7 +69,7 @@ test.describe("인테이크 파일 업로드", () => {
 
   test("업로드된 파일을 삭제할 수 있다", async ({ page }) => {
     await page.goto("/intake");
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("domcontentloaded");
 
     const fileInput = page.locator('input[type="file"]').first();
     const fileInputExists = await fileInput.count() > 0;

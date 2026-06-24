@@ -10,7 +10,7 @@ import { test, expect } from "@playwright/test";
 test.describe("채팅 대화 세션 복구", () => {
   test("페이지 재방문 시 이전 메시지가 남아 있다", async ({ page, context }) => {
     await page.goto("/");
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("domcontentloaded");
 
     // 채팅 입력창 찾기
     const chatInput = page
@@ -34,7 +34,7 @@ test.describe("채팅 대화 세션 복구", () => {
     // 같은 context 에서 새 탭 열기 (쿠키 공유됨)
     const page2 = await context.newPage();
     await page2.goto("/");
-    await page2.waitForLoadState("networkidle");
+    await page2.waitForLoadState("domcontentloaded");
 
     // 이전 메시지가 유지되거나, 세션 ID 쿠키가 남아있어야 함
     const cookies = await context.cookies();

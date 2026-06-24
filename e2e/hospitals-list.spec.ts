@@ -10,7 +10,7 @@ import { test, expect } from "@playwright/test";
 test.describe("병원 목록 페이지 @smoke", () => {
   test("병원 카드가 1개 이상 표시된다", async ({ page }) => {
     await page.goto("/hospitals");
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("domcontentloaded");
 
     // 병원 카드 요소 찾기 (다양한 selector 시도)
     const hospitalCards = page.locator(
@@ -24,7 +24,7 @@ test.describe("병원 목록 페이지 @smoke", () => {
 
   test("병원 카드에 병원명 텍스트가 있다", async ({ page }) => {
     await page.goto("/hospitals");
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("domcontentloaded");
 
     // h2, h3 등 제목 요소가 카드 안에 있어야 함
     const headings = page.locator("h2, h3, h4").first();
@@ -37,7 +37,7 @@ test.describe("병원 목록 페이지 @smoke", () => {
 
   test("페이지 타이틀에 hospital 또는 병원 포함", async ({ page }) => {
     await page.goto("/hospitals");
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("domcontentloaded");
 
     const title = await page.title();
     const bodyText = await page.locator("body").innerText().catch(() => "");

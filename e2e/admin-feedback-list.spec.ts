@@ -20,18 +20,24 @@ test.describe("어드민 AI 피드백 목록", () => {
 
   test("AI 피드백 페이지 렌더링 — 제목 및 목록 UI 존재", async ({ page }) => {
     await page.goto("/admin/khidi/ai-feedback");
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("domcontentloaded");
 
-    const bodyText = await page.locator("body").innerText().catch(() => "");
-
-    const hasPageContent =
-      /피드백|feedback|AI|리뷰|review/i.test(bodyText);
-    expect(hasPageContent).toBeTruthy();
+    // 클라이언트 fetch 후 렌더 → web-first assertion 으로 내용 뜰 때까지 재시도.
+    await expect(page.locator("body")).toContainText(
+      /피드백|feedback|AI|리뷰|review/i,
+      { timeout: 20_000 }
+    );
   });
 
   test("피드백 목록이 표 또는 카드 형태로 렌더링된다", async ({ page }) => {
     await page.goto("/admin/khidi/ai-feedback");
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("domcontentloaded");
+
+    // 페이지 내용이 클라이언트 렌더되므로 먼저 뜰 때까지 대기(이후 구조 판정).
+    await expect(page.locator("body")).toContainText(
+      /피드백|feedback|AI|리뷰|review/i,
+      { timeout: 20_000 }
+    );
 
     // table, list, 또는 card 구조
     const hasTableOrList = await page

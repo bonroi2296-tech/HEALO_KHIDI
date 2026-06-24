@@ -21,7 +21,7 @@ test.describe("코디 상담 생성 모달 @smoke", () => {
 
   test("'새 상담 생성' 클릭 → 모달 열림(참여 링크 단일)·/inquiry 이탈 없음", async ({ page }) => {
     await page.goto("/coordinator/consultations");
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("domcontentloaded");
 
     await page.getByRole("button", { name: /새 상담/ }).first().click();
 
@@ -29,7 +29,7 @@ test.describe("코디 상담 생성 모달 @smoke", () => {
     await expect(page.getByText(/새 원격 상담 예약/)).toBeVisible({ timeout: 8000 });
 
     // 통합 참여 링크 UI(역할 5개 체크박스가 아니라) + 문의에서 환자 선택
-    await expect(page.getByText(/참여 링크/)).toBeVisible();
+    await expect(page.getByText(/참여 링크/).first()).toBeVisible();
     await expect(page.getByText(/문의에서 환자 선택/)).toBeVisible();
 
     // 환자용 공개 문의 퍼널로 이탈하지 않았는지

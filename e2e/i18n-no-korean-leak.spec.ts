@@ -58,7 +58,7 @@ function isAllowed(snippet: string) {
 
 for (const route of ROUTES) {
   test(`@smoke @i18n-leak ${route} — 영어 화면에 한글 누출 없음`, async ({ page }) => {
-    await page.goto(route, { waitUntil: "networkidle" });
+    await page.goto(route, { waitUntil: "domcontentloaded" });
 
     // 본문(보이는 콘텐츠)의 텍스트 노드 중 한글 포함분 수집. <head> 메타는 제외(별도 이슈).
     const leaks: string[] = await page.evaluate(() => {
