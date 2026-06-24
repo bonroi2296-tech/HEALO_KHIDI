@@ -161,6 +161,7 @@ export default function ClientShell({ children, initialLang = "en" }) {
   //    자체 하단탭(홈/문서/더보기) 위에 겹쳐 모바일 레이아웃이 깨짐(2026-06-23 PO 신고, POSTMORTEMS #32).
   const isPortalPage =
     pathname.startsWith("/admin") ||
+    pathname.startsWith("/coordinator") ||
     pathname.startsWith("/hospital") ||
     pathname.startsWith("/agency") ||
     pathname.startsWith("/clinic") ||
