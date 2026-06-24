@@ -10,8 +10,9 @@
  * - 일반 사용자 → consultation_sessions 의 patient_user_id, doctor_user_id,
  *   coordinator_user_id, patient_id, doctor_id, coordinator_id, translator_id
  *   중 하나가 본인 user.id 와 일치할 때만 허용
- * - 국내 의료기관(병원) 계정 → 그 상담의 hospital_id 가 자기 소속 병원이면 허용
- *   (의사는 별도 계정 계층이 아니라 병원 계정으로 상담방에 들어온다 → role=doctor)
+ *
+ * ※ 의사 등 "초대받은 참가자"는 계정 인증이 아니라 게스트 초대링크(토큰)로 입장한다
+ *   (resolveConsultationActor 의 X-Guest-Token 경로 — 줌처럼 링크만 있으면 입장).
  *
  * 실패 시: 401 (미인증) / 403 (인증되었으나 참가자 아님) / 404 (세션 없음) 자동 응답.
  */
@@ -38,7 +39,6 @@ interface ConsultationSessionRow {
   patient_user_id: string | null;
   doctor_user_id: string | null;
   coordinator_user_id: string | null;
-  hospital_id: string | null;
   livekit_room_name: string | null;
   status: string | null;
 }
@@ -52,26 +52,6 @@ export type ConsultationAccessResult =
       role: "admin" | "patient" | "doctor" | "coordinator" | "translator";
     }
   | { success: false; response: Response };
-
-/** 해당 user 가 그 병원의 활성 담당자(hospital_users)인지 */
-async function isActiveHospitalMember(
-  userId: string,
-  hospitalId: string
-): Promise<boolean> {
-  const { data, error } = await supabaseAdmin
-    .from("hospital_users")
-    .select("id")
-    .eq("user_id", userId)
-    .eq("hospital_id", hospitalId)
-    .eq("is_active", true)
-    .limit(1)
-    .maybeSingle();
-  if (error) {
-    console.error("[requireConsultationAccess] hospital_users 조회 실패:", error.message);
-    return false;
-  }
-  return !!data;
-}
 
 /**
  * 진료 세션 ID 에 대한 접근 권한을 강제 체크.
@@ -130,7 +110,7 @@ export async function requireConsultationAccess(
   const { data: session, error } = await supabaseAdmin
     .from("consultation_sessions")
     .select(
-      "id, patient_id, doctor_id, coordinator_id, translator_id, patient_user_id, doctor_user_id, coordinator_user_id, hospital_id, livekit_room_name, status"
+      "id, patient_id, doctor_id, coordinator_id, translator_id, patient_user_id, doctor_user_id, coordinator_user_id, livekit_room_name, status"
     )
     .eq("id", consultationId)
     .maybeSingle<ConsultationSessionRow>();
@@ -182,12 +162,6 @@ export async function requireConsultationAccess(
     session.patient_id === uid
   ) {
     role = "patient";
-  } else if (
-    session.hospital_id &&
-    (await isActiveHospitalMember(uid, session.hospital_id))
-  ) {
-    // 국내 의료기관 계정 → 자기 병원 상담방엔 의료진(doctor) 자리로 입장
-    role = "doctor";
   } else {
     // 참가자 아님 → IDOR 차단
     console.warn(

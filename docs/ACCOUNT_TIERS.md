@@ -17,9 +17,8 @@
 | 6 | **해외 에이전시** | 해외 환자 유치 파트너 | `agency_users` + `agencies.partner_type='agency'` | `/agency` |
 | 7 | **해외 의료기관** | 환자를 의뢰하는 현지 병원 | `agency_users` + `agencies.partner_type='medical_institution'` | `/clinic` |
 
-> **의사(doctor)는 계정 계층이 아니다.** 의사는 ①소속 **국내 의료기관(병원) 계정**으로
-> 로그인해 자기 병원 상담방에 들어오거나(`requireConsultationAccess`가 `consultation_sessions.hospital_id`
-> ↔ `hospital_users`로 판정 → 상담방 안에서 `role=doctor`), ②계정 없이 **게스트 초대링크**로 참여한다.
+> **의사(doctor)는 계정 계층이 아니다.** 의사는 계정 없이 **화상상담 초대링크**로 참여한다
+> (줌처럼 링크만 있으면 입장 — `resolveConsultationActor` 의 `X-Guest-Token` 경로).
 > "doctor"는 상담방 안의 **참가자 역할**로만 남아 있고, 만들거나 부여할 수 있는 계정 종류가 아니다.
 
 ## 권한이 저장되는 4가지 방식
@@ -53,11 +52,10 @@
 ## 변경 이력
 
 - 2026-06-24: **의사(doctor) 계정 계층 완전 제거 → 8계층에서 7계층으로.** 의사는 더 이상
-  만들 수 있는 계정이 아니다. 소속 병원 계정으로 로그인(상담의 `hospital_id`↔`hospital_users`
-  매칭 시 상담방 `role=doctor` 부여)하거나 게스트 초대링크로 참여. `accountTiers.ts`(타입·
-  `STAFF_TIERS`·`ASSIGNABLE_TIERS`·`resolveTier`)·`roles.ts`·`requirePortalAuth`·`resolveLanding`
-  에서 doctor 제거, `/admin/staff`는 코디네이터만, 상담 생성 모달의 '담당 의사 계정 배정' 칸 제거,
-  죽은 `/doctor` 라우트 삭제. `requireConsultationAccess`에 병원 계정 입장 경로 추가.
+  만들 수 있는 계정이 아니다. 계정 없이 **화상상담 초대링크**로 참여한다(줌처럼 링크면 입장).
+  `accountTiers.ts`(타입·`STAFF_TIERS`·`ASSIGNABLE_TIERS`·`resolveTier`)·`roles.ts`·
+  `requirePortalAuth`·`resolveLanding`에서 doctor 제거, `/admin/staff`는 코디네이터만,
+  상담 생성 모달의 '담당 의사 계정 배정' 칸 제거, 죽은 `/doctor` 라우트 삭제.
   (DB 미사용 doctor 계정 1개 → 일반회원 강등. 상담 0건이 doctor 계정 배정 사용 중이라 무영향.)
 - 2026-06-23: **계층 재편 마이그레이션(기획 `KHIDI_역할_프로세스_기획.md` §7 반영).** 국내 병원 포털
   `/partner`→`/hospital`(옛 주소 자동 리다이렉트, `/api/partner/*` API 경로는 유지). 해외 의료기관
