@@ -61,6 +61,14 @@ const PW_ERROR_MSG = {
     },
 };
 
+// 가입 후 "이메일을 확인하세요" 안내 — 활성 6개 언어
+const CONFIRM_PENDING = {
+    title: { ko: '메일을 확인해주세요', en: 'Check your email', ru: 'Проверьте почту', kz: 'Поштаңызды тексеріңіз', zh: '请查收邮件', ja: 'メールをご確認ください' },
+    sentTo: { ko: '아래 주소로 인증 메일을 보냈어요', en: 'We sent a confirmation email to', ru: 'Мы отправили письмо для подтверждения на', kz: 'Растау хатын мына мекенжайға жібердік', zh: '我们已将确认邮件发送至', ja: '確認メールを次の宛先に送信しました' },
+    hint: { ko: '메일함을 열어 인증 링크를 누르면 가입이 완료됩니다. 스팸함도 확인해주세요.', en: 'Open it and click the link to finish signing up. Please also check your spam folder.', ru: 'Откройте его и нажмите на ссылку, чтобы завершить регистрацию. Проверьте также папку «Спам».', kz: 'Тіркелуді аяқтау үшін хаттағы сілтемені басыңыз. Спам қалтасын да тексеріңіз.', zh: '打开邮件并点击链接以完成注册。也请检查垃圾邮件箱。', ja: 'メール内のリンクをクリックすると登録が完了します。迷惑メールフォルダもご確認ください。' },
+    loginBtn: { ko: '로그인하러 가기', en: 'Go to login', ru: 'Перейти ко входу', kz: 'Кіруге өту', zh: '前往登录', ja: 'ログインへ' },
+};
+
 export const SignUpPage = ({ setView }) => {
     const toast = useToast();
     const router = useRouter();
@@ -79,6 +87,7 @@ export const SignUpPage = ({ setView }) => {
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [oauthRedirecting, setOauthRedirecting] = useState(false);
+    const [pendingEmail, setPendingEmail] = useState(null); // 가입 후 인증메일 안내 화면용
 
     // /inquiry → /signup?provider=google 자동 OAuth 트리거
     useEffect(() => {
@@ -148,6 +157,7 @@ export const SignUpPage = ({ setView }) => {
                     first_name: firstName,
                     last_name: lastName,
                     is_marketing_agreed: isMarketing,
+                    lang: langCode, // 인증/복구 메일을 사용자 언어로 보내기 위해 저장 ({{ .Data.lang }})
                 },
             },
         });
@@ -158,23 +168,39 @@ export const SignUpPage = ({ setView }) => {
             return;
         }
 
-        // 가입 성공 → 자동 로그인 시도
-        const { error: loginError } = await supabase.auth.signInWithPassword({
-            email, password,
-        });
-
-        if (loginError) {
-            // 이메일 인증 필요 등의 이유로 자동 로그인 실패 → 로그인 페이지로
-            toast.success(langCode === 'ko'
-                ? '가입 완료! 이메일을 확인하고 로그인해주세요.'
-                : 'Account created! Please check your email and log in.');
-            setView('login');
-        } else {
+        // 이메일 인증 필수면 session 없이 user만 반환 → 확인 메일 안내 화면.
+        // (인증 OFF로 바뀌면 session이 와서 바로 로그인 처리)
+        if (_data?.session) {
             toast.success(langCode === 'ko' ? '가입 완료! 환영합니다.' : 'Welcome! Account created successfully.');
             router.push('/');
+        } else {
+            setPendingEmail(email);
         }
         setLoading(false);
     };
+
+    // 가입 성공(인증 필요) → "메일 확인하세요" 안내 화면
+    if (pendingEmail) {
+        return (
+            <div className="min-h-[calc(100vh-64px)] flex items-center justify-center bg-gray-50 px-4 animate-in fade-in slide-in-from-bottom-4">
+                <div className="bg-white rounded-3xl shadow-xl w-full max-w-md p-8 md:p-10 border border-gray-100 text-center">
+                    <div className="w-12 h-12 rounded-xl bg-teal-50 flex items-center justify-center mx-auto mb-5">
+                        <Mail className="text-teal-700" size={22} />
+                    </div>
+                    <h2 className="text-2xl font-extrabold text-gray-900">{CONFIRM_PENDING.title[langCode] || CONFIRM_PENDING.title.en}</h2>
+                    <p className="text-gray-500 mt-3 text-sm">{CONFIRM_PENDING.sentTo[langCode] || CONFIRM_PENDING.sentTo.en}</p>
+                    <p className="text-gray-900 font-bold mt-1 break-all">{pendingEmail}</p>
+                    <p className="text-gray-500 mt-4 text-sm leading-relaxed">{CONFIRM_PENDING.hint[langCode] || CONFIRM_PENDING.hint.en}</p>
+                    <button
+                        onClick={() => setView('login')}
+                        className="mt-7 w-full bg-teal-700 text-white font-bold py-3.5 rounded-xl hover:bg-teal-800 transition shadow-lg shadow-teal-100"
+                    >
+                        {CONFIRM_PENDING.loginBtn[langCode] || CONFIRM_PENDING.loginBtn.en}
+                    </button>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-[calc(100vh-64px)] flex items-center justify-center bg-gray-50 px-4 animate-in fade-in slide-in-from-bottom-4">
