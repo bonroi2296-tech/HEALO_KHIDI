@@ -57,6 +57,13 @@ export async function GET(request: NextRequest) {
     const ids = (rows || []).map((r: any) => r.id);
     // 단계 이력 (타임라인)
     const historyMap = new Map<number, any[]>();
+    // 화상상담 일정·상태 (consultation_sessions → inquiry 직접 연결)
+    const consultMap = new Map<number, any[]>();
+    // 발행된 견적 (inquiry → cancer_patient_intakes → cost_estimates)
+    const estimateMap = new Map<number, any[]>();
+    // 에이전시 메신저 미읽음(코디 답장 안 본 수) + 스레드 상태
+    const threadMap = new Map<number, { threadId: string; unread: number; status: string }>();
+
     if (ids.length > 0) {
       const { data: hist } = await (supabaseAdmin as any)
         .from("case_status_history")
@@ -67,6 +74,72 @@ export async function GET(request: NextRequest) {
         const arr = historyMap.get(h.inquiry_id) || [];
         arr.push({ status: h.status, status_label: caseStatusLabel(h.status), note: h.note, at: h.created_at });
         historyMap.set(h.inquiry_id, arr);
+      });
+
+      // 화상상담
+      const { data: consults } = await (supabaseAdmin as any)
+        .from("consultation_sessions")
+        .select("id, inquiry_id, scheduled_at, status, started_at")
+        .in("inquiry_id", ids)
+        .order("scheduled_at", { ascending: false });
+      (consults || []).forEach((s: any) => {
+        const arr = consultMap.get(s.inquiry_id) || [];
+        arr.push({ id: s.id, scheduled_at: s.scheduled_at, status: s.status, started_at: s.started_at });
+        consultMap.set(s.inquiry_id, arr);
+      });
+
+      // 견적: intake(id↔inquiry) → 발행된 cost_estimates 만
+      const { data: intakes } = await (supabaseAdmin as any)
+        .from("cancer_patient_intakes")
+        .select("id, inquiry_id")
+        .in("inquiry_id", ids);
+      const intakeToInquiry = new Map<string, number>();
+      (intakes || []).forEach((it: any) => { if (it.id) intakeToInquiry.set(it.id, it.inquiry_id); });
+      const intakeIds = [...intakeToInquiry.keys()];
+      if (intakeIds.length > 0) {
+        const { data: ests } = await (supabaseAdmin as any)
+          .from("cost_estimates")
+          .select("id, intake_id, total_krw, total_usd, quotation_no, quotation_pdf_url, quotation_issued_at, status")
+          .in("intake_id", intakeIds)
+          .not("quotation_issued_at", "is", null) // 발행분만 — 초안은 에이전시 비노출
+          .order("quotation_issued_at", { ascending: false });
+        (ests || []).forEach((e: any) => {
+          const inqId = intakeToInquiry.get(e.intake_id);
+          if (!inqId) return;
+          const arr = estimateMap.get(inqId) || [];
+          arr.push({
+            id: e.id, total_krw: e.total_krw, total_usd: e.total_usd,
+            quotation_no: e.quotation_no, pdf_url: e.quotation_pdf_url,
+            issued_at: e.quotation_issued_at, status: e.status,
+          });
+          estimateMap.set(inqId, arr);
+        });
+      }
+
+      // 메신저 스레드(에이전시 채널) + 미읽음 계산
+      const { data: threads } = await (supabaseAdmin as any)
+        .from("chat_threads")
+        .select("id, inquiry_id, status, metadata")
+        .in("inquiry_id", ids)
+        .eq("channel", "agency");
+      const threadIds = (threads || []).map((t: any) => t.id);
+      const coordByThread = new Map<string, string[]>(); // thread_id → coord/admin 메시지 시각들
+      if (threadIds.length > 0) {
+        const { data: msgs } = await (supabaseAdmin as any)
+          .from("chat_messages")
+          .select("thread_id, actor_type, created_at")
+          .in("thread_id", threadIds)
+          .in("actor_type", ["coordinator", "admin"]);
+        (msgs || []).forEach((m: any) => {
+          const arr = coordByThread.get(m.thread_id) || [];
+          arr.push(m.created_at);
+          coordByThread.set(m.thread_id, arr);
+        });
+      }
+      (threads || []).forEach((t: any) => {
+        const lastRead = t.metadata?.agency_last_read_at || "1970-01-01";
+        const unread = (coordByThread.get(t.id) || []).filter((at: string) => at > lastRead).length;
+        threadMap.set(t.inquiry_id, { threadId: t.id, unread, status: t.status });
       });
     }
 
@@ -96,6 +169,9 @@ export async function GET(request: NextRequest) {
         detail: pickDetail(r.intake),
         attachments: await signAttachments(r.attachments),
         timeline: historyMap.get(r.id) || [],
+        consultations: consultMap.get(r.id) || [],
+        estimates: estimateMap.get(r.id) || [],
+        thread: threadMap.get(r.id) || null,
       };
     }));
 

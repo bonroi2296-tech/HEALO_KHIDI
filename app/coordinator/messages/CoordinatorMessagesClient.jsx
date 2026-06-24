@@ -33,6 +33,7 @@ const CHANNEL = {
   email: { color: "#8c3a2e", label: "이메일" },
   line: { color: "#06C755", label: "LINE" },
   kakao: { color: "#FEE500", label: "카카오" },
+  agency: { color: "#7c3aed", label: "에이전시" },
 };
 
 function fmtDate(v) {
@@ -334,6 +335,7 @@ function Message({ m, meId }) {
   const label =
     isMine ? "나 (코디네이터)" :
     isPatient ? "환자" :
+    m.actor_type === "agency" ? "에이전시(파트너)" :
     m.actor_type === "bot" ? "healwith AI" :
     m.actor_type === "admin" ? "healwith 관리자" :
     m.actor_type === "coordinator" ? "다른 코디네이터" :
