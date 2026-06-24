@@ -4,6 +4,16 @@
 
 ---
 
+## 🟡 2026-06-24 스키마 참조 가드(S2)가 잡은 존재하지 않는 테이블 참조 (POSTMORTEMS #35-S2)
+
+> 새 가드 `npm run check:schema-refs`로 코드의 `.from("테이블")`을 실재 public 테이블과 대조하다 발견. 1건은 즉시 수정, 2건은 dead-path라 allowlist로 추적 후 별도 수정.
+
+- ✅ **수정됨**: `app/api/admin/khidi/ai-feedback/route.ts` — 부정 피드백 메시지 내용을 존재하지 않는 `inquiry_messages(content/role)`에서 조회 → 어드민 화면에 메시지 내용이 통째로 안 떴음(조용한 실패). 실재 `chat_messages(message_text)`로 교정 + 에러 표면화.
+- 🔸 **추적(dead-path, 가드 allowlist)**: ①`app/api/cron/dispatch-surveys/route.ts:105` `.from("patients")` — `session.patient_id`(현재 전행 null) 가드 안이라 미실행, 실연결은 `inquiries` 폴백. patient_id가 채워질 미래엔 깨지므로 그 전에 제거/교정 필요. ②`src/lib/symptoms/alertService.ts:73` `.from("users")` — `COORDINATOR_FALLBACK_EMAIL` env 가드 안 fallback. `auth.users`는 `.from()`으로 조회 불가 → `auth.admin` API로 교체해야 fallback이 실제 동작. env 미설정이라 현재 무영향.
+- **가드 한계**: 현재 **테이블 레벨**만. 컬럼 레벨(예: chat_messages에 없는 `content`/`role`)은 생성타입(`database.types.ts`) 도입과 함께 후속.
+
+---
+
 ## 🚀 2026-06-22 "정식 운영" 출시 점검 (3축 병렬 감사 + 실코드·실DB 검증)
 
 > PO 지시 "내일 당장 운영해도 버그 0·만족도 100%(사용자=외부 협력기관 포함)". 환자/협력기관/인프라 3축을 병렬 감사 후 **추정 그대로 안 믿고 실코드·실DB로 재검증**. 핵심: 감사봇이 "런치블로커"로 올린 것 중 상당수가 검증 결과 등급이 내려감(=검증의 가치).

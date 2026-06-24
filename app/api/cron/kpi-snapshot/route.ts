@@ -89,6 +89,53 @@ export async function GET(request: NextRequest) {
     console.log(
       `[cron/kpi-snapshot] Done: ${targetDate} (${results.length - failed.length}/${results.length} ok)`
     );
+
+    // ── 데드맨 점검(#35 S1): "있어야 할 신호가 없음"을 능동 알림 ──
+    // KPI 스냅샷이 며칠째 안 갱신(cron 멈춤) · 완료 상담은 있는데 설문 0건(K-03 측정불능)을
+    // 조용한 0이 아니라 알림으로 띄운다. best-effort — 실패해도 cron 본 결과에 영향 없음.
+    try {
+      const { evaluateDeadman } = await import("@/lib/alerts/deadman");
+      const { alertDeadman } = await import("@/lib/alerts/operationalAlerts");
+      const { supabaseAdmin } = await import("@/lib/rag/supabaseAdmin");
+
+      const kstToday = new Date(Date.now() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
+      const since = new Date(Date.now() - 30 * 86_400_000).toISOString();
+
+      const [snap, sessions, surveys] = await Promise.all([
+        (supabaseAdmin as any)
+          .from("kpi_snapshots")
+          .select("snapshot_date")
+          .order("snapshot_date", { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+        (supabaseAdmin as any)
+          .from("consultation_sessions")
+          .select("id", { count: "exact", head: true })
+          .eq("status", "completed")
+          .gte("ended_at", since),
+        (supabaseAdmin as any)
+          .from("surveys")
+          .select("id", { count: "exact", head: true })
+          .gte("sent_at", since),
+      ]);
+
+      const deadman = evaluateDeadman({
+        todayKst: kstToday,
+        latestSnapshotDate: snap?.data?.snapshot_date ?? null,
+        completedSessions: sessions?.count ?? 0,
+        surveysSent: surveys?.count ?? 0,
+      });
+      if (deadman.length > 0) {
+        console.warn(
+          `[cron/kpi-snapshot] deadman ${deadman.length}건:`,
+          deadman.map((d) => d.key)
+        );
+        await alertDeadman(deadman);
+      }
+    } catch (e) {
+      console.error("[cron/kpi-snapshot] deadman 점검 실패(무시):", (e as Error).message);
+    }
+
     return NextResponse.json({
       ok: true,
       date: targetDate,

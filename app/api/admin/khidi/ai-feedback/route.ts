@@ -81,13 +81,20 @@ export async function GET(request: NextRequest) {
     const messageContents: Record<string, string> = {};
 
     if (messageIds.length > 0) {
-      const { data: msgData } = await (supabaseAdmin as any)
-        .from("inquiry_messages")
-        .select("id, content, role")
+      // 메시지는 chat_messages 테이블(컬럼: message_text). 과거 코드가 존재하지 않는
+      // inquiry_messages(content/role)를 조회해 어드민 화면에 메시지 내용이 통째로
+      // 안 떴음 — 조용한 실패(POSTMORTEMS #35 S2). 실재 테이블/컬럼으로 교정 + 에러 표면화.
+      const { data: msgData, error: msgError } = await (supabaseAdmin as any)
+        .from("chat_messages")
+        .select("id, message_text")
         .in("id", messageIds);
 
+      if (msgError) {
+        console.error("[ai-feedback] 메시지 내용 조회 실패:", msgError.message);
+      }
+
       (msgData ?? []).forEach((m: any) => {
-        messageContents[m.id] = m.content ?? "";
+        messageContents[m.id] = m.message_text ?? "";
       });
     }
 
