@@ -313,12 +313,12 @@ for (const l of Object.keys(TR)) Object.assign(TR[l], TR_FORM2[l] || TR_FORM2.en
 
 // 칩/드롭존 섹션 라벨(인테이크 폼 톤) — 6개 언어.
 const TR_FORM3 = {
-  ko: { secContact: "연락처", lblStage: "병기", lblTreatState: "현재 치료 상태", lblDiagDate: "진단 받은 날짜", optUnknown: "모름", uploadDrop: "파일을 여기에 드래그하거나 클릭하여 업로드", uploadHint: "PDF · JPG · PNG · Word · 각 10MB" },
-  en: { secContact: "Contact", lblStage: "Stage", lblTreatState: "Current treatment status", lblDiagDate: "Diagnosis date", optUnknown: "Unknown", uploadDrop: "Drag files here or click to upload", uploadHint: "PDF · JPG · PNG · Word · 10MB each" },
-  ru: { secContact: "Контакты", lblStage: "Стадия", lblTreatState: "Текущий статус лечения", lblDiagDate: "Дата диагноза", optUnknown: "Не знаю", uploadDrop: "Перетащите файлы сюда или нажмите для загрузки", uploadHint: "PDF · JPG · PNG · Word · до 10МБ" },
-  kz: { secContact: "Байланыс", lblStage: "Сатысы", lblTreatState: "Ағымдағы емдеу жағдайы", lblDiagDate: "Диагноз қойылған күн", optUnknown: "Білмеймін", uploadDrop: "Файлдарды осында сүйреңіз немесе жүктеу үшін басыңыз", uploadHint: "PDF · JPG · PNG · Word · әрқайсысы 10МБ" },
-  zh: { secContact: "联系方式", lblStage: "分期", lblTreatState: "当前治疗状态", lblDiagDate: "诊断日期", optUnknown: "不知道", uploadDrop: "将文件拖到此处或点击上传", uploadHint: "PDF · JPG · PNG · Word · 每个 10MB" },
-  ja: { secContact: "連絡先", lblStage: "病期", lblTreatState: "現在の治療状況", lblDiagDate: "診断日", optUnknown: "不明", uploadDrop: "ファイルをここにドラッグまたはクリックしてアップロード", uploadHint: "PDF · JPG · PNG · Word · 各10MB" },
+  ko: { secContact: "연락처", lblStage: "병기", lblTreatState: "현재 치료 상태", lblDiagDate: "진단 받은 날짜", optUnknown: "모름", uploadDrop: "파일을 여기에 드래그하거나 클릭하여 업로드", uploadHint: "PDF · JPG · PNG · Word · 각 10MB", lblPatientInfo: "환자 정보", lblTimeline: "진행 이력", lblBirthYear: "출생연도", lblHospital: "진단 병원·지역", lblPriorTx: "기존 치료 이력" },
+  en: { secContact: "Contact", lblStage: "Stage", lblTreatState: "Current treatment status", lblDiagDate: "Diagnosis date", optUnknown: "Unknown", uploadDrop: "Drag files here or click to upload", uploadHint: "PDF · JPG · PNG · Word · 10MB each", lblPatientInfo: "Patient info", lblTimeline: "Progress history", lblBirthYear: "Birth year", lblHospital: "Diagnosing hospital", lblPriorTx: "Prior treatment" },
+  ru: { secContact: "Контакты", lblStage: "Стадия", lblTreatState: "Текущий статус лечения", lblDiagDate: "Дата диагноза", optUnknown: "Не знаю", uploadDrop: "Перетащите файлы сюда или нажмите для загрузки", uploadHint: "PDF · JPG · PNG · Word · до 10МБ", lblPatientInfo: "Данные пациента", lblTimeline: "Ход лечения", lblBirthYear: "Год рождения", lblHospital: "Больница / регион", lblPriorTx: "Предыдущее лечение" },
+  kz: { secContact: "Байланыс", lblStage: "Сатысы", lblTreatState: "Ағымдағы емдеу жағдайы", lblDiagDate: "Диагноз қойылған күн", optUnknown: "Білмеймін", uploadDrop: "Файлдарды осында сүйреңіз немесе жүктеу үшін басыңыз", uploadHint: "PDF · JPG · PNG · Word · әрқайсысы 10МБ", lblPatientInfo: "Науқас туралы", lblTimeline: "Барыс тарихы", lblBirthYear: "Туған жылы", lblHospital: "Аурухана / аймақ", lblPriorTx: "Бұрынғы емі" },
+  zh: { secContact: "联系方式", lblStage: "分期", lblTreatState: "当前治疗状态", lblDiagDate: "诊断日期", optUnknown: "不知道", uploadDrop: "将文件拖到此处或点击上传", uploadHint: "PDF · JPG · PNG · Word · 每个 10MB", lblPatientInfo: "患者信息", lblTimeline: "进展记录", lblBirthYear: "出生年份", lblHospital: "确诊医院 / 地区", lblPriorTx: "既往治疗" },
+  ja: { secContact: "連絡先", lblStage: "病期", lblTreatState: "現在の治療状況", lblDiagDate: "診断日", optUnknown: "不明", uploadDrop: "ファイルをここにドラッグまたはクリックしてアップロード", uploadHint: "PDF · JPG · PNG · Word · 各10MB", lblPatientInfo: "患者情報", lblTimeline: "進捗履歴", lblBirthYear: "生年", lblHospital: "診断病院・地域", lblPriorTx: "既往治療" },
 };
 for (const l of Object.keys(TR)) Object.assign(TR[l], TR_FORM3[l] || TR_FORM3.en);
 
@@ -778,24 +778,52 @@ export default function PartnerPortal({ expected = "agency" }) {
                   </div>
                 </button>
 
-                {openId === c.id && c.timeline.length > 0 && (
-                  <div className="mt-4 pt-4 border-t border-gray-100 space-y-2">
-                    {c.timeline.map((tl, i) => (
-                      <div key={i} className="flex gap-3 text-sm">
-                        <span className="text-gray-400 text-xs w-20 shrink-0">{new Date(tl.at).toLocaleDateString()}</span>
-                        <span className="text-gray-700">
-                          <b>{caseStatusLabelL(tl.status, lang)}</b>{tl.note ? ` — ${tl.note}` : ""}
-                        </span>
+                {openId === c.id && (
+                  <div className="mt-4 pt-4 border-t border-gray-100 space-y-4">
+                    {/* 환자 정보 (의뢰 시 받은 상세) */}
+                    {(detailRows(c.detail, tt, lang).length > 0 || c.detail?.priorTreatment) && (
+                      <div>
+                        <p className="text-xs font-bold text-gray-600 mb-2">{tt("lblPatientInfo")}</p>
+                        <dl className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-2.5">
+                          {detailRows(c.detail, tt, lang).map((row) => (
+                            <div key={row.label}>
+                              <dt className="text-[11px] text-gray-400">{row.label}</dt>
+                              <dd className="text-sm text-gray-800">{row.value}</dd>
+                            </div>
+                          ))}
+                        </dl>
+                        {c.detail?.priorTreatment && (
+                          <div className="mt-2.5">
+                            <dt className="text-[11px] text-gray-400">{tt("lblPriorTx")}</dt>
+                            <dd className="text-sm text-gray-700 whitespace-pre-wrap">{c.detail.priorTreatment}</dd>
+                          </div>
+                        )}
                       </div>
-                    ))}
+                    )}
+
+                    {/* 진행 이력 (세로 타임라인) */}
+                    <div>
+                      <p className="text-xs font-bold text-gray-600 mb-2">{tt("lblTimeline")}</p>
+                      {c.timeline.length === 0 ? (
+                        <p className="text-xs text-gray-400">{tt("timelineEmpty")}</p>
+                      ) : (
+                        <ol className="relative border-l border-gray-200 ml-[5px] space-y-3.5">
+                          {c.timeline.map((tl, i) => (
+                            <li key={i} className="ml-4">
+                              <span className="absolute -left-[5px] mt-1 w-2.5 h-2.5 rounded-full bg-teal-500 ring-2 ring-white" />
+                              <div className="text-[11px] text-gray-400">{new Date(tl.at).toLocaleDateString()}</div>
+                              <div className="text-sm text-gray-700"><b>{caseStatusLabelL(tl.status, lang)}</b>{tl.note ? ` — ${tl.note}` : ""}</div>
+                            </li>
+                          ))}
+                        </ol>
+                      )}
+                    </div>
+
+                    {/* 액션 + 첨부 (에이전시) / 경과 업로드 (의료기관) */}
+                    {!isClinic && <CaseActions c={c} tt={tt} onDone={load} />}
+                    {isClinic && <ClinicProgressPanel inquiryId={c.id} tt={tt} />}
                   </div>
                 )}
-                {openId === c.id && c.timeline.length === 0 && (
-                  <p className="mt-4 pt-4 border-t border-gray-100 text-xs text-gray-400">{tt("timelineEmpty")}</p>
-                )}
-
-                {!isClinic && openId === c.id && <CaseActions c={c} tt={tt} onDone={load} />}
-                {isClinic && openId === c.id && <ClinicProgressPanel inquiryId={c.id} tt={tt} />}
               </div>
             );
           })}
@@ -835,6 +863,23 @@ function Chip({ active, onClick, disabled = false, children }) {
 }
 
 const catKey = (c) => ({ chart: "catChart", diagnosis: "catDiagnosis", test: "catTest" }[c] || "catOther");
+
+// 케이스 상세 — intake 화이트리스트(detail)를 라벨·값으로 변환 (priorTreatment 는 긴 텍스트라 따로)
+function detailRows(d, tt, lang) {
+  if (!d) return [];
+  const rows = [];
+  const push = (label, value) => { if (value != null && value !== "") rows.push({ label, value }); };
+  if (d.sex) push(tt("phSex"), tt(d.sex === "male" ? "optMale" : "optFemale"));
+  push(tt("lblBirthYear"), d.birthYear);
+  if (d.stage) push(tt("lblStage"), d.stage === "unknown" ? tt("optUnknown") : `Stage ${d.stage}`);
+  if (d.diagnosisDate) push(tt("lblDiagDate"), d.diagnosisDate === "unknown" ? tt("optUnknown") : d.diagnosisDate);
+  if (d.treatmentState) {
+    const s = TREATMENT_STATES.find((x) => x.value === d.treatmentState);
+    push(tt("lblTreatState"), s ? (s.label[lang] || s.label.en) : d.treatmentState);
+  }
+  push(tt("lblHospital"), d.diagnosedHospital);
+  return rows;
+}
 
 // 에이전시 케이스 액션: 화상상담 요청 / 자료 추가 / 메시지 + 올린 첨부 보기 ("보기만" → 행동)
 function CaseActions({ c, tt, onDone }) {

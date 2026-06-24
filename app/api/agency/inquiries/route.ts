@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
     assertSupabaseEnv();
     const { data: rows, error } = await (supabaseAdmin as any)
       .from("inquiries")
-      .select("id, created_at, nationality, cancer_type, first_name, last_name, case_status, case_status_note, case_status_updated_at, insurance_provider, insurance_status, outcome, attachments")
+      .select("id, created_at, nationality, cancer_type, first_name, last_name, case_status, case_status_note, case_status_updated_at, insurance_provider, insurance_status, outcome, attachments, intake")
       .eq("agency_id", auth.agencyId)
       .order("created_at", { ascending: false })
       .limit(300);
@@ -70,6 +70,15 @@ export async function GET(request: NextRequest) {
       });
     }
 
+    // intake 에서 안전한 의료 상세필드만 화이트리스트로 추출(암호화 PII 키는 제외)
+    const DETAIL_KEYS = ["sex", "birthYear", "stage", "diagnosisDate", "diagnosedHospital", "treatmentState", "priorTreatment"];
+    const pickDetail = (intake: any) => {
+      const o = intake && typeof intake === "object" && !Array.isArray(intake) ? intake : {};
+      const d: Record<string, string> = {};
+      for (const k of DETAIL_KEYS) if (o[k] != null && String(o[k]).trim()) d[k] = String(o[k]);
+      return d;
+    };
+
     const cases = await Promise.all((rows || []).map(async (r: any) => {
       const dec = await decryptInquiryForAdmin(r).catch(() => r);
       return {
@@ -84,6 +93,7 @@ export async function GET(request: NextRequest) {
         case_status_updated_at: r.case_status_updated_at,
         insurance_provider: r.insurance_provider,
         insurance_status: r.insurance_status,
+        detail: pickDetail(r.intake),
         attachments: await signAttachments(r.attachments),
         timeline: historyMap.get(r.id) || [],
       };
