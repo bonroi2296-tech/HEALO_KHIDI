@@ -92,11 +92,13 @@ export default function AnalyticsWrapper() {
               }
             }}
           />
+          {/* send_page_view:true → 랜딩(첫 진입) 조회를 GA가 자동 1회 집계.
+              이후 SPA 페이지 이동은 ClientShell의 pageview()가 처리(같은 경로 중복 가드 있음). */}
           <Script id="ga-init" strategy="lazyOnload">
             {`window.dataLayer = window.dataLayer || [];
 function gtag(){dataLayer.push(arguments);}
 gtag('js', new Date());
-gtag('config', '${gaId}', { send_page_view: false });`}
+gtag('config', '${gaId}', { send_page_view: true });`}
           </Script>
         </>
       )}
