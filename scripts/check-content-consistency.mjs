@@ -212,6 +212,24 @@ for (const file of walk("app")) {
   });
 }
 
+// ── 6) tt("키") 존재 검사 — 로컬 TR 패턴 파일 한정 ───────────────────
+// 왜: 에이전시 포털 secContact 키가 6개 언어 *전부* 누락 → 패리티검사(언어간 불일치)는
+//     통과했지만 화면엔 빈칸 출력(2026-06-24). 전-언어 동일누락은 패리티로 못 잡힘.
+//     → 코드가 tt("키")로 부르는 문자열 키가 같은 파일 TR 객체에 실제 정의돼 있는지 확인.
+//     (템플릿리터럴 tt(`a_${x}`)·변수 tt(s.k)는 정적분석 불가라 제외 — 문자열 키만.)
+const TT_KEY_RE = /\btt\(\s*["']([A-Za-z0-9_]+)["']/g;
+for (const file of SCAN_DIRS.flatMap(walk)) {
+  const text = readFileSync(join(ROOT, file), "utf8");
+  if (!/const\s+tt\s*=\s*\(k\)/.test(text)) continue; // 로컬 TR tt 헬퍼가 있는 파일만
+  const used = new Set();
+  let m;
+  while ((m = TT_KEY_RE.exec(text))) used.add(m[1]);
+  const missing = [...used].filter((k) => !new RegExp(`\\b${k}\\s*:`).test(text));
+  if (missing.length) {
+    errors.push(`[i18n-tt] ${file} — tt("키")로 부르는데 TR에 정의 없는 키 ${missing.length}개: ${missing.slice(0, 10).join(", ")}${missing.length > 10 ? " …" : ""} → 화면에 빈칸 출력(전 언어 동일누락은 패리티검사로 못 잡음). 6개 언어에 키 추가할 것`);
+  }
+}
+
 // ── 결과 ────────────────────────────────────────────────────────
 if (errors.length) {
   console.error(`\n❌ 콘텐츠 일관성 검사 실패 (${errors.length}건)\n`);

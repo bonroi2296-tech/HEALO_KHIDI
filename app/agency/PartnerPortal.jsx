@@ -6,8 +6,12 @@
  * 다국어: 활성 6개 언어(ko·en·ru·kz·zh·ja). 상단바 언어 스위처로 전환(포털 공통).
  */
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import {
+  UploadCloud, File as FileIcon, X, ClipboardList, Activity, CheckCircle2, PauseCircle,
+  Plus, ArrowRight, ChevronDown, Paperclip,
+} from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { useLang } from "@/lib/i18n/LangContext";
 import { caseStatusLabelL } from "@/lib/khidi/caseStatus";
@@ -16,8 +20,24 @@ const supabase = createSupabaseBrowserClient();
 
 const EMPTY_FORM = {
   firstName: "", lastName: "", nationality: "", treatmentType: "",
+  sex: "", birthYear: "", stage: "", stageUnknown: false,
+  diagnosisDate: "", diagnosisUnknown: false, diagnosedHospital: "", priorTreatment: "", treatmentState: "",
   contactMethod: "whatsapp", contactId: "", email: "", message: "",
 };
+
+// 폼 입력 공통 스타일 (DESIGN: border gray-200 / rounded-lg / text-sm)
+const INP = "border border-gray-200 rounded-lg px-3 py-2 text-sm";
+
+// 인테이크 폼(UnifiedInquiryFunnel)과 동일한 칩 선택지 — 톤 일치. (작은 상수라 복사 — ponytail)
+const STAGES = ["I", "II", "III", "IV"];
+const SEX_OPTS = [{ v: "male", k: "optMale" }, { v: "female", k: "optFemale" }];
+const TREATMENT_STATES = [
+  { value: "pre_surgery", label: { ko: "수술 전", en: "Pre-surgery", ru: "До операции", kz: "Операцияға дейін", zh: "术前", ja: "術前" } },
+  { value: "post_surgery", label: { ko: "수술 후", en: "Post-surgery", ru: "После операции", kz: "Операциядан кейін", zh: "术后", ja: "術後" } },
+  { value: "chemotherapy", label: { ko: "항암 중", en: "Chemotherapy", ru: "Химиотерапия", kz: "Химиотерапия", zh: "化疗中", ja: "化学療法中" } },
+  { value: "follow_up", label: { ko: "추적 관찰", en: "Follow-up", ru: "Наблюдение", kz: "Бақылау", zh: "随访", ja: "経過観察" } },
+  { value: "other", label: { ko: "기타", en: "Other", ru: "Другое", kz: "Басқа", zh: "其他", ja: "その他" } },
+];
 
 // 포털 정적 UI 문구 — 6개 언어. (환자가 입력한 자유 텍스트·국적·암종은 번역 대상 아님)
 const TR = {
@@ -27,7 +47,7 @@ const TR = {
     kindAgency: "Overseas agency", kindClinic: "Overseas medical institution",
     titleSuffix: "· Patient progress",
     subtitle: "Current stage of the patients you referred. Tap a stage to see its detailed history.",
-    btnRefer: "+ Refer a patient", btnClose: "Close",
+    btnRefer: "Refer a patient", btnClose: "Close",
     errCancerReq: "Please enter the cancer / treatment type.",
     errContactReq: "Either an email or a messenger contact is required.",
     okSubmitted: "Referral received. It will be added to the list below.",
@@ -51,7 +71,7 @@ const TR = {
     kindAgency: "해외 에이전시", kindClinic: "해외 의료기관",
     titleSuffix: "· 환자 진행 현황",
     subtitle: "의뢰하신 환자들의 현재 진행 단계입니다. 단계를 누르면 상세 이력이 보입니다.",
-    btnRefer: "+ 환자 의뢰하기", btnClose: "닫기",
+    btnRefer: "환자 의뢰하기", btnClose: "닫기",
     errCancerReq: "암종/치료 종류를 입력하세요.",
     errContactReq: "이메일 또는 메신저 연락처 중 하나는 필수입니다.",
     okSubmitted: "의뢰가 접수되었습니다. 목록에 추가됩니다.",
@@ -75,7 +95,7 @@ const TR = {
     kindAgency: "Зарубежное агентство", kindClinic: "Зарубежное медучреждение",
     titleSuffix: "· Ход пациентов",
     subtitle: "Текущий этап пациентов, которых вы направили. Нажмите на этап, чтобы увидеть подробную историю.",
-    btnRefer: "+ Направить пациента", btnClose: "Закрыть",
+    btnRefer: "Направить пациента", btnClose: "Закрыть",
     errCancerReq: "Укажите тип рака / лечения.",
     errContactReq: "Требуется email или контакт в мессенджере.",
     okSubmitted: "Заявка принята. Она появится в списке ниже.",
@@ -99,7 +119,7 @@ const TR = {
     kindAgency: "Шетелдік агенттік", kindClinic: "Шетелдік медициналық мекеме",
     titleSuffix: "· Науқастардың барысы",
     subtitle: "Сіз жолдаған науқастардың ағымдағы кезеңі. Толық тарихты көру үшін кезеңді басыңыз.",
-    btnRefer: "+ Науқас жолдау", btnClose: "Жабу",
+    btnRefer: "Науқас жолдау", btnClose: "Жабу",
     errCancerReq: "Қатерлі ісік / емдеу түрін енгізіңіз.",
     errContactReq: "Email немесе мессенджер байланысының бірі қажет.",
     okSubmitted: "Өтінім қабылданды. Төмендегі тізімге қосылады.",
@@ -123,7 +143,7 @@ const TR = {
     kindAgency: "海外代理机构", kindClinic: "海外医疗机构",
     titleSuffix: "· 患者进度",
     subtitle: "您转介患者的当前阶段。点击阶段可查看详细记录。",
-    btnRefer: "+ 转介患者", btnClose: "关闭",
+    btnRefer: "转介患者", btnClose: "关闭",
     errCancerReq: "请输入癌种 / 治疗类型。",
     errContactReq: "电子邮箱或即时通讯联系方式至少需要一项。",
     okSubmitted: "转介已受理，将添加到下方列表。",
@@ -147,7 +167,7 @@ const TR = {
     kindAgency: "海外エージェンシー", kindClinic: "海外医療機関",
     titleSuffix: "· 患者の進捗",
     subtitle: "紹介された患者の現在の段階です。段階をタップすると詳細履歴が表示されます。",
-    btnRefer: "+ 患者を紹介", btnClose: "閉じる",
+    btnRefer: "患者を紹介", btnClose: "閉じる",
     errCancerReq: "がん種 / 治療の種類を入力してください。",
     errContactReq: "メールまたはメッセンジャー連絡先のいずれかが必須です。",
     okSubmitted: "紹介を受け付けました。下のリストに追加されます。",
@@ -220,6 +240,146 @@ const TR_PROGRESS = {
 };
 for (const l of Object.keys(TR)) Object.assign(TR[l], TR_PROGRESS[l] || TR_PROGRESS.en);
 
+// 의뢰 폼 강화(상세 진단정보 + 첨부서류) + 상단 요약 문구 — 6개 언어. 위 TR 에 병합.
+const TR_FORM2 = {
+  ko: {
+    statTotal: "총 의뢰", statActive: "진행 중", statDone: "완료",
+    secPatient: "환자 기본정보", secDiagnosis: "진단 정보", secDocs: "첨부 서류",
+    phSex: "성별", optMale: "남성", optFemale: "여성", phBirthYear: "출생연도 (예: 1968)",
+    phStage: "병기 (예: II기 / Stage II)", phDiagnosisDate: "진단 시기 (예: 2025-03)",
+    phDiagnosedHospital: "진단받은 병원·지역", phPriorTreatment: "기존 치료 이력 (수술·항암·방사선 등)",
+    docsHint: "환자 차트·진단서·검사결과 등 — PDF·이미지·Word, 각 10MB",
+    docAdd: "+ 파일 추가", docUploading: "파일 올리는 중…", docRemove: "삭제",
+    catChart: "환자 차트", catDiagnosis: "진단서", catTest: "검사결과", catOther: "기타",
+    errUpload: "파일 업로드 실패. 다시 시도해 주세요.",
+  },
+  en: {
+    statTotal: "Total referrals", statActive: "In progress", statDone: "Completed",
+    secPatient: "Patient basics", secDiagnosis: "Diagnosis", secDocs: "Documents",
+    phSex: "Sex", optMale: "Male", optFemale: "Female", phBirthYear: "Birth year (e.g. 1968)",
+    phStage: "Stage (e.g. Stage II)", phDiagnosisDate: "Diagnosed (e.g. 2025-03)",
+    phDiagnosedHospital: "Diagnosing hospital / region", phPriorTreatment: "Prior treatment (surgery, chemo, radiation…)",
+    docsHint: "Patient chart, diagnosis, test results — PDF / image / Word, 10MB each",
+    docAdd: "+ Add file", docUploading: "Uploading files…", docRemove: "Remove",
+    catChart: "Patient chart", catDiagnosis: "Diagnosis report", catTest: "Test result", catOther: "Other",
+    errUpload: "File upload failed. Please try again.",
+  },
+  ru: {
+    statTotal: "Всего направлений", statActive: "В процессе", statDone: "Завершено",
+    secPatient: "Данные пациента", secDiagnosis: "Диагноз", secDocs: "Документы",
+    phSex: "Пол", optMale: "Мужской", optFemale: "Женский", phBirthYear: "Год рождения (напр. 1968)",
+    phStage: "Стадия (напр. Stage II)", phDiagnosisDate: "Дата диагноза (напр. 2025-03)",
+    phDiagnosedHospital: "Больница / регион диагноза", phPriorTreatment: "Предыдущее лечение (операция, химио, лучевая…)",
+    docsHint: "Карта пациента, диагноз, результаты анализов — PDF / изображение / Word, до 10МБ каждый",
+    docAdd: "+ Добавить файл", docUploading: "Загрузка файлов…", docRemove: "Удалить",
+    catChart: "Карта пациента", catDiagnosis: "Заключение", catTest: "Результат анализа", catOther: "Другое",
+    errUpload: "Не удалось загрузить файл. Попробуйте ещё раз.",
+  },
+  kz: {
+    statTotal: "Барлық жолдамалар", statActive: "Орындалуда", statDone: "Аяқталды",
+    secPatient: "Науқас деректері", secDiagnosis: "Диагноз", secDocs: "Құжаттар",
+    phSex: "Жынысы", optMale: "Ер", optFemale: "Әйел", phBirthYear: "Туған жылы (мыс. 1968)",
+    phStage: "Сатысы (мыс. Stage II)", phDiagnosisDate: "Диагноз қойылған кез (мыс. 2025-03)",
+    phDiagnosedHospital: "Диагноз қойылған аурухана / аймақ", phPriorTreatment: "Бұрынғы емі (операция, химия, сәулелік…)",
+    docsHint: "Науқас картасы, диагноз, талдау нәтижелері — PDF / сурет / Word, әрқайсысы 10МБ",
+    docAdd: "+ Файл қосу", docUploading: "Файлдар жүктелуде…", docRemove: "Жою",
+    catChart: "Науқас картасы", catDiagnosis: "Диагноз қорытындысы", catTest: "Талдау нәтижесі", catOther: "Басқа",
+    errUpload: "Файл жүктелмеді. Қайталап көріңіз.",
+  },
+  zh: {
+    statTotal: "转介总数", statActive: "进行中", statDone: "已完成",
+    secPatient: "患者基本信息", secDiagnosis: "诊断信息", secDocs: "附件资料",
+    phSex: "性别", optMale: "男", optFemale: "女", phBirthYear: "出生年份（如 1968）",
+    phStage: "分期（如 II 期）", phDiagnosisDate: "确诊时间（如 2025-03）",
+    phDiagnosedHospital: "确诊医院 / 地区", phPriorTreatment: "既往治疗（手术、化疗、放疗等）",
+    docsHint: "患者病历、诊断书、检查结果 — PDF / 图片 / Word，每个 10MB",
+    docAdd: "+ 添加文件", docUploading: "正在上传文件…", docRemove: "删除",
+    catChart: "患者病历", catDiagnosis: "诊断书", catTest: "检查结果", catOther: "其他",
+    errUpload: "文件上传失败，请重试。",
+  },
+  ja: {
+    statTotal: "紹介の総数", statActive: "進行中", statDone: "完了",
+    secPatient: "患者基本情報", secDiagnosis: "診断情報", secDocs: "添付書類",
+    phSex: "性別", optMale: "男性", optFemale: "女性", phBirthYear: "生年（例: 1968）",
+    phStage: "病期（例: ステージII）", phDiagnosisDate: "診断時期（例: 2025-03）",
+    phDiagnosedHospital: "診断を受けた病院・地域", phPriorTreatment: "既往治療（手術・抗がん剤・放射線など）",
+    docsHint: "患者カルテ・診断書・検査結果など — PDF / 画像 / Word、各10MB",
+    docAdd: "+ ファイル追加", docUploading: "ファイルをアップロード中…", docRemove: "削除",
+    catChart: "患者カルテ", catDiagnosis: "診断書", catTest: "検査結果", catOther: "その他",
+    errUpload: "ファイルのアップロードに失敗しました。もう一度お試しください。",
+  },
+};
+for (const l of Object.keys(TR)) Object.assign(TR[l], TR_FORM2[l] || TR_FORM2.en);
+
+// 칩/드롭존 섹션 라벨(인테이크 폼 톤) — 6개 언어.
+const TR_FORM3 = {
+  ko: { secContact: "연락처", lblStage: "병기", lblTreatState: "현재 치료 상태", lblDiagDate: "진단 받은 날짜", optUnknown: "모름", uploadDrop: "파일을 여기에 드래그하거나 클릭하여 업로드", uploadHint: "PDF · JPG · PNG · Word · 각 10MB", lblPatientInfo: "환자 정보", lblTimeline: "진행 이력", lblBirthYear: "출생연도", lblHospital: "진단 병원·지역", lblPriorTx: "기존 치료 이력" },
+  en: { secContact: "Contact", lblStage: "Stage", lblTreatState: "Current treatment status", lblDiagDate: "Diagnosis date", optUnknown: "Unknown", uploadDrop: "Drag files here or click to upload", uploadHint: "PDF · JPG · PNG · Word · 10MB each", lblPatientInfo: "Patient info", lblTimeline: "Progress history", lblBirthYear: "Birth year", lblHospital: "Diagnosing hospital", lblPriorTx: "Prior treatment" },
+  ru: { secContact: "Контакты", lblStage: "Стадия", lblTreatState: "Текущий статус лечения", lblDiagDate: "Дата диагноза", optUnknown: "Не знаю", uploadDrop: "Перетащите файлы сюда или нажмите для загрузки", uploadHint: "PDF · JPG · PNG · Word · до 10МБ", lblPatientInfo: "Данные пациента", lblTimeline: "Ход лечения", lblBirthYear: "Год рождения", lblHospital: "Больница / регион", lblPriorTx: "Предыдущее лечение" },
+  kz: { secContact: "Байланыс", lblStage: "Сатысы", lblTreatState: "Ағымдағы емдеу жағдайы", lblDiagDate: "Диагноз қойылған күн", optUnknown: "Білмеймін", uploadDrop: "Файлдарды осында сүйреңіз немесе жүктеу үшін басыңыз", uploadHint: "PDF · JPG · PNG · Word · әрқайсысы 10МБ", lblPatientInfo: "Науқас туралы", lblTimeline: "Барыс тарихы", lblBirthYear: "Туған жылы", lblHospital: "Аурухана / аймақ", lblPriorTx: "Бұрынғы емі" },
+  zh: { secContact: "联系方式", lblStage: "分期", lblTreatState: "当前治疗状态", lblDiagDate: "诊断日期", optUnknown: "不知道", uploadDrop: "将文件拖到此处或点击上传", uploadHint: "PDF · JPG · PNG · Word · 每个 10MB", lblPatientInfo: "患者信息", lblTimeline: "进展记录", lblBirthYear: "出生年份", lblHospital: "确诊医院 / 地区", lblPriorTx: "既往治疗" },
+  ja: { secContact: "連絡先", lblStage: "病期", lblTreatState: "現在の治療状況", lblDiagDate: "診断日", optUnknown: "不明", uploadDrop: "ファイルをここにドラッグまたはクリックしてアップロード", uploadHint: "PDF · JPG · PNG · Word · 各10MB", lblPatientInfo: "患者情報", lblTimeline: "進捗履歴", lblBirthYear: "生年", lblHospital: "診断病院・地域", lblPriorTx: "既往治療" },
+};
+for (const l of Object.keys(TR)) Object.assign(TR[l], TR_FORM3[l] || TR_FORM3.en);
+
+// 케이스 액션(화상상담 요청·메시지·자료추가·첨부보기) 문구 — 6개 언어. 위 TR 에 병합.
+const TR_ACT = {
+  ko: {
+    actConsult: "화상상담 요청", actMessage: "메시지", actAttach: "자료 추가",
+    consultConfirm: "코디네이터에게 화상상담을 요청할까요?",
+    actSent: "코디네이터에게 전달했습니다.", actErr: "요청 실패. 다시 시도해 주세요.",
+    msgPh: "코디네이터에게 전할 메시지", msgSend: "보내기", msgSending: "보내는 중…",
+    attTitle: "첨부 서류", attView: "보기", attUploading: "올리는 중…",
+  },
+  en: {
+    actConsult: "Request video consult", actMessage: "Message", actAttach: "Add documents",
+    consultConfirm: "Request a video consultation from the coordinator?",
+    actSent: "Sent to the coordinator.", actErr: "Request failed. Please try again.",
+    msgPh: "Message to the coordinator", msgSend: "Send", msgSending: "Sending…",
+    attTitle: "Attached documents", attView: "View", attUploading: "Uploading…",
+  },
+  ru: {
+    actConsult: "Запросить видеоконсультацию", actMessage: "Сообщение", actAttach: "Добавить документы",
+    consultConfirm: "Запросить видеоконсультацию у координатора?",
+    actSent: "Отправлено координатору.", actErr: "Не удалось отправить. Попробуйте ещё раз.",
+    msgPh: "Сообщение координатору", msgSend: "Отправить", msgSending: "Отправка…",
+    attTitle: "Прикреплённые документы", attView: "Открыть", attUploading: "Загрузка…",
+  },
+  kz: {
+    actConsult: "Бейнекеңес сұрау", actMessage: "Хабарлама", actAttach: "Құжат қосу",
+    consultConfirm: "Үйлестірушіден бейнекеңес сұрайсыз ба?",
+    actSent: "Үйлестірушіге жіберілді.", actErr: "Жіберілмеді. Қайталап көріңіз.",
+    msgPh: "Үйлестірушіге хабарлама", msgSend: "Жіберу", msgSending: "Жіберілуде…",
+    attTitle: "Тіркелген құжаттар", attView: "Ашу", attUploading: "Жүктелуде…",
+  },
+  zh: {
+    actConsult: "申请视频会诊", actMessage: "留言", actAttach: "添加资料",
+    consultConfirm: "向协调员申请视频会诊吗？",
+    actSent: "已发送给协调员。", actErr: "请求失败，请重试。",
+    msgPh: "给协调员的留言", msgSend: "发送", msgSending: "发送中…",
+    attTitle: "附件资料", attView: "查看", attUploading: "上传中…",
+  },
+  ja: {
+    actConsult: "ビデオ相談を依頼", actMessage: "メッセージ", actAttach: "資料を追加",
+    consultConfirm: "コーディネーターにビデオ相談を依頼しますか？",
+    actSent: "コーディネーターに送信しました。", actErr: "依頼に失敗しました。もう一度お試しください。",
+    msgPh: "コーディネーターへのメッセージ", msgSend: "送信", msgSending: "送信中…",
+    attTitle: "添付書類", attView: "表示", attUploading: "アップロード中…",
+  },
+};
+for (const l of Object.keys(TR)) Object.assign(TR[l], TR_ACT[l] || TR_ACT.en);
+
+// 필터·검색 문구 — 6개 언어. 위 TR 에 병합.
+const TR_FILTER = {
+  ko: { fltAll: "전체", fltActive: "진행 중", fltDone: "완료", fltHold: "보류", searchPh: "이름·국적·암종 검색", noMatch: "검색 결과가 없습니다." },
+  en: { fltAll: "All", fltActive: "In progress", fltDone: "Completed", fltHold: "On hold", searchPh: "Search name / country / cancer", noMatch: "No matching cases." },
+  ru: { fltAll: "Все", fltActive: "В процессе", fltDone: "Завершено", fltHold: "Приостановлено", searchPh: "Поиск: имя / страна / рак", noMatch: "Совпадений не найдено." },
+  kz: { fltAll: "Барлығы", fltActive: "Орындалуда", fltDone: "Аяқталды", fltHold: "Кідіртілген", searchPh: "Іздеу: аты / ел / ісік", noMatch: "Сәйкестік табылмады." },
+  zh: { fltAll: "全部", fltActive: "进行中", fltDone: "已完成", fltHold: "暂停", searchPh: "搜索 姓名 / 国家 / 癌种", noMatch: "没有匹配的病例。" },
+  ja: { fltAll: "すべて", fltActive: "進行中", fltDone: "完了", fltHold: "保留", searchPh: "氏名・国・がん種で検索", noMatch: "該当する症例がありません。" },
+};
+for (const l of Object.keys(TR)) Object.assign(TR[l], TR_FILTER[l] || TR_FILTER.en);
+
 // 해외 파트너 포털 본체. expected 로 이 URL이 어느 파트너 유형 전용인지 지정한다.
 //  - /agency  → expected="agency"            (해외 에이전시)
 //  - /clinic  → expected="medical_institution" (해외 의료기관, 경과 업로드 가능)
@@ -233,12 +393,34 @@ export default function PartnerPortal({ expected = "agency" }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [openId, setOpenId] = useState(null);
+  const [filter, setFilter] = useState("all"); // all | active | done | hold
+  const [query, setQuery] = useState("");
 
   // 환자 의뢰하기 폼
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
+  const [files, setFiles] = useState([]); // [{ path, name, type, category }] — 추가 즉시 업로드(인테이크 방식)
+  const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitMsg, setSubmitMsg] = useState(null);
+  const fileInputRef = useRef(null);
+
+  // 첨부 추가 = 즉시 /api/attachments/upload (path 참조만 보관). 최대 10개.
+  const addFiles = async (fileList) => {
+    const remaining = 10 - files.length;
+    if (remaining <= 0) return;
+    setUploading(true); setSubmitMsg(null);
+    try {
+      for (const file of Array.from(fileList).slice(0, remaining)) {
+        const fd = new FormData();
+        fd.append("file", file);
+        const up = await fetch("/api/attachments/upload", { method: "POST", body: fd });
+        const uj = await up.json().catch(() => ({}));
+        if (!uj.ok) { setSubmitMsg({ type: "err", text: tt("errUpload") }); continue; }
+        setFiles((prev) => [...prev, { path: uj.path, name: uj.name, type: uj.type, category: "other" }]);
+      }
+    } finally { setUploading(false); }
+  };
 
   const load = async () => {
     try {
@@ -277,15 +459,28 @@ export default function PartnerPortal({ expected = "agency" }) {
     try {
       const { data: sess } = await supabase.auth.getSession();
       const token = sess?.session?.access_token;
+
+      // 첨부는 이미 업로드됨 → path 참조만 전달
+      const attachments = files.map((f) => ({ path: f.path, name: f.name, type: f.type, category: f.category }));
+
+      // 상세 진단정보(intake) — 빈 값은 제외, "모름" 처리 반영
+      const intake = {};
+      for (const k of ["sex", "birthYear", "diagnosedHospital", "priorTreatment", "treatmentState"]) {
+        if (form[k] && String(form[k]).trim()) intake[k] = String(form[k]).trim();
+      }
+      intake.stage = form.stageUnknown ? "unknown" : (form.stage || undefined);
+      intake.diagnosisDate = form.diagnosisUnknown ? "unknown" : (form.diagnosisDate || undefined);
+
       const res = await fetch("/api/agency/refer", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify(form),
+        body: JSON.stringify({ ...form, intake, attachments }),
       });
       const json = await res.json();
       if (json.ok) {
         setSubmitMsg({ type: "ok", text: tt("okSubmitted") });
         setForm(EMPTY_FORM);
+        setFiles([]);
         setShowForm(false);
         await load();
       } else {
@@ -311,8 +506,41 @@ export default function PartnerPortal({ expected = "agency" }) {
   const isClinic = wantMedical;
   const partnerKind = isClinic ? tt("kindClinic") : tt("kindAgency");
 
+  const cases = data?.cases ?? [];
+  const isActive = (c) => c.case_status && c.case_status !== "completed" && c.case_status !== "on_hold";
+  const cnt = {
+    total: cases.length,
+    active: cases.filter(isActive).length,
+    done: cases.filter((c) => c.case_status === "completed").length,
+    hold: cases.filter((c) => c.case_status === "on_hold").length,
+  };
+  const matchFilter = (c) =>
+    filter === "all" ? true
+      : filter === "done" ? c.case_status === "completed"
+      : filter === "hold" ? c.case_status === "on_hold"
+      : isActive(c);
+  const matchQuery = (c) => {
+    const q = query.trim().toLowerCase();
+    if (!q) return true;
+    return [c.name, c.nationality, c.cancer_type, c.case_status_note].some((v) => (v || "").toLowerCase().includes(q));
+  };
+  const filtered = cases.filter((c) => matchFilter(c) && matchQuery(c));
+  const TABS = [
+    { key: "all", label: "fltAll", count: cnt.total },
+    { key: "active", label: "fltActive", count: cnt.active },
+    { key: "done", label: "fltDone", count: cnt.done },
+    ...(cnt.hold > 0 ? [{ key: "hold", label: "fltHold", count: cnt.hold }] : []),
+  ];
+  // 백오피스 지표 카드 (코디 대시보드 톤: 작은 컬러 사각 아이콘 + 큰 숫자). 누르면 해당 필터로.
+  const STAT_CARDS = [
+    { key: "all", icon: ClipboardList, value: cnt.total, label: tt("statTotal"), tone: "bg-teal-50 text-teal-600" },
+    { key: "active", icon: Activity, value: cnt.active, label: tt("statActive"), tone: "bg-blue-50 text-blue-600" },
+    { key: "done", icon: CheckCircle2, value: cnt.done, label: tt("statDone"), tone: "bg-emerald-50 text-emerald-600" },
+    { key: "hold", icon: PauseCircle, value: cnt.hold, label: tt("fltHold"), tone: "bg-amber-50 text-amber-600" },
+  ];
+
   return (
-    <div className="max-w-3xl mx-auto px-4 pt-20 md:pt-24 pb-10">
+    <div className="max-w-4xl mx-auto px-4 pt-20 md:pt-24 pb-10">
       <div className="mb-6">
         <span className={`inline-block text-[11px] font-semibold px-2 py-0.5 rounded-full mb-2 ${isClinic ? "bg-indigo-50 text-indigo-700" : "bg-teal-50 text-teal-700"}`}>{partnerKind}</span>
         <div className="flex items-start justify-between gap-3">
@@ -322,12 +550,36 @@ export default function PartnerPortal({ expected = "agency" }) {
           </div>
           <button
             onClick={() => { setShowForm((v) => !v); setSubmitMsg(null); }}
-            className="shrink-0 px-4 py-2.5 rounded-xl bg-teal-700 text-white text-sm font-bold hover:bg-teal-800 transition"
+            className="shrink-0 inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-teal-700 text-white text-sm font-bold hover:bg-teal-800 transition-all duration-200"
           >
+            {showForm ? <X size={16} /> : <Plus size={16} />}
             {showForm ? tt("btnClose") : tt("btnRefer")}
           </button>
         </div>
       </div>
+
+      {/* 요약 지표 카드 (코디 대시보드 톤) — 누르면 필터 */}
+      {cnt.total > 0 && (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+          {STAT_CARDS.map((card) => {
+            const Icon = card.icon;
+            const on = filter === card.key;
+            return (
+              <button key={card.key} type="button" onClick={() => setFilter(card.key)}
+                className={`bg-white rounded-xl border p-4 text-left transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 ${on ? "border-teal-300 ring-1 ring-teal-200" : "border-gray-100"}`}>
+                <div className="flex items-center justify-between mb-3">
+                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${card.tone}`}>
+                    <Icon size={20} />
+                  </div>
+                  <ArrowRight size={16} className={on ? "text-teal-400" : "text-gray-300"} />
+                </div>
+                <div className="text-2xl font-bold text-gray-900 tabular-nums">{card.value}</div>
+                <div className="text-xs text-gray-500 mt-1">{card.label}</div>
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {submitMsg && (
         <div className={`mb-4 rounded-xl px-4 py-3 text-sm ${submitMsg.type === "ok" ? "bg-teal-50 text-teal-800 border border-teal-200" : "bg-red-50 text-red-700 border border-red-200"}`}>
@@ -336,69 +588,179 @@ export default function PartnerPortal({ expected = "agency" }) {
       )}
 
       {showForm && (
-        <form onSubmit={submitReferral} className="bg-white border border-gray-200 rounded-2xl p-5 mb-6 space-y-3">
-          <h2 className="text-sm font-bold text-gray-800">{tt("formHeading")}</h2>
-          <p className="text-xs text-gray-400 -mt-1">{tt("formDesc")}</p>
-
-          <div className="grid sm:grid-cols-2 gap-3">
-            <input className="border border-gray-200 rounded-lg px-3 py-2 text-sm" placeholder={tt("phFirst")}
-              value={form.firstName} onChange={(e) => setForm({ ...form, firstName: e.target.value })} />
-            <input className="border border-gray-200 rounded-lg px-3 py-2 text-sm" placeholder={tt("phLast")}
-              value={form.lastName} onChange={(e) => setForm({ ...form, lastName: e.target.value })} />
-            <input className="border border-gray-200 rounded-lg px-3 py-2 text-sm" placeholder={tt("phNationality")}
-              value={form.nationality} onChange={(e) => setForm({ ...form, nationality: e.target.value })} />
-            <input className="border border-gray-200 rounded-lg px-3 py-2 text-sm" placeholder={tt("phCancer")}
-              value={form.treatmentType} onChange={(e) => setForm({ ...form, treatmentType: e.target.value })} />
+        <form onSubmit={submitReferral} className="bg-white border border-gray-200 rounded-2xl shadow-sm p-5 md:p-7 mb-6 space-y-6">
+          <div>
+            <h2 className="text-lg font-bold text-gray-900">{tt("formHeading")}</h2>
+            <p className="text-sm text-gray-500 mt-0.5">{tt("formDesc")}</p>
           </div>
 
-          <div className="pt-1">
-            <p className="text-xs font-semibold text-gray-500 mb-1.5">{tt("contactLabel")}</p>
-            <input className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm mb-2" placeholder={tt("phEmail")}
-              value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+          {/* 환자 기본정보 */}
+          <Section title={tt("secPatient")}>
+            <div className="grid sm:grid-cols-2 gap-3">
+              <input className={INP} placeholder={tt("phFirst")} value={form.firstName} onChange={(e) => setForm({ ...form, firstName: e.target.value })} />
+              <input className={INP} placeholder={tt("phLast")} value={form.lastName} onChange={(e) => setForm({ ...form, lastName: e.target.value })} />
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-xs text-gray-500 mr-1">{tt("phSex")}</span>
+              {SEX_OPTS.map((s) => (
+                <Chip key={s.v} active={form.sex === s.v} onClick={() => setForm((p) => ({ ...p, sex: p.sex === s.v ? "" : s.v }))}>{tt(s.k)}</Chip>
+              ))}
+            </div>
+            <div className="grid sm:grid-cols-2 gap-3">
+              <input className={INP} inputMode="numeric" placeholder={tt("phBirthYear")} value={form.birthYear} onChange={(e) => setForm({ ...form, birthYear: e.target.value })} />
+              <input className={INP} placeholder={tt("phNationality")} value={form.nationality} onChange={(e) => setForm({ ...form, nationality: e.target.value })} />
+            </div>
+          </Section>
+
+          {/* 진단 정보 */}
+          <Section title={tt("secDiagnosis")}>
+            <input className={`${INP} w-full`} placeholder={tt("phCancer")} value={form.treatmentType} onChange={(e) => setForm({ ...form, treatmentType: e.target.value })} />
+
+            <div>
+              <p className="text-xs font-semibold text-gray-600 mb-1.5">{tt("lblStage")}</p>
+              <div className="flex flex-wrap gap-2">
+                {STAGES.map((s) => (
+                  <Chip key={s} active={form.stage === s && !form.stageUnknown} disabled={form.stageUnknown}
+                    onClick={() => setForm((p) => ({ ...p, stage: p.stage === s ? "" : s }))}>Stage {s}</Chip>
+                ))}
+                <Chip active={form.stageUnknown} onClick={() => setForm((p) => ({ ...p, stageUnknown: !p.stageUnknown, stage: "" }))}>{tt("optUnknown")}</Chip>
+              </div>
+            </div>
+
+            <div>
+              <p className="text-xs font-semibold text-gray-600 mb-1.5">{tt("lblDiagDate")}</p>
+              <div className="flex items-center gap-3">
+                <input type="date" className={`${INP} flex-1 bg-white disabled:bg-gray-50 disabled:text-gray-400`}
+                  value={form.diagnosisDate} disabled={form.diagnosisUnknown}
+                  onChange={(e) => setForm({ ...form, diagnosisDate: e.target.value })} />
+                <label className="flex items-center gap-1.5 text-sm text-gray-500 cursor-pointer whitespace-nowrap">
+                  <input type="checkbox" className="accent-teal-600" checked={form.diagnosisUnknown}
+                    onChange={(e) => setForm({ ...form, diagnosisUnknown: e.target.checked, diagnosisDate: "" })} />
+                  {tt("optUnknown")}
+                </label>
+              </div>
+            </div>
+
+            <div>
+              <p className="text-xs font-semibold text-gray-600 mb-1.5">{tt("lblTreatState")}</p>
+              <div className="flex flex-wrap gap-2">
+                {TREATMENT_STATES.map((s) => (
+                  <Chip key={s.value} active={form.treatmentState === s.value}
+                    onClick={() => setForm((p) => ({ ...p, treatmentState: p.treatmentState === s.value ? "" : s.value }))}>
+                    {s.label[lang] || s.label.en}
+                  </Chip>
+                ))}
+              </div>
+            </div>
+
+            <input className={`${INP} w-full`} placeholder={tt("phDiagnosedHospital")} value={form.diagnosedHospital} onChange={(e) => setForm({ ...form, diagnosedHospital: e.target.value })} />
+            <textarea className={`${INP} w-full`} rows={2} placeholder={tt("phPriorTreatment")} value={form.priorTreatment} onChange={(e) => setForm({ ...form, priorTreatment: e.target.value })} />
+          </Section>
+
+          {/* 첨부 서류 */}
+          <Section title={tt("secDocs")}>
+            <p className="text-xs text-gray-400 -mt-1">{tt("docsHint")}</p>
+            <div onClick={() => fileInputRef.current?.click()}
+              onDrop={(e) => { e.preventDefault(); addFiles(e.dataTransfer.files); }}
+              onDragOver={(e) => e.preventDefault()}
+              className="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center hover:bg-gray-50 transition-all duration-200 cursor-pointer">
+              <UploadCloud size={24} className="mx-auto text-gray-400 mb-2" />
+              <p className="text-xs text-gray-500">{uploading ? tt("docUploading") : tt("uploadDrop")}</p>
+              <p className="text-[11px] text-gray-400 mt-1">{tt("uploadHint")}</p>
+            </div>
+            <input ref={fileInputRef} type="file" multiple className="hidden"
+              accept=".pdf,.jpg,.jpeg,.png,.gif,.webp,.doc,.docx,application/pdf,image/jpeg,image/png,image/gif,image/webp"
+              onChange={(e) => { addFiles(e.target.files); e.target.value = ""; }} />
+            {files.length > 0 && (
+              <div className="space-y-1.5">
+                {files.map((it, i) => (
+                  <div key={i} className="flex items-center gap-2 bg-teal-50 border border-teal-200 rounded-lg px-3 py-2 text-xs">
+                    <FileIcon size={14} className="text-teal-700 shrink-0" />
+                    <span className="flex-1 truncate text-teal-800 font-medium">{it.name}</span>
+                    <select className="border border-teal-200 rounded-md px-1.5 py-1 bg-white text-gray-600"
+                      value={it.category} onChange={(e) => setFiles(files.map((f, j) => (j === i ? { ...f, category: e.target.value } : f)))}>
+                      <option value="chart">{tt("catChart")}</option>
+                      <option value="diagnosis">{tt("catDiagnosis")}</option>
+                      <option value="test">{tt("catTest")}</option>
+                      <option value="other">{tt("catOther")}</option>
+                    </select>
+                    <button type="button" onClick={() => setFiles(files.filter((_, j) => j !== i))}
+                      className="p-1 rounded-full text-teal-700 hover:bg-teal-100"><X size={14} /></button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </Section>
+
+          {/* 연락처 */}
+          <Section title={tt("secContact")}>
+            <p className="text-xs text-gray-400 -mt-1">{tt("contactLabel")}</p>
+            <input className={`${INP} w-full`} placeholder={tt("phEmail")} value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
             <div className="flex gap-2">
-              <select className="border border-gray-200 rounded-lg px-2 py-2 text-sm bg-white shrink-0"
-                value={form.contactMethod} onChange={(e) => setForm({ ...form, contactMethod: e.target.value })}>
+              <select className={`${INP} bg-white shrink-0`} value={form.contactMethod} onChange={(e) => setForm({ ...form, contactMethod: e.target.value })}>
                 <option value="whatsapp">WhatsApp</option>
                 <option value="telegram">Telegram</option>
                 <option value="wechat">WeChat</option>
                 <option value="line">LINE</option>
                 <option value="phone">{tt("optPhone")}</option>
               </select>
-              <input className="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm" placeholder={tt("phContactId")}
-                value={form.contactId} onChange={(e) => setForm({ ...form, contactId: e.target.value })} />
+              <input className={`${INP} flex-1`} placeholder={tt("phContactId")} value={form.contactId} onChange={(e) => setForm({ ...form, contactId: e.target.value })} />
             </div>
-          </div>
-
-          <textarea className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm" rows={2} placeholder={tt("phMemo") || ""}
-            value={form.message} onChange={(e) => setForm({ ...form, message: e.target.value })} />
+            <textarea className={`${INP} w-full`} rows={2} placeholder={tt("phMemo") || ""} value={form.message} onChange={(e) => setForm({ ...form, message: e.target.value })} />
+          </Section>
 
           <div className="flex justify-end gap-2 pt-1">
             <button type="button" onClick={() => { setShowForm(false); setSubmitMsg(null); }}
-              className="px-4 py-2 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50">{tt("btnCancel")}</button>
-            <button type="submit" disabled={submitting}
-              className="px-5 py-2 rounded-lg text-sm font-bold bg-teal-700 text-white hover:bg-teal-800 disabled:opacity-40">
+              className="px-4 py-2.5 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-50">{tt("btnCancel")}</button>
+            <button type="submit" disabled={submitting || uploading}
+              className="px-6 py-2.5 rounded-xl text-sm font-bold bg-teal-700 text-white hover:bg-teal-800 transition-all duration-200 disabled:opacity-40">
               {submitting ? tt("btnSubmitting") : tt("btnSubmit")}
             </button>
           </div>
         </form>
       )}
 
-      {(data?.cases ?? []).length === 0 ? (
+      {cases.length === 0 ? (
         <p className="text-sm text-gray-400">{tt("emptyList")}</p>
       ) : (
-        <div className="space-y-3">
-          {data.cases.map((c) => {
+        <>
+          {/* 필터 탭 + 검색 (DESIGN: 알약 rounded-full, tabular-nums, duration-200) */}
+          <div className="flex flex-wrap items-center gap-2 mb-4">
+            {TABS.map((t) => (
+              <button key={t.key} type="button" onClick={() => setFilter(t.key)}
+                className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 ${filter === t.key ? "bg-teal-700 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}>
+                {tt(t.label)} <span className="tabular-nums opacity-70">{t.count}</span>
+              </button>
+            ))}
+            <input className={`${INP} ml-auto w-full sm:w-56`} placeholder={tt("searchPh")}
+              value={query} onChange={(e) => setQuery(e.target.value)} />
+          </div>
+
+          {filtered.length === 0 ? (
+            <p className="text-sm text-gray-400">{tt("noMatch")}</p>
+          ) : (
+            <div className="space-y-3">
+          {filtered.map((c) => {
             const curOrder = orderOf(c.case_status);
             return (
-              <div key={c.id} className="bg-white border border-gray-200 rounded-2xl p-5">
+              <div key={c.id} className="bg-white border border-gray-200 rounded-2xl shadow-sm hover:shadow-md transition-all duration-200 p-5">
                 <button onClick={() => setOpenId(openId === c.id ? null : c.id)} className="w-full text-left">
-                  <div className="flex items-center justify-between gap-3 mb-3">
-                    <div className="text-sm font-semibold text-gray-800">
-                      {c.name} · {c.nationality} · {c.cancer_type}
+                  <div className="flex items-start justify-between gap-3 mb-3">
+                    <div className="min-w-0">
+                      <div className="text-sm font-bold text-gray-900 truncate">{c.name} · {c.cancer_type}</div>
+                      <div className="flex items-center gap-2 text-xs text-gray-500 mt-0.5">
+                        <span>{c.nationality}</span>
+                        {c.attachments?.length > 0 && (
+                          <span className="inline-flex items-center gap-0.5 text-gray-400"><Paperclip size={11} />{c.attachments.length}</span>
+                        )}
+                      </div>
                     </div>
-                    <span className={`text-xs px-2.5 py-1 rounded-full shrink-0 ${c.case_status ? "bg-teal-50 text-teal-700" : "bg-gray-100 text-gray-400"}`}>
-                      {caseStatusLabelL(c.case_status, lang)}
-                    </span>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className={`text-xs px-2.5 py-1 rounded-full ${c.case_status ? "bg-teal-50 text-teal-700" : "bg-gray-100 text-gray-400"}`}>
+                        {caseStatusLabelL(c.case_status, lang)}
+                      </span>
+                      <ChevronDown size={16} className={`text-gray-400 transition-transform duration-200 ${openId === c.id ? "rotate-180" : ""}`} />
+                    </div>
                   </div>
                   {/* 단계 진행 바 */}
                   <div className="flex items-center gap-1">
@@ -408,7 +770,7 @@ export default function PartnerPortal({ expected = "agency" }) {
                     ))}
                   </div>
                   {c.case_status_note && (
-                    <p className="text-xs text-gray-500 mt-2">📌 {c.case_status_note}</p>
+                    <p className="text-xs text-gray-500 mt-2">{c.case_status_note}</p>
                   )}
                   <div className="flex gap-3 mt-2 text-xs text-gray-400">
                     {c.insurance_status && <span>{tt("insuranceLabel")} {c.insurance_status}</span>}
@@ -416,27 +778,58 @@ export default function PartnerPortal({ expected = "agency" }) {
                   </div>
                 </button>
 
-                {openId === c.id && c.timeline.length > 0 && (
-                  <div className="mt-4 pt-4 border-t border-gray-100 space-y-2">
-                    {c.timeline.map((tl, i) => (
-                      <div key={i} className="flex gap-3 text-sm">
-                        <span className="text-gray-400 text-xs w-20 shrink-0">{new Date(tl.at).toLocaleDateString()}</span>
-                        <span className="text-gray-700">
-                          <b>{caseStatusLabelL(tl.status, lang)}</b>{tl.note ? ` — ${tl.note}` : ""}
-                        </span>
+                {openId === c.id && (
+                  <div className="mt-4 pt-4 border-t border-gray-100 space-y-4">
+                    {/* 환자 정보 (의뢰 시 받은 상세) */}
+                    {(detailRows(c.detail, tt, lang).length > 0 || c.detail?.priorTreatment) && (
+                      <div>
+                        <p className="text-xs font-bold text-gray-600 mb-2">{tt("lblPatientInfo")}</p>
+                        <dl className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-2.5">
+                          {detailRows(c.detail, tt, lang).map((row) => (
+                            <div key={row.label}>
+                              <dt className="text-[11px] text-gray-400">{row.label}</dt>
+                              <dd className="text-sm text-gray-800">{row.value}</dd>
+                            </div>
+                          ))}
+                        </dl>
+                        {c.detail?.priorTreatment && (
+                          <div className="mt-2.5">
+                            <dt className="text-[11px] text-gray-400">{tt("lblPriorTx")}</dt>
+                            <dd className="text-sm text-gray-700 whitespace-pre-wrap">{c.detail.priorTreatment}</dd>
+                          </div>
+                        )}
                       </div>
-                    ))}
+                    )}
+
+                    {/* 진행 이력 (세로 타임라인) */}
+                    <div>
+                      <p className="text-xs font-bold text-gray-600 mb-2">{tt("lblTimeline")}</p>
+                      {c.timeline.length === 0 ? (
+                        <p className="text-xs text-gray-400">{tt("timelineEmpty")}</p>
+                      ) : (
+                        <ol className="relative border-l border-gray-200 ml-[5px] space-y-3.5">
+                          {c.timeline.map((tl, i) => (
+                            <li key={i} className="ml-4">
+                              <span className="absolute -left-[5px] mt-1 w-2.5 h-2.5 rounded-full bg-teal-500 ring-2 ring-white" />
+                              <div className="text-[11px] text-gray-400">{new Date(tl.at).toLocaleDateString()}</div>
+                              <div className="text-sm text-gray-700"><b>{caseStatusLabelL(tl.status, lang)}</b>{tl.note ? ` — ${tl.note}` : ""}</div>
+                            </li>
+                          ))}
+                        </ol>
+                      )}
+                    </div>
+
+                    {/* 액션 + 첨부 (에이전시) / 경과 업로드 (의료기관) */}
+                    {!isClinic && <CaseActions c={c} tt={tt} onDone={load} />}
+                    {isClinic && <ClinicProgressPanel inquiryId={c.id} tt={tt} />}
                   </div>
                 )}
-                {openId === c.id && c.timeline.length === 0 && (
-                  <p className="mt-4 pt-4 border-t border-gray-100 text-xs text-gray-400">{tt("timelineEmpty")}</p>
-                )}
-
-                {isClinic && openId === c.id && <ClinicProgressPanel inquiryId={c.id} tt={tt} />}
               </div>
             );
           })}
-        </div>
+            </div>
+          )}
+        </>
       )}
     </div>
   );
@@ -444,6 +837,142 @@ export default function PartnerPortal({ expected = "agency" }) {
 
 function Center({ children, className = "" }) {
   return <div className={`max-w-3xl mx-auto px-4 py-24 text-center text-gray-500 ${className}`}>{children}</div>;
+}
+
+// 폼 섹션 — 제목 + 내용 묶음 (인테이크 폼처럼 명확한 구획)
+function Section({ title, children }) {
+  return (
+    <fieldset className="space-y-3">
+      <legend className="text-xs font-bold text-teal-700 uppercase tracking-wide mb-1">{title}</legend>
+      {children}
+    </fieldset>
+  );
+}
+
+// 선택 칩 (인테이크 폼과 동일 스타일: border-2, 선택 시 teal)
+function Chip({ active, onClick, disabled = false, children }) {
+  return (
+    <button type="button" disabled={disabled} onClick={onClick}
+      className={`px-4 py-2 rounded-xl border-2 text-sm font-semibold transition-all duration-200 ${
+        active ? "border-teal-500 bg-teal-50 text-teal-700"
+               : "border-gray-200 text-gray-600 hover:border-gray-300 disabled:opacity-40"
+      }`}>
+      {children}
+    </button>
+  );
+}
+
+const catKey = (c) => ({ chart: "catChart", diagnosis: "catDiagnosis", test: "catTest" }[c] || "catOther");
+
+// 케이스 상세 — intake 화이트리스트(detail)를 라벨·값으로 변환 (priorTreatment 는 긴 텍스트라 따로)
+function detailRows(d, tt, lang) {
+  if (!d) return [];
+  const rows = [];
+  const push = (label, value) => { if (value != null && value !== "") rows.push({ label, value }); };
+  if (d.sex) push(tt("phSex"), tt(d.sex === "male" ? "optMale" : "optFemale"));
+  push(tt("lblBirthYear"), d.birthYear);
+  if (d.stage) push(tt("lblStage"), d.stage === "unknown" ? tt("optUnknown") : `Stage ${d.stage}`);
+  if (d.diagnosisDate) push(tt("lblDiagDate"), d.diagnosisDate === "unknown" ? tt("optUnknown") : d.diagnosisDate);
+  if (d.treatmentState) {
+    const s = TREATMENT_STATES.find((x) => x.value === d.treatmentState);
+    push(tt("lblTreatState"), s ? (s.label[lang] || s.label.en) : d.treatmentState);
+  }
+  push(tt("lblHospital"), d.diagnosedHospital);
+  return rows;
+}
+
+// 에이전시 케이스 액션: 화상상담 요청 / 자료 추가 / 메시지 + 올린 첨부 보기 ("보기만" → 행동)
+function CaseActions({ c, tt, onDone }) {
+  const [busy, setBusy] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [showMsg, setShowMsg] = useState(false);
+  const [text, setText] = useState("");
+  const [msg, setMsg] = useState(null);
+
+  const getToken = async () => (await supabase.auth.getSession()).data?.session?.access_token;
+
+  const post = async (payload) => {
+    setBusy(true); setMsg(null);
+    try {
+      const token = await getToken();
+      const res = await fetch(`/api/agency/cases/${c.id}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify(payload),
+      });
+      const json = await res.json();
+      if (json.ok) { setMsg({ type: "ok", text: tt("actSent") }); setText(""); setShowMsg(false); await onDone(); }
+      else setMsg({ type: "err", text: tt("actErr") });
+    } catch { setMsg({ type: "err", text: tt("actErr") }); }
+    finally { setBusy(false); }
+  };
+
+  const onFiles = async (e) => {
+    const fs = Array.from(e.target.files || []);
+    e.target.value = "";
+    if (!fs.length) return;
+    setUploading(true); setMsg(null);
+    try {
+      const attachments = [];
+      for (const file of fs) {
+        const fd = new FormData();
+        fd.append("file", file);
+        const up = await fetch("/api/attachments/upload", { method: "POST", body: fd });
+        const uj = await up.json().catch(() => ({}));
+        if (!uj.ok) { setMsg({ type: "err", text: tt("errUpload") }); return; }
+        attachments.push({ path: uj.path, name: uj.name, type: uj.type, category: "other" });
+      }
+      await post({ action: "attach", attachments });
+    } finally { setUploading(false); }
+  };
+
+  return (
+    <div className="mt-4 pt-4 border-t border-gray-100">
+      {c.attachments?.length > 0 && (
+        <div className="mb-3">
+          <p className="text-xs font-bold text-gray-600 mb-1.5">{tt("attTitle")}</p>
+          <div className="space-y-1">
+            {c.attachments.map((a, i) => (
+              <div key={i} className="flex items-center justify-between gap-2 text-xs bg-gray-50 rounded-lg px-3 py-1.5">
+                <span className="truncate text-gray-700"><b>{tt(catKey(a.category))}</b>{a.name ? ` · ${a.name}` : ""}</span>
+                {a.url && <a href={a.url} target="_blank" rel="noopener noreferrer" className="text-teal-700 underline shrink-0">{tt("attView")}</a>}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="flex flex-wrap gap-2">
+        <button type="button" disabled={busy}
+          onClick={() => { if (window.confirm(tt("consultConfirm"))) post({ action: "request_consult" }); }}
+          className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-teal-50 text-teal-700 hover:bg-teal-100 disabled:opacity-40">
+          {tt("actConsult")}
+        </button>
+        <label className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-gray-50 text-gray-700 hover:bg-gray-100 cursor-pointer">
+          {uploading ? tt("attUploading") : tt("actAttach")}
+          <input type="file" multiple className="hidden"
+            accept=".pdf,.jpg,.jpeg,.png,.gif,.webp,.doc,.docx,application/pdf,image/jpeg,image/png,image/gif,image/webp"
+            onChange={onFiles} />
+        </label>
+        <button type="button" disabled={busy} onClick={() => setShowMsg((v) => !v)}
+          className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-gray-50 text-gray-700 hover:bg-gray-100 disabled:opacity-40">
+          {tt("actMessage")}
+        </button>
+      </div>
+
+      {showMsg && (
+        <div className="mt-2 flex gap-2">
+          <input className={`${INP} flex-1`} placeholder={tt("msgPh")} value={text} onChange={(e) => setText(e.target.value)} />
+          <button type="button" disabled={busy || !text.trim()} onClick={() => post({ action: "message", message: text })}
+            className="px-3 py-2 rounded-lg text-xs font-bold bg-teal-700 text-white hover:bg-teal-800 disabled:opacity-40 shrink-0">
+            {busy ? tt("msgSending") : tt("msgSend")}
+          </button>
+        </div>
+      )}
+
+      {msg && <p className={`mt-2 text-xs ${msg.type === "ok" ? "text-teal-700" : "text-red-600"}`}>{msg.text}</p>}
+    </div>
+  );
 }
 
 // 해외 의료기관 전용: 케이스별 경과(검사결과·영상·소견) 업로드 + 목록 (사후관리 ICT ④)

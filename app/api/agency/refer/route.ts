@@ -17,6 +17,7 @@ import { NextRequest } from "next/server";
 import { checkAgencyAuth } from "@/lib/auth/checkAgencyAuth";
 import { supabaseAdmin, assertSupabaseEnv } from "@/lib/rag/supabaseAdmin";
 import { encryptString, encryptStringNullable } from "@/lib/security/encryptionV2";
+import { encryptPiiInObject } from "@/lib/security/piiJson";
 import { checkRateLimit, getClientIp, RATE_LIMITS, getRateLimitHeaders } from "@/lib/rateLimit";
 import { sendAdminNotification } from "@/lib/notifications/adminNotifier";
 
@@ -69,6 +70,22 @@ export async function POST(request: NextRequest) {
     const encryptedMessage = encryptStringNullable(body.message);
     const encryptedContactId = encryptStringNullable(body.contactId);
 
+    // 4-1) 상세 진단정보(intake) — 에이전시가 자세히 줄 수 있게. PII 키만 암호화, 의료 텍스트는 평문(테이블 service_role 전용).
+    const intakeIn = (body.intake && typeof body.intake === "object" && !Array.isArray(body.intake)) ? body.intake : {};
+    const encryptedIntake = encryptPiiInObject({ ...intakeIn, source: "agency_referral" }, null, "intake");
+
+    // 4-2) 첨부서류(환자차트·진단서·검사결과) — /api/attachments/upload 가 돌려준 path 참조만 받음. 최대 20개.
+    const attachmentsIn = Array.isArray(body.attachments) ? body.attachments : [];
+    const attachments = attachmentsIn
+      .filter((a: any) => a && typeof a.path === "string" && a.path.length < 500)
+      .slice(0, 20)
+      .map((a: any) => ({
+        path: a.path,
+        name: typeof a.name === "string" ? a.name.slice(0, 200) : null,
+        type: typeof a.type === "string" ? a.type.slice(0, 100) : null,
+        category: typeof a.category === "string" ? a.category.slice(0, 32) : "other",
+      }));
+
     // 5) inquiries insert — 본인 에이전시로 귀속, 진행단계 'received'
     const { data: inserted, error: insertError } = await supabaseAdmin
       .from("inquiries")
@@ -83,8 +100,8 @@ export async function POST(request: NextRequest) {
         treatment_type: String(body.treatmentType).trim(),
         cancer_type: String(body.treatmentType).trim(),
         message: encryptedMessage,
-        attachments: [],
-        intake: {},
+        attachments,
+        intake: encryptedIntake,
         status: "received",
         agency_id: auth.agencyId,
         case_status: "received",

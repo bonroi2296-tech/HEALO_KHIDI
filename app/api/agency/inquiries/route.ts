@@ -21,6 +21,21 @@ function maskName(first?: string | null, last?: string | null): string {
   return `${[...n][0] || ""}***`;
 }
 
+// 첨부서류(attachments 버킷) → signed URL. ponytail: 케이스당 첨부가 적어 리스트에서 바로 서명. 많아지면 케이스 펼칠 때 on-demand 로.
+async function signAttachments(atts: any): Promise<any[]> {
+  if (!Array.isArray(atts) || atts.length === 0) return [];
+  return Promise.all(
+    atts.map(async (a: any) => {
+      let url: string | null = null;
+      if (a?.path) {
+        const { data } = await supabaseAdmin.storage.from("attachments").createSignedUrl(a.path, 3600);
+        url = data?.signedUrl || null;
+      }
+      return { name: a?.name || null, category: a?.category || "other", type: a?.type || null, url };
+    })
+  );
+}
+
 export async function GET(request: NextRequest) {
   const auth = await checkAgencyAuth(request);
   if (!auth.isAgencyUser || !auth.agencyId) {
@@ -30,7 +45,7 @@ export async function GET(request: NextRequest) {
     assertSupabaseEnv();
     const { data: rows, error } = await (supabaseAdmin as any)
       .from("inquiries")
-      .select("id, created_at, nationality, cancer_type, first_name, last_name, case_status, case_status_note, case_status_updated_at, insurance_provider, insurance_status, outcome")
+      .select("id, created_at, nationality, cancer_type, first_name, last_name, case_status, case_status_note, case_status_updated_at, insurance_provider, insurance_status, outcome, attachments, intake")
       .eq("agency_id", auth.agencyId)
       .order("created_at", { ascending: false })
       .limit(300);
@@ -55,6 +70,15 @@ export async function GET(request: NextRequest) {
       });
     }
 
+    // intake 에서 안전한 의료 상세필드만 화이트리스트로 추출(암호화 PII 키는 제외)
+    const DETAIL_KEYS = ["sex", "birthYear", "stage", "diagnosisDate", "diagnosedHospital", "treatmentState", "priorTreatment"];
+    const pickDetail = (intake: any) => {
+      const o = intake && typeof intake === "object" && !Array.isArray(intake) ? intake : {};
+      const d: Record<string, string> = {};
+      for (const k of DETAIL_KEYS) if (o[k] != null && String(o[k]).trim()) d[k] = String(o[k]);
+      return d;
+    };
+
     const cases = await Promise.all((rows || []).map(async (r: any) => {
       const dec = await decryptInquiryForAdmin(r).catch(() => r);
       return {
@@ -69,6 +93,8 @@ export async function GET(request: NextRequest) {
         case_status_updated_at: r.case_status_updated_at,
         insurance_provider: r.insurance_provider,
         insurance_status: r.insurance_status,
+        detail: pickDetail(r.intake),
+        attachments: await signAttachments(r.attachments),
         timeline: historyMap.get(r.id) || [],
       };
     }));
