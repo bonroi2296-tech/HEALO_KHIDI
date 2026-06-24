@@ -118,6 +118,18 @@ export async function decryptInquiryForAdmin(inquiry: any): Promise<any> {
   }
 
   // ========================================
+  // 5-1. phone 복호화 (암호화 저장 — 누락 시 코디 화면에 암호문 노출됨)
+  // ========================================
+  if (inquiry.phone && typeof inquiry.phone === "string") {
+    try {
+      decrypted.phone = await decryptAuto(inquiry.phone);
+    } catch (error: unknown) {
+      console.error(`[decryptForAdmin] phone decryption failed for inquiry ${inquiry.id}:`, error instanceof Error ? error.message : String(error));
+      decrypted.phone = null; // fail-safe
+    }
+  }
+
+  // ========================================
   // 6. intake JSONB 복호화
   // ========================================
   if (inquiry.intake && typeof inquiry.intake === "object") {

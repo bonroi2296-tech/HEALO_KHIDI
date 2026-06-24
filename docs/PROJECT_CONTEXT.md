@@ -7,6 +7,48 @@
 
 ---
 
+## 🔖 세션 핸드오프 (2026-06-24 오후 — 코디 '추가 정보 요청' 기능 + 암환자용 폼 전면 교체 + E2E 9건 초록)
+
+> 긴 세션. 흐름: ①E2E 로봇 9개 실패 전부 수리(머지 [#325](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/325)) → ②코디→환자 '추가 정보 요청' 기능 신설 → ③검증 중 발견한 암 인테이크 폼이 옛 정형외과 잔재라 전면 재작성 + 버그 3개 수리. **[#326](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/326) 열림(프리뷰 톤 검토 대기 — 머지 안 함).** ⚠️ **같은 폴더 동시작업 오염 다시 발생**(4번).
+
+**1. 이번 세션 한 일:**
+- **E2E 로봇 9개 실패 → 전부 초록 [#325](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/325) (머지·CI 75통과/0실패)**: E2E가 처음 제대로 돌자 9개 실패. 로컬(`.env.local`+node_modules)에서 전수 디버깅 — 로그인 버튼 셀렉터(i18n→`button[type=submit]`)·`networkidle` 안 settle(애널리틱스)→`domcontentloaded`(24파일)·로그인 대기 30s·web-first assertion·home 로고(`getByRole("img")`)·treatments 상세링크 테스트 현실화·어드민 계정 생성(수작업 auth행 깨져 토큰컬럼 보정).
+- **코디 → 환자 '추가 정보 요청' 기능 [#326](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/326)(열림)**: 환자가 이메일만 남기면 코디가 상세를 못 받던 구멍. 코디 문의상세에 '추가 정보 요청' 카드 → Step2 폼 링크를 **환자 이메일로 발송(6언어)** + 복사링크 + **왓츠앱 보내기**. 신규 `POST /api/coordinator/inquiries/[id]/request-info`(staff, public_token 생성·발송·`info_requested_at` 기록) + 이메일 템플릿 `infoRequest.ts`(6언어) + 폼 제출 뒤 **소프트 계정 유도**(강요 아님). E2E 스모크 1개. 마이그레이션 `add_info_requested_at_to_inquiries`(가역, prod 적용).
+- **암환자용 인테이크 폼 전면 재작성**: 기존 `/inquiry/intake` 폼이 피벗 전 **정형외과/통증클리닉 잔재**(무릎·어깨·발목·심각도1-10)라 암환자에 부적합 → **진단시기·병기(Stage)·현재치료상태·받은치료(복수)·보유서류(복수)·입국희망시기·메모 + 의료서류 첨부**로 교체(6언어 인라인). 코디 화면은 그 코드값을 **한글 라벨**로 표시(병기→"3기"). 옛 데이터 호환.
+- **버그 3개 + 잡것**: ①전화번호가 코디 화면에 **암호문 raw** 노출 → `decryptForAdmin`에 phone 복호화 추가 + 화면 `safe()` 가드 ②'추가정보 요청' 결과가 발송실패를 "이메일 없음"으로 **오표시** → 발송됨/미발송/없음 3구분 ③브라우저 확장(HWP `rhwp`)이 `<html>` 속성 주입 → 하이드레이션 경고 → `suppressHydrationWarning` ④문의 폼 언어 드롭다운을 핵심시장 순(러·카·영·일·중·한)으로 ⑤요청 링크가 환자 언어(`/ru/...`)로 열리게.
+- **에이전시 worktree 분리**: PO가 에이전시 계정을 **다른 세션**에서 작업하려 함 → 충돌 방지로 `bash scripts/new-session.sh agency` → `C:\Users\user\Desktop\HEALO_worktrees\agency`(브랜치 `work/agency`) + node_modules 정션·`.env.local` 복사 완료(바로 작업 가능).
+
+**2. 왜 그렇게 했는지:**
+- **'얇은 현관, 두꺼운 집' 전략(PO와 합의)**: ICT 6대기능 ↔ 저마찰(회원가입·앱 강요 시 이탈) 갈등을 **순서**로 푼다 — 토큰 링크가 신원을 들고 있어 **가입 없이** ICT 구조화 인테이크가 동작(= 정문), 계정·앱은 가치 받은 **뒤** 소프트 유도. KHIDI 평가에도 "마찰0 디지털 환자여정"이 더 강한 ICT 스토리.
+- **암 폼 i18n 인라인**: 중앙 i18n 키 추가는 `check:content` 6언어 패리티 가드를 건드려 번거로움 → 컴포넌트 인라인 6언어 객체(SOFT/LABELS 패턴)로. ru 100% 렌더 확인.
+- **E2E `networkidle`→`domcontentloaded`**: 2026-06-24 추가된 GA/애널리틱스가 네트워크를 계속 두드려 idle에 안 닿음(Playwright도 비권장). 내용 의존 테스트는 web-first assertion으로 재시도.
+
+**3. 안 끝났거나 보류:**
+- **[#326] 프리뷰 톤 검토 대기 → 머지 안 함**: 큰 UI/카피 변경이라 PO가 프리뷰에서 **이메일 6언어 카피·암 폼 문구(특히 러/카)·소프트 계정 문구** 톤 확인 후 머지 결정.
+- **로컬 이메일 발송 = `.env.local`에 RESEND 키 추가해야 됨(gitignore라 로컬 한정)**: dev Resend 키(`re_WKQ…`)+`noreply@healwith.co.kr`(도메인 인증됨) 넣어 로컬서도 실발송 확인. **이 키는 커밋 안 됨**(다음 세션 새 worktree면 다시 넣어야).
+- **`sendEmail.ts` 미설정시 ok:false 변경 + `docs/government-project/…`·`docs/DB_DEAD_TABLES…`·`migrations/20260624_drop_dead_tables.sql`** = **다른 세션 작업이 자동저장에 섞임** → 내 커밋에서 제외(unstage). 그 세션이 따로 커밋·정리할 것. **`drop_dead_tables.sql`은 삭제 마이그레이션이라 함부로 적용 금지(PO 확인).**
+
+**4. 주의·함정:**
+- ⚠️ **같은 폴더 동시작업 오염 재발**: 다른 세션이 이 폴더에서 작업 중 → `sendEmail.ts`·`government-project` 문서가 내 staging에 섞임. 내 것만 골라 커밋함. **교훈(또): 병렬 세션은 worktree로**(이번에 에이전시용은 분리함). 다음 세션도 새 주제면 `scripts/new-session.sh`로.
+- ⚠️ **dev 서버가 포트 3000에 떠 있음**(이 세션이 띄움). 다른 세션은 **3001** 쓰라고 PO에 안내함. 에이전시 worktree도 3001 권장.
+- ⚠️ **Resend dev 키는 샌드박스**: `onboarding@resend.dev` 발신은 PO 지메일로만 감. 임의 주소(환자)로 보내려면 발신을 **`noreply@healwith.co.kr`**(인증 도메인)로. prod는 이미 그렇게 설정됨.
+- ⚠️ **암 폼 새 intake 구조 = `{cancer:{…}, notes}`**. 코디 표시·옛 데이터 호환은 `CoordinatorInboxDetailClient`의 `CI`/`CI_MULTI` 맵에 의존. 값(코드) 바꾸면 양쪽 동기화.
+
+**5. 다음 세션이 먼저 할 일 (우선순위):**
+1. **⚠️ 직전 미검증분 먼저**: [#326] 프리뷰에서 **①암 폼 제출 → 코디 화면에 한글 라벨로 뜨는지(다중주체 클릭은 이번에 못 함, 데이터경로만 검증) ②이메일 6언어·암 폼 카피 톤(특히 러/카)** 확인. OK면 머지. (코디 버튼→메일발송→폼열림→토큰검증은 **실호출로 검증됨**, 폼제출→코디표시 런타임만 미검증.)
+2. **에이전시 계정** — `C:\Users\user\Desktop\HEALO_worktrees\agency`에서 **별도 세션**으로(포트 3001). 충돌 0.
+3. (보류) `drop_dead_tables` 마이그레이션·LAUNCH_CHECKLIST = 다른 세션 것, 건들지 말 것.
+
+**6. 검증 상태:**
+- ✅ **[#326] CI 초록**: `ci`·`Smoke Tests (PR)` pass(force-push 후 재실행분 확인). **[#325] 머지됨**(main Full E2E 75통과/0실패).
+- ✅ `next build --webpack` exit 0 · `check:content` 통과.
+- ✅ 로컬 dev 실호출: 추가정보 요청 API 200·**실메일 발송 도달**(noreply→admin@healwith.co.kr, 러시아어)·전화 복호화(`+82…`)·암 폼 **ru 100% 렌더(원문키 0)**·마이그레이션 prod 적용.
+- ❌ **폼 제출 → 코디 한글표시 런타임 클릭 미검증**(데이터경로·표시로직은 확인, 다중주체 실클릭 못 함) → 5번 1.
+- ❌ **prod 미반영**(#326 머지 전).
+
+**7. 다음 세션 첫 프롬프트:**
+> 먼저 docs/PROJECT_CONTEXT.md 최상단 핸드오프 읽어. 2026-06-24 오후에 코디 '추가 정보 요청' 기능 + 암환자용 인테이크 폼 전면교체를 #326으로 올렸는데 **프리뷰 톤 검토 대기라 아직 머지 안 했어**. ①프리뷰에서 암 폼 제출→코디 화면 한글표시 + 이메일/폼 6언어 카피 톤(러·카) 봐주고 OK면 머지. ②에이전시 계정은 C:\Users\user\Desktop\HEALO_worktrees\agency 에서 **별도 세션**(포트 3001)으로 — 같은 폴더 충돌 방지. ③docs/DB_DEAD_TABLES·drop_dead_tables 마이그레이션은 다른 세션 것이니 건들지 마.
+
 ## 🔖 세션 핸드오프 (2026-06-24 — 재진 엔진 followup_schedules 배선 + 파비콘(얀덱스) + 프로덕션 정리)
 
 > 직전 핸드오프(#318)의 "#311·#313·#315 프로덕션 미반영" 우려를 실배포 이력으로 검증 → **이미 #313 promote 로 user-facing 수정은 라이브였음(핸드오프가 낡았던 것)**. 이어서 재진 엔진 근본수정(휴면 해제)·얀덱스 파비콘을 한 PR로 머지·배포. **[#320](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/320) main 머지 완료(`0c7dd8e`).**
@@ -46,54 +88,6 @@
 
 **7. 다음 세션 첫 프롬프트:**
 > 먼저 docs/PROJECT_CONTEXT.md 최상단 핸드오프 읽어. 2026-06-24에 재진 엔진을 정식 테이블(followup_schedules)로 고쳐 환자 재진화면 휴면을 풀고, 얀덱스가 찾던 /favicon.ico를 추가해 #320으로 main 머지했어(prod 자동 재배포). ①healwith.co.kr/favicon.ico가 200으로 뜨는지 ②어드민 SymptomAlerts에서 '재예약 제안'→그 환자로 로그인→/patient/rebooking에 제안 뜨고 확정/무시 되는지 직접 확인해줘. 그담에 E2E Secrets 4개 넣는 거 PO한테 안내(test 계정 실재 확인됨).
-
-## 🔖 세션 핸드오프 (2026-06-23 늦은밤 — 코디·환자 버그 수정 + 배포최적화 + 검증 자동화)
-
-> 갈무리 세션이 길게 이어져 PO가 실서비스를 직접 클릭하며 버그를 연달아 발견 → 그때마다 원인+재발방지(가드/E2E)까지 한 세트로 수리. **PR 9개 머지**(#274 닫음 포함). ⚠️ **단, 한도 때문에 #311·#313·#315는 아직 프로덕션 미반영**(5번·6번 필독).
-
-**1. 이번 세션 한 일 (머지·배포):**
-- **갈무리**: [#274](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/274) 닫음(대체됨) / **[#298](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/298)** 암종 비용·비자 콘텐츠 머지 / **[#301](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/301)** 갈무리 핸드오프.
-- **[#303](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/303) 배포 폭증 차단**: 자동저장(`chore: 작업 자동 저장`) 커밋은 Vercel 배포 스킵(`scripts/vercel-ignore-build.sh`). 백업(커밋·푸시)은 그대로. **prod 반영됨**.
-- **[#305](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/305) 코디 인박스 404 수리**: 목록이 `/coordinator/inbox/[id]`로 보내는데 상세 라우트가 없어 404 → 상세 페이지 + `GET /api/portal/inbox/[id]`(staff 복호화) 신설. **prod 반영됨**.
-- **[#306](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/306) 404 자동가드**: `check:content`에 "목록→없는 상세 링크" 검사 추가(POSTMORTEMS #31). **prod 반영됨**.
-- **[#309](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/309) 코디 '새 상담 생성'이 환자 문의창으로 가던 것 수리**: `/intake`(→`/inquiry` 리다이렉트) → 실제 상담 생성 모달. admin 인라인 모달을 **공용 `src/components/consultation/CreateConsultationModal.jsx`로 추출**해 admin·coordinator 공유 + 드롭다운 API(`/api/admin/inquiries/picker`·`/api/admin/users/search`)를 `requirePortalAuth(staffOnly)`로 확대. **prod 반영됨**.
-- **[#311](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/311) 상담 모달 3종 개선**: ①역할 5개 링크 → **통합 '참여 링크' 1개**(`role=guest`, DB CHECK 마이그레이션 `migrations/20260623_guest_token_role_add_guest.sql` 적용 + `_roomCopy.js` 6언어 `roleGuest`) ②문의 선택 시 환자 이메일·이름 **자동 채움**(`/api/portal/inbox/[id]` 재사용) ③picker·inbox 목록 **실명 표시**(마스킹 제거, staff 전용). **⚠️ prod 미반영**.
-- **[#313](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/313) 환자 모바일 레이아웃 깨짐 수리**: `ClientShell.isPortalPage`에 `/patient` 누락 → 공개 헤더+하단바+푸터가 환자 자체 하단탭과 **이중**으로 겹침. `/patient` 추가 + `patient/layout` `pt-14 md:pt-16` + 환자는 idle 자동로그아웃 제외(POSTMORTEMS #32). **⚠️ prod 미반영**.
-- **[#315](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/315) 검증 자동화**: E2E `@smoke` 2개(`patient-mobile-chrome`·`consultation-create-modal`) + 정적가드 "직원→환자퍼널(/inquiry·/intake) 링크 금지" + **POSTMORTEMS #33(메타 반성)**. **⚠️ prod 미반영**(테스트·문서라 무관하지만 코드상 미반영).
-
-**2. 왜 그렇게 했는지:**
-- **통합 링크(role=guest)**: PO "관련자 다 여기로 들어오셈 한 링크가 편하다". 화상방은 role 무관 전원 송출(`canPublish=true` 고정)이라 권한 영향 0 — role은 채팅 이름표·대기실 자동승인(의사만)·이메일 언어에만 쓰임. 그래서 통합 링크 안전.
-- **모달 공용 추출**: 두 벌로 복제하면 데이터원 갈림(POSTMORTEM #28 교훈) → 단일 컴포넌트.
-- **실명 표시**: PO "코디·관리자는 담당자라 실명 봐야 식별됨". 공개 화면 노출 없음(staff API만).
-- **E2E가 정답이지만 정적가드부터**: 빌드는 문법만 봐서 404·이중레이아웃·엉뚱한 링크를 못 잡음 → 기계가 클릭하게(E2E) + 소스에서 차단(정적가드).
-
-**3. 안 끝났거나 보류:**
-- **🚧 #311·#313·#315 프로덕션 미반영** — 2026-06-23 Vercel 무료 일일한도(100/일) 소진으로 프로덕션 빌드가 막힘. **현 프로덕션 = #309(`ab220aa`)**. 그래서 PO가 실서비스에서 "안 바뀌었다"고 함(맞음). → 5번 1번.
-- **🚧 E2E 2개 잠자는 상태** — 로그인 필요라 GitHub Secrets 없으면 자동 skip(현재 미설정). 정적가드 2개(404·직원퍼널)는 secrets 없이 **즉시 활성**.
-- **머지된 원격 브랜치 100개+** — 정리 스크립트를 PO에게 파일로 전달(로컬에서 `bash`로 실행). git 프록시가 원격 브랜치 삭제(403)를 막아 이 환경선 못 지움.
-- 직전 보류분(재진 엔진 `rebooking_source` 유령컬럼 / `/patient/messages`·`/calendar` legacy 리스타일)은 그대로.
-
-**4. 주의·함정:**
-- ⚠️ **이 환경엔 `node_modules` 없음 → 로컬 풀빌드·E2E 실행 불가.** CI가 게이트. 검증은 `check:content`(돌아감)+CI+Vercel 프리뷰로.
-- ⚠️ **`git reset --hard`로 추적파일 편집 날린 사고 2회** — 커밋 전 reset 금지. 최신 main 위로는 `git rebase --onto origin/main <BASE>`로(이번에 그렇게 함).
-- ⚠️ **프리뷰를 프로덕션으로 승격**하면 프리뷰 env로 도는 점 유의(이 프로젝트는 env 공유라 대체로 무해).
-- **role=guest 라벨**: 방 화면 `roleLabel`/채팅 폴백/`_roomCopy` 6언어에 `roleGuest`("참여자") 추가됨 — 새 역할 만질 때 6언어 패리티 가드(`check:content`) 주의.
-
-**5. 다음 세션이 먼저 할 일 (우선순위):**
-1. **⚠️ 직전 미검증분 먼저(프로덕션 반영 확인)**: Vercel 한도 풀렸으면 **#311·#313·#315가 프로덕션에 올라갔는지** 확인(`healwith.co.kr` 최신 커밋 = `1a3ca8f` 이상인지). 안 올라갔으면 최신 프리뷰를 **Promote to Production**. 그 뒤 PO에게 실클릭 검증 요청: ①환자 폰/375px → 하단바 1개 ②코디 '새 상담' → 참여 링크 1개·실명·이메일 자동.
-2. **(PO 액션) GitHub Secrets 4개 등록** 안내·확인: `E2E_TEST_USER_EMAIL/PASSWORD`(patient@test.com/test1234)·`E2E_COORDINATOR_EMAIL/PASSWORD`(coordinator@test.com/test1234) → 그래야 E2E 클릭검사 활성.
-3. (선택) 머지된 브랜치 100개 정리(PO가 로컬 스크립트 실행).
-4. (선택) 재진 엔진 근본수정 / `/patient/messages`·`/calendar` legacy 리스타일.
-
-**6. 검증 상태:**
-- ✅ 머지된 9개 PR **전부 CI(빌드·스모크·`check:content`·마이그레이션 멱등성) 통과**(GitHub MCP 확인). 열린 PR 없음.
-- ✅ `check:content`(가드 3종 포함)·`check:migrations` 이 환경서 직접 돌려 통과.
-- ❌ **로컬 풀빌드·E2E 직접 실행 못 함**(node_modules 미설치) — CI가 검증.
-- ❌ **#311·#313 prod 실클릭 미검증** — 프로덕션 미반영이라(한도) PO가 못 봄 → 5번 1번.
-- ⚠️ E2E 2개는 CI에서 **skip**(secrets 미설정) — 아직 실제 클릭 안 함.
-
-**7. 다음 세션 첫 프롬프트:**
-> 먼저 docs/PROJECT_CONTEXT.md 최상단 핸드오프 읽어. 2026-06-23 코디 인박스 404·새상담 모달·환자 모바일 레이아웃·통합 초대링크를 다 고쳐 머지했는데 **#311·#313·#315가 Vercel 일일한도로 프로덕션에 아직 안 올라갔어**(현 prod=#309). ①한도 풀렸으면 프로덕션 반영됐는지 보고(healwith.co.kr 최신커밋 1a3ca8f 이상), 안 됐으면 최신 프리뷰 Promote to Production 안내해. 그담에 PO한테 환자 모바일 하단바 1개·코디 새상담 참여링크1개/실명/이메일자동 실클릭 확인 받자. ②E2E 자동검사 켜려면 GitHub Secrets 4개(patient·coordinator 계정/test1234) 넣어야 한다고 PO한테 알려.
 
 ## 🏷️ 서비스명 변경 — HEALO → **healwith** (2026-06-16 확정·적용)
 

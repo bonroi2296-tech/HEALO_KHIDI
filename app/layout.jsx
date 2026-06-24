@@ -121,7 +121,9 @@ export default async function RootLayout({ children }) {
   // 없으면(내부도구·prefix 미적용 경로) en. → 서버가 그 언어로 렌더(SEO).
   const lang = (await headers()).get("x-locale") || "en";
   return (
-    <html lang={HTML_LANG[lang] || "en"}>
+    // suppressHydrationWarning: 브라우저 확장(예: 한글 HWP 뷰어 rhwp 가 data-hwp-extension 주입)이
+    // hydration 전에 <html> 속성을 건드려도 경고가 안 뜨게. 확장 종류 무관·안전(루트 태그 한정).
+    <html lang={HTML_LANG[lang] || "en"} suppressHydrationWarning>
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, viewport-fit=cover" />
