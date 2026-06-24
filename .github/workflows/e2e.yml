@@ -68,8 +68,12 @@ jobs:
           E2E_ADMIN_PASSWORD: ${{ secrets.E2E_ADMIN_PASSWORD }}
           E2E_COORDINATOR_EMAIL: ${{ secrets.E2E_COORDINATOR_EMAIL }}
           E2E_COORDINATOR_PASSWORD: ${{ secrets.E2E_COORDINATOR_PASSWORD }}
-          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          # Supabase URL·anon 은 공개키(브라우저 노출) → 시크릿 미설정 시 리터럴 폴백(테스트 서버 기동 필수).
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://hvwwlkawaxabhtumjhrg.supabase.co' }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh2d3dsa2F3YXhhYmh0dW1qaHJnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUwNzMwMDksImV4cCI6MjA5MDY0OTAwOX0.zwakXKKLkQqRpaa5F7qehAyMVpvvvJMCtaKsPSsQBsI' }}
+          # 민감키 — 시크릿 필수(테스트 서버 server-side 라우트·PII 복호화용).
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          ENCRYPTION_KEY_V1: ${{ secrets.ENCRYPTION_KEY_V1 }}
 
       - name: 실패 아티팩트 저장
         if: failure()
@@ -144,8 +148,14 @@ jobs:
           E2E_TEST_USER_PASSWORD: ${{ secrets.E2E_TEST_USER_PASSWORD }}
           E2E_ADMIN_EMAIL: ${{ secrets.E2E_ADMIN_EMAIL }}
           E2E_ADMIN_PASSWORD: ${{ secrets.E2E_ADMIN_PASSWORD }}
-          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          E2E_COORDINATOR_EMAIL: ${{ secrets.E2E_COORDINATOR_EMAIL }}
+          E2E_COORDINATOR_PASSWORD: ${{ secrets.E2E_COORDINATOR_PASSWORD }}
+          # Supabase URL·anon 은 공개키 → 시크릿 미설정 시 리터럴 폴백(테스트 서버 기동 필수).
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://hvwwlkawaxabhtumjhrg.supabase.co' }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh2d3dsa2F3YXhhYmh0dW1qaHJnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUwNzMwMDksImV4cCI6MjA5MDY0OTAwOX0.zwakXKKLkQqRpaa5F7qehAyMVpvvvJMCtaKsPSsQBsI' }}
+          # 민감키 — 시크릿 필수(server-side 라우트·PII 복호화).
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          ENCRYPTION_KEY_V1: ${{ secrets.ENCRYPTION_KEY_V1 }}
 
       - name: 테스트 리포트 저장
         if: always()
