@@ -31,6 +31,8 @@ jobs:
         run: npm run check:content
       - name: 마이그레이션 멱등성 (재실행 충돌 위험·DROP IF EXISTS 가드 누락 차단)
         run: npm run check:migrations
+      - name: 스키마 참조 (존재하지 않는 테이블 .from() 차단 — 조용한 빈데이터 방지 #35-S2)
+        run: npm run check:schema-refs
       - run: npm run check:i18n
       - name: 법률 문서 6개 언어 정합성 (약관·개인정보방침 구조/번역 누락 차단)
         run: npm run check:legal
