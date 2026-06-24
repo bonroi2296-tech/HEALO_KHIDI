@@ -101,11 +101,13 @@ export async function GET(
       return Response.json({ ok: false, error: "unauthorized" }, { status: 403 });
     }
 
-    const { data: norm } = await supabase
-      .from("normalized_inquiries")
-      .select("source_inquiry_id, objective, treatment_slug, country, language, source_type")
-      .eq("id", lead.normalized_inquiry_id)
-      .maybeSingle();
+    const { data: norm } = lead.normalized_inquiry_id
+      ? await supabase
+          .from("normalized_inquiries")
+          .select("source_inquiry_id, objective, treatment_slug, country, language, source_type")
+          .eq("id", lead.normalized_inquiry_id)
+          .maybeSingle()
+      : { data: null };
 
     let detail: any = {
       patient: "익명 환자",
