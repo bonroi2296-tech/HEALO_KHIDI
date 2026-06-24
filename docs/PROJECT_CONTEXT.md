@@ -7,6 +7,45 @@
 
 ---
 
+## 🔖 세션 핸드오프 (2026-06-24 저녁 — 회원가입/인증 전면 점검: Zoho SMTP·비번찾기·token_hash·다국어 인증메일)
+
+> 회원가입 절차 QA로 시작 → **공개가입이 사실상 막혀 있던 것 발견**(이메일 인증 ON인데 커스텀 SMTP 미설정 → 인증메일 미발송, 가입 성공자 0명) → Zoho SMTP 연결로 해결 + self-service 비번찾기 신설 + 회사메일 스캐너·자동로그인 문제까지 token_hash 방식으로 해결 + 인증/재설정 메일을 신뢰감 디자인·6개국어로. 작업본 브랜치 `worktree-auth-signup-test`, **PR [#341](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/341) 열림(머지 안 함 — auth라 PO 확인 후).**
+
+**1. 이번 세션 한 일:**
+- **(코드 PR #341, 빌드 통과)** self-service 비번찾기(`/reset-password` + 로그인 '비번찾기' 버튼→`resetPasswordForEmail`) / **token_hash `/auth/confirm` 클라이언트 페이지**(스캐너 안전+자동로그인) / 가입 후 "메일 확인하세요" 안내화면(입력 이메일 표시) / 비번 placeholder "6자→8자" 버그수정(6개국어) / 가입 시 사용자 언어 `user_metadata.lang` 저장 / 새 화면 아이콘 DESIGN.md 준수(w-12 rounded-xl).
+- **(Supabase 대시보드, PO가 직접 — prod 즉시 적용)** Zoho 커스텀 SMTP(smtp.zoho.com:465, admin@healwith.co.kr, 앱비번) / 비번정책 특수문자 제거·최소 8자 / **Site URL → https://healwith.co.kr** (옛 vercel.app 교정) / 인증·재설정 **이메일 템플릿을 신뢰 디자인+6개국어**로 교체.
+- **(검증)** 실가입으로 가입→인증메일 도착→링크 클릭→인증완료→로그인 확인. **다국어 메일 실발송 검증**(한국어로 깔끔히 옴 = Supabase가 `{{ if }}` 조건문 실제 처리함). 중복가입 차단·틀린비번 거부 확인. 테스트 계정 전부 삭제 정리.
+
+**2. 왜 그렇게 했는지:**
+- 공개가입 0명 근본원인 = 이메일 인증 필수인데 SMTP 없어 인증메일 미발송(내장메일 rate limit 429). PO가 버튼으로 ①Zoho SMTP ②특수문자 제거 ③self-service 비번찾기 선택.
+- **회사메일(네이버웍스 등) 보안 스캐너가 인증링크를 미리 자동클릭** → 일회용 토큰 소진(DB상 발송 21초 후 인증=봇) → 사용자 클릭 시 `otp_expired`. **token_hash를 클라이언트 JS로만 검증하는 페이지**면 봇(JS 미실행)이 안 건드림 + 쿠키세션으로 자동로그인까지. (PO '제대로 고치기' 선택)
+- 로고는 Gmail이 SVG 차단 → 워드마크 색분리(heal `#0d9488`·with `#334155`)를 텍스트로 재현.
+
+**3. 안 끝났거나 보류:**
+- **PR #341 머지 안 함** — auth 영역이라 PO 확인 후 머지·배포.
+- **배포 후 필수**: 두 이메일 템플릿 href를 token_hash URL로 교체해야 스캐너안전+자동로그인 완성(지금은 `{{ .ConfirmationURL }}`=현재흐름, 안전하지만 자동로그인 안 됨). Confirm signup → `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=email&next=/` · Reset Password → `{{ .SiteURL }}/reset-password?token_hash={{ .TokenHash }}&type=recovery`.
+- 사용자 언어 메일은 `lang` 저장 배포 후 가입자부터 적용(그 전 영어 fallback).
+
+**4. 주의·함정:**
+- ⚠️ Supabase Auth **'Require current password when updating' 토글 ON** — 비번찾기(복구) 흐름을 막는지 **미검증**. end-to-end 테스트 때 확인, 막히면 OFF.
+- ⚠️ Supabase 이메일 템플릿 **Preview 탭은 `{{ if }}`를 계산 안 해 raw `{{}}`로 보임** — 정상(실발송은 처리됨, 검증함). PO가 이거 보고 놀랐던 지점.
+- ⚠️ **로컬 dev 프리뷰는 메인 폴더에서 돌아 worktree 변경이 안 보임** — 빌드로만 검증함. 런타임 화면은 배포 후 확인 필요.
+
+**5. 다음 세션이 먼저 할 일:**
+1. **⚠️ 직전 미검증분 먼저**: PR #341 머지·배포 후 → ①두 이메일 템플릿 href를 token_hash URL로 교체 ②**실제 가입+비번찾기 end-to-end 클릭 검증**(메일→링크→자동로그인 / 비번재설정 동작) ③'Require current password' 토글이 reset 막는지 확인.
+2. (배포 전이면) PO가 프리뷰/PR 검토 후 머지 결정.
+
+**6. 검증 상태:**
+- 빌드 `npx next build --webpack` 통과(여러 번). check:content 미실행(다음 머지 전 CI가 돌림).
+- **실DB·실발송 검증됨**: 가입→인증메일→로그인, 다국어 메일 렌더, 중복차단, 비번정책 특수문자 제거.
+- **미검증(솔직히)**: self-service 비번찾기 end-to-end는 배포+href교체 후에만 가능(코드는 빌드만). token_hash `/auth/confirm` 런타임 미검증. 로컬 화면 못 봄(메인폴더에서 돎). 'Require current password' 토글 영향 미확인.
+- PR/CI: **PR #341 열림. CI 통과 여부 미확인**(GitHub MCP 미사용).
+
+**7. 다음 세션 첫 프롬프트:**
+> 먼저 docs/PROJECT_CONTEXT.md 최상단 핸드오프 읽어. 회원가입/인증 작업(브랜치 worktree-auth-signup-test, PR #341) 이어가자. 머지·배포했으면 Supabase 이메일 템플릿 2개(Confirm signup·Reset Password)의 href를 token_hash URL로 바꾸고, 실제 가입+비번찾기를 끝까지 클릭 검증해줘(자동로그인·비번재설정 되는지, 'Require current password' 토글이 막는지도). 아직 머지 안 했으면 PR #341부터 검토.
+
+---
+
 ## 🔖 세션 핸드오프 (2026-06-24 오후 — 코디 '추가 정보 요청' 기능 + 암환자용 폼 전면 교체 + E2E 9건 초록)
 
 > 긴 세션. 흐름: ①E2E 로봇 9개 실패 전부 수리(머지 [#325](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/325)) → ②코디→환자 '추가 정보 요청' 기능 신설 → ③검증 중 발견한 암 인테이크 폼이 옛 정형외과 잔재라 전면 재작성 + 버그 3개 수리. **[#326](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/326) 열림(프리뷰 톤 검토 대기 — 머지 안 함).** ⚠️ **같은 폴더 동시작업 오염 다시 발생**(4번).
@@ -48,46 +87,6 @@
 
 **7. 다음 세션 첫 프롬프트:**
 > 먼저 docs/PROJECT_CONTEXT.md 최상단 핸드오프 읽어. 2026-06-24 오후에 코디 '추가 정보 요청' 기능 + 암환자용 인테이크 폼 전면교체를 #326으로 올렸는데 **프리뷰 톤 검토 대기라 아직 머지 안 했어**. ①프리뷰에서 암 폼 제출→코디 화면 한글표시 + 이메일/폼 6언어 카피 톤(러·카) 봐주고 OK면 머지. ②에이전시 계정은 C:\Users\user\Desktop\HEALO_worktrees\agency 에서 **별도 세션**(포트 3001)으로 — 같은 폴더 충돌 방지. ③docs/DB_DEAD_TABLES·drop_dead_tables 마이그레이션은 다른 세션 것이니 건들지 마.
-
-## 🔖 세션 핸드오프 (2026-06-24 — 재진 엔진 followup_schedules 배선 + 파비콘(얀덱스) + 프로덕션 정리)
-
-> 직전 핸드오프(#318)의 "#311·#313·#315 프로덕션 미반영" 우려를 실배포 이력으로 검증 → **이미 #313 promote 로 user-facing 수정은 라이브였음(핸드오프가 낡았던 것)**. 이어서 재진 엔진 근본수정(휴면 해제)·얀덱스 파비콘을 한 PR로 머지·배포. **[#320](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/320) main 머지 완료(`0c7dd8e`).**
-
-**1. 이번 세션 한 일 ([#320](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/320), CI 초록·squash 머지):**
-- **재진 엔진 근본수정 — 환자 재진화면 휴면 해제**: 재예약 엔진(`/api/khidi/rebooking/create`)이 `consultation_sessions`(실제 화상세션)에 써서, 환자 "재예약 관리" 화면이 읽는 `followup_schedules`는 **항상 0행**이라 화면이 영구히 비어 있었음(POSTMORTEMS #29 후속). → 엔진이 **`followup_schedules`에 `status='proposed'`로 "제안"을 쓰게** 고침. `inquiryId`만 오는 경로(SymptomAlerts)는 inquiry에서 `cancer_type`(NOT NULL 충족)·`user_id`(→`patient_user_id`, 환자 노출키 #297)를 끌어와 연결. source·reason은 `schedule`(Json)에 보존.
-- **실DB 추가 단절 발견·수정**: `followup_schedules_status_check`가 `active/paused/completed/cancelled`만 허용해 화면·포털API의 제안 어휘(`pending/proposed/confirmed/dismissed`)를 **막고 있었음** → CHECK를 합집합으로 넓힘(가역 마이그레이션 `widen_followup_schedules_status_check`, **prod 적용 + 실insert 검증**).
-- **환자 화면**(`RebookingClient.jsx`): 뱃지가 트리거 종류(증상/팔로업/의사) 표시(이미 있던 `LABELS`/`SOURCE_COLORS` 활용) + history 상태 라벨 `confirmed`/`dismissed` 추가(6언어). 계약테스트도 새 테이블로 갱신.
-- **파비콘 `/favicon.ico` 추가 (얀덱스)**: PO가 얀덱스 웹마스터 "파비콘 파일을 찾을 수 없습니다" 제보. 원인 = head엔 PNG 파비콘만 있고 크롤러가 루트에서 찾는 클래식 `/favicon.ico`가 부재. → `public/favicon.ico` 신설(새 브랜드 h 마크 16·32 PNG를 ICO 컨테이너로 래핑, `file` 검증 통과) + layout metadata에 명시.
-- **프로덕션 정리(자동)**: #320 main 머지로 프로덕션이 **옛 branch-promote(#313)에서 main 최신본으로 자동 재배포** → "프로덕션 = 본판 최신" 정상화. 배포 일일한도도 풀림(6/24 배포 성공 중).
-
-**2. 왜 그렇게 했는지:**
-- **followup_schedules가 정식 테이블**: 환자 화면·포털API가 이미 거기 붙어 있음(SoR). 재예약은 환자가 확정/무시하는 "제안"이라 추천 큐(followup_schedules)가 맞고, 실제 화상세션(consultation_sessions)은 확정 후 생성될 것. 그래서 엔진을 화면 쪽으로 맞춤(POSTMORTEM #28 교훈: 데이터원 단일화).
-- **CHECK를 합집합으로 넓힘(좁히지 않음)**: 0행이라 무손실·가역. 다른 경로가 active/paused를 쓸 수 있어 기존 어휘도 보존.
-- **파비콘 ICO 직접 생성**: `sharp`는 .ico 출력 미지원 → ICO는 PNG 임베드를 허용하므로 기존 16/32 PNG를 ICO 컨테이너로 래핑(의존성 추가 없이).
-
-**3. 안 끝났거나 보류:**
-- **재진 런타임 클릭 미검증** — 데이터 경로(엔진 insert→환자 API 조회)는 실DB·계약테스트로 확정했으나, "어드민이 SymptomAlerts에서 재예약 제안 → 환자 로그인 → 재진화면에 뜸"의 **다중주체 실클릭은 못 함**(로그인·다계정 필요). prod 반영 후 PO/세션이 확인.
-- **기존 문의 소급 연결 안 됨** — `inquiries.user_id`가 전부 NULL(기존 17건). 환자계정 연결은 **앞으로 로그인 접수분부터**. 그래서 당장 재진 제안의 `patient_user_id`는 신규 접수에서만 채워짐.
-- **E2E 자동 클릭검사 2개 잠자는 중** — 테스트 계정(`patient@test.com`·`coordinator@test.com`)은 **실재 확인**했으나 GitHub Secrets 4개(`E2E_TEST_USER_EMAIL/PASSWORD`·`E2E_COORDINATOR_EMAIL/PASSWORD`) 미설정이라 CI에서 skip. PO가 넣어야 활성(비번이 secret 값과 일치해야 함).
-
-**4. 주의·함정:**
-- ⚠️ **자동저장 훅이 작업 중 2회 끼어듦**(09:41·09:45 "chore: 작업 자동 저장" 커밋 + 원격 푸시). 내 깔끔한 커밋으로 `reset --soft`(hard 아님) 후 재커밋, 피처 브랜치는 `--force-with-lease`로 정리. **커밋 전 `reset --hard` 금지**(기존 교훈) — soft만.
-- ⚠️ **재진 엔진 IDOR 체크는 payload.patientId 기준**: 환자가 inquiryId만 보내 self-trigger하면 forbidden(현재 SymptomAlerts=어드민만이라 무해). 환자 self-rebooking을 켤 거면 그 체크를 inquiry 소유 기반으로 손봐야.
-- ⚠️ **followup_schedules.current_phase 기본값='week_1'** — 엔진은 `null` 명시로 회피(화면 뱃지가 'week_1' 안 뜨게). 직접 insert 시 주의.
-
-**5. 다음 세션이 먼저 할 일 (우선순위):**
-1. **⚠️ 직전 미검증분 먼저(배포 후 실클릭)**: #320 prod 반영되면 **①`https://healwith.co.kr/favicon.ico`가 200으로 뜨는지**(얀덱스 재검토 트리거) **②재진: 어드민 SymptomAlerts에서 '재예약 제안' → 그 환자로 로그인 → `/patient/rebooking`에 제안이 뜨고 확정/무시 되는지**. (데이터·빌드·CI·실DB는 통과, 다중주체 클릭은 못 함.)
-2. **(PO 액션) E2E Secrets 4개 등록** — 넣으면 자동 클릭검사 활성. 비번은 test 계정 실제 비번과 일치해야(모르면 Supabase에서 리셋).
-3. (선택) 환자 self-rebooking 켤 때 IDOR 체크 보완 / 기존 문의 소급 연결(백필).
-
-**6. 검증 상태:**
-- ✅ **[#320](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/320) CI 전부 초록**: `ci`(2m20s)·`Smoke Tests (PR)`(3m20s)·Vercel preview pass → squash 머지(`0c7dd8e`). 열린 PR 없음.
-- ✅ vitest 계약 6 + 엔진 14 통과 · `next build --webpack` exit 0(2회) · `check:content` 통과.
-- ✅ 실DB: `followup_schedules`에 `status='proposed'` insert 성공(테스트행 삭제), CHECK 마이그레이션 prod 적용. 파비콘 `file`=MS Windows icon resource(16+32).
-- ⏳ **prod 배포는 머지 직후 BUILDING** — 이 핸드오프 시점엔 favicon 200·재진 화면 **런타임 미검증**(→ 5번 1).
-
-**7. 다음 세션 첫 프롬프트:**
-> 먼저 docs/PROJECT_CONTEXT.md 최상단 핸드오프 읽어. 2026-06-24에 재진 엔진을 정식 테이블(followup_schedules)로 고쳐 환자 재진화면 휴면을 풀고, 얀덱스가 찾던 /favicon.ico를 추가해 #320으로 main 머지했어(prod 자동 재배포). ①healwith.co.kr/favicon.ico가 200으로 뜨는지 ②어드민 SymptomAlerts에서 '재예약 제안'→그 환자로 로그인→/patient/rebooking에 제안 뜨고 확정/무시 되는지 직접 확인해줘. 그담에 E2E Secrets 4개 넣는 거 PO한테 안내(test 계정 실재 확인됨).
 
 ## 🏷️ 서비스명 변경 — HEALO → **healwith** (2026-06-16 확정·적용)
 
