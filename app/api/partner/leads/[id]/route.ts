@@ -8,11 +8,10 @@ import { decryptInquiryForAdmin } from "@/lib/security/decryptForAdmin";
 
 const VALID_STATUSES = ["sent", "viewed", "replied", "converted", "rejected"];
 
-// 환자 신원은 마스킹 — 병원은 임상 판단만, 연락은 코디가 중개.
-function maskName(first?: string | null, last?: string | null): string {
+// 환자 이름은 노출(PO 결정 2026-06-24 — 병원이 식별 필요). 단 이메일·전화·연락처는 미노출(코디 중개).
+function patientName(first?: string | null, last?: string | null): string {
   const n = `${(first || "").trim()} ${(last || "").trim()}`.trim();
-  if (!n) return "익명 환자";
-  return `${[...n][0] || ""}*** (익명)`;
+  return n || "이름 미상";
 }
 
 // intake JSONB 에서 임상 판단에 필요한 안전 필드만 화이트리스트(신·구 키 둘 다). PII 키 제외.
@@ -135,7 +134,7 @@ export async function GET(
       if (inqRaw) {
         const inq = await decryptInquiryForAdmin(inqRaw).catch(() => inqRaw);
         detail = {
-          patient: maskName(inq.first_name, inq.last_name),
+          patient: patientName(inq.first_name, inq.last_name),
           country: inq.nationality || detail.country,
           language: inq.spoken_language || detail.language,
           cancer_type: inq.cancer_type || null,
