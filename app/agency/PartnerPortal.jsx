@@ -15,6 +15,7 @@ import {
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { useLang } from "@/lib/i18n/LangContext";
 import { caseStatusLabelL } from "@/lib/khidi/caseStatus";
+import ManualDrawer from "../_components/ManualDrawer";
 
 const supabase = createSupabaseBrowserClient();
 
@@ -47,7 +48,7 @@ const TR = {
     kindAgency: "Overseas agency", kindClinic: "Overseas medical institution",
     titleSuffix: "· Patient progress",
     subtitle: "Current stage of the patients you referred. Tap a stage to see its detailed history.",
-    btnRefer: "Refer a patient", btnClose: "Close",
+    btnRefer: "Refer a patient", btnClose: "Close", manualBtn: "User guide",
     errCancerReq: "Please enter the cancer / treatment type.",
     errContactReq: "Either an email or a messenger contact is required.",
     okSubmitted: "Referral received. It will be added to the list below.",
@@ -71,7 +72,7 @@ const TR = {
     kindAgency: "해외 에이전시", kindClinic: "해외 의료기관",
     titleSuffix: "· 환자 진행 현황",
     subtitle: "의뢰하신 환자들의 현재 진행 단계입니다. 단계를 누르면 상세 이력이 보입니다.",
-    btnRefer: "환자 의뢰하기", btnClose: "닫기",
+    btnRefer: "환자 의뢰하기", btnClose: "닫기", manualBtn: "사용설명서",
     errCancerReq: "암종/치료 종류를 입력하세요.",
     errContactReq: "이메일 또는 메신저 연락처 중 하나는 필수입니다.",
     okSubmitted: "의뢰가 접수되었습니다. 목록에 추가됩니다.",
@@ -95,7 +96,7 @@ const TR = {
     kindAgency: "Зарубежное агентство", kindClinic: "Зарубежное медучреждение",
     titleSuffix: "· Ход пациентов",
     subtitle: "Текущий этап пациентов, которых вы направили. Нажмите на этап, чтобы увидеть подробную историю.",
-    btnRefer: "Направить пациента", btnClose: "Закрыть",
+    btnRefer: "Направить пациента", btnClose: "Закрыть", manualBtn: "Руководство",
     errCancerReq: "Укажите тип рака / лечения.",
     errContactReq: "Требуется email или контакт в мессенджере.",
     okSubmitted: "Заявка принята. Она появится в списке ниже.",
@@ -119,7 +120,7 @@ const TR = {
     kindAgency: "Шетелдік агенттік", kindClinic: "Шетелдік медициналық мекеме",
     titleSuffix: "· Науқастардың барысы",
     subtitle: "Сіз жолдаған науқастардың ағымдағы кезеңі. Толық тарихты көру үшін кезеңді басыңыз.",
-    btnRefer: "Науқас жолдау", btnClose: "Жабу",
+    btnRefer: "Науқас жолдау", btnClose: "Жабу", manualBtn: "Нұсқаулық",
     errCancerReq: "Қатерлі ісік / емдеу түрін енгізіңіз.",
     errContactReq: "Email немесе мессенджер байланысының бірі қажет.",
     okSubmitted: "Өтінім қабылданды. Төмендегі тізімге қосылады.",
@@ -143,7 +144,7 @@ const TR = {
     kindAgency: "海外代理机构", kindClinic: "海外医疗机构",
     titleSuffix: "· 患者进度",
     subtitle: "您转介患者的当前阶段。点击阶段可查看详细记录。",
-    btnRefer: "转介患者", btnClose: "关闭",
+    btnRefer: "转介患者", btnClose: "关闭", manualBtn: "使用指南",
     errCancerReq: "请输入癌种 / 治疗类型。",
     errContactReq: "电子邮箱或即时通讯联系方式至少需要一项。",
     okSubmitted: "转介已受理，将添加到下方列表。",
@@ -167,7 +168,7 @@ const TR = {
     kindAgency: "海外エージェンシー", kindClinic: "海外医療機関",
     titleSuffix: "· 患者の進捗",
     subtitle: "紹介された患者の現在の段階です。段階をタップすると詳細履歴が表示されます。",
-    btnRefer: "患者を紹介", btnClose: "閉じる",
+    btnRefer: "患者を紹介", btnClose: "閉じる", manualBtn: "利用ガイド",
     errCancerReq: "がん種 / 治療の種類を入力してください。",
     errContactReq: "メールまたはメッセンジャー連絡先のいずれかが必須です。",
     okSubmitted: "紹介を受け付けました。下のリストに追加されます。",
@@ -593,6 +594,7 @@ export default function PartnerPortal({ expected = "agency" }) {
   ];
 
   return (
+    <>
     <div className="max-w-4xl mx-auto px-4 pt-20 md:pt-24 pb-10">
       <div className="mb-6">
         <span className={`inline-block text-[11px] font-semibold px-2 py-0.5 rounded-full mb-2 ${isClinic ? "bg-indigo-50 text-indigo-700" : "bg-teal-50 text-teal-700"}`}>{partnerKind}</span>
@@ -891,6 +893,8 @@ export default function PartnerPortal({ expected = "agency" }) {
         </>
       )}
     </div>
+    <ManualDrawer role={isClinic ? "clinic" : "agency"} buttonLabel={tt("manualBtn")} />
+    </>
   );
 }
 
