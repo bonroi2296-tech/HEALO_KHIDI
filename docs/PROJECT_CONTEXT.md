@@ -7,6 +7,45 @@
 
 ---
 
+## 🔖 세션 핸드오프 (2026-06-24 밤 — doctor 계층 제거 + 5세션 PR 검수·머지 + 자산폴더 유실 방지 + 구글 OAuth 브랜딩)
+
+> 격리 worktree(`.claude/worktrees/session-work`)에서 진행. 이번 세션은 ①신규 개발 1건 ②다른 5개 병렬세션 PR 검수·머지 ③반복되던 로고/lighthouse 폴더 유실 근본수리 ④구글 로그인 브랜딩(콘솔 설정, PO가 직접) 네 갈래.
+
+**1. 이번 세션 한 일**
+- **doctor(의사) 계정 계층 완전 제거 (8→7계층)** — [#334](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/334) **머지·prod 배포 완료**. `accountTiers.ts`(SoR)·`roles.ts`·`requirePortalAuth`·`resolveLanding`에서 doctor 제거, `/admin/staff`는 코디만 생성, 상담모달 '담당 의사 계정' 칸 제거, 죽은 `/doctor` 라우트 삭제. 의사는 계정 없이 **상담방 게스트 초대링크로만 입장**(기존 흐름 유지). DB: 미사용 doctor 계정 1개(`doctor@test.com`)만 있어 일반회원으로 강등(상담 17건 중 doctor 배정 0건 → 무영향). "doctor"는 상담방 *참가자 역할* 문자열로만 잔존(churn 최소화).
+- **다른 5개 병렬세션 PR 검수·머지** — 부하 에이전트로 병렬 검수 후: [#332](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/332)(모바일 알림 취향)·[#337](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/337)(코디 흐름)·[#340](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/340)(코디 메시지)·[#336](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/336)(에이전시 메신저) **전부 머지·배포 완료**. #336은 충돌(코드: #340이 같은 메시지파일 재작성 + 문서: PROJECT_CONTEXT/PO_PREFERENCES)이라 main을 merge-in해 해소 후 머지.
+- **로고/lighthouse 폴더 반복 유실 근본수리** — [#343](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/343) **(이 세션 PR, 머지 상태는 6번 참조)**. `lighthouse/` → `.gitignore` 등록(재생성 가능 리포트), `logo/` → **git 추적으로 전환**(public/brand 워드마크를 PNG 2400px로 변환 + SVG + 정사각 아이콘). 반성문 [POSTMORTEMS #34].
+- **구글 OAuth 브랜딩** (PO가 콘솔에서 직접) — 프로젝트 `medical-consumables-491407`(OAuth client_id 935081849817…)의 브랜딩에 앱이름 healwith·로고·홈/개인정보(/privacy)/약관(/terms)·승인도메인 healwith.co.kr 입력·저장 완료.
+
+**2. 왜 그렇게 했는지**
+- doctor 제거: PO "의사는 별도 계정 필요 없다, 게스트 링크로 들어오면 됨(줌처럼)". 처음엔 '병원 계정 입장' 배선까지 했다가 PO가 "복잡하게 말고 링크면 다 입장"이라 해서 그 배선은 도로 걷어냄(게스트 토큰이 이미 그 역할).
+- 자산 유실: `logo`·`lighthouse`는 **git 미추적 + .gitignore에도 없는** 무방비 상태라 `git clean -fd` 한 번에 흔적없이 삭제(휴지통·git 어디에도 없음). 가치자산(로고)은 **커밋**, 재생성물(lighthouse)은 **ignore**가 정답.
+- 구글 "supabase.co로 이동" 표기: 무료 브랜딩으로는 **안 바뀜**(로그인 목적지가 supabase.co라 구글이 그 호스트를 표시). 바꾸려면 Supabase 커스텀 도메인(월 $10) 필요 → **PO가 "그냥 supabase.co로 감수"(무료 유지) 결정**. 게시상태도 무료 브랜딩과 별개.
+
+**3. 안 끝났거나 보류**
+- **구글 OAuth 게시 상태 = "테스트"** → 실제 환자 구글가입이 막혀 있음(등록 테스트 사용자만 가능). '대상(Audience)' 페이지에서 프로덕션(게시)으로 바꿔야 열림. PO가 이번엔 안 함(보류).
+- **Supabase 커스텀 도메인(월 $10)** — supabase.co 표기 없애려면 필요하나 PO가 무료 유지 택함(보류).
+- 로고 원본: 사라진 root `logo` 폴더에 워드마크 외 다른 원본(ai/psd)이 있었는지 PO 미확인 — 있었으면 그것만 별도 유실(git에 없음).
+
+**4. 주의·함정**
+- **공유 메인 폴더(`HEALO_KHIDI`)의 폴더는 반드시 git 추적 or .gitignore 둘 중 하나여야 함** — "추적도 ignore도 안 된" 폴더는 청소명령에 증발(POSTMORTEM #34). 새 산출물은 즉시 ignore, 가치자산은 즉시 커밋.
+- 여러 세션이 같은 SoR 문서(PROJECT_CONTEXT·PO_PREFERENCES) 동시 수정 → 머지 충돌. 양쪽 블록 보존으로 풀 것(이번에도 그렇게 함).
+- doctor는 *계정 계층*에서만 빠진 것 — 상담방 *참가자 역할* "doctor" 문자열·`doctor_user_id` 컬럼은 보존(데이터·게스트입장 유지).
+
+**5. 다음 세션이 먼저 할 일**
+1. **⚠️ 직전 미검증분 먼저 확인**: #334(doctor 제거)·#336/#337/#340(코디·에이전시 UI)은 **빌드·로직·보안만 확인, 실제 클릭 검증 못 함**(SSR 로그인 제약). 프리뷰/프로덕션에서 코디·에이전시 계정으로 ①`/admin/staff` 코디만 생성되는지 ②상담 생성 모달에 의사계정칸 없는지 ③에이전시 메신저(드로어·코디 답장 왕복) 동작 확인.
+2. **PR [#343](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/343)** 머지 여부 마무리(로고 영구보존 — 안 머지되면 logo 또 사라질 수 있음).
+3. PO가 원하면: 구글 OAuth **게시 상태**를 프로덕션으로(실제 환자 구글가입 열기).
+
+**6. 검증 상태**
+- #334: tsc(영향범위)·vitest 28건·check:content·`next build --webpack`·CI 전부 통과 → 머지·prod 배포 success 확인. **단 실클릭 검증은 못 함.**
+- #332·#337·#340·#336: 각 PR CI(ci·smoke·Vercel) 초록 확인 후 머지, main 배포 success 확인. **UI 실클릭은 못 함(코드·보안만).**
+- #343: 로컬 check:content·`next build --webpack` 통과 + 로고 PNG 변환 결과 눈으로 확인(정상). **머지 상태는 이 핸드오프 작성 시점 기준 미머지(PR 열림) — 다음 세션이 CI 확인 후 마무리.**
+- 구글 브랜딩: 콘솔 "저장됨" 확인. 단 동의화면에 healwith 이름/로고가 실제로 뜨는지는 구글 전파·검수(로고 며칠)라 미확인. "supabase.co" 표기는 무료론 안 바뀜이 확인됨.
+
+**7. 다음 세션 첫 프롬프트**
+> 먼저 docs/PROJECT_CONTEXT.md 최상단 핸드오프 읽어. 2026-06-24 밤에 doctor 계정계층 제거(#334)·다른 5세션 PR 검수머지(#332/#336/#337/#340)·로고와 lighthouse 폴더 유실 근본수리(#343, 머지됐는지 먼저 확인)·구글 OAuth 브랜딩을 했어. 직전 UI 변경들(#334·#336·#337·#340)은 실제 클릭 검증을 못 했으니, 코디·에이전시 계정으로 로그인해 ①/admin/staff가 코디만 생성 ②상담 모달에 의사계정칸 없음 ③에이전시 인앱 메신저 왕복을 실제로 확인해줘. PR #343 안 머지됐으면 CI 보고 마무리(로고 영구보존). 구글 게시상태(테스트→프로덕션)는 PO가 원할 때.
+
 ## 🔖 세션 핸드오프 (2026-06-24 저녁 — 환자↔코디 상호작용 전반 정리 + 메시지 화면 재작성)
 
 > 긴 세션. 환자↔코디 통로를 검토하며 PO 피드백을 연속 반영. **머지·배포 완료: [#326](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/326)[#329](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/329)[#331](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/331)[#333](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/333)[#337](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/337)[#340](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/340)[#342](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/342).** 핵심 교훈: 같은 파일(메시지 화면)을 다른 세션(#336 에이전시 메신저)과 동시에 만져 머지 충돌 발생 — 병렬 worktree 안 쓴 대가.
@@ -48,38 +87,6 @@
 
 **7. 다음 세션 첫 프롬프트:**
 > 먼저 docs/PROJECT_CONTEXT.md 최상단 핸드오프 읽어. 2026-06-24 저녁에 환자↔코디 상호작용(추가정보요청·상담알림·인앱벨·에이전시첨부·문의 진행단계 인라인·메시지 화면 재작성)을 #326~#342로 다 머지·배포했어. Vercel 배포 한도 때문에 #342(코디 메시지) prod 프리뷰를 못 봤으니, 한도 풀렸으면 **코디 계정으로 로그인해 메시지 화면(환자 파랑/AI 보라 구분·입력창 안 짤림·푸터 없음)** + 문의 상세 진행단계 인라인 + 에이전시 첨부 열람을 실제로 확인해줘. 보험·다중병원배정은 일부러 숨긴 상태(SHOW_INSURANCE/SHOW_HOSPITAL_ASSIGN=false, 시드 병원 비활성)니 건들지 마.
-
-## 🔖 세션 핸드오프 (2026-06-24 늦은오후 — 국내 의료기관(병원) 백오피스 강화 2건)
-
-> 병원 포털(`/hospital`) 테스트 중 PO 피드백 반영. ①콘텐츠 메뉴 비활성 + 대시보드 '경영 현황판'화 [#335] ②리드 상세에 임상 판단 패킷 + 원격협진 가능시간 코디 전달 [#338]. **둘 다 머지·프로덕션 배포됨.** 단 실데이터가 데모 리드 1건뿐 + 로컬 SSR 쿠키 로그인 자동화가 막혀 **시각 런타임 검증은 못 함**(빌드·CI는 초록).
-
-**1. 이번 세션 한 일:**
-- **[#335](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/335) 머지·배포 — 비활성 + 대시보드 경영현황판화**: 「병원 정보」·「시술 카탈로그」 메뉴 비활성(`app/hospital/_components/featureFlags.js`의 `HOSPITAL_CONTENT_ENABLED=false` 한 값 토글, 직접 URL 접근도 대시보드로 redirect, 코드는 보존). 대시보드를 **응답대기·전환율·평균 첫 응답시간·확정 견적합계(예상매출) KPI + '응답 필요' 할 일 큐**로 재편(리드 목록과 차별화). 리드 화면에 **검색·정렬·CSV 내보내기** 추가.
-- **[#338](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/338) 머지·배포 — 리드 임상 상세 + 원격협진 가능시간**: 리드 상세를 원본 의뢰에서 끌어온 **임상 패킷**으로(신설 `GET /api/partner/leads/[id]`) — 환자명·국적·언어·**암종·병기·진단일·현재치료상태·방한시기·보험·환자가 쓴 메시지(복호화)·첨부 의료기록(signed URL)**. 이메일·전화·연락처는 미노출. + **원격협진 가능 시간 슬롯**(datetime-local) 입력 → `hospital_leads.metadata.consult_slots` 저장 + `case_status_history` 타임라인에 "📹 원격협진 가능시간: …(KST)"로 코디에게 전달.
-
-**2. 왜 그렇게 했는지:**
-- **비활성**: 공개 프론트(`/hospitals`·`/treatments`)가 병원 자가입력 콘텐츠를 노출할 준비가 안 됨 → 메뉴만 끄고 코드 보존(나중에 플래그 1값만 `true`).
-- **임상 패킷**: PO 지적 "병원이 시술·국가만 보고 견적·치료가능 여부를 못 판단한다" → 원본 `inquiries`에서 복호화(`decryptInquiryForAdmin`)해 노출. 신원 PII는 가리되 **이름은 PO 결정으로 노출**("병원이 식별 필요").
-- **코디 전달 채널 재사용**: 새 알림을 만들지 않고 코디가 이미 보는 `case_status_history`에 남김(에이전시 '화상상담 요청' #330과 동일 패턴 — 일관성).
-
-**3. 안 끝났거나 보류:**
-- 둘 다 머지·배포 완료라 보류 코드는 없음. **후속 = 데이터가 쌓인 뒤 KPI·임상 패킷이 실제로 채워져 보이는지 확인**(현재 데모 1건).
-
-**4. 주의·함정:**
-- ⚠️ `partner/leads/[id]` GET의 inquiries 조회는 **`(supabase as any)` 캐스팅** — 생성된 DB 타입이 일부 컬럼(`cancer_type`·`preferred_language` 등)에 stale이라 typed 클라이언트가 막음(에이전시 라우트와 동일 우회). 타입 재생성 전까지 유지.
-- ⚠️ **환자 메시지는 자유텍스트** — 환자가 본문에 이름·연락처를 적었으면 병원에 노출될 수 있음(구조적 PII 컬럼은 가림). PO는 이름 노출 OK 결정함.
-- ⚠️ **로컬 SSR 쿠키 로그인 자동화 불가** → 병원/코디 포털 시각검증은 Vercel 프리뷰/프로덕션에서 PO가 직접(자격증명은 정상 확인). [[verify-authgated-portal]]
-
-**5. 다음 세션이 먼저 할 일 (우선순위):**
-1. **⚠️ 직전 미검증분 먼저**: 프로덕션에서 병원 계정(`hospital@test.com`)으로 그 **stomach/KZ 리드**를 열어 — 이름·암종·병기·환자메시지·(있으면)첨부가 뜨는지 + **원격협진 가능시간 입력·저장 → 코디 케이스 타임라인에 KST로 전달**되는지 실클릭 확인.
-2. (선택) **#335 반성문 1줄**: 리드 상세를 처음 얇게 만든 누락을 `docs/POSTMORTEMS.md`에 기록(PO가 "이걸로 판단되겠냐"고 직접 지적했음).
-
-**6. 검증 상태:**
-- ✅ 두 PR 다 `next build --webpack` exit 0 · CI(`ci`·`Smoke Tests`·`Vercel`) 초록 · squash 머지 · 프로덕션 배포.
-- ❌ **시각 런타임 미검증**: 실데이터 데모 1건 + 로컬 로그인 자동화 막힘 → 다중주체(병원↔코디) 실클릭 못 함. 데이터 경로·복호화·타임라인 relay 로직은 코드로 확인. → 5번 1.
-
-**7. 다음 세션 첫 프롬프트:**
-> 먼저 docs/PROJECT_CONTEXT.md 최상단 핸드오프 읽어. 2026-06-24 늦은오후에 병원 백오피스 2건(#335 콘텐츠메뉴 비활성+대시보드 경영현황판, #338 리드 임상상세+원격협진 가능시간)을 머지·배포했는데 실데이터가 데모 1건뿐이라 시각검증을 못 했어. 프로덕션에서 hospital@test.com 로 stomach/KZ 리드 열어서 ①이름·암종·병기·환자메시지·첨부 뜨는지 ②원격협진 가능시간 입력·저장 → 코디 케이스 타임라인에 KST로 전달되는지 확인해줘.
 
 ## 🏷️ 서비스명 변경 — HEALO → **healwith** (2026-06-16 확정·적용)
 
