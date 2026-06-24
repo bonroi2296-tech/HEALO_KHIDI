@@ -60,6 +60,7 @@ export default function CoordinatorMessagesClient() {
   const [statusFilter, setStatusFilter] = useState("open");
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
+  const [msgLoading, setMsgLoading] = useState(false);
   const msgEndRef = useRef(null);
   const prevCountRef = useRef(0);
 
@@ -105,8 +106,10 @@ export default function CoordinatorMessagesClient() {
     if (!selectedId) { setMessages([]); return; }
     let cancelled = false;
     prevCountRef.current = 0; // 스레드 전환 시 첫 로드는 맨아래로 스크롤되게 리셋
+    setMessages([]);
+    setMsgLoading(true); // 클릭 즉시 로딩 표시(빈 화면으로 멈춘 듯 보이던 문제)
 
-    async function loadMessages() {
+    async function loadMessages(isFirst) {
       const token = await getAccessToken();
       if (!token || cancelled) return;
       try {
@@ -116,10 +119,11 @@ export default function CoordinatorMessagesClient() {
         const result = await res.json();
         if (!cancelled && result.ok) setMessages(result.messages || []);
       } catch { /* 폴링 실패는 무시 */ }
+      finally { if (isFirst && !cancelled) setMsgLoading(false); }
     }
 
-    loadMessages();
-    const timer = setInterval(loadMessages, 5000);
+    loadMessages(true);
+    const timer = setInterval(() => loadMessages(false), 5000);
     return () => { cancelled = true; clearInterval(timer); };
   }, [selectedId]);
 
@@ -173,7 +177,7 @@ export default function CoordinatorMessagesClient() {
   const selectedThread = threads.find((t) => t.id === selectedId);
 
   return (
-    <div className="grid h-[calc(100vh-60px)] grid-cols-[320px_1fr] bg-gray-50 text-gray-900">
+    <div className="grid h-[calc(100vh-3rem)] grid-cols-[300px_1fr] bg-gray-50 text-gray-900">
       {/* 좌측 — 스레드 목록 */}
       <aside className="flex flex-col overflow-hidden border-r border-gray-200 bg-white">
         <div className="border-b border-gray-200 px-4 py-3">
@@ -281,10 +285,20 @@ export default function CoordinatorMessagesClient() {
 
             {/* 메시지 */}
             <div className="flex-1 overflow-y-auto bg-gray-50 px-6 py-5">
-              {messages.map((m) => (
-                <Message key={m.id} m={m} meId={me?.id} />
-              ))}
-              <div ref={msgEndRef} />
+              {msgLoading ? (
+                <div className="flex h-full items-center justify-center">
+                  <div className="h-6 w-6 animate-spin rounded-full border-2 border-teal-600 border-t-transparent" />
+                </div>
+              ) : messages.length === 0 ? (
+                <div className="flex h-full items-center justify-center text-sm text-gray-400">아직 메시지가 없습니다.</div>
+              ) : (
+                <>
+                  {messages.map((m) => (
+                    <Message key={m.id} m={m} meId={me?.id} />
+                  ))}
+                  <div ref={msgEndRef} />
+                </>
+              )}
             </div>
 
             {/* 입력 */}

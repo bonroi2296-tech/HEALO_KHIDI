@@ -117,12 +117,18 @@ export default function CoordinatorLayout({ children }) {
         {navContent}
       </aside>
 
-      {/* Content */}
-      <main className="flex-1 overflow-auto pt-14 lg:pt-0">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 lg:py-6">
+      {/* Content — 메시지 화면은 풀블리드(2단 채팅이 화면을 꽉 채우게). 나머지는 가운데 정렬+여백. */}
+      {pathname === '/coordinator/messages' ? (
+        <main className="flex-1 overflow-hidden pt-12 lg:pt-0">
           {children}
-        </div>
-      </main>
+        </main>
+      ) : (
+        <main className="flex-1 overflow-auto pt-14 lg:pt-0">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 lg:py-6">
+            {children}
+          </div>
+        </main>
+      )}
     </div>
     </StaffPortalGate>
   );
