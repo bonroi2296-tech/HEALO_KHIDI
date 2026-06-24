@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
     const { data, error } = await supabaseAdmin
       .from("inquiries")
       .select(
-        "id, nationality, cancer_type, preferred_language, contact_method, match_accuracy, status, step1_completed_at, step2_completed_at, created_at, first_name, last_name"
+        "id, nationality, cancer_type, preferred_language, contact_method, match_accuracy, status, step1_completed_at, step2_completed_at, created_at, first_name, last_name, agency_id, agencies(name)"
       )
       .order("created_at", { ascending: false })
       .limit(200);
@@ -55,6 +55,9 @@ export async function GET(request: NextRequest) {
       step1_completed_at: i.step1_completed_at,
       step2_completed_at: i.step2_completed_at,
       created_at: i.created_at,
+      // 접수 주체 구분: agency_id 있으면 에이전시 의뢰, 없으면 환자 직접 접수.
+      agency_id: i.agency_id || null,
+      agency_name: i.agencies?.name || null,
     }));
 
     return Response.json({ ok: true, items });

@@ -39,6 +39,10 @@ const DETAIL_FIELDS = [
   "step2_completed_at",
   "info_requested_at",
   "intake",
+  "attachments",
+  // 접수 주체 구분(에이전시 vs 환자) + 에이전시명 표시
+  "agency_id",
+  "agencies(name)",
 ].join(",");
 
 export async function GET(
@@ -79,6 +83,9 @@ export async function GET(
     } catch (e: any) {
       console.error("[portal/inbox/:id] decrypt error:", e?.message);
     }
+
+    // 에이전시명 평탄화(관계조인 → 단일 필드)
+    inquiry.agency_name = (data as any)?.agencies?.name || null;
 
     return Response.json({ ok: true, inquiry });
   } catch (e: any) {

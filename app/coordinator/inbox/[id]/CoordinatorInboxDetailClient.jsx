@@ -119,6 +119,29 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
     } catch { /* clipboard 미지원 시 무시 */ }
   }
 
+  // 첨부 열람: storage 경로 → 서명URL(5분) 발급 후 새 탭. staff 권한으로 /api/attachments/sign.
+  const [attLoadingPath, setAttLoadingPath] = useState(null);
+  async function viewAttachment(path) {
+    if (!path) return;
+    setAttLoadingPath(path);
+    try {
+      const supabase = createSupabaseBrowserClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      const cleanPath = path.startsWith("/") ? path.slice(1) : path;
+      const res = await fetch("/api/attachments/sign", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({ path: cleanPath }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.signedUrl) window.open(data.signedUrl, "_blank", "noopener");
+    } catch (e) {
+      console.error("[attachment] sign error:", e);
+    }
+    setAttLoadingPath(null);
+  }
+
   useEffect(() => {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -231,7 +254,19 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
             <User size={20} className="text-teal-700" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-gray-900">{fullName}</h1>
+            <div className="flex items-center gap-2 flex-wrap">
+              <h1 className="text-xl font-bold text-gray-900">{fullName}</h1>
+              {/* 접수 주체 배지: 에이전시 의뢰 vs 환자 직접 — 코디가 한눈에 구분 */}
+              {inquiry.agency_id ? (
+                <span className="px-2 py-0.5 text-xs font-semibold rounded-full bg-violet-100 text-violet-700">
+                  🏢 에이전시 의뢰{inquiry.agency_name ? ` · ${inquiry.agency_name}` : ""}
+                </span>
+              ) : (
+                <span className="px-2 py-0.5 text-xs font-semibold rounded-full bg-sky-100 text-sky-700">
+                  🙋 환자 직접
+                </span>
+              )}
+            </div>
             <p className="text-xs text-gray-400 mt-0.5">문의 #{inquiry.id} · 접수 {fmtDate(inquiry.created_at)}</p>
           </div>
         </div>
@@ -338,9 +373,41 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
         );
       })()}
 
+      {/* 첨부 서류 — 에이전시/환자가 올린 의료서류(병리·영상·진료기록). staff 서명URL로 열람. */}
+      {Array.isArray(inquiry.attachments) && inquiry.attachments.length > 0 && (
+        <Card title={`첨부 서류 (${inquiry.attachments.length})`}>
+          <div className="space-y-2">
+            {inquiry.attachments.map((a, i) => {
+              const path = typeof a === "string" ? a : a?.path;
+              const name = (typeof a === "object" && a?.name) || (path ? path.split("/").pop() : `첨부 ${i + 1}`);
+              const cat = typeof a === "object" ? a?.category : null;
+              return (
+                <button
+                  key={path || i}
+                  onClick={() => viewAttachment(path)}
+                  disabled={!path || attLoadingPath === path}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg border border-gray-200 hover:border-teal-300 hover:bg-teal-50 transition text-left disabled:opacity-50"
+                >
+                  <FileText size={18} className="text-teal-600 shrink-0" />
+                  <span className="flex-1 text-sm text-gray-800 truncate">{name}</span>
+                  {cat && cat !== "other" && (
+                    <span className="text-[11px] text-gray-400 shrink-0">{cat}</span>
+                  )}
+                  {attLoadingPath === path ? (
+                    <span className="w-4 h-4 border-2 border-teal-500 border-t-transparent rounded-full animate-spin shrink-0" />
+                  ) : (
+                    <ExternalLink size={14} className="text-gray-400 shrink-0" />
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </Card>
+      )}
+
       {/* 접수/타임라인 */}
       <Card title="진행 상태">
-        <Row icon={FileText} label="접수 경로" value={inquiry.source} />
+        <Row icon={FileText} label="접수 경로" value={inquiry.agency_id ? `에이전시 의뢰${inquiry.agency_name ? ` (${inquiry.agency_name})` : ""}` : (inquiry.source || "환자 직접 접수")} />
         <Row icon={Calendar} label="접수일" value={fmtDate(inquiry.created_at)} />
         <Row icon={Calendar} label="Step 1 완료" value={fmtDate(inquiry.step1_completed_at)} />
         <Row icon={Calendar} label="Step 2 완료" value={fmtDate(inquiry.step2_completed_at)} />
