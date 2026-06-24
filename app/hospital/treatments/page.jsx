@@ -1,7 +1,15 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
+import { redirect } from "next/navigation";
 import { Stethoscope, Plus, Save, X, Eye, EyeOff, ArrowLeft, Pencil, Clock, AlertTriangle, UploadCloud, Loader2, ImageIcon, Shield, Activity, Info, Trash2, Image, DollarSign } from "lucide-react";
+import { HOSPITAL_CONTENT_ENABLED } from "../_components/featureFlags";
+
+export default function HospitalTreatmentsPage() {
+  // 공개 프론트 미연동 → 비활성. 메뉴에서 숨겼지만 직접 URL 접근도 차단.
+  if (!HOSPITAL_CONTENT_ENABLED) redirect("/hospital");
+  return <TreatmentsManager />;
+}
 
 function fetchWithAuth(url, options = {}) {
   return import("@/lib/supabase/browser").then(({ createSupabaseBrowserClient }) => {
@@ -66,7 +74,7 @@ const emptyForm = {
   price_includes: [],
 };
 
-export default function HospitalTreatmentsPage() {
+function TreatmentsManager() {
   const [treatments, setTreatments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(null); // null = list, "new" = create, id = edit

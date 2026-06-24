@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { MessageSquare, Eye, Reply, CheckCircle, XCircle, Clock, Filter, X, ChevronDown, ChevronUp, Send } from "lucide-react";
+import { MessageSquare, Eye, Reply, CheckCircle, XCircle, Clock, Filter, X, ChevronDown, ChevronUp, Send, Search, Download } from "lucide-react";
 
 const STATUS_CONFIG = {
   queued: { label: "대기", color: "bg-gray-100 text-gray-700", icon: Clock },
@@ -41,6 +41,8 @@ export default function HospitalLeadsPage() {
   const [statusFilter, setStatusFilter] = useState("");
   const [selectedLead, setSelectedLead] = useState(null);
   const [showDetail, setShowDetail] = useState(false);
+  const [search, setSearch] = useState("");
+  const [sort, setSort] = useState("recent"); // recent | oldest
 
   const loadLeads = useCallback(async () => {
     setLoading(true);
@@ -88,9 +90,46 @@ export default function HospitalLeadsPage() {
     }
   };
 
+  // 검색·정렬은 이미 받아온 목록에서 클라이언트로 처리 (limit 50)
+  const q = search.trim().toLowerCase();
+  const view = leads
+    .filter((lead) => {
+      if (!q) return true;
+      const i = lead.normalized_inquiries || {};
+      return [i.objective, i.treatment_slug, i.country, i.language, lead.notes]
+        .some((v) => v && String(v).toLowerCase().includes(q));
+    })
+    .sort((a, b) => {
+      const da = new Date(a.assigned_at).getTime();
+      const db = new Date(b.assigned_at).getTime();
+      return sort === "oldest" ? da - db : db - da;
+    });
+
+  const exportCsv = () => {
+    const header = ["배정일", "상태", "목적", "시술", "국가", "언어", "견적최소", "견적최대", "메모"];
+    const esc = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+    const rows = view.map((lead) => {
+      const i = lead.normalized_inquiries || {};
+      return [
+        new Date(lead.assigned_at).toLocaleString("ko-KR"),
+        STATUS_CONFIG[lead.status]?.label || lead.status,
+        i.objective, i.treatment_slug, i.country, i.language,
+        lead.quoted_price_min, lead.quoted_price_max, lead.notes,
+      ].map(esc).join(",");
+    });
+    // BOM 추가 → 엑셀에서 한글 안 깨짐
+    const csv = "﻿" + [header.map(esc).join(","), ...rows].join("\r\n");
+    const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8;" }));
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `리드_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div>
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 lg:mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
         <div>
           <h1 className="text-lg lg:text-2xl font-bold text-gray-900">리드 관리</h1>
           <p className="text-xs lg:text-sm text-gray-500 mt-0.5">배정된 문의를 확인하고 응답하세요</p>
@@ -104,7 +143,7 @@ export default function HospitalLeadsPage() {
                 onClick={() => setStatusFilter(f.value)}
                 className={`px-2.5 py-1 rounded-full text-xs font-medium transition-all ${
                   statusFilter === f.value
-                    ? "bg-blue-600 text-white shadow-sm"
+                    ? "bg-teal-600 text-white shadow-sm"
                     : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                 }`}
               >
@@ -115,24 +154,59 @@ export default function HospitalLeadsPage() {
         </div>
       </div>
 
+      {/* 검색·정렬·내보내기 */}
+      <div className="flex flex-col sm:flex-row gap-2 mb-4 lg:mb-6">
+        <div className="relative flex-1">
+          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <input
+            type="search"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="목적·시술·국가·메모 검색"
+            className="w-full border border-gray-200 rounded-lg pl-9 pr-3 py-2 text-sm outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
+          />
+        </div>
+        <select
+          value={sort}
+          onChange={(e) => setSort(e.target.value)}
+          className="border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-teal-500 bg-white"
+        >
+          <option value="recent">최신순</option>
+          <option value="oldest">오래된순</option>
+        </select>
+        <button
+          onClick={exportCsv}
+          disabled={view.length === 0}
+          className="flex items-center justify-center gap-1.5 border border-gray-200 rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition disabled:opacity-40"
+        >
+          <Download size={15} /> CSV
+        </button>
+      </div>
+
       {loading ? (
         <div className="flex items-center justify-center py-20">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
         </div>
-      ) : leads.length === 0 ? (
+      ) : view.length === 0 ? (
         <div className="text-center py-20 text-gray-400">
           <MessageSquare size={48} className="mx-auto mb-3 opacity-50" />
           <p className="text-sm">
-            {statusFilter ? "해당 상태의 리드가 없습니다" : "배정된 리드가 없습니다"}
+            {search ? `"${search}" 검색 결과가 없습니다` : statusFilter ? "해당 상태의 리드가 없습니다" : "배정된 리드가 없습니다"}
           </p>
+          {search && (
+            <button onClick={() => setSearch("")} className="mt-3 text-teal-700 text-sm font-medium hover:underline">
+              검색 지우기
+            </button>
+          )}
         </div>
       ) : (
         <>
-          <p className="text-xs text-gray-400 mb-3">
-            총 {total}건 {statusFilter && `(${STATUS_FILTERS.find((f) => f.value === statusFilter)?.label})`}
+          <p className="text-xs text-gray-400 mb-3 tabular-nums">
+            {view.length}건 {statusFilter && `· ${STATUS_FILTERS.find((f) => f.value === statusFilter)?.label}`} {search && `· "${search}"`}
+            {!statusFilter && !search && total > view.length && ` (총 ${total}건)`}
           </p>
           <div className="space-y-3">
-            {leads.map((lead) => (
+            {view.map((lead) => (
               <LeadCard key={lead.id} lead={lead} onClick={() => handleOpenDetail(lead)} />
             ))}
           </div>

@@ -1,7 +1,15 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
+import { redirect } from "next/navigation";
 import { Building2, Save, Plus, X, ImageIcon, Globe, Clock, User, Stethoscope, Activity, Shield, UploadCloud, Loader2, Trophy, HelpCircle } from "lucide-react";
+import { HOSPITAL_CONTENT_ENABLED } from "../_components/featureFlags";
+
+export default function HospitalProfilePage() {
+  // 공개 프론트 미연동 → 비활성. 메뉴에서 숨겼지만 직접 URL 접근도 차단.
+  if (!HOSPITAL_CONTENT_ENABLED) redirect("/hospital");
+  return <ProfileEditor />;
+}
 
 function fetchWithAuth(url, options = {}) {
   return import("@/lib/supabase/browser").then(({ createSupabaseBrowserClient }) => {
@@ -37,7 +45,7 @@ function TagListEditor({ items, onAdd, onRemove, placeholder, colorClass = "bg-b
   );
 }
 
-export default function HospitalProfilePage() {
+function ProfileEditor() {
   const [hospital, setHospital] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
