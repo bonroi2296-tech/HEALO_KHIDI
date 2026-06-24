@@ -961,6 +961,7 @@ function CaseActions({ c, tt, onDone }) {
   const [busy, setBusy] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [msg, setMsg] = useState(null);
+  const [chatOpen, setChatOpen] = useState(false);
 
   const getToken = async () => (await supabase.auth.getSession()).data?.session?.access_token;
 
@@ -1069,14 +1070,21 @@ function CaseActions({ c, tt, onDone }) {
         </div>
       )}
 
-      {/* 액션 버튼: 화상상담 요청 / 자료 추가 */}
-      <div className="flex flex-wrap gap-2">
+      {/* 액션 버튼: 코디와 대화(주요) / 화상상담 요청 / 자료 추가 */}
+      <div className="flex flex-wrap gap-2 items-center">
+        <button type="button" onClick={() => setChatOpen(true)}
+          className="px-4 py-2 rounded-xl text-sm font-semibold bg-teal-600 text-white hover:bg-teal-700 transition-all duration-200 flex items-center gap-1.5">
+          <MessageCircle size={15} />{tt("msgrTitle")}
+          {c.thread?.unread > 0 && (
+            <span className="ml-0.5 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-white text-teal-700 text-[11px] font-bold tabular-nums">{c.thread.unread}</span>
+          )}
+        </button>
         <button type="button" disabled={busy}
           onClick={() => { if (window.confirm(tt("consultConfirm"))) post({ action: "request_consult" }); }}
-          className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-teal-50 text-teal-700 hover:bg-teal-100 disabled:opacity-40">
+          className="px-3 py-2 rounded-xl text-xs font-semibold bg-teal-50 text-teal-700 hover:bg-teal-100 transition-all duration-200 disabled:opacity-40">
           {tt("actConsult")}
         </button>
-        <label className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-gray-50 text-gray-700 hover:bg-gray-100 cursor-pointer">
+        <label className="px-3 py-2 rounded-xl text-xs font-semibold bg-gray-50 text-gray-700 hover:bg-gray-100 transition-all duration-200 cursor-pointer">
           {uploading ? tt("attUploading") : tt("actAttach")}
           <input type="file" multiple className="hidden"
             accept=".pdf,.jpg,.jpeg,.png,.gif,.webp,.doc,.docx,application/pdf,image/jpeg,image/png,image/gif,image/webp"
@@ -1085,20 +1093,20 @@ function CaseActions({ c, tt, onDone }) {
       </div>
       {msg && <p className={`text-xs ${msg.type === "ok" ? "text-teal-700" : "text-red-600"}`}>{msg.text}</p>}
 
-      {/* 코디와 양방향 메신저 */}
-      <ChatPanel inquiryId={c.id} tt={tt} getToken={getToken} />
+      {/* 코디와 양방향 메신저 — 별도 대화창(드로어) */}
+      <ChatDrawer open={chatOpen} onClose={() => setChatOpen(false)} inquiryId={c.id} caseName={`${c.name} · ${c.cancer_type}`} tt={tt} getToken={getToken} />
     </div>
   );
 }
 
-// 에이전시 ↔ 코디 양방향 메신저 (케이스 단위). 펼치면 8초 폴링.
-function ChatPanel({ inquiryId, tt, getToken }) {
+// 에이전시 ↔ 코디 양방향 메신저 — 오른쪽 슬라이드 대화창(드로어). 열려 있을 때만 8초 폴링.
+function ChatDrawer({ open, onClose, inquiryId, caseName, tt, getToken }) {
   const [messages, setMessages] = useState([]);
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const endRef = useRef(null);
-  const open = kstHoursOpen();
+  const hoursOpen = kstHoursOpen();
 
   const fetchMessages = async () => {
     const token = await getToken();
@@ -1113,14 +1121,26 @@ function ChatPanel({ inquiryId, tt, getToken }) {
     finally { setLoaded(true); }
   };
 
+  // 열렸을 때만 로드+폴링
   useEffect(() => {
+    if (!open) return;
+    setLoaded(false);
     fetchMessages();
     const t = setInterval(fetchMessages, 8000);
     return () => clearInterval(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [inquiryId]);
+  }, [open, inquiryId]);
 
-  useEffect(() => { endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages.length]);
+  // ESC 로 닫기 + body 스크롤 잠금
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", onKey);
+    document.body.style.overflow = "hidden";
+    return () => { window.removeEventListener("keydown", onKey); document.body.style.overflow = ""; };
+  }, [open, onClose]);
+
+  useEffect(() => { if (open) endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages.length, open]);
 
   const send = async () => {
     const text = draft.trim();
@@ -1139,52 +1159,82 @@ function ChatPanel({ inquiryId, tt, getToken }) {
   };
 
   return (
-    <div className="rounded-xl border border-gray-200 overflow-hidden">
-      {/* 헤더 + 운영시간 */}
-      <div className="px-3 py-2 bg-gray-50 border-b border-gray-100 flex items-center justify-between gap-2">
-        <span className="text-xs font-bold text-gray-700 flex items-center gap-1"><MessageCircle size={13} className="text-teal-600" />{tt("msgrTitle")}</span>
-        <span className={`text-[10px] font-semibold flex items-center gap-1 ${open ? "text-teal-600" : "text-gray-400"}`}>
-          <Clock size={11} />{open ? tt("msgrOpen") : tt("msgrClosed")}
-        </span>
-      </div>
-
-      {/* 메시지 목록 */}
-      <div className="px-3 py-3 max-h-72 overflow-y-auto bg-white space-y-2.5">
-        {loaded && messages.length === 0 && (
-          <p className="text-xs text-gray-400 text-center py-4">{tt("msgrEmpty")}</p>
-        )}
-        {messages.map((m) => {
-          const mine = m.actor_type === "agency";
-          const coord = m.actor_type === "coordinator" || m.actor_type === "admin";
-          const who = mine ? tt("msgrYou") : coord ? tt("msgrCoord") : tt("msgrSystem");
-          return (
-            <div key={m.id} className={`flex flex-col ${mine ? "items-end" : "items-start"}`}>
-              <span className="text-[10px] text-gray-400 mb-0.5">{who} · {new Date(m.created_at).toLocaleString()}</span>
-              <div className={`max-w-[80%] px-3 py-2 rounded-2xl text-sm whitespace-pre-wrap break-words ${
-                mine ? "bg-teal-600 text-white rounded-br-sm" : coord ? "bg-gray-100 text-gray-800 rounded-bl-sm" : "bg-amber-50 text-amber-800"
-              }`}>
-                {m.message_text}
-              </div>
+    <div className={`fixed inset-0 z-50 transition-opacity duration-300 ${open ? "opacity-100" : "opacity-0 pointer-events-none"}`} aria-hidden={!open}>
+      {/* 배경 */}
+      <div className="absolute inset-0 bg-black/30" onClick={onClose} />
+      {/* 패널 */}
+      <div className={`absolute right-0 top-0 h-full w-full max-w-md bg-white shadow-xl flex flex-col transition-transform duration-300 ${open ? "translate-x-0" : "translate-x-full"}`}>
+        {/* 헤더 */}
+        <div className="px-5 py-4 border-b border-gray-100 flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <div className="text-base font-bold text-gray-900 flex items-center gap-1.5"><MessageCircle size={16} className="text-teal-600" />{tt("msgrTitle")}</div>
+            <div className="text-xs text-gray-500 mt-0.5 truncate">{caseName}</div>
+            <div className={`mt-2 inline-flex items-center gap-1.5 text-[11px] font-semibold px-2 py-0.5 rounded-full ${hoursOpen ? "bg-teal-50 text-teal-700" : "bg-gray-100 text-gray-500"}`}>
+              <span className={`w-1.5 h-1.5 rounded-full ${hoursOpen ? "bg-teal-500" : "bg-gray-400"}`} />
+              {hoursOpen ? tt("msgrOpen") : tt("msgrClosed")}
             </div>
-          );
-        })}
-        <div ref={endRef} />
-      </div>
+          </div>
+          <button type="button" onClick={onClose} aria-label="close"
+            className="p-1.5 -mr-1 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-50 transition-all duration-200 shrink-0">
+            <X size={18} />
+          </button>
+        </div>
 
-      {/* 운영시간 안내 배너 (시간 외에만) */}
-      {!open && (
-        <div className="px-3 py-1.5 text-[11px] text-amber-700 bg-amber-50 border-t border-amber-100">{tt("msgrHours")}</div>
-      )}
+        {/* 운영시간 외 안내 */}
+        {!hoursOpen && (
+          <div className="px-5 py-2.5 text-[12px] text-amber-700 bg-amber-50 border-b border-amber-100 flex items-center gap-1.5">
+            <Clock size={13} className="shrink-0" />{tt("msgrHours")}
+          </div>
+        )}
 
-      {/* 입력 */}
-      <div className="flex gap-2 p-2 border-t border-gray-100 bg-white">
-        <input className={`${INP} flex-1`} placeholder={tt("msgrPh")} value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }} />
-        <button type="button" disabled={sending || !draft.trim()} onClick={send}
-          className="px-3 py-2 rounded-lg text-xs font-bold bg-teal-700 text-white hover:bg-teal-800 disabled:opacity-40 shrink-0 flex items-center gap-1">
-          <Send size={13} />{sending ? tt("msgSending") : tt("msgSend")}
-        </button>
+        {/* 메시지 */}
+        <div className="flex-1 overflow-y-auto px-5 py-4 bg-gray-50 space-y-3">
+          {!loaded ? (
+            // 로딩 스켈레톤 (DESIGN: 빈 화면 대신 맥락)
+            <div className="space-y-3 animate-pulse">
+              <div className="flex justify-start"><div className="h-9 w-40 bg-gray-200 rounded-2xl rounded-bl-md" /></div>
+              <div className="flex justify-end"><div className="h-9 w-32 bg-gray-200 rounded-2xl rounded-br-md" /></div>
+              <div className="flex justify-start"><div className="h-9 w-48 bg-gray-200 rounded-2xl rounded-bl-md" /></div>
+            </div>
+          ) : messages.length === 0 ? (
+            <div className="text-center py-12">
+              <div className="w-10 h-10 mx-auto rounded-xl bg-teal-50 flex items-center justify-center mb-3"><MessageCircle size={18} className="text-teal-500" /></div>
+              <p className="text-sm text-gray-500 max-w-[260px] mx-auto leading-relaxed">{tt("msgrEmpty")}</p>
+            </div>
+          ) : messages.map((m) => {
+            const mine = m.actor_type === "agency";
+            const coord = m.actor_type === "coordinator" || m.actor_type === "admin";
+            if (!mine && !coord) {
+              // 시스템 메시지 — 가운데 칩
+              return <div key={m.id} className="text-center"><span className="inline-block text-[11px] text-gray-500 bg-gray-100 rounded-full px-3 py-1">{m.message_text}</span></div>;
+            }
+            const who = mine ? tt("msgrYou") : tt("msgrCoord");
+            return (
+              <div key={m.id} className={`flex flex-col ${mine ? "items-end" : "items-start"}`}>
+                <span className="text-[10px] text-gray-400 mb-1 px-1">{who} · {new Date(m.created_at).toLocaleString()}</span>
+                <div className={`max-w-[85%] px-3.5 py-2.5 text-sm leading-relaxed whitespace-pre-wrap break-words shadow-sm ${
+                  mine ? "bg-teal-600 text-white rounded-2xl rounded-br-md" : "bg-white text-gray-800 border border-gray-200 rounded-2xl rounded-bl-md"
+                }`}>
+                  {m.message_text}
+                </div>
+              </div>
+            );
+          })}
+          <div ref={endRef} />
+        </div>
+
+        {/* 입력 */}
+        <div className="border-t border-gray-100 bg-white p-3 flex gap-2 items-end">
+          <textarea rows={1} value={draft}
+            className="flex-1 resize-none border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-teal-500 transition-all duration-200 max-h-32"
+            placeholder={tt("msgrPh")}
+            onChange={(e) => setDraft(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }} />
+          <button type="button" disabled={sending || !draft.trim()} onClick={send}
+            className="px-4 py-2.5 rounded-xl text-sm font-bold bg-teal-600 text-white hover:bg-teal-700 transition-all duration-200 disabled:opacity-40 shrink-0 flex items-center gap-1.5">
+            <Send size={15} />{sending ? tt("msgSending") : tt("msgSend")}
+          </button>
+        </div>
       </div>
     </div>
   );
