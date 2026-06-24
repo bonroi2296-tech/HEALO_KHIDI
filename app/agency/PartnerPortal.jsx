@@ -10,7 +10,7 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import {
   UploadCloud, File as FileIcon, X, ClipboardList, Activity, CheckCircle2, PauseCircle,
-  Plus, ArrowRight, ChevronDown, Paperclip,
+  Plus, ArrowRight, ChevronDown, Paperclip, MessageCircle, FileText, Video, Send, Clock,
 } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { useLang } from "@/lib/i18n/LangContext";
@@ -379,6 +379,59 @@ const TR_FILTER = {
   ja: { fltAll: "すべて", fltActive: "進行中", fltDone: "完了", fltHold: "保留", searchPh: "氏名・国・がん種で検索", noMatch: "該当する症例がありません。" },
 };
 for (const l of Object.keys(TR)) Object.assign(TR[l], TR_FILTER[l] || TR_FILTER.en);
+
+// 플랫폼 내 메신저(에이전시↔코디) · 견적 공유 · 화상상담 일정 · 문서함 문구 — 6개 언어. 위 TR 에 병합.
+const TR_MSG = {
+  ko: {
+    msgrTitle: "코디네이터와 대화", msgrEmpty: "아직 대화가 없습니다. 메시지를 남기면 코디네이터에게 전달됩니다.",
+    msgrPh: "메시지 입력…", msgrYou: "나", msgrCoord: "코디네이터", msgrSystem: "시스템",
+    msgrHours: "코디 운영시간 · 한국시간(KST) 월–금 09:00–18:00", msgrOpen: "지금 운영 중", msgrClosed: "운영시간 외 — 다음 영업일에 답장드립니다", msgrNew: "새 답장",
+    estTitle: "견적 (코디 발행)", estView: "PDF", estNo: "견적", estTotal: "총액",
+    consTitle: "화상상담", consScheduled: "예정", consLive: "진행 중", consDone: "완료", consCancelled: "취소", consJoinNote: "입장 링크는 환자에게 발송됩니다. 필요 시 위 대화로 코디에게 요청하세요.",
+    docsTitle: "문서함",
+  },
+  en: {
+    msgrTitle: "Chat with coordinator", msgrEmpty: "No messages yet. Anything you send reaches our coordinator.",
+    msgrPh: "Type a message…", msgrYou: "You", msgrCoord: "Coordinator", msgrSystem: "System",
+    msgrHours: "Coordinator hours · Mon–Fri 09:00–18:00 KST", msgrOpen: "Open now", msgrClosed: "Outside hours — we reply on the next business day", msgrNew: "New reply",
+    estTitle: "Quotation (issued)", estView: "PDF", estNo: "Quote", estTotal: "Total",
+    consTitle: "Video consultation", consScheduled: "Scheduled", consLive: "Live", consDone: "Completed", consCancelled: "Cancelled", consJoinNote: "The join link is sent to the patient. Ask the coordinator in chat above if needed.",
+    docsTitle: "Documents",
+  },
+  ru: {
+    msgrTitle: "Чат с координатором", msgrEmpty: "Сообщений пока нет. Всё, что вы напишете, получит наш координатор.",
+    msgrPh: "Введите сообщение…", msgrYou: "Вы", msgrCoord: "Координатор", msgrSystem: "Система",
+    msgrHours: "Часы координатора · Пн–Пт 09:00–18:00 (KST)", msgrOpen: "Сейчас на связи", msgrClosed: "Вне рабочих часов — ответим в следующий рабочий день", msgrNew: "Новый ответ",
+    estTitle: "Смета (выставлена)", estView: "PDF", estNo: "Смета", estTotal: "Итого",
+    consTitle: "Видеоконсультация", consScheduled: "Запланирована", consLive: "Идёт", consDone: "Завершена", consCancelled: "Отменена", consJoinNote: "Ссылка для входа отправляется пациенту. При необходимости спросите координатора в чате выше.",
+    docsTitle: "Документы",
+  },
+  kz: {
+    msgrTitle: "Үйлестірушімен чат", msgrEmpty: "Әзірге хабарлама жоқ. Жазғаныңызды үйлестіруші алады.",
+    msgrPh: "Хабарлама жазыңыз…", msgrYou: "Сіз", msgrCoord: "Үйлестіруші", msgrSystem: "Жүйе",
+    msgrHours: "Үйлестіруші уақыты · Дс–Жм 09:00–18:00 (KST)", msgrOpen: "Қазір желіде", msgrClosed: "Жұмыс уақытынан тыс — келесі жұмыс күні жауап береміз", msgrNew: "Жаңа жауап",
+    estTitle: "Смета (берілген)", estView: "PDF", estNo: "Смета", estTotal: "Барлығы",
+    consTitle: "Бейнекеңес", consScheduled: "Жоспарланған", consLive: "Жүруде", consDone: "Аяқталды", consCancelled: "Бас тартылды", consJoinNote: "Кіру сілтемесі науқасқа жіберіледі. Қажет болса жоғарыдағы чатта үйлестірушіден сұраңыз.",
+    docsTitle: "Құжаттар",
+  },
+  zh: {
+    msgrTitle: "与协调员对话", msgrEmpty: "暂无消息。您发送的内容将转达给协调员。",
+    msgrPh: "输入消息…", msgrYou: "我", msgrCoord: "协调员", msgrSystem: "系统",
+    msgrHours: "协调员工作时间 · 周一至周五 09:00–18:00（韩国时间）", msgrOpen: "现在在线", msgrClosed: "非工作时间 — 将在下一个工作日回复", msgrNew: "新回复",
+    estTitle: "报价（已出具）", estView: "PDF", estNo: "报价", estTotal: "合计",
+    consTitle: "视频会诊", consScheduled: "已预约", consLive: "进行中", consDone: "已完成", consCancelled: "已取消", consJoinNote: "入会链接将发送给患者。如有需要，请在上方对话中向协调员咨询。",
+    docsTitle: "资料库",
+  },
+  ja: {
+    msgrTitle: "コーディネーターと会話", msgrEmpty: "まだメッセージはありません。送信内容はコーディネーターに届きます。",
+    msgrPh: "メッセージを入力…", msgrYou: "あなた", msgrCoord: "コーディネーター", msgrSystem: "システム",
+    msgrHours: "対応時間 · 月–金 09:00–18:00（韓国時間）", msgrOpen: "現在対応中", msgrClosed: "時間外 — 翌営業日に返信します", msgrNew: "新着返信",
+    estTitle: "見積（発行済み）", estView: "PDF", estNo: "見積", estTotal: "合計",
+    consTitle: "ビデオ相談", consScheduled: "予定", consLive: "進行中", consDone: "完了", consCancelled: "キャンセル", consJoinNote: "入室リンクは患者へ送信されます。必要なら上のチャットでコーディネーターにご依頼ください。",
+    docsTitle: "書類",
+  },
+};
+for (const l of Object.keys(TR)) Object.assign(TR[l], TR_MSG[l] || TR_MSG.en);
 
 // 해외 파트너 포털 본체. expected 로 이 URL이 어느 파트너 유형 전용인지 지정한다.
 //  - /agency  → expected="agency"            (해외 에이전시)
@@ -753,6 +806,12 @@ export default function PartnerPortal({ expected = "agency" }) {
                         {c.attachments?.length > 0 && (
                           <span className="inline-flex items-center gap-0.5 text-gray-400"><Paperclip size={11} />{c.attachments.length}</span>
                         )}
+                        {c.estimates?.length > 0 && (
+                          <span className="inline-flex items-center gap-0.5 text-emerald-600"><FileText size={11} />{c.estimates.length}</span>
+                        )}
+                        {c.thread?.unread > 0 && (
+                          <span className="inline-flex items-center gap-0.5 text-white bg-red-500 rounded-full px-1.5 font-semibold"><MessageCircle size={10} />{c.thread.unread}</span>
+                        )}
                       </div>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
@@ -881,13 +940,28 @@ function detailRows(d, tt, lang) {
   return rows;
 }
 
-// 에이전시 케이스 액션: 화상상담 요청 / 자료 추가 / 메시지 + 올린 첨부 보기 ("보기만" → 행동)
+// 코디 운영시간: 한국시간(KST=UTC+9) 월–금 09:00–18:00
+function kstHoursOpen() {
+  const now = new Date();
+  const kst = new Date(now.getTime() + (now.getTimezoneOffset() + 540) * 60000);
+  const day = kst.getDay(); // 0=일 … 6=토
+  const h = kst.getHours();
+  return day >= 1 && day <= 5 && h >= 9 && h < 18;
+}
+
+const fmtKRW = (n) => (n != null ? `₩${Number(n).toLocaleString()}` : null);
+const fmtUSD = (n) => (n != null ? `$${Number(n).toLocaleString()}` : null);
+const CONS_STATUS_KEY = {
+  scheduled: "consScheduled", in_progress: "consLive", live: "consLive",
+  completed: "consDone", done: "consDone", cancelled: "consCancelled", canceled: "consCancelled",
+};
+
+// 에이전시 케이스 액션: 견적 보기 / 화상상담 일정 / 문서함 / 화상상담 요청·자료추가 / 코디와 양방향 메신저
 function CaseActions({ c, tt, onDone }) {
   const [busy, setBusy] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [showMsg, setShowMsg] = useState(false);
-  const [text, setText] = useState("");
   const [msg, setMsg] = useState(null);
+  const [chatOpen, setChatOpen] = useState(false);
 
   const getToken = async () => (await supabase.auth.getSession()).data?.session?.access_token;
 
@@ -901,7 +975,7 @@ function CaseActions({ c, tt, onDone }) {
         body: JSON.stringify(payload),
       });
       const json = await res.json();
-      if (json.ok) { setMsg({ type: "ok", text: tt("actSent") }); setText(""); setShowMsg(false); await onDone(); }
+      if (json.ok) { setMsg({ type: "ok", text: tt("actSent") }); await onDone(); }
       else setMsg({ type: "err", text: tt("actErr") });
     } catch { setMsg({ type: "err", text: tt("actErr") }); }
     finally { setBusy(false); }
@@ -926,51 +1000,242 @@ function CaseActions({ c, tt, onDone }) {
     } finally { setUploading(false); }
   };
 
+  // 문서함: 카테고리별 그룹
+  const docGroups = {};
+  (c.attachments || []).forEach((a) => { (docGroups[a.category || "other"] ||= []).push(a); });
+
   return (
-    <div className="mt-4 pt-4 border-t border-gray-100">
-      {c.attachments?.length > 0 && (
-        <div className="mb-3">
-          <p className="text-xs font-bold text-gray-600 mb-1.5">{tt("attTitle")}</p>
-          <div className="space-y-1">
-            {c.attachments.map((a, i) => (
-              <div key={i} className="flex items-center justify-between gap-2 text-xs bg-gray-50 rounded-lg px-3 py-1.5">
-                <span className="truncate text-gray-700"><b>{tt(catKey(a.category))}</b>{a.name ? ` · ${a.name}` : ""}</span>
-                {a.url && <a href={a.url} target="_blank" rel="noopener noreferrer" className="text-teal-700 underline shrink-0">{tt("attView")}</a>}
+    <div className="mt-4 pt-4 border-t border-gray-100 space-y-4">
+      {/* 견적 (코디 발행) */}
+      {c.estimates?.length > 0 && (
+        <div>
+          <p className="text-xs font-bold text-gray-600 mb-1.5 flex items-center gap-1"><FileText size={13} className="text-emerald-600" />{tt("estTitle")}</p>
+          <div className="space-y-1.5">
+            {c.estimates.map((e) => (
+              <div key={e.id} className="flex items-center justify-between gap-2 text-xs bg-emerald-50 rounded-lg px-3 py-2">
+                <div className="min-w-0">
+                  <div className="font-semibold text-emerald-800">
+                    {[fmtKRW(e.total_krw), fmtUSD(e.total_usd)].filter(Boolean).join(" · ") || `${tt("estNo")} ${e.quotation_no || ""}`}
+                  </div>
+                  <div className="text-[11px] text-emerald-700/70">
+                    {e.quotation_no ? `${tt("estNo")} ${e.quotation_no} · ` : ""}{e.issued_at ? new Date(e.issued_at).toLocaleDateString() : ""}
+                  </div>
+                </div>
+                {e.pdf_url && <a href={e.pdf_url} target="_blank" rel="noopener noreferrer" className="shrink-0 px-2.5 py-1 rounded-md bg-emerald-600 text-white font-semibold hover:bg-emerald-700">{tt("estView")}</a>}
               </div>
             ))}
           </div>
         </div>
       )}
 
-      <div className="flex flex-wrap gap-2">
+      {/* 화상상담 일정·상태 */}
+      {c.consultations?.length > 0 && (
+        <div>
+          <p className="text-xs font-bold text-gray-600 mb-1.5 flex items-center gap-1"><Video size={13} className="text-indigo-600" />{tt("consTitle")}</p>
+          <div className="space-y-1.5">
+            {c.consultations.map((s) => (
+              <div key={s.id} className="flex items-center justify-between gap-2 text-xs bg-indigo-50 rounded-lg px-3 py-2">
+                <span className="text-indigo-900">
+                  {s.scheduled_at ? new Date(s.scheduled_at).toLocaleString() : "—"}
+                </span>
+                <span className="shrink-0 px-2 py-0.5 rounded-full bg-white text-indigo-700 font-semibold border border-indigo-200">
+                  {tt(CONS_STATUS_KEY[s.status] || "consScheduled")}
+                </span>
+              </div>
+            ))}
+          </div>
+          <p className="text-[11px] text-gray-400 mt-1">{tt("consJoinNote")}</p>
+        </div>
+      )}
+
+      {/* 문서함 (카테고리별) */}
+      {c.attachments?.length > 0 && (
+        <div>
+          <p className="text-xs font-bold text-gray-600 mb-1.5 flex items-center gap-1"><Paperclip size={13} />{tt("docsTitle")}</p>
+          <div className="space-y-2">
+            {Object.entries(docGroups).map(([cat, items]) => (
+              <div key={cat}>
+                <p className="text-[11px] font-semibold text-gray-400 mb-1">{tt(catKey(cat))} <span className="opacity-60">{items.length}</span></p>
+                <div className="space-y-1">
+                  {items.map((a, i) => (
+                    <div key={i} className="flex items-center justify-between gap-2 text-xs bg-gray-50 rounded-lg px-3 py-1.5">
+                      <span className="truncate text-gray-700">{a.name || tt(catKey(cat))}</span>
+                      {a.url && <a href={a.url} target="_blank" rel="noopener noreferrer" className="text-teal-700 underline shrink-0">{tt("attView")}</a>}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* 액션 버튼: 코디와 대화(주요) / 화상상담 요청 / 자료 추가 */}
+      <div className="flex flex-wrap gap-2 items-center">
+        <button type="button" onClick={() => setChatOpen(true)}
+          className="px-4 py-2 rounded-xl text-sm font-semibold bg-teal-600 text-white hover:bg-teal-700 transition-all duration-200 flex items-center gap-1.5">
+          <MessageCircle size={15} />{tt("msgrTitle")}
+          {c.thread?.unread > 0 && (
+            <span className="ml-0.5 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-white text-teal-700 text-[11px] font-bold tabular-nums">{c.thread.unread}</span>
+          )}
+        </button>
         <button type="button" disabled={busy}
           onClick={() => { if (window.confirm(tt("consultConfirm"))) post({ action: "request_consult" }); }}
-          className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-teal-50 text-teal-700 hover:bg-teal-100 disabled:opacity-40">
+          className="px-3 py-2 rounded-xl text-xs font-semibold bg-teal-50 text-teal-700 hover:bg-teal-100 transition-all duration-200 disabled:opacity-40">
           {tt("actConsult")}
         </button>
-        <label className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-gray-50 text-gray-700 hover:bg-gray-100 cursor-pointer">
+        <label className="px-3 py-2 rounded-xl text-xs font-semibold bg-gray-50 text-gray-700 hover:bg-gray-100 transition-all duration-200 cursor-pointer">
           {uploading ? tt("attUploading") : tt("actAttach")}
           <input type="file" multiple className="hidden"
             accept=".pdf,.jpg,.jpeg,.png,.gif,.webp,.doc,.docx,application/pdf,image/jpeg,image/png,image/gif,image/webp"
             onChange={onFiles} />
         </label>
-        <button type="button" disabled={busy} onClick={() => setShowMsg((v) => !v)}
-          className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-gray-50 text-gray-700 hover:bg-gray-100 disabled:opacity-40">
-          {tt("actMessage")}
-        </button>
       </div>
+      {msg && <p className={`text-xs ${msg.type === "ok" ? "text-teal-700" : "text-red-600"}`}>{msg.text}</p>}
 
-      {showMsg && (
-        <div className="mt-2 flex gap-2">
-          <input className={`${INP} flex-1`} placeholder={tt("msgPh")} value={text} onChange={(e) => setText(e.target.value)} />
-          <button type="button" disabled={busy || !text.trim()} onClick={() => post({ action: "message", message: text })}
-            className="px-3 py-2 rounded-lg text-xs font-bold bg-teal-700 text-white hover:bg-teal-800 disabled:opacity-40 shrink-0">
-            {busy ? tt("msgSending") : tt("msgSend")}
+      {/* 코디와 양방향 메신저 — 별도 대화창(드로어) */}
+      <ChatDrawer open={chatOpen} onClose={() => setChatOpen(false)} inquiryId={c.id} caseName={`${c.name} · ${c.cancer_type}`} tt={tt} getToken={getToken} />
+    </div>
+  );
+}
+
+// 에이전시 ↔ 코디 양방향 메신저 — 오른쪽 슬라이드 대화창(드로어). 열려 있을 때만 8초 폴링.
+function ChatDrawer({ open, onClose, inquiryId, caseName, tt, getToken }) {
+  const [messages, setMessages] = useState([]);
+  const [draft, setDraft] = useState("");
+  const [sending, setSending] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+  const endRef = useRef(null);
+  const hoursOpen = kstHoursOpen();
+
+  const fetchMessages = async () => {
+    const token = await getToken();
+    if (!token) return;
+    try {
+      const res = await fetch(`/api/agency/cases/${inquiryId}/messages`, {
+        headers: { Authorization: `Bearer ${token}` }, cache: "no-store",
+      });
+      const json = await res.json();
+      if (json.ok) setMessages(json.messages || []);
+    } catch { /* 폴링 실패 무시 */ }
+    finally { setLoaded(true); }
+  };
+
+  // 열렸을 때만 로드+폴링
+  useEffect(() => {
+    if (!open) return;
+    setLoaded(false);
+    fetchMessages();
+    const t = setInterval(fetchMessages, 8000);
+    return () => clearInterval(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, inquiryId]);
+
+  // ESC 로 닫기 + body 스크롤 잠금
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e) => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", onKey);
+    document.body.style.overflow = "hidden";
+    return () => { window.removeEventListener("keydown", onKey); document.body.style.overflow = ""; };
+  }, [open, onClose]);
+
+  useEffect(() => { if (open) endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages.length, open]);
+
+  const send = async () => {
+    const text = draft.trim();
+    if (!text || sending) return;
+    setSending(true);
+    try {
+      const token = await getToken();
+      const res = await fetch(`/api/agency/cases/${inquiryId}/messages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ text }),
+      });
+      const json = await res.json();
+      if (json.ok && json.message) { setMessages((m) => [...m, json.message]); setDraft(""); }
+    } finally { setSending(false); }
+  };
+
+  return (
+    <div className={`fixed inset-0 z-50 transition-opacity duration-300 ${open ? "opacity-100" : "opacity-0 pointer-events-none"}`} aria-hidden={!open}>
+      {/* 배경 */}
+      <div className="absolute inset-0 bg-black/30" onClick={onClose} />
+      {/* 패널 */}
+      <div className={`absolute right-0 top-0 h-full w-full max-w-md bg-white shadow-xl flex flex-col transition-transform duration-300 ${open ? "translate-x-0" : "translate-x-full"}`}>
+        {/* 헤더 */}
+        <div className="px-5 py-4 border-b border-gray-100 flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <div className="text-base font-bold text-gray-900 flex items-center gap-1.5"><MessageCircle size={16} className="text-teal-600" />{tt("msgrTitle")}</div>
+            <div className="text-xs text-gray-500 mt-0.5 truncate">{caseName}</div>
+            <div className={`mt-2 inline-flex items-center gap-1.5 text-[11px] font-semibold px-2 py-0.5 rounded-full ${hoursOpen ? "bg-teal-50 text-teal-700" : "bg-gray-100 text-gray-500"}`}>
+              <span className={`w-1.5 h-1.5 rounded-full ${hoursOpen ? "bg-teal-500" : "bg-gray-400"}`} />
+              {hoursOpen ? tt("msgrOpen") : tt("msgrClosed")}
+            </div>
+          </div>
+          <button type="button" onClick={onClose} aria-label="close"
+            className="p-1.5 -mr-1 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-50 transition-all duration-200 shrink-0">
+            <X size={18} />
           </button>
         </div>
-      )}
 
-      {msg && <p className={`mt-2 text-xs ${msg.type === "ok" ? "text-teal-700" : "text-red-600"}`}>{msg.text}</p>}
+        {/* 운영시간 외 안내 */}
+        {!hoursOpen && (
+          <div className="px-5 py-2.5 text-[12px] text-amber-700 bg-amber-50 border-b border-amber-100 flex items-center gap-1.5">
+            <Clock size={13} className="shrink-0" />{tt("msgrHours")}
+          </div>
+        )}
+
+        {/* 메시지 */}
+        <div className="flex-1 overflow-y-auto px-5 py-4 bg-gray-50 space-y-3">
+          {!loaded ? (
+            // 로딩 스켈레톤 (DESIGN: 빈 화면 대신 맥락)
+            <div className="space-y-3 animate-pulse">
+              <div className="flex justify-start"><div className="h-9 w-40 bg-gray-200 rounded-2xl rounded-bl-md" /></div>
+              <div className="flex justify-end"><div className="h-9 w-32 bg-gray-200 rounded-2xl rounded-br-md" /></div>
+              <div className="flex justify-start"><div className="h-9 w-48 bg-gray-200 rounded-2xl rounded-bl-md" /></div>
+            </div>
+          ) : messages.length === 0 ? (
+            <div className="text-center py-12">
+              <div className="w-10 h-10 mx-auto rounded-xl bg-teal-50 flex items-center justify-center mb-3"><MessageCircle size={18} className="text-teal-500" /></div>
+              <p className="text-sm text-gray-500 max-w-[260px] mx-auto leading-relaxed">{tt("msgrEmpty")}</p>
+            </div>
+          ) : messages.map((m) => {
+            const mine = m.actor_type === "agency";
+            const coord = m.actor_type === "coordinator" || m.actor_type === "admin";
+            if (!mine && !coord) {
+              // 시스템 메시지 — 가운데 칩
+              return <div key={m.id} className="text-center"><span className="inline-block text-[11px] text-gray-500 bg-gray-100 rounded-full px-3 py-1">{m.message_text}</span></div>;
+            }
+            const who = mine ? tt("msgrYou") : tt("msgrCoord");
+            return (
+              <div key={m.id} className={`flex flex-col ${mine ? "items-end" : "items-start"}`}>
+                <span className="text-[10px] text-gray-400 mb-1 px-1">{who} · {new Date(m.created_at).toLocaleString()}</span>
+                <div className={`max-w-[85%] px-3.5 py-2.5 text-sm leading-relaxed whitespace-pre-wrap break-words shadow-sm ${
+                  mine ? "bg-teal-600 text-white rounded-2xl rounded-br-md" : "bg-white text-gray-800 border border-gray-200 rounded-2xl rounded-bl-md"
+                }`}>
+                  {m.message_text}
+                </div>
+              </div>
+            );
+          })}
+          <div ref={endRef} />
+        </div>
+
+        {/* 입력 */}
+        <div className="border-t border-gray-100 bg-white p-3 flex gap-2 items-end">
+          <textarea rows={1} value={draft}
+            className="flex-1 resize-none border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-teal-500 transition-all duration-200 max-h-32"
+            placeholder={tt("msgrPh")}
+            onChange={(e) => setDraft(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }} />
+          <button type="button" disabled={sending || !draft.trim()} onClick={send}
+            className="px-4 py-2.5 rounded-xl text-sm font-bold bg-teal-600 text-white hover:bg-teal-700 transition-all duration-200 disabled:opacity-40 shrink-0 flex items-center gap-1.5">
+            <Send size={15} />{sending ? tt("msgSending") : tt("msgSend")}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

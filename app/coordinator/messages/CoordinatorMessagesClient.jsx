@@ -34,6 +34,7 @@ const CHANNEL = {
   email: { color: "#8c3a2e", label: "이메일" },
   line: { color: "#06C755", label: "LINE" },
   kakao: { color: "#FEE500", label: "카카오" },
+  agency: { color: "#7c3aed", label: "에이전시" },
 };
 
 function fmtDate(v) {
