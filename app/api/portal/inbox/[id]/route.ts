@@ -32,6 +32,7 @@ const DETAIL_FIELDS = [
   "message",
   "status",
   "case_status",
+  "case_status_note",
   "match_accuracy",
   "source",
   "short_memo",
