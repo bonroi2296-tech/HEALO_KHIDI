@@ -405,6 +405,7 @@ function ChannelDot({ channel }) {
     email: { color: "#8c3a2e", label: "Email" },
     line: { color: "#06C755", label: "Line" },
     kakao: { color: "#FEE500", label: "Kakao" },
+    agency: { color: "#7c3aed", label: "에이전시" },
   };
   const c = map[channel] || map.web;
   return (
@@ -455,6 +456,7 @@ function Message({ m, meId }) {
   const label =
     isMine ? "You (Coordinator)" :
     isPatient ? "Patient" :
+    m.actor_type === "agency" ? "에이전시(파트너)" :
     m.actor_type === "bot" ? "healwith AI" :
     m.actor_type === "admin" ? "healwith Admin" :
     m.actor_type === "coordinator" ? "Other Coordinator" :
