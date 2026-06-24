@@ -185,7 +185,7 @@ export default function CoordinatorMessagesClient() {
   const selectedThread = threads.find((t) => t.id === selectedId);
 
   return (
-    <div className="grid h-[calc(100vh-3rem)] grid-cols-[300px_1fr] bg-gray-50 text-gray-900">
+    <div className="grid h-[calc(100vh-6.5rem)] md:h-[calc(100vh-7rem)] lg:h-[calc(100vh-4rem)] grid-cols-[300px_1fr] bg-gray-50 text-gray-900">
       {/* 좌측 — 스레드 목록 */}
       <aside className="flex flex-col overflow-hidden border-r border-gray-200 bg-white">
         <div className="border-b border-gray-200 px-4 py-3">
