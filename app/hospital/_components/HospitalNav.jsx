@@ -14,16 +14,16 @@ import {
 } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { useHospitalContext } from "./HospitalGateClient";
+import { HOSPITAL_CONTENT_ENABLED } from "./featureFlags";
 
 // KHIDI 방향성 기준 메뉴
-// - 진료 의뢰/일정/의료기록은 P1에서 신규 페이지 추가 예정
-// - 리드/시술 관리는 마케팅 시절 잔재로 별도 그룹("기존 도구")에 보존
+// - 병원 정보·시술 카탈로그는 공개 프론트 미연동 → HOSPITAL_CONTENT_ENABLED 로 가림 (featureFlags.js)
 const navItems = [
   { id: "dashboard", label: "대시보드", icon: LayoutDashboard, href: "/hospital" },
   { id: "leads", label: "진료 의뢰(리드)", icon: MessageSquare, href: "/hospital/leads" },
-  { id: "profile", label: "병원 정보", icon: Building2, href: "/hospital/profile" },
-  { id: "treatments", label: "시술 카탈로그", icon: Stethoscope, href: "/hospital/treatments" },
-];
+  { id: "profile", label: "병원 정보", icon: Building2, href: "/hospital/profile", contentFeature: true },
+  { id: "treatments", label: "시술 카탈로그", icon: Stethoscope, href: "/hospital/treatments", contentFeature: true },
+].filter((item) => HOSPITAL_CONTENT_ENABLED || !item.contentFeature);
 
 export function HospitalNav() {
   const pathname = usePathname();
