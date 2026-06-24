@@ -2,6 +2,52 @@
 
 
 
+
+## 🔖 세션 핸드오프 (2026-06-24 오후 — 코디 '추가 정보 요청' 기능 + 암환자용 폼 전면 교체 + E2E 9건 초록)
+
+> 긴 세션. 흐름: ①E2E 로봇 9개 실패 전부 수리(머지 [#325](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/325)) → ②코디→환자 '추가 정보 요청' 기능 신설 → ③검증 중 발견한 암 인테이크 폼이 옛 정형외과 잔재라 전면 재작성 + 버그 3개 수리. **[#326](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/326) 열림(프리뷰 톤 검토 대기 — 머지 안 함).** ⚠️ **같은 폴더 동시작업 오염 다시 발생**(4번).
+
+**1. 이번 세션 한 일:**
+- **E2E 로봇 9개 실패 → 전부 초록 [#325](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/325) (머지·CI 75통과/0실패)**: E2E가 처음 제대로 돌자 9개 실패. 로컬(`.env.local`+node_modules)에서 전수 디버깅 — 로그인 버튼 셀렉터(i18n→`button[type=submit]`)·`networkidle` 안 settle(애널리틱스)→`domcontentloaded`(24파일)·로그인 대기 30s·web-first assertion·home 로고(`getByRole("img")`)·treatments 상세링크 테스트 현실화·어드민 계정 생성(수작업 auth행 깨져 토큰컬럼 보정).
+- **코디 → 환자 '추가 정보 요청' 기능 [#326](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/326)(열림)**: 환자가 이메일만 남기면 코디가 상세를 못 받던 구멍. 코디 문의상세에 '추가 정보 요청' 카드 → Step2 폼 링크를 **환자 이메일로 발송(6언어)** + 복사링크 + **왓츠앱 보내기**. 신규 `POST /api/coordinator/inquiries/[id]/request-info`(staff, public_token 생성·발송·`info_requested_at` 기록) + 이메일 템플릿 `infoRequest.ts`(6언어) + 폼 제출 뒤 **소프트 계정 유도**(강요 아님). E2E 스모크 1개. 마이그레이션 `add_info_requested_at_to_inquiries`(가역, prod 적용).
+- **암환자용 인테이크 폼 전면 재작성**: 기존 `/inquiry/intake` 폼이 피벗 전 **정형외과/통증클리닉 잔재**(무릎·어깨·발목·심각도1-10)라 암환자에 부적합 → **진단시기·병기(Stage)·현재치료상태·받은치료(복수)·보유서류(복수)·입국희망시기·메모 + 의료서류 첨부**로 교체(6언어 인라인). 코디 화면은 그 코드값을 **한글 라벨**로 표시(병기→"3기"). 옛 데이터 호환.
+- **버그 3개 + 잡것**: ①전화번호가 코디 화면에 **암호문 raw** 노출 → `decryptForAdmin`에 phone 복호화 추가 + 화면 `safe()` 가드 ②'추가정보 요청' 결과가 발송실패를 "이메일 없음"으로 **오표시** → 발송됨/미발송/없음 3구분 ③브라우저 확장(HWP `rhwp`)이 `<html>` 속성 주입 → 하이드레이션 경고 → `suppressHydrationWarning` ④문의 폼 언어 드롭다운을 핵심시장 순(러·카·영·일·중·한)으로 ⑤요청 링크가 환자 언어(`/ru/...`)로 열리게.
+- **에이전시 worktree 분리**: PO가 에이전시 계정을 **다른 세션**에서 작업하려 함 → 충돌 방지로 `bash scripts/new-session.sh agency` → `C:\Users\user\Desktop\HEALO_worktrees\agency`(브랜치 `work/agency`) + node_modules 정션·`.env.local` 복사 완료(바로 작업 가능).
+
+**2. 왜 그렇게 했는지:**
+- **'얇은 현관, 두꺼운 집' 전략(PO와 합의)**: ICT 6대기능 ↔ 저마찰(회원가입·앱 강요 시 이탈) 갈등을 **순서**로 푼다 — 토큰 링크가 신원을 들고 있어 **가입 없이** ICT 구조화 인테이크가 동작(= 정문), 계정·앱은 가치 받은 **뒤** 소프트 유도. KHIDI 평가에도 "마찰0 디지털 환자여정"이 더 강한 ICT 스토리.
+- **암 폼 i18n 인라인**: 중앙 i18n 키 추가는 `check:content` 6언어 패리티 가드를 건드려 번거로움 → 컴포넌트 인라인 6언어 객체(SOFT/LABELS 패턴)로. ru 100% 렌더 확인.
+- **E2E `networkidle`→`domcontentloaded`**: 2026-06-24 추가된 GA/애널리틱스가 네트워크를 계속 두드려 idle에 안 닿음(Playwright도 비권장). 내용 의존 테스트는 web-first assertion으로 재시도.
+
+**3. 안 끝났거나 보류:**
+- **[#326] 프리뷰 톤 검토 대기 → 머지 안 함**: 큰 UI/카피 변경이라 PO가 프리뷰에서 **이메일 6언어 카피·암 폼 문구(특히 러/카)·소프트 계정 문구** 톤 확인 후 머지 결정.
+- **로컬 이메일 발송 = `.env.local`에 RESEND 키 추가해야 됨(gitignore라 로컬 한정)**: dev Resend 키(`re_WKQ…`)+`noreply@healwith.co.kr`(도메인 인증됨) 넣어 로컬서도 실발송 확인. **이 키는 커밋 안 됨**(다음 세션 새 worktree면 다시 넣어야).
+- **`sendEmail.ts` 미설정시 ok:false 변경 + `docs/government-project/…`·`docs/DB_DEAD_TABLES…`·`migrations/20260624_drop_dead_tables.sql`** = **다른 세션 작업이 자동저장에 섞임** → 내 커밋에서 제외(unstage). 그 세션이 따로 커밋·정리할 것. **`drop_dead_tables.sql`은 삭제 마이그레이션이라 함부로 적용 금지(PO 확인).**
+
+**4. 주의·함정:**
+- ⚠️ **같은 폴더 동시작업 오염 재발**: 다른 세션이 이 폴더에서 작업 중 → `sendEmail.ts`·`government-project` 문서가 내 staging에 섞임. 내 것만 골라 커밋함. **교훈(또): 병렬 세션은 worktree로**(이번에 에이전시용은 분리함). 다음 세션도 새 주제면 `scripts/new-session.sh`로.
+- ⚠️ **dev 서버가 포트 3000에 떠 있음**(이 세션이 띄움). 다른 세션은 **3001** 쓰라고 PO에 안내함. 에이전시 worktree도 3001 권장.
+- ⚠️ **Resend dev 키는 샌드박스**: `onboarding@resend.dev` 발신은 PO 지메일로만 감. 임의 주소(환자)로 보내려면 발신을 **`noreply@healwith.co.kr`**(인증 도메인)로. prod는 이미 그렇게 설정됨.
+- ⚠️ **암 폼 새 intake 구조 = `{cancer:{…}, notes}`**. 코디 표시·옛 데이터 호환은 `CoordinatorInboxDetailClient`의 `CI`/`CI_MULTI` 맵에 의존. 값(코드) 바꾸면 양쪽 동기화.
+
+**5. 다음 세션이 먼저 할 일 (우선순위):**
+1. **⚠️ 직전 미검증분 먼저**: [#326] 프리뷰에서 **①암 폼 제출 → 코디 화면에 한글 라벨로 뜨는지(다중주체 클릭은 이번에 못 함, 데이터경로만 검증) ②이메일 6언어·암 폼 카피 톤(특히 러/카)** 확인. OK면 머지. (코디 버튼→메일발송→폼열림→토큰검증은 **실호출로 검증됨**, 폼제출→코디표시 런타임만 미검증.)
+2. **에이전시 계정** — `C:\Users\user\Desktop\HEALO_worktrees\agency`에서 **별도 세션**으로(포트 3001). 충돌 0.
+3. (보류) `drop_dead_tables` 마이그레이션·LAUNCH_CHECKLIST = 다른 세션 것, 건들지 말 것.
+
+**6. 검증 상태:**
+- ✅ **[#326] CI 초록**: `ci`·`Smoke Tests (PR)` pass(force-push 후 재실행분 확인). **[#325] 머지됨**(main Full E2E 75통과/0실패).
+- ✅ `next build --webpack` exit 0 · `check:content` 통과.
+- ✅ 로컬 dev 실호출: 추가정보 요청 API 200·**실메일 발송 도달**(noreply→admin@healwith.co.kr, 러시아어)·전화 복호화(`+82…`)·암 폼 **ru 100% 렌더(원문키 0)**·마이그레이션 prod 적용.
+- ❌ **폼 제출 → 코디 한글표시 런타임 클릭 미검증**(데이터경로·표시로직은 확인, 다중주체 실클릭 못 함) → 5번 1.
+- ❌ **prod 미반영**(#326 머지 전).
+
+**7. 다음 세션 첫 프롬프트:**
+> 먼저 docs/PROJECT_CONTEXT.md 최상단 핸드오프 읽어. 2026-06-24 오후에 코디 '추가 정보 요청' 기능 + 암환자용 인테이크 폼 전면교체를 #326으로 올렸는데 **프리뷰 톤 검토 대기라 아직 머지 안 했어**. ①프리뷰에서 암 폼 제출→코디 화면 한글표시 + 이메일/폼 6언어 카피 톤(러·카) 봐주고 OK면 머지. ②에이전시 계정은 C:\Users\user\Desktop\HEALO_worktrees\agency 에서 **별도 세션**(포트 3001)으로 — 같은 폴더 충돌 방지. ③docs/DB_DEAD_TABLES·drop_dead_tables 마이그레이션은 다른 세션 것이니 건들지 마.
+
+
+---
+
 ## 🔖 세션 핸드오프 (2026-06-24 — 재진 엔진 followup_schedules 배선 + 파비콘(얀덱스) + 프로덕션 정리)
 
 > 직전 핸드오프(#318)의 "#311·#313·#315 프로덕션 미반영" 우려를 실배포 이력으로 검증 → **이미 #313 promote 로 user-facing 수정은 라이브였음(핸드오프가 낡았던 것)**. 이어서 재진 엔진 근본수정(휴면 해제)·얀덱스 파비콘을 한 PR로 머지·배포. **[#320](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/320) main 머지 완료(`0c7dd8e`).**

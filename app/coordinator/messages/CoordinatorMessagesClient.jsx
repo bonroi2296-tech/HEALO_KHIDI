@@ -12,18 +12,19 @@ import { useRouter } from "next/navigation";
 import { MessageSquare } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 
+// 대화 처리 단계(워크플로): 신규 → (응답 필요 ↔ 환자 응답 대기) → 완료
 const STATUS_OPTIONS = [
-  { value: "open", label: "열림" },
+  { value: "open", label: "신규" },
   { value: "waiting_coordinator", label: "응답 필요" },
   { value: "waiting_patient", label: "환자 응답 대기" },
-  { value: "resolved", label: "해결됨" },
+  { value: "resolved", label: "완료" },
 ];
 
 const STATUS_BADGE = {
-  open: "bg-teal-50 text-teal-700",
+  open: "bg-blue-50 text-blue-600",
   waiting_coordinator: "bg-red-50 text-red-600",
-  waiting_patient: "bg-gray-100 text-gray-500",
-  resolved: "bg-green-50 text-green-700",
+  waiting_patient: "bg-amber-50 text-amber-600",
+  resolved: "bg-gray-100 text-gray-500",
 };
 
 const CHANNEL = {
@@ -40,7 +41,13 @@ function fmtDate(v) {
   try { return new Date(v).toLocaleDateString("ko-KR"); } catch { return ""; }
 }
 function statusLabel(s) {
-  return STATUS_OPTIONS.find((o) => o.value === s)?.label || "열림";
+  return STATUS_OPTIONS.find((o) => o.value === s)?.label || "신규";
+}
+// 미리보기 앞에 발신자 표시 (누가 마지막 말 했는지). 실제 actor_type 값 기준.
+function actorPrefix(actor) {
+  const m = { patient: "환자: ", user: "환자: ", system: "AI: ", bot: "AI: ", coordinator: "나: ", agency: "에이전시: ", admin: "관리자: " };
+  const label = m[actor];
+  return label ? <span className="font-medium text-gray-400">{label}</span> : null;
 }
 // 스레드 제목: 게스트명 > 제목 > 폴백. AI 채팅 기본 제목은 한국어로 다듬음.
 function threadTitle(t) {
@@ -178,7 +185,7 @@ export default function CoordinatorMessagesClient() {
   const selectedThread = threads.find((t) => t.id === selectedId);
 
   return (
-    <div className="grid h-[calc(100vh-3rem)] grid-cols-[300px_1fr] bg-gray-50 text-gray-900">
+    <div className="grid h-[calc(100vh-6.5rem)] md:h-[calc(100vh-7rem)] lg:h-[calc(100vh-4rem)] grid-cols-[300px_1fr] bg-gray-50 text-gray-900">
       {/* 좌측 — 스레드 목록 */}
       <aside className="flex flex-col overflow-hidden border-r border-gray-200 bg-white">
         <div className="border-b border-gray-200 px-4 py-3">
@@ -202,7 +209,7 @@ export default function CoordinatorMessagesClient() {
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto">
+        <div className="min-h-0 flex-1 overflow-y-auto">
           {loading ? (
             <div className="p-6 text-sm text-gray-400">불러오는 중…</div>
           ) : threads.length === 0 ? (
@@ -219,18 +226,19 @@ export default function CoordinatorMessagesClient() {
                     active ? "bg-teal-50" : "hover:bg-gray-50"
                   }`}
                 >
-                  <div className="mb-1 flex items-center gap-2">
-                    <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: ch.color }} title={ch.label} />
+                  <div className="mb-0.5 flex items-center gap-2">
+                    <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: ch.color }} title={`채널: ${ch.label}`} />
                     <span className="truncate text-sm font-medium text-gray-900">{threadTitle(t)}</span>
                     {t.guest_country && <span className="shrink-0 text-xs text-gray-400">· {t.guest_country}</span>}
-                  </div>
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="truncate text-xs text-gray-400">
-                      {t.guest_name ? (t.guest_email || ch.label) : (t.inquiry_id ? `문의 #${t.inquiry_id}` : ch.label)}
-                    </span>
-                    <span className="shrink-0 text-xs text-gray-400">
+                    <span className="ml-auto shrink-0 text-xs text-gray-400">
                       {fmtDate(t.updated_at || t.last_active_at || t.created_at)}
                     </span>
+                  </div>
+                  {/* 마지막 메시지 미리보기 — 누가 무슨 말 했는지 한눈에 (길면 …) */}
+                  <div className="truncate text-xs text-gray-500">
+                    {t.last_message
+                      ? <>{actorPrefix(t.last_actor)}{t.last_message}</>
+                      : <span className="text-gray-400">{t.inquiry_id ? `문의 #${t.inquiry_id}` : "메시지 없음"}</span>}
                   </div>
                   <span className={`mt-1.5 inline-block rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_BADGE[t.status] || STATUS_BADGE.open}`}>
                     {statusLabel(t.status)}
@@ -243,7 +251,7 @@ export default function CoordinatorMessagesClient() {
       </aside>
 
       {/* 우측 — 대화 */}
-      <div className="flex flex-col overflow-hidden">
+      <div className="flex h-full min-h-0 flex-col overflow-hidden">
         {!selectedThread ? (
           <div className="flex flex-1 items-center justify-center text-sm text-gray-400">
             왼쪽에서 대화를 선택하세요.
@@ -285,7 +293,7 @@ export default function CoordinatorMessagesClient() {
             </div>
 
             {/* 메시지 */}
-            <div className="flex-1 overflow-y-auto bg-gray-50 px-6 py-5">
+            <div className="min-h-0 flex-1 overflow-y-auto bg-gray-50 px-6 py-5">
               {msgLoading ? (
                 <div className="flex h-full items-center justify-center">
                   <div className="h-6 w-6 animate-spin rounded-full border-2 border-teal-600 border-t-transparent" />
@@ -330,32 +338,44 @@ export default function CoordinatorMessagesClient() {
 }
 
 function Message({ m, meId }) {
+  // 실제 actor_type 값(DB): patient(환자 입력) · system(AI 답변) · coordinator · agency · admin
   const isMine = m.actor_type === "coordinator" && m.actor_id === meId;
-  const isPatient = m.actor_type === "user";
+  const isPatient = m.actor_type === "patient" || m.actor_type === "user";
+  const isAI = m.actor_type === "system" || m.actor_type === "bot";
+  const isAdmin = m.actor_type === "admin";
+  const isAgency = m.actor_type === "agency";
+
+  // 발신자별 라벨 + 색 — 환자(파랑)·AI(보라)를 한눈에 구분
   const label =
     isMine ? "나 (코디네이터)" :
-    isPatient ? "환자" :
-    m.actor_type === "agency" ? "에이전시(파트너)" :
-    m.actor_type === "bot" ? "healwith AI" :
-    m.actor_type === "admin" ? "healwith 관리자" :
+    isPatient ? "🙋 환자" :
+    isAI ? "🤖 healwith AI" :
+    isAgency ? "🏢 에이전시" :
+    isAdmin ? "healwith 관리자" :
     m.actor_type === "coordinator" ? "다른 코디네이터" :
     "시스템";
+  const labelColor =
+    isPatient ? "text-blue-600" :
+    isAI ? "text-violet-600" :
+    isAgency ? "text-emerald-600" :
+    isAdmin ? "text-amber-600" :
+    "text-gray-400";
+  // 버블: 나=teal 우측 / 환자=흰색+파란 좌측 액센트 / AI=보라 틴트 / 에이전시=초록 / 관리자=앰버
+  const bubble =
+    isMine ? "bg-teal-600 text-white" :
+    isPatient ? "border border-gray-200 border-l-[3px] border-l-blue-400 bg-white text-gray-900" :
+    isAI ? "border border-violet-100 bg-violet-50 text-gray-800" :
+    isAgency ? "border border-emerald-100 bg-emerald-50 text-gray-800" :
+    isAdmin ? "border border-amber-100 bg-amber-50 text-gray-800" :
+    "border border-gray-200 bg-gray-100 text-gray-700";
 
   return (
     <div className={`mb-3.5 flex ${isMine ? "justify-end" : "justify-start"}`}>
       <div className={`max-w-[72%] ${isMine ? "text-right" : "text-left"}`}>
-        <div className="mb-1 text-xs font-medium text-gray-400">
-          {label} · {new Date(m.created_at).toLocaleString("ko-KR")}
+        <div className={`mb-1 text-xs font-semibold ${isMine ? "text-gray-400" : labelColor}`}>
+          {label} <span className="font-normal text-gray-400">· {new Date(m.created_at).toLocaleString("ko-KR")}</span>
         </div>
-        <div
-          className={`inline-block whitespace-pre-wrap break-words rounded-xl px-4 py-2.5 text-sm leading-relaxed ${
-            isMine
-              ? "bg-teal-600 text-white"
-              : isPatient
-              ? "border border-gray-200 bg-white text-gray-900"
-              : "border border-gray-200 bg-gray-100 text-gray-800"
-          }`}
-        >
+        <div className={`inline-block whitespace-pre-wrap break-words rounded-xl px-4 py-2.5 text-sm leading-relaxed ${bubble}`}>
           {m.message_text}
         </div>
       </div>
