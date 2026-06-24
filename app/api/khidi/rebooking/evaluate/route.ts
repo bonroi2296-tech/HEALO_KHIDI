@@ -12,10 +12,18 @@ import { evaluateRebooking } from "@/lib/followup/rebookingEngine";
 import type { FollowupSchedule } from "@/lib/followup/scheduler";
 import type { SymptomReport } from "@/lib/followup/symptomAnalyzer";
 import { defaultLimiter } from "@/lib/api/rateLimiter";
+import { checkAdminAuth } from "@/lib/auth/checkAdminAuth";
 
 export async function POST(request: NextRequest) {
   const limited = defaultLimiter.check(request);
   if (limited) return limited;
+
+  // ── 인증 확인: 로그인한 사용자만 평가 호출 가능 (다른 khidi 라우트와 일관) ──
+  const auth = await checkAdminAuth(request);
+  if (!auth.userId) {
+    return Response.json({ ok: false, error: "unauthorized" }, { status: 401 });
+  }
+
   try {
     const payload = await request.json();
 

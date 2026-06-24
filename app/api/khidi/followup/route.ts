@@ -43,12 +43,30 @@ export async function POST(request: NextRequest) {
       additionalNotes: payload.additionalNotes,
     };
 
-    // AI 분석 실행
-    const analysis = analyzeSymptoms(report);
-
     // Supabase에 결과 저장
     const { getSupabaseServerClient } = await import("@/lib/data/supabaseServerClient");
     const supabaseAdmin = getSupabaseServerClient();
+
+    // ── IDOR 방지: 문의(inquiry) 소유자 본인 또는 어드민/스태프만 증상 보고서 작성 가능 ──
+    // (rebooking/create 의 소유권 검증 패턴과 동일 — inquiry.user_id 로 소유자 확인)
+    if (!auth.isAdmin) {
+      const inquiryId = payload.inquiryId ?? payload.inquiry_id ?? null;
+      if (!inquiryId) {
+        // inquiry 미지정인데 어드민도 아니면 소유권 검증 불가 → 거부
+        return Response.json({ ok: false, error: "forbidden" }, { status: 403 });
+      }
+      const { data: inq } = await supabaseAdmin
+        .from("inquiries")
+        .select("user_id")
+        .eq("id" as any, inquiryId)
+        .maybeSingle();
+      if (!inq || (inq as any).user_id !== auth.userId) {
+        return Response.json({ ok: false, error: "forbidden" }, { status: 403 });
+      }
+    }
+
+    // AI 분석 실행
+    const analysis = analyzeSymptoms(report);
 
     const insertData = {
       followup_id: payload.followupId || null,
