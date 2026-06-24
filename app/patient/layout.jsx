@@ -8,6 +8,7 @@ import {
   Home, FileText, BookOpen, Activity, Calendar, Globe,
   MoreHorizontal, X,
 } from 'lucide-react';
+import PatientNotificationBell from '@/components/patient/PatientNotificationBell';
 
 const PRIMARY_TABS = [
   { href: '/patient', icon: Home, label: { ko: '홈', en: 'Home', ru: 'Главная', kz: 'Басты', zh: '首页', ja: 'ホーム' } },
@@ -53,6 +54,7 @@ export default function PatientLayout({ children }) {
 
   return (
     <div className="min-h-screen bg-gray-50 pt-14 md:pt-16 pb-20 lg:pb-0">
+      <PatientNotificationBell />
       {children}
 
       {/* More menu overlay */}

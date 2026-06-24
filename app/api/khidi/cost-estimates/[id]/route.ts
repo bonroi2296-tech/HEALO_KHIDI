@@ -183,6 +183,33 @@ export async function PATCH(
       });
     }
 
+    // 견적 발행 시 환자 인앱 알림 — 환자가 동의/거절하러 들어오게 (지금까지 환자 신호 0이던 통로).
+    // best-effort, 절대 업데이트 실패시키지 않음. 언어 컬럼이 없어 주시장 ru 기본(링크는 언어 무관).
+    if (updates.status === "issued" && data.patient_user_id) {
+      try {
+        const { sendInAppNotification } = await import("@/lib/notifications/inApp");
+        const lang = (data.language || data.patient_language || "ru") as string;
+        const NL: Record<string, { t: string; b: string }> = {
+          ru: { t: "Готова смета расходов", b: "Координатор выставил смету. Откройте, чтобы согласовать или отклонить." },
+          kz: { t: "Шығындар сметасы дайын", b: "Координатор смета шығарды. Келісу немесе бас тарту үшін ашыңыз." },
+          en: { t: "Cost estimate ready", b: "Your coordinator issued a cost estimate. Open to accept or decline." },
+          ko: { t: "비용 견적서가 발급되었습니다", b: "코디네이터가 견적서를 발급했습니다. 눌러서 동의/거절하세요." },
+        };
+        const m = NL[lang] || NL.ru;
+        await sendInAppNotification({
+          userId: data.patient_user_id,
+          type: "cost_estimate_issued",
+          title: m.t,
+          body: m.b,
+          link: `/patient/cost-estimates/${id}`,
+          priority: "high",
+          payload: { estimate_id: id },
+        });
+      } catch (notifErr: any) {
+        console.warn("[cost-estimates] in-app notify 실패:", notifErr?.message);
+      }
+    }
+
     const { coordinator_notes_encrypted: _drop, ...rest } = data;
     return Response.json({ ok: true, data: rest });
   } catch (error: any) {
