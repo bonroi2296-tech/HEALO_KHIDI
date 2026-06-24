@@ -71,11 +71,14 @@ const baseMetadata = {
   },
   // alternates(hreflang/canonical)는 generateMetadata에서 요청 언어별로 동적 생성.
   icons: {
+    // /favicon.ico = 얀덱스 등 크롤러가 루트에서 기본으로 찾는 클래식 파비콘(16·32 임베드).
     icon: [
+      { url: "/favicon.ico", sizes: "any" },
       { url: "/favicon-32x32.png", sizes: "32x32", type: "image/png" },
       { url: "/favicon-16x16.png", sizes: "16x16", type: "image/png" },
       { url: "/icons/icon-192x192.png", sizes: "192x192", type: "image/png" },
     ],
+    shortcut: ["/favicon.ico"],
     apple: [{ url: "/apple-touch-icon.png", sizes: "180x180" }],
   },
   manifest: "/manifest.json",

@@ -692,7 +692,7 @@ PO가 "둘을 하나로 합쳐줘" → 통합 중 **결정적 사실**을 실DB�
 
 **재발 방지 (시스템 적용)**
 - 교훈: **DB 기능은 코드가 아니라 실스키마(`information_schema`)로 확인**한다. "엔진이 X 컬럼에 쓴다"는 코드는 그 컬럼의 존재를 보장하지 않는다.
-- 후속(미적용·중요): 재진 **엔진(`rebooking/create`)이 유령 컬럼에 써서 `followup_schedules`가 0행** — 재진 기능은 엔진을 정식 테이블로 고치기 전까진 휴면. 별도 근본수정 필요.
+- 후속(**2026-06-24 적용 완료**): 재진 엔진(`rebooking/create`)이 `consultation_sessions`에 써서 `followup_schedules`가 0행이라 환자 재진화면이 항상 비었던 휴면 상태 → **엔진이 정식 테이블 `followup_schedules`에 `status='proposed'`로 쓰게** 고침. inquiry에서 `cancer_type`(NOT NULL 충족)·`user_id`(→`patient_user_id`, 환자 노출키)를 끌어와 연결. **실DB 추가 단절 발견**: `followup_schedules_status_check`가 active/paused/completed/cancelled만 허용해 화면·포털API의 제안 어휘(pending/proposed/confirmed/dismissed)를 막고 있었음 → CHECK를 합집합으로 넓힘(가역 마이그레이션). 계약테스트도 새 테이블로 갱신. **교훈 보강**: 코드뿐 아니라 **CHECK 제약 어휘까지 실DB로 확인**해야 — 화면/API가 쓰는 status 값이 DB에서 허용되는지는 별개다.
 - 교훈: 한 기능을 두 디자인모드로 가르면 데이터원이 갈리기 쉽다 — 서버 엔드포인트를 단일화(SoR)하고 화면은 거기에만 붙인다.
 
 ## #30 — 비영어(카자흐·러시아 등) 공개 페이지가 서버 렌더(SSR)에서 영어로 나가 구글에 영어로 색인됨 (2026-06-23)
