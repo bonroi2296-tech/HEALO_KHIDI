@@ -4,7 +4,12 @@ declare global {
   }
 }
 
-const getGaId = () => process.env.NEXT_PUBLIC_GA_ID || "";
+// ponytail: GA4 측정ID는 공개값(브라우저 번들에 노출). Vercel env(NEXT_PUBLIC_GA_ID)가
+// 옛 실험 속성 G-TH0ZK2G9B9 로 오염돼 있어, 코드 상수를 단일 진실원천으로 고정한다.
+// 정식 속성: healwith-cb0cb (Probelle 계정). 속성 바꾸려면 여기 한 줄만 수정.
+export const GA_ID = "G-6JJCQXZJ9T";
+
+const getGaId = () => GA_ID;
 
 /**
  * 쿠키 동의가 "all"("Accept All")인지. 분석툴 로드/발화 게이트의 단일 기준.

@@ -3,7 +3,7 @@
 import { usePathname } from "next/navigation";
 import Script from "next/script";
 import { useEffect, useState } from "react";
-import { hasAnalyticsConsent } from "@/lib/ga";
+import { hasAnalyticsConsent, GA_ID } from "@/lib/ga";
 
 /**
  * healwith: Analytics 래퍼 (GA4 + Yandex Metrica)
@@ -20,7 +20,7 @@ import { hasAnalyticsConsent } from "@/lib/ga";
  */
 export default function AnalyticsWrapper() {
   const pathname = usePathname();
-  const gaId = process.env.NEXT_PUBLIC_GA_ID;
+  const gaId = GA_ID;
   const ymId = process.env.NEXT_PUBLIC_YANDEX_METRICA_ID;
   const isProduction = process.env.NODE_ENV === "production";
   const isAdminPath = pathname?.startsWith("/admin");
