@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { MessageSquare, Eye, Reply, CheckCircle, XCircle, Clock, Filter, X, ChevronDown, ChevronUp, Send, Search, Download } from "lucide-react";
+import { MessageSquare, Eye, Reply, CheckCircle, XCircle, Clock, Filter, X, ChevronDown, ChevronUp, Send, Search, Download, Paperclip, CalendarClock, Plus, Trash2, Loader2, ShieldCheck, FileText } from "lucide-react";
 
 const STATUS_CONFIG = {
   queued: { label: "대기", color: "bg-gray-100 text-gray-700", icon: Clock },
@@ -260,23 +260,67 @@ function LeadCard({ lead, onClick }) {
   );
 }
 
+// ISO → datetime-local 입력값 (로컬 시각 YYYY-MM-DDTHH:mm)
+function isoToLocalInput(iso) {
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return "";
+  const p = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
 function LeadDetailSheet({ lead, onClose, onUpdateStatus }) {
-  const inquiry = lead.normalized_inquiries;
   const sc = STATUS_CONFIG[lead.status] || STATUS_CONFIG.queued;
   const Icon = sc.icon;
+  const [detail, setDetail] = useState(null);
+  const [loadingDetail, setLoadingDetail] = useState(true);
   const [notes, setNotes] = useState(lead.notes || "");
   const [priceMin, setPriceMin] = useState(lead.quoted_price_min || "");
   const [priceMax, setPriceMax] = useState(lead.quoted_price_max || "");
+  // 원격협진 가능 시간 슬롯 — datetime-local 값
+  const [slots, setSlots] = useState([]);
   const [saving, setSaving] = useState(false);
 
-  const handleSaveQuote = async () => {
+  useEffect(() => {
+    let alive = true;
+    setLoadingDetail(true);
+    fetchWithAuth(`/api/partner/leads/${lead.id}`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (!alive || !data.ok) return;
+        setDetail(data.detail);
+        const saved = data.lead?.consult_slots || [];
+        if (saved.length) setSlots(saved.map((s) => ({ at: isoToLocalInput(s.at), note: s.note || "" })));
+      })
+      .catch((e) => console.error("[Lead detail] load error:", e))
+      .finally(() => alive && setLoadingDetail(false));
+    return () => { alive = false; };
+  }, [lead.id]);
+
+  // datetime-local → ISO 로 변환해 서버에 전달
+  const slotsPayload = () =>
+    slots.filter((s) => s.at).map((s) => ({ at: new Date(s.at).toISOString(), note: s.note?.trim() || null }));
+
+  const addSlot = () => setSlots((s) => [...s, { at: "", note: "" }]);
+  const removeSlot = (i) => setSlots((s) => s.filter((_, x) => x !== i));
+  const setSlot = (i, patch) => setSlots((s) => s.map((v, x) => (x === i ? { ...v, ...patch } : v)));
+
+  const handleReply = async () => {
     setSaving(true);
-    await onUpdateStatus(lead.id, "replied", {
+    // 이미 치료 확정된 건은 후퇴시키지 않음
+    const newStatus = lead.status === "converted" ? "converted" : "replied";
+    await onUpdateStatus(lead.id, newStatus, {
       notes,
       quoted_price_min: priceMin ? Number(priceMin) : null,
       quoted_price_max: priceMax ? Number(priceMax) : null,
+      consult_slots: slotsPayload(),
     });
     setSaving(false);
+  };
+
+  const handleStatus = (status) => {
+    // 회신/확정엔 가능시간도 함께 전달(코디가 일정 잡게), 거절엔 불필요
+    const extras = status === "rejected" ? {} : { consult_slots: slotsPayload() };
+    onUpdateStatus(lead.id, status, extras);
   };
 
   const statusActions = [];
@@ -287,7 +331,7 @@ function LeadDetailSheet({ lead, onClose, onUpdateStatus }) {
   return (
     <div className="fixed inset-0 z-50 flex items-end lg:items-center justify-center">
       <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-white w-full lg:max-w-lg lg:rounded-2xl rounded-t-2xl max-h-[85vh] overflow-y-auto shadow-2xl">
+      <div className="relative bg-white w-full lg:max-w-lg lg:rounded-2xl rounded-t-2xl max-h-[88vh] overflow-y-auto shadow-2xl">
         <div className="sticky top-0 bg-white px-5 py-4 border-b border-gray-100 flex items-center justify-between z-10">
           <div className="flex items-center gap-2">
             <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium ${sc.color}`}>
@@ -301,74 +345,137 @@ function LeadDetailSheet({ lead, onClose, onUpdateStatus }) {
         </div>
 
         <div className="p-5 space-y-5">
+          {/* 임상 정보 — 견적·치료가능 판단 근거 */}
           <div>
-            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">문의 정보</h3>
-            <div className="bg-gray-50 rounded-lg p-4 space-y-2 text-sm">
-              {inquiry?.objective && (
-                <div><span className="text-gray-500">목적:</span> <span className="text-gray-900 font-medium">{inquiry.objective}</span></div>
-              )}
-              {inquiry?.treatment_slug && (
-                <div><span className="text-gray-500">시술:</span> <span className="text-gray-900">{inquiry.treatment_slug}</span></div>
-              )}
-              {inquiry?.country && (
-                <div><span className="text-gray-500">국가:</span> <span className="text-gray-900">{inquiry.country}</span></div>
-              )}
-              {inquiry?.language && (
-                <div><span className="text-gray-500">언어:</span> <span className="text-gray-900">{inquiry.language}</span></div>
-              )}
-              {inquiry?.source_type && (
-                <div><span className="text-gray-500">출처:</span> <span className="text-gray-900">{inquiry.source_type}</span></div>
-              )}
-              <div className="text-xs text-gray-400 pt-1">
-                배정일: {new Date(lead.assigned_at).toLocaleString("ko-KR")}
+            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">환자 / 임상 정보</h3>
+            {loadingDetail ? (
+              <div className="bg-gray-50 rounded-lg p-4 flex items-center gap-2 text-sm text-gray-500">
+                <Loader2 size={15} className="animate-spin" /> 의뢰 상세 불러오는 중…
               </div>
-            </div>
+            ) : !detail ? (
+              <div className="bg-gray-50 rounded-lg p-4 text-sm text-gray-500">상세 정보를 불러오지 못했습니다.</div>
+            ) : (
+              <div className="bg-gray-50 rounded-lg p-4 space-y-3 text-sm">
+                <div className="flex flex-wrap gap-x-4 gap-y-1 text-gray-700">
+                  <span><span className="text-gray-400">환자</span> {detail.patient}</span>
+                  {detail.country && <span><span className="text-gray-400">국적</span> {detail.country}</span>}
+                  {detail.language && <span><span className="text-gray-400">언어</span> {detail.language}</span>}
+                </div>
+                {(detail.cancer_type || detail.treatment_type) && (
+                  <div className="flex flex-wrap gap-2">
+                    {detail.cancer_type && <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-teal-50 text-teal-700 text-xs font-medium">{detail.cancer_type}</span>}
+                    {detail.treatment_type && detail.treatment_type !== detail.cancer_type && <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 text-xs">{detail.treatment_type}</span>}
+                  </div>
+                )}
+                {detail.clinical?.length > 0 && (
+                  <dl className="grid grid-cols-2 gap-x-3 gap-y-1.5">
+                    {detail.clinical.map((c, i) => (
+                      <div key={i} className="min-w-0">
+                        <dt className="text-[11px] text-gray-400">{c.label}</dt>
+                        <dd className="text-gray-900 truncate">{c.value}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                )}
+                {(detail.preferred_date || detail.preferred_date_flex) && (
+                  <div className="text-gray-700">
+                    <span className="text-gray-400">희망 방한일</span>{" "}
+                    {detail.preferred_date ? new Date(detail.preferred_date).toLocaleDateString("ko-KR") : "유동적"}
+                    {detail.preferred_date && detail.preferred_date_flex && " (유동적)"}
+                  </div>
+                )}
+                {detail.insurance && (
+                  <div className="flex items-center gap-1.5 text-gray-700">
+                    <ShieldCheck size={14} className="text-gray-400" />
+                    <span>{[detail.insurance.provider, detail.insurance.coverage, detail.insurance.status].filter(Boolean).join(" · ") || "보험 정보 있음"}</span>
+                  </div>
+                )}
+                {detail.message && (
+                  <div>
+                    <p className="text-[11px] text-gray-400 mb-1">환자 메시지</p>
+                    <p className="text-gray-800 whitespace-pre-wrap bg-white border border-gray-100 rounded-lg p-3 leading-relaxed">{detail.message}</p>
+                  </div>
+                )}
+                {detail.attachments?.length > 0 && (
+                  <div>
+                    <p className="text-[11px] text-gray-400 mb-1.5 flex items-center gap-1"><Paperclip size={12} /> 첨부 의료기록 ({detail.attachments.length})</p>
+                    <div className="space-y-1.5">
+                      {detail.attachments.map((a, i) => (
+                        a.url ? (
+                          <a key={i} href={a.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-teal-700 hover:underline">
+                            <FileText size={14} /> <span className="truncate">{a.name}</span>
+                          </a>
+                        ) : (
+                          <div key={i} className="flex items-center gap-2 text-gray-400"><FileText size={14} /> <span className="truncate">{a.name} (열람 불가)</span></div>
+                        )
+                      ))}
+                    </div>
+                  </div>
+                )}
+                <div className="text-xs text-gray-400 pt-1">배정일: {new Date(lead.assigned_at).toLocaleString("ko-KR")}</div>
+              </div>
+            )}
           </div>
 
+          {/* 견적/메모 */}
           <div>
             <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">견적/메모</h3>
             <div className="space-y-3">
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs text-gray-500 mb-1">최소 가격 (USD)</label>
-                  <input
-                    type="number"
-                    value={priceMin}
-                    onChange={(e) => setPriceMin(e.target.value)}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                    placeholder="0"
-                  />
+                  <input type="number" value={priceMin} onChange={(e) => setPriceMin(e.target.value)} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none" placeholder="0" />
                 </div>
                 <div>
                   <label className="block text-xs text-gray-500 mb-1">최대 가격 (USD)</label>
-                  <input
-                    type="number"
-                    value={priceMax}
-                    onChange={(e) => setPriceMax(e.target.value)}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
-                    placeholder="0"
-                  />
+                  <input type="number" value={priceMax} onChange={(e) => setPriceMax(e.target.value)} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none" placeholder="0" />
                 </div>
               </div>
               <div>
                 <label className="block text-xs text-gray-500 mb-1">메모</label>
-                <textarea
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  rows={3}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none resize-none"
-                  placeholder="환자에 대한 메모를 입력하세요..."
-                />
+                <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none resize-none" placeholder="치료 가능 여부·견적 산정 근거 등 메모..." />
               </div>
-              <button
-                onClick={handleSaveQuote}
-                disabled={saving}
-                className="w-full bg-blue-600 text-white py-2.5 rounded-lg text-sm font-medium hover:bg-blue-700 transition disabled:opacity-50"
-              >
-                {saving ? "저장 중..." : "견적/메모 저장"}
+            </div>
+          </div>
+
+          {/* 원격협진 가능 시간 → 코디에게 전달 */}
+          <div>
+            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2 flex items-center gap-1">
+              <CalendarClock size={13} /> 원격협진 가능 시간
+            </h3>
+            <p className="text-[11px] text-gray-400 mb-2">응답 완료 시 코디네이터에게 전달되어 일정 조율에 쓰입니다. (현지 시각 입력)</p>
+            <div className="space-y-2">
+              {slots.map((s, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <input
+                    type="datetime-local"
+                    value={s.at}
+                    onChange={(e) => setSlot(i, { at: e.target.value })}
+                    className="flex-1 min-w-0 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none"
+                  />
+                  <input
+                    type="text"
+                    value={s.note}
+                    onChange={(e) => setSlot(i, { note: e.target.value })}
+                    placeholder="메모(선택)"
+                    className="w-24 border border-gray-200 rounded-lg px-2 py-2 text-sm focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none"
+                  />
+                  <button onClick={() => removeSlot(i)} className="p-2 text-gray-400 hover:text-red-500 transition"><Trash2 size={15} /></button>
+                </div>
+              ))}
+              <button onClick={addSlot} className="flex items-center gap-1.5 text-teal-700 text-sm font-medium hover:underline">
+                <Plus size={14} /> 가능 시간 추가
               </button>
             </div>
           </div>
+
+          <button
+            onClick={handleReply}
+            disabled={saving}
+            className="w-full bg-teal-600 text-white py-2.5 rounded-lg text-sm font-medium hover:bg-teal-700 transition disabled:opacity-50"
+          >
+            {saving ? "저장 중..." : "응답 저장 (견적·가능시간 → 코디 전달)"}
+          </button>
 
           {statusActions.length > 0 && (
             <div>
@@ -377,7 +484,7 @@ function LeadDetailSheet({ lead, onClose, onUpdateStatus }) {
                 {statusActions.map((action) => (
                   <button
                     key={action.status}
-                    onClick={() => onUpdateStatus(lead.id, action.status)}
+                    onClick={() => handleStatus(action.status)}
                     className={`${action.color} text-white px-4 py-2 rounded-lg text-sm font-medium transition`}
                   >
                     {action.label}
