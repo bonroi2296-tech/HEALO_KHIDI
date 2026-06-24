@@ -58,16 +58,27 @@ export default function ResetPasswordClient() {
   useEffect(() => {
     let settled = false;
     const markReady = () => { if (!settled) { settled = true; setStatus("ready"); } };
+    const markInvalid = () => { if (!settled) { settled = true; setStatus("invalid"); } };
 
+    // 새 방식: 복구 메일의 token_hash를 클라이언트 JS로 검증(이메일 스캐너 안전).
+    const params = new URLSearchParams(window.location.search);
+    const token_hash = params.get("token_hash");
+    const type = params.get("type");
+    if (token_hash && type) {
+      supabase.auth.verifyOtp({ type, token_hash }).then(({ error }) => {
+        if (error) markInvalid(); else markReady();
+      });
+      return;
+    }
+
+    // 폴백: 이미 세션이 잡힌 경우(implicit/PKCE detectSessionInUrl)
     const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session) markReady();
     });
     supabase.auth.getSession().then(({ data }) => {
       if (data?.session) markReady();
     });
-    const timer = setTimeout(() => {
-      if (!settled) { settled = true; setStatus("invalid"); }
-    }, 3500);
+    const timer = setTimeout(markInvalid, 3500);
 
     return () => { sub.subscription.unsubscribe(); clearTimeout(timer); };
   }, []);
