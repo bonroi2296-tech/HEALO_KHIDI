@@ -30,7 +30,6 @@ export const LEGACY_ROLE_ALIASES: Record<string, AccountTier> = {
   agent: "overseas_agency",
   agency: "overseas_agency",
   coordinator: "coordinator",
-  doctor: "doctor",
   admin: "admin",
 };
 
@@ -67,12 +66,6 @@ export const ROLE_PERMISSIONS: Record<AccountTier, readonly string[]> = {
     "patient:view",
     "consultation:moderate",
   ],
-  doctor: [
-    "consultation:host",
-    "treatment:record",
-    "patient:view",
-    "document:manage",
-  ],
   admin: ["*"],
   domestic_hospital: [
     "referral:review",
@@ -97,12 +90,11 @@ export function hasPermission(
   });
 }
 
-/** 우선순위 높은 역할 반환 (admin > coordinator > doctor > 병원 > 해외파트너 > 환자) */
+/** 우선순위 높은 역할 반환 (admin > coordinator > 병원 > 해외파트너 > 환자) */
 export function getPrimaryRole(roles: UserRoleRecord[]): UserRole | null {
   const priority: AccountTier[] = [
     "admin",
     "coordinator",
-    "doctor",
     "domestic_hospital",
     "overseas_agency",
     "overseas_medical",
