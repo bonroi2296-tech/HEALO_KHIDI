@@ -76,8 +76,6 @@ export async function POST(
       }
     }
 
-    const formUrl = `${SITE_URL}/inquiry/intake?inquiryId=${id}&token=${encodeURIComponent(token)}`;
-
     // PII(이메일·이름) 복호화 — staff 인증 후 서버에서만.
     let email: string | null = null;
     let name: string | null = null;
@@ -91,6 +89,9 @@ export async function POST(
     } catch (e: any) {
       console.error("[request-info] decrypt error:", e?.message);
     }
+
+    // 폼 링크는 환자 언어 prefix 로 — 러시아어 환자가 한국어 폼으로 열리지 않게.
+    const formUrl = `${SITE_URL}/${lang}/inquiry/intake?inquiryId=${id}&token=${encodeURIComponent(token)}`;
 
     // 이메일 발송(있을 때만). 실패해도 링크는 반환(코디가 다른 채널로 보냄).
     let emailSent = false;

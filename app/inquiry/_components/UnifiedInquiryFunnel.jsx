@@ -75,13 +75,14 @@ const DIAL_CODES = [
   { code: "OTHER", label: "기타 (번호에 +코드 직접 입력)" },
 ];
 
+// 순서 = 핵심 타겟 시장 우선(러시아·카자흐 먼저, 한국어 마지막).
 const PREFERRED_LANGUAGES = [
-  { value: "ko", label: "한국어" },
-  { value: "en", label: "English" },
   { value: "ru", label: "Русский" },
   { value: "kz", label: "Қазақша" },
-  { value: "zh", label: "中文" },
+  { value: "en", label: "English" },
   { value: "ja", label: "日本語" },
+  { value: "zh", label: "中文" },
+  { value: "ko", label: "한국어" },
 ];
 
 const CANCER_TYPES = [

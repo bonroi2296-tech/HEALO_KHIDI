@@ -35,6 +35,18 @@ const STATUS_COLORS = {
   pending: "bg-yellow-100 text-yellow-700",
 };
 
+// 암 인테이크(Step2) 코드값 → 코디용 한글 라벨. 폼(IntakeClient)의 value 와 1:1.
+const CI = {
+  diagnosis_timing: { label: "진단 시기", map: { lt1m: "최근 1개월", "1to6m": "1~6개월", "6mto1y": "6개월~1년", gt1y: "1년 이상", unknown: "모름" } },
+  stage: { label: "병기", map: { "1": "1기", "2": "2기", "3": "3기", "4": "4기", unknown: "모름" } },
+  current_status: { label: "현재 치료 상태", map: { diagnosed: "진단만 받음", surgery_done: "수술 받음", chemo: "항암치료 중", radiation: "방사선치료 중", completed: "치료 완료", recurrence: "재발·전이" } },
+  entry_timing: { label: "입국 희망 시기", map: { lt1m: "1개월 내", "1to3m": "1~3개월", gt3m: "3개월 이후", undecided: "미정" } },
+};
+const CI_MULTI = {
+  treatments_received: { label: "받은 치료", map: { surgery: "수술", chemo: "항암", radiation: "방사선", immuno: "면역", oriental: "한방", none: "없음" } },
+  documents: { label: "보유 서류", map: { pathology: "병리결과", imaging: "영상(CT·MRI·PET)", records: "진료기록" } },
+};
+
 function fmtDate(v) {
   if (!v) return "—";
   try {
@@ -197,6 +209,8 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
   // 혹시 복호화 안 된 암호문 문자열({"v":"v1",...})은 화면에 안 띄움.
   const looksEncrypted = (s) =>
     typeof s === "string" && /^\{"(v|iv|tag|data)"\s*:/.test(s.trim());
+  // 방어선: 복호화 실패로 암호문이 흘러와도 코디 화면엔 raw JSON 대신 "—".
+  const safe = (v) => (looksEncrypted(v) ? "—" : v);
   const intakeEntries =
     inquiry.intake && typeof inquiry.intake === "object" && !Array.isArray(inquiry.intake)
       ? Object.entries(inquiry.intake).filter(
@@ -243,9 +257,9 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
         {/* 연락 정보 */}
         <Card title="연락 정보">
           <Row icon={MessageCircle} label="연락 방법" value={inquiry.contact_method} />
-          <Row icon={Phone} label="연락처(ID)" value={inquiry.contact_id} />
-          <Row icon={Mail} label="이메일" value={inquiry.email} />
-          <Row icon={Phone} label="전화" value={inquiry.phone} />
+          <Row icon={Phone} label="연락처(ID)" value={safe(inquiry.contact_id)} />
+          <Row icon={Mail} label="이메일" value={safe(inquiry.email)} />
+          <Row icon={Phone} label="전화" value={safe(inquiry.phone)} />
         </Card>
 
         {/* 의료 / 여정 정보 */}
@@ -272,26 +286,57 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
 
       {/* 문의 메시지 */}
       <Card title="문의 메시지">
-        {inquiry.message ? (
+        {inquiry.message && !looksEncrypted(inquiry.message) ? (
           <p className="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed">{inquiry.message}</p>
         ) : (
           <p className="text-sm text-gray-400">남긴 메시지가 없습니다.</p>
         )}
       </Card>
 
-      {/* 추가 인테이크 정보 */}
-      {intakeEntries.length > 0 && (
-        <Card title="추가 정보 (인테이크)">
-          <div className="grid gap-x-6 sm:grid-cols-2">
-            {intakeEntries.map(([k, v]) => (
-              <div key={k} className="flex gap-2 py-1.5 border-b border-gray-50 text-sm">
-                <span className="text-gray-500 shrink-0">{k}</span>
-                <span className="text-gray-900 break-words">{String(v)}</span>
+      {/* 추가 인테이크 정보 (암 Step2) */}
+      {(() => {
+        const intake = inquiry.intake && typeof inquiry.intake === "object" ? inquiry.intake : {};
+        const cancer = intake.cancer && typeof intake.cancer === "object" ? intake.cancer : null;
+        const notes = !looksEncrypted(intake.notes) ? intake.notes : null;
+        const rows = [];
+        if (cancer) {
+          for (const k of Object.keys(CI)) {
+            const v = cancer[k];
+            if (v) rows.push([CI[k].label, CI[k].map[v] || String(v)]);
+          }
+          for (const k of Object.keys(CI_MULTI)) {
+            const arr = Array.isArray(cancer[k]) ? cancer[k] : null;
+            if (arr && arr.length) rows.push([CI_MULTI[k].label, arr.map((x) => CI_MULTI[k].map[x] || x).join(", ")]);
+          }
+        }
+        // 옛 데이터(complaint/history 구조 등) 호환: 위 매핑에 안 잡힌 top-level 스칼라.
+        const legacy = intakeEntries.filter(([k]) => k !== "notes" && k !== "cancer");
+        if (rows.length === 0 && legacy.length === 0 && !notes) return null;
+        return (
+          <Card title="추가 정보 (인테이크)">
+            <div className="grid gap-x-6 sm:grid-cols-2">
+              {rows.map(([k, v]) => (
+                <div key={k} className="flex gap-2 py-1.5 border-b border-gray-50 text-sm">
+                  <span className="text-gray-500 shrink-0">{k}</span>
+                  <span className="text-gray-900 break-words">{v}</span>
+                </div>
+              ))}
+              {legacy.map(([k, v]) => (
+                <div key={k} className="flex gap-2 py-1.5 border-b border-gray-50 text-sm">
+                  <span className="text-gray-500 shrink-0">{k}</span>
+                  <span className="text-gray-900 break-words">{String(v)}</span>
+                </div>
+              ))}
+            </div>
+            {notes && (
+              <div className="mt-3 pt-3 border-t border-gray-100">
+                <span className="text-xs text-gray-500">메모</span>
+                <p className="text-sm text-gray-900 whitespace-pre-wrap mt-1">{notes}</p>
               </div>
-            ))}
-          </div>
-        </Card>
-      )}
+            )}
+          </Card>
+        );
+      })()}
 
       {/* 접수/타임라인 */}
       <Card title="진행 상태">
@@ -327,11 +372,13 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
             </div>
           ) : (
             <div className="space-y-3">
-              <p className="text-sm text-teal-700 font-medium flex items-center gap-1.5">
+              <p className={`text-sm font-medium flex items-center gap-1.5 ${reqResult.emailSent ? "text-teal-700" : "text-amber-700"}`}>
                 <Check size={16} />
                 {reqResult.emailSent
                   ? `이메일 발송 완료 (${reqResult.email})`
-                  : "이메일 주소가 없어 메일은 못 보냈어요 — 아래 링크를 직접 보내세요."}
+                  : reqResult.email
+                    ? `메일 자동발송은 안 됐어요 (${reqResult.email}) — 아래 링크를 직접 보내세요.`
+                    : "이메일 주소가 없어요 — 아래 링크를 직접 보내세요."}
               </p>
 
               {/* 코디가 어떤 채널로든 보낼 수 있는 링크 */}
