@@ -128,7 +128,7 @@ export async function GET(
     if (norm?.source_inquiry_id != null) {
       const { data: inqRaw } = await supabase
         .from("inquiries")
-        .select("id, first_name, last_name, nationality, spoken_language, preferred_language, preferred_date, preferred_date_flex, treatment_type, cancer_type, message, intake, attachments, insurance_provider, insurance_coverage, insurance_status, lead_quality")
+        .select("id, first_name, last_name, nationality, spoken_language, preferred_date, preferred_date_flex, treatment_type, cancer_type, message, intake, attachments, insurance_provider, insurance_coverage, insurance_status, lead_quality")
         .eq("id", norm.source_inquiry_id)
         .maybeSingle();
       if (inqRaw) {
@@ -136,7 +136,7 @@ export async function GET(
         detail = {
           patient: maskName(inq.first_name, inq.last_name),
           country: inq.nationality || detail.country,
-          language: inq.spoken_language || inq.preferred_language || detail.language,
+          language: inq.spoken_language || detail.language,
           cancer_type: inq.cancer_type || null,
           treatment_type: inq.treatment_type || detail.treatment_type,
           objective: detail.objective,
