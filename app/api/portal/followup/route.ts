@@ -5,21 +5,81 @@
  * PATCH /api/portal/followup { id, status } → 본인 일정 상태 변경(확정/무시 등)
  *
  * 배경(P1): followup_schedules 는 service_role 전용 RLS → 브라우저 직접조회는 빈 데이터였음.
- * patient_user_id 로 본인 행만 다룸(이메일 매칭 불필요). PATCH 는 행 소유 확인 후 변경(IDOR 차단).
+ * patient_user_id 로 본인 행만 다룸. PATCH 는 행 소유 확인 후 변경(IDOR 차단).
+ * 자동연결(#35-C): 게스트로 문의했던 사람이 이메일 인증 계정으로 로그인하면, 같은 이메일의
+ * 문의에 달린 제안을 본인 계정으로 백필해 화면에 띄운다(문의 23건 중 user_id 보유 3건 한계 보완).
  */
 export const runtime = "nodejs";
 
 import { NextRequest } from "next/server";
 import { requirePortalAuth } from "@/lib/auth/requirePortalAuth";
 import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
+import { decryptStringNullable } from "@/lib/security/encryptionV2";
 
 const ALLOWED_STATUS = ["pending", "proposed", "confirmed", "dismissed", "completed"];
+
+function safeDecrypt(enc: any): string {
+  try {
+    return decryptStringNullable(enc) || "";
+  } catch {
+    return "";
+  }
+}
+
+/**
+ * 게스트로 문의했던 사람이 '이메일 인증된 계정'으로 로그인하면, 같은 이메일의 문의에 달린
+ * 재예약 제안(patient_user_id 미연결)을 그 계정으로 자동 연결한다(백필). §6 이메일=신원키 결정과 일관.
+ * - 인증된 이메일만 신뢰(가입 시 이메일 인증) → 타인 문의 오클레임 방지. 어드민 생성 미인증 계정 제외.
+ * - inquiries.email 은 랜덤IV AES라 SQL 동등비교 불가 → 복호화 후 비교(파일럿 규모; 대량화 시 이메일 해시 컬럼 권장).
+ * - 본인 이메일과 일치하는 문의만 본인 계정으로 연결 → 항상 자기 것만 가져온다.
+ */
+async function linkEmailMatchedFollowups(userId: string, email?: string): Promise<void> {
+  const target = (email || "").trim().toLowerCase();
+  if (!target) return;
+
+  // 인증된 이메일만 신뢰
+  const { data: u } = await supabaseAdmin.auth.admin.getUserById(userId);
+  if (!(u as any)?.user?.email_confirmed_at) return;
+
+  // 아직 계정 미연결 + 문의 연결된 제안만 후보
+  const { data: unlinked } = await supabaseAdmin
+    .from("followup_schedules")
+    .select("inquiry_id")
+    .is("patient_user_id", null)
+    .not("inquiry_id", "is", null);
+  const inquiryIds = [...new Set((unlinked || []).map((r: any) => r.inquiry_id))];
+  if (inquiryIds.length === 0) return;
+
+  const { data: inquiries } = await supabaseAdmin
+    .from("inquiries")
+    .select("id, email")
+    .in("id", inquiryIds);
+  const matchedIds = (inquiries || [])
+    .filter((i: any) => safeDecrypt(i.email).trim().toLowerCase() === target)
+    .map((i: any) => i.id);
+  if (matchedIds.length === 0) return;
+
+  await supabaseAdmin
+    .from("followup_schedules")
+    .update({ patient_user_id: userId } as any)
+    .in("inquiry_id", matchedIds)
+    .is("patient_user_id", null);
+
+  console.log(`[portal/followup] 이메일매칭 자동연결: ${matchedIds.length}개 문의 → user ${userId}`);
+}
 
 export async function GET(request: NextRequest) {
   const auth = await requirePortalAuth(request);
   if (!auth.success) return auth.response;
 
   try {
+    // 게스트 문의로 생성된 제안을 이메일 인증 계정에 자동 연결(best-effort — 실패해도 조회는 진행)
+    try {
+      await linkEmailMatchedFollowups(auth.userId, auth.email);
+    } catch (e: any) {
+      console.error("[portal/followup] 자동연결 실패(무시):", e?.message);
+    }
+
     const { data, error } = await supabaseAdmin
       .from("followup_schedules")
       .select("*")
