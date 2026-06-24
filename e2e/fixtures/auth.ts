@@ -28,15 +28,35 @@ export const COORDINATOR_USER = {
   password: process.env.E2E_COORDINATOR_PASSWORD || "E2eCoord1234!",
 };
 
+// 해외 에이전시 테스트 계정 (agency_users.partner_type='agency')
+export const AGENCY_USER = {
+  email: process.env.E2E_AGENCY_EMAIL || "e2e-agency@healo-test.invalid",
+  password: process.env.E2E_AGENCY_PASSWORD || "E2eAgency1234!",
+};
+
+// 해외 의료기관 테스트 계정 (agency_users.partner_type='medical_institution')
+export const CLINIC_USER = {
+  email: process.env.E2E_CLINIC_EMAIL || "e2e-clinic@healo-test.invalid",
+  password: process.env.E2E_CLINIC_PASSWORD || "E2eClinic1234!",
+};
+
 /**
  * Supabase email/password 로그인 (공통)
  */
 export async function loginAs(
   page: Page,
-  role: "patient" | "admin" | "coordinator" = "patient"
+  role: "patient" | "admin" | "coordinator" | "agency" | "clinic" = "patient"
 ): Promise<void> {
   const creds =
-    role === "admin" ? ADMIN_USER : role === "coordinator" ? COORDINATOR_USER : TEST_USER;
+    role === "admin"
+      ? ADMIN_USER
+      : role === "coordinator"
+        ? COORDINATOR_USER
+        : role === "agency"
+          ? AGENCY_USER
+          : role === "clinic"
+            ? CLINIC_USER
+            : TEST_USER;
 
   await page.goto("/login");
   await page.waitForLoadState("domcontentloaded");
