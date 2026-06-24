@@ -168,12 +168,13 @@ const T = {
     ko: "Human Agent", en: "Human Agent", ru: "Human Agent", kz: "Human Agent", zh: "Human Agent", ja: "Human Agent",
   },
   humanAgentDesc: {
-    ko: "WhatsApp · Telegram · WeChat · LINE 으로 직접 연결.",
-    en: "Connect via WhatsApp, Telegram, WeChat, or LINE.",
-    ru: "Связаться через WhatsApp, Telegram, WeChat, LINE.",
-    kz: "WhatsApp, Telegram, WeChat немесе LINE арқылы.",
-    zh: "通过 WhatsApp、Telegram、WeChat 或 LINE 联系。",
-    ja: "WhatsApp・Telegram・WeChat・LINEで直接連絡。",
+    // 실제 켜진 메신저만 아래 버튼으로 노출 — 특정 채널명 하드코딩 금지(env 없는 채널을 광고하던 문제 수정).
+    ko: "선호하는 메신저로 담당자와 직접 연결.",
+    en: "Connect directly with our team via your preferred messenger.",
+    ru: "Свяжитесь с нашей командой через удобный мессенджер.",
+    kz: "Қалаған мессенджер арқылы маманмен тікелей байланысыңыз.",
+    zh: "通过您常用的即时通讯工具直接联系我们的团队。",
+    ja: "ご希望のメッセンジャーで担当者と直接つながれます。",
   },
   inquiryForm: {
     ko: "Inquiry Form", en: "Inquiry Form", ru: "Inquiry Form", kz: "Inquiry Form", zh: "Inquiry Form", ja: "Inquiry Form",
@@ -262,6 +263,35 @@ const T = {
   },
   trustFree: {
     ko: "상담 무료 · 부담 없이", en: "Free consultation · No obligation", ru: "Бесплатная консультация · Без обязательств", kz: "Тегін кеңес · Еркін шешім", zh: "免费咨询 · 无需承诺", ja: "相談無料 · 強制なし",
+  },
+
+  // ─── 개인정보 동의 (PIPA — 출시 법적 필수) ───
+  consentHeading: {
+    ko: "개인정보 수집·이용 동의", en: "Consent to collection & use of personal data", ru: "Согласие на сбор и использование персональных данных", kz: "Жеке деректерді жинауға және пайдалануға келісім", zh: "个人信息收集与使用同意", ja: "個人情報の収集・利用への同意",
+  },
+  consentPipa: {
+    ko: "[필수] 개인정보(이름·연락처·국적) 수집·이용", en: "[Required] Collection & use of personal data (name, contact, nationality)", ru: "[Обязательно] Сбор и использование персональных данных (имя, контакт, гражданство)", kz: "[Міндетті] Жеке деректерді (аты, байланыс, азаматтық) жинау және пайдалану", zh: "[必填] 收集和使用个人信息（姓名、联系方式、国籍）", ja: "[必須] 個人情報（氏名・連絡先・国籍）の収集・利用",
+  },
+  consentSensitive: {
+    ko: "[필수] 민감정보(진단·치료 등 건강정보) 수집·이용", en: "[Required] Collection & use of sensitive health data (diagnosis, treatment)", ru: "[Обязательно] Сбор и использование данных о здоровье (диагноз, лечение)", kz: "[Міндетті] Денсаулық деректерін (диагноз, емдеу) жинау және пайдалану", zh: "[必填] 收集和使用敏感健康信息（诊断、治疗）", ja: "[必須] 健康に関する機微情報（診断・治療）の収集・利用",
+  },
+  consentThirdParty: {
+    ko: "[필수] 한국 협력 의료기관에 정보 제공", en: "[Required] Provision of data to Korean partner hospitals", ru: "[Обязательно] Передача данных корейским больницам-партнёрам", kz: "[Міндетті] Деректерді Корея серіктес ауруханаларына беру", zh: "[必填] 向韩国合作医院提供信息", ja: "[必須] 韓国の提携医療機関への情報提供",
+  },
+  consentCrossBorder: {
+    ko: "[필수] 개인정보 국외(대한민국) 이전", en: "[Required] Cross-border transfer of data to Korea", ru: "[Обязательно] Трансграничная передача данных в Корею", kz: "[Міндетті] Деректерді шетелге (Кореяға) беру", zh: "[必填] 个人信息跨境转移至韩国", ja: "[必須] 個人情報の国外（韓国）移転",
+  },
+  consentMarketing: {
+    ko: "[선택] 마케팅·뉴스레터 수신", en: "[Optional] Receive marketing & newsletters", ru: "[Необязательно] Получать маркетинг и рассылки", kz: "[Қосымша] Маркетинг пен жаңалықтарды алу", zh: "[可选] 接收营销与新闻通讯", ja: "[任意] マーケティング・ニュースレターの受信",
+  },
+  consentDetails: {
+    ko: "자세히", en: "Details", ru: "Подробнее", kz: "Толығырақ", zh: "详情", ja: "詳細",
+  },
+  consentRequired: {
+    ko: "필수 동의 항목에 모두 동의해 주세요.", en: "Please agree to all required consent items.", ru: "Пожалуйста, согласитесь со всеми обязательными пунктами.", kz: "Барлық міндетті келісім тармақтарына келісіңіз.", zh: "请同意所有必填同意项。", ja: "必須の同意項目すべてに同意してください。",
+  },
+  consentDisclaimer: {
+    ko: "healwith는 의료기관 매칭·코디네이션을 제공하며, 의료행위·진단·치료 결과를 보장하지 않습니다.", en: "healwith provides hospital matching and coordination only — it does not give medical advice or guarantee treatment outcomes.", ru: "healwith предоставляет только подбор больниц и координацию — не даёт медицинских советов и не гарантирует результаты лечения.", kz: "healwith тек ауруханаларды таңдау мен үйлестіруді ұсынады — медициналық кеңес бермейді және емдеу нәтижесіне кепілдік бермейді.", zh: "healwith 仅提供医院匹配与协调服务，不提供医疗建议，也不保证治疗结果。", ja: "healwith は医療機関のマッチングとコーディネートのみを提供し、医療行為や診断・治療結果を保証しません。",
   },
   certKhidi: {
     ko: "KHIDI 정부지원 선정", en: "KHIDI government-supported", ru: "При поддержке KHIDI (госпрограмма)", kz: "KHIDI мемлекеттік қолдауымен", zh: "KHIDI 政府支持项目", ja: "KHIDI 政府支援プロジェクト",
@@ -484,6 +514,13 @@ export default function UnifiedInquiryFunnel() {
   const [inquiryId, setInquiryId] = useState(null);
   const [publicToken, setPublicToken] = useState(null); // step1 응답값 — step2 소유권 증명
   const [uploadedFiles, setUploadedFiles] = useState([]); // [{path, name, type}]
+
+  // 개인정보 동의 (PIPA — 출시 법적 필수: 개인정보·민감정보·국외이전·제3자 제공). marketing 만 선택.
+  const [consents, setConsents] = useState({
+    pipa: false, sensitive: false, thirdParty: false, crossBorder: false, marketing: false,
+  });
+  const REQUIRED_CONSENTS = ["pipa", "sensitive", "thirdParty", "crossBorder"];
+  const allRequiredConsented = REQUIRED_CONSENTS.every((k) => consents[k]);
   const fileInputRef = useRef(null);
   const dropZoneRef = useRef(null);
 
@@ -552,9 +589,14 @@ export default function UnifiedInquiryFunnel() {
     form1.email.trim().length > 0 &&
     !phoneNeedsDial &&
     form1.preferredLanguage !== "" &&
-    form1.cancerType !== "";
+    form1.cancerType !== "" &&
+    allRequiredConsented;
 
   function validateStep1() {
+    if (!allRequiredConsented) {
+      setError(tl("consentRequired", lang));
+      return false;
+    }
     if (!step1Valid) {
       setError(phoneNeedsDial ? tl("dialRequired", lang) : tl("required", lang));
       return false;
@@ -602,6 +644,15 @@ export default function UnifiedInquiryFunnel() {
         contactMethod: hasPhone ? "Phone" : null,
         contactId: fullPhone,
         treatmentType: form1.cancerType,
+        // PIPA 동의 기록 (출시 법적 필수). 서버가 intake.consents 에 보존.
+        consents: {
+          pipa_collection: consents.pipa,
+          sensitive_health: consents.sensitive,
+          third_party_hospital: consents.thirdParty,
+          cross_border_kr: consents.crossBorder,
+          marketing: consents.marketing,
+        },
+        consentVersion: "2.0.0",
       };
 
       // 로그인 상태면 토큰 동봉 → 서버가 본인 계정에 문의 귀속(마이페이지 '내 문의' 노출).
@@ -1380,6 +1431,37 @@ export default function UnifiedInquiryFunnel() {
           />
           <p className="text-right text-[11px] text-gray-400 mt-1">{form1.shortMemo.length}/200</p>
         </div>
+      </div>
+
+      {/* 개인정보 동의 (PIPA — 출시 법적 필수: 개인정보·민감정보·국외이전·제3자 제공) */}
+      <div className="mt-6 rounded-xl border border-gray-200 bg-gray-50/60 p-4">
+        <div className="flex items-center gap-1.5 mb-2.5">
+          <Shield size={14} className="text-teal-600" />
+          <span className="text-[13px] font-semibold text-gray-700">{tl("consentHeading", lang)}</span>
+        </div>
+        <div className="space-y-2">
+          {[
+            { key: "pipa", labelKey: "consentPipa" },
+            { key: "sensitive", labelKey: "consentSensitive" },
+            { key: "thirdParty", labelKey: "consentThirdParty" },
+            { key: "crossBorder", labelKey: "consentCrossBorder" },
+            { key: "marketing", labelKey: "consentMarketing" },
+          ].map((row) => (
+            <label key={row.key} className="flex items-start gap-2 cursor-pointer text-[12.5px] leading-snug text-gray-600">
+              <input
+                type="checkbox"
+                checked={consents[row.key]}
+                onChange={(e) => setConsents((p) => ({ ...p, [row.key]: e.target.checked }))}
+                className="mt-0.5 h-4 w-4 shrink-0 rounded border-gray-300 text-teal-600 focus:ring-teal-500"
+              />
+              <span>{tl(row.labelKey, lang)}</span>
+            </label>
+          ))}
+        </div>
+        <a href="/privacy" target="_blank" rel="noopener noreferrer" className="mt-2 inline-block text-[11.5px] text-teal-700 underline">
+          {tl("consentDetails", lang)} · /privacy
+        </a>
+        <p className="mt-2.5 text-[11px] leading-snug text-gray-400">{tl("consentDisclaimer", lang)}</p>
       </div>
 
       {/* 신뢰 배지 */}
