@@ -88,9 +88,9 @@ export default function CoordinatorLayout({ children }) {
 
   return (
     <StaffPortalGate allow={["coordinator"]} portalName="코디네이터 포털" redirect="/coordinator">
-    <div className="flex min-h-screen bg-gray-50 pt-12">
+    <div className="flex min-h-screen bg-gray-50 pt-14 md:pt-16">
       {/* Mobile top bar */}
-      <div className="lg:hidden fixed top-12 left-0 right-0 z-40 bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
+      <div className="lg:hidden fixed top-14 md:top-16 left-0 right-0 z-40 bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
             <ClipboardList size={16} className="text-white" />
@@ -113,7 +113,7 @@ export default function CoordinatorLayout({ children }) {
       )}
 
       {/* Desktop sidebar */}
-      <aside className="hidden lg:flex w-64 bg-white border-r border-gray-200 min-h-screen flex-col sticky top-12 h-[calc(100vh-3rem)]">
+      <aside className="hidden lg:flex w-64 bg-white border-r border-gray-200 min-h-screen flex-col sticky top-14 md:top-16 h-[calc(100vh-3.5rem)] md:h-[calc(100vh-4rem)]">
         {navContent}
       </aside>
 
