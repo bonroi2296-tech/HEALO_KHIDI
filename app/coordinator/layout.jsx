@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser';
 import StaffPortalGate from '../_components/StaffPortalGate';
+import ManualDrawer from '../_components/ManualDrawer';
 
 // 메뉴 = 실제 존재하는 라우트만 (옛 patients·kpi 화면은 미구현 → 404라 제거).
 const NAV_ITEMS = [
@@ -88,9 +89,9 @@ export default function CoordinatorLayout({ children }) {
 
   return (
     <StaffPortalGate allow={["coordinator"]} portalName="코디네이터 포털" redirect="/coordinator">
-    <div className="flex min-h-screen bg-gray-50 pt-12">
+    <div className="flex min-h-screen bg-gray-50 pt-14 md:pt-16">
       {/* Mobile top bar */}
-      <div className="lg:hidden fixed top-12 left-0 right-0 z-40 bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
+      <div className="lg:hidden fixed top-14 md:top-16 left-0 right-0 z-40 bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
             <ClipboardList size={16} className="text-white" />
@@ -113,16 +114,23 @@ export default function CoordinatorLayout({ children }) {
       )}
 
       {/* Desktop sidebar */}
-      <aside className="hidden lg:flex w-64 bg-white border-r border-gray-200 min-h-screen flex-col sticky top-12 h-[calc(100vh-3rem)]">
+      <aside className="hidden lg:flex w-64 bg-white border-r border-gray-200 min-h-screen flex-col sticky top-14 md:top-16 h-[calc(100vh-3.5rem)] md:h-[calc(100vh-4rem)]">
         {navContent}
       </aside>
 
-      {/* Content */}
-      <main className="flex-1 overflow-auto pt-14 lg:pt-0">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 lg:py-6">
+      {/* Content — 메시지 화면은 풀블리드(2단 채팅이 화면을 꽉 채우게). 나머지는 가운데 정렬+여백. */}
+      {pathname === '/coordinator/messages' ? (
+        <main className="flex-1 overflow-hidden pt-12 lg:pt-0">
           {children}
-        </div>
-      </main>
+        </main>
+      ) : (
+        <main className="flex-1 overflow-auto pt-14 lg:pt-0">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 lg:py-6">
+            {children}
+          </div>
+        </main>
+      )}
+      <ManualDrawer role="coordinator" />
     </div>
     </StaffPortalGate>
   );

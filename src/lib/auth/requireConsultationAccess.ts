@@ -11,6 +11,9 @@
  *   coordinator_user_id, patient_id, doctor_id, coordinator_id, translator_id
  *   중 하나가 본인 user.id 와 일치할 때만 허용
  *
+ * ※ 의사 등 "초대받은 참가자"는 계정 인증이 아니라 게스트 초대링크(토큰)로 입장한다
+ *   (resolveConsultationActor 의 X-Guest-Token 경로 — 줌처럼 링크만 있으면 입장).
+ *
  * 실패 시: 401 (미인증) / 403 (인증되었으나 참가자 아님) / 404 (세션 없음) 자동 응답.
  */
 

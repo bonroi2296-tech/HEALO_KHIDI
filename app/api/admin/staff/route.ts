@@ -1,7 +1,7 @@
 /**
- * healwith: 직원(의사/코디네이터) 계정 관리 API — admin 전용
+ * healwith: 직원(코디네이터) 계정 관리 API — admin 전용
  *
- * GET  /api/admin/staff           → role=doctor/coordinator 회원 목록
+ * GET  /api/admin/staff           → role=coordinator 회원 목록
  * POST /api/admin/staff           → { email, role, name? } 계정 생성(또는 기존 계정에 역할 부여)
  *                                    + 비밀번호 설정 링크(recovery) 반환
  *
@@ -17,7 +17,7 @@ import crypto from "node:crypto";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { requireAdminAuth } from "@/lib/auth/requireAdminAuth";
 
-const ALLOWED_ROLES = ["doctor", "coordinator"];
+const ALLOWED_ROLES = ["coordinator"];
 
 // 잘 알려진 기본값(healo1234) 대신 계정마다 강한 임시 비번을 무작위 생성.
 // 관리자가 직접 password 를 지정하면 그것을 쓰고, 없을 때만 이 값을 발급한다.

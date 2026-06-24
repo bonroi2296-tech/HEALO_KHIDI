@@ -1,21 +1,62 @@
 "use client";
 
 /**
- * 코디네이터 인박스
- * 모든 환자의 chat_threads 를 조회·응답할 수 있는 운영 UI.
- * 환자 측의 /patient/messages 와 같은 chat_threads + chat_messages 테이블 사용.
+ * 코디네이터 메시지
+ * 모든 환자/게스트의 chat_threads 를 조회·응답하는 운영 UI.
+ * 환자 측 /patient/messages 와 같은 chat_threads + chat_messages 테이블 사용.
+ * 톤: legacy(회색·teal·system 폰트) — 다른 코디 화면과 통일. (premium serif/gold 잔재 제거)
  */
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { MessageSquare } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 
+// 대화 처리 단계(워크플로): 신규 → (응답 필요 ↔ 환자 응답 대기) → 완료
 const STATUS_OPTIONS = [
-  { value: "open", label: "열림" },
+  { value: "open", label: "신규" },
   { value: "waiting_coordinator", label: "응답 필요" },
   { value: "waiting_patient", label: "환자 응답 대기" },
-  { value: "resolved", label: "해결됨" },
+  { value: "resolved", label: "완료" },
 ];
+
+const STATUS_BADGE = {
+  open: "bg-blue-50 text-blue-600",
+  waiting_coordinator: "bg-red-50 text-red-600",
+  waiting_patient: "bg-amber-50 text-amber-600",
+  resolved: "bg-gray-100 text-gray-500",
+};
+
+const CHANNEL = {
+  web: { color: "#0d9488", label: "웹" },
+  whatsapp: { color: "#25D366", label: "WhatsApp" },
+  telegram: { color: "#0088cc", label: "Telegram" },
+  email: { color: "#8c3a2e", label: "이메일" },
+  line: { color: "#06C755", label: "LINE" },
+  kakao: { color: "#FEE500", label: "카카오" },
+  agency: { color: "#7c3aed", label: "에이전시" },
+};
+
+function fmtDate(v) {
+  try { return new Date(v).toLocaleDateString("ko-KR"); } catch { return ""; }
+}
+function statusLabel(s) {
+  return STATUS_OPTIONS.find((o) => o.value === s)?.label || "신규";
+}
+// 미리보기 앞에 발신자 표시 (누가 마지막 말 했는지). 실제 actor_type 값 기준.
+function actorPrefix(actor) {
+  const m = { patient: "환자: ", user: "환자: ", system: "AI: ", bot: "AI: ", coordinator: "나: ", agency: "에이전시: ", admin: "관리자: " };
+  const label = m[actor];
+  return label ? <span className="font-medium text-gray-400">{label}</span> : null;
+}
+// 스레드 제목: 게스트명 > 제목 > 폴백. AI 채팅 기본 제목은 한국어로 다듬음.
+function threadTitle(t) {
+  if (t.guest_name) return t.guest_name;
+  const s = (t.subject || "").trim();
+  if (!s || s === "New Chat") return "환자 상담";
+  if (s === "AI Health Consultation") return "AI 건강 상담";
+  return s;
+}
 
 export default function CoordinatorMessagesClient() {
   const router = useRouter();
@@ -27,25 +68,25 @@ export default function CoordinatorMessagesClient() {
   const [statusFilter, setStatusFilter] = useState("open");
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
+  const [msgLoading, setMsgLoading] = useState(false);
   const msgEndRef = useRef(null);
+  const prevCountRef = useRef(0);
 
-  // Auth + initial load
   useEffect(() => {
     (async () => {
       const supabase = createSupabaseBrowserClient();
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user) {
-        router.push("/login");
-        return;
-      }
+      if (!session?.user) { router.push("/login"); return; }
       setMe(session.user);
       await loadThreads(statusFilter);
       setLoading(false);
     })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
     if (!loading) loadThreads(statusFilter);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [statusFilter]);
 
   // chat_threads/chat_messages 는 service_role 전용 RLS → 서버 API 경유 필수
@@ -60,9 +101,7 @@ export default function CoordinatorMessagesClient() {
     if (!token) return;
     try {
       const qs = filter && filter !== "all" ? `?status=${encodeURIComponent(filter)}` : "";
-      const res = await fetch(`/api/portal/threads${qs}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await fetch(`/api/portal/threads${qs}`, { headers: { Authorization: `Bearer ${token}` } });
       const result = await res.json();
       setThreads(result.ok ? result.threads || [] : []);
     } catch {
@@ -70,12 +109,15 @@ export default function CoordinatorMessagesClient() {
     }
   }
 
-  // Load messages when thread selected (+5초 폴링 — RLS상 realtime 구독 불가)
+  // 메시지 로드 + 5초 폴링 (RLS상 realtime 구독 불가)
   useEffect(() => {
     if (!selectedId) { setMessages([]); return; }
     let cancelled = false;
+    prevCountRef.current = 0; // 스레드 전환 시 첫 로드는 맨아래로 스크롤되게 리셋
+    setMessages([]);
+    setMsgLoading(true); // 클릭 즉시 로딩 표시(빈 화면으로 멈춘 듯 보이던 문제)
 
-    async function loadMessages() {
+    async function loadMessages(isFirst) {
       const token = await getAccessToken();
       if (!token || cancelled) return;
       try {
@@ -84,17 +126,23 @@ export default function CoordinatorMessagesClient() {
         });
         const result = await res.json();
         if (!cancelled && result.ok) setMessages(result.messages || []);
-      } catch {
-        /* 폴링 실패는 무시 */
-      }
+      } catch { /* 폴링 실패는 무시 */ }
+      finally { if (isFirst && !cancelled) setMsgLoading(false); }
     }
 
-    loadMessages();
-    const timer = setInterval(loadMessages, 5000);
+    loadMessages(true);
+    const timer = setInterval(() => loadMessages(false), 5000);
     return () => { cancelled = true; clearInterval(timer); };
   }, [selectedId]);
 
-  useEffect(() => { msgEndRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages]);
+  // 새 메시지가 늘었을 때만 맨아래로. (과거: messages 바뀔 때마다 scrollIntoView →
+  //  5초 폴링이 매번 같은 배열을 새로 set 해서 가만히 있어도 5초마다 스크롤이 내려가던 버그)
+  useEffect(() => {
+    if (messages.length > prevCountRef.current) {
+      msgEndRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    }
+    prevCountRef.current = messages.length;
+  }, [messages]);
 
   async function send() {
     if (!draft.trim() || !selectedId || sending) return;
@@ -102,13 +150,9 @@ export default function CoordinatorMessagesClient() {
     try {
       const token = await getAccessToken();
       if (!token) return;
-      // 서버가 staff 전송 시 스레드를 waiting_patient 로 자동 전환
       const res = await fetch(`/api/portal/threads/${selectedId}/messages`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ text: draft.trim() }),
       });
       const result = await res.json();
@@ -128,197 +172,119 @@ export default function CoordinatorMessagesClient() {
     try {
       const res = await fetch(`/api/portal/threads/${selectedId}`, {
         method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ status: newStatus }),
       });
       const result = await res.json();
       if (res.ok && result.ok) {
         setThreads((prev) => prev.map((t) => (t.id === selectedId ? { ...t, status: newStatus } : t)));
       }
-    } catch {
-      /* 상태 변경 실패 — UI 유지 */
-    }
+    } catch { /* 상태 변경 실패 — UI 유지 */ }
   }
 
   const selectedThread = threads.find((t) => t.id === selectedId);
 
   return (
-    <div
-      style={{
-        height: "calc(100vh - 60px)",
-        display: "grid",
-        gridTemplateColumns: "340px 1fr",
-        fontFamily: "Inter, system-ui, sans-serif",
-        background: "#fafaf7",
-        color: "#0a0a0a",
-      }}
-    >
-      {/* Left — thread list */}
-      <aside
-        style={{
-          borderRight: "1px solid #e3dbcc",
-          background: "#fff",
-          display: "flex",
-          flexDirection: "column",
-          overflow: "hidden",
-        }}
-      >
-        {/* Header */}
-        <div style={{ padding: "16px 20px", borderBottom: "1px solid #e3dbcc" }}>
-          <div style={{ fontSize: 11, letterSpacing: "0.2em", textTransform: "uppercase", color: "#b89550", fontWeight: 600, marginBottom: 8 }}>
-            Coordinator Inbox
-          </div>
-          <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
-            {["all", ...STATUS_OPTIONS.map(s => s.value)].map((s) => (
+    <div className="grid h-[calc(100vh-6.5rem)] md:h-[calc(100vh-7rem)] lg:h-[calc(100vh-4rem)] grid-cols-[300px_1fr] bg-gray-50 text-gray-900">
+      {/* 좌측 — 스레드 목록 */}
+      <aside className="flex flex-col overflow-hidden border-r border-gray-200 bg-white">
+        <div className="border-b border-gray-200 px-4 py-3">
+          <h2 className="mb-2 flex items-center gap-1.5 text-sm font-bold text-gray-900">
+            <MessageSquare size={16} className="text-teal-700" /> 메시지
+          </h2>
+          <div className="flex flex-wrap gap-1.5">
+            {["all", ...STATUS_OPTIONS.map((s) => s.value)].map((s) => (
               <button
                 key={s}
                 onClick={() => setStatusFilter(s)}
-                style={{
-                  padding: "4px 10px",
-                  fontSize: 10,
-                  letterSpacing: "0.1em",
-                  textTransform: "uppercase",
-                  background: statusFilter === s ? "#0a0a0a" : "transparent",
-                  color: statusFilter === s ? "#c8a96a" : "#6b6458",
-                  border: `1px solid ${statusFilter === s ? "#0a0a0a" : "#e3dbcc"}`,
-                  cursor: "pointer",
-                  fontWeight: 600,
-                }}
+                className={`rounded-full px-2.5 py-1 text-xs font-medium transition ${
+                  statusFilter === s
+                    ? "bg-teal-600 text-white"
+                    : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                }`}
               >
-                {s === "all" ? "전체" : STATUS_OPTIONS.find(o => o.value === s)?.label}
+                {s === "all" ? "전체" : statusLabel(s)}
               </button>
             ))}
           </div>
         </div>
 
-        {/* Threads */}
-        <div style={{ flex: 1, overflowY: "auto" }}>
+        <div className="min-h-0 flex-1 overflow-y-auto">
           {loading ? (
-            <div style={{ padding: 24, color: "#6b6458", fontStyle: "italic" }}>Loading…</div>
+            <div className="p-6 text-sm text-gray-400">불러오는 중…</div>
           ) : threads.length === 0 ? (
-            <div style={{ padding: 24, color: "#6b6458", fontStyle: "italic", fontSize: 13 }}>
-              No threads match this filter.
-            </div>
+            <div className="p-6 text-sm text-gray-400">이 조건의 대화가 없습니다.</div>
           ) : (
-            threads.map((t) => (
-              <button
-                key={t.id}
-                onClick={() => setSelectedId(t.id)}
-                style={{
-                  width: "100%",
-                  textAlign: "left",
-                  padding: "12px 20px",
-                  border: 0,
-                  borderBottom: "1px solid #e3dbcc",
-                  background: selectedId === t.id ? "#f5f0e8" : "transparent",
-                  cursor: "pointer",
-                  display: "block",
-                }}
-              >
-                <div style={{ fontSize: 14, fontWeight: 500, color: "#0a0a0a", marginBottom: 4, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", display: "flex", alignItems: "center", gap: 6 }}>
-                  <ChannelDot channel={t.channel} />
-                  {t.guest_name ? (
-                    <span>
-                      {t.guest_name}
-                      {t.guest_country ? <span style={{ color: "#9a9284", fontWeight: 400, marginLeft: 6 }}>· {t.guest_country}</span> : null}
+            threads.map((t) => {
+              const ch = CHANNEL[t.channel] || CHANNEL.web;
+              const active = selectedId === t.id;
+              return (
+                <button
+                  key={t.id}
+                  onClick={() => setSelectedId(t.id)}
+                  className={`block w-full border-b border-gray-100 px-4 py-3 text-left transition ${
+                    active ? "bg-teal-50" : "hover:bg-gray-50"
+                  }`}
+                >
+                  <div className="mb-0.5 flex items-center gap-2">
+                    <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: ch.color }} title={`채널: ${ch.label}`} />
+                    <span className="truncate text-sm font-medium text-gray-900">{threadTitle(t)}</span>
+                    {t.guest_country && <span className="shrink-0 text-xs text-gray-400">· {t.guest_country}</span>}
+                    <span className="ml-auto shrink-0 text-xs text-gray-400">
+                      {fmtDate(t.updated_at || t.last_active_at || t.created_at)}
                     </span>
-                  ) : (
-                    <span>{t.subject || "Conversation"}</span>
-                  )}
-                </div>
-                <div style={{ fontSize: 11, color: "#6b6458", display: "flex", justifyContent: "space-between", overflow: "hidden" }}>
-                  <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    {t.guest_name ? (t.subject || t.guest_email || "Guest chat") : `Inquiry #${t.inquiry_id || "—"}`}
+                  </div>
+                  {/* 마지막 메시지 미리보기 — 누가 무슨 말 했는지 한눈에 (길면 …) */}
+                  <div className="truncate text-xs text-gray-500">
+                    {t.last_message
+                      ? <>{actorPrefix(t.last_actor)}{t.last_message}</>
+                      : <span className="text-gray-400">{t.inquiry_id ? `문의 #${t.inquiry_id}` : "메시지 없음"}</span>}
+                  </div>
+                  <span className={`mt-1.5 inline-block rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_BADGE[t.status] || STATUS_BADGE.open}`}>
+                    {statusLabel(t.status)}
                   </span>
-                  <span style={{ fontFamily: "SF Mono, monospace", flexShrink: 0, marginLeft: 8 }}>
-                    {new Date(t.updated_at || t.last_active_at || t.created_at).toLocaleDateString()}
-                  </span>
-                </div>
-                <StatusBadge status={t.status} />
-              </button>
-            ))
+                </button>
+              );
+            })
           )}
         </div>
       </aside>
 
-      {/* Right — conversation */}
-      <div style={{ display: "flex", flexDirection: "column", overflow: "hidden" }}>
+      {/* 우측 — 대화 */}
+      <div className="flex h-full min-h-0 flex-col overflow-hidden">
         {!selectedThread ? (
-          <div
-            style={{
-              flex: 1,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              color: "#9a9284",
-              fontStyle: "italic",
-            }}
-          >
-            Select a thread to respond
+          <div className="flex flex-1 items-center justify-center text-sm text-gray-400">
+            왼쪽에서 대화를 선택하세요.
           </div>
         ) : (
           <>
-            {/* Header */}
-            <div
-              style={{
-                padding: "16px 24px",
-                borderBottom: "1px solid #e3dbcc",
-                background: "#fff",
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                gap: 12,
-              }}
-            >
-              <div style={{ minWidth: 0 }}>
-                <div
-                  style={{
-                    fontFamily: "'Playfair Display', Georgia, serif",
-                    fontSize: 20,
-                    fontWeight: 500,
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 8,
-                  }}
-                >
-                  <ChannelDot channel={selectedThread.channel} />
-                  {selectedThread.guest_name || selectedThread.subject || "Conversation"}
-                </div>
-                <div style={{ fontSize: 11, color: "#6b6458", marginTop: 4, display: "flex", gap: 12, flexWrap: "wrap" }}>
+            {/* 헤더 */}
+            <div className="flex items-center justify-between gap-3 border-b border-gray-200 bg-white px-6 py-3">
+              <div className="min-w-0">
+                <div className="truncate text-base font-bold text-gray-900">{threadTitle(selectedThread)}</div>
+                <div className="mt-0.5 flex flex-wrap gap-x-3 text-xs text-gray-400">
                   {selectedThread.guest_name ? (
                     <>
                       {selectedThread.guest_email && <span>✉ {selectedThread.guest_email}</span>}
                       {selectedThread.guest_country && <span>🌐 {selectedThread.guest_country}</span>}
                       {selectedThread.guest_phone && <span>📞 {selectedThread.guest_phone}</span>}
-                      <span style={{ color: "#9a9284" }}>· Guest (no signup)</span>
+                      <span>· 게스트(비회원)</span>
                     </>
                   ) : (
-                    <span>Inquiry #{selectedThread.inquiry_id || "—"} · {selectedThread.user_id?.slice(0, 8)}</span>
+                    <span>{selectedThread.inquiry_id ? `문의 #${selectedThread.inquiry_id}` : "AI 채팅"}</span>
                   )}
                 </div>
               </div>
-              <div style={{ display: "flex", gap: 8 }}>
+              <div className="flex shrink-0 flex-wrap gap-1.5">
                 {STATUS_OPTIONS.map((s) => (
                   <button
                     key={s.value}
                     onClick={() => changeThreadStatus(s.value)}
-                    style={{
-                      padding: "6px 12px",
-                      fontSize: 10,
-                      letterSpacing: "0.1em",
-                      textTransform: "uppercase",
-                      background: selectedThread.status === s.value ? "#c8a96a" : "transparent",
-                      color: selectedThread.status === s.value ? "#0a0a0a" : "#6b6458",
-                      border: `1px solid ${selectedThread.status === s.value ? "#c8a96a" : "#e3dbcc"}`,
-                      cursor: "pointer",
-                      fontWeight: 600,
-                    }}
+                    className={`rounded-full px-2.5 py-1 text-xs font-medium transition ${
+                      selectedThread.status === s.value
+                        ? "bg-teal-600 text-white"
+                        : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                    }`}
                   >
                     {s.label}
                   </button>
@@ -326,68 +292,42 @@ export default function CoordinatorMessagesClient() {
               </div>
             </div>
 
-            {/* Messages */}
-            <div style={{ flex: 1, overflowY: "auto", padding: "24px 32px", background: "#fafaf7" }}>
-              {messages.map((m) => (
-                <Message key={m.id} m={m} meId={me?.id} />
-              ))}
-              <div ref={msgEndRef} />
+            {/* 메시지 */}
+            <div className="min-h-0 flex-1 overflow-y-auto bg-gray-50 px-6 py-5">
+              {msgLoading ? (
+                <div className="flex h-full items-center justify-center">
+                  <div className="h-6 w-6 animate-spin rounded-full border-2 border-teal-600 border-t-transparent" />
+                </div>
+              ) : messages.length === 0 ? (
+                <div className="flex h-full items-center justify-center text-sm text-gray-400">아직 메시지가 없습니다.</div>
+              ) : (
+                <>
+                  {messages.map((m) => (
+                    <Message key={m.id} m={m} meId={me?.id} />
+                  ))}
+                  <div ref={msgEndRef} />
+                </>
+              )}
             </div>
 
-            {/* Composer */}
-            <div
-              style={{
-                padding: "16px 24px 20px",
-                borderTop: "1px solid #e3dbcc",
-                background: "#fff",
-                display: "flex",
-                gap: 12,
-                alignItems: "flex-end",
-              }}
-            >
+            {/* 입력 */}
+            <div className="flex items-end gap-3 border-t border-gray-200 bg-white px-6 py-3">
               <textarea
                 value={draft}
                 onChange={(e) => setDraft(e.target.value)}
                 onKeyDown={(e) => {
-                  if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
-                    e.preventDefault();
-                    send();
-                  }
+                  if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); send(); }
                 }}
-                placeholder="Reply to patient… (Cmd+Enter to send)"
+                placeholder="환자에게 답장… (Ctrl+Enter 전송)"
                 rows={2}
-                style={{
-                  flex: 1,
-                  resize: "none",
-                  border: 0,
-                  borderBottom: "1px solid #9a9284",
-                  padding: "10px 0",
-                  fontFamily: "inherit",
-                  fontSize: 14,
-                  outline: "none",
-                  background: "transparent",
-                }}
-                onFocus={(e) => (e.currentTarget.style.borderBottomColor = "#c8a96a")}
-                onBlur={(e) => (e.currentTarget.style.borderBottomColor = "#9a9284")}
+                className="flex-1 resize-none rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-teal-500"
               />
               <button
                 onClick={send}
                 disabled={!draft.trim() || sending}
-                style={{
-                  background: "#c8a96a",
-                  color: "#0a0a0a",
-                  border: 0,
-                  padding: "12px 20px",
-                  cursor: draft.trim() ? "pointer" : "not-allowed",
-                  fontSize: 10,
-                  letterSpacing: "0.24em",
-                  textTransform: "uppercase",
-                  fontWeight: 600,
-                  opacity: draft.trim() && !sending ? 1 : 0.5,
-                  flexShrink: 0,
-                }}
+                className="shrink-0 rounded-lg bg-teal-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-teal-700 disabled:opacity-50"
               >
-                {sending ? "…" : "Send"}
+                {sending ? "전송 중…" : "보내기"}
               </button>
             </div>
           </>
@@ -397,98 +337,45 @@ export default function CoordinatorMessagesClient() {
   );
 }
 
-function ChannelDot({ channel }) {
-  const map = {
-    web: { color: "#0d9488", label: "Web" },
-    whatsapp: { color: "#25D366", label: "WhatsApp" },
-    telegram: { color: "#0088cc", label: "Telegram" },
-    email: { color: "#8c3a2e", label: "Email" },
-    line: { color: "#06C755", label: "Line" },
-    kakao: { color: "#FEE500", label: "Kakao" },
-  };
-  const c = map[channel] || map.web;
-  return (
-    <span
-      title={`Channel: ${c.label}`}
-      style={{
-        display: "inline-block",
-        width: 8,
-        height: 8,
-        borderRadius: "50%",
-        background: c.color,
-        flexShrink: 0,
-      }}
-    />
-  );
-}
-
-function StatusBadge({ status }) {
-  const map = {
-    open: { bg: "#c8a96a20", fg: "#b89550", label: "열림" },
-    waiting_coordinator: { bg: "#8c3a2e20", fg: "#8c3a2e", label: "응답 필요" },
-    waiting_patient: { bg: "#e3dbcc", fg: "#6b6458", label: "환자 응답 대기" },
-    resolved: { bg: "#5a7a4a20", fg: "#5a7a4a", label: "해결됨" },
-  };
-  const c = map[status] || map.open;
-  return (
-    <span
-      style={{
-        display: "inline-block",
-        marginTop: 6,
-        padding: "2px 6px",
-        fontSize: 9,
-        letterSpacing: "0.1em",
-        textTransform: "uppercase",
-        background: c.bg,
-        color: c.fg,
-        fontWeight: 600,
-      }}
-    >
-      {c.label}
-    </span>
-  );
-}
-
 function Message({ m, meId }) {
+  // 실제 actor_type 값(DB): patient(환자 입력) · system(AI 답변) · coordinator · agency · admin
   const isMine = m.actor_type === "coordinator" && m.actor_id === meId;
-  const isPatient = m.actor_type === "user";
+  const isPatient = m.actor_type === "patient" || m.actor_type === "user";
+  const isAI = m.actor_type === "system" || m.actor_type === "bot";
+  const isAdmin = m.actor_type === "admin";
+  const isAgency = m.actor_type === "agency";
+
+  // 발신자별 라벨 + 색 — 환자(파랑)·AI(보라)를 한눈에 구분
   const label =
-    isMine ? "You (Coordinator)" :
-    isPatient ? "Patient" :
-    m.actor_type === "bot" ? "healwith AI" :
-    m.actor_type === "admin" ? "healwith Admin" :
-    m.actor_type === "coordinator" ? "Other Coordinator" :
-    "System";
+    isMine ? "나 (코디네이터)" :
+    isPatient ? "🙋 환자" :
+    isAI ? "🤖 healwith AI" :
+    isAgency ? "🏢 에이전시" :
+    isAdmin ? "healwith 관리자" :
+    m.actor_type === "coordinator" ? "다른 코디네이터" :
+    "시스템";
+  const labelColor =
+    isPatient ? "text-blue-600" :
+    isAI ? "text-violet-600" :
+    isAgency ? "text-emerald-600" :
+    isAdmin ? "text-amber-600" :
+    "text-gray-400";
+  // 버블: 나=teal 우측 / 환자=흰색+파란 좌측 액센트 / AI=보라 틴트 / 에이전시=초록 / 관리자=앰버
+  const bubble =
+    isMine ? "bg-teal-600 text-white" :
+    isPatient ? "border border-gray-200 border-l-[3px] border-l-blue-400 bg-white text-gray-900" :
+    isAI ? "border border-violet-100 bg-violet-50 text-gray-800" :
+    isAgency ? "border border-emerald-100 bg-emerald-50 text-gray-800" :
+    isAdmin ? "border border-amber-100 bg-amber-50 text-gray-800" :
+    "border border-gray-200 bg-gray-100 text-gray-700";
 
   return (
-    <div style={{ display: "flex", justifyContent: isMine ? "flex-end" : "flex-start", marginBottom: 14 }}>
-      <div style={{ maxWidth: "72%", textAlign: isMine ? "right" : "left" }}>
-        <div
-          style={{
-            fontSize: 10,
-            letterSpacing: "0.15em",
-            textTransform: "uppercase",
-            color: "#9a9284",
-            marginBottom: 4,
-            fontWeight: 600,
-          }}
-        >
-          {label} · <span style={{ fontFamily: "SF Mono, monospace", fontWeight: 400 }}>{new Date(m.created_at).toLocaleString()}</span>
+    <div className={`mb-3.5 flex ${isMine ? "justify-end" : "justify-start"}`}>
+      <div className={`max-w-[72%] ${isMine ? "text-right" : "text-left"}`}>
+        <div className={`mb-1 text-xs font-semibold ${isMine ? "text-gray-400" : labelColor}`}>
+          {label} <span className="font-normal text-gray-400">· {new Date(m.created_at).toLocaleString("ko-KR")}</span>
         </div>
-        <div
-          style={{
-            display: "inline-block",
-            padding: "12px 16px",
-            background: isMine ? "#0a0a0a" : isPatient ? "#fff" : "#f5f0e8",
-            color: isMine ? "#f5f0e8" : "#0a0a0a",
-            border: isMine ? "none" : "1px solid #e3dbcc",
-            fontSize: 14,
-            lineHeight: 1.55,
-            whiteSpace: "pre-wrap",
-            wordBreak: "break-word",
-            fontFamily: "inherit",
-          }}
-        >
+        <div className={`inline-block whitespace-pre-wrap break-words rounded-xl px-4 py-2.5 text-sm leading-relaxed ${bubble}`}>
           {m.message_text}
         </div>
       </div>

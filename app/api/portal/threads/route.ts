@@ -45,11 +45,38 @@ export async function GET(request: NextRequest) {
       return Response.json({ ok: false, error: "query_failed" }, { status: 500 });
     }
 
+    // 스레드별 마지막 메시지 미리보기 (목록에서 한눈에). 스레드별 최신 1건만 취함.
+    // ponytail: 현재 채팅 저volume → in() + 내림차순 후 JS 디둡으로 충분. 메시지 폭증 시
+    //           Postgres distinct on(thread_id) RPC/뷰로 전환.
+    const ids = (data || []).map((t: any) => t.id);
+    const lastByThread = new Map<string, { text: string; actor: string }>();
+    if (ids.length) {
+      const { data: msgs } = await supabaseAdmin
+        .from("chat_messages")
+        .select("thread_id, message_text, actor_type, created_at")
+        .in("thread_id", ids)
+        .order("created_at", { ascending: false })
+        .limit(3000);
+      for (const m of (msgs || []) as any[]) {
+        if (!lastByThread.has(m.thread_id)) {
+          lastByThread.set(m.thread_id, {
+            text: typeof m.message_text === "string" ? m.message_text.slice(0, 120) : "",
+            actor: m.actor_type,
+          });
+        }
+      }
+    }
+
     // guest_name 은 암호화 저장 → 표시 전 복호화(옛 평문 행은 그대로)
-    const threads = (data || []).map((t: any) => ({
-      ...t,
-      guest_name: decryptMaybe(t.guest_name),
-    }));
+    const threads = (data || []).map((t: any) => {
+      const last = lastByThread.get(t.id);
+      return {
+        ...t,
+        guest_name: decryptMaybe(t.guest_name),
+        last_message: last?.text || null,
+        last_actor: last?.actor || null,
+      };
+    });
 
     return Response.json({ ok: true, threads });
   } catch (err: any) {

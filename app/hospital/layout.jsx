@@ -2,6 +2,7 @@
 
 import { HospitalGateClient } from "./_components/HospitalGateClient";
 import { HospitalNav } from "./_components/HospitalNav";
+import ManualDrawer from "../_components/ManualDrawer";
 
 export default function HospitalLayout({ children }) {
   return (
@@ -14,6 +15,7 @@ export default function HospitalLayout({ children }) {
           </div>
         </main>
       </div>
+      <ManualDrawer role="hospital" />
     </HospitalGateClient>
   );
 }

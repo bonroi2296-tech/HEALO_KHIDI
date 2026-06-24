@@ -15,7 +15,7 @@ import { createServiceRoleClient } from "@/lib/supabase/server";
 import { requireAdminAuth } from "@/lib/auth/requireAdminAuth";
 import { decryptStringNullable } from "@/lib/security/encryptionV2";
 
-const STAFF_ROLES = ["doctor", "coordinator", "admin"];
+const STAFF_ROLES = ["coordinator", "admin"];
 
 function isBanned(u: any) {
   const until = u.banned_until ? new Date(u.banned_until).getTime() : 0;

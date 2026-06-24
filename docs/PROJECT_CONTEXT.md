@@ -7,86 +7,86 @@
 
 ---
 
-## 🔖 세션 핸드오프 (2026-06-24 저녁 — 회원가입/인증 전면 점검: Zoho SMTP·비번찾기·token_hash·다국어 인증메일)
+## 🔖 세션 핸드오프 (2026-06-24 밤 — doctor 계층 제거 + 5세션 PR 검수·머지 + 자산폴더 유실 방지 + 구글 OAuth 브랜딩)
 
-> 회원가입 절차 QA로 시작 → **공개가입이 사실상 막혀 있던 것 발견**(이메일 인증 ON인데 커스텀 SMTP 미설정 → 인증메일 미발송, 가입 성공자 0명) → Zoho SMTP 연결로 해결 + self-service 비번찾기 신설 + 회사메일 스캐너·자동로그인 문제까지 token_hash 방식으로 해결 + 인증/재설정 메일을 신뢰감 디자인·6개국어로. 작업본 브랜치 `worktree-auth-signup-test`, **PR [#341](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/341) 열림(머지 안 함 — auth라 PO 확인 후).**
+> 격리 worktree(`.claude/worktrees/session-work`)에서 진행. 이번 세션은 ①신규 개발 1건 ②다른 5개 병렬세션 PR 검수·머지 ③반복되던 로고/lighthouse 폴더 유실 근본수리 ④구글 로그인 브랜딩(콘솔 설정, PO가 직접) 네 갈래.
+
+**1. 이번 세션 한 일**
+- **doctor(의사) 계정 계층 완전 제거 (8→7계층)** — [#334](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/334) **머지·prod 배포 완료**. `accountTiers.ts`(SoR)·`roles.ts`·`requirePortalAuth`·`resolveLanding`에서 doctor 제거, `/admin/staff`는 코디만 생성, 상담모달 '담당 의사 계정' 칸 제거, 죽은 `/doctor` 라우트 삭제. 의사는 계정 없이 **상담방 게스트 초대링크로만 입장**(기존 흐름 유지). DB: 미사용 doctor 계정 1개(`doctor@test.com`)만 있어 일반회원으로 강등(상담 17건 중 doctor 배정 0건 → 무영향). "doctor"는 상담방 *참가자 역할* 문자열로만 잔존(churn 최소화).
+- **다른 5개 병렬세션 PR 검수·머지** — 부하 에이전트로 병렬 검수 후: [#332](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/332)(모바일 알림 취향)·[#337](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/337)(코디 흐름)·[#340](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/340)(코디 메시지)·[#336](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/336)(에이전시 메신저) **전부 머지·배포 완료**. #336은 충돌(코드: #340이 같은 메시지파일 재작성 + 문서: PROJECT_CONTEXT/PO_PREFERENCES)이라 main을 merge-in해 해소 후 머지.
+- **로고/lighthouse 폴더 반복 유실 근본수리** — [#343](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/343) **(이 세션 PR, 머지 상태는 6번 참조)**. `lighthouse/` → `.gitignore` 등록(재생성 가능 리포트), `logo/` → **git 추적으로 전환**(public/brand 워드마크를 PNG 2400px로 변환 + SVG + 정사각 아이콘). 반성문 [POSTMORTEMS #34].
+- **구글 OAuth 브랜딩** (PO가 콘솔에서 직접) — 프로젝트 `medical-consumables-491407`(OAuth client_id 935081849817…)의 브랜딩에 앱이름 healwith·로고·홈/개인정보(/privacy)/약관(/terms)·승인도메인 healwith.co.kr 입력·저장 완료.
+
+**2. 왜 그렇게 했는지**
+- doctor 제거: PO "의사는 별도 계정 필요 없다, 게스트 링크로 들어오면 됨(줌처럼)". 처음엔 '병원 계정 입장' 배선까지 했다가 PO가 "복잡하게 말고 링크면 다 입장"이라 해서 그 배선은 도로 걷어냄(게스트 토큰이 이미 그 역할).
+- 자산 유실: `logo`·`lighthouse`는 **git 미추적 + .gitignore에도 없는** 무방비 상태라 `git clean -fd` 한 번에 흔적없이 삭제(휴지통·git 어디에도 없음). 가치자산(로고)은 **커밋**, 재생성물(lighthouse)은 **ignore**가 정답.
+- 구글 "supabase.co로 이동" 표기: 무료 브랜딩으로는 **안 바뀜**(로그인 목적지가 supabase.co라 구글이 그 호스트를 표시). 바꾸려면 Supabase 커스텀 도메인(월 $10) 필요 → **PO가 "그냥 supabase.co로 감수"(무료 유지) 결정**. 게시상태도 무료 브랜딩과 별개.
+
+**3. 안 끝났거나 보류**
+- **구글 OAuth 게시 상태 = "테스트"** → 실제 환자 구글가입이 막혀 있음(등록 테스트 사용자만 가능). '대상(Audience)' 페이지에서 프로덕션(게시)으로 바꿔야 열림. PO가 이번엔 안 함(보류).
+- **Supabase 커스텀 도메인(월 $10)** — supabase.co 표기 없애려면 필요하나 PO가 무료 유지 택함(보류).
+- 로고 원본: 사라진 root `logo` 폴더에 워드마크 외 다른 원본(ai/psd)이 있었는지 PO 미확인 — 있었으면 그것만 별도 유실(git에 없음).
+
+**4. 주의·함정**
+- **공유 메인 폴더(`HEALO_KHIDI`)의 폴더는 반드시 git 추적 or .gitignore 둘 중 하나여야 함** — "추적도 ignore도 안 된" 폴더는 청소명령에 증발(POSTMORTEM #34). 새 산출물은 즉시 ignore, 가치자산은 즉시 커밋.
+- 여러 세션이 같은 SoR 문서(PROJECT_CONTEXT·PO_PREFERENCES) 동시 수정 → 머지 충돌. 양쪽 블록 보존으로 풀 것(이번에도 그렇게 함).
+- doctor는 *계정 계층*에서만 빠진 것 — 상담방 *참가자 역할* "doctor" 문자열·`doctor_user_id` 컬럼은 보존(데이터·게스트입장 유지).
+
+**5. 다음 세션이 먼저 할 일**
+1. **⚠️ 직전 미검증분 먼저 확인**: #334(doctor 제거)·#336/#337/#340(코디·에이전시 UI)은 **빌드·로직·보안만 확인, 실제 클릭 검증 못 함**(SSR 로그인 제약). 프리뷰/프로덕션에서 코디·에이전시 계정으로 ①`/admin/staff` 코디만 생성되는지 ②상담 생성 모달에 의사계정칸 없는지 ③에이전시 메신저(드로어·코디 답장 왕복) 동작 확인.
+2. **PR [#343](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/343)** 머지 여부 마무리(로고 영구보존 — 안 머지되면 logo 또 사라질 수 있음).
+3. PO가 원하면: 구글 OAuth **게시 상태**를 프로덕션으로(실제 환자 구글가입 열기).
+
+**6. 검증 상태**
+- #334: tsc(영향범위)·vitest 28건·check:content·`next build --webpack`·CI 전부 통과 → 머지·prod 배포 success 확인. **단 실클릭 검증은 못 함.**
+- #332·#337·#340·#336: 각 PR CI(ci·smoke·Vercel) 초록 확인 후 머지, main 배포 success 확인. **UI 실클릭은 못 함(코드·보안만).**
+- #343: 로컬 check:content·`next build --webpack` 통과 + 로고 PNG 변환 결과 눈으로 확인(정상). **머지 상태는 이 핸드오프 작성 시점 기준 미머지(PR 열림) — 다음 세션이 CI 확인 후 마무리.**
+- 구글 브랜딩: 콘솔 "저장됨" 확인. 단 동의화면에 healwith 이름/로고가 실제로 뜨는지는 구글 전파·검수(로고 며칠)라 미확인. "supabase.co" 표기는 무료론 안 바뀜이 확인됨.
+
+**7. 다음 세션 첫 프롬프트**
+> 먼저 docs/PROJECT_CONTEXT.md 최상단 핸드오프 읽어. 2026-06-24 밤에 doctor 계정계층 제거(#334)·다른 5세션 PR 검수머지(#332/#336/#337/#340)·로고와 lighthouse 폴더 유실 근본수리(#343, 머지됐는지 먼저 확인)·구글 OAuth 브랜딩을 했어. 직전 UI 변경들(#334·#336·#337·#340)은 실제 클릭 검증을 못 했으니, 코디·에이전시 계정으로 로그인해 ①/admin/staff가 코디만 생성 ②상담 모달에 의사계정칸 없음 ③에이전시 인앱 메신저 왕복을 실제로 확인해줘. PR #343 안 머지됐으면 CI 보고 마무리(로고 영구보존). 구글 게시상태(테스트→프로덕션)는 PO가 원할 때.
+
+## 🔖 세션 핸드오프 (2026-06-24 저녁 — 환자↔코디 상호작용 전반 정리 + 메시지 화면 재작성)
+
+> 긴 세션. 환자↔코디 통로를 검토하며 PO 피드백을 연속 반영. **머지·배포 완료: [#326](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/326)[#329](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/329)[#331](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/331)[#333](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/333)[#337](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/337)[#340](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/340)[#342](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/342).** 핵심 교훈: 같은 파일(메시지 화면)을 다른 세션(#336 에이전시 메신저)과 동시에 만져 머지 충돌 발생 — 병렬 worktree 안 쓴 대가.
 
 **1. 이번 세션 한 일:**
-- **(코드 PR #341, 빌드 통과)** self-service 비번찾기(`/reset-password` + 로그인 '비번찾기' 버튼→`resetPasswordForEmail`) / **token_hash `/auth/confirm` 클라이언트 페이지**(스캐너 안전+자동로그인) / 가입 후 "메일 확인하세요" 안내화면(입력 이메일 표시) / 비번 placeholder "6자→8자" 버그수정(6개국어) / 가입 시 사용자 언어 `user_metadata.lang` 저장 / 새 화면 아이콘 DESIGN.md 준수(w-12 rounded-xl).
-- **(Supabase 대시보드, PO가 직접 — prod 즉시 적용)** Zoho 커스텀 SMTP(smtp.zoho.com:465, admin@healwith.co.kr, 앱비번) / 비번정책 특수문자 제거·최소 8자 / **Site URL → https://healwith.co.kr** (옛 vercel.app 교정) / 인증·재설정 **이메일 템플릿을 신뢰 디자인+6개국어**로 교체.
-- **(검증)** 실가입으로 가입→인증메일 도착→링크 클릭→인증완료→로그인 확인. **다국어 메일 실발송 검증**(한국어로 깔끔히 옴 = Supabase가 `{{ if }}` 조건문 실제 처리함). 중복가입 차단·틀린비번 거부 확인. 테스트 계정 전부 삭제 정리.
+- **#326** 코디→환자 '추가 정보 요청' 카피 검토 + **카자흐어 오타 수정**(`ауруханаmen`→`аурухана мен`, 라틴-키릴 혼입).
+- **#329** 상담 초대·리마인더 이메일: **러·카 환자가 한국어 메일 받던 버그**(언어 게이트가 `role==="patient"`만 봤는데 모달은 `role:"guest"`로 발급) 교정 + 계정환자 이메일 폴백. POSTMORTEM #31.
+- **#331** 환자 인앱 알림 벨 신설 — `notifications` 테이블 RLS로 브라우저 직접조회(새 API 0). 견적 발행·상담 생성 이벤트 배선(best-effort, try/catch 격리).
+- **#333** 에이전시 의뢰 첨부 조회 + 환자/에이전시 문의 구분: 상세/리스트 API에 `attachments`·`agency_id`·`agencies(name)` 추가, `/api/attachments/sign`에 staff 허용, 코디 화면에 첨부 카드+배지. POSTMORTEM #32.
+- **#337** 코디 문의 상세에 **진행 단계 인라인 편집**(접수→사전상담→병원검토→…→완료, `/api/admin/khidi/cases` 재사용) + 흐름순 버튼 정리 + 보험·다중병원배정 UI 숨김(`SHOW_INSURANCE`/`SHOW_HOSPITAL_ASSIGN`=false). **계정 없는 시드 병원 7곳 `is_active=false`(prod DB 적용, TEST 병원만 남김, 가역).**
+- **#340 + #342** 코디 메시지 화면 **premium 잔재 제거 → legacy 한국어 재작성** + 자동 스크롤 버그(폴링이 5초마다 맨아래로) + **환자(파랑)/AI(보라) 구분** + 입력창 짤림 + 공개 헤더/푸터 제거 + 마지막 메시지 미리보기 + "열림"→"신규".
 
 **2. 왜 그렇게 했는지:**
-- 공개가입 0명 근본원인 = 이메일 인증 필수인데 SMTP 없어 인증메일 미발송(내장메일 rate limit 429). PO가 버튼으로 ①Zoho SMTP ②특수문자 제거 ③self-service 비번찾기 선택.
-- **회사메일(네이버웍스 등) 보안 스캐너가 인증링크를 미리 자동클릭** → 일회용 토큰 소진(DB상 발송 21초 후 인증=봇) → 사용자 클릭 시 `otp_expired`. **token_hash를 클라이언트 JS로만 검증하는 페이지**면 봇(JS 미실행)이 안 건드림 + 쿠키세션으로 자동로그인까지. (PO '제대로 고치기' 선택)
-- 로고는 Gmail이 SVG 차단 → 워드마크 색분리(heal `#0d9488`·with `#334155`)를 텍스트로 재현.
+- **환자/AI 구분 버그 근본원인**: 실제 `chat_messages.actor_type`은 `patient`(환자)·`system`(AI)인데 코드가 `user`/`bot`로 분기 → 둘 다 "시스템"으로 떨어짐. **DB 집계(`patient 352·system 352·agency·coordinator`)로 확인 후 수정**(추측 금물 교훈).
+- **메시지 입력창 짤림**: 코디 레이아웃 offset(`pt-12`=48px)이 실제 PortalTopBar(`h-14 md:h-16`=56/64px)와 안 맞고 풀블리드 main이 패딩을 한 번 더 더해 grid가 화면 밖. → offset을 바 높이에 정렬 + grid 높이 브레이크포인트별 정확화.
+- **`/coordinator`가 `isPortalPage` 누락**(ClientShell) → 공개 사이트 헤더+푸터가 코디 화면에 붙어 빈 띠·푸터. 추가하니 PortalTopBar만 남음(POSTMORTEM #32 부류).
+- **병원 1곳 운영**: PO가 "실제로 TEST 병원 1곳이 다 컨트롤, 나중에 추가" → 다중병원 배정 UI 숨기고 시드 병원 비활성.
 
 **3. 안 끝났거나 보류:**
-- **PR #341 머지 안 함** — auth 영역이라 PO 확인 후 머지·배포.
-- **배포 후 필수**: 두 이메일 템플릿 href를 token_hash URL로 교체해야 스캐너안전+자동로그인 완성(지금은 `{{ .ConfirmationURL }}`=현재흐름, 안전하지만 자동로그인 안 됨). Confirm signup → `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=email&next=/` · Reset Password → `{{ .SiteURL }}/reset-password?token_hash={{ .TokenHash }}&type=recovery`.
-- 사용자 언어 메일은 `lang` 저장 배포 후 가입자부터 적용(그 전 영어 fallback).
+- **#342 prod 프리뷰 미확인** — Vercel **일일 배포 한도(24h)** 초과(2026-06-24 병렬 세션들이 배포 과다)라 새 프리뷰가 안 떴다. 한도 풀리면 자동 생성. (단 **로컬 dev에 코디 계정 로그인해 실측 검증함** — 아래 6번.)
+- 보험·다중병원배정은 **숨김만**(코드 보존). 실제 병원 추가 시 `SHOW_INSURANCE`/`SHOW_HOSPITAL_ASSIGN` true + 시드 병원 `is_active` 되돌리기.
 
 **4. 주의·함정:**
-- ⚠️ Supabase Auth **'Require current password when updating' 토글 ON** — 비번찾기(복구) 흐름을 막는지 **미검증**. end-to-end 테스트 때 확인, 막히면 OFF.
-- ⚠️ Supabase 이메일 템플릿 **Preview 탭은 `{{ if }}`를 계산 안 해 raw `{{}}`로 보임** — 정상(실발송은 처리됨, 검증함). PO가 이거 보고 놀랐던 지점.
-- ⚠️ **로컬 dev 프리뷰는 메인 폴더에서 돌아 worktree 변경이 안 보임** — 빌드로만 검증함. 런타임 화면은 배포 후 확인 필요.
-
-**5. 다음 세션이 먼저 할 일:**
-1. **⚠️ 직전 미검증분 먼저**: PR #341 머지·배포 후 → ①두 이메일 템플릿 href를 token_hash URL로 교체 ②**실제 가입+비번찾기 end-to-end 클릭 검증**(메일→링크→자동로그인 / 비번재설정 동작) ③'Require current password' 토글이 reset 막는지 확인.
-2. (배포 전이면) PO가 프리뷰/PR 검토 후 머지 결정.
-
-**6. 검증 상태:**
-- 빌드 `npx next build --webpack` 통과(여러 번). check:content 미실행(다음 머지 전 CI가 돌림).
-- **실DB·실발송 검증됨**: 가입→인증메일→로그인, 다국어 메일 렌더, 중복차단, 비번정책 특수문자 제거.
-- **미검증(솔직히)**: self-service 비번찾기 end-to-end는 배포+href교체 후에만 가능(코드는 빌드만). token_hash `/auth/confirm` 런타임 미검증. 로컬 화면 못 봄(메인폴더에서 돎). 'Require current password' 토글 영향 미확인.
-- PR/CI: **PR #341 열림. CI 통과 여부 미확인**(GitHub MCP 미사용).
-
-**7. 다음 세션 첫 프롬프트:**
-> 먼저 docs/PROJECT_CONTEXT.md 최상단 핸드오프 읽어. 회원가입/인증 작업(브랜치 worktree-auth-signup-test, PR #341) 이어가자. 머지·배포했으면 Supabase 이메일 템플릿 2개(Confirm signup·Reset Password)의 href를 token_hash URL로 바꾸고, 실제 가입+비번찾기를 끝까지 클릭 검증해줘(자동로그인·비번재설정 되는지, 'Require current password' 토글이 막는지도). 아직 머지 안 했으면 PR #341부터 검토.
-
----
-
-## 🔖 세션 핸드오프 (2026-06-24 오후 — 코디 '추가 정보 요청' 기능 + 암환자용 폼 전면 교체 + E2E 9건 초록)
-
-> 긴 세션. 흐름: ①E2E 로봇 9개 실패 전부 수리(머지 [#325](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/325)) → ②코디→환자 '추가 정보 요청' 기능 신설 → ③검증 중 발견한 암 인테이크 폼이 옛 정형외과 잔재라 전면 재작성 + 버그 3개 수리. **[#326](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/326) 열림(프리뷰 톤 검토 대기 — 머지 안 함).** ⚠️ **같은 폴더 동시작업 오염 다시 발생**(4번).
-
-**1. 이번 세션 한 일:**
-- **E2E 로봇 9개 실패 → 전부 초록 [#325](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/325) (머지·CI 75통과/0실패)**: E2E가 처음 제대로 돌자 9개 실패. 로컬(`.env.local`+node_modules)에서 전수 디버깅 — 로그인 버튼 셀렉터(i18n→`button[type=submit]`)·`networkidle` 안 settle(애널리틱스)→`domcontentloaded`(24파일)·로그인 대기 30s·web-first assertion·home 로고(`getByRole("img")`)·treatments 상세링크 테스트 현실화·어드민 계정 생성(수작업 auth행 깨져 토큰컬럼 보정).
-- **코디 → 환자 '추가 정보 요청' 기능 [#326](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/326)(열림)**: 환자가 이메일만 남기면 코디가 상세를 못 받던 구멍. 코디 문의상세에 '추가 정보 요청' 카드 → Step2 폼 링크를 **환자 이메일로 발송(6언어)** + 복사링크 + **왓츠앱 보내기**. 신규 `POST /api/coordinator/inquiries/[id]/request-info`(staff, public_token 생성·발송·`info_requested_at` 기록) + 이메일 템플릿 `infoRequest.ts`(6언어) + 폼 제출 뒤 **소프트 계정 유도**(강요 아님). E2E 스모크 1개. 마이그레이션 `add_info_requested_at_to_inquiries`(가역, prod 적용).
-- **암환자용 인테이크 폼 전면 재작성**: 기존 `/inquiry/intake` 폼이 피벗 전 **정형외과/통증클리닉 잔재**(무릎·어깨·발목·심각도1-10)라 암환자에 부적합 → **진단시기·병기(Stage)·현재치료상태·받은치료(복수)·보유서류(복수)·입국희망시기·메모 + 의료서류 첨부**로 교체(6언어 인라인). 코디 화면은 그 코드값을 **한글 라벨**로 표시(병기→"3기"). 옛 데이터 호환.
-- **버그 3개 + 잡것**: ①전화번호가 코디 화면에 **암호문 raw** 노출 → `decryptForAdmin`에 phone 복호화 추가 + 화면 `safe()` 가드 ②'추가정보 요청' 결과가 발송실패를 "이메일 없음"으로 **오표시** → 발송됨/미발송/없음 3구분 ③브라우저 확장(HWP `rhwp`)이 `<html>` 속성 주입 → 하이드레이션 경고 → `suppressHydrationWarning` ④문의 폼 언어 드롭다운을 핵심시장 순(러·카·영·일·중·한)으로 ⑤요청 링크가 환자 언어(`/ru/...`)로 열리게.
-- **에이전시 worktree 분리**: PO가 에이전시 계정을 **다른 세션**에서 작업하려 함 → 충돌 방지로 `bash scripts/new-session.sh agency` → `C:\Users\user\Desktop\HEALO_worktrees\agency`(브랜치 `work/agency`) + node_modules 정션·`.env.local` 복사 완료(바로 작업 가능).
-
-**2. 왜 그렇게 했는지:**
-- **'얇은 현관, 두꺼운 집' 전략(PO와 합의)**: ICT 6대기능 ↔ 저마찰(회원가입·앱 강요 시 이탈) 갈등을 **순서**로 푼다 — 토큰 링크가 신원을 들고 있어 **가입 없이** ICT 구조화 인테이크가 동작(= 정문), 계정·앱은 가치 받은 **뒤** 소프트 유도. KHIDI 평가에도 "마찰0 디지털 환자여정"이 더 강한 ICT 스토리.
-- **암 폼 i18n 인라인**: 중앙 i18n 키 추가는 `check:content` 6언어 패리티 가드를 건드려 번거로움 → 컴포넌트 인라인 6언어 객체(SOFT/LABELS 패턴)로. ru 100% 렌더 확인.
-- **E2E `networkidle`→`domcontentloaded`**: 2026-06-24 추가된 GA/애널리틱스가 네트워크를 계속 두드려 idle에 안 닿음(Playwright도 비권장). 내용 의존 테스트는 web-first assertion으로 재시도.
-
-**3. 안 끝났거나 보류:**
-- **[#326] 프리뷰 톤 검토 대기 → 머지 안 함**: 큰 UI/카피 변경이라 PO가 프리뷰에서 **이메일 6언어 카피·암 폼 문구(특히 러/카)·소프트 계정 문구** 톤 확인 후 머지 결정.
-- **로컬 이메일 발송 = `.env.local`에 RESEND 키 추가해야 됨(gitignore라 로컬 한정)**: dev Resend 키(`re_WKQ…`)+`noreply@healwith.co.kr`(도메인 인증됨) 넣어 로컬서도 실발송 확인. **이 키는 커밋 안 됨**(다음 세션 새 worktree면 다시 넣어야).
-- **`sendEmail.ts` 미설정시 ok:false 변경 + `docs/government-project/…`·`docs/DB_DEAD_TABLES…`·`migrations/20260624_drop_dead_tables.sql`** = **다른 세션 작업이 자동저장에 섞임** → 내 커밋에서 제외(unstage). 그 세션이 따로 커밋·정리할 것. **`drop_dead_tables.sql`은 삭제 마이그레이션이라 함부로 적용 금지(PO 확인).**
-
-**4. 주의·함정:**
-- ⚠️ **같은 폴더 동시작업 오염 재발**: 다른 세션이 이 폴더에서 작업 중 → `sendEmail.ts`·`government-project` 문서가 내 staging에 섞임. 내 것만 골라 커밋함. **교훈(또): 병렬 세션은 worktree로**(이번에 에이전시용은 분리함). 다음 세션도 새 주제면 `scripts/new-session.sh`로.
-- ⚠️ **dev 서버가 포트 3000에 떠 있음**(이 세션이 띄움). 다른 세션은 **3001** 쓰라고 PO에 안내함. 에이전시 worktree도 3001 권장.
-- ⚠️ **Resend dev 키는 샌드박스**: `onboarding@resend.dev` 발신은 PO 지메일로만 감. 임의 주소(환자)로 보내려면 발신을 **`noreply@healwith.co.kr`**(인증 도메인)로. prod는 이미 그렇게 설정됨.
-- ⚠️ **암 폼 새 intake 구조 = `{cancer:{…}, notes}`**. 코디 표시·옛 데이터 호환은 `CoordinatorInboxDetailClient`의 `CI`/`CI_MULTI` 맵에 의존. 값(코드) 바꾸면 양쪽 동기화.
+- ⚠️ **같은 파일 동시작업 충돌 재발**: 메시지 화면(`CoordinatorMessagesClient.jsx`)을 #336 에이전시 세션과 동시에 편집 → #340 머지 후 내 후속 수정이 닫힌 PR에 갇혀 main 미반영 → origin/main 머지로 충돌 해결 후 #342로 재상정. **다음엔 새 영역은 반드시 worktree 분리.**
+- ⚠️ **GitHub Actions 큐 밀림**: 병렬 세션 CI 폭주로 일부 푸시에 ci/Smoke가 트리거 지연/누락됨(빈 커밋 재트리거 무용 — paths 필터). 열린 PR이면 결국 돈다.
+- ⚠️ **프리뷰 자동화 로그인**: 로컬 dev는 코디 계정 로그인 후 SSR 쿠키가 붙어 검증 가능했음(이번에 성공). 단 타이밍 민감(로그인→충분히 대기 후 이동).
 
 **5. 다음 세션이 먼저 할 일 (우선순위):**
-1. **⚠️ 직전 미검증분 먼저**: [#326] 프리뷰에서 **①암 폼 제출 → 코디 화면에 한글 라벨로 뜨는지(다중주체 클릭은 이번에 못 함, 데이터경로만 검증) ②이메일 6언어·암 폼 카피 톤(특히 러/카)** 확인. OK면 머지. (코디 버튼→메일발송→폼열림→토큰검증은 **실호출로 검증됨**, 폼제출→코디표시 런타임만 미검증.)
-2. **에이전시 계정** — `C:\Users\user\Desktop\HEALO_worktrees\agency`에서 **별도 세션**으로(포트 3001). 충돌 0.
-3. (보류) `drop_dead_tables` 마이그레이션·LAUNCH_CHECKLIST = 다른 세션 것, 건들지 말 것.
+1. **⚠️ 직전 미검증분 먼저**: Vercel 한도 풀리면 **prod/프리뷰에서 코디 메시지 화면**(환자 파랑/AI 보라 구분·입력창 안 짤림·푸터 없음) + **#337 코디 문의 상세 진행단계 인라인**·**#333 에이전시 첨부 열람**을 실제 클릭으로 최종 확인. (로컬 실측은 했으나 prod 미확인)
+2. 보험·병원배정 재활성 시점이 오면 플래그 + 시드 병원 `is_active` 복구.
+3. (선택) 메시지 API가 요청마다 인증조회+권한쿼리+메시지쿼리 3연속이라 느림 — 포털 공통 인증 캐싱은 별도 과제.
 
 **6. 검증 상태:**
-- ✅ **[#326] CI 초록**: `ci`·`Smoke Tests (PR)` pass(force-push 후 재실행분 확인). **[#325] 머지됨**(main Full E2E 75통과/0실패).
-- ✅ `next build --webpack` exit 0 · `check:content` 통과.
-- ✅ 로컬 dev 실호출: 추가정보 요청 API 200·**실메일 발송 도달**(noreply→admin@healwith.co.kr, 러시아어)·전화 복호화(`+82…`)·암 폼 **ru 100% 렌더(원문키 0)**·마이그레이션 prod 적용.
-- ❌ **폼 제출 → 코디 한글표시 런타임 클릭 미검증**(데이터경로·표시로직은 확인, 다중주체 실클릭 못 함) → 5번 1.
-- ❌ **prod 미반영**(#326 머지 전).
+- ✅ **머지된 PR 전부 CI(ci·Smoke) 초록**: #326·#329·#331·#333·#337·#340·#342. `next build --webpack` exit 0 · `check:content` 통과.
+- ✅ **실DB 검증**: actor_type 값 확인(patient/system), 에이전시 문의 #20 첨부 5건·조인, 시드 병원 7곳 비활성.
+- ✅ **로컬 dev 실측(코디 로그인)**: 메시지 화면 환자(🙋 파랑)/AI(🤖 보라) 구분 렌더, 입력창 화면 안 완전노출(gridBottom=winH), 공개푸터·설치배너 없음, 콘솔 에러 0. (md 961px 창 기준 — lg는 동일 구조)
+- ❌ **prod 런타임 미확인**: Vercel 일일 배포 한도로 #342 새 프리뷰 못 띄움 → 5번 1.
+- 열린 PR: 이 세션 기준 없음(전부 머지). 다른 병렬 세션 PR은 별도.
 
 **7. 다음 세션 첫 프롬프트:**
-> 먼저 docs/PROJECT_CONTEXT.md 최상단 핸드오프 읽어. 2026-06-24 오후에 코디 '추가 정보 요청' 기능 + 암환자용 인테이크 폼 전면교체를 #326으로 올렸는데 **프리뷰 톤 검토 대기라 아직 머지 안 했어**. ①프리뷰에서 암 폼 제출→코디 화면 한글표시 + 이메일/폼 6언어 카피 톤(러·카) 봐주고 OK면 머지. ②에이전시 계정은 C:\Users\user\Desktop\HEALO_worktrees\agency 에서 **별도 세션**(포트 3001)으로 — 같은 폴더 충돌 방지. ③docs/DB_DEAD_TABLES·drop_dead_tables 마이그레이션은 다른 세션 것이니 건들지 마.
+> 먼저 docs/PROJECT_CONTEXT.md 최상단 핸드오프 읽어. 2026-06-24 저녁에 환자↔코디 상호작용(추가정보요청·상담알림·인앱벨·에이전시첨부·문의 진행단계 인라인·메시지 화면 재작성)을 #326~#342로 다 머지·배포했어. Vercel 배포 한도 때문에 #342(코디 메시지) prod 프리뷰를 못 봤으니, 한도 풀렸으면 **코디 계정으로 로그인해 메시지 화면(환자 파랑/AI 보라 구분·입력창 안 짤림·푸터 없음)** + 문의 상세 진행단계 인라인 + 에이전시 첨부 열람을 실제로 확인해줘. 보험·다중병원배정은 일부러 숨긴 상태(SHOW_INSURANCE/SHOW_HOSPITAL_ASSIGN=false, 시드 병원 비활성)니 건들지 마.
 
 ## 🏷️ 서비스명 변경 — HEALO → **healwith** (2026-06-16 확정·적용)
 
