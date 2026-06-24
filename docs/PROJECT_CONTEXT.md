@@ -7,6 +7,46 @@
 
 ---
 
+## 🔖 세션 핸드오프 (2026-06-24 — 재진 엔진 followup_schedules 배선 + 파비콘(얀덱스) + 프로덕션 정리)
+
+> 직전 핸드오프(#318)의 "#311·#313·#315 프로덕션 미반영" 우려를 실배포 이력으로 검증 → **이미 #313 promote 로 user-facing 수정은 라이브였음(핸드오프가 낡았던 것)**. 이어서 재진 엔진 근본수정(휴면 해제)·얀덱스 파비콘을 한 PR로 머지·배포. **[#320](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/320) main 머지 완료(`0c7dd8e`).**
+
+**1. 이번 세션 한 일 ([#320](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/320), CI 초록·squash 머지):**
+- **재진 엔진 근본수정 — 환자 재진화면 휴면 해제**: 재예약 엔진(`/api/khidi/rebooking/create`)이 `consultation_sessions`(실제 화상세션)에 써서, 환자 "재예약 관리" 화면이 읽는 `followup_schedules`는 **항상 0행**이라 화면이 영구히 비어 있었음(POSTMORTEMS #29 후속). → 엔진이 **`followup_schedules`에 `status='proposed'`로 "제안"을 쓰게** 고침. `inquiryId`만 오는 경로(SymptomAlerts)는 inquiry에서 `cancer_type`(NOT NULL 충족)·`user_id`(→`patient_user_id`, 환자 노출키 #297)를 끌어와 연결. source·reason은 `schedule`(Json)에 보존.
+- **실DB 추가 단절 발견·수정**: `followup_schedules_status_check`가 `active/paused/completed/cancelled`만 허용해 화면·포털API의 제안 어휘(`pending/proposed/confirmed/dismissed`)를 **막고 있었음** → CHECK를 합집합으로 넓힘(가역 마이그레이션 `widen_followup_schedules_status_check`, **prod 적용 + 실insert 검증**).
+- **환자 화면**(`RebookingClient.jsx`): 뱃지가 트리거 종류(증상/팔로업/의사) 표시(이미 있던 `LABELS`/`SOURCE_COLORS` 활용) + history 상태 라벨 `confirmed`/`dismissed` 추가(6언어). 계약테스트도 새 테이블로 갱신.
+- **파비콘 `/favicon.ico` 추가 (얀덱스)**: PO가 얀덱스 웹마스터 "파비콘 파일을 찾을 수 없습니다" 제보. 원인 = head엔 PNG 파비콘만 있고 크롤러가 루트에서 찾는 클래식 `/favicon.ico`가 부재. → `public/favicon.ico` 신설(새 브랜드 h 마크 16·32 PNG를 ICO 컨테이너로 래핑, `file` 검증 통과) + layout metadata에 명시.
+- **프로덕션 정리(자동)**: #320 main 머지로 프로덕션이 **옛 branch-promote(#313)에서 main 최신본으로 자동 재배포** → "프로덕션 = 본판 최신" 정상화. 배포 일일한도도 풀림(6/24 배포 성공 중).
+
+**2. 왜 그렇게 했는지:**
+- **followup_schedules가 정식 테이블**: 환자 화면·포털API가 이미 거기 붙어 있음(SoR). 재예약은 환자가 확정/무시하는 "제안"이라 추천 큐(followup_schedules)가 맞고, 실제 화상세션(consultation_sessions)은 확정 후 생성될 것. 그래서 엔진을 화면 쪽으로 맞춤(POSTMORTEM #28 교훈: 데이터원 단일화).
+- **CHECK를 합집합으로 넓힘(좁히지 않음)**: 0행이라 무손실·가역. 다른 경로가 active/paused를 쓸 수 있어 기존 어휘도 보존.
+- **파비콘 ICO 직접 생성**: `sharp`는 .ico 출력 미지원 → ICO는 PNG 임베드를 허용하므로 기존 16/32 PNG를 ICO 컨테이너로 래핑(의존성 추가 없이).
+
+**3. 안 끝났거나 보류:**
+- **재진 런타임 클릭 미검증** — 데이터 경로(엔진 insert→환자 API 조회)는 실DB·계약테스트로 확정했으나, "어드민이 SymptomAlerts에서 재예약 제안 → 환자 로그인 → 재진화면에 뜸"의 **다중주체 실클릭은 못 함**(로그인·다계정 필요). prod 반영 후 PO/세션이 확인.
+- **기존 문의 소급 연결 안 됨** — `inquiries.user_id`가 전부 NULL(기존 17건). 환자계정 연결은 **앞으로 로그인 접수분부터**. 그래서 당장 재진 제안의 `patient_user_id`는 신규 접수에서만 채워짐.
+- **E2E 자동 클릭검사 2개 잠자는 중** — 테스트 계정(`patient@test.com`·`coordinator@test.com`)은 **실재 확인**했으나 GitHub Secrets 4개(`E2E_TEST_USER_EMAIL/PASSWORD`·`E2E_COORDINATOR_EMAIL/PASSWORD`) 미설정이라 CI에서 skip. PO가 넣어야 활성(비번이 secret 값과 일치해야 함).
+
+**4. 주의·함정:**
+- ⚠️ **자동저장 훅이 작업 중 2회 끼어듦**(09:41·09:45 "chore: 작업 자동 저장" 커밋 + 원격 푸시). 내 깔끔한 커밋으로 `reset --soft`(hard 아님) 후 재커밋, 피처 브랜치는 `--force-with-lease`로 정리. **커밋 전 `reset --hard` 금지**(기존 교훈) — soft만.
+- ⚠️ **재진 엔진 IDOR 체크는 payload.patientId 기준**: 환자가 inquiryId만 보내 self-trigger하면 forbidden(현재 SymptomAlerts=어드민만이라 무해). 환자 self-rebooking을 켤 거면 그 체크를 inquiry 소유 기반으로 손봐야.
+- ⚠️ **followup_schedules.current_phase 기본값='week_1'** — 엔진은 `null` 명시로 회피(화면 뱃지가 'week_1' 안 뜨게). 직접 insert 시 주의.
+
+**5. 다음 세션이 먼저 할 일 (우선순위):**
+1. **⚠️ 직전 미검증분 먼저(배포 후 실클릭)**: #320 prod 반영되면 **①`https://healwith.co.kr/favicon.ico`가 200으로 뜨는지**(얀덱스 재검토 트리거) **②재진: 어드민 SymptomAlerts에서 '재예약 제안' → 그 환자로 로그인 → `/patient/rebooking`에 제안이 뜨고 확정/무시 되는지**. (데이터·빌드·CI·실DB는 통과, 다중주체 클릭은 못 함.)
+2. **(PO 액션) E2E Secrets 4개 등록** — 넣으면 자동 클릭검사 활성. 비번은 test 계정 실제 비번과 일치해야(모르면 Supabase에서 리셋).
+3. (선택) 환자 self-rebooking 켤 때 IDOR 체크 보완 / 기존 문의 소급 연결(백필).
+
+**6. 검증 상태:**
+- ✅ **[#320](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/320) CI 전부 초록**: `ci`(2m20s)·`Smoke Tests (PR)`(3m20s)·Vercel preview pass → squash 머지(`0c7dd8e`). 열린 PR 없음.
+- ✅ vitest 계약 6 + 엔진 14 통과 · `next build --webpack` exit 0(2회) · `check:content` 통과.
+- ✅ 실DB: `followup_schedules`에 `status='proposed'` insert 성공(테스트행 삭제), CHECK 마이그레이션 prod 적용. 파비콘 `file`=MS Windows icon resource(16+32).
+- ⏳ **prod 배포는 머지 직후 BUILDING** — 이 핸드오프 시점엔 favicon 200·재진 화면 **런타임 미검증**(→ 5번 1).
+
+**7. 다음 세션 첫 프롬프트:**
+> 먼저 docs/PROJECT_CONTEXT.md 최상단 핸드오프 읽어. 2026-06-24에 재진 엔진을 정식 테이블(followup_schedules)로 고쳐 환자 재진화면 휴면을 풀고, 얀덱스가 찾던 /favicon.ico를 추가해 #320으로 main 머지했어(prod 자동 재배포). ①healwith.co.kr/favicon.ico가 200으로 뜨는지 ②어드민 SymptomAlerts에서 '재예약 제안'→그 환자로 로그인→/patient/rebooking에 제안 뜨고 확정/무시 되는지 직접 확인해줘. 그담에 E2E Secrets 4개 넣는 거 PO한테 안내(test 계정 실재 확인됨).
+
 ## 🔖 세션 핸드오프 (2026-06-23 늦은밤 — 코디·환자 버그 수정 + 배포최적화 + 검증 자동화)
 
 > 갈무리 세션이 길게 이어져 PO가 실서비스를 직접 클릭하며 버그를 연달아 발견 → 그때마다 원인+재발방지(가드/E2E)까지 한 세트로 수리. **PR 9개 머지**(#274 닫음 포함). ⚠️ **단, 한도 때문에 #311·#313·#315는 아직 프로덕션 미반영**(5번·6번 필독).
@@ -54,43 +94,6 @@
 
 **7. 다음 세션 첫 프롬프트:**
 > 먼저 docs/PROJECT_CONTEXT.md 최상단 핸드오프 읽어. 2026-06-23 코디 인박스 404·새상담 모달·환자 모바일 레이아웃·통합 초대링크를 다 고쳐 머지했는데 **#311·#313·#315가 Vercel 일일한도로 프로덕션에 아직 안 올라갔어**(현 prod=#309). ①한도 풀렸으면 프로덕션 반영됐는지 보고(healwith.co.kr 최신커밋 1a3ca8f 이상), 안 됐으면 최신 프리뷰 Promote to Production 안내해. 그담에 PO한테 환자 모바일 하단바 1개·코디 새상담 참여링크1개/실명/이메일자동 실클릭 확인 받자. ②E2E 자동검사 켜려면 GitHub Secrets 4개(patient·coordinator 계정/test1234) 넣어야 한다고 PO한테 알려.
-
-## 🔖 세션 핸드오프 (2026-06-23 밤 — 세션 갈무리: 열린 PR 정리)
-
-> 여러 세션이 작업을 끝낸 뒤 흩어진 상태를 정리한 "갈무리" 세션. 코드 변경 없음(열린 PR 처리 + 핸드오프 정리만). PO 지시: "세션들 작업 종료는 다 했으니 갈무리해라."
-
-**1. 이번 세션 한 일:**
-- **열린 합치기 신청서(PR) 전수 점검** — 열린 PR은 #274·#298 둘뿐임을 확인.
-- **[#274](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/274)(초안) 닫음** — 포털 API화(증상·재진·여정 서버 API) 작업이 이후 머지된 #286(증상 `patient_user_id` 실스키마 배선)·#288(프리미엄 컴포넌트 전면 폐기 — RebookingPremium/SymptomsPremium 삭제)·#297(문의 양방향 조회 복구)로 **대체**되어, 대체 사유 코멘트를 달고 **머지 없이 닫음**. (직전 핸드오프 "다음 할 일 2번" 이행. 코드는 브랜치 `claude/extended-reasoning-tokens-dvmu0a`에 보존.)
-- **[#298](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/298) 상태 확인 후 보류** — 암종 페이지 비용·비자 전환 콘텐츠. 자동검사(CI) `ci`·`Smoke Tests` **둘 다 통과(초록)**, Vercel만 "일일 배포한도 초과(24h 후 재시도)"로 프리뷰 대기. 카피 톤이 초안(특히 RU/KZ)이라 **머지하지 않고 PO 비동기 검토 대상으로 남겨둠**(큰 UI/카피 변경 = 멈춰 세우지 말고 프리뷰 남기기 규칙).
-
-**2. 왜 그렇게 했는지:**
-- **#298은 머지 안 함** — 카피 톤(특히 러시아어·카자흐어)은 PO가 검토해야 할 "큰 UI/카피 변경". 자율 규칙상 저위험 UI만 자동 머지, 톤 변경은 프리뷰만 남기고 PO 비동기 검토.
-- **#274는 닫기만(머지 금지)** — 직전 핸드오프가 이미 "대체됨 → 닫기"로 결정. 코드 보존은 브랜치에 남으므로 닫아도 손실 없음.
-
-**3. 안 끝났거나 보류:**
-- **[#298] PO 카피 검토 대기** — Vercel 일일 배포한도(24h)로 프리뷰가 한동안 안 뜰 수 있음. 한도 풀리면 프리뷰 링크로 6개 언어 카피 톤 확인 → 머지 결정.
-- **origin 원격 작업본(브랜치) 100개+ 누적** — 대부분 이미 머지됐거나 폐기됨. 정리(머지된 브랜치 가지치기)는 되돌리기 애매해 **PO 결정 대기**(머지된 것만 추려 삭제하면 안전, PR/reflog로 복구 가능).
-- 직전 세션의 보류(재진 엔진 `rebooking_source` 유령컬럼 근본수정 / `/patient/messages`·`/calendar` legacy 리스타일 / stories PageShell import)는 **그대로 유지** — 이번 세션 범위 아님.
-
-**4. 주의·함정:**
-- ⚠️ **#298의 "Vercel failure"는 코드 실패 아님** — "Deployment rate limited — retry in 24 hours"(일일 배포한도). 실제 CI(ci·Smoke)는 초록. 자동저장 푸시 10분 쓰로틀(커밋 1594b97)이 이 한도 소진을 줄이려는 조치였음.
-- **이번 세션은 `claude/session-cleanup-iof9wj` 브랜치이나 코드 커밋 없음** — 이 핸드오프 문서 변경만 푸시.
-
-**5. 다음 세션이 먼저 할 일 (우선순위):**
-1. **⚠️ 직전 미검증분 먼저(로그인 실클릭)** — 2026-06-23 오후·저녁 배포분: `/coordinator`·`/patient` 로그인해서 ①헤더 1개만 뜨는지(이중헤더 해소) ②'내 페이지' 곧장 가는지(hop 없음) ③환자 증상기록 입력→본인 기록 표시되는지.
-2. **#298 처리** — Vercel 한도 풀린 뒤 프리뷰로 6개 언어 카피 톤(특히 RU/KZ) 확인 → 머지 or 수정.
-3. (선택) origin 머지된 브랜치 가지치기 — PO가 정리 OK 하면.
-4. (선택) 재진 엔진 근본수정(`rebooking/create`→`followup_schedules`) / `/patient/messages`·`/calendar` legacy 리스타일.
-
-**6. 검증 상태:**
-- ✅ **열린 PR 사실 확인(GitHub MCP)**: 닫기 전 열린 PR = #274·#298. #274 닫음 → **현재 열린 PR은 #298 하나**.
-- ✅ #298 자동검사: `ci` success · `Smoke Tests (PR)` success(GitHub MCP `get_check_runs` 확인). Vercel만 rate-limit failure(코드 무관).
-- ❌ **직전 세션 미검증(로그인 실클릭) 그대로** — 이번 세션에서도 확인 안 함(코드 변경 없어 범위 밖) → 5번 1순위 유지.
-- 코드 변경 0 → 빌드·`check:content` 재실행 불필요(이 세션 푸시 = 문서만).
-
-**7. 다음 세션 첫 프롬프트:**
-> 먼저 docs/PROJECT_CONTEXT.md 최상단 핸드오프 읽어. 갈무리 세션에서 #274(대체됨) 닫았고, 지금 열린 PR은 #298(암종 비용·비자 콘텐츠) 하나 — CI는 초록인데 Vercel 일일배포한도로 프리뷰 대기였어. ①Vercel 한도 풀렸으면 #298 프리뷰로 6개 언어 카피(특히 러시아·카자흐) 톤 봐주고. ②그보다 먼저: 2026-06-23 배포분 로그인 실클릭 검증이 아직 안 됐어 — 코디/환자로 로그인해서 헤더 1개만 뜨는지·'내 페이지' 곧장 가는지·증상기록 본인 것 표시되는지 확인해줘. ③원격 브랜치 100개+ 쌓였는데 머지된 것 정리할지도 정하자.
 
 ## 🏷️ 서비스명 변경 — HEALO → **healwith** (2026-06-16 확정·적용)
 
