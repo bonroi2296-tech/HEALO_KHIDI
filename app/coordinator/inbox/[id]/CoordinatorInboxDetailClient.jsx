@@ -11,6 +11,7 @@ import Link from "next/link";
 import {
   ArrowLeft, User, Globe, Mail, Phone, MessageCircle, Calendar,
   AlertCircle, FileText, Stethoscope, ClipboardList, Video,
+  Send, Copy, Check, ExternalLink,
 } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 
@@ -68,6 +69,43 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
   const [inquiry, setInquiry] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [reqLoading, setReqLoading] = useState(false);
+  const [reqResult, setReqResult] = useState(null); // { link, emailSent, email, lang }
+  const [reqError, setReqError] = useState(null);
+  const [copied, setCopied] = useState(false);
+
+  // 코디 → 환자 '추가 정보 요청': Step2 폼 링크 발송(이메일) + 코디용 복사/왓츠앱 링크 반환.
+  async function requestInfo() {
+    setReqLoading(true);
+    setReqError(null);
+    setReqResult(null);
+    try {
+      const supabase = createSupabaseBrowserClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) { setReqError("로그인이 필요합니다."); setReqLoading(false); return; }
+
+      const res = await fetch(`/api/coordinator/inquiries/${inquiryId}/request-info`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+      const result = await res.json().catch(() => ({}));
+      if (!res.ok || !result.ok) throw new Error(result.error || "request_failed");
+      setReqResult(result);
+    } catch (e) {
+      console.error("[request-info] error:", e);
+      setReqError("요청 발송 중 문제가 발생했습니다.");
+    }
+    setReqLoading(false);
+  }
+
+  async function copyLink() {
+    if (!reqResult?.link) return;
+    try {
+      await navigator.clipboard.writeText(reqResult.link);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch { /* clipboard 미지원 시 무시 */ }
+  }
 
   useEffect(() => {
     load();
@@ -262,6 +300,77 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
         <Row icon={Calendar} label="Step 1 완료" value={fmtDate(inquiry.step1_completed_at)} />
         <Row icon={Calendar} label="Step 2 완료" value={fmtDate(inquiry.step2_completed_at)} />
       </Card>
+
+      {/* 추가 정보 요청 — 환자에게 Step2 상세폼 링크 발송(이메일) + 코디용 복사/왓츠앱 */}
+      {!step2Done && (
+        <Card title="추가 정보 요청">
+          <p className="text-sm text-gray-600 mb-3 leading-relaxed">
+            환자에게 상세 정보(진단·치료 단계·희망 일정 등) 입력 링크를 보냅니다.
+            환자는 <b>회원가입·앱 설치 없이</b> 링크로 바로 작성하고, 완료되면 이 문의에 자동 반영됩니다.
+          </p>
+
+          {!reqResult ? (
+            <div className="flex flex-wrap items-center gap-3">
+              <button
+                onClick={requestInfo}
+                disabled={reqLoading}
+                className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition disabled:opacity-50"
+              >
+                <Send size={16} /> {reqLoading ? "발송 중…" : "추가 정보 요청"}
+              </button>
+              {inquiry.info_requested_at && (
+                <span className="text-xs text-gray-400">
+                  마지막 요청: {fmtDate(inquiry.info_requested_at)}
+                </span>
+              )}
+              {reqError && <span className="text-sm text-red-600">{reqError}</span>}
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <p className="text-sm text-teal-700 font-medium flex items-center gap-1.5">
+                <Check size={16} />
+                {reqResult.emailSent
+                  ? `이메일 발송 완료 (${reqResult.email})`
+                  : "이메일 주소가 없어 메일은 못 보냈어요 — 아래 링크를 직접 보내세요."}
+              </p>
+
+              {/* 코디가 어떤 채널로든 보낼 수 있는 링크 */}
+              <div className="flex items-stretch gap-2">
+                <input
+                  readOnly
+                  value={reqResult.link}
+                  onFocus={(e) => e.target.select()}
+                  className="flex-1 min-w-0 px-3 py-2 text-sm border border-gray-200 rounded-lg bg-gray-50 text-gray-700"
+                />
+                <button
+                  onClick={copyLink}
+                  className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium bg-white border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition shrink-0"
+                >
+                  {copied ? <Check size={15} /> : <Copy size={15} />} {copied ? "복사됨" : "복사"}
+                </button>
+              </div>
+
+              {/* 환자가 쓴 채널(왓츠앱 등)로 바로 보내기 */}
+              {(() => {
+                const msg = `healwith: 치료 안내를 위해 추가 정보를 입력해 주세요 / Please share a few more details: ${reqResult.link}`;
+                const digits = String(inquiry.contact_id || "").replace(/[^\d]/g, "");
+                const isWa = String(inquiry.contact_method || "").toLowerCase().includes("whats");
+                const waUrl = `https://wa.me/${isWa && digits.length >= 6 ? digits : ""}?text=${encodeURIComponent(msg)}`;
+                return (
+                  <a
+                    href={waUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-[#25D366] text-white rounded-lg hover:opacity-90 transition"
+                  >
+                    <ExternalLink size={15} /> 왓츠앱으로 보내기
+                  </a>
+                );
+              })()}
+            </div>
+          )}
+        </Card>
+      )}
 
       {/* 다음 단계 (기존 코디 화면으로 연결) */}
       <div className="flex flex-wrap gap-3">

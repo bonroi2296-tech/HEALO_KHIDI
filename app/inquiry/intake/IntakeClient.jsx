@@ -122,12 +122,55 @@ export function InquiryIntakePage({ setView }) {
   if (!inquiryId || !token) return null;
 
   if (done) {
+    // 소프트 계정 유도 — 정보를 다 받은 '뒤'에, 진행상황 추적을 혜택으로 제안(강요/벽 아님).
+    const SOFT = {
+      title: {
+        ko: "진행 상황을 받아보시겠어요?", en: "Want to follow your progress?",
+        ru: "Хотите следить за ходом дела?", kz: "Барысын қадағалағыңыз келе ме?",
+        zh: "想跟进您的进度吗？", ja: "進捗を受け取りますか？",
+      },
+      desc: {
+        ko: "계정을 만들면 코디네이터 답변·상담 일정·치료 진행을 한 곳에서 볼 수 있어요. 지금 안 만드셔도 코디네이터가 연락드립니다.",
+        en: "With an account you can see your coordinator's replies, schedule and treatment progress in one place. No account needed — your coordinator will reach out either way.",
+        ru: "С аккаунтом вы увидите ответы координатора, расписание и ход лечения в одном месте. Можно и без него — координатор всё равно свяжется с вами.",
+        kz: "Аккаунтпен координатордың жауаптарын, кестені және емдеу барысын бір жерден көресіз. Болмаса да — координатор бәрібір хабарласады.",
+        zh: "注册后可在一处查看协调员回复、日程与治疗进度。也可不注册——协调员都会联系您。",
+        ja: "アカウントがあれば、コーディネーターの返信・予定・治療の進捗を一か所で確認できます。なくても担当者からご連絡します。",
+      },
+      cta: {
+        ko: "진행상황 받기 (계정 만들기)", en: "Follow progress (create account)",
+        ru: "Следить (создать аккаунт)", kz: "Қадағалау (аккаунт ашу)",
+        zh: "跟进（注册账号）", ja: "進捗を受け取る（登録）",
+      },
+      later: {
+        ko: "괜찮아요, 코디네이터 연락 기다릴게요", en: "No thanks, I'll wait for the coordinator",
+        ru: "Нет, подожду координатора", kz: "Жоқ, координаторды күтемін",
+        zh: "不用了，等协调员联系", ja: "今はいいです",
+      },
+    };
+    const L = (o) => o[langCode] || o.en;
     return (
       <div className="max-w-lg mx-auto px-4 py-12 text-center">
-        <p className="text-lg font-bold text-teal-700 mb-4">{t('intake.saved', langCode)}</p>
-        <button onClick={() => setView?.('home') || router.push('/')} className="text-teal-700 font-bold hover:underline">
-          {t('intake.returnHome', langCode)}
-        </button>
+        <p className="text-lg font-bold text-teal-700 mb-6">{t('intake.saved', langCode)}</p>
+
+        <div className="mb-6 rounded-2xl border border-teal-100 bg-teal-50/60 p-5 text-left">
+          <p className="text-sm font-semibold text-gray-900 mb-1.5">{L(SOFT.title)}</p>
+          <p className="text-xs text-gray-600 leading-relaxed mb-4">{L(SOFT.desc)}</p>
+          <div className="flex flex-col gap-2">
+            <button
+              onClick={() => router.push('/signup')}
+              className="w-full px-4 py-3 text-sm font-bold bg-teal-600 text-white rounded-xl hover:bg-teal-700 transition"
+            >
+              {L(SOFT.cta)}
+            </button>
+            <button
+              onClick={() => (setView?.('home') || router.push('/'))}
+              className="w-full px-4 py-2.5 text-sm text-gray-500 hover:text-teal-700 transition"
+            >
+              {L(SOFT.later)}
+            </button>
+          </div>
+        </div>
       </div>
     );
   }

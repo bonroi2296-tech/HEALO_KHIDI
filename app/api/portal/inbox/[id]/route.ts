@@ -37,6 +37,7 @@ const DETAIL_FIELDS = [
   "short_memo",
   "step1_completed_at",
   "step2_completed_at",
+  "info_requested_at",
   "intake",
 ].join(",");
 
