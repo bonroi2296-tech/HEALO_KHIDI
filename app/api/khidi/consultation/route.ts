@@ -147,6 +147,32 @@ export async function POST(request: NextRequest) {
       `[api/khidi/consultation] New session: ${data.id} (${data.session_type}) by ${auth.userId}`
     );
 
+    // 환자 인앱 알림 (이메일 초대와 별개의 화면 내 신호) — best-effort, 절대 생성 실패시키지 않음.
+    // patient_user_id 가 요청자 본인이면 placeholder(환자계정 미선택)이므로 보내지 않음.
+    if (patientUserId && patientUserId !== auth.userId) {
+      try {
+        const { sendInAppNotification } = await import("@/lib/notifications/inApp");
+        const NL: Record<string, { t: string; b: string }> = {
+          ru: { t: "Назначена видеоконсультация", b: "Координатор назначил вам консультацию. Откройте, чтобы увидеть детали." },
+          kz: { t: "Бейнекеңес тағайындалды", b: "Координатор сізге кеңес тағайындады. Толығырақ көру үшін ашыңыз." },
+          en: { t: "Consultation scheduled", b: "Your coordinator scheduled a consultation. Open to see the details." },
+          ko: { t: "상담이 예약되었습니다", b: "코디네이터가 상담을 예약했습니다. 눌러서 일정을 확인하세요." },
+        };
+        const m = NL[patientLanguage as string] || NL.ru;
+        await sendInAppNotification({
+          userId: patientUserId,
+          type: "consultation_scheduled",
+          title: m.t,
+          body: m.b,
+          link: "/patient/consultations",
+          priority: "high",
+          payload: { consultation_id: data.id },
+        });
+      } catch (notifErr: any) {
+        console.warn("[consultation] in-app notify 실패:", notifErr?.message);
+      }
+    }
+
     return Response.json({ ok: true, data });
   } catch (error: any) {
     console.error("[api/khidi/consultation] Exception:", error?.message);
