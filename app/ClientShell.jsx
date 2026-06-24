@@ -17,6 +17,7 @@ import Logo from "../components/brand/Logo";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { useToast } from "@/components/Toast";
 import CookieConsent from "@/components/CookieConsent";
+import { pageview, hasAnalyticsConsent } from "@/lib/ga";
 
 export default function ClientShell({ children, initialLang = "en" }) {
   const router = useRouter();
@@ -90,13 +91,16 @@ export default function ClientShell({ children, initialLang = "en" }) {
       .catch(() => { /* 네이티브 아님/플러그인 없음 → 무시 */ });
   }, []);
 
-  // pageview 추적 임시 비활성화: 자동 새로고침 문제 해결
-  // const lastPageviewRef = useRef("");
-  // useEffect(() => {
-  //   if (lastPageviewRef.current === pathname) return;
-  //   lastPageviewRef.current = pathname;
-  //   pageview(pathname);
-  // }, [pathname]);
+  // 라우트 변경 시 GA4 pageview 1회 발화 (자동 새로고침 원인이던 useSearchParams는 위에서 제거됨 —
+  // pathname-only 이펙트는 네비게이션을 유발하지 않아 안전). 동의("all")가 있고 gtag 존재할 때만.
+  // ga.ts의 pageview()가 window.gtag 없으면 no-op이라 이중 안전.
+  const lastPageviewRef = useRef("");
+  useEffect(() => {
+    if (lastPageviewRef.current === pathname) return; // 중복 발화 가드
+    if (!hasAnalyticsConsent()) return; // 동의 게이트 (GA 로드 게이트와 일관)
+    lastPageviewRef.current = pathname;
+    pageview(pathname);
+  }, [pathname]);
 
   const handleSetView = (viewName) => {
     setIsMobileMenuOpen(false);
