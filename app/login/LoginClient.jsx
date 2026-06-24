@@ -10,6 +10,12 @@ import { useLang } from '@/lib/i18n/LangContext';
 
 const supabase = createSupabaseBrowserClient();
 
+// 비밀번호 찾기 안내 문구 — 활성 6개 언어(ko·en·ru·kz·zh·ja) 인라인 (공용 i18n 미수정)
+const FORGOT_MSG = {
+  needEmail: { ko: "이메일을 먼저 입력해주세요", en: "Please enter your email first", ru: "Сначала введите эл. почту", kz: "Алдымен эл. поштаңызды енгізіңіз", zh: "请先输入邮箱", ja: "まずメールアドレスを入力してください" },
+  sent: { ko: "비밀번호 재설정 메일을 보냈어요. 메일함(스팸함 포함)을 확인해주세요.", en: "A password reset email has been sent. Please check your inbox (and spam).", ru: "Письмо для сброса пароля отправлено. Проверьте почту (и спам).", kz: "Құпиясөзді қалпына келтіру хаты жіберілді. Поштаңызды (спамды да) тексеріңіз.", zh: "重置密码邮件已发送，请查收（含垃圾邮件）。", ja: "パスワード再設定メールを送信しました。受信箱（迷惑メールも）をご確認ください。" },
+};
+
 export const LoginPage = ({ setView }) => {
     const toast = useToast();
     const router = useRouter();
@@ -19,6 +25,18 @@ export const LoginPage = ({ setView }) => {
     const [loading, setLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const [oauthLoading, setOauthLoading] = useState(false);
+
+    const handleForgotPassword = async () => {
+        if (!email) {
+            toast.error(FORGOT_MSG.needEmail[langCode] || FORGOT_MSG.needEmail.en);
+            return;
+        }
+        // 결과(가입 여부)와 무관하게 동일 안내 — 이메일 존재 여부 노출 방지
+        await supabase.auth.resetPasswordForEmail(email, {
+            redirectTo: `${window.location.origin}/reset-password`,
+        }).catch(() => {});
+        toast.success(FORGOT_MSG.sent[langCode] || FORGOT_MSG.sent.en);
+    };
 
     const handleLogin = async (e) => {
         if(e) e.preventDefault();
@@ -97,7 +115,7 @@ export const LoginPage = ({ setView }) => {
                     <div>
                         <div className="flex justify-between items-center mb-1">
                             <label htmlFor="login-password" className="block text-sm font-bold text-gray-700">{t("login.password", langCode)}</label>
-                            <button type="button" onClick={() => toast.info(t("login.forgotHint", langCode))} className="text-xs font-bold text-teal-700 hover:underline">{t("login.forgot", langCode)}</button>
+                            <button type="button" onClick={handleForgotPassword} className="text-xs font-bold text-teal-700 hover:underline">{t("login.forgot", langCode)}</button>
                         </div>
                         <div className="relative">
                             <Lock className="absolute left-4 top-3.5 text-gray-400" size={20}/>
