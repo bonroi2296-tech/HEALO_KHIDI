@@ -7,6 +7,48 @@
 
 ---
 
+## 🔖 세션 핸드오프 (2026-06-24 저녁 — 에이전시 백오피스 인앱 메신저 + 견적·화상상담·문서함, 별도 대화창)
+
+> 에이전시 전용 worktree(`.claude/worktrees/agency-ui`, 브랜치 `worktree-agency-ui`)에서 작업. 에이전시 백오피스에 **플랫폼 내 코디↔에이전시 양방향 메신저** + 의뢰 케이스에 견적·화상상담 일정·문서함을 끌어와 표시(왓츠앱·메일 의존 줄이고 ICT 6대 서비스 플랫폼 내 통합). PO 피드백으로 인라인 채팅 → **오른쪽 슬라이드 전용 대화창(드로어)**으로 재디자인. **[#336](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/336) 열림(머지 안 함 — 프리뷰 검토 대기).**
+
+**1. 이번 세션 한 일 ([#336](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/336) 열림):**
+- **에이전시↔코디 양방향 메신저(케이스 단위)**: 기존 환자챗 테이블(`chat_threads`/`chat_messages`)을 **재활용**(새 메시지 인프라 안 만듦), `channel='agency'`로 구분. 신규 API `app/api/agency/cases/[id]/messages`(GET/POST, `checkAgencyAuth`+본인 에이전시 케이스 검증, find-or-create 스레드, 읽음표시). 코디는 **기존 `/coordinator/messages` 콘솔에서 그대로** 받고 답장(`actor_type=coordinator`) — 코디쪽은 라벨 2줄(ChannelDot+Message에 `agency`)만 추가.
+- **운영시간 안내(PO 요청)**: 코디 확인 = 한국시간(KST) 월–금 09:00–18:00. `kstHoursOpen()`로 대화창에 `지금 운영 중`/`운영시간 외` 배지 + 시간 외엔 "다음 영업일 답장" 배너.
+- **견적 공유**: 코디가 **발행한** 견적(`cost_estimates`, intake 경유 2홉 조인)을 케이스에 금액+PDF로 표시(초안 비노출).
+- **화상상담 일정·상태**: `consultation_sessions`(inquiry 직접연결) 예정시각·상태 표시. **입장링크는 미노출**(토큰이 `token_hash`로만 저장돼 복원 불가 = 보안상 옳음) → 필요 시 메신저로 코디 요청 안내.
+- **문서함**: 케이스 첨부를 카테고리별 그룹.
+- **별도 대화창(드로어) 재디자인**: PO가 인라인 채팅을 "비좁고 허접"이라 함 → 버튼 클릭 시 오른쪽에서 슬라이드되는 전용 패널(미읽음 카운트·로딩 스켈레톤·빈상태·ESC 닫기·바깥클릭 닫기). DESIGN.md 톤 준수(teal-600, rounded-xl/2xl, 모달 shadow-xl, duration-300, UI 크롬 이모지 X).
+- **DB 마이그레이션(추가형, prod 적용 완료)**: `chat_messages.actor_type` CHECK를 `patient/admin/system` → `+user/coordinator/bot/agency`로 확장. `migrations/20260624_chat_messages_actor_type_agency.sql` 기록.
+- **변경 파일**: `app/agency/PartnerPortal.jsx`, `app/api/agency/cases/[id]/messages/route.ts`(신규), `app/api/agency/inquiries/route.ts`, `app/coordinator/messages/CoordinatorMessagesClient.jsx`(라벨 2줄), 마이그레이션 1.
+
+**2. 왜 그렇게 했는지:**
+- **기존 채팅 테이블 재활용 + 코디 기존 콘솔 사용**: 새 메시지 시스템·코디 새 화면을 안 만들어 작업·충돌 최소화. 에이전시 스레드(`channel='agency'`)가 코디 콘솔에 자동 노출됨.
+- **actor_type CHECK 확장 = 잠복버그 동시 수정**: 원래 CHECK가 `patient/admin/system`만 허용인데 기존 코드(`portal/threads` 코디 답장)는 `coordinator/user`를 insert → **로그인-환자↔코디 메시지 전송이 사실상 깨져 있었음**(public 챗만 작동). 에이전시 메신저 얹으며 같이 고침. 삭제 아닌 허용집합 확대(가역).
+- **입장링크 미노출**: 게스트 토큰이 해시로만 저장돼 링크 재생성 불가. 토큰 재발급 플로우는 보안 표면만 늘어 보류(ponytail) — 메신저로 코디 요청이 더 안전.
+
+**3. 안 끝났거나 보류:**
+- **[#336] 머지 안 함 — 프리뷰 검토 대기**: 큰 UI/플로우라 PO가 프리뷰에서 대화창 톤·동작 확인 후 머지 결정.
+- **입장링크(상담 join) 미구현**: 필요하면 별도 게스트 토큰 발급 플로우 필요(보안 검토 후).
+
+**4. 주의·함정:**
+- ⚠️ **공유 테이블 CHECK 변경이 prod DB에 이미 적용됨**(머지 전이라도). 추가형이라 안전하지만 `chat_messages.actor_type` 허용값이 넓어진 상태. 롤백하려면 기존 값(`user/coordinator/agency` 등)을 쓰는 행이 없어야 함.
+- ⚠️ **코디 답장 경로 의존**: 코디는 `/coordinator/messages` 콘솔에서 답장. 그 콘솔의 reply가 `actor_type='coordinator'`를 insert(이제 CHECK 통과). 만약 콘솔/portal 라우트를 또 만지면 이 동작 깨지지 않게 주의.
+- ⚠️ **미읽음 뱃지**는 `chat_threads.metadata.agency_last_read_at` 기준. 에이전시가 대화창 GET하면 갱신. 새로고침 전엔 카드 뱃지 숫자가 갱신 안 될 수 있음(다음 `load()`에서 0).
+
+**5. 다음 세션이 먼저 할 일 (우선순위):**
+1. **⚠️ 직전 미검증분 먼저**: [#336] 프리뷰(`healo-khidi-git-worktree-agency-ui-bonrois-projects.vercel.app/agency`, `agency@test.com`/`test1234`)에서 **①케이스 펼쳐 `코디네이터와 대화` 버튼 → 드로어 슬라이드·메시지 전송 ②코디 콘솔에서 답장 → 에이전시에 돌아오는지(다중주체) ③견적/상담 표시**를 실클릭 검증. OK면 머지.
+2. (선택) 에이전시도 입장링크가 꼭 필요하다면 게스트 토큰 발급 플로우 설계.
+3. **다른 worktree와 분리 유지** — 에이전시 작업은 이 worktree(`agency-ui`)에서만.
+
+**6. 검증 상태:**
+- ✅ `next build --webpack` exit 0(2회) · `check:content` 통과 · 마이그레이션 prod 적용·확인.
+- ✅ [#336] CI: 메신저 1차 커밋(`668f987`)에서 `ci` **SUCCESS** 확인. **드로어 커밋(`b6d8c8e`) CI는 재실행 중일 수 있어 미확인** → 프리뷰 갱신 후 확인 필요.
+- ❌ **런타임 실클릭 미검증**: 에이전시 로그인 + 코디 답장(다중주체)이 필요해 직접 클릭 못 함 → 5번 1번으로 승격. 빌드·데이터경로·DB 제약만 확인.
+- ❌ **prod 미반영**(#336 머지 전).
+
+**7. 다음 세션 첫 프롬프트:**
+> 먼저 docs/PROJECT_CONTEXT.md 최상단 핸드오프 읽어. 2026-06-24 저녁에 에이전시 백오피스에 코디↔에이전시 인앱 메신저(오른쪽 슬라이드 대화창) + 견적·화상상담·문서함을 #336으로 올렸는데 **프리뷰 검토 대기라 머지 안 했어**. 에이전시 worktree(`.claude/worktrees/agency-ui`, 브랜치 worktree-agency-ui)에서 이어가. ①프리뷰(agency@test.com/test1234)에서 케이스 펼쳐 '코디네이터와 대화' 드로어 + 메시지 전송, 코디 콘솔에서 답장이 에이전시로 돌아오는지(다중주체), 견적/상담 표시 실클릭 검증하고 OK면 머지. ②chat_messages.actor_type CHECK는 prod에 이미 확장 적용됨(추가형, 안전).
+
 ## 🔖 세션 핸드오프 (2026-06-24 오후 — 코디 '추가 정보 요청' 기능 + 암환자용 폼 전면 교체 + E2E 9건 초록)
 
 > 긴 세션. 흐름: ①E2E 로봇 9개 실패 전부 수리(머지 [#325](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/325)) → ②코디→환자 '추가 정보 요청' 기능 신설 → ③검증 중 발견한 암 인테이크 폼이 옛 정형외과 잔재라 전면 재작성 + 버그 3개 수리. **[#326](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/326) 열림(프리뷰 톤 검토 대기 — 머지 안 함).** ⚠️ **같은 폴더 동시작업 오염 다시 발생**(4번).
@@ -48,46 +90,6 @@
 
 **7. 다음 세션 첫 프롬프트:**
 > 먼저 docs/PROJECT_CONTEXT.md 최상단 핸드오프 읽어. 2026-06-24 오후에 코디 '추가 정보 요청' 기능 + 암환자용 인테이크 폼 전면교체를 #326으로 올렸는데 **프리뷰 톤 검토 대기라 아직 머지 안 했어**. ①프리뷰에서 암 폼 제출→코디 화면 한글표시 + 이메일/폼 6언어 카피 톤(러·카) 봐주고 OK면 머지. ②에이전시 계정은 C:\Users\user\Desktop\HEALO_worktrees\agency 에서 **별도 세션**(포트 3001)으로 — 같은 폴더 충돌 방지. ③docs/DB_DEAD_TABLES·drop_dead_tables 마이그레이션은 다른 세션 것이니 건들지 마.
-
-## 🔖 세션 핸드오프 (2026-06-24 — 재진 엔진 followup_schedules 배선 + 파비콘(얀덱스) + 프로덕션 정리)
-
-> 직전 핸드오프(#318)의 "#311·#313·#315 프로덕션 미반영" 우려를 실배포 이력으로 검증 → **이미 #313 promote 로 user-facing 수정은 라이브였음(핸드오프가 낡았던 것)**. 이어서 재진 엔진 근본수정(휴면 해제)·얀덱스 파비콘을 한 PR로 머지·배포. **[#320](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/320) main 머지 완료(`0c7dd8e`).**
-
-**1. 이번 세션 한 일 ([#320](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/320), CI 초록·squash 머지):**
-- **재진 엔진 근본수정 — 환자 재진화면 휴면 해제**: 재예약 엔진(`/api/khidi/rebooking/create`)이 `consultation_sessions`(실제 화상세션)에 써서, 환자 "재예약 관리" 화면이 읽는 `followup_schedules`는 **항상 0행**이라 화면이 영구히 비어 있었음(POSTMORTEMS #29 후속). → 엔진이 **`followup_schedules`에 `status='proposed'`로 "제안"을 쓰게** 고침. `inquiryId`만 오는 경로(SymptomAlerts)는 inquiry에서 `cancer_type`(NOT NULL 충족)·`user_id`(→`patient_user_id`, 환자 노출키 #297)를 끌어와 연결. source·reason은 `schedule`(Json)에 보존.
-- **실DB 추가 단절 발견·수정**: `followup_schedules_status_check`가 `active/paused/completed/cancelled`만 허용해 화면·포털API의 제안 어휘(`pending/proposed/confirmed/dismissed`)를 **막고 있었음** → CHECK를 합집합으로 넓힘(가역 마이그레이션 `widen_followup_schedules_status_check`, **prod 적용 + 실insert 검증**).
-- **환자 화면**(`RebookingClient.jsx`): 뱃지가 트리거 종류(증상/팔로업/의사) 표시(이미 있던 `LABELS`/`SOURCE_COLORS` 활용) + history 상태 라벨 `confirmed`/`dismissed` 추가(6언어). 계약테스트도 새 테이블로 갱신.
-- **파비콘 `/favicon.ico` 추가 (얀덱스)**: PO가 얀덱스 웹마스터 "파비콘 파일을 찾을 수 없습니다" 제보. 원인 = head엔 PNG 파비콘만 있고 크롤러가 루트에서 찾는 클래식 `/favicon.ico`가 부재. → `public/favicon.ico` 신설(새 브랜드 h 마크 16·32 PNG를 ICO 컨테이너로 래핑, `file` 검증 통과) + layout metadata에 명시.
-- **프로덕션 정리(자동)**: #320 main 머지로 프로덕션이 **옛 branch-promote(#313)에서 main 최신본으로 자동 재배포** → "프로덕션 = 본판 최신" 정상화. 배포 일일한도도 풀림(6/24 배포 성공 중).
-
-**2. 왜 그렇게 했는지:**
-- **followup_schedules가 정식 테이블**: 환자 화면·포털API가 이미 거기 붙어 있음(SoR). 재예약은 환자가 확정/무시하는 "제안"이라 추천 큐(followup_schedules)가 맞고, 실제 화상세션(consultation_sessions)은 확정 후 생성될 것. 그래서 엔진을 화면 쪽으로 맞춤(POSTMORTEM #28 교훈: 데이터원 단일화).
-- **CHECK를 합집합으로 넓힘(좁히지 않음)**: 0행이라 무손실·가역. 다른 경로가 active/paused를 쓸 수 있어 기존 어휘도 보존.
-- **파비콘 ICO 직접 생성**: `sharp`는 .ico 출력 미지원 → ICO는 PNG 임베드를 허용하므로 기존 16/32 PNG를 ICO 컨테이너로 래핑(의존성 추가 없이).
-
-**3. 안 끝났거나 보류:**
-- **재진 런타임 클릭 미검증** — 데이터 경로(엔진 insert→환자 API 조회)는 실DB·계약테스트로 확정했으나, "어드민이 SymptomAlerts에서 재예약 제안 → 환자 로그인 → 재진화면에 뜸"의 **다중주체 실클릭은 못 함**(로그인·다계정 필요). prod 반영 후 PO/세션이 확인.
-- **기존 문의 소급 연결 안 됨** — `inquiries.user_id`가 전부 NULL(기존 17건). 환자계정 연결은 **앞으로 로그인 접수분부터**. 그래서 당장 재진 제안의 `patient_user_id`는 신규 접수에서만 채워짐.
-- **E2E 자동 클릭검사 2개 잠자는 중** — 테스트 계정(`patient@test.com`·`coordinator@test.com`)은 **실재 확인**했으나 GitHub Secrets 4개(`E2E_TEST_USER_EMAIL/PASSWORD`·`E2E_COORDINATOR_EMAIL/PASSWORD`) 미설정이라 CI에서 skip. PO가 넣어야 활성(비번이 secret 값과 일치해야 함).
-
-**4. 주의·함정:**
-- ⚠️ **자동저장 훅이 작업 중 2회 끼어듦**(09:41·09:45 "chore: 작업 자동 저장" 커밋 + 원격 푸시). 내 깔끔한 커밋으로 `reset --soft`(hard 아님) 후 재커밋, 피처 브랜치는 `--force-with-lease`로 정리. **커밋 전 `reset --hard` 금지**(기존 교훈) — soft만.
-- ⚠️ **재진 엔진 IDOR 체크는 payload.patientId 기준**: 환자가 inquiryId만 보내 self-trigger하면 forbidden(현재 SymptomAlerts=어드민만이라 무해). 환자 self-rebooking을 켤 거면 그 체크를 inquiry 소유 기반으로 손봐야.
-- ⚠️ **followup_schedules.current_phase 기본값='week_1'** — 엔진은 `null` 명시로 회피(화면 뱃지가 'week_1' 안 뜨게). 직접 insert 시 주의.
-
-**5. 다음 세션이 먼저 할 일 (우선순위):**
-1. **⚠️ 직전 미검증분 먼저(배포 후 실클릭)**: #320 prod 반영되면 **①`https://healwith.co.kr/favicon.ico`가 200으로 뜨는지**(얀덱스 재검토 트리거) **②재진: 어드민 SymptomAlerts에서 '재예약 제안' → 그 환자로 로그인 → `/patient/rebooking`에 제안이 뜨고 확정/무시 되는지**. (데이터·빌드·CI·실DB는 통과, 다중주체 클릭은 못 함.)
-2. **(PO 액션) E2E Secrets 4개 등록** — 넣으면 자동 클릭검사 활성. 비번은 test 계정 실제 비번과 일치해야(모르면 Supabase에서 리셋).
-3. (선택) 환자 self-rebooking 켤 때 IDOR 체크 보완 / 기존 문의 소급 연결(백필).
-
-**6. 검증 상태:**
-- ✅ **[#320](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/320) CI 전부 초록**: `ci`(2m20s)·`Smoke Tests (PR)`(3m20s)·Vercel preview pass → squash 머지(`0c7dd8e`). 열린 PR 없음.
-- ✅ vitest 계약 6 + 엔진 14 통과 · `next build --webpack` exit 0(2회) · `check:content` 통과.
-- ✅ 실DB: `followup_schedules`에 `status='proposed'` insert 성공(테스트행 삭제), CHECK 마이그레이션 prod 적용. 파비콘 `file`=MS Windows icon resource(16+32).
-- ⏳ **prod 배포는 머지 직후 BUILDING** — 이 핸드오프 시점엔 favicon 200·재진 화면 **런타임 미검증**(→ 5번 1).
-
-**7. 다음 세션 첫 프롬프트:**
-> 먼저 docs/PROJECT_CONTEXT.md 최상단 핸드오프 읽어. 2026-06-24에 재진 엔진을 정식 테이블(followup_schedules)로 고쳐 환자 재진화면 휴면을 풀고, 얀덱스가 찾던 /favicon.ico를 추가해 #320으로 main 머지했어(prod 자동 재배포). ①healwith.co.kr/favicon.ico가 200으로 뜨는지 ②어드민 SymptomAlerts에서 '재예약 제안'→그 환자로 로그인→/patient/rebooking에 제안 뜨고 확정/무시 되는지 직접 확인해줘. 그담에 E2E Secrets 4개 넣는 거 PO한테 안내(test 계정 실재 확인됨).
 
 ## 🏷️ 서비스명 변경 — HEALO → **healwith** (2026-06-16 확정·적용)
 
