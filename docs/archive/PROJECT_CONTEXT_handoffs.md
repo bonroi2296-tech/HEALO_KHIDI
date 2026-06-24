@@ -1,5 +1,52 @@
 # PR
 
+## 🔖 세션 핸드오프 (2026-06-23 오후·저녁 — 계층 재편 + 백오피스 점검 + 프리미엄 전면 폐기)
+
+> 이번 세션은 4개 PR을 머지·프로덕션 배포까지 완료(#280·#286·#288·#290). 모두 healwith.co.kr 라이브.
+> ⚠️ 세션 내내 어시스턴트가 **legacy/premium을 헷갈려 PO가 여러 번 바로잡음** — 4번(주의) 꼭 읽을 것.
+
+**1. 이번 세션 한 일:**
+- **계층별 테스트 계정 정리** → `docs/TEST_ACCOUNTS.md` 신설(환자/코디/병원/에이전시/의료기관 @test.com, 비번 test1234 / clinic만 clinic1234, admin은 의도적 미생성).
+- **계층 재편 마이그레이션 [#280](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/280)** (머지·배포·**prod curl 리다이렉트 검증 ✅**): 국내병원 `/partner`→`/hospital`(옛주소 307 리다이렉트, `/api/partner/*` API경로는 유지) · 해외의료기관 `/agency`→`/clinic` 분리(partner_type 게이팅+불일치 자동이동) · 의사 `/doctor` **비활성화**(proxy→홈, 코드·role=doctor 계정·상담 배정은 보존). 표준 `accountTiers.ts`·`resolveLanding.ts`·`proxy.ts` + 문서 갱신. 기획 `KHIDI_역할_프로세스_기획.md` §7 실행.
+- **백오피스 전수 점검**(5포털): 바깥(병원 `/hospital`·해외 `/agency`·`/clinic`)=🟢건강, 안쪽(환자·코디)에 구멍 발견.
+- **환자·코디 수리 [#286](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/286)** (머지·배포): 증상기록 `symptom_reports.patient_user_id` 컬럼 추가(가역·prod 적용)+저장+`?mine` 조회로 본인 기록 표시 / 재진예약은 정식 테이블 `followup_schedules`(`/api/portal/followup`)로 배선 / 코디 메뉴를 실제 라우트로 정합(404 링크 제거). 반성문 #29.
+- **프리미엄 디자인 전면 폐기 [#288](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/288)** (머지·배포): 토글(legacy/premium) 제거·legacy 단일화, `*Premium` 16개+healo `Nav/Footer/PageShell/Notification류/Skeleton/DesignToggle`+`designMode.js` **총 28파일 삭제**(−10,212줄). 보존: Primitives·EmergencyButton(SOS)·Photos·healo-tokens·모든 `*Legacy`. `PREMIUM_TEARDOWN_PLAN.md` 참고.
+- **헤더 '내 페이지' hop 수정 [#290](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/290)** (머지·배포): 코디·에이전시가 `/patient` 들렀다 튕기던 것 → `app_metadata.role` 기준 곧장 라우팅.
+
+**2. 왜 그렇게 했는지:**
+- **`/doctor`는 삭제 아니라 비활성화** — PO "냅두고 비활성화만 해봐". 의사 계정·상담 '담당 의사' 배정은 계속 쓰임.
+- **프리미엄 폐기** — PO: premium은 A/B 실험용으로 만들었다 **안 쓰기로 함**. 근데 `PageShell`(=프리미엄 Nav 껍데기)이 legacy 페이지까지 감싸 **이중 헤더** + 프리미엄 누수 발생 → 단일 legacy로 통일. (premium은 **앞으로 추가 개발 안 함** — PO 명시.)
+- **재진 정식 테이블 = `followup_schedules`** — 실DB 확인 결과 `consultation_sessions.rebooking_source` **컬럼이 아예 없음**(코드/엔진은 있다고 가정). 코드 아닌 실스키마가 진실.
+
+**3. 안 끝났거나 보류:**
+- **[#274](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/274)(초안) 닫아야 함** — #286/#288로 대체됨(코멘트 남김). 머지 금지, 닫기만.
+- **재진예약 기능 휴면** — 엔진 `/api/khidi/rebooking/create`가 **없는 컬럼 `consultation_sessions.rebooking_source`에 씀** → `followup_schedules`(0행)는 안 채워짐. 화면은 정식 테이블로 배선했으나 **엔진을 followup_schedules로 고쳐야** 데이터가 생김(근본수정 별도).
+- **`/patient/messages`·`/patient/calendar` 본문** 아직 프리미엄 톤(serif/gold) — PageShell만 떼고 본문·Primitives 유지. legacy 리스타일 필요.
+- **`stories/StoriesClient.jsx`** 가 삭제된 PageShell을 import — stories는 비활성(홈 redirect)이라 빌드 영향 0. stories 재활성 시 손볼 것.
+
+**4. 주의·함정:**
+- ⚠️ **legacy/premium 헷갈리지 마라**: `components/healo/`가 프리미엄 디자인시스템, `PageShell`이 프리미엄 Nav 래퍼였음. 이번에 대부분 제거. **premium은 추가 개발 안 함**(PO). 활성 화면=legacy 단일. (자세히: `design_mode_premium_legacy` 메모리)
+- ⚠️ **변경 적용할 때 불필요한 것(서비스 이름·브랜드 등) 건드리지 마라** — PO가 "서비스 이름도 바꿨냐"고 추궁(실제론 안 바꿈, HEALO→healwith는 2026-06-17 #43). 요청 범위만 정확히.
+- ⚠️ **단정 전에 실제 코드·실DB로 확인** — `information_schema`로 컬럼 존재 확인(rebooking_source 유령 컬럼 사례). 코드가 X를 쓴다고 X가 있는 건 아님.
+- **자동저장 훅 2분마다 `git add -A` 커밋** — 멀티파일 작업 시 무관 파일 섞임. 깨끗한 새 브랜치(origin/main 기준)에 내 파일만 모아 PR, `git diff origin/main...HEAD` net으로 확인.
+
+**5. 다음 세션이 먼저 할 일 (우선순위):**
+1. **⚠️ 직전 미검증분 먼저(로그인 실클릭)**: 배포는 됐으나 **로그인 화면은 직접 클릭 검증 못 함**. `/coordinator`·`/patient`로 로그인해서 ①헤더가 1개만 뜨는지(이중헤더 해소) ②'내 페이지' 눌러 곧장 가는지(hop 없음) ③환자 증상기록 입력→본인 기록 표시되는지 확인.
+2. **#274 닫기**(대체됨).
+3. (선택) **재진 엔진 근본수정** — `rebooking/create`를 `followup_schedules`에 쓰도록(현재 유령 컬럼).
+4. (선택) `/patient/messages`·`/calendar` 본문 legacy 리스타일.
+
+**6. 검증 상태:**
+- ✅ 빌드(`next build --webpack`, 239p)·`check:content`·CI(ci+smoke) — **4개 PR 다 통과·머지·prod 배포 READY**(Vercel 확인).
+- ✅ 계층 재편 리다이렉트: **prod curl로 검증**(`/partner`→`/hospital`, `/doctor`→`/`, `/clinic`·`/agency` 200).
+- ❌ **로그인 화면 실클릭 미검증**: 환자·코디 대시보드/헤더/내페이지/증상기록은 로그인 필요라 curl로 못 봄(→ 5번 1).
+- 열린 PR: **#274**(초안, 대체됨 → 닫을 것).
+
+**7. 다음 세션 첫 프롬프트:**
+> 먼저 docs/PROJECT_CONTEXT.md 최상단 핸드오프 읽어. 어제(2026-06-23) 계층 재편·환자코디 수리·프리미엄 전면 폐기·헤더 hop 수정을 prod에 다 올렸는데 **로그인 화면 실클릭 검증이 안 됐어**. ①코디/환자로 로그인해서 헤더 1개만 뜨는지·'내 페이지' 곧장 가는지·증상기록 본인 것 표시되는지 봐줘. ②안 닫힌 PR #274 닫고. 그담에 재진예약 엔진(없는 컬럼 rebooking_source 대신 followup_schedules에 쓰게) 근본수정 할지 정하자.
+
+---
+
 ## 🔖 세션 핸드오프 (2026-06-23 오전 — 앱아이콘 교체 + PWA "앱 설치" 배너 복구 + iOS 사파리 안내 배너)
 
 > 작업본(브랜치)은 세션 내내 다른 세션/자동저장 훅이 계속 바꿔 끼움(`feat/tier-restructure-hospital-clinic`→`-clean`). **내 작업은 전부 main에 직접 올림(별도 worktree로 cherry-pick)** — 진행 중이던 partner→hospital 작업과 안 섞이게. 3건 모두 프로덕션 배포 완료(Vercel READY 확인).
