@@ -14,6 +14,7 @@ import {
   Send, Copy, Check, ExternalLink,
 } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
+import { CASE_STATUS_STEPS } from "@/lib/khidi/caseStatus";
 
 const CANCER_LABELS = {
   stomach: "위암", liver: "간암", lung: "폐암",
@@ -86,6 +87,12 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
   const [reqError, setReqError] = useState(null);
   const [copied, setCopied] = useState(false);
 
+  // 케이스 진행 단계(코디가 설정 → 환자·에이전시가 같은 상태를 봄). 인라인 편집.
+  const [caseStatus, setCaseStatus] = useState("");
+  const [caseNote, setCaseNote] = useState("");
+  const [caseSaving, setCaseSaving] = useState(false);
+  const [caseSaved, setCaseSaved] = useState(false);
+
   // 코디 → 환자 '추가 정보 요청': Step2 폼 링크 발송(이메일) + 코디용 복사/왓츠앱 링크 반환.
   async function requestInfo() {
     setReqLoading(true);
@@ -142,6 +149,35 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
     setAttLoadingPath(null);
   }
 
+  // 케이스 진행 단계 저장 (코디·어드민 공용 API 재사용). 환자/에이전시 포털에 같은 상태가 노출됨.
+  async function saveCase() {
+    setCaseSaving(true);
+    setCaseSaved(false);
+    try {
+      const supabase = createSupabaseBrowserClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) { setCaseSaving(false); return; }
+      const res = await fetch("/api/admin/khidi/cases", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({
+          inquiry_id: Number(inquiryId),
+          case_status: caseStatus || null,
+          case_status_note: caseNote || null,
+        }),
+      });
+      const result = await res.json().catch(() => ({}));
+      if (res.ok && result.ok) {
+        setCaseSaved(true);
+        setInquiry((prev) => prev ? { ...prev, case_status: caseStatus, case_status_note: caseNote } : prev);
+        setTimeout(() => setCaseSaved(false), 2000);
+      }
+    } catch (e) {
+      console.error("[case] save error:", e);
+    }
+    setCaseSaving(false);
+  }
+
   useEffect(() => {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -162,6 +198,8 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
       if (res.status === 404) { setError("not_found"); setLoading(false); return; }
       if (!res.ok || !result.ok) throw new Error(result.error || "fetch_failed");
       setInquiry(result.inquiry);
+      setCaseStatus(result.inquiry?.case_status || "");
+      setCaseNote(result.inquiry?.case_status_note || "");
     } catch (e) {
       console.error("[inbox/detail] fetch error:", e);
       setError("조회 중 문제가 발생했습니다.");
@@ -405,8 +443,47 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
         </Card>
       )}
 
-      {/* 접수/타임라인 */}
-      <Card title="진행 상태">
+      {/* 진행 단계 — 코디가 설정. 환자·에이전시 포털에 같은 상태가 노출된다(흐름: 접수→사전상담→병원검토→일정조율→비자준비→입국치료→사후관리→완료). */}
+      <Card title="진행 단계 (설정하면 환자·에이전시에게 표시)">
+        <div className="space-y-3">
+          <div className="flex flex-wrap items-center gap-2">
+            {CASE_STATUS_STEPS.filter((s) => s.order < 90).map((s) => (
+              <button
+                key={s.key}
+                type="button"
+                onClick={() => setCaseStatus(s.key)}
+                className={`px-3 py-1.5 rounded-full text-xs font-medium border transition ${
+                  caseStatus === s.key
+                    ? "bg-teal-600 text-white border-teal-600"
+                    : "bg-white text-gray-600 border-gray-300 hover:border-teal-400"
+                }`}
+              >
+                {s.order}. {s.ko}
+              </button>
+            ))}
+          </div>
+          <textarea
+            value={caseNote}
+            onChange={(e) => setCaseNote(e.target.value)}
+            rows={2}
+            placeholder='환자·에이전시에게 표시될 메모 (예: "병원 검토 중, 3일 내 회신")'
+            className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500 resize-none"
+          />
+          <div className="flex items-center gap-3">
+            <button
+              onClick={saveCase}
+              disabled={caseSaving}
+              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold bg-teal-700 text-white rounded-lg hover:bg-teal-800 transition disabled:opacity-50"
+            >
+              {caseSaving ? "저장 중…" : "진행 단계 저장"}
+            </button>
+            {caseSaved && <span className="text-sm text-teal-600 inline-flex items-center gap-1"><Check size={15} /> 저장됨</span>}
+          </div>
+        </div>
+      </Card>
+
+      {/* 접수 정보 (타임라인) */}
+      <Card title="접수 정보">
         <Row icon={FileText} label="접수 경로" value={inquiry.agency_id ? `에이전시 의뢰${inquiry.agency_name ? ` (${inquiry.agency_name})` : ""}` : (inquiry.source || "환자 직접 접수")} />
         <Row icon={Calendar} label="접수일" value={fmtDate(inquiry.created_at)} />
         <Row icon={Calendar} label="Step 1 완료" value={fmtDate(inquiry.step1_completed_at)} />
@@ -486,19 +563,14 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
         </Card>
       )}
 
-      {/* 다음 단계 (기존 코디 화면으로 연결) */}
-      <div className="flex flex-wrap gap-3">
+      {/* 다음 단계 — 병원 검토 후 화상 상담 (흐름상 진행 단계·추가정보 다음). */}
+      <div className="border-t border-gray-100 pt-4">
+        <p className="text-xs text-gray-400 mb-2">병원 치료가능 검토가 끝나면 환자와 화상 상담을 잡습니다.</p>
         <Link
           href="/coordinator/consultations"
           className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition"
         >
           <Video size={16} /> 상담 일정 잡기
-        </Link>
-        <Link
-          href="/coordinator/cases"
-          className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium bg-white border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition"
-        >
-          <ClipboardList size={16} /> 케이스/병원 배정
         </Link>
       </div>
     </div>
