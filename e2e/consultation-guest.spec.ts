@@ -40,20 +40,12 @@ test.describe("게스트 상담 입장 UI", () => {
     const fakeSession = "00000000-0000-0000-0000-000000000001";
     await page.goto(`/consultation/${fakeSession}`);
 
-    // 로그인 필요 / 세션 없음 상태 중 하나
-    // 로딩 스피너 잠깐 있다가 에러 or 로그인 리다이렉트
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("domcontentloaded");
 
-    // 인증 에러 or 세션 없음 에러 메시지
-    const hasAuthError = await page
-      .getByText(/인증|로그인|auth|login/i)
-      .isVisible()
-      .catch(() => false);
-    const hasNotFoundError = await page
-      .getByText(/찾을 수 없|not found|not.{1,3}found/i)
-      .isVisible()
-      .catch(() => false);
-
-    expect(hasAuthError || hasNotFoundError).toBeTruthy();
+    // 세션 로드 실패(인증 에러 OR 세션 없음) 메시지는 클라이언트 fetch 후 뜨므로 web-first 로 재시도 대기.
+    // 둘 중 하나만 떠도 통과(combined locator).
+    await expect(
+      page.getByText(/인증|로그인|auth|login|찾을 수 없|not found|not.{1,3}found/i).first()
+    ).toBeVisible({ timeout: 20_000 });
   });
 });

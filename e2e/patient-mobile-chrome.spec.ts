@@ -24,7 +24,7 @@ test.describe("환자 포털 모바일 단일 크롬 @smoke", () => {
 
   test("환자 대시보드에 공개 마케팅 푸터·하단바가 겹쳐 뜨지 않는다", async ({ page }) => {
     await page.goto("/patient");
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("domcontentloaded");
 
     const body = await page.locator("body").innerText().catch(() => "");
 

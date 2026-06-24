@@ -19,7 +19,7 @@ const FAKE_HOSPITAL_PATTERNS = [
 test.describe("AI 채팅 — 할루시네이션 방지 @smoke", () => {
   test("안녕 인사에 가짜 병원명이 응답에 포함되지 않는다", async ({ page }) => {
     await page.goto("/");
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("domcontentloaded");
 
     // 채팅 입력창 찾기 (여러 selector 시도)
     const chatInput = page

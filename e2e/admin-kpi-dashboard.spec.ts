@@ -24,23 +24,20 @@ test.describe("어드민 KPI 대시보드", () => {
 
   test("KPI 대시보드 페이지 렌더링 — 카드/수치 표시", async ({ page }) => {
     await page.goto("/admin/khidi/kpi-dashboard");
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("domcontentloaded");
 
-    const bodyText = await page.locator("body").innerText().catch(() => "");
-
-    // KPI 관련 텍스트
-    const hasKpiContent =
-      /KPI|대시보드|dashboard|총|환자|신청|inquiry|문의/i.test(bodyText);
-    expect(hasKpiContent).toBeTruthy();
-
-    // 숫자 데이터가 최소 하나 표시 (0 이상의 수치)
-    const hasNumbers = /\d+/.test(bodyText);
-    expect(hasNumbers).toBeTruthy();
+    // 클라이언트가 KPI 데이터를 fetch 후 렌더하므로 web-first assertion 으로 내용 뜰 때까지 재시도
+    // (networkidle 은 애널리틱스 때문에 안 settle → domcontentloaded + 재시도 대기).
+    await expect(page.locator("body")).toContainText(
+      /KPI|대시보드|dashboard|총|환자|신청|inquiry|문의/i,
+      { timeout: 20_000 }
+    );
+    await expect(page.locator("body")).toContainText(/\d/, { timeout: 20_000 });
   });
 
   test("KPI 페이지에 차트 또는 통계 요소가 있다", async ({ page }) => {
     await page.goto("/admin/khidi/kpi-dashboard");
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("domcontentloaded");
 
     // recharts, SVG 차트, 또는 수치 카드
     const hasChart = await page

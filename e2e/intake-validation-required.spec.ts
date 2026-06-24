@@ -10,7 +10,7 @@ import { test, expect } from "@playwright/test";
 test.describe("인테이크 폼 필수 필드 검증", () => {
   test("빈 폼 제출 시 에러가 발생한다", async ({ page }) => {
     await page.goto("/intake");
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("domcontentloaded");
 
     const submitBtn = page
       .getByRole("button", { name: /제출|신청|보내기|submit|send/i })
@@ -43,7 +43,7 @@ test.describe("인테이크 폼 필수 필드 검증", () => {
 
   test("이메일 형식이 틀리면 에러가 발생한다", async ({ page }) => {
     await page.goto("/intake");
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("domcontentloaded");
 
     const emailInput = page.locator('input[type="email"]').first();
     const hasEmail = await emailInput.isVisible().catch(() => false);

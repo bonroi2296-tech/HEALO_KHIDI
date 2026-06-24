@@ -17,7 +17,7 @@ const XSS_PAYLOADS = [
 test.describe("XSS 방지", () => {
   test("인테이크 폼 textarea 에 script 입력 시 실행 안 됨", async ({ page }) => {
     await page.goto("/intake");
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("domcontentloaded");
 
     const textarea = page.locator("textarea").first();
     const hasTextarea = await textarea.isVisible().catch(() => false);
@@ -25,7 +25,7 @@ test.describe("XSS 방지", () => {
     if (!hasTextarea) {
       // inquiry 폼 시도
       await page.goto("/inquiry");
-      await page.waitForLoadState("networkidle");
+      await page.waitForLoadState("domcontentloaded");
     }
 
     const target = page.locator("textarea").first();
@@ -47,7 +47,7 @@ test.describe("XSS 방지", () => {
 
   test("inquiry 폼에 onerror payload 입력 시 실행 안 됨", async ({ page }) => {
     await page.goto("/inquiry");
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("domcontentloaded");
 
     const textarea = page.locator("textarea").first();
     const hasTextarea = await textarea.isVisible().catch(() => false);
@@ -66,7 +66,7 @@ test.describe("XSS 방지", () => {
   test("검색 쿼리에 XSS 입력 시 실행 안 됨", async ({ page }) => {
     // URL 파라미터로 XSS 시도
     await page.goto(`/search?q=${encodeURIComponent('<script>window.__xss_test=true;</script>')}`);
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("domcontentloaded");
 
     const xssExecuted = await page.evaluate(() => {
       return (window as unknown as Record<string, unknown>).__xss_test === true;

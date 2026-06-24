@@ -12,7 +12,7 @@ test.describe("게스트 토큰 만료/오류 케이스", () => {
   test("너무 짧은 토큰 → 에러 메시지", async ({ page }) => {
     const fakeSession = "00000000-0000-0000-0000-000000000000";
     await page.goto(`/consultation/${fakeSession}?invite=bad`);
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("domcontentloaded");
 
     await page.waitForTimeout(500);
     const bodyText = await page.locator("body").innerText().catch(() => "");
@@ -46,7 +46,7 @@ test.describe("게스트 토큰 만료/오류 케이스", () => {
     const badToken = "0".repeat(64);
 
     await page.goto(`/consultation/${nonExistSession}?invite=${badToken}`);
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("domcontentloaded");
 
     const nameInput = page
       .locator('input[placeholder*="이름"], input[placeholder*="name"], input[placeholder*="Айжан"]')

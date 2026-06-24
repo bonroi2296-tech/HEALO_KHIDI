@@ -13,7 +13,7 @@ test.describe("AI 응답 부정 피드백 흐름", () => {
     // 어드민 AI 피드백 목록 페이지 (피드백 데이터 있는 곳)
     // 또는 채팅 있는 페이지에서 직접 시도
     await page.goto("/");
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("domcontentloaded");
 
     // 👎 버튼 찾기
     const thumbsDown = page

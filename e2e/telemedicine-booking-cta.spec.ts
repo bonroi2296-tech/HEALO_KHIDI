@@ -15,7 +15,7 @@ import { test, expect, devices } from "@playwright/test";
 test.describe("원격협진 CTA 흐름", () => {
   test("하단 CTA '지금 시작' → /inquiry 이동 @smoke", async ({ page }) => {
     await page.goto("/telemedicine");
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("domcontentloaded");
 
     // 여러 CTA 중 하단 것 클릭
     const ctas = page.getByRole("link", {
@@ -30,7 +30,7 @@ test.describe("원격협진 CTA 흐름", () => {
     // 마지막 CTA (하단) 클릭
     await ctas.last().click();
 
-    // waitForLoadState("networkidle") 는 클라이언트 라우팅 시작 전에 즉시 통과해
+    // waitForLoadState("domcontentloaded") 는 클라이언트 라우팅 시작 전에 즉시 통과해
     // URL 검사가 네비게이션보다 먼저 실행되는 레이스가 있었음 (CI dev 서버는
     // /inquiry 온디맨드 컴파일로 수 초 걸림) → 자동 대기하는 toHaveURL 사용
     await expect(page).toHaveURL(/\/inquiry/, { timeout: 15000 });
@@ -43,7 +43,7 @@ test.describe("원격협진 CTA 흐름", () => {
     const page = await context.newPage();
 
     await page.goto("/telemedicine");
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("domcontentloaded");
 
     // 모바일에서도 주요 콘텐츠 표시
     const heading = page
@@ -57,7 +57,7 @@ test.describe("원격협진 CTA 흐름", () => {
 
   test("원격협진 페이지 — 언어 변경 없이 기본 한국어 콘텐츠 표시", async ({ page }) => {
     await page.goto("/telemedicine");
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("domcontentloaded");
 
     const bodyText = await page.locator("body").innerText();
     // 한국어 또는 영어 혼용 콘텐츠

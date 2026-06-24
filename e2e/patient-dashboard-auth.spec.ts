@@ -22,7 +22,7 @@ test.describe("환자 대시보드 인증 보호 @smoke", () => {
   for (const route of PROTECTED_ROUTES) {
     test(`미인증 상태로 ${route} 접근 → 로그인 페이지로 이동`, async ({ page }) => {
       await page.goto(route);
-      await page.waitForLoadState("networkidle");
+      await page.waitForLoadState("domcontentloaded");
 
       // /login 으로 리다이렉트 또는 로그인 UI 표시
       const currentUrl = page.url();

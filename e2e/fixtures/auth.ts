@@ -39,17 +39,21 @@ export async function loginAs(
     role === "admin" ? ADMIN_USER : role === "coordinator" ? COORDINATOR_USER : TEST_USER;
 
   await page.goto("/login");
-  await page.waitForLoadState("networkidle");
+  await page.waitForLoadState("domcontentloaded");
 
   const emailInput = page.locator('input[type="email"]').first();
   const pwInput = page.locator('input[type="password"]').first();
 
   await emailInput.fill(creds.email);
   await pwInput.fill(creds.password);
-  await page.getByRole("button", { name: /로그인|sign in|login/i }).first().click();
+  // 로그인 버튼 텍스트는 i18n(t("auth.login")) 이라 언어에 따라 달라짐 → 언어 안 타는
+  // form submit 버튼으로 타깃(로그인 폼의 유일한 type=submit).
+  await page.locator('button[type="submit"]').first().click();
 
-  // 로그인 완료 대기 — URL 변경 or 대시보드 heading
+  // 로그인 완료 대기 — URL 변경(성공 시 역할별 라우트로 push).
+  // 로그인 핸들러가 whoami 2개 + 목적지 라우트를 거치는데, CI/로컬 모두 `npm run dev`(콜드 컴파일)
+  // 라 첫 진입이 느림 → 타임아웃 넉넉히(10s 는 콜드 서버에서 자주 초과).
   await page.waitForURL((url) => !url.pathname.includes("/login"), {
-    timeout: 10_000,
+    timeout: 30_000,
   });
 }

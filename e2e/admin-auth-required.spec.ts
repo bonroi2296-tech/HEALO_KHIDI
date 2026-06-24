@@ -22,7 +22,7 @@ test.describe("어드민 인증 보호 @smoke", () => {
   for (const route of ADMIN_ROUTES) {
     test(`비인증 상태로 ${route} 접근 → 차단됨`, async ({ page }) => {
       await page.goto(route);
-      await page.waitForLoadState("networkidle");
+      await page.waitForLoadState("domcontentloaded");
 
       const currentUrl = page.url();
       const bodyText = await page.locator("body").innerText().catch(() => "");

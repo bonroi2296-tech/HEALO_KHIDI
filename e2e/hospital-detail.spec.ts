@@ -10,7 +10,7 @@ import { test, expect } from "@playwright/test";
 test.describe("병원 상세 페이지", () => {
   test("병원 카드 클릭 → 상세 페이지 진입", async ({ page }) => {
     await page.goto("/hospitals");
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("domcontentloaded");
 
     // 첫 번째 병원 링크 클릭
     const firstLink = page
@@ -30,7 +30,7 @@ test.describe("병원 상세 페이지", () => {
       await firstLink.click();
     }
 
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("domcontentloaded");
 
     // URL 이 /hospitals/ 하위로 변경됨
     expect(page.url()).toMatch(/\/hospitals\//);
@@ -38,7 +38,7 @@ test.describe("병원 상세 페이지", () => {
 
   test("상세 페이지에 의료진 또는 시설 정보가 있다", async ({ page }) => {
     await page.goto("/hospitals");
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("domcontentloaded");
 
     const firstLink = page.locator('a[href*="/hospitals/"]').first();
     const hasLink = await firstLink.isVisible().catch(() => false);
@@ -53,7 +53,7 @@ test.describe("병원 상세 페이지", () => {
       await firstLink.click();
     }
 
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("domcontentloaded");
 
     const bodyText = await page.locator("body").innerText().catch(() => "");
     // 의료진, 시설, 전문, 치료 등 관련 키워드

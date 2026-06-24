@@ -22,7 +22,7 @@ const DUMMY_INTAKE = {
 test.describe("인테이크 폼 제출 @smoke", () => {
   test("필수 필드 입력 후 제출 → 완료 메시지/페이지", async ({ page }) => {
     await page.goto("/intake");
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("domcontentloaded");
 
     // 이름
     const nameInput = page
@@ -73,7 +73,7 @@ test.describe("인테이크 폼 제출 @smoke", () => {
     }
 
     await submitBtn.click();
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("domcontentloaded");
 
     // 완료 확인
     const bodyText = await page.locator("body").innerText().catch(() => "");

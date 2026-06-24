@@ -14,7 +14,7 @@ test.describe("인테이크 카자흐어 UI", () => {
     await page.setExtraHTTPHeaders({ "Accept-Language": "kk-KZ,kk;q=0.9,ru;q=0.8" });
 
     await page.goto("/kk");
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("domcontentloaded");
 
     const bodyText = await page.locator("body").innerText();
 
@@ -29,7 +29,7 @@ test.describe("인테이크 카자흐어 UI", () => {
 
   test("intake 폼은 언어가 바뀌어도 접근 가능하다", async ({ page }) => {
     await page.goto("/kk");
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("domcontentloaded");
 
     // /intake 또는 intake 링크 찾기
     const intakeLink = page
@@ -39,7 +39,7 @@ test.describe("인테이크 카자흐어 UI", () => {
 
     if (hasLink) {
       await intakeLink.click();
-      await page.waitForLoadState("networkidle");
+      await page.waitForLoadState("domcontentloaded");
     } else {
       // /intake 는 통합 퍼널 /inquiry 로 redirect (2026-05 통폐합)
       await page.goto("/intake");
@@ -48,7 +48,7 @@ test.describe("인테이크 카자흐어 UI", () => {
     // redirect 완료를 명시적으로 대기 — networkidle 만으로는 이동 전에 통과해
     // "Inquiry Form" 버튼을 못 찾고 지나치는 레이스가 있었음
     await page.waitForURL(/\/inquiry/, { timeout: 15000 }).catch(() => {});
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("domcontentloaded");
 
     // 퍼널 선택 화면에서 "Inquiry Form" 선택 → 입력 폼 노출
     const formChoice = page.getByText(/Inquiry Form/i).first();

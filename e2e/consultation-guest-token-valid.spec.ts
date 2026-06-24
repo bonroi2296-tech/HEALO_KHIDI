@@ -16,7 +16,7 @@ test.describe("게스트 초대 토큰 — 유효 케이스 UI", () => {
     const fakeToken = "a".repeat(64);
 
     await page.goto(`/consultation/${fakeSession}?invite=${fakeToken}`);
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("domcontentloaded");
 
     // 게스트 이름 입력 폼이 노출되어야 함 (토큰 검증 전 UI)
     const nameInput = page

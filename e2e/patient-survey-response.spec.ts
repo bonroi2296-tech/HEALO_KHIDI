@@ -14,7 +14,7 @@ test.describe("만족도 설문 응답 흐름", () => {
     // 실제 라우트는 /survey/[token] (쿼리스트링 아님)
     const fakeSurveyToken = "survey-e2e-test-token-12345";
     const response = await page.goto(`/survey/${fakeSurveyToken}`);
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("domcontentloaded");
 
     const status = response?.status() ?? 0;
     // 가짜 토큰: 페이지는 렌더링되고 not_found/expired 에러 UI 표시 (404 응답도 허용)
@@ -24,7 +24,7 @@ test.describe("만족도 설문 응답 흐름", () => {
   test("설문 페이지에 별점 또는 점수 입력 UI가 있다", async ({ page }) => {
     // 어드민에서 satisfaction 페이지 확인
     await page.goto("/admin/khidi/satisfaction");
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("domcontentloaded");
 
     const bodyText = await page.locator("body").innerText().catch(() => "");
 

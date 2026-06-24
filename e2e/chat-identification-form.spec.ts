@@ -14,7 +14,7 @@ test.describe("채팅 신원 확인 폼", () => {
     await page.context().clearCookies();
 
     await page.goto("/");
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("domcontentloaded");
 
     // 채팅 위젯 버튼 클릭 (버블 형태일 수 있음)
     const chatTrigger = page
@@ -38,7 +38,7 @@ test.describe("채팅 신원 확인 폼", () => {
       // 통합 문의 퍼널(/inquiry): 진입 시 AI Agent / Human Agent / Inquiry Form 선택 화면 →
       // 선택지를 클릭해야 입력 폼이 나타남 (2026-05 피벗 구조)
       await page.goto("/inquiry");
-      await page.waitForLoadState("networkidle");
+      await page.waitForLoadState("domcontentloaded");
       const formChoice = page.getByText(/Inquiry Form/i).first();
       if (await formChoice.isVisible().catch(() => false)) {
         await formChoice.click();
@@ -54,7 +54,7 @@ test.describe("채팅 신원 확인 폼", () => {
   test("신원 폼 제출 후 채팅/상담 인터페이스가 이어진다", async ({ page }) => {
     await page.context().clearCookies();
     await page.goto("/inquiry");
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("domcontentloaded");
 
     // 이름 입력
     const nameInput = page
@@ -80,7 +80,7 @@ test.describe("채팅 신원 확인 폼", () => {
 
     if (hasSubmit) {
       await submitBtn.click();
-      await page.waitForLoadState("networkidle");
+      await page.waitForLoadState("domcontentloaded");
 
       // 제출 후 — 성공 메시지 or 채팅 UI or 다음 단계
       const successOrChat = await page

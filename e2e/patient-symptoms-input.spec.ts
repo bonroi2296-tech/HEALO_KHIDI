@@ -24,7 +24,7 @@ test.describe("환자 증상 입력", () => {
 
   test("증상 입력 → 저장 → 목록에 표시", async ({ page }) => {
     await page.goto("/patient/symptoms");
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("domcontentloaded");
 
     const symptomText = `E2E 테스트 증상 ${Date.now()}`;
 
@@ -50,7 +50,7 @@ test.describe("환자 증상 입력", () => {
     }
 
     await saveBtn.click();
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("domcontentloaded");
 
     // 입력한 증상이 목록에 표시
     await page.waitForTimeout(1000);

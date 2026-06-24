@@ -11,7 +11,7 @@ import { test, expect } from "@playwright/test";
 test.describe("채팅 다국어 전환", () => {
   test("언어 ko → ru 전환 시 UI 텍스트가 변경된다", async ({ page }) => {
     await page.goto("/");
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("domcontentloaded");
 
     // 언어 선택기 찾기
     const langSwitcher = page
@@ -25,7 +25,7 @@ test.describe("채팅 다국어 전환", () => {
     if (!hasSwitcher) {
       // /ru 단독 라우트는 없음 — 러시아 환자 전용 페이지로 직접 이동
       await page.goto("/ru/for-russian-patients");
-      await page.waitForLoadState("networkidle");
+      await page.waitForLoadState("domcontentloaded");
 
       const bodyText = await page.locator("body").innerText();
       // 러시아어 텍스트 포함 여부 (키릴 문자)
@@ -53,7 +53,7 @@ test.describe("채팅 다국어 전환", () => {
     }
 
     // 언어 변경은 쿠키 저장 후 전체 새로고침(window.location.reload) 방식
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("domcontentloaded");
 
     const bodyText = await page.locator("body").innerText();
     const hasCyrillic = /[а-яА-ЯёЁ]/.test(bodyText);
@@ -63,7 +63,7 @@ test.describe("채팅 다국어 전환", () => {
   test("러시아 환자 페이지 직접 진입 시 러시아어 UI 표시", async ({ page }) => {
     // /ru 단독 라우트는 없음(404) — 실제 존재하는 러시아 환자 전용 페이지로 검증
     await page.goto("/ru/for-russian-patients");
-    await page.waitForLoadState("networkidle");
+    await page.waitForLoadState("domcontentloaded");
 
     const bodyText = await page.locator("body").innerText();
     // 러시아어 키릴 문자 최소 10자 이상

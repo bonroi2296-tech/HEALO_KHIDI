@@ -13,8 +13,8 @@ test.describe("홈페이지 진입점", () => {
   test("healwith 로고 + 원격협진 Nav 가 노출된다", async ({ page }) => {
     await page.goto("/");
 
-    // healwith 워드마크 — 워드마크는 <header> 안에 있고 <nav>는 메뉴 항목 전용
-    await expect(page.locator("header").getByText("healwith").first()).toBeVisible();
+    // healwith 워드마크 — 헤더 로고는 <img alt="healwith"> 라 글자 매칭 대신 이미지 역할(alt)로.
+    await expect(page.locator("header").getByRole("img", { name: /healwith/i }).first()).toBeVisible();
 
     // 원격협진 메뉴 + NEW 배지
     const telemedicineLink = page.getByRole("link", {
