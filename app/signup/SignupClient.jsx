@@ -157,6 +157,7 @@ export const SignUpPage = ({ setView }) => {
                     first_name: firstName,
                     last_name: lastName,
                     is_marketing_agreed: isMarketing,
+                    lang: langCode, // 인증/복구 메일을 사용자 언어로 보내기 위해 저장 ({{ .Data.lang }})
                 },
             },
         });
