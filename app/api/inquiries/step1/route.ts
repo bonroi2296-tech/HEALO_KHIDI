@@ -35,7 +35,18 @@ const Step1Schema = z.object({
   contactMethod: z.string().max(50).nullable().optional(),
   contactId: z.string().max(200).nullable().optional(),
   treatmentType: z.string().max(100).optional(),
+  // PIPA 동의 (출시 법적 필수). 키별 boolean. 필수 4종은 서버에서도 재확인(폼 우회 방지).
+  consents: z.record(z.boolean()).optional(),
+  consentVersion: z.string().max(20).optional(),
 });
+
+// 외국인 의료정보 수집·국외이전이라 아래 4종은 법적 필수 동의.
+const REQUIRED_CONSENT_IDS = [
+  "pipa_collection",
+  "sensitive_health",
+  "third_party_hospital",
+  "cross_border_kr",
+];
 
 export async function POST(request: NextRequest) {
   assertSupabaseEnv();
@@ -72,6 +83,16 @@ export async function POST(request: NextRequest) {
   if (!hasEmail && !hasPhone) {
     return Response.json(
       { ok: false, error: "missing_contact" },
+      { status: 400 }
+    );
+  }
+
+  // PIPA 필수 동의 서버 재확인 — 폼 게이트를 우회한 직접 호출도 차단.
+  const consents = data.consents ?? {};
+  const missingConsent = REQUIRED_CONSENT_IDS.filter((id) => consents[id] !== true);
+  if (missingConsent.length > 0) {
+    return Response.json(
+      { ok: false, error: "consent_required" },
       { status: 400 }
     );
   }
@@ -115,7 +136,12 @@ export async function POST(request: NextRequest) {
         preferred_date_flex: true,
         message: encMemo,
         attachments: [],
-        intake: {},
+        // PIPA 동의 기록 보존 (감사·증빙용). 정본은 inquiries.intake.consents.
+        intake: {
+          consents,
+          consentVersion: data.consentVersion ?? null,
+          consentAt: new Date().toISOString(),
+        },
         status: "received",
         match_accuracy: 60,
         step1_completed_at: new Date().toISOString(),
