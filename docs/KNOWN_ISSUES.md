@@ -23,7 +23,9 @@
 2. **Supabase 이메일 템플릿 href를 token_hash로 교체**(인증 자동로그인·스캐너안전 완성. `docs/PROJECT_CONTEXT.md` 인증 핸드오프 참조).
 3. **구글 OAuth 게시**(현재 "테스트"라 실환자 구글가입 막힘).
 4. **E2E Secrets 등록**(`docs/E2E_SECRETS_SETUP.md`) → 로그인 화면 자동검사 가동.
+   - 🟢 **2026-06-24 준비 완료**: 5역할 테스트계정(`patient·coordinator·admin·agency·clinic@test.com`) 비번을 `test1234`로 통일·실로그인 검증 + 프로덕션 인증 API 도달(코디 inbox 200·어드민 funnel 200·환자→어드민 403 권한분리) 실측. **남은 건 PO가 GitHub Secrets 12개 복붙뿐**(역할 10 + `SUPABASE_SERVICE_ROLE_KEY`·`ENCRYPTION_KEY_V1`).
 5. **iOS 영상상담 마이크 실기기 검증** / **K-01 점수판 데모데이터 정직성**(진짜 유치 0).
+6. 🔴 **약한비번 테스트계정 삭제/비활성** — E2E 위해 `admin@test.com` 등을 `test1234`로 둠. `admin@test.com`은 role=admin이라 비번만 맞으면 실서비스 어드민(PII 복호화) 진입 가능. **PO 약속: 오픈 전 삭제/비활성**(`app_metadata.disabled=true`). 안 하면 실서비스에 약한비번 admin 잔존. (`docs/TEST_ACCOUNTS.md` ⚠️ 참조)
 
 ### ❌ 아직 검증 못 함(정직)
 화면 시각 렌더(브라우저 미설치 — API만), 가입/비번찾기 실메일 end-to-end, 영상상담·iOS, 문의 제출→DB. → 위 5번 관문에서 사람이 1회.
