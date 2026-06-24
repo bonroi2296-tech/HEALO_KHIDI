@@ -11,7 +11,9 @@
  *   1) guest_token       — 계정 없음. 화상상담 초대링크 토큰으로만 입장.
  *   2) default           — 로그인한 일반 회원(환자). 별도 role 없음.
  *   3) app_metadata_role — auth.users.app_metadata.role (service_role만 변경 가능).
- *                          admin / coordinator / doctor / agency.
+ *                          admin / coordinator / agency.
+ *      ⚠️ doctor(의사)는 계정 계층이 아니다. 의사는 국내 의료기관(병원) 계정으로
+ *         로그인하거나 화상상담 게스트 초대링크로 상담방에 참여한다.
  *   4) hospital_users    — hospital_users 테이블 행(병원별 owner/manager/viewer).
  *   5) agency_users      — agency_users 테이블 행 + agencies.partner_type 로
  *                          해외 에이전시 / 해외 의료기관을 구분.
@@ -24,7 +26,6 @@ export type AccountTier =
   | "guest" // 비회원 (초대링크 게스트)
   | "patient" // 사용자 (환자)
   | "coordinator" // 코디네이터 (내부 스태프)
-  | "doctor" // 의사 (한국 종양 전문의)
   | "admin" // 관리자 (운영자)
   | "domestic_hospital" // 국내 의료기관 (제휴 한국 병원)
   | "overseas_agency" // 해외 에이전시 (환자 유치 파트너)
@@ -44,7 +45,7 @@ export interface AccountTierDef {
   /** 권한이 어디에 저장되는가 */
   storage: TierStorage;
   /** app_metadata.role 값 (해당될 때) */
-  appRole?: "admin" | "coordinator" | "doctor" | "agency";
+  appRole?: "admin" | "coordinator" | "agency";
   /** agencies.partner_type 값 (해외 파트너일 때) */
   partnerType?: "agency" | "medical_institution";
   /** 전용 포털 경로 (없으면 null) */
@@ -54,7 +55,7 @@ export interface AccountTierDef {
 }
 
 /**
- * 8개 계정 계층 정의 — 이 객체가 표준이다.
+ * 7개 계정 계층 정의 — 이 객체가 표준이다.
  */
 export const ACCOUNT_TIERS: Record<AccountTier, AccountTierDef> = {
   guest: {
@@ -81,15 +82,6 @@ export const ACCOUNT_TIERS: Record<AccountTier, AccountTierDef> = {
     appRole: "coordinator",
     portal: "/coordinator",
     description: "내부 스태프. 환자 여정·상담 일정·증상 알림 관리.",
-  },
-  doctor: {
-    tier: "doctor",
-    labelKo: "의사",
-    labelEn: "Doctor",
-    storage: "app_metadata_role",
-    appRole: "doctor",
-    portal: "/doctor",
-    description: "한국 종양 전문의. 원격협진 진행·문서.",
   },
   admin: {
     tier: "admin",
@@ -135,7 +127,7 @@ export const ACCOUNT_TIERS: Record<AccountTier, AccountTierDef> = {
 };
 
 /** 내부 스태프 계층 (관리자 포함) */
-export const STAFF_TIERS: AccountTier[] = ["admin", "coordinator", "doctor"];
+export const STAFF_TIERS: AccountTier[] = ["admin", "coordinator"];
 
 /** 외부 파트너 계층 (병원·에이전시·해외 의료기관) */
 export const PARTNER_TIERS: AccountTier[] = [
@@ -153,7 +145,6 @@ export const AGENCY_BACKED_TIERS: AccountTier[] = [
 /** 관리자가 /api/khidi/roles 등으로 부여 가능한 계층(게스트·환자 기본값 제외) */
 export const ASSIGNABLE_TIERS: AccountTier[] = [
   "coordinator",
-  "doctor",
   "admin",
   "domestic_hospital",
   "overseas_agency",
@@ -179,7 +170,7 @@ export function tierFromPartnerType(t?: string | null): AccountTier {
 
 /**
  * 인증 컨텍스트로부터 계정 계층을 판정한다.
- * 우선순위: admin > coordinator > doctor > 병원 > 해외(에이전시/의료기관) > 환자.
+ * 우선순위: admin > coordinator > 병원 > 해외(에이전시/의료기관) > 환자.
  */
 export function resolveTier(ctx: {
   isAdmin?: boolean;
@@ -190,7 +181,6 @@ export function resolveTier(ctx: {
 }): AccountTier {
   if (ctx.isAdmin || ctx.appRole === "admin") return "admin";
   if (ctx.appRole === "coordinator") return "coordinator";
-  if (ctx.appRole === "doctor") return "doctor";
   if (ctx.isHospitalUser) return "domestic_hospital";
   if (ctx.isAgencyUser || ctx.appRole === "agency") {
     return tierFromPartnerType(ctx.partnerType);

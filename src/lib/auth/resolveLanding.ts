@@ -5,7 +5,7 @@
  * → 에이전시·병원·코디·의사가 환자 화면을 보는 문제. 여기서 계정 계층에 맞는
  *   포털로 보낸다. 계층 정의는 accountTiers.ts 표준을 따른다.
  *
- * - admin → /admin, coordinator → /coordinator, doctor → /doctor
+ * - admin → /admin, coordinator → /coordinator
  * - agency(해외 에이전시) → /agency, 해외 의료기관(medical_institution) → /clinic
  * - 병원 담당자(hospital_users) → /hospital
  * - 그 외(환자) → /patient
@@ -21,7 +21,6 @@ export async function resolveLandingPath(opts: {
 }): Promise<string> {
   if (opts.isAdmin || opts.appRole === "admin") return "/admin";
   if (opts.appRole === "coordinator") return "/coordinator";
-  if (opts.appRole === "doctor") return "/doctor";
   if (opts.appRole === "agency") {
     // 해외 파트너: agencies.partner_type 으로 에이전시(/agency) vs 의료기관(/clinic) 구분
     if (opts.userId) {

@@ -14,8 +14,12 @@ import {
 import { normalizeRole, getPrimaryRole, hasPermission } from "./roles";
 
 describe("accountTiers — 단일 표준 일관성", () => {
-  it("정확히 8개 계층을 정의한다", () => {
-    expect(Object.keys(ACCOUNT_TIERS)).toHaveLength(8);
+  it("정확히 7개 계층을 정의한다", () => {
+    expect(Object.keys(ACCOUNT_TIERS)).toHaveLength(7);
+  });
+
+  it("doctor 는 계정 계층이 아니다 (병원 계정/게스트로 입장)", () => {
+    expect(ACCOUNT_TIERS).not.toHaveProperty("doctor");
   });
 
   it("각 정의의 key 와 tier 필드가 일치한다", () => {
@@ -48,7 +52,9 @@ describe("resolveTier — 인증 컨텍스트 → 계층 우선순위", () => {
   });
   it("스태프 역할", () => {
     expect(resolveTier({ appRole: "coordinator" })).toBe("coordinator");
-    expect(resolveTier({ appRole: "doctor" })).toBe("doctor");
+  });
+  it("옛 doctor 역할은 더 이상 계층이 아님 → 환자로 폴백", () => {
+    expect(resolveTier({ appRole: "doctor" })).toBe("patient");
   });
   it("병원 담당자", () => {
     expect(resolveTier({ isHospitalUser: true })).toBe("domestic_hospital");
@@ -108,7 +114,7 @@ describe("roles.ts — 레거시 호환", () => {
 
 // 타입 수준 확인: 모든 AccountTier 가 ACCOUNT_TIERS 에 존재
 const _exhaustive: Record<AccountTier, true> = {
-  guest: true, patient: true, coordinator: true, doctor: true, admin: true,
+  guest: true, patient: true, coordinator: true, admin: true,
   domestic_hospital: true, overseas_agency: true, overseas_medical: true,
 };
 void _exhaustive;

@@ -12,7 +12,7 @@ import { checkAdminAuth } from "@/lib/auth/checkAdminAuth";
 import { getSupabaseServerClient } from "@/lib/data/supabaseServerClient";
 
 /**
- * 스태프(관리자·코디네이터·의사)만 환자 증상알림에 접근 가능.
+ * 스태프(관리자·코디네이터)만 환자 증상알림에 접근 가능.
  * 과거엔 userId(로그인만 하면 환자 포함 누구나)만 확인해, 다른 환자의 알림을
  * 조회·해제할 수 있는 수평적 권한우회(IDOR)가 있었음.
  */
@@ -20,7 +20,6 @@ function isStaff(auth: { isAdmin?: boolean; appRole?: string }): boolean {
   return (
     auth.isAdmin === true ||
     auth.appRole === "coordinator" ||
-    auth.appRole === "doctor" ||
     auth.appRole === "admin"
   );
 }
