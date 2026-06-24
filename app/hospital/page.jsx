@@ -3,15 +3,15 @@
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import {
-  LayoutDashboard, MessageSquare, Stethoscope, Clock, Eye, Reply, CheckCircle,
-  XCircle, ArrowRight, Send, TrendingUp, CalendarDays, Calendar,
+  MessageSquare, Clock, Eye, Reply, CheckCircle, XCircle, Send,
+  ArrowRight, TrendingUp, Timer, Wallet, AlertCircle,
 } from "lucide-react";
 import { useHospitalContext } from "./_components/HospitalGateClient";
 
 const STATUS_CONFIG = {
   queued: { label: "대기", color: "text-gray-600", icon: Clock },
   sent: { label: "전송됨", color: "text-blue-600", icon: Send },
-  viewed: { label: "조회됨", color: "text-yellow-600", icon: Eye },
+  viewed: { label: "조회됨", color: "text-amber-600", icon: Eye },
   replied: { label: "응답함", color: "text-green-600", icon: Reply },
   converted: { label: "치료 확정", color: "text-emerald-700", icon: CheckCircle },
   rejected: { label: "거절", color: "text-red-500", icon: XCircle },
@@ -30,10 +30,24 @@ function fetchWithAuth(url) {
   });
 }
 
+// 분 단위 → 사람이 읽는 응답시간
+function formatDuration(mins) {
+  if (mins == null) return "—";
+  if (mins < 60) return `${mins}분`;
+  if (mins < 1440) return `${Math.round(mins / 60)}시간`;
+  return `${Math.round(mins / 1440)}일`;
+}
+
+// 배정 시각 → "n일 대기" 형태 (응답 큐용)
+function waitedSince(assignedAt) {
+  const mins = Math.max(0, Math.round((Date.now() - new Date(assignedAt).getTime()) / 60000));
+  return formatDuration(mins);
+}
+
 export default function HospitalDashboardPage() {
   const hospitalInfo = useHospitalContext();
   const [stats, setStats] = useState(null);
-  const [recentLeads, setRecentLeads] = useState([]);
+  const [queue, setQueue] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
@@ -43,7 +57,7 @@ export default function HospitalDashboardPage() {
       const data = await res.json();
       if (data.ok) {
         setStats(data.stats);
-        setRecentLeads(data.recentLeads);
+        setQueue(data.actionQueue || []);
       }
     } catch (err) {
       console.error("[Dashboard] Load error:", err);
@@ -56,11 +70,14 @@ export default function HospitalDashboardPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-20">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
+      <div className="flex flex-col items-center justify-center py-24 gap-3">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-600" />
+        <p className="text-sm text-gray-500">현황 불러오는 중…</p>
       </div>
     );
   }
+
+  const pending = stats?.pendingCount || 0;
 
   return (
     <div className="space-y-6">
@@ -69,39 +86,102 @@ export default function HospitalDashboardPage() {
           안녕하세요, {hospitalInfo?.hospitalName || "병원"} 님
         </h1>
         <p className="text-xs lg:text-sm text-gray-500 mt-0.5">
-          병원 포털 대시보드에 오신 것을 환영합니다
+          진료 의뢰 현황과 응답 성과를 한눈에 확인하세요
         </p>
       </div>
 
-      {/* Stats Cards */}
+      {/* 경영 KPI */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
-        <StatCard
-          icon={TrendingUp}
-          label="전체 리드"
-          value={stats?.totalLeads || 0}
-          color="blue"
-        />
-        <StatCard
-          icon={CalendarDays}
-          label="오늘"
-          value={stats?.todayLeads || 0}
-          color="green"
-        />
-        <StatCard
-          icon={Calendar}
-          label="이번 주"
-          value={stats?.weekLeads || 0}
-          color="purple"
-        />
-        <StatCard
-          icon={Stethoscope}
-          label="시술 수"
-          value={stats?.treatmentCount || 0}
-          color="teal"
-        />
+        {/* 응답 대기 — 가장 행동이 필요한 지표라 강조 */}
+        <Link
+          href="/hospital/leads"
+          className={`rounded-xl border p-4 transition-all shadow-sm hover:shadow-md ${
+            pending > 0
+              ? "bg-teal-600 border-teal-600 text-white"
+              : "bg-white border-gray-200"
+          }`}
+        >
+          <div className="flex items-center gap-1.5 mb-2">
+            <AlertCircle size={16} className={pending > 0 ? "text-white" : "text-gray-400"} />
+            <span className={`text-xs font-medium ${pending > 0 ? "text-teal-50" : "text-gray-500"}`}>응답 대기</span>
+          </div>
+          <p className={`text-2xl font-bold tabular-nums ${pending > 0 ? "text-white" : "text-gray-900"}`}>
+            {pending}<span className="text-base font-medium ml-0.5">건</span>
+          </p>
+          <p className={`text-[11px] mt-0.5 ${pending > 0 ? "text-teal-50" : "text-gray-400"}`}>
+            {pending > 0 ? "지금 응답이 필요해요" : "모두 처리됨"}
+          </p>
+        </Link>
+
+        <KpiCard icon={TrendingUp} label="전환율" value={`${stats?.conversionRate || 0}`} unit="%"
+          hint={`확정 ${stats?.statusCounts?.converted || 0} / 전체 ${stats?.totalLeads || 0}`} />
+
+        <KpiCard icon={Timer} label="평균 첫 응답" value={formatDuration(stats?.avgResponseMinutes)} unit=""
+          hint={stats?.avgResponseMinutes == null ? "응답 기록 없음" : "배정 → 첫 응답"} />
+
+        <KpiCard icon={Wallet} label="확정 견적 합계" value={`$${(stats?.convertedValue || 0).toLocaleString()}`} unit=""
+          hint="치료 확정 리드 기준" />
       </div>
 
-      {/* Status Breakdown */}
+      {/* 거래량 요약 */}
+      <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm bg-white rounded-xl border border-gray-200 px-5 py-3.5">
+        <VolumeStat label="전체 리드" value={stats?.totalLeads || 0} />
+        <VolumeStat label="오늘" value={stats?.todayLeads || 0} />
+        <VolumeStat label="이번 주" value={stats?.weekLeads || 0} />
+        <VolumeStat label="이번 달" value={stats?.monthLeads || 0} />
+      </div>
+
+      {/* 응답 필요 큐 */}
+      <div className="bg-white rounded-xl border border-gray-200 p-5">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-sm font-semibold text-gray-900 flex items-center gap-1.5">
+            <AlertCircle size={16} className="text-teal-600" /> 응답 필요
+          </h2>
+          <Link href="/hospital/leads" className="text-xs text-teal-700 hover:underline flex items-center gap-1">
+            리드 관리 <ArrowRight size={12} />
+          </Link>
+        </div>
+
+        {queue.length === 0 ? (
+          <div className="py-8 text-center">
+            <CheckCircle size={28} className="mx-auto mb-2 text-emerald-500" />
+            <p className="text-sm text-gray-500">응답 대기 중인 문의가 없습니다</p>
+            <p className="text-xs text-gray-400 mt-0.5">새 진료 의뢰가 배정되면 여기에 표시됩니다</p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {queue.map((lead) => {
+              const inquiry = lead.normalized_inquiries;
+              const sc = STATUS_CONFIG[lead.status] || STATUS_CONFIG.sent;
+              const Icon = sc.icon;
+              return (
+                <Link
+                  key={lead.id}
+                  href="/hospital/leads"
+                  className="flex items-center justify-between p-3 rounded-lg border border-gray-100 hover:bg-gray-50 transition"
+                >
+                  <div className="flex items-center gap-3 min-w-0">
+                    <span className={`flex-shrink-0 ${sc.color}`}><Icon size={16} /></span>
+                    <div className="min-w-0">
+                      <p className="text-sm text-gray-900 truncate">
+                        {inquiry?.objective || inquiry?.treatment_slug || "문의"}
+                      </p>
+                      <p className="text-xs text-gray-400">
+                        {[inquiry?.country, inquiry?.language].filter(Boolean).join(" · ")}
+                      </p>
+                    </div>
+                  </div>
+                  <span className="text-xs font-medium text-amber-600 flex-shrink-0 tabular-nums">
+                    {waitedSince(lead.assigned_at)} 대기
+                  </span>
+                </Link>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {/* 상태별 리드 */}
       {stats?.statusCounts && Object.keys(stats.statusCounts).length > 0 && (
         <div className="bg-white rounded-xl border border-gray-200 p-5">
           <h2 className="text-sm font-semibold text-gray-900 mb-3">상태별 리드</h2>
@@ -113,127 +193,37 @@ export default function HospitalDashboardPage() {
                 <div key={status} className="flex items-center gap-2 text-sm">
                   <Icon size={16} className={sc.color} />
                   <span className="text-gray-600">{sc.label}</span>
-                  <span className="ml-auto font-semibold text-gray-900">{count}</span>
+                  <span className="ml-auto font-semibold text-gray-900 tabular-nums">{count}</span>
                 </div>
               );
             })}
           </div>
         </div>
       )}
-
-      {/* Recent Leads */}
-      <div className="bg-white rounded-xl border border-gray-200 p-5">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-sm font-semibold text-gray-900">최근 리드</h2>
-          <Link
-            href="/hospital/leads"
-            className="text-xs text-blue-600 hover:underline flex items-center gap-1"
-          >
-            전체 보기 <ArrowRight size={12} />
-          </Link>
-        </div>
-
-        {recentLeads.length === 0 ? (
-          <p className="text-sm text-gray-400 py-6 text-center">
-            아직 배정된 리드가 없습니다
-          </p>
-        ) : (
-          <div className="space-y-2">
-            {recentLeads.map((lead) => {
-              const inquiry = lead.normalized_inquiries;
-              const sc = STATUS_CONFIG[lead.status] || STATUS_CONFIG.queued;
-              const Icon = sc.icon;
-              return (
-                <Link
-                  key={lead.id}
-                  href="/hospital/leads"
-                  className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 transition"
-                >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <span className={`flex-shrink-0 ${sc.color}`}>
-                      <Icon size={16} />
-                    </span>
-                    <div className="min-w-0">
-                      <p className="text-sm text-gray-900 truncate">
-                        {inquiry?.objective || inquiry?.treatment_slug || "문의"}
-                      </p>
-                      <p className="text-xs text-gray-400">
-                        {inquiry?.country} · {new Date(lead.assigned_at).toLocaleDateString("ko-KR")}
-                      </p>
-                    </div>
-                  </div>
-                  <span className={`text-xs font-medium ${sc.color} flex-shrink-0`}>
-                    {sc.label}
-                  </span>
-                </Link>
-              );
-            })}
-          </div>
-        )}
-      </div>
-
-      {/* Quick Links */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <QuickLink
-          href="/hospital/leads"
-          icon={MessageSquare}
-          label="리드 관리"
-          desc="배정된 문의 확인"
-          color="blue"
-        />
-        <QuickLink
-          href="/hospital/profile"
-          icon={LayoutDashboard}
-          label="병원 정보"
-          desc="프로필 수정"
-          color="green"
-        />
-        <QuickLink
-          href="/hospital/treatments"
-          icon={Stethoscope}
-          label="시술 관리"
-          desc="시술 추가/수정"
-          color="purple"
-        />
-      </div>
     </div>
   );
 }
 
-function StatCard({ icon: Icon, label, value, color }) {
-  const colors = {
-    blue: "bg-blue-50 text-blue-600",
-    green: "bg-green-50 text-green-600",
-    purple: "bg-purple-50 text-purple-600",
-    teal: "bg-teal-50 text-teal-700",
-  };
-
+function KpiCard({ icon: Icon, label, value, unit, hint }) {
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-4">
-      <div className={`w-8 h-8 rounded-lg flex items-center justify-center mb-2 ${colors[color]}`}>
-        <Icon size={16} />
+    <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+      <div className="flex items-center gap-1.5 mb-2">
+        <Icon size={16} className="text-gray-400" />
+        <span className="text-xs font-medium text-gray-500">{label}</span>
       </div>
-      <p className="text-xl lg:text-2xl font-bold text-gray-900">{value}</p>
-      <p className="text-xs text-gray-500">{label}</p>
+      <p className="text-2xl font-bold text-gray-900 tabular-nums">
+        {value}{unit && <span className="text-base font-medium ml-0.5">{unit}</span>}
+      </p>
+      {hint && <p className="text-[11px] text-gray-400 mt-0.5 truncate">{hint}</p>}
     </div>
   );
 }
 
-function QuickLink({ href, icon: Icon, label, desc, color }) {
-  const colors = {
-    blue: "hover:border-blue-300 hover:bg-blue-50/50",
-    green: "hover:border-green-300 hover:bg-green-50/50",
-    purple: "hover:border-purple-300 hover:bg-purple-50/50",
-  };
-
+function VolumeStat({ label, value }) {
   return (
-    <Link
-      href={href}
-      className={`bg-white rounded-xl border border-gray-200 p-4 transition-all ${colors[color]}`}
-    >
-      <Icon size={20} className="text-gray-400 mb-2" />
-      <p className="text-sm font-semibold text-gray-900">{label}</p>
-      <p className="text-xs text-gray-500">{desc}</p>
-    </Link>
+    <div className="flex items-baseline gap-1.5">
+      <span className="text-gray-500">{label}</span>
+      <span className="font-bold text-gray-900 tabular-nums">{value}</span>
+    </div>
   );
 }

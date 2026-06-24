@@ -103,6 +103,7 @@ export async function POST(request: NextRequest) {
         attachments,
         intake: encryptedIntake,
         status: "received",
+        source: "agency_referral",
         agency_id: auth.agencyId,
         case_status: "received",
         case_status_note: `에이전시 의뢰 (${auth.agencyName || ""})`.trim(),

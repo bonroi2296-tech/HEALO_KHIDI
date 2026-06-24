@@ -4,8 +4,174 @@ import { NextRequest } from "next/server";
 import { checkHospitalAuth } from "@/lib/auth/checkHospitalAuth";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { caseStatusOrder, outcomeForHospitalLeadStatus } from "@/lib/khidi/caseStatus";
+import { decryptInquiryForAdmin } from "@/lib/security/decryptForAdmin";
 
 const VALID_STATUSES = ["sent", "viewed", "replied", "converted", "rejected"];
+
+// 환자 이름은 노출(PO 결정 2026-06-24 — 병원이 식별 필요). 단 이메일·전화·연락처는 미노출(코디 중개).
+function patientName(first?: string | null, last?: string | null): string {
+  const n = `${(first || "").trim()} ${(last || "").trim()}`.trim();
+  return n || "이름 미상";
+}
+
+// intake JSONB 에서 임상 판단에 필요한 안전 필드만 화이트리스트(신·구 키 둘 다). PII 키 제외.
+const DETAIL_LABELS: Record<string, string> = {
+  sex: "성별", age: "나이", birthYear: "출생연도", birth_year: "출생연도",
+  stage: "병기", diagnosis_date: "진단일", diagnosisDate: "진단일",
+  diagnosed_hospital: "진단 병원", diagnosedHospital: "진단 병원",
+  treatment_state: "현재 치료상태", treatmentState: "현재 치료상태",
+  prior_treatment: "기존 치료", priorTreatment: "기존 치료",
+  travel_timing: "방한 가능 시기",
+};
+function pickDetail(intake: any): { label: string; value: string }[] {
+  const o = intake && typeof intake === "object" && !Array.isArray(intake) ? intake : {};
+  const out: { label: string; value: string }[] = [];
+  const seen = new Set<string>();
+  for (const [k, label] of Object.entries(DETAIL_LABELS)) {
+    const v = o[k];
+    if (v == null || String(v).trim() === "") continue;
+    if (seen.has(label)) continue; // snake/camel 중복 라벨 한 번만
+    seen.add(label);
+    out.push({ label, value: String(v) });
+  }
+  return out;
+}
+
+async function signAttachments(supabase: any, atts: any): Promise<any[]> {
+  if (!Array.isArray(atts) || atts.length === 0) return [];
+  return Promise.all(
+    atts.slice(0, 20).map(async (a: any) => {
+      let url: string | null = null;
+      if (a?.path) {
+        const { data } = await supabase.storage.from("attachments").createSignedUrl(a.path, 3600);
+        url = data?.signedUrl || null;
+      }
+      return { name: a?.name || "첨부파일", category: a?.category || "other", type: a?.type || null, url };
+    })
+  );
+}
+
+// 가능시간 슬롯 정제 — [{at: ISO, note?}]. 최대 5개, 유효 날짜만.
+function cleanSlots(input: unknown): { at: string; note: string | null }[] {
+  return (Array.isArray(input) ? input : [])
+    .map((s: any) => {
+      const at = s?.at ? new Date(String(s.at)) : null;
+      if (!at || isNaN(at.getTime())) return null;
+      return { at: at.toISOString(), note: s?.note ? String(s.note).slice(0, 200) : null };
+    })
+    .filter(Boolean)
+    .slice(0, 5) as { at: string; note: string | null }[];
+}
+
+// 코디가 읽을 KST 문자열 ("2026-06-25 14:00 KST")
+function fmtKst(iso: string): string {
+  try {
+    const s = new Date(iso).toLocaleString("ko-KR", {
+      timeZone: "Asia/Seoul", year: "numeric", month: "2-digit", day: "2-digit",
+      hour: "2-digit", minute: "2-digit", hour12: false,
+    });
+    return `${s} KST`;
+  } catch { return iso; }
+}
+
+/**
+ * GET — 병원이 견적·치료가능 여부를 판단할 임상 상세(원본 의뢰에서 복호화).
+ * 환자 신원·연락처는 미노출(코디 중개). 첨부 의료기록은 signed URL.
+ */
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const auth = await checkHospitalAuth(request);
+  if (!auth.isHospitalUser || !auth.hospitalId) {
+    return Response.json({ ok: false, error: "unauthorized" }, { status: 403 });
+  }
+  try {
+    const { id } = await params;
+    const supabase = createServiceRoleClient();
+
+    const { data: lead } = await supabase
+      .from("hospital_leads")
+      .select("id, hospital_id, status, assigned_at, quoted_price_min, quoted_price_max, notes, metadata, normalized_inquiry_id")
+      .eq("id", id)
+      .maybeSingle();
+    if (!lead) return Response.json({ ok: false, error: "lead_not_found" }, { status: 404 });
+    if (lead.hospital_id !== auth.hospitalId) {
+      return Response.json({ ok: false, error: "unauthorized" }, { status: 403 });
+    }
+
+    const { data: norm } = lead.normalized_inquiry_id
+      ? await supabase
+          .from("normalized_inquiries")
+          .select("source_inquiry_id, objective, treatment_slug, country, language, source_type")
+          .eq("id", lead.normalized_inquiry_id)
+          .maybeSingle()
+      : { data: null };
+
+    let detail: any = {
+      patient: "익명 환자",
+      country: norm?.country || null,
+      language: norm?.language || null,
+      cancer_type: null,
+      treatment_type: norm?.treatment_slug || null,
+      objective: norm?.objective || null,
+      source_type: norm?.source_type || null,
+      preferred_date: null,
+      preferred_date_flex: false,
+      message: null,
+      clinical: [],
+      insurance: null,
+      attachments: [],
+    };
+
+    if (norm?.source_inquiry_id != null) {
+      // (supabase as any): 생성된 DB 타입이 일부 컬럼에 stale — 에이전시 라우트와 동일 우회.
+      const { data: inqRaw } = await (supabase as any)
+        .from("inquiries")
+        .select("id, first_name, last_name, nationality, spoken_language, preferred_date, preferred_date_flex, treatment_type, cancer_type, message, intake, attachments, insurance_provider, insurance_coverage, insurance_status, lead_quality")
+        .eq("id", norm.source_inquiry_id)
+        .maybeSingle();
+      if (inqRaw) {
+        const inq = await decryptInquiryForAdmin(inqRaw).catch(() => inqRaw);
+        detail = {
+          patient: patientName(inq.first_name, inq.last_name),
+          country: inq.nationality || detail.country,
+          language: inq.spoken_language || detail.language,
+          cancer_type: inq.cancer_type || null,
+          treatment_type: inq.treatment_type || detail.treatment_type,
+          objective: detail.objective,
+          source_type: detail.source_type,
+          preferred_date: inq.preferred_date || null,
+          preferred_date_flex: !!inq.preferred_date_flex,
+          message: typeof inq.message === "string" ? inq.message : null,
+          clinical: pickDetail(inq.intake),
+          insurance: inq.insurance_provider || inq.insurance_coverage || inq.insurance_status
+            ? { provider: inq.insurance_provider || null, coverage: inq.insurance_coverage || null, status: inq.insurance_status || null }
+            : null,
+          lead_quality: inq.lead_quality || null,
+          attachments: await signAttachments(supabase, inqRaw.attachments),
+        };
+      }
+    }
+
+    return Response.json({
+      ok: true,
+      lead: {
+        id: lead.id,
+        status: lead.status,
+        assigned_at: lead.assigned_at,
+        quoted_price_min: lead.quoted_price_min,
+        quoted_price_max: lead.quoted_price_max,
+        notes: lead.notes,
+        consult_slots: (lead.metadata as any)?.consult_slots || [],
+      },
+      detail,
+    });
+  } catch (err: any) {
+    console.error("[partner/leads/id] GET error:", err?.message?.slice(0, 200));
+    return Response.json({ ok: false, error: "internal_error" }, { status: 500 });
+  }
+}
 
 /**
  * 병원의 리드 응답을 의뢰(case_status)로 되돌려 반영 — 코디·에이전시가 보게.
@@ -17,7 +183,8 @@ async function syncLeadStatusToCase(
   newStatus: string,
   hospitalId: string,
   userId: string | undefined,
-  quote: { min?: number | null; max?: number | null }
+  quote: { min?: number | null; max?: number | null },
+  slots: { at: string; note: string | null }[]
 ) {
   try {
     // 리드 → normalized_inquiry → 원본 의뢰 id
@@ -40,12 +207,16 @@ async function syncLeadStatusToCase(
     const { data: inq } = await supabase.from("inquiries").select("case_status").eq("id", inquiryId).maybeSingle();
     const curStatus: string | null = inq?.case_status ?? null;
 
+    const slotText = slots.length
+      ? ` · 📹 원격협진 가능시간: ${slots.map((s) => fmtKst(s.at) + (s.note ? `(${s.note})` : "")).join(", ")}`
+      : "";
+
     let note = "";
     let targetStatus: string | null = curStatus;
 
     if (newStatus === "replied" || newStatus === "converted") {
       const q = quote.min != null || quote.max != null ? ` (견적 ${quote.min ?? "?"}~${quote.max ?? "?"})` : "";
-      note = `🏥 ${hName} ${newStatus === "converted" ? "치료 확정" : "회신"}${q}`;
+      note = `🏥 ${hName} ${newStatus === "converted" ? "치료 확정" : "회신"}${q}${slotText}`;
       // 병원이 회신/확정하면 '치료 일정·견적 조율 중'으로 전진(이미 더 간 단계면 유지).
       if (caseStatusOrder(curStatus) < caseStatusOrder("scheduling")) targetStatus = "scheduling";
     } else if (newStatus === "rejected") {
@@ -113,7 +284,7 @@ export async function PATCH(
     // Verify lead belongs to this hospital
     const { data: existing, error: findErr } = await supabase
       .from("hospital_leads")
-      .select("id, hospital_id, status")
+      .select("id, hospital_id, status, metadata")
       .eq("id", id)
       .single();
 
@@ -138,6 +309,15 @@ export async function PATCH(
     if (body.quoted_price_max !== undefined) updates.quoted_price_max = body.quoted_price_max;
     if (body.notes !== undefined) updates.notes = body.notes;
 
+    // 원격협진 가능시간 — metadata.consult_slots 에 보관
+    let slots: { at: string; note: string | null }[] = [];
+    if (body.consult_slots !== undefined) {
+      slots = cleanSlots(body.consult_slots);
+      updates.metadata = { ...((existing as any).metadata || {}), consult_slots: slots };
+    } else {
+      slots = ((existing as any).metadata?.consult_slots) || [];
+    }
+
     const { data, error } = await supabase
       .from("hospital_leads")
       .update(updates)
@@ -150,12 +330,16 @@ export async function PATCH(
       return Response.json({ ok: false, error: "update_failed" }, { status: 500 });
     }
 
-    // 역방향: 병원 응답을 의뢰 case_status 로 반영 → 코디·에이전시가 봄
-    if (updates.status && updates.status !== existing.status) {
-      await syncLeadStatusToCase(supabase, id, updates.status, auth.hospitalId, auth.userId, {
+    // 역방향: 병원 응답을 의뢰 case_status 로 반영 → 코디·에이전시가 봄 (가능시간 포함)
+    // 상태가 바뀔 때 + 이미 회신/확정 상태에서 가능시간만 갱신 저장해도 코디에게 다시 전달.
+    const effStatus = updates.status || existing.status;
+    const statusChanged = updates.status && updates.status !== existing.status;
+    const slotsResaved = body.consult_slots !== undefined && ["replied", "converted"].includes(effStatus);
+    if (statusChanged || slotsResaved) {
+      await syncLeadStatusToCase(supabase, id, effStatus, auth.hospitalId, auth.userId, {
         min: data?.quoted_price_min ?? null,
         max: data?.quoted_price_max ?? null,
-      });
+      }, slots);
     }
 
     return Response.json({ ok: true, lead: data });

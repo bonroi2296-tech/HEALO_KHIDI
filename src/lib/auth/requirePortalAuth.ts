@@ -7,7 +7,7 @@
  *
  * 역할 판정:
  * - isAdmin: app_metadata.role === "admin" 또는 ADMIN_EMAIL_ALLOWLIST
- * - isStaff: isAdmin 또는 app_metadata.role ∈ {coordinator, doctor}
+ * - isStaff: isAdmin 또는 app_metadata.role === "coordinator"
  *   (역할 부여는 /admin/staff 에서 service_role 로만 가능 — user_metadata 사용 금지)
  */
 
@@ -22,7 +22,7 @@ const PORTAL_RATE = {
   apiName: "portal_api",
 };
 
-const STAFF_ROLES = ["admin", "coordinator", "doctor"];
+const STAFF_ROLES = ["admin", "coordinator"];
 
 export type PortalAuthResult =
   | {

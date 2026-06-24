@@ -23,7 +23,6 @@ export function CreateConsultationModal({ onClose, onSuccess }) {
     return {
       selected_inquiry_id: "",
       patient_user_id: "",
-      doctor_user_id: "",
       coordinator_user_id: "",
       session_type: "pre_consultation",
       scheduled_at: d.toISOString().slice(0, 16),
@@ -384,12 +383,6 @@ export function CreateConsultationModal({ onClose, onSuccess }) {
             value={form.patient_user_id}
             onSelect={(id) => setForm({ ...form, patient_user_id: id })}
             placeholder="비워두면 게스트 링크 전용"
-          />
-          <RoleUserSelect
-            label="담당 의사 (지정 의사 목록)"
-            role="doctor"
-            value={form.doctor_user_id}
-            onSelect={(id) => setForm({ ...form, doctor_user_id: id })}
           />
           <RoleUserSelect
             label="담당 코디네이터 (지정 코디 목록)"

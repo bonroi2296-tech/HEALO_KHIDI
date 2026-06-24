@@ -7,47 +7,37 @@
 
 ---
 
-## 🔖 세션 핸드오프 (2026-06-24 저녁 — 에이전시 백오피스 인앱 메신저 + 견적·화상상담·문서함, 별도 대화창)
+## 🔖 세션 핸드오프 (2026-06-24 늦은오후 — 국내 의료기관(병원) 백오피스 강화 2건)
 
-> 에이전시 전용 worktree(`.claude/worktrees/agency-ui`, 브랜치 `worktree-agency-ui`)에서 작업. 에이전시 백오피스에 **플랫폼 내 코디↔에이전시 양방향 메신저** + 의뢰 케이스에 견적·화상상담 일정·문서함을 끌어와 표시(왓츠앱·메일 의존 줄이고 ICT 6대 서비스 플랫폼 내 통합). PO 피드백으로 인라인 채팅 → **오른쪽 슬라이드 전용 대화창(드로어)**으로 재디자인. **[#336](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/336) 열림(머지 안 함 — 프리뷰 검토 대기).**
+> 병원 포털(`/hospital`) 테스트 중 PO 피드백 반영. ①콘텐츠 메뉴 비활성 + 대시보드 '경영 현황판'화 [#335] ②리드 상세에 임상 판단 패킷 + 원격협진 가능시간 코디 전달 [#338]. **둘 다 머지·프로덕션 배포됨.** 단 실데이터가 데모 리드 1건뿐 + 로컬 SSR 쿠키 로그인 자동화가 막혀 **시각 런타임 검증은 못 함**(빌드·CI는 초록).
 
-**1. 이번 세션 한 일 ([#336](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/336) 열림):**
-- **에이전시↔코디 양방향 메신저(케이스 단위)**: 기존 환자챗 테이블(`chat_threads`/`chat_messages`)을 **재활용**(새 메시지 인프라 안 만듦), `channel='agency'`로 구분. 신규 API `app/api/agency/cases/[id]/messages`(GET/POST, `checkAgencyAuth`+본인 에이전시 케이스 검증, find-or-create 스레드, 읽음표시). 코디는 **기존 `/coordinator/messages` 콘솔에서 그대로** 받고 답장(`actor_type=coordinator`) — 코디쪽은 라벨 2줄(ChannelDot+Message에 `agency`)만 추가.
-- **운영시간 안내(PO 요청)**: 코디 확인 = 한국시간(KST) 월–금 09:00–18:00. `kstHoursOpen()`로 대화창에 `지금 운영 중`/`운영시간 외` 배지 + 시간 외엔 "다음 영업일 답장" 배너.
-- **견적 공유**: 코디가 **발행한** 견적(`cost_estimates`, intake 경유 2홉 조인)을 케이스에 금액+PDF로 표시(초안 비노출).
-- **화상상담 일정·상태**: `consultation_sessions`(inquiry 직접연결) 예정시각·상태 표시. **입장링크는 미노출**(토큰이 `token_hash`로만 저장돼 복원 불가 = 보안상 옳음) → 필요 시 메신저로 코디 요청 안내.
-- **문서함**: 케이스 첨부를 카테고리별 그룹.
-- **별도 대화창(드로어) 재디자인**: PO가 인라인 채팅을 "비좁고 허접"이라 함 → 버튼 클릭 시 오른쪽에서 슬라이드되는 전용 패널(미읽음 카운트·로딩 스켈레톤·빈상태·ESC 닫기·바깥클릭 닫기). DESIGN.md 톤 준수(teal-600, rounded-xl/2xl, 모달 shadow-xl, duration-300, UI 크롬 이모지 X).
-- **DB 마이그레이션(추가형, prod 적용 완료)**: `chat_messages.actor_type` CHECK를 `patient/admin/system` → `+user/coordinator/bot/agency`로 확장. `migrations/20260624_chat_messages_actor_type_agency.sql` 기록.
-- **변경 파일**: `app/agency/PartnerPortal.jsx`, `app/api/agency/cases/[id]/messages/route.ts`(신규), `app/api/agency/inquiries/route.ts`, `app/coordinator/messages/CoordinatorMessagesClient.jsx`(라벨 2줄), 마이그레이션 1.
+**1. 이번 세션 한 일:**
+- **[#335](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/335) 머지·배포 — 비활성 + 대시보드 경영현황판화**: 「병원 정보」·「시술 카탈로그」 메뉴 비활성(`app/hospital/_components/featureFlags.js`의 `HOSPITAL_CONTENT_ENABLED=false` 한 값 토글, 직접 URL 접근도 대시보드로 redirect, 코드는 보존). 대시보드를 **응답대기·전환율·평균 첫 응답시간·확정 견적합계(예상매출) KPI + '응답 필요' 할 일 큐**로 재편(리드 목록과 차별화). 리드 화면에 **검색·정렬·CSV 내보내기** 추가.
+- **[#338](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/338) 머지·배포 — 리드 임상 상세 + 원격협진 가능시간**: 리드 상세를 원본 의뢰에서 끌어온 **임상 패킷**으로(신설 `GET /api/partner/leads/[id]`) — 환자명·국적·언어·**암종·병기·진단일·현재치료상태·방한시기·보험·환자가 쓴 메시지(복호화)·첨부 의료기록(signed URL)**. 이메일·전화·연락처는 미노출. + **원격협진 가능 시간 슬롯**(datetime-local) 입력 → `hospital_leads.metadata.consult_slots` 저장 + `case_status_history` 타임라인에 "📹 원격협진 가능시간: …(KST)"로 코디에게 전달.
 
 **2. 왜 그렇게 했는지:**
-- **기존 채팅 테이블 재활용 + 코디 기존 콘솔 사용**: 새 메시지 시스템·코디 새 화면을 안 만들어 작업·충돌 최소화. 에이전시 스레드(`channel='agency'`)가 코디 콘솔에 자동 노출됨.
-- **actor_type CHECK 확장 = 잠복버그 동시 수정**: 원래 CHECK가 `patient/admin/system`만 허용인데 기존 코드(`portal/threads` 코디 답장)는 `coordinator/user`를 insert → **로그인-환자↔코디 메시지 전송이 사실상 깨져 있었음**(public 챗만 작동). 에이전시 메신저 얹으며 같이 고침. 삭제 아닌 허용집합 확대(가역).
-- **입장링크 미노출**: 게스트 토큰이 해시로만 저장돼 링크 재생성 불가. 토큰 재발급 플로우는 보안 표면만 늘어 보류(ponytail) — 메신저로 코디 요청이 더 안전.
+- **비활성**: 공개 프론트(`/hospitals`·`/treatments`)가 병원 자가입력 콘텐츠를 노출할 준비가 안 됨 → 메뉴만 끄고 코드 보존(나중에 플래그 1값만 `true`).
+- **임상 패킷**: PO 지적 "병원이 시술·국가만 보고 견적·치료가능 여부를 못 판단한다" → 원본 `inquiries`에서 복호화(`decryptInquiryForAdmin`)해 노출. 신원 PII는 가리되 **이름은 PO 결정으로 노출**("병원이 식별 필요").
+- **코디 전달 채널 재사용**: 새 알림을 만들지 않고 코디가 이미 보는 `case_status_history`에 남김(에이전시 '화상상담 요청' #330과 동일 패턴 — 일관성).
 
 **3. 안 끝났거나 보류:**
-- **[#336] 머지 안 함 — 프리뷰 검토 대기**: 큰 UI/플로우라 PO가 프리뷰에서 대화창 톤·동작 확인 후 머지 결정.
-- **입장링크(상담 join) 미구현**: 필요하면 별도 게스트 토큰 발급 플로우 필요(보안 검토 후).
+- 둘 다 머지·배포 완료라 보류 코드는 없음. **후속 = 데이터가 쌓인 뒤 KPI·임상 패킷이 실제로 채워져 보이는지 확인**(현재 데모 1건).
 
 **4. 주의·함정:**
-- ⚠️ **공유 테이블 CHECK 변경이 prod DB에 이미 적용됨**(머지 전이라도). 추가형이라 안전하지만 `chat_messages.actor_type` 허용값이 넓어진 상태. 롤백하려면 기존 값(`user/coordinator/agency` 등)을 쓰는 행이 없어야 함.
-- ⚠️ **코디 답장 경로 의존**: 코디는 `/coordinator/messages` 콘솔에서 답장. 그 콘솔의 reply가 `actor_type='coordinator'`를 insert(이제 CHECK 통과). 만약 콘솔/portal 라우트를 또 만지면 이 동작 깨지지 않게 주의.
-- ⚠️ **미읽음 뱃지**는 `chat_threads.metadata.agency_last_read_at` 기준. 에이전시가 대화창 GET하면 갱신. 새로고침 전엔 카드 뱃지 숫자가 갱신 안 될 수 있음(다음 `load()`에서 0).
+- ⚠️ `partner/leads/[id]` GET의 inquiries 조회는 **`(supabase as any)` 캐스팅** — 생성된 DB 타입이 일부 컬럼(`cancer_type`·`preferred_language` 등)에 stale이라 typed 클라이언트가 막음(에이전시 라우트와 동일 우회). 타입 재생성 전까지 유지.
+- ⚠️ **환자 메시지는 자유텍스트** — 환자가 본문에 이름·연락처를 적었으면 병원에 노출될 수 있음(구조적 PII 컬럼은 가림). PO는 이름 노출 OK 결정함.
+- ⚠️ **로컬 SSR 쿠키 로그인 자동화 불가** → 병원/코디 포털 시각검증은 Vercel 프리뷰/프로덕션에서 PO가 직접(자격증명은 정상 확인). [[verify-authgated-portal]]
 
 **5. 다음 세션이 먼저 할 일 (우선순위):**
-1. **⚠️ 직전 미검증분 먼저**: [#336] 프리뷰(`healo-khidi-git-worktree-agency-ui-bonrois-projects.vercel.app/agency`, `agency@test.com`/`test1234`)에서 **①케이스 펼쳐 `코디네이터와 대화` 버튼 → 드로어 슬라이드·메시지 전송 ②코디 콘솔에서 답장 → 에이전시에 돌아오는지(다중주체) ③견적/상담 표시**를 실클릭 검증. OK면 머지.
-2. (선택) 에이전시도 입장링크가 꼭 필요하다면 게스트 토큰 발급 플로우 설계.
-3. **다른 worktree와 분리 유지** — 에이전시 작업은 이 worktree(`agency-ui`)에서만.
+1. **⚠️ 직전 미검증분 먼저**: 프로덕션에서 병원 계정(`hospital@test.com`)으로 그 **stomach/KZ 리드**를 열어 — 이름·암종·병기·환자메시지·(있으면)첨부가 뜨는지 + **원격협진 가능시간 입력·저장 → 코디 케이스 타임라인에 KST로 전달**되는지 실클릭 확인.
+2. (선택) **#335 반성문 1줄**: 리드 상세를 처음 얇게 만든 누락을 `docs/POSTMORTEMS.md`에 기록(PO가 "이걸로 판단되겠냐"고 직접 지적했음).
 
 **6. 검증 상태:**
-- ✅ `next build --webpack` exit 0(2회) · `check:content` 통과 · 마이그레이션 prod 적용·확인.
-- ✅ [#336] CI: 메신저 1차 커밋(`668f987`)에서 `ci` **SUCCESS** 확인. **드로어 커밋(`b6d8c8e`) CI는 재실행 중일 수 있어 미확인** → 프리뷰 갱신 후 확인 필요.
-- ❌ **런타임 실클릭 미검증**: 에이전시 로그인 + 코디 답장(다중주체)이 필요해 직접 클릭 못 함 → 5번 1번으로 승격. 빌드·데이터경로·DB 제약만 확인.
-- ❌ **prod 미반영**(#336 머지 전).
+- ✅ 두 PR 다 `next build --webpack` exit 0 · CI(`ci`·`Smoke Tests`·`Vercel`) 초록 · squash 머지 · 프로덕션 배포.
+- ❌ **시각 런타임 미검증**: 실데이터 데모 1건 + 로컬 로그인 자동화 막힘 → 다중주체(병원↔코디) 실클릭 못 함. 데이터 경로·복호화·타임라인 relay 로직은 코드로 확인. → 5번 1.
 
 **7. 다음 세션 첫 프롬프트:**
-> 먼저 docs/PROJECT_CONTEXT.md 최상단 핸드오프 읽어. 2026-06-24 저녁에 에이전시 백오피스에 코디↔에이전시 인앱 메신저(오른쪽 슬라이드 대화창) + 견적·화상상담·문서함을 #336으로 올렸는데 **프리뷰 검토 대기라 머지 안 했어**. 에이전시 worktree(`.claude/worktrees/agency-ui`, 브랜치 worktree-agency-ui)에서 이어가. ①프리뷰(agency@test.com/test1234)에서 케이스 펼쳐 '코디네이터와 대화' 드로어 + 메시지 전송, 코디 콘솔에서 답장이 에이전시로 돌아오는지(다중주체), 견적/상담 표시 실클릭 검증하고 OK면 머지. ②chat_messages.actor_type CHECK는 prod에 이미 확장 적용됨(추가형, 안전).
+> 먼저 docs/PROJECT_CONTEXT.md 최상단 핸드오프 읽어. 2026-06-24 늦은오후에 병원 백오피스 2건(#335 콘텐츠메뉴 비활성+대시보드 경영현황판, #338 리드 임상상세+원격협진 가능시간)을 머지·배포했는데 실데이터가 데모 1건뿐이라 시각검증을 못 했어. 프로덕션에서 hospital@test.com 로 stomach/KZ 리드 열어서 ①이름·암종·병기·환자메시지·첨부 뜨는지 ②원격협진 가능시간 입력·저장 → 코디 케이스 타임라인에 KST로 전달되는지 확인해줘.
 
 ## 🔖 세션 핸드오프 (2026-06-24 오후 — 코디 '추가 정보 요청' 기능 + 암환자용 폼 전면 교체 + E2E 9건 초록)
 

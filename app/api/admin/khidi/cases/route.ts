@@ -49,8 +49,8 @@ export async function GET(request: NextRequest) {
     const { data: agencies } = await (supabaseAdmin as any).from("agencies").select("id, name").eq("is_active", true);
     const aMap = new Map((agencies || []).map((a: any) => [a.id, a.name]));
 
-    // 국내 병원(파트너) 목록 — 코디가 배정 대상으로 고름
-    const { data: hospitals } = await (supabaseAdmin as any).from("hospitals").select("id, name, slug").order("name");
+    // 국내 병원(파트너) 목록 — 코디가 배정 대상으로 고름. 계정 있는 활성 병원만(시드/가짜 제외).
+    const { data: hospitals } = await (supabaseAdmin as any).from("hospitals").select("id, name, slug").eq("is_active", true).order("name");
     const hMap = new Map<string, string>(
       (hospitals || []).map((h: any): [string, string] => [String(h.id), String(h.name)])
     );

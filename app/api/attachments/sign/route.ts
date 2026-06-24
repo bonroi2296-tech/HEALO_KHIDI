@@ -22,6 +22,7 @@ import { supabaseAdmin, assertSupabaseEnv } from "@/lib/rag/supabaseAdmin";
 import { NextRequest } from "next/server";
 import { pathAuthorized } from "@/lib/security/attachmentAuth";
 import { checkAdminAuth } from "@/lib/auth/checkAdminAuth";
+import { requirePortalAuth } from "@/lib/auth/requirePortalAuth";
 
 export async function POST(request: NextRequest) {
   assertSupabaseEnv();
@@ -66,6 +67,20 @@ export async function POST(request: NextRequest) {
         .createSignedUrl(path, 300);
       if (signErr) {
         console.error("[api/attachments/sign] admin signed URL error:", signErr);
+        return Response.json({ ok: false, error: "signed_url_failed" }, { status: 500 });
+      }
+      return Response.json({ ok: true, signedUrl: signed.signedUrl });
+    }
+
+    // staff(코디·의사) 도 모든 문의 첨부 열람 권한 — 인박스에서 에이전시/환자 첨부 조회.
+    // 과거엔 admin 만 허용해 코디가 에이전시 의뢰 첨부를 못 봤음(public 토큰도 없어 항상 400).
+    const portalAuth = await requirePortalAuth(request, { staffOnly: true });
+    if (portalAuth.success) {
+      const { data: signed, error: signErr } = await supabaseAdmin.storage
+        .from("attachments")
+        .createSignedUrl(path, 300);
+      if (signErr) {
+        console.error("[api/attachments/sign] staff signed URL error:", signErr);
         return Response.json({ ok: false, error: "signed_url_failed" }, { status: 500 });
       }
       return Response.json({ ok: true, signedUrl: signed.signedUrl });

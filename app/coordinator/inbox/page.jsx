@@ -171,6 +171,15 @@ export default function CoordinatorInboxPage() {
                         <span className="font-medium text-gray-900 truncate max-w-[120px]">
                           {item.name || "—"}
                         </span>
+                        {/* 접수 주체 구분: 에이전시 의뢰면 배지(환자 직접은 배지 없음=기본) */}
+                        {item.agency_id && (
+                          <span
+                            title={item.agency_name || "에이전시 의뢰"}
+                            className="px-1.5 py-0.5 text-[10px] font-semibold rounded-full bg-violet-100 text-violet-700 shrink-0"
+                          >
+                            🏢 에이전시
+                          </span>
+                        )}
                       </div>
                     </td>
                     <td className="px-4 py-3 text-gray-600">

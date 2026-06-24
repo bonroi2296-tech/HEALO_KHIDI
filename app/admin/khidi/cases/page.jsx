@@ -7,6 +7,11 @@
 
 import { useState, useEffect, useCallback } from "react";
 
+// PO 결정(2026-06-24): 보험 입력·다중 병원배정은 현재 운영에 불필요(1개 병원이 전체 컨트롤).
+// 코드는 보존하고 UI만 숨긴다 — 필요해지면 이 플래그만 true 로.
+const SHOW_INSURANCE = false;
+const SHOW_HOSPITAL_ASSIGN = false;
+
 // 병원 리드 응답 상태 라벨/색 (병원이 파트너 화면에서 바꾼 값이 여기로 반영됨)
 const HOSP_STATUS = {
   sent: { ko: "전송됨", cls: "bg-gray-100 text-gray-500" },
@@ -125,7 +130,7 @@ export default function CasesPage() {
                     {c.name} · {c.nationality} · {c.cancer_type}
                   </div>
                   <div className="text-xs text-gray-400 truncate">
-                    {c.agency_name ? `에이전시: ${c.agency_name} · ` : ""}{c.insurance_status ? `보험: ${c.insurance_status}` : "보험 미정"}
+                    {c.agency_name ? `에이전시: ${c.agency_name}` : "환자 직접 접수"}{c.case_status_note ? ` · ${c.case_status_note}` : ""}
                   </div>
                 </div>
                 <span className={`text-xs px-2 py-1 rounded-full shrink-0 ${c.case_status ? "bg-teal-50 text-teal-700" : "bg-gray-100 text-gray-400"}`}>
@@ -156,27 +161,32 @@ export default function CasesPage() {
                     <input className="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2 bg-white"
                       value={draft.case_status_note} onChange={(e) => setDraft({ ...draft, case_status_note: e.target.value })} />
                   </label>
-                  <label className="text-sm">
-                    <span className="text-gray-500 text-xs">보험사</span>
-                    <input className="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2 bg-white"
-                      value={draft.insurance_provider} onChange={(e) => setDraft({ ...draft, insurance_provider: e.target.value })} />
-                  </label>
-                  <label className="text-sm">
-                    <span className="text-gray-500 text-xs">증권번호 (암호화 저장)</span>
-                    <input className="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2 bg-white"
-                      value={draft.insurance_policy_no} onChange={(e) => setDraft({ ...draft, insurance_policy_no: e.target.value })} />
-                  </label>
-                  <label className="text-sm">
-                    <span className="text-gray-500 text-xs">보장 범위</span>
-                    <input className="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2 bg-white"
-                      value={draft.insurance_coverage} onChange={(e) => setDraft({ ...draft, insurance_coverage: e.target.value })} />
-                  </label>
-                  <label className="text-sm">
-                    <span className="text-gray-500 text-xs">보험 처리 상태 (예: 확인 중 / 보장 / 미적용)</span>
-                    <input className="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2 bg-white"
-                      value={draft.insurance_status} onChange={(e) => setDraft({ ...draft, insurance_status: e.target.value })} />
-                  </label>
+                  {SHOW_INSURANCE && (
+                    <>
+                      <label className="text-sm">
+                        <span className="text-gray-500 text-xs">보험사</span>
+                        <input className="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2 bg-white"
+                          value={draft.insurance_provider} onChange={(e) => setDraft({ ...draft, insurance_provider: e.target.value })} />
+                      </label>
+                      <label className="text-sm">
+                        <span className="text-gray-500 text-xs">증권번호 (암호화 저장)</span>
+                        <input className="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2 bg-white"
+                          value={draft.insurance_policy_no} onChange={(e) => setDraft({ ...draft, insurance_policy_no: e.target.value })} />
+                      </label>
+                      <label className="text-sm">
+                        <span className="text-gray-500 text-xs">보장 범위</span>
+                        <input className="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2 bg-white"
+                          value={draft.insurance_coverage} onChange={(e) => setDraft({ ...draft, insurance_coverage: e.target.value })} />
+                      </label>
+                      <label className="text-sm">
+                        <span className="text-gray-500 text-xs">보험 처리 상태 (예: 확인 중 / 보장 / 미적용)</span>
+                        <input className="mt-1 w-full border border-gray-200 rounded-lg px-3 py-2 bg-white"
+                          value={draft.insurance_status} onChange={(e) => setDraft({ ...draft, insurance_status: e.target.value })} />
+                      </label>
+                    </>
+                  )}
                   {/* 국내 병원 배정 — 배정하면 병원 파트너 화면에 리드로 뜬다 */}
+                  {SHOW_HOSPITAL_ASSIGN && (
                   <div className="sm:col-span-2 border-t border-gray-200 pt-3 mt-1">
                     <div className="flex items-center justify-between mb-1.5">
                       <span className="text-gray-700 text-xs font-semibold">국내 병원 배정 (협진 의뢰)</span>
@@ -212,6 +222,7 @@ export default function CasesPage() {
                       {assigning ? "배정 중…" : "선택 병원에 배정"}
                     </button>
                   </div>
+                  )}
 
                   <div className="sm:col-span-2 flex gap-2">
                     <button disabled={saving} onClick={() => save(c.id)}
