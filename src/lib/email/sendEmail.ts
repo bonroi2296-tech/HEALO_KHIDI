@@ -101,14 +101,17 @@ export async function sendEmail(opts: SendEmailOptions): Promise<SendEmailResult
     }
   }
 
-  // ── 개발용 fallback ─────────────────
-  console.log(
-    "[email/console] no provider configured — would send:",
+  // ── 미설정 fallback ─────────────────
+  // 발송 제공자(Resend/SES)가 없으면 실제로 아무것도 안 나간다.
+  // ok:true 로 보고하면 호출부가 '발송됨'으로 거짓 기록한다(과거 SMS와 동일한 함정).
+  // 미설정을 정직하게 ok:false 로 반환 → admin_notification_logs 에 거짓 'sent' 안 남김.
+  console.warn(
+    "[email/console] no provider configured — NOT sent:",
     JSON.stringify(
       { to: toArr, subject: opts.subject, preview: opts.text?.slice(0, 200) },
       null,
       2
     )
   );
-  return { ok: true, provider: "console" };
+  return { ok: false, provider: "console", error: "email_not_configured" };
 }
