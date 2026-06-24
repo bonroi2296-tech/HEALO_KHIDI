@@ -49,6 +49,8 @@ const STATUS_LABELS = {
   active: { ko: '진행 중', en: 'Active', ru: 'Активно', zh: '进行中', ja: '進行中', kz: 'Белсенді' },
   completed: { ko: '완료', en: 'Completed', ru: 'Завершено', zh: '已完成', ja: '完了', kz: 'Аяқталды' },
   cancelled: { ko: '취소', en: 'Cancelled', ru: 'Отменено', zh: '已取消', ja: 'キャンセル', kz: 'Бас тартылды' },
+  confirmed: { ko: '확정', en: 'Confirmed', ru: 'Подтверждено', zh: '已确认', ja: '確定', kz: 'Расталды' },
+  dismissed: { ko: '무시함', en: 'Dismissed', ru: 'Отклонено', zh: '已忽略', ja: '無視', kz: 'Еленбеді' },
 };
 
 export default function RebookingClient() {
@@ -124,7 +126,9 @@ export default function RebookingClient() {
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginBottom: 32 }}>
           {rebookings.map(rb => {
-            const sourceStyle = SOURCE_COLORS.followup;
+            const src = rb.schedule?.source;
+            const sourceStyle = SOURCE_COLORS[src] || SOURCE_COLORS.followup;
+            const sourceLabel = LABELS[src] ? l(LABELS[src]) : (rb.current_phase || l(LABELS.followup));
             return (
               <div
                 key={rb.id}
@@ -138,7 +142,7 @@ export default function RebookingClient() {
                     fontSize: 12, fontWeight: 600, padding: '4px 10px', borderRadius: 12,
                     background: sourceStyle.bg, color: sourceStyle.color,
                   }}>
-                    {rb.current_phase || l(LABELS.followup)}
+                    {sourceLabel}
                   </span>
                   <span style={{ fontSize: 13, color: '#666' }}>
                     {l(LABELS.scheduledAt)}: {formatDate(rb.next_action_at)}
@@ -246,7 +250,7 @@ export default function RebookingClient() {
               >
                 <div>
                   <span style={{ fontSize: 14, fontWeight: 500 }}>
-                    {h.current_phase || l(LABELS.followup)}
+                    {h.schedule?.source && LABELS[h.schedule.source] ? l(LABELS[h.schedule.source]) : (h.current_phase || l(LABELS.followup))}
                   </span>
                   <span style={{ fontSize: 13, color: '#888', marginLeft: 8 }}>
                     {formatDate(h.next_action_at)}

@@ -1,14 +1,18 @@
 /**
  * healwith: Rebooking Create API
  *
- * POST /api/khidi/rebooking/create — 재예약 세션 생성
- * Body: { inquiryId, patientId, source, reason, sessionType?, daysFromNow?, parentConsultationId? }
+ * POST /api/khidi/rebooking/create — 재예약 "제안" 생성
+ * Body: { inquiryId, patientId, source, reason, sessionType?, daysFromNow?, cancerType? }
+ *
+ * 정식 테이블 = followup_schedules (환자 재진화면 /api/portal/followup 이 읽는 곳).
+ * 과거엔 엔진이 consultation_sessions(실제 화상세션 테이블)에 써서 환자 재진화면이
+ * 항상 비어 있었음. 재예약은 환자가 확정/무시하는 "제안"이라 followup_schedules 가 맞다.
+ * 환자에게 보이려면 patient_user_id 필요 → inquiry.user_id(#297) 로 연결.
  */
 
 export const runtime = "nodejs";
 
 import { NextRequest } from "next/server";
-import { v4 as uuidv4 } from "uuid";
 import { defaultLimiter } from "@/lib/api/rateLimiter";
 import { sanitizeString } from "@/lib/api/sanitize";
 import { checkAdminAuth } from "@/lib/auth/checkAdminAuth";
@@ -79,23 +83,42 @@ export async function POST(request: NextRequest) {
     );
     const supabase = getSupabaseServerClient();
 
+    // followup_schedules 는 cancer_type NOT NULL + patient_user_id 로 환자화면에 노출된다.
+    // 증상 알림 등은 inquiryId 만 보내므로 inquiry 에서 cancer_type·user_id 를 끌어온다.
+    let cancerType: string | null = payload.cancerType ?? null;
+    let resolvedPatientId: string | null = patientId;
+    if (inquiryId !== null) {
+      const { data: inq } = await supabase
+        .from("inquiries")
+        .select("cancer_type, user_id")
+        .eq("id", inquiryId)
+        .maybeSingle();
+      if (inq) {
+        cancerType = cancerType ?? ((inq as any).cancer_type ?? null);
+        resolvedPatientId = resolvedPatientId ?? ((inq as any).user_id ?? null);
+      }
+    }
+
     const insertData: Record<string, any> = {
       inquiry_id: inquiryId,
-      patient_id: patientId,
-      session_type: sessionType,
-      scheduled_at: scheduledAt.toISOString(),
-      status: 'scheduled',
-      livekit_room_name: `khidi-rebook-${uuidv4()}`,
-      patient_language: payload.patientLanguage || 'ru',
-      doctor_language: payload.doctorLanguage || 'ko',
-      // rebooking_source / parent_consultation_id 컬럼은 스키마에 없으므로 메모에 기록.
-      notes: `[Auto-rebooking · ${payload.source}] ${payload.reason}`,
+      patient_user_id: resolvedPatientId, // 본인 화면(/api/portal/followup)에 노출되는 키
+      cancer_type: cancerType || "unspecified", // NOT NULL 보장
+      status: "proposed", // 환자 대기목록(pending/proposed) → 확정/무시
+      current_phase: null, // DB 기본값 'week_1' 회피 — 화면은 schedule.source 로 뱃지 표시
+      next_action_at: scheduledAt.toISOString(),
+      // source·reason·세션유형은 schedule(Json, NOT NULL)에 보존.
+      schedule: {
+        source: payload.source,
+        reason: payload.reason,
+        session_type: sessionType,
+        days_from_now: daysFromNow,
+      },
     };
 
     const { data, error } = await supabase
-      .from("consultation_sessions")
+      .from("followup_schedules")
       .insert([insertData] as any)
-      .select("id, patient_id, session_type, scheduled_at, status, created_at")
+      .select("id, inquiry_id, patient_user_id, cancer_type, status, next_action_at, created_at")
       .single();
 
     if (error) {
@@ -108,7 +131,7 @@ export async function POST(request: NextRequest) {
 
     console.log(
       `[api/khidi/rebooking/create] Rebooking ${(data as any).id}: source=${payload.source}, ` +
-      `type=${sessionType}, scheduled=${scheduledAt.toISOString()}`
+      `type=${sessionType}, scheduled=${scheduledAt.toISOString()}, patient=${resolvedPatientId ?? "none"}`
     );
 
     return Response.json({
