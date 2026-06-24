@@ -12,11 +12,29 @@ export const runtime = "nodejs";
 
 import { NextRequest } from "next/server";
 import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
+import { checkRateLimitPersistent, getClientIp } from "@/lib/rateLimit";
+
+// 토큰 열거(enumeration) 방어: IP당 1분에 30회 (정상 1회 조회엔 충분, 무차별 대입 차단)
+const SURVEY_LOOKUP_RATE_LIMIT = {
+  windowMs: 60 * 1000,
+  maxRequests: 30,
+  apiName: "survey_lookup",
+};
 
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ token: string }> }
 ) {
+  // rate limit (토큰 열거 방어)
+  const clientIp = getClientIp(request);
+  const rl = await checkRateLimitPersistent(clientIp || "unknown", SURVEY_LOOKUP_RATE_LIMIT);
+  if (!rl.allowed) {
+    return Response.json(
+      { ok: false, error: "rate_limit_exceeded" },
+      { status: 429 }
+    );
+  }
+
   const { token } = await params;
 
   if (!token || token.length > 64) {
