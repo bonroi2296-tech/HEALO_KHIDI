@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser';
 import StaffPortalGate from '../_components/StaffPortalGate';
+import ManualDrawer from '../_components/ManualDrawer';
 
 // 메뉴 = 실제 존재하는 라우트만 (옛 patients·kpi 화면은 미구현 → 404라 제거).
 const NAV_ITEMS = [
@@ -129,6 +130,7 @@ export default function CoordinatorLayout({ children }) {
           </div>
         </main>
       )}
+      <ManualDrawer role="coordinator" />
     </div>
     </StaffPortalGate>
   );

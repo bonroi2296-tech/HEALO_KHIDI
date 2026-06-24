@@ -2,6 +2,7 @@
 
 import { AdminGateClient } from "./_components/AdminGateClient";
 import { AdminNav } from "./_components/AdminNav";
+import ManualDrawer from "../_components/ManualDrawer";
 
 export default function AdminLayout({ children }) {
   return (
@@ -15,6 +16,7 @@ export default function AdminLayout({ children }) {
           </div>
         </main>
       </div>
+      <ManualDrawer role="admin" />
     </AdminGateClient>
   );
 }
