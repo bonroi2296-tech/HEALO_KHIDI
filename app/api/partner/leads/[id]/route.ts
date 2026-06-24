@@ -126,7 +126,8 @@ export async function GET(
     };
 
     if (norm?.source_inquiry_id != null) {
-      const { data: inqRaw } = await supabase
+      // (supabase as any): 생성된 DB 타입이 일부 컬럼에 stale — 에이전시 라우트와 동일 우회.
+      const { data: inqRaw } = await (supabase as any)
         .from("inquiries")
         .select("id, first_name, last_name, nationality, spoken_language, preferred_date, preferred_date_flex, treatment_type, cancer_type, message, intake, attachments, insurance_provider, insurance_coverage, insurance_status, lead_quality")
         .eq("id", norm.source_inquiry_id)
