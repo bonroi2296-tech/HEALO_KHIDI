@@ -92,8 +92,11 @@ export async function GET(request: NextRequest) {
       const inviteUrl = `${baseUrl.replace(/\/$/, "")}/consultation/${session.id}`;
 
       try {
+        // guest = 환자 대표수신자(통합 링크) → 환자언어. patient 도 동일. 그 외(의료진)는 ko.
         const lang: any =
-          token.role === "patient" ? session.patient_language || "ru" : "ko";
+          token.role === "patient" || token.role === "guest"
+            ? session.patient_language || "ru"
+            : "ko";
         const { subject, html, text } = renderConsultationInviteEmail({
           recipientName: token.invitee_name || undefined,
           inviteUrl,
