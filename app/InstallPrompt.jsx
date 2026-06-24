@@ -1,6 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
+
+// 스태프 포털·상담방에선 PWA 설치 배너 숨김(하단 fixed라 입력창·UI를 덮음 + 마케팅용이라 무관).
+const HIDE_ON = ["/admin", "/coordinator", "/hospital", "/agency", "/clinic", "/consultation"];
 
 // PWA 설치 안내.
 // - 안드로이드/데스크톱 크롬: beforeinstallprompt 이벤트를 잡아 "설치" 버튼 노출
@@ -19,6 +23,7 @@ const T = {
 const DISMISS_KEY = "a2hs-dismissed";
 
 export default function InstallPrompt({ lang = "en" }) {
+  const pathname = usePathname() || "/";
   const [deferred, setDeferred] = useState(null); // beforeinstallprompt 이벤트(안드/데스크톱)
   const [iosHint, setIosHint] = useState(false);
 
@@ -58,6 +63,7 @@ export default function InstallPrompt({ lang = "en" }) {
     setDeferred(null);
   };
 
+  if (HIDE_ON.some((p) => pathname.startsWith(p))) return null;
   if (!deferred && !iosHint) return null;
 
   const wrap = { position: "fixed", left: 12, right: 12, bottom: 12, zIndex: 60, maxWidth: 480, margin: "0 auto" };

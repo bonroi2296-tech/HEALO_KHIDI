@@ -42,9 +42,9 @@ function fmtDate(v) {
 function statusLabel(s) {
   return STATUS_OPTIONS.find((o) => o.value === s)?.label || "신규";
 }
-// 미리보기 앞에 발신자 표시 (누가 마지막 말 했는지)
+// 미리보기 앞에 발신자 표시 (누가 마지막 말 했는지). 실제 actor_type 값 기준.
 function actorPrefix(actor) {
-  const m = { user: "환자: ", bot: "AI: ", coordinator: "나: ", admin: "관리자: " };
+  const m = { patient: "환자: ", user: "환자: ", system: "AI: ", bot: "AI: ", coordinator: "나: ", agency: "에이전시: ", admin: "관리자: " };
   const label = m[actor];
   return label ? <span className="font-medium text-gray-400">{label}</span> : null;
 }
@@ -208,7 +208,7 @@ export default function CoordinatorMessagesClient() {
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto">
+        <div className="min-h-0 flex-1 overflow-y-auto">
           {loading ? (
             <div className="p-6 text-sm text-gray-400">불러오는 중…</div>
           ) : threads.length === 0 ? (
@@ -250,7 +250,7 @@ export default function CoordinatorMessagesClient() {
       </aside>
 
       {/* 우측 — 대화 */}
-      <div className="flex flex-col overflow-hidden">
+      <div className="flex h-full min-h-0 flex-col overflow-hidden">
         {!selectedThread ? (
           <div className="flex flex-1 items-center justify-center text-sm text-gray-400">
             왼쪽에서 대화를 선택하세요.
@@ -292,7 +292,7 @@ export default function CoordinatorMessagesClient() {
             </div>
 
             {/* 메시지 */}
-            <div className="flex-1 overflow-y-auto bg-gray-50 px-6 py-5">
+            <div className="min-h-0 flex-1 overflow-y-auto bg-gray-50 px-6 py-5">
               {msgLoading ? (
                 <div className="flex h-full items-center justify-center">
                   <div className="h-6 w-6 animate-spin rounded-full border-2 border-teal-600 border-t-transparent" />
@@ -337,29 +337,34 @@ export default function CoordinatorMessagesClient() {
 }
 
 function Message({ m, meId }) {
+  // 실제 actor_type 값(DB): patient(환자 입력) · system(AI 답변) · coordinator · agency · admin
   const isMine = m.actor_type === "coordinator" && m.actor_id === meId;
-  const isPatient = m.actor_type === "user";
-  const isBot = m.actor_type === "bot";
+  const isPatient = m.actor_type === "patient" || m.actor_type === "user";
+  const isAI = m.actor_type === "system" || m.actor_type === "bot";
   const isAdmin = m.actor_type === "admin";
+  const isAgency = m.actor_type === "agency";
 
-  // 발신자별 라벨 + 색 — 환자/AI/관리자를 한눈에 구분
+  // 발신자별 라벨 + 색 — 환자(파랑)·AI(보라)를 한눈에 구분
   const label =
     isMine ? "나 (코디네이터)" :
     isPatient ? "🙋 환자" :
-    isBot ? "🤖 healwith AI" :
+    isAI ? "🤖 healwith AI" :
+    isAgency ? "🏢 에이전시" :
     isAdmin ? "healwith 관리자" :
     m.actor_type === "coordinator" ? "다른 코디네이터" :
     "시스템";
   const labelColor =
     isPatient ? "text-blue-600" :
-    isBot ? "text-violet-600" :
+    isAI ? "text-violet-600" :
+    isAgency ? "text-emerald-600" :
     isAdmin ? "text-amber-600" :
     "text-gray-400";
-  // 버블: 나=teal 우측 / 환자=흰색+파란 좌측 액센트 / AI=보라 틴트 / 관리자=앰버 틴트
+  // 버블: 나=teal 우측 / 환자=흰색+파란 좌측 액센트 / AI=보라 틴트 / 에이전시=초록 / 관리자=앰버
   const bubble =
     isMine ? "bg-teal-600 text-white" :
     isPatient ? "border border-gray-200 border-l-[3px] border-l-blue-400 bg-white text-gray-900" :
-    isBot ? "border border-violet-100 bg-violet-50 text-gray-800" :
+    isAI ? "border border-violet-100 bg-violet-50 text-gray-800" :
+    isAgency ? "border border-emerald-100 bg-emerald-50 text-gray-800" :
     isAdmin ? "border border-amber-100 bg-amber-50 text-gray-800" :
     "border border-gray-200 bg-gray-100 text-gray-700";
 
