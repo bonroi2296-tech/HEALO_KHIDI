@@ -61,11 +61,32 @@ export async function POST(
   }
 
   try {
+    // 수신 이메일 해소: 명시 inviteeEmail 우선. 없고 role 이 patient/guest(대표 수신자=환자)면
+    // 상담의 patient_user_id 로 auth 이메일 폴백 → 계정 환자도 초대+리마인더가 자동 도달.
+    // ⚠ 모달은 환자계정 미선택 시 patient_user_id 를 요청자(코디) 본인으로 placeholder 채움
+    //   → 그 경우 코디 본인에게 메일 가는 걸 막으려 patient_user_id === 요청자면 폴백 안 함.
+    let resolvedEmail =
+      typeof body.inviteeEmail === "string" && body.inviteeEmail.includes("@")
+        ? body.inviteeEmail.slice(0, 320)
+        : undefined;
+    if (!resolvedEmail && (role === "patient" || role === "guest")) {
+      const { data: s } = await supabaseAdmin
+        .from("consultation_sessions")
+        .select("patient_user_id")
+        .eq("id", consultationId)
+        .maybeSingle();
+      const pid = (s as any)?.patient_user_id;
+      if (pid && pid !== access.userId) {
+        const { data: u } = await supabaseAdmin.auth.admin.getUserById(pid);
+        if (u?.user?.email) resolvedEmail = u.user.email;
+      }
+    }
+
     const result = await generateGuestToken({
       consultationId,
       role,
       inviteeName: typeof body.inviteeName === "string" ? body.inviteeName.slice(0, 100) : undefined,
-      inviteeEmail: typeof body.inviteeEmail === "string" ? body.inviteeEmail.slice(0, 320) : undefined,
+      inviteeEmail: resolvedEmail,
       expiresAt: new Date(Date.now() + expiresInHours * 60 * 60 * 1000),
       maxUses,
       createdBy: access.userId,
@@ -74,10 +95,10 @@ export async function POST(
     const origin = request.nextUrl.origin;
     const inviteUrl = result.inviteUrl(origin);
 
-    // 이메일 자동 발송 (inviteeEmail 있을 때만)
+    // 이메일 자동 발송 (해소된 수신 이메일 있을 때만 — 명시 입력 또는 환자계정 폴백)
     let emailSent = false;
     let emailError: string | undefined;
-    if (body.inviteeEmail && typeof body.inviteeEmail === "string") {
+    if (resolvedEmail) {
       try {
         // 세션 + 병원 + 의사 정보 조회 (이메일 본문에 표시)
         const { data: session } = await supabaseAdmin
@@ -121,7 +142,7 @@ export async function POST(
         const preferredLang =
           typeof body.lang === "string" && ["ko", "en", "ru", "kz", "zh", "ja"].includes(body.lang)
             ? body.lang
-            : role === "patient"
+            : role === "patient" || role === "guest"
             ? sessionAny?.patient_language || "ru"
             : "ko";
 
@@ -140,7 +161,7 @@ export async function POST(
         });
 
         const sendResult = await sendEmail({
-          to: body.inviteeEmail,
+          to: resolvedEmail,
           subject,
           html,
           text,
