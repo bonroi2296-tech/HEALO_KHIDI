@@ -1,6 +1,50 @@
 # PR
 
 
+
+## 🔖 세션 핸드오프 (2026-06-24 — 재진 엔진 followup_schedules 배선 + 파비콘(얀덱스) + 프로덕션 정리)
+
+> 직전 핸드오프(#318)의 "#311·#313·#315 프로덕션 미반영" 우려를 실배포 이력으로 검증 → **이미 #313 promote 로 user-facing 수정은 라이브였음(핸드오프가 낡았던 것)**. 이어서 재진 엔진 근본수정(휴면 해제)·얀덱스 파비콘을 한 PR로 머지·배포. **[#320](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/320) main 머지 완료(`0c7dd8e`).**
+
+**1. 이번 세션 한 일 ([#320](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/320), CI 초록·squash 머지):**
+- **재진 엔진 근본수정 — 환자 재진화면 휴면 해제**: 재예약 엔진(`/api/khidi/rebooking/create`)이 `consultation_sessions`(실제 화상세션)에 써서, 환자 "재예약 관리" 화면이 읽는 `followup_schedules`는 **항상 0행**이라 화면이 영구히 비어 있었음(POSTMORTEMS #29 후속). → 엔진이 **`followup_schedules`에 `status='proposed'`로 "제안"을 쓰게** 고침. `inquiryId`만 오는 경로(SymptomAlerts)는 inquiry에서 `cancer_type`(NOT NULL 충족)·`user_id`(→`patient_user_id`, 환자 노출키 #297)를 끌어와 연결. source·reason은 `schedule`(Json)에 보존.
+- **실DB 추가 단절 발견·수정**: `followup_schedules_status_check`가 `active/paused/completed/cancelled`만 허용해 화면·포털API의 제안 어휘(`pending/proposed/confirmed/dismissed`)를 **막고 있었음** → CHECK를 합집합으로 넓힘(가역 마이그레이션 `widen_followup_schedules_status_check`, **prod 적용 + 실insert 검증**).
+- **환자 화면**(`RebookingClient.jsx`): 뱃지가 트리거 종류(증상/팔로업/의사) 표시(이미 있던 `LABELS`/`SOURCE_COLORS` 활용) + history 상태 라벨 `confirmed`/`dismissed` 추가(6언어). 계약테스트도 새 테이블로 갱신.
+- **파비콘 `/favicon.ico` 추가 (얀덱스)**: PO가 얀덱스 웹마스터 "파비콘 파일을 찾을 수 없습니다" 제보. 원인 = head엔 PNG 파비콘만 있고 크롤러가 루트에서 찾는 클래식 `/favicon.ico`가 부재. → `public/favicon.ico` 신설(새 브랜드 h 마크 16·32 PNG를 ICO 컨테이너로 래핑, `file` 검증 통과) + layout metadata에 명시.
+- **프로덕션 정리(자동)**: #320 main 머지로 프로덕션이 **옛 branch-promote(#313)에서 main 최신본으로 자동 재배포** → "프로덕션 = 본판 최신" 정상화. 배포 일일한도도 풀림(6/24 배포 성공 중).
+
+**2. 왜 그렇게 했는지:**
+- **followup_schedules가 정식 테이블**: 환자 화면·포털API가 이미 거기 붙어 있음(SoR). 재예약은 환자가 확정/무시하는 "제안"이라 추천 큐(followup_schedules)가 맞고, 실제 화상세션(consultation_sessions)은 확정 후 생성될 것. 그래서 엔진을 화면 쪽으로 맞춤(POSTMORTEM #28 교훈: 데이터원 단일화).
+- **CHECK를 합집합으로 넓힘(좁히지 않음)**: 0행이라 무손실·가역. 다른 경로가 active/paused를 쓸 수 있어 기존 어휘도 보존.
+- **파비콘 ICO 직접 생성**: `sharp`는 .ico 출력 미지원 → ICO는 PNG 임베드를 허용하므로 기존 16/32 PNG를 ICO 컨테이너로 래핑(의존성 추가 없이).
+
+**3. 안 끝났거나 보류:**
+- **재진 런타임 클릭 미검증** — 데이터 경로(엔진 insert→환자 API 조회)는 실DB·계약테스트로 확정했으나, "어드민이 SymptomAlerts에서 재예약 제안 → 환자 로그인 → 재진화면에 뜸"의 **다중주체 실클릭은 못 함**(로그인·다계정 필요). prod 반영 후 PO/세션이 확인.
+- **기존 문의 소급 연결 안 됨** — `inquiries.user_id`가 전부 NULL(기존 17건). 환자계정 연결은 **앞으로 로그인 접수분부터**. 그래서 당장 재진 제안의 `patient_user_id`는 신규 접수에서만 채워짐.
+- **E2E 자동 클릭검사 2개 잠자는 중** — 테스트 계정(`patient@test.com`·`coordinator@test.com`)은 **실재 확인**했으나 GitHub Secrets 4개(`E2E_TEST_USER_EMAIL/PASSWORD`·`E2E_COORDINATOR_EMAIL/PASSWORD`) 미설정이라 CI에서 skip. PO가 넣어야 활성(비번이 secret 값과 일치해야 함).
+
+**4. 주의·함정:**
+- ⚠️ **자동저장 훅이 작업 중 2회 끼어듦**(09:41·09:45 "chore: 작업 자동 저장" 커밋 + 원격 푸시). 내 깔끔한 커밋으로 `reset --soft`(hard 아님) 후 재커밋, 피처 브랜치는 `--force-with-lease`로 정리. **커밋 전 `reset --hard` 금지**(기존 교훈) — soft만.
+- ⚠️ **재진 엔진 IDOR 체크는 payload.patientId 기준**: 환자가 inquiryId만 보내 self-trigger하면 forbidden(현재 SymptomAlerts=어드민만이라 무해). 환자 self-rebooking을 켤 거면 그 체크를 inquiry 소유 기반으로 손봐야.
+- ⚠️ **followup_schedules.current_phase 기본값='week_1'** — 엔진은 `null` 명시로 회피(화면 뱃지가 'week_1' 안 뜨게). 직접 insert 시 주의.
+
+**5. 다음 세션이 먼저 할 일 (우선순위):**
+1. **⚠️ 직전 미검증분 먼저(배포 후 실클릭)**: #320 prod 반영되면 **①`https://healwith.co.kr/favicon.ico`가 200으로 뜨는지**(얀덱스 재검토 트리거) **②재진: 어드민 SymptomAlerts에서 '재예약 제안' → 그 환자로 로그인 → `/patient/rebooking`에 제안이 뜨고 확정/무시 되는지**. (데이터·빌드·CI·실DB는 통과, 다중주체 클릭은 못 함.)
+2. **(PO 액션) E2E Secrets 4개 등록** — 넣으면 자동 클릭검사 활성. 비번은 test 계정 실제 비번과 일치해야(모르면 Supabase에서 리셋).
+3. (선택) 환자 self-rebooking 켤 때 IDOR 체크 보완 / 기존 문의 소급 연결(백필).
+
+**6. 검증 상태:**
+- ✅ **[#320](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/320) CI 전부 초록**: `ci`(2m20s)·`Smoke Tests (PR)`(3m20s)·Vercel preview pass → squash 머지(`0c7dd8e`). 열린 PR 없음.
+- ✅ vitest 계약 6 + 엔진 14 통과 · `next build --webpack` exit 0(2회) · `check:content` 통과.
+- ✅ 실DB: `followup_schedules`에 `status='proposed'` insert 성공(테스트행 삭제), CHECK 마이그레이션 prod 적용. 파비콘 `file`=MS Windows icon resource(16+32).
+- ⏳ **prod 배포는 머지 직후 BUILDING** — 이 핸드오프 시점엔 favicon 200·재진 화면 **런타임 미검증**(→ 5번 1).
+
+**7. 다음 세션 첫 프롬프트:**
+> 먼저 docs/PROJECT_CONTEXT.md 최상단 핸드오프 읽어. 2026-06-24에 재진 엔진을 정식 테이블(followup_schedules)로 고쳐 환자 재진화면 휴면을 풀고, 얀덱스가 찾던 /favicon.ico를 추가해 #320으로 main 머지했어(prod 자동 재배포). ①healwith.co.kr/favicon.ico가 200으로 뜨는지 ②어드민 SymptomAlerts에서 '재예약 제안'→그 환자로 로그인→/patient/rebooking에 제안 뜨고 확정/무시 되는지 직접 확인해줘. 그담에 E2E Secrets 4개 넣는 거 PO한테 안내(test 계정 실재 확인됨).
+
+
+---
+
 ## 🔖 세션 핸드오프 (2026-06-23 늦은밤 — 코디·환자 버그 수정 + 배포최적화 + 검증 자동화)
 
 > 갈무리 세션이 길게 이어져 PO가 실서비스를 직접 클릭하며 버그를 연달아 발견 → 그때마다 원인+재발방지(가드/E2E)까지 한 세트로 수리. **PR 9개 머지**(#274 닫음 포함). ⚠️ **단, 한도 때문에 #311·#313·#315는 아직 프로덕션 미반영**(5번·6번 필독).
