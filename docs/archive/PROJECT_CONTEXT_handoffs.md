@@ -1,5 +1,44 @@
 # PR
 
+## 🔖 세션 핸드오프 (2026-06-24 밤 — 서비스 오픈 전 최종 점검 + 관문4(E2E) 준비완료 + 관문2·3 가이드)
+
+> "서비스 오픈 전 최종 점검하자"로 시작. 기계가 잡을 수 있는 건 **전부 새로 다시 돌려** 초록 확인하고, "사람만 확인 가능한 것"을 최대한 기계로 당겨오는 데 집중. PO가 "정말 끝났냐"고 두 번 검증을 요구 → 기계검증/사람검증 경계를 솔직히 분리해 보고.
+
+**1. 이번 세션 한 일**
+- **자동 검사 전수 재실행(전부 초록)**: 가드 5종(check:content·schema-refs·i18n·legal·migrations) · 타입체크(tsc exit 0) · **단위테스트 386/386** · 프로덕션 빌드(`next build --webpack` exit 0). + **프로덕션 라이브 실측**: `/api/health` db up(254ms)·공개+인증 라우트 200·인증 API 도달(코디 `/api/portal/inbox` 200·어드민 `/api/admin/khidi/conversion-funnel` 200(문의23·사전상담8·견적비자6)·환자→어드민 403 권한분리).
+- **관문4(E2E 자동검사) 준비 완료** — E2E 5역할 테스트계정(`patient·coordinator·admin·agency·clinic@test.com`)이 이미 다 존재 확인 → 비번을 **`test1234`로 통일 리셋**(Supabase `auth.users` `crypt(...,gen_salt('bf'))` 직접 + GoTrue 실로그인 검증). 남은 건 PO가 GitHub Secrets 12개 복붙(역할 10 + `SUPABASE_SERVICE_ROLE_KEY`·`ENCRYPTION_KEY_V1`)뿐 = `docs/E2E_SECRETS_SETUP.md`.
+- **보안 관문6 신설** — `admin@test.com`은 `role=admin`이라 약한비번이면 실서비스 어드민(PII 복호화) 노출. 문서정책(`TEST_ACCOUNTS.md`: 약한비번 admin 금지)과 충돌 발견 → admin만 강비번으로 일시 되돌렸다가 **PO 정보고지 후 "오픈 전 테스트계정 삭제"를 방지책으로 약속받고** test1234로 복귀. `KNOWN_ISSUES` 오픈 전 관문에 🔴6번(약한비번 계정 삭제) 못박음.
+- **문서 커밋·PR**: `docs/TEST_ACCOUNTS.md`(admin 반영·clinic 비번통일·위험명시)·`docs/KNOWN_ISSUES.md`(관문4 진척+관문6) → 커밋 `2788723` → **Draft PR [#354](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/354)** (CI 구독 중).
+- **관문2·3 가이드 작성(채팅)** — ②Supabase 이메일 템플릿 href를 `token_hash`로(가입확인→`/auth/confirm?...&type=signup`, 비번재설정→`/reset-password?...&type=recovery`, 코드계약 `verifyOtp({type,token_hash})` 확인). ③구글 OAuth 게시(`medical-consumables-491407` 동의화면 Testing→PUBLISH, 비민감 scope라 즉시).
+
+**2. 왜 그렇게 했는지**
+- **test1234 통일**: PO가 편의(5계정 한 비번) 우선. 보안 위험 두 번 고지했으나 "오픈 전 테스트계정 삭제할 거니 감수"로 정보고지 후 결정. → 노출 잔존 방지를 위해 **오픈 전 삭제를 관문으로 문서화**(잊으면 실서비스 약한 admin 남음).
+- **GitHub 도구 부재→복귀**: 세션 전반엔 GitHub MCP 도구가 ToolSearch에 안 떠 PR 자동생성 불가(푸시만). **컨테이너 재시작 후 도구 복귀** → PR #354 생성·CI 확인 가능해짐.
+- **브라우저 미설치**: Playwright chromium 다운로드가 네트워크 정책에 막혀 로컬 E2E 실행 불가 → 대신 **인증 REST + 프로덕션 인증 API 직타**로 "test1234 로그인→앱데이터 도달"을 동등 증명(시각 DOM 렌더만 CI 몫).
+
+**3. 안 끝났거나 보류**
+- **오픈 = PO 콘솔/실기기 관문에 달림**(코드·시스템은 준비 끝): ①가입/비번찾기 실메일 1회 ②이메일 템플릿 href(가이드 제공) ③구글 OAuth 게시(가이드 제공) ④E2E Secrets 복붙(준비 끝) ⑤iOS 마이크·K-01 정직성 ⑥🔴오픈 전 약한비번 테스트계정 삭제.
+- **PR #354** 머지 전(CI 진행 중이었음). 저위험 문서라 CI 초록 시 자동 머지 대상.
+
+**4. 주의·함정**
+- 🔴 **약한비번 admin이 지금 프로덕션에 떠 있음**(`admin@test.com`/test1234, role=admin). 오픈 전 반드시 삭제/비활성(`app_metadata.disabled=true`). 안 하면 실서비스 PII 노출.
+- **프로덕션 도메인**: `www.healwith.co.kr`는 308로 apex(`healwith.co.kr`)로 정규화 → 인증헤더 붙은 API 직타는 **apex 도메인**으로 쳐야 함(www는 리다이렉트로 헤더 유실).
+- **이메일 템플릿 type 매핑**: 가입확인=`signup`/비번재설정=`recovery`. 비번재설정은 반드시 `/reset-password`로 보내야(새 비번 폼). 틀리면 verifyOtp 실패.
+
+**5. 다음 세션이 먼저 할 일**
+1. **⚠️ 직전 미검증분 먼저**: PR #354 CI 초록인지 확인 후 머지(저위험 문서). 그리고 **🔴 오픈 전 약한비번 테스트계정 삭제가 아직 안 됐으면 PO에게 상기**(프로덕션 노출 잔존).
+2. PO가 관문 처리(②템플릿 href·③구글 게시·④시크릿 복붙·①실메일)하면 → 그 결과로 최종 오픈 go/no-go.
+3. (선택) E2E Secrets 등록 후 첫 PR에서 로그인 스펙이 skip 아닌 실행되는지 CI 로그 확인.
+
+**6. 검증 상태**
+- ✅ **기계검증 전수 초록(이번에 새로 실행)**: 가드5·tsc·테스트386·빌드. ✅ **프로덕션 라이브 API 실측**: 헬스·공개/인증 라우트·역할 권한분리·인증 API 데이터 도달. ✅ **test1234 5계정 실로그인** + 코디/어드민 인증 API 200 확인.
+- ✅ **PR #354 CI**: 생성 직후 `ci`·`Smoke Tests (PR)` in_progress, Vercel은 문서변경이라 빌드 스킵(정상), nightly/full E2E skipped. **머지 직전 최종 초록은 다음 세션이 재확인**(이 핸드오프 작성 시점 진행 중).
+- ❌ **검증 못 함(사람 몫)**: 화면 시각 렌더(브라우저 다운로드 차단)·실메일 end-to-end·iOS 영상마이크·실제 문의제출→DB. → E2E Secrets 등록되면 렌더·제출은 CI가 자동 검사.
+
+**7. 다음 세션 첫 프롬프트**
+> 먼저 docs/PROJECT_CONTEXT.md 최상단 핸드오프 읽어. 2026-06-24 밤에 서비스 오픈 전 최종 점검을 했고, 기계검사(가드·테스트386·빌드·프로덕션 실측)는 전부 초록이야. E2E 5계정 비번을 test1234로 통일(관문4 준비끝)했고, 관문2·3 가이드도 줬어. 먼저 **Draft PR #354(문서) CI 초록인지 확인하고 저위험이면 머지**해줘. 그리고 **🔴 오픈 전 약한비번 테스트계정(admin@test.com 등) 삭제/비활성이 아직 안 됐으면 PO에게 상기**해(프로덕션에 약한 admin 떠 있음). 남은 오픈 관문(①실메일 ②템플릿href ③구글게시 ④시크릿복붙 ⑤iOS·K-01 ⑥계정삭제)은 PO 콘솔 작업이라 PO가 처리하면 최종 go/no-go 판단.
+
+---
 
 ## 🔖 세션 핸드오프 (2026-06-24 — 반성문 #35 → 계획 전체 실행·머지 + 프로덕션 출시 점검)
 
