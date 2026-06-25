@@ -4,6 +4,14 @@
 
 ---
 
+## 🟡 2026-06-25 코디네이터에게 AI 챗 뷰가 없음 (AI 핸드오프 종은 어드민에게만)
+
+- **상태**: AI 챗 스레드 모니터(`/admin/chat`·`/api/admin/chat/threads`)가 `requireAdminAuth` **어드민 전용**. 코디네이터(`role=coordinator`)는 AI 챗 대화를 볼 화면이 없음.
+- **영향**: 새로 추가한 "AI 챗 사람 연결 요청(handoff) → 종 알림"(POSTMORTEMS #41)이 **어드민에게만** 발송됨. 코디는 AI챗 리드를 직접 보려면 어드민 권한이 필요. 현재 운영(PO 단독=어드민)에선 문제 없으나, 코디를 별도로 운용하면 AI챗 리드가 코디에게 안 닿음.
+- **후속(별도 과제)**: 코디용 AI 챗 읽기 뷰(`/coordinator/chat` 또는 인박스에 handoff 스레드 통합) + 그때 `notifyStaffChatHandoff` 수신자에 coordinators 추가. inquiries 기반 인박스에 `chat_threads`(hand_off_requested) 머지가 가장 단순한 통합안.
+
+---
+
 ## 🚦 2026-06-24 출시 준비 점검 (프로덕션 실측 — "오픈해도 되나?" 근거)
 
 > PO "이제 오픈해도 되나?" → 추측 금지(POSTMORTEMS #35). 브라우저 미설치(프록시 차단)라 **API 레벨 실측**으로 핵심 플로를 프로덕션(`healwith.co.kr`)에서 직접 두드림. **부작용(가입·문의 제출) 회피**, AI챗 1건만 테스트 후 삭제.
