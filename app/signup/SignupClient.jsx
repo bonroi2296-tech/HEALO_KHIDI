@@ -85,7 +85,10 @@ export const SignUpPage = ({ setView }) => {
     const [email, setEmail] = useState('');
     const [loading, setLoading] = useState(false);
 
-    const [isAgreed, setIsAgreed] = useState(false);
+    // PIPA: 개인정보 수집·이용 동의와 이용약관 동의를 분리(각각 필수).
+    const [agreedPrivacy, setAgreedPrivacy] = useState(false);
+    const [agreedTerms, setAgreedTerms] = useState(false);
+    const allAgreed = agreedPrivacy && agreedTerms;
     const [isMarketing, setIsMarketing] = useState(false);
     const [activeModal, setActiveModal] = useState(null);
 
@@ -141,7 +144,7 @@ export const SignUpPage = ({ setView }) => {
             toast.error(t("signup.errorRequired", langCode));
             return;
         }
-        if (!isAgreed) {
+        if (!agreedPrivacy || !agreedTerms) {
             toast.error(t("signup.agreeError", langCode));
             return;
         }
@@ -355,21 +358,41 @@ export const SignUpPage = ({ setView }) => {
                     )}
 
                     <div className="space-y-3 pt-2">
+                        {/* PIPA: 개인정보 수집·이용 동의 (필수) */}
                         <div className="flex items-start gap-3">
                             <div className="relative flex items-center pt-0.5">
-                                <input 
-                                    type="checkbox" 
-                                    id="terms" 
-                                    checked={isAgreed}
-                                    onChange={(e) => setIsAgreed(e.target.checked)}
+                                <input
+                                    type="checkbox"
+                                    id="agree-privacy"
+                                    checked={agreedPrivacy}
+                                    onChange={(e) => setAgreedPrivacy(e.target.checked)}
                                     className="peer h-5 w-5 cursor-pointer appearance-none rounded-md border border-gray-300 transition-all checked:border-teal-600 checked:bg-teal-700"
                                 />
                                 <div className="pointer-events-none absolute top-2/4 left-2/4 -translate-x-2/4 -translate-y-2/4 text-white opacity-0 peer-checked:opacity-100">
                                     <Check size={14} strokeWidth={4} />
                                 </div>
                             </div>
-                            <label htmlFor="terms" className="text-xs text-gray-500 cursor-pointer select-none leading-snug">
-                                {t("signup.agreePrefix", langCode)}<span onClick={(e) => { e.preventDefault(); setActiveModal('privacy'); }} className="text-teal-700 font-bold hover:underline">{t("signup.privacyPolicy", langCode)}</span>{t("signup.agreeAnd", langCode)}<span onClick={(e) => { e.preventDefault(); setActiveModal('terms'); }} className="text-teal-700 font-bold hover:underline">{t("signup.terms", langCode)}</span>. <span className="text-red-500">*</span>
+                            <label htmlFor="agree-privacy" className="text-xs text-gray-500 cursor-pointer select-none leading-snug">
+                                <span onClick={(e) => { e.preventDefault(); setActiveModal('privacy'); }} className="text-teal-700 font-bold hover:underline">{t("signup.privacyPolicy", langCode)}</span>{t("signup.agreePrivacyTail", langCode)} <span className="text-red-500">*</span>
+                            </label>
+                        </div>
+
+                        {/* 이용약관 동의 (필수) */}
+                        <div className="flex items-start gap-3">
+                            <div className="relative flex items-center pt-0.5">
+                                <input
+                                    type="checkbox"
+                                    id="agree-terms"
+                                    checked={agreedTerms}
+                                    onChange={(e) => setAgreedTerms(e.target.checked)}
+                                    className="peer h-5 w-5 cursor-pointer appearance-none rounded-md border border-gray-300 transition-all checked:border-teal-600 checked:bg-teal-700"
+                                />
+                                <div className="pointer-events-none absolute top-2/4 left-2/4 -translate-x-2/4 -translate-y-2/4 text-white opacity-0 peer-checked:opacity-100">
+                                    <Check size={14} strokeWidth={4} />
+                                </div>
+                            </div>
+                            <label htmlFor="agree-terms" className="text-xs text-gray-500 cursor-pointer select-none leading-snug">
+                                <span onClick={(e) => { e.preventDefault(); setActiveModal('terms'); }} className="text-teal-700 font-bold hover:underline">{t("signup.terms", langCode)}</span>{t("signup.agreeTermsTail", langCode)} <span className="text-red-500">*</span>
                             </label>
                         </div>
 
@@ -395,7 +418,7 @@ export const SignUpPage = ({ setView }) => {
                     <button 
                         onClick={handleSignUp}
                         disabled={loading}
-                        className={`w-full font-bold py-3.5 rounded-xl transition shadow-lg ${isAgreed && !loading ? 'bg-teal-700 text-white hover:bg-teal-800 shadow-teal-100' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
+                        className={`w-full font-bold py-3.5 rounded-xl transition shadow-lg ${allAgreed && !loading ? 'bg-teal-700 text-white hover:bg-teal-800 shadow-teal-100' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}`}
                     >
                         {loading ? t("signup.creatingAccount", langCode) : t("auth.signup", langCode)}
                     </button>
