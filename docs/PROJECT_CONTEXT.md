@@ -7,6 +7,54 @@
 
 ---
 
+## 🔖 세션 핸드오프 (2026-06-25 밤 — KNOWN_ISSUES 버그 3건 머지 + 구글OAuth(관문③) 진단: ERP 프로젝트에 붙어있음 발견)
+
+> "없는 작업방 가서 작업 준비해" → worktree `work/known-issues-bugfix`에서 KNOWN_ISSUES 코드 버그 3건 수정·머지. 이어서 PO와 함께 출시 관문(E2E·구글OAuth)을 콘솔에서 점검하다 **구글로그인이 엉뚱한(ERP) 구글 프로젝트에 붙어있는 것**을 발견 → PO가 "깨끗하게 새로 셋업" 결정, 1단계에서 중단(다음 세션 이어감).
+
+**1. 이번 세션 한 일 (전부 머지·프로덕션 배포)**
+- **KNOWN_ISSUES 코드버그 3건** (worktree에서, 각각 독립 PR·CI초록·squash머지):
+  - **[#360](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/360)** 영상방 게스트 자막 상대언어 하드코딩(`ml==="ko"?"ru":"ko"`) → `guest-join` API가 세션 `patient_language`/`doctor_language` 반환 + 클라가 역할기반 결정. 계정로그인 경로는 원래 정상, 게스트만 빠져있었음. (`app/api/khidi/consultation/[id]/guest-join/route.ts`·`app/consultation/[id]/page.jsx`) ⚠️실자막은 LiveKit+2인 실상담 1회 육안확인 권장.
+  - **[#361](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/361)** 레거시 러/카 랜딩 `<html lang="en">` → `proxy.ts` LEGACY_SKIP 경로에도 `x-locale` 주입(kk→내부코드 kz) → dev 실렌더로 `lang=ru`/`lang=kk` 확인.
+  - **[#362](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/362)** 스키마 dead-path 2건: `dispatch-surveys`의 `.from("patients")` 죽은가지 제거(수신자=inquiries 단일화) / `alertService`의 `.from("users")`→`auth.admin.listUsers` 이메일매칭 교체. 가드 allowlist 비움. typecheck·check:schema-refs·테스트22 통과.
+  - **[#363](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/363)** 위 3건 KNOWN_ISSUES에 해결 표시(문서).
+- **E2E 시크릿 점검**: 환자·코디·어드민 6개+시스템키2개는 **2026-06-24 등록돼 작동 중**(Smoke 43 passed). 2026-06-25 에이전시·의료기관 4개(`E2E_AGENCY_*`·`E2E_CLINIC_*`) GitHub Secret 추가했으나 **여전히 skip**.
+
+**🔴 구글 OAuth(관문③) — 핵심 발견 (다음 세션 이어갈 작업)**
+- **운영 구글로그인은 Supabase 대행** — 코드는 `supabase.auth.signInWithOAuth({provider:'google'})`만, env에 구글 클라이언트키 없음. 실제 client_id/secret은 **Supabase 대시보드 Auth>Providers>Google**에 박혀있음.
+- **실 운영 client_id = `935081849817-7ojif7o7vgi8tve50t51vb4qa1gi092m`** (healwith.co.kr 로그인 클릭 시 실제로 이 ID로 감, redirect→`hvwwlkawaxabhtumjhrg.supabase.co`). 이 client가 사는 프로젝트 = **"Medical consumables"(`medical-consumables-491407`, 프로젝트번호 935081849817)**. ⚠️**이름은 의료소모품 ERP인데 healwith 구글로그인이 여기 붙어있음**(초기개발 잔재).
+- 그 프로젝트 동의화면 **게시 상태 = "테스트 중"** → 즉 **주인 계정만 되고 일반 환자 구글로그인은 막혀있음**(주인 계정으론 돼서 작동처럼 보임).
+- 혼동주의 잔재(안 씀): bonroi계정 My First Project(`aerobic-gantry-477208-v5`,#519633655469)의 `HEALO` 클라이언트는 **옛 Supabase `xppnvkuahlrdyfvabzur`+옛도메인 `healo-nu.vercel.app`** 가리킴 / 문석민계정 `healo-480207`(#762921926380)도 별개.
+
+**2. 왜 그렇게 했는지**
+- **버그 3건 각각 독립 PR**: 파일 겹침 없는 무관한 수정이라 PO 요청대로 따로 머지(리뷰·롤백 쉽게). worktree로 격리(병렬 세션 규칙).
+- **구글 OAuth: ERP 프로젝트에 그냥 게시 안 하고 재구축 결정(PO)** — 운영 로그인이 ERP용 구글 프로젝트에 얹혀있어 ①이름 혼동 ②ERP 사고 시 동반 위험 ③환자가 보는 동의화면 브랜딩 문제. PO가 깨끗이 분리 원함. 단 마이그레이션은 깨질 위험이라 "순서 지켜 무중단"으로.
+
+**3. 안 끝났거나 보류**
+- **구글 OAuth 재구축 1단계(새 프로젝트 생성)에서 중단** — 다음 세션 이어감(아래 6번 상세).
+- **E2E 에이전시·의료기관 skip**: 시크릿 4개는 등록됐으나 `.github/workflows/e2e.yml`이 `E2E_AGENCY_*`·`E2E_CLINIC_*`를 job env에 **매핑 안 함**(coordinator만) → 여전히 skip. 워크플로 YAML 수정 필요.
+- 나머지 오픈 관문: ①가입 실메일·②이메일 템플릿(다른 세션 영역) / ⑤iOS 마이크·K-01 / 🔴⑥약한비번 admin@test.com 삭제.
+
+**4. 주의·함정**
+- 세션 중 어시스턴트가 "LAUNCH_GATES_PO.md(medical-consumables)가 틀렸다"고 했으나 **사실 맞았음** — 프로젝트 이름만 ERP라 헷갈린 것. 문서 수정 안 함(정확함).
+- **구글 프로젝트 선택창 검색은 이름/ID로만 됨, "번호"로는 안 찾아짐** — 프로젝트 번호(935081849817)로 못 찾으니 후보를 직접 열어 홈의 "프로젝트 번호" 확인.
+- worktree `work/known-issues-bugfix`에 메인 node_modules junction 연결 + env/launch.json 복사(전부 gitignore). 정리 시 `git worktree remove`.
+
+**5. 검증 상태**
+- ✅ 버그 3건: typecheck·check:schema-refs·단위테스트22·check:content 통과 + #361은 dev 실렌더 확인. CI(ci·Smoke) 전부 초록 → 머지·배포.
+- ✅ 구글로그인 작동: healwith.co.kr에서 실제 계정선택 화면 정상(최신 도메인·Supabase로 연결 확인).
+- ❌ 구글 "일반 환자도 되는지(공개 게시)" 미확정 — 운영 프로젝트가 "테스트 중"이라 막혀있을 가능성 큼(주인 계정으론 됨). 재구축 후 비-테스트 계정으로 확인 필요.
+- ⚠️ #360 실자막 동작은 LiveKit+2인 실상담 1회 육안확인 미실시.
+
+**6. 다음 세션이 먼저 할 일**
+1. **(이어가기) 구글 OAuth 깨끗한 재구축** — bonroi2296 계정 → 새 프로젝트 `healwith` → OAuth 동의화면(External·앱이름 healwith·privacy `https://healwith.co.kr/privacy`·terms `/terms`·승인도메인 healwith.co.kr+supabase.co·scope email/profile/openid·게시) → 웹 OAuth 클라이언트(JS원본 `https://healwith.co.kr`+`http://localhost:3000`, **리디렉션 URI `https://hvwwlkawaxabhtumjhrg.supabase.co/auth/v1/callback`**) → **Supabase Auth>Providers>Google에 새 Client ID/Secret 갈아끼움** → 비-테스트 계정으로 로그인 테스트. *순서 지키면 무중단(옛 거 그대로 두고 마지막에 한 번만 스왑).*
+2. **E2E 에이전시·의료기관 skip 해결**: `.github/workflows/e2e.yml` env 블록 2곳(Smoke·Full)에 `E2E_AGENCY_EMAIL/PASSWORD`·`E2E_CLINIC_EMAIL/PASSWORD` 4줄씩 추가.
+3. 나머지 오픈 관문 PO 안내(⑤iOS·🔴⑥약한비번 admin 삭제 등).
+
+**7. 다음 세션 첫 프롬프트**
+> 먼저 docs/PROJECT_CONTEXT.md 최상단 핸드오프를 읽어라. 2026-06-25 KNOWN_ISSUES 버그 3건(#360 게스트자막·#361 레거시 lang·#362 dead-path)은 머지·배포 끝. 핵심 미완 = **구글 OAuth 재구축**: PO와 함께 bonroi2296 계정에 새 `healwith` 구글 프로젝트 만들고(동의화면+웹 클라이언트, 값은 핸드오프 6번에 박혀있음) → Supabase Auth>Providers>Google에 새 Client ID/Secret 갈아끼우고 → 비-테스트 계정으로 구글로그인 테스트. 순서 지켜 무중단으로. 그담 E2E 에이전시·의료기관 workflow env 4줄 추가(핸드오프 6-2).
+
+---
+
 ## 🔖 세션 핸드오프 (2026-06-25 — 가입·인증 흐름 전면 수리: 관문1·2 닫힘 + 비번정책 + token_hash 자동로그인)
 
 > PO가 출시 관문1(실메일 인증)부터 막힘 → 가입/로그인 흐름의 여러 버그를 연쇄로 잡고, 마지막엔 "자율 피버모드"로 자동로그인·비번재설정 흐름을 API레벨까지 검증. **관문1(실메일)·관문2(템플릿/자동로그인) 둘 다 닫음.**
@@ -54,44 +102,6 @@
 > 먼저 docs/PROJECT_CONTEXT.md 최상단 핸드오프를 읽어라. 그담 PO한테 "moon이나 새 이메일로 가입→인증메일 클릭→자동 로그인 되는지" 실클릭 1회만 확인 요청(관문1·2 마침표). 되면 관문3·4·5(구글OAuth 게시/E2E secrets/iOS·데모데이터) PO 콘솔작업 안내로 넘어가라. 비번/이메일 서버설정은 git에 없으니 핸드오프 2번 항목 참고.
 
 ---
-
-## 🔖 세션 핸드오프 (2026-06-24 밤 — 서비스 오픈 전 최종 점검 + 관문4(E2E) 준비완료 + 관문2·3 가이드)
-
-> "서비스 오픈 전 최종 점검하자"로 시작. 기계가 잡을 수 있는 건 **전부 새로 다시 돌려** 초록 확인하고, "사람만 확인 가능한 것"을 최대한 기계로 당겨오는 데 집중. PO가 "정말 끝났냐"고 두 번 검증을 요구 → 기계검증/사람검증 경계를 솔직히 분리해 보고.
-
-**1. 이번 세션 한 일**
-- **자동 검사 전수 재실행(전부 초록)**: 가드 5종(check:content·schema-refs·i18n·legal·migrations) · 타입체크(tsc exit 0) · **단위테스트 386/386** · 프로덕션 빌드(`next build --webpack` exit 0). + **프로덕션 라이브 실측**: `/api/health` db up(254ms)·공개+인증 라우트 200·인증 API 도달(코디 `/api/portal/inbox` 200·어드민 `/api/admin/khidi/conversion-funnel` 200(문의23·사전상담8·견적비자6)·환자→어드민 403 권한분리).
-- **관문4(E2E 자동검사) 준비 완료** — E2E 5역할 테스트계정(`patient·coordinator·admin·agency·clinic@test.com`)이 이미 다 존재 확인 → 비번을 **`test1234`로 통일 리셋**(Supabase `auth.users` `crypt(...,gen_salt('bf'))` 직접 + GoTrue 실로그인 검증). 남은 건 PO가 GitHub Secrets 12개 복붙(역할 10 + `SUPABASE_SERVICE_ROLE_KEY`·`ENCRYPTION_KEY_V1`)뿐 = `docs/E2E_SECRETS_SETUP.md`.
-- **보안 관문6 신설** — `admin@test.com`은 `role=admin`이라 약한비번이면 실서비스 어드민(PII 복호화) 노출. 문서정책(`TEST_ACCOUNTS.md`: 약한비번 admin 금지)과 충돌 발견 → admin만 강비번으로 일시 되돌렸다가 **PO 정보고지 후 "오픈 전 테스트계정 삭제"를 방지책으로 약속받고** test1234로 복귀. `KNOWN_ISSUES` 오픈 전 관문에 🔴6번(약한비번 계정 삭제) 못박음.
-- **문서 커밋·PR**: `docs/TEST_ACCOUNTS.md`(admin 반영·clinic 비번통일·위험명시)·`docs/KNOWN_ISSUES.md`(관문4 진척+관문6) → 커밋 `2788723` → **Draft PR [#354](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/354)** (CI 구독 중).
-- **관문2·3 가이드 작성(채팅)** — ②Supabase 이메일 템플릿 href를 `token_hash`로(가입확인→`/auth/confirm?...&type=signup`, 비번재설정→`/reset-password?...&type=recovery`, 코드계약 `verifyOtp({type,token_hash})` 확인). ③구글 OAuth 게시(`medical-consumables-491407` 동의화면 Testing→PUBLISH, 비민감 scope라 즉시).
-
-**2. 왜 그렇게 했는지**
-- **test1234 통일**: PO가 편의(5계정 한 비번) 우선. 보안 위험 두 번 고지했으나 "오픈 전 테스트계정 삭제할 거니 감수"로 정보고지 후 결정. → 노출 잔존 방지를 위해 **오픈 전 삭제를 관문으로 문서화**(잊으면 실서비스 약한 admin 남음).
-- **GitHub 도구 부재→복귀**: 세션 전반엔 GitHub MCP 도구가 ToolSearch에 안 떠 PR 자동생성 불가(푸시만). **컨테이너 재시작 후 도구 복귀** → PR #354 생성·CI 확인 가능해짐.
-- **브라우저 미설치**: Playwright chromium 다운로드가 네트워크 정책에 막혀 로컬 E2E 실행 불가 → 대신 **인증 REST + 프로덕션 인증 API 직타**로 "test1234 로그인→앱데이터 도달"을 동등 증명(시각 DOM 렌더만 CI 몫).
-
-**3. 안 끝났거나 보류**
-- **오픈 = PO 콘솔/실기기 관문에 달림**(코드·시스템은 준비 끝): ①가입/비번찾기 실메일 1회 ②이메일 템플릿 href(가이드 제공) ③구글 OAuth 게시(가이드 제공) ④E2E Secrets 복붙(준비 끝) ⑤iOS 마이크·K-01 정직성 ⑥🔴오픈 전 약한비번 테스트계정 삭제.
-- **PR #354** 머지 전(CI 진행 중이었음). 저위험 문서라 CI 초록 시 자동 머지 대상.
-
-**4. 주의·함정**
-- 🔴 **약한비번 admin이 지금 프로덕션에 떠 있음**(`admin@test.com`/test1234, role=admin). 오픈 전 반드시 삭제/비활성(`app_metadata.disabled=true`). 안 하면 실서비스 PII 노출.
-- **프로덕션 도메인**: `www.healwith.co.kr`는 308로 apex(`healwith.co.kr`)로 정규화 → 인증헤더 붙은 API 직타는 **apex 도메인**으로 쳐야 함(www는 리다이렉트로 헤더 유실).
-- **이메일 템플릿 type 매핑**: 가입확인=`signup`/비번재설정=`recovery`. 비번재설정은 반드시 `/reset-password`로 보내야(새 비번 폼). 틀리면 verifyOtp 실패.
-
-**5. 다음 세션이 먼저 할 일**
-1. **⚠️ 직전 미검증분 먼저**: PR #354 CI 초록인지 확인 후 머지(저위험 문서). 그리고 **🔴 오픈 전 약한비번 테스트계정 삭제가 아직 안 됐으면 PO에게 상기**(프로덕션 노출 잔존).
-2. PO가 관문 처리(②템플릿 href·③구글 게시·④시크릿 복붙·①실메일)하면 → 그 결과로 최종 오픈 go/no-go.
-3. (선택) E2E Secrets 등록 후 첫 PR에서 로그인 스펙이 skip 아닌 실행되는지 CI 로그 확인.
-
-**6. 검증 상태**
-- ✅ **기계검증 전수 초록(이번에 새로 실행)**: 가드5·tsc·테스트386·빌드. ✅ **프로덕션 라이브 API 실측**: 헬스·공개/인증 라우트·역할 권한분리·인증 API 데이터 도달. ✅ **test1234 5계정 실로그인** + 코디/어드민 인증 API 200 확인.
-- ✅ **PR #354 CI**: 생성 직후 `ci`·`Smoke Tests (PR)` in_progress, Vercel은 문서변경이라 빌드 스킵(정상), nightly/full E2E skipped. **머지 직전 최종 초록은 다음 세션이 재확인**(이 핸드오프 작성 시점 진행 중).
-- ❌ **검증 못 함(사람 몫)**: 화면 시각 렌더(브라우저 다운로드 차단)·실메일 end-to-end·iOS 영상마이크·실제 문의제출→DB. → E2E Secrets 등록되면 렌더·제출은 CI가 자동 검사.
-
-**7. 다음 세션 첫 프롬프트**
-> 먼저 docs/PROJECT_CONTEXT.md 최상단 핸드오프 읽어. 2026-06-24 밤에 서비스 오픈 전 최종 점검을 했고, 기계검사(가드·테스트386·빌드·프로덕션 실측)는 전부 초록이야. E2E 5계정 비번을 test1234로 통일(관문4 준비끝)했고, 관문2·3 가이드도 줬어. 먼저 **Draft PR #354(문서) CI 초록인지 확인하고 저위험이면 머지**해줘. 그리고 **🔴 오픈 전 약한비번 테스트계정(admin@test.com 등) 삭제/비활성이 아직 안 됐으면 PO에게 상기**해(프로덕션에 약한 admin 떠 있음). 남은 오픈 관문(①실메일 ②템플릿href ③구글게시 ④시크릿복붙 ⑤iOS·K-01 ⑥계정삭제)은 PO 콘솔 작업이라 PO가 처리하면 최종 go/no-go 판단.
 
 ## 🏷️ 서비스명 변경 — HEALO → **healwith** (2026-06-16 확정·적용)
 
