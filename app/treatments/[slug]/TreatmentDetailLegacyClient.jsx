@@ -545,7 +545,7 @@ export const TreatmentDetailPage = ({
                   {realReviews.length > 0 ? (
                     <span className="bg-yellow-50 text-yellow-700 text-xs font-semibold px-2 py-0.5 rounded-full border border-yellow-100">{averageRating}/5.0</span>
                   ) : (
-                    <span className="bg-teal-50 text-teal-700 text-xs font-semibold px-2 py-0.5 rounded-full border border-teal-100">New</span>
+                    <span className="bg-teal-50 text-teal-700 text-xs font-semibold px-2 py-0.5 rounded-full border border-teal-100">{t("detail.new", langCode)}</span>
                   )}
                 </div>
                 {realReviews.length > 0 && (

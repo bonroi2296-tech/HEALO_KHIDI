@@ -42,10 +42,19 @@ function formatFileSize(bytes) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+// 상담 유형 라벨 — 6개 활성언어(ko·en·ru·kz·zh·ja)
+const SESSION_LABELS = {
+  pre_consultation: { ko: '사전상담', en: 'Pre-consultation', ru: 'Предварительная консультация', kz: 'Алдын ала кеңес', zh: '术前咨询', ja: '事前相談' },
+  follow_up: { ko: '추후진료', en: 'Follow-up', ru: 'Повторный приём', kz: 'Қайталама қабылдау', zh: '复诊', ja: '再診' },
+  emergency: { ko: '긴급상담', en: 'Emergency', ru: 'Экстренная консультация', kz: 'Шұғыл кеңес', zh: '紧急咨询', ja: '緊急相談' },
+  consultation: { ko: '상담', en: 'Consultation', ru: 'Консультация', kz: 'Кеңес', zh: '咨询', ja: '相談' },
+};
+
 export default function DocumentsClient() {
   const router = useRouter();
   const lang = useLang();
   const l = (obj) => obj?.[lang] || obj?.['en'] || '';
+  const sessionLabel = (type) => l(SESSION_LABELS[type] || SESSION_LABELS.consultation);
 
   const [authChecked, setAuthChecked] = useState(false);
   const [authed, setAuthed] = useState(false);
@@ -222,9 +231,7 @@ export default function DocumentsClient() {
               >
                 {consultations.map((c) => (
                   <option key={c.id} value={c.id}>
-                    {c.session_type === 'pre_consultation' ? '사전상담' :
-                     c.session_type === 'follow_up' ? '추후진료' :
-                     c.session_type === 'emergency' ? '긴급상담' : c.session_type || 'Consultation'}
+                    {sessionLabel(c.session_type)}
                     {' · '}
                     {c.scheduled_at ? new Date(c.scheduled_at).toLocaleDateString() : '-'}
                     {' · '}
@@ -333,9 +340,7 @@ export default function DocumentsClient() {
                 </div>
                 {doc.consultation && (
                   <div className="text-[10px] text-gray-400 mt-0.5">
-                    {doc.consultation.session_type === 'pre_consultation' ? '사전상담' :
-                     doc.consultation.session_type === 'follow_up' ? '추후진료' :
-                     doc.consultation.session_type || 'Consultation'}
+                    {sessionLabel(doc.consultation.session_type)}
                     {doc.consultation.scheduled_at && ` · ${new Date(doc.consultation.scheduled_at).toLocaleDateString()}`}
                   </div>
                 )}

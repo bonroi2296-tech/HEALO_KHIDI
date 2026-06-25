@@ -43,6 +43,15 @@ const MENU_ITEMS = [
   { key: 'visa', icon: FileText, href: '/visa', color: 'bg-indigo-50 text-indigo-600' },
 ];
 
+// 상담 유형 라벨 — 6개 활성언어(ko·en·ru·kz·zh·ja)
+const SESSION_LABELS = {
+  pre_consultation: { ko: '사전상담', en: 'Pre-consultation', ru: 'Предварительная консультация', kz: 'Алдын ала кеңес', zh: '术前咨询', ja: '事前相談' },
+  follow_up: { ko: '추후진료', en: 'Follow-up', ru: 'Повторный приём', kz: 'Қайталама қабылдау', zh: '复诊', ja: '再診' },
+  emergency: { ko: '긴급상담', en: 'Emergency', ru: 'Экстренная консультация', kz: 'Шұғыл кеңес', zh: '紧急咨询', ja: '緊急相談' },
+  consultation: { ko: '상담', en: 'Consultation', ru: 'Консультация', kz: 'Кеңес', zh: '咨询', ja: '相談' },
+};
+const PATIENT_FALLBACK = { ko: '환자', en: 'Patient', ru: 'Пациент', kz: 'Науқас', zh: '患者', ja: '患者' };
+
 export default function PatientDashboardClient() {
   const router = useRouter();
   const lang = useLang();
@@ -52,6 +61,7 @@ export default function PatientDashboardClient() {
   const [inquiries, setInquiries] = useState([]);
 
   const l = (obj) => obj?.[lang] || obj?.['en'] || '';
+  const sessionLabel = (type) => l(SESSION_LABELS[type] || SESSION_LABELS.consultation);
 
   useEffect(() => {
     const init = async () => {
@@ -129,7 +139,7 @@ export default function PatientDashboardClient() {
       {/* Header */}
       <div className="mb-8">
         <p className="text-gray-500 text-sm">{l(L.welcome)},</p>
-        <h1 className="text-2xl font-bold">{user.email?.split('@')[0] || 'Patient'}</h1>
+        <h1 className="text-2xl font-bold">{user.email?.split('@')[0] || l(PATIENT_FALLBACK)}</h1>
       </div>
 
       {/* Active/Scheduled Consultation CTA */}
@@ -292,10 +302,7 @@ export default function PatientDashboardClient() {
                 </div>
                 <div>
                   <div className="font-medium text-sm">
-                    {c.session_type === 'follow_up' ? 'Follow-up' :
-                     c.session_type === 'emergency' ? 'Emergency' :
-                     c.session_type === 'pre_consultation' ? 'Pre-consultation' :
-                     c.session_type || 'Consultation'}
+                    {sessionLabel(c.session_type)}
                   </div>
                   <div className="text-xs text-gray-400">
                     {c.scheduled_at ? new Date(c.scheduled_at).toLocaleDateString() : '-'}

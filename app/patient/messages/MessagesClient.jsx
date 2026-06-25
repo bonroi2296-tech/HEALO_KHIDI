@@ -29,6 +29,11 @@ const COPY = {
     today: "Today",
     yesterday: "Yesterday",
     loginRequired: "Please sign in to view your messages.",
+    signIn: "Sign in",
+    threadsTitle: "Threads",
+    threadTitle: "Thread",
+    selectConversation: "Select a conversation",
+    conversationFallback: "Conversation",
   },
   ko: {
     heroEyebrow: "메시지",
@@ -52,6 +57,123 @@ const COPY = {
     today: "오늘",
     yesterday: "어제",
     loginRequired: "메시지 확인을 위해 로그인해 주세요.",
+    signIn: "로그인",
+    threadsTitle: "대화 목록",
+    threadTitle: "대화",
+    selectConversation: "대화를 선택하세요",
+    conversationFallback: "대화",
+  },
+  ru: {
+    heroEyebrow: "Входящие",
+    heroTitle: "Все ваши переписки",
+    heroTitleItalic: "в одном месте.",
+    loading: "Загрузка переписок…",
+    noThreads: "Пока нет переписок. Как только вы отправите запрос или начнёте чат с ИИ, диалоги появятся здесь.",
+    startChat: "Начать чат с ИИ",
+    startInquiry: "Создать новый запрос",
+    you: "Вы",
+    coordinator: "Координатор",
+    ai: "healwith ИИ",
+    admin: "Поддержка healwith",
+    system: "Система",
+    typePlaceholder: "Введите сообщение… Нажмите Enter, чтобы отправить",
+    send: "Отправить",
+    back: "← Все переписки",
+    unread: "Непрочитанные",
+    resolved: "Решено",
+    open: "Открыто",
+    today: "Сегодня",
+    yesterday: "Вчера",
+    loginRequired: "Пожалуйста, войдите в систему, чтобы просмотреть свои сообщения.",
+    signIn: "Войти",
+    threadsTitle: "Переписки",
+    threadTitle: "Переписка",
+    selectConversation: "Выберите переписку",
+    conversationFallback: "Переписка",
+  },
+  kz: {
+    heroEyebrow: "Кіріс хаттар",
+    heroTitle: "Барлық хат алмасуыңыз",
+    heroTitleItalic: "бір жерде.",
+    loading: "Хат алмасулар жүктелуде…",
+    noThreads: "Әзірге хат алмасу жоқ. Сұраныс жібергеннен немесе ЖИ-мен чат бастағаннан кейін диалогтар осында пайда болады.",
+    startChat: "ЖИ-мен чат бастау",
+    startInquiry: "Жаңа сұраныс жасау",
+    you: "Сіз",
+    coordinator: "Үйлестіруші",
+    ai: "healwith ЖИ",
+    admin: "healwith қолдау қызметі",
+    system: "Жүйе",
+    typePlaceholder: "Хабарлама жазыңыз… Жіберу үшін Enter басыңыз",
+    send: "Жіберу",
+    back: "← Барлық хат алмасулар",
+    unread: "Оқылмаған",
+    resolved: "Шешілді",
+    open: "Ашық",
+    today: "Бүгін",
+    yesterday: "Кеше",
+    loginRequired: "Хабарламаларыңызды көру үшін жүйеге кіріңіз.",
+    signIn: "Кіру",
+    threadsTitle: "Хат алмасулар",
+    threadTitle: "Хат алмасу",
+    selectConversation: "Хат алмасуды таңдаңыз",
+    conversationFallback: "Хат алмасу",
+  },
+  zh: {
+    heroEyebrow: "收件箱",
+    heroTitle: "您的所有对话，",
+    heroTitleItalic: "尽在一处。",
+    loading: "正在加载对话…",
+    noThreads: "暂无对话。当您提交咨询或开始 AI 聊天后，对话将显示在此处。",
+    startChat: "开始 AI 聊天",
+    startInquiry: "发起新咨询",
+    you: "您",
+    coordinator: "协调员",
+    ai: "healwith AI",
+    admin: "healwith 客服",
+    system: "系统",
+    typePlaceholder: "输入消息… 按 Enter 发送",
+    send: "发送",
+    back: "← 全部对话",
+    unread: "未读",
+    resolved: "已解决",
+    open: "进行中",
+    today: "今天",
+    yesterday: "昨天",
+    loginRequired: "请登录以查看您的消息。",
+    signIn: "登录",
+    threadsTitle: "对话列表",
+    threadTitle: "对话",
+    selectConversation: "请选择一个对话",
+    conversationFallback: "对话",
+  },
+  ja: {
+    heroEyebrow: "受信箱",
+    heroTitle: "あなたのすべての会話を、",
+    heroTitleItalic: "ひとつの場所に。",
+    loading: "会話を読み込み中…",
+    noThreads: "まだ会話はありません。お問い合わせやAIチャットを開始すると、ここにスレッドが表示されます。",
+    startChat: "AIチャットを開始",
+    startInquiry: "新しいお問い合わせを開始",
+    you: "あなた",
+    coordinator: "コーディネーター",
+    ai: "healwith AI",
+    admin: "healwith サポート",
+    system: "システム",
+    typePlaceholder: "メッセージを入力… Enterキーで送信",
+    send: "送信",
+    back: "← すべての会話",
+    unread: "未読",
+    resolved: "解決済み",
+    open: "対応中",
+    today: "今日",
+    yesterday: "昨日",
+    loginRequired: "メッセージを表示するにはログインしてください。",
+    signIn: "ログイン",
+    threadsTitle: "スレッド一覧",
+    threadTitle: "スレッド",
+    selectConversation: "会話を選択してください",
+    conversationFallback: "会話",
   },
 };
 
@@ -157,7 +279,7 @@ export default function MessagesClient() {
             {copy.loginRequired}
           </p>
           <Link href="/login" style={{ textDecoration: "none" }}>
-            <ButtonGold>Sign in</ButtonGold>
+            <ButtonGold>{copy.signIn}</ButtonGold>
           </Link>
         </div>
       </main>
@@ -223,7 +345,7 @@ export default function MessagesClient() {
             }}
           >
             <div style={{ padding: "0 24px 16px" }}>
-              <Eyebrow tone="muted">Threads</Eyebrow>
+              <Eyebrow tone="muted">{copy.threadsTitle}</Eyebrow>
             </div>
             {loading ? (
               <div style={{ padding: "24px", color: "var(--fg-on-light-3)", fontStyle: "italic" }}>
@@ -292,9 +414,7 @@ export default function MessagesClient() {
                     fontSize: 17,
                   }}
                 >
-                  {threads.length > 0
-                    ? lang === "ko" ? "대화를 선택하세요" : "Select a conversation"
-                    : ""}
+                  {threads.length > 0 ? copy.selectConversation : ""}
                 </p>
               </div>
             ) : (
@@ -312,7 +432,7 @@ export default function MessagesClient() {
                   }}
                 >
                   <div style={{ minWidth: 0 }}>
-                    <Eyebrow tone="muted">Thread</Eyebrow>
+                    <Eyebrow tone="muted">{copy.threadTitle}</Eyebrow>
                     <div
                       style={{
                         fontFamily: "var(--font-serif)",
@@ -325,7 +445,7 @@ export default function MessagesClient() {
                         whiteSpace: "nowrap",
                       }}
                     >
-                      {selectedThread.subject || (lang === "ko" ? "대화" : "Conversation")}
+                      {selectedThread.subject || copy.conversationFallback}
                     </div>
                   </div>
                   <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
@@ -454,8 +574,8 @@ export default function MessagesClient() {
   );
 }
 
-function ThreadRow({ thread, active, onClick, copy: _copy }) {
-  const subject = thread.subject || "Conversation";
+function ThreadRow({ thread, active, onClick, copy }) {
+  const subject = thread.subject || copy.conversationFallback;
   return (
     <button
       onClick={onClick}

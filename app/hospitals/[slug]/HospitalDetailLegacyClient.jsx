@@ -358,7 +358,7 @@ export const HospitalDetailPage = ({ selectedId, setView, onTreatmentClick, init
   }
 
   const RatingBadge = () => {
-    if (!hospital?.rating || hospital.rating <= 0) return <span className="bg-teal-50 text-teal-700 text-xs font-semibold px-2.5 py-1 rounded-full border border-teal-100">New</span>;
+    if (!hospital?.rating || hospital.rating <= 0) return <span className="bg-teal-50 text-teal-700 text-xs font-semibold px-2.5 py-1 rounded-full border border-teal-100">{t("detail.new", langCode)}</span>;
     return (
       <span className="flex items-center gap-1.5">
         <Star size={16} className="text-yellow-400 fill-yellow-400" />
@@ -662,14 +662,14 @@ export const HospitalDetailPage = ({ selectedId, setView, onTreatmentClick, init
                         {avgRating}/5.0 ({allDisplayed.length})
                       </span>
                     ) : (
-                      <span className="bg-teal-50 text-teal-700 text-xs font-semibold px-2 py-0.5 rounded-full border border-teal-100">New</span>
+                      <span className="bg-teal-50 text-teal-700 text-xs font-semibold px-2 py-0.5 rounded-full border border-teal-100">{t("detail.new", langCode)}</span>
                     )}
                   </div>
                 );
               })()}
 
               {loadingReviews ? (
-                <div className="text-center py-8 text-gray-500 text-sm animate-pulse">Loading reviews...</div>
+                <div className="text-center py-8 text-gray-500 text-sm animate-pulse">{t("detail.checkingReviews", langCode)}</div>
               ) : (
                 <>
                   {realReviews.length > 0 && (
@@ -795,7 +795,7 @@ export const HospitalDetailPage = ({ selectedId, setView, onTreatmentClick, init
             <p className="font-semibold text-gray-900 text-sm truncate">{hospital?.name}</p>
             <div className="flex items-center gap-1 text-xs text-gray-500">
               {!hospital?.rating || hospital.rating <= 0 ? (
-                <span className="text-teal-700 font-medium">New</span>
+                <span className="text-teal-700 font-medium">{t("detail.new", langCode)}</span>
               ) : (
                 <>
                   <Star size={12} className="text-yellow-400 fill-yellow-400" />
