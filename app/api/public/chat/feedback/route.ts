@@ -99,18 +99,14 @@ export async function POST(request: NextRequest) {
 
 async function notifyCoordinators(threadId: string, reasonCategory?: string) {
   try {
-    // role='coordinator' 인 사용자 조회
-    const { data: coordinators, error } = await (supabaseAdmin as any)
-      .from("profiles")
-      .select("id")
-      .eq("role", "coordinator");
+    // 역할은 profiles 가 아니라 auth.users(app_metadata.role) 에 있음 → 공용 헬퍼로 조회.
+    const { getStaffIdsByRole } = await import("@/lib/notifications/inApp");
+    const { coordinators: coordinatorIds } = await getStaffIdsByRole();
 
-    if (error || !coordinators || coordinators.length === 0) {
+    if (coordinatorIds.length === 0) {
       console.log("[feedback] 코디네이터 없음, 알림 스킵");
       return;
     }
-
-    const coordinatorIds = coordinators.map((c: any) => c.id);
 
     const reasonLabel: Record<string, string> = {
       inaccurate: "정보 부정확",

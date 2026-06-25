@@ -44,6 +44,7 @@ vi.mock("@/lib/rateLimit", () => ({
 
 vi.mock("@/lib/notifications/inApp", () => ({
   broadcastInAppNotification: vi.fn(async () => {}),
+  getStaffIdsByRole: vi.fn(async () => ({ admins: [], coordinators: [] })),
 }));
 
 import { POST } from "./route";

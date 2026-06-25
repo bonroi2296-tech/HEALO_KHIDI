@@ -17,6 +17,7 @@ import Logo from "../components/brand/Logo";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { useToast } from "@/components/Toast";
 import CookieConsent from "@/components/CookieConsent";
+import NotificationBell from "@/components/NotificationBell";
 import { pageview, hasAnalyticsConsent } from "@/lib/ga";
 
 export default function ClientShell({ children, initialLang = "en" }) {
@@ -403,6 +404,8 @@ function PortalTopBar({ session, onLogout, siteConfig, langCode }) {
             {session.user.email}
           </span>
         )}
+
+        {session?.user && <NotificationBell variant="inline" />}
 
         <PortalLangSwitcher langCode={langCode} />
 
