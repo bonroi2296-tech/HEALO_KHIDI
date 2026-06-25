@@ -11,7 +11,7 @@ const supabase = createSupabaseBrowserClient();
 
 // 비밀번호 규칙 — 가입폼(SignupClient)과 동일 (8자 + 영문자 + 특수문자)
 // SPECIAL_RE는 Supabase 서버 정책의 특수문자 그룹과 동일하게 유지.
-const SPECIAL_RE = /[!@#$%^&*()_=+{};,.?~|<>\[\]\/-]/;
+const SPECIAL_RE = /[!@#$%^&*()_=+{};,.?~|<>[\]/-]/;
 function validatePassword(pw) {
   if (pw.length < 8) return { valid: false, msg: "min8" };
   if (!/[a-zA-Z]/.test(pw)) return { valid: false, msg: "letter" };
