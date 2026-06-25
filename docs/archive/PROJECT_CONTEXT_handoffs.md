@@ -1,6 +1,140 @@
 # PR
 
 
+## 🔖 세션 핸드오프 (2026-06-25 — 다국어 누락 전수 수리 + 협력병원 FAQ + 지도 회색박스 진단)
+
+> 워크트리 병렬 세션. PO가 "의식의 흐름대로" 화면을 짚어주면 고치는 식. PO가 "맨날 100% OK 해놓고 내가 뒤지면 자꾸 수정거리 나온다"고 지적 → 다국어 누락을 **전수 점검**해 14곳을 한 번에 수리.
+
+**1. 이번 세션 한 일 (전부 머지됨)**
+- **협력병원 상세 FAQ 영어 노출** [#365] — DB faq 비었을 때 폴백 `defaultFaq`가 영어 하드코딩이라 langCode 무시 → ko/ru/kz/zh/ja에서도 영어. 6언어 인라인 맵으로. 반성문 [POSTMORTEMS #38].
+- **다국어 누락 전수점검 14곳** [#369] — ①쿠키 동의창(`CookieConsent.jsx`, 전 페이지) 5문구 영어→6언어 ②병원/치료 상세 "New" 배지·"Loading reviews…"→`t()` ③환자 chat 무제목폴백·documents/dashboard 상담유형 라벨·이름폴백 ④**환자 messages·calendar는 COPY가 en/ko뿐**이라 화면 통째 영어였음→ru/kz/zh/ja 풀 추가(+캘린더 날짜/시간 로케일). 반성문 #39.
+- **main eslint 빨강 해소** [#372] — 타 세션 signup/reset-password의 `SPECIAL_RE` 정규식 불필요 이스케이프(`\[``\/`) → 제거(매칭셋 95개 ASCII 동일 실측). 내 #369를 막던 것이라 분리 PR로 먼저 머지.
+- **협력병원 지도 회색박스 진단** — 미해결, 아래 3번.
+
+**2. 왜 그렇게 했는지**
+- FAQ·배지·폴백·로딩문구는 `t()`를 안 거쳐 langCode를 무시 → 비영어에서 영어로 샌다(같은 뿌리 반복, #38·#39).
+- messages/calendar는 화면 전체가 en/ko뿐 → 깃발 몇 글자만 고치면 `COPY[lang]||COPY.en` 폴백이 깨지거나 나머지가 영어로 남음 → **화면 전체를 6언어로** 채워야 진짜 수정. 핵심 타겟이 러·카자흐 환자라 영향 큼.
+- **지도 진단 결론**: 키는 프로덕션 번들에 박혀 있고(`AIzaSyA_DY…`, 빌드 OK), 그 키로 Geocoding API 직접 호출 시 정상 응답 = **키 살아있음+결제 ON+리퍼러 제한 없음**. 그런데 지도만 회색 → 범인은 **Maps JavaScript API가 그 키/프로젝트에서 비활성**(또는 키 API제한에서 제외). PO가 말한 "가오픈때 잠깐 비활성"의 실체 = 코드/Vercel이 아니라 **구글콘솔에서 지도 API off**.
+
+**3. 안 끝났거나 보류**
+- **⚠️ 협력병원 지도 — Maps JavaScript API 켜기 미완.** PO 구글콘솔에 프로젝트가 2개(Medical consumables, My First Project)뿐인데 둘 다 Maps 없음 → **키는 또 다른 프로젝트/계정 소속 추정**(URL `authuser=2` = 멀티계정). 켜는 법: 키 든 GCP 프로젝트 찾아 **API 라이브러리 → Maps JavaScript API → 사용설정** + 키 "API 제한"에 포함. **코드/재배포 불필요(즉시 반영).** PO가 다른 세션에서 이어받기로 함 — 중복확인.
+- **⚠️ Vercel 무료플랜 하루 빌드상한** 걸림(2026-06-25 PR 다수) → **#369 production 배포가 상한 리셋(약 하루)까지 지연**될 수 있음. main엔 머지됨, 코드는 안전.
+- 보안: 지도 키 **리퍼러 제한 없음**(노출 키) → 켤 때 `healwith.co.kr/*`·`*.vercel.app/*` 리퍼러 제한 걸 것.
+
+**4. 주의·함정**
+- 지도 코드엔 kill switch 없음(`isDev||!apiKey`만). 회색박스 원인이 "키 없음"과 "구글이 키 거부(API미활성/리퍼러)"가 **둘 다 똑같은 회색** — 결제 에러만 노란 경고. "노란경고 없음=키없음"으로 오판하기 쉬움(이번에 한 번 헛짚음).
+- 인라인 다국어 자동검사 가드 시도→**철회**: `{ko,en}` 맵 검사가 의사 실명 등 **의도된 ko/en 이중언어 데이터**에 264건 오탐 → 자동화 비현실적, 코드리뷰 체크포인트로만(#38·#39).
+- **워크트리엔 node_modules 없음** → 거기선 build/dev 불가. preview dev 서버는 메인폴더를 서빙해서 워크트리 변경의 로컬 시각검증 불가 → **Vercel 프리뷰로 확인**.
+
+**5. 다음 세션이 먼저 할 일**
+1. **⚠️ 직전 미검증분 먼저**: #369 다국어가 **실서비스에 반영됐는지**(Vercel 빌드상한 풀린 뒤) — 쿠키창·환자 messages/calendar가 비영어(러/카자흐)로 뜨는지 실화면 1회. ru/kz 번역품질도 눈으로(자동검사 밖).
+2. **지도 Maps JavaScript API 켜기** — 키 든 GCP 프로젝트/계정 찾아(authuser 전환) API 사용설정 + 리퍼러 제한. 다른 세션 진행 중일 수 있으니 중복확인.
+3. (직전 핸드오프) 가입 메일클릭→자동로그인 실클릭 확인 + 관문3·4·5.
+
+**6. 검증 상태**
+- ✅ #365·#369·#372 머지됨. ci·Smoke 초록, `check:content` 통과, eslint 0 errors.
+- ✅ #369: ci·Smoke 초록 + 직전 실행에서 Vercel 빌드도 초록(반영확인). 충돌해소 후 재실행은 **Vercel만 rate-limit 빨강(코드 무관)** → PO 승인 하 `--admin` 머지.
+- ⚠️ **다국어 실화면(특히 ru/kz 번역·환자화면)은 로컬 시각검증 못 함**(워크트리 node_modules 없음). 인라인 COPY는 i18n 패리티검사 밖이라 자동검증도 안 됨 → Vercel 프리뷰/실서비스에서 눈으로 확인 필요.
+- ⚠️ **지도는 진단만, 미해결.**
+- PR: #365·#369·#372 전부 머지·CI 초록 확인함.
+
+**7. 다음 세션 첫 프롬프트**
+> 먼저 docs/PROJECT_CONTEXT.md 최상단 핸드오프 읽어라. ①#369 다국어 14곳이 실서비스 반영됐는지(Vercel 빌드상한 풀린 뒤) — 쿠키창·환자 messages/calendar가 러시아어/카자흐어로 뜨는지 1회 확인 ②협력병원 지도: 키(`AIzaSyA_DY…`) 든 구글 프로젝트/계정 찾아 Maps JavaScript API 켜기(코드수정 불필요, 리퍼러 제한도 걸기) — 다른 세션 중복확인. 회색박스는 결제에러만 노란경고고 나머진 다 회색이라 헷갈리니 주의.
+
+---
+
+---
+
+## 🔖 세션 핸드오프 (2026-06-25 — 가입·인증 흐름 전면 수리: 관문1·2 닫힘 + 비번정책 + token_hash 자동로그인)
+
+> PO가 출시 관문1(실메일 인증)부터 막힘 → 가입/로그인 흐름의 여러 버그를 연쇄로 잡고, 마지막엔 "자율 피버모드"로 자동로그인·비번재설정 흐름을 API레벨까지 검증. **관문1(실메일)·관문2(템플릿/자동로그인) 둘 다 닫음.**
+
+**1. 이번 세션 한 일 (전부 머지·프로덕션 배포됨)**
+- **중복가입 거짓안내 버그** [#355] — 이미 가입된 이메일에도 "인증 메일 보냈어요"로 거짓 안내하던 것 → `_data.user.identities` 빈배열로 중복 감지해 "이미 가입된 이메일" 안내(6언어). + 회귀 E2E 가드 `e2e/signup-duplicate-email.spec.ts`(프리뷰 실행 통과). 반성문 [POSTMORTEMS #36].
+- **인증메일 자동로그인 안 됨** [#357] — `signUp`에 `emailRedirectTo`가 없어 인증링크가 홈으로 떨어져 code 교환 안 됨 → `emailRedirectTo=/auth/callback` 추가. 반성문 #37.
+- **비번 규칙** [#359→#367] — 대문자 강제 제거 요청 → 최종 **8자 + 영문자 + 특수문자**(PO 결정, 숫자→영문+특수로 변경). 가입·비번재설정 두 화면 `SPECIAL_RE` 동일 문자셋. #372(타 세션)가 정규식 불필요 이스케이프 제거(eslint 빨강 해소) — 매칭셋 동일함 실측 확인. 반성문 #39.
+- **🔑 메일 인증 클릭→로그인 안 됨 (핵심)** — auth 로그 "One-time token not found": **회사메일(네이버웍스) 보안스캐너가 PKCE 일회용 링크를 프리페치로 미리 소진**. → 이미 있던 `/auth/confirm`(token_hash, 브라우저 JS로만 verifyOtp=스캐너 안전)로 보내도록 **이메일 템플릿 교체**. signup·recovery 둘 다. **API레벨 end-to-end 검증 완료**(verify(type=signup/recovery)→access_token+refresh_token 발급=자동로그인 작동). 반성문 #39.
+
+**2. ⚠️⚠️ git에 안 남는 서버 설정 변경 (Supabase Management API로 적용 — 리포 복구로 안 돌아옴)**
+- `password_required_characters` = `""`(요구문자 없음) — 서버는 **자유입력 불가, 프리셋 3종뿐**(없음/소+대+숫자/소+대+숫자+기호)이라 "영문+특수" 커스텀 불가 → 서버는 길이8만, **실제 규칙은 클라이언트 코드가 강제**.
+- `password_min_length` = 8.
+- 이메일 **confirmation 템플릿** → `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=signup`.
+- 이메일 **recovery 템플릿** → `{{ .SiteURL }}/reset-password?token_hash={{ .TokenHash }}&type=recovery`.
+- (magic_link·email_change 템플릿은 아직 옛 ConfirmationURL — 미사용/저빈도라 보류.)
+
+**3. 왜 그렇게 했는지**
+- 서버를 `""`로 둔 건 직무유기 아님: Supabase가 "영문+특수" 프리셋을 안 줘서. 사용자가 실제 겪는 관문은 클라이언트(8+영문+특수)이고 서버는 길이 백스톱.
+- token_hash 방식 채택: 회사메일 스캐너가 PKCE GET-verify 링크를 소진하는 고질병의 표준 해법. `/auth/confirm`·`/reset-password`가 이미 token_hash를 처리하게 만들어져 있었음(관문2 코드는 준비됐고 템플릿 연결만 빠졌던 것).
+
+**4. 안 끝났거나 보류**
+- **관문3(구글 OAuth 게시 테스트→프로덕션)·관문4(E2E Secrets 6개)·관문5(iOS 마이크·K-01 데모데이터)** = PO 콘솔/기기 작업, 미완.
+- magic_link·email_change 메일 템플릿 token_hash 미적용(미사용 추정, 필요 시).
+- **Management 토큰(sbp_…) PO가 Revoke 했는지 미확인** — 보안상 꼭 폐기돼야 함.
+
+**5. 주의·함정**
+- **비번 규칙 바꾸려면 코드(`SPECIAL_RE` 2곳)와 Supabase 서버 설정을 같이** 봐야 함. 코드만 풀면 서버가 막아 "weak_password"로 더 깨짐(이번에 겪음).
+- 이메일 템플릿·비번정책은 **git에 없다**(위 2번). Supabase 설정 초기화되면 이 핸드오프 보고 다시 적용.
+- 테스트로 `moon@immunelab.co.kr`·`*_zzq@example.com` 여러 번 생성·삭제함 — 현재 전부 삭제됨(잔존 0 확인).
+
+**6. 검증 상태**
+- ✅ 빌드(`next build --webpack`)·main CI 초록(#371/#372 이후)·eslint 0 errors.
+- ✅ 서버 정책·템플릿 변경: Management API GET으로 적용 확인. 대문자없는 비번 서버 수락: 실가입으로 확인.
+- ✅ **자동로그인 token_hash 흐름: API레벨 검증 완료**(generate_link→verify(type=signup/recovery)→세션 토큰 발급).
+- ⚠️ **브라우저에서 실메일 클릭→자동로그인 화면 전환은 PO가 아직 직접 클릭 안 함**(로컬 SSR/메일함 자동화 불가). 흐름은 API로 입증됐고 코드(`/auth/confirm`)도 검증됨 — 남은 건 실클릭 1회.
+- 열린 PR: 이 세션 PR(#355·#357·#359·#367)은 전부 머지·삭제됨. 타 세션 #371·#372 머지됨.
+
+**7. 다음 세션이 먼저 할 일**
+1. **⚠️ 직전 미검증분 먼저**: PO에게 `moon@immunelab.co.kr`(또는 새 메일)로 가입→메일 클릭→**자동 로그인 되는지** 실클릭 1회 확인 요청(관문1·2 최종 마침표). 안 되면 `/auth/confirm` `type` 값(`signup`↔`email`)만 점검 — API로는 signup이 맞았음.
+2. 관문3(구글 OAuth 게시)·관문4(E2E Secrets)·관문5(iOS·데모데이터) — PO 콘솔/기기 작업 안내.
+3. (선택) magic_link·email_change 템플릿도 token_hash로(쓰는 흐름이면).
+
+**다음 세션 첫 프롬프트**
+> 먼저 docs/PROJECT_CONTEXT.md 최상단 핸드오프를 읽어라. 그담 PO한테 "moon이나 새 이메일로 가입→인증메일 클릭→자동 로그인 되는지" 실클릭 1회만 확인 요청(관문1·2 마침표). 되면 관문3·4·5(구글OAuth 게시/E2E secrets/iOS·데모데이터) PO 콘솔작업 안내로 넘어가라. 비번/이메일 서버설정은 git에 없으니 핸드오프 2번 항목 참고.
+
+---
+
+---
+
+## 🔖 세션 핸드오프 (2026-06-24 밤 — 서비스 오픈 전 최종 점검 + 관문4(E2E) 준비완료 + 관문2·3 가이드)
+
+> "서비스 오픈 전 최종 점검하자"로 시작. 기계가 잡을 수 있는 건 **전부 새로 다시 돌려** 초록 확인하고, "사람만 확인 가능한 것"을 최대한 기계로 당겨오는 데 집중. PO가 "정말 끝났냐"고 두 번 검증을 요구 → 기계검증/사람검증 경계를 솔직히 분리해 보고.
+
+**1. 이번 세션 한 일**
+- **자동 검사 전수 재실행(전부 초록)**: 가드 5종(check:content·schema-refs·i18n·legal·migrations) · 타입체크(tsc exit 0) · **단위테스트 386/386** · 프로덕션 빌드(`next build --webpack` exit 0). + **프로덕션 라이브 실측**: `/api/health` db up(254ms)·공개+인증 라우트 200·인증 API 도달(코디 `/api/portal/inbox` 200·어드민 `/api/admin/khidi/conversion-funnel` 200(문의23·사전상담8·견적비자6)·환자→어드민 403 권한분리).
+- **관문4(E2E 자동검사) 준비 완료** — E2E 5역할 테스트계정(`patient·coordinator·admin·agency·clinic@test.com`)이 이미 다 존재 확인 → 비번을 **`test1234`로 통일 리셋**(Supabase `auth.users` `crypt(...,gen_salt('bf'))` 직접 + GoTrue 실로그인 검증). 남은 건 PO가 GitHub Secrets 12개 복붙(역할 10 + `SUPABASE_SERVICE_ROLE_KEY`·`ENCRYPTION_KEY_V1`)뿐 = `docs/E2E_SECRETS_SETUP.md`.
+- **보안 관문6 신설** — `admin@test.com`은 `role=admin`이라 약한비번이면 실서비스 어드민(PII 복호화) 노출. 문서정책(`TEST_ACCOUNTS.md`: 약한비번 admin 금지)과 충돌 발견 → admin만 강비번으로 일시 되돌렸다가 **PO 정보고지 후 "오픈 전 테스트계정 삭제"를 방지책으로 약속받고** test1234로 복귀. `KNOWN_ISSUES` 오픈 전 관문에 🔴6번(약한비번 계정 삭제) 못박음.
+- **문서 커밋·PR**: `docs/TEST_ACCOUNTS.md`(admin 반영·clinic 비번통일·위험명시)·`docs/KNOWN_ISSUES.md`(관문4 진척+관문6) → 커밋 `2788723` → **Draft PR [#354](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/354)** (CI 구독 중).
+- **관문2·3 가이드 작성(채팅)** — ②Supabase 이메일 템플릿 href를 `token_hash`로(가입확인→`/auth/confirm?...&type=signup`, 비번재설정→`/reset-password?...&type=recovery`, 코드계약 `verifyOtp({type,token_hash})` 확인). ③구글 OAuth 게시(`medical-consumables-491407` 동의화면 Testing→PUBLISH, 비민감 scope라 즉시).
+
+**2. 왜 그렇게 했는지**
+- **test1234 통일**: PO가 편의(5계정 한 비번) 우선. 보안 위험 두 번 고지했으나 "오픈 전 테스트계정 삭제할 거니 감수"로 정보고지 후 결정. → 노출 잔존 방지를 위해 **오픈 전 삭제를 관문으로 문서화**(잊으면 실서비스 약한 admin 남음).
+- **GitHub 도구 부재→복귀**: 세션 전반엔 GitHub MCP 도구가 ToolSearch에 안 떠 PR 자동생성 불가(푸시만). **컨테이너 재시작 후 도구 복귀** → PR #354 생성·CI 확인 가능해짐.
+- **브라우저 미설치**: Playwright chromium 다운로드가 네트워크 정책에 막혀 로컬 E2E 실행 불가 → 대신 **인증 REST + 프로덕션 인증 API 직타**로 "test1234 로그인→앱데이터 도달"을 동등 증명(시각 DOM 렌더만 CI 몫).
+
+**3. 안 끝났거나 보류**
+- **오픈 = PO 콘솔/실기기 관문에 달림**(코드·시스템은 준비 끝): ①가입/비번찾기 실메일 1회 ②이메일 템플릿 href(가이드 제공) ③구글 OAuth 게시(가이드 제공) ④E2E Secrets 복붙(준비 끝) ⑤iOS 마이크·K-01 정직성 ⑥🔴오픈 전 약한비번 테스트계정 삭제.
+- **PR #354** 머지 전(CI 진행 중이었음). 저위험 문서라 CI 초록 시 자동 머지 대상.
+
+**4. 주의·함정**
+- 🔴 **약한비번 admin이 지금 프로덕션에 떠 있음**(`admin@test.com`/test1234, role=admin). 오픈 전 반드시 삭제/비활성(`app_metadata.disabled=true`). 안 하면 실서비스 PII 노출.
+- **프로덕션 도메인**: `www.healwith.co.kr`는 308로 apex(`healwith.co.kr`)로 정규화 → 인증헤더 붙은 API 직타는 **apex 도메인**으로 쳐야 함(www는 리다이렉트로 헤더 유실).
+- **이메일 템플릿 type 매핑**: 가입확인=`signup`/비번재설정=`recovery`. 비번재설정은 반드시 `/reset-password`로 보내야(새 비번 폼). 틀리면 verifyOtp 실패.
+
+**5. 다음 세션이 먼저 할 일**
+1. **⚠️ 직전 미검증분 먼저**: PR #354 CI 초록인지 확인 후 머지(저위험 문서). 그리고 **🔴 오픈 전 약한비번 테스트계정 삭제가 아직 안 됐으면 PO에게 상기**(프로덕션 노출 잔존).
+2. PO가 관문 처리(②템플릿 href·③구글 게시·④시크릿 복붙·①실메일)하면 → 그 결과로 최종 오픈 go/no-go.
+3. (선택) E2E Secrets 등록 후 첫 PR에서 로그인 스펙이 skip 아닌 실행되는지 CI 로그 확인.
+
+**6. 검증 상태**
+- ✅ **기계검증 전수 초록(이번에 새로 실행)**: 가드5·tsc·테스트386·빌드. ✅ **프로덕션 라이브 API 실측**: 헬스·공개/인증 라우트·역할 권한분리·인증 API 데이터 도달. ✅ **test1234 5계정 실로그인** + 코디/어드민 인증 API 200 확인.
+- ✅ **PR #354 CI**: 생성 직후 `ci`·`Smoke Tests (PR)` in_progress, Vercel은 문서변경이라 빌드 스킵(정상), nightly/full E2E skipped. **머지 직전 최종 초록은 다음 세션이 재확인**(이 핸드오프 작성 시점 진행 중).
+- ❌ **검증 못 함(사람 몫)**: 화면 시각 렌더(브라우저 다운로드 차단)·실메일 end-to-end·iOS 영상마이크·실제 문의제출→DB. → E2E Secrets 등록되면 렌더·제출은 CI가 자동 검사.
+
+**7. 다음 세션 첫 프롬프트**
+> 먼저 docs/PROJECT_CONTEXT.md 최상단 핸드오프 읽어. 2026-06-24 밤에 서비스 오픈 전 최종 점검을 했고, 기계검사(가드·테스트386·빌드·프로덕션 실측)는 전부 초록이야. E2E 5계정 비번을 test1234로 통일(관문4 준비끝)했고, 관문2·3 가이드도 줬어. 먼저 **Draft PR #354(문서) CI 초록인지 확인하고 저위험이면 머지**해줘. 그리고 **🔴 오픈 전 약한비번 테스트계정(admin@test.com 등) 삭제/비활성이 아직 안 됐으면 PO에게 상기**해(프로덕션에 약한 admin 떠 있음). 남은 오픈 관문(①실메일 ②템플릿href ③구글게시 ④시크릿복붙 ⑤iOS·K-01 ⑥계정삭제)은 PO 콘솔 작업이라 PO가 처리하면 최종 go/no-go 판단.
+
+---
+
 
 ## 🔖 세션 핸드오프 (2026-06-25 — 가입·인증 흐름 전면 수리: 관문1·2 닫힘 + 비번정책 + token_hash 자동로그인)
 
