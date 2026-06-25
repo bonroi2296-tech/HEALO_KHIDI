@@ -13,15 +13,12 @@ import { useLang } from '@/lib/i18n/LangContext';
 const supabase = createSupabaseBrowserClient();
 
 /**
- * 비밀번호 강도 검증
+ * 비밀번호 강도 검증 (2026-06-25 완화: 대/소문자 요구 제거 — PO 결정)
  * - 최소 8자
- * - 영문 대소문자 포함
- * - 숫자 포함
+ * - 숫자 1개 이상
  */
 function validatePassword(pw) {
     if (pw.length < 8) return { valid: false, msg: 'min8' };
-    if (!/[a-z]/.test(pw)) return { valid: false, msg: 'lowercase' };
-    if (!/[A-Z]/.test(pw)) return { valid: false, msg: 'uppercase' };
     if (!/[0-9]/.test(pw)) return { valid: false, msg: 'number' };
     return { valid: true, msg: 'ok' };
 }
@@ -34,22 +31,6 @@ const PW_ERROR_MSG = {
         kz: 'Құпиясөз кемінде 8 таңбадан тұруы керек',
         zh: '密码至少需要8个字符',
         ja: 'パスワードは8文字以上である必要があります',
-    },
-    lowercase: {
-        ko: '영문 소문자를 포함해야 합니다',
-        en: 'Must include a lowercase letter',
-        ru: 'Должен содержать строчную букву',
-        kz: 'Кіші латын әрпі болуы керек',
-        zh: '必须包含一个小写字母',
-        ja: '小文字を含める必要があります',
-    },
-    uppercase: {
-        ko: '영문 대문자를 포함해야 합니다',
-        en: 'Must include an uppercase letter',
-        ru: 'Должен содержать заглавную букву',
-        kz: 'Бас латын әрпі болуы керек',
-        zh: '必须包含一个大写字母',
-        ja: '大文字を含める必要があります',
     },
     number: {
         ko: '숫자를 포함해야 합니다',
@@ -321,8 +302,6 @@ export const SignUpPage = ({ setView }) => {
                         <div className="flex gap-1 px-1 -mt-2">
                             {[
                                 { ok: password.length >= 8, label: '8+' },
-                                { ok: /[a-z]/.test(password), label: 'a-z' },
-                                { ok: /[A-Z]/.test(password), label: 'A-Z' },
                                 { ok: /[0-9]/.test(password), label: '0-9' },
                             ].map((r, i) => (
                                 <span key={i} className={`text-[10px] px-1.5 py-0.5 rounded ${r.ok ? 'bg-teal-100 text-teal-700' : 'bg-gray-100 text-gray-400'}`}>{r.label}</span>
