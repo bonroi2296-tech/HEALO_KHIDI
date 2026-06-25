@@ -161,6 +161,9 @@ export const SignUpPage = ({ setView }) => {
             email: email,
             password: password,
             options: {
+                // 인증메일 링크가 홈(/)이 아니라 /auth/callback 으로 돌아오게 → code를 세션으로 교환해 자동 로그인.
+                // (없으면 Site URL=홈으로 떨어져 code가 교환 안 됨 → 인증해도 로그인 안 되는 버그)
+                emailRedirectTo: typeof window !== 'undefined' ? `${window.location.origin}/auth/callback` : undefined,
                 data: {
                     first_name: firstName,
                     last_name: lastName,
