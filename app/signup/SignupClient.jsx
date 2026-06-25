@@ -13,13 +13,18 @@ import { useLang } from '@/lib/i18n/LangContext';
 const supabase = createSupabaseBrowserClient();
 
 /**
- * 비밀번호 강도 검증 (2026-06-25 완화: 대/소문자 요구 제거 — PO 결정)
+ * 비밀번호 강도 검증 (2026-06-25 PO 결정: 영문자 + 특수문자)
  * - 최소 8자
- * - 숫자 1개 이상
+ * - 영문자 1개 이상
+ * - 특수문자 1개 이상
+ * SPECIAL_RE는 Supabase 서버 password_required_characters의 특수문자 그룹과
+ * 동일하게 유지할 것 — 다르면 "화면 통과인데 서버 거부(weak_password)" 불일치 발생.
  */
+const SPECIAL_RE = /[!@#$%^&*()_=+{};,.?~|<>\[\]\/-]/;
 function validatePassword(pw) {
     if (pw.length < 8) return { valid: false, msg: 'min8' };
-    if (!/[0-9]/.test(pw)) return { valid: false, msg: 'number' };
+    if (!/[a-zA-Z]/.test(pw)) return { valid: false, msg: 'letter' };
+    if (!SPECIAL_RE.test(pw)) return { valid: false, msg: 'special' };
     return { valid: true, msg: 'ok' };
 }
 
@@ -32,13 +37,21 @@ const PW_ERROR_MSG = {
         zh: '密码至少需要8个字符',
         ja: 'パスワードは8文字以上である必要があります',
     },
-    number: {
-        ko: '숫자를 포함해야 합니다',
-        en: 'Must include a number',
-        ru: 'Должен содержать цифру',
-        kz: 'Сан болуы керек',
-        zh: '必须包含一个数字',
-        ja: '数字を含める必要があります',
+    letter: {
+        ko: '영문자를 포함해야 합니다',
+        en: 'Must include a letter',
+        ru: 'Должен содержать букву',
+        kz: 'Әріп болуы керек',
+        zh: '必须包含一个字母',
+        ja: '英字を含める必要があります',
+    },
+    special: {
+        ko: '특수문자를 포함해야 합니다 (예: !@#$)',
+        en: 'Must include a special character (e.g. !@#$)',
+        ru: 'Должен содержать спецсимвол (напр. !@#$)',
+        kz: 'Арнайы таңба болуы керек (мыс. !@#$)',
+        zh: '必须包含一个特殊字符（如 !@#$）',
+        ja: '特殊文字を含める必要があります（例: !@#$）',
     },
 };
 
@@ -305,7 +318,8 @@ export const SignUpPage = ({ setView }) => {
                         <div className="flex gap-1 px-1 -mt-2">
                             {[
                                 { ok: password.length >= 8, label: '8+' },
-                                { ok: /[0-9]/.test(password), label: '0-9' },
+                                { ok: /[a-zA-Z]/.test(password), label: 'A-z' },
+                                { ok: SPECIAL_RE.test(password), label: '!@#' },
                             ].map((r, i) => (
                                 <span key={i} className={`text-[10px] px-1.5 py-0.5 rounded ${r.ok ? 'bg-teal-100 text-teal-700' : 'bg-gray-100 text-gray-400'}`}>{r.label}</span>
                             ))}

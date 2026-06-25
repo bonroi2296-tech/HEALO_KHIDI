@@ -857,6 +857,24 @@ PO가 가입→인증메일 수신(✅ 발송 정상)→"이메일 인증하기"
 - ⚠️ 미검증: 빌드 통과·콜백 코드 검증·OAuth 동일 경로 동작으로 확신하나 **실제 가입→메일클릭→자동로그인 end-to-end는 배포 후 PO 재테스트로 확인 필요**(실메일·동일브라우저 PKCE 쿠키).
 - 가드: 메일 확인 자동로그인은 실메일함이 필요해 E2E 자동화가 어려움 — 배포 후 수동 1회 + 코드리뷰 체크포인트.
 
+## #39 — 이메일 인증 클릭 → 로그인 안 됨 (PKCE 인증링크를 메일 보안스캐너가 미리 소진) + 비번정책 서버/코드 분리 (2026-06-25)
+
+**무슨 일**
+#37로 인증메일이 /auth/callback(PKCE code 교환)을 거치게 했으나, 실제 클릭 시 `/auth/callback?error=no_code#error=access_denied`로 로그인 페이지에 떨어짐. auth 로그: `/verify` → **"One-time token not found" 403 "Email link is invalid or has expired"**. 일회용 토큰이 클릭 전에 이미 소진됨 = 네이버웍스/웍스모바일 같은 **회사메일 보안스캐너가 링크를 프리페치(GET)** 하며 일회용 OTP를 먼저 써버림(PKCE GET-verify 방식의 고질적 약점).
+
+**왜 못 잡았나 (근본원인)**
+- 인증 흐름이 **PKCE code 방식**(`{{ .ConfirmationURL }}` → `/auth/v1/verify` GET)이라, 서버 GET 한 번이 토큰을 소진 → 스캐너 프리페치에 그대로 당함.
+- 해법용 `/auth/confirm`(token_hash·client verifyOtp) 라우트는 **이미 만들어져 있었으나**, 이메일 템플릿이 여전히 기본 ConfirmationURL을 써서 **그 안전한 경로로 안 보내고 있었음**(관문2 미완).
+
+**어떻게 고쳤나**
+- **이메일 confirmation 템플릿**(Supabase Management API로 PATCH): `{{ .ConfirmationURL }}`(2곳) → `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=signup`. /auth/confirm은 token_hash를 **브라우저 JS로만** verifyOtp → 스캐너(JS 미실행)는 토큰을 못 소진. 성공 시 쿠키세션 → 자동 로그인.
+- **비밀번호 정책**(PO 결정: 영문자+특수문자): Supabase 서버 `password_required_characters`는 **자유입력 불가**(프리셋 3종: 없음 / 소+대+숫자 / 소+대+숫자+기호)뿐 → "영문+특수" 커스텀은 400. 그래서 **서버=`""`(요구문자 없음, 길이 8만)**, **실제 규칙은 클라이언트 코드가 강제**(8자+영문자+특수문자). 가입/비번재설정 두 화면의 `SPECIAL_RE`를 동일 문자셋으로 맞춰 "화면 통과인데 서버 거부" 불일치 차단.
+
+**재발 방지**
+- 교훈: **메일 인증은 token_hash + client verifyOtp(/auth/confirm)** 가 회사메일 스캐너에 강함. PKCE GET-verify는 프리페치에 소진된다. 발송물(메일)의 실제 링크가 어디로 가는지 확인.
+- ⚠️ **서버 설정은 git에 없음**: Supabase auth 템플릿·`password_required_characters`·`password_min_length`는 대시보드/Management API 설정값이라 리포 복구로 안 돌아온다. 변경 시 이 문서에 기록(이 항목이 그 기록).
+- ⚠️ 미검증: 서버 정책·템플릿 변경은 API GET으로 확인, 대문자없는 비번 서버 수락은 실가입으로 확인. **메일 클릭→자동로그인 end-to-end는 PO 재테스트로 확인 필요**(실메일 스캐너 통과).
+
 ## #38 — 협력병원 상세 FAQ가 비영어 페이지(ko 등)에서 영어로 노출 (i18n 미적용 기본값) (2026-06-25)
 
 **무슨 일**
