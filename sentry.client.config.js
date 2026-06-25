@@ -13,6 +13,11 @@ if (SENTRY_DSN) {
     environment: process.env.NODE_ENV,
     enabled: true,
 
+    // Session Replay — 에러 날 때만 녹화(위 onError 1.0). 의료앱이라 모든 텍스트·미디어 마스킹 유지(PII 보호).
+    integrations: [
+      Sentry.replayIntegration({ maskAllText: true, blockAllMedia: true }),
+    ],
+
     // 환자 PII 필터링 — beforeSend에서 제거
     beforeSend(event) {
       // request body에서 PII 제거
