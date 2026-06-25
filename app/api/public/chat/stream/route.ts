@@ -139,6 +139,8 @@ export async function POST(request: NextRequest) {
       ? thread.metadata
       : {};
   if (escalate) {
+    // 스레드당 1회만 종을 울린다(자료 여러 번 업로드 시 도배 방지).
+    const alreadyNotified = !!threadMeta.hand_off_notified;
     await (supabaseAdmin as any)
       .from("chat_threads")
       .update({
@@ -148,10 +150,19 @@ export async function POST(request: NextRequest) {
           hand_off_requested: true,
           hand_off_reason: escalateReason,
           hand_off_at: new Date().toISOString(),
+          hand_off_notified: true,
           ...(hasAttachments ? { has_attachments: true } : {}),
         },
       })
       .eq("id", thread_id);
+    if (!alreadyNotified) {
+      try {
+        const { notifyStaffChatHandoff } = await import("@/lib/notifications/inApp");
+        await notifyStaffChatHandoff({ threadId: thread_id, reason: escalateReason });
+      } catch (e: any) {
+        console.warn("[chat/stream] handoff bell 실패(무시):", e?.message);
+      }
+    }
   }
 
   const { data: history } = await (supabaseAdmin as any)

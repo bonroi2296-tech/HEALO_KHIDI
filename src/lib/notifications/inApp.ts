@@ -134,3 +134,40 @@ export async function notifyStaffNewInquiry(notice: NewInquiryNotice): Promise<v
     /* fail-safe */
   }
 }
+
+export interface ChatHandoffNotice {
+  /** chat_threads.id */
+  threadId: string;
+  /** 에스컬레이션 사유 ("attachment_uploaded" 또는 핸드오프 reason) */
+  reason?: string | null;
+}
+
+/**
+ * AI 챗에서 환자가 사람(상담사) 연결을 요청(또는 자료 업로드로 자동 에스컬레이션)했을 때
+ * 직원에게 웹/앱 종(bell) 알림.
+ *
+ * ⚠️ 수신자 = 어드민만. AI 챗 스레드 모니터(`/admin/chat`)가 `requireAdminAuth` 전용이고
+ * 코디네이터는 아직 AI 챗 뷰가 없다(별도 과제 — KNOWN_ISSUES). 코디에게 보내봐야 열 화면이
+ * 없어 오해만 부르므로, 실제로 처리할 수 있는 어드민에게만 보낸다.
+ *
+ * 호출부에서 thread metadata `hand_off_notified` 로 **스레드당 1회**만 울리도록 디듀프할 것
+ * (자료를 여러 번 올려도 종이 도배되지 않게).
+ * Fail-safe: 실패해도 throw 하지 않음.
+ */
+export async function notifyStaffChatHandoff(notice: ChatHandoffNotice): Promise<void> {
+  try {
+    const { admins } = await getStaffIdsByRole();
+    if (admins.length === 0) return;
+    const body = notice.reason === "attachment_uploaded" ? "자료 업로드 — 검토 필요" : "상담사 연결 요청";
+    await broadcastInAppNotification(admins, {
+      type: "chat_handoff",
+      title: "🙋 AI 챗 상담 연결 요청",
+      body,
+      priority: "high",
+      link: "/admin/chat",
+      payload: { threadId: notice.threadId, reason: notice.reason ?? null },
+    });
+  } catch {
+    /* fail-safe */
+  }
+}

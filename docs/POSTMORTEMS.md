@@ -913,6 +913,24 @@ PO가 협력병원 상세(`/hospitals/[slug]`) 하단 "자주 묻는 질문"이 
 
 ⚠️ 미검증: 워크트리에 node_modules 없어 로컬 빌드 불가 → 빌드·런타임 검증은 PR Vercel 프리뷰+CI로. 번역 품질(특히 ru/kz)은 자동검사 대상 아님(인라인 COPY는 패리티검사 밖).
 
+## #41 — 새 문의 종 알림 PR(#384)이 "AI 핸드오프 커버"라 했지만 AI챗 핸드오프엔 종이 안 울렸음 (2026-06-25)
+
+**무슨 일**
+- PR #384 설명은 "모든 문의 경로(**AI 핸드오프**/폼/에이전시) 자동 커버"라고 했는데, 실제로 종(`notifyStaffNewInquiry`)을 부르는 곳은 `sendAdminNotification`뿐이고 그건 `inquiries/step1·create·intake`·`agency/refer` 4곳에서만 호출됨. **AI 챗에서 환자가 '사람 연결'을 요청(handoff)하거나 자료를 올려 에스컬레이션되는 경로(`chat/stream`·`chat/message`)는 `chat_threads` 메타데이터만 갱신하고 알림을 안 불렀음** → 코디/어드민 종이 안 울림. 코디 인박스도 `inquiries` 기반이라 안 떠서, 어드민이 `/admin/chat` 모니터를 직접 봐야만 보였음.
+
+**왜 못 잡았나 (근본원인 = #35 패턴 "조용한 성공 위장")**
+- 빌드·테스트·머지 CI는 *코드가 도는지*만 봄 → "주장한 경로 중 하나가 실제로 알림을 부르는가"는 검사 안 함. PR 설명(주장)과 코드(실제)의 불일치를 막을 가드가 없었음.
+- 자동저장 훅 사고로 #384가 급히 재구성·머지되며 경로 전수 확인이 누락됨.
+
+**어떻게 고쳤나**
+- `chat/stream`·`chat/message`의 escalate 분기에서 `notifyStaffChatHandoff`(신규, `inApp.ts`) 호출 → 어드민 종 알림(`/admin/chat` 링크).
+- 스레드 metadata `hand_off_notified`로 **스레드당 1회만** 울리게 디듀프(자료 여러 번 업로드 시 도배 방지).
+- ⚠️ 수신자 = **어드민만**. AI챗 모니터(`/admin/chat`)가 `requireAdminAuth` 전용이고 **코디는 AI챗 뷰 자체가 없음**(KNOWN_ISSUES에 별도 갭으로 기록) → 코디에게 보내면 열 화면이 없어 오해만 부르므로 실제 처리 가능한 어드민에게만.
+
+**재발 방지**
+- 유사 스캔: 종 발신(`notifyStaffNewInquiry`/`notifyStaffChatHandoff`) 호출처 전수 확인 — inquiries 4 + chat 2 경로 모두 연결됨.
+- 교훈: **"모든 경로 커버"를 PR에 쓰면, 각 경로가 실제로 그 함수를 부르는지 grep으로 1:1 확인하고 써라**(주장≠코드). 특히 자동저장 훅으로 재구성된 PR은 경로 누락을 의심.
+
 ## #40 — AI챗 동의 게이트(#356)가 매일 챗 스모크를 조용히 깸 + 재방문자(쿠키)는 게이트 우회 (2026-06-25)
 
 **무슨 일**
