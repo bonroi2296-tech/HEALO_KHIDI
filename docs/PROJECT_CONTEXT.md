@@ -91,54 +91,6 @@
 
 ---
 
-## 🔖 세션 핸드오프 (2026-06-25 — 가입·인증 흐름 전면 수리: 관문1·2 닫힘 + 비번정책 + token_hash 자동로그인)
-
-> PO가 출시 관문1(실메일 인증)부터 막힘 → 가입/로그인 흐름의 여러 버그를 연쇄로 잡고, 마지막엔 "자율 피버모드"로 자동로그인·비번재설정 흐름을 API레벨까지 검증. **관문1(실메일)·관문2(템플릿/자동로그인) 둘 다 닫음.**
-
-**1. 이번 세션 한 일 (전부 머지·프로덕션 배포됨)**
-- **중복가입 거짓안내 버그** [#355] — 이미 가입된 이메일에도 "인증 메일 보냈어요"로 거짓 안내하던 것 → `_data.user.identities` 빈배열로 중복 감지해 "이미 가입된 이메일" 안내(6언어). + 회귀 E2E 가드 `e2e/signup-duplicate-email.spec.ts`(프리뷰 실행 통과). 반성문 [POSTMORTEMS #36].
-- **인증메일 자동로그인 안 됨** [#357] — `signUp`에 `emailRedirectTo`가 없어 인증링크가 홈으로 떨어져 code 교환 안 됨 → `emailRedirectTo=/auth/callback` 추가. 반성문 #37.
-- **비번 규칙** [#359→#367] — 대문자 강제 제거 요청 → 최종 **8자 + 영문자 + 특수문자**(PO 결정, 숫자→영문+특수로 변경). 가입·비번재설정 두 화면 `SPECIAL_RE` 동일 문자셋. #372(타 세션)가 정규식 불필요 이스케이프 제거(eslint 빨강 해소) — 매칭셋 동일함 실측 확인. 반성문 #39.
-- **🔑 메일 인증 클릭→로그인 안 됨 (핵심)** — auth 로그 "One-time token not found": **회사메일(네이버웍스) 보안스캐너가 PKCE 일회용 링크를 프리페치로 미리 소진**. → 이미 있던 `/auth/confirm`(token_hash, 브라우저 JS로만 verifyOtp=스캐너 안전)로 보내도록 **이메일 템플릿 교체**. signup·recovery 둘 다. **API레벨 end-to-end 검증 완료**(verify(type=signup/recovery)→access_token+refresh_token 발급=자동로그인 작동). 반성문 #39.
-
-**2. ⚠️⚠️ git에 안 남는 서버 설정 변경 (Supabase Management API로 적용 — 리포 복구로 안 돌아옴)**
-- `password_required_characters` = `""`(요구문자 없음) — 서버는 **자유입력 불가, 프리셋 3종뿐**(없음/소+대+숫자/소+대+숫자+기호)이라 "영문+특수" 커스텀 불가 → 서버는 길이8만, **실제 규칙은 클라이언트 코드가 강제**.
-- `password_min_length` = 8.
-- 이메일 **confirmation 템플릿** → `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=signup`.
-- 이메일 **recovery 템플릿** → `{{ .SiteURL }}/reset-password?token_hash={{ .TokenHash }}&type=recovery`.
-- (magic_link·email_change 템플릿은 아직 옛 ConfirmationURL — 미사용/저빈도라 보류.)
-
-**3. 왜 그렇게 했는지**
-- 서버를 `""`로 둔 건 직무유기 아님: Supabase가 "영문+특수" 프리셋을 안 줘서. 사용자가 실제 겪는 관문은 클라이언트(8+영문+특수)이고 서버는 길이 백스톱.
-- token_hash 방식 채택: 회사메일 스캐너가 PKCE GET-verify 링크를 소진하는 고질병의 표준 해법. `/auth/confirm`·`/reset-password`가 이미 token_hash를 처리하게 만들어져 있었음(관문2 코드는 준비됐고 템플릿 연결만 빠졌던 것).
-
-**4. 안 끝났거나 보류**
-- **관문3(구글 OAuth 게시 테스트→프로덕션)·관문4(E2E Secrets 6개)·관문5(iOS 마이크·K-01 데모데이터)** = PO 콘솔/기기 작업, 미완.
-- magic_link·email_change 메일 템플릿 token_hash 미적용(미사용 추정, 필요 시).
-- **Management 토큰(sbp_…) PO가 Revoke 했는지 미확인** — 보안상 꼭 폐기돼야 함.
-
-**5. 주의·함정**
-- **비번 규칙 바꾸려면 코드(`SPECIAL_RE` 2곳)와 Supabase 서버 설정을 같이** 봐야 함. 코드만 풀면 서버가 막아 "weak_password"로 더 깨짐(이번에 겪음).
-- 이메일 템플릿·비번정책은 **git에 없다**(위 2번). Supabase 설정 초기화되면 이 핸드오프 보고 다시 적용.
-- 테스트로 `moon@immunelab.co.kr`·`*_zzq@example.com` 여러 번 생성·삭제함 — 현재 전부 삭제됨(잔존 0 확인).
-
-**6. 검증 상태**
-- ✅ 빌드(`next build --webpack`)·main CI 초록(#371/#372 이후)·eslint 0 errors.
-- ✅ 서버 정책·템플릿 변경: Management API GET으로 적용 확인. 대문자없는 비번 서버 수락: 실가입으로 확인.
-- ✅ **자동로그인 token_hash 흐름: API레벨 검증 완료**(generate_link→verify(type=signup/recovery)→세션 토큰 발급).
-- ⚠️ **브라우저에서 실메일 클릭→자동로그인 화면 전환은 PO가 아직 직접 클릭 안 함**(로컬 SSR/메일함 자동화 불가). 흐름은 API로 입증됐고 코드(`/auth/confirm`)도 검증됨 — 남은 건 실클릭 1회.
-- 열린 PR: 이 세션 PR(#355·#357·#359·#367)은 전부 머지·삭제됨. 타 세션 #371·#372 머지됨.
-
-**7. 다음 세션이 먼저 할 일**
-1. **⚠️ 직전 미검증분 먼저**: PO에게 `moon@immunelab.co.kr`(또는 새 메일)로 가입→메일 클릭→**자동 로그인 되는지** 실클릭 1회 확인 요청(관문1·2 최종 마침표). 안 되면 `/auth/confirm` `type` 값(`signup`↔`email`)만 점검 — API로는 signup이 맞았음.
-2. 관문3(구글 OAuth 게시)·관문4(E2E Secrets)·관문5(iOS·데모데이터) — PO 콘솔/기기 작업 안내.
-3. (선택) magic_link·email_change 템플릿도 token_hash로(쓰는 흐름이면).
-
-**다음 세션 첫 프롬프트**
-> 먼저 docs/PROJECT_CONTEXT.md 최상단 핸드오프를 읽어라. 그담 PO한테 "moon이나 새 이메일로 가입→인증메일 클릭→자동 로그인 되는지" 실클릭 1회만 확인 요청(관문1·2 마침표). 되면 관문3·4·5(구글OAuth 게시/E2E secrets/iOS·데모데이터) PO 콘솔작업 안내로 넘어가라. 비번/이메일 서버설정은 git에 없으니 핸드오프 2번 항목 참고.
-
----
-
 ## 🏷️ 서비스명 변경 — HEALO → **healwith** (2026-06-16 확정·적용)
 
 **상표 문제로 서비스명을 `HEALO` → `healwith`(항상 소문자 표기)로 최종 변경. 앞으로 모든 신규 작업은 `healwith`로 한다.**
