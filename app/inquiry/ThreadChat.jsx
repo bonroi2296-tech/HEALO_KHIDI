@@ -35,8 +35,9 @@ function IdentificationForm({ langCode, onSubmit, submitting }) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [country, setCountry] = useState("");
+  const [consent, setConsent] = useState(false);
 
-  const canSubmit = name.trim().length >= 1 && country.trim().length >= 1;
+  const canSubmit = name.trim().length >= 1 && country.trim().length >= 1 && consent;
 
   return (
     <div className="flex-1 flex items-center justify-center px-4">
@@ -91,8 +92,23 @@ function IdentificationForm({ langCode, onSubmit, submitting }) {
           </select>
         </div>
 
+        {/* PIPA 필수 동의 (개인·민감 건강정보 수집 + 국외/AI 이전) */}
+        <label className="mt-4 flex items-start gap-2 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={consent}
+            onChange={(e) => setConsent(e.target.checked)}
+            disabled={submitting}
+            className="mt-0.5 w-4 h-4 accent-teal-700 shrink-0"
+          />
+          <span className="text-[12px] leading-snug text-gray-600">
+            {t("chat.identify.consent", langCode) ||
+              "[Required] I agree to the collection of my personal & sensitive health data and its cross-border transfer to Korea (including AI processing) for consultation."}
+          </span>
+        </label>
+
         <button
-          onClick={() => onSubmit({ name, email, country })}
+          onClick={() => onSubmit({ name, email, country, consent })}
           disabled={!canSubmit || submitting}
           className="mt-4 w-full bg-teal-700 hover:bg-teal-800 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium py-3 rounded-xl flex items-center justify-center gap-2 text-sm transition"
         >
@@ -213,12 +229,66 @@ function FeedbackModal({ langCode, messageId, threadId, publicToken, onClose, on
   );
 }
 
+// 신규 진입(쿠키 없음) 시 익명 자동시작 직전에 끼우는 1줄 필수 동의 게이트.
+// 이름·이메일을 묻지 않아 기존 무마찰 진입을 유지하되(클릭 1번 추가), 민감정보·국외이전 동의만 받는다.
+function ConsentGate({ langCode, onConsent, submitting }) {
+  const [consent, setConsent] = useState(false);
+  return (
+    <div className="flex-1 flex items-center justify-center px-4">
+      <div className="w-full max-w-md">
+        <div className="text-center mb-6">
+          <div className="w-14 h-14 mx-auto mb-3 rounded-full bg-teal-700 flex items-center justify-center text-white">
+            <Bot size={28} />
+          </div>
+          <h3 className="text-lg font-bold text-gray-900 mb-1">
+            {t("chat.identify.title", langCode) || "Start the conversation"}
+          </h3>
+          <p className="text-xs text-gray-500">
+            {t("chat.identify.subtitle", langCode) || "No signup. Just so we can reach you with the right answer."}
+          </p>
+        </div>
+
+        <label className="flex items-start gap-2 cursor-pointer rounded-xl border border-gray-200 p-3">
+          <input
+            type="checkbox"
+            checked={consent}
+            onChange={(e) => setConsent(e.target.checked)}
+            disabled={submitting}
+            className="mt-0.5 w-4 h-4 accent-teal-700 shrink-0"
+          />
+          <span className="text-[12px] leading-snug text-gray-700">
+            {t("chat.identify.consent", langCode) ||
+              "[Required] I agree to the collection of my personal & sensitive health data and its cross-border transfer to Korea (including AI processing) for consultation."}
+          </span>
+        </label>
+
+        <button
+          onClick={() => onConsent()}
+          disabled={!consent || submitting}
+          className="mt-4 w-full bg-teal-700 hover:bg-teal-800 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium py-3 rounded-xl flex items-center justify-center gap-2 text-sm transition"
+        >
+          {submitting ? <Loader2 size={16} className="animate-spin" /> : null}
+          {t("chat.consentStart", langCode) || "Agree & start chat"}
+        </button>
+
+        <p className="mt-3 text-[11px] text-gray-400 text-center leading-relaxed">
+          {t("chat.identify.privacyNote", langCode) ||
+            "We use your info only to follow up. No marketing. Encrypted & PIPA-compliant."}
+        </p>
+      </div>
+    </div>
+  );
+}
+
 export function ThreadChat() {
   const [threadId, setThreadId] = useState(null);
   const [publicToken, setPublicToken] = useState(null);
   const [guest, setGuest] = useState(null); // { name, email, country }
   const [identifying, setIdentifying] = useState(false);
   const [restoring, setRestoring] = useState(true); // 초기 쿠키 복구 시도 중
+  // PIPA: 게스트가 민감 건강정보를 AI(국외·Google)에 입력하기 전 1줄 필수 동의 게이트.
+  // 신규 진입(쿠키 토큰 없음)은 익명 자동시작 대신 이 게이트를 먼저 통과해야 함.
+  const [needsConsent, setNeedsConsent] = useState(false);
   const langCode = getLangCodeFromCookie();
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
@@ -319,7 +389,7 @@ export function ThreadChat() {
 
   // 진입장벽 제거: 이름/이메일/국가 안 묻고 익명으로 즉시 채팅 시작.
   // 언어는 이미 선택된 사이트 언어(langCode) 그대로 상속. 연락처는 대화 중 필요할 때만.
-  const startAnonymousThread = useCallback(async () => {
+  const startAnonymousThread = useCallback(async ({ consent } = {}) => {
     try {
       const browserSessionId = ensureBrowserSessionId();
       const res = await fetch("/api/public/chat/start", {
@@ -330,6 +400,9 @@ export function ThreadChat() {
           browser_session_id: browserSessionId,
           landing_path: typeof window !== "undefined" ? window.location.pathname : null,
           referrer: typeof document !== "undefined" ? document.referrer || null : null,
+          // PIPA: 동의 게이트 통과분만 true. 서버가 다시 검증.
+          consent: consent === true,
+          consent_version: "1.0.0",
         }),
       });
       const json = await res.json();
@@ -345,14 +418,26 @@ export function ThreadChat() {
     }
   }, [langCode]);
 
-  // 초기 진입 시 쿠키 토큰으로 복구 시도 (없으면 익명으로 바로 시작)
+  // 동의 게이트 "동의하고 시작" → 동의 플래그와 함께 익명 thread 생성.
+  const handleConsentStart = useCallback(async () => {
+    setIdentifying(true);
+    const ok = await startAnonymousThread({ consent: true });
+    setIdentifying(false);
+    if (ok) setNeedsConsent(false);
+    // 실패 시 게이트 유지 → 사용자가 다시 시도.
+  }, [startAnonymousThread]);
+
+  // 초기 진입 시 쿠키 토큰으로 복구 시도.
+  // 신규(토큰 없음)는 자동시작 대신 PIPA 동의 게이트를 먼저 띄운다(민감정보·국외이전 동의 후 시작).
   useEffect(() => {
     let cancelled = false;
     async function tryResume() {
       const token = readCookie(TOKEN_COOKIE);
       if (!token) {
-        await startAnonymousThread();
-        if (!cancelled) setRestoring(false);
+        if (!cancelled) {
+          setNeedsConsent(true);
+          setRestoring(false);
+        }
         return;
       }
       try {
@@ -431,7 +516,7 @@ export function ThreadChat() {
   );
 
   const handleIdentify = useCallback(
-    async ({ name, email, country }) => {
+    async ({ name, email, country, consent }) => {
       setIdentifying(true);
       try {
         const browserSessionId = ensureBrowserSessionId();
@@ -472,6 +557,9 @@ export function ThreadChat() {
             browser_session_id: browserSessionId,
             landing_path: typeof window !== "undefined" ? window.location.pathname : null,
             referrer: typeof document !== "undefined" ? document.referrer || null : null,
+            // PIPA: 폼 체크박스 동의. 서버 재검증.
+            consent: consent === true,
+            consent_version: "1.0.0",
           }),
         });
         const json = await res.json();
@@ -637,7 +725,7 @@ export function ThreadChat() {
     }
   };
 
-  const needsIdentification = !restoring && !threadId;
+  const needsIdentification = !restoring && !threadId && !needsConsent;
 
   return (
     // 높이: 작은 폰(iPhone SE 등)에서 600px 고정이 하단 탭바에 깔리던 문제 →
@@ -648,6 +736,8 @@ export function ThreadChat() {
           <Loader2 size={20} className="animate-spin mr-2" />
           {t("chat.loading", langCode) || "Loading..."}
         </div>
+      ) : needsConsent ? (
+        <ConsentGate langCode={langCode} onConsent={handleConsentStart} submitting={identifying} />
       ) : needsIdentification ? (
         <IdentificationForm langCode={langCode} onSubmit={handleIdentify} submitting={identifying} />
       ) : (

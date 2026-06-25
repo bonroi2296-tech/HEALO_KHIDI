@@ -54,7 +54,16 @@ export async function POST(request: NextRequest) {
       landing_path,
       referrer,
       client_meta,
+      // PIPA: 게스트가 민감 건강정보를 AI(국외·Google)에 입력하기 전 필수 동의.
+      consent,
+      consent_version,
     } = body;
+
+    // PIPA 필수 동의 서버 재확인 — 폼/게이트를 우회한 직접 호출도 차단.
+    // (개인·민감 건강정보 수집 + 국외/AI 이전 1줄 동의)
+    if (consent !== true) {
+      return Response.json({ ok: false, error: "consent_required" }, { status: 400 });
+    }
 
     // 입력 정규화·검증 (가벼운 수준)
     const name = typeof guest_name === "string" ? guest_name.trim().slice(0, 100) : null;
@@ -62,6 +71,11 @@ export async function POST(request: NextRequest) {
     const ctry = typeof guest_country === "string" ? guest_country.trim().slice(0, 8) : (country || null);
     const phone = typeof guest_phone === "string" ? guest_phone.trim().slice(0, 32) : null;
     const sessionId = typeof browser_session_id === "string" ? browser_session_id.trim().slice(0, 64) : null;
+    const consentRecord = {
+      health_crossborder: true,
+      version: typeof consent_version === "string" ? consent_version.slice(0, 20) : null,
+      at: new Date().toISOString(),
+    };
 
     // 로그인 사용자면 스레드를 계정에 연결(user_id) — 비로그인은 그대로 익명 게스트.
     const authUser = await getOptionalUser(request);
@@ -101,6 +115,8 @@ export async function POST(request: NextRequest) {
           // 재방문 검색용 블라인드 인덱스(평문 저장 아님)
           guest_email_hash: emailHash,
           guest_name_hash: nameHash,
+          // PIPA 동의 기록(증빙). 민감정보·국외이전 1줄 동의.
+          consent: consentRecord,
         },
       })
       .select("id, public_token, created_at")
