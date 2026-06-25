@@ -142,6 +142,14 @@ export default async function RootLayout({ children }) {
         />
       </head>
       <body className="font-sans text-gray-800 bg-gray-50 min-h-screen">
+        {/* 청크 로딩 실패 자동 복구: 배포 직후 옛 JS 청크를 잡아 터질 때(ChunkLoadError /
+            "reading 'call'" 등) 한 번만 새로고침해 새 청크로 복구. 10초 내 재발 시 새로고침
+            안 함 → 무한루프 방지. ponytail: 10초 가드, 그래도 못 살리면 global-error 화면으로 떨어짐. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){function c(m){return /ChunkLoadError|Loading chunk|Loading CSS chunk|dynamically imported module|reading 'call'/i.test(m||'')}function g(m){if(!c(m))return;var k='chunk-reload-at',t=+sessionStorage.getItem(k)||0;if(Date.now()-t<10000)return;try{sessionStorage.setItem(k,Date.now())}catch(e){}location.reload()}window.addEventListener('error',function(e){g(e&&(e.message||(e.error&&e.error.message)))});window.addEventListener('unhandledrejection',function(e){g(e&&e.reason&&(e.reason.message||String(e.reason)))})})()`,
+          }}
+        />
         <script
           dangerouslySetInnerHTML={{
             __html: `if('serviceWorker' in navigator){if(location.hostname==='localhost'||location.hostname==='127.0.0.1'){navigator.serviceWorker.getRegistrations().then(function(r){r.forEach(function(reg){reg.unregister()})})}else{window.addEventListener('load',function(){navigator.serviceWorker.register('/sw.js').catch(function(){})})}}`,
