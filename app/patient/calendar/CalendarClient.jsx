@@ -27,6 +27,7 @@ const COPY = {
     previous: "Previous",
     next: "Next",
     join: "Join",
+    signIn: "Sign in",
     daysOfWeek: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
   },
   ko: {
@@ -48,9 +49,109 @@ const COPY = {
     previous: "이전",
     next: "다음",
     join: "참여",
+    signIn: "로그인",
     daysOfWeek: ["일", "월", "화", "수", "목", "금", "토"],
   },
+  ru: {
+    heroEyebrow: "Календарь",
+    heroTitle: "Ваше расписание —",
+    heroTitleItalic: "с первого взгляда.",
+    heroLede: "Все консультации, этапы наблюдения и рекомендуемые повторные записи в одном окне.",
+    monthView: "Месяц",
+    listView: "Список",
+    noEvents: "Запланированных событий пока нет.",
+    loginRequired: "Пожалуйста, войдите, чтобы посмотреть свой календарь.",
+    today: "Сегодня",
+    types: {
+      consultation: "Консультация",
+      followup: "Наблюдение",
+      rebooking: "Повторная запись",
+      deadline: "Срок",
+    },
+    previous: "Назад",
+    next: "Вперёд",
+    join: "Присоединиться",
+    signIn: "Войти",
+    daysOfWeek: ["Вс", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"],
+  },
+  kz: {
+    heroEyebrow: "Күнтізбе",
+    heroTitle: "Кестеңіз —",
+    heroTitleItalic: "бір көзқараспен.",
+    heroLede: "Барлық кеңестер, бақылау кезеңдері және ұсынылған қайта жазылулар бір экранда.",
+    monthView: "Ай",
+    listView: "Тізім",
+    noEvents: "Жоспарланған оқиғалар әзірге жоқ.",
+    loginRequired: "Күнтізбеңізді көру үшін жүйеге кіріңіз.",
+    today: "Бүгін",
+    types: {
+      consultation: "Кеңес",
+      followup: "Бақылау",
+      rebooking: "Қайта жазылу",
+      deadline: "Мерзім",
+    },
+    previous: "Алдыңғы",
+    next: "Келесі",
+    join: "Қосылу",
+    signIn: "Кіру",
+    daysOfWeek: ["Жс", "Дс", "Сс", "Ср", "Бс", "Жм", "Сб"],
+  },
+  zh: {
+    heroEyebrow: "日历",
+    heroTitle: "您的日程，",
+    heroTitleItalic: "一目了然。",
+    heroLede: "所有咨询、随访节点和推荐的再次预约都集中在一个视图中。",
+    monthView: "月视图",
+    listView: "列表",
+    noEvents: "暂无已安排的日程。",
+    loginRequired: "请登录以查看您的日历。",
+    today: "今天",
+    types: {
+      consultation: "咨询",
+      followup: "随访",
+      rebooking: "再次预约",
+      deadline: "截止",
+    },
+    previous: "上一个",
+    next: "下一个",
+    join: "加入",
+    signIn: "登录",
+    daysOfWeek: ["日", "一", "二", "三", "四", "五", "六"],
+  },
+  ja: {
+    heroEyebrow: "カレンダー",
+    heroTitle: "あなたの予定を、",
+    heroTitleItalic: "ひと目で。",
+    heroLede: "すべての相談、フォローアップの予定、おすすめの再予約を一つの画面にまとめました。",
+    monthView: "月表示",
+    listView: "リスト",
+    noEvents: "予定されているイベントはまだありません。",
+    loginRequired: "カレンダーを表示するにはログインしてください。",
+    today: "今日",
+    types: {
+      consultation: "相談",
+      followup: "フォローアップ",
+      rebooking: "再予約",
+      deadline: "締切",
+    },
+    previous: "前へ",
+    next: "次へ",
+    join: "参加",
+    signIn: "ログイン",
+    daysOfWeek: ["日", "月", "火", "水", "木", "金", "土"],
+  },
 };
+
+const LOCALES = {
+  en: "en-US",
+  ko: "ko-KR",
+  ru: "ru-RU",
+  kz: "kk-KZ",
+  zh: "zh-CN",
+  ja: "ja-JP",
+};
+
+const localeFor = (lang) => LOCALES[lang] || "en-US";
 
 export default function CalendarClient() {
   const lang = useLang();
@@ -150,7 +251,7 @@ export default function CalendarClient() {
             {copy.loginRequired}
           </p>
           <Link href="/login" style={{ textDecoration: "none" }}>
-            <ButtonGold>Sign in</ButtonGold>
+            <ButtonGold>{copy.signIn}</ButtonGold>
           </Link>
         </div>
       </main>
@@ -185,7 +286,7 @@ export default function CalendarClient() {
                   color: "var(--fg-on-light-1)",
                 }}
               >
-                {cursor.toLocaleString(lang === "ko" ? "ko-KR" : "en-US", {
+                {cursor.toLocaleString(localeFor(lang), {
                   month: "long",
                   year: "numeric",
                 })}
@@ -305,7 +406,7 @@ function ViewTab({ active, onClick, children }) {
   );
 }
 
-function MonthGrid({ cursor, events, daysOfWeek, copy, lang: _lang }) {
+function MonthGrid({ cursor, events, daysOfWeek, copy, lang }) {
   const year = cursor.getFullYear();
   const month = cursor.getMonth();
   const firstDay = new Date(year, month, 1);
@@ -368,6 +469,7 @@ function MonthGrid({ cursor, events, daysOfWeek, copy, lang: _lang }) {
             isWeekend={i % 7 === 0}
             events={d ? eventsByDay[d] || [] : []}
             copy={copy}
+            lang={lang}
           />
         ))}
       </div>
@@ -375,7 +477,7 @@ function MonthGrid({ cursor, events, daysOfWeek, copy, lang: _lang }) {
   );
 }
 
-function DayCell({ day, isToday, isWeekend, events, copy }) {
+function DayCell({ day, isToday, isWeekend, events, copy, lang }) {
   return (
     <div
       style={{
@@ -406,7 +508,7 @@ function DayCell({ day, isToday, isWeekend, events, copy }) {
       )}
       <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
         {events.slice(0, 3).map((e) => (
-          <EventPill key={e.id} event={e} copy={copy} />
+          <EventPill key={e.id} event={e} copy={copy} lang={lang} />
         ))}
         {events.length > 3 && (
           <div style={{ fontSize: 10, color: "var(--fg-on-light-4)", fontFamily: "var(--font-mono)" }}>
@@ -418,7 +520,7 @@ function DayCell({ day, isToday, isWeekend, events, copy }) {
   );
 }
 
-function EventPill({ event, copy: _copy }) {
+function EventPill({ event, copy: _copy, lang }) {
   const colors = {
     consultation: { bg: "var(--ink-0)", fg: "var(--gold-0)" },
     followup: { bg: "var(--gold-0)", fg: "var(--ink-0)" },
@@ -427,7 +529,7 @@ function EventPill({ event, copy: _copy }) {
   };
   const c = colors[event.type] || colors.consultation;
 
-  const time = event.date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+  const time = event.date.toLocaleTimeString(localeFor(lang), { hour: "numeric", minute: "2-digit" });
 
   const content = (
     <div
@@ -502,7 +604,7 @@ function ListView({ events, copy, lang }) {
                 letterSpacing: "0.1em",
               }}
             >
-              {e.date.toLocaleDateString(lang === "ko" ? "ko-KR" : "en-US", {
+              {e.date.toLocaleDateString(localeFor(lang), {
                 year: "numeric",
                 month: "short",
                 day: "2-digit",
@@ -517,7 +619,7 @@ function ListView({ events, copy, lang }) {
                 marginTop: 2,
               }}
             >
-              {e.date.toLocaleTimeString(lang === "ko" ? "ko-KR" : "en-US", {
+              {e.date.toLocaleTimeString(localeFor(lang), {
                 hour: "numeric",
                 minute: "2-digit",
               })}
