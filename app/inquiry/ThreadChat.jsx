@@ -418,14 +418,30 @@ export function ThreadChat() {
     }
   }, [langCode]);
 
-  // 동의 게이트 "동의하고 시작" → 동의 플래그와 함께 익명 thread 생성.
+  // 동의 게이트 "동의하고 시작":
+  //  - 기존 thread(재방문 쿠키·게이트 도입 이전 시작분)면 → 그 thread에 동의 백필.
+  //  - 신규(thread 없음)면 → 동의 플래그와 함께 익명 thread 생성.
   const handleConsentStart = useCallback(async () => {
     setIdentifying(true);
-    const ok = await startAnonymousThread({ consent: true });
+    let ok = false;
+    if (threadId && publicToken) {
+      try {
+        const res = await fetch("/api/public/chat/consent", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ thread_id: threadId, public_token: publicToken, consent_version: "1.0.0" }),
+        });
+        ok = (await res.json())?.ok === true;
+      } catch (e) {
+        console.warn("[ThreadChat] consent backfill failed:", e);
+      }
+    } else {
+      ok = await startAnonymousThread({ consent: true });
+    }
     setIdentifying(false);
     if (ok) setNeedsConsent(false);
     // 실패 시 게이트 유지 → 사용자가 다시 시도.
-  }, [startAnonymousThread]);
+  }, [threadId, publicToken, startAnonymousThread]);
 
   // 초기 진입 시 쿠키 토큰으로 복구 시도.
   // 신규(토큰 없음)는 자동시작 대신 PIPA 동의 게이트를 먼저 띄운다(민감정보·국외이전 동의 후 시작).
@@ -448,6 +464,8 @@ export function ThreadChat() {
           setThreadId(json.thread.id);
           setPublicToken(json.thread.public_token);
           setGuest(json.thread.guest || null);
+          // PIPA: 동의 기록 없는 기존 thread(게이트 도입 이전 시작분)면 게이트를 띄워 동의 백필.
+          if (json.thread.has_consent === false) setNeedsConsent(true);
           const history = (json.messages || []).map((m) => ({
             id: m.id,
             role: m.role,
@@ -491,6 +509,8 @@ export function ThreadChat() {
         setPublicToken(json.thread.public_token);
         setGuest(json.thread.guest || fallbackGuest);
         writeCookie(TOKEN_COOKIE, json.thread.public_token);
+        // PIPA: 동의 기록 없는 기존 thread면 게이트를 띄워 동의 백필.
+        if (json.thread.has_consent === false) setNeedsConsent(true);
 
         const history = (json.messages || []).map((m) => ({
           id: m.id,

@@ -82,6 +82,8 @@ async function resume(token: string | null) {
       },
       created_at: data.created_at,
       last_active_at: data.last_active_at,
+      // PIPA: 이 thread에 동의가 기록돼 있나(게이트 도입 이전 시작분은 false) → 클라가 게이트 판단.
+      has_consent: data.metadata?.consent?.health_crossborder === true,
     },
     messages,
   };

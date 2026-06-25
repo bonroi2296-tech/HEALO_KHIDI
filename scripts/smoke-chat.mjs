@@ -33,6 +33,9 @@ async function startThread() {
       browser_session_id: `smoke-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       landing_path: "/inquiry",
       client_meta: { smoke_test: true },
+      // PIPA: /start·/stream 이 동의를 요구함(게이트). 스모크도 동의 포함해야 통과.
+      consent: true,
+      consent_version: "1.0.0",
     }),
   });
   if (!res.ok) throw new Error(`start 실패 HTTP ${res.status}`);
