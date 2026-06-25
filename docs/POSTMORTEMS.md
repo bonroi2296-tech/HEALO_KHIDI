@@ -857,7 +857,7 @@ PO가 가입→인증메일 수신(✅ 발송 정상)→"이메일 인증하기"
 - ⚠️ 미검증: 빌드 통과·콜백 코드 검증·OAuth 동일 경로 동작으로 확신하나 **실제 가입→메일클릭→자동로그인 end-to-end는 배포 후 PO 재테스트로 확인 필요**(실메일·동일브라우저 PKCE 쿠키).
 - 가드: 메일 확인 자동로그인은 실메일함이 필요해 E2E 자동화가 어려움 — 배포 후 수동 1회 + 코드리뷰 체크포인트.
 
-## #38 — 이메일 인증 클릭 → 로그인 안 됨 (PKCE 인증링크를 메일 보안스캐너가 미리 소진) + 비번정책 서버/코드 분리 (2026-06-25)
+## #39 — 이메일 인증 클릭 → 로그인 안 됨 (PKCE 인증링크를 메일 보안스캐너가 미리 소진) + 비번정책 서버/코드 분리 (2026-06-25)
 
 **무슨 일**
 #37로 인증메일이 /auth/callback(PKCE code 교환)을 거치게 했으나, 실제 클릭 시 `/auth/callback?error=no_code#error=access_denied`로 로그인 페이지에 떨어짐. auth 로그: `/verify` → **"One-time token not found" 403 "Email link is invalid or has expired"**. 일회용 토큰이 클릭 전에 이미 소진됨 = 네이버웍스/웍스모바일 같은 **회사메일 보안스캐너가 링크를 프리페치(GET)** 하며 일회용 OTP를 먼저 써버림(PKCE GET-verify 방식의 고질적 약점).
@@ -874,3 +874,22 @@ PO가 가입→인증메일 수신(✅ 발송 정상)→"이메일 인증하기"
 - 교훈: **메일 인증은 token_hash + client verifyOtp(/auth/confirm)** 가 회사메일 스캐너에 강함. PKCE GET-verify는 프리페치에 소진된다. 발송물(메일)의 실제 링크가 어디로 가는지 확인.
 - ⚠️ **서버 설정은 git에 없음**: Supabase auth 템플릿·`password_required_characters`·`password_min_length`는 대시보드/Management API 설정값이라 리포 복구로 안 돌아온다. 변경 시 이 문서에 기록(이 항목이 그 기록).
 - ⚠️ 미검증: 서버 정책·템플릿 변경은 API GET으로 확인, 대문자없는 비번 서버 수락은 실가입으로 확인. **메일 클릭→자동로그인 end-to-end는 PO 재테스트로 확인 필요**(실메일 스캐너 통과).
+
+## #38 — 협력병원 상세 FAQ가 비영어 페이지(ko 등)에서 영어로 노출 (i18n 미적용 기본값) (2026-06-25)
+
+**무슨 일**
+PO가 협력병원 상세(`/hospitals/[slug]`) 하단 "자주 묻는 질문"이 한국어 페이지인데도 영어("How do I get an estimate?" 등)로 뜬다고 발견(healwith.co.kr 실서비스).
+
+**왜 못 잡았나 (근본원인)**
+- `HospitalDetailLegacyClient.jsx`의 `defaultFaq`(DB에 `faq` 없을 때 폴백)가 **영어 문자열로 하드코딩**돼 `langCode`를 무시했다. 헤더("자주 묻는 질문")는 `t("detail.faq", langCode)`로 다국어인데, 본문 FAQ만 폴백이 영어 고정.
+- DB `faq` 있는 병원은 정상이라 가려짐 — faq 미입력 병원(이대서울 등)에서만 드러남.
+- 빌드·tsc로는 안 잡힘(문법 정상). i18n 패리티 검사도 i18n 파일 키만 보지 **컴포넌트 인라인 폴백**은 못 봄.
+
+**어떻게 고쳤나** (`app/hospitals/[slug]/HospitalDetailLegacyClient.jsx`)
+- `defaultFaq`를 6개 활성언어(ko·en·ru·kz·zh·ja) 인라인 맵 `DEFAULT_FAQ`로 교체, `DEFAULT_FAQ[langCode] || DEFAULT_FAQ.en` 선택. useMemo deps에 `langCode` 추가.
+- 같은 파일 `PartnerHospitalClient.jsx`가 이미 쓰는 인라인 6언어 객체 패턴과 일치(i18n 거대파일 미수정, 사용처에 둠).
+
+**재발 방지**
+- 유사 스캔: hospitals·treatments 클라이언트에서 하드코딩 영어 question/answer 폴백 추가 검색 → 이 한 건 외 없음(확인).
+- 교훈: **`t()` 안 거치는 사용자 노출 폴백 텍스트는 langCode 무시 = 비영어에서 영어로 샘.** DB값 폴백도 6언어로.
+- ⚠️ 가드 시도→철회: content-consistency에 "인라인 `{ ko:, en: }` 맵이 6언어 다 있나" 룰을 넣어봤으나 **app/ 안에서만 264건 오탐** — 의사 실명·약력 등 **의도된 ko/en 이중언어 데이터**가 코드 전반에 퍼져 있어 UI 문자열과 자동 구분이 비현실적. 시끄러운 가드는 CI를 영구 적색으로 만들어 무가치 → 철회. 이 부류는 정적룰 대신 **코드리뷰 체크포인트**(사용자 노출 폴백은 6언어인지)로 남김. 다음 세션은 같은 광범위 가드 재시도 말 것.

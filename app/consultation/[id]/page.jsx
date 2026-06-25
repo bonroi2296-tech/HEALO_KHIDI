@@ -718,11 +718,15 @@ export default function ConsultationRoomPage() {
       setAdmissionId(result.admissionId || null);
       setAdmissionStatus(result.admissionStatus || "approved");
       // 언어: 입장 화면에서 고른 "내가 말하는 언어" 기준.
-      // 상대 기본값 — 내가 한국어면 러시아어(주 환자군), 아니면 한국어(의료진).
+      // 상대 언어는 세션에 설정된 의사/환자 언어를 따른다(카자흐·우즈베크 등 비러시아 환자 대응).
+      //   - 의사 게스트면 상대 = 환자 언어, 그 외(환자/코디)면 상대 = 의사 언어.
+      //   - 세션에 언어가 없으면 기존 기본값(내 언어의 반대)으로 폴백.
       // 상담 중에도 언어 칩 탭으로 변경 가능.
       const ml = guestLang || (result.role === "patient" ? "ru" : "ko");
       setMyLang(ml);
-      setTargetLang(ml === "ko" ? "ru" : "ko");
+      const counterpart =
+        result.role === "doctor" ? result.patientLanguage : result.doctorLanguage;
+      setTargetLang(counterpart || (ml === "ko" ? "ru" : "ko"));
       setMyRole(result.role || "patient");
       setLoading(false);
     } catch (err) {

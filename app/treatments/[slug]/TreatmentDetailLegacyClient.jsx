@@ -768,6 +768,13 @@ export const TreatmentDetailPage = ({
         </div>
       </div>
 
+      {/* 의료 면책고지 — 매칭·코디네이션만 제공, 치료 결과 미보장 명시 */}
+      <div className="border-t border-gray-100 bg-white">
+        <p className="max-w-6xl mx-auto px-4 py-5 pb-24 lg:pb-5 text-[11px] leading-relaxed text-gray-400 text-center">
+          {t("sidebar.disclaimer", langCode)}
+        </p>
+      </div>
+
       {/* Mobile Sticky CTA */}
       <div className="fixed bottom-0 left-0 right-0 z-50 lg:hidden bg-white border-t border-gray-200 shadow-[0_-4px_20px_rgba(0,0,0,0.08)]">
         <div className="flex items-center justify-between gap-3 max-w-6xl mx-auto px-4 py-3">

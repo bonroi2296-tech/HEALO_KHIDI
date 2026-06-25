@@ -13,6 +13,7 @@ const CANCER_ICONS = {
   etc: Microscope,
 };
 import { useLang } from "@/lib/i18n/LangContext";
+import { t } from "@/lib/i18n";
 import {
   CANCER_DETAILS,
   ITCRN_FRAMEWORK,
@@ -690,6 +691,13 @@ export default function CancerDetailClient({ slug }) {
           </div>
         </div>
       </section>
+
+      {/* 의료 면책고지 — 매칭·코디네이션만 제공, 치료 결과 미보장 명시 */}
+      <div className="border-t border-gray-100 bg-white">
+        <p className="max-w-4xl mx-auto px-4 py-5 text-[11px] leading-relaxed text-gray-400 text-center">
+          {t("sidebar.disclaimer", lang)}
+        </p>
+      </div>
     </div>
   );
 }
