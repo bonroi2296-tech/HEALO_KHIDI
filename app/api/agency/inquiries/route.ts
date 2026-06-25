@@ -21,19 +21,28 @@ function maskName(first?: string | null, last?: string | null): string {
   return `${[...n][0] || ""}***`;
 }
 
-// 첨부서류(attachments 버킷) → signed URL. ponytail: 케이스당 첨부가 적어 리스트에서 바로 서명. 많아지면 케이스 펼칠 때 on-demand 로.
-async function signAttachments(atts: any): Promise<any[]> {
-  if (!Array.isArray(atts) || atts.length === 0) return [];
-  return Promise.all(
-    atts.map(async (a: any) => {
-      let url: string | null = null;
-      if (a?.path) {
-        const { data } = await supabaseAdmin.storage.from("attachments").createSignedUrl(a.path, 3600);
-        url = data?.signedUrl || null;
-      }
-      return { name: a?.name || null, category: a?.category || "other", type: a?.type || null, url };
-    })
-  );
+// 첨부서류(attachments 버킷) → signed URL.
+// 전 케이스의 첨부 path 를 한 번의 createSignedUrls(복수형) 로 묶어 서명한다. (이전엔 첨부당 개별 호출 →
+// 다수 케이스·다수 첨부 시 서명 요청이 수십 개 동시에 터져 storage 504/지연 발생.) path→url 맵을 만들어 동기 매핑.
+async function buildAttachmentUrlMap(rows: any[]): Promise<Map<string, string>> {
+  const paths = Array.from(new Set(
+    (rows || []).flatMap((r: any) => (Array.isArray(r.attachments) ? r.attachments : []))
+      .map((a: any) => a?.path).filter((p: any): p is string => typeof p === "string" && p.length > 0)
+  ));
+  const map = new Map<string, string>();
+  if (paths.length === 0) return map;
+  const { data } = await supabaseAdmin.storage.from("attachments").createSignedUrls(paths, 3600);
+  (data || []).forEach((s: any) => { if (s?.path && s?.signedUrl) map.set(s.path, s.signedUrl); });
+  return map;
+}
+
+function mapAttachments(atts: any, urlByPath: Map<string, string>): any[] {
+  return (Array.isArray(atts) ? atts : []).map((a: any) => ({
+    name: a?.name || null,
+    category: a?.category || "other",
+    type: a?.type || null,
+    url: a?.path ? (urlByPath.get(a.path) || null) : null,
+  }));
 }
 
 export async function GET(request: NextRequest) {
@@ -152,6 +161,9 @@ export async function GET(request: NextRequest) {
       return d;
     };
 
+    // 첨부 서명 URL — 전 케이스를 한 번에 묶어 서명(개별 호출 N→1)
+    const urlByPath = await buildAttachmentUrlMap(rows || []);
+
     const cases = await Promise.all((rows || []).map(async (r: any) => {
       const dec = await decryptInquiryForAdmin(r).catch(() => r);
       return {
@@ -167,7 +179,7 @@ export async function GET(request: NextRequest) {
         insurance_provider: r.insurance_provider,
         insurance_status: r.insurance_status,
         detail: pickDetail(r.intake),
-        attachments: await signAttachments(r.attachments),
+        attachments: mapAttachments(r.attachments, urlByPath),
         timeline: historyMap.get(r.id) || [],
         consultations: consultMap.get(r.id) || [],
         estimates: estimateMap.get(r.id) || [],
