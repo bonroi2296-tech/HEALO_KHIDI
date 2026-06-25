@@ -104,7 +104,7 @@ export async function POST(
     // ───────────────────────────────────────────────
     const { data: session, error: sessionErr } = await supabaseAdmin
       .from("consultation_sessions")
-      .select("id, livekit_room_name, status")
+      .select("id, livekit_room_name, status, patient_language, doctor_language")
       .eq("id", consultationId)
       .maybeSingle();
 
@@ -228,6 +228,9 @@ export async function POST(
       ttlSeconds: TOKEN_TTL_SECONDS,
       admissionId,
       admissionStatus: initialStatus,
+      // 세션에 설정된 언어 — 게스트 클라이언트가 자막 상대 언어를 하드코딩이 아닌 실제 값으로 잡게
+      patientLanguage: session.patient_language || null,
+      doctorLanguage: session.doctor_language || null,
     });
   } catch (err: any) {
     console.error("[guest-join] error:", err?.message);
