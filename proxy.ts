@@ -183,6 +183,20 @@ export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // ========================================
+  // 옛 러/카 전용 랜딩 — 주소·폴더는 그대로(Yandex 색인 자산)지만
+  // x-locale 만 박아 <html lang>이 en 이 아니라 실제 언어(ru/kk)로 렌더되게(SEO).
+  // ========================================
+  const legacy = LEGACY_SKIP.find((p) => pathname.startsWith(p));
+  if (legacy) {
+    const seg = pathname.split("/")[1];        // "ru" | "kk"
+    const locale = seg === "kk" ? "kz" : seg;  // URL 표준코드(kk) → 내부코드(kz)
+    const headers = new Headers(request.headers);
+    headers.set("x-locale", locale);
+    headers.set("x-pathname", pathname);
+    return NextResponse.next({ request: { headers } });
+  }
+
+  // ========================================
   // URL 언어화 (공개 마케팅 경로만) — 인증 로직보다 먼저
   // ========================================
   if (!LEGACY_SKIP.some((p) => pathname.startsWith(p))) {
