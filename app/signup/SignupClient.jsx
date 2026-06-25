@@ -69,6 +69,13 @@ const CONFIRM_PENDING = {
     loginBtn: { ko: '로그인하러 가기', en: 'Go to login', ru: 'Перейти ко входу', kz: 'Кіруге өту', zh: '前往登录', ja: 'ログインへ' },
 };
 
+// 이미 가입된 이메일(중복 가입) 안내 — 활성 6개 언어. 중복인데 "메일 보냈어요"로 거짓 안내하던 버그 교정.
+const ALREADY_REGISTERED = {
+    title: { ko: '이미 가입된 이메일이에요', en: 'This email is already registered', ru: 'Эта почта уже зарегистрирована', kz: 'Бұл пошта тіркелген', zh: '该邮箱已注册', ja: 'このメールは登録済みです' },
+    hint: { ko: '이 이메일로는 이미 계정이 있어요. 로그인하거나, 비밀번호가 기억나지 않으면 로그인 화면의 「비밀번호 찾기」를 이용하세요.', en: 'An account with this email already exists. Please log in, or use “Forgot password” on the login screen if you don’t remember it.', ru: 'Аккаунт с этой почтой уже существует. Войдите или воспользуйтесь «Забыли пароль» на странице входа.', kz: 'Бұл поштамен тіркелгі бар. Кіріңіз немесе кіру бетіндегі «Құпиясөзді ұмыттыңыз ба» дегенді қолданыңыз.', zh: '该邮箱已有账户。请登录，若忘记密码请在登录页使用「找回密码」。', ja: 'このメールのアカウントは既に存在します。ログインするか、パスワードをお忘れの場合はログイン画面の「パスワードをお忘れですか」をご利用ください。' },
+    loginBtn: { ko: '로그인 / 비밀번호 찾기', en: 'Log in / Reset password', ru: 'Вход / Сброс пароля', kz: 'Кіру / Құпиясөзді қалпына келтіру', zh: '登录 / 找回密码', ja: 'ログイン / パスワード再設定' },
+};
+
 export const SignUpPage = ({ setView }) => {
     const toast = useToast();
     const router = useRouter();
@@ -88,6 +95,7 @@ export const SignUpPage = ({ setView }) => {
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [oauthRedirecting, setOauthRedirecting] = useState(false);
     const [pendingEmail, setPendingEmail] = useState(null); // 가입 후 인증메일 안내 화면용
+    const [existingEmail, setExistingEmail] = useState(null); // 중복 가입(이미 가입된 이메일) 안내 화면용
 
     // /inquiry → /signup?provider=google 자동 OAuth 트리거
     useEffect(() => {
@@ -168,16 +176,44 @@ export const SignUpPage = ({ setView }) => {
             return;
         }
 
-        // 이메일 인증 필수면 session 없이 user만 반환 → 확인 메일 안내 화면.
-        // (인증 OFF로 바뀌면 session이 와서 바로 로그인 처리)
+        // 중복 가입 감지: 이미 가입된 이메일이면 Supabase가 identities를 빈 배열로 돌려줌(인증/미인증 무관).
+        // 이 경우 새 메일을 안 보내므로 "메일 보냈어요"가 아니라 "이미 가입됨"으로 정직하게 안내.
+        const isExisting = _data?.user && Array.isArray(_data.user.identities) && _data.user.identities.length === 0;
+
         if (_data?.session) {
+            // 이메일 인증 OFF → 바로 로그인 처리
             toast.success(langCode === 'ko' ? '가입 완료! 환영합니다.' : 'Welcome! Account created successfully.');
             router.push('/');
+        } else if (isExisting) {
+            setExistingEmail(email);
         } else {
+            // 이메일 인증 필수 + 신규 가입 → 확인 메일 안내 화면
             setPendingEmail(email);
         }
         setLoading(false);
     };
+
+    // 중복 가입 → "이미 가입된 이메일" 안내 화면 (거짓 "메일 보냈어요" 방지)
+    if (existingEmail) {
+        return (
+            <div className="min-h-[calc(100vh-64px)] flex items-center justify-center bg-gray-50 px-4 animate-in fade-in slide-in-from-bottom-4">
+                <div className="bg-white rounded-3xl shadow-xl w-full max-w-md p-8 md:p-10 border border-gray-100 text-center">
+                    <div className="w-12 h-12 rounded-xl bg-amber-50 flex items-center justify-center mx-auto mb-5">
+                        <Mail className="text-amber-600" size={22} />
+                    </div>
+                    <h2 className="text-2xl font-extrabold text-gray-900">{ALREADY_REGISTERED.title[langCode] || ALREADY_REGISTERED.title.en}</h2>
+                    <p className="text-gray-900 font-bold mt-3 break-all">{existingEmail}</p>
+                    <p className="text-gray-500 mt-4 text-sm leading-relaxed">{ALREADY_REGISTERED.hint[langCode] || ALREADY_REGISTERED.hint.en}</p>
+                    <button
+                        onClick={() => setView('login')}
+                        className="mt-7 w-full bg-teal-700 text-white font-bold py-3.5 rounded-xl hover:bg-teal-800 transition shadow-lg shadow-teal-100"
+                    >
+                        {ALREADY_REGISTERED.loginBtn[langCode] || ALREADY_REGISTERED.loginBtn.en}
+                    </button>
+                </div>
+            </div>
+        );
+    }
 
     // 가입 성공(인증 필요) → "메일 확인하세요" 안내 화면
     if (pendingEmail) {
