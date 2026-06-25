@@ -65,18 +65,28 @@ async function getCoordinatorIds(alert: DetectedAlert): Promise<string[]> {
     return [coordId];
   }
 
-  // 담당 코디네이터 없으면 COORDINATOR_FALLBACK_EMAIL env로 fallback
+  // 담당 코디네이터 없으면 COORDINATOR_FALLBACK_EMAIL env로 fallback.
+  // ⚠️ 계정은 auth.users 에 있고 .from("users") 로는 조회 불가(존재하지 않는 public 테이블).
+  //    → service_role 의 auth.admin API 로 이메일 매칭한다.
   const fallbackEmail = process.env.COORDINATOR_FALLBACK_EMAIL;
   if (fallbackEmail) {
-    const { data: users } = await supabase.auth.admin
-      ? (await (await import("@/lib/rag/supabaseAdmin")).supabaseAdmin
-          .from("users" as any)
-          .select("id")
-          .eq("email", fallbackEmail)
-          .limit(1))
-      : { data: null };
-    if (users && (users as any[]).length > 0) {
-      return [(users as any[])[0].id];
+    try {
+      const { supabaseAdmin } = await import("@/lib/rag/supabaseAdmin");
+      // ponytail: listUsers 1페이지(perPage 1000)면 본 프로젝트 staff 수 충분히 커버.
+      //           staff 가 1000명 넘어가면 페이지네이션 필요.
+      const { data, error } = await supabaseAdmin.auth.admin.listUsers({
+        page: 1,
+        perPage: 1000,
+      });
+      if (!error) {
+        const target = fallbackEmail.trim().toLowerCase();
+        const match = data.users.find(
+          (u) => u.email?.toLowerCase() === target
+        );
+        if (match) return [match.id];
+      }
+    } catch {
+      /* fail-safe: 알림 발송 실패해도 throw 하지 않음 */
     }
   }
 
