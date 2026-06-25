@@ -15,6 +15,7 @@
 - **[#378](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/378) 에이전시 포털 느린 로딩 수리** — 목록 API(`/api/agency/inquiries`)가 첨부파일마다 서명 URL을 *하나씩* 생성(`createSignedUrl`)하던 걸 **한 번의 `createSignedUrls`(복수형) 일괄 서명**으로 묶음(네트워크 왕복 수십→1). 실운영 로그에 storage 504 타임아웃까지 있었음. 화면·응답 형태 동일. (1파일, +26/-14)
 - **[#384](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/384) 새 문의 시 코디·어드민 웹/앱 종 알림** — ①직원 상단바에 알림 종 추가(환자 벨을 공용 `NotificationBell`로 일반화해 환자·직원 재사용) ②문의(AI 핸드오프/폼/에이전시) 오면 `sendAdminNotification` 안에서 코디+어드민에게 in-app 종 발송(이메일 설정 없어도 종은 울림) ③직원 역할 조회를 `profiles.role`(전부 'user'뿐이라 죽어있던 것)→`auth.users`(app_metadata.role)로 교정 → **같은 버그였던 'AI 부정피드백→코디' 알림도 같이 살림**. 링크: 코디→`/coordinator/inbox`, 어드민→`/admin/inquiries/{id}`. (8파일, +250/-156)
 - 두 브랜치 모두 자동저장 훅이 얹은 무관 변경(docs·inApp 등)으로 오염돼 있던 걸 **main 기준 + 해당 기능 파일만** 깨끗이 재구성 후 머지.
+- **출시 전 후속 ([PR #388](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/388), 미머지)**: PO "진짜 더 할 거 없어?" → #384 종 알림을 실DB·실코드로 재검증하다 **AI 챗 핸드오프 경로에 종이 안 울리던 갭** 발견·수정(POSTMORTEMS #41). `inApp.ts`에 `notifyStaffChatHandoff`(어드민 수신, 스레드당 1회) + `chat/stream·message` escalate에서 호출. 코디 AI챗 뷰 부재는 KNOWN_ISSUES에 별도 기록. **덤**: `e2e.yml`에 에이전시·의료기관 계정 매핑(skip 해제). 빌드·tsc·check:content 통과.
 
 **2. 왜 그렇게 했는지**
 - 에이전시 첨부 URL은 케이스를 펼쳐 '문서함'을 볼 때만 쓰는데 첫 로딩에 전부 서명하던 게 낭비 → 접힌 목록엔 개수만 표시하므로 일괄화가 안전.
@@ -30,7 +31,7 @@
 - 자동저장이 PROJECT_CONTEXT·inApp 등 SoR 파일을 동시에 흔들 수 있으니, 머지 전 항상 main 기준으로 기능 파일만 골라 재구성.
 
 **5. 다음 세션이 먼저 할 일**
-1. **⚠️ 직전 미검증분 먼저**: 프로덕션에서 **테스트 문의 1건** 넣고 코디·어드민 화면 우상단 **종 빨간 숫자** 뜨고 클릭 시 해당 문의로 이동하는지 1회 확인.
+1. **⚠️ 직전 미검증분 먼저**: 프로덕션에서 ①**테스트 문의 1건** → 코디·어드민 우상단 종 빨간 숫자 + 클릭 시 문의 이동 ②**AI챗에서 '사람 연결' 1회** → 어드민 종(`/admin/chat` 링크) 뜨는지 확인(PR #388 머지·배포 후).
 2. **(이어가기) 구글 OAuth 깨끗한 재구축** — bonroi2296 계정 → 새 `healwith` 구글 프로젝트(동의화면+웹 클라이언트, 값은 아래 밤1 핸드오프 6번에 박힘) → Supabase Auth>Providers>Google에 새 Client ID/Secret 스왑 → 비-테스트 계정 로그인 테스트(순서 지켜 무중단).
 3. **E2E 에이전시·의료기관 skip 해결**: `.github/workflows/e2e.yml` env 블록 2곳(Smoke·Full)에 `E2E_AGENCY_EMAIL/PASSWORD`·`E2E_CLINIC_EMAIL/PASSWORD` 4줄씩 추가.
 4. 나머지 오픈 관문 PO 안내(⑤iOS·🔴⑥약한비번 admin 삭제 등).
