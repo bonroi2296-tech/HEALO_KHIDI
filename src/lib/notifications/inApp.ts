@@ -73,3 +73,64 @@ export async function broadcastInAppNotification(
     userIds.map((uid) => sendInAppNotification({ ...opts, userId: uid }))
   );
 }
+
+/**
+ * app_metadata.role 로 직원 user_id 조회. (역할은 profiles 가 아니라 auth.users 에 있음)
+ * ponytail: listUsers 1페이지(perPage 1000)면 본 프로젝트 staff 수 충분. 1000 넘으면 페이지네이션.
+ */
+export async function getStaffIdsByRole(): Promise<{ admins: string[]; coordinators: string[] }> {
+  try {
+    const { supabaseAdmin } = await import("../rag/supabaseAdmin");
+    const { data, error } = await supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 1000 });
+    if (error || !data) return { admins: [], coordinators: [] };
+    const admins: string[] = [];
+    const coordinators: string[] = [];
+    for (const u of data.users) {
+      const role = (u.app_metadata as any)?.role;
+      if (role === "admin") admins.push(u.id);
+      else if (role === "coordinator") coordinators.push(u.id);
+    }
+    return { admins, coordinators };
+  } catch {
+    return { admins: [], coordinators: [] };
+  }
+}
+
+export interface NewInquiryNotice {
+  inquiryId: number;
+  nationality?: string | null;
+  treatmentType?: string | null;
+  /** 출처 라벨 (예: "AI 핸드오프", "문의폼", "에이전시 의뢰") — 본문에 표시 */
+  source?: string | null;
+}
+
+/**
+ * 새 문의 접수 시 코디네이터 + 어드민에게 웹/앱 종(bell) 알림.
+ * 역할별로 링크가 달라 따로 발송(코디→문의함, 어드민→문의 상세).
+ * Fail-safe: 실패해도 throw 하지 않음(문의 접수 자체에 영향 0).
+ */
+export async function notifyStaffNewInquiry(notice: NewInquiryNotice): Promise<void> {
+  try {
+    const { admins, coordinators } = await getStaffIdsByRole();
+    if (admins.length === 0 && coordinators.length === 0) return;
+    const where = notice.nationality?.trim() || "국적미상";
+    const what = notice.treatmentType?.trim() || "치료종류 미상";
+    const src = notice.source ? `[${notice.source}] ` : "";
+    const title = `📬 새 문의 #${notice.inquiryId}`;
+    const body = `${src}${where} · ${what}`;
+    await Promise.allSettled([
+      broadcastInAppNotification(coordinators, {
+        type: "new_inquiry", title, body, priority: "high",
+        link: "/coordinator/inbox",
+        payload: { inquiryId: notice.inquiryId },
+      }),
+      broadcastInAppNotification(admins, {
+        type: "new_inquiry", title, body, priority: "high",
+        link: `/admin/inquiries/${notice.inquiryId}`,
+        payload: { inquiryId: notice.inquiryId },
+      }),
+    ]);
+  } catch {
+    /* fail-safe */
+  }
+}
