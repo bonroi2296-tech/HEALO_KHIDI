@@ -380,7 +380,20 @@ async function _sendAdminNotificationInternal(
     console.log(`[Notify] Skipping inquiry ${inquiryId} (rate limited)`);
     return;
   }
-  
+
+  // 1-b. 웹/앱 종(bell) 알림 — 코디+어드민에게 in-app 발송.
+  //      이메일/SMS 수신자 설정과 무관하게 항상 울리도록 수신자 조회보다 먼저 한다(fail-safe).
+  try {
+    const { notifyStaffNewInquiry } = await import("./inApp");
+    await notifyStaffNewInquiry({
+      inquiryId,
+      nationality: payload.nationality,
+      treatmentType: payload.treatmentType,
+    });
+  } catch (e: any) {
+    console.warn("[Notify] in-app staff notify 실패(무시):", e?.message);
+  }
+
   // 2. 수신자 조회 (DB 우선 → ENV fallback)
   const recipients = await getActiveRecipients();
   

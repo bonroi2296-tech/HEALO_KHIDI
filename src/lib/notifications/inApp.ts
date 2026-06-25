@@ -78,7 +78,7 @@ export async function broadcastInAppNotification(
  * app_metadata.role 로 직원 user_id 조회. (역할은 profiles 가 아니라 auth.users 에 있음)
  * ponytail: listUsers 1페이지(perPage 1000)면 본 프로젝트 staff 수 충분. 1000 넘으면 페이지네이션.
  */
-async function getStaffIdsByRole(): Promise<{ admins: string[]; coordinators: string[] }> {
+export async function getStaffIdsByRole(): Promise<{ admins: string[]; coordinators: string[] }> {
   try {
     const { supabaseAdmin } = await import("../rag/supabaseAdmin");
     const { data, error } = await supabaseAdmin.auth.admin.listUsers({ page: 1, perPage: 1000 });
