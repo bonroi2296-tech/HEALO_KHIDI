@@ -20,7 +20,7 @@ const supabase = createSupabaseBrowserClient();
  * SPECIAL_RE는 Supabase 서버 password_required_characters의 특수문자 그룹과
  * 동일하게 유지할 것 — 다르면 "화면 통과인데 서버 거부(weak_password)" 불일치 발생.
  */
-const SPECIAL_RE = /[!@#$%^&*()_=+{};,.?~|<>\[\]\/-]/;
+const SPECIAL_RE = /[!@#$%^&*()_=+{};,.?~|<>[\]/-]/;
 function validatePassword(pw) {
     if (pw.length < 8) return { valid: false, msg: 'min8' };
     if (!/[a-zA-Z]/.test(pw)) return { valid: false, msg: 'letter' };
