@@ -7,6 +7,51 @@
 
 ---
 
+## 🔖 세션 핸드오프 (2026-06-25 밤 — KNOWN_ISSUES 버그 3건 머지 + 구글OAuth(관문③) 진단: ERP 프로젝트에 붙어있음 발견)
+
+> "없는 작업방 가서 작업 준비해" → worktree `work/known-issues-bugfix`에서 KNOWN_ISSUES 코드 버그 3건 수정·머지. 이어서 PO와 함께 출시 관문(E2E·구글OAuth)을 콘솔에서 점검하다 **구글로그인이 엉뚱한(ERP) 구글 프로젝트에 붙어있는 것**을 발견 → PO가 "깨끗하게 새로 셋업" 결정, 1단계에서 중단(다음 세션 이어감).
+
+**1. 이번 세션 한 일 (전부 머지·프로덕션 배포)**
+- **KNOWN_ISSUES 코드버그 3건** (worktree에서, 각각 독립 PR·CI초록·squash머지):
+  - **[#360](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/360)** 영상방 게스트 자막 상대언어 하드코딩(`ml==="ko"?"ru":"ko"`) → `guest-join` API가 세션 `patient_language`/`doctor_language` 반환 + 클라가 역할기반 결정. 계정로그인 경로는 원래 정상, 게스트만 빠져있었음. (`app/api/khidi/consultation/[id]/guest-join/route.ts`·`app/consultation/[id]/page.jsx`) ⚠️실자막은 LiveKit+2인 실상담 1회 육안확인 권장.
+  - **[#361](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/361)** 레거시 러/카 랜딩 `<html lang="en">` → `proxy.ts` LEGACY_SKIP 경로에도 `x-locale` 주입(kk→내부코드 kz) → dev 실렌더로 `lang=ru`/`lang=kk` 확인.
+  - **[#362](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/362)** 스키마 dead-path 2건: `dispatch-surveys`의 `.from("patients")` 죽은가지 제거(수신자=inquiries 단일화) / `alertService`의 `.from("users")`→`auth.admin.listUsers` 이메일매칭 교체. 가드 allowlist 비움. typecheck·check:schema-refs·테스트22 통과.
+  - **[#363](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/363)** 위 3건 KNOWN_ISSUES에 해결 표시(문서).
+- **E2E 시크릿 점검**: 환자·코디·어드민 6개+시스템키2개는 **2026-06-24 등록돼 작동 중**(Smoke 43 passed). 2026-06-25 에이전시·의료기관 4개(`E2E_AGENCY_*`·`E2E_CLINIC_*`) GitHub Secret 추가했으나 **여전히 skip**.
+
+**🔴 구글 OAuth(관문③) — 핵심 발견 (다음 세션 이어갈 작업)**
+- **운영 구글로그인은 Supabase 대행** — 코드는 `supabase.auth.signInWithOAuth({provider:'google'})`만, env에 구글 클라이언트키 없음. 실제 client_id/secret은 **Supabase 대시보드 Auth>Providers>Google**에 박혀있음.
+- **실 운영 client_id = `935081849817-7ojif7o7vgi8tve50t51vb4qa1gi092m`** (healwith.co.kr 로그인 클릭 시 실제로 이 ID로 감, redirect→`hvwwlkawaxabhtumjhrg.supabase.co`). 이 client가 사는 프로젝트 = **"Medical consumables"(`medical-consumables-491407`, 프로젝트번호 935081849817)**. ⚠️**이름은 의료소모품 ERP인데 healwith 구글로그인이 여기 붙어있음**(초기개발 잔재).
+- 그 프로젝트 동의화면 **게시 상태 = "테스트 중"** → 즉 **주인 계정만 되고 일반 환자 구글로그인은 막혀있음**(주인 계정으론 돼서 작동처럼 보임).
+- 혼동주의 잔재(안 씀): bonroi계정 My First Project(`aerobic-gantry-477208-v5`,#519633655469)의 `HEALO` 클라이언트는 **옛 Supabase `xppnvkuahlrdyfvabzur`+옛도메인 `healo-nu.vercel.app`** 가리킴 / 문석민계정 `healo-480207`(#762921926380)도 별개.
+
+**2. 왜 그렇게 했는지**
+- **버그 3건 각각 독립 PR**: 파일 겹침 없는 무관한 수정이라 PO 요청대로 따로 머지(리뷰·롤백 쉽게). worktree로 격리(병렬 세션 규칙).
+- **구글 OAuth: ERP 프로젝트에 그냥 게시 안 하고 재구축 결정(PO)** — 운영 로그인이 ERP용 구글 프로젝트에 얹혀있어 ①이름 혼동 ②ERP 사고 시 동반 위험 ③환자가 보는 동의화면 브랜딩 문제. PO가 깨끗이 분리 원함. 단 마이그레이션은 깨질 위험이라 "순서 지켜 무중단"으로.
+
+**3. 안 끝났거나 보류**
+- **구글 OAuth 재구축 1단계(새 프로젝트 생성)에서 중단** — 다음 세션 이어감(아래 6번 상세).
+- **E2E 에이전시·의료기관 skip**: 시크릿 4개는 등록됐으나 `.github/workflows/e2e.yml`이 `E2E_AGENCY_*`·`E2E_CLINIC_*`를 job env에 **매핑 안 함**(coordinator만) → 여전히 skip. 워크플로 YAML 수정 필요.
+- 나머지 오픈 관문: ①가입 실메일·②이메일 템플릿(다른 세션 영역) / ⑤iOS 마이크·K-01 / 🔴⑥약한비번 admin@test.com 삭제.
+
+**4. 주의·함정**
+- 세션 중 어시스턴트가 "LAUNCH_GATES_PO.md(medical-consumables)가 틀렸다"고 했으나 **사실 맞았음** — 프로젝트 이름만 ERP라 헷갈린 것. 문서 수정 안 함(정확함).
+- **구글 프로젝트 선택창 검색은 이름/ID로만 됨, "번호"로는 안 찾아짐** — 프로젝트 번호(935081849817)로 못 찾으니 후보를 직접 열어 홈의 "프로젝트 번호" 확인.
+- worktree `work/known-issues-bugfix`에 메인 node_modules junction 연결 + env/launch.json 복사(전부 gitignore). 정리 시 `git worktree remove`.
+
+**5. 검증 상태**
+- ✅ 버그 3건: typecheck·check:schema-refs·단위테스트22·check:content 통과 + #361은 dev 실렌더 확인. CI(ci·Smoke) 전부 초록 → 머지·배포.
+- ✅ 구글로그인 작동: healwith.co.kr에서 실제 계정선택 화면 정상(최신 도메인·Supabase로 연결 확인).
+- ❌ 구글 "일반 환자도 되는지(공개 게시)" 미확정 — 운영 프로젝트가 "테스트 중"이라 막혀있을 가능성 큼(주인 계정으론 됨). 재구축 후 비-테스트 계정으로 확인 필요.
+- ⚠️ #360 실자막 동작은 LiveKit+2인 실상담 1회 육안확인 미실시.
+
+**6. 다음 세션이 먼저 할 일**
+1. **(이어가기) 구글 OAuth 깨끗한 재구축** — bonroi2296 계정 → 새 프로젝트 `healwith` → OAuth 동의화면(External·앱이름 healwith·privacy `https://healwith.co.kr/privacy`·terms `/terms`·승인도메인 healwith.co.kr+supabase.co·scope email/profile/openid·게시) → 웹 OAuth 클라이언트(JS원본 `https://healwith.co.kr`+`http://localhost:3000`, **리디렉션 URI `https://hvwwlkawaxabhtumjhrg.supabase.co/auth/v1/callback`**) → **Supabase Auth>Providers>Google에 새 Client ID/Secret 갈아끼움** → 비-테스트 계정으로 로그인 테스트. *순서 지키면 무중단(옛 거 그대로 두고 마지막에 한 번만 스왑).*
+2. **E2E 에이전시·의료기관 skip 해결**: `.github/workflows/e2e.yml` env 블록 2곳(Smoke·Full)에 `E2E_AGENCY_EMAIL/PASSWORD`·`E2E_CLINIC_EMAIL/PASSWORD` 4줄씩 추가.
+3. 나머지 오픈 관문 PO 안내(⑤iOS·🔴⑥약한비번 admin 삭제 등).
+
+**7. 다음 세션 첫 프롬프트**
+> 먼저 docs/PROJECT_CONTEXT.md 최상단 핸드오프를 읽어라. 2026-06-25 KNOWN_ISSUES 버그 3건(#360 게스트자막·#361 레거시 lang·#362 dead-path)은 머지·배포 끝. 핵심 미완 = **구글 OAuth 재구축**: PO와 함께 bonroi2296 계정에 새 `healwith` 구글 프로젝트 만들고(동의화면+웹 클라이언트, 값은 핸드오프 6번에 박혀있음) → Supabase Auth>Providers>Google에 새 Client ID/Secret 갈아끼우고 → 비-테스트 계정으로 구글로그인 테스트. 순서 지켜 무중단으로. 그담 E2E 에이전시·의료기관 workflow env 4줄 추가(핸드오프 6-2).
 ## 🔖 세션 핸드오프 (2026-06-25 오후 — 동의·면책 법무 클러스터 완성 + 재방문자 게이트 버그·main CI 빨강 잡음)
 
 > "핸드오프 읽고 준비해봐" → 문의폼 동의(#351) 실측 매듭 + AI챗/회원가입/상세 동의·면책 3건 추가. 후반 PO가 "개판이야/엄살 부리지마"라고 직감 지적 → **실측으로 끝까지 파니 진짜 버그 2개 + 숨은 회귀 1개** 발견(쿠키 기반 게이트 우회, main CI 빨강, 매일 챗 스모크 조용히 깨짐). 전부 잡아 머지.
@@ -48,48 +93,6 @@
 
 **7. 다음 세션 첫 프롬프트**
 > 먼저 docs/PROJECT_CONTEXT.md 최상단 핸드오프 읽어. 2026-06-25 오후에 동의·면책 클러스터(AI챗 #356·가입분리 #358·상세면책 #364·재방문자 게이트+서버enforcement #371)를 다 머지했고, main CI 빨강(타 세션 lint)·매일 챗 스모크 회귀도 잡았어(반성문 #40). 근데 **데이터 의존 화면은 이 환경 브라우저가 Supabase에 못 닿아 수동 픽셀을 못 봤으니**, 프로덕션에서 ①AI챗 동의 게이트가 재방문 쿠키로도 뜨는지+동의 후 응답 ②치료 상세 면책고지 ③회원가입 동의 2개를 눈으로 확인해줘. 그담 출시 남은 관문(구글 OAuth 게시·E2E Secrets·iOS/K-01·약한비번 계정 삭제)은 PO 액션이라 진행되면 최종 go/no-go.
-
-## 🔖 세션 핸드오프 (2026-06-25 — 다국어 누락 전수 수리 + 협력병원 FAQ + 지도 회색박스 진단)
-
-> 워크트리 병렬 세션. PO가 "의식의 흐름대로" 화면을 짚어주면 고치는 식. PO가 "맨날 100% OK 해놓고 내가 뒤지면 자꾸 수정거리 나온다"고 지적 → 다국어 누락을 **전수 점검**해 14곳을 한 번에 수리.
-
-**1. 이번 세션 한 일 (전부 머지됨)**
-- **협력병원 상세 FAQ 영어 노출** [#365] — DB faq 비었을 때 폴백 `defaultFaq`가 영어 하드코딩이라 langCode 무시 → ko/ru/kz/zh/ja에서도 영어. 6언어 인라인 맵으로. 반성문 [POSTMORTEMS #38].
-- **다국어 누락 전수점검 14곳** [#369] — ①쿠키 동의창(`CookieConsent.jsx`, 전 페이지) 5문구 영어→6언어 ②병원/치료 상세 "New" 배지·"Loading reviews…"→`t()` ③환자 chat 무제목폴백·documents/dashboard 상담유형 라벨·이름폴백 ④**환자 messages·calendar는 COPY가 en/ko뿐**이라 화면 통째 영어였음→ru/kz/zh/ja 풀 추가(+캘린더 날짜/시간 로케일). 반성문 #39.
-- **main eslint 빨강 해소** [#372] — 타 세션 signup/reset-password의 `SPECIAL_RE` 정규식 불필요 이스케이프(`\[``\/`) → 제거(매칭셋 95개 ASCII 동일 실측). 내 #369를 막던 것이라 분리 PR로 먼저 머지.
-- **협력병원 지도 회색박스 진단** — 미해결, 아래 3번.
-
-**2. 왜 그렇게 했는지**
-- FAQ·배지·폴백·로딩문구는 `t()`를 안 거쳐 langCode를 무시 → 비영어에서 영어로 샌다(같은 뿌리 반복, #38·#39).
-- messages/calendar는 화면 전체가 en/ko뿐 → 깃발 몇 글자만 고치면 `COPY[lang]||COPY.en` 폴백이 깨지거나 나머지가 영어로 남음 → **화면 전체를 6언어로** 채워야 진짜 수정. 핵심 타겟이 러·카자흐 환자라 영향 큼.
-- **지도 진단 결론**: 키는 프로덕션 번들에 박혀 있고(`AIzaSyA_DY…`, 빌드 OK), 그 키로 Geocoding API 직접 호출 시 정상 응답 = **키 살아있음+결제 ON+리퍼러 제한 없음**. 그런데 지도만 회색 → 범인은 **Maps JavaScript API가 그 키/프로젝트에서 비활성**(또는 키 API제한에서 제외). PO가 말한 "가오픈때 잠깐 비활성"의 실체 = 코드/Vercel이 아니라 **구글콘솔에서 지도 API off**.
-
-**3. 안 끝났거나 보류**
-- **⚠️ 협력병원 지도 — Maps JavaScript API 켜기 미완.** PO 구글콘솔에 프로젝트가 2개(Medical consumables, My First Project)뿐인데 둘 다 Maps 없음 → **키는 또 다른 프로젝트/계정 소속 추정**(URL `authuser=2` = 멀티계정). 켜는 법: 키 든 GCP 프로젝트 찾아 **API 라이브러리 → Maps JavaScript API → 사용설정** + 키 "API 제한"에 포함. **코드/재배포 불필요(즉시 반영).** PO가 다른 세션에서 이어받기로 함 — 중복확인.
-- **⚠️ Vercel 무료플랜 하루 빌드상한** 걸림(2026-06-25 PR 다수) → **#369 production 배포가 상한 리셋(약 하루)까지 지연**될 수 있음. main엔 머지됨, 코드는 안전.
-- 보안: 지도 키 **리퍼러 제한 없음**(노출 키) → 켤 때 `healwith.co.kr/*`·`*.vercel.app/*` 리퍼러 제한 걸 것.
-
-**4. 주의·함정**
-- 지도 코드엔 kill switch 없음(`isDev||!apiKey`만). 회색박스 원인이 "키 없음"과 "구글이 키 거부(API미활성/리퍼러)"가 **둘 다 똑같은 회색** — 결제 에러만 노란 경고. "노란경고 없음=키없음"으로 오판하기 쉬움(이번에 한 번 헛짚음).
-- 인라인 다국어 자동검사 가드 시도→**철회**: `{ko,en}` 맵 검사가 의사 실명 등 **의도된 ko/en 이중언어 데이터**에 264건 오탐 → 자동화 비현실적, 코드리뷰 체크포인트로만(#38·#39).
-- **워크트리엔 node_modules 없음** → 거기선 build/dev 불가. preview dev 서버는 메인폴더를 서빙해서 워크트리 변경의 로컬 시각검증 불가 → **Vercel 프리뷰로 확인**.
-
-**5. 다음 세션이 먼저 할 일**
-1. **⚠️ 직전 미검증분 먼저**: #369 다국어가 **실서비스에 반영됐는지**(Vercel 빌드상한 풀린 뒤) — 쿠키창·환자 messages/calendar가 비영어(러/카자흐)로 뜨는지 실화면 1회. ru/kz 번역품질도 눈으로(자동검사 밖).
-2. **지도 Maps JavaScript API 켜기** — 키 든 GCP 프로젝트/계정 찾아(authuser 전환) API 사용설정 + 리퍼러 제한. 다른 세션 진행 중일 수 있으니 중복확인.
-3. (직전 핸드오프) 가입 메일클릭→자동로그인 실클릭 확인 + 관문3·4·5.
-
-**6. 검증 상태**
-- ✅ #365·#369·#372 머지됨. ci·Smoke 초록, `check:content` 통과, eslint 0 errors.
-- ✅ #369: ci·Smoke 초록 + 직전 실행에서 Vercel 빌드도 초록(반영확인). 충돌해소 후 재실행은 **Vercel만 rate-limit 빨강(코드 무관)** → PO 승인 하 `--admin` 머지.
-- ⚠️ **다국어 실화면(특히 ru/kz 번역·환자화면)은 로컬 시각검증 못 함**(워크트리 node_modules 없음). 인라인 COPY는 i18n 패리티검사 밖이라 자동검증도 안 됨 → Vercel 프리뷰/실서비스에서 눈으로 확인 필요.
-- ⚠️ **지도는 진단만, 미해결.**
-- PR: #365·#369·#372 전부 머지·CI 초록 확인함.
-
-**7. 다음 세션 첫 프롬프트**
-> 먼저 docs/PROJECT_CONTEXT.md 최상단 핸드오프 읽어라. ①#369 다국어 14곳이 실서비스 반영됐는지(Vercel 빌드상한 풀린 뒤) — 쿠키창·환자 messages/calendar가 러시아어/카자흐어로 뜨는지 1회 확인 ②협력병원 지도: 키(`AIzaSyA_DY…`) 든 구글 프로젝트/계정 찾아 Maps JavaScript API 켜기(코드수정 불필요, 리퍼러 제한도 걸기) — 다른 세션 중복확인. 회색박스는 결제에러만 노란경고고 나머진 다 회색이라 헷갈리니 주의.
-
----
 
 ## 🏷️ 서비스명 변경 — HEALO → **healwith** (2026-06-16 확정·적용)
 
