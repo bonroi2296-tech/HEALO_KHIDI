@@ -68,6 +68,10 @@ jobs:
           E2E_ADMIN_PASSWORD: ${{ secrets.E2E_ADMIN_PASSWORD }}
           E2E_COORDINATOR_EMAIL: ${{ secrets.E2E_COORDINATOR_EMAIL }}
           E2E_COORDINATOR_PASSWORD: ${{ secrets.E2E_COORDINATOR_PASSWORD }}
+          E2E_AGENCY_EMAIL: ${{ secrets.E2E_AGENCY_EMAIL }}
+          E2E_AGENCY_PASSWORD: ${{ secrets.E2E_AGENCY_PASSWORD }}
+          E2E_CLINIC_EMAIL: ${{ secrets.E2E_CLINIC_EMAIL }}
+          E2E_CLINIC_PASSWORD: ${{ secrets.E2E_CLINIC_PASSWORD }}
           # Supabase URL·anon 은 공개키(브라우저 노출) → 시크릿 미설정 시 리터럴 폴백(테스트 서버 기동 필수).
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://hvwwlkawaxabhtumjhrg.supabase.co' }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh2d3dsa2F3YXhhYmh0dW1qaHJnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUwNzMwMDksImV4cCI6MjA5MDY0OTAwOX0.zwakXKKLkQqRpaa5F7qehAyMVpvvvJMCtaKsPSsQBsI' }}
@@ -150,6 +154,10 @@ jobs:
           E2E_ADMIN_PASSWORD: ${{ secrets.E2E_ADMIN_PASSWORD }}
           E2E_COORDINATOR_EMAIL: ${{ secrets.E2E_COORDINATOR_EMAIL }}
           E2E_COORDINATOR_PASSWORD: ${{ secrets.E2E_COORDINATOR_PASSWORD }}
+          E2E_AGENCY_EMAIL: ${{ secrets.E2E_AGENCY_EMAIL }}
+          E2E_AGENCY_PASSWORD: ${{ secrets.E2E_AGENCY_PASSWORD }}
+          E2E_CLINIC_EMAIL: ${{ secrets.E2E_CLINIC_EMAIL }}
+          E2E_CLINIC_PASSWORD: ${{ secrets.E2E_CLINIC_PASSWORD }}
           # Supabase URL·anon 은 공개키 → 시크릿 미설정 시 리터럴 폴백(테스트 서버 기동 필수).
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL || 'https://hvwwlkawaxabhtumjhrg.supabase.co' }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh2d3dsa2F3YXhhYmh0dW1qaHJnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUwNzMwMDksImV4cCI6MjA5MDY0OTAwOX0.zwakXKKLkQqRpaa5F7qehAyMVpvvvJMCtaKsPSsQBsI' }}
