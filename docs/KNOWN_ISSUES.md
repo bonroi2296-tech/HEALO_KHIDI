@@ -16,7 +16,7 @@
 
 ### 🔎 겉보기 의심 → 파보니 블로커 아님
 - `/kk` 404는 내부 로케일코드가 `kz`라서(정상, `proxy.ts`가 브라우저 kk→kz 매핑). 카자흐는 `/kz`에서 작동.
-- `/ru/for-russian-patients`·`/kk/for-kazakh-patients`는 의도된 레거시 랜딩(Yandex 색인, `proxy.ts` LEGACY_SKIP). 🔸 사소: html `lang="en"` 속성만 영어(내용은 타겟어) — SEO 미세 개선거리.
+- `/ru/for-russian-patients`·`/kk/for-kazakh-patients`는 의도된 레거시 랜딩(Yandex 색인, `proxy.ts` LEGACY_SKIP). ~~🔸 사소: html `lang="en"` 속성만 영어~~ ✅ **해결(#361)**: LEGACY_SKIP 경로에도 `x-locale` 주입 → `lang="ru"`/`lang="kk"` 렌더(dev 실렌더 확인).
 
 ### 🔴 오픈 전 남은 관문 (PO만 닫을 수 있음 — 이게 닫히면 오픈 OK)
 1. **가입→인증메일→로그인 / 비번찾기→메일** 실제 1회 통과(실메일 — API로는 부작용이라 미검증).
@@ -37,7 +37,7 @@
 > 새 가드 `npm run check:schema-refs`로 코드의 `.from("테이블")`을 실재 public 테이블과 대조하다 발견. 1건은 즉시 수정, 2건은 dead-path라 allowlist로 추적 후 별도 수정.
 
 - ✅ **수정됨**: `app/api/admin/khidi/ai-feedback/route.ts` — 부정 피드백 메시지 내용을 존재하지 않는 `inquiry_messages(content/role)`에서 조회 → 어드민 화면에 메시지 내용이 통째로 안 떴음(조용한 실패). 실재 `chat_messages(message_text)`로 교정 + 에러 표면화.
-- 🔸 **추적(dead-path, 가드 allowlist)**: ①`app/api/cron/dispatch-surveys/route.ts:105` `.from("patients")` — `session.patient_id`(현재 전행 null) 가드 안이라 미실행, 실연결은 `inquiries` 폴백. patient_id가 채워질 미래엔 깨지므로 그 전에 제거/교정 필요. ②`src/lib/symptoms/alertService.ts:73` `.from("users")` — `COORDINATOR_FALLBACK_EMAIL` env 가드 안 fallback. `auth.users`는 `.from()`으로 조회 불가 → `auth.admin` API로 교체해야 fallback이 실제 동작. env 미설정이라 현재 무영향.
+- ~~🔸 **추적(dead-path, 가드 allowlist)**~~ ✅ **해결(#362)**: ①`dispatch-surveys`의 `.from("patients")` 죽은 가지 제거(수신자=inquiries 단일화). ②`alertService`의 `.from("users")` → `auth.admin.listUsers` 이메일 매칭으로 교체(env 설정 시 실동작). 가드 allowlist 비움 → `check:schema-refs`가 이제 전부 실재 테이블만 통과.
 - **가드 한계**: 현재 **테이블 레벨**만. 컬럼 레벨(예: chat_messages에 없는 `content`/`role`)은 생성타입(`database.types.ts`) 도입과 함께 후속.
 
 ---
@@ -54,7 +54,7 @@
 ### 🟡 진짜 남은 출시 리스크 (PO 결정/라이브 검증 필요 — 자율 보류)
 1. **🔴 [영상상담, iOS] 서버 STT 2차 getUserMedia가 LiveKit 마이크 탈취** — `app/consultation/[id]/page.jsx:1325`(2차 `getUserMedia({audio:true})`). iOS Safari는 2차 오디오 캡처가 1차(LiveKit 송출 마이크)를 **조용히** 빼앗아 환자 마이크가 죽음(throw 없음 → 코드의 catch도 안 걸림). 카자흐/러 환자 아이폰 = 정확히 이 경로. **영상상담은 헤더 전면배치 = 고객대면 핵심 → 최우선 실리스크.** 수정안 (a)iOS Safari는 서버STT 진입 자체를 막고 텍스트입력 폴백(작음·저위험, 단 iOS 자막 기능 degrade) (b)2차 캡처 대신 LiveKit 기존 마이크 트랙 재사용(견고하나 God컴포넌트 수정+**실아이폰 2인 검증 필수**). **빌드·iOS 검증 불가 환경이라 blind 수정 보류** — PO가 (a)/(b) 택1 + 라이브 검증.
 2. **[협력기관 가시성] EDGE-1: 환자 여정바가 `case_status`를 안 읽음** — `src/lib/patient/journeyState.js`(`computeCurrentStage`)가 `inquiry_events`만 봄 → 코디/병원이 case_status를 올려도 환자 대시보드 정체. **단 환자/코디 포털은 현재 미활성(메뉴 미연결·계정 없음)** → 내일 고객영향 0. 평가관이 환자로 로그인해 여정 볼 시나리오면 문제 → **포털 활성/평가 전 수정**. RISKY(환자 화면 단계 재정렬 가능, 라이브 검증).
-3. **[다국어 엣지] 영상방 게스트 `targetLang` 하드코딩 `ru`** — `page.jsx`. 표준 데모(한 의사↔러/카 환자)는 정상, 비표준 언어쌍에서 오타겟. 환자 언어에서 유도 권장(소).
+3. ~~**[다국어 엣지] 영상방 게스트 `targetLang` 하드코딩 `ru`**~~ ✅ **해결(#360)**: `guest-join` API가 세션 `patient_language`/`doctor_language` 반환 → 게스트 클라가 역할 기반으로 상대 언어 결정(없으면 기존 기본값 폴백). ⚠️ 실자막 동작은 실상담 1회 육안확인 권장(LiveKit+2인 필요).
 4. **soft-404(P2, 위 별도 섹션)** — PO 이미 "보류" 결정.
 
 ### ✅ 이번 세션 수정 적용 (PR #269)
@@ -97,7 +97,7 @@
 5. **[가시성] 점수판 outcome 확정/이탈이 case_status_history 에 안 남음 (EDGE-5)** — `conversion-funnel` PATCH 가 outcome 만 써 **에이전시가 '확정/이탈'을 타임라인에서 못 봄**.
 6. **[데이터 유실+PII] step2 의 `cancer_patient_intakes` upsert 가 항상 무음 실패** — `inquiry_id` UNIQUE 제약이 없어(`onConflict:"inquiry_id"`) 매번 throw→catch 로 버려짐 → 구조적 intake 저장 안 됨. 게다가 `current_treatment` 를 **평문**으로 쓰려 함(같은 값 inquiries.intake 엔 암호화). **수정이 엉킴**: 고치면 step2 인콰이어리가 `/api/khidi/intake` 큐(EscalationQueue)에 cancer_type 빈 채로 등장하는 등 **제품 동작이 바뀜** → select-then-write + `current_treatment_encrypted` 사용 + EscalationQueue 영향 검토를 PO 와 함께.
 7. **[KPI 정확도] 공개 문의 POST 레이트리밋이 인메모리** — `inquiries/step1·step2·create`·`guest-join` 등은 `checkRateLimit`(인스턴스별 Map, 콜드스타트 리셋)라 분산 봇에 약함. `checkRateLimitPersistent`(DB, 이미 chat 에 적용)로 이관 권장 → 스팸 리드가 퍼널 KPI 오염 방지.
-8. **[K-01 잠재] 화상방 게스트 targetLang 하드코딩** — `page.jsx:714-716` `ml==="ko"?"ru":"ko"`. 표준 데모(한 의사↔러/카 환자)는 정상이나 다국 CIS·게스트 의사 조합에선 오타겟. 의사/환자 언어쌍에서 유도하도록 권장.
+8. ~~**[K-01 잠재] 화상방 게스트 targetLang 하드코딩**~~ ✅ **해결(#360)**: 게스트 입장 시 세션 설정 언어(`patient_language`/`doctor_language`)로 상대 언어 결정하도록 교체(위 "진짜 남은 출시 리스크" #3과 동일 건).
 9. **[저] 만족도 환산이 null 점수를 0 으로** — `satisfaction.ts:38-45`. 현재 submit 이 5문항 필수라 발현 안 함. 부분응답 유입 시 K-03 끌어내림. (의도된 정의라 변경은 K-03 공식 변경 = PO 판단.)
 
 > **보안 감사 결과**: 고신뢰 취약점 0(인증·암호화·게스트토큰 견고). 위 #7 인메모리 레이트리밋만 하드닝 권장.
