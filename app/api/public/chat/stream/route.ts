@@ -90,6 +90,11 @@ export async function POST(request: NextRequest) {
   if (thread.status === "resolved" || thread.status === "closed") {
     return jsonError("Thread is closed", 410);
   }
+  // PIPA: 민감 건강정보 처리 전 동의 필수. 동의 기록 없는 thread(게이트 도입 이전 시작분·
+  // 재방문 쿠키 포함)는 메시지 처리 차단 → 클라이언트가 동의 게이트를 띄워 기록하게 함.
+  if (thread.metadata?.consent?.health_crossborder !== true) {
+    return jsonError("consent_required", 403);
+  }
 
   // 로그인 연동: 익명으로 시작한 스레드라도 로그인 사용자가 쓰면 계정에 연결한다(아직 미연결일 때만
   // 인증 조회 — 매 턴 auth 왕복 방지). 연결되면 reachable=true → "접수완료" 정상 안내 + 세션 사실 정확.

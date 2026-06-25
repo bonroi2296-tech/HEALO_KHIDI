@@ -912,3 +912,23 @@ PO가 협력병원 상세(`/hospitals/[slug]`) 하단 "자주 묻는 질문"이 
 - 스킵: `/stories`는 비활성(홈 리다이렉트) 죽은 페이지라 그 안의 영어 잔재는 의도적으로 안 고침.
 
 ⚠️ 미검증: 워크트리에 node_modules 없어 로컬 빌드 불가 → 빌드·런타임 검증은 PR Vercel 프리뷰+CI로. 번역 품질(특히 ru/kz)은 자동검사 대상 아님(인라인 COPY는 패리티검사 밖).
+
+## #40 — AI챗 동의 게이트(#356)가 매일 챗 스모크를 조용히 깸 + 재방문자(쿠키)는 게이트 우회 (2026-06-25)
+
+**무슨 일**
+1. #356이 `/api/public/chat/start`에 동의 필수(`consent!==true`→400)를 넣었는데, **`scripts/smoke-chat.mjs`·`check-ai-behavior.mjs`의 startThread가 consent를 안 보냄** → 다음 cron부터 매일 챗 스모크가 빨강이 될 상태였음.
+2. 동의 게이트가 **쿠키 없는 신규 사용자한테만** 떠서, 재방문자(쿠키 보유) + 게이트 도입 이전 시작 thread는 **동의 없이 계속 채팅** 가능(PO가 자기 쿠키로 보고 "게이트 안 뜬다"고 지적 — 실제로는 재방문자라 스킵된 것).
+
+**왜 못 잡았나 (근본원인 = #35 패턴)**
+- `chat-smoke.yml`은 **PR push가 아니라 cron(매일 18:30 UTC)** 트리거 → #356 PR의 CI(ci·Smoke)에 안 돌아서 **조용히 통과**. "PR 초록 = 안전" 가정의 사각지대(스케줄 잡은 PR을 안 막음).
+- 동의 게이트를 "쿠키 유무"로만 판단 → 동의를 *기록*했는지와 무관하게 재방문자를 통과시킴(데이터가 아니라 쿠키로 분기한 실수).
+
+**어떻게 고쳤나**
+- 스모크 2개 startThread에 `consent:true` 추가(매일 스모크 복구).
+- **서버 enforcement**: `/api/public/chat/stream`이 `metadata.consent.health_crossborder!==true`면 `consent_required` 403 → 클라 게이트 우회해도 메시지 처리 안 됨.
+- `/api/public/chat/resume`가 `has_consent` 반환 → 클라가 **동의 기록 없는 기존 thread면 게이트** 표시. 신규 `/api/public/chat/consent`로 기존 thread 동의 백필.
+
+**재발 방지**
+- 유사 스캔: `/api/public/chat/start` 모든 호출부 전수(앱 2 + 스모크 2) — 전부 consent 전송 확인.
+- 교훈: **cron-only 스모크/체크는 PR을 안 막는다 → 그 스모크가 의존하는 API를 바꾸면 같은 PR에서 스모크 호출부도 같이 고쳐라.** (PR 초록이 cron 적색을 가린다.)
+- 교훈: **게이트는 쿠키가 아니라 "기록된 사실(동의 여부)"로 분기.**

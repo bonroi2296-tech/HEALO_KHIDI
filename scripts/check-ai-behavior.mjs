@@ -35,7 +35,8 @@ async function startThread(language = "ko") {
   const r = await fetch(`${BASE}/api/public/chat/start`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ language }),
+    // PIPA: /start·/stream 이 동의를 요구함(게이트). 점검도 동의 포함해야 통과.
+    body: JSON.stringify({ language, consent: true, consent_version: "1.0.0" }),
   });
   const j = await r.json();
   if (!j.ok) throw new Error(`start failed: ${JSON.stringify(j)}`);
