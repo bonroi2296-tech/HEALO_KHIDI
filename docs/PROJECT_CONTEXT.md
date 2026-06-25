@@ -7,6 +7,41 @@
 
 ---
 
+## 🔖 세션 핸드오프 (2026-06-25 오후 — Sentry 에러 트리아지 + Session Replay(에러 시 화면재생) 켜기)
+
+> PO가 "k8s가 뭐냐"로 시작 → 도입할 만한 개념 묻다가 → 마침 Sentry 콘솔 스샷을 보여줌(에러 2개). 그 에러를 진단(둘 다 노이즈로 판명)하고, 평소 PO 고민(버그를 스샷으로 직접 찾기)을 줄일 **Session Replay**를 켰다.
+
+**1. 이번 세션 한 일**
+- **Sentry 에러 2건 트리아지** — ①`AbortError: signal is aborted without reason`(페이지 이탈 시 요청취소=무해) ②`TypeError: Cannot read properties of undefined (reading 'call')`(웹팩 청크 로딩 실패=배포 찰나의 일회성 튕김, 1회·유저 0명). **둘 다 노이즈로 판명** → PO가 Sentry에서 Archive만 하면 끝(코드 수정 불필요). 홈(`app/page.jsx`)·`global-error.jsx` 코드는 깨끗함 확인.
+- **Session Replay 켜기** [#376 머지·프로덕션 배포] — `sentry.client.config.js`에 `Sentry.replayIntegration({ maskAllText: true, blockAllMedia: true })` 한 줄 추가. 에러 날 때 사용자가 화면에서 뭘 눌렀는지 영상 재생.
+
+**2. 왜 그렇게 했는지**
+- 샘플링(`replaysSessionSampleRate: 0` / `replaysOnErrorSampleRate: 1.0`)은 **이미 설정돼 있었으나 integration 자체가 빠져** 리플레이가 동작 안 하던 것. 한 줄로 활성화.
+- **에러 때만 녹화**(평소 0) → 무료 플랜 50개/월 안 까먹음. **maskAllText·blockAllMedia**로 의료앱 환자 PII(텍스트·이미지) 노출 0 유지.
+- TypeError 예방코드(청크에러 자동 새로고침)는 **PO가 "그냥 Archive하고 끝" 선택** → 1회·유저0이라 지금 넣는 건 과함(YAGNI). 자주 재발하면 그때 가드.
+
+**3. 안 끝났거나 보류**
+- PO가 Sentry 콘솔에서 에러 2개(AbortError·TypeError) **Archive 직접 클릭** — 1분, PO 몫.
+- TypeError가 자주 재발하면 청크에러 자동 새로고침 가드 추가(지금은 보류).
+
+**4. 주의·함정**
+- Session Replay는 **프로덕션 + DSN 설정 + 실제 에러 발생** 3박자가 맞아야 영상이 생김. 로컬·평소엔 아무것도 안 생기는 게 정상.
+- `node -e "require('@sentry/nextjs').replayIntegration"`는 **서버 빌드**라 `undefined`로 나옴(Replay는 브라우저 전용) — 정상. 클라 번들 체인(@sentry/nextjs→react→browser prod)엔 존재함 실측 확인.
+
+**5. 다음 세션이 먼저 할 일**
+1. (직전 인증 핸드오프 미검증분 계속 유효) PO에게 가입→메일클릭→자동로그인 실클릭 1회 확인 — 아래 2026-06-25 인증 핸드오프 5번 참조.
+2. 진짜 버그가 Sentry에 뜨면 그 에러의 **Replay 탭** 영상 보고 진단(이번에 켠 기능 첫 실전).
+
+**6. 검증 상태**
+- ✅ #376 CI 전부 초록(Smoke Tests·ci·Vercel 빌드 다 pass) → squash 머지·브랜치 삭제·main 동기화 완료.
+- ✅ `replayIntegration` export 클라이언트 번들 체인 존재 실측 확인.
+- ⚠️ **실제 리플레이 영상 생성은 미관측**(프로덕션 실에러가 나야 확인 가능) — 다음 실에러 때 자연 검증됨.
+
+**7. 다음 세션 첫 프롬프트**
+> 먼저 docs/PROJECT_CONTEXT.md 최상단 핸드오프를 읽어라. Sentry Session Replay는 켜졌다(#376) — 진짜 버그 뜨면 에러의 Replay 탭 영상으로 진단하면 된다. 그담 직전 인증 핸드오프(2026-06-25)의 미검증분(가입→메일클릭→자동로그인 실클릭 1회 확인)부터 PO에게 요청해라.
+
+---
+
 ## 🔖 세션 핸드오프 (2026-06-25 — 가입·인증 흐름 전면 수리: 관문1·2 닫힘 + 비번정책 + token_hash 자동로그인)
 
 > PO가 출시 관문1(실메일 인증)부터 막힘 → 가입/로그인 흐름의 여러 버그를 연쇄로 잡고, 마지막엔 "자율 피버모드"로 자동로그인·비번재설정 흐름을 API레벨까지 검증. **관문1(실메일)·관문2(템플릿/자동로그인) 둘 다 닫음.**
