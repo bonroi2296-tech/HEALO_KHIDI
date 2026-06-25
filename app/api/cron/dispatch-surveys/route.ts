@@ -95,20 +95,9 @@ export async function GET(request: NextRequest) {
       }
 
       // 환자 이메일·언어·이름 결정.
-      // patient_id 는 현재 전부 null(미사용)이라 patients 만으로는 항상 skip 됐다
-      // (= 설문 0건, KPI K-03 측정 불능 POSTMORTEMS #12). 실제 연결고리인
-      // inquiry_id → inquiries 로 폴백한다. 결정 로직은 순수함수 resolveSurveyRecipient
-      // (단위 테스트로 고정).
-      let patientRow: { email?: string | null } | null = null;
-      if (session.patient_id) {
-        const { data } = await db
-          .from("patients")
-          .select("email")
-          .eq("user_id", session.patient_id)
-          .maybeSingle();
-        patientRow = data || null;
-      }
-
+      // consultation_sessions.patient_id 는 전 행 null(미사용)이고 별도 patients
+      // 테이블도 없다 → 실제 환자 연결고리인 inquiry_id → inquiries 로만 결정한다
+      // (POSTMORTEMS #12). 결정 로직은 순수함수 resolveSurveyRecipient(단위 테스트로 고정).
       let inquiryRow:
         | {
             email?: string | null;
@@ -118,7 +107,7 @@ export async function GET(request: NextRequest) {
             last_name?: string | null;
           }
         | null = null;
-      if (!patientRow?.email && session.inquiry_id) {
+      if (session.inquiry_id) {
         const { data } = await db
           .from("inquiries")
           .select("email, preferred_language, spoken_language, first_name, last_name")
@@ -141,7 +130,7 @@ export async function GET(request: NextRequest) {
         }
       }
 
-      const recipient = resolveSurveyRecipient(session, patientRow, inquiryRow);
+      const recipient = resolveSurveyRecipient(session, null, inquiryRow);
       if (!recipient) {
         skipped++;
         continue;

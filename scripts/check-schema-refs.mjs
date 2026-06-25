@@ -48,8 +48,7 @@ const STORAGE_BUCKETS = new Set(["documents", "images", "attachments"]);
 // 알려진 잔존 비존재 참조 — 즉시 안 깨지는 dead path(가드 조건이 항상 false)라
 // 별도 트랙으로 수정 예정(KNOWN_ISSUES). 새 위반을 여기 추가해 숨기지 말 것.
 const ALLOWLIST = new Map([
-  ["patients", "dispatch-surveys: session.patient_id(현재 전행 null) 가드 안 dead path. 실연결은 inquiries 폴백(resolveSurveyRecipient). #12/#35-S2"],
-  ["users", "alertService getCoordinatorIds: COORDINATOR_FALLBACK_EMAIL env 가드 안 fallback. auth.users는 .from()으로 조회 불가 → auth.admin API로 별도 수정 필요. #14/#35-S2"],
+  // (비어있음) 과거 dead-path(patients/users)는 제거·교정 완료 — KNOWN_ISSUES #35-S2.
 ]);
 
 function walk(dir, out) {
