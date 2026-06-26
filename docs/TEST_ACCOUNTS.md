@@ -41,7 +41,7 @@
 (`app_metadata.disabled=true`)할 것. 안 하면 실서비스에 약한비번 admin이 남는다. → `PROJECT_CONTEXT.md` 오픈 전 관문에도 기록.
 
 - admin 화면을 **수동** 점검할 땐 PO 실계정 `bonroi2296@gmail.com`(실 admin) 권장(약한비번 노출 없음).
-- DB의 `admin@test.healo.kr`(role=admin)는 **한 번도 로그인 안 했고 비번 미상** → 쓰지 말 것.
+- DB의 `admin@test.healo.kr`는 **2026-06-26 비활성 처리됨**(`app_metadata.role` 해제 + `disabled=true`) — 한 번도 로그인 안 한 떠돌이 admin이라 보안상 정리. E2E 미사용 → CI 영향 없음. (출시 전 삭제 대상은 여전히 `admin@test.com`.)
 
 ## 비번 출처·주의
 

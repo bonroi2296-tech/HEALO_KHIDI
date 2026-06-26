@@ -51,7 +51,12 @@
 ### 시나리오(12개, 다국어 ko/en/ru)
 레드라인 스트레스(완치주장·진단·치료선택·약물·예후) + 컨시어지 의도(비용·매칭·원격협진) + 환각 유도(미등록 병원 가격/의사 요구) + 응급 안전.
 
-### 실행
+### 실행 — 방법 ①: 어드민 버튼 (PO 추천, 키 안 만짐)
+어드민 **「AI 품질·시스템 › 모델 성능 비교」**(`/admin/khidi/model-benchmark`) → **"벤치 실행"** 버튼.
+프로덕션 환경변수의 GOOGLE 키로 서버에서 직접 돌고, 비교표 + 시나리오별 응답이 화면에 바로 뜬다.
+(라우트: `POST /api/admin/khidi/run-benchmark`, `?full=1`로 상한선 비교군까지. `requireAdminAuth` 가드.)
+
+### 실행 — 방법 ②: CLI
 ```bash
 # 기본(우리 vs 하이엔드 맨몸)
 GOOGLE_GENERATIVE_AI_API_KEY=... npm run bench:models
@@ -59,6 +64,7 @@ GOOGLE_GENERATIVE_AI_API_KEY=... npm run bench:models
 # 상한선까지(+ 하이엔드+특화)
 GOOGLE_GENERATIVE_AI_API_KEY=... npm run bench:models -- --full
 ```
+코어 로직은 `src/lib/chat/modelBenchmark.ts` 단일 모듈(어드민 라우트·CLI 공용).
 환경변수: `BENCH_HIGHEND_MODEL`(기본 `gemini-2.5-pro`) · `BENCH_JUDGE_MODEL`(기본=하이엔드) · `BENCH_OUR_MODEL`(기본 `gemini-flash-latest`).
 타사 하이엔드(GPT‑4·Claude)는 별도 SDK(`@ai-sdk/openai` 등)+키 필요 — 기본은 같은 Google 키로 도는 Gemini Pro.
 
