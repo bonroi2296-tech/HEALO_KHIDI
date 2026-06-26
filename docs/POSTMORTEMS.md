@@ -8,6 +8,14 @@
 
 ---
 
+## #42 — 비밀번호 재설정 링크가 **항상** 무효 — PKCE 토큰을 verifyOtp로 검증 (2026-06-26)
+
+- **무슨 일**: 로그인 '비밀번호 찾기' → 메일은 정상 발송. 링크 클릭 시 `/reset-password`가 매번 "이 링크가 만료되었거나 유효하지 않습니다". 재설정 자체가 불가.
+- **근본원인**: 기본 SSR 클라이언트 = PKCE flow → `resetPasswordForEmail`이 만든 메일 링크 token_hash에 `pkce_` 접두가 붙는다. 그런데 `verifyOtp`는 단순히 `{token_hash,type}`를 `/verify`로 POST하고 **세션을 돌려받길** 기대할 뿐, PKCE의 code_verifier 교환을 하지 않는다. `pkce_` 토큰은 verifier 교환(2단계)이 있어야 세션이 나오므로 `/verify`가 세션을 안 줌 → **항상 무효**. (빌드·타입검사는 통과 = #35의 "조용한 실패" 한 패턴.)
+- **고침**: 메일 발송 전용 **implicit-flow 클라이언트**(`createOtpEmailClient`, `src/lib/supabase/browser.ts`)로 `resetPasswordForEmail` 호출 → `pkce_` 없는 평범한 token_hash 발급 → `verifyOtp`가 서버에서 바로 검증. 기기·재요청 무관하게 작동. ([PR #392](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/392))
+- **유사 스캔**: `verifyOtp` 사용처 2곳 — `/reset-password`(이번 수정으로 해결), `/auth/confirm`(코드상 어디서도 링크 안 됨 = 死경로, 미사용). 가입 인증은 `/auth/callback`의 `exchangeCodeForSession`(PKCE 코드 교환)으로 별도 경로라 무관.
+- **재발 방지**: 이메일 링크(recovery·OTP)를 verifyOtp로 검증하려면 **반드시 implicit-flow 클라(`createOtpEmailClient`)로 발송**해야 한다 — PKCE 싱글톤(`createSupabaseBrowserClient`)으로 `resetPasswordForEmail`/`signInWithOtp`를 호출하면 동일 버그 재발. 앞으로 이메일 발송은 이 헬퍼만 사용.
+
 ## #35 — (메타·중대) "구현했다는데 안 됨"의 단일 근본 메커니즘 = **조용한 성공으로 위장한 실패** (2026-06-24, 4갈래 병렬 감사로 검증)
 
 > PO 직접 지적: **"전부 다. 그동안 니가 구현했다고 한 게 정상작동 안 하거나 내 의도와 벗어난 게 너무 많았잖아. 당연히 체크해야 할 것도 못 했고."**
