@@ -11,6 +11,9 @@ import { useLang } from '@/lib/i18n/LangContext';
 
 const supabase = createSupabaseBrowserClient();
 
+// "아이디(이메일) 찾기" 링크 라벨 — 활성 6개 언어 인라인 (공용 i18n 미수정)
+const FIND_ID_LABEL = { ko: "아이디 찾기", en: "Find email", ru: "Найти эл. почту", kz: "Поштаны табу", zh: "找回邮箱", ja: "メールを探す" };
+
 export const LoginPage = ({ setView }) => {
     const toast = useToast();
     const router = useRouter();
@@ -80,7 +83,10 @@ export const LoginPage = ({ setView }) => {
 
                 <form onSubmit={handleLogin} className="space-y-6">
                     <div>
-                        <label htmlFor="login-email" className="block text-sm font-bold text-gray-700 mb-1">{t("login.email", langCode)}</label>
+                        <div className="flex justify-between items-center mb-1">
+                            <label htmlFor="login-email" className="block text-sm font-bold text-gray-700">{t("login.email", langCode)}</label>
+                            <Link href="/find-id" className="text-xs font-bold text-teal-700 hover:underline">{FIND_ID_LABEL[langCode] || FIND_ID_LABEL.en}</Link>
+                        </div>
                         <div className="relative">
                             <Mail className="absolute left-4 top-3.5 text-gray-400" size={20}/>
                             <input

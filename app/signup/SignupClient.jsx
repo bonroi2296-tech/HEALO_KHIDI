@@ -70,12 +70,19 @@ const ALREADY_REGISTERED = {
     loginBtn: { ko: '로그인 / 비밀번호 찾기', en: 'Log in / Reset password', ru: 'Вход / Сброс пароля', kz: 'Кіру / Құпиясөзді қалпына келтіру', zh: '登录 / 找回密码', ja: 'ログイン / パスワード再設定' },
 };
 
+// 생년월일 라벨/안내 — 활성 6개 언어 인라인 (공용 i18n 미수정)
+const BIRTH_L = {
+    label: { ko: '생년월일', en: 'Date of birth', ru: 'Дата рождения', kz: 'Туған күні', zh: '出生日期', ja: '生年月日' },
+    note: { ko: '아이디(이메일)를 잊었을 때 본인 확인에 쓰여요.', en: 'Used to verify you if you forget your login email.', ru: 'Используется для подтверждения личности, если вы забудете эл. почту.', kz: 'Кіру поштаңызды ұмытсаңыз, жеке басыңызды растауға қолданылады.', zh: '当您忘记登录邮箱时用于身份验证。', ja: 'ログイン用メールを忘れた際の本人確認に使われます。' },
+};
+
 export const SignUpPage = ({ setView }) => {
     const toast = useToast();
     const router = useRouter();
     const langCode = useLang();
     const [firstName, setFirstName] = useState('');
     const [lastName, setLastName] = useState('');
+    const [birthdate, setBirthdate] = useState(''); // YYYY-MM-DD — 아이디(이메일) 찾기용
     const [email, setEmail] = useState('');
     const [loading, setLoading] = useState(false);
 
@@ -134,7 +141,7 @@ export const SignUpPage = ({ setView }) => {
     const pwCheck = validatePassword(password);
 
     const handleSignUp = async () => {
-        if (!firstName || !lastName || !email) {
+        if (!firstName || !lastName || !email || !birthdate) {
             toast.error(t("signup.errorRequired", langCode));
             return;
         }
@@ -164,6 +171,7 @@ export const SignUpPage = ({ setView }) => {
                 data: {
                     first_name: firstName,
                     last_name: lastName,
+                    birthdate: birthdate, // 아이디(이메일) 찾기 본인확인용 (YYYY-MM-DD)
                     is_marketing_agreed: isMarketing,
                     lang: langCode, // 인증/복구 메일을 사용자 언어로 보내기 위해 저장 ({{ .Data.lang }})
                 },
@@ -280,6 +288,19 @@ export const SignUpPage = ({ setView }) => {
                     <p className="text-[10px] text-gray-400 px-1 -mt-2">
                         {t("signup.passportNote", langCode)}
                     </p>
+
+                    <div>
+                        <label htmlFor="signup-birthdate" className="block text-xs font-bold text-gray-700 mb-1 ml-1">{BIRTH_L.label[langCode] || BIRTH_L.label.en}</label>
+                        <input
+                            id="signup-birthdate"
+                            type="date"
+                            value={birthdate}
+                            max={new Date().toISOString().slice(0, 10)}
+                            onChange={(e) => setBirthdate(e.target.value)}
+                            className="w-full p-3 rounded-xl border border-gray-200 focus:border-teal-500 focus:ring-2 focus:ring-teal-100 outline-none transition text-sm text-gray-700"
+                        />
+                        <p className="text-[10px] text-gray-400 px-1 mt-1">{BIRTH_L.note[langCode] || BIRTH_L.note.en}</p>
+                    </div>
 
                     <div>
                         <div className="relative">
