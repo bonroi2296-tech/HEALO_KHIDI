@@ -34,6 +34,7 @@
     "e2e:debug": "playwright test --debug",
     "e2e:headed": "playwright test --headed",
     "eval": "tsx scripts/evaluation.ts",
+    "bench:models": "tsx scripts/model-benchmark.ts",
     "test:smoke:inquiry": "node scripts/smoke-test-inquiry.js",
     "test:smoke:auth": "node scripts/smoke-test-auth.js",
     "collect": "tsx scripts/data-collection/index.ts",
