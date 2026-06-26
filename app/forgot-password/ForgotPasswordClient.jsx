@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Mail, ArrowLeft, MailCheck } from "lucide-react";
-import Turnstile, { turnstileEnabled } from "@/components/Turnstile";
 import { useToast } from "@/components/Toast";
 import { useLang } from "@/lib/i18n/LangContext";
 
@@ -17,7 +16,6 @@ const L = {
   sending: { ko: "보내는 중...", en: "Sending...", ru: "Отправка...", kz: "Жіберілуде...", zh: "发送中...", ja: "送信中..." },
   back: { ko: "로그인으로 돌아가기", en: "Back to login", ru: "Назад ко входу", kz: "Кіруге оралу", zh: "返回登录", ja: "ログインに戻る" },
   needEmail: { ko: "이메일을 입력해주세요", en: "Please enter your email", ru: "Введите эл. почту", kz: "Эл. поштаңызды енгізіңіз", zh: "请输入邮箱", ja: "メールアドレスを入力してください" },
-  needCaptcha: { ko: "'로봇이 아닙니다' 확인을 완료해주세요", en: "Please complete the 'I'm not a robot' check", ru: "Пройдите проверку «Я не робот»", kz: "«Мен робот емеспін» тексеруінен өтіңіз", zh: "请完成「我不是机器人」验证", ja: "「私はロボットではありません」を完了してください" },
   sentTitle: { ko: "메일을 보냈어요", en: "Check your email", ru: "Проверьте почту", kz: "Поштаңызды тексеріңіз", zh: "请查收邮件", ja: "メールをご確認ください" },
   sentBody: { ko: "재설정 링크를 메일로 보냈어요. 메일함(스팸함 포함)을 확인해주세요. 메일이 안 보이면 잠시 후 다시 시도해주세요.", en: "We've sent a reset link. Check your inbox (and spam). If you don't see it, try again in a moment.", ru: "Мы отправили ссылку для сброса. Проверьте почту (и спам). Если письма нет, повторите попытку чуть позже.", kz: "Қалпына келтіру сілтемесін жібердік. Поштаңызды (спамды да) тексеріңіз. Хат жоқ болса, сәл кейін қайталаңыз.", zh: "我们已发送重置链接，请查收（含垃圾邮件）。若未收到，请稍后重试。", ja: "再設定リンクを送信しました。受信箱（迷惑メールも）をご確認ください。届かない場合は少し待って再度お試しください。" },
 };
@@ -29,7 +27,6 @@ export default function ForgotPasswordClient() {
   const langCode = useLang();
 
   const [email, setEmail] = useState("");
-  const [captchaToken, setCaptchaToken] = useState("");
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
 
@@ -42,13 +39,13 @@ export default function ForgotPasswordClient() {
   const handleSubmit = async (e) => {
     if (e) e.preventDefault();
     if (!email) { toast.error(pick(L.needEmail, langCode)); return; }
-    if (turnstileEnabled && !captchaToken) { toast.error(pick(L.needCaptcha, langCode)); return; }
     setSending(true);
     // 결과(가입 여부)와 무관하게 동일 처리 — 이메일 존재 노출 방지.
+    // 봇 차단은 서버 라우트의 IP 레이트리밋(1분 5회)으로.
     await fetch("/api/auth/forgot-password", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, captchaToken }),
+      body: JSON.stringify({ email }),
     }).catch(() => {});
     setSending(false);
     setSent(true);
@@ -95,15 +92,9 @@ export default function ForgotPasswordClient() {
                 </div>
               </div>
 
-              {turnstileEnabled && (
-                <div className="flex justify-center">
-                  <Turnstile onVerify={setCaptchaToken} />
-                </div>
-              )}
-
               <button
                 type="submit"
-                disabled={sending || (turnstileEnabled && !captchaToken)}
+                disabled={sending}
                 className="w-full bg-teal-700 text-white font-bold py-3.5 rounded-xl hover:bg-teal-800 transition shadow-lg shadow-teal-100 disabled:bg-gray-300 disabled:shadow-none"
               >
                 {sending ? pick(L.sending, langCode) : pick(L.submit, langCode)}
