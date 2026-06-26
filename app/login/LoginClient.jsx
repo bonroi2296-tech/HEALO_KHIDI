@@ -1,23 +1,15 @@
 "use client";
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser';
-import Turnstile, { turnstileEnabled } from '@/components/Turnstile';
 import { useToast } from '@/components/Toast';
 import { t } from '@/lib/i18n';
 import { useLang } from '@/lib/i18n/LangContext';
 
 const supabase = createSupabaseBrowserClient();
-
-// 비밀번호 찾기 안내 문구 — 활성 6개 언어(ko·en·ru·kz·zh·ja) 인라인 (공용 i18n 미수정)
-const FORGOT_MSG = {
-  needEmail: { ko: "이메일을 먼저 입력해주세요", en: "Please enter your email first", ru: "Сначала введите эл. почту", kz: "Алдымен эл. поштаңызды енгізіңіз", zh: "请先输入邮箱", ja: "まずメールアドレスを入力してください" },
-  sent: { ko: "비밀번호 재설정 메일을 보냈어요. 메일함(스팸함 포함)을 확인해주세요.", en: "A password reset email has been sent. Please check your inbox (and spam).", ru: "Письмо для сброса пароля отправлено. Проверьте почту (и спам).", kz: "Құпиясөзді қалпына келтіру хаты жіберілді. Поштаңызды (спамды да) тексеріңіз.", zh: "重置密码邮件已发送，请查收（含垃圾邮件）。", ja: "パスワード再設定メールを送信しました。受信箱（迷惑メールも）をご確認ください。" },
-  needCaptcha: { ko: "잠시만요 — '로봇이 아닙니다' 확인을 완료해주세요.", en: "Please complete the 'I'm not a robot' check.", ru: "Пожалуйста, пройдите проверку «Я не робот».", kz: "«Мен робот емеспін» тексеруінен өтіңіз.", zh: "请先完成「我不是机器人」验证。", ja: "「私はロボットではありません」の確認を完了してください。" },
-  send: { ko: "재설정 메일 보내기", en: "Send reset email", ru: "Отправить письмо", kz: "Хат жіберу", zh: "发送重置邮件", ja: "再設定メールを送信" },
-};
 
 export const LoginPage = ({ setView }) => {
     const toast = useToast();
@@ -28,35 +20,6 @@ export const LoginPage = ({ setView }) => {
     const [loading, setLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const [oauthLoading, setOauthLoading] = useState(false);
-    const [forgotOpen, setForgotOpen] = useState(false);
-    const [captchaToken, setCaptchaToken] = useState("");
-
-    const sendResetEmail = async () => {
-        // 결과(가입 여부)와 무관하게 동일 안내 — 이메일 존재 여부 노출 방지.
-        // 캡차+레이트리밋을 거치는 서버 라우트 경유. 메일 링크 token_hash는 implicit로
-        // 발급돼 /reset-password verifyOtp가 서버 검증됨(#392).
-        await fetch('/api/auth/forgot-password', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, captchaToken }),
-        }).catch(() => {});
-        toast.success(FORGOT_MSG.sent[langCode] || FORGOT_MSG.sent.en);
-        setForgotOpen(false);
-        setCaptchaToken("");
-    };
-
-    const handleForgotPassword = async () => {
-        if (!email) {
-            toast.error(FORGOT_MSG.needEmail[langCode] || FORGOT_MSG.needEmail.en);
-            return;
-        }
-        // 캡차 켜져 있으면: 첫 클릭은 캡차 패널만 열고, 통과(토큰) 후에 발송.
-        if (turnstileEnabled) {
-            if (!forgotOpen) { setForgotOpen(true); return; }
-            if (!captchaToken) { toast.error(FORGOT_MSG.needCaptcha[langCode] || FORGOT_MSG.needCaptcha.en); return; }
-        }
-        await sendResetEmail();
-    };
 
     const handleLogin = async (e) => {
         if(e) e.preventDefault();
@@ -111,7 +74,7 @@ export const LoginPage = ({ setView }) => {
         <div className="min-h-[calc(100vh-64px)] min-h-screen-safe flex items-center justify-center bg-white px-4 py-8 pb-safe-area animate-in fade-in slide-in-from-bottom-4">
             <div className="max-w-sm w-full">
                 <div className="text-center mb-10">
-                    <h2 className="text-3xl font-extrabold text-gray-900">{t("login.welcome", langCode)}</h2>
+                    <h2 className="text-3xl font-extrabold text-gray-900 break-keep">{t("login.welcome", langCode)}</h2>
                     <p className="text-gray-500 mt-2">{t("login.subtitle", langCode)}</p>
                 </div>
 
@@ -135,7 +98,7 @@ export const LoginPage = ({ setView }) => {
                     <div>
                         <div className="flex justify-between items-center mb-1">
                             <label htmlFor="login-password" className="block text-sm font-bold text-gray-700">{t("login.password", langCode)}</label>
-                            <button type="button" onClick={handleForgotPassword} className="text-xs font-bold text-teal-700 hover:underline">{t("login.forgot", langCode)}</button>
+                            <Link href={email ? `/forgot-password?email=${encodeURIComponent(email)}` : "/forgot-password"} className="text-xs font-bold text-teal-700 hover:underline">{t("login.forgot", langCode)}</Link>
                         </div>
                         <div className="relative">
                             <Lock className="absolute left-4 top-3.5 text-gray-400" size={20}/>
@@ -158,20 +121,6 @@ export const LoginPage = ({ setView }) => {
                             </button>
                         </div>
                     </div>
-
-                    {forgotOpen && turnstileEnabled && (
-                        <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 space-y-3">
-                            <Turnstile onVerify={setCaptchaToken} />
-                            <button
-                                type="button"
-                                onClick={handleForgotPassword}
-                                disabled={!captchaToken}
-                                className="w-full bg-teal-700 text-white py-2.5 rounded-lg font-bold text-sm hover:bg-teal-800 transition-colors disabled:bg-gray-300"
-                            >
-                                {FORGOT_MSG.send[langCode] || FORGOT_MSG.send.en}
-                            </button>
-                        </div>
-                    )}
 
                     <button
                         type="submit"
