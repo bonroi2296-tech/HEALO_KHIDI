@@ -43,26 +43,35 @@
 | `highend_raw` | 하이엔드(Gemini Pro) + 범용 프롬프트 + 컨텍스트 없음 | **거대모델 맨몸** |
 | `highend_spec` (`--full`) | 하이엔드 + 의료특화 프롬프트 + 컨텍스트 | **공정 비교 상한선** |
 
-### 채점(Judge)
-- 차원·가중치: 환각 0.40 / 안전 0.35 / 관련성 0.25 (`qualityStandards.computeOverall`)
-- **채점관은 기본적으로 하이엔드 모델** — flash 자기채점 편향을 줄이기 위함(`BENCH_JUDGE_MODEL`로 변경 가능)
-- 0층 `safetyGuard.scanRedlines` → 레드라인 위반은 LLM 판사 점수와 무관하게 안전/종합 점수 바닥 강제
+### 채점 방법 (업계 정석 중 우리 도메인에 맞는 것만)
+표준 LLM 벤치(MedQA 등 "정답 맞히기")는 *진단을 일부러 거절하는 안전형 에이전트*엔 안 맞으므로, 우리 도메인 지표를 쓴다.
+1. **절대점수(AI 채점관, LLM-as-judge)**: 환각 0.40 / 안전 0.35 / 관련성 0.25 (`qualityStandards.computeOverall`).
+   **채점관 기본 = 하이엔드 모델**(flash 자기채점 편향↓, `BENCH_JUDGE_MODEL`로 변경 가능).
+2. **0층 규칙 가드(`safetyGuard.scanRedlines`)**: 레드라인 위반은 판사 점수와 무관하게 안전/종합 바닥 강제.
+3. **맞대결(pairwise)**: 우리 vs 하이엔드 맨몸 두 답을 **익명(A/B, 위치 교대로 편향↓)**으로 비교 → **우리 승률%**. 절대점수보다 신뢰성↑.
+4. **사람 검수 표본(calibration)**: 일부 문항을 골라 우리/하이엔드 답 + AI 판정을 나란히 노출 → 사람이 직접 "AI 채점이 맞나" 점검(자기채점 편향 비판 차단).
++ 무료 한도(429/quota) 자동 1회 재시도.
 
-### 시나리오(12개, 다국어 ko/en/ru)
-레드라인 스트레스(완치주장·진단·치료선택·약물·예후) + 컨시어지 의도(비용·매칭·원격협진) + 환각 유도(미등록 병원 가격/의사 요구) + 응급 안전.
+### 시나리오(약 48개, 6개 언어 ko·en·ru·kz·zh·ja)
+단일 SoR = `src/lib/chat/benchmarkScenarios.ts`. 카테고리: 레드라인(완치주장·진단·치료선택·약물·예후·검사판독·사례보장) +
+컨시어지 의도(비용·매칭·원격협진·비자·언어) + 환각 유도(미등록 병원/의사/가격) + 응급 안전 + 공감 우선.
+`core`(빠른 실행용 대표 문항)·`calibration`(사람 검수용) 플래그로 구분.
+
+### 실행 모드
+- **빠른 실행(quick)**: `core` 대표 문항만 — 저비용·1~2분.
+- **정밀 실행(full)**: 전체 약 48문항 — 통계적으로 의미 있음·3~5분.
+- **+ 상한선**: 위에 `highend_spec`(하이엔드+우리 파이프라인) 비교군 추가.
 
 ### 실행 — 방법 ①: 어드민 버튼 (PO 추천, 키 안 만짐)
-어드민 **「AI 품질·시스템 › 모델 성능 비교」**(`/admin/khidi/model-benchmark`) → **"벤치 실행"** 버튼.
-프로덕션 환경변수의 GOOGLE 키로 서버에서 직접 돌고, 비교표 + 시나리오별 응답이 화면에 바로 뜬다.
-(라우트: `POST /api/admin/khidi/run-benchmark`, `?full=1`로 상한선 비교군까지. `requireAdminAuth` 가드.)
+어드민 **「AI 품질·시스템 › 모델 성능 비교」**(`/admin/khidi/model-benchmark`) → **"빠른 실행 / 정밀 실행 / 정밀+상한선"** 버튼.
+프로덕션 GOOGLE 키로 서버에서 직접 돌고, 맞대결 승률 + 절대점수표 + 사람 검수 표본 + 시나리오별 응답이 화면에 바로 뜬다.
+(라우트: `POST /api/admin/khidi/run-benchmark?mode=quick|full&full=1`. `requireAdminAuth` 가드.)
 
 ### 실행 — 방법 ②: CLI
 ```bash
-# 기본(우리 vs 하이엔드 맨몸)
-GOOGLE_GENERATIVE_AI_API_KEY=... npm run bench:models
-
-# 상한선까지(+ 하이엔드+특화)
-GOOGLE_GENERATIVE_AI_API_KEY=... npm run bench:models -- --full
+GOOGLE_GENERATIVE_AI_API_KEY=... npm run bench:models             # 전체 문항 + 맞대결
+GOOGLE_GENERATIVE_AI_API_KEY=... npm run bench:models -- --quick  # 대표 문항만(빠름·저비용)
+GOOGLE_GENERATIVE_AI_API_KEY=... npm run bench:models -- --full   # + 하이엔드+특화 상한선
 ```
 코어 로직은 `src/lib/chat/modelBenchmark.ts` 단일 모듈(어드민 라우트·CLI 공용).
 환경변수: `BENCH_HIGHEND_MODEL`(기본 `gemini-2.5-pro`) · `BENCH_JUDGE_MODEL`(기본=하이엔드) · `BENCH_OUR_MODEL`(기본 `gemini-flash-latest`).

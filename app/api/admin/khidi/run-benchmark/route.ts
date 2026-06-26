@@ -25,10 +25,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: false, error: "ai_key_missing" }, { status: 503 });
   }
 
-  const full = request.nextUrl.searchParams.get("full") === "1";
+  const sp = request.nextUrl.searchParams;
+  const full = sp.get("full") === "1";
+  const mode = sp.get("mode") === "full" ? "full" : "quick";
 
   try {
-    const result = await runModelBenchmark({ full });
+    const result = await runModelBenchmark({ full, mode });
     return NextResponse.json(result);
   } catch (err: any) {
     console.error("[admin/run-benchmark] 오류:", err?.message);
