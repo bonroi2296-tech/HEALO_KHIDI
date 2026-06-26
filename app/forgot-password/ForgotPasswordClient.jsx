@@ -41,7 +41,7 @@ export default function ForgotPasswordClient() {
     if (!email) { toast.error(pick(L.needEmail, langCode)); return; }
     setSending(true);
     // 결과(가입 여부)와 무관하게 동일 처리 — 이메일 존재 노출 방지.
-    // 봇 차단은 서버 라우트의 IP 레이트리밋(1분 5회)으로.
+    // 스팸/폭탄 차단은 서버: 같은 이메일·같은 IP 횟수제한 + Supabase 자체 제한.
     await fetch("/api/auth/forgot-password", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
