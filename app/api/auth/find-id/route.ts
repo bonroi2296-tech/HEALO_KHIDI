@@ -43,7 +43,7 @@ export async function POST(request: Request) {
   // ponytail: listUsers 1페이지(perPage 1000) 스캔 — 사용자 수가 그 이하라 충분.
   //           1000명 초과 시 페이지네이션 필요(그땐 birthdate 컬럼+인덱스로 전환).
   const admin = createServiceRoleClient();
-  let matches: { email: string; provider: string }[] = [];
+  const matches: { email: string; provider: string }[] = [];
   try {
     const { data, error } = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 });
     if (error) throw error;
