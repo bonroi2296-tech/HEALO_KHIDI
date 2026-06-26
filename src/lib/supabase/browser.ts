@@ -17,7 +17,7 @@
  */
 
 import { createBrowserClient } from '@supabase/ssr'
-import type { SupabaseClient } from '@supabase/supabase-js'
+import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import type { Database } from '@/types/database.types'
 
 export type TypedSupabaseClient = SupabaseClient<Database>
@@ -86,4 +86,21 @@ export function createSupabaseBrowserClient(): TypedSupabaseClient {
  */
 export function resetBrowserClient() {
   browserClient = null
+}
+
+/**
+ * 이메일 링크 발송 전용 클라이언트 (implicit flow, 세션 저장 안 함).
+ *
+ * 왜 별도냐: 기본 SSR 클라이언트는 PKCE flow → resetPasswordForEmail이 만드는
+ * 메일 링크의 token_hash에 `pkce_` 접두가 붙는다. 그 토큰은 검증 시 code_verifier
+ * (요청한 그 브라우저의 쿠키)가 있어야 하고, verifyOtp는 verifier 교환을 안 하므로
+ * /reset-password에서 항상 "유효하지 않음"으로 실패한다(+여러 번 요청·다른 기기에서 열면 무조건 깨짐).
+ * implicit flow로 쏘면 평범한 token_hash가 발급돼 verifyOtp가 서버에서 바로 검증된다.
+ */
+export function createOtpEmailClient(): TypedSupabaseClient {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://build-placeholder.supabase.co'
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'build-placeholder-anon-key'
+  return createClient<Database>(url, key, {
+    auth: { flowType: 'implicit', persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+  })
 }

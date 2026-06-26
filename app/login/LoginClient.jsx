@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
-import { createSupabaseBrowserClient } from '@/lib/supabase/browser';
+import { createSupabaseBrowserClient, createOtpEmailClient } from '@/lib/supabase/browser';
 import { useToast } from '@/components/Toast';
 import { t } from '@/lib/i18n';
 import { useLang } from '@/lib/i18n/LangContext';
@@ -31,8 +31,10 @@ export const LoginPage = ({ setView }) => {
             toast.error(FORGOT_MSG.needEmail[langCode] || FORGOT_MSG.needEmail.en);
             return;
         }
-        // 결과(가입 여부)와 무관하게 동일 안내 — 이메일 존재 여부 노출 방지
-        await supabase.auth.resetPasswordForEmail(email, {
+        // 결과(가입 여부)와 무관하게 동일 안내 — 이메일 존재 여부 노출 방지.
+        // implicit-flow 전용 클라로 발송 → 메일 링크가 pkce_ 없는 token_hash를 담아
+        // /reset-password의 verifyOtp가 서버에서 바로 검증됨(PKCE verifier 불필요).
+        await createOtpEmailClient().auth.resetPasswordForEmail(email, {
             redirectTo: `${window.location.origin}/reset-password`,
         }).catch(() => {});
         toast.success(FORGOT_MSG.sent[langCode] || FORGOT_MSG.sent.en);
