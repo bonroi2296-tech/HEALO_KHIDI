@@ -132,11 +132,9 @@ const upsertDocumentAndChunks = async (doc: {
           document_id: documentId,
           chunk_index: chunk.index,
           content: chunk.content,
-          ...(embedding ? {
-            embedding: JSON.stringify(embedding),
-            embedding_model: "gemini-embedding-001",
-            embedded_at: nowIso(),
-          } : {}),
+          // embedding 만 컬럼. 모델/시각 부기정보는 rag_chunks 에 전용 컬럼이 없으므로 metadata 로 보관.
+          // (과거 코드가 없는 컬럼 embedding_model/embedded_at 에 insert 하려다 PGRST204 로 적재가 통째 실패했음.)
+          ...(embedding ? { embedding: JSON.stringify(embedding) } : {}),
           metadata: {
             source_type: doc.source_type,
             source_id: doc.source_id,
@@ -144,6 +142,7 @@ const upsertDocumentAndChunks = async (doc: {
             title: doc.title,
             version,
             ingest_status: "done",
+            ...(embedding ? { embedding_model: "gemini-embedding-001", embedded_at: nowIso() } : {}),
           },
         });
       }

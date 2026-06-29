@@ -8,6 +8,29 @@
 
 ---
 
+## #45 — RAG 검색이 100% 고장: 모든 AI 응답이 지식베이스 없이 나가고 있었음 (2026-06-29)
+
+**무슨 일**
+- 실DB 점검 결과 AI 챗 응답 **371개 전부 RAG 청크 0개**(rag_chunks_used=0), `rag_documents`·`rag_chunks` = **0개**. 자랑하던 3-Tier RAG의 검증 지식 층이 통째로 비어, AI가 병원·치료 검증 데이터 없이 맨몸 모델로만 답하고 있었음.
+- 원인이 **두 겹**이었다:
+  1. **적재(ingest) 깨짐**: `src/lib/rag/ingest.ts` 가 `rag_chunks` 의 없는 컬럼 `embedded_at`·`embedding_model` 에 insert 시도 → PGRST204 로 적재가 통째 실패 → 지식베이스가 영원히 비어 있었음.
+  2. **검색 RPC 깨짐**: `rag_search_chunks_v1_1` 의 반환 컬럼 `doc_source_id` 가 `uuid` 로 선언됐으나 `rag_documents.source_id` 는 `text` → 실행 시 "structure of query does not match function result type" 로 항상 실패. generateReply 의 catch 가 빈 배열로 폴백 → 설령 데이터가 있어도 검색이 무력화.
+
+**왜 못 잡았나 (근본원인)**
+- **코드↔DB 스키마 드리프트**가 조용히 누적: 적재/검색이 실패해도 앱은 빈 결과로 폴백(graceful)하게 짜여 있어 **에러가 사용자/PO 화면에 안 보임** → "RAG 됨"으로 착각. 빌드·테스트는 통과(스키마 불일치는 런타임에만 터짐).
+- 관측 부재: `rag_chunks_used=0` 가 매 응답 metadata 에 찍히고 있었는데 **아무도 집계해서 안 봄**. 지표가 있는데 경보가 없었다.
+
+**어떻게 고쳤나**
+- ingest.ts: 부기정보(`embedding_model`·`embedded_at`)를 전용 컬럼 대신 `metadata`(jsonb)에 보관하도록 수정 → 적재 정상화.
+- RPC: 반환타입 `doc_source_id` 를 `text` 로 정정(DROP 후 재생성). `migrations/20260629_fix_rag_search_v1_1_source_id_type.sql`.
+- 검증 데이터 적재: `ingestSources(["treatment","hospital"])` 로 16문서/22청크 + 임베딩 생성. 제휴 데이터 `trust_tier=2`(Partner-verified)로 정정.
+- end-to-end 확인: 샘플 질문(ko/en/ru) 임베딩 → RPC 호출 → 청크 4개 정상 반환 확인.
+
+**재발 방지**
+- **관측 경보 후보**: 최근 N개 응답의 `rag_chunks_used` 평균이 0이면(=RAG 사실상 죽음) 경보. "지표는 찍히는데 아무도 안 보는" 패턴을 닫는다.
+- **스키마 드리프트 가드 후보**: `scripts/check-schema-refs.mjs`(이미 존재)를 CI에 물려 코드가 참조하는 컬럼/RPC 반환타입이 실제 스키마와 맞는지 검사. 적재/RPC 실패를 빌드 단계에서 잡는다.
+- 데이터 위생(별도): RAG에 "TEST 병원" 등 테스트 데이터가 섞여 검색에 노출됨 → 소스 테이블 정리 필요(스폰 작업으로 분리).
+
 ## #44 — main CI(eslint)가 빨강인 채 방치돼 모든 PR 머지가 막혀 있었음 (prefer-const error 1줄) (2026-06-29)
 
 **무슨 일**
