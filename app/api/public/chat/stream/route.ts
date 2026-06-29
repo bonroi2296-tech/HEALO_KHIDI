@@ -22,6 +22,7 @@ import {
   getModelName,
   logPlaybookUsage,
 } from "@/lib/chat/generateReply";
+import { generateTriage } from "@/lib/chat/triage";
 import {
   INTAKE_EVERY_N_TURNS,
   ATTACHMENT_ACK,
@@ -202,10 +203,28 @@ export async function POST(request: NextRequest) {
       let ragChunksLen = 0;
       let aiError: string | undefined;
       let analytics: any = undefined;
+      let triagePacket: any = null;     // 의료진용 진료의뢰 패킷(첨부 판독 시)
+      let usedAckFallback = false;      // 첨부를 못 읽어 기존 접수안내로 떨어졌는지
 
       try {
-        // 1) AI 응답 — 텍스트 없이 자료만 올린 경우는 모델을 부르지 않음(판독 안 함).
-        if (trimmedMsg) {
+        // 1) 첨부가 있으면 → 멀티모달 1차 소견(triage). 없고 텍스트만 있으면 → 기존 RAG 응답.
+        //    (PO 결정 2026-06-29: 자료 올리면 AI가 1차 소견 즉시 + 사후 의사 검수.)
+        let finalReply = "";
+        if (hasAttachments) {
+          const triage = await generateTriage({ attachments, messageText: trimmedMsg, lang });
+          if (triage.patientReply) {
+            enqueue(triage.patientReply);
+            finalReply = triage.patientReply;
+            triagePacket = triage.packet;
+          } else {
+            // 모델이 못 읽음(doc 등)·오류 → 기존 "접수 안내(판독 아님)"로 폴백.
+            const ack = ATTACHMENT_ACK[lang] || ATTACHMENT_ACK.en;
+            enqueue(ack);
+            finalReply = ack;
+            usedAckFallback = true;
+            if (triage.error) aiError = triage.error;
+          }
+        } else if (trimmedMsg) {
           const r = await streamChatReply(
             chatMessages,
             trimmedMsg,
@@ -215,18 +234,10 @@ export async function POST(request: NextRequest) {
             { isLoggedIn: !!thread.user_id, hasReachableContact: reachable }
           );
           aiReply = r.reply;
+          finalReply = aiReply;
           ragChunksLen = r.ragChunks.length;
           aiError = r.error;
           analytics = r._analytics;
-        }
-
-        // 2) 자료 접수 확인(판독 아님) — 첨부가 있으면 항상 덧붙여 스트림.
-        let finalReply = aiReply;
-        if (hasAttachments) {
-          const ack = ATTACHMENT_ACK[lang] || ATTACHMENT_ACK.en;
-          const piece = finalReply ? `\n\n${ack}` : ack;
-          enqueue(piece);
-          finalReply = finalReply ? `${finalReply}${piece}` : ack;
         }
 
         // 3) 핸드오프 확인 멘트 — 연락 가능하면 "접수완료", 아니면 연락처부터 요청(거짓 약속 방지).
@@ -248,7 +259,10 @@ export async function POST(request: NextRequest) {
               rag_chunks_used: ragChunksLen,
               hand_off: escalate ? escalateReason : null,
               streamed: true,
-              ...(hasAttachments ? { attachment_ack: true } : {}),
+              // 첨부를 못 읽어 접수안내로 폴백한 경우만 비답변 처리(모델 히스토리 제외). 실제 1차 소견은 답변으로 보존.
+              ...(hasAttachments && usedAckFallback ? { attachment_ack: true } : {}),
+              // 진료의뢰 패킷 + 의사 검수 대기 플래그(Phase 2·3 에서 어드민이 읽어 검수).
+              ...(triagePacket ? { triage: { packet: triagePacket, needs_doctor_review: true, reviewed: false } } : {}),
               ...(aiError ? { ai_error: aiError } : {}),
             },
           })

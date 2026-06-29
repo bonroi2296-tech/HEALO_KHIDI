@@ -86,6 +86,66 @@ export async function POST(
   }
 }
 
+// PATCH — 진료의뢰 패킷(1차 소견 메시지)의 의사 검수 상태 갱신.
+// body: { messageId, reviewed?, note? } → 해당 메시지 metadata.triage 를 검수완료로 표시.
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ threadId: string }> }
+) {
+  assertSupabaseEnv();
+  const auth = await requireAdminAuth(request);
+  if (!auth.success) return auth.response;
+
+  const { threadId } = await params;
+
+  try {
+    const body = await request.json();
+    const { messageId, reviewed, note } = body || {};
+    if (!messageId) {
+      return Response.json({ ok: false, error: "messageId is required" }, { status: 400 });
+    }
+
+    const { data: msg } = await (supabaseAdmin as any)
+      .from("chat_messages")
+      .select("metadata")
+      .eq("id", messageId)
+      .eq("thread_id", threadId)
+      .single();
+    if (!msg) {
+      return Response.json({ ok: false, error: "message_not_found" }, { status: 404 });
+    }
+
+    const meta =
+      msg.metadata && typeof msg.metadata === "object" && !Array.isArray(msg.metadata) ? msg.metadata : {};
+    const triage = meta.triage && typeof meta.triage === "object" ? meta.triage : {};
+    const newMeta = {
+      ...meta,
+      triage: {
+        ...triage,
+        needs_doctor_review: false,
+        reviewed: reviewed !== false,
+        reviewed_at: new Date().toISOString(),
+        reviewed_by: auth.authResult.userId || null,
+        ...(note ? { review_note: String(note).slice(0, 2000) } : {}),
+      },
+    };
+
+    const { error } = await (supabaseAdmin as any)
+      .from("chat_messages")
+      .update({ metadata: newMeta })
+      .eq("id", messageId);
+    if (error) {
+      console.error("[PATCH messages]", error.message);
+      return Response.json({ ok: false, error: "update_failed" }, { status: 500 });
+    }
+
+    return Response.json({ ok: true });
+  } catch (err: any) {
+    console.error("[PATCH messages] Unexpected:", err.message);
+    return Response.json({ ok: false, error: "internal_error" }, { status: 500 });
+  }
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ threadId: string }> }
