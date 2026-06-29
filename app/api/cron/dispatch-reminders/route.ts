@@ -184,7 +184,7 @@ async function dispatchEmail(
 
   // 입장 URL
   const baseUrl =
-    process.env.NEXT_PUBLIC_SITE_URL ?? "https://healo-khidi.vercel.app";
+    process.env.NEXT_PUBLIC_SITE_URL ?? "https://healwith.co.kr";
   const joinUrl = `${baseUrl.replace(/\/$/, "")}/consultation/${row.consultation_session_id}`;
 
   const { subject, html, text } = renderConsultationReminderEmail({
@@ -224,7 +224,7 @@ async function dispatchKakao(
   });
 
   const baseUrl =
-    process.env.NEXT_PUBLIC_SITE_URL ?? "https://healo-khidi.vercel.app";
+    process.env.NEXT_PUBLIC_SITE_URL ?? "https://healwith.co.kr";
   const joinUrl = `${baseUrl.replace(/\/$/, "")}/consultation/${row.consultation_session_id}`;
 
   const result = await sendKakaoAlimtalk({
@@ -253,7 +253,7 @@ async function dispatchInApp(
 
   const payload = row.payload as Record<string, string>;
   const baseUrl =
-    process.env.NEXT_PUBLIC_SITE_URL ?? "https://healo-khidi.vercel.app";
+    process.env.NEXT_PUBLIC_SITE_URL ?? "https://healwith.co.kr";
   const link = `${baseUrl.replace(/\/$/, "")}/consultation/${row.consultation_session_id}`;
 
   const { error } = await supabaseAdmin.from("notifications").insert({
