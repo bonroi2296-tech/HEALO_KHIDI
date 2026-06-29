@@ -2,6 +2,17 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useLang } from "@/lib/i18n/LangContext";
+
+// 원시 err.message 노출 금지 — 6개어 일반 실패 안내(보안+UX)
+const FAIL_MSG = {
+  ko: "신청 생성에 실패했습니다. 다시 시도해 주세요.",
+  en: "Failed to create the application. Please try again.",
+  ru: "Не удалось создать заявку. Попробуйте ещё раз.",
+  kz: "Өтінімді жасау мүмкін болмады. Қайталап көріңіз.",
+  zh: "创建申请失败，请重试。",
+  ja: "申請の作成に失敗しました。もう一度お試しください。",
+};
 
 const STATUS_LABELS = {
   draft: { ko: "작성 중", en: "Draft", color: "bg-gray-100 text-gray-700" },
@@ -31,6 +42,7 @@ const NATIONALITIES = [
 ];
 
 export default function VisaApplicationsClient() {
+  const failMsg = FAIL_MSG[useLang()] || FAIL_MSG.en;
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -87,7 +99,7 @@ export default function VisaApplicationsClient() {
       setShowCreate(false);
       await loadApplications();
     } catch (err) {
-      alert("신청 생성 실패: " + err.message);
+      alert(failMsg);
     } finally {
       setSubmitting(false);
     }

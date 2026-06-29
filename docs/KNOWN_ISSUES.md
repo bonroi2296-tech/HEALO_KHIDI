@@ -4,6 +4,21 @@
 
 ---
 
+## 🟡 2026-06-29 오픈 전 전수조사 — 후속 과제 (이번에 손대지 않고 남긴 것)
+
+> 5축(보안·i18n·데이터/RLS·AI/RAG·위생) 병렬 감사 + 실DB 점검. **고친 것**(별도 PR): 옛도메인 잔재(POSTMORTEMS #49)·AI 송출 전 레드라인 차단+triage PII 마스킹(#50)·환자 목록 2페이지 6개어·보안 LOW(admin import 에러코드화·translate 토큰상한)·약한비번 교체. 아래는 **의도적으로 남긴 후속**.
+
+- **환자 상세 페이지 광범위 한국어** (🟡 핵심시장): `/patient/cost-estimates/[id]`·`/patient/visa/applications`·`/patient/visa/applications/[id]` 는 페이지 전체가 한국어 하드코딩(상태라벨·본문). 이번엔 감사가 CRITICAL로 지목한 **목록 2페이지(consultations·cost-estimates)만 6개어 완료** + 상세페이지는 alert/에러표시의 `err.message` 누수만 닫음(보안). 상세 본문 6개어화는 후속(목록 페이지의 page-local COPY 패턴 재사용).
+- **MEDIUM 하드코딩 문자열**: `consultation/[id]/page.jsx` aria-label "Toggle chat panel"(영어, 2883줄 God컴포넌트라 보류)·`DocumentsClient.jsx` placeholder "e.g. Blood test from March 2026"(영어). 저위험.
+- **RAG ingest taskType**: `getEmbedding`이 적재·질의 모두 `RETRIEVAL_QUERY` 사용. 적재는 `RETRIEVAL_DOCUMENT`가 정석(비대칭 검색 품질↑). **단 기존 18청크 전체 재적재가 동반돼야 코퍼스 일관** → 반쪽 적용은 오히려 불일치라 보류. 재적재 시 함께 적용.
+- **`rag_chunks_used=0`/redline 적발률 경보 없음**: 지표는 metadata에 찍히는데 집계·경보가 없음(#48 교훈). cron 집계 + operationalAlerts 연결 권장.
+- **admission-status 무인증 GET** (🟢 허용위험): `/api/khidi/consultation/[id]/admission-status` 는 두 무작위 UUID 일치 + 상태 enum 만 반환 = 계정없는 게스트 폴링 의도 설계. 인증 강제 시 게스트 플로 깨짐 → 그대로 둠.
+- **cron 비상수시간 비교** (🟢 저위험): `automation`·`kpi-snapshot`·`run-regression-tests`·`crawl` 라우트가 `!==`로 CRON_SECRET 비교(다른 cron은 `timingSafeEqual`). 고엔트로피 시크릿이라 실효 위험 낮음 — 일관성 정리 후속.
+- **Supabase Auth 유출비번 보호 꺼짐** (🟢, PO 콘솔 1클릭): Authentication 설정에서 HaveIBeenPwned 체크 켜기 권장.
+- **테스트 문의/국적값 오염**: `inquiries` #26~31(검증 더미) + 국적값 혼재(`KZ`·`Kazakhstan`·`kazah`·`test`·null). 데이터 삭제는 비가역이라 자율 보류 — PO 확인 후 정리(유치 대시보드 집계 정확도).
+
+---
+
 ## 🟡 2026-06-25 코디네이터에게 AI 챗 뷰가 없음 (AI 핸드오프 종은 어드민에게만)
 
 - **상태**: AI 챗 스레드 모니터(`/admin/chat`·`/api/admin/chat/threads`)가 `requireAdminAuth` **어드민 전용**. 코디네이터(`role=coordinator`)는 AI 챗 대화를 볼 화면이 없음.

@@ -168,6 +168,40 @@ const OVERCLAIM_STAT: RulePattern[] = [
 // critical 로 취급할 카테고리 (모두 의사 면허 영역 — 기계가 잡히면 즉시 위험)
 const ALL_RULES: RulePattern[] = [...CURE_CLAIM, ...DRUG_ADVICE, ...PROGNOSIS_CLAIM];
 
+// ─────────────────────────────────────────────────────────────
+// 환자 노출 문구(6개어) — critical 레드라인 적발 시 송출 게이트가 사용
+//   · safeDeferralMessage : 비스트리밍 경로에서 위험 답변을 통째로 대체(노출 0)
+//   · redlineCorrectionNotice : 스트리밍 경로(원시 텍스트 append라 취소 불가)에서
+//     이미 흘러간 답변 뒤에 즉시 붙이는 정정·코디연결 안내
+// ─────────────────────────────────────────────────────────────
+const SAFE_DEFERRAL: Record<string, string> = {
+  ko: "이 질문은 정확한 안내를 위해 담당 코디네이터·의료진이 직접 확인해 드리는 것이 좋겠습니다. 곧 연결해 드릴게요. 진단·치료·약물에 관한 결정은 반드시 담당 의료진과 상의해 주세요.",
+  en: "For an accurate answer, it's best that our coordinator and medical staff review this question directly — we'll connect you shortly. Any decision about diagnosis, treatment, or medication must be made together with your medical team.",
+  ru: "Чтобы дать точный ответ, этот вопрос лучше рассмотрит наш координатор и медицинский персонал — мы свяжем вас в ближайшее время. Любые решения о диагнозе, лечении или препаратах принимайте только вместе с вашим врачом.",
+  kz: "Дәл жауап беру үшін бұл сұрақты үйлестіруші мен медицина қызметкерлері тікелей қараған дұрыс — жақын арада байланыстырамыз. Диагноз, емдеу немесе дәрі-дәрмек туралы шешімді тек дәрігеріңізбен бірге қабылдаңыз.",
+  zh: "为了给您准确的答复，这个问题最好由我们的协调员和医疗人员直接核实——我们会尽快为您接通。有关诊断、治疗或用药的任何决定，请务必与您的主治医生共同商定。",
+  ja: "正確にご案内するため、この質問は担当コーディネーターと医療スタッフが直接確認いたします。まもなくおつなぎします。診断・治療・薬に関する判断は必ず担当の医療チームとご相談ください。",
+};
+
+const REDLINE_NOTICE: Record<string, string> = {
+  ko: "⚠️ 안내: 위 답변 중 일부 의학적 표현은 정확하지 않을 수 있습니다. 담당 코디네이터가 확인 후 정확한 정보로 다시 안내드리겠습니다. 진단·치료·약물 결정은 반드시 담당 의료진과 상의해 주세요.",
+  en: "⚠️ Note: Some medical statements above may not be accurate. Our coordinator will review and follow up with correct information. Any decision about diagnosis, treatment, or medication must be made with your medical team.",
+  ru: "⚠️ Примечание: некоторые медицинские утверждения выше могут быть неточными. Наш координатор проверит и свяжется с вами с верной информацией. Решения о диагнозе, лечении или препаратах принимайте только с вашим врачом.",
+  kz: "⚠️ Ескерту: жоғарыдағы кейбір медициналық тұжырымдар дәл болмауы мүмкін. Үйлестіруші тексеріп, дұрыс ақпаратпен қайта хабарласады. Диагноз, емдеу немесе дәрі туралы шешімді тек дәрігеріңізбен қабылдаңыз.",
+  zh: "⚠️ 提示：以上部分医疗表述可能不准确。我们的协调员将核实并向您提供正确信息。有关诊断、治疗或用药的决定请务必与您的主治医生商定。",
+  ja: "⚠️ ご注意：上記の一部の医学的記述は正確でない可能性があります。担当コーディネーターが確認のうえ、正しい情報を改めてご案内します。診断・治療・薬の判断は必ず担当医療チームとご相談ください。",
+};
+
+/** critical 레드라인 적발 시 환자에게 보일 '안전 대체' 문구(비스트리밍 — 위험답변 통째 대체). */
+export function safeDeferralMessage(lang: string): string {
+  return SAFE_DEFERRAL[lang] || SAFE_DEFERRAL.en;
+}
+
+/** critical 레드라인 적발 시 스트리밍 답변 뒤에 붙일 정정·코디연결 안내. */
+export function redlineCorrectionNotice(lang: string): string {
+  return REDLINE_NOTICE[lang] || REDLINE_NOTICE.en;
+}
+
 /**
  * AI 응답 텍스트에서 확정적 의료 레드라인 위반을 스캔한다.
  * @param text  검사할 AI 응답 본문
