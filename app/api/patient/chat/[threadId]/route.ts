@@ -44,11 +44,13 @@ export async function GET(
   }
 
   // 메시지 이력 조회
+  // ⚠️ chat_messages 실제 컬럼은 actor_type/message_text (role/content 아님). is_internal 은
+  // null 일 수 있어 false 동등비교 대신 "내부전용(true)만 제외"로 공개챗 메시지까지 포함.
   const { data: messages, error: mErr } = await (supabaseAdmin as any)
       .from("chat_messages")
-    .select("id, role, content, created_at, metadata")
+    .select("id, actor_type, message_text, created_at, metadata")
     .eq("thread_id", threadId)
-    .eq("is_internal", false)
+    .not("is_internal", "is", true)
     .order("created_at", { ascending: true })
     .limit(100);
 
@@ -61,8 +63,8 @@ export async function GET(
     ok: true,
     messages: (messages || []).map((m: any) => ({
       id: m.id,
-      role: m.role,
-      content: m.content,
+      role: m.actor_type === "patient" ? "user" : "assistant",
+      content: m.message_text,
       created_at: m.created_at,
       sources: m.metadata?.sources || [],
     })),

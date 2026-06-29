@@ -1,12 +1,24 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { ArrowRight, AlertCircle, Loader2, Bot, ThumbsUp, ThumbsDown, X, Paperclip, FileText, Image as ImageIcon, Headset, ClipboardCheck } from "lucide-react";
+import { ArrowRight, AlertCircle, Loader2, Bot, ThumbsUp, ThumbsDown, X, Paperclip, FileText, Image as ImageIcon, Headset, ClipboardCheck, Plus, History } from "lucide-react";
 import { getLangCodeFromCookie, t } from "@/lib/i18n";
 
 const TOKEN_COOKIE = "healo_chat_token";
 const SESSION_COOKIE = "healo_browser_session";
 const COOKIE_MAX_AGE = 60 * 60 * 24 * 30; // 30일
+// 마지막 활동이 이 시간보다 오래되면 "오래 쉰 세션" 배너로 새 상담을 제안(자동 세션경계).
+const STALE_SESSION_MS = 24 * 60 * 60 * 1000;
+
+// 목록 표시용 짧은 날짜(브라우저 로케일). 실패해도 빈 문자열.
+function formatWhen(iso) {
+  if (!iso) return "";
+  try {
+    return new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  } catch {
+    return "";
+  }
+}
 
 function readCookie(name) {
   if (typeof document === "undefined") return null;
@@ -294,6 +306,10 @@ export function ThreadChat() {
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const [handOff, setHandOff] = useState(false);
+  // 멀티스레드: 이전 대화 목록 + 토글 + 오래 쉰 세션 배너
+  const [threads, setThreads] = useState([]);
+  const [showHistory, setShowHistory] = useState(false);
+  const [staleSession, setStaleSession] = useState(false);
   const chatRef = useRef(null);
   const inputRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -485,6 +501,9 @@ export function ThreadChat() {
           setGuest(json.thread.guest || null);
           // PIPA: 동의 기록 없는 기존 thread(게이트 도입 이전 시작분)면 게이트를 띄워 동의 백필.
           if (json.thread.has_consent === false) setNeedsConsent(true);
+          // 자동 세션경계: 마지막 활동이 24h 초과면 "새 상담" 제안 배너를 띄운다(옛 맥락 안 끌고 오게).
+          const lastActive = json.thread.last_active_at ? new Date(json.thread.last_active_at).getTime() : 0;
+          if (lastActive && Date.now() - lastActive > STALE_SESSION_MS) setStaleSession(true);
           const history = (json.messages || []).map((m) => ({
             id: m.id,
             role: m.role,
@@ -553,6 +572,46 @@ export function ThreadChat() {
     },
     [langCode]
   );
+
+  // ── 멀티스레드: 이전 대화 목록 조회 / 방 전환 / 새 상담 시작 ──
+  const loadThreads = useCallback(async () => {
+    try {
+      const sid = readCookie(SESSION_COOKIE) || "";
+      const res = await fetch(`/api/public/chat/threads?browser_session_id=${encodeURIComponent(sid)}`);
+      const json = await res.json();
+      if (json.ok) setThreads(Array.isArray(json.threads) ? json.threads : []);
+    } catch (e) {
+      console.warn("[ThreadChat] loadThreads failed:", e);
+    }
+  }, []);
+
+  const switchThread = useCallback(
+    async (thread) => {
+      setShowHistory(false);
+      if (!thread?.public_token || thread.id === threadId) return;
+      setHandOff(false);
+      setStaleSession(false);
+      setInput("");
+      setAttachments([]);
+      await resumeWithToken(thread.public_token);
+    },
+    [threadId, resumeWithToken]
+  );
+
+  const startNewChat = useCallback(async () => {
+    setShowHistory(false);
+    setHandOff(false);
+    setStaleSession(false);
+    setInput("");
+    setAttachments([]);
+    // 동의는 이 세션에서 이미 받았으므로 게이트 재노출 없이 새 방 생성(서버가 consent 재검증).
+    await startAnonymousThread({ consent: true });
+  }, [startAnonymousThread]);
+
+  // 활성 방이 바뀌면(복구·시작·전환·식별) 이전 대화 목록을 새로고침.
+  useEffect(() => {
+    if (threadId) loadThreads();
+  }, [threadId, loadThreads]);
 
   const handleIdentify = useCallback(
     async ({ name, email, country, consent }) => {
@@ -824,6 +883,61 @@ export function ThreadChat() {
         <IdentificationForm langCode={langCode} onSubmit={handleIdentify} submitting={identifying} />
       ) : (
         <>
+          {/* 멀티스레드 툴바: 이전 대화 목록 토글 + 새 상담 시작 (한 방에 갇히지 않게) */}
+          <div className="flex items-center justify-between mb-2">
+            <button
+              type="button"
+              onClick={() => { setShowHistory((v) => !v); loadThreads(); }}
+              className="inline-flex items-center gap-1.5 text-[11px] font-medium text-gray-600 hover:text-teal-700 rounded-xl px-2.5 py-1.5 hover:bg-gray-50 transition"
+            >
+              <History size={14} className="shrink-0" />
+              {t("chat.history.button", langCode)}
+            </button>
+            <button
+              type="button"
+              onClick={startNewChat}
+              className="inline-flex items-center gap-1.5 text-[11px] font-medium text-teal-700 rounded-xl px-2.5 py-1.5 hover:bg-teal-50 transition"
+            >
+              <Plus size={14} className="shrink-0" />
+              {t("chat.action.newChat", langCode)}
+            </button>
+          </div>
+
+          {/* 이전 대화 목록 패널 */}
+          {showHistory && (
+            <div className="mb-2 border border-gray-200 rounded-xl bg-white shadow-sm max-h-48 overflow-y-auto divide-y divide-gray-100">
+              {threads.length === 0 ? (
+                <div className="p-3 text-[11px] text-gray-400">{t("chat.history.empty", langCode)}</div>
+              ) : (
+                threads.map((th) => (
+                  <button
+                    key={th.id}
+                    type="button"
+                    onClick={() => switchThread(th)}
+                    className={`w-full text-left px-3 py-2 transition hover:bg-gray-50 ${th.id === threadId ? "bg-teal-50" : ""}`}
+                  >
+                    <div className="truncate text-xs text-gray-800">{th.subject || t("chat.history.untitled", langCode)}</div>
+                    <div className="text-[10px] text-gray-400">{formatWhen(th.last_active_at)}</div>
+                  </button>
+                ))
+              )}
+            </div>
+          )}
+
+          {/* 자동 세션경계: 오래 쉰 대화면 새 상담 제안 */}
+          {staleSession && (
+            <div className="mb-2 bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-center justify-between gap-2 text-[11px] text-amber-800">
+              <span>{t("chat.session.staleNote", langCode)}</span>
+              <button
+                type="button"
+                onClick={startNewChat}
+                className="shrink-0 inline-flex items-center gap-1 font-medium text-teal-700 hover:text-teal-800"
+              >
+                <Plus size={12} /> {t("chat.action.newChat", langCode)}
+              </button>
+            </div>
+          )}
+
           {/* 채팅 메시지 */}
           <div className="flex-1 overflow-y-auto mb-3 bg-gray-50 rounded-2xl p-3 sm:p-4 text-left space-y-4" ref={chatRef}>
             {guest?.name && (
