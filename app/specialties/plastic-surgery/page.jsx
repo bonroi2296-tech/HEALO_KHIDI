@@ -167,7 +167,7 @@ function PlasticSurgeryContent() {
 
       <main className="min-h-screen bg-white">
         {/* Hero */}
-        <section className="bg-gradient-to-b from-teal-50 to-white px-4 pt-16 pb-12 md:pt-24 md:pb-16">
+        <section className="bg-teal-50 px-4 pt-16 pb-12 md:pt-24 md:pb-16">
           <div className="max-w-4xl mx-auto text-center">
             <span className="inline-block px-3 py-1 text-xs font-semibold text-teal-700 bg-teal-100 rounded-full mb-4">
               Specialty Guide
