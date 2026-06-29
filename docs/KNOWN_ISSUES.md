@@ -98,7 +98,7 @@
 
 ### 🟡 PO 판단/런타임 검증 필요 (야간 임의 수정 보류 — 이유 명시)
 
-1. **🔴 [데모 직격, iOS] 서버 STT 2차 getUserMedia 가 LiveKit 마이크를 가로챌 수 있음** — `app/consultation/[id]/page.jsx:1306-1314`. 브라우저 STT 미지원(iOS Safari) 환자에서 서버 STT 경로가 `getUserMedia({audio:true})`를 **별도로** 한 번 더 잡는데, iOS Safari 는 두 번째 오디오 캡처가 첫 번째(LiveKit 송출 마이크)를 빼앗는 경우가 잦음 → **환자 마이크가 죽어 의사가 못 들음**(throw 없이 조용히). 카자흐/러시아 환자 아이폰 = 정확히 이 경로. **수정안**: 별도 getUserMedia 대신 LiveKit 이 이미 잡은 마이크 트랙(`localParticipant.getTrackPublication(Track.Source.Microphone).track.mediaStreamTrack`)을 MediaRecorder 에 물려 2차 점유 제거. **실 아이폰 검증 필요**해 보류.
+1. ~~**🔴 [데모 직격, iOS] 서버 STT 2차 getUserMedia 가 LiveKit 마이크를 가로챌 수 있음**~~ ✅ **해결(PR #269 / 2026-06-29 전수조사 재확인)**: 2026-06-22 세션이 옵션A(iOS(WebKit) 감지 시 2차 getUserMedia 자체를 안 함 → 텍스트 입력 폴백)를 적용함. 현재 코드 `app/consultation/[id]/page.jsx`에 iOS 안전폴백 가드 존재 확인. (2026-06-22 섹션 「✅ PR #269」와 동일 건의 중복 기록이었음.) ⚠️ 실아이폰 라이브 검증은 여전히 PO 권장(LAUNCH_GATES 관문5).
 2. **[K-01 구조적] 환자 포털이 `case_status` 를 못 봄 (EDGE-1)** — 환자 여정바(`src/lib/patient/journeyState.js:123`)는 `inquiry_events` 만 보는데 그 이벤트를 쓰는 코드가 funnel 4종뿐(`app/api/inquiries/event/route.ts:23`) → 코디/병원이 case_status 를 visa/treatment/completed 로 올려도 **환자 대시보드가 안 움직임**. 구조적(두 추적 그래프 분리) → 단일화 설계는 PO 판단.
 3. **[가시성] 완료된 상담이 case_status 를 전진 안 시킴 (EDGE-3)** — `consultation/[id]` 완료 시 `case_status`/이력 미기록 → KPI(K-02/04)는 오르지만 **에이전시·코디 타임라인은 정체**. (lifecycle 지도와 코드 불일치.)
 4. **[가시성] admin/leads/assign 가 case_status 안 올림 (EDGE-4)** — `coordinator/cases/assign` 과 비대칭(`app/api/admin/leads/assign/route.ts`엔 case_status 기록 없음).
