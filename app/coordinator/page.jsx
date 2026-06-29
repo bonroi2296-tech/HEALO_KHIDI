@@ -76,7 +76,7 @@ export default function CoordinatorDashboard() {
   const STAT_CARDS = [
     { label: '대기 인테이크', value: stats.pendingIntakes, icon: ClipboardList, color: 'bg-blue-50 text-blue-600', href: '/coordinator/inbox' },
     { label: '오늘 상담', value: stats.todayConsultations, icon: Video, color: 'bg-green-50 text-green-600', href: '/coordinator/consultations' },
-    { label: '활성 환자', value: stats.activePatients, icon: Users, color: 'bg-purple-50 text-purple-600', href: '/coordinator/patients' },
+    { label: '활성 환자', value: stats.activePatients, icon: Users, color: 'bg-purple-50 text-purple-600', href: '/coordinator/cases' },
     { label: '긴급 알림', value: stats.urgentAlerts, icon: AlertTriangle, color: 'bg-red-50 text-red-600', href: '/coordinator/alerts' },
   ];
 
