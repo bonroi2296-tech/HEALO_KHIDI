@@ -18,7 +18,7 @@ const L = {
     aiChat: { ko: 'AI 건강 상담', en: 'AI Health Chat', ru: 'AI Консультация', kz: 'AI Кеңес', zh: 'AI 健康咨询', ja: 'AI 健康相談' },
     consultations: { ko: '내 상담', en: 'My Consultations', ru: 'Мои консультации', kz: 'Менің кеңестерім', zh: '我的咨询', ja: '相談一覧' },
     documents: { ko: '의료 문서', en: 'Medical Documents', ru: 'Медицинские документы', kz: 'Медициналық құжаттар', zh: '医疗文档', ja: '医療書類' },
-    education: { ko: '건강 교육', en: 'Health Education', ru: 'Обучение здоровью', kz: 'Денсаулық білімі', zh: '健康教育', ja: '健康教育' },
+    education: { ko: '암 치료 가이드', en: 'Cancer Guide', ru: 'Гид по лечению', kz: 'Емдеу нұсқаулығы', zh: '癌症治疗指南', ja: 'がん治療ガイド' },
     symptoms: { ko: '증상 기록', en: 'Symptom Log', ru: 'Журнал симптомов', kz: 'Симптом журналы', zh: '症状记录', ja: '症状記録' },
     rebooking: { ko: '재진 예약', en: 'Follow-up Booking', ru: 'Повторная запись', kz: 'Қайта жазылу', zh: '复诊预约', ja: '再診予約' },
     visa: { ko: '비자 가이드', en: 'Visa Guide', ru: 'Визовый гид', kz: 'Виза нұсқаулығы', zh: '签证指南', ja: 'ビザガイド' },

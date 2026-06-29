@@ -16,7 +16,7 @@ const PRIMARY_TABS = [
 ];
 
 const MORE_TABS = [
-  { href: '/education', icon: BookOpen, label: { ko: '건강 교육', en: 'Education', ru: 'Обучение', kz: 'Білім', zh: '教育', ja: '教育' } },
+  { href: '/education', icon: BookOpen, label: { ko: '암 치료 가이드', en: 'Cancer Guide', ru: 'Гид по лечению', kz: 'Емдеу нұсқаулығы', zh: '癌症治疗指南', ja: 'がん治療ガイド' } },
   { href: '/patient/symptoms', icon: Activity, label: { ko: '증상 기록', en: 'Symptoms', ru: 'Симптомы', kz: 'Белгілер', zh: '症状', ja: '症状' } },
   { href: '/patient/rebooking', icon: Calendar, label: { ko: '재진 예약', en: 'Rebooking', ru: 'Запись', kz: 'Қайта жазу', zh: '复诊', ja: '再診' } },
   { href: '/visa', icon: Globe, label: { ko: '비자 가이드', en: 'Visa Guide', ru: 'Виза', kz: 'Виза', zh: '签证指南', ja: 'ビザ' } },

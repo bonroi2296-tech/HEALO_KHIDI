@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useLang } from '@/lib/i18n/LangContext';
-import { BookOpen, ChevronDown, ChevronUp, Stethoscope, AlertTriangle, Heart, Utensils, Dumbbell, Brain } from 'lucide-react';
+import { BookOpen, ChevronDown, ChevronUp, Stethoscope, AlertTriangle, Heart, Utensils, Dumbbell, Brain, Leaf } from 'lucide-react';
 
 export const CANCER_TYPES = [
   { value: 'stomach', emoji: '🫁', label: { ko: '위암', en: 'Stomach Cancer', ru: 'Рак желудка', zh: '胃癌', ja: '胃がん', kz: 'Асқазан обыры' } },
@@ -427,6 +427,99 @@ GUIDES.thyroid = {
   ],
 };
 
+// ── 모든 암종 공통: 양·한방 통합면역 케어 (면력한방병원 협진 모델) ──
+const INTEGRATIVE_SECTION = {
+  icon: Leaf,
+  color: 'text-teal-600 bg-teal-50',
+  title: { ko: '양·한방 통합면역 케어', en: 'Integrative Immune Care (East-West)', ru: 'Интегративная иммунная помощь', zh: '中西医结合免疫护理', ja: '洋・韓方統合免疫ケア', kz: 'Интегративті иммундық күтім' },
+  body: {
+    ko: '수술과 항암치료가 암을 직접 제거한다면, 통합면역 케어는 그 치료를 견디는 몸의 힘과 회복을 돕는 보조적 접근입니다. healwith는 수술·항암은 한국 암 전문병원에서, 치료 전후의 면역·체력 관리는 면력한방병원 통합암치료팀과 함께하는 양·한방 협진 모델을 운영합니다.\n\n통합면역 케어가 돕는 것:\n• 항암·방사선 치료 중 체력 저하와 식욕부진 완화\n• 메스꺼움·피로·수면장애 등 부작용 관리\n• 치료 사이 회복기의 면역력·컨디션 유지\n• 수술 후 체력 회복과 일상 복귀 지원\n\n진료 방식:\n• 대한통합암학회 인정의(한방내과·통합면역) 중심의 협진\n• 한약·약침 등 병행치료는 반드시 담당 종양내과와 상의 후 진행\n• 항암 일정에 맞춘 컨디션 관리 프로그램\n\n🟡 꼭 기억하세요:\n• 통합면역 케어는 표준 암 치료를 대체하지 않습니다\n• 검증되지 않은 치료를 위해 표준 치료를 미루지 마세요\n• 모든 병행 치료는 담당 의료진과 먼저 상의하세요',
+    en: 'While surgery and chemotherapy remove the cancer directly, integrative immune care is a supportive approach that helps your body endure treatment and recover. healwith runs an East-West collaborative model: surgery and chemo at Korea\'s cancer specialty hospitals, with immune and stamina care before and after treatment provided by the integrative oncology team at Immune Hospital.\n\nWhat integrative immune care helps with:\n• Easing fatigue and appetite loss during chemo/radiation\n• Managing side effects like nausea, fatigue, and sleep problems\n• Maintaining immunity and condition during recovery between treatments\n• Supporting stamina recovery and return to daily life after surgery\n\nHow care works:\n• Collaboration led by board-certified integrative oncology / Korean internal medicine doctors\n• Herbal medicine and pharmacopuncture only alongside — and after consulting — your oncologist\n• Condition-management programs aligned with your chemotherapy schedule\n\n🟡 Please remember:\n• Integrative immune care does not replace standard cancer treatment\n• Never delay standard treatment for unproven therapies\n• Discuss every complementary therapy with your medical team first',
+    ru: 'Если хирургия и химиотерапия удаляют рак напрямую, то интегративная иммунная помощь — это поддерживающий подход, помогающий организму перенести лечение и восстановиться. healwith использует модель восточно-западного сотрудничества: операции и химиотерапия в корейских онкоцентрах, а забота об иммунитете и силах до и после лечения — с командой интегративной онкологии Immune Hospital.\n\nВ чём помогает интегративная иммунная помощь:\n• Снижение усталости и потери аппетита во время химио/лучевой терапии\n• Управление побочными эффектами: тошнота, усталость, нарушения сна\n• Поддержание иммунитета и состояния в период восстановления между курсами\n• Поддержка восстановления сил и возвращения к обычной жизни после операции\n\nКак это работает:\n• Сотрудничество под руководством сертифицированных врачей интегративной онкологии / корейской внутренней медицины\n• Травяные средства и фармакопунктура — только параллельно и после консультации с онкологом\n• Программы поддержания состояния с учётом графика химиотерапии\n\n🟡 Помните:\n• Интегративная иммунная помощь не заменяет стандартное лечение рака\n• Никогда не откладывайте стандартное лечение ради недоказанных методов\n• Обсуждайте каждую дополнительную терапию с вашим врачом',
+    zh: '手术和化疗直接清除癌症，而整合免疫护理是帮助身体耐受治疗并恢复的辅助方式。healwith采用中西医协作模式：手术与化疗在韩国癌症专科医院进行，治疗前后的免疫与体力管理则与免疫医院的整合肿瘤团队共同完成。\n\n整合免疫护理可帮助：\n• 缓解化疗/放疗期间的体力下降和食欲不振\n• 管理恶心、疲劳、睡眠障碍等副作用\n• 在治疗间歇的恢复期维持免疫力和状态\n• 支持术后体力恢复和回归日常生活\n\n诊疗方式：\n• 由整合肿瘤学/韩方内科认证医师主导的协作诊疗\n• 中药、药针等并用治疗须在咨询主治肿瘤科医生后进行\n• 配合化疗日程的状态管理方案\n\n🟡 请务必记住：\n• 整合免疫护理不能替代标准癌症治疗\n• 切勿为未经证实的疗法而推迟标准治疗\n• 所有辅助治疗请先与您的医疗团队沟通',
+    ja: '手術や抗がん剤ががんを直接取り除くのに対し、統合免疫ケアは治療に耐える体の力と回復を助ける補助的なアプローチです。healwithは、手術・抗がん治療は韓国のがん専門病院で、治療前後の免疫・体力管理は免疫病院の統合腫瘍チームと行う、洋・韓方の協診モデルを運営しています。\n\n統合免疫ケアが助けること：\n• 抗がん剤・放射線治療中の体力低下や食欲不振の緩和\n• 吐き気・疲労・睡眠障害などの副作用の管理\n• 治療の合間の回復期における免疫力・コンディションの維持\n• 術後の体力回復と日常復帰のサポート\n\n診療の進め方：\n• 統合腫瘍学・韓方内科の認定医を中心とした協診\n• 漢方薬・薬鍼などの併用治療は必ず担当腫瘍内科と相談のうえで実施\n• 抗がんスケジュールに合わせたコンディション管理プログラム\n\n🟡 必ず覚えておいてください：\n• 統合免疫ケアは標準的ながん治療の代わりにはなりません\n• 証明されていない治療のために標準治療を遅らせないでください\n• すべての併用治療はまず担当医療チームに相談してください',
+    kz: 'Хирургия мен химиотерапия обырды тікелей жойса, интегративті иммундық күтім — емді көтеруге және қалпына келуге көмектесетін қосымша тәсіл. healwith шығыс-батыс бірлескен моделін ұстанады: хирургия мен химиотерапия Кореяның обыр маманданған ауруханаларында, ал ем алдындағы және кейінгі иммунитет пен күш-қуат күтімі Immune Hospital интегративті онкология тобымен бірге жүреді.\n\nИнтегративті иммундық күтім немен көмектеседі:\n• Химио/сәулелік ем кезіндегі әлсіздік пен тәбеттің төмендеуін жеңілдету\n• Жүрек айну, шаршау, ұйқы бұзылуы сияқты жанама әсерлерді басқару\n• Емдеу аралығындағы қалпына келу кезеңінде иммунитет пен жағдайды сақтау\n• Операциядан кейінгі күш-қуатты қалпына келтіруге қолдау\n\nЕмдеу тәсілі:\n• Интегративті онкология / корей ішкі медицинасы сертификатталған дәрігерлері басқаратын бірлескен ем\n• Шөп дәрілері мен фармакопунктура тек онкологпен ақылдасқаннан кейін қатар жүргізіледі\n• Химиотерапия кестесіне сай жағдайды басқару бағдарламалары\n\n🟡 Есте сақтаңыз:\n• Интегративті иммундық күтім стандартты обыр емін алмастырмайды\n• Дәлелденбеген емдер үшін стандартты емді кешіктірмеңіз\n• Әрбір қосымша емді алдымен дәрігеріңізбен талқылаңыз',
+  },
+};
+
+// 모든 암종 가이드에 통합면역 케어 섹션을 마지막에 한 번씩 추가
+Object.values(GUIDES).forEach((g) => {
+  if (!g.sections.some((s) => s.icon === Leaf)) g.sections.push(INTEGRATIVE_SECTION);
+});
+
+// 섹션 유형(아이콘)별 큐레이션 이미지 — 랜덤 스톡 대신 유형 일관 이미지.
+// 경고(AlertTriangle)·통합면역(Leaf) 섹션은 콜아웃 박스가 주인공이라 이미지 없음.
+const SECTION_IMAGE = new Map([
+  [Stethoscope, { src: 'https://images.unsplash.com/photo-1666214280557-f1b5022eb634?w=1200&auto=format&fit=crop&q=80', alt: { ko: '의료진이 환자에게 검사 결과를 설명하는 모습', en: 'Doctor explaining test results to a patient', ru: 'Врач объясняет пациенту результаты', zh: '医生向患者讲解检查结果', ja: '医師が患者に検査結果を説明', kz: 'Дәрігер науқасқа нәтижелерді түсіндіруде' } }],
+  [Utensils, { src: 'https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=1200&auto=format&fit=crop&q=80', alt: { ko: '신선한 채소로 차린 건강한 식사', en: 'Healthy meal with fresh vegetables', ru: 'Здоровая еда из свежих овощей', zh: '新鲜蔬菜的健康餐', ja: '新鮮な野菜の健康的な食事', kz: 'Жаңа көкөністерден дайын тағам' } }],
+  [Dumbbell, { src: 'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=1200&auto=format&fit=crop&q=80', alt: { ko: '부드러운 스트레칭 운동', en: 'Gentle stretching exercise', ru: 'Лёгкая растяжка', zh: '轻柔的拉伸运动', ja: '軽いストレッチ運動', kz: 'Жеңіл созылу жаттығуы' } }],
+  [Brain, { src: 'https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=1200&auto=format&fit=crop&q=80', alt: { ko: '명상과 마음 챙김', en: 'Meditation and mindfulness', ru: 'Медитация и осознанность', zh: '冥想与正念', ja: '瞑想とマインドフルネス', kz: 'Медитация және зейін' } }],
+]);
+
+// body 텍스트(\n\n 블록·• 불릿·🔴🟡 경고·"소제목:") 를 구조화 렌더링
+function StructuredBody({ text }) {
+  if (!text) return null;
+  const blocks = text.split('\n\n').map((b) => b.split('\n').filter((ln) => ln.trim()));
+  return (
+    <div className="space-y-4">
+      {blocks.map((lines, bi) => {
+        const head = lines[0] || '';
+        const level = head.startsWith('🔴') ? 'urgent' : head.startsWith('🟡') ? 'caution' : null;
+        if (level) return <Callout key={bi} level={level} title={head} lines={lines.slice(1)} />;
+        return (
+          <div key={bi} className="space-y-2">
+            {lines.map((ln, li) => <BodyLine key={li} text={ln.trim()} />)}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function BodyLine({ text }) {
+  if (text.startsWith('•')) {
+    return (
+      <div className="flex gap-2.5 text-sm md:text-[15px] text-gray-700 leading-relaxed">
+        <span className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-teal-400" />
+        <span>{text.replace(/^•\s*/, '')}</span>
+      </div>
+    );
+  }
+  if (text.endsWith(':')) {
+    return <p className="text-sm md:text-[15px] font-semibold text-gray-900 pt-1">{text.replace(/:$/, '')}</p>;
+  }
+  const m = text.match(/^([^:•]{1,22}):\s+(.+)$/);
+  if (m) {
+    return (
+      <p className="text-sm md:text-[15px] text-gray-700 leading-relaxed">
+        <span className="font-semibold text-gray-900">{m[1]}</span> · {m[2]}
+      </p>
+    );
+  }
+  return <p className="text-sm md:text-[15px] text-gray-700 leading-relaxed">{text}</p>;
+}
+
+function Callout({ level, title, lines }) {
+  const urgent = level === 'urgent';
+  const box = urgent ? 'border-red-200 bg-red-50' : 'border-amber-200 bg-amber-50';
+  const titleColor = urgent ? 'text-red-700' : 'text-amber-700';
+  const dot = urgent ? 'bg-red-500' : 'bg-amber-500';
+  const items = lines.filter((l) => l.trim().startsWith('•')).map((l) => l.replace(/^•\s*/, '').trim());
+  return (
+    <div className={`rounded-xl border ${box} p-4`}>
+      <p className={`text-sm font-bold ${titleColor} mb-2.5`}>{title}</p>
+      <ul className="space-y-1.5">
+        {items.map((it, i) => (
+          <li key={i} className="flex gap-2.5 text-sm text-gray-700 leading-relaxed">
+            <span className={`mt-2 h-1.5 w-1.5 shrink-0 rounded-full ${dot}`} />
+            <span>{it}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 export default function EducationClient() {
   const lang = useLang();
   const l = (obj) => obj?.[lang] || obj?.['en'] || '';
@@ -488,9 +581,10 @@ export default function EducationClient() {
         {guide.sections.map((section, idx) => {
           const Icon = section.icon;
           const isOpen = expandedSections[idx] !== false;
+          const img = SECTION_IMAGE.get(section.icon);
 
           return (
-            <div key={idx} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+            <div key={idx} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden transition-all duration-200 hover:shadow-md">
               <button
                 onClick={() => toggleSection(idx)}
                 className="w-full flex items-center gap-4 p-5 text-left hover:bg-gray-50/50 transition"
@@ -508,22 +602,18 @@ export default function EducationClient() {
                 )}
               </button>
               {isOpen && (
-                <div className="px-5 pb-5 pt-0">
-                  {section.image && (
-                    <div className="mb-4 rounded-xl overflow-hidden">
+                <div className="px-5 pb-5 pt-1">
+                  {img && (
+                    <div className="mb-5 rounded-xl overflow-hidden bg-gray-50">
                       <img
-                        src={section.image}
-                        alt={section.imageAlt || ''}
-                        className="w-full h-48 md:h-64 lg:h-72 object-cover"
+                        src={img.src}
+                        alt={l(img.alt)}
+                        className="w-full h-44 md:h-56 object-cover"
                         loading="lazy"
                       />
                     </div>
                   )}
-                  <div className="pl-0 md:pl-14">
-                    <p className="text-sm md:text-[15px] text-gray-700 leading-relaxed whitespace-pre-line">
-                      {l(section.body)}
-                    </p>
-                  </div>
+                  <StructuredBody text={l(section.body)} />
                 </div>
               )}
             </div>
