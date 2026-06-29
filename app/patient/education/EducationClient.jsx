@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useLang } from '@/lib/i18n/LangContext';
-import { BookOpen, ChevronDown, ChevronUp, Stethoscope, AlertTriangle, Heart, Utensils, Dumbbell, Brain, Leaf } from 'lucide-react';
+import { BookOpen, ChevronDown, ChevronUp, Stethoscope, AlertTriangle, Utensils, Dumbbell, Brain, Leaf } from 'lucide-react';
 
 export const CANCER_TYPES = [
   { value: 'stomach', emoji: '🫁', label: { ko: '위암', en: 'Stomach Cancer', ru: 'Рак желудка', zh: '胃癌', ja: '胃がん', kz: 'Асқазан обыры' } },
@@ -505,17 +505,25 @@ function Callout({ level, title, lines }) {
   const box = urgent ? 'border-red-200 bg-red-50' : 'border-amber-200 bg-amber-50';
   const titleColor = urgent ? 'text-red-700' : 'text-amber-700';
   const dot = urgent ? 'bg-red-500' : 'bg-amber-500';
-  const items = lines.filter((l) => l.trim().startsWith('•')).map((l) => l.replace(/^•\s*/, '').trim());
+  // 이모지(🔴🟡)는 UI 크롬 금지(DESIGN.md) → lucide 아이콘 + 컬러로 긴급도 표현
+  const cleanTitle = title.replace(/^[🔴🟡]\s*/, '').replace(/[:：]$/, '');
   return (
     <div className={`rounded-xl border ${box} p-4`}>
-      <p className={`text-sm font-bold ${titleColor} mb-2.5`}>{title.replace(/[:：]$/, '')}</p>
+      <div className="flex items-center gap-1.5 mb-2.5">
+        <AlertTriangle size={15} className={titleColor} />
+        <p className={`text-sm font-bold ${titleColor}`}>{cleanTitle}</p>
+      </div>
       <ul className="space-y-1.5">
-        {items.map((it, i) => (
-          <li key={i} className="flex gap-2.5 text-sm text-gray-700 leading-relaxed">
-            <span className={`mt-2 h-1.5 w-1.5 shrink-0 rounded-full ${dot}`} />
-            <span>{it}</span>
-          </li>
-        ))}
+        {lines.map((raw, i) => {
+          const t = raw.trim();
+          const bullet = t.startsWith('•');
+          return (
+            <li key={i} className="flex gap-2.5 text-sm text-gray-700 leading-relaxed">
+              {bullet && <span className={`mt-2 h-1.5 w-1.5 shrink-0 rounded-full ${dot}`} />}
+              <span>{bullet ? t.replace(/^•\s*/, '') : t}</span>
+            </li>
+          );
+        })}
       </ul>
     </div>
   );
@@ -588,6 +596,7 @@ export default function EducationClient() {
             <div key={idx} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden transition-all duration-200 hover:shadow-md">
               <button
                 onClick={() => toggleSection(idx)}
+                aria-expanded={isOpen}
                 className="w-full flex items-center gap-4 p-5 text-left hover:bg-gray-50/50 transition"
               >
                 <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${section.color}`}>
