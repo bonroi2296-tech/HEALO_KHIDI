@@ -394,6 +394,15 @@ async function _sendAdminNotificationInternal(
     console.warn("[Notify] in-app staff notify 실패(무시):", e?.message);
   }
 
+  // 1-c. 텔레그램 알림 — 운영자(PO) 개인 푸시. 이메일 수신자 설정과 무관하게 항상(fail-safe).
+  //      env(TELEGRAM_BOT_TOKEN·TELEGRAM_CHAT_ID) 미설정이면 내부에서 조용히 스킵.
+  try {
+    const { sendTelegramAlert } = await import("./telegram");
+    await sendTelegramAlert(generateNotificationMessage(payload));
+  } catch (e: any) {
+    console.warn("[Notify] telegram notify 실패(무시):", e?.message);
+  }
+
   // 2. 수신자 조회 (DB 우선 → ENV fallback)
   const recipients = await getActiveRecipients();
   
