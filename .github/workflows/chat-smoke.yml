@@ -3,6 +3,7 @@ name: Chat Smoke (AI agent guards)
 # AI 챗 핵심 가드를 프로덕션에서 매일 자동 점검(PO 수동 클릭 대체):
 #   A) 연락처 없이 "접수해줘" → 거짓 "접수완료" 금지·연락처 요청
 #   B) "로그인 안 했는데 저장돼?" → 정직한 저장/30일 안내
+#   C) 지식질문 → 응답 metadata.rag_chunks_used > 0 (RAG 실사용 가드, POSTMORTEMS #48 재발방지)
 # 실패하면 이 워크플로가 빨강 → 알림. 테스트 스레드는 끝나면 service_role 로 자동 삭제(DB 오염 0).
 
 on:
