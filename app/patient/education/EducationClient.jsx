@@ -485,10 +485,11 @@ function BodyLine({ text }) {
       </div>
     );
   }
-  if (text.endsWith(':')) {
-    return <p className="text-sm md:text-[15px] font-semibold text-gray-900 pt-1">{text.replace(/:$/, '')}</p>;
+  if (text.endsWith(':') || text.endsWith('：')) {
+    return <p className="text-sm md:text-[15px] font-semibold text-gray-900 pt-1">{text.replace(/[:：]$/, '')}</p>;
   }
-  const m = text.match(/^([^:•]{1,22}):\s+(.+)$/);
+  // "라벨: 설명" 한 줄 (en/ru "Week 1: ...", zh/ja 전각 "1週目：...") — 라벨 볼드
+  const m = text.match(/^([^:：•]{1,22})[:：]\s*(.+)$/);
   if (m) {
     return (
       <p className="text-sm md:text-[15px] text-gray-700 leading-relaxed">
@@ -507,7 +508,7 @@ function Callout({ level, title, lines }) {
   const items = lines.filter((l) => l.trim().startsWith('•')).map((l) => l.replace(/^•\s*/, '').trim());
   return (
     <div className={`rounded-xl border ${box} p-4`}>
-      <p className={`text-sm font-bold ${titleColor} mb-2.5`}>{title}</p>
+      <p className={`text-sm font-bold ${titleColor} mb-2.5`}>{title.replace(/[:：]$/, '')}</p>
       <ul className="space-y-1.5">
         {items.map((it, i) => (
           <li key={i} className="flex gap-2.5 text-sm text-gray-700 leading-relaxed">
