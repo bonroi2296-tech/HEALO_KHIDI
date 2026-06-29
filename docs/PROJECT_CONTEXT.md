@@ -54,6 +54,44 @@
 
 **7. 다음 세션 첫 프롬프트**
 > 먼저 docs/PROJECT_CONTEXT.md 최상단(2026-06-29 심야) 핸드오프 읽어. 퍼널 전수 심층감사로 찾은 출시 블로커 6개를 고쳐 머지했어(#452 동의·#453 비활성차단·#454 중국어상담/누출/코디대시보드·#456 PII감사로그). **근데 전부 실로그인·실데이터 검증을 못 했으니** 그것부터 확인해줘: ①#449(코디 AI챗 뷰)·#453(비활성 차단) 프리뷰/실계정 확인 후 머지할지 ②머지된 감사수정 실동작(Step2 후 동의 보존·중국어 상담 생성·코디 긴급알림·PII 열람 로그). 그담 출시 PO 관문(LAUNCH_GATES_PO.md: 약한비번 admin 삭제·Gemini 결제·구글 OAuth 게시·실메일)은 PO만 닫을 수 있으니 안내. #422·#424 법무는 PO 검토 대기, playbook 데이터 적재는 여력되면.
+## 🔖 세션 핸드오프 (2026-06-29 — PyTorch 글 2개 적용: AI 과장가드 + 시장 인텔리전스 수집도구 → PR #451 머지·배포)
+
+> PO가 PyTorch 한국 포럼 글 2개(Ornith-1.0 / Agent Reach)를 주고 "우리한테 적용할 게 있는지 분석"하라 함. 둘 다 **실제 기능으로 적용** → PR [#451](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/451) squash 머지·배포 완료.
+
+**1. 이번 세션 한 일 (PR #451 머지됨)**
+- **① AI 답변 "근거 없는 정량 과장" 안전가드 (overclaim_stat)** — Ornith의 "결정론적 모니터링+LLM 심판" 발상. 우리 2층 가드(0층 정규식 `safetyGuard.ts`+1층 `judge.ts`)가 완치·약물·생존율만 잡고 "매칭 정확도 90%·만족도 95%·성공률 N%" 류는 못 잡던 구멍을 메움. `safetyGuard.ts`(soft 카테고리, 연성 캡 0.5)·`judge.ts`(프롬프트+플래그)·`qualityStandards.ts`(OVERCLAIM_FLAGS)·`safetyGuard.test.ts`(6언어, 71개 통과). POSTMORTEMS #42.
+- **② 시장 인텔리전스 수집 도구 (Agent Reach 적용)** — `npm run collect:intel` 한 줄로 공개 뉴스·커뮤니티에서 다국어(ru·kz·zh·en·ko) "한국 암치료 의료관광·경쟁국·KHIDI 정책" 신호 수집 → 마케팅 리포트(.md)+원자료(.json)+AI 브리프(Gemini, 선택). 기존 `scripts/data-collection/` 패턴에 `intel` 명령으로 얹음. 소스: Google News RSS·Reddit 공개검색·무의존 RSS/Atom 파서·r.jina.ai 웹리더. 플레이북 `docs/MARKET_INTEL_PLAYBOOK.md`.
+- **부수: 기존 collect CLI가 통째로 깨져있던 버그 2건 수리** — `normalize-hospital.ts` 변수명 `eval`(ESM 예약어→`ev`), `index.ts` ESM `__dirname` 미정의(shim 추가).
+- KHIDI 베이스 §4(6월 로그) 기록.
+
+**2. 왜 그렇게 했는지**
+- **중복 방지(둘 다 "이미 있는 것 위에"):** 가드는 새로 짓지 않고 2층 가드의 빈 카테고리만 채움. intel도 새 폴더가 아니라 기존 data-collection 플러그형(소스→수집기→변환→export)에 명령만 추가.
+- **정적 `check:content` 룰은 의도적 제외:** 우리 KHIDI 공식지표가 "환자 만족도 **90점**"이라 정적 룰을 두면 어드민 목표 표시를 오탐(PO 2026-06-29 취향과 정합) → **런타임(환자 노출 답변) 범위로만** 한정.
+- **intel 설계 원칙(의료 플랫폼이라):** 공개 데이터만(로그인뒤·쿠키 스크래핑 금지=ToS·법), 환자 PII 수집·저장 금지(시장/경쟁/평판 신호만), 출처·날짜 보존, 생성물은 `.gitignore`.
+
+**3. 안 끝났거나 보류**
+- **intel 다음 단계(플레이북에 기록, PO 원하면 진행):** 주 1회 cron 자동실행·추세비교, 브랜드 평판 알림(watchKeyword 매칭 시 코디/PO), **CIS 전용 소스(VK·텔레그램·Odnoklassniki) 보강**(Google News·Reddit은 러·카자흐 핵심망을 잘 못 봄), 중국 푸시 시 샤오홍슈·웨이보.
+- **직전 세션(#431) 미검증분 여전히 유효** — 아래 5번 참고.
+
+**4. 주의·함정**
+- **Reddit은 데이터센터 IP(서버·CI)에서 403 차단** — 이 환경에선 스킵됨(우아하게). PO 로컬 PC에선 될 수 있음. 리포트 상단 `응답 소스 N/M`로 가시화.
+- **AI 브리프는 `GOOGLE_GENERATIVE_AI_API_KEY` 있어야 생성** — 없으면 수집목록만(스킵). 실서비스/PO 로컬 키 환경에서 확인.
+- **생성물 `data/collected/`는 `.gitignore`** — 커밋 안 됨(로컬/드라이브에만).
+- **검색어·대상은 코드 수정 없이 `config.ts`의 `intel` 블록만** 손대면 됨(마케팅 직접 조정).
+
+**5. 다음 세션이 먼저 할 일**
+1. **⚠️ 직전 미검증분 먼저 확인 (이번 세션):** ①실서비스 AI 챗에서 "정확도 90%" 같은 과장 답변 → 코디 품질 알림 뜨는지 ②`npm run collect:intel`를 **PO 로컬에서** 돌려 AI 브리프(키 환경)·Reddit(로컬 IP) 붙는지.
+2. **⚠️ #431 미검증분도 아직:** AI 챗 드래그앤드랍·업로드→1차소견·어드민 검수버튼·ru/kz 실응답·3턴+ 후 전환집계(아래 옛 핸드오프 참고).
+3. **(PO 선택 시) intel 다음 단계** — 3번 보류 항목 중 PO가 고른 것(주1회 자동/평판알림/CIS 소스).
+
+**6. 검증 상태**
+- ✅ `vitest run src/lib/chat/` 71개 통과 · `tsc --noEmit` 변경파일 에러 0 · `npm run check:content` 통과.
+- ✅ intel **실제 48건 수집 end-to-end 동작 확인**(Google News ru/zh/en/ko) — 러시아 "한국이 러 환자 암치료"·경쟁국(터키) 등 실신호. 스니펫 HTML/이중인코딩 엔티티 정리 확인.
+- ✅ PR #451 CI(`ci`·`Smoke Tests`) 둘 다 success → squash 머지 → `main` 배포(Vercel).
+- ❌ **검증 못 함(실환경 필요):** 실서비스 AI챗 과장→코디알림 / AI 브리프(키 환경) / Reddit(로컬 IP) / #431 직전 미검증분.
+
+**7. 다음 세션 첫 프롬프트**
+> 먼저 `docs/PROJECT_CONTEXT.md` 최상단 핸드오프부터 읽어. 직전 2개 세션 미검증분을 실서비스에서 확인하자: ①AI 챗에 "정확도 90%" 같은 과장 답변 유도 → 코디 품질 알림 뜨나 ②`npm run collect:intel` 로컬 실행해 마케팅 리포트+AI 브리프 잘 나오나 ③#431분(드래그앤드랍·1차소견·검수버튼·ru/kz 응답·전환집계). 그다음 intel 다음 단계(주1회 자동/브랜드 평판알림/CIS 소스 VK·텔레그램) 중 뭐 할지 정하자.
 
 ---
 
