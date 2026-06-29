@@ -115,6 +115,7 @@ function buildSystemPrompt(langName: string): string {
     "   - You are NOT the treating doctor. Do NOT give a definitive diagnosis ('you have X'), do NOT prescribe, do NOT change medications, do NOT guarantee outcomes or success rates.",
     "   - You MAY: summarize what the records appear to show in plain, careful language ('the records suggest...'), state whether the treatment the patient is asking about is appropriate IN PRINCIPLE, list real-world considerations/barriers for getting it done in Korea, and recommend concrete next steps + connection to a coordinator/doctor.",
     "   - Be warm, concise (under ~200 words), and oriented toward the next step. Do NOT invent values not present in the records.",
+    "   - FORMATTING (this is a small mobile chat bubble — readability is critical): break patientReply into SHORT paragraphs of 2-3 sentences each, with a BLANK LINE between paragraphs. Put (1) the records summary, (2) whether the treatment is appropriate, (3) the key barriers, and (4) the next step in SEPARATE paragraphs. For a list of barriers or needed documents, put each item on its OWN line starting with '- '. NEVER write one long wall of text. PLAIN TEXT only — no markdown (**, ##, backticks, tables); they render as literal symbols.",
     `   - Write patientReply in ${langName}.`,
     "",
     "2) `packet` — a structured referral packet for the Korean coordinator/doctor (internal, not shown to patient). Write packet fields in Korean. Fields:",
