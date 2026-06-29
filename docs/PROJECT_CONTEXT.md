@@ -7,6 +7,53 @@
 
 ---
 
+## 🔖 세션 핸드오프 (2026-06-29 심야 — 핸드오프 인수 → 열린작업 전수조사 → 퍼널 5개 심층감사 → 출시 블로커 6개 수정·머지)
+
+> "핸드오프 분석하고 이어가자"로 시작 → 작은 가드(RAG헬스)부터 열린 PR 정리, 중단된 작업(#406·#408) 되살리기, **그리고 PO "완벽해? 오픈 확정?"에 안심 대신 퍼널 전수 심층감사로 답함**(병렬 에이전트 5 + 실DB + 보안린트). 감사로 **진짜 법적·보안 블로커 6개**를 찾아 수정·머지. PO 지시 "니가 판단해서 머지할 건 머지, 애매한 건 인수인계" → 안전한 건 머지, auth/PII 미검증 2건은 보류.
+
+**1. 이번 세션 한 일 (전부 main 머지·프로덕션 배포, 별도 표기 없으면)**
+- **RAG 실사용 가드** [#441] — 매일 prod 스모크(`scripts/smoke-chat.mjs` TEST C)에 지식질문→`rag_chunks_used>0` 검증. RAG 또 죽으면 다음날 CI 빨강(POSTMORTEMS #48 재발방지).
+- **문서 정리** [#443] — 누락됐던 POSTMORTEMS #33(REVOKE PUBLIC) 복원 + stale PR #353 닫음. [#448] — `LAUNCH_GATES_PO.md`에 출시 관문 11개로 통합(Gemini결제·텔레그램·약한비번·구글OAuth·DPA·법무PR) + KNOWN_ISSUES stale(iOS마이크 #269 등) 해결표시.
+- **중단 작업 2개 되살림** — [#445]=#408 벤치 고급판(맞대결·48문항·사람검수), [#446]=#406 구글가입자 비번찾기 안내 + 코디 AI대화 검토큐(#431 검수버튼과 충돌 병합). 둘 다 옛 main 기반이라 최신에 rebase·빌드검증 후 머지.
+- **퍼널 전수 심층감사** — 문의·AI챗·가입·상담·백오피스 5개를 코드+실DB+보안advisor로 추적. 점수: 문의68·가입62·AI챗76·상담78·코디72·에이전시92·병원78·견적92.
+- **감사 블로커 6개 수정** (작은 PR로 쪼갬):
+  - [#452] 🔴법무 — ①문의 Step2가 Step1 PIPA동의기록을 덮어써 삭제(merge로 보존) ②AI리드 승격이 동의없이 적재(thread.metadata.consent를 intake.consents로 복사). `step2/route.ts`·`publicChatHelpers.ts`.
+  - [#453] 🔴보안 — 비활성(소프트삭제) 직원/어드민이 인증에서 안 막혀 그대로 로그인·PII복호화 가능하던 것 → `checkAdminAuth`에 `disabled===true` 차단(fail-safe).
+  - [#454] 🔴버그 — 중국어(zh) 환자 상담 생성 400(언어 화이트리스트 zh 누락) + error.message 누출 3곳(create·partner/whoami·chat/message) 코드형 + 코디 대시보드 죽은링크(/patients→/cases)·긴급알림 항상0(followup GET을 staff 허용).
+  - [#456] 🔴컴플라이언스 — 환자 PII 열람 감사로그 누락(코디 인박스 상세·병원 임상패킷)에 `VIEW_INQUIRY`/`PARTNER_VIEW_CASES` 추가.
+
+**2. 왜 그렇게 했는지**
+- **"완벽해?/오픈 확정?" = 안심 금지 신호**(PO취향) → 실측 감사로 답. 페이지가 200 뜨는 것과 퍼널이 끝까지 도는 건 다름 → 감사가 법적(동의 소실)·보안(비활성 무력)·버그(zh) 블로커를 실제로 잡음.
+- **머지 판단 기준**(PO "니가 판단"): 데이터 보존만/추가형/명백한 버그 + CI초록 = 머지. **auth 동작 변경·PII 새 노출이라 실로그인 검증이 필요한 건 보류**(#453은 잠금위험 낮아 머지, #449는 PII+페이지 런타임 미확인이라 보류).
+- **작은 PR로 쪼갬**: 법무/보안/버그/컴플라이언스 각각 독립 — 리뷰·롤백 쉽게. 각 PR build·CI 초록 후 머지.
+- **클라우드 컨테이너 = 세션별 격리**: PO "워크트리 따로"의 의도(다른 세션과 안 엉키게)는 이 환경에선 전용 브랜치로 충족(파일시스템 공유 안 함, git/PR레벨만 만남).
+
+**3. 안 끝났거나 보류 (= 애매해서 인수인계에 남긴 것)**
+- **[#449] 코디네이터 AI 챗 뷰 (열림·draft)** — `/coordinator/chat` 읽기전용 + admin chat API GET을 staff로 넓힘. 빌드 통과지만 **코디 계정 실로그인 런타임 미검증 + 환자 PII를 새 role에 노출**이라 보류. PO가 프리뷰(`healo-khidi-git-feat-coordinator-chat-view-...vercel.app/coordinator/chat`)에서 ①네비 'AI 상담 리드' ②목록·대화·첨부 열람 ③검수버튼 안 보임 확인 후 "머지해" 하면 머지.
+- **[#422] 처리방침 GDPR 보강·[#424] HIPAA/GDPR점검+계약서 (열림)** — 라이브 법무문서 → PO 법무검토 결정. 자동으로 안 건드림.
+- **감사 잔여(코드)**: ①AI챗 playbook 데이터 0건 → "3-Tier RAG"가 실제론 1소스(병원/치료 en)만 가동(playbook_pattern 적재 필요) ②병원 임상패킷 GET의 viewer role 게이팅(viewer 권한 의미=PO 결정) ③`normalized_inquiries` draft가 6·9턴마다 중복 insert ④AI 승격건 nationality NULL→"(미상)".
+
+**4. 주의·함정**
+- **#453 비활성차단은 staff(coordinator/admin = `app_metadata.disabled`)만** — 에이전시/병원은 별도 is_active 메커니즘이라 미적용(후속). fail-safe라 명시적 `true`만 차단(정상계정 잠금 위험 0).
+- **동의 수정(#452)·zh상담·코디대시보드(#454)는 빌드·로직만 검증, 실데이터/실런타임 미검증** — 머지 후 실문의/실상담 1건으로 확인 권장.
+- **AI→유치 전환은 프로덕션에서 아직 0건** — 코드 정상이나 머지 후 실 3턴+ 대화가 없어 `source='ai_agent'` 행 0(실DB 확인). KHIDI 대시보드 집계 실검증은 실대화 필요.
+- **출시 PO 콘솔 관문 = `docs/LAUNCH_GATES_PO.md`** 단일 체크리스트(11개). 코드로 못 닫는 것(약한비번 admin 삭제·Gemini 유료결제·구글 OAuth 게시·실메일).
+- 보안 advisor(실 prod): RAG RPC가 anon/authenticated EXECUTE 가능(서버는 service_role만 씀 — #33류, EXECUTE 회수 권장) / 유출비번 차단 off(PO 토글) — 둘 다 🟡, 이번에 안 건드림.
+
+**5. 다음 세션이 먼저 할 일**
+1. **⚠️ 직전 미검증분 먼저(실로그인·실런타임 필요)**: ①**#449·#453 실검증 후 머지 결정** — 코디 계정으로 #449 프리뷰 확인 / staff 1명 비활성→로그인 막히는지(#453). ②머지된 감사수정 실동작 — 문의 Step2 후 `intake.consents` 보존·중국어 상담 생성·코디 대시보드 긴급알림 뜸·PII 열람 시 `admin_audit_logs` 기록·비활성 계정 차단.
+2. **PO 콘솔 관문**(`LAUNCH_GATES_PO.md`): 약한비번 admin 삭제·Gemini 유료결제·구글 OAuth 게시·실메일 1회 — 오픈 go/no-go의 실제 잠금.
+3. 감사 잔여: playbook 데이터 적재(3-Tier RAG 완성)·병원 viewer 게이팅(PO 권한정의)·normalized draft 중복 가드.
+4. **#422·#424 법무 PR** — PO 검토 끝나면 머지.
+
+**6. 검증 상태**
+- ✅ **머지 9 PR**(#441·#443·#445·#446·#448·#452·#453·#454·#456) 각 **ci·Smoke·Vercel 초록 확인 후 머지**. `next build --webpack` exit 0·`check:content` 통과(매 변경).
+- ✅ **실DB**(Supabase MCP): RAG 적재13/18·검색 RPC end-to-end·전환 승격 경로 코드추적·보안 advisor 점검. 문의 31건 전부 `web`(ai_agent 0).
+- ✅ **열린 PR/CI 실확인**: 남은 열림 = #449(draft, CI초록)·#422·#424(법무, draft). 그 외 이번 세션 PR 전부 머지.
+- ❌ **검증 못 함(솔직히 — 실로그인/실기기/실메일 필요)**: 모든 인증 화면 실클릭(코디·어드민·병원·#449 코디챗)·비활성 계정 실차단(#453)·동의 보존 실데이터(#452)·중국어 상담 실생성(#454)·PII 감사로그 실기록(#456)·2인 영상·iOS 자막·실메일·AI 3턴 실전환집계. → 5번 1순위로 승격.
+
+**7. 다음 세션 첫 프롬프트**
+> 먼저 docs/PROJECT_CONTEXT.md 최상단(2026-06-29 심야) 핸드오프 읽어. 퍼널 전수 심층감사로 찾은 출시 블로커 6개를 고쳐 머지했어(#452 동의·#453 비활성차단·#454 중국어상담/누출/코디대시보드·#456 PII감사로그). **근데 전부 실로그인·실데이터 검증을 못 했으니** 그것부터 확인해줘: ①#449(코디 AI챗 뷰)·#453(비활성 차단) 프리뷰/실계정 확인 후 머지할지 ②머지된 감사수정 실동작(Step2 후 동의 보존·중국어 상담 생성·코디 긴급알림·PII 열람 로그). 그담 출시 PO 관문(LAUNCH_GATES_PO.md: 약한비번 admin 삭제·Gemini 결제·구글 OAuth 게시·실메일)은 PO만 닫을 수 있으니 안내. #422·#424 법무는 PO 검토 대기, playbook 데이터 적재는 여력되면.
 ## 🔖 세션 핸드오프 (2026-06-29 — PyTorch 글 2개 적용: AI 과장가드 + 시장 인텔리전스 수집도구 → PR #451 머지·배포)
 
 > PO가 PyTorch 한국 포럼 글 2개(Ornith-1.0 / Agent Reach)를 주고 "우리한테 적용할 게 있는지 분석"하라 함. 둘 다 **실제 기능으로 적용** → PR [#451](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/451) squash 머지·배포 완료.
@@ -47,47 +94,6 @@
 > 먼저 `docs/PROJECT_CONTEXT.md` 최상단 핸드오프부터 읽어. 직전 2개 세션 미검증분을 실서비스에서 확인하자: ①AI 챗에 "정확도 90%" 같은 과장 답변 유도 → 코디 품질 알림 뜨나 ②`npm run collect:intel` 로컬 실행해 마케팅 리포트+AI 브리프 잘 나오나 ③#431분(드래그앤드랍·1차소견·검수버튼·ru/kz 응답·전환집계). 그다음 intel 다음 단계(주1회 자동/브랜드 평판알림/CIS 소스 VK·텔레그램) 중 뭐 할지 정하자.
 
 ---
-
-## 🔖 세션 핸드오프 (2026-06-29 밤 — AI Agent 대개선: 첨부 1차소견·진료의뢰패킷·전환집계 구멍·RAG 완전수리·카자흐어 혼동 → 실서비스 머지)
-
-> PO가 "AI agent 기능 개선"으로 시작 → 별도 워크트리(`HEALO_worktrees/ai-agent`, 브랜치 `work/ai-agent`)에서 작업. 표면은 "개선"이었지만 파보니 **숨은 큰 고장 3개**(전환 집계 누락·RAG 100% 고장·비영어 RAG 무력)를 발견·수리. PR [#431](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/431)에 모아 PO 프리뷰 검토 후 **실서비스 머지**. (병렬 TEST데이터 세션 [#438]의 `is_published` 가드를 흡수 — 같은 파일 충돌 정리.)
-
-**1. 이번 세션 한 일 (PR #431)**
-- **첨부 의료자료 1차 소견(triage) 신설** — 검사지·사진 올리면 멀티모달 판독 → ①환자용 예비 1차소견 즉시(강한 면책+"AI작성·검토예정", **문단 쪼개기 포맷**) ②의료진용 진료의뢰 패킷 ③어드민 「AI 대화·환자자료」 의사 "검수완료/정정해서 보내기". 파일: `src/lib/chat/triage.ts`(신규)·`api/public/chat/stream`·`api/admin/chat/.../messages`(PATCH)·`app/admin/chat/page.jsx`·`manuals`.
-- **드래그앤드랍 업로드** — `app/inquiry/ThreadChat.jsx` + i18n 6개어.
-- **전환 구멍 수리** — AI 챗 리드가 `inquiries`로 승격 안 돼 KHIDI 유치 대시보드에 0으로 안 잡히던 것 → `createDraftIntake`(3턴+)에서 1회 승격(`source='ai_agent'`, dedup `chat_threads.inquiry_id`). `publicChatHelpers.ts`.
-- **RAG 완전 수리(2겹 버그 + 1)** — ①ingest가 없는 컬럼(`embedded_at`) insert→적재 실패 ②검색 RPC `doc_source_id uuid≠text`→검색 항상 실패. + 적재문서 전부 `lang='en'`이라 ko/ru/kz가 0청크(`p_lang` 해제로 다국어 임베딩 교차검색). + `is_published` 필터(미게시·TEST 노출 차단, #438 흡수). 검증데이터 적재(13문서/18청크). `ingest.ts`·`generateReply.ts`·`migrations/20260629_fix_rag_search_v1_1_source_id_type.sql`·`scripts/seed-rag-once.mjs`. POSTMORTEMS #47·#48.
-- **카자흐어↔러시아어 혼동 방지** — `buildSystemPrompt`에 `outputLang` + "카자흐어≠러시아어" 명시. `generateReply.ts`·`externalSearch.ts`(타임아웃 3s→2s).
-
-**2. 왜 그렇게 했는지**
-- **1차소견 = 의료 레드라인 일부 완화**: 원래 "판독 안 함"이었으나 PO가 KHIDI 사전상담 'ICT 진료의뢰' 요건 근거로 원함. 절충: AI는 비임상 오리엔테이션+요약, 임상소견은 강한 면책+사후 의사검수. PO 결정 **즉시 노출 + 사후 검수**.
-- **RAG 언어필터 해제**: 임베딩이 다국어라 필터만 끄면 즉시 6개어 작동(가장 값싼 해결). 다국어 적재 시 '같은 언어 우선' 재검토(주석 명시).
-- **#438 흡수**: 두 세션이 `ingest.ts`·`seed-rag-once.mjs` 동시 수정(충돌). #438의 `is_published` 한 줄을 #431에 흡수해 한 번에 머지, #438은 중복으로 닫음(라이브 데이터 정리는 #438이 이미 적용).
-
-**3. 안 끝났거나 보류**
-- **TEST 더미 RAG 노출** — 라이브 정리·코드 가드 다 완료(#438+#431). 남은 위생은 없음.
-- **프롬프트 미세개선** — RAG가 진짜 병목이라 우선 해결. 톤 추가 손질은 여력될 때.
-- **재적재 자동화 없음** — 병원·치료 데이터 바뀌면 수동 재적재 필요(4번 참고).
-
-**4. 주의·함정**
-- **프로덕션 DB 이미 변경됨**: RAG 데이터 적재·검색 RPC 재정의·`trust_tier=2`·TEST 소프트삭제. 코드 머지와 별개로 DB는 선반영(무해, 추가형).
-- **워크트리 스크립트 실행**: node_modules는 메인 폴더로 junction, env는 절대경로 `C:/Users/user/Desktop/HEALO_KHIDI/.env.local`. `server-only` 모듈은 `node --conditions=react-server --import tsx ...`.
-- **로컬 `generateChatReply` 직접 호출 시 prod judge가 돌아 코디에 실제 알림** — 테스트 주의(프로브는 삭제함).
-- **RAG 재적재**: `node --conditions=react-server --import tsx scripts/seed-rag-once.mjs`.
-- **"RAG 검색 0건" 오진 주의**: 검색 테스트 시 질문 임베딩 차원을 **768로 고정**(`outputDimensionality:768`). 안 하면 기본 3072차원이라 저장된 768과 안 맞아 조용히 0건 나옴(병렬 세션이 이걸로 오진함).
-
-**5. 다음 세션이 먼저 할 일**
-1. **⚠️ 직전 미검증분 먼저 실서비스에서 확인(머지·배포 후):** ①AI 챗 **파일 드래그앤드랍** ②자료 업로드→**1차소견**(문단 쪼개짐+면책) ③어드민 **진료의뢰 패킷·검수버튼** ④ru/kz로 질문→그 언어로 답 ⑤3턴+ 대화 후 `/admin/khidi/conversion`에 문의 잡힘.
-2. **#438 닫기** — #431에 흡수됐으니 superseded로 닫기(그쿨 세션과 조율).
-3. (여력) POSTMORTEMS #48 재발방지: "rag_chunks_used 평균 0이면 경보" + 스키마 드리프트 CI 가드.
-
-**6. 검증 상태**
-- ✅ `next build --webpack`·`check:content` 통과(매 변경). ✅ 실DB: 적재 13/18·검색 RPC end-to-end(ko/en/ru 4청크 **재확인**, prod 직접 찍음)·inquiries insert·멀티모달 계약. ✅ 1차소견 포맷(문단 분리) 실 gemini 출력 확인.
-- ⚠️ PR #431 머지 시점 CI: 머지 직전 확인할 것. main 충돌은 이 세션에서 해소.
-- ❌ **검증 못 함(실서비스 클릭 필요)**: 브라우저 드래그앤드랍·업로드→소견 end-to-end·어드민 검수버튼·ru/kz 실응답·전환 집계 화면 — 로그인·DB 필요해 자동검증 불가. (PO가 프리뷰에선 1차소견 뜨는 것·포맷은 눈으로 확인함.)
-
-**7. 다음 세션 첫 프롬프트**
-> 먼저 `docs/PROJECT_CONTEXT.md` 최상단(2026-06-29 밤 AI Agent 블록) 읽어. AI Agent 대개선(1차소견·진료의뢰패킷·전환집계·RAG수리·카자흐어)을 실서비스에 머지·배포했어. **실서비스에서 검증**해줘: ①AI 챗 파일 드래그앤드랍 ②자료 업로드→1차소견(문단 쪼개짐+면책) ③어드민 진료의뢰 패킷·검수버튼 ④ru/kz로 질문 시 그 언어로 답 ⑤3턴 대화 후 유치 전환 대시보드에 문의 잡힘. 그리고 PR #438이 #431에 흡수됐으니 닫을지 그쿨 세션과 조율.
 
 ## 🏷️ 서비스명 변경 — HEALO → **healwith** (2026-06-16 확정·적용)
 
