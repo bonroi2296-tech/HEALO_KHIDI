@@ -168,6 +168,8 @@ export async function sendReminder30MinKakao(opts: {
     day: "numeric",
     hour: "2-digit",
     minute: "2-digit",
+    timeZone: "Asia/Seoul", // 상담은 한국시간 진행 — 서버(UTC) 기준으로 찍히면 시각이 틀림
+    timeZoneName: "short",
   });
 
   return sendKakaoAlimtalk({

@@ -8,6 +8,24 @@
 
 ---
 
+## #45 — 알림 메일·알림톡의 시각이 UTC로 표시됨 (toLocaleString에 timeZone 누락) (2026-06-29)
+
+**무슨 일**
+- 관리자 새 문의 알림 메일의 "시각"이 `AM 7:20`처럼 찍힘 — 실제 접수는 한국시간 16:20. PO가 "어느 나라 기준이냐"고 지적.
+
+**근본원인**
+- 서버(Vercel)는 UTC로 동작. `new Date(iso).toLocaleString("ko-KR")` 는 **로케일만 ko-KR이고 timeZone 미지정 → 서버 TZ(UTC)로 렌더**. 한국시간보다 9시간 느리게 표시.
+- 같은 부류가 3곳 더 잠복: 30분전 알림톡(`kakao.ts`), 상담 리마인더 메일(`consultationReminder.ts`)도 `scheduledAt`을 timeZone 없이 표시 → **환자에게 상담 시각을 UTC로 잘못 안내 = 상담 놓칠 위험**. (`consultationInvite.ts`는 이미 KST+UTC 병기로 올바름.)
+
+**어떻게 고쳤나**
+- 시각 표시에 `timeZone: "Asia/Seoul"` 명시 + 라벨. 관리자 알림(adminNotifier 3곳)은 `(KST)` 접미, 환자 상담 알림(kakao·reminder)은 `timeZoneName:"short"`로 시간대 라벨 노출.
+
+**재발 방지**
+- 전수 스캔: `src/lib/notifications`·`email`·`pdf`·`surveys`·`symptoms` 의 `toLocaleString` 전부 점검 → 시각 표시 4곳 전부 timeZone 보유 확인.
+- 교훈: **서버에서 사용자에게 시각을 보여줄 땐 항상 timeZone을 명시한다(서버 TZ는 UTC).** ISO를 그대로 toLocaleString 하면 UTC로 샌다.
+
+---
+
 ## #44 — main CI(eslint)가 빨강인 채 방치돼 모든 PR 머지가 막혀 있었음 (prefer-const error 1줄) (2026-06-29)
 
 **무슨 일**

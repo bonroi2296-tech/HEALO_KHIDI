@@ -72,7 +72,7 @@ function generateNotificationMessage(payload: AdminNotificationPayload): string 
     message += `점수: ${payload.priorityScore}\n`;
   }
   
-  message += `\n시각: ${new Date(payload.createdAt).toLocaleString("ko-KR")}\n`;
+  message += `\n시각: ${new Date(payload.createdAt).toLocaleString("ko-KR", { timeZone: "Asia/Seoul" }) + " (KST)"}\n`;
   
   // 관리자 페이지 링크 (환경변수로 설정 가능)
   // ⚠️ /admin/inquiries 는 목록 페이지만 존재(상세 [id] 라우트 없음) → 목록으로 링크. 문의번호는 본문에 표기됨.
@@ -102,7 +102,7 @@ ${urgency} 새 문의 #${payload.inquiryId}
 연락: ${payload.contactMethod || "미표기"}
 점수: ${payload.priorityScore || 0}
 
-시각: ${new Date(payload.createdAt).toLocaleString("ko-KR")}
+시각: ${new Date(payload.createdAt).toLocaleString("ko-KR", { timeZone: "Asia/Seoul" }) + " (KST)"}
 
 확인: ${inquiryUrl}
 `.trim();
@@ -134,7 +134,7 @@ ${urgency} 새 문의 #${payload.inquiryId}
       <div class="field"><span class="label">시술:</span> <span class="value">${payload.treatmentType || "미표기"}</span></div>
       <div class="field"><span class="label">연락:</span> <span class="value">${payload.contactMethod || "미표기"}</span></div>
       <div class="field"><span class="label">점수:</span> <span class="value">${payload.priorityScore || 0}</span></div>
-      <div class="field"><span class="label">시각:</span> <span class="value">${new Date(payload.createdAt).toLocaleString("ko-KR")}</span></div>
+      <div class="field"><span class="label">시각:</span> <span class="value">${new Date(payload.createdAt).toLocaleString("ko-KR", { timeZone: "Asia/Seoul" }) + " (KST)"}</span></div>
       <a href="${inquiryUrl}" class="button">문의 목록에서 확인 (#${payload.inquiryId})</a>
     </div>
     <div class="footer">healwith - AI Medical Concierge for Global Patients</div>
