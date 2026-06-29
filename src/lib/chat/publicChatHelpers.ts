@@ -79,6 +79,19 @@ async function promoteThreadToInquiry(
 ) {
   if (thread?.inquiry_id) return; // 이미 승격됨
 
+  // PIPA 동의 보존: AI 챗은 chat/start 와 매 메시지에서 동의(health_crossborder)를
+  // 강제하므로 3턴+ 도달한 thread 는 동의가 반드시 있다(thread.metadata.consent).
+  // 폼(web) 경로처럼 inquiry.intake.consents 에 동의 증빙을 남긴다(법적 기록).
+  const tc = thread?.metadata?.consent || null;
+  const consentFields = tc
+    ? {
+        consent_source: "ai_chat",
+        consents: { ai_chat_health_crossborder: tc.health_crossborder === true },
+        consent_version: tc.version || null,
+        consent_at: tc.at || null,
+      }
+    : {};
+
   const { data, error } = await (supabaseAdmin as any)
     .from("inquiries")
     .insert({
@@ -90,7 +103,7 @@ async function promoteThreadToInquiry(
       spoken_language: lang,
       treatment_type: intake?.body_part || "general_inquiry",
       message: rawEnc,
-      intake: intake || {},
+      intake: { ...(intake || {}), ...consentFields },
       source: "ai_agent",
       status: "received",
     })
