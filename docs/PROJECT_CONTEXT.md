@@ -7,6 +7,56 @@
 
 ---
 
+## 🔖 세션 핸드오프 (2026-06-29 심야 — 핸드오프 인수 → 열린작업 전수조사 → 퍼널 5개 심층감사 → 출시 블로커 6개 수정·머지)
+
+> "핸드오프 분석하고 이어가자"로 시작 → 작은 가드(RAG헬스)부터 열린 PR 정리, 중단된 작업(#406·#408) 되살리기, **그리고 PO "완벽해? 오픈 확정?"에 안심 대신 퍼널 전수 심층감사로 답함**(병렬 에이전트 5 + 실DB + 보안린트). 감사로 **진짜 법적·보안 블로커 6개**를 찾아 수정·머지. PO 지시 "니가 판단해서 머지할 건 머지, 애매한 건 인수인계" → 안전한 건 머지, auth/PII 미검증 2건은 보류.
+
+**1. 이번 세션 한 일 (전부 main 머지·프로덕션 배포, 별도 표기 없으면)**
+- **RAG 실사용 가드** [#441] — 매일 prod 스모크(`scripts/smoke-chat.mjs` TEST C)에 지식질문→`rag_chunks_used>0` 검증. RAG 또 죽으면 다음날 CI 빨강(POSTMORTEMS #48 재발방지).
+- **문서 정리** [#443] — 누락됐던 POSTMORTEMS #33(REVOKE PUBLIC) 복원 + stale PR #353 닫음. [#448] — `LAUNCH_GATES_PO.md`에 출시 관문 11개로 통합(Gemini결제·텔레그램·약한비번·구글OAuth·DPA·법무PR) + KNOWN_ISSUES stale(iOS마이크 #269 등) 해결표시.
+- **중단 작업 2개 되살림** — [#445]=#408 벤치 고급판(맞대결·48문항·사람검수), [#446]=#406 구글가입자 비번찾기 안내 + 코디 AI대화 검토큐(#431 검수버튼과 충돌 병합). 둘 다 옛 main 기반이라 최신에 rebase·빌드검증 후 머지.
+- **퍼널 전수 심층감사** — 문의·AI챗·가입·상담·백오피스 5개를 코드+실DB+보안advisor로 추적. 점수: 문의68·가입62·AI챗76·상담78·코디72·에이전시92·병원78·견적92.
+- **감사 블로커 6개 수정** (작은 PR로 쪼갬):
+  - [#452] 🔴법무 — ①문의 Step2가 Step1 PIPA동의기록을 덮어써 삭제(merge로 보존) ②AI리드 승격이 동의없이 적재(thread.metadata.consent를 intake.consents로 복사). `step2/route.ts`·`publicChatHelpers.ts`.
+  - [#453] 🔴보안 — 비활성(소프트삭제) 직원/어드민이 인증에서 안 막혀 그대로 로그인·PII복호화 가능하던 것 → `checkAdminAuth`에 `disabled===true` 차단(fail-safe).
+  - [#454] 🔴버그 — 중국어(zh) 환자 상담 생성 400(언어 화이트리스트 zh 누락) + error.message 누출 3곳(create·partner/whoami·chat/message) 코드형 + 코디 대시보드 죽은링크(/patients→/cases)·긴급알림 항상0(followup GET을 staff 허용).
+  - [#456] 🔴컴플라이언스 — 환자 PII 열람 감사로그 누락(코디 인박스 상세·병원 임상패킷)에 `VIEW_INQUIRY`/`PARTNER_VIEW_CASES` 추가.
+
+**2. 왜 그렇게 했는지**
+- **"완벽해?/오픈 확정?" = 안심 금지 신호**(PO취향) → 실측 감사로 답. 페이지가 200 뜨는 것과 퍼널이 끝까지 도는 건 다름 → 감사가 법적(동의 소실)·보안(비활성 무력)·버그(zh) 블로커를 실제로 잡음.
+- **머지 판단 기준**(PO "니가 판단"): 데이터 보존만/추가형/명백한 버그 + CI초록 = 머지. **auth 동작 변경·PII 새 노출이라 실로그인 검증이 필요한 건 보류**(#453은 잠금위험 낮아 머지, #449는 PII+페이지 런타임 미확인이라 보류).
+- **작은 PR로 쪼갬**: 법무/보안/버그/컴플라이언스 각각 독립 — 리뷰·롤백 쉽게. 각 PR build·CI 초록 후 머지.
+- **클라우드 컨테이너 = 세션별 격리**: PO "워크트리 따로"의 의도(다른 세션과 안 엉키게)는 이 환경에선 전용 브랜치로 충족(파일시스템 공유 안 함, git/PR레벨만 만남).
+
+**3. 안 끝났거나 보류 (= 애매해서 인수인계에 남긴 것)**
+- **[#449] 코디네이터 AI 챗 뷰 (열림·draft)** — `/coordinator/chat` 읽기전용 + admin chat API GET을 staff로 넓힘. 빌드 통과지만 **코디 계정 실로그인 런타임 미검증 + 환자 PII를 새 role에 노출**이라 보류. PO가 프리뷰(`healo-khidi-git-feat-coordinator-chat-view-...vercel.app/coordinator/chat`)에서 ①네비 'AI 상담 리드' ②목록·대화·첨부 열람 ③검수버튼 안 보임 확인 후 "머지해" 하면 머지.
+- **[#422] 처리방침 GDPR 보강·[#424] HIPAA/GDPR점검+계약서 (열림)** — 라이브 법무문서 → PO 법무검토 결정. 자동으로 안 건드림.
+- **감사 잔여(코드)**: ①AI챗 playbook 데이터 0건 → "3-Tier RAG"가 실제론 1소스(병원/치료 en)만 가동(playbook_pattern 적재 필요) ②병원 임상패킷 GET의 viewer role 게이팅(viewer 권한 의미=PO 결정) ③`normalized_inquiries` draft가 6·9턴마다 중복 insert ④AI 승격건 nationality NULL→"(미상)".
+
+**4. 주의·함정**
+- **#453 비활성차단은 staff(coordinator/admin = `app_metadata.disabled`)만** — 에이전시/병원은 별도 is_active 메커니즘이라 미적용(후속). fail-safe라 명시적 `true`만 차단(정상계정 잠금 위험 0).
+- **동의 수정(#452)·zh상담·코디대시보드(#454)는 빌드·로직만 검증, 실데이터/실런타임 미검증** — 머지 후 실문의/실상담 1건으로 확인 권장.
+- **AI→유치 전환은 프로덕션에서 아직 0건** — 코드 정상이나 머지 후 실 3턴+ 대화가 없어 `source='ai_agent'` 행 0(실DB 확인). KHIDI 대시보드 집계 실검증은 실대화 필요.
+- **출시 PO 콘솔 관문 = `docs/LAUNCH_GATES_PO.md`** 단일 체크리스트(11개). 코드로 못 닫는 것(약한비번 admin 삭제·Gemini 유료결제·구글 OAuth 게시·실메일).
+- 보안 advisor(실 prod): RAG RPC가 anon/authenticated EXECUTE 가능(서버는 service_role만 씀 — #33류, EXECUTE 회수 권장) / 유출비번 차단 off(PO 토글) — 둘 다 🟡, 이번에 안 건드림.
+
+**5. 다음 세션이 먼저 할 일**
+1. **⚠️ 직전 미검증분 먼저(실로그인·실런타임 필요)**: ①**#449·#453 실검증 후 머지 결정** — 코디 계정으로 #449 프리뷰 확인 / staff 1명 비활성→로그인 막히는지(#453). ②머지된 감사수정 실동작 — 문의 Step2 후 `intake.consents` 보존·중국어 상담 생성·코디 대시보드 긴급알림 뜸·PII 열람 시 `admin_audit_logs` 기록·비활성 계정 차단.
+2. **PO 콘솔 관문**(`LAUNCH_GATES_PO.md`): 약한비번 admin 삭제·Gemini 유료결제·구글 OAuth 게시·실메일 1회 — 오픈 go/no-go의 실제 잠금.
+3. 감사 잔여: playbook 데이터 적재(3-Tier RAG 완성)·병원 viewer 게이팅(PO 권한정의)·normalized draft 중복 가드.
+4. **#422·#424 법무 PR** — PO 검토 끝나면 머지.
+
+**6. 검증 상태**
+- ✅ **머지 9 PR**(#441·#443·#445·#446·#448·#452·#453·#454·#456) 각 **ci·Smoke·Vercel 초록 확인 후 머지**. `next build --webpack` exit 0·`check:content` 통과(매 변경).
+- ✅ **실DB**(Supabase MCP): RAG 적재13/18·검색 RPC end-to-end·전환 승격 경로 코드추적·보안 advisor 점검. 문의 31건 전부 `web`(ai_agent 0).
+- ✅ **열린 PR/CI 실확인**: 남은 열림 = #449(draft, CI초록)·#422·#424(법무, draft). 그 외 이번 세션 PR 전부 머지.
+- ❌ **검증 못 함(솔직히 — 실로그인/실기기/실메일 필요)**: 모든 인증 화면 실클릭(코디·어드민·병원·#449 코디챗)·비활성 계정 실차단(#453)·동의 보존 실데이터(#452)·중국어 상담 실생성(#454)·PII 감사로그 실기록(#456)·2인 영상·iOS 자막·실메일·AI 3턴 실전환집계. → 5번 1순위로 승격.
+
+**7. 다음 세션 첫 프롬프트**
+> 먼저 docs/PROJECT_CONTEXT.md 최상단(2026-06-29 심야) 핸드오프 읽어. 퍼널 전수 심층감사로 찾은 출시 블로커 6개를 고쳐 머지했어(#452 동의·#453 비활성차단·#454 중국어상담/누출/코디대시보드·#456 PII감사로그). **근데 전부 실로그인·실데이터 검증을 못 했으니** 그것부터 확인해줘: ①#449(코디 AI챗 뷰)·#453(비활성 차단) 프리뷰/실계정 확인 후 머지할지 ②머지된 감사수정 실동작(Step2 후 동의 보존·중국어 상담 생성·코디 긴급알림·PII 열람 로그). 그담 출시 PO 관문(LAUNCH_GATES_PO.md: 약한비번 admin 삭제·Gemini 결제·구글 OAuth 게시·실메일)은 PO만 닫을 수 있으니 안내. #422·#424 법무는 PO 검토 대기, playbook 데이터 적재는 여력되면.
+
+---
+
 ## 🔖 세션 핸드오프 (2026-06-29 밤 — AI Agent 대개선: 첨부 1차소견·진료의뢰패킷·전환집계 구멍·RAG 완전수리·카자흐어 혼동 → 실서비스 머지)
 
 > PO가 "AI agent 기능 개선"으로 시작 → 별도 워크트리(`HEALO_worktrees/ai-agent`, 브랜치 `work/ai-agent`)에서 작업. 표면은 "개선"이었지만 파보니 **숨은 큰 고장 3개**(전환 집계 누락·RAG 100% 고장·비영어 RAG 무력)를 발견·수리. PR [#431](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/431)에 모아 PO 프리뷰 검토 후 **실서비스 머지**. (병렬 TEST데이터 세션 [#438]의 `is_published` 가드를 흡수 — 같은 파일 충돌 정리.)
@@ -47,99 +97,6 @@
 
 **7. 다음 세션 첫 프롬프트**
 > 먼저 `docs/PROJECT_CONTEXT.md` 최상단(2026-06-29 밤 AI Agent 블록) 읽어. AI Agent 대개선(1차소견·진료의뢰패킷·전환집계·RAG수리·카자흐어)을 실서비스에 머지·배포했어. **실서비스에서 검증**해줘: ①AI 챗 파일 드래그앤드랍 ②자료 업로드→1차소견(문단 쪼개짐+면책) ③어드민 진료의뢰 패킷·검수버튼 ④ru/kz로 질문 시 그 언어로 답 ⑤3턴 대화 후 유치 전환 대시보드에 문의 잡힘. 그리고 PR #438이 #431에 흡수됐으니 닫을지 그쿨 세션과 조율.
-
-## 🔖 세션 핸드오프 (2026-06-29 저녁 — 메일·알림 버그 클러스터 + 텔레그램 알림 + 거짓수치 카피 제거)
-
-> "핸드오프 읽어봐"로 시작 → GDPR 잔여 이어가다, PO가 메일/시각/카피 문제를 화면에서 연달아 지적 → **문의 알림 메일·알림 시각·유도 카피를 통째로 손봄**. 전부 작은 PR로 쪼개 머지·배포. (같은 2026-06-29의 컴플라이언스 세션[#433·#436]·AI PII 마스킹 세션[#425]과 별개 — 영역만 다름. 중복 없음.)
-
-**1. 이번 세션 한 일** (별도 표기 없으면 전부 main 머지·프로덕션 배포)
-- **메일 발신주소(from) 버그 닫음** [PO 콘솔]: Vercel **Production** `RESEND_FROM_EMAIL`이 형식 깨진 값으로 남아 문의 알림이 `admin@healwith.co.kr`로 "Invalid from field" 실패 중이던 것 → PO가 `noreply@healwith.co.kr`로 고치고 재배포 → 내가 테스트문의(#27·#30)로 `admin_notification_logs`에 `sent` + Resend message_id 확인. **3겹 메일버그의 마지막 조각 닫힘.**
-- **[#426](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/426) 문의 알림 메일 '확인' 링크 404 수정** — 링크가 ①옛 도메인(`healo-khidi.vercel.app`) 폴백 ②없는 상세경로(`/admin/inquiries/[id]`)를 가리켜 항상 404. 상세 페이지는 없고 목록만 존재 → `healwith.co.kr/admin/inquiries`(목록)로 교정. PO가 #30 메일 버튼 눌러 목록·상세 뜨는 것 확인.
-- **[#428](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/428) 알림 시각 UTC→KST (전수 4곳)** — 서버(Vercel)가 UTC라 `toLocaleString("ko-KR")`이 timeZone 미지정 시 UTC로 렌더(한국시간보다 9h 느림). 관리자 알림(adminNotifier 3곳) + **환자 상담 알림 2곳(kakao 30분전 알림톡·consultationReminder 메일 — 환자에게 상담시각을 UTC로 잘못 안내하던 동류버그)**. consultationInvite는 이미 KST+UTC 병기라 미수정. POSTMORTEMS #45.
-- **[#430](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/430) 새 문의 텔레그램 알림** — 이메일 외 채널. `src/lib/notifications/telegram.ts`(fetch 1회, 외부 의존성 0, fail-safe) + adminNotifier에서 1회 호출. env(`TELEGRAM_BOT_TOKEN`·`TELEGRAM_CHAT_ID`) 둘 다 있을 때만 발송, 미설정이면 무동작(기존 동작 무변경). **봇 토큰 미설정 = 아직 안 켜짐**(아래 5번).
-- **[#435](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/435) '매칭 정확도 90%' 거짓수치 제거** — 문의 완료 화면의 근거 없는 90% 주장(과장광고 소지)을 전수 3곳(유도문구·step2 제목·성공 제목)·6개 언어 전부 "더 빠르고 정확한 안내" 톤으로 교체. POSTMORTEMS #46.
-- **GDPR 정보주체 권리 런북** `docs/DATA_SUBJECT_RIGHTS_RUNBOOK.md` — 처리방침이 약속한 열람·정정·삭제 요청의 실제 처리 절차(자동 대량파기는 사후관리 위해 두지 않고 본인 요청 시에만). RoPA 갭 닫음. **⚠️ 이 커밋은 #422 브랜치에 있음(아래 3번) — 아직 main 미머지.**
-
-**2. 왜 그렇게 했는지**
-- **메일 from = PO 콘솔 작업**: Vercel env는 내가 못 건드림(CLI 미설치·MCP에 env 설정 도구 없음) → PO에게 화면 단계별 안내. PO가 Vercel 화면 낯설어해 직접 링크+클릭 순서로 풀어줌(PO 취향: 콘솔 단계별).
-- **메일 링크 = 목록으로**: 상세 페이지(`/admin/inquiries/[id]`)가 아예 없음. 새로 만들기보다(YAGNI) 존재하는 목록으로 보내고 문의번호를 본문·버튼에 표기. 요청 잦아지면 그때 상세 페이지.
-- **텔레그램 선택**: 솔로 운영자에 가장 싸고 빠른 "삥" 알림. SMS/카카오 알림톡은 발송업체 가입+건당 과금(돈)+템플릿 승인, 앱푸시(FCM)는 스토어 배포 전이라 지금 불가. 텔레그램=무료·5분·앱 하나면 끝. (PWA 웹푸시도 스토어 없이 가능하나 구독·권한·iOS 변덕 → 나중에.)
-- **작은 PR로 쪼갬**: #422(법무문서 검토 대기)에 코드 버그수정을 섞었다가 다시 분리 — 법무 검토에 버그수정이 묶이면 안 되니까. 이후 메일링크·KST·텔레그램·카피를 각각 독립 PR로.
-
-**3. 안 끝났거나 보류**
-- **🟢 텔레그램 봇 토큰 — PO 액션 대기(제일 먼저 검증할 것)**: #430 코드는 배포됐고 env 2개만 넣으면 켜짐. PO가 @BotFather로 봇 생성 → 토큰 + chat_id → Vercel env(Production) 2개 추가·재배포 → 내가 테스트문의로 PO 텔레그램에 알림 뜨는지 검증해야 함(현재 미검증).
-- **[#422](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/422) 머지 대기** — 처리방침 6개어(하청업체 추가·보관기간 저장제한) + **DSR 런북**이 이 브랜치에 있음. 라이브 법무문서라 PO "머지해" 대기 중. ⚠️ 이 브랜치에만 있던 "2026-06-29 낮" 메일3겹버그 핸드오프 블록도 여기 있음(main엔 컴플라이언스/이 블록만).
-- **Gemini 유료 결제 확인** — 무료 등급이면 환자 건강정보가 구글 학습에 쓰일 수 있음(출시 전 핵심). 미확인.
-- **테스트 문의 #26~31** — 내가 검증용으로 실DB에 만든 가짜 문의 6건. PO "정식 오픈 전에 지울게 일단 둬". 오픈 전 정리 필요(유치 전환 대시보드 집계 오염 방지).
-
-**4. 주의·함정**
-- **메일 from 옛 메일은 그대로 실패 기록**: #28·#29 메일은 배포 전 옛 코드라 링크 404·시각 UTC. **수정은 #30(배포 후)부터** 반영. 이미 받은 메일로 테스트 금지.
-- **테스트문의를 curl로 만들면 한글이 깨짐**: Windows Git Bash curl이 한글을 UTF-8로 안 보내 DB에 깨진 바이트 저장(#27·#30). **제품 버그 아님** — 브라우저 폼은 UTF-8이라 정상(PO가 #31 폼제출로 한글 멀쩡 확인). curl 테스트 시 `--data-binary @파일`(UTF-8 파일)로.
-- **`git checkout main`/머지 시 "failed to run git: main is already used by worktree" 경고는 무해** — main이 worktree `HEALO_worktrees/known-issues-bugfix`에 잡혀있어서. PR 원격 머지는 성공함(MERGED 확인).
-- **2분 자동저장 훅**이 멀티파일 작업 중 변경을 generic 메시지로 가로채 커밋함(이번에도 카피 수정이 `chore: 작업 자동 저장`으로 먼저 커밋됨) → squash 머지면 PR 제목으로 정리돼 무해하나, 커밋 단위 작업 시 유의.
-- **죽은 라우트 `/api/email/send`**(HEALO_EMAIL_FROM 폴백=옛 onboarding@resend.dev) — 아무도 안 부름. 지금 버그와 무관, 나중에 지워도 됨.
-
-**5. 다음 세션이 먼저 할 일** (우선순위)
-1. **⚠️ 직전 미검증분 먼저**: ①**텔레그램** — PO가 봇 토큰·chat_id를 Vercel env에 넣고 재배포했으면, 테스트문의 쏴서 PO 텔레그램에 새 문의 알림 뜨는지 검증. ②(선택) KST 시각·새 카피가 실제 새 메일/화면에 맞게 나오는지 PO가 다음 문의 때 눈으로 확인(배포는 됨, 정적 교체라 거의 확실).
-2. **#422 처리방침 PR** — PO가 법무 검토 끝내고 "머지해" 하면 CI 확인 후 머지(DSR 런북도 같이 들어감).
-3. **Gemini 유료 결제 확인** — 무료면 출시 전 결제 연결.
-4. 테스트 문의 #26~31 정리(오픈 전).
-5. 남은 컴플라이언스 갭(자동파기 크론·role 변경 감사·현지화)은 컴플라이언스 세션 블록 참고.
-
-**6. 검증 상태**
-- **PR/CI**: #426·#428·#430·#435 **전부 MERGED**, 각 ci·Smoke Tests 초록 확인(머지 시점). `tsc --noEmit` 0 에러·`check:content` 통과.
-- **✅ 실검증(PO+나)**: 메일 발송(admin@ `sent`, #27·#30 DB 로그)·메일 링크 404 수정(PO가 #30 메일 버튼→목록·상세 도달)·한글 인코딩(PO가 #31 폼제출 멀쩡 확인).
-- **❌ 미검증(솔직히)**: ①**텔레그램 알림 실제 수신** — 봇 토큰 미설정이라 아직 안 켜짐(5번 1항). ②KST 시각·새 카피의 **라이브 화면 실측** — 배포는 됐고 정적 문자열 교체라 거의 확실하나 다음 새 메일/완료화면으로 눈 확인 권장.
-
-**7. 다음 세션 첫 프롬프트**
-> 먼저 docs/PROJECT_CONTEXT.md 최상단 핸드오프 읽어. 2026-06-29 저녁에 메일 알림 버그(발신주소·링크404·시각UTC)랑 거짓수치 카피를 다 잡아 배포했고 **텔레그램 알림(#430)**도 코드 깔았는데 **봇 토큰을 안 넣어서 아직 안 켜졌어**. 내가 @BotFather로 봇 만들어서 TELEGRAM_BOT_TOKEN·TELEGRAM_CHAT_ID를 Vercel env에 넣고 재배포했으면, 네가 테스트문의 쏴서 내 텔레그램에 알림 뜨는지 검증해줘. 그담 **#422 처리방침 PR**(법무 검토 끝나면)이랑 **Gemini가 유료 결제인지 꼭 확인**(무료면 환자 건강정보가 구글 학습에 — 출시 전 필수), 테스트 문의 #26~31 정리도 챙기자.
-
----
-
-## 🔖 세션 핸드오프 (2026-06-29 — 컴플라이언스: 해외파트너 계약서 보강 + 환자 삭제권(GDPR Art.17)·파트너 PII 열람 감사)
-
-> PO 요청: "우리 서비스가 HIPAA/GDPR 국제표준 준수하나" 점검 + 해외 에이전시·의료기관 계약서 완성. 점검 결과를 바탕으로 코드 갭 2개(파트너 PII 열람 감사·환자 삭제권)를 닫고 [#433](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/433) 머지·배포까지. 계약서는 PO 기존 초안 틀을 살려 데이터보호 조항만 보강. (같은 2026-06-29의 AI PII 마스킹 세션은 아래 별도 블록.)
-
-**1. 이번 세션 한 일**
-- **컴플라이언스 점검 문서** `docs/audit/COMPLIANCE_ASSESSMENT_HIPAA_GDPR.md` — 표준별 적용성(HIPAA=법적 미적용/GDPR=조건부/PIPA·의료법·유치법·카자흐 94-V·러 152-FZ=실구속) + 현재 자산 + 갭 7건. Supabase 리전 **서울(ap-northeast-2)** MCP 실측 확인.
-- **해외파트너 계약서**: 처음엔 통합 초안(`docs/marketing/agency-partnership-agreement-draft.md`·`overseas-clinic-partnership-agreement-draft.md`) → PO가 **자기 로컬 기존 초안(MOU/본계약/부속서, 러·영 정본+한글, 부속서=수수료표)** 제공 → 그 틀 유지하고 데이터보호 5조항만 보강하는 방향으로 전환. `docs/marketing/agency-contract-compliance-supplement.md`(비교표+조항). **완성본 Word 8개(에이전시·의료기관 × MOU·본계약 × 러영·한글)는 채팅 첨부로 PO에 전달**(스크립트 생성, 레포엔 바이너리 미커밋). 의료기관판은 양방향 사후관리 조항 추가.
-- **계약서 보완 프롬프트**: PO가 "계약서 만든 애한테 시킨다"며 보완 지시문 요청 → 한/영 조항 포함 프롬프트 채팅 제공. PO가 카자흐/러 법 나열 빼고 **"국제 표준(GDPR·HIPAA)에 따라 저장·처리"**(상대측 실제 요구) 문구로 정리 요청 → 반영.
-- **[#433](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/433) MERGED → main 배포**: ①파트너 포털(`/api/agency/inquiries`)이 환자 PII·의료문서 열람 시 `admin_audit_logs`에 `PARTNER_VIEW_CASES` 기록(기존 무로깅 갭) ②환자 삭제권(GDPR Art.17) end-to-end — 환자 `/patient/account` 삭제버튼(6개어)→관리자 `/admin/account/deletion-requests` 처리. 테이블 `account_deletion_requests`(PII 미저장, user_id만) **실 DB 서울 리전 적용 완료**.
-- **DPA 서명 가이드** `docs/audit/DPA_SIGNING_GUIDE.md` — Supabase·Google·Resend·LiveKit·Vercel 무료 체결 순서(PO 액션).
-
-**2. 왜 그렇게 했는지**
-- **"HIPAA 준수/인증" 금지, "HIPAA/GDPR 수준 안전조치"로 표현** — HIPAA는 미국 covered entity 법이라 우리(한국·CIS 환자)엔 법적 미적용. 과장표시 리스크 회피. PO도 동의, MOU엔 "국제 표준(GDPR·HIPAA)에 따라 저장·처리"로.
-- **계약서: PO 기존 틀 유지** — PO 초안이 상업조항(우회금지·KCAB중재·수수료정산) 더 탄탄. 내 강점은 데이터보호 깊이뿐 → 그것만 보강. 부속서(수수료표) 미변경(PO 요청).
-- **삭제권 = 요청→관리자 소프트삭제**(즉시 하드삭제 X) — 소프트삭제 원칙 + "되돌리기 어려운 것" 안전. 테이블엔 user_id만(PII 최소).
-- **AI 전송 전 PII 마스킹은 안 건드림** — 같은 날 `claude/self-hosting-external-services`(#425)가 진행(중복 회피 규칙). 아래 블록 참고.
-
-**3. 안 끝났거나 보류**
-- **[#424](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/424) 열림(draft, 미머지)** — 컴플라이언스 점검·계약서 초안·보완안·DPA가이드 문서 묶음. PO 머지 보류("다음 지시 기다려") → PO 검토 후 결정 필요.
-- **DPA 서명** — PO 수동 액션(벤더 대시보드 클릭). 미진행. 가이드만 있음.
-- **남은 컴플라이언스 갭**(점검 문서): 카자흐/러 현지화(법률검토)·자동파기 크론·role 변경 감사 — 미착수.
-- **Word 계약서 레포 미보관** — 채팅 첨부로만 전달(세션 만료 시 사라짐). PO가 받아둠. 필요시 레포 커밋 가능.
-
-**4. 주의·함정**
-- **`account_deletion_requests` 마이그레이션 이미 실 DB(서울) 적용됨** — 멱등(create if not exists)이라 재적용 안전. `check:schema-refs` 스냅샷에도 등록함.
-- **삭제권은 "요청 접수"까지만 자동** — 실제 데이터 파기·익명화는 관리자가 수동 수행 후 「완료」 처리해야 함(시스템이 자동 삭제 안 함).
-- **`Smoke Tests (PR)`의 `patient-mobile-chrome` 로그인 E2E는 콜드서버 30초 타임아웃 플래키** — 무관 PR에서도 빨감. 실게이트는 `ci`. 이걸로 머지 막지 말 것.
-- 의료기관 계약서 러시아어: Агент→Учреждение 격변화·한국병원명 충돌(파트너 의료기관 vs 제휴병원) 처리했으나 **러시아어 법률 검수는 변호사 몫**.
-
-**5. 다음 세션이 먼저 할 일 (우선순위)**
-1. **⚠️ 직전 미검증분 먼저 확인 (배포 후 실클릭):** 환자 앱 「더보기→계정·개인정보」 **삭제버튼**으로 요청 생성 → 관리자 `/admin/account/deletion-requests`에서 보이고 「처리 시작/완료」 동작하는지 end-to-end 1회. (배포 완료 여부부터 확인)
-2. **[#424](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/424) 계약서 문서 PR** — PO 검토 후 머지 여부 결정.
-3. **DPA 서명** — `docs/audit/DPA_SIGNING_GUIDE.md`대로 Supabase부터 PO와 함께 진행 또는 안내.
-4. (선택) 남은 갭: 자동파기 크론·role 변경 감사·카자흐/러 현지화 법률검토.
-
-**6. 검증 상태**
-- **PR/CI**: [#433] **MERGED**(squash), `ci` **초록 확인**. `npx tsc --noEmit` 0 에러, `check:content`·`check:schema-refs`·`check:migrations` 통과. [#424] 열림(draft) — 문서 PR.
-- **DB**: `account_deletion_requests` 서울 리전 적용 확인(MCP apply_migration success).
-- **❗미검증(솔직히)**: ①**환자 삭제버튼·관리자 처리 화면 런타임 클릭 안 함**(배포 후 확인 필요 — 5번 1항) ②파트너 감사로그 실적재 실데이터 확인 안 함 ③**Word 계약서를 PO가 Word로 열어 서식 확인** 안 됨(텍스트 추출·치환 검수만).
-
-**7. 다음 세션 첫 프롬프트**
-> 먼저 docs/PROJECT_CONTEXT.md 최상단 핸드오프 읽어. 그다음 ①배포됐는지 확인하고 환자 삭제버튼(/patient/account)→관리자 처리(/admin/account/deletion-requests) end-to-end 실제 클릭 검증(직전 미검증분), ②계약서 문서 PR #424 검토해서 머지할지 정하고, ③DPA 서명 가이드대로 Supabase부터 안내해줘.
-
----
 
 ## 🏷️ 서비스명 변경 — HEALO → **healwith** (2026-06-16 확정·적용)
 
