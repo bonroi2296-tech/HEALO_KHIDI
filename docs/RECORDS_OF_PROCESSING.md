@@ -66,5 +66,5 @@
 ## 9. 미비·예정 (Gaps — 출시 전/후 보강)
 - [ ] 처리자 DPA 서명 (Supabase·Vercel·Google·Resend·LiveKit)
 - [ ] 감사로그 개별 PII 열람 커버리지 확대
-- [ ] 데이터 자동 파기 집행(크론) 또는 문서화된 수동 절차
-- [ ] 침해통지 절차 → `SECURITY_BREACH_RUNBOOK.md`
+- [x] 정보주체 권리요청(열람·정정·삭제·정지·이동) 처리 절차 → `DATA_SUBJECT_RIGHTS_RUNBOOK.md` (수동 절차 문서화. 자동 대량파기는 사후관리 목적상 두지 않음 — 삭제는 본인 요청 시에만)
+- [ ] 침해통지 절차 → `SECURITY_BREACH_RUNBOOK.md` (완료)
