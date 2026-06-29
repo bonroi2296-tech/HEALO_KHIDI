@@ -66,6 +66,7 @@ import { isFillerOnly } from "@/lib/consultation/fillerFilter";
 import { useTTS } from "@/lib/consultation/useTTS";
 import { useRealtimeMessages } from "@/lib/consultation/useRealtimeMessages";
 import { useLiveKitDataChannel } from "@/lib/consultation/useLiveKitDataChannel";
+import { LiveTranslateBridge } from "@/lib/consultation/LiveTranslateBridge";
 
 const supabase = createSupabaseBrowserClient();
 
@@ -1780,6 +1781,13 @@ export default function ConsultationRoomPage() {
               <DataChannelBridge
                 onRemoteSubtitle={handleRemoteSubtitle}
                 publishRef={publishSubtitleRef}
+              />
+              {/* Gemini Live Translate 브릿지 — 스위치 꺼짐이면 무동작(null).
+                  켜지면 내 언어 통역 음성·자막을 기존 자막 UI 로 흘려보낸다. */}
+              <LiveTranslateBridge
+                myLang={myLang}
+                myRole={myRole}
+                onRemoteSubtitle={handleRemoteSubtitle}
               />
               <div className="flex-1 relative" style={{ height: "calc(100% - 64px)" }}>
                 <VideoGrid />
