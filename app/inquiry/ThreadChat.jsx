@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { ArrowRight, AlertCircle, Loader2, Bot, ThumbsUp, ThumbsDown, X, Paperclip, FileText, Image as ImageIcon } from "lucide-react";
+import { ArrowRight, AlertCircle, Loader2, Bot, ThumbsUp, ThumbsDown, X, Paperclip, FileText, Image as ImageIcon, Headset, ClipboardCheck } from "lucide-react";
 import { getLangCodeFromCookie, t } from "@/lib/i18n";
 
 const TOKEN_COOKIE = "healo_chat_token";
@@ -629,8 +629,27 @@ export function ThreadChat() {
     [langCode, resumeWithToken]
   );
 
-  const handleSend = async () => {
-    const trimmed = input.trim();
+  // 스트림 시작 전 서버가 돌려주는 오류 코드를 사용자 언어 안내로 변환(영문 코드 노출 금지 — DESIGN ux_states).
+  const localizedStreamError = (code) => {
+    const map = {
+      rate_limited: "chat.error.rateLimited",
+      ai_daily_limit: "chat.error.busy",
+      ai_service_busy: "chat.error.busy",
+      consent_required: "chat.error.consentRequired",
+    };
+    const key = map[code];
+    return (
+      (key && t(key, langCode)) ||
+      t("chat.errorRetry", langCode) ||
+      "Something went wrong. Please try again."
+    );
+  };
+
+  // overrideText 가 문자열이면 그 텍스트로 전송(예시 칩·빠른 행동 버튼). 아니면 입력칸 값 사용.
+  // (전송 버튼 onClick 은 이벤트 객체를 넘기므로 typeof 로 구분 — 이벤트를 텍스트로 오인하지 않게.)
+  const handleSend = async (overrideText) => {
+    const isOverride = typeof overrideText === "string";
+    const trimmed = (isOverride ? overrideText : input).trim();
     const outgoingFiles = attachments;
     if ((!trimmed && outgoingFiles.length === 0) || sending || uploading || !threadId || !publicToken) return;
 
@@ -641,7 +660,8 @@ export function ThreadChat() {
       attachments: outgoingFiles,
     };
     setMessages((prev) => [...prev, userMsg]);
-    setInput("");
+    // 빠른 행동은 사용자가 입력 중이던 텍스트를 지우지 않는다(칩만 보냄).
+    if (!isOverride) setInput("");
     setAttachments([]);
     setSending(true);
 
@@ -663,16 +683,18 @@ export function ThreadChat() {
 
       // 스트림 시작 전 차단(회수제한·토큰오류·닫힌 스레드)은 JSON 오류로 옴.
       if (!res.ok || !res.body) {
-        let errMsg = res.statusText;
+        let errCode = "";
         try {
           const j = await res.json();
-          errMsg = j.error || errMsg;
+          errCode = j.error || "";
         } catch {
           /* 본문이 JSON 이 아님 */
         }
+        // 동의 누락이면 동의 게이트를 다시 띄워 바로 복구 가능하게(막다른 에러 대신 다음 행동 제시).
+        if (errCode === "consent_required") setNeedsConsent(true);
         setMessages((prev) => [
           ...prev,
-          { id: `err_${Date.now()}`, role: "assistant", content: `Error: ${errMsg}. Please try again.` },
+          { id: `err_${Date.now()}`, role: "assistant", content: localizedStreamError(errCode) },
         ]);
         return;
       }
@@ -765,6 +787,10 @@ export function ThreadChat() {
   };
 
   const needsIdentification = !restoring && !threadId && !needsConsent;
+
+  // 콜드스타트 마찰 완화: 첫 화면(아직 사용자가 한 번도 안 보냄)에서만 예시 질문 칩 노출.
+  const userMsgCount = messages.filter((m) => m.role === "user").length;
+  const showStarters = !!threadId && userMsgCount === 0 && !sending && !restoring;
 
   return (
     // 높이: 작은 폰(iPhone SE 등)에서 600px 고정이 하단 탭바에 깔리던 문제 →
@@ -908,6 +934,28 @@ export function ThreadChat() {
             )}
           </div>
 
+          {/* 예시 질문 칩 — 불안한 환자가 "뭘 물어야 하나" 막히지 않게. 암종 단정 회피 위해 일반 질문만. */}
+          {showStarters && (
+            <div className="mb-3">
+              <p className="text-[11px] text-gray-400 mb-1.5 pl-1">{t("chat.starters.label", langCode)}</p>
+              <div className="flex flex-wrap gap-1.5">
+                {["q1", "q2", "q3", "q4"].map((q) => {
+                  const label = t(`chat.starters.${q}`, langCode);
+                  return (
+                    <button
+                      key={q}
+                      type="button"
+                      onClick={() => handleSend(label)}
+                      className="text-[11px] text-teal-700 bg-teal-50 border border-teal-100 rounded-full px-3 py-1.5 hover:bg-teal-100 transition"
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {/* Hand-off banner */}
           {handOff && (
             <div className="mb-3 bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-start gap-2 text-xs text-amber-800">
@@ -944,6 +992,29 @@ export function ThreadChat() {
               {uploadError && <span className="text-xs text-red-500">{uploadError}</span>}
             </div>
           )}
+
+          {/* 빠른 행동(전환 동선) — 사람 연결 + 정식 접수. 키워드 타이핑 없이 한 번에.
+              메시지로 보내 서버 detectHandOff(6개어)가 코디 종을 울리고 접수 분기를 탄다. */}
+          <div className="mb-2 flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => handleSend(t("chat.action.coordinatorMsg", langCode))}
+              disabled={sending || uploading}
+              className="inline-flex items-center gap-1.5 text-[11px] font-medium text-gray-700 bg-white border border-gray-200 rounded-xl px-3.5 py-1.5 hover:bg-gray-50 hover:text-teal-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <Headset size={13} className="shrink-0" />
+              {t("chat.action.coordinator", langCode)}
+            </button>
+            <button
+              type="button"
+              onClick={() => handleSend(t("chat.action.registerMsg", langCode))}
+              disabled={sending || uploading}
+              className="inline-flex items-center gap-1.5 text-[11px] font-medium text-white bg-teal-700 rounded-xl px-3.5 py-1.5 hover:bg-teal-800 transition disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <ClipboardCheck size={13} className="shrink-0" />
+              {t("chat.action.register", langCode)}
+            </button>
+          </div>
 
           {/* Input — 통합 입력 박스(클립·입력칸·전송이 한 테두리 안 → 회색 막대 없음, Claude/GPT 방식) */}
           <div className="flex items-end gap-1.5 border border-gray-300 rounded-3xl px-2 py-1.5 bg-white focus-within:ring-2 focus-within:ring-teal-500 transition">
