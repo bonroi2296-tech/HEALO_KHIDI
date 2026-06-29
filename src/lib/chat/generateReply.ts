@@ -264,6 +264,7 @@ export function buildSystemPrompt(
   hospitalGuard: HospitalGuardOptions = {},
   currentMentionsCancer = true,
   session: ChatSession = {},
+  outputLang: string = "en",
 ): string {
   const hasContext = !!contextText;
   const hasDbData = contextText.includes("healwith 등록");
@@ -271,6 +272,12 @@ export function buildSystemPrompt(
   const hasNaver = externalSources.includes("naver");
   const { hospitalGuardActive = false, hospitalIntentNoMatch = false } = hospitalGuard;
   const { isLoggedIn = false, hasReachableContact = false } = session;
+  // 선택 언어를 모델에 명시(특히 카자흐어 ↔ 러시아어 혼동 방지 — 둘 다 키릴문자라 모델이
+  // 카자흐어 사용자에게 러시아어로 답하는 일이 잦음. 핵심 타겟이라 결정적으로 못박는다).
+  const LANG_NAMES: Record<string, string> = {
+    ko: "Korean", en: "English", ru: "Russian", kz: "Kazakh", kk: "Kazakh", zh: "Chinese", ja: "Japanese",
+  };
+  const outputLangName = LANG_NAMES[outputLang] || "the user's language";
 
   return [
     // 코드 강제 가드(맨 위 = 최우선): 현재 메시지에 암종이 없으면 옛 화제(대장암 등)를 끌어와
@@ -313,7 +320,7 @@ export function buildSystemPrompt(
     "- PLAIN TEXT ONLY. The chat does NOT render markdown — never use **, *, ***, ##, ---, backticks, or tables; they appear as literal symbols and look broken. For a short list use a simple '- ' prefix or '1. 2. 3.' only.",
     "- No preamble, no restating the question, no 'If you sent me X, I would say...'. Answer directly.",
     "- OUTPUT ONLY THE FINAL MESSAGE TO THE PATIENT. Never reveal your own planning or self-talk: no 'Wait,', no 'let's keep it short / shorter / cleaner', no word counts like '(32 words)', no notes-to-self in asterisks or brackets. If you start writing a note about HOW to answer, delete it — send only the answer itself.",
-    "- Respond in the same language the user writes in.",
+    `- LANGUAGE: The user's selected language is ${outputLangName}. Write your ENTIRE reply in ${outputLangName}, unless the user clearly writes in a different language (then match theirs). IMPORTANT: Kazakh and Russian are different languages — if the selected language is Kazakh, reply in Kazakh (қазақша), NOT Russian.`,
     "- If unsure, say 'I'm not sure — let me connect a coordinator'. Honesty > confident wrong answer.",
     "- TONE: the user is often an anxious cancer patient or family. If they share distressing news (advanced-stage cancer, fear, a sick family member), open with ONE brief empathetic sentence before guidance. Warm but never exaggerated — no emoji spam, no hollow marketing phrases.",
     "- DE-ESCALATION (important): if the user is upset, frustrated, angry, or criticizing the service (swearing, sarcasm, 'this is useless', 'why do I have to explain this to you'), do NOT respond by dumping documents, price lists, or feature explanations. First acknowledge their frustration in ONE short sincere line, then ask ONE simple question to fix the actual problem. Reciting reference data at an upset person makes it worse.",
@@ -927,7 +934,7 @@ async function prepareGeneration(
   const systemPrompt = buildSystemPrompt(allContext, hasTier3, useWebSearch, externalSources, {
     hospitalGuardActive,
     hospitalIntentNoMatch: hospitalIntent && matchedHospitalNames.length === 0,
-  }, mentionsCancerType(query), session);
+  }, mentionsCancerType(query), session, lang);
   const retrievedPatternIds = extractRetrievedPatternIds(ragChunks);
   const model = getModel();
 
