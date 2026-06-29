@@ -202,6 +202,28 @@
 **재발 방지 (시스템 적용)**
 - 정적 가드는 즉시 CI 게이트(활성). E2E는 secrets 등록 시 활성. 새 포털/목록/직원 화면 추가 시 같은 자동 검사로 회귀 차단. 검증 못 한 건 "검증 못 함"으로 솔직히 표기하고 다음 세션 1순위로 승격(미루지 말 것).
 
+## #33 — DB 마이그레이션이 "success"인데 실제론 아무것도 안 막음 (REVOKE가 PUBLIC 상속분 못 잡음) (2026-06-24)
+
+> ⏪ 2026-06-29 세션이 미머지 PR #353에서 건져 옴 — 교정 마이그레이션(#352)은 머지됐으나 이 반성문만 main에 누락돼 있었음.
+
+**무슨 일**
+출시 종합감사에서 `alert_counter_increment`/`reset`(SECURITY DEFINER) 함수가 anon·authenticated에게 REST RPC로 노출됨을 발견(Supabase advisor). 보안 하드닝 PR #350이 `REVOKE EXECUTE … FROM anon, authenticated` 마이그레이션을 추가·적용했고 **"success"로 끝남**. 그런데 적용 후 `has_function_privilege('anon', …, 'EXECUTE')`로 확인하니 **여전히 `true`** — 전혀 안 막혔다.
+
+**왜 못 잡았나 (근본원인)**
+- PostgreSQL은 새 함수의 EXECUTE 권한을 기본적으로 **PUBLIC**에 부여한다. anon·authenticated는 PUBLIC을 상속하므로, 이들에게 직접 grant가 없던 상태에서 `REVOKE … FROM anon, authenticated`는 **회수할 직접 권한이 없어 no-op**이고 PUBLIC 상속분은 그대로 남는다.
+- 마이그레이션 실행 자체는 에러 없이 통과(REVOKE는 없는 권한에도 성공) → **"적용됨 = 효과 있음"으로 착각**. 이번 세션 핵심 패턴 #35("조용한 성공으로 위장한 실패")의 교과서적 사례 — 이번엔 코드가 아니라 **DDL 권한**에서.
+
+**어떻게 고쳤나**
+- `REVOKE EXECUTE … FROM PUBLIC, anon, authenticated` + 서버 전용 `GRANT … TO service_role`로 교정 마이그레이션 적용(#352).
+- 적용 후 **실DB 권한 재조회로 검증**: anon=false·authenticated=false·service_role=true 확인.
+
+**재발 방지**
+- 교훈: **Postgres 함수/객체 권한을 잠글 땐 `REVOKE … FROM PUBLIC`이 필수**. 역할명(anon/authenticated)만 회수하면 PUBLIC 상속분이 남아 무효.
+- 교훈: **DDL·마이그레이션은 "적용 성공"을 신뢰하지 말고, 의도한 상태를 실DB로 재조회해 검증**(`has_function_privilege`, `pg_policies`, 컬럼 존재 등). "success"는 문법이 맞았다는 뜻일 뿐 효과가 났다는 뜻이 아니다.
+- 가드 후보: 보안 advisor(`get_advisors`)를 출시 점검 체크리스트에 포함(이번에 이걸로 최초 발견).
+
+---
+
 ## #32 — 환자 포털 모바일 레이아웃 깨짐 (공개 크롬 + 환자 크롬 이중 노출) (2026-06-23)
 
 **무슨 일**
