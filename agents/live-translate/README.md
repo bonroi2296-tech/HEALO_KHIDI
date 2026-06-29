@@ -16,18 +16,25 @@
 
 ---
 
-## ⚠️ 상태 — best-effort 이식본 (배포 전 검증 필수)
+## 상태 — SDK 대조 검증 완료 / 라이브 통화는 미검증
 
 - `src/agent.py`, `src/config.py` = 공식 예제(livekit-examples/gemini-live-translate)
-  값 그대로 이식(신뢰도 높음).
-- `src/router.py`, `src/gemini_session.py` = 공식 예제의 **동작 계약**을 바탕으로 한
-  best-effort 구현. 특히 `gemini_session.py` 의 **Gemini Live Translate 프리뷰 모델
-  connect 설정(대상 언어 지정)** 은 상위 예제·모델 카드와 대조해 확정해야 한다
-  (`_build_live_config()` 의 TODO).
-- 이 워커는 이 저장소가 만들어진 환경에서 **실행·라이브 검증되지 않았다.** 배포 시
-  실제 2인 통화(아이폰 포함)로 통역 음성·자막·지연을 반드시 검증할 것.
-- 가장 안전한 길: 위 공식 예제 레포의 `translator/` 를 받아 대조 후, 모델 ID·언어·
-  에이전트 이름(`gemini-translator`)만 우리 값으로 맞춰 쓰는 것.
+  값 그대로 이식.
+- `src/router.py`, `src/gemini_session.py` = 공식 예제 동작 계약 기반 구현. **실제
+  설치된 SDK(google-genai 2.x, livekit rtc)로 모든 API 호출을 introspection 대조
+  검증함**:
+  - `client.aio.live.connect(model, config)` / `send_realtime_input(audio=Blob)` /
+    `session.receive()` — 시그니처 일치 확인.
+  - 대상 언어 = `translation_config.target_language_code`(BCP-47) 전용 필드 사용
+    (초기 system_instruction 꼼수에서 교체). **`kz`→`kk` 매핑**(카자흐어 BCP-47,
+    안 하면 조용히 실패) 포함.
+  - 자막 = `output_audio_transcription` 켜고 `server_content.output_transcription`
+    에서 수신.
+  - livekit rtc: `AudioSource`/`AudioStream`/`AudioFrame`/`publish_track`/`send_text`
+    /`set_attributes` 시그니처 일치 확인.
+- ❗ **남은 미검증 = 실제 2인 통화(아이폰 포함) 라이브 동작**: 통역 음성 라우팅
+  (원음 음소거↔통역 재생), 지연, 정확도. 코드/계약은 맞지만 LiveKit Cloud + Gemini
+  Live 실연결은 배포 후 1회 사람 검증이 필요하다.
 
 ---
 

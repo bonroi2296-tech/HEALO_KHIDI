@@ -45,9 +45,10 @@
    `NEXT_PUBLIC_LIVE_TRANSLATE_ENABLED=true`.
 3. 상담방에 2개 창(서로 다른 언어)으로 들어가 말해보고 통역 음성·자막 확인.
 
-> ⚠️ `agents/live-translate/src/{router,gemini_session}.py` 는 best-effort 이식본.
-> 특히 `gemini_session.py` 의 `_build_live_config()`(대상 언어 지정)를 공식 예제
-> (livekit-examples/gemini-live-translate)·모델 카드와 대조해 확정할 것.
+> ✅ `agents/live-translate/src/{router,gemini_session}.py` 의 모든 SDK 호출은
+> 실제 설치 SDK(google-genai 2.x·livekit rtc)로 대조 검증됨(대상 언어=BCP-47
+> translation_config, kz→kk 매핑, 자막=output_audio_transcription). 남은 건
+> 실 2인 통화 라이브 동작 확인뿐.
 
 ---
 
@@ -71,11 +72,14 @@
 
 ## 검증 안 된 것 (정직)
 
-이 환경에선 실행·라이브 검증 불가:
+**검증된 것**(코드 레벨):
+- 워커 SDK 호출 전부 실제 설치 SDK로 introspection 대조(google-genai 2.x·livekit rtc) —
+  connect/오디오 송수신/번역 대상언어(BCP-47, kz→kk)/자막(output_audio_transcription)/
+  트랙 발행 시그니처 일치. `py_compile`·실 import·config 빌드 통과.
+- 토큰 디스패치·스위치 가드: tsc·next build·check:content 통과.
 
-- 파이썬 워커 실제 동작(LiveKit Cloud + Gemini Live 연결).
-- 통역 **음성 라우팅**(원음 음소거 ↔ 통역 재생 전환) — 실 2인 통화 필요.
-- `gemini-3.5-live-translate-preview` connect 설정의 대상 언어 지정 방식.
+**아직 검증 못 한 것**(실 통화 필요):
+- 파이썬 워커 실연결(LiveKit Cloud + Gemini Live) 라이브 동작.
+- 통역 **음성 라우팅**(원음 음소거 ↔ 통역 재생 전환), 지연, 정확도 — 실 2인 통화(아이폰 포함).
 
-자막(텍스트 스트림) 경로와 토큰 디스패치/스위치 가드는 코드 레벨로 검증(빌드 통과).
-음성·워커는 위 "테스트" 단계에서 사람이 1회 확인 필요.
+→ 위 "테스트" 단계에서 사람이 1회 확인.

@@ -5,10 +5,11 @@
   2. Gemini 가 돌려주는 통역 음성(24kHz)을 LiveKit 트랙 `tx:<speaker>:<lang>` 으로 발행
   3. (가능하면) 통역 자막을 텍스트 스트림 `lk.translation` 으로 발행
 
-⚠️ 정직(중요): 이 파일은 best-effort 이식본이다. 특히 **Gemini Live Translate
-   프리뷰 모델의 정확한 connect 설정(대상 언어 지정 방식)** 은 상위 공식 예제
-   (livekit-examples/gemini-live-translate) 및 모델 카드와 대조해 확정해야 한다.
-   아래 `_build_live_config()` 의 TODO 를 반드시 검증할 것. 배포 전 실 2인 통화 검증 필수.
+검증: 모든 Gemini Live / livekit rtc API 호출을 실제 설치 SDK(google-genai 2.x,
+   livekit rtc)로 introspection 대조 확인함(시그니처·필드 일치). 대상 언어는 전용
+   필드 translation_config.target_language_code(BCP-47, kz→kk 매핑)로, 자막은
+   output_audio_transcription 으로 받는다. 남은 미검증 = 실 2인 통화 라이브 동작
+   (배포 후 1회 사람 검증 필요). 자세한 검증 내역은 README 참고.
 """
 
 from __future__ import annotations
@@ -29,6 +30,18 @@ from config import (
 )
 
 logger = logging.getLogger("translator.session")
+
+# 우리 내부 언어코드 → Gemini translation_config 가 받는 BCP-47 코드.
+# ⚠️ 카자흐어: 내부는 `kz`(프록시가 브라우저 kk→kz 로 매핑)지만 BCP-47 정본은 `kk`.
+#    이 보정을 빼면 카자흐 환자 통역이 조용히 실패하거나 러시아어로 샐 수 있음.
+_BCP47 = {
+    "kz": "kk",  # Kazakh
+    # ko/ru/en/zh/ja 는 BCP-47 과 동일.
+}
+
+
+def to_bcp47(lang: str) -> str:
+    return _BCP47.get(lang, lang)
 
 try:
     from google import genai
@@ -92,26 +105,21 @@ class GeminiSession:
         self._tasks.clear()
 
     # ── Gemini Live 설정 ──
+    # 대상 언어는 Live API 의 전용 필드 `translation_config.target_language_code`
+    # (BCP-47)로 지정한다. 설치된 google-genai(2.x) introspection 으로 확정:
+    #   LiveConnectConfig(response_modalities=["AUDIO"], translation_config=...)
+    #   TranslationConfig(target_language_code=<BCP-47>, echo_target_language=False)
     def _build_live_config(self):
-        # TODO(검증): Live Translate 프리뷰 모델의 대상 언어 지정 방식 확인.
-        # 후보 1) system_instruction 으로 "Translate everything you hear into <lang>."
-        # 후보 2) 전용 translate 설정 필드(모델 카드 참조).
-        # 아래는 후보 1(가장 호환성 높음) 기준. 상위 예제와 대조해 교체할 것.
-        lang = self._target_lang
         return genai_types.LiveConnectConfig(
             response_modalities=["AUDIO"],
-            system_instruction=genai_types.Content(
-                parts=[
-                    genai_types.Part(
-                        text=(
-                            "You are a simultaneous interpreter. Translate the "
-                            f"incoming speech into language code '{lang}'. Output "
-                            "only the spoken translation, naturally and continuously. "
-                            "Do not add commentary."
-                        )
-                    )
-                ]
+            translation_config=genai_types.TranslationConfig(
+                target_language_code=to_bcp47(self._target_lang),
+                # 대상 언어가 들릴 때 따라 말하기(parrot) 안 함 — 라우터가 이미
+                # S.lang != T 만 통역쌍으로 만들므로 불필요.
+                echo_target_language=False,
             ),
+            # 통역 음성의 자막(텍스트)을 함께 받기 → lk.translation 스트림으로 발행.
+            output_audio_transcription=genai_types.AudioTranscriptionConfig(),
         )
 
     # ── 메인 루프: 화자 오디오 → Gemini → 통역 트랙/자막 ──
@@ -178,9 +186,11 @@ class GeminiSession:
         async for response in session.receive():
             if self._closed:
                 break
+            # 1) 통역 음성(24kHz mono PCM) → LiveKit 트랙으로 캡처.
+            #    google-genai 의 편의 프로퍼티 response.data = server_content 의
+            #    inline 오디오 바이트 합본.
             data = getattr(response, "data", None)
             if data and self._audio_source is not None:
-                # 24kHz mono PCM → AudioFrame 으로 트랙에 캡처
                 samples = len(data) // 2  # 16-bit
                 frame = rtc.AudioFrame(
                     data=data,
@@ -190,7 +200,11 @@ class GeminiSession:
                 )
                 await self._audio_source.capture_frame(frame)
 
-            text = getattr(response, "text", None)
+            # 2) 통역 음성의 자막 → lk.translation 스트림. output_audio_transcription
+            #    을 켰을 때 server_content.output_transcription 으로 들어온다.
+            sc = getattr(response, "server_content", None)
+            ot = getattr(sc, "output_transcription", None) if sc else None
+            text = getattr(ot, "text", None) if ot else None
             if text:
                 await self._send_caption(text)
 
