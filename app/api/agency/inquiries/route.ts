@@ -14,6 +14,7 @@ import { checkAgencyAuth } from "@/lib/auth/checkAgencyAuth";
 import { supabaseAdmin, assertSupabaseEnv } from "@/lib/rag/supabaseAdmin";
 import { decryptInquiryForAdmin } from "@/lib/security/decryptForAdmin";
 import { caseStatusLabel, CASE_STATUS_STEPS } from "@/lib/khidi/caseStatus";
+import { logAdminAction, getIpFromRequest, getUserAgentFromRequest } from "@/lib/audit/adminAuditLog";
 
 function maskName(first?: string | null, last?: string | null): string {
   const n = `${(first || "").trim()} ${(last || "").trim()}`.trim();
@@ -186,6 +187,18 @@ export async function GET(request: NextRequest) {
         thread: threadMap.get(r.id) || null,
       };
     }));
+
+    // 감사로그: 파트너(에이전시/의료기관)가 환자 케이스(이름·의료상세·첨부 의료문서 서명URL)에
+    // 접근했음을 기록. 환자 PII 열람의 추적성 확보(GDPR/PIPA·복호화 열람 감사). 실패해도 본 로직은 진행.
+    void logAdminAction({
+      adminEmail: auth.email || `agency:${auth.agencyId}`,
+      adminUserId: auth.userId,
+      action: "PARTNER_VIEW_CASES",
+      inquiryIds: ids,
+      ipAddress: getIpFromRequest(request),
+      userAgent: getUserAgentFromRequest(request),
+      metadata: { partner_type: auth.partnerType || "agency", count: ids.length },
+    });
 
     return NextResponse.json({
       ok: true,

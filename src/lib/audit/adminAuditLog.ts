@@ -39,6 +39,10 @@ export type AdminAuditAction =
   | "LIST_LEADS"
   | "ASSIGN_LEADS"
   | "UPDATE_LEAD"
+  // partner portals (agency / overseas medical institution)
+  | "PARTNER_VIEW_CASES"
+  // patient data-subject rights (GDPR Art.17 / PIPA)
+  | "PATIENT_DELETION_REQUEST"
   // misc
   | "UPLOAD_IMAGE"
   | "UNAUTHORIZED_ADMIN_ACCESS";
@@ -168,6 +172,8 @@ export const AUDIT_METADATA_ALLOWED_KEYS = [
   "sort_order",
   "decrypt",
   "include_normalized",
+  "partner_type", // ✅ 파트너 포털(에이전시/의료기관) 접근 감사
+  "count",        // ✅ 조회/요청 건수
   "error",      // ✅ requireAdminAuth에서 사용
   "reason",     // ✅ requireAdminAuth에서 사용
   "path",       // ✅ requireAdminAuth에서 사용
