@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation';
 import { getLangCodeFromCookie } from '@/lib/i18n';
 import {
   Home, FileText, BookOpen, Activity, Calendar, Globe,
-  MoreHorizontal, X,
+  MoreHorizontal, X, ShieldCheck,
 } from 'lucide-react';
 import PatientNotificationBell from '@/components/patient/PatientNotificationBell';
 
@@ -20,6 +20,7 @@ const MORE_TABS = [
   { href: '/patient/symptoms', icon: Activity, label: { ko: '증상 기록', en: 'Symptoms', ru: 'Симптомы', kz: 'Белгілер', zh: '症状', ja: '症状' } },
   { href: '/patient/rebooking', icon: Calendar, label: { ko: '재진 예약', en: 'Rebooking', ru: 'Запись', kz: 'Қайта жазу', zh: '复诊', ja: '再診' } },
   { href: '/visa', icon: Globe, label: { ko: '비자 가이드', en: 'Visa Guide', ru: 'Виза', kz: 'Виза', zh: '签证指南', ja: 'ビザ' } },
+  { href: '/patient/account', icon: ShieldCheck, label: { ko: '계정·개인정보', en: 'Account & Privacy', ru: 'Аккаунт', kz: 'Аккаунт', zh: '账户与隐私', ja: 'アカウント' } },
 ];
 
 const MORE_LABEL = { ko: '더보기', en: 'More', ru: 'Ещё', kz: 'Көбірек', zh: '更多', ja: 'もっと' };
