@@ -8,7 +8,7 @@
  * - admin → /admin, coordinator → /coordinator
  * - agency(해외 에이전시) → /agency, 해외 의료기관(medical_institution) → /clinic
  * - 병원 담당자(hospital_users) → /hospital
- * - 그 외(환자) → /patient
+ * - 그 외(일반 회원/환자) → / (메인/홈) — PO: 일반 회원은 로그인 후 마이페이지 말고 메인으로
  */
 
 import "server-only";
@@ -57,5 +57,5 @@ export async function resolveLandingPath(opts: {
       /* 조회 실패 시 환자로 폴백 */
     }
   }
-  return "/patient";
+  return "/"; // 일반 회원/환자 → 메인(홈). /patient(마이페이지)는 헤더 메뉴로 접근.
 }

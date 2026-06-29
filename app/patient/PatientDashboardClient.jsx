@@ -78,7 +78,9 @@ export default function PatientDashboardClient() {
             cache: 'no-store',
           });
           const me = await meRes.json();
-          if (me?.ok && me.landing && me.landing !== '/patient') {
+          // 직원·파트너(landing=/admin·/coordinator·/agency·/clinic·/hospital)만 자기 포털로 튕겨냄.
+          // 일반 회원은 landing='/'(홈)이지만 /patient(마이페이지)는 메뉴로 들어올 수 있어야 하므로 예외.
+          if (me?.ok && me.landing && me.landing !== '/patient' && me.landing !== '/') {
             router.replace(me.landing);
             return;
           }
