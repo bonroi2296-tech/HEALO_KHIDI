@@ -13,6 +13,7 @@ import {
   getVisaInfo,
   getVisaChecklist,
   getAllVisaTypes,
+  getCountryEntry,
   type VisaType,
 } from "@/lib/visa/visaGuide";
 
@@ -41,18 +42,21 @@ export async function GET(request: NextRequest) {
     }
 
     // Otherwise return recommendation based on nationality + duration
-    const { recommended, alternative, embassy } = getVisaInfo(nationality, duration);
+    const { recommended, alternative } = getVisaInfo(nationality, duration);
 
     const recommendedChecklist = getVisaChecklist(recommended.visaType, lang);
     const alternativeChecklist = alternative
       ? getVisaChecklist(alternative.visaType, lang)
       : null;
 
+    // 국적별 입국 상태(비자 필요 여부·K-ETA·현지 대사관) — 언어별 해석
+    const countryEntry = getCountryEntry(nationality, lang);
+
     return Response.json({
       ok: true,
       recommended: recommendedChecklist,
       alternative: alternativeChecklist,
-      embassy: embassy || null,
+      countryEntry,
       allVisaTypes: getAllVisaTypes(lang),
     });
   } catch (error: any) {

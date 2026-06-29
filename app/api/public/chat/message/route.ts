@@ -273,7 +273,9 @@ export async function POST(request: NextRequest) {
       reply: finalReply,
       thread_id,
       hand_off: escalate ? { requested: true, reason: escalateReason } : undefined,
-      ...(aiError ? { ai_error: aiError } : {}),
+      // ⚠️ aiError 는 generateChatReply 의 err.message 원문일 수 있어 그대로 노출 금지
+      // (CLAUDE.md 보안규칙). 발생 여부만 코드형으로(stream 라우트와 동일).
+      ...(aiError ? { ai_error: "internal_error" } : {}),
     });
   } catch (err: any) {
     console.error(`[POST /api/public/chat/message] Unexpected: ${err.message}`, err.stack?.slice(0, 500));
