@@ -19,7 +19,9 @@ const LABELS = {
   title: { ko: '의료비자 가이드', en: 'Medical Visa Guide', ru: 'Гид по медицинской визе', zh: '医疗签证指南', ja: '医療ビザガイド', kz: 'Медициналық виза нұсқаулығы' },
   subtitle: { ko: '국적과 치료 기간을 선택하면 필요한 비자와 서류를 안내합니다', en: 'Select your nationality and treatment duration to see the visa and documents you need', ru: 'Выберите гражданство и срок лечения — покажем нужную визу и документы', zh: '选择国籍和治疗时间，即可查看所需签证和文件', ja: '国籍と治療期間を選ぶと、必要なビザと書類をご案内します', kz: 'Азаматтық пен емделу мерзімін таңдаңыз — қажетті виза мен құжаттарды көрсетеміз' },
   nationality: { ko: '국적', en: 'Nationality', ru: 'Гражданство', zh: '国籍', ja: '国籍', kz: 'Азаматтық' },
-  duration: { ko: '예상 치료 기간 (일)', en: 'Expected treatment duration (days)', ru: 'Ожидаемый срок лечения (дни)', zh: '预计治疗时间（天）', ja: '予想治療期間（日）', kz: 'Болжалды емдеу мерзімі (күн)' },
+  duration: { ko: '예상 치료 기간', en: 'Expected treatment duration', ru: 'Ожидаемый срок лечения', zh: '预计治疗时间', ja: '予想治療期間', kz: 'Болжалды емдеу мерзімі' },
+  stayShort: { ko: '90일 이내', en: 'Within 90 days', ru: 'До 90 дней', zh: '90天以内', ja: '90日以内', kz: '90 күнге дейін' },
+  stayLong: { ko: '91일 이상', en: '91+ days', ru: '91+ дней', zh: '91天以上', ja: '91日以上', kz: '91 күннен астам' },
   entryStatus: { ko: '입국 요건', en: 'Entry Requirement', ru: 'Условия въезда', zh: '入境要求', ja: '入国要件', kz: 'Кіру талаптары' },
   statusFree: { ko: '무비자 입국 가능', en: 'Visa-free entry', ru: 'Безвизовый въезд', zh: '可免签入境', ja: 'ビザ免除で入国可', kz: 'Визасыз кіруге болады' },
   statusRequired: { ko: '비자 필요', en: 'Visa required', ru: 'Нужна виза', zh: '需要签证', ja: 'ビザが必要', kz: 'Виза қажет' },
@@ -217,16 +219,30 @@ export default function VisaClient() {
           </select>
         </div>
         <div className="flex-1 min-w-[200px]">
-          <label htmlFor="visa-duration" className="text-sm font-semibold block mb-1.5">{l(LABELS.duration)}</label>
-          <input
-            id="visa-duration"
-            type="number"
-            value={duration}
-            onChange={e => setDuration(Math.max(1, parseInt(e.target.value) || 1))}
-            min={1}
-            max={365}
-            className="w-full px-3 py-2.5 rounded-lg border border-gray-300 text-sm tabular-nums focus:border-teal-500 focus:ring-1 focus:ring-teal-500 outline-none"
-          />
+          <span className="text-sm font-semibold block mb-1.5">{l(LABELS.duration)}</span>
+          <div className="flex gap-2" role="group" aria-label={l(LABELS.duration)}>
+            {[
+              { key: 'short', days: 30, label: LABELS.stayShort },
+              { key: 'long', days: 120, label: LABELS.stayLong },
+            ].map(opt => {
+              const active = opt.key === 'short' ? duration <= 90 : duration > 90;
+              return (
+                <button
+                  key={opt.key}
+                  type="button"
+                  onClick={() => setDuration(opt.days)}
+                  aria-pressed={active}
+                  className={`flex-1 px-4 py-2.5 rounded-lg border text-sm font-semibold transition-all duration-200 ${
+                    active
+                      ? 'bg-teal-600 text-white border-teal-600'
+                      : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                  }`}
+                >
+                  {l(opt.label)}
+                </button>
+              );
+            })}
+          </div>
         </div>
       </form>
 
