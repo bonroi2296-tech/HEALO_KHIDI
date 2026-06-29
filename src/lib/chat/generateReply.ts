@@ -19,6 +19,7 @@ import { runJudgeInBackground } from "./judge";
 import { CARE_REFERENCE } from "./careReference";
 import { BoundedCache } from "../util/boundedCache";
 import { mentionsCancerType, isTopicCorrection, correctionReply } from "./topicGuards";
+import { redactModelPii, redactMessagesForModel } from "../security/redactModelPii";
 
 type ChatMessage = { role: "user" | "assistant" | "system"; content: string };
 
@@ -999,8 +1000,13 @@ export async function generateChatReply(
     return correctionResult(correctionReply(lang), t0);
   }
 
+  // 🔒 데이터 주권: 외부 LLM(Gemini)으로 보내기 전 환자 자유텍스트의 고신뢰 식별자
+  // (이메일·전화·주민번호·여권)를 가린다. 임베딩·검색·생성·judge 전 경로가 마스킹본을 쓴다.
+  const safeQuery = redactModelPii(query);
+  const safeMessages = redactMessagesForModel(messages);
+
   try {
-    const prep = await prepareGeneration(query, lang, threadId, session);
+    const prep = await prepareGeneration(safeQuery, lang, threadId, session);
     ragScoring = prep.ragScoring;
     const { ragChunks, injectedPatternIds, retrievedPatternIds, allContext } = prep;
 
@@ -1021,7 +1027,7 @@ export async function generateChatReply(
     }
 
     // 🔁 반복 루프 감지 시 최상단 강제 지시 주입(자기 답변 복사 차단)
-    const baseSystem = detectRepetitiveAssistant(messages)
+    const baseSystem = detectRepetitiveAssistant(safeMessages)
       ? REPETITION_GUARD + prep.systemPrompt
       : prep.systemPrompt;
     const fullSystemPrompt = injectedPatternIds.length > 0
@@ -1034,7 +1040,7 @@ export async function generateChatReply(
       ...prep.genConfig,
     };
 
-    let result = await generateTextWithRetry({ ...baseParams, messages: messages as any });
+    let result = await generateTextWithRetry({ ...baseParams, messages: safeMessages as any });
 
     // 🔁 빈 응답 복구(핵심 수정 2026-06-21): 대화 기록이 길고 반복적으로 쌓이면 Gemini 가
     // finishReason=stop 으로 빈 텍스트를 반환한다(A/B 실측: 새 스레드 0/12 vs 기록누적 스레드 2/12).
@@ -1042,11 +1048,11 @@ export async function generateChatReply(
     // 답변을 포함해 재시도하면(slice(-2)) 똑같이 빈다(14/24 재현). 그래서 복구는 마지막 사용자
     // 질문 1건만 보낸다(slice(-1)) — 새 스레드와 동일 조건이라 위 A 테스트에서 빈응답 0%.
     // 트레이드오프: 직전 맥락 없이 답하지만, 빈 말풍선보다 낫다(이 경로는 빈 응답일 때만 탐).
-    const lastUser = [...messages].reverse().find((m) => m.role === "user");
-    if ((!result?.text || !result.text.trim()) && lastUser && messages.length > 1) {
+    const lastUser = [...safeMessages].reverse().find((m) => m.role === "user");
+    if ((!result?.text || !result.text.trim()) && lastUser && safeMessages.length > 1) {
       console.warn(
         `[generateChatReply] empty after retries (finishReason=${(result as any)?.finishReason}) ` +
-        `— retrying with last user message only (of ${messages.length} msgs)`
+        `— retrying with last user message only (of ${safeMessages.length} msgs)`
       );
       const reducedResult = await generateTextWithRetry({ ...baseParams, messages: [lastUser] as any }, 2);
       if (reducedResult?.text && reducedResult.text.trim()) result = reducedResult;
@@ -1075,7 +1081,7 @@ export async function generateChatReply(
       console.error(
         `[generateChatReply] EMPTY reply — finishReason=${(result as any)?.finishReason} ` +
         `usage=${JSON.stringify((result as any)?.usage)} structured=${injectedPatternIds.length > 0} ` +
-        `query="${query.slice(0, 60)}"`
+        `query="${safeQuery.slice(0, 60)}"`
       );
       finalReply = EMPTY_REPLY_FALLBACK[lang] || EMPTY_REPLY_FALLBACK.en;
       // finishReason 을 에러코드에 실어 다음 발생 시 원인(SAFETY/MAX_TOKENS/…)을 API 응답·메타데이터에서 바로 확인 가능하게.
@@ -1098,7 +1104,7 @@ export async function generateChatReply(
 
     // Judge: 메인 응답 흐름 차단 없이 백그라운드 평가
     runJudgeInBackground({
-      query,
+      query: safeQuery,
       response: finalReply,
       context: allContext || undefined,
       lang,
@@ -1178,8 +1184,12 @@ export async function streamChatReply(
     return correctionResult(reply, t0);
   }
 
+  // 🔒 데이터 주권: 외부 LLM 전송 전 환자 자유텍스트의 고신뢰 식별자 마스킹(비스트림과 동일).
+  const safeQuery = redactModelPii(query);
+  const safeMessages = redactMessagesForModel(messages);
+
   try {
-    const prep = await prepareGeneration(query, lang, threadId, session);
+    const prep = await prepareGeneration(safeQuery, lang, threadId, session);
     ragScoring = prep.ragScoring;
     const { ragChunks, injectedPatternIds, retrievedPatternIds, allContext } = prep;
 
@@ -1202,7 +1212,7 @@ export async function streamChatReply(
     }
 
     // 🔁 반복 루프 감지 시 최상단 강제 지시 주입(자기 답변 복사 차단)
-    const baseSystem = detectRepetitiveAssistant(messages)
+    const baseSystem = detectRepetitiveAssistant(safeMessages)
       ? REPETITION_GUARD + prep.systemPrompt
       : prep.systemPrompt;
     // 스트리밍은 평문만 보냄 → JSON 출력 지시 미부착(비스트리밍과의 유일한 프롬프트 차이).
@@ -1215,7 +1225,7 @@ export async function streamChatReply(
     let fullText = "";
     let finishReason: any = undefined;
     try {
-      const sr = streamText({ ...baseParams, messages: messages as any });
+      const sr = streamText({ ...baseParams, messages: safeMessages as any });
       for await (const chunk of sr.textStream) {
         fullText += chunk;
         onChunk(chunk);
@@ -1230,8 +1240,8 @@ export async function streamChatReply(
     }
 
     // 🔁 빈 응답 복구: 스트림이 비면(안전필터·기록누적 등) 마지막 사용자 메시지만으로 비스트리밍 1회.
-    if (!fullText.trim() && messages.length > 1) {
-      const lastUser = [...messages].reverse().find((m) => m.role === "user");
+    if (!fullText.trim() && safeMessages.length > 1) {
+      const lastUser = [...safeMessages].reverse().find((m) => m.role === "user");
       if (lastUser) {
         console.warn(
           `[streamChatReply] empty stream (finishReason=${finishReason}) — retrying with last user message only`
@@ -1252,7 +1262,7 @@ export async function streamChatReply(
     let emptyError: string | undefined;
     if (!fullText.trim()) {
       console.error(
-        `[streamChatReply] EMPTY reply — finishReason=${finishReason} query="${query.slice(0, 60)}"`
+        `[streamChatReply] EMPTY reply — finishReason=${finishReason} query="${safeQuery.slice(0, 60)}"`
       );
       fullText = EMPTY_REPLY_FALLBACK[lang] || EMPTY_REPLY_FALLBACK.en;
       onChunk(fullText);
@@ -1276,7 +1286,7 @@ export async function streamChatReply(
 
     // Judge: 메인 흐름 차단 없이 백그라운드 평가
     runJudgeInBackground({
-      query,
+      query: safeQuery,
       response: fullText,
       context: allContext || undefined,
       lang,

@@ -39,7 +39,7 @@ const PUBLIC_TABLES = new Set([
   "reminders_scheduled", "notifications", "symptom_alerts", "kpi_snapshots", "chat_feedback",
   "ai_response_evaluations", "ai_regression_tests", "ai_regression_runs", "cotreatment_referrals",
   "agencies", "agency_users", "case_status_history", "alert_counter_events", "device_tokens",
-  "progress_records",
+  "progress_records", "account_deletion_requests",
 ]);
 
 // `.from()` 첫 인자가 DB 테이블이 아닌 것 — Supabase Storage 버킷(.storage.from). 오탐 제외.
