@@ -506,7 +506,7 @@ function Callout({ level, title, lines }) {
   const titleColor = urgent ? 'text-red-700' : 'text-amber-700';
   const dot = urgent ? 'bg-red-500' : 'bg-amber-500';
   // 이모지(🔴🟡)는 UI 크롬 금지(DESIGN.md) → lucide 아이콘 + 컬러로 긴급도 표현
-  const cleanTitle = title.replace(/^[🔴🟡]\s*/, '').replace(/[:：]$/, '');
+  const cleanTitle = title.replace(/^(?:🔴|🟡)\s*/u, '').replace(/[:：]$/, '');
   return (
     <div className={`rounded-xl border ${box} p-4`}>
       <div className="flex items-center gap-1.5 mb-2.5">
