@@ -91,7 +91,7 @@ export default function CostEstimateDetailClient({ estimateId }) {
       const json = await res.json();
       if (!res.ok || !json.ok) throw new Error(json.error || "failed");
       await load();
-    } catch (err) {
+    } catch (_err) {
       alert(failMsg);
     } finally {
       setActing(false);
@@ -114,7 +114,7 @@ export default function CostEstimateDetailClient({ estimateId }) {
       const json = await res.json();
       if (!res.ok || !json.ok) throw new Error(json.error || "failed");
       await load();
-    } catch (err) {
+    } catch (_err) {
       alert(failMsg);
     } finally {
       setActing(false);
