@@ -18,7 +18,7 @@
 
 export const runtime = "nodejs";
 
-import { NextRequest } from "next/server";
+import { NextRequest, after } from "next/server";
 import { supabaseAdmin, assertSupabaseEnv } from "@/lib/rag/supabaseAdmin";
 import { encryptString, encryptStringNullable } from "@/lib/security/encryptionV2";
 import { checkRateLimitPersistent, getClientIp, RATE_LIMITS, getRateLimitHeaders } from "@/lib/rateLimit";
@@ -164,7 +164,9 @@ export async function POST(request: NextRequest) {
       // 5. 관리자 알림 발송 (Fail-safe)
       // ========================================
       // 알림 실패해도 inquiry 생성은 성공으로 처리
-      sendAdminNotification({
+      // after(): 응답을 보낸 뒤에도 함수를 살려둬 이메일(외부 Resend 호출)이 잘리지 않게 함.
+      // (fire-and-forget 이면 서버리스가 응답 후 freeze → 느린 이메일 발송이 중간에 끊김)
+      after(() => sendAdminNotification({
         inquiryId,
         nationality: body.nationality,
         treatmentType: body.treatmentType,
@@ -172,7 +174,7 @@ export async function POST(request: NextRequest) {
         createdAt: new Date().toISOString(),
       }).catch((error) => {
         console.error(`[${apiPath}] 알림 발송 실패 (무시):`, error.message);
-      });
+      }));
       
       // ========================================
       // 6. 응답 반환

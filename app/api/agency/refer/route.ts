@@ -13,7 +13,7 @@
 
 export const runtime = "nodejs";
 
-import { NextRequest } from "next/server";
+import { NextRequest, after } from "next/server";
 import { checkAgencyAuth } from "@/lib/auth/checkAgencyAuth";
 import { supabaseAdmin, assertSupabaseEnv } from "@/lib/rag/supabaseAdmin";
 import { encryptString, encryptStringNullable } from "@/lib/security/encryptionV2";
@@ -132,13 +132,14 @@ export async function POST(request: NextRequest) {
       .then(undefined, () => { /* 이력 실패는 무시 */ });
 
     // 7) 관리자/코디 알림(실패해도 접수는 성공)
-    sendAdminNotification({
+    // after(): 응답 후에도 함수를 살려 이메일 발송이 잘리지 않게 (서버리스 freeze 방지)
+    after(() => sendAdminNotification({
       inquiryId,
       nationality: body.nationality,
       treatmentType: String(body.treatmentType).trim(),
       contactMethod: body.contactMethod || (hasEmail ? "email" : "messenger"),
       createdAt: new Date().toISOString(),
-    }).catch(() => { /* ignore */ });
+    }).catch(() => { /* ignore */ }));
 
     console.log(`[agency/refer] ✅ inquiry ${inquiryId} by agency ${auth.agencyId}`);
     return Response.json({ ok: true, inquiryId });

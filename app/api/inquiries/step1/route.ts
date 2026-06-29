@@ -6,7 +6,7 @@
  */
 export const runtime = "nodejs";
 
-import { NextRequest } from "next/server";
+import { NextRequest, after } from "next/server";
 import { z } from "zod";
 import { supabaseAdmin, assertSupabaseEnv } from "@/lib/rag/supabaseAdmin";
 import { encryptString, encryptStringNullable } from "@/lib/security/encryptionV2";
@@ -157,13 +157,14 @@ export async function POST(request: NextRequest) {
     }
 
     // 관리자 알림 (실패해도 무시)
-    sendAdminNotification({
+    // after(): 응답 후에도 함수를 살려 이메일 발송이 잘리지 않게 (서버리스 freeze 방지)
+    after(() => sendAdminNotification({
       inquiryId: row.id,
       nationality: data.nationality,
       treatmentType: data.cancerType,
       contactMethod: data.email ? "email" : "phone",
       createdAt: new Date().toISOString(),
-    }).catch(() => {});
+    }).catch(() => {}));
 
     return Response.json({ ok: true, inquiryId: row.id, publicToken: row.public_token });
   } catch (e: any) {
