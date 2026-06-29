@@ -132,6 +132,17 @@ export async function POST(request: NextRequest) {
     return jsonError("Failed to save message", 500);
   }
 
+  // 멀티스레드 목록 가독성: 제목이 아직 기본값("New Chat")이고 실제 텍스트가 있으면 첫 메시지로 채운다.
+  // (PII는 이미 message_text 마스킹 경로를 타고, subject 는 짧은 발췌만 — 이름 평문 저장 안 함.)
+  const curSubject = (thread as any).subject;
+  if (trimmedMsg && (!curSubject || curSubject === "New Chat")) {
+    const snippet = trimmedMsg.slice(0, 60) + (trimmedMsg.length > 60 ? "…" : "");
+    await (supabaseAdmin as any)
+      .from("chat_threads")
+      .update({ subject: snippet })
+      .eq("id", thread_id);
+  }
+
   const handOff = detectHandOff(trimmedMsg);
   const escalate = handOff.requested || hasAttachments;
   const escalateReason = handOff.reason || (hasAttachments ? "attachment_uploaded" : null);

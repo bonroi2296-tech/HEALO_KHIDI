@@ -1,12 +1,24 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { ArrowRight, AlertCircle, Loader2, Bot, ThumbsUp, ThumbsDown, X, Paperclip, FileText, Image as ImageIcon } from "lucide-react";
+import { ArrowRight, AlertCircle, Loader2, Bot, ThumbsUp, ThumbsDown, X, Paperclip, FileText, Image as ImageIcon, Headset, ClipboardCheck, Plus, History } from "lucide-react";
 import { getLangCodeFromCookie, t } from "@/lib/i18n";
 
 const TOKEN_COOKIE = "healo_chat_token";
 const SESSION_COOKIE = "healo_browser_session";
 const COOKIE_MAX_AGE = 60 * 60 * 24 * 30; // 30일
+// 마지막 활동이 이 시간보다 오래되면 "오래 쉰 세션" 배너로 새 상담을 제안(자동 세션경계).
+const STALE_SESSION_MS = 24 * 60 * 60 * 1000;
+
+// 목록 표시용 짧은 날짜(브라우저 로케일). 실패해도 빈 문자열.
+function formatWhen(iso) {
+  if (!iso) return "";
+  try {
+    return new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  } catch {
+    return "";
+  }
+}
 
 function readCookie(name) {
   if (typeof document === "undefined") return null;
@@ -294,6 +306,10 @@ export function ThreadChat() {
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const [handOff, setHandOff] = useState(false);
+  // 멀티스레드: 이전 대화 목록 + 토글 + 오래 쉰 세션 배너
+  const [threads, setThreads] = useState([]);
+  const [showHistory, setShowHistory] = useState(false);
+  const [staleSession, setStaleSession] = useState(false);
   const chatRef = useRef(null);
   const inputRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -485,6 +501,9 @@ export function ThreadChat() {
           setGuest(json.thread.guest || null);
           // PIPA: 동의 기록 없는 기존 thread(게이트 도입 이전 시작분)면 게이트를 띄워 동의 백필.
           if (json.thread.has_consent === false) setNeedsConsent(true);
+          // 자동 세션경계: 마지막 활동이 24h 초과면 "새 상담" 제안 배너를 띄운다(옛 맥락 안 끌고 오게).
+          const lastActive = json.thread.last_active_at ? new Date(json.thread.last_active_at).getTime() : 0;
+          if (lastActive && Date.now() - lastActive > STALE_SESSION_MS) setStaleSession(true);
           const history = (json.messages || []).map((m) => ({
             id: m.id,
             role: m.role,
@@ -553,6 +572,46 @@ export function ThreadChat() {
     },
     [langCode]
   );
+
+  // ── 멀티스레드: 이전 대화 목록 조회 / 방 전환 / 새 상담 시작 ──
+  const loadThreads = useCallback(async () => {
+    try {
+      const sid = readCookie(SESSION_COOKIE) || "";
+      const res = await fetch(`/api/public/chat/threads?browser_session_id=${encodeURIComponent(sid)}`);
+      const json = await res.json();
+      if (json.ok) setThreads(Array.isArray(json.threads) ? json.threads : []);
+    } catch (e) {
+      console.warn("[ThreadChat] loadThreads failed:", e);
+    }
+  }, []);
+
+  const switchThread = useCallback(
+    async (thread) => {
+      setShowHistory(false);
+      if (!thread?.public_token || thread.id === threadId) return;
+      setHandOff(false);
+      setStaleSession(false);
+      setInput("");
+      setAttachments([]);
+      await resumeWithToken(thread.public_token);
+    },
+    [threadId, resumeWithToken]
+  );
+
+  const startNewChat = useCallback(async () => {
+    setShowHistory(false);
+    setHandOff(false);
+    setStaleSession(false);
+    setInput("");
+    setAttachments([]);
+    // 동의는 이 세션에서 이미 받았으므로 게이트 재노출 없이 새 방 생성(서버가 consent 재검증).
+    await startAnonymousThread({ consent: true });
+  }, [startAnonymousThread]);
+
+  // 활성 방이 바뀌면(복구·시작·전환·식별) 이전 대화 목록을 새로고침.
+  useEffect(() => {
+    if (threadId) loadThreads();
+  }, [threadId, loadThreads]);
 
   const handleIdentify = useCallback(
     async ({ name, email, country, consent }) => {
@@ -629,8 +688,27 @@ export function ThreadChat() {
     [langCode, resumeWithToken]
   );
 
-  const handleSend = async () => {
-    const trimmed = input.trim();
+  // 스트림 시작 전 서버가 돌려주는 오류 코드를 사용자 언어 안내로 변환(영문 코드 노출 금지 — DESIGN ux_states).
+  const localizedStreamError = (code) => {
+    const map = {
+      rate_limited: "chat.error.rateLimited",
+      ai_daily_limit: "chat.error.busy",
+      ai_service_busy: "chat.error.busy",
+      consent_required: "chat.error.consentRequired",
+    };
+    const key = map[code];
+    return (
+      (key && t(key, langCode)) ||
+      t("chat.errorRetry", langCode) ||
+      "Something went wrong. Please try again."
+    );
+  };
+
+  // overrideText 가 문자열이면 그 텍스트로 전송(예시 칩·빠른 행동 버튼). 아니면 입력칸 값 사용.
+  // (전송 버튼 onClick 은 이벤트 객체를 넘기므로 typeof 로 구분 — 이벤트를 텍스트로 오인하지 않게.)
+  const handleSend = async (overrideText) => {
+    const isOverride = typeof overrideText === "string";
+    const trimmed = (isOverride ? overrideText : input).trim();
     const outgoingFiles = attachments;
     if ((!trimmed && outgoingFiles.length === 0) || sending || uploading || !threadId || !publicToken) return;
 
@@ -641,7 +719,8 @@ export function ThreadChat() {
       attachments: outgoingFiles,
     };
     setMessages((prev) => [...prev, userMsg]);
-    setInput("");
+    // 빠른 행동은 사용자가 입력 중이던 텍스트를 지우지 않는다(칩만 보냄).
+    if (!isOverride) setInput("");
     setAttachments([]);
     setSending(true);
 
@@ -663,16 +742,18 @@ export function ThreadChat() {
 
       // 스트림 시작 전 차단(회수제한·토큰오류·닫힌 스레드)은 JSON 오류로 옴.
       if (!res.ok || !res.body) {
-        let errMsg = res.statusText;
+        let errCode = "";
         try {
           const j = await res.json();
-          errMsg = j.error || errMsg;
+          errCode = j.error || "";
         } catch {
           /* 본문이 JSON 이 아님 */
         }
+        // 동의 누락이면 동의 게이트를 다시 띄워 바로 복구 가능하게(막다른 에러 대신 다음 행동 제시).
+        if (errCode === "consent_required") setNeedsConsent(true);
         setMessages((prev) => [
           ...prev,
-          { id: `err_${Date.now()}`, role: "assistant", content: `Error: ${errMsg}. Please try again.` },
+          { id: `err_${Date.now()}`, role: "assistant", content: localizedStreamError(errCode) },
         ]);
         return;
       }
@@ -766,6 +847,10 @@ export function ThreadChat() {
 
   const needsIdentification = !restoring && !threadId && !needsConsent;
 
+  // 콜드스타트 마찰 완화: 첫 화면(아직 사용자가 한 번도 안 보냄)에서만 예시 질문 칩 노출.
+  const userMsgCount = messages.filter((m) => m.role === "user").length;
+  const showStarters = !!threadId && userMsgCount === 0 && !sending && !restoring;
+
   return (
     // 높이: 작은 폰(iPhone SE 등)에서 600px 고정이 하단 탭바에 깔리던 문제 →
     // 화면 높이에 맞춰 줄어들되(min 420px) 데스크톱은 기존 600px 유지
@@ -798,6 +883,61 @@ export function ThreadChat() {
         <IdentificationForm langCode={langCode} onSubmit={handleIdentify} submitting={identifying} />
       ) : (
         <>
+          {/* 멀티스레드 툴바: 이전 대화 목록 토글 + 새 상담 시작 (한 방에 갇히지 않게) */}
+          <div className="flex items-center justify-between mb-2">
+            <button
+              type="button"
+              onClick={() => { setShowHistory((v) => !v); loadThreads(); }}
+              className="inline-flex items-center gap-1.5 text-[11px] font-medium text-gray-600 hover:text-teal-700 rounded-xl px-2.5 py-1.5 hover:bg-gray-50 transition"
+            >
+              <History size={14} className="shrink-0" />
+              {t("chat.history.button", langCode)}
+            </button>
+            <button
+              type="button"
+              onClick={startNewChat}
+              className="inline-flex items-center gap-1.5 text-[11px] font-medium text-teal-700 rounded-xl px-2.5 py-1.5 hover:bg-teal-50 transition"
+            >
+              <Plus size={14} className="shrink-0" />
+              {t("chat.action.newChat", langCode)}
+            </button>
+          </div>
+
+          {/* 이전 대화 목록 패널 */}
+          {showHistory && (
+            <div className="mb-2 border border-gray-200 rounded-xl bg-white shadow-sm max-h-48 overflow-y-auto divide-y divide-gray-100">
+              {threads.length === 0 ? (
+                <div className="p-3 text-[11px] text-gray-400">{t("chat.history.empty", langCode)}</div>
+              ) : (
+                threads.map((th) => (
+                  <button
+                    key={th.id}
+                    type="button"
+                    onClick={() => switchThread(th)}
+                    className={`w-full text-left px-3 py-2 transition hover:bg-gray-50 ${th.id === threadId ? "bg-teal-50" : ""}`}
+                  >
+                    <div className="truncate text-xs text-gray-800">{th.subject || t("chat.history.untitled", langCode)}</div>
+                    <div className="text-[10px] text-gray-400">{formatWhen(th.last_active_at)}</div>
+                  </button>
+                ))
+              )}
+            </div>
+          )}
+
+          {/* 자동 세션경계: 오래 쉰 대화면 새 상담 제안 */}
+          {staleSession && (
+            <div className="mb-2 bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-center justify-between gap-2 text-[11px] text-amber-800">
+              <span>{t("chat.session.staleNote", langCode)}</span>
+              <button
+                type="button"
+                onClick={startNewChat}
+                className="shrink-0 inline-flex items-center gap-1 font-medium text-teal-700 hover:text-teal-800"
+              >
+                <Plus size={12} /> {t("chat.action.newChat", langCode)}
+              </button>
+            </div>
+          )}
+
           {/* 채팅 메시지 */}
           <div className="flex-1 overflow-y-auto mb-3 bg-gray-50 rounded-2xl p-3 sm:p-4 text-left space-y-4" ref={chatRef}>
             {guest?.name && (
@@ -908,6 +1048,28 @@ export function ThreadChat() {
             )}
           </div>
 
+          {/* 예시 질문 칩 — 불안한 환자가 "뭘 물어야 하나" 막히지 않게. 암종 단정 회피 위해 일반 질문만. */}
+          {showStarters && (
+            <div className="mb-3">
+              <p className="text-[11px] text-gray-400 mb-1.5 pl-1">{t("chat.starters.label", langCode)}</p>
+              <div className="flex flex-wrap gap-1.5">
+                {["q1", "q2", "q3", "q4"].map((q) => {
+                  const label = t(`chat.starters.${q}`, langCode);
+                  return (
+                    <button
+                      key={q}
+                      type="button"
+                      onClick={() => handleSend(label)}
+                      className="text-[11px] text-teal-700 bg-teal-50 border border-teal-100 rounded-full px-3 py-1.5 hover:bg-teal-100 transition"
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {/* Hand-off banner */}
           {handOff && (
             <div className="mb-3 bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-start gap-2 text-xs text-amber-800">
@@ -944,6 +1106,29 @@ export function ThreadChat() {
               {uploadError && <span className="text-xs text-red-500">{uploadError}</span>}
             </div>
           )}
+
+          {/* 빠른 행동(전환 동선) — 사람 연결 + 정식 접수. 키워드 타이핑 없이 한 번에.
+              메시지로 보내 서버 detectHandOff(6개어)가 코디 종을 울리고 접수 분기를 탄다. */}
+          <div className="mb-2 flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => handleSend(t("chat.action.coordinatorMsg", langCode))}
+              disabled={sending || uploading}
+              className="inline-flex items-center gap-1.5 text-[11px] font-medium text-gray-700 bg-white border border-gray-200 rounded-xl px-3.5 py-1.5 hover:bg-gray-50 hover:text-teal-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <Headset size={13} className="shrink-0" />
+              {t("chat.action.coordinator", langCode)}
+            </button>
+            <button
+              type="button"
+              onClick={() => handleSend(t("chat.action.registerMsg", langCode))}
+              disabled={sending || uploading}
+              className="inline-flex items-center gap-1.5 text-[11px] font-medium text-white bg-teal-700 rounded-xl px-3.5 py-1.5 hover:bg-teal-800 transition disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <ClipboardCheck size={13} className="shrink-0" />
+              {t("chat.action.register", langCode)}
+            </button>
+          </div>
 
           {/* Input — 통합 입력 박스(클립·입력칸·전송이 한 테두리 안 → 회색 막대 없음, Claude/GPT 방식) */}
           <div className="flex items-end gap-1.5 border border-gray-300 rounded-2xl px-2 py-1.5 bg-white focus-within:ring-2 focus-within:ring-teal-500 transition">

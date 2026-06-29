@@ -1139,3 +1139,27 @@ PO가 협력병원 상세(`/hospitals/[slug]`) 하단 "자주 묻는 질문"이 
 - 가드 룰 영구화: 새 과장 패턴은 `safetyGuard.ts` `OVERCLAIM_STAT`에 추가하면 라이브·회귀 채점이 공유.
 - **정적 카피 가드는 일부러 안 넣음**: 우리 KHIDI 공식지표가 "환자 만족도 90점"이라, `check:content` 정적 룰을 두면 어드민/대시보드의 정당한 목표 표시를 오탐(PO가 경고한 "임의 수치는 사람이 신경 쓸 것"). 런타임(환자 노출 답변) 범위로 한정 = 어드민 내부 라벨엔 안 걸림.
 - 교훈: **안전가드 카테고리는 '의료 위험'뿐 아니라 '과장광고 위험'도 별도로 — 의료 플랫폼은 후자도 법적 리스크.**
+
+---
+
+## #51 — 로그인 환자 AI챗(/patient/chat)이 통째로 죽어 있었음: chat_messages를 없는 컬럼(role/content)으로 read/write (2026-06-29)
+
+**무슨 일**
+- 로그인 환자용 AI 상담(`/patient/chat`)이 스레드 생성은 되는데 **메시지를 보내면 저장·응답이 안 됐다.** 실DB 확인: `metadata.source='patient_portal'` 스레드가 2개월치(4월~6월) **전부 메시지 0건**.
+- 원인: `chat_messages` 테이블의 실제 컬럼은 `actor_type`/`message_text`인데, 환자챗 API(`app/api/patient/chat/route.ts`·`[threadId]/route.ts`)는 **존재하지 않는 `role`/`content` 컬럼**으로 insert/select. PostgREST가 "column not found"로 거부 → 환자 메시지 insert 500 + AI 응답 저장 실패 + 이력 로드 실패. 프론트는 빈 화면.
+- 공개챗(`/inquiry`)은 처음부터 올바른 `actor_type`/`message_text`를 써서 정상 작동 → 같은 테이블을 쓰는 두 화면의 **데이터모델 불일치**가 핵심.
+
+**왜 못 잡았나(근본원인)**
+- 두 챗 표면(공개/환자)이 따로 진화하며 같은 테이블에 **다른 컬럼 가정**을 가짐. 환자챗은 `role/content`(흔한 LLM 메시지 네이밍)를 가정했는데 실제 스키마는 상담센터식 `actor_type/message_text`였다.
+- `next build`는 문법만 검사 → 런타임 컬럼 부재는 못 잡음. 환자챗 end-to-end 실로그인 테스트가 없었음(스모크는 공개챗만 커버).
+- 스키마 드리프트도 한몫: `chat_messages`/`chat_threads`의 일부 컬럼이 마이그레이션 파일이 아니라 Supabase 콘솔에서 직접 추가돼, 코드가 어떤 컬럼이 실존하는지 헷갈리기 쉬웠다.
+
+**어떻게 고쳤나**
+- `app/api/patient/chat/route.ts`: 환자 메시지 insert를 `actor_type:"patient"·actor_id·message_text·is_internal:false`로, AI 응답 insert를 `actor_type:"system"·message_text`로, 이력 read를 `actor_type/message_text`→`{role,content}` 매핑으로 정정(공개챗 규약과 일치).
+- `app/api/patient/chat/[threadId]/route.ts`: select를 `actor_type/message_text`로, `is_internal=false` 동등비교를 `not is_internal is true`로(공개챗 메시지의 null 포함). 프론트 응답 계약(`role/content`)은 그대로 유지 → 프론트 무수정.
+- 유사 스캔: `chat_messages`를 다루는 다른 경로(`resume`·`message`·`stream`·`postResolveWorker`)는 전부 올바른 컬럼 사용 확인 — 환자챗만 깨져 있었음.
+
+**재발 방지**
+- **단일 데이터모델로 수렴 중**: 멀티스레드 통일(KNOWN_ISSUES 백로그)에서 공개챗의 `actor_type/message_text` 모델을 단일 표준으로 삼아 환자챗 분기를 흡수. 두 모델 공존이 사고의 뿌리.
+- 스키마 드리프트 보강 마이그레이션을 백로그에 기록(코드가 신뢰할 실제 스키마 SoR 확보).
+- 교훈: **같은 테이블을 쓰는 두 기능은 컬럼 가정을 공유 헬퍼로 강제하라.** "빌드 통과 ≠ 동작"(CLAUDE.md) — 신규/수정 DB 경로는 실데이터 1건으로 end-to-end 확인.

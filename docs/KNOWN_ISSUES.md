@@ -4,6 +4,17 @@
 
 ---
 
+## 🟢 2026-06-29 AI 에이전트 개선 — 백로그 (PO 방향 확정, 다음 트랙)
+
+> C레벨 전방위 진단(브랜치 `claude/ai-agent-improvements-pgy6oj`)에서 **즉시 구현분**(공개 AI챗 예시질문 칩·코디연결/접수 빠른버튼 6개어·스트림 에러 6개어 현지화·`detectHandOff` ru/kz/zh 보강)은 처리. 아래는 PO가 **방향 확정 + 백로그로 남기라**고 한 더 큰 플로 변경.
+
+- **공개 AI챗(`/inquiry`) 멀티 스레드 통일 — 1차 구현됨(2026-06-29, PR #475)**: 공개챗에 "새 상담"·"이전 대화 목록"·오래 쉰(>24h) 대화 자동 세션경계 배너 추가. 신규 API `GET /api/public/chat/threads`(로그인=user_id·게스트=browser_session_id, PII 미반환·30일 cutoff·rate limit). 스레드 제목 첫 메시지 자동 채움. 공개챗의 정상 모델(`actor_type/message_text`) 위에 환자챗 UI 패턴 차용. **함께 고친 버그**: `/patient/chat`이 없는 컬럼(role/content)으로 read/write해 메시지 전부 0건이던 것(POSTMORTEMS #51). ▶ **남은 후속**: ①두 챗 표면 완전 단일화(현재 공개=멀티스레드, 환자챗은 자체 API 유지 — 장기적으로 한 백엔드로 수렴) ②로그인 사용자 기기 간 동기화 실검증 ③`GET /api/public/chat/[threadId]` 정식 분리(현재 방 전환은 resume 재사용) ④공용 PC 게스트 세션 PII 분리.
+- **AI→유치 전환 프로덕션 0건 검증** (🔴 KHIDI 점수 직결): `source='ai_agent'` 리드 승격 코드는 정상이나 실 3턴+ 대화 전환이 0(실DB). 8/27 중간평가 정량지표(유치 12·상담 120)가 이 집계 → 이번 빠른버튼(접수·코디연결)으로 전환 동선이 강해졌으니 **실대화 1건으로 대시보드(`/admin/khidi/conversion`) 집계 end-to-end 실검증** 필요.
+- **playbook_pattern 0건 → "3-Tier RAG"가 실제론 1-Tier**: 적재 계획 필요(보고서 표기와 실제 일치). 기존 항목과 연계.
+- **스키마 드리프트**: `chat_threads.user_id`(+`guest_country`·`guest_phone`·`resolved_at`·`channel`)가 prod엔 있으나 마이그레이션 파일엔 ADD COLUMN 누락. 동작 정상이나 재현성 위해 보강 마이그레이션 권장.
+
+---
+
 ## 🟡 2026-06-29 오픈 전 전수조사 — 후속 과제 (이번에 손대지 않고 남긴 것)
 
 > 5축(보안·i18n·데이터/RLS·AI/RAG·위생) 병렬 감사 + 실DB 점검. **고친 것**(별도 PR): 옛도메인 잔재(POSTMORTEMS #49)·AI 송출 전 레드라인 차단+triage PII 마스킹(#50)·환자 목록 2페이지 6개어·보안 LOW(admin import 에러코드화·translate 토큰상한)·약한비번 교체. 아래는 **의도적으로 남긴 후속**.
