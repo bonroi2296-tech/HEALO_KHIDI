@@ -174,7 +174,7 @@ function FeedbackModal({ langCode, messageId, threadId, publicToken, onClose, on
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-5">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-5">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-sm font-bold text-gray-900">
             {t("chat.feedback.modalTitle", langCode) || "What was wrong with this response?"}
@@ -770,14 +770,14 @@ export function ThreadChat() {
     // 높이: 작은 폰(iPhone SE 등)에서 600px 고정이 하단 탭바에 깔리던 문제 →
     // 화면 높이에 맞춰 줄어들되(min 420px) 데스크톱은 기존 600px 유지
     <div
-      className="relative bg-white border border-gray-200 rounded-3xl shadow-xl h-full min-h-0 flex flex-col p-3 sm:p-4 animate-in fade-in slide-in-from-right-4"
+      className="relative bg-white border border-gray-200 rounded-2xl shadow-lg h-full min-h-0 flex flex-col p-3 sm:p-4 animate-in fade-in slide-in-from-right-4"
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
     >
       {/* 드래그앤드랍 오버레이 — 파일을 끌어오면 표시. pointer-events-none 으로 드롭 자체는 컨테이너가 받음. */}
       {dragOver && (
-        <div className="absolute inset-0 z-40 rounded-3xl bg-teal-50/95 border-2 border-dashed border-teal-400 flex flex-col items-center justify-center pointer-events-none">
+        <div className="absolute inset-0 z-40 rounded-2xl bg-teal-50/95 border-2 border-dashed border-teal-400 flex flex-col items-center justify-center pointer-events-none">
           <Paperclip size={28} className="text-teal-600 mb-2" />
           <p className="text-sm font-semibold text-teal-800">
             {t("chat.upload.dropHere", langCode) || "Drop files here to attach"}
@@ -946,7 +946,7 @@ export function ThreadChat() {
           )}
 
           {/* Input — 통합 입력 박스(클립·입력칸·전송이 한 테두리 안 → 회색 막대 없음, Claude/GPT 방식) */}
-          <div className="flex items-end gap-1.5 border border-gray-300 rounded-3xl px-2 py-1.5 bg-white focus-within:ring-2 focus-within:ring-teal-500 transition">
+          <div className="flex items-end gap-1.5 border border-gray-300 rounded-2xl px-2 py-1.5 bg-white focus-within:ring-2 focus-within:ring-teal-500 transition">
             <input
               ref={fileInputRef}
               type="file"

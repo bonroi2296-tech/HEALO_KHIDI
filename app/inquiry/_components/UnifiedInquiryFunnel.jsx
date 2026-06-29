@@ -1233,7 +1233,7 @@ export default function UnifiedInquiryFunnel() {
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={() => safeEvent("inquiry_messenger_click", { channel: c.key })}
-                  className={`${baseCls} hover:shadow-md hover:-translate-y-0.5 hover:border-[var(--brand-hover)]`}
+                  className={`${baseCls} hover:shadow-md hover:border-[var(--brand-hover)]`}
                   style={{ "--brand-hover": c.color }}
                 >
                   {inner}
