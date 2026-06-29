@@ -27,6 +27,24 @@
 | 10 | 🟡 **DPA 서명** — Supabase·Google·Resend·LiveKit·Vercel (무료) | PO | `docs/audit/DPA_SIGNING_GUIDE.md` |
 | 11 | 🔵 **법무문서 PR #422·#424** — 처리방침 GDPR 보강·계약서, 법무검토 후 머지 | PO | 검토 대기 |
 
+### C. 📱 앱 스토어 등록 관문 (2026-06-29 패키징 전수조사로 추가)
+
+> **코드는 준비 끝** — 카메라·마이크·푸시 권한, Capacitor 셸, Codemagic 자동빌드, 6개어 등록문구 모두 됨(#465 머지). 아래는 **결제·콘솔·실기기 = PO만 가능한 것**. 상세는 `docs/APP_STORE_LISTING.md`.
+
+| # | 관문 | 누가 | 상태 |
+|---|------|------|------|
+| 12 | 🔴 **도메인 `healwith.co.kr` 등록·Vercel 연결** — 앱 셸이 이 주소를 로드. 미등록(죽은주소)이라 지금 제출하면 빈 화면 = **앱 등록의 1순위 선결** | PO | `docs/DOMAIN_CUTOVER_healwith.md` |
+| 13 | 🔴 **애플 개발자 $99/년 + 구글 플레이 $25 결제** + App ID·앱 생성(`kr.co.healwith.app`) | PO | 미결제 |
+| 14 | 🔴 **Firebase 설정파일 커밋** — `android/app/google-services.json`·`ios/App/App/GoogleService-Info.plist` + iOS APNs `.p8` 업로드 (없으면 푸시 무동작) | PO | 미설정 |
+| 15 | 🟡 **Vercel env 2개**(서버 푸시 발송) — `FCM_PROJECT_ID`·`GOOGLE_SERVICE_ACCOUNT_JSON` → `/api/push/test`로 실기기 수신 확인 | PO 콘솔 | 미설정 |
+| 16 | 🟡 **스크린샷·앱아이콘·데이터안전(라벨) 설문** — iOS 6.7"/6.5", Android 폰+피처그래픽 1024×500, 수집항목 신고 | PO | `APP_STORE_LISTING.md` 체크리스트 |
+| 17 | 🟡 **Codemagic UI 1회 세팅** — App Store Connect API키·Play 서비스계정·Android 키스토어 등록 → `ios-release`/`android-release` 워크플로 실행 → TestFlight/내부테스트 1회 후 심사 제출 | PO | `codemagic.yaml` 주석에 절차 |
+
+> **순서**: 12(도메인) → 13(결제·앱생성) → 14·15(푸시) → 16(에셋) → 17(빌드·제출). 12 안 되면 앱이 화면을 못 띄우니 **도메인이 진짜 1순위**.
+> **애플 4.2 반려 주의**: 단순 웹뷰 래퍼는 반려됨 — 우리는 푸시알림+원격협진(카메라/마이크 영상)이라는 네이티브 가치가 있어 통과 근거 있음(제출 시 이 기능들 시연).
+
+---
+
 > **KHIDI 8/27 중간평가 직결**: K-01 유치 점수판이 아직 시드 데모데이터(진짜 유치 0건) — 실 유치건 생기면 대체해야 점수 반영(관문 5와 연결).
 
 ---
