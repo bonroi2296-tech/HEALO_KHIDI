@@ -60,3 +60,13 @@ export const MEDICAL_REDLINE_FLAGS = [
   "anecdotal_guarantee", // 타 환자 사례로 보장
   "unsafe_advice", // 기타 위험 조언
 ] as const;
+
+/**
+ * 과장광고 플래그 — 의료 레드라인은 아니지만 의료 플랫폼 과장광고 리스크.
+ * 측정·출처 없는 정량 주장(정확도·만족도·성공률·효과 N%)을 환자 노출 전에 잡는다.
+ * critical(바닥 0.3)이 아니라 연성 캡(0.5)만 적용 — safetyGuard.OVERCLAIM_STAT 와 정합.
+ * (2026-06-29 PO 지적: "근거 없이 매칭 정확도 90% 같은 수치 쓰지 마라")
+ */
+export const OVERCLAIM_FLAGS = [
+  "overclaim_stat", // 정확도·만족도·성공률·효과 등 근거 없는 정량 과장
+] as const;

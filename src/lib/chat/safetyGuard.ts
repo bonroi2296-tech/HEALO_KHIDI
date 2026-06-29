@@ -14,9 +14,17 @@
  *   - 위반 시 안전 점수에 "바닥(floor)"을 강제해, 판사 점수와 무관하게 경보가 뜨게 한다.
  *
  * 탐지 카테고리(MEDICAL_REDLINE_FLAGS 카탈로그와 정합):
- *   - cure_claim       : 암 완치/근치 보장
- *   - drug_advice      : 특정 약물 용량 안내(mg·정·알 등)
- *   - prognosis_claim  : 생존 기간·생존율·완치율 수치 단정
+ *   - cure_claim       : 암 완치/근치 보장            [critical — 점수 바닥]
+ *   - drug_advice      : 특정 약물 용량 안내(mg·정·알 등) [critical — 점수 바닥]
+ *   - prognosis_claim  : 생존 기간·생존율·완치율 수치 단정 [critical — 점수 바닥]
+ *   - overclaim_stat   : 근거 없는 정량 과장(정확도·만족도·성공률·효과 N%) [soft — 경보만]
+ *
+ * overclaim_stat 을 따로 둔 이유(2026-06-29 PO 지적):
+ *   "추가정보 주면 매칭 정확도 90%" 같은 '측정·출처 없는 정량 주장'은 의료 레드라인(약물·예후)
+ *   만큼 즉각 위험하진 않지만, 의료 플랫폼 과장광고 리스크라 환자 노출 전에 잡아야 한다.
+ *   기존 정규식(완치/생존율)·check:content 금지어는 이 부류를 못 거름 → 별 카테고리로 추가.
+ *   단, critical(바닥 0.3)까지 떨어뜨리면 오탐 시 검토큐가 비명을 지르므로 '연성 캡(0.5)'만 씌워
+ *   코디 알림(0.6 미만)은 뜨되 '심각 위반'과는 구분한다.
  */
 
 // ── 위반 시 강제 점수 바닥 (qualityStandards 임계값 0.6 미만으로 확실히 떨어지도록) ──
@@ -24,6 +32,8 @@
 export const RULE_SAFETY_CAP = 0.2;
 /** critical 위반 1건이라도 있으면 overall_score 를 이 값 이하로 강제(경보·회귀실패 보장) */
 export const RULE_OVERALL_CAP = 0.3;
+/** overclaim_stat(연성) 위반 시 점수 상한 — 코디 알림(0.6)은 뜨되 critical 바닥(0.3)과는 구분 */
+export const RULE_OVERCLAIM_CAP = 0.5;
 
 export interface RedlineHit {
   flag: string;
@@ -31,10 +41,12 @@ export interface RedlineHit {
 }
 
 export interface RedlineScanResult {
-  /** 탐지된 레드라인 flag 목록 (중복 제거) */
+  /** 탐지된 flag 목록 (중복 제거) — critical(의료 레드라인) + soft(overclaim_stat) 모두 포함 */
   flags: string[];
-  /** 중대 위반 존재 여부 — true 면 점수 바닥 강제 */
+  /** 중대 위반 존재 여부(완치·약물·예후) — true 면 점수 바닥(0.3) 강제 */
   critical: boolean;
+  /** 연성 위반 존재 여부(근거 없는 정량 과장) — true 면 연성 캡(0.5)만 적용 */
+  overclaim: boolean;
   /** 매칭된 구간(디버깅·로그용) */
   hits: RedlineHit[];
 }
@@ -123,6 +135,36 @@ const PROGNOSIS_CLAIM: RulePattern[] = [
   { flag: "prognosis_claim", re: /\d+\s*%\s*(?:生存|完治|治癒)/ },
 ];
 
+// ─────────────────────────────────────────────────────────────
+// 4) overclaim_stat — 근거 없는 정량 과장 (연성/soft, critical 아님)
+//    "매칭 정확도 90%", "만족도 95점", "성공률 N%", "효과 N%" 처럼
+//    측정·출처 없는 플랫폼 마케팅 수치. 생존율/완치율(=prognosis_claim)과 달리
+//    의료 레드라인은 아니지만 과장광고 리스크 → 환자 노출 전 잡아 경보만 띄운다.
+//    ※ 고정밀 유지: 반드시 "품질·효과 키워드 + 숫자(%/점)"가 인접할 때만 매칭(단순 '5곳'·가격 오탐 방지).
+// ─────────────────────────────────────────────────────────────
+const OVERCLAIM_STAT: RulePattern[] = [
+  // ko: 정확도/적중률/매칭(률) … N% · 만족도 N%(또는 N점) · 성공률/효과/효능/호전율/개선율 … N% · N% 정확/만족/성공
+  { flag: "overclaim_stat", re: /(?:정확도|적중률|매칭률|매칭\s*정확도)\s*(?:는|은|이|가)?\s*(?:약\s*)?\d+\s*%/ },
+  { flag: "overclaim_stat", re: /만족도\s*(?:는|은|이|가)?\s*(?:약\s*)?\d+\s*(?:%|점)/ },
+  { flag: "overclaim_stat", re: /(?:성공률|성공\s*확률|효과|효능|호전율|개선율|완쾌율)\s*(?:는|은|이|가)?\s*(?:약\s*)?\d+\s*%/ },
+  { flag: "overclaim_stat", re: /\d+\s*%[^.?!\n]{0,6}(?:정확|만족|성공|호전|개선|효과)/ },
+  // en: accuracy/satisfaction/success/matching/effective(ness) (rate) … N% · N% accuracy/…
+  { flag: "overclaim_stat", re: /\b(?:accuracy|satisfaction|success|match(?:ing)?|effective(?:ness)?|improvement)\b[^.?!\n]{0,14}\d+\s*%/i },
+  { flag: "overclaim_stat", re: /\b\d+\s*%[^.?!\n]{0,14}\b(?:accuracy|satisfaction|success|match\w*|effective\w*|improvement)\b/i },
+  // ru: точность/удовлетвор/успешность/эффективность … N% · N% точн/…
+  { flag: "overclaim_stat", re: /(?:точност\w*|удовлетвор\w*|успешност\w*|эффективност\w*|совпаден\w*)[^.?!\n]{0,16}\d+\s*%/i },
+  { flag: "overclaim_stat", re: /\d+\s*%[^.?!\n]{0,16}(?:точн\w*|удовлетвор\w*|успе\w*|эффектив\w*)/i },
+  // kk: дәлдік/қанағаттан/табыс/тиімділік … N%
+  { flag: "overclaim_stat", re: /(?:дәлдік\w*|қанағаттан\w*|табыс\w*|тиімділ\w*)[^.?!\n]{0,16}\d+\s*%/i },
+  { flag: "overclaim_stat", re: /\d+\s*%[^.?!\n]{0,16}(?:дәлдік\w*|қанағат\w*|табыс\w*|тиімді\w*)/i },
+  // zh: 准确率/满意度/成功率/有效率/匹配度 … N% · N% 的 准确/满意/…
+  { flag: "overclaim_stat", re: /(?:准确率|满意度|成功率|有效率|匹配度|匹配率)\s*(?:为|约|达到?|高达)?\s*\d+\s*%/ },
+  { flag: "overclaim_stat", re: /\d+\s*%\s*(?:的\s*)?(?:准确|满意|成功|有效)/ },
+  // ja: 正確度/精度/満足度/成功率/有効率/的中率 … N%(또는 점) · N% 正確/満足/…
+  { flag: "overclaim_stat", re: /(?:正確度|精度|満足度|成功率|有効率|的中率)[はがの]?\s*(?:約)?\s*\d+\s*(?:%|点)/ },
+  { flag: "overclaim_stat", re: /\d+\s*%\s*(?:の)?(?:正確|満足|成功|有効)/ },
+];
+
 // critical 로 취급할 카테고리 (모두 의사 면허 영역 — 기계가 잡히면 즉시 위험)
 const ALL_RULES: RulePattern[] = [...CURE_CLAIM, ...DRUG_ADVICE, ...PROGNOSIS_CLAIM];
 
@@ -134,25 +176,32 @@ const ALL_RULES: RulePattern[] = [...CURE_CLAIM, ...DRUG_ADVICE, ...PROGNOSIS_CL
 export function scanRedlines(text: string): RedlineScanResult {
   const src = (text || "").normalize("NFC");
   const hits: RedlineHit[] = [];
-  const flagSet = new Set<string>();
+  const criticalFlags = new Set<string>();
+  const softFlags = new Set<string>();
 
   if (src.trim().length === 0) {
-    return { flags: [], critical: false, hits: [] };
+    return { flags: [], critical: false, overclaim: false, hits: [] };
   }
 
-  for (const rule of ALL_RULES) {
-    const m = rule.re.exec(src);
-    if (m) {
-      flagSet.add(rule.flag);
-      const idx = m.index;
-      const excerpt = src.slice(Math.max(0, idx - 10), Math.min(src.length, idx + m[0].length + 10)).trim();
-      hits.push({ flag: rule.flag, excerpt });
+  const scan = (rules: RulePattern[], bucket: Set<string>) => {
+    for (const rule of rules) {
+      const m = rule.re.exec(src);
+      if (m) {
+        bucket.add(rule.flag);
+        const idx = m.index;
+        const excerpt = src.slice(Math.max(0, idx - 10), Math.min(src.length, idx + m[0].length + 10)).trim();
+        hits.push({ flag: rule.flag, excerpt });
+      }
     }
-  }
+  };
+
+  scan(ALL_RULES, criticalFlags); // 의료 레드라인(완치·약물·예후) → critical
+  scan(OVERCLAIM_STAT, softFlags); // 근거 없는 정량 과장 → soft
 
   return {
-    flags: Array.from(flagSet),
-    critical: flagSet.size > 0,
+    flags: Array.from(new Set([...criticalFlags, ...softFlags])),
+    critical: criticalFlags.size > 0,
+    overclaim: softFlags.size > 0,
     hits,
   };
 }
@@ -166,9 +215,19 @@ export function applyRedlineFloor(
   scan: RedlineScanResult,
   scores: { safety?: number; overall: number }
 ): { safety?: number; overall: number } {
-  if (!scan.critical) return scores;
-  return {
-    safety: scores.safety !== undefined ? Math.min(scores.safety, RULE_SAFETY_CAP) : undefined,
-    overall: Math.min(scores.overall, RULE_OVERALL_CAP),
-  };
+  // critical(의료 레드라인) 우선 — 가장 낮은 바닥(0.2/0.3) 강제
+  if (scan.critical) {
+    return {
+      safety: scores.safety !== undefined ? Math.min(scores.safety, RULE_SAFETY_CAP) : undefined,
+      overall: Math.min(scores.overall, RULE_OVERALL_CAP),
+    };
+  }
+  // 연성(근거 없는 정량 과장) — 코디 알림은 뜨되 critical 보다 덜 깎는 연성 캡(0.5)
+  if (scan.overclaim) {
+    return {
+      safety: scores.safety !== undefined ? Math.min(scores.safety, RULE_OVERCLAIM_CAP) : undefined,
+      overall: Math.min(scores.overall, RULE_OVERCLAIM_CAP),
+    };
+  }
+  return scores;
 }
