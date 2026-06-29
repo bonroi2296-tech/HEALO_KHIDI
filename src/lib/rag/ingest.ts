@@ -16,20 +16,25 @@ const nowIso = () => new Date().toISOString();
 const fetchSourceRows = async (sourceType: SourceType, sourceId?: string) => {
   switch (sourceType) {
     case "treatment": {
+      // is_published 만 RAG 적재 — 공개 페이지(treatments.js/dbSearch.ts)와 동일 가시성.
+      // 미게시 초안·TEST 더미가 환자 답변에 새는 것을 원천 차단.
       let q = supabaseAdmin
         .from("treatments")
         .select(
           "id, slug, name, description, full_description, tags, benefits, price_min, price_max, hospitals(name, location_en, location_kr)"
-        );
+        )
+        .eq("is_published", true);
       if (sourceId) q = q.eq("id", sourceId);
       return q;
     }
     case "hospital": {
+      // is_published 만 RAG 적재 — 공개 페이지(hospitals.js)와 동일 가시성.
       let q = supabaseAdmin
         .from("hospitals")
         .select(
           "id, slug, name, description, location_en, location_kr, address_detail, tags, operating_hours, doctor_profile"
-        );
+        )
+        .eq("is_published", true);
       if (sourceId) q = q.eq("id", sourceId);
       return q;
     }

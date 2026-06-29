@@ -8,6 +8,25 @@
 
 ---
 
+## #47 — RAG 적재가 미게시·TEST 병원/치료를 끌어와 환자 AI 답변에 노출 가능 (2026-06-29)
+
+**무슨 일**
+- `hospitals`에 "TEST 병원 (국내 의료기관)" 더미 1건 + `treatments`에 미게시 초안 3건(`item-*`)이 `rag_documents`/`rag_chunks`로 적재돼 있었음. RAG 검색이 이를 끌어오면 환자 AI 챗 답변에 테스트/미완성 데이터가 노출될 수 있는 상태.
+
+**근본원인**
+- 공개 데이터 경로(`src/lib/data/hospitals.js`·`treatments.js`·`src/lib/chat/dbSearch.ts`)는 전부 `.eq("is_published", true)`로 가시성을 거른다. **그런데 RAG 적재(`src/lib/rag/ingest.ts`의 `fetchSourceRows`)만 필터 없이 전체 행을 끌어왔다** — 단일 진실원천(공개=게시됨)을 한 경로가 어김. 미게시·테스트 행이 RAG에만 그대로 샘.
+
+**어떻게 고쳤나**
+- `ingest.ts`의 treatment·hospital 쿼리에 `.eq("is_published", true)` 추가 → 공개 페이지와 동일 가시성. 미게시·TEST는 애초에 적재 불가.
+- 기존 잔재 정리(1회): TEST 병원 소프트삭제(`is_active=false, is_published=false`, 하드삭제 X), 미게시 소스의 `rag_documents`(4건)+`rag_chunks` 삭제. 재적재 결과 `{treatment:0, hospital:0}` = 다시 안 들어옴 확인. 남은 hospital/treatment 문서 13건(게시 7+6) 전부 임베딩 보유, TEST 0건.
+- 재적재용 `scripts/seed-rag-once.mjs` 추가(`node --conditions=react-server --import tsx scripts/seed-rag-once.mjs`).
+
+**재발 방지**
+- 구조적 가드 = `is_published` 필터 자체(소스에서 차단). 교훈: **환자노출 데이터 경로는 전부 `is_published=true`로 통일** — 새 적재/검색 경로 추가 시 이 필터 누락 금지.
+- 참고: RAG 검색 RPC(`rag_search_chunks_v1_1`)가 현재 모든 질의에 0건 반환(임베딩·차원 정상인데도) — 별도 RAG 검색 복구 작업의 소관(이 건과 무관, 미해결).
+
+---
+
 ## #46 — 문의 완료 화면이 "매칭 정확도 90%"라는 근거 없는 수치를 주장 (2026-06-29)
 
 **무슨 일**
