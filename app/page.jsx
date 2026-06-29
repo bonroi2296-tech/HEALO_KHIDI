@@ -15,23 +15,38 @@ const baseMeta = {
   description:
     "Korean cancer care concierge for international patients. 해외 암환자를 위한 한국 암 전문의 원격 사전상담. Video pre-consultation with top oncologists, 6-language interpretation (RU/KZ/EN/ZH/JA/KO), full-journey support from diagnosis to follow-up.",
   keywords: [
+    // 브랜드 (고유어 — 검색 시 1순위 노출 강화)
+    "healwith",
+    "힐위드",
+    "healwith.co.kr",
     // 영어 (구글·전 세계)
     "Korea cancer treatment concierge",
     "international cancer patient Korea",
     "Korean oncology telemedicine",
     "cancer pre-consultation Korea",
-    // 러시아어 (러시아·카자흐 Yandex)
+    "second opinion Korea oncologist",
+    "best cancer hospital Korea foreigners",
+    "cost of cancer treatment in Korea",
+    // 러시아어 (러시아·카자흐 Yandex — 핵심 시장, 고의도 롱테일)
     "лечение рака в Корее",
     "онкология Южная Корея",
     "дистанционная консультация онколога Корея",
     "медицинский туризм Корея",
-    // 카자흐어
+    "второе мнение онколога Корея",
+    "лучшие онкологические клиники Кореи",
+    "сколько стоит лечение рака в Корее",
+    "лечение рака желудка в Корее",
+    // 카자흐어 (Yandex KZ)
     "Кореядағы онкологиялық емдеу",
     "Корея медициналық туризм",
+    "Кореяда қатерлі ісікті емдеу",
+    "Кореядағы онколог дәрігер",
     // 한국어
     "해외 암환자 원격상담",
     "한국 암 전문의 컨시어지",
     "해외 환자 한국 암 치료",
+    "외국인 한국 암 치료 비용",
+    "한국 암 병원 추천",
     // 중국어·일본어
     "韩国癌症治疗",
     "韩国肿瘤医生",
