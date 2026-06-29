@@ -243,32 +243,225 @@ const VISA_DATA: Record<VisaType, VisaInfo> = {
   },
 };
 
-// Embassy/Consulate info by nationality
-const EMBASSY_INFO: Record<string, Record<string, string>> = {
+// ========================================
+// Country-specific entry status (web-verified, 2026-06)
+// ========================================
+//
+// 국적 선택이 "진짜로" 바뀌는 부분 = 비자 필요 여부 + K-ETA + 현지 대사관.
+// 출입국 규정은 자주 바뀌므로 AI 생성이 아닌 정적 데이터로 관리하고,
+// 화면에는 항상 "공식 사이트에서 최종 확인" 안내를 함께 노출한다.
+// 출처: visa policy of South Korea(Wikipedia), K-ETA(k-eta.go.kr),
+//       MOFA 재외공관, KED/Korea Herald(중국 단체관광 한시 면제, 2025-09~2026-06).
+
+export type CountryShortStay = 'visa_free' | 'visa_required' | 'conditional';
+
+export interface CountryEntry {
+  nationality: string;
+  shortStay: CountryShortStay;     // 단기(관광) 무비자 가능 여부
+  visaFreeDays?: number;           // 무비자 가능 일수 (해당 시)
+  summary: Record<string, string>; // 국가별 한 줄 입국 요약 (헤드라인)
+  note: Record<string, string>;    // 실무 안내 (K-ETA·번역공증 등)
+  embassy: { name: Record<string, string>; url: string };
+}
+
+export interface ResolvedCountryEntry {
+  nationality: string;
+  shortStay: CountryShortStay;
+  visaFreeDays?: number;
+  summary: string;
+  note: string;
+  embassyName: string;
+  embassyUrl: string;
+}
+
+const COUNTRY_ENTRY: Record<string, CountryEntry> = {
   ru: {
-    ko: '주러시아 대한민국 대사관 (모스크바)',
-    en: 'Embassy of the Republic of Korea in Russia (Moscow)',
-    url: 'https://overseas.mofa.go.kr/ru-ko/index.do',
+    nationality: 'ru',
+    shortStay: 'visa_free',
+    visaFreeDays: 60,
+    summary: {
+      ko: '러시아 국민은 관광 목적 60일 무비자 입국이 가능합니다. 다만 치료 목적이면 병원 초청장 기반 C-3-3 의료비자를 권장합니다.',
+      en: 'Russian citizens may enter visa-free for up to 60 days (tourism). For treatment, a C-3-3 medical visa with a hospital invitation is recommended.',
+      ru: 'Граждане России могут въезжать без визы на срок до 60 дней (туризм). Для лечения рекомендуется медицинская виза C-3-3 с приглашением больницы.',
+      zh: '俄罗斯公民可免签入境最多60天（旅游）。如为治疗目的，建议持医院邀请函办理C-3-3医疗签证。',
+      ja: 'ロシア国民は観光目的で最大60日間ビザ免除で入国できます。治療目的の場合は病院の招待状によるC-3-3医療ビザを推奨します。',
+      kz: 'Ресей азаматтары туристік мақсатта 60 күнге дейін визасыз кіре алады. Емделу үшін аурухана шақыруымен C-3-3 медициналық визасы ұсынылады.',
+    },
+    note: {
+      ko: 'K-ETA(전자여행허가)는 2026년 말까지 면제(2027년부터 의무). 91일 이상 치료에는 G-1-10 비자가 필요합니다.',
+      en: 'K-ETA is waived through the end of 2026 (mandatory from 2027). For treatment over 91 days, the G-1-10 visa is required.',
+      ru: 'K-ETA отменена до конца 2026 года (обязательна с 2027). Для лечения свыше 91 дня нужна виза G-1-10.',
+      zh: 'K-ETA在2026年底前免除（2027年起强制）。治疗超过91天需办理G-1-10签证。',
+      ja: 'K-ETAは2026年末まで免除（2027年から義務）。91日以上の治療にはG-1-10ビザが必要です。',
+      kz: 'K-ETA 2026 жылдың соңына дейін алынбайды (2027 жылдан міндетті). 91 күннен асатын емделуге G-1-10 визасы қажет.',
+    },
+    embassy: {
+      name: {
+        ko: '주러시아 대한민국 대사관 (모스크바)',
+        en: 'Embassy of the Republic of Korea in Russia (Moscow)',
+        ru: 'Посольство Республики Корея в России (Москва)',
+        zh: '大韩民国驻俄罗斯大使馆（莫斯科）',
+        ja: '駐ロシア大韓民国大使館（モスクワ）',
+        kz: 'Ресейдегі Корея Республикасының елшілігі (Мәскеу)',
+      },
+      url: 'https://overseas.mofa.go.kr/ru-ko/index.do',
+    },
   },
   kz: {
-    ko: '주카자흐스탄 대한민국 대사관 (아스타나)',
-    en: 'Embassy of the Republic of Korea in Kazakhstan (Astana)',
-    url: 'https://overseas.mofa.go.kr/kz-ko/index.do',
+    nationality: 'kz',
+    shortStay: 'visa_required',
+    summary: {
+      ko: '카자흐스탄 국민은 한국 입국에 비자가 필요합니다. 단기 치료는 C-3-3, 장기 치료는 G-1-10 의료비자를 신청하세요.',
+      en: 'Kazakhstani citizens need a visa to enter Korea. Apply for the C-3-3 (short-term) or G-1-10 (long-term) medical visa.',
+      ru: 'Гражданам Казахстана нужна виза для въезда в Корею. Оформите медицинскую визу C-3-3 (краткосрочно) или G-1-10 (долгосрочно).',
+      zh: '哈萨克斯坦公民入境韩国需要签证。请申请C-3-3（短期）或G-1-10（长期）医疗签证。',
+      ja: 'カザフスタン国民は韓国入国にビザが必要です。短期はC-3-3、長期はG-1-10医療ビザを申請してください。',
+      kz: 'Қазақстан азаматтарына Кореяға кіру үшін виза қажет. Қысқа мерзімге C-3-3, ұзақ мерзімге G-1-10 медициналық визасын рәсімдеңіз.',
+    },
+    note: {
+      ko: '병원 초청장(또는 진료예약 확인서)이 필수입니다. 한국어·영어가 아닌 서류는 공증 번역이 필요합니다.',
+      en: 'A hospital invitation (or appointment confirmation) is required. Documents not in Korean or English need notarized translation.',
+      ru: 'Требуется приглашение больницы (или подтверждение записи). Документы не на корейском или английском требуют нотариального перевода.',
+      zh: '需要医院邀请函（或预约确认书）。非韩语或英语的文件需公证翻译。',
+      ja: '病院の招待状（または予約確認書）が必須です。韓国語・英語以外の書類は公証翻訳が必要です。',
+      kz: 'Аурухана шақыруы (немесе жазылу растамасы) қажет. Корей не ағылшын тілінде емес құжаттарға нотариалды аударма керек.',
+    },
+    embassy: {
+      name: {
+        ko: '주카자흐스탄 대한민국 대사관 (아스타나)',
+        en: 'Embassy of the Republic of Korea in Kazakhstan (Astana)',
+        ru: 'Посольство Республики Корея в Казахстане (Астана)',
+        zh: '大韩民国驻哈萨克斯坦大使馆（阿斯塔纳）',
+        ja: '駐カザフスタン大韓民国大使館（アスタナ）',
+        kz: 'Қазақстандағы Корея Республикасының елшілігі (Астана)',
+      },
+      url: 'https://overseas.mofa.go.kr/kz-ko/index.do',
+    },
   },
   mn: {
-    ko: '주몽골 대한민국 대사관 (울란바토르)',
-    en: 'Embassy of the Republic of Korea in Mongolia (Ulaanbaatar)',
-    url: 'https://overseas.mofa.go.kr/mn-ko/index.do',
+    nationality: 'mn',
+    shortStay: 'visa_required',
+    summary: {
+      ko: '몽골 국민은 한국 입국에 비자가 필요합니다. 단기 치료는 C-3-3, 장기 치료는 G-1-10 의료비자를 신청하세요.',
+      en: 'Mongolian citizens need a visa to enter Korea. Apply for the C-3-3 (short-term) or G-1-10 (long-term) medical visa.',
+      ru: 'Гражданам Монголии нужна виза для въезда в Корею. Оформите медицинскую визу C-3-3 или G-1-10.',
+      zh: '蒙古公民入境韩国需要签证。请申请C-3-3或G-1-10医疗签证。',
+      ja: 'モンゴル国民は韓国入国にビザが必要です。短期はC-3-3、長期はG-1-10医療ビザを申請してください。',
+      kz: 'Моңғолия азаматтарына Кореяға кіру үшін виза қажет. C-3-3 немесе G-1-10 медициналық визасын рәсімдеңіз.',
+    },
+    note: {
+      ko: '병원 초청장(또는 진료예약 확인서)이 필수입니다. 한국어·영어가 아닌 서류는 공증 번역이 필요합니다.',
+      en: 'A hospital invitation (or appointment confirmation) is required. Documents not in Korean or English need notarized translation.',
+      ru: 'Требуется приглашение больницы (или подтверждение записи). Документы не на корейском или английском требуют нотариального перевода.',
+      zh: '需要医院邀请函（或预约确认书）。非韩语或英语的文件需公证翻译。',
+      ja: '病院の招待状（または予約確認書）が必須です。韓国語・英語以外の書類は公証翻訳が必要です。',
+      kz: 'Аурухана шақыруы (немесе жазылу растамасы) қажет. Корей не ағылшын тілінде емес құжаттарға нотариалды аударма керек.',
+    },
+    embassy: {
+      name: {
+        ko: '주몽골 대한민국 대사관 (울란바토르)',
+        en: 'Embassy of the Republic of Korea in Mongolia (Ulaanbaatar)',
+        ru: 'Посольство Республики Корея в Монголии (Улан-Батор)',
+        zh: '大韩民国驻蒙古大使馆（乌兰巴托）',
+        ja: '駐モンゴル大韓民国大使館（ウランバートル）',
+        kz: 'Моңғолиядағы Корея Республикасының елшілігі (Улан-Батор)',
+      },
+      url: 'https://overseas.mofa.go.kr/mn-ko/index.do',
+    },
   },
   zh: {
-    ko: '주중 대한민국 대사관 (베이징)',
-    en: 'Embassy of the Republic of Korea in China (Beijing)',
-    url: 'https://overseas.mofa.go.kr/cn-ko/index.do',
+    nationality: 'zh',
+    shortStay: 'conditional',
+    summary: {
+      ko: '중국 국민은 개인 입국 시 비자가 필요합니다. (3인 이상 단체관광은 2026년 6월까지 15일 한시 무비자.) 치료는 C-3-3 의료비자를 신청하세요.',
+      en: 'Chinese citizens need a visa for individual entry. (Group tours of 3+ have a temporary 15-day visa waiver until June 2026.) For treatment, apply for the C-3-3 medical visa.',
+      ru: 'Гражданам Китая нужна виза для индивидуального въезда. (Для тургрупп от 3 человек — безвизовый въезд на 15 дней до июня 2026.) Для лечения оформите визу C-3-3.',
+      zh: '中国公民个人入境需要签证。（3人以上团体旅游在2026年6月前可享15天临时免签。）治疗请申请C-3-3医疗签证。',
+      ja: '中国国民は個人入国にビザが必要です。（3名以上の団体観光は2026年6月まで15日間ビザ免除。）治療はC-3-3医療ビザを申請してください。',
+      kz: 'Қытай азаматтарына жеке кіруге виза қажет. (3 адамнан тұратын топтық турларға 2026 жылдың маусымына дейін 15 күн визасыз.) Емделуге C-3-3 визасын рәсімдеңіз.',
+    },
+    note: {
+      ko: '병원 초청장(또는 진료예약 확인서)이 필수입니다. 한국어·영어가 아닌 서류는 공증 번역이 필요합니다.',
+      en: 'A hospital invitation (or appointment confirmation) is required. Documents not in Korean or English need notarized translation.',
+      ru: 'Требуется приглашение больницы (или подтверждение записи). Документы не на корейском или английском требуют нотариального перевода.',
+      zh: '需要医院邀请函（或预约确认书）。非韩语或英语的文件需公证翻译。',
+      ja: '病院の招待状（または予約確認書）が必須です。韓国語・英語以外の書類は公証翻訳が必要です。',
+      kz: 'Аурухана шақыруы (немесе жазылу растамасы) қажет. Корей не ағылшын тілінде емес құжаттарға нотариалды аударма керек.',
+    },
+    embassy: {
+      name: {
+        ko: '주중 대한민국 대사관 (베이징)',
+        en: 'Embassy of the Republic of Korea in China (Beijing)',
+        ru: 'Посольство Республики Корея в Китае (Пекин)',
+        zh: '大韩民国驻华大使馆（北京）',
+        ja: '駐中国大韓民国大使館（北京）',
+        kz: 'Қытайдағы Корея Республикасының елшілігі (Бейжің)',
+      },
+      url: 'https://overseas.mofa.go.kr/cn-ko/index.do',
+    },
   },
   ja: {
-    ko: '주일 대한민국 대사관 (도쿄)',
-    en: 'Embassy of the Republic of Korea in Japan (Tokyo)',
-    url: 'https://overseas.mofa.go.kr/jp-ko/index.do',
+    nationality: 'ja',
+    shortStay: 'visa_free',
+    visaFreeDays: 90,
+    summary: {
+      ko: '일본 국민은 관광 목적 90일 무비자 입국이 가능합니다(K-ETA 면제). 치료 목적이면 C-3-3 의료비자를 권장합니다.',
+      en: 'Japanese citizens may enter visa-free for up to 90 days (K-ETA exempt). For treatment, a C-3-3 medical visa is recommended.',
+      ru: 'Граждане Японии могут въезжать без визы на срок до 90 дней (без K-ETA). Для лечения рекомендуется виза C-3-3.',
+      zh: '日本公民可免签入境最多90天（免K-ETA）。如为治疗目的，建议办理C-3-3医疗签证。',
+      ja: '日本国民は観光目的で最大90日間ビザ免除で入国できます（K-ETA免除）。治療目的の場合はC-3-3医療ビザを推奨します。',
+      kz: 'Жапония азаматтары туристік мақсатта 90 күнге дейін визасыз кіре алады (K-ETA-дан босатылған). Емделуге C-3-3 визасы ұсынылады.',
+    },
+    note: {
+      ko: '91일 이상 치료에는 G-1-10 비자가 필요합니다. 병원 초청장을 미리 준비하세요.',
+      en: 'For treatment over 91 days, the G-1-10 visa is required. Prepare a hospital invitation in advance.',
+      ru: 'Для лечения свыше 91 дня нужна виза G-1-10. Подготовьте приглашение больницы заранее.',
+      zh: '治疗超过91天需办理G-1-10签证。请提前准备医院邀请函。',
+      ja: '91日以上の治療にはG-1-10ビザが必要です。病院の招待状を事前にご準備ください。',
+      kz: '91 күннен асатын емделуге G-1-10 визасы қажет. Аурухана шақыруын алдын ала дайындаңыз.',
+    },
+    embassy: {
+      name: {
+        ko: '주일 대한민국 대사관 (도쿄)',
+        en: 'Embassy of the Republic of Korea in Japan (Tokyo)',
+        ru: 'Посольство Республики Корея в Японии (Токио)',
+        zh: '大韩民国驻日本大使馆（东京）',
+        ja: '駐日本大韓民国大使館（東京）',
+        kz: 'Жапониядағы Корея Республикасының елшілігі (Токио)',
+      },
+      url: 'https://overseas.mofa.go.kr/jp-ko/index.do',
+    },
+  },
+  en: {
+    nationality: 'en',
+    shortStay: 'conditional',
+    summary: {
+      ko: '국적에 따라 비자 요건이 다릅니다. 본국이 한국과 무비자 협정이 있는지 확인하거나, C-3-3 의료비자를 신청하세요.',
+      en: 'Visa requirements depend on your nationality. Check whether your country has a visa-waiver agreement with Korea, or apply for the C-3-3 medical visa.',
+      ru: 'Визовые требования зависят от гражданства. Проверьте, есть ли у вашей страны безвизовое соглашение с Кореей, или оформите визу C-3-3.',
+      zh: '签证要求因国籍而异。请确认贵国是否与韩国有免签协议，或申请C-3-3医疗签证。',
+      ja: 'ビザ要件は国籍により異なります。母国が韓国とビザ免除協定を結んでいるか確認するか、C-3-3医療ビザを申請してください。',
+      kz: 'Виза талаптары азаматтыққа байланысты. Еліңіздің Кореямен визасыз келісімі бар-жоғын тексеріңіз немесе C-3-3 визасын рәсімдеңіз.',
+    },
+    note: {
+      ko: '공식 K-ETA 사이트와 가까운 대한민국 대사관·영사관에서 최신 요건을 확인하세요.',
+      en: 'Check the latest requirements on the official K-ETA site and your nearest Korean embassy or consulate.',
+      ru: 'Уточните актуальные требования на официальном сайте K-ETA и в ближайшем посольстве или консульстве Кореи.',
+      zh: '请在官方K-ETA网站及最近的韩国大使馆或领事馆确认最新要求。',
+      ja: '公式K-ETAサイトと最寄りの大韓民国大使館・領事館で最新要件をご確認ください。',
+      kz: 'Соңғы талаптарды ресми K-ETA сайтынан және жақын Корея елшілігінен тексеріңіз.',
+    },
+    embassy: {
+      name: {
+        ko: '대한민국 재외공관 안내 (외교부)',
+        en: 'Korean Embassies & Consulates Worldwide (MOFA)',
+        ru: 'Посольства и консульства Кореи по всему миру (МИД)',
+        zh: '韩国驻外使领馆指南（外交部）',
+        ja: '大韓民国の在外公館案内（外交部）',
+        kz: 'Шетелдегі Корея елшіліктері (СІМ)',
+      },
+      url: 'https://www.mofa.go.kr/eng/index.do',
+    },
   },
 };
 
@@ -278,6 +471,7 @@ const EMBASSY_INFO: Record<string, Record<string, string>> = {
 
 /**
  * 국적 + 치료 기간으로 추천 비자 유형 결정
+ * embassy: 하위호환을 위해 { url, ...localized name keys } 형태로 평탄화해 반환
  */
 export function getVisaInfo(
   nationality: string,
@@ -291,9 +485,35 @@ export function getVisaInfo(
     ? undefined
     : VISA_DATA['G-1-10']; // Show G-1-10 as alternative for short stays
 
-  const embassy = EMBASSY_INFO[nationality];
+  const entry = COUNTRY_ENTRY[nationality];
+  const embassy = entry
+    ? { ...entry.embassy.name, url: entry.embassy.url }
+    : undefined;
 
   return { recommended, alternative, embassy };
+}
+
+/**
+ * 국적별 입국 상태(비자 필요 여부·K-ETA·현지 대사관)를 언어별로 해석해 반환.
+ * 국적 선택이 화면에서 "진짜로" 바뀌는 핵심 데이터.
+ */
+export function getCountryEntry(
+  nationality: string,
+  lang: string
+): ResolvedCountryEntry | null {
+  const entry = COUNTRY_ENTRY[nationality] || COUNTRY_ENTRY['en'];
+  if (!entry) return null;
+  const l = lang || 'en';
+
+  return {
+    nationality: entry.nationality,
+    shortStay: entry.shortStay,
+    visaFreeDays: entry.visaFreeDays,
+    summary: entry.summary[l] || entry.summary['en'],
+    note: entry.note[l] || entry.note['en'],
+    embassyName: entry.embassy.name[l] || entry.embassy.name['en'],
+    embassyUrl: entry.embassy.url,
+  };
 }
 
 /**
