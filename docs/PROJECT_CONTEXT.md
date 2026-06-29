@@ -7,6 +7,55 @@
 
 ---
 
+## 🔖 세션 핸드오프 (2026-06-29 — 출시 관문 닫기 + 메일알림 3겹 버그 + 전수조사 + GDPR-alignment 시작 + UMIT MOU 컴플라이언스)
+
+> "작업 준비 해봐" → 멈춘 체리픽 정리로 시작해 출시 관문을 하나씩 닫다가, PO가 "대충 테스트했는데 오픈해도 되냐?"고 물어 **관문 실측 → 약한비번·구글로그인 닫음**. 이어 메일 알림이 안 와서 디버그하다 **버그가 3겹**(도메인 인증·Production env·서버리스 freeze)인 걸 발견, PO가 "왜 하나 테스트할 때마다 문제냐, 전수조사해" → **같은 부류 버그 박멸**. 그담 UMIT(카자흐 토모테라피센터) MOU에 "HIPAA·GDPR 준수" 문구가 들어가야 한다며 **실제 컴플라이언스 상태 파악 → GDPR-alignment 작업 + 처리자 DPA 수집** 진행. 세션 매우 길었음.
+
+**1. 이번 세션 한 일**
+- **출시 관문 닫기**: ①약한비번 어드민 — `admin@test.com`(role=admin, `test1234`)이 프로덕션에 살아있던 보안구멍 → **전 테스트계정(`*@test.com` 7개) 비번 `dream1075!`로 일괄 변경**(DB crypt + GitHub Secret 5개 동기화), 실인증으로 검증. ②**구글 로그인 재구축** — ERP 프로젝트("Medical consumables")에 "테스트중"으로 얹혀 일반환자 차단되던 것 → 새 `healwith`(`healwith-500902`) 구글 프로젝트 생성·동의화면 게시·웹클라이언트 발급·Supabase에 새 키 스왑 → **다른 구글계정(seokmin.moon88)으로 실로그인 성공 확인**. ③유치업 등록 = **이미 완료돼 있었음**(처리방침에 등록번호 `A-2026-01-02-06761` 발견).
+- **로그인 착지 변경** [#415 머지·배포]: 일반 회원 로그인 후 `/patient`(마이페이지)→`/`(메인). `resolveLanding.ts` + `PatientDashboardClient` 가드에 `/` 예외(환자가 메뉴로 /patient 들어가도 안 튕기게). 헤더 "내 페이지"는 /patient 유지.
+- **메일 알림 3겹 버그**: 문의 알림이 `admin@healwith.co.kr`로 안 오던 것 → ①Resend 도메인 인증(이미 됨) ②**Production `RESEND_FROM_EMAIL`이 옛 `onboarding@resend.dev`라 "본인 메일만 발송 가능"으로 거부**(Development만 noreply@로 고쳐져 있었음) ③**서버리스 freeze로 이메일 발송이 잘림**(fire-and-forget). ③은 수정 완료, ②는 **PO가 값 고치다 중단**(아래 3번).
+- **전수조사 + 서버리스 freeze 버그 박멸** [#417·#419 머지]: fire-and-forget 후 즉시 응답하면 Vercel이 함수를 freeze해 느린 작업(이메일·잡 트리거 fetch)이 잘림. `next/server`의 `after()`로 감쌈 — 문의 알림 4곳(create·intake·step1·agency/refer, #417) + 견적 잡 트리거 3곳(offers/preview·enrich, #419). 이메일 발송처는 대부분 `await`라 안전(에이전트 전수조사 확인). PII는 전부 AES-256 암호화 저장 확인.
+- **main CI 빨강 수리** [#412에 포함]: `find-id/route.ts`의 prefer-const error 1줄이 모든 PR ci를 막고 있던 것 수정(POSTMORTEMS #44). 멈춰있던 체리픽 충돌도 정리.
+- **GDPR-alignment** [#422 — **머지 대기**]: 환자정보가 실제로 Resend·LiveKit·Gemini로 가는데 처리방침 위탁/국외이전 목록에 누락 → **6개 언어 전부 보강** + 보관기간을 "서비스 완료 후 즉시삭제"(사후관리와 모순)→저장제한 원칙(사후관리 포함 관계 종료)으로 교체. 버전 2.0.0→2.1.0. 신규 `docs/RECORDS_OF_PROCESSING.md`(RoPA)·`docs/SECURITY_BREACH_RUNBOOK.md`(72h 침해통지).
+- **처리자 DPA 수집 시작**(PO 콘솔): Resend ✅(가입 시 자동발효, PDF 받음 + SOC2·펜테스트)·LiveKit ✅(Trust Center에서 DPA 다운)·GA4 ✅(데이터처리약관 동의·저장). Supabase 🔄(PandaDoc 서명메일 대기 + HIPAA 비용문의 제출)·Vercel ⬜·Gemini 결제 ⬜.
+
+**2. 왜 그렇게 했는지**
+- **비번 dream1075! 일괄**: 약한 test1234가 admin 권한 계정에 붙어 PII 플랫폼 보안구멍. E2E가 이 계정들 쓰므로 삭제 대신 강한 비번 교체 + Secret 동기화(검사 안 깨지게). PO 지시.
+- **구글 B(재구축) 선택**: A(기존 동의화면 게시, 5분)도 가능했지만 PO가 ERP 프로젝트와 깨끗한 분리를 원해 새 프로젝트. 앱이름=`healwith`(브랜드, PO 교정 — 내가 코드명 HEALO 썼다가 지적받음).
+- **HIPAA vs GDPR**: HIPAA는 미국법이라 우리(한국, 카자흐/러 환자)에 **법적 적용 안 됨** + BAA/Team플랜=유료(월 $599+). GDPR은 인증기관 없이 문서·DPA·절차로 증명 = **무료·달성가능**. → PO와 "PIPA 준수 + GDPR/HIPAA 원칙 부합(aligned)" 문구로 합의. MOU에 "compliant" 단정 금지.
+- **after()**: `await`로 막으면 응답 느려짐 → 응답 후에도 함수 살려두는 `after()`가 정답(기존 chat 라우트도 사용).
+
+**3. 안 끝났거나 보류**
+- **🔴 메일 from주소 — 고치다 중단(제일 중요)**: Production `RESEND_FROM_EMAIL`을 `noreply@healwith.co.kr`로 바꾸고 재배포해야 하는데 MOU 얘기로 넘어가며 중단. **지금도 admin@로 가는 문의 알림은 "Invalid from field"로 실패**(PO gmail로는 옴). 값 고치고 재배포 → 내가 curl로 #26류 테스트문의 쏴서 DB(`admin_notification_logs`)에 `sent` 뜨는지 검증하면 끝.
+- **#422 PR 머지 대기**: 라이브 처리방침(법무문서) 변경이라 PO "머지해" 기다리는 중. CI 확인 후 머지하면 본판 반영.
+- **DPA 남음**: Supabase(서명메일 24h 내 → 서명)·Vercel(vercel.com/legal/dpa)·**Gemini 유료 결제**(아래 4번 위험).
+- **GDPR 잔여 로드맵**: 데이터 자동파기(탈퇴/3년무활동) 코드·감사로그 개별 PII 열람 커버리지·유출비번차단 토글(Supabase, 현재 OFF)·테스트계정 제거·DPIA·정보주체권리 절차.
+
+**4. 주의·함정**
+- ⚠️ **Gemini API가 무료 등급이면 환자 건강정보가 구글 학습/검토에 쓰일 수 있음**(`generativelanguage.googleapis.com`+`GOOGLE_GENERATIVE_AI_API_KEY` = AI Studio API). CLAUDE.md "spend cap" 언급상 유료일 가능성 크나 **반드시 확인**. 무료면 출시 전(환자가 AI챗 쓰기 전) 유료 결제 연결 필수 = 데이터보호 핵심 리스크.
+- 테스트계정 비번 = **`dream1075!`**(test1234 아님). DB+GitHub Secret 같이 움직여야 E2E 안 깨짐(메모리 갱신됨).
+- `git checkout main`이 안 됨 — main이 worktree `HEALO_worktrees/known-issues-bugfix`에 잡혀있음. PR 머지 후 "failed to run git" 경고는 무해(원격 머지는 성공).
+- find-id는 생년월일 있는 계정이 0개 → 기존 계정엔 사실상 안 됨(신규 가입부터).
+
+**5. 다음 세션이 먼저 할 일**
+1. **⚠️ 직전 미검증/미완 먼저**: ①**메일 from주소** — Vercel Production `RESEND_FROM_EMAIL`=`noreply@healwith.co.kr` 확인·재배포 → curl 테스트문의 → `admin_notification_logs`에 `sent` 검증(3번 핵심). ②**#422 PR** CI 초록이면 PO에게 머지 확인받기.
+2. **Gemini 유료 결제 확인**(4번 위험) — 무료면 출시 전 결제 연결.
+3. DPA 마무리: Supabase 서명메일 서명·Vercel DPA·증거 한 폴더 수집.
+4. GDPR 잔여(자동파기·감사로그·유출비번토글·테스트계정 제거) — 내가 코드/PO 콘솔 분담.
+5. 출시 관문 잔여: 응대 인력·언어·속도(운영, PO).
+
+**6. 검증 상태**
+- ✅ 머지·배포 확인: #412(체리픽정리+CI수리)·#415(로그인착지)·#417(문의알림 after)·#419(견적 after) 전부 머지, 각 CI(ci·Smoke) 초록 확인. `check:content` 통과.
+- ✅ 실검증: 구글 로그인(seokmin.moon88 비-주인 계정 실로그인)·약한비번(실 auth 엔드포인트로 dream1075! 성공/test1234 차단)·PII 암호화(DB 실조회)·서버리스 freeze 수정(문의 #26 curl로 이메일 로그 2건 생성 확인).
+- ❌ **미검증(솔직히)**: ①**메일 admin@ 실제 도착** — from주소 미수정이라 아직 `failed`(Invalid from field). 값 고치고 재테스트 필요. ②로그인 착지(/메인) 실클릭 — 배포는 됨, PO 로그아웃·재로그인으로 확인 권장. ③Gemini 유료 등급 — 미확인.
+- 열린 PR: **#422**(처리방침 6개어, 머지 대기). check:content 통과·node require OK·6개어 반영 검증함. CI 상태는 머지 직전 재확인 필요.
+
+**7. 다음 세션 첫 프롬프트**
+> 먼저 docs/PROJECT_CONTEXT.md 최상단 핸드오프 읽어. 2026-06-29에 출시 관문(약한비번·구글로그인) 닫고 메일알림 3겹 버그·서버리스 freeze 전수조사 박멸하고 GDPR-alignment(처리방침 6개어·RoPA·런북·DPA 수집) 시작했는데 **2개가 안 끝났어**: ①**메일 from주소** — Vercel Production `RESEND_FROM_EMAIL`을 `noreply@healwith.co.kr`로 고치고 재배포한 뒤, 네가 curl로 테스트문의 쏴서 admin_notification_logs에 `sent` 뜨는지 검증해줘(지금은 Invalid from field로 실패 중). ②**#422 처리방침 PR** CI 초록이면 머지 알려줘. 그담 **Gemini가 유료 결제인지 꼭 확인**(무료면 환자 건강정보가 구글 학습에 쓰여 — 출시 전 필수). 그리고 남은 DPA(Supabase 서명메일·Vercel)랑 GDPR 잔여(자동파기·감사로그·유출비번토글·테스트계정 제거) 이어가자.
+
+---
+
 ## 🔖 세션 핸드오프 (2026-06-26 — 로그인/계정 클러스터: 비번 재설정 버그 수리·비번찾기 별도페이지·이메일 폭탄차단·캡차 철회·아이디(이메일)찾기 신설)
 
 > PO가 비번찾기 화면을 직접 클릭하며 버그·UX 문제를 연달아 지적 → 로그인/계정 흐름을 통째로 손봄. 캡차에 시간 많이 쓰다 결국 철회(우리 Next 환경과 충돌). PO 많이 화남("정신 차려") — 핵심 교훈은 **검증 안 된 걸 반복 배포하지 말 것**. 전부 머지·배포 완료.
@@ -46,46 +95,6 @@
 
 **7. 다음 세션 첫 프롬프트**
 > 먼저 `docs/PROJECT_CONTEXT.md` 최상단 핸드오프부터 읽어. 어제(2026-06-26) 로그인/계정 대거 수리해서 다 배포됐는데 **실서비스에서 직접 확인 안 한 게 2개** 있어. healwith.co.kr에서 ①생년월일 넣고 새로 가입 → 로그인 화면 '아이디 찾기'로 이름+생년월일 넣어 가린 이메일 뜨는지 ②'비밀번호 찾기' → 새로 온 메일(링크에 pkce_ 없어야 함) 클릭 → 재설정 → 로그인까지 — 이 둘이 진짜 되는지 봐줘. 안 되면 화면 그대로 알려줘.
----
-
-## 🔖 세션 핸드오프 (2026-06-25 밤2 — 에이전시 속도(#378)·직원 문의 알림 종(#384) 머지·배포 + 자동저장 훅 파일 분실 사고 복구)
-
-> "CI 초록 뜨면 둘 다 머지해" → 두 PR 정리·CI 초록 확인·머지·프로덕션 배포 완료. 도중 **2분 자동저장 훅이 새 파일(`NotificationBell.jsx`)을 멋대로 다른 브랜치로 떼어가** 첫 푸시에서 그 파일만 빠져 #384 CI가 한 번 빨강 → 회수(cherry-pick)·재구성·재검사 후 머지.
-
-**1. 이번 세션 한 일 (둘 다 main 머지·프로덕션 배포됨)**
-- **[#378](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/378) 에이전시 포털 느린 로딩 수리** — 목록 API(`/api/agency/inquiries`)가 첨부파일마다 서명 URL을 *하나씩* 생성(`createSignedUrl`)하던 걸 **한 번의 `createSignedUrls`(복수형) 일괄 서명**으로 묶음(네트워크 왕복 수십→1). 실운영 로그에 storage 504 타임아웃까지 있었음. 화면·응답 형태 동일. (1파일, +26/-14)
-- **[#384](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/384) 새 문의 시 코디·어드민 웹/앱 종 알림** — ①직원 상단바에 알림 종 추가(환자 벨을 공용 `NotificationBell`로 일반화해 환자·직원 재사용) ②문의(AI 핸드오프/폼/에이전시) 오면 `sendAdminNotification` 안에서 코디+어드민에게 in-app 종 발송(이메일 설정 없어도 종은 울림) ③직원 역할 조회를 `profiles.role`(전부 'user'뿐이라 죽어있던 것)→`auth.users`(app_metadata.role)로 교정 → **같은 버그였던 'AI 부정피드백→코디' 알림도 같이 살림**. 링크: 코디→`/coordinator/inbox`, 어드민→`/admin/inquiries/{id}`. (8파일, +250/-156)
-- 두 브랜치 모두 자동저장 훅이 얹은 무관 변경(docs·inApp 등)으로 오염돼 있던 걸 **main 기준 + 해당 기능 파일만** 깨끗이 재구성 후 머지.
-- **출시 전 후속 ([PR #388](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/388), 미머지)**: PO "진짜 더 할 거 없어?" → #384 종 알림을 실DB·실코드로 재검증하다 **AI 챗 핸드오프 경로에 종이 안 울리던 갭** 발견·수정(POSTMORTEMS #41). `inApp.ts`에 `notifyStaffChatHandoff`(어드민 수신, 스레드당 1회) + `chat/stream·message` escalate에서 호출. 코디 AI챗 뷰 부재는 KNOWN_ISSUES에 별도 기록. **덤**: `e2e.yml`에 에이전시·의료기관 계정 매핑(skip 해제). 빌드·tsc·check:content 통과.
-
-**2. 왜 그렇게 했는지**
-- 에이전시 첨부 URL은 케이스를 펼쳐 '문서함'을 볼 때만 쓰는데 첫 로딩에 전부 서명하던 게 낭비 → 접힌 목록엔 개수만 표시하므로 일괄화가 안전.
-- 직원 종 알림: 환자 앱에만 벨이 있었고 직원 상단바엔 종 자체가 없었음 → 벨 컴포넌트를 공용화(fixed/inline)해 양쪽 재사용(코드 중복 없이).
-- 역할 조회를 `auth.users`로 바꾼 게 핵심 — `profiles.role`이 전부 'user'라 기존 코디 알림도 *조용히* 죽어 있었음(같은 뿌리 버그 동반 수리).
-
-**3. 안 끝났거나 보류**
-- **종 알림 실동작 미검증** — 인증(로그인) 화면이라 이 환경에서 자동 클릭 검증 불가. **프로덕션 배포 후 테스트 문의 1건 넣어 코디/어드민 우상단 종에 빨간 숫자 뜨는지** 눈으로 확인 필요. 실시간은 30초 폴링(환자 벨과 동일).
-- (이월) 직전 밤 세션의 미완은 그대로: **구글 OAuth 재구축**·E2E 에이전시/의료기관 skip — 아래 5번.
-
-**4. 주의·함정**
-- ⚠️ **2분 자동저장 훅이 멀티파일 작업 때 새 파일을 다른 브랜치로 떼어가는 사고 재발** — 이번엔 `NotificationBell.jsx`가 `docs/handoff-...` 브랜치로 빠져 첫 푸시에서 누락(로컬 빌드는 통과해 안 보였음, 원격 CI만 빨강). 회수해 `bc96279` cherry-pick으로 복구. **멀티파일 새 컴포넌트 작업 시 푸시 전 `git status`/원격 파일 개수 대조 필수.** (PO 취향: 자동저장 훅=폰↔컴 생명줄이라 끄지 말 것 — 끄지 말고 대조로 방어.)
-- 자동저장이 PROJECT_CONTEXT·inApp 등 SoR 파일을 동시에 흔들 수 있으니, 머지 전 항상 main 기준으로 기능 파일만 골라 재구성.
-
-**5. 다음 세션이 먼저 할 일**
-1. **⚠️ 직전 미검증분 먼저**: 프로덕션에서 ①**테스트 문의 1건** → 코디·어드민 우상단 종 빨간 숫자 + 클릭 시 문의 이동 ②**AI챗에서 '사람 연결' 1회** → 어드민 종(`/admin/chat` 링크) 뜨는지 확인(PR #388 머지·배포 후).
-2. **(이어가기) 구글 OAuth 깨끗한 재구축** — bonroi2296 계정 → 새 `healwith` 구글 프로젝트(동의화면+웹 클라이언트, 값은 아래 밤1 핸드오프 6번에 박힘) → Supabase Auth>Providers>Google에 새 Client ID/Secret 스왑 → 비-테스트 계정 로그인 테스트(순서 지켜 무중단).
-3. **E2E 에이전시·의료기관 skip 해결**: `.github/workflows/e2e.yml` env 블록 2곳(Smoke·Full)에 `E2E_AGENCY_EMAIL/PASSWORD`·`E2E_CLINIC_EMAIL/PASSWORD` 4줄씩 추가.
-4. 나머지 오픈 관문 PO 안내(⑤iOS·🔴⑥약한비번 admin 삭제 등).
-
-**6. 검증 상태**
-- ✅ **#378·#384 둘 다 CI(ci·Smoke) 초록 확인 후 머지**(GitHub MCP로 재확인: 둘 다 `merged:true`, base=main). `next build --webpack` 통과 · #384 피드백 계약 테스트 2/2 · eslint 0.
-- ❌ **종 알림 실표시는 검증 못 함(솔직히)** — 인증 화면이라 로컬 자동검증 불가. PO가 프로덕션에서 테스트 문의로 최종 확인.
-- ❌ 에이전시 로딩 속도 개선치도 실측 못 함(SSR 인증 포털) — 배포 후 체감으로.
-- ℹ️ 열린 PR: **#353**(2026-06-24 핸드오프 doc, stale) 1건 — 이번 작업과 무관, 정리 대상이면 다음 세션에.
-
-**7. 다음 세션 첫 프롬프트**
-> 먼저 docs/PROJECT_CONTEXT.md 최상단 핸드오프를 읽어라. 2026-06-25 밤2에 에이전시 느린 로딩(#378)·직원 문의 알림 종(#384) 둘 다 머지·배포 끝. **제일 먼저: 프로덕션에서 테스트 문의 1건 넣어 코디/어드민 우상단 종에 빨간 숫자 뜨고 클릭 시 해당 문의로 가는지 1회 확인**(인증 화면이라 자동검증 못 했음). 그담 이월 미완 = 구글 OAuth 재구축(값은 밤1 핸드오프 6번)·E2E 에이전시/의료기관 workflow env 4줄. 작업 중 2분 자동저장 훅이 새 파일을 다른 브랜치로 떼가는 사고가 또 있었으니 멀티파일 작업 시 푸시 전 파일 누락 대조할 것.
-
 ---
 
 ## 🏷️ 서비스명 변경 — HEALO → **healwith** (2026-06-16 확정·적용)
