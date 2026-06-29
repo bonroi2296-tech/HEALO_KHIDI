@@ -5,6 +5,7 @@ import { checkHospitalAuth } from "@/lib/auth/checkHospitalAuth";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { caseStatusOrder, outcomeForHospitalLeadStatus } from "@/lib/khidi/caseStatus";
 import { decryptInquiryForAdmin } from "@/lib/security/decryptForAdmin";
+import { logAdminAction, getIpFromRequest, getUserAgentFromRequest } from "@/lib/audit/adminAuditLog";
 
 const VALID_STATUSES = ["sent", "viewed", "replied", "converted", "rejected"];
 
@@ -151,6 +152,18 @@ export async function GET(
           lead_quality: inq.lead_quality || null,
           attachments: await signAttachments(supabase, inqRaw.attachments),
         };
+
+        // 감사로그: 국내병원이 환자 PII(이름·의료상세·첨부 의료문서 서명URL)를 열람했음 기록.
+        // 정부 의료데이터 과제 추적성(GDPR/PIPA·복호화 열람 감사). 실패해도 본 응답은 진행.
+        void logAdminAction({
+          adminEmail: auth.email || `hospital:${auth.hospitalId}`,
+          adminUserId: auth.userId,
+          action: "PARTNER_VIEW_CASES",
+          inquiryIds: [Number(norm.source_inquiry_id)],
+          ipAddress: getIpFromRequest(request),
+          userAgent: getUserAgentFromRequest(request),
+          metadata: { partner_type: "hospital", hospital_id: auth.hospitalId, lead_id: String(lead.id) },
+        });
       }
     }
 
