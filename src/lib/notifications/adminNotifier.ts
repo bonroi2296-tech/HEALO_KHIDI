@@ -75,10 +75,9 @@ function generateNotificationMessage(payload: AdminNotificationPayload): string 
   message += `\n시각: ${new Date(payload.createdAt).toLocaleString("ko-KR")}\n`;
   
   // 관리자 페이지 링크 (환경변수로 설정 가능)
-  const adminUrl = process.env.ADMIN_DASHBOARD_URL || process.env.NEXT_PUBLIC_URL;
-  if (adminUrl) {
-    message += `\n확인: ${adminUrl}/admin/inquiries/${payload.inquiryId}`;
-  }
+  // ⚠️ /admin/inquiries 는 목록 페이지만 존재(상세 [id] 라우트 없음) → 목록으로 링크. 문의번호는 본문에 표기됨.
+  const adminUrl = process.env.ADMIN_DASHBOARD_URL || process.env.NEXT_PUBLIC_URL || "https://healwith.co.kr";
+  message += `\n확인(목록): ${adminUrl}/admin/inquiries`;
 
   return message;
 }
@@ -89,8 +88,9 @@ function generateNotificationMessage(payload: AdminNotificationPayload): string 
  */
 function generateAdminEmail(payload: AdminNotificationPayload): { subject: string; html: string; text: string } {
   const urgency = payload.leadQuality === "hot" ? "🔥 긴급" : "📬";
-  const adminUrl = process.env.ADMIN_DASHBOARD_URL || process.env.NEXT_PUBLIC_URL || "https://healo-khidi.vercel.app";
-  const inquiryUrl = `${adminUrl}/admin/inquiries/${payload.inquiryId}`;
+  // ⚠️ /admin/inquiries 는 목록 페이지만 존재(상세 [id] 라우트 없음) → 목록으로 링크. 문의번호는 본문에 표기됨.
+  const adminUrl = process.env.ADMIN_DASHBOARD_URL || process.env.NEXT_PUBLIC_URL || "https://healwith.co.kr";
+  const inquiryUrl = `${adminUrl}/admin/inquiries`;
 
   const subject = `[healwith] ${urgency} New inquiry received #${payload.inquiryId}`;
 
@@ -135,7 +135,7 @@ ${urgency} 새 문의 #${payload.inquiryId}
       <div class="field"><span class="label">연락:</span> <span class="value">${payload.contactMethod || "미표기"}</span></div>
       <div class="field"><span class="label">점수:</span> <span class="value">${payload.priorityScore || 0}</span></div>
       <div class="field"><span class="label">시각:</span> <span class="value">${new Date(payload.createdAt).toLocaleString("ko-KR")}</span></div>
-      <a href="${inquiryUrl}" class="button">문의 확인하기</a>
+      <a href="${inquiryUrl}" class="button">문의 목록에서 확인 (#${payload.inquiryId})</a>
     </div>
     <div class="footer">healwith - AI Medical Concierge for Global Patients</div>
   </div>
