@@ -146,7 +146,11 @@ export async function fetchRagChunks(query: string, lang: string, threadId?: str
       supabaseAdmin.rpc("rag_search_chunks_v1_1", {
         query_embedding: embStr,
         match_count: TOTAL_LIMIT + 2,
-        p_lang: lang,
+        // 언어필터 끔: RAG 지식(병원·치료)은 현재 en 단일언어인데 Gemini 임베딩은 다국어라
+        // ko/ru/kz 질문도 en 문서와 의미로 매칭된다(모델은 사용자 언어로 답하므로 무방).
+        // p_lang=lang 하드필터를 두면 비영어 질문이 청크 0개로 떨어짐(2026-06-29 발견).
+        // ※ 다국어 문서를 적재하게 되면 '같은 언어 우선'으로 재검토.
+        p_lang: undefined,
         p_source_type: undefined,
         p_partner_only: false,
         p_ab_enabled: abEnabled,
