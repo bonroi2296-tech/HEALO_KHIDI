@@ -7,6 +7,49 @@
 
 ---
 
+## 🔖 세션 핸드오프 (2026-06-29 — AI Agent 대개선: 첨부 1차소견·진료의뢰패킷·전환집계 구멍·RAG 완전수리·카자흐어 혼동)
+
+> PO가 "AI agent 기능 개선"으로 시작 → 별도 워크트리(`HEALO_worktrees/ai-agent`, 브랜치 `work/ai-agent`)에서 작업. 표면은 "개선"이었지만 파보니 **숨어있던 큰 고장 3개**(전환 집계 누락·RAG 100% 고장·비영어 RAG 무력)를 발견·수리. 전부 **PR [#431](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/431) 한 곳**에 모음(아직 미머지 — 의료 1차소견 레드라인 포함이라 PO 프리뷰 검토 대기).
+
+**1. 이번 세션 한 일 (전부 PR #431, work/ai-agent 브랜치 — 미머지)**
+- **첨부 의료자료 1차 소견(triage) 기능 신설** — 환자가 검사지·사진 올리면 AI가 멀티모달 판독 → ①환자용 예비 1차소견 즉시(강한 면책+"AI작성·검토예정") ②의료진용 진료의뢰 패킷(누구·상태·요청·시급도·빠진서류) ③어드민 「AI 대화·환자자료」에서 의사 "검수완료/정정해서 보내기". 파일: `src/lib/chat/triage.ts`(신규), `app/api/public/chat/stream/route.ts`, `app/api/admin/chat/threads/[threadId]/messages/route.ts`(PATCH 추가), `app/admin/chat/page.jsx`, `src/lib/manuals/index.js`.
+- **드래그앤드랍 업로드** — `app/inquiry/ThreadChat.jsx`(기존 클립버튼 유지) + i18n 6개어(`chat.upload.dropHere/dropHint`).
+- **전환 구멍 수리** — KHIDI 유치 대시보드는 `inquiries`만 세는데 AI 챗은 `normalized_inquiries`(초안)만 만들고 `inquiries`로 승격이 없어 **챗 리드가 점수판에 0으로 안 잡혔음**. `createDraftIntake`(3턴마다)에서 `inquiries`로 1회 승격(`source='ai_agent'`, 중복방지 `chat_threads.inquiry_id`). 파일: `src/lib/chat/publicChatHelpers.ts`. (마이그레이션 불필요 — 컬럼 이미 존재)
+- **RAG 완전 수리(2겹 버그)** — ① `ingest.ts`가 없는 컬럼(`embedded_at`)에 insert→적재 통째 실패 ② 검색 RPC `rag_search_chunks_v1_1` 반환타입 `doc_source_id uuid`인데 실제 `text`→검색 항상 실패. 둘 다 고치고 검증데이터(병원8·치료8=16문서/22청크) 적재+임베딩, `trust_tier=2` 정정. 파일: `src/lib/rag/ingest.ts`, `migrations/20260629_fix_rag_search_v1_1_source_id_type.sql`, `scripts/seed-rag-once.mjs`(재적재 도구), POSTMORTEMS #45.
+- **언어필터 버그 + 속도** — 적재 문서가 전부 `lang='en'`이라 ko/ru/kz 질문이 RAG 청크 0개로 떨어짐. Gemini 임베딩이 다국어라 일반검색 `p_lang` 해제 → 6개어 교차언어 작동(ko 질문 0→6청크 실측). + `externalSearch` 타임아웃 3s→2s. 파일: `src/lib/chat/generateReply.ts`, `src/lib/chat/externalSearch.ts`.
+- **카자흐어↔러시아어 혼동 방지** — `buildSystemPrompt`이 선택 언어를 안 받아 키릴문자면 러시아어로 답할 위험 → `outputLang` 파라미터 + "카자흐어≠러시아어, 카자흐어 선택 시 қазақша로" 명시. `src/lib/chat/generateReply.ts`.
+
+**2. 왜 그렇게 했는지**
+- **1차소견 = 의료 레드라인 일부 완화**: 원래 AI는 "자료 판독 안 함"으로 막혀 있었음(시스템프롬프트·접수멘트 명시). PO가 KHIDI 사전상담 'ICT 진료의뢰 및 상담' 요건을 근거로 1차소견 원함. 표를 분석해보니 표는 "AI가 소견 내라"가 아니라 "정보수집·전송·매칭·커뮤니케이션 기술"을 요구 → 진짜 '소견'은 면허 의사가(=진료의뢰). 그래서 **안전한 절충**: AI는 비임상 오리엔테이션+요약, 임상 소견은 강한 면책+사후 의사검수 루프로. PO 결정: **즉시 노출 + 사후 의사 검수**.
+- **전환 등록 시점**: PO가 "대화 3턴+면 다 등록"(많이 잡되 잡음 감수) 선택. 기존 `createDraftIntake` 주기와 동일해 자연스러운 통합 지점.
+- **RAG 언어필터 해제**: 다국어 콘텐츠 적재는 무거움(번역×6+임베딩). 임베딩이 이미 다국어라 필터만 끄면 즉시 6개어 작동 = 가장 값싼 해결. 다국어 문서 적재하게 되면 '같은 언어 우선'으로 재검토(코드 주석에 명시).
+
+**3. 안 끝났거나 보류**
+- **PR #431 미머지** — 의료 1차소견(레드라인) 포함이라 자동머지 안 함. PO가 프리뷰 검토 후 결정. **mergeable=CONFLICTING**(main이 움직여 충돌) → 머지 전 `git rebase origin/main` 또는 충돌 해소 필요(공용파일 POSTMORTEMS·PROJECT_CONTEXT·i18n·manuals 충돌 가능).
+- **TEST 병원 더미 데이터 정리** — RAG에 "TEST 병원" 등 테스트 데이터가 섞여 검색에 노출됨. 별도 작업 칩으로 분리(`hospitals`/`treatments` 소스 정리 후 재적재 필요).
+- **프롬프트 미세개선** — RAG가 진짜 병목이라 거기 집중. 프롬프트 톤 추가 손질은 여력될 때.
+
+**4. 주의·함정**
+- **프로덕션 DB 이미 변경됨(되돌리려면 수동)**: ① RAG 데이터 적재(rag_documents 16·rag_chunks 22) ② 검색 RPC `rag_search_chunks_v1_1` 재정의 ③ rag_documents `trust_tier=2`. 코드가 머지 안 돼도 **DB는 이미 바뀐 상태**(코드 머지 전까지 적재 코드와 살짝 앞서감 — 무해, 적재는 추가형).
+- **워크트리에서 스크립트 실행 2가지 함정**: (a) 워크트리엔 `node_modules`·`.env.local`이 없음 → node_modules는 메인 폴더로 **junction** 걸어둠, env는 절대경로 `C:/Users/user/Desktop/HEALO_KHIDI/.env.local` 로드. (b) `ingest.ts` 등 `server-only` 모듈은 `node --conditions=react-server --import tsx ...`로 실행해야 가드 안 걸림.
+- **로컬에서 `generateChatReply` 직접 호출하면 prod judge가 돌아 코디에게 실제 알림이 감** — 테스트 시 주의(프로브 스크립트는 삭제함).
+- **RAG 재적재**: 병원·치료 데이터 바뀌면 `node --conditions=react-server --import tsx scripts/seed-rag-once.mjs`로 갱신해야 RAG 반영(자동 트리거 없음 — 향후 과제).
+
+**5. 다음 세션이 먼저 할 일 (우선순위)**
+1. **⚠️ 직전 미검증분 먼저 프리뷰에서 확인(로컬 자동검증 불가 — 로그인·DB 필요):** PR #431 Vercel 프리뷰에서 ① `/inquiry`→AI Agent→**파일 드래그앤드랍** 동작 ② 자료 업로드→**1차소견** 응답+면책 ③ 어드민 「AI 대화·환자자료」에서 **진료의뢰 패킷+검수 버튼** ④ ru/kz로 질문→그 언어로 답하는지 ⑤ 3턴+ 대화 후 `/admin/khidi/conversion`에 문의 잡히는지.
+2. **PR #431 충돌 해소** — `git rebase origin/main`(공용파일 충돌 예상) 후 PO 검토 → 머지 결정.
+3. **TEST 병원 더미 정리**(칩) → RAG 재적재.
+4. (여력) POSTMORTEMS #45 재발방지 후보 실행: "rag_chunks_used 평균 0이면 경보" + 스키마 드리프트 CI 가드(`scripts/check-schema-refs.mjs`).
+
+**6. 검증 상태**
+- ✅ `npx next build --webpack` 통과(매 변경마다, TypeScript 포함). ✅ `check:content`(i18n 6개어 패리티) 통과.
+- ✅ 실DB 스모크: inquiries insert 형태(삽입+삭제), RAG 적재 16/22, 검색 RPC end-to-end(ko/en/ru 청크 반환), 모델 멀티모달 계약(inlineData+responseSchema).
+- ✅ PR #431 CI: **Vercel 프리뷰 pass**(배포 완료). ⚠️ mergeable=**CONFLICTING**(rebase 필요).
+- ❌ **검증 못 함(프리뷰에서 PO 확인 필요)**: 브라우저 실제 드래그앤드랍, 파일 업로드→1차소견 end-to-end, 어드민 검수 버튼 클릭, ru/kz 실응답 언어, 전환 집계 화면 반영 — 전부 로그인·실DB 필요해 자동검증 불가.
+
+**7. 다음 세션 첫 프롬프트**
+> 먼저 `docs/PROJECT_CONTEXT.md` 최상단(2026-06-29 AI Agent 블록)을 읽어. 그 다음 **PR #431을 프리뷰에서 검증**해줘: ①AI 챗 파일 드래그앤드랍 ②자료 업로드→1차소견+면책 ③어드민 진료의뢰 패킷·검수버튼 ④ru/kz로 질문 시 그 언어로 답하는지 ⑤3턴 대화 후 유치 전환 대시보드에 문의 잡히는지. 그리고 PR #431이 main과 충돌(CONFLICTING)이니 `git rebase origin/main`으로 풀어줘. (작업 폴더 = `HEALO_worktrees/ai-agent`, 브랜치 work/ai-agent)
+
 ## 🔖 세션 핸드오프 (2026-06-26 — 로그인/계정 클러스터: 비번 재설정 버그 수리·비번찾기 별도페이지·이메일 폭탄차단·캡차 철회·아이디(이메일)찾기 신설)
 
 > PO가 비번찾기 화면을 직접 클릭하며 버그·UX 문제를 연달아 지적 → 로그인/계정 흐름을 통째로 손봄. 캡차에 시간 많이 쓰다 결국 철회(우리 Next 환경과 충돌). PO 많이 화남("정신 차려") — 핵심 교훈은 **검증 안 된 걸 반복 배포하지 말 것**. 전부 머지·배포 완료.
@@ -46,46 +89,6 @@
 
 **7. 다음 세션 첫 프롬프트**
 > 먼저 `docs/PROJECT_CONTEXT.md` 최상단 핸드오프부터 읽어. 어제(2026-06-26) 로그인/계정 대거 수리해서 다 배포됐는데 **실서비스에서 직접 확인 안 한 게 2개** 있어. healwith.co.kr에서 ①생년월일 넣고 새로 가입 → 로그인 화면 '아이디 찾기'로 이름+생년월일 넣어 가린 이메일 뜨는지 ②'비밀번호 찾기' → 새로 온 메일(링크에 pkce_ 없어야 함) 클릭 → 재설정 → 로그인까지 — 이 둘이 진짜 되는지 봐줘. 안 되면 화면 그대로 알려줘.
----
-
-## 🔖 세션 핸드오프 (2026-06-25 밤2 — 에이전시 속도(#378)·직원 문의 알림 종(#384) 머지·배포 + 자동저장 훅 파일 분실 사고 복구)
-
-> "CI 초록 뜨면 둘 다 머지해" → 두 PR 정리·CI 초록 확인·머지·프로덕션 배포 완료. 도중 **2분 자동저장 훅이 새 파일(`NotificationBell.jsx`)을 멋대로 다른 브랜치로 떼어가** 첫 푸시에서 그 파일만 빠져 #384 CI가 한 번 빨강 → 회수(cherry-pick)·재구성·재검사 후 머지.
-
-**1. 이번 세션 한 일 (둘 다 main 머지·프로덕션 배포됨)**
-- **[#378](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/378) 에이전시 포털 느린 로딩 수리** — 목록 API(`/api/agency/inquiries`)가 첨부파일마다 서명 URL을 *하나씩* 생성(`createSignedUrl`)하던 걸 **한 번의 `createSignedUrls`(복수형) 일괄 서명**으로 묶음(네트워크 왕복 수십→1). 실운영 로그에 storage 504 타임아웃까지 있었음. 화면·응답 형태 동일. (1파일, +26/-14)
-- **[#384](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/384) 새 문의 시 코디·어드민 웹/앱 종 알림** — ①직원 상단바에 알림 종 추가(환자 벨을 공용 `NotificationBell`로 일반화해 환자·직원 재사용) ②문의(AI 핸드오프/폼/에이전시) 오면 `sendAdminNotification` 안에서 코디+어드민에게 in-app 종 발송(이메일 설정 없어도 종은 울림) ③직원 역할 조회를 `profiles.role`(전부 'user'뿐이라 죽어있던 것)→`auth.users`(app_metadata.role)로 교정 → **같은 버그였던 'AI 부정피드백→코디' 알림도 같이 살림**. 링크: 코디→`/coordinator/inbox`, 어드민→`/admin/inquiries/{id}`. (8파일, +250/-156)
-- 두 브랜치 모두 자동저장 훅이 얹은 무관 변경(docs·inApp 등)으로 오염돼 있던 걸 **main 기준 + 해당 기능 파일만** 깨끗이 재구성 후 머지.
-- **출시 전 후속 ([PR #388](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/388), 미머지)**: PO "진짜 더 할 거 없어?" → #384 종 알림을 실DB·실코드로 재검증하다 **AI 챗 핸드오프 경로에 종이 안 울리던 갭** 발견·수정(POSTMORTEMS #41). `inApp.ts`에 `notifyStaffChatHandoff`(어드민 수신, 스레드당 1회) + `chat/stream·message` escalate에서 호출. 코디 AI챗 뷰 부재는 KNOWN_ISSUES에 별도 기록. **덤**: `e2e.yml`에 에이전시·의료기관 계정 매핑(skip 해제). 빌드·tsc·check:content 통과.
-
-**2. 왜 그렇게 했는지**
-- 에이전시 첨부 URL은 케이스를 펼쳐 '문서함'을 볼 때만 쓰는데 첫 로딩에 전부 서명하던 게 낭비 → 접힌 목록엔 개수만 표시하므로 일괄화가 안전.
-- 직원 종 알림: 환자 앱에만 벨이 있었고 직원 상단바엔 종 자체가 없었음 → 벨 컴포넌트를 공용화(fixed/inline)해 양쪽 재사용(코드 중복 없이).
-- 역할 조회를 `auth.users`로 바꾼 게 핵심 — `profiles.role`이 전부 'user'라 기존 코디 알림도 *조용히* 죽어 있었음(같은 뿌리 버그 동반 수리).
-
-**3. 안 끝났거나 보류**
-- **종 알림 실동작 미검증** — 인증(로그인) 화면이라 이 환경에서 자동 클릭 검증 불가. **프로덕션 배포 후 테스트 문의 1건 넣어 코디/어드민 우상단 종에 빨간 숫자 뜨는지** 눈으로 확인 필요. 실시간은 30초 폴링(환자 벨과 동일).
-- (이월) 직전 밤 세션의 미완은 그대로: **구글 OAuth 재구축**·E2E 에이전시/의료기관 skip — 아래 5번.
-
-**4. 주의·함정**
-- ⚠️ **2분 자동저장 훅이 멀티파일 작업 때 새 파일을 다른 브랜치로 떼어가는 사고 재발** — 이번엔 `NotificationBell.jsx`가 `docs/handoff-...` 브랜치로 빠져 첫 푸시에서 누락(로컬 빌드는 통과해 안 보였음, 원격 CI만 빨강). 회수해 `bc96279` cherry-pick으로 복구. **멀티파일 새 컴포넌트 작업 시 푸시 전 `git status`/원격 파일 개수 대조 필수.** (PO 취향: 자동저장 훅=폰↔컴 생명줄이라 끄지 말 것 — 끄지 말고 대조로 방어.)
-- 자동저장이 PROJECT_CONTEXT·inApp 등 SoR 파일을 동시에 흔들 수 있으니, 머지 전 항상 main 기준으로 기능 파일만 골라 재구성.
-
-**5. 다음 세션이 먼저 할 일**
-1. **⚠️ 직전 미검증분 먼저**: 프로덕션에서 ①**테스트 문의 1건** → 코디·어드민 우상단 종 빨간 숫자 + 클릭 시 문의 이동 ②**AI챗에서 '사람 연결' 1회** → 어드민 종(`/admin/chat` 링크) 뜨는지 확인(PR #388 머지·배포 후).
-2. **(이어가기) 구글 OAuth 깨끗한 재구축** — bonroi2296 계정 → 새 `healwith` 구글 프로젝트(동의화면+웹 클라이언트, 값은 아래 밤1 핸드오프 6번에 박힘) → Supabase Auth>Providers>Google에 새 Client ID/Secret 스왑 → 비-테스트 계정 로그인 테스트(순서 지켜 무중단).
-3. **E2E 에이전시·의료기관 skip 해결**: `.github/workflows/e2e.yml` env 블록 2곳(Smoke·Full)에 `E2E_AGENCY_EMAIL/PASSWORD`·`E2E_CLINIC_EMAIL/PASSWORD` 4줄씩 추가.
-4. 나머지 오픈 관문 PO 안내(⑤iOS·🔴⑥약한비번 admin 삭제 등).
-
-**6. 검증 상태**
-- ✅ **#378·#384 둘 다 CI(ci·Smoke) 초록 확인 후 머지**(GitHub MCP로 재확인: 둘 다 `merged:true`, base=main). `next build --webpack` 통과 · #384 피드백 계약 테스트 2/2 · eslint 0.
-- ❌ **종 알림 실표시는 검증 못 함(솔직히)** — 인증 화면이라 로컬 자동검증 불가. PO가 프로덕션에서 테스트 문의로 최종 확인.
-- ❌ 에이전시 로딩 속도 개선치도 실측 못 함(SSR 인증 포털) — 배포 후 체감으로.
-- ℹ️ 열린 PR: **#353**(2026-06-24 핸드오프 doc, stale) 1건 — 이번 작업과 무관, 정리 대상이면 다음 세션에.
-
-**7. 다음 세션 첫 프롬프트**
-> 먼저 docs/PROJECT_CONTEXT.md 최상단 핸드오프를 읽어라. 2026-06-25 밤2에 에이전시 느린 로딩(#378)·직원 문의 알림 종(#384) 둘 다 머지·배포 끝. **제일 먼저: 프로덕션에서 테스트 문의 1건 넣어 코디/어드민 우상단 종에 빨간 숫자 뜨고 클릭 시 해당 문의로 가는지 1회 확인**(인증 화면이라 자동검증 못 했음). 그담 이월 미완 = 구글 OAuth 재구축(값은 밤1 핸드오프 6번)·E2E 에이전시/의료기관 workflow env 4줄. 작업 중 2분 자동저장 훅이 새 파일을 다른 브랜치로 떼가는 사고가 또 있었으니 멀티파일 작업 시 푸시 전 파일 누락 대조할 것.
-
 ---
 
 ## 🏷️ 서비스명 변경 — HEALO → **healwith** (2026-06-16 확정·적용)
