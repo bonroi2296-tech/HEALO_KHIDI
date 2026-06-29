@@ -4,11 +4,12 @@
 
 ---
 
-## 🟡 2026-06-25 코디네이터에게 AI 챗 뷰가 없음 (AI 핸드오프 종은 어드민에게만)
+## ~~🟡 2026-06-25 코디네이터에게 AI 챗 뷰가 없음~~ ✅ 해결 (2026-06-29 `/coordinator/chat` 읽기전용 뷰)
 
-- **상태**: AI 챗 스레드 모니터(`/admin/chat`·`/api/admin/chat/threads`)가 `requireAdminAuth` **어드민 전용**. 코디네이터(`role=coordinator`)는 AI 챗 대화를 볼 화면이 없음.
-- **영향**: 새로 추가한 "AI 챗 사람 연결 요청(handoff) → 종 알림"(POSTMORTEMS #41)이 **어드민에게만** 발송됨. 코디는 AI챗 리드를 직접 보려면 어드민 권한이 필요. 현재 운영(PO 단독=어드민)에선 문제 없으나, 코디를 별도로 운용하면 AI챗 리드가 코디에게 안 닿음.
-- **후속(별도 과제)**: 코디용 AI 챗 읽기 뷰(`/coordinator/chat` 또는 인박스에 handoff 스레드 통합) + 그때 `notifyStaffChatHandoff` 수신자에 coordinators 추가. inquiries 기반 인박스에 `chat_threads`(hand_off_requested) 머지가 가장 단순한 통합안.
+- ~~**상태**: AI 챗 스레드 모니터가 `requireAdminAuth` 어드민 전용. 코디는 AI 챗 대화를 볼 화면이 없음.~~
+- ✅ **해결(2026-06-29)**: `/coordinator/chat` **읽기전용** 뷰 추가(어드민 검토큐 화면 재사용). 데이터 API는 `/api/admin/chat/threads`·`.../messages`의 **GET만 `requirePortalAuth(staffOnly)`로 넓혀** 코디 접근 허용(생성 POST·검수 PATCH는 admin 유지 = 코디는 읽기만). 코디 네비에 「AI 상담 리드」 추가.
+- **남은 후속(선택)**: `notifyStaffChatHandoff` 수신자에 coordinators 추가(현재 어드민에게만 종 알림). 코디를 별도 운용 시작할 때 켜면 됨 — 지금은 PO=어드민이라 무영향.
+- ⚠️ **검증**: `next build` 통과. **코디 계정 실로그인 런타임은 미검증**(프리뷰에서 PO 확인 권장).
 
 ---
 

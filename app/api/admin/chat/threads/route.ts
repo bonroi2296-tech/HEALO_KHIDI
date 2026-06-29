@@ -10,6 +10,7 @@ export const runtime = "nodejs";
 import { NextRequest } from "next/server";
 import { supabaseAdmin, assertSupabaseEnv } from "@/lib/rag/supabaseAdmin";
 import { requireAdminAuth } from "@/lib/auth/requireAdminAuth";
+import { requirePortalAuth } from "@/lib/auth/requirePortalAuth";
 import { decryptMaybe } from "@/lib/security/encryptionV2";
 
 // AI상담(게스트) 리드의 이름·이메일·전화는 chat/start 에서 AES-256-GCM 암호화 저장된다
@@ -63,7 +64,8 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   assertSupabaseEnv();
-  const auth = await requireAdminAuth(request);
+  // 읽기(목록 조회)는 코디네이터도 허용(staff) — AI 챗 리드 모니터. 생성(POST)은 admin 유지.
+  const auth = await requirePortalAuth(request, { staffOnly: true });
   if (!auth.success) return auth.response;
 
   try {

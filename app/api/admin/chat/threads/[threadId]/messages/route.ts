@@ -10,6 +10,7 @@ export const runtime = "nodejs";
 import { NextRequest } from "next/server";
 import { supabaseAdmin, assertSupabaseEnv } from "@/lib/rag/supabaseAdmin";
 import { requireAdminAuth } from "@/lib/auth/requireAdminAuth";
+import { requirePortalAuth } from "@/lib/auth/requirePortalAuth";
 
 export async function POST(
   request: NextRequest,
@@ -151,7 +152,8 @@ export async function GET(
   { params }: { params: Promise<{ threadId: string }> }
 ) {
   assertSupabaseEnv();
-  const auth = await requireAdminAuth(request);
+  // 읽기(메시지 조회)는 코디네이터도 허용(staff). 작성(POST)·검수(PATCH)는 admin 유지.
+  const auth = await requirePortalAuth(request, { staffOnly: true });
   if (!auth.success) return auth.response;
 
   const { threadId } = await params;

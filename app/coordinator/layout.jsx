@@ -5,7 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import {
   ClipboardList, Video, Bell, Inbox, MessageSquare, Plane, Calculator,
-  LogOut, Menu, X, LayoutDashboard, Building2,
+  LogOut, Menu, X, LayoutDashboard, Building2, Bot,
 } from 'lucide-react';
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser';
 import StaffPortalGate from '../_components/StaffPortalGate';
@@ -15,6 +15,7 @@ import ManualDrawer from '../_components/ManualDrawer';
 const NAV_ITEMS = [
   { id: 'dashboard', label: '대시보드', icon: LayoutDashboard, href: '/coordinator' },
   { id: 'inbox', label: '문의함', icon: Inbox, href: '/coordinator/inbox' },
+  { id: 'chat', label: 'AI 상담 리드', icon: Bot, href: '/coordinator/chat' },
   { id: 'cases', label: '의뢰·케이스/병원배정', icon: Building2, href: '/coordinator/cases' },
   { id: 'consultations', label: '상담 일정', icon: Video, href: '/coordinator/consultations' },
   { id: 'intakes', label: '인테이크 관리', icon: ClipboardList, href: '/coordinator/intakes' },
