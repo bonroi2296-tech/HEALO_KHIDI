@@ -16,7 +16,15 @@
 | 기본 언어 | English (스토어 기본), 현지화: ko·ru·kk·zh·ja |
 | 가격 | 무료 |
 
+## ✅ 코드로 이미 끝난 것 (PO 손 안 가도 됨)
+- **네이티브 권한 선언 완료** — 원격협진(LiveKit 영상상담)·자료첨부에 필수.
+  - iOS `Info.plist`: `NSCameraUsageDescription`·`NSMicrophoneUsageDescription`·`NSPhotoLibrary(Add)UsageDescription` + 백그라운드 푸시(`UIBackgroundModes: remote-notification`).
+  - Android `AndroidManifest.xml`: `CAMERA`·`RECORD_AUDIO`·`MODIFY_AUDIO_SETTINGS`·`POST_NOTIFICATIONS`(13+) + 카메라/마이크 `uses-feature required=false`(태블릿 설치 허용).
+  - ⚠️ 이 권한이 없으면 iOS 는 카메라 접근 시 **크래시 + 심사 반려**, Android 는 WebView `getUserMedia` 거부로 **영상상담 먹통**이었음 → 2026-06-29 보강.
+- **푸시 클라이언트·서버 배선 완료** — `src/lib/push/registerPush.ts`(앱에서만 동작) + `/api/push/register`·`/api/push/test`.
+
 ## ⚠️ 제출 전 선결(내가 못 하는 PO 작업)
+- **🌐 도메인 먼저**: `capacitor.config.ts` 의 앱 셸이 `https://healwith.co.kr` 을 로드한다. **이 도메인이 아직 미등록(죽은 주소)** → 등록·Vercel 연결 전에 앱을 제출하면 빈 화면. `docs/DOMAIN_CUTOVER_healwith.md` 순서대로. (임시로 `healo-khidi.vercel.app` 을 가리키게 바꿔 테스트는 가능하나, 정식 제출 전 도메인 확정 권장 — server.url 변경은 네이티브 재빌드 필요.)
 - **애플 개발자 $99/년 결제** + App ID `kr.co.healwith.app` 등록(+ Push Notifications capability).
 - **구글 플레이 $25 결제** + 앱 생성.
 - **Firebase 설정파일 다운로드 → 커밋**: `android/app/google-services.json`, `ios/App/App/GoogleService-Info.plist`. (Firebase 콘솔에 iOS/Android 앱을 `kr.co.healwith.app` 로 추가) + iOS 는 **APNs 인증키(.p8)** 를 Firebase Cloud Messaging 에 업로드.
