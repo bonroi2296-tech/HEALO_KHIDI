@@ -302,6 +302,7 @@ export function ThreadChat() {
   const [attachments, setAttachments] = useState([]); // [{path,name,type}]
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState("");
+  const [dragOver, setDragOver] = useState(false); // 드래그앤드랍 오버레이 표시
 
   const MAX_ATTACHMENTS = 5;
   const MAX_FILE_MB = 10;
@@ -339,6 +340,24 @@ export function ThreadChat() {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
     }
+  };
+
+  // 드래그앤드랍 — 채팅이 시작된 상태에서만 파일 드롭 허용(동의/식별 게이트 중엔 무시).
+  const canDrop = !!threadId && !sending && !uploading;
+  const handleDragOver = (e) => {
+    if (!canDrop) return;
+    e.preventDefault();
+    if (!dragOver) setDragOver(true);
+  };
+  const handleDragLeave = (e) => {
+    // 자식 요소로 이동한 경우(relatedTarget이 컨테이너 안)엔 깜빡임 방지로 무시.
+    if (!e.currentTarget.contains(e.relatedTarget)) setDragOver(false);
+  };
+  const handleDrop = (e) => {
+    if (!canDrop) return;
+    e.preventDefault();
+    setDragOver(false);
+    handleFilePick(e.dataTransfer?.files);
   };
 
   // textarea 자동 높이 — 한 줄에서 시작해 입력에 맞춰 늘어남(최대 128px), 전송 후 한 줄로 복귀.
@@ -750,7 +769,24 @@ export function ThreadChat() {
   return (
     // 높이: 작은 폰(iPhone SE 등)에서 600px 고정이 하단 탭바에 깔리던 문제 →
     // 화면 높이에 맞춰 줄어들되(min 420px) 데스크톱은 기존 600px 유지
-    <div className="bg-white border border-gray-200 rounded-3xl shadow-xl h-full min-h-0 flex flex-col p-3 sm:p-4 animate-in fade-in slide-in-from-right-4">
+    <div
+      className="relative bg-white border border-gray-200 rounded-3xl shadow-xl h-full min-h-0 flex flex-col p-3 sm:p-4 animate-in fade-in slide-in-from-right-4"
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+    >
+      {/* 드래그앤드랍 오버레이 — 파일을 끌어오면 표시. pointer-events-none 으로 드롭 자체는 컨테이너가 받음. */}
+      {dragOver && (
+        <div className="absolute inset-0 z-40 rounded-3xl bg-teal-50/95 border-2 border-dashed border-teal-400 flex flex-col items-center justify-center pointer-events-none">
+          <Paperclip size={28} className="text-teal-600 mb-2" />
+          <p className="text-sm font-semibold text-teal-800">
+            {t("chat.upload.dropHere", langCode) || "Drop files here to attach"}
+          </p>
+          <p className="text-[11px] text-teal-600/80 mt-1">
+            {t("chat.upload.dropHint", langCode) || `Test results or photos · up to ${MAX_ATTACHMENTS} files`}
+          </p>
+        </div>
+      )}
       {restoring ? (
         <div className="flex-1 flex items-center justify-center text-gray-400 text-sm">
           <Loader2 size={20} className="animate-spin mr-2" />

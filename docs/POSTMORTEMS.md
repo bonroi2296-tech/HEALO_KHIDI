@@ -8,6 +8,48 @@
 
 ---
 
+## #48 — RAG 검색이 100% 고장: 모든 AI 응답이 지식베이스 없이 나가고 있었음 (2026-06-29)
+
+**무슨 일**
+- 실DB 점검 결과 AI 챗 응답 **371개 전부 RAG 청크 0개**(rag_chunks_used=0), `rag_documents`·`rag_chunks` = **0개**. 자랑하던 3-Tier RAG의 검증 지식 층이 통째로 비어, AI가 병원·치료 검증 데이터 없이 맨몸 모델로만 답하고 있었음.
+- 원인이 **두 겹**이었다:
+  1. **적재(ingest) 깨짐**: `src/lib/rag/ingest.ts` 가 `rag_chunks` 의 없는 컬럼 `embedded_at`·`embedding_model` 에 insert 시도 → PGRST204 로 적재가 통째 실패 → 지식베이스가 영원히 비어 있었음.
+  2. **검색 RPC 깨짐**: `rag_search_chunks_v1_1` 의 반환 컬럼 `doc_source_id` 가 `uuid` 로 선언됐으나 `rag_documents.source_id` 는 `text` → 실행 시 "structure of query does not match function result type" 로 항상 실패. generateReply 의 catch 가 빈 배열로 폴백 → 설령 데이터가 있어도 검색이 무력화.
+
+**왜 못 잡았나 (근본원인)**
+- **코드↔DB 스키마 드리프트**가 조용히 누적: 적재/검색이 실패해도 앱은 빈 결과로 폴백(graceful)하게 짜여 있어 **에러가 사용자/PO 화면에 안 보임** → "RAG 됨"으로 착각. 빌드·테스트는 통과(스키마 불일치는 런타임에만 터짐).
+- 관측 부재: `rag_chunks_used=0` 가 매 응답 metadata 에 찍히고 있었는데 **아무도 집계해서 안 봄**. 지표가 있는데 경보가 없었다.
+
+**어떻게 고쳤나**
+- ingest.ts: 부기정보(`embedding_model`·`embedded_at`)를 전용 컬럼 대신 `metadata`(jsonb)에 보관하도록 수정 → 적재 정상화.
+- RPC: 반환타입 `doc_source_id` 를 `text` 로 정정(DROP 후 재생성). `migrations/20260629_fix_rag_search_v1_1_source_id_type.sql`.
+- 검증 데이터 적재: `ingestSources(["treatment","hospital"])` 로 16문서/22청크 + 임베딩 생성. 제휴 데이터 `trust_tier=2`(Partner-verified)로 정정.
+- end-to-end 확인: 샘플 질문(ko/en/ru) 임베딩 → RPC 호출 → 청크 4개 정상 반환 확인.
+
+**재발 방지**
+- **관측 경보 후보**: 최근 N개 응답의 `rag_chunks_used` 평균이 0이면(=RAG 사실상 죽음) 경보. "지표는 찍히는데 아무도 안 보는" 패턴을 닫는다.
+- **스키마 드리프트 가드 후보**: `scripts/check-schema-refs.mjs`(이미 존재)를 CI에 물려 코드가 참조하는 컬럼/RPC 반환타입이 실제 스키마와 맞는지 검사. 적재/RPC 실패를 빌드 단계에서 잡는다.
+- 데이터 위생(별도): RAG에 "TEST 병원" 등 테스트 데이터가 섞여 검색에 노출됨 → #47에서 원천 차단(is_published 필터).
+
+---
+
+## #47 — 미게시·TEST 데이터가 RAG 검색으로 환자에게 노출 (ingest 가 is_published 필터 누락) (2026-06-29)
+
+**무슨 일**
+- 공개 페이지(병원목록·치료목록·dbSearch)는 전부 `is_published=true`만 보여주는데, RAG 적재(`ingest.ts`)만 필터 없이 전부 끌어옴 → "TEST 병원 (국내 의료기관)" 더미 + 미게시 치료 초안이 AI 챗 검색 인덱스에 들어가 환자에게 노출됨.
+
+**근본원인**
+- 적재 경로가 공개 가시성 규칙(`is_published`)을 안 따름. 사이트의 모든 공개 경로는 필터하는데 RAG ingest만 빠진 유일한 누락 경로. (병렬 세션 PR #438이 발견.)
+
+**어떻게 고쳤나**
+- `ingest.ts` treatment·hospital fetch 에 `.eq("is_published", true)` 추가 → 공개 페이지와 동일 가시성. 미게시·TEST는 애초에 적재 불가(재발방지 가드). PR #431이 #438의 코드 수정을 흡수.
+- 라이브 정리: TEST 병원 소프트삭제 + 미게시 소스 RAG 잔재(문서 4건+청크) 제거(병렬 세션이 적용 완료).
+
+**재발 방지**
+- 교훈: **RAG 적재는 공개 페이지와 동일한 가시성 필터(`is_published`)를 반드시 따른다.** 새 소스 타입 추가 시 공개 플래그 확인.
+
+---
+
 ## #46 — 문의 완료 화면이 "매칭 정확도 90%"라는 근거 없는 수치를 주장 (2026-06-29)
 
 **무슨 일**

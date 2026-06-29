@@ -7,6 +7,47 @@
 
 ---
 
+## 🔖 세션 핸드오프 (2026-06-29 밤 — AI Agent 대개선: 첨부 1차소견·진료의뢰패킷·전환집계 구멍·RAG 완전수리·카자흐어 혼동 → 실서비스 머지)
+
+> PO가 "AI agent 기능 개선"으로 시작 → 별도 워크트리(`HEALO_worktrees/ai-agent`, 브랜치 `work/ai-agent`)에서 작업. 표면은 "개선"이었지만 파보니 **숨은 큰 고장 3개**(전환 집계 누락·RAG 100% 고장·비영어 RAG 무력)를 발견·수리. PR [#431](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/431)에 모아 PO 프리뷰 검토 후 **실서비스 머지**. (병렬 TEST데이터 세션 [#438]의 `is_published` 가드를 흡수 — 같은 파일 충돌 정리.)
+
+**1. 이번 세션 한 일 (PR #431)**
+- **첨부 의료자료 1차 소견(triage) 신설** — 검사지·사진 올리면 멀티모달 판독 → ①환자용 예비 1차소견 즉시(강한 면책+"AI작성·검토예정", **문단 쪼개기 포맷**) ②의료진용 진료의뢰 패킷 ③어드민 「AI 대화·환자자료」 의사 "검수완료/정정해서 보내기". 파일: `src/lib/chat/triage.ts`(신규)·`api/public/chat/stream`·`api/admin/chat/.../messages`(PATCH)·`app/admin/chat/page.jsx`·`manuals`.
+- **드래그앤드랍 업로드** — `app/inquiry/ThreadChat.jsx` + i18n 6개어.
+- **전환 구멍 수리** — AI 챗 리드가 `inquiries`로 승격 안 돼 KHIDI 유치 대시보드에 0으로 안 잡히던 것 → `createDraftIntake`(3턴+)에서 1회 승격(`source='ai_agent'`, dedup `chat_threads.inquiry_id`). `publicChatHelpers.ts`.
+- **RAG 완전 수리(2겹 버그 + 1)** — ①ingest가 없는 컬럼(`embedded_at`) insert→적재 실패 ②검색 RPC `doc_source_id uuid≠text`→검색 항상 실패. + 적재문서 전부 `lang='en'`이라 ko/ru/kz가 0청크(`p_lang` 해제로 다국어 임베딩 교차검색). + `is_published` 필터(미게시·TEST 노출 차단, #438 흡수). 검증데이터 적재(13문서/18청크). `ingest.ts`·`generateReply.ts`·`migrations/20260629_fix_rag_search_v1_1_source_id_type.sql`·`scripts/seed-rag-once.mjs`. POSTMORTEMS #47·#48.
+- **카자흐어↔러시아어 혼동 방지** — `buildSystemPrompt`에 `outputLang` + "카자흐어≠러시아어" 명시. `generateReply.ts`·`externalSearch.ts`(타임아웃 3s→2s).
+
+**2. 왜 그렇게 했는지**
+- **1차소견 = 의료 레드라인 일부 완화**: 원래 "판독 안 함"이었으나 PO가 KHIDI 사전상담 'ICT 진료의뢰' 요건 근거로 원함. 절충: AI는 비임상 오리엔테이션+요약, 임상소견은 강한 면책+사후 의사검수. PO 결정 **즉시 노출 + 사후 검수**.
+- **RAG 언어필터 해제**: 임베딩이 다국어라 필터만 끄면 즉시 6개어 작동(가장 값싼 해결). 다국어 적재 시 '같은 언어 우선' 재검토(주석 명시).
+- **#438 흡수**: 두 세션이 `ingest.ts`·`seed-rag-once.mjs` 동시 수정(충돌). #438의 `is_published` 한 줄을 #431에 흡수해 한 번에 머지, #438은 중복으로 닫음(라이브 데이터 정리는 #438이 이미 적용).
+
+**3. 안 끝났거나 보류**
+- **TEST 더미 RAG 노출** — 라이브 정리·코드 가드 다 완료(#438+#431). 남은 위생은 없음.
+- **프롬프트 미세개선** — RAG가 진짜 병목이라 우선 해결. 톤 추가 손질은 여력될 때.
+- **재적재 자동화 없음** — 병원·치료 데이터 바뀌면 수동 재적재 필요(4번 참고).
+
+**4. 주의·함정**
+- **프로덕션 DB 이미 변경됨**: RAG 데이터 적재·검색 RPC 재정의·`trust_tier=2`·TEST 소프트삭제. 코드 머지와 별개로 DB는 선반영(무해, 추가형).
+- **워크트리 스크립트 실행**: node_modules는 메인 폴더로 junction, env는 절대경로 `C:/Users/user/Desktop/HEALO_KHIDI/.env.local`. `server-only` 모듈은 `node --conditions=react-server --import tsx ...`.
+- **로컬 `generateChatReply` 직접 호출 시 prod judge가 돌아 코디에 실제 알림** — 테스트 주의(프로브는 삭제함).
+- **RAG 재적재**: `node --conditions=react-server --import tsx scripts/seed-rag-once.mjs`.
+- **"RAG 검색 0건" 오진 주의**: 검색 테스트 시 질문 임베딩 차원을 **768로 고정**(`outputDimensionality:768`). 안 하면 기본 3072차원이라 저장된 768과 안 맞아 조용히 0건 나옴(병렬 세션이 이걸로 오진함).
+
+**5. 다음 세션이 먼저 할 일**
+1. **⚠️ 직전 미검증분 먼저 실서비스에서 확인(머지·배포 후):** ①AI 챗 **파일 드래그앤드랍** ②자료 업로드→**1차소견**(문단 쪼개짐+면책) ③어드민 **진료의뢰 패킷·검수버튼** ④ru/kz로 질문→그 언어로 답 ⑤3턴+ 대화 후 `/admin/khidi/conversion`에 문의 잡힘.
+2. **#438 닫기** — #431에 흡수됐으니 superseded로 닫기(그쿨 세션과 조율).
+3. (여력) POSTMORTEMS #48 재발방지: "rag_chunks_used 평균 0이면 경보" + 스키마 드리프트 CI 가드.
+
+**6. 검증 상태**
+- ✅ `next build --webpack`·`check:content` 통과(매 변경). ✅ 실DB: 적재 13/18·검색 RPC end-to-end(ko/en/ru 4청크 **재확인**, prod 직접 찍음)·inquiries insert·멀티모달 계약. ✅ 1차소견 포맷(문단 분리) 실 gemini 출력 확인.
+- ⚠️ PR #431 머지 시점 CI: 머지 직전 확인할 것. main 충돌은 이 세션에서 해소.
+- ❌ **검증 못 함(실서비스 클릭 필요)**: 브라우저 드래그앤드랍·업로드→소견 end-to-end·어드민 검수버튼·ru/kz 실응답·전환 집계 화면 — 로그인·DB 필요해 자동검증 불가. (PO가 프리뷰에선 1차소견 뜨는 것·포맷은 눈으로 확인함.)
+
+**7. 다음 세션 첫 프롬프트**
+> 먼저 `docs/PROJECT_CONTEXT.md` 최상단(2026-06-29 밤 AI Agent 블록) 읽어. AI Agent 대개선(1차소견·진료의뢰패킷·전환집계·RAG수리·카자흐어)을 실서비스에 머지·배포했어. **실서비스에서 검증**해줘: ①AI 챗 파일 드래그앤드랍 ②자료 업로드→1차소견(문단 쪼개짐+면책) ③어드민 진료의뢰 패킷·검수버튼 ④ru/kz로 질문 시 그 언어로 답 ⑤3턴 대화 후 유치 전환 대시보드에 문의 잡힘. 그리고 PR #438이 #431에 흡수됐으니 닫을지 그쿨 세션과 조율.
+
 ## 🔖 세션 핸드오프 (2026-06-29 저녁 — 메일·알림 버그 클러스터 + 텔레그램 알림 + 거짓수치 카피 제거)
 
 > "핸드오프 읽어봐"로 시작 → GDPR 잔여 이어가다, PO가 메일/시각/카피 문제를 화면에서 연달아 지적 → **문의 알림 메일·알림 시각·유도 카피를 통째로 손봄**. 전부 작은 PR로 쪼개 머지·배포. (같은 2026-06-29의 컴플라이언스 세션[#433·#436]·AI PII 마스킹 세션[#425]과 별개 — 영역만 다름. 중복 없음.)
