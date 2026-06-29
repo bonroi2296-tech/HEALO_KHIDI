@@ -16,7 +16,7 @@ export const runtime = "nodejs";
 
 import { supabaseAdmin, assertSupabaseEnv } from "@/lib/rag/supabaseAdmin";
 import { encryptPiiInObject } from "@/lib/security/piiJson";
-import { NextRequest } from "next/server";
+import { NextRequest, after } from "next/server";
 import { checkRateLimitPersistent, getClientIp, RATE_LIMITS, getRateLimitHeaders } from "@/lib/rateLimit";
 import { logRateLimitExceeded, logEncryptionFailed, logInquiryReceived, logInquiryFailed } from "@/lib/operationalLog";
 import { trackFunnelEvent } from "@/lib/events/funnelTracking";
@@ -188,7 +188,8 @@ export async function POST(request: NextRequest) {
 
     // ✅ P4.1: 관리자 알림 (fail-safe: 알림 실패해도 메인 로직 영향 없음)
     // 최신 inquiry 정보 조회하여 알림
-    sendAdminNotification({
+    // after(): 응답 후에도 함수를 살려 이메일 발송이 잘리지 않게 (서버리스 freeze 방지)
+    after(() => sendAdminNotification({
       inquiryId,
       nationality: row.nationality ?? undefined,
       treatmentType: row.treatment_type ?? undefined,
@@ -199,7 +200,7 @@ export async function POST(request: NextRequest) {
     }).catch((err) => {
       // 에러 무시 (메인 로직 보호)
       console.error('[intake] Admin notification failed (ignored):', err);
-    });
+    }));
 
     return Response.json({ ok: true });
   } catch (error: any) {
