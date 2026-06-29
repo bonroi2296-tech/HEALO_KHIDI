@@ -46,9 +46,9 @@ const jsonLd = {
   "@type": "MedicalWebPage",
   name: "Cost of cancer treatment in Korea — healwith calculator",
   description: "Estimate the cost of cancer treatment in South Korea for patients from Russia, Kazakhstan and CIS.",
-  url: "https://khidi.healo.kr/cost-calculator",
+  url: "https://healwith.co.kr/cost-calculator",
   about: { "@type": "MedicalCondition", name: "Cancer", alternateName: "Онкология" },
-  provider: { "@type": "Organization", name: "healwith", url: "https://khidi.healo.kr" },
+  provider: { "@type": "Organization", name: "healwith", url: "https://healwith.co.kr" },
 };
 
 export default function CostCalculatorPage() {

@@ -23,6 +23,7 @@ import {
   logPlaybookUsage,
 } from "@/lib/chat/generateReply";
 import { generateTriage } from "@/lib/chat/triage";
+import { scanRedlines, redlineCorrectionNotice } from "@/lib/chat/safetyGuard";
 import {
   INTAKE_EVERY_N_TURNS,
   ATTACHMENT_ACK,
@@ -134,6 +135,7 @@ export async function POST(request: NextRequest) {
   const handOff = detectHandOff(trimmedMsg);
   const escalate = handOff.requested || hasAttachments;
   const escalateReason = handOff.reason || (hasAttachments ? "attachment_uploaded" : null);
+  let bellRung = false; // 이 요청에서 코디 종이 이미 울렸는지(레드라인 적발 시 중복 호출 방지)
 
   const threadMeta: any =
     thread.metadata && typeof thread.metadata === "object" && !Array.isArray(thread.metadata)
@@ -160,9 +162,12 @@ export async function POST(request: NextRequest) {
       try {
         const { notifyStaffChatHandoff } = await import("@/lib/notifications/inApp");
         await notifyStaffChatHandoff({ threadId: thread_id, reason: escalateReason });
+        bellRung = true;
       } catch (e: any) {
         console.warn("[chat/stream] handoff bell 실패(무시):", e?.message);
       }
+    } else {
+      bellRung = true;
     }
   }
 
@@ -247,6 +252,30 @@ export async function POST(request: NextRequest) {
           finalReply += piece;
         }
 
+        // 🚨 송출 후 레드라인 최종 점검 — 스트림은 원시 텍스트 append라 이미 흘러간 답변을
+        //    취소할 수 없다. 따라서 critical(완치·약물·예후 단정) 적발 시:
+        //    ① 환자 말풍선에 즉시 정정·코디연결 안내를 덧붙이고
+        //    ② 비동기 judge 를 기다리지 않고 코디 종을 즉시 울린다(이미 울렸으면 생략)
+        //    ③ 기록에 redline 플래그 + 의사 검수 대기로 남긴다.
+        let redlineFlags: string[] | null = null;
+        const redscan = scanRedlines(finalReply);
+        if (redscan.critical) {
+          redlineFlags = redscan.flags;
+          console.warn(`[chat/stream] REDLINE detected: ${redscan.flags.join(",")} thread=${thread_id}`);
+          const notice = "\n\n" + redlineCorrectionNotice(lang);
+          enqueue(notice);
+          finalReply += notice;
+          if (!bellRung) {
+            try {
+              const { notifyStaffChatHandoff } = await import("@/lib/notifications/inApp");
+              await notifyStaffChatHandoff({ threadId: thread_id, reason: "ai_redline" });
+              bellRung = true;
+            } catch (e: any) {
+              console.warn("[chat/stream] redline bell 실패(무시):", e?.message);
+            }
+          }
+        }
+
         // 4) system 메시지 저장 + playbook 로그(스트림 닫기 전에 완료).
         const { data: aiMsg, error: aiInsertErr } = await (supabaseAdmin as any)
           .from("chat_messages")
@@ -257,12 +286,14 @@ export async function POST(request: NextRequest) {
             metadata: {
               model: getModelName(),
               rag_chunks_used: ragChunksLen,
-              hand_off: escalate ? escalateReason : null,
+              hand_off: escalate || redlineFlags ? (redlineFlags ? "ai_redline" : escalateReason) : null,
               streamed: true,
               // 첨부를 못 읽어 접수안내로 폴백한 경우만 비답변 처리(모델 히스토리 제외). 실제 1차 소견은 답변으로 보존.
               ...(hasAttachments && usedAckFallback ? { attachment_ack: true } : {}),
               // 진료의뢰 패킷 + 의사 검수 대기 플래그(Phase 2·3 에서 어드민이 읽어 검수).
               ...(triagePacket ? { triage: { packet: triagePacket, needs_doctor_review: true, reviewed: false } } : {}),
+              // critical 레드라인 적발 — 어드민/코디 검수 큐에서 우선 확인.
+              ...(redlineFlags ? { redline: redlineFlags, needs_doctor_review: true } : {}),
               ...(aiError ? { ai_error: aiError } : {}),
             },
           })

@@ -8,6 +8,43 @@
 
 ---
 
+## #50 — AI 안전가드가 환자 답변을 "막지" 못하고 사후 점수만 매김 + 1차소견 PII 미마스킹 (2026-06-29 오픈 전 전수조사)
+
+**무슨 일**
+- 결정적(deterministic) 의료 레드라인 가드 `scanRedlines`(완치·약물용량·예후수치 단정 탐지)가 **judge.ts(비동기 fire-and-forget)와 오프라인 벤치에서만** 호출되고 있었음. 라이브 송출 경로(`public/chat/stream`·`generateChatReply`)엔 호출이 없어서, AI가 "이 치료로 90% 완치됩니다" 같은 단정을 내면 **환자는 이미 읽은 뒤** judge 가 코디에게 경보만 보냄(노출 차단 0). 문서(`AI_QUALITY_ASSURANCE.md`)는 "라이브 매 응답(판사 이전)"이라 적었지만 실제 코드는 그렇지 않았음 = 정책↔코드 갭.
+- 부수: Gemini 안전필터가 전부 `BLOCK_NONE`이라(의료 오탐 회피·의도됨) 환자 노출 텍스트의 실질 안전선이 시스템 프롬프트 한 겹뿐이었음.
+- 부수2: 채팅 경로는 Gemini 전송 전 `redactModelPii`로 PII 마스킹(#425)했는데 **1차소견(triage) 경로는 환자 자유텍스트를 원문 그대로** Gemini 에 보냄(비대칭).
+
+**왜 못 잡았나 (근본원인)**
+- "가드가 있다"는 사실에 안심하고 **어디서 호출되는지(차단 시점)**를 검증하지 않음. 0층 가드를 만들 때 judge 안에 둔 게 자연스러웠으나 judge 자체가 비차단이라 송출 게이트 역할을 못 했음.
+- 스트리밍이 원시 텍스트 append 구조라 "이미 보낸 토큰은 취소 불가"라는 제약이 차단 설계를 어렵게 만들어 방치됨.
+
+**어떻게 고쳤나**
+- `safetyGuard.ts`에 환자 노출 6개어 문구 추가: `safeDeferralMessage`(비스트리밍 — 위험답변 통째 대체) / `redlineCorrectionNotice`(스트리밍 — 답변 뒤 즉시 정정·코디연결).
+- 비스트리밍 `generateChatReply`: 최종 reply 조립 후 `scanRedlines` → critical 이면 안전 대체문구로 **통째 교체(노출 0)** + `redlineBlocked` 플래그.
+- 스트리밍 `stream/route.ts`: 송출 후 `finalReply` 스캔 → critical 이면 ①정정 안내 append ②**비동기 judge 안 기다리고 코디 종 즉시 호출**(이미 울렸으면 생략) ③메시지 metadata 에 `redline`+`needs_doctor_review`. triage 출력도 같은 경로라 함께 스캔됨.
+- triage.ts: `messageText`에 `redactModelPii` 적용(채팅 경로와 동등). 첨부 파일 자체는 판독에 필요해 불가피.
+
+**재발 방지**
+- 송출 게이트는 이제 라이브 경로 안에 있음(judge 의존 탈피). 후속 권장(문서화): `rag_chunks_used=0`/redline 적발률을 집계해 경보(지표는 있는데 경보가 없던 #48 교훈과 동일).
+
+---
+
+## #49 — 고객이 받는 메일·링크에 옛 배포 도메인 잔재(healo-khidi.vercel.app·khidi.healo.kr) (2026-06-29 오픈 전 전수조사)
+
+**무슨 일**
+- 모든 거래메일 푸터 링크가 옛 주소 `healo-khidi.vercel.app`(`src/emails/shared.jsx`), survey 토큰·리마인더 크론의 base URL 폴백도 동일, `.env.example`의 `NEXT_PUBLIC_SITE_URL`은 또 다른 옛 주소 `khidi.healo.kr`. `NEXT_PUBLIC_SITE_URL`이 비면 환자가 받는 메일·설문·캘린더 링크가 죽은 도메인을 가리켜 404.
+- `app/api/email/preview`·`/design-preview`·`/dev/cancer-preview` 같은 dev/내부 페이지가 prod 에서 200 으로 열려 있었음. 클라이언트 `console.log`에 로그인 사용자 이메일이 사이트 전역에서 찍히고 있었음.
+
+**왜 못 잡았나 (근본원인)**
+- `check:content`의 금지 도메인 룰이 `@healo.kr`(이메일)만 잡고 **링크/리터럴로 쓰인 옛 배포 도메인**은 안 걸렀음(주석에 "구멍" 명시돼 있었으나 미보완). NEXT_PUBLIC_SITE_URL 은 `check:env` 검사 대상도 아니라 잘못된 값이 조용히 통과.
+
+**어떻게 고쳤나**
+- 리터럴/폴백을 전부 `https://healwith.co.kr`로 교체. dev/내부 페이지에 `NODE_ENV==='production'` 가드. console.log 의 이메일 제거.
+- **가드 추가**: `check-content`에 `healo-khidi.vercel.app`·`khidi.healo.kr` 금지 룰(CORS allowlist 만 면제). `check-env`에 NEXT_PUBLIC_SITE_URL 옛도메인 값이면 에러.
+
+---
+
 ## #48 — RAG 검색이 100% 고장: 모든 AI 응답이 지식베이스 없이 나가고 있었음 (2026-06-29)
 
 **무슨 일**

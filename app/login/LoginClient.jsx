@@ -38,7 +38,6 @@ export const LoginPage = ({ setView }) => {
             toast.error(t("login.error", langCode));
             setLoading(false);
         } else {
-            console.log("Logged in:", data.user.email);
             toast.success(t("login.successPrefix", langCode) + data.user.email + "!");
             
             try {

@@ -2,6 +2,17 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useLang } from "@/lib/i18n/LangContext";
+
+// 원시 err.message 노출 금지 — 6개어 일반 실패 안내(보안+UX)
+const FAIL_MSG = {
+  ko: "요청 처리에 실패했습니다. 다시 시도해 주세요.",
+  en: "The request failed. Please try again.",
+  ru: "Не удалось выполнить запрос. Попробуйте ещё раз.",
+  kz: "Сұрауды орындау мүмкін болмады. Қайталап көріңіз.",
+  zh: "请求失败，请重试。",
+  ja: "リクエストに失敗しました。もう一度お試しください。",
+};
 
 const STATUS_LABELS = {
   draft: { ko: "작성 중", color: "bg-gray-100 text-gray-700" },
@@ -37,6 +48,7 @@ const DOCUMENT_TYPES = [
 ];
 
 export default function VisaApplicationDetailClient({ applicationId }) {
+  const failMsg = FAIL_MSG[useLang()] || FAIL_MSG.en;
   const [application, setApplication] = useState(null);
   const [documents, setDocuments] = useState([]);
   const [_role, setRole] = useState(null);
@@ -80,7 +92,8 @@ export default function VisaApplicationDetailClient({ applicationId }) {
         }
       }
     } catch (err) {
-      setError(err.message);
+      console.error("[patient/visa/detail]", err);
+      setError(true);
     } finally {
       setLoading(false);
     }
@@ -112,8 +125,8 @@ export default function VisaApplicationDetailClient({ applicationId }) {
       }
       await loadAll();
       e.target.value = "";
-    } catch (err) {
-      alert("업로드 실패: " + err.message);
+    } catch (_err) {
+      alert(failMsg);
     } finally {
       setUploading(false);
     }
@@ -136,8 +149,8 @@ export default function VisaApplicationDetailClient({ applicationId }) {
         throw new Error(json.error || json.detail || "failed");
       }
       await loadAll();
-    } catch (err) {
-      alert("제출 실패: " + err.message);
+    } catch (_err) {
+      alert(failMsg);
     }
   }
 
@@ -151,8 +164,8 @@ export default function VisaApplicationDetailClient({ applicationId }) {
       const json = await res.json();
       if (!res.ok || !json.ok) throw new Error(json.error || "delete_failed");
       await loadAll();
-    } catch (err) {
-      alert("삭제 실패: " + err.message);
+    } catch (_err) {
+      alert(failMsg);
     }
   }
 
@@ -162,7 +175,7 @@ export default function VisaApplicationDetailClient({ applicationId }) {
   if (error || !application) {
     return (
       <div className="max-w-4xl mx-auto px-4 py-10">
-        <p className="text-red-600 text-sm">오류: {error}</p>
+        <p className="text-red-600 text-sm">{failMsg}</p>
         <Link href="/patient/visa/applications" className="text-sm underline mt-4 inline-block">
           ← 목록으로
         </Link>
