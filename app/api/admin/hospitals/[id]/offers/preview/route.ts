@@ -7,7 +7,7 @@
 export const runtime = "nodejs";
 export const maxDuration = 10;
 
-import { NextRequest } from "next/server";
+import { NextRequest, after } from "next/server";
 import { supabaseAdmin, assertSupabaseEnv } from "@/lib/rag/supabaseAdmin";
 import { requireAdminAuth } from "@/lib/auth/requireAdminAuth";
 
@@ -68,11 +68,11 @@ export async function POST(
 
   if (existing) {
     const origin = new URL(request.url).origin;
-    fetch(`${origin}/api/admin/offers-jobs/process`, {
+    after(() => fetch(`${origin}/api/admin/offers-jobs/process`, {
       method: "POST",
       headers: { "Content-Type": "application/json", Cookie: request.headers.get("cookie") ?? "" },
       body: JSON.stringify({ job_id: existing.id }),
-    }).catch(() => {});
+    }).catch(() => {}));
     return Response.json({
       ok: true,
       job_id: existing.id,
@@ -99,11 +99,11 @@ export async function POST(
   }
 
   const origin = new URL(request.url).origin;
-  fetch(`${origin}/api/admin/offers-jobs/process`, {
+  after(() => fetch(`${origin}/api/admin/offers-jobs/process`, {
     method: "POST",
     headers: { "Content-Type": "application/json", Cookie: request.headers.get("cookie") ?? "" },
     body: JSON.stringify({ job_id: newJob.id }),
-  }).catch(() => {});
+  }).catch(() => {}));
 
   return Response.json({
     ok: true,

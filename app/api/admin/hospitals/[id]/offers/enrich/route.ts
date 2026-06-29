@@ -3,7 +3,7 @@
  * Job 생성(queued) 후 즉시 반환. (재실행 또는 preview 없이 enrich만 시작할 때 사용)
  */
 
-import { NextRequest } from "next/server";
+import { NextRequest, after } from "next/server";
 import { supabaseAdmin, assertSupabaseEnv } from "@/lib/rag/supabaseAdmin";
 import { requireAdminAuth } from "@/lib/auth/requireAdminAuth";
 
@@ -38,11 +38,11 @@ export async function POST(
   }
 
   const origin = new URL(request.url).origin;
-  fetch(`${origin}/api/admin/offers-enrich/process`, {
+  after(() => fetch(`${origin}/api/admin/offers-enrich/process`, {
     method: "POST",
     headers: { "Content-Type": "application/json", Cookie: request.headers.get("cookie") ?? "" },
     body: JSON.stringify({ job_id: newJob.id }),
-  }).catch(() => {});
+  }).catch(() => {}));
 
   return Response.json({
     ok: true,
