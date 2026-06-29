@@ -159,6 +159,7 @@ const SECTION_COPY = {
     compEyebrow: "수술 후 주요 합병증",
     compTitle: "수술 후 나타날 수 있는 합병증과 관리",
     itcrnTitle: "5축 통합 면역 치료",
+    itcrnEyebrow: "ITCRN 5축 치료체계",
     itcrnFocus: "특화 프로그램",
     therapyEyebrow: "주요 치료 프로그램",
     therapyTitle: "이 암종에 특화된 치료 접근법",
@@ -178,6 +179,7 @@ const SECTION_COPY = {
     compEyebrow: "Post-surgical complications",
     compTitle: "Complications that can follow surgery, and how we manage them",
     itcrnTitle: "5-axis integrative immune care",
+    itcrnEyebrow: "ITCRN Framework",
     itcrnFocus: "Focus programs",
     therapyEyebrow: "Key treatment programs",
     therapyTitle: "Treatment approaches tailored to this cancer type",
@@ -197,6 +199,7 @@ const SECTION_COPY = {
     compEyebrow: "Послеоперационные осложнения",
     compTitle: "Возможные осложнения после операции и их ведение",
     itcrnTitle: "5-осевая интегративная иммунотерапия",
+    itcrnEyebrow: "Система ITCRN",
     itcrnFocus: "Профильные программы",
     therapyEyebrow: "Ключевые программы лечения",
     therapyTitle: "Подходы к лечению, адаптированные под этот тип рака",
@@ -216,6 +219,7 @@ const SECTION_COPY = {
     compEyebrow: "Операциядан кейінгі асқынулар",
     compTitle: "Операциядан кейін мүмкін асқынулар және оларды басқару",
     itcrnTitle: "5 осьті интегративті иммунотерапия",
+    itcrnEyebrow: "ITCRN жүйесі",
     itcrnFocus: "Профильді бағдарламалар",
     therapyEyebrow: "Негізгі емдеу бағдарламалары",
     therapyTitle: "Осы обыр түріне бейімделген емдеу тәсілдері",
@@ -235,6 +239,7 @@ const SECTION_COPY = {
     compEyebrow: "术后主要并发症",
     compTitle: "术后可能出现的并发症及其管理",
     itcrnTitle: "五轴整合免疫治疗",
+    itcrnEyebrow: "ITCRN 体系",
     itcrnFocus: "专项项目",
     therapyEyebrow: "主要治疗项目",
     therapyTitle: "针对该癌症类型的治疗方案",
@@ -254,6 +259,7 @@ const SECTION_COPY = {
     compEyebrow: "術後の主な合併症",
     compTitle: "手術後に起こりうる合併症とその管理",
     itcrnTitle: "5軸統合免疫治療",
+    itcrnEyebrow: "ITCRNフレームワーク",
     itcrnFocus: "特化プログラム",
     therapyEyebrow: "主な治療プログラム",
     therapyTitle: "このがん種に特化した治療アプローチ",
@@ -431,7 +437,7 @@ export default function CancerDetailClient({ slug }) {
       {/* ── 3. ITCRN 5축 치료 ───────────────────────── */}
       <section className="max-w-4xl mx-auto px-4 py-12 md:py-16">
         <span className="inline-block text-xs font-bold tracking-wide text-teal-700 bg-teal-50 border border-teal-100 rounded-full px-3 py-1 mb-4">
-          ITCRN Framework
+          {s.itcrnEyebrow}
         </span>
         <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-3 leading-tight">
           {s.itcrnTitle}

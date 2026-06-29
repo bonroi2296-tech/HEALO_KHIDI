@@ -214,7 +214,7 @@ export const Header = ({ setView, view, _handleGlobalInquiry, isMobileMenuOpen, 
               <button
                 onClick={() => setIsLangOpen(!isLangOpen)}
                 data-testid="lang-switcher"
-                aria-label="Change language"
+                aria-label={t("a11y.changeLanguage", langCode)}
                 className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full text-slate-600 hover:text-teal-700 hover:bg-teal-200/70 transition-all notranslate"
               >
                 <Globe size={15} />
@@ -348,7 +348,7 @@ export const Header = ({ setView, view, _handleGlobalInquiry, isMobileMenuOpen, 
 
               {/* Navigation */}
               <div className="px-5 py-3">
-                <div className="text-[10px] uppercase tracking-widest text-gray-400 font-semibold mb-2 px-1">Menu</div>
+                <div className="text-[10px] uppercase tracking-widest text-gray-400 font-semibold mb-2 px-1">{t("nav.menu", langCode)}</div>
                 <a href="/telemedicine" onClick={() => setIsMobileMenuOpen(false)} className="w-full text-left py-3 px-3 rounded-lg text-sm font-medium flex items-center justify-between transition-colors min-h-[44px] text-gray-700 hover:bg-gray-50">
                   <span className="flex items-center gap-2.5"><Video size={16} className="text-teal-700 shrink-0" /> {t("nav.telemedicine", langCode)} <span className="text-[9px] font-extrabold bg-teal-100 text-teal-700 px-1.5 py-0.5 rounded-full leading-none">NEW</span></span>
                   <ArrowRight size={14} className="text-gray-300 shrink-0" />
@@ -377,7 +377,7 @@ export const Header = ({ setView, view, _handleGlobalInquiry, isMobileMenuOpen, 
 
               {/* Language — UI+콘텐츠 둘 다 지원하는 4개만 노출 */}
               <div className="px-5 py-3 border-t border-gray-100">
-                <div className="text-[10px] uppercase tracking-widest text-gray-400 font-semibold mb-2 px-1">Language</div>
+                <div className="text-[10px] uppercase tracking-widest text-gray-400 font-semibold mb-2 px-1">{t("nav.language", langCode)}</div>
                 <div className="grid grid-cols-2 gap-1.5 notranslate">
                   {LANG_OPTIONS_PRIMARY.map((lang) => (
                     <button
