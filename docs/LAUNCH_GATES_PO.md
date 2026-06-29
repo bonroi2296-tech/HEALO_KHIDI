@@ -33,14 +33,14 @@
 
 | # | 관문 | 누가 | 상태 |
 |---|------|------|------|
-| 12 | 🔴 **도메인 `healwith.co.kr` 등록·Vercel 연결** — 앱 셸이 이 주소를 로드. 미등록(죽은주소)이라 지금 제출하면 빈 화면 = **앱 등록의 1순위 선결** | PO | `docs/DOMAIN_CUTOVER_healwith.md` |
+| 12 | ✅ **도메인 `healwith.co.kr` 등록·Vercel 연결** — 앱 셸이 이 주소를 로드. **2026-06-29 라이브 확인됨**(HTTP 200, 우리 앱 서빙, `/privacy` 200). `DOMAIN_CUTOVER` 문서는 6/18자라 낡음 | PO | ✅ 완료 |
 | 13 | 🔴 **애플 개발자 $99/년 + 구글 플레이 $25 결제** + App ID·앱 생성(`kr.co.healwith.app`) | PO | 미결제 |
 | 14 | 🔴 **Firebase 설정파일 커밋** — `android/app/google-services.json`·`ios/App/App/GoogleService-Info.plist` + iOS APNs `.p8` 업로드 (없으면 푸시 무동작) | PO | 미설정 |
 | 15 | 🟡 **Vercel env 2개**(서버 푸시 발송) — `FCM_PROJECT_ID`·`GOOGLE_SERVICE_ACCOUNT_JSON` → `/api/push/test`로 실기기 수신 확인 | PO 콘솔 | 미설정 |
 | 16 | 🟡 **스크린샷·앱아이콘·데이터안전(라벨) 설문** — iOS 6.7"/6.5", Android 폰+피처그래픽 1024×500, 수집항목 신고 | PO | `APP_STORE_LISTING.md` 체크리스트 |
 | 17 | 🟡 **Codemagic UI 1회 세팅** — App Store Connect API키·Play 서비스계정·Android 키스토어 등록 → `ios-release`/`android-release` 워크플로 실행 → TestFlight/내부테스트 1회 후 심사 제출 | PO | `codemagic.yaml` 주석에 절차 |
 
-> **순서**: 12(도메인) → 13(결제·앱생성) → 14·15(푸시) → 16(에셋) → 17(빌드·제출). 12 안 되면 앱이 화면을 못 띄우니 **도메인이 진짜 1순위**.
+> **순서**: ~~12(도메인=완료)~~ → **13(결제·앱생성) → 14·15(푸시) → 16(에셋) → 17(빌드·제출)**. 도메인이 살아있으므로 실제 시작점은 **13(애플·구글 결제)**.
 > **애플 4.2 반려 주의**: 단순 웹뷰 래퍼는 반려됨 — 우리는 푸시알림+원격협진(카메라/마이크 영상)이라는 네이티브 가치가 있어 통과 근거 있음(제출 시 이 기능들 시연).
 
 ---
