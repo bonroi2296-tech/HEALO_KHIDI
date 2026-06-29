@@ -35,7 +35,7 @@ export async function POST(
       );
     }
 
-    const validLanguages = ["ru", "kz", "ko", "en"];
+    const validLanguages = ["ru", "kz", "ko", "en", "zh", "ja"];
     if (
       !validLanguages.includes(payload.sourceLanguage) ||
       !validLanguages.includes(payload.targetLanguage)
