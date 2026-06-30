@@ -21,6 +21,7 @@
     "check:env": "node scripts/check-env.js",
     "check:i18n": "node scripts/check-i18n-coverage.mjs",
     "check:legal": "node scripts/check-legal-parity.mjs",
+    "check:err-exposure": "node scripts/check-no-raw-error-exposure.mjs",
     "check:cancer-i18n": "node scripts/check-cancer-i18n.mjs",
     "check:handoff": "node scripts/check-handoff.mjs",
     "check:migrations": "node scripts/check-migration-idempotency.mjs",
