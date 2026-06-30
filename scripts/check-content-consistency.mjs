@@ -93,6 +93,31 @@ function isLangValidationEnum(line) {
   return /z\.enum\(/.test(line) && /["'](ko|ru|zh|ja)["']/.test(line);
 }
 
+// ── 1c) XSS: 무단 dangerouslySetInnerHTML 추가 차단 ─────────────────────────
+// 왜: dangerouslySetInnerHTML 로 '사용자 입력'을 렌더하면 XSS(세션탈취→PII) 직결.
+//     2026-06-30 C레벨 진단(CISO-4) 시 전수 감사 결과 현재 15곳은 전부 안전
+//     (JSON-LD 구조화데이터 = JSON.stringify(서버/어드민 객체), 또는 layout.jsx 의
+//     정적 부트스트랩 스크립트 — 공개 사용자 입력 렌더 0). 그 '감사된' 파일만 아래
+//     allowlist 에 둔다. 새 파일이 innerHTML 을 추가하면 CI 가 막아, 추가자가
+//     "사용자입력 아닌지" 감사 후 의식적으로 allowlist 에 올리게 강제한다(기계가 잡는다).
+//     매칭은 실제 JSX 사용(`dangerouslySetInnerHTML=`)만 — 단어가 든 주석은 오탐 제외.
+const XSS_INNERHTML_ALLOWLIST = new Set([
+  "app/page.jsx",
+  "app/layout.jsx",
+  "app/care-journey/page.jsx",
+  "app/cost-calculator/page.jsx",
+  "app/faq/page.jsx",
+  "app/kk/for-kazakh-patients/page.jsx",
+  "app/ru/for-russian-patients/page.jsx",
+  "app/treatments/[slug]/page.jsx",
+  "app/hospitals/[slug]/page.jsx",
+  "app/hospitals/immune/page.jsx",
+  "app/specialties/plastic-surgery/page.jsx",
+  "app/specialties/korean-medicine/KoreanMedicineClient.jsx",
+  "app/specialties/dermatology/page.jsx",
+  "app/specialties/dental/page.jsx",
+]);
+
 const errors = [];
 
 for (const file of SCAN_DIRS.flatMap(walk)) {
@@ -103,6 +128,9 @@ for (const file of SCAN_DIRS.flatMap(walk)) {
     }
     if (isLangValidationEnum(line) && /["']kk["']/.test(line) && !/["']kz["']/.test(line)) {
       errors.push(`[언어검증] ${file}:${i + 1} — z.enum 언어검증에 'kk' 만 있고 활성코드 'kz' 누락 → 카자흐어 문의 거부 (POSTMORTEMS #23). 'kz' 추가할 것(입력은 'kz', 이메일 템플릿만 경계에서 kz→kk)\n    ${line.trim().slice(0, 120)}`);
+    }
+    if (/dangerouslySetInnerHTML\s*=/.test(line) && !XSS_INNERHTML_ALLOWLIST.has(file.replace(/\\/g, "/"))) {
+      errors.push(`[XSS가드] ${file}:${i + 1} — 새 dangerouslySetInnerHTML. '사용자 입력'을 렌더하면 XSS 위험. JSON-LD/정적이라 안전함을 확인했으면 scripts/check-content-consistency.mjs 의 XSS_INNERHTML_ALLOWLIST 에 이 파일을 추가(=감사 완료 표시)하라. 사용자입력이면 React 노드/이스케이프로 바꿀 것.\n    ${line.trim().slice(0, 120)}`);
     }
   });
 }
