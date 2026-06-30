@@ -26,6 +26,7 @@ import {
   AccessToken,
   RoomConfiguration,
   RoomAgentDispatch,
+  RoomServiceClient,
 } from "livekit-server-sdk";
 import { verifyAndConsumeGuestToken } from "@/lib/auth/guestToken";
 import {
@@ -79,7 +80,7 @@ export async function POST(
       return Response.json({ ok: false, error: "invalid_json" }, { status: 400 });
     }
 
-    const { token, displayName } = body || {};
+    const { token, displayName, deviceId } = body || {};
 
     if (!token || typeof token !== "string") {
       return Response.json({ ok: false, error: "token_required" }, { status: 400 });
@@ -149,13 +150,31 @@ export async function POST(
     const canPublishData = true;
 
     // identity: 게스트는 audit 시 추적 가능하도록 tokenId 일부 포함.
-    // 입장마다 난수 suffix 추가 — 같은 링크를 두 기기에서 동시에 써도
-    // LiveKit 이 동일 참가자로 보고 한쪽을 끊지 않게 (재접속도 안전).
+    // 기기별 안정 ID(deviceId)가 오면 그걸 suffix 로 → 같은 기기로 재입장 시 identity 가 동일해
+    // LiveKit 이 옛 세션(유령)을 교체(+아래 removeParticipant 로 확실히 제거)한다. deviceId 가
+    // 없으면(구클라·localStorage 차단) 기존처럼 난수 suffix — 한 기기에서 여러 명이 같은 링크로
+    // 동시 입장하는 경우(공용 PC 등)도 깨지지 않는다. 서로 다른 기기는 항상 다른 identity.
     const identitySuffix = verification.tokenId!.slice(0, 8);
-    const joinNonce = randomBytes(3).toString("hex");
-    const identity = `guest-${role}-${identitySuffix}-${joinNonce}`;
+    const deviceSuffix =
+      typeof deviceId === "string" && /^[a-zA-Z0-9_-]{6,64}$/.test(deviceId)
+        ? deviceId.replace(/-/g, "").slice(0, 16)
+        : randomBytes(3).toString("hex");
+    const identity = `guest-${role}-${identitySuffix}-${deviceSuffix}`;
     const name =
       safeDisplayName || verification.inviteeName || `${role} guest`;
+
+    // 같은 기기의 옛 세션(유령) 선제 제거 — 폰 화면 끄고 컴으로 재입장하는 케이스 정리.
+    // identity 가 기기별로 안정적일 때만 의미가 있다(난수 suffix면 매칭될 게 없어 무해).
+    const lkHost = (process.env.LIVEKIT_URL || process.env.NEXT_PUBLIC_LIVEKIT_URL || "")
+      .replace(/^ws/, "http");
+    if (lkHost) {
+      try {
+        const svc = new RoomServiceClient(lkHost, apiKey, apiSecret);
+        await svc.removeParticipant(session.livekit_room_name, identity);
+      } catch {
+        // 옛 세션이 없으면 removeParticipant 가 throw — 정상(무시).
+      }
+    }
 
     const lkToken = new AccessToken(apiKey, apiSecret, {
       identity,
