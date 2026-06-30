@@ -211,8 +211,9 @@ export function AdminNav() {
       <nav className="flex-1 p-3 lg:p-4 space-y-4 lg:space-y-6 overflow-y-auto">
         {navGroups.map((group) => {
           const collapsible = !!group.collapsed;
-          // 펼침: 접이식 아님 OR 현재 페이지가 이 그룹 안 OR 사용자가 수동으로 펼침
-          const open = !collapsible || groupHasActive(group) || !!openExtra[group.title];
+          // 펼침: 접이식 아님 OR 사용자가 수동 토글했으면 그 값 우선, 아니면 현재 페이지가 이 그룹 안일 때 자동 펼침
+          // (수동 토글값을 자동펼침보다 우선해야 — 활성 그룹을 사용자가 접을 수 있음. 안 그러면 토글 버튼이 먹통)
+          const open = !collapsible || (group.title in openExtra ? !!openExtra[group.title] : groupHasActive(group));
           return (
           <div key={group.title}>
             {collapsible ? (
