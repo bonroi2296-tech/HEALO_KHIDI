@@ -73,10 +73,12 @@ delete from ai_response_evaluations where thread_id in (select id from chat_thre
 delete from chat_threads where guest_country='__EVAL__';
 ```
 
-## 비용·한도·주의
+## 비용·한도·주의 (aiGuard)
 
-- **🚨 프로덕션(healwith.co.kr) 에 큰 배치 돌리지 말 것.** 공개 챗은 `aiGuard` 일일 AI 예산을 환자와 공유한다. 평가를 잔뜩 돌리면 그 한도를 소진해 **실제 환자 챗이 막힌다**(`429 ai_daily_limit`). → **프리뷰 배포에 돌려라.** 꼭 프로덕션 검증이 필요하면 `--ids/--langs` 로 1~2건만.
-- **일일 한도(429 ai_daily_limit)**: 한 번에 ~10건쯤 돌리면 막힐 수 있다(보호장치 정상 동작). 막히면 ⚠️ 로 표시되고 그날은 더 안 됨 → 범위를 쪼개 며칠에 나눠 돌리거나 한도 리셋 후. 87개 전수는 한 번에 안 된다.
+`aiGuard`(src/lib/ai/aiGuard.ts): **IP당 50회/일**(`AI_DAILY_PER_IP_LIMIT`) + **글로벌 2000회/일**(`AI_DAILY_GLOBAL_LIMIT`), DB 카운터(배포 공유).
+
+- **평가를 막는 건 IP당 50회/일**이다(429 `ai_daily_limit`). 한 머신에서 하루 ~50 챗콜이 한계 → **87개 전수는 하루에 안 된다.** 며칠로 쪼개거나(`--ids/--langs`로 범위 축소), 평가 머신의 `AI_DAILY_PER_IP_LIMIT` 를 임시 상향.
+- **글로벌 환자 예산(2000/일)은 평가가 거의 안 갉아먹는다**(eval 한 IP ≈ 50 ≈ 2.5%). 그래서 프로덕션 검증이 필요하면 소량은 괜찮다. 다만 평가 트래픽이 실 분석/judge 평가행에 섞이니 **기본은 프리뷰**를 쓰고 eval 스레드는 청소한다.
 - **비용**: 심판 켜면 케이스×언어마다 Gemini 호출 1회 + 챗 응답도 실제 모델 호출. 아끼려면 `--no-judge` 또는 `--ids/--langs` 로 좁혀라.
 
 ## 평가기 보정(리스트 갱신의 일부)
