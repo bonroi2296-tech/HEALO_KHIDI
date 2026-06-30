@@ -33,7 +33,9 @@ export type OperationalEventType =
   | 'admin_notify_failed'                // 어드민 알림 발송 실패
   | 'admin_notification_critical_error' // 크리티컬 알림 채널 자체가 실패
   | 'ai_guard_ip_daily_block'            // AI 비용 가드: IP 일일 상한 차단
-  | 'ai_guard_global_block';             // AI 비용 가드: 전역 일일 총량 차단
+  | 'ai_guard_global_block'              // AI 비용 가드: 전역 일일 총량 차단
+  | 'ai_consult_session_block'           // 상담 AI(통역/STT) 가드: 세션 상한 차단 (#509)
+  | 'ai_consult_global_block';           // 상담 AI 가드: 전역 일일 총량 차단 (#509)
 
 /**
  * 운영 로그 메타데이터
