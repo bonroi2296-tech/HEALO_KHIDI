@@ -48,4 +48,7 @@ export function isLiveTranslateEnabledClient() {
 // 방 수명 설정 (공식 예제 기준 — 우리 토큰 TTL(2h)보다 길지만 빈 방은 일찍 닫음).
 export const ROOM_EMPTY_TIMEOUT = 60; // 빈 방 60초 후 종료
 export const ROOM_DEPARTURE_TIMEOUT = 30; // 마지막 1명 퇴장 후 30초
-export const ROOM_MAX_PARTICIPANTS = 8;
+// PO 결정(2026-07-03): 어떤 상황에서도 인원 제한 두지 않음. 과부하 발생 시 그때 가이드.
+//   → 사실상 무제한(LiveKit 플랜 한도가 별개의 실제 천장 — 계정 설정이지 우리 코드 아님).
+//   (이 값은 통역 에이전트 켤 때 RoomConfiguration.maxParticipants 로만 쓰임. 평소엔 미적용.)
+export const ROOM_MAX_PARTICIPANTS = 1_000_000;
