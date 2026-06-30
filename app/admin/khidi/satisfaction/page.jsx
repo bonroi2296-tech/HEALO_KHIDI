@@ -42,7 +42,7 @@ export default function SatisfactionPage() {
         if (d.ok) setData(d);
         else setError(d.error || "unknown_error");
       })
-      .catch((e) => setError(e.message))
+      .catch((e) => { console.error("[admin/khidi/satisfaction]", e); setError("불러오기에 실패했습니다."); })
       .finally(() => setLoading(false));
   }, []);
 

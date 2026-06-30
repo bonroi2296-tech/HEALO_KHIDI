@@ -85,7 +85,7 @@ export default function ConsultWrapper() {
       
     } catch (error) {
       console.error('Consult submission error:', error);
-      toast.error(error.message || t("consult.errorSubmit", langCode));
+      toast.error(t("consult.errorSubmit", langCode));
       setLoading(false);
     }
   };

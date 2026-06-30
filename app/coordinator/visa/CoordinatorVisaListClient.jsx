@@ -52,7 +52,8 @@ export default function CoordinatorVisaListClient() {
       }
       setApplications(json.data || []);
     } catch (err) {
-      setError(err.message);
+      console.error("[coordinator/visa]", err);
+      setError("목록을 불러오지 못했습니다.");
     } finally {
       setLoading(false);
     }

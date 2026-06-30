@@ -262,7 +262,7 @@ export default function HospitalsPage() {
       }
     } catch (error) {
       console.error('Upload failed:', error);
-      toast.error('이미지 업로드 실패: ' + error.message);
+      toast.error('이미지 업로드 실패');
       return null;
     } finally {
       setUploading(false);
@@ -436,7 +436,7 @@ export default function HospitalsPage() {
       }
     } catch (err) { 
       console.error('[Hospitals] Save exception:', err);
-      toast.error("저장 실패: " + err.message); 
+      toast.error("저장 실패");
     } finally { 
       setLoading(false); 
     }
@@ -472,7 +472,7 @@ export default function HospitalsPage() {
       }
     } catch (err) {
       console.error("[Hospitals] patchOffersFlags exception:", err);
-      toast.error("반영 실패: " + err.message);
+      toast.error("반영 실패");
     }
   };
 
@@ -507,7 +507,7 @@ export default function HospitalsPage() {
       }
     } catch (err) {
       console.error(`[Hospitals] Delete exception:`, err);
-      toast.error("삭제 실패: " + err.message);
+      toast.error("삭제 실패");
     }
   };
 

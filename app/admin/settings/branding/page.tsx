@@ -65,7 +65,7 @@ export default function BrandingSettingsPage() {
         });
       }
     } catch (err: any) {
-      setError(err.message);
+      setError("설정 조회 실패");
       console.error("[Branding] 예외 발생:", err);
     } finally {
       setLoading(false);
@@ -111,7 +111,7 @@ export default function BrandingSettingsPage() {
         }
       }
     } catch (err: any) {
-      showToast("error", `❌ 오류: ${err.message}`);
+      showToast("error", "❌ 오류가 발생했습니다");
       console.error(`[Branding] ${type} 업로드 실패:`, err);
     } finally {
       setUploading(false);

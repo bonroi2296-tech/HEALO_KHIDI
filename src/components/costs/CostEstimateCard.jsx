@@ -56,7 +56,8 @@ export default function CostEstimateCard({
       }
       setData(json.data);
     } catch (err) {
-      setError(err.message);
+      console.error("[CostEstimateCard]", err);
+      setError("예상 진료비를 불러오지 못했습니다.");
     } finally {
       setLoading(false);
     }
@@ -111,8 +112,8 @@ export default function CostEstimateCard({
       }
       alert("정식 견적 요청 완료. 코디네이터가 병원에 문의 후 안내드립니다.");
       window.location.href = `/patient/cost-estimates/${json.data.id}`;
-    } catch (err) {
-      alert("요청 실패: " + err.message);
+    } catch (_err) {
+      alert("요청 실패");
     } finally {
       setRequesting(false);
     }

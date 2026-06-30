@@ -239,8 +239,8 @@ export default function AdminChatPage() {
       const json = await res.json();
       if (!json.ok || !json.signedUrl) throw new Error(json.error || "sign_failed");
       window.open(json.signedUrl, "_blank", "noopener,noreferrer");
-    } catch (e) {
-      toast.error("파일 열기 실패: " + (e.message || ""));
+    } catch (_e) {
+      toast.error("파일 열기 실패");
     }
   };
 
@@ -260,8 +260,8 @@ export default function AdminChatPage() {
       if (!json.ok) throw new Error(json.error || "fail");
       toast.success("검수완료로 표시했습니다.");
       await openThread(selected);
-    } catch (e) {
-      toast.error("검수 표시 실패: " + (e.message || ""));
+    } catch (_e) {
+      toast.error("검수 표시 실패");
     } finally {
       setSavingReview(false);
     }
@@ -298,8 +298,8 @@ export default function AdminChatPage() {
       setCorrecting(null);
       setCorrectText("");
       await openThread(selected);
-    } catch (e) {
-      toast.error("전송 실패: " + (e.message || ""));
+    } catch (_e) {
+      toast.error("전송 실패");
     } finally {
       setSavingReview(false);
     }

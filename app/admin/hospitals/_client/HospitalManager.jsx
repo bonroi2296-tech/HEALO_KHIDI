@@ -597,8 +597,8 @@ function EnrichmentPanel({ editingHospitalId, enrichmentLog, onComplete, toast }
       } else {
         toast.error(`수집 실패: ${result.detail || result.error || '서버 오류'}`);
       }
-    } catch (err) {
-      toast.error('수집 요청 실패: ' + err.message);
+    } catch (_err) {
+      toast.error('수집 요청 실패');
     } finally {
       setRunning(new Set());
       setPanelOpen(false);

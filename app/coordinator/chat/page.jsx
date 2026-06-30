@@ -189,8 +189,8 @@ export default function CoordinatorChatPage() {
       const json = await res.json();
       if (!json.ok || !json.signedUrl) throw new Error(json.error || "sign_failed");
       window.open(json.signedUrl, "_blank", "noopener,noreferrer");
-    } catch (e) {
-      toast.error("파일 열기 실패: " + (e.message || ""));
+    } catch (_e) {
+      toast.error("파일 열기 실패");
     }
   };
 

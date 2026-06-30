@@ -249,7 +249,8 @@ export default function AiRegressionPage() {
         .slice(0, 30);
       setFailedRows(failed);
     } catch (e) {
-      setError(e.message ?? "데이터 로드 실패");
+      console.error("[admin/khidi/ai-regression]", e);
+      setError("데이터 로드 실패");
     } finally {
       setLoading(false);
     }

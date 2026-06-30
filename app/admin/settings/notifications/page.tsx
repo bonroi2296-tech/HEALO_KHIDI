@@ -124,8 +124,8 @@ export default function NotificationsSettingsPage() {
       } else {
         showToast("error", `❌ 테스트 실패: ${data.error || "알 수 없는 오류"}`);
       }
-    } catch (err: any) {
-      showToast("error", `❌ 오류: ${err.message}`);
+    } catch (_err: any) {
+      showToast("error", "❌ 오류가 발생했습니다");
     }
   };
 
