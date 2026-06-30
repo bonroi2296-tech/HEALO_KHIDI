@@ -16,6 +16,7 @@ import { hashQuery, logRagDisabled } from "../rag/ragQueryEvents";
 import { searchHospitalsAndTreatments } from "./dbSearch";
 import { searchExternal } from "./externalSearch";
 import { runJudgeInBackground } from "./judge";
+import { scanRedlines, safeDeferralMessage } from "./safetyGuard";
 import { CARE_REFERENCE } from "./careReference";
 import { BoundedCache } from "../util/boundedCache";
 import { mentionsCancerType, isTopicCorrection, correctionReply } from "./topicGuards";
@@ -396,6 +397,12 @@ const HAND_OFF_PATTERNS = [
   /\b(?:human|real\s*person|agent|coordinator|representative|staff|operator)\b/i,
   /\b(?:사람|상담[원사]|직원|담당자|연결)\b/,
   /\b(?:人間|担当者|スタッフ|オペレーター)\b/,
+  // ru — 핵심 타겟. 키릴 단어는 \b 가 안 먹으므로 부분일치 허용.
+  /(?:координатор|оператор|менеджер|специалист|человек|сотрудник|свяжите|связать)/i,
+  // kz — 핵심 타겟.
+  /(?:үйлестіруші|оператор|маман|қызметкер|адаммен|байланыстыр)/i,
+  // zh — 人工/客服/真人/협조원.
+  /(?:协调员|人工|客服|真人|工作人员|转接)/,
 ];
 
 // 정식 접수·진행 의사 — 환자가 "이제 접수/신청해줘"라고 하면 사람에게 넘김(이미 대화에 다 저장됨)
@@ -446,6 +453,8 @@ export interface ChatReplyResult {
   reply: string;
   ragChunks: any[];
   error?: string;
+  /** critical 레드라인 적발로 답변이 안전 대체된 경우의 flag 목록(없으면 통과) */
+  redlineBlocked?: string[];
   _analytics?: {
     retrievedPatternIds: string[];
     usedPatternIds: string[];
@@ -1088,10 +1097,22 @@ export async function generateChatReply(
       emptyError = `empty_model_text:${(result as any)?.finishReason ?? "unknown"}`;
     }
 
+    // 🚨 송출 전 레드라인 게이트(0층 가드) — judge(비동기·사후)에만 의존하지 않는다.
+    // 비스트리밍 경로는 아직 환자에게 안 보냈으므로 critical(완치·약물·예후 단정) 적발 시
+    // 위험 답변을 안전 대체문구로 통째 교체(노출 0) + 플래그로 코디 검수 유도.
+    let redlineFlags: string[] | undefined;
+    const preScan = scanRedlines(finalReply);
+    if (preScan.critical) {
+      console.warn(`[generateChatReply] REDLINE blocked: ${preScan.flags.join(",")}`);
+      finalReply = safeDeferralMessage(lang);
+      redlineFlags = preScan.flags;
+    }
+
     const finalResult: ChatReplyResult = {
       reply: finalReply,
       ragChunks,
       ...(emptyError ? { error: emptyError } : {}),
+      ...(redlineFlags ? { redlineBlocked: redlineFlags } : {}),
       _analytics: {
         retrievedPatternIds,
         usedPatternIds: fallback ? injectedPatternIds : declaredUsedIds,

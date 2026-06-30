@@ -4,12 +4,16 @@
  * URL: /design-preview
  */
 
+import { notFound } from 'next/navigation';
+
 export const metadata = {
   title: 'Design Preview | healwith',
   robots: { index: false, follow: false },
 };
 
 export default function DesignPreview() {
+  // 개발용 디자인 비교 페이지 — 프로덕션 비노출
+  if (process.env.NODE_ENV === 'production') notFound();
   return (
     <>
       {/* Google Fonts */}

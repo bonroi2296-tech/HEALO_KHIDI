@@ -460,9 +460,9 @@ function DoctorModal({ doc, l, lang, onClose }) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={onClose}>
-      <div className="bg-white rounded-3xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+      <div className="bg-white rounded-2xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
         {/* Header */}
-        <div className="relative bg-gradient-to-br from-emerald-700 to-teal-600 rounded-t-3xl p-8 text-white">
+        <div className="relative bg-emerald-700 rounded-t-2xl p-8 text-white">
           <button onClick={onClose} aria-label="Close" className="absolute top-5 right-5 w-10 h-10 rounded-full bg-white/20 flex items-center justify-center hover:bg-white/30 transition focus:outline-none focus:ring-2 focus:ring-teal-400">
             <X size={20} />
           </button>
@@ -528,7 +528,7 @@ function DoctorCard({ doc, l, lang, onSelect }) {
       tabIndex={0}
       onClick={() => onSelect(doc)}
       onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); onSelect(doc); } }}
-      className={`bg-white rounded-2xl border cursor-pointer hover:shadow-xl transition-all group overflow-hidden focus:outline-none focus:ring-2 focus:ring-teal-400 ${
+      className={`bg-white rounded-2xl border cursor-pointer hover:shadow-md transition-all duration-200 group overflow-hidden focus:outline-none focus:ring-2 focus:ring-teal-400 ${
         isLeader ? 'border-emerald-200 ring-1 ring-emerald-50' : 'border-gray-200'
       }`}
     >
@@ -641,7 +641,7 @@ export default function HospitalsClient() {
       {selectedDoctor && <DoctorModal doc={selectedDoctor} l={l} lang={lang} onClose={() => setSelectedDoctor(null)} />}
 
       {/* ── Hero ── */}
-      <section className="relative bg-gradient-to-br from-emerald-800 via-teal-700 to-emerald-900 text-white overflow-hidden">
+      <section className="relative bg-gradient-to-br from-emerald-800 to-teal-800 text-white overflow-hidden">
         <div className="absolute inset-0 opacity-10">
           <div className="absolute top-10 left-10 w-72 h-72 bg-white rounded-full blur-3xl" />
           <div className="absolute bottom-20 right-10 w-96 h-96 bg-teal-300 rounded-full blur-3xl" />
@@ -650,17 +650,17 @@ export default function HospitalsClient() {
           <div className="inline-flex items-center gap-2 bg-white/15 backdrop-blur-sm rounded-full px-4 py-1.5 text-sm font-semibold mb-6">
             <Award size={16} /> {l(L.consortium.badge)}
           </div>
-          <h1 className="text-4xl md:text-6xl font-extrabold leading-tight mb-4">{l(L.consortium.name)}</h1>
+          <h1 className="text-3xl md:text-5xl font-extrabold leading-tight mb-4">{l(L.consortium.name)}</h1>
           <p className="text-emerald-200 text-xl font-medium mb-4">{l(L.consortium.role)}</p>
           <p className="text-white/80 text-base md:text-lg max-w-3xl leading-relaxed mb-10">{l(L.consortium.desc)}</p>
 
           <div className="flex flex-wrap gap-3 mb-10">
             <div className="bg-white/10 backdrop-blur-sm rounded-xl px-5 py-3 text-base">
-              <span className="text-white font-bold text-xl">4</span>
+              <span className="text-white font-bold text-xl tabular-nums">4</span>
               <span className="text-emerald-200 ml-2">{l(L.hero_branches)}</span>
             </div>
             <div className="bg-white/10 backdrop-blur-sm rounded-xl px-5 py-3 text-base">
-              <span className="text-white font-bold text-xl">27</span>
+              <span className="text-white font-bold text-xl tabular-nums">27</span>
               <span className="text-emerald-200 ml-2">{l(L.hero_doctors)}</span>
             </div>
             <div className="bg-white/10 backdrop-blur-sm rounded-xl px-5 py-3 text-base inline-flex items-center gap-2">
@@ -671,7 +671,7 @@ export default function HospitalsClient() {
 
           <button
             onClick={() => router.push('/intake')}
-            className="bg-white text-emerald-800 font-bold px-8 py-4 rounded-2xl shadow-lg hover:shadow-xl hover:scale-105 transition-all inline-flex items-center gap-2 text-lg"
+            className="bg-white text-emerald-800 font-bold px-8 py-4 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-200 inline-flex items-center gap-2 text-lg"
           >
             {l(L.cta)} <ArrowRight size={20} />
           </button>
@@ -690,7 +690,7 @@ export default function HospitalsClient() {
             const isUpcoming = branch.status === 'upcoming';
 
             return (
-              <div key={branch.id} data-testid="hospital-card" className={`border-2 rounded-3xl overflow-hidden transition-all ${
+              <div key={branch.id} data-testid="hospital-card" className={`border-2 rounded-2xl overflow-hidden transition-all duration-200 ${
                 branch.status === 'registered' ? 'border-emerald-200' :
                 branch.status === 'preparing' ? 'border-amber-200' : 'border-gray-200'
               } ${isOpen ? 'shadow-xl' : 'hover:shadow-md'}`}>
@@ -844,7 +844,7 @@ export default function HospitalsClient() {
 
       {/* ── CTA ── */}
       <section className="max-w-6xl mx-auto px-4 py-14">
-        <div className="rounded-3xl bg-gradient-to-r from-teal-600 to-emerald-600 p-10 md:p-16 text-center text-white">
+        <div className="rounded-2xl bg-gradient-to-r from-teal-600 to-emerald-600 p-10 md:p-16 text-center text-white">
           <div className="flex justify-center gap-3 mb-5">
             <Stethoscope size={28} className="text-teal-200" />
             <span className="text-teal-200 text-xl">+</span>
@@ -856,7 +856,7 @@ export default function HospitalsClient() {
           <p className="text-white/80 max-w-2xl mx-auto mb-8 text-lg">
             {l(L.ewDesc)}
           </p>
-          <button onClick={() => router.push('/intake')} className="bg-white text-teal-700 font-bold px-10 py-5 rounded-2xl shadow-xl hover:shadow-2xl hover:scale-105 transition-all inline-flex items-center gap-2 text-lg">
+          <button onClick={() => router.push('/intake')} className="bg-white text-teal-700 font-bold px-10 py-5 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-200 inline-flex items-center gap-2 text-lg">
             {l(L.cta)} <ArrowRight size={20} />
           </button>
         </div>

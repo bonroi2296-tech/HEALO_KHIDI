@@ -25,7 +25,7 @@ const SAMPLES = {
   },
   hospitalMatch: {
     patientName: "Aigerim Nurlanova",
-    quotationLink: "https://healo-khidi.vercel.app/api/pdf/quotation",
+    quotationLink: "https://healwith.co.kr/api/pdf/quotation",
     proposals: [
       {
         name: "신촌세브란스병원 / Sinchon Severance Hospital",
@@ -48,7 +48,7 @@ const SAMPLES = {
   visaDocumentRequest: {
     patientName: "Aigerim Nurlanova",
     visaType: "C-3-3",
-    uploadLink: "https://healo-khidi.vercel.app/patient/documents",
+    uploadLink: "https://healwith.co.kr/patient/documents",
   },
   treatmentSchedule: {
     patientName: "Aigerim Nurlanova",
@@ -64,7 +64,7 @@ const SAMPLES = {
   postTreatmentFollowup: {
     patientName: "Aigerim Nurlanova",
     daysSinceDischarge: 30,
-    feedbackLink: "https://healo-khidi.vercel.app/patient/symptoms",
+    feedbackLink: "https://healwith.co.kr/patient/symptoms",
   },
 };
 
@@ -78,6 +78,11 @@ const TEMPLATE_NAMES = [
 ];
 
 export async function GET(request) {
+  // 개발/QA 전용 — 프로덕션에서는 노출 차단 (내부 도구)
+  if (process.env.NODE_ENV === "production") {
+    return NextResponse.json({ ok: false, error: "not_found" }, { status: 404 });
+  }
+
   const url = new URL(request.url);
   const templateName = url.searchParams.get("template");
 

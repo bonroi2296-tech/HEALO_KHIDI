@@ -20,6 +20,7 @@ const REQUIRED_VARS = {
 };
 
 const OPTIONAL_VARS = {
+  NEXT_PUBLIC_SITE_URL: 'Public base URL for emails/sitemap/canonical/survey links (should be https://healwith.co.kr in prod)',
   GOOGLE_MAPS_API_KEY: 'Google Maps API key',
   NEXT_PUBLIC_GA_MEASUREMENT_ID: 'Google Analytics measurement ID',
   AWS_SES_REGION: 'AWS SES region',
@@ -74,6 +75,16 @@ if (process.env.ENCRYPTION_KEY_V2) {
     console.error('Generate one with: node -e "console.log(require(\'crypto\').randomBytes(32).toString(\'hex\'))"');
     hasErrors = true;
   }
+}
+
+// NEXT_PUBLIC_SITE_URL must never point at a retired domain (emails/links break silently)
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || '';
+const STALE_DOMAINS = ['healo-khidi.vercel.app', 'khidi.healo.kr'];
+const staleHit = STALE_DOMAINS.find((d) => siteUrl.includes(d));
+if (staleHit) {
+  console.error(`\nNEXT_PUBLIC_SITE_URL points at a retired domain: ${staleHit}`);
+  console.error('  All email/sitemap/canonical/survey links would break. Set it to https://healwith.co.kr');
+  hasErrors = true;
 }
 
 console.log('\n' + '='.repeat(60));

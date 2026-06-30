@@ -13,6 +13,7 @@
 import "server-only";
 
 import { supabaseAdmin } from "../rag/supabaseAdmin";
+import { redactModelPii } from "../security/redactModelPii";
 
 const MODEL = "gemini-flash-latest";
 
@@ -152,8 +153,11 @@ export async function generateTriage(opts: {
   }
 
   const langName = LANG_NAME[lang] || "English";
+  // 환자가 타이핑한 자유텍스트 PII(전화·이메일·여권·주민번호)는 채팅 경로와 동일하게 마스킹 후 전송.
+  // (첨부 파일 자체는 판독에 필요해 불가피 — 마스킹 대상은 타이핑 텍스트.)
+  const safeMessageText = redactModelPii(opts.messageText || "").trim();
   const userText =
-    (opts.messageText?.trim() ? `Patient's message: "${opts.messageText.trim()}"\n\n` : "") +
+    (safeMessageText ? `Patient's message: "${safeMessageText}"\n\n` : "") +
     "Here are the patient's uploaded medical records. Read them and produce the JSON.";
 
   try {
