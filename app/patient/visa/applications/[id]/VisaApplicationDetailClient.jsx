@@ -365,7 +365,7 @@ export default function VisaApplicationDetailClient({ applicationId }) {
       }
       await loadAll();
       e.target.value = "";
-    } catch (err) {
+    } catch (_err) {
       alert(copy.uploadFailed);
     } finally {
       setUploading(false);
@@ -389,7 +389,7 @@ export default function VisaApplicationDetailClient({ applicationId }) {
         throw new Error(json.error || json.detail || "failed");
       }
       await loadAll();
-    } catch (err) {
+    } catch (_err) {
       alert(copy.submitFailed);
     }
   }
@@ -404,7 +404,7 @@ export default function VisaApplicationDetailClient({ applicationId }) {
       const json = await res.json();
       if (!res.ok || !json.ok) throw new Error(json.error || "delete_failed");
       await loadAll();
-    } catch (err) {
+    } catch (_err) {
       alert(copy.deleteFailed);
     }
   }

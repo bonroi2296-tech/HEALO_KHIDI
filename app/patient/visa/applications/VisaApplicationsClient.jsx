@@ -358,7 +358,7 @@ export default function VisaApplicationsClient() {
       }
       setShowCreate(false);
       await loadApplications();
-    } catch (err) {
+    } catch (_err) {
       alert(copy.createFailed);
     } finally {
       setSubmitting(false);
