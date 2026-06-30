@@ -1165,9 +1165,14 @@ export default function UnifiedInquiryFunnel() {
   // PC에서 화면을 충분히 쓰도록 폭(max-w-4xl)·높이(뷰포트 채움)를 키운다. 「뒤로」는 ThreadChat
   // 상단 툴바로 내려보내(onBack) 코디·접수 버튼과 같은 줄에 두어 세로 공간을 아낀다(2026-06-30 PO).
   if (phase === "ai-chat") {
+    // 높이: 부모 래퍼(page.jsx)가 이미 min-h-[100vh-64px] + py(헤더·여백)를 잡으므로 여기서 또
+    // 100dvh 를 통째로 빼면 이중차감으로 입력칸이 화면 밖으로 밀린다(데스크톱). 그래서
+    //  - 모바일: -my-3 로 래퍼 py-3 을 상쇄하고 헤더(56px=3.5rem)만 뺀 풀하이트(기존 방식).
+    //  - 데스크톱: md:h-auto 로 외곽의 dvh 차감을 끄고(이중차감 제거), 안쪽을 뷰포트 기준 큰 높이로
+    //    채운다(헤더4rem+래퍼py-8 4rem+여백 ≈ 9rem 차감). 옛 600px 고정보다 훨씬 큼.
     return (
-      <div className="max-w-4xl w-full mx-auto px-2 sm:px-4 flex flex-col h-[calc(100dvh-4rem)] -my-3 md:my-0 md:py-4 animate-in fade-in slide-in-from-right-4 duration-300">
-        <div className="flex-1 min-h-0">
+      <div className="max-w-4xl w-full mx-auto px-2 sm:px-4 flex flex-col h-[calc(100dvh-3.5rem)] -my-3 md:my-0 md:h-auto animate-in fade-in slide-in-from-right-4 duration-300">
+        <div className="flex-1 min-h-0 md:flex-none md:h-[calc(100dvh-9rem)]">
           <ThreadChat onBack={() => setPhase("channel-select")} backLabel={tl("back", lang)} />
         </div>
       </div>

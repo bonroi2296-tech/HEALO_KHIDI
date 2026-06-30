@@ -319,7 +319,7 @@ export function buildSystemPrompt(
     "- KEEP THE WHOLE REPLY SHORT: aim for 3-5 short lines, under ~70 words total. A wall of text makes the patient leave. If there is more to say, end with ONE short line offering to continue (e.g. 'Want the rough cost range too?').",
     "- DO NOT lead with a price or a number unless the user EXPLICITLY asked the cost (e.g. '얼마', 'how much', 'cost', 'цена'). For open or emotional questions (e.g. 'what should I tell my friend', 'where do we start', 'she has lots of questions'), reply conversationally: acknowledge them, briefly say how healwith helps and accompanies them, then ask what they most want to know. Numbers come ONLY when asked.",
     "- NEVER dump a bare figure like '₩18M' or '$13,500' as the answer. A price, when asked, is a gentle range inside a full sentence, never the opening words.",
-    "- PLAIN TEXT ONLY. The chat does NOT render markdown — never use **, *, ***, ##, ---, backticks, or tables; they appear as literal symbols and look broken. For a short list use a simple '- ' prefix or '1. 2. 3.' only.",
+    "- LIGHT FORMATTING ONLY: the chat renders **bold** (use for 1-2 key words at most, not whole sentences), simple '- ' bullet lists, '1. 2. 3.' numbered lists (each item on its OWN line — never put several '1. ... 2. ...' on one line), and blank-line paragraph breaks. Do NOT use ##, ***, ---, backticks, or tables — those are NOT rendered and show as literal broken symbols. Keep it minimal and human, not a styled document.",
     "- No preamble, no restating the question, no 'If you sent me X, I would say...'. Answer directly.",
     "- OUTPUT ONLY THE FINAL MESSAGE TO THE PATIENT. Never reveal your own planning or self-talk: no 'Wait,', no 'let's keep it short / shorter / cleaner', no word counts like '(32 words)', no notes-to-self in asterisks or brackets. If you start writing a note about HOW to answer, delete it — send only the answer itself.",
     `- LANGUAGE: The user's selected language is ${outputLangName}. Write your ENTIRE reply in ${outputLangName}, unless the user clearly writes in a different language (then match theirs). IMPORTANT: Kazakh and Russian are different languages — if the selected language is Kazakh, reply in Kazakh (қазақша), NOT Russian.`,
@@ -375,6 +375,9 @@ export function buildSystemPrompt(
     hasReachableContact
       ? "- REGISTER / PROCEED: when the patient wants to formally register, submit, proceed, or book (e.g. '접수해줘', 'оформить заявку', 'I want to proceed'), we ALREADY have a way to reach them. NEVER send them to a separate form or tell them to re-enter anything. Reassure in 1-2 short lines: their request is registered and a healwith coordinator will follow up. Only ask for any of the 5 required documents still missing. A patient who already shared their info must never be asked to start over."
       : "- REGISTER / PROCEED: when the patient wants to register, submit, proceed, or book (e.g. '접수해줘', 'I want to proceed'), we currently have NO way to reach them (no email, phone, or account on file). Do NOT claim they are 'registered' and do NOT promise 'a coordinator will contact you' — with no contact that is a FALSE promise (this caused a real complaint). Instead: warmly say you'll get them set up, and ask for ONE contact detail — an email, or a messenger ID (WhatsApp/Telegram/WeChat/LINE) — so a coordinator can reach them. Reassure that this chat is already saved and reopens on this device, so nothing is lost. Ask for at most one contact + any missing required document; never make them start over.",
+    // 접수/핸드오프 턴엔 서버가 답변 뒤에 확정 문구(연락 채널 확인 또는 연락처 요청)를 자동으로 덧붙인다.
+    // 모델이 같은 부탁을 또 하거나(중복) "이미 다 있으니 입력 불필요"라고 단정해(모순) 한 말풍선에서 어긋나지 않게 안내.
+    "- IMPORTANT (register/handoff turns): a system line is appended right AFTER your reply — it confirms we received the request and either asks their PREFERRED contact channel (if we can already reach them) or asks for ONE contact (if we cannot). So do NOT duplicate that contact ask yourself, and do NOT contradict it (never say 'no need to provide anything' or 'we already have everything'). Keep your own reply to acknowledging + any missing required documents, and let the appended line handle the contact channel.",
     "",
     "SAFETY:",
     "- No medical diagnosis or outcome guarantees.",
@@ -393,45 +396,8 @@ export function buildSystemPrompt(
     .join("\n");
 }
 
-const HAND_OFF_PATTERNS = [
-  /\b(?:human|real\s*person|agent|coordinator|representative|staff|operator)\b/i,
-  /\b(?:사람|상담[원사]|직원|담당자|연결)\b/,
-  /\b(?:人間|担当者|スタッフ|オペレーター)\b/,
-  // ru — 핵심 타겟. 키릴 단어는 \b 가 안 먹으므로 부분일치 허용.
-  /(?:координатор|оператор|менеджер|специалист|человек|сотрудник|свяжите|связать)/i,
-  // kz — 핵심 타겟.
-  /(?:үйлестіруші|оператор|маман|қызметкер|адаммен|байланыстыр)/i,
-  // zh — 人工/客服/真人/협조원.
-  /(?:协调员|人工|客服|真人|工作人员|转接)/,
-];
-
-// 정식 접수·진행 의사 — 환자가 "이제 접수/신청해줘"라고 하면 사람에게 넘김(이미 대화에 다 저장됨)
-const REGISTER_PATTERNS = [
-  /\b(?:register|sign\s*me\s*up|formal(?:ly|\s*(?:registration|intake|request))?|proceed\s*(?:with|to)?|go\s*ahead|enroll|book\s*(?:a|the|my)\b)/i,
-  /(?:접수|정식\s*신청|신청\s*(?:할|하고|해|하겠|드)|등록\s*(?:할|하고|해)|진행\s*(?:해|하고\s*싶|시켜)|예약)/,
-  /(?:оформ|заявк|записаться|регистрац|подать)/i,
-  /(?:тіркел|өтінім|ресми)/i,
-  /(?:正式|登记|报名|申请|预约)/,
-  /(?:正式|登録|申し込|予約|手続き)/,
-];
-
-const HIGH_RISK_PATTERNS = [
-  /\b(?:emergency|urgent|severe\s*pain|chest\s*pain|breathing\s*difficulty|suicidal|overdose)\b/i,
-  /\b(?:응급|긴급|극심한|자살|과다복용|호흡곤란)\b/,
-];
-
-export function detectHandOff(text: string): { requested: boolean; reason: string | null } {
-  for (const p of HAND_OFF_PATTERNS) {
-    if (p.test(text)) return { requested: true, reason: "user_requested_human" };
-  }
-  for (const p of REGISTER_PATTERNS) {
-    if (p.test(text)) return { requested: true, reason: "user_requested_registration" };
-  }
-  for (const p of HIGH_RISK_PATTERNS) {
-    if (p.test(text)) return { requested: true, reason: "high_risk_detected" };
-  }
-  return { requested: false, reason: null };
-}
+// 핸드오프 의도 감지는 순수 모듈로 분리(단위테스트 가능 + CJK \b 버그 수정) — 여기선 재노출만.
+export { detectHandOff } from "./handoffDetect";
 
 function sha256(text: string): string {
   return createHash("sha256").update(text).digest("hex");
@@ -710,7 +676,7 @@ function buildMasterKeySystemPrompt(extra: string): string {
     "아래 대화 기록에서 '에이전트(AI)'가 실제로 한 답변들을 환자 입장에서 냉정하게 자기점검(self-audit)하세요.",
     "이 출력은 PO(운영자)의 테스트·디버그용이며 환자에게 나가지 않습니다. 잘한 점도 짚되, 문제를 절대 미화하지 말고 솔직·비판적으로 쓰세요.",
     "",
-    "반드시 한국어로, 평문(plain text)으로만 작성하세요. 이 화면은 마크다운을 렌더링하지 않습니다 — **, ##, ---, 표, 백틱 절대 금지. 목록은 '- ' 또는 '1. 2. 3.'만 사용.",
+    "반드시 한국어로 작성하세요. 가벼운 서식만 렌더됩니다 — **굵게**(핵심 1~2단어), '- ' 글머리, '1. 2. 3.' 번호(항목마다 줄바꿈), 빈 줄 문단. ##·---·표·백틱은 렌더 안 되니 쓰지 마세요.",
     "[⚠️오류폴백] 표시가 붙은 에이전트 메시지는 모델이 빈 응답을 내서 안내문으로 대체된 '실패한 턴'입니다. 이런 턴이 있으면 반드시 문제로 짚으세요.",
     "",
     "다음 구조 그대로 출력하세요:",
