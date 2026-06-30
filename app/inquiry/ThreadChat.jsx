@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { ArrowRight, AlertCircle, Loader2, Bot, ThumbsUp, ThumbsDown, X, Paperclip, FileText, Image as ImageIcon, Headset, ClipboardCheck, Plus, History } from "lucide-react";
+import { ArrowRight, AlertCircle, Loader2, Bot, ThumbsUp, ThumbsDown, X, Paperclip, FileText, Image as ImageIcon, Headset, ClipboardCheck, Plus, History, ChevronLeft } from "lucide-react";
 import { getLangCodeFromCookie, t } from "@/lib/i18n";
 
 const TOKEN_COOKIE = "healo_chat_token";
@@ -292,7 +292,7 @@ function ConsentGate({ langCode, onConsent, submitting }) {
   );
 }
 
-export function ThreadChat() {
+export function ThreadChat({ onBack, backLabel } = {}) {
   const [threadId, setThreadId] = useState(null);
   const [publicToken, setPublicToken] = useState(null);
   const [guest, setGuest] = useState(null); // { name, email, country }
@@ -872,6 +872,18 @@ export function ThreadChat() {
           </p>
         </div>
       )}
+      {/* 게이트(로딩·동의·식별) 화면엔 코디/접수 툴바가 없으므로 뒤로를 여기서 따로 노출
+          (채팅 활성 화면에선 상단 툴바 안의 뒤로가 대신함 — 중복 방지). */}
+      {onBack && (restoring || needsConsent || needsIdentification) && (
+        <button
+          type="button"
+          onClick={onBack}
+          className="self-start inline-flex items-center gap-1 text-[11px] font-medium text-gray-500 hover:text-teal-700 rounded-xl px-2 py-1.5 hover:bg-gray-50 transition mb-1"
+        >
+          <ChevronLeft size={14} className="shrink-0" />
+          {backLabel || t("chat.back", langCode) || "Back"}
+        </button>
+      )}
       {restoring ? (
         <div className="flex-1 flex items-center justify-center text-gray-400 text-sm">
           <Loader2 size={20} className="animate-spin mr-2" />
@@ -883,24 +895,58 @@ export function ThreadChat() {
         <IdentificationForm langCode={langCode} onSubmit={handleIdentify} submitting={identifying} />
       ) : (
         <>
-          {/* 멀티스레드 툴바: 이전 대화 목록 토글 + 새 상담 시작 (한 방에 갇히지 않게) */}
-          <div className="flex items-center justify-between mb-2">
-            <button
-              type="button"
-              onClick={() => { setShowHistory((v) => !v); loadThreads(); }}
-              className="inline-flex items-center gap-1.5 text-[11px] font-medium text-gray-600 hover:text-teal-700 rounded-xl px-2.5 py-1.5 hover:bg-gray-50 transition"
-            >
-              <History size={14} className="shrink-0" />
-              {t("chat.history.button", langCode)}
-            </button>
-            <button
-              type="button"
-              onClick={startNewChat}
-              className="inline-flex items-center gap-1.5 text-[11px] font-medium text-teal-700 rounded-xl px-2.5 py-1.5 hover:bg-teal-50 transition"
-            >
-              <Plus size={14} className="shrink-0" />
-              {t("chat.action.newChat", langCode)}
-            </button>
+          {/* 상단 툴바 한 줄: (좌) 뒤로·이전대화  (우) 코디네이터·접수·새상담.
+              전환 동선(코디·접수)을 뒤로 버튼과 같은 줄로 올려 입력 위 세로 공간을 아낀다(2026-06-30 PO).
+              접수는 teal 채움 = 주 CTA 유지(유치 전환 지표). 좁은 화면은 flex-wrap 로 줄바꿈. */}
+          <div className="flex items-center justify-between gap-2 mb-2 flex-wrap">
+            <div className="flex items-center gap-1">
+              {onBack && (
+                <button
+                  type="button"
+                  onClick={onBack}
+                  className="inline-flex items-center gap-1 text-[11px] font-medium text-gray-500 hover:text-teal-700 rounded-xl px-2 py-1.5 hover:bg-gray-50 transition"
+                >
+                  <ChevronLeft size={14} className="shrink-0" />
+                  {backLabel || t("chat.back", langCode) || "Back"}
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => { setShowHistory((v) => !v); loadThreads(); }}
+                className="inline-flex items-center gap-1.5 text-[11px] font-medium text-gray-600 hover:text-teal-700 rounded-xl px-2.5 py-1.5 hover:bg-gray-50 transition"
+              >
+                <History size={14} className="shrink-0" />
+                {t("chat.history.button", langCode)}
+              </button>
+            </div>
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <button
+                type="button"
+                onClick={() => handleSend(t("chat.action.coordinatorMsg", langCode))}
+                disabled={sending || uploading}
+                className="inline-flex items-center gap-1.5 text-[11px] font-medium text-gray-700 bg-white border border-gray-200 rounded-xl px-3 py-1.5 hover:bg-gray-50 hover:text-teal-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Headset size={13} className="shrink-0" />
+                {t("chat.action.coordinator", langCode)}
+              </button>
+              <button
+                type="button"
+                onClick={() => handleSend(t("chat.action.registerMsg", langCode))}
+                disabled={sending || uploading}
+                className="inline-flex items-center gap-1.5 text-[11px] font-medium text-white bg-teal-700 rounded-xl px-3 py-1.5 hover:bg-teal-800 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <ClipboardCheck size={13} className="shrink-0" />
+                {t("chat.action.register", langCode)}
+              </button>
+              <button
+                type="button"
+                onClick={startNewChat}
+                className="inline-flex items-center gap-1.5 text-[11px] font-medium text-teal-700 rounded-xl px-2.5 py-1.5 hover:bg-teal-50 transition"
+              >
+                <Plus size={14} className="shrink-0" />
+                {t("chat.action.newChat", langCode)}
+              </button>
+            </div>
           </div>
 
           {/* 이전 대화 목록 패널 */}
@@ -1106,29 +1152,6 @@ export function ThreadChat() {
               {uploadError && <span className="text-xs text-red-500">{uploadError}</span>}
             </div>
           )}
-
-          {/* 빠른 행동(전환 동선) — 사람 연결 + 정식 접수. 키워드 타이핑 없이 한 번에.
-              메시지로 보내 서버 detectHandOff(6개어)가 코디 종을 울리고 접수 분기를 탄다. */}
-          <div className="mb-2 flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() => handleSend(t("chat.action.coordinatorMsg", langCode))}
-              disabled={sending || uploading}
-              className="inline-flex items-center gap-1.5 text-[11px] font-medium text-gray-700 bg-white border border-gray-200 rounded-xl px-3.5 py-1.5 hover:bg-gray-50 hover:text-teal-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <Headset size={13} className="shrink-0" />
-              {t("chat.action.coordinator", langCode)}
-            </button>
-            <button
-              type="button"
-              onClick={() => handleSend(t("chat.action.registerMsg", langCode))}
-              disabled={sending || uploading}
-              className="inline-flex items-center gap-1.5 text-[11px] font-medium text-white bg-teal-700 rounded-xl px-3.5 py-1.5 hover:bg-teal-800 transition disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <ClipboardCheck size={13} className="shrink-0" />
-              {t("chat.action.register", langCode)}
-            </button>
-          </div>
 
           {/* Input — 통합 입력 박스(클립·입력칸·전송이 한 테두리 안 → 회색 막대 없음, Claude/GPT 방식) */}
           <div className="flex items-end gap-1.5 border border-gray-300 rounded-2xl px-2 py-1.5 bg-white focus-within:ring-2 focus-within:ring-teal-500 transition">
