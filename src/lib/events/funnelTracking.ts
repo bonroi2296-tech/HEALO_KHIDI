@@ -82,33 +82,34 @@ export interface FunnelEvent {
  * 
  * @param meta 이벤트 메타데이터
  */
-export function trackFunnelEvent(meta: FunnelEventMeta): void {
+export async function trackFunnelEvent(meta: FunnelEventMeta): Promise<void> {
   try {
-    const event: FunnelEvent = {
+    // DB 컬럼명(snake_case)으로 매핑. PII 미포함(집계용 메타만). created_at 은 DB DEFAULT NOW().
+    const row = {
       stage: meta.stage,
-      sessionId: meta.sessionId,
-      page: meta.page,
-      utmSource: meta.utm?.source,
-      utmMedium: meta.utm?.medium,
-      utmCampaign: meta.utm?.campaign,
-      language: meta.language,
-      country: meta.country,
-      treatmentType: meta.treatmentType,
-      duration: meta.duration,
-      dropReason: meta.dropReason,
-      timestamp: new Date().toISOString(),
+      session_id: meta.sessionId ?? null,
+      page: meta.page ?? null,
+      utm_source: meta.utm?.source ?? null,
+      utm_medium: meta.utm?.medium ?? null,
+      utm_campaign: meta.utm?.campaign ?? null,
+      language: meta.language ?? null,
+      country: meta.country ?? null,
+      treatment_type: meta.treatmentType ?? null,
+      duration: meta.duration ?? null,
+      drop_reason: meta.dropReason ?? null,
     };
 
-    // 콘솔 로그 (개발/디버깅용)
-    console.log(`[funnel:${meta.stage}]`, event);
-
-    // TODO: DB에 저장 (비동기, fail-safe)
-    // 추후 funnel_events 테이블에 저장
-    // await supabaseAdmin.from('funnel_events').insert(event);
-
-  } catch (error) {
-    // 추적 실패해도 조용히 넘어감 (메인 로직에 영향 없음)
-    console.error('[funnelTracking] Failed to track event:', error);
+    // server-only 인 admin 클라이언트는 호출 시점(서버 런타임)에만 lazy import —
+    // 이 모듈을 클라이언트가 import 해도 번들이 깨지지 않게 한다.
+    const { supabaseAdmin } = await import("@/lib/rag/supabaseAdmin");
+    // funnel_events 는 아직 생성 타입에 없어 any 캐스트 (kpi.ts 의 survey_responses 패턴과 동일)
+    const { error } = await (supabaseAdmin as any).from("funnel_events").insert(row);
+    if (error) {
+      console.error(`[funnelTracking] insert 실패(무시): ${error.message ?? error}`);
+    }
+  } catch (error: any) {
+    // 추적 실패는 메인 로직에 영향 없음 (fail-safe) — env 미설정·서버 외 환경 등 조용히 무시
+    console.error(`[funnelTracking] 이벤트 추적 실패(무시): ${error?.message ?? error}`);
   }
 }
 
