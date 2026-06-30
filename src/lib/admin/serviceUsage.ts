@@ -13,6 +13,7 @@ import "server-only";
 import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
 import { getAiUsageSummary } from "@/lib/ai/usageLog";
 import { EXTERNAL_SERVICES, FREE_LIMITS, type ExternalService } from "@/lib/admin/externalServices";
+import { fetchVercelUsage, fetchSentryUsage } from "@/lib/admin/vendorApis";
 
 function kstDayStartISO(now: Date): string {
   const k = new Date(now.getTime() + 9 * 60 * 60 * 1000);
@@ -74,7 +75,8 @@ export async function getServiceUsageBoard(now: Date = new Date()): Promise<Serv
   const nowISO = now.toISOString();
 
   // 병렬 수집 ───────────────────────────────────
-  const [geminiMonth, geminiToday, dbUsageRes, notifRes, sessTotalRes, sessMonthRes] =
+  // 벤더 API(Vercel·Sentry)는 토큰 없으면 available:false 로 즉시 반환 + 실패 격리(throw 안 함).
+  const [geminiMonth, geminiToday, dbUsageRes, notifRes, sessTotalRes, sessMonthRes, vercel, sentry] =
     await Promise.all([
       getAiUsageSummary(month.iso, nowISO),
       getAiUsageSummary(dayStart, nowISO),
@@ -85,6 +87,8 @@ export async function getServiceUsageBoard(now: Date = new Date()): Promise<Serv
         .from("consultation_sessions")
         .select("*", { count: "exact", head: true })
         .gte("created_at", month.iso),
+      fetchVercelUsage(now).catch((e) => ({ available: false, error: (e as Error).message })),
+      fetchSentryUsage().catch((e) => ({ available: false, error: (e as Error).message })),
     ]);
 
   // 제미나이
@@ -128,11 +132,17 @@ export async function getServiceUsageBoard(now: Date = new Date()): Promise<Serv
   const sessionsTotal = sessTotalRes?.count ?? 0;
   const sessionsMonth = sessMonthRes?.count ?? 0;
 
+  // 벤더 API 결과(토큰 없으면 available:false)
+  const vercelU = vercel as { available: boolean; deploymentsThisMonth?: number; productionState?: string; error?: string };
+  const sentryU = sentry as { available: boolean; errorsThisMonth?: number; error?: string };
+  if (vercelU.error) errors.push(`vercel: ${vercelU.error}`);
+  if (sentryU.error) errors.push(`sentry: ${sentryU.error}`);
+
   // 서비스 카드 조립 ───────────────────────────────
   const services: ServiceCard[] = EXTERNAL_SERVICES.map((s) => {
     let primary: UsageMetric | null = null;
     const extra: UsageMetric[] = [];
-    const kind = s.measure;
+    let kind = s.measure;
 
     if (s.liveKey === "gemini") {
       primary = {
@@ -193,8 +203,33 @@ export async function getServiceUsageBoard(now: Date = new Date()): Promise<Serv
         status: "none",
       };
       extra.push({ label: "누적 상담방", value: sessionsTotal, unit: "개" });
+    } else if (s.id === "vercel" && vercelU.available) {
+      kind = "live";
+      primary = {
+        label: "이번 달 배포",
+        value: vercelU.deploymentsThisMonth ?? 0,
+        unit: "회",
+        note: "대역폭·함수 사용량은 콘솔",
+        status: "none",
+      };
+      if (vercelU.productionState) {
+        extra.push({ label: "프로덕션 상태", value: vercelU.productionState });
+      }
+    } else if (s.id === "sentry" && sentryU.available) {
+      kind = "live";
+      const limit = 5000;
+      const v = sentryU.errorsThisMonth ?? 0;
+      const p = pct(v, limit);
+      primary = {
+        label: "최근 30일 오류",
+        value: v,
+        unit: "건",
+        limit: `${limit.toLocaleString()}건`,
+        pct: p,
+        status: statusOf(p),
+      };
     }
-    // console 서비스(vercel·sentry)는 primary 없음 — 무료 한도·콘솔 링크만.
+    // 토큰 없는 console 서비스(vercel·sentry)는 primary 없음 — 무료 한도·콘솔 링크만.
 
     return { ...s, usage: { kind, primary, extra } };
   });
