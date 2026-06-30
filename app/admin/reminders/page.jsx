@@ -71,8 +71,8 @@ export default function RemindersAdminPage() {
       } else {
         alert(`재발송 실패: ${json.error}`);
       }
-    } catch (err) {
-      alert(`오류: ${err.message}`);
+    } catch (_err) {
+      alert("재발송 중 오류가 발생했습니다");
     } finally {
       setRetrying(null);
     }

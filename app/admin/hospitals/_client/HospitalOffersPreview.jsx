@@ -204,8 +204,8 @@ export function HospitalOffersPreviewModal({
       } else {
         toast?.error?.(result.detail || result.error || '저장 실패');
       }
-    } catch (e) {
-      toast?.error?.('저장 요청 실패: ' + e.message);
+    } catch (_e) {
+      toast?.error?.('저장 요청 실패');
     } finally {
       setSaving(false);
     }

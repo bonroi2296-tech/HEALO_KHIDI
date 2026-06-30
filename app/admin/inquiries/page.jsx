@@ -44,7 +44,7 @@ export default function InquiriesPage() {
       }
     } catch (error) {
       console.error('[InquiriesPage] fetchInquiries error:', error);
-      toast.error(`문의 로딩 실패: ${error.message}`);
+      toast.error("문의 로딩 실패");
       setInquiries([]);
     }
   };
@@ -93,7 +93,7 @@ export default function InquiriesPage() {
       setSelectedFile(data.signedUrl);
     } catch (err) {
       console.error('[InquiriesPage] handleFileClick exception:', err);
-      toast.error("첨부파일 로드 실패: " + (err.message || '알 수 없는 오류'));
+      toast.error("첨부파일 로드 실패");
     }
   };
 

@@ -20,21 +20,20 @@ const ROOTS = ["app", "src"];
 const EXTS = new Set([".jsx", ".tsx", ".js", ".ts"]);
 // 제외 경로.
 // - app/api: 서버 라우트(별도 규칙 internal_error 코드형).
-// - 직원 포털(admin·coordinator·hospital·agency·clinic): 인증된 내부 화면 — 외부 PII 노출 위험 낮음.
-//   현재 35곳 기존 누출이 남아있어 우선 스코프 밖(POSTMORTEMS #52 후속으로 일괄 정리 예정).
-//   ⚠️ 이 가드의 1차 목적 = 환자/공개 화면(외부 노출) 회귀 차단(2026-06-30 #459 회귀 재발방지).
+// 직원 포털(admin·coordinator·hospital·agency·clinic)도 2026-06-30 #52 후속으로 일괄 정리 완료 →
+// 이제 전 화면 감시(환자/공개 + 직원 포털 모두).
 // 경로는 아래서 슬래시로 정규화 후 매칭(윈도우 역슬래시·top-level 디렉터리 대응).
 const SKIP = [
   /(^|\/)app\/api\//,
   /(^|\/)node_modules\//,
   /\.test\./,
   /(^|\/)scripts\//,
-  /(^|\/)app\/(admin|coordinator|hospital|agency|clinic)\//, // 직원 포털 — #52 후속
-  /(^|\/)src\/components\/costs\//, // 미사용(import 0) 컴포넌트
 ];
 
-// 사용자 노출 함수가 catch 변수(.message)를 원시로 받는 패턴
-const LEAK = /(setError|alert|toast|setStatus|setMessage|setErrorMsg)\s*\([^)]*\b(err|error|e|ex|_err|_error)\.message\b/;
+// 사용자 노출 함수가 catch 변수(.message)를 원시로 받는 패턴.
+// toast 는 toast(...) / toast.error(...) / toast?.error?.(...) 메서드 형태까지 잡는다(원래 toast( 만 잡아 누락됐던 #52 후속).
+// ponytail: 휴리스틱 가드 — toastXYZ( 같은 드문 오탐은 // allow-raw-error 로 통과시키면 됨(보안상 누락보다 과탐이 안전).
+const LEAK = /(setError|alert|showToast|toast(?:\?\.|\.)?\w*(?:\?\.)?|setStatus|setMessage|setErrorMsg)\s*\([^)]*\b(err|error|e|ex|_err|_error)\.message\b/;
 
 function walk(dir, out) {
   let entries;

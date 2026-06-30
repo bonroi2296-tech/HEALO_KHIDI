@@ -201,8 +201,8 @@ export default function KpiDashboardPage() {
       a.click();
       a.remove();
       URL.revokeObjectURL(url);
-    } catch (e) {
-      alert("다운로드 실패: " + e.message);
+    } catch (_e) {
+      alert("다운로드 실패");
     } finally {
       setDlLoading(false);
     }

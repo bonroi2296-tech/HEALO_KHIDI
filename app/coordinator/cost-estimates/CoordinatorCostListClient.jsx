@@ -38,7 +38,8 @@ export default function CoordinatorCostListClient() {
       if (!res.ok || !json.ok) throw new Error(json.error || "failed");
       setEstimates(json.data || []);
     } catch (err) {
-      setError(err.message);
+      console.error("[coordinator/cost-estimate]", err);
+      setError("목록을 불러오지 못했습니다.");
     } finally {
       setLoading(false);
     }

@@ -326,8 +326,8 @@ export default function AdminDoctorsPage() {
       if (!json.ok) throw new Error(json.error);
       setEditingDoctor(null);
       fetchData();
-    } catch (e) {
-      alert("저장 실패: " + e.message);
+    } catch (_e) {
+      alert("저장 실패");
     }
   };
 
@@ -338,8 +338,8 @@ export default function AdminDoctorsPage() {
       const json = await res.json();
       if (!json.ok) throw new Error(json.error);
       fetchData();
-    } catch (e) {
-      alert("삭제 실패: " + e.message);
+    } catch (_e) {
+      alert("삭제 실패");
     }
   };
 
@@ -356,8 +356,8 @@ export default function AdminDoctorsPage() {
       if (!json.ok) throw new Error(json.error);
       setEditingBranch(null);
       fetchData();
-    } catch (e) {
-      alert("저장 실패: " + e.message);
+    } catch (_e) {
+      alert("저장 실패");
     }
   };
 
@@ -368,8 +368,8 @@ export default function AdminDoctorsPage() {
       const json = await res.json();
       if (!json.ok) throw new Error(json.error);
       fetchData();
-    } catch (e) {
-      alert("삭제 실패: " + e.message);
+    } catch (_e) {
+      alert("삭제 실패");
     }
   };
 

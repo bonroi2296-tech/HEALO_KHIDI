@@ -57,7 +57,8 @@ export default function CoordinatorCostDetailClient({ estimateId }) {
         if (qj.ok) setPdfUrl(qj.quotation_pdf_url);
       }
     } catch (err) {
-      setError(err.message);
+      console.error("[coordinator/cost-estimate]", err);
+      setError("견적 정보를 불러오지 못했습니다.");
     } finally {
       setLoading(false);
     }
@@ -103,8 +104,8 @@ export default function CoordinatorCostDetailClient({ estimateId }) {
       if (!res.ok || !json.ok) throw new Error(json.error || "failed");
       await load();
       alert("저장 완료");
-    } catch (err) {
-      alert("저장 실패: " + err.message);
+    } catch (_err) {
+      alert("저장 실패");
     } finally {
       setSaving(false);
     }
@@ -126,8 +127,8 @@ export default function CoordinatorCostDetailClient({ estimateId }) {
       const json = await res.json();
       if (!res.ok || !json.ok) throw new Error(json.error || json.detail || "failed");
       await load();
-    } catch (err) {
-      alert("실패: " + err.message);
+    } catch (_err) {
+      alert("실패");
     }
   }
 
@@ -148,8 +149,8 @@ export default function CoordinatorCostDetailClient({ estimateId }) {
       if (!res.ok || !json.ok) throw new Error(json.error || json.detail || "failed");
       await load();
       alert("견적서 발급 완료!");
-    } catch (err) {
-      alert("발급 실패: " + err.message);
+    } catch (_err) {
+      alert("발급 실패");
     } finally {
       setIssuing(false);
     }

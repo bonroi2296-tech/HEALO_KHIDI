@@ -62,7 +62,8 @@ export default function CoordinatorVisaDetailClient({ applicationId }) {
         if (invJson.ok) setInvitationUrl(invJson.invitation_letter_url);
       }
     } catch (err) {
-      setError(err.message);
+      console.error("[coordinator/visa]", err);
+      setError("신청 정보를 불러오지 못했습니다.");
     } finally {
       setLoading(false);
     }
@@ -84,8 +85,8 @@ export default function CoordinatorVisaDetailClient({ applicationId }) {
       const json = await res.json();
       if (!res.ok || !json.ok) throw new Error(json.error || json.detail || "failed");
       await loadAll();
-    } catch (err) {
-      alert("상태 변경 실패: " + err.message);
+    } catch (_err) {
+      alert("상태 변경 실패");
     }
   }
 
@@ -107,8 +108,8 @@ export default function CoordinatorVisaDetailClient({ applicationId }) {
       const json = await res.json();
       if (!res.ok || !json.ok) throw new Error(json.error || "failed");
       await loadAll();
-    } catch (err) {
-      alert("검수 실패: " + err.message);
+    } catch (_err) {
+      alert("검수 실패");
     }
   }
 
@@ -127,8 +128,8 @@ export default function CoordinatorVisaDetailClient({ applicationId }) {
       const json = await res.json();
       if (!res.ok || !json.ok) throw new Error(json.error || "failed");
       alert("메모 저장됨");
-    } catch (err) {
-      alert("저장 실패: " + err.message);
+    } catch (_err) {
+      alert("저장 실패");
     } finally {
       setSaving(false);
     }
@@ -146,8 +147,8 @@ export default function CoordinatorVisaDetailClient({ applicationId }) {
       if (!res.ok || !json.ok) throw new Error(json.error || json.detail || "failed");
       await loadAll();
       alert("초청장 발급 완료");
-    } catch (err) {
-      alert("발급 실패: " + err.message);
+    } catch (_err) {
+      alert("발급 실패");
     } finally {
       setIssuing(false);
     }
