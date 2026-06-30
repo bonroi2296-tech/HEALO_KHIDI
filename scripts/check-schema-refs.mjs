@@ -21,7 +21,7 @@ import path from "node:path";
 const ROOTS = ["src", "app"];
 const EXT = /\.(ts|tsx|js|jsx|mjs)$/;
 
-// --- public 스키마 실재 테이블 (2026-06-24 스냅샷, 67개) ---
+// --- public 스키마 실재 테이블 (2026-06-30 스냅샷, 68개) ---
 const PUBLIC_TABLES = new Set([
   "hospitals", "treatments", "site_settings", "inquiries", "chat_threads",
   "chat_messages", "inquiry_events", "admin_audit_logs", "admin_notification_logs",
@@ -40,6 +40,7 @@ const PUBLIC_TABLES = new Set([
   "ai_response_evaluations", "ai_regression_tests", "ai_regression_runs", "cotreatment_referrals",
   "agencies", "agency_users", "case_status_history", "alert_counter_events", "device_tokens",
   "progress_records", "account_deletion_requests",
+  "funnel_events", // 2026-06-30 적용 (PR #522 — 죽은 퍼널 계측 살리기). RLS=서비스롤 전용
 ]);
 
 // `.from()` 첫 인자가 DB 테이블이 아닌 것 — Supabase Storage 버킷(.storage.from). 오탐 제외.
