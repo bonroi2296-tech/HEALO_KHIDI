@@ -265,15 +265,15 @@ export default function HomeClient() {
 
         <div className="relative max-w-6xl mx-auto px-4 py-12 md:py-24">
           <div className="text-center">
-            <h1 className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold leading-tight mb-4 md:mb-6 whitespace-pre-line tracking-tight">
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold leading-tight mb-4 md:mb-6 whitespace-pre-line tracking-tight">
               {l(L.hero.title)}
             </h1>
-            <p className="text-sm md:text-base lg:text-lg text-slate-300 mb-6 md:mb-8 max-w-2xl mx-auto whitespace-pre-line leading-relaxed">
+            <p className="text-sm md:text-base lg:text-lg text-slate-200 mb-6 md:mb-8 max-w-2xl mx-auto whitespace-pre-line leading-relaxed">
               {l(L.hero.subtitle)}
             </p>
             <button
               onClick={() => router.push("/inquiry")}
-              className="group bg-gradient-to-r from-teal-500 to-emerald-500 text-white font-bold text-base md:text-lg px-8 py-4 md:px-10 md:py-5 rounded-2xl shadow-2xl shadow-teal-500/30 hover:shadow-teal-500/50 hover:scale-105 transition-all duration-300 inline-flex items-center gap-2 md:gap-3"
+              className="group bg-gradient-to-r from-teal-500 to-emerald-500 text-white font-bold text-base md:text-lg px-8 py-4 md:px-10 md:py-5 rounded-2xl shadow-lg shadow-teal-500/30 hover:shadow-xl hover:shadow-teal-500/40 transition-all duration-200 inline-flex items-center gap-2 md:gap-3"
             >
               {l(L.hero.cta)}
               <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
@@ -294,8 +294,8 @@ export default function HomeClient() {
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-6">
             {L.stats.items.map((item, i) => (
-              <div key={i} className="text-center p-4 md:p-6 rounded-xl md:rounded-2xl bg-gradient-to-b from-teal-50 to-white border border-teal-100 hover:shadow-lg transition-shadow">
-                <div className="text-2xl sm:text-3xl md:text-5xl font-black text-teal-700 mb-1 md:mb-3">{typeof item.value === 'string' ? item.value : l(item.value)}</div>
+              <div key={i} className="text-center p-4 md:p-6 rounded-xl md:rounded-2xl bg-teal-50 border border-teal-100 hover:shadow-md transition-shadow duration-200">
+                <div className="text-2xl sm:text-3xl md:text-5xl font-black text-teal-700 mb-1 md:mb-3 tabular-nums">{typeof item.value === 'string' ? item.value : l(item.value)}</div>
                 <div className="text-[10px] sm:text-xs md:text-sm text-gray-500 font-medium whitespace-pre-line leading-snug md:leading-relaxed">{l(item.label)}</div>
               </div>
             ))}
@@ -315,14 +315,14 @@ export default function HomeClient() {
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-6">
             {DOCTORS_DATA.map((doc, i) => (
-              <div key={i} className="bg-white rounded-xl md:rounded-2xl overflow-hidden border border-gray-100 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group">
+              <div key={i} className="bg-white rounded-xl md:rounded-2xl overflow-hidden border border-gray-100 hover:shadow-md transition-all duration-200 group">
                 <div className="aspect-square overflow-hidden bg-gray-100">
                   <img
                     src={doc.img}
                     alt={l(doc.name)}
                     loading="lazy"
                     decoding="async"
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   />
                 </div>
                 <div className="p-3 md:p-5">
@@ -410,7 +410,7 @@ export default function HomeClient() {
           <h2 className="text-2xl md:text-3xl lg:text-4xl font-extrabold text-center text-gray-900 mb-8 md:mb-12">{l(L.cancers.title)}</h2>
           <div className="grid grid-cols-3 md:grid-cols-6 gap-2 md:gap-4">
             {L.cancers.items.map((c, i) => (
-              <div key={i} role="button" tabIndex={0} onClick={() => router.push("/treatments")} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); router.push("/treatments"); } }} className="bg-white rounded-xl md:rounded-2xl p-3 md:p-5 text-center cursor-pointer hover:shadow-xl hover:-translate-y-1 transition-all duration-300 border border-gray-100 group focus:outline-none focus:ring-2 focus:ring-teal-400">
+              <div key={i} role="button" tabIndex={0} onClick={() => router.push("/treatments")} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); router.push("/treatments"); } }} className="bg-white rounded-xl md:rounded-2xl p-3 md:p-5 text-center cursor-pointer hover:shadow-md transition-all duration-200 border border-gray-100 group focus:outline-none focus:ring-2 focus:ring-teal-400">
                 <div className="text-2xl md:text-4xl mb-1 md:mb-3">{c.emoji}</div>
                 <div className="font-bold text-xs md:text-sm text-gray-800 mb-0.5 md:mb-1">{l(c.label)}</div>
                 <div className="text-[9px] md:text-[11px] text-teal-700 font-semibold leading-tight">{l(c.stat)}</div>
@@ -449,7 +449,7 @@ export default function HomeClient() {
                   tabIndex={0}
                   onClick={() => router.push(`/hospitals/${h.slug}`)}
                   onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); router.push(`/hospitals/${h.slug}`); } }}
-                  className="bg-white rounded-xl md:rounded-2xl overflow-hidden border border-gray-100 hover:shadow-xl hover:border-teal-200 transition-all duration-300 cursor-pointer group focus:outline-none focus:ring-2 focus:ring-teal-400"
+                  className="bg-white rounded-xl md:rounded-2xl overflow-hidden border border-gray-100 hover:shadow-md hover:border-teal-200 transition-all duration-200 cursor-pointer group focus:outline-none focus:ring-2 focus:ring-teal-400"
                 >
                   <div className="relative h-24 sm:h-32 md:h-40 overflow-hidden bg-gray-100">
                     {/* next/image: 로컬 병원 사진을 webp/avif·디바이스 크기로 자동 최적화 + 기본 lazy.
@@ -460,7 +460,7 @@ export default function HomeClient() {
                       fill
                       sizes="(min-width:1024px) 25vw, (min-width:640px) 33vw, 50vw"
                       onError={(e) => { if (e.currentTarget.src.includes("_coming-soon")) return; e.currentTarget.onerror = null; e.currentTarget.src = "/images/hospitals/_coming-soon.svg?v=3"; }}
-                      className="object-cover group-hover:scale-105 transition-transform duration-500"
+                      className="object-cover group-hover:scale-105 transition-transform duration-300"
                     />
                   </div>
                   <div className="p-2.5 md:p-4">
@@ -534,7 +534,7 @@ export default function HomeClient() {
           ══════════════════════════════════════════ */}
       <section className="bg-white py-10 md:py-16">
         <div className="max-w-4xl mx-auto px-4">
-          <div className="bg-gradient-to-r from-red-50 to-orange-50 rounded-xl md:rounded-2xl p-5 md:p-10 border border-red-100">
+          <div className="bg-red-50 rounded-xl md:rounded-2xl p-5 md:p-10 border border-red-100">
             <div className="text-center">
               <div className="inline-flex items-center gap-2 bg-red-100 rounded-full px-3 md:px-4 py-1 md:py-1.5 text-red-700 text-xs md:text-sm font-semibold mb-3 md:mb-4">
                 <Phone size={12} />
@@ -594,10 +594,10 @@ export default function HomeClient() {
         </div>
         <div className="relative max-w-3xl mx-auto px-4 text-center">
           <h2 className="text-2xl md:text-3xl lg:text-4xl font-extrabold mb-4 md:mb-6">{l(L.bottomCta.title)}</h2>
-          <p className="text-slate-300 text-sm md:text-base mb-6 md:mb-10 whitespace-pre-line leading-relaxed">{l(L.bottomCta.desc)}</p>
+          <p className="text-slate-200 text-sm md:text-base mb-6 md:mb-10 whitespace-pre-line leading-relaxed">{l(L.bottomCta.desc)}</p>
           <button
             onClick={() => router.push("/inquiry")}
-            className="group bg-gradient-to-r from-teal-500 to-emerald-500 text-white font-bold text-base md:text-lg px-8 py-4 md:px-10 md:py-5 rounded-2xl shadow-2xl shadow-teal-500/30 hover:shadow-teal-500/50 hover:scale-105 transition-all duration-300 inline-flex items-center gap-2 md:gap-3"
+            className="group bg-gradient-to-r from-teal-500 to-emerald-500 text-white font-bold text-base md:text-lg px-8 py-4 md:px-10 md:py-5 rounded-2xl shadow-lg shadow-teal-500/30 hover:shadow-xl hover:shadow-teal-500/40 transition-all duration-200 inline-flex items-center gap-2 md:gap-3"
           >
             {l(L.hero.cta)}
             <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />

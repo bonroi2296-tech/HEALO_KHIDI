@@ -85,7 +85,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const validLanguages = ["ru", "kz", "en"];
+    // 활성 6개 언어 전부 허용 — 모달 드롭다운(zh 포함)과 일치시킴. zh가 빠져 있어
+    // 중국어 환자 상담 생성이 400으로 막히던 버그 수정(퍼널감사 #4). STT·초대메일은 이미 zh 지원.
+    const validLanguages = ["ru", "kz", "en", "zh", "ko", "ja"];
     if (
       patientLanguage &&
       !validLanguages.includes(patientLanguage)

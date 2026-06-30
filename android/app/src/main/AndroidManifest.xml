@@ -32,4 +32,17 @@
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
+
+    <!-- 원격협진(LiveKit WebRTC) 영상·음성. 없으면 WebView getUserMedia 가 거부됨. -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+
+    <!-- 푸시 알림(Android 13+, @capacitor/push-notifications). -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <!-- 카메라 없는 태블릿도 설치 가능하도록 (영상상담은 카메라 권장이나 필수 하드웨어로 잠그지 않음). -->
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
+    <uses-feature android:name="android.hardware.camera.autofocus" android:required="false" />
+    <uses-feature android:name="android.hardware.microphone" android:required="false" />
 </manifest>

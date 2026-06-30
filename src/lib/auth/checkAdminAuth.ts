@@ -193,6 +193,23 @@ export async function checkAdminAuth(request?: NextRequest): Promise<{
     // 4. 권한 판정 (OR 조건)
     // ========================================
 
+    // 4-0. 비활성(소프트삭제) 계정 차단 — /admin/staff 토글이 app_metadata.disabled=true 를
+    //   세팅하는데, 그동안 인증 단계에서 안 읽혀 "비활성" 직원/어드민이 그대로 로그인·PII
+    //   복호화 가능했음(소프트삭제 무력화, 퍼널감사 #3). 명시적 true 일 때만 차단(fail-safe:
+    //   undefined/false 는 정상 통과 → 정상 계정 잠금 위험 없음). appRole 미설정으로 반환해
+    //   requirePortalAuth 의 isStaff 도 false → 코디·어드민 양쪽 차단.
+    if (user.app_metadata?.disabled === true) {
+      if (isDev) console.warn("[checkAdminAuth] account disabled:", userEmail);
+      return {
+        isAdmin: false,
+        userId,
+        email: userEmail,
+        reason: "account_disabled",
+        authMethod,
+        debug: isDev ? debugInfo : undefined,
+      };
+    }
+
     // 4-1. app_metadata.role === "admin"  (service_role만 쓸 수 있는 필드)
     const appMetadataRole = user.app_metadata?.role;
     if (appMetadataRole === "admin") {

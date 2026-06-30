@@ -28,7 +28,7 @@ export const BRAND = {
   email: "admin@healwith.co.kr",
   phone: "+82 10 4772 1075",
   address: "Room 613, 385 Gangseo-ro, Gangseo-gu, Seoul, Republic of Korea",
-  website: "https://healo-khidi.vercel.app",
+  website: "https://healwith.co.kr",
 };
 
 export const COLORS = {

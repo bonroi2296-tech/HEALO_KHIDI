@@ -70,7 +70,7 @@ export default function KoreanMedicineClient() {
   return (
     <div className="bg-white min-h-screen">
       {/* Hero */}
-      <section className="relative bg-gradient-to-br from-emerald-800 via-teal-700 to-emerald-900 text-white overflow-hidden">
+      <section className="relative bg-gradient-to-br from-emerald-800 to-teal-800 text-white overflow-hidden">
         <div className="absolute inset-0 opacity-10">
           <div className="absolute top-10 left-10 w-64 h-64 rounded-full bg-white/20 blur-3xl" />
           <div className="absolute bottom-10 right-10 w-48 h-48 rounded-full bg-teal-300/20 blur-3xl" />
@@ -249,7 +249,7 @@ export default function KoreanMedicineClient() {
 
       {/* Bottom CTA */}
       <section className="max-w-6xl mx-auto px-4 py-12 md:py-16">
-        <div className="rounded-3xl bg-gradient-to-r from-emerald-700 to-teal-600 p-6 md:p-10 text-center text-white">
+        <div className="rounded-2xl bg-gradient-to-r from-emerald-700 to-teal-600 p-6 md:p-10 text-center text-white">
           <Leaf size={32} className="mx-auto mb-4 text-emerald-200" />
           <h2 className="text-xl md:text-3xl font-extrabold mb-3">{t("km.cta", langCode)}</h2>
           <p className="text-white/80 max-w-xl mx-auto mb-6">

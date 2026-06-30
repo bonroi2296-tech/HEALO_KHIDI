@@ -4,6 +4,32 @@
 
 ---
 
+## 🟢 2026-06-29 AI 에이전트 개선 — 백로그 (PO 방향 확정, 다음 트랙)
+
+> C레벨 전방위 진단(브랜치 `claude/ai-agent-improvements-pgy6oj`)에서 **즉시 구현분**(공개 AI챗 예시질문 칩·코디연결/접수 빠른버튼 6개어·스트림 에러 6개어 현지화·`detectHandOff` ru/kz/zh 보강)은 처리. 아래는 PO가 **방향 확정 + 백로그로 남기라**고 한 더 큰 플로 변경.
+
+- **공개 AI챗(`/inquiry`) 멀티 스레드 통일 — 1차 구현됨(2026-06-29, PR #475)**: 공개챗에 "새 상담"·"이전 대화 목록"·오래 쉰(>24h) 대화 자동 세션경계 배너 추가. 신규 API `GET /api/public/chat/threads`(로그인=user_id·게스트=browser_session_id, PII 미반환·30일 cutoff·rate limit). 스레드 제목 첫 메시지 자동 채움. 공개챗의 정상 모델(`actor_type/message_text`) 위에 환자챗 UI 패턴 차용. **함께 고친 버그**: `/patient/chat`이 없는 컬럼(role/content)으로 read/write해 메시지 전부 0건이던 것(POSTMORTEMS #51). ▶ **남은 후속**: ①두 챗 표면 완전 단일화(현재 공개=멀티스레드, 환자챗은 자체 API 유지 — 장기적으로 한 백엔드로 수렴) ②로그인 사용자 기기 간 동기화 실검증 ③`GET /api/public/chat/[threadId]` 정식 분리(현재 방 전환은 resume 재사용) ④공용 PC 게스트 세션 PII 분리.
+- **AI→유치 전환 프로덕션 0건 검증** (🔴 KHIDI 점수 직결): `source='ai_agent'` 리드 승격 코드는 정상이나 실 3턴+ 대화 전환이 0(실DB). 8/27 중간평가 정량지표(유치 12·상담 120)가 이 집계 → 이번 빠른버튼(접수·코디연결)으로 전환 동선이 강해졌으니 **실대화 1건으로 대시보드(`/admin/khidi/conversion`) 집계 end-to-end 실검증** 필요.
+- **playbook_pattern 0건 → "3-Tier RAG"가 실제론 1-Tier**: 적재 계획 필요(보고서 표기와 실제 일치). 기존 항목과 연계.
+- **스키마 드리프트**: `chat_threads.user_id`(+`guest_country`·`guest_phone`·`resolved_at`·`channel`)가 prod엔 있으나 마이그레이션 파일엔 ADD COLUMN 누락. 동작 정상이나 재현성 위해 보강 마이그레이션 권장.
+
+---
+
+## 🟡 2026-06-29 오픈 전 전수조사 — 후속 과제 (이번에 손대지 않고 남긴 것)
+
+> 5축(보안·i18n·데이터/RLS·AI/RAG·위생) 병렬 감사 + 실DB 점검. **고친 것**(별도 PR): 옛도메인 잔재(POSTMORTEMS #49)·AI 송출 전 레드라인 차단+triage PII 마스킹(#50)·환자 목록 2페이지 6개어·보안 LOW(admin import 에러코드화·translate 토큰상한)·약한비번 교체. 아래는 **의도적으로 남긴 후속**.
+
+- **환자 상세 페이지 광범위 한국어** (🟡 핵심시장): `/patient/cost-estimates/[id]`·`/patient/visa/applications`·`/patient/visa/applications/[id]` 는 페이지 전체가 한국어 하드코딩(상태라벨·본문). 이번엔 감사가 CRITICAL로 지목한 **목록 2페이지(consultations·cost-estimates)만 6개어 완료** + 상세페이지는 alert/에러표시의 `err.message` 누수만 닫음(보안). 상세 본문 6개어화는 후속(목록 페이지의 page-local COPY 패턴 재사용).
+- **MEDIUM 하드코딩 문자열**: `consultation/[id]/page.jsx` aria-label "Toggle chat panel"(영어, 2883줄 God컴포넌트라 보류)·`DocumentsClient.jsx` placeholder "e.g. Blood test from March 2026"(영어). 저위험.
+- **RAG ingest taskType**: `getEmbedding`이 적재·질의 모두 `RETRIEVAL_QUERY` 사용. 적재는 `RETRIEVAL_DOCUMENT`가 정석(비대칭 검색 품질↑). **단 기존 18청크 전체 재적재가 동반돼야 코퍼스 일관** → 반쪽 적용은 오히려 불일치라 보류. 재적재 시 함께 적용.
+- **`rag_chunks_used=0`/redline 적발률 경보 없음**: 지표는 metadata에 찍히는데 집계·경보가 없음(#48 교훈). cron 집계 + operationalAlerts 연결 권장.
+- **admission-status 무인증 GET** (🟢 허용위험): `/api/khidi/consultation/[id]/admission-status` 는 두 무작위 UUID 일치 + 상태 enum 만 반환 = 계정없는 게스트 폴링 의도 설계. 인증 강제 시 게스트 플로 깨짐 → 그대로 둠.
+- **cron 비상수시간 비교** (🟢 저위험): `automation`·`kpi-snapshot`·`run-regression-tests`·`crawl` 라우트가 `!==`로 CRON_SECRET 비교(다른 cron은 `timingSafeEqual`). 고엔트로피 시크릿이라 실효 위험 낮음 — 일관성 정리 후속.
+- **Supabase Auth 유출비번 보호 꺼짐** (🟢, PO 콘솔 1클릭): Authentication 설정에서 HaveIBeenPwned 체크 켜기 권장.
+- **테스트 문의/국적값 오염**: `inquiries` #26~31(검증 더미) + 국적값 혼재(`KZ`·`Kazakhstan`·`kazah`·`test`·null). 데이터 삭제는 비가역이라 자율 보류 — PO 확인 후 정리(유치 대시보드 집계 정확도).
+
+---
+
 ## 🟡 2026-06-25 코디네이터에게 AI 챗 뷰가 없음 (AI 핸드오프 종은 어드민에게만)
 
 - **상태**: AI 챗 스레드 모니터(`/admin/chat`·`/api/admin/chat/threads`)가 `requireAdminAuth` **어드민 전용**. 코디네이터(`role=coordinator`)는 AI 챗 대화를 볼 화면이 없음.
