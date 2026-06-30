@@ -71,10 +71,11 @@ const navGroups = [
       { id: "treatments", label: "치료·암종", icon: Stethoscope, href: "/admin/treatments" },
       { id: "agencies", label: "에이전시 관리", icon: Users, href: "/admin/khidi/agencies" },
       { id: "doctors", label: "의료진·지점", icon: Users, href: "/admin/doctors" },
-      { id: "rag", label: "RAG 관리", icon: Brain, href: "/admin/rag" },
-      { id: "rag-docs", label: "RAG 문서/Tier", icon: FileText, href: "/admin/rag/documents" },
-      { id: "crawl", label: "Tier 2 데이터 갱신", icon: SearchCode, href: "/admin/crawl" },
-      { id: "pipeline", label: "갱신 파이프라인", icon: BarChart3, href: "/admin/crawl/pipeline" },
+      { id: "rag", label: "RAG", icon: Brain, href: "/admin/rag", children: [
+        { id: "rag-docs", label: "RAG 문서/Tier", icon: FileText, href: "/admin/rag/documents" },
+        { id: "crawl", label: "Tier 2 데이터 갱신", icon: SearchCode, href: "/admin/crawl" },
+        { id: "pipeline", label: "갱신 파이프라인", icon: BarChart3, href: "/admin/crawl/pipeline" },
+      ] },
     ]
   },
   {
@@ -106,10 +107,11 @@ const navGroups = [
     items: [
       { id: "import", label: "대량 Import", icon: Upload, href: "/admin/import" },
       { id: "enrichment", label: "데이터 보강", icon: Database, href: "/admin/enrichment" },
-      { id: "playbook", label: "플레이북", icon: FileText, href: "/admin/playbook" },
-      { id: "playbook-patterns", label: "응대 패턴", icon: Brain, href: "/admin/playbook-patterns" },
-      { id: "playbook-analytics", label: "패턴 분석", icon: BarChart3, href: "/admin/playbook-analytics" },
-      { id: "automation-playbook", label: "자동화", icon: BarChart3, href: "/admin/automation/playbook" },
+      { id: "playbook", label: "플레이북", icon: FileText, href: "/admin/playbook", children: [
+        { id: "playbook-patterns", label: "응대 패턴", icon: Brain, href: "/admin/playbook-patterns" },
+        { id: "playbook-analytics", label: "패턴 분석", icon: BarChart3, href: "/admin/playbook-analytics" },
+        { id: "automation-playbook", label: "자동화", icon: BarChart3, href: "/admin/automation/playbook" },
+      ] },
     ]
   }
 ];
@@ -136,6 +138,37 @@ export function AdminNav() {
   const handleLogout = async () => {
     await supabase.auth.signOut();
     router.push('/login');
+  };
+
+  const renderLeaf = (item, isChild) => {
+    const Icon = item.icon;
+    const isExactActive = pathname === item.href;
+    const isParentOfActive =
+      item.href !== "/admin" &&
+      pathname !== item.href &&
+      pathname.startsWith(item.href + "/");
+    // 정확히 현재 페이지만 강한 활성(teal 배경), 부모는 '열린 섹션'만 연하게 표시
+    const strongActive = isExactActive;
+    const parentOpen = !strongActive && isParentOfActive;
+    return (
+      <Link
+        key={item.id}
+        href={item.href}
+        className={`w-full flex items-center gap-3 px-3 lg:px-4 py-2.5 lg:py-2.5 rounded-lg ${isChild ? "text-[13px]" : "text-sm"} font-medium transition-all min-h-[44px] lg:min-h-0 items-center ${
+          strongActive
+            ? "bg-teal-50 text-teal-700 shadow-sm"
+            : parentOpen
+            ? "bg-gray-50/80 text-gray-600 border-l-2 border-teal-200 -ml-0.5 pl-[14px]"
+            : "text-gray-700 hover:bg-gray-50"
+        }`}
+      >
+        <Icon
+          size={isChild ? 16 : 18}
+          className={strongActive ? "text-teal-700" : parentOpen ? "text-gray-500" : "text-gray-400"}
+        />
+        <span>{item.label}</span>
+      </Link>
+    );
   };
 
   const navContent = (
@@ -168,36 +201,23 @@ export function AdminNav() {
             </h3>
             <div className="space-y-0.5 lg:space-y-1">
               {group.items.map((item) => {
-                const Icon = item.icon;
-                const isExactActive = pathname === item.href;
-                const isParentOfActive =
-                  item.href !== "/admin" &&
-                  pathname !== item.href &&
-                  pathname.startsWith(item.href + "/");
-                // 정확히 현재 페이지만 강한 활성(teal 배경), 부모는 '열린 섹션'만 연하게 표시
-                const strongActive = isExactActive;
-                const parentOpen = !strongActive && isParentOfActive;
-
+                if (!item.children) return renderLeaf(item, false);
+                // 부모 섹션이 활성(부모/자식 어느 경로든)일 때만 자식 펼침 — 토글 상태 없이 경로로만 제어
+                const sectionActive =
+                  pathname === item.href ||
+                  pathname.startsWith(item.href + "/") ||
+                  item.children.some(
+                    (c) => pathname === c.href || pathname.startsWith(c.href + "/")
+                  );
                 return (
-                  <Link
-                    key={item.id}
-                    href={item.href}
-                    className={`w-full flex items-center gap-3 px-3 lg:px-4 py-2.5 lg:py-2.5 rounded-lg text-sm font-medium transition-all min-h-[44px] lg:min-h-0 items-center ${
-                      strongActive
-                        ? "bg-teal-50 text-teal-700 shadow-sm"
-                        : parentOpen
-                        ? "bg-gray-50/80 text-gray-600 border-l-2 border-teal-200 -ml-0.5 pl-[14px]"
-                        : "text-gray-700 hover:bg-gray-50"
-                    }`}
-                  >
-                    <Icon
-                      size={18}
-                      className={
-                        strongActive ? "text-teal-700" : parentOpen ? "text-gray-500" : "text-gray-400"
-                      }
-                    />
-                    <span>{item.label}</span>
-                  </Link>
+                  <div key={item.id} className="space-y-0.5 lg:space-y-1">
+                    {renderLeaf(item, false)}
+                    {sectionActive && (
+                      <div className="ml-4 pl-2 border-l border-gray-100 space-y-0.5 lg:space-y-1">
+                        {item.children.map((c) => renderLeaf(c, true))}
+                      </div>
+                    )}
+                  </div>
                 );
               })}
             </div>
