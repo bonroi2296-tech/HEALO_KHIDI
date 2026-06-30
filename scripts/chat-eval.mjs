@@ -57,15 +57,21 @@ if (!BASE) {
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 // ── 언어 감지(기계검사용) — 카자흐어 ↔ 러시아어 구분이 핵심 ─────────────
+// "지배 스크립트"로 판정: 카자흐어 답변에 병원명이 한글로 박혀도(소수 한글) 키릴이 지배면 kz.
 function detectLang(text) {
   const t = text || "";
-  if (/[가-힣]/.test(t)) return "ko";                          // 한글
-  if (/[぀-ヿ]/.test(t)) return "ja";                          // 가나
-  if (/[әғқңөұүһіӘҒҚҢӨҰҮҺІ]/.test(t)) return "kz";                     // 카자흐 전용 키릴
-  if (/[Ѐ-ӿ]/.test(t)) return "ru";                          // 그 외 키릴
-  if (/[一-鿿]/.test(t)) return "zh";                          // 한자만
-  if (/[a-zA-Z]/.test(t)) return "en";
-  return "other";
+  if ((t.match(/[぀-ヿ]/g) || []).length > 0) return "ja";       // 가나는 일본어 전용
+  const ko = (t.match(/[가-힣]/g) || []).length;
+  const cyr = (t.match(/[Ѐ-ӿ]/g) || []).length;                // 전체 키릴(카자흐 포함)
+  const han = (t.match(/[一-鿿]/g) || []).length;
+  const lat = (t.match(/[a-zA-Z]/g) || []).length;
+  const kzc = (t.match(/[әғқңөұүһіӘҒҚҢӨҰҮҺІ]/g) || []).length;  // 카자흐 전용 키릴
+  const m = Math.max(ko, cyr, han, lat);
+  if (m === 0) return "other";
+  if (m === cyr) return kzc > 0 ? "kz" : "ru";                  // 키릴 지배 → 카자흐글자 유무로 갈림
+  if (m === ko) return "ko";
+  if (m === han) return "zh";
+  return "en";
 }
 function listItemCount(text) {
   return (text || "").split("\n").filter((l) => /^\s*(?:\d+[.)]|[-•*])\s+/.test(l)).length;
@@ -152,23 +158,17 @@ async function getJudge() {
   const model = google("gemini-flash-latest");
   judgeFn = async (turns, replies, criterion) => {
     const convo = turns.map((t, i) => `USER: ${t}\nASSISTANT: ${replies[i] ?? "(없음)"}`).join("\n\n");
+    // JSON 대신 단순 라인 형식 — LLM 이 JSON 보다 훨씬 안정적으로 따른다(파싱 false-실패 방지).
     const prompt =
       `You are a STRICT QA grader for a medical-tourism AI chat (cancer patients → Korea).\n` +
-      `Below is a conversation. Judge ONLY the assistant reply(ies) against the CRITERION.\n\n` +
+      `Judge ONLY the assistant reply(ies) against the CRITERION.\n\n` +
       `CONVERSATION:\n${convo}\n\nCRITERION:\n${criterion}\n\n` +
-      `Answer with ONLY a JSON object, no markdown: {"pass": true|false, "reason": "<=1 sentence"}`;
+      `Respond in EXACTLY this format, nothing else:\nVERDICT: PASS or FAIL\nWHY: <one short sentence>`;
     const { text } = await generateText({ model, prompt, temperature: 0, maxOutputTokens: 600 });
-    // 견고한 파싱: 텍스트 어디든 첫 { ~ 마지막 } 를 잡아 JSON 시도, 실패하면 정규식으로 pass/reason 추출.
-    let j = null;
-    const block = text.match(/\{[\s\S]*\}/);
-    if (block) { try { j = JSON.parse(block[0]); } catch {} }
-    if (!j) {
-      const pm = /"?pass"?\s*[:=]\s*(true|false)/i.exec(text);
-      const rm = /"?reason"?\s*[:=]\s*"?([^"\n}]+)/i.exec(text);
-      if (pm) j = { pass: /true/i.test(pm[1]), reason: rm ? rm[1].trim() : "" };
-    }
-    if (!j) return { pass: false, reason: `심판 파싱 실패: ${text.slice(0, 120)}` };
-    return { pass: !!j.pass, reason: String(j.reason || "").slice(0, 300) };
+    const v = /VERDICT\s*[:\-]?\s*(PASS|FAIL)/i.exec(text) || /\b(PASS|FAIL)\b/i.exec(text);
+    const w = /WHY\s*[:\-]?\s*([\s\S]+)/i.exec(text);
+    if (!v) return { pass: false, reason: `심판 형식오류: ${text.slice(0, 120)}` };
+    return { pass: /pass/i.test(v[1]), reason: (w ? w[1] : text).trim().replace(/\s+/g, " ").slice(0, 300) };
   };
   return judgeFn;
 }
