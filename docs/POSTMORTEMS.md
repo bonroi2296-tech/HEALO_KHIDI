@@ -26,6 +26,8 @@
 - **교훈(가드 작성 룰)**: 사용자노출 싱크를 가드로 막을 땐 *이름*이 아니라 *코드에 실제로 나타나는 호출 모양*을 열거하라(메서드·옵셔널체이닝·별칭). 한 번 통과한 가드도 "이 패턴을 *어떻게* 부르나"를 grep로 한 번 더 대조.
 - 가드 스코프를 직원 포털(admin·coordinator·hospital·agency·clinic)+`costs`까지 확장(SKIP 제거) → 이제 전 화면 감시.
 
+**후속(같은 날, 2차 사각)**: PO가 "더 할 건 없냐" 물어 한 번 더 전수 훑다가, 가드가 못 보는 **간접 노출** 3곳 추가 발견 — `err.message`를 직접 싱크에 넣지 않고 `setRunResult({ ok:false, error: err.message })`처럼 *상태 객체*에 담아 나중에 `{result.error}`로 렌더(`app/admin/automation/playbook`·`reminders`·`khidi/ai-regression`). 줄 단위 정규식은 "값이 어디서 렌더되나"를 못 보므로 직접호출만 잡던 가드가 통과시킴. → 일반 메시지로 교체 + 가드에 `LEAK_INDIRECT`(`setX({ ... error: y.message })`) 룰 추가. **교훈 보강**: 싱크는 "직접 호출"뿐 아니라 "상태에 담아 렌더되는 간접 경로"도 있다 — 가드는 두 모양 다 열거.
+
 ## #52 — "수행했다"고 보고한 보안수정(err.message graft)이 실제 커밋엔 0곳 — 보고↔코드 괴리 (2026-06-30 #459 머지)
 
 **무슨 일**

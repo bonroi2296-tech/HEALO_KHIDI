@@ -35,6 +35,10 @@ const SKIP = [
 // ponytail: 휴리스틱 가드 — toastXYZ( 같은 드문 오탐은 // allow-raw-error 로 통과시키면 됨(보안상 누락보다 과탐이 안전).
 const LEAK = /(setError|alert|showToast|toast(?:\?\.|\.)?\w*(?:\?\.)?|setStatus|setMessage|setErrorMsg)\s*\([^)]*\b(err|error|e|ex|_err|_error)\.message\b/;
 
+// 간접 노출: err.message 를 setXxx({ ... error: err.message }) 처럼 상태 객체에 담아 화면에 렌더하는 패턴(POSTMORTEMS #53 후속 — 직접 호출만 잡던 가드가 못 본 3곳).
+// ponytail: setX({error: y.message}) 가 화면에 안 그려지는 드문 경우는 // allow-raw-error 로 통과.
+const LEAK_INDIRECT = /\bset\w+\s*\(\s*\{[^}]*\berror:\s*(err|error|e|ex|_err|_error)\.message\b/;
+
 function walk(dir, out) {
   let entries;
   try { entries = readdirSync(dir); } catch { return out; }
@@ -53,7 +57,7 @@ const hits = [];
 for (const f of files) {
   const lines = readFileSync(f, "utf8").split("\n");
   lines.forEach((line, i) => {
-    if (LEAK.test(line) && !line.includes("allow-raw-error")) {
+    if ((LEAK.test(line) || LEAK_INDIRECT.test(line)) && !line.includes("allow-raw-error")) {
       hits.push(`  ${f}:${i + 1}  ${line.trim().slice(0, 100)}`);
     }
   });
