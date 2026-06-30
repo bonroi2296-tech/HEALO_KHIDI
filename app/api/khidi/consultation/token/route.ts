@@ -14,8 +14,19 @@
 export const runtime = "nodejs";
 
 import { NextRequest } from "next/server";
-import { AccessToken } from "livekit-server-sdk";
+import {
+  AccessToken,
+  RoomConfiguration,
+  RoomAgentDispatch,
+} from "livekit-server-sdk";
 import { requireConsultationAccess } from "@/lib/auth/requireConsultationAccess";
+import {
+  isLiveTranslateEnabledServer,
+  TRANSLATOR_AGENT_NAME,
+  ROOM_EMPTY_TIMEOUT,
+  ROOM_DEPARTURE_TIMEOUT,
+  ROOM_MAX_PARTICIPANTS,
+} from "@/lib/consultation/liveTranslate";
 
 const TOKEN_TTL_SECONDS = 2 * 60 * 60; // 2시간
 
@@ -82,7 +93,28 @@ export async function POST(request: NextRequest) {
       canPublish,
       canSubscribe,
       canPublishData,
+      // 통역 켜짐: 참가자가 자기 언어(`lang` 속성)를 방에 알릴 수 있어야 에이전트가
+      // 통역쌍을 만든다. 끄짐이면 불필요(영향 없음).
+      canUpdateOwnMetadata: true,
     });
+
+    // ── Gemini Live Translate 에이전트 자동 디스패치 (스위치 뒤) ──
+    // RoomConfiguration 은 "방 최초 생성 시"에만 적용된다 → 이미 있는 방의 토큰을
+    // 다시 발급해도 무시되므로 멱등(idempotent). 스위치가 꺼져 있으면 아무 것도 안 함
+    // = 기존 동작과 100% 동일.
+    if (isLiveTranslateEnabledServer()) {
+      token.roomConfig = new RoomConfiguration({
+        agents: [
+          new RoomAgentDispatch({
+            agentName: TRANSLATOR_AGENT_NAME,
+            metadata: JSON.stringify({ consultationId }),
+          }),
+        ],
+        emptyTimeout: ROOM_EMPTY_TIMEOUT,
+        departureTimeout: ROOM_DEPARTURE_TIMEOUT,
+        maxParticipants: ROOM_MAX_PARTICIPANTS,
+      });
+    }
 
     const jwt = await token.toJwt();
 

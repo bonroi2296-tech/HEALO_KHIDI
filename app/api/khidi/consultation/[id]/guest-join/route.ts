@@ -22,8 +22,19 @@ export const runtime = "nodejs";
 
 import { NextRequest } from "next/server";
 import { randomBytes } from "node:crypto";
-import { AccessToken } from "livekit-server-sdk";
+import {
+  AccessToken,
+  RoomConfiguration,
+  RoomAgentDispatch,
+} from "livekit-server-sdk";
 import { verifyAndConsumeGuestToken } from "@/lib/auth/guestToken";
+import {
+  isLiveTranslateEnabledServer,
+  TRANSLATOR_AGENT_NAME,
+  ROOM_EMPTY_TIMEOUT,
+  ROOM_DEPARTURE_TIMEOUT,
+  ROOM_MAX_PARTICIPANTS,
+} from "@/lib/consultation/liveTranslate";
 import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
 import { checkRateLimit, getClientIp, getRateLimitHeaders } from "@/lib/rateLimit";
 
@@ -164,7 +175,26 @@ export async function POST(
       canPublish,
       canSubscribe,
       canPublishData,
+      // 통역 켜짐: 게스트도 자기 언어(`lang` 속성)를 방에 알릴 수 있어야 함.
+      canUpdateOwnMetadata: true,
     });
+
+    // ── Gemini Live Translate 에이전트 자동 디스패치 (스위치 뒤, 멱등) ──
+    // 게스트가 먼저 입장해 방을 만드는 경우(초대링크)에도 통역 에이전트가 붙도록.
+    // 스위치 꺼짐이면 무동작 = 기존 동작과 동일.
+    if (isLiveTranslateEnabledServer()) {
+      lkToken.roomConfig = new RoomConfiguration({
+        agents: [
+          new RoomAgentDispatch({
+            agentName: TRANSLATOR_AGENT_NAME,
+            metadata: JSON.stringify({ consultationId }),
+          }),
+        ],
+        emptyTimeout: ROOM_EMPTY_TIMEOUT,
+        departureTimeout: ROOM_DEPARTURE_TIMEOUT,
+        maxParticipants: ROOM_MAX_PARTICIPANTS,
+      });
+    }
 
     const jwt = await lkToken.toJwt();
 
