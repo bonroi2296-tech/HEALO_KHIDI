@@ -43,11 +43,12 @@ const navGroups = [
     title: "운영 현황",
     items: [
       { id: "dashboard", label: "대시보드", icon: LayoutDashboard, href: "/admin" },
-      { id: "kpi-dashboard", label: "KPI 대시보드", icon: TrendingUp, href: "/admin/khidi/kpi-dashboard" },
-      { id: "conversion", label: "유치 전환 현황", icon: Filter, href: "/admin/khidi/conversion" },
-      { id: "satisfaction", label: "환자 만족도", icon: Star, href: "/admin/khidi/satisfaction" },
+      { id: "kpi-dashboard", label: "중간평가 현황", icon: TrendingUp, href: "/admin/khidi/kpi-dashboard", children: [
+        { id: "conversion", label: "유치 전환 상세", icon: Filter, href: "/admin/khidi/conversion" },
+        { id: "satisfaction", label: "환자 만족도", icon: Star, href: "/admin/khidi/satisfaction" },
+        { id: "evidence", label: "증빙 산출물", icon: FileText, href: "/admin/khidi/evidence" },
+      ] },
       { id: "analytics", label: "문의 현황", icon: BarChart3, href: "/admin/analytics" },
-      { id: "evidence", label: "증빙 산출물", icon: FileText, href: "/admin/khidi/evidence" },
       { id: "ad-budget", label: "광고 예산 계산기", icon: Calculator, href: "/admin/khidi/ad-budget" },
     ]
   },
