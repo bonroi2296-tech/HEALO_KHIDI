@@ -10,6 +10,8 @@
 
 // 코디가 연락 가능할 때 — 접수 확정 + 기본 안내(무료 사전검토·다음 단계) + 시차 때문에 "어느 채널이 편한지"를
 // 확인받는다. 연락처가 file 에 있어도, 국제 환자는 시차·기기 이탈로 놓치기 쉬워 선호 채널을 한 번 확인하는 게 안전(2026-06-30 PO).
+// ponytail: 네이티브 앱이 스토어에 출시되면(현재 미출시) 여기에 "앱 설치 시 푸시로 진행상황 안내" 한 줄 추가(2026-06-30 PO 보류분).
+//   푸시는 네이티브 앱 전용(src/lib/push/registerPush.ts: 웹 no-op)이라 출시 전엔 거짓 약속이 됨 → 출시 후 추가.
 export const HANDOFF_CONFIRM: Record<string, string> = {
   ko: "🔔 접수됐어요! 코디네이터가 무료 사전 검토 후 다음 단계(견적·일정)를 안내드립니다. 시차가 있으니 연락은 이메일과 메신저(WhatsApp·Telegram·WeChat·LINE) 중 어디가 편하신가요? 지금까지 대화는 안전하게 저장돼 있어요.",
   en: "🔔 You're registered! A coordinator will do a free preliminary review and guide your next steps (quote & schedule). Because time zones differ — is email or a messenger (WhatsApp/Telegram/WeChat/LINE) best to reach you? Your conversation is safely saved.",

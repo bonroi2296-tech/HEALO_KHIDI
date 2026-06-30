@@ -4,14 +4,16 @@ import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 
 // 스태프 포털·상담방에선 PWA 설치 배너 숨김(하단 fixed라 입력창·UI를 덮음 + 마케팅용이라 무관).
-const HIDE_ON = ["/admin", "/coordinator", "/hospital", "/agency", "/clinic", "/consultation"];
+// /inquiry: AI챗이 풀하이트라 하단 fixed 배너가 입력칸을 덮음 → 전역 배너 대신 챗 안 인라인 힌트(ChatInstallHint) 사용.
+const HIDE_ON = ["/admin", "/coordinator", "/hospital", "/agency", "/clinic", "/consultation", "/inquiry"];
 
 // PWA 설치 안내.
 // - 안드로이드/데스크톱 크롬: beforeinstallprompt 이벤트를 잡아 "설치" 버튼 노출
 //   (크롬 자동 배너는 한 번 설치/닫은 사람에겐 쿨다운으로 안 뜨지만, 이 이벤트는 페이지가
 //    직접 쓸 수 있어 재방문자도 언제든 설치 가능).
 // - iOS 사파리: 애플 정책상 자동/프로그램 설치가 없음 → "공유 → 홈 화면에 추가" 수동 안내만.
-const T = {
+// 챗 인라인 힌트(ChatInstallHint)와 카피 공유 — 6개 언어 중복 방지.
+export const INSTALL_COPY = {
   ko: { ios: "홈 화면에 추가하면 앱처럼 쓸 수 있어요", iosBody: "공유 버튼", iosBody2: "을 누른 뒤 ‘홈 화면에 추가’를 선택하세요", install: "healwith 앱을 설치하세요", cta: "설치", close: "닫기" },
   en: { ios: "Add healwith to your home screen", iosBody: "Tap the Share button", iosBody2: ", then ‘Add to Home Screen’", install: "Install the healwith app", cta: "Install", close: "Close" },
   ru: { ios: "Добавьте healwith на главный экран", iosBody: "Нажмите кнопку «Поделиться»", iosBody2: ", затем «На экран „Домой“»", install: "Установите приложение healwith", cta: "Установить", close: "Закрыть" },
@@ -50,7 +52,7 @@ export default function InstallPrompt({ lang = "en" }) {
     };
   }, []);
 
-  const t = T[lang] || T.en;
+  const t = INSTALL_COPY[lang] || INSTALL_COPY.en;
   const dismiss = () => {
     try { localStorage.setItem(DISMISS_KEY, "1"); } catch { /* noop */ }
     setDeferred(null);

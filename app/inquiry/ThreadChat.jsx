@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { ArrowRight, AlertCircle, Loader2, Bot, ThumbsUp, ThumbsDown, X, Paperclip, FileText, Image as ImageIcon, Headset, ClipboardCheck, Plus, History, ChevronLeft } from "lucide-react";
 import { getLangCodeFromCookie, t } from "@/lib/i18n";
+import { INSTALL_COPY } from "../InstallPrompt";
 
 const TOKEN_COOKIE = "healo_chat_token";
 const SESSION_COOKIE = "healo_browser_session";
@@ -191,6 +192,62 @@ function RichText({ text }) {
         return <p key={i} className="whitespace-pre-wrap">{renderInline(b.text)}</p>;
       })}
     </>
+  );
+}
+
+// 챗 안 PWA 설치 힌트(맥락형) — 대화가 시작된 뒤 슬림 칩으로 1회 유도. 푸시는 약속하지 않음
+// (푸시는 네이티브 앱 전용·미출시 → 거짓 약속 금지). 전역 InstallPrompt 는 /inquiry 에서 숨기고 이게 대신함.
+// 감지/해제 규칙·해제키(a2hs-dismissed)는 InstallPrompt 와 동일하게 맞춰 양쪽이 함께 닫히게 함.
+function ChatInstallHint({ lang }) {
+  const [deferred, setDeferred] = useState(null); // beforeinstallprompt(안드/데스크톱 크롬)
+  const [iosHint, setIosHint] = useState(false);
+  const [hidden, setHidden] = useState(false);
+
+  useEffect(() => {
+    try {
+      if (localStorage.getItem("a2hs-dismissed") === "1") { setHidden(true); return; }
+      const standalone = window.navigator.standalone === true || window.matchMedia("(display-mode: standalone)").matches;
+      if (standalone) { setHidden(true); return; } // 이미 설치됨
+      const ua = navigator.userAgent || "";
+      const isIOS = /iphone|ipad|ipod/i.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+      const isSafari = /safari/i.test(ua) && !/crios|fxios|edgios|opios/i.test(ua);
+      if (isIOS && isSafari) setIosHint(true);
+    } catch { /* 비공개모드 등 localStorage 막힘 — 무시 */ }
+    const onPrompt = (e) => { e.preventDefault(); setDeferred(e); };
+    const onInstalled = () => { setDeferred(null); setHidden(true); try { localStorage.setItem("a2hs-dismissed", "1"); } catch {} };
+    window.addEventListener("beforeinstallprompt", onPrompt);
+    window.addEventListener("appinstalled", onInstalled);
+    return () => {
+      window.removeEventListener("beforeinstallprompt", onPrompt);
+      window.removeEventListener("appinstalled", onInstalled);
+    };
+  }, []);
+
+  if (hidden || (!deferred && !iosHint)) return null;
+  const c = INSTALL_COPY[lang] || INSTALL_COPY.en;
+  const dismiss = () => { try { localStorage.setItem("a2hs-dismissed", "1"); } catch {} setHidden(true); };
+  const doInstall = async () => { if (!deferred) return; deferred.prompt(); try { await deferred.userChoice; } catch {} setDeferred(null); setHidden(true); };
+
+  return (
+    <div className="mb-2 bg-teal-50 border border-teal-100 rounded-xl px-3 py-2">
+      <div className="flex items-center gap-2">
+        <img src="/icons/icon-96x96.png" alt="" width={22} height={22} className="rounded-md shrink-0" />
+        <span className="flex-1 text-[11px] font-medium text-teal-800 leading-snug">{c.ios}</span>
+        {deferred && (
+          <button
+            type="button"
+            onClick={doInstall}
+            className="shrink-0 text-[11px] font-semibold text-white bg-teal-700 rounded-lg px-2.5 py-1 hover:bg-teal-800 transition"
+          >
+            {c.cta}
+          </button>
+        )}
+        <button type="button" onClick={dismiss} aria-label={c.close} className="shrink-0 text-teal-400 hover:text-teal-600 text-base leading-none px-1">×</button>
+      </div>
+      {iosHint && !deferred && (
+        <p className="mt-1 pl-7 text-[10px] text-teal-600 leading-snug">{c.iosBody}{c.iosBody2}</p>
+      )}
+    </div>
   );
 }
 
@@ -1201,6 +1258,9 @@ export function ThreadChat({ onBack, backLabel } = {}) {
               {uploadError && <span className="text-xs text-red-500">{uploadError}</span>}
             </div>
           )}
+
+          {/* 맥락형 앱 설치 유도 — 대화가 시작된 뒤에만(첫 화면 방해 X). PWA 홈화면 추가(푸시 약속 없음). */}
+          {userMsgCount >= 1 && <ChatInstallHint lang={langCode} />}
 
           {/* Input — 통합 입력 박스(클립·입력칸·전송이 한 테두리 안 → 회색 막대 없음, Claude/GPT 방식) */}
           <div className="flex items-end gap-1.5 border border-gray-300 rounded-2xl px-2 py-1.5 bg-white focus-within:ring-2 focus-within:ring-teal-500 transition">
