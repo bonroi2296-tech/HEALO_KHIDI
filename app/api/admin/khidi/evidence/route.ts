@@ -14,6 +14,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAdminAuth } from "@/lib/auth/requireAdminAuth";
 import { supabaseAdmin, assertSupabaseEnv } from "@/lib/rag/supabaseAdmin";
 import { decryptInquiryForAdmin } from "@/lib/security/decryptForAdmin";
+import { fetchTestInquiryIds } from "@/lib/khidi/testData";
 
 const DAY = 86_400_000;
 function resolveRange(sp: URLSearchParams) {
@@ -39,6 +40,7 @@ export async function GET(request: NextRequest) {
     assertSupabaseEnv();
     const { searchParams } = new URL(request.url);
     const { from, to } = resolveRange(searchParams);
+    const includeTest = searchParams.get("includeTest") === "1";
 
     const [{ data: sessions }, { data: refs }, { data: hospitals }] = await Promise.all([
       supabaseAdmin
@@ -56,10 +58,19 @@ export async function GET(request: NextRequest) {
 
     const hMap = new Map((hospitals || []).map((h: any) => [h.id, h.name]));
 
+    // 테스트/실제 분리: 테스트 문의에 딸린 상담·협진의뢰는 증빙에서 제외(기본). null inquiry 는 보존.
+    let sessionRows = sessions || [];
+    let refRows = refs || [];
+    if (!includeTest) {
+      const testSet = new Set(await fetchTestInquiryIds(supabaseAdmin));
+      sessionRows = sessionRows.filter((s: any) => !testSet.has(s.inquiry_id));
+      refRows = refRows.filter((r: any) => !testSet.has(r.inquiry_id));
+    }
+
     // 환자명 마스킹 (상담+협진 의뢰의 inquiry_id 합쳐 한 번에)
     const inquiryIds = Array.from(new Set([
-      ...(sessions || []).map((s: any) => s.inquiry_id),
-      ...(refs || []).map((r: any) => r.inquiry_id),
+      ...sessionRows.map((s: any) => s.inquiry_id),
+      ...refRows.map((r: any) => r.inquiry_id),
     ].filter(Boolean))) as number[];
     const nameMap = new Map<number, string>();
     if (inquiryIds.length > 0) {
@@ -71,7 +82,7 @@ export async function GET(request: NextRequest) {
       }));
     }
 
-    const consultations = (sessions || []).map((s: any) => ({
+    const consultations = sessionRows.map((s: any) => ({
       id: s.id,
       환자: s.inquiry_id ? nameMap.get(s.inquiry_id) || "(미상)" : "(미지정)",
       유형: TYPE_KO[s.session_type] || s.session_type,
@@ -80,7 +91,7 @@ export async function GET(request: NextRequest) {
       예약일: s.scheduled_at ? new Date(s.scheduled_at).toISOString().slice(0, 10) : "",
       생성일: s.created_at ? new Date(s.created_at).toISOString().slice(0, 10) : "",
     }));
-    const referrals = (refs || []).map((r: any) => ({
+    const referrals = refRows.map((r: any) => ({
       id: r.id,
       환자: r.inquiry_id ? nameMap.get(r.inquiry_id) || "(미상)" : "(미지정)",
       의뢰기관: hMap.get(r.from_hospital_id) || "(미지정)",

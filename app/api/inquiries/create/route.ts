@@ -25,6 +25,7 @@ import { checkRateLimitPersistent, getClientIp, RATE_LIMITS, getRateLimitHeaders
 import { logInquiryReceived } from "@/lib/operationalLog";
 import { trackFunnelEvent } from "@/lib/events/funnelTracking";
 import { sendAdminNotification } from "@/lib/notifications/adminNotifier";
+import { detectInquiryIsTest } from "@/lib/khidi/testData";
 
 export async function POST(request: NextRequest) {
   // ✅ 환경변수 검증
@@ -124,6 +125,8 @@ export async function POST(request: NextRequest) {
           attachments: body.attachments || [],
           intake: {},
           status: "received",
+          // 테스트/실제 분리: 사무실IP·테스트이메일·수동도장이면 테스트로 표시(KPI 기본 제외).
+          is_test: detectInquiryIsTest({ ip: clientIp, email: body.email, manual: body.isTest === true }),
         })
         .select("id, public_token")
         .single();
