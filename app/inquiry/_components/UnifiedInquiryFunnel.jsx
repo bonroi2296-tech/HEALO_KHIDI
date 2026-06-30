@@ -355,20 +355,20 @@ const T = {
     ja: "コーディネーターが1営業日以内に{lang}でご連絡します。",
   },
   upgradeTitle: {
-    ko: "더 정확한 매칭을 받고 싶으세요?",
-    en: "Want a more accurate match?",
-    ru: "Хотите более точное совпадение?",
-    kz: "Дәлірек сәйкестік алғыңыз келе ме?",
-    zh: "想要更准确的匹配吗？",
-    ja: "より正確なマッチングを希望しますか？",
+    ko: "더 빠르고 정확한 안내를 받고 싶으세요?",
+    en: "Want faster, more precise guidance?",
+    ru: "Хотите более быстрое и точное сопровождение?",
+    kz: "Жылдамырақ әрі дәлірек көмек алғыңыз келе ме?",
+    zh: "想要更快、更精准的协助吗？",
+    ja: "より早く、より的確なご案内をご希望ですか？",
   },
   upgradeBody: {
-    ko: "추가 정보 6가지만 더 알려주시면 매칭 정확도가 90%까지 올라갑니다.",
-    en: "6 more details will raise your match accuracy to 90%.",
-    ru: "Ещё 6 сведений поднимут точность подбора до 90%.",
-    kz: "6 қосымша ақпарат сәйкестік дәлдігін 90%-ға дейін арттырады.",
-    zh: "再提供6项信息，匹配准确率将提升至90%。",
-    ja: "あと6つの情報で、マッチング精度が90%に上がります。",
+    ko: "몇 가지만 더 알려주시면 코디네이터가 더 빠르고 정확하게 맞는 병원을 안내해드려요.",
+    en: "A few more details help our coordinator guide you to the right hospital faster and more precisely.",
+    ru: "Несколько дополнительных деталей помогут координатору быстрее и точнее подобрать подходящую клинику.",
+    kz: "Бірнеше қосымша мәлімет координаторға сізге қолайлы ауруханаға жылдамырақ әрі дәлірек бағыттауға көмектеседі.",
+    zh: "再补充几项信息，协调员就能更快、更精准地为您推荐合适的医院。",
+    ja: "いくつか追加でお知らせいただくと、コーディネーターがより早く、より的確に合った病院をご案内できます。",
   },
   yesUpgrade: {
     ko: "네, 알려드릴게요", en: "Yes, tell you more", ru: "Да, расскажу", kz: "Иә, айтамын", zh: "是的，告诉你更多", ja: "はい、詳しく教えます",
@@ -388,12 +388,12 @@ const T = {
     ja: "お申し込みを受け付けました。コーディネーターよりご連絡いたします。",
   },
   step2Title: {
-    ko: "더 자세한 정보 (매칭 정확도 90%)",
-    en: "More Details (90% Match Accuracy)",
-    ru: "Подробнее (точность подбора 90%)",
-    kz: "Толық мәліметтер (90% сәйкестік дәлдігі)",
-    zh: "更多详情（匹配准确率90%）",
-    ja: "詳細情報（マッチング精度90%）",
+    ko: "더 자세한 정보",
+    en: "More Details",
+    ru: "Подробнее",
+    kz: "Толық мәліметтер",
+    zh: "更多详情",
+    ja: "詳細情報",
   },
   stageLabel: {
     ko: "병기", en: "Stage", ru: "Стадия", kz: "Кезең", zh: "分期", ja: "ステージ",
@@ -436,12 +436,12 @@ const T = {
     ko: "매칭 시작", en: "Start Matching", ru: "Начать подбор", kz: "Сәйкестіруді бастау", zh: "开始匹配", ja: "マッチング開始",
   },
   step2SuccessTitle: {
-    ko: "매칭 정확도 90% 달성",
-    en: "90% Match Accuracy Achieved",
-    ru: "Достигнута точность подбора 90%",
-    kz: "90% сәйкестік дәлдігіне жетті",
-    zh: "达到90%匹配准确率",
-    ja: "マッチング精度90%達成",
+    ko: "맞춤 안내 준비 완료",
+    en: "Ready for Personalized Guidance",
+    ru: "Готово к индивидуальному сопровождению",
+    kz: "Жеке көмекке дайын",
+    zh: "已准备好为您提供专属协助",
+    ja: "おひとりに合わせたご案内の準備が整いました",
   },
   step2SuccessBody: {
     ko: "의료진이 미리 자료를 검토한 후 화상 사전상담을 안내드립니다.",
@@ -1233,7 +1233,7 @@ export default function UnifiedInquiryFunnel() {
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={() => safeEvent("inquiry_messenger_click", { channel: c.key })}
-                  className={`${baseCls} hover:shadow-md hover:-translate-y-0.5 hover:border-[var(--brand-hover)]`}
+                  className={`${baseCls} hover:shadow-md hover:border-[var(--brand-hover)]`}
                   style={{ "--brand-hover": c.color }}
                 >
                   {inner}

@@ -42,7 +42,7 @@ function ResultCard({ item, type, onClick }) {
             <img
               src={imgSrc}
               alt={label}
-              className="w-full h-full object-cover group-hover:scale-105 transition duration-500 absolute inset-0"
+              className="w-full h-full object-cover group-hover:scale-105 transition duration-300 absolute inset-0"
               referrerPolicy="no-referrer"
               loading="lazy"
             />
@@ -52,7 +52,7 @@ function ResultCard({ item, type, onClick }) {
               alt={label}
               fill
               sizes="(max-width:768px) 144px, 192px"
-              className="object-cover group-hover:scale-105 transition duration-500"
+              className="object-cover group-hover:scale-105 transition duration-300"
               loading="lazy"
             />
           )

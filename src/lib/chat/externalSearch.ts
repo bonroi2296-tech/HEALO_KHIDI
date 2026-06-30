@@ -15,7 +15,10 @@ const NAVER_CLIENT_ID = process.env.NAVER_CLIENT_ID || "";
 const NAVER_CLIENT_SECRET = process.env.NAVER_CLIENT_SECRET || "";
 const NAVER_LOCAL_URL = "https://openapi.naver.com/v1/search/local.json";
 
-const TIMEOUT_MS = 3000;
+// 외부 보조검색(HIRA·네이버) 타임아웃. HIRA(한국 정부 API)는 느리고 불안정해
+// 안 잡힐 때 3초를 통째로 기다리면 응답 첫 글자(TTFT)가 그만큼 밀린다. 보조 데이터이므로
+// 2초로 캡(allSettled라 타임아웃은 빈 결과로 안전 처리). 내부 RAG/DB가 맞으면 아예 호출 안 됨.
+const TIMEOUT_MS = 2000;
 
 function stripHtml(str: string): string {
   return (str || "").replace(/<[^>]+>/g, "").trim();

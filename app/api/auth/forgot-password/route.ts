@@ -2,10 +2,46 @@ import "server-only";
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
+import { sendEmail } from "@/lib/email/sendEmail";
 
 // 비밀번호 재설정 메일 발송 — 스팸/폭탄 차단을 위해 ①같은 IP ②같은 이메일 횟수제한.
-// 응답은 가입 여부와 무관하게 항상 동일(이메일 존재 노출 방지).
-// 참고: 최종 방어선은 Supabase 자체의 recover 레이트리밋(주소당 발송 간격 제한).
+// 응답은 가입 여부·가입수단과 무관하게 항상 동일(이메일 존재 노출 방지).
+//
+// 정교화(2026-06-26): 구글 등 소셜로만 가입한 계정은 비밀번호가 없어 재설정 메일이 무의미.
+//   → 그런 계정엔 재설정 메일 대신 "소셜 로그인을 쓰세요" 안내 메일을 보낸다.
+//   화면 응답은 동일하게 유지하므로 enumeration(계정 떠보기) 노출 없음 — 본인 메일함에서만 확인.
+
+// 소셜(구글 등)로만 가입 = email 로그인수단(identity)이 없음 = 비밀번호 없음.
+function isSocialOnly(identities: Array<{ provider?: string }> | null | undefined) {
+  return !(identities || []).some((i) => i?.provider === "email");
+}
+
+function socialHintHtml(loginUrl: string) {
+  return `<div style="font-family:system-ui,-apple-system,'Apple SD Gothic Neo',sans-serif;max-width:480px;margin:0 auto;color:#1f2937;line-height:1.6">
+  <h2 style="font-size:18px;margin:0 0 12px">구글 계정으로 로그인해 주세요</h2>
+  <p style="margin:0 0 8px">비밀번호 재설정을 요청하셨지만, 회원님은 <b>구글 계정으로 가입</b>하셔서 별도의 비밀번호가 없습니다.</p>
+  <p style="margin:0 0 16px">로그인 화면에서 <b>'Google로 로그인'</b> 버튼을 눌러 그대로 들어오시면 됩니다.</p>
+  <p style="margin:0 0 24px"><a href="${loginUrl}" style="display:inline-block;background:#0d9488;color:#fff;text-decoration:none;padding:10px 20px;border-radius:8px;font-weight:600">로그인하러 가기</a></p>
+  <hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0">
+  <h3 style="font-size:15px;margin:0 0 8px;color:#374151">Sign in with Google</h3>
+  <p style="margin:0 0 8px;color:#6b7280;font-size:14px">You requested a password reset, but your account was created with <b>Google sign-in</b>, so it has no password.</p>
+  <p style="margin:0;color:#6b7280;font-size:14px">Just click <b>"Sign in with Google"</b> on the login page: <a href="${loginUrl}" style="color:#0d9488">${loginUrl}</a></p>
+</div>`;
+}
+
+function socialHintText(loginUrl: string) {
+  return [
+    "구글 계정으로 로그인해 주세요",
+    "",
+    "비밀번호 재설정을 요청하셨지만, 회원님은 구글 계정으로 가입하셔서 별도의 비밀번호가 없습니다.",
+    "로그인 화면에서 'Google로 로그인' 버튼을 눌러 들어오시면 됩니다.",
+    loginUrl,
+    "",
+    "— Sign in with Google —",
+    "Your account was created with Google sign-in, so it has no password.",
+    `Click "Sign in with Google" on the login page: ${loginUrl}`,
+  ].join("\n");
+}
 
 export async function POST(request: Request) {
   const ip = getClientIp(request);
@@ -26,7 +62,7 @@ export async function POST(request: Request) {
   const email = (body.email || "").trim().toLowerCase();
   if (!email) return NextResponse.json({ error: "invalid_request" }, { status: 400 });
 
-  // 같은 이메일 주소로의 폭탄 차단: 1분당 1회, (윈도우 기준) 시간당 3회 수준.
+  // 같은 이메일 주소로의 폭탄 차단: 1분당 1회.
   // 누가 victim@x.com 으로 막 보내려 해도 1분에 1통만 나감 → 받은편지함 폭탄 불가.
   // ponytail: 인메모리(서버 인스턴스별). 분산환경 정밀제한은 Supabase recover 제한이 담당.
   const emailRl = checkRateLimit(email, { windowMs: 60_000, maxRequests: 1, apiName: "forgot-password-email" });
@@ -35,20 +71,51 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true });
   }
 
-  // implicit-flow 클라로 발송 → 메일 링크 token_hash가 pkce_ 없이 발급돼
-  // /reset-password의 verifyOtp가 서버에서 바로 검증됨(#392와 동일 원리).
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   const siteUrl =
     process.env.NEXT_PUBLIC_SITE_URL ||
     request.headers.get("origin") ||
     "https://healwith.co.kr";
 
-  if (url && key) {
-    const supabase = createClient(url, key, {
+  // 가입수단 판별(service_role). 실패하면 일반 재설정 흐름으로 폴백(안전).
+  // ponytail: 수십명 규모라 전수 조회. 수천명 되면 auth.users 직접 조회 RPC로 교체.
+  let socialOnly = false;
+  if (url && serviceKey) {
+    try {
+      const admin = createClient(url, serviceKey, {
+        auth: { persistSession: false, autoRefreshToken: false },
+      });
+      const { data } = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 });
+      // listUsers() user 항목이 never로 추론되는 Supabase 타입 이슈 회피(set-admin.ts와 동일)
+      const u = (data?.users || []).find((x: any) => (x.email || "").toLowerCase() === email);
+      if (u && isSocialOnly(u.identities)) socialOnly = true;
+    } catch {
+      /* 판별 실패 → 아래 일반 재설정 흐름 */
+    }
+  }
+
+  if (socialOnly) {
+    // 소셜 가입자 → 재설정 메일 대신 '소셜 로그인 쓰세요' 안내(본인 메일함에서만 확인)
+    await sendEmail({
+      to: email,
+      subject: "[healwith] 비밀번호 없이 로그인하세요 / Sign in with Google",
+      html: socialHintHtml(`${siteUrl}/login`),
+      text: socialHintText(`${siteUrl}/login`),
+      tags: { type: "forgot_password_social_hint" },
+    }).catch(() => {});
+    return NextResponse.json({ ok: true });
+  }
+
+  // 일반 이메일 계정(또는 미가입·판별불가) → 평소대로 재설정 메일.
+  // 미가입이면 Supabase가 메일을 보내지 않음(존재 여부 노출 방지 유지).
+  // implicit-flow 클라로 발송 → 메일 링크 token_hash가 pkce_ 없이 발급돼
+  // /reset-password의 verifyOtp가 서버에서 바로 검증됨(#392와 동일 원리).
+  if (url && anonKey) {
+    const supabase = createClient(url, anonKey, {
       auth: { flowType: "implicit", persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
     });
-    // 실패해도(가입 안 됨 등) 동일 응답 — 이메일 존재 여부 노출 방지
     await supabase.auth
       .resetPasswordForEmail(email, { redirectTo: `${siteUrl}/reset-password` })
       .catch(() => {});

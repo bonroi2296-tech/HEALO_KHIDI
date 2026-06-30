@@ -52,7 +52,7 @@ export default function ClientShell({ children, initialLang = "en" }) {
       .getSession()
       .then(({ data: { session } }) => {
         if (mounted) {
-          console.log("[ClientShell] ✅ Initial session:", session?.user?.email || "none");
+          console.log("[ClientShell] ✅ Initial session:", session ? "active" : "none");
           setSession(session);
           checkHospitalUser(session?.access_token);
         }
@@ -61,7 +61,7 @@ export default function ClientShell({ children, initialLang = "en" }) {
     const { data } = supabaseClient.auth.onAuthStateChange(
       (_event, session) => {
         if (mounted) {
-          console.log("[ClientShell] 🔔 Auth state changed:", _event, session?.user?.email || "none");
+          console.log("[ClientShell] 🔔 Auth state changed:", _event, session ? "active" : "none");
           setSession(session);
           checkHospitalUser(session?.access_token);
         }

@@ -4,11 +4,38 @@
 
 ---
 
-## 🟡 2026-06-25 코디네이터에게 AI 챗 뷰가 없음 (AI 핸드오프 종은 어드민에게만)
+## 🟢 2026-06-29 AI 에이전트 개선 — 백로그 (PO 방향 확정, 다음 트랙)
 
-- **상태**: AI 챗 스레드 모니터(`/admin/chat`·`/api/admin/chat/threads`)가 `requireAdminAuth` **어드민 전용**. 코디네이터(`role=coordinator`)는 AI 챗 대화를 볼 화면이 없음.
-- **영향**: 새로 추가한 "AI 챗 사람 연결 요청(handoff) → 종 알림"(POSTMORTEMS #41)이 **어드민에게만** 발송됨. 코디는 AI챗 리드를 직접 보려면 어드민 권한이 필요. 현재 운영(PO 단독=어드민)에선 문제 없으나, 코디를 별도로 운용하면 AI챗 리드가 코디에게 안 닿음.
-- **후속(별도 과제)**: 코디용 AI 챗 읽기 뷰(`/coordinator/chat` 또는 인박스에 handoff 스레드 통합) + 그때 `notifyStaffChatHandoff` 수신자에 coordinators 추가. inquiries 기반 인박스에 `chat_threads`(hand_off_requested) 머지가 가장 단순한 통합안.
+> C레벨 전방위 진단(브랜치 `claude/ai-agent-improvements-pgy6oj`)에서 **즉시 구현분**(공개 AI챗 예시질문 칩·코디연결/접수 빠른버튼 6개어·스트림 에러 6개어 현지화·`detectHandOff` ru/kz/zh 보강)은 처리. 아래는 PO가 **방향 확정 + 백로그로 남기라**고 한 더 큰 플로 변경.
+
+- **공개 AI챗(`/inquiry`) 멀티 스레드 통일 — 1차 구현됨(2026-06-29, PR #475)**: 공개챗에 "새 상담"·"이전 대화 목록"·오래 쉰(>24h) 대화 자동 세션경계 배너 추가. 신규 API `GET /api/public/chat/threads`(로그인=user_id·게스트=browser_session_id, PII 미반환·30일 cutoff·rate limit). 스레드 제목 첫 메시지 자동 채움. 공개챗의 정상 모델(`actor_type/message_text`) 위에 환자챗 UI 패턴 차용. **함께 고친 버그**: `/patient/chat`이 없는 컬럼(role/content)으로 read/write해 메시지 전부 0건이던 것(POSTMORTEMS #51). ▶ **남은 후속**: ①두 챗 표면 완전 단일화(현재 공개=멀티스레드, 환자챗은 자체 API 유지 — 장기적으로 한 백엔드로 수렴) ②로그인 사용자 기기 간 동기화 실검증 ③`GET /api/public/chat/[threadId]` 정식 분리(현재 방 전환은 resume 재사용) ④공용 PC 게스트 세션 PII 분리.
+- **AI→유치 전환 프로덕션 0건 검증** (🔴 KHIDI 점수 직결): `source='ai_agent'` 리드 승격 코드는 정상이나 실 3턴+ 대화 전환이 0(실DB). 8/27 중간평가 정량지표(유치 12·상담 120)가 이 집계 → 이번 빠른버튼(접수·코디연결)으로 전환 동선이 강해졌으니 **실대화 1건으로 대시보드(`/admin/khidi/conversion`) 집계 end-to-end 실검증** 필요.
+- **playbook_pattern 0건 → "3-Tier RAG"가 실제론 1-Tier**: 적재 계획 필요(보고서 표기와 실제 일치). 기존 항목과 연계.
+- **스키마 드리프트**: `chat_threads.user_id`(+`guest_country`·`guest_phone`·`resolved_at`·`channel`)가 prod엔 있으나 마이그레이션 파일엔 ADD COLUMN 누락. 동작 정상이나 재현성 위해 보강 마이그레이션 권장.
+
+---
+
+## 🟡 2026-06-29 오픈 전 전수조사 — 후속 과제 (이번에 손대지 않고 남긴 것)
+
+> 5축(보안·i18n·데이터/RLS·AI/RAG·위생) 병렬 감사 + 실DB 점검. **고친 것**(별도 PR): 옛도메인 잔재(POSTMORTEMS #49)·AI 송출 전 레드라인 차단+triage PII 마스킹(#50)·환자 목록 2페이지 6개어·보안 LOW(admin import 에러코드화·translate 토큰상한)·약한비번 교체. 아래는 **의도적으로 남긴 후속**.
+
+- **환자 상세 페이지 광범위 한국어** (🟡 핵심시장): `/patient/cost-estimates/[id]`·`/patient/visa/applications`·`/patient/visa/applications/[id]` 는 페이지 전체가 한국어 하드코딩(상태라벨·본문). 이번엔 감사가 CRITICAL로 지목한 **목록 2페이지(consultations·cost-estimates)만 6개어 완료** + 상세페이지는 alert/에러표시의 `err.message` 누수만 닫음(보안). 상세 본문 6개어화는 후속(목록 페이지의 page-local COPY 패턴 재사용).
+- **MEDIUM 하드코딩 문자열**: `consultation/[id]/page.jsx` aria-label "Toggle chat panel"(영어, 2883줄 God컴포넌트라 보류)·`DocumentsClient.jsx` placeholder "e.g. Blood test from March 2026"(영어). 저위험.
+- **RAG ingest taskType**: `getEmbedding`이 적재·질의 모두 `RETRIEVAL_QUERY` 사용. 적재는 `RETRIEVAL_DOCUMENT`가 정석(비대칭 검색 품질↑). **단 기존 18청크 전체 재적재가 동반돼야 코퍼스 일관** → 반쪽 적용은 오히려 불일치라 보류. 재적재 시 함께 적용.
+- **`rag_chunks_used=0`/redline 적발률 경보 없음**: 지표는 metadata에 찍히는데 집계·경보가 없음(#48 교훈). cron 집계 + operationalAlerts 연결 권장.
+- **admission-status 무인증 GET** (🟢 허용위험): `/api/khidi/consultation/[id]/admission-status` 는 두 무작위 UUID 일치 + 상태 enum 만 반환 = 계정없는 게스트 폴링 의도 설계. 인증 강제 시 게스트 플로 깨짐 → 그대로 둠.
+- **cron 비상수시간 비교** (🟢 저위험): `automation`·`kpi-snapshot`·`run-regression-tests`·`crawl` 라우트가 `!==`로 CRON_SECRET 비교(다른 cron은 `timingSafeEqual`). 고엔트로피 시크릿이라 실효 위험 낮음 — 일관성 정리 후속.
+- **Supabase Auth 유출비번 보호 꺼짐** (🟢, PO 콘솔 1클릭): Authentication 설정에서 HaveIBeenPwned 체크 켜기 권장.
+- **테스트 문의/국적값 오염**: `inquiries` #26~31(검증 더미) + 국적값 혼재(`KZ`·`Kazakhstan`·`kazah`·`test`·null). 데이터 삭제는 비가역이라 자율 보류 — PO 확인 후 정리(유치 대시보드 집계 정확도).
+
+---
+
+## ~~🟡 2026-06-25 코디네이터에게 AI 챗 뷰가 없음~~ ✅ 해결 (2026-06-29 `/coordinator/chat` 읽기전용 뷰)
+
+- ~~**상태**: AI 챗 스레드 모니터가 `requireAdminAuth` 어드민 전용. 코디는 AI 챗 대화를 볼 화면이 없음.~~
+- ✅ **해결(2026-06-29)**: `/coordinator/chat` **읽기전용** 뷰 추가(어드민 검토큐 화면 재사용). 데이터 API는 `/api/admin/chat/threads`·`.../messages`의 **GET만 `requirePortalAuth(staffOnly)`로 넓혀** 코디 접근 허용(생성 POST·검수 PATCH는 admin 유지 = 코디는 읽기만). 코디 네비에 「AI 상담 리드」 추가.
+- **남은 후속(선택)**: `notifyStaffChatHandoff` 수신자에 coordinators 추가(현재 어드민에게만 종 알림). 코디를 별도 운용 시작할 때 켜면 됨 — 지금은 PO=어드민이라 무영향.
+- ⚠️ **검증**: `next build` 통과. **코디 계정 실로그인 런타임은 미검증**(프리뷰에서 PO 확인 권장).
 
 ---
 
@@ -98,7 +125,7 @@
 
 ### 🟡 PO 판단/런타임 검증 필요 (야간 임의 수정 보류 — 이유 명시)
 
-1. **🔴 [데모 직격, iOS] 서버 STT 2차 getUserMedia 가 LiveKit 마이크를 가로챌 수 있음** — `app/consultation/[id]/page.jsx:1306-1314`. 브라우저 STT 미지원(iOS Safari) 환자에서 서버 STT 경로가 `getUserMedia({audio:true})`를 **별도로** 한 번 더 잡는데, iOS Safari 는 두 번째 오디오 캡처가 첫 번째(LiveKit 송출 마이크)를 빼앗는 경우가 잦음 → **환자 마이크가 죽어 의사가 못 들음**(throw 없이 조용히). 카자흐/러시아 환자 아이폰 = 정확히 이 경로. **수정안**: 별도 getUserMedia 대신 LiveKit 이 이미 잡은 마이크 트랙(`localParticipant.getTrackPublication(Track.Source.Microphone).track.mediaStreamTrack`)을 MediaRecorder 에 물려 2차 점유 제거. **실 아이폰 검증 필요**해 보류.
+1. ~~**🔴 [데모 직격, iOS] 서버 STT 2차 getUserMedia 가 LiveKit 마이크를 가로챌 수 있음**~~ ✅ **해결(PR #269 / 2026-06-29 전수조사 재확인)**: 2026-06-22 세션이 옵션A(iOS(WebKit) 감지 시 2차 getUserMedia 자체를 안 함 → 텍스트 입력 폴백)를 적용함. 현재 코드 `app/consultation/[id]/page.jsx`에 iOS 안전폴백 가드 존재 확인. (2026-06-22 섹션 「✅ PR #269」와 동일 건의 중복 기록이었음.) ⚠️ 실아이폰 라이브 검증은 여전히 PO 권장(LAUNCH_GATES 관문5).
 2. **[K-01 구조적] 환자 포털이 `case_status` 를 못 봄 (EDGE-1)** — 환자 여정바(`src/lib/patient/journeyState.js:123`)는 `inquiry_events` 만 보는데 그 이벤트를 쓰는 코드가 funnel 4종뿐(`app/api/inquiries/event/route.ts:23`) → 코디/병원이 case_status 를 visa/treatment/completed 로 올려도 **환자 대시보드가 안 움직임**. 구조적(두 추적 그래프 분리) → 단일화 설계는 PO 판단.
 3. **[가시성] 완료된 상담이 case_status 를 전진 안 시킴 (EDGE-3)** — `consultation/[id]` 완료 시 `case_status`/이력 미기록 → KPI(K-02/04)는 오르지만 **에이전시·코디 타임라인은 정체**. (lifecycle 지도와 코드 불일치.)
 4. **[가시성] admin/leads/assign 가 case_status 안 올림 (EDGE-4)** — `coordinator/cases/assign` 과 비대칭(`app/api/admin/leads/assign/route.ts`엔 case_status 기록 없음).

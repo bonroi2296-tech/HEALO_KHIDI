@@ -185,10 +185,12 @@ export async function POST(request: NextRequest) {
           result.success++;
         }
       } catch (error) {
+        // 인프라 내부 메시지(DB 등) 노출 금지 — 코드형만, 상세는 서버 로그로
+        console.error("[admin/import/treatments] row error:", error);
         result.failed++;
         result.errors.push({
           row: rowIndex,
-          errors: [error instanceof Error ? error.message : '알 수 없는 오류'],
+          errors: ['row_processing_failed'],
         });
       }
     }

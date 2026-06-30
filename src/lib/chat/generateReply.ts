@@ -16,9 +16,11 @@ import { hashQuery, logRagDisabled } from "../rag/ragQueryEvents";
 import { searchHospitalsAndTreatments } from "./dbSearch";
 import { searchExternal } from "./externalSearch";
 import { runJudgeInBackground } from "./judge";
+import { scanRedlines, safeDeferralMessage } from "./safetyGuard";
 import { CARE_REFERENCE } from "./careReference";
 import { BoundedCache } from "../util/boundedCache";
 import { mentionsCancerType, isTopicCorrection, correctionReply } from "./topicGuards";
+import { redactModelPii, redactMessagesForModel } from "../security/redactModelPii";
 
 type ChatMessage = { role: "user" | "assistant" | "system"; content: string };
 
@@ -146,7 +148,11 @@ export async function fetchRagChunks(query: string, lang: string, threadId?: str
       supabaseAdmin.rpc("rag_search_chunks_v1_1", {
         query_embedding: embStr,
         match_count: TOTAL_LIMIT + 2,
-        p_lang: lang,
+        // 언어필터 끔: RAG 지식(병원·치료)은 현재 en 단일언어인데 Gemini 임베딩은 다국어라
+        // ko/ru/kz 질문도 en 문서와 의미로 매칭된다(모델은 사용자 언어로 답하므로 무방).
+        // p_lang=lang 하드필터를 두면 비영어 질문이 청크 0개로 떨어짐(2026-06-29 발견).
+        // ※ 다국어 문서를 적재하게 되면 '같은 언어 우선'으로 재검토.
+        p_lang: undefined,
         p_source_type: undefined,
         p_partner_only: false,
         p_ab_enabled: abEnabled,
@@ -260,6 +266,7 @@ export function buildSystemPrompt(
   hospitalGuard: HospitalGuardOptions = {},
   currentMentionsCancer = true,
   session: ChatSession = {},
+  outputLang: string = "en",
 ): string {
   const hasContext = !!contextText;
   const hasDbData = contextText.includes("healwith 등록");
@@ -267,6 +274,12 @@ export function buildSystemPrompt(
   const hasNaver = externalSources.includes("naver");
   const { hospitalGuardActive = false, hospitalIntentNoMatch = false } = hospitalGuard;
   const { isLoggedIn = false, hasReachableContact = false } = session;
+  // 선택 언어를 모델에 명시(특히 카자흐어 ↔ 러시아어 혼동 방지 — 둘 다 키릴문자라 모델이
+  // 카자흐어 사용자에게 러시아어로 답하는 일이 잦음. 핵심 타겟이라 결정적으로 못박는다).
+  const LANG_NAMES: Record<string, string> = {
+    ko: "Korean", en: "English", ru: "Russian", kz: "Kazakh", kk: "Kazakh", zh: "Chinese", ja: "Japanese",
+  };
+  const outputLangName = LANG_NAMES[outputLang] || "the user's language";
 
   return [
     // 코드 강제 가드(맨 위 = 최우선): 현재 메시지에 암종이 없으면 옛 화제(대장암 등)를 끌어와
@@ -309,7 +322,7 @@ export function buildSystemPrompt(
     "- PLAIN TEXT ONLY. The chat does NOT render markdown — never use **, *, ***, ##, ---, backticks, or tables; they appear as literal symbols and look broken. For a short list use a simple '- ' prefix or '1. 2. 3.' only.",
     "- No preamble, no restating the question, no 'If you sent me X, I would say...'. Answer directly.",
     "- OUTPUT ONLY THE FINAL MESSAGE TO THE PATIENT. Never reveal your own planning or self-talk: no 'Wait,', no 'let's keep it short / shorter / cleaner', no word counts like '(32 words)', no notes-to-self in asterisks or brackets. If you start writing a note about HOW to answer, delete it — send only the answer itself.",
-    "- Respond in the same language the user writes in.",
+    `- LANGUAGE: The user's selected language is ${outputLangName}. Write your ENTIRE reply in ${outputLangName}, unless the user clearly writes in a different language (then match theirs). IMPORTANT: Kazakh and Russian are different languages — if the selected language is Kazakh, reply in Kazakh (қазақша), NOT Russian.`,
     "- If unsure, say 'I'm not sure — let me connect a coordinator'. Honesty > confident wrong answer.",
     "- TONE: the user is often an anxious cancer patient or family. If they share distressing news (advanced-stage cancer, fear, a sick family member), open with ONE brief empathetic sentence before guidance. Warm but never exaggerated — no emoji spam, no hollow marketing phrases.",
     "- DE-ESCALATION (important): if the user is upset, frustrated, angry, or criticizing the service (swearing, sarcasm, 'this is useless', 'why do I have to explain this to you'), do NOT respond by dumping documents, price lists, or feature explanations. First acknowledge their frustration in ONE short sincere line, then ask ONE simple question to fix the actual problem. Reciting reference data at an upset person makes it worse.",
@@ -384,6 +397,12 @@ const HAND_OFF_PATTERNS = [
   /\b(?:human|real\s*person|agent|coordinator|representative|staff|operator)\b/i,
   /\b(?:사람|상담[원사]|직원|담당자|연결)\b/,
   /\b(?:人間|担当者|スタッフ|オペレーター)\b/,
+  // ru — 핵심 타겟. 키릴 단어는 \b 가 안 먹으므로 부분일치 허용.
+  /(?:координатор|оператор|менеджер|специалист|человек|сотрудник|свяжите|связать)/i,
+  // kz — 핵심 타겟.
+  /(?:үйлестіруші|оператор|маман|қызметкер|адаммен|байланыстыр)/i,
+  // zh — 人工/客服/真人/협조원.
+  /(?:协调员|人工|客服|真人|工作人员|转接)/,
 ];
 
 // 정식 접수·진행 의사 — 환자가 "이제 접수/신청해줘"라고 하면 사람에게 넘김(이미 대화에 다 저장됨)
@@ -434,6 +453,8 @@ export interface ChatReplyResult {
   reply: string;
   ragChunks: any[];
   error?: string;
+  /** critical 레드라인 적발로 답변이 안전 대체된 경우의 flag 목록(없으면 통과) */
+  redlineBlocked?: string[];
   _analytics?: {
     retrievedPatternIds: string[];
     usedPatternIds: string[];
@@ -923,7 +944,7 @@ async function prepareGeneration(
   const systemPrompt = buildSystemPrompt(allContext, hasTier3, useWebSearch, externalSources, {
     hospitalGuardActive,
     hospitalIntentNoMatch: hospitalIntent && matchedHospitalNames.length === 0,
-  }, mentionsCancerType(query), session);
+  }, mentionsCancerType(query), session, lang);
   const retrievedPatternIds = extractRetrievedPatternIds(ragChunks);
   const model = getModel();
 
@@ -988,8 +1009,13 @@ export async function generateChatReply(
     return correctionResult(correctionReply(lang), t0);
   }
 
+  // 🔒 데이터 주권: 외부 LLM(Gemini)으로 보내기 전 환자 자유텍스트의 고신뢰 식별자
+  // (이메일·전화·주민번호·여권)를 가린다. 임베딩·검색·생성·judge 전 경로가 마스킹본을 쓴다.
+  const safeQuery = redactModelPii(query);
+  const safeMessages = redactMessagesForModel(messages);
+
   try {
-    const prep = await prepareGeneration(query, lang, threadId, session);
+    const prep = await prepareGeneration(safeQuery, lang, threadId, session);
     ragScoring = prep.ragScoring;
     const { ragChunks, injectedPatternIds, retrievedPatternIds, allContext } = prep;
 
@@ -1010,7 +1036,7 @@ export async function generateChatReply(
     }
 
     // 🔁 반복 루프 감지 시 최상단 강제 지시 주입(자기 답변 복사 차단)
-    const baseSystem = detectRepetitiveAssistant(messages)
+    const baseSystem = detectRepetitiveAssistant(safeMessages)
       ? REPETITION_GUARD + prep.systemPrompt
       : prep.systemPrompt;
     const fullSystemPrompt = injectedPatternIds.length > 0
@@ -1023,7 +1049,7 @@ export async function generateChatReply(
       ...prep.genConfig,
     };
 
-    let result = await generateTextWithRetry({ ...baseParams, messages: messages as any });
+    let result = await generateTextWithRetry({ ...baseParams, messages: safeMessages as any });
 
     // 🔁 빈 응답 복구(핵심 수정 2026-06-21): 대화 기록이 길고 반복적으로 쌓이면 Gemini 가
     // finishReason=stop 으로 빈 텍스트를 반환한다(A/B 실측: 새 스레드 0/12 vs 기록누적 스레드 2/12).
@@ -1031,11 +1057,11 @@ export async function generateChatReply(
     // 답변을 포함해 재시도하면(slice(-2)) 똑같이 빈다(14/24 재현). 그래서 복구는 마지막 사용자
     // 질문 1건만 보낸다(slice(-1)) — 새 스레드와 동일 조건이라 위 A 테스트에서 빈응답 0%.
     // 트레이드오프: 직전 맥락 없이 답하지만, 빈 말풍선보다 낫다(이 경로는 빈 응답일 때만 탐).
-    const lastUser = [...messages].reverse().find((m) => m.role === "user");
-    if ((!result?.text || !result.text.trim()) && lastUser && messages.length > 1) {
+    const lastUser = [...safeMessages].reverse().find((m) => m.role === "user");
+    if ((!result?.text || !result.text.trim()) && lastUser && safeMessages.length > 1) {
       console.warn(
         `[generateChatReply] empty after retries (finishReason=${(result as any)?.finishReason}) ` +
-        `— retrying with last user message only (of ${messages.length} msgs)`
+        `— retrying with last user message only (of ${safeMessages.length} msgs)`
       );
       const reducedResult = await generateTextWithRetry({ ...baseParams, messages: [lastUser] as any }, 2);
       if (reducedResult?.text && reducedResult.text.trim()) result = reducedResult;
@@ -1064,17 +1090,29 @@ export async function generateChatReply(
       console.error(
         `[generateChatReply] EMPTY reply — finishReason=${(result as any)?.finishReason} ` +
         `usage=${JSON.stringify((result as any)?.usage)} structured=${injectedPatternIds.length > 0} ` +
-        `query="${query.slice(0, 60)}"`
+        `query="${safeQuery.slice(0, 60)}"`
       );
       finalReply = EMPTY_REPLY_FALLBACK[lang] || EMPTY_REPLY_FALLBACK.en;
       // finishReason 을 에러코드에 실어 다음 발생 시 원인(SAFETY/MAX_TOKENS/…)을 API 응답·메타데이터에서 바로 확인 가능하게.
       emptyError = `empty_model_text:${(result as any)?.finishReason ?? "unknown"}`;
     }
 
+    // 🚨 송출 전 레드라인 게이트(0층 가드) — judge(비동기·사후)에만 의존하지 않는다.
+    // 비스트리밍 경로는 아직 환자에게 안 보냈으므로 critical(완치·약물·예후 단정) 적발 시
+    // 위험 답변을 안전 대체문구로 통째 교체(노출 0) + 플래그로 코디 검수 유도.
+    let redlineFlags: string[] | undefined;
+    const preScan = scanRedlines(finalReply);
+    if (preScan.critical) {
+      console.warn(`[generateChatReply] REDLINE blocked: ${preScan.flags.join(",")}`);
+      finalReply = safeDeferralMessage(lang);
+      redlineFlags = preScan.flags;
+    }
+
     const finalResult: ChatReplyResult = {
       reply: finalReply,
       ragChunks,
       ...(emptyError ? { error: emptyError } : {}),
+      ...(redlineFlags ? { redlineBlocked: redlineFlags } : {}),
       _analytics: {
         retrievedPatternIds,
         usedPatternIds: fallback ? injectedPatternIds : declaredUsedIds,
@@ -1087,7 +1125,7 @@ export async function generateChatReply(
 
     // Judge: 메인 응답 흐름 차단 없이 백그라운드 평가
     runJudgeInBackground({
-      query,
+      query: safeQuery,
       response: finalReply,
       context: allContext || undefined,
       lang,
@@ -1167,8 +1205,12 @@ export async function streamChatReply(
     return correctionResult(reply, t0);
   }
 
+  // 🔒 데이터 주권: 외부 LLM 전송 전 환자 자유텍스트의 고신뢰 식별자 마스킹(비스트림과 동일).
+  const safeQuery = redactModelPii(query);
+  const safeMessages = redactMessagesForModel(messages);
+
   try {
-    const prep = await prepareGeneration(query, lang, threadId, session);
+    const prep = await prepareGeneration(safeQuery, lang, threadId, session);
     ragScoring = prep.ragScoring;
     const { ragChunks, injectedPatternIds, retrievedPatternIds, allContext } = prep;
 
@@ -1191,7 +1233,7 @@ export async function streamChatReply(
     }
 
     // 🔁 반복 루프 감지 시 최상단 강제 지시 주입(자기 답변 복사 차단)
-    const baseSystem = detectRepetitiveAssistant(messages)
+    const baseSystem = detectRepetitiveAssistant(safeMessages)
       ? REPETITION_GUARD + prep.systemPrompt
       : prep.systemPrompt;
     // 스트리밍은 평문만 보냄 → JSON 출력 지시 미부착(비스트리밍과의 유일한 프롬프트 차이).
@@ -1204,7 +1246,7 @@ export async function streamChatReply(
     let fullText = "";
     let finishReason: any = undefined;
     try {
-      const sr = streamText({ ...baseParams, messages: messages as any });
+      const sr = streamText({ ...baseParams, messages: safeMessages as any });
       for await (const chunk of sr.textStream) {
         fullText += chunk;
         onChunk(chunk);
@@ -1219,8 +1261,8 @@ export async function streamChatReply(
     }
 
     // 🔁 빈 응답 복구: 스트림이 비면(안전필터·기록누적 등) 마지막 사용자 메시지만으로 비스트리밍 1회.
-    if (!fullText.trim() && messages.length > 1) {
-      const lastUser = [...messages].reverse().find((m) => m.role === "user");
+    if (!fullText.trim() && safeMessages.length > 1) {
+      const lastUser = [...safeMessages].reverse().find((m) => m.role === "user");
       if (lastUser) {
         console.warn(
           `[streamChatReply] empty stream (finishReason=${finishReason}) — retrying with last user message only`
@@ -1241,7 +1283,7 @@ export async function streamChatReply(
     let emptyError: string | undefined;
     if (!fullText.trim()) {
       console.error(
-        `[streamChatReply] EMPTY reply — finishReason=${finishReason} query="${query.slice(0, 60)}"`
+        `[streamChatReply] EMPTY reply — finishReason=${finishReason} query="${safeQuery.slice(0, 60)}"`
       );
       fullText = EMPTY_REPLY_FALLBACK[lang] || EMPTY_REPLY_FALLBACK.en;
       onChunk(fullText);
@@ -1265,7 +1307,7 @@ export async function streamChatReply(
 
     // Judge: 메인 흐름 차단 없이 백그라운드 평가
     runJudgeInBackground({
-      query,
+      query: safeQuery,
       response: fullText,
       context: allContext || undefined,
       lang,

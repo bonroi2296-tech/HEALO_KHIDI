@@ -40,6 +40,7 @@
     "collect": "tsx scripts/data-collection/index.ts",
     "collect:hospitals": "tsx scripts/data-collection/index.ts collect",
     "collect:template": "tsx scripts/data-collection/index.ts template",
+    "collect:intel": "tsx scripts/data-collection/index.ts intel",
     "verify:rag": "node scripts/verify-rag.mjs",
     "check:ai-behavior": "node scripts/check-ai-behavior.mjs",
     "audit:playbook-rag": "tsx scripts/audit-playbook-rag.ts",

@@ -7,87 +7,135 @@
 
 ---
 
-## 🔖 세션 핸드오프 (2026-06-26 — 로그인/계정 클러스터: 비번 재설정 버그 수리·비번찾기 별도페이지·이메일 폭탄차단·캡차 철회·아이디(이메일)찾기 신설)
+## 🔖 세션 핸드오프 (2026-06-29 — 비자 페이지 퀄리티 개선: 국적별 입국정보 신설 + 다국어 대사관 버그 + 6개어 번역검수 + 치료기간 토글 → PR #464 머지·#471)
 
-> PO가 비번찾기 화면을 직접 클릭하며 버그·UX 문제를 연달아 지적 → 로그인/계정 흐름을 통째로 손봄. 캡차에 시간 많이 쓰다 결국 철회(우리 Next 환경과 충돌). PO 많이 화남("정신 차려") — 핵심 교훈은 **검증 안 된 걸 반복 배포하지 말 것**. 전부 머지·배포 완료.
+> PO "비자 페이지 퀄리티 낮다, 국가 바꿔도 컨텐츠 동일, 개선하고 애매하면 없애라"로 시작. 진단=**국적 드롭다운이 가짜 차별화**(비자추천이 치료기간으로만 결정→국적은 대사관 한줄만 바꿈). PO "제대로 개선" 선택 → 국적별 입국요건(비자 필요여부)을 web 사실검증해 신설. 이후 "외국어 모르니 니가 전문 번역가로 검수하고 머지" → 4개어 병렬검수. 마지막 "치료기간 입력칸 왜 있냐" → 90일 경계 두 버튼으로 단순화.
 
-**1. 이번 세션 한 일 (전부 squash 머지·프로덕션 배포)**
-- **[#392](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/392) 비번 재설정 링크가 *항상* 무효이던 버그 수리** — 기본 SSR 클라(PKCE flow)로 `resetPasswordForEmail` 호출 → 메일 링크 `token_hash`에 `pkce_` 접두가 붙는데 `/reset-password`의 `verifyOtp`는 verifier 교환을 안 해 `/verify`가 세션을 안 줌 → **매번** "유효하지 않음". **implicit-flow 전용 클라(`createOtpEmailClient`, `src/lib/supabase/browser.ts`)로 발송**해 평범한 `token_hash` 발급 → 서버검증으로 작동. (POSTMORTEMS #42)
-- **[#396](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/396) 비밀번호 찾기 = 별도 페이지(`/forgot-password`)로 분리** — 처음엔 로그인 화면에 캡차를 인라인으로 넣었다가 레이아웃이 깨짐 → 전용 페이지로 분리(로그인의 「비밀번호 찾기」는 Next `<Link>`, 이메일 프리필). 로그인 헤딩에 `break-keep`(한글 '환영합니/다' 끊김 수정). (`app/forgot-password/*`, `app/login/LoginClient.jsx`)
-- **캡차 우여곡절 [#393](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/393)→[#398](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/398)→[#402](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/402)** — Turnstile 캡차 추가(#393) → 실서비스에서 **CSP가 challenges.cloudflare.com 차단** → 빈 회색 박스 + 버튼 영구 비활성 = 재설정 자체 불가 → 제거(#398) → PO "봇 차단 있어야지" → **같은 이메일 1분 1통(폭탄 차단) + 같은 IP 1분 5회 + Supabase recover 자체제한**으로 대체(#402). 보이는 캡차는 최종 철회. (`app/api/auth/forgot-password/route.ts`, POSTMORTEMS #43)
-- **[#405](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/405) 아이디(이메일) 찾기 신설** — 로그인 ID=이메일이라 '아이디 찾기'=잊은 가입 이메일 찾기. **가입폼에 생년월일(native date) 추가** → `user_metadata.birthdate` 저장(6개어 라벨). **`/find-id`**(이름+성+생년월일) → **`/api/auth/find-id`**(service_role로 메타데이터 조회, 이름+생년월일 **정확히 1명일 때만** 가린 이메일 `k***@gmail.com` 반환, 0명·2명+면 '못 찾음', IP 10/분, 구글계정이면 구글 로그인 안내). 로그인 화면에 '아이디 찾기' 링크. (`app/find-id/*`, `app/signup/SignupClient.jsx`, `app/login/LoginClient.jsx`)
+**1. 이번 세션 한 일**
+- **[#464 머지·배포]** ①국가별 입국 상태 패널 신설(`COUNTRY_ENTRY`+`getCountryEntry` in `src/lib/visa/visaGuide.ts`, API가 언어별 `countryEntry` 반환): 러 무비자60일·카자흐/몽골 비자필요·중국 개인비자+단체15일한시(~2026.06)·일본 무비자90일. ②대사관 이름이 6개어 모두 한국어로 뜨던 실버그→현지어 전부 추가. ③blue→teal-600(DESIGN.md), 고지문+공식 K-ETA 링크. ④6개어 번역 전문검수(카자흐 오역 `Ата-мекен`→`Туған елі` 등 ru2·kz6·ja1 반영, 중국어 완벽).
+- **[#471 열림]** 치료기간 숫자입력(1~365, 의미경계 90일 하나뿐=가짜정밀) → `90일 이내`/`91일 이상` 두 버튼 토글. 백엔드 로직·API 그대로. `app/patient/visa/VisaClient.jsx`.
 
 **2. 왜 그렇게 했는지**
-- **캡차 철회**: 4가지 통합방식(수동 appendChild·next/script·암시적 cf-turnstile·부모 페이지 내장) 다 시도했으나 위젯이 안 뜸. **로컬 프로덕션 빌드(`next start`)에선 해당 페이지가 하이드레이션을 안 해 모든 effect가 미실행**(로컬에 실 supabase env 부재가 원인 추정)이라 **검증 자체가 불가** → '검증 못 한 건 안 올린다' 원칙상 철회. 봇/스팸은 서버 횟수제한이 더 확실하고 안 깨짐.
-- **아이디찾기에서 '이름만 조회' 배제**: 우리는 **암환자 의료 플랫폼** → 이름만 넣어 가린 이메일을 주면 "그 이름의 사람 = 여기 암 환자다"가 노출되는 **의료정보 유출**. 그래서 생년월일을 두 번째 자물쇠로 요구. 전화·생년월일을 가입 때 안 받았어서 **생년월일을 가입폼에 신규 추가**(전화는 본인인증 인프라 필요해 제외).
-- **배포 잦았음**: 버그 잡느라 PO 머지버튼 안 기다리고 자동머지로 여러 번 배포 → PO가 Vercel 한도 걱정. 이후 "로컬 우선·모아서 배포"로 합의.
+- 국적이 실제 바꾸는 건 "비자 필요여부"인데 화면에 없었음 → 그걸 신설하니 국적 선택이 의미를 가짐(삭제 대신 개선=SEO·유용성 보존).
+- 출입국=법률성 → AI생성 금지, web 사실검증(K-ETA·MOFA·KED 2026-06) 후 정적데이터+"공식 최종확인" 고지 상시노출.
+- 치료기간은 90일 경계만 의미 있고 환자가 정확일수 모름 → 정밀 숫자입력은 과함 → 2버튼.
 
 **3. 안 끝났거나 보류**
-- **보이는 '로봇 아님' 캡차 보류** — 우리 Next/React/CSP 환경과 충돌해 안정적으로 안 뜸. 나중에 정말 필요하면 **하이드레이션·CSP 원인을 제대로 규명**해 별도 작업으로. Vercel env `NEXT_PUBLIC_TURNSTILE_SITE_KEY`·`TURNSTILE_SECRET_KEY` + Cloudflare Turnstile 위젯(account `822c3b2e...`)은 **방치해도 무해**(코드가 더 이상 안 읽음, 지워도 됨).
-- **이전 세션 인계 잔존**: 구글 OAuth 재구축(아래 2026-06-25 블록) — 이번 세션과 별개로 미완.
+- **[#471] 치료기간 토글 PR 열림** — 저위험 UI, CI 초록이면 자동머지 예정(PO가 옵션 직접 선택). #464 squash 재사용 충돌로 브랜치를 origin/main 위로 rebase(핸드오프 자동저장 커밋은 #463과 충돌해 skip)·force-push해 단일 커밋으로 정리함.
+- 직전 세션들 보류건(아래 #463 블록·그 아래 블록)은 그대로 유효.
 
 **4. 주의·함정**
-- **로컬 `next start`(프로덕션 빌드)는 실 supabase env 없으면 하이드레이션이 깨져 클라이언트 검증이 불안정**(폼 제출·effect가 안 돎). → 화면/상호작용 검증은 **dev 서버**로, 실 env 의존 로직(find-id 매칭 등)은 **배포 후** 확인.
-- **비번찾기 옛 메일(링크에 `pkce_` 있는 것)은 영영 안 열림** — 반드시 **새로 받은 메일**로 테스트.
-- **find-id는 기존 계정(생년월일 없음)엔 안 됨** — 앞으로 가입하는 사람부터 적용(현 계정은 거의 내부/시드라 영향 적음).
-- 비번찾기/find-id 페이지의 새 문구는 **공용 i18n 미수정·파일 인라인 6개어**(check:content 통과). 공용 i18n 건드리지 말 것.
-
-**5. 다음 세션이 먼저 할 일 (우선순위)**
-1. **⚠️ 직전 미검증분 먼저 실서비스 확인 (둘 다 실 env 필요라 로컬서 못 함):**
-   (a) 생년월일까지 넣고 **새로 가입** → 로그인 화면 **'아이디 찾기'** → 그 이름+생년월일 → 가린 이메일 뜨는지 1회.
-   (b) **'비밀번호 찾기'** → **새 메일**(링크에 `pkce_` 없어야 함) → 재설정 → 새 비번 로그인까지 end-to-end 1회.
-2. (선택) 보이는 캡차가 정말 필요하면, 하이드레이션/CSP 원인 규명 후 별도로 제대로.
-3. (별개·이전 인계) 구글 OAuth 재구축(관문③) — 아래 블록.
-
-**6. 검증 상태**
-- **PR/CI**: #392·#393·#396·#398·#402·#405 **전부 MERGED**, 각 PR Smoke·ci 초록(머지 시점 확인). `next build --webpack`·`check:content` 통과.
-- **화면(dev 서버 실측)**: `/forgot-password`·`/find-id`·`/signup` 폼 렌더+필드 확인, 로그인에 '아이디 찾기'·'비밀번호 찾기' 링크 2개 확인. find-id API 입력검증(400/필수) 확인.
-- **❗미검증(솔직히)**: ①**비번 재설정 실메일→링크클릭→재설정 end-to-end**(인증·메일 플로우라 로컬 자동검증 불가) ②**find-id 실제 매칭**(service_role+실계정 필요, 로컬 500은 service_role 키 부재라 예상된 것). → 5번 1항으로 승격.
-
-**7. 다음 세션 첫 프롬프트**
-> 먼저 `docs/PROJECT_CONTEXT.md` 최상단 핸드오프부터 읽어. 어제(2026-06-26) 로그인/계정 대거 수리해서 다 배포됐는데 **실서비스에서 직접 확인 안 한 게 2개** 있어. healwith.co.kr에서 ①생년월일 넣고 새로 가입 → 로그인 화면 '아이디 찾기'로 이름+생년월일 넣어 가린 이메일 뜨는지 ②'비밀번호 찾기' → 새로 온 메일(링크에 pkce_ 없어야 함) 클릭 → 재설정 → 로그인까지 — 이 둘이 진짜 되는지 봐줘. 안 되면 화면 그대로 알려줘.
----
-
-## 🔖 세션 핸드오프 (2026-06-25 밤2 — 에이전시 속도(#378)·직원 문의 알림 종(#384) 머지·배포 + 자동저장 훅 파일 분실 사고 복구)
-
-> "CI 초록 뜨면 둘 다 머지해" → 두 PR 정리·CI 초록 확인·머지·프로덕션 배포 완료. 도중 **2분 자동저장 훅이 새 파일(`NotificationBell.jsx`)을 멋대로 다른 브랜치로 떼어가** 첫 푸시에서 그 파일만 빠져 #384 CI가 한 번 빨강 → 회수(cherry-pick)·재구성·재검사 후 머지.
-
-**1. 이번 세션 한 일 (둘 다 main 머지·프로덕션 배포됨)**
-- **[#378](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/378) 에이전시 포털 느린 로딩 수리** — 목록 API(`/api/agency/inquiries`)가 첨부파일마다 서명 URL을 *하나씩* 생성(`createSignedUrl`)하던 걸 **한 번의 `createSignedUrls`(복수형) 일괄 서명**으로 묶음(네트워크 왕복 수십→1). 실운영 로그에 storage 504 타임아웃까지 있었음. 화면·응답 형태 동일. (1파일, +26/-14)
-- **[#384](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/384) 새 문의 시 코디·어드민 웹/앱 종 알림** — ①직원 상단바에 알림 종 추가(환자 벨을 공용 `NotificationBell`로 일반화해 환자·직원 재사용) ②문의(AI 핸드오프/폼/에이전시) 오면 `sendAdminNotification` 안에서 코디+어드민에게 in-app 종 발송(이메일 설정 없어도 종은 울림) ③직원 역할 조회를 `profiles.role`(전부 'user'뿐이라 죽어있던 것)→`auth.users`(app_metadata.role)로 교정 → **같은 버그였던 'AI 부정피드백→코디' 알림도 같이 살림**. 링크: 코디→`/coordinator/inbox`, 어드민→`/admin/inquiries/{id}`. (8파일, +250/-156)
-- 두 브랜치 모두 자동저장 훅이 얹은 무관 변경(docs·inApp 등)으로 오염돼 있던 걸 **main 기준 + 해당 기능 파일만** 깨끗이 재구성 후 머지.
-- **출시 전 후속 ([PR #388](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/388), 미머지)**: PO "진짜 더 할 거 없어?" → #384 종 알림을 실DB·실코드로 재검증하다 **AI 챗 핸드오프 경로에 종이 안 울리던 갭** 발견·수정(POSTMORTEMS #41). `inApp.ts`에 `notifyStaffChatHandoff`(어드민 수신, 스레드당 1회) + `chat/stream·message` escalate에서 호출. 코디 AI챗 뷰 부재는 KNOWN_ISSUES에 별도 기록. **덤**: `e2e.yml`에 에이전시·의료기관 계정 매핑(skip 해제). 빌드·tsc·check:content 통과.
-
-**2. 왜 그렇게 했는지**
-- 에이전시 첨부 URL은 케이스를 펼쳐 '문서함'을 볼 때만 쓰는데 첫 로딩에 전부 서명하던 게 낭비 → 접힌 목록엔 개수만 표시하므로 일괄화가 안전.
-- 직원 종 알림: 환자 앱에만 벨이 있었고 직원 상단바엔 종 자체가 없었음 → 벨 컴포넌트를 공용화(fixed/inline)해 양쪽 재사용(코드 중복 없이).
-- 역할 조회를 `auth.users`로 바꾼 게 핵심 — `profiles.role`이 전부 'user'라 기존 코디 알림도 *조용히* 죽어 있었음(같은 뿌리 버그 동반 수리).
-
-**3. 안 끝났거나 보류**
-- **종 알림 실동작 미검증** — 인증(로그인) 화면이라 이 환경에서 자동 클릭 검증 불가. **프로덕션 배포 후 테스트 문의 1건 넣어 코디/어드민 우상단 종에 빨간 숫자 뜨는지** 눈으로 확인 필요. 실시간은 30초 폴링(환자 벨과 동일).
-- (이월) 직전 밤 세션의 미완은 그대로: **구글 OAuth 재구축**·E2E 에이전시/의료기관 skip — 아래 5번.
-
-**4. 주의·함정**
-- ⚠️ **2분 자동저장 훅이 멀티파일 작업 때 새 파일을 다른 브랜치로 떼어가는 사고 재발** — 이번엔 `NotificationBell.jsx`가 `docs/handoff-...` 브랜치로 빠져 첫 푸시에서 누락(로컬 빌드는 통과해 안 보였음, 원격 CI만 빨강). 회수해 `bc96279` cherry-pick으로 복구. **멀티파일 새 컴포넌트 작업 시 푸시 전 `git status`/원격 파일 개수 대조 필수.** (PO 취향: 자동저장 훅=폰↔컴 생명줄이라 끄지 말 것 — 끄지 말고 대조로 방어.)
-- 자동저장이 PROJECT_CONTEXT·inApp 등 SoR 파일을 동시에 흔들 수 있으니, 머지 전 항상 main 기준으로 기능 파일만 골라 재구성.
+- **비자추천(C-3-3/G-1-10)은 여전히 치료기간으로만 결정** — 정상(서류·비자종류는 국적 아닌 기간 함수). 국적이 바꾸는 건 입국요건 패널뿐.
+- **출입국 날짜성 정보는 시한부** — K-ETA 2026말 면제·중국단체 2026.06 한시면제 지나면 `COUNTRY_ENTRY`(ru.note·zh.summary) 갱신 필요.
+- **PROJECT_CONTEXT 병렬세션 충돌** — 이 세션과 #463 세션이 동시에 최상단을 편집해 rebase 충돌남. 두 블록 다 보존으로 풀었음(이 블록=비자, 아래=#463).
+- 기존 서류데이터(`COMMON_DOCUMENTS`·`G1_ADDITIONAL_DOCUMENTS`) kz/ja 일부도 검수 중 손봄(환자 직접 노출).
 
 **5. 다음 세션이 먼저 할 일**
-1. **⚠️ 직전 미검증분 먼저**: 프로덕션에서 ①**테스트 문의 1건** → 코디·어드민 우상단 종 빨간 숫자 + 클릭 시 문의 이동 ②**AI챗에서 '사람 연결' 1회** → 어드민 종(`/admin/chat` 링크) 뜨는지 확인(PR #388 머지·배포 후).
-2. **(이어가기) 구글 OAuth 깨끗한 재구축** — bonroi2296 계정 → 새 `healwith` 구글 프로젝트(동의화면+웹 클라이언트, 값은 아래 밤1 핸드오프 6번에 박힘) → Supabase Auth>Providers>Google에 새 Client ID/Secret 스왑 → 비-테스트 계정 로그인 테스트(순서 지켜 무중단).
-3. **E2E 에이전시·의료기관 skip 해결**: `.github/workflows/e2e.yml` env 블록 2곳(Smoke·Full)에 `E2E_AGENCY_EMAIL/PASSWORD`·`E2E_CLINIC_EMAIL/PASSWORD` 4줄씩 추가.
-4. 나머지 오픈 관문 PO 안내(⑤iOS·🔴⑥약한비번 admin 삭제 등).
+1. **⚠️ 미검증분 먼저**: ①**#471 머지 확인**(CI 초록 시 자동머지 걸어둠 — 안 됐으면 머지) ②프로덕션 `/visa`에서 국적 토글·6개어 전환·치료기간 2버튼 **육안 1회**(실클릭 검증 못 함).
+2. 직전 세션 부채(아래 #463 블록 5번: AI 송출차단·환자화면 ru/kz 실렌더 등) + 그 아래 심야 블록(#449·#453 실검증).
+3. PO 콘솔 관문(`LAUNCH_GATES_PO.md`).
 
 **6. 검증 상태**
-- ✅ **#378·#384 둘 다 CI(ci·Smoke) 초록 확인 후 머지**(GitHub MCP로 재확인: 둘 다 `merged:true`, base=main). `next build --webpack` 통과 · #384 피드백 계약 테스트 2/2 · eslint 0.
-- ❌ **종 알림 실표시는 검증 못 함(솔직히)** — 인증 화면이라 로컬 자동검증 불가. PO가 프로덕션에서 테스트 문의로 최종 확인.
-- ❌ 에이전시 로딩 속도 개선치도 실측 못 함(SSR 인증 포털) — 배포 후 체감으로.
-- ℹ️ 열린 PR: **#353**(2026-06-24 핸드오프 doc, stale) 1건 — 이번 작업과 무관, 정리 대상이면 다음 세션에.
+- ✅ **[#464] 머지** — `ci`·`Smoke` 초록 확인 후 squash 머지(GitHub MCP 실확인). 프리뷰 실API 스모크(5개국적 countryEntry 상이 응답+대사관 현지어) 확인.
+- ✅ 로컬: `next build --webpack` exit 0(여러 회)·`check:content` 통과·비자 `vitest` 12/12.
+- ⏳ **[#471] CI 진행 중** — force-push 직후. 초록 시 자동머지.
+- ❌ **검증 못 함(솔직히)**: 프로덕션 `/visa` 실클릭(국적 토글·6개어·치료기간 버튼 육안) — 실브라우저 필요. 번역은 전문 에이전트 검수로 갈음(원어민 최종감수 아님).
 
 **7. 다음 세션 첫 프롬프트**
-> 먼저 docs/PROJECT_CONTEXT.md 최상단 핸드오프를 읽어라. 2026-06-25 밤2에 에이전시 느린 로딩(#378)·직원 문의 알림 종(#384) 둘 다 머지·배포 끝. **제일 먼저: 프로덕션에서 테스트 문의 1건 넣어 코디/어드민 우상단 종에 빨간 숫자 뜨고 클릭 시 해당 문의로 가는지 1회 확인**(인증 화면이라 자동검증 못 했음). 그담 이월 미완 = 구글 OAuth 재구축(값은 밤1 핸드오프 6번)·E2E 에이전시/의료기관 workflow env 4줄. 작업 중 2분 자동저장 훅이 새 파일을 다른 브랜치로 떼가는 사고가 또 있었으니 멀티파일 작업 시 푸시 전 파일 누락 대조할 것.
+> 먼저 docs/PROJECT_CONTEXT.md 최상단 읽어. 직전 세션은 비자 페이지를 고쳤어(국적별 입국요건 패널·대사관 다국어버그·6개어 번역검수=PR #464 머지·배포, 치료기간 2버튼=PR #471). 먼저 **#471 머지됐는지 확인**하고, 프로덕션 `/visa`에서 국적 토글·6개 언어 전환·치료기간 두 버튼을 **육안으로 1회** 확인해줘(난 실클릭 검증 못 함). 그담 아래 #463·심야 블록의 직전 부채(AI 송출차단 실동작·#449·#453 실검증)랑 출시 PO 관문 이어가자.
 
----
+## 🔖 세션 핸드오프 (2026-06-29 밤(2) — 오픈 전 최종 전수조사: AI 위험답변 송출차단·환자화면 6개어·옛도메인 잔재·약한비번 교체 → PR #463)
 
+> PO "정식 오픈 전 추가 고도화할 부분 없는지 최종 전수조사 해봐"로 시작. 5축(보안·i18n·데이터/RLS·AI/RAG·위생) **병렬 서브에이전트 감사 + 실DB(Supabase MCP) 점검**. **런치 막는 보안 구멍 0**(뼈대 견고) 확인 후, 나온 개선점을 PR [#463](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/463)(작업본 `claude/pre-launch-service-review-df30bx`)에 모음. PO 지시로 코드 거의 전부 수리 + 약한비번 실DB 교체.
+
+**1. 이번 세션 한 일** (전부 PR #463, 미머지)
+- **🔴 AI 위험답변 송출 차단**: 결정적 레드라인 가드 `scanRedlines`(완치·약물·예후 단정)가 그동안 `judge.ts`(비동기)·벤치에서만 호출돼 **위험문구가 환자에게 나간 뒤 점수만** 매겨졌음. 라이브 경로에 게이트 연결 — 비스트리밍 `generateChatReply`=critical 시 안전 대체문구로 통째 교체(노출 0)+`redlineBlocked` 플래그 / 스트리밍 `stream/route.ts`=정정 안내 append + **코디 종 즉시 호출**(비동기 judge 의존 탈피) + `redline`·`needs_doctor_review` 기록. `safetyGuard.ts`에 `safeDeferralMessage`·`redlineCorrectionNotice` 6개어 추가. triage 출력도 같은 경로라 함께 스캔됨.
+- **🔴 triage(1차소견) PII 마스킹**: `triage.ts` `messageText`에 `redactModelPii` 적용(채팅 경로와 동등). 첨부 파일 자체는 판독에 필요해 불가피.
+- **🔴 환자화면 6개어**: `/patient/consultations`·`/patient/cost-estimates` 한국어 하드코딩 → page-local 6개어 COPY(ko·en·ru·kz·zh·ja). 환자 alert 6곳·에러표시 3곳의 raw `err.message` 노출 제거+6개어화(`_err` 처리).
+- **🟡 옛 도메인 잔재(POSTMORTEMS #49)**: `healo-khidi.vercel.app`·`khidi.healo.kr` → `healwith.co.kr`(메일 푸터 `src/emails/shared.jsx`·survey·cron·`.env.example`). dev/내부 페이지(`email/preview`·`design-preview`·`dev/cancer-preview`) prod 가드. `ClientShell`·`LoginClient` console.log 이메일 제거. **가드 추가**: `check-content`에 옛도메인 금지룰, `check-env`에 `NEXT_PUBLIC_SITE_URL` 검증.
+- **🟢 하드닝**: admin import 라우트 `error.message` → 코드형+서버로그. `translate-text` `maxOutputTokens` 추가.
+- **🔴 약한비번 교체(코드 아님, 실DB)**: 7개 `@test.com` 비번 `test1234` → **`Healwith2026!`**(bcrypt, `admin@test.com` 포함). 오픈 관문 6 거의 닫힘.
+- **문서**: POSTMORTEMS #49(옛도메인)·#50(AI 가드) 추가. KNOWN_ISSUES에 후속과제. LAUNCH_GATES_PO 관문6 갱신.
+
+**2. 왜 그렇게 했는지**
+- **스트리밍은 원시 텍스트 append라 "이미 보낸 토큰 취소 불가"** → 차단(비스트림)+정정·즉시 에스컬레이션(스트림)으로 비대칭 설계가 최선.
+- **환자화면은 page-local COPY 패턴**(`_roomCopy.js`·`LoginClient` 선례) 사용 — 중앙 i18n 사전 안 건드림(병렬세션 충돌·패리티 머신 회피).
+- **약한비번은 PO가 값 지정**(`Healwith2026!`) — 삭제/비활성 대신 강한비번으로 두면 E2E 자동검사 유지 + 노출 제거.
+- **RAG ingest taskType·테스트데이터 삭제는 보류** — 전자는 전체 재적재 동반(반쪽=불일치), 후자는 비가역(데이터 삭제)이라 PO 확인 영역.
+
+**3. 안 끝났거나 보류**
+- **PR #463 미머지** — CI 초록(아래 6번). PO 지시 "CI 초록면 머지". 머지 시 draft→ready 전환 필요.
+- **환자 상세페이지 광범위 한국어** — `/patient/cost-estimates/[id]`·`/patient/visa/applications`(목록·상세) 전체 한국어. 이번엔 목록 2페이지만 6개어 + 상세는 err.message 누수만 닫음. 본문 6개어화 후속(KNOWN_ISSUES).
+- **RAG ingest taskType / `rag_chunks_used=0` 경보 / cron 비상수시간 / Auth 유출비번보호 / 테스트문의·국적값 정리** — 전부 KNOWN_ISSUES에 기록.
+
+**4. 주의·함정**
+- **이 세션은 작업본(브랜치)에서 작업** → 핸드오프도 브랜치에 커밋됨. main 반영은 PR #463 머지 시. **다른 병렬 세션이 같은 PROJECT_CONTEXT 최상단을 건드렸으면 머지 시 충돌** → 양쪽 블록 보존으로 풀 것(PO 취향 2026-06-20과 동일).
+- **node_modules 증발 주의**: 이 컨테이너에서 빌드 중 `@sentry/nextjs` 등 의존성이 사라져 빌드 깨짐 → `npm install`로 복구함(환경 이슈, 코드 무관).
+- **lint 함정**: alert에서 `err.message` 제거 시 `catch(err)`가 미사용이 돼 eslint `no-unused-vars` **error**로 CI 빨강 → `_err`로 교정해야 함(이미 처리). CI는 eslint error로 머지 차단됨.
+- **PR 활동 구독 중**: 웹훅이 CI 실패·코멘트는 주지만 **CI 성공·머지가능은 안 줌** → 매시 :17 자가체크인 cron(세션 한정)으로 재확인·머지하도록 걸어둠.
+
+**5. 다음 세션이 먼저 할 일**
+1. **⚠️ 직전 미검증분 먼저(머지·배포 후 실서비스 클릭):** ①AI 챗에서 위험문구 유도 시 **송출 차단/정정안내+코디 종** 실제 동작 ②`/patient/consultations`·`/patient/cost-estimates`를 **ru/kz로 보면 그 언어로** 렌더 ③자료 업로드 시 triage가 messageText PII 마스킹 ④거래메일 푸터 링크가 healwith.co.kr.
+2. **PR #463 머지** — CI 초록이면 draft 해제 후 머지(PO 지시). 머지 후 `git fetch origin main` + 브랜치 재기준.
+3. **PO 콘솔 관문**(`LAUNCH_GATES_PO.md`): 🔴Gemini 유료(PO "나중에") · E2E GitHub Secret 비번을 `Healwith2026!`로 갱신 · 인증메일 token_hash · 구글 OAuth 게시 · 텔레그램 토큰 · Auth 유출비번보호 · 테스트문의 #26~31 정리.
+4. (여력) 환자 상세페이지 6개어 · RAG taskType+재적재 · `rag_chunks_used=0` 경보(KNOWN_ISSUES).
+
+**6. 검증 상태**
+- ✅ **CI(PR #463, 커밋 00d2a23) 초록**: `ci`·`Smoke Tests (PR)` 둘 다 **success**(GitHub check_runs 실확인), E2E 크론은 PR이라 skip(정상), Vercel 프리뷰 Ready.
+- ✅ 로컬: `next build --webpack` 통과 · `vitest` **406/406** · `check:content`·`i18n`(ru/kz 100%)·`schema-refs`·`migrations`·`legal` 통과 · `eslint .` **0 errors**.
+- ✅ 실DB(Supabase MCP): 약한비번 7개 `Healwith2026!` 교체·검증 / RAG 13문서·18청크·임베딩 누락 0 / RLS 67테이블 전부 on.
+- ❌ **검증 못 함(실서비스 클릭 필요)**: AI 송출차단·정정안내 라이브 동작 / 환자화면 ru·kz 실렌더 / triage PII 마스킹 end-to-end / 메일 링크 실수신 — 로그인·브라우저·실메일 필요해 자동검증 불가(5번 1항에서 갚을 것).
+
+**7. 다음 세션 첫 프롬프트**
+> 먼저 `docs/PROJECT_CONTEXT.md` 최상단(2026-06-29 밤(2) 전수조사 블록) 읽어. 오픈 전 전수조사로 **AI 위험답변 송출차단·환자화면 6개어·옛도메인 잔재·약한비번 교체**를 PR #463에 모았고 CI 초록이야. 먼저 **실서비스에서 검증**해줘: ①AI 챗 위험문구 유도 시 송출차단/정정안내+코디 종 ②`/patient/consultations`·`/patient/cost-estimates`를 ru/kz로 보면 그 언어 렌더 ③자료 업로드 시 triage PII 마스킹 ④메일 푸터 링크 healwith.co.kr. 그담 PR #463 머지(CI 초록이면 draft 해제 후) + PO 콘솔 관문(Gemini 유료·E2E 시크릿 비번 Healwith2026!로 갱신·인증메일 token_hash 등) 같이 닫자.
+
+## 🔖 세션 핸드오프 (2026-06-29 심야 — 핸드오프 인수 → 열린작업 전수조사 → 퍼널 5개 심층감사 → 출시 블로커 6개 수정·머지)
+
+> "핸드오프 분석하고 이어가자"로 시작 → 작은 가드(RAG헬스)부터 열린 PR 정리, 중단된 작업(#406·#408) 되살리기, **그리고 PO "완벽해? 오픈 확정?"에 안심 대신 퍼널 전수 심층감사로 답함**(병렬 에이전트 5 + 실DB + 보안린트). 감사로 **진짜 법적·보안 블로커 6개**를 찾아 수정·머지. PO 지시 "니가 판단해서 머지할 건 머지, 애매한 건 인수인계" → 안전한 건 머지, auth/PII 미검증 2건은 보류.
+
+**1. 이번 세션 한 일 (전부 main 머지·프로덕션 배포, 별도 표기 없으면)**
+- **RAG 실사용 가드** [#441] — 매일 prod 스모크(`scripts/smoke-chat.mjs` TEST C)에 지식질문→`rag_chunks_used>0` 검증. RAG 또 죽으면 다음날 CI 빨강(POSTMORTEMS #48 재발방지).
+- **문서 정리** [#443] — 누락됐던 POSTMORTEMS #33(REVOKE PUBLIC) 복원 + stale PR #353 닫음. [#448] — `LAUNCH_GATES_PO.md`에 출시 관문 11개로 통합(Gemini결제·텔레그램·약한비번·구글OAuth·DPA·법무PR) + KNOWN_ISSUES stale(iOS마이크 #269 등) 해결표시.
+- **중단 작업 2개 되살림** — [#445]=#408 벤치 고급판(맞대결·48문항·사람검수), [#446]=#406 구글가입자 비번찾기 안내 + 코디 AI대화 검토큐(#431 검수버튼과 충돌 병합). 둘 다 옛 main 기반이라 최신에 rebase·빌드검증 후 머지.
+- **퍼널 전수 심층감사** — 문의·AI챗·가입·상담·백오피스 5개를 코드+실DB+보안advisor로 추적. 점수: 문의68·가입62·AI챗76·상담78·코디72·에이전시92·병원78·견적92.
+- **감사 블로커 6개 수정** (작은 PR로 쪼갬):
+  - [#452] 🔴법무 — ①문의 Step2가 Step1 PIPA동의기록을 덮어써 삭제(merge로 보존) ②AI리드 승격이 동의없이 적재(thread.metadata.consent를 intake.consents로 복사). `step2/route.ts`·`publicChatHelpers.ts`.
+  - [#453] 🔴보안 — 비활성(소프트삭제) 직원/어드민이 인증에서 안 막혀 그대로 로그인·PII복호화 가능하던 것 → `checkAdminAuth`에 `disabled===true` 차단(fail-safe).
+  - [#454] 🔴버그 — 중국어(zh) 환자 상담 생성 400(언어 화이트리스트 zh 누락) + error.message 누출 3곳(create·partner/whoami·chat/message) 코드형 + 코디 대시보드 죽은링크(/patients→/cases)·긴급알림 항상0(followup GET을 staff 허용).
+  - [#456] 🔴컴플라이언스 — 환자 PII 열람 감사로그 누락(코디 인박스 상세·병원 임상패킷)에 `VIEW_INQUIRY`/`PARTNER_VIEW_CASES` 추가.
+
+**2. 왜 그렇게 했는지**
+- **"완벽해?/오픈 확정?" = 안심 금지 신호**(PO취향) → 실측 감사로 답. 페이지가 200 뜨는 것과 퍼널이 끝까지 도는 건 다름 → 감사가 법적(동의 소실)·보안(비활성 무력)·버그(zh) 블로커를 실제로 잡음.
+- **머지 판단 기준**(PO "니가 판단"): 데이터 보존만/추가형/명백한 버그 + CI초록 = 머지. **auth 동작 변경·PII 새 노출이라 실로그인 검증이 필요한 건 보류**(#453은 잠금위험 낮아 머지, #449는 PII+페이지 런타임 미확인이라 보류).
+- **작은 PR로 쪼갬**: 법무/보안/버그/컴플라이언스 각각 독립 — 리뷰·롤백 쉽게. 각 PR build·CI 초록 후 머지.
+- **클라우드 컨테이너 = 세션별 격리**: PO "워크트리 따로"의 의도(다른 세션과 안 엉키게)는 이 환경에선 전용 브랜치로 충족(파일시스템 공유 안 함, git/PR레벨만 만남).
+
+**3. 안 끝났거나 보류 (= 애매해서 인수인계에 남긴 것)**
+- **[#449] 코디네이터 AI 챗 뷰 (열림·draft)** — `/coordinator/chat` 읽기전용 + admin chat API GET을 staff로 넓힘. 빌드 통과지만 **코디 계정 실로그인 런타임 미검증 + 환자 PII를 새 role에 노출**이라 보류. PO가 프리뷰(`healo-khidi-git-feat-coordinator-chat-view-...vercel.app/coordinator/chat`)에서 ①네비 'AI 상담 리드' ②목록·대화·첨부 열람 ③검수버튼 안 보임 확인 후 "머지해" 하면 머지.
+- **[#422] 처리방침 GDPR 보강·[#424] HIPAA/GDPR점검+계약서 (열림)** — 라이브 법무문서 → PO 법무검토 결정. 자동으로 안 건드림.
+- **감사 잔여(코드)**: ①AI챗 playbook 데이터 0건 → "3-Tier RAG"가 실제론 1소스(병원/치료 en)만 가동(playbook_pattern 적재 필요) ②병원 임상패킷 GET의 viewer role 게이팅(viewer 권한 의미=PO 결정) ③`normalized_inquiries` draft가 6·9턴마다 중복 insert ④AI 승격건 nationality NULL→"(미상)".
+
+**4. 주의·함정**
+- **#453 비활성차단은 staff(coordinator/admin = `app_metadata.disabled`)만** — 에이전시/병원은 별도 is_active 메커니즘이라 미적용(후속). fail-safe라 명시적 `true`만 차단(정상계정 잠금 위험 0).
+- **동의 수정(#452)·zh상담·코디대시보드(#454)는 빌드·로직만 검증, 실데이터/실런타임 미검증** — 머지 후 실문의/실상담 1건으로 확인 권장.
+- **AI→유치 전환은 프로덕션에서 아직 0건** — 코드 정상이나 머지 후 실 3턴+ 대화가 없어 `source='ai_agent'` 행 0(실DB 확인). KHIDI 대시보드 집계 실검증은 실대화 필요.
+- **출시 PO 콘솔 관문 = `docs/LAUNCH_GATES_PO.md`** 단일 체크리스트(11개). 코드로 못 닫는 것(약한비번 admin 삭제·Gemini 유료결제·구글 OAuth 게시·실메일).
+- 보안 advisor(실 prod): RAG RPC가 anon/authenticated EXECUTE 가능(서버는 service_role만 씀 — #33류, EXECUTE 회수 권장) / 유출비번 차단 off(PO 토글) — 둘 다 🟡, 이번에 안 건드림.
+
+**5. 다음 세션이 먼저 할 일**
+1. **⚠️ 직전 미검증분 먼저(실로그인·실런타임 필요)**: ①**#449·#453 실검증 후 머지 결정** — 코디 계정으로 #449 프리뷰 확인 / staff 1명 비활성→로그인 막히는지(#453). ②머지된 감사수정 실동작 — 문의 Step2 후 `intake.consents` 보존·중국어 상담 생성·코디 대시보드 긴급알림 뜸·PII 열람 시 `admin_audit_logs` 기록·비활성 계정 차단.
+2. **PO 콘솔 관문**(`LAUNCH_GATES_PO.md`): 약한비번 admin 삭제·Gemini 유료결제·구글 OAuth 게시·실메일 1회 — 오픈 go/no-go의 실제 잠금.
+3. 감사 잔여: playbook 데이터 적재(3-Tier RAG 완성)·병원 viewer 게이팅(PO 권한정의)·normalized draft 중복 가드.
+4. **#422·#424 법무 PR** — PO 검토 끝나면 머지.
+
+**6. 검증 상태**
+- ✅ **머지 9 PR**(#441·#443·#445·#446·#448·#452·#453·#454·#456) 각 **ci·Smoke·Vercel 초록 확인 후 머지**. `next build --webpack` exit 0·`check:content` 통과(매 변경).
+- ✅ **실DB**(Supabase MCP): RAG 적재13/18·검색 RPC end-to-end·전환 승격 경로 코드추적·보안 advisor 점검. 문의 31건 전부 `web`(ai_agent 0).
+- ✅ **열린 PR/CI 실확인**: 남은 열림 = #449(draft, CI초록)·#422·#424(법무, draft). 그 외 이번 세션 PR 전부 머지.
+- ❌ **검증 못 함(솔직히 — 실로그인/실기기/실메일 필요)**: 모든 인증 화면 실클릭(코디·어드민·병원·#449 코디챗)·비활성 계정 실차단(#453)·동의 보존 실데이터(#452)·중국어 상담 실생성(#454)·PII 감사로그 실기록(#456)·2인 영상·iOS 자막·실메일·AI 3턴 실전환집계. → 5번 1순위로 승격.
+
+**7. 다음 세션 첫 프롬프트**
+> 먼저 docs/PROJECT_CONTEXT.md 최상단(2026-06-29 심야) 핸드오프 읽어. 퍼널 전수 심층감사로 찾은 출시 블로커 6개를 고쳐 머지했어(#452 동의·#453 비활성차단·#454 중국어상담/누출/코디대시보드·#456 PII감사로그). **근데 전부 실로그인·실데이터 검증을 못 했으니** 그것부터 확인해줘: ①#449(코디 AI챗 뷰)·#453(비활성 차단) 프리뷰/실계정 확인 후 머지할지 ②머지된 감사수정 실동작(Step2 후 동의 보존·중국어 상담 생성·코디 긴급알림·PII 열람 로그). 그담 출시 PO 관문(LAUNCH_GATES_PO.md: 약한비번 admin 삭제·Gemini 결제·구글 OAuth 게시·실메일)은 PO만 닫을 수 있으니 안내. #422·#424 법무는 PO 검토 대기, playbook 데이터 적재는 여력되면.
 ## 🏷️ 서비스명 변경 — HEALO → **healwith** (2026-06-16 확정·적용)
 
 **상표 문제로 서비스명을 `HEALO` → `healwith`(항상 소문자 표기)로 최종 변경. 앞으로 모든 신규 작업은 `healwith`로 한다.**

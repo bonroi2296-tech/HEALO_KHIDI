@@ -2,6 +2,17 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useLang } from "@/lib/i18n/LangContext";
+
+// 원시 err.message 노출 금지 — 6개어 일반 실패 안내(보안+UX)
+const FAIL_MSG = {
+  ko: "요청 처리에 실패했습니다. 다시 시도해 주세요.",
+  en: "The request failed. Please try again.",
+  ru: "Не удалось выполнить запрос. Попробуйте ещё раз.",
+  kz: "Сұрауды орындау мүмкін болмады. Қайталап көріңіз.",
+  zh: "请求失败，请重试。",
+  ja: "リクエストに失敗しました。もう一度お試しください。",
+};
 
 function fmtKRW(n) {
   if (n == null) return "—";
@@ -24,6 +35,8 @@ const STATUS_LABELS = {
 };
 
 export default function CostEstimateDetailClient({ estimateId }) {
+  const langCode = useLang();
+  const failMsg = FAIL_MSG[langCode] || FAIL_MSG.en;
   const [estimate, setEstimate] = useState(null);
   const [pdfUrl, setPdfUrl] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -54,7 +67,9 @@ export default function CostEstimateDetailClient({ estimateId }) {
         if (qj.ok) setPdfUrl(qj.quotation_pdf_url);
       }
     } catch (err) {
-      setError(err.message);
+      // 원시 err.message 노출 금지
+      console.error("[patient/cost-estimate]", err);
+      setError(true);
     } finally {
       setLoading(false);
     }
@@ -76,8 +91,8 @@ export default function CostEstimateDetailClient({ estimateId }) {
       const json = await res.json();
       if (!res.ok || !json.ok) throw new Error(json.error || "failed");
       await load();
-    } catch (err) {
-      alert("실패: " + err.message);
+    } catch (_err) {
+      alert(failMsg);
     } finally {
       setActing(false);
     }
@@ -99,8 +114,8 @@ export default function CostEstimateDetailClient({ estimateId }) {
       const json = await res.json();
       if (!res.ok || !json.ok) throw new Error(json.error || "failed");
       await load();
-    } catch (err) {
-      alert("실패: " + err.message);
+    } catch (_err) {
+      alert(failMsg);
     } finally {
       setActing(false);
     }
@@ -116,7 +131,7 @@ export default function CostEstimateDetailClient({ estimateId }) {
   if (error || !estimate) {
     return (
       <div className="max-w-4xl mx-auto px-4 py-10">
-        <p className="text-sm text-red-600">오류: {error}</p>
+        <p className="text-sm text-red-600">{failMsg}</p>
         <Link href="/patient/cost-estimates" className="text-sm underline mt-4 inline-block">← 목록</Link>
       </div>
     );
