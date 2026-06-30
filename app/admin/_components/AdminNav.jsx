@@ -31,6 +31,7 @@ import {
   Stethoscope,
   Eye,
   Bug,
+  ChevronDown,
 } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 
@@ -81,6 +82,7 @@ const navGroups = [
   },
   {
     title: "AI 품질",
+    collapsed: true, // 평소엔 접어둠(가끔 쓰는 튜닝·평가 도구). 해당 페이지 들어가면 자동 펼침
     items: [
       { id: "ai-status", label: "AI 상태", icon: Brain, href: "/admin/ai-status" },
       { id: "ai-quality", label: "AI 품질 평가", icon: Sparkles, href: "/admin/khidi/ai-quality" },
@@ -97,17 +99,18 @@ const navGroups = [
       { id: "staff", label: "직원 계정", icon: Users, href: "/admin/staff" },
       { id: "deletion-requests", label: "데이터 삭제 요청", icon: Trash2, href: "/admin/account/deletion-requests" },
       { id: "audit", label: "감사로그", icon: FileText, href: "/admin/audit" },
-      { id: "observability", label: "시스템 관측", icon: Eye, href: "/admin/observability" },
       { id: "notifications", label: "알림 관리", icon: Bell, href: "/admin/settings/notifications" },
       { id: "branding", label: "브랜딩 설정", icon: Palette, href: "/admin/settings/branding" },
     ]
   },
   {
-    // 디렉토리 시절(전체 병원 수동등록) 잔재 — 코드는 보존, 메뉴에서만 하단 분리
+    // 디렉토리 시절(전체 병원 수동등록) 잔재 + 가끔 쓰는 시스템 도구 — 평소 접어둠
     title: "레거시 도구",
+    collapsed: true,
     items: [
       { id: "import", label: "대량 Import", icon: Upload, href: "/admin/import" },
       { id: "enrichment", label: "데이터 보강", icon: Database, href: "/admin/enrichment" },
+      { id: "observability", label: "시스템 관측", icon: Eye, href: "/admin/observability" },
       { id: "playbook", label: "플레이북", icon: FileText, href: "/admin/playbook", children: [
         { id: "playbook-patterns", label: "응대 패턴", icon: Brain, href: "/admin/playbook-patterns" },
         { id: "playbook-analytics", label: "패턴 분석", icon: BarChart3, href: "/admin/playbook-analytics" },
@@ -122,6 +125,17 @@ export function AdminNav() {
   const router = useRouter();
   const supabase = createSupabaseBrowserClient();
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  // 접힌 그룹을 사용자가 수동으로 펼친 상태(제목→bool). 현재 페이지가 든 그룹은 항상 펼침.
+  const [openExtra, setOpenExtra] = useState({});
+
+  const groupHasActive = (group) =>
+    group.items.some(
+      (it) =>
+        pathname === it.href ||
+        pathname.startsWith(it.href + "/") ||
+        (it.children &&
+          it.children.some((c) => pathname === c.href || pathname.startsWith(c.href + "/")))
+    );
 
   useEffect(() => {
     setIsMobileOpen(false);
@@ -195,11 +209,26 @@ export function AdminNav() {
       </div>
 
       <nav className="flex-1 p-3 lg:p-4 space-y-4 lg:space-y-6 overflow-y-auto">
-        {navGroups.map((group) => (
+        {navGroups.map((group) => {
+          const collapsible = !!group.collapsed;
+          // 펼침: 접이식 아님 OR 현재 페이지가 이 그룹 안 OR 사용자가 수동으로 펼침
+          const open = !collapsible || groupHasActive(group) || !!openExtra[group.title];
+          return (
           <div key={group.title}>
-            <h3 className="px-3 lg:px-4 mb-1.5 lg:mb-2 text-[10px] lg:text-xs font-bold text-gray-400 uppercase tracking-wider">
-              {group.title}
-            </h3>
+            {collapsible ? (
+              <button
+                onClick={() => setOpenExtra((s) => ({ ...s, [group.title]: !open }))}
+                className="w-full flex items-center justify-between px-3 lg:px-4 mb-1.5 lg:mb-2 text-[10px] lg:text-xs font-bold text-gray-400 uppercase tracking-wider hover:text-gray-600 transition-colors"
+              >
+                <span>{group.title}</span>
+                <ChevronDown size={14} className={`transition-transform ${open ? "" : "-rotate-90"}`} />
+              </button>
+            ) : (
+              <h3 className="px-3 lg:px-4 mb-1.5 lg:mb-2 text-[10px] lg:text-xs font-bold text-gray-400 uppercase tracking-wider">
+                {group.title}
+              </h3>
+            )}
+            {open && (
             <div className="space-y-0.5 lg:space-y-1">
               {group.items.map((item) => {
                 if (!item.children) return renderLeaf(item, false);
@@ -222,8 +251,10 @@ export function AdminNav() {
                 );
               })}
             </div>
+            )}
           </div>
-        ))}
+          );
+        })}
       </nav>
 
       <div className="p-3 lg:p-4 border-t border-gray-200 pb-safe-area">
