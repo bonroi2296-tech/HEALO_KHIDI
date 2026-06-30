@@ -92,9 +92,13 @@ const CHECKS = {
   },
   price_range: (r) => {
     const last = r[r.length - 1] || "";
-    const hasCur = /[\$₩]|usd|krw|원|долл|тенге|元/i.test(last);
-    const hasRange = /\d[\d,\.]*\s*[–\-~〜到]\s*\d/.test(last);
-    return { pass: hasCur && hasRange, info: `통화=${hasCur} 범위표기=${hasRange}` };
+    const hasCur = /[\$₩]|usd|krw|원|долл|тенге|元|won/i.test(last);
+    // 범위 인식: ①구분자(–~-〜到)+숫자 ②범위어(에서/부터/까지/от/до/to) ③통화금액 2개 이상(범위는 보통 두 금액).
+    const dashRange = /\d[\d.,]*\s*[–\-~〜到]\s*[₩$]?\s*\d/.test(last);
+    const wordRange = /\d[\d.,]*[^\n]{0,8}?(?:에서|부터|까지|от|до|\bto\b)[^\n]{0,6}?\d/i.test(last);
+    const figs = (last.match(/[₩$]\s?\d[\d.,]*|\d[\d.,]*\s*만?\s*원|\d[\d.,]*\s*(?:usd|krw|тг|тенге|元)/gi) || []).length;
+    const hasRange = dashRange || wordRange || figs >= 2;
+    return { pass: hasCur && hasRange, info: `통화=${hasCur} 범위(dash=${dashRange} word=${wordRange} 금액수=${figs})` };
   },
   no_bare_price: (r) => {
     const last = r[r.length - 1] || "";
