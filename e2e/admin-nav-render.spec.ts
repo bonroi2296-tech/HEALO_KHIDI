@@ -17,6 +17,13 @@ test.describe("어드민 사이드바 메뉴 @smoke", () => {
     if (!process.env.E2E_ADMIN_EMAIL) {
       test.skip(true, "E2E_ADMIN_EMAIL 미설정 — 어드민 테스트 스킵");
     }
+    // 쿠키 동의 배너(fixed bottom-0, z-9999)가 사이드바 하단 버튼 클릭을 가로채므로
+    // "이미 동의함" 상태로 시작한다(실사용자가 한 번 누르면 다시 안 뜨는 것과 동일).
+    await page.addInitScript(() => {
+      try {
+        localStorage.setItem("healo_cookie_consent", "all");
+      } catch {}
+    });
     await loginAs(page, "admin");
   });
 
