@@ -232,8 +232,8 @@ export default function AutomationPlaybookPage() {
       const data = await res.json();
       setRunResult({ type: jobType, ...data });
       fetchData();
-    } catch (err) {
-      setRunResult({ type: jobType, ok: false, error: err.message });
+    } catch (_err) {
+      setRunResult({ type: jobType, ok: false, error: "실행 실패" });
     } finally {
       setRunning(null);
     }

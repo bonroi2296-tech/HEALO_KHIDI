@@ -277,8 +277,8 @@ export default function AiRegressionPage() {
         // 결과 반영을 위해 2초 후 새로고침
         setTimeout(() => loadData(), 2000);
       }
-    } catch (e) {
-      setTriggerResult({ ok: false, error: e.message });
+    } catch (_e) {
+      setTriggerResult({ ok: false, error: "서버 오류" });
     } finally {
       setTriggering(false);
     }
