@@ -1203,3 +1203,19 @@ PO가 협력병원 상세(`/hospitals/[slug]`) 하단 "자주 묻는 질문"이 
 - **단일 데이터모델로 수렴 중**: 멀티스레드 통일(KNOWN_ISSUES 백로그)에서 공개챗의 `actor_type/message_text` 모델을 단일 표준으로 삼아 환자챗 분기를 흡수. 두 모델 공존이 사고의 뿌리.
 - 스키마 드리프트 보강 마이그레이션을 백로그에 기록(코드가 신뢰할 실제 스키마 SoR 확보).
 - 교훈: **같은 테이블을 쓰는 두 기능은 컬럼 가정을 공유 헬퍼로 강제하라.** "빌드 통과 ≠ 동작"(CLAUDE.md) — 신규/수정 DB 경로는 실데이터 1건으로 end-to-end 확인.
+
+## #54 — `REVOKE EXECUTE FROM anon` 이 RAG 함수 직접호출을 안 막았음 (PUBLIC 상속) (2026-06-30)
+
+**무슨 일**
+- C레벨 진단 후속 보안 위생으로 `rag_search_chunks_v1_1`(SECURITY DEFINER)을 비로그인 직접호출 차단하려 `REVOKE EXECUTE ... FROM anon, authenticated` 적용. 적용 직후 검증(`has_function_privilege('anon',...)`)에서 여전히 **true** — 안 막혔다.
+- 원인: 함수 EXECUTE 는 생성 시 기본값으로 **PUBLIC** 에 부여된다. anon/authenticated 는 PUBLIC 으로 상속받으므로, 그 두 역할에서만 회수해도 PUBLIC 경로가 살아있어 그대로 호출 가능.
+
+**왜 못 잡았나(근본원인)**
+- "역할에서 REVOKE 하면 막힌다"는 직관이 PUBLIC 기본부여를 간과(Postgres 함수 권한 모델 특성).
+- 적용=끝이 아니라 **적용 후 권한을 실제 재조회**해야만 드러나는 부류(코드 빌드로는 절대 안 보임). 마침 적용 직후 `has_*_privilege`로 재확인해서 잡았다.
+
+**어떻게 고쳤나**
+- `REVOKE EXECUTE ... FROM PUBLIC, anon, authenticated;` + `GRANT EXECUTE ... TO service_role;`(앱은 supabaseAdmin=service_role 로만 호출 → 기능 영향 0). 재조회: anon=false·authenticated=false·service_role=true 확인.
+
+**재발 방지**
+- 교훈: **권한 REVOKE/GRANT 는 적용 즉시 `has_*_privilege`로 재조회 검증.** 함수 직접호출 차단의 정석은 역할 회수가 아니라 **PUBLIC 회수 + 의도한 역할에만 GRANT**.

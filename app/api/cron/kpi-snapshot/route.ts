@@ -20,19 +20,11 @@ export const maxDuration = 60;
 
 import { NextRequest, NextResponse } from "next/server";
 import { upsertRecentSnapshots } from "@/lib/khidi/kpi";
+import { verifyCronSecret } from "@/lib/security/cronAuth";
 
 export async function GET(request: NextRequest) {
-  // ── CRON_SECRET 검증 ──────────────────────────────────────
-  const cronSecret = process.env.CRON_SECRET;
-  if (!cronSecret) {
-    console.error("[cron/kpi-snapshot] CRON_SECRET 환경변수 미설정");
-    return NextResponse.json({ ok: false, error: "server_misconfigured" }, { status: 500 });
-  }
-
-  const authHeader = request.headers.get("Authorization") ?? "";
-  const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : "";
-
-  if (token !== cronSecret) {
+  // ── CRON_SECRET 검증 (상수시간) ───────────────────────────
+  if (!verifyCronSecret(request.headers.get("authorization"))) {
     console.warn("[cron/kpi-snapshot] Unauthorized cron access");
     return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
   }

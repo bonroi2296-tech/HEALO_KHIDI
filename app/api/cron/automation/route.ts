@@ -15,12 +15,10 @@ import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
 import { runDailyEval } from "@/lib/automation/playbookDailyEval";
 import { runAutoImprove } from "@/lib/automation/playbookAutoImprove";
 import { runAbFinalize } from "@/lib/automation/playbookAbFinalize";
+import { verifyCronSecret } from "@/lib/security/cronAuth";
 
 export async function GET(request: NextRequest) {
-  const cronSecret = process.env.CRON_SECRET;
-  const authHeader = request.headers.get("authorization");
-
-  if (!cronSecret || authHeader !== `Bearer ${cronSecret}`) {
+  if (!verifyCronSecret(request.headers.get("authorization"))) {
     return Response.json({ ok: false, error: "Unauthorized" }, { status: 401 });
   }
 
