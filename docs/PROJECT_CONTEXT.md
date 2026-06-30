@@ -7,6 +7,53 @@
 
 ---
 
+## 🔖 세션 핸드오프 (2026-06-30 (7) — 북극성 계기판 + 외부 서비스 사용량·비용 한눈에 [#531 머지·배포])
+
+> PO "오늘 한 일 정리" → "우리 북극성이 뭐냐" → "북극성 계기판 만들고 + 외부 서비스 사용량 화면도(나중에 유료·제미나이 실시간 비용까지)" → 중간에 **"제미나이만 말고 LiveKit·Resend·Supabase·Vercel 등 모든 외부 서비스 사용량 한눈에"** 로 범위 확대 → "싹다해줘" → "CI 통과하면 머지해" → 머지·배포 → 핸드오프 요청.
+
+**1. 이번 세션 한 일**
+- 🎯 **북극성 계기판** `/admin/khidi/north-star` (+API `north-star`): 주간 '사전상담 완료' 추세선(8~26주)·전주대비·4주평균 + 선행지표 4종(채널별 신규문의·예약→완료 전환율·만족도 응답률·에이전시 회신율[측정예정]). lib `northStar.ts`(+순수 `weekBuckets.ts`). kpi-dashboard cockpit 최상단 북극성 진입 배너.
+- 💳 **외부 서비스 사용량 통합 보드** `/admin/khidi/usage` (+API `usage`): 모든 연동 서비스 한 화면. **실측** = 제미나이(토큰·비용)·Supabase(DB/500MB·스토리지/1GB)·이메일/SMS(Resend·SES·Twilio·Telegram, admin_notification_logs.channel 집계)·LiveKit(상담방 수). **콘솔/토큰준비** = Vercel·Sentry. lib `externalServices.ts`·`serviceUsage.ts`·`vendorApis.ts`.
+- 🧱 **기반(제미나이 실시간 비용 토대)**: 새 표 `ai_usage_events`(append-only·RLS 서비스롤전용·PII없음) + `usageLog.ts`/`usagePricing.ts`(로거·집계·단가, fire-and-forget) + `generateReply.ts` 단발·스트리밍 두 경로에 사용량 로깅 연결. DB 용량 RPC `get_external_db_usage()`(SECURITY DEFINER·서비스롤). 마이그레이션 2건 라이브 적용(가역적 추가).
+- 단위테스트 13건(KST 주경계·비용/토큰 정규화) · check-schema-refs에 ai_usage_events 등록 · manuals(관리자) 북극성·사용량 항목 추가.
+- **PR [#531](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/531) (3커밋) squash 머지·배포.**
+
+**2. 왜 그렇게 했는지**
+- 북극성=주간 사전상담완료(직전 진단 결론). 유치·상담120·만족도는 후행지표라 매주 못 끌어올림 → 사전상담은 매주 올릴 수 있는 단일 운전대(3 KPI 동시 전진).
+- 사용량 화면: PO가 비용 통제·유료 전환 시점을 한 눈에 보길 원함. 못 재는 건 숨기지 말고 **실측/추정/콘솔 배지**로 정직하게 구분.
+- 비용은 **기록 시점 단가로 동결**(numeric) — gemini-flash-latest 별칭 단가가 바뀌어도 과거 집계 불변.
+- 순수함수 분리(`weekBuckets`·`usagePricing`): `server-only` 모듈은 vitest import 불가 → 테스트용으로 떼냄(repo 관례: kpi가 snapshotDates 떼낸 것과 동일).
+- Vercel·Sentry는 토큰 없으면 `available:false`로 콘솔 폴백 → PO가 토큰 넣는 순간 코드수정 없이 자동 라이브.
+
+**3. 안 끝났거나 보류**
+- **Vercel·Sentry 라이브**: 토큰 미보유 → 콘솔 폴백 중. PO가 `VERCEL_API_TOKEN`(+TEAM/PROJECT)·`SENTRY_AUTH_TOKEN`+`SENTRY_ORG` 넣어야 라이브.
+- **제미나이 단가**: 추정치(입력$0.30·출력$2.50/1M). `AI_PRICE_FLASH_IN`/`AI_PRICE_FLASH_OUT` env로 정확화 가능.
+- **북극성 선행지표 ④ 에이전시 콜드메일 회신율**: 아웃리치 트래킹 미연동 → "측정 예정". PO가 발송/회신 흐름 알려주면 연동.
+- **직전 큐 잔존**: C(채널별 source 전환 분해)·D(만족도 무응답0점+최소N)·E(점수전략 재설계 초안)·#522 funnel_events `form_complete` 라이브 실측(여전히 0행).
+
+**4. 주의·함정**
+- `ai_usage_events`·`funnel_events` 적재는 **배포 후 실제 호출/문의부터** 쌓임(지금 0). 화면 0 = 버그 아님(데이터 없음).
+- 알림 채널 매핑: `admin_notification_logs.channel` 실데이터는 현재 **'sms'만** 존재 → Resend/Telegram 카드는 0으로 보임. 실제 이메일/텔레그램 발송 한 번 해봐야 매핑 검증됨.
+- LiveKit·이메일 카드는 우리 DB **프록시**(상담방 수·발송 수)지 벤더 정확치 아님("추정" 배지). 정확한 영상 분·대역폭은 콘솔.
+- types(`database.types.ts`) 미재생성 → `ai_usage_events`·`inquiries.source`는 `(supabaseAdmin as any)` 캐스트(kpi.ts 패턴). 후속 types regen 시 정리.
+
+**5. 다음 세션이 먼저 할 일**
+1. ⚠️ **직전 미검증분 먼저**: 배포 반영 확인 후 **(a)** 사용량 화면(`/admin/khidi/usage`) 실제 열림 + 공개 AI 1회 호출 → `ai_usage_events`에 행 쌓이고 비용 뜨는지, **(b)** #522 `funnel_events`에 `form_complete` 행 쌓이는지(현재 0행) **라이브 실측**.
+2. **C. 채널별 전환 분해**: 유치 전환 대시보드(`/admin/khidi/conversion`)를 `inquiries.source`(ai_agent/web)로 GROUP BY(데이터 이미 적재).
+3. **D. 만족도 무응답 0점 버그 + 최소 N**.
+4. (선택) PO가 Vercel/Sentry 토큰 주면 env 꽂고 라이브 확인 / 콜드메일 흐름 연동 / 제미나이 실단가 입력.
+
+**6. 검증 상태**
+- ✅ `tsc --noEmit` 0 err · `next build --webpack` exit0 · eslint 0 err(경고만=any, 기존 패턴) · `check:content`·`check:schema-refs` 통과 · 단위테스트 13건 통과.
+- ✅ 라이브 스모크: `ai_usage_events` 삽입→조회→삭제(컬럼 형태 일치) / `get_external_db_usage()` RPC 호출·반환 확인(DB 23.5MB·스토리지 1.8MB).
+- ✅ PR/CI: **#531** CI(`ci`·`Smoke Tests(PR)`) 둘 다 success 후 squash 머지(E2E는 PR이라 skip). main 배포 트리거됨.
+- ❌ **미검증(솔직히)**: 배포 후 런타임 실데이터 적재(사용량 로깅·funnel `form_complete`) 미확인. Vercel·Sentry 라이브 경로 미실행(토큰 없음). 사용량/북극성 화면 실제 브라우저 클릭 안 함(어드민 인증). 제미나이 단가=추정.
+
+**7. 다음 세션 첫 프롬프트**
+> 먼저 docs/PROJECT_CONTEXT.md 최상단 핸드오프 읽어. 2026-06-30에 북극성 계기판(`/admin/khidi/north-star`)·외부 서비스 사용량 보드(`/admin/khidi/usage`)를 #531로 머지·배포했어. **먼저 미검증분 실측해**: 배포 반영 확인하고 ① 사용량 화면 열어서 공개 AI 1번 호출한 뒤 `ai_usage_events`에 행·비용 쌓이는지 ② #522 `funnel_events`에 `form_complete` 행 쌓이는지(현재 0행) 라이브로 확인. 그다음 **C**(유치 전환 대시보드 `/admin/khidi/conversion`을 `inquiries.source`=ai_agent/web로 채널 분해)를 만들어줘.
+
+---
+
 ## 🔖 세션 핸드오프 (2026-06-30 (6) — 사업 사각지대 진단(북극성·퍼널) + 죽은 퍼널 계측 살리기 #522·#528)
 
 > PO "우리가 사업적으로 놓친 게 뭔지(북극성 지표·퍼널·내가 생각 못한 것) 도출해봐" → 멀티에이전트 사각지대 진단(6차원×3렌즈×적대검증) → PO "전체적으로 니가 먼저 제안해, 내가 그런거 잘 몰라" → 제안 + 죽은 퍼널 계측(funnel_events) 살리기 1건 실행. 끝에 PO가 변호사·에이전시는 본인이 처리(걱정마)·보험/진흥원 의미만 질문.
@@ -52,44 +99,6 @@
 
 **7. 다음 세션 첫 프롬프트**
 > 먼저 docs/PROJECT_CONTEXT.md 최상단 핸드오프 읽어. 직전 세션이 죽은 퍼널 계측(funnel_events)을 살렸는데(#522) **실문의 1건을 실제로 제출해서 funnel_events 에 form_complete 행이 쌓이는지부터 실측**(현재 0행)하고 "Full E2E main push" 실패가 플래크인지 확인해. 그다음 사업 사각지대 진단(메모리 biz-blindspot-audit-2026-06-30)의 **B(북극성+선행지표 계기판)·C(채널별 source 전환 분해)**를 만들어줘 — 북극성=주간 사전상담 완료, 데이터는 consultation_sessions·inquiries 에 이미 있음.
-
-## 🔖 세션 핸드오프 (2026-06-30 (5) — C레벨 12시점 진단 + 보고서 기반 개선 PR 8개 + 빌드사고 복구)
-
-> PO "울트라코드로 전 서비스 C레벨 진단" → 멀티에이전트 12시점 진단(보고서 #506) → "보고서 토대로 개선" 스프린트.
-> 📘 **상세 현황·앞으로 작업 방향성 = [`docs/reviews/2026-06-30_진단_개선_작업가이드.md`](reviews/2026-06-30_진단_개선_작업가이드.md) — 다음 세션 필독(이걸 매번 참고).**
-
-**1. 이번 세션 한 일** (전부 머지)
-- 진단: 12 C레벨 시점 멀티에이전트 → 종합 63 / 8·27 예상 58. 보고서·원천데이터 `docs/reviews/`(#506).
-- 개선 머지: #501 테스트/실제 분리(critical 데모 차단)·#503 보안위생(RAG anon·RLS·cron·죽은크론)·#505 유치집계 회귀잠금·#509 상담 비용가드·#511 XSS가드·#513 Human채널 정리·#516 aiGuard 타입핫픽스(#509 회귀, 다른 세션과 동시 발견).
-- 검증으로 닫음: "미들웨어 소실"=허위경보(Next16 `middleware→proxy.ts` 개명)·만족도 파이프라인 정상(빈 건 운영 공백).
-
-**2. 왜 그렇게 했는지**
-- 진단을 멀티에이전트로: 12 도메인 독립검토 → 적대적 검증 → 종합(편향·허위 축소). 발견은 "검증 먼저, 조치 나중"(허위경보 1건 적발해 헛수고 방지).
-- 개선은 저위험·정직 인프라부터: 8/27 점수는 코드 아닌 실데이터라, 코드는 "데모 안 새게·돈 안 새게·회귀 안 나게" 가드 위주. 실적은 PO 운영 몫.
-- 자동머지는 저위험 백엔드만. 공개 UI·평가 제출문서는 PO 검토(자동머지 안 함).
-
-**3. 안 끝났거나 보류**
-- **#514 사업계획서 개정**(현행+글로벌·다과목) = PO 내용검토 대기 / **Q1 AI 국외이전 고지** = PO 티어결정 대기. ⚠️ 무료 Gemini는 구글이 환자데이터 학습 가능 → **유료전환=프라이버시 우선과제**(고지는 티어 무관 필수).
-- **8/27 진짜 점수 = PO 운영 몫**(실유치·사업비집행·만족도 실응답·양한방 실데이터) — 가이드 §2.
-
-**4. 주의·함정**
-- 🔴 **Vercel 빌드 한도 초과(2026-06-30, ~24h)** — 하루 PR 8개+ 남발로 일일한도 태움. 머지분 자동배포는 리셋 후. **앞으론 PR 모아서**(메모리 재확인).
-- 🔴 **`next build --webpack`가 타입에러를 놓침**(#509가 그렇게 머지돼 main 빌드 깸 → #516 복구). **`tsc --noEmit` 으로 검증 필수.**
-- ⚠️ **PR 머지 후 브랜치 삭제는 머지 성공 확인 후**(이번에 충돌 머지실패인데 브랜치 먼저 지워 #518 유실 — v2로 복구). 실서비스는 마지막 정상배포로 정상 가동(#501·503·505 포함).
-
-**5. 다음 세션이 먼저 할 일**
-1. `docs/reviews/2026-06-30_진단_개선_작업가이드.md` 읽기(현황·방향성 전부).
-2. Vercel 한도 풀림 확인 → 머지분 배포 확인.
-3. **CI에 `tsc --noEmit` 게이트 추가**(같은 타입사고 영구차단 — 최우선).
-4. PO 답 처리: #514 머지 / Q1 고지 적용.
-
-**6. 검증 상태**
-- 개선 PR: 빌드+테스트+실DB 검증 후 머지(테스트분리 실DB 유치 4→0, khidi vitest 94/94, 보안 실DB 재조회).
-- 🔴 **#509는 로컬 `next build` 통과했으나 Vercel 타입검사 실패→main 빌드 깸 → #516 복구.** `tsc --noEmit`이면 잡았음(에러 0 확인). = 검증 헐거웠던 사고, 정직히 기록.
-- #513 빌드+PO 번호확인 후 머지 / #514·Q1 = PO 검토대기(미머지) / Vercel 빌드 한도로 머지분 실배포는 리셋 후.
-
-**7. 다음 세션 첫 프롬프트**
-> docs/PROJECT_CONTEXT.md 최상단 + docs/reviews/2026-06-30_진단_개선_작업가이드.md 읽어. 직전 세션은 C레벨 진단(보고서 #506) 후 개선 8개 PR 머지했고, 중간에 #509 타입에러로 main 빌드 깨진 걸 #516로 복구했어(Vercel 빌드 한도도 태움 — 풀렸는지 확인). 먼저 CI에 tsc --noEmit 게이트부터 추가해줘(같은 타입사고 방지). 그담 PO 검토대기인 #514(사업계획서)·Q1(AI 고지) 이어가자.
 
 ## 🏷️ 서비스명 변경 — HEALO → **healwith** (2026-06-16 확정·적용)
 
