@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
-import { ArrowRight, AlertCircle, Loader2, Bot, ThumbsUp, ThumbsDown, X, Paperclip, FileText, Image as ImageIcon, Headset, ClipboardCheck, Plus, History } from "lucide-react";
+import { ArrowRight, AlertCircle, Loader2, Bot, ThumbsUp, ThumbsDown, X, Paperclip, FileText, Image as ImageIcon, Headset, ClipboardCheck, Plus, History, ChevronLeft } from "lucide-react";
 import { getLangCodeFromCookie, t } from "@/lib/i18n";
+import { INSTALL_COPY } from "../InstallPrompt";
 
 const TOKEN_COOKIE = "healo_chat_token";
 const SESSION_COOKIE = "healo_browser_session";
@@ -145,6 +146,108 @@ function TypingDots() {
       <span className="w-1.5 h-1.5 rounded-full bg-teal-600/70 animate-bounce [animation-delay:-0.15s]" />
       <span className="w-1.5 h-1.5 rounded-full bg-teal-600/70 animate-bounce" />
     </span>
+  );
+}
+
+// 챗 답변 가독성: AI가 내보내는 가벼운 마크다운(**굵게**, - 글머리, 1. 번호, 빈 줄 문단)을
+// 라이브러리 없이 최소 렌더(ponytail: 풀 마크다운 파서 불필요). 사용자 입력엔 적용 안 함(평문).
+// XSS 회피로 dangerouslySetInnerHTML 미사용 — 전부 React 노드로 빌드. 스트리밍 중 미완성 **는 평문 유지.
+function renderInline(text) {
+  // 쌍이 맞는 **굵게**만 강조, 나머지는 그대로.
+  return String(text)
+    .split(/(\*\*[^*\n]+\*\*)/g)
+    .map((p, i) => {
+      const m = /^\*\*([^*\n]+)\*\*$/.exec(p);
+      return m ? <strong key={i} className="font-semibold">{m[1]}</strong> : <span key={i}>{p}</span>;
+    });
+}
+
+function RichText({ text }) {
+  const lines = String(text).replace(/\r\n/g, "\n").split("\n");
+  const blocks = [];
+  let list = null; // { type:'ul'|'ol', items:[] }
+  const flush = () => { if (list) { blocks.push(list); list = null; } };
+  for (const raw of lines) {
+    const line = raw.trimEnd();
+    const bullet = /^\s*[-•*]\s+(.*)$/.exec(line);
+    const numbered = /^\s*\d+[.)]\s+(.*)$/.exec(line);
+    if (bullet) {
+      if (!list || list.type !== "ul") { flush(); list = { type: "ul", items: [] }; }
+      list.items.push(bullet[1]);
+    } else if (numbered) {
+      if (!list || list.type !== "ol") { flush(); list = { type: "ol", items: [] }; }
+      list.items.push(numbered[1]);
+    } else {
+      flush();
+      blocks.push({ type: "p", text: line });
+    }
+  }
+  flush();
+  return (
+    <>
+      {blocks.map((b, i) => {
+        if (b.type === "ul") return <ul key={i} className="list-disc pl-5 space-y-0.5 my-1.5">{b.items.map((it, j) => <li key={j}>{renderInline(it)}</li>)}</ul>;
+        if (b.type === "ol") return <ol key={i} className="list-decimal pl-5 space-y-0.5 my-1.5">{b.items.map((it, j) => <li key={j}>{renderInline(it)}</li>)}</ol>;
+        if (!b.text) return <div key={i} className="h-2" />; // 빈 줄 = 문단 간격
+        return <p key={i} className="whitespace-pre-wrap">{renderInline(b.text)}</p>;
+      })}
+    </>
+  );
+}
+
+// 챗 안 PWA 설치 힌트(맥락형) — 대화가 시작된 뒤 슬림 칩으로 1회 유도. 푸시는 약속하지 않음
+// (푸시는 네이티브 앱 전용·미출시 → 거짓 약속 금지). 전역 InstallPrompt 는 /inquiry 에서 숨기고 이게 대신함.
+// 감지/해제 규칙·해제키(a2hs-dismissed)는 InstallPrompt 와 동일하게 맞춰 양쪽이 함께 닫히게 함.
+function ChatInstallHint({ lang }) {
+  const [deferred, setDeferred] = useState(null); // beforeinstallprompt(안드/데스크톱 크롬)
+  const [iosHint, setIosHint] = useState(false);
+  const [hidden, setHidden] = useState(false);
+
+  useEffect(() => {
+    try {
+      if (localStorage.getItem("a2hs-dismissed") === "1") { setHidden(true); return; }
+      const standalone = window.navigator.standalone === true || window.matchMedia("(display-mode: standalone)").matches;
+      if (standalone) { setHidden(true); return; } // 이미 설치됨
+      const ua = navigator.userAgent || "";
+      const isIOS = /iphone|ipad|ipod/i.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+      const isSafari = /safari/i.test(ua) && !/crios|fxios|edgios|opios/i.test(ua);
+      if (isIOS && isSafari) setIosHint(true);
+    } catch { /* 비공개모드 등 localStorage 막힘 — 무시 */ }
+    const onPrompt = (e) => { e.preventDefault(); setDeferred(e); };
+    const onInstalled = () => { setDeferred(null); setHidden(true); try { localStorage.setItem("a2hs-dismissed", "1"); } catch {} };
+    window.addEventListener("beforeinstallprompt", onPrompt);
+    window.addEventListener("appinstalled", onInstalled);
+    return () => {
+      window.removeEventListener("beforeinstallprompt", onPrompt);
+      window.removeEventListener("appinstalled", onInstalled);
+    };
+  }, []);
+
+  if (hidden || (!deferred && !iosHint)) return null;
+  const c = INSTALL_COPY[lang] || INSTALL_COPY.en;
+  const dismiss = () => { try { localStorage.setItem("a2hs-dismissed", "1"); } catch {} setHidden(true); };
+  const doInstall = async () => { if (!deferred) return; deferred.prompt(); try { await deferred.userChoice; } catch {} setDeferred(null); setHidden(true); };
+
+  return (
+    <div className="mb-2 bg-teal-50 border border-teal-100 rounded-xl px-3 py-2">
+      <div className="flex items-center gap-2">
+        <img src="/icons/icon-96x96.png" alt="" width={22} height={22} className="rounded-md shrink-0" />
+        <span className="flex-1 text-[11px] font-medium text-teal-800 leading-snug">{c.ios}</span>
+        {deferred && (
+          <button
+            type="button"
+            onClick={doInstall}
+            className="shrink-0 text-[11px] font-semibold text-white bg-teal-700 rounded-lg px-2.5 py-1 hover:bg-teal-800 transition"
+          >
+            {c.cta}
+          </button>
+        )}
+        <button type="button" onClick={dismiss} aria-label={c.close} className="shrink-0 text-teal-400 hover:text-teal-600 text-base leading-none px-1">×</button>
+      </div>
+      {iosHint && !deferred && (
+        <p className="mt-1 pl-7 text-[10px] text-teal-600 leading-snug">{c.iosBody}{c.iosBody2}</p>
+      )}
+    </div>
   );
 }
 
@@ -292,7 +395,7 @@ function ConsentGate({ langCode, onConsent, submitting }) {
   );
 }
 
-export function ThreadChat() {
+export function ThreadChat({ onBack, backLabel } = {}) {
   const [threadId, setThreadId] = useState(null);
   const [publicToken, setPublicToken] = useState(null);
   const [guest, setGuest] = useState(null); // { name, email, country }
@@ -872,6 +975,18 @@ export function ThreadChat() {
           </p>
         </div>
       )}
+      {/* 게이트(로딩·동의·식별) 화면엔 코디/접수 툴바가 없으므로 뒤로를 여기서 따로 노출
+          (채팅 활성 화면에선 상단 툴바 안의 뒤로가 대신함 — 중복 방지). */}
+      {onBack && (restoring || needsConsent || needsIdentification) && (
+        <button
+          type="button"
+          onClick={onBack}
+          className="self-start inline-flex items-center gap-1 text-[11px] font-medium text-gray-500 hover:text-teal-700 rounded-xl px-2 py-1.5 hover:bg-gray-50 transition mb-1"
+        >
+          <ChevronLeft size={14} className="shrink-0" />
+          {backLabel || t("chat.back", langCode) || "Back"}
+        </button>
+      )}
       {restoring ? (
         <div className="flex-1 flex items-center justify-center text-gray-400 text-sm">
           <Loader2 size={20} className="animate-spin mr-2" />
@@ -883,24 +998,58 @@ export function ThreadChat() {
         <IdentificationForm langCode={langCode} onSubmit={handleIdentify} submitting={identifying} />
       ) : (
         <>
-          {/* 멀티스레드 툴바: 이전 대화 목록 토글 + 새 상담 시작 (한 방에 갇히지 않게) */}
-          <div className="flex items-center justify-between mb-2">
-            <button
-              type="button"
-              onClick={() => { setShowHistory((v) => !v); loadThreads(); }}
-              className="inline-flex items-center gap-1.5 text-[11px] font-medium text-gray-600 hover:text-teal-700 rounded-xl px-2.5 py-1.5 hover:bg-gray-50 transition"
-            >
-              <History size={14} className="shrink-0" />
-              {t("chat.history.button", langCode)}
-            </button>
-            <button
-              type="button"
-              onClick={startNewChat}
-              className="inline-flex items-center gap-1.5 text-[11px] font-medium text-teal-700 rounded-xl px-2.5 py-1.5 hover:bg-teal-50 transition"
-            >
-              <Plus size={14} className="shrink-0" />
-              {t("chat.action.newChat", langCode)}
-            </button>
+          {/* 상단 툴바 한 줄: (좌) 뒤로·이전대화  (우) 코디네이터·접수·새상담.
+              전환 동선(코디·접수)을 뒤로 버튼과 같은 줄로 올려 입력 위 세로 공간을 아낀다(2026-06-30 PO).
+              접수는 teal 채움 = 주 CTA 유지(유치 전환 지표). 좁은 화면은 flex-wrap 로 줄바꿈. */}
+          <div className="flex items-center justify-between gap-2 mb-2 flex-wrap">
+            <div className="flex items-center gap-1">
+              {onBack && (
+                <button
+                  type="button"
+                  onClick={onBack}
+                  className="inline-flex items-center gap-1 text-[11px] font-medium text-gray-500 hover:text-teal-700 rounded-xl px-2 py-1.5 hover:bg-gray-50 transition"
+                >
+                  <ChevronLeft size={14} className="shrink-0" />
+                  {backLabel || t("chat.back", langCode) || "Back"}
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => { setShowHistory((v) => !v); loadThreads(); }}
+                className="inline-flex items-center gap-1.5 text-[11px] font-medium text-gray-600 hover:text-teal-700 rounded-xl px-2.5 py-1.5 hover:bg-gray-50 transition"
+              >
+                <History size={14} className="shrink-0" />
+                {t("chat.history.button", langCode)}
+              </button>
+            </div>
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <button
+                type="button"
+                onClick={() => handleSend(t("chat.action.coordinatorMsg", langCode))}
+                disabled={sending || uploading}
+                className="inline-flex items-center gap-1.5 text-[11px] font-medium text-gray-700 bg-white border border-gray-200 rounded-xl px-3 py-1.5 hover:bg-gray-50 hover:text-teal-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Headset size={13} className="shrink-0" />
+                {t("chat.action.coordinator", langCode)}
+              </button>
+              <button
+                type="button"
+                onClick={() => handleSend(t("chat.action.registerMsg", langCode))}
+                disabled={sending || uploading}
+                className="inline-flex items-center gap-1.5 text-[11px] font-medium text-white bg-teal-700 rounded-xl px-3 py-1.5 hover:bg-teal-800 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <ClipboardCheck size={13} className="shrink-0" />
+                {t("chat.action.register", langCode)}
+              </button>
+              <button
+                type="button"
+                onClick={startNewChat}
+                className="inline-flex items-center gap-1.5 text-[11px] font-medium text-teal-700 rounded-xl px-2.5 py-1.5 hover:bg-teal-50 transition"
+              >
+                <Plus size={14} className="shrink-0" />
+                {t("chat.action.newChat", langCode)}
+              </button>
+            </div>
           </div>
 
           {/* 이전 대화 목록 패널 */}
@@ -965,15 +1114,18 @@ export function ThreadChat() {
             )}
             {messages.map((msg) => (
               <div key={msg.id} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-                <div className={`flex flex-col gap-1 max-w-[90%] ${msg.role === "user" ? "items-end" : "items-start"}`}>
+                <div className={`flex flex-col gap-1 ${msg.role === "user" ? "items-end max-w-[85%]" : "items-start max-w-[90%] md:max-w-[680px]"}`}>
                   <div
-                    className={`p-3 rounded-2xl shadow-sm text-xs leading-relaxed border ${
+                    className={`p-3 rounded-2xl shadow-sm text-[13px] leading-relaxed border ${
                       msg.role === "assistant"
                         ? "bg-white border-gray-100"
                         : "bg-teal-700 text-white border-teal-700"
                     }`}
                   >
-                    {msg.content && <p className="whitespace-pre-wrap">{msg.content}</p>}
+                    {/* assistant: 가벼운 마크다운 렌더(목록·굵게·문단). user: 평문 그대로. */}
+                    {msg.content && (msg.role === "assistant"
+                      ? <RichText text={msg.content} />
+                      : <p className="whitespace-pre-wrap">{msg.content}</p>)}
                     {/* 스트리밍 첫 글자 도착 전 빈 말풍선 → 타이핑 점(생각 중) 표시 */}
                     {!msg.content &&
                       msg.role === "assistant" &&
@@ -1107,28 +1259,8 @@ export function ThreadChat() {
             </div>
           )}
 
-          {/* 빠른 행동(전환 동선) — 사람 연결 + 정식 접수. 키워드 타이핑 없이 한 번에.
-              메시지로 보내 서버 detectHandOff(6개어)가 코디 종을 울리고 접수 분기를 탄다. */}
-          <div className="mb-2 flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() => handleSend(t("chat.action.coordinatorMsg", langCode))}
-              disabled={sending || uploading}
-              className="inline-flex items-center gap-1.5 text-[11px] font-medium text-gray-700 bg-white border border-gray-200 rounded-xl px-3.5 py-1.5 hover:bg-gray-50 hover:text-teal-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <Headset size={13} className="shrink-0" />
-              {t("chat.action.coordinator", langCode)}
-            </button>
-            <button
-              type="button"
-              onClick={() => handleSend(t("chat.action.registerMsg", langCode))}
-              disabled={sending || uploading}
-              className="inline-flex items-center gap-1.5 text-[11px] font-medium text-white bg-teal-700 rounded-xl px-3.5 py-1.5 hover:bg-teal-800 transition disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <ClipboardCheck size={13} className="shrink-0" />
-              {t("chat.action.register", langCode)}
-            </button>
-          </div>
+          {/* 맥락형 앱 설치 유도 — 대화가 시작된 뒤에만(첫 화면 방해 X). PWA 홈화면 추가(푸시 약속 없음). */}
+          {userMsgCount >= 1 && <ChatInstallHint lang={langCode} />}
 
           {/* Input — 통합 입력 박스(클립·입력칸·전송이 한 테두리 안 → 회색 막대 없음, Claude/GPT 방식) */}
           <div className="flex items-end gap-1.5 border border-gray-300 rounded-2xl px-2 py-1.5 bg-white focus-within:ring-2 focus-within:ring-teal-500 transition">

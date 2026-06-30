@@ -11,7 +11,8 @@
 - **공개 AI챗(`/inquiry`) 멀티 스레드 통일 — 1차 구현됨(2026-06-29, PR #475)**: 공개챗에 "새 상담"·"이전 대화 목록"·오래 쉰(>24h) 대화 자동 세션경계 배너 추가. 신규 API `GET /api/public/chat/threads`(로그인=user_id·게스트=browser_session_id, PII 미반환·30일 cutoff·rate limit). 스레드 제목 첫 메시지 자동 채움. 공개챗의 정상 모델(`actor_type/message_text`) 위에 환자챗 UI 패턴 차용. **함께 고친 버그**: `/patient/chat`이 없는 컬럼(role/content)으로 read/write해 메시지 전부 0건이던 것(POSTMORTEMS #51). ▶ **남은 후속**: ①두 챗 표면 완전 단일화(현재 공개=멀티스레드, 환자챗은 자체 API 유지 — 장기적으로 한 백엔드로 수렴) ②로그인 사용자 기기 간 동기화 실검증 ③`GET /api/public/chat/[threadId]` 정식 분리(현재 방 전환은 resume 재사용) ④공용 PC 게스트 세션 PII 분리.
 - **AI→유치 전환 프로덕션 0건 검증** (🔴 KHIDI 점수 직결): `source='ai_agent'` 리드 승격 코드는 정상이나 실 3턴+ 대화 전환이 0(실DB). 8/27 중간평가 정량지표(유치 12·상담 120)가 이 집계 → 이번 빠른버튼(접수·코디연결)으로 전환 동선이 강해졌으니 **실대화 1건으로 대시보드(`/admin/khidi/conversion`) 집계 end-to-end 실검증** 필요.
 - **playbook_pattern 0건 → "3-Tier RAG"가 실제론 1-Tier**: 적재 계획 필요(보고서 표기와 실제 일치). 기존 항목과 연계.
-- **스키마 드리프트**: `chat_threads.user_id`(+`guest_country`·`guest_phone`·`resolved_at`·`channel`)가 prod엔 있으나 마이그레이션 파일엔 ADD COLUMN 누락. 동작 정상이나 재현성 위해 보강 마이그레이션 권장.
+- ~~**스키마 드리프트**: `chat_threads.user_id`(+`guest_country`·`guest_phone`·`resolved_at`·`channel`) 마이그레이션 누락~~ ✅ **해결(2026-06-30)**: `migrations/20260630_chat_threads_columns.sql`(IF NOT EXISTS 멱등, prod no-op·재현성용).
+- **앱 설치→푸시 안내 (옵션1 보류분, 2026-06-30 PO)**: 접수 확정 멘트(`HANDOFF_CONFIRM`)에 "앱 설치 시 푸시로 진행상황 안내"를 넣고 싶으나 **푸시는 네이티브 앱 전용**(`src/lib/push/registerPush.ts` 웹 no-op) + **앱 미출시**(스토어 계정·Firebase PO 대기) → 지금 넣으면 거짓 약속. **앱 출시되면** `contactGate.ts`의 TODO 위치에 한 줄 추가. 지금은 PWA 홈화면 추가 인라인 힌트(`ChatInstallHint`)만 노출(푸시 약속 없음).
 
 ---
 
