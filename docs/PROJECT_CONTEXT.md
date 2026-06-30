@@ -7,6 +7,51 @@
 
 ---
 
+## 🔖 세션 핸드오프 (2026-06-30 (6) — 사업 사각지대 진단(북극성·퍼널) + 죽은 퍼널 계측 살리기 #522·#528)
+
+> PO "우리가 사업적으로 놓친 게 뭔지(북극성 지표·퍼널·내가 생각 못한 것) 도출해봐" → 멀티에이전트 사각지대 진단(6차원×3렌즈×적대검증) → PO "전체적으로 니가 먼저 제안해, 내가 그런거 잘 몰라" → 제안 + 죽은 퍼널 계측(funnel_events) 살리기 1건 실행. 끝에 PO가 변호사·에이전시는 본인이 처리(걱정마)·보험/진흥원 의미만 질문.
+
+**1. 이번 세션 한 일**
+- **사업 사각지대 진단(분석만, 코드 X)**: 멀티에이전트 워크플로(현황 6차원 스캔→3렌즈 사각지대 도출→종합·적대검증). 산출물은 메모리 [`biz-blindspot-audit-2026-06-30`]에 저장. 핵심:
+  - **북극성 지표(NSM) 부재** 확인 → 추천 = **주간 '사전상담 완료' 건수**(유치·상담120·만족도 3 KPI를 동시에 전진시키는 단일 활동). 선행지표 4종(주간 신규문의 채널별/사전상담 예약→완료율/에이전시 콜드메일 발송→회신/만족도 응답률).
+  - **점수전략 피벗**: D-58에 콜드메일 0발송 → real 유치 12건은 8/27까지 물리적으로 거의 불가 → 70점 길은 정량달성보다 **정성(ICT·양한방) + 파이프라인 증빙(계약 에이전시·예약 상담)** 재설계.
+  - sharpest insight: 점수 만드는 행위(환자-의사 영상 사전상담=K-02 120건)가 의료법 회색지대 위 → "의견서 먼저 → 그 위에서 영업" 순서.
+  - 적대검증이 1건 기각: "유치업 등록서류 옛피벗 법적불일치"는 과장('(예제)' 템플릿).
+- **A. 죽은 퍼널 계측 살리기 — PR [#522](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/522) 머지·배포**: `funnelTracking.ts` 의 `// TODO` 로 막혀있던 `funnel_events` insert 실제 적재(서버 lazy import·fail-safe) + `inquiries/create` 성공 시 `form_complete` emit(after()·PII제외) + **라이브 DB에 누락돼있던 `funnel_events` 표 적용 + RLS(서비스롤 전용) + 뷰 security_invoker** + `migrations/20260630_funnel_events_apply_and_rls.sql` 기록.
+- **B. 빌드사고 복구 — PR [#528](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/528) 머지**: #522 가 `--auto` 로 CI 끝나기 전 머지돼 main `ci` 가 빨강(=`check-schema-refs.mjs` 가드가 'funnel_events 가 PUBLIC_TABLES 스냅샷에 없음' 적발 — 가드가 제 역할). funnel_events 를 스냅샷에 등록해 해소.
+
+**2. 왜 그렇게 했는지**
+- 진단을 일반론 말고 **실코드 기반**으로 — PO가 "내가 생각 못한 것"을 원해서. 북극성=사전상담완료는 결과지표(유치12)와 달리 **매주 PO가 올릴 수 있는** 단일 운전대.
+- funnel_events 부활을 1번으로: "추적이 있다"는 착시(호출코드는 박혀있는데 insert 주석+표 부재로 적재 0)였고, 채널별 전환·CAC의 데이터 토대. server-only admin 은 **lazy import**(클라 번들 안전), form_complete 는 **after()**(서버리스 응답후 freeze 방지, 기존 알림 패턴).
+- funnel_events 표는 **추가형(가역적)**이라 자율범위 내 라이브 적용. RLS 는 kpi_snapshots·surveys 등 운영표와 동일(서비스롤 전용).
+
+**3. 안 끝났거나 보류**
+- **B(북극성+선행지표 대시보드)·C(채널별 source 전환 분해)·D(만족도 무응답0점 버그+최소N)·E(점수전략 재설계 초안)** — 제안만 하고 미착수(큐). C는 `inquiries.source` 데이터 이미 있어 대시보드 쿼리만.
+- **UTM 클라 캡처**(URL→body→`inquiries` 컬럼) 미구현 → 현재 form_complete 의 utm 은 null. funnel_events 표엔 utm 컬럼 있음.
+- `operational_alerts` 표도 라이브 누락(migrations/20260129 §3) — 범위 밖, 별도.
+- types 재생성 안 함 → funnel_events 는 `(supabaseAdmin as any)` 캐스트(kpi.ts survey_responses 패턴). 후속 types regen 시 캐스트 제거 가능.
+
+**4. 주의·함정**
+- ⚠️ **`--auto` 머지 함정**: 이 레포는 브랜치보호가 CI를 필수로 안 막아 `gh pr merge --auto` 가 **mergeable 되자마자 즉시 머지**(CI 끝나기 전). #522 가 그래서 main 을 빨갛게 만듦 → **CI 초록 확인 후 머지**할 것(#528은 ci pass 확인 후 머지).
+- ⚠️ **#522 form_complete 런타임 미검증**: 실제 폼 제출로 funnel_events 에 행이 쌓이는지 **배포 후 실문의 1건으로 확인 필요**.
+- ⚠️ **"Full E2E (main push)" 실패** 관측(40739eb 등) — agency-portal 콜드컴파일 타임아웃 **플래크 이력** + 타세션(#527) 동시 → 내 스키마 변경과 무관 추정이나 **확인 필요**.
+- PO 진행분: **변호사 의견서·에이전시 콜드메일은 PO가 직접 처리 중**("컨펌받은걸로 치고, 다 보내고 있어"). 남은 PO 액션 = **②배상책임보험(+법인전환) ③진흥원 법정 유치실적 보고의무 확인**(둘 다 첫 환자 전, 변호사 미팅에 같이).
+
+**5. 다음 세션이 먼저 할 일**
+1. ⚠️ **직전 미검증분 먼저**: #522 배포 반영 확인 후 **실문의 1건 제출 → `funnel_events` 에 form_complete 행 쌓이는지 실측**(현재 0행). + "Full E2E main push" 실패가 플래크인지/내 변경인지 1회 확인.
+2. **B. 북극성+선행지표 계기판**: 주간 사전상담 완료 + 선행 4종을 kpi-dashboard 에 추세선·목표대비%로(데이터는 consultation_sessions·inquiries 에 있음).
+3. **C. 채널별 전환 분해**: conversion 대시보드를 `inquiries.source`(ai_agent/inquiry_form) 로 GROUP BY(데이터 이미 적재).
+4. (이어서) D 만족도 버그, E 점수전략 초안.
+
+**6. 검증 상태**
+- ✅ #522: `tsc --noEmit`·`eslint`(0 err)·`next build --webpack`(exit 0) 로컬 통과 + 라이브 DB에 코드와 동일 컬럼으로 insert→조회→삭제 스모크 통과(현재 0행) + 보안 어드바이저(funnel_events RLS=INFO 운영표동일, 뷰 ERROR→security_invoker 해소).
+- ✅ #528: PR `ci` 통과(3m24s)·Vercel 배포 pass 확인 후 머지. main green 복구.
+- ❌ **미검증(솔직히)**: #522 form_complete **라이브 런타임 적재**(실문의 미발생). "Full E2E main push" 실패 **근본원인 미규명**(플래크/타세션 추정).
+- PR/CI: #522·#528 둘 다 머지. 열린 PR은 타세션 것(병렬세션 8브랜치).
+
+**7. 다음 세션 첫 프롬프트**
+> 먼저 docs/PROJECT_CONTEXT.md 최상단 핸드오프 읽어. 직전 세션이 죽은 퍼널 계측(funnel_events)을 살렸는데(#522) **실문의 1건을 실제로 제출해서 funnel_events 에 form_complete 행이 쌓이는지부터 실측**(현재 0행)하고 "Full E2E main push" 실패가 플래크인지 확인해. 그다음 사업 사각지대 진단(메모리 biz-blindspot-audit-2026-06-30)의 **B(북극성+선행지표 계기판)·C(채널별 source 전환 분해)**를 만들어줘 — 북극성=주간 사전상담 완료, 데이터는 consultation_sessions·inquiries 에 이미 있음.
+
 ## 🔖 세션 핸드오프 (2026-06-30 (5) — C레벨 12시점 진단 + 보고서 기반 개선 PR 8개 + 빌드사고 복구)
 
 > PO "울트라코드로 전 서비스 C레벨 진단" → 멀티에이전트 12시점 진단(보고서 #506) → "보고서 토대로 개선" 스프린트.
@@ -44,50 +89,6 @@
 
 **7. 다음 세션 첫 프롬프트**
 > docs/PROJECT_CONTEXT.md 최상단 + docs/reviews/2026-06-30_진단_개선_작업가이드.md 읽어. 직전 세션은 C레벨 진단(보고서 #506) 후 개선 8개 PR 머지했고, 중간에 #509 타입에러로 main 빌드 깨진 걸 #516로 복구했어(Vercel 빌드 한도도 태움 — 풀렸는지 확인). 먼저 CI에 tsc --noEmit 게이트부터 추가해줘(같은 타입사고 방지). 그담 PO 검토대기인 #514(사업계획서)·Q1(AI 고지) 이어가자.
-
-## 🔖 세션 핸드오프 (2026-06-30 (4) — 공개 AI챗 품질개선·자동평가 하니스·aiGuard 감지우선·Vercel env 제어 + 병렬세션 충돌정리 PR 4개 머지)
-
-> PO "워크트리 새로 파서 작업 새로 시작" → 공개 AI챗(`/inquiry`) 영역. 빠른수정(#480) 후 PO가 울트라코드로 "내 작업 다시 검토" → 적대검토가 #480 회귀 적발 → #488. 이어 라이브 AI품질 제보들(서류목록·앵무새·병원순위) 수정 + **사람이 응답 일일이 못 보니** 다국어 자동평가 하니스(#493) 구축 + IP한도 막힘 → aiGuard 감지우선 개정(#500) + Vercel env 직접제어 셋업. **세션 중 컴 크래시 1회**(재개 완료). 끝에 PR 4개 머지하다 **다른 세션 #509(상담 비용가드)와 충돌·main 타입깨짐 발견 → 정리 후 전부 머지**.
-
-**1. 이번 세션 한 일** (PR 전부 머지됨, 단 ⚠️배포는 6번 참조)
-- **#480**(빠른 1차): 접수 시 연락채널 확인·PC 레이아웃 화면활용·전환버튼 한 줄·답변서식(마크다운)·PWA 설치유도. → 머지·배포됨.
-- **#488**(울트라코드 적대검토 회귀수정): #480이 빌드초록인데 **실제론 깨진 회귀 2건**(InstallPrompt 숨김이 `/ko/inquiry` locale-prefix에 매칭실패 → splitLocale로 수정 / ai-chat 높이 이중차감 → md:h-auto+뷰포트). + 선재버그 **한·일 핸드오프 `\b`(CJK 무효)** → handoffDetect.ts 분리+부분일치. + **서류목록 매번 다름·앵무새**(프롬프트가 "5개 전부·1회만" 강제 안 함) 수정. + **병원 "톱3" 순위 줄세우기**(평가가 적발) → HOSPITAL_HARD_GUARD에 순위금지 룰. POSTMORTEMS #55.
-- **#493**(자동평가 하니스): `scripts/chat-eval.mjs` + `eval/chat-cases.json`(87케이스 15차원×6언어) + cleanup + README. 실제 배포 API에 다국어 멀티턴 돌려 기계검사(언어·서류5개·앵무새·가격)+LLM심판→리포트. PO가 키우는 단일 리스트.
-- **#500**(aiGuard 감지우선): IP 50/일 하드차단 → 3단계(normal/elevated 관측/likely_intrusion 알림/intrusion≥400 자동차단) + AI_IP_BLOCKLIST 수동차단. aiGuardClassify.ts 분리+테스트.
-- **#516**(핫픽스): 다른 세션 #509가 aiGuard에 `ai_consult_*` 이벤트 쓰며 OperationalEventType 등록 누락 → **main 타입검사가 깨져 모든 PR CI 차단** → 2개 추가로 해소.
-- **Vercel env 직접제어 셋업**: PO가 프로젝트한정 토큰 발급(.env.local `VERCEL_TOKEN`). 프로젝트 링크. `AI_DAILY_PER_IP_LIMIT=300`을 prod·preview·dev에 적용(50→300, preview는 CLI버그라 REST API 우회). [[vercel-env-control]] 메모리.
-
-**2. 왜 그렇게 했는지**
-- 평가 하니스는 **별개 신규**(기존 judge.ts·회귀105는 단일턴·DB·안전위주). PO가 한국어밖에 못하고 6언어 응답을 일일이 못 보니 멀티턴·행동검사·사람편집 리스트가 필요.
-- **KHIDI 오염 방지 핵심**: 챗은 3턴째부터 inquiry 자동승격(=유치 대시보드=8/27 점수) → 평가 케이스 **≤2턴 강제** + `guest_country="__EVAL__"` 태그. 실측 18대화에도 inquiries 0건 확인.
-- aiGuard "감지만+높은상한 자동차단"은 PO 선택(순수 감지만은 공격 시 비용 무한노출). 차단은 generic 코드(공격자에 '차단됨' 미노출).
-- #500↔#509 둘 다 같은 aiGuard.ts → **버리지 않고 병합**(내 detect-first `checkAiGuards` + #509 `checkConsultationAiGuard` 공존). #509는 CFO 우선순위라 절대 안 죽임.
-
-**3. 안 끝났거나 보류**
-- **전체 87케이스 베이스라인 미실행**: 2026-06-30 대표 ~20케이스만 돌림(한도+크래시). Vercel 무료 일배포한도(100/일)·IP한도로 하루에 전수 불가 → 며칠 분할 or 한도조정.
-- 평가가 잡을 추가 실문제들: 전수 돌리면 더 나올 것(고치며 회귀케이스 추가가 운영방식).
-- aiGuard 침입판단은 현재 **일일카운트 휴리스틱**. 더 정교히(세션·동의·지역·봇패턴) + 엣지차단(Vercel BotID)은 후속.
-
-**4. 주의·함정**
-- ⚠️ **env 변경은 다음 배포부터 적용**(돌고 있는 배포엔 즉시 X). `AI_DAILY_PER_IP_LIMIT=300`은 그래서 **배포돼야 라이브**.
-- ⚠️ **평가를 프로덕션에 돌리면 실DB에 테스트 스레드**가 쌓임(≤2턴이라 KHIDI 무오염이나 청소 필요): `delete from chat_threads where guest_country='__EVAL__'`(+messages·ai_response_evaluations). **프리뷰 우선.**
-- ⚠️ **IP한도 캡은 글로벌2000 아니라 IP당(이제 300)** — 평가 대량은 IP당 한도에 먼저 걸림.
-- 평가기 보정 진행형: 첫 실행은 종종 AI가 아니라 검사/심판이 빡빡해 false-실패(이미 price_range·empathy·detectLang·심판형식 4건 보정). 보고 시 "AI문제 vs 평가기문제" 구분.
-- ⚠️ **병렬세션 충돌 재발**: 머지 도중 main이 계속 움직임(#509·#513 등 타세션). aiGuard.ts를 2세션이 동시 수정한 게 이번 충돌원인. 같은 핵심파일은 PO에게 영역배분 받기.
-
-**5. 다음 세션이 먼저 할 일**
-1. ⚠️ **직전 미검증분 먼저**: #488(병원순위·서류·레이아웃)·#500(aiGuard)·env(IP300)는 **로컬 빌드·tsc·테스트만 통과, 프로덕션 라이브 검증 못 함**(2026-06-30 배포한도 소진 → 배포 미반영). **배포 됐는지 확인**(`healwith.co.kr` 새 커밋 반영) 후 **eval을 프로덕션에 돌려 병원순위 수정·서류 일관이 라이브로 먹는지 실측** + 끝나면 eval 스레드 청소.
-2. **전체 87케이스 베이스라인**: `node scripts/chat-eval.mjs --base <프리뷰> --langs ko,ru,kz,en,zh,ja`를 며칠 분할로 돌려 실패=진짜 AI개선거리 추림(IP/배포 한도 유의).
-3. (선택) 평가기 추가 보정·케이스 확장.
-
-**6. 검증 상태**
-- ✅ **머지 4개 전부 로컬에서 빌드(`next build --webpack`)·`tsc --noEmit`·vitest(chat 75, classify·handoffDetect)·`check:content` 통과 확인 후 --admin 머지**(Vercel 체크 fail은 배포한도일 뿐 코드무관). main에 두 가드함수·이벤트타입 공존 git show로 재확인.
-- ✅ 한도 50→300 풀림 **프로덕션 실측**(eval 12케이스 무한도). KHIDI 무오염(inquiries 0) 실측.
-- ❌ **미검증(솔직히)**: #488·#500·env 변경의 **프로덕션 라이브 동작**(2026-06-30 Vercel 일배포한도 소진 → 미배포). 병원순위 수정은 코드·테스트만, 라이브 미확인. 다음 세션 1번에서 갚을 것.
-- PR/CI: 내 PR(#488·#493·#500·#516) 전부 머지. 열린 PR은 타세션 것.
-
-**7. 다음 세션 첫 프롬프트**
-> 먼저 docs/PROJECT_CONTEXT.md 최상단 핸드오프 읽어. 2026-06-30 머지한 #488(병원순위·서류목록·레이아웃)·#500(aiGuard)·env(IP한도300)가 **배포돼서 healwith.co.kr에 라이브로 반영됐는지부터 확인**(2026-06-30 Vercel 일배포한도 소진이라 미배포였음). 반영됐으면 `node scripts/chat-eval.mjs --base https://healwith.co.kr --ids hospital-best-no-ranking,docs-consistency,no-parrot-logistics --langs ko,kz`로 병원순위 수정·서류 일관이 라이브로 먹는지 실측하고 끝나면 eval 스레드(`guest_country='__EVAL__'`) 청소해. 그다음 전체 87케이스 베이스라인을 한도 유의하며 분할로 돌려 진짜 AI 개선거리 추려줘.
 
 ## 🏷️ 서비스명 변경 — HEALO → **healwith** (2026-06-16 확정·적용)
 
