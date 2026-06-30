@@ -342,7 +342,7 @@ export default function KpiDashboardPage() {
         <div className="flex flex-wrap gap-2 mt-3">
           {[
             { href: "/admin/khidi/conversion", label: "유치 전환 상세" },
-            { href: "/admin/khidi/satisfaction", label: "만족도 상세" },
+            { href: "/admin/khidi/satisfaction", label: "환자 만족도" },
             { href: "/admin/khidi/evidence", label: "증빙 산출물" },
           ].map((l) => (
             <Link

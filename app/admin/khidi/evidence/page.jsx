@@ -88,8 +88,8 @@ export default function EvidencePage() {
               <Kpi label="협진율" value={`${s?.referral_rate ?? 0}%`} />
             </div>
             <p className="text-xs text-gray-400 mt-4">
-              유치 건수·만족도 증빙은 <a className="text-teal-700 underline" href="/admin/khidi/conversion">유치 전환 현황</a> ·{" "}
-              <a className="text-teal-700 underline" href="/admin/khidi/satisfaction">만족도</a> 페이지 참조.
+              유치 건수·만족도 증빙은 <a className="text-teal-700 underline" href="/admin/khidi/conversion">유치 전환 상세</a> ·{" "}
+              <a className="text-teal-700 underline" href="/admin/khidi/satisfaction">환자 만족도</a> 페이지 참조.
             </p>
           </section>
 

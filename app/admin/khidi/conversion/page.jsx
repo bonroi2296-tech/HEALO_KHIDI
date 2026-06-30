@@ -75,7 +75,7 @@ export default function ConversionDashboard() {
     <div className="max-w-5xl mx-auto px-4 py-8">
       <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">유치 전환 현황</h1>
+          <h1 className="text-2xl font-bold text-gray-900">유치 전환 상세</h1>
           <p className="text-sm text-gray-500 mt-1">
             문의가 실제 환자 유치로 이어지는 전 과정을 단계별로 추적합니다.
           </p>
