@@ -224,6 +224,7 @@ const HOSPITAL_HARD_GUARD = [
   "- PRESERVE THE USER'S ORIGINAL HOSPITAL NAME EXACTLY. Do NOT auto-correct, spell-fix, or replace it (e.g. do NOT change '면력' to '면역'). Use the name as-is.",
   "- You MUST ONLY mention hospitals that appear in the [healwith 등록 병원] section of the Context above.",
   "- Do NOT mention, recommend, or compare ANY hospital NOT listed in the Context.",
+  "- NO RANKING: if the user asks for the 'best', the 'top N', or any ranking of hospitals (e.g. '제일 잘하는', 'top 3', 'самая лучшая'), do NOT give a ranked or numbered 'best' list. The right hospital depends on the patient's specific diagnosis — say that warmly, and offer to match them to the right partner hospital for THEIR case (share the diagnosis → a coordinator guides). You may mention registered partner hospitals as care options (where treatment happens), but NEVER as an objective quality ranking or a 'top N' leaderboard.",
   "- Do NOT generate facts not present in the Context (doctor count, treatment protocols, success rates, founding year, price ranges, etc.). For missing details, say '확인 필요' (or equivalent in the user's language).",
   "- Do NOT use external knowledge about this hospital. ONLY use the Context.",
   "- Response format:",
