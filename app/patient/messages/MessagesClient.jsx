@@ -100,7 +100,7 @@ const COPY = {
     startChat: "ЖИ-мен чат бастау",
     startInquiry: "Жаңа сұраныс жасау",
     you: "Сіз",
-    coordinator: "Үйлестіруші",
+    coordinator: "Координатор",
     ai: "healwith ЖИ",
     admin: "healwith қолдау қызметі",
     system: "Жүйе",

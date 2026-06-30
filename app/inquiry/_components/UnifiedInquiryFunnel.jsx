@@ -379,6 +379,9 @@ const T = {
   doneTitle: {
     ko: "감사합니다!", en: "Thank you!", ru: "Спасибо!", kz: "Рахмет!", zh: "谢谢！", ja: "ありがとうございます！",
   },
+  backHome: {
+    ko: "홈으로", en: "Back to Home", ru: "На главную", kz: "Басты бетке", zh: "返回首页", ja: "ホームへ戻る",
+  },
   doneBody: {
     ko: "신청이 접수되었습니다. 코디네이터가 곧 연락드립니다.",
     en: "Your request has been received. A coordinator will be in touch soon.",
@@ -773,7 +776,7 @@ export default function UnifiedInquiryFunnel() {
           onClick={() => router.push("/")}
           className="mt-8 px-6 py-3 bg-teal-700 text-white rounded-xl font-semibold hover:bg-teal-800 transition"
         >
-          {lang === "ko" ? "홈으로" : "Back to Home"}
+          {tl("backHome", lang)}
         </button>
       </div>
     );
