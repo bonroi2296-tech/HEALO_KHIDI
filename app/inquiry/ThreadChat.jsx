@@ -179,6 +179,9 @@ function RichText({ text }) {
       list.items.push(numbered[1]);
     } else {
       flush();
+      // 빈 줄은 문단 간격 spacer 1개로만 — 모델이 \n\n\n 를 내도 간격이 누적되지 않게(선두 빈 줄도 무시).
+      const prev = blocks[blocks.length - 1];
+      if (line === "" && (!prev || (prev.type === "p" && prev.text === ""))) continue;
       blocks.push({ type: "p", text: line });
     }
   }
@@ -408,6 +411,8 @@ export function ThreadChat({ onBack, backLabel } = {}) {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
+  // 스트리밍 중인 assistant 말풍선 id — 그 동안은 평문 렌더(완료 후에만 RichText). 깜빡임/재파싱 방지.
+  const [streamingId, setStreamingId] = useState(null);
   const [handOff, setHandOff] = useState(false);
   // 멀티스레드: 이전 대화 목록 + 토글 + 오래 쉰 세션 배너
   const [threads, setThreads] = useState([]);
@@ -830,6 +835,7 @@ export function ThreadChat({ onBack, backLabel } = {}) {
     // 메타 프레임 구분자(RS, U+001E) — 서버 STREAM_META_DELIM 와 동일해야 함.
     const META_DELIM = "";
     const aiId = `ai_${Date.now()}`;
+    setStreamingId(aiId); // 이 말풍선이 끝날 때까지 평문 렌더(완료 시 finally 에서 해제 → RichText)
 
     try {
       const res = await fetch("/api/public/chat/stream", {
@@ -945,6 +951,7 @@ export function ThreadChat({ onBack, backLabel } = {}) {
       });
     } finally {
       setSending(false);
+      setStreamingId(null); // 스트림 종료 → 완료된 말풍선을 RichText 로 1회 렌더
     }
   };
 
@@ -1122,8 +1129,9 @@ export function ThreadChat({ onBack, backLabel } = {}) {
                         : "bg-teal-700 text-white border-teal-700"
                     }`}
                   >
-                    {/* assistant: 가벼운 마크다운 렌더(목록·굵게·문단). user: 평문 그대로. */}
-                    {msg.content && (msg.role === "assistant"
+                    {/* assistant 완료분만 마크다운 렌더. 스트리밍 중(=streamingId)인 말풍선은 평문으로
+                        흘려 매 프레임 재파싱·블록 remount(p↔ol 깜빡임)를 피한다. user 는 항상 평문. */}
+                    {msg.content && (msg.role === "assistant" && msg.id !== streamingId
                       ? <RichText text={msg.content} />
                       : <p className="whitespace-pre-wrap">{msg.content}</p>)}
                     {/* 스트리밍 첫 글자 도착 전 빈 말풍선 → 타이핑 점(생각 중) 표시 */}

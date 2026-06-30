@@ -33,6 +33,7 @@ import { requireAdminAuth } from "@/lib/auth/requireAdminAuth";
 import {
   getKpiForMonth,
 } from "@/lib/khidi/kpi";
+import { fetchTestInquiryIds } from "@/lib/khidi/testData";
 import { createClient } from "@supabase/supabase-js";
 
 // ============================================================
@@ -81,7 +82,10 @@ async function fetchPatientList(year: number, month: number) {
     return [];
   }
 
-  const rows = (sessions ?? []) as any[];
+  // 공식 제출물 — 테스트 데이터는 항상 제외(테스트 문의에 딸린 상담세션 제거. null inquiry 는 보존).
+  const allRows = (sessions ?? []) as any[];
+  const testSet = new Set(await fetchTestInquiryIds(supabase));
+  const rows = allRows.filter((r) => !testSet.has(r.inquiry_id));
   const inquiryIds = [...new Set(rows.map((r) => r.inquiry_id).filter((v) => v != null))];
 
   const inquiryMap = new Map<number, any>();

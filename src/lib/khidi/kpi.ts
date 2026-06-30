@@ -23,6 +23,7 @@ import { recentSnapshotDates } from "@/lib/khidi/snapshotDates";
 import { normalizeNationality } from "@/lib/khidi/nationality";
 import { avgSatisfaction100 } from "@/lib/khidi/satisfaction";
 import { aggregatePatients } from "@/lib/khidi/patientAggregation";
+import { fetchTestSessionIds, fetchTestSurveyIds, idsToInFilter } from "@/lib/khidi/testData";
 
 export { recentSnapshotDates };
 
@@ -76,7 +77,8 @@ function getAdminClient(): SupabaseClient {
 // ============================================================
 async function _fetchKpiInRange(
   fromISO: string,
-  toISO: string
+  toISO: string,
+  includeTest = false
 ): Promise<KpiResult> {
   const supabase = getAdminClient();
   const errors: string[] = [];
@@ -85,27 +87,36 @@ async function _fetchKpiInRange(
     errors.push(`${label}: ${msg}`);
   };
 
+  // 테스트/실제 분리: includeTest=false 면 테스트 문의와 그 다운스트림(세션·설문)을 제외.
+  // 세션은 PK id 로 제외(inquiry_id 널 세션이 NOT IN 의 NULL 처리로 잘못 빠지지 않게).
+  const testSessionFilter = includeTest ? null : idsToInFilter(await fetchTestSessionIds(supabase));
+  const testSurveyFilter = includeTest ? null : idsToInFilter(await fetchTestSurveyIds(supabase));
+
   // --- K-02: 사전상담 건수 (완료 세션 수) ---
   // duration 필터 제거: duration_seconds 가 미추적(전부 null)이고, 옛 코드의
   // actual_duration_minutes 는 존재하지 않는 컬럼이었음.
-  const { count: preCount, error: e1 } = await supabase
+  let preQ = supabase
     .from("consultation_sessions")
     .select("*", { count: "exact", head: true })
     .eq("session_type", "pre_consultation")
     .eq("status", "completed")
     .gte("scheduled_at", fromISO)
     .lt("scheduled_at", toISO);
+  if (testSessionFilter) preQ = preQ.not("id", "in", testSessionFilter);
+  const { count: preCount, error: e1 } = await preQ;
 
   if (e1) noteErr("pre_consultation count", e1.message);
 
   // --- K-04: 사후관리 건수 (완료 세션 수) ---
-  const { count: followCount, error: e2 } = await supabase
+  let followQ = supabase
     .from("consultation_sessions")
     .select("*", { count: "exact", head: true })
     .eq("session_type", "follow_up")
     .eq("status", "completed")
     .gte("scheduled_at", fromISO)
     .lt("scheduled_at", toISO);
+  if (testSessionFilter) followQ = followQ.not("id", "in", testSessionFilter);
+  const { count: followCount, error: e2 } = await followQ;
 
   if (e2) noteErr("follow_up count", e2.message);
 
@@ -113,22 +124,26 @@ async function _fetchKpiInRange(
   // 전환 깔때기 RPC(conversion_funnel)와 동일 정의로 통일 → 두 대시보드 수치 일치.
   // 날짜 기준 = inquiries.created_at (코호트, 깔때기와 동일). 옛 코드는 존재하지 않는
   // consultation_sessions.visit_confirmed_at 를 쿼리해 항상 0이었음.
-  const { count: attractionCount, error: e3 } = await supabase
+  let attractionQ = supabase
     .from("inquiries")
     .select("*", { count: "exact", head: true })
     .eq("outcome", "admitted")
     .gte("created_at", fromISO)
     .lt("created_at", toISO);
+  if (!includeTest) attractionQ = attractionQ.eq("is_test", false);
+  const { count: attractionCount, error: e3 } = await attractionQ;
 
   if (e3) noteErr("attraction count", e3.message);
 
   // --- K-03: 만족도 평균 + 응답률 ---
   // (survey_type 필터링은 surveys 테이블 JOIN 필요. 현재는 모든 응답 평균.)
-  const { data: surveyResponsesFull, error: e4b } = await (supabase as any)
+  let respQ = (supabase as any)
     .from("survey_responses")
     .select("q1_score, q2_score, q3_score, q4_score, q5_score, survey_id")
     .gte("submitted_at", fromISO)
     .lt("submitted_at", toISO);
+  if (testSurveyFilter) respQ = respQ.not("survey_id", "in", testSurveyFilter);
+  const { data: surveyResponsesFull, error: e4b } = await respQ;
 
   if (e4b) noteErr("survey_responses", e4b.message);
 
@@ -136,11 +151,13 @@ async function _fetchKpiInRange(
   const satisfactionAvg = avgSatisfaction100(responses);
 
   // 응답률: 해당 기간 발송된 surveys 대비 responded=true
-  const { count: surveysSentCount } = await supabase
+  let sentQ = supabase
     .from("surveys")
     .select("*", { count: "exact", head: true })
     .gte("sent_at", fromISO)
     .lt("sent_at", toISO);
+  if (testSurveyFilter) sentQ = sentQ.not("id", "in", testSurveyFilter);
+  const { count: surveysSentCount } = await sentQ;
 
   const satisfactionResponseCount = responses.length;
   const satisfactionResponseRate =
@@ -154,12 +171,14 @@ async function _fetchKpiInRange(
   // 테이블 khidi_intakes 를 쿼리해 국가분포·고유환자수가 항상 비어 있었음
   // (KNOWN_ISSUES 2026-06-19). patient_id 가 채워지는 미래도 대비해
   // "환자키 = patient_id ?? inq:<inquiry_id>" 로 중복제거한다.
-  const { data: sessRows, error: e5 } = await supabase
+  let sessQ = supabase
     .from("consultation_sessions")
     .select("patient_id, inquiry_id")
     .eq("status", "completed")
     .gte("scheduled_at", fromISO)
     .lt("scheduled_at", toISO);
+  if (testSessionFilter) sessQ = sessQ.not("id", "in", testSessionFilter);
+  const { data: sessRows, error: e5 } = await sessQ;
 
   if (e5) noteErr("unique_patients/countries", e5.message);
 
@@ -218,14 +237,15 @@ async function _fetchKpiInRange(
  */
 export async function getKpiForMonth(
   year: number,
-  month: number
+  month: number,
+  includeTest = false
 ): Promise<KpiResult> {
   const fromISO = `${year}-${String(month).padStart(2, "0")}-01T00:00:00+09:00`;
   const nextMonth = month === 12 ? 1 : month + 1;
   const nextYear = month === 12 ? year + 1 : year;
   const toISO = `${nextYear}-${String(nextMonth).padStart(2, "0")}-01T00:00:00+09:00`;
 
-  return _fetchKpiInRange(fromISO, toISO);
+  return _fetchKpiInRange(fromISO, toISO, includeTest);
 }
 
 /**
@@ -233,11 +253,12 @@ export async function getKpiForMonth(
  */
 export async function getKpiCumulative(
   fromDate: string, // YYYY-MM-DD
-  toDate: string    // YYYY-MM-DD (exclusive)
+  toDate: string,   // YYYY-MM-DD (exclusive)
+  includeTest = false
 ): Promise<KpiResult> {
   const fromISO = `${fromDate}T00:00:00+09:00`;
   const toISO = `${toDate}T00:00:00+09:00`;
-  return _fetchKpiInRange(fromISO, toISO);
+  return _fetchKpiInRange(fromISO, toISO, includeTest);
 }
 
 /**

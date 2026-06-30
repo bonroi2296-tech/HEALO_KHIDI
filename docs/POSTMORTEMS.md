@@ -8,6 +8,27 @@
 
 ---
 
+## #55 — 빠른 패스가 "빌드·CI 통과 = 동작"으로 착각해 작동 안 하는 fix 2건을 프로덕션에 머지 (#480, 2026-06-30 자기 적대적 리뷰)
+
+**무슨 일** — PR #480(AI챗 개선)을 빠르게 작업·머지한 뒤 같은 세션에서 다중 에이전트 적대적 재검토를 돌리니, 빌드·테스트·콘텐츠검사를 다 통과하고 머지된 변경 중 **실제로는 깨진 회귀 2건**이 프로덕션에 나가 있었음.
+1. **전역 PWA 설치배너 숨김이 무효**: `InstallPrompt`의 `HIDE_ON`에 `/inquiry`를 넣고 `pathname.startsWith("/inquiry")`로 매칭했는데, `proxy.ts`가 공개경로를 `/{locale}/inquiry`(예 `/ru/inquiry`)로 강제(rewrite라 브라우저 URL 유지) → `usePathname()="/ru/inquiry"` → `startsWith("/inquiry")=false`. 영어 외 전 언어(러·카 타겟 100%)에서 숨김 실패 → 하단 fixed 배너가 풀하이트 챗 입력칸을 덮고, 새로 넣은 인라인 힌트와 **배너 2개** 중복.
+2. **ai-chat 높이 이중차감**: 부모 래퍼(`page.jsx`)가 이미 `min-h-[100vh-64px]+py`로 헤더·여백을 확보하는데, 자식 ai-chat에서 `md:h-auto`를 지우고 `h-[calc(100dvh-4rem)]`를 데스크톱까지 적용 → 헤더+패딩을 두 번 빼 입력칸이 첫 화면 밖으로 ~64px 밀림(스크롤해야 보임). 모바일 헤더(56px)인데 4rem(64px)을 빼 8px도 어긋남.
+- (덤으로 표면화된 선재 버그) `detectHandOff`의 한/일 핸드오프 패턴이 `\b`(워드경계) 사용 — JS `\b`는 CJK에 안 먹어 `/\b상담사\b/`·`/\b担当者\b/`가 항상 false → **한·일 "코디네이터 연결" 버튼을 눌러도 종이 안 울리던 침묵 실패**.
+
+**왜 못 잡았나 (근본원인)** — "빌드 통과 ≠ 동작"(CLAUDE.md 상시 경고)을 정작 내가 어김. 라우팅 사슬(proxy의 locale prefix → `usePathname` 반환값)과 레이아웃 사슬(부모 래퍼 높이/패딩)을 **끝까지 추적하지 않고** 단위 변경의 의도만 보고 머지. 같은 레포에 이미 올바른 선례(`ClientShell`은 `/inquiry`를 `pathname.includes`로, `coordinator/layout`은 헤더 높이 반응형으로)가 있었는데 대조 안 함.
+
+**어떻게 고쳤나** (PR #481)
+- `InstallPrompt`: `splitLocale(pathname)`로 locale 프리픽스를 떼고 `HIDE_ON` 매칭(SoR=config.js LOCALES 재사용).
+- ai-chat 높이: `md:h-auto`로 외곽 dvh 차감을 끄고 안쪽을 `md:h-[calc(100dvh-9rem)]`(헤더+래퍼패딩 보정)로 큰 높이 채움. 모바일은 헤더 정확히 `3.5rem`.
+- `detectHandOff`/패턴을 순수 모듈 `handoffDetect.ts`로 분리(server-only 탈피=테스트 가능) + 한/일 `\b` 제거(부분일치, ru/kz와 동일).
+- 접수 멘트 모순(본문 vs append): 시스템 프롬프트에 "확정문구가 답변 뒤에 자동 append되니 중복·모순 금지" 명시. 마크다운 프롬프트 stale("렌더 안 됨, ** 금지")도 실제 RichText 렌더에 맞게 갱신.
+
+**재발 방지**
+- **가드 신설**: `handoffDetect.test.ts` — 6개 언어 코디·접수 버튼 문구가 전부 `detectHandOff`로 잡히는지 단위테스트로 고정(한·일 CJK 회귀 영구 차단).
+- **교훈(체크리스트화)**: `usePathname` 기반 경로분기를 짤 땐 **proxy의 locale 강제(공개경로=/{locale}/...)**를 반드시 고려 — `startsWith` 직접 매칭 금지, `splitLocale`로 까서 비교. 뷰포트 높이는 부모 래퍼의 높이/패딩을 추적해 **이중차감** 점검.
+- **메타 교훈**: 빠른 모드로 친 UI/라우팅 변경은 머지 전 최소 한 번 **실제 경로 사슬을 끝까지 추적**하거나, 본 건처럼 **적대적 다중 검증**을 한 번 돌린다(빌드 초록은 동작 보장이 아님).
+
+---
 ## #53 — err.message 노출 가드가 `toast.error(...)`를 통째로 못 봄 — 직원포털 정리 중 누락 21곳 추가 적발(공개화면 1곳 포함) (2026-06-30 #52 후속)
 
 **무슨 일**
@@ -1203,3 +1224,19 @@ PO가 협력병원 상세(`/hospitals/[slug]`) 하단 "자주 묻는 질문"이 
 - **단일 데이터모델로 수렴 중**: 멀티스레드 통일(KNOWN_ISSUES 백로그)에서 공개챗의 `actor_type/message_text` 모델을 단일 표준으로 삼아 환자챗 분기를 흡수. 두 모델 공존이 사고의 뿌리.
 - 스키마 드리프트 보강 마이그레이션을 백로그에 기록(코드가 신뢰할 실제 스키마 SoR 확보).
 - 교훈: **같은 테이블을 쓰는 두 기능은 컬럼 가정을 공유 헬퍼로 강제하라.** "빌드 통과 ≠ 동작"(CLAUDE.md) — 신규/수정 DB 경로는 실데이터 1건으로 end-to-end 확인.
+
+## #54 — `REVOKE EXECUTE FROM anon` 이 RAG 함수 직접호출을 안 막았음 (PUBLIC 상속) (2026-06-30)
+
+**무슨 일**
+- C레벨 진단 후속 보안 위생으로 `rag_search_chunks_v1_1`(SECURITY DEFINER)을 비로그인 직접호출 차단하려 `REVOKE EXECUTE ... FROM anon, authenticated` 적용. 적용 직후 검증(`has_function_privilege('anon',...)`)에서 여전히 **true** — 안 막혔다.
+- 원인: 함수 EXECUTE 는 생성 시 기본값으로 **PUBLIC** 에 부여된다. anon/authenticated 는 PUBLIC 으로 상속받으므로, 그 두 역할에서만 회수해도 PUBLIC 경로가 살아있어 그대로 호출 가능.
+
+**왜 못 잡았나(근본원인)**
+- "역할에서 REVOKE 하면 막힌다"는 직관이 PUBLIC 기본부여를 간과(Postgres 함수 권한 모델 특성).
+- 적용=끝이 아니라 **적용 후 권한을 실제 재조회**해야만 드러나는 부류(코드 빌드로는 절대 안 보임). 마침 적용 직후 `has_*_privilege`로 재확인해서 잡았다.
+
+**어떻게 고쳤나**
+- `REVOKE EXECUTE ... FROM PUBLIC, anon, authenticated;` + `GRANT EXECUTE ... TO service_role;`(앱은 supabaseAdmin=service_role 로만 호출 → 기능 영향 0). 재조회: anon=false·authenticated=false·service_role=true 확인.
+
+**재발 방지**
+- 교훈: **권한 REVOKE/GRANT 는 적용 즉시 `has_*_privilege`로 재조회 검증.** 함수 직접호출 차단의 정석은 역할 회수가 아니라 **PUBLIC 회수 + 의도한 역할에만 GRANT**.

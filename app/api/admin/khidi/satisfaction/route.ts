@@ -18,6 +18,7 @@ import { supabaseAdmin, assertSupabaseEnv } from "@/lib/rag/supabaseAdmin";
 import { requireAdminAuth } from "@/lib/auth/requireAdminAuth";
 import { KHIDI_TARGETS } from "@/lib/khidi/targets";
 import { likertTo100, avgSatisfaction100 } from "@/lib/khidi/satisfaction";
+import { fetchTestSurveyIds, idsToInFilter } from "@/lib/khidi/testData";
 
 export async function GET(request: NextRequest) {
   const auth = await requireAdminAuth(request);
@@ -27,22 +28,30 @@ export async function GET(request: NextRequest) {
 
   const db = supabaseAdmin as any;
 
-  // 전체 설문 수 + 응답 수
-  const { count: totalCount } = await db
-    .from("surveys")
-    .select("id", { count: "exact", head: true });
+  // 테스트/실제 분리: ?includeTest=1 이면 테스트 설문도 포함(평소엔 실적만).
+  const includeTest = new URL(request.url).searchParams.get("includeTest") === "1";
+  const testSurveyFilter = includeTest ? null : idsToInFilter(await fetchTestSurveyIds(db));
 
-  const { count: respondedCount } = await db
+  // 전체 설문 수 + 응답 수
+  let totalQ = db.from("surveys").select("id", { count: "exact", head: true });
+  if (testSurveyFilter) totalQ = totalQ.not("id", "in", testSurveyFilter);
+  const { count: totalCount } = await totalQ;
+
+  let respondedQ = db
     .from("surveys")
     .select("id", { count: "exact", head: true })
     .eq("responded", true);
+  if (testSurveyFilter) respondedQ = respondedQ.not("id", "in", testSurveyFilter);
+  const { count: respondedCount } = await respondedQ;
 
   // Q1~Q5 평균 집계 — fallback: 직접 쿼리
   let q1Avg = 0, q2Avg = 0, q3Avg = 0, q4Avg = 0, q5Avg = 0, totalResponses = 0;
 
-  const { data: responses } = await db
+  let responsesQ = db
     .from("survey_responses")
     .select("q1_score, q2_score, q3_score, q4_score, q5_score");
+  if (testSurveyFilter) responsesQ = responsesQ.not("survey_id", "in", testSurveyFilter);
+  const { data: responses } = await responsesQ;
 
   if (responses && Array.isArray(responses) && responses.length > 0) {
     totalResponses = responses.length;
@@ -59,13 +68,15 @@ export async function GET(request: NextRequest) {
   const overallAvg100 = avgSatisfaction100(responses) ?? 0;
 
   // 자유 의견 최근 50건
-  const { data: comments } = await db
+  let commentsQ = db
     .from("survey_responses")
     .select("comment, submitted_at, survey_id")
     .not("comment", "is", null)
     .neq("comment", "")
     .order("submitted_at", { ascending: false })
     .limit(50);
+  if (testSurveyFilter) commentsQ = commentsQ.not("survey_id", "in", testSurveyFilter);
+  const { data: comments } = await commentsQ;
 
   const responseRate =
     totalCount && totalCount > 0

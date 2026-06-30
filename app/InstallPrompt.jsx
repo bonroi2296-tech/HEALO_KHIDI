@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
+import { splitLocale } from "@/lib/i18n/config";
 
 // 스태프 포털·상담방에선 PWA 설치 배너 숨김(하단 fixed라 입력창·UI를 덮음 + 마케팅용이라 무관).
 // /inquiry: AI챗이 풀하이트라 하단 fixed 배너가 입력칸을 덮음 → 전역 배너 대신 챗 안 인라인 힌트(ChatInstallHint) 사용.
@@ -65,7 +66,10 @@ export default function InstallPrompt({ lang = "en" }) {
     setDeferred(null);
   };
 
-  if (HIDE_ON.some((p) => pathname.startsWith(p))) return null;
+  // 공개경로(/inquiry 등)는 proxy 가 /{locale}/ 프리픽스를 강제(브라우저 URL=/ru/inquiry) → usePathname 도 프리픽스 포함.
+  // 프리픽스를 떼고 매칭해야 /ko/inquiry·/ru/inquiry 등 전 언어에서 숨김이 동작(startsWith 직접 매칭은 실패함).
+  const [, barePath] = splitLocale(pathname);
+  if (HIDE_ON.some((p) => barePath.startsWith(p))) return null;
   if (!deferred && !iosHint) return null;
 
   const wrap = { position: "fixed", left: 12, right: 12, bottom: 12, zIndex: 60, maxWidth: 480, margin: "0 auto" };
