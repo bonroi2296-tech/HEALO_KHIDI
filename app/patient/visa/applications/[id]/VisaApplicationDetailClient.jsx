@@ -330,7 +330,8 @@ export default function VisaApplicationDetailClient({ applicationId }) {
         }
       }
     } catch (err) {
-      setError(err.message);
+      // 원시 err.message 노출 금지 — 일반 실패 안내(보안+UX)
+      setError(true);
     } finally {
       setLoading(false);
     }
@@ -364,7 +365,7 @@ export default function VisaApplicationDetailClient({ applicationId }) {
       await loadAll();
       e.target.value = "";
     } catch (err) {
-      alert(copy.uploadFailed + err.message);
+      alert(copy.uploadFailed);
     } finally {
       setUploading(false);
     }
@@ -388,7 +389,7 @@ export default function VisaApplicationDetailClient({ applicationId }) {
       }
       await loadAll();
     } catch (err) {
-      alert(copy.submitFailed + err.message);
+      alert(copy.submitFailed);
     }
   }
 
@@ -403,7 +404,7 @@ export default function VisaApplicationDetailClient({ applicationId }) {
       if (!res.ok || !json.ok) throw new Error(json.error || "delete_failed");
       await loadAll();
     } catch (err) {
-      alert(copy.deleteFailed + err.message);
+      alert(copy.deleteFailed);
     }
   }
 
@@ -413,7 +414,7 @@ export default function VisaApplicationDetailClient({ applicationId }) {
   if (error || !application) {
     return (
       <div className="max-w-4xl mx-auto px-4 py-10">
-        <p className="text-red-600 text-sm">{copy.errorPrefix}{error}</p>
+        <p className="text-red-600 text-sm">{copy.errorPrefix}</p>
         <Link href="/patient/visa/applications" className="text-sm underline mt-4 inline-block">
           {copy.backToList}
         </Link>

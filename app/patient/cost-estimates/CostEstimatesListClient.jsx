@@ -196,7 +196,8 @@ export default function CostEstimatesListClient() {
       if (!res.ok || !json.ok) throw new Error(json.error || "failed");
       setEstimates(json.data || []);
     } catch (err) {
-      setError(err.message);
+      // 원시 err.message 노출 금지 — 일반 실패 안내(보안+UX)
+      setError(true);
     } finally {
       setLoading(false);
     }
@@ -210,7 +211,7 @@ export default function CostEstimatesListClient() {
       </p>
 
       {loading && <p className="mt-8 text-sm text-gray-500">{copy.loading}</p>}
-      {error && <p className="mt-8 text-sm text-red-600">{copy.errorPrefix}: {error}</p>}
+      {error && <p className="mt-8 text-sm text-red-600">{copy.errorPrefix}</p>}
 
       {!loading && estimates.length === 0 && (
         <div className="mt-8 text-center py-16 border-2 border-dashed border-gray-200 rounded-lg">

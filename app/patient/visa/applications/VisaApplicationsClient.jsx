@@ -329,7 +329,8 @@ export default function VisaApplicationsClient() {
       }
       setApplications(json.data || []);
     } catch (err) {
-      setError(err.message);
+      // 원시 err.message 노출 금지 — 일반 실패 안내(보안+UX)
+      setError(true);
     } finally {
       setLoading(false);
     }
@@ -357,7 +358,7 @@ export default function VisaApplicationsClient() {
       setShowCreate(false);
       await loadApplications();
     } catch (err) {
-      alert(copy.createFailed + err.message);
+      alert(copy.createFailed);
     } finally {
       setSubmitting(false);
     }
@@ -487,7 +488,7 @@ export default function VisaApplicationsClient() {
       )}
 
       {loading && <p className="text-gray-500 text-sm">{copy.loading}</p>}
-      {error && <p className="text-red-600 text-sm">{copy.errorPrefix}{error}</p>}
+      {error && <p className="text-red-600 text-sm">{copy.errorPrefix}</p>}
 
       {!loading && applications.length === 0 && (
         <div className="text-center py-16 border-2 border-dashed border-gray-200 rounded-lg">
