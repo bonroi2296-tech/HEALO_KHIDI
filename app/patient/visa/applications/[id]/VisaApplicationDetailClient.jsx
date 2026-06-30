@@ -330,6 +330,7 @@ export default function VisaApplicationDetailClient({ applicationId }) {
         }
       }
     } catch (err) {
+      console.error("[patient/visa/detail]", err);
       // 원시 err.message 노출 금지 — 일반 실패 안내(보안+UX)
       setError(true);
     } finally {

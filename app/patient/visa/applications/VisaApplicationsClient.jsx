@@ -329,6 +329,7 @@ export default function VisaApplicationsClient() {
       }
       setApplications(json.data || []);
     } catch (err) {
+      console.error("[patient/visa/list]", err);
       // 원시 err.message 노출 금지 — 일반 실패 안내(보안+UX)
       setError(true);
     } finally {
