@@ -36,6 +36,37 @@ const LANG_NAMES: Record<string, string> = {
   ja: "Japanese",
 };
 
+// 도메인 프라이밍 — 한국어 구어 동음이의 오인식("큰 다리로 컨택"→신체 '다리'), 고유명사 깨짐,
+// 코드스위치(카자흐+러시아, 한국어+영어 차용어)를 줄이기 위해 매 호출에 맥락을 주입한다.
+const DOMAIN_PRIMING = `Domain: a Korea–CIS medical-tourism teleconsultation (cancer / oncology care). Participants: a Korean doctor, a coordinator, and a foreign patient (often from Kazakhstan or Russia). Frequent proper nouns and business terms appear — hospital names, cancer types, drug/test names, staff names, and words like "바이어"(buyer), "컨택/컨택트"(contact), "에이전시"(agency), "인플루언서"(influencer), and brand names. Treat these as proper nouns; do NOT mis-hear them as unrelated homophones (e.g. "큰 다리" = a big bridge, never the body part "leg"; "유플러스/Uplus" is a company, not "you plus"). The speaker may code-switch (e.g. Kazakh mixed with Russian, or Korean mixed with English loanwords) — transcribe exactly as spoken in whatever languages are used.`;
+
+// 모델 선택: 저자원 카자흐어만 Pro(정확도 격차 큼), 나머지는 Flash 유지(비용·지연).
+// env STT_KZ_MODEL 로 override 가능. Pro 별칭이 틀려도 kz 가 죽지 않게 아래 genWithFallback 가 Flash 로 폴백.
+function sttModelFor(lang: string): string {
+  if (lang === "kz") return process.env.STT_KZ_MODEL || "gemini-pro-latest";
+  return "gemini-flash-latest";
+}
+
+async function genWithFallback(
+  modelId: string,
+  args: { messages: any; temperature: number; maxOutputTokens: number }
+): Promise<string> {
+  try {
+    const { text } = await generateText({ model: google(modelId) as any, ...args });
+    return text || "";
+  } catch (e) {
+    // Pro 등 비-Flash 모델이 실패하면(별칭 오류·쿼터 등) Flash 로 1회 폴백 — kz 자막이 끊기지 않게.
+    if (modelId !== "gemini-flash-latest") {
+      const { text } = await generateText({
+        model: google("gemini-flash-latest") as any,
+        ...args,
+      });
+      return text || "";
+    }
+    throw e;
+  }
+}
+
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -81,8 +112,7 @@ export async function POST(
     if (targetLang && targetLang !== lang) {
       // ── 전사+번역 단일 호출 — 왕복 1회로 자막 지연 절반 ──
       const targetName = LANG_NAMES[targetLang];
-      const { text } = await generateText({
-        model: google("gemini-flash-latest") as any,
+      const text = await genWithFallback(sttModelFor(lang), {
         messages: [
           {
             role: "user",
@@ -90,8 +120,9 @@ export async function POST(
               { type: "file", data: buf, mediaType },
               {
                 type: "text",
-                text: `This audio clip is from a medical telemedicine consultation. The speaker is speaking ${langName}.
-1. Transcribe the speech verbatim in the original language, but OMIT hesitation fillers (e.g. "음", "어", "그…", "uh", "um", "э-э", "ну", "えっと"). Keep all meaningful words.
+                text: `${DOMAIN_PRIMING}
+The speaker is speaking ${langName} (may include code-switching).
+1. Transcribe the speech verbatim in the original language(s), but OMIT hesitation fillers (e.g. "음", "어", "그…", "uh", "um", "э-э", "ну", "えっと"). Keep all meaningful words and proper nouns exactly.
 2. Translate the transcript into ${targetName} — formal/polite register, standard medical terminology, concise (for real-time subtitles).
 Respond with ONLY this JSON on one line, no markdown, no code fences:
 {"t":"<transcript>","x":"<translation>"}
@@ -101,7 +132,7 @@ If there is no clear human speech, or the speech is ONLY hesitation fillers with
           },
         ],
         temperature: 0,
-        maxOutputTokens: 600,
+        maxOutputTokens: 800,
       });
 
       // 모델이 코드펜스로 감싸는 경우 대비해 벗긴 뒤 JSON 추출
@@ -118,8 +149,7 @@ If there is no clear human speech, or the speech is ONLY hesitation fillers with
       }
     } else {
       // ── 전사만 (targetLang 없음 또는 같은 언어) ──
-      const { text } = await generateText({
-        model: google("gemini-flash-latest") as any,
+      const text = await genWithFallback(sttModelFor(lang), {
         messages: [
           {
             role: "user",
@@ -127,13 +157,14 @@ If there is no clear human speech, or the speech is ONLY hesitation fillers with
               { type: "file", data: buf, mediaType },
               {
                 type: "text",
-                text: `Transcribe the speech in this audio clip. The speaker is speaking ${langName} during a medical consultation. Output ONLY the transcript in the original language, nothing else. OMIT hesitation fillers (e.g. "음", "어", "그…", "uh", "um", "э-э", "ну", "えっと") but keep all meaningful words. If there is no clear human speech, or the speech is ONLY hesitation fillers, output exactly: [NO_SPEECH]`,
+                text: `${DOMAIN_PRIMING}
+Transcribe the speech in this audio clip. The speaker is speaking ${langName} (may include code-switching) during a medical consultation. Output ONLY the transcript in the original language(s), nothing else. OMIT hesitation fillers (e.g. "음", "어", "그…", "uh", "um", "э-э", "ну", "えっと") but keep all meaningful words and proper nouns exactly. If there is no clear human speech, or the speech is ONLY hesitation fillers, output exactly: [NO_SPEECH]`,
               },
             ],
           },
         ],
         temperature: 0,
-        maxOutputTokens: 300,
+        maxOutputTokens: 400,
       });
       const raw = (text || "").trim();
       transcript = raw === "[NO_SPEECH]" ? "" : raw;

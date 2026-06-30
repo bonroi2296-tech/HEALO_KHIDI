@@ -13,6 +13,7 @@ import {
   useLocalParticipant,
   useParticipants,
   useSpeakingParticipants,
+  useRoomContext,
   FocusLayout,
   FocusLayoutContainer,
   CarouselLayout,
@@ -214,6 +215,61 @@ function MutedSpeakingWarning() {
   );
 }
 
+// 기기별 안정 ID (브라우저 localStorage 1회 발급·재사용) — 같은 기기로 재입장 시 서버가
+// 옛 유령 세션을 동일 참가자로 식별해 교체·제거할 수 있게 한다. 기기마다 다른 값이므로
+// 서로 다른 사람(다른 기기)의 동시 입장은 그대로 허용된다.
+function getDeviceId() {
+  try {
+    let id = localStorage.getItem("hw_device_id");
+    if (!id) {
+      id =
+        (typeof crypto !== "undefined" && crypto.randomUUID && crypto.randomUUID()) ||
+        `${Math.random().toString(36).slice(2)}${Date.now().toString(36)}`;
+      localStorage.setItem("hw_device_id", id);
+    }
+    return id;
+  } catch {
+    return null; // localStorage 차단 환경 — 서버가 난수 폴백
+  }
+}
+
+// ── 백그라운드/이탈 시 유령 참가자 방지 (LiveKitRoom 내부 전용) ──
+// LiveKit 기본(disconnectOnPageLeave)은 '탭 닫기'(pagehide/beforeunload)만 자동 퇴장 처리한다.
+// '폰 화면 끄기'(visibilitychange=hidden)는 감지 못 해 참가자가 유령으로 남는다 → 그걸 보강:
+//   · 화면 숨김이 GHOST_MS 동안 지속되면 자동 퇴장(의료상담: 1분 이탈이면 사실상 종료)
+//   · pagehide(진짜 이탈) → 즉시 disconnect (기본 동작 보강, 중복 호출 무해)
+// 근거: LiveKit 공식문서(disconnectOnPageLeave는 visibilitychange 미처리) + Page Lifecycle 표준.
+// (재입장 시 옛 유령 즉시 제거는 서버 guest-join 의 안정 identity + removeParticipant 가 담당.)
+function PresenceGuard() {
+  const room = useRoomContext();
+  useEffect(() => {
+    if (!room) return;
+    const GHOST_MS = 60000;
+    let ghostTimer = null;
+    const onVisibility = () => {
+      if (document.visibilityState === "hidden") {
+        ghostTimer = setTimeout(() => {
+          room.disconnect().catch(() => {});
+        }, GHOST_MS);
+      } else if (ghostTimer) {
+        clearTimeout(ghostTimer);
+        ghostTimer = null;
+      }
+    };
+    const onPageHide = () => {
+      room.disconnect().catch(() => {});
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+    window.addEventListener("pagehide", onPageHide);
+    return () => {
+      if (ghostTimer) clearTimeout(ghostTimer);
+      document.removeEventListener("visibilitychange", onVisibility);
+      window.removeEventListener("pagehide", onPageHide);
+    };
+  }, [room]);
+  return null;
+}
+
 // ── LiveKit Video Grid (타일 클릭 = 그 화면 크게 고정 = 핀/포커스. 다자 미팅 대응) ──
 // 발화자 강조·이름표·연결품질·음소거표시는 ParticipantTile 기본 제공(@livekit/components-styles).
 function VideoGrid() {
@@ -227,13 +283,34 @@ function VideoGrid() {
     { onlySubscribed: false }
   );
 
-  // 발화자 추적 — 현재 말하는 사람을 메인으로 (줌 스피커 뷰). 끊기지 않게 마지막 발화자 유지.
+  // 발화자 추적 (줌/Meet식 안정화) — 짧은 소리(기침·"네"·추임새)로는 메인이 안 바뀌게
+  // 히스테리시스 게이트를 둔다: 새 화자가 PROMOTE_MS 동안 연속 1위여야만 메인 전환,
+  // 직전 화자는 잠깐 멈춰도 메인 유지(dominantId 안 비움). 참가자 2명 이하면 자동전환 자체를
+  // 끈다(1:1은 상대 고정이 가장 안 튐). 근거: Jitsi DSI 3-시간창 + 업계 통념(직전화자 수초 hold).
   const speaking = useSpeakingParticipants();
+  const allParticipants = useParticipants();
   const [dominantId, setDominantId] = useState(null);
+  const candidateRef = useRef(null);
+  const candidateSinceRef = useRef(0);
   useEffect(() => {
-    const top = speaking[0];
-    if (top && top.identity !== dominantId) setDominantId(top.identity);
-  }, [speaking, dominantId]);
+    if (allParticipants.length <= 2) return; // 1:1 — 자동 발화자 전환 끔
+    const PROMOTE_MS = 2000; // 새 화자가 이만큼 '연속으로' 1위여야 메인 전환
+    const top = speaking[0]?.identity ?? null;
+    const now = Date.now();
+    if (!top || top === dominantId) {
+      candidateRef.current = null; // 아무도 안 말함(직전 메인 유지) 또는 현재 메인이 말함
+      return;
+    }
+    if (candidateRef.current !== top) {
+      // 새 후보 등장 — 타이머 시작 (아직 전환 안 함)
+      candidateRef.current = top;
+      candidateSinceRef.current = now;
+    } else if (now - candidateSinceRef.current >= PROMOTE_MS) {
+      // 같은 후보가 PROMOTE_MS 넘게 계속 1위 유지 → 진짜 화자 교대로 보고 전환
+      setDominantId(top);
+      candidateRef.current = null;
+    }
+  }, [speaking, dominantId, allParticipants.length]);
 
   const [pinnedKey, setPinnedKey] = useState(null);
   const cameraTracks = tracks.filter((t) => t.source === Track.Source.Camera);
@@ -696,6 +773,8 @@ export default function ConsultationRoomPage() {
           body: JSON.stringify({
             token: inviteToken,
             displayName: guestName.trim(),
+            // 기기별 안정 ID — 같은 기기로 재입장하면 서버가 옛 유령 세션을 식별·제거.
+            deviceId: getDeviceId(),
           }),
         }
       );
@@ -1325,7 +1404,7 @@ export default function ConsultationRoomPage() {
           const dur = Date.now() - startedAt;
           const shouldCut =
             (voicedFrames >= 3 && silentStreak >= 7) || // 말 끝남(0.7초 무음) → 즉시 전송
-            (voicedFrames >= 3 && dur >= 12000) || // 너무 긴 발화는 강제 컷 (블롭 상한 보호)
+            (voicedFrames >= 3 && dur >= 8000) || // 8초 넘는 긴 발화는 강제 컷 — 문단처럼 긴 조각은 전사 정확도·지연을 둘 다 망침(STT 권고 2~5초, 상한 ~15초)
             (voicedFrames < 3 && dur >= 5000); // 무음만 5초 — 버리고 새 사이클
           if (shouldCut) {
             try {
@@ -1777,6 +1856,8 @@ export default function ConsultationRoomPage() {
               style={{ height: "100%" }}
               data-lk-theme="default"
             >
+              {/* 백그라운드/이탈 시 유령 참가자 방지 — 렌더링 없음 */}
+              <PresenceGuard />
               {/* DataChannel 수신/송신 브릿지 — 렌더링 없음 */}
               <DataChannelBridge
                 onRemoteSubtitle={handleRemoteSubtitle}
