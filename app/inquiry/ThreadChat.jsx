@@ -148,6 +148,52 @@ function TypingDots() {
   );
 }
 
+// 챗 답변 가독성: AI가 내보내는 가벼운 마크다운(**굵게**, - 글머리, 1. 번호, 빈 줄 문단)을
+// 라이브러리 없이 최소 렌더(ponytail: 풀 마크다운 파서 불필요). 사용자 입력엔 적용 안 함(평문).
+// XSS 회피로 dangerouslySetInnerHTML 미사용 — 전부 React 노드로 빌드. 스트리밍 중 미완성 **는 평문 유지.
+function renderInline(text) {
+  // 쌍이 맞는 **굵게**만 강조, 나머지는 그대로.
+  return String(text)
+    .split(/(\*\*[^*\n]+\*\*)/g)
+    .map((p, i) => {
+      const m = /^\*\*([^*\n]+)\*\*$/.exec(p);
+      return m ? <strong key={i} className="font-semibold">{m[1]}</strong> : <span key={i}>{p}</span>;
+    });
+}
+
+function RichText({ text }) {
+  const lines = String(text).replace(/\r\n/g, "\n").split("\n");
+  const blocks = [];
+  let list = null; // { type:'ul'|'ol', items:[] }
+  const flush = () => { if (list) { blocks.push(list); list = null; } };
+  for (const raw of lines) {
+    const line = raw.trimEnd();
+    const bullet = /^\s*[-•*]\s+(.*)$/.exec(line);
+    const numbered = /^\s*\d+[.)]\s+(.*)$/.exec(line);
+    if (bullet) {
+      if (!list || list.type !== "ul") { flush(); list = { type: "ul", items: [] }; }
+      list.items.push(bullet[1]);
+    } else if (numbered) {
+      if (!list || list.type !== "ol") { flush(); list = { type: "ol", items: [] }; }
+      list.items.push(numbered[1]);
+    } else {
+      flush();
+      blocks.push({ type: "p", text: line });
+    }
+  }
+  flush();
+  return (
+    <>
+      {blocks.map((b, i) => {
+        if (b.type === "ul") return <ul key={i} className="list-disc pl-5 space-y-0.5 my-1.5">{b.items.map((it, j) => <li key={j}>{renderInline(it)}</li>)}</ul>;
+        if (b.type === "ol") return <ol key={i} className="list-decimal pl-5 space-y-0.5 my-1.5">{b.items.map((it, j) => <li key={j}>{renderInline(it)}</li>)}</ol>;
+        if (!b.text) return <div key={i} className="h-2" />; // 빈 줄 = 문단 간격
+        return <p key={i} className="whitespace-pre-wrap">{renderInline(b.text)}</p>;
+      })}
+    </>
+  );
+}
+
 // 피드백 모달 컴포넌트
 function FeedbackModal({ langCode, messageId, threadId, publicToken, onClose, onSubmitted }) {
   const [selectedReason, setSelectedReason] = useState("");
@@ -1011,15 +1057,18 @@ export function ThreadChat({ onBack, backLabel } = {}) {
             )}
             {messages.map((msg) => (
               <div key={msg.id} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-                <div className={`flex flex-col gap-1 max-w-[90%] ${msg.role === "user" ? "items-end" : "items-start"}`}>
+                <div className={`flex flex-col gap-1 ${msg.role === "user" ? "items-end max-w-[85%]" : "items-start max-w-[90%] md:max-w-[680px]"}`}>
                   <div
-                    className={`p-3 rounded-2xl shadow-sm text-xs leading-relaxed border ${
+                    className={`p-3 rounded-2xl shadow-sm text-[13px] leading-relaxed border ${
                       msg.role === "assistant"
                         ? "bg-white border-gray-100"
                         : "bg-teal-700 text-white border-teal-700"
                     }`}
                   >
-                    {msg.content && <p className="whitespace-pre-wrap">{msg.content}</p>}
+                    {/* assistant: 가벼운 마크다운 렌더(목록·굵게·문단). user: 평문 그대로. */}
+                    {msg.content && (msg.role === "assistant"
+                      ? <RichText text={msg.content} />
+                      : <p className="whitespace-pre-wrap">{msg.content}</p>)}
                     {/* 스트리밍 첫 글자 도착 전 빈 말풍선 → 타이핑 점(생각 중) 표시 */}
                     {!msg.content &&
                       msg.role === "assistant" &&
