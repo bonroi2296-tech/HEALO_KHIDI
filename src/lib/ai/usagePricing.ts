@@ -1,0 +1,68 @@
+/**
+ * AI 단가·토큰 정규화 순수 유틸 — usageLog.ts 에서 분리(server-only 없이 단위테스트).
+ *
+ * ⚠️ 단가는 추정치다. gemini-flash-latest 는 별칭이라 실제 단가가 바뀔 수 있다
+ *    (CLAUDE.md: 비용통제는 Google 콘솔 spend cap). 정산 기준 아님 — 감 잡는 용도.
+ *    env 로 flash 단가 덮어쓰기 가능: AI_PRICE_FLASH_IN / AI_PRICE_FLASH_OUT (USD/1M).
+ */
+
+/** 모델별 단가 (USD / 100만 토큰). 입력/출력 분리. */
+export interface ModelPrice {
+  inputPer1M: number;
+  outputPer1M: number;
+}
+
+const FLASH_IN = Number(process.env.AI_PRICE_FLASH_IN || 0.3);
+const FLASH_OUT = Number(process.env.AI_PRICE_FLASH_OUT || 2.5);
+
+export const MODEL_PRICING: Record<string, ModelPrice> = {
+  // 채팅·판정(judge) — gemini-flash-latest 별칭
+  "gemini-flash": { inputPer1M: FLASH_IN, outputPer1M: FLASH_OUT },
+  // 임베딩 — 매우 저렴(출력 토큰 없음)
+  "gemini-embedding": { inputPer1M: 0.15, outputPer1M: 0 },
+};
+
+/** 모델명(별칭 포함) → 단가. 임베딩이면 임베딩 단가, 그 외는 flash 로 보수적 추정. */
+export function priceForModel(model: string): ModelPrice {
+  const m = (model || "").toLowerCase();
+  if (m.includes("embedding")) return MODEL_PRICING["gemini-embedding"];
+  return MODEL_PRICING["gemini-flash"];
+}
+
+/** 토큰 수 → 추정 비용(USD). 토큰 미상이면 0. numeric(12,6) 정밀도로 반올림. */
+export function estimateCostUsd(
+  model: string,
+  promptTokens: number | null | undefined,
+  completionTokens: number | null | undefined
+): number {
+  const p = priceForModel(model);
+  const inTok = promptTokens ?? 0;
+  const outTok = completionTokens ?? 0;
+  const cost = (inTok / 1_000_000) * p.inputPer1M + (outTok / 1_000_000) * p.outputPer1M;
+  return Math.round(cost * 1e6) / 1e6;
+}
+
+/**
+ * Vercel AI SDK usage 객체는 버전에 따라 키가 다르다
+ * (promptTokens/completionTokens/totalTokens 또는 inputTokens/outputTokens). 둘 다 흡수.
+ */
+export function normalizeUsage(usage: unknown): {
+  promptTokens: number | null;
+  completionTokens: number | null;
+  totalTokens: number | null;
+} {
+  if (!usage || typeof usage !== "object") {
+    return { promptTokens: null, completionTokens: null, totalTokens: null };
+  }
+  const u = usage as Record<string, unknown>;
+  const prompt = (u.promptTokens ?? u.inputTokens ?? null) as number | null;
+  const completion = (u.completionTokens ?? u.outputTokens ?? null) as number | null;
+  const total =
+    (u.totalTokens as number | undefined) ??
+    (prompt != null && completion != null ? prompt + completion : null);
+  return {
+    promptTokens: prompt != null ? Number(prompt) : null,
+    completionTokens: completion != null ? Number(completion) : null,
+    totalTokens: total != null ? Number(total) : null,
+  };
+}
