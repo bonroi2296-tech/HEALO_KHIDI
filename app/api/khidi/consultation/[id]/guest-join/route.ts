@@ -199,9 +199,15 @@ export async function POST(
     const jwt = await lkToken.toJwt();
 
     // ───────────────────────────────────────────────
-    // 4. Waiting Room 등록 (의사 제외 pending)
+    // 4. 입장 등록 (admission)
     // ───────────────────────────────────────────────
-    const initialStatus = role === "doctor" ? "approved" : "pending";
+    // PO 결정(2026-07-03): 초대 링크 = 접속 자격. 의료진 승인 게이트(대기실)는 기본 OFF.
+    //   → 링크만 있으면 바로 입장. 초대 토큰 자체가 외부인 차단 게이트라 2차 사람 승인은 생략.
+    //   대기실(Zoom식 호스트 승인)이 다시 필요하면 env CONSULTATION_WAITING_ROOM=1
+    //   (그때만 의사 외 게스트 pending 복원 — UI/폴링 코드는 그대로 보존되어 있음).
+    const waitingRoomEnabled = process.env.CONSULTATION_WAITING_ROOM === "1";
+    const initialStatus =
+      waitingRoomEnabled && role !== "doctor" ? "pending" : "approved";
     let admissionId: string | null = null;
     try {
       const { data: adm, error: admErr } = await supabaseAdmin
