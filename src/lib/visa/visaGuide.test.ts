@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { getVisaInfo, getVisaChecklist, getAllVisaTypes } from './visaGuide';
+import { getVisaInfo, getVisaChecklist, getAllVisaTypes, getCountryEntry } from './visaGuide';
 
 describe('visaGuide', () => {
   describe('getVisaInfo', () => {
@@ -64,6 +64,32 @@ describe('visaGuide', () => {
     it('all documents start unchecked', () => {
       const checklist = getVisaChecklist('C-3-3', 'en');
       expect(checklist.documents.every(d => d.checked === false)).toBe(true);
+    });
+  });
+
+  describe('getCountryEntry — 입국 상태(무비자/K-ETA) 회귀 방지', () => {
+    // 카자흐스탄·러시아는 둘 다 한-무비자 협정국 + 둘 다 K-ETA 필요(한시 면제 22개국 아님).
+    // 차이는 무비자 기간(러 60일 / 카 30일)뿐. 카자흐를 visa_required로 되돌리지 않게 고정.
+    it('카자흐스탄은 무비자 30일이다 (visa_required로 되돌리지 말 것)', () => {
+      const kz = getCountryEntry('kz', 'ko');
+      expect(kz).not.toBeNull();
+      expect(kz!.shortStay).toBe('visa_free');
+      expect(kz!.visaFreeDays).toBe(30);
+    });
+
+    it('러시아는 무비자 60일이다', () => {
+      const ru = getCountryEntry('ru', 'ko');
+      expect(ru!.shortStay).toBe('visa_free');
+      expect(ru!.visaFreeDays).toBe(60);
+    });
+
+    it('카자흐스탄·러시아 모두 K-ETA를 받아야 한다고 안내한다 (면제로 잘못 안내 금지)', () => {
+      for (const nat of ['kz', 'ru']) {
+        const e = getCountryEntry(nat, 'ko');
+        expect(e!.note).toContain('K-ETA');
+        // K-ETA를 "받아야"라고 긍정 안내해야 함 — 둘 다 한시 면제 22개국에 없음.
+        expect(e!.note).toContain('받아야');
+      }
     });
   });
 
