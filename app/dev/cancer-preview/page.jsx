@@ -7,6 +7,7 @@
  * 생성일: 2026-04-21
  */
 
+import { notFound } from "next/navigation";
 import { CANCER_DETAILS, CANCER_IMAGES, ITCRN_FRAMEWORK, HOSPITAL_INFO } from "@/lib/data/immuneCancerDetails";
 import { IMMUNE_FACILITIES, HOSPITAL_ABOUT_IMAGES, HOSPITAL_HISTORY } from "@/lib/data/immuneFacilities";
 import { IMMUNE_THERAPIES } from "@/lib/data/immuneTherapies";
@@ -256,6 +257,8 @@ function DoctorsSection() {
 // ────────────────── 메인 페이지 ──────────────────
 
 export default function CancerPreviewPage() {
+  // 개발용 임시 미리보기 — 프로덕션 비노출
+  if (process.env.NODE_ENV === "production") notFound();
   const cancerOrder = ["female", "digest", "liver", "lung", "thyroid", "etc"];
 
   return (

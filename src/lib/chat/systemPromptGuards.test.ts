@@ -111,7 +111,8 @@ describe("deflection-loop guards (regression lock)", () => {
     expect(SRC).toMatch(/function detectRepetitiveAssistant/);
     expect(SRC).toMatch(/REPETITION_GUARD/);
     expect(SRC).toMatch(/jaccardSimilarity/);
-    // 두 응답 경로(비스트리밍·스트리밍)에 baseSystem 주입이 들어가 있어야
-    expect((SRC.match(/detectRepetitiveAssistant\(messages\)/g) || []).length).toBeGreaterThanOrEqual(2);
+    // 두 응답 경로(비스트리밍·스트리밍)에 baseSystem 주입이 들어가 있어야.
+    // 인자명은 messages 또는 마스킹본 safeMessages 둘 다 허용(데이터 주권 마스킹 도입 후).
+    expect((SRC.match(/detectRepetitiveAssistant\((?:safeMessages|messages)\)/g) || []).length).toBeGreaterThanOrEqual(2);
   });
 });

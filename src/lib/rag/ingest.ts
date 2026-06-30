@@ -16,20 +16,25 @@ const nowIso = () => new Date().toISOString();
 const fetchSourceRows = async (sourceType: SourceType, sourceId?: string) => {
   switch (sourceType) {
     case "treatment": {
+      // is_published=true 만 적재 — 공개 페이지(treatments.js·dbSearch)와 동일 가시성.
+      // 이게 없으면 미게시 초안·TEST 더미가 RAG 검색으로 환자에게 노출됨(병렬 세션 발견, POSTMORTEMS #47).
       let q = supabaseAdmin
         .from("treatments")
         .select(
           "id, slug, name, description, full_description, tags, benefits, price_min, price_max, hospitals(name, location_en, location_kr)"
-        );
+        )
+        .eq("is_published", true);
       if (sourceId) q = q.eq("id", sourceId);
       return q;
     }
     case "hospital": {
+      // is_published=true 만 적재 — 공개 페이지(hospitals.js·dbSearch)와 동일 가시성(TEST 병원 노출 차단).
       let q = supabaseAdmin
         .from("hospitals")
         .select(
           "id, slug, name, description, location_en, location_kr, address_detail, tags, operating_hours, doctor_profile"
-        );
+        )
+        .eq("is_published", true);
       if (sourceId) q = q.eq("id", sourceId);
       return q;
     }
@@ -132,11 +137,9 @@ const upsertDocumentAndChunks = async (doc: {
           document_id: documentId,
           chunk_index: chunk.index,
           content: chunk.content,
-          ...(embedding ? {
-            embedding: JSON.stringify(embedding),
-            embedding_model: "gemini-embedding-001",
-            embedded_at: nowIso(),
-          } : {}),
+          // embedding 만 컬럼. 모델/시각 부기정보는 rag_chunks 에 전용 컬럼이 없으므로 metadata 로 보관.
+          // (과거 코드가 없는 컬럼 embedding_model/embedded_at 에 insert 하려다 PGRST204 로 적재가 통째 실패했음.)
+          ...(embedding ? { embedding: JSON.stringify(embedding) } : {}),
           metadata: {
             source_type: doc.source_type,
             source_id: doc.source_id,
@@ -144,6 +147,7 @@ const upsertDocumentAndChunks = async (doc: {
             title: doc.title,
             version,
             ingest_status: "done",
+            ...(embedding ? { embedding_model: "gemini-embedding-001", embedded_at: nowIso() } : {}),
           },
         });
       }

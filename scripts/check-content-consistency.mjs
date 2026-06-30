@@ -26,6 +26,11 @@ const FORBIDDEN = [
   { re: /healo\.com/i, msg: "옛 도메인 healo.com 잔재" },
   // ponytail: @healo.kr 이메일만 차단(.com만 막던 구멍). 현 사이트 도메인 khidi.healo.kr(@ 없음)·api 호스트 allowlist는 안 걸림.
   { re: /@healo\.kr/i, msg: "옛 이메일 @healo.kr 잔재 (→ admin@healwith.co.kr)" },
+  // 옛 배포 도메인 잔재 — 이메일 푸터·survey·reminder 링크가 죽은 도메인을 가리켜 고객이 404 (2026-06-29 전수조사).
+  // 정본 base URL 은 NEXT_PUBLIC_SITE_URL=https://healwith.co.kr. 폴백/리터럴에 옛 도메인 금지.
+  { re: /healo-khidi\.vercel\.app/i, msg: "옛 배포 도메인 healo-khidi.vercel.app 잔재 (→ healwith.co.kr) — 이메일/링크가 죽은 도메인을 가리킴" },
+  // khidi.healo.kr 은 컷오버 전 옛 도메인. 고객 링크/리터럴엔 금지하되, translate API 의 CORS origin allowlist 만 면제(레거시 호환).
+  { re: /khidi\.healo\.kr/i, allow: /translate-text|translate-realtime/, msg: "옛 도메인 khidi.healo.kr 잔재 (→ healwith.co.kr). CORS origin allowlist 만 면제" },
   { re: /HEALO-KHIDI/, msg: "옛 브랜드 HEALO-KHIDI 가 제품 코드에 (코드명은 주석/내부만, 고객 텍스트 금지)" },
   // 보안: 비밀키를 NEXT_PUBLIC_ 접두사로 두면 클라이언트 번들에 그대로 박혀 노출된다
   // (2026-06-20 NEXT_PUBLIC_CRON_SECRET 누출 사고). 공개돼도 되는 값만 NEXT_PUBLIC_ 사용.
@@ -48,6 +53,19 @@ const FORBIDDEN = [
   // allow: Toast.jsx 만 면제 — ToastProvider 는 LangProvider 보다 상위(providers.jsx)라 useLang() 불가.
   // 토스트는 클릭 이후에만 뜨는 클라이언트 UI(SSR 렌더 0)라 SSR 언어와 무관해 안티패턴이 무해.
   { re: /set[A-Za-z]*[Ll]ang(?:Code)?\(\s*getLangCodeFromCookie\(\)\s*\)/, allow: /Toast\.jsx$/, msg: "SSR 언어 누락 안티패턴(setLang(getLangCodeFromCookie())) — 렌더 언어는 useLang() 쓸 것(서버가 영어로 렌더→비영어 SEO 손해, POSTMORTEMS #30)" },
+  // ── 의료광고 금지문구(완치·결과 보장) — HEALwith_keywords 광고시트 §"ЗАПРЕЩЕНО".
+  //    의료법·Google/Yandex 광고정책상 "완치·보장·100% 결과"는 광고 거부 + 법적 리스크.
+  //    ⚠️ 오탐 제외: ① 면책문구("완치를 보장하지 않습니다"·"не гарантирует излечения")는
+  //    긍정형만 잡는 부정 lookahead/어미로 통과. ② AI 안전가드 소스(lib/chat)·ai-status·
+  //    playbook 은 이 문구를 '탐지 패턴/라벨'로 정당하게 보유 → allow 로 면제.
+  { re: /완치\s*(?:를|은|는)?\s*보장(?!\s*(?:하지\s*않|안|못|없|불가))/, allow: /[\\/]lib[\\/]chat[\\/]|ai-status|playbook/, msg: "의료광고 금지문구 '완치 보장' — 결과 보장 금지(광고 거부 + 법적 리스크). 면책이면 '…보장하지 않습니다' 형태로." },
+  { re: /100\s*%\s*(?:완치|치료|회복|결과\s*보장|성공)/, allow: /[\\/]lib[\\/]chat[\\/]|ai-status|playbook/, msg: "의료광고 금지문구 '100% 완치/결과 보장' — 결과 보장 금지(광고 거부 + 법적 리스크)." },
+  { re: /(?:반드시|무조건|틀림없이|확실히)\s*(?:완치|낫습니다|낫는다)/, allow: /[\\/]lib[\\/]chat[\\/]|ai-status|playbook/, msg: "의료광고 금지문구 '반드시 완치' — 결과 단정 금지." },
+  { re: /вылечим\s+(?:рак|вас|онколог)/i, msg: "RU 의료광고 금지문구 'вылечим рак'(완치 약속) — 결과 보장 금지." },
+  { re: /гаранти(?:я|руем|рованн\w*)\s+(?:излечени|выздоровлени)/i, allow: /[\\/]lib[\\/]chat[\\/]/, msg: "RU 의료광고 금지문구 'гарантия излечения'(완치 보장) — 결과 보장 금지. 면책은 'не гарантирует излечения'." },
+  { re: /(?:100\s*%|стопроцентн\w*)\s+(?:результат|излечени|выздоровлени)/i, msg: "RU 의료광고 금지문구 '100% результат' — 결과 보장 금지." },
+  { re: /(?<!\b(?:not|no|never|cannot|can't|doesn't|don't|won't)\s)\bguarantee[ds]?\s+(?:a\s+)?(?:cure|recovery|to\s+cure)\b/i, msg: "EN 의료광고 금지문구 'guaranteed cure' — 결과 보장 금지(광고 거부 + 법적 리스크). 면책이면 'does not guarantee…' 형태로." },
+  { re: /\b100\s*%\s+cure\b/i, msg: "EN 의료광고 금지문구 '100% cure' — 결과 보장 금지." },
 ];
 
 function walk(dir) {

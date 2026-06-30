@@ -133,10 +133,14 @@ export async function POST(request: NextRequest) {
   const trimmed = text.trim();
 
   // 환자 메시지 저장
+  // ⚠️ chat_messages 스키마는 actor_type/message_text (role/content 컬럼은 존재하지 않음).
+  // 이전엔 role/content 로 insert 해 모든 환자챗 메시지가 저장 실패(0건)였음 — 공개챗 규약으로 정정.
   const { error: insertErr } = await (supabaseAdmin as any).from("chat_messages").insert({
     thread_id,
-    role: "user",
-    content: trimmed,
+    actor_type: "patient",
+    actor_id: user.id,
+    message_text: trimmed,
+    is_internal: false,
     metadata: { source: "patient_portal" },
   });
 
@@ -148,14 +152,14 @@ export async function POST(request: NextRequest) {
   // 대화 이력 조회
   const { data: history } = await (supabaseAdmin as any)
       .from("chat_messages")
-    .select("role, content")
+    .select("actor_type, message_text")
     .eq("thread_id", thread_id)
     .order("created_at", { ascending: true })
     .limit(30);
 
   const chatMessages = (history || []).map((m: any) => ({
-    role: m.role === "user" ? ("user" as const) : ("assistant" as const),
-    content: m.content,
+    role: m.actor_type === "patient" ? ("user" as const) : ("assistant" as const),
+    content: m.message_text,
   }));
 
   const threadMeta: any = (thread.metadata && typeof thread.metadata === "object" && !Array.isArray(thread.metadata)) ? thread.metadata : {};
@@ -198,13 +202,14 @@ export async function POST(request: NextRequest) {
       "\n\n---\nA human coordinator has been notified. You can continue chatting while you wait.";
   }
 
-  // AI 응답 저장
+  // AI 응답 저장 (공개챗 규약: actor_type="system" + message_text)
   const { data: aiMsg } = await (supabaseAdmin as any)
       .from("chat_messages")
     .insert({
       thread_id,
-      role: "assistant",
-      content: finalReply,
+      actor_type: "system",
+      message_text: finalReply,
+      is_internal: false,
       metadata: {
         model: getModelName(),
         rag_chunks_used: ragChunks.length,

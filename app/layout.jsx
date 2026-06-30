@@ -31,6 +31,9 @@ const baseMetadata = {
   description:
     "Korean cancer care concierge for international patients from Kazakhstan, Russia, and Central Asia. Video pre-consultation with top oncologists, 6-language interpretation, and full-journey support — from diagnosis to post-treatment follow-up.",
   keywords: [
+    // 브랜드 (고유어)
+    "healwith",
+    "힐위드",
     // 영어
     "Korea cancer treatment",
     "Korean oncology specialist",
@@ -38,18 +41,22 @@ const baseMetadata = {
     "international cancer patient",
     "telemedicine Korea oncology",
     "medical tourism cancer Korea",
+    "second opinion Korea oncologist",
     // 러시아어 (카자흐·러시아 검색 타겟)
     "лечение рака в Корее",
     "онкология Южная Корея",
     "корейские онкологи",
     "медицинский туризм Корея",
+    "второе мнение онколога Корея",
     // 카자흐어
     "Кореядағы онкологиялық емдеу",
     "Корея медициналық туризм",
+    "Кореядағы онколог дәрігер",
     // 한국어
     "한국 암 치료 컨시어지",
     "해외 암환자 원격상담",
     "한국 암 전문의",
+    "외국인 한국 암 치료 비용",
     // 중국어·일본어
     "韩国癌症治疗",
     "韓国がん治療",

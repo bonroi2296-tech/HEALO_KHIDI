@@ -6,12 +6,12 @@ export const metadata = {
     "Cancer-specific education content for post-treatment care. Medication guides, diet plans, exercise routines, warning signs, and mental health support in 6 languages.",
   keywords: ["cancer education", "post-treatment care", "patient guide", "cancer recovery"],
   openGraph: {
-    title: "Patient Education | healwith",
+    title: "Cancer Treatment Guide | healwith",
     description: "Cancer-specific education content for post-treatment care in 6 languages.",
   },
   twitter: {
     card: "summary",
-    title: "Patient Education | healwith",
+    title: "Cancer Treatment Guide | healwith",
     description: "Cancer-specific education content for post-treatment care.",
   },
 };

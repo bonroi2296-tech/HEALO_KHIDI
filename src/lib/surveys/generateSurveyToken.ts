@@ -108,7 +108,7 @@ export async function sendSurveyEmail(
 ): Promise<SendSurveyEmailResult> {
   const baseUrl =
     process.env.NEXT_PUBLIC_SITE_URL ||
-    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "https://healo-khidi.vercel.app");
+    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "https://healwith.co.kr");
 
   const surveyUrl = `${baseUrl.replace(/\/$/, "")}/survey/${opts.token}`;
   const lang = opts.lang || "ko";

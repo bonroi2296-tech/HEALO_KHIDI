@@ -26,6 +26,7 @@ import {
   ThumbsDown,
   Calculator,
   Sparkles,
+  Trash2,
 } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 
@@ -76,6 +77,7 @@ const navGroups = [
       { id: "ai-feedback", label: "AI 피드백", icon: ThumbsDown, href: "/admin/khidi/ai-feedback" },
       { id: "users", label: "회원(환자) 관리", icon: Users, href: "/admin/users" },
       { id: "staff", label: "직원 계정", icon: Users, href: "/admin/staff" },
+      { id: "deletion-requests", label: "데이터 삭제 요청", icon: Trash2, href: "/admin/account/deletion-requests" },
       { id: "audit", label: "감사로그", icon: FileText, href: "/admin/audit" },
       { id: "notifications", label: "알림 관리", icon: Bell, href: "/admin/settings/notifications" },
       { id: "branding", label: "브랜딩 설정", icon: Palette, href: "/admin/settings/branding" },

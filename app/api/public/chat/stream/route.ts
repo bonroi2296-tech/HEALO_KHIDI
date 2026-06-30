@@ -22,6 +22,8 @@ import {
   getModelName,
   logPlaybookUsage,
 } from "@/lib/chat/generateReply";
+import { generateTriage } from "@/lib/chat/triage";
+import { scanRedlines, redlineCorrectionNotice } from "@/lib/chat/safetyGuard";
 import {
   INTAKE_EVERY_N_TURNS,
   ATTACHMENT_ACK,
@@ -130,9 +132,21 @@ export async function POST(request: NextRequest) {
     return jsonError("Failed to save message", 500);
   }
 
+  // 멀티스레드 목록 가독성: 제목이 아직 기본값("New Chat")이고 실제 텍스트가 있으면 첫 메시지로 채운다.
+  // (PII는 이미 message_text 마스킹 경로를 타고, subject 는 짧은 발췌만 — 이름 평문 저장 안 함.)
+  const curSubject = (thread as any).subject;
+  if (trimmedMsg && (!curSubject || curSubject === "New Chat")) {
+    const snippet = trimmedMsg.slice(0, 60) + (trimmedMsg.length > 60 ? "…" : "");
+    await (supabaseAdmin as any)
+      .from("chat_threads")
+      .update({ subject: snippet })
+      .eq("id", thread_id);
+  }
+
   const handOff = detectHandOff(trimmedMsg);
   const escalate = handOff.requested || hasAttachments;
   const escalateReason = handOff.reason || (hasAttachments ? "attachment_uploaded" : null);
+  let bellRung = false; // 이 요청에서 코디 종이 이미 울렸는지(레드라인 적발 시 중복 호출 방지)
 
   const threadMeta: any =
     thread.metadata && typeof thread.metadata === "object" && !Array.isArray(thread.metadata)
@@ -159,9 +173,12 @@ export async function POST(request: NextRequest) {
       try {
         const { notifyStaffChatHandoff } = await import("@/lib/notifications/inApp");
         await notifyStaffChatHandoff({ threadId: thread_id, reason: escalateReason });
+        bellRung = true;
       } catch (e: any) {
         console.warn("[chat/stream] handoff bell 실패(무시):", e?.message);
       }
+    } else {
+      bellRung = true;
     }
   }
 
@@ -202,10 +219,28 @@ export async function POST(request: NextRequest) {
       let ragChunksLen = 0;
       let aiError: string | undefined;
       let analytics: any = undefined;
+      let triagePacket: any = null;     // 의료진용 진료의뢰 패킷(첨부 판독 시)
+      let usedAckFallback = false;      // 첨부를 못 읽어 기존 접수안내로 떨어졌는지
 
       try {
-        // 1) AI 응답 — 텍스트 없이 자료만 올린 경우는 모델을 부르지 않음(판독 안 함).
-        if (trimmedMsg) {
+        // 1) 첨부가 있으면 → 멀티모달 1차 소견(triage). 없고 텍스트만 있으면 → 기존 RAG 응답.
+        //    (PO 결정 2026-06-29: 자료 올리면 AI가 1차 소견 즉시 + 사후 의사 검수.)
+        let finalReply = "";
+        if (hasAttachments) {
+          const triage = await generateTriage({ attachments, messageText: trimmedMsg, lang });
+          if (triage.patientReply) {
+            enqueue(triage.patientReply);
+            finalReply = triage.patientReply;
+            triagePacket = triage.packet;
+          } else {
+            // 모델이 못 읽음(doc 등)·오류 → 기존 "접수 안내(판독 아님)"로 폴백.
+            const ack = ATTACHMENT_ACK[lang] || ATTACHMENT_ACK.en;
+            enqueue(ack);
+            finalReply = ack;
+            usedAckFallback = true;
+            if (triage.error) aiError = triage.error;
+          }
+        } else if (trimmedMsg) {
           const r = await streamChatReply(
             chatMessages,
             trimmedMsg,
@@ -215,18 +250,10 @@ export async function POST(request: NextRequest) {
             { isLoggedIn: !!thread.user_id, hasReachableContact: reachable }
           );
           aiReply = r.reply;
+          finalReply = aiReply;
           ragChunksLen = r.ragChunks.length;
           aiError = r.error;
           analytics = r._analytics;
-        }
-
-        // 2) 자료 접수 확인(판독 아님) — 첨부가 있으면 항상 덧붙여 스트림.
-        let finalReply = aiReply;
-        if (hasAttachments) {
-          const ack = ATTACHMENT_ACK[lang] || ATTACHMENT_ACK.en;
-          const piece = finalReply ? `\n\n${ack}` : ack;
-          enqueue(piece);
-          finalReply = finalReply ? `${finalReply}${piece}` : ack;
         }
 
         // 3) 핸드오프 확인 멘트 — 연락 가능하면 "접수완료", 아니면 연락처부터 요청(거짓 약속 방지).
@@ -234,6 +261,30 @@ export async function POST(request: NextRequest) {
           const piece = "\n\n" + pickHandoffConfirm(lang, reachable);
           enqueue(piece);
           finalReply += piece;
+        }
+
+        // 🚨 송출 후 레드라인 최종 점검 — 스트림은 원시 텍스트 append라 이미 흘러간 답변을
+        //    취소할 수 없다. 따라서 critical(완치·약물·예후 단정) 적발 시:
+        //    ① 환자 말풍선에 즉시 정정·코디연결 안내를 덧붙이고
+        //    ② 비동기 judge 를 기다리지 않고 코디 종을 즉시 울린다(이미 울렸으면 생략)
+        //    ③ 기록에 redline 플래그 + 의사 검수 대기로 남긴다.
+        let redlineFlags: string[] | null = null;
+        const redscan = scanRedlines(finalReply);
+        if (redscan.critical) {
+          redlineFlags = redscan.flags;
+          console.warn(`[chat/stream] REDLINE detected: ${redscan.flags.join(",")} thread=${thread_id}`);
+          const notice = "\n\n" + redlineCorrectionNotice(lang);
+          enqueue(notice);
+          finalReply += notice;
+          if (!bellRung) {
+            try {
+              const { notifyStaffChatHandoff } = await import("@/lib/notifications/inApp");
+              await notifyStaffChatHandoff({ threadId: thread_id, reason: "ai_redline" });
+              bellRung = true;
+            } catch (e: any) {
+              console.warn("[chat/stream] redline bell 실패(무시):", e?.message);
+            }
+          }
         }
 
         // 4) system 메시지 저장 + playbook 로그(스트림 닫기 전에 완료).
@@ -246,9 +297,14 @@ export async function POST(request: NextRequest) {
             metadata: {
               model: getModelName(),
               rag_chunks_used: ragChunksLen,
-              hand_off: escalate ? escalateReason : null,
+              hand_off: escalate || redlineFlags ? (redlineFlags ? "ai_redline" : escalateReason) : null,
               streamed: true,
-              ...(hasAttachments ? { attachment_ack: true } : {}),
+              // 첨부를 못 읽어 접수안내로 폴백한 경우만 비답변 처리(모델 히스토리 제외). 실제 1차 소견은 답변으로 보존.
+              ...(hasAttachments && usedAckFallback ? { attachment_ack: true } : {}),
+              // 진료의뢰 패킷 + 의사 검수 대기 플래그(Phase 2·3 에서 어드민이 읽어 검수).
+              ...(triagePacket ? { triage: { packet: triagePacket, needs_doctor_review: true, reviewed: false } } : {}),
+              // critical 레드라인 적발 — 어드민/코디 검수 큐에서 우선 확인.
+              ...(redlineFlags ? { redline: redlineFlags, needs_doctor_review: true } : {}),
               ...(aiError ? { ai_error: aiError } : {}),
             },
           })

@@ -5,6 +5,10 @@
  * 아까 사람이 손으로 확인하던 걸 자동화한다:
  *   TEST A) 연락처 없이 "접수해줘" → 거짓 "접수완료" 금지·연락처 요청 (state-detection 핵심 버그)
  *   TEST B) "로그인 안 했는데 저장돼?" → 정직한 "저장됨/30일" 안내 (topic-correction 오탐 금지)
+ *   TEST C) 지식질문 → 응답 metadata.rag_chunks_used > 0 (RAG 실사용 가드, POSTMORTEMS #48)
+ *           — RAG가 다시 죽으면(적재/RPC 고장) 모든 응답이 청크 0개로 떨어지는데, 그게
+ *             "지표는 찍히는데 아무도 안 봄"이라 6개월 들킬 뻔했다. 이 테스트가 그 침묵을 깬다.
+ *             SUPABASE 자격증명이 있어야 응답 metadata를 읽을 수 있어, 없으면 SKIP(실패 아님).
  *
  * ⚠️ 실DB 오염 금지(PO 원칙): 테스트로 만든 스레드는 끝나면 service_role 로 삭제한다.
  *   - SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY 가 있으면 자동 정리.
@@ -56,6 +60,26 @@ async function sendMessage(thread, text) {
   return raw.split(RS)[0].trim(); // 메타 프레임 앞 = 사용자에게 보이는 답변
 }
 
+// 응답 저장 후 최신 AI(system) 메시지의 metadata.rag_chunks_used 를 service_role REST 로 읽는다.
+// 스트림 종료 직후엔 비동기 저장이 안 끝났을 수 있어 잠깐 폴링(최대 ~5초)해 깜빡임을 줄인다.
+async function getRagChunksUsed(threadId) {
+  const h = { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}` };
+  const url = `${SB_URL}/rest/v1/chat_messages?thread_id=eq.${threadId}` +
+    `&actor_type=eq.system&select=metadata&order=created_at.desc&limit=1`;
+  for (let i = 0; i < 5; i++) {
+    try {
+      const res = await fetch(url, { headers: h });
+      if (res.ok) {
+        const rows = await res.json();
+        const v = rows?.[0]?.metadata?.rag_chunks_used;
+        if (typeof v === "number") return v;
+      }
+    } catch { /* 폴링 중 일시 오류 무시 */ }
+    await new Promise((r) => setTimeout(r, 1000));
+  }
+  return null; // 못 읽음(저장 지연/권한) — 호출부에서 SKIP 처리
+}
+
 // service_role 로 테스트 스레드 삭제(REST). 실패해도 스모크 결과엔 영향 안 줌(경고만).
 async function cleanup() {
   if (!SB_URL || !SB_KEY) {
@@ -102,9 +126,34 @@ async function main() {
     else fail(`TEST B 실패 — honest=${honest} misfired=${misfired}\n   답변: ${reply.slice(0, 200)}`);
   } catch (e) { fail(`TEST B 예외: ${e.message}`); }
 
+  // TEST C: 지식질문 → RAG 실사용(rag_chunks_used > 0). 자격증명 없으면 SKIP.
+  let skipped = 0;
+  if (!SB_URL || !SB_KEY) {
+    console.warn("⚠️ TEST C SKIP — SUPABASE_URL/SERVICE_ROLE_KEY 없어 응답 metadata 못 읽음(RAG 가드 미실행).");
+    skipped++;
+  } else {
+    total++;
+    try {
+      const t = await startThread();
+      // 적재된 지식(한방병원·면역강화/항노화 등 치료)과 강하게 매칭되는 질문.
+      // RPC엔 유사도 컷오프가 없어 RAG가 살아만 있으면 어떤 질문이든 청크>0 → 0이면 #48 재발.
+      await sendMessage(t, "한국에서 받을 수 있는 면역강화나 항노화 한방 치료에 대해 알려줘.");
+      const used = await getRagChunksUsed(t.thread_id);
+      if (used === null) {
+        console.warn("⚠️ TEST C SKIP — 응답 metadata 못 읽음(저장 지연/권한). RAG 상태 미확인.");
+        skipped++;
+      } else if (used > 0) {
+        ok(`TEST C RAG 헬스 — 지식질문에 청크 ${used}개 사용(RAG 살아있음)`);
+        passed++;
+      } else {
+        fail(`TEST C 실패 — rag_chunks_used=0. RAG가 죽었다(적재/RPC 고장 가능, POSTMORTEMS #48 재발).`);
+      }
+    } catch (e) { fail(`TEST C 예외: ${e.message}`); }
+  }
+
   await cleanup();
 
-  console.log(`\n결과: ${passed}/${total} 통과`);
+  console.log(`\n결과: ${passed}/${total} 통과${skipped ? ` (SKIP ${skipped})` : ""}`);
   if (passed !== total) process.exit(1);
 }
 

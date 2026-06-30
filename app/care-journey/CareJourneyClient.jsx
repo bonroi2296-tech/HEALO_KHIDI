@@ -330,7 +330,7 @@ export default function CareJourneyClient() {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-5">
           {c.stats.map((s, i) => (
             <div key={i} className="border border-gray-200 rounded-2xl p-6 md:p-7">
-              <div className="text-3xl md:text-4xl font-extrabold text-teal-700 mb-2">{s.value}</div>
+              <div className="text-3xl md:text-4xl font-extrabold text-teal-700 mb-2 tabular-nums">{s.value}</div>
               <p className="text-sm text-gray-500 leading-relaxed">{s.label}</p>
             </div>
           ))}

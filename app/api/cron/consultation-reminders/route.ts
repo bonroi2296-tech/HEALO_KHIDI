@@ -85,7 +85,7 @@ export async function GET(request: NextRequest) {
         process.env.NEXT_PUBLIC_SITE_URL ||
         (process.env.VERCEL_URL
           ? `https://${process.env.VERCEL_URL}`
-          : "https://healo-khidi.vercel.app");
+          : "https://healwith.co.kr");
 
       // 리마인더는 token 이 아닌 '이전 메일 확인' 안내 + 직접 문의 링크
       // TODO: 보다 나은 UX 는 새 토큰 발급해 새 링크 발송

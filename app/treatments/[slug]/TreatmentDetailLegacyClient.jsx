@@ -318,13 +318,13 @@ export const TreatmentDetailPage = ({
             </div>
             <div className="hidden md:flex flex-row gap-2 h-[420px]">
               <div className={`${galleryImages.length >= 2 ? "w-1/2" : "w-full"} h-full relative group cursor-pointer overflow-hidden rounded-xl`}>
-                <img src={galleryImages[0]} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" alt="Main" />
+                <img src={galleryImages[0]} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" alt="Main" />
               </div>
               {galleryImages.length >= 2 && (
                 <div className="w-1/2 h-full grid grid-cols-2 grid-rows-2 gap-2">
                   {galleryImages.slice(1, 5).map((img, idx) => (
                     <div key={idx} className="relative overflow-hidden cursor-pointer group rounded-xl">
-                      <img src={img} className="w-full h-full object-cover group-hover:scale-105 transition duration-700" alt={`Detail ${idx + 1}`} />
+                      <img src={img} className="w-full h-full object-cover group-hover:scale-105 transition duration-300" alt={`Detail ${idx + 1}`} />
                     </div>
                   ))}
                 </div>
@@ -651,7 +651,7 @@ export const TreatmentDetailPage = ({
                       <div key={item.id} onClick={() => onTreatmentClick?.(item.slug || item.id)} role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { if (e.key === " ") e.preventDefault(); onTreatmentClick?.(item.slug || item.id); } }} className="bg-white border border-gray-100 rounded-xl overflow-hidden hover:shadow-md transition cursor-pointer group flex flex-col focus:outline-none focus:ring-2 focus:ring-teal-400">
                         {thumb ? (
                           <div className="aspect-[4/3] bg-gray-200 overflow-hidden">
-                            <img src={thumb} className="w-full h-full object-cover group-hover:scale-105 transition duration-500" alt={item.name} />
+                            <img src={thumb} className="w-full h-full object-cover group-hover:scale-105 transition duration-300" alt={item.name} />
                           </div>
                         ) : (
                           <div className="aspect-[4/3] bg-gray-100 flex items-center justify-center"><ImageIcon size={24} className="text-gray-300" /></div>

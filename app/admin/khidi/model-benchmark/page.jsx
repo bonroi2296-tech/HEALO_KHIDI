@@ -12,6 +12,8 @@ const ARM_DESC = {
   highend_raw: "하이엔드 맨몸 (Gemini Pro + 범용 프롬프트, 컨텍스트 없음)",
   highend_spec: "하이엔드 + 우리 파이프라인 (공정 비교 상한선)",
 };
+const WINNER_LABEL = { our: "우리 승", highend: "하이엔드 승", tie: "무승부" };
+const WINNER_COLOR = { our: "text-green-600", highend: "text-red-500", tie: "text-gray-400" };
 
 function ScoreCell({ value }) {
   return <span className={`font-bold ${SCORE_COLOR(value)}`}>{fmt(value)}</span>;
@@ -23,12 +25,15 @@ export default function ModelBenchmarkPage() {
   const [error, setError] = useState(null);
   const [expanded, setExpanded] = useState({});
 
-  const run = async (full) => {
+  const run = async ({ mode, full }) => {
     setRunning(true);
     setError(null);
     setResult(null);
     try {
-      const res = await fetch(`/api/admin/khidi/run-benchmark${full ? "?full=1" : ""}`, {
+      const qs = new URLSearchParams();
+      qs.set("mode", mode);
+      if (full) qs.set("full", "1");
+      const res = await fetch(`/api/admin/khidi/run-benchmark?${qs.toString()}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -51,6 +56,7 @@ export default function ModelBenchmarkPage() {
   };
 
   const scenarioIds = result ? [...new Set(result.rows.map((r) => r.scenarioId))] : [];
+  const pw = result?.pairwiseSummary;
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-8 space-y-8">
@@ -59,8 +65,9 @@ export default function ModelBenchmarkPage() {
         <h1 className="text-2xl font-bold text-gray-900">모델 성능 비교</h1>
         <p className="text-sm text-gray-500 mt-1 leading-relaxed">
           우리 의료특화 AI 에이전트가 일반 하이엔드 모델(Gemini Pro)과 비교해 얼마나 잘하는지
-          <b> 같은 질문·같은 채점</b>으로 실측합니다. KHIDI 중간평가 “왜 거대모델 안 쓰고 자체
-          에이전트 쓰나” 답변 근거자료. 방법론: <code>docs/AI_MODEL_BENCHMARK.md</code>
+          <b> 같은 질문·같은 채점</b>으로 실측합니다. 방법: ①절대점수(AI 채점관) ②맞대결(승률) ③사람 검수
+          표본. KHIDI 중간평가 “왜 거대모델 안 쓰고 자체 에이전트 쓰나” 답변 근거자료
+          (<code>docs/AI_MODEL_BENCHMARK.md</code>).
         </p>
       </div>
 
@@ -68,29 +75,36 @@ export default function ModelBenchmarkPage() {
       <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
         <div className="flex flex-wrap items-center gap-3">
           <button
-            onClick={() => run(false)}
+            onClick={() => run({ mode: "quick", full: false })}
             disabled={running}
             className="px-4 py-2 rounded-lg bg-teal-700 text-white text-sm font-semibold hover:bg-teal-800 disabled:opacity-50"
           >
-            {running ? "실행 중…" : "벤치 실행 (우리 vs 하이엔드 맨몸)"}
+            {running ? "실행 중…" : "빠른 실행 (대표 문항 · 저비용)"}
           </button>
           <button
-            onClick={() => run(true)}
+            onClick={() => run({ mode: "full", full: false })}
             disabled={running}
             className="px-4 py-2 rounded-lg border border-teal-700 text-teal-700 text-sm font-semibold hover:bg-teal-50 disabled:opacity-50"
           >
-            {running ? "실행 중…" : "전체 실행 (+ 하이엔드+특화 상한선, 느림)"}
+            {running ? "실행 중…" : "정밀 실행 (전체 문항)"}
+          </button>
+          <button
+            onClick={() => run({ mode: "full", full: true })}
+            disabled={running}
+            className="px-4 py-2 rounded-lg border border-gray-300 text-gray-600 text-sm font-semibold hover:bg-gray-50 disabled:opacity-50"
+          >
+            {running ? "실행 중…" : "정밀 + 상한선 (하이엔드+특화)"}
           </button>
         </div>
         <p className="text-xs text-gray-400 mt-3">
-          ⚠️ 1회 실행 = Gemini 호출 수십 회(시나리오 12개 × 비교군 × 2). 하이엔드(Pro) 응답이 느려
-          1~3분 걸릴 수 있습니다. 비용이 소액 발생합니다.
+          ⚠️ AI 호출 비용 소액 발생(무료 한도면 자동 재시도 후 일부 에러로 표시될 수 있음). 하이엔드(Pro)가
+          느려 <b>빠른 실행 1~2분 / 정밀 실행 3~5분</b> 걸릴 수 있습니다. 창을 닫지 마세요.
         </p>
       </div>
 
       {running && (
         <div className="bg-amber-50 border border-amber-200 rounded-xl p-5 text-sm text-amber-800">
-          실행 중… 12개 시나리오를 각 모델에 돌리고 하이엔드 채점관이 채점합니다. 창을 닫지 마세요(1~3분).
+          실행 중… 각 문항을 두 모델에 돌리고 하이엔드 채점관이 절대점수 + 맞대결로 채점합니다.
         </div>
       )}
 
@@ -102,15 +116,37 @@ export default function ModelBenchmarkPage() {
         <>
           {/* 메타 */}
           <div className="text-xs text-gray-500">
-            우리=<code>{result.meta.ourModel}</code> · 하이엔드=<code>{result.meta.highendModel}</code> ·
-            채점관=<code>{result.meta.judgeModel}</code> · 시나리오 {result.meta.scenarioCount}개 ·
-            LLM 호출 {result.meta.llmCalls}회 · {new Date(result.meta.ranAt).toLocaleString("ko-KR")}
+            모드 <b>{result.meta.mode}</b> · 우리=<code>{result.meta.ourModel}</code> ·
+            하이엔드=<code>{result.meta.highendModel}</code> · 채점관=<code>{result.meta.judgeModel}</code> ·
+            문항 {result.meta.scenarioCount}개 · LLM 호출 {result.meta.llmCalls}회 ·
+            {" "}{new Date(result.meta.ranAt).toLocaleString("ko-KR")}
           </div>
 
-          {/* 종합 표 */}
+          {/* 맞대결 요약 (핵심) */}
+          {pw && (
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
+              <h2 className="font-bold text-gray-900 mb-3">⚔️ 맞대결 — 우리 vs 하이엔드 맨몸</h2>
+              <div className="flex flex-wrap items-end gap-6">
+                <div>
+                  <div className="text-4xl font-bold text-teal-700">{fmt(pw.ourWinRatePct, 0)}%</div>
+                  <div className="text-xs text-gray-500 mt-1">우리 승률 (무승부 제외)</div>
+                </div>
+                <div className="text-sm text-gray-600">
+                  우리 <b className="text-green-600">{pw.ourWins}</b>승 ·
+                  하이엔드 <b className="text-red-500">{pw.highendWins}</b>승 ·
+                  무승부 <b className="text-gray-400">{pw.ties}</b> <span className="text-gray-400">(총 {pw.n})</span>
+                </div>
+              </div>
+              <p className="text-xs text-gray-400 mt-3">
+                두 답변을 익명(A/B, 위치 교대로 편향↓)으로 채점관에게 보여주고 “의료관광 컨시어지에 더 적합한 쪽”을 고르게 한 결과.
+              </p>
+            </div>
+          )}
+
+          {/* 종합 절대점수 표 */}
           <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
             <div className="px-5 py-4 border-b border-gray-100">
-              <h2 className="font-bold text-gray-900">종합 (0~1, 높을수록 좋음 / 위반·지연은 낮을수록 좋음)</h2>
+              <h2 className="font-bold text-gray-900">종합 절대점수 (0~1, 높을수록 좋음 / 위반·지연은 낮을수록 좋음)</h2>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
@@ -149,15 +185,58 @@ export default function ModelBenchmarkPage() {
             </div>
             <div className="px-5 py-4 bg-gray-50 text-xs text-gray-500 leading-relaxed">
               <b>읽는 법:</b> 우리(our)의 <b>안전·환각 점수</b>와 <b>레드라인 위반 건수</b>를 하이엔드 맨몸(highend_raw)과
-              비교하세요. 종합 75%가 안전+사실성 가중이라 의료특화가 강세일 것. highend_spec(전체 실행 시)은
+              비교하세요. 종합 75%가 안전+사실성 가중이라 의료특화가 강세일 것. highend_spec(상한선 실행 시)은
               “모델을 바꾸면 얼마나 더 좋아지나”의 상한선입니다.
             </div>
           </div>
 
-          {/* 시나리오별 상세 */}
+          {/* 사람 검수 표본 */}
+          {result.calibration?.length > 0 && (
+            <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
+              <div className="px-5 py-4 border-b border-gray-100">
+                <h2 className="font-bold text-gray-900">👤 사람 검수용 표본</h2>
+                <p className="text-xs text-gray-500 mt-1">
+                  AI 채점이 맞는지 직접 눈으로 확인하세요(자기채점 편향 점검). 우리/하이엔드 답을 비교하고 판정이 타당한지 보세요.
+                </p>
+              </div>
+              <div className="divide-y divide-gray-100">
+                {result.calibration.map((c) => (
+                  <div key={c.scenarioId} className="px-5 py-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-500">{c.category} · {c.lang}</span>
+                      {c.pairwise && (
+                        <span className={`text-xs font-bold ${WINNER_COLOR[c.pairwise.winner]}`}>
+                          맞대결: {WINNER_LABEL[c.pairwise.winner]}
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-sm text-gray-800 font-medium mb-2">Q. {c.query}</p>
+                    <div className="grid md:grid-cols-2 gap-3">
+                      <div className="bg-teal-50/50 rounded-lg p-3 border border-teal-100">
+                        <div className="text-xs font-semibold text-teal-700 mb-1">
+                          우리 (종합 {fmt(c.ourScores.overall)})
+                          {c.ourScores.flags?.length > 0 && <span className="text-red-500"> [{c.ourScores.flags.join(", ")}]</span>}
+                        </div>
+                        <p className="text-sm text-gray-600 whitespace-pre-wrap">{c.ourResponse}</p>
+                      </div>
+                      <div className="bg-gray-50 rounded-lg p-3 border border-gray-100">
+                        <div className="text-xs font-semibold text-gray-500 mb-1">하이엔드 맨몸</div>
+                        <p className="text-sm text-gray-600 whitespace-pre-wrap">{c.highendResponse}</p>
+                      </div>
+                    </div>
+                    {c.pairwise?.reason && (
+                      <p className="text-xs text-gray-400 mt-2">판정 이유: {c.pairwise.reason}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* 시나리오별 상세 (전체) */}
           <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
             <div className="px-5 py-4 border-b border-gray-100">
-              <h2 className="font-bold text-gray-900">시나리오별 응답 비교</h2>
+              <h2 className="font-bold text-gray-900">전체 시나리오별 응답 ({scenarioIds.length}개)</h2>
             </div>
             <div className="divide-y divide-gray-100">
               {scenarioIds.map((sid) => {

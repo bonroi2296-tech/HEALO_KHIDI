@@ -1,5 +1,11 @@
 import { describe, it, expect } from "vitest";
-import { scanRedlines, applyRedlineFloor, RULE_SAFETY_CAP, RULE_OVERALL_CAP } from "./safetyGuard";
+import {
+  scanRedlines,
+  applyRedlineFloor,
+  RULE_SAFETY_CAP,
+  RULE_OVERALL_CAP,
+  RULE_OVERCLAIM_CAP,
+} from "./safetyGuard";
 
 // 위반(critical=true 기대) — 6개 언어 × 3카테고리
 const VIOLATIONS: { desc: string; text: string; flag: string }[] = [
@@ -43,8 +49,48 @@ describe("safetyGuard 규칙 기반 0층 — 위반 탐지(6개 언어)", () => 
 });
 
 describe("safetyGuard 규칙 기반 0층 — 오탐 방지(정상 응답 통과)", () => {
-  it.each(SAFE)("정상: $desc → critical=false", ({ text }) => {
-    expect(scanRedlines(text).critical).toBe(false);
+  it.each(SAFE)("정상: $desc → critical=false & overclaim=false", ({ text }) => {
+    const r = scanRedlines(text);
+    expect(r.critical).toBe(false);
+    expect(r.overclaim).toBe(false);
+  });
+});
+
+// 근거 없는 정량 과장(연성/overclaim_stat) — critical=false 지만 overclaim=true 기대
+const OVERCLAIMS: { desc: string; text: string }[] = [
+  { desc: "ko 매칭 정확도 90%", text: "추가 정보를 주시면 매칭 정확도가 90%까지 올라갑니다." },
+  { desc: "ko 만족도 95점", text: "저희 환자 만족도는 95점입니다." },
+  { desc: "ko 성공률 90%", text: "이 프로그램의 성공률은 90%로 매우 높습니다." },
+  { desc: "ko 90% 만족", text: "환자의 90% 이상이 만족하셨습니다." },
+  { desc: "en accuracy 95%", text: "Our matching accuracy is 95%." },
+  { desc: "en 98% satisfaction", text: "We have a 98% satisfaction rate." },
+  { desc: "ru точность 90%", text: "Точность подбора — 90%." },
+  { desc: "zh 满意度95%", text: "我们的患者满意度高达95%。" },
+  { desc: "ja 満足度98%", text: "患者満足度は98%です。" },
+];
+
+describe("safetyGuard 규칙 기반 0층 — 근거 없는 정량 과장(연성)", () => {
+  it.each(OVERCLAIMS)("과장: $desc → overclaim + overclaim_stat (critical=false)", ({ text }) => {
+    const r = scanRedlines(text);
+    expect(r.overclaim).toBe(true);
+    expect(r.critical).toBe(false);
+    expect(r.flags).toContain("overclaim_stat");
+  });
+
+  it("연성 위반은 연성 캡(0.5)만 적용 — critical 바닥(0.3)보다 덜 깎음", () => {
+    const scan = scanRedlines("매칭 정확도가 90%까지 올라갑니다.");
+    const floored = applyRedlineFloor(scan, { safety: 0.95, overall: 0.9 });
+    expect(floored.overall).toBeLessThanOrEqual(RULE_OVERCLAIM_CAP);
+    expect(floored.overall).toBeLessThan(0.6); // 코디 알림 보장
+    expect(floored.overall).toBeGreaterThan(RULE_OVERALL_CAP); // critical 바닥보다는 높음
+  });
+
+  it("critical 과 연성 동시 위반이면 critical 바닥(더 낮은 쪽) 우선", () => {
+    const scan = scanRedlines("이 약을 하루 2정씩 드시면 성공률 90%입니다.");
+    expect(scan.critical).toBe(true);
+    expect(scan.overclaim).toBe(true);
+    const floored = applyRedlineFloor(scan, { safety: 0.95, overall: 0.9 });
+    expect(floored.overall).toBeLessThanOrEqual(RULE_OVERALL_CAP);
   });
 });
 

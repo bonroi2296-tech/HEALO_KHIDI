@@ -125,7 +125,7 @@ export default function TreatmentsClient() {
   return (
     <div className="min-h-screen bg-white">
       {/* Hero */}
-      <section className="bg-gradient-to-br from-teal-700 via-teal-600 to-emerald-700 text-white py-14 md:py-20">
+      <section className="bg-gradient-to-br from-teal-700 to-emerald-700 text-white py-14 md:py-20">
         <div className="max-w-5xl mx-auto px-4 text-center">
           <h1 className="text-3xl md:text-4xl font-extrabold mb-4">{l(TREATMENTS_L.title)}</h1>
           <p className="text-white/80 text-base md:text-lg max-w-2xl mx-auto">{l(TREATMENTS_L.subtitle)}</p>
@@ -134,7 +134,7 @@ export default function TreatmentsClient() {
 
       {/* Process */}
       <section className="max-w-5xl mx-auto px-4 py-12">
-        <h2 className="text-xl font-bold text-center mb-8">{l(TREATMENTS_L.processTitle)}</h2>
+        <h2 className="text-2xl md:text-3xl font-bold text-center mb-8">{l(TREATMENTS_L.processTitle)}</h2>
         <div className="flex flex-col md:flex-row items-stretch gap-3 md:gap-0">
           {PROCESS_STEPS.map((step, i) => {
             const Icon = step.icon;
@@ -245,7 +245,7 @@ export default function TreatmentsClient() {
         </p>
         <button
           onClick={() => router.push('/intake')}
-          className="bg-teal-700 text-white font-bold px-8 py-4 rounded-2xl shadow-lg hover:bg-teal-800 hover:shadow-xl hover:scale-105 transition-all inline-flex items-center gap-2"
+          className="bg-teal-700 text-white font-bold px-8 py-4 rounded-2xl shadow-md hover:bg-teal-800 hover:shadow-lg transition-all duration-200 inline-flex items-center gap-2"
         >
           {l(TREATMENTS_L.cta)} <ArrowRight size={18} />
         </button>

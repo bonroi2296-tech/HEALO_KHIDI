@@ -67,6 +67,64 @@ export function sanitizeAttachments(
   return out;
 }
 
+// 3턴+ 진행된 대화를 KHIDI 집계 대상(inquiries)으로 1회 승격.
+// 왜: 유치 전환 대시보드(/admin/khidi/conversion)는 inquiries 테이블만 센다. 승격이 없으면
+// AI 챗으로 들어온 리드가 평가지표(문의 접수→유치)에 0으로 잡혀 안 보인다.
+// (PO 결정 2026-06-29: 대화 3턴+ 면 등록.) 중복방지: chat_threads.inquiry_id 가 비어있을 때만.
+async function promoteThreadToInquiry(
+  thread: any,
+  intake: any,
+  rawEnc: string | null,
+  lang: string
+) {
+  if (thread?.inquiry_id) return; // 이미 승격됨
+
+  // PIPA 동의 보존: AI 챗은 chat/start 와 매 메시지에서 동의(health_crossborder)를
+  // 강제하므로 3턴+ 도달한 thread 는 동의가 반드시 있다(thread.metadata.consent).
+  // 폼(web) 경로처럼 inquiry.intake.consents 에 동의 증빙을 남긴다(법적 기록).
+  const tc = thread?.metadata?.consent || null;
+  const consentFields = tc
+    ? {
+        consent_source: "ai_chat",
+        consents: { ai_chat_health_crossborder: tc.health_crossborder === true },
+        consent_version: tc.version || null,
+        consent_at: tc.at || null,
+      }
+    : {};
+
+  const { data, error } = await (supabaseAdmin as any)
+    .from("inquiries")
+    .insert({
+      // chat_threads 의 게스트 PII 는 같은 방식(encryptStringNullable)으로 암호화돼 있어 그대로 복사(재암호화 불필요).
+      first_name: thread.guest_name || null,
+      email: thread.guest_email || null,
+      contact_id: thread.guest_phone || null,
+      nationality: thread.guest_country || null,
+      spoken_language: lang,
+      treatment_type: intake?.body_part || "general_inquiry",
+      message: rawEnc,
+      intake: { ...(intake || {}), ...consentFields },
+      source: "ai_agent",
+      status: "received",
+    })
+    .select("id")
+    .single();
+
+  if (error) {
+    console.error("[promoteThreadToInquiry] insert:", error.message);
+    return;
+  }
+  if (data?.id) {
+    // 경쟁 방지: 아직 null 일 때만 연결(동시 요청이 두 inquiry 를 만들어도 스레드는 하나만 가리킴).
+    // ponytail: 드문 경쟁 시 고아 inquiry 1개 가능 — 빈도 낮아 허용, 문제되면 thread당 advisory lock.
+    await (supabaseAdmin as any)
+      .from("chat_threads")
+      .update({ inquiry_id: data.id })
+      .eq("id", thread.id)
+      .is("inquiry_id", null);
+  }
+}
+
 // 3턴마다 대화에서 normalized_inquiries draft 생성 (PII 암호화 저장).
 export async function createDraftIntake(
   thread: any,
@@ -125,4 +183,7 @@ export async function createDraftIntake(
       .update({ normalized_inquiry_id: data.id })
       .eq("id", thread.id);
   }
+
+  // KHIDI 집계 대상(inquiries)으로 승격 — 3턴+ 대화 1회(중복방지). 실패해도 챗은 계속.
+  await promoteThreadToInquiry(thread, intake, rawEnc, lang);
 }

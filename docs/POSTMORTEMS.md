@@ -8,6 +8,138 @@
 
 ---
 
+## #50 — AI 안전가드가 환자 답변을 "막지" 못하고 사후 점수만 매김 + 1차소견 PII 미마스킹 (2026-06-29 오픈 전 전수조사)
+
+**무슨 일**
+- 결정적(deterministic) 의료 레드라인 가드 `scanRedlines`(완치·약물용량·예후수치 단정 탐지)가 **judge.ts(비동기 fire-and-forget)와 오프라인 벤치에서만** 호출되고 있었음. 라이브 송출 경로(`public/chat/stream`·`generateChatReply`)엔 호출이 없어서, AI가 "이 치료로 90% 완치됩니다" 같은 단정을 내면 **환자는 이미 읽은 뒤** judge 가 코디에게 경보만 보냄(노출 차단 0). 문서(`AI_QUALITY_ASSURANCE.md`)는 "라이브 매 응답(판사 이전)"이라 적었지만 실제 코드는 그렇지 않았음 = 정책↔코드 갭.
+- 부수: Gemini 안전필터가 전부 `BLOCK_NONE`이라(의료 오탐 회피·의도됨) 환자 노출 텍스트의 실질 안전선이 시스템 프롬프트 한 겹뿐이었음.
+- 부수2: 채팅 경로는 Gemini 전송 전 `redactModelPii`로 PII 마스킹(#425)했는데 **1차소견(triage) 경로는 환자 자유텍스트를 원문 그대로** Gemini 에 보냄(비대칭).
+
+**왜 못 잡았나 (근본원인)**
+- "가드가 있다"는 사실에 안심하고 **어디서 호출되는지(차단 시점)**를 검증하지 않음. 0층 가드를 만들 때 judge 안에 둔 게 자연스러웠으나 judge 자체가 비차단이라 송출 게이트 역할을 못 했음.
+- 스트리밍이 원시 텍스트 append 구조라 "이미 보낸 토큰은 취소 불가"라는 제약이 차단 설계를 어렵게 만들어 방치됨.
+
+**어떻게 고쳤나**
+- `safetyGuard.ts`에 환자 노출 6개어 문구 추가: `safeDeferralMessage`(비스트리밍 — 위험답변 통째 대체) / `redlineCorrectionNotice`(스트리밍 — 답변 뒤 즉시 정정·코디연결).
+- 비스트리밍 `generateChatReply`: 최종 reply 조립 후 `scanRedlines` → critical 이면 안전 대체문구로 **통째 교체(노출 0)** + `redlineBlocked` 플래그.
+- 스트리밍 `stream/route.ts`: 송출 후 `finalReply` 스캔 → critical 이면 ①정정 안내 append ②**비동기 judge 안 기다리고 코디 종 즉시 호출**(이미 울렸으면 생략) ③메시지 metadata 에 `redline`+`needs_doctor_review`. triage 출력도 같은 경로라 함께 스캔됨.
+- triage.ts: `messageText`에 `redactModelPii` 적용(채팅 경로와 동등). 첨부 파일 자체는 판독에 필요해 불가피.
+
+**재발 방지**
+- 송출 게이트는 이제 라이브 경로 안에 있음(judge 의존 탈피). 후속 권장(문서화): `rag_chunks_used=0`/redline 적발률을 집계해 경보(지표는 있는데 경보가 없던 #48 교훈과 동일).
+
+---
+
+## #49 — 고객이 받는 메일·링크에 옛 배포 도메인 잔재(healo-khidi.vercel.app·khidi.healo.kr) (2026-06-29 오픈 전 전수조사)
+
+**무슨 일**
+- 모든 거래메일 푸터 링크가 옛 주소 `healo-khidi.vercel.app`(`src/emails/shared.jsx`), survey 토큰·리마인더 크론의 base URL 폴백도 동일, `.env.example`의 `NEXT_PUBLIC_SITE_URL`은 또 다른 옛 주소 `khidi.healo.kr`. `NEXT_PUBLIC_SITE_URL`이 비면 환자가 받는 메일·설문·캘린더 링크가 죽은 도메인을 가리켜 404.
+- `app/api/email/preview`·`/design-preview`·`/dev/cancer-preview` 같은 dev/내부 페이지가 prod 에서 200 으로 열려 있었음. 클라이언트 `console.log`에 로그인 사용자 이메일이 사이트 전역에서 찍히고 있었음.
+
+**왜 못 잡았나 (근본원인)**
+- `check:content`의 금지 도메인 룰이 `@healo.kr`(이메일)만 잡고 **링크/리터럴로 쓰인 옛 배포 도메인**은 안 걸렀음(주석에 "구멍" 명시돼 있었으나 미보완). NEXT_PUBLIC_SITE_URL 은 `check:env` 검사 대상도 아니라 잘못된 값이 조용히 통과.
+
+**어떻게 고쳤나**
+- 리터럴/폴백을 전부 `https://healwith.co.kr`로 교체. dev/내부 페이지에 `NODE_ENV==='production'` 가드. console.log 의 이메일 제거.
+- **가드 추가**: `check-content`에 `healo-khidi.vercel.app`·`khidi.healo.kr` 금지 룰(CORS allowlist 만 면제). `check-env`에 NEXT_PUBLIC_SITE_URL 옛도메인 값이면 에러.
+
+---
+
+## #48 — RAG 검색이 100% 고장: 모든 AI 응답이 지식베이스 없이 나가고 있었음 (2026-06-29)
+
+**무슨 일**
+- 실DB 점검 결과 AI 챗 응답 **371개 전부 RAG 청크 0개**(rag_chunks_used=0), `rag_documents`·`rag_chunks` = **0개**. 자랑하던 3-Tier RAG의 검증 지식 층이 통째로 비어, AI가 병원·치료 검증 데이터 없이 맨몸 모델로만 답하고 있었음.
+- 원인이 **두 겹**이었다:
+  1. **적재(ingest) 깨짐**: `src/lib/rag/ingest.ts` 가 `rag_chunks` 의 없는 컬럼 `embedded_at`·`embedding_model` 에 insert 시도 → PGRST204 로 적재가 통째 실패 → 지식베이스가 영원히 비어 있었음.
+  2. **검색 RPC 깨짐**: `rag_search_chunks_v1_1` 의 반환 컬럼 `doc_source_id` 가 `uuid` 로 선언됐으나 `rag_documents.source_id` 는 `text` → 실행 시 "structure of query does not match function result type" 로 항상 실패. generateReply 의 catch 가 빈 배열로 폴백 → 설령 데이터가 있어도 검색이 무력화.
+
+**왜 못 잡았나 (근본원인)**
+- **코드↔DB 스키마 드리프트**가 조용히 누적: 적재/검색이 실패해도 앱은 빈 결과로 폴백(graceful)하게 짜여 있어 **에러가 사용자/PO 화면에 안 보임** → "RAG 됨"으로 착각. 빌드·테스트는 통과(스키마 불일치는 런타임에만 터짐).
+- 관측 부재: `rag_chunks_used=0` 가 매 응답 metadata 에 찍히고 있었는데 **아무도 집계해서 안 봄**. 지표가 있는데 경보가 없었다.
+
+**어떻게 고쳤나**
+- ingest.ts: 부기정보(`embedding_model`·`embedded_at`)를 전용 컬럼 대신 `metadata`(jsonb)에 보관하도록 수정 → 적재 정상화.
+- RPC: 반환타입 `doc_source_id` 를 `text` 로 정정(DROP 후 재생성). `migrations/20260629_fix_rag_search_v1_1_source_id_type.sql`.
+- 검증 데이터 적재: `ingestSources(["treatment","hospital"])` 로 16문서/22청크 + 임베딩 생성. 제휴 데이터 `trust_tier=2`(Partner-verified)로 정정.
+- end-to-end 확인: 샘플 질문(ko/en/ru) 임베딩 → RPC 호출 → 청크 4개 정상 반환 확인.
+
+**재발 방지**
+- **✅ 관측 경보(적용, 2026-06-29 밤 이후 세션):** 매일 도는 `scripts/smoke-chat.mjs`(chat-smoke.yml, prod 대상·service_role 보유)에 **TEST C(RAG 헬스)** 추가 — 지식질문을 던지고 그 응답의 `metadata.rag_chunks_used > 0` 을 service_role REST 로 검증. 0이면 워크플로 빨강. RPC엔 유사도 컷오프가 없어 RAG가 살아만 있으면 어떤 질문이든 청크>0 → **0은 정확히 이번 두 고장모드(적재 깨짐=청크 없음 / RPC 깨짐=빈 결과)뿐이라 오탐 없이 증상 레벨에서 잡는다.** "지표는 찍히는데 아무도 안 보는" 침묵을 깸. (자격증명 없으면 SKIP — 실패 아님.)
+- **스키마 드리프트 가드(부분):** 테이블 레벨 `scripts/check-schema-refs.mjs` 는 이미 CI(ci.yml)에 물려 있음(`.from("테이블")` 존재 검사, 오탐 0). 다만 이번 #48의 실제 고장은 **컬럼 레벨**(없는 `embedded_at` insert) + **RPC 반환타입**(uuid≠text)이라 정적 검사로는 잡기 어렵다(컬럼 레벨은 생성타입 도입 후 후속 — 파일 상단 주석대로). → 그 공백을 위 런타임 TEST C 가 증상 레벨에서 메운다(정적+런타임 이중).
+- 데이터 위생(별도): RAG에 "TEST 병원" 등 테스트 데이터가 섞여 검색에 노출됨 → #47에서 원천 차단(is_published 필터).
+
+---
+
+## #47 — 미게시·TEST 데이터가 RAG 검색으로 환자에게 노출 (ingest 가 is_published 필터 누락) (2026-06-29)
+
+**무슨 일**
+- 공개 페이지(병원목록·치료목록·dbSearch)는 전부 `is_published=true`만 보여주는데, RAG 적재(`ingest.ts`)만 필터 없이 전부 끌어옴 → "TEST 병원 (국내 의료기관)" 더미 + 미게시 치료 초안이 AI 챗 검색 인덱스에 들어가 환자에게 노출됨.
+
+**근본원인**
+- 적재 경로가 공개 가시성 규칙(`is_published`)을 안 따름. 사이트의 모든 공개 경로는 필터하는데 RAG ingest만 빠진 유일한 누락 경로. (병렬 세션 PR #438이 발견.)
+
+**어떻게 고쳤나**
+- `ingest.ts` treatment·hospital fetch 에 `.eq("is_published", true)` 추가 → 공개 페이지와 동일 가시성. 미게시·TEST는 애초에 적재 불가(재발방지 가드). PR #431이 #438의 코드 수정을 흡수.
+- 라이브 정리: TEST 병원 소프트삭제 + 미게시 소스 RAG 잔재(문서 4건+청크) 제거(병렬 세션이 적용 완료).
+
+**재발 방지**
+- 교훈: **RAG 적재는 공개 페이지와 동일한 가시성 필터(`is_published`)를 반드시 따른다.** 새 소스 타입 추가 시 공개 플래그 확인.
+
+---
+
+## #46 — 문의 완료 화면이 "매칭 정확도 90%"라는 근거 없는 수치를 주장 (2026-06-29)
+
+**무슨 일**
+- 1차 문의 접수 완료 화면에서 "추가 정보 6가지만 더 주면 **매칭 정확도가 90%까지** 올라간다"는 문구. PO가 "추가정보 준다고 정확도 90% 되는 거 아니잖아"라고 지적. 같은 파일에 90% 주장이 3곳(유도 본문·step2 제목·성공 제목).
+
+**근본원인**
+- 측정·근거 없는 정량 수치를 마케팅 카피로 박아둠(과거 모델 잔재). 의료 플랫폼에서 수치 주장은 과장광고 소지 + 신뢰 훼손. `check:content`의 의료광고 금지어 가드는 완치/보장/100% 류만 잡고 "정확도 90%" 같은 임의 수치는 못 걸렀음.
+
+**어떻게 고쳤나**
+- 6개 언어 전부 "더 빠르고 정확한 안내" 톤으로 교체(수치 제거). 유도문구·step2 제목·성공 제목 3곳 + 전수조사로 환자노출 페이지에 동일 주장 없음 확인(남은 "90%"는 로딩 스켈레톤 CSS width뿐). PO가 카피 톤 결정.
+
+**재발 방지**
+- 교훈: **수치 주장(정확도·만족도·성공률 N%)은 실측 근거 없으면 카피에 쓰지 않는다.** 환자노출 문구는 PO가 톤 결정.
+- 가드는 보류: "N% 정확도" 패턴 자동 차단은 admin/coordinator 대시보드의 정당한 지표 표시(예: `match_accuracy`, AI 정확도 목표)와 충돌해 오탐 큼 → 환자노출 디렉토리 한정 룰이 필요한데 현재 검사기 구조론 과함. 대신 이 반성문으로 원칙 명시.
+
+---
+
+## #45 — 알림 메일·알림톡의 시각이 UTC로 표시됨 (toLocaleString에 timeZone 누락) (2026-06-29)
+
+**무슨 일**
+- 관리자 새 문의 알림 메일의 "시각"이 `AM 7:20`처럼 찍힘 — 실제 접수는 한국시간 16:20. PO가 "어느 나라 기준이냐"고 지적.
+
+**근본원인**
+- 서버(Vercel)는 UTC로 동작. `new Date(iso).toLocaleString("ko-KR")` 는 **로케일만 ko-KR이고 timeZone 미지정 → 서버 TZ(UTC)로 렌더**. 한국시간보다 9시간 느리게 표시.
+- 같은 부류가 3곳 더 잠복: 30분전 알림톡(`kakao.ts`), 상담 리마인더 메일(`consultationReminder.ts`)도 `scheduledAt`을 timeZone 없이 표시 → **환자에게 상담 시각을 UTC로 잘못 안내 = 상담 놓칠 위험**. (`consultationInvite.ts`는 이미 KST+UTC 병기로 올바름.)
+
+**어떻게 고쳤나**
+- 시각 표시에 `timeZone: "Asia/Seoul"` 명시 + 라벨. 관리자 알림(adminNotifier 3곳)은 `(KST)` 접미, 환자 상담 알림(kakao·reminder)은 `timeZoneName:"short"`로 시간대 라벨 노출.
+
+**재발 방지**
+- 전수 스캔: `src/lib/notifications`·`email`·`pdf`·`surveys`·`symptoms` 의 `toLocaleString` 전부 점검 → 시각 표시 4곳 전부 timeZone 보유 확인.
+- 교훈: **서버에서 사용자에게 시각을 보여줄 땐 항상 timeZone을 명시한다(서버 TZ는 UTC).** ISO를 그대로 toLocaleString 하면 UTC로 샌다.
+
+---
+
+## #44 — main CI(eslint)가 빨강인 채 방치돼 모든 PR 머지가 막혀 있었음 (prefer-const error 1줄) (2026-06-29)
+
+**무슨 일**
+- 인수인계 정리 PR(#412, 순수 문서)의 `ci` 잡이 실패. 내 변경과 무관한 **`app/api/auth/find-id/route.ts:46` prefer-const error**(`let matches` → 재할당 안 하니 `const`) 1건이 main에 깔려 있어 **CI가 빨강 = 모든 PR ci가 빨강 = 머지 차단** 상태였음.
+- `matches`는 `.push()`만 되고 배열 참조 재할당이 없어 eslint `prefer-const`가 error로 잡음. `let`→`const` 한 줄로 해소.
+
+**왜 못 잡았나 (근본원인)**
+- 이 error는 #405(아이디찾기) 영역 파일에 있는데 #405는 "ci 초록"으로 머지됨 → **머지 후 main이 빨강이 된 경위가 불명확**. 유력 가설: 2분 자동저장 훅(`git add -A` 자동커밋)이 머지 후 파일을 다시 건드리며 `const`를 `let`으로 되돌렸거나, lint 캐시/룰 차이로 PR 시점엔 안 잡혔던 것. (이미 문서화된 자동저장 훅 위험과 같은 결.)
+- 더 큰 구조 문제: **main이 빨강이어도 아무도 즉시 모름** — 다음 PR을 낼 때까지 잠복. 핸드오프에 "main CI 빨강" 류가 #40·이전에도 반복 등장 = 만성.
+
+**어떻게 고쳤나**
+- `let matches` → `const matches` (route.ts:46). 레포 전체 eslint **error 0** 재확인 후 #412에 포함해 머지 → main 초록 복구.
+
+**재발 방지**
+- 유사 스캔: `npx next lint` 전체 error-only 0건 확인(다른 prefer-const/blocking error 없음).
+- 교훈: **PR ci가 "내 변경과 무관한 곳"에서 빨강이면 = main이 이미 빨강**. 무시하지 말고 그 자리에서 고쳐 같은 PR에 태워 main을 초록으로 되돌려라(모든 후속 PR을 위해).
+- 후보(별도): main push에 대한 **빨강 즉시 알림**(이슈/슬랙)이 없어 잠복함 → S1 데드맨/알림 계열 작업과 묶어 "main ci 빨강 = 즉시 알림" 추가 검토.
+
 ## #43 — 비번찾기 캡차(Turnstile)가 CSP에 막혀 조용히 죽음 → 재설정 자체를 막음 (2026-06-26)
 
 - **무슨 일**: 비번찾기에 Turnstile 캡차를 넣었더니 실서비스에서 **빈 회색 박스 + '보내기' 버튼 영구 비활성** → 사용자가 재설정을 아예 못 함. PO가 "화면이 이따구"라고 지적.
@@ -106,6 +238,28 @@
 
 **재발 방지 (시스템 적용)**
 - 정적 가드는 즉시 CI 게이트(활성). E2E는 secrets 등록 시 활성. 새 포털/목록/직원 화면 추가 시 같은 자동 검사로 회귀 차단. 검증 못 한 건 "검증 못 함"으로 솔직히 표기하고 다음 세션 1순위로 승격(미루지 말 것).
+
+## #33 — DB 마이그레이션이 "success"인데 실제론 아무것도 안 막음 (REVOKE가 PUBLIC 상속분 못 잡음) (2026-06-24)
+
+> ⏪ 2026-06-29 세션이 미머지 PR #353에서 건져 옴 — 교정 마이그레이션(#352)은 머지됐으나 이 반성문만 main에 누락돼 있었음.
+
+**무슨 일**
+출시 종합감사에서 `alert_counter_increment`/`reset`(SECURITY DEFINER) 함수가 anon·authenticated에게 REST RPC로 노출됨을 발견(Supabase advisor). 보안 하드닝 PR #350이 `REVOKE EXECUTE … FROM anon, authenticated` 마이그레이션을 추가·적용했고 **"success"로 끝남**. 그런데 적용 후 `has_function_privilege('anon', …, 'EXECUTE')`로 확인하니 **여전히 `true`** — 전혀 안 막혔다.
+
+**왜 못 잡았나 (근본원인)**
+- PostgreSQL은 새 함수의 EXECUTE 권한을 기본적으로 **PUBLIC**에 부여한다. anon·authenticated는 PUBLIC을 상속하므로, 이들에게 직접 grant가 없던 상태에서 `REVOKE … FROM anon, authenticated`는 **회수할 직접 권한이 없어 no-op**이고 PUBLIC 상속분은 그대로 남는다.
+- 마이그레이션 실행 자체는 에러 없이 통과(REVOKE는 없는 권한에도 성공) → **"적용됨 = 효과 있음"으로 착각**. 이번 세션 핵심 패턴 #35("조용한 성공으로 위장한 실패")의 교과서적 사례 — 이번엔 코드가 아니라 **DDL 권한**에서.
+
+**어떻게 고쳤나**
+- `REVOKE EXECUTE … FROM PUBLIC, anon, authenticated` + 서버 전용 `GRANT … TO service_role`로 교정 마이그레이션 적용(#352).
+- 적용 후 **실DB 권한 재조회로 검증**: anon=false·authenticated=false·service_role=true 확인.
+
+**재발 방지**
+- 교훈: **Postgres 함수/객체 권한을 잠글 땐 `REVOKE … FROM PUBLIC`이 필수**. 역할명(anon/authenticated)만 회수하면 PUBLIC 상속분이 남아 무효.
+- 교훈: **DDL·마이그레이션은 "적용 성공"을 신뢰하지 말고, 의도한 상태를 실DB로 재조회해 검증**(`has_function_privilege`, `pg_policies`, 컬럼 존재 등). "success"는 문법이 맞았다는 뜻일 뿐 효과가 났다는 뜻이 아니다.
+- 가드 후보: 보안 advisor(`get_advisors`)를 출시 점검 체크리스트에 포함(이번에 이걸로 최초 발견).
+
+---
 
 ## #32 — 환자 포털 모바일 레이아웃 깨짐 (공개 크롬 + 환자 크롬 이중 노출) (2026-06-23)
 
@@ -966,3 +1120,46 @@ PO가 협력병원 상세(`/hospitals/[slug]`) 하단 "자주 묻는 질문"이 
 - 유사 스캔: `/api/public/chat/start` 모든 호출부 전수(앱 2 + 스모크 2) — 전부 consent 전송 확인.
 - 교훈: **cron-only 스모크/체크는 PR을 안 막는다 → 그 스모크가 의존하는 API를 바꾸면 같은 PR에서 스모크 호출부도 같이 고쳐라.** (PR 초록이 cron 적색을 가린다.)
 - 교훈: **게이트는 쿠키가 아니라 "기록된 사실(동의 여부)"로 분기.**
+
+## #42 — AI 답변 안전가드가 '근거 없는 정량 과장(정확도/만족도/성공률 N%)'을 못 잡던 구멍 (2026-06-29)
+
+**무슨 일**
+- AI 챗 안전가드는 2층(0층 결정론적 정규식 `safetyGuard.ts` + 1층 LLM 심판 `judge.ts`)으로 의료 레드라인(완치보장·약물용량·생존율/완치율)을 잡고 있었지만, **"매칭 정확도 90%·환자 만족도 95%·성공률 N%·효과 N%" 같은 측정·출처 없는 마케팅 과장**은 어느 층도 안 잡았다. `check:content` 금지어도 완치/100% 류만 차단(임의 수치는 통과).
+- PO가 문의 완료 화면 정적 카피("추가정보 주면 매칭 정확도 90%")를 보고 "근거 없이 정량 주장 쓰지 마라"고 지적(2026-06-29) → 같은 부류가 AI 생성 답변으로도 환자에게 나갈 수 있는 구멍.
+
+**왜 못 잡았나 (근본원인)**
+- 0층 정규식이 **의료 레드라인(의사 면허 영역)만** 카테고리로 두고, '과장광고'는 별 카테고리가 없었음. 생존율/완치율(prognosis)은 잡지만 정확도/만족도/성공률 같은 *플랫폼 효과* 수치는 패턴에 없었다.
+
+**어떻게 고쳤나**
+- `safetyGuard.ts`에 **`overclaim_stat` 연성(soft) 카테고리** 추가 — 6개 언어(ko·en·ru·kk·zh·ja)에서 "품질·효과 키워드 + 숫자(%/점)" 인접 시 탐지. critical 바닥(0.3)이 아니라 **연성 캡(0.5)**만 적용 → 코디 알림(0.6 미만)은 뜨되 의료 레드라인과 구분(오탐 시 검토큐 과부하 방지).
+- `judge.ts` LLM 심판 프롬프트에 같은 항목 추가 → 숫자 없는 "거의 모든 환자가 만족" 류 뉘앙스 과장도 잡음. `qualityStandards.ts`에 `OVERCLAIM_FLAGS` 카탈로그 문서화.
+- 테스트: `safetyGuard.test.ts`에 6언어 과장 탐지 + 오탐 방지(가격/개수/정직한 '정확한 안내' 통과) + 연성/critical 캡 구분 케이스. 전 71개 통과.
+
+**재발 방지**
+- 가드 룰 영구화: 새 과장 패턴은 `safetyGuard.ts` `OVERCLAIM_STAT`에 추가하면 라이브·회귀 채점이 공유.
+- **정적 카피 가드는 일부러 안 넣음**: 우리 KHIDI 공식지표가 "환자 만족도 90점"이라, `check:content` 정적 룰을 두면 어드민/대시보드의 정당한 목표 표시를 오탐(PO가 경고한 "임의 수치는 사람이 신경 쓸 것"). 런타임(환자 노출 답변) 범위로 한정 = 어드민 내부 라벨엔 안 걸림.
+- 교훈: **안전가드 카테고리는 '의료 위험'뿐 아니라 '과장광고 위험'도 별도로 — 의료 플랫폼은 후자도 법적 리스크.**
+
+---
+
+## #51 — 로그인 환자 AI챗(/patient/chat)이 통째로 죽어 있었음: chat_messages를 없는 컬럼(role/content)으로 read/write (2026-06-29)
+
+**무슨 일**
+- 로그인 환자용 AI 상담(`/patient/chat`)이 스레드 생성은 되는데 **메시지를 보내면 저장·응답이 안 됐다.** 실DB 확인: `metadata.source='patient_portal'` 스레드가 2개월치(4월~6월) **전부 메시지 0건**.
+- 원인: `chat_messages` 테이블의 실제 컬럼은 `actor_type`/`message_text`인데, 환자챗 API(`app/api/patient/chat/route.ts`·`[threadId]/route.ts`)는 **존재하지 않는 `role`/`content` 컬럼**으로 insert/select. PostgREST가 "column not found"로 거부 → 환자 메시지 insert 500 + AI 응답 저장 실패 + 이력 로드 실패. 프론트는 빈 화면.
+- 공개챗(`/inquiry`)은 처음부터 올바른 `actor_type`/`message_text`를 써서 정상 작동 → 같은 테이블을 쓰는 두 화면의 **데이터모델 불일치**가 핵심.
+
+**왜 못 잡았나(근본원인)**
+- 두 챗 표면(공개/환자)이 따로 진화하며 같은 테이블에 **다른 컬럼 가정**을 가짐. 환자챗은 `role/content`(흔한 LLM 메시지 네이밍)를 가정했는데 실제 스키마는 상담센터식 `actor_type/message_text`였다.
+- `next build`는 문법만 검사 → 런타임 컬럼 부재는 못 잡음. 환자챗 end-to-end 실로그인 테스트가 없었음(스모크는 공개챗만 커버).
+- 스키마 드리프트도 한몫: `chat_messages`/`chat_threads`의 일부 컬럼이 마이그레이션 파일이 아니라 Supabase 콘솔에서 직접 추가돼, 코드가 어떤 컬럼이 실존하는지 헷갈리기 쉬웠다.
+
+**어떻게 고쳤나**
+- `app/api/patient/chat/route.ts`: 환자 메시지 insert를 `actor_type:"patient"·actor_id·message_text·is_internal:false`로, AI 응답 insert를 `actor_type:"system"·message_text`로, 이력 read를 `actor_type/message_text`→`{role,content}` 매핑으로 정정(공개챗 규약과 일치).
+- `app/api/patient/chat/[threadId]/route.ts`: select를 `actor_type/message_text`로, `is_internal=false` 동등비교를 `not is_internal is true`로(공개챗 메시지의 null 포함). 프론트 응답 계약(`role/content`)은 그대로 유지 → 프론트 무수정.
+- 유사 스캔: `chat_messages`를 다루는 다른 경로(`resume`·`message`·`stream`·`postResolveWorker`)는 전부 올바른 컬럼 사용 확인 — 환자챗만 깨져 있었음.
+
+**재발 방지**
+- **단일 데이터모델로 수렴 중**: 멀티스레드 통일(KNOWN_ISSUES 백로그)에서 공개챗의 `actor_type/message_text` 모델을 단일 표준으로 삼아 환자챗 분기를 흡수. 두 모델 공존이 사고의 뿌리.
+- 스키마 드리프트 보강 마이그레이션을 백로그에 기록(코드가 신뢰할 실제 스키마 SoR 확보).
+- 교훈: **같은 테이블을 쓰는 두 기능은 컬럼 가정을 공유 헬퍼로 강제하라.** "빌드 통과 ≠ 동작"(CLAUDE.md) — 신규/수정 DB 경로는 실데이터 1건으로 end-to-end 확인.
