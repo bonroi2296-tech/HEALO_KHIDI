@@ -32,6 +32,8 @@ import {
   Eye,
   Bug,
   ChevronDown,
+  Target,
+  Wallet,
 } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 
@@ -45,6 +47,7 @@ const navGroups = [
     items: [
       { id: "dashboard", label: "대시보드", icon: LayoutDashboard, href: "/admin" },
       { id: "kpi-dashboard", label: "중간평가 현황", icon: TrendingUp, href: "/admin/khidi/kpi-dashboard", children: [
+        { id: "north-star", label: "북극성 지표", icon: Target, href: "/admin/khidi/north-star" },
         { id: "conversion", label: "유치 전환 상세", icon: Filter, href: "/admin/khidi/conversion" },
         { id: "satisfaction", label: "환자 만족도", icon: Star, href: "/admin/khidi/satisfaction" },
         { id: "evidence", label: "증빙 산출물", icon: FileText, href: "/admin/khidi/evidence" },
@@ -99,6 +102,7 @@ const navGroups = [
       { id: "staff", label: "직원 계정", icon: Users, href: "/admin/staff" },
       { id: "deletion-requests", label: "데이터 삭제 요청", icon: Trash2, href: "/admin/account/deletion-requests" },
       { id: "audit", label: "감사로그", icon: FileText, href: "/admin/audit" },
+      { id: "usage", label: "외부 서비스 사용량", icon: Wallet, href: "/admin/khidi/usage" },
       { id: "notifications", label: "알림 관리", icon: Bell, href: "/admin/settings/notifications" },
       { id: "branding", label: "브랜딩 설정", icon: Palette, href: "/admin/settings/branding" },
     ]

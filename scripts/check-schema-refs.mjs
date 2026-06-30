@@ -41,6 +41,7 @@ const PUBLIC_TABLES = new Set([
   "agencies", "agency_users", "case_status_history", "alert_counter_events", "device_tokens",
   "progress_records", "account_deletion_requests",
   "funnel_events", // 2026-06-30 적용 (PR #522 — 죽은 퍼널 계측 살리기). RLS=서비스롤 전용
+  "ai_usage_events", // 2026-06-30 적용 — AI 토큰·비용 계측(외부 서비스 사용량 화면). RLS=서비스롤 전용
 ]);
 
 // `.from()` 첫 인자가 DB 테이블이 아닌 것 — Supabase Storage 버킷(.storage.from). 오탐 제외.

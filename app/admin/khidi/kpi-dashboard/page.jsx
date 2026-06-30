@@ -291,6 +291,27 @@ export default function KpiDashboardPage() {
         </div>
       )}
 
+      {/* 북극성 지표 진입(이 사업의 단일 운전대 — 주간 사전상담 완료) */}
+      <Link
+        href="/admin/khidi/north-star"
+        className="block bg-gradient-to-r from-teal-700 to-teal-600 rounded-xl p-5 shadow-sm hover:from-teal-800 hover:to-teal-700 transition group"
+      >
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <div className="flex items-center gap-2 text-white/80 text-xs font-semibold uppercase tracking-wide">
+              🎯 북극성 지표
+            </div>
+            <p className="text-white font-bold text-lg mt-0.5">주간 사전상담 완료</p>
+            <p className="text-white/75 text-xs mt-0.5">
+              유치·상담120·만족도를 동시에 미는 단일 운전대 — 주간 추세·선행지표 보기
+            </p>
+          </div>
+          <span className="text-white/90 text-sm font-medium group-hover:translate-x-0.5 transition-transform whitespace-nowrap">
+            열기 →
+          </span>
+        </div>
+      </Link>
+
       {/* 사업 기간 진척률 */}
       <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
         <div className="flex items-center justify-between mb-3">

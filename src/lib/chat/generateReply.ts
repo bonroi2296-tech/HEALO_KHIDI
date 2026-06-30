@@ -11,6 +11,7 @@ import "server-only";
 import { createHash } from "crypto";
 import { generateText, streamText } from "ai";
 import { google } from "@ai-sdk/google";
+import { logAiUsage } from "@/lib/ai/usageLog";
 import { supabaseAdmin } from "../rag/supabaseAdmin";
 import { hashQuery, logRagDisabled } from "../rag/ragQueryEvents";
 import { searchHospitalsAndTreatments } from "./dbSearch";
@@ -1037,6 +1038,14 @@ export async function generateChatReply(
       if (reducedResult?.text && reducedResult.text.trim()) result = reducedResult;
     }
 
+    // 💰 사용량·비용 계측 (fire-and-forget — 실패해도 응답 무관). 어드민 '외부 서비스 사용량' 화면 데이터.
+    logAiUsage({
+      surface: "public_chat",
+      model: getModelName(),
+      usage: (result as any)?.usage,
+      meta: { mode: "generate", structured: injectedPatternIds.length > 0 },
+    });
+
     let finalReply: string;
     let declaredUsedIds: string[];
     let fallback: boolean;
@@ -1215,6 +1224,7 @@ export async function streamChatReply(
 
     let fullText = "";
     let finishReason: any = undefined;
+    let usageForLog: any = undefined; // 💰 사용량 계측용(스트림 usage 또는 fallback usage)
     try {
       const sr = streamText({ ...baseParams, messages: safeMessages as any });
       for await (const chunk of sr.textStream) {
@@ -1225,6 +1235,11 @@ export async function streamChatReply(
         finishReason = await sr.finishReason;
       } catch {
         /* finishReason 조회 실패는 무시 */
+      }
+      try {
+        usageForLog = await sr.usage;
+      } catch {
+        /* usage 조회 실패는 무시(계측만 영향) */
       }
     } catch (e: any) {
       console.warn(`[streamChatReply] stream error: ${String(e?.message || e).slice(0, 120)}`);
@@ -1244,6 +1259,7 @@ export async function streamChatReply(
         if (reduced?.text && reduced.text.trim()) {
           fullText = reduced.text;
           finishReason = (reduced as any)?.finishReason ?? finishReason;
+          usageForLog = (reduced as any)?.usage ?? usageForLog;
           onChunk(fullText);
         }
       }
@@ -1274,6 +1290,14 @@ export async function streamChatReply(
         latencyMs: Date.now() - t0,
       },
     };
+
+    // 💰 사용량·비용 계측 (fire-and-forget). 스트림 usage 가 없으면 토큰 미상으로 기록(호출 수만 집계).
+    logAiUsage({
+      surface: "public_chat",
+      model: getModelName(),
+      usage: usageForLog,
+      meta: { mode: "stream" },
+    });
 
     // Judge: 메인 흐름 차단 없이 백그라운드 평가
     runJudgeInBackground({
