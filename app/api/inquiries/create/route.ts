@@ -161,7 +161,18 @@ export async function POST(request: NextRequest) {
       });
       
       console.log(`[${apiPath}] ✅ Inquiry created: ${inquiryId}`);
-      
+
+      // ✅ 퍼널 이벤트: 문의 완료 (전환 계측 — PII 제외, 집계용 메타만)
+      //    응답 뒤 서버리스 freeze 로 insert 가 잘리지 않게 after() 로 감싼다.
+      after(() => trackFunnelEvent({
+        stage: 'form_complete',
+        page: apiPath,
+        language: body.spokenLanguage || undefined,
+        country: body.nationality || undefined,
+        treatmentType: body.treatmentType || undefined,
+        utm: body.utm,
+      }));
+
       // ========================================
       // 5. 관리자 알림 발송 (Fail-safe)
       // ========================================
