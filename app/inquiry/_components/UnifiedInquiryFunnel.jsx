@@ -1097,7 +1097,21 @@ export default function UnifiedInquiryFunnel() {
         hoverBorder: "hover:border-green-500",
         onClick: () => {
           safeEvent("inquiry_choose_channel", { channel: "human" });
-          setPhase("human-channels");
+          // 설정된 메신저만 노출. 1개뿐이면(현재 WhatsApp) picker 화면을 건너뛰고 바로 연결 —
+          // 미설정 채널을 '준비 중' 빈 카드로 보여 미완성 인상 주지 않게. 2개 이상이면 picker.
+          const m = SITE_INFO.messenger;
+          const configured = [
+            { key: "whatsapp", url: m.whatsapp },
+            { key: "telegram", url: m.telegram },
+            { key: "wechat", url: m.wechat },
+            { key: "line", url: m.line },
+          ].filter((c) => c.url);
+          if (configured.length === 1) {
+            safeEvent("inquiry_messenger_click", { channel: configured[0].key, direct: true });
+            window.open(configured[0].url, "_blank", "noopener,noreferrer");
+          } else {
+            setPhase("human-channels");
+          }
         },
       },
       {
@@ -1189,7 +1203,7 @@ export default function UnifiedInquiryFunnel() {
       { key: "telegram", name: "Telegram", url: SITE_INFO.messenger.telegram, color: "#26A5E4", iconUrl: "/icons/messengers/telegram.svg" },
       { key: "wechat", name: "WeChat", url: SITE_INFO.messenger.wechat, color: "#07C160", iconUrl: "/icons/messengers/wechat.svg" },
       { key: "line", name: "LINE", url: SITE_INFO.messenger.line, color: "#06C755", iconUrl: "/icons/messengers/line.svg" },
-    ];
+    ].filter((c) => c.url); // 미설정 채널 숨김 — '준비 중' 빈 카드 제거(미완성 인상 방지)
 
     return (
       <div className="max-w-3xl mx-auto px-4 py-10 md:py-16 animate-in fade-in slide-in-from-right-4 duration-300">
