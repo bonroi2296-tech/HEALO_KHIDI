@@ -27,11 +27,17 @@ import {
   Calculator,
   Sparkles,
   Trash2,
+  Star,
+  Stethoscope,
+  Eye,
+  Bug,
 } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 
 // 2026-05: 피벗(암환자 컨시어지) 반영 메뉴 재편 — 환자 여정 중심으로 그룹화,
 // 디렉토리 시절 도구는 '레거시 도구'로 분리(코드 보존). 크롤링은 RAG Tier2 갱신으로 라벨 재정의.
+// 2026-06-30: 메뉴 정리 — 과적된 "AI 품질·시스템"(10개)을 "AI 품질"+"계정·시스템"으로 분리.
+//   메뉴에서 빠져 묻혀있던 페이지 편입: 만족도(KHIDI 성과지표)·치료/암종·후속 리마인더·AI품질평가·AI회귀·시스템관측.
 const navGroups = [
   {
     title: "운영 현황",
@@ -39,9 +45,10 @@ const navGroups = [
       { id: "dashboard", label: "대시보드", icon: LayoutDashboard, href: "/admin" },
       { id: "kpi-dashboard", label: "KPI 대시보드", icon: TrendingUp, href: "/admin/khidi/kpi-dashboard" },
       { id: "conversion", label: "유치 전환 현황", icon: Filter, href: "/admin/khidi/conversion" },
-      { id: "ad-budget", label: "광고 예산 계산기", icon: Calculator, href: "/admin/khidi/ad-budget" },
-      { id: "evidence", label: "증빙 산출물", icon: FileText, href: "/admin/khidi/evidence" },
+      { id: "satisfaction", label: "환자 만족도", icon: Star, href: "/admin/khidi/satisfaction" },
       { id: "analytics", label: "문의 현황", icon: BarChart3, href: "/admin/analytics" },
+      { id: "evidence", label: "증빙 산출물", icon: FileText, href: "/admin/khidi/evidence" },
+      { id: "ad-budget", label: "광고 예산 계산기", icon: Calculator, href: "/admin/khidi/ad-budget" },
     ]
   },
   {
@@ -54,12 +61,14 @@ const navGroups = [
       { id: "consultations", label: "원격협진", icon: Video, href: "/admin/consultations" },
       { id: "referrals", label: "양·한방 협진 의뢰", icon: Building2, href: "/admin/khidi/referrals" },
       { id: "agent", label: "Human Agent", icon: HeartPulse, href: "/admin/agent" },
+      { id: "reminders", label: "후속 리마인더", icon: Bell, href: "/admin/reminders" },
     ]
   },
   {
     title: "제휴 자원 · RAG",
     items: [
       { id: "hospitals", label: "제휴 병원", icon: Building2, href: "/admin/hospitals" },
+      { id: "treatments", label: "치료·암종", icon: Stethoscope, href: "/admin/treatments" },
       { id: "agencies", label: "에이전시 관리", icon: Users, href: "/admin/khidi/agencies" },
       { id: "doctors", label: "의료진·지점", icon: Users, href: "/admin/doctors" },
       { id: "rag", label: "RAG 관리", icon: Brain, href: "/admin/rag" },
@@ -69,16 +78,24 @@ const navGroups = [
     ]
   },
   {
-    title: "AI 품질 · 시스템",
+    title: "AI 품질",
     items: [
       { id: "ai-status", label: "AI 상태", icon: Brain, href: "/admin/ai-status" },
+      { id: "ai-quality", label: "AI 품질 평가", icon: Sparkles, href: "/admin/khidi/ai-quality" },
+      { id: "ai-regression", label: "AI 회귀 테스트", icon: Bug, href: "/admin/khidi/ai-regression" },
       { id: "agent-analysis", label: "에이전트 자기분석", icon: Sparkles, href: "/admin/khidi/agent-analysis" },
       { id: "model-benchmark", label: "모델 성능 비교", icon: BarChart3, href: "/admin/khidi/model-benchmark" },
       { id: "ai-feedback", label: "AI 피드백", icon: ThumbsDown, href: "/admin/khidi/ai-feedback" },
+    ]
+  },
+  {
+    title: "계정 · 시스템",
+    items: [
       { id: "users", label: "회원(환자) 관리", icon: Users, href: "/admin/users" },
       { id: "staff", label: "직원 계정", icon: Users, href: "/admin/staff" },
       { id: "deletion-requests", label: "데이터 삭제 요청", icon: Trash2, href: "/admin/account/deletion-requests" },
       { id: "audit", label: "감사로그", icon: FileText, href: "/admin/audit" },
+      { id: "observability", label: "시스템 관측", icon: Eye, href: "/admin/observability" },
       { id: "notifications", label: "알림 관리", icon: Bell, href: "/admin/settings/notifications" },
       { id: "branding", label: "브랜딩 설정", icon: Palette, href: "/admin/settings/branding" },
     ]
