@@ -190,7 +190,10 @@ export async function GET(request: NextRequest) {
     const { checkAdminAuth } = await import("@/lib/auth/checkAdminAuth");
     const authResult = await checkAdminAuth(request);
 
-    if (!authResult.isAdmin) {
+    // 읽기(사후관리 알림 목록)는 코디네이터도 허용(staff) — 환자 사후관리는 코디 업무.
+    // isAdmin 전용이라 코디 대시보드 「긴급 알림」이 403→항상 0으로 떨어졌음(퍼널감사).
+    const isStaff = authResult.isAdmin || authResult.appRole === "coordinator";
+    if (!isStaff) {
       return Response.json(
         { ok: false, error: "unauthorized" },
         { status: 403 }

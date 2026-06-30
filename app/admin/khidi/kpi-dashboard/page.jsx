@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import Link from "next/link";
 import { KHIDI_TARGETS } from "@/lib/khidi/targets";
 import {
   achievementPct,
@@ -239,7 +240,7 @@ export default function KpiDashboardPage() {
       {/* 헤더 */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl font-bold text-gray-900">KHIDI KPI 대시보드</h1>
+          <h1 className="text-xl font-bold text-gray-900">중간평가 현황</h1>
           <p className="text-sm text-gray-500 mt-0.5">ICT 기반 외국인환자 사전상담·사후관리 지원 사업 (2026.04 ~ 2026.11)</p>
         </div>
         {/* 월 선택 */}
@@ -336,6 +337,22 @@ export default function KpiDashboardPage() {
             note={cum ? `응답 ${cum.satisfactionResponseCount ?? 0}건` : ""}
             accentColor="amber"
           />
+        </div>
+        {/* 드릴다운: 이 cockpit이 허브, 아래는 지표별 상세 화면 */}
+        <div className="flex flex-wrap gap-2 mt-3">
+          {[
+            { href: "/admin/khidi/conversion", label: "유치 전환 상세" },
+            { href: "/admin/khidi/satisfaction", label: "만족도 상세" },
+            { href: "/admin/khidi/evidence", label: "증빙 산출물" },
+          ].map((l) => (
+            <Link
+              key={l.href}
+              href={l.href}
+              className="text-xs font-medium px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 hover:text-teal-700 transition"
+            >
+              {l.label} →
+            </Link>
+          ))}
         </div>
       </div>
 

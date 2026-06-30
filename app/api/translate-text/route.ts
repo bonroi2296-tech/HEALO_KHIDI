@@ -92,6 +92,8 @@ export async function POST(request: NextRequest) {
 
     const { text: result } = await generateText({
       model: google("gemini-flash-latest"),
+      // 출력 토큰 상한 — 입력은 캡(10×2000자)이지만 출력은 무제한이면 비용/지연 폭주 가능(다른 AI 라우트와 동일 가드)
+      maxOutputTokens: 4096,
       prompt: `Translate these ${texts.length} texts to ${LANG_NAMES[targetLang]}. Return ONLY a JSON array of translated strings in the same order. No explanation.\n\n${JSON.stringify(texts)}`,
     });
 

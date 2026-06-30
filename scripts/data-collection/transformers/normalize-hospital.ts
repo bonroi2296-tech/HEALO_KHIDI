@@ -22,11 +22,12 @@ export function normalizeHospital(
   const specialties = extractSpecialties(hiraData.yadmNm, hiraData.clCdNm);
 
   // 인증 정보 생성
-  const certifications = evaluations.map(eval => ({
-    type: `HIRA_${eval.evlItem}`,
+  // 변수명 'eval' 은 ESM/strict 예약어라 esbuild(tsx) 변환 실패 → 'ev' 로 변경(collect CLI 전체가 깨지던 기존 버그).
+  const certifications = evaluations.map(ev => ({
+    type: `HIRA_${ev.evlItem}`,
     issuer: '건강보험심사평가원',
-    date: eval.evlYear,
-    grade: eval.evlGrade,
+    date: ev.evlYear,
+    grade: ev.evlGrade,
   }));
 
   // 주소 분리 (시/구 vs 상세주소)

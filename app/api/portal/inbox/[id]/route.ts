@@ -9,6 +9,7 @@ export const runtime = "nodejs";
 
 import { NextRequest } from "next/server";
 import { requirePortalAuth } from "@/lib/auth/requirePortalAuth";
+import { logAdminAction, getIpFromRequest, getUserAgentFromRequest } from "@/lib/audit/adminAuditLog";
 import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
 import { decryptInquiryForAdmin } from "@/lib/security/decryptForAdmin";
 
@@ -87,6 +88,18 @@ export async function GET(
 
     // 에이전시명 평탄화(관계조인 → 단일 필드)
     inquiry.agency_name = (data as any)?.agencies?.name || null;
+
+    // 감사로그: staff(코디·관리자)가 환자 PII(복호화된 이름·연락처·의료상세)를 열람했음 기록.
+    // 정부 의료데이터 과제 추적성(GDPR/PIPA·복호화 열람 감사). 실패해도 본 응답은 진행.
+    void logAdminAction({
+      adminEmail: auth.email || `staff:${auth.userId || "unknown"}`,
+      adminUserId: auth.userId,
+      action: "VIEW_INQUIRY",
+      inquiryIds: [Number(rawId)],
+      ipAddress: getIpFromRequest(request),
+      userAgent: getUserAgentFromRequest(request),
+      metadata: { surface: "coordinator_inbox_detail", role: auth.appRole || (auth.isAdmin ? "admin" : "staff") },
+    });
 
     return Response.json({ ok: true, inquiry });
   } catch (e: any) {

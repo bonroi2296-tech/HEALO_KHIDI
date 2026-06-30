@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
     // inquiry 존재 확인 + 소유권(public_token) 검증
     const { data: existingRaw, error: fetchErr } = await supabaseAdmin
       .from("inquiries")
-      .select("id, step1_completed_at, public_token, cancer_type")
+      .select("id, step1_completed_at, public_token, cancer_type, intake")
       .eq("id", inquiryId)
       .maybeSingle();
 
@@ -85,6 +85,7 @@ export async function POST(request: NextRequest) {
           step1_completed_at?: string | null;
           public_token?: string | null;
           cancer_type?: string | null;
+          intake?: Record<string, any> | null;
         })
       | null;
 
@@ -112,7 +113,10 @@ export async function POST(request: NextRequest) {
         match_accuracy: accuracy,
         // intake JSONB. 의료 민감 필드(진단일·치료상태)는 AES-256-GCM 암호화 저장
         // (어드민 표시 시 decryptForAdmin 이 복호화). stage/일정/우선순위는 비민감 → 평문.
+        // ⚠️ 기존 intake 를 spread 로 보존(merge) — step1 이 저장한 PIPA 동의기록
+        // (intake.consents·consentVersion·consentAt)을 덮어써 지우지 않기 위함(법적 증빙).
         intake: {
+          ...(existing.intake || {}),
           stage: data.stage ?? null,
           diagnosis_date: data.diagnosisDate ? encryptStringNullable(data.diagnosisDate) : null,
           treatment_state: data.treatmentState ? encryptStringNullable(data.treatmentState) : null,

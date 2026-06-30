@@ -47,10 +47,9 @@ export async function POST(request: NextRequest) {
     });
     
     return Response.json(
-      { 
-        ok: false, 
+      {
+        ok: false,
         error: "rate_limit_exceeded",
-        message: rateLimitResult.reason,
         retryAfter: Math.ceil((rateLimitResult.resetAt - Date.now()) / 1000)
       },
       { 
