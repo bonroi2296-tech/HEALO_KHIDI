@@ -56,8 +56,8 @@ export default function ImportPage() {
           setParsedData(results.data);
           setStep(2);
         },
-        error: (error) => {
-          alert('CSV 파싱 실패: ' + error.message);
+        error: () => {
+          alert('CSV 파싱 실패');
         },
       });
     } else if (fileType === 'xlsx' || fileType === 'xls') {
@@ -99,8 +99,8 @@ export default function ImportPage() {
 
           setParsedData(jsonData);
           setStep(2);
-        } catch (error) {
-          alert('Excel 파싱 실패: ' + error.message);
+        } catch (_error) {
+          alert('Excel 파싱 실패');
         }
       };
       reader.readAsArrayBuffer(file);
@@ -116,8 +116,8 @@ export default function ImportPage() {
           }
           setParsedData(jsonData);
           setStep(2);
-        } catch (error) {
-          alert('JSON 파싱 실패: ' + error.message);
+        } catch (_error) {
+          alert('JSON 파싱 실패');
         }
       };
       reader.readAsText(file);
@@ -171,8 +171,8 @@ export default function ImportPage() {
       const merged = await sendChunked(parsedData, 'validate');
       setValidationResult(merged);
       setStep(3);
-    } catch (error) {
-      alert('검증 오류: ' + error.message);
+    } catch (_error) {
+      alert('검증 오류');
     } finally {
       setLoading(false);
     }
@@ -188,8 +188,8 @@ export default function ImportPage() {
       const merged = await sendChunked(parsedData, 'import');
       setImportResult(merged);
       setStep(4);
-    } catch (error) {
-      alert('등록 오류: ' + error.message);
+    } catch (_error) {
+      alert('등록 오류');
     } finally {
       setLoading(false);
     }

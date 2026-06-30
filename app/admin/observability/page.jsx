@@ -44,7 +44,8 @@ export default function ObservabilityPage() {
       if (!data.ok) throw new Error(data.error || "Failed to load");
       setHealth(data);
     } catch (e) {
-      setError(e.message);
+      console.error("[admin/observability]", e);
+      setError("상태를 불러오지 못했습니다.");
       setHealth(null);
     } finally {
       setLoading(false);

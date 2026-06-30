@@ -39,11 +39,13 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const { from, to } = resolveRange(searchParams);
     const nationality = searchParams.get("nationality") || null;
+    // 테스트/실제 분리: ?includeTest=1 이면 테스트 데이터도 포함(평소엔 실적만).
+    const includeTest = searchParams.get("includeTest") === "1";
 
     const [{ data: funnelRows, error: e1 }, { data: countryRows, error: e2 }, { data: orgRows, error: e3 }] = await Promise.all([
-      (supabaseAdmin as any).rpc("conversion_funnel", { p_from: from, p_to: to, p_nationality: nationality }),
-      (supabaseAdmin as any).rpc("conversion_funnel_by_country", { p_from: from, p_to: to }),
-      (supabaseAdmin as any).rpc("conversion_funnel_by_org", { p_from: from, p_to: to }),
+      (supabaseAdmin as any).rpc("conversion_funnel", { p_from: from, p_to: to, p_nationality: nationality, p_include_test: includeTest }),
+      (supabaseAdmin as any).rpc("conversion_funnel_by_country", { p_from: from, p_to: to, p_include_test: includeTest }),
+      (supabaseAdmin as any).rpc("conversion_funnel_by_org", { p_from: from, p_to: to, p_include_test: includeTest }),
     ]);
     if (e1 || e2) {
       console.error("[conversion-funnel] rpc error:", e1?.message || e2?.message);
@@ -80,6 +82,7 @@ export async function GET(request: NextRequest) {
         nationality: r.nationality || "(미상)",
         cancer_type: r.cancer_type || r.treatment_type || "-",
         created_at: r.created_at,
+        is_test: r.is_test ?? false,
       };
     };
 
@@ -119,26 +122,30 @@ export async function GET(request: NextRequest) {
 
     let pending: any[] = [];
     if (inquiryIds.length > 0) {
-      const { data: pendRows } = await (supabaseAdmin as any)
+      let pendQ = (supabaseAdmin as any)
         .from("inquiries")
-        .select("id, created_at, nationality, cancer_type, treatment_type, first_name, last_name, encrypted_name")
+        .select("id, created_at, nationality, cancer_type, treatment_type, first_name, last_name, encrypted_name, is_test")
         .in("id", inquiryIds)
         .is("outcome", null)
         .gte("created_at", from)
         .lt("created_at", to)
         .order("created_at", { ascending: true });
+      if (!includeTest) pendQ = pendQ.eq("is_test", false);
+      const { data: pendRows } = await pendQ;
       pending = await Promise.all((pendRows || []).map(toDisplayRow));
     }
 
     // ── 유치확정된 목록(되돌리기용): outcome='admitted'. 코디가 잘못된 건 취소(→null)/이탈
     //    가능. auto=true(outcome_updated_by IS NULL) = 병원 확정 자동집계분(코디 미확인). ──
-    const { data: admRows } = await (supabaseAdmin as any)
+    let admQ = (supabaseAdmin as any)
       .from("inquiries")
-      .select("id, created_at, nationality, cancer_type, treatment_type, first_name, last_name, encrypted_name, outcome_updated_by, outcome_note")
+      .select("id, created_at, nationality, cancer_type, treatment_type, first_name, last_name, encrypted_name, outcome_updated_by, outcome_note, is_test")
       .eq("outcome", "admitted")
       .gte("created_at", from)
       .lt("created_at", to)
       .order("outcome_updated_at", { ascending: false, nullsFirst: false });
+    if (!includeTest) admQ = admQ.eq("is_test", false);
+    const { data: admRows } = await admQ;
     const admitted = await Promise.all(
       (admRows || []).map(async (r: any) => ({
         ...(await toDisplayRow(r)),
@@ -168,6 +175,20 @@ export async function PATCH(request: NextRequest) {
     if (!inquiryId) {
       return NextResponse.json({ ok: false, error: "inquiry_id_required" }, { status: 400 });
     }
+
+    // 수동 테스트 토글: { inquiry_id, is_test } → 표식만 변경(전화로 들어온 진짜환자 오태깅 해제 등).
+    if (typeof body?.is_test === "boolean") {
+      const { error: tErr } = await (supabaseAdmin as any)
+        .from("inquiries")
+        .update({ is_test: body.is_test })
+        .eq("id", inquiryId);
+      if (tErr) {
+        console.error("[conversion-funnel] is_test toggle error:", tErr.message);
+        return NextResponse.json({ ok: false, error: "update_failed" }, { status: 500 });
+      }
+      return NextResponse.json({ ok: true, is_test: body.is_test });
+    }
+
     if (outcome !== null && outcome !== "admitted" && outcome !== "lost") {
       return NextResponse.json({ ok: false, error: "invalid_outcome" }, { status: 400 });
     }

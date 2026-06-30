@@ -43,8 +43,8 @@ export function AddRecipientForm({ onClose, onSubmit, showToast }: AddRecipientF
       } else {
         showToast("error", `❌ 추가 실패: ${result.error}`);
       }
-    } catch (err: any) {
-      showToast("error", `❌ 오류: ${err.message}`);
+    } catch (_err: any) {
+      showToast("error", "❌ 오류가 발생했습니다");
     } finally {
       setSubmitting(false);
     }

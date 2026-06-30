@@ -20,6 +20,8 @@ export default function ConversionDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [busyId, setBusyId] = useState(null);
+  // 테스트 데이터 포함 보기(평소엔 실적만 = 평가에 제출하는 진짜 숫자).
+  const [includeTest, setIncludeTest] = useState(false);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -28,7 +30,8 @@ export default function ConversionDashboard() {
       const days = RANGES.find((r) => r.key === rangeKey)?.days ?? 90;
       const to = new Date();
       const from = new Date(to.getTime() - days * 86400000);
-      const qs = `from=${from.toISOString().slice(0, 10)}&to=${to.toISOString().slice(0, 10)}`;
+      let qs = `from=${from.toISOString().slice(0, 10)}&to=${to.toISOString().slice(0, 10)}`;
+      if (includeTest) qs += "&includeTest=1";
       const res = await fetch(`/api/admin/khidi/conversion-funnel?${qs}`, {
         credentials: "include",
         cache: "no-store",
@@ -44,7 +47,7 @@ export default function ConversionDashboard() {
     } finally {
       setLoading(false);
     }
-  }, [rangeKey]);
+  }, [rangeKey, includeTest]);
 
   useEffect(() => {
     fetchData();
@@ -67,6 +70,24 @@ export default function ConversionDashboard() {
     }
   };
 
+  // 수동 테스트 표시/해제 — 전화로 들어온 진짜환자가 사무실IP로 잘못 태깅된 경우 등.
+  const markTest = async (inquiryId, isTest) => {
+    setBusyId(inquiryId);
+    try {
+      const res = await fetch(`/api/admin/khidi/conversion-funnel`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ inquiry_id: inquiryId, is_test: isTest }),
+      });
+      const json = await res.json();
+      if (json.ok) await fetchData();
+      else alert("저장 실패: " + (json.error ?? ""));
+    } finally {
+      setBusyId(null);
+    }
+  };
+
   const stages = data?.funnel?.stages ?? [];
   const conv = data?.funnel?.conversion ?? {};
   const maxCount = Math.max(1, ...stages.map((s) => s.count));
@@ -75,27 +96,46 @@ export default function ConversionDashboard() {
     <div className="max-w-5xl mx-auto px-4 py-8">
       <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">유치 전환 현황</h1>
+          <h1 className="text-2xl font-bold text-gray-900">유치 전환 상세</h1>
           <p className="text-sm text-gray-500 mt-1">
             문의가 실제 환자 유치로 이어지는 전 과정을 단계별로 추적합니다.
           </p>
         </div>
-        <div className="flex gap-1.5">
-          {RANGES.map((r) => (
-            <button
-              key={r.key}
-              onClick={() => setRangeKey(r.key)}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition ${
-                rangeKey === r.key
-                  ? "bg-teal-700 text-white"
-                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-              }`}
-            >
-              {r.label}
-            </button>
-          ))}
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex gap-1.5">
+            {RANGES.map((r) => (
+              <button
+                key={r.key}
+                onClick={() => setRangeKey(r.key)}
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition ${
+                  rangeKey === r.key
+                    ? "bg-teal-700 text-white"
+                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                }`}
+              >
+                {r.label}
+              </button>
+            ))}
+          </div>
+          {/* 평소엔 실적만(평가 제출 숫자). 켜면 테스트 데이터 포함해 확인. */}
+          <button
+            onClick={() => setIncludeTest((v) => !v)}
+            title="평가에 제출하는 숫자는 '실적만'입니다. 테스트 데이터가 섞였는지 확인할 때만 켜세요."
+            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition ${
+              includeTest
+                ? "bg-amber-500 text-white"
+                : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+            }`}
+          >
+            {includeTest ? "테스트 포함 중" : "실적만"}
+          </button>
         </div>
       </div>
+      {includeTest && (
+        <div className="mb-4 -mt-2 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+          테스트 데이터를 포함해 보고 있습니다. <b>이 숫자는 평가에 제출하지 마세요.</b> 아래 목록에서 「테스트로 표시」로 가짜를 분리할 수 있습니다.
+        </div>
+      )}
 
       {loading ? (
         <div className="py-24 text-center text-gray-400">불러오는 중…</div>
@@ -227,8 +267,13 @@ export default function ConversionDashboard() {
                     className="flex items-center justify-between gap-3 bg-gray-50 rounded-xl px-4 py-3"
                   >
                     <div className="min-w-0">
-                      <div className="text-sm font-semibold text-gray-800 truncate">
+                      <div className="text-sm font-semibold text-gray-800 truncate flex items-center gap-1.5">
                         {p.name} · {p.nationality}
+                        {p.is_test && (
+                          <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 font-medium shrink-0">
+                            테스트
+                          </span>
+                        )}
                       </div>
                       <div className="text-xs text-gray-400 truncate">
                         {p.cancer_type} · {new Date(p.created_at).toLocaleDateString("ko-KR")}
@@ -248,6 +293,14 @@ export default function ConversionDashboard() {
                         className="px-3 py-1.5 rounded-lg text-xs font-medium bg-gray-200 text-gray-600 hover:bg-gray-300 disabled:opacity-40 transition"
                       >
                         이탈
+                      </button>
+                      <button
+                        disabled={busyId === p.inquiry_id}
+                        onClick={() => markTest(p.inquiry_id, !p.is_test)}
+                        title="평가 숫자에서 제외/포함"
+                        className="px-2.5 py-1.5 rounded-lg text-xs font-medium border border-gray-200 text-gray-500 hover:bg-gray-100 disabled:opacity-40 transition"
+                      >
+                        {p.is_test ? "테스트 해제" : "테스트로 표시"}
                       </button>
                     </div>
                   </div>
@@ -280,6 +333,11 @@ export default function ConversionDashboard() {
                             자동
                           </span>
                         )}
+                        {p.is_test && (
+                          <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 font-medium shrink-0">
+                            테스트
+                          </span>
+                        )}
                       </div>
                       <div className="text-xs text-gray-400 truncate">
                         {p.cancer_type} · {new Date(p.created_at).toLocaleDateString("ko-KR")}
@@ -299,6 +357,14 @@ export default function ConversionDashboard() {
                         className="px-3 py-1.5 rounded-lg text-xs font-medium bg-gray-200 text-gray-600 hover:bg-gray-300 disabled:opacity-40 transition"
                       >
                         이탈
+                      </button>
+                      <button
+                        disabled={busyId === p.inquiry_id}
+                        onClick={() => markTest(p.inquiry_id, !p.is_test)}
+                        title="평가 숫자에서 제외/포함"
+                        className="px-2.5 py-1.5 rounded-lg text-xs font-medium border border-gray-200 text-gray-500 hover:bg-gray-100 disabled:opacity-40 transition"
+                      >
+                        {p.is_test ? "테스트 해제" : "테스트로 표시"}
                       </button>
                     </div>
                   </div>

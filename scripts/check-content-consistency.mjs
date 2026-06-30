@@ -93,6 +93,31 @@ function isLangValidationEnum(line) {
   return /z\.enum\(/.test(line) && /["'](ko|ru|zh|ja)["']/.test(line);
 }
 
+// ── 1c) XSS: 무단 dangerouslySetInnerHTML 추가 차단 ─────────────────────────
+// 왜: dangerouslySetInnerHTML 로 '사용자 입력'을 렌더하면 XSS(세션탈취→PII) 직결.
+//     2026-06-30 C레벨 진단(CISO-4) 시 전수 감사 결과 현재 15곳은 전부 안전
+//     (JSON-LD 구조화데이터 = JSON.stringify(서버/어드민 객체), 또는 layout.jsx 의
+//     정적 부트스트랩 스크립트 — 공개 사용자 입력 렌더 0). 그 '감사된' 파일만 아래
+//     allowlist 에 둔다. 새 파일이 innerHTML 을 추가하면 CI 가 막아, 추가자가
+//     "사용자입력 아닌지" 감사 후 의식적으로 allowlist 에 올리게 강제한다(기계가 잡는다).
+//     매칭은 실제 JSX 사용(`dangerouslySetInnerHTML=`)만 — 단어가 든 주석은 오탐 제외.
+const XSS_INNERHTML_ALLOWLIST = new Set([
+  "app/page.jsx",
+  "app/layout.jsx",
+  "app/care-journey/page.jsx",
+  "app/cost-calculator/page.jsx",
+  "app/faq/page.jsx",
+  "app/kk/for-kazakh-patients/page.jsx",
+  "app/ru/for-russian-patients/page.jsx",
+  "app/treatments/[slug]/page.jsx",
+  "app/hospitals/[slug]/page.jsx",
+  "app/hospitals/immune/page.jsx",
+  "app/specialties/plastic-surgery/page.jsx",
+  "app/specialties/korean-medicine/KoreanMedicineClient.jsx",
+  "app/specialties/dermatology/page.jsx",
+  "app/specialties/dental/page.jsx",
+]);
+
 const errors = [];
 
 for (const file of SCAN_DIRS.flatMap(walk)) {
@@ -103,6 +128,9 @@ for (const file of SCAN_DIRS.flatMap(walk)) {
     }
     if (isLangValidationEnum(line) && /["']kk["']/.test(line) && !/["']kz["']/.test(line)) {
       errors.push(`[언어검증] ${file}:${i + 1} — z.enum 언어검증에 'kk' 만 있고 활성코드 'kz' 누락 → 카자흐어 문의 거부 (POSTMORTEMS #23). 'kz' 추가할 것(입력은 'kz', 이메일 템플릿만 경계에서 kz→kk)\n    ${line.trim().slice(0, 120)}`);
+    }
+    if (/dangerouslySetInnerHTML\s*=/.test(line) && !XSS_INNERHTML_ALLOWLIST.has(file.replace(/\\/g, "/"))) {
+      errors.push(`[XSS가드] ${file}:${i + 1} — 새 dangerouslySetInnerHTML. '사용자 입력'을 렌더하면 XSS 위험. JSON-LD/정적이라 안전함을 확인했으면 scripts/check-content-consistency.mjs 의 XSS_INNERHTML_ALLOWLIST 에 이 파일을 추가(=감사 완료 표시)하라. 사용자입력이면 React 노드/이스케이프로 바꿀 것.\n    ${line.trim().slice(0, 120)}`);
     }
   });
 }
@@ -245,6 +273,29 @@ for (const file of SCAN_DIRS.flatMap(walk)) {
   const missing = [...used].filter((k) => !new RegExp(`\\b${k}\\s*:`).test(text));
   if (missing.length) {
     errors.push(`[i18n-tt] ${file} — tt("키")로 부르는데 TR에 정의 없는 키 ${missing.length}개: ${missing.slice(0, 10).join(", ")}${missing.length > 10 ? " …" : ""} → 화면에 빈칸 출력(전 언어 동일누락은 패리티검사로 못 잡음). 6개 언어에 키 추가할 것`);
+  }
+}
+
+// ── 7) 환자 포털(app/patient) 클라이언트 컴포넌트 하드코딩 한국어 가드 ──────
+// 왜: /patient 는 6개 언어 환자 화면인데 consultations·cost-estimates·visa 등 5개가
+//     한국어로 완전 하드코딩(useLang 미사용)돼 ru/kz 환자가 못 읽던 사고(2026-06-29 전수조사).
+//     키 패리티검사는 글로벌 DICTIONARY만 봐서 파일 *내부* 인라인 한국어를 못 잡음(사람이 스샷으로 찾던 부류).
+//     → app/patient 클라이언트 컴포넌트가 '한국어를 코드에 쓰는데 useLang/t() 다국어 처리를 안 하면' 실패.
+//     정상 패턴: COPY={en,ko,ru,kz,zh,ja}+useLang() (한국어가 ko 블록에만 → useLang 쓰므로 통과).
+//     allow: 한국어를 useLang() 또는 글로벌 t("키") 로 처리하는 파일은 통과(주석 속 한국어는 무시).
+const HANGUL_RE = /[가-힣]/;
+const stripComments = (line) => line.replace(/\/\/.*$/, "").replace(/\/\*.*?\*\//g, "");
+for (const file of walk("app/patient")) {
+  if (!/\.jsx?$/.test(file) || EXCLUDE.test(file)) continue;
+  const text = readFileSync(join(ROOT, file), "utf8");
+  if (!/["']use client["']/.test(text)) continue;          // 클라이언트 렌더 컴포넌트만
+  // 다국어 처리 중이면 통과: useLang() 사용 · 글로벌 t("키") 호출 · 또는 인라인 다국어 객체(kz:/ru: 키 제공).
+  // 깨진 파일은 ko: 라벨만 있고 ru:/kz: 가 전혀 없던 게 특징 → 그 부류만 정확히 잡는다.
+  if (/\buseLang\b/.test(text) || /\bt\(\s*["']/.test(text) || /\bkz\s*:/.test(text) || /\bru\s*:/.test(text)) continue;
+  const lines = text.split("\n");
+  const hit = lines.findIndex((l) => HANGUL_RE.test(stripComments(l)));
+  if (hit !== -1) {
+    errors.push(`[환자i18n] ${file.replace(/\\/g, "/")}:${hit + 1} — /patient 화면에 한국어가 하드코딩됨(useLang/t() 미사용) → ru/kz 등 다른 언어 환자에게 한국어로 노출. COPY={en,ko,ru,kz,zh,ja}+useLang() 패턴으로 다국어화할 것(전수조사 2026-06-29).\n    ${lines[hit].trim().slice(0, 120)}`);
   }
 }
 

@@ -95,3 +95,78 @@ export async function checkAiGuards(
 
   return { allowed: true };
 }
+
+// ── 상담방 실시간 통역·STT 전용 비용 가드 ──────────────────────
+// 왜 별개: 공개챗 IP당 50회/일을 그대로 걸면 '발화마다' 호출되는 실시간 통역/STT 가
+//   상담 중간에 끊긴다(그래서 기존엔 면제였음). 대신 상담을 끊지 않는 높은 천장으로
+//   (a) 세션당 일일 상한 — 한 상담이 비정상적으로 많이 호출 = 클라 루프/남용 차단
+//   (b) 전역 일일 상한 — 유료키 전환 시 봇·오작동발 청구 폭주 backstop
+//   만 둔다. 정상 상담은 절대 안 걸리는 값(env 로 조절).
+// ⚠️ 0순위 하드캡은 Google Cloud spend cap(PO 콘솔) — 이 코드 가드는 그 보조선이다.
+const CONSULT_SESSION_DAILY: RateLimitConfig = {
+  windowMs: DAY_MS,
+  maxRequests: Number(process.env.AI_CONSULT_SESSION_DAILY || 5000),
+  apiName: "ai_consult_session",
+};
+const CONSULT_GLOBAL_DAILY: RateLimitConfig = {
+  windowMs: DAY_MS,
+  maxRequests: Number(process.env.AI_CONSULT_GLOBAL_DAILY || 30000),
+  apiName: "ai_consult_global",
+};
+let consultGlobalNotifiedAt = 0;
+
+/**
+ * 상담 AI(실시간 통역/STT) 비용 가드. consultationId 있으면 세션 상한도 적용.
+ * 정상 상담은 안 걸리는 높은 천장 — 진짜 폭주(루프·봇·오작동)만 잡는 backstop.
+ */
+export async function checkConsultationAiGuard(
+  consultationId: string | null | undefined,
+  api: string
+): Promise<AiGuardResult> {
+  const checks = [checkRateLimitPersistent("consult:global", CONSULT_GLOBAL_DAILY)];
+  if (consultationId) checks.push(checkRateLimitPersistent("consult:" + consultationId, CONSULT_SESSION_DAILY));
+  const [global, session] = await Promise.all(checks);
+
+  // 세션 상한(한 상담의 비정상 호출) 먼저
+  if (session && !session.allowed) {
+    logOperational("warn", {
+      event: "ai_consult_session_block",
+      api,
+      reason: `consult_session_limit ${CONSULT_SESSION_DAILY.maxRequests}/day`,
+      statusCode: 429,
+    });
+    return {
+      allowed: false,
+      code: "ai_session_busy",
+      status: 429,
+      retryAfterSec: Math.max(1, Math.ceil((session.resetAt - Date.now()) / 1000)),
+    };
+  }
+  // 전역 상한(유료키 폭주 backstop) — 소진 시 1시간 1회 Sentry 경보
+  if (!global.allowed) {
+    if (Date.now() - consultGlobalNotifiedAt > 60 * 60 * 1000) {
+      consultGlobalNotifiedAt = Date.now();
+      logOperational("error", {
+        event: "ai_consult_global_block",
+        api,
+        reason: `상담 AI 전역 일일 상한 소진 (${CONSULT_GLOBAL_DAILY.maxRequests}/일) — 실시간 통역/STT 일시 중단`,
+        statusCode: 503,
+      });
+      import("@sentry/nextjs")
+        .then((S) =>
+          S.captureMessage(
+            `상담 실시간통역/STT 일일 총량 차단기 작동 (한도 ${CONSULT_GLOBAL_DAILY.maxRequests}/일)`,
+            "error"
+          )
+        )
+        .catch(() => {});
+    }
+    return {
+      allowed: false,
+      code: "ai_service_busy",
+      status: 503,
+      retryAfterSec: Math.max(60, Math.ceil((global.resetAt - Date.now()) / 1000)),
+    };
+  }
+  return { allowed: true };
+}

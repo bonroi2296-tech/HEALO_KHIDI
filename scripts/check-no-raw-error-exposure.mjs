@@ -1,0 +1,72 @@
+#!/usr/bin/env node
+// 환자/공개 화면(클라이언트 컴포넌트)에 원시 예외 메시지가 새는 걸 차단하는 가드.
+//
+// 왜: 2026-06-30 #459 머지 충돌을 `git checkout --ours`로 풀면서 #463이 막아둔
+//     err.message 화면노출이 환자 비자·견적 화면에 되살아남(POSTMORTEMS #52). CI 빌드·스모크는
+//     통과해 못 잡음 → 사람이 아니라 이 가드가 매번 차단한다.
+//
+// 무엇을 잡나(저오탐 idiom만): 사용자노출 함수가 catch 변수의 .message를 그대로 받는 패턴.
+//   setError(err.message) / setError(error.message)
+//   alert(... err.message) / alert(copy.x + error.message)
+//   toast(... e.message)
+// API 라우트(app/api)는 별도 규칙(internal_error 코드형)이라 제외 — 여기선 클라이언트 화면만.
+//
+// 예외 허용: 정말 안전한 경우 해당 줄에 `// allow-raw-error` 주석을 달면 통과.
+
+import { readFileSync, readdirSync, statSync } from "node:fs";
+import { join, extname } from "node:path";
+
+const ROOTS = ["app", "src"];
+const EXTS = new Set([".jsx", ".tsx", ".js", ".ts"]);
+// 제외 경로.
+// - app/api: 서버 라우트(별도 규칙 internal_error 코드형).
+// 직원 포털(admin·coordinator·hospital·agency·clinic)도 2026-06-30 #52 후속으로 일괄 정리 완료 →
+// 이제 전 화면 감시(환자/공개 + 직원 포털 모두).
+// 경로는 아래서 슬래시로 정규화 후 매칭(윈도우 역슬래시·top-level 디렉터리 대응).
+const SKIP = [
+  /(^|\/)app\/api\//,
+  /(^|\/)node_modules\//,
+  /\.test\./,
+  /(^|\/)scripts\//,
+];
+
+// 사용자 노출 함수가 catch 변수(.message)를 원시로 받는 패턴.
+// toast 는 toast(...) / toast.error(...) / toast?.error?.(...) 메서드 형태까지 잡는다(원래 toast( 만 잡아 누락됐던 #52 후속).
+// ponytail: 휴리스틱 가드 — toastXYZ( 같은 드문 오탐은 // allow-raw-error 로 통과시키면 됨(보안상 누락보다 과탐이 안전).
+const LEAK = /(setError|alert|showToast|toast(?:\?\.|\.)?\w*(?:\?\.)?|setStatus|setMessage|setErrorMsg)\s*\([^)]*\b(err|error|e|ex|_err|_error)\.message\b/;
+
+// 간접 노출: err.message 를 setXxx({ ... error: err.message }) 처럼 상태 객체에 담아 화면에 렌더하는 패턴(POSTMORTEMS #53 후속 — 직접 호출만 잡던 가드가 못 본 3곳).
+// ponytail: setX({error: y.message}) 가 화면에 안 그려지는 드문 경우는 // allow-raw-error 로 통과.
+const LEAK_INDIRECT = /\bset\w+\s*\(\s*\{[^}]*\berror:\s*(err|error|e|ex|_err|_error)\.message\b/;
+
+function walk(dir, out) {
+  let entries;
+  try { entries = readdirSync(dir); } catch { return out; }
+  for (const name of entries) {
+    const p = join(dir, name);
+    let st;
+    try { st = statSync(p); } catch { continue; }
+    if (st.isDirectory()) walk(p, out);
+    else if (EXTS.has(extname(name)) && !SKIP.some((re) => re.test(p.replace(/\\/g, "/")))) out.push(p);
+  }
+  return out;
+}
+
+const files = ROOTS.flatMap((r) => walk(r, []));
+const hits = [];
+for (const f of files) {
+  const lines = readFileSync(f, "utf8").split("\n");
+  lines.forEach((line, i) => {
+    if ((LEAK.test(line) || LEAK_INDIRECT.test(line)) && !line.includes("allow-raw-error")) {
+      hits.push(`  ${f}:${i + 1}  ${line.trim().slice(0, 100)}`);
+    }
+  });
+}
+
+if (hits.length) {
+  console.error(`❌ 화면에 원시 err.message 노출 ${hits.length}곳 (보안 — CLAUDE.md "API/화면에 error.message 노출 금지"):`);
+  console.error(hits.join("\n"));
+  console.error(`\n→ setError(true)+일반 localized 메시지, alert(copy.x)처럼 원시 .message 제거. 정말 안전하면 줄 끝에 // allow-raw-error.`);
+  process.exit(1);
+}
+console.log(`✓ 원시 err.message 화면노출 0 (검사 ${files.length}개 파일)`);

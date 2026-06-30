@@ -63,8 +63,8 @@ export default function PlaybookPatternsPage() {
         alert(msg);
         fetchPatterns();
       }
-    } catch (err) {
-      alert("Error: " + err.message);
+    } catch (_err) {
+      alert("처리 중 오류가 발생했습니다");
     }
     setApproving(false);
   };
@@ -87,8 +87,8 @@ export default function PlaybookPatternsPage() {
       } else {
         alert("Retire 실패: " + (data.error || "Unknown"));
       }
-    } catch (err) {
-      alert("Error: " + err.message);
+    } catch (_err) {
+      alert("처리 중 오류가 발생했습니다");
     }
     setRetiring(false);
   };
@@ -110,8 +110,8 @@ export default function PlaybookPatternsPage() {
       } else {
         alert("추출 실패: " + (data.error || "Unknown error"));
       }
-    } catch (err) {
-      alert("Error: " + err.message);
+    } catch (_err) {
+      alert("처리 중 오류가 발생했습니다");
     }
     setExtracting(false);
   };
@@ -155,8 +155,8 @@ export default function PlaybookPatternsPage() {
       } else {
         alert("병합 실패: " + (data.error || "Unknown"));
       }
-    } catch (err) {
-      alert("Error: " + err.message);
+    } catch (_err) {
+      alert("처리 중 오류가 발생했습니다");
     }
     setMerging(false);
   };

@@ -25,7 +25,8 @@ export function useNotificationRecipients() {
         setErrorCode(data.errorCode || null);
       }
     } catch (err: any) {
-      setError(err.message);
+      console.error("[admin/notifications/recipients]", err);
+      setError("수신자 목록을 불러오지 못했습니다.");
       setErrorCode("FETCH_ERROR");
     } finally {
       setLoading(false);

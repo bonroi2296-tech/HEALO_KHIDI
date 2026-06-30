@@ -17,6 +17,7 @@ import {
   getRateLimitHeaders,
 } from "@/lib/rateLimit";
 import { sendAdminNotification } from "@/lib/notifications/adminNotifier";
+import { detectInquiryIsTest } from "@/lib/khidi/testData";
 
 const Step1Schema = z.object({
   firstName: z.string().min(1).max(100),
@@ -147,6 +148,8 @@ export async function POST(request: NextRequest) {
         step1_completed_at: new Date().toISOString(),
         ai_chat_thread_id: data.aiChatThreadId ?? null,
         user_id: userId,
+        // 테스트/실제 분리: 사무실IP·테스트이메일·수동도장이면 테스트로 표시(KPI 기본 제외).
+        is_test: detectInquiryIsTest({ ip: clientIp, email: data.email, manual: (body as any)?.isTest === true }),
       })
       .select("id, public_token")
       .single();

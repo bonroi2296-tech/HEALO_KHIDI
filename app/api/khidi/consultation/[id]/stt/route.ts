@@ -23,6 +23,7 @@ import { generateText } from "ai";
 import { google } from "@ai-sdk/google";
 import { resolveConsultationActor } from "@/lib/auth/requireConsultationAccess";
 import { isFillerOnly } from "@/lib/consultation/fillerFilter";
+import { checkConsultationAiGuard } from "@/lib/ai/aiGuard";
 
 const MAX_AUDIO_BYTES = 1.5 * 1024 * 1024;
 
@@ -60,6 +61,12 @@ export async function POST(
     if (audio.size < 1000) {
       // 무음/빈 조각 — 모델 호출 낭비 방지
       return Response.json({ ok: true, transcript: "", translated: "" });
+    }
+
+    // 비용 가드 (상담 안 끊는 높은 천장 — 유료키 전환 시 봇·루프발 청구 폭주 backstop)
+    const guard = await checkConsultationAiGuard(consultationId, "/api/khidi/consultation/:id/stt");
+    if (!guard.allowed) {
+      return Response.json({ ok: false, error: guard.code }, { status: guard.status });
     }
 
     const buf = new Uint8Array(await audio.arrayBuffer());

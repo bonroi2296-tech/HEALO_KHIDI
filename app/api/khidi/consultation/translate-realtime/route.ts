@@ -15,6 +15,7 @@ import { generateText } from "ai";
 import { google } from "@ai-sdk/google";
 import { requireConsultationAccess, requireAuthenticatedUser } from "@/lib/auth/requireConsultationAccess";
 import { verifyGuestTokenReadOnly } from "@/lib/auth/guestToken";
+import { checkConsultationAiGuard } from "@/lib/ai/aiGuard";
 
 // Origin 화이트리스트 (브라우저에서 진료 중 호출되므로 시크릿 대신 Origin 검증)
 const ALLOWED_ORIGINS = new Set<string>([
@@ -104,6 +105,15 @@ export async function POST(request: NextRequest) {
     // Skip if same language
     if (sourceLang === targetLang) {
       return Response.json({ ok: true, translated: text });
+    }
+
+    // 비용 가드 (상담 안 끊는 높은 천장 — 유료키 전환 시 봇·루프발 청구 폭주 backstop)
+    const guard = await checkConsultationAiGuard(
+      consultationId ? String(consultationId) : null,
+      "/api/khidi/consultation/translate-realtime"
+    );
+    if (!guard.allowed) {
+      return Response.json({ ok: false, error: guard.code }, { status: guard.status });
     }
 
     const { text: translated } = await generateText({

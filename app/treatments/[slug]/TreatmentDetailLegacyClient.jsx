@@ -460,7 +460,7 @@ export const TreatmentDetailPage = ({
 
                 {treatment.required_equipment?.length > 0 && (
                   <div className="mt-5 pt-4 border-t border-gray-100">
-                    <p className="text-sm font-semibold text-gray-900 mb-2">Equipment Used</p>
+                    <p className="text-sm font-semibold text-gray-900 mb-2">{t("detail.equipmentUsed", langCode)}</p>
                     <div className="flex flex-wrap gap-2">
                       {treatment.required_equipment.map((eq, idx) => (
                         <span key={idx} className="px-2.5 py-1 bg-gray-50 text-gray-600 text-xs rounded-lg border border-gray-100">{eq}</span>

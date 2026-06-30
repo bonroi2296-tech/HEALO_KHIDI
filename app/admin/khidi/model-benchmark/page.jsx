@@ -49,7 +49,8 @@ export default function ModelBenchmarkPage() {
         setResult(json);
       }
     } catch (e) {
-      setError(e.message ?? "요청 실패 (타임아웃일 수 있음 — 하이엔드 응답이 느립니다)");
+      console.error("[admin/khidi/model-benchmark]", e);
+      setError("요청 실패 (타임아웃일 수 있음 — 하이엔드 응답이 느립니다)");
     } finally {
       setRunning(false);
     }

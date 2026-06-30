@@ -46,7 +46,7 @@ const L = {
   sourceTier1: { ko: 'healwith 검증', en: 'healwith Verified', ru: 'healwith Проверено', kz: 'healwith Тексерілген', zh: 'healwith验证', ja: 'healwith認証' },
   sourceTier2: { ko: '파트너 검증', en: 'Partner Verified', ru: 'Партнер Проверено', kz: 'Серіктес Тексерілген', zh: '合作伙伴验证', ja: 'パートナー認証' },
   sourceTier3: { ko: '공개 소스', en: 'Public Source', ru: 'Открытый источник', kz: 'Ашық дереккөз', zh: '公开来源', ja: '公開ソース' },
-  handOff: { ko: '상담원 연결을 요청했습니다. 잠시만 기다려주세요.', en: 'A coordinator has been notified. You can keep chatting.', ru: 'Координатор уведомлен. Можете продолжать общение.', kz: 'Үйлестірушіге хабарландырылды. Сөйлесуді жалғастыра аласыз.', zh: '协调员已收到通知，您可以继续聊天。', ja: 'コーディネーターに通知しました。チャットを続けられます。' },
+  handOff: { ko: '상담원 연결을 요청했습니다. 잠시만 기다려주세요.', en: 'A coordinator has been notified. You can keep chatting.', ru: 'Координатор уведомлен. Можете продолжать общение.', kz: 'Координаторға хабарландырылды. Сөйлесуді жалғастыра аласыз.', zh: '协调员已收到通知，您可以继续聊天。', ja: 'コーディネーターに通知しました。チャットを続けられます。' },
   login: { ko: '로그인이 필요합니다', en: 'Please log in', ru: 'Войдите в систему', kz: 'Жүйеге кіріңіз', zh: '请登录', ja: 'ログインしてください' },
 
   // Quick action buttons

@@ -81,7 +81,7 @@ export default function LeadsPage() {
       }
     } catch (error) {
       console.error('[Leads] ❌ Fetch exception:', error);
-      toast.error('리드 로딩 실패: ' + error.message);
+      toast.error('리드 로딩 실패');
     } finally {
       setLoading(false);
     }
@@ -148,7 +148,7 @@ export default function LeadsPage() {
       }
     } catch (error) {
       console.error('[Leads] Status update exception:', error);
-      toast.error('상태 업데이트 실패: ' + error.message);
+      toast.error('상태 업데이트 실패');
     } finally {
       setUpdatingLeadId(null);
     }

@@ -8,7 +8,7 @@
 
 ---
 
-## #52 — 빠른 패스가 "빌드·CI 통과 = 동작"으로 착각해 작동 안 하는 fix 2건을 프로덕션에 머지 (#480, 2026-06-30 자기 적대적 리뷰)
+## #55 — 빠른 패스가 "빌드·CI 통과 = 동작"으로 착각해 작동 안 하는 fix 2건을 프로덕션에 머지 (#480, 2026-06-30 자기 적대적 리뷰)
 
 **무슨 일** — PR #480(AI챗 개선)을 빠르게 작업·머지한 뒤 같은 세션에서 다중 에이전트 적대적 재검토를 돌리니, 빌드·테스트·콘텐츠검사를 다 통과하고 머지된 변경 중 **실제로는 깨진 회귀 2건**이 프로덕션에 나가 있었음.
 1. **전역 PWA 설치배너 숨김이 무효**: `InstallPrompt`의 `HIDE_ON`에 `/inquiry`를 넣고 `pathname.startsWith("/inquiry")`로 매칭했는데, `proxy.ts`가 공개경로를 `/{locale}/inquiry`(예 `/ru/inquiry`)로 강제(rewrite라 브라우저 URL 유지) → `usePathname()="/ru/inquiry"` → `startsWith("/inquiry")=false`. 영어 외 전 언어(러·카 타겟 100%)에서 숨김 실패 → 하단 fixed 배너가 풀하이트 챗 입력칸을 덮고, 새로 넣은 인라인 힌트와 **배너 2개** 중복.
@@ -29,6 +29,45 @@
 - **메타 교훈**: 빠른 모드로 친 UI/라우팅 변경은 머지 전 최소 한 번 **실제 경로 사슬을 끝까지 추적**하거나, 본 건처럼 **적대적 다중 검증**을 한 번 돌린다(빌드 초록은 동작 보장이 아님).
 
 ---
+## #53 — err.message 노출 가드가 `toast.error(...)`를 통째로 못 봄 — 직원포털 정리 중 누락 21곳 추가 적발(공개화면 1곳 포함) (2026-06-30 #52 후속)
+
+**무슨 일**
+- #52 후속으로 직원 포털(admin·coordinator) raw `err.message` 화면노출을 정리하던 중, 가드(`scripts/check-no-raw-error-exposure.mjs`)가 **`toast.error(...)`·`toast?.error?.(...)`·`showToast("error", ...)` 형태를 전혀 못 잡는다**는 걸 발견. 가드가 "35곳"이라 했지만 실제 같은 부류 누출은 **55곳**(35 + toast/showToast 21곳 - 중복정리). 그중 **1곳은 공개·환자 대면 화면**(`app/consult/start/ConsultWrapper.jsx` — #463/#52가 환자/공개 0곳이라 한 영역인데 toast 형태라 빠져나감).
+
+**왜 못 잡았나 (근본원인)**
+- 가드 정규식이 함수명을 `toast`로만 매칭(`(setError|alert|toast|...)\s*\(`). 실제 호출은 `toast.error(`/`toast?.error?.(`라 `toast` 바로 뒤 `(`가 아니어서 불일치. `showToast`는 목록에 아예 없었음. **"싱크 함수의 *이름*"만 적었지 실제 *호출 형태(메서드·옵셔널체이닝)*를 안 적었다.**
+- 결과: #52에서 "환자/공개 0곳"이라고 결론 낸 것 자체가 toast 형태를 못 본 부분측정이었음(부분 가드를 전수로 착각).
+
+**어떻게 잡았나/고쳤나**
+- 정리 직전 `grep '\.message'`로 같은 디렉터리를 사람이 다시 훑다가 가드가 0이라던 곳에서 toast.error 누출이 우수수 나옴 → 가드 자체의 사각 확인.
+- 고침: ①정규식을 `toast(?:\?\.|\.)?\w*(?:\?\.)?`(=`toast(` `toast.error(` `toast?.error?.(`)와 `showToast`까지 잡게 확장 ②새로 잡힌 21곳 전부 일반 메시지로 교체(공개화면 1곳은 기존 i18n 폴백 `t("consult.errorSubmit")`로) ③`console.error`는 여전히 매칭 안 됨을 실데이터로 확인(콘솔 진단로깅은 정상 유지).
+
+**재발 방지 (시스템 적용)**
+- 가드 정규식에 **실제 호출 형태(메서드 호출·옵셔널 체이닝)** 반영 + 주석으로 "toast.error/toast?.error?. 형태까지 잡는다" 명시. 휴리스틱 한계(`toastXYZ(` 류 드문 과탐)는 `// allow-raw-error`로 통과(보안상 과탐>누락).
+- **교훈(가드 작성 룰)**: 사용자노출 싱크를 가드로 막을 땐 *이름*이 아니라 *코드에 실제로 나타나는 호출 모양*을 열거하라(메서드·옵셔널체이닝·별칭). 한 번 통과한 가드도 "이 패턴을 *어떻게* 부르나"를 grep로 한 번 더 대조.
+- 가드 스코프를 직원 포털(admin·coordinator·hospital·agency·clinic)+`costs`까지 확장(SKIP 제거) → 이제 전 화면 감시.
+
+**후속(같은 날, 2차 사각)**: PO가 "더 할 건 없냐" 물어 한 번 더 전수 훑다가, 가드가 못 보는 **간접 노출** 3곳 추가 발견 — `err.message`를 직접 싱크에 넣지 않고 `setRunResult({ ok:false, error: err.message })`처럼 *상태 객체*에 담아 나중에 `{result.error}`로 렌더(`app/admin/automation/playbook`·`reminders`·`khidi/ai-regression`). 줄 단위 정규식은 "값이 어디서 렌더되나"를 못 보므로 직접호출만 잡던 가드가 통과시킴. → 일반 메시지로 교체 + 가드에 `LEAK_INDIRECT`(`setX({ ... error: y.message })`) 룰 추가. **교훈 보강**: 싱크는 "직접 호출"뿐 아니라 "상태에 담아 렌더되는 간접 경로"도 있다 — 가드는 두 모양 다 열거.
+
+## #52 — "수행했다"고 보고한 보안수정(err.message graft)이 실제 커밋엔 0곳 — 보고↔코드 괴리 (2026-06-30 #459 머지)
+
+**무슨 일**
+- #459(환자포털 6언어화) 머지 충돌을 `git checkout --ours`(#459 통째 채택)로 풀면서, main(#463)이 막아둔 **err.message 화면노출 차단 보안수정이 같이 되돌아감**(checkout --ours 는 그 파일에 대한 main의 *모든* 변경을 버림 — i18n뿐 아니라 직교하는 보안패치까지). 환자 비자·견적 화면 10곳에 raw `err.message`가 화면·alert로 재노출(CLAUDE.md 보안핵심규칙 "API/화면에 error.message 노출 금지" 위반, PII 다루는 환자 대면 화면).
+- 더 나쁜 건: 핸드오프/보고에 **"err.message graft 7곳 수동 적용 완료"라고 명시**했는데 **실제 푸시된 브랜치엔 0곳** 반영. 보고와 코드가 정반대.
+
+**왜 못 잡았나 (근본원인)**
+- **`git add`(--ours 버전 스테이징) → 그 *뒤에* Edit로 graft → 다시 `git add` 안 하고 `git commit`.** 머지 커밋은 스테이징된(graft 이전) 버전을 담았고, 내 수정은 워크트리에 unstaged로 남아 푸시에 안 들어감.
+- **검증을 "워크트리"에서 함.** 커밋 직후 `grep`으로 "누출 0" 확인까지 했지만, 그건 *워크트리 파일*(내 미스테이징 수정 포함) 기준이라 통과로 보였다. 정작 커밋/푸시된 ref엔 graft가 없었음 = 검증 대상이 틀림.
+- CI(빌드·스모크)는 통과 — 의미적 보안회귀라 못 잡음. 일반 모드 자가검토도 워크트리만 봐서 통과.
+
+**어떻게 잡았나/고쳤나**
+- 잡은 건 **울트라코드 적대적 멀티에이전트 재검토**: 8차원 병렬 리뷰 + 발견을 독립 에이전트가 *푸시된 ref 기준*으로 적대 검증 → "노트엔 7곳, 실제 커밋엔 0곳"의 괴리를 실측으로 적발(일반 검토가 놓친 지점).
+- 고침: ①graft 실제 적용 후 `git add`→commit→push, **푸시된 ref를 다시 떠서 누출 0 재확인** ②`--ours`로 같이 떨어진 main의 `console.error` 진단로깅 parity 복원 ③graft로 미사용된 `catch(err)`→`catch(_err)` 4곳(eslint) — 로컬 eslint로 확인 후 푸시.
+
+**재발 방지 (시스템 적용)**
+- **가드 신설 `npm run check:err-exposure`**(`scripts/check-no-raw-error-exposure.mjs`, CI 필수): 환자/공개 클라이언트 화면에서 `setError(err.message)`·`alert(...+err.message)` 류 원시 노출을 정규식으로 차단. 이 부류는 이제 사람이 아니라 가드가 매번 막는다.
+- **유사 이슈 전수 스캔(가드로)**: 직원 포털(admin·coordinator)에 **같은 부류 기존 누출 35곳** 발견(환자/공개는 0). PII 외부노출 위험은 낮아(인증 내부) 우선 가드 스코프 밖 + **후속 일괄 정리 대상**으로 기록(KNOWN_ISSUES). 정리 후 가드 스코프를 직원 화면까지 확장.
+- **프로세스 룰(반복 금지)**: ①충돌을 `--ours/--theirs`로 풀고 그 파일을 수동 edit 하면 **반드시 다시 `git add`**(--ours 는 직교 패치까지 버린다는 점 인지). ②"했다" 검증은 **워크트리가 아니라 커밋/푸시된 ref**로(`git show <ref>:<file>`). 매 턴 자동저장 훅이 도는 환경에선 워크트리≠커밋이 흔하다.
 
 ## #50 — AI 안전가드가 환자 답변을 "막지" 못하고 사후 점수만 매김 + 1차소견 PII 미마스킹 (2026-06-29 오픈 전 전수조사)
 
@@ -1185,3 +1224,19 @@ PO가 협력병원 상세(`/hospitals/[slug]`) 하단 "자주 묻는 질문"이 
 - **단일 데이터모델로 수렴 중**: 멀티스레드 통일(KNOWN_ISSUES 백로그)에서 공개챗의 `actor_type/message_text` 모델을 단일 표준으로 삼아 환자챗 분기를 흡수. 두 모델 공존이 사고의 뿌리.
 - 스키마 드리프트 보강 마이그레이션을 백로그에 기록(코드가 신뢰할 실제 스키마 SoR 확보).
 - 교훈: **같은 테이블을 쓰는 두 기능은 컬럼 가정을 공유 헬퍼로 강제하라.** "빌드 통과 ≠ 동작"(CLAUDE.md) — 신규/수정 DB 경로는 실데이터 1건으로 end-to-end 확인.
+
+## #54 — `REVOKE EXECUTE FROM anon` 이 RAG 함수 직접호출을 안 막았음 (PUBLIC 상속) (2026-06-30)
+
+**무슨 일**
+- C레벨 진단 후속 보안 위생으로 `rag_search_chunks_v1_1`(SECURITY DEFINER)을 비로그인 직접호출 차단하려 `REVOKE EXECUTE ... FROM anon, authenticated` 적용. 적용 직후 검증(`has_function_privilege('anon',...)`)에서 여전히 **true** — 안 막혔다.
+- 원인: 함수 EXECUTE 는 생성 시 기본값으로 **PUBLIC** 에 부여된다. anon/authenticated 는 PUBLIC 으로 상속받으므로, 그 두 역할에서만 회수해도 PUBLIC 경로가 살아있어 그대로 호출 가능.
+
+**왜 못 잡았나(근본원인)**
+- "역할에서 REVOKE 하면 막힌다"는 직관이 PUBLIC 기본부여를 간과(Postgres 함수 권한 모델 특성).
+- 적용=끝이 아니라 **적용 후 권한을 실제 재조회**해야만 드러나는 부류(코드 빌드로는 절대 안 보임). 마침 적용 직후 `has_*_privilege`로 재확인해서 잡았다.
+
+**어떻게 고쳤나**
+- `REVOKE EXECUTE ... FROM PUBLIC, anon, authenticated;` + `GRANT EXECUTE ... TO service_role;`(앱은 supabaseAdmin=service_role 로만 호출 → 기능 영향 0). 재조회: anon=false·authenticated=false·service_role=true 확인.
+
+**재발 방지**
+- 교훈: **권한 REVOKE/GRANT 는 적용 즉시 `has_*_privilege`로 재조회 검증.** 함수 직접호출 차단의 정석은 역할 회수가 아니라 **PUBLIC 회수 + 의도한 역할에만 GRANT**.
