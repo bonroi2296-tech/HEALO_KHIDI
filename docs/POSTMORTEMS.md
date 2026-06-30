@@ -8,6 +8,27 @@
 
 ---
 
+## #55 — 빠른 패스가 "빌드·CI 통과 = 동작"으로 착각해 작동 안 하는 fix 2건을 프로덕션에 머지 (#480, 2026-06-30 자기 적대적 리뷰)
+
+**무슨 일** — PR #480(AI챗 개선)을 빠르게 작업·머지한 뒤 같은 세션에서 다중 에이전트 적대적 재검토를 돌리니, 빌드·테스트·콘텐츠검사를 다 통과하고 머지된 변경 중 **실제로는 깨진 회귀 2건**이 프로덕션에 나가 있었음.
+1. **전역 PWA 설치배너 숨김이 무효**: `InstallPrompt`의 `HIDE_ON`에 `/inquiry`를 넣고 `pathname.startsWith("/inquiry")`로 매칭했는데, `proxy.ts`가 공개경로를 `/{locale}/inquiry`(예 `/ru/inquiry`)로 강제(rewrite라 브라우저 URL 유지) → `usePathname()="/ru/inquiry"` → `startsWith("/inquiry")=false`. 영어 외 전 언어(러·카 타겟 100%)에서 숨김 실패 → 하단 fixed 배너가 풀하이트 챗 입력칸을 덮고, 새로 넣은 인라인 힌트와 **배너 2개** 중복.
+2. **ai-chat 높이 이중차감**: 부모 래퍼(`page.jsx`)가 이미 `min-h-[100vh-64px]+py`로 헤더·여백을 확보하는데, 자식 ai-chat에서 `md:h-auto`를 지우고 `h-[calc(100dvh-4rem)]`를 데스크톱까지 적용 → 헤더+패딩을 두 번 빼 입력칸이 첫 화면 밖으로 ~64px 밀림(스크롤해야 보임). 모바일 헤더(56px)인데 4rem(64px)을 빼 8px도 어긋남.
+- (덤으로 표면화된 선재 버그) `detectHandOff`의 한/일 핸드오프 패턴이 `\b`(워드경계) 사용 — JS `\b`는 CJK에 안 먹어 `/\b상담사\b/`·`/\b担当者\b/`가 항상 false → **한·일 "코디네이터 연결" 버튼을 눌러도 종이 안 울리던 침묵 실패**.
+
+**왜 못 잡았나 (근본원인)** — "빌드 통과 ≠ 동작"(CLAUDE.md 상시 경고)을 정작 내가 어김. 라우팅 사슬(proxy의 locale prefix → `usePathname` 반환값)과 레이아웃 사슬(부모 래퍼 높이/패딩)을 **끝까지 추적하지 않고** 단위 변경의 의도만 보고 머지. 같은 레포에 이미 올바른 선례(`ClientShell`은 `/inquiry`를 `pathname.includes`로, `coordinator/layout`은 헤더 높이 반응형으로)가 있었는데 대조 안 함.
+
+**어떻게 고쳤나** (PR #481)
+- `InstallPrompt`: `splitLocale(pathname)`로 locale 프리픽스를 떼고 `HIDE_ON` 매칭(SoR=config.js LOCALES 재사용).
+- ai-chat 높이: `md:h-auto`로 외곽 dvh 차감을 끄고 안쪽을 `md:h-[calc(100dvh-9rem)]`(헤더+래퍼패딩 보정)로 큰 높이 채움. 모바일은 헤더 정확히 `3.5rem`.
+- `detectHandOff`/패턴을 순수 모듈 `handoffDetect.ts`로 분리(server-only 탈피=테스트 가능) + 한/일 `\b` 제거(부분일치, ru/kz와 동일).
+- 접수 멘트 모순(본문 vs append): 시스템 프롬프트에 "확정문구가 답변 뒤에 자동 append되니 중복·모순 금지" 명시. 마크다운 프롬프트 stale("렌더 안 됨, ** 금지")도 실제 RichText 렌더에 맞게 갱신.
+
+**재발 방지**
+- **가드 신설**: `handoffDetect.test.ts` — 6개 언어 코디·접수 버튼 문구가 전부 `detectHandOff`로 잡히는지 단위테스트로 고정(한·일 CJK 회귀 영구 차단).
+- **교훈(체크리스트화)**: `usePathname` 기반 경로분기를 짤 땐 **proxy의 locale 강제(공개경로=/{locale}/...)**를 반드시 고려 — `startsWith` 직접 매칭 금지, `splitLocale`로 까서 비교. 뷰포트 높이는 부모 래퍼의 높이/패딩을 추적해 **이중차감** 점검.
+- **메타 교훈**: 빠른 모드로 친 UI/라우팅 변경은 머지 전 최소 한 번 **실제 경로 사슬을 끝까지 추적**하거나, 본 건처럼 **적대적 다중 검증**을 한 번 돌린다(빌드 초록은 동작 보장이 아님).
+
+---
 ## #53 — err.message 노출 가드가 `toast.error(...)`를 통째로 못 봄 — 직원포털 정리 중 누락 21곳 추가 적발(공개화면 1곳 포함) (2026-06-30 #52 후속)
 
 **무슨 일**
