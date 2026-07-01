@@ -1,5 +1,4 @@
 import Link from "next/link";
-import Script from "next/script";
 
 // ─────────────────────────────────────────────────────────────
 // Yandex SEO 최적화 — 러시아어 의료관광 랜딩페이지
@@ -95,7 +94,7 @@ const FAQ = [
 export default function ForRussianPatientsPage() {
   return (
     <>
-      <Script
+      <script
         id="jsonld-ru-landing"
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}

@@ -1,4 +1,3 @@
-import Script from "next/script";
 import { notFound, redirect } from "next/navigation";
 import {
   getHospitalById,
@@ -125,7 +124,7 @@ export default async function HospitalDetailPage({ params }) {
     ]);
     return (
       <>
-        <Script
+        <script
           id="hospital-jsonld"
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify([jsonLd, breadcrumb]) }}
@@ -161,7 +160,7 @@ export default async function HospitalDetailPage({ params }) {
     ]);
     return (
       <>
-        <Script
+        <script
           id="hospital-jsonld"
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify([partnerJsonLd, partnerBreadcrumb]) }}
