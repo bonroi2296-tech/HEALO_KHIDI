@@ -35,6 +35,8 @@ jobs:
         run: npm run check:schema-refs
       - name: 비자 데이터 프레시니스 (기한 지난 비자·K-ETA 규정 자동 차단 — POSTMORTEMS #57)
         run: npm run check:visa-freshness
+      - name: PDF 톤 (초청장·견적서·동의서 Premium 톤 복귀 차단 — serif·gold·외부폰트)
+        run: npm run check:pdf-tone
       - run: npm run check:i18n
       - name: 법률 문서 6개 언어 정합성 (약관·개인정보방침 구조/번역 누락 차단)
         run: npm run check:legal

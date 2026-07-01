@@ -1,7 +1,7 @@
 /**
  * healwith PDF Styles — Legacy 톤 (DESIGN.md 준수)
  *
- * 규칙: serif(Playfair) 금지 · cream/ink/gold 금지 · 브랜드색 teal-600 · 회색/흰색.
+ * 규칙: serif 폰트 금지 · 골드/크림 팔레트 금지 · 브랜드색 teal-600 · 회색/흰색.
  * 폰트는 내장 Helvetica만 사용(외부 웹폰트 다운로드 없음 → 오프라인·프록시 404 안전).
  * ※ 스타일 키 이름은 하위 컴포넌트 호환 위해 유지하되, 값만 Legacy 톤으로 정의.
  */
