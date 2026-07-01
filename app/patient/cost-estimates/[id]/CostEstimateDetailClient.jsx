@@ -192,18 +192,18 @@ export default function CostEstimateDetailClient({ estimateId }) {
       {/* 자동 범위 */}
       {estimate.auto_min_krw && (
         <section className="mt-6 border border-gray-200 rounded-lg p-5 bg-white">
-          <h2 className="text-sm font-medium text-gray-700">자동 예상 범위 (참고용)</h2>
+          <h2 className="text-sm font-medium text-gray-700">{l(LABELS.autoRangeTitle)}</h2>
           <p className="mt-2 text-lg">
             {fmtKRW(estimate.auto_min_krw)} ~ {fmtKRW(estimate.auto_max_krw)}
           </p>
           {estimate.auto_median_krw && (
             <p className="text-xs text-gray-500 mt-1">
-              중앙값: {fmtKRW(estimate.auto_median_krw)}
+              {l(LABELS.medianLabel)}: {fmtKRW(estimate.auto_median_krw)}
             </p>
           )}
           {estimate.ai_personalization && (
             <p className="text-xs text-blue-700 mt-2 italic">
-              AI 분석: {estimate.ai_personalization}
+              {l(LABELS.aiAnalysisLabel)}: {estimate.ai_personalization}
             </p>
           )}
         </section>
@@ -212,7 +212,7 @@ export default function CostEstimateDetailClient({ estimateId }) {
       {/* 코디 메모 */}
       {estimate.coordinator_notes && (
         <section className="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-4">
-          <p className="text-sm font-medium text-blue-900">코디네이터 메모</p>
+          <p className="text-sm font-medium text-blue-900">{l(LABELS.coordinatorNotes)}</p>
           <p className="text-sm text-blue-800 mt-1 whitespace-pre-wrap">
             {estimate.coordinator_notes}
           </p>
@@ -222,10 +222,10 @@ export default function CostEstimateDetailClient({ estimateId }) {
       {/* 정식 견적서 */}
       {estimate.status === "issued" && (
         <section className="mt-6 border border-emerald-200 bg-emerald-50 rounded-lg p-5">
-          <h2 className="font-medium text-emerald-900">✅ 정식 견적서 발급됨</h2>
+          <h2 className="font-medium text-emerald-900">{l(LABELS.issuedTitle)}</h2>
           <p className="text-sm text-emerald-800 mt-1">
-            총 {fmtKRW(estimate.total_krw)}{" "}
-            {estimate.total_usd ? `(약 ${fmtUSD(estimate.total_usd)})` : ""}
+            {l(LABELS.totalPrefix)} {fmtKRW(estimate.total_krw)}{" "}
+            {estimate.total_usd ? `(${l(LABELS.approxPrefix)} ${fmtUSD(estimate.total_usd)})` : ""}
           </p>
           {pdfUrl && (
             <a
@@ -234,7 +234,7 @@ export default function CostEstimateDetailClient({ estimateId }) {
               rel="noopener noreferrer"
               className="mt-3 inline-block bg-emerald-700 text-white px-4 py-2 rounded text-sm hover:bg-emerald-700"
             >
-              견적서 PDF 다운로드
+              {l(LABELS.downloadPdf)}
             </a>
           )}
 
@@ -244,18 +244,18 @@ export default function CostEstimateDetailClient({ estimateId }) {
               disabled={acting}
               className="bg-black text-white px-4 py-2 rounded text-sm hover:bg-gray-800 disabled:opacity-50"
             >
-              동의하기
+              {l(LABELS.acceptBtn)}
             </button>
             <button
               onClick={handleReject}
               disabled={acting}
               className="border border-gray-300 px-4 py-2 rounded text-sm hover:border-black"
             >
-              거절
+              {l(LABELS.rejectBtn)}
             </button>
           </div>
           <p className="text-xs text-gray-500 mt-3">
-            ※ 동의 시각과 IP 가 감사 목적으로 기록됩니다 (의료해외진출법 §15)
+            {l(LABELS.auditNotice)}
           </p>
         </section>
       )}
@@ -263,7 +263,7 @@ export default function CostEstimateDetailClient({ estimateId }) {
       {estimate.status === "accepted" && (
         <section className="mt-6 border border-green-200 bg-green-50 rounded-lg p-5">
           <p className="text-sm text-green-900">
-            ✓ {new Date(estimate.patient_accepted_at).toLocaleString("ko-KR")} 동의 완료
+            ✓ {new Date(estimate.patient_accepted_at).toLocaleString("ko-KR")} {l(LABELS.acceptedSuffix)}
           </p>
         </section>
       )}
@@ -272,13 +272,13 @@ export default function CostEstimateDetailClient({ estimateId }) {
       {estimate.quotation_items && estimate.quotation_items.length > 0 && (
         <section className="mt-6 border border-gray-200 rounded-lg overflow-hidden">
           <h2 className="px-4 py-3 font-medium text-sm bg-gray-50 border-b border-gray-200">
-            항목별 상세
+            {l(LABELS.itemDetailTitle)}
           </h2>
           <table className="w-full text-sm">
             <thead className="text-xs text-gray-600">
               <tr>
-                <th className="px-4 py-2 text-left">항목</th>
-                <th className="px-4 py-2 text-left">비고</th>
+                <th className="px-4 py-2 text-left">{l(LABELS.thItem)}</th>
+                <th className="px-4 py-2 text-left">{l(LABELS.thNote)}</th>
                 <th className="px-4 py-2 text-right">KRW</th>
                 <th className="px-4 py-2 text-right">USD</th>
               </tr>
@@ -302,8 +302,7 @@ export default function CostEstimateDetailClient({ estimateId }) {
       )}
 
       <p className="text-xs text-gray-500 mt-6 italic leading-relaxed">
-        ⚠️ 자동 범위는 통계 기반 참고치이며, 실제 비용은 발급된 정식 견적서를 기준으로 합니다.
-        의료해외진출법 §15 에 따라 진료 계약 전 견적서 수령과 확인이 법적으로 요구됩니다.
+        {l(LABELS.disclaimer)}
       </p>
     </div>
   );
