@@ -7,10 +7,8 @@ import { AdminGuideModal } from "../_components/AdminGuideModal";
 export default function AnalyticsPage() {
   const [showGuide, setShowGuide] = useState(false);
   const [analytics, setAnalytics] = useState({
-    totalRevenue: 0,
     totalLeads: 0,
     topTreatment: '-',
-    hospitalOpportunities: [],
     treatmentTrends: []
   });
 
@@ -31,10 +29,8 @@ export default function AnalyticsPage() {
           return;
         }
         setAnalytics({
-          totalRevenue: data.totalRevenue ?? 0,
           totalLeads: data.totalLeads ?? 0,
           topTreatment: data.topTreatment ?? '-',
-          hospitalOpportunities: Array.isArray(data.hospitalOpportunities) ? data.hospitalOpportunities : [],
           treatmentTrends: Array.isArray(data.treatmentTrends) ? data.treatmentTrends : [],
         });
       } catch (e) {
@@ -48,14 +44,14 @@ export default function AnalyticsPage() {
   return (
     <div className="space-y-4">
       {showGuide && (
-        <AdminGuideModal title="문의 현황(시장 분석) 가이드" onClose={() => setShowGuide(false)}>
+        <AdminGuideModal title="문의 수요 트렌드 가이드" onClose={() => setShowGuide(false)}>
           <section>
             <h3 className="text-base font-semibold text-gray-900 mb-2">이 페이지는 무엇인가요?</h3>
-            <p>고객 문의 데이터를 기반으로 <strong>시장 수요 트렌드</strong>와 <strong>기회(Opportunity)</strong>를 보여줍니다. 어떤 시술/카테고리가 많은지, 미체결 수요가 어디에 있는지 파악해 제휴 영업·운영에 활용할 수 있습니다.</p>
+            <p>고객 문의 데이터를 기반으로 <strong>시술·암종별 수요 트렌드</strong>를 보여줍니다. 어떤 시술/카테고리 문의가 많은지 파악해 제휴 병원 확보·운영 우선순위에 활용할 수 있습니다.</p>
           </section>
           <section>
             <h3 className="text-base font-semibold text-gray-900 mb-2">지표 설명</h3>
-            <p className="text-gray-600 text-sm">총 활성 문의 수, 추정 시장 기회 총액, 최다 수요 카테고리 등이 표시됩니다. 문의 유형별 비율과 트렌드를 확인해 병원·시술 확보 우선순위를 정하는 데 참고하세요.</p>
+            <p className="text-gray-600 text-sm">총 활성 문의 수, 최다 수요 카테고리, 시술 종류별 수요 분포가 표시됩니다. 문의 유형별 비율을 확인해 병원·시술 확보 우선순위를 정하는 데 참고하세요.</p>
           </section>
         </AdminGuideModal>
       )}

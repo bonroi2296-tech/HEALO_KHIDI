@@ -1276,3 +1276,22 @@ PO가 협력병원 상세(`/hospitals/[slug]`) 하단 "자주 묻는 질문"이 
 - `check-content-consistency.mjs`에 **이메일 premium 토큰 가드**(§8) 추가: 라이브 이메일 템플릿(`src/lib/email/templates/**` + `surveyEmailTemplate.ts`)에 `Playfair Display`·`#c8a96a`·`#f5f0e8`·`#0a0a0a` 재등장 시 CI 실패. 정답 톤 레퍼런스로 infoRequest.ts 명시.
 - 남은 것: `src/emails/*.jsx`(React Email premium 시스템, CoordinatorIntro·HospitalMatch 등 6종)도 premium 톤이지만, 유일한 소비자 `app/api/email/send` 가 **죽은 라우트(아무도 안 부름 — PROJECT_CONTEXT 아카이브 명시)**라 환자에게 발송되지 않음. → 재브랜딩이 아니라 **죽은 라우트+템플릿 삭제 후보**(별도 팔로업). 그래서 가드 범위에서 제외.
 - 교훈: **사용자 접점(이메일·PDF·알림)도 UI다.** DESIGN 표준은 화면뿐 아니라 발송물까지 덮어야 하고, 자동검사도 거기까지 따라가야 한다.
+
+## #56 — 어드민에 '가짜 숫자'가 실지표처럼 떠 있었음 (매출=문의수×3500, AI정확도 72% 하드코딩) (2026-07-01)
+
+**무슨 일**
+- 어드민 정리 전수조사 중 발견. 두 화면이 근거 없는 숫자를 실지표처럼 표시:
+  - `analytics`(문의 현황): `/api/admin/analytics` 가 `totalRevenue = 문의수 × 3500`(하드코딩 상수)을 계산해 "시장 기회 총액 $..."으로 표시. `hospitalOpportunities`는 늘 빈 배열인데 "기회 비용 분석" 표로 자리만 차지. 화면엔 하드코딩 "+12% 성장" 배지까지. 전부 피벗 전(디렉토리 사업) 잔재.
+  - `agent`(Human Agent): 스탯카드 "AI 정확도"가 `aiAccuracy: 72 // Initial M1 target` 하드코딩, "오늘 처리 완료"는 `todayResolved: 0 // Will be implemented` 하드코딩.
+
+**왜 못 잡았나(근본원인)**
+- 피벗(디렉토리→암환자 컨시어지) 때 화면은 남겨두고 데이터 모델만 바뀌어, 옛 매출/기회 지표가 '계산은 되지만 의미 없는' 상태로 잔존. 빌드/기능 검사로는 안 보임(숫자가 뜨긴 뜨니까).
+- "임시로 목표치 박아두고 나중에 실측 연결" 주석(Initial/Will be implemented)이 그대로 프로덕션에 남음. DESIGN.md `medical_ui.forbidden`("가짜 숫자 금지 — 의료 광고법")·KHIDI 평가(가짜 실적 위험)에 정면 배치.
+
+**어떻게 고쳤나** (PO 결정)
+- analytics: 가짜 매출·기회·성장배지 전부 제거. 실데이터(문의 수·최다 수요 카테고리·시술 종류별 분포)만 '문의 수요 트렌드'로 남김. API도 `totalRevenue/avgPrice/hospitalOpportunities` 삭제.
+- agent: "AI 정확도"를 실측(`ai_response_evaluations` 14일 평균 overall_score → %)으로 연결, 평가 데이터 없으면 가짜 대신 "—". "오늘 처리 완료"는 트래킹 파이프라인이 없어 가짜 0 대신 "—"(정직). (AccuracyPanel 탭은 이미 0이면 "–" + "데이터 누적 시 표시"로 정직 처리 중 — 유지.)
+
+**재발 방지**
+- 교훈: **화면에 뜨는 모든 숫자는 실데이터 아니면 "—".** "임시 목표치·나중에 연결" 주석을 프로덕션에 남기지 말 것 — 남길 거면 "—"로 표시(가짜 숫자보다 낫다). 피벗 때는 데이터 모델뿐 아니라 그 데이터를 쓰던 화면·API의 잔재 지표까지 같이 청소.
+- 자동가드는 보류(하드코딩 지표 탐지는 오탐 많아 fragile). 대신 이 반성문 + 어드민 전수조사 기록으로 재발 시 빨리 인지.

@@ -48,8 +48,6 @@ export async function GET(request: NextRequest) {
 
     const inquiries = data || [];
     const totalLeads = inquiries.length;
-    const avgPrice = 3500; // 기존 대시보드와 동일한 상수
-    const totalRevenue = totalLeads * avgPrice;
 
     const typeCounts: Record<string, number> = {};
     inquiries.forEach((row) => {
@@ -69,10 +67,8 @@ export async function GET(request: NextRequest) {
 
     return Response.json({
       ok: true,
-      totalRevenue,
       totalLeads,
       topTreatment,
-      hospitalOpportunities: [],
       treatmentTrends,
     });
   } catch (err: unknown) {
