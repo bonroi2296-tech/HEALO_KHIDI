@@ -155,7 +155,7 @@ export default function CostEstimateDetailClient({ estimateId }) {
   if (loading) {
     return (
       <div className="max-w-4xl mx-auto px-4 py-10">
-        <p className="text-sm text-gray-500">불러오는 중...</p>
+        <p className="text-sm text-gray-500">{l(LABELS.loading)}</p>
       </div>
     );
   }
@@ -163,7 +163,7 @@ export default function CostEstimateDetailClient({ estimateId }) {
     return (
       <div className="max-w-4xl mx-auto px-4 py-10">
         <p className="text-sm text-red-600">{failMsg}</p>
-        <Link href="/patient/cost-estimates" className="text-sm underline mt-4 inline-block">← 목록</Link>
+        <Link href="/patient/cost-estimates" className="text-sm underline mt-4 inline-block">{l(LABELS.backToList)}</Link>
       </div>
     );
   }
@@ -174,17 +174,17 @@ export default function CostEstimateDetailClient({ estimateId }) {
         href="/patient/cost-estimates"
         className="text-sm text-gray-600 hover:text-gray-900 underline underline-offset-4"
       >
-        ← 견적 목록
+        {l(LABELS.backToEstimates)}
       </Link>
 
       <div className="mt-4 flex items-start justify-between">
         <div>
           <h1 className="text-3xl font-semibold tracking-tight">
-            {estimate.quotation_no || "정식 견적 요청"}
+            {estimate.quotation_no || l(LABELS.formalRequestTitle)}
           </h1>
           <p className="text-sm text-gray-500 mt-1">
-            상태: {STATUS_LABELS[estimate.status] || estimate.status} ·{" "}
-            {new Date(estimate.created_at).toLocaleString("ko-KR")} 생성
+            {l(LABELS.statusLabel)}: {l(STATUS_LABELS[estimate.status]) || estimate.status} ·{" "}
+            {new Date(estimate.created_at).toLocaleString("ko-KR")} {l(LABELS.createdSuffix)}
           </p>
         </div>
       </div>
