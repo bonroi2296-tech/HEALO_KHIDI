@@ -77,21 +77,17 @@ export default function ConsultationsPage() {
     }
   };
 
-  const handleJoinConsultation = (consultation) => {
-    router.push(`/consultation/${consultation.id}`);
-  };
-
-  const handleIssueInvite = async (consultation) => {
+  // 상담 링크(초대 토큰 포함) 1개 발급 → API 응답 반환. 링크 하나로 입장 + 환자 공유 통일.
+  const issueInvite = async (consultationId) => {
+    const { data: sessionData } = await supabase.auth.getSession();
+    const token = sessionData?.session?.access_token;
+    if (!token) {
+      toast.error("인증 오류");
+      return null;
+    }
     try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      const token = sessionData?.session?.access_token;
-      if (!token) {
-        toast.error("인증 오류");
-        return;
-      }
-
       const res = await fetch(
-        `/api/khidi/consultation/${consultation.id}/invite`,
+        `/api/khidi/consultation/${consultationId}/invite`,
         {
           method: "POST",
           headers: {
@@ -107,27 +103,46 @@ export default function ConsultationsPage() {
         }
       );
       const result = await res.json();
-
       if (!res.ok || !result.ok) {
-        toast.error(`초대 링크 생성 실패: ${result.error}`);
-        return;
+        toast.error(`상담 링크 생성 실패: ${result.error}`);
+        return null;
       }
-
-      // 클립보드 복사
-      try {
-        await navigator.clipboard.writeText(result.inviteUrl);
-        toast.success(
-          `환자 초대 링크가 클립보드에 복사됐습니다 (만료: ${new Date(
-            result.expiresAt
-          ).toLocaleString("ko-KR")})`
-        );
-      } catch {
-        // 클립보드 권한 없으면 alert 로
-        prompt("아래 링크를 복사해 환자에게 공유하세요:", result.inviteUrl);
-      }
+      return result;
     } catch (err) {
-      console.error("[handleIssueInvite] error:", err);
-      toast.error("초대 링크 생성 실패");
+      console.error("[issueInvite] error:", err);
+      toast.error("상담 링크 생성 실패");
+      return null;
+    }
+  };
+
+  // 상담 시작 = 링크 하나로 통일: 어드민도 이 초대 링크로 입장(로그인돼 있어 자동으로 staff 인식).
+  //   주소창에 뜨는 게 곧 환자에게 그대로 보내면 되는 링크 → 편하게 클립보드에도 복사.
+  const handleJoinConsultation = async (consultation) => {
+    const result = await issueInvite(consultation.id);
+    if (!result?.inviteUrl) { router.push(`/consultation/${consultation.id}`); return; }
+    try {
+      await navigator.clipboard.writeText(result.inviteUrl);
+      toast.success("상담 링크를 복사했어요 — 환자에게 붙여넣어 보내세요. 나는 지금 입장합니다");
+    } catch { /* 클립보드 권한 없으면 조용히 패스 — 입장은 계속 */ }
+    router.push(result.inviteUrl.replace(/^https?:\/\/[^/]+/, ""));
+  };
+
+  // 링크만 복사(입장 없이 환자에게 먼저 보낼 때) — 위와 같은 종류의 링크.
+  const handleIssueInvite = async (consultation) => {
+    const result = await issueInvite(consultation.id);
+    if (!result?.inviteUrl) return;
+    try {
+      await navigator.clipboard.writeText(result.inviteUrl);
+      toast.success(
+        result.emailSent
+          ? "상담 링크를 복사했고, 등록된 이메일로도 발송했습니다"
+          : `상담 링크가 클립보드에 복사됐습니다 (만료: ${new Date(
+              result.expiresAt
+            ).toLocaleString("ko-KR")})`
+      );
+    } catch {
+      // 클립보드 권한 없으면 prompt 로
+      prompt("아래 링크를 복사해 환자에게 공유하세요:", result.inviteUrl);
     }
   };
 
@@ -484,8 +499,9 @@ export default function ConsultationsPage() {
                         <button
                           onClick={() => handleIssueInvite(consultation)}
                           className="flex-1 min-w-[140px] px-4 py-2 bg-blue-50 text-blue-700 border border-blue-200 rounded-lg hover:bg-blue-100 transition font-medium flex items-center justify-center gap-2"
+                          title="입장 없이 환자에게 보낼 링크만 복사 — 「상담 시작」과 같은 링크"
                         >
-                          🔗 환자 초대 링크
+                          🔗 환자 링크 복사
                         </button>
                         <button
                           onClick={() => handleCancel(consultation.id)}
