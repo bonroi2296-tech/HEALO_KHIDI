@@ -1,6 +1,56 @@
 # PR
 
 
+
+## 🔖 세션 핸드오프 (2026-07-01 오전 — 채널전환 대시보드·오류 스윕·환자 i18n·SEO 감사·오픈 관문 실측)
+
+> PO "오늘 작업 준비해봐" → C(채널대시보드) → "오류 싹다 해결" → funnel 실증·만족도 버그·i18n → "사이트맵 이게 최선이야?" → SEO 전체 감사 → "이제 완벽한거지?" → 오픈 관문(A) 실측(이메일 가입 실확인) → "핸드오프해".
+
+**1. 이번 세션 한 일** (전부 CI 통과 후 squash 머지·배포)
+- **채널별 전환 대시보드 [#538]**: `/admin/khidi/conversion`에 '채널별(유입경로)' 표 추가 — 웹 문의폼 vs AI 상담이 문의→사전상담→유치확정→사후관리로 얼마나 이어지는지 + 유치율%. 새 DB 함수 `conversion_funnel_by_source`(국가별 RPC 미러, 라이브 적용). manuals(관리자) 갱신.
+- **오류 스윕 [#542]**: 만족도 `avgSatisfaction100` 이 **미응답(null) 문항을 0점 아닌 평균 분모에서 제외**하도록 교정(부분응답 0점 깎던 잠재버그) + `minResponses` 파라미터 추가 + `DocumentsClient` 영어 placeholder 6개어화 + KNOWN_ISSUES 갱신(cron `!==`는 이미 공용 `cronAuth`=timingSafeEqual 로 해결됨 표기). 단위테스트 10건.
+- **funnel form_complete 실증**: 프로덕션에 테스트문의 1건(id 35, `is_test`) 흘려 `funnel_events`에 form_complete 행 적재 확인 — 여러 세션 미검증이던 #522(0행) **실증 완료**.
+- **환자 견적 상세 i18n [#544]**: `CostEstimateDetailClient` 6개어화. (비자 목록·비자 상세는 이미 6개어 완료돼 있었음 = KNOWN_ISSUES "환자 상세 광범위 한국어" 항목 일부 스테일).
+- **SEO 전체 감사 + 개선 [#547]**: 3차원 병렬 감사(메타/hreflang·구조화데이터·기술SEO) → **감사 주장을 실측(curl)으로 검증**. **오탐 3건 배제**(아래 §2). 반영: BreadcrumbList(병원·치료 상세 4분기)·WebSite+SearchAction(홈)·sitemap 정적 lastmod 고정(`STATIC_LASTMOD`). 메모리 `seo-state` 추가.
+- **만족도 표본부족 가드 env [#557]**: `SATISFACTION_MIN_RESPONSES` env(기본 0=무변화)를 kpi.ts·satisfaction/route.ts 양쪽에 연결 — PO가 N 정하면 코드 재배포 없이 스위치.
+- **오픈 관문(A) 실측·인터랙티브**: 유출비번보호=유료(Pro)라 스킵 / **이메일 회원가입+인증메일+로그인 end-to-end를 PO가 직접 실확인**(Zoho SMTP·token_hash 정상, `admin@healwith.co.kr` 발신 한국어 인증메일 도착→인증→로그인) / 구글 로그인 작동(PO 계정) / 병원 `aggregateRating`=DB rating 0개라 가짜후기 방출 없음 확인. 메모리 `auth-signup-state` "막힘→열림"으로 정정.
+
+**2. 왜 그렇게 했는지**
+- **감사 오탐 실측 배제**: AI 에이전트 감사가 "hreflang 누락 CRITICAL"·"ru/kz 제목 영어폴백"을 올렸으나 curl 실측 결과 **둘 다 정상**(hreflang 7개 렌더, ru/kz 제목 러/카어). 함정=Next가 `hrefLang`(카멜케이스)로 렌더 → 소문자 grep이 0 냄. JSON-LD는 next/script든 plain `<script>`든 **RSC 페이로드로만** 전달(초기 HTML 인라인 안 됨)이라 "인라인화" 시도는 효과 0 → **revert**. 멀쩡한 걸 고칠 뻔한 걸 실측이 막음.
+- 만족도 null→0은 부분응답을 깎던 잠재버그지만 `survey_responses` 0행이라 현재 영향 0. min-N은 K-03 평가공식 변경이라 **env 스위치로만**(PO가 N 결정).
+- PO "완벽하냐" 물음엔 안심 대신 실측 → 이메일 가입이 사실 이미 작동함을 확인(메모리 "막힘"이 스테일이었음).
+
+**3. 안 끝났거나 보류**
+- **구글 OAuth "게시" 여부 미확인**: PO 계정은 로그인되나, 테스트 모드면 남(실환자)은 막힐 수 있음. Google Cloud Console에서 PUBLISH 확인 필요(단 이메일 가입이 열려 있어 하드 블로커는 아님).
+- **비번찾기 end-to-end 미검증**: 코드는 됐는데(PR #341·#392·#402) 실메일→재설정 1회 실확인 안 함.
+- **min-N 실켜짐 안 함**: `SATISFACTION_MIN_RESPONSES` 미설정(기본 0). PO가 N(권장 3~5) 정하면 Vercel env.
+- 홈 Organization `sameAs`(SNS)·`contactPoint` = 실 SNS주소·전화 없어 미반영. FAQPage 확충 = 카피라 PO 영역.
+- E2E Secrets(GitHub 12개), 약한비번 테스트계정 삭제(오픈 직전 — 지금은 외부공유·E2E로 사용 중).
+
+**4. 주의·함정**
+- 프로덕션에 **테스트문의 id 35**(`is_test`) 남김 — KPI 자동 제외라 무해, 원하면 삭제.
+- **병렬 세션 다수**가 같은 날 main에 머지(#548·#552·#555·#559·#560·#561·hospital-toggle 등 타세션). 이어가기 전 `git pull origin main` 필수.
+- **SEO는 이미 탄탄**(메모리 `seo-state`) — 재감사 말고 그거 먼저. 감사봇 오탐 함정(hrefLang 카멜케이스·JSON-LD RSC) 주의.
+- 만족도 min-N 켜면 응답<N 일 때 K-03이 0 대신 표본부족(null) — 현재 0행이라 무변화, 응답 쌓이면 반영.
+
+**5. 다음 세션이 먼저 할 일**
+1. ⚠️ **직전 미검증분 먼저**: **(a)** 비번찾기 end-to-end 1회(로그아웃→비번찾기→`seokmin.moon88+test@gmail.com`→메일 도착→새 비번 재설정) **(b)** 구글 OAuth "게시" 여부 확인(PO 말고 남도 구글가입 되나).
+2. 만족도 min-N 켤지·N값 PO 결정 → Vercel env `SATISFACTION_MIN_RESPONSES`.
+3. 남은 오픈 관문: E2E Secrets(GitHub)·약한비번 테스트계정(오픈 직전).
+4. (선택) B 8/27 중간평가 발표골격·점수전략 / D 코드 백로그(soft-404·RAG 재적재 — 위험/보류).
+
+**6. 검증 상태**
+- ✅ **PR/CI**: #538·#542·#544·#547·#557 전부 `ci`·`Smoke Tests(PR)`·`Vercel` 통과 후 squash 머지·배포(E2E는 PR이라 skip). 각 PR `next build --webpack` exit0 · `check:content` 통과 · vitest(만족도 10건·전체 455건 등) 통과.
+- ✅ **실측**: funnel `form_complete` 적재(문의 id35) / 이메일 가입 end-to-end(PO 실테스트) / 병원 rating 0개(가짜후기 없음) / hreflang 7개 정상 렌더(홈·목록·상세) / SEO BreadcrumbList·SearchAction 프리뷰 curl 렌더 확인.
+- ❌ **미검증(솔직히)**: 구글 OAuth "게시" 여부 · 비번찾기 end-to-end · min-N 실켜짐(env 미설정) · 채널 대시보드 실브라우저 클릭(어드민 인증이라 화면은 코드+프리뷰로만).
+
+**7. 다음 세션 첫 프롬프트**
+> 먼저 docs/PROJECT_CONTEXT.md 최상단 핸드오프 읽어. 2026-07-01 오전에 채널전환 대시보드(#538)·오류 스윕(#542)·환자 견적 i18n(#544)·SEO 감사(#547)·만족도 min-N env(#557) 다 머지·배포했고, **이메일 회원가입이 end-to-end 작동하는 것도 PO가 직접 실확인**했어. **먼저 미검증분 실측해**: ① 비번찾기 end-to-end 1회(로그아웃→비번찾기→`seokmin.moon88+test@gmail.com`으로 재설정 메일 도착→새 비번 바꿔지나) ② 구글 OAuth가 "게시"됐는지(내 계정 말고 남도 구글가입 되나). 그다음 만족도 min-N 켤 N값 정하고(Vercel env `SATISFACTION_MIN_RESPONSES`, 권장 3~5), 남은 오픈 관문(E2E Secrets·약한비번 테스트계정은 오픈 직전) 정리해줘.
+
+---
+
+---
+
 ## 🔖 세션 핸드오프 (2026-07-01 — 어드민 정리·가짜숫자 청소 + 병원 6곳 활성화·매칭 실작동 + 문의 퍼널 검증 [#555 머지·배포])
 
 > PO "워크트리 파고 어드민 정리하자" → "상담 예약 모달 복잡·초대 이메일 톤 이상" → "실제 운영 가능하게 해라(하나하나 묻지 말고)" → "서비스 오픈해? 광고 돌린다?" → "병원 정보 니가 가져와" → "완벽하니?" → PR+배포 → 핸드오프.
