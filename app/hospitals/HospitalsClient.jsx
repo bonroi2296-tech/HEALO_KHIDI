@@ -649,11 +649,22 @@ export default function HospitalsClient() {
   const toggleBranch = (id) => {
     const willOpen = expandedBranch !== id;
     setExpandedBranch(willOpen ? id : null);
-    // 열 때만: 그 지점 헤더가 고정헤더 바로 아래로 오게 스르륵 스크롤(위 지점이 접히며 화면이 튀는 '밀림' 방지).
-    if (willOpen) {
-      const reduce = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-      requestAnimationFrame(() => branchRefs.current[id]?.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' }));
-    }
+    if (!willOpen) return;
+    // 밀림 방지: 클릭한 지점 헤더를 고정헤더 바로 아래(상단)에 붙이고, 위 지점이 접히는 애니(200ms)
+    // 동안 매 프레임 위치를 다시 잡는다. 예전엔 스크롤을 애니 '전' 한 번만 해서, 위 지점이 뒤늦게
+    // 접히며 화면이 튀어 방금 연 지점이 화면 밖으로 사라졌다(rAF 1회 → 프레임별 pin 으로 교체).
+    const GAP = 80; // 고정헤더(h-14/16=56~64px) 아래 여백 (scroll-mt-20 과 동일)
+    const reduce = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    const now = () => (typeof performance !== 'undefined' ? performance.now() : 0);
+    const start = now();
+    const pin = () => {
+      const el = branchRefs.current[id];
+      if (!el) return;
+      const top = el.getBoundingClientRect().top;
+      if (Math.abs(top - GAP) > 1) window.scrollBy(0, top - GAP);
+      if (!reduce && now() - start < 280) requestAnimationFrame(pin);
+    };
+    requestAnimationFrame(pin);
   };
   const branchDoctors = (branchId) => DOCTORS.filter(d => d.branch === branchId);
 
