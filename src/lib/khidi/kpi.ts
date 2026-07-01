@@ -148,7 +148,10 @@ async function _fetchKpiInRange(
   if (e4b) noteErr("survey_responses", e4b.message);
 
   const responses = surveyResponsesFull ?? [];
-  const satisfactionAvg = avgSatisfaction100(responses);
+  // 표본부족 가드: 응답이 SATISFACTION_MIN_RESPONSES 건 미만이면 K-03 을 null(표본부족)로.
+  // 기본 0 = 가드 없음(현재 동작 무변화). PO 가 신뢰구간 정하면 env 로 켠다(권장 3~5).
+  const minResponses = Number(process.env.SATISFACTION_MIN_RESPONSES) || 0;
+  const satisfactionAvg = avgSatisfaction100(responses, { minResponses });
 
   // 응답률: 해당 기간 발송된 surveys 대비 responded=true
   let sentQ = supabase
