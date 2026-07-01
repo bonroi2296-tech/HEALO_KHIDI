@@ -66,6 +66,9 @@ const FORBIDDEN = [
   { re: /(?:100\s*%|стопроцентн\w*)\s+(?:результат|излечени|выздоровлени)/i, msg: "RU 의료광고 금지문구 '100% результат' — 결과 보장 금지." },
   { re: /(?<!\b(?:not|no|never|cannot|can't|doesn't|don't|won't)\s)\bguarantee[ds]?\s+(?:a\s+)?(?:cure|recovery|to\s+cure)\b/i, msg: "EN 의료광고 금지문구 'guaranteed cure' — 결과 보장 금지(광고 거부 + 법적 리스크). 면책이면 'does not guarantee…' 형태로." },
   { re: /\b100\s*%\s+cure\b/i, msg: "EN 의료광고 금지문구 '100% cure' — 결과 보장 금지." },
+  // 의사 사진을 외부(immunehospital.com/uploads/*)에서 핫링크하면 원본이 파일명 변경/삭제 시 우리 화면에서 깨진다
+  // (2026-07-01 병원 페이지 의사사진 다수 깨짐·404 사고, POSTMORTEMS). 사진은 public/doctors/ 에 자체 호스팅하고 로컬 경로로 참조할 것.
+  { re: /immunehospital\.com\/uploads\//, msg: "의사 사진 핫링크(immunehospital.com/uploads/…) 금지 — public/doctors/ 에 내려받아 로컬 경로(/doctors/…)로 참조. 새 사진은 scripts/fetch-doctor-photos.mjs 로 받을 것" },
 ];
 
 function walk(dir) {

@@ -10,8 +10,9 @@ import {
   X,
 } from 'lucide-react';
 
-// 의사 사진은 외부(immunehospital.com)에서 핫링크 → 원본이 삭제/변경되면 깨짐.
-// 깨질 때 회색 아바타로 대체해 깨진 이미지 아이콘이 노출되지 않게.
+// 의사 사진은 public/doctors/ 에 자체 호스팅(핫링크 금지 — 원본 immunehospital.com이 파일명 변경/삭제하면 깨졌었음).
+// 새 의사 추가 시: scripts/fetch-doctor-photos.mjs 로 사진을 받아 public/doctors/ 에 넣고 로컬 경로로 참조.
+// 그래도 깨지면(파일 누락 등) 회색 아바타로 대체해 깨진 이미지 아이콘이 노출되지 않게.
 const DOCTOR_FALLBACK = "data:image/svg+xml," + encodeURIComponent(
   '<svg xmlns="http://www.w3.org/2000/svg" width="160" height="160"><rect width="160" height="160" fill="#eef2f5"/><circle cx="80" cy="60" r="28" fill="#b6c2cc"/><rect x="34" y="98" width="92" height="70" rx="34" fill="#b6c2cc"/></svg>'
 );
@@ -83,8 +84,8 @@ const DOCTORS = [
     position: { ko: '강서 대표원장', en: 'Gangseo Chief Director' },
     subspecialty: { ko: '통합면역 대표원장', en: 'Integrative Immuno-Oncology' },
     role: 'ceo',
-    photo: 'https://immunehospital.com/uploads/doctors/6895e62074dc23.62228636.jpg',
-    thumb: 'https://immunehospital.com/uploads/doctors/68a674036de695.54364290.png',
+    photo: '/doctors/6895e62074dc23.62228636.jpg',
+    thumb: '/doctors/68a674036de695.54364290.png',
     keywords: { ko: ['#꼼꼼한','#친절한','#예리한','#이성적인','#정확한'], en: ['#Thorough','#Friendly','#Sharp','#Rational','#Precise'] },
     경력: { ko: ['(現) 면력한방병원 대표원장'], en: ['(Current) Chief Director, Immune Hospital'] },
     학력: { ko: ['동국대학교 한의과대학 졸업', '통합암학회 인정의', '척추신경추나의학회 정회원'], en: ['Graduated from Dongguk University, College of Korean Medicine', 'Integrative Oncology Certified Specialist', 'Spinal Nerve Chuna Medicine Society Regular Member'] },
@@ -95,8 +96,8 @@ const DOCTORS = [
     position: { ko: '강서 양방대표원장', en: 'Gangseo Western Medicine Chief' },
     subspecialty: { ko: '통합면역 부인과', en: 'Gynecologic Oncology' },
     role: 'wm',
-    photo: 'https://immunehospital.com/uploads/doctors/68a3efab789ed9.14338812.jpg',
-    thumb: 'https://immunehospital.com/uploads/doctors/68a42d8de9e095.75488957.jpg',
+    photo: '/doctors/68a3efab789ed9.14338812.jpg',
+    thumb: '/doctors/68a42d8de9e095.75488957.jpg',
     keywords: { ko: ['#부담없는','#배려깊은','#상담이편한','#공감있는','#질문환영'], en: ['#Approachable','#Considerate','#EasyConsult','#Empathetic','#QuestionsWelcome'] },
     경력: { ko: ['(前) 삼성서울병원 전임의', '(前) 중앙대학교병원 전임의', '(現) 면력한방병원 원장'], en: ['(Former) Fellow, Samsung Seoul Hospital', '(Former) Fellow, Chung-Ang University Hospital', '(Current) Director, Immune Hospital'] },
     학력: { ko: ['산부인과 전문의', '중앙대학교 의과대학 졸업', '중앙대학교 의과대학 박사'], en: ['OB/GYN Specialist', 'Graduated from Chung-Ang University, College of Medicine', 'Ph.D., Chung-Ang University College of Medicine'] },
@@ -107,8 +108,8 @@ const DOCTORS = [
     position: { ko: '강서 의무원장', en: 'Gangseo CMO' },
     subspecialty: { ko: '통증재활 한방재활의학과', en: 'Pain Rehab · KM Rehabilitation' },
     role: 'cmo',
-    photo: 'https://immunehospital.com/uploads/doctors/68ff28295475d1.28021653.jpg',
-    thumb: 'https://immunehospital.com/uploads/doctors/68ff2829546a03.48601548.jpg',
+    photo: '/doctors/68ff28295475d1.28021653.jpg',
+    thumb: '/doctors/68ff2829546a03.48601548.jpg',
     keywords: { ko: ['#믿음을주는','#정성스러운','#쉬운설명','#신뢰가는'], en: ['#Trustworthy','#Devoted','#ClearExplanation','#Reliable'] },
     학력: { ko: ['한방재활의학과 전문의', '대전대학교 한의과 대학 졸업', '원광대학교 한방병원 한방재활 학과 전문의'], en: ['KM Rehabilitation Specialist', 'Graduated from Daejeon University, College of Korean Medicine', 'KM Rehabilitation Specialist, Wonkwang University KM Hospital'] },
     활동: { ko: ['한방재활의학과학회 평생회원', '척추신경추나의학회 정회원', '미국 근골격계 초음파 자격(RMSK)', '파워리프팅 협회 WPC 팀닥터'], en: ['KM Rehabilitation Society Lifetime Member', 'Spinal Nerve Chuna Medicine Society Regular Member', 'RMSK (Registered Musculoskeletal Sonographer, USA)', 'WPC Powerlifting Association Team Doctor'] },
@@ -118,8 +119,8 @@ const DOCTORS = [
     name: { ko: '김지영', en: 'Kim Ji-young' },
     position: { ko: '강서 진료원장', en: 'Gangseo Attending Physician' },
     subspecialty: { ko: '통합면역 한방내과', en: 'KM Internal Medicine' },
-    photo: 'https://immunehospital.com/uploads/doctors/68a42f470e29d3.79526645.jpg',
-    thumb: 'https://immunehospital.com/uploads/doctors/68a42f470df8e0.51544383.jpg',
+    photo: '/doctors/68a42f470e29d3.79526645.jpg',
+    thumb: '/doctors/68a42f470df8e0.51544383.jpg',
     keywords: { ko: ['#꼼꼼한','#친절한','#예리한','#이성적인','#정확한'], en: ['#Thorough','#Friendly','#Sharp','#Rational','#Precise'] },
     경력: { ko: ['(前) 인애가(대전,송파)한방병원 진료원장', '(前) 소람한방병원 진료원장', '(現) 면력한방병원 원장'], en: ['(Former) Attending Director, Inaega KM Hospital (Daejeon/Songpa)', '(Former) Attending Director, Soram KM Hospital', '(Current) Director, Immune Hospital'] },
     학력: { ko: ['한방내과 전문의', '대전대학교 한의과 대학 졸업', '대전대학교 한방병원 한방내과 전문의'], en: ['KM Internal Medicine Specialist', 'Graduated from Daejeon University, College of Korean Medicine', 'KM Internal Medicine Specialist, Daejeon University KM Hospital'] },
@@ -129,8 +130,8 @@ const DOCTORS = [
     name: { ko: '김은지', en: 'Kim Eun-ji' },
     position: { ko: '강서 진료원장', en: 'Gangseo Attending Physician' },
     subspecialty: { ko: '통합면역 한방내과', en: 'KM Internal Medicine' },
-    photo: 'https://immunehospital.com/uploads/doctors/68a42d656c4665.58894230.jpg',
-    thumb: 'https://immunehospital.com/uploads/doctors/68a42d656c1818.66316770.jpg',
+    photo: '/doctors/68a42d656c4665.58894230.jpg',
+    thumb: '/doctors/68a42d656c1818.66316770.jpg',
     keywords: { ko: ['#편안한분위기','#쉬운설명','#따뜻한','#신뢰가는','#섬세한','#공감있는'], en: ['#Comfortable','#ClearExplanation','#Warm','#Reliable','#Attentive','#Empathetic'] },
     경력: { ko: ['(前) 면력한방병원 면역내과 진료원장', '(前) 튼튼한방병원 항암면역센터 진료원장', '(現) 면력한방병원 원장'], en: ['(Former) Attending Director, Immune Hospital Immuno-Internal Medicine', '(Former) Attending Director, Teunteun KM Hospital Immuno-Oncology Center', '(Current) Director, Immune Hospital'] },
     학력: { ko: ['한방내과 전문의', '동신대학교 한의과대학 졸업', '동신대학교 대학원 한의학과 석사', '목동동신한방병원 일반/전문수련의 수료'], en: ['KM Internal Medicine Specialist', 'Graduated from Dongshin University, College of Korean Medicine', 'M.S., Dongshin University Graduate School of Korean Medicine', 'Completed residency at Mokdong Dongshin KM Hospital'] },
@@ -142,8 +143,8 @@ const DOCTORS = [
     position: { ko: '강서 양방원장', en: 'Gangseo Western Medicine Director' },
     subspecialty: { ko: '통합면역 가정의학', en: 'Family Medicine' },
     role: 'wm',
-    photo: 'https://immunehospital.com/uploads/doctors/68a428b7697d23.50383418.jpg',
-    thumb: 'https://immunehospital.com/uploads/doctors/68a428b7697d23.50383418.jpg',
+    photo: '/doctors/68a428b7697d23.50383418.jpg',
+    thumb: '/doctors/68a428b7697d23.50383418.jpg',
     keywords: { ko: ['#부담없는','#차분한','#편안한','#빠른대응','#부드러운','#침착한'], en: ['#Approachable','#Calm','#Comfortable','#Responsive','#Gentle','#Composed'] },
     경력: { ko: ['(前) 새빛요양병원 진료원장', '(前) 서울대학교 상산수리과학관 의학통계연구소장', '(前) 인천석병원 내과 진료원장', '(前) 국립춘천병원 내과 진료원장'], en: ['(Former) Attending Director, Saebit Long-term Care Hospital', '(Former) Director, Medical Statistics Lab, Seoul National University', '(Former) Attending Director, Internal Medicine, Incheon Seok Hospital', '(Former) Attending Director, Internal Medicine, National Chuncheon Hospital'] },
     학력: { ko: ['서울중앙보훈병원 가정의학과 전문의'], en: ['Family Medicine Specialist, Seoul Veterans Hospital'] },
@@ -153,8 +154,8 @@ const DOCTORS = [
     name: { ko: '김정현', en: 'Kim Jeong-hyeon' },
     position: { ko: '강서 진료원장', en: 'Gangseo Attending Physician' },
     subspecialty: { ko: '통증재활', en: 'Pain Rehabilitation' },
-    photo: 'https://immunehospital.com/uploads/doctors/69cddc4eccde42.45651812.jpg',
-    thumb: 'https://immunehospital.com/uploads/doctors/69cddc4eccde42.45651812.jpg',
+    photo: '/doctors/69cddc4eccde42.45651812.jpg',
+    thumb: '/doctors/69cddc4eccde42.45651812.jpg',
     keywords: { ko: ['#세심한','#꼼꼼한','#따스한','#사려깊은','#믿음을주는','#편안한분위기'], en: ['#Attentive','#Thorough','#Warm','#Thoughtful','#Trustworthy','#Comfortable'] },
     경력: { ko: ['(前) 종로 통인한의원 진료원장', '(前) 터한의원 여의도점 진료원장', '(現) 면력한방병원 진료원장'], en: ['(Former) Attending Director, Jongno Tongin KM Clinic', '(Former) Attending Director, Teo KM Clinic Yeouido', '(Current) Attending Director, Immune Hospital'] },
     학력: { ko: ['동국대학교 한의과대학 한의학과 졸업'], en: ['Graduated from Dongguk University, College of Korean Medicine'] },
@@ -168,8 +169,8 @@ const DOCTORS = [
     position: { ko: '신촌 대표원장', en: 'Sinchon Chief Director' },
     subspecialty: { ko: '통합면역 대표원장', en: 'Integrative Immuno-Oncology' },
     role: 'ceo',
-    photo: 'https://immunehospital.com/uploads/doctors/68ac46bd43c9d4.37241186.jpg',
-    thumb: 'https://immunehospital.com/uploads/doctors/68ac46bd439598.83386960.png',
+    photo: '/doctors/68ac46bd43c9d4.37241186.jpg',
+    thumb: '/doctors/68ac46bd439598.83386960.png',
     keywords: { ko: ['#믿음을주는','#차분한','#쉬운설명','#공감있는','#부드러운','#따뜻한시선'], en: ['#Trustworthy','#Calm','#ClearExplanation','#Empathetic','#Gentle','#WarmGaze'] },
     경력: { ko: ['원광대학교 산본한방병원 일반수련의', '자생한방병원 한방재활의학과 전문수련의', '(前) 청주나비솔한방병원 진료원장', '(前) 강서면력한방병원 진료원장', '(現) 신촌면력한방병원 대표원장'], en: ['Resident, Wonkwang University Sanbon KM Hospital', 'KM Rehabilitation Fellow, Jaseng KM Hospital', '(Former) Attending Director, Cheongju Navisol KM Hospital', '(Former) Attending Director, Gangseo Immune Hospital', '(Current) Chief Director, Sinchon Immune Hospital'] },
     학력: { ko: ['원광대학교 한의과대학 졸업', '원광대학교 한의과대학 석사 및 박사 학위'], en: ['Graduated from Wonkwang University, College of Korean Medicine', 'M.S. & Ph.D., Wonkwang University College of Korean Medicine'] },
@@ -181,8 +182,8 @@ const DOCTORS = [
     position: { ko: '신촌 양방대표원장', en: 'Sinchon Western Medicine Chief' },
     subspecialty: { ko: '통합면역 부인과', en: 'OB/GYN · Integrative Medicine' },
     role: 'wm',
-    photo: 'https://immunehospital.com/uploads/doctors/69cddae60209c3.18962833.jpg',
-    thumb: 'https://immunehospital.com/uploads/doctors/69cddae601fbd8.12610287.jpg',
+    photo: '/doctors/69cddae60209c3.18962833.jpg',
+    thumb: '/doctors/69cddae601fbd8.12610287.jpg',
     keywords: { ko: ['#친절한','#세심한','#따뜻한','#신뢰가는','#사려깊은','#상담충분'], en: ['#Friendly','#Attentive','#Warm','#Reliable','#Thoughtful','#ThoroughConsult'] },
     학력: { ko: ['산부인과 전문의', '이화여대 의과대학 의학과 졸업', '이화여대부속병원 수련', '경희대학교 의과대학 석사', '흑룡강 중의약대학교 졸업(Traditional Chinese Medicine)'], en: ['OB/GYN Specialist', 'Graduated from Ewha Womans University, College of Medicine', 'Residency at Ewha Womans University Hospital', 'M.S., Kyung Hee University College of Medicine', 'Graduated from Heilongjiang University of Chinese Medicine (TCM)'] },
     활동: { ko: ['대한 IMS학회 정회원', '대한 폐경학회 회원', '대한 노인병학회 회원'], en: ['Korean IMS Society Regular Member', 'Korean Menopause Society Member', 'Korean Geriatrics Society Member'] },
@@ -191,8 +192,8 @@ const DOCTORS = [
     name: { ko: '정유진', en: 'Jung Yu-jin' },
     position: { ko: '신촌 진료원장', en: 'Sinchon Attending Physician' },
     subspecialty: { ko: '한방내과 전문의', en: 'KM Internal Medicine Specialist' },
-    photo: 'https://immunehospital.com/uploads/doctors/68ac464c700852.38470926.jpg',
-    thumb: 'https://immunehospital.com/uploads/doctors/68ac464c6fdee2.09872274.jpg',
+    photo: '/doctors/68ac464c700852.38470926.jpg',
+    thumb: '/doctors/68ac464c6fdee2.09872274.jpg',
     keywords: { ko: ['#친절한','#꼼꼼한','#세심한','#성실한','#편안한설명','#쉬운설명'], en: ['#Friendly','#Thorough','#Attentive','#Diligent','#ComfortExplanation','#ClearExplanation'] },
     경력: { ko: ['(前) 광덕안정한의원 부산하단점 수석원장', '(前) 휘림한방병원 진료원장', '(現) 신촌면력한방병원 진료원장'], en: ['(Former) Senior Director, Gwangdeok Anjeong KM Clinic Busan', '(Former) Attending Director, Hwirim KM Hospital', '(Current) Attending Director, Sinchon Immune Hospital'] },
     학력: { ko: ['동의대학교 한의학과 한방내과 박사', '동의대학교 한의과 대학 졸업', '동의대학교 부속 한방병원 한방내과 전문의'], en: ['Ph.D. in KM Internal Medicine, Dong-Eui University', 'Graduated from Dong-Eui University, College of Korean Medicine', 'KM Internal Medicine Specialist, Dong-Eui University KM Hospital'] },
@@ -203,8 +204,8 @@ const DOCTORS = [
     name: { ko: '조수호', en: 'Cho Su-ho' },
     position: { ko: '신촌 진료원장', en: 'Sinchon Attending Physician' },
     subspecialty: { ko: '한방내과 전문의', en: 'KM Internal Medicine Specialist' },
-    photo: 'https://immunehospital.com/uploads/doctors/68be43e0120336.44853403.jpg',
-    thumb: 'https://immunehospital.com/uploads/doctors/68ac45d97c31b7.54028297.jpg',
+    photo: '/doctors/68be43e0120336.44853403.jpg',
+    thumb: '/doctors/68ac45d97c31b7.54028297.jpg',
     keywords: { ko: ['#친절한','#부담없는','#배려깊은','#공감있는','#편안한','#친근한'], en: ['#Friendly','#Approachable','#Considerate','#Empathetic','#Comfortable','#Personable'] },
     경력: { ko: ['(前) 강동경희대학교 한방병원 한방내과 전문의', '(現) 신촌면력한방병원 진료원장'], en: ['(Former) KM Internal Medicine Specialist, Gangdong Kyung Hee University KM Hospital', '(Current) Attending Director, Sinchon Immune Hospital'] },
     학력: { ko: ['경희대학교 한의과대학 졸업', '경희대학교 임상한의학과(소화기내과학) 석사', '강동경희대학교 한방병원 전문수련의 수료'], en: ['Graduated from Kyung Hee University, College of Korean Medicine', 'M.S. in Clinical KM (Gastroenterology), Kyung Hee University', 'Completed fellowship at Gangdong Kyung Hee University KM Hospital'] },
@@ -215,8 +216,8 @@ const DOCTORS = [
     name: { ko: '김민정', en: 'Kim Min-jeong' },
     position: { ko: '신촌 진료원장', en: 'Sinchon Attending Physician' },
     subspecialty: { ko: '한방내과 전문의', en: 'KM Internal Medicine Specialist' },
-    photo: 'https://immunehospital.com/uploads/doctors/68ac45367f95d4.17025580.jpg',
-    thumb: 'https://immunehospital.com/uploads/doctors/68ac45367f6ed2.58460098.jpg',
+    photo: '/doctors/68ac45367f95d4.17025580.jpg',
+    thumb: '/doctors/68ac45367f6ed2.58460098.jpg',
     keywords: { ko: ['#부담없는','#상냥한','#믿을수있는','#자세한설명','#공감있는','#부드러운'], en: ['#Approachable','#Kind','#Trustable','#DetailedExplanation','#Empathetic','#Gentle'] },
     경력: { ko: ['(現) 신촌면력한방병원 진료원장'], en: ['(Current) Attending Director, Sinchon Immune Hospital'] },
     학력: { ko: ['경희대학교 한의과대학 졸업', '경희대학교 임상한의학과(소화기내과학) 석사', '강동경희대학교한방병원 일반수련의 수료', '강동경희대학교한방병원 한방내과 전문수련의 수료'], en: ['Graduated from Kyung Hee University, College of Korean Medicine', 'M.S. in Clinical KM (Gastroenterology), Kyung Hee University', 'Completed internship at Gangdong Kyung Hee University KM Hospital', 'Completed KM Internal Medicine fellowship at Gangdong Kyung Hee University KM Hospital'] },
@@ -230,8 +231,8 @@ const DOCTORS = [
     position: { ko: '광명 대표원장', en: 'Gwangmyeong Chief Director' },
     subspecialty: { ko: '통합면역 한방재활의학과', en: 'KM Rehabilitation · Immuno-Oncology' },
     role: 'ceo',
-    photo: 'https://immunehospital.com/uploads/doctors/68ac21df896ae3.71046416.jpg',
-    thumb: 'https://immunehospital.com/uploads/doctors/697feda49897b6.88772738.png',
+    photo: '/doctors/68ac21df896ae3.71046416.jpg',
+    thumb: '/doctors/68ac21df896ae3.71046416.jpg', // 원본 thumb(697fed…png) 삭제됨 → 정상 photo 재사용
     keywords: { ko: ['#친절한','#꼼꼼한','#신뢰가는','#정성스러운','#자세한설명'], en: ['#Friendly','#Thorough','#Reliable','#Devoted','#DetailedExplanation'] },
     경력: { ko: ['(前) 동신대학교 부속 광주한방병원 한방재활의학과 진료교수', '(前) 365다시재한방병원 진료부장', '(現) 면력한방병원 진료원장'], en: ['(Former) Clinical Professor, KM Rehabilitation, Dongshin University Gwangju KM Hospital', '(Former) Medical Director, 365 Dasijae KM Hospital', '(Current) Attending Director, Immune Hospital'] },
     학력: { ko: ['한방재활의학과 전문의, 한의학박사', '동신대학교 한의과대학 졸업', '동신대학교 한의과대학원 석/박사', '동신대학교 부속 목포한방병원 일반/전문수련의 수료'], en: ['KM Rehabilitation Specialist, Ph.D. in Korean Medicine', 'Graduated from Dongshin University, College of Korean Medicine', 'M.S. & Ph.D., Dongshin University Graduate School of Korean Medicine', 'Completed residency at Dongshin University Mokpo KM Hospital'] },
@@ -243,8 +244,8 @@ const DOCTORS = [
     position: { ko: '광명 양방대표원장', en: 'Gwangmyeong Western Medicine Chief' },
     subspecialty: { ko: '통합면역 마취통증의학과', en: 'Anesthesiology & Pain Medicine' },
     role: 'wm',
-    photo: 'https://immunehospital.com/uploads/doctors/69cddb97abdb81.98166856.jpg',
-    thumb: 'https://immunehospital.com/uploads/doctors/69cddb97abcd76.76518423.png',
+    photo: '/doctors/69cddb97abdb81.98166856.jpg',
+    thumb: '/doctors/69cddb97abcd76.76518423.png',
     keywords: { ko: ['#친절한','#따뜻한','#꼼꼼한','#사려깊은','#믿음을주는','#따뜻한시선'], en: ['#Friendly','#Warm','#Thorough','#Thoughtful','#Trustworthy','#WarmGaze'] },
     경력: { ko: ['한양대학교병원 마취통증의학과 전공의/전문의', '한양대학교병원 통증의학과 임상교수', '(前) 닥터투유의원 원장', '(前) 오정본병원 통증의학과 원장', '(前) 날아라정형외과 원장', '(前) 부평그린마취통증의학과의원 진료원장', '(現) 면력한방병원 양방원장'], en: ['Anesthesiology & Pain Medicine Resident/Specialist, Hanyang University Hospital', 'Clinical Professor, Pain Medicine, Hanyang University Hospital', '(Former) Director, Doctor To You Clinic', '(Former) Director, Pain Medicine, Ojeongbon Hospital', '(Former) Director, Narara Orthopedics', '(Former) Attending Director, Bupyeong Green Anesthesiology & Pain Clinic', '(Current) Western Medicine Director, Immune Hospital'] },
     학력: { ko: ['한양대학교 의과대학 의학과 졸업', '한양대학교 의과대학 마취통증의학과 석사', '한양대학교병원 통증의학과 전임의'], en: ['Graduated from Hanyang University, College of Medicine', 'M.S. in Anesthesiology & Pain Medicine, Hanyang University', 'Pain Medicine Fellow, Hanyang University Hospital'] },
@@ -254,8 +255,8 @@ const DOCTORS = [
     name: { ko: '하정빈', en: 'Ha Jeong-bin' },
     position: { ko: '광명 진료원장', en: 'Gwangmyeong Attending Physician' },
     subspecialty: { ko: '통합면역 한방내과', en: 'KM Internal Medicine · Immuno-Oncology' },
-    photo: 'https://immunehospital.com/uploads/doctors/68ac238878a855.69829943.jpg',
-    thumb: 'https://immunehospital.com/uploads/doctors/68ac2388788076.62890527.jpg',
+    photo: '/doctors/68ac238878a855.69829943.jpg',
+    thumb: '/doctors/68ac2388788076.62890527.jpg',
     keywords: { ko: ['#친절한','#꼼꼼한','#빠른대응','#상담충분','#믿음을주는'], en: ['#Friendly','#Thorough','#Responsive','#ThoroughConsult','#Trustworthy'] },
     경력: { ko: ['한방내과 전문의', '대한통합암학회 인증 통합암치료 인정의', '대한한방비만학회 비만치료 인증 한의사', '(前) 사랑한방병원 진료원장', '(前) 참바른한방병원 수석원장', '(現) 면력한방병원 원장'], en: ['KM Internal Medicine Specialist', 'Integrative Oncology Certified Specialist, Korean Society of Integrative Oncology', 'Certified Obesity Treatment KM Doctor, Korean KM Obesity Society', '(Former) Attending Director, Sarang KM Hospital', '(Former) Senior Director, Chambareun KM Hospital', '(Current) Director, Immune Hospital'] },
     학력: { ko: ['대구한의대학교 한의학과 차석 졸업', '경희대학교 동서의학대학원 한의학 석사', '경희대학교 한방병원 일반/전문 수련의 수료'], en: ['Graduated 2nd in class from Daegu Haany University, Korean Medicine', 'M.S. in KM, Kyung Hee University East-West Medicine Graduate School', 'Completed residency at Kyung Hee University KM Hospital'] },
@@ -266,8 +267,8 @@ const DOCTORS = [
     name: { ko: '오재우', en: 'Oh Jae-woo' },
     position: { ko: '광명 진료원장', en: 'Gwangmyeong Attending Physician' },
     subspecialty: { ko: '통증재활 한방신경정신과', en: 'KM Neuropsychiatry · Pain Rehab' },
-    photo: 'https://immunehospital.com/uploads/doctors/68ac24c0008ac3.71274446.jpg',
-    thumb: 'https://immunehospital.com/uploads/doctors/68ac24c0006643.02621332.jpg',
+    photo: '/doctors/68ac24c0008ac3.71274446.jpg',
+    thumb: '/doctors/68ac24c0006643.02621332.jpg',
     keywords: { ko: ['#정확한','#쉬운설명','#섬세한','#소통이좋은','#신뢰가는','#공감있는'], en: ['#Precise','#ClearExplanation','#Attentive','#Communicative','#Reliable','#Empathetic'] },
     경력: { ko: ['강남자생한방병원 한방신경정신과 전문의', '(前) 자생한방병원 진료원장', '(現) 면력한방병원 원장'], en: ['KM Neuropsychiatry Specialist, Gangnam Jaseng KM Hospital', '(Former) Attending Director, Jaseng KM Hospital', '(Current) Director, Immune Hospital'] },
     학력: { ko: ['한방신경정신과 전문의', '경원대학교 한의과대학', '가천대학교 한의학대학원 석사'], en: ['KM Neuropsychiatry Specialist', 'Kyungwon University, College of Korean Medicine', 'M.S., Gachon University Graduate School of Korean Medicine'] },
@@ -278,8 +279,8 @@ const DOCTORS = [
     name: { ko: '김상현', en: 'Kim Sang-hyeon' },
     position: { ko: '광명 진료원장', en: 'Gwangmyeong Attending Physician' },
     subspecialty: { ko: '통합면역', en: 'Integrative Immunology' },
-    photo: 'https://immunehospital.com/uploads/doctors/68ac25e7cc1487.42823820.jpg',
-    thumb: 'https://immunehospital.com/uploads/doctors/68ac25e7cbec30.65434200.jpg',
+    photo: '/doctors/68ac25e7cc1487.42823820.jpg',
+    thumb: '/doctors/68ac25e7cbec30.65434200.jpg',
     keywords: { ko: ['#자세한설명','#상담충분','#질문환영','#진심있는','#침착한'], en: ['#DetailedExplanation','#ThoroughConsult','#QuestionsWelcome','#Sincere','#Composed'] },
     경력: { ko: ['(前) 힘찬큐한방병원 수석원장', '(現) 면력한방병원 진료원장'], en: ['(Former) Senior Director, Himchan Q KM Hospital', '(Current) Attending Director, Immune Hospital'] },
     학력: { ko: ['경원대 한의학과 졸업'], en: ['Graduated from Kyungwon University, Korean Medicine'] },
@@ -289,8 +290,8 @@ const DOCTORS = [
     name: { ko: '김주완', en: 'Kim Ju-wan' },
     position: { ko: '광명 진료원장', en: 'Gwangmyeong Attending Physician' },
     subspecialty: { ko: '통증재활', en: 'Pain Rehabilitation' },
-    photo: 'https://immunehospital.com/uploads/doctors/68ac266eec3443.90360671.jpg',
-    thumb: 'https://immunehospital.com/uploads/doctors/68ac266eec0d10.41842964.jpg',
+    photo: '/doctors/68ac266eec3443.90360671.jpg',
+    thumb: '/doctors/68ac266eec0d10.41842964.jpg',
     keywords: { ko: ['#친절한','#꼼꼼한','#정확한','#배려깊은','#소통이좋은','#신뢰가는'], en: ['#Friendly','#Thorough','#Precise','#Considerate','#Communicative','#Reliable'] },
     경력: { ko: ['(前) 구산한의원 원장', '(前) 김정기한의원 원장', '(現) 면력한방병원 원장'], en: ['(Former) Director, Gusan KM Clinic', '(Former) Director, Kim Jeonggi KM Clinic', '(Current) Director, Immune Hospital'] },
     학력: { ko: ['대구한의대학교 한의학과대학 졸업', '대구한의대 부속한방병원 수련의', '울진군 보건의료원 한방진료과장', '성주군 보건소 한방진료과장'], en: ['Graduated from Daegu Haany University, College of Korean Medicine', 'Resident, Daegu Haany University KM Hospital', 'KM Department Chief, Uljin Public Health Center', 'KM Department Chief, Seongju Public Health Center'] },
@@ -300,8 +301,8 @@ const DOCTORS = [
     name: { ko: '조성원', en: 'Cho Seong-won' },
     position: { ko: '광명 진료원장', en: 'Gwangmyeong Attending Physician' },
     subspecialty: { ko: '통증재활', en: 'Pain Rehabilitation' },
-    photo: 'https://immunehospital.com/uploads/doctors/68ac27045a5df4.11570705.jpg',
-    thumb: 'https://immunehospital.com/uploads/doctors/68ac27045a39e4.56645724.jpg',
+    photo: '/doctors/68ac27045a5df4.11570705.jpg',
+    thumb: '/doctors/68ac27045a39e4.56645724.jpg',
     keywords: { ko: ['#꼼꼼한','#정확한','#빠른대응','#정성스러운','#진심있는','#친화적인'], en: ['#Thorough','#Precise','#Responsive','#Devoted','#Sincere','#Personable'] },
     경력: { ko: ['(前) 숭실한의원 진료원장', '(前) 자양으뜸한의원 대표원장', '(前) 맘편한요양병원 한의과장', '(現) 면력한방병원 진료원장'], en: ['(Former) Attending Director, Soongsil KM Clinic', '(Former) Chief Director, Jayang Eutteum KM Clinic', '(Former) KM Department Chief, Mampyeonhan Long-term Care Hospital', '(Current) Attending Director, Immune Hospital'] },
     학력: { ko: ['경희대학교 한의과대학 졸업', '진천군 보건소 공중보건의사'], en: ['Graduated from Kyung Hee University, College of Korean Medicine', 'Public Health Doctor, Jincheon Public Health Center'] },
@@ -314,8 +315,8 @@ const DOCTORS = [
     position: { ko: '성동 대표원장', en: 'Seongdong Chief Director' },
     subspecialty: { ko: '통합면역 대표원장', en: 'Integrative Immuno-Oncology' },
     role: 'ceo',
-    photo: 'https://immunehospital.com/uploads/doctors/69e71eaa0bb548.83985851.png',
-    thumb: 'https://immunehospital.com/uploads/doctors/69e71eaa0bb548.83985851.png',
+    photo: DOCTOR_FALLBACK, // 원본에 사진 없음(69e71e…png 404) → 회색 아바타 폴백
+    thumb: DOCTOR_FALLBACK,
     keywords: { ko: ['#꼼꼼한','#친절한','#예리한','#이성적인','#정확한'], en: ['#Thorough','#Friendly','#Sharp','#Rational','#Precise'] },
     경력: { ko: ['(前) 자생한방병원 수련의', '(現) 면력한방병원 대표원장'], en: ['(Former) Resident, Jaseng KM Hospital', '(Current) Chief Director, Immune Hospital'] },
     학력: { ko: ['경희대학교 동서의학과 박사', '경희대학교 생리학교실', '동신대학교 한의학과 학사'], en: ['Ph.D., Kyung Hee University, East-West Medicine', 'Department of Physiology, Kyung Hee University', 'B.A., Dongshin University, Korean Medicine'] },
@@ -327,8 +328,8 @@ const DOCTORS = [
     position: { ko: '성동 의무원장', en: 'Seongdong CMO' },
     subspecialty: { ko: '통합면역센터 한방내과', en: 'KM Internal Medicine · Integrative Immuno-Oncology' },
     role: 'cmo',
-    photo: 'https://immunehospital.com/uploads/doctors/6a040390c37997.97100336.jpg',
-    thumb: 'https://immunehospital.com/uploads/doctors/6a040390c37997.97100336.jpg',
+    photo: '/doctors/6a040390c37997.97100336.jpg',
+    thumb: '/doctors/6a040390c37997.97100336.jpg',
     keywords: { ko: ['#세심한','#믿음을주는','#차분한','#자세한설명','#편안한','#공감있는'], en: ['#Attentive','#Trustworthy','#Calm','#DetailedExplanation','#Comfortable','#Empathetic'] },
     경력: { ko: ['(現) 면력한방병원 의무원장', '(前) 장덕한방병원 면역암센터 뇌건강센터장 어깨센터', '(前) 도반한방병원 면역암센터 무릎줄기센터', '(前) 자향한방병원(창동점) 진료부장(면역암센터장)', '(前) 오쿨리한방병원 면역암센터 진료원장', '(前) 경희부부한의원장', '(前) 국군체육부대 의무대 한방과장'], en: ['(Current) CMO, Immune Hospital', '(Former) Brain Health Center & Shoulder Center, Immuno-Oncology, Jangdeok KM Hospital', '(Former) Knee Stem Cell Center, Immuno-Oncology, Doban KM Hospital', '(Former) Clinical Director (Immuno-Oncology Chief), Jahyang KM Hospital Changdong', '(Former) Attending Director, Immuno-Oncology, Okuli KM Hospital', '(Former) Director, Kyung Hee Bubu KM Clinic', '(Former) KM Department Chief, Korean Armed Forces Athletic Corps Medical Unit'] },
     학력: { ko: ['한방내과 전문의', '경희대학교 대학원 한의학 박사(한방내과)', '경희대학교 한의과대학 졸업', '경희의료원 한방병원 일반/전문수련의 수료(한방내과)'], en: ['KM Internal Medicine Specialist', 'Ph.D. in Korean Medicine (KM Internal Medicine), Kyung Hee University Graduate School', 'Graduated from Kyung Hee University, College of Korean Medicine', 'Completed residency (KM Internal Medicine), Kyung Hee Medical Center KM Hospital'] },
@@ -340,8 +341,8 @@ const DOCTORS = [
     position: { ko: '성동 양방대표원장', en: 'Seongdong Western Medicine Chief' },
     subspecialty: { ko: '통합면역센터 정형외과', en: 'Orthopedics · Integrative Immuno-Oncology' },
     role: 'wm',
-    photo: 'https://immunehospital.com/uploads/doctors/6a040420ccbe86.88350198.jpg',
-    thumb: 'https://immunehospital.com/uploads/doctors/6a040420ccbe86.88350198.jpg',
+    photo: '/doctors/6a040420ccbe86.88350198.jpg',
+    thumb: '/doctors/6a040420ccbe86.88350198.jpg',
     keywords: { ko: ['#친절한','#정확한','#쉬운설명','#따뜻한','#배려하는','#믿을수있는'], en: ['#Friendly','#Precise','#ClearExplanation','#Warm','#Considerate','#Reliable'] },
     경력: { ko: ['(前) 세브란스병원 정형외과 전공의 수료', '(前) 미국 버지니아주 주립대학병원 MCV Hospital 정형외과 연수', '(前) 연세성모정형외과의원 대표 원장', '(前) 장덕한방병원 정형외과 과장', '(現) 면력한방병원 양방대표원장'], en: ['(Former) Orthopedic Surgery Residency, Severance Hospital', '(Former) Orthopedic Fellow, MCV Hospital, Virginia Commonwealth University, USA', '(Former) Director, Yonsei Sungmo Orthopedic Clinic', '(Former) Orthopedic Department Chief, Jangdeok KM Hospital', '(Current) Western Medicine Chief Director, Immune Hospital'] },
     학력: { ko: ['연세대학교 의과대학 졸업'], en: ['Graduated from Yonsei University, College of Medicine'] },
@@ -351,8 +352,8 @@ const DOCTORS = [
     name: { ko: '이문성', en: 'Lee Moon-sung' },
     position: { ko: '성동 진료원장', en: 'Seongdong Attending Physician' },
     subspecialty: { ko: '통증재활센터', en: 'Pain Rehabilitation Center' },
-    photo: 'https://immunehospital.com/uploads/doctors/6a04046e2e7a86.09116902.jpg',
-    thumb: 'https://immunehospital.com/uploads/doctors/6a04046e2e7a86.09116902.jpg',
+    photo: '/doctors/6a04046e2e7a86.09116902.jpg',
+    thumb: '/doctors/6a04046e2e7a86.09116902.jpg',
     keywords: { ko: ['#친절한','#정성스러운','#쉬운설명','#공감있는','#친근한','#친화적인'], en: ['#Friendly','#Devoted','#ClearExplanation','#Empathetic','#Approachable','#Personable'] },
     경력: { ko: ['(前) 다나음한의원 진료원장', '(前) 괜추나한의원 진료원장', '(現) 면력한방병원 진료원장'], en: ['(Former) Attending Director, Danaeum KM Clinic', '(Former) Attending Director, Gwaen Chuna KM Clinic', '(Current) Attending Director, Immune Hospital'] },
     학력: { ko: ['부산대학교 한의학전문대학원 석사'], en: ['M.S., Pusan National University, School of Korean Medicine'] },
@@ -363,8 +364,8 @@ const DOCTORS = [
     name: { ko: '고은상', en: 'Ko Eun-sang' },
     position: { ko: '성동 진료원장', en: 'Seongdong Attending Physician' },
     subspecialty: { ko: '통증재활센터 한방내과', en: 'KM Internal Medicine · Pain Rehab' },
-    photo: 'https://immunehospital.com/uploads/doctors/6a0404b0869a76.89735854.jpg',
-    thumb: 'https://immunehospital.com/uploads/doctors/6a0404b0869a76.89735854.jpg',
+    photo: '/doctors/6a0404b0869a76.89735854.jpg',
+    thumb: '/doctors/6a0404b0869a76.89735854.jpg',
     keywords: { ko: ['#친절한','#꼼꼼한','#성실한','#편안한','#친근한'], en: ['#Friendly','#Thorough','#Diligent','#Comfortable','#Approachable'] },
     경력: { ko: ['(前) 광동한방병원 통증센터/어지럼증센터 진료원장', '(前) 빙빙한의원 진료원장', '(現) 면력한방병원 진료원장'], en: ['(Former) Attending Director, Pain/Dizziness Center, Kwangdong KM Hospital', '(Former) Attending Director, Bingbing KM Clinic', '(Current) Attending Director, Immune Hospital'] },
     학력: { ko: ['경희대학교 한의학과 졸업', '경희대학교 대학원 동서의학과 석사', '경희대학교 대학원 동서의학과 박사 수료', '동수원 한방병원 일반/전문의(내과) 수료'], en: ['Graduated from Kyung Hee University, College of Korean Medicine', 'M.S., East-West Medicine, Kyung Hee University', 'Ph.D. coursework completed, East-West Medicine, Kyung Hee University', 'Completed residency (Internal Medicine), Dongsuwon KM Hospital'] },
@@ -375,8 +376,8 @@ const DOCTORS = [
     name: { ko: '박정향', en: 'Park Jung-hyang' },
     position: { ko: '성동 진료원장', en: 'Seongdong Attending Physician' },
     subspecialty: { ko: '통합면역센터 한방내과', en: 'KM Internal Medicine · Integrative Immuno-Oncology' },
-    photo: 'https://immunehospital.com/uploads/doctors/6a0405363d4b90.26971351.jpg',
-    thumb: 'https://immunehospital.com/uploads/doctors/6a0405363d4b90.26971351.jpg',
+    photo: '/doctors/6a0405363d4b90.26971351.jpg',
+    thumb: '/doctors/6a0405363d4b90.26971351.jpg',
     keywords: { ko: ['#친절한','#정성스러운','#정확한','#자세한설명','#신뢰가는','#공감있는'], en: ['#Friendly','#Devoted','#Precise','#DetailedExplanation','#Reliable','#Empathetic'] },
     경력: { ko: ['(現) 면력한방병원 진료원장'], en: ['(Current) Attending Director, Immune Hospital'] },
     학력: { ko: ['한방내과 전문의', '상지대학교 한의과대학 졸업', '대전대학교 대학원 한의학과 석사', '대전대학교 동서암센터 종양과 전문수련의 수료'], en: ['KM Internal Medicine Specialist', 'Graduated from Sangji University, College of Korean Medicine', 'M.S., Daejeon University Graduate School of Korean Medicine', 'Oncology Fellow, Daejeon University East-West Cancer Center'] },
@@ -387,8 +388,8 @@ const DOCTORS = [
     name: { ko: '노현민', en: 'Noh Hyun-min' },
     position: { ko: '성동 진료원장', en: 'Seongdong Attending Physician' },
     subspecialty: { ko: '항노화센터 한방피부과', en: 'KM Dermatology · Anti-Aging Center' },
-    photo: 'https://immunehospital.com/uploads/doctors/6a057a886c1dc8.77991002.jpg',
-    thumb: 'https://immunehospital.com/uploads/doctors/6a057a886c1dc8.77991002.jpg',
+    photo: '/doctors/6a057a886c1dc8.77991002.jpg',
+    thumb: '/doctors/6a057a886c1dc8.77991002.jpg',
     keywords: { ko: ['#친절한','#섬세한','#정확한','#편안한','#신뢰가는'], en: ['#Friendly','#Attentive','#Precise','#Comfortable','#Reliable'] },
     경력: { ko: ['한방안이비인후피부과 전문의', '(前) 강남/서울위담한방병원 진료과장', '(前) 서초장덕한방병원 진료원장', '(現) 면력한방병원 진료원장'], en: ['KM Ophthalmology/ENT/Dermatology Specialist', '(Former) Department Chief, Gangnam/Seoul Widam KM Hospital', '(Former) Attending Director, Seocho Jangdeok KM Hospital', '(Current) Attending Director, Immune Hospital'] },
     학력: { ko: ['연세대학교 생활과학대학', '동국대학교 한의과대학', '청연한방병원 일반수련의 수료', '원광대학교 한방병원 전문수련의 수료'], en: ['Yonsei University, College of Human Ecology', 'Dongguk University, College of Korean Medicine', 'Completed general residency, Cheongyeon KM Hospital', 'Completed specialty fellowship, Wonkwang University KM Hospital'] },
@@ -399,8 +400,8 @@ const DOCTORS = [
     name: { ko: '이진영', en: 'Lee Jin-young' },
     position: { ko: '성동 진료원장', en: 'Seongdong Attending Physician' },
     subspecialty: { ko: '항노화센터', en: 'Anti-Aging Center' },
-    photo: 'https://immunehospital.com/uploads/doctors/6a057b078fe633.40987548.jpg',
-    thumb: 'https://immunehospital.com/uploads/doctors/6a057b078fe633.40987548.jpg',
+    photo: '/doctors/6a057b078fe633.40987548.jpg',
+    thumb: '/doctors/6a057b078fe633.40987548.jpg',
     keywords: { ko: ['#꼼꼼한','#세심한','#편안한설명','#편안한'], en: ['#Thorough','#Attentive','#ComfortableExplanation','#Comfortable'] },
     경력: { ko: ['(現) 면력한방병원 진료원장'], en: ['(Current) Attending Director, Immune Hospital'] },
     학력: { ko: ['북경중의약대학 졸업', '동신대학교 한의과대학 졸업'], en: ['Graduated from Beijing University of Chinese Medicine', 'Graduated from Dongshin University, College of Korean Medicine'] },
@@ -540,6 +541,7 @@ function DoctorCard({ doc, l, lang, onSelect }) {
             src={doc.thumb}
             alt={l(doc.name)}
             onError={onImgError}
+            loading="lazy"
             className="w-full h-48 sm:h-full object-cover object-top bg-gray-100 group-hover:scale-[1.02] transition"
           />
         </div>
@@ -744,13 +746,17 @@ export default function HospitalsClient() {
                   </div>
                 </div>
 
-                {/* Expanded: Doctor grid — 2col PC, 1col mobile */}
-                {isOpen && docs.length > 0 && (
-                  <div className="border-t-2 border-gray-100 bg-gray-50/30 px-4 sm:px-6 md:px-8 py-6 md:py-8">
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-5">
-                      {docs.map(doc => (
-                        <DoctorCard key={doc.id} doc={doc} l={l} lang={lang} onSelect={setSelectedDoctor} />
-                      ))}
+                {/* Expanded: Doctor grid — grid-rows 0fr→1fr 로 높이를 부드럽게 펼침(즉시 나타나 아래를 밀어내던 '툭' 끊김 제거). 네이티브 CSS, 라이브러리 없음. */}
+                {docs.length > 0 && (
+                  <div className={`grid transition-[grid-template-rows] duration-300 ease-out ${isOpen ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
+                    <div className="overflow-hidden">
+                      <div className="border-t-2 border-gray-100 bg-gray-50/30 px-4 sm:px-6 md:px-8 py-6 md:py-8">
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-5">
+                          {docs.map(doc => (
+                            <DoctorCard key={doc.id} doc={doc} l={l} lang={lang} onSelect={setSelectedDoctor} />
+                          ))}
+                        </div>
+                      </div>
                     </div>
                   </div>
                 )}
