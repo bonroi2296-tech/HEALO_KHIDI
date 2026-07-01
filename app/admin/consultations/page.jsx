@@ -123,7 +123,7 @@ export default function ConsultationsPage() {
     if (!result?.inviteUrl) { router.push(`/consultation/${consultation.id}`); return; }
     try {
       await navigator.clipboard.writeText(result.inviteUrl);
-      toast.success("상담 링크를 복사했어요 — 환자에게 붙여넣어 보내세요. 나는 지금 입장합니다");
+      toast.success("상담 링크를 복사했어요 — 상대에게 붙여넣어 보내세요. 나는 지금 입장합니다");
     } catch { /* 클립보드 권한 없으면 조용히 패스 — 입장은 계속 */ }
     router.push(result.inviteUrl.replace(/^https?:\/\/[^/]+/, ""));
   };
@@ -143,12 +143,12 @@ export default function ConsultationsPage() {
       );
     } catch {
       // 클립보드 권한 없으면 prompt 로
-      prompt("아래 링크를 복사해 환자에게 공유하세요:", result.inviteUrl);
+      prompt("아래 링크를 복사해 공유하세요:", result.inviteUrl);
     }
   };
 
   const handleCancel = async (id) => {
-    if (!confirm("상담을 취소하시겠습니까? 발송된 환자 초대 링크도 함께 폐기됩니다.")) return;
+    if (!confirm("상담을 취소하시겠습니까? 발송된 초대 링크도 함께 폐기됩니다.")) return;
 
     try {
       const { data: sessionData } = await supabase.auth.getSession();
@@ -535,9 +535,9 @@ export default function ConsultationsPage() {
                         <button
                           onClick={() => handleIssueInvite(consultation)}
                           className="flex-1 min-w-[140px] px-4 py-2 bg-blue-50 text-blue-700 border border-blue-200 rounded-lg hover:bg-blue-100 transition font-medium flex items-center justify-center gap-2"
-                          title="입장 없이 환자에게 보낼 링크만 복사 — 「상담 시작」과 같은 링크"
+                          title="입장 없이 링크만 복사 — 「상담 시작」과 같은 링크"
                         >
-                          🔗 환자 링크 복사
+                          🔗 링크 복사
                         </button>
                         <button
                           onClick={() => handleComplete(consultation.id)}
