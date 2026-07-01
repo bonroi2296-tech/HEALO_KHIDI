@@ -65,7 +65,9 @@ export async function GET(request: NextRequest) {
   // Likert(1~5) → 100점 환산 (kpi.ts 와 단일 소스: satisfaction.ts).
   // 응답 없으면 기존 동작대로 0.
   const to100 = likertTo100;
-  const overallAvg100 = avgSatisfaction100(responses) ?? 0;
+  // kpi.ts 와 동일 표본부족 가드(env SATISFACTION_MIN_RESPONSES, 기본 0=무변화).
+  const minResponses = Number(process.env.SATISFACTION_MIN_RESPONSES) || 0;
+  const overallAvg100 = avgSatisfaction100(responses, { minResponses }) ?? 0;
 
   // 자유 의견 최근 50건
   let commentsQ = db
