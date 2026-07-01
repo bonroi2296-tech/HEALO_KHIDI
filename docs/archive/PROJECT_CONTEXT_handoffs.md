@@ -1,6 +1,103 @@
 # PR
 
 
+## 🔖 세션 핸드오프 (2026-07-01 — 어드민 정리·가짜숫자 청소 + 병원 6곳 활성화·매칭 실작동 + 문의 퍼널 검증 [#555 머지·배포])
+
+> PO "워크트리 파고 어드민 정리하자" → "상담 예약 모달 복잡·초대 이메일 톤 이상" → "실제 운영 가능하게 해라(하나하나 묻지 말고)" → "서비스 오픈해? 광고 돌린다?" → "병원 정보 니가 가져와" → "완벽하니?" → PR+배포 → 핸드오프.
+
+**1. 이번 세션 한 일** (전부 [#555](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/555) 6커밋 squash 머지·**프로덕션 라이브 확인**)
+- **이메일 톤**: 상담초대·리마인더·설문 이메일 3종이 옛 premium(검정#0a0a0a+골드#c8a96a+크림+Playfair 세리프) → legacy teal(#0d9488)+시스템폰트. `check:content`에 이메일 premium 토큰 가드(§8) 추가.
+- **상담 예약 모달 간소화**: 13필드 한 화면 → 기본 4개(문의 선택·이름·이메일·예약시각) + 「고급 옵션」 접기(네이티브 details).
+- **가짜 숫자 청소**: analytics 가짜 매출(문의수×3500)·가짜성장배지 제거→'문의 수요 트렌드' / agent 'AI정확도 72%' 하드코딩→실측(ai_response_evaluations) / AccuracyPanel 목데이터→실측·"–". 소스 없으면 "—"(정직).
+- **가짜 성공(눌러도 안 되던 것)**: 상담 취소가 API 없이 토스트만 띄우던 것 → 실제 PATCH(status=cancelled+토큰폐기). 죽은 리스케줄 버튼 제거.
+- **알림 버그**: `inquiry_events` insert 컬럼명 오타(meta≠실제 metadata)로 감사로그 매번 조용히 실패 → 수정.
+- **매칭 버그**: `/api/khidi/matching`이 is_active 안 봐 비활성 병원도 환자 추천에 뜨던 것 → `hospitals!inner`+is_active 필터.
+- **DB(프로덕션 직접 적용)**: 병원 6곳 공개 활성화(이대서울·이대목동·고대구로·세브란스 + 면력한방 강서·신촌 / 광명·TEST는 비활성). 러·카 병원명·영문주소·전화·웹 채움. **면력한방 지어낸 암 성공률(0.7~0.95)·건수·비용 → NULL·is_verified=false**(의료광고법). 대학병원 4곳 주요 암종 8종 커버리지 추가(규제 숫자 NULL) → 매칭에 실제 종양병원 노출.
+- **문의 퍼널 end-to-end 실검증**: 프로덕션 `/api/inquiries/step1`에 테스트 문의 #36 제출 → 저장·PII AES암호화·관리자 알림 이메일 발송(status=sent)까지 실작동 확인.
+- POSTMORTEMS #56~60 기록. 죽은 라우트 `/api/email/send`+`src/emails` premium 템플릿 삭제는 spawn_task 칩(별건).
+
+**2. 왜 그렇게 했는지**
+- PO가 "실제 운영 가능하게" 강조 → "눌러도 실제로 되는가"를 전수 감사(가짜성공·죽은버튼·미완핸들러). 진짜 가짜성공은 상담취소 하나뿐, 나머지 인터랙티브 화면은 정상.
+- 가짜 숫자/성공률은 KHIDI 중간평가(가짜실적 위험)·의료광고법(성공률 과장 금지)·DESIGN.md(가짜숫자 금지) 3중 리스크라 **최우선 청소**. 못 지어내는 규제 숫자(성공률·건수·비용)는 NULL, 사실(암종 커버리지)만 채움.
+- 병원 활성화 = 공개 제휴 게시라 PO 명시 승인 후. 러·카 이름은 표준 표기(공식 있으면 덮어쓰기 전제).
+- 배포: 동시 세션들이 #557·#560 등 다발 머지 → Vercel이 내 개별 배포 자동취소(CANCELED). 그러나 #557 배포가 내 커밋(d76c62f) 위에서 빌드돼 **healwith.co.kr alias로 라이브** = 코드 안 사라짐(확인함).
+
+**3. 안 끝났거나 보류 (계약·PO 데이터 필요 — 내가 못 지어냄)**
+- **협진 의사 등록**: `partner_doctors`/`partner_branches` 0건 → 상담모달 의사 드롭다운 빔. 실제 계약 의료진만 PO가 `/admin/의료진·지점`에서.
+- **검증된 성공률·치료건수·비용**: 병원 공식/계약 데이터라야 함(is_verified=true). 지금 전부 NULL.
+- **면력한방 실제 치료 프로그램**: 사이트에 상세 비공개 → 전화(1588-2915) 확인 후 보강. 지금 treatment_types는 면역·한방으로만.
+- **src/emails 죽은 premium 템플릿 삭제**: spawn_task 칩으로 분리.
+
+**4. 주의·함정**
+- 병원 러/카 이름·대학병원 암종 8종은 내가 공개사실 기준으로 넣음 — 공식 표기·특정 암센터 강점과 다르면 덮어써.
+- **테스트 문의 #36** = 퍼널 검증용(is_test=true, KPI 자동제외). PO 지메일에 "New inquiry #36" 알림 온 게 그거. 무시/삭제 무방.
+- 매칭 점수: 성공률·건수 NULL이라 모든 병원 점수 평평(~35) — 순위 차별화는 실데이터 채워야 생김. 매칭 자체는 동작.
+- 이 핸드오프는 **최신 origin/main 기준 `handoff/admin-cleanup-0701` 브랜치**에서 작성(동시세션 PROJECT_CONTEXT 충돌 회피).
+
+**5. 다음 세션이 먼저 할 일**
+1. ⚠️ **직전 미검증분 먼저 확인**: 배포된 어드민 화면 **실브라우저 클릭**(로그인 필요 — 이번엔 인증게이트라 자동검증 못 함): analytics '문의 수요 트렌드'·agent 'AI 정확도'·상담 취소 버튼 실동작·매칭 결과에 대학병원 뜨는지.
+2. PO 데이터 입력 대기·안내: 협진 의사 등록 / 병원 러·카 이름 검수 / 면력한방 실제 치료법 정정.
+3. `src/emails`+`/api/email/send` 죽은 premium 템플릿 삭제(spawn_task 칩).
+
+**6. 검증 상태**
+- ✅ `next build --webpack` exit0 · `check:content` 통과(이메일 premium 가드 포함) · 문의 퍼널 end-to-end 실검증(#36 DB·암호화·알림 sent) · 매칭 is_active DB 시뮬 검증(광명점 제외 확인).
+- ✅ PR/CI: **#555** Vercel CI success 후 squash 머지. 프로덕션 배포 = **healwith.co.kr alias가 내 커밋 포함 배포(#557 위)** 서빙 확인(CANCELED는 동시머지 자동취소지 빌드에러 아님).
+- ❌ **미검증(솔직히)**: 어드민 화면 실브라우저 클릭 안 함(인증게이트 — 로컬 자동화 불가). 대학병원 암종 커버리지·러카 이름은 공개사실 기준 입력이라 PO 검수 필요.
+
+**7. 다음 세션 첫 프롬프트**
+> 먼저 docs/PROJECT_CONTEXT.md 최상단 핸드오프 읽어. 어제(2026-07-01) 어드민 정리+병원 활성화+매칭 실작동을 #555로 머지·배포했는데, 어드민 화면을 인증게이트라 실클릭 검증을 못 했다. 배포된 프로덕션(healwith.co.kr)에 로그인해서 ①analytics '문의 수요 트렌드' ②agent 'AI 정확도'(실측 or "—") ③상담 취소 버튼이 실제로 취소되는지 ④위암 등으로 매칭 돌리면 대학병원이 뜨는지 확인해줘. 이상 있으면 고치고, 없으면 협진 의사 등록·병원 러카 이름 검수 안내로 넘어가.
+
+---
+
+## 🔖 세션 핸드오프 (2026-06-30 (7) — 북극성 계기판 + 외부 서비스 사용량·비용 한눈에 [#531 머지·배포])
+
+> PO "오늘 한 일 정리" → "우리 북극성이 뭐냐" → "북극성 계기판 만들고 + 외부 서비스 사용량 화면도(나중에 유료·제미나이 실시간 비용까지)" → 중간에 **"제미나이만 말고 LiveKit·Resend·Supabase·Vercel 등 모든 외부 서비스 사용량 한눈에"** 로 범위 확대 → "싹다해줘" → "CI 통과하면 머지해" → 머지·배포 → 핸드오프 요청.
+
+**1. 이번 세션 한 일**
+- 🎯 **북극성 계기판** `/admin/khidi/north-star` (+API `north-star`): 주간 '사전상담 완료' 추세선(8~26주)·전주대비·4주평균 + 선행지표 4종(채널별 신규문의·예약→완료 전환율·만족도 응답률·에이전시 회신율[측정예정]). lib `northStar.ts`(+순수 `weekBuckets.ts`). kpi-dashboard cockpit 최상단 북극성 진입 배너.
+- 💳 **외부 서비스 사용량 통합 보드** `/admin/khidi/usage` (+API `usage`): 모든 연동 서비스 한 화면. **실측** = 제미나이(토큰·비용)·Supabase(DB/500MB·스토리지/1GB)·이메일/SMS(Resend·SES·Twilio·Telegram, admin_notification_logs.channel 집계)·LiveKit(상담방 수). **콘솔/토큰준비** = Vercel·Sentry. lib `externalServices.ts`·`serviceUsage.ts`·`vendorApis.ts`.
+- 🧱 **기반(제미나이 실시간 비용 토대)**: 새 표 `ai_usage_events`(append-only·RLS 서비스롤전용·PII없음) + `usageLog.ts`/`usagePricing.ts`(로거·집계·단가, fire-and-forget) + `generateReply.ts` 단발·스트리밍 두 경로에 사용량 로깅 연결. DB 용량 RPC `get_external_db_usage()`(SECURITY DEFINER·서비스롤). 마이그레이션 2건 라이브 적용(가역적 추가).
+- 단위테스트 13건(KST 주경계·비용/토큰 정규화) · check-schema-refs에 ai_usage_events 등록 · manuals(관리자) 북극성·사용량 항목 추가.
+- **PR [#531](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/531) (3커밋) squash 머지·배포.**
+
+**2. 왜 그렇게 했는지**
+- 북극성=주간 사전상담완료(직전 진단 결론). 유치·상담120·만족도는 후행지표라 매주 못 끌어올림 → 사전상담은 매주 올릴 수 있는 단일 운전대(3 KPI 동시 전진).
+- 사용량 화면: PO가 비용 통제·유료 전환 시점을 한 눈에 보길 원함. 못 재는 건 숨기지 말고 **실측/추정/콘솔 배지**로 정직하게 구분.
+- 비용은 **기록 시점 단가로 동결**(numeric) — gemini-flash-latest 별칭 단가가 바뀌어도 과거 집계 불변.
+- 순수함수 분리(`weekBuckets`·`usagePricing`): `server-only` 모듈은 vitest import 불가 → 테스트용으로 떼냄(repo 관례: kpi가 snapshotDates 떼낸 것과 동일).
+- Vercel·Sentry는 토큰 없으면 `available:false`로 콘솔 폴백 → PO가 토큰 넣는 순간 코드수정 없이 자동 라이브.
+
+**3. 안 끝났거나 보류**
+- **Vercel·Sentry 라이브**: 토큰 미보유 → 콘솔 폴백 중. PO가 `VERCEL_API_TOKEN`(+TEAM/PROJECT)·`SENTRY_AUTH_TOKEN`+`SENTRY_ORG` 넣어야 라이브.
+- **제미나이 단가**: 추정치(입력$0.30·출력$2.50/1M). `AI_PRICE_FLASH_IN`/`AI_PRICE_FLASH_OUT` env로 정확화 가능.
+- **북극성 선행지표 ④ 에이전시 콜드메일 회신율**: 아웃리치 트래킹 미연동 → "측정 예정". PO가 발송/회신 흐름 알려주면 연동.
+- **직전 큐 잔존**: C(채널별 source 전환 분해)·D(만족도 무응답0점+최소N)·E(점수전략 재설계 초안)·#522 funnel_events `form_complete` 라이브 실측(여전히 0행).
+
+**4. 주의·함정**
+- `ai_usage_events`·`funnel_events` 적재는 **배포 후 실제 호출/문의부터** 쌓임(지금 0). 화면 0 = 버그 아님(데이터 없음).
+- 알림 채널 매핑: `admin_notification_logs.channel` 실데이터는 현재 **'sms'만** 존재 → Resend/Telegram 카드는 0으로 보임. 실제 이메일/텔레그램 발송 한 번 해봐야 매핑 검증됨.
+- LiveKit·이메일 카드는 우리 DB **프록시**(상담방 수·발송 수)지 벤더 정확치 아님("추정" 배지). 정확한 영상 분·대역폭은 콘솔.
+- types(`database.types.ts`) 미재생성 → `ai_usage_events`·`inquiries.source`는 `(supabaseAdmin as any)` 캐스트(kpi.ts 패턴). 후속 types regen 시 정리.
+
+**5. 다음 세션이 먼저 할 일**
+1. ⚠️ **직전 미검증분 먼저**: 배포 반영 확인 후 **(a)** 사용량 화면(`/admin/khidi/usage`) 실제 열림 + 공개 AI 1회 호출 → `ai_usage_events`에 행 쌓이고 비용 뜨는지, **(b)** #522 `funnel_events`에 `form_complete` 행 쌓이는지(현재 0행) **라이브 실측**.
+2. **C. 채널별 전환 분해**: 유치 전환 대시보드(`/admin/khidi/conversion`)를 `inquiries.source`(ai_agent/web)로 GROUP BY(데이터 이미 적재).
+3. **D. 만족도 무응답 0점 버그 + 최소 N**.
+4. (선택) PO가 Vercel/Sentry 토큰 주면 env 꽂고 라이브 확인 / 콜드메일 흐름 연동 / 제미나이 실단가 입력.
+
+**6. 검증 상태**
+- ✅ `tsc --noEmit` 0 err · `next build --webpack` exit0 · eslint 0 err(경고만=any, 기존 패턴) · `check:content`·`check:schema-refs` 통과 · 단위테스트 13건 통과.
+- ✅ 라이브 스모크: `ai_usage_events` 삽입→조회→삭제(컬럼 형태 일치) / `get_external_db_usage()` RPC 호출·반환 확인(DB 23.5MB·스토리지 1.8MB).
+- ✅ PR/CI: **#531** CI(`ci`·`Smoke Tests(PR)`) 둘 다 success 후 squash 머지(E2E는 PR이라 skip). main 배포 트리거됨.
+- ❌ **미검증(솔직히)**: 배포 후 런타임 실데이터 적재(사용량 로깅·funnel `form_complete`) 미확인. Vercel·Sentry 라이브 경로 미실행(토큰 없음). 사용량/북극성 화면 실제 브라우저 클릭 안 함(어드민 인증). 제미나이 단가=추정.
+
+**7. 다음 세션 첫 프롬프트**
+> 먼저 docs/PROJECT_CONTEXT.md 최상단 핸드오프 읽어. 2026-06-30에 북극성 계기판(`/admin/khidi/north-star`)·외부 서비스 사용량 보드(`/admin/khidi/usage`)를 #531로 머지·배포했어. **먼저 미검증분 실측해**: 배포 반영 확인하고 ① 사용량 화면 열어서 공개 AI 1번 호출한 뒤 `ai_usage_events`에 행·비용 쌓이는지 ② #522 `funnel_events`에 `form_complete` 행 쌓이는지(현재 0행) 라이브로 확인. 그다음 **C**(유치 전환 대시보드 `/admin/khidi/conversion`을 `inquiries.source`=ai_agent/web로 채널 분해)를 만들어줘.
+
+---
+
+---
+
 ## 🔖 세션 핸드오프 (2026-06-30 (6) — 사업 사각지대 진단(북극성·퍼널) + 죽은 퍼널 계측 살리기 #522·#528)
 
 > PO "우리가 사업적으로 놓친 게 뭔지(북극성 지표·퍼널·내가 생각 못한 것) 도출해봐" → 멀티에이전트 사각지대 진단(6차원×3렌즈×적대검증) → PO "전체적으로 니가 먼저 제안해, 내가 그런거 잘 몰라" → 제안 + 죽은 퍼널 계측(funnel_events) 살리기 1건 실행. 끝에 PO가 변호사·에이전시는 본인이 처리(걱정마)·보험/진흥원 의미만 질문.

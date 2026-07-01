@@ -7,6 +7,49 @@
 
 ---
 
+## 🔖 세션 핸드오프 (2026-07-01 오전 (2) — 병원 지점 토글 밀림 수정 + 의사사진 자체호스팅·신촌 명단 현행화)
+
+> PO 스크린샷 "병원 토글 누르면 밀려버림, 이쁘게 못하니? + 프로필 사진 핫링크 하지 말랬는데 날아간 원인 찾아와 + 워크트리 새로 파고" → 사진 자체호스팅·토글 애니 → "싹 다 병원 사이트 가서 가져와 로컬에 박아둬" → 명단 현행화 → "토글 누르면 스크롤 밀려서 신촌 정보 안 보임, 최적화하라니깐" → pin 수정 → "핸드오프해".
+
+**1. 이번 세션 한 일** (전부 CI 통과 후 squash 머지·배포)
+- **의사 사진 자체호스팅 [#548 닫힘 → #554 구제 머지로 본판 반영]**: 병원 페이지 의사 사진이 외부 `immunehospital.com`에서 **핫링크**돼 원본이 파일명 변경/삭제 시 깨졌음(실제 배길준·강주안 404, 조현실은 원본이 로고 반환). 42장을 `public/doctors/`에 내려받아 로컬 경로(`/doctors/*`)로 참조. `scripts/fetch-doctor-photos.mjs` 추가.
+- **지점 토글 애니메이션 [#554]**: 즉시 나타나 아래를 밀던 걸 `grid-rows 0fr→1fr` 부드러운 펼침 + 페이드인 + 화살표 회전 + 접근성(`aria-expanded`·접힌 내용 `inert`·`prefers-reduced-motion`)으로.
+- **신촌 명단 현행화 + 실사진 [#559 머지]**: 병원 사이트 지점별 `doctor.php` 재크롤링 기준 — 사이트에서 사라진 **정유진·김민정 제거**(퇴사 추정), **신규 3명 추가**(김서진 / 진수현·홍정화=한방내과 전문의; 경력·학력·활동·논문 전부 병원 공식 프로필 스크랩 ko/en), **강주안 실사진 확보**(옛 URL 404였음), 배길준 최신 리스팅 사진. **총 의료진 27→28명**(강서7·신촌6·광명7·성동8), 히어로 카운트 갱신.
+- **토글 "밀림" 수정 [#565 머지, main 886f15c]**: 신촌점 누르면 위 강서점(기본 펼침)이 뒤늦게 접히며 화면이 튀어 클릭해 열린 지점이 화면 밖으로 사라지던 것 → 클릭한 지점 헤더를 고정헤더 아래(80px)에 **매 프레임 `getBoundingClientRect`+`scrollBy`로 pin**(FLIP), 애니(200ms) 동안 위치 재고정. 옛 코드는 스크롤을 접힘 애니 '전' `requestAnimationFrame` 1회만 해서 어긋났음.
+- **재발방지**: `check:content`에 **`immunehospital.com/uploads/` 의사사진 핫링크 금지 가드** 추가 → 이 가드가 미사용 **죽은 파일 `immuneHospitalDoctors.ts`(핫링크 38개)** 도 적발해 삭제. **POSTMORTEMS #55** 기록.
+- **배포**: main push 자동배포가 **Vercel 하루 배포 한도 초과**(`build-rate-limit`)로 실패 → **Vercel REST API로 프로덕션 새 빌드 직접 트리거**(dpl_2M8q…, READY). 프로덕션 번들에 `scrollBy`·신촌 김서진·강주안 사진 반영 확인.
+
+**2. 왜 그렇게 했는지**
+- **사진 자체호스팅**: PO가 "핫링크 하지 말라" 반복. 원본은 우리 통제 밖(파일명 변경/삭제·사진 없으면 로고) → 자체호스팅이 유일한 근본해결. Next/image 프록시나 폴백 개선은 원인 안 없앰.
+- **명단 현행화(떠난 의사 제거·신규 추가)**: PO "병원 사이트 가서 싹 다 가져와 로컬에 박아둬" → 병원 공식 사이트가 authoritative. 떠난 의사 계속 표시 = 의료 정확도 오류(KHIDI 신뢰 리스크). 신규는 **공식 상세페이지 실데이터만** 스크랩(창작 금지 — 의료 정확도 경계).
+- **토글 pin**: 스크롤을 애니 '전' 1회만 하면 위 지점 접힘 후 위치가 어긋남 → 프레임별 pin이 타이밍에 안 흔들리는 정답.
+- **배포는 프리뷰 승격 아닌 새 빌드**: 프리뷰 빌드를 프로덕션 alias로 올리면 `NEXT_PUBLIC_SITE_URL` 등 env 차이로 canonical/OG가 프리뷰 URL로 박힐 SEO 위험 → **API로 main HEAD를 프로덕션 env로 새 빌드**(안전).
+
+**3. 안 끝났거나 보류**
+- 없음(다 머지·배포). 단 아래 6번의 토글 "스크롤 동작 자체" 미검증이 유일한 열린 항목.
+- 조현실(신촌 양방대표) 실사진: 병원 사이트에도 얼굴 사진이 없어(로고만 반환) 회색/로고로 뜸 — 우리가 더 못함(병원이 사진 제공해야).
+
+**4. 주의·함정**
+- **PR #548은 CLOSED(머지 아님)** — 실제 본판 반영은 #554(구제)·#559·#565. #548 되살리지 마라(혼란 원인, 다른 세션이 rescue 함).
+- **Vercel 하루 배포 한도** — 이 날 여러 세션이 많이 배포해 한도 걸렸었음. 이 영역 배포는 **모아서 한 번에**.
+- **프로덕션 재배포는 Vercel REST API로 가능(CLI 없어도)**: `POST /v13/deployments?teamId=team_OTAPgfKKul5pUokdQeRTnX9p&forceNew=1` body `{name:"healo-khidi",target:"production",gitSource:{type:"github",ref:"main",repoId:"1178442315"}}` (토큰=.env.local VERCEL_TOKEN). project=`prj_5W5Md15wbvvkJt7k61mOqBjqYdt8`. **프리뷰→프로덕션 승격은 env/canonical 위험이라 지양**.
+- 프리뷰 링크는 PR 닫히면 죽는다 → PO에게 죽은 프리뷰 링크 내밀면 "하나도 안 바뀜"으로 오해. **확인은 프로덕션(healwith.co.kr)에서**.
+
+**5. 다음 세션이 먼저 할 일**
+1. ⚠️ **직전 미검증분 먼저**: 병원 지점 토글 "밀림" **실브라우저 확인** — `healwith.co.kr/ko/hospitals` 강력새로고침(Ctrl+Shift+R) 후 신촌점 클릭 → 헤더가 화면 상단에 붙고 신촌 의사들이 바로 보이는지(위 강서점 접혀도 안 밀림). **검증환경이 헤드리스(window.innerHeight=0)라 스크롤 동작을 눈으로 못 봤음.** 여전히 밀리면 대안(위 지점을 애니 없이 즉시 접기 → 드리프트 0)으로 재수정.
+2. 조현실 실사진은 병원에 요청(현재 로고).
+
+**6. 검증 상태**
+- ✅ **PR/CI**: #554·#559·#565 전부 `ci`·`Smoke Tests(PR)` 통과 후 squash 머지(#559는 `Vercel` 프리뷰도 pass). `next build --webpack` exit0 · `check:content` 통과 · 이미지 참조 46개 누락 0.
+- ✅ **실측**: 자체호스팅 사진 프로덕션 200(image/jpeg)·`uploads` 핫링크 0 / 강주안 새 사진 프로덕션 200 / 신촌 렌더에 김서진 있고 정유진·김민정 없음·28명 / **스크롤 수정 코드(`scrollBy`)가 프로덕션 hospitals 청크에 존재**(청크 해시 5232fc7f→cf2c1007 변경 확인).
+- ❌ **미검증(솔직히)**: **토글 "밀림" 스크롤 동작 자체** — 프리뷰가 헤드리스(viewport 높이 0, scrollTo 무효)라 실제 스크롤 재현 불가. 코드·배포는 확인했으나 시각 동작은 실브라우저 확인 필요.
+- 참고: E2E(main push) 빨간 건 `signup-duplicate-email`·`xss-protection` 테스트로 **직전 커밋에도 실패 = 이 작업과 무관**(hospitals e2e는 통과, 환경/가입설정 이슈).
+
+**7. 다음 세션 첫 프롬프트**
+> 먼저 docs/PROJECT_CONTEXT.md 최상단 핸드오프 읽어. 2026-07-01 오전 병원 지점 토글 밀림 수정(#565)·의사사진 자체호스팅·신촌 의료진 현행화(#559)까지 다 머지·배포 끝(Vercel API로 수동 재배포). **먼저 미검증분 확인해**: healwith.co.kr/ko/hospitals 강력새로고침(Ctrl+Shift+R) 후 신촌점 눌러 — 헤더가 화면 상단에 붙고 신촌 의사들이 바로 보이는지(위 강서점 접혀도 안 밀림). 헤드리스 환경이라 내가 스크롤 동작은 눈으로 못 봤어. 여전히 밀리면 위 지점을 애니 없이 즉시 접는 방식으로 다시 손봐. 조현실은 병원 사이트에도 얼굴 없어(로고) → 실사진은 병원에 요청.
+
+---
+
 ## 🔖 세션 핸드오프 (2026-07-01 오전 — 채널전환 대시보드·오류 스윕·환자 i18n·SEO 감사·오픈 관문 실측)
 
 > PO "오늘 작업 준비해봐" → C(채널대시보드) → "오류 싹다 해결" → funnel 실증·만족도 버그·i18n → "사이트맵 이게 최선이야?" → SEO 전체 감사 → "이제 완벽한거지?" → 오픈 관문(A) 실측(이메일 가입 실확인) → "핸드오프해".
@@ -53,54 +96,6 @@
 > 먼저 docs/PROJECT_CONTEXT.md 최상단 핸드오프 읽어. 2026-07-01 오전에 채널전환 대시보드(#538)·오류 스윕(#542)·환자 견적 i18n(#544)·SEO 감사(#547)·만족도 min-N env(#557) 다 머지·배포했고, **이메일 회원가입이 end-to-end 작동하는 것도 PO가 직접 실확인**했어. **먼저 미검증분 실측해**: ① 비번찾기 end-to-end 1회(로그아웃→비번찾기→`seokmin.moon88+test@gmail.com`으로 재설정 메일 도착→새 비번 바꿔지나) ② 구글 OAuth가 "게시"됐는지(내 계정 말고 남도 구글가입 되나). 그다음 만족도 min-N 켤 N값 정하고(Vercel env `SATISFACTION_MIN_RESPONSES`, 권장 3~5), 남은 오픈 관문(E2E Secrets·약한비번 테스트계정은 오픈 직전) 정리해줘.
 
 ---
-
-## 🔖 세션 핸드오프 (2026-06-30 (7) — 북극성 계기판 + 외부 서비스 사용량·비용 한눈에 [#531 머지·배포])
-
-> PO "오늘 한 일 정리" → "우리 북극성이 뭐냐" → "북극성 계기판 만들고 + 외부 서비스 사용량 화면도(나중에 유료·제미나이 실시간 비용까지)" → 중간에 **"제미나이만 말고 LiveKit·Resend·Supabase·Vercel 등 모든 외부 서비스 사용량 한눈에"** 로 범위 확대 → "싹다해줘" → "CI 통과하면 머지해" → 머지·배포 → 핸드오프 요청.
-
-**1. 이번 세션 한 일**
-- 🎯 **북극성 계기판** `/admin/khidi/north-star` (+API `north-star`): 주간 '사전상담 완료' 추세선(8~26주)·전주대비·4주평균 + 선행지표 4종(채널별 신규문의·예약→완료 전환율·만족도 응답률·에이전시 회신율[측정예정]). lib `northStar.ts`(+순수 `weekBuckets.ts`). kpi-dashboard cockpit 최상단 북극성 진입 배너.
-- 💳 **외부 서비스 사용량 통합 보드** `/admin/khidi/usage` (+API `usage`): 모든 연동 서비스 한 화면. **실측** = 제미나이(토큰·비용)·Supabase(DB/500MB·스토리지/1GB)·이메일/SMS(Resend·SES·Twilio·Telegram, admin_notification_logs.channel 집계)·LiveKit(상담방 수). **콘솔/토큰준비** = Vercel·Sentry. lib `externalServices.ts`·`serviceUsage.ts`·`vendorApis.ts`.
-- 🧱 **기반(제미나이 실시간 비용 토대)**: 새 표 `ai_usage_events`(append-only·RLS 서비스롤전용·PII없음) + `usageLog.ts`/`usagePricing.ts`(로거·집계·단가, fire-and-forget) + `generateReply.ts` 단발·스트리밍 두 경로에 사용량 로깅 연결. DB 용량 RPC `get_external_db_usage()`(SECURITY DEFINER·서비스롤). 마이그레이션 2건 라이브 적용(가역적 추가).
-- 단위테스트 13건(KST 주경계·비용/토큰 정규화) · check-schema-refs에 ai_usage_events 등록 · manuals(관리자) 북극성·사용량 항목 추가.
-- **PR [#531](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/531) (3커밋) squash 머지·배포.**
-
-**2. 왜 그렇게 했는지**
-- 북극성=주간 사전상담완료(직전 진단 결론). 유치·상담120·만족도는 후행지표라 매주 못 끌어올림 → 사전상담은 매주 올릴 수 있는 단일 운전대(3 KPI 동시 전진).
-- 사용량 화면: PO가 비용 통제·유료 전환 시점을 한 눈에 보길 원함. 못 재는 건 숨기지 말고 **실측/추정/콘솔 배지**로 정직하게 구분.
-- 비용은 **기록 시점 단가로 동결**(numeric) — gemini-flash-latest 별칭 단가가 바뀌어도 과거 집계 불변.
-- 순수함수 분리(`weekBuckets`·`usagePricing`): `server-only` 모듈은 vitest import 불가 → 테스트용으로 떼냄(repo 관례: kpi가 snapshotDates 떼낸 것과 동일).
-- Vercel·Sentry는 토큰 없으면 `available:false`로 콘솔 폴백 → PO가 토큰 넣는 순간 코드수정 없이 자동 라이브.
-
-**3. 안 끝났거나 보류**
-- **Vercel·Sentry 라이브**: 토큰 미보유 → 콘솔 폴백 중. PO가 `VERCEL_API_TOKEN`(+TEAM/PROJECT)·`SENTRY_AUTH_TOKEN`+`SENTRY_ORG` 넣어야 라이브.
-- **제미나이 단가**: 추정치(입력$0.30·출력$2.50/1M). `AI_PRICE_FLASH_IN`/`AI_PRICE_FLASH_OUT` env로 정확화 가능.
-- **북극성 선행지표 ④ 에이전시 콜드메일 회신율**: 아웃리치 트래킹 미연동 → "측정 예정". PO가 발송/회신 흐름 알려주면 연동.
-- **직전 큐 잔존**: C(채널별 source 전환 분해)·D(만족도 무응답0점+최소N)·E(점수전략 재설계 초안)·#522 funnel_events `form_complete` 라이브 실측(여전히 0행).
-
-**4. 주의·함정**
-- `ai_usage_events`·`funnel_events` 적재는 **배포 후 실제 호출/문의부터** 쌓임(지금 0). 화면 0 = 버그 아님(데이터 없음).
-- 알림 채널 매핑: `admin_notification_logs.channel` 실데이터는 현재 **'sms'만** 존재 → Resend/Telegram 카드는 0으로 보임. 실제 이메일/텔레그램 발송 한 번 해봐야 매핑 검증됨.
-- LiveKit·이메일 카드는 우리 DB **프록시**(상담방 수·발송 수)지 벤더 정확치 아님("추정" 배지). 정확한 영상 분·대역폭은 콘솔.
-- types(`database.types.ts`) 미재생성 → `ai_usage_events`·`inquiries.source`는 `(supabaseAdmin as any)` 캐스트(kpi.ts 패턴). 후속 types regen 시 정리.
-
-**5. 다음 세션이 먼저 할 일**
-1. ⚠️ **직전 미검증분 먼저**: 배포 반영 확인 후 **(a)** 사용량 화면(`/admin/khidi/usage`) 실제 열림 + 공개 AI 1회 호출 → `ai_usage_events`에 행 쌓이고 비용 뜨는지, **(b)** #522 `funnel_events`에 `form_complete` 행 쌓이는지(현재 0행) **라이브 실측**.
-2. **C. 채널별 전환 분해**: 유치 전환 대시보드(`/admin/khidi/conversion`)를 `inquiries.source`(ai_agent/web)로 GROUP BY(데이터 이미 적재).
-3. **D. 만족도 무응답 0점 버그 + 최소 N**.
-4. (선택) PO가 Vercel/Sentry 토큰 주면 env 꽂고 라이브 확인 / 콜드메일 흐름 연동 / 제미나이 실단가 입력.
-
-**6. 검증 상태**
-- ✅ `tsc --noEmit` 0 err · `next build --webpack` exit0 · eslint 0 err(경고만=any, 기존 패턴) · `check:content`·`check:schema-refs` 통과 · 단위테스트 13건 통과.
-- ✅ 라이브 스모크: `ai_usage_events` 삽입→조회→삭제(컬럼 형태 일치) / `get_external_db_usage()` RPC 호출·반환 확인(DB 23.5MB·스토리지 1.8MB).
-- ✅ PR/CI: **#531** CI(`ci`·`Smoke Tests(PR)`) 둘 다 success 후 squash 머지(E2E는 PR이라 skip). main 배포 트리거됨.
-- ❌ **미검증(솔직히)**: 배포 후 런타임 실데이터 적재(사용량 로깅·funnel `form_complete`) 미확인. Vercel·Sentry 라이브 경로 미실행(토큰 없음). 사용량/북극성 화면 실제 브라우저 클릭 안 함(어드민 인증). 제미나이 단가=추정.
-
-**7. 다음 세션 첫 프롬프트**
-> 먼저 docs/PROJECT_CONTEXT.md 최상단 핸드오프 읽어. 2026-06-30에 북극성 계기판(`/admin/khidi/north-star`)·외부 서비스 사용량 보드(`/admin/khidi/usage`)를 #531로 머지·배포했어. **먼저 미검증분 실측해**: 배포 반영 확인하고 ① 사용량 화면 열어서 공개 AI 1번 호출한 뒤 `ai_usage_events`에 행·비용 쌓이는지 ② #522 `funnel_events`에 `form_complete` 행 쌓이는지(현재 0행) 라이브로 확인. 그다음 **C**(유치 전환 대시보드 `/admin/khidi/conversion`을 `inquiries.source`=ai_agent/web로 채널 분해)를 만들어줘.
-
----
-
 ## 🏷️ 서비스명 변경 — HEALO → **healwith** (2026-06-16 확정·적용)
 
 **상표 문제로 서비스명을 `HEALO` → `healwith`(항상 소문자 표기)로 최종 변경. 앞으로 모든 신규 작업은 `healwith`로 한다.**
