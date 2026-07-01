@@ -165,93 +165,60 @@ function AudioUnblock() {
 function MediaEnablePrompt() {
   const lang = useLang();
   const c = COPY[lang] || COPY.en;
+  const toast = useToast();
   const { localParticipant, isMicrophoneEnabled, isCameraEnabled } = useLocalParticipant();
   const [busy, setBusy] = useState(false);
-  const [enabledOnce, setEnabledOnce] = useState(false);
-  const [dismissed, setDismissed] = useState(false);
-  // 기기 없음(스피커만 있는 PC 등) 또는 권한 거부 → 켜기를 강요하지 않고 '듣기·보기만' 참여로 넘긴다.
-  const [noMedia, setNoMedia] = useState(false);
+  const [done, setDone] = useState(false);
 
-  // 카메라 '또는' 마이크가 하나라도 켜지면 프롬프트 숨김
+  // 컨트롤바 버튼 등으로 카메라·마이크가 하나라도 켜지면 프롬프트 숨김
   useEffect(() => {
-    if (isMicrophoneEnabled || isCameraEnabled) setEnabledOnce(true);
+    if (isMicrophoneEnabled || isCameraEnabled) setDone(true);
   }, [isMicrophoneEnabled, isCameraEnabled]);
 
-  // 입장 직후 기기 유무 감지 — 마이크·카메라 입력장치가 아예 없으면 '듣기만' 안내로 바로 전환
-  //   (PO PC 처럼 스피커만 있는 경우 '탭해서 켜기'가 영영 실패해 버튼이 안 사라지던 것 방지).
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const devs = await navigator.mediaDevices.enumerateDevices();
-        const hasInput = devs.some(
-          (d) => d.kind === "audioinput" || d.kind === "videoinput"
-        );
-        if (!hasInput && !cancelled) setNoMedia(true);
-      } catch {
-        /* 판별 실패 — 아래 탭 시도 결과로 처리 */
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
   const enable = useCallback(async () => {
-    if (!localParticipant || busy) return;
+    if (busy) return;
     setBusy(true);
-    // 카메라·마이크를 '각각 독립'으로 시도 — 하나만 있는 기기도 그건 켜지게, 둘 다 없으면 듣기만.
-    let anyOk = false;
-    try {
-      await localParticipant.setCameraEnabled(true);
-      anyOk = true;
-    } catch {
-      /* 카메라 없음/거부 */
-    }
-    try {
-      await localParticipant.setMicrophoneEnabled(true);
-      anyOk = true;
-    } catch {
-      /* 마이크 없음/거부 */
+    // 카메라·마이크를 '각각 독립'으로 시도 — 하나만 있어도 그건 켜지게. 에러 종류로 '권한 차단'과 '기기 없음' 구분.
+    let ok = false;
+    let denied = false;
+    for (const fn of ["setCameraEnabled", "setMicrophoneEnabled"]) {
+      try {
+        await localParticipant?.[fn]?.(true);
+        ok = true;
+      } catch (e) {
+        const n = e && e.name ? e.name : "";
+        if (n === "NotAllowedError" || n === "SecurityError") denied = true;
+      }
     }
     setBusy(false);
-    if (!anyOk) setNoMedia(true); // 둘 다 실패(기기 없음·권한 거부) → 트랩 대신 듣기만 안내
-  }, [localParticipant, busy]);
+    // ★ 성공이든 실패든 '무조건' 닫는다 — 탭했는데 안 사라져 갇히던 것 원천 차단(PO 제보).
+    //   못 켰어도 방엔 들어간다(상대 영상·소리는 보고 들림 = 듣기·보기 참여). 이유만 정확히 안내.
+    setDone(true);
+    if (!ok) {
+      if (denied) toast.error(c.mediaDeniedToast); // 권한 차단 → 브라우저 설정에서 허용 안내
+      else toast.success(c.noMediaNotice); // 기기 없음 등 → 듣기·보기로 참여
+    }
+  }, [localParticipant, busy, toast, c]);
 
-  if (enabledOnce || dismissed) return null;
+  if (done) return null;
 
   return (
-    <div className="absolute inset-0 z-40 flex flex-col items-center justify-center bg-black/45 backdrop-blur-sm px-6 text-center">
-      {noMedia ? (
-        <>
-          <p className="text-gray-100 text-sm mb-4 max-w-xs leading-relaxed">
-            {c.noMediaNotice}
-          </p>
-          <button
-            onClick={() => setDismissed(true)}
-            className="bg-gray-600 hover:bg-gray-500 text-white text-sm font-semibold px-6 py-3 rounded-full shadow-xl"
-          >
-            {c.joinListenOnly}
-          </button>
-        </>
-      ) : (
-        <>
-          <button
-            onClick={enable}
-            disabled={busy}
-            className="flex items-center gap-2 bg-teal-600 hover:bg-teal-500 disabled:opacity-70 text-white text-base font-bold px-7 py-4 rounded-full shadow-2xl animate-pulse"
-          >
-            <Mic size={22} /> {c.enableMediaBtn}
-          </button>
-          <p className="mt-3 text-sm text-gray-200">{c.enableMediaHint}</p>
-          <button
-            onClick={() => setDismissed(true)}
-            className="mt-4 text-xs text-gray-400 underline"
-          >
-            {c.joinListenOnly}
-          </button>
-        </>
-      )}
+    <div className="absolute inset-0 z-40 flex flex-col items-center justify-center bg-black/40 backdrop-blur-sm px-6 text-center">
+      <button
+        onClick={enable}
+        disabled={busy}
+        className="flex items-center gap-2 bg-teal-600 hover:bg-teal-500 disabled:opacity-70 text-white text-base font-bold px-7 py-4 rounded-full shadow-2xl animate-pulse"
+      >
+        <Mic size={22} /> {c.enableMediaBtn}
+      </button>
+      <p className="mt-3 text-sm text-gray-200">{c.enableMediaHint}</p>
+      {/* 카메라·마이크 없이 그냥 보고/듣기만 하려는 사람용 — 항상 빠져나갈 수 있게 */}
+      <button
+        onClick={() => setDone(true)}
+        className="mt-4 text-xs text-gray-300 underline"
+      >
+        {c.joinListenOnly}
+      </button>
     </div>
   );
 }
