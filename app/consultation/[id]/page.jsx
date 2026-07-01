@@ -522,6 +522,17 @@ export default function ConsultationRoomPage() {
 
   // Translation state
   const [translations, setTranslations] = useState([]);
+  // 이 통화(입장)에서 발생한 번역만 패널에 보이게 하는 기준 시각.
+  // 예전 통화·반복 테스트의 번역 기록이 상담에 쌓여 재입장 때 섞여 보이던 것 차단(PO 제보).
+  // 시계 오차·직전 맥락 대비 15초 버퍼. window 체크로 SSR 시각 오염 회피.
+  const callStartMsRef = useRef(null);
+  if (callStartMsRef.current === null && typeof window !== "undefined") {
+    callStartMsRef.current = Date.now() - 15000;
+  }
+  const afterCallStart = useCallback((createdAt) => {
+    const t = createdAt ? new Date(createdAt).getTime() : 0;
+    return t >= (callStartMsRef.current ?? 0);
+  }, []);
   const [currentSubtitle, setCurrentSubtitle] = useState(null);
   const [interimText, setInterimText] = useState("");
   const [manualInput, setManualInput] = useState("");
@@ -1032,16 +1043,19 @@ export default function ConsultationRoomPage() {
         );
         const transResult = await transRes.json();
         if (transResult.ok) {
+          // 이 통화에서 생긴 번역만 — 예전 기록 preload 차단
           setTranslations(
-            (transResult.data || []).map((row) => ({
-              id: row.id,
-              original_text: row.source_text ?? row.original_text ?? "",
-              translated_text: row.translated_text ?? "",
-              source_language: row.source_lang ?? row.source_language ?? "",
-              target_language: row.target_lang ?? row.target_language ?? "",
-              speaker_role: row.speaker_role || "unknown",
-              created_at: row.created_at || new Date().toISOString(),
-            }))
+            (transResult.data || [])
+              .filter((row) => afterCallStart(row.created_at))
+              .map((row) => ({
+                id: row.id,
+                original_text: row.source_text ?? row.original_text ?? "",
+                translated_text: row.translated_text ?? "",
+                source_language: row.source_lang ?? row.source_language ?? "",
+                target_language: row.target_lang ?? row.target_language ?? "",
+                speaker_role: row.speaker_role || "unknown",
+                created_at: row.created_at || new Date().toISOString(),
+              }))
           );
         }
       } catch (error) {
@@ -1154,6 +1168,8 @@ export default function ConsultationRoomPage() {
             const seen = new Set(prev.map((t) => t.id));
             const incoming = tJson.data
               .filter((row) => !seen.has(row.id))
+              // 이 통화 이후 기록만 — 예전 통화·테스트 번역이 폴링으로 섞여 들어오던 것 차단
+              .filter((row) => afterCallStart(row.created_at))
               .map(normalizeTrans)
               // 내 발화는 로컬 entry(다른 id)로 이미 추가됨 — 서버 기록이 같은 내용으로
               // 다시 오면 중복 표시되므로 내용+20초 시간창 기준으로 걸러냄
