@@ -8,7 +8,6 @@ import {
   User,
   Stethoscope,
   Phone,
-  Edit2,
   X,
   ChevronDown,
   Globe,
@@ -31,8 +30,6 @@ export default function ConsultationsPage() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("upcoming"); // upcoming, active, completed, all
   const [expandedId, setExpandedId] = useState(null);
-  const [_showScheduleModal, setShowScheduleModal] = useState(false);
-  const [_selectedConsultation, setSelectedConsultation] = useState(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   // AI 회의록 생성 상태: { [consultationId]: { loading, data, error } }
   const [summaryState, setSummaryState] = useState({});
@@ -82,11 +79,6 @@ export default function ConsultationsPage() {
 
   const handleJoinConsultation = (consultation) => {
     router.push(`/consultation/${consultation.id}`);
-  };
-
-  const handleReschedule = (consultation) => {
-    setSelectedConsultation(consultation);
-    setShowScheduleModal(true);
   };
 
   const handleIssueInvite = async (consultation) => {
@@ -140,19 +132,35 @@ export default function ConsultationsPage() {
   };
 
   const handleCancel = async (id) => {
-    if (!confirm("상담을 취소하시겠습니까?")) return;
+    if (!confirm("상담을 취소하시겠습니까? 발송된 환자 초대 링크도 함께 폐기됩니다.")) return;
 
     try {
       const { data: sessionData } = await supabase.auth.getSession();
-      const _token = sessionData?.session?.access_token;
+      const token = sessionData?.session?.access_token;
+      if (!token) {
+        toast.error("인증 오류 — 다시 로그인하세요.");
+        return;
+      }
 
-      // In real implementation, call an update API
-      // For now, just show success
-      toast.success("상담이 취소되었습니다.");
-      setConsultations(
-        consultations.map((c) =>
-          c.id === id ? { ...c, status: "cancelled" } : c
-        )
+      // 실제 취소: 상담 상태를 cancelled 로 PATCH (서버가 게스트 초대 토큰도 폐기함).
+      // (과거엔 API 호출 없이 토스트만 띄우는 '가짜 성공'이라 실제론 취소 안 됨 — POSTMORTEMS #57)
+      const res = await fetch(`/api/khidi/consultation/${id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ status: "cancelled" }),
+      });
+      const result = await res.json();
+      if (!res.ok || !result.ok) {
+        toast.error(`취소 실패: ${result.error || res.statusText}`);
+        return;
+      }
+
+      toast.success("상담이 취소되었습니다. 초대 링크도 폐기됐습니다.");
+      setConsultations((cs) =>
+        cs.map((c) => (c.id === id ? { ...c, status: "cancelled" } : c))
       );
     } catch (error) {
       console.error("[ConsultationsPage] handleCancel error:", error);
@@ -480,16 +488,11 @@ export default function ConsultationsPage() {
                           🔗 환자 초대 링크
                         </button>
                         <button
-                          onClick={() => handleReschedule(consultation)}
-                          className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition font-medium flex items-center justify-center gap-2"
-                        >
-                          <Edit2 size={16} />
-                        </button>
-                        <button
                           onClick={() => handleCancel(consultation.id)}
-                          className="px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition font-medium"
+                          className="px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition font-medium flex items-center gap-1.5"
+                          title="상담 취소 (초대 링크도 폐기)"
                         >
-                          <X size={16} />
+                          <X size={16} /> 취소
                         </button>
                       </>
                     )}
