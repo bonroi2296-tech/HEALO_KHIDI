@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import HomeClient from "./home/HomeClient";
 import Script from "next/script";
 import { localizedMeta } from "@/lib/i18n/metadata";
-import { partnerHospitalLdList } from "@/lib/seo/structuredData";
+import { partnerHospitalLdList, websiteLd } from "@/lib/seo/structuredData";
 
 // 홈 페이지 메타 — 언어별 alternates 로 각 언어권 검색엔진이 올바른 버전 노출
 // Google·Yandex·Baidu 모두 hreflang 을 통해 언어별 title 매칭
@@ -103,7 +103,7 @@ export default async function HomePage() {
       <Script
         id="jsonld-organization"
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify([jsonLd, websiteLd()]) }}
       />
       <Suspense>
         <HomeClient />

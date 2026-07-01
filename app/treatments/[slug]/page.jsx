@@ -12,6 +12,7 @@ import {
   CANCER_IMAGES,
 } from "@/lib/data/immuneCancerDetails";
 import { localeAlternates, getRequestLocale } from "@/lib/i18n/metadata";
+import { breadcrumbLd } from "@/lib/seo/structuredData";
 
 const UUID_REGEX =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -181,12 +182,18 @@ export default async function TreatmentDetailPage({ params }) {
       },
     };
 
+    const breadcrumb = breadcrumbLd([
+      { name: "Home", url: "/" },
+      { name: "Treatments", url: "/treatments" },
+      { name: cancer.title.en || cancer.title.ko, url: `/treatments/${slug}` },
+    ]);
+
     const content = (
       <>
         <Script
           id="cancer-jsonld"
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+          dangerouslySetInnerHTML={{ __html: JSON.stringify([jsonLd, breadcrumb]) }}
         />
         <CancerDetailClient slug={slug} />
       </>
@@ -234,12 +241,17 @@ export default async function TreatmentDetailPage({ params }) {
     areaServed: "KR",
     priceRange: treatment.price || undefined,
   };
+  const treatmentBreadcrumb = breadcrumbLd([
+    { name: "Home", url: "/" },
+    { name: "Treatments", url: "/treatments" },
+    { name: treatment.title, url: `/treatments/${treatment.slug || slug}` },
+  ]);
   const content = (
     <>
       <Script
         id="treatment-jsonld"
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify([jsonLd, treatmentBreadcrumb]) }}
       />
       <TreatmentDetailClient id={slug} />
     </>
