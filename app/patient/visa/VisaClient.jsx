@@ -49,6 +49,9 @@ const LABELS = {
   retry: { ko: '다시 시도', en: 'Retry', ru: 'Повторить', zh: '重试', ja: '再試行', kz: 'Қайталау' },
   disclaimer: { ko: '출입국 규정은 수시로 변경됩니다. 신청 전 반드시 공식 K-ETA 사이트와 관할 대사관에서 최종 확인하세요.', en: 'Immigration rules change frequently. Always confirm on the official K-ETA site and your local embassy before applying.', ru: 'Иммиграционные правила часто меняются. Перед подачей всегда проверяйте на официальном сайте K-ETA и в посольстве.', zh: '出入境规定经常变化。申请前请务必在官方K-ETA网站及管辖大使馆最终确认。', ja: '出入国規定は随時変わります。申請前に必ず公式K-ETAサイトと管轄大使館で最終確認してください。', kz: 'Көші-қон ережелері жиі өзгереді. Өтінім бермес бұрын ресми K-ETA сайтынан және елшіліктен тексеріңіз.' },
   officialKeta: { ko: '공식 K-ETA 사이트', en: 'Official K-ETA site', ru: 'Официальный сайт K-ETA', zh: '官方K-ETA网站', ja: '公式K-ETAサイト', kz: 'Ресми K-ETA сайты' },
+  applyTitle: { ko: '비자 신청 시작하기', en: 'Start your visa application', ru: 'Начать оформление визы', zh: '开始办理签证', ja: 'ビザ申請を始める', kz: 'Виза өтінімін бастау' },
+  applyDesc: { ko: 'healwith 코디네이터가 초청장(의료기관 초청 사유서) 발급부터 서류·대사관 제출까지 동행합니다.', en: 'A healwith coordinator supports you from issuing the invitation letter to document review and embassy submission.', ru: 'Координатор healwith сопровождает вас от оформления приглашения до подачи документов в посольство.', zh: 'healwith协调员从开具邀请函到文件审核和使馆递交全程协助您。', ja: 'healwithコーディネーターが招待状の発行から書類・大使館提出まで同行します。', kz: 'healwith үйлестірушісі шақыру хатын рәсімдеуден құжаттар мен елшілікке тапсыруға дейін қолдайды.' },
+  applyCta: { ko: '신청 시작 →', en: 'Start application →', ru: 'Начать заявку →', zh: '开始申请 →', ja: '申請を始める →', kz: 'Өтінімді бастау →' },
 };
 
 function fmt(template, n) {
@@ -338,6 +341,22 @@ export default function VisaClient() {
         <div className="flex flex-col gap-5">
           {/* Country-specific entry status — the part that genuinely changes per country */}
           <CountryEntryCard entry={data.countryEntry} l={l} />
+
+          {/* CTA: 안내에서 실제 신청(초청장 발급)으로 연결 */}
+          <a
+            href="/patient/visa/applications"
+            className="block rounded-xl border border-teal-200 bg-gradient-to-br from-teal-600 to-teal-700 text-white p-5 md:p-6 shadow-sm hover:from-teal-700 hover:to-teal-800 transition-all duration-200 print:hidden"
+          >
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="min-w-0">
+                <h2 className="text-base md:text-lg font-bold">{l(LABELS.applyTitle)}</h2>
+                <p className="text-[13px] md:text-sm text-teal-50/90 mt-1 leading-relaxed">{l(LABELS.applyDesc)}</p>
+              </div>
+              <span className="shrink-0 inline-flex items-center rounded-lg bg-white/15 px-4 py-2 text-sm font-semibold hover:bg-white/25 transition-colors">
+                {l(LABELS.applyCta)}
+              </span>
+            </div>
+          </a>
 
           <VisaCard
             checklist={data.recommended}
