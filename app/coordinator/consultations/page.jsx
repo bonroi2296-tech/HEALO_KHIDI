@@ -57,6 +57,46 @@ export default function CoordinatorConsultationsPage() {
 
   const handleJoin = (id) => router.push(`/consultation/${id}`);
 
+  // 환자 초대 링크(계정 없이 입장하는 게스트 링크) 발급 → 클립보드 복사 + 등록 이메일 자동발송.
+  // ⚠ '상담 시작'으로 뜨는 코디 본인 화면 URL(초대 토큰 없음)을 그대로 환자에게 주면
+  //    환자(로그아웃 상태)는 "인증 오류. 다시 로그인하세요"에 막힌다 → 반드시 이 버튼으로 만든
+  //    링크(/consultation/…?invite=…)를 보낼 것.
+  const handleIssueInvite = async (id) => {
+    const supabase = createSupabaseBrowserClient();
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) { toast.error('인증 오류 — 다시 로그인해주세요'); return; }
+    try {
+      const res = await fetch(`/api/khidi/consultation/${id}/invite`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        // 재접속마다 1회 차감 → 끊김 잦은 모바일 환경 고려해 넉넉하게 (admin 과 동일)
+        body: JSON.stringify({ role: 'patient', expiresInHours: 72, maxUses: 20 }),
+      });
+      const result = await res.json();
+      if (!res.ok || !result.ok) {
+        toast.error(`초대 링크 생성 실패: ${result.error || res.status}`);
+        return;
+      }
+      try {
+        await navigator.clipboard.writeText(result.inviteUrl);
+        toast.success(
+          result.emailSent
+            ? '환자 초대 링크를 복사했고, 등록된 이메일로도 발송했습니다'
+            : `환자 초대 링크가 클립보드에 복사됐습니다 (만료: ${new Date(result.expiresAt).toLocaleString('ko-KR')})`
+        );
+      } catch {
+        // 클립보드 권한 없으면 prompt 로 직접 복사
+        prompt('아래 링크를 복사해 환자에게 공유하세요:', result.inviteUrl);
+      }
+    } catch (err) {
+      console.error('[handleIssueInvite] error:', err);
+      toast.error('초대 링크 생성 실패');
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -174,15 +214,24 @@ export default function CoordinatorConsultationsPage() {
                       </div>
                     )}
 
-                    <div className="flex gap-2 pt-2">
+                    <div className="flex gap-2 pt-2 flex-wrap">
                       {(c.status === 'scheduled' || c.status === 'active') && (
-                        <button
-                          onClick={() => handleJoin(c.id)}
-                          className="flex items-center gap-2 px-4 py-2 bg-teal-700 text-white rounded-lg hover:bg-teal-800 transition text-sm font-medium"
-                        >
-                          <Phone size={14} />
-                          {c.status === 'active' ? '상담 재진입' : '상담 시작'}
-                        </button>
+                        <>
+                          <button
+                            onClick={() => handleJoin(c.id)}
+                            className="flex items-center gap-2 px-4 py-2 bg-teal-700 text-white rounded-lg hover:bg-teal-800 transition text-sm font-medium"
+                          >
+                            <Phone size={14} />
+                            {c.status === 'active' ? '상담 재진입' : '상담 시작'}
+                          </button>
+                          <button
+                            onClick={() => handleIssueInvite(c.id)}
+                            className="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-700 border border-blue-200 rounded-lg hover:bg-blue-100 transition text-sm font-medium"
+                            title="환자에게 보낼 초대 링크를 만들어 복사(+등록 이메일 발송)"
+                          >
+                            🔗 환자 초대 링크
+                          </button>
+                        </>
                       )}
                     </div>
                   </div>
