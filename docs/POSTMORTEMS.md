@@ -1257,3 +1257,22 @@ PO가 협력병원 상세(`/hospitals/[slug]`) 하단 "자주 묻는 질문"이 
 
 **재발 방지**
 - 교훈: **권한 REVOKE/GRANT 는 적용 즉시 `has_*_privilege`로 재조회 검증.** 함수 직접호출 차단의 정석은 역할 회수가 아니라 **PUBLIC 회수 + 의도한 역할에만 GRANT**.
+
+## #55 — 환자에게 발송되는 상담 이메일 3종이 옛 premium 톤(검정+골드+세리프)으로 살아있었음 (2026-07-01)
+
+**무슨 일**
+- PO가 실제 수신함(Zoho)에서 원격 상담 초대 메일을 열어보니, 사이트(legacy·teal)와 전혀 다른 옛 premium 럭셔리 톤 — 검정 헤더(#0a0a0a) + 골드 포인트(#c8a96a) + 크림 배경(#f5f0e8) + Playfair Display 세리프 + 대문자 자간 버튼. "왜 자꾸 이래" 라고 지적.
+- 대상: `consultationInvite.ts`(초대) · `consultationReminder.ts`(30분 전 리마인더) · `surveys/surveyEmailTemplate.ts`(만족도 설문) — 3종 모두 동일 premium 톤. 환자가 받는 접점만 딴 브랜드처럼 보임.
+
+**왜 못 잡았나(근본원인)**
+- DESIGN.md `forbidden.premium_drift`(Playfair·cream/ink/gold 금지)는 **UI 코드**를 겨눴지만, 이메일 템플릿(순수 HTML 문자열)은 그 자동검사(`check:content`)의 사각지대였음. 사람이 실제 메일을 열어봐야만 보이던 부류.
+- 같은 디렉토리의 `infoRequest.ts`는 이미 legacy(teal #0d9488 + 시스템폰트)였는데, 나머지 3종이 옛 톤인 채로 방치 — 템플릿 간 톤 드리프트를 막는 장치가 없었다.
+
+**어떻게 고쳤나**
+- 3종 전부 legacy 톤으로 재작성: 배경 `#f6f7f8`, 흰 카드 + `#e5e7eb` 테두리 + `border-radius:16px`, 헤더는 teal 워드마크(세리프 제거), CTA는 teal `#0d9488`+흰글씨+`rounded-12`, 시스템 폰트. 정답 레퍼런스 = `infoRequest.ts`.
+- 카피(6개 언어 STRINGS)·구조는 그대로, 색·폰트 토큰만 교체.
+
+**재발 방지**
+- `check-content-consistency.mjs`에 **이메일 premium 토큰 가드**(§8) 추가: 라이브 이메일 템플릿(`src/lib/email/templates/**` + `surveyEmailTemplate.ts`)에 `Playfair Display`·`#c8a96a`·`#f5f0e8`·`#0a0a0a` 재등장 시 CI 실패. 정답 톤 레퍼런스로 infoRequest.ts 명시.
+- 남은 것: `src/emails/*.jsx`(React Email premium 시스템, CoordinatorIntro·HospitalMatch 등 6종)도 premium 톤이지만, 유일한 소비자 `app/api/email/send` 가 **죽은 라우트(아무도 안 부름 — PROJECT_CONTEXT 아카이브 명시)**라 환자에게 발송되지 않음. → 재브랜딩이 아니라 **죽은 라우트+템플릿 삭제 후보**(별도 팔로업). 그래서 가드 범위에서 제외.
+- 교훈: **사용자 접점(이메일·PDF·알림)도 UI다.** DESIGN 표준은 화면뿐 아니라 발송물까지 덮어야 하고, 자동검사도 거기까지 따라가야 한다.

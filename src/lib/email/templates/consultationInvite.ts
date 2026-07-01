@@ -113,19 +113,19 @@ export function renderConsultationInviteEmail(props: ConsultationInviteProps) {
   // 예: "2026. 10. 5. (월) 오후 2:00 GMT+9  ·  오전 5:00 UTC"
   const scheduledFormatted = `${fmtIn("Asia/Seoul")}  ·  ${fmtIn("UTC")}`;
 
-  // 병원 / 의사 카드 — 환자가 "어디 / 누구" 를 명확히 알도록 큰 카드로 표시
+  // 병원 / 의사 카드 — 환자가 "어디 / 누구" 를 명확히 알도록 카드로 표시 (legacy teal 톤)
   const hospitalDoctorCard =
     props.hospitalName || props.doctorName
       ? `
 <tr><td style="padding:16px 0 8px;">
-  <table cellpadding="0" cellspacing="0" role="presentation" style="width:100%;background:linear-gradient(180deg,#ffffff 0%,#fafafa 100%);border:1px solid #c8a96a;border-left:3px solid #c8a96a;border-radius:4px;">
+  <table cellpadding="0" cellspacing="0" role="presentation" style="width:100%;background:#f0fdfa;border:1px solid #ccfbf1;border-left:3px solid #0d9488;border-radius:12px;">
     <tr><td style="padding:18px 20px;">
-      <div style="font-family:'Helvetica Neue',Arial,sans-serif;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:#c8a96a;margin-bottom:10px;">
+      <div style="font-size:11px;font-weight:700;letter-spacing:0.04em;color:#0d9488;margin-bottom:10px;">
         ${lang === "ko" ? "담당 기관 및 의료진" : lang === "ru" ? "Медицинское учреждение" : lang === "kz" ? "Медициналық мекеме" : lang === "zh" ? "医疗机构及医生" : lang === "ja" ? "担当機関・医療スタッフ" : "Medical provider"}
       </div>
       ${
         props.hospitalName
-          ? `<div style="font-family:'Playfair Display',Georgia,serif;font-size:22px;line-height:1.3;color:#0a0a0a;margin-bottom:4px;">${escape(props.hospitalName)}</div>`
+          ? `<div style="font-size:18px;font-weight:700;line-height:1.3;color:#0f172a;margin-bottom:4px;">${escape(props.hospitalName)}</div>`
           : ""
       }
       ${
@@ -136,10 +136,10 @@ export function renderConsultationInviteEmail(props: ConsultationInviteProps) {
       ${
         props.doctorName
           ? `
-      <table cellpadding="0" cellspacing="0" style="margin-top:8px;border-top:1px dashed #e2e8f0;padding-top:12px;width:100%;">
+      <table cellpadding="0" cellspacing="0" style="margin-top:8px;border-top:1px solid #ccfbf1;padding-top:12px;width:100%;">
         <tr>
           <td style="width:40px;vertical-align:top;padding-right:10px;">
-            <div style="width:36px;height:36px;border-radius:50%;background:#c8a96a;color:#0a0a0a;text-align:center;line-height:36px;font-weight:700;font-size:14px;font-family:Arial;">
+            <div style="width:36px;height:36px;border-radius:50%;background:#0d9488;color:#ffffff;text-align:center;line-height:36px;font-weight:700;font-size:14px;font-family:Arial;">
               ${escape((props.doctorName || "D").slice(0, 1).toUpperCase())}
             </div>
           </td>
@@ -169,25 +169,25 @@ export function renderConsultationInviteEmail(props: ConsultationInviteProps) {
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${s.subject}</title>
 </head>
-<body style="margin:0;padding:0;background:#f5f0e8;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">
+<body style="margin:0;padding:0;background:#f6f7f8;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
 <div style="display:none;overflow:hidden;line-height:1px;opacity:0;max-height:0;max-width:0;">
   ${escape(s.intro)}
 </div>
-<table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background:#f5f0e8;padding:24px 12px;">
+<table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background:#f6f7f8;padding:24px 12px;">
   <tr><td align="center">
-    <table width="560" cellpadding="0" cellspacing="0" role="presentation" style="max-width:560px;background:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 4px 16px rgba(0,0,0,0.06);">
+    <table width="560" cellpadding="0" cellspacing="0" role="presentation" style="max-width:560px;background:#ffffff;border:1px solid #e5e7eb;border-radius:16px;overflow:hidden;">
       <tr>
-        <td style="background:#0a0a0a;padding:32px 32px 24px;">
-          <div style="font-family:'Playfair Display',Georgia,serif;color:#c8a96a;font-size:28px;letter-spacing:0.02em;">healwith</div>
-          <div style="font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#c7c2b8;margin-top:4px;">${escape(s.footer)}</div>
+        <td style="padding:28px 32px 20px;border-bottom:1px solid #f1f5f9;">
+          <div style="font-size:22px;font-weight:800;color:#0d9488;letter-spacing:-0.01em;">healwith</div>
+          <div style="font-size:12px;color:#64748b;margin-top:4px;">${escape(s.footer)}</div>
         </td>
       </tr>
       <tr>
-        <td style="padding:40px 32px 16px;">
+        <td style="padding:32px 32px 16px;">
           <p style="margin:0 0 16px;font-size:15px;color:#0f172a;">${escape(s.greeting(name))}</p>
           <p style="margin:0 0 24px;font-size:14px;line-height:1.7;color:#334155;">${escape(s.intro)}</p>
 
-          <table cellpadding="0" cellspacing="0" style="width:100%;margin:16px 0 8px;border-top:1px solid #e2e8f0;border-bottom:1px solid #e2e8f0;padding:12px 0;">
+          <table cellpadding="0" cellspacing="0" style="width:100%;margin:16px 0 8px;border-top:1px solid #e5e7eb;border-bottom:1px solid #e5e7eb;padding:12px 0;">
             <tr><td style="padding:8px 0;color:#64748b;font-size:13px;">${escape(s.timeLabel)}:</td>
                 <td style="padding:8px 0;color:#0f172a;font-size:14px;font-weight:600;">${escape(scheduledFormatted)}</td></tr>
           </table>
@@ -196,7 +196,7 @@ export function renderConsultationInviteEmail(props: ConsultationInviteProps) {
 
           <div style="text-align:center;margin:32px 0;">
             <a href="${escape(props.inviteUrl)}"
-               style="display:inline-block;background:#c8a96a;color:#0a0a0a;text-decoration:none;padding:14px 32px;font-size:13px;letter-spacing:0.2em;text-transform:uppercase;font-weight:600;border-radius:2px;">
+               style="display:inline-block;background:#0d9488;color:#ffffff;text-decoration:none;padding:14px 28px;font-size:15px;font-weight:700;border-radius:12px;">
               ${escape(s.joinBtn)}
             </a>
           </div>
@@ -210,7 +210,7 @@ export function renderConsultationInviteEmail(props: ConsultationInviteProps) {
         </td>
       </tr>
       <tr>
-        <td style="background:#f8fafc;padding:16px 32px;font-size:10px;color:#94a3b8;text-align:center;line-height:1.6;">
+        <td style="background:#f8fafc;padding:16px 32px;font-size:10px;color:#94a3b8;text-align:center;line-height:1.6;border-top:1px solid #f1f5f9;">
           healwith is not a medical institution. Diagnosis / treatment by licensed Korean providers.
         </td>
       </tr>

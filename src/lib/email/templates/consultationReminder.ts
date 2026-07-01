@@ -135,7 +135,7 @@ export function renderConsultationReminderEmail(props: ConsultationReminderProps
     props.hospitalName || props.doctorName
       ? `
 <tr><td style="padding:12px 0 8px;">
-  <table cellpadding="0" cellspacing="0" style="width:100%;background:#fafaf8;border-left:3px solid #c8a96a;border-radius:2px;">
+  <table cellpadding="0" cellspacing="0" style="width:100%;background:#f0fdfa;border:1px solid #ccfbf1;border-left:3px solid #0d9488;border-radius:12px;">
     <tr><td style="padding:14px 16px;">
       ${props.hospitalName ? `<div style="font-size:14px;font-weight:600;color:#0f172a;margin-bottom:2px;">${esc(props.hospitalName)}</div>` : ""}
       ${props.doctorName ? `<div style="font-size:12px;color:#64748b;">Dr. ${esc(props.doctorName)}</div>` : ""}
@@ -160,16 +160,16 @@ export function renderConsultationReminderEmail(props: ConsultationReminderProps
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${esc(s.subject)}</title>
 </head>
-<body style="margin:0;padding:0;background:#f5f0e8;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">
+<body style="margin:0;padding:0;background:#f6f7f8;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
 <div style="display:none;overflow:hidden;line-height:1px;opacity:0;max-height:0;max-width:0;">${esc(s.preheader)}</div>
-<table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background:#f5f0e8;padding:24px 12px;">
+<table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background:#f6f7f8;padding:24px 12px;">
   <tr><td align="center">
-    <table width="560" cellpadding="0" cellspacing="0" role="presentation" style="max-width:560px;background:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 4px 16px rgba(0,0,0,0.06);">
+    <table width="560" cellpadding="0" cellspacing="0" role="presentation" style="max-width:560px;background:#ffffff;border:1px solid #e5e7eb;border-radius:16px;overflow:hidden;">
       <!-- 헤더 -->
       <tr>
-        <td style="background:#0a0a0a;padding:28px 32px 20px;">
-          <div style="font-family:'Playfair Display',Georgia,serif;color:#c8a96a;font-size:28px;letter-spacing:0.02em;">healwith</div>
-          <div style="font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#c7c2b8;margin-top:4px;">${esc(s.footer)}</div>
+        <td style="padding:28px 32px 20px;border-bottom:1px solid #f1f5f9;">
+          <div style="font-size:22px;font-weight:800;color:#0d9488;letter-spacing:-0.01em;">healwith</div>
+          <div style="font-size:12px;color:#64748b;margin-top:4px;">${esc(s.footer)}</div>
         </td>
       </tr>
       <!-- 본문 -->
@@ -194,7 +194,7 @@ export function renderConsultationReminderEmail(props: ConsultationReminderProps
             <!-- 입장 버튼 -->
             <tr><td style="text-align:center;padding:28px 0 16px;">
               <a href="${esc(props.joinUrl)}"
-                 style="display:inline-block;background:#c8a96a;color:#0a0a0a;text-decoration:none;padding:14px 36px;font-size:13px;letter-spacing:0.2em;text-transform:uppercase;font-weight:600;border-radius:2px;">
+                 style="display:inline-block;background:#0d9488;color:#ffffff;text-decoration:none;padding:14px 32px;font-size:15px;font-weight:700;border-radius:12px;">
                 ${esc(s.joinBtn)}
               </a>
             </td></tr>

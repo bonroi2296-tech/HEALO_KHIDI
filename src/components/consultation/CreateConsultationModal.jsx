@@ -378,127 +378,136 @@ export function CreateConsultationModal({ onClose, onSuccess }) {
             </div>
           </div>
 
-          <UserSearchField
-            label="환자 계정 (선택 — 기존 계정)"
-            value={form.patient_user_id}
-            onSelect={(id) => setForm({ ...form, patient_user_id: id })}
-            placeholder="비워두면 게스트 링크 전용"
-          />
-          <RoleUserSelect
-            label="담당 코디네이터 (지정 코디 목록)"
-            role="coordinator"
-            value={form.coordinator_user_id}
-            onSelect={(id) => setForm({ ...form, coordinator_user_id: id })}
-          />
-
-          <div className="grid grid-cols-2 gap-4">
-            <Field label="세션 유형">
-              <select
-                value={form.session_type}
-                onChange={(e) => setForm({ ...form, session_type: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
-              >
-                <option value="pre_consultation">진료 전 평가</option>
-                <option value="follow_up">추후 진료</option>
-                <option value="emergency">긴급 상담</option>
-                <option value="diagnostic">검사 결과 검토</option>
-              </select>
-            </Field>
-
-            <Field label="예약 시각 (KST · 한국 시간 기준)">
-              <input
-                type="datetime-local"
-                required
-                value={form.scheduled_at}
-                onChange={(e) => setForm({ ...form, scheduled_at: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
-              />
-            </Field>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <Field label="환자 언어">
-              <select
-                value={form.patient_language}
-                onChange={(e) => setForm({ ...form, patient_language: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
-              >
-                <option value="ru">러시아어</option>
-                <option value="kz">카자흐어</option>
-                <option value="en">영어</option>
-                <option value="zh">중국어</option>
-              </select>
-            </Field>
-            <Field label="의사 언어">
-              <select
-                value={form.doctor_language}
-                onChange={(e) => setForm({ ...form, doctor_language: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
-              >
-                <option value="ko">한국어</option>
-                <option value="en">영어</option>
-              </select>
-            </Field>
-          </div>
-
-          {/* 병원 / 의사 (브랜딩용) */}
-          <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 space-y-3">
-            <p className="text-xs font-semibold text-gray-700">
-              🏥 병원 / 의사 지정 (선택) — 환자 이메일 & UI 에 표시됨
-            </p>
-            <Field label="병원">
-              <select
-                value={form.hospital_id}
-                onChange={(e) =>
-                  setForm({ ...form, hospital_id: e.target.value, partner_doctor_id: "" })
-                }
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white"
-              >
-                <option value="">(선택 안함)</option>
-                {hospitalOptions.map((h) => (
-                  <option key={h.id} value={h.id}>
-                    {h.name}
-                  </option>
-                ))}
-              </select>
-            </Field>
-
-            <Field label="담당 의사" hint={form.hospital_id ? "" : "병원 먼저 선택"}>
-              <select
-                value={form.partner_doctor_id}
-                onChange={(e) =>
-                  setForm({ ...form, partner_doctor_id: e.target.value })
-                }
-                disabled={!form.hospital_id || doctorOptions.length === 0}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white disabled:bg-gray-100 disabled:text-gray-400"
-              >
-                <option value="">
-                  {!form.hospital_id
-                    ? "병원 먼저 선택"
-                    : doctorOptions.length === 0
-                    ? "등록된 의사 없음"
-                    : "(선택 안함)"}
-                </option>
-                {doctorOptions.map((d) => (
-                  <option key={d.id} value={d.id}>
-                    {d.name_ko || d.name_en}
-                    {d.position_ko ? ` · ${d.position_ko}` : ""}
-                    {d.subspecialty ? ` · ${d.subspecialty}` : ""}
-                  </option>
-                ))}
-              </select>
-            </Field>
-          </div>
-
-          <Field label="비고 (선택)">
-            <textarea
-              value={form.notes}
-              onChange={(e) => setForm({ ...form, notes: e.target.value })}
-              rows={3}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 resize-none"
-              placeholder="상담 목적 / 주요 증상 / 사전 확인 필요 사항 등"
+          {/* 예약 시각 — 필수. 기본 노출 (나머지는 고급 옵션으로 접음) */}
+          <Field label="예약 시각 (KST · 한국 시간 기준)">
+            <input
+              type="datetime-local"
+              required
+              value={form.scheduled_at}
+              onChange={(e) => setForm({ ...form, scheduled_at: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
             />
           </Field>
+
+          {/* 고급 옵션 — 평소 접어둠. 문의를 고르면 언어·세션유형은 기본값/자동입력으로 충분,
+              코디·병원/의사·비고는 필요할 때만 편다. (필드 과다 → 기본 최소화, POSTMORTEM 상담모달 복잡도) */}
+          <details className="border border-gray-200 rounded-xl">
+            <summary className="cursor-pointer select-none px-4 py-3 text-sm font-semibold text-gray-700 hover:bg-gray-50 rounded-xl flex items-center justify-between gap-2">
+              <span>고급 옵션 (선택)</span>
+              <span className="text-xs font-normal text-gray-400">세션 유형 · 코디 · 병원/의사 · 언어 · 비고</span>
+            </summary>
+            <div className="px-4 pb-4 pt-2 space-y-4 border-t border-gray-100">
+              <Field label="세션 유형">
+                <select
+                  value={form.session_type}
+                  onChange={(e) => setForm({ ...form, session_type: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+                >
+                  <option value="pre_consultation">진료 전 평가</option>
+                  <option value="follow_up">추후 진료</option>
+                  <option value="emergency">긴급 상담</option>
+                  <option value="diagnostic">검사 결과 검토</option>
+                </select>
+              </Field>
+
+              <UserSearchField
+                label="환자 계정 (선택 — 기존 계정)"
+                value={form.patient_user_id}
+                onSelect={(id) => setForm({ ...form, patient_user_id: id })}
+                placeholder="비워두면 게스트 링크 전용"
+              />
+              <RoleUserSelect
+                label="담당 코디네이터 (지정 코디 목록)"
+                role="coordinator"
+                value={form.coordinator_user_id}
+                onSelect={(id) => setForm({ ...form, coordinator_user_id: id })}
+              />
+
+              <div className="grid grid-cols-2 gap-4">
+                <Field label="환자 언어">
+                  <select
+                    value={form.patient_language}
+                    onChange={(e) => setForm({ ...form, patient_language: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  >
+                    <option value="ru">러시아어</option>
+                    <option value="kz">카자흐어</option>
+                    <option value="en">영어</option>
+                    <option value="zh">중국어</option>
+                  </select>
+                </Field>
+                <Field label="의사 언어">
+                  <select
+                    value={form.doctor_language}
+                    onChange={(e) => setForm({ ...form, doctor_language: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  >
+                    <option value="ko">한국어</option>
+                    <option value="en">영어</option>
+                  </select>
+                </Field>
+              </div>
+
+              {/* 병원 / 의사 (브랜딩용) */}
+              <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 space-y-3">
+                <p className="text-xs font-semibold text-gray-700">
+                  🏥 병원 / 의사 지정 (선택) — 환자 이메일 & UI 에 표시됨
+                </p>
+                <Field label="병원">
+                  <select
+                    value={form.hospital_id}
+                    onChange={(e) =>
+                      setForm({ ...form, hospital_id: e.target.value, partner_doctor_id: "" })
+                    }
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white"
+                  >
+                    <option value="">(선택 안함)</option>
+                    {hospitalOptions.map((h) => (
+                      <option key={h.id} value={h.id}>
+                        {h.name}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+
+                <Field label="담당 의사" hint={form.hospital_id ? "" : "병원 먼저 선택"}>
+                  <select
+                    value={form.partner_doctor_id}
+                    onChange={(e) =>
+                      setForm({ ...form, partner_doctor_id: e.target.value })
+                    }
+                    disabled={!form.hospital_id || doctorOptions.length === 0}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white disabled:bg-gray-100 disabled:text-gray-400"
+                  >
+                    <option value="">
+                      {!form.hospital_id
+                        ? "병원 먼저 선택"
+                        : doctorOptions.length === 0
+                        ? "등록된 의사 없음"
+                        : "(선택 안함)"}
+                    </option>
+                    {doctorOptions.map((d) => (
+                      <option key={d.id} value={d.id}>
+                        {d.name_ko || d.name_en}
+                        {d.position_ko ? ` · ${d.position_ko}` : ""}
+                        {d.subspecialty ? ` · ${d.subspecialty}` : ""}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+              </div>
+
+              <Field label="비고 (선택)">
+                <textarea
+                  value={form.notes}
+                  onChange={(e) => setForm({ ...form, notes: e.target.value })}
+                  rows={3}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 resize-none"
+                  placeholder="상담 목적 / 주요 증상 / 사전 확인 필요 사항 등"
+                />
+              </Field>
+            </div>
+          </details>
 
           <div className="flex gap-3 pt-2">
             <button

@@ -90,28 +90,27 @@ export function renderSurveyEmail(props: SurveyEmailProps) {
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${esc(s.subject)}</title>
 </head>
-<body style="margin:0;padding:0;background:#f5f0e8;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">
+<body style="margin:0;padding:0;background:#f6f7f8;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
 <div style="display:none;overflow:hidden;line-height:1px;opacity:0;max-height:0;max-width:0;">${esc(s.intro)}</div>
-<table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background:#f5f0e8;padding:24px 12px;">
+<table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background:#f6f7f8;padding:24px 12px;">
   <tr><td align="center">
     <table width="560" cellpadding="0" cellspacing="0" role="presentation"
-      style="max-width:560px;background:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 4px 16px rgba(0,0,0,0.06);">
+      style="max-width:560px;background:#ffffff;border:1px solid #e5e7eb;border-radius:16px;overflow:hidden;">
       <tr>
-        <td style="background:#0a0a0a;padding:32px 32px 24px;">
-          <div style="font-family:'Playfair Display',Georgia,serif;color:#c8a96a;font-size:28px;letter-spacing:0.02em;">healwith</div>
-          <div style="font-size:11px;letter-spacing:0.2em;text-transform:uppercase;color:#c7c2b8;margin-top:4px;">${esc(s.footer)}</div>
+        <td style="padding:28px 32px 20px;border-bottom:1px solid #f1f5f9;">
+          <div style="font-size:22px;font-weight:800;color:#0d9488;letter-spacing:-0.01em;">healwith</div>
+          <div style="font-size:12px;color:#64748b;margin-top:4px;">${esc(s.footer)}</div>
         </td>
       </tr>
       <tr>
-        <td style="padding:40px 32px 32px;">
+        <td style="padding:32px 32px 32px;">
           <p style="margin:0 0 16px;font-size:15px;color:#0f172a;">${esc(s.greeting(name))}</p>
           <p style="margin:0 0 28px;font-size:14px;line-height:1.7;color:#334155;">${esc(s.intro)}</p>
 
           <div style="text-align:center;margin:32px 0;">
             <a href="${esc(props.surveyUrl)}"
-               style="display:inline-block;background:#c8a96a;color:#0a0a0a;text-decoration:none;
-                      padding:14px 36px;font-size:13px;letter-spacing:0.2em;text-transform:uppercase;
-                      font-weight:600;border-radius:2px;">
+               style="display:inline-block;background:#0d9488;color:#ffffff;text-decoration:none;
+                      padding:14px 28px;font-size:15px;font-weight:700;border-radius:12px;">
               ${esc(s.btnLabel)}
             </a>
           </div>
@@ -122,7 +121,7 @@ export function renderSurveyEmail(props: SurveyEmailProps) {
         </td>
       </tr>
       <tr>
-        <td style="background:#f8fafc;padding:16px 32px;font-size:10px;color:#94a3b8;text-align:center;line-height:1.6;">
+        <td style="background:#f8fafc;padding:16px 32px;font-size:10px;color:#94a3b8;text-align:center;line-height:1.6;border-top:1px solid #f1f5f9;">
           healwith is not a medical institution. Korea-licensed providers only.
         </td>
       </tr>
