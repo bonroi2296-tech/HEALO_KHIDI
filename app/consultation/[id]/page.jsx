@@ -12,7 +12,6 @@ import {
   useConnectionState,
   useLocalParticipant,
   useParticipants,
-  useSpeakingParticipants,
   useRoomContext,
   FocusLayout,
   FocusLayoutContainer,
@@ -162,7 +161,7 @@ function AudioUnblock() {
 // '사용자 탭' 순간에 잡는 건 안정적이라 → 입장하면 미디어를 꺼둔 채 이 큰 버튼을 띄우고, 탭하는 그
 // 제스처 안에서 카메라·마이크를 확실히 켠다. 마이크가 한 번 켜지면 이 세션에선 안 뜸(음소거 토글해도 안 뜸).
 // 새로 입장하면 다시 뜸 → PO 요구 "들어올 때마다 허용 버튼"도 충족.
-function MediaEnablePrompt() {
+function MediaEnablePrompt({ onResult }) {
   const lang = useLang();
   const c = COPY[lang] || COPY.en;
   const toast = useToast();
@@ -181,24 +180,34 @@ function MediaEnablePrompt() {
     // 카메라·마이크를 '각각 독립'으로 시도 — 하나만 있어도 그건 켜지게. 에러 종류로 '권한 차단'과 '기기 없음' 구분.
     let ok = false;
     let denied = false;
-    for (const fn of ["setCameraEnabled", "setMicrophoneEnabled"]) {
-      try {
-        await localParticipant?.[fn]?.(true);
-        ok = true;
-      } catch (e) {
-        const n = e && e.name ? e.name : "";
-        if (n === "NotAllowedError" || n === "SecurityError") denied = true;
-      }
+    let micOk = false;
+    // 카메라·마이크 각각 독립 시도(하나만 있어도 켜지게). 마이크 성공 여부를 따로 추적한다.
+    try {
+      await localParticipant?.setCameraEnabled?.(true);
+      ok = true;
+    } catch (e) {
+      const n = e && e.name ? e.name : "";
+      if (n === "NotAllowedError" || n === "SecurityError") denied = true;
+    }
+    try {
+      await localParticipant?.setMicrophoneEnabled?.(true);
+      ok = true;
+      micOk = true;
+    } catch (e) {
+      const n = e && e.name ? e.name : "";
+      if (n === "NotAllowedError" || n === "SecurityError") denied = true;
     }
     setBusy(false);
     // ★ 성공이든 실패든 '무조건' 닫는다 — 탭했는데 안 사라져 갇히던 것 원천 차단(PO 제보).
     //   못 켰어도 방엔 들어간다(상대 영상·소리는 보고 들림 = 듣기·보기 참여). 이유만 정확히 안내.
     setDone(true);
+    // 마이크 성공 여부를 부모에 보고 — 카메라만 켜지고 마이크가 조용히 실패하면(=무음) 상시 경고 배너를 띄운다.
+    onResult?.(micOk);
     if (!ok) {
       if (denied) toast.error(c.mediaDeniedToast); // 권한 차단 → 브라우저 설정에서 허용 안내
       else toast.success(c.noMediaNotice); // 기기 없음 등 → 듣기·보기로 참여
     }
-  }, [localParticipant, busy, toast, c]);
+  }, [localParticipant, busy, toast, c, onResult]);
 
   if (done) return null;
 
@@ -218,6 +227,43 @@ function MediaEnablePrompt() {
         className="mt-4 text-xs text-gray-300 underline"
       >
         {c.joinListenOnly}
+      </button>
+    </div>
+  );
+}
+
+// ── 마이크 조용한 실패 경고 (LiveKitRoom 내부 전용) ──
+// 탭했는데 카메라만 켜지고 마이크가 실패하면(권한 거부·기기 점유) 본인은 '켜진 줄' 알지만 상대는 무음.
+// → 마이크가 꺼져 있는 동안 상시 경고 + '마이크 켜기' 재시도. 마이크가 켜지면 자동으로 사라진다.
+function MicOffBanner({ failed, onClear }) {
+  const lang = useLang();
+  const c = COPY[lang] || COPY.en;
+  const { localParticipant, isMicrophoneEnabled } = useLocalParticipant();
+  const [retrying, setRetrying] = useState(false);
+  useEffect(() => {
+    if (failed && isMicrophoneEnabled) onClear(); // 마이크 켜지면 경고 자동 해제
+  }, [failed, isMicrophoneEnabled, onClear]);
+  if (!failed || isMicrophoneEnabled) return null;
+  const retry = async () => {
+    if (retrying) return;
+    setRetrying(true);
+    try {
+      await localParticipant?.setMicrophoneEnabled?.(true);
+    } catch {
+      /* 여전히 실패 — 배너 유지 */
+    }
+    setRetrying(false);
+  };
+  return (
+    <div className="absolute bottom-16 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2 bg-red-600/95 text-white text-xs font-semibold px-3 py-2 rounded-full shadow-lg">
+      <MicOff size={14} />
+      <span>{c.micOffWarn}</span>
+      <button
+        onClick={retry}
+        disabled={retrying}
+        className="ml-1 underline disabled:opacity-60"
+      >
+        {c.micRetry}
       </button>
     </div>
   );
@@ -361,47 +407,21 @@ function VideoGrid() {
     { onlySubscribed: false }
   );
 
-  // 발화자 추적 (줌/Meet식 안정화) — 짧은 소리(기침·"네"·추임새)로는 메인이 안 바뀌게
-  // 히스테리시스 게이트를 둔다: 새 화자가 PROMOTE_MS 동안 연속 1위여야만 메인 전환,
-  // 직전 화자는 잠깐 멈춰도 메인 유지(dominantId 안 비움). 참가자 2명 이하면 자동전환 자체를
-  // 끈다(1:1은 상대 고정이 가장 안 튐). 근거: Jitsi DSI 3-시간창 + 업계 통념(직전화자 수초 hold).
-  const speaking = useSpeakingParticipants();
+  // 발화자 자동추적 제거(2026-07-01) — 3인 상담(의사+코디+환자)에서 말차례마다 메인 화면이
+  // '휙휙' 바뀌어 어지럽다는 PO 제보. 정상 말차례는 2초를 넘겨 히스테리시스(2초)로도 못 걸렀다.
+  // → 줌/미트 소규모 기본처럼 '갤러리(격자)'를 기본으로: 화면공유·수동 핀일 때만 크게 띄운다.
+  //   단 1:1(참가자 2명)은 상대를 크게(직전과 동일) — 이땐 튈 상대가 없어 안 흔들린다.
   const allParticipants = useParticipants();
-  const [dominantId, setDominantId] = useState(null);
-  const candidateRef = useRef(null);
-  const candidateSinceRef = useRef(0);
-  useEffect(() => {
-    if (allParticipants.length <= 2) return; // 1:1 — 자동 발화자 전환 끔
-    const PROMOTE_MS = 2000; // 새 화자가 이만큼 '연속으로' 1위여야 메인 전환
-    const top = speaking[0]?.identity ?? null;
-    const now = Date.now();
-    if (!top || top === dominantId) {
-      candidateRef.current = null; // 아무도 안 말함(직전 메인 유지) 또는 현재 메인이 말함
-      return;
-    }
-    if (candidateRef.current !== top) {
-      // 새 후보 등장 — 타이머 시작 (아직 전환 안 함)
-      candidateRef.current = top;
-      candidateSinceRef.current = now;
-    } else if (now - candidateSinceRef.current >= PROMOTE_MS) {
-      // 같은 후보가 PROMOTE_MS 넘게 계속 1위 유지 → 진짜 화자 교대로 보고 전환
-      setDominantId(top);
-      candidateRef.current = null;
-    }
-  }, [speaking, dominantId, allParticipants.length]);
-
   const [pinnedKey, setPinnedKey] = useState(null);
   const cameraTracks = tracks.filter((t) => t.source === Track.Source.Camera);
-  // 메인 화면 우선순위: 수동 핀 > 화면 공유 > 발화자 > 첫 원격 카메라 > 첫 트랙
+  // 메인 화면 우선순위: 수동 핀 > 화면 공유 > (1:1이면 상대 카메라) > 없으면 갤러리(격자)
   const manualFocus = pinnedKey ? tracks.find((t) => trackKey(t) === pinnedKey) : null;
   const screenTrack = tracks.find((t) => t.source === Track.Source.ScreenShare);
-  const speakerTrack = dominantId
-    ? cameraTracks.find((t) => t.participant?.identity === dominantId)
-    : null;
   const remoteCam =
     cameraTracks.find((t) => !t.participant?.isLocal) || cameraTracks[0];
-  const focusTrack =
-    manualFocus || screenTrack || speakerTrack || remoteCam || tracks[0] || null;
+  // 1:1(2명 이하)일 때만 상대를 큰 화면으로. 3인 이상은 갤러리(focusTrack=null → 아래 GridLayout).
+  const oneOnOneFocus = allParticipants.length <= 2 ? remoteCam : null;
+  const focusTrack = manualFocus || screenTrack || oneOnOneFocus || null;
   const isManual = !!manualFocus;
   const pinFromEvent = (e) =>
     setPinnedKey(
@@ -549,6 +569,11 @@ export default function ConsultationRoomPage() {
   const [livekitToken, setLivekitToken] = useState("");
   const [livekitUrl, setLivekitUrl] = useState("");
   const [connected, setConnected] = useState(false);
+  // 연결 실패/지연 표시 + 재시도(LiveKitRoom 리마운트) — 무한 '연결중' 방지
+  const [connectError, setConnectError] = useState(false);
+  const [connectAttempt, setConnectAttempt] = useState(0);
+  // 마이크가 조용히 안 켜졌을 때(카메라만 켜짐 등) 상시 경고 — '켠 줄 아는데 무음' 방지
+  const [micActivationFailed, setMicActivationFailed] = useState(false);
 
   // Guest mode state
   const [guestName, setGuestName] = useState("");
@@ -614,6 +639,17 @@ export default function ConsultationRoomPage() {
       /KAKAOTALK|Line\/|Instagram|FBAN|FBAV|NAVER\(inapp|DaumApps|whale.*inapp|; wv\)/i.test(ua)
     );
   }, []);
+
+  // ── 연결 워치독 — 토큰은 받았는데 18초 안에 연결이 안 되면 '연결 실패'로 표시(무한 '연결중' 방지) ──
+  //   onError 가 안 잡히는 '조용히 멈춤'(협상 지연·TURN 차단 등)도 이 타임아웃으로 사용자에게 노출.
+  useEffect(() => {
+    if (!livekitToken || connected) {
+      setConnectError(false);
+      return;
+    }
+    const t = setTimeout(() => setConnectError(true), 18000);
+    return () => clearTimeout(t);
+  }, [livekitToken, connected, connectAttempt]);
 
   // 게스트 입장 폼이 떠 있는 동안 카메라 미리보기 — 권한도 미리 받아 통화 중 권한팝업 방지
   useEffect(() => {
@@ -738,9 +774,10 @@ export default function ConsultationRoomPage() {
         publishSubtitleRef.current(translated, targetLang, myRole);
       }
 
-      // Auto-hide subtitle after 6 seconds
+      // Auto-hide subtitle — 문장 길이에 비례(긴 의료문장을 다 읽기 전에 사라지지 않게, 6~15초)
       if (subtitleTimerRef.current) clearTimeout(subtitleTimerRef.current);
-      subtitleTimerRef.current = setTimeout(() => setCurrentSubtitle(null), 6000);
+      const holdMs = Math.min(15000, Math.max(6000, (translated?.length || 0) * 90));
+      subtitleTimerRef.current = setTimeout(() => setCurrentSubtitle(null), holdMs);
 
       // TTS playback
       if (ttsEnabled) {
@@ -753,51 +790,70 @@ export default function ConsultationRoomPage() {
     [myLang, targetLang, myRole, ttsEnabled, tts]
   );
 
-  // ── Translate function ──
-  const translateText = useCallback(
-    async (text) => {
-      if (!text.trim() || isTranslating) return;
-      setIsTranslating(true);
-
-      try {
-        const res = await fetch("/api/khidi/consultation/translate-realtime", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            // 게스트(초대링크·미로그인)만 invite 토큰으로 인증. 로그인 참가자(staff)는 계정 쿠키로.
-            ...(isGuestMode ? { "X-Guest-Token": inviteToken } : {}),
-          },
-          body: JSON.stringify({
-            text,
-            sourceLang: myLang,
-            targetLang,
-            consultationId,
-            speakerRole: "self",
-          }),
-        });
-
-        const result = await res.json();
-        if (!result.ok) return;
-        // 번역 API 가 추임새 정리 후 빈 결과를 주면 자막 스킵
-        if (!result.translated || !String(result.translated).trim()) return;
-
-        applyTranslation(text, result.translated);
-      } catch (err) {
-        console.error("[Translation] Error:", err);
-      } finally {
-        setIsTranslating(false);
+  // ── Translate (큐 순차처리) ──
+  // 이전 번역이 끝나기 전에 다음 발화가 와도 '버리지' 않고 큐에 쌓아 순서대로 처리한다.
+  //   (예전엔 isTranslating 중이면 그 조각을 통째로 버려서, 쉬지 않고 말하면 발화가 증발했음
+  //    — 데스크톱 크롬 등 '잘 되는' 환경에서도 나던 '번역 완성도 낮음'의 숨은 원인.)
+  const translateQueueRef = useRef([]);
+  const translatingRef = useRef(false);
+  const drainTranslateQueue = useCallback(async () => {
+    if (translatingRef.current) return; // 이미 처리 중 — 큐만 채우고 반환(중복 실행 방지)
+    translatingRef.current = true;
+    setIsTranslating(true);
+    try {
+      while (translateQueueRef.current.length) {
+        const text = translateQueueRef.current.shift();
+        try {
+          const res = await fetch("/api/khidi/consultation/translate-realtime", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              // 게스트(초대링크·미로그인)만 invite 토큰으로 인증. 로그인 참가자(staff)는 계정 쿠키로.
+              ...(isGuestMode ? { "X-Guest-Token": inviteToken } : {}),
+            },
+            body: JSON.stringify({
+              text,
+              sourceLang: myLang,
+              targetLang,
+              consultationId,
+              speakerRole: "self",
+            }),
+          });
+          const result = await res.json();
+          if (!result.ok) continue;
+          // 번역 API 가 추임새 정리 후 빈 결과를 주면 자막 스킵
+          if (!result.translated || !String(result.translated).trim()) continue;
+          applyTranslation(text, result.translated);
+        } catch (err) {
+          console.error("[Translation] Error:", err);
+        }
       }
+    } finally {
+      translatingRef.current = false;
+      setIsTranslating(false);
+    }
+  }, [myLang, targetLang, consultationId, isGuestMode, inviteToken, applyTranslation]);
+
+  const translateText = useCallback(
+    (text) => {
+      if (!text || !text.trim()) return;
+      const q = translateQueueRef.current;
+      q.push(text.trim());
+      // 느린 회선에서 큐가 폭주하지 않게 최근 15개만 유지(오래된 조각은 버림)
+      if (q.length > 15) q.splice(0, q.length - 15);
+      drainTranslateQueue();
     },
-    [myLang, targetLang, consultationId, isTranslating, isGuestMode, inviteToken, applyTranslation]
+    [drainTranslateQueue]
   );
 
   // ── 상대방 자막 수신 핸들러 (DataChannel) ──
   const handleRemoteSubtitle = useCallback(
     ({ text, lang, role }) => {
       setRemoteSubtitle({ text, lang, role });
-      // 8초 후 자동 숨김
+      // 문장 길이에 비례해 자동 숨김(8~15초) — 긴 번역문을 다 읽기 전에 사라지지 않게
       if (remoteSubtitleTimerRef.current) clearTimeout(remoteSubtitleTimerRef.current);
-      remoteSubtitleTimerRef.current = setTimeout(() => setRemoteSubtitle(null), 8000);
+      const holdMs = Math.min(15000, Math.max(8000, (text?.length || 0) * 90));
+      remoteSubtitleTimerRef.current = setTimeout(() => setRemoteSubtitle(null), holdMs);
     },
     []
   );
@@ -1959,6 +2015,7 @@ export default function ConsultationRoomPage() {
               )}
 
             <LiveKitRoom
+              key={connectAttempt}
               token={livekitToken}
               serverUrl={livekitUrl}
               connect={true}
@@ -1970,8 +2027,15 @@ export default function ConsultationRoomPage() {
               audio={false}
               video={false}
               options={ROOM_OPTIONS}
-              onConnected={() => setConnected(true)}
+              onConnected={() => {
+                setConnected(true);
+                setConnectError(false);
+              }}
               onDisconnected={() => setConnected(false)}
+              onError={(e) => {
+                console.error("[livekit] error:", e?.message);
+                setConnectError(true);
+              }}
               style={{ height: "100%" }}
               data-lk-theme="default"
             >
@@ -1993,10 +2057,31 @@ export default function ConsultationRoomPage() {
                 <VideoGrid />
                 <RoomAudioRenderer />
                 <AudioUnblock />
-                <MediaEnablePrompt />
+                <MediaEnablePrompt onResult={(micOk) => setMicActivationFailed(!micOk)} />
+                <MicOffBanner
+                  failed={micActivationFailed}
+                  onClear={() => setMicActivationFailed(false)}
+                />
                 <ConnectionBanner />
                 <MutedSpeakingWarning />
                 <RoomInfoOverlay />
+                {/* 연결 실패/지연 — 무한 '연결중' 대신 재시도 안내 (재시도 = LiveKitRoom 리마운트) */}
+                {connectError && !connected && (
+                  <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/70 backdrop-blur-sm px-6 text-center">
+                    <p className="text-white text-sm mb-4 max-w-xs leading-relaxed">
+                      {c.connectFailed}
+                    </p>
+                    <button
+                      onClick={() => {
+                        setConnectError(false);
+                        setConnectAttempt((a) => a + 1);
+                      }}
+                      className="flex items-center gap-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-bold px-6 py-3 rounded-full shadow-xl"
+                    >
+                      {c.retryConnect}
+                    </button>
+                  </div>
+                )}
                 <SubtitleOverlay
                   original={currentSubtitle?.original}
                   translated={currentSubtitle?.translated}
