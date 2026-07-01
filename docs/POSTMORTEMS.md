@@ -1313,3 +1313,20 @@ PO가 협력병원 상세(`/hospitals/[slug]`) 하단 "자주 묻는 질문"이 
 **재발 방지**
 - 교훈: **성공 토스트를 띄우는 액션은 반드시 실제 mutating API를 호출한 뒤에.** "For now, just show success" 류 임시 성공은 프로덕션 금지 — 미구현이면 버튼을 비활성/제거(가짜 성공보다 정직).
 - 어드민 전수 감사 결과: 나머지 인터랙티브 화면(리드·케이스·문의·챗·직원·회원·병원·설정 등)은 실제 API에 연결돼 정상. 설정(알림·브랜딩) 테이블/버킷도 실 DB에 존재 확인. 진짜 '가짜 성공'은 이 상담 취소 하나였음.
+
+## #58 — 알림 이벤트 감사로그가 매번 조용히 실패 (inquiry_events.meta ≠ 실제 컬럼 metadata) (2026-07-01)
+
+**무슨 일**
+- "광고 돌려도 되나" 판단 위해 문의 퍼널을 end-to-end 실검증(프로덕션 `/api/inquiries/step1`에 테스트 문의 실제 제출). 문의 #36 정상 도착(status=received·is_test=true·PII AES-256-GCM 암호화)·관리자 알림 이메일 2건(PO·admin) status=sent 확인 — 퍼널 자체는 완전 작동.
+- 그 과정에서 `admin_notifier.logNotificationEvent` 가 `inquiry_events` 에 `meta` 컬럼으로 insert 하는데 실제 컬럼명은 `metadata` 였음 → 매 insert 가 42703(column does not exist)로 실패. catch 로 삼켜 "로깅 실패(무시)" 만 찍히고, **admin_notified/admin_notify_failed 이벤트가 통째로 안 남고 있었음**.
+
+**왜 못 잡았나(근본원인)**
+- 컬럼명 오타(meta vs metadata)를 try/catch 가 삼켜 조용히 실패 → 로그를 뒤지지 않으면 안 보임. 실제 알림은 별도 테이블(`admin_notification_logs`, 정상)으로 나가서 기능은 안 깨져 더 안 보였음.
+- 코드/타입(database.types) 검증이 런타임 insert 컬럼명까지 강제하지 못함(supabase-js insert 는 any 객체 허용).
+
+**어떻게 고쳤나**
+- `meta: meta` → `metadata: meta` 로 수정 + 에러 힌트 문구 정정.
+
+**재발 방지**
+- 교훈: **try/catch 로 삼킨 DB 실패는 "조용한 미작동"이다.** 감사/이벤트 로깅도 실제 1건 흘려보내 테이블에 남는지 확인(빌드로는 안 보임 — end-to-end 검증의 가치).
+- 퍼널 검증 부산물로 확인된 사실(광고 판단 근거): 공개 문의 API → zod검증 → PIPA동의 서버재확인 → PII암호화 → inquiries 저장(is_test 자동태그) → 관리자 알림 이메일 발송까지 전 구간 실작동. 텍스트 기반 검증으로 "됐다"가 아니라 실데이터로 확인함.
