@@ -1517,30 +1517,17 @@ export default function ConsultationRoomPage() {
 
   // ── End call ──
   const handleEndCall = async () => {
-    if (confirm(c.endConfirm)) {
-      if (translationEnabled) stt.stop();
-      tts.stop();
-
-      try {
-        const headers = await getConsultAuthHeaders();
-        await fetch(`/api/khidi/consultation/${consultationId}`, {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-            ...(headers || {}),
-          },
-          body: JSON.stringify({
-            status: "completed",
-            ended_at: new Date().toISOString(),
-          }),
-        });
-        toast.success(c.consultEnded);
-        router.push("/");
-      } catch (error) {
-        console.error("[ConsultationRoom] End call error:", error);
-        toast.error(c.endFailed);
-      }
-    }
+    if (!confirm(c.endConfirm)) return;
+    // '종료' = 이 통화에서 나가기(연결 끊고 홈으로)만 한다. 상담 자체를 'completed'로 바꾸지 않는다.
+    //   ⚠️ 회귀 방지(PO 제보 2026-07-01): 이전엔 스태프가 종료를 누르면 status=completed 로 PATCH →
+    //   PATCH 라우트가 그 상담의 초대 링크를 전부 폐기(revoke) + 상태 게이트가 재입장을 막아,
+    //   "한 명이 종료를 누르니 다른 직원·환자가 접속 불가"가 됐다. 나가기 ≠ 상담 완료(줌과 동일 원칙).
+    //   상담 '완료' 처리(KPI 사전상담/사후관리 집계 + 링크 폐기)는 코디·어드민이 명시적으로 하도록 분리한다
+    //   (별도 '상담 완료' 액션 — follow-up). 그전까지는 상담이 살아있어 재입장·재테스트가 자유롭다.
+    if (translationEnabled) stt.stop();
+    tts.stop();
+    toast.success(c.consultEnded);
+    router.push("/");
   };
 
   // ── Guest mode: 이름 입력 폼 먼저 표시 (staff 여부 판정이 끝난 뒤에만) ──
