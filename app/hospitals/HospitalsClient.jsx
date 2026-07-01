@@ -1,11 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Building2, MapPin, Users, Shield, Leaf,
   ArrowRight, Award, Heart, CheckCircle2, Clock,
-  ChevronRight, Stethoscope, ChevronDown, ChevronUp,
+  ChevronRight, Stethoscope, ChevronDown,
   Phone, GraduationCap, Briefcase, BookOpen, Activity,
   X,
 } from 'lucide-react';
@@ -635,7 +635,16 @@ export default function HospitalsClient() {
     fetchPartners();
   }, []);
 
-  const toggleBranch = (id) => setExpandedBranch(prev => prev === id ? null : id);
+  const branchRefs = useRef({});
+  const toggleBranch = (id) => {
+    const willOpen = expandedBranch !== id;
+    setExpandedBranch(willOpen ? id : null);
+    // 열 때만: 그 지점 헤더가 고정헤더 바로 아래로 오게 스르륵 스크롤(위 지점이 접히며 화면이 튀는 '밀림' 방지).
+    if (willOpen) {
+      const reduce = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+      requestAnimationFrame(() => branchRefs.current[id]?.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' }));
+    }
+  };
   const branchDoctors = (branchId) => DOCTORS.filter(d => d.branch === branchId);
 
   return (
@@ -692,7 +701,7 @@ export default function HospitalsClient() {
             const isUpcoming = branch.status === 'upcoming';
 
             return (
-              <div key={branch.id} data-testid="hospital-card" className={`border-2 rounded-2xl overflow-hidden transition-all duration-200 ${
+              <div key={branch.id} data-testid="hospital-card" ref={el => { branchRefs.current[branch.id] = el; }} className={`scroll-mt-20 border-2 rounded-2xl overflow-hidden transition-all duration-200 ${
                 branch.status === 'registered' ? 'border-emerald-200' :
                 branch.status === 'preparing' ? 'border-amber-200' : 'border-gray-200'
               } ${isOpen ? 'shadow-xl' : 'hover:shadow-md'}`}>
@@ -700,6 +709,7 @@ export default function HospitalsClient() {
                 <div
                   role="button"
                   tabIndex={0}
+                  aria-expanded={isOpen}
                   className={`p-6 md:p-8 cursor-pointer transition focus:outline-none focus:ring-2 focus:ring-teal-400 ${isOpen ? 'bg-gray-50/50' : 'hover:bg-gray-50/30'}`}
                   onClick={() => !isUpcoming && docs.length > 0 && toggleBranch(branch.id)}
                   onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); if (!isUpcoming && docs.length > 0) toggleBranch(branch.id); } }}
@@ -735,9 +745,7 @@ export default function HospitalsClient() {
                         </span>
                       )}
                       {docs.length > 0 && (
-                        isOpen
-                          ? <ChevronUp size={24} className="text-gray-400" />
-                          : <ChevronDown size={24} className="text-gray-400" />
+                        <ChevronDown size={24} className={`text-gray-400 transition-transform duration-200 motion-reduce:transition-none ${isOpen ? 'rotate-180' : ''}`} />
                       )}
                     </div>
                   </div>
@@ -748,9 +756,9 @@ export default function HospitalsClient() {
 
                 {/* Expanded: Doctor grid — grid-rows 0fr→1fr 로 높이를 부드럽게 펼침(즉시 나타나 아래를 밀어내던 '툭' 끊김 제거). 네이티브 CSS, 라이브러리 없음. */}
                 {docs.length > 0 && (
-                  <div className={`grid transition-[grid-template-rows] duration-300 ease-out ${isOpen ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
+                  <div inert={!isOpen ? true : undefined} className={`grid transition-[grid-template-rows] duration-200 ease-out motion-reduce:transition-none ${isOpen ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'}`}>
                     <div className="overflow-hidden">
-                      <div className="border-t-2 border-gray-100 bg-gray-50/30 px-4 sm:px-6 md:px-8 py-6 md:py-8">
+                      <div className={`border-t-2 border-gray-100 bg-gray-50/30 px-4 sm:px-6 md:px-8 py-6 md:py-8 transition-all duration-200 motion-reduce:transition-none ${isOpen ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-1'}`}>
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-5">
                           {docs.map(doc => (
                             <DoctorCard key={doc.id} doc={doc} l={l} lang={lang} onSelect={setSelectedDoctor} />
