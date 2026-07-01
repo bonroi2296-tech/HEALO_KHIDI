@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import HomeClient from "./home/HomeClient";
+import Script from "next/script";
 import { localizedMeta } from "@/lib/i18n/metadata";
 import { partnerHospitalLdList, websiteLd } from "@/lib/seo/structuredData";
 
@@ -99,7 +100,7 @@ const jsonLd = {
 export default async function HomePage() {
   return (
     <>
-      <script
+      <Script
         id="jsonld-organization"
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify([jsonLd, websiteLd()]) }}

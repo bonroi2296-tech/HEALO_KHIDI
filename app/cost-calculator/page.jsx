@@ -1,3 +1,4 @@
+import Script from "next/script";
 import { getRequestLocale, localeAlternates, OG_LOCALE } from "@/lib/i18n/metadata";
 import CostCalculatorClient from "./CostCalculatorClient";
 
@@ -53,7 +54,7 @@ const jsonLd = {
 export default function CostCalculatorPage() {
   return (
     <>
-      <script id="jsonld-cost-calc" type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      <Script id="jsonld-cost-calc" type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <CostCalculatorClient />
     </>
   );

@@ -1,3 +1,4 @@
+import Script from "next/script";
 import { notFound, redirect } from "next/navigation";
 import {
   getTreatmentById,
@@ -189,7 +190,7 @@ export default async function TreatmentDetailPage({ params }) {
 
     const content = (
       <>
-        <script
+        <Script
           id="cancer-jsonld"
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify([jsonLd, breadcrumb]) }}
@@ -247,7 +248,7 @@ export default async function TreatmentDetailPage({ params }) {
   ]);
   const content = (
     <>
-      <script
+      <Script
         id="treatment-jsonld"
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify([jsonLd, treatmentBreadcrumb]) }}

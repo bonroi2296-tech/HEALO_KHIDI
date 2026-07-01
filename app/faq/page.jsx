@@ -1,4 +1,5 @@
 import FAQClient from "./FAQClient";
+import Script from "next/script";
 
 export const metadata = {
   title: "FAQ | healwith — Frequently Asked Questions",
@@ -59,7 +60,7 @@ const faqJsonLd = {
 export default function FAQPage() {
   return (
     <>
-      <script
+      <Script
         id="jsonld-faq"
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}

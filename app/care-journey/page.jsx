@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import Script from "next/script";
 import CareJourneyClient from "./CareJourneyClient";
 import { localizedMeta } from "@/lib/i18n/metadata";
 import { careJourneyLd } from "@/lib/seo/structuredData";
@@ -30,7 +31,7 @@ export default function CareJourneyPage() {
   const jsonLd = careJourneyLd({ description: baseMeta.description });
   return (
     <>
-      <script
+      <Script
         id="jsonld-care-journey"
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}

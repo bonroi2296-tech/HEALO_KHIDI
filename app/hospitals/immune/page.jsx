@@ -1,4 +1,5 @@
 import ImmuneHospitalClient from "./ImmuneHospitalClient";
+import Script from "next/script";
 import { localizedMeta } from "@/lib/i18n/metadata";
 
 export async function generateMetadata() {
@@ -82,7 +83,7 @@ const hospitalJsonLd = {
 export default function ImmuneHospitalPage() {
   return (
     <>
-      <script
+      <Script
         id="jsonld-immune-hospital"
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(hospitalJsonLd) }}
