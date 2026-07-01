@@ -6,7 +6,7 @@ import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 
 // KHIDI 마일스톤 목표(고정) — 현재값(current)은 실측 API로 채움.
 // 실측 소스가 있는 지표(AI 정확도·환자 만족도)만 숫자, 없는 지표(에스컬레이션율·응답시간)는 "–".
-// (하드코딩 current:0 잔재 제거, POSTMORTEMS #56 후속)
+// (하드코딩 current:0 잔재 제거, POSTMORTEMS #57 후속)
 const METRIC_META = {
   aiAccuracy: { target: 60, label: "AI 자동응답 정확도", pct: true },
   escalationRate: { target: 40, label: "에스컬레이션 비율", pct: true },

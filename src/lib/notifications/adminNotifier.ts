@@ -278,7 +278,7 @@ async function logNotificationEvent(
 ): Promise<void> {
   try {
     // 실제 컬럼명은 metadata (meta 아님) — 과거 meta 로 insert 해 매번 조용히 실패(42703)하며
-    // 알림 이벤트 감사로그가 통째로 안 남던 버그. end-to-end 퍼널 검증 중 발견(POSTMORTEMS #58).
+    // 알림 이벤트 감사로그가 통째로 안 남던 버그. end-to-end 퍼널 검증 중 발견(POSTMORTEMS #59).
     await supabaseAdmin.from("inquiry_events").insert({
       inquiry_id: inquiryId,
       event_type: eventType,

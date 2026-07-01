@@ -13,6 +13,7 @@ const LABELS = {
   dragDrop: { ko: '여기에 파일을 드래그하거나 클릭하세요', en: 'Drag files here or click to browse', ru: 'Перетащите файлы сюда или нажмите для выбора', zh: '将文件拖到此处或点击浏览', ja: 'ファイルをここにドラッグまたはクリック', kz: 'Файлдарды осында сүйреңіз немесе басыңыз' },
   docType: { ko: '문서 유형', en: 'Document Type', ru: 'Тип документа', zh: '文档类型', ja: '書類タイプ', kz: 'Құжат түрі' },
   description: { ko: '설명 (선택)', en: 'Description (optional)', ru: 'Описание (необязательно)', zh: '描述（可选）', ja: '説明（任意）', kz: 'Сипаттама (міндетті емес)' },
+  descPlaceholder: { ko: '예: 2026년 3월 혈액검사', en: 'e.g. Blood test from March 2026', ru: 'напр. Анализ крови за март 2026', zh: '例：2026年3月血液检查', ja: '例：2026年3月の血液検査', kz: 'мыс.: 2026 жылғы наурыздағы қан анализі' },
   uploading: { ko: '업로드 중...', en: 'Uploading...', ru: 'Загрузка...', zh: '上传中...', ja: 'アップロード中...', kz: 'Жүктелуде...' },
   success: { ko: '업로드 완료!', en: 'Upload complete!', ru: 'Загрузка завершена!', zh: '上传完成！', ja: 'アップロード完了！', kz: 'Жүктеу аяқталды!' },
   error: { ko: '업로드 실패', en: 'Upload failed', ru: 'Ошибка загрузки', zh: '上传失败', ja: 'アップロード失敗', kz: 'Жүктеу сәтсіз' },
@@ -292,7 +293,7 @@ export default function DocumentsClient() {
                 type="text"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="e.g. Blood test from March 2026"
+                placeholder={l(LABELS.descPlaceholder)}
                 className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:border-teal-500 focus:ring-2 focus:ring-teal-100 outline-none"
               />
             </div>

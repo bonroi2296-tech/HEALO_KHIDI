@@ -42,16 +42,18 @@ export async function GET(request: NextRequest) {
     // 테스트/실제 분리: ?includeTest=1 이면 테스트 데이터도 포함(평소엔 실적만).
     const includeTest = searchParams.get("includeTest") === "1";
 
-    const [{ data: funnelRows, error: e1 }, { data: countryRows, error: e2 }, { data: orgRows, error: e3 }] = await Promise.all([
+    const [{ data: funnelRows, error: e1 }, { data: countryRows, error: e2 }, { data: orgRows, error: e3 }, { data: sourceRows, error: e4 }] = await Promise.all([
       (supabaseAdmin as any).rpc("conversion_funnel", { p_from: from, p_to: to, p_nationality: nationality, p_include_test: includeTest }),
       (supabaseAdmin as any).rpc("conversion_funnel_by_country", { p_from: from, p_to: to, p_include_test: includeTest }),
       (supabaseAdmin as any).rpc("conversion_funnel_by_org", { p_from: from, p_to: to, p_include_test: includeTest }),
+      (supabaseAdmin as any).rpc("conversion_funnel_by_source", { p_from: from, p_to: to, p_include_test: includeTest }),
     ]);
     if (e1 || e2) {
       console.error("[conversion-funnel] rpc error:", e1?.message || e2?.message);
       return NextResponse.json({ ok: false, error: "funnel_query_failed" }, { status: 500 });
     }
     if (e3) console.error("[conversion-funnel] by_org rpc error:", e3?.message);
+    if (e4) console.error("[conversion-funnel] by_source rpc error:", e4?.message);
 
     const f = funnelRows?.[0] ?? {
       total_inquiries: 0, pre_consult: 0, visa_or_quote: 0, admitted: 0, followup: 0, lost: 0,
@@ -154,7 +156,7 @@ export async function GET(request: NextRequest) {
       }))
     );
 
-    return NextResponse.json({ ok: true, range: { from, to }, funnel, byCountry: countryRows || [], byOrg: orgRows || [], pending, admitted });
+    return NextResponse.json({ ok: true, range: { from, to }, funnel, byCountry: countryRows || [], byOrg: orgRows || [], bySource: sourceRows || [], pending, admitted });
   } catch (err: any) {
     console.error("[conversion-funnel] error:", err?.message?.slice(0, 200));
     return NextResponse.json({ ok: false, error: "internal_error" }, { status: 500 });

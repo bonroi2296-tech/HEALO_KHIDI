@@ -26,6 +26,28 @@ export function breadcrumbLd(items) {
   };
 }
 
+/**
+ * WebSite + SearchAction — 구글 검색결과에 사이트 내 검색창(Sitelinks Search Box) 노출.
+ * /search?q= 엔드포인트가 실재하므로 정당한 SearchAction.
+ */
+export function websiteLd() {
+  return {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name: ORG_NAME,
+    url: SITE_URL,
+    inLanguage: ["ko", "en", "ru", "kk", "zh", "ja"],
+    potentialAction: {
+      "@type": "SearchAction",
+      target: {
+        "@type": "EntryPoint",
+        urlTemplate: `${SITE_URL}/search?q={search_term_string}`,
+      },
+      "query-input": "required name=search_term_string",
+    },
+  };
+}
+
 /** 제휴/협진 병원 네트워크를 MedicalOrganization 배열로 (실데이터) */
 export function partnerHospitalLdList() {
   return getAllPartnerHospitals().map((h) => {

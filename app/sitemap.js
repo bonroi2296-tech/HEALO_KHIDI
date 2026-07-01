@@ -5,6 +5,11 @@ import { LOCALES, DEFAULT_LOCALE } from "@/lib/i18n/config";
 
 const DEFAULT_LIMIT = 1000;
 
+// 정적 페이지 lastmod는 "요청시각(now)"이 아니라 고정된 콘텐츠 검토일을 쓴다.
+// now 를 쓰면 매 크롤마다 lastmod 가 바뀌어 구글이 lastmod 신호를 불신함(내용은 그대로인데).
+// ⚠️ 정적 페이지 콘텐츠를 의미있게 바꾸면 이 날짜를 올려라.
+const STATIC_LASTMOD = new Date("2026-07-01");
+
 // kz(내부코드) → kk(BCP47). hreflang 표기용.
 const HREF_LANG = { en: "en", ko: "ko", ru: "ru", kz: "kk", zh: "zh", ja: "ja" };
 
@@ -97,7 +102,7 @@ export default async function sitemap() {
       alternates: { languages: { 'ru': `${baseUrl}/ru/for-russian-patients`, 'x-default': `${baseUrl}/${DEFAULT_LOCALE}` } } },
     { url: `${baseUrl}/kk/for-kazakh-patients`, changeFrequency: 'weekly', priority: 0.9,
       alternates: { languages: { 'kk': `${baseUrl}/kk/for-kazakh-patients`, 'x-default': `${baseUrl}/${DEFAULT_LOCALE}` } } },
-  ].map(p => ({ ...p, lastModified: now }));
+  ].map(p => ({ ...p, lastModified: STATIC_LASTMOD }));
 
   const urls = [...staticPages];
 

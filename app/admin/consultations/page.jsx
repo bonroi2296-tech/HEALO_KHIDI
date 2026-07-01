@@ -143,7 +143,7 @@ export default function ConsultationsPage() {
       }
 
       // 실제 취소: 상담 상태를 cancelled 로 PATCH (서버가 게스트 초대 토큰도 폐기함).
-      // (과거엔 API 호출 없이 토스트만 띄우는 '가짜 성공'이라 실제론 취소 안 됨 — POSTMORTEMS #57)
+      // (과거엔 API 호출 없이 토스트만 띄우는 '가짜 성공'이라 실제론 취소 안 됨 — POSTMORTEMS #58)
       const res = await fetch(`/api/khidi/consultation/${id}`, {
         method: "PATCH",
         headers: {

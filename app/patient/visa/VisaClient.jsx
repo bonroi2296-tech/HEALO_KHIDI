@@ -1,12 +1,16 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useLang } from '@/lib/i18n/LangContext';
 
 const NATIONALITIES = [
   { value: 'ru', label: { ko: '러시아', en: 'Russia', ru: 'Россия', zh: '俄罗斯', ja: 'ロシア', kz: 'Ресей' } },
   { value: 'kz', label: { ko: '카자흐스탄', en: 'Kazakhstan', ru: 'Казахстан', zh: '哈萨克斯坦', ja: 'カザフスタン', kz: 'Қазақстан' } },
   { value: 'mn', label: { ko: '몽골', en: 'Mongolia', ru: 'Монголия', zh: '蒙古', ja: 'モンゴル', kz: 'Моңғолия' } },
+  { value: 'uz', label: { ko: '우즈베키스탄', en: 'Uzbekistan', ru: 'Узбекистан', zh: '乌兹别克斯坦', ja: 'ウズベキスタン', kz: 'Өзбекстан' } },
+  { value: 'kg', label: { ko: '키르기스스탄', en: 'Kyrgyzstan', ru: 'Кыргызстан', zh: '吉尔吉斯斯坦', ja: 'キルギス', kz: 'Қырғызстан' } },
+  { value: 'tj', label: { ko: '타지키스탄', en: 'Tajikistan', ru: 'Таджикистан', zh: '塔吉克斯坦', ja: 'タジキスタン', kz: 'Тәжікстан' } },
+  { value: 'az', label: { ko: '아제르바이잔', en: 'Azerbaijan', ru: 'Азербайджан', zh: '阿塞拜疆', ja: 'アゼルバイジャン', kz: 'Әзірбайжан' } },
   { value: 'zh', label: { ko: '중국', en: 'China', ru: 'Китай', zh: '中国', ja: '中国', kz: 'Қытай' } },
   { value: 'ja', label: { ko: '일본', en: 'Japan', ru: 'Япония', zh: '日本', ja: '日本', kz: 'Жапония' } },
   { value: 'en', label: { ko: '기타', en: 'Other', ru: 'Другое', zh: '其他', ja: 'その他', kz: 'Басқа' } },
@@ -36,6 +40,9 @@ const LABELS = {
   days: { ko: '일', en: 'days', ru: 'дней', zh: '天', ja: '日', kz: 'күн' },
   embassy: { ko: '관할 대한민국 대사관·영사관', en: 'Korean Embassy / Consulate', ru: 'Посольство / консульство Кореи', zh: '韩国大使馆 / 领事馆', ja: '管轄の大韓民国大使館・領事館', kz: 'Корея елшілігі / консулдығы' },
   print: { ko: '체크리스트 인쇄', en: 'Print Checklist', ru: 'Печать чек-листа', zh: '打印清单', ja: 'チェックリスト印刷', kz: 'Тізімді басып шығару' },
+  prepared: { ko: '준비', en: 'Prepared', ru: 'Готово', zh: '已备', ja: '準備', kz: 'Дайын' },
+  savedHint: { ko: '체크 상태는 이 브라우저에 저장돼 다시 방문해도 유지됩니다.', en: 'Your checks are saved in this browser and kept when you return.', ru: 'Отметки сохраняются в этом браузере и остаются при повторном визите.', zh: '勾选状态保存在此浏览器中，再次访问时保留。', ja: 'チェック状態はこのブラウザに保存され、再訪問時も保持されます。', kz: 'Белгілер осы браузерде сақталады және қайта кіргенде қалады.' },
+  savedHintAccount: { ko: '체크 상태는 계정에 저장돼 다른 기기에서도 이어집니다.', en: 'Your checks are saved to your account and synced across devices.', ru: 'Отметки сохраняются в вашем аккаунте и синхронизируются между устройствами.', zh: '勾选状态保存到您的账户，并在各设备间同步。', ja: 'チェック状態はアカウントに保存され、他の端末でも引き継がれます。', kz: 'Белгілер аккаунтыңызда сақталып, басқа құрылғыларда да жалғасады.' },
   note: { ko: '참고', en: 'Note', ru: 'Примечание', zh: '备注', ja: '備考', kz: 'Ескерту' },
   loading: { ko: '비자 정보를 불러오는 중…', en: 'Loading visa information…', ru: 'Загрузка информации о визе…', zh: '正在加载签证信息…', ja: 'ビザ情報を読み込み中…', kz: 'Виза ақпараты жүктелуде…' },
   errorTitle: { ko: '정보를 불러오지 못했습니다', en: 'Could not load information', ru: 'Не удалось загрузить информацию', zh: '无法加载信息', ja: '情報を読み込めませんでした', kz: 'Ақпаратты жүктеу мүмкін болмады' },
@@ -99,14 +106,50 @@ function CountryEntryCard({ entry, l }) {
   );
 }
 
-function VisaCard({ checklist, label, l }) {
+function VisaCard({ checklist, label, l, sync, serverChecks, onPersist }) {
+  // 준비 체크 저장:
+  //  - 로그인(sync='account') → 계정(서버)에 저장, 다른 기기에서도 이어짐
+  //  - 비로그인(sync='local') → 브라우저 localStorage 폴백
+  const storageKey = checklist ? `healo:visa-checklist:${checklist.visaType}` : null;
+  const visaType = checklist ? checklist.visaType : null;
   const [checks, setChecks] = useState({});
 
+  // 소스에서 체크 복원 (SSR 안전 위해 effect에서 로드 → 하이드레이션 불일치 방지)
+  useEffect(() => {
+    if (sync === 'loading') return; // 아직 로그인 여부 판별 중
+    if (sync === 'account') {
+      setChecks(serverChecks || {});
+      return;
+    }
+    // local 폴백
+    if (!storageKey) return;
+    try {
+      const saved = localStorage.getItem(storageKey);
+      setChecks(saved ? JSON.parse(saved) : {});
+    } catch {
+      /* 저장소 접근 불가(프라이빗 모드 등) — 세션 내 체크만 동작 */
+    }
+  }, [sync, serverChecks, storageKey]);
+
   const toggle = (docId) => {
-    setChecks(prev => ({ ...prev, [docId]: !prev[docId] }));
+    setChecks(prev => {
+      const next = { ...prev, [docId]: !prev[docId] };
+      // localStorage 캐시(오프라인/비로그인용) — 항상 갱신
+      try {
+        if (storageKey) localStorage.setItem(storageKey, JSON.stringify(next));
+      } catch {
+        /* 저장 실패는 무시 — UI 체크는 계속 동작 */
+      }
+      // 로그인 상태면 계정(서버)에도 저장
+      if (sync === 'account' && onPersist && visaType) onPersist(visaType, next);
+      return next;
+    });
   };
 
   if (!checklist) return null;
+
+  const totalDocs = checklist.documents.length;
+  const doneDocs = checklist.documents.filter(d => checks[d.id]).length;
 
   return (
     <div className="border border-gray-200 rounded-xl p-5 md:p-6 bg-white shadow-sm">
@@ -133,7 +176,12 @@ function VisaCard({ checklist, label, l }) {
       </div>
 
       {/* Document Checklist */}
-      <h4 className="text-[15px] font-semibold mb-2.5">{l(LABELS.documents)}</h4>
+      <div className="flex items-center justify-between mb-2.5">
+        <h4 className="text-[15px] font-semibold">{l(LABELS.documents)}</h4>
+        <span className="text-xs font-semibold text-teal-700 bg-teal-50 border border-teal-100 px-2 py-0.5 rounded-full tabular-nums">
+          {l(LABELS.prepared)} {doneDocs}/{totalDocs}
+        </span>
+      </div>
       <div className="flex flex-col gap-2 mb-4">
         {checklist.documents.map(doc => (
           <label
@@ -161,6 +209,8 @@ function VisaCard({ checklist, label, l }) {
         ))}
       </div>
 
+      <p className="text-[11px] text-gray-400 mb-3 print:hidden">{l(sync === 'account' ? LABELS.savedHintAccount : LABELS.savedHint)}</p>
+
       {/* Note */}
       <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-[13px] text-amber-800">
         <strong>{l(LABELS.note)}:</strong> {checklist.notes}
@@ -178,6 +228,32 @@ export default function VisaClient() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(false);
+
+  // 서류 체크 저장소 판별: 로그인 환자면 계정(서버), 아니면 localStorage 폴백
+  const [sync, setSync] = useState('loading'); // 'loading' | 'account' | 'local'
+  const [accountChecks, setAccountChecks] = useState({}); // { [visaType]: {docId:true} }
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch('/api/patient/visa-checklist')
+      .then(r => (r.ok ? r.json() : Promise.reject(r.status)))
+      .then(res => {
+        if (cancelled) return;
+        if (res && res.ok) { setAccountChecks(res.data || {}); setSync('account'); }
+        else setSync('local');
+      })
+      .catch(() => { if (!cancelled) setSync('local'); });
+    return () => { cancelled = true; };
+  }, []);
+
+  // 로그인 상태에서 체크 변경 시 서버에 저장(fire-and-forget)
+  const persistChecks = useCallback((visaType, checked) => {
+    fetch('/api/patient/visa-checklist', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ visaType, checked }),
+    }).catch(() => { /* 저장 실패는 조용히 무시 — localStorage 캐시가 백업 */ });
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -263,9 +339,23 @@ export default function VisaClient() {
           {/* Country-specific entry status — the part that genuinely changes per country */}
           <CountryEntryCard entry={data.countryEntry} l={l} />
 
-          <VisaCard checklist={data.recommended} label={l(LABELS.recommended)} l={l} />
+          <VisaCard
+            checklist={data.recommended}
+            label={l(LABELS.recommended)}
+            l={l}
+            sync={sync}
+            serverChecks={data.recommended ? accountChecks[data.recommended.visaType] : null}
+            onPersist={persistChecks}
+          />
           {data.alternative && (
-            <VisaCard checklist={data.alternative} label={l(LABELS.alternative)} l={l} />
+            <VisaCard
+              checklist={data.alternative}
+              label={l(LABELS.alternative)}
+              l={l}
+              sync={sync}
+              serverChecks={accountChecks[data.alternative.visaType]}
+              onPersist={persistChecks}
+            />
           )}
 
           {/* Disclaimer + official source */}

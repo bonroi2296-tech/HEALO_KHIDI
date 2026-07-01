@@ -1,7 +1,7 @@
 import React from 'react';
 import { TrendingUp, Target, Activity, Info } from 'lucide-react';
 
-// 가짜 매출(문의수×3500)·항상 빈 '기회 비용' 표·하드코딩 '+12% 성장' 배지는 제거(POSTMORTEMS #55 후속,
+// 가짜 매출(문의수×3500)·항상 빈 '기회 비용' 표·하드코딩 '+12% 성장' 배지는 제거(POSTMORTEMS #57 후속,
 // 피벗 전 디렉토리 사업 잔재 + DESIGN.md '가짜 숫자 금지'). 실데이터(문의 수·최다 카테고리·시술별 분포)만 표시.
 export const AnalyticsTab = ({ analytics }) => (
   <div className="animate-in fade-in space-y-8">

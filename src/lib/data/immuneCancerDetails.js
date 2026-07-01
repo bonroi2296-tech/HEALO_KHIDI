@@ -337,11 +337,10 @@ export const CANCER_DETAILS = {
   },
 };
 
-// 이미지 경로 레지스트리 — /public/immune/ 로컬 경로 우선, 폴백으로 원본 서버
-// 수집일: 2026-04-21 (101개 이미지 /public/immune/ 에 저장 완료)
+// 이미지 경로 레지스트리 — 전부 /public/immune/ 로컬 경로 (외부 핫링크 없음)
+// 수집일: 2026-04-21(101개) + 2026-07-01(카드/합병증 36개, scripts/fetch-cancer-card-images.mjs)
 // 저작권: 면력한방병원 (자사 병원, 저작권 OK)
 const IMMUNE_LOCAL = "/immune/cancer";
-const IMMUNE_BASE = "https://immunehospital.com/resource/images"; // 폴백 (카드 이미지 등 미다운로드 항목)
 
 export const CANCER_IMAGES = {
   // 공통 아이콘/그래프 — 로컬 경로
@@ -363,11 +362,11 @@ export const CANCER_IMAGES = {
     residual: `${IMMUNE_LOCAL}/cancer-disease6.jpg`,
     nutrition: `${IMMUNE_LOCAL}/cancer-disease7.jpg`,
     emotional: `${IMMUNE_LOCAL}/cancer-disease8.jpg`,
-    // 대장/위 전용 (원본 서버 — 별도 다운로드 필요 시 추가)
-    anastomotic: `${IMMUNE_BASE}/cancer-disease9.jpg`,
-    bowelFunction: `${IMMUNE_BASE}/cancer-disease10.jpg`,
-    surgicalSite: `${IMMUNE_BASE}/cancer-disease11.jpg`,
-    adhesion: `${IMMUNE_BASE}/cancer-disease12.jpg`,
+    // 대장/위 전용
+    anastomotic: `${IMMUNE_LOCAL}/cancer-disease9.jpg`,
+    bowelFunction: `${IMMUNE_LOCAL}/cancer-disease10.jpg`,
+    surgicalSite: `${IMMUNE_LOCAL}/cancer-disease11.jpg`,
+    adhesion: `${IMMUNE_LOCAL}/cancer-disease12.jpg`,
     // 간/담도/췌장
     liverFailure: `${IMMUNE_LOCAL}/cancer-disease13-1.jpg`,
     bileLeak: `${IMMUNE_LOCAL}/cancer-disease13-3.jpg`,
@@ -405,13 +404,13 @@ export const CANCER_IMAGES = {
     meal: Array.from({ length: 8 }, (_, i) => `/immune/program/cancer-heal6-${i + 1}.jpg`),
   },
 
-  // 식이/장루/상처 관리 카드 (원본 서버 — 카드 이미지 별도 다운로드 필요)
+  // 식이/장루/상처 관리 카드 — 로컬 경로 (/public/immune/cancer/card/)
   cards: {
-    diet: (n) => `${IMMUNE_BASE}/card/cancer-card22-${n}.jpg`, // 1-7
-    stoma: (n) => `${IMMUNE_BASE}/card/cancer-card23-${n}.jpg`, // 1-8
-    wound: (n) => `${IMMUNE_BASE}/card/cancer-card24-${n}.jpg`, // 1-5
-    thyroidDaily: (n) => `${IMMUNE_BASE}/card/cancer-card27-${n}.jpg`, // 1-6
-    thyroidDiet: (n) => `${IMMUNE_BASE}/card/cancer-card28-${n}.jpg`, // 1-6
+    diet: (n) => `${IMMUNE_LOCAL}/card/cancer-card22-${n}.jpg`, // 1-7
+    stoma: (n) => `${IMMUNE_LOCAL}/card/cancer-card23-${n}.jpg`, // 1-8
+    wound: (n) => `${IMMUNE_LOCAL}/card/cancer-card24-${n}.jpg`, // 1-5
+    thyroidDaily: (n) => `${IMMUNE_LOCAL}/card/cancer-card27-${n}.jpg`, // 1-6
+    thyroidDiet: (n) => `${IMMUNE_LOCAL}/card/cancer-card28-${n}.jpg`, // 1-6
   },
 };
 

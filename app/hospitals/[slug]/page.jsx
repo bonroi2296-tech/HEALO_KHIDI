@@ -1,4 +1,3 @@
-import Script from "next/script";
 import { notFound, redirect } from "next/navigation";
 import {
   getHospitalById,
@@ -8,6 +7,7 @@ import {
 import { getPartnerHospital, convertPartnerToInitialData } from "@/lib/data/partnerHospitals";
 import HospitalDetailClient from "./HospitalDetailClient";
 import { localeAlternates } from "@/lib/i18n/metadata";
+import { breadcrumbLd } from "@/lib/seo/structuredData";
 
 const UUID_REGEX =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -117,12 +117,17 @@ export default async function HospitalDetailPage({ params }) {
           }
         : undefined,
     };
+    const breadcrumb = breadcrumbLd([
+      { name: "Home", url: "/" },
+      { name: "Hospitals", url: "/hospitals" },
+      { name: hospital.name, url: `/hospitals/${hospital.slug || slug}` },
+    ]);
     return (
       <>
-        <Script
+        <script
           id="hospital-jsonld"
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+          dangerouslySetInnerHTML={{ __html: JSON.stringify([jsonLd, breadcrumb]) }}
         />
         <HospitalDetailClient id={slug} />
       </>
@@ -148,12 +153,17 @@ export default async function HospitalDetailPage({ params }) {
         : {}),
       ...(partner.phone ? { telephone: partner.phone } : {}),
     };
+    const partnerBreadcrumb = breadcrumbLd([
+      { name: "Home", url: "/" },
+      { name: "Hospitals", url: "/hospitals" },
+      { name: partner.name?.en || partner.name?.ko, url: `/hospitals/${slug}` },
+    ]);
     return (
       <>
-        <Script
+        <script
           id="hospital-jsonld"
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(partnerJsonLd) }}
+          dangerouslySetInnerHTML={{ __html: JSON.stringify([partnerJsonLd, partnerBreadcrumb]) }}
         />
         <HospitalDetailClient id={slug} initialData={initialData} />
       </>

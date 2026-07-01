@@ -14,6 +14,13 @@ const RANGES = [
   { key: "365", label: "최근 1년", days: 365 },
 ];
 
+// inquiries.source → 사람이 읽는 채널명
+const SOURCE_LABELS = {
+  web: "웹 문의폼",
+  ai_agent: "AI 상담",
+  "(미상)": "(미상)",
+};
+
 export default function ConversionDashboard() {
   const [rangeKey, setRangeKey] = useState("90");
   const [data, setData] = useState(null);
@@ -203,6 +210,44 @@ export default function ConversionDashboard() {
                       <td className="py-2 text-right text-gray-600">{c.pre_consult}</td>
                       <td className="py-2 text-right font-semibold text-teal-700">{c.admitted}</td>
                       <td className="py-2 text-right text-gray-600">{c.followup}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </section>
+
+          {/* 채널별 (유입경로: 웹 문의폼 / AI 상담) */}
+          <section className="bg-white border border-gray-200 rounded-2xl p-6 mb-6">
+            <h2 className="text-sm font-bold text-gray-700 mb-1">채널별 (유입경로)</h2>
+            <p className="text-xs text-gray-400 mb-3">
+              어느 유입 채널(웹 문의폼 / AI 상담)이 실제 유치로 이어지는지 비교합니다.
+            </p>
+            {(data?.bySource ?? []).length === 0 ? (
+              <p className="text-sm text-gray-400">데이터 없음</p>
+            ) : (
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-left text-gray-400 border-b border-gray-100">
+                    <th className="py-2 font-medium">채널</th>
+                    <th className="py-2 font-medium text-right">문의</th>
+                    <th className="py-2 font-medium text-right">사전상담</th>
+                    <th className="py-2 font-medium text-right">유치확정</th>
+                    <th className="py-2 font-medium text-right">사후관리</th>
+                    <th className="py-2 font-medium text-right">유치율</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.bySource.map((s) => (
+                    <tr key={s.source} className="border-b border-gray-50">
+                      <td className="py-2 font-medium text-gray-800">{SOURCE_LABELS[s.source] ?? s.source}</td>
+                      <td className="py-2 text-right text-gray-600">{s.total}</td>
+                      <td className="py-2 text-right text-gray-600">{s.pre_consult}</td>
+                      <td className="py-2 text-right font-semibold text-teal-700">{s.admitted}</td>
+                      <td className="py-2 text-right text-gray-600">{s.followup}</td>
+                      <td className="py-2 text-right text-gray-500">
+                        {s.total > 0 ? `${Math.round((s.admitted / s.total) * 100)}%` : "—"}
+                      </td>
                     </tr>
                   ))}
                 </tbody>

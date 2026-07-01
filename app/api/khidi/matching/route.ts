@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
 
     // Fetch hospital cancer capabilities — 활성 병원만(!inner + is_active).
     // (과거엔 is_active 필터가 없어 비활성/보관 병원도 환자 매칭에 떠서, 계약 안 된 병원을
-    //  추천하던 버그. POSTMORTEMS #59)
+    //  추천하던 버그. POSTMORTEMS #60)
     const { data: capabilities, error } = await supabaseAdmin
       .from("hospital_cancer_capabilities")
       .select(`
