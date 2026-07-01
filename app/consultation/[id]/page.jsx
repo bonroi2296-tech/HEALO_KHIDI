@@ -157,6 +157,48 @@ function AudioUnblock() {
   );
 }
 
+// ── 탭해서 마이크·카메라 켜기 (LiveKitRoom 내부 전용) ──
+// 모바일은 '자동'으로 마이크를 잡으면 들쭉날쭉 실패한다(PO 제보: 폰 마이크가 지 멋대로, 시간 지나면 됨).
+// '사용자 탭' 순간에 잡는 건 안정적이라 → 입장하면 미디어를 꺼둔 채 이 큰 버튼을 띄우고, 탭하는 그
+// 제스처 안에서 카메라·마이크를 확실히 켠다. 마이크가 한 번 켜지면 이 세션에선 안 뜸(음소거 토글해도 안 뜸).
+// 새로 입장하면 다시 뜸 → PO 요구 "들어올 때마다 허용 버튼"도 충족.
+function MediaEnablePrompt() {
+  const lang = useLang();
+  const c = COPY[lang] || COPY.en;
+  const { localParticipant, isMicrophoneEnabled } = useLocalParticipant();
+  const [busy, setBusy] = useState(false);
+  const [enabledOnce, setEnabledOnce] = useState(false);
+  useEffect(() => {
+    if (isMicrophoneEnabled) setEnabledOnce(true);
+  }, [isMicrophoneEnabled]);
+  const enable = useCallback(async () => {
+    if (!localParticipant || busy) return;
+    setBusy(true);
+    try {
+      // 사용자 탭(제스처) 안에서 잡아야 모바일에서 안정적으로 잡힌다.
+      await localParticipant.setCameraEnabled(true);
+      await localParticipant.setMicrophoneEnabled(true);
+    } catch {
+      /* 권한 거부/기기 점유 등 — 버튼 유지, 다시 탭 유도 */
+    } finally {
+      setBusy(false);
+    }
+  }, [localParticipant, busy]);
+  if (enabledOnce) return null;
+  return (
+    <div className="absolute inset-0 z-40 flex flex-col items-center justify-center bg-black/45 backdrop-blur-sm px-6 text-center">
+      <button
+        onClick={enable}
+        disabled={busy}
+        className="flex items-center gap-2 bg-teal-600 hover:bg-teal-500 disabled:opacity-70 text-white text-base font-bold px-7 py-4 rounded-full shadow-2xl animate-pulse"
+      >
+        <Mic size={22} /> {c.enableMediaBtn}
+      </button>
+      <p className="mt-3 text-sm text-gray-200">{c.enableMediaHint}</p>
+    </div>
+  );
+}
+
 // ── 방 정보 오버레이 (LiveKitRoom 내부 전용) — 참가자 수 + 경과 시간 ──
 // 줌 벤치: 다자 미팅에서 몇 명 들어왔는지 + 상담 진행 시간(전문적 느낌).
 function RoomInfoOverlay() {
@@ -1896,11 +1938,13 @@ export default function ConsultationRoomPage() {
               token={livekitToken}
               serverUrl={livekitUrl}
               connect={true}
-              // 입장 시 카메라·마이크 자동 켜기(권한은 이미 받은 상태) — 예약된 1:1 상담이라
-              // 줌처럼 켠 채로 시작. 이전엔 꺼진 채 입장해 "상대가 나 안 보임/안 들림" 혼란이 잦았음.
-              // 권한 거부 시 LiveKit 이 트랙 없이 연결(무해) → 아래 권한 안내로 유도.
-              audio={true}
-              video={true}
+              // ⚠️ 자동 켜기(audio/video=true) 금지 — 모바일에서 마이크가 "들쭉날쭉"한 원인(PO 제보).
+              //   모바일 브라우저는 '사용자 탭' 없이(자동) getUserMedia 로 마이크를 잡으면 자주 실패했다가
+              //   뒤늦게 잡힌다("시간 지나면 됨"). 반대로 '탭한 순간' 잡는 건 안정적. → 입장 시엔 미디어를
+              //   잡지 않고, 아래 <MediaEnablePrompt/> 의 큰 "탭해서 마이크·카메라 켜기" 버튼(사용자 제스처)으로
+              //   확실하게 켠다. (탭마다=입장마다 뜨므로 PO 요구 "들어올 때마다 허용버튼"도 충족.)
+              audio={false}
+              video={false}
               options={ROOM_OPTIONS}
               onConnected={() => setConnected(true)}
               onDisconnected={() => setConnected(false)}
@@ -1925,6 +1969,7 @@ export default function ConsultationRoomPage() {
                 <VideoGrid />
                 <RoomAudioRenderer />
                 <AudioUnblock />
+                <MediaEnablePrompt />
                 <ConnectionBanner />
                 <MutedSpeakingWarning />
                 <RoomInfoOverlay />
