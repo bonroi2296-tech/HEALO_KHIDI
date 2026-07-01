@@ -12,6 +12,7 @@ export const runtime = "nodejs";
 import { NextRequest, NextResponse } from "next/server";
 import { requireVisaAccess } from "@/lib/auth/requireVisaAccess";
 import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
+import { INVITER_HOSPITALS, getInviterHospital } from "@/lib/visa/inviterHospitals";
 
 export async function POST(
   request: NextRequest,
@@ -91,8 +92,14 @@ export async function POST(
       );
     }
 
+    // 초청 주체 = 등록 유치의료기관(병원) 명의로 발급. 베이스 기본값 = 면력한방병원.
+    // 신청에 inviter_hospital_id 가 있으면 그 병원으로, 없으면 첫 번째(면력한방병원) 기본.
+    const inviter =
+      getInviterHospital((fullApp as any).inviter_hospital_id) || INVITER_HOSPITALS[0];
+
     // PDF 데이터 구성
     const pdfData = {
+      inviter,
       letterNo: `healwith-INV-${fullApp.id.slice(0, 8).toUpperCase()}`,
       issuedAt: new Date().toISOString().slice(0, 10),
       patient: {
@@ -108,9 +115,10 @@ export async function POST(
         durationDays: fullApp.duration_days,
       },
       hospital: {
-        name: hospital?.name || "제휴 의료기관",
+        // 별도 치료 병원이 지정돼 있으면 그것, 없으면 초청(유치) 병원으로 채움(협진 베이스)
+        name: hospital?.name || inviter.nameEn,
         doctor: "—",
-        regNo: "—",
+        regNo: hospital?.name ? "—" : inviter.regNo,
         plan: decryptedTreatment || "암 치료 및 사후관리 (Cancer treatment + post-care)",
       },
       schedule: {
