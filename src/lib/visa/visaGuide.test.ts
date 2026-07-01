@@ -1,5 +1,12 @@
 import { describe, it, expect } from 'vitest';
-import { getVisaInfo, getVisaChecklist, getAllVisaTypes, getCountryEntry } from './visaGuide';
+import {
+  getVisaInfo,
+  getVisaChecklist,
+  getAllVisaTypes,
+  getCountryEntry,
+  VISA_DATA_LAST_VERIFIED,
+  TIME_SENSITIVE_DEADLINES,
+} from './visaGuide';
 
 describe('visaGuide', () => {
   describe('getVisaInfo', () => {
@@ -89,6 +96,33 @@ describe('visaGuide', () => {
         expect(e!.note).toContain('K-ETA');
         // K-ETA를 "받아야"라고 긍정 안내해야 함 — 둘 다 한시 면제 22개국에 없음.
         expect(e!.note).toContain('받아야');
+      }
+    });
+
+    // CIS 타겟 커버리지: 러/카 외 CIS는 전부 비자필요 + 영어 폴백으로 새지 않게 고정.
+    it('CIS 4국(우즈벡·키르기스·타지크·아제르바이잔)은 비자필요로 등록돼 있다', () => {
+      for (const nat of ['uz', 'kg', 'tj', 'az']) {
+        const e = getCountryEntry(nat, 'ru');
+        expect(e, `${nat} 항목 누락`).not.toBeNull();
+        expect(e!.nationality).toBe(nat);
+        expect(e!.shortStay).toBe('visa_required');
+        expect(e!.summary.length).toBeGreaterThan(0);
+        expect(e!.embassyUrl).toContain('mofa.go.kr');
+      }
+    });
+  });
+
+  describe('프레시니스 메타데이터 — 기한 만료 자동 차단(check:visa-freshness)', () => {
+    it('VISA_DATA_LAST_VERIFIED는 ISO(YYYY-MM-DD) 형식이다', () => {
+      expect(VISA_DATA_LAST_VERIFIED).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    });
+
+    it('TIME_SENSITIVE_DEADLINES는 비어있지 않고 각 항목이 id+ISO expiresOn을 가진다', () => {
+      expect(TIME_SENSITIVE_DEADLINES.length).toBeGreaterThan(0);
+      for (const d of TIME_SENSITIVE_DEADLINES) {
+        expect(d.id.length).toBeGreaterThan(0);
+        expect(d.expiresOn).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+        expect(d.what.length).toBeGreaterThan(0);
       }
     });
   });
