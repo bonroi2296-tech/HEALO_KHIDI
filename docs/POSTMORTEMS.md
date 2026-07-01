@@ -8,6 +8,20 @@
 
 ---
 
+## #61 — i18n 중복 키(`connectFailed`)가 빌드·check:content 를 통과하고 CI eslint 에서야 걸림 (자책, CI 차단, 2026-07-01)
+
+**무슨 일** — 화상방 수정(PR #593)에서 `_roomCopy.js` 6개 언어에 연결실패 안내 문장을 `connectFailed` 키로 추가했는데, 그 키가 **이미 존재**(게스트 입장 에러용 짧은 라벨 "접속 실패")했다. JS 객체 중복 키라 **웹팩 빌드는 통과**(마지막 값이 이김)하고 **`check:content`도 통과**(키 패리티만 검사 → 6개어 다 있으니 OK)했으나, CI 의 eslint `no-dupe-keys` 가 6건 에러로 머지 차단.
+
+**왜 못 잡았나 (근본원인)** — ①**push 전 검증을 `build`+`check:content`+단일파일 lint 로만** 하고 **전체 `npm run lint` 를 안 돌림** — CI 가 도는 검사(`eslint .`)를 로컬에서 그대로 재현 안 함. ②키 추가 전 **그 키가 이미 있는지 grep 안 함**(기존 존재 키 목록만 부분 확인, `connectFailed` 는 확인 목록에서 빠짐). ③빌드·check:content 가 중복키에 무감(각각 문법·패리티만 봄)이라 "통과=안전"으로 착각.
+
+**어떻게 고쳤나** — 새 문장 키를 `connectStuck` 으로 개명(기존 `connectFailed` 짧은 라벨은 유지). 전체 `npm run lint` 로 0 errors 확인 후 재푸시.
+
+**재발 방지**
+- **교훈: i18n/객체 키 추가 전 `grep -n "키이름:" 대상파일` 로 기존 존재 여부 먼저 확인.** 빌드·check:content 는 중복키를 안 잡는다.
+- **교훈: 화상방/큰 파일 push 전 `npm run lint`(전체) 를 build·check:content 와 함께 필수화.** CI 재현을 로컬에서 = 왕복 1회 절약. (이미 CI 가드는 있음 — eslint no-dupe-keys 가 머지 차단하므로 프로덕션엔 못 샜다. 가드 추가 불필요, 로컬 검증 습관이 문제였음.)
+
+---
+
 ## #60 — "유령 참가자 방지"(#527)가 모바일 실참가자를 통화 중 끊어버림 — pagehide/visibilitychange→disconnect 가 iOS에서 정상상태에도 튐 (PO 제보, 2026-07-01)
 
 **무슨 일** — PO가 "어제(=#527 전)는 화상 2인 통화가 됐는데, 화면전환·번역 고친(#527) 뒤로 안 된다. 아이폰(5G)이 '연결 중'에서 2분 넘게 멈추고 서로 안 보인다"고 제보. 원인: #527이 넣은 `PresenceGuard`가 유령 참가자(폰 화면 끄고 이탈)를 막으려고 **①`pagehide` → 즉시 `room.disconnect()` ②화면숨김 60초 → `room.disconnect()`** 를 했는데, **모바일(특히 iOS Safari)은 pagehide·visibilitychange 가 '통화 중 정상 상태'에서도 수시로 발생**한다(주소창 숨김/노출·화면 잠깐 꺼짐·앱 전환·미러링). 그래서 실제 참가자가 통화 도중·심지어 최초 연결 중에 끊겨 "연결 중 멈춤/서로 안 보임"이 됨.
