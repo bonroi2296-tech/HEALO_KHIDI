@@ -116,7 +116,11 @@ export async function POST(request: NextRequest) {
       hospital_id: hospitalId || null,
       partner_doctor_id: partnerDoctorId || null,
       doctor_user_id: doctorId || null,
-      coordinator_user_id: coordinatorId || null,
+      // 담당 코디 지정이 없으면 '만든 사람'(코디)을 담당으로. 안 그러면 코디가 만든 상담에서
+      // 코디가 patient_user_id placeholder 로만 잡혀 'patient' 역할로 오인됨 → 링크발급 실패 등
+      // 각종 역할 오작동의 원인이었음(PO 제보 insufficient_role). admin 이 만들면 admin 은 항상
+      // admin 으로 판정되니 null 유지.
+      coordinator_user_id: coordinatorId || (auth.isAdmin ? null : auth.userId),
       translator_id: translatorId || null,
       session_type: sessionType,
       scheduled_at: scheduledAt,

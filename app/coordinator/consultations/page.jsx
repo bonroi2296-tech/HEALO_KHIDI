@@ -91,7 +91,7 @@ export default function CoordinatorConsultationsPage() {
     if (!result?.inviteUrl) { router.push(`/consultation/${id}`); return; }
     try {
       await navigator.clipboard.writeText(result.inviteUrl);
-      toast.success('상담 링크를 복사했어요 — 환자에게 붙여넣어 보내세요. 나는 지금 입장합니다');
+      toast.success('상담 링크를 복사했어요 — 상대에게 붙여넣어 보내세요. 나는 지금 입장합니다');
     } catch { /* 클립보드 권한 없으면 조용히 패스 — 입장은 계속 */ }
     // 절대 URL(origin 포함) → 클라이언트 라우팅용 상대경로로
     router.push(result.inviteUrl.replace(/^https?:\/\/[^/]+/, ''));
@@ -138,7 +138,7 @@ export default function CoordinatorConsultationsPage() {
           : `상담 링크가 클립보드에 복사됐습니다 (만료: ${new Date(result.expiresAt).toLocaleString('ko-KR')})`
       );
     } catch {
-      prompt('아래 링크를 복사해 환자에게 공유하세요:', result.inviteUrl);
+      prompt('아래 링크를 복사해 공유하세요:', result.inviteUrl);
     }
   };
 
@@ -265,7 +265,7 @@ export default function CoordinatorConsultationsPage() {
                           <button
                             onClick={() => handleStart(c.id)}
                             className="flex items-center gap-2 px-4 py-2 bg-teal-700 text-white rounded-lg hover:bg-teal-800 transition text-sm font-medium"
-                            title="이 링크로 내가 입장하고, 같은 링크가 복사됩니다(환자에게 붙여넣어 전송)"
+                            title="이 링크로 내가 입장하고, 같은 링크가 복사됩니다 (복사해서 상대에게 전송)"
                           >
                             <Phone size={14} />
                             {c.status === 'active' ? '상담 재진입' : '상담 시작'}
@@ -273,9 +273,9 @@ export default function CoordinatorConsultationsPage() {
                           <button
                             onClick={() => handleCopyLink(c.id)}
                             className="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-700 border border-blue-200 rounded-lg hover:bg-blue-100 transition text-sm font-medium"
-                            title="입장 없이 환자에게 보낼 링크만 복사(+등록 이메일 발송) — 같은 링크"
+                            title="입장 없이 링크만 복사(+등록 이메일 발송) — 「상담 시작」과 같은 링크"
                           >
-                            🔗 환자 링크 복사
+                            🔗 링크 복사
                           </button>
                           <button
                             onClick={() => handleComplete(c.id)}
