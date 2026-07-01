@@ -277,10 +277,12 @@ async function logNotificationEvent(
   meta: Record<string, any>
 ): Promise<void> {
   try {
+    // 실제 컬럼명은 metadata (meta 아님) — 과거 meta 로 insert 해 매번 조용히 실패(42703)하며
+    // 알림 이벤트 감사로그가 통째로 안 남던 버그. end-to-end 퍼널 검증 중 발견(POSTMORTEMS #59).
     await supabaseAdmin.from("inquiry_events").insert({
       inquiry_id: inquiryId,
       event_type: eventType,
-      meta: meta,
+      metadata: meta,
     });
   } catch (error: any) {
     // 에러 상세 정보 출력 (테이블/컬럼 미스매치 디버깅용)
@@ -290,7 +292,7 @@ async function logNotificationEvent(
     console.error(
       `[Notify] inquiry_events 로깅 실패 (무시) - 테이블/컬럼 확인 필요:`,
       errorDetail,
-      `| 시도한 컬럼: inquiry_id, event_type, meta`
+      `| 시도한 컬럼: inquiry_id, event_type, metadata`
     );
     // 로깅 실패는 무시 (메인 로직 영향 없게)
   }

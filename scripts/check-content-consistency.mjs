@@ -308,6 +308,37 @@ for (const file of walk("app/patient")) {
   }
 }
 
+// ── 8) 이메일 템플릿 premium 톤 누수 가드 (DESIGN.md premium_drift, POSTMORTEMS #55) ──
+// 왜: 사이트는 legacy(teal+시스템폰트)인데 상담초대·리마인더·설문 이메일이 옛 premium 톤
+//     (검정 #0a0a0a + 골드 #c8a96a + 크림 #f5f0e8 + Playfair 세리프)으로 살아있어, 환자가
+//     받는 메일만 딴 브랜드처럼 보이던 사고. DESIGN.md forbidden.premium_drift 를 정면으로 어김.
+//     UI 코드 검사(위)는 이메일 순수-HTML 문자열을 안 봐서 사각지대였음. → 라이브 이메일 템플릿에
+//     premium 토큰이 다시 들어오면 CI 가 차단. 정답 톤 레퍼런스 = infoRequest.ts.
+//     범위: src/lib/email/templates/** + surveyEmailTemplate.ts (legacy 전환 완료 파일).
+//     제외: src/emails/*.jsx(React Email premium 시스템 — 실사용 확인 후 별도 전환 예정).
+const EMAIL_TEMPLATE_FILES = [
+  ...walk("src/lib/email/templates"),
+  "src/lib/surveys/surveyEmailTemplate.ts",
+];
+const EMAIL_PREMIUM_TOKENS = [
+  { re: /Playfair Display/i, name: "Playfair Display 세리프 폰트" },
+  { re: /#c8a96a/i, name: "골드 #c8a96a" },
+  { re: /#c7c2b8/i, name: "premium 회백 #c7c2b8" },
+  { re: /#f5f0e8/i, name: "크림 배경 #f5f0e8" },
+  { re: /#0a0a0a/i, name: "잉크(검정) #0a0a0a" },
+];
+for (const file of EMAIL_TEMPLATE_FILES) {
+  let lines;
+  try { lines = readFileSync(join(ROOT, file), "utf8").split("\n"); } catch { continue; }
+  lines.forEach((line, i) => {
+    for (const t of EMAIL_PREMIUM_TOKENS) {
+      if (t.re.test(line)) {
+        errors.push(`[이메일premium] ${file.replace(/\\/g, "/")}:${i + 1} — 라이브 이메일 템플릿에 premium 토큰(${t.name}). 사이트는 legacy(teal #0d9488 + 시스템폰트)인데 메일만 옛 브랜드로 보임(DESIGN.md premium_drift, POSTMORTEMS #55). 정답 톤 = src/lib/email/templates/infoRequest.ts 참고.\n    ${line.trim().slice(0, 120)}`);
+      }
+    }
+  });
+}
+
 // ── 결과 ────────────────────────────────────────────────────────
 if (errors.length) {
   console.error(`\n❌ 콘텐츠 일관성 검사 실패 (${errors.length}건)\n`);

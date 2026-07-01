@@ -46,14 +46,17 @@ export async function POST(request: NextRequest) {
     const { getSupabaseServerClient } = await import("@/lib/data/supabaseServerClient");
     const supabaseAdmin = getSupabaseServerClient();
 
-    // Fetch hospital cancer capabilities
+    // Fetch hospital cancer capabilities — 활성 병원만(!inner + is_active).
+    // (과거엔 is_active 필터가 없어 비활성/보관 병원도 환자 매칭에 떠서, 계약 안 된 병원을
+    //  추천하던 버그. POSTMORTEMS #60)
     const { data: capabilities, error } = await supabaseAdmin
       .from("hospital_cancer_capabilities")
       .select(`
         *,
-        hospitals(name, slug)
+        hospitals!inner(name, slug, is_active)
       `)
-      .eq("cancer_type", payload.cancerType);
+      .eq("cancer_type", payload.cancerType)
+      .eq("hospitals.is_active", true);
 
     if (error) {
       console.error("[api/khidi/matching] DB error:", error);

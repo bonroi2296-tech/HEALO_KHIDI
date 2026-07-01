@@ -1306,3 +1306,97 @@ PO가 협력병원 상세(`/hospitals/[slug]`) 하단 "자주 묻는 질문"이 
 - `check:content` 에 가드 추가: 코드에 `immunehospital.com/uploads/` 핫링크가 있으면 CI 실패 → 반드시 자체 호스팅 강제.
 - 이 가드가 유사 이슈로 **미사용 죽은 파일 `immuneHospitalDoctors.ts`(핫링크 38개)** 도 적발 → 삭제.
 - 남은 유사건: `immuneCancerDetails.js` 의 암종 카드 이미지 폴백(`immunehospital.com/resource/images`)도 핫링크 — 별도 작업으로 분리(다른 기능).
+
+## #56 — 환자에게 발송되는 상담 이메일 3종이 옛 premium 톤(검정+골드+세리프)으로 살아있었음 (2026-07-01)
+
+**무슨 일**
+- PO가 실제 수신함(Zoho)에서 원격 상담 초대 메일을 열어보니, 사이트(legacy·teal)와 전혀 다른 옛 premium 럭셔리 톤 — 검정 헤더(#0a0a0a) + 골드 포인트(#c8a96a) + 크림 배경(#f5f0e8) + Playfair Display 세리프 + 대문자 자간 버튼. "왜 자꾸 이래" 라고 지적.
+- 대상: `consultationInvite.ts`(초대) · `consultationReminder.ts`(30분 전 리마인더) · `surveys/surveyEmailTemplate.ts`(만족도 설문) — 3종 모두 동일 premium 톤. 환자가 받는 접점만 딴 브랜드처럼 보임.
+
+**왜 못 잡았나(근본원인)**
+- DESIGN.md `forbidden.premium_drift`(Playfair·cream/ink/gold 금지)는 **UI 코드**를 겨눴지만, 이메일 템플릿(순수 HTML 문자열)은 그 자동검사(`check:content`)의 사각지대였음. 사람이 실제 메일을 열어봐야만 보이던 부류.
+- 같은 디렉토리의 `infoRequest.ts`는 이미 legacy(teal #0d9488 + 시스템폰트)였는데, 나머지 3종이 옛 톤인 채로 방치 — 템플릿 간 톤 드리프트를 막는 장치가 없었다.
+
+**어떻게 고쳤나**
+- 3종 전부 legacy 톤으로 재작성: 배경 `#f6f7f8`, 흰 카드 + `#e5e7eb` 테두리 + `border-radius:16px`, 헤더는 teal 워드마크(세리프 제거), CTA는 teal `#0d9488`+흰글씨+`rounded-12`, 시스템 폰트. 정답 레퍼런스 = `infoRequest.ts`.
+- 카피(6개 언어 STRINGS)·구조는 그대로, 색·폰트 토큰만 교체.
+
+**재발 방지**
+- `check-content-consistency.mjs`에 **이메일 premium 토큰 가드**(§8) 추가: 라이브 이메일 템플릿(`src/lib/email/templates/**` + `surveyEmailTemplate.ts`)에 `Playfair Display`·`#c8a96a`·`#f5f0e8`·`#0a0a0a` 재등장 시 CI 실패. 정답 톤 레퍼런스로 infoRequest.ts 명시.
+- 남은 것: `src/emails/*.jsx`(React Email premium 시스템, CoordinatorIntro·HospitalMatch 등 6종)도 premium 톤이지만, 유일한 소비자 `app/api/email/send` 가 **죽은 라우트(아무도 안 부름 — PROJECT_CONTEXT 아카이브 명시)**라 환자에게 발송되지 않음. → 재브랜딩이 아니라 **죽은 라우트+템플릿 삭제 후보**(별도 팔로업). 그래서 가드 범위에서 제외.
+- 교훈: **사용자 접점(이메일·PDF·알림)도 UI다.** DESIGN 표준은 화면뿐 아니라 발송물까지 덮어야 하고, 자동검사도 거기까지 따라가야 한다.
+
+## #57 — 어드민에 '가짜 숫자'가 실지표처럼 떠 있었음 (매출=문의수×3500, AI정확도 72% 하드코딩) (2026-07-01)
+
+**무슨 일**
+- 어드민 정리 전수조사 중 발견. 두 화면이 근거 없는 숫자를 실지표처럼 표시:
+  - `analytics`(문의 현황): `/api/admin/analytics` 가 `totalRevenue = 문의수 × 3500`(하드코딩 상수)을 계산해 "시장 기회 총액 $..."으로 표시. `hospitalOpportunities`는 늘 빈 배열인데 "기회 비용 분석" 표로 자리만 차지. 화면엔 하드코딩 "+12% 성장" 배지까지. 전부 피벗 전(디렉토리 사업) 잔재.
+  - `agent`(Human Agent): 스탯카드 "AI 정확도"가 `aiAccuracy: 72 // Initial M1 target` 하드코딩, "오늘 처리 완료"는 `todayResolved: 0 // Will be implemented` 하드코딩.
+
+**왜 못 잡았나(근본원인)**
+- 피벗(디렉토리→암환자 컨시어지) 때 화면은 남겨두고 데이터 모델만 바뀌어, 옛 매출/기회 지표가 '계산은 되지만 의미 없는' 상태로 잔존. 빌드/기능 검사로는 안 보임(숫자가 뜨긴 뜨니까).
+- "임시로 목표치 박아두고 나중에 실측 연결" 주석(Initial/Will be implemented)이 그대로 프로덕션에 남음. DESIGN.md `medical_ui.forbidden`("가짜 숫자 금지 — 의료 광고법")·KHIDI 평가(가짜 실적 위험)에 정면 배치.
+
+**어떻게 고쳤나** (PO 결정)
+- analytics: 가짜 매출·기회·성장배지 전부 제거. 실데이터(문의 수·최다 수요 카테고리·시술 종류별 분포)만 '문의 수요 트렌드'로 남김. API도 `totalRevenue/avgPrice/hospitalOpportunities` 삭제.
+- agent: "AI 정확도"를 실측(`ai_response_evaluations` 14일 평균 overall_score → %)으로 연결, 평가 데이터 없으면 가짜 대신 "—". "오늘 처리 완료"는 트래킹 파이프라인이 없어 가짜 0 대신 "—"(정직). (AccuracyPanel 탭은 이미 0이면 "–" + "데이터 누적 시 표시"로 정직 처리 중 — 유지.)
+
+**재발 방지**
+- 교훈: **화면에 뜨는 모든 숫자는 실데이터 아니면 "—".** "임시 목표치·나중에 연결" 주석을 프로덕션에 남기지 말 것 — 남길 거면 "—"로 표시(가짜 숫자보다 낫다). 피벗 때는 데이터 모델뿐 아니라 그 데이터를 쓰던 화면·API의 잔재 지표까지 같이 청소.
+- 자동가드는 보류(하드코딩 지표 탐지는 오탐 많아 fragile). 대신 이 반성문 + 어드민 전수조사 기록으로 재발 시 빨리 인지.
+
+## #58 — 원격협진 '상담 취소' 버튼이 API 호출 없이 가짜 성공만 띄웠음 (실제론 취소 안 됨) (2026-07-01)
+
+**무슨 일**
+- "실제 운영 가능하게 해달라"는 PO 요청으로 어드민 인터랙티브 화면 전수 감사 중 발견.
+- `app/admin/consultations` 의 `handleCancel` 이 `toast.success("상담이 취소되었습니다")` + 로컬 상태만 바꾸고 **서버 API를 전혀 호출하지 않음**(주석: "In real implementation, call an update API / For now, just show success"). → 코디가 취소했다고 믿지만 DB는 여전히 scheduled, **환자 초대 링크도 살아있어** 취소된 상담에 환자가 입장 가능.
+- 같은 화면 '리스케줄' 버튼도 죽어있었음: `_showScheduleModal`(언더스코어=값 미사용) 세팅만 하고 그 모달이 렌더되지 않음 → 눌러도 아무 일 없음.
+
+**왜 못 잡았나(근본원인)**
+- 초기 스캐폴딩의 "For now, just show success" 임시 코드가 프로덕션까지 남음. 화면상으론 취소된 것처럼 보여(토스트+상태변경) 사람이 실제 DB를 확인하지 않으면 안 보이는 부류. 실제 취소 API(`PATCH /api/khidi/consultation/[id]` status=cancelled, 게스트 토큰까지 폐기)는 이미 존재했는데 화면이 안 부른 것.
+
+**어떻게 고쳤나**
+- `handleCancel` → 실제 `PATCH /api/khidi/consultation/{id}` {status:"cancelled"} 호출로 연결(서버가 초대 토큰도 폐기). 실패 시 에러 토스트.
+- 죽은 '리스케줄' 버튼·핸들러·미사용 상태 제거(가짜 UX 삭제). 리스케줄은 scheduled_at 변경 + 미리 materialize된 리마인더 재생성이 필요해 별건 팔로업(지금은 '취소 후 새로 생성'으로 대체).
+
+**재발 방지**
+- 교훈: **성공 토스트를 띄우는 액션은 반드시 실제 mutating API를 호출한 뒤에.** "For now, just show success" 류 임시 성공은 프로덕션 금지 — 미구현이면 버튼을 비활성/제거(가짜 성공보다 정직).
+- 어드민 전수 감사 결과: 나머지 인터랙티브 화면(리드·케이스·문의·챗·직원·회원·병원·설정 등)은 실제 API에 연결돼 정상. 설정(알림·브랜딩) 테이블/버킷도 실 DB에 존재 확인. 진짜 '가짜 성공'은 이 상담 취소 하나였음.
+
+## #59 — 알림 이벤트 감사로그가 매번 조용히 실패 (inquiry_events.meta ≠ 실제 컬럼 metadata) (2026-07-01)
+
+**무슨 일**
+- "광고 돌려도 되나" 판단 위해 문의 퍼널을 end-to-end 실검증(프로덕션 `/api/inquiries/step1`에 테스트 문의 실제 제출). 문의 #36 정상 도착(status=received·is_test=true·PII AES-256-GCM 암호화)·관리자 알림 이메일 2건(PO·admin) status=sent 확인 — 퍼널 자체는 완전 작동.
+- 그 과정에서 `admin_notifier.logNotificationEvent` 가 `inquiry_events` 에 `meta` 컬럼으로 insert 하는데 실제 컬럼명은 `metadata` 였음 → 매 insert 가 42703(column does not exist)로 실패. catch 로 삼켜 "로깅 실패(무시)" 만 찍히고, **admin_notified/admin_notify_failed 이벤트가 통째로 안 남고 있었음**.
+
+**왜 못 잡았나(근본원인)**
+- 컬럼명 오타(meta vs metadata)를 try/catch 가 삼켜 조용히 실패 → 로그를 뒤지지 않으면 안 보임. 실제 알림은 별도 테이블(`admin_notification_logs`, 정상)으로 나가서 기능은 안 깨져 더 안 보였음.
+- 코드/타입(database.types) 검증이 런타임 insert 컬럼명까지 강제하지 못함(supabase-js insert 는 any 객체 허용).
+
+**어떻게 고쳤나**
+- `meta: meta` → `metadata: meta` 로 수정 + 에러 힌트 문구 정정.
+
+**재발 방지**
+- 교훈: **try/catch 로 삼킨 DB 실패는 "조용한 미작동"이다.** 감사/이벤트 로깅도 실제 1건 흘려보내 테이블에 남는지 확인(빌드로는 안 보임 — end-to-end 검증의 가치).
+- 퍼널 검증 부산물로 확인된 사실(광고 판단 근거): 공개 문의 API → zod검증 → PIPA동의 서버재확인 → PII암호화 → inquiries 저장(is_test 자동태그) → 관리자 알림 이메일 발송까지 전 구간 실작동. 텍스트 기반 검증으로 "됐다"가 아니라 실데이터로 확인함.
+
+## #60 — 병원 매칭에 (a)지어낸 암 성공률 (b)비활성 병원이 떴음 (2026-07-01)
+
+**무슨 일**
+- 병원 활성화(대학병원 4 + 한방 2) 후 매칭 데이터(`hospital_cancer_capabilities`) 점검 중 두 문제 발견:
+  - (a) **지어낸 규제 숫자**: 면력한방(한방) 3개 지점의 암종 10행에 `success_rate` 0.70~0.95·`annual_cases`·비용이 박혀 있고 `is_verified=true`. 한방병원이 위암 성공률 82% 주장 = 의료광고법(성공률 과장) 위반 + 가짜 숫자(#57 부류). `success_rate` 는 공개 치료페이지·매칭엔진이 실제로 소비.
+  - (b) **매칭에 비활성 병원 노출**: `/api/khidi/matching` 쿼리가 `cancer_type` 으로만 필터하고 병원 `is_active` 를 안 봐서, 비활성(광명점 등) 병원도 환자 매칭 결과에 뜰 수 있었음.
+- 대학병원 4곳은 암종 매핑 0 → 정작 진짜 종양병원이 매칭에 안 뜨는 반대 구멍도 있었음.
+
+**왜 못 잡았나(근본원인)**
+- (a) 시드/데모 데이터로 넣은 성공률이 `is_verified=true` 인 채 프로덕션에 남음. 병원을 비활성으로 둬서 안 보였는데, 이번에 활성화하며 노출 위험이 실재화. 데이터 활성화 전 "이 병원이 들고 있는 숫자가 진짜인가"를 점검하는 절차 부재.
+- (b) 매칭 쿼리가 능력(capability)만 보고 병원 상태(is_active)를 안 봄 — 목록/공개 화면은 is_active 를 거르지만 매칭 경로는 사각.
+
+**어떻게 고쳤나**
+- (a) 면력한방 전 지점(강서·신촌·광명) 암종 행의 `success_rate·annual_cases·avg_treatment_cost_usd` → NULL, `is_verified=false`. 암종 커버리지·치료유형은 유지(매칭 동작). 매칭엔진·치료페이지 모두 null-safe(||0, && 가드) 확인.
+- 대학병원 4곳: 주요 암종 8개 커버리지만 사실 그대로 추가(성공률 등 규제 숫자는 NULL, is_verified=false) → 매칭이 실제 종양병원을 찾음.
+- (b) 매칭 쿼리를 `hospitals!inner(...)` + `.eq("hospitals.is_active", true)` 로 바꿔 활성 병원만 매칭. DB로 검증(비활성 광명점 제외 확인).
+
+**재발 방지**
+- 교훈: **DB에 든 의료 통계(성공률·건수·비용)는 실검증(is_verified) 없이 절대 노출 금지.** 시드/데모 숫자를 is_verified=true 로 두지 말 것. 병원·데이터 활성화(공개 전) 체크리스트에 "숫자 출처 검증" 포함.
+- 교훈: **공개 노출 필터(is_active)는 목록뿐 아니라 매칭·추천 등 모든 경로에 일관 적용.**

@@ -1,14 +1,17 @@
 "use client";
 
-import { useState } from "react";
-import { TrendingUp, TrendingDown, Minus, BarChart3 } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { BarChart3 } from "lucide-react";
+import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 
-// M1 단계 목표 데이터 (실제 운영 시 API 연동)
-const M1_TARGETS = {
-  aiAccuracy: { target: 60, current: 0, label: "AI 자동응답 정확도" },
-  escalationRate: { target: 40, current: 0, label: "에스컬레이션 비율" },
-  patientSatisfaction: { target: 70, current: 0, label: "환자 만족도" },
-  responseTime: { target: 30, current: 0, label: "평균 응답 시간(분)" },
+// KHIDI 마일스톤 목표(고정) — 현재값(current)은 실측 API로 채움.
+// 실측 소스가 있는 지표(AI 정확도·환자 만족도)만 숫자, 없는 지표(에스컬레이션율·응답시간)는 "–".
+// (하드코딩 current:0 잔재 제거, POSTMORTEMS #57 후속)
+const METRIC_META = {
+  aiAccuracy: { target: 60, label: "AI 자동응답 정확도", pct: true },
+  escalationRate: { target: 40, label: "에스컬레이션 비율", pct: true },
+  patientSatisfaction: { target: 70, label: "환자 만족도", pct: true },
+  responseTime: { target: 30, label: "평균 응답 시간(분)", pct: false },
 };
 
 const MILESTONE_TARGETS = [
@@ -27,6 +30,57 @@ const CORRECTION_TYPES = [
 
 export function AccuracyPanel() {
   const [selectedPeriod, setSelectedPeriod] = useState("30d");
+  // 실측값: 소스 있는 지표만 채움. null = 아직 데이터 없음 → 화면에 "–"(가짜 숫자 금지).
+  const [current, setCurrent] = useState({
+    aiAccuracy: null,
+    escalationRate: null, // 실측 소스 없음(집계 파이프라인 미구축)
+    patientSatisfaction: null,
+    responseTime: null, // 실측 소스 없음
+  });
+
+  const fetchMetrics = useCallback(async () => {
+    try {
+      const supabase = createSupabaseBrowserClient();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+
+      const days = selectedPeriod === "7d" ? 7 : selectedPeriod === "90d" ? 90 : 30;
+      const to = new Date();
+      const from = new Date(to.getTime() - days * 86400000);
+      const fromStr = from.toISOString().slice(0, 10);
+      const toStr = to.toISOString().slice(0, 10);
+
+      const [qRes, sRes] = await Promise.all([
+        fetch(`/api/admin/khidi/ai-quality?from=${fromStr}&to=${toStr}`, {
+          headers,
+          credentials: "include",
+        }),
+        fetch(`/api/admin/khidi/satisfaction`, { headers, credentials: "include" }),
+      ]);
+      const q = await qRes.json();
+      const s = await sRes.json();
+
+      setCurrent((c) => ({
+        ...c,
+        aiAccuracy:
+          q?.ok && q.summary?.total_count > 0 && q.summary?.avg_overall != null
+            ? Math.round(q.summary.avg_overall * 100)
+            : null,
+        // 만족도는 전체기간 집계(satisfaction API에 기간 필터 없음) → overallAvg100(0~100).
+        patientSatisfaction:
+          s?.ok && s.totalResponses > 0 ? Math.round(s.overallAvg100) : null,
+      }));
+    } catch {
+      // 실패 시 기존값(대부분 null="–") 유지
+    }
+  }, [selectedPeriod]);
+
+  useEffect(() => {
+    fetchMetrics();
+  }, [fetchMetrics]);
 
   return (
     <div className="space-y-6">
@@ -52,30 +106,38 @@ export function AccuracyPanel() {
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {Object.entries(M1_TARGETS).map(([key, data]) => (
-          <div key={key} className="bg-gray-50 rounded-xl p-4">
-            <div className="text-xs text-gray-500 mb-1">{data.label}</div>
-            <div className="flex items-end gap-2">
-              <span className="text-2xl font-bold text-gray-900">
-                {data.current || "–"}
-                {key !== "responseTime" && "%"}
-              </span>
-              <span className="text-xs text-gray-400 mb-1">
-                / 목표 {data.target}{key !== "responseTime" && "%"}
-              </span>
+        {Object.entries(METRIC_META).map(([key, meta]) => {
+          const val = current[key];
+          const hasVal = val != null;
+          return (
+            <div key={key} className="bg-gray-50 rounded-xl p-4">
+              <div className="text-xs text-gray-500 mb-1">{meta.label}</div>
+              <div className="flex items-end gap-2">
+                <span className="text-2xl font-bold text-gray-900 tabular-nums">
+                  {hasVal ? val : "–"}
+                  {hasVal && meta.pct && "%"}
+                </span>
+                <span className="text-xs text-gray-400 mb-1">
+                  / 목표 {meta.target}
+                  {meta.pct && "%"}
+                </span>
+              </div>
+              {/* Progress Bar */}
+              <div className="mt-2 h-2 bg-gray-200 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-teal-700 rounded-full transition-all"
+                  style={{
+                    width: `${hasVal ? Math.min((val / meta.target) * 100, 100) : 0}%`,
+                  }}
+                />
+              </div>
             </div>
-            {/* Progress Bar */}
-            <div className="mt-2 h-2 bg-gray-200 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-teal-700 rounded-full transition-all"
-                style={{
-                  width: `${Math.min((data.current / data.target) * 100, 100)}%`,
-                }}
-              />
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
+      <p className="text-[11px] text-gray-400 -mt-2">
+        AI 정확도·환자 만족도는 실측(AI 품질 평가·설문). 에스컬레이션 비율·응답 시간은 집계 파이프라인 준비 중이라 "–"로 표시됩니다.
+      </p>
 
       {/* Milestone Roadmap */}
       <div>
@@ -142,7 +204,7 @@ export function AccuracyPanel() {
             자동으로 Playbook에 등록됩니다.
           </p>
           <p className="text-xs text-gray-400 mt-2">
-            현재 등록된 패턴: 0건
+            자세한 현황은 「AI 품질」·「레거시 도구 › 플레이북」 메뉴에서 확인하세요.
           </p>
         </div>
       </div>

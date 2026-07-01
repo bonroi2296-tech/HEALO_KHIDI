@@ -22,8 +22,8 @@ export default function AgentDashboardPage() {
   const [stats, setStats] = useState({
     pendingEscalations: 0,
     highRiskAlerts: 0,
-    todayResolved: 0,
-    aiAccuracy: 0,
+    todayResolved: null,
+    aiAccuracy: null,
   });
   const [loading, setLoading] = useState(true);
 
@@ -53,11 +53,32 @@ export default function AgentDashboardPage() {
       );
       const intakesData = await intakesRes.json();
 
+      // AI 정확도: 실측 — ai_response_evaluations 최근 14일 평균 overall_score(0~1) → %.
+      // (하드코딩 72% 잔재 제거. 평가 데이터가 없으면 가짜 숫자 대신 null → 화면에 "—")
+      let aiAccuracy = null;
+      try {
+        const qualityRes = await fetch("/api/admin/khidi/ai-quality", {
+          headers,
+          credentials: "include",
+        });
+        const qualityData = await qualityRes.json();
+        if (
+          qualityData?.ok &&
+          qualityData.summary?.total_count > 0 &&
+          qualityData.summary?.avg_overall != null
+        ) {
+          aiAccuracy = Math.round(qualityData.summary.avg_overall * 100);
+        }
+      } catch {
+        // 실패 시 null 유지 → "—"
+      }
+
       setStats({
         pendingEscalations: intakesData.total || 0,
         highRiskAlerts: alertsData.total || 0,
-        todayResolved: 0, // Will be implemented with proper tracking
-        aiAccuracy: 72, // Initial M1 target
+        // '오늘 처리 완료' 실측 트래킹 파이프라인 아직 없음 → 가짜 0 대신 null("—").
+        todayResolved: null,
+        aiAccuracy,
       });
     } catch (error) {
       console.error("[AgentDashboard] Stats fetch error:", error);
@@ -114,13 +135,13 @@ export default function AgentDashboardPage() {
         <StatCard
           icon={<CheckCircle2 className="text-green-500" size={24} />}
           label="오늘 처리 완료"
-          value={stats.todayResolved}
+          value={stats.todayResolved != null ? stats.todayResolved : "—"}
           color="green"
         />
         <StatCard
           icon={<Activity className="text-teal-700" size={24} />}
           label="AI 정확도"
-          value={`${stats.aiAccuracy}%`}
+          value={stats.aiAccuracy != null ? `${stats.aiAccuracy}%` : "—"}
           color="teal"
         />
       </div>
