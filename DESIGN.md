@@ -19,7 +19,7 @@ change_authority:
     - "DESIGN.md 작성 직후 일괄 정리 금지"
   explicit_change_keywords:    # 이 키워드가 사용자 메시지에 있을 때만 기존 변경 허용
     - "X 페이지를 DESIGN.md 기준으로 다시 만들어줘"
-    - "Legacy 톤 마이그레이션"
+    - "기본 톤 마이그레이션"
 
 # ============================================================
 # 2. 서비스 본질 (왜 이 톤인가)
@@ -32,11 +32,16 @@ context:
   reference_brand: "Airbnb (현재 메인 페이지 톤이 이 방향)"
 
 # ============================================================
-# 3. 표준 (Legacy 모드만 표준)
+# 3. 표준 (기본 톤 = 우리의 유일한 디자인)
 # ============================================================
+# ⚠️ 옛 모드 이름("legacy" / "premium")은 버렸다. "legacy"가 '옛날꺼'처럼 들려서
+#    "레거시→프리미엄으로 업그레이드해야지"라는 정반대 오해를 계속 유발했음(드리프트의 원인).
+#    과거 premium(고급/호텔 톤)은 A/B 실험용이었고 폐기됨(PREMIUM_TEARDOWN, 2026-06 — 토글 designMode.js 삭제).
+#    → 이제 디자인은 하나뿐 = 아래 "기본 톤(teal)". 모드 토글 없음.
+#    (파일명에 남은 "*Legacy*" 접미사는 그때의 정식본이란 뜻일 뿐 — 새 이름은 "기본 톤".)
 standard:
   framework: "Next.js 16 + Tailwind CSS"
-  design_mode: "legacy"   # src/lib/designMode.js — DEFAULT_MODE = 'legacy'
+  design: "기본 톤 (teal) — 단일 디자인, 모드 토글 없음"
   reference_pages:
     - "/"          # 홈 — Airbnb 스타일 refactor (commit b7a0179)
     - "/hospitals" # 병원 목록
@@ -217,6 +222,7 @@ deprecated:
 - **2026-05-19**: 최초 작성. Legacy 모드 표준화. Premium 토큰 deprecated.
 - **2026-05-21**: /treatments·/telemedicine·/faq·/hospitals/immune·404·500 Legacy 재구성 완료. radii 기본값 rounded-xl 명확화.
 - **2026-06-18**: 정합성(coherence) 원칙 명문화 + 빈 축 4개 보강 — elevation(그림자 용도별 1값), numeric(tabular-nums·숫자 위계), motion(전환 duration-200 통일), ux_states(빈/로딩/에러). StyleSeed(bitjaru) 칼럼 분석에서 우리 코드에 실재하던 축 미고정(그림자 5종 난무·tabular-nums 0회)을 발견해 반영. 도구는 미도입, 원칙만 흡수.
+- **2026-07-01**: 활성 디자인 명칭을 "legacy 모드" → **"기본 톤"** 으로 개명. 이유: "legacy(옛날꺼)"라는 이름이 "premium으로 업그레이드해야 한다"는 정반대 오해를 반복 유발(premium_drift의 근본원인 중 하나). "두 모드(legacy/premium)" 틀을 버리고 "단일 디자인 + 금지요소 목록"으로 단순화. 삭제된 참조(`src/lib/designMode.js`·`src/legacy-pages/`) 정정. 컴포넌트 파일명의 `*Legacy*` 접미사는 그대로 둠(import·충돌 위험, 오해와 무관).
 
 ---
 
