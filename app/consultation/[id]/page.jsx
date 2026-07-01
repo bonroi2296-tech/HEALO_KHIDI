@@ -454,13 +454,20 @@ export default function ConsultationRoomPage() {
   const c = COPY[lang] || COPY.en;
   const consultationId = params.id;
 
-  // Guest mode: URL 에 ?invite=<token> 있으면 계정 없이 입장 가능
+  // 링크 하나로 통일: URL 의 ?invite=<token> 은 "이 방 입장권"이다.
+  //   · 로그인한 참가자(코디/의사/환자계정)가 이 링크를 열면 → 계정(staff) 모드로 입장(토큰 무시).
+  //   · 로그인 안 한 사람이 열면 → 게스트(이름 입력) 모드로 입장.
+  //   즉 코디는 이 링크로 staff 로 들어가고, 같은 링크를 그대로 환자에게 보내면 환자는 guest 로 들어온다.
   const inviteToken = searchParams?.get("invite") || null;
-  const isGuestMode = !!inviteToken;
+  // 로그인 참가자로 확인되면 true → 그땐 초대토큰이 URL 에 있어도 게스트가 아니라 계정 모드.
+  const [staffAuthed, setStaffAuthed] = useState(false);
+  // 로그인 참가자인지 판정 중(이 링크를 staff/guest 어느 쪽으로 열지 결정) — 그 동안 게스트 폼을 숨긴다.
+  const [checkingAuth, setCheckingAuth] = useState(true);
+  const isGuestMode = !!inviteToken && !staffAuthed;
 
   // Core state
   const [consultation, setConsultation] = useState(null);
-  const [loading, setLoading] = useState(!isGuestMode); // 게스트는 초기엔 이름 입력 폼 표시
+  const [loading, setLoading] = useState(true);
   const [livekitToken, setLivekitToken] = useState("");
   const [livekitUrl, setLivekitUrl] = useState("");
   const [connected, setConnected] = useState(false);
@@ -521,7 +528,7 @@ export default function ConsultationRoomPage() {
 
   // 게스트 입장 폼이 떠 있는 동안 카메라 미리보기 — 권한도 미리 받아 통화 중 권한팝업 방지
   useEffect(() => {
-    if (!isGuestMode || livekitToken) return;
+    if (checkingAuth || !isGuestMode || livekitToken) return;
     let cancelled = false;
     (async () => {
       try {
@@ -541,7 +548,7 @@ export default function ConsultationRoomPage() {
       cancelled = true;
       stopPreview();
     };
-  }, [isGuestMode, livekitToken, stopPreview]);
+  }, [checkingAuth, isGuestMode, livekitToken, stopPreview]);
 
   const openInExternalBrowser = useCallback(() => {
     const url = window.location.href;
@@ -668,8 +675,8 @@ export default function ConsultationRoomPage() {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            // 게스트(초대링크)는 계정이 없으므로 invite 토큰으로 번역 API 인증
-            ...(inviteToken ? { "X-Guest-Token": inviteToken } : {}),
+            // 게스트(초대링크·미로그인)만 invite 토큰으로 인증. 로그인 참가자(staff)는 계정 쿠키로.
+            ...(isGuestMode ? { "X-Guest-Token": inviteToken } : {}),
           },
           body: JSON.stringify({
             text,
@@ -692,7 +699,7 @@ export default function ConsultationRoomPage() {
         setIsTranslating(false);
       }
     },
-    [myLang, targetLang, consultationId, isTranslating, inviteToken, applyTranslation]
+    [myLang, targetLang, consultationId, isTranslating, isGuestMode, inviteToken, applyTranslation]
   );
 
   // ── 상대방 자막 수신 핸들러 (DataChannel) ──
@@ -923,17 +930,21 @@ export default function ConsultationRoomPage() {
     };
   }, [admissionId, admissionStatus, consultationId, toast]);
 
-  // ── Fetch consultation + LiveKit token (authenticated mode) ──
+  // ── 신원 판정 + (계정 모드면) 세션·LiveKit 토큰 로드 ──
+  // 링크 하나로 통일: 로그인 세션이 있으면 '이 상담의 참가자인지' 먼저 확인한다.
+  //   · 참가자면 → 계정(staff) 모드 입장 (URL 에 초대토큰이 있어도 계정 우선).
+  //   · (참가자 아님 또는 미로그인) + 초대토큰 있음 → 게스트 폼(이름 입력)으로 폴백.
+  //   · 미로그인 + 초대토큰 없음 → 인증오류(계정 전용 진입 링크).
   useEffect(() => {
-    if (isGuestMode) return; // guest 는 별도 플로우
     const init = async () => {
       try {
         const { data: sessionData } = await supabase.auth.getSession();
         const token = sessionData?.session?.access_token;
 
         if (!token) {
-          toast.error(c.authError);
-          setLoading(false);
+          // 로그인 안 됨 — 초대토큰 있으면 게스트로(폼 표시), 없으면 인증오류
+          if (!inviteToken) toast.error(c.authError);
+          setCheckingAuth(false);
           return;
         }
 
@@ -944,10 +955,15 @@ export default function ConsultationRoomPage() {
         const detailResult = await detailRes.json();
 
         if (!detailResult.ok) {
-          toast.error(c.sessionNotFoundToast);
-          setLoading(false);
+          // 로그인은 됐지만 이 상담 참가자가 아님 — 초대토큰 있으면 게스트로 폴백, 없으면 세션없음
+          if (!inviteToken) toast.error(c.sessionNotFoundToast);
+          setCheckingAuth(false);
           return;
         }
+
+        // 참가자 확인 → 계정(staff) 모드로 확정 (isGuestMode 가 false 로 바뀜)
+        setStaffAuthed(true);
+        setCheckingAuth(false);
 
         const session = detailResult.data;
         setConsultation(session);
@@ -1019,21 +1035,24 @@ export default function ConsultationRoomPage() {
       } catch (error) {
         console.error("[ConsultationRoom] init error:", error);
         toast.error(c.loadFailed);
+        setCheckingAuth(false);
       } finally {
         setLoading(false);
       }
     };
 
     init();
-  }, [consultationId, isGuestMode]);
+  }, [consultationId]);
 
   // ── 상담 API 공용 인증 헤더 (게스트=초대토큰 / 계정=Bearer) ──
   const getConsultAuthHeaders = useCallback(async () => {
-    if (inviteToken) return { "X-Guest-Token": inviteToken };
+    // 게스트(초대토큰·미로그인) 모드일 때만 X-Guest-Token. 로그인 참가자(staff)면 계정 Bearer 로
+    // 보내 채팅·자료 등이 게스트가 아니라 실제 역할(코디/의사)로 기록되게 한다.
+    if (isGuestMode) return { "X-Guest-Token": inviteToken };
     const { data } = await supabase.auth.getSession();
     const t = data?.session?.access_token;
     return t ? { Authorization: `Bearer ${t}` } : null;
-  }, [inviteToken]);
+  }, [isGuestMode, inviteToken]);
 
   // 서버 메시지 row(message/sender_role) → 렌더 형태(message_text/sender_name)로 정규화
   const normalizeMsg = useCallback((row) => ({
@@ -1496,8 +1515,8 @@ export default function ConsultationRoomPage() {
     }
   };
 
-  // ── Guest mode: 이름 입력 폼 먼저 표시 ──
-  if (isGuestMode && !livekitToken) {
+  // ── Guest mode: 이름 입력 폼 먼저 표시 (staff 여부 판정이 끝난 뒤에만) ──
+  if (isGuestMode && !livekitToken && !checkingAuth) {
     return (
       <div className="w-full min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-slate-900 to-teal-950 text-white p-4">
         <div className="max-w-md w-full bg-gray-800/90 backdrop-blur rounded-2xl shadow-2xl overflow-hidden border border-gray-700">
@@ -1620,7 +1639,7 @@ export default function ConsultationRoomPage() {
   }
 
   // ── Loading / Error states ──
-  if (loading) {
+  if (loading || checkingAuth) {
     return (
       <div className="w-full h-screen flex items-center justify-center bg-gray-900">
         <div className="text-white text-center">

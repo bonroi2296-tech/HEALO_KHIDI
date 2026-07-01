@@ -55,16 +55,11 @@ export default function CoordinatorConsultationsPage() {
 
   useEffect(() => { fetchData(); }, [filter]);
 
-  const handleJoin = (id) => router.push(`/consultation/${id}`);
-
-  // 환자 초대 링크(계정 없이 입장하는 게스트 링크) 발급 → 클립보드 복사 + 등록 이메일 자동발송.
-  // ⚠ '상담 시작'으로 뜨는 코디 본인 화면 URL(초대 토큰 없음)을 그대로 환자에게 주면
-  //    환자(로그아웃 상태)는 "인증 오류. 다시 로그인하세요"에 막힌다 → 반드시 이 버튼으로 만든
-  //    링크(/consultation/…?invite=…)를 보낼 것.
-  const handleIssueInvite = async (id) => {
+  // 상담 링크(초대 토큰 포함) 1개 발급 → API 응답 반환. 하나의 링크로 코디 입장 + 환자 공유 통일.
+  const issueInvite = async (id) => {
     const supabase = createSupabaseBrowserClient();
     const { data: { session } } = await supabase.auth.getSession();
-    if (!session) { toast.error('인증 오류 — 다시 로그인해주세요'); return; }
+    if (!session) { toast.error('인증 오류 — 다시 로그인해주세요'); return null; }
     try {
       const res = await fetch(`/api/khidi/consultation/${id}/invite`, {
         method: 'POST',
@@ -77,23 +72,44 @@ export default function CoordinatorConsultationsPage() {
       });
       const result = await res.json();
       if (!res.ok || !result.ok) {
-        toast.error(`초대 링크 생성 실패: ${result.error || res.status}`);
-        return;
+        toast.error(`상담 링크 생성 실패: ${result.error || res.status}`);
+        return null;
       }
-      try {
-        await navigator.clipboard.writeText(result.inviteUrl);
-        toast.success(
-          result.emailSent
-            ? '환자 초대 링크를 복사했고, 등록된 이메일로도 발송했습니다'
-            : `환자 초대 링크가 클립보드에 복사됐습니다 (만료: ${new Date(result.expiresAt).toLocaleString('ko-KR')})`
-        );
-      } catch {
-        // 클립보드 권한 없으면 prompt 로 직접 복사
-        prompt('아래 링크를 복사해 환자에게 공유하세요:', result.inviteUrl);
-      }
+      return result;
     } catch (err) {
-      console.error('[handleIssueInvite] error:', err);
-      toast.error('초대 링크 생성 실패');
+      console.error('[issueInvite] error:', err);
+      toast.error('상담 링크 생성 실패');
+      return null;
+    }
+  };
+
+  // 상담 시작 = 링크 하나로 통일: 코디도 이 초대 링크로 입장한다(로그인돼 있어 자동으로 staff 로 인식됨).
+  //   → 코디 주소창에 뜨는 게 곧 '환자에게 그대로 보내면 되는 링크'. 편하게 바로 클립보드에도 복사.
+  //   (링크 발급이 실패해도 코디는 계정으로 바로 입장하도록 폴백)
+  const handleStart = async (id) => {
+    const result = await issueInvite(id);
+    if (!result?.inviteUrl) { router.push(`/consultation/${id}`); return; }
+    try {
+      await navigator.clipboard.writeText(result.inviteUrl);
+      toast.success('상담 링크를 복사했어요 — 환자에게 붙여넣어 보내세요. 나는 지금 입장합니다');
+    } catch { /* 클립보드 권한 없으면 조용히 패스 — 입장은 계속 */ }
+    // 절대 URL(origin 포함) → 클라이언트 라우팅용 상대경로로
+    router.push(result.inviteUrl.replace(/^https?:\/\/[^/]+/, ''));
+  };
+
+  // 링크만 복사(입장 없이 환자에게 먼저 보낼 때) — 위와 같은 종류의 링크.
+  const handleCopyLink = async (id) => {
+    const result = await issueInvite(id);
+    if (!result?.inviteUrl) return;
+    try {
+      await navigator.clipboard.writeText(result.inviteUrl);
+      toast.success(
+        result.emailSent
+          ? '상담 링크를 복사했고, 등록된 이메일로도 발송했습니다'
+          : `상담 링크가 클립보드에 복사됐습니다 (만료: ${new Date(result.expiresAt).toLocaleString('ko-KR')})`
+      );
+    } catch {
+      prompt('아래 링크를 복사해 환자에게 공유하세요:', result.inviteUrl);
     }
   };
 
@@ -218,18 +234,19 @@ export default function CoordinatorConsultationsPage() {
                       {(c.status === 'scheduled' || c.status === 'active') && (
                         <>
                           <button
-                            onClick={() => handleJoin(c.id)}
+                            onClick={() => handleStart(c.id)}
                             className="flex items-center gap-2 px-4 py-2 bg-teal-700 text-white rounded-lg hover:bg-teal-800 transition text-sm font-medium"
+                            title="이 링크로 내가 입장하고, 같은 링크가 복사됩니다(환자에게 붙여넣어 전송)"
                           >
                             <Phone size={14} />
                             {c.status === 'active' ? '상담 재진입' : '상담 시작'}
                           </button>
                           <button
-                            onClick={() => handleIssueInvite(c.id)}
+                            onClick={() => handleCopyLink(c.id)}
                             className="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-700 border border-blue-200 rounded-lg hover:bg-blue-100 transition text-sm font-medium"
-                            title="환자에게 보낼 초대 링크를 만들어 복사(+등록 이메일 발송)"
+                            title="입장 없이 환자에게 보낼 링크만 복사(+등록 이메일 발송) — 같은 링크"
                           >
-                            🔗 환자 초대 링크
+                            🔗 환자 링크 복사
                           </button>
                         </>
                       )}
