@@ -269,6 +269,24 @@ function MicOffBanner({ failed, onClear }) {
   );
 }
 
+// ── 상대 대기 안내 (LiveKitRoom 내부 전용) ──
+// 연결은 됐는데 아직 나 혼자면 검은 화면이 '고장'처럼 보인다 → "상대를 기다리는 중" 명시.
+// (PO 제보 '각각 입장은 되는데 서로 안 보임'의 절반은 '상대 없음'과 '고장'이 구분 안 되는 혼란.)
+function WaitingForOthers() {
+  const lang = useLang();
+  const c = COPY[lang] || COPY.en;
+  const participants = useParticipants();
+  const state = useConnectionState();
+  if (state !== ConnectionState.Connected) return null; // 연결 중/실패는 별도 UI가 담당
+  if (participants.length > 1) return null; // 상대가 방에 있으면 안 띄움
+  return (
+    <div className="absolute inset-0 z-10 flex flex-col items-center justify-center pointer-events-none text-center px-6">
+      <span className="w-2.5 h-2.5 rounded-full bg-teal-400 animate-pulse mb-3" />
+      <p className="text-gray-300 text-sm">{c.waitingForOthers}</p>
+    </div>
+  );
+}
+
 // ── 방 정보 오버레이 (LiveKitRoom 내부 전용) — 참가자 수 + 경과 시간 ──
 // 줌 벤치: 다자 미팅에서 몇 명 들어왔는지 + 상담 진행 시간(전문적 느낌).
 function RoomInfoOverlay() {
@@ -2055,6 +2073,7 @@ export default function ConsultationRoomPage() {
               />
               <div className="flex-1 relative" style={{ height: "calc(100% - 64px)" }}>
                 <VideoGrid />
+                <WaitingForOthers />
                 <RoomAudioRenderer />
                 <AudioUnblock />
                 <MediaEnablePrompt onResult={(micOk) => setMicActivationFailed(!micOk)} />
