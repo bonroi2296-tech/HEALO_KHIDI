@@ -82,13 +82,15 @@ Zoho에 `dmarc@healwith.co.kr` 별칭 하나 만들고:
 
 ---
 
-## 4순위 🟢 CIS 타겟 = Yandex·Mail.ru 우체국(Postmaster) 등록
+## 4순위 🟢 우체국(Postmaster) 등록 — 실제 해보니 (2026-07-01 확인)
 
-러시아·카자흐 수신자는 대부분 Yandex·Mail.ru 사용. 각 우체국에 신원등록하면 "그 우체국에서 내 평판 점수"가 대시보드로 보임.
+각 우체국에 도메인 등록하면 "그 우체국에서 내 평판·인박스율"이 대시보드로 보임. **단, 우체국 등록은 딜리버러빌리티를 직접 올리는 게 아니라 "성적표 보기"용 보너스다.** 실제 인박스 도달은 SPF·DKIM·DMARC(위 1~3순위)가 결정. CIS 각 우체국의 통과/실패는 **DMARC 리포트(Postmark)가 이미 자동 집계**하므로, 아래 대시보드가 없어도 감시는 됨.
 
-- **Yandex Postmaster** — https://postmaster.yandex.com (이미 `yandex-verification` 심어져 있음 → 등록만 마저)
-- **Mail.ru Postmaster** — https://postmaster.mail.ru (러시아 최대 웹메일, 필수)
-- **Google Postmaster Tools** — https://postmaster.google.com (`google-site-verification` 이미 있음 → 바로 추가 가능)
+- ✅ **Google Postmaster Tools** — https://postmaster.google.com — **등록 완료.** (`google-site-verification` TXT 추가 → verified). Gmail 수신자용.
+- ❌ **Yandex Postmaster/Postoffice** — **서비스 폐쇄됨(2020-09).** `postmaster/postoffice.yandex.*` 전부 404. 대체재 없음 → Yandex 성적표는 DMARC 리포트로 갈음.
+- ⛔ **Mail.ru Postmaster** — https://postmaster.mail.ru — 살아있으나 **로그인 계정(VK ID) 생성이 한국 번호·IP에서 차단됨** ("사용 가능한 확인 방법 없음"). 러시아 번호+러시아 IP(VPN) 필요 → 대시보드 하나 위해 그 수고는 비추. 보류. Mail.ru 성적표도 DMARC 리포트로 갈음.
+
+> 요지: **Google만 등록되면 실질 충분.** Yandex·Mail.ru는 도구가 죽었거나(폐쇄) 접근이 막혔지만(지역차단), 그쪽 딜리버러빌리티 데이터는 DMARC rua 리포트에 다 들어온다.
 
 ---
 
@@ -105,9 +107,11 @@ Zoho에 `dmarc@healwith.co.kr` 별칭 하나 만들고:
 
 ## 요약 체크리스트
 
-- [ ] **(오늘)** 가비아 `_dmarc` TXT를 리포트 주소 포함으로 교체 (1순위)
-- [ ] Postmark DMARC 무료 가입 → rua 주소 연결
-- [ ] 2~4주 후 `p=quarantine` → `p=reject` 단계 상향 (2순위)
+- [x] **가비아 `_dmarc` TXT를 리포트 주소 포함으로 교체 (1순위)** — 2026-07-01 완료, DNS 전파 확인
+- [x] **Postmark DMARC 무료 가입 → rua 주소 연결** — 2026-07-01 완료 (리포트 → admin@healwith.co.kr)
+- [x] **Google Postmaster 등록** — 2026-07-01 완료 (verified)
+- [ ] 2~4주 후 `p=quarantine` → `p=reject` 단계 상향 (2순위) ← **다음 할 일**
 - [ ] 콜드 아웃리치용 서브도메인/도메인 분리 결정·개설 (3순위)
-- [ ] Yandex·Mail.ru·Google Postmaster 등록 (4순위)
 - [ ] Zoho DKIM 2048비트 교체 (5순위)
+- ~~Yandex Postmaster~~ — 서비스 폐쇄(2020), 할 것 없음
+- ~~Mail.ru Postmaster~~ — 한국 번호/IP 차단으로 계정생성 불가, 보류 (DMARC 리포트로 갈음)
