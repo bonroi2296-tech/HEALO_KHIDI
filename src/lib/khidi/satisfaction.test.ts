@@ -54,13 +54,41 @@ describe("avgSatisfaction100", () => {
     ).toBe(80);
   });
 
-  it("null/미응답 점수는 0점으로 합산한다 (기존 동작 보존)", () => {
-    // (4+4+4+4+0)/5 = 3.2 → ×20 = 64
+  it("null/미응답 문항은 0점이 아니라 평균에서 제외한다 (버그수정: 부분응답 0점 깎기 방지)", () => {
+    // 응답한 4문항 평균 (4+4+4+4)/4 = 4 → ×20 = 80 (예전엔 null을 0으로 넣어 64로 깎였음)
     expect(
       avgSatisfaction100([
         { q1_score: 4, q2_score: 4, q3_score: 4, q4_score: 4, q5_score: null },
       ])
-    ).toBe(64);
+    ).toBe(80);
+  });
+
+  it("문항을 하나도 안 매긴 응답은 유효 응답에서 제외한다", () => {
+    // 전부 null인 응답 1건 + 만점 1건 → 만점만 집계 = 100
+    expect(
+      avgSatisfaction100([
+        { q1_score: null, q2_score: null, q3_score: null, q4_score: null, q5_score: null },
+        { q1_score: 5, q2_score: 5, q3_score: 5, q4_score: 5, q5_score: 5 },
+      ])
+    ).toBe(100);
+    // 전부 null만 있으면 null (유효 응답 0)
+    expect(
+      avgSatisfaction100([
+        { q1_score: null, q2_score: null, q3_score: null, q4_score: null, q5_score: null },
+      ])
+    ).toBeNull();
+  });
+
+  it("minResponses: 유효 응답이 임계 미만이면 null (표본 부족 가드)", () => {
+    const one = [{ q1_score: 5, q2_score: 5, q3_score: 5, q4_score: 5, q5_score: 5 }];
+    expect(avgSatisfaction100(one, { minResponses: 3 })).toBeNull(); // 1건 < 3
+    expect(avgSatisfaction100(one)).toBe(100); // 가드 없으면 기존대로
+    const three = [
+      { q1_score: 5, q2_score: 5, q3_score: 5, q4_score: 5, q5_score: 5 },
+      { q1_score: 5, q2_score: 5, q3_score: 5, q4_score: 5, q5_score: 5 },
+      { q1_score: 5, q2_score: 5, q3_score: 5, q4_score: 5, q5_score: 5 },
+    ];
+    expect(avgSatisfaction100(three, { minResponses: 3 })).toBe(100); // 3건 = 통과
   });
 
   it("kpi.ts 와 satisfaction/route.ts 가 같은 값을 내야 한다 (단일 소스 회귀방지)", () => {
