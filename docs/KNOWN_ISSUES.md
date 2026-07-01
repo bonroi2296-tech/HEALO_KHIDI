@@ -21,11 +21,11 @@
 > 5축(보안·i18n·데이터/RLS·AI/RAG·위생) 병렬 감사 + 실DB 점검. **고친 것**(별도 PR): 옛도메인 잔재(POSTMORTEMS #49)·AI 송출 전 레드라인 차단+triage PII 마스킹(#50)·환자 목록 2페이지 6개어·보안 LOW(admin import 에러코드화·translate 토큰상한)·약한비번 교체. 아래는 **의도적으로 남긴 후속**.
 
 - **환자 상세 페이지 광범위 한국어** (🟡 핵심시장): `/patient/cost-estimates/[id]`·`/patient/visa/applications`·`/patient/visa/applications/[id]` 는 페이지 전체가 한국어 하드코딩(상태라벨·본문). 이번엔 감사가 CRITICAL로 지목한 **목록 2페이지(consultations·cost-estimates)만 6개어 완료** + 상세페이지는 alert/에러표시의 `err.message` 누수만 닫음(보안). 상세 본문 6개어화는 후속(목록 페이지의 page-local COPY 패턴 재사용).
-- **MEDIUM 하드코딩 문자열**: `consultation/[id]/page.jsx` aria-label "Toggle chat panel"(영어, 2883줄 God컴포넌트라 보류)·`DocumentsClient.jsx` placeholder "e.g. Blood test from March 2026"(영어). 저위험.
+- **MEDIUM 하드코딩 문자열**: `consultation/[id]/page.jsx` aria-label "Toggle chat panel"(영어, 2883줄 God컴포넌트라 **보류 유지** — 스크린리더 라벨 하나 위해 God컴포넌트 수정은 위험>실익). ~~`DocumentsClient.jsx` placeholder "e.g. Blood test from March 2026"~~ ✅ **해결(2026-07-01)**: `descPlaceholder` 6개어 라벨 추가·연결(`l(LABELS.descPlaceholder)`).
 - **RAG ingest taskType**: `getEmbedding`이 적재·질의 모두 `RETRIEVAL_QUERY` 사용. 적재는 `RETRIEVAL_DOCUMENT`가 정석(비대칭 검색 품질↑). **단 기존 18청크 전체 재적재가 동반돼야 코퍼스 일관** → 반쪽 적용은 오히려 불일치라 보류. 재적재 시 함께 적용.
 - **`rag_chunks_used=0`/redline 적발률 경보 없음**: 지표는 metadata에 찍히는데 집계·경보가 없음(#48 교훈). cron 집계 + operationalAlerts 연결 권장.
 - **admission-status 무인증 GET** (🟢 허용위험): `/api/khidi/consultation/[id]/admission-status` 는 두 무작위 UUID 일치 + 상태 enum 만 반환 = 계정없는 게스트 폴링 의도 설계. 인증 강제 시 게스트 플로 깨짐 → 그대로 둠.
-- **cron 비상수시간 비교** (🟢 저위험): `automation`·`kpi-snapshot`·`run-regression-tests`·`crawl` 라우트가 `!==`로 CRON_SECRET 비교(다른 cron은 `timingSafeEqual`). 고엔트로피 시크릿이라 실효 위험 낮음 — 일관성 정리 후속.
+- ~~**cron 비상수시간 비교** (🟢 저위험): `automation`·`kpi-snapshot`·`run-regression-tests`·`crawl` 라우트가 `!==`로 CRON_SECRET 비교~~ ✅ **해결(확인 2026-07-01)**: 전 cron 라우트가 공용 `verifyCronSecret`(`src/lib/security/cronAuth.ts`, `timingSafeEqual`)로 통일됨. `!==` 단순비교 잔재 없음(전수 grep 확인). 일부 라우트가 아직 로컬 `verifyCronSecret`(동일 timingSafeEqual) 복붙본 사용 — 버그 아닌 중복, 저우선 통합만 남음.
 - **Supabase Auth 유출비번 보호 꺼짐** (🟢, PO 콘솔 1클릭): Authentication 설정에서 HaveIBeenPwned 체크 켜기 권장.
 - **테스트 문의/국적값 오염**: `inquiries` #26~31(검증 더미) + 국적값 혼재(`KZ`·`Kazakhstan`·`kazah`·`test`·null). 데이터 삭제는 비가역이라 자율 보류 — PO 확인 후 정리(유치 대시보드 집계 정확도).
 
@@ -134,7 +134,7 @@
 6. **[데이터 유실+PII] step2 의 `cancer_patient_intakes` upsert 가 항상 무음 실패** — `inquiry_id` UNIQUE 제약이 없어(`onConflict:"inquiry_id"`) 매번 throw→catch 로 버려짐 → 구조적 intake 저장 안 됨. 게다가 `current_treatment` 를 **평문**으로 쓰려 함(같은 값 inquiries.intake 엔 암호화). **수정이 엉킴**: 고치면 step2 인콰이어리가 `/api/khidi/intake` 큐(EscalationQueue)에 cancer_type 빈 채로 등장하는 등 **제품 동작이 바뀜** → select-then-write + `current_treatment_encrypted` 사용 + EscalationQueue 영향 검토를 PO 와 함께.
 7. **[KPI 정확도] 공개 문의 POST 레이트리밋이 인메모리** — `inquiries/step1·step2·create`·`guest-join` 등은 `checkRateLimit`(인스턴스별 Map, 콜드스타트 리셋)라 분산 봇에 약함. `checkRateLimitPersistent`(DB, 이미 chat 에 적용)로 이관 권장 → 스팸 리드가 퍼널 KPI 오염 방지.
 8. ~~**[K-01 잠재] 화상방 게스트 targetLang 하드코딩**~~ ✅ **해결(#360)**: 게스트 입장 시 세션 설정 언어(`patient_language`/`doctor_language`)로 상대 언어 결정하도록 교체(위 "진짜 남은 출시 리스크" #3과 동일 건).
-9. **[저] 만족도 환산이 null 점수를 0 으로** — `satisfaction.ts:38-45`. 현재 submit 이 5문항 필수라 발현 안 함. 부분응답 유입 시 K-03 끌어내림. (의도된 정의라 변경은 K-03 공식 변경 = PO 판단.)
+9. ~~**[저] 만족도 환산이 null 점수를 0 으로** — `satisfaction.ts`~~ ✅ **해결(2026-07-01, 태스크 D)**: `avgSatisfaction100` 이 미응답(null) 문항을 0점이 아니라 **평균 분모에서 제외**하도록 교정(부분응답을 0점으로 깎던 버그) + `minResponses` 표본부족 가드 추가(옵션, 기본 off). **현 평가점수 영향 0**(실측: `survey_responses` 0행 — 실 응답 자체가 아직 없음). 단위테스트 3건 추가(총 10건 통과). ⚠️ **min-N 을 K-03 실집계에 켤지(임계 N)는 PO 결정** — 켜면 응답 N건 미만일 때 K-03 을 '표본부족'으로 처리(기본은 안 켬).
 
 > **보안 감사 결과**: 고신뢰 취약점 0(인증·암호화·게스트토큰 견고). 위 #7 인메모리 레이트리밋만 하드닝 권장.
 
