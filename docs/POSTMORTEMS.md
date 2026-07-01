@@ -8,6 +8,21 @@
 
 ---
 
+## #60 — "유령 참가자 방지"(#527)가 모바일 실참가자를 통화 중 끊어버림 — pagehide/visibilitychange→disconnect 가 iOS에서 정상상태에도 튐 (PO 제보, 2026-07-01)
+
+**무슨 일** — PO가 "어제(=#527 전)는 화상 2인 통화가 됐는데, 화면전환·번역 고친(#527) 뒤로 안 된다. 아이폰(5G)이 '연결 중'에서 2분 넘게 멈추고 서로 안 보인다"고 제보. 원인: #527이 넣은 `PresenceGuard`가 유령 참가자(폰 화면 끄고 이탈)를 막으려고 **①`pagehide` → 즉시 `room.disconnect()` ②화면숨김 60초 → `room.disconnect()`** 를 했는데, **모바일(특히 iOS Safari)은 pagehide·visibilitychange 가 '통화 중 정상 상태'에서도 수시로 발생**한다(주소창 숨김/노출·화면 잠깐 꺼짐·앱 전환·미러링). 그래서 실제 참가자가 통화 도중·심지어 최초 연결 중에 끊겨 "연결 중 멈춤/서로 안 보임"이 됨.
+
+**왜 못 잡았나 (근본원인)** — ①**LiveKit 2인 실기기 검증 불가 환경**이라 `PresenceGuard`를 데스크톱 가정으로 넣고 모바일 이벤트 빈발성을 못 봄(KNOWN_ISSUES가 "2인 라이브 검증 필요"라고 계속 경고하던 바로 그 사각지대). ②`pagehide→disconnect`는 LiveKit 기본 `disconnectOnPageLeave`와 **중복**인데 위험만 추가(기본은 '진짜 이탈'만, 우리 건 오탐 다발). ③빌드·CI는 통과 → "동작"으로 착각(빌드≠실기기 동작). ④유령(사소·cosmetic)을 막으려다 통화(치명)를 깼다 = 트레이드오프 역전.
+
+**어떻게 고쳤나** — `PresenceGuard`를 **no-op(공격적 disconnect 전부 제거)**으로. '진짜 이탈'은 LiveKit 기본이 처리, 남는 유령은 방 `departureTimeout`/`emptyTimeout` + ICE 타임아웃이 서버에서 정리. (유령 타일 잠깐 남음 ≪ 통화 끊김.) 같은 PR에 첫사용자 방탄(입장시 카메라·마이크 자동ON·소리 자동재생 해제·인앱 큰 안내)도 포함.
+
+**재발 방지**
+- **교훈: 실시간(WebRTC) 기능에 "정리/최적화" 넣을 때 모바일 라이프사이클 이벤트(pagehide·visibilitychange·freeze)로 연결을 끊는 로직은 금지**에 가깝게 신중히. 데스크톱에선 안 보이고 모바일 실기기에서만 터진다. LiveKit 기본 이탈처리 + 서버 타임아웃을 신뢰.
+- **"빌드 통과 = 동작" 재발**(POSTMORTEMS #55와 동종): 화상방 변경은 반드시 **2기기(가능하면 iOS+셀룰러) 실통화 검증** 후 프로덕션. 자동검증 불가 영역이라 PO 실기기 테스트를 릴리즈 게이트로.
+- (후속 후보) 같은 기기 2탭이 같은 링크로 들어오면 stable-identity+`removeParticipant`가 서로 킥 — 실사용(다른 기기)엔 무해하나 인지. 필요 시 별도.
+
+---
+
 ## #59 — 코디네이터가 연 상담방에 외부 환자가 못 들어옴 — 코디 화면엔 "환자 초대 링크" 버튼이 아예 없어 코디 본인 주소창 URL(토큰 없음)을 공유했다 (PO 제보, 2026-07-01)
 
 **무슨 일** — PO(코디 계정)가 `/coordinator/consultations`에서 「상담 시작」으로 상담방에 입장(코디는 로그인 상태라 정상 입장)한 뒤, 그 링크를 외부 환자에게 보냈더니 환자 폰에서 **"Authentication error. Please log in again." + "상담 세션을 찾을 수 없습니다."**로 막힘. 원인: 게스트(계정 없는 환자) 입장은 `/consultation/[id]?invite=<토큰>` 형태의 **초대 링크**로만 되는데, 코디가 공유한 건 토큰 없는 맨 URL(`/consultation/[id]`) — 이건 **로그인 사용자 전용 경로**로 빠져 세션토큰이 없으니 `authError` 토스트 + `sessionNotFound` 렌더가 뜬다. 정작 **코디 화면(`app/coordinator/consultations/page.jsx`)엔 초대 링크를 만드는 버튼이 없었다**(어드민 `app/admin/consultations/page.jsx`엔 「🔗 환자 초대 링크」가 있음). 그래서 코디는 줄 수 있는 게 자기 주소창 URL뿐이었다.
