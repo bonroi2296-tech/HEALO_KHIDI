@@ -270,32 +270,15 @@ function getDeviceId() {
 // 근거: LiveKit 공식문서(disconnectOnPageLeave는 visibilitychange 미처리) + Page Lifecycle 표준.
 // (재입장 시 옛 유령 즉시 제거는 서버 guest-join 의 안정 identity + removeParticipant 가 담당.)
 function PresenceGuard() {
-  const room = useRoomContext();
-  useEffect(() => {
-    if (!room) return;
-    const GHOST_MS = 60000;
-    let ghostTimer = null;
-    const onVisibility = () => {
-      if (document.visibilityState === "hidden") {
-        ghostTimer = setTimeout(() => {
-          room.disconnect().catch(() => {});
-        }, GHOST_MS);
-      } else if (ghostTimer) {
-        clearTimeout(ghostTimer);
-        ghostTimer = null;
-      }
-    };
-    const onPageHide = () => {
-      room.disconnect().catch(() => {});
-    };
-    document.addEventListener("visibilitychange", onVisibility);
-    window.addEventListener("pagehide", onPageHide);
-    return () => {
-      if (ghostTimer) clearTimeout(ghostTimer);
-      document.removeEventListener("visibilitychange", onVisibility);
-      window.removeEventListener("pagehide", onPageHide);
-    };
-  }, [room]);
+  // ⚠️ 회귀 수정 (2026-07-01): 이전 버전(#527)은 유령 참가자를 막으려고
+  //   · pagehide → 즉시 room.disconnect()
+  //   · 화면 숨김(visibilitychange=hidden) 60초 → room.disconnect()
+  //   를 했는데, 모바일(특히 iOS Safari)은 이 이벤트들이 '통화 중 정상 상태'에서도 수시로 튄다
+  //   (주소창 숨김/노출·화면 잠깐 꺼짐·앱 전환·화면 미러링). 그 결과 실제 참가자가 통화 도중,
+  //   심지어 최초 연결 중에 끊겨 "연결 중에서 멈춤 / 서로 안 보임"이 됐다(PO 제보: 실기기 iOS·5G).
+  //   → 공격적 자동 disconnect 를 제거한다. '진짜 이탈'(탭 닫기)은 LiveKit 기본
+  //   disconnectOnPageLeave 가 이미 처리하고, 남는 유령은 방의 departureTimeout/emptyTimeout +
+  //   LiveKit ICE 타임아웃이 서버에서 정리한다. (유령 타일이 잠깐 남는 건 통화가 끊기는 것보다 훨씬 사소.)
   return null;
 }
 
