@@ -163,7 +163,7 @@ const DOCTORS = [
     논문: { ko: ['Research on Ways to Attract Foreign Patients to a Korean Medicine Clinic (Frontiers in Medicine, 2025)'], en: ['Research on Ways to Attract Foreign Patients to a Korean Medicine Clinic (Frontiers in Medicine, 2025)'] },
   },
 
-  // ── 신촌점 (5명) ──
+  // ── 신촌점 (6명) ──
   { id: 25, branch: 'sinchon',
     name: { ko: '유형진', en: 'Yu Hyung-jin' },
     position: { ko: '신촌 대표원장', en: 'Sinchon Chief Director' },
@@ -188,18 +188,6 @@ const DOCTORS = [
     학력: { ko: ['산부인과 전문의', '이화여대 의과대학 의학과 졸업', '이화여대부속병원 수련', '경희대학교 의과대학 석사', '흑룡강 중의약대학교 졸업(Traditional Chinese Medicine)'], en: ['OB/GYN Specialist', 'Graduated from Ewha Womans University, College of Medicine', 'Residency at Ewha Womans University Hospital', 'M.S., Kyung Hee University College of Medicine', 'Graduated from Heilongjiang University of Chinese Medicine (TCM)'] },
     활동: { ko: ['대한 IMS학회 정회원', '대한 폐경학회 회원', '대한 노인병학회 회원'], en: ['Korean IMS Society Regular Member', 'Korean Menopause Society Member', 'Korean Geriatrics Society Member'] },
   },
-  { id: 24, branch: 'sinchon',
-    name: { ko: '정유진', en: 'Jung Yu-jin' },
-    position: { ko: '신촌 진료원장', en: 'Sinchon Attending Physician' },
-    subspecialty: { ko: '한방내과 전문의', en: 'KM Internal Medicine Specialist' },
-    photo: '/doctors/68ac464c700852.38470926.jpg',
-    thumb: '/doctors/68ac464c6fdee2.09872274.jpg',
-    keywords: { ko: ['#친절한','#꼼꼼한','#세심한','#성실한','#편안한설명','#쉬운설명'], en: ['#Friendly','#Thorough','#Attentive','#Diligent','#ComfortExplanation','#ClearExplanation'] },
-    경력: { ko: ['(前) 광덕안정한의원 부산하단점 수석원장', '(前) 휘림한방병원 진료원장', '(現) 신촌면력한방병원 진료원장'], en: ['(Former) Senior Director, Gwangdeok Anjeong KM Clinic Busan', '(Former) Attending Director, Hwirim KM Hospital', '(Current) Attending Director, Sinchon Immune Hospital'] },
-    학력: { ko: ['동의대학교 한의학과 한방내과 박사', '동의대학교 한의과 대학 졸업', '동의대학교 부속 한방병원 한방내과 전문의'], en: ['Ph.D. in KM Internal Medicine, Dong-Eui University', 'Graduated from Dong-Eui University, College of Korean Medicine', 'KM Internal Medicine Specialist, Dong-Eui University KM Hospital'] },
-    활동: { ko: ['대한 한의사 전문의 협회 정회원', '대한 한방 내과학회 정회원', '대한 암한의학회 정회원', '대한 통합암의학회 회원', '척추신경추나의학회 정회원'], en: ['Korean KM Specialist Association Regular Member', 'Korean KM Internal Medicine Society Regular Member', 'Korean Cancer KM Society Regular Member', 'Korean Society of Integrative Oncology Member', 'Spinal Nerve Chuna Medicine Society Regular Member'] },
-    논문: { ko: ['통합 의학 치료로 5년 생존 및 완전 관해에 도달한 췌장암 증례보고 (2023)', '위식도 역류질환에 대한 반하사심탕의 효과 연구경향 (2020)', '뇌졸중 후 중추성 통증·시상증후군에 대한 한약치료 체계적 고찰 (2019)', '약물유발성 구강건조증 치험 1례 (2018)'], en: ['5-year survival & complete remission of pancreatic cancer with integrative medicine (2023)', 'Research trends on Banhasasim-tang for GERD (2020)', 'Systematic review of herbal medicine for post-stroke central pain/thalamic syndrome (2019)', 'Case of drug-induced xerostomia treated with herbal medicine (2018)'] },
-  },
   { id: 23, branch: 'sinchon',
     name: { ko: '조수호', en: 'Cho Su-ho' },
     position: { ko: '신촌 진료원장', en: 'Sinchon Attending Physician' },
@@ -212,17 +200,39 @@ const DOCTORS = [
     활동: { ko: ['대한한방내과학회 정회원', '기능성소화불량 한의표준임상진료지침 개발 참여 연구원(실행위원)'], en: ['Korean KM Internal Medicine Society Regular Member', 'Researcher, KM Standard Clinical Practice Guideline for Functional Dyspepsia (Executive Committee)'] },
     논문: { ko: ['초음파 위배출 측정과 한의설문 간의 상관성 분석 (2018)', '약침치료로 호전된 급성 충수염 환자 1례 (2019)', 'Herbal medicine Banha-sasim-tang for functional dyspepsia: systematic review protocol (Medicine, 2019)'], en: ['Correlation analysis of ultrasound gastric emptying and KM questionnaire (2018)', 'A case of acute appendicitis improved by pharmacopuncture (2019)', 'Herbal medicine Banha-sasim-tang for functional dyspepsia: systematic review protocol (Medicine, 2019)'] },
   },
-  { id: 22, branch: 'sinchon',
-    name: { ko: '김민정', en: 'Kim Min-jeong' },
+  { id: 52, branch: 'sinchon',
+    name: { ko: '김서진', en: 'Kim Seo-jin' },
+    position: { ko: '신촌 진료원장', en: 'Sinchon Attending Physician' },
+    subspecialty: { ko: '통합면역 한방', en: 'Integrative Korean Medicine' },
+    photo: '/doctors/6a2273fbb73718.18716001.jpg',
+    thumb: '/doctors/6a2273fbb72a01.35454693.jpg',
+    keywords: { ko: ['#친절한','#세심한','#배려깊은','#신뢰가는','#공감있는','#부드러운'], en: ['#Friendly','#Attentive','#Considerate','#Reliable','#Empathetic','#Gentle'] },
+    경력: { ko: ['성신한방병원 일반수련의 수료', '(前) 경희365한의원 진료원장', '(現) 신촌면력한방병원 진료원장'], en: ['Completed general residency, Seongsin KM Hospital', '(Former) Attending Director, Kyung Hee 365 KM Clinic', '(Current) Attending Director, Sinchon Immune Hospital'] },
+    학력: { ko: ['경희대학교 한의과대학 졸업'], en: ['Graduated from Kyung Hee University, College of Korean Medicine'] },
+    활동: { ko: ['대한융합한의학회 정회원', '비만치료 전문가 과정 수료', '소아 내분비 질환 전문가 과정 수료'], en: ['Korean Convergence Medicine Society Regular Member', 'Obesity Treatment Expert Course Completed', 'Pediatric Endocrine Disorders Expert Course Completed'] },
+  },
+  { id: 53, branch: 'sinchon',
+    name: { ko: '진수현', en: 'Jin Su-hyeon' },
     position: { ko: '신촌 진료원장', en: 'Sinchon Attending Physician' },
     subspecialty: { ko: '한방내과 전문의', en: 'KM Internal Medicine Specialist' },
-    photo: '/doctors/68ac45367f95d4.17025580.jpg',
-    thumb: '/doctors/68ac45367f6ed2.58460098.jpg',
-    keywords: { ko: ['#부담없는','#상냥한','#믿을수있는','#자세한설명','#공감있는','#부드러운'], en: ['#Approachable','#Kind','#Trustable','#DetailedExplanation','#Empathetic','#Gentle'] },
-    경력: { ko: ['(現) 신촌면력한방병원 진료원장'], en: ['(Current) Attending Director, Sinchon Immune Hospital'] },
-    학력: { ko: ['경희대학교 한의과대학 졸업', '경희대학교 임상한의학과(소화기내과학) 석사', '강동경희대학교한방병원 일반수련의 수료', '강동경희대학교한방병원 한방내과 전문수련의 수료'], en: ['Graduated from Kyung Hee University, College of Korean Medicine', 'M.S. in Clinical KM (Gastroenterology), Kyung Hee University', 'Completed internship at Gangdong Kyung Hee University KM Hospital', 'Completed KM Internal Medicine fellowship at Gangdong Kyung Hee University KM Hospital'] },
-    활동: { ko: ['대한한방내과학회 정회원'], en: ['Korean KM Internal Medicine Society Regular Member'] },
-    논문: { ko: ['Herbal medicine for non-erosive reflux disease: systematic review & meta-analysis (Medicine, 2024)', '헬리코박터 파일로리 연관 위궤양의 감초사심탕 치료 연구 동향 (2024)', '염증성 장 질환에서 전침 중심 미주신경자극 고찰 (2023)', '딸꾹질에 대한 침 치료의 최근 임상 연구 동향 (2022)'], en: ['Herbal medicine for non-erosive reflux disease: systematic review & meta-analysis (Medicine, 2024)', 'Research trends on Gamchosasim-tang for H. pylori-associated gastric ulcer (2024)', 'Review of vagus nerve stimulation via electroacupuncture in inflammatory bowel disease (2023)', 'Recent clinical research trends on acupuncture for hiccups (2022)'] },
+    photo: '/doctors/6a22744178c2a4.67205246.jpg',
+    thumb: '/doctors/6a22744178b2d6.53187540.jpg',
+    keywords: { ko: ['#믿음을주는','#편안한분위기','#상냥한','#따스한','#믿음직한'], en: ['#Trustworthy','#Comfortable','#Kind','#Warm','#Dependable'] },
+    경력: { ko: ['(前) 경희의료원 한방병원 한방내과 전문의', '(現) 신촌면력한방병원 진료원장'], en: ['(Former) KM Internal Medicine Specialist, Kyung Hee Medical Center KM Hospital', '(Current) Attending Director, Sinchon Immune Hospital'] },
+    학력: { ko: ['경희대학교 한의학과 학사', '경희대학교 임상한의학과(호흡기·면역알레르기내과학) 석사'], en: ['B.A. in Korean Medicine, Kyung Hee University', 'M.S. in Clinical KM (Respiratory, Immuno-Allergy Internal Medicine), Kyung Hee University'] },
+    활동: { ko: ['한방내과 전문의', '척추신경추나의학회 정회원', '대한한의학회 정회원', '대한한방내과학회 정회원'], en: ['KM Internal Medicine Specialist', 'Spinal Nerve Chuna Medicine Society Regular Member', 'Korean Medicine Society Regular Member', 'Korean KM Internal Medicine Society Regular Member'] },
+    논문: { ko: ['천식-만성폐쇄성폐질환 중복(ACO) 환자의 한의치료 증례 (대한한방내과학회지 2024)', '비소세포폐암 고령 환자의 한의치료: 증례보고 (대한한방내과학회지 2025)', '입원 폐암 환자에 대한 통합 한의치료의 임상적 유효성: 후향적 차트 리뷰 (제38차 ICMART 세계의학침술학술대회 포스터)'], en: ['A Case on Korean Medicine Treatment for a Patient with Asthma-COPD Overlap (J Internal KM, 2024)', 'Korean Medicine Treatment for Elderly Patients with Non-Small-Cell Lung Cancer: Case Reports (J Internal KM, 2025)', 'Clinical Efficacy of Integrative Korean Medicine Treatment for Hospitalized Lung Cancer Patients: A Retrospective Chart Review (38th ICMART World Congress on Medical Acupuncture, Poster)'] },
+  },
+  { id: 54, branch: 'sinchon',
+    name: { ko: '홍정화', en: 'Hong Jung-hwa' },
+    position: { ko: '신촌 진료원장', en: 'Sinchon Attending Physician' },
+    subspecialty: { ko: '한방내과 전문의', en: 'KM Internal Medicine Specialist' },
+    photo: '/doctors/6a227480d699e8.21737385.jpg',
+    thumb: '/doctors/6a227480d68df7.71465118.jpg',
+    keywords: { ko: ['#꼼꼼한','#부담없는','#편안한설명','#쉬운설명','#소통이좋은'], en: ['#Thorough','#Approachable','#ComfortExplanation','#ClearExplanation','#Communicative'] },
+    경력: { ko: ['동국대학교 일산한방병원 한방내과 전문의', '(前) 지제도솔한방병원 진료원장', '(現) 신촌면력한방병원 진료원장'], en: ['KM Internal Medicine Specialist, Dongguk University Ilsan KM Hospital', '(Former) Attending Director, Jije Dosol KM Hospital', '(Current) Attending Director, Sinchon Immune Hospital'] },
+    학력: { ko: ['동국대학교 일반대학원 한의학 박사', '동국대학교 한의과대학 학사'], en: ['Ph.D. in Korean Medicine, Dongguk University Graduate School', 'B.A., Dongguk University, College of Korean Medicine'] },
+    활동: { ko: ['(前) 서울시 한의사회 당직한의사 역량강화교육 강사', '(前) 수도권역 공보의 응급상황 대처교육 강사', '대한한의학회 회원', '대한한방내과학회 회원', '척추신경추나의학회 회원'], en: ['(Former) Instructor, Seoul KM Association On-Call Physician Training', '(Former) Instructor, Emergency Response Training for Public Health Doctors (Metro Region)', 'Korean Medicine Society Member', 'Korean KM Internal Medicine Society Member', 'Spinal Nerve Chuna Medicine Society Member'] },
   },
 
   // ── 광명점 (7명) ──
@@ -232,7 +242,7 @@ const DOCTORS = [
     subspecialty: { ko: '통합면역 한방재활의학과', en: 'KM Rehabilitation · Immuno-Oncology' },
     role: 'ceo',
     photo: '/doctors/68ac21df896ae3.71046416.jpg',
-    thumb: '/doctors/68ac21df896ae3.71046416.jpg', // 원본 thumb(697fed…png) 삭제됨 → 정상 photo 재사용
+    thumb: '/doctors/6a2227080520e0.78738177.png', // 병원 사이트 최신 리스팅 사진(옛 697fed…png 404였음)
     keywords: { ko: ['#친절한','#꼼꼼한','#신뢰가는','#정성스러운','#자세한설명'], en: ['#Friendly','#Thorough','#Reliable','#Devoted','#DetailedExplanation'] },
     경력: { ko: ['(前) 동신대학교 부속 광주한방병원 한방재활의학과 진료교수', '(前) 365다시재한방병원 진료부장', '(現) 면력한방병원 진료원장'], en: ['(Former) Clinical Professor, KM Rehabilitation, Dongshin University Gwangju KM Hospital', '(Former) Medical Director, 365 Dasijae KM Hospital', '(Current) Attending Director, Immune Hospital'] },
     학력: { ko: ['한방재활의학과 전문의, 한의학박사', '동신대학교 한의과대학 졸업', '동신대학교 한의과대학원 석/박사', '동신대학교 부속 목포한방병원 일반/전문수련의 수료'], en: ['KM Rehabilitation Specialist, Ph.D. in Korean Medicine', 'Graduated from Dongshin University, College of Korean Medicine', 'M.S. & Ph.D., Dongshin University Graduate School of Korean Medicine', 'Completed residency at Dongshin University Mokpo KM Hospital'] },
@@ -315,8 +325,8 @@ const DOCTORS = [
     position: { ko: '성동 대표원장', en: 'Seongdong Chief Director' },
     subspecialty: { ko: '통합면역 대표원장', en: 'Integrative Immuno-Oncology' },
     role: 'ceo',
-    photo: DOCTOR_FALLBACK, // 원본에 사진 없음(69e71e…png 404) → 회색 아바타 폴백
-    thumb: DOCTOR_FALLBACK,
+    photo: '/doctors/6a2226f9978089.36292472.png', // 병원 사이트에서 신규 확보(옛 69e71e…png 404였음)
+    thumb: '/doctors/6a2226f9978089.36292472.png',
     keywords: { ko: ['#꼼꼼한','#친절한','#예리한','#이성적인','#정확한'], en: ['#Thorough','#Friendly','#Sharp','#Rational','#Precise'] },
     경력: { ko: ['(前) 자생한방병원 수련의', '(現) 면력한방병원 대표원장'], en: ['(Former) Resident, Jaseng KM Hospital', '(Current) Chief Director, Immune Hospital'] },
     학력: { ko: ['경희대학교 동서의학과 박사', '경희대학교 생리학교실', '동신대학교 한의학과 학사'], en: ['Ph.D., Kyung Hee University, East-West Medicine', 'Department of Physiology, Kyung Hee University', 'B.A., Dongshin University, Korean Medicine'] },
@@ -671,7 +681,7 @@ export default function HospitalsClient() {
               <span className="text-emerald-200 ml-2">{l(L.hero_branches)}</span>
             </div>
             <div className="bg-white/10 backdrop-blur-sm rounded-xl px-5 py-3 text-base">
-              <span className="text-white font-bold text-xl tabular-nums">27</span>
+              <span className="text-white font-bold text-xl tabular-nums">28</span>
               <span className="text-emerald-200 ml-2">{l(L.hero_doctors)}</span>
             </div>
             <div className="bg-white/10 backdrop-blur-sm rounded-xl px-5 py-3 text-base inline-flex items-center gap-2">
