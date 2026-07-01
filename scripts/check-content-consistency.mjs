@@ -66,12 +66,15 @@ const FORBIDDEN = [
   { re: /(?:100\s*%|стопроцентн\w*)\s+(?:результат|излечени|выздоровлени)/i, msg: "RU 의료광고 금지문구 '100% результат' — 결과 보장 금지." },
   { re: /(?<!\b(?:not|no|never|cannot|can't|doesn't|don't|won't)\s)\bguarantee[ds]?\s+(?:a\s+)?(?:cure|recovery|to\s+cure)\b/i, msg: "EN 의료광고 금지문구 'guaranteed cure' — 결과 보장 금지(광고 거부 + 법적 리스크). 면책이면 'does not guarantee…' 형태로." },
   { re: /\b100\s*%\s+cure\b/i, msg: "EN 의료광고 금지문구 '100% cure' — 결과 보장 금지." },
-  // 외부 이미지 핫링크 금지: immunehospital.com/resource/images (암종 카드/합병증 이미지).
-  // 원본이 바뀌면/삭제되면 고객 화면 이미지가 깨진다(의사 사진 PR #548 과 같은 부류).
-  // 자체호스팅: public/immune/cancer/ 에 내려받고 로컬 경로(/immune/cancer/…)로 참조할 것
-  //  (다운로드 스크립트: scripts/fetch-cancer-card-images.mjs). /resource/images 만 정밀 차단해
-  //  파트너 사이트 URL·의사 photoUrl(/uploads/…)·출처 주석(/pages/…) 등 정당한 참조는 통과.
+  // 외부 이미지 핫링크 금지 ①: immunehospital.com/resource/images (암종 카드/합병증 이미지).
+  // 원본이 바뀌면/삭제되면 고객 화면 이미지가 깨진다. 자체호스팅: public/immune/cancer/ 에
+  // 내려받고 로컬 경로(/immune/cancer/…)로 참조(다운로드: scripts/fetch-cancer-card-images.mjs).
   { re: /immunehospital\.com\/resource\/images/i, msg: "외부 이미지 핫링크 immunehospital.com/resource/images — public/immune/cancer/ 로 자체호스팅하고 로컬 경로로 참조할 것(scripts/fetch-cancer-card-images.mjs). 원본 변경 시 이미지 깨짐 방지." },
+  // 외부 이미지 핫링크 금지 ②: immunehospital.com/uploads/* (의사 사진). 원본이 파일명 변경/삭제
+  // 시 화면에서 깨진다(2026-07-01 병원 페이지 의사사진 다수 404 사고, POSTMORTEMS). public/doctors/
+  // 에 자체 호스팅하고 로컬 경로(/doctors/…)로 참조. /resource/images·/uploads/ 만 정밀 차단해
+  // 파트너 사이트 URL·출처 주석(/pages/…) 등 정당한 immunehospital.com 참조는 통과.
+  { re: /immunehospital\.com\/uploads\//, msg: "의사 사진 핫링크(immunehospital.com/uploads/…) 금지 — public/doctors/ 에 내려받아 로컬 경로(/doctors/…)로 참조. 새 사진은 scripts/fetch-doctor-photos.mjs 로 받을 것" },
 ];
 
 function walk(dir) {
