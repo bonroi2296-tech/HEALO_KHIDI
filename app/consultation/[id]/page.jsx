@@ -20,7 +20,7 @@ import {
 } from "@livekit/components-react";
 import "@livekit/components-styles";
 import { COPY } from "./_roomCopy";
-import { Track, ConnectionState, VideoPresets } from "livekit-client";
+import { Track, ConnectionState, VideoPresets, RoomEvent } from "livekit-client";
 
 // LiveKit 방 옵션 — 화질 보강: 1080p 캡처 + 명시적 1080p 인코딩.
 // adaptiveStream: 작은 타일엔 저화질 자동(대역폭 절약), 큰 화면엔 고화질. dynacast: 안 보는 트랙 안 보냄.
@@ -125,6 +125,35 @@ function ConnectionBanner() {
       <span className="w-3 h-3 border-2 border-gray-900 border-t-transparent rounded-full animate-spin" />
       {c.reconnecting}
     </div>
+  );
+}
+
+// ── 소리 자동재생 차단 해제 (LiveKitRoom 내부 전용) ──
+// 브라우저는 사용자가 페이지를 한 번 터치/클릭하기 전까지 '들어오는 소리'를 막는다(autoplay 정책).
+// 그러면 상대 목소리가 안 들려 "음성이 안 된다"고 오해한다 → 소리가 막혀 있으면 크고 명확한
+// "소리 켜기" 버튼을 띄우고, 누르면 room.startAudio() 로 재생을 푼다. (막혀있지 않으면 안 보임)
+function AudioUnblock() {
+  const room = useRoomContext();
+  const lang = useLang();
+  const c = COPY[lang] || COPY.en;
+  const [blocked, setBlocked] = useState(false);
+  useEffect(() => {
+    if (!room) return;
+    const update = () => setBlocked(!room.canPlaybackAudio);
+    update();
+    room.on(RoomEvent.AudioPlaybackStatusChanged, update);
+    return () => {
+      room.off(RoomEvent.AudioPlaybackStatusChanged, update);
+    };
+  }, [room]);
+  if (!blocked) return null;
+  return (
+    <button
+      onClick={() => room.startAudio().catch(() => {})}
+      className="absolute top-3 left-1/2 -translate-x-1/2 z-40 flex items-center gap-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-semibold px-4 py-2.5 rounded-full shadow-lg animate-pulse"
+    >
+      <Volume2 size={16} /> {c.tapToEnableAudio}
+    </button>
   );
 }
 
@@ -1528,16 +1557,21 @@ export default function ConsultationRoomPage() {
             <p className="text-sm text-gray-400 leading-relaxed">
               {c.guestLede}
             </p>
-            {/* 인앱 브라우저(카카오톡 등) → 영상·음성 제한 → 입장 전에 외부 브라우저 유도 */}
+            {/* 인앱 브라우저(카카오톡·왓츠앱 등) → 영상·음성이 막힘 → 크게 눈에 띄게 외부 브라우저 유도.
+                에이전시·환자가 메신저로 링크를 받아 그 앱 안 브라우저로 여는 게 가장 흔한 실패 케이스라
+                작은 배너 대신 큰 카드 + 전체폭 버튼으로 놓치지 않게 한다. */}
             {isInAppBrowser && (
-              <div className="mt-4 flex items-center justify-between gap-3 bg-yellow-500/10 border border-yellow-600/40 rounded-lg px-3 py-2.5">
-                <p className="text-xs text-yellow-200 leading-snug">{c.inAppNotice}</p>
+              <div className="mt-4 bg-amber-500/15 border border-amber-500/50 rounded-xl p-4">
+                <div className="flex items-start gap-2 mb-3">
+                  <ExternalLink size={18} className="text-amber-300 shrink-0 mt-0.5" />
+                  <p className="text-sm text-amber-100 font-medium leading-snug">{c.inAppNotice}</p>
+                </div>
                 <button
                   type="button"
                   onClick={openInExternalBrowser}
-                  className="shrink-0 flex items-center gap-1.5 px-3 py-2 bg-yellow-500 hover:bg-yellow-400 text-gray-900 text-xs font-bold rounded-lg transition"
+                  className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-amber-400 hover:bg-amber-300 text-gray-900 text-sm font-bold rounded-lg transition"
                 >
-                  <ExternalLink size={14} /> {c.openExternal}
+                  <ExternalLink size={16} /> {c.openExternal}
                 </button>
               </div>
             )}
@@ -1553,9 +1587,16 @@ export default function ConsultationRoomPage() {
             {/* 셀프뷰 — 입장 전 카메라·권한 확인 (거울 모드) */}
             <div className="rounded-xl overflow-hidden bg-black aspect-video relative border border-gray-700">
               {previewBlocked ? (
-                <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-4">
-                  <VideoOff size={32} className="text-gray-500 mb-2" />
-                  <p className="text-xs text-gray-400 leading-snug">{c.cameraBlocked}</p>
+                <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-4 gap-2 bg-amber-950/30">
+                  <VideoOff size={30} className="text-amber-400" />
+                  <p className="text-xs text-amber-100 leading-snug">{c.cameraBlocked}</p>
+                  <button
+                    type="button"
+                    onClick={() => window.location.reload()}
+                    className="mt-1 px-3 py-1.5 bg-teal-600 hover:bg-teal-500 text-white text-xs font-semibold rounded-lg"
+                  >
+                    {c.retryLabel}
+                  </button>
                 </div>
               ) : (
                 <video
@@ -1869,6 +1910,11 @@ export default function ConsultationRoomPage() {
               token={livekitToken}
               serverUrl={livekitUrl}
               connect={true}
+              // 입장 시 카메라·마이크 자동 켜기(권한은 이미 받은 상태) — 예약된 1:1 상담이라
+              // 줌처럼 켠 채로 시작. 이전엔 꺼진 채 입장해 "상대가 나 안 보임/안 들림" 혼란이 잦았음.
+              // 권한 거부 시 LiveKit 이 트랙 없이 연결(무해) → 아래 권한 안내로 유도.
+              audio={true}
+              video={true}
               options={ROOM_OPTIONS}
               onConnected={() => setConnected(true)}
               onDisconnected={() => setConnected(false)}
@@ -1892,6 +1938,7 @@ export default function ConsultationRoomPage() {
               <div className="flex-1 relative" style={{ height: "calc(100% - 64px)" }}>
                 <VideoGrid />
                 <RoomAudioRenderer />
+                <AudioUnblock />
                 <ConnectionBanner />
                 <MutedSpeakingWarning />
                 <RoomInfoOverlay />
