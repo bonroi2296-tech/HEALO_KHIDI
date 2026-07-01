@@ -75,6 +75,7 @@ const navGroups = [
       { id: "hospitals", label: "제휴 병원", icon: Building2, href: "/admin/hospitals" },
       { id: "treatments", label: "치료·암종", icon: Stethoscope, href: "/admin/treatments" },
       { id: "agencies", label: "에이전시 관리", icon: Users, href: "/admin/khidi/agencies" },
+      { id: "partner-outreach", label: "파트너 발굴", icon: Target, href: "/admin/khidi/partners" },
       { id: "doctors", label: "의료진·지점", icon: Users, href: "/admin/doctors" },
       { id: "rag", label: "RAG", icon: Brain, href: "/admin/rag", children: [
         { id: "rag-docs", label: "RAG 문서/Tier", icon: FileText, href: "/admin/rag/documents" },
