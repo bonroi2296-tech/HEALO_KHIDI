@@ -15,6 +15,7 @@ import {
   Plus,
   FileText,
   Loader2,
+  CheckCircle,
 } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { useToast } from "@/components/Toast";
@@ -180,6 +181,41 @@ export default function ConsultationsPage() {
     } catch (error) {
       console.error("[ConsultationsPage] handleCancel error:", error);
       toast.error("취소 실패");
+    }
+  };
+
+  // 상담 완료 처리 — status=completed 로 PATCH (KHIDI K-02 사전상담·K-04 사후관리 실적 집계).
+  //   방의 '통화 나가기'는 상태를 안 바꾸므로(재입장 회귀 방지), 완료 기록은 여기 staff 액션이 유일한 경로.
+  //   서버가 completed 시 게스트 초대 토큰도 폐기하고 case_status 를 전진시킴.
+  const handleComplete = async (id) => {
+    if (!confirm("이 상담을 '완료' 처리할까요?\n완료하면 발송된 초대 링크가 폐기되어 재입장할 수 없습니다.")) return;
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+      if (!token) {
+        toast.error("인증 오류 — 다시 로그인하세요.");
+        return;
+      }
+      const res = await fetch(`/api/khidi/consultation/${id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ status: "completed", ended_at: new Date().toISOString() }),
+      });
+      const result = await res.json();
+      if (!res.ok || !result.ok) {
+        toast.error(`완료 처리 실패: ${result.error || res.statusText}`);
+        return;
+      }
+      toast.success("상담을 완료 처리했습니다. (사전상담·사후관리 실적에 집계됩니다)");
+      setConsultations((cs) =>
+        cs.map((c) => (c.id === id ? { ...c, status: "completed" } : c))
+      );
+    } catch (error) {
+      console.error("[ConsultationsPage] handleComplete error:", error);
+      toast.error("완료 처리 실패");
     }
   };
 
@@ -504,6 +540,13 @@ export default function ConsultationsPage() {
                           🔗 환자 링크 복사
                         </button>
                         <button
+                          onClick={() => handleComplete(consultation.id)}
+                          className="px-4 py-2 bg-teal-50 text-teal-700 border border-teal-200 rounded-lg hover:bg-teal-100 transition font-medium flex items-center gap-1.5"
+                          title="상담을 '완료'로 기록 (사전상담·사후관리 실적 집계) — 초대 링크도 폐기"
+                        >
+                          <CheckCircle size={16} /> 완료
+                        </button>
+                        <button
                           onClick={() => handleCancel(consultation.id)}
                           className="px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition font-medium flex items-center gap-1.5"
                           title="상담 취소 (초대 링크도 폐기)"
@@ -513,13 +556,22 @@ export default function ConsultationsPage() {
                       </>
                     )}
                     {consultation.status === "active" && (
-                      <button
-                        onClick={() => handleJoinConsultation(consultation)}
-                        className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium flex items-center justify-center gap-2"
-                      >
-                        <Phone size={16} />
-                        상담 재진입
-                      </button>
+                      <>
+                        <button
+                          onClick={() => handleJoinConsultation(consultation)}
+                          className="flex-1 min-w-[140px] px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium flex items-center justify-center gap-2"
+                        >
+                          <Phone size={16} />
+                          상담 재진입
+                        </button>
+                        <button
+                          onClick={() => handleComplete(consultation.id)}
+                          className="px-4 py-2 bg-teal-50 text-teal-700 border border-teal-200 rounded-lg hover:bg-teal-100 transition font-medium flex items-center gap-1.5"
+                          title="상담을 '완료'로 기록 (사전상담·사후관리 실적 집계) — 초대 링크도 폐기"
+                        >
+                          <CheckCircle size={16} /> 완료
+                        </button>
+                      </>
                     )}
                     {consultation.status === "completed" && (
                       <>

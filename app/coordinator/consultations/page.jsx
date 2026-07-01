@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Video, Calendar, Clock, Globe, User, Phone,
-  Edit2, X, ChevronDown, Plus,
+  Edit2, X, ChevronDown, Plus, CheckCircle,
 } from 'lucide-react';
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser';
 import { useToast } from '@/components/Toast';
@@ -95,6 +95,35 @@ export default function CoordinatorConsultationsPage() {
     } catch { /* 클립보드 권한 없으면 조용히 패스 — 입장은 계속 */ }
     // 절대 URL(origin 포함) → 클라이언트 라우팅용 상대경로로
     router.push(result.inviteUrl.replace(/^https?:\/\/[^/]+/, ''));
+  };
+
+  // 상담 완료 처리 — status=completed 로 PATCH (KHIDI K-02 사전상담·K-04 사후관리 실적 집계).
+  //   방의 '통화 나가기'는 상태를 안 바꾸므로(재입장 회귀 방지), 완료 기록은 이 staff 액션이 유일한 경로.
+  const handleComplete = async (id) => {
+    if (!confirm("이 상담을 '완료' 처리할까요?\n완료하면 발송된 초대 링크가 폐기되어 재입장할 수 없습니다.")) return;
+    const supabase = createSupabaseBrowserClient();
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) { toast.error('인증 오류 — 다시 로그인해주세요'); return; }
+    try {
+      const res = await fetch(`/api/khidi/consultation/${id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ status: 'completed', ended_at: new Date().toISOString() }),
+      });
+      const result = await res.json();
+      if (!res.ok || !result.ok) {
+        toast.error(`완료 처리 실패: ${result.error || res.status}`);
+        return;
+      }
+      toast.success('상담을 완료 처리했어요. (사전상담·사후관리 실적에 집계됩니다)');
+      fetchData();
+    } catch (err) {
+      console.error('[handleComplete] error:', err);
+      toast.error('완료 처리 실패');
+    }
   };
 
   // 링크만 복사(입장 없이 환자에게 먼저 보낼 때) — 위와 같은 종류의 링크.
@@ -247,6 +276,13 @@ export default function CoordinatorConsultationsPage() {
                             title="입장 없이 환자에게 보낼 링크만 복사(+등록 이메일 발송) — 같은 링크"
                           >
                             🔗 환자 링크 복사
+                          </button>
+                          <button
+                            onClick={() => handleComplete(c.id)}
+                            className="flex items-center gap-2 px-4 py-2 bg-teal-50 text-teal-700 border border-teal-200 rounded-lg hover:bg-teal-100 transition text-sm font-medium"
+                            title="상담을 '완료'로 기록 (사전상담·사후관리 실적 집계) — 초대 링크도 폐기"
+                          >
+                            <CheckCircle size={14} /> 상담 완료
                           </button>
                         </>
                       )}
