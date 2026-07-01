@@ -26,6 +26,7 @@
     "check:handoff": "node scripts/check-handoff.mjs",
     "check:migrations": "node scripts/check-migration-idempotency.mjs",
     "check:schema-refs": "node scripts/check-schema-refs.mjs",
+    "check:visa-freshness": "node scripts/check-visa-freshness.mjs",
     "handoff:rotate": "node scripts/handoff-rotate.mjs",
     "fix:lint-unused": "node scripts/fix-unused-vars.mjs",
     "migrate:reencrypt-email": "node scripts/reencrypt-inquiries-email.mjs",

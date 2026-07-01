@@ -7,6 +7,10 @@ const NATIONALITIES = [
   { value: 'ru', label: { ko: '러시아', en: 'Russia', ru: 'Россия', zh: '俄罗斯', ja: 'ロシア', kz: 'Ресей' } },
   { value: 'kz', label: { ko: '카자흐스탄', en: 'Kazakhstan', ru: 'Казахстан', zh: '哈萨克斯坦', ja: 'カザフスタン', kz: 'Қазақстан' } },
   { value: 'mn', label: { ko: '몽골', en: 'Mongolia', ru: 'Монголия', zh: '蒙古', ja: 'モンゴル', kz: 'Моңғолия' } },
+  { value: 'uz', label: { ko: '우즈베키스탄', en: 'Uzbekistan', ru: 'Узбекистан', zh: '乌兹别克斯坦', ja: 'ウズベキスタン', kz: 'Өзбекстан' } },
+  { value: 'kg', label: { ko: '키르기스스탄', en: 'Kyrgyzstan', ru: 'Кыргызстан', zh: '吉尔吉斯斯坦', ja: 'キルギス', kz: 'Қырғызстан' } },
+  { value: 'tj', label: { ko: '타지키스탄', en: 'Tajikistan', ru: 'Таджикистан', zh: '塔吉克斯坦', ja: 'タジキスタン', kz: 'Тәжікстан' } },
+  { value: 'az', label: { ko: '아제르바이잔', en: 'Azerbaijan', ru: 'Азербайджан', zh: '阿塞拜疆', ja: 'アゼルバイジャン', kz: 'Әзірбайжан' } },
   { value: 'zh', label: { ko: '중국', en: 'China', ru: 'Китай', zh: '中国', ja: '中国', kz: 'Қытай' } },
   { value: 'ja', label: { ko: '일본', en: 'Japan', ru: 'Япония', zh: '日本', ja: '日本', kz: 'Жапония' } },
   { value: 'en', label: { ko: '기타', en: 'Other', ru: 'Другое', zh: '其他', ja: 'その他', kz: 'Басқа' } },
@@ -36,6 +40,8 @@ const LABELS = {
   days: { ko: '일', en: 'days', ru: 'дней', zh: '天', ja: '日', kz: 'күн' },
   embassy: { ko: '관할 대한민국 대사관·영사관', en: 'Korean Embassy / Consulate', ru: 'Посольство / консульство Кореи', zh: '韩国大使馆 / 领事馆', ja: '管轄の大韓民国大使館・領事館', kz: 'Корея елшілігі / консулдығы' },
   print: { ko: '체크리스트 인쇄', en: 'Print Checklist', ru: 'Печать чек-листа', zh: '打印清单', ja: 'チェックリスト印刷', kz: 'Тізімді басып шығару' },
+  prepared: { ko: '준비', en: 'Prepared', ru: 'Готово', zh: '已备', ja: '準備', kz: 'Дайын' },
+  savedHint: { ko: '체크 상태는 이 브라우저에 저장돼 다시 방문해도 유지됩니다.', en: 'Your checks are saved in this browser and kept when you return.', ru: 'Отметки сохраняются в этом браузере и остаются при повторном визите.', zh: '勾选状态保存在此浏览器中，再次访问时保留。', ja: 'チェック状態はこのブラウザに保存され、再訪問時も保持されます。', kz: 'Белгілер осы браузерде сақталады және қайта кіргенде қалады.' },
   note: { ko: '참고', en: 'Note', ru: 'Примечание', zh: '备注', ja: '備考', kz: 'Ескерту' },
   loading: { ko: '비자 정보를 불러오는 중…', en: 'Loading visa information…', ru: 'Загрузка информации о визе…', zh: '正在加载签证信息…', ja: 'ビザ情報を読み込み中…', kz: 'Виза ақпараты жүктелуде…' },
   errorTitle: { ko: '정보를 불러오지 못했습니다', en: 'Could not load information', ru: 'Не удалось загрузить информацию', zh: '无法加载信息', ja: '情報を読み込めませんでした', kz: 'Ақпаратты жүктеу мүмкін болмады' },
@@ -100,13 +106,37 @@ function CountryEntryCard({ entry, l }) {
 }
 
 function VisaCard({ checklist, label, l }) {
+  // 비자 유형별로 준비 체크를 브라우저(localStorage)에 저장 → 새로고침·재방문해도 유지.
+  const storageKey = checklist ? `healo:visa-checklist:${checklist.visaType}` : null;
   const [checks, setChecks] = useState({});
 
+  // 최초 마운트 시 저장된 체크 복원 (SSR 안전 위해 effect에서 로드 → 하이드레이션 불일치 방지)
+  useEffect(() => {
+    if (!storageKey) return;
+    try {
+      const saved = localStorage.getItem(storageKey);
+      if (saved) setChecks(JSON.parse(saved));
+    } catch {
+      /* 저장소 접근 불가(프라이빗 모드 등) — 세션 내 체크만 동작 */
+    }
+  }, [storageKey]);
+
   const toggle = (docId) => {
-    setChecks(prev => ({ ...prev, [docId]: !prev[docId] }));
+    setChecks(prev => {
+      const next = { ...prev, [docId]: !prev[docId] };
+      try {
+        if (storageKey) localStorage.setItem(storageKey, JSON.stringify(next));
+      } catch {
+        /* 저장 실패는 무시 — UI 체크는 계속 동작 */
+      }
+      return next;
+    });
   };
 
   if (!checklist) return null;
+
+  const totalDocs = checklist.documents.length;
+  const doneDocs = checklist.documents.filter(d => checks[d.id]).length;
 
   return (
     <div className="border border-gray-200 rounded-xl p-5 md:p-6 bg-white shadow-sm">
@@ -133,7 +163,12 @@ function VisaCard({ checklist, label, l }) {
       </div>
 
       {/* Document Checklist */}
-      <h4 className="text-[15px] font-semibold mb-2.5">{l(LABELS.documents)}</h4>
+      <div className="flex items-center justify-between mb-2.5">
+        <h4 className="text-[15px] font-semibold">{l(LABELS.documents)}</h4>
+        <span className="text-xs font-semibold text-teal-700 bg-teal-50 border border-teal-100 px-2 py-0.5 rounded-full tabular-nums">
+          {l(LABELS.prepared)} {doneDocs}/{totalDocs}
+        </span>
+      </div>
       <div className="flex flex-col gap-2 mb-4">
         {checklist.documents.map(doc => (
           <label
@@ -160,6 +195,8 @@ function VisaCard({ checklist, label, l }) {
           </label>
         ))}
       </div>
+
+      <p className="text-[11px] text-gray-400 mb-3 print:hidden">{l(LABELS.savedHint)}</p>
 
       {/* Note */}
       <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-[13px] text-amber-800">
