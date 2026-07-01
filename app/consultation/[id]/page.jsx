@@ -2069,7 +2069,7 @@ export default function ConsultationRoomPage() {
                 {connectError && !connected && (
                   <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/70 backdrop-blur-sm px-6 text-center">
                     <p className="text-white text-sm mb-4 max-w-xs leading-relaxed">
-                      {c.connectFailed}
+                      {c.connectStuck}
                     </p>
                     <button
                       onClick={() => {
