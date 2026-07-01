@@ -126,7 +126,7 @@ export default function MedicalQuotation({ data, lang = "ko" }) {
           </View>
           <View>
             <Text style={styles.docMeta}>QUOTATION NO.</Text>
-            <Text style={{ fontFamily: "Playfair", fontSize: 12, color: COLORS.ink0, marginTop: 2 }}>
+            <Text style={{ fontFamily: "Helvetica", fontSize: 12, color: COLORS.ink0, marginTop: 2 }}>
               {quotationNo}
             </Text>
             <Text style={{ ...styles.small, marginTop: 6, textAlign: "right" }}>

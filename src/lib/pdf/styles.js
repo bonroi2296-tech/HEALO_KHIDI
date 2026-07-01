@@ -1,54 +1,39 @@
 /**
- * healwith PDF Styles — D.Premium 톤 React PDF용
- * 색상/타이포그래피는 design system과 매칭
+ * healwith PDF Styles — Legacy 톤 (DESIGN.md 준수)
+ *
+ * 규칙: serif 폰트 금지 · 골드/크림 팔레트 금지 · 브랜드색 teal-600 · 회색/흰색.
+ * 폰트는 내장 Helvetica만 사용(외부 웹폰트 다운로드 없음 → 오프라인·프록시 404 안전).
+ * ※ 스타일 키 이름은 하위 컴포넌트 호환 위해 유지하되, 값만 Legacy 톤으로 정의.
  */
 
-import { StyleSheet, Font } from "@react-pdf/renderer";
+import { StyleSheet } from "@react-pdf/renderer";
 
-// Google Fonts 등록 (PDF 빌드 시 다운로드)
-Font.register({
-  family: "Playfair",
-  fonts: [
-    { src: "https://fonts.gstatic.com/s/playfairdisplay/v37/nuFiD-vYSZviVYUb_rj3ij__anPXBYf9pW8wTIfHKHF.ttf", fontWeight: 400 },
-    { src: "https://fonts.gstatic.com/s/playfairdisplay/v37/nuFiD-vYSZviVYUb_rj3ij__anPXBYf9pW8wTIfHKHM.ttf", fontWeight: 500 },
-    { src: "https://fonts.gstatic.com/s/playfairdisplay/v37/nuFiD-vYSZviVYUb_rj3ij__anPXBYf9pW8wTIfHKHZ.ttf", fontWeight: 700 },
-    { src: "https://fonts.gstatic.com/s/playfairdisplay/v37/nuFlD-vYSZviVYUb_rj3ij__anPXDTngL8SI3mhTsyGQo8Nn.ttf", fontWeight: 400, fontStyle: "italic" },
-  ],
-});
+const SANS = "Helvetica";
 
-Font.register({
-  family: "Inter",
-  fonts: [
-    { src: "https://fonts.gstatic.com/s/inter/v19/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuLyfAZ9hjp-Ek-_EeA.ttf", fontWeight: 300 },
-    { src: "https://fonts.gstatic.com/s/inter/v19/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuLyfAZ9hjp-Ek-_EeA.ttf", fontWeight: 400 },
-    { src: "https://fonts.gstatic.com/s/inter/v19/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuI6fAZ9hjp-Ek-_EeA.ttf", fontWeight: 500 },
-    { src: "https://fonts.gstatic.com/s/inter/v19/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuGKYAZ9hjp-Ek-_EeA.ttf", fontWeight: 600 },
-    { src: "https://fonts.gstatic.com/s/inter/v19/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuFuYAZ9hjp-Ek-_EeA.ttf", fontWeight: 700 },
-  ],
-});
-
+// Legacy 팔레트 (DESIGN.md 토큰: teal-600 / gray / white). 키는 보존, 값만 교체.
 export const COLORS = {
-  ink0: "#0a0a0a",
-  ink1: "#111111",
-  ink3: "#2a2a2a",
-  ink4: "#3d3d3d",
-  cream0: "#f5f0e8",
-  cream2: "#e3dbcc",
-  paper: "#fbf8f2",
+  ink0: "#111827", // gray-900
+  ink1: "#111827",
+  ink3: "#374151", // gray-700
+  ink4: "#4b5563", // gray-600
+  cream0: "#f9fafb", // gray-50 (subtle bg)
+  cream2: "#e5e7eb", // gray-200 (border)
+  paper: "#ffffff",
   white: "#ffffff",
-  gold0: "#c8a96a",
-  gold2: "#b89550",
-  goldTint: "#e8d9b4",
-  fgOnLight1: "#0a0a0a",
-  fgOnLight2: "#3d3d3d",
-  fgOnLight3: "#6b6458",
-  fgOnLight4: "#9a9284",
+  gold0: "#0d9488", // → teal-600 (accent 대체)
+  gold2: "#0f766e", // → teal-700
+  goldTint: "#e5e7eb", // → gray-200 (rule)
+  fgOnLight1: "#111827", // gray-900
+  fgOnLight2: "#374151", // gray-700
+  fgOnLight3: "#6b7280", // gray-500
+  fgOnLight4: "#9ca3af", // gray-400
+  teal: "#0d9488",
 };
 
 export const styles = StyleSheet.create({
   page: {
     padding: 48,
-    fontFamily: "Inter",
+    fontFamily: SANS,
     fontSize: 10,
     color: COLORS.fgOnLight1,
     backgroundColor: COLORS.white,
@@ -59,78 +44,75 @@ export const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "flex-start",
-    marginBottom: 32,
-    paddingBottom: 16,
-    borderBottom: `1 solid ${COLORS.goldTint}`,
+    marginBottom: 28,
+    paddingBottom: 14,
+    borderBottom: `1 solid ${COLORS.cream2}`,
   },
   wordmark: {
-    fontFamily: "Playfair",
-    fontSize: 20,
-    fontWeight: 500,
-    letterSpacing: 1,
-    color: COLORS.ink0,
+    fontFamily: SANS,
+    fontSize: 18,
+    fontWeight: 700,
+    color: COLORS.teal,
   },
   docMeta: {
-    fontFamily: "Inter",
+    fontFamily: SANS,
     fontSize: 9,
-    letterSpacing: 1.5,
     color: COLORS.fgOnLight3,
     textAlign: "right",
   },
 
   // Titles
   eyebrow: {
-    fontFamily: "Inter",
+    fontFamily: SANS,
     fontSize: 8,
-    fontWeight: 500,
-    letterSpacing: 2.4,
+    fontWeight: 700,
+    letterSpacing: 0.8,
     textTransform: "uppercase",
-    color: COLORS.gold2,
+    color: COLORS.fgOnLight3,
     marginBottom: 6,
   },
   title: {
-    fontFamily: "Playfair",
-    fontSize: 28,
-    fontWeight: 400,
+    fontFamily: SANS,
+    fontSize: 24,
+    fontWeight: 700,
     color: COLORS.ink0,
     marginBottom: 4,
-    lineHeight: 1.1,
+    lineHeight: 1.2,
   },
+  // (구 premium: italic gold) → Legacy: 동일 산세리프 볼드, teal 강조. italic 제거.
   titleItalic: {
-    fontFamily: "Playfair",
-    fontSize: 28,
-    fontWeight: 400,
-    fontStyle: "italic",
-    color: COLORS.gold2,
+    fontFamily: SANS,
+    fontSize: 24,
+    fontWeight: 700,
+    color: COLORS.teal,
   },
   subtitle: {
-    fontFamily: "Inter",
+    fontFamily: SANS,
     fontSize: 10,
-    fontWeight: 300,
     color: COLORS.fgOnLight3,
-    marginBottom: 24,
+    marginBottom: 22,
   },
 
   // Section labels
   sectionLabel: {
-    fontFamily: "Inter",
+    fontFamily: SANS,
     fontSize: 8,
-    fontWeight: 500,
-    letterSpacing: 2.4,
+    fontWeight: 700,
+    letterSpacing: 0.8,
     textTransform: "uppercase",
     color: COLORS.fgOnLight3,
     marginBottom: 10,
     marginTop: 20,
   },
   sectionTitle: {
-    fontFamily: "Playfair",
-    fontSize: 16,
-    fontWeight: 500,
+    fontFamily: SANS,
+    fontSize: 15,
+    fontWeight: 700,
     color: COLORS.ink0,
     marginBottom: 8,
   },
   rule: {
-    borderBottom: `1 solid ${COLORS.goldTint}`,
+    borderBottom: `1 solid ${COLORS.cream2}`,
     marginTop: 10,
     marginBottom: 16,
   },
@@ -141,19 +123,19 @@ export const styles = StyleSheet.create({
 
   // Body
   body: {
-    fontFamily: "Inter",
+    fontFamily: SANS,
     fontSize: 10,
     lineHeight: 1.6,
     color: COLORS.fgOnLight2,
   },
   bodyBold: {
-    fontFamily: "Inter",
+    fontFamily: SANS,
     fontSize: 10,
-    fontWeight: 600,
+    fontWeight: 700,
     color: COLORS.ink0,
   },
   small: {
-    fontFamily: "Inter",
+    fontFamily: SANS,
     fontSize: 8,
     lineHeight: 1.55,
     color: COLORS.fgOnLight3,
@@ -167,17 +149,17 @@ export const styles = StyleSheet.create({
   },
   dataLabel: {
     width: "40%",
-    fontFamily: "Inter",
+    fontFamily: SANS,
     fontSize: 9,
-    fontWeight: 500,
-    letterSpacing: 1,
+    fontWeight: 700,
+    letterSpacing: 0.5,
     textTransform: "uppercase",
     color: COLORS.fgOnLight3,
     paddingRight: 12,
   },
   dataValue: {
     width: "60%",
-    fontFamily: "Playfair",
+    fontFamily: SANS,
     fontSize: 11,
     color: COLORS.ink0,
   },
@@ -193,14 +175,14 @@ export const styles = StyleSheet.create({
     width: "45%",
   },
   signatureLine: {
-    borderBottom: `1 solid ${COLORS.ink0}`,
+    borderBottom: `1 solid ${COLORS.ink4}`,
     height: 40,
     marginBottom: 6,
   },
   signatureLabel: {
-    fontFamily: "Inter",
+    fontFamily: SANS,
     fontSize: 8,
-    letterSpacing: 1.5,
+    letterSpacing: 0.5,
     textTransform: "uppercase",
     color: COLORS.fgOnLight3,
   },
@@ -211,11 +193,11 @@ export const styles = StyleSheet.create({
     bottom: 24,
     left: 48,
     right: 48,
-    fontFamily: "Inter",
+    fontFamily: SANS,
     fontSize: 7,
     color: COLORS.fgOnLight4,
     lineHeight: 1.5,
-    borderTop: `0.5 solid ${COLORS.goldTint}`,
+    borderTop: `0.5 solid ${COLORS.cream2}`,
     paddingTop: 10,
   },
 
@@ -230,14 +212,14 @@ export const styles = StyleSheet.create({
     width: 10,
     height: 10,
     borderWidth: 1,
-    borderColor: COLORS.ink0,
+    borderColor: COLORS.ink4,
     marginTop: 2,
     marginRight: 8,
   },
 
   // Cost table
   costTable: {
-    borderTop: `1 solid ${COLORS.goldTint}`,
+    borderTop: `1 solid ${COLORS.cream2}`,
     marginTop: 12,
   },
   costRow: {
@@ -248,33 +230,33 @@ export const styles = StyleSheet.create({
   costRowFinal: {
     flexDirection: "row",
     paddingVertical: 10,
-    borderTop: `1 solid ${COLORS.gold0}`,
-    borderBottom: `1 solid ${COLORS.gold0}`,
+    borderTop: `1 solid ${COLORS.teal}`,
+    borderBottom: `1 solid ${COLORS.teal}`,
     marginTop: 6,
   },
   costDesc: {
     flex: 3,
-    fontFamily: "Inter",
+    fontFamily: SANS,
     fontSize: 10,
     color: COLORS.ink0,
   },
   costNote: {
     flex: 2,
-    fontFamily: "Inter",
+    fontFamily: SANS,
     fontSize: 8,
     color: COLORS.fgOnLight3,
   },
   costAmount: {
     flex: 2,
-    fontFamily: "Playfair",
+    fontFamily: SANS,
     fontSize: 11,
     color: COLORS.ink0,
     textAlign: "right",
   },
   costTotal: {
-    fontFamily: "Playfair",
+    fontFamily: SANS,
     fontSize: 14,
-    fontWeight: 500,
-    color: COLORS.gold2,
+    fontWeight: 700,
+    color: COLORS.teal,
   },
 });

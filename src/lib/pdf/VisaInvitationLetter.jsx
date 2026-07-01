@@ -116,7 +116,7 @@ export default function VisaInvitationLetter({ data, lang = "en" }) {
             <Text style={styles.docMeta}>INVITATION NO.</Text>
             <Text
               style={{
-                fontFamily: "Playfair",
+                fontFamily: "Helvetica",
                 fontSize: 12,
                 color: COLORS.ink0,
                 marginTop: 2,

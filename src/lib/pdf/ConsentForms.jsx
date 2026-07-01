@@ -44,7 +44,7 @@ function DataTable({ items }) {
       {items.map((item, i) => (
         <View key={i} style={styles.dataRow}>
           <Text style={styles.dataLabel}>{item.label}</Text>
-          <Text style={{ ...styles.dataValue, fontSize: 9, fontFamily: "Inter", fontWeight: 400, lineHeight: 1.55 }}>
+          <Text style={{ ...styles.dataValue, fontSize: 9, fontFamily: "Helvetica", fontWeight: 400, lineHeight: 1.55 }}>
             {item.value}
           </Text>
         </View>
