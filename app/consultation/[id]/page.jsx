@@ -609,7 +609,11 @@ export default function ConsultationRoomPage() {
       setConnectError(false);
       return;
     }
-    const t = setTimeout(() => setConnectError(true), 18000);
+    const t = setTimeout(() => {
+      setConnectError(true);
+      // 원인 불명의 '조용한 멈춤'도 서버에 남긴다 — 원격 기기 진단용 (#61 교훈)
+      reportClientEventRef.current?.("connect_timeout", "no livekit connection within 18s");
+    }, 18000);
     return () => clearTimeout(t);
   }, [livekitToken, connected, connectAttempt]);
 
@@ -1175,6 +1179,31 @@ export default function ConsultationRoomPage() {
     const t = data?.session?.access_token;
     return t ? { Authorization: `Bearer ${t}` } : null;
   }, [isGuestMode, inviteToken]);
+
+  // ── 클라이언트 오류 자동 보고 (진단 비콘) ──
+  // 원격 기기(환자 폰 등)의 연결 실패 원인이 아무 데도 안 남아 진단이 이틀 밀렸던
+  // 'invalid token: revoked' 장애(POSTMORTEMS #61) 재발 방지. 실패해도 조용히 무시(UX 영향 0).
+  const reportClientEvent = useCallback(
+    async (type, message) => {
+      try {
+        const headers = await getConsultAuthHeaders();
+        if (!headers) return;
+        await fetch(`/api/khidi/consultation/${consultationId}/client-event`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", ...headers },
+          body: JSON.stringify({ type, message: String(message || "").slice(0, 300) }),
+        });
+      } catch {
+        /* 보고 실패는 무시 */
+      }
+    },
+    [consultationId, getConsultAuthHeaders]
+  );
+  // 선언 위쪽의 이펙트(연결 워치독)에서도 안전하게 쓰도록 ref 로도 노출
+  const reportClientEventRef = useRef(null);
+  useEffect(() => {
+    reportClientEventRef.current = reportClientEvent;
+  }, [reportClientEvent]);
 
   // 서버 메시지 row(message/sender_role) → 렌더 형태(message_text/sender_name)로 정규화
   const normalizeMsg = useCallback((row) => ({
@@ -1783,8 +1812,10 @@ export default function ConsultationRoomPage() {
   if (!consultation && !isGuestMode) {
     return (
       <div className="w-full h-screen flex items-center justify-center bg-gray-900">
-        <div className="text-white text-center">
-          <p className="mb-4">{c.sessionNotFound}</p>
+        <div className="text-white text-center max-w-sm px-6">
+          {/* 입장권(?invite=) 없는 맨 주소로 온 경우 — "세션 없음"이 아니라 원인+해결책을 정확히.
+              (주소창 URL 을 복사·공유하면 이 화면에 막히던 함정 — 2026-07-02 '남들만 안 됨' 원인) */}
+          <p className="mb-4 leading-relaxed">{!inviteToken ? c.linkMissingInvite : c.sessionNotFound}</p>
           <button
             onClick={() => router.push("/")}
             className="px-4 py-2 bg-teal-700 hover:bg-teal-800 rounded-lg"
@@ -2010,6 +2041,7 @@ export default function ConsultationRoomPage() {
                 // 장치 없음/거부여도 입장은 계속. 마이크 상태는 MicOffBanner(장치 있는 기기만)가 안내.
                 setMicActivationFailed(true);
                 if (String(failure) === "PermissionDenied") toast.error(c.mediaDeniedToast);
+                reportClientEvent("media_failure", String(failure));
               }}
               options={ROOM_OPTIONS}
               onConnected={() => {
@@ -2023,6 +2055,7 @@ export default function ConsultationRoomPage() {
                 setConnectError(true);
                 // 실제 원인을 화면에도 — "인터넷 확인" 뭉뚱그림 금지(#61 재발 방지)
                 if (e?.message) setConnectErrorDetail(String(e.message).slice(0, 200));
+                reportClientEvent("connect_error", e?.message);
               }}
               style={{ height: "100%" }}
               data-lk-theme="default"
