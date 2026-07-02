@@ -156,94 +156,30 @@ function AudioUnblock() {
   );
 }
 
-// ── 탭해서 마이크·카메라 켜기 (LiveKitRoom 내부 전용) ──
-// 모바일은 '자동'으로 마이크를 잡으면 들쭉날쭉 실패한다(PO 제보: 폰 마이크가 지 멋대로, 시간 지나면 됨).
-// '사용자 탭' 순간에 잡는 건 안정적이라 → 입장하면 미디어를 꺼둔 채 이 큰 버튼을 띄우고, 탭하는 그
-// 제스처 안에서 카메라·마이크를 확실히 켠다. 마이크가 한 번 켜지면 이 세션에선 안 뜸(음소거 토글해도 안 뜸).
-// 새로 입장하면 다시 뜸 → PO 요구 "들어올 때마다 허용 버튼"도 충족.
-function MediaEnablePrompt({ onResult }) {
-  const lang = useLang();
-  const c = COPY[lang] || COPY.en;
-  const toast = useToast();
-  const { localParticipant, isMicrophoneEnabled, isCameraEnabled } = useLocalParticipant();
-  const [busy, setBusy] = useState(false);
-  const [done, setDone] = useState(false);
-
-  // 컨트롤바 버튼 등으로 카메라·마이크가 하나라도 켜지면 프롬프트 숨김
-  useEffect(() => {
-    if (isMicrophoneEnabled || isCameraEnabled) setDone(true);
-  }, [isMicrophoneEnabled, isCameraEnabled]);
-
-  const enable = useCallback(async () => {
-    if (busy) return;
-    setBusy(true);
-    // 카메라·마이크를 '각각 독립'으로 시도 — 하나만 있어도 그건 켜지게. 에러 종류로 '권한 차단'과 '기기 없음' 구분.
-    let ok = false;
-    let denied = false;
-    let micOk = false;
-    // 카메라·마이크 각각 독립 시도(하나만 있어도 켜지게). 마이크 성공 여부를 따로 추적한다.
-    try {
-      await localParticipant?.setCameraEnabled?.(true);
-      ok = true;
-    } catch (e) {
-      const n = e && e.name ? e.name : "";
-      if (n === "NotAllowedError" || n === "SecurityError") denied = true;
-    }
-    try {
-      await localParticipant?.setMicrophoneEnabled?.(true);
-      ok = true;
-      micOk = true;
-    } catch (e) {
-      const n = e && e.name ? e.name : "";
-      if (n === "NotAllowedError" || n === "SecurityError") denied = true;
-    }
-    setBusy(false);
-    // ★ 성공이든 실패든 '무조건' 닫는다 — 탭했는데 안 사라져 갇히던 것 원천 차단(PO 제보).
-    //   못 켰어도 방엔 들어간다(상대 영상·소리는 보고 들림 = 듣기·보기 참여). 이유만 정확히 안내.
-    setDone(true);
-    // 마이크 성공 여부를 부모에 보고 — 카메라만 켜지고 마이크가 조용히 실패하면(=무음) 상시 경고 배너를 띄운다.
-    onResult?.(micOk);
-    if (!ok) {
-      if (denied) toast.error(c.mediaDeniedToast); // 권한 차단 → 브라우저 설정에서 허용 안내
-      else toast.success(c.noMediaNotice); // 기기 없음 등 → 듣기·보기로 참여
-    }
-  }, [localParticipant, busy, toast, c, onResult]);
-
-  if (done) return null;
-
-  return (
-    <div className="absolute inset-0 z-40 flex flex-col items-center justify-center bg-black/40 backdrop-blur-sm px-6 text-center">
-      <button
-        onClick={enable}
-        disabled={busy}
-        className="flex items-center gap-2 bg-teal-600 hover:bg-teal-500 disabled:opacity-70 text-white text-base font-bold px-7 py-4 rounded-full shadow-2xl animate-pulse"
-      >
-        <Mic size={22} /> {c.enableMediaBtn}
-      </button>
-      <p className="mt-3 text-sm text-gray-200">{c.enableMediaHint}</p>
-      {/* 카메라·마이크 없이 그냥 보고/듣기만 하려는 사람용 — 항상 빠져나갈 수 있게 */}
-      <button
-        onClick={() => setDone(true)}
-        className="mt-4 text-xs text-gray-300 underline"
-      >
-        {c.joinListenOnly}
-      </button>
-    </div>
-  );
-}
-
-// ── 마이크 조용한 실패 경고 (LiveKitRoom 내부 전용) ──
-// 탭했는데 카메라만 켜지고 마이크가 실패하면(권한 거부·기기 점유) 본인은 '켜진 줄' 알지만 상대는 무음.
-// → 마이크가 꺼져 있는 동안 상시 경고 + '마이크 켜기' 재시도. 마이크가 켜지면 자동으로 사라진다.
+// ── 마이크 켜기 실패 경고 (LiveKitRoom 내부 전용) ──
+// (2026-07-02 PO 지시) 커스텀 "탭해서 켜기" 오버레이는 삭제 — 입장 시 자동 켜기(브라우저 기본
+// 권한창)만 쓴다. 자동 켜기에서 마이크가 실패하면 본인은 '켜진 줄' 알지만 상대는 무음 → 이 배너로
+// 경고 + '마이크 켜기' 재시도(사용자 제스처 = 가장 안정적인 재획득). 마이크가 켜지면 자동으로 사라진다.
+// ⚠️ 마이크 장치가 '실제로 있는' 기기에서만 띄운다 — 스피커만 있는 PC에 "켜라" 잔소리 금지(PO 지시).
+//    X로 언제든 닫을 수 있고, 장치가 없어도 듣기·보기 참여는 원래대로 그대로 된다.
 function MicOffBanner({ failed, onClear }) {
   const lang = useLang();
   const c = COPY[lang] || COPY.en;
   const { localParticipant, isMicrophoneEnabled } = useLocalParticipant();
   const [retrying, setRetrying] = useState(false);
+  const [dismissed, setDismissed] = useState(false);
+  const [hasMic, setHasMic] = useState(false);
+  useEffect(() => {
+    // 권한 허용 전에도 장치 종류(kind)는 열람 가능 — 마이크 존재 여부만 확인
+    navigator.mediaDevices
+      ?.enumerateDevices?.()
+      .then((ds) => setHasMic(ds.some((d) => d.kind === "audioinput")))
+      .catch(() => setHasMic(false));
+  }, []);
   useEffect(() => {
     if (failed && isMicrophoneEnabled) onClear(); // 마이크 켜지면 경고 자동 해제
   }, [failed, isMicrophoneEnabled, onClear]);
-  if (!failed || isMicrophoneEnabled) return null;
+  if (!failed || dismissed || !hasMic || isMicrophoneEnabled) return null;
   const retry = async () => {
     if (retrying) return;
     setRetrying(true);
@@ -264,6 +200,10 @@ function MicOffBanner({ failed, onClear }) {
         className="ml-1 underline disabled:opacity-60"
       >
         {c.micRetry}
+      </button>
+      {/* 닫기 — 잔소리로 남지 않게 언제든 치울 수 있다 (PO 지시) */}
+      <button onClick={() => setDismissed(true)} aria-label="Close" className="ml-1 p-0.5 opacity-80 hover:opacity-100">
+        <X size={13} />
       </button>
     </div>
   );
@@ -590,7 +530,10 @@ export default function ConsultationRoomPage() {
   // 연결 실패/지연 표시 + 재시도(LiveKitRoom 리마운트) — 무한 '연결중' 방지
   const [connectError, setConnectError] = useState(false);
   const [connectAttempt, setConnectAttempt] = useState(0);
-  // 마이크가 조용히 안 켜졌을 때(카메라만 켜짐 등) 상시 경고 — '켠 줄 아는데 무음' 방지
+  // 실패 실제 원인(오류 문자열) — "인터넷 확인하세요"로 뭉뚱그리지 않고 화면에 그대로 노출.
+  // (2026-07-02 장애 때 진짜 원인 'invalid token: revoked'가 이 화면 뒤에 숨어 진단이 이틀 밀림)
+  const [connectErrorDetail, setConnectErrorDetail] = useState("");
+  // 입장 시 자동 켜기에서 마이크가 실패했을 때 경고 — '켠 줄 아는데 무음' 방지 (장치 있는 기기만)
   const [micActivationFailed, setMicActivationFailed] = useState(false);
 
   // Guest mode state
@@ -601,7 +544,8 @@ export default function ConsultationRoomPage() {
   // ponytail: 단일 카메라 가정, 기기 선택 메뉴는 생략(환자 폰=카메라 1개). 게스트 전용.
   const previewVideoRef = useRef(null);
   const previewStreamRef = useRef(null);
-  const [previewBlocked, setPreviewBlocked] = useState(false);
+  const [previewBlocked, setPreviewBlocked] = useState(false); // 권한 차단(사용자가 '허용' 해야 함)
+  const [previewNoDevice, setPreviewNoDevice] = useState(false); // 장치 없음(PC 등) — 경고 아닌 안내만
   const stopPreview = useCallback(() => {
     previewStreamRef.current?.getTracks().forEach((t) => t.stop());
     previewStreamRef.current = null;
@@ -669,22 +613,34 @@ export default function ConsultationRoomPage() {
     return () => clearTimeout(t);
   }, [livekitToken, connected, connectAttempt]);
 
-  // 게스트 입장 폼이 떠 있는 동안 카메라 미리보기 — 권한도 미리 받아 통화 중 권한팝업 방지
+  // 게스트 입장 폼이 떠 있는 동안 카메라 미리보기 — 브라우저 '기본' 권한창이 여기서 딱 한 번 뜬다.
+  // (PO 지시 2026-07-02: 권한은 시스템 권한창으로만. 방 안 커스텀 버튼 없음 → 입장 후엔 자동 켜기)
+  // 실패는 원인별로 구분: 권한 차단(previewBlocked=허용 안내) vs 장치 없음(previewNoDevice=차분한 안내).
   useEffect(() => {
     if (checkingAuth || !isGuestMode || livekitToken) return;
     let cancelled = false;
     (async () => {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        let stream;
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        } catch (e1) {
+          // 권한 차단은 즉시 안내로. 그 외(장치 없음 등)는 카메라만이라도 미리보기 시도
+          if (e1?.name === "NotAllowedError" || e1?.name === "SecurityError") throw e1;
+          stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        }
         if (cancelled) {
           stream.getTracks().forEach((t) => t.stop());
           return;
         }
         previewStreamRef.current = stream;
         setPreviewBlocked(false);
+        setPreviewNoDevice(false);
         if (previewVideoRef.current) previewVideoRef.current.srcObject = stream;
-      } catch {
-        if (!cancelled) setPreviewBlocked(true);
+      } catch (e) {
+        if (cancelled) return;
+        if (e?.name === "NotAllowedError" || e?.name === "SecurityError") setPreviewBlocked(true);
+        else setPreviewNoDevice(true); // 카메라·마이크 없는 기기(스피커만 등) — 듣기·보기 참여 안내
       }
     })();
     return () => {
@@ -1724,6 +1680,12 @@ export default function ConsultationRoomPage() {
                     {c.retryLabel}
                   </button>
                 </div>
+              ) : previewNoDevice ? (
+                /* 장치 없음(스피커만 PC 등) — 경고가 아니라 차분한 안내. 입장은 그대로 가능(듣기·보기) */
+                <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-4 gap-2">
+                  <VideoOff size={30} className="text-gray-500" />
+                  <p className="text-xs text-gray-300 leading-snug">{c.noMediaNotice}</p>
+                </div>
               ) : (
                 <video
                   ref={previewVideoRef}
@@ -2037,22 +1999,30 @@ export default function ConsultationRoomPage() {
               token={livekitToken}
               serverUrl={livekitUrl}
               connect={true}
-              // ⚠️ 자동 켜기(audio/video=true) 금지 — 모바일에서 마이크가 "들쭉날쭉"한 원인(PO 제보).
-              //   모바일 브라우저는 '사용자 탭' 없이(자동) getUserMedia 로 마이크를 잡으면 자주 실패했다가
-              //   뒤늦게 잡힌다("시간 지나면 됨"). 반대로 '탭한 순간' 잡는 건 안정적. → 입장 시엔 미디어를
-              //   잡지 않고, 아래 <MediaEnablePrompt/> 의 큰 "탭해서 마이크·카메라 켜기" 버튼(사용자 제스처)으로
-              //   확실하게 켠다. (탭마다=입장마다 뜨므로 PO 요구 "들어올 때마다 허용버튼"도 충족.)
-              audio={false}
-              video={false}
+              // (2026-07-02 PO 지시) 입장 시 카메라·마이크 자동 켜기 — 권한은 '브라우저 기본 권한창'만.
+              //   커스텀 "탭해서 켜기" 오버레이는 삭제(권한을 제대로 못 붙이고 방만 가림).
+              //   게스트는 입장 폼 미리보기에서 이미 권한을 받아 여기선 조용히 켜진다.
+              //   ※ 예전 "모바일 자동 켜기 들쭉날쭉"(#587) 제보는 revoked 장애(POSTMORTEMS #61) 기간의
+              //   오진 가능성이 큼. 실패해도 입장은 그대로(듣기·보기), 마이크만 아래 배너로 재시도.
+              audio={true}
+              video={true}
+              onMediaDeviceFailure={(failure) => {
+                // 장치 없음/거부여도 입장은 계속. 마이크 상태는 MicOffBanner(장치 있는 기기만)가 안내.
+                setMicActivationFailed(true);
+                if (String(failure) === "PermissionDenied") toast.error(c.mediaDeniedToast);
+              }}
               options={ROOM_OPTIONS}
               onConnected={() => {
                 setConnected(true);
                 setConnectError(false);
+                setConnectErrorDetail("");
               }}
               onDisconnected={() => setConnected(false)}
               onError={(e) => {
                 console.error("[livekit] error:", e?.message);
                 setConnectError(true);
+                // 실제 원인을 화면에도 — "인터넷 확인" 뭉뚱그림 금지(#61 재발 방지)
+                if (e?.message) setConnectErrorDetail(String(e.message).slice(0, 200));
               }}
               style={{ height: "100%" }}
               data-lk-theme="default"
@@ -2076,7 +2046,6 @@ export default function ConsultationRoomPage() {
                 <WaitingForOthers />
                 <RoomAudioRenderer />
                 <AudioUnblock />
-                <MediaEnablePrompt onResult={(micOk) => setMicActivationFailed(!micOk)} />
                 <MicOffBanner
                   failed={micActivationFailed}
                   onClear={() => setMicActivationFailed(false)}
@@ -2087,9 +2056,15 @@ export default function ConsultationRoomPage() {
                 {/* 연결 실패/지연 — 무한 '연결중' 대신 재시도 안내 (재시도 = LiveKitRoom 리마운트) */}
                 {connectError && !connected && (
                   <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/70 backdrop-blur-sm px-6 text-center">
-                    <p className="text-white text-sm mb-4 max-w-xs leading-relaxed">
+                    <p className="text-white text-sm mb-2 max-w-xs leading-relaxed">
                       {c.connectStuck}
                     </p>
+                    {/* 실제 오류 원인 — 스샷 한 장으로 원격 진단 가능하게 (#61 교훈) */}
+                    {connectErrorDetail && (
+                      <p className="text-gray-400 text-[11px] mb-4 max-w-sm break-all leading-snug">
+                        ({connectErrorDetail})
+                      </p>
+                    )}
                     <button
                       onClick={() => {
                         setConnectError(false);
