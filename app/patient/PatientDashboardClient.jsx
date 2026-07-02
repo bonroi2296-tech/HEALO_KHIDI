@@ -52,6 +52,32 @@ const SESSION_LABELS = {
 };
 const PATIENT_FALLBACK = { ko: '환자', en: 'Patient', ru: 'Пациент', kz: 'Науқас', zh: '患者', ja: '患者' };
 
+// 문의 상태·상담 상태 라벨 — 6개 활성언어 (SESSION_LABELS 와 동일 패턴.
+// 이전엔 한국어 하드코딩·원시 status 값('scheduled')이 그대로 노출됐음 — 2026-07-02 전수 감사)
+const INQUIRY_STATUS_LABELS = {
+  received: { ko: '접수됨', en: 'Received', ru: 'Принята', kz: 'Қабылданды', zh: '已受理', ja: '受付済み' },
+  reviewing: { ko: '검토 중', en: 'In review', ru: 'На рассмотрении', kz: 'Қаралуда', zh: '审核中', ja: '確認中' },
+  matched: { ko: '매칭 완료', en: 'Matched', ru: 'Подобрано', kz: 'Сәйкестендірілді', zh: '已匹配', ja: 'マッチング完了' },
+  completed: { ko: '완료', en: 'Completed', ru: 'Завершена', kz: 'Аяқталды', zh: '已完成', ja: '完了' },
+};
+const CONSULT_STATUS_LABELS = {
+  active: { ko: '진행 중', en: 'In progress', ru: 'Идёт', kz: 'Жүріп жатыр', zh: '进行中', ja: '進行中' },
+  completed: { ko: '완료', en: 'Completed', ru: 'Завершена', kz: 'Аяқталды', zh: '已完成', ja: '完了' },
+  scheduled: { ko: '예약됨', en: 'Scheduled', ru: 'Запланирована', kz: 'Жоспарланды', zh: '已预约', ja: '予約済み' },
+  cancelled: { ko: '취소됨', en: 'Cancelled', ru: 'Отменена', kz: 'Бас тартылды', zh: '已取消', ja: 'キャンセル' },
+};
+const CANCER_LABELS = {
+  stomach: { ko: '위암', en: 'Stomach cancer', ru: 'Рак желудка', kz: 'Асқазан обыры', zh: '胃癌', ja: '胃がん' },
+  liver: { ko: '간암', en: 'Liver cancer', ru: 'Рак печени', kz: 'Бауыр обыры', zh: '肝癌', ja: '肝がん' },
+  lung: { ko: '폐암', en: 'Lung cancer', ru: 'Рак лёгких', kz: 'Өкпе обыры', zh: '肺癌', ja: '肺がん' },
+  breast: { ko: '유방암', en: 'Breast cancer', ru: 'Рак молочной железы', kz: 'Сүт безі обыры', zh: '乳腺癌', ja: '乳がん' },
+  thyroid: { ko: '갑상선암', en: 'Thyroid cancer', ru: 'Рак щитовидной железы', kz: 'Қалқанша без обыры', zh: '甲状腺癌', ja: '甲状腺がん' },
+  colorectal: { ko: '대장암', en: 'Colorectal cancer', ru: 'Рак толстой кишки', kz: 'Тоқ ішек обыры', zh: '大肠癌', ja: '大腸がん' },
+  pancreatic: { ko: '췌장암', en: 'Pancreatic cancer', ru: 'Рак поджелудочной железы', kz: 'Ұйқы безі обыры', zh: '胰腺癌', ja: '膵臓がん' },
+  other: { ko: '기타', en: 'Other', ru: 'Другое', kz: 'Басқа', zh: '其他', ja: 'その他' },
+};
+const INQUIRY_FALLBACK_TITLE = { ko: '상담 신청', en: 'Consultation request', ru: 'Заявка на консультацию', kz: 'Кеңеске өтінім', zh: '咨询申请', ja: '相談申請' };
+
 export default function PatientDashboardClient() {
   const router = useRouter();
   const lang = useLang();
@@ -216,13 +242,14 @@ export default function PatientDashboardClient() {
           <h2 className="text-lg font-semibold mb-3">{l({ ko: '내 문의', en: 'My Inquiries', ru: 'Мои заявки', kz: 'Менің өтінімдерім', zh: '我的咨询', ja: 'お問い合わせ' })}</h2>
           <div className="flex flex-col gap-3">
             {inquiries.map((q) => {
-              const stLabel = {
-                received: { ko: '접수됨', cls: 'bg-yellow-100 text-yellow-700' },
-                reviewing: { ko: '검토 중', cls: 'bg-blue-100 text-blue-700' },
-                matched: { ko: '매칭 완료', cls: 'bg-teal-100 text-teal-700' },
-                completed: { ko: '완료', cls: 'bg-gray-100 text-gray-500' },
-              }[q.status] || { ko: q.status || '접수됨', cls: 'bg-yellow-100 text-yellow-700' };
-              const cancer = { stomach: '위암', liver: '간암', lung: '폐암', breast: '유방암', thyroid: '갑상선암', colorectal: '대장암', pancreatic: '췌장암', other: '기타' }[q.cancer_type] || q.cancer_type || '상담 신청';
+              const stCls = {
+                received: 'bg-yellow-100 text-yellow-700',
+                reviewing: 'bg-blue-100 text-blue-700',
+                matched: 'bg-teal-100 text-teal-700',
+                completed: 'bg-gray-100 text-gray-500',
+              }[q.status] || 'bg-yellow-100 text-yellow-700';
+              const stText = INQUIRY_STATUS_LABELS[q.status] ? l(INQUIRY_STATUS_LABELS[q.status]) : (q.status || l(INQUIRY_STATUS_LABELS.received));
+              const cancer = CANCER_LABELS[q.cancer_type] ? l(CANCER_LABELS[q.cancer_type]) : (q.cancer_type || l(INQUIRY_FALLBACK_TITLE));
               return (
                 <div key={q.id} className="flex items-center justify-between p-4 bg-white rounded-xl border border-gray-100">
                   <div className="flex items-center gap-3">
@@ -232,11 +259,11 @@ export default function PatientDashboardClient() {
                     <div>
                       <div className="font-medium text-sm">{cancer}</div>
                       <div className="text-xs text-gray-400">
-                        {q.created_at ? new Date(q.created_at).toLocaleDateString('ko-KR') : '-'}
+                        {q.created_at ? new Date(q.created_at).toLocaleDateString() : '-'}
                       </div>
                     </div>
                   </div>
-                  <span className={`text-xs px-3 py-1 rounded-full font-medium ${stLabel.cls}`}>{stLabel.ko}</span>
+                  <span className={`text-xs px-3 py-1 rounded-full font-medium ${stCls}`}>{stText}</span>
                 </div>
               );
             })}
@@ -317,7 +344,7 @@ export default function PatientDashboardClient() {
                 c.status === 'scheduled' ? 'bg-blue-100 text-blue-700' :
                 'bg-yellow-100 text-yellow-700'
               }`}>
-                {c.status}
+                {CONSULT_STATUS_LABELS[c.status] ? l(CONSULT_STATUS_LABELS[c.status]) : c.status}
               </span>
             </div>
           ))}

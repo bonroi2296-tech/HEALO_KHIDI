@@ -20,6 +20,7 @@ import { encryptString, encryptStringNullable } from "@/lib/security/encryptionV
 import { encryptPiiInObject } from "@/lib/security/piiJson";
 import { checkRateLimit, getClientIp, RATE_LIMITS, getRateLimitHeaders } from "@/lib/rateLimit";
 import { sendAdminNotification } from "@/lib/notifications/adminNotifier";
+import { detectInquiryIsTest } from "@/lib/khidi/testData";
 
 export async function POST(request: NextRequest) {
   assertSupabaseEnv();
@@ -108,6 +109,11 @@ export async function POST(request: NextRequest) {
         case_status: "received",
         case_status_note: `에이전시 의뢰 (${auth.agencyName || ""})`.trim(),
         case_status_updated_at: new Date().toISOString(),
+        // 테스트/실적 분리(PR #501): 생성 시점 판정 — 데모 에이전시 계정(@test.com)·사무실 IP·
+        // 테스트 환자 이메일의 온보딩 연습 의뢰가 KHIDI 실적 문의로 집계되지 않게.
+        is_test:
+          detectInquiryIsTest({ ip, email: hasEmail ? String(body.email).trim() : null }) ||
+          detectInquiryIsTest({ email: auth.email || null }),
       })
       .select("id")
       .single();

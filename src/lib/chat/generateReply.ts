@@ -653,9 +653,17 @@ function correctionResult(reply: string, t0: number): ChatReplyResult {
 // 일반 RAG 흐름을 건너뛰고 지금까지의 '전체 스레드'를 모델에게 자기점검시킨다.
 // 채팅(공개)·어드민(/admin/khidi/agent-analysis) 양쪽이 generateMasterKeyAnalysis 공유.
 //
-// 트리거: 메시지가 '힐로' 또는 'healo'(대소문자 무관)로 시작 + 그 뒤가 끝/공백/구두점.
+// 트리거: 메시지가 트리거어로 시작 + 그 뒤가 끝/공백/구두점.
 // '힐로분석'처럼 바로 글자가 붙으면 일반 질의로 취급(오탐 방지).
-const MASTER_KEY_RE = /^(힐로|healo)([\s,.:!?~·]|$)/i;
+// ⚠️ 트리거어에서 라틴 'healo' 제거(2026-07-02 전수 감사): 옛 브랜드명이라 실사용자
+// (특히 러/영어권)가 'Healo, ...'로 말을 시작하면 한국어 내부 자기분석이 그대로 노출됐음.
+// 기본은 한국어 '힐로'(PO 디버그용 — 실환자 입력과 충돌 확률 사실상 0),
+// env CHAT_MASTER_KEY_WORD 로 비공개 키워드 교체 가능.
+function escapeRe(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+const MASTER_KEY_WORD = (process.env.CHAT_MASTER_KEY_WORD || "힐로").trim();
+const MASTER_KEY_RE = new RegExp(`^(${escapeRe(MASTER_KEY_WORD)})([\\s,.:!?~·]|$)`, "i");
 
 export function isMasterKey(text: string): boolean {
   return MASTER_KEY_RE.test((text || "").trim());

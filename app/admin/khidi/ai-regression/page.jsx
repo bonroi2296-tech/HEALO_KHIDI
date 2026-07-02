@@ -1,13 +1,6 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { createClient } from "@supabase/supabase-js";
-
-// ── Supabase 클라이언트 (공개 읽기용) ──────────────────────────
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-);
 
 // ── 유틸 ────────────────────────────────────────────────────────
 const PCT_COLOR = (pct) => {
@@ -192,16 +185,12 @@ export default function AiRegressionPage() {
     setLoading(true);
     setError(null);
     try {
-      const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
-
-      // 최근 30일 일별 집계 (run_date별)
-      const { data: runData, error: runErr } = await supabase
-        .from("ai_regression_runs")
-        .select("run_date, overall_score, passed, flags, test_id, id, ai_regression_tests(scenario_id, scenario_category)")
-        .gte("run_date", thirtyDaysAgo)
-        .order("run_date", { ascending: true });
-
-      if (runErr) throw runErr;
+      // ⚠️ 서버 API 경유 필수 — ai_regression_runs 는 RLS deny-all(service_role 전용)이라
+      // anon 직쿼리는 에러 없이 항상 0행 = 화면이 영원히 '데이터 없음'이었음(2026-07-02 소생).
+      const res = await fetch("/api/admin/khidi/ai-regression?days=30", { credentials: "include" });
+      const json = await res.json();
+      if (!json.ok) throw new Error(json.error || "query_failed");
+      const runData = json.runs;
 
       // 일별 통과율·평균점수 집계
       const byDate = {};

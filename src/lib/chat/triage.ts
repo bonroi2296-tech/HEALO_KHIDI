@@ -14,6 +14,7 @@ import "server-only";
 
 import { supabaseAdmin } from "../rag/supabaseAdmin";
 import { redactModelPii } from "../security/redactModelPii";
+import { logAiUsage } from "@/lib/ai/usageLog";
 
 const MODEL = "gemini-flash-latest";
 
@@ -189,6 +190,17 @@ export async function generateTriage(opts: {
       return { patientReply: "", packet: null, unreadableCount: unreadable, error: "model_http_error" };
     }
     const json = await res.json();
+
+    // 💰 사용량·비용 계측 (fire-and-forget) — 첨부 멀티모달은 텍스트 챗보다 토큰이 크다.
+    // 챗(generateReply)·통역·STT 는 계측되는데 이 경로만 빠져 있었음(2026-07-02 전수 감사).
+    logAiUsage({
+      surface: "triage",
+      model: MODEL,
+      promptTokens: json?.usageMetadata?.promptTokenCount ?? null,
+      completionTokens: json?.usageMetadata?.candidatesTokenCount ?? null,
+      meta: { attachments: fileParts.length },
+    }).catch(() => {});
+
     const raw = json?.candidates?.[0]?.content?.parts?.map((p: any) => p.text).join("") || "";
     let parsed: any = null;
     try {

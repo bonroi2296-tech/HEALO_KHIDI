@@ -16,7 +16,9 @@ import { test, expect } from "@playwright/test";
 
 const EXISTING_EMAIL = "patient@test.com"; // 시드 계정(항상 존재)
 
-test.describe("가입 — 중복 이메일 정직 안내", () => {
+// @smoke 승격: 가입 UI 를 바꾼 PR 이 이 스펙을 안 깨뜨리는지 "머지 전"에 잡는다
+// (main 전용이던 탓에 6일 빨강을 아무도 못 느꼈던 재발 방지 — 2026-07-02).
+test.describe("가입 — 중복 이메일 정직 안내 @smoke", () => {
   test("이미 가입된 이메일은 '메일 보냈어요'가 아니라 '이미 가입됨'으로 안내한다", async ({ page }) => {
     await page.context().clearCookies();
     await page.goto("/signup");
@@ -27,7 +29,10 @@ test.describe("가입 — 중복 이메일 정직 안내", () => {
     await page.locator('input[aria-label="Email"]').fill(EXISTING_EMAIL);
     await page.locator('input[aria-label="Password"]').fill("Test1234");
     await page.locator('input[aria-label="Confirm password"]').fill("Test1234");
-    await page.locator("#terms").check();
+    // PR #358(2026-06-25)에서 동의가 #terms 1개 → 개인정보(#agree-privacy)·약관(#agree-terms) 2개로
+    // 분리됐는데 이 스펙이 안 따라가 main E2E 가 6일간 전 실행 빨강이었음(2026-07-02 전수 감사).
+    await page.locator("#agree-privacy").check();
+    await page.locator("#agree-terms").check();
 
     // 본문 제출 버튼만(헤더·구글 버튼 제외). DOM상 제출이 구글보다 먼저라 .first().
     await page

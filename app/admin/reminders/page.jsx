@@ -27,22 +27,21 @@ export default function RemindersAdminPage() {
   const [dispatching, setDispatching] = useState(false);
   const [lastResult, setLastResult] = useState(null);
 
+  // ⚠️ 서버 API 경유 필수 — reminders_scheduled 는 RLS deny-all(service_role 전용)이라
+  // 브라우저 직쿼리는 에러도 없이 영원히 빈 목록이었음(2026-07-02 전수 감사에서 소생).
   const fetchReminders = useCallback(async () => {
     setLoading(true);
     try {
-      let query = supabase
-        .from("reminders_scheduled")
-        .select("*")
-        .order("fire_at", { ascending: false })
-        .limit(200);
-
-      if (filter !== "all") {
-        query = query.eq("status", filter);
-      }
-
-      const { data, error } = await query;
-      if (error) throw error;
-      setReminders(data ?? []);
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+      const qs = filter !== "all" ? `?status=${filter}` : "";
+      const res = await fetch(`/api/admin/reminders${qs}`, {
+        credentials: "include",
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      const json = await res.json();
+      if (!json.ok) throw new Error(json.error || "query_failed");
+      setReminders(json.items ?? []);
     } catch (err) {
       console.error("[reminders page] fetch error:", err.message);
     } finally {
@@ -78,17 +77,17 @@ export default function RemindersAdminPage() {
     }
   };
 
-  // 수동 디스패처 실행
+  // 수동 디스패처 실행 — 어드민 인증 프록시 경유(CRON_SECRET 브라우저 입력 제거)
   const handleDispatch = async () => {
     setDispatching(true);
     setLastResult(null);
     try {
-      const cronSecret = prompt("CRON_SECRET 입력:");
-      if (!cronSecret) return;
-
-      const res = await fetch("/api/cron/dispatch-reminders", {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+      const res = await fetch("/api/admin/reminders/dispatch", {
         method: "POST",
-        headers: { Authorization: `Bearer ${cronSecret}` },
+        credentials: "include",
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       const json = await res.json();
       setLastResult(json);

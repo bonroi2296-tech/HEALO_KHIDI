@@ -28,6 +28,7 @@ const STRINGS: Record<
     joinBtn: string;
     alreadyHaveLink: string;
     footer: string;
+    disclaimer: string;
   }
 > = {
   ko: {
@@ -40,6 +41,7 @@ const STRINGS: Record<
     joinBtn: "지금 입장하기",
     alreadyHaveLink: "이미 초대 이메일을 받으신 경우 기존 링크로도 입장 가능합니다.",
     footer: "healwith · 한국 암 치료 컨시어지",
+    disclaimer: "healwith는 의료기관이 아닙니다. 진단·치료는 한국의 면허 의료기관이 수행합니다.",
   },
   en: {
     subject: "⏰ [30 min] Your healwith consultation starts soon",
@@ -51,6 +53,7 @@ const STRINGS: Record<
     joinBtn: "Join now",
     alreadyHaveLink: "You can also use the link from your original invitation email.",
     footer: "healwith · Korea cancer-care concierge",
+    disclaimer: "healwith is not a medical institution. Diagnosis / treatment by licensed Korean providers.",
   },
   ru: {
     subject: "⏰ [30 мин] Ваша консультация healwith скоро начнётся",
@@ -62,6 +65,7 @@ const STRINGS: Record<
     joinBtn: "Войти сейчас",
     alreadyHaveLink: "Вы также можете использовать ссылку из исходного письма-приглашения.",
     footer: "healwith · Онкология в Корее",
+    disclaimer: "healwith не является медицинским учреждением. Диагностику и лечение проводят лицензированные корейские клиники.",
   },
   kk: {
     subject: "⏰ [30 мин] healwith кеңесіңіз жақын арада басталады",
@@ -73,6 +77,7 @@ const STRINGS: Record<
     joinBtn: "Қазір кіру",
     alreadyHaveLink: "Бастапқы шақыру хатындағы сілтемені де пайдалана аласыз.",
     footer: "healwith · Кореядағы онкология консьерж",
+    disclaimer: "healwith медициналық мекеме емес. Диагностика мен емді лицензиясы бар корей клиникалары жүргізеді.",
   },
   zh: {
     subject: "⏰ [30分钟后] 您的 healwith 会诊即将开始",
@@ -84,6 +89,7 @@ const STRINGS: Record<
     joinBtn: "立即进入",
     alreadyHaveLink: "您也可以使用原始邀请邮件中的链接。",
     footer: "healwith · 韩国肿瘤医疗服务",
+    disclaimer: "healwith 并非医疗机构。诊断与治疗由持有执照的韩国医疗机构进行。",
   },
   ja: {
     subject: "⏰ [30分後] healwith 遠隔診療がもうすぐ始まります",
@@ -95,6 +101,7 @@ const STRINGS: Record<
     joinBtn: "今すぐ入室",
     alreadyHaveLink: "元の招待メールのリンクからも入室できます。",
     footer: "healwith · 韓国がん治療コンシェルジュ",
+    disclaimer: "healwith は医療機関ではありません。診断・治療は韓国の免許を持つ医療機関が行います。",
   },
 };
 
@@ -208,7 +215,7 @@ export function renderConsultationReminderEmail(props: ConsultationReminderProps
       <!-- 푸터 -->
       <tr>
         <td style="background:#f8fafc;padding:16px 32px;font-size:10px;color:#94a3b8;text-align:center;line-height:1.6;">
-          healwith is not a medical institution. Diagnosis / treatment by licensed Korean providers.
+          ${esc(s.disclaimer)}
         </td>
       </tr>
     </table>

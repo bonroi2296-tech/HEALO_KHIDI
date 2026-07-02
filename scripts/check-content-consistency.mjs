@@ -339,6 +339,38 @@ for (const file of EMAIL_TEMPLATE_FILES) {
   });
 }
 
+// ── 9) 글로벌 t() 미정의 키 가드 (2026-07-02 전수 감사) ──
+// 왜: t()는 미정의 키에 키 원문("chat.back")을 그대로 반환(truthy) → `t(...) || "폴백"` 의
+//     폴백이 절대 실행되지 않는 착시가 코드에 깔림. 미정의 키를 쓰는 컴포넌트가 노출되는 순간
+//     사용자 화면에 키 원문이 그대로 보임. 기존 패리티 검사는 '사전 안 언어 간 누락'만 봐서
+//     '코드가 쓰는 키가 사전에 아예 없음'은 사각지대였음.
+// 방법: 사전 소스에서 따옴표 dotted 키 전수 추출 → 글로벌 t 를 import 하는 파일의
+//     t("a.b") 리터럴 호출이 전부 사전에 존재하는지 대조. 동적 키(t(변수))는 검사 밖(의도).
+{
+  const dictSrc = readFileSync(join(ROOT, "src/lib/i18n/index.js"), "utf8");
+  const KNOWN_KEYS = new Set(
+    [...dictSrc.matchAll(/"([a-z0-9]+(?:\.[A-Za-z0-9_]+)+)"\s*:/g)].map((m) => m[1])
+  );
+  // 글로벌 t import 감지: `import { ..., t, ... } from ".../i18n"` (별칭 @/lib/i18n · 상대경로 모두)
+  const T_IMPORT_RE = /import\s*\{[^}]*\bt\b[^}]*\}\s*from\s*["'][^"']*\/i18n["']/;
+  for (const dir of SCAN_DIRS) {
+    for (const file of walk(dir)) {
+      if (!CODE_EXT.test(file) || EXCLUDE.test(file)) continue;
+      const text = readFileSync(join(ROOT, file), "utf8");
+      if (!T_IMPORT_RE.test(text)) continue;
+      for (const m of text.matchAll(/\bt\(\s*["']([a-z0-9]+(?:\.[A-Za-z0-9_]+)+)["']/g)) {
+        if (!KNOWN_KEYS.has(m[1])) {
+          errors.push(
+            `[t미정의키] ${file.replace(/\\/g, "/")} — t("${m[1]}") 키가 i18n 사전에 없음. ` +
+              `t()는 미정의 키에 키 원문을 반환하므로 사용자 화면에 "${m[1]}" 가 그대로 노출됨. ` +
+              `사전(src/lib/i18n/index.js) 6개 언어에 키를 추가하거나 호출을 제거할 것.`
+          );
+        }
+      }
+    }
+  }
+}
+
 // ── 결과 ────────────────────────────────────────────────────────
 if (errors.length) {
   console.error(`\n❌ 콘텐츠 일관성 검사 실패 (${errors.length}건)\n`);

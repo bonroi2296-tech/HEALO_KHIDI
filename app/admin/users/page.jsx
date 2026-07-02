@@ -93,7 +93,9 @@ export default function AdminUsersPage() {
   }
 
   async function handleResetPw(user) {
-    const pw = prompt(`${user.email} 새 임시 비밀번호 (최소 6자):`, "healo1234");
+    // 기본값을 잘 알려진 약한 비번(healo1234) 대신 계정마다 무작위 강한 임시비번으로 — staff(PR #85)와 동일 원칙
+    const suggested = `Hw${crypto.randomUUID().replace(/-/g, "").slice(0, 10)}!`;
+    const pw = prompt(`${user.email} 새 임시 비밀번호 (최소 6자):`, suggested);
     if (!pw) return;
     if (pw.length < 6) { toast.error("최소 6자"); return; }
     if (await patch(user.id, "reset_password", { password: pw })) {

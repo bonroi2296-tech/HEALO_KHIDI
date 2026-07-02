@@ -22,7 +22,8 @@ import {
   extractDurationFromQuery,
   extractSeverityFromQuery,
 } from "@/lib/intakeExtract";
-import { encryptStringNullable } from "@/lib/security/encryptionV2";
+import { encryptStringNullable, decryptMaybe } from "@/lib/security/encryptionV2";
+import { detectInquiryIsTest } from "@/lib/khidi/testData";
 
 export const INTAKE_EVERY_N_TURNS = 3;
 export const MAX_ATTACHMENTS = 5;
@@ -75,9 +76,21 @@ async function promoteThreadToInquiry(
   thread: any,
   intake: any,
   rawEnc: string | null,
-  lang: string
+  lang: string,
+  clientIp: string | null = null
 ) {
   if (thread?.inquiry_id) return; // 이미 승격됨
+
+  // 테스트/실적 분리(PR #501): 폼 경로(step1·create)와 동일하게 '생성 시점' 판정.
+  // 이 경로만 판정이 빠져 내부 테스트 대화가 KHIDI 실적 문의로 집계되던 구멍(2026-07-02 전수 감사).
+  // 이메일은 암호화 저장이라 복호화 후 도메인 검사(옛 평문 행은 decryptMaybe 가 그대로 반환).
+  let guestEmailPlain: string | null = null;
+  try {
+    guestEmailPlain = decryptMaybe(thread?.guest_email || null);
+  } catch {
+    /* 손상 payload 는 판정에서 무시 */
+  }
+  const isTest = detectInquiryIsTest({ ip: clientIp, email: guestEmailPlain });
 
   // PIPA 동의 보존: AI 챗은 chat/start 와 매 메시지에서 동의(health_crossborder)를
   // 강제하므로 3턴+ 도달한 thread 는 동의가 반드시 있다(thread.metadata.consent).
@@ -106,6 +119,7 @@ async function promoteThreadToInquiry(
       intake: { ...(intake || {}), ...consentFields },
       source: "ai_agent",
       status: "received",
+      is_test: isTest,
     })
     .select("id")
     .single();
@@ -129,7 +143,8 @@ async function promoteThreadToInquiry(
 export async function createDraftIntake(
   thread: any,
   messages: Array<{ actor_type: string; message_text: string }>,
-  lang: string
+  lang: string,
+  clientIp: string | null = null
 ) {
   const patientTexts = messages
     .filter((m) => m.actor_type === "patient")
@@ -185,5 +200,5 @@ export async function createDraftIntake(
   }
 
   // KHIDI 집계 대상(inquiries)으로 승격 — 3턴+ 대화 1회(중복방지). 실패해도 챗은 계속.
-  await promoteThreadToInquiry(thread, intake, rawEnc, lang);
+  await promoteThreadToInquiry(thread, intake, rawEnc, lang, clientIp);
 }

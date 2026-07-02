@@ -50,3 +50,34 @@ describe("detectHandOff — 6개 언어 빠른버튼 문구가 전부 잡혀야 
     expect(detectHandOff("How much does stomach cancer treatment cost?").requested).toBe(false);
   });
 });
+
+// 고위험(응급·자살) 발화는 언어와 무관하게 high_risk_detected 로 에스컬레이션돼야 한다.
+// 과거 한국어 패턴이 \b(CJK 무효)를 써서 '자살하고 싶어요'조차 침묵 실패했고(2026-07-02 전수 감사 발견),
+// ru/kz/zh/ja 는 패턴 자체가 없었다 — 암환자 대상 서비스의 안전 사각. 6개어 케이스로 영구 고정.
+const HIGH_RISK_MSG = {
+  en: "I feel suicidal and it's an emergency.",
+  ko: "자살하고 싶어요.",
+  ru: "Это экстренно, я не могу дышать.",
+  kz: "Жедел жәрдем керек, дем ала алмай жатырмын.",
+  zh: "我想死，呼吸困难。",
+  ja: "死にたいです。呼吸困難があります。",
+};
+
+describe("detectHandOff — 고위험 발화 6개 언어 에스컬레이션", () => {
+  it("6개어 모두 requested=true + reason=high_risk_detected", () => {
+    for (const lang of LANGS) {
+      const r = detectHandOff(HIGH_RISK_MSG[lang]);
+      expect(r.requested, `high-risk ${lang}`).toBe(true);
+      expect(r.reason, `high-risk reason ${lang}`).toBe("high_risk_detected");
+    }
+  });
+
+  it("CJK \\b 회귀 핀포인트: 한국어 응급·호흡곤란 문장", () => {
+    expect(detectHandOff("지금 응급 상황이에요").reason).toBe("high_risk_detected");
+    expect(detectHandOff("호흡곤란이 있어요").reason).toBe("high_risk_detected");
+  });
+
+  it("고위험이 사람연결 요청과 겹치면 high_risk 가 우선", () => {
+    expect(detectHandOff("응급이에요, 상담사 연결해 주세요").reason).toBe("high_risk_detected");
+  });
+});

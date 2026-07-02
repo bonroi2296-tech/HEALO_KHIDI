@@ -21,6 +21,7 @@ const STRINGS = {
     notice: "※ 본 링크는 14일 후 만료됩니다.",
     footer: "healwith · 한국 암 치료 컨시어지",
     closing: "소중한 의견 감사드립니다.",
+    disclaimer: "healwith는 의료기관이 아닙니다. 진단·치료는 한국의 면허 의료기관이 수행합니다.",
   },
   en: {
     subject: "Please share your healwith experience",
@@ -31,6 +32,7 @@ const STRINGS = {
     notice: "※ This link expires in 14 days.",
     footer: "healwith · Korea Cancer-Care Concierge",
     closing: "We appreciate your feedback.",
+    disclaimer: "healwith is not a medical institution. Korea-licensed providers only.",
   },
   ru: {
     subject: "healwith — поделитесь своим мнением",
@@ -41,6 +43,7 @@ const STRINGS = {
     notice: "※ Ссылка действительна 14 дней.",
     footer: "healwith · Корейский онкологический консьерж",
     closing: "Благодарим за ваш отзыв.",
+    disclaimer: "healwith не является медицинским учреждением. Диагностику и лечение проводят лицензированные корейские клиники.",
   },
   kk: {
     subject: "healwith — пікіріңізбен бөлісіңіз",
@@ -51,6 +54,7 @@ const STRINGS = {
     notice: "※ Сілтеме 14 күннен кейін жойылады.",
     footer: "healwith · Кореядағы онкология консьерж қызметі",
     closing: "Пікіріңізге рахмет.",
+    disclaimer: "healwith медициналық мекеме емес. Диагностика мен емді лицензиясы бар корей клиникалары жүргізеді.",
   },
   zh: {
     subject: "请分享您对healwith的使用体验",
@@ -61,6 +65,7 @@ const STRINGS = {
     notice: "※ 此链接将在14天后过期。",
     footer: "healwith · 韩国癌症治疗礼宾服务",
     closing: "感谢您宝贵的意见。",
+    disclaimer: "healwith 并非医疗机构。诊断与治疗由持有执照的韩国医疗机构进行。",
   },
   ja: {
     subject: "healwithサービスへのご意見をお聞かせください",
@@ -71,6 +76,7 @@ const STRINGS = {
     notice: "※ このリンクは14日後に無効になります。",
     footer: "healwith · 韓国がん治療コンシェルジュ",
     closing: "ご意見をお寄せいただきありがとうございます。",
+    disclaimer: "healwith は医療機関ではありません。診断・治療は韓国の免許を持つ医療機関が行います。",
   },
 } as const;
 
@@ -122,7 +128,7 @@ export function renderSurveyEmail(props: SurveyEmailProps) {
       </tr>
       <tr>
         <td style="background:#f8fafc;padding:16px 32px;font-size:10px;color:#94a3b8;text-align:center;line-height:1.6;border-top:1px solid #f1f5f9;">
-          healwith is not a medical institution. Korea-licensed providers only.
+          ${esc(s.disclaimer)}
         </td>
       </tr>
     </table>

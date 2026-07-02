@@ -35,19 +35,30 @@ const REGISTER_PATTERNS = [
 ];
 
 const HIGH_RISK_PATTERNS = [
-  /\b(?:emergency|urgent|severe\s*pain|chest\s*pain|breathing\s*difficulty|suicidal|overdose)\b/i,
-  /\b(?:응급|긴급|극심한|자살|과다복용|호흡곤란)\b/,
+  /\b(?:emergency|urgent|severe\s*pain|chest\s*pain|breathing\s*difficult|suicid|overdose)/i,
+  // ko — \b 제거(CJK 무효, 위 헤더 주석과 동일 이유). 부분일치.
+  /(?:응급|긴급|극심한|자살|과다복용|호흡곤란|죽고\s*싶)/,
+  // ru — 핵심 타겟.
+  /(?:экстренн|скорую|срочная\s*помощь|суицид|передозиров|задыха|не\s*могу\s*дышать|покончить\s*с\s*собой|хочу\s*умереть)/i,
+  // kz — 핵심 타겟.
+  /(?:жедел\s*жәрдем|шұғыл|суицид|өзіме\s*қол|дем\s*ала\s*алма|тыныс\s*тарыл|өлгім\s*кел)/i,
+  // zh
+  /(?:急救|紧急|自杀|想死|服药过量|呼吸困难|剧痛)/,
+  // ja
+  /(?:救急|緊急|自殺|死にたい|過剰摂取|呼吸困難|激痛)/,
 ];
 
 export function detectHandOff(text: string): { requested: boolean; reason: string | null } {
+  // 고위험(응급·자살)을 최우선 판정 — "응급이에요, 사람 연결해줘" 같은 문장이
+  // user_requested_human 으로 약하게 분류되지 않게.
+  for (const p of HIGH_RISK_PATTERNS) {
+    if (p.test(text)) return { requested: true, reason: "high_risk_detected" };
+  }
   for (const p of HAND_OFF_PATTERNS) {
     if (p.test(text)) return { requested: true, reason: "user_requested_human" };
   }
   for (const p of REGISTER_PATTERNS) {
     if (p.test(text)) return { requested: true, reason: "user_requested_registration" };
-  }
-  for (const p of HIGH_RISK_PATTERNS) {
-    if (p.test(text)) return { requested: true, reason: "high_risk_detected" };
   }
   return { requested: false, reason: null };
 }
