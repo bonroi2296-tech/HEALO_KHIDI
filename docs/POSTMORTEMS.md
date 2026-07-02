@@ -1444,3 +1444,38 @@ PO가 협력병원 상세(`/hospitals/[slug]`) 하단 "자주 묻는 질문"이 
 **재발 방지**
 - 교훈: **DB에 든 의료 통계(성공률·건수·비용)는 실검증(is_verified) 없이 절대 노출 금지.** 시드/데모 숫자를 is_verified=true 로 두지 말 것. 병원·데이터 활성화(공개 전) 체크리스트에 "숫자 출처 검증" 포함.
 - 교훈: **공개 노출 필터(is_active)는 목록뿐 아니라 매칭·추천 등 모든 경로에 일관 적용.**
+
+## #61 — 게스트 전원 화상 입장 불가: 선제 강제퇴장(removeParticipant)이 갓 발급한 토큰을 "폐기됨"으로 만듦 (2026-07-02)
+
+**무슨 일**
+- 6/30(화) 저녁 #527 배포 이후 **초대 링크(게스트) 입장자 전원이 LiveKit 연결 실패** — 방 UI는 뜨지만 실제론 아무도 방에 못 들어감. 증상은 "서로 안 보임 👥=1", "남의 컴/폰만 계속 연결 안 됨"으로 보고됨(PO). 로그인 직원(staff) 입장은 정상이라 "PO 기기만 되는" 착시가 생겨 원인 추적이 이틀 밀림.
+- 실제 오류(브라우저 콘솔): `could not establish signal connection: invalid token: revoked`.
+
+**왜 못 잡았나(근본원인)**
+- #527이 게스트 입장 직전에 `removeParticipant`(같은 기기 옛 유령 세션 선제 퇴장)를 호출. LiveKit Cloud는 강제퇴장 시 "그 시각 이전 발급 토큰=폐기"로 기록하는데, `livekit-server-sdk`(2.15.0)가 만드는 토큰은 `nbf=0`·`iat` 없음이라 **방금 발급한 토큰도 전부 '이전 발급'으로 오판**되어 거부됨. 직원용 토큰 라우트는 이 호출이 없어 정상 → A/B 증거로 확정(/rtc/validate: staff=200, guest=401 revoked).
+- 클라이언트가 연결 실패 사유를 "인터넷 상태를 확인하세요"로 뭉뚱그려 표시 + 서버에 아무 기록도 안 남겨, 실기기 없는 원격 진단이 불가능했음. 어제 세션들은 이 위에서 증상(마이크·발화자화면 등)을 쫓음.
+- 방 UI의 👥 카운터가 '연결 전에도 자기 1명'을 표시해 "입장은 됐는데 서로 안 보임"이라는 잘못된 문제 정의를 유도.
+
+**어떻게 고쳤나**
+- guest-join의 `removeParticipant` 선제 호출 삭제. 유령 정리는 (a) 같은 identity 재입장 시 LiveKit이 기존 연결을 자동 교체 (b) 방 departureTimeout/emptyTimeout이 이미 담당 — 선제 퇴장은 애초에 불필요했음.
+- 검증: 프로덕션에서 staff/guest 토큰을 `https://<livekit>/rtc/validate`로 직접 대조(수정 전 guest=401 revoked → 수정 후 200 확인 예정) + 실브라우저 입장.
+
+**재발 방지**
+- 교훈: **LiveKit `removeParticipant`는 nbf=0 토큰 체계에서 같은 identity의 신규 발급 토큰까지 죽인다** — 입장 플로우에 강제퇴장을 넣지 말 것(정리는 identity 자동 교체·방 타임아웃으로).
+- 교훈: **연결 실패는 실제 오류 문자열을 화면+서버 로그로 남겨야** 원격 기기 문제를 진단할 수 있다(후속: 클라이언트 오류 비콘 + 정직한 실패 문구 — 별도 PR).
+- 진단 도구: `admin@test.com`으로 실서비스 전 플로우(API) 재현 + LiveKit `/rtc/validate`로 토큰 판정 즉시 확인 가능(이번에 확립).
+
+## #62 — 통합 링크(guest 역할) 입장 기록이 DB 제약 위반으로 전부 조용히 유실 (2026-07-02)
+
+**무슨 일**
+- #576(링크 통일)이 초대 역할 `guest`를 도입했는데 `consultation_admissions.participant_role` CHECK 제약(patient/doctor/translator/coordinator/observer)에 `guest`가 없어, 7/1 17:19부터 게스트 입장 기록(insert)이 **전부 실패**. guest-join이 try/catch로 삼켜 입장 자체는 됐지만 기록·감사가 통째로 빠짐.
+
+**왜 못 잡았나(근본원인)**
+- 역할 enum을 코드(GuestRole)에만 추가하고 DB CHECK 제약은 안 건드림. insert 실패가 warn 로그로만 남고 아무 화면·지표에도 안 떠서 무증상.
+
+**어떻게 고쳤나**
+- 마이그레이션 `consultation_admissions_allow_guest_role` 적용(2026-07-02, Supabase MCP): CHECK에 `guest` 추가. 적용 후 신규 입장 기록 정상 확인(admissionId 반환).
+
+**재발 방지**
+- 교훈: **역할/상태 enum을 코드에 추가하면 같은 PR에서 그 값을 검사하는 DB CHECK 제약도 함께 갱신** (검색: `pg_constraint` contype='c').
+- 교훈: best-effort insert(try/catch 삼킴)는 최소한 운영 지표(경고 카운트)로 노출해야 무증상 유실을 막는다.
