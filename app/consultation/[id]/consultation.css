@@ -1,0 +1,37 @@
+/*
+ * 상담방(LiveKit) 화면 전용 스타일 — 미트식 발화자 강조 (PO 지시 2026-07-02)
+ *
+ * 원칙: 배치는 고정(화면이 휙휙 안 바뀜 — 2026-07-01 발화자 자동추적 제거와 같은 철학),
+ *       "지금 말하는 사람"은 타일 테두리로만 표시해 집중도를 높인다(구글 미트 방식).
+ *
+ * LiveKit 기본값은 2.5px 파란(#1f8cf9) 테두리라 어두운 배경에서 눈에 잘 안 띔 →
+ * 브랜드 teal 로 바꾸고 두께+글로우를 더해 또렷하게. 색은 DESIGN.md teal 계열
+ * (어두운 영상 배경 위 가시성 때문에 teal-400 — 흰 배경용 teal-600 은 여기선 묻힘).
+ *
+ * 셀렉터 근거: @livekit/components-styles 가 발화 시
+ *   .lk-participant-tile[data-lk-speaking=true]:not([data-lk-source=screen_share])::after
+ * 의 border-width 를 --lk-speaking-indicator-width 로 켠다 → 변수·색만 덮으면 됨.
+ */
+
+.lk-participant-tile {
+  --lk-speaking-indicator-width: 3px;
+}
+
+.lk-participant-tile::after {
+  border-color: #2dd4bf; /* teal-400 */
+}
+
+.lk-participant-tile[data-lk-speaking="true"]:not([data-lk-source="screen_share"])::after {
+  box-shadow:
+    0 0 0 1px rgba(45, 212, 191, 0.35),
+    0 0 16px rgba(45, 212, 191, 0.4);
+}
+
+/* 1:1 PiP(내 화면 작은 창) 안에서는 이름표/아이콘이 타일을 가리지 않게 축소 */
+.hw-pip-tile .lk-participant-metadata {
+  transform: scale(0.8);
+  transform-origin: bottom left;
+}
+.hw-pip-tile .lk-focus-toggle-button {
+  display: none; /* 작은 창에선 포커스 토글 숨김 — 클릭(핀)으로 대체 */
+}
