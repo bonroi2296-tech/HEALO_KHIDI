@@ -86,19 +86,57 @@ export async function fetchTestInquiryIds(db: any): Promise<number[]> {
   return data.map((r: any) => r.id).filter((v: any) => v != null);
 }
 
+export interface DetectSessionTestInput {
+  /** 연결된 inquiry 의 is_test (연결 없으면 null/undefined). */
+  inquiryIsTest?: boolean | null;
+  /** 세션 notes — '[TEST]' 마커가 있으면 테스트로 판정. */
+  notes?: string | null;
+  /** API 호출부에서 명시적으로 테스트라고 표시했는가. */
+  manual?: boolean | null;
+}
+
 /**
- * 테스트 문의에 딸린 상담세션 id 목록(uuid).
+ * 상담세션 생성 시점의 테스트 판정 (K-02 오염 벡터 차단).
+ * inquiry 미연결 세션은 체인으로 못 거르므로, 생성 시점에 세션 자체에
+ * consultation_sessions.is_test 를 도장한다. 트리거 하나라도 해당하면 true.
+ */
+export function detectSessionIsTest(input: DetectSessionTestInput): boolean {
+  if (input.manual === true) return true;
+  if (input.inquiryIsTest === true) return true;
+  if (input.notes && input.notes.toUpperCase().includes("[TEST]")) return true;
+  return false;
+}
+
+/**
+ * KPI 제외 대상 상담세션 id 목록(uuid) — **합집합**:
+ *   1) consultation_sessions.is_test = true  (세션 자체 표식 — inquiry 미연결 테스트 커버)
+ *   2) 테스트 문의(inquiries.is_test)에 딸린 세션 (문의가 사후에 테스트로 도장돼도 계속 걸러지게)
  * 세션 제외는 inquiry_id(널 가능)가 아니라 세션 PK id(널 없음)로 해야
  * inquiry 없는 정상 세션이 NOT IN 의 NULL 처리로 잘못 빠지지 않는다.
  */
 export async function fetchTestSessionIds(db: any): Promise<string[]> {
-  const inquiryIds = await fetchTestInquiryIds(db);
-  if (inquiryIds.length === 0) return [];
-  const { data: sessRows } = await db
+  const ids = new Set<string>();
+
+  const { data: flaggedRows } = await db
     .from("consultation_sessions")
     .select("id")
-    .in("inquiry_id", inquiryIds);
-  return (sessRows || []).map((r: any) => r.id).filter(Boolean);
+    .eq("is_test", true);
+  (flaggedRows || []).forEach((r: any) => {
+    if (r?.id) ids.add(r.id);
+  });
+
+  const inquiryIds = await fetchTestInquiryIds(db);
+  if (inquiryIds.length > 0) {
+    const { data: sessRows } = await db
+      .from("consultation_sessions")
+      .select("id")
+      .in("inquiry_id", inquiryIds);
+    (sessRows || []).forEach((r: any) => {
+      if (r?.id) ids.add(r.id);
+    });
+  }
+
+  return Array.from(ids);
 }
 
 /**

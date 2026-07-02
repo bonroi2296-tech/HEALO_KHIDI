@@ -107,6 +107,25 @@ export async function POST(request: NextRequest) {
 
     const { supabaseAdmin } = await import("@/lib/rag/supabaseAdmin");
 
+    // K-02 오염 벡터 차단: 테스트 표식을 생성 시점에 세션 자체에 도장.
+    // inquiry 미연결 세션은 inquiry 체인으로 못 거르므로(KNOWN_ISSUES K-02),
+    // 연결 inquiry.is_test 상속 + notes '[TEST]' 마커 + 명시 지정 중 하나면 테스트.
+    let inquiryIsTest: boolean | null = null;
+    if (inquiryId !== null) {
+      const { data: inqRow } = await supabaseAdmin
+        .from("inquiries")
+        .select("is_test")
+        .eq("id", inquiryId)
+        .maybeSingle();
+      inquiryIsTest = (inqRow as any)?.is_test === true;
+    }
+    const { detectSessionIsTest } = await import("@/lib/khidi/testData");
+    const isTestSession = detectSessionIsTest({
+      inquiryIsTest,
+      notes,
+      manual: payload.isTest === true || payload.is_test === true,
+    });
+
     // LiveKit room name (토큰은 별도 /token 엔드포인트에서 참가자 본인이 발급)
     const liveroomName = `khidi-${uuidv4()}`;
 
@@ -131,6 +150,7 @@ export async function POST(request: NextRequest) {
       // ⚠ livekit_token_*  필드는 더 이상 사전 발급하지 않음.
       //    참가자가 /api/khidi/consultation/token 에서 본인 인증으로 받음.
       notes: notes || null,
+      is_test: isTestSession,
     };
 
     const { data, error } = await supabaseAdmin
