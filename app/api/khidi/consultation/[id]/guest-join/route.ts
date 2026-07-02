@@ -26,7 +26,6 @@ import {
   AccessToken,
   RoomConfiguration,
   RoomAgentDispatch,
-  RoomServiceClient,
 } from "livekit-server-sdk";
 import { verifyAndConsumeGuestToken } from "@/lib/auth/guestToken";
 import {
@@ -151,9 +150,15 @@ export async function POST(
 
     // identity: 게스트는 audit 시 추적 가능하도록 tokenId 일부 포함.
     // 기기별 안정 ID(deviceId)가 오면 그걸 suffix 로 → 같은 기기로 재입장 시 identity 가 동일해
-    // LiveKit 이 옛 세션(유령)을 교체(+아래 removeParticipant 로 확실히 제거)한다. deviceId 가
-    // 없으면(구클라·localStorage 차단) 기존처럼 난수 suffix — 한 기기에서 여러 명이 같은 링크로
-    // 동시 입장하는 경우(공용 PC 등)도 깨지지 않는다. 서로 다른 기기는 항상 다른 identity.
+    // LiveKit 이 옛 세션(유령)을 '자동 교체'한다(같은 identity 재입장 = 기존 연결 대체, LiveKit 기본).
+    // deviceId 가 없으면(구클라·localStorage 차단) 기존처럼 난수 suffix — 한 기기에서 여러 명이
+    // 같은 링크로 동시 입장하는 경우(공용 PC 등)도 깨지지 않는다. 서로 다른 기기는 항상 다른 identity.
+    //
+    // ⚠️ 여기서 removeParticipant(선제 강제퇴장)를 호출하면 절대 안 된다 (2026-07-02 장애 원인):
+    //   LiveKit Cloud 는 강제퇴장 시 "그 시각 이전 발급 토큰 = 폐기"로 기록하는데, SDK 토큰은
+    //   nbf=0·iat 없음이라 방금 발급한 토큰까지 전부 "invalid token: revoked"로 거부됐다.
+    //   → 6/30 저녁 #527부터 게스트 전원 입장 불가(직원만 됨). 유령 정리는 identity 자동 교체 +
+    //   방 departureTimeout/emptyTimeout 이 담당하므로 선제 퇴장은 애초에 불필요.
     const identitySuffix = verification.tokenId!.slice(0, 8);
     const deviceSuffix =
       typeof deviceId === "string" && /^[a-zA-Z0-9_-]{6,64}$/.test(deviceId)
