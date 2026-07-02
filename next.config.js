@@ -173,6 +173,13 @@ const nextConfig = {
     ],
   },
 
+  // PDF 발급 함수에 셀프호스팅 폰트(TTF) 동봉 — 없으면 Vercel 서버리스에서
+  // 폰트 파일을 못 읽어 한글·키릴이 다시 깨짐 (파일은 fs로 읽혀 자동 추적 안 됨).
+  outputFileTracingIncludes: {
+    "/api/pdf/**": ["./src/lib/pdf/fonts/*.ttf"],
+    "/api/khidi/**": ["./src/lib/pdf/fonts/*.ttf"],
+  },
+
   // ✅ 실험적 기능 (성능 최적화)
   experimental: {
     optimizePackageImports: ['lucide-react', '@supabase/supabase-js'],

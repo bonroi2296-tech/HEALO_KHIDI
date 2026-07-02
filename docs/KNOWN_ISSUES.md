@@ -8,7 +8,7 @@
 
 > 검증된 발견 36건 중 저위험·고효과 수정은 같은 날 PR로 처리(안전가드·퍼널·어드민 소생·i18n·KPI·E2E 부활·가드 룰 — 커밋 메시지 참조). 아래는 **의도적으로 남긴 잔여**.
 
-- 🔴 **발급 PDF 한글·키릴 전부 깨짐** — @react-pdf/renderer 가 내장 Helvetica(WinAnsi)만 사용, 폰트 등록 0(renderToBuffer 실증). 견적서(법정 고지문서)·동의서·초청장의 한글/러시아어가 깨진 글자로 렌더. **별도 수정 트랙**(Noto Sans KR+Cyrillic 셀프호스팅 등록 + ko/ru/kz 샘플 육안검증) — 세션 칩 발행됨. 임시 완화: 견적 발급 언어를 환자 언어 기반 en 폴백으로 교정(라틴만은 정상 렌더).
+- ~~🔴 **발급 PDF 한글·키릴 전부 깨짐**~~ ✅ **해결(같은 날 #603)** — 감사에서 renderToBuffer 실증으로 발견 → 별도 세션이 Noto Sans/KR 셀프호스팅 등록 + ko/ru/kz 샘플 육안검증으로 수정·머지(반성문 #62, 검사기 룰10 추가). 이 감사 PR의 견적 발급 언어 교정(환자 언어 반영)과 합쳐져 완결.
 - 🔴 **K-02 오염 벡터 — inquiry 미연결 상담세션은 테스트 제외 원천 불가**: 완료 2건(전부 PO 테스트, notes '[TEST]')이 현재 K-02 실적으로 집계 중 + scheduled 12건 대기. 구조 수정 = `consultation_sessions.is_test` 컬럼 추가(가역)+생성시점 도장+kpi.ts 반영인데 **상담 생성 API가 화상상담 영역이라 해당 세션 종료 후** 처리. 단기 = 해당 세션·PO가 테스트 세션 status 정리(비가역이라 자율 보류).
 - 🟡 **월간보고 xlsx 생성이 프로덕션에서 항상 실패** — 템플릿 후보가 ①PO 로컬 절대경로 ②`public/templates/khidi_monthly_report_template.xlsx`(repo에 없음, git 히스토리에도 xlsx 커밋 0회) → 항상 template_not_found 500. **PO가 빈 양식 xlsx 원본을 주면 커밋으로 해결**(1분).
 - 🟡 **main 브랜치 보호 0** — required status check·PR 필수 없음(gh API 실측 404). CI 18게이트는 main 직push 를 기계적으로 못 막음(빨간 CI여도 push=즉시 prod 배포). GitHub ruleset 설정은 운영방식 변경이라 **PO 결정**(admin bypass 허용으로 긴급 대응 여지 유지 가능).
