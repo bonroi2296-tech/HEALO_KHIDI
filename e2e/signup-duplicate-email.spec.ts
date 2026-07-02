@@ -27,8 +27,11 @@ test.describe("가입 — 중복 이메일 정직 안내 @smoke", () => {
     await page.locator('input[placeholder="John"]').fill("Test");
     await page.locator('input[placeholder="Doe"]').fill("User");
     await page.locator('input[aria-label="Email"]').fill(EXISTING_EMAIL);
-    await page.locator('input[aria-label="Password"]').fill("Test1234");
-    await page.locator('input[aria-label="Confirm password"]').fill("Test1234");
+    // 생년월일 필수(#405 아이디 찾기 본인확인) — 스펙이 안 채워 "필수 항목" 토스트로 막혔던 두 번째 드리프트
+    await page.locator("#signup-birthdate").fill("1990-01-01");
+    // 비번 정책 = 8자+영문+특수문자(validatePassword) — 특수문자 없던 옛 값이면 세 번째 드리프트로 막힘
+    await page.locator('input[aria-label="Password"]').fill("Test1234!");
+    await page.locator('input[aria-label="Confirm password"]').fill("Test1234!");
     // PR #358(2026-06-25)에서 동의가 #terms 1개 → 개인정보(#agree-privacy)·약관(#agree-terms) 2개로
     // 분리됐는데 이 스펙이 안 따라가 main E2E 가 6일간 전 실행 빨강이었음(2026-07-02 전수 감사).
     await page.locator("#agree-privacy").check();
