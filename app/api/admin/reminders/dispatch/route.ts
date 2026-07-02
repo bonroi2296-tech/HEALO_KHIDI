@@ -11,7 +11,7 @@ export const runtime = "nodejs";
 
 import { NextRequest } from "next/server";
 import { requireAdminAuth } from "@/lib/auth/requireAdminAuth";
-import { POST as cronDispatch } from "@/app/api/cron/dispatch-reminders/route";
+import { POST as cronDispatch } from "../../../cron/dispatch-reminders/route";
 
 export async function POST(request: NextRequest) {
   const auth = await requireAdminAuth(request);
