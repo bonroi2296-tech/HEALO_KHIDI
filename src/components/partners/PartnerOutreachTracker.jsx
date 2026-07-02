@@ -91,7 +91,7 @@ export default function PartnerOutreachTracker({ accent = 'teal' }) {
       } else {
         toast.error(data.error === 'duplicate' ? '이미 등록된 기관입니다' : '저장 실패');
       }
-    } catch (e) { toast.error('저장 실패'); }
+    } catch { toast.error('저장 실패'); }
     setSaving(false);
   };
 
@@ -107,7 +107,7 @@ export default function PartnerOutreachTracker({ accent = 'teal' }) {
       });
       const data = await res.json();
       if (!data.ok) { toast.error('상태 변경 실패'); fetchData(); }
-    } catch (e) { toast.error('상태 변경 실패'); fetchData(); }
+    } catch { toast.error('상태 변경 실패'); fetchData(); }
   };
 
   const remove = async (row) => {
@@ -119,7 +119,7 @@ export default function PartnerOutreachTracker({ accent = 'teal' }) {
       const data = await res.json();
       if (data.ok) { toast.success('삭제되었습니다'); setRows((rs) => rs.filter((r) => r.id !== row.id)); }
       else toast.error('삭제 실패');
-    } catch (e) { toast.error('삭제 실패'); }
+    } catch { toast.error('삭제 실패'); }
   };
 
   return (
