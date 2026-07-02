@@ -94,7 +94,7 @@ PO(프로덕트 오너) 혼자 운영. Bonroi 개인사업자, KHIDI(한국보�
 
 **주요 시스템:**
 - **원격협진(LiveKit)**: 코디가 `/admin/consultations`에서 상담 생성(문의에서 환자 선택 + 의사/코디 드롭다운) → 게스트 초대 링크 발송 → `/consultation/[id]`에서 영상. 예약시각은 KST 입력·KST+UTC 병기 안내.
-- **회원관리**: `/admin/staff`(의사·코디 — role=doctor/coordinator 부여, 비활성=app_metadata.disabled 토글, 소프트 삭제) / `/admin/users`(환자 — 상담이력·소프트 ban). 계정 생성은 임시비번 직접 발급(최소 6자).
+- **회원관리**: `/admin/staff`(코디네이터 — role=coordinator 부여, 비활성=app_metadata.disabled 토글, 소프트 삭제. 의사는 계정 없이 상담방 초대링크 참여 — doctor 계층은 #334에서 폐지) / `/admin/users`(환자 — 상담이력·소프트 ban). 계정 생성은 임시비번 직접 발급(최소 6자).
 - **어드민 메뉴**: 운영현황 / 환자여정 / 제휴자원·RAG / AI품질·시스템 / 레거시도구 (피벗 반영 재편)
 
 ---
