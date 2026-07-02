@@ -231,6 +231,10 @@ const nextConfig = {
     "@opentelemetry/instrumentation",
     "import-in-the-middle",
     "require-in-the-middle",
+    // 웹팩 서버 번들이 react-pdf 를 말아넣으면 Next 내장(vendored) React 와 인스턴스가
+    // 갈려 renderToBuffer 가 React error #31 로 즉사(배포 환경 전용 — dev/Turbopack 은 정상).
+    // 발급 PDF(견적서·동의서·초청장) 500 의 근본원인. node_modules 그대로 실행해야 함.
+    "@react-pdf/renderer",
   ],
 };
 
