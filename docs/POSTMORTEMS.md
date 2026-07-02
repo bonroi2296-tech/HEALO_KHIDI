@@ -8,6 +8,18 @@
 
 ---
 
+## #62 — 발급 PDF 전부(견적서·동의서 3종·비자초청장)에서 한글·키릴이 깨진 글자로 렌더 (법적 문서 치명, 2026-07-02)
+
+**무슨 일** — `@react-pdf/renderer` 기반 발급 PDF 4종이 전부 **내장 Helvetica 폰트만** 사용(`styles.js` `SANS = "Helvetica"`). 내장 Base-14 폰트는 WinAnsi(라틴1) 인코딩이라 **한글·키릴 문자가 전부 깨진 글자**로 렌더됨 — ko 문서의 모든 한국어 라벨, 러시아·카자흐 환자 이름/진단명 전멸. 견적서는 **의료해외진출법 §15 서면고지 의무 문서**라 치명적(깨진 견적서 = 고지 불이행 리스크). renderToBuffer 실증으로 확인.
+
+**왜 못 잡았나 (근본원인)** — ①PDF 도입 때 영어 샘플로만 확인 — **핵심 타겟(러시아어·카자흐어) 데이터와 ko 문서로 실렌더 검증을 안 함**. ②`styles.js` 에 "내장 Helvetica만 사용(오프라인 안전)" 주석까지 달아 **의도된 설계처럼 굳어짐** — 오프라인 안전이라는 좋은 의도가 다국어 깨짐이라는 부작용을 가림. ③빌드·check:content 는 PDF 렌더 결과를 안 봄(문법·키 패리티만).
+
+**어떻게 고쳤나** — Noto Sans KR(한글, 서브셋 2.8MB×2)·Noto Sans(라틴+키릴 전체 — 카자흐 확장 ӘҒҚҢӨҰҮІҺ 포함, 0.5MB×2) TTF 를 `src/lib/pdf/fonts/` 에 **셀프호스팅**(런타임 외부 다운로드 없음 = 기존 오프라인 안전 의도 계승). `Font.register` + `SANS = ["NotoSans", "NotoSansKR"]` — react-pdf v4 는 fontFamily 배열이면 **글자 단위 fallback**(라틴·키릴→NotoSans, 한글→NotoSansKR)이라 혼합 콘텐츠(ko 문서 + 카자흐 이름)도 안전. Vercel 번들 동봉은 `next.config.js` `outputFileTracingIncludes`. ko/ru/kz 샘플 4종 renderToBuffer→PNG 육안 검증 완료.
+
+**재발 방지**
+- **검사기 룰 추가(§9)**: `src/lib/pdf/**` 에 `fontFamily: "Helvetica"` 류 내장폰트가 다시 들어오면 CI 실패 + 셀프호스팅 폰트 4파일 존재 확인.
+- **교훈: 다국어 제품의 문서/이미지 렌더 기능은 반드시 ko·ru·kz 실데이터로 시각 검증** — 영어 샘플 통과는 검증이 아니다.
+
 ## #61 — i18n 중복 키(`connectFailed`)가 빌드·check:content 를 통과하고 CI eslint 에서야 걸림 (자책, CI 차단, 2026-07-01)
 
 **무슨 일** — 화상방 수정(PR #593)에서 `_roomCopy.js` 6개 언어에 연결실패 안내 문장을 `connectFailed` 키로 추가했는데, 그 키가 **이미 존재**(게스트 입장 에러용 짧은 라벨 "접속 실패")했다. JS 객체 중복 키라 **웹팩 빌드는 통과**(마지막 값이 이김)하고 **`check:content`도 통과**(키 패리티만 검사 → 6개어 다 있으니 OK)했으나, CI 의 eslint `no-dupe-keys` 가 6건 에러로 머지 차단.

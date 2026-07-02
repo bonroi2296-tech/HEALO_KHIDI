@@ -10,7 +10,7 @@
 
 import React from "react";
 import { Document, Page, View, Text } from "@react-pdf/renderer";
-import { styles, COLORS } from "./styles";
+import { styles, COLORS, SANS } from "./styles";
 
 function FormHeader({ formNo, formTitle, legalBasis, issuedAt }) {
   return (
@@ -44,7 +44,7 @@ function DataTable({ items }) {
       {items.map((item, i) => (
         <View key={i} style={styles.dataRow}>
           <Text style={styles.dataLabel}>{item.label}</Text>
-          <Text style={{ ...styles.dataValue, fontSize: 9, fontFamily: "Helvetica", fontWeight: 400, lineHeight: 1.55 }}>
+          <Text style={{ ...styles.dataValue, fontSize: 9, fontFamily: SANS, fontWeight: 400, lineHeight: 1.55 }}>
             {item.value}
           </Text>
         </View>
@@ -209,7 +209,7 @@ export function SensitiveHealthConsent({ patient = {}, lang = "ko" }) {
         <DataTable items={items} />
 
         <View style={{ ...styles.rule, marginTop: 8, marginBottom: 12 }} />
-        <Text style={{ ...styles.body, fontStyle: "italic", color: COLORS.fgOnLight3 }}>
+        <Text style={{ ...styles.body, color: COLORS.fgOnLight3 }}>
           {isKo
             ? "※ 민감정보는 일반 개인정보와 분리하여 별도의 명시적 동의를 받습니다. 본 동의는 구두로는 인정되지 않으며, 서면 또는 전자서명으로만 유효합니다."
             : "※ Sensitive data requires separate explicit consent, distinct from general personal data. Verbal consent is not recognized; written or electronic signature is required."}

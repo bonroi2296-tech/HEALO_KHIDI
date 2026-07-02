@@ -339,6 +339,30 @@ for (const file of EMAIL_TEMPLATE_FILES) {
   });
 }
 
+// ── 9) 발급 PDF 내장(Base-14) 폰트 가드 (POSTMORTEMS #62) ─────────────────────
+// 왜: @react-pdf 내장 Helvetica/Times/Courier 는 WinAnsi 인코딩이라 한글·키릴이 전부
+//     깨진 글자로 렌더됨(2026-07-02 견적서·동의서 3종·비자초청장 전부 — 견적서는
+//     의료해외진출법 §15 서면고지 문서라 치명). 발급 PDF 는 src/lib/pdf/fonts/ 의
+//     셀프호스팅 Noto Sans(라틴+키릴)·Noto Sans KR(한글)만 사용(styles.js SANS).
+//     camelCase `fontFamily:` 만 잡음 — 이메일 HTML 의 CSS `font-family:` 스택(시스템
+//     폰트 fallback 있어 안전)은 오탐 안 됨.
+const PDF_CODE_FILES = walk("src/lib/pdf");
+for (const file of PDF_CODE_FILES) {
+  let lines;
+  try { lines = readFileSync(join(ROOT, file), "utf8").split("\n"); } catch { continue; }
+  lines.forEach((line, i) => {
+    if (/fontFamily:\s*["'](Helvetica|Times|Courier|Symbol|ZapfDingbats)/.test(line)) {
+      errors.push(`[PDF폰트] ${file.replace(/\\/g, "/")}:${i + 1} — 발급 PDF 에 내장(Base-14) 폰트 사용 → 한글·키릴 깨짐(POSTMORTEMS #62). styles.js 의 SANS(셀프호스팅 Noto Sans/KR)를 쓸 것.\n    ${line.trim().slice(0, 120)}`);
+    }
+  });
+}
+// 폰트 파일이 지워지면 PDF 렌더 자체가 실패 → 존재도 확인.
+for (const f of ["NotoSans-Regular.ttf", "NotoSans-Bold.ttf", "NotoSansKR-Regular.ttf", "NotoSansKR-Bold.ttf"]) {
+  try { statSync(join(ROOT, "src/lib/pdf/fonts", f)); } catch {
+    errors.push(`[PDF폰트] src/lib/pdf/fonts/${f} 없음 — 발급 PDF(견적서·동의서·초청장) 렌더가 통째로 실패함. 셀프호스팅 폰트 4개 필수(POSTMORTEMS #62).`);
+  }
+}
+
 // ── 결과 ────────────────────────────────────────────────────────
 if (errors.length) {
   console.error(`\n❌ 콘텐츠 일관성 검사 실패 (${errors.length}건)\n`);
