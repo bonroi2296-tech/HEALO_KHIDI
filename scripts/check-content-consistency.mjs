@@ -395,6 +395,25 @@ for (const f of ["NotoSans-Regular.ttf", "NotoSans-Bold.ttf", "NotoSansKR-Regula
   }
 }
 
+// ── 11) PDF 렌더 React 정합 가드 (POSTMORTEMS #64) ────────────────────────────
+// 왜: Next(App Router)는 앱 코드를 내장(vendored) React 19 로 컴파일한다. 설치 react 가
+//     18 이거나 @react-pdf/renderer 가 웹팩 서버 번들에 말려 들어가면, PDF 렌더 트리에
+//     서로 다른 React 의 요소가 섞여 renderToBuffer 가 React error #31 로 즉사 →
+//     발급 PDF API 전부 500. 빌드·lint·dev(Turbopack)·E2E(dev서버) 전부 통과하는
+//     "배포 전용" 사고라 기계 가드 없이는 재발을 못 막는다.
+try {
+  const nextCfg = readFileSync(join(ROOT, "next.config.js"), "utf8");
+  const extBlock = nextCfg.match(/serverExternalPackages\s*:\s*\[[\s\S]*?\]/);
+  if (!extBlock || !extBlock[0].includes("@react-pdf/renderer")) {
+    errors.push(`[PDF React정합] next.config.js serverExternalPackages 에 "@react-pdf/renderer" 없음 — 웹팩이 react-pdf 를 번들하면 내장 React 와 인스턴스가 갈려 발급 PDF 가 전부 500 (React #31, POSTMORTEMS #64).`);
+  }
+  const pkg = JSON.parse(readFileSync(join(ROOT, "package.json"), "utf8"));
+  const reactMajor = parseInt(String(pkg.dependencies?.react || "0").replace(/^[^\d]*/, ""), 10);
+  if (reactMajor < 19) {
+    errors.push(`[PDF React정합] package.json react "${pkg.dependencies?.react}" — Next 16(내장 React 19)과 요소 규격이 갈려 외부화된 react-pdf 렌더가 React #31 로 죽음. react/react-dom ^19 유지할 것 (POSTMORTEMS #64).`);
+  }
+} catch { /* next.config.js 없으면 다른 검사가 이미 실패 */ }
+
 // ── 결과 ────────────────────────────────────────────────────────
 if (errors.length) {
   console.error(`\n❌ 콘텐츠 일관성 검사 실패 (${errors.length}건)\n`);
