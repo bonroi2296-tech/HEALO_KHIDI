@@ -36,9 +36,8 @@
 > (GitHub Secret 동시 갱신). 2026-07-02 실측: `admin@test.com`에 `test1234` 로그인 시도 → **400 invalid_credentials(사망 확인)**.
 > 옛 기록의 "약한비번 admin 잔존" 위험은 해소됨 — 이 문서가 갱신 전엔 그 위험을 실제보다 과장하고 있었음.
 
-🟡 **남은 PO 결정 1건**: `admin@test.com`은 여전히 **활성 admin**(비번만 강해짐, 2026-07-01에도 로그인 이력). 옵션 둘:
-① **강비번+Secret 보관 유지**로 관문 공식 종결(E2E 자동검사 유지 — 현 상태) ② **비활성**(`app_metadata.disabled=true`,
-E2E admin 스펙 대체 계획 필요). → `docs/LAUNCH_GATES_PO.md` 관문 6.
+✅ **PO 결정 완료(2026-07-02)**: `admin@test.com`은 **강비번+GitHub Secret 보관 유지로 공식 종결** —
+E2E 자동검사(어드민 화면 2종)를 계속 돌리는 쪽을 택함. 비활성화는 안 함. → `docs/LAUNCH_GATES_PO.md` 관문 6 닫힘.
 
 - admin 화면을 **수동** 점검할 땐 PO 실계정 `bonroi2296@gmail.com`(실 admin) 권장(약한비번 노출 없음).
 - DB의 `admin@test.healo.kr`는 **2026-06-26 비활성 처리됨**(`app_metadata.role` 해제 + `disabled=true`) — 한 번도 로그인 안 한 떠돌이 admin이라 보안상 정리. E2E 미사용 → CI 영향 없음. (출시 전 삭제 대상은 여전히 `admin@test.com`.)
