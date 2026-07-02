@@ -18,6 +18,7 @@ import {
   CarouselLayout,
 } from "@livekit/components-react";
 import "@livekit/components-styles";
+import "./consultation.css"; // 미트식 발화자 테두리(teal)·1:1 PiP 보정 — LiveKit 기본 덮어쓰기
 import { COPY } from "./_roomCopy";
 import { Track, ConnectionState, VideoPresets, RoomEvent } from "livekit-client";
 
@@ -393,6 +394,29 @@ function VideoGrid() {
 
   if (focusTrack) {
     const others = tracks.filter((t) => trackKey(t) !== trackKey(focusTrack));
+
+    // 1:1 기본 뷰 = 미트/페이스타임식 PiP: 상대 풀화면 + 내 화면은 우하단 작은 창.
+    // (기존 캐러셀 스트립은 상대 화면 옆을 세로로 잘라먹어 1:1에선 낭비 — PO 지시 2026-07-02 미트식.)
+    // 수동 핀·화면공유는 아래 기존 캐러셀 뷰 유지(목록형이 맞음). 내 작은 창 클릭 = 크게(핀).
+    // z-[5]·bottom-16 = 자막 오버레이(bottom-4·z-10)가 항상 PiP 위에 보이게.
+    const isPipView = !!oneOnOneFocus && !manualFocus && !screenTrack;
+    if (isPipView) {
+      return (
+        <div className="relative h-full">
+          <FocusLayout trackRef={focusTrack} style={{ height: "100%" }} />
+          {others.length > 0 && (
+            <div className="hw-pip-tile absolute bottom-16 right-3 z-[5] w-[30%] max-w-[200px] min-w-[104px] aspect-[16/10] rounded-xl overflow-hidden shadow-lg ring-1 ring-white/25">
+              <ParticipantTile
+                trackRef={others[0]}
+                onParticipantClick={pinFromEvent}
+                style={{ height: "100%" }}
+              />
+            </div>
+          )}
+        </div>
+      );
+    }
+
     return (
       <div className="relative h-full">
         <FocusLayoutContainer style={{ height: "100%" }}>
