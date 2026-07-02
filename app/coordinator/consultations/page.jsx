@@ -85,10 +85,14 @@ export default function CoordinatorConsultationsPage() {
 
   // 상담 시작 = 링크 하나로 통일: 코디도 이 초대 링크로 입장한다(로그인돼 있어 자동으로 staff 로 인식됨).
   //   → 코디 주소창에 뜨는 게 곧 '환자에게 그대로 보내면 되는 링크'. 편하게 바로 클립보드에도 복사.
-  //   (링크 발급이 실패해도 코디는 계정으로 바로 입장하도록 폴백)
   const handleStart = async (id) => {
     const result = await issueInvite(id);
-    if (!result?.inviteUrl) { router.push(`/consultation/${id}`); return; }
+    if (!result?.inviteUrl) {
+      // ⚠️ 발급 실패 시 입장권 없는 맨주소로 조용히 입장하지 않는다 — 그 주소창을 복사해 공유하면
+      //   받는 사람 전원이 "입장권 없음"에 막힘(2026-07-02 '남들만 안 됨' 함정, POSTMORTEMS #61 연관).
+      toast.error('상담 링크 발급이 안 돼 입장을 멈췄어요. 새로고침(또는 다시 로그인) 후 다시 눌러주세요.');
+      return;
+    }
     try {
       await navigator.clipboard.writeText(result.inviteUrl);
       toast.success('상담 링크를 복사했어요 — 상대에게 붙여넣어 보내세요. 나는 지금 입장합니다');
