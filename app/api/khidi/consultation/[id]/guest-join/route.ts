@@ -168,19 +168,6 @@ export async function POST(
     const name =
       safeDisplayName || verification.inviteeName || `${role} guest`;
 
-    // 같은 기기의 옛 세션(유령) 선제 제거 — 폰 화면 끄고 컴으로 재입장하는 케이스 정리.
-    // identity 가 기기별로 안정적일 때만 의미가 있다(난수 suffix면 매칭될 게 없어 무해).
-    const lkHost = (process.env.LIVEKIT_URL || process.env.NEXT_PUBLIC_LIVEKIT_URL || "")
-      .replace(/^ws/, "http");
-    if (lkHost) {
-      try {
-        const svc = new RoomServiceClient(lkHost, apiKey, apiSecret);
-        await svc.removeParticipant(session.livekit_room_name, identity);
-      } catch {
-        // 옛 세션이 없으면 removeParticipant 가 throw — 정상(무시).
-      }
-    }
-
     const lkToken = new AccessToken(apiKey, apiSecret, {
       identity,
       name,
