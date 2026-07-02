@@ -31,7 +31,9 @@ export default function ConfirmClient() {
     const params = new URLSearchParams(window.location.search);
     const token_hash = params.get("token_hash");
     const type = params.get("type");
-    const next = params.get("next") || "/";
+    // 내부 경로만 허용 — '//evil.com' 형태의 open-redirect 차단(1줄 가드)
+    const rawNext = params.get("next") || "/";
+    const next = rawNext.startsWith("/") && !rawNext.startsWith("//") ? rawNext : "/";
     if (!token_hash || !type) {
       setStatus("error");
       return;

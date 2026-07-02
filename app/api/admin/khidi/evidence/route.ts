@@ -45,9 +45,11 @@ export async function GET(request: NextRequest) {
     const [{ data: sessions }, { data: refs }, { data: hospitals }] = await Promise.all([
       supabaseAdmin
         .from("consultation_sessions")
+        // 기간 필터는 scheduled_at 기준 — KPI 대시보드(kpi.ts K-02)와 동일 축.
+        // created_at 기준이면 예약일이 월 경계를 넘는 세션에서 증빙 CSV 와 대시보드 숫자가 어긋남(2026-07-02 전수 감사).
         .select("id, inquiry_id, hospital_id, session_type, status, scheduled_at, created_at")
-        .gte("created_at", from).lt("created_at", to)
-        .order("created_at", { ascending: false }).limit(1000),
+        .gte("scheduled_at", from).lt("scheduled_at", to)
+        .order("scheduled_at", { ascending: false }).limit(1000),
       (supabaseAdmin as any)
         .from("cotreatment_referrals")
         .select("id, inquiry_id, from_hospital_id, to_hospital_id, status, reason, requested_at, completed_at")

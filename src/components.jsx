@@ -651,43 +651,9 @@ export const MobileBottomNav = ({ view, onInquiry, onNavClick }) => {
   );
 };
 
-// 🔥 [NEW] 5. 오퍼 배너 (Offer Banner) - 가짜 리뷰 대신 사용할 신뢰 장치
-export const OfferBanner = ({ onClick }) => {
-  const langCode = useLangCode();
-  return (
-    <div className="bg-teal-50 border border-teal-100 rounded-2xl p-5 mb-8">
-      <h4 className="text-sm font-bold text-teal-900 mb-4 uppercase tracking-wider flex items-center gap-2">
-        <Sparkles size={16} className="text-teal-700"/> {t("offer.title", langCode)}
-      </h4>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="flex items-start gap-3">
-          <div className="p-2 bg-white rounded-lg shadow-sm text-teal-700"><FileText size={20}/></div>
-          <div>
-            <div className="font-bold text-sm text-gray-900">{t("offer.freeComparison", langCode)}</div>
-            <div className="text-xs text-gray-500 mt-0.5">{t("offer.freeComparisonDesc", langCode)}</div>
-          </div>
-        </div>
-        <div className="flex items-start gap-3">
-          <div className="p-2 bg-white rounded-lg shadow-sm text-teal-700"><UserCheck size={20}/></div>
-          <div>
-            <div className="font-bold text-sm text-gray-900">{t("offer.fullConcierge", langCode)}</div>
-            <div className="text-xs text-gray-500 mt-0.5">{t("offer.fullConciergeDesc", langCode)}</div>
-          </div>
-        </div>
-        <div className="flex items-start gap-3">
-          <div className="p-2 bg-white rounded-lg shadow-sm text-teal-700"><Clock size={20}/></div>
-          <div>
-            <div className="font-bold text-sm text-gray-900">{t("offer.fastResponse", langCode)}</div>
-            <div className="text-xs text-gray-500 mt-0.5">{t("offer.fastResponseDesc", langCode)}</div>
-          </div>
-        </div>
-      </div>
-      <button onClick={onClick} className="w-full mt-5 py-3 bg-teal-700 text-white rounded-xl font-bold text-sm shadow-md hover:bg-teal-800 transition flex items-center justify-center gap-2">
-        {t("offer.getQuoteNow", langCode)} <ArrowRight size={16}/>
-      </button>
-    </div>
-  );
-};
+// (OfferBanner 삭제 — 2026-07-02 전수 감사: 어디서도 마운트 안 되는 죽은 컴포넌트인데
+//  미정의 i18n 키(offer.*)를 참조해, 되살리는 순간 키 원문이 화면에 노출될 지뢰였음.
+//  필요해지면 git 히스토리에서 복원 + 키부터 정의할 것.)
 
 // 🔥 [NEW] 6. 프로세스 스텝 (Process Steps) - 막연한 불안감 해소
 export const ProcessSteps = () => {

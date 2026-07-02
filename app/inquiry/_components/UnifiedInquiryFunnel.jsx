@@ -71,8 +71,9 @@ const DIAL_CODES = [
   { code: "+34", label: "Spain +34" },
   { code: "+48", label: "Poland +48" },
   { code: "+1", label: "USA / Canada +1" },
-  // 그 외 — 번호에 +국가코드 직접 입력
-  { code: "OTHER", label: "기타 (번호에 +코드 직접 입력)" },
+  // 그 외 — 번호에 +국가코드 직접 입력. 이 목록의 label 은 전 언어 공통(영문 국가명 관례)이라
+  // 한국어를 쓰면 ru/kz 사용자 화면에 한국어가 새어 나감 — 영문 통일.
+  { code: "OTHER", label: "Other (type +code before number)" },
 ];
 
 // 순서 = 핵심 타겟 시장 우선(러시아·카자흐 먼저, 한국어 마지막).

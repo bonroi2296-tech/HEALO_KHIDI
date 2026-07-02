@@ -4,6 +4,25 @@
 
 ---
 
+## 🔍 2026-07-02 오픈 전 전수 감사(워크플로 50에이전트·역사 750커밋 전수) — 이번에 안 고치고 남긴 것
+
+> 검증된 발견 36건 중 저위험·고효과 수정은 같은 날 PR로 처리(안전가드·퍼널·어드민 소생·i18n·KPI·E2E 부활·가드 룰 — 커밋 메시지 참조). 아래는 **의도적으로 남긴 잔여**.
+
+- ~~🔴 **발급 PDF 한글·키릴 전부 깨짐**~~ ✅ **해결(같은 날 #603)** — 감사에서 renderToBuffer 실증으로 발견 → 별도 세션이 Noto Sans/KR 셀프호스팅 등록 + ko/ru/kz 샘플 육안검증으로 수정·머지(반성문 #62, 검사기 룰10 추가). 이 감사 PR의 견적 발급 언어 교정(환자 언어 반영)과 합쳐져 완결.
+- 🔴 **K-02 오염 벡터 — inquiry 미연결 상담세션은 테스트 제외 원천 불가**: 완료 2건(전부 PO 테스트, notes '[TEST]')이 현재 K-02 실적으로 집계 중 + scheduled 12건 대기. 구조 수정 = `consultation_sessions.is_test` 컬럼 추가(가역)+생성시점 도장+kpi.ts 반영인데 **상담 생성 API가 화상상담 영역이라 해당 세션 종료 후** 처리. 단기 = 해당 세션·PO가 테스트 세션 status 정리(비가역이라 자율 보류).
+- 🟡 **월간보고 xlsx 생성이 프로덕션에서 항상 실패** — 템플릿 후보가 ①PO 로컬 절대경로 ②`public/templates/khidi_monthly_report_template.xlsx`(repo에 없음, git 히스토리에도 xlsx 커밋 0회) → 항상 template_not_found 500. **PO가 빈 양식 xlsx 원본을 주면 커밋으로 해결**(1분).
+- 🟡 **main 브랜치 보호 0** — required status check·PR 필수 없음(gh API 실측 404). CI 18게이트는 main 직push 를 기계적으로 못 막음(빨간 CI여도 push=즉시 prod 배포). GitHub ruleset 설정은 운영방식 변경이라 **PO 결정**(admin bypass 허용으로 긴급 대응 여지 유지 가능).
+- 🟡 **TEST_OFFICE_IPS prod env 미설정** — 테스트/실적 분리(PR #501)의 사무실IP 자동태깅이 무장해제(Vercel env 32개 전수 실측). PO만 값(사무실 공인IP)을 앎 → LAUNCH_GATES 신규 항목.
+- 🟡 **E2E 실패 알림 메일 403** — 발신이 미검증 `onboarding@resend.dev` 라 Resend가 거부(로그 실측). Resend 콘솔에서 healwith.co.kr 도메인 검증(PO) 후 발신 주소 교체, 또는 수신자를 계정 소유자 주소로.
+- 🟡 **session_type NULL 완료세션 1건**(f0a36145…, inquiry 12 연결) — 실상담이면 K-02 1건 과소집계. inquiry 12 실상담 여부 PO/코디 확인 후 한 행 백필.
+- 🟢 **코디는 유치 확정/이탈 클릭 불가** — conversion-funnel API 주석은 '코디 가능'이라나 실제 requireAdminAuth(admin 전용). 코디 운영을 시작하면 requirePortalAuth(staffOnly) 전환+코디 네비 연결, 지금(PO=어드민)은 무영향.
+- 🟢 **성능 advisor 133건**(RLS auth 함수 행별 재평가 22·중복 permissive 정책 8·중복 인덱스 2쌍) — 전부 DDL이라 한가할 때 일괄, PO 확인 후.
+- 🟢 **vector 익스텐션 public 스키마**(security advisor WARN) — 재설치 필요라 RAG 재적재와 묶어 처리 권장.
+- 🟢 **레거시 /api/public/chat/message 라우트** — 동의 게이트·레드라인 기록은 이번에 이식했으나 프론트는 stream만 사용. 다음 정리 때 410 폐쇄 검토.
+- (화상영역 — 타 세션 인계) LiveKit webhook room_finished 가 세션을 무조건 completed 처리(K-02 인플레 벡터, 'staff 완료가 유일 경로' 설계와 모순) / webhook URL 옛 도메인 healo-khidi.com / 게스트토큰 E2E 스펙 고정 실패 / 테스트 상담방 2개(50d5bc43…·aa9804ee…) 삭제 대기 / consultation notes 평문(notes_encrypted 미사용).
+
+---
+
 ## 🟢 2026-06-29 AI 에이전트 개선 — 백로그 (PO 방향 확정, 다음 트랙)
 
 > C레벨 전방위 진단(브랜치 `claude/ai-agent-improvements-pgy6oj`)에서 **즉시 구현분**(공개 AI챗 예시질문 칩·코디연결/접수 빠른버튼 6개어·스트림 에러 6개어 현지화·`detectHandOff` ru/kz/zh 보강)은 처리. 아래는 PO가 **방향 확정 + 백로그로 남기라**고 한 더 큰 플로 변경.
@@ -58,10 +77,9 @@
 1. **가입→인증메일→로그인 / 비번찾기→메일** 실제 1회 통과(실메일 — API로는 부작용이라 미검증).
 2. **Supabase 이메일 템플릿 href를 token_hash로 교체**(인증 자동로그인·스캐너안전 완성. `docs/PROJECT_CONTEXT.md` 인증 핸드오프 참조).
 3. **구글 OAuth 게시**(현재 "테스트"라 실환자 구글가입 막힘).
-4. **E2E Secrets 등록**(`docs/E2E_SECRETS_SETUP.md`) → 로그인 화면 자동검사 가동.
-   - 🟢 **2026-06-24 준비 완료**: 5역할 테스트계정(`patient·coordinator·admin·agency·clinic@test.com`) 비번을 `test1234`로 통일·실로그인 검증 + 프로덕션 인증 API 도달(코디 inbox 200·어드민 funnel 200·환자→어드민 403 권한분리) 실측. **남은 건 PO가 GitHub Secrets 12개 복붙뿐**(역할 10 + `SUPABASE_SERVICE_ROLE_KEY`·`ENCRYPTION_KEY_V1`).
-5. **iOS 영상상담 마이크 실기기 검증** / **K-01 점수판 데모데이터 정직성**(진짜 유치 0).
-6. 🔴 **약한비번 테스트계정 삭제/비활성** — E2E 위해 `admin@test.com` 등을 `test1234`로 둠. `admin@test.com`은 role=admin이라 비번만 맞으면 실서비스 어드민(PII 복호화) 진입 가능. **PO 약속: 오픈 전 삭제/비활성**(`app_metadata.disabled=true`). 안 하면 실서비스에 약한비번 admin 잔존. (`docs/TEST_ACCOUNTS.md` ⚠️ 참조)
+4. ~~**E2E Secrets 등록**~~ ✅ **닫힘(2026-07-02 실측)**: GitHub Secrets에 E2E_* 10종+`SUPABASE_SERVICE_ROLE_KEY`·`ENCRYPTION_KEY_V1` 등록됨, 비번 시크릿 2026-06-29 갱신.
+5. **iOS 영상상담 마이크 실기기 검증**(화상상담 세션 진행 중) / K-01 데모데이터는 is_test 태깅(#501)으로 기본뷰 자동 제외 — 정직성 구조 확보.
+6. ~~🔴 **약한비번 테스트계정**~~ ✅ **실질 해소(2026-07-02 실측)**: 2026-06-29 전 계정 강비번 `Healwith2026!` 교체(GitHub Secret 보관), `test1234` 로그인 실측 400. 남은 건 `admin@test.com` 활성 유지 여부 PO 결정 1건(`docs/LAUNCH_GATES_PO.md` 관문 6).
 
 ### ❌ 아직 검증 못 함(정직)
 화면 시각 렌더(브라우저 미설치 — API만), 가입/비번찾기 실메일 end-to-end, 영상상담·iOS, 문의 제출→DB. → 위 5번 관문에서 사람이 1회.
@@ -269,9 +287,9 @@
 
 ---
 
-## 🟡 P2 — PNG 앱아이콘 옛 H마크 (리브랜드 잔재, PO 보류 결정)
+## ~~🟡 P2 — PNG 앱아이콘 옛 H마크~~ ✅ 해결 확인 (2026-07-02 전수 감사 — 문서만 낡았었음)
 
-`public/icons/icon-*.png`·`apple-touch-icon.png`·`favicon-16/32.png` 가 옛 `HEALO` `H` 마크. SVG(`favicon.svg`)는 소문자 `h`로 교체됐으나 PNG는 래스터라이저(rsvg/sharp) 환경 필요해 미재생성. **2026-06-17 PO "일단 보류, 나중에" 결정.** 재생성 시 새 `favicon.svg` 기준. (리브랜드 계획: `docs/REBRAND_HEALWITH_PLAN.md`, 컷오버: `docs/DOMAIN_CUTOVER_healwith.md` §5)
+~~PNG는 래스터라이저 환경 필요해 미재생성, PO 보류~~ → **실제로는 2026-06-23 커밋 943481c(+a9a6673)로 icon-72~512·apple-touch-icon·favicon-16/32 전부 새 소문자 h 마크로 교체 완료**(main 포함, icon-192x192.png 육안 확인). 이 항목이 갱신 안 돼 후속 세션·감사가 재발견 헛수고를 반복했음 — 종결.
 
 ---
 

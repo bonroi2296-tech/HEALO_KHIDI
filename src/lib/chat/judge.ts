@@ -123,8 +123,11 @@ export async function evaluateResponse(input: JudgeInput): Promise<JudgeResult |
     const result = await generateText({
       model,
       prompt,
-      // 짧은 평가 응답 — 최대 512 토큰이면 충분
-      maxTokens: 512,
+      // 짧은 평가 응답 — 최대 512 토큰이면 충분.
+      // ⚠️ ai v5+ 는 maxTokens 가 아니라 maxOutputTokens (옛 이름은 무시됨 = 상한 미적용이었음).
+      // thinking 도 꺼서 판사 호출 비용 고정(메인 챗 generateReply 와 동일 패턴).
+      maxOutputTokens: 512,
+      providerOptions: { google: { thinkingConfig: { thinkingBudget: 0 } } },
     } as any);
 
     const raw = result.text?.trim() ?? "";

@@ -378,7 +378,7 @@ export default function TelemedicineClient() {
               <div className="min-w-0">
                 <p className="text-sm font-bold text-white truncate">{copy.mockup.title}</p>
                 <p className="text-[10px] text-gray-400 truncate">
-                  Room: healo-xxxx <span className="text-green-400 ml-1">● {copy.mockup.connected}</span>
+                  Room: khidi-xxxx <span className="text-green-400 ml-1">● {copy.mockup.connected}</span>
                 </p>
               </div>
             </div>

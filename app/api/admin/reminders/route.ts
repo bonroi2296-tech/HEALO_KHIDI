@@ -1,0 +1,44 @@
+/**
+ * healwith: 리마인더 발송 큐 목록 — 어드민 전용
+ *
+ * GET /api/admin/reminders?status=pending|sent|failed|cancelled (생략=전체)
+ *
+ * 왜(2026-07-02 전수 감사): /admin/reminders 페이지가 브라우저 클라이언트로
+ * reminders_scheduled(RLS on·정책 0 = deny-all)를 직접 조회해 영원히 빈 목록이었음.
+ * 2026-06-10 P1 이관(브라우저 직쿼리 금지 → 서버 API 경유)에서 누락된 잔존분.
+ */
+export const runtime = "nodejs";
+
+import { NextRequest } from "next/server";
+import { requireAdminAuth } from "@/lib/auth/requireAdminAuth";
+import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
+
+const STATUSES = new Set(["pending", "sent", "failed", "cancelled"]);
+
+export async function GET(request: NextRequest) {
+  const auth = await requireAdminAuth(request);
+  if (!auth.success) return auth.response;
+
+  try {
+    let query = (supabaseAdmin as any)
+      .from("reminders_scheduled")
+      .select("*")
+      .order("fire_at", { ascending: false })
+      .limit(200);
+
+    const status = request.nextUrl.searchParams.get("status");
+    if (status && STATUSES.has(status)) {
+      query = query.eq("status", status);
+    }
+
+    const { data, error } = await query;
+    if (error) {
+      console.error("[admin/reminders] query error:", error.message);
+      return Response.json({ ok: false, error: "query_failed" }, { status: 500 });
+    }
+    return Response.json({ ok: true, items: data || [] });
+  } catch (err: any) {
+    console.error("[admin/reminders] error:", err.message);
+    return Response.json({ ok: false, error: "internal_error" }, { status: 500 });
+  }
+}

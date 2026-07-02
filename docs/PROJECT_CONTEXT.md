@@ -7,6 +7,42 @@
 
 ---
 
+## 🔖 세션 핸드오프 (2026-07-02 — 오픈 전 전수 감사: 역사 750커밋 + 8축 심층감사 + 후속 일괄수정 PR #601)
+
+> PO: "최초 기록부터 지금까지 싹다 전수 조사 + 오픈 전 최종 점검, 워크트리 파서 작업" → 워크플로 에이전트 50개(역사 6축 + 감사 8축 + 발견 건별 적대적 검증)로 감사 → 검증 통과 발견 중 저위험·고효과를 같은 날 일괄 수정(PR **#601**). 화상상담 영역은 타 세션 담당이라 **조사만, 코드 무수정**(발견은 KNOWN_ISSUES에 인계).
+
+**1. 이번 세션 한 일**
+- **감사**: 2026-03-11 첫 커밋부터 750커밋 전수 역사 + 보안/i18n/퍼널/백오피스·KPI/AI·RAG/가드·CI/실DB/오픈관문 8축. 실DB는 읽기(SELECT)만. 발견 36건 검증(적대적 반박) + 건강 확인 70여 항목.
+- **수정(PR #601, 커밋 9f251ff·7dc37fc 외)**: ①고위험 발화(자살·응급) 감지가 사실상 영어 전용이던 것 6개어 수리+테스트 ②/api/patient/chat aiGuard 우회 봉합 ③AI챗 승격·에이전시 의뢰 is_test 누수 2경로 봉합 ④message 라우트 PIPA 게이트 드리프트 ⑤로그인 ?redirect= 증발·'내 문의' 이메일 폴백 ⑥/admin/reminders·ai-regression 영구 빈화면 소생(RLS 직쿼리→서버 API) ⑦/treatments kz/zh/ja 완성 ⑧견적 PDF 언어 ⑨main E2E 6일 빨강 해소(가입 스펙)+@smoke 승격 ⑩check:content 룰9(t() 미정의 키) ⑪죽은 코드 5개 archive·/api/inquiries/create 410 ⑫문서 현행화(LAUNCH_GATES 실측·TEST_ACCOUNTS·KNOWN_ISSUES·반성문 #62).
+- **PR 정리**: #545(문서) 자동머지 완료. #567 CI 빨강 원인(lint 3건)을 그 브랜치에 직접 수정 푸시 — 이제 PO 프리뷰 검토→머지만 남음.
+
+**2. 왜 그렇게 했는지**
+- 감사 최다 부류 = "한 경로에 넣은 안전장치가 형제 경로엔 없음"(is_test·동의게이트·aiGuard·고위험감지) + "지킴이 자체의 침묵 사망"(E2E 6일 빨강+알림 403) → 반성문 #62에 부류·재발방지 정리.
+- 검증자(적대적 반박) 덕에 오탐 다수 걸러짐 — 예: 'PNG 아이콘 옛 마크'·'약한비번 admin'은 실제론 이미 해결됐고 문서만 낡았던 것(→ 문서 동기화로 종결).
+
+**3. 안 끝났거나 보류 (다음 세션 큐)**
+1. 🔴 **발급 PDF 한글·키릴 전부 깨짐**(폰트 미등록 — renderToBuffer 실증, 견적서=법정 고지문서) → 폰트 셀프호스팅 별도 트랙(세션 칩 발행됨).
+2. 🔴 **K-02 오염**: inquiry 미연결 완료세션 2건(전부 PO 테스트)이 실적 집계 중 — 구조수정(consultation_sessions.is_test)은 화상상담 세션 종료 후, 데이터 정리는 PO 확인 필요.
+3. PO 콘솔 관문 5개: OAuth 게시·Gemini 유료 확인·테스트문의 태깅·텔레그램 env·TEST_OFFICE_IPS env (→ docs/LAUNCH_GATES_PO.md 「지금 남은 관문」 실측 갱신본).
+4. #562(초청장 병원명의) draft 충돌 — 실체는 문서 3개뿐(기능 파일 깨끗, merge-tree 실측) → 리베이스 후 PO 검토.
+5. main 브랜치 보호(required checks) — 운영방식 변경이라 PO 결정.
+
+**4. 주의·함정**
+- 이 세션 워크트리 = `.claude/worktrees/full-audit-prelaunch`(브랜치 worktree-full-audit-prelaunch). 공용 파일 CLAUDE.md(코디 문구 정정)·i18n(chat.back 키)을 소폭 수정 — 병렬 세션과 충돌 시 이 커밋이 정본.
+- 화상상담 영역 발견(웹훅 자동완료=K-02 인플레 벡터·옛 도메인 웹훅 URL·게스트토큰 E2E 실패·테스트방 2개·notes 평문)은 **KNOWN_ISSUES 「2026-07-02」 섹션**에 모아 인계 — 그 세션이 읽을 것.
+
+**5. 다음 세션이 먼저 할 일** — 위 3번 큐 순서대로. PR #601이 미머지 상태면 CI 확인 후 머지부터.
+
+**6. 검증 상태**
+- ✅ tsc 0 / vitest 461/461 / check:* 12종 / `npx next build --webpack` 전부 통과. 실DB 변경 0.
+- ⚠️ 화면 시각 검증은 직접 못 함(auth-gated 로컬 한계) — Vercel 프리뷰에서 /treatments 언어전환·로그인 리다이렉트·어드민 리마인더 화면은 PO 눈 확인 권장.
+- ⚠️ E2E 부활은 PR smoke에서 1차 검증되고, main 머지 후 push E2E 초록 여부로 최종 확인(빨강이면 e2e-failure 이슈 30개 정리 전에 원인 재확인).
+
+**7. 다음 세션 첫 프롬프트**
+> 먼저 docs/PROJECT_CONTEXT.md 최상단 핸드오프 읽어. 2026-07-02에 오픈 전 전수 감사(역사 750커밋+8축) 하고 후속 일괄수정 PR #601을 만들었어. 머지됐는지 확인하고, 남은 건 ①PDF 한글·키릴 폰트 등록(칩 있음) ②PO 콘솔 관문 5개(LAUNCH_GATES 「지금 남은 관문」) ③K-02 테스트세션 정리(화상상담 세션과 조율) ④#562 리베이스·#567 프리뷰 검토. 화상상담 인계분은 KNOWN_ISSUES 2026-07-02 섹션.
+
+---
+
 ## 🔖 세션 핸드오프 (2026-07-01 밤 — 텍스트 단락 줄바꿈 매끄러움: 전역 CSS로 뿌리뽑기 (#595 머지·배포 완료))
 
 > PO가 홈 스샷("…보유하고 있 / 습니다"처럼 한 단어가 두 줄로 쪼개짐)을 주며 **"이런거 내가 하나하나 다 잡아줘야하니? 외국어는 내가 몰라. 언제쯤 완벽하게 수정?"**이라 답답해함 → 문구 개별수정이 아니라 **전역 CSS 규칙 한 방**으로 전 언어·전 페이지 차단 → 전수 점검(추가 잔재 없음 확인) → PO "지금 바로 머지" → #595 머지·프로덕션 배포.
@@ -38,47 +74,6 @@
 
 **7. 다음 세션 첫 프롬프트**
 > 먼저 docs/PROJECT_CONTEXT.md 최상단 핸드오프 읽어. 2026-07-01 밤에 텍스트 단락 줄바꿈(한/중/일 단어가 중간에서 쪼개지던 것)을 src/index.css 전역 규칙(word-break:keep-all + overflow-wrap + text-wrap)으로 뿌리뽑아 #595 머지·배포 완료했어. 전수 점검도 끝(break-all=이메일/ID만, 강제 br·i18n \n 잔재 없음). 이 건은 종료 — PO가 실화면에서 또 어색한 줄바꿈 스샷 주면 그 자리만 국소 대응하면 돼. 그다음엔 이전 세션 이월분(화상 상담 A/V 통합링크 재검증·테스트방 삭제)을 봐.
-
----
-
-## 🔖 세션 핸드오프 (2026-07-01 저녁 — 화상 상담 테스트 링크 발급 + "각각 입장되는데 서로 안 보임" 진단)
-
-> PO: "다른 세션이 화상회의 고치는데 감을 못 잡네, 넌 그냥 테스트용 임시 링크나 만들어줘" → 링크 발급(코드수정 X, DB에 테스트행만) → PO 실테스트 "각각 입장만 되고 화면·마이크 공유 안 됨" → 서버·코드 진단으로 원인 좁힘 → "다른 세션이 수정 완료했다니 걔한테 마저 시킬게, 넌 인수인계하고 퇴근".
-
-**1. 이번 세션 한 일** (⚠️ 코드 0줄 — 전부 Supabase DB에 테스트 데이터만 삽입)
-- 화상 상담(원격협진) **테스트용 임시 방 + 게스트 초대링크**를 DB에 직접 생성. 실제 API/폼 안 거치고 `consultation_sessions` + `consultation_guest_tokens`에 SQL로 삽입(토큰은 코드 발급과 동일하게 **평문의 SHA-256 해시**로 저장, URL엔 평문). **상담방 2개 / 초대토큰 3개**:
-  - **방A** `50d5bc43-7e4c-405b-afdd-229233976bc2` — 통합 링크 1개(role=guest, 30일·100회). 테스트로 used_count 4까지 소모됨.
-  - **방B** `aa9804ee-e0eb-44d6-bf03-b1480c13d104` — 코디용/환자용 토큰 2개 따로(role=coordinator/patient, 30일·50회씩). 신원충돌 우회 실험용.
-- 각 링크를 DB에서 **해시일치·미만료·같은 방·status=scheduled** 통과 확인.
-
-**2. 왜 그렇게 했는지**
-- PO는 계정/코디 화면 안 거치고 **컴·폰으로 바로** 테스트하고 싶어함 → 게스트 초대링크면 충분. 대기실(의료진 승인)은 기본 OFF라(`CONSULTATION_WAITING_ROOM` 미설정) 링크만 열면 즉시 입장.
-- 방B에서 코디/환자 토큰을 **일부러 2개로 나눈 건** 아래 진단(신원충돌)을 우회하는 실험. **실제 서비스는 링크 1개가 정답**(코디=로그인 staff, 환자=게스트 → 신원 자동 분리). PO도 "왜 구분해야 하냐"고 물어 이 점 확인함.
-
-**3. 안 끝났거나 보류**
-- **화상통화 근본수정 = 다른 세션 담당**(브랜치 `work/consult-av-basics-fixes`, PR #578~#591로 A/V 방탄화 진행, "수정 완료" 주장). 이 세션은 **진단만 넘김.**
-- **테스트 데이터(상담방 2개) 정리 필요** — 테스트 끝나면 삭제(PO가 "지워줘" 하면 방A·방B의 세션+토큰 삭제).
-
-**4. 주의·함정**
-- ⚠️ **이 세션은 공용 메인 폴더(HEALO_KHIDI)에서 돌았고, 현재 그 폴더 HEAD = 다른 세션 브랜치 `work/consult-av-basics-fixes`.** 그 브랜치 커밋(#578~591)과 미커밋 파일(`app/consultation/[id]/_roomCopy.js`·`page.jsx`)은 **다른 세션 작품 — 건드리지 마라.** 이 세션 산출물은 코드가 아니라 DB 테스트행뿐(이 핸드오프 문서 편집 외 git 변경 안 함).
-- **진단 결론 — 👥 참가자 카운터가 둘 다 1** = 두 명이 같은 방에 **동시에 안 잡힘**. 유력 원인 = **로그인 없이 양쪽 다 게스트 + 같은 초대토큰**이면 guest 신원(identity)이 겹침. identity는 `guest-<role>-<토큰8자리>-<기기suffix>`([guest-join/route.ts:157](app/api/khidi/consultation/%5Bid%5D/guest-join/route.ts:157))라 같은 토큰이면 앞부분 동일 → 입장 직전 같은 identity를 `removeParticipant`로 강제 제거([:170](app/api/khidi/consultation/%5Bid%5D/guest-join/route.ts:170)) → **서로 튕겨냄**. 인앱브라우저(카톡 등)면 localStorage 차단→기기suffix 랜덤폴백([page.jsx:221](app/consultation/%5Bid%5D/page.jsx:221))으로 충돌 악화 가능. 또 [PresenceGuard(page.jsx:243)](app/consultation/%5Bid%5D/page.jsx:243)가 백그라운드 60초 시 자동 퇴장 → 혼자 2기기 테스트를 방해.
-- **별개(통화 무관)**: LiveKit webhook 설정 URL이 죽은 옛 도메인 `healo-khidi.com`([webhook/route.ts:12](app/api/livekit/webhook/route.ts:12)) → 최근 로그창(2시간)에 이벤트 0건. 녹화·종료상태 기록용이라 통화엔 영향 없음. 나중에 `healwith.co.kr`로 교체 권장.
-- **env 누락 아님**: `LIVEKIT_URL`·`API_KEY`·`API_SECRET` 3개 다 Vercel prod에 설정됨(type=sensitive라 값은 API로 못 되읽음 — "없음"으로 보여도 실제 있음, guest-join 4회 성공이 증거).
-
-**5. 다음 세션이 먼저 할 일**
-1. ⚠️ **직전 미검증분 먼저 확인**: 다른 세션 A/V 수정이 배포됐으면 **통합 링크(방A `50d5bc43…`) 1개로 재검증** — 컴·폰 둘 다 **로그인 없이 같은 링크**를 (카톡 말고 크롬/사파리로) 열어 👥가 **2** 뜨는지. 2 뜨면 신원충돌 해소 확정, 여전히 1이면 media(WebRTC/TURN)로 방향 전환.
-2. 테스트 끝나면 **테스트 상담방 2개 삭제**(방A `50d5bc43…` + 방B `aa9804ee…`의 세션·토큰).
-3. (선택) LiveKit webhook URL을 `healwith.co.kr`로 교체.
-- ※ 화상 A/V **코드 수정 자체는 이 세션 영역 아님**(다른 세션 `work/consult-av-basics-fixes`가 담당).
-
-**6. 검증 상태**
-- ✅ **테스트 링크(내 작업)**: 방A·방B 토큰 전부 DB에서 해시일치·미만료·같은 방·`scheduled` 검증. 대기실 OFF도 코드로 확인.
-- ❌ **미검증(솔직히)**: 실제 영상·음성이 뜨는 **end-to-end는 직접 못 봄**(기기 2대+실카메라 필요).
-- ❌ **화상통화 근본원인(신원충돌 가설)**: 코드 근거로 강하게 추정하나 LiveKit 실참가자 identity를 **직접 못 봄**(creds가 sensitive라 서버 프로브 불가) → **확정 아님**. 위 5-1 재검증으로 확정할 것.
-- **PR/CI**: 이 세션 코드 변경 0 → 내 PR 없음. 다른 세션 #578~591 상태는 **내가 확인 안 함**(내 영역 아님).
-
-**7. 다음 세션 첫 프롬프트**
-> 먼저 docs/PROJECT_CONTEXT.md 최상단 핸드오프 읽어. 2026-07-01 저녁에 화상 상담 테스트용 임시 링크를 DB에 심어 발급하고(코드수정 X), "각각 입장은 되는데 서로 안 보임(👥 둘 다 1)"을 진단해 다른 세션(work/consult-av-basics-fixes)에 넘겼어. 유력원인=로그인 없이 양쪽 게스트+같은 초대토큰이라 guest identity가 겹쳐 서로 튕김(guest-join의 removeParticipant). 그 세션이 A/V 수정 배포했으면 **먼저 통합 링크(상담방 50d5bc43…) 하나로 재검증**: 컴·폰 둘 다 로그인 없이 같은 링크(크롬/사파리) 열어 👥가 2 뜨는지 → 2면 해소, 1이면 media(TURN)로 파. 그 뒤 테스트 상담방 2개(50d5bc43…, aa9804ee…) 삭제하고, 여유되면 LiveKit webhook URL을 healwith.co.kr로 교체.
 
 ---
 
@@ -141,7 +136,7 @@
 - 공개 페이지(/treatments·상세·/telemedicine·/faq·/hospitals/immune·404·500) 전부 기본 톤으로 재구성 완료. 옛 premium은 `*Premium.jsx` 잔재로만 존재(비활성, import 금지).
 
 ## 4. 주요 기능 현황 (라우트는 CLAUDE.md 참조)
-- **통합 문의 퍼널 `/inquiry`**: 진입 시 AI Agent / Human Agent / Inquiry Form 선택. `/intake`·`/consult/start`는 여기로 통합(redirect). Human Agent = WhatsApp·Telegram·WeChat·LINE 4채널 (env URL 미설정이라 현재 "준비 중" 표시).
+- **통합 문의 퍼널 `/inquiry`**: 진입 시 AI Agent / Human Agent / Inquiry Form 선택. `/intake`·`/consult/start`는 여기로 통합(redirect). Human Agent = WhatsApp·Telegram·WeChat·LINE 4채널 — **실제 동작(2026-07-02 실측 정정): WhatsApp만 라이브(코드 폴백 wa.me, #73), 나머지 3채널은 env(`NEXT_PUBLIC_MESSENGER_*_URL`) 미설정이라 카드 자체가 숨김 처리**("준비 중" 표시 아님 — 미완성 인상 안 줌, 1채널뿐이면 picker 생략 직행).
 - **원격협진(LiveKit 영상)**: 코디가 `/admin/consultations`에서 상담 생성(문의에서 환자 선택+의사/코디 드롭다운) → 게스트 초대 링크 → `/consultation/[id]` 영상. LiveKit 키는 Vercel에 설정됨(작동). 예약시각 KST 입력·KST+UTC 병기.
 - **회원관리**: `/admin/staff`(의사·코디 — 역할부여·임시비번·소프트 비활성), `/admin/users`(환자 — 상담이력·소프트 ban). 계정은 어드민에서 생성(이메일 형식이면 가짜 `doc1@healo.local` 도 가능, 메일 수신 불필요).
 - **어드민 메뉴**: 운영현황 / 환자여정 / 제휴자원·RAG / AI품질·시스템 / 레거시도구 (피벗 반영 재편).

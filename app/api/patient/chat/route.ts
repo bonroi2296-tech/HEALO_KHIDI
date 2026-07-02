@@ -17,7 +17,8 @@ export const runtime = "nodejs";
 import { NextRequest } from "next/server";
 import { createSupabaseServerClientFromRequest } from "@/lib/supabase/server";
 import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
-import { checkRateLimit, getClientIp, RATE_LIMITS } from "@/lib/rateLimit";
+import { checkRateLimitPersistent, getClientIp, RATE_LIMITS } from "@/lib/rateLimit";
+import { checkAiGuards } from "@/lib/ai/aiGuard";
 import {
   generateChatReply,
   detectHandOff,
@@ -69,13 +70,23 @@ export async function POST(request: NextRequest) {
   }
 
   const clientIp = getClientIp(request);
-  const rl = checkRateLimit(clientIp, RATE_LIMITS.CHAT);
-  if (!rl.allowed) {
-    return Response.json({ ok: false, error: "rate_limited" }, { status: 429 });
-  }
 
   const body = await request.json().catch(() => ({}));
   const action = body.action || "message";
+
+  // 분당 회수제한(DB 기반 — 인메모리는 다중 인스턴스에서 분산 우회됨) + AI 비용 가드.
+  // 로그인 사용자도 우회 불가(공개챗과 동일 방어선 — 계정 하나로 일일 상한·전역 예산을
+  // 전부 우회하던 구멍을 닫음, 2026-07-02 전수 감사). start 는 AI 호출이 없어 분당 제한만.
+  const rl = await checkRateLimitPersistent(clientIp, RATE_LIMITS.CHAT);
+  if (!rl.allowed) {
+    return Response.json({ ok: false, error: "rate_limited" }, { status: 429 });
+  }
+  if (action !== "start") {
+    const aiGuard = await checkAiGuards(clientIp, "/api/patient/chat");
+    if (!aiGuard.allowed) {
+      return Response.json({ ok: false, error: aiGuard.code }, { status: aiGuard.status });
+    }
+  }
 
   // ─── START: 새 스레드 생성 ───
   if (action === "start") {
