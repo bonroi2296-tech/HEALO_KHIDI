@@ -8,6 +8,18 @@
 
 ---
 
+## #63 — 발급 PDF API가 배포 환경(프로덕션 포함)에서 전부 500 — React 인스턴스 불일치 (React error #31, 2026-07-02)
+
+**무슨 일** — #62(폰트) 검증으로 preview 배포에 견적서 발급을 실제 호출하니 500. **프로덕션(healwith.co.kr)도 동일 500** — 즉 발급 PDF API 4종(견적서·동의서·초청장)은 폰트 이전부터 **배포 환경에서 아예 작동한 적이 없었다**. 원인: Next 16(App Router)은 앱 코드를 **내장(vendored) React 19**로 컴파일하는데, 설치된 react 는 **18.2.0**. 웹팩 서버 번들에서 route/컴포넌트의 React 요소와 react-pdf reconciler 가 서로 다른 React 를 봐서 `renderToBuffer` 가 **React error #31**(유효하지 않은 자식)로 즉사.
+
+**왜 못 잡았나 (근본원인)** — ①**dev(Turbopack)·로컬 renderToBuffer 테스트는 전부 정상** — 이 사고는 웹팩 프로덕션 번들에서만 발생(빌드 성공≠동작의 극단 사례). ②E2E smoke 는 dev 서버(`npm run dev`) 기반이라 프로덕션 번들 경로를 안 탄다. ③PDF 발급은 어드민 인증 뒤에 있어 배포 후 실호출 검증이 생략돼 왔다.
+
+**어떻게 고쳤나** — ①`next.config.js` `serverExternalPackages` 에 `@react-pdf/renderer` 추가(웹팩이 말지 않고 node_modules 그대로 실행) ②**react/react-dom 18.2.0 → 19.2.7 업그레이드**(내장 React 19 와 요소 규격 정합 — peer 충돌 전수 확인: 없음). `next build --webpack` + `next start` 로 재현→수정 확인, preview 배포에서 실발급 200 확인.
+
+**재발 방지**
+- **검사기 룰 추가(§10)**: serverExternalPackages 에서 @react-pdf/renderer 가 빠지거나 react 가 19 미만으로 내려가면 CI 실패.
+- **교훈: 배포 전용 경로(웹팩 서버 번들)는 dev·빌드 통과로 검증 안 됨** — 서버 렌더 기능은 `next build && next start` 로 최소 1회 실호출, 배포 후 preview 에서 실호출.
+
 ## #62 — 발급 PDF 전부(견적서·동의서 3종·비자초청장)에서 한글·키릴이 깨진 글자로 렌더 (법적 문서 치명, 2026-07-02)
 
 **무슨 일** — `@react-pdf/renderer` 기반 발급 PDF 4종이 전부 **내장 Helvetica 폰트만** 사용(`styles.js` `SANS = "Helvetica"`). 내장 Base-14 폰트는 WinAnsi(라틴1) 인코딩이라 **한글·키릴 문자가 전부 깨진 글자**로 렌더됨 — ko 문서의 모든 한국어 라벨, 러시아·카자흐 환자 이름/진단명 전멸. 견적서는 **의료해외진출법 §15 서면고지 의무 문서**라 치명적(깨진 견적서 = 고지 불이행 리스크). renderToBuffer 실증으로 확인.
