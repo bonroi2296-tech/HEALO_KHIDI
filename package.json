@@ -24,6 +24,7 @@
     "check:err-exposure": "node scripts/check-no-raw-error-exposure.mjs",
     "check:cancer-i18n": "node scripts/check-cancer-i18n.mjs",
     "check:handoff": "node scripts/check-handoff.mjs",
+    "check:hook-data": "node scripts/check-hook-data.mjs",
     "check:migrations": "node scripts/check-migration-idempotency.mjs",
     "check:schema-refs": "node scripts/check-schema-refs.mjs",
     "check:visa-freshness": "node scripts/check-visa-freshness.mjs",
