@@ -20,7 +20,7 @@ import { runJudgeInBackground } from "./judge";
 import { scanRedlines, safeDeferralMessage } from "./safetyGuard";
 import { CARE_REFERENCE, CARE_REFERENCE_NO_DOCLIST } from "./careReference";
 import { BoundedCache } from "../util/boundedCache";
-import { mentionsCancerType, isTopicCorrection, correctionReply, asksDocsOrProcess, mentionsHospital } from "./topicGuards";
+import { mentionsCancerType, isTopicCorrection, correctionReply, asksDocsOrProcess, mentionsHospital, asksHospitalRanking } from "./topicGuards";
 import { redactModelPii, redactMessagesForModel } from "../security/redactModelPii";
 
 type ChatMessage = { role: "user" | "assistant" | "system"; content: string };
@@ -236,6 +236,17 @@ const HOSPITAL_HARD_GUARD = [
   "",
 ].join("\n");
 
+// 병원 랭킹/최저가 요청 전용 하드 가드 (2026-07-04): 병원명이 없어 STRICT 규칙을 못 타는
+// "제일 싼/좋은 병원" 질문에서 kz 가격 랭킹 노출 실측(3/3) → 코드 강제.
+const HOSPITAL_RANKING_GUARD = [
+  "",
+  "⚠️ HARD RULE — the user is asking for a BEST/CHEAPEST/RANKED hospital comparison:",
+  "- Do NOT output any ranked, ordered, or price-labeled list of hospitals or programs.",
+  "- Do NOT include ANY specific price figures ($, ₩, numbers) in this reply, even from the reference above — a price-ordered answer IS the shopping list we never give.",
+  "- Explain warmly that the right hospital and the real cost depend on their specific diagnosis, and offer ONE next step: share the diagnosis so a coordinator matches the right partner hospital and prepares a personalized quote (free preliminary review).",
+  "",
+].join("\n");
+
 const HOSPITAL_NO_MATCH_GUARD = [
   "",
   "⚠️ HOSPITAL NOT FOUND IN healwith:",
@@ -248,6 +259,7 @@ const HOSPITAL_NO_MATCH_GUARD = [
 export interface HospitalGuardOptions {
   hospitalGuardActive?: boolean;
   hospitalIntentNoMatch?: boolean;
+  hospitalRankingAsk?: boolean;
 }
 
 // 대화 세션의 "상태 사실"(state facts) — 모델이 로그인·저장·연락 가능 여부를 추측하지 않고
@@ -275,7 +287,7 @@ export function buildSystemPrompt(
   const hasDbData = contextText.includes("healwith 등록");
   const hasHira = externalSources.includes("hira");
   const hasNaver = externalSources.includes("naver");
-  const { hospitalGuardActive = false, hospitalIntentNoMatch = false } = hospitalGuard;
+  const { hospitalGuardActive = false, hospitalIntentNoMatch = false, hospitalRankingAsk = false } = hospitalGuard;
   const { isLoggedIn = false, hasReachableContact = false } = session;
   // 선택 언어를 모델에 명시(특히 카자흐어 ↔ 러시아어 혼동 방지 — 둘 다 키릴문자라 모델이
   // 카자흐어 사용자에게 러시아어로 답하는 일이 잦음. 핵심 타겟이라 결정적으로 못박는다).
@@ -393,6 +405,7 @@ export function buildSystemPrompt(
     "- DISCLAIMER: a permanent disclaimer already shows under the chat — do NOT repeat a disclaimer every message. Only when you give specific medical or cost info, add at most ONE short clause that the medical team makes the final decision. Never a wall of legalese.",
     hospitalGuardActive ? HOSPITAL_HARD_GUARD : "",
     hospitalIntentNoMatch ? HOSPITAL_NO_MATCH_GUARD : "",
+    hospitalRankingAsk ? HOSPITAL_RANKING_GUARD : "",
     "",
     // 서류 5종 나열 가드(코드 강제, 2026-07-04): 사용자가 서류/절차/비용을 묻지 않은 턴엔
     // 목록 자체를 주입하지 않는다 — 감정적 첫 메시지에 프롬프트 규칙만으론 ru·kz에서 안 꺾임(실측).
@@ -933,6 +946,7 @@ async function prepareGeneration(
   const systemPrompt = buildSystemPrompt(allContext, hasTier3, useWebSearch, externalSources, {
     hospitalGuardActive,
     hospitalIntentNoMatch: hospitalIntent && matchedHospitalNames.length === 0,
+    hospitalRankingAsk: asksHospitalRanking(query),
   }, mentionsCancerType(query), session, lang, asksDocsOrProcess(query));
   const retrievedPatternIds = extractRetrievedPatternIds(ragChunks);
   const model = getModel();

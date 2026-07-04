@@ -106,3 +106,16 @@ const HOSPITAL_TERMS =
 export function mentionsHospital(text: string): boolean {
   return HOSPITAL_TERMS.test(text || "");
 }
+
+
+// ── 병원 랭킹/최저가 요청 감지 (2026-07-04 2차 — NOT_FIXED 재수리) ──────────
+// 왜: "제일 싼 병원 알려줘(가격순으로)"는 특정 병원명이 없어 matchedHospitalNames=0 →
+// STRICT HOSPITAL QUERY RULES 경로를 안 탐. kz에서 가격 랭킹 목록이 그대로 노출(3/3 실측).
+// 병원 언급 + 최상급/비교 표현이면 전용 하드 가드(순위·가격 숫자 금지)를 주입한다.
+const SUPERLATIVE_TERMS =
+  /제일|가장|최고|최저|싼\s*(?:곳|병원|데)|어디가\s*(?:좋|잘|싸)|순위|랭킹|best|top\s*\d*|cheapest|most\s+(?:affordable|expensive)|ranking|лучш|самы[йе]|дешев|дёшев|рейтинг|арзан|ең\s*(?:жақсы|арзан|қымбат)|таңдаулы|一番|最も|最安|最高|最好|最便宜|哪家(?:最|好|便宜)|排名/i;
+
+/** 병원을 "최고/최저가/순위"로 비교·랭킹해 달라는 요청인가 — 전용 하드 가드 트리거. */
+export function asksHospitalRanking(text: string): boolean {
+  return mentionsHospital(text) && SUPERLATIVE_TERMS.test(text || "");
+}
