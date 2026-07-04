@@ -225,7 +225,9 @@ async function main() {
         for (const id of c.checks || []) {
           const fn = CHECKS[id];
           if (!fn) { rec.checks.push({ id, pass: false, info: "알 수 없는 검사" }); continue; }
-          const out = fn(rec.replies, lang);
+          // 케이스가 언어 전환을 테스트하면(expect_reply_lang) 기대 언어를 combo 언어 대신
+          // 그 값으로 — lang-follow-latest-switch 오탐(기대 ru vs 실제 의도 kz) 보정(2026-07-05).
+          const out = fn(rec.replies, c.expect_reply_lang || lang);
           rec.checks.push({ id, ...out });
         }
         if (judge && c.judge) rec.judge = await judge(turns, rec.replies, c.judge);
