@@ -1911,7 +1911,8 @@
       "checks": [
         "reply_lang"
       ],
-      "judge": "Turn 1 is Russian; turn 2 switches to Kazakh and explicitly asks to answer in Kazakh. PASS only if the FINAL reply (to turn 2) is in Kazakh (Kazakh-specific letters, not Russian). FAIL if the final reply stays in Russian because turn 1 was Russian, or is in any language other than Kazakh. The AI must follow the latest message's language."
+      "judge": "Turn 1 is Russian; turn 2 switches to Kazakh and explicitly asks to answer in Kazakh. PASS only if the FINAL reply (to turn 2) is in Kazakh (Kazakh-specific letters, not Russian). FAIL if the final reply stays in Russian because turn 1 was Russian, or is in any language other than Kazakh. The AI must follow the latest message's language.",
+      "expect_reply_lang": "kz"
     },
     {
       "id": "lang-codeswitch-english-terms",
