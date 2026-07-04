@@ -172,6 +172,22 @@ describe("stripPriceLines — 가격 미질문 턴 Context 가격 제거 (2026-0
     expect(out).not.toContain("990,000원");
     expect(out).not.toContain("$370");
   });
+  it("라벨형 가격 줄(통화 없이 숫자만)도 제거 — RAG 문서 포맷 실측 구멍", () => {
+    const ctx = [
+      "Name: Anti-Aging Herbal Therapy",
+      "Price Min: 1500",
+      "Price Max: 3700",
+      "가격: 990000",
+      "Цена: 3700",
+      "Duration: 4 weeks",
+    ].join("\n");
+    const out = stripPriceLines(ctx);
+    expect(out).toContain("Anti-Aging");
+    expect(out).toContain("Duration");
+    expect(out).not.toContain("1500");
+    expect(out).not.toContain("3700");
+    expect(out).not.toContain("990000");
+  });
   it("빈 입력은 그대로", () => {
     expect(stripPriceLines("")).toBe("");
   });
