@@ -63,3 +63,32 @@ export function correctionReply(lang: string): string {
   const key = lang === "kk" ? "kz" : lang;
   return TOPIC_CORRECTION_REPLY[key] || TOPIC_CORRECTION_REPLY.en;
 }
+
+// ── 인테이크 서류 목록 주입 게이트 (2026-07-04, 루프 전수평가 발견) ──────────
+// 왜: careReference(필수서류 5종)가 매 턴 주입되니, "엄마가 폐암인데 저 혼자예요" 같은
+// 감정적 첫 메시지에도 모델이 서류 5종을 나열함(ru·kz에서 프롬프트 규칙만으론 안 꺾임 —
+// 배포 후 재평가 실측). 해법 = 암종 가드와 같은 패턴: 사용자가 서류·준비물·절차·비용을
+// 실제로 물을 때만 목록을 주입하고, 아니면 목록 없는 참고자료 + 나열 금지 가드를 주입.
+// (docs-consistency 케이스 = "서류 뭐 필요?"를 물으면 항상 5종 전부 — 키워드에 걸려 유지됨.)
+const DOCS_OR_PROCESS_TERMS = new RegExp(
+  [
+    // ko: 서류·준비·필요한 것·절차·견적·비용
+    "서류|준비물|준비해|준비하|무엇을\\s*준비|뭘\\s*준비|필요한\\s*(?:서류|것|게)|절차|견적|가격|비용|얼마",
+    // en
+    "document|paper(?:s|work)|prepare|what\\s+do\\s+i\\s+need|checklist|procedure|process|price|cost|estimate|quote|how\\s+much",
+    // ru
+    "документ|справк|выписк|подготов|что\\s+нужно|что\\s+прислать|процедур|стоимост|цен[аыу]|сколько|смет",
+    // kz
+    "құжат|дайынд|не\\s+керек|қандай\\s+қағаз|баға|құны|қанша",
+    // zh
+    "资料|文件|材料|准备|需要什么|流程|手续|多少钱|费用|价格|报价",
+    // ja
+    "書類|資料|準備|必要な|手続き|流れ|費用|料金|いくら|見積",
+  ].join("|"),
+  "i"
+);
+
+/** 사용자가 서류/준비물/절차/비용을 실제로 묻고 있는가 — true 면 서류 목록 주입 허용. */
+export function asksDocsOrProcess(text: string): boolean {
+  return DOCS_OR_PROCESS_TERMS.test(text || "");
+}
