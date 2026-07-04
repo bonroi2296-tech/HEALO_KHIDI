@@ -20,7 +20,7 @@ import { runJudgeInBackground } from "./judge";
 import { scanRedlines, safeDeferralMessage } from "./safetyGuard";
 import { CARE_REFERENCE, CARE_REFERENCE_NO_DOCLIST } from "./careReference";
 import { BoundedCache } from "../util/boundedCache";
-import { mentionsCancerType, isTopicCorrection, correctionReply, asksDocsOrProcess } from "./topicGuards";
+import { mentionsCancerType, isTopicCorrection, correctionReply, asksDocsOrProcess, mentionsHospital } from "./topicGuards";
 import { redactModelPii, redactMessagesForModel } from "../security/redactModelPii";
 
 type ChatMessage = { role: "user" | "assistant" | "system"; content: string };
@@ -902,8 +902,9 @@ async function prepareGeneration(
   const matchedHospitalNames = (dbResult as any).matchedHospitalNames ?? [];
   const hospitalMatchType = (dbResult as any).hospitalMatchType ?? "none";
 
-  const HOSPITAL_KEYWORDS = /병원|의원|한방병원|클리닉|clinic|hospital/i;
-  const hospitalIntent = HOSPITAL_KEYWORDS.test(query) || matchedHospitalNames.length > 0;
+  // 6개 언어 병원 키워드(topicGuards.mentionsHospital) — 옛 인라인 정규식은 ko·en 전용이라
+  // ru·kz·zh·ja 병원 질문에 가드가 안 켜졌음(2026-07-04 kz 가격 쇼핑목록 실측 결함).
+  const hospitalIntent = mentionsHospital(query) || matchedHospitalNames.length > 0;
   const hospitalGuardActive = hospitalIntent && matchedHospitalNames.length > 0;
 
   console.log(`[generateReply] query="${query.slice(0, 80)}" | hospitalIntent=${hospitalIntent} | matchType=${hospitalMatchType} | dbHospitals=${matchedHospitalNames.length} | ragChunks=${ragChunks.length}`);

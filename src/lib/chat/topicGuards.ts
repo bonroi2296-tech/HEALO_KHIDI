@@ -92,3 +92,17 @@ const DOCS_OR_PROCESS_TERMS = new RegExp(
 export function asksDocsOrProcess(text: string): boolean {
   return DOCS_OR_PROCESS_TERMS.test(text || "");
 }
+
+
+// ── 병원 의도 감지 (2026-07-04, 루프 전수평가 발견) ─────────────────────────
+// 왜: 기존 인라인 감지(병원|clinic|hospital)가 한국어·영어 전용이라, 러·카·중·일 병원
+// 질문엔 STRICT HOSPITAL QUERY RULES(랭킹 금지 등) 가드가 아예 안 켜졌음 — kz
+// "제일 싼 병원(арзан аурухана)" 질문에 가격 쇼핑목록이 나온 실측 결함의 근본 원인.
+// kz "аурухана"는 격변화 시 어간이 "аурухан-"(ауруханы·ауруханаға 등)이라 어간으로 매칭.
+const HOSPITAL_TERMS =
+  /병원|의원|한방병원|클리닉|clinic|hospital|больниц|клиник|госпитал|аурухан|емхана|дәрігерлік\s*орталық|医院|诊所|病院|クリニック/i;
+
+/** 현재 메시지가 병원(기관)을 언급/문의하는가 — 6개 언어. */
+export function mentionsHospital(text: string): boolean {
+  return HOSPITAL_TERMS.test(text || "");
+}

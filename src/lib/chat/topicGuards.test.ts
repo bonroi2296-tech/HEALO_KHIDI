@@ -5,6 +5,7 @@ import {
   correctionReply,
   TOPIC_CORRECTION_REPLY,
   asksDocsOrProcess,
+  mentionsHospital,
 } from "./topicGuards";
 
 describe("mentionsCancerType — 현재 메시지가 특정 암종을 명시했나", () => {
@@ -117,5 +118,21 @@ describe("asksDocsOrProcess — 서류 목록 주입 게이트 (2026-07-04)", ()
     expect(asksDocsOrProcess("My mother has lung cancer and I'm overwhelmed, she only has me.")).toBe(false);
     expect(asksDocsOrProcess("Анамда өкпе обыры бар, мен не істерімді білмеймін.")).toBe(false);
     expect(asksDocsOrProcess("엄마가 폐암이래요. 너무 무섭고 뭐가 뭔지 모르겠어요.")).toBe(false);
+  });
+});
+
+describe("mentionsHospital — 6개 언어 병원 의도 감지 (2026-07-04)", () => {
+  it("6개 언어 병원 단어를 잡는다", () => {
+    expect(mentionsHospital("제일 싼 병원 알려줘")).toBe(true);
+    expect(mentionsHospital("which hospital is best?")).toBe(true);
+    expect(mentionsHospital("Какая больница лучше?")).toBe(true);
+    expect(mentionsHospital("Емдеу ең арзан ауруханы айтыңызшы")).toBe(true); // kz 실측 결함 문장
+    expect(mentionsHospital("哪家医院最便宜？")).toBe(true);
+    expect(mentionsHospital("どの病院がいいですか")).toBe(true);
+    expect(mentionsHospital("В какую клинику обратиться?")).toBe(true);
+  });
+  it("병원 언급 없으면 false", () => {
+    expect(mentionsHospital("위암 치료 비용 얼마예요?")).toBe(false);
+    expect(mentionsHospital("У моей мамы рак лёгких, я не справляюсь")).toBe(false);
   });
 });
