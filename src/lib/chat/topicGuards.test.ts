@@ -6,6 +6,7 @@ import {
   TOPIC_CORRECTION_REPLY,
   asksDocsOrProcess,
   mentionsHospital,
+  asksHospitalRanking,
 } from "./topicGuards";
 
 describe("mentionsCancerType — 현재 메시지가 특정 암종을 명시했나", () => {
@@ -134,5 +135,20 @@ describe("mentionsHospital — 6개 언어 병원 의도 감지 (2026-07-04)", (
   it("병원 언급 없으면 false", () => {
     expect(mentionsHospital("위암 치료 비용 얼마예요?")).toBe(false);
     expect(mentionsHospital("У моей мамы рак лёгких, я не справляюсь")).toBe(false);
+  });
+});
+
+describe("asksHospitalRanking — 병원 랭킹/최저가 요청 감지 (2026-07-04)", () => {
+  it("최상급+병원이면 true (kz 실측 결함 문장 포함)", () => {
+    expect(asksHospitalRanking("제일 싼 병원 알려줘")).toBe(true);
+    expect(asksHospitalRanking("Емдеу ең арзан ауруханы айтыңызшы. Бағасы бойынша арзаннан қымбатқа қарай")).toBe(true);
+    expect(asksHospitalRanking("which is the cheapest hospital?")).toBe(true);
+    expect(asksHospitalRanking("Какая больница самая лучшая?")).toBe(true);
+    expect(asksHospitalRanking("哪家医院最便宜？")).toBe(true);
+    expect(asksHospitalRanking("一番いい病院はどこですか")).toBe(true);
+  });
+  it("랭킹 아닌 병원 질문·병원 없는 최상급은 false", () => {
+    expect(asksHospitalRanking("병원 예약은 어떻게 해요?")).toBe(false);
+    expect(asksHospitalRanking("제일 빠른 비자 방법이 뭐예요?")).toBe(false);
   });
 });
