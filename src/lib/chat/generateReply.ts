@@ -272,6 +272,26 @@ export interface ChatSession {
   hasReachableContact?: boolean;
 }
 
+
+// 가격 게이트 + 임시 진단 로그(2026-07-05, ru 간헐 누출 비결정 원인 추적용 — 원인 확정 후 로그 제거).
+// 동작은 stripPriceLines 그대로, 게이트 발동 여부·잔존 숫자 라인만 서버 로그에 남긴다.
+function gatePricedContext(contextText: string, docListAllowed: boolean): string {
+  if (docListAllowed) return contextText;
+  const stripped = stripPriceLines(contextText);
+  try {
+    const residual = stripped
+      .split("\n")
+      .filter((l) => /[\$₩€]\s?\d|\d{3,}[\d.,]*\s*(?:USD|долл|달러|тенге|원)?/i.test(l) && /\d{3,}/.test(l))
+      .slice(0, 2)
+      .map((l) => l.slice(0, 140));
+    console.log(
+      `[price-gate] applied=1 before=${contextText.length} after=${stripped.length} residualNumericLines=${residual.length}` +
+        (residual.length ? ` sample=${JSON.stringify(residual)}` : "")
+    );
+  } catch {}
+  return stripped;
+}
+
 export function buildSystemPrompt(
   contextText: string,
   hasTier3: boolean,
@@ -416,7 +436,7 @@ export function buildSystemPrompt(
       ? ""
       : "⚠️ HARD RULE — the user did NOT ask what to prepare or how much it costs in this message: do NOT enumerate the intake document list (no numbered list of medical papers) and do NOT volunteer prices in this reply. If next steps come up, say a coordinator will guide them through the needed papers step by step — one gentle next step only.",
     hasContext
-      ? "Context:\n" + (docListAllowed ? contextText : stripPriceLines(contextText))
+      ? "Context:\n" + gatePricedContext(contextText, docListAllowed)
       : "",
     useWebSearch ? "No internal or public data found. Use Google Search to find relevant Korean hospitals and treatments. Present findings concisely. ALWAYS add a disclaimer that these are unverified web search results." : "",
     hasTier3 ? "\nNote: Some info is from public sources (Tier 3) — briefly note when citing." : "",
