@@ -119,3 +119,19 @@ const SUPERLATIVE_TERMS =
 export function asksHospitalRanking(text: string): boolean {
   return mentionsHospital(text) && SUPERLATIVE_TERMS.test(text || "");
 }
+
+
+// ── 가격 라인 제거 (2026-07-05, ru 가격 선노출 간헐 실측 후속) ────────────────
+// 왜: 가격을 안 물은 턴에도 Context(RAG·등록 데이터)에 가격이 실려 오면 모델이
+// (특히 ru에서) 이따금 선노출함 — 프롬프트 금지만으론 코인플립. 모델이 못 본 건
+// 못 흘린다(#625 서류 게이트와 같은 원리): 안 물은 턴엔 가격이 실린 줄을 통째로 뺀다.
+const PRICE_LINE = /[\$₩€]\s?\d|\d[\d.,]*\s*(?:만\s*)?원|\d[\d.,]*\s*(?:USD|KRW|долл|тенге|тг|元|万円|円)\b/i;
+
+/** Context 텍스트에서 가격(통화+숫자)이 실린 줄을 제거. 가격 미질문 턴 전용. */
+export function stripPriceLines(text: string): string {
+  if (!text) return text;
+  return text
+    .split("\n")
+    .filter((line) => !PRICE_LINE.test(line))
+    .join("\n");
+}

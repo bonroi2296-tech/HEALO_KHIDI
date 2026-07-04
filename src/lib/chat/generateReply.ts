@@ -18,9 +18,9 @@ import { searchHospitalsAndTreatments } from "./dbSearch";
 import { searchExternal } from "./externalSearch";
 import { runJudgeInBackground } from "./judge";
 import { scanRedlines, safeDeferralMessage } from "./safetyGuard";
-import { CARE_REFERENCE, CARE_REFERENCE_NO_DOCLIST } from "./careReference";
+import { CARE_REFERENCE, CARE_REFERENCE_MINIMAL } from "./careReference";
 import { BoundedCache } from "../util/boundedCache";
-import { mentionsCancerType, isTopicCorrection, correctionReply, asksDocsOrProcess, mentionsHospital, asksHospitalRanking } from "./topicGuards";
+import { mentionsCancerType, isTopicCorrection, correctionReply, asksDocsOrProcess, mentionsHospital, asksHospitalRanking, stripPriceLines } from "./topicGuards";
 import { redactModelPii, redactMessagesForModel } from "../security/redactModelPii";
 
 type ChatMessage = { role: "user" | "assistant" | "system"; content: string };
@@ -411,11 +411,13 @@ export function buildSystemPrompt(
     // 목록 자체를 주입하지 않는다 — 감정적 첫 메시지에 프롬프트 규칙만으론 ru·kz에서 안 꺾임(실측).
     docListAllowed
       ? CARE_REFERENCE
-      : CARE_REFERENCE_NO_DOCLIST,
+      : CARE_REFERENCE_MINIMAL,
     docListAllowed
       ? ""
       : "⚠️ HARD RULE — the user did NOT ask what to prepare or how much it costs in this message: do NOT enumerate the intake document list (no numbered list of medical papers) and do NOT volunteer prices in this reply. If next steps come up, say a coordinator will guide them through the needed papers step by step — one gentle next step only.",
-    hasContext ? "Context:\n" + contextText : "",
+    hasContext
+      ? "Context:\n" + (docListAllowed ? contextText : stripPriceLines(contextText))
+      : "",
     useWebSearch ? "No internal or public data found. Use Google Search to find relevant Korean hospitals and treatments. Present findings concisely. ALWAYS add a disclaimer that these are unverified web search results." : "",
     hasTier3 ? "\nNote: Some info is from public sources (Tier 3) — briefly note when citing." : "",
   ]

@@ -7,6 +7,7 @@ import {
   asksDocsOrProcess,
   mentionsHospital,
   asksHospitalRanking,
+  stripPriceLines,
 } from "./topicGuards";
 
 describe("mentionsCancerType — 현재 메시지가 특정 암종을 명시했나", () => {
@@ -150,5 +151,28 @@ describe("asksHospitalRanking — 병원 랭킹/최저가 요청 감지 (2026-07
   it("랭킹 아닌 병원 질문·병원 없는 최상급은 false", () => {
     expect(asksHospitalRanking("병원 예약은 어떻게 해요?")).toBe(false);
     expect(asksHospitalRanking("제일 빠른 비자 방법이 뭐예요?")).toBe(false);
+  });
+});
+
+describe("stripPriceLines — 가격 미질문 턴 Context 가격 제거 (2026-07-05)", () => {
+  it("통화+숫자 실린 줄만 제거하고 나머지는 보존", () => {
+    const ctx = [
+      "면역병원 항노화 프로그램 — 한방·미용 침·마사지",
+      "стоимость программы составляет от $1,500 до $3,700",
+      "위암 수술: ₩8M–25M (국제수가)",
+      "진료과: 종양내과, 위치: 서울",
+      "패키지 990,000원부터",
+      "Basic checkup ~$370",
+    ].join("\n");
+    const out = stripPriceLines(ctx);
+    expect(out).toContain("항노화 프로그램");
+    expect(out).toContain("진료과: 종양내과");
+    expect(out).not.toContain("$1,500");
+    expect(out).not.toContain("₩8M");
+    expect(out).not.toContain("990,000원");
+    expect(out).not.toContain("$370");
+  });
+  it("빈 입력은 그대로", () => {
+    expect(stripPriceLines("")).toBe("");
   });
 });
