@@ -18,9 +18,9 @@ import { searchHospitalsAndTreatments } from "./dbSearch";
 import { searchExternal } from "./externalSearch";
 import { runJudgeInBackground } from "./judge";
 import { scanRedlines, safeDeferralMessage } from "./safetyGuard";
-import { CARE_REFERENCE } from "./careReference";
+import { CARE_REFERENCE, CARE_REFERENCE_NO_DOCLIST } from "./careReference";
 import { BoundedCache } from "../util/boundedCache";
-import { mentionsCancerType, isTopicCorrection, correctionReply } from "./topicGuards";
+import { mentionsCancerType, isTopicCorrection, correctionReply, asksDocsOrProcess } from "./topicGuards";
 import { redactModelPii, redactMessagesForModel } from "../security/redactModelPii";
 
 type ChatMessage = { role: "user" | "assistant" | "system"; content: string };
@@ -269,6 +269,7 @@ export function buildSystemPrompt(
   currentMentionsCancer = true,
   session: ChatSession = {},
   outputLang: string = "en",
+  docListAllowed = true,
 ): string {
   const hasContext = !!contextText;
   const hasDbData = contextText.includes("healwith 등록");
@@ -393,7 +394,14 @@ export function buildSystemPrompt(
     hospitalGuardActive ? HOSPITAL_HARD_GUARD : "",
     hospitalIntentNoMatch ? HOSPITAL_NO_MATCH_GUARD : "",
     "",
-    CARE_REFERENCE,
+    // 서류 5종 나열 가드(코드 강제, 2026-07-04): 사용자가 서류/절차/비용을 묻지 않은 턴엔
+    // 목록 자체를 주입하지 않는다 — 감정적 첫 메시지에 프롬프트 규칙만으론 ru·kz에서 안 꺾임(실측).
+    docListAllowed
+      ? CARE_REFERENCE
+      : CARE_REFERENCE_NO_DOCLIST,
+    docListAllowed
+      ? ""
+      : "⚠️ HARD RULE — the user did NOT ask what to prepare or how much it costs in this message: do NOT enumerate the intake document list (no numbered list of medical papers) and do NOT volunteer prices in this reply. If next steps come up, say a coordinator will guide them through the needed papers step by step — one gentle next step only.",
     hasContext ? "Context:\n" + contextText : "",
     useWebSearch ? "No internal or public data found. Use Google Search to find relevant Korean hospitals and treatments. Present findings concisely. ALWAYS add a disclaimer that these are unverified web search results." : "",
     hasTier3 ? "\nNote: Some info is from public sources (Tier 3) — briefly note when citing." : "",
@@ -924,7 +932,7 @@ async function prepareGeneration(
   const systemPrompt = buildSystemPrompt(allContext, hasTier3, useWebSearch, externalSources, {
     hospitalGuardActive,
     hospitalIntentNoMatch: hospitalIntent && matchedHospitalNames.length === 0,
-  }, mentionsCancerType(query), session, lang);
+  }, mentionsCancerType(query), session, lang, asksDocsOrProcess(query));
   const retrievedPatternIds = extractRetrievedPatternIds(ragChunks);
   const model = getModel();
 

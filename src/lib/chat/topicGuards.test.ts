@@ -4,6 +4,7 @@ import {
   isTopicCorrection,
   correctionReply,
   TOPIC_CORRECTION_REPLY,
+  asksDocsOrProcess,
 } from "./topicGuards";
 
 describe("mentionsCancerType — 현재 메시지가 특정 암종을 명시했나", () => {
@@ -97,5 +98,24 @@ describe("correctionReply — 6개 언어 결정적 응답", () => {
   });
   it("미지원 언어는 영어 폴백", () => {
     expect(correctionReply("xx")).toBe(TOPIC_CORRECTION_REPLY.en);
+  });
+});
+
+describe("asksDocsOrProcess — 서류 목록 주입 게이트 (2026-07-04)", () => {
+  it("서류·준비·비용을 물으면 true (6개 언어)", () => {
+    expect(asksDocsOrProcess("위암 치료 받으려면 어떤 서류를 준비해야 하나요?")).toBe(true);
+    expect(asksDocsOrProcess("What documents do I need to prepare?")).toBe(true);
+    expect(asksDocsOrProcess("Какие документы нужно подготовить?")).toBe(true);
+    expect(asksDocsOrProcess("Қандай құжат керек?")).toBe(true);
+    expect(asksDocsOrProcess("需要准备什么资料？")).toBe(true);
+    expect(asksDocsOrProcess("どんな書類が必要ですか？")).toBe(true);
+    expect(asksDocsOrProcess("위암 수술 비용 얼마예요?")).toBe(true);
+    expect(asksDocsOrProcess("Сколько стоит операция?")).toBe(true);
+  });
+  it("감정적 첫 메시지는 false (서류 나열 차단 대상)", () => {
+    expect(asksDocsOrProcess("У моей мамы рак лёгких с метастазами, и я совсем не справляюсь. Я её единственная опора и не знаю, с чего начать.")).toBe(false);
+    expect(asksDocsOrProcess("My mother has lung cancer and I'm overwhelmed, she only has me.")).toBe(false);
+    expect(asksDocsOrProcess("Анамда өкпе обыры бар, мен не істерімді білмеймін.")).toBe(false);
+    expect(asksDocsOrProcess("엄마가 폐암이래요. 너무 무섭고 뭐가 뭔지 모르겠어요.")).toBe(false);
   });
 });
