@@ -11,7 +11,7 @@
 
 import React from "react";
 import { Document, Page, View, Text } from "@react-pdf/renderer";
-import { styles, COLORS } from "./styles";
+import { styles, COLORS, SANS } from "./styles";
 
 const LABELS = {
   ko: {
@@ -116,7 +116,7 @@ export default function VisaInvitationLetter({ data, lang = "en" }) {
             <Text style={styles.docMeta}>INVITATION NO.</Text>
             <Text
               style={{
-                fontFamily: "Helvetica",
+                fontFamily: SANS,
                 fontSize: 12,
                 color: COLORS.ink0,
                 marginTop: 2,
@@ -139,7 +139,7 @@ export default function VisaInvitationLetter({ data, lang = "en" }) {
         <Text style={{ ...styles.subtitle, marginTop: 12 }}>{L.subtitle}</Text>
 
         {/* To embassy */}
-        <Text style={{ ...styles.body, marginTop: 14, fontStyle: "italic" }}>
+        <Text style={{ ...styles.body, marginTop: 14 }}>
           {L.toEmbassy}
         </Text>
         <Text style={{ ...styles.body, marginTop: 6 }}>{L.greeting}</Text>

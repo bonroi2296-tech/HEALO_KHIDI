@@ -73,6 +73,7 @@ export async function POST(
     // 인테이크 (진단명 등)
     let diagnosis: string | null = null;
     let patientName: string | null = null;
+    let languagePreference: string | null = null;
     const patientNationality: string | null = null;
     if (estimate.intake_id) {
       const { data: intake } = await supabaseAdmin
@@ -83,6 +84,7 @@ export async function POST(
         .eq("id", estimate.intake_id)
         .maybeSingle();
       if (intake) {
+        languagePreference = intake.language_preference || null;
         diagnosis = `${intake.cancer_type || ""}${
           intake.cancer_stage ? ` - Stage ${intake.cancer_stage}` : ""
         }`.trim();
@@ -96,8 +98,13 @@ export async function POST(
       }
     }
 
+    // 발급 언어 — 법정 고지문서를 환자가 읽을 수 있어야 함(2026-07-02 전수 감사: lang "ko" 하드코딩이라
+    // 러/카자흐 환자도 한국어 PDF를 받았음). 템플릿은 ko/en 이중표기 — ko 외 언어는 전부 en 폴백.
+    // ※ ru/kz 라벨 직접 지원(2단계)은 키릴 글리프 폰트 등록(현재 내장 Helvetica뿐)이 선행돼야 함.
+    const pdfLang = (languagePreference || "").toLowerCase().startsWith("ko") ? "ko" : "en";
+
     // 병원 정보
-    let hospitalName = "제휴 의료기관";
+    let hospitalName = pdfLang === "ko" ? "제휴 의료기관" : "Partner hospital";
     if (estimate.hospital_id) {
       const { data: hospital } = await supabaseAdmin
         .from("hospitals")
@@ -129,7 +136,9 @@ export async function POST(
       },
       treatment: {
         procedure: diagnosis
-          ? `${diagnosis} 치료 계획`
+          ? pdfLang === "ko"
+            ? `${diagnosis} 치료 계획`
+            : `${diagnosis} — Treatment Plan`
           : "치료 계획 (Treatment Plan)",
         duration: "—",
         dates: "—",
@@ -142,7 +151,7 @@ export async function POST(
     const React = (await import("react")).default;
     const element = React.createElement(MedicalQuotationMod.default, {
       data: pdfData,
-      lang: "ko",
+      lang: pdfLang,
     });
     const buffer = await renderToBuffer(element as any);
 

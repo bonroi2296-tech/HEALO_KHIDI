@@ -28,6 +28,7 @@ const STRINGS = {
     compat:
       "인터넷 연결이 가능한 PC / 태블릿 / 스마트폰 어디에서든 접속 가능합니다 (Chrome, Safari 권장). 앱 설치 필요 없습니다.",
     footer: "healwith · 한국 암 치료 컨시어지",
+    disclaimer: "healwith는 의료기관이 아닙니다. 진단·치료는 한국의 면허 의료기관이 수행합니다.",
   },
   en: {
     subject: "healwith telemedicine consultation invite",
@@ -40,6 +41,7 @@ const STRINGS = {
     compat:
       "Works on any device with internet (PC / tablet / mobile). Chrome or Safari recommended. No app install needed.",
     footer: "healwith · Korea cancer-care concierge",
+    disclaimer: "healwith is not a medical institution. Diagnosis / treatment by licensed Korean providers.",
   },
   ru: {
     subject: "healwith — приглашение на онлайн-консультацию",
@@ -52,6 +54,7 @@ const STRINGS = {
     compat:
       "Работает на любом устройстве с интернетом (ПК / планшет / телефон). Рекомендуется Chrome или Safari. Установка приложения не нужна.",
     footer: "healwith · Корейский центр онкологии для иностранцев",
+    disclaimer: "healwith не является медицинским учреждением. Диагностику и лечение проводят лицензированные корейские клиники.",
   },
   kz: {
     subject: "healwith — онлайн кеңес беруге шақыру",
@@ -64,6 +67,7 @@ const STRINGS = {
     compat:
       "Интернеті бар кез келген құрылғыда жұмыс істейді (ДК / планшет / телефон). Chrome немесе Safari ұсынылады.",
     footer: "healwith · Кореядағы онкология консьерж қызметі",
+    disclaimer: "healwith медициналық мекеме емес. Диагностика мен емді лицензиясы бар корей клиникалары жүргізеді.",
   },
   zh: {
     subject: "healwith 远程会诊邀请 — 请确认",
@@ -74,6 +78,7 @@ const STRINGS = {
     reminder: "※ 此链接仅供您本人使用，请勿分享给他人。无需注册账户即可进入。",
     compat: "可在任何联网设备（电脑／平板／手机）上使用，推荐 Chrome 或 Safari，无需安装应用。",
     footer: "healwith · 韩国癌症诊疗礼宾服务",
+    disclaimer: "healwith 并非医疗机构。诊断与治疗由持有执照的韩国医疗机构进行。",
   },
   ja: {
     subject: "healwith オンライン診療のご招待 — ご確認ください",
@@ -84,6 +89,7 @@ const STRINGS = {
     reminder: "※ このリンクはご本人専用です。他の方と共有しないでください。アカウント登録は不要です。",
     compat: "インターネットに接続できるPC／タブレット／スマートフォンからご参加いただけます（Chrome・Safari推奨）。アプリのインストールは不要です。",
     footer: "healwith · 韓国がん治療コンシェルジュ",
+    disclaimer: "healwith は医療機関ではありません。診断・治療は韓国の免許を持つ医療機関が行います。",
   },
 };
 
@@ -211,7 +217,7 @@ export function renderConsultationInviteEmail(props: ConsultationInviteProps) {
       </tr>
       <tr>
         <td style="background:#f8fafc;padding:16px 32px;font-size:10px;color:#94a3b8;text-align:center;line-height:1.6;border-top:1px solid #f1f5f9;">
-          healwith is not a medical institution. Diagnosis / treatment by licensed Korean providers.
+          ${escape(s.disclaimer)}
         </td>
       </tr>
     </table>

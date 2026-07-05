@@ -18,7 +18,7 @@
 import "server-only";
 
 import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
-import { fetchTestSessionIds } from "@/lib/khidi/testData";
+import { fetchTestSessionIds, fetchTestSurveyIds, idsToInFilter } from "@/lib/khidi/testData";
 import { kstWeekStartStr, lastNWeekStarts } from "@/lib/khidi/weekBuckets";
 
 // 순수 주(week) 버킷 유틸은 weekBuckets.ts 로 분리(server-only 없이 단위테스트). 재노출.
@@ -148,16 +148,22 @@ export async function getNorthStarMetrics(
   });
 
   // --- 만족도 응답률(윈도우 전체) ---
+  // 테스트 설문 제외: 세션·문의 집계와 동일 원칙(공식 K-03 kpi.ts:145·162 와 일관 — 2026-07-02 전수 감사)
   let satisfactionResponseRatePct: number | null = null;
   {
-    const { count: sentCount, error: e1 } = await db
+    const testSurveyFilter = idsToInFilter(await fetchTestSurveyIds(db));
+    let sentQ = db
       .from("surveys")
       .select("*", { count: "exact", head: true })
       .gte("sent_at", windowStart);
-    const { count: respCount, error: e2 } = await db
+    if (testSurveyFilter) sentQ = sentQ.not("id", "in", testSurveyFilter);
+    const { count: sentCount, error: e1 } = await sentQ;
+    let respQ = db
       .from("survey_responses")
       .select("*", { count: "exact", head: true })
       .gte("submitted_at", windowStart);
+    if (testSurveyFilter) respQ = respQ.not("survey_id", "in", testSurveyFilter);
+    const { count: respCount, error: e2 } = await respQ;
     if (e1) errors.push(`surveys: ${e1.message}`);
     if (e2) errors.push(`survey_responses: ${e2.message}`);
     if (sentCount && sentCount > 0) {

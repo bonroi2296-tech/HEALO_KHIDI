@@ -2,13 +2,35 @@
  * healwith PDF Styles — Legacy 톤 (DESIGN.md 준수)
  *
  * 규칙: serif 폰트 금지 · 골드/크림 팔레트 금지 · 브랜드색 teal-600 · 회색/흰색.
- * 폰트는 내장 Helvetica만 사용(외부 웹폰트 다운로드 없음 → 오프라인·프록시 404 안전).
+ * 폰트는 src/lib/pdf/fonts/ 에 셀프호스팅한 Noto Sans (라틴+키릴) + Noto Sans KR (한글)
+ * — 런타임 외부 다운로드 없음(오프라인·프록시 404 안전). 내장 Helvetica는 한글·키릴이
+ * 전부 깨져서(WinAnsi 인코딩) 사용 금지. fontFamily 배열 = 글자 단위 fallback
+ * (라틴·키릴은 NotoSans, 한글은 NotoSansKR이 받음 — react-pdf v4 fontSubstitution).
  * ※ 스타일 키 이름은 하위 컴포넌트 호환 위해 유지하되, 값만 Legacy 톤으로 정의.
  */
 
-import { StyleSheet } from "@react-pdf/renderer";
+import path from "path";
+import { Font, StyleSheet } from "@react-pdf/renderer";
 
-const SANS = "Helvetica";
+const FONT_DIR = path.join(process.cwd(), "src/lib/pdf/fonts");
+
+// ponytail: KR 서브셋에 한자(Hanja) 미포함 — 진단명에 한자가 필요해지면 서브셋 범위 확장
+Font.register({
+  family: "NotoSans",
+  fonts: [
+    { src: path.join(FONT_DIR, "NotoSans-Regular.ttf"), fontWeight: 400 },
+    { src: path.join(FONT_DIR, "NotoSans-Bold.ttf"), fontWeight: 700 },
+  ],
+});
+Font.register({
+  family: "NotoSansKR",
+  fonts: [
+    { src: path.join(FONT_DIR, "NotoSansKR-Regular.ttf"), fontWeight: 400 },
+    { src: path.join(FONT_DIR, "NotoSansKR-Bold.ttf"), fontWeight: 700 },
+  ],
+});
+
+export const SANS = ["NotoSans", "NotoSansKR"];
 
 // Legacy 팔레트 (DESIGN.md 토큰: teal-600 / gray / white). 키는 보존, 값만 교체.
 export const COLORS = {

@@ -124,8 +124,8 @@ export default function AgentAnalysisPage() {
           </h1>
           <p className="text-sm text-gray-500 mt-0.5">
             채팅 스레드를 골라 분석을 실행하면, 그 대화에서 에이전트가 왜 그렇게 답했고 무슨 문제가
-            있었는지 6하원칙으로 자기점검합니다. (채팅창에 <span className="font-semibold text-gray-700">힐로</span> /
-            <span className="font-semibold text-gray-700"> healo</span> 입력 시에도 동일 분석)
+            있었는지 6하원칙으로 자기점검합니다. (채팅창에 <span className="font-semibold text-gray-700">힐로</span> 입력
+            시에도 동일 분석 — 옛 트리거어 healo 는 실사용자 입력과 충돌해 제거됨)
           </p>
         </div>
         <button

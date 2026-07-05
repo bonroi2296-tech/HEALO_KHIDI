@@ -10,7 +10,7 @@
 export const runtime = "nodejs";
 
 import { NextRequest } from "next/server";
-import { requireConsultationAccess } from "@/lib/auth/requireConsultationAccess";
+import { requirePortalAuth } from "@/lib/auth/requirePortalAuth";
 import { generateGuestToken, type GuestRole } from "@/lib/auth/guestToken";
 import { sendEmail } from "@/lib/email/sendEmail";
 import { renderConsultationInviteEmail } from "@/lib/email/templates/consultationInvite";
@@ -24,11 +24,28 @@ export async function POST(
 ) {
   const { id: consultationId } = await params;
 
-  // admin / doctor / coordinator 만 초대 발급 가능 (환자는 본인 세션에도 초대 발급 불가)
-  const access = await requireConsultationAccess(request, consultationId, {
-    requireRole: ["admin", "doctor", "coordinator"],
-  });
+  // 스태프(코디·어드민) 계정이면 어느 상담이든 초대 링크 발급 가능.
+  //   ⚠️ 이전엔 requireConsultationAccess(requireRole)로 '이 상담의 담당 코디/의사로 지정됐는지'까지
+  //   요구했는데, 상담 생성 시 담당 코디가 안 채워지는 경우가 많아(placeholder) 코디가 자기가 만든
+  //   상담에도 'insufficient_role'로 링크를 못 뽑는 버그가 반복됐다(PO 제보). 코디는 대시보드에서
+  //   모든 상담을 관리하므로, 세션별 지정이 아니라 '스태프 계정'이면 발급 허용한다.
+  const access = await requirePortalAuth(request, { staffOnly: true });
   if (!access.success) return access.response;
+
+  // 대상 상담이 실제로 존재하는지 확인(없는 id로 토큰 생성 방지)
+  {
+    const { data: sessionExists } = await supabaseAdmin
+      .from("consultation_sessions")
+      .select("id")
+      .eq("id", consultationId)
+      .maybeSingle();
+    if (!sessionExists) {
+      return Response.json(
+        { ok: false, error: "consultation_not_found" },
+        { status: 404 }
+      );
+    }
+  }
 
   let body: any;
   try {

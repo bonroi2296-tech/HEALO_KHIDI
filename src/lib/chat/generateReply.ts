@@ -18,9 +18,9 @@ import { searchHospitalsAndTreatments } from "./dbSearch";
 import { searchExternal } from "./externalSearch";
 import { runJudgeInBackground } from "./judge";
 import { scanRedlines, safeDeferralMessage } from "./safetyGuard";
-import { CARE_REFERENCE } from "./careReference";
+import { CARE_REFERENCE, CARE_REFERENCE_MINIMAL } from "./careReference";
 import { BoundedCache } from "../util/boundedCache";
-import { mentionsCancerType, isTopicCorrection, correctionReply } from "./topicGuards";
+import { mentionsCancerType, isTopicCorrection, correctionReply, asksDocsOrProcess, mentionsHospital, asksHospitalRanking, stripPriceLines } from "./topicGuards";
 import { redactModelPii, redactMessagesForModel } from "../security/redactModelPii";
 
 type ChatMessage = { role: "user" | "assistant" | "system"; content: string };
@@ -236,6 +236,17 @@ const HOSPITAL_HARD_GUARD = [
   "",
 ].join("\n");
 
+// 병원 랭킹/최저가 요청 전용 하드 가드 (2026-07-04): 병원명이 없어 STRICT 규칙을 못 타는
+// "제일 싼/좋은 병원" 질문에서 kz 가격 랭킹 노출 실측(3/3) → 코드 강제.
+const HOSPITAL_RANKING_GUARD = [
+  "",
+  "⚠️ HARD RULE — the user is asking for a BEST/CHEAPEST/RANKED hospital comparison:",
+  "- Do NOT output any ranked, ordered, or price-labeled list of hospitals or programs.",
+  "- Do NOT include ANY specific price figures ($, ₩, numbers) in this reply, even from the reference above — a price-ordered answer IS the shopping list we never give.",
+  "- Explain warmly that the right hospital and the real cost depend on their specific diagnosis, and offer ONE next step: share the diagnosis so a coordinator matches the right partner hospital and prepares a personalized quote (free preliminary review).",
+  "",
+].join("\n");
+
 const HOSPITAL_NO_MATCH_GUARD = [
   "",
   "⚠️ HOSPITAL NOT FOUND IN healwith:",
@@ -248,6 +259,7 @@ const HOSPITAL_NO_MATCH_GUARD = [
 export interface HospitalGuardOptions {
   hospitalGuardActive?: boolean;
   hospitalIntentNoMatch?: boolean;
+  hospitalRankingAsk?: boolean;
 }
 
 // 대화 세션의 "상태 사실"(state facts) — 모델이 로그인·저장·연락 가능 여부를 추측하지 않고
@@ -260,6 +272,7 @@ export interface ChatSession {
   hasReachableContact?: boolean;
 }
 
+
 export function buildSystemPrompt(
   contextText: string,
   hasTier3: boolean,
@@ -269,12 +282,13 @@ export function buildSystemPrompt(
   currentMentionsCancer = true,
   session: ChatSession = {},
   outputLang: string = "en",
+  docListAllowed = true,
 ): string {
   const hasContext = !!contextText;
   const hasDbData = contextText.includes("healwith 등록");
   const hasHira = externalSources.includes("hira");
   const hasNaver = externalSources.includes("naver");
-  const { hospitalGuardActive = false, hospitalIntentNoMatch = false } = hospitalGuard;
+  const { hospitalGuardActive = false, hospitalIntentNoMatch = false, hospitalRankingAsk = false } = hospitalGuard;
   const { isLoggedIn = false, hasReachableContact = false } = session;
   // 선택 언어를 모델에 명시(특히 카자흐어 ↔ 러시아어 혼동 방지 — 둘 다 키릴문자라 모델이
   // 카자흐어 사용자에게 러시아어로 답하는 일이 잦음. 핵심 타겟이라 결정적으로 못박는다).
@@ -328,6 +342,7 @@ export function buildSystemPrompt(
     "- If unsure, say 'I'm not sure — let me connect a coordinator'. Honesty > confident wrong answer.",
     "- TONE: the user is often an anxious cancer patient or family. If they share distressing news (advanced-stage cancer, fear, a sick family member), open with ONE brief empathetic sentence before guidance. Warm but never exaggerated — no emoji spam, no hollow marketing phrases.",
     "- DE-ESCALATION (important): if the user is upset, frustrated, angry, or criticizing the service (swearing, sarcasm, 'this is useless', 'why do I have to explain this to you'), do NOT respond by dumping documents, price lists, or feature explanations. First acknowledge their frustration in ONE short sincere line, then ask ONE simple question to fix the actual problem. Reciting reference data at an upset person makes it worse.",
+    "- OVERWHELMED FIRST CONTACT: if the message is primarily emotional distress rather than a concrete info request (e.g. 'I can't cope', 'she is my only support', 'I don't know where to start', fear/grief about a family member), do NOT list the 5 intake documents or any prices in that reply. Open with empathy, say the coordinator will organize everything step by step so they don't have to figure it out alone, and offer exactly ONE gentle next step (e.g. share the diagnosis, or connect with a coordinator). The document list comes later — only when they ask what to prepare or the conversation reaches that step.",
     "- NO decorative emoji and NO filler/flattery openers. Do not start with interjections like '아이고/아하/앗' (beyond a brief genuine apology) or flattery like '날카롭게 짚으셨네요 / great question / sharp observation'. Use at most ONE emoji per reply and only when truly fitting — default to none. Get to the substance.",
     "",
     "INTEGRATIVE / KOREAN MEDICINE (CRITICAL — legal & ethical):",
@@ -391,9 +406,19 @@ export function buildSystemPrompt(
     "- DISCLAIMER: a permanent disclaimer already shows under the chat — do NOT repeat a disclaimer every message. Only when you give specific medical or cost info, add at most ONE short clause that the medical team makes the final decision. Never a wall of legalese.",
     hospitalGuardActive ? HOSPITAL_HARD_GUARD : "",
     hospitalIntentNoMatch ? HOSPITAL_NO_MATCH_GUARD : "",
+    hospitalRankingAsk ? HOSPITAL_RANKING_GUARD : "",
     "",
-    CARE_REFERENCE,
-    hasContext ? "Context:\n" + contextText : "",
+    // 서류 5종 나열 가드(코드 강제, 2026-07-04): 사용자가 서류/절차/비용을 묻지 않은 턴엔
+    // 목록 자체를 주입하지 않는다 — 감정적 첫 메시지에 프롬프트 규칙만으론 ru·kz에서 안 꺾임(실측).
+    docListAllowed
+      ? CARE_REFERENCE
+      : CARE_REFERENCE_MINIMAL,
+    docListAllowed
+      ? ""
+      : "⚠️ HARD RULE — the user did NOT ask what to prepare or how much it costs in this message: do NOT enumerate the intake document list (no numbered list of medical papers) and do NOT volunteer prices in this reply. If next steps come up, say a coordinator will guide them through the needed papers step by step — one gentle next step only.",
+    hasContext
+      ? "Context:\n" + (docListAllowed ? contextText : stripPriceLines(contextText))
+      : "",
     useWebSearch ? "No internal or public data found. Use Google Search to find relevant Korean hospitals and treatments. Present findings concisely. ALWAYS add a disclaimer that these are unverified web search results." : "",
     hasTier3 ? "\nNote: Some info is from public sources (Tier 3) — briefly note when citing." : "",
   ]
@@ -653,9 +678,17 @@ function correctionResult(reply: string, t0: number): ChatReplyResult {
 // 일반 RAG 흐름을 건너뛰고 지금까지의 '전체 스레드'를 모델에게 자기점검시킨다.
 // 채팅(공개)·어드민(/admin/khidi/agent-analysis) 양쪽이 generateMasterKeyAnalysis 공유.
 //
-// 트리거: 메시지가 '힐로' 또는 'healo'(대소문자 무관)로 시작 + 그 뒤가 끝/공백/구두점.
+// 트리거: 메시지가 트리거어로 시작 + 그 뒤가 끝/공백/구두점.
 // '힐로분석'처럼 바로 글자가 붙으면 일반 질의로 취급(오탐 방지).
-const MASTER_KEY_RE = /^(힐로|healo)([\s,.:!?~·]|$)/i;
+// ⚠️ 트리거어에서 라틴 'healo' 제거(2026-07-02 전수 감사): 옛 브랜드명이라 실사용자
+// (특히 러/영어권)가 'Healo, ...'로 말을 시작하면 한국어 내부 자기분석이 그대로 노출됐음.
+// 기본은 한국어 '힐로'(PO 디버그용 — 실환자 입력과 충돌 확률 사실상 0),
+// env CHAT_MASTER_KEY_WORD 로 비공개 키워드 교체 가능.
+function escapeRe(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+const MASTER_KEY_WORD = (process.env.CHAT_MASTER_KEY_WORD || "힐로").trim();
+const MASTER_KEY_RE = new RegExp(`^(${escapeRe(MASTER_KEY_WORD)})([\\s,.:!?~·]|$)`, "i");
 
 export function isMasterKey(text: string): boolean {
   return MASTER_KEY_RE.test((text || "").trim());
@@ -885,8 +918,9 @@ async function prepareGeneration(
   const matchedHospitalNames = (dbResult as any).matchedHospitalNames ?? [];
   const hospitalMatchType = (dbResult as any).hospitalMatchType ?? "none";
 
-  const HOSPITAL_KEYWORDS = /병원|의원|한방병원|클리닉|clinic|hospital/i;
-  const hospitalIntent = HOSPITAL_KEYWORDS.test(query) || matchedHospitalNames.length > 0;
+  // 6개 언어 병원 키워드(topicGuards.mentionsHospital) — 옛 인라인 정규식은 ko·en 전용이라
+  // ru·kz·zh·ja 병원 질문에 가드가 안 켜졌음(2026-07-04 kz 가격 쇼핑목록 실측 결함).
+  const hospitalIntent = mentionsHospital(query) || matchedHospitalNames.length > 0;
   const hospitalGuardActive = hospitalIntent && matchedHospitalNames.length > 0;
 
   console.log(`[generateReply] query="${query.slice(0, 80)}" | hospitalIntent=${hospitalIntent} | matchType=${hospitalMatchType} | dbHospitals=${matchedHospitalNames.length} | ragChunks=${ragChunks.length}`);
@@ -915,7 +949,8 @@ async function prepareGeneration(
   const systemPrompt = buildSystemPrompt(allContext, hasTier3, useWebSearch, externalSources, {
     hospitalGuardActive,
     hospitalIntentNoMatch: hospitalIntent && matchedHospitalNames.length === 0,
-  }, mentionsCancerType(query), session, lang);
+    hospitalRankingAsk: asksHospitalRanking(query),
+  }, mentionsCancerType(query), session, lang, asksDocsOrProcess(query));
   const retrievedPatternIds = extractRetrievedPatternIds(ragChunks);
   const model = getModel();
 

@@ -8,8 +8,15 @@
 
 // 현재 메시지가 "특정 암종"을 명시했는지. 명시 안 했으면 시스템 프롬프트에 "암종 언급 금지"를
 // 강제 주입. 한국어 "X암"(대장암·갑상선암 등)은 앞에 글자가 붙은 경우만(단독 "암"=암종 아님 제외).
+// zh/ja/kz(2026-07-06 순찰 발견): 기존엔 ko·en·ru 만 있어 중국어 "肺癌"·일본어 "肺がん"·카자흐어
+//   "қатерлі ісік"이 미감지 → 그 언어 사용자가 특정 암을 명시했는데도 "암종 언급 금지" 가드가
+//   오발동해 두루뭉술한 답을 하던 커버리지 구멍. 일반 "癌症·がん"(암 일반)은 장기 접두 없이 제외
+//   (한국어 단독 "암" 제외 규칙과 동일). qатерлі ісік=악성종양(명백), 단독 "рак/ісік"은 오탐 우려로 제외.
+//   ⚠️ ja "がん"(히라가나)은 がんばる(힘내라)·がんこ(찌든)·がんじがらめ 의 시작이기도 해서, 장기한자
+//     바로 뒤 "肺がんばれ"(폐야 힘내) 류가 폐암으로 오탐됨(독립 리뷰 실측). → がん 뒤에 ば/こ/じ 가
+//     오면 제외(がん(?!ば|こ|じ)). 정상 암종은 뒤에 の/は/か/検診 등만 오므로 무영향. 癌(한자)은 무해.
 const CANCER_TERMS =
-  /(?:[가-힣]{1,5}암)(?![가-힣])|백혈병|림프종|육종|colorectal|colon|rectal|breast|stomach|gastric|lung|liver|hepato|thyroid|pancrea|ovari|uterine|cervical|prostate|kidney|renal|bladder|esophag|leukemia|lymphoma|melanoma|sarcoma|glioma|молочн|желудк|лёгк|кишечник|прямой\s*кишк|щитовид|поджелуд|яичник|предстательн|пищевод|лейкоз|лимфом|меланом|саркома|опухол/i;
+  /(?:[가-힣]{1,5}암)(?![가-힣])|백혈병|림프종|육종|colorectal|colon|rectal|breast|stomach|gastric|lung|liver|hepato|thyroid|pancrea|ovari|uterine|cervical|prostate|kidney|renal|bladder|esophag|leukemia|lymphoma|melanoma|sarcoma|glioma|молочн|желудк|лёгк|кишечник|прямой\s*кишк|щитовид|поджелуд|яичник|предстательн|пищевод|лейкоз|лимфом|меланом|саркома|опухол|(?:肺|胃|肝臟?|肝|乳腺|乳|大肠|结肠|直肠|肠|甲状腺|胰腺|胰|卵巢|前列腺|食道|食管|肾|膀胱|脑|骨|皮肤|宫颈|子宫)癌|白血病|淋巴瘤|黑色素瘤|肉瘤|(?:肺|胃|肝臓?|乳|大腸|腸|甲状腺|膵臓?|膵|卵巣|前立腺|食道|腎|膀胱|皮膚|子宮|脳|骨)(?:がん(?!ば|こ|じ)|癌)|リンパ腫|肉腫|メラノーマ|қатерлі\s*ісік/i;
 
 export function mentionsCancerType(text: string): boolean {
   return CANCER_TERMS.test(text || "");
@@ -62,4 +69,85 @@ export const TOPIC_CORRECTION_REPLY: Record<string, string> = {
 export function correctionReply(lang: string): string {
   const key = lang === "kk" ? "kz" : lang;
   return TOPIC_CORRECTION_REPLY[key] || TOPIC_CORRECTION_REPLY.en;
+}
+
+// ── 인테이크 서류 목록 주입 게이트 (2026-07-04, 루프 전수평가 발견) ──────────
+// 왜: careReference(필수서류 5종)가 매 턴 주입되니, "엄마가 폐암인데 저 혼자예요" 같은
+// 감정적 첫 메시지에도 모델이 서류 5종을 나열함(ru·kz에서 프롬프트 규칙만으론 안 꺾임 —
+// 배포 후 재평가 실측). 해법 = 암종 가드와 같은 패턴: 사용자가 서류·준비물·절차·비용을
+// 실제로 물을 때만 목록을 주입하고, 아니면 목록 없는 참고자료 + 나열 금지 가드를 주입.
+// (docs-consistency 케이스 = "서류 뭐 필요?"를 물으면 항상 5종 전부 — 키워드에 걸려 유지됨.)
+const DOCS_OR_PROCESS_TERMS = new RegExp(
+  [
+    // ko: 서류·준비·필요한 것·절차·견적·비용
+    "서류|준비물|준비해|준비하|무엇을\\s*준비|뭘\\s*준비|필요한\\s*(?:서류|것|게)|절차|견적|가격|비용|얼마",
+    // en
+    "document|paper(?:s|work)|prepare|what\\s+do\\s+i\\s+need|checklist|procedure|process|price|cost|estimate|quote|how\\s+much",
+    // ru
+    // (?<![а-яё]) = 키릴 어근의 "단어 안 부분일치" 차단 — косМЕТологию(미용)가 смет(견적)에,
+    // оЦЕНка류가 цен에 걸리던 실측 오탐(2026-07-05, 가격 게이트 미발동 진범) 방지.
+    "документ|справк|выписк|подготов|что\\s+нужно|что\\s+прислать|процедур|стоимост|(?<![а-яё])цен[аыу]|сколько|(?<![а-яё])смет",
+    // kz
+    "құжат|дайынд|не\\s+керек|қандай\\s+қағаз|баға|құны|қанша",
+    // zh
+    "资料|文件|材料|准备|需要什么|流程|手续|多少钱|费用|价格|报价",
+    // ja
+    "書類|資料|準備|必要な|手続き|流れ|費用|料金|いくら|見積",
+  ].join("|"),
+  "i"
+);
+
+/** 사용자가 서류/준비물/절차/비용을 실제로 묻고 있는가 — true 면 서류 목록 주입 허용. */
+export function asksDocsOrProcess(text: string): boolean {
+  return DOCS_OR_PROCESS_TERMS.test(text || "");
+}
+
+
+// ── 병원 의도 감지 (2026-07-04, 루프 전수평가 발견) ─────────────────────────
+// 왜: 기존 인라인 감지(병원|clinic|hospital)가 한국어·영어 전용이라, 러·카·중·일 병원
+// 질문엔 STRICT HOSPITAL QUERY RULES(랭킹 금지 등) 가드가 아예 안 켜졌음 — kz
+// "제일 싼 병원(арзан аурухана)" 질문에 가격 쇼핑목록이 나온 실측 결함의 근본 원인.
+// kz "аурухана"는 격변화 시 어간이 "аурухан-"(ауруханы·ауруханаға 등)이라 어간으로 매칭.
+const HOSPITAL_TERMS =
+  /병원|의원|한방병원|클리닉|clinic|hospital|больниц|клиник|госпитал|аурухан|емхана|дәрігерлік\s*орталық|医院|诊所|病院|クリニック/i;
+
+/** 현재 메시지가 병원(기관)을 언급/문의하는가 — 6개 언어. */
+export function mentionsHospital(text: string): boolean {
+  return HOSPITAL_TERMS.test(text || "");
+}
+
+
+// ── 병원 랭킹/최저가 요청 감지 (2026-07-04 2차 — NOT_FIXED 재수리) ──────────
+// 왜: "제일 싼 병원 알려줘(가격순으로)"는 특정 병원명이 없어 matchedHospitalNames=0 →
+// STRICT HOSPITAL QUERY RULES 경로를 안 탐. kz에서 가격 랭킹 목록이 그대로 노출(3/3 실측).
+// 병원 언급 + 최상급/비교 표현이면 전용 하드 가드(순위·가격 숫자 금지)를 주입한다.
+const SUPERLATIVE_TERMS =
+  /제일|가장|최고|최저|싼\s*(?:곳|병원|데)|어디가\s*(?:좋|잘|싸)|순위|랭킹|best|top\s*\d*|cheapest|most\s+(?:affordable|expensive)|ranking|лучш|самы[йе]|дешев|дёшев|рейтинг|арзан|ең\s*(?:жақсы|арзан|қымбат)|таңдаулы|一番|最も|最安|最高|最好|最便宜|哪家(?:最|好|便宜)|排名/i;
+
+/** 병원을 "최고/최저가/순위"로 비교·랭킹해 달라는 요청인가 — 전용 하드 가드 트리거. */
+export function asksHospitalRanking(text: string): boolean {
+  return mentionsHospital(text) && SUPERLATIVE_TERMS.test(text || "");
+}
+
+
+// ── 가격 라인 제거 (2026-07-05, ru 가격 선노출 간헐 실측 후속) ────────────────
+// 왜: 가격을 안 물은 턴에도 Context(RAG·등록 데이터)에 가격이 실려 오면 모델이
+// (특히 ru에서) 이따금 선노출함 — 프롬프트 금지만으론 코인플립. 모델이 못 본 건
+// 못 흘린다(#625 서류 게이트와 같은 원리): 안 물은 턴엔 가격이 실린 줄을 통째로 뺀다.
+// ①통화기호+숫자 ②라벨형 가격 줄(RAG 문서가 "Price Min: 1500"처럼 통화 없이 숫자만 담음 —
+//   2026-07-05 배포 후 재검증에서 이 형태가 새는 걸 실측, 모델이 $를 알아서 붙여 노출).
+// ⚠️ 비ASCII 통화 접미사(тенге·달러·万円·元 등)는 뒤에 \b 를 붙이면 안 된다 — JS \w 는 ASCII
+//    전용이라 키릴·한글·CJK 문자 뒤 \b 가 항상 실패해 그 분기가 통째로 죽는다(반성문 #65와
+//    같은 부류). 그래서 통화 접미사 분기를 ASCII(\b 유지)와 비ASCII(\b 없이 숫자 선행으로 충분)로
+//    나눈다. 숫자+공백이 앞서므로 \b 없이도 오탐이 거의 없다.
+const PRICE_LINE =
+  /[\$₩€]\s?\d|\d[\d.,]*\s*(?:만\s*)?원|\d[\d.,]*\s*(?:USD|KRW)\b|\d[\d.,]*\s*(?:долл|тенге|тг|달러|万円|円|元)|(?:^|[\s|(])(?:price\s*(?:min|max)?|가격(?:대)?|цена|стоимость|бағасы|价格|価格|料金)\s*[::]\s*\$?\d/i;
+
+/** Context 텍스트에서 가격(통화+숫자)이 실린 줄을 제거. 가격 미질문 턴 전용. */
+export function stripPriceLines(text: string): string {
+  if (!text) return text;
+  return text
+    .split("\n")
+    .filter((line) => !PRICE_LINE.test(line))
+    .join("\n");
 }

@@ -28,6 +28,7 @@ export type AiSurface =
   | "consult_translate"
   | "consult_stt"
   | "judge"
+  | "triage"
   | "embedding"
   | "other";
 

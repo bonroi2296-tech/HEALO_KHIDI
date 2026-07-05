@@ -47,6 +47,20 @@ if (!APPLY) {
 }
 
 // 의존행 먼저 → 스레드 (FK cascade 가 없을 수 있어 순서대로)
+// playbook_usage_events 가 chat_messages.id 를 FK 로 참조 — 메시지보다 먼저 지워야 함
+// (2026-07-04 실측: 이 단계가 없으면 23503 FK 위반으로 청소 전체가 막힘).
+{
+  const { data: msgRows } = await db.from("chat_messages").select("id").in("thread_id", ids);
+  const msgIds = (msgRows || []).map((m) => m.id).filter(Boolean);
+  if (msgIds.length > 0) {
+    const { error: pe, count: pc } = await db
+      .from("playbook_usage_events")
+      .delete({ count: "exact" })
+      .in("message_id", msgIds);
+    if (pe) console.warn(`  ⚠️ playbook_usage_events: ${pe.message}`);
+    else console.log(`  playbook_usage_events: ${pc ?? 0}행 삭제`);
+  }
+}
 for (const table of ["chat_messages", "ai_response_evaluations"]) {
   const { error: e, count } = await db.from(table).delete({ count: "exact" }).in("thread_id", ids);
   if (e) console.warn(`  ⚠️ ${table}: ${e.message}`);

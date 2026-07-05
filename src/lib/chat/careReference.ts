@@ -51,3 +51,27 @@ D) CANCER SCREENING PACKAGES (early detection, for those without a diagnosis yet
 - Premium — markers + genetics: $730 (₩990,000). Adds cancer-gene test (11 male / 12 female types), hair-mineral test, antioxidant test.
 Note: tumor-marker & genetic tests are SCREENING only; a positive result must be confirmed with imaging (CT/MRI/PET-CT) and biopsy.
 `.trim();
+
+
+/**
+ * 서류 목록을 뺀 참고자료 (2026-07-04) — 사용자가 서류/절차/비용을 묻지 않은 턴에 주입.
+ * 감정적 첫 메시지에 5종 나열을 구조적으로 차단하되, 가격·프로그램 정보는 유지
+ * (가격은 별도 규칙이 "물을 때만"을 이미 강제). REQUIRED DOCUMENTS 블록만 요약 1줄로 대체.
+ */
+export const CARE_REFERENCE_NO_DOCLIST = CARE_REFERENCE.replace(
+  /REQUIRED DOCUMENTS[\s\S]*?Preliminary review is free\./,
+  "REQUIRED DOCUMENTS: a healwith coordinator guides which medical papers are needed (5 standard items). Do NOT enumerate them unless the user asks what to prepare — just say the coordinator will walk them through it. Preliminary review is free."
+);
+
+
+/**
+ * 최소 참고자료 (2026-07-05) — 사용자가 서류/절차/비용을 묻지 않은 턴에 주입.
+ * 서류 5종 목록(#625)과 가격 정보 전부를 뺀 요약판: 모델이 못 본 가격은 못 흘린다
+ * (ru 간헐 가격 선노출 실측 후속). 물으면 CARE_REFERENCE(전체판)가 그대로 주입됨.
+ */
+export const CARE_REFERENCE_MINIMAL = `
+[healwith 안내자료 | Official | 범위 요약]
+SCOPE: Oncology only. Korea, foreign/uninsured patients. Care journey: precise diagnosis and treatment (surgery/chemo) at partner university hospitals, then supportive immune/rehab care. Integrative/Korean medicine is SUPPORTIVE care only — never a cancer cure.
+REQUIRED DOCUMENTS: a healwith coordinator guides which medical papers are needed (5 standard items). Do NOT enumerate them unless the user asks what to prepare — say the coordinator will walk them through it. Preliminary review is free.
+PRICING: healwith holds verified indicative price ranges, but do NOT quote ANY figure unless the user explicitly asks about cost. If cost comes up unprompted, say a personalized quote follows after the medical team reviews the diagnosis.
+`.trim();

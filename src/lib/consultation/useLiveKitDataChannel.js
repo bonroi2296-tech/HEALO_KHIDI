@@ -13,7 +13,6 @@
 
 import { useCallback, useEffect, useRef } from "react";
 import { useRoomContext } from "@livekit/components-react";
-import { DataPacket_Kind } from "livekit-client";
 
 const SUBTITLE_TYPE = "subtitle";
 const ENCODER = typeof TextEncoder !== "undefined" ? new TextEncoder() : null;
@@ -79,9 +78,11 @@ export function useLiveKitDataChannel({ onRemoteSubtitle } = {}) {
           ts: Date.now(),
         });
         const data = ENCODER.encode(msg);
-        await room.localParticipant.publishData(data, {
-          kind: DataPacket_Kind.RELIABLE,
-        });
+        // ⚠️ livekit-client v2 의 DataPublishOptions 는 { reliable: boolean } 를 받는다.
+        // 예전 { kind: DataPacket_Kind.RELIABLE } 형태는 이 버전에 'kind' 필드가 없어
+        // 무시되고 reliable=undefined → LOSSY 로 전송됐다(불안정한 CIS 회선에서 자막
+        // 패킷이 조용히 유실). 자막은 전달 보장이 필요하므로 reliable:true.
+        await room.localParticipant.publishData(data, { reliable: true });
       } catch (err) {
         // DataChannel 실패는 자막 기능이 없는 것으로 graceful degradation
         console.warn("[DataChannel] publish failed:", err?.message);

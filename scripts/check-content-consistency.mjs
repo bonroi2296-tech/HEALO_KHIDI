@@ -29,6 +29,9 @@ const FORBIDDEN = [
   // 옛 배포 도메인 잔재 — 이메일 푸터·survey·reminder 링크가 죽은 도메인을 가리켜 고객이 404 (2026-06-29 전수조사).
   // 정본 base URL 은 NEXT_PUBLIC_SITE_URL=https://healwith.co.kr. 폴백/리터럴에 옛 도메인 금지.
   { re: /healo-khidi\.vercel\.app/i, msg: "옛 배포 도메인 healo-khidi.vercel.app 잔재 (→ healwith.co.kr) — 이메일/링크가 죽은 도메인을 가리킴" },
+  // 죽은 옛 도메인 healo-khidi.com — LiveKit webhook/외부설정 URL 이 이 도메인을 가리키면 이벤트가 안 옴
+  // (2026-06-30 C레벨 진단 MKT-08: 검사기 사각지대였음). 정본 = healwith.co.kr.
+  { re: /healo-khidi\.com/i, msg: "죽은 옛 도메인 healo-khidi.com 잔재 (→ healwith.co.kr) — webhook/설정 URL 이 죽은 도메인을 가리킴 (MKT-08)" },
   // khidi.healo.kr 은 컷오버 전 옛 도메인. 고객 링크/리터럴엔 금지하되, translate API 의 CORS origin allowlist 만 면제(레거시 호환).
   { re: /khidi\.healo\.kr/i, allow: /translate-text|translate-realtime/, msg: "옛 도메인 khidi.healo.kr 잔재 (→ healwith.co.kr). CORS origin allowlist 만 면제" },
   { re: /HEALO-KHIDI/, msg: "옛 브랜드 HEALO-KHIDI 가 제품 코드에 (코드명은 주석/내부만, 고객 텍스트 금지)" },
@@ -337,6 +340,107 @@ for (const file of EMAIL_TEMPLATE_FILES) {
       }
     }
   });
+}
+
+// ── 9) 글로벌 t() 미정의 키 가드 (2026-07-02 전수 감사) ──
+// 왜: t()는 미정의 키에 키 원문("chat.back")을 그대로 반환(truthy) → `t(...) || "폴백"` 의
+//     폴백이 절대 실행되지 않는 착시가 코드에 깔림. 미정의 키를 쓰는 컴포넌트가 노출되는 순간
+//     사용자 화면에 키 원문이 그대로 보임. 기존 패리티 검사는 '사전 안 언어 간 누락'만 봐서
+//     '코드가 쓰는 키가 사전에 아예 없음'은 사각지대였음.
+// 방법: 사전 소스에서 따옴표 dotted 키 전수 추출 → 글로벌 t 를 import 하는 파일의
+//     t("a.b") 리터럴 호출이 전부 사전에 존재하는지 대조. 동적 키(t(변수))는 검사 밖(의도).
+{
+  const dictSrc = readFileSync(join(ROOT, "src/lib/i18n/index.js"), "utf8");
+  const KNOWN_KEYS = new Set(
+    [...dictSrc.matchAll(/"([a-z0-9]+(?:\.[A-Za-z0-9_]+)+)"\s*:/g)].map((m) => m[1])
+  );
+  // 글로벌 t import 감지: `import { ..., t, ... } from ".../i18n"` (별칭 @/lib/i18n · 상대경로 모두)
+  const T_IMPORT_RE = /import\s*\{[^}]*\bt\b[^}]*\}\s*from\s*["'][^"']*\/i18n["']/;
+  for (const dir of SCAN_DIRS) {
+    for (const file of walk(dir)) {
+      if (!CODE_EXT.test(file) || EXCLUDE.test(file)) continue;
+      const text = readFileSync(join(ROOT, file), "utf8");
+      if (!T_IMPORT_RE.test(text)) continue;
+      for (const m of text.matchAll(/\bt\(\s*["']([a-z0-9]+(?:\.[A-Za-z0-9_]+)+)["']/g)) {
+        if (!KNOWN_KEYS.has(m[1])) {
+          errors.push(
+            `[t미정의키] ${file.replace(/\\/g, "/")} — t("${m[1]}") 키가 i18n 사전에 없음. ` +
+              `t()는 미정의 키에 키 원문을 반환하므로 사용자 화면에 "${m[1]}" 가 그대로 노출됨. ` +
+              `사전(src/lib/i18n/index.js) 6개 언어에 키를 추가하거나 호출을 제거할 것.`
+          );
+        }
+      }
+    }
+  }
+}
+
+// ── 10) 발급 PDF 내장(Base-14) 폰트 가드 (POSTMORTEMS #62) ─────────────────────
+// 왜: @react-pdf 내장 Helvetica/Times/Courier 는 WinAnsi 인코딩이라 한글·키릴이 전부
+//     깨진 글자로 렌더됨(2026-07-02 견적서·동의서 3종·비자초청장 전부 — 견적서는
+//     의료해외진출법 §15 서면고지 문서라 치명). 발급 PDF 는 src/lib/pdf/fonts/ 의
+//     셀프호스팅 Noto Sans(라틴+키릴)·Noto Sans KR(한글)만 사용(styles.js SANS).
+//     camelCase `fontFamily:` 만 잡음 — 이메일 HTML 의 CSS `font-family:` 스택(시스템
+//     폰트 fallback 있어 안전)은 오탐 안 됨.
+const PDF_CODE_FILES = walk("src/lib/pdf");
+for (const file of PDF_CODE_FILES) {
+  let lines;
+  try { lines = readFileSync(join(ROOT, file), "utf8").split("\n"); } catch { continue; }
+  lines.forEach((line, i) => {
+    if (/fontFamily:\s*["'](Helvetica|Times|Courier|Symbol|ZapfDingbats)/.test(line)) {
+      errors.push(`[PDF폰트] ${file.replace(/\\/g, "/")}:${i + 1} — 발급 PDF 에 내장(Base-14) 폰트 사용 → 한글·키릴 깨짐(POSTMORTEMS #62). styles.js 의 SANS(셀프호스팅 Noto Sans/KR)를 쓸 것.\n    ${line.trim().slice(0, 120)}`);
+    }
+  });
+}
+// 폰트 파일이 지워지면 PDF 렌더 자체가 실패 → 존재도 확인.
+for (const f of ["NotoSans-Regular.ttf", "NotoSans-Bold.ttf", "NotoSansKR-Regular.ttf", "NotoSansKR-Bold.ttf"]) {
+  try { statSync(join(ROOT, "src/lib/pdf/fonts", f)); } catch {
+    errors.push(`[PDF폰트] src/lib/pdf/fonts/${f} 없음 — 발급 PDF(견적서·동의서·초청장) 렌더가 통째로 실패함. 셀프호스팅 폰트 4개 필수(POSTMORTEMS #62).`);
+  }
+}
+
+// ── 11) PDF 렌더 React 정합 가드 (POSTMORTEMS #64) ────────────────────────────
+// 왜: Next(App Router)는 앱 코드를 내장(vendored) React 19 로 컴파일한다. 설치 react 가
+//     18 이거나 @react-pdf/renderer 가 웹팩 서버 번들에 말려 들어가면, PDF 렌더 트리에
+//     서로 다른 React 의 요소가 섞여 renderToBuffer 가 React error #31 로 즉사 →
+//     발급 PDF API 전부 500. 빌드·lint·dev(Turbopack)·E2E(dev서버) 전부 통과하는
+//     "배포 전용" 사고라 기계 가드 없이는 재발을 못 막는다.
+try {
+  const nextCfg = readFileSync(join(ROOT, "next.config.js"), "utf8");
+  const extBlock = nextCfg.match(/serverExternalPackages\s*:\s*\[[\s\S]*?\]/);
+  if (!extBlock || !extBlock[0].includes("@react-pdf/renderer")) {
+    errors.push(`[PDF React정합] next.config.js serverExternalPackages 에 "@react-pdf/renderer" 없음 — 웹팩이 react-pdf 를 번들하면 내장 React 와 인스턴스가 갈려 발급 PDF 가 전부 500 (React #31, POSTMORTEMS #64).`);
+  }
+  const pkg = JSON.parse(readFileSync(join(ROOT, "package.json"), "utf8"));
+  const reactMajor = parseInt(String(pkg.dependencies?.react || "0").replace(/^[^\d]*/, ""), 10);
+  if (reactMajor < 19) {
+    errors.push(`[PDF React정합] package.json react "${pkg.dependencies?.react}" — Next 16(내장 React 19)과 요소 규격이 갈려 외부화된 react-pdf 렌더가 React #31 로 죽음. react/react-dom ^19 유지할 것 (POSTMORTEMS #64).`);
+  }
+} catch { /* next.config.js 없으면 다른 검사가 이미 실패 */ }
+
+// ── 12) 정규식 \b + 비ASCII 함정 (반성문 #65 부류 영구 차단) ──────────────
+// 왜: JS 의 \b 는 \w=[A-Za-z0-9_] 기준(ASCII 전용)이라 키릴·한글·CJK·가나 글자 뒤 \b 는
+//     항상 실패한다. 그래서 /...|밀리그램|毫克)\b/ 처럼 비ASCII 대안 뒤에 \b 를 붙이면 그 대안이
+//     통째로 죽어(dead code) 매칭이 안 된다. 실제로 두 번 물렸다: #633(가격 게이트 키워드 오탐),
+//     #636(PRICE_LINE 통화 접미사), 2026-07-05 safetyGuard 약물 용량 단위. → 기계가 매번 차단.
+// 탐지: 비ASCII 글자 뒤 (정규식 닫기토큰 )]|?:*+ 공백)* 다음에 리터럴 \b 가 오고, 그 \b 가 ASCII
+//       글자/숫자로 이어지지 않을 때(=후행 경계 오용). 선행경계 \bto\b 같은 정상 용법은 제외.
+//       주석(블록 /* */ · 라인 //)은 제거 후 검사 → 설명문에 적힌 \b 는 오탐 안 냄.
+{
+  const NONASCII_B = /[Ѐ-ӿ぀-ヿ㐀-鿿가-힣][)\]|?:*+\s]*\\b(?![A-Za-z0-9])/;
+  const stripComments = (src) =>
+    src.replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, " "))
+       .replace(/(^|[^:"'`\\])\/\/[^\n]*/g, (m, p1) => p1);
+  for (const file of SCAN_DIRS.flatMap(walk)) {
+    if (!CODE_EXT.test(file) || EXCLUDE.test(file)) continue;
+    let text;
+    try { text = readFileSync(join(ROOT, file), "utf8"); } catch { continue; }
+    const lines = stripComments(text).split("\n");
+    lines.forEach((line, i) => {
+      if (NONASCII_B.test(line)) {
+        errors.push(`[정규식\\b함정] ${file.replace(/\\/g, "/")}:${i + 1} — 정규식에서 비ASCII(키릴·한글·CJK·가나) 뒤에 \\b 사용 → JS \\b 는 ASCII 전용이라 그 대안이 통째로 미매칭(dead code, 반성문 #65 부류). ASCII 단위만 \\b 유지하고 비ASCII 는 \\b 없이(숫자/문맥 선행으로 구분)로 나눌 것.\n    ${line.trim().slice(0, 120)}`);
+      }
+    });
+  }
 }
 
 // ── 결과 ────────────────────────────────────────────────────────

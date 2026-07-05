@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
@@ -23,6 +23,23 @@ export const LoginPage = ({ setView }) => {
     const [loading, setLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const [oauthLoading, setOauthLoading] = useState(false);
+    const [redirectTarget, setRedirectTarget] = useState(null);
+
+    useEffect(() => {
+        // ?redirect= 소비 — proxy(미로그인 보호경로)·환자앱 곳곳이 발급하는데 여기서 안 읽어
+        // 로그인 후 목적지를 잃던 버그(2026-07-02 전수 감사). 내부 경로만 허용(open-redirect 차단).
+        const params = new URLSearchParams(window.location.search);
+        const target = params.get('redirect');
+        if (typeof target === 'string' && target.startsWith('/') && !target.startsWith('//')) {
+            setRedirectTarget(target);
+        }
+        // OAuth 콜백 실패(/auth/callback → /login?error=...) — 아무 표시 없이 로그인 화면만
+        // 보이던 것을 안내로 표면화(원인 코드는 노출하지 않음).
+        if (params.get('error')) {
+            toast.error(t("login.googleError", langCode));
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     const handleLogin = async (e) => {
         if(e) e.preventDefault();
@@ -56,7 +73,10 @@ export const LoginPage = ({ setView }) => {
                 const adminData = adminRes?.ok ? await adminRes.json() : null;
                 const partnerData = partnerRes?.ok ? await partnerRes.json() : null;
 
-                if (adminData?.isAdmin) {
+                // 딥링크 우선: 보호경로에서 튕겨 온 사용자는 원래 가려던 곳으로 돌려보낸다.
+                if (redirectTarget) {
+                    router.push(redirectTarget);
+                } else if (adminData?.isAdmin) {
                     router.push('/admin');
                 } else if (partnerData?.isHospitalUser) {
                     router.push('/hospital');
@@ -65,7 +85,7 @@ export const LoginPage = ({ setView }) => {
                 }
             } catch (checkError) {
                 console.error('[LoginPage] Role check error:', checkError);
-                router.push('/');
+                router.push(redirectTarget || '/');
             } finally {
                 setLoading(false);
             }

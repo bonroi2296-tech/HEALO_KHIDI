@@ -101,10 +101,16 @@ export const SignUpPage = ({ setView }) => {
     const [pendingEmail, setPendingEmail] = useState(null); // 가입 후 인증메일 안내 화면용
     const [existingEmail, setExistingEmail] = useState(null); // 중복 가입(이미 가입된 이메일) 안내 화면용
 
-    // /inquiry → /signup?provider=google 자동 OAuth 트리거
+    // /inquiry → /signup?provider=google 자동 OAuth 트리거 (+ ?email= 프리필)
     useEffect(() => {
         if (typeof window === 'undefined') return;
         const params = new URLSearchParams(window.location.search);
+        // 퍼널 '이메일로 가입' 버튼이 ?email=<입력값> 을 보내는데 여기서 안 읽어 프리필이
+        // 안 되던 버그(2026-07-02 전수 감사) — 형식이 이메일일 때만 초기값 주입.
+        const prefill = params.get('email');
+        if (prefill && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(prefill)) {
+            setEmail((prev) => prev || prefill);
+        }
         if (params.get('provider') !== 'google') return;
 
         // ?provider=google 제거 — 실패 후 새로고침 시 재트리거/루프 방지
@@ -179,7 +185,10 @@ export const SignUpPage = ({ setView }) => {
         });
 
         if (error) {
-            toast.error(t("signup.errorFailed", langCode) + ": " + error.message);
+            // Supabase 원문 error.message(영문)를 사용자에게 노출하지 않음 — 6개어 일반 안내만,
+            // 원문은 콘솔 로그로(진단용). 같은 파일 다른 에러들과 규약 통일(2026-07-02 전수 감사).
+            console.error('[SignUpPage] signUp error:', error.message);
+            toast.error(t("signup.errorFailed", langCode));
             setLoading(false);
             return;
         }

@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Video, Calendar, Clock, Globe, User, Phone,
-  Edit2, X, ChevronDown, Plus,
+  Edit2, X, ChevronDown, Plus, CheckCircle,
 } from 'lucide-react';
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser';
 import { useToast } from '@/components/Toast';
@@ -55,7 +55,96 @@ export default function CoordinatorConsultationsPage() {
 
   useEffect(() => { fetchData(); }, [filter]);
 
-  const handleJoin = (id) => router.push(`/consultation/${id}`);
+  // 상담 링크(초대 토큰 포함) 1개 발급 → API 응답 반환. 하나의 링크로 코디 입장 + 환자 공유 통일.
+  const issueInvite = async (id) => {
+    const supabase = createSupabaseBrowserClient();
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) { toast.error('인증 오류 — 다시 로그인해주세요'); return null; }
+    try {
+      const res = await fetch(`/api/khidi/consultation/${id}/invite`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        // 재접속마다 1회 차감 → 끊김 잦은 모바일 환경 고려해 넉넉하게 (admin 과 동일)
+        body: JSON.stringify({ role: 'patient', expiresInHours: 72, maxUses: 20 }),
+      });
+      const result = await res.json();
+      if (!res.ok || !result.ok) {
+        toast.error(`상담 링크 생성 실패: ${result.error || res.status}`);
+        return null;
+      }
+      return result;
+    } catch (err) {
+      console.error('[issueInvite] error:', err);
+      toast.error('상담 링크 생성 실패');
+      return null;
+    }
+  };
+
+  // 상담 시작 = 링크 하나로 통일: 코디도 이 초대 링크로 입장한다(로그인돼 있어 자동으로 staff 로 인식됨).
+  //   → 코디 주소창에 뜨는 게 곧 '환자에게 그대로 보내면 되는 링크'. 편하게 바로 클립보드에도 복사.
+  const handleStart = async (id) => {
+    const result = await issueInvite(id);
+    if (!result?.inviteUrl) {
+      // ⚠️ 발급 실패 시 입장권 없는 맨주소로 조용히 입장하지 않는다 — 그 주소창을 복사해 공유하면
+      //   받는 사람 전원이 "입장권 없음"에 막힘(2026-07-02 '남들만 안 됨' 함정, POSTMORTEMS #61 연관).
+      toast.error('상담 링크 발급이 안 돼 입장을 멈췄어요. 새로고침(또는 다시 로그인) 후 다시 눌러주세요.');
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(result.inviteUrl);
+      toast.success('상담 링크를 복사했어요 — 상대에게 붙여넣어 보내세요. 나는 지금 입장합니다');
+    } catch { /* 클립보드 권한 없으면 조용히 패스 — 입장은 계속 */ }
+    // 절대 URL(origin 포함) → 클라이언트 라우팅용 상대경로로
+    router.push(result.inviteUrl.replace(/^https?:\/\/[^/]+/, ''));
+  };
+
+  // 상담 완료 처리 — status=completed 로 PATCH (KHIDI K-02 사전상담·K-04 사후관리 실적 집계).
+  //   방의 '통화 나가기'는 상태를 안 바꾸므로(재입장 회귀 방지), 완료 기록은 이 staff 액션이 유일한 경로.
+  const handleComplete = async (id) => {
+    if (!confirm("이 상담을 '완료' 처리할까요?\n완료하면 발송된 초대 링크가 폐기되어 재입장할 수 없습니다.")) return;
+    const supabase = createSupabaseBrowserClient();
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) { toast.error('인증 오류 — 다시 로그인해주세요'); return; }
+    try {
+      const res = await fetch(`/api/khidi/consultation/${id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ status: 'completed', ended_at: new Date().toISOString() }),
+      });
+      const result = await res.json();
+      if (!res.ok || !result.ok) {
+        toast.error(`완료 처리 실패: ${result.error || res.status}`);
+        return;
+      }
+      toast.success('상담을 완료 처리했어요. (사전상담·사후관리 실적에 집계됩니다)');
+      fetchData();
+    } catch (err) {
+      console.error('[handleComplete] error:', err);
+      toast.error('완료 처리 실패');
+    }
+  };
+
+  // 링크만 복사(입장 없이 환자에게 먼저 보낼 때) — 위와 같은 종류의 링크.
+  const handleCopyLink = async (id) => {
+    const result = await issueInvite(id);
+    if (!result?.inviteUrl) return;
+    try {
+      await navigator.clipboard.writeText(result.inviteUrl);
+      toast.success(
+        result.emailSent
+          ? '상담 링크를 복사했고, 등록된 이메일로도 발송했습니다'
+          : `상담 링크가 클립보드에 복사됐습니다 (만료: ${new Date(result.expiresAt).toLocaleString('ko-KR')})`
+      );
+    } catch {
+      prompt('아래 링크를 복사해 공유하세요:', result.inviteUrl);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -174,15 +263,32 @@ export default function CoordinatorConsultationsPage() {
                       </div>
                     )}
 
-                    <div className="flex gap-2 pt-2">
+                    <div className="flex gap-2 pt-2 flex-wrap">
                       {(c.status === 'scheduled' || c.status === 'active') && (
-                        <button
-                          onClick={() => handleJoin(c.id)}
-                          className="flex items-center gap-2 px-4 py-2 bg-teal-700 text-white rounded-lg hover:bg-teal-800 transition text-sm font-medium"
-                        >
-                          <Phone size={14} />
-                          {c.status === 'active' ? '상담 재진입' : '상담 시작'}
-                        </button>
+                        <>
+                          <button
+                            onClick={() => handleStart(c.id)}
+                            className="flex items-center gap-2 px-4 py-2 bg-teal-700 text-white rounded-lg hover:bg-teal-800 transition text-sm font-medium"
+                            title="이 링크로 내가 입장하고, 같은 링크가 복사됩니다 (복사해서 상대에게 전송)"
+                          >
+                            <Phone size={14} />
+                            {c.status === 'active' ? '상담 재진입' : '상담 시작'}
+                          </button>
+                          <button
+                            onClick={() => handleCopyLink(c.id)}
+                            className="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-700 border border-blue-200 rounded-lg hover:bg-blue-100 transition text-sm font-medium"
+                            title="입장 없이 링크만 복사(+등록 이메일 발송) — 「상담 시작」과 같은 링크"
+                          >
+                            🔗 링크 복사
+                          </button>
+                          <button
+                            onClick={() => handleComplete(c.id)}
+                            className="flex items-center gap-2 px-4 py-2 bg-teal-50 text-teal-700 border border-teal-200 rounded-lg hover:bg-teal-100 transition text-sm font-medium"
+                            title="상담을 '완료'로 기록 (사전상담·사후관리 실적 집계) — 초대 링크도 폐기"
+                          >
+                            <CheckCircle size={14} /> 상담 완료
+                          </button>
+                        </>
                       )}
                     </div>
                   </div>
