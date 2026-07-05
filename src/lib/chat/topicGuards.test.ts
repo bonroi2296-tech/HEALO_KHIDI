@@ -23,11 +23,24 @@ describe("mentionsCancerType — 현재 메시지가 특정 암종을 명시했�
     expect(mentionsCancerType("лечение рака молочной железы")).toBe(true);
   });
 
-  it("암종 미명시(일반 질문·메타)는 false — 단독 '암'은 암종이 아님", () => {
+  it("중/일/카 특정 암종도 true (2026-07-06 순찰: 기존 ko·en·ru 만 커버하던 구멍)", () => {
+    // zh
+    expect(mentionsCancerType("肺癌治疗要多少钱？")).toBe(true);
+    expect(mentionsCancerType("我妈妈得了胃癌")).toBe(true);
+    // ja (히라가나 がん + 한자 癌 둘 다)
+    expect(mentionsCancerType("肺がんの治療費は？")).toBe(true);
+    expect(mentionsCancerType("胃癌と診断されました")).toBe(true);
+    // kz 악성종양
+    expect(mentionsCancerType("Анама қатерлі ісік диагнозы қойылды")).toBe(true);
+  });
+
+  it("암종 미명시(일반 질문·메타)는 false — 단독 '암'/'癌症'/'がん'은 암종이 아님", () => {
     for (const s of [
       "한국에 가서 치료 받고 싶은데 절차 알려줘",
       "고쳐졌니?",
       "암 치료 받고 싶어요", // 단독 '암'(암종 아님)
+      "癌症一般怎么治疗",     // zh 일반 '암'(장기 접두 없음)
+      "がんについて教えて",   // ja 일반 '암'
       "병원 추천해줘",
       "",
     ]) {

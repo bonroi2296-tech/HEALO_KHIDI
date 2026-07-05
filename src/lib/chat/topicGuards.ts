@@ -8,8 +8,12 @@
 
 // 현재 메시지가 "특정 암종"을 명시했는지. 명시 안 했으면 시스템 프롬프트에 "암종 언급 금지"를
 // 강제 주입. 한국어 "X암"(대장암·갑상선암 등)은 앞에 글자가 붙은 경우만(단독 "암"=암종 아님 제외).
+// zh/ja/kz(2026-07-06 순찰 발견): 기존엔 ko·en·ru 만 있어 중국어 "肺癌"·일본어 "肺がん"·카자흐어
+//   "қатерлі ісік"이 미감지 → 그 언어 사용자가 특정 암을 명시했는데도 "암종 언급 금지" 가드가
+//   오발동해 두루뭉술한 답을 하던 커버리지 구멍. 일반 "癌症·がん"(암 일반)은 장기 접두 없이 제외
+//   (한국어 단독 "암" 제외 규칙과 동일). qатерлі ісік=악성종양(명백), 단독 "рак/ісік"은 오탐 우려로 제외.
 const CANCER_TERMS =
-  /(?:[가-힣]{1,5}암)(?![가-힣])|백혈병|림프종|육종|colorectal|colon|rectal|breast|stomach|gastric|lung|liver|hepato|thyroid|pancrea|ovari|uterine|cervical|prostate|kidney|renal|bladder|esophag|leukemia|lymphoma|melanoma|sarcoma|glioma|молочн|желудк|лёгк|кишечник|прямой\s*кишк|щитовид|поджелуд|яичник|предстательн|пищевод|лейкоз|лимфом|меланом|саркома|опухол/i;
+  /(?:[가-힣]{1,5}암)(?![가-힣])|백혈병|림프종|육종|colorectal|colon|rectal|breast|stomach|gastric|lung|liver|hepato|thyroid|pancrea|ovari|uterine|cervical|prostate|kidney|renal|bladder|esophag|leukemia|lymphoma|melanoma|sarcoma|glioma|молочн|желудк|лёгк|кишечник|прямой\s*кишк|щитовид|поджелуд|яичник|предстательн|пищевод|лейкоз|лимфом|меланом|саркома|опухол|(?:肺|胃|肝臟?|肝|乳腺|乳|大肠|结肠|直肠|肠|甲状腺|胰腺|胰|卵巢|前列腺|食道|食管|肾|膀胱|脑|骨|皮肤|宫颈|子宫)癌|白血病|淋巴瘤|黑色素瘤|肉瘤|(?:肺|胃|肝臓?|乳|大腸|腸|甲状腺|膵臓?|膵|卵巣|前立腺|食道|腎|膀胱|皮膚|子宮)(?:がん|癌)|リンパ腫|肉腫|メラノーマ|қатерлі\s*ісік/i;
 
 export function mentionsCancerType(text: string): boolean {
   return CANCER_TERMS.test(text || "");
