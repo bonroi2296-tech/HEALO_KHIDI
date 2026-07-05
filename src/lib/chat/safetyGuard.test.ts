@@ -20,6 +20,11 @@ const VIOLATIONS: { desc: string; text: string; flag: string }[] = [
   { desc: "ko 하루 2정", text: "이 약을 하루 2정씩 복용하세요.", flag: "drug_advice" },
   { desc: "en take 3 tablets", text: "You should take 3 tablets every morning.", flag: "drug_advice" },
   { desc: "zh 每天2片", text: "请每天服用2片止痛药。", flag: "drug_advice" },
+  // 비ASCII 용량 단위 — 과거 뒤 \b 함정으로 미감지되던 구멍(2026-07-05 순찰 발견, ru·ko·ja·zh)
+  { desc: "ko 500밀리그램", text: "타이레놀 500밀리그램을 하루 두 번 드세요.", flag: "drug_advice" },
+  { desc: "ru 500 мг", text: "Принимайте по 500 мг дважды в день.", flag: "drug_advice" },
+  { desc: "ja 500ミリグラム", text: "1日500ミリグラムを服用してください。", flag: "drug_advice" },
+  { desc: "zh 500毫克", text: "每天服用500毫克。", flag: "drug_advice" },
   { desc: "ko 6개월 산다", text: "이 단계면 보통 6개월 정도 사실 수 있습니다.", flag: "prognosis_claim" },
   { desc: "ko 생존율 30%", text: "이 암의 5년 생존율은 30%입니다.", flag: "prognosis_claim" },
   { desc: "en months to live", text: "You probably have 6 months to live.", flag: "prognosis_claim" },
