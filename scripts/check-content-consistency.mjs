@@ -417,6 +417,32 @@ try {
   }
 } catch { /* next.config.js 없으면 다른 검사가 이미 실패 */ }
 
+// ── 12) 정규식 \b + 비ASCII 함정 (반성문 #65 부류 영구 차단) ──────────────
+// 왜: JS 의 \b 는 \w=[A-Za-z0-9_] 기준(ASCII 전용)이라 키릴·한글·CJK·가나 글자 뒤 \b 는
+//     항상 실패한다. 그래서 /...|밀리그램|毫克)\b/ 처럼 비ASCII 대안 뒤에 \b 를 붙이면 그 대안이
+//     통째로 죽어(dead code) 매칭이 안 된다. 실제로 두 번 물렸다: #633(가격 게이트 키워드 오탐),
+//     #636(PRICE_LINE 통화 접미사), 2026-07-05 safetyGuard 약물 용량 단위. → 기계가 매번 차단.
+// 탐지: 비ASCII 글자 뒤 (정규식 닫기토큰 )]|?:*+ 공백)* 다음에 리터럴 \b 가 오고, 그 \b 가 ASCII
+//       글자/숫자로 이어지지 않을 때(=후행 경계 오용). 선행경계 \bto\b 같은 정상 용법은 제외.
+//       주석(블록 /* */ · 라인 //)은 제거 후 검사 → 설명문에 적힌 \b 는 오탐 안 냄.
+{
+  const NONASCII_B = /[Ѐ-ӿ぀-ヿ㐀-鿿가-힣][)\]|?:*+\s]*\\b(?![A-Za-z0-9])/;
+  const stripComments = (src) =>
+    src.replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, " "))
+       .replace(/(^|[^:"'`\\])\/\/[^\n]*/g, (m, p1) => p1);
+  for (const file of SCAN_DIRS.flatMap(walk)) {
+    if (!CODE_EXT.test(file) || EXCLUDE.test(file)) continue;
+    let text;
+    try { text = readFileSync(join(ROOT, file), "utf8"); } catch { continue; }
+    const lines = stripComments(text).split("\n");
+    lines.forEach((line, i) => {
+      if (NONASCII_B.test(line)) {
+        errors.push(`[정규식\\b함정] ${file.replace(/\\/g, "/")}:${i + 1} — 정규식에서 비ASCII(키릴·한글·CJK·가나) 뒤에 \\b 사용 → JS \\b 는 ASCII 전용이라 그 대안이 통째로 미매칭(dead code, 반성문 #65 부류). ASCII 단위만 \\b 유지하고 비ASCII 는 \\b 없이(숫자/문맥 선행으로 구분)로 나눌 것.\n    ${line.trim().slice(0, 120)}`);
+      }
+    });
+  }
+}
+
 // ── 결과 ────────────────────────────────────────────────────────
 if (errors.length) {
   console.error(`\n❌ 콘텐츠 일관성 검사 실패 (${errors.length}건)\n`);
