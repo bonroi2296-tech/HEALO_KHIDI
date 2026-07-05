@@ -287,9 +287,11 @@ LIVEKIT_API_SECRET=<API Secret>
 
 ### 7-6. Webhook 설정 (선택)
 
-세션 종료 이벤트를 DB 에 기록하려면:
+세션 종료·녹화 이벤트를 DB 에 기록하려면:
 1. LiveKit Dashboard → **Settings → Webhooks → Add webhook**
-2. URL: `https://healo-khidi.com/api/livekit/webhook` (아직 구현 안 됨 — 별도 작업)
+2. URL: `https://healwith.co.kr/api/livekit/webhook` (라우트 구현됨 — `app/api/livekit/webhook/route.ts`)
+   - ⚠️ 이전 문서의 `healo-khidi.com` 은 죽은 옛 도메인이라 이벤트가 오지 않았음. 반드시 `healwith.co.kr` 로 등록할 것.
+   - 참고: `room_finished` 는 상담을 자동으로 '완료' 처리하지 **않는다**(성과지표 K-02 정직성 — 완료는 staff 가 상담관리에서 직접). 녹화 URL 기록·로깅 용도.
 
 ---
 

@@ -8,7 +8,7 @@
  *
  * 설정:
  * - LiveKit Dashboard → Settings → Webhooks → Add webhook
- * - URL: https://healo-khidi.com/api/livekit/webhook
+ * - URL: https://healwith.co.kr/api/livekit/webhook
  * - 이벤트: room_started, room_finished, participant_joined, participant_left,
  *          recording_finished
  *
@@ -57,14 +57,17 @@ export async function POST(request: NextRequest) {
       const supabase = getSupabaseServerClient();
 
       if (event.event === "room_finished" && roomName) {
-        await supabase
-          .from("consultation_sessions")
-          // 스키마 drift 대응: ended_at 이 없으면 updated_at 만
-          .update({
-            status: "completed",
-            updated_at: new Date().toISOString(),
-          } as any)
-          .eq("livekit_room_name", roomName);
+        // ⚠️ 의도적으로 status 를 바꾸지 않는다.
+        // 'completed' 는 KHIDI 성과지표 K-02(사전상담·사후관리 건수) 집계의 기준이므로,
+        // staff 가 상담관리 화면에서 직접 완료 처리하는 것이 유일한 정본 경로다
+        // (#620 is_test 격리와 같은 '정직한 실적' 원칙).
+        // LiveKit 방이 물리적으로 끝났다고(참가자 전원 퇴장/타임아웃) 자동으로 completed 를
+        // 찍으면 테스트콜·중단된 콜까지 실적으로 집계돼 평가 숫자가 부풀려진다(K-02 인플레).
+        // 통화 종료 시각이 필요해지면 status 와 무관한 별도 컬럼(예: livekit_ended_at)을
+        // 마이그레이션으로 추가할 것 — status 는 건드리지 않는다.
+        console.log(
+          `[livekit/webhook] room_finished ${roomName} — status 미변경(staff 완료가 K-02 정본 경로)`
+        );
       } else if (event.event === "participant_joined" && roomName) {
         // 참가 로그 - metadata 에 append
         console.log(`[livekit/webhook] ${participantIdentity} joined ${roomName}`);
