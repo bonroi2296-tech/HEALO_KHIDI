@@ -35,12 +35,12 @@ describe("estimateCostUsd", () => {
   it("토큰 미상이면 0", () => {
     expect(estimateCostUsd("gemini-flash-latest", null, null)).toBe(0);
   });
-  it("입력/출력 단가를 분리 적용(기본 in 0.3 / out 2.5 per 1M)", () => {
-    // 1M 입력 + 1M 출력 = 0.3 + 2.5 = 2.8 USD
-    expect(estimateCostUsd("gemini-flash-latest", 1_000_000, 1_000_000)).toBeCloseTo(2.8, 6);
+  it("입력/출력 단가를 분리 적용(기본 in 1.5 / out 9.0 per 1M — 3.5 Flash)", () => {
+    // 1M 입력 + 1M 출력 = 1.5 + 9.0 = 10.5 USD
+    expect(estimateCostUsd("gemini-flash-latest", 1_000_000, 1_000_000)).toBeCloseTo(10.5, 6);
   });
   it("소액도 6자리까지 보존", () => {
-    // 1000 입력 토큰 = 1000/1e6 * 0.3 = 0.0003
-    expect(estimateCostUsd("gemini-flash-latest", 1000, 0)).toBeCloseTo(0.0003, 6);
+    // 1000 입력 토큰 = 1000/1e6 * 1.5 = 0.0015
+    expect(estimateCostUsd("gemini-flash-latest", 1000, 0)).toBeCloseTo(0.0015, 6);
   });
 });
