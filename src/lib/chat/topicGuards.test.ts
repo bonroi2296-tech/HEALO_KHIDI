@@ -192,3 +192,19 @@ describe("stripPriceLines — 가격 미질문 턴 Context 가격 제거 (2026-0
     expect(stripPriceLines("")).toBe("");
   });
 });
+
+describe("asksDocsOrProcess — 키릴 부분일치 오탐 방지 (2026-07-05 실측 진범)", () => {
+  it("косметологию(미용)는 смет(견적)에 안 걸린다 — 가격 게이트 미발동 진범이었던 실제 문장", () => {
+    expect(
+      asksDocsOrProcess("У меня много родинок на лице, хочу удалить их и сделать косметологию в Корее")
+    ).toBe(false);
+  });
+  it("진짜 견적/가격 질문은 여전히 true", () => {
+    expect(asksDocsOrProcess("Пришлите смету, пожалуйста")).toBe(true);
+    expect(asksDocsOrProcess("Какая цена лечения?")).toBe(true);
+    expect(asksDocsOrProcess("Сколько стоит операция?")).toBe(true);
+  });
+  it("оценка(평가)는 цен(가격)에 안 걸린다", () => {
+    expect(asksDocsOrProcess("Мне нужна оценка состояния мамы")).toBe(false);
+  });
+});
