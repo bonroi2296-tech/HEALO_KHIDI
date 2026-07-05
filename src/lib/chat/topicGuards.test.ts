@@ -27,11 +27,29 @@ describe("mentionsCancerType — 현재 메시지가 특정 암종을 명시했�
     // zh
     expect(mentionsCancerType("肺癌治疗要多少钱？")).toBe(true);
     expect(mentionsCancerType("我妈妈得了胃癌")).toBe(true);
-    // ja (히라가나 がん + 한자 癌 둘 다)
+    // ja (히라가나 がん + 한자 癌 둘 다) + 脳/骨(대칭)
     expect(mentionsCancerType("肺がんの治療費は？")).toBe(true);
     expect(mentionsCancerType("胃癌と診断されました")).toBe(true);
+    expect(mentionsCancerType("胃がんか？")).toBe(true); // 의문 か 뒤에도
+    expect(mentionsCancerType("脳がんの疑いがあります")).toBe(true);
+    expect(mentionsCancerType("骨がんの治療法")).toBe(true);
     // kz 악성종양
     expect(mentionsCancerType("Анама қатерлі ісік диагнозы қойылды")).toBe(true);
+  });
+
+  it("ja がん 오탐 방지 — がんばる·がんこ 등은 암종 아님 (독립 리뷰 실측 결함)", () => {
+    // "がん"(히라가나)이 힘내라(がんばる)·찌든(がんこ)·칭칭(がんじがらめ)의 시작이라
+    // 장기한자 바로 뒤에 와도 암종으로 오탐되면 안 됨(건강 응원 문구 등).
+    for (const s of [
+      "肝臓がんばれ！お酒は控えめに", // 간아 힘내라
+      "胃がんばって、消化を助けよう",
+      "肺がんばって深呼吸しよう",
+      "皮膚がんこな汚れが取れない", // 찌든 때
+      "腸がんじがらめの気分",
+      "がんばってください", // 장기 없음
+    ]) {
+      expect(mentionsCancerType(s)).toBe(false);
+    }
   });
 
   it("암종 미명시(일반 질문·메타)는 false — 단독 '암'/'癌症'/'がん'은 암종이 아님", () => {
