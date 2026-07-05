@@ -126,6 +126,24 @@ if [ -f "$GATES" ]; then
   fi
 fi
 
+# ── 주간 문서 건강검진 리마인드 (2026-07-05 PO 승인 — 문서도 부패한다, #63 문서-현실 드리프트 방지) ──
+DHLOG="docs/audit/DOC_HEALTH_LOG.md"
+if [ -f "$DHLOG" ]; then
+  last_dh=$(grep -m1 -oE '^## [0-9]{4}-[0-9]{2}-[0-9]{2}' "$DHLOG" 2>/dev/null | awk '{print $2}')
+  if [ -n "$last_dh" ]; then
+    now_s=$(date +%s 2>/dev/null)
+    last_dh_s=$(date -d "$last_dh" +%s 2>/dev/null || echo "")
+    if [ -n "$last_dh_s" ] && [ -n "$now_s" ]; then
+      dh_days=$(( (now_s - last_dh_s) / 86400 ))
+      if [ "$dh_days" -ge 7 ] 2>/dev/null; then
+        echo ""
+        echo "## 🩺 문서 건강검진 기한 경과 — 마지막 검진 ${last_dh} (${dh_days}일 전)"
+        echo "  → 이 세션의 본 작업 전후로 \`/doc-health\` 스킬을 1회 실행하라(주 1회 루틴). 낡은 문서(=낡은 기억)를 믿고 일하면 사고남. 검진 후 ${DHLOG} 최상단에 엔트리를 남겨야 이 알림이 꺼진다."
+      fi
+    fi
+  fi
+fi
+
 echo ""
 echo "## 🗣️ 말투 규칙 (PO=비개발자, 매 응답 강제)"
 echo "- **개발 용어는 반드시 쉽게 풀어 설명 + 원어 병기.** 풀이 없이 용어만 쓰기 금지. 예: 정식주소(canonical), 주소록(DNS), 설정값(env), 검색등록(색인·index)."
