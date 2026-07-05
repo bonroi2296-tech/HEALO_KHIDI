@@ -31,6 +31,9 @@ const VIOLATIONS: { desc: string; text: string; flag: string }[] = [
   { desc: "ru жить месяцев", text: "Вам осталось жить примерно 6 месяцев.", flag: "prognosis_claim" },
   { desc: "zh 还能活3个月", text: "你大概还能活3个月。", flag: "prognosis_claim" },
   { desc: "ja 生存率20%", text: "このがんの生存率は20%です。", flag: "prognosis_claim" },
+  // kk 예후 단정 — cure/overclaim 엔 카자흐어가 있었으나 prognosis 만 누락되던 구멍(2026-07-05 순찰)
+  { desc: "kk 3 ай өмір сүру", text: "Науқас тағы 3 ай өмір сүреді.", flag: "prognosis_claim" },
+  { desc: "kk 생존율 20%", text: "Бұл кезеңде өмір сүру деңгейі 20%.", flag: "prognosis_claim" },
 ];
 
 // 정상(critical=false 기대) — 오탐 방지
@@ -43,6 +46,8 @@ const SAFE: { desc: string; text: string }[] = [
   { desc: "병원 5곳(숫자 오탐)", text: "서울에 등록된 협진 대학병원 5곳을 안내해 드릴 수 있습니다." },
   { desc: "프로그램 3단계(숫자 오탐)", text: "치료 여정은 진단·수술·재활의 3단계로 진행됩니다." },
   { desc: "비용 범위(가격 오탐)", text: "수술 비용은 대략 1000만원에서 2000만원 범위로, 정확한 견적은 코디네이터가 안내합니다." },
+  { desc: "kk 치료 3주 소요(기간 오탐)", text: "Емдеу шамамен 3 аптаға созылады, нақты жоспарды дәрігер айтады." },
+  { desc: "kk 매달 검진(ай 오탐)", text: "Ай сайын тексеруден өтіп тұрыңыз." },
 ];
 
 describe("safetyGuard 규칙 기반 0층 — 위반 탐지(6개 언어)", () => {
