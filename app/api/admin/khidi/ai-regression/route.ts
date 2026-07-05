@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
     const { data, error } = await (supabaseAdmin as any)
       .from("ai_regression_runs")
       .select(
-        "run_date, overall_score, passed, flags, test_id, id, ai_regression_tests(scenario_id, scenario_category)"
+        "run_date, overall_score, passed, flags, latency_ms, test_id, id, ai_regression_tests(scenario_id, scenario_category)"
       )
       .gte("run_date", since)
       .order("run_date", { ascending: true });
