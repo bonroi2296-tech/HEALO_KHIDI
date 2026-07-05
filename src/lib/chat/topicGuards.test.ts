@@ -188,6 +188,29 @@ describe("stripPriceLines — 가격 미질문 턴 Context 가격 제거 (2026-0
     expect(out).not.toContain("3700");
     expect(out).not.toContain("990000");
   });
+  it("비ASCII 통화 접미사 가격 줄 제거 — \\b 함정으로 죽어있던 분기(2026-07-05 오퍼스 순찰 발견)", () => {
+    // JS \w 는 ASCII 전용 → 키릴·한글·CJK 통화 뒤 \b 가 항상 실패해 이 분기가 통째로 미발동이었음.
+    // $·라벨 형식이 아닌 "숫자+통화단어" 포맷이 코퍼스에 들어오면 그대로 새던 잠재 구멍.
+    const ctx = [
+      "Клиника специализируется на онкологии",           // 가격 아님 — 보존
+      "Стоимость лечения около 1500000 тенге за курс",   // ru 텡게
+      "Примерно 500000 тг за программу",                 // ru 텡게 약어
+      "Обследование стоит 3700 долларов",                // ru 달러(долл)
+      "검진 비용은 3000 달러 정도입니다",                  // ko 달러
+      "治療費は約50万円です",                              // ja 만엔
+      "费用大约是 20000 元",                               // zh 위안
+      "Программа рассчитана на 3 недели",                // 숫자 있으나 통화 아님 — 보존
+    ].join("\n");
+    const out = stripPriceLines(ctx);
+    expect(out).toContain("специализируется на онкологии");
+    expect(out).toContain("рассчитана на 3 недели");
+    expect(out).not.toContain("тенге");
+    expect(out).not.toContain("500000 тг");
+    expect(out).not.toContain("долларов");
+    expect(out).not.toContain("3000 달러");
+    expect(out).not.toContain("万円");
+    expect(out).not.toContain("20000 元");
+  });
   it("빈 입력은 그대로", () => {
     expect(stripPriceLines("")).toBe("");
   });
