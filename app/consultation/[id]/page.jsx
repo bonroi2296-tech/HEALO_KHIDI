@@ -363,8 +363,14 @@ function useIsDesktopViewport() {
     const mq = window.matchMedia("(min-width: 1024px)");
     const update = () => setIsDesktop(mq.matches);
     update();
-    mq.addEventListener("change", update);
-    return () => mq.removeEventListener("change", update);
+    // iOS/Safari 13 이하는 addEventListener 미지원(구형 addListener만) — CIS 환자 구형 폰에서
+    // 여기서 throw 하면 상담방 전체가 죽는다 → 피처 디텍트 폴백.
+    if (typeof mq.addEventListener === "function") {
+      mq.addEventListener("change", update);
+      return () => mq.removeEventListener("change", update);
+    }
+    mq.addListener(update);
+    return () => mq.removeListener(update);
   }, []);
   return isDesktop;
 }

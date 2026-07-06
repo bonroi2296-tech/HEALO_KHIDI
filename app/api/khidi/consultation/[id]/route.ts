@@ -91,7 +91,7 @@ export async function GET(
     const { notes, notes_encrypted, ...rest } = data as any;
     const responseData = {
       ...rest,
-      notes: readSessionNotes({ notes, notes_encrypted }),
+      notes: readSessionNotes({ id: rest.id, notes, notes_encrypted }),
     };
 
     return Response.json({ ok: true, data: responseData, viewerRole: access.role });

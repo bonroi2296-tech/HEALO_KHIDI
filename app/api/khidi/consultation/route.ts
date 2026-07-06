@@ -287,7 +287,7 @@ export async function GET(request: NextRequest) {
     // 응답: 암호문은 감추고 복호화된 notes 만 (필드명 유지 — 화면 변경 불필요)
     const sanitized = rows.map(({ notes, notes_encrypted, ...rest }) => ({
       ...rest,
-      notes: readSessionNotes({ notes, notes_encrypted }),
+      notes: readSessionNotes({ id: rest.id, notes, notes_encrypted }),
     }));
 
     return Response.json({

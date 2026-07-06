@@ -38,6 +38,11 @@ export function readSessionNotes(row: SessionNotesRow): string | null {
     try {
       return decryptStringNullable(row.notes_encrypted);
     } catch {
+      // 조용히 null 만 주면 키 문제(회전·env 누락)가 '빈 메모'로 위장된다 —
+      // 비PII 마커만 로그에 남겨 Vercel 로그에서 바로 보이게 (평문·암호문 출력 금지).
+      console.warn(
+        `[consultationNotes] notes decrypt failed (session=${row?.id ?? "?"}) — ENCRYPTION_KEY_V1 확인`
+      );
       return null;
     }
   }
