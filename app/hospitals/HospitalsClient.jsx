@@ -71,7 +71,7 @@ const L = {
   ewDesc: { ko: '전문 암 병원의 수술·항암 치료와 면력한방병원의 면역 강화·사후관리를 하나의 플랫폼에서.', en: 'Oncology surgery & chemotherapy from partner hospitals + Korean Medicine immune therapy & post-care — all on one platform.', ru: 'Хирургия и химиотерапия в партнёрских больницах + иммунная терапия и послеоперационный уход в Иммуногоспитале — на одной платформе.', kz: 'Серіктес аурухналардағы хирургия мен химиотерапия + Иммунная Клиникадегі иммундық терапия мен бақылау — бір платформада.', zh: '合作医院的手术与化疗 + 免疫医院的免疫强化与术后管理 — 一站式平台。', ja: '提携病院の手術・抗がん治療と免疫病院の免疫強化・術後管理を一つのプラットフォームで。' },
   hero_branches: { ko: '개 지점', en: 'Branches', ru: 'филиала', kz: 'филиал', zh: '家分院', ja: '拠点' },
   hero_doctors: { ko: '명 전문의', en: 'Doctors', ru: 'врачей', kz: 'дәрігер', zh: '名医生', ja: '名の医師' },
-  hero_registered: { ko: '2개 지점 외국인환자 유치기관 등록', en: '2 Branches Registered for Foreign Patients', ru: '2 филиала зарегистрированы', kz: '2 филиал тіркелген', zh: '2家已注册外国患者招引', ja: '2拠点 外国人患者誘致登録済み' },
+  hero_registered: { ko: '4개 지점 외국인환자 유치기관 등록', en: '4 Branches Registered for Foreign Patients', ru: '4 филиала зарегистрированы', kz: '4 филиал тіркелген', zh: '4家已注册外国患者招引', ja: '4拠点 外国人患者誘致登録済み' },
 };
 
 const ICON_MAP = { Shield, Heart, Leaf };
@@ -423,8 +423,8 @@ const DOCTORS = [
 const BRANCH_CONFIG = [
   { id: 'gangseo', name: { ko: '강서점 (본원)', en: 'Gangseo HQ', ru: 'Кансо (гл. офис)', kz: 'Кансо (бас)', zh: '江西总院', ja: '江西本院' }, addr: { ko: '서울특별시 강서구 마곡중앙6로 93 (마곡동, 열린프라자) 6,7,10층', en: 'F6,7,10, 93 Magokjungang 6-ro, Gangseo-gu, Seoul', ru: 'Магок, Кансо-гу, Сеул', kz: 'Магок, Кансо-гу, Сеул', zh: '首尔江西区麻谷中央6路93号 6,7,10层', ja: 'ソウル江西区麻谷中央6路93 6·7·10階' }, status: 'registered', tel: '02-2039-8510' },
   { id: 'sinchon', name: { ko: '신촌점', en: 'Sinchon', ru: 'Синчон', kz: 'Синчон', zh: '新村分院', ja: '新村分院' }, addr: { ko: '서울특별시 서대문구 연세로 12 (창천동, 피델리아타워) 8-14층', en: '8-14F, 12 Yonsei-ro, Seodaemun-gu, Seoul', ru: 'Содэмун-гу, Сеул', kz: 'Содэмун-гу, Сеул', zh: '首尔西大门区延世路12号 8-14层', ja: 'ソウル西大門区延世路12 8-14階' }, status: 'registered', tel: '02-393-8510' },
-  { id: 'gwangmyeong', name: { ko: '광명점', en: 'Gwangmyeong', ru: 'Кванмён', kz: 'Кванмён', zh: '光明分院', ja: '光明分院' }, addr: { ko: '경기 광명시 오리로 876', en: '876 Ori-ro, Gwangmyeong, Gyeonggi', ru: 'Кванмён, Кёнги-до', kz: 'Кванмён, Кёнги-до', zh: '京畿道光明市梧里路876号', ja: '京畿道光明市梧里路876' }, status: 'preparing', tel: '02-898-8510' },
-  { id: 'seongdong', name: { ko: '성동점', en: 'Seongdong', ru: 'Сондон', kz: 'Сондон', zh: '城东分院', ja: '城東分院' }, addr: { ko: '서울 성동구', en: 'Seongdong-gu, Seoul', ru: 'Сондон-гу, Сеул', kz: 'Сондон-гу, Сеул', zh: '首尔城东区', ja: 'ソウル城東区' }, status: 'preparing', tel: '02-2295-8510' },
+  { id: 'gwangmyeong', name: { ko: '광명점', en: 'Gwangmyeong', ru: 'Кванмён', kz: 'Кванмён', zh: '光明分院', ja: '光明分院' }, addr: { ko: '경기 광명시 철산로 16 (철산동, 트라이앵글빌딩) 6, 8~11층', en: '6F, 8-11F, Triangle Building, 16 Cheolsan-ro, Gwangmyeong, Gyeonggi', ru: 'Чхольсан-дон, Кванмён, Кёнги-до', kz: 'Чхольсан-дон, Кванмён, Кёнги-до', zh: '京畿道光明市铁山路16号 三角大厦 6、8-11层', ja: '京畿道光明市鉄山路16 トライアングルビル 6·8-11階' }, status: 'registered', tel: '02-898-8510' },
+  { id: 'seongdong', name: { ko: '성동점', en: 'Seongdong', ru: 'Сондон', kz: 'Сондон', zh: '城东分院', ja: '城東分院' }, addr: { ko: '서울 성동구 천호대로 320 (용답동, 장안빌딩) 2~7층', en: '2-7F, 320 Cheonho-daero, Seongdong-gu, Seoul', ru: 'Сондон-гу, Сеул', kz: 'Сондон-гу, Сеул', zh: '首尔城东区天户大路320号 2-7层', ja: 'ソウル城東区天戸大路320 2-7階' }, status: 'registered', tel: '02-2295-8510' },
 ];
 
 const CANCER_GUIDES = [
