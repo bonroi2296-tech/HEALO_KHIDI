@@ -21,6 +21,8 @@ const CODE_EXT = /\.(js|jsx|ts|tsx)$/;
 
 // ── 1) 금지 토큰 (고객/제품 코드에 절대 없어야 함) ──────────────
 const FORBIDDEN = [
+  // PO 반복 지시(2026-07-06): 얼굴 사진 없는 의료진은 로고가 아니라 "팔짱 낀 가운" 이미지(69cddae60209c3)로.
+  { re: /['"`]\/doctors\/69cddae601fbd8/, msg: "의료진 사진에 병원 로고 이미지 사용 금지 — 얼굴 사진 없으면 팔짱 낀 가운 이미지(/doctors/69cddae60209c3….jpg)로 (PO 반복 지시 2026-07-06)" },
   { re: /immunelab/i, msg: "옛 이메일 도메인 immunelab 잔재 (→ admin@healwith.co.kr)" },
   { re: /@healo\.com/i, msg: "옛 이메일 @healo.com 잔재 (→ admin@healwith.co.kr)" },
   { re: /healo\.com/i, msg: "옛 도메인 healo.com 잔재" },
