@@ -16,6 +16,7 @@ import {
   FocusLayout,
   FocusLayoutContainer,
   CarouselLayout,
+  VideoTrack,
 } from "@livekit/components-react";
 import "@livekit/components-styles";
 import "./consultation.css"; // 미트식 발화자 테두리(teal)·1:1 PiP 보정 — LiveKit 기본 덮어쓰기
@@ -353,6 +354,50 @@ function PresenceGuard() {
   return null;
 }
 
+// ── #612 감성 (a)(b): 데스크톱 1:1 반반분할 + 세로영상 blur-fill 배경 ──
+
+// 뷰포트가 데스크톱 폭(lg=1024px)인지. SSR/마운트 전엔 false → 모바일 PiP 기본으로 시작.
+function useIsDesktopViewport() {
+  const [isDesktop, setIsDesktop] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 1024px)");
+    const update = () => setIsDesktop(mq.matches);
+    update();
+    // iOS/Safari 13 이하는 addEventListener 미지원(구형 addListener만) — CIS 환자 구형 폰에서
+    // 여기서 throw 하면 상담방 전체가 죽는다 → 피처 디텍트 폴백.
+    if (typeof mq.addEventListener === "function") {
+      mq.addEventListener("change", update);
+      return () => mq.removeEventListener("change", update);
+    }
+    mq.addListener(update);
+    return () => mq.removeListener(update);
+  }, []);
+  return isDesktop;
+}
+
+// 카메라 영상이 실제 송출 중인 트랙인지 (placeholder·음소거는 blur 배경 생략 — placeholder 가 덮음)
+const isCamVideoLive = (t) =>
+  !!(t?.publication && !t.publication.isMuted && t.source === Track.Source.Camera);
+
+// 같은 영상 트랙을 뒤에 blur+cover 로 한 장 더 깔아, 세로영상(폰 카메라)의 좌우 검은띠를
+// '그 영상의 흐릿한 확대판'으로 채운다(미트/쇼츠 방식). 가로 영상은 앞장(contain)이 타일을
+// 꽉 채워 배경이 안 보이므로 세로/가로 감지가 필요 없다. 한 트랙을 video 두 개에 붙이는 건
+// MediaStream 표준 동작이라 통화 로직엔 영향 없음.
+function BlurFillTile({ trackRef, onParticipantClick }) {
+  return (
+    <div className="hw-blurfill relative h-full min-h-0 overflow-hidden rounded-xl bg-black/40">
+      {isCamVideoLive(trackRef) && (
+        <VideoTrack trackRef={trackRef} className="hw-blurfill-bg" aria-hidden="true" />
+      )}
+      <ParticipantTile
+        trackRef={trackRef}
+        onParticipantClick={onParticipantClick}
+        style={{ height: "100%" }}
+      />
+    </div>
+  );
+}
+
 // ── LiveKit Video Grid (타일 클릭 = 그 화면 크게 고정 = 핀/포커스. 다자 미팅 대응) ──
 // 발화자 강조·이름표·연결품질·음소거표시는 ParticipantTile 기본 제공(@livekit/components-styles).
 function VideoGrid() {
@@ -372,6 +417,7 @@ function VideoGrid() {
   //   단 1:1(참가자 2명)은 상대를 크게(직전과 동일) — 이땐 튈 상대가 없어 안 흔들린다.
   const allParticipants = useParticipants();
   const [pinnedKey, setPinnedKey] = useState(null);
+  const isDesktop = useIsDesktopViewport();
   const cameraTracks = tracks.filter((t) => t.source === Track.Source.Camera);
   // 메인 화면 우선순위: 수동 핀 > 화면 공유 > (1:1이면 상대 카메라) > 없으면 갤러리(격자)
   const manualFocus = pinnedKey ? tracks.find((t) => trackKey(t) === pinnedKey) : null;
@@ -401,9 +447,25 @@ function VideoGrid() {
     // z-[5]·bottom-16 = 자막 오버레이(bottom-4·z-10)가 항상 PiP 위에 보이게.
     const isPipView = !!oneOnOneFocus && !manualFocus && !screenTrack;
     if (isPipView) {
+      // (a) 데스크톱 1:1 = 반반분할(상대 왼쪽·나 오른쪽) — PiP 는 큰 모니터에선 낭비라는
+      //     PO 감성 피드백(#612 (a)). 모바일(세로 화면)은 기존 미트식 PiP 유지.
+      if (isDesktop && others.length > 0) {
+        return (
+          <div className="grid h-full grid-cols-2 gap-2 p-2">
+            <BlurFillTile trackRef={focusTrack} onParticipantClick={pinFromEvent} />
+            <BlurFillTile trackRef={others[0]} onParticipantClick={pinFromEvent} />
+          </div>
+        );
+      }
       return (
         <div className="relative h-full">
-          <FocusLayout trackRef={focusTrack} style={{ height: "100%" }} />
+          {/* (b) 메인(상대) 화면도 blur-fill — 세로영상이면 좌우 띠가 흐릿한 영상으로 채워짐 */}
+          <div className="hw-blurfill relative h-full">
+            {isCamVideoLive(focusTrack) && (
+              <VideoTrack trackRef={focusTrack} className="hw-blurfill-bg" aria-hidden="true" />
+            )}
+            <FocusLayout trackRef={focusTrack} style={{ height: "100%" }} />
+          </div>
           {others.length > 0 && (
             <div className="hw-pip-tile absolute bottom-16 right-3 z-[5] w-[30%] max-w-[200px] min-w-[104px] aspect-[16/10] rounded-xl overflow-hidden shadow-lg ring-1 ring-white/25">
               <ParticipantTile
