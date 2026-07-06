@@ -28,8 +28,9 @@ const baseMetadata = {
     default: "healwith | Korea Cancer Care for International Patients",
     template: "%s | healwith",
   },
+  // "힐위드" 병기: 네이버는 keywords 태그를 안 보고 제목·설명·본문 글자만 매칭 → 한글 브랜드 검색 대응.
   description:
-    "Korean cancer care concierge for international patients from Kazakhstan, Russia, and Central Asia. Video pre-consultation with top oncologists, 6-language interpretation, and full-journey support — from diagnosis to post-treatment follow-up.",
+    "healwith(힐위드) — Korean cancer care concierge for international patients from Kazakhstan, Russia, and Central Asia. Video pre-consultation with top oncologists, 6-language interpretation, and full-journey support — from diagnosis to post-treatment follow-up.",
   keywords: [
     // 브랜드 (고유어)
     "healwith",
@@ -135,6 +136,30 @@ export default async function RootLayout({ children }) {
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, viewport-fit=cover" />
         <meta name="theme-color" content="#0d9488" />
+        {/* 브랜드 구조화데이터(JSON-LD): "힐위드"를 healwith의 공식 별칭으로 선언 — 네이버·구글 한글 브랜드 검색 매칭 */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@graph": [
+                {
+                  "@type": "WebSite",
+                  name: "healwith",
+                  alternateName: ["힐위드", "Healwith"],
+                  url: "https://healwith.co.kr",
+                },
+                {
+                  "@type": "Organization",
+                  name: "healwith",
+                  alternateName: ["힐위드", "Healwith"],
+                  url: "https://healwith.co.kr",
+                  logo: "https://healwith.co.kr/icons/icon-192x192.png",
+                },
+              ],
+            }),
+          }}
+        />
         <link rel="preconnect" href="https://cdn.jsdelivr.net" crossOrigin="anonymous" />
         {/* Pretendard — dynamic-subset(페이지에 쓰인 글리프만 다운로드: 한글 풀폰트 수 MB → 수십 KB)
             + 비차단 로딩(렌더 차단 제거 → FCP/LCP 개선). font-display:swap 이라 폰트 도착 전엔
