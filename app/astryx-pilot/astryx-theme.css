@@ -1,0 +1,23 @@
+/* ============================================================
+ * Astryx 파일럿 전용 스타일 (이 라우트에서만 로드 — 글로벌 무영향)
+ * - reset.css는 일부러 제외: Tailwind preflight(전역)와 충돌 방지.
+ *   Astryx 컴포넌트는 .astryx-* 클래스로 자체 스타일을 가져 reset 없이도 동작.
+ * - 컴포넌트 CSS(astryx.css) + neutral 테마(theme.css)만 로드.
+ * ============================================================ */
+@import "@astryxdesign/core/astryx.css";
+@import "@astryxdesign/theme-neutral/theme.css";
+
+/* ------------------------------------------------------------
+ * HEALO 브랜드 teal 오버라이드
+ * neutral 테마의 accent(진회색 #262626)를 우리 브랜드 teal로 교체.
+ * 토큰 하나만 바꾸면 Button primary·Badge·링크·포커스링 전부 teal로 통일됨
+ * (= Astryx가 파는 "테마=겉모습만" 원리 검증).
+ * 값은 DESIGN.md 토큰(teal-600/700/50) 그대로.
+ * ------------------------------------------------------------ */
+[data-astryx-theme="neutral"] {
+  --color-accent: light-dark(#0d9488, #2dd4bf); /* teal-600 / teal-400 */
+  --color-accent-muted: light-dark(#f0fdfa, #134e4a); /* teal-50 / teal-900 */
+  --color-text-accent: light-dark(#0f766e, #5eead4); /* teal-700 / teal-300 */
+  --color-icon-accent: light-dark(#0d9488, #2dd4bf);
+  --color-on-accent: #ffffff;
+}
