@@ -106,7 +106,7 @@ export default function ForKazakhPatientsPage() {
           </p>
           <div className="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
             <Link
-              href="/consult/start"
+              href="/inquiry"
               className="bg-teal-700 text-white px-8 py-3 rounded-lg font-semibold hover:bg-teal-800 transition"
             >
               Тегін кеңес алу
@@ -277,7 +277,7 @@ export default function ForKazakhPatientsPage() {
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Link
-              href="/consult/start"
+              href="/inquiry"
               className="bg-white text-teal-700 px-8 py-3 rounded-lg font-semibold hover:bg-teal-50 transition"
             >
               Кеңеске жазылу

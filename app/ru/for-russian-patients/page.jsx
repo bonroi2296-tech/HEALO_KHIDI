@@ -83,7 +83,7 @@ const FAQ = [
   },
   {
     q: "Какая виза нужна для лечения в Корее?",
-    a: "Для медицинского лечения оформляется виза C-3-3 (краткосрочный медицинский визит) или D-2 при длительном курсе. healwith помогает со всеми документами.",
+    a: "Для медицинского лечения оформляется виза C-3-3 (краткосрочный медицинский визит) или G-1-10 при длительном курсе лечения. healwith помогает со всеми документами.",
   },
   {
     q: "Как долго длится курс лечения?",
@@ -113,7 +113,7 @@ export default function ForRussianPatientsPage() {
           </p>
           <div className="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
             <Link
-              href="/consult/start"
+              href="/inquiry"
               className="bg-teal-700 text-white px-8 py-3 rounded-lg font-semibold hover:bg-teal-800 transition"
             >
               Бесплатная консультация
@@ -256,7 +256,7 @@ export default function ForRussianPatientsPage() {
                 <li>• Перелёт (Алматы — Сеул): от $400</li>
                 <li>• Диагностика: от $500</li>
               </ul>
-              <Link href="/consult/start" className="mt-4 block text-teal-700 text-sm hover:underline">
+              <Link href="/inquiry" className="mt-4 block text-teal-700 text-sm hover:underline">
                 Получить точный расчёт →
               </Link>
             </div>
@@ -287,7 +287,7 @@ export default function ForRussianPatientsPage() {
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
             <Link
-              href="/consult/start"
+              href="/inquiry"
               className="bg-white text-teal-700 px-8 py-3 rounded-lg font-semibold hover:bg-teal-50 transition"
             >
               Записаться на консультацию
