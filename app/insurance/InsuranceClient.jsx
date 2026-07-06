@@ -14,15 +14,18 @@ const HOSPITAL_STRIP = [
   { slug: "severance-sinchon", name: { ko: "신촌세브란스병원", en: "Sinchon Severance Hospital", ru: "Больница Северанс Синчхон", kz: "Синчон Северанс ауруханасы", zh: "新村世福兰斯医院", ja: "新村セブランス病院" } },
 ];
 
+/* 섹션 이미지 = Madanes/МСР 홈페이지 비주얼(대리석 아트) — 로컬 다운로드본(핫링크 아님).
+   서면 사용허가 전 실서비스 반영 금지(RESEARCH.md §6) — 프리뷰 데모 전용. */
+
 export default function InsuranceClient() {
   const lang = useLang() || "ko";
   const c = COPY[lang] || COPY.ko;
 
   return (
     <div className="bg-white">
-      {/* Hero — 텍스트 + 실사진 (회복 산책) */}
-      <section className="max-w-4xl mx-auto px-4 pt-8 pb-10 md:pt-16 md:pb-14">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+      {/* Hero — 후킹: 헤드라인 + 혜택 불릿 3 + CTA (첫 화면에서 핵심 전부) */}
+      <section className="max-w-4xl mx-auto px-4 pt-8 pb-10 md:pt-14 md:pb-14">
+        <div className="grid grid-cols-1 md:grid-cols-[1.15fr,0.85fr] gap-8 items-center">
           <div>
             <span className="inline-block text-xs font-bold tracking-wide text-teal-700 bg-teal-50 border border-teal-100 rounded-full px-3 py-1 mb-5">
               {c.hero.eyebrow}
@@ -31,37 +34,93 @@ export default function InsuranceClient() {
               {c.hero.title}
             </h1>
             <p className="mt-4 text-base md:text-lg text-gray-500 leading-relaxed">{c.hero.lede}</p>
+            <ul className="mt-5 space-y-2.5">
+              {(c.hero.bullets || []).map((b, i) => (
+                <li key={i} className="flex items-start gap-2.5 text-sm md:text-base font-semibold text-gray-800">
+                  <CheckCircle size={18} className="text-teal-600 shrink-0 mt-0.5" aria-hidden="true" />
+                  <span className="tabular-nums">{b}</span>
+                </li>
+              ))}
+            </ul>
             <Link
               href="/inquiry"
-              className="inline-flex items-center gap-2 mt-6 px-6 py-3 bg-teal-700 hover:bg-teal-800 text-white rounded-xl font-bold transition-colors duration-200"
+              className="inline-flex items-center gap-2 mt-7 px-6 py-3 bg-teal-700 hover:bg-teal-800 text-white rounded-xl font-bold transition-colors duration-200"
             >
               {c.hero.cta} <ArrowRight size={18} />
             </Link>
-            <p className="mt-3 flex items-start gap-1.5 text-sm text-gray-500">
-              <CheckCircle size={15} className="text-teal-600 shrink-0 mt-0.5" aria-hidden="true" />
-              {c.hero.note}
-            </p>
+            <p className="mt-3 text-sm text-gray-500">{c.hero.note}</p>
           </div>
-          <div className="relative h-56 md:h-80 overflow-hidden rounded-2xl border border-gray-100">
+          <div className="relative h-56 md:h-[26rem] overflow-hidden rounded-2xl border border-gray-100">
             <Image
-              src="/images/hero/recovery-walk.jpg"
+              src="/images/insurance/madanes-columns.jpg"
               alt={c.hero.eyebrow}
               fill
               priority
-              sizes="(max-width: 768px) 100vw, 448px"
+              sizes="(max-width: 768px) 100vw, 400px"
               className="object-cover"
             />
           </div>
         </div>
       </section>
 
-      {/* 보험 상품 — 스펙 칩 카드 */}
+      {/* 보험이 부담하는 것 — 혜택 먼저 (두괄식) */}
       <section className="bg-gray-50 border-y border-gray-100">
         <div className="max-w-4xl mx-auto px-4 py-12 md:py-16">
-          <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-3">{c.products.title}</h2>
-          <p className="text-base text-gray-600 leading-relaxed max-w-3xl mb-5">{c.products.lede}</p>
-          {/* 대기기간 정직 고지 콜아웃 */}
-          <div className="flex gap-3 bg-amber-50 border border-amber-100 rounded-xl p-4 mb-8 md:mb-10 max-w-3xl">
+          <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-3">{c.coverage.title}</h2>
+          <p className="text-base text-gray-600 leading-relaxed max-w-3xl mb-8">{c.coverage.lede}</p>
+          <ul className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
+            {c.coverage.items.map((item, i) => (
+              <li key={i} className="flex gap-2.5 bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+                <CheckCircle size={18} className="text-teal-600 shrink-0 mt-0.5" aria-hidden="true" />
+                <div>
+                  <h3 className="text-sm md:text-base font-bold text-gray-900">{item.title}</h3>
+                  <p className="mt-0.5 text-sm text-gray-500 leading-relaxed">{item.body}</p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
+
+      {/* 절차 5단계 — 타임라인 */}
+      <section className="max-w-4xl mx-auto px-4 py-12 md:py-16">
+        <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-8 md:mb-10">{c.steps.title}</h2>
+        <ol className="relative">
+          <span className="absolute left-[18px] top-3 bottom-3 w-px bg-teal-200" aria-hidden="true" />
+          {c.steps.items.map((s, i) => (
+            <li key={i} className="relative flex gap-4 md:gap-6 pb-6 last:pb-0">
+              <span className="relative z-10 shrink-0 w-9 h-9 rounded-full bg-teal-700 text-white font-bold flex items-center justify-center text-sm ring-4 ring-white">
+                {String(i + 1).padStart(2, "0")}
+              </span>
+              <div className="flex-1 border border-gray-200 rounded-xl p-4 md:p-5 hover:border-teal-300 hover:shadow-sm transition-all duration-200">
+                <h3 className="text-base md:text-lg font-bold text-gray-900 mb-1">{s.title}</h3>
+                <p className="text-sm md:text-base text-gray-500 leading-relaxed">{s.body}</p>
+              </div>
+            </li>
+          ))}
+        </ol>
+      </section>
+
+      {/* 보험 상품 상세 — 스펙 칩 카드 (+ 정의의 여신 = МСР 사이트 비주얼) */}
+      <section className="bg-gray-50 border-y border-gray-100">
+        <div className="max-w-4xl mx-auto px-4 py-12 md:py-16">
+          <div className="grid grid-cols-1 md:grid-cols-[1fr,220px] gap-6 items-center mb-6">
+            <div>
+              <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-3">{c.products.title}</h2>
+              <p className="text-base text-gray-600 leading-relaxed">{c.products.lede}</p>
+            </div>
+            <div className="relative hidden md:block h-40 overflow-hidden rounded-xl border border-gray-100">
+              <Image
+                src="/images/insurance/madanes-justice.jpg"
+                alt={c.products.title}
+                fill
+                sizes="220px"
+                className="object-cover"
+              />
+            </div>
+          </div>
+          {/* 대기기간 고지 콜아웃 */}
+          <div className="flex gap-3 bg-amber-50 border border-amber-100 rounded-xl p-4 mb-8 max-w-3xl">
             <Info size={18} className="text-amber-500 shrink-0 mt-0.5" aria-hidden="true" />
             <p className="text-sm text-gray-700 leading-relaxed">{c.products.waitNote}</p>
           </div>
@@ -96,44 +155,8 @@ export default function InsuranceClient() {
         </div>
       </section>
 
-      {/* 보험이 부담하는 것 */}
+      {/* 왜 한국 — 큰 숫자 + 동행(텍스트) + 병원 실사진 스트립 */}
       <section className="max-w-4xl mx-auto px-4 py-12 md:py-16">
-        <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-3">{c.coverage.title}</h2>
-        <p className="text-base text-gray-600 leading-relaxed max-w-3xl mb-8">{c.coverage.lede}</p>
-        <ul className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
-          {c.coverage.items.map((item, i) => (
-            <li key={i} className="flex gap-2.5 border border-gray-200 rounded-xl p-4">
-              <CheckCircle size={18} className="text-teal-600 shrink-0 mt-0.5" aria-hidden="true" />
-              <div>
-                <h3 className="text-sm md:text-base font-bold text-gray-900">{item.title}</h3>
-                <p className="mt-0.5 text-sm text-gray-500 leading-relaxed">{item.body}</p>
-              </div>
-            </li>
-          ))}
-        </ul>
-      </section>
-
-      {/* 절차 5단계 — 타임라인 */}
-      <section className="max-w-4xl mx-auto px-4 pt-0 pb-12 md:pb-16">
-        <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-8 md:mb-10">{c.steps.title}</h2>
-        <ol className="relative">
-          <span className="absolute left-[18px] top-3 bottom-3 w-px bg-teal-200" aria-hidden="true" />
-          {c.steps.items.map((s, i) => (
-            <li key={i} className="relative flex gap-4 md:gap-6 pb-6 last:pb-0">
-              <span className="relative z-10 shrink-0 w-9 h-9 rounded-full bg-teal-700 text-white font-bold flex items-center justify-center text-sm ring-4 ring-white">
-                {String(i + 1).padStart(2, "0")}
-              </span>
-              <div className="flex-1 border border-gray-200 rounded-xl p-4 md:p-5 hover:border-teal-300 hover:shadow-sm transition-all duration-200">
-                <h3 className="text-base md:text-lg font-bold text-gray-900 mb-1">{s.title}</h3>
-                <p className="text-sm md:text-base text-gray-500 leading-relaxed">{s.body}</p>
-              </div>
-            </li>
-          ))}
-        </ol>
-      </section>
-
-      {/* 왜 한국 — 큰 숫자 + 의료진 사진 + 병원 실사진 스트립 */}
-      <section className="max-w-4xl mx-auto px-4 pt-0 pb-12 md:pb-16">
         <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-3">{c.whyKorea.title}</h2>
         <p className="text-base text-gray-600 leading-relaxed max-w-3xl mb-8">{c.whyKorea.lede}</p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
@@ -144,20 +167,9 @@ export default function InsuranceClient() {
             <p className="mt-3 text-sm md:text-base text-gray-700 leading-relaxed">{c.whyKorea.stat.label}</p>
             <p className="mt-2 text-[11px] text-gray-500 leading-relaxed">{c.whyKorea.stat.source}</p>
           </div>
-          <div className="border border-gray-200 rounded-xl overflow-hidden">
-            <div className="relative h-36 md:h-40">
-              <Image
-                src="/images/immune-gangseo-team.jpg"
-                alt={c.whyKorea.support.title}
-                fill
-                sizes="(max-width: 768px) 100vw, 448px"
-                className="object-cover"
-              />
-            </div>
-            <div className="p-5 md:p-6">
-              <h3 className="text-base md:text-lg font-bold text-gray-900 mb-1.5">{c.whyKorea.support.title}</h3>
-              <p className="text-sm text-gray-500 leading-relaxed">{c.whyKorea.support.body}</p>
-            </div>
+          <div className="border border-gray-200 rounded-xl p-6 md:p-7 flex flex-col justify-center">
+            <h3 className="text-base md:text-lg font-bold text-gray-900 mb-2">{c.whyKorea.support.title}</h3>
+            <p className="text-sm md:text-base text-gray-500 leading-relaxed">{c.whyKorea.support.body}</p>
           </div>
         </div>
         <h3 className="text-lg md:text-xl font-bold text-gray-900 mt-10 mb-2">{c.whyKorea.hospitals.title}</h3>
@@ -180,15 +192,28 @@ export default function InsuranceClient() {
         </div>
       </section>
 
-      {/* B2B — 보험사·어시스턴스 제휴 안내 */}
+      {/* B2B — 제휴 안내 (МСР 홈페이지 비주얼 + 로고) */}
       <section className="bg-gray-50 border-y border-gray-100">
         <div className="max-w-4xl mx-auto px-4 py-12 md:py-16">
-          <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-4">{c.partner.title}</h2>
-          <p className="text-base text-gray-600 leading-relaxed max-w-3xl">{c.partner.body}</p>
-          {/* 언급된 어시스턴스사 로고 — 로컬 자산(핫링크 아님). 서면 사용허가 전 실서비스 반영 금지(RESEARCH.md §6) */}
-          <div className="flex flex-wrap items-center gap-x-8 gap-y-4 mt-8">
-            <Image src="/images/insurance/managedcare-ru-logo.png" alt="ManagedCare Russia (МСР)" width={130} height={41} className="h-9 w-auto" />
-            <Image src="/images/insurance/madanes-global-logo.png" alt="Madanes Global" width={200} height={25} className="h-6 w-auto" />
+          <div className="grid grid-cols-1 md:grid-cols-[1fr,280px] gap-8 items-center">
+            <div>
+              <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-4">{c.partner.title}</h2>
+              <p className="text-base text-gray-600 leading-relaxed">{c.partner.body}</p>
+              {/* 로고·이미지 = 로컬 자산(핫링크 아님). 서면 사용허가 전 실서비스 반영 금지(RESEARCH.md §6) */}
+              <div className="flex flex-wrap items-center gap-x-8 gap-y-4 mt-8">
+                <Image src="/images/insurance/managedcare-ru-logo.png" alt="ManagedCare Russia (МСР)" width={130} height={41} className="h-9 w-auto" />
+                <Image src="/images/insurance/madanes-global-logo.png" alt="Madanes Global" width={200} height={25} className="h-6 w-auto" />
+              </div>
+            </div>
+            <div className="relative hidden md:block h-48 overflow-hidden rounded-xl border border-gray-100">
+              <Image
+                src="/images/insurance/madanes-partners.jpg"
+                alt={c.partner.title}
+                fill
+                sizes="280px"
+                className="object-cover"
+              />
+            </div>
           </div>
         </div>
       </section>
