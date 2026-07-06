@@ -7,9 +7,9 @@
 
 ---
 
-## 🔖 세션 핸드오프 (2026-07-06 오후 — Meta Astryx 디자인 시스템 검토·파일럿 3개: 환자앞단 A/B + 백오피스 테이블. PO 방향 = 하이브리드로 기움, 2026-07-07 이후 추가 테스트하기로)
+## 🔖 세션 핸드오프 (2026-07-06 오후~저녁 — 디자인 시스템 3연구(Astryx→Stitch→제너레이티브UI) → **DESIGN.md 허브화 + gen-UI 실제 Gemini 연결**. 방향 = 하이브리드 + "DESIGN.md를 뇌로 3도구")
 
-> PO가 Astryx(메타 오픈소스 React 디자인 시스템) 기사 링크를 주며 "분석해봐" → 심층 리서치 후 **화면 파일럿**으로 진행. 결론 방향: **환자 앞단(공개 페이지)=우리 현재 teal 톤 유지 / 백오피스(관리화면)=Astryx** 하이브리드. PO가 "일단 (2026-07-07 이후) 추가로 테스트해보게 핸드오프" 요청 → 아직 **확정 아님**(파일럿 유지, 정식 도입 미결정).
+> PO가 기사 3개를 연달아 던짐: ①Astryx ②Google Stitch ③브런치 "제너레이티브 UI". 매번 분석→"더 깊이"→파일럿. **통합 결론: 셋은 경쟁이 아니라 한 파이프라인의 층 — DESIGN.md(규칙=뇌)를 Stitch(디자인타임 생성)·컴포넌트(프런트=우리Tailwind/백오피스=Astryx)·Vercel AI SDK(런타임 챗봇)가 각자 소비.** PO가 시작점으로 "DESIGN.md 허브화" 선택 → 실행. 이어 gen-UI(챗봇이 검증 컴포넌트 렌더)를 개념→**실제 Gemini 툴콜까지** 파일럿. 전부 PR #669(draft)에. PO "오늘은 마무리·핸드오프".
 
 **1. 이번 세션 한 일**
 - **Astryx 심층 리서치**(웹): 실체 = `facebook/astryx`, MIT, 베타(v0.1.3), 메타 사내 8년·13,000앱. 핵심 = React+StyleX + **CLI/MCP 매니페스트**("AI가 읽는 디자인 규칙"). 경쟁(shadcn·Radix·MUI) 대비 차별점(swizzle 이젝트·context-aware spacing·JSON manifest=프론트판 OpenAPI). 한계: StyleX 러닝커브·베타·마케팅글이 리스크 숨김.
@@ -20,11 +20,16 @@
   - 의존성 추가: `@astryxdesign/core`·`theme-neutral`·`@stylexjs/stylex` (package.json).
 - **1차 프리뷰 버그 2건 수정**(PO 스샷 제보): ①기기 다크모드 시 Astryx가 어두워져 밝은 사이트 크롬과 충돌 → `color-scheme:light` 강제 ②Tailwind preflight가 Astryx 버튼 배경을 덮어 투명 → **astryx.css를 de-layer**(`app/astryx-pilot/_vendor/astryx-unlayered.css`)해 원자클래스를 unlayered로 승격.
 - **데스크탑/모바일 스샷**(로컬 `next start`+Playwright)으로 PO에게 A/B·백오피스 3장 전달.
+- **Stitch·제너레이티브UI 리서치**: Stitch = 무료·MCP(Claude Code 지원)·DESIGN.md import/URL추출. ⚠️핵심한계 = **강제력 없음(매 생성 재지정)** → 초안 도구지 브랜드 공장 아님. 브런치글 = "런타임 생성 UI"(디자이너=모듈+규칙 아키텍트). 런타임 gen-UI 실물 1등 = **Vercel AI SDK**(우리 `ai` v6 이미 설치).
+- **DESIGN.md 허브화**(커밋 `477e45e`): 상단 「이 문서의 지위」표(세 도구 소비 매핑) + §4 토큰에 **hex 병기** + 「Astryx teal 토큰 매핑」CSS(@layer 경고 포함) + 「런타임 gen-UI 화이트리스트+가드레일」. 기존 톤규칙·금지목록 그대로(추가만).
+- **gen-UI 파일럿**: `/astryx-pilot/genui`(커밋 `b46a574`) = 챗봇이 텍스트 대신 검증 컴포넌트(병원비교·예약슬롯·비용요약·채널) 렌더. **실제 LLM 연결**(커밋 `6cf9f3e`) = `/api/astryx-pilot/genui`에서 Gemini가 화이트리스트 tool 4개 중 선택(execute 없음=렌더는 클라, 자유생성 아님). 안전패턴: 회수제한+aiGuard+에러코드형. 키 없으면 키워드 모의 폴백.
 
 **2. 왜 그렇게 했는지**
 - **전면 즉시 도입 안 함**: 베타 + 8/27 중간평가 앞 + 150컴포넌트는 1인엔 오버킬. → 리스크를 화면 파일럿으로 상한.
 - **하이브리드로 기운 근거**: 환자 앞단(불안한 암환자)엔 우리 톤의 여백·큰 숫자가 안심 톤. 백오피스(정보밀도)엔 Astryx `Table`·콤팩트함이 실익 큼(손수 Tailwind로 짜는 시간 절약). PO도 모바일에서 "Astryx가 콤팩트해서 좋다"고 함(=백오피스 강점).
 - **de-layer가 핵심 발견**: 우리 Tailwind 3.4는 `@tailwind base`(unlayered)라 preflight가 Astryx의 `@layer` 컴포넌트 스타일을 이김 → **정식 도입 시 글로벌 Tailwind를 @layer로 재편해야 함**(1회성 통합 비용, 파일럿이 미리 잡음).
+- **DESIGN.md 허브화가 1번인 이유**: 색·톤 값이 세 도구에 흩어지면 드리프트. §4 한 곳(hex 포함)만 SoR로 두면 Stitch import·AI SDK 가드·Astryx 토큰이 다 따라옴. 리스크 0(문서), 나머지의 토대라 먼저.
+- **gen-UI가 저리스크·우선인 이유**: 이미 `ai` v6 설치됨 + 화이트리스트만 렌더 = 의료 안전(자유생성 X). 환자 퍼널 개선 = KHIDI 유치전환(=평가 점수)에 직접 기여.
 
 **3. 안 끝났거나 보류**
 - ⏸ **Astryx 방향 미확정**: PO가 2026-07-07 이후 파일럿 3화면을 더 테스트한 뒤 결정. 파일럿·PR #669는 그대로 유지(초안). 확정 시 → PROJECT_CONTEXT·DESIGN.md에 기록 + 실제 백오피스 1화면 마이그레이션(글로벌 Tailwind @layer 재편부터).
@@ -37,18 +42,21 @@
 - 브라우저 스샷은 **원격 프리뷰 URL이 프록시로 안 열림**(ERR_CONNECTION_RESET) → 로컬 `next start`(localhost는 프록시 우회)로 찍어야 함.
 
 **5. 다음 세션이 먼저 할 일**
-1. **PO의 추가 테스트(2026-07-07~) 결과 수렴** → 하이브리드 확정이면: DESIGN.md에 "백오피스=Astryx" 방향 명문화 + 글로벌 Tailwind @layer 재편 방법 설계(실제 백오피스 1화면 마이그레이션 착수 전 필수).
-2. (이전분) 다기기 화상 테스트 — 링크 2026-07-10 만료, 아래 이전 블록 5번 참조.
+1. **PO의 파일럿 테스트 결과 수렴**: 3화면(단독/compare/backoffice) + gen-UI(`/astryx-pilot/genui`, 실제 Gemini) PO가 폰으로 만져본 뒤 방향 확정. 확정 시 남은 순서: **③Stitch 초안(무료·무커밋 액셀러레이터) ④Astryx 백오피스(글로벌 Tailwind @layer 재편부터, 8/27 평가 후)**.
+2. **gen-UI 실전 승격 검토**(원하면): 파일럿 `/api/astryx-pilot/genui`의 tool 패턴을 실제 공개 챗(`/api/public/chat/*`)에 붙일지. 컴포넌트 6언어화·실데이터 연결·스트리밍이 과제.
+3. (이전분) 다기기 화상 테스트 — 링크 2026-07-10 만료, 아래 이전 블록 5번 참조.
 
 **6. 검증 상태**
 - ✅ `next build --webpack` 성공(파일럿 4라우트 전부 빌드 확인) · `check:content` 통과 · eslint 에러 0(레이아웃 metadata export 경고 1건만, Next 관례상 무해).
 - ✅ 배포 CSS 실검증: de-layer 적용(서빙 CSS에 `@layer astryx-base` 0) · `color-scheme:light` · primary 버튼 `background:var(--color-accent)`=teal 확인.
 - ✅ 백오피스 테이블 로컬 실렌더 확인(데스크탑 스샷 — 배지·액션·필터 정상). 모바일은 테이블 칼럼 빡빡(백오피스=데스크탑 화면이라 실무 영향 작음).
-- **PR #669**: draft, 열림. CI = **Vercel 프리뷰 하나뿐**(이 브랜치도 GitHub Actions 미부착). 파일럿 3화면 프리뷰 전부 **배포 READY·HTTP 200 확인**(`/astryx-pilot`·`/compare`·`/backoffice`).
-- ⚠️ **검증 못 함**: "AI가 만든 느낌 사라졌나 / 톤 어울리나"는 **PO 육안 판정 몫**(2026-07-07~ 테스트) — 어시스턴트가 판정 불가한 항목.
+- ✅ **DESIGN.md 허브화**: `check:content` 통과(추가만, 톤규칙 불변). gen-UI 라우트 `next build` 성공.
+- ✅ **gen-UI 실제 Gemini 검증(curl 실측, 배포 프리뷰)**: 4개 의도 → 정확한 tool 4/4 선택(병원비교는 specialty:"폐암" 인자까지 추출) + 비매칭("안녕") = 안전 텍스트. 전부 HTTP 200. aiGuard·회수제한 적용.
+- **PR #669**: draft, 열림. CI = **Vercel 프리뷰 하나뿐**(GitHub Actions 미부착). 파일럿 라우트 프리뷰 전부 배포 READY·200(`/astryx-pilot`·`/compare`·`/backoffice`·`/genui`).
+- ⚠️ **검증 못 함**: ①"AI 느낌/톤" = PO 육안 몫. ②**gen-UI 배포화면 스샷 못 찍음** — Playwright가 프록시로 프리뷰 못 엶(ERR_CONNECTION_RESET), 로컬은 Gemini 키 없어 모의만. 실제LLM은 curl로만 검증(렌더 컴포넌트는 로컬 모의 스샷과 동일). PO가 폰으로 실화면 확인 필요.
 
 **7. 다음 세션 첫 프롬프트**
-> 먼저 docs/PROJECT_CONTEXT.md 최상단 핸드오프를 읽어. 지난 세션(2026-07-06)에 Astryx 디자인 시스템 파일럿 3개(단독/compare/backoffice, PR #669 draft, 프리뷰 전부 배포됨) 만들어놨고 방향은 하이브리드(환자앞단=우리 톤, 백오피스=Astryx)로 기울었어. 내가 파일럿 더 보고 하이브리드 확정할지 정할게 — 확정이면 DESIGN.md 방향 명문화 + 글로벌 Tailwind @layer 재편 설계부터 하자.
+> 먼저 docs/PROJECT_CONTEXT.md 최상단 핸드오프를 읽어. 지난 세션(2026-07-06)에 디자인시스템 3연구(Astryx·Stitch·제너레이티브UI) 하고 **DESIGN.md를 세 도구가 읽는 허브로 확장** + **챗봇 gen-UI를 실제 Gemini 툴콜까지** 파일럿(PR #669 draft, `/astryx-pilot/*`·`/genui` 배포됨) 해놨어. 방향 = 하이브리드 + "DESIGN.md를 뇌로". 내가 폰으로 파일럿 만져보고 정할게 — 다음은 Stitch 초안이나 gen-UI 실전 승격, 아니면 Astryx 백오피스(평가 후) 중에.
 
 ---
 
