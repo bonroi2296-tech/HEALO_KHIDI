@@ -340,7 +340,11 @@ export const HospitalDetailPage = ({ selectedId, setView, onTreatmentClick, init
     hospital?.supported_languages?.forEach((l) => items.push({ icon: Languages, label: l }));
     hospital?.amenities?.forEach((a) => items.push({ icon: Coffee, label: a }));
     hospital?.medical_equipment?.forEach((e) => items.push({ icon: Activity, label: e }));
-    hospital?.certifications?.forEach((c) => items.push({ icon: Award, label: `${c.type?.replace(/_/g, " ")} — ${c.issuer}` }));
+    hospital?.certifications?.forEach((c) => {
+      // DB 컬럼은 text[](단순 문자열), 과거 코드는 {type, issuer} 객체 가정 → 둘 다 안전 처리
+      const label = typeof c === "string" ? c : [c?.type?.replace(/_/g, " "), c?.issuer].filter(Boolean).join(" — ");
+      if (label) items.push({ icon: Award, label });
+    });
     return items;
   }, [hospital]);
 
