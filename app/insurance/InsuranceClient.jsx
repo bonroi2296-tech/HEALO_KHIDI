@@ -51,8 +51,9 @@ export default function InsuranceClient() {
             <p className="mt-3 text-sm text-gray-500">{c.hero.note}</p>
           </div>
           <div className="relative h-56 md:h-[26rem] overflow-hidden rounded-2xl border border-gray-100">
+            {/* 의사-환자 상담+서류(보험 확인) — Unsplash 무료 라이선스, 로컬 저장(출처: photo-1758691461935) */}
             <Image
-              src="/images/insurance/madanes-columns.jpg"
+              src="/images/insurance/hero-consult.jpg"
               alt={c.hero.eyebrow}
               fill
               priority
