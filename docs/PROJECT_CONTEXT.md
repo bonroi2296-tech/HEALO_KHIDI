@@ -25,7 +25,7 @@
 **3. 안 끝났거나 보류 (PO 결정/라이브 검증 필요)**
 - 🔄 **2026-07-06 오전 PO 버튼 결정 — 3건 전부 착수**: ①notes 암호화 + ③2인 레이아웃 = **PR #654** (구현·테스트 완료, 보안+큰 UI라 자동머지 제외 → PO 프리뷰 검토 후 머지). ②webhook 교체 = 가이드 전달, PO 대시보드 작업 대기. 테스트 상담방 2개(50d5bc43…·aa9804ee…)는 PO 승인 받아 **삭제 완료**(세션 2+토큰 3, 딸린 기록 없음 확인). #567 은 main 합류 후 schema-refs 가드 실패 → `partner_outreach` 스냅샷 등록으로 수리.
 - **①상담 notes 암호화** (→ PR #654): 기존 평문 행은 서버 조회 시점 "기회주의적 백필"로 이전(이 환경엔 ENCRYPTION_KEY_V1 없어 일괄 변환 불가). 배포 후 어드민 목록 1회 열람으로 백필 확인할 것.
-- **②LiveKit 대시보드 webhook URL 실제 교체**: 코드·주석은 고쳤으나 실제 이벤트 수신은 대시보드에서 `https://healwith.co.kr/api/livekit/webhook` 등록해야 함(외부 설정, PO 5분).
+- **②LiveKit webhook — ✅ 등록 완료 (2026-07-06 오전, PO 직접)**: 알고 보니 옛 주소가 등록돼 있던 게 아니라 **webhook 자체가 한 번도 등록된 적 없었음**(이벤트 0의 진짜 이유). PO가 대시보드에서 `https://healwith.co.kr/api/livekit/webhook` + Signing key `healo`(APIt2fLT4qDAAxi)로 신규 등록. 남은 검증: 첫 실통화(오늘 다기기 테스트) 때 Vercel 로그에서 `[livekit/webhook]` 수신 확인 — 서명 불일치면 `signature or parse failed` 워닝이 남으니 그걸로 판별.
 - **③2인 데스크톱 반반분할 / 세로영상 blur-fill 배경** (→ PR #654): 라이브 2인 검증은 프리뷰에서 (다기기 테스트와 병행 가능).
 - 잔존: 게스트토큰 E2E 스펙 고정 실패.
 
