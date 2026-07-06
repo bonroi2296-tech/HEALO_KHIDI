@@ -66,10 +66,6 @@ export function partnerHospitalLdList() {
 }
 
 /**
- * 치료 여정 페이지용 그래프: MedicalBusiness(healwith) + BreadcrumbList.
- * @param {{ description?: string, url?: string }} [opts]
- */
-/**
  * 보험 가이드 페이지용 그래프: WebPage(주제=중증질환 보험의 한국 치료 커버) + BreadcrumbList.
  * @param {{ description?: string, url?: string }} [opts]
  */
@@ -92,6 +88,10 @@ export function insuranceGuideLd({ description, url = "/insurance" } = {}) {
   return [page, crumbs];
 }
 
+/**
+ * 치료 여정 페이지용 그래프: MedicalBusiness(healwith) + BreadcrumbList.
+ * @param {{ description?: string, url?: string }} [opts]
+ */
 export function careJourneyLd({ description, url = "/care-journey" } = {}) {
   const business = {
     "@context": "https://schema.org",
