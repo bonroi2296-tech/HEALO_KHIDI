@@ -22,6 +22,11 @@ import { v4 as uuidv4 } from "uuid";
 import {
   requireAuthenticatedUser,
 } from "@/lib/auth/requireConsultationAccess";
+import {
+  encryptSessionNotes,
+  readSessionNotes,
+  backfillSessionNotesEncryption,
+} from "@/lib/khidi/consultationNotes";
 
 export async function POST(request: NextRequest) {
   try {
@@ -149,7 +154,9 @@ export async function POST(request: NextRequest) {
       livekit_room_name: liveroomName,
       // ⚠ livekit_token_*  필드는 더 이상 사전 발급하지 않음.
       //    참가자가 /api/khidi/consultation/token 에서 본인 인증으로 받음.
-      notes: notes || null,
+      // 메모는 PII 가 섞이므로 암호문으로만 저장 (is_test 판정은 위에서 평문으로 이미 끝남)
+      notes: null,
+      notes_encrypted: encryptSessionNotes(notes),
       is_test: isTestSession,
     };
 
@@ -241,6 +248,7 @@ export async function GET(request: NextRequest) {
         partner_doctor_id,
         created_at,
         notes,
+        notes_encrypted,
         cancer_patient_intakes(id, cancer_type, cancer_stage),
         hospitals(id, name, address),
         partner_doctors(id, name_ko, name_en, subspecialty, position_ko)
@@ -270,9 +278,21 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // 평문 잔존 행은 조회 김에 암호문으로 이전(기회주의적 백필, best-effort)
+    const rows = (data || []) as any[];
+    try {
+      await backfillSessionNotesEncryption(supabaseAdmin, rows);
+    } catch {}
+
+    // 응답: 암호문은 감추고 복호화된 notes 만 (필드명 유지 — 화면 변경 불필요)
+    const sanitized = rows.map(({ notes, notes_encrypted, ...rest }) => ({
+      ...rest,
+      notes: readSessionNotes({ notes, notes_encrypted }),
+    }));
+
     return Response.json({
       ok: true,
-      data: data || [],
+      data: sanitized,
       total: count,
       limit,
       offset,

@@ -10,7 +10,22 @@
  *   이 테스트가 그 부류(화면↔서버 필드 계약 어긋남)를 커밋 전에 잡는다.
  */
 
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, beforeAll } from "vitest";
+
+// notes 암호화 경로(encryptionV2)는 `import "server-only"` 포함 → 테스트에선 no-op.
+vi.mock("server-only", () => ({}));
+
+// server-only 를 무력화하면 인앱 알림 경로가 실제로 돌며 mock supabase 캡처를
+// notifications insert 로 덮어쓴다 → 알림은 별도 mock 으로 차단.
+vi.mock("@/lib/notifications/inApp", () => ({
+  sendInAppNotification: vi.fn(async () => {}),
+}));
+
+beforeAll(() => {
+  // 32 bytes hex — 테스트 전용 키 (encryptionV2 는 호출 시점에 env 를 읽음)
+  process.env.ENCRYPTION_KEY_V1 =
+    "00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff";
+});
 
 // ── 인증: 어드민으로 통과 ──
 vi.mock("@/lib/auth/requireConsultationAccess", () => ({
@@ -167,5 +182,23 @@ describe("상담 생성 계약 — 어드민 폼(snake_case) → DB insert", () 
   it("명시 isTest=true 지정도 도장된다", async () => {
     await POST(makeReq(adminFormBody({ isTest: true })));
     expect(captured.insert.is_test).toBe(true);
+  });
+
+  // ── notes 암호화 저장 (2026-07-06, PO 승인) ──
+  it("notes 는 평문 컬럼이 아니라 암호문(notes_encrypted)으로 저장된다", async () => {
+    await POST(makeReq(adminFormBody({ notes: "환자 김OO, 위암 3기 상담" })));
+    expect(captured.insert.notes).toBeNull();
+    expect(captured.insert.notes_encrypted).toBeTruthy();
+    expect(captured.insert.notes_encrypted).not.toContain("김OO");
+    const { decryptStringNullable } = await import("@/lib/security/encryptionV2");
+    expect(decryptStringNullable(captured.insert.notes_encrypted)).toBe(
+      "환자 김OO, 위암 3기 상담"
+    );
+  });
+
+  it("notes 미입력이면 notes_encrypted 도 null", async () => {
+    await POST(makeReq(adminFormBody({ notes: undefined })));
+    expect(captured.insert.notes).toBeNull();
+    expect(captured.insert.notes_encrypted).toBeNull();
   });
 });

@@ -47,6 +47,33 @@
   fill: #6fd3c4;
 }
 
+/*
+ * ── #612 감성 (a)(b): 1:1 반반분할·세로영상 blur-fill ──
+ * 구조: .hw-blurfill 래퍼 안에 [뒷장 .hw-blurfill-bg(같은 트랙, cover+blur)] +
+ *       [앞장 LiveKit 타일(video contain — 영상 전체 보임, 잘림 없음)].
+ * 세로영상(폰)일 때 좌우 여백이 검은띠 대신 '그 영상의 흐릿한 확대판'으로 채워진다.
+ * 가로영상은 앞장이 타일을 꽉 채워 뒷장이 안 보임 → 방향 감지 불필요.
+ */
+.hw-blurfill .lk-participant-tile,
+.hw-blurfill .lk-focus-layout {
+  position: relative;
+  z-index: 1;
+  background: transparent; /* 타일 기본 배경(불투명)을 걷어 뒷장 blur 가 비치게 */
+}
+.hw-blurfill .lk-participant-tile video:not([data-lk-source="screen_share"]) {
+  object-fit: contain;
+}
+.hw-blurfill-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: blur(26px) brightness(0.5) saturate(1.1);
+  transform: scale(1.12); /* blur 시 가장자리 투명 비침 방지 */
+}
+
 /* 1:1 PiP(내 화면 작은 창) 안에서는 이름표/아이콘이 타일을 가리지 않게 축소 */
 .hw-pip-tile .lk-participant-metadata {
   transform: scale(0.8);
