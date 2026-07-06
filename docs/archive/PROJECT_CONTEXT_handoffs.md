@@ -1,5 +1,48 @@
 # PR
 
+## 🔖 세션 핸드오프 (2026-07-06 아침 — 화상 원격협진(LiveKit) 검증+수리 2건 배포 + 야간 자율 순찰 12회 무사고)
+
+> PO 지시("화상회의 지난번 고친 거 진짜 고쳐졌는지 확인 + 개선점 고쳐 + 2026-07-06 07시까지 순찰")로 진행한 **화상 트랙 전용 세션**(2026-07-05 저녁~2026-07-06 07시 KST). 병렬로 돈 AI-안전 루프 세션(#636·#640·#641, 아래 블록)과 별개 트랙.
+
+**1. 이번 세션 한 일**
+- **검증**: 지난 화상 수정 뭉치(#576~#612 · iOS마이크 #269 · 게스트언어 #360)가 전부 코드에 정상 반영됨을 서브에이전트 전수 대조(file:line)로 확인. 실DB `admin_audit_logs` = 게스트 입장(`CONSULTATION_GUEST_JOIN`) 다수 성공, 클라 오류는 "카메라·마이크 없는 데스크톱" 2건뿐(예상된 폴백), 크래시 0.
+- **PR #637 (머지·배포)** — 화상 4건: ①자막 DataChannel이 `livekit-client` v2 API 오용(`{kind:...}` — 이 버전에 없는 필드)으로 RELIABLE 의도가 **LOSSY 전송**되던 것 → `{reliable:true}`(불안정 CIS 회선 자막 유실 방지) ②webhook `room_finished` 자동 `completed` 제거(K-02 인플레 + 완료 시 `token`·`guest-join`이 `consultation_closed` 반환해 **재입장까지 막던** 부작용 예방) ③옛 도메인 `healo-khidi.com`→`healwith.co.kr`(webhook 주석·EXTERNAL_SETUP_GUIDE) + `check:content` 가드룰(MKT-08) ④카메라 꺼짐 검은 박스→브랜드 teal 아바타 CSS.
+- **PR #642 (머지·배포)** — webhook 무완료 규칙을 계약 회귀 테스트로 잠금(4테스트: room_finished/participant_joined DB 무변경, recording_finished만 recording_url 저장). 테스트 전용.
+- **야간 자율 순찰 45분 간격 12회** (2026-07-05 13:09Z~22:03Z) 전건 정상: health db:up · 홈/inquiry/telemedicine 200 · 신규 audit 오류 0 · 화상 회귀 징후 0.
+
+**2. 왜 그렇게 했는지**
+- 자막 LOSSY 버그: livekit-client v2에서 `DataPublishOptions`가 `{reliable:boolean}`로 바뀌었는데 옛 `{kind:DataPacket_Kind.RELIABLE}`가 조용히 무시됨(타입 에러도 안 남 — JS). 도크스트링이 "delivery guarantee엔 Reliable"이라 명시 = 자막은 reliable이 맞음.
+- webhook 자동완료는 dormant(옛 도메인이라 이벤트 0)였으나, URL 교체 시 활성화될 잠재 폭탄 + K-02는 8/27 평가 잔금 직결이라 **선제 차단 + 테스트로 잠금**. "되돌아가기 쉬운 부정 로직"이라 #642로 고정.
+- 카메라오프 아바타·자막 등은 God컴포넌트(2883줄) 로직 무관한 CSS/훅 국소 수정만 — 라이브 검증 불가 영역(레이아웃 대수술)은 손대지 않음.
+
+**3. 안 끝났거나 보류 (PO 결정/라이브 검증 필요)**
+- **①상담 notes 평문저장 → 암호화**: `notes_encrypted` 컬럼 미사용, 현재 평문. PII라 규칙상 PO 확인 후. 패턴은 visa/cost-estimates 라우트의 `encryptStringNullable`/`decryptStringNullable` 그대로 + 기존 평문 행 마이그레이션.
+- **②LiveKit 대시보드 webhook URL 실제 교체**: 코드·주석은 고쳤으나 실제 이벤트 수신은 대시보드에서 `https://healwith.co.kr/api/livekit/webhook` 등록해야 함(외부 설정, PO 5분).
+- **③2인 데스크톱 반반분할 / 세로영상 blur-fill 배경**(#612 감성 (a)(b)): 레이아웃 로직이라 라이브 2인 검증 필요 → 자동검증 불가로 보류.
+- 잔존: 게스트토큰 E2E 스펙 고정 실패 / 테스트 상담방 2개(50d5bc43…·aa9804ee…) 삭제 대기(PO 확인).
+
+**4. 주의·함정**
+- 안전감지·통화 정규식의 `\b`+비ASCII 함정은 이 프로젝트 반복 사고(아래 AI루프 블록 #640 참조) — 화상 코드엔 해당 없음.
+- webhook은 `.eq("livekit_room_name", roomName)`로 매칭 — room 이름 = consultation_id 규칙(token 발급 시). 대시보드 URL 교체 후 recording_url이 실제 저장되는지 라이브 확인 권장.
+- 카메라오프 아바타 CSS는 **육안 미검증**(헤드리스라 렌더 못 봄). 구조상 통화는 못 깨뜨림. PO가 별로면 `consultation.css`의 `.lk-participant-placeholder` 블록만 revert.
+
+**5. 다음 세션이 먼저 할 일**
+1. ⚠️ **직전 미검증분 먼저**: ①2인 실제 양방향 영상·자막 송출(월요일 다기기 테스트로 커버) ②카메라오프 아바타 CSS 육안(실통화 시).
+2. **2026-07-06(월) 직원 다기기 테스트** 결과 확인(실패 기기는 `admin_audit_logs` CONSULTATION_CLIENT_ERROR의 `user_agent`로 판독 — 로그 정상 작동 확인함).
+3. PO 결정 3건(위 3번) 중 PO가 고른 것 착수.
+
+**6. 검증 상태**
+- ✅ PR #637·#642 CI 초록(ci + Smoke Tests) → squash 머지 → main-push CI/E2E 초록 + Vercel 프로덕션 배포 후 재검증(health ok·페이지 200·webhook 라우트 405). `check:content`·빌드·상담 단위테스트(24) + webhook 회귀테스트(4) 통과.
+- ✅ 야간 순찰 12회 전건 무사고(실측).
+- ⚠️ **검증 못 함**: 2인 실영상 송출(라이브 2기기 필요 — 월요일 테스트), 카메라오프 아바타 CSS 육안, LiveKit 대시보드 URL 실제 교체 여부(외부 설정).
+
+**7. 다음 세션 첫 프롬프트**
+> 먼저 docs/PROJECT_CONTEXT.md 최상단 읽어. 화상 트랙: 2026-07-06(월)이면 직원 다기기 화상 테스트 결과부터 확인(실패 기기는 admin_audit_logs CONSULTATION_CLIENT_ERROR의 user_agent로 진단). 카메라오프 아바타 CSS는 실통화 때 육안 확인하고 별로면 consultation.css placeholder 블록만 revert. PO 결정 3건(notes 암호화·LiveKit 대시보드 webhook URL 교체·2인 레이아웃) 중 PO가 고른 것 착수. 화상 수정 #637·#642는 배포·검증 완료.
+
+---
+
+---
+
 ## 🔖 세션 핸드오프 (2026-07-06 새벽 — 루프 야간 안전 수리 3건: \b+비ASCII 함정 근절 + 카자흐어 예후 커버, 월요일 다기기 테스트 당일)
 
 > 자율 순찰 루프 계속. 야간(2026-07-05 저녁~07-06 새벽) 순찰 전건 정상 유지하며, 지난 결함 수리에서 발견한 **정규식 `\b`+비ASCII 함정** 부류를 전 소스에서 근절하고 CI로 영구 차단. **오늘(2026-07-06 월) = 직원 다기기 화상상담 테스트 당일** — 여전히 1순위.
