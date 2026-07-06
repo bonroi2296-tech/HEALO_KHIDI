@@ -479,8 +479,8 @@ const DICTIONARY = {
     "survey.thankYouDesc": "Your feedback has been received and will help us improve healwith.",
   },
   ko: {
-    "seo.home.title": "healwith | 해외 암환자 한국 치료 컨시어지",
-    "seo.home.desc": "해외 암환자를 위한 한국 암 치료 컨시어지 — 종양 전문의 화상 사전상담, 6개 언어 지원, 진단부터 사후관리까지 토탈 케어.",
+    "seo.home.title": "healwith 힐위드 | 해외 암환자 한국 치료 컨시어지",
+    "seo.home.desc": "힐위드(healwith) — 해외 암환자를 위한 한국 암 치료 컨시어지. 종양 전문의 화상 사전상담, 6개 언어 지원, 진단부터 사후관리까지 토탈 케어.",
     "seo.treatments.title": "암종별 치료 안내 — 한국 암 치료와 한방 통합 케어 | healwith",
     "seo.treatments.desc": "유방·부인암, 소화기, 간, 폐, 갑상선 등 6개 암종 전문 치료 안내. 한방 통합 면역치료.",
     "seo.hospitals.title": "협력 병원 — healwith 파트너 의료기관",
