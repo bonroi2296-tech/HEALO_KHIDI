@@ -24,6 +24,7 @@ const LABELS = {
     section_patient: "환자 정보",
     section_visa: "사증 정보",
     section_inviter: "초청인 / 유치업자",
+    section_inviterHospital: "초청 의료기관 (외국인환자 유치기관)",
     section_hospital: "치료 의료기관",
     section_schedule: "치료 및 체류 일정",
     section_responsibility: "초청인의 책임",
@@ -31,6 +32,7 @@ const LABELS = {
       name: "성명", nationality: "국적", passport: "여권번호", dob: "생년월일",
       visaType: "사증 유형", duration: "체류 예정 일수", purpose: "방문 목적",
       inviterName: "유치업자 (등록번호)", inviterRep: "대표자", inviterAddress: "주소", inviterContact: "연락처",
+      facilitator: "유치업자 (등록번호)",
       hospital: "의료기관명", doctor: "담당의", regNo: "외국인환자 유치 의료기관 등록번호",
       diagnosis: "진단명", plan: "치료 계획",
       arrival: "예상 입국일", departure: "예상 출국일", totalDays: "총 체류 일수",
@@ -54,6 +56,7 @@ const LABELS = {
     section_patient: "Patient Information",
     section_visa: "Visa Information",
     section_inviter: "Inviter / Patient Facilitator",
+    section_inviterHospital: "Inviting Hospital (Registered Foreign-Patient Facility)",
     section_hospital: "Treatment Facility",
     section_schedule: "Treatment & Stay Schedule",
     section_responsibility: "Inviter's Responsibilities",
@@ -61,6 +64,7 @@ const LABELS = {
       name: "Full Name", nationality: "Nationality", passport: "Passport No.", dob: "Date of Birth",
       visaType: "Visa Type", duration: "Planned Duration (days)", purpose: "Purpose of Visit",
       inviterName: "Facilitator (Reg. No.)", inviterRep: "Representative", inviterAddress: "Address", inviterContact: "Contact",
+      facilitator: "Facilitator (Reg. No.)",
       hospital: "Hospital", doctor: "Attending Physician", regNo: "Foreign Patient Attraction Registration No.",
       diagnosis: "Diagnosis", plan: "Treatment Plan",
       arrival: "Planned Arrival", departure: "Planned Departure", totalDays: "Total Stay",
@@ -100,6 +104,9 @@ export default function VisaInvitationLetter({ data, lang = "en" }) {
   const visa = data?.visa || {};
   const hospital = data?.hospital || {};
   const schedule = data?.schedule || {};
+  // 초청 주체 = 등록 유치의료기관(병원). 있으면 병원 명의 발급, 없으면 유치업자(BONROI) 단독(하위호환).
+  const inviter = data?.inviter || null;
+  const BONROI_LINE = "BONROI · A-2026-01-02-06761";
 
   return (
     <Document>
@@ -162,23 +169,26 @@ export default function VisaInvitationLetter({ data, lang = "en" }) {
           <DataRow label={L.fields.duration} value={visa.durationDays ? `${visa.durationDays} days` : null} />
         </View>
 
-        {/* Inviter */}
-        <Text style={styles.sectionLabel}>03 — {L.section_inviter}</Text>
-        <View>
-          <DataRow
-            label={L.fields.inviterName}
-            value="BONROI · A-2026-01-02-06761"
-          />
-          <DataRow label={L.fields.inviterRep} value="JUYOUNG KANG" />
-          <DataRow
-            label={L.fields.inviterAddress}
-            value="Room 613, 385 Gangseo-ro, Gangseo-gu, Seoul"
-          />
-          <DataRow
-            label={L.fields.inviterContact}
-            value="admin@healwith.co.kr / +82 10 4772 1075"
-          />
-        </View>
+        {/* Inviter — 병원 명의(등록 유치기관) + 유치업자(BONROI) 공동, 없으면 BONROI 단독 */}
+        <Text style={styles.sectionLabel}>
+          03 — {inviter ? L.section_inviterHospital : L.section_inviter}
+        </Text>
+        {inviter ? (
+          <View>
+            <DataRow label={L.fields.hospital} value={lang === "ko" ? inviter.nameKo : inviter.nameEn} />
+            <DataRow label={L.fields.regNo} value={inviter.regNo} />
+            <DataRow label={L.fields.inviterRep} value={lang === "ko" ? inviter.repKo : inviter.repEn} />
+            <DataRow label={L.fields.inviterAddress} value={lang === "ko" ? inviter.addressKo : inviter.addressEn} />
+            <DataRow label={L.fields.facilitator} value={BONROI_LINE} />
+          </View>
+        ) : (
+          <View>
+            <DataRow label={L.fields.inviterName} value={BONROI_LINE} />
+            <DataRow label={L.fields.inviterRep} value="JUYOUNG KANG" />
+            <DataRow label={L.fields.inviterAddress} value="Room 613, 385 Gangseo-ro, Gangseo-gu, Seoul" />
+            <DataRow label={L.fields.inviterContact} value="admin@healwith.co.kr / +82 10 4772 1075" />
+          </View>
+        )}
 
         {/* Hospital */}
         <Text style={styles.sectionLabel}>04 — {L.section_hospital}</Text>
@@ -208,14 +218,21 @@ export default function VisaInvitationLetter({ data, lang = "en" }) {
           </Text>
         ))}
 
-        {/* Signature */}
+        {/* Signature — 초청인 서명(병원 대표) + 유치업자(BONROI) */}
         <View style={styles.signatureRow}>
           <View style={styles.signatureBlock}>
             <View style={styles.signatureLine} />
             <Text style={styles.signatureLabel}>{L.issuedBy}</Text>
             <Text style={{ ...styles.small, marginTop: 2 }}>
-              {L.representative}
+              {inviter
+                ? `${lang === "ko" ? inviter.repKo : inviter.repEn} · ${lang === "ko" ? inviter.nameKo : inviter.nameEn}`
+                : L.representative}
             </Text>
+            {inviter && (
+              <Text style={{ ...styles.small, marginTop: 2 }}>
+                {L.fields.facilitator}: JUYOUNG KANG · BONROI
+              </Text>
+            )}
           </View>
         </View>
 
