@@ -465,6 +465,23 @@ try {
   } catch (e) {
     errors.push(`[의료진드리프트] 검사 실패: ${e.message}`);
   }
+  // /hospitals 목록 페이지의 하드코딩 DOCTORS(작은따옴표 표기)도 같은 부류 — 동일 검사
+  try {
+    const listPage = readFileSync(join(ROOT, "app/hospitals/HospitalsClient.jsx"), "utf8");
+    const live = readFileSync(join(ROOT, "src/lib/data/immuneHospitalInfo.js"), "utf8");
+    const block = listPage.split("const DOCTORS = [")[1]?.split("Branch Config")[0] || "";
+    const names = [...block.matchAll(/name: \{ ko: '([가-힣]{2,5})'/g)].map((m) => m[1]);
+    if (!names.length) {
+      errors.push(`[의료진드리프트] app/hospitals/HospitalsClient.jsx 의 DOCTORS 에서 이름을 못 읽음 — 구조를 바꿨으면 이 검사(§13)도 같이 갱신할 것 (POSTMORTEMS #66)`);
+    }
+    for (const n of names) {
+      if (!live.includes(`"${n}"`)) {
+        errors.push(`[의료진드리프트] /hospitals DOCTORS 의 "${n}" 이 라이브 소스(immuneHospitalInfo.js)에 없음 — 퇴사·개명 가능성. 공식 사이트 대조 후 갱신할 것 (POSTMORTEMS #66)`);
+      }
+    }
+  } catch (e) {
+    errors.push(`[의료진드리프트] /hospitals 검사 실패: ${e.message}`);
+  }
 }
 
 // ── 결과 ────────────────────────────────────────────────────────
