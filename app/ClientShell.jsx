@@ -360,7 +360,8 @@ function ClientShellContent({
               Personal Information Protection Officer:{" "}
               {SITE_INFO.legal.privacyOfficer}
             </div>
-            <div className="pt-2">{SITE_INFO.legal.copyright}</div>
+            {/* 한국어 화면만 "힐위드" 병기(네이버 브랜드 매칭) — 영어 화면 한글누출 가드 준수 */}
+            <div className="pt-2">{langCode === "ko" ? SITE_INFO.legal.copyrightKo : SITE_INFO.legal.copyright}</div>
           </div>
         </div>
       </footer>}

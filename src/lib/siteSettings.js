@@ -30,7 +30,9 @@ export const SITE_INFO = {
     addressLine2: "Seoul, Republic of Korea",
     contactEmail: "admin@healwith.co.kr",
     privacyOfficer: "Juyoung Kang",
-    // "힐위드" 병기: 네이버 검색은 본문에 실제 글자가 있어야 매칭됨 (전 페이지 푸터 노출)
-    copyright: "© healwith(힐위드). All rights reserved.",
+    copyright: "© healwith. All rights reserved.",
+    // "힐위드" 병기: 네이버 검색은 본문에 실제 글자가 있어야 매칭됨. 단 한국어 화면에서만
+    // 노출(영어 화면 한글누출 가드 i18n-no-korean-leak 준수) — ClientShell 푸터에서 분기.
+    copyrightKo: "© healwith(힐위드). All rights reserved.",
   },
 };
