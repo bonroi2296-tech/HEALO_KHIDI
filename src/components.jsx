@@ -7,7 +7,7 @@ import Image from 'next/image';
 import {
   Search, MapPin, Globe, Menu, Star, Zap, ChevronDown, CheckCircle,
   MessageCircle, X, ArrowRight, Stethoscope, Building2, Settings,
-  FileText, UserCheck, Clock, ShieldCheck, Shield, Sparkles, User, LogOut, BookOpen, Video
+  FileText, UserCheck, Clock, ShieldCheck, Shield, Sparkles, User, LogOut, Video
 } from 'lucide-react';
 import { getLangCodeFromCookie, setLangCookie, LANG_OPTIONS as I18N_LANG_OPTIONS, LANG_OPTIONS_PRIMARY, t } from "./lib/i18n";
 import { useLang } from "./lib/i18n/LangContext";
@@ -186,10 +186,10 @@ export const Header = ({ setView, view, _handleGlobalInquiry, isMobileMenuOpen, 
                 {t("nav.visa", langCode)}
               </a>
               <a
-                href="/education"
+                href="/insurance"
                 className="px-2.5 py-1.5 rounded-full text-sm font-semibold transition-all text-slate-600 hover:text-teal-700 hover:bg-teal-200/70 whitespace-nowrap"
               >
-                {t("nav.education", langCode)}
+                {t("nav.insurance", langCode)}
               </a>
             </nav>
           </div>
@@ -369,8 +369,8 @@ export const Header = ({ setView, view, _handleGlobalInquiry, isMobileMenuOpen, 
                   <span className="flex items-center gap-2.5"><Globe size={16} className="text-gray-400 shrink-0" /> {t("nav.visa", langCode)}</span>
                   <ArrowRight size={14} className="text-gray-300 shrink-0" />
                 </a>
-                <a href="/education" onClick={() => setIsMobileMenuOpen(false)} className="w-full text-left py-3 px-3 rounded-lg text-sm font-medium flex items-center justify-between transition-colors min-h-[44px] text-gray-700 hover:bg-gray-50">
-                  <span className="flex items-center gap-2.5"><BookOpen size={16} className="text-gray-400 shrink-0" /> {t("nav.education", langCode)}</span>
+                <a href="/insurance" onClick={() => setIsMobileMenuOpen(false)} className="w-full text-left py-3 px-3 rounded-lg text-sm font-medium flex items-center justify-between transition-colors min-h-[44px] text-gray-700 hover:bg-gray-50">
+                  <span className="flex items-center gap-2.5"><ShieldCheck size={16} className="text-gray-400 shrink-0" /> {t("nav.insurance", langCode)}</span>
                   <ArrowRight size={14} className="text-gray-300 shrink-0" />
                 </a>
               </div>

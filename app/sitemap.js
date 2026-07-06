@@ -8,7 +8,7 @@ const DEFAULT_LIMIT = 1000;
 // 정적 페이지 lastmod는 "요청시각(now)"이 아니라 고정된 콘텐츠 검토일을 쓴다.
 // now 를 쓰면 매 크롤마다 lastmod 가 바뀌어 구글이 lastmod 신호를 불신함(내용은 그대로인데).
 // ⚠️ 정적 페이지 콘텐츠를 의미있게 바꾸면 이 날짜를 올려라.
-const STATIC_LASTMOD = new Date("2026-07-01");
+const STATIC_LASTMOD = new Date("2026-07-06");
 
 // kz(내부코드) → kk(BCP47). hreflang 표기용.
 const HREF_LANG = { en: "en", ko: "ko", ru: "ru", kz: "kk", zh: "zh", ja: "ja" };
@@ -88,7 +88,8 @@ export default async function sitemap() {
     localized('/treatments/thyroid', { changeFrequency: 'monthly', priority: 0.88 }),
     localized('/treatments/etc', { changeFrequency: 'monthly', priority: 0.85 }),
     localized('/faq', { changeFrequency: 'monthly', priority: 0.75 }),
-    localized('/education', { changeFrequency: 'monthly', priority: 0.7 }),
+    // /education 은 공개 탭 비활성화(2026-07 보험 가이드로 교체) — 환자앱 링크용 라우트는 유지, 색인만 제외
+    localized('/insurance', { changeFrequency: 'weekly', priority: 0.85 }),
     localized('/visa', { changeFrequency: 'monthly', priority: 0.7 }),
     // /inquiry 는 robots.js 에서 Disallow(전환 퍼널·PII 폼) → sitemap 에서 제외
     localized('/about', { changeFrequency: 'monthly', priority: 0.5 }),

@@ -36,6 +36,7 @@ const PUBLIC_PREFIXES = [
   "/specialties",
   "/faq",
   "/education",
+  "/insurance",
   "/visa",
   "/about",
   "/contact",
