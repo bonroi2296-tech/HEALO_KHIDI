@@ -43,6 +43,7 @@ const ROUTES = [
   "/cookies",
   "/medical-disclaimer",
   "/education",
+  "/insurance",
   "/visa",
   "/inquiry",
   "/intake",

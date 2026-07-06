@@ -69,6 +69,29 @@ export function partnerHospitalLdList() {
  * 치료 여정 페이지용 그래프: MedicalBusiness(healwith) + BreadcrumbList.
  * @param {{ description?: string, url?: string }} [opts]
  */
+/**
+ * 보험 가이드 페이지용 그래프: WebPage(주제=중증질환 보험의 한국 치료 커버) + BreadcrumbList.
+ * @param {{ description?: string, url?: string }} [opts]
+ */
+export function insuranceGuideLd({ description, url = "/insurance" } = {}) {
+  const page = {
+    "@context": "https://schema.org",
+    "@type": "WebPage",
+    name: "Cancer treatment in Korea covered by critical-illness insurance",
+    url: `${SITE_URL}${url}`,
+    description:
+      description ||
+      "How critical-illness insurance programs cover cancer treatment in Korea — coverage, process, and healwith's role as the Korea-side coordinator.",
+    inLanguage: ["ko", "en", "ru", "kk", "zh", "ja"],
+    publisher: { "@type": "Organization", name: ORG_NAME, url: SITE_URL },
+  };
+  const crumbs = breadcrumbLd([
+    { name: "Home", url: "/" },
+    { name: "Insurance Guide", url: "/insurance" },
+  ]);
+  return [page, crumbs];
+}
+
 export function careJourneyLd({ description, url = "/care-journey" } = {}) {
   const business = {
     "@context": "https://schema.org",
