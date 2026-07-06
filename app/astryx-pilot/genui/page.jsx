@@ -139,6 +139,17 @@ function routeIntent(text) {
   };
 }
 
+function defaultReplyFor(kind) {
+  return (
+    {
+      hospital: "조건에 맞는 병원을 비교해 드릴게요.",
+      booking: "가능한 영상 협진 시간이에요. 편한 시간을 골라주세요.",
+      cost: "예상 비용 범위예요 (공식 진료비 자료 기준).",
+      channel: "편한 메신저로 코디네이터와 연결해 드릴게요.",
+    }[kind] || "무엇을 도와드릴까요?"
+  );
+}
+
 function ComponentFor({ kind }) {
   if (kind === "hospital") return <HospitalCompareCard />;
   if (kind === "booking") return <BookingSlotPicker />;
@@ -162,22 +173,50 @@ export default function GenUiPilotPage() {
     { role: "assistant", text: "안녕하세요. 한국 종양 병원 원격협진 안내 도우미예요. 무엇이 궁금하세요?", kind: "text" },
   ]);
   const [input, setInput] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [mode, setMode] = useState(null); // 'llm' | 'mock' — 마지막 응답 출처
   const endRef = useRef(null);
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  function send(text) {
+  // 실제 LLM 툴콜 → kind 매핑
+  const TOOL_KIND = {
+    showHospitalCompare: "hospital",
+    showBookingSlots: "booking",
+    showCostEstimate: "cost",
+    showChannelPicker: "channel",
+  };
+
+  async function send(text) {
     const q = text.trim();
-    if (!q) return;
-    const routed = routeIntent(q);
-    setMessages((m) => [
-      ...m,
-      { role: "user", text: q },
-      { role: "assistant", text: routed.reply, kind: routed.kind },
-    ]);
+    if (!q || busy) return;
+    setMessages((m) => [...m, { role: "user", text: q }]);
     setInput("");
+    setBusy(true);
+    try {
+      const res = await fetch("/api/astryx-pilot/genui", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: q }),
+      });
+      if (!res.ok) throw new Error("fallback");
+      const data = await res.json();
+      if (!data?.ok) throw new Error("fallback");
+      const call = (data.toolCalls || [])[0];
+      const kind = call ? TOOL_KIND[call.name] || "text" : "text";
+      const reply = data.text?.trim() || defaultReplyFor(kind);
+      setMode("llm");
+      setMessages((m) => [...m, { role: "assistant", text: reply, kind }]);
+    } catch {
+      // 키 없음/오류 → 키워드 모의로 폴백(프리뷰 안전).
+      const routed = routeIntent(q);
+      setMode("mock");
+      setMessages((m) => [...m, { role: "assistant", text: routed.reply, kind: routed.kind }]);
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
@@ -185,11 +224,13 @@ export default function GenUiPilotPage() {
       <div className="max-w-lg mx-auto px-4 py-6">
         <div className="mb-3">
           <span className="inline-block rounded-full bg-teal-50 text-teal-700 text-xs font-semibold px-3 py-1">
-            gen-UI 파일럿 · 개념 시연(모의)
+            gen-UI 파일럿
+            {mode === "llm" && " · 실제 LLM(Gemini)"}
+            {mode === "mock" && " · 모의 폴백(키 없음)"}
           </span>
           <p className="text-xs text-gray-400 mt-2">
-            챗봇이 답을 <b>텍스트 대신 검증된 컴포넌트</b>로 렌더합니다. (키워드로 LLM 툴선택을 모사 —
-            실제 연결은 Vercel AI SDK)
+            챗봇이 답을 <b>텍스트 대신 검증된 컴포넌트</b>로 렌더합니다. Gemini가 화이트리스트
+            도구를 선택 → 클라이언트가 렌더(자유 UI 생성 아님). 키 없으면 키워드 모의로 폴백.
           </p>
         </div>
 
@@ -238,14 +279,16 @@ export default function GenUiPilotPage() {
           <input
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="메시지를 입력하세요…"
-            className="flex-1 rounded-xl border border-gray-300 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500"
+            disabled={busy}
+            placeholder={busy ? "생각 중…" : "메시지를 입력하세요…"}
+            className="flex-1 rounded-xl border border-gray-300 px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 disabled:bg-gray-50"
           />
           <button
             type="submit"
-            className="rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-sm font-semibold px-5 transition-all duration-200"
+            disabled={busy}
+            className="rounded-xl bg-teal-600 hover:bg-teal-700 disabled:opacity-40 text-white text-sm font-semibold px-5 transition-all duration-200"
           >
-            보내기
+            {busy ? "…" : "보내기"}
           </button>
         </form>
       </div>
