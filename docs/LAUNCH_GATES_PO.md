@@ -12,6 +12,7 @@
 | 2 | 🟢 **관문8 — 텔레그램 알림 env 2개** | PO 콘솔 | ↓ 아래 가이드 |
 | 3 | 🟡 **관문10 — DPA 서명** (무료) | PO | `docs/audit/DPA_SIGNING_GUIDE.md` |
 | 4 | 🔴 **관문13~17 — 앱스토어**(결제·Firebase·에셋·빌드) | PO | 아래 C섹션 · **결제 부분은 보채기 제외**(PO 인지·직접, 2026-07-02) |
+| + | 🟢 **성동·광명 유치의료기관 등록증 정보 제공** — 비자 초청장 발급 병원에 2곳 추가용(등록번호·대표자·유효기간). 사진 1장이면 됨 | PO | `src/lib/visa/inviterHospitals.ts` 현재 강서·신촌 2곳만. 받으면 어시가 입력 (2026-07-06 대기) |
 | + | 🟡 `TEST_OFFICE_IPS` env 등록 — 사무실 IP 자동 테스트태깅 활성화(PO만 값을 앎) | PO 콘솔 | Vercel prod env |
 | + | 🟢 (선택) Supabase 유출비번 보호 켜기 — Authentication → Password 에서 체크 1개 | PO 콘솔 | advisor WARN |
 | + | 🟢 (선택) Resend 도메인 검증 — E2E 실패 알림 메일이 403으로 안 오는 중(`onboarding@resend.dev` 발신) | PO 콘솔 | E2E 무감시 방지 |
