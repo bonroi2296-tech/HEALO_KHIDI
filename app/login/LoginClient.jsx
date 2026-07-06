@@ -30,7 +30,8 @@ export const LoginPage = ({ setView }) => {
         // 로그인 후 목적지를 잃던 버그(2026-07-02 전수 감사). 내부 경로만 허용(open-redirect 차단).
         const params = new URLSearchParams(window.location.search);
         const target = params.get('redirect');
-        if (typeof target === 'string' && target.startsWith('/') && !target.startsWith('//')) {
+        // `/\evil.com` 도 차단 — URL 파서가 \ 를 / 로 취급해 외부로 새는 우회 경로
+        if (typeof target === 'string' && target.startsWith('/') && !target.startsWith('//') && !target.startsWith('/\\')) {
             setRedirectTarget(target);
         }
         // OAuth 콜백 실패(/auth/callback → /login?error=...) — 아무 표시 없이 로그인 화면만

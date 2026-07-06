@@ -270,6 +270,15 @@ export async function proxy(request: NextRequest) {
       if (process.env.NODE_ENV !== "production") {
         console.warn(`[proxy] Admin access blocked: ${pathname} | ${email || "none"}`);
       }
+      // 로그인은 됐는데 권한만 없는 계정(email 있음)을 /login 으로 되던지면
+      // "로그인했는데 또 로그인?" 무한 루프처럼 보인다(2026-07-06 PO 실사고).
+      // → 사유·갈 곳을 알려주는 안내 페이지로 보낸다. 미로그인만 /login.
+      if (email) {
+        const deniedUrl = new URL("/no-access", request.url);
+        deniedUrl.searchParams.set("area", "admin");
+        deniedUrl.searchParams.set("from", pathname);
+        return NextResponse.redirect(deniedUrl);
+      }
       const loginUrl = new URL("/login", request.url);
       loginUrl.searchParams.set("redirect", pathname);
       return NextResponse.redirect(loginUrl);
