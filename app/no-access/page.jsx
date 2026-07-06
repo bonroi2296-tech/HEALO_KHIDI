@@ -17,10 +17,16 @@ const AREA_LABEL = {
 
 export default async function NoAccessPage({ searchParams }) {
   const sp = await searchParams;
-  const areaLabel = AREA_LABEL[sp?.area] || "요청하신";
+  const areaLabel =
+    typeof sp?.area === "string" && Object.hasOwn(AREA_LABEL, sp.area)
+      ? AREA_LABEL[sp.area]
+      : "요청하신";
   const fromRaw = typeof sp?.from === "string" ? sp.from : "";
-  // open-redirect 차단: 내부 경로만 재로그인 목적지로 허용
-  const from = fromRaw.startsWith("/") && !fromRaw.startsWith("//") ? fromRaw : "/";
+  // open-redirect 차단: 내부 경로만 재로그인 목적지로 허용 (`//`·`/\` 우회 포함 차단)
+  const from =
+    fromRaw.startsWith("/") && !fromRaw.startsWith("//") && !fromRaw.startsWith("/\\")
+      ? fromRaw
+      : "/";
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
