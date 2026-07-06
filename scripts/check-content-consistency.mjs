@@ -443,6 +443,30 @@ try {
   }
 }
 
+// ── 13) 홈 하드코딩 의료진 ↔ 라이브 소스 드리프트 (반성문 #66 영구 차단) ──────────────
+// 왜: 홈 화면 DOCTORS_DATA 는 별도 스냅샷이라, 병원 인사변동 때 라이브 소스
+//     (src/lib/data/immuneHospitalInfo.js doctors[])만 갱신되고 홈에 퇴사 원장이 계속
+//     노출되는 사고가 남(#66: 정유진 신촌 퇴사 후에도 홈 카드 잔존). → 홈에 실린 이름이
+//     라이브 소스에 없으면 CI 실패(외부 사이트 대조는 못 하지만, 사본 간 드리프트는 기계가 잡음).
+{
+  try {
+    const home = readFileSync(join(ROOT, "app/home/HomeClient.jsx"), "utf8");
+    const live = readFileSync(join(ROOT, "src/lib/data/immuneHospitalInfo.js"), "utf8");
+    const block = home.split("const DOCTORS_DATA")[1]?.split("];")[0] || "";
+    const names = [...block.matchAll(/name: \{ ko: "([가-힣]{2,5})[ "]/g)].map((m) => m[1]);
+    if (!names.length) {
+      errors.push(`[의료진드리프트] app/home/HomeClient.jsx 의 DOCTORS_DATA 에서 이름을 못 읽음 — 구조를 바꿨으면 이 검사(§13)도 같이 갱신할 것 (POSTMORTEMS #66)`);
+    }
+    for (const n of names) {
+      if (!live.includes(`"${n}"`)) {
+        errors.push(`[의료진드리프트] 홈 DOCTORS_DATA 의 "${n}" 이 라이브 소스(src/lib/data/immuneHospitalInfo.js doctors[])에 없음 — 퇴사·개명 가능성. 병원 공식 사이트(각 지점 doctor.php) 대조 후 두 파일을 같이 갱신할 것 (POSTMORTEMS #66)`);
+      }
+    }
+  } catch (e) {
+    errors.push(`[의료진드리프트] 검사 실패: ${e.message}`);
+  }
+}
+
 // ── 결과 ────────────────────────────────────────────────────────
 if (errors.length) {
   console.error(`\n❌ 콘텐츠 일관성 검사 실패 (${errors.length}건)\n`);
