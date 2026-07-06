@@ -23,6 +23,29 @@ body {
   padding-right: env(safe-area-inset-right, 0);
 }
 
+/* ===== 텍스트 단락 매끄러움: 전 언어·전 페이지 공통 줄바꿈 규칙 =====
+   왜: 브라우저 기본값(word-break: normal)은 한/중/일을 "글자 아무 데서나" 끊어
+   "있 / 습니다"처럼 한 단어를 두 줄로 쪼갠다. 문구를 하나씩 고치는 대신
+   여기서 한 번에 막는다 (개별 컴포넌트에서 재발 방지).
+   - keep-all: CJK(한·중·일)를 띄어쓰기에서만 끊음 → 단어 안 쪼개짐
+     (라틴/키릴 등은 원래 공백에서만 끊기므로 영향 거의 없음)
+   - overflow-wrap: break-word: 초장문 단어·URL이 화면 밖으로 삐져나가는 것 방지(안전망)
+   word-break/overflow-wrap 는 상속되므로 body 한 곳이면 전체에 적용된다. */
+body {
+  word-break: keep-all;
+  overflow-wrap: break-word;
+}
+
+/* 제목·본문 등 덩어리 텍스트는 마지막 줄 "외톨이 단어" 방지(text-wrap).
+   지원 브라우저에서만 적용되고, 미지원 브라우저는 무시 → 안전.
+   - 제목: balance(줄 길이 균형) / 본문: pretty(고아·리버 방지) */
+h1, h2, h3, h4, h5, h6 {
+  text-wrap: balance;
+}
+p, li, blockquote, dd, figcaption {
+  text-wrap: pretty;
+}
+
 /* 번역된 텍스트(구글 번역이 끼워넣는 <font> 태그)도 우리 폰트 따라가게 강제.
    ⚠️ 과거엔 `font, *` 로 모든 요소에 inherit !important 를 걸어 사이트 전체 폰트
    시스템(타이포 토큰·tailwind font-*)이 무력화되고 브라우저 기본 명조체가 전 페이지에

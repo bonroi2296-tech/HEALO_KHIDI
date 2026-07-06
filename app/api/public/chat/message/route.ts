@@ -90,6 +90,12 @@ export async function POST(request: NextRequest) {
       return Response.json({ ok: false, error: "Thread is closed" }, { status: 410 });
     }
 
+    // PIPA: 민감 건강정보 처리 전 동의 필수 — stream 라우트(:95-99)와 동일 게이트.
+    // 이 라우트만 게이트가 빠져 동의 없는 옛 스레드로 우회 가능하던 드리프트를 봉합(2026-07-02 전수 감사).
+    if (thread.metadata?.consent?.health_crossborder !== true) {
+      return Response.json({ ok: false, error: "consent_required" }, { status: 403 });
+    }
+
     // 로그인 연동: 익명 시작 스레드라도 로그인 사용자가 쓰면 계정 연결(미연결일 때만 auth 조회).
     if (!thread.user_id) {
       const user = await getOptionalUser(request);
@@ -191,6 +197,7 @@ export async function POST(request: NextRequest) {
     let ragChunks: any[] = [];
     let aiError: string | undefined;
     let _analytics: any = undefined;
+    let redlineFlags: string[] | null = null;
     if (trimmedMsg) {
       const r = await generateChatReply(chatMessages, trimmedMsg, lang, thread_id, {
         isLoggedIn: !!thread.user_id,
@@ -200,6 +207,16 @@ export async function POST(request: NextRequest) {
       ragChunks = r.ragChunks;
       aiError = r.error;
       _analytics = r._analytics;
+      // 레드라인 적발(답변은 이미 안전 대체됨) — stream 라우트와 동일하게 검수 큐 기록 + 코디 종.
+      redlineFlags = r.redlineBlocked?.length ? r.redlineBlocked : null;
+    }
+    if (redlineFlags && !escalate) {
+      try {
+        const { notifyStaffChatHandoff } = await import("@/lib/notifications/inApp");
+        await notifyStaffChatHandoff({ threadId: thread_id, reason: "ai_redline" });
+      } catch (e: any) {
+        console.warn("[chat/message] redline bell 실패(무시):", e?.message);
+      }
     }
 
     let finalReply = reply;
@@ -221,8 +238,9 @@ export async function POST(request: NextRequest) {
         metadata: {
           model: getModelName(),
           rag_chunks_used: ragChunks.length,
-          hand_off: escalate ? escalateReason : null,
+          hand_off: escalate || redlineFlags ? (redlineFlags ? "ai_redline" : escalateReason) : null,
           ...(hasAttachments ? { attachment_ack: true } : {}),
+          ...(redlineFlags ? { redline: redlineFlags, needs_doctor_review: true } : {}),
           ...(aiError ? { ai_error: aiError } : {}),
         },
       })
@@ -257,7 +275,7 @@ export async function POST(request: NextRequest) {
     if (patientMsgCount > 0 && patientMsgCount % INTAKE_EVERY_N_TURNS === 0) {
       after(async () => {
         try {
-          await createDraftIntake(thread, (history || []) as any, lang);
+          await createDraftIntake(thread, (history || []) as any, lang, clientIp);
         } catch (e: any) {
           console.error("[public/chat/message] intake error:", e.message);
         }

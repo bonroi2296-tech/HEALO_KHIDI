@@ -4,6 +4,59 @@
 
 ---
 
+## 🟡 2026-07-06 스모크 간헐 실패(flaky) 2건 — PR 게이트 신뢰도 갉아먹는 중 (감시, 재발 시 원인 수리)
+
+> PR #651(문서만 변경)에서 관찰. 같은 코드로 직전 실행은 통과 → 코드 원인 아님 = 테스트 자체의 간헐성.
+
+- **① `e2e/coordinator-request-info.spec.ts:22`** "Step1만 완료 문의 상세에 '추가 정보 요청' 카드가 뜬다" — 1회 실패(재시도 없이 fail 처리됨).
+- **② `e2e/clinic-portal.spec.ts:21`** "/clinic 포털 로그인 안 튕김" — flaky 판정(재시도로 통과). `getByText(/포털|의료기관|의뢰/)` 15초 타임아웃.
+- **조치 기준**: 또 무고한 PR을 막으면(2회째) 그때 원인 수리(대기 조건 보강·테스트 데이터 사전 시딩 등). 그 전까진 빈 커밋 재실행으로 통과 확인 후 진행.
+- 참고: 스모크 실패 알림 이메일은 Resend 403(도메인 미검증)으로 여전히 미발송 — 기존 LAUNCH_GATES 관문(PO 콘솔 작업)과 동일 건.
+
+## 🟢 2026-07-05 트렌드 스캔 발견 (감시 항목 — 지금 조치 불필요)
+
+> `/trend` 스캔 중 확인. 조치가 필요한 Gemini 단가표 1건은 같은 브랜치에서 수정(아래 ①), 나머지는 감시용 기록.
+
+- **① Gemini 별칭이 3.5 Flash 로 자동 이동 → 실단가 상승** ✅ **내부 추정 교정(2026-07-05)**: `gemini-flash-latest` 별칭은 최신 Flash 로 hot-swap 되는데 2026-05-19 출시된 Gemini 3.5 Flash($1.50/$9.00)가 최신 stable → 우리가 지금 호출 중. 우리 단가표(`src/lib/ai/usagePricing.ts`)는 옛 2.5 Flash($0.30/$2.50) 기준이라 내부 비용 추정이 in 5배·out 3.6배 **과소집계**였음(Google 실청구는 정상 — 우리 대시보드 추정치만 틀렸음). 기본값을 3.5 Flash 로 교정 + env(`AI_PRICE_FLASH_IN/OUT`) 오버라이드 유지. ⚠️ **실제 호출 단가가 out 기준 3.6배 오른 건 사실** — 현재 사용량이 적어(실전환 ~0) 절대비용은 작고 aiGuard 일일상한(공개 2000/일·상담 30000/일) + Google spend cap 으로 이중 방어되나, 유료 트래픽 늘면 재점검. **모델 고정은 안 함**(PO 결정 2026-06-12 "최신 유지, 구형 임의고정 금지" 준수).
+- **② Supabase Data API 기본 비노출 — 2026-10-30 기존 프로젝트 강제** (🟢 우리 영향 작음): 공식 changelog(#45329) 확인 결과 **기존 테이블은 영향 없음**(현재 grant 유지·계속 anon/브라우저에서 읽힘) → `/api/health`→`hospitals` 등 현 경로 안전. **10/30 이후 새로 만드는 public 테이블만** 명시적 `GRANT` 없이는 Data API(anon/브라우저)에서 안 보임. 우리는 대부분 서버 API(service_role, 이 변경 무관)라 저위험. **주의점**: 앞으로 새 테이블을 anon/브라우저에서 직접 읽을 계획이면 마이그레이션에 `GRANT SELECT ... TO anon, authenticated` 를 함께 넣어라. 그 사이 Supabase Security Advisor 가 영향 테이블을 flag + 이메일 통지 예정.
+- **③ Next.js 2026-05 보안 13종 CVE — 우리 이미 안전**: 패치 버전 15.5.18/16.2.6, 우리는 `next@^16.2.9` → 반영됨. 조치 없음(기록만).
+- **관망**: Gemini 3.5 Live Translate(실시간 음성 통역, ru·kz·ko·zh·ja 지원) — 원격협진 자막·통역 직결이나 **프리뷰**(프로덕션 비권장)+God 컴포넌트 이식 리스크라 GA·가격 공개 시 재검토.
+
+---
+
+## 🟡 2026-07-02 화상 1:1 레이아웃 — PO 감성 피드백 백로그 (미트식 #612 머지 후)
+
+> PR #612(발화자 teal 테두리 + 1:1 PiP)를 PO가 실통화로 확인 후 "동작은 OK, 근데 2명일 때 내가 생각한 그림은 아님(조금 거시기)"이라며 **일단 머지 + 백로그 기록** 지시. 다음에 화상 UI 만질 때 함께 볼 것.
+
+- **관찰된 어색함(스샷 근거)**: ①상대가 폰(세로 영상)이면 좌우 검은 여백이 큼(안 잘리게 contain 렌더 — 의도지만 허전해 보임) ②PiP(내 화면)가 카메라 꺼짐 시 검은 박스로만 보임(이름표뿐).
+- **조정 후보**: (a) 2인 데스크톱을 미트 데스크톱처럼 **반반 분할 옵션**(현재는 상대 풀+PiP) (b) 세로 영상 좌우 여백에 흐림 배경(blur fill — 줌·유튜브 쇼츠 방식) (c) PiP 카메라 꺼짐 시 아바타/이니셜 표시. 전부 CSS/타일 수준 — God 컴포넌트 로직 무관.
+- 발화자 teal 테두리는 유지(말할 때만 켜지는 게 정상 동작).
+
+## 🤖 2026-07-05 루프 전수평가 발견 — 남은 것
+
+- ~~🟡 **ru 한정: 안 물었는데 가격 선노출**~~ ✅ **해결(2026-07-05, #633 + 반성문 #65)** — 진범은 필터가 아니라 키워드 오탐(смет⊂косметологию)으로 게이트 미발동. lookbehind 수정 배포 후 **6/6 차단 + [price-gate] applied=1 로그 교차 확인 + 무회귀(가격 물으면 정상 제공)**. (경과 기록:: 필터 구멍이 아니라 키워드 오탐(`смет`⊂косметологию)으로 게이트 자체가 미발동이었음. lookbehind 수정 배포·재검증 중 — 6/6 합격 확인되면 이 항목 닫기. (원 기록: 간헐 ~50%) — `offtopic-cosmetic-no-diagnose/ru`: "점 제거하고 싶다"(가격 안 물음)에 등록 데이터의 항노화 프로그램 가격($1,500–3,700)을 먼저 던짐. 4회 실측 중 2회 재현, ru만(타 5개 언어 정상). 레드라인 아님(의료 안전선 무관, 출처 있는 실가격) — "가격은 물을 때만" 톤 규칙 위반. **수정 계획**: 가격을 안 물은 턴(asksDocsOrProcess=false)엔 주입 Context(careReference·RAG)에서 가격 숫자를 결정론적으로 제거(모델이 못 본 건 못 흘림 — #625 코드 게이트와 같은 패턴). 전수 회전(310조합) 완주 후 착수 — 중간에 동작 바꾸면 측정 오염. 회귀 필수 확인: price-on-ask·price-range-by-cancer(물으면 범위 정상 제공).
+
+## 🔍 2026-07-02 오픈 전 전수 감사(워크플로 50에이전트·역사 750커밋 전수) — 이번에 안 고치고 남긴 것
+
+> 검증된 발견 36건 중 저위험·고효과 수정은 같은 날 PR로 처리(안전가드·퍼널·어드민 소생·i18n·KPI·E2E 부활·가드 룰 — 커밋 메시지 참조). 아래는 **의도적으로 남긴 잔여**.
+
+- ~~🔴 **발급 PDF 한글·키릴 전부 깨짐**~~ ✅ **해결(같은 날 #603)** — 감사에서 renderToBuffer 실증으로 발견 → 별도 세션이 Noto Sans/KR 셀프호스팅 등록 + ko/ru/kz 샘플 육안검증으로 수정·머지(반성문 #62, 검사기 룰10 추가). 이 감사 PR의 견적 발급 언어 교정(환자 언어 반영)과 합쳐져 완결.
+- ~~🔴 **K-02 오염 벡터 — inquiry 미연결 상담세션은 테스트 제외 원천 불가**~~ ✅ **해결(2026-07-02 밤)** — `consultation_sessions.is_test` 컬럼 추가(가역 migration, 실DB 적용) + 생성 API 도장(inquiry 상속·notes [TEST]·명시 지정, `detectSessionIsTest`) + 집계 제외를 "세션 표식 ∪ inquiry 체인" 합집합으로(`fetchTestSessionIds`). 백필 17건(inquiry 미연결 4건 포함) 도장 → **실측: 실적 완료 상담 K-02=0·K-04=0**(그간 완료는 전부 테스트였음 — 정직한 0). 단위테스트 20건. 잔여: session_type NULL 1건(아래 🟡)은 별건.
+- 🟡 **월간보고 xlsx 생성이 프로덕션에서 항상 실패** — 템플릿 후보가 ①PO 로컬 절대경로 ②`public/templates/khidi_monthly_report_template.xlsx`(repo에 없음, git 히스토리에도 xlsx 커밋 0회) → 항상 template_not_found 500. **PO가 빈 양식 xlsx 원본을 주면 커밋으로 해결**(1분).
+- 🟡 **main 브랜치 보호 0** — required status check·PR 필수 없음(gh API 실측 404). CI 18게이트는 main 직push 를 기계적으로 못 막음(빨간 CI여도 push=즉시 prod 배포). GitHub ruleset 설정은 운영방식 변경이라 **PO 결정**(admin bypass 허용으로 긴급 대응 여지 유지 가능).
+- 🟡 **TEST_OFFICE_IPS prod env 미설정** — 테스트/실적 분리(PR #501)의 사무실IP 자동태깅이 무장해제(Vercel env 32개 전수 실측). PO만 값(사무실 공인IP)을 앎 → LAUNCH_GATES 신규 항목.
+- 🟡 **E2E 실패 알림 메일 403** — 발신이 미검증 `onboarding@resend.dev` 라 Resend가 거부(로그 실측). Resend 콘솔에서 healwith.co.kr 도메인 검증(PO) 후 발신 주소 교체, 또는 수신자를 계정 소유자 주소로.
+- 🟡 **session_type NULL 완료세션 1건**(f0a36145…, inquiry 12 연결) — 실상담이면 K-02 1건 과소집계. inquiry 12 실상담 여부 PO/코디 확인 후 한 행 백필.
+- 🟢 **코디는 유치 확정/이탈 클릭 불가** — conversion-funnel API 주석은 '코디 가능'이라나 실제 requireAdminAuth(admin 전용). 코디 운영을 시작하면 requirePortalAuth(staffOnly) 전환+코디 네비 연결, 지금(PO=어드민)은 무영향.
+- 🟢 **성능 advisor 133건**(RLS auth 함수 행별 재평가 22·중복 permissive 정책 8·중복 인덱스 2쌍) — 전부 DDL이라 한가할 때 일괄, PO 확인 후.
+- 🟢 **vector 익스텐션 public 스키마**(security advisor WARN) — 재설치 필요라 RAG 재적재와 묶어 처리 권장.
+- 🟢 **레거시 /api/public/chat/message 라우트** — 동의 게이트·레드라인 기록은 이번에 이식했으나 프론트는 stream만 사용. 다음 정리 때 410 폐쇄 검토.
+- (화상영역 — 타 세션 인계) ~~LiveKit webhook room_finished 가 세션을 무조건 completed 처리(K-02 인플레 벡터)~~ ✅ **해결(2026-07-05 밤, #637)** — room_finished 는 status 미변경(staff 완료가 K-02 정본 경로), 자동완료가 재입장까지 막던 부작용(token·guest-join `consultation_closed`)도 함께 예방. **#642 회귀 테스트로 잠금**(room_finished/participant_joined DB 무변경, recording_finished 만 recording_url 저장). / ~~webhook URL 옛 도메인 healo-khidi.com~~ ✅ **해결(#637)** — 주석·EXTERNAL_SETUP_GUIDE 를 healwith.co.kr 로 교정 + `check:content` 에 `healo-khidi.com` 가드 룰 추가(MKT-08). ⚠️ **단 LiveKit 대시보드의 실제 webhook URL 교체는 PO 손 필요**(외부 설정 — 코드/주석만으론 이벤트 안 옴). / 게스트토큰 E2E 스펙 고정 실패(잔존) / 테스트 상담방 2개(50d5bc43…·aa9804ee…) 삭제 대기(PO 확인) / **consultation notes 평문(notes_encrypted 미사용) — 잔존, PII라 PO 확인 후 암호화**(visa/cost-estimates 라우트의 `encryptStringNullable`/`decryptStringNullable` 패턴 그대로 + 기존 평문 행 마이그레이션).
+- (화상 자막, 2026-07-05 밤 #637) ~~DataChannel 자막이 RELIABLE 의도인데 livekit-client v2 API 오용(`{kind:...}`)으로 LOSSY 전송 → 불안정 CIS 회선 자막 유실~~ ✅ **해결** — `{ reliable: true }` 로 수정(`useLiveKitDataChannel.js`).
+- (화상 1:1 레이아웃, #612 감성 백로그) 카메라 꺼짐 검은 박스 → 브랜드 teal 아바타 CSS 적용(#637, 육안 미검증). **잔존(PO 결정/라이브 검증 필요)**: 2인 데스크톱 반반분할 / 세로영상 blur-fill 배경(레이아웃 로직 — 라이브 2인 검증 필요, 자동검증 불가).
+
+---
+
 ## 🟢 2026-06-29 AI 에이전트 개선 — 백로그 (PO 방향 확정, 다음 트랙)
 
 > C레벨 전방위 진단(브랜치 `claude/ai-agent-improvements-pgy6oj`)에서 **즉시 구현분**(공개 AI챗 예시질문 칩·코디연결/접수 빠른버튼 6개어·스트림 에러 6개어 현지화·`detectHandOff` ru/kz/zh 보강)은 처리. 아래는 PO가 **방향 확정 + 백로그로 남기라**고 한 더 큰 플로 변경.
@@ -58,10 +111,9 @@
 1. **가입→인증메일→로그인 / 비번찾기→메일** 실제 1회 통과(실메일 — API로는 부작용이라 미검증).
 2. **Supabase 이메일 템플릿 href를 token_hash로 교체**(인증 자동로그인·스캐너안전 완성. `docs/PROJECT_CONTEXT.md` 인증 핸드오프 참조).
 3. **구글 OAuth 게시**(현재 "테스트"라 실환자 구글가입 막힘).
-4. **E2E Secrets 등록**(`docs/E2E_SECRETS_SETUP.md`) → 로그인 화면 자동검사 가동.
-   - 🟢 **2026-06-24 준비 완료**: 5역할 테스트계정(`patient·coordinator·admin·agency·clinic@test.com`) 비번을 `test1234`로 통일·실로그인 검증 + 프로덕션 인증 API 도달(코디 inbox 200·어드민 funnel 200·환자→어드민 403 권한분리) 실측. **남은 건 PO가 GitHub Secrets 12개 복붙뿐**(역할 10 + `SUPABASE_SERVICE_ROLE_KEY`·`ENCRYPTION_KEY_V1`).
-5. **iOS 영상상담 마이크 실기기 검증** / **K-01 점수판 데모데이터 정직성**(진짜 유치 0).
-6. 🔴 **약한비번 테스트계정 삭제/비활성** — E2E 위해 `admin@test.com` 등을 `test1234`로 둠. `admin@test.com`은 role=admin이라 비번만 맞으면 실서비스 어드민(PII 복호화) 진입 가능. **PO 약속: 오픈 전 삭제/비활성**(`app_metadata.disabled=true`). 안 하면 실서비스에 약한비번 admin 잔존. (`docs/TEST_ACCOUNTS.md` ⚠️ 참조)
+4. ~~**E2E Secrets 등록**~~ ✅ **닫힘(2026-07-02 실측)**: GitHub Secrets에 E2E_* 10종+`SUPABASE_SERVICE_ROLE_KEY`·`ENCRYPTION_KEY_V1` 등록됨, 비번 시크릿 2026-06-29 갱신.
+5. **iOS 영상상담 마이크 실기기 검증**(화상상담 세션 진행 중) / K-01 데모데이터는 is_test 태깅(#501)으로 기본뷰 자동 제외 — 정직성 구조 확보.
+6. ~~🔴 **약한비번 테스트계정**~~ ✅ **실질 해소(2026-07-02 실측)**: 2026-06-29 전 계정 강비번 `Healwith2026!` 교체(GitHub Secret 보관), `test1234` 로그인 실측 400. 남은 건 `admin@test.com` 활성 유지 여부 PO 결정 1건(`docs/LAUNCH_GATES_PO.md` 관문 6).
 
 ### ❌ 아직 검증 못 함(정직)
 화면 시각 렌더(브라우저 미설치 — API만), 가입/비번찾기 실메일 end-to-end, 영상상담·iOS, 문의 제출→DB. → 위 5번 관문에서 사람이 1회.
@@ -269,9 +321,9 @@
 
 ---
 
-## 🟡 P2 — PNG 앱아이콘 옛 H마크 (리브랜드 잔재, PO 보류 결정)
+## ~~🟡 P2 — PNG 앱아이콘 옛 H마크~~ ✅ 해결 확인 (2026-07-02 전수 감사 — 문서만 낡았었음)
 
-`public/icons/icon-*.png`·`apple-touch-icon.png`·`favicon-16/32.png` 가 옛 `HEALO` `H` 마크. SVG(`favicon.svg`)는 소문자 `h`로 교체됐으나 PNG는 래스터라이저(rsvg/sharp) 환경 필요해 미재생성. **2026-06-17 PO "일단 보류, 나중에" 결정.** 재생성 시 새 `favicon.svg` 기준. (리브랜드 계획: `docs/REBRAND_HEALWITH_PLAN.md`, 컷오버: `docs/DOMAIN_CUTOVER_healwith.md` §5)
+~~PNG는 래스터라이저 환경 필요해 미재생성, PO 보류~~ → **실제로는 2026-06-23 커밋 943481c(+a9a6673)로 icon-72~512·apple-touch-icon·favicon-16/32 전부 새 소문자 h 마크로 교체 완료**(main 포함, icon-192x192.png 육안 확인). 이 항목이 갱신 안 돼 후속 세션·감사가 재발견 헛수고를 반복했음 — 종결.
 
 ---
 

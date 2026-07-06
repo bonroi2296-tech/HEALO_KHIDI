@@ -133,10 +133,13 @@ export async function POST(request: NextRequest) {
   }
 
   // 멀티스레드 목록 가독성: 제목이 아직 기본값("New Chat")이고 실제 텍스트가 있으면 첫 메시지로 채운다.
-  // (PII는 이미 message_text 마스킹 경로를 타고, subject 는 짧은 발췌만 — 이름 평문 저장 안 함.)
+  // subject 는 평문 저장이므로 발췌 전 PII(이메일·전화 등) 마스킹 — message_text 마스킹은
+  // '모델 전송 사본'에만 적용되지 저장본엔 적용되지 않으므로 여기서 별도 처리(2026-07-02 전수 감사).
   const curSubject = (thread as any).subject;
   if (trimmedMsg && (!curSubject || curSubject === "New Chat")) {
-    const snippet = trimmedMsg.slice(0, 60) + (trimmedMsg.length > 60 ? "…" : "");
+    const { redactModelPii } = await import("@/lib/security/redactModelPii");
+    const masked = redactModelPii(trimmedMsg);
+    const snippet = masked.slice(0, 60) + (masked.length > 60 ? "…" : "");
     await (supabaseAdmin as any)
       .from("chat_threads")
       .update({ subject: snippet })
@@ -338,7 +341,7 @@ export async function POST(request: NextRequest) {
         if (patientMsgCount > 0 && patientMsgCount % INTAKE_EVERY_N_TURNS === 0) {
           after(async () => {
             try {
-              await createDraftIntake(thread, (history || []) as any, lang);
+              await createDraftIntake(thread, (history || []) as any, lang, clientIp);
             } catch (e: any) {
               console.error("[public/chat/stream] intake error:", e.message);
             }

@@ -15,6 +15,7 @@ import {
   Plus,
   FileText,
   Loader2,
+  CheckCircle,
 } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { useToast } from "@/components/Toast";
@@ -77,21 +78,17 @@ export default function ConsultationsPage() {
     }
   };
 
-  const handleJoinConsultation = (consultation) => {
-    router.push(`/consultation/${consultation.id}`);
-  };
-
-  const handleIssueInvite = async (consultation) => {
+  // 상담 링크(초대 토큰 포함) 1개 발급 → API 응답 반환. 링크 하나로 입장 + 환자 공유 통일.
+  const issueInvite = async (consultationId) => {
+    const { data: sessionData } = await supabase.auth.getSession();
+    const token = sessionData?.session?.access_token;
+    if (!token) {
+      toast.error("인증 오류");
+      return null;
+    }
     try {
-      const { data: sessionData } = await supabase.auth.getSession();
-      const token = sessionData?.session?.access_token;
-      if (!token) {
-        toast.error("인증 오류");
-        return;
-      }
-
       const res = await fetch(
-        `/api/khidi/consultation/${consultation.id}/invite`,
+        `/api/khidi/consultation/${consultationId}/invite`,
         {
           method: "POST",
           headers: {
@@ -107,32 +104,56 @@ export default function ConsultationsPage() {
         }
       );
       const result = await res.json();
-
       if (!res.ok || !result.ok) {
-        toast.error(`초대 링크 생성 실패: ${result.error}`);
-        return;
+        toast.error(`상담 링크 생성 실패: ${result.error}`);
+        return null;
       }
-
-      // 클립보드 복사
-      try {
-        await navigator.clipboard.writeText(result.inviteUrl);
-        toast.success(
-          `환자 초대 링크가 클립보드에 복사됐습니다 (만료: ${new Date(
-            result.expiresAt
-          ).toLocaleString("ko-KR")})`
-        );
-      } catch {
-        // 클립보드 권한 없으면 alert 로
-        prompt("아래 링크를 복사해 환자에게 공유하세요:", result.inviteUrl);
-      }
+      return result;
     } catch (err) {
-      console.error("[handleIssueInvite] error:", err);
-      toast.error("초대 링크 생성 실패");
+      console.error("[issueInvite] error:", err);
+      toast.error("상담 링크 생성 실패");
+      return null;
+    }
+  };
+
+  // 상담 시작 = 링크 하나로 통일: 어드민도 이 초대 링크로 입장(로그인돼 있어 자동으로 staff 인식).
+  //   주소창에 뜨는 게 곧 환자에게 그대로 보내면 되는 링크 → 편하게 클립보드에도 복사.
+  const handleJoinConsultation = async (consultation) => {
+    const result = await issueInvite(consultation.id);
+    if (!result?.inviteUrl) {
+      // ⚠️ 발급 실패 시 입장권 없는 맨주소로 조용히 입장하지 않는다 — 그 주소창을 복사해 공유하면
+      //   받는 사람 전원이 "입장권 없음"에 막힘(2026-07-02 '남들만 안 됨' 함정, POSTMORTEMS #61 연관).
+      toast.error("상담 링크 발급이 안 돼 입장을 멈췄어요. 새로고침(또는 다시 로그인) 후 다시 눌러주세요.");
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(result.inviteUrl);
+      toast.success("상담 링크를 복사했어요 — 상대에게 붙여넣어 보내세요. 나는 지금 입장합니다");
+    } catch { /* 클립보드 권한 없으면 조용히 패스 — 입장은 계속 */ }
+    router.push(result.inviteUrl.replace(/^https?:\/\/[^/]+/, ""));
+  };
+
+  // 링크만 복사(입장 없이 환자에게 먼저 보낼 때) — 위와 같은 종류의 링크.
+  const handleIssueInvite = async (consultation) => {
+    const result = await issueInvite(consultation.id);
+    if (!result?.inviteUrl) return;
+    try {
+      await navigator.clipboard.writeText(result.inviteUrl);
+      toast.success(
+        result.emailSent
+          ? "상담 링크를 복사했고, 등록된 이메일로도 발송했습니다"
+          : `상담 링크가 클립보드에 복사됐습니다 (만료: ${new Date(
+              result.expiresAt
+            ).toLocaleString("ko-KR")})`
+      );
+    } catch {
+      // 클립보드 권한 없으면 prompt 로
+      prompt("아래 링크를 복사해 공유하세요:", result.inviteUrl);
     }
   };
 
   const handleCancel = async (id) => {
-    if (!confirm("상담을 취소하시겠습니까? 발송된 환자 초대 링크도 함께 폐기됩니다.")) return;
+    if (!confirm("상담을 취소하시겠습니까? 발송된 초대 링크도 함께 폐기됩니다.")) return;
 
     try {
       const { data: sessionData } = await supabase.auth.getSession();
@@ -165,6 +186,41 @@ export default function ConsultationsPage() {
     } catch (error) {
       console.error("[ConsultationsPage] handleCancel error:", error);
       toast.error("취소 실패");
+    }
+  };
+
+  // 상담 완료 처리 — status=completed 로 PATCH (KHIDI K-02 사전상담·K-04 사후관리 실적 집계).
+  //   방의 '통화 나가기'는 상태를 안 바꾸므로(재입장 회귀 방지), 완료 기록은 여기 staff 액션이 유일한 경로.
+  //   서버가 completed 시 게스트 초대 토큰도 폐기하고 case_status 를 전진시킴.
+  const handleComplete = async (id) => {
+    if (!confirm("이 상담을 '완료' 처리할까요?\n완료하면 발송된 초대 링크가 폐기되어 재입장할 수 없습니다.")) return;
+    try {
+      const { data: sessionData } = await supabase.auth.getSession();
+      const token = sessionData?.session?.access_token;
+      if (!token) {
+        toast.error("인증 오류 — 다시 로그인하세요.");
+        return;
+      }
+      const res = await fetch(`/api/khidi/consultation/${id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ status: "completed", ended_at: new Date().toISOString() }),
+      });
+      const result = await res.json();
+      if (!res.ok || !result.ok) {
+        toast.error(`완료 처리 실패: ${result.error || res.statusText}`);
+        return;
+      }
+      toast.success("상담을 완료 처리했습니다. (사전상담·사후관리 실적에 집계됩니다)");
+      setConsultations((cs) =>
+        cs.map((c) => (c.id === id ? { ...c, status: "completed" } : c))
+      );
+    } catch (error) {
+      console.error("[ConsultationsPage] handleComplete error:", error);
+      toast.error("완료 처리 실패");
     }
   };
 
@@ -484,8 +540,16 @@ export default function ConsultationsPage() {
                         <button
                           onClick={() => handleIssueInvite(consultation)}
                           className="flex-1 min-w-[140px] px-4 py-2 bg-blue-50 text-blue-700 border border-blue-200 rounded-lg hover:bg-blue-100 transition font-medium flex items-center justify-center gap-2"
+                          title="입장 없이 링크만 복사 — 「상담 시작」과 같은 링크"
                         >
-                          🔗 환자 초대 링크
+                          🔗 링크 복사
+                        </button>
+                        <button
+                          onClick={() => handleComplete(consultation.id)}
+                          className="px-4 py-2 bg-teal-50 text-teal-700 border border-teal-200 rounded-lg hover:bg-teal-100 transition font-medium flex items-center gap-1.5"
+                          title="상담을 '완료'로 기록 (사전상담·사후관리 실적 집계) — 초대 링크도 폐기"
+                        >
+                          <CheckCircle size={16} /> 완료
                         </button>
                         <button
                           onClick={() => handleCancel(consultation.id)}
@@ -497,13 +561,22 @@ export default function ConsultationsPage() {
                       </>
                     )}
                     {consultation.status === "active" && (
-                      <button
-                        onClick={() => handleJoinConsultation(consultation)}
-                        className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium flex items-center justify-center gap-2"
-                      >
-                        <Phone size={16} />
-                        상담 재진입
-                      </button>
+                      <>
+                        <button
+                          onClick={() => handleJoinConsultation(consultation)}
+                          className="flex-1 min-w-[140px] px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium flex items-center justify-center gap-2"
+                        >
+                          <Phone size={16} />
+                          상담 재진입
+                        </button>
+                        <button
+                          onClick={() => handleComplete(consultation.id)}
+                          className="px-4 py-2 bg-teal-50 text-teal-700 border border-teal-200 rounded-lg hover:bg-teal-100 transition font-medium flex items-center gap-1.5"
+                          title="상담을 '완료'로 기록 (사전상담·사후관리 실적 집계) — 초대 링크도 폐기"
+                        >
+                          <CheckCircle size={16} /> 완료
+                        </button>
+                      </>
                     )}
                     {consultation.status === "completed" && (
                       <>

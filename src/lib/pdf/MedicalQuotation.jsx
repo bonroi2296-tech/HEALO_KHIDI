@@ -10,7 +10,7 @@
 
 import React from "react";
 import { Document, Page, View, Text } from "@react-pdf/renderer";
-import { styles, COLORS } from "./styles";
+import { styles, COLORS, SANS } from "./styles";
 
 const LABELS = {
   ko: {
@@ -126,7 +126,7 @@ export default function MedicalQuotation({ data, lang = "ko" }) {
           </View>
           <View>
             <Text style={styles.docMeta}>QUOTATION NO.</Text>
-            <Text style={{ fontFamily: "Helvetica", fontSize: 12, color: COLORS.ink0, marginTop: 2 }}>
+            <Text style={{ fontFamily: SANS, fontSize: 12, color: COLORS.ink0, marginTop: 2 }}>
               {quotationNo}
             </Text>
             <Text style={{ ...styles.small, marginTop: 6, textAlign: "right" }}>
@@ -200,7 +200,7 @@ export default function MedicalQuotation({ data, lang = "ko" }) {
             </View>
           </View>
         </View>
-        <Text style={{ ...styles.small, marginTop: 10, fontStyle: "italic" }}>
+        <Text style={{ ...styles.small, marginTop: 10 }}>
           ※ {L.disclaimer}
         </Text>
 

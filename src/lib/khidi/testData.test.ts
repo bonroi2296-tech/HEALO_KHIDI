@@ -3,6 +3,8 @@ import {
   isTestEmail,
   isOfficeIp,
   detectInquiryIsTest,
+  detectSessionIsTest,
+  fetchTestSessionIds,
   idsToInFilter,
 } from "./testData";
 
@@ -52,6 +54,81 @@ describe("detectInquiryIsTest", () => {
   });
   it("트리거 전부 없으면 false", () => {
     expect(detectInquiryIsTest({ ...cfg })).toBe(false);
+  });
+});
+
+describe("detectSessionIsTest (K-02 세션 생성시점 도장)", () => {
+  it("명시 지정이면 true", () => {
+    expect(detectSessionIsTest({ manual: true })).toBe(true);
+  });
+  it("연결 inquiry 가 테스트면 상속해 true", () => {
+    expect(detectSessionIsTest({ inquiryIsTest: true })).toBe(true);
+  });
+  it("notes 에 [TEST] 마커(대소문자 무관)면 true", () => {
+    expect(detectSessionIsTest({ notes: "월요일 [TEST] 방" })).toBe(true);
+    expect(detectSessionIsTest({ notes: "smoke [test] run" })).toBe(true);
+  });
+  it("트리거 없으면 false (inquiry 미연결 실세션 포함)", () => {
+    expect(detectSessionIsTest({})).toBe(false);
+    expect(detectSessionIsTest({ inquiryIsTest: null, notes: "실환자 카자흐 상담" })).toBe(false);
+    expect(detectSessionIsTest({ inquiryIsTest: false, notes: null, manual: false })).toBe(false);
+  });
+});
+
+describe("fetchTestSessionIds (세션 표식 ∪ inquiry 체인 합집합)", () => {
+  // 최소 가짜 db: from(table).select().eq()/.in() 체이닝만 흉내
+  function fakeDb(opts: {
+    flaggedSessionIds: string[];
+    testInquiryIds: number[];
+    chainSessionIds: string[];
+  }) {
+    return {
+      from(table: string) {
+        return {
+          select() {
+            return {
+              eq: async (col: string, _v: unknown) => {
+                if (table === "consultation_sessions" && col === "is_test") {
+                  return { data: opts.flaggedSessionIds.map((id) => ({ id })), error: null };
+                }
+                if (table === "inquiries" && col === "is_test") {
+                  return { data: opts.testInquiryIds.map((id) => ({ id })), error: null };
+                }
+                return { data: [], error: null };
+              },
+              in: async (_col: string, _ids: unknown) => ({
+                data: opts.chainSessionIds.map((id) => ({ id })),
+                error: null,
+              }),
+            };
+          },
+        };
+      },
+    };
+  }
+
+  it("세션 자체 표식만 있는 것(inquiry 미연결 테스트)도 포함된다 — K-02 오염 벡터", async () => {
+    const db = fakeDb({
+      flaggedSessionIds: ["s-noinq-1"],
+      testInquiryIds: [],
+      chainSessionIds: [],
+    });
+    expect(await fetchTestSessionIds(db)).toEqual(["s-noinq-1"]);
+  });
+
+  it("표식과 체인이 겹치면 중복 없이 합쳐진다", async () => {
+    const db = fakeDb({
+      flaggedSessionIds: ["s-1", "s-2"],
+      testInquiryIds: [7],
+      chainSessionIds: ["s-2", "s-3"],
+    });
+    const ids = (await fetchTestSessionIds(db)).sort();
+    expect(ids).toEqual(["s-1", "s-2", "s-3"]);
+  });
+
+  it("둘 다 비면 빈 배열", async () => {
+    const db = fakeDb({ flaggedSessionIds: [], testInquiryIds: [], chainSessionIds: [] });
+    expect(await fetchTestSessionIds(db)).toEqual([]);
   });
 });
 

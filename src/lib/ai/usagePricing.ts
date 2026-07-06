@@ -12,11 +12,14 @@ export interface ModelPrice {
   outputPer1M: number;
 }
 
-const FLASH_IN = Number(process.env.AI_PRICE_FLASH_IN || 0.3);
-const FLASH_OUT = Number(process.env.AI_PRICE_FLASH_OUT || 2.5);
+// 기본값 = Gemini 3.5 Flash 표준 단가(USD/1M, 2026-05-19 출시: in $1.50 / out $9.00).
+// `gemini-flash-latest` 별칭은 최신 Flash 로 자동 스왑되므로 2026-07 현재 3.5 Flash 를 가리킨다
+// (옛 2.5 Flash 0.3/2.5 대비 in 5배·out 3.6배 상승). 별칭이 또 이동하면 env 로 덮어써라.
+const FLASH_IN = Number(process.env.AI_PRICE_FLASH_IN || 1.5);
+const FLASH_OUT = Number(process.env.AI_PRICE_FLASH_OUT || 9.0);
 
 export const MODEL_PRICING: Record<string, ModelPrice> = {
-  // 채팅·판정(judge) — gemini-flash-latest 별칭
+  // 채팅·판정(judge) — gemini-flash-latest 별칭(현재 Gemini 3.5 Flash)
   "gemini-flash": { inputPer1M: FLASH_IN, outputPer1M: FLASH_OUT },
   // 임베딩 — 매우 저렴(출력 토큰 없음)
   "gemini-embedding": { inputPer1M: 0.15, outputPer1M: 0 },

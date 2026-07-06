@@ -12,15 +12,16 @@ import {
   useConnectionState,
   useLocalParticipant,
   useParticipants,
-  useSpeakingParticipants,
   useRoomContext,
   FocusLayout,
   FocusLayoutContainer,
   CarouselLayout,
+  VideoTrack,
 } from "@livekit/components-react";
 import "@livekit/components-styles";
+import "./consultation.css"; // 미트식 발화자 테두리(teal)·1:1 PiP 보정 — LiveKit 기본 덮어쓰기
 import { COPY } from "./_roomCopy";
-import { Track, ConnectionState, VideoPresets } from "livekit-client";
+import { Track, ConnectionState, VideoPresets, RoomEvent } from "livekit-client";
 
 // LiveKit 방 옵션 — 화질 보강: 1080p 캡처 + 명시적 1080p 인코딩.
 // adaptiveStream: 작은 타일엔 저화질 자동(대역폭 절약), 큰 화면엔 고화질. dynacast: 안 보는 트랙 안 보냄.
@@ -124,6 +125,106 @@ function ConnectionBanner() {
     <div className="absolute top-3 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2 bg-amber-500/95 text-gray-900 text-xs font-semibold px-3 py-1.5 rounded-full shadow-lg pointer-events-none">
       <span className="w-3 h-3 border-2 border-gray-900 border-t-transparent rounded-full animate-spin" />
       {c.reconnecting}
+    </div>
+  );
+}
+
+// ── 소리 자동재생 차단 해제 (LiveKitRoom 내부 전용) ──
+// 브라우저는 사용자가 페이지를 한 번 터치/클릭하기 전까지 '들어오는 소리'를 막는다(autoplay 정책).
+// 그러면 상대 목소리가 안 들려 "음성이 안 된다"고 오해한다 → 소리가 막혀 있으면 크고 명확한
+// "소리 켜기" 버튼을 띄우고, 누르면 room.startAudio() 로 재생을 푼다. (막혀있지 않으면 안 보임)
+function AudioUnblock() {
+  const room = useRoomContext();
+  const lang = useLang();
+  const c = COPY[lang] || COPY.en;
+  const [blocked, setBlocked] = useState(false);
+  useEffect(() => {
+    if (!room) return;
+    const update = () => setBlocked(!room.canPlaybackAudio);
+    update();
+    room.on(RoomEvent.AudioPlaybackStatusChanged, update);
+    return () => {
+      room.off(RoomEvent.AudioPlaybackStatusChanged, update);
+    };
+  }, [room]);
+  if (!blocked) return null;
+  return (
+    <button
+      onClick={() => room.startAudio().catch(() => {})}
+      className="absolute top-3 left-1/2 -translate-x-1/2 z-40 flex items-center gap-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-semibold px-4 py-2.5 rounded-full shadow-lg animate-pulse"
+    >
+      <Volume2 size={16} /> {c.tapToEnableAudio}
+    </button>
+  );
+}
+
+// ── 마이크 켜기 실패 경고 (LiveKitRoom 내부 전용) ──
+// (2026-07-02 PO 지시) 커스텀 "탭해서 켜기" 오버레이는 삭제 — 입장 시 자동 켜기(브라우저 기본
+// 권한창)만 쓴다. 자동 켜기에서 마이크가 실패하면 본인은 '켜진 줄' 알지만 상대는 무음 → 이 배너로
+// 경고 + '마이크 켜기' 재시도(사용자 제스처 = 가장 안정적인 재획득). 마이크가 켜지면 자동으로 사라진다.
+// ⚠️ 마이크 장치가 '실제로 있는' 기기에서만 띄운다 — 스피커만 있는 PC에 "켜라" 잔소리 금지(PO 지시).
+//    X로 언제든 닫을 수 있고, 장치가 없어도 듣기·보기 참여는 원래대로 그대로 된다.
+function MicOffBanner({ failed, onClear }) {
+  const lang = useLang();
+  const c = COPY[lang] || COPY.en;
+  const { localParticipant, isMicrophoneEnabled } = useLocalParticipant();
+  const [retrying, setRetrying] = useState(false);
+  const [dismissed, setDismissed] = useState(false);
+  const [hasMic, setHasMic] = useState(false);
+  useEffect(() => {
+    // 권한 허용 전에도 장치 종류(kind)는 열람 가능 — 마이크 존재 여부만 확인
+    navigator.mediaDevices
+      ?.enumerateDevices?.()
+      .then((ds) => setHasMic(ds.some((d) => d.kind === "audioinput")))
+      .catch(() => setHasMic(false));
+  }, []);
+  useEffect(() => {
+    if (failed && isMicrophoneEnabled) onClear(); // 마이크 켜지면 경고 자동 해제
+  }, [failed, isMicrophoneEnabled, onClear]);
+  if (!failed || dismissed || !hasMic || isMicrophoneEnabled) return null;
+  const retry = async () => {
+    if (retrying) return;
+    setRetrying(true);
+    try {
+      await localParticipant?.setMicrophoneEnabled?.(true);
+    } catch {
+      /* 여전히 실패 — 배너 유지 */
+    }
+    setRetrying(false);
+  };
+  return (
+    <div className="absolute bottom-16 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2 bg-red-600/95 text-white text-xs font-semibold px-3 py-2 rounded-full shadow-lg">
+      <MicOff size={14} />
+      <span>{c.micOffWarn}</span>
+      <button
+        onClick={retry}
+        disabled={retrying}
+        className="ml-1 underline disabled:opacity-60"
+      >
+        {c.micRetry}
+      </button>
+      {/* 닫기 — 잔소리로 남지 않게 언제든 치울 수 있다 (PO 지시) */}
+      <button onClick={() => setDismissed(true)} aria-label="Close" className="ml-1 p-0.5 opacity-80 hover:opacity-100">
+        <X size={13} />
+      </button>
+    </div>
+  );
+}
+
+// ── 상대 대기 안내 (LiveKitRoom 내부 전용) ──
+// 연결은 됐는데 아직 나 혼자면 검은 화면이 '고장'처럼 보인다 → "상대를 기다리는 중" 명시.
+// (PO 제보 '각각 입장은 되는데 서로 안 보임'의 절반은 '상대 없음'과 '고장'이 구분 안 되는 혼란.)
+function WaitingForOthers() {
+  const lang = useLang();
+  const c = COPY[lang] || COPY.en;
+  const participants = useParticipants();
+  const state = useConnectionState();
+  if (state !== ConnectionState.Connected) return null; // 연결 중/실패는 별도 UI가 담당
+  if (participants.length > 1) return null; // 상대가 방에 있으면 안 띄움
+  return (
+    <div className="absolute inset-0 z-10 flex flex-col items-center justify-center pointer-events-none text-center px-6">
+      <span className="w-2.5 h-2.5 rounded-full bg-teal-400 animate-pulse mb-3" />
+      <p className="text-gray-300 text-sm">{c.waitingForOthers}</p>
     </div>
   );
 }
@@ -241,33 +342,60 @@ function getDeviceId() {
 // 근거: LiveKit 공식문서(disconnectOnPageLeave는 visibilitychange 미처리) + Page Lifecycle 표준.
 // (재입장 시 옛 유령 즉시 제거는 서버 guest-join 의 안정 identity + removeParticipant 가 담당.)
 function PresenceGuard() {
-  const room = useRoomContext();
-  useEffect(() => {
-    if (!room) return;
-    const GHOST_MS = 60000;
-    let ghostTimer = null;
-    const onVisibility = () => {
-      if (document.visibilityState === "hidden") {
-        ghostTimer = setTimeout(() => {
-          room.disconnect().catch(() => {});
-        }, GHOST_MS);
-      } else if (ghostTimer) {
-        clearTimeout(ghostTimer);
-        ghostTimer = null;
-      }
-    };
-    const onPageHide = () => {
-      room.disconnect().catch(() => {});
-    };
-    document.addEventListener("visibilitychange", onVisibility);
-    window.addEventListener("pagehide", onPageHide);
-    return () => {
-      if (ghostTimer) clearTimeout(ghostTimer);
-      document.removeEventListener("visibilitychange", onVisibility);
-      window.removeEventListener("pagehide", onPageHide);
-    };
-  }, [room]);
+  // ⚠️ 회귀 수정 (2026-07-01): 이전 버전(#527)은 유령 참가자를 막으려고
+  //   · pagehide → 즉시 room.disconnect()
+  //   · 화면 숨김(visibilitychange=hidden) 60초 → room.disconnect()
+  //   를 했는데, 모바일(특히 iOS Safari)은 이 이벤트들이 '통화 중 정상 상태'에서도 수시로 튄다
+  //   (주소창 숨김/노출·화면 잠깐 꺼짐·앱 전환·화면 미러링). 그 결과 실제 참가자가 통화 도중,
+  //   심지어 최초 연결 중에 끊겨 "연결 중에서 멈춤 / 서로 안 보임"이 됐다(PO 제보: 실기기 iOS·5G).
+  //   → 공격적 자동 disconnect 를 제거한다. '진짜 이탈'(탭 닫기)은 LiveKit 기본
+  //   disconnectOnPageLeave 가 이미 처리하고, 남는 유령은 방의 departureTimeout/emptyTimeout +
+  //   LiveKit ICE 타임아웃이 서버에서 정리한다. (유령 타일이 잠깐 남는 건 통화가 끊기는 것보다 훨씬 사소.)
   return null;
+}
+
+// ── #612 감성 (a)(b): 데스크톱 1:1 반반분할 + 세로영상 blur-fill 배경 ──
+
+// 뷰포트가 데스크톱 폭(lg=1024px)인지. SSR/마운트 전엔 false → 모바일 PiP 기본으로 시작.
+function useIsDesktopViewport() {
+  const [isDesktop, setIsDesktop] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 1024px)");
+    const update = () => setIsDesktop(mq.matches);
+    update();
+    // iOS/Safari 13 이하는 addEventListener 미지원(구형 addListener만) — CIS 환자 구형 폰에서
+    // 여기서 throw 하면 상담방 전체가 죽는다 → 피처 디텍트 폴백.
+    if (typeof mq.addEventListener === "function") {
+      mq.addEventListener("change", update);
+      return () => mq.removeEventListener("change", update);
+    }
+    mq.addListener(update);
+    return () => mq.removeListener(update);
+  }, []);
+  return isDesktop;
+}
+
+// 카메라 영상이 실제 송출 중인 트랙인지 (placeholder·음소거는 blur 배경 생략 — placeholder 가 덮음)
+const isCamVideoLive = (t) =>
+  !!(t?.publication && !t.publication.isMuted && t.source === Track.Source.Camera);
+
+// 같은 영상 트랙을 뒤에 blur+cover 로 한 장 더 깔아, 세로영상(폰 카메라)의 좌우 검은띠를
+// '그 영상의 흐릿한 확대판'으로 채운다(미트/쇼츠 방식). 가로 영상은 앞장(contain)이 타일을
+// 꽉 채워 배경이 안 보이므로 세로/가로 감지가 필요 없다. 한 트랙을 video 두 개에 붙이는 건
+// MediaStream 표준 동작이라 통화 로직엔 영향 없음.
+function BlurFillTile({ trackRef, onParticipantClick }) {
+  return (
+    <div className="hw-blurfill relative h-full min-h-0 overflow-hidden rounded-xl bg-black/40">
+      {isCamVideoLive(trackRef) && (
+        <VideoTrack trackRef={trackRef} className="hw-blurfill-bg" aria-hidden="true" />
+      )}
+      <ParticipantTile
+        trackRef={trackRef}
+        onParticipantClick={onParticipantClick}
+        style={{ height: "100%" }}
+      />
+    </div>
+  );
 }
 
 // ── LiveKit Video Grid (타일 클릭 = 그 화면 크게 고정 = 핀/포커스. 다자 미팅 대응) ──
@@ -283,47 +411,22 @@ function VideoGrid() {
     { onlySubscribed: false }
   );
 
-  // 발화자 추적 (줌/Meet식 안정화) — 짧은 소리(기침·"네"·추임새)로는 메인이 안 바뀌게
-  // 히스테리시스 게이트를 둔다: 새 화자가 PROMOTE_MS 동안 연속 1위여야만 메인 전환,
-  // 직전 화자는 잠깐 멈춰도 메인 유지(dominantId 안 비움). 참가자 2명 이하면 자동전환 자체를
-  // 끈다(1:1은 상대 고정이 가장 안 튐). 근거: Jitsi DSI 3-시간창 + 업계 통념(직전화자 수초 hold).
-  const speaking = useSpeakingParticipants();
+  // 발화자 자동추적 제거(2026-07-01) — 3인 상담(의사+코디+환자)에서 말차례마다 메인 화면이
+  // '휙휙' 바뀌어 어지럽다는 PO 제보. 정상 말차례는 2초를 넘겨 히스테리시스(2초)로도 못 걸렀다.
+  // → 줌/미트 소규모 기본처럼 '갤러리(격자)'를 기본으로: 화면공유·수동 핀일 때만 크게 띄운다.
+  //   단 1:1(참가자 2명)은 상대를 크게(직전과 동일) — 이땐 튈 상대가 없어 안 흔들린다.
   const allParticipants = useParticipants();
-  const [dominantId, setDominantId] = useState(null);
-  const candidateRef = useRef(null);
-  const candidateSinceRef = useRef(0);
-  useEffect(() => {
-    if (allParticipants.length <= 2) return; // 1:1 — 자동 발화자 전환 끔
-    const PROMOTE_MS = 2000; // 새 화자가 이만큼 '연속으로' 1위여야 메인 전환
-    const top = speaking[0]?.identity ?? null;
-    const now = Date.now();
-    if (!top || top === dominantId) {
-      candidateRef.current = null; // 아무도 안 말함(직전 메인 유지) 또는 현재 메인이 말함
-      return;
-    }
-    if (candidateRef.current !== top) {
-      // 새 후보 등장 — 타이머 시작 (아직 전환 안 함)
-      candidateRef.current = top;
-      candidateSinceRef.current = now;
-    } else if (now - candidateSinceRef.current >= PROMOTE_MS) {
-      // 같은 후보가 PROMOTE_MS 넘게 계속 1위 유지 → 진짜 화자 교대로 보고 전환
-      setDominantId(top);
-      candidateRef.current = null;
-    }
-  }, [speaking, dominantId, allParticipants.length]);
-
   const [pinnedKey, setPinnedKey] = useState(null);
+  const isDesktop = useIsDesktopViewport();
   const cameraTracks = tracks.filter((t) => t.source === Track.Source.Camera);
-  // 메인 화면 우선순위: 수동 핀 > 화면 공유 > 발화자 > 첫 원격 카메라 > 첫 트랙
+  // 메인 화면 우선순위: 수동 핀 > 화면 공유 > (1:1이면 상대 카메라) > 없으면 갤러리(격자)
   const manualFocus = pinnedKey ? tracks.find((t) => trackKey(t) === pinnedKey) : null;
   const screenTrack = tracks.find((t) => t.source === Track.Source.ScreenShare);
-  const speakerTrack = dominantId
-    ? cameraTracks.find((t) => t.participant?.identity === dominantId)
-    : null;
   const remoteCam =
     cameraTracks.find((t) => !t.participant?.isLocal) || cameraTracks[0];
-  const focusTrack =
-    manualFocus || screenTrack || speakerTrack || remoteCam || tracks[0] || null;
+  // 1:1(2명 이하)일 때만 상대를 큰 화면으로. 3인 이상은 갤러리(focusTrack=null → 아래 GridLayout).
+  const oneOnOneFocus = allParticipants.length <= 2 ? remoteCam : null;
+  const focusTrack = manualFocus || screenTrack || oneOnOneFocus || null;
   const isManual = !!manualFocus;
   const pinFromEvent = (e) =>
     setPinnedKey(
@@ -337,6 +440,45 @@ function VideoGrid() {
 
   if (focusTrack) {
     const others = tracks.filter((t) => trackKey(t) !== trackKey(focusTrack));
+
+    // 1:1 기본 뷰 = 미트/페이스타임식 PiP: 상대 풀화면 + 내 화면은 우하단 작은 창.
+    // (기존 캐러셀 스트립은 상대 화면 옆을 세로로 잘라먹어 1:1에선 낭비 — PO 지시 2026-07-02 미트식.)
+    // 수동 핀·화면공유는 아래 기존 캐러셀 뷰 유지(목록형이 맞음). 내 작은 창 클릭 = 크게(핀).
+    // z-[5]·bottom-16 = 자막 오버레이(bottom-4·z-10)가 항상 PiP 위에 보이게.
+    const isPipView = !!oneOnOneFocus && !manualFocus && !screenTrack;
+    if (isPipView) {
+      // (a) 데스크톱 1:1 = 반반분할(상대 왼쪽·나 오른쪽) — PiP 는 큰 모니터에선 낭비라는
+      //     PO 감성 피드백(#612 (a)). 모바일(세로 화면)은 기존 미트식 PiP 유지.
+      if (isDesktop && others.length > 0) {
+        return (
+          <div className="grid h-full grid-cols-2 gap-2 p-2">
+            <BlurFillTile trackRef={focusTrack} onParticipantClick={pinFromEvent} />
+            <BlurFillTile trackRef={others[0]} onParticipantClick={pinFromEvent} />
+          </div>
+        );
+      }
+      return (
+        <div className="relative h-full">
+          {/* (b) 메인(상대) 화면도 blur-fill — 세로영상이면 좌우 띠가 흐릿한 영상으로 채워짐 */}
+          <div className="hw-blurfill relative h-full">
+            {isCamVideoLive(focusTrack) && (
+              <VideoTrack trackRef={focusTrack} className="hw-blurfill-bg" aria-hidden="true" />
+            )}
+            <FocusLayout trackRef={focusTrack} style={{ height: "100%" }} />
+          </div>
+          {others.length > 0 && (
+            <div className="hw-pip-tile absolute bottom-16 right-3 z-[5] w-[30%] max-w-[200px] min-w-[104px] aspect-[16/10] rounded-xl overflow-hidden shadow-lg ring-1 ring-white/25">
+              <ParticipantTile
+                trackRef={others[0]}
+                onParticipantClick={pinFromEvent}
+                style={{ height: "100%" }}
+              />
+            </div>
+          )}
+        </div>
+      );
+    }
+
     return (
       <div className="relative h-full">
         <FocusLayoutContainer style={{ height: "100%" }}>
@@ -454,16 +596,31 @@ export default function ConsultationRoomPage() {
   const c = COPY[lang] || COPY.en;
   const consultationId = params.id;
 
-  // Guest mode: URL 에 ?invite=<token> 있으면 계정 없이 입장 가능
+  // 링크 하나로 통일: URL 의 ?invite=<token> 은 "이 방 입장권"이다.
+  //   · 로그인한 참가자(코디/의사/환자계정)가 이 링크를 열면 → 계정(staff) 모드로 입장(토큰 무시).
+  //   · 로그인 안 한 사람이 열면 → 게스트(이름 입력) 모드로 입장.
+  //   즉 코디는 이 링크로 staff 로 들어가고, 같은 링크를 그대로 환자에게 보내면 환자는 guest 로 들어온다.
   const inviteToken = searchParams?.get("invite") || null;
-  const isGuestMode = !!inviteToken;
+  // 로그인 참가자로 확인되면 true → 그땐 초대토큰이 URL 에 있어도 게스트가 아니라 계정 모드.
+  const [staffAuthed, setStaffAuthed] = useState(false);
+  // 로그인 참가자인지 판정 중(이 링크를 staff/guest 어느 쪽으로 열지 결정) — 그 동안 게스트 폼을 숨긴다.
+  const [checkingAuth, setCheckingAuth] = useState(true);
+  const isGuestMode = !!inviteToken && !staffAuthed;
 
   // Core state
   const [consultation, setConsultation] = useState(null);
-  const [loading, setLoading] = useState(!isGuestMode); // 게스트는 초기엔 이름 입력 폼 표시
+  const [loading, setLoading] = useState(true);
   const [livekitToken, setLivekitToken] = useState("");
   const [livekitUrl, setLivekitUrl] = useState("");
   const [connected, setConnected] = useState(false);
+  // 연결 실패/지연 표시 + 재시도(LiveKitRoom 리마운트) — 무한 '연결중' 방지
+  const [connectError, setConnectError] = useState(false);
+  const [connectAttempt, setConnectAttempt] = useState(0);
+  // 실패 실제 원인(오류 문자열) — "인터넷 확인하세요"로 뭉뚱그리지 않고 화면에 그대로 노출.
+  // (2026-07-02 장애 때 진짜 원인 'invalid token: revoked'가 이 화면 뒤에 숨어 진단이 이틀 밀림)
+  const [connectErrorDetail, setConnectErrorDetail] = useState("");
+  // 입장 시 자동 켜기에서 마이크가 실패했을 때 경고 — '켠 줄 아는데 무음' 방지 (장치 있는 기기만)
+  const [micActivationFailed, setMicActivationFailed] = useState(false);
 
   // Guest mode state
   const [guestName, setGuestName] = useState("");
@@ -473,7 +630,8 @@ export default function ConsultationRoomPage() {
   // ponytail: 단일 카메라 가정, 기기 선택 메뉴는 생략(환자 폰=카메라 1개). 게스트 전용.
   const previewVideoRef = useRef(null);
   const previewStreamRef = useRef(null);
-  const [previewBlocked, setPreviewBlocked] = useState(false);
+  const [previewBlocked, setPreviewBlocked] = useState(false); // 권한 차단(사용자가 '허용' 해야 함)
+  const [previewNoDevice, setPreviewNoDevice] = useState(false); // 장치 없음(PC 등) — 경고 아닌 안내만
   const stopPreview = useCallback(() => {
     previewStreamRef.current?.getTracks().forEach((t) => t.stop());
     previewStreamRef.current = null;
@@ -503,6 +661,17 @@ export default function ConsultationRoomPage() {
 
   // Translation state
   const [translations, setTranslations] = useState([]);
+  // 이 통화(입장)에서 발생한 번역만 패널에 보이게 하는 기준 시각.
+  // 예전 통화·반복 테스트의 번역 기록이 상담에 쌓여 재입장 때 섞여 보이던 것 차단(PO 제보).
+  // 시계 오차·직전 맥락 대비 15초 버퍼. window 체크로 SSR 시각 오염 회피.
+  const callStartMsRef = useRef(null);
+  if (callStartMsRef.current === null && typeof window !== "undefined") {
+    callStartMsRef.current = Date.now() - 15000;
+  }
+  const afterCallStart = useCallback((createdAt) => {
+    const t = createdAt ? new Date(createdAt).getTime() : 0;
+    return t >= (callStartMsRef.current ?? 0);
+  }, []);
   const [currentSubtitle, setCurrentSubtitle] = useState(null);
   const [interimText, setInterimText] = useState("");
   const [manualInput, setManualInput] = useState("");
@@ -519,29 +688,56 @@ export default function ConsultationRoomPage() {
     );
   }, []);
 
-  // 게스트 입장 폼이 떠 있는 동안 카메라 미리보기 — 권한도 미리 받아 통화 중 권한팝업 방지
+  // ── 연결 워치독 — 토큰은 받았는데 18초 안에 연결이 안 되면 '연결 실패'로 표시(무한 '연결중' 방지) ──
+  //   onError 가 안 잡히는 '조용히 멈춤'(협상 지연·TURN 차단 등)도 이 타임아웃으로 사용자에게 노출.
   useEffect(() => {
-    if (!isGuestMode || livekitToken) return;
+    if (!livekitToken || connected) {
+      setConnectError(false);
+      return;
+    }
+    const t = setTimeout(() => {
+      setConnectError(true);
+      // 원인 불명의 '조용한 멈춤'도 서버에 남긴다 — 원격 기기 진단용 (#61 교훈)
+      reportClientEventRef.current?.("connect_timeout", "no livekit connection within 18s");
+    }, 18000);
+    return () => clearTimeout(t);
+  }, [livekitToken, connected, connectAttempt]);
+
+  // 게스트 입장 폼이 떠 있는 동안 카메라 미리보기 — 브라우저 '기본' 권한창이 여기서 딱 한 번 뜬다.
+  // (PO 지시 2026-07-02: 권한은 시스템 권한창으로만. 방 안 커스텀 버튼 없음 → 입장 후엔 자동 켜기)
+  // 실패는 원인별로 구분: 권한 차단(previewBlocked=허용 안내) vs 장치 없음(previewNoDevice=차분한 안내).
+  useEffect(() => {
+    if (checkingAuth || !isGuestMode || livekitToken) return;
     let cancelled = false;
     (async () => {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        let stream;
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        } catch (e1) {
+          // 권한 차단은 즉시 안내로. 그 외(장치 없음 등)는 카메라만이라도 미리보기 시도
+          if (e1?.name === "NotAllowedError" || e1?.name === "SecurityError") throw e1;
+          stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        }
         if (cancelled) {
           stream.getTracks().forEach((t) => t.stop());
           return;
         }
         previewStreamRef.current = stream;
         setPreviewBlocked(false);
+        setPreviewNoDevice(false);
         if (previewVideoRef.current) previewVideoRef.current.srcObject = stream;
-      } catch {
-        if (!cancelled) setPreviewBlocked(true);
+      } catch (e) {
+        if (cancelled) return;
+        if (e?.name === "NotAllowedError" || e?.name === "SecurityError") setPreviewBlocked(true);
+        else setPreviewNoDevice(true); // 카메라·마이크 없는 기기(스피커만 등) — 듣기·보기 참여 안내
       }
     })();
     return () => {
       cancelled = true;
       stopPreview();
     };
-  }, [isGuestMode, livekitToken, stopPreview]);
+  }, [checkingAuth, isGuestMode, livekitToken, stopPreview]);
 
   const openInExternalBrowser = useCallback(() => {
     const url = window.location.href;
@@ -642,9 +838,10 @@ export default function ConsultationRoomPage() {
         publishSubtitleRef.current(translated, targetLang, myRole);
       }
 
-      // Auto-hide subtitle after 6 seconds
+      // Auto-hide subtitle — 문장 길이에 비례(긴 의료문장을 다 읽기 전에 사라지지 않게, 6~15초)
       if (subtitleTimerRef.current) clearTimeout(subtitleTimerRef.current);
-      subtitleTimerRef.current = setTimeout(() => setCurrentSubtitle(null), 6000);
+      const holdMs = Math.min(15000, Math.max(6000, (translated?.length || 0) * 90));
+      subtitleTimerRef.current = setTimeout(() => setCurrentSubtitle(null), holdMs);
 
       // TTS playback
       if (ttsEnabled) {
@@ -657,51 +854,70 @@ export default function ConsultationRoomPage() {
     [myLang, targetLang, myRole, ttsEnabled, tts]
   );
 
-  // ── Translate function ──
-  const translateText = useCallback(
-    async (text) => {
-      if (!text.trim() || isTranslating) return;
-      setIsTranslating(true);
-
-      try {
-        const res = await fetch("/api/khidi/consultation/translate-realtime", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            // 게스트(초대링크)는 계정이 없으므로 invite 토큰으로 번역 API 인증
-            ...(inviteToken ? { "X-Guest-Token": inviteToken } : {}),
-          },
-          body: JSON.stringify({
-            text,
-            sourceLang: myLang,
-            targetLang,
-            consultationId,
-            speakerRole: "self",
-          }),
-        });
-
-        const result = await res.json();
-        if (!result.ok) return;
-        // 번역 API 가 추임새 정리 후 빈 결과를 주면 자막 스킵
-        if (!result.translated || !String(result.translated).trim()) return;
-
-        applyTranslation(text, result.translated);
-      } catch (err) {
-        console.error("[Translation] Error:", err);
-      } finally {
-        setIsTranslating(false);
+  // ── Translate (큐 순차처리) ──
+  // 이전 번역이 끝나기 전에 다음 발화가 와도 '버리지' 않고 큐에 쌓아 순서대로 처리한다.
+  //   (예전엔 isTranslating 중이면 그 조각을 통째로 버려서, 쉬지 않고 말하면 발화가 증발했음
+  //    — 데스크톱 크롬 등 '잘 되는' 환경에서도 나던 '번역 완성도 낮음'의 숨은 원인.)
+  const translateQueueRef = useRef([]);
+  const translatingRef = useRef(false);
+  const drainTranslateQueue = useCallback(async () => {
+    if (translatingRef.current) return; // 이미 처리 중 — 큐만 채우고 반환(중복 실행 방지)
+    translatingRef.current = true;
+    setIsTranslating(true);
+    try {
+      while (translateQueueRef.current.length) {
+        const text = translateQueueRef.current.shift();
+        try {
+          const res = await fetch("/api/khidi/consultation/translate-realtime", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              // 게스트(초대링크·미로그인)만 invite 토큰으로 인증. 로그인 참가자(staff)는 계정 쿠키로.
+              ...(isGuestMode ? { "X-Guest-Token": inviteToken } : {}),
+            },
+            body: JSON.stringify({
+              text,
+              sourceLang: myLang,
+              targetLang,
+              consultationId,
+              speakerRole: "self",
+            }),
+          });
+          const result = await res.json();
+          if (!result.ok) continue;
+          // 번역 API 가 추임새 정리 후 빈 결과를 주면 자막 스킵
+          if (!result.translated || !String(result.translated).trim()) continue;
+          applyTranslation(text, result.translated);
+        } catch (err) {
+          console.error("[Translation] Error:", err);
+        }
       }
+    } finally {
+      translatingRef.current = false;
+      setIsTranslating(false);
+    }
+  }, [myLang, targetLang, consultationId, isGuestMode, inviteToken, applyTranslation]);
+
+  const translateText = useCallback(
+    (text) => {
+      if (!text || !text.trim()) return;
+      const q = translateQueueRef.current;
+      q.push(text.trim());
+      // 느린 회선에서 큐가 폭주하지 않게 최근 15개만 유지(오래된 조각은 버림)
+      if (q.length > 15) q.splice(0, q.length - 15);
+      drainTranslateQueue();
     },
-    [myLang, targetLang, consultationId, isTranslating, inviteToken, applyTranslation]
+    [drainTranslateQueue]
   );
 
   // ── 상대방 자막 수신 핸들러 (DataChannel) ──
   const handleRemoteSubtitle = useCallback(
     ({ text, lang, role }) => {
       setRemoteSubtitle({ text, lang, role });
-      // 8초 후 자동 숨김
+      // 문장 길이에 비례해 자동 숨김(8~15초) — 긴 번역문을 다 읽기 전에 사라지지 않게
       if (remoteSubtitleTimerRef.current) clearTimeout(remoteSubtitleTimerRef.current);
-      remoteSubtitleTimerRef.current = setTimeout(() => setRemoteSubtitle(null), 8000);
+      const holdMs = Math.min(15000, Math.max(8000, (text?.length || 0) * 90));
+      remoteSubtitleTimerRef.current = setTimeout(() => setRemoteSubtitle(null), holdMs);
     },
     []
   );
@@ -923,17 +1139,21 @@ export default function ConsultationRoomPage() {
     };
   }, [admissionId, admissionStatus, consultationId, toast]);
 
-  // ── Fetch consultation + LiveKit token (authenticated mode) ──
+  // ── 신원 판정 + (계정 모드면) 세션·LiveKit 토큰 로드 ──
+  // 링크 하나로 통일: 로그인 세션이 있으면 '이 상담의 참가자인지' 먼저 확인한다.
+  //   · 참가자면 → 계정(staff) 모드 입장 (URL 에 초대토큰이 있어도 계정 우선).
+  //   · (참가자 아님 또는 미로그인) + 초대토큰 있음 → 게스트 폼(이름 입력)으로 폴백.
+  //   · 미로그인 + 초대토큰 없음 → 인증오류(계정 전용 진입 링크).
   useEffect(() => {
-    if (isGuestMode) return; // guest 는 별도 플로우
     const init = async () => {
       try {
         const { data: sessionData } = await supabase.auth.getSession();
         const token = sessionData?.session?.access_token;
 
         if (!token) {
-          toast.error(c.authError);
-          setLoading(false);
+          // 로그인 안 됨 — 초대토큰 있으면 게스트로(폼 표시), 없으면 인증오류
+          if (!inviteToken) toast.error(c.authError);
+          setCheckingAuth(false);
           return;
         }
 
@@ -944,10 +1164,15 @@ export default function ConsultationRoomPage() {
         const detailResult = await detailRes.json();
 
         if (!detailResult.ok) {
-          toast.error(c.sessionNotFoundToast);
-          setLoading(false);
+          // 로그인은 됐지만 이 상담 참가자가 아님 — 초대토큰 있으면 게스트로 폴백, 없으면 세션없음
+          if (!inviteToken) toast.error(c.sessionNotFoundToast);
+          setCheckingAuth(false);
           return;
         }
+
+        // 참가자 확인 → 계정(staff) 모드로 확정 (isGuestMode 가 false 로 바뀜)
+        setStaffAuthed(true);
+        setCheckingAuth(false);
 
         const session = detailResult.data;
         setConsultation(session);
@@ -1004,36 +1229,67 @@ export default function ConsultationRoomPage() {
         );
         const transResult = await transRes.json();
         if (transResult.ok) {
+          // 이 통화에서 생긴 번역만 — 예전 기록 preload 차단
           setTranslations(
-            (transResult.data || []).map((row) => ({
-              id: row.id,
-              original_text: row.source_text ?? row.original_text ?? "",
-              translated_text: row.translated_text ?? "",
-              source_language: row.source_lang ?? row.source_language ?? "",
-              target_language: row.target_lang ?? row.target_language ?? "",
-              speaker_role: row.speaker_role || "unknown",
-              created_at: row.created_at || new Date().toISOString(),
-            }))
+            (transResult.data || [])
+              .filter((row) => afterCallStart(row.created_at))
+              .map((row) => ({
+                id: row.id,
+                original_text: row.source_text ?? row.original_text ?? "",
+                translated_text: row.translated_text ?? "",
+                source_language: row.source_lang ?? row.source_language ?? "",
+                target_language: row.target_lang ?? row.target_language ?? "",
+                speaker_role: row.speaker_role || "unknown",
+                created_at: row.created_at || new Date().toISOString(),
+              }))
           );
         }
       } catch (error) {
         console.error("[ConsultationRoom] init error:", error);
         toast.error(c.loadFailed);
+        setCheckingAuth(false);
       } finally {
         setLoading(false);
       }
     };
 
     init();
-  }, [consultationId, isGuestMode]);
+  }, [consultationId]);
 
   // ── 상담 API 공용 인증 헤더 (게스트=초대토큰 / 계정=Bearer) ──
   const getConsultAuthHeaders = useCallback(async () => {
-    if (inviteToken) return { "X-Guest-Token": inviteToken };
+    // 게스트(초대토큰·미로그인) 모드일 때만 X-Guest-Token. 로그인 참가자(staff)면 계정 Bearer 로
+    // 보내 채팅·자료 등이 게스트가 아니라 실제 역할(코디/의사)로 기록되게 한다.
+    if (isGuestMode) return { "X-Guest-Token": inviteToken };
     const { data } = await supabase.auth.getSession();
     const t = data?.session?.access_token;
     return t ? { Authorization: `Bearer ${t}` } : null;
-  }, [inviteToken]);
+  }, [isGuestMode, inviteToken]);
+
+  // ── 클라이언트 오류 자동 보고 (진단 비콘) ──
+  // 원격 기기(환자 폰 등)의 연결 실패 원인이 아무 데도 안 남아 진단이 이틀 밀렸던
+  // 'invalid token: revoked' 장애(POSTMORTEMS #61) 재발 방지. 실패해도 조용히 무시(UX 영향 0).
+  const reportClientEvent = useCallback(
+    async (type, message) => {
+      try {
+        const headers = await getConsultAuthHeaders();
+        if (!headers) return;
+        await fetch(`/api/khidi/consultation/${consultationId}/client-event`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", ...headers },
+          body: JSON.stringify({ type, message: String(message || "").slice(0, 300) }),
+        });
+      } catch {
+        /* 보고 실패는 무시 */
+      }
+    },
+    [consultationId, getConsultAuthHeaders]
+  );
+  // 선언 위쪽의 이펙트(연결 워치독)에서도 안전하게 쓰도록 ref 로도 노출
+  const reportClientEventRef = useRef(null);
+  useEffect(() => {
+    reportClientEventRef.current = reportClientEvent;
+  }, [reportClientEvent]);
 
   // 서버 메시지 row(message/sender_role) → 렌더 형태(message_text/sender_name)로 정규화
   const normalizeMsg = useCallback((row) => ({
@@ -1123,6 +1379,8 @@ export default function ConsultationRoomPage() {
             const seen = new Set(prev.map((t) => t.id));
             const incoming = tJson.data
               .filter((row) => !seen.has(row.id))
+              // 이 통화 이후 기록만 — 예전 통화·테스트 번역이 폴링으로 섞여 들어오던 것 차단
+              .filter((row) => afterCallStart(row.created_at))
               .map(normalizeTrans)
               // 내 발화는 로컬 entry(다른 id)로 이미 추가됨 — 서버 기록이 같은 내용으로
               // 다시 오면 중복 표시되므로 내용+20초 시간창 기준으로 걸러냄
@@ -1470,34 +1728,21 @@ export default function ConsultationRoomPage() {
 
   // ── End call ──
   const handleEndCall = async () => {
-    if (confirm(c.endConfirm)) {
-      if (translationEnabled) stt.stop();
-      tts.stop();
-
-      try {
-        const headers = await getConsultAuthHeaders();
-        await fetch(`/api/khidi/consultation/${consultationId}`, {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-            ...(headers || {}),
-          },
-          body: JSON.stringify({
-            status: "completed",
-            ended_at: new Date().toISOString(),
-          }),
-        });
-        toast.success(c.consultEnded);
-        router.push("/");
-      } catch (error) {
-        console.error("[ConsultationRoom] End call error:", error);
-        toast.error(c.endFailed);
-      }
-    }
+    if (!confirm(c.endConfirm)) return;
+    // '종료' = 이 통화에서 나가기(연결 끊고 홈으로)만 한다. 상담 자체를 'completed'로 바꾸지 않는다.
+    //   ⚠️ 회귀 방지(PO 제보 2026-07-01): 이전엔 스태프가 종료를 누르면 status=completed 로 PATCH →
+    //   PATCH 라우트가 그 상담의 초대 링크를 전부 폐기(revoke) + 상태 게이트가 재입장을 막아,
+    //   "한 명이 종료를 누르니 다른 직원·환자가 접속 불가"가 됐다. 나가기 ≠ 상담 완료(줌과 동일 원칙).
+    //   상담 '완료' 처리(KPI 사전상담/사후관리 집계 + 링크 폐기)는 코디·어드민이 명시적으로 하도록 분리한다
+    //   (별도 '상담 완료' 액션 — follow-up). 그전까지는 상담이 살아있어 재입장·재테스트가 자유롭다.
+    if (translationEnabled) stt.stop();
+    tts.stop();
+    toast.success(c.consultEnded);
+    router.push("/");
   };
 
-  // ── Guest mode: 이름 입력 폼 먼저 표시 ──
-  if (isGuestMode && !livekitToken) {
+  // ── Guest mode: 이름 입력 폼 먼저 표시 (staff 여부 판정이 끝난 뒤에만) ──
+  if (isGuestMode && !livekitToken && !checkingAuth) {
     return (
       <div className="w-full min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-slate-900 to-teal-950 text-white p-4">
         <div className="max-w-md w-full bg-gray-800/90 backdrop-blur rounded-2xl shadow-2xl overflow-hidden border border-gray-700">
@@ -1509,16 +1754,21 @@ export default function ConsultationRoomPage() {
             <p className="text-sm text-gray-400 leading-relaxed">
               {c.guestLede}
             </p>
-            {/* 인앱 브라우저(카카오톡 등) → 영상·음성 제한 → 입장 전에 외부 브라우저 유도 */}
+            {/* 인앱 브라우저(카카오톡·왓츠앱 등) → 영상·음성이 막힘 → 크게 눈에 띄게 외부 브라우저 유도.
+                에이전시·환자가 메신저로 링크를 받아 그 앱 안 브라우저로 여는 게 가장 흔한 실패 케이스라
+                작은 배너 대신 큰 카드 + 전체폭 버튼으로 놓치지 않게 한다. */}
             {isInAppBrowser && (
-              <div className="mt-4 flex items-center justify-between gap-3 bg-yellow-500/10 border border-yellow-600/40 rounded-lg px-3 py-2.5">
-                <p className="text-xs text-yellow-200 leading-snug">{c.inAppNotice}</p>
+              <div className="mt-4 bg-amber-500/15 border border-amber-500/50 rounded-xl p-4">
+                <div className="flex items-start gap-2 mb-3">
+                  <ExternalLink size={18} className="text-amber-300 shrink-0 mt-0.5" />
+                  <p className="text-sm text-amber-100 font-medium leading-snug">{c.inAppNotice}</p>
+                </div>
                 <button
                   type="button"
                   onClick={openInExternalBrowser}
-                  className="shrink-0 flex items-center gap-1.5 px-3 py-2 bg-yellow-500 hover:bg-yellow-400 text-gray-900 text-xs font-bold rounded-lg transition"
+                  className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-amber-400 hover:bg-amber-300 text-gray-900 text-sm font-bold rounded-lg transition"
                 >
-                  <ExternalLink size={14} /> {c.openExternal}
+                  <ExternalLink size={16} /> {c.openExternal}
                 </button>
               </div>
             )}
@@ -1534,9 +1784,22 @@ export default function ConsultationRoomPage() {
             {/* 셀프뷰 — 입장 전 카메라·권한 확인 (거울 모드) */}
             <div className="rounded-xl overflow-hidden bg-black aspect-video relative border border-gray-700">
               {previewBlocked ? (
-                <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-4">
-                  <VideoOff size={32} className="text-gray-500 mb-2" />
-                  <p className="text-xs text-gray-400 leading-snug">{c.cameraBlocked}</p>
+                <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-4 gap-2 bg-amber-950/30">
+                  <VideoOff size={30} className="text-amber-400" />
+                  <p className="text-xs text-amber-100 leading-snug">{c.cameraBlocked}</p>
+                  <button
+                    type="button"
+                    onClick={() => window.location.reload()}
+                    className="mt-1 px-3 py-1.5 bg-teal-600 hover:bg-teal-500 text-white text-xs font-semibold rounded-lg"
+                  >
+                    {c.retryLabel}
+                  </button>
+                </div>
+              ) : previewNoDevice ? (
+                /* 장치 없음(스피커만 PC 등) — 경고가 아니라 차분한 안내. 입장은 그대로 가능(듣기·보기) */
+                <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-4 gap-2">
+                  <VideoOff size={30} className="text-gray-500" />
+                  <p className="text-xs text-gray-300 leading-snug">{c.noMediaNotice}</p>
                 </div>
               ) : (
                 <video
@@ -1620,7 +1883,7 @@ export default function ConsultationRoomPage() {
   }
 
   // ── Loading / Error states ──
-  if (loading) {
+  if (loading || checkingAuth) {
     return (
       <div className="w-full h-screen flex items-center justify-center bg-gray-900">
         <div className="text-white text-center">
@@ -1635,8 +1898,10 @@ export default function ConsultationRoomPage() {
   if (!consultation && !isGuestMode) {
     return (
       <div className="w-full h-screen flex items-center justify-center bg-gray-900">
-        <div className="text-white text-center">
-          <p className="mb-4">{c.sessionNotFound}</p>
+        <div className="text-white text-center max-w-sm px-6">
+          {/* 입장권(?invite=) 없는 맨 주소로 온 경우 — "세션 없음"이 아니라 원인+해결책을 정확히.
+              (주소창 URL 을 복사·공유하면 이 화면에 막히던 함정 — 2026-07-02 '남들만 안 됨' 원인) */}
+          <p className="mb-4 leading-relaxed">{!inviteToken ? c.linkMissingInvite : c.sessionNotFound}</p>
           <button
             onClick={() => router.push("/")}
             className="px-4 py-2 bg-teal-700 hover:bg-teal-800 rounded-lg"
@@ -1847,12 +2112,37 @@ export default function ConsultationRoomPage() {
               )}
 
             <LiveKitRoom
+              key={connectAttempt}
               token={livekitToken}
               serverUrl={livekitUrl}
               connect={true}
+              // (2026-07-02 PO 지시) 입장 시 카메라·마이크 자동 켜기 — 권한은 '브라우저 기본 권한창'만.
+              //   커스텀 "탭해서 켜기" 오버레이는 삭제(권한을 제대로 못 붙이고 방만 가림).
+              //   게스트는 입장 폼 미리보기에서 이미 권한을 받아 여기선 조용히 켜진다.
+              //   ※ 예전 "모바일 자동 켜기 들쭉날쭉"(#587) 제보는 revoked 장애(POSTMORTEMS #61) 기간의
+              //   오진 가능성이 큼. 실패해도 입장은 그대로(듣기·보기), 마이크만 아래 배너로 재시도.
+              audio={true}
+              video={true}
+              onMediaDeviceFailure={(failure) => {
+                // 장치 없음/거부여도 입장은 계속. 마이크 상태는 MicOffBanner(장치 있는 기기만)가 안내.
+                setMicActivationFailed(true);
+                if (String(failure) === "PermissionDenied") toast.error(c.mediaDeniedToast);
+                reportClientEvent("media_failure", String(failure));
+              }}
               options={ROOM_OPTIONS}
-              onConnected={() => setConnected(true)}
+              onConnected={() => {
+                setConnected(true);
+                setConnectError(false);
+                setConnectErrorDetail("");
+              }}
               onDisconnected={() => setConnected(false)}
+              onError={(e) => {
+                console.error("[livekit] error:", e?.message);
+                setConnectError(true);
+                // 실제 원인을 화면에도 — "인터넷 확인" 뭉뚱그림 금지(#61 재발 방지)
+                if (e?.message) setConnectErrorDetail(String(e.message).slice(0, 200));
+                reportClientEvent("connect_error", e?.message);
+              }}
               style={{ height: "100%" }}
               data-lk-theme="default"
             >
@@ -1872,10 +2162,39 @@ export default function ConsultationRoomPage() {
               />
               <div className="flex-1 relative" style={{ height: "calc(100% - 64px)" }}>
                 <VideoGrid />
+                <WaitingForOthers />
                 <RoomAudioRenderer />
+                <AudioUnblock />
+                <MicOffBanner
+                  failed={micActivationFailed}
+                  onClear={() => setMicActivationFailed(false)}
+                />
                 <ConnectionBanner />
                 <MutedSpeakingWarning />
                 <RoomInfoOverlay />
+                {/* 연결 실패/지연 — 무한 '연결중' 대신 재시도 안내 (재시도 = LiveKitRoom 리마운트) */}
+                {connectError && !connected && (
+                  <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/70 backdrop-blur-sm px-6 text-center">
+                    <p className="text-white text-sm mb-2 max-w-xs leading-relaxed">
+                      {c.connectStuck}
+                    </p>
+                    {/* 실제 오류 원인 — 스샷 한 장으로 원격 진단 가능하게 (#61 교훈) */}
+                    {connectErrorDetail && (
+                      <p className="text-gray-400 text-[11px] mb-4 max-w-sm break-all leading-snug">
+                        ({connectErrorDetail})
+                      </p>
+                    )}
+                    <button
+                      onClick={() => {
+                        setConnectError(false);
+                        setConnectAttempt((a) => a + 1);
+                      }}
+                      className="flex items-center gap-2 bg-teal-600 hover:bg-teal-500 text-white text-sm font-bold px-6 py-3 rounded-full shadow-xl"
+                    >
+                      {c.retryConnect}
+                    </button>
+                  </div>
+                )}
                 <SubtitleOverlay
                   original={currentSubtitle?.original}
                   translated={currentSubtitle?.translated}

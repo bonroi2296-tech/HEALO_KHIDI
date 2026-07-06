@@ -34,6 +34,7 @@ import {
   getKpiForMonth,
 } from "@/lib/khidi/kpi";
 import { fetchTestInquiryIds } from "@/lib/khidi/testData";
+import { readSessionNotes } from "@/lib/khidi/consultationNotes";
 import { createClient } from "@supabase/supabase-js";
 
 // ============================================================
@@ -71,7 +72,7 @@ async function fetchPatientList(year: number, month: number) {
   //    않아 빈칸 — 데이터 수집 갭, PO 보고.) POSTMORTEMS #19.
   const { data: sessions, error } = await supabase
     .from("consultation_sessions")
-    .select("id, patient_id, inquiry_id, session_type, scheduled_at, notes")
+    .select("id, patient_id, inquiry_id, session_type, scheduled_at, notes, notes_encrypted")
     .eq("status", "completed")
     .gte("scheduled_at", fromISO)
     .lt("scheduled_at", toISO)
@@ -234,7 +235,7 @@ export async function POST(request: NextRequest) {
         // I: 주상병명 (inquiries.cancer_type → treatment_type 폴백)
         row.getCell(9).value = inq.cancer_type ?? inq.treatment_type ?? "";
         // J: 사전사후관리 내용
-        row.getCell(10).value = session.notes ?? "";
+        row.getCell(10).value = readSessionNotes(session) ?? "";
 
         row.commit();
       });

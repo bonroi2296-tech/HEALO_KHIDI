@@ -441,7 +441,7 @@
       },
       "checks": [
         "reply_lang",
-        "turn_last_no_doc_list"
+        "visa_substance"
       ],
       "judge": "User asks about which visa is needed and whether HEALO helps obtain it. PASS if the reply substantively addresses the medical visa / visa-support topic (e.g. mentions medical treatment visa, invitation/treatment-confirmation documents needed for the visa, or that HEALO/coordinator assists with the visa application, and that exact issuance depends on the hospital confirming treatment after diagnosis review). FAIL if it ignores the visa question and instead dumps the 5 required medical records, gives generic boilerplate that never engages with visas, or invents specific visa rules/fees as confirmed fact."
     },
@@ -1911,7 +1911,8 @@
       "checks": [
         "reply_lang"
       ],
-      "judge": "Turn 1 is Russian; turn 2 switches to Kazakh and explicitly asks to answer in Kazakh. PASS only if the FINAL reply (to turn 2) is in Kazakh (Kazakh-specific letters, not Russian). FAIL if the final reply stays in Russian because turn 1 was Russian, or is in any language other than Kazakh. The AI must follow the latest message's language."
+      "judge": "Turn 1 is Russian; turn 2 switches to Kazakh and explicitly asks to answer in Kazakh. PASS only if the FINAL reply (to turn 2) is in Kazakh (Kazakh-specific letters, not Russian). FAIL if the final reply stays in Russian because turn 1 was Russian, or is in any language other than Kazakh. The AI must follow the latest message's language.",
+      "expect_reply_lang": "kz"
     },
     {
       "id": "lang-codeswitch-english-terms",

@@ -10,7 +10,22 @@
  *   이 테스트가 그 부류(화면↔서버 필드 계약 어긋남)를 커밋 전에 잡는다.
  */
 
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, beforeAll } from "vitest";
+
+// notes 암호화 경로(encryptionV2)는 `import "server-only"` 포함 → 테스트에선 no-op.
+vi.mock("server-only", () => ({}));
+
+// server-only 를 무력화하면 인앱 알림 경로가 실제로 돌며 mock supabase 캡처를
+// notifications insert 로 덮어쓴다 → 알림은 별도 mock 으로 차단.
+vi.mock("@/lib/notifications/inApp", () => ({
+  sendInAppNotification: vi.fn(async () => {}),
+}));
+
+beforeAll(() => {
+  // 32 bytes hex — 테스트 전용 키 (encryptionV2 는 호출 시점에 env 를 읽음)
+  process.env.ENCRYPTION_KEY_V1 =
+    "00112233445566778899aabbccddeeff00112233445566778899aabbccddeeff";
+});
 
 // ── 인증: 어드민으로 통과 ──
 vi.mock("@/lib/auth/requireConsultationAccess", () => ({
@@ -21,11 +36,25 @@ vi.mock("@/lib/auth/requireConsultationAccess", () => ({
   })),
 }));
 
-// ── supabaseAdmin: insert 페이로드 캡처 ──
+// ── supabaseAdmin: insert 페이로드 캡처 + inquiries.is_test 조회 모의 ──
 const captured: { table?: string; insert?: any } = {};
+// K-02 도장: 생성 핸들러가 insert 전에 연결 inquiry 의 is_test 를 조회한다(상속 판정).
+const mockState = { inquiryIsTest: false };
 vi.mock("@/lib/rag/supabaseAdmin", () => ({
   supabaseAdmin: {
     from: (table: string) => {
+      if (table === "inquiries") {
+        return {
+          select: () => ({
+            eq: () => ({
+              maybeSingle: async () => ({
+                data: { is_test: mockState.inquiryIsTest },
+                error: null,
+              }),
+            }),
+          }),
+        };
+      }
       captured.table = table;
       return {
         insert: (rows: any[]) => {
@@ -72,6 +101,7 @@ describe("상담 생성 계약 — 어드민 폼(snake_case) → DB insert", () 
   beforeEach(() => {
     captured.table = undefined;
     captured.insert = undefined;
+    mockState.inquiryIsTest = false;
   });
 
   it("폼 본문으로 생성 성공하고 consultation_sessions 에 insert 한다", async () => {
@@ -127,5 +157,48 @@ describe("상담 생성 계약 — 어드민 폼(snake_case) → DB insert", () 
   it("session_type 누락 시 400", async () => {
     const res = await POST(makeReq(adminFormBody({ session_type: undefined })));
     expect(res.status).toBe(400);
+  });
+
+  // ── K-02 오염 벡터 차단: 생성 시점 is_test 도장 (2026-07-02) ──
+  it("일반 생성은 is_test=false 로 저장된다", async () => {
+    await POST(makeReq(adminFormBody()));
+    expect(captured.insert.is_test).toBe(false);
+  });
+
+  it("연결 inquiry 가 테스트면 is_test=true 를 상속한다", async () => {
+    mockState.inquiryIsTest = true;
+    await POST(makeReq(adminFormBody()));
+    expect(captured.insert.is_test).toBe(true);
+  });
+
+  it("notes 에 [TEST] 마커가 있으면 inquiry 미연결이어도 is_test=true (K-02 구멍 회귀)", async () => {
+    await POST(
+      makeReq(adminFormBody({ selected_inquiry_id: "", notes: "월요일 다기기 [TEST] 방" }))
+    );
+    expect(captured.insert.inquiry_id).toBeNull();
+    expect(captured.insert.is_test).toBe(true);
+  });
+
+  it("명시 isTest=true 지정도 도장된다", async () => {
+    await POST(makeReq(adminFormBody({ isTest: true })));
+    expect(captured.insert.is_test).toBe(true);
+  });
+
+  // ── notes 암호화 저장 (2026-07-06, PO 승인) ──
+  it("notes 는 평문 컬럼이 아니라 암호문(notes_encrypted)으로 저장된다", async () => {
+    await POST(makeReq(adminFormBody({ notes: "환자 김OO, 위암 3기 상담" })));
+    expect(captured.insert.notes).toBeNull();
+    expect(captured.insert.notes_encrypted).toBeTruthy();
+    expect(captured.insert.notes_encrypted).not.toContain("김OO");
+    const { decryptStringNullable } = await import("@/lib/security/encryptionV2");
+    expect(decryptStringNullable(captured.insert.notes_encrypted)).toBe(
+      "환자 김OO, 위암 3기 상담"
+    );
+  });
+
+  it("notes 미입력이면 notes_encrypted 도 null", async () => {
+    await POST(makeReq(adminFormBody({ notes: undefined })));
+    expect(captured.insert.notes).toBeNull();
+    expect(captured.insert.notes_encrypted).toBeNull();
   });
 });

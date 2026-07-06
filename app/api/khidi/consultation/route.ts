@@ -22,6 +22,11 @@ import { v4 as uuidv4 } from "uuid";
 import {
   requireAuthenticatedUser,
 } from "@/lib/auth/requireConsultationAccess";
+import {
+  encryptSessionNotes,
+  readSessionNotes,
+  backfillSessionNotesEncryption,
+} from "@/lib/khidi/consultationNotes";
 
 export async function POST(request: NextRequest) {
   try {
@@ -107,6 +112,25 @@ export async function POST(request: NextRequest) {
 
     const { supabaseAdmin } = await import("@/lib/rag/supabaseAdmin");
 
+    // K-02 오염 벡터 차단: 테스트 표식을 생성 시점에 세션 자체에 도장.
+    // inquiry 미연결 세션은 inquiry 체인으로 못 거르므로(KNOWN_ISSUES K-02),
+    // 연결 inquiry.is_test 상속 + notes '[TEST]' 마커 + 명시 지정 중 하나면 테스트.
+    let inquiryIsTest: boolean | null = null;
+    if (inquiryId !== null) {
+      const { data: inqRow } = await supabaseAdmin
+        .from("inquiries")
+        .select("is_test")
+        .eq("id", inquiryId)
+        .maybeSingle();
+      inquiryIsTest = (inqRow as any)?.is_test === true;
+    }
+    const { detectSessionIsTest } = await import("@/lib/khidi/testData");
+    const isTestSession = detectSessionIsTest({
+      inquiryIsTest,
+      notes,
+      manual: payload.isTest === true || payload.is_test === true,
+    });
+
     // LiveKit room name (토큰은 별도 /token 엔드포인트에서 참가자 본인이 발급)
     const liveroomName = `khidi-${uuidv4()}`;
 
@@ -116,7 +140,11 @@ export async function POST(request: NextRequest) {
       hospital_id: hospitalId || null,
       partner_doctor_id: partnerDoctorId || null,
       doctor_user_id: doctorId || null,
-      coordinator_user_id: coordinatorId || null,
+      // 담당 코디 지정이 없으면 '만든 사람'(코디)을 담당으로. 안 그러면 코디가 만든 상담에서
+      // 코디가 patient_user_id placeholder 로만 잡혀 'patient' 역할로 오인됨 → 링크발급 실패 등
+      // 각종 역할 오작동의 원인이었음(PO 제보 insufficient_role). admin 이 만들면 admin 은 항상
+      // admin 으로 판정되니 null 유지.
+      coordinator_user_id: coordinatorId || (auth.isAdmin ? null : auth.userId),
       translator_id: translatorId || null,
       session_type: sessionType,
       scheduled_at: scheduledAt,
@@ -126,7 +154,10 @@ export async function POST(request: NextRequest) {
       livekit_room_name: liveroomName,
       // ⚠ livekit_token_*  필드는 더 이상 사전 발급하지 않음.
       //    참가자가 /api/khidi/consultation/token 에서 본인 인증으로 받음.
-      notes: notes || null,
+      // 메모는 PII 가 섞이므로 암호문으로만 저장 (is_test 판정은 위에서 평문으로 이미 끝남)
+      notes: null,
+      notes_encrypted: encryptSessionNotes(notes),
+      is_test: isTestSession,
     };
 
     const { data, error } = await supabaseAdmin
@@ -217,6 +248,7 @@ export async function GET(request: NextRequest) {
         partner_doctor_id,
         created_at,
         notes,
+        notes_encrypted,
         cancer_patient_intakes(id, cancer_type, cancer_stage),
         hospitals(id, name, address),
         partner_doctors(id, name_ko, name_en, subspecialty, position_ko)
@@ -246,9 +278,21 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // 평문 잔존 행은 조회 김에 암호문으로 이전(기회주의적 백필, best-effort)
+    const rows = (data || []) as any[];
+    try {
+      await backfillSessionNotesEncryption(supabaseAdmin, rows);
+    } catch {}
+
+    // 응답: 암호문은 감추고 복호화된 notes 만 (필드명 유지 — 화면 변경 불필요)
+    const sanitized = rows.map(({ notes, notes_encrypted, ...rest }) => ({
+      ...rest,
+      notes: readSessionNotes({ id: rest.id, notes, notes_encrypted }),
+    }));
+
     return Response.json({
       ok: true,
-      data: data || [],
+      data: sanitized,
       total: count,
       limit,
       offset,

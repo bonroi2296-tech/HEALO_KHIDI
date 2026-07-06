@@ -4,6 +4,10 @@ import {
   isTopicCorrection,
   correctionReply,
   TOPIC_CORRECTION_REPLY,
+  asksDocsOrProcess,
+  mentionsHospital,
+  asksHospitalRanking,
+  stripPriceLines,
 } from "./topicGuards";
 
 describe("mentionsCancerType — 현재 메시지가 특정 암종을 명시했나", () => {
@@ -19,11 +23,42 @@ describe("mentionsCancerType — 현재 메시지가 특정 암종을 명시했�
     expect(mentionsCancerType("лечение рака молочной железы")).toBe(true);
   });
 
-  it("암종 미명시(일반 질문·메타)는 false — 단독 '암'은 암종이 아님", () => {
+  it("중/일/카 특정 암종도 true (2026-07-06 순찰: 기존 ko·en·ru 만 커버하던 구멍)", () => {
+    // zh
+    expect(mentionsCancerType("肺癌治疗要多少钱？")).toBe(true);
+    expect(mentionsCancerType("我妈妈得了胃癌")).toBe(true);
+    // ja (히라가나 がん + 한자 癌 둘 다) + 脳/骨(대칭)
+    expect(mentionsCancerType("肺がんの治療費は？")).toBe(true);
+    expect(mentionsCancerType("胃癌と診断されました")).toBe(true);
+    expect(mentionsCancerType("胃がんか？")).toBe(true); // 의문 か 뒤에도
+    expect(mentionsCancerType("脳がんの疑いがあります")).toBe(true);
+    expect(mentionsCancerType("骨がんの治療法")).toBe(true);
+    // kz 악성종양
+    expect(mentionsCancerType("Анама қатерлі ісік диагнозы қойылды")).toBe(true);
+  });
+
+  it("ja がん 오탐 방지 — がんばる·がんこ 등은 암종 아님 (독립 리뷰 실측 결함)", () => {
+    // "がん"(히라가나)이 힘내라(がんばる)·찌든(がんこ)·칭칭(がんじがらめ)의 시작이라
+    // 장기한자 바로 뒤에 와도 암종으로 오탐되면 안 됨(건강 응원 문구 등).
+    for (const s of [
+      "肝臓がんばれ！お酒は控えめに", // 간아 힘내라
+      "胃がんばって、消化を助けよう",
+      "肺がんばって深呼吸しよう",
+      "皮膚がんこな汚れが取れない", // 찌든 때
+      "腸がんじがらめの気分",
+      "がんばってください", // 장기 없음
+    ]) {
+      expect(mentionsCancerType(s)).toBe(false);
+    }
+  });
+
+  it("암종 미명시(일반 질문·메타)는 false — 단독 '암'/'癌症'/'がん'은 암종이 아님", () => {
     for (const s of [
       "한국에 가서 치료 받고 싶은데 절차 알려줘",
       "고쳐졌니?",
       "암 치료 받고 싶어요", // 단독 '암'(암종 아님)
+      "癌症一般怎么治疗",     // zh 일반 '암'(장기 접두 없음)
+      "がんについて教えて",   // ja 일반 '암'
       "병원 추천해줘",
       "",
     ]) {
@@ -97,5 +132,133 @@ describe("correctionReply — 6개 언어 결정적 응답", () => {
   });
   it("미지원 언어는 영어 폴백", () => {
     expect(correctionReply("xx")).toBe(TOPIC_CORRECTION_REPLY.en);
+  });
+});
+
+describe("asksDocsOrProcess — 서류 목록 주입 게이트 (2026-07-04)", () => {
+  it("서류·준비·비용을 물으면 true (6개 언어)", () => {
+    expect(asksDocsOrProcess("위암 치료 받으려면 어떤 서류를 준비해야 하나요?")).toBe(true);
+    expect(asksDocsOrProcess("What documents do I need to prepare?")).toBe(true);
+    expect(asksDocsOrProcess("Какие документы нужно подготовить?")).toBe(true);
+    expect(asksDocsOrProcess("Қандай құжат керек?")).toBe(true);
+    expect(asksDocsOrProcess("需要准备什么资料？")).toBe(true);
+    expect(asksDocsOrProcess("どんな書類が必要ですか？")).toBe(true);
+    expect(asksDocsOrProcess("위암 수술 비용 얼마예요?")).toBe(true);
+    expect(asksDocsOrProcess("Сколько стоит операция?")).toBe(true);
+  });
+  it("감정적 첫 메시지는 false (서류 나열 차단 대상)", () => {
+    expect(asksDocsOrProcess("У моей мамы рак лёгких с метастазами, и я совсем не справляюсь. Я её единственная опора и не знаю, с чего начать.")).toBe(false);
+    expect(asksDocsOrProcess("My mother has lung cancer and I'm overwhelmed, she only has me.")).toBe(false);
+    expect(asksDocsOrProcess("Анамда өкпе обыры бар, мен не істерімді білмеймін.")).toBe(false);
+    expect(asksDocsOrProcess("엄마가 폐암이래요. 너무 무섭고 뭐가 뭔지 모르겠어요.")).toBe(false);
+  });
+});
+
+describe("mentionsHospital — 6개 언어 병원 의도 감지 (2026-07-04)", () => {
+  it("6개 언어 병원 단어를 잡는다", () => {
+    expect(mentionsHospital("제일 싼 병원 알려줘")).toBe(true);
+    expect(mentionsHospital("which hospital is best?")).toBe(true);
+    expect(mentionsHospital("Какая больница лучше?")).toBe(true);
+    expect(mentionsHospital("Емдеу ең арзан ауруханы айтыңызшы")).toBe(true); // kz 실측 결함 문장
+    expect(mentionsHospital("哪家医院最便宜？")).toBe(true);
+    expect(mentionsHospital("どの病院がいいですか")).toBe(true);
+    expect(mentionsHospital("В какую клинику обратиться?")).toBe(true);
+  });
+  it("병원 언급 없으면 false", () => {
+    expect(mentionsHospital("위암 치료 비용 얼마예요?")).toBe(false);
+    expect(mentionsHospital("У моей мамы рак лёгких, я не справляюсь")).toBe(false);
+  });
+});
+
+describe("asksHospitalRanking — 병원 랭킹/최저가 요청 감지 (2026-07-04)", () => {
+  it("최상급+병원이면 true (kz 실측 결함 문장 포함)", () => {
+    expect(asksHospitalRanking("제일 싼 병원 알려줘")).toBe(true);
+    expect(asksHospitalRanking("Емдеу ең арзан ауруханы айтыңызшы. Бағасы бойынша арзаннан қымбатқа қарай")).toBe(true);
+    expect(asksHospitalRanking("which is the cheapest hospital?")).toBe(true);
+    expect(asksHospitalRanking("Какая больница самая лучшая?")).toBe(true);
+    expect(asksHospitalRanking("哪家医院最便宜？")).toBe(true);
+    expect(asksHospitalRanking("一番いい病院はどこですか")).toBe(true);
+  });
+  it("랭킹 아닌 병원 질문·병원 없는 최상급은 false", () => {
+    expect(asksHospitalRanking("병원 예약은 어떻게 해요?")).toBe(false);
+    expect(asksHospitalRanking("제일 빠른 비자 방법이 뭐예요?")).toBe(false);
+  });
+});
+
+describe("stripPriceLines — 가격 미질문 턴 Context 가격 제거 (2026-07-05)", () => {
+  it("통화+숫자 실린 줄만 제거하고 나머지는 보존", () => {
+    const ctx = [
+      "면역병원 항노화 프로그램 — 한방·미용 침·마사지",
+      "стоимость программы составляет от $1,500 до $3,700",
+      "위암 수술: ₩8M–25M (국제수가)",
+      "진료과: 종양내과, 위치: 서울",
+      "패키지 990,000원부터",
+      "Basic checkup ~$370",
+    ].join("\n");
+    const out = stripPriceLines(ctx);
+    expect(out).toContain("항노화 프로그램");
+    expect(out).toContain("진료과: 종양내과");
+    expect(out).not.toContain("$1,500");
+    expect(out).not.toContain("₩8M");
+    expect(out).not.toContain("990,000원");
+    expect(out).not.toContain("$370");
+  });
+  it("라벨형 가격 줄(통화 없이 숫자만)도 제거 — RAG 문서 포맷 실측 구멍", () => {
+    const ctx = [
+      "Name: Anti-Aging Herbal Therapy",
+      "Price Min: 1500",
+      "Price Max: 3700",
+      "가격: 990000",
+      "Цена: 3700",
+      "Duration: 4 weeks",
+    ].join("\n");
+    const out = stripPriceLines(ctx);
+    expect(out).toContain("Anti-Aging");
+    expect(out).toContain("Duration");
+    expect(out).not.toContain("1500");
+    expect(out).not.toContain("3700");
+    expect(out).not.toContain("990000");
+  });
+  it("비ASCII 통화 접미사 가격 줄 제거 — \\b 함정으로 죽어있던 분기(2026-07-05 오퍼스 순찰 발견)", () => {
+    // JS \w 는 ASCII 전용 → 키릴·한글·CJK 통화 뒤 \b 가 항상 실패해 이 분기가 통째로 미발동이었음.
+    // $·라벨 형식이 아닌 "숫자+통화단어" 포맷이 코퍼스에 들어오면 그대로 새던 잠재 구멍.
+    const ctx = [
+      "Клиника специализируется на онкологии",           // 가격 아님 — 보존
+      "Стоимость лечения около 1500000 тенге за курс",   // ru 텡게
+      "Примерно 500000 тг за программу",                 // ru 텡게 약어
+      "Обследование стоит 3700 долларов",                // ru 달러(долл)
+      "검진 비용은 3000 달러 정도입니다",                  // ko 달러
+      "治療費は約50万円です",                              // ja 만엔
+      "费用大约是 20000 元",                               // zh 위안
+      "Программа рассчитана на 3 недели",                // 숫자 있으나 통화 아님 — 보존
+    ].join("\n");
+    const out = stripPriceLines(ctx);
+    expect(out).toContain("специализируется на онкологии");
+    expect(out).toContain("рассчитана на 3 недели");
+    expect(out).not.toContain("тенге");
+    expect(out).not.toContain("500000 тг");
+    expect(out).not.toContain("долларов");
+    expect(out).not.toContain("3000 달러");
+    expect(out).not.toContain("万円");
+    expect(out).not.toContain("20000 元");
+  });
+  it("빈 입력은 그대로", () => {
+    expect(stripPriceLines("")).toBe("");
+  });
+});
+
+describe("asksDocsOrProcess — 키릴 부분일치 오탐 방지 (2026-07-05 실측 진범)", () => {
+  it("косметологию(미용)는 смет(견적)에 안 걸린다 — 가격 게이트 미발동 진범이었던 실제 문장", () => {
+    expect(
+      asksDocsOrProcess("У меня много родинок на лице, хочу удалить их и сделать косметологию в Корее")
+    ).toBe(false);
+  });
+  it("진짜 견적/가격 질문은 여전히 true", () => {
+    expect(asksDocsOrProcess("Пришлите смету, пожалуйста")).toBe(true);
+    expect(asksDocsOrProcess("Какая цена лечения?")).toBe(true);
+    expect(asksDocsOrProcess("Сколько стоит операция?")).toBe(true);
+  });
+  it("оценка(평가)는 цен(가격)에 안 걸린다", () => {
+    expect(asksDocsOrProcess("Мне нужна оценка состояния мамы")).toBe(false);
   });
 });

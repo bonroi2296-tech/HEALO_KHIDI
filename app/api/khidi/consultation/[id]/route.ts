@@ -14,6 +14,11 @@ export const runtime = "nodejs";
 
 import { NextRequest } from "next/server";
 import { resolveConsultationActor } from "@/lib/auth/requireConsultationAccess";
+import {
+  encryptSessionNotes,
+  readSessionNotes,
+  backfillSessionNotesEncryption,
+} from "@/lib/khidi/consultationNotes";
 
 export async function GET(
   request: NextRequest,
@@ -46,6 +51,7 @@ export async function GET(
         doctor_language,
         livekit_room_name,
         notes,
+        notes_encrypted,
         clinical_summary,
         recommendations,
         recording_url,
@@ -76,7 +82,19 @@ export async function GET(
       );
     }
 
-    return Response.json({ ok: true, data, viewerRole: access.role });
+    // 평문 잔존이면 조회 김에 암호문으로 이전(백필, best-effort)
+    try {
+      await backfillSessionNotesEncryption(supabaseAdmin, [data as any]);
+    } catch {}
+
+    // 응답: 암호문은 감추고 복호화된 notes 만 (필드명 유지)
+    const { notes, notes_encrypted, ...rest } = data as any;
+    const responseData = {
+      ...rest,
+      notes: readSessionNotes({ id: rest.id, notes, notes_encrypted }),
+    };
+
+    return Response.json({ ok: true, data: responseData, viewerRole: access.role });
   } catch (error: any) {
     console.error("[api/khidi/consultation] GET exception:", error?.message);
     return Response.json(
@@ -140,7 +158,11 @@ export async function PATCH(
     if (endedAt) updateData.ended_at = endedAt;
     if (durationSeconds !== undefined)
       updateData.duration_seconds = durationSeconds;
-    if (payload.notes !== undefined) updateData.notes = payload.notes;
+    if (payload.notes !== undefined) {
+      // 메모는 암호문으로만 저장 + 기존 평문 잔존분도 이 기회에 제거
+      updateData.notes_encrypted = encryptSessionNotes(payload.notes);
+      updateData.notes = null;
+    }
     if (clinicalSummary !== undefined)
       updateData.clinical_summary = clinicalSummary;
     if (payload.recommendations !== undefined)

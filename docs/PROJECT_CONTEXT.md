@@ -7,96 +7,102 @@
 
 ---
 
-## 🔖 세션 핸드오프 (2026-07-01 — 비자 데이터 정정·프레시니스 가드·CIS 추가·PDF 톤 교정·초청장 병원명의 [#535·541·549·552 머지 / #562 미머지])
+## 🔖 세션 핸드오프 (2026-07-06 낮 — 주말 정리 + PO 결정 3건 일괄 처리: notes 암호화·2인 레이아웃(PR #654)·LiveKit webhook 최초 등록 + 자동 루프 전면 정지)
 
-> PO "카자흐도 K-ETA 러시아랑 같은 거 아니냐" → 비자 데이터 오류 정정 → "다 맞는지 전면 검토 + 왜 매번 틀리냐" → 프레시니스 가드 → "체크기능 저장되게" → "싹다해" → 초청장 PDF 보여주자 **프리미엄 톤에 격노**("몇 번을 얘기해야") → PDF 톤 교정+가드 → "테스트 어케 나오는데" → 초청장 발급 주체 논의 → PO가 유치의료기관 등록증 2개 업로드 → "본로이+면력한방병원 베이스로" → "핸드오프해".
+> PO 출근 준비 세션("금토일 작업 정리 + 본격 작업 준비"). 주말 요약 보고 → PO 버튼 결정으로 보류 3건 전부 착수 + 테스트 상담방 삭제 + 미머지 PR 정리까지 일괄 처리. **오후 PO 지시로 자동 루프 전부 정지.**
 
-**1. 이번 세션 한 일** (비자 영역 집중, 5개 PR)
-- **[#535] 머지·배포** — 카자흐스탄 `비자필요`→**무비자30일+K-ETA필요** 정정, 러시아 K-ETA `면제`(오류)→**필요**로 6개언어 정정. 회귀 테스트 + POSTMORTEMS #56. (원인: 최초입력이 "무비자=K-ETA면제" 혼동)
-- **[#541] 머지·배포** — 전면 감사(10개 주장×웹조사×적대검증) 후: **중국 단체관광 무비자 "6월까지"→"12/31까지(연장)"** stale 정정 + **프레시니스 CI 가드**(`check:visa-freshness`: 데이터 내 만료일 지나면 CI 실패) + **CIS 4국 추가**(우즈벡·키르기스·타지크·아제르바이잔, 전부 비자필요) + POSTMORTEMS #57.
-- **[#549] 머지·배포** — 비자 서류 체크리스트 **계정 동기화**(신규표 `patient_visa_checklist` RLS본인만 + API `/api/patient/visa-checklist` GET/PUT + VisaClient 배선, 비로그인=localStorage 폴백) + 러·카 무비자에 **누적상한 문구**(러 180일중90 / 카 180일중60) 6개언어.
-- **[#552] 머지·배포** — **PDF 톤 Premium→Legacy 교정**: 초청장·견적서·동의서 공유 `src/lib/pdf/styles.js`가 Playfair 세리프+골드/크림(DESIGN.md 금지)이던 걸 내장 Helvetica·teal·회색으로. **외부 웹폰트(gstatic) 제거**로 404 렌더실패 위험도 해결. **재발방지 가드** `check:pdf-tone` 신설(serif/gold/cream/외부폰트 재유입 시 CI fail) + `/visa`에 "비자 신청 시작" CTA.
-- **[#562] 미머지(draft, CI clean)** — **초청장 발급 주체 = 등록 유치의료기관(병원) 명의 + 본로이 공동**. 신규 `src/lib/visa/inviterHospitals.ts`(면력한방병원 M-2025-01-06-8596·신촌면력한방병원 M-2025-01-06-8783, 등록증 원본 기반) + `VisaInvitationLetter.jsx`에 `inviter` 지원(03섹션=초청 의료기관+유치업자 BONROI 공동, 서명=병원대표+본로이) + 발급 API 기본값=면력한방병원. **비어있던 유치등록번호 칸이 실제값으로 채워짐.**
+**1. 이번 세션 한 일**
+- **PR #654 (PO 승인으로 머지 진행)** — ①상담 notes 암호화(AES-256-GCM, `src/lib/khidi/consultationNotes.ts` 신설, 기존 평문 행은 조회 시점 "기회주의적 백필"로 이전 — 이 환경엔 키 없어 일괄 변환 불가) ②#612 감성 (a)(b): 데스크톱 1:1 반반분할 + 세로영상 blur-fill(같은 트랙을 뒤에 blur+cover로 한 장 더 — 방향 감지 불필요). 독립 리뷰 게이트 통과(CONFIRMED 0) + PLAUSIBLE 2건 반영(구형 iOS matchMedia 폴백·복호화 실패 로그 마커).
+- **LiveKit webhook 최초 등록 (PO 직접)**: 옛 주소 교체가 아니라 **한 번도 등록된 적 없었음**(이벤트 0의 진짜 원인). `https://healwith.co.kr/api/livekit/webhook` + Signing key `healo`(APIt2fLT4qDAAxi). 첫 실통화 때 Vercel 로그 `[livekit/webhook]` 수신 확인 필요(서명 불일치면 `signature or parse failed` 워닝).
+- **테스트 상담방 2개 삭제 완료**(PO 버튼 승인): 50d5bc43…·aa9804ee… 세션 2+게스트토큰 3, 딸린 기록 없음 확인 후 삭제.
+- **PR #567 구조 수리**: main 합류(5일치) → 새 가드 `check:schema-refs`가 `partner_outreach` 미등록으로 실패 → 스냅샷 등록. 스모크 1회 실패는 재실행으로 통과(flaky 판별 — 동시간 #654 동일 스위트 통과가 근거). PO 승인으로 머지 진행.
+- **다기기 테스트 준비 확인**: 초대 링크(상담방 87710d1d) 7/10까지 유효.
 
 **2. 왜 그렇게 했는지**
-- 비자=외부 법령 사실이라 **날짜 박힌 규정이 시간만 지나도 저절로 틀려짐**(중국 6월이 7월엔 거짓). 자동검사는 문법만 봄 → PO가 화면에서 발견 = "건드리면 나온다". 그래서 `expiresOn`/`lastVerified` 구조+CI 가드로 만료를 기계가 잡게(POSTMORTEMS #57).
-- 발급 주체 = **병원 명의**(추천): 의료비자는 대사관이 등록 의료기관 초청을 가장 신뢰 + 유치등록번호 칸이 실제값으로 채워짐. 본로이는 유치업자 공동표기(역할 유지). PO가 "누구로 하든 상관없다, 니가 추천하라" → 병원명의 추천, PO "본로이+면력 베이스로" 확정.
-- PDF도 DESIGN.md 대상인데 그동안 사각지대였음 → 톤 교정 + `check:pdf-tone`으로 기계가 영구 차단(PO가 프리미엄 톤 재등장에 반복 격노).
+- notes 백필을 "조회 시점"으로 한 이유: 서버(Vercel)에만 ENCRYPTION_KEY_V1 이 있고, 어드민 상담 목록이 매일 열리므로 수일 내 자동 전량 이전 + 이후 no-op. `.is("notes_encrypted", null)` 가드로 동시 요청 이중 변환 방지.
+- blur-fill 을 방향 감지 없이 한 이유: 가로 영상은 앞장(contain)이 타일을 꽉 채워 뒷장이 안 보임 — 감지 로직 자체가 불필요.
 
 **3. 안 끝났거나 보류**
-- **[#562] 미머지** — draft·CI clean(방향은 PO 승인). 다음 세션에서 실서버 스모크 후 머지.
-- **초청장 여권번호·생년월일 여전히 공란** — 환자 입력 흐름 미구현(신청서에 여권번호/생일 필드 + 코디 확정 → 초청장 자동반영). API가 여전히 `passport:null,dob:null` 전달.
-- **코디 병원 선택 UI 없음** — 지금 초청 병원 기본=면력 고정. `visa_applications.inviter_hospital_id` 컬럼도 없음(API가 `(fullApp as any).inviter_hospital_id` 읽지만 항상 undefined→면력 폴백). 마곡/신촌 선택 UI+컬럼 추가 필요.
-- **견적서·동의서 한글 tofu 가능성** — 내장 Helvetica는 한글·키릴 글리프 없음. 초청장은 영문발급이라 OK, but 견적서(bilingual ko)·동의서는 한글이 깨질 수 있음 → 한글 산세리프 번들 필요(Legacy 톤 유지). 별도 이슈.
+- ⏸ **자동 루프 전부 정지 (2026-07-06 오후 PO 지시)**: ①이 세션 자가 점검 예약 비활성화 ②「사고·품질 순찰 루프(2시간)」 cron(trig_01PEotorQfbx6AmitLRnmPr6) — 타 세션 바인딩이라 정지 불가 → **삭제**(직전 AI루프 세션 핸드오프의 "못 끈다" 잔여 건도 이걸로 해소). 재개 시 create_trigger 재생성: "정기 순찰(소넷 위임): 핵심 경로 스모크(홈·/inquiry·/hospitals 200)·Vercel 런타임 에러·audit ERROR, 이상 없으면 안전 백로그 1건(비시각·자동검증만), 돈·삭제·PII·보이는 UI 금지, 보고는 하루 1회". **PO가 "루프 다시 켜"라고 하기 전까지 새 루프·자가점검 예약 금지.**
+- 잔존: 게스트토큰 E2E 스펙 고정 실패 / PR #562(초청장 병원 명의)·#514(사업계획서) PO 검토 대기.
 
 **4. 주의·함정**
-- **`check:pdf-tone`**: PDF 폴더(`src/lib/pdf/`)에 `Playfair`·`gstatic`·골드/크림 hex가 **주석에라도** 들어가면 CI fail(리터럴 매칭). 톤 관련 주석엔 그 단어 직접 쓰지 말 것.
-- **`check:visa-freshness`**: `TIME_SENSITIVE_DEADLINES`의 expiresOn(중국·K-ETA 둘 다 **2026-12-31**) 지나면 CI fail → 그때 규정 재확인+데이터·날짜 갱신. `VISA_DATA_LAST_VERIFIED`(2026-07-01)도 180일 지나면 fail.
-- `patient_visa_checklist`는 프로덕션 적용됨(가역적). API는 types 미등록이라 `(supabaseAdmin as any)` 캐스트(레포 관례).
-- `inviterHospitals.ts` 등록번호·유효기간(2028)은 등록증 원본 기준. 만료 지나면 재확인.
-- 초청장 렌더: 내장 Helvetica로 바꿔 gstatic 404 위험 제거됨 → 프로덕션 렌더 될 가능성↑. 단 **실제 발급 0건이라 프로덕션 렌더는 미검증**.
+- notes 는 이제 **API 경유로만 읽어라** — DB 직접 조회하면 암호문. `[TEST]` 마커 판정은 저장 전 평문에서 하므로 동작 불변.
+- 상담방 화면(page.jsx)의 `useIsDesktopViewport`는 iOS 13 이하 폴백(addListener) 포함 — matchMedia 새 API만 쓰면 구형 폰에서 상담방이 죽는다.
 
 **5. 다음 세션이 먼저 할 일**
-1. ⚠️ **직전 미검증분 먼저**: **[#562] 실서버 초청장 발급 스모크** — 코디 로그인→비자신청 1건→"초청장 발급" 버튼→PDF에 면력 등록번호(8596)·본로이 공동·Legacy 톤 뜨는지 + 프로덕션에서 실제 렌더되는지(폰트) 확인.
-2. **[#562] 머지** (CI clean, PO 방향승인 — 지금 draft).
-3. **초청장 빈칸 채우기**: 환자 여권번호·생년월일 입력 흐름(신청서 필드 + 코디 확정) → 초청장 자동 반영.
-4. **코디 병원 선택 UI** + `visa_applications.inviter_hospital_id` 컬럼(마곡/신촌 선택).
-5. (별도) 견적서·동의서 한글 렌더 확인 → 깨지면 한글 산세리프 번들.
+1. ⚠️ **미검증분**: ①2인 반반분할·blur-fill 육안(다기기 테스트 통화로 확인) ②webhook 첫 수신(통화 후 Vercel 로그) ③notes 백필 실동작(배포 후 어드민 상담 목록 1회 열람 → DB에서 평문 잔존 0 확인).
+2. 다기기 테스트 결과 판독(실패 기기 = admin_audit_logs CONSULTATION_CLIENT_ERROR).
+3. #567 머지 후 Assel 계정 코디 권한 부여.
 
 **6. 검증 상태**
-- ✅ **#535·541·549·552**: 각 `ci`·`Smoke Tests(PR)` 초록 후 squash 머지·배포. tsc0·eslint0err·`check:content`·`check:visa-freshness`·`check:pdf-tone`·`check:migrations` 통과. 비자테스트 18건 통과. DB 라이브 스모크(patient_visa_checklist 삽입·upsert·제약·정리) OK.
-- ✅ **#562**: 로컬 tsc0·eslint0err·`check:pdf-tone`·`next build` 통과. **로컬 렌더로 면력 등록번호 8596 채워짐 확인**(샘플 PDF PO 전달). PR CI = mergeable_state `clean`(마지막 확인 시 `ci`·`smoke` in_progress였고 이후 clean으로 표시).
-- ❌ **미검증(솔직히)**: #562 **프로덕션에서 초청장 실제 발급 안 해봄**(코디 인증 필요). **여권번호 여전히 공란**. **견적서·동의서 한글 렌더 안 봄**(tofu 가능성). CIS 대사관 URL은 공식출처 슬러그 확인했으나 페이지 실제열림은 프록시 이슈로 자동확인 실패(기존 프로덕션과 동일 패턴).
+- ✅ PR #654: vitest 501 통과(계약 테스트 2건 신규) · check:content · next build · 독립 리뷰(CONFIRMED 0). CI ci+E2E 초록.
+- ✅ PR #567: ci 초록 + 스모크 재실행 통과.
+- ⚠️ **검증 못 함**: 위 5-1 세 가지(전부 라이브 필요).
 
 **7. 다음 세션 첫 프롬프트**
-> 먼저 docs/PROJECT_CONTEXT.md 최상단 핸드오프 읽어. 그 다음: ①#562(초청장 병원명의) 실서버에서 코디로 초청장 실제 한 장 발급해봐서 면력 등록번호(8596)·본로이 공동·Legacy 톤·프로덕션 렌더 되는지 확인하고 문제없으면 머지해. ②그담에 초청장 빈칸(환자 여권번호·생년월일) 채우는 흐름 만들어 — 환자가 신청서에 넣고 코디가 확정하면 초청장에 자동으로 들어가게. ③코디가 마곡/신촌 두 병원 중 고를 수 있게(지금 면력 고정). ④견적서·동의서 한글 안 깨지는지도 봐.
+> docs/PROJECT_CONTEXT.md 최상단 읽어. 다기기 테스트 결과부터 판독(CONSULTATION_CLIENT_ERROR 로그), 그다음 webhook 첫 수신·notes 백필 확인. 자동 루프는 PO 지시로 전부 정지 상태 — "다시 켜"라고 하기 전까지 만들지 마라.
 
 ---
 
-## 🔖 세션 핸드오프 (2026-06-30 (7) — 북극성 계기판 + 외부 서비스 사용량·비용 한눈에 [#531 머지·배포])
+## 🔖 세션 핸드오프 (2026-07-06 — 기억 시스템 3종 보강: 중간 저장 규칙·주간 문서 건강검진(/doc-health)·반성문 재발 추적, PR #645 머지)
 
-> PO "오늘 한 일 정리" → "우리 북극성이 뭐냐" → "북극성 계기판 만들고 + 외부 서비스 사용량 화면도(나중에 유료·제미나이 실시간 비용까지)" → 중간에 **"제미나이만 말고 LiveKit·Resend·Supabase·Vercel 등 모든 외부 서비스 사용량 한눈에"** 로 범위 확대 → "싹다해줘" → "CI 통과하면 머지해" → 머지·배포 → 핸드오프 요청.
+> PO가 "기억상실 없이 어시스턴트를 최적화하려면?"을 물어 시작된 **메타(운영 시스템) 세션**. 어시스턴트가 구멍 4개를 제시 → PO가 버튼으로 3건 승인(2026-07-05) → 구현·검증·머지까지 완료. 화상·AI루프 트랙(아래 블록들)과 별개.
 
 **1. 이번 세션 한 일**
-- 🎯 **북극성 계기판** `/admin/khidi/north-star` (+API `north-star`): 주간 '사전상담 완료' 추세선(8~26주)·전주대비·4주평균 + 선행지표 4종(채널별 신규문의·예약→완료 전환율·만족도 응답률·에이전시 회신율[측정예정]). lib `northStar.ts`(+순수 `weekBuckets.ts`). kpi-dashboard cockpit 최상단 북극성 진입 배너.
-- 💳 **외부 서비스 사용량 통합 보드** `/admin/khidi/usage` (+API `usage`): 모든 연동 서비스 한 화면. **실측** = 제미나이(토큰·비용)·Supabase(DB/500MB·스토리지/1GB)·이메일/SMS(Resend·SES·Twilio·Telegram, admin_notification_logs.channel 집계)·LiveKit(상담방 수). **콘솔/토큰준비** = Vercel·Sentry. lib `externalServices.ts`·`serviceUsage.ts`·`vendorApis.ts`.
-- 🧱 **기반(제미나이 실시간 비용 토대)**: 새 표 `ai_usage_events`(append-only·RLS 서비스롤전용·PII없음) + `usageLog.ts`/`usagePricing.ts`(로거·집계·단가, fire-and-forget) + `generateReply.ts` 단발·스트리밍 두 경로에 사용량 로깅 연결. DB 용량 RPC `get_external_db_usage()`(SECURITY DEFINER·서비스롤). 마이그레이션 2건 라이브 적용(가역적 추가).
-- 단위테스트 13건(KST 주경계·비용/토큰 정규화) · check-schema-refs에 ai_usage_events 등록 · manuals(관리자) 북극성·사용량 항목 추가.
-- **PR [#531](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/531) (3커밋) squash 머지·배포.**
+- **PR #645 (머지, main 반영)** — 기억 시스템 3종:
+  - ①**중간 저장 규칙**(CLAUDE.md): 세션 도중 PO 결정·머지·중요 발견이 나오면 즉시 PROJECT_CONTEXT 해당 칸만 갱신·커밋(세션 중도 사망 시 "왜" 증발 방지).
+  - ②**주간 문서 건강검진**: `/doc-health` 스킬 신설(`.claude/skills/doc-health/SKILL.md`) + `session-orient.sh`에 7일 경과 리마인드 + 기준선 로그 `docs/audit/DOC_HEALTH_LOG.md`.
+  - ③**반성문 재발 추적**(POSTMORTEMS.md·CLAUDE.md): 새 반성문 전 같은 부류 검색 → 재발이면 「🔁 #NN 부류 재발」 표시 + 뚫린 가드 보강 의무. 재발률 = 기억 시스템 성적표(/doc-health가 주간 집계).
+- 자동머지 절차 준수: 독립 리뷰 에이전트(작성 맥락 미공유) PASS + CI(ci·Smoke) 초록 확인 후 squash 머지.
 
 **2. 왜 그렇게 했는지**
-- 북극성=주간 사전상담완료(직전 진단 결론). 유치·상담120·만족도는 후행지표라 매주 못 끌어올림 → 사전상담은 매주 올릴 수 있는 단일 운전대(3 KPI 동시 전진).
-- 사용량 화면: PO가 비용 통제·유료 전환 시점을 한 눈에 보길 원함. 못 재는 건 숨기지 말고 **실측/추정/콘솔 배지**로 정직하게 구분.
-- 비용은 **기록 시점 단가로 동결**(numeric) — gemini-flash-latest 별칭 단가가 바뀌어도 과거 집계 불변.
-- 순수함수 분리(`weekBuckets`·`usagePricing`): `server-only` 모듈은 vitest import 불가 → 테스트용으로 떼냄(repo 관례: kpi가 snapshotDates 떼낸 것과 동일).
-- Vercel·Sentry는 토큰 없으면 `available:false`로 콘솔 폴백 → PO가 토큰 넣는 순간 코드수정 없이 자동 라이브.
+- PO 질문("몇년차 개발자냐")에 "폭은 시니어, 기억력 0년차 — 시스템이 갭을 메꾼다"고 답한 데서 출발: 남은 구멍은 ①세션 중도 사망 시 결정 기억 증발(당일 세션 시작 시 "핸드오프 이후 커밋 9개 미기록" 경보가 실증) ②문서 부패 무감지(#63-④ 문서-현실 드리프트 재발 위험) ③"재발 방지"가 실제 작동하는지 무측정.
+- 제시한 4개 중 "PO 브리핑 덤프 습관"(미팅 결과를 어시에게 던지기)은 도구가 아니라 PO 습관이라 구현 대상에서 제외 — PO에게 안내만 함.
 
 **3. 안 끝났거나 보류**
-- **Vercel·Sentry 라이브**: 토큰 미보유 → 콘솔 폴백 중. PO가 `VERCEL_API_TOKEN`(+TEAM/PROJECT)·`SENTRY_AUTH_TOKEN`+`SENTRY_ORG` 넣어야 라이브.
-- **제미나이 단가**: 추정치(입력$0.30·출력$2.50/1M). `AI_PRICE_FLASH_IN`/`AI_PRICE_FLASH_OUT` env로 정확화 가능.
-- **북극성 선행지표 ④ 에이전시 콜드메일 회신율**: 아웃리치 트래킹 미연동 → "측정 예정". PO가 발송/회신 흐름 알려주면 연동.
-- **직전 큐 잔존**: C(채널별 source 전환 분해)·D(만족도 무응답0점+최소N)·E(점수전략 재설계 초안)·#522 funnel_events `form_complete` 라이브 실측(여전히 0행).
+- **/doc-health 첫 정식 검진 미실시**: 기준선 로그만 만들었음(구축일이라 전수 검진 생략). 2026-07-12 이후 세션 시작 훅이 알림을 띄우면 그때 1회차 실행.
+- 독립 리뷰가 발견한 기존 문제: **POSTMORTEMS.md에 반성문 번호 중복(#60·#61·#62가 각 2번)** — 「🔁 #NN 재발」 참조가 모호해짐. 첫 /doc-health 검진 때 번호 정리.
 
 **4. 주의·함정**
-- `ai_usage_events`·`funnel_events` 적재는 **배포 후 실제 호출/문의부터** 쌓임(지금 0). 화면 0 = 버그 아님(데이터 없음).
-- 알림 채널 매핑: `admin_notification_logs.channel` 실데이터는 현재 **'sms'만** 존재 → Resend/Telegram 카드는 0으로 보임. 실제 이메일/텔레그램 발송 한 번 해봐야 매핑 검증됨.
-- LiveKit·이메일 카드는 우리 DB **프록시**(상담방 수·발송 수)지 벤더 정확치 아님("추정" 배지). 정확한 영상 분·대역폭은 콘솔.
-- types(`database.types.ts`) 미재생성 → `ai_usage_events`·`inquiries.source`는 `(supabaseAdmin as any)` 캐스트(kpi.ts 패턴). 후속 types regen 시 정리.
+- 리마인드는 `DOC_HEALTH_LOG.md` **최상단** `## YYYY-MM-DD` 날짜를 읽는다 — 새 검진 엔트리를 아래에 붙이면 알림이 안 꺼진다(반드시 안내문 바로 아래=최상단에 추가).
+- 리마인드 로직의 침묵 실패 모드: 날짜 형식이 깨지면 알림이 조용히 꺼진 상태가 된다(세션 시작은 절대 안 깨뜨리는 안전 설계의 대가). 형식은 스킬 문서의 템플릿 그대로 쓸 것.
+- 이 세션 작업본(브랜치 `claude/dev-experience-assessment-izqecc`)은 #645 squash 머지 후 origin/main 기준으로 리셋됨(이 핸드오프 커밋만 얹힘).
 
 **5. 다음 세션이 먼저 할 일**
-1. ⚠️ **직전 미검증분 먼저**: 배포 반영 확인 후 **(a)** 사용량 화면(`/admin/khidi/usage`) 실제 열림 + 공개 AI 1회 호출 → `ai_usage_events`에 행 쌓이고 비용 뜨는지, **(b)** #522 `funnel_events`에 `form_complete` 행 쌓이는지(현재 0행) **라이브 실측**.
-2. **C. 채널별 전환 분해**: 유치 전환 대시보드(`/admin/khidi/conversion`)를 `inquiries.source`(ai_agent/web)로 GROUP BY(데이터 이미 적재).
-3. **D. 만족도 무응답 0점 버그 + 최소 N**.
-4. (선택) PO가 Vercel/Sentry 토큰 주면 env 꽂고 라이브 확인 / 콜드메일 흐름 연동 / 제미나이 실단가 입력.
+1. ⚠️ **직전 미검증분 먼저**: /doc-health 스킬 실전 1회 미실행(리마인드 발동/비발동만 검증됨) — 2026-07-12 이후 알림 뜨면 1회차 검진 실행하며 스킬 지시문이 실제로 굴러가는지 확인 + POSTMORTEMS 번호 중복(#60~#62) 정리.
+2. 화상·AI루프 트랙 큐는 아래 두 블록 참조(다기기 테스트 확인 등 — 이 세션과 별개 트랙).
 
 **6. 검증 상태**
-- ✅ `tsc --noEmit` 0 err · `next build --webpack` exit0 · eslint 0 err(경고만=any, 기존 패턴) · `check:content`·`check:schema-refs` 통과 · 단위테스트 13건 통과.
-- ✅ 라이브 스모크: `ai_usage_events` 삽입→조회→삭제(컬럼 형태 일치) / `get_external_db_usage()` RPC 호출·반환 확인(DB 23.5MB·스토리지 1.8MB).
-- ✅ PR/CI: **#531** CI(`ci`·`Smoke Tests(PR)`) 둘 다 success 후 squash 머지(E2E는 PR이라 skip). main 배포 트리거됨.
-- ❌ **미검증(솔직히)**: 배포 후 런타임 실데이터 적재(사용량 로깅·funnel `form_complete`) 미확인. Vercel·Sentry 라이브 경로 미실행(토큰 없음). 사용량/북극성 화면 실제 브라우저 클릭 안 함(어드민 인증). 제미나이 단가=추정.
+- ✅ PR #645 CI 초록(ci·Smoke Tests) → squash 머지 → main 반영 확인. `check:content` 통과. 훅은 `bash -n` + 실행 + 독립 리뷰 에이전트가 8개 상황(빈 파일·날짜 없음·미래/불량 날짜·CRLF 등) 픽스처로 실행 검증(전부 exit 0, 세션 시작 못 깨뜨림 확인). 리마인드 발동(15일 경과 시뮬)·비발동(당일) 실측.
+- ⚠️ **검증 못 함**: /doc-health 스킬 본문의 실전 검진 플로우(첫 실행이 곧 검증), 다음 실세션에서 훅 리마인드가 7일 후 실제로 뜨는지(로직상 확인만).
 
 **7. 다음 세션 첫 프롬프트**
-> 먼저 docs/PROJECT_CONTEXT.md 최상단 핸드오프 읽어. 2026-06-30에 북극성 계기판(`/admin/khidi/north-star`)·외부 서비스 사용량 보드(`/admin/khidi/usage`)를 #531로 머지·배포했어. **먼저 미검증분 실측해**: 배포 반영 확인하고 ① 사용량 화면 열어서 공개 AI 1번 호출한 뒤 `ai_usage_events`에 행·비용 쌓이는지 ② #522 `funnel_events`에 `form_complete` 행 쌓이는지(현재 0행) 라이브로 확인. 그다음 **C**(유치 전환 대시보드 `/admin/khidi/conversion`을 `inquiries.source`=ai_agent/web로 채널 분해)를 만들어줘.
+> 먼저 docs/PROJECT_CONTEXT.md 최상단 읽어. 세션 시작 훅에 "문서 건강검진 기한 경과" 알림이 떠 있으면 /doc-health 1회차 검진을 실행하고(스킬 지시문 실전 검증 겸), 그때 POSTMORTEMS.md 번호 중복(#60~#62 각 2번)도 정리해. 알림이 없으면 화상·AI루프 트랙 큐(아래 핸드오프 블록들)를 이어가.
+
+---
+
+## 🧭 오전 다중세션 통합 정리 (2026-07-01) — 무엇이 배포됐고 / 무엇이 미머지로 남았나
+
+> **왜 이 블록:** 오늘 오전 여러 창(병렬 세션)에서 각자 작업 후 각자 핸드오프 → 배포된 건 main·SoR에 잘 쌓였지만, **끝냈는데 아직 본판에 안 합친(미머지) 작업 3건**이 각 세션 브랜치에만 있고 이 SoR엔 기록이 없었음(=다음 세션이 놓칠 위험). 그 3건을 여기 한 곳에 모아 다음 세션 큐로 승격. (세부 이야기는 아래 오후·오전(2) 핸드오프 + `archive/`에 이미 있음 — 여기선 안 겹치게 '무엇이 남았나'만.)
+
+**✅ 오늘 오전 실서비스(main·프로덕션) 반영 완료** — 다 머지·CI초록:
+- **어드민 대청소** #555 (가짜숫자·가짜성공률 제거 / 병원 6곳 활성화 / 매칭 실작동 / 상담취소 실API / AccuracyPanel 실측)
+- **병원 페이지** #554 의사사진 자체호스팅(핫링크 제거) + 토글 애니 · #559 신촌 의료진 현행화(27→28명)·실사진 · #565 토글 "밀림" pin 수정
+- **콘텐츠 자체호스팅** #551 암종 카드/합병증 이미지(immunehospital 핫링크 제거)
+- **비자** #549 체크리스트 계정동기화·러카 누적일수 · #552 PDF 톤 Premium→기본톤 교정
+- **환자앱** #544 견적 상세페이지 6개어화(ko/en/ru/kz/zh/ja)
+- **KHIDI 지표** #557 만족도 표본부족 env 스위치 · 유치 전환 대시보드 **채널별(유입경로) 분해** (migration 반영)
+- **SEO** #547 BreadcrumbList·WebSite SearchAction 구조화데이터
+- **디자인/정리** #560·#561 활성 디자인 명칭 'legacy'→'기본 톤' 개명 · #539 죽은 premium 이메일 시스템 삭제
+
+**⚠️ 끝냈지만 미머지 — 다음 세션이 먼저 처리 (브랜치에만 있음, 안 잃게):**
+1. **파트너 발굴 아웃리치 추적기** [PR #567 · 브랜치 `work/partner-outreach`] — 코디·어드민 백오피스 신규 기능(카자흐 직원 Assel이 파일 대신 백오피스에서 파트너 영업 추적). **완성 + 프로덕션 DB에 표 `partner_outreach`+시드 6곳 이미 적용.** 남은 것: ①프리뷰에서 화면 클릭 검증(후보추가·상태변경·탭필터·CRUD, 코디+어드민 둘 다) → 이상 없으면 **머지** ②Assel 계정에 코디네이터 권한 부여(`/admin/staff`). (큰 UI라 PO 눈으로 보고 머지하기로 했던 건)
+2. **초청장 발급주체 = 등록 유치의료기관(병원) 명의** [PR #562 · 브랜치 `claude/kazakhstan-keta-config-ko4g7b`] — `VisaInvitationLetter.jsx`+`inviterHospitals.ts` 완성, 미머지. (같은 세션의 비자 정정 #535·541·549·552는 이미 머지됨 — #562만 남음.)
+3. **이메일 수신률 문서** [PR #545 · 브랜치 `work/email-deliverability`] — `docs/EMAIL_DELIVERABILITY.md`(DMARC·콜드 아웃리치 플레이북). DMARC 감시 켜기·Google Postmaster 등록은 이미 실행(외부 완료). 문서라 CI 초록시 자동머지 대상.
+- (추가 열린 검증) #565 토글 "밀림"은 코드·배포 반영됐으나 **실브라우저 스크롤 동작만 미검증**(검증환경 헤드리스라 눈으로 못 봄) — 오전(2) 핸드오프 6번 참조.
+
+**🧹 정리해도 되는 브랜치(작업 이미 main에 반영 = squash 머지됨, 지워도 안전):** `claude/handoff-2026-07-01-am`·`handoff/admin-cleanup-0701`·`work/admin-backoffice`·`work/hospitals-roster-refresh`·`work/hospitals-toggle-ui`·`work/hospital-toggle-scroll-fix`·`claude/rescue-548-doctor-selfhost`·`claude/seo-audit-improvements`·`claude/inspiring-williamson-56fbfc`·`claude/patient-detail-i18n`·`claude/satisfaction-min-n-env`·`claude/fix-all-errors-sweep`·`claude/khidi-conversion-source-breakdown`·`claude/handoff-cancer-img-selfhost`. **남겨둘 것(미머지 작업 있음):** `work/partner-outreach`·`claude/kazakhstan-keta-config-ko4g7b`·`work/email-deliverability`.
 
 ---
 
@@ -129,13 +135,13 @@
 - **매칭 엔진 코드는 보존**하되 환자 전면엔 안 붙임 (미래 확장용).
 
 ## 3. 디자인 (DESIGN.md 가 헌법)
-- **Legacy 톤만 표준** (Airbnb 스타일: 흰 배경·teal-600·시스템폰트·rounded-xl).
-- **Premium 톤 폐기**: 검은배경·금색·serif·필름그레인 = "럭셔리 호텔" 느낌이라 PO·대표가 거부. 정부과제 성격과 안 맞음.
+- **"기본 톤"만 표준** (Airbnb 스타일: 흰 배경·teal-600·시스템폰트·rounded-xl). ※ 예전 "legacy 모드"를 **2026-07-01에 "기본 톤"으로 개명** — "legacy(옛날꺼)"라는 이름이 "premium으로 올려야지"라는 정반대 오해를 반복 유발해서. 이제 디자인은 하나뿐, 모드 토글 없음.
+- **Premium 톤 폐기**: 검은배경·금색·serif·필름그레인 = "럭셔리 호텔" 느낌이라 PO·대표가 거부. 정부과제 성격과 안 맞음. **되살리기·재활용 금지 — 폐기된 옛 실험이지 업그레이드 아님.**
 - PO가 가장 싫어하는 것: **"AI가 만든 느낌"** (큰 컬러원+큰아이콘, 똑같은 카드 반복, 이모지 도배, 의미없는 영문카피).
-- 공개 페이지(/treatments·상세·/telemedicine·/faq·/hospitals/immune·404·500) 전부 Legacy로 재구성 완료. Premium은 `*Premium.jsx` 폴백으로만 존재(기본 비활성).
+- 공개 페이지(/treatments·상세·/telemedicine·/faq·/hospitals/immune·404·500) 전부 기본 톤으로 재구성 완료. 옛 premium은 `*Premium.jsx` 잔재로만 존재(비활성, import 금지).
 
 ## 4. 주요 기능 현황 (라우트는 CLAUDE.md 참조)
-- **통합 문의 퍼널 `/inquiry`**: 진입 시 AI Agent / Human Agent / Inquiry Form 선택. `/intake`·`/consult/start`는 여기로 통합(redirect). Human Agent = WhatsApp·Telegram·WeChat·LINE 4채널 (env URL 미설정이라 현재 "준비 중" 표시).
+- **통합 문의 퍼널 `/inquiry`**: 진입 시 AI Agent / Human Agent / Inquiry Form 선택. `/intake`·`/consult/start`는 여기로 통합(redirect). Human Agent = WhatsApp·Telegram·WeChat·LINE 4채널 — **실제 동작(2026-07-02 실측 정정): WhatsApp만 라이브(코드 폴백 wa.me, #73), 나머지 3채널은 env(`NEXT_PUBLIC_MESSENGER_*_URL`) 미설정이라 카드 자체가 숨김 처리**("준비 중" 표시 아님 — 미완성 인상 안 줌, 1채널뿐이면 picker 생략 직행).
 - **원격협진(LiveKit 영상)**: 코디가 `/admin/consultations`에서 상담 생성(문의에서 환자 선택+의사/코디 드롭다운) → 게스트 초대 링크 → `/consultation/[id]` 영상. LiveKit 키는 Vercel에 설정됨(작동). 예약시각 KST 입력·KST+UTC 병기.
 - **회원관리**: `/admin/staff`(의사·코디 — 역할부여·임시비번·소프트 비활성), `/admin/users`(환자 — 상담이력·소프트 ban). 계정은 어드민에서 생성(이메일 형식이면 가짜 `doc1@healo.local` 도 가능, 메일 수신 불필요).
 - **어드민 메뉴**: 운영현황 / 환자여정 / 제휴자원·RAG / AI품질·시스템 / 레거시도구 (피벗 반영 재편).
@@ -160,7 +166,7 @@
 - **사용 위치**: `/care-journey`("숫자로 보는 한국 암치료" 섹션, 6개 언어), `/ru/for-russian-patients`·`/kk/for-kazakh-patients`(통계 밴드). 모두 출처 각주 표기.
 - **주의**: 한방=암 "치료/완치" 근거로 쓰지 말 것. 통합종양학 문헌은 "보조·삶의질·부작용 관리" 프레임으로만. 통계는 매년 신규 발표 시 갱신.
 
-## 6-1-b. 심층 리서치 결과 (2026-06-11) — `docs/DEEP_RESEARCH_2026_06_11.md` 필독
+## 6-1-b. 심층 리서치 결과 (2026-06-11) — `docs/archive/DEEP_RESEARCH_2026_06_11.md` 필독
 - **법**: 의료해외진출법 개정(2026.5.26 공포, ~2027.5 시행) — 외국인환자 비대면진료 합법화. 단 진료 주체=유치의료기관 소속 의사 (HEALO는 플랫폼/유치업자 역할로 구조 명확화). 유치업자 등록 확인 + 변호사 자문 + KHIDI 지원시스템 위탁 문의 필요.
 - **즉시 5건**: Gemini spend cap 설정 / 모델 별칭 핀(5배 비용 폭탄 방지) / 유치업자 등록 확인 / AI챗 국외이전 고지 / Vercel Pro 전환.
 - **카자흐어 통역 해결책 확정**: Gemini 3.5 Live Translate 카자흐 지원 확인 (백업: Gladia). PoC 대기.

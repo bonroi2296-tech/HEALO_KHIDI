@@ -92,6 +92,20 @@ const CHECKS = {
     const n = listItemCount(r[r.length - 1]);
     return { pass: n < 4, info: `마지막 응답 목록항목=${n}(서류 재나열이면 ≥4)` };
   },
+  // 비자 질문 실질 답변 검사 — turn_last_no_doc_list 의 오탐 보정(2026-07-04).
+  // 배경: ru 답변이 비자 종류(C-3-3/G-1-10)·발급 지원을 실질적으로 답하면서 "초청장에 필요한
+  // 서류" 목록을 맥락에 맞게 덧붙였는데, 목록 개수만 세는 검사가 실패로 오판(간헐 ~50%).
+  // 케이스의 judge 정의(실질적으로 비자를 다루면 PASS)에 맞춰: 비자 코드 또는
+  // (비자 언급 + 지원/초청/영사 맥락)이 있으면 합격, 서류 투척"만" 하면 불합격.
+  visa_substance: (r) => {
+    const text = r.join("\n");
+    const code = /C[-–‑]?\s?3[-–‑]?\s?3|G[-–‑]?\s?1[-–‑]?\s?10/i.test(text);
+    const visa = /비자|visa|виз|签证|ビザ/i.test(text);
+    const support =
+      /초청|invitation|приглашен|консульс|대사관|embassy|领事|領事|大使館|도와|도움|помо|помощ|help|assist|支持|协助|サポート|手伝/i.test(text);
+    const ok = code || (visa && support);
+    return { pass: ok, info: ok ? `비자 실질 답변(코드=${code})` : "비자 실질 내용 없음(서류 투척만)" };
+  },
   source_tag: (r) => {
     const ok = /출처|source|источник|дереккөз|来源|出处|出典/i.test(r[0]);
     return { pass: ok, info: ok ? "출처 표기 있음" : "출처 표기 없음" };
@@ -211,7 +225,9 @@ async function main() {
         for (const id of c.checks || []) {
           const fn = CHECKS[id];
           if (!fn) { rec.checks.push({ id, pass: false, info: "알 수 없는 검사" }); continue; }
-          const out = fn(rec.replies, lang);
+          // 케이스가 언어 전환을 테스트하면(expect_reply_lang) 기대 언어를 combo 언어 대신
+          // 그 값으로 — lang-follow-latest-switch 오탐(기대 ru vs 실제 의도 kz) 보정(2026-07-05).
+          const out = fn(rec.replies, c.expect_reply_lang || lang);
           rec.checks.push({ id, ...out });
         }
         if (judge && c.judge) rec.judge = await judge(turns, rec.replies, c.judge);
