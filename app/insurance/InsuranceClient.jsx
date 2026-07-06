@@ -25,7 +25,7 @@ export default function InsuranceClient() {
         </p>
         <Link
           href="/inquiry"
-          className="inline-flex items-center gap-2 mt-8 px-6 py-3 bg-teal-700 hover:bg-teal-800 text-white rounded-xl font-bold transition-colors"
+          className="inline-flex items-center gap-2 mt-8 px-6 py-3 bg-teal-700 hover:bg-teal-800 text-white rounded-xl font-bold transition-colors duration-200"
         >
           {c.heroCta} <ArrowRight size={18} />
         </Link>
@@ -74,7 +74,7 @@ export default function InsuranceClient() {
               <span className="relative z-10 shrink-0 w-9 h-9 rounded-full bg-teal-700 text-white font-bold flex items-center justify-center text-sm ring-4 ring-white">
                 {String(i + 1).padStart(2, "0")}
               </span>
-              <div className="flex-1 border border-gray-200 rounded-xl p-5 md:p-6 hover:border-teal-300 hover:shadow-sm transition-all">
+              <div className="flex-1 border border-gray-200 rounded-xl p-5 md:p-6 hover:border-teal-300 hover:shadow-sm transition-all duration-200">
                 <h3 className="text-lg font-bold text-gray-900 mb-1">{s.title}</h3>
                 <p className="text-sm md:text-base text-gray-500 leading-relaxed">{s.body}</p>
               </div>
@@ -140,7 +140,7 @@ export default function InsuranceClient() {
           <p className="text-teal-50 text-sm md:text-base mb-8 max-w-xl mx-auto leading-relaxed">{c.closingBody}</p>
           <Link
             href="/inquiry"
-            className="inline-flex items-center gap-2 px-7 py-3.5 bg-white text-teal-700 rounded-xl font-bold hover:bg-teal-50 transition-colors"
+            className="inline-flex items-center gap-2 px-7 py-3.5 bg-white text-teal-700 rounded-xl font-bold hover:bg-teal-50 transition-colors duration-200"
           >
             {c.closingCta} <ArrowRight size={18} />
           </Link>
