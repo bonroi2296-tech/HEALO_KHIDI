@@ -183,7 +183,8 @@ const DOCTORS = [
     subspecialty: { ko: '통합면역 부인과', en: 'OB/GYN · Integrative Medicine' },
     role: 'wm',
     photo: '/doctors/69cddae60209c3.18962833.jpg',
-    thumb: '/doctors/69cddae601fbd8.12610287.jpg',
+    // PO 지정(2026-07-06, 반복 지시): 얼굴 사진 없는 원장은 로고가 아니라 "팔짱 낀 가운" 이미지로 — 로고 파일(69cddae601fbd8) 사용 금지
+    thumb: '/doctors/69cddae60209c3.18962833.jpg',
     keywords: { ko: ['#친절한','#세심한','#따뜻한','#신뢰가는','#사려깊은','#상담충분'], en: ['#Friendly','#Attentive','#Warm','#Reliable','#Thoughtful','#ThoroughConsult'] },
     학력: { ko: ['산부인과 전문의', '이화여대 의과대학 의학과 졸업', '이화여대부속병원 수련', '경희대학교 의과대학 석사', '흑룡강 중의약대학교 졸업(Traditional Chinese Medicine)'], en: ['OB/GYN Specialist', 'Graduated from Ewha Womans University, College of Medicine', 'Residency at Ewha Womans University Hospital', 'M.S., Kyung Hee University College of Medicine', 'Graduated from Heilongjiang University of Chinese Medicine (TCM)'] },
     활동: { ko: ['대한 IMS학회 정회원', '대한 폐경학회 회원', '대한 노인병학회 회원'], en: ['Korean IMS Society Regular Member', 'Korean Menopause Society Member', 'Korean Geriatrics Society Member'] },
