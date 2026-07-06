@@ -12,10 +12,11 @@
 > PO 출근 준비 세션("금토일 작업 정리 + 본격 작업 준비"). 주말 요약 보고 → PO 버튼 결정으로 보류 3건 전부 착수 + 테스트 상담방 삭제 + 미머지 PR 정리까지 일괄 처리. **오후 PO 지시로 자동 루프 전부 정지.**
 
 **1. 이번 세션 한 일**
-- **PR #654 (PO 승인으로 머지 진행)** — ①상담 notes 암호화(AES-256-GCM, `src/lib/khidi/consultationNotes.ts` 신설, 기존 평문 행은 조회 시점 "기회주의적 백필"로 이전 — 이 환경엔 키 없어 일괄 변환 불가) ②#612 감성 (a)(b): 데스크톱 1:1 반반분할 + 세로영상 blur-fill(같은 트랙을 뒤에 blur+cover로 한 장 더 — 방향 감지 불필요). 독립 리뷰 게이트 통과(CONFIRMED 0) + PLAUSIBLE 2건 반영(구형 iOS matchMedia 폴백·복호화 실패 로그 마커).
+- **PR #654 ✅ 머지·프로덕션 배포·재검증 완료 (2026-07-06 오후)** — ①상담 notes 암호화(AES-256-GCM, `src/lib/khidi/consultationNotes.ts` 신설, 기존 평문 행은 조회 시점 "기회주의적 백필"로 이전 — 이 환경엔 키 없어 일괄 변환 불가) ②#612 감성 (a)(b): 데스크톱 1:1 반반분할 + 세로영상 blur-fill(같은 트랙을 뒤에 blur+cover로 한 장 더 — 방향 감지 불필요). 독립 리뷰 게이트 통과(CONFIRMED 0) + PLAUSIBLE 2건 반영(구형 iOS matchMedia 폴백·복호화 실패 로그 마커). 배포 후: health ok·홈/inquiry/telemedicine 200, **신규 메모 2건 암호문 저장 실측** — 평문 잔존 5건(어드민 상담 목록 1회 열람 시 자동 이전).
+- **Assel 코디 계정 생성·로그인 검증 완료 (PO 지시)**: `assel@healwith.co.kr` / 임시비번 PO에게 채팅 전달 / app_metadata.role=coordinator. auth API 실로그인으로 role 반환 확인. `/admin/staff` 생성 로직과 동일 형태(SQL 직접 — 이 환경엔 service key 없음).
 - **LiveKit webhook 최초 등록 (PO 직접)**: 옛 주소 교체가 아니라 **한 번도 등록된 적 없었음**(이벤트 0의 진짜 원인). `https://healwith.co.kr/api/livekit/webhook` + Signing key `healo`(APIt2fLT4qDAAxi). 첫 실통화 때 Vercel 로그 `[livekit/webhook]` 수신 확인 필요(서명 불일치면 `signature or parse failed` 워닝).
 - **테스트 상담방 2개 삭제 완료**(PO 버튼 승인): 50d5bc43…·aa9804ee… 세션 2+게스트토큰 3, 딸린 기록 없음 확인 후 삭제.
-- **PR #567 구조 수리**: main 합류(5일치) → 새 가드 `check:schema-refs`가 `partner_outreach` 미등록으로 실패 → 스냅샷 등록. 스모크 1회 실패는 재실행으로 통과(flaky 판별 — 동시간 #654 동일 스위트 통과가 근거). PO 승인으로 머지 진행.
+- **PR #567 ✅ 수리 후 머지·배포 완료**: main 합류(5일치) → 새 가드 `check:schema-refs`가 `partner_outreach` 미등록으로 실패 → 스냅샷 등록. 스모크 1회 실패는 재실행으로 통과(flaky 판별 — 동시간 #654 동일 스위트 통과가 근거). 파트너 발굴 화면 코디·어드민에 열림.
 - **다기기 테스트 준비 확인**: 초대 링크(상담방 87710d1d) 7/10까지 유효.
 
 **2. 왜 그렇게 했는지**
@@ -32,8 +33,8 @@
 
 **5. 다음 세션이 먼저 할 일**
 1. ⚠️ **미검증분**: ①2인 반반분할·blur-fill 육안(다기기 테스트 통화로 확인) ②webhook 첫 수신(통화 후 Vercel 로그) ③notes 백필 실동작(배포 후 어드민 상담 목록 1회 열람 → DB에서 평문 잔존 0 확인).
-2. 다기기 테스트 결과 판독(실패 기기 = admin_audit_logs CONSULTATION_CLIENT_ERROR).
-3. #567 머지 후 Assel 계정 코디 권한 부여.
+2. 다기기 테스트 결과 판독(실패 기기 = admin_audit_logs CONSULTATION_CLIENT_ERROR). 실서비스에 새 반반분할 화면이 이미 배포돼 있어 그 화면으로 검증됨.
+3. ~~Assel 계정 권한 부여~~ → **완료**(계정 생성·로그인 검증까지 끝. 임시비번 변경 안내는 PO 몫).
 
 **6. 검증 상태**
 - ✅ PR #654: vitest 501 통과(계약 테스트 2건 신규) · check:content · next build · 독립 리뷰(CONFIRMED 0). CI ci+E2E 초록.
