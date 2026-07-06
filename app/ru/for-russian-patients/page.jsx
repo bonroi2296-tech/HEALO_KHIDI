@@ -248,7 +248,8 @@ export default function ForRussianPatientsPage() {
                 Подробнее о визе →
               </Link>
             </div>
-            {/* 가격 출처 = src/lib/chat/careReference.ts (면력한방병원 암 진료비 안내 2026-06 · PO 제공) — 가격 개정 시 거기와 같이 갱신 */}
+            {/* 가격 출처 = src/lib/chat/careReference.ts (면력한방병원 암 진료비 안내 2026-06 · PO 제공) — 가격 개정 시 거기와 같이 갱신.
+                단 항공권 줄은 진료비 자료가 아니라 일반 시세 참고치(예외). */}
             <div className="border rounded-xl p-6">
               <h3 className="font-semibold text-gray-800 mb-3">Ориентировочные цены (международный тариф)</h3>
               <ul className="text-sm text-gray-700 space-y-1">
@@ -258,7 +259,7 @@ export default function ForRussianPatientsPage() {
                 <li>• Перелёт (Алматы — Сеул): от $400</li>
               </ul>
               <p className="text-[11px] text-gray-400 mt-3">
-                Диапазоны ориентировочные, не фиксированная цена. Точная стоимость — после изучения медицинских документов; предварительный расчёт бесплатен.
+                Диапазоны ориентировочные, а не фиксированные цены. Точная стоимость — после изучения медицинских документов; предварительный расчёт бесплатен.
               </p>
               <Link href="/inquiry" className="mt-4 block text-teal-700 text-sm hover:underline">
                 Получить точный расчёт →
