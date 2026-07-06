@@ -320,6 +320,17 @@ function ClientShellContent({
                     </a>
                   </li>
                 ))}
+                {/* 러/카 검색 랜딩 내부링크 — 고아 페이지 해소(색인 우선순위↑) + 해당 언어 입구. 해당 언어 화면에만 노출 */}
+                {langCode === "ru" && (
+                  <li>
+                    <a className="hover:text-teal-700" href="/ru/for-russian-patients">Пациентам из России</a>
+                  </li>
+                )}
+                {langCode === "kz" && (
+                  <li>
+                    <a className="hover:text-teal-700" href="/kk/for-kazakh-patients">Қазақстандық науқастарға</a>
+                  </li>
+                )}
               </ul>
             </div>
             <div>
