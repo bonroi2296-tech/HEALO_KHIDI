@@ -11,7 +11,8 @@ import { NextRequest } from "next/server";
 import { requirePortalAuth } from "@/lib/auth/requirePortalAuth";
 import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
 import { decryptInquiryForAdmin } from "@/lib/security/decryptForAdmin";
-import { generateCaseBrief } from "@/lib/inquiry/caseBrief";
+import { generateCaseBrief, briefSig } from "@/lib/inquiry/caseBrief";
+import { encryptStringNullable } from "@/lib/security/encryptionV2";
 
 const BRIEF_FIELDS = [
   "id", "nationality", "cancer_type", "message", "preferred_date", "intake", "attachments",
@@ -58,6 +59,18 @@ export async function POST(
     if (!result.ok) {
       return Response.json({ ok: false, error: result.error }, { status: 502 });
     }
+
+    // 캐시 저장(암호화) — 열람 때 즉시 뜨게. 첨부 서명도 저장(바뀌면 자동 재생성). 실패해도 응답은 진행.
+    try {
+      const enc = encryptStringNullable(JSON.stringify(result.brief));
+      await supabaseAdmin
+        .from("inquiries")
+        .update({ coordinator_brief: enc, coordinator_brief_sig: briefSig(inquiry?.attachments || []) })
+        .eq("id", Number(id));
+    } catch (e: any) {
+      console.error("[coordinator/brief] cache write error:", e?.message);
+    }
+
     return Response.json({ ok: true, brief: result.brief, unreadableCount: result.unreadableCount });
   } catch (e: any) {
     console.error("[coordinator/brief] internal error:", e?.message);

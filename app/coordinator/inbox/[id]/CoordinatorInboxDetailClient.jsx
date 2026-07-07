@@ -455,6 +455,12 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
       setInquiry(result.inquiry);
       setCaseStatus(result.inquiry?.case_status || "");
       setCaseNote(result.inquiry?.case_status_note || "");
+      // 케이스 브리프: 캐시가 최신이면 즉시 표시, 없거나 낡았으면(첨부 변경) 자동 생성 — 수동 버튼 없음.
+      if (result.inquiry?.brief && !result.inquiry?.briefStale) {
+        setBrief(result.inquiry.brief);
+      } else {
+        generateBrief();
+      }
     } catch (e) {
       console.error("[inbox/detail] fetch error:", e);
       setError(L.ibLoadError);
@@ -592,35 +598,15 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
 
       {/* 케이스 브리프 (AI 초안) — 접수내용+문서를 AI가 정리해 코디가 빠르게 판단. 저장 안 함(on-demand). */}
       <div className="rounded-xl border border-teal-100 bg-teal-50/40 p-5">
-        <div className="flex items-center justify-between gap-2 mb-2">
+        <div className="flex items-center gap-1.5 mb-2">
           <h2 className="text-sm font-semibold text-teal-800 inline-flex items-center gap-1.5 flex-wrap">
             <Sparkles size={15} /> {pick(INTAKE_UI.briefTitle, lang)}
             <span className="px-1.5 py-0.5 text-[10px] font-medium rounded bg-amber-100 text-amber-700">{pick(INTAKE_UI.briefAiDraft, lang)}</span>
           </h2>
-          {brief && !briefLoading && (
-            <button
-              onClick={generateBrief}
-              disabled={briefLoading}
-              className="shrink-0 inline-flex items-center gap-1 px-2 py-1 text-xs rounded border border-teal-200 bg-white text-teal-700 hover:bg-teal-50 transition disabled:opacity-50"
-            >
-              <Sparkles size={12} /> {pick(INTAKE_UI.briefRegenerate, lang)}
-            </button>
-          )}
         </div>
 
-        {!brief && !briefLoading && !briefError && (
-          <div className="flex flex-col items-start gap-2">
-            <p className="text-xs text-gray-500">{pick(INTAKE_UI.briefHint, lang)}</p>
-            <button
-              onClick={generateBrief}
-              className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-semibold bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition"
-            >
-              <Sparkles size={15} /> {pick(INTAKE_UI.briefGenerate, lang)}
-            </button>
-          </div>
-        )}
-
-        {briefLoading && (
+        {/* 케이스 열면 자동 생성/표시 — 최초 생성 중이거나 로딩이면 스피너(수동 버튼 없음). */}
+        {(briefLoading || (!brief && !briefError)) && (
           <div className="flex items-center gap-2 text-sm text-teal-700 py-2">
             <span className="w-4 h-4 border-2 border-teal-500 border-t-transparent rounded-full animate-spin" />
             {pick(INTAKE_UI.briefGenerating, lang)}

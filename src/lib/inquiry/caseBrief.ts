@@ -80,6 +80,15 @@ function guessType(name: string): string {
   return "";
 }
 
+/**
+ * 브리프 입력 서명 — 첨부가 바뀌면(추가/삭제) 캐시를 stale 로 감지해 다음 열람 때 자동 재생성.
+ * 첨부 경로만 쓰므로 비민감(경로는 난수 파일명). 저장(POST)·판정(GET) 양쪽이 같은 함수로 계산.
+ */
+export function briefSig(attachments: Attachment[] | null | undefined): string {
+  const paths = (attachments || []).map((a) => a?.path || "").filter(Boolean).sort();
+  return `${paths.length}:${paths.join("|")}`;
+}
+
 // 구조화 인테이크(복호화된 inquiry)에서 브리프에 쓸 비식별 임상 컨텍스트만 뽑아 텍스트로.
 function buildContext(inq: any): string {
   const intake = inq?.intake && typeof inq.intake === "object" ? inq.intake : {};
