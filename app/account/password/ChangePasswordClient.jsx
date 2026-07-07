@@ -50,6 +50,17 @@ const ERR_MSG = {
   no_password_account: L.noPwAccount,
   rate_limited: L.rateLimited,
 };
+
+// 변경 완료 후 이동할 초기 화면 — 역할별 백오피스, 그 외(환자·미지정)는 홈.
+function resolveHome(role) {
+  switch (role) {
+    case "admin": return "/admin";
+    case "coordinator": return "/coordinator";
+    case "agency": return "/agency";
+    case "clinic": return "/clinic";
+    default: return "/";
+  }
+}
 const PW_ERROR = {
   min8: { ko: "비밀번호는 최소 8자 이상이어야 합니다", en: "Password must be at least 8 characters", ru: "Пароль должен содержать не менее 8 символов", kz: "Құпиясөз кемінде 8 таңбадан тұруы керек", zh: "密码至少需要8个字符", ja: "パスワードは8文字以上である必要があります" },
   letter: { ko: "영문자를 포함해야 합니다", en: "Must include a letter", ru: "Должен содержать букву", kz: "Әріп болуы керек", zh: "必须包含一个字母", ja: "英字を含める必要があります" },
@@ -65,6 +76,7 @@ export default function ChangePasswordClient() {
   // checking: 로그인 여부 확인 중 | ready: 폼 | anon: 미로그인
   const [status, setStatus] = useState("checking");
   const [email, setEmail] = useState("");
+  const [role, setRole] = useState(null);
   const [current, setCurrent] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -77,6 +89,7 @@ export default function ChangePasswordClient() {
       if (!alive) return;
       if (data?.user?.email) {
         setEmail(data.user.email);
+        setRole(data.user.app_metadata?.role || null);
         setStatus("ready");
       } else {
         setStatus("anon");
@@ -127,6 +140,9 @@ export default function ChangePasswordClient() {
       }
       toast.success(pick(L.success, langCode));
       setCurrent(""); setPassword(""); setConfirmPassword("");
+      // 완료 → 역할별 초기 화면으로 이동(토스트 잠깐 보이게 지연). saving 유지 = 중복 제출/재입력 방지.
+      setTimeout(() => router.push(resolveHome(role)), 900);
+      return;
     } catch {
       toast.error(pick(L.updateFailed, langCode));
     }
