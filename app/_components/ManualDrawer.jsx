@@ -30,8 +30,8 @@ const MD_TR = {
 
 export default function ManualDrawer({ role, buttonLabel }) {
   const [open, setOpen] = useState(false);
-  const manual = getManual(role);
   const lang = useLang();
+  const manual = getManual(role, lang);
   const T = MD_TR[lang] || MD_TR.en;
   const label = buttonLabel || T.manualBtn;
 

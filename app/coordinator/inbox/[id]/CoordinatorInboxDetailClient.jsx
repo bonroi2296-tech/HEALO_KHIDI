@@ -17,7 +17,7 @@ import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { CASE_STATUS_STEPS, caseStatusLabelL } from "@/lib/khidi/caseStatus";
 import { cancerTypeLabelL } from "@/lib/khidi/medicalLabels";
 import { nationalityLabelL } from "@/lib/khidi/nationality";
-import { useCoordinatorL, useDateLocale } from "@/lib/i18n/coordinator";
+import { useCoordinatorL, useDateLocale, coordinatorL } from "@/lib/i18n/coordinator";
 import { useLang } from "@/lib/i18n/LangContext";
 
 const STATUS_COLORS = {
@@ -563,7 +563,9 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
 
               {/* 환자가 쓴 채널(왓츠앱 등)로 바로 보내기 */}
               {(() => {
-                const msg = `${L.ibWaMessage}: ${reqResult.link}`;
+                // 환자에게 가는 문구는 코디 화면 언어가 아니라 '환자 언어'로 — 못 알아보면 무의미하므로.
+                const patientLang = inquiry.preferred_language || inquiry.spoken_language || "en";
+                const msg = `${coordinatorL(patientLang).ibWaMessage}: ${reqResult.link}`;
                 const digits = String(inquiry.contact_id || "").replace(/[^\d]/g, "");
                 const isWa = String(inquiry.contact_method || "").toLowerCase().includes("whats");
                 const waUrl = `https://wa.me/${isWa && digits.length >= 6 ? digits : ""}?text=${encodeURIComponent(msg)}`;
