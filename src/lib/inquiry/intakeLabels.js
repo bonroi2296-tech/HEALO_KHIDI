@@ -74,6 +74,20 @@ export const INTAKE_UI = {
   attachments: { ko: "첨부", en: "Attachments", ru: "Вложения", kz: "Тіркемелер", zh: "附件", ja: "添付" },
   attachmentsYes: { ko: "있음", en: "Yes", ru: "Есть", kz: "Бар", zh: "有", ja: "あり" },
   attachmentsNo: { ko: "없음", en: "None", ru: "Нет", kz: "Жоқ", zh: "无", ja: "なし" },
+  // 미입력 선택값 — 숨기지 말고 '입력하지 않음'으로 표기(관리 가시성).
+  notEntered: { ko: "입력하지 않음", en: "Not entered", ru: "Не указано", kz: "Көрсетілмеген", zh: "未填写", ja: "未入力" },
+  // 케이스 브리프(AI 초안) 카드
+  briefTitle: { ko: "케이스 브리프", en: "Case brief", ru: "Бриф по случаю", kz: "Кейс брифі", zh: "病例简报", ja: "ケース概要" },
+  briefAiDraft: { ko: "AI 초안", en: "AI draft", ru: "Черновик ИИ", kz: "AI жобасы", zh: "AI草稿", ja: "AI下書き" },
+  briefHint: { ko: "접수 내용·문서를 AI가 정리해 빠른 판단을 돕습니다.", en: "AI organizes the intake and documents to speed up your judgment.", ru: "ИИ обобщает заявку и документы для быстрой оценки.", kz: "AI өтінім мен құжаттарды жылдам бағалауға жинақтайды.", zh: "AI 整理接诊内容与文档，助您快速判断。", ja: "AIが受付内容と書類を整理し判断を助けます。" },
+  briefGenerate: { ko: "브리프 생성", en: "Generate brief", ru: "Создать бриф", kz: "Бриф жасау", zh: "生成简报", ja: "概要を生成" },
+  briefRegenerate: { ko: "다시 생성", en: "Regenerate", ru: "Пересоздать", kz: "Қайта жасау", zh: "重新生成", ja: "再生成" },
+  briefGenerating: { ko: "생성 중…", en: "Generating…", ru: "Создание…", kz: "Жасалуда…", zh: "生成中…", ja: "生成中…" },
+  briefRequest: { ko: "원하는 것", en: "Wants", ru: "Запрос", kz: "Сұраныс", zh: "需求", ja: "希望" },
+  briefPoints: { ko: "코디가 볼 포인트", en: "Points for coordinator", ru: "На что обратить внимание", kz: "Назар аударатын тұстар", zh: "协调员关注点", ja: "確認ポイント" },
+  briefFlags: { ko: "주의", en: "Flags", ru: "Внимание", kz: "Ескерту", zh: "注意", ja: "注意" },
+  briefDisclaimer: { ko: "AI가 정리한 초안입니다. 진단이 아니며 코디·의료진 검수가 필요합니다.", en: "AI-generated draft — not a diagnosis; coordinator/doctor review required.", ru: "Черновик ИИ — не диагноз; требуется проверка координатора/врача.", kz: "AI жобасы — диагноз емес; тексеру қажет.", zh: "AI草稿——非诊断，需协调员/医生审核。", ja: "AIによる下書きです。診断ではなく確認が必要です。" },
+  briefFailed: { ko: "브리프 생성에 실패했어요. 잠시 후 다시 시도해 주세요.", en: "Failed to generate the brief. Please try again.", ru: "Не удалось создать бриф. Повторите попытку.", kz: "Бриф жасалмады. Қайталап көріңіз.", zh: "简报生成失败，请稍后重试。", ja: "概要の生成に失敗しました。再度お試しください。" },
 };
 
 /** 다국어 라벨 객체({ko,en,...})에서 현재 언어 값을 뽑는다. 없으면 en → ko 폴백. */

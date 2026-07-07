@@ -30,6 +30,7 @@ export type AiSurface =
   | "judge"
   | "triage"
   | "doc_translate"
+  | "case_brief"
   | "embedding"
   | "other";
 

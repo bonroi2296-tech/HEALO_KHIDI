@@ -146,7 +146,6 @@ export default function CoordinatorInboxPage() {
                 <th className="px-4 py-3 text-left font-semibold text-gray-600">{L.cancerType}</th>
                 <th className="px-4 py-3 text-left font-semibold text-gray-600">{L.contactMethod}</th>
                 <th className="px-4 py-3 text-left font-semibold text-gray-600">{L.inboxColStep}</th>
-                <th className="px-4 py-3 text-left font-semibold text-gray-600">{L.inboxColMatch}</th>
                 <th className="px-4 py-3 text-left font-semibold text-gray-600">{L.receivedDate}</th>
                 <th className="px-4 py-3 text-left font-semibold text-gray-600">{L.status}</th>
                 <th className="px-4 py-3" />
@@ -211,17 +210,6 @@ export default function CoordinatorInboxPage() {
                           <AlertCircle size={14} className="text-red-500" />
                         )}
                       </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span
-                        className={`px-2 py-0.5 text-xs font-bold rounded-full ${
-                          (item.match_accuracy ?? 0) >= 90
-                            ? "bg-teal-100 text-teal-700"
-                            : "bg-yellow-100 text-yellow-700"
-                        }`}
-                      >
-                        {item.match_accuracy ?? 60}%
-                      </span>
                     </td>
                     <td className="px-4 py-3 text-gray-400 text-xs">
                       <span className="flex items-center gap-1">
