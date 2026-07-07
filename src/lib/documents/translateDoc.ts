@@ -17,8 +17,25 @@ import "server-only";
 
 import { supabaseAdmin } from "../rag/supabaseAdmin";
 import { logAiUsage } from "@/lib/ai/usageLog";
+import { glossaryBlock, type DocLang } from "./medicalGlossary";
+
+export type { DocLang };
 
 const MODEL = "gemini-flash-latest";
+
+// 출력 언어별 설정. 코디=한글 / 병원의뢰=영문 / 환자·에이전시=러시아어(#37 키르기스 등 CIS).
+const LANG_NAME: Record<DocLang, string> = { ko: "KOREAN", en: "ENGLISH", ru: "RUSSIAN" };
+const COLUMNS: Record<DocLang, string[]> = {
+  ko: ["항목(원문)", "항목(한글)", "결과", "정상범위", "단위"],
+  en: ["Item (original)", "Item (English)", "Result", "Reference range", "Unit"],
+  ru: ["Показатель (ориг.)", "Показатель (рус.)", "Результат", "Референсные значения", "Ед.изм."],
+};
+const UNREADABLE: Record<DocLang, string> = { ko: "(원문 판독 불가)", en: "(unreadable in source)", ru: "(не читается в оригинале)" };
+const DEFAULT_DOCTYPE: Record<DocLang, string> = { ko: "의료서류", en: "Medical document", ru: "Медицинский документ" };
+
+function normalizeLang(v: unknown): DocLang {
+  return v === "en" || v === "ru" ? v : "ko";
+}
 
 // Gemini inlineData 로 직접 판독 가능한 타입만(이미지 + PDF). doc/docx 는 모델이 못 읽음.
 const MODEL_READABLE = new Set(["image/jpeg", "image/png", "image/webp", "image/gif", "application/pdf"]);
@@ -86,30 +103,40 @@ const RESPONSE_SCHEMA = {
   required: ["docTypeShort", "docType", "sections"],
 };
 
-function buildPrompt(): string {
+function buildPrompt(lang: DocLang): string {
+  const T = LANG_NAME[lang];             // 대상 언어(대문자)
+  const cols = COLUMNS[lang];            // 표 헤더(대상 언어)
+  const colList = cols.map((c) => `'${c}'`).join(",");
+  const unread = UNREADABLE[lang];       // 판독불가 표기(대상 언어)
+  const labelCol = cols[1];              // 번역 라벨이 들어가는 열 이름
+  const glossary = glossaryBlock(lang);  // 용어 사전(대상 언어)
+
   return [
     "You are a medical document translator for healwith, a Korea-based medical-tourism platform.",
-    "A coordinator uploaded a foreign-language medical document (Russian/Kazakh/other) that must be handed to Korean hospital doctors.",
-    "Your job is a FAITHFUL, COMPLETE translation into KOREAN — NOT a summary.",
+    "A coordinator uploaded a foreign-language medical document (Russian/Kazakh/other) that must be handed to doctors or the patient.",
+    `Your job is a FAITHFUL, COMPLETE translation into ${T} — NOT a summary.`,
     "",
     "HARD RULES (a summary could drop something clinically important — do not summarize):",
     "1. Translate EVERY line/row/field. Do NOT omit, merge, reorder, or summarize anything.",
     "2. Preserve ALL numbers, units, reference ranges, dates, IDs, and Latin abbreviations (HGB, RBC, WBC, PLT, MCV, СОЭ→ESR, etc.) EXACTLY as in the source — copy them character-for-character. NEVER guess, round, or 'correct' a value. If unsure of a digit, copy what you see verbatim.",
-    "3. Translate ONLY the human-language label text (the Russian/Kazakh medical term) into Korean. Keep the source term in parentheses where useful so doctors can cross-check.",
+    `3. Translate ONLY the human-language label text (the Russian/Kazakh medical term) into ${T}. Keep the source term in parentheses where useful so doctors can cross-check.`,
     "4. Do NOT add any diagnosis, interpretation, opinion, or clinical advice. This is a translation, not a reading.",
     "5. COMPLETENESS — read EVERY page of the document. Any section that contains results, findings, or measurements in the source MUST include those values. NEVER output a section that has only a header/patient info and no results. Concretely: for a smear/microscopy, transcribe every measured value (leukocytes, flora, epithelium, etc.); for an infection/STI PCR panel, list EVERY pathogen tested with its positive/negative (or detected/not-detected) result; for any quantitative assay, give every value. A section with a results table in the source but empty results in your output is a FAILURE.",
-    "6. UNREADABLE ≠ OMIT — if a value or line is too faint, blurred, cropped, or handwritten to read with confidence, write '(원문 판독 불가)' in its place. NEVER silently drop it. Flagging an unreadable value is far safer than leaving it out.",
+    `6. UNREADABLE ≠ OMIT — if a value or line is too faint, blurred, cropped, or handwritten to read with confidence, write '${unread}' in its place. NEVER silently drop it. Flagging an unreadable value is far safer than leaving it out.`,
+    glossary ? "" : null,
+    glossary ? `GLOSSARY — for these source terms, use EXACTLY this ${T} translation (respect any [note]):` : null,
+    glossary || null,
     "",
     "OUTPUT (JSON):",
-    "- docTypeShort: a SHORT Korean chip label for the document type (e.g. '혈액검사', '소변검사', '세포검사', '영상판독', '진료기록', '병리').",
-    "- docType: fuller Korean type with the source name in parentheses (e.g. '일반혈액검사 (OAK/CBC)').",
+    `- docTypeShort: a SHORT ${T} chip label for the document type (blood test, urine test, cytology, imaging, medical record, pathology, ...).`,
+    `- docType: fuller ${T} type with the source name in parentheses (e.g. for a CBC: '일반혈액검사 (OAK/CBC)' in Korean, or the equivalent in ${T}).`,
     "- sections: array. For each logical block of the document, one section:",
-    "   • For lab result tables → set `columns` and `rows`. Use columns like ['항목(원문)','항목(한글)','결과','정상범위','단위']. Put the original parameter name in 항목(원문), Korean in 항목(한글), and copy 결과/정상범위/단위 VERBATIM from the source. One row per source line — do not drop rows.",
-    "   • For free-text blocks (impressions, notes, headers with patient/date/lab info) → set `text` to the faithful Korean translation (keep numbers/dates verbatim). Use `note` for context lines like patient name, date of birth, lab name.",
-    "   • `title`: a short Korean heading for the section (source term in parentheses if helpful).",
+    `   • For lab result tables → set \`columns\` and \`rows\`. Use columns [${colList}]. Put the original parameter name in the first column, the ${T} translation in the '${labelCol}' column, and copy result/reference-range/unit VERBATIM from the source. One row per source line — do not drop rows.`,
+    `   • For free-text blocks (impressions, notes, headers with patient/date/lab info) → set \`text\` to the faithful ${T} translation (keep numbers/dates verbatim). Use \`note\` for context lines like patient name, date of birth, lab name.`,
+    `   • \`title\`: a short ${T} heading for the section (source term in parentheses if helpful).`,
     "",
     "Return ONLY the JSON object.",
-  ].join("\n");
+  ].filter((l) => l !== null).join("\n");
 }
 
 /**
@@ -121,9 +148,12 @@ export async function translateMedicalDoc(opts: {
   path: string;
   mimeType?: string | null;
   name?: string | null;
+  lang?: DocLang | string | null;
 }): Promise<TranslateResult> {
   const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
   if (!apiKey) return { ok: false, error: "no_api_key" };
+
+  const lang = normalizeLang(opts.lang);
 
   const mime = opts.mimeType || (opts.name ? inferMimeFromName(opts.name) : null) || inferMimeFromName(opts.path) || "";
   if (!MODEL_READABLE.has(mime)) {
@@ -149,9 +179,9 @@ export async function translateMedicalDoc(opts: {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        systemInstruction: { parts: [{ text: buildPrompt() }] },
+        systemInstruction: { parts: [{ text: buildPrompt(lang) }] },
         contents: [{ role: "user", parts: [
-          { text: "Translate this medical document faithfully into Korean per the rules. Return only JSON." },
+          { text: `Translate this medical document faithfully into ${LANG_NAME[lang]} per the rules. Return only JSON.` },
           { inlineData: { mimeType: mime, data: base64 } },
         ] }],
         // 의료 내용이 안전필터에 간헐 차단되는 문제(triage/generateReply 와 동일) → 모델단 차단 끔.
@@ -180,7 +210,7 @@ export async function translateMedicalDoc(opts: {
       model: MODEL,
       promptTokens: json?.usageMetadata?.promptTokenCount ?? null,
       completionTokens: json?.usageMetadata?.candidatesTokenCount ?? null,
-      meta: { mime },
+      meta: { mime, lang },
     }).catch(() => {});
 
     const raw = json?.candidates?.[0]?.content?.parts?.map((p: any) => p.text).join("") || "";
@@ -199,8 +229,8 @@ export async function translateMedicalDoc(opts: {
     return {
       ok: true,
       doc: {
-        docTypeShort: String(parsed.docTypeShort || "의료서류"),
-        docType: String(parsed.docType || parsed.docTypeShort || "의료서류"),
+        docTypeShort: String(parsed.docTypeShort || DEFAULT_DOCTYPE[lang]),
+        docType: String(parsed.docType || parsed.docTypeShort || DEFAULT_DOCTYPE[lang]),
         // 방어: 구조화출력이 드물게 null/비객체 원소를 내도 렌더가 안 터지게 거른다.
         sections: parsed.sections.filter((s: any) => s && typeof s === "object"),
       },

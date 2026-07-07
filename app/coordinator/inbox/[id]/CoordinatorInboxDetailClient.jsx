@@ -78,9 +78,18 @@ function escHtml(s) {
   return String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 }
 
+// 첨부 번역 출력 언어(코디=한글 / 병원의뢰=영문 / 환자·에이전시=러시아어). 고지문은 출력 언어에 맞춘다.
+const OUT_LANGS = [{ key: "ko", label: "한" }, { key: "en", label: "EN" }, { key: "ru", label: "RU" }];
+const DISCLAIMER = {
+  ko: "원문을 그대로 옮긴 번역입니다(요약 아님). 숫자·정상범위는 원본과 대조하세요.",
+  en: "Faithful full translation (not a summary). Verify numbers and reference ranges against the original.",
+  ru: "Дословный полный перевод (не резюме). Сверяйте цифры и референсные значения с оригиналом.",
+};
+const TR_LABEL = { ko: "한글 번역", en: "Translation", ru: "Перевод" };
+
 // 번역 결과를 깨끗한 새 창으로 열어 인쇄 → 'PDF로 저장'. 한글+키릴이 한 줄에 섞여 있어
 // @react-pdf(단일 폰트) 로는 깨진다 → 브라우저 인쇄(시스템 폰트)가 유일하게 안전. 새 의존성 0.
-function printTranslation(doc, name) {
+function printTranslation(doc, name, lang = "ko") {
   const sections = (doc.sections || []).map((s) => {
     let inner = "";
     if (s.title) inner += `<h2>${escHtml(s.title)}</h2>`;
@@ -94,8 +103,8 @@ function printTranslation(doc, name) {
     return `<section>${inner}</section>`;
   }).join("");
 
-  const html = `<!doctype html><html lang="ko"><head><meta charset="utf-8">
-<title>${escHtml(name || doc.docType)} — 한글 번역</title>
+  const html = `<!doctype html><html lang="${lang}"><head><meta charset="utf-8">
+<title>${escHtml(name || doc.docType)} — ${escHtml(TR_LABEL[lang] || TR_LABEL.ko)}</title>
 <style>
 *{box-sizing:border-box}
 body{font-family:-apple-system,"Malgun Gothic","Segoe UI",sans-serif;color:#111;margin:24px;font-size:12px}
@@ -111,8 +120,8 @@ th{background:#f3f4f6}
 @media print{body{margin:12mm}tr{page-break-inside:avoid}}
 </style></head><body>
 <h1>${escHtml(doc.docType)}</h1>
-<p class="sub">원본: ${escHtml(name || "")} · healwith 한글 번역</p>
-<p class="disc">원문을 그대로 옮긴 번역입니다(요약 아님). 숫자·정상범위는 원본과 대조하세요.</p>
+<p class="sub">원본: ${escHtml(name || "")} · healwith ${escHtml(TR_LABEL[lang] || TR_LABEL.ko)}</p>
+<p class="disc">${escHtml(DISCLAIMER[lang] || DISCLAIMER.ko)}</p>
 ${sections}
 </body></html>`;
 
@@ -126,7 +135,7 @@ ${sections}
 }
 
 // 외국 검사지 한글 번역 결과(요약 아님, 원문 1:1). 표는 가로 스크롤로 감싼다(반응형).
-function TranslatedDocView({ doc, onCopy, copied, onPdf }) {
+function TranslatedDocView({ doc, onCopy, copied, onPdf, lang = "ko" }) {
   return (
     <div>
       <div className="flex items-center justify-between gap-2 mb-1.5">
@@ -153,7 +162,7 @@ function TranslatedDocView({ doc, onCopy, copied, onPdf }) {
         </div>
       </div>
       <p className="text-[11px] text-gray-400 mb-3">
-        원문을 그대로 옮긴 번역입니다(요약 아님). 숫자·정상범위는 원본과 대조하세요.
+        {DISCLAIMER[lang] || DISCLAIMER.ko}
       </p>
       <div className="space-y-4">
         {(doc.sections || []).map((s, si) => (
@@ -339,13 +348,16 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
     setAttDownloadPath(null);
   }
 
-  // 첨부 한글 변환: 외국 검사지를 한국 병원 전달용으로 원문 1:1 한국어 번역(요약 아님, 숫자 보존).
-  const [transLoadingPath, setTransLoadingPath] = useState(null);
-  const [translations, setTranslations] = useState({}); // path -> { doc } | { error }
+  // 첨부 번역: 외국 검사지를 병원·환자 전달용으로 원문 1:1 번역(요약 아님, 숫자 보존). 출력 언어=ko/en/ru.
+  const [transLoadingKey, setTransLoadingKey] = useState(null); // `${path}::${lang}` 로딩중
+  const [translations, setTranslations] = useState({}); // `${path}::${lang}` -> { doc } | { error }
+  const [attLang, setAttLang] = useState({}); // path -> 선택 출력 언어(기본 ko)
   const [copiedTransPath, setCopiedTransPath] = useState(null);
-  async function translateAttachment(path, name) {
+  const tKey = (path, lg) => `${path}::${lg}`;
+  async function translateAttachment(path, name, lg) {
     if (!path) return;
-    setTransLoadingPath(path);
+    const key = tKey(path, lg);
+    setTransLoadingKey(key);
     try {
       const supabase = createSupabaseBrowserClient();
       const { data: { session } } = await supabase.auth.getSession();
@@ -354,23 +366,23 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
       const res = await fetch("/api/attachments/translate", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
-        body: JSON.stringify({ path: cleanPath, name }),
+        body: JSON.stringify({ path: cleanPath, name, lang: lg }),
       });
       const data = await res.json().catch(() => ({}));
       if (res.ok && data.ok && data.doc) {
-        setTranslations((prev) => ({ ...prev, [path]: { doc: data.doc } }));
+        setTranslations((prev) => ({ ...prev, [key]: { doc: data.doc } }));
       } else {
-        setTranslations((prev) => ({ ...prev, [path]: { error: data.error || "translate_failed" } }));
+        setTranslations((prev) => ({ ...prev, [key]: { error: data.error || "translate_failed" } }));
       }
     } catch (e) {
       console.error("[attachment] translate error:", e);
-      setTranslations((prev) => ({ ...prev, [path]: { error: "translate_failed" } }));
+      setTranslations((prev) => ({ ...prev, [key]: { error: "translate_failed" } }));
     }
-    setTransLoadingPath(null);
+    setTransLoadingKey(null);
   }
 
   // 번역 결과를 한국 의료진에게 넘길 수 있게 평문으로 클립보드 복사(표는 탭 구분).
-  async function copyTranslation(path, doc) {
+  async function copyTranslation(key, doc) {
     const lines = [`[${doc.docType}]`, ""];
     for (const s of doc.sections || []) {
       lines.push(`■ ${s.title || ""}`);
@@ -384,7 +396,7 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
     }
     try {
       await navigator.clipboard.writeText(lines.join("\n"));
-      setCopiedTransPath(path);
+      setCopiedTransPath(key);
       setTimeout(() => setCopiedTransPath(null), 2000);
     } catch { /* clipboard 미지원 무시 */ }
   }
@@ -768,6 +780,9 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
               const path = typeof a === "string" ? a : a?.path;
               const name = (typeof a === "object" && a?.name) || (path ? path.split("/").pop() : `${L.ibAttachment} ${i + 1}`);
               const cat = typeof a === "object" ? a?.category : null;
+              const curLang = attLang[path] || "ko";        // 선택된 출력 언어
+              const curKey = tKey(path, curLang);            // 현재 언어의 번역 캐시 키
+              const entry = translations[curKey];            // { doc } | { error } | undefined
               return (
                 <div
                   key={path || i}
@@ -792,20 +807,34 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
                         <ExternalLink size={14} className="text-gray-400 shrink-0" />
                       )}
                     </button>
-                    {/* 한글로 변환(한국 병원 전달용 원문 1:1 번역) */}
+                    {/* 출력 언어 선택(한/영/러) — 코디=한글, 병원의뢰=영문, 환자·에이전시=러시아어 */}
+                    <div className="shrink-0 inline-flex rounded-md border border-gray-200 overflow-hidden" role="group" aria-label="번역 언어">
+                      {OUT_LANGS.map((o) => (
+                        <button
+                          key={o.key}
+                          type="button"
+                          onClick={() => setAttLang((prev) => ({ ...prev, [path]: o.key }))}
+                          className={`px-2 py-1.5 text-xs font-medium transition ${curLang === o.key ? "bg-teal-600 text-white" : "bg-white text-gray-500 hover:bg-gray-50"}`}
+                          title={`${o.label} 로 번역`}
+                        >
+                          {o.label}
+                        </button>
+                      ))}
+                    </div>
+                    {/* 변환(병원·환자 전달용 원문 1:1 번역, 선택 언어로) */}
                     <button
-                      onClick={() => translateAttachment(path, name)}
-                      disabled={!path || transLoadingPath === path}
+                      onClick={() => translateAttachment(path, name, curLang)}
+                      disabled={!path || transLoadingKey === curKey}
                       className="shrink-0 inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md border border-teal-200 bg-teal-50 text-xs font-medium text-teal-700 hover:bg-teal-100 transition disabled:opacity-50"
-                      title="한국 병원 전달용 한글 번역 (요약 아님·원문 그대로)"
+                      title="병원·환자 전달용 번역 (요약 아님·원문 그대로)"
                     >
-                      {transLoadingPath === path ? (
+                      {transLoadingKey === curKey ? (
                         <span className="w-3.5 h-3.5 border-2 border-teal-500 border-t-transparent rounded-full animate-spin" />
                       ) : (
                         <Languages size={14} />
                       )}
                       <span className="hidden sm:inline">
-                        {translations[path]?.doc ? "다시 변환" : "한글로 변환"}
+                        {entry?.doc ? "다시 변환" : "변환"}
                       </span>
                     </button>
                     {/* 다운로드(원본 파일명으로 바로 저장) */}
@@ -823,21 +852,22 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
                       <span className="hidden sm:inline">다운로드</span>
                     </button>
                   </div>
-                  {/* 한글 번역 결과 패널 */}
-                  {translations[path] && (
+                  {/* 번역 결과 패널(선택 언어) */}
+                  {entry && (
                     <div className="border-t border-gray-100 bg-gray-50/60 px-3 py-3">
-                      {translations[path].error ? (
+                      {entry.error ? (
                         <p className="text-sm text-amber-700">
-                          {translations[path].error === "unsupported_type"
+                          {entry.error === "unsupported_type"
                             ? "이 형식(doc·docx 등)은 자동 번역이 안 돼요. 원본을 직접 확인해 주세요."
                             : "번역 중 문제가 발생했어요. 잠시 후 다시 시도해 주세요."}
                         </p>
                       ) : (
                         <TranslatedDocView
-                          doc={translations[path].doc}
-                          copied={copiedTransPath === path}
-                          onCopy={() => copyTranslation(path, translations[path].doc)}
-                          onPdf={() => printTranslation(translations[path].doc, name)}
+                          doc={entry.doc}
+                          lang={curLang}
+                          copied={copiedTransPath === curKey}
+                          onCopy={() => copyTranslation(curKey, entry.doc)}
+                          onPdf={() => printTranslation(entry.doc, name, curLang)}
                         />
                       )}
                     </div>

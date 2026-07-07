@@ -21,6 +21,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json().catch(() => ({}));
     const path = body?.path ? String(body.path) : null;
     const name = body?.name ? String(body.name) : null;
+    const lang = body?.lang ? String(body.lang) : "ko"; // 출력 언어(ko/en/ru). 엔진에서 정규화.
 
     if (!path) {
       return Response.json({ ok: false, error: "path_required" }, { status: 400 });
@@ -40,7 +41,7 @@ export async function POST(request: NextRequest) {
       return Response.json({ ok: false, error: "unauthorized" }, { status: 401 });
     }
 
-    const result = await translateMedicalDoc({ path, name });
+    const result = await translateMedicalDoc({ path, name, lang });
     if (!result.ok) {
       // error 는 코드형 문자열만(내용 누출 없음). 형식 미지원은 415, 그 외 상류 실패는 502.
       const status = result.error === "unsupported_type" ? 415 : 502;
