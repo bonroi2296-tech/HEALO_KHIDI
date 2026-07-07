@@ -269,7 +269,14 @@ export function decryptStringNullable(payloadJson: string | null | undefined): s
  */
 export function decryptMaybe(value: string | null | undefined): string | null {
   if (value === null || value === undefined || value === "") return null;
-  return isEncryptedPayload(value) ? decryptString(value) : value;
+  if (!isEncryptedPayload(value)) return value;
+  try {
+    return decryptString(value);
+  } catch {
+    // 복호화 실패(키 교체·손상 행)해도 목록/발송 경로 전체가 죽지 않게 null 반환 = 행별 격리.
+    // decryptMaybe 는 인박스·cron 설문발송 등 다행 map 에서 쓰여 한 행이 전체를 500 시키면 안 됨.
+    return null;
+  }
 }
 
 // ========================================

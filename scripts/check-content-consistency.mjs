@@ -138,9 +138,21 @@ const XSS_INNERHTML_ALLOWLIST = new Set([
 
 const errors = [];
 
+// ── 1d) 환자앱(6개어 프론트) JSX 텍스트에 하드코딩 한글 차단 ──────────────────
+// 왜: /patient 은 러·카 등 외국인 환자용 6개어 화면. 태그 사이 텍스트(>…<)에 한글을 직접
+//     박으면 비한국어 환자에게 한국어가 그대로 노출된다(2026-07-07 비자 허브 통짜 한글·
+//     증상분석 누출 — check:content 사각지대였음). i18n(useLang()+{ko,en,…})로 감쌀 것.
+// ponytail: '>텍스트<' 형태(가장 흔하고 제일 위험한 통짜 누출)만 잡는다. 중괄호 표현식
+//     {cond?'한글':…} 안이나 객체 label:'한글' 은 못 잡음 — 그건 코드리뷰 몫(정직하게 명시).
+const HANGUL_JSX_TEXT = />[^<>{}]*[가-힣][^<>{}]*</;
+
 for (const file of SCAN_DIRS.flatMap(walk)) {
   const lines = readFileSync(join(ROOT, file), "utf8").split("\n");
+  const isPatientApp = /^app\/patient\//.test(file.replace(/\\/g, "/"));
   lines.forEach((line, i) => {
+    if (isPatientApp && HANGUL_JSX_TEXT.test(line)) {
+      errors.push(`[한글누출] ${file}:${i + 1} — 환자앱 JSX 텍스트에 하드코딩 한글. useLang()+{ko,en,ru,kz,zh,ja}로 감쌀 것(비한국어 환자에게 한글 노출)\n    ${line.trim().slice(0, 120)}`);
+    }
     for (const f of FORBIDDEN) {
       if (f.re.test(line) && !(f.allow && f.allow.test(file))) errors.push(`[금지토큰] ${file}:${i + 1} — ${f.msg}\n    ${line.trim().slice(0, 120)}`);
     }
