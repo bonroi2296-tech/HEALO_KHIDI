@@ -20,10 +20,11 @@ export const TreatmentManager = ({
   loading,
   uploadToSupabase,
   uploading,
-  // DynamicListInput / ImageUploader 는 부모에서 주입되지만 현재 컴포넌트 내에서
-  // 직접 쓰이진 않음 — 향후 리팩터 시 사용 예정이므로 destructure 유지 (prefix `_`).
-  DynamicListInput: _DynamicListInput,
-  ImageUploader: _ImageUploader,
+  // DynamicListInput / ImageUploader 는 부모에서 주입되어 아래 폼 JSX에서 직접 사용된다
+  // (`<DynamicListInput/>`·`<ImageUploader/>`). prefix `_` 로 받으면 이름이 스코프에 없어
+  // 폼 열 때 ReferenceError 로 크래시하므로 원래 이름 그대로 받는다 (POSTMORTEMS).
+  DynamicListInput,
+  ImageUploader,
 }) => {
   const [showForm, setShowForm] = useState(false);
   const [treatmentSources, setTreatmentSources] = useState([]);
