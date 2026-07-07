@@ -7,6 +7,48 @@
 
 ---
 
+## 🔖 세션 핸드오프 (2026-07-07 — 에이전시 공개폼 접수 가시성 버그: 로그인 에이전시 소속 자동 각인·머지·배포 #696)
+
+> PO 지시: "로그인한 에이전시 유저가 **공개 웹폼**으로 문의를 넣으면 `inquiries.agency_id`가 NULL로 저장돼, 에이전시 포털에서 자기 문의·진행상황이 안 보인다. 접수 시 소속을 자동 각인해라. #37 백필은 하지 말고 forward-looking 로직만." → 합치기신청서(PR) #696으로 본판(main) 머지·실서비스 반영(배포) 완료.
+
+**1. 이번 세션 한 일** (전부 main 머지·프로덕션 자동배포)
+- **PR [#696](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/696) ✅ 스쿼시 머지·프로덕션 자동배포** (origin/main `7dcf881`, state MERGED).
+  - **신규 `src/lib/auth/resolveAgencyIdForUser.ts`**: 로그인 `userId` → 활성 `agency_users` 멤버십에서 `agency_id` 조회(service_role, RLS 우회). 미소속·게스트·조회실패는 `null` → **접수 자체는 진행(fail-safe)**.
+  - **`app/api/inquiries/step1/route.ts`**: 이미 Bearer 토큰으로 받던 `userId`로 각인, `inquiries` insert에 `agency_id` 추가(`user_id` 옆, 추가 조회 0).
+  - **유닛테스트 `resolveAgencyIdForUser.test.ts`**(회귀 가드 4케이스): userId 없으면 조회 안 함 / 활성멤버면 id / 미소속 null / 조회 던져도 null.
+  - **POSTMORTEMS #75** 기록 — #63 "경로별 규칙 드리프트" **🔁 재발**(#74 is_test와 같은 날 같은 `inquiries` insert 테이블 자매 사고).
+
+**2. 왜 그렇게 했는지**
+- **근본원인 = 접수 경로마다 `agency_id` 각인 규칙이 갈림**: 정식 의뢰 `/api/agency/refer`는 찍는데 **공개폼 `step1`만 누락**. 첫 실고객 #37(agency@test.com, "TEST 에이전시" 소속)이 정확히 이 표본 — 임시 stamp 시 포털에 #37+코디노트+타임라인 정상 노출(기능 멀쩡, 연결만 끊김).
+- **살아있는 공개 insert 경로는 step1 하나뿐**이라 각인 지점 1곳이면 충분: `create`=410 Gone(사문), `intake`=기존 row UPDATE(step1 각인이면 커버), `normalize`=`normalized_inquiries`(다른 테이블). → 유사 스캔 전수 완료.
+- **로직을 헬퍼로 뽑은 이유**: 라우트 본체는 rate-limit·암호화·auth 때문에 격리 유닛테스트 불가 → 조회만 순수 헬퍼로 분리해 테스트 가능하게.
+- **독립 리뷰 지적 처리(멀티-에이전시 소속 edge)**: 리뷰가 "헬퍼에만 ORDER BY 추가"를 제안했으나 **채택 안 함** — 조회측 `checkAgencyAuth`도 동일한 무순서 `limit(1)`이라, 헬퍼가 그걸 **의도적으로 미러해야 각인==조회로 일치**한다(한쪽만 정렬하면 각인≠조회 divergence로 오히려 악화). 스키마상 `agency_id` nullable·FK `ON DELETE SET NULL`이라 insert 신규 실패 없음. `ponytail:` 주석으로 상한·업그레이드 경로 명시.
+
+**3. 안 끝났거나 보류**
+- ⏸ **라이브 E2E 미실시**: 실제 에이전시 계정 로그인→공개폼 접수→포털 노출은 로컬 자동화 불가(로그인 포털 SSR 쿠키 [[verify_authgated_portal]]). 배포 후 PO/다음 세션 스팟 확인 필요.
+- ⏸ **(권장·범위 밖) 데이터 감시망**: "agency 소속 user_id로 접수됐는데 agency_id NULL"인 문의를, #690에서 붙인 일일 KPI 오염 감사 cron에 얹으면 미래 재발도 데이터에서 잡힘. 이번 PR엔 미포함.
+- ⏸ **#37 백필 안 함**: 정식계정 이관 계획으로 별도 처리([[first-real-inquiry-37-migration]]). 이 PR은 forward-looking 로직만.
+
+**4. 주의·함정**
+- **새 `inquiries` insert 경로를 만들면 `agency_id`(로그인 에이전시면)·`user_id`·`is_test(accountEmail)`를 다 채워라.** step1이 참고 패턴. 이 셋은 "접수 경로가 각자 채우는 귀속/판정 필드"라 경로마다 빠지기 쉬움(#74·#75 자매 사고의 공통 근본원인 = 단일 SoR 부재).
+- 접수 주체 배지는 `agency_id` 기준(있으면 "에이전시 의뢰", 없으면 "환자 직접 접수") → 각인되면 자동 정정(부수효과 정상). 배지 코드는 안 건드림.
+- 세션 도중 worktree(`friendly-swanson-f6b6c0`)가 머지 후 삭제돼 origin repo로 전환됨. 이 핸드오프는 `claude/handoff-testdata-0707`(4 behind·stale)이 아니라 **origin/main 기준 새 브랜치**에서 작성(stale 브랜치에 쓰면 main 최신분 되돌릴 위험).
+
+**5. 다음 세션이 먼저 할 일**
+1. ⚠️ **직전 미검증분 먼저 확인**: 프로덕션 배포 완료 후 **에이전시 계정으로 로그인 → 공개 문의폼 접수 → `/agency`에서 그 문의가 바로 보이는지** 1회 확인(코드·유닛·CI·독립리뷰는 통과, 라이브 E2E만 미실시).
+2. (선택) 위 3번의 "agency_id NULL 감시"를 일일 KPI 감사 cron에 추가.
+
+**6. 검증 상태**
+- ✅ **PR #696 스쿼시 머지 확인**(origin/main `7dcf881`, state MERGED). CI **Smoke Tests(PR)·ci·Vercel 배포 pass**. E2E 잡은 PR에선 skip(main push/cron 전용).
+- ✅ 유닛테스트 4/4 · `npm run check:content` · `npx next build --webpack` 통과.
+- ✅ 독립 리뷰 게이트(작성맥락 미공유 subagent): insert 신규 실패 없음·RLS 안전·게스트 경로 보존 확인, CONFIRMED 블로킹 결함 0(멀티-에이전시 edge는 상한 문서화로 처리).
+- ⚠️ **검증 못 함**: 라이브 E2E(에이전시 로그인→공개폼→포털 노출) 미실시 → 5-1로 승격.
+
+**7. 다음 세션 첫 프롬프트**
+> docs/PROJECT_CONTEXT.md 최상단 읽어. 에이전시 공개폼 접수 가시성 버그(로그인 에이전시 소속 `agency_id` 자동 각인, PR #696)는 머지·배포됨. 먼저 프로덕션에서 **에이전시 계정 로그인→공개 문의폼 접수→`/agency`에 바로 보이는지** 1회 확인(코드·유닛·CI·독립리뷰 통과, 라이브 E2E만 미실시). ⚠️ 새 `inquiries` insert 경로를 만들면 `agency_id`·`user_id`·`is_test(accountEmail)`를 다 채워라(step1이 참고 패턴 — 경로별 각인 누락이 #74·#75 반복 근본원인). #37 백필은 하지 마(이관 계획 별도 [[first-real-inquiry-37-migration]]).
+
+---
+
 ## 🔖 세션 핸드오프 (2026-07-07 — 상표권용 한국어 로고 「힐위드」 단독 배선·머지·배포 #691 + 한/영 제안서 PPT + 네이버 힐위드 노출 검증)
 
 > PO 지시: `healwith`·`힐위드` 상표권 출원 중, 변리사 3요청 — ①한국어 페이지에 「힐위드」 한글 로고 ②네이버에서 "힐위드" 검색 노출 ③운영 증빙용 한/영 브로슈어. 로고 전용 작업본(브랜치)에서 작업.
@@ -43,48 +85,6 @@
 
 **7. 다음 세션 첫 프롬프트**
 > docs/PROJECT_CONTEXT.md 최상단 읽어. 상표용 한국어 로고(힐위드 단독, Pretendard SemiBold, PR #691)는 머지·배포됨. 먼저 프로덕션 healwith.co.kr/ko 헤더가 힐위드 단독으로 뜨는지 1회 확인(로컬만 검증됨). 제안서 PPT는 바탕화면 `healwith_소개서_한영.pptx`(변리사 제출용, 표지 단독 전환은 PO 미결). 네이버 힐위드는 수집요청 완료·색인 대기(며칠~2주). ⚠️ 로고는 Logo.jsx가 lang==="ko"일 때만 힐위드, 나머지 언어 healwith(한글누출 가드).
-
----
-
-## 🔖 세션 핸드오프 (2026-07-07 — KHIDI 실적 정합성: is_test 감지기에 '로그인 계정 이메일' 추가·머지·배포 #690)
-
-> PO 지시: "공유 테스트 계정(`@test.com`)으로 로그인한 채 폼엔 개인 이메일을 적어 접수하면 `is_test=false`로 실적에 섞인다. 감지기에 계정 이메일 인자 추가 + 백필 + 반성문." → 합치기신청서(PR) #690으로 본판(main) 머지·실서비스 반영(배포) 완료. **핵심 반전: 실제 DB를 확인하니 오염은 딱 1건(#37)이었고, 그건 PO가 유지하기로 한 첫 실고객 건이라 백필은 손댈 게 없었다.**
-
-**1. 이번 세션 한 일** (전부 main 머지·프로덕션 배포)
-- **PR [#690](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/690) ✅ 머지·프로덕션 자동배포** (squash 커밋 `3454db3`).
-  - 감지기 `detectInquiryIsTest`(`src/lib/khidi/testData.ts`)에 **`accountEmail`(로그인 계정 이메일) 인자 추가** — 폼 이메일이 개인 주소라도 로그인 계정이 `@test.com`이면 테스트로 잡음(기존 `isTestEmail` 룰 재사용).
-  - 호출부 연결: `step1`(`getUser`가 주는 `user.email`을 추가조회 0으로 캡처)·`agency/refer`(손 우회 2회호출을 새 인자로 통일). 게스트 AI챗 승격은 로그인 계정 없어 해당 없음.
-  - **일일 오염 감시(사후 그물)**: `findTestPollutedInquiryIds`(순수함수) + `alertTestDataPollution`을 `kpi-snapshot` 크론에 연결 — "is_test=false인데 접수 계정이 테스트 도메인"이면 매일 경고. 의도적 예외는 env `TEST_POLLUTION_AUDIT_IGNORE`로 제외.
-  - 유닛테스트 +7(계정 이메일 경로 회귀 고정), POSTMORTEMS **#74**(🔁 #63/#71 부류 재발) 기록.
-- **실DB 감사(Supabase MCP)**: 전체 문의 37건 중 실적(is_test=false) 11건, 그중 로그인 접수는 **#37 단 1건**. #19·22·23은 폼 이메일도 `@test.com`이라 옛 감지기가 이미 `is_test=true`로 잡아둠 → **백필 실행 안 함(손댈 행 0)**. 백필 SQL(`scripts/backfill_test_account_inquiries.sql`)은 문서·재사용용 보존.
-- **#37 처리**: is_test=false 유지(PO 결정) + **prod env `TEST_POLLUTION_AUDIT_IGNORE=37` 설정 완료**(production target, Vercel API 201). 메모리 [[first-real-inquiry-37-migration]] 갱신.
-
-**2. 왜 그렇게 했는지**
-- **근본원인 = 감지기 자신에 차원이 없었음**(경로 누락 아님). step1조차 감지기를 불렀지만 accountEmail 슬롯이 없어 계정을 볼 수 없었다. agency/refer만 감지기를 2번 호출해 손 우회 중이었는데, 그 우회가 곧 "중앙 감지기가 불완전"이라는 신호 → 차원을 단일 SoR(감지기)로 흡수. 수동 리뷰 체크포인트(과거 #63/#71 방지책)는 "차원 자체 누락"을 못 잡음.
-- **백필 안 한 이유**: 반성문·백필 짜기 전에 실DB로 오염 범위부터 확인했더니 제보의 "4건"은 옛 스냅샷이고 실제 오염은 #37 1건뿐이었다. 나머지 3건은 이미 올바르게 테스트 처리됨.
-- **#37은 예외 유지**: PO가 "첫 실고객, 정식계정 이관 전까지 실적 유지"로 결정한 건([[first-real-inquiry-37-migration]]). 매일 오탐 방지로 ignore env 설정(이관하면 계정이 @test.com이 아니게 되어 자동 해제).
-
-**3. 안 끝났거나 보류**
-- ⏸ **일일 오염 감시망 실동작 미검증**: 다음 크론(2026-07-08 00:05 KST)부터 실행. 로직은 유닛테스트로만 확인, 실크론은 아직 안 돎.
-- ⏸ **#37 정식 계정 이관 여전히 대기**([[first-real-inquiry-37-migration]] 레시피): 에이전시 백오피스 완성 → 정식 계정 발급 → `UPDATE inquiries ... WHERE id=37` → 그 후 env에서 `37` 제거.
-
-**4. 주의·함정**
-- **새 `inquiries` insert 경로를 만들면 반드시 `detectInquiryIsTest`에 `accountEmail`을 넘겨라**(로그인 세션이면). step1·agency/refer가 참고 패턴. 빠뜨리면 같은 구멍 재발(단, 일일 감시가 사후에 잡음).
-- `TEST_POLLUTION_AUDIT_IGNORE`는 **production 타깃에만** 설정됨. #37 이관 후 이 값에서 37 제거(안 하면 그 자리에 다른 예외 안 뜸).
-- 백필 SQL을 지금 그대로 돌리면 **no-op**(손댈 행 0). 새 오염이 생겼을 때만 SELECT로 먼저 확인 후 사용.
-
-**5. 다음 세션이 먼저 할 일**
-1. ⚠️ **직전 미검증분 먼저 확인**: 일일 오염 감시 크론은 아직 실행 전이다. 2026-07-08 첫 크론(00:05 KST) 이후(또는 수동으로 `GET /api/cron/kpi-snapshot` with CRON_SECRET) Vercel 런타임 로그/운영알림에서 "실적 오염 의심" 경고가 **#37 없이(=ignore 적용됨) 0건**인지 1회 확인. (위험 낮음: 감시망은 best-effort라 실패해도 크론 본 로직 무영향.)
-2. #37 정식 계정 이관은 에이전시 백오피스 완성 후 진행(대기).
-
-**6. 검증 상태**
-- ✅ 유닛테스트 25 passed(계정 이메일 경로 +7) · ✅ `npx next build --webpack` 통과 · ✅ 독립 코드리뷰 게이트 통과(merge-blocking 0, 저심각 2건 반영)
-- ✅ PR #690 CI(`ci`·`Smoke Tests`) 통과 → **머지 완료**(`3454db3`, origin/main 확인). 브랜치 자동삭제.
-- ✅ 실DB 감사(Supabase MCP)로 오염범위 #37 1건 확인 · ✅ prod env `TEST_POLLUTION_AUDIT_IGNORE=37` 설정 확인(Vercel API 201)
-- ⚠️ **일일 오염 감시 크론 실동작은 미검증**(다음 크론부터) — 순수로직만 유닛테스트로 확인. 백엔드 변경이라 실브라우저 검증은 해당 없음.
-
-**7. 다음 세션 첫 프롬프트**
-> 먼저 docs/PROJECT_CONTEXT.md 최상단 핸드오프 읽어. 직전(실적 정합성 #690)에서 못 끝낸 것: **일일 오염 감시 크론이 아직 실행 전**이야 — 2026-07-08 첫 크론(00:05 KST) 돈 뒤 Vercel 로그/운영알림에서 "실적 오염 의심" 경고가 #37 없이 0건인지 1번만 확인해줘(ignore env 적용됐는지). 그리고 #37 정식계정 이관은 에이전시 백오피스 완성되면 진행(아직 대기).
 
 ---
 
