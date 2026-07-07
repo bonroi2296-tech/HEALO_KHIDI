@@ -169,7 +169,9 @@ export async function GET(request: NextRequest) {
       const ignore = new Set(
         (process.env.TEST_POLLUTION_AUDIT_IGNORE || "")
           .split(",")
-          .map((s) => Number(s.trim()))
+          .map((s) => s.trim())
+          .filter(Boolean) // 빈 env → [""] → Number("")=0 오염 방지(빈 문자열 먼저 제거)
+          .map(Number)
           .filter((n) => Number.isFinite(n))
       );
       const polluted = findTestPollutedInquiryIds(rows, resolveTestDomains()).filter((id) => !ignore.has(id));

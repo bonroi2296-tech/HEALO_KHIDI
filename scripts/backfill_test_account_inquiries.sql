@@ -19,7 +19,9 @@ SELECT i.id,
 FROM inquiries i
 JOIN auth.users u ON u.id = i.user_id
 WHERE i.is_test = false
-  AND split_part(lower(u.email), '@', 2) = 'test.com'   -- TEST_EMAIL_DOMAINS 와 동일 규칙(기본 test.com)
+  AND split_part(lower(u.email), '@', 2) = 'test.com'   -- 기본 config(TEST_EMAIL_DOMAINS 미설정=test.com) 기준.
+                                                        -- ⚠️ TEST_EMAIL_DOMAINS 를 바꿨거나 서브도메인(예 staging.test.com)을
+                                                        --    쓰면 이 리터럴도 그에 맞춰라(코드 isTestEmail 은 endsWith 매칭).
 ORDER BY i.id;
 
 -- 2) 확인 후 도장(예외 제외). #37 을 포함하려면 EXCEPT 서브쿼리에서 지운다.
