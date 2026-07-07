@@ -96,6 +96,9 @@ export async function translateNotes(
   if (!model) return out; // 키 없으면 캐시분만 반환(원문 폴백)
 
   try {
+    // 각 원문에 인덱스(i)를 붙여 보내고, 응답도 같은 i 로 받는다 → 번역을 "위치"가 아니라
+    // "i 값"으로 원문에 묶는다(모델이 순서를 뒤섞어도 엉뚱한 메모에 붙지 않게 — 영구 캐시 오염 방지).
+    const items = misses.map((t, i) => ({ i, text: t }));
     const { text: raw, usage } = await generateText({
       model,
       system:
@@ -103,21 +106,30 @@ export async function translateNotes(
         `These are progress notes, timeline entries, and chat messages for a cancer medical-tourism case. ` +
         `Rules: translate naturally and concisely; keep medical terms accurate; ` +
         `KEEP numbers, dates, units, hospital/drug names and Latin abbreviations (HGB, CT, PET-CT…) unchanged; ` +
-        `do NOT add, summarize, or explain. Return ONLY a JSON array of translated strings in the SAME order and length as the input array.`,
-      prompt: `Translate each item to ${LANG_NAME[lang]}:\n${JSON.stringify(misses)}`,
+        `do NOT add, summarize, or explain. ` +
+        `Input is a JSON array of {"i":<number>,"text":<string>}. ` +
+        `Return ONLY a JSON array of {"i":<the SAME number>,"t":<translation of that item's text>}. ` +
+        `Each "i" MUST equal the input item's "i" so translations stay bound to their source; do not add, drop, or renumber items.`,
+      prompt: `Translate each item's "text" to ${LANG_NAME[lang]}:\n${JSON.stringify(items)}`,
       temperature: 0.1,
       maxOutputTokens: 2048,
     });
 
     const cleaned = raw.trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "");
     const arr = JSON.parse(cleaned);
-    if (!Array.isArray(arr) || arr.length !== misses.length) {
-      throw new Error("shape_mismatch");
+    if (!Array.isArray(arr)) throw new Error("shape_mismatch");
+
+    // i 값으로 원문↔번역 매핑(위치 무관). 빠지거나 형식이 틀린 항목은 스킵 → 원문 폴백.
+    const byIndex = new Map<number, string>();
+    for (const o of arr) {
+      if (o && typeof o.i === "number" && typeof o.t === "string" && o.t.trim()) {
+        byIndex.set(o.i, o.t.trim());
+      }
     }
 
     const rows: any[] = [];
     misses.forEach((src, i) => {
-      const tr = typeof arr[i] === "string" ? arr[i].trim() : "";
+      const tr = byIndex.get(i);
       if (!tr) return;
       out[src] = tr;
       rows.push({
