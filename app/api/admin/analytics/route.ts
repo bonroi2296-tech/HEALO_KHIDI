@@ -36,6 +36,9 @@ export async function GET(request: NextRequest) {
     const { data, error } = await supabaseAdmin
       .from("inquiries")
       .select("treatment_type")
+      // 테스트 데이터(사무실IP·@test.com·수동태그) 제외 — KPI/대시보드 오염 방지(kpi.ts·conversion RPC와 일관).
+      // not.is.true = is_test=true 만 빼고 false·null(구행)은 포함.
+      .not("is_test", "is", true)
       .order("created_at", { ascending: false });
 
     if (error) {
