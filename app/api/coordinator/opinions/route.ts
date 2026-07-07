@@ -129,7 +129,8 @@ export async function GET(request: NextRequest) {
       .eq("inquiry_id", inquiryId)
       .eq("revoked", false)
       .order("created_at", { ascending: false })
-      .limit(1);
+      .limit(10);
+    // 가장 최근 것이 만료됐어도 그 아래 유효한 링크가 있으면 그걸 노출(만료분만 보고 '없음' 처리 방지).
     const active = (reqs || []).find((r: any) => !r.expires_at || r.expires_at > nowIso) || null;
 
     const { data: opinions } = await (supabaseAdmin as any)
