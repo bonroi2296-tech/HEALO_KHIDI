@@ -37,6 +37,18 @@ const L = {
   goLogin: { ko: "로그인으로 이동", en: "Go to login", ru: "Перейти ко входу", kz: "Кіруге өту", zh: "前往登录", ja: "ログインへ" },
   back: { ko: "돌아가기", en: "Back", ru: "Назад", kz: "Артқа", zh: "返回", ja: "戻る" },
   loading: { ko: "확인 중...", en: "Checking...", ru: "Проверка...", kz: "Тексерілуде...", zh: "确认中...", ja: "確認中..." },
+  noPwAccount: { ko: "이 계정은 비밀번호 로그인을 쓰지 않습니다.", en: "This account does not use password login.", ru: "Этот аккаунт не использует вход по паролю.", kz: "Бұл аккаунт құпиясөзбен кірмейді.", zh: "该账户不使用密码登录。", ja: "このアカウントはパスワードログインを使用していません。" },
+  rateLimited: { ko: "시도가 너무 많습니다. 잠시 후 다시 시도해주세요.", en: "Too many attempts. Please try again shortly.", ru: "Слишком много попыток. Повторите позже.", kz: "Тым көп әрекет. Кейінірек қайталаңыз.", zh: "尝试次数过多，请稍后再试。", ja: "試行回数が多すぎます。しばらくして再試行してください。" },
+};
+
+// 서버 에러코드 → 안내 문구 매핑
+const ERR_MSG = {
+  wrong_current: L.wrongCurrent,
+  same_password: L.sameAsOld,
+  current_required: L.current,
+  weak_password: L.updateFailed, // 클라에서 선검증하므로 사실상 도달X
+  no_password_account: L.noPwAccount,
+  rate_limited: L.rateLimited,
 };
 const PW_ERROR = {
   min8: { ko: "비밀번호는 최소 8자 이상이어야 합니다", en: "Password must be at least 8 characters", ru: "Пароль должен содержать не менее 8 символов", kz: "Құпиясөз кемінде 8 таңбадан тұруы керек", zh: "密码至少需要8个字符", ja: "パスワードは8文字以上である必要があります" },
@@ -94,29 +106,30 @@ export default function ChangePasswordClient() {
     }
     setSaving(true);
 
-    // 1) 현재 비밀번호 재확인 — updateUser는 현재 비번을 검증하지 않으므로(세션만 봄),
-    //    잠금 안 된 화면을 남이 만졌을 때 비번을 바꿔버리는 걸 막기 위해 재인증한다.
-    //    같은 사용자로 재로그인 = 세션이 새 토큰으로 갱신될 뿐, 로그아웃되지 않음.
-    const { error: reauthErr } = await supabase.auth.signInWithPassword({
-      email,
-      password: current,
-    });
-    if (reauthErr) {
-      toast.error(pick(L.wrongCurrent, langCode));
-      setSaving(false);
-      return;
+    // 서버 라우트에 위임: ①현재비번 검증 ②관리자 권한으로 변경.
+    //   클라이언트 updateUser는 이 프로젝트 GoTrue 설정("현재비번 필요")에 막힌다.
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      const res = await fetch("/api/auth/change-password", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ currentPassword: current, newPassword: password }),
+      });
+      const j = await res.json().catch(() => ({}));
+      if (!j.ok) {
+        toast.error(pick(ERR_MSG[j.error] || L.updateFailed, langCode));
+        setSaving(false);
+        return;
+      }
+      toast.success(pick(L.success, langCode));
+      setCurrent(""); setPassword(""); setConfirmPassword("");
+    } catch {
+      toast.error(pick(L.updateFailed, langCode));
     }
-
-    // 2) 새 비밀번호로 변경
-    const { error } = await supabase.auth.updateUser({ password });
-    if (error) {
-      toast.error(pick(L.updateFailed, langCode) + ": " + error.message);
-      setSaving(false);
-      return;
-    }
-
-    toast.success(pick(L.success, langCode));
-    setCurrent(""); setPassword(""); setConfirmPassword("");
     setSaving(false);
   };
 
