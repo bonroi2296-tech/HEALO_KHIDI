@@ -112,15 +112,20 @@ export async function PATCH(
         }
         updates.quotation_items = payload.quotation_items;
 
-        // 총액 자동 계산
+        // 총액 자동 계산. USD 총액은 '모든 라인에 USD 가 있을 때만' 낸다 — 일부 라인만 USD 면
+        // KRW 총액과 안 맞는 USD 총액이 법적 견적서·환자화면에 찍힌다(MONEY-4). 불완전하면 null 로
+        // 저장 → 표시 화면들(total_usd truthy 가드)이 자동으로 USD 를 숨긴다(환율 임의계산 안 함).
         let total_krw = 0;
         let total_usd = 0;
+        let allHaveUsd = payload.quotation_items.length > 0;
         for (const item of payload.quotation_items) {
           total_krw += Number(item.krw) || 0;
-          total_usd += Number(item.usd) || 0;
+          const usd = Number(item.usd) || 0;
+          total_usd += usd;
+          if (usd <= 0) allHaveUsd = false;
         }
         updates.total_krw = total_krw;
-        updates.total_usd = total_usd;
+        updates.total_usd = allHaveUsd ? total_usd : null;
       }
 
       if (payload.hospital_id !== undefined) updates.hospital_id = payload.hospital_id;

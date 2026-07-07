@@ -113,7 +113,9 @@ export default function MedicalQuotation({ data, lang = "ko" }) {
   const treatment = data?.treatment || {};
   const costs = data?.costs || [];
   const totalKRW = costs.reduce((s, c) => s + (Number(c.krw) || 0), 0);
-  const totalUSD = costs.reduce((s, c) => s + (Number(c.usd) || 0), 0);
+  // USD 총액은 모든 라인에 USD 가 있을 때만(일부만 있으면 KRW 와 안 맞아 오해 — MONEY-4). 없으면 숨김.
+  const allHaveUsd = costs.length > 0 && costs.every((c) => Number(c.usd) > 0);
+  const totalUSD = allHaveUsd ? costs.reduce((s, c) => s + (Number(c.usd) || 0), 0) : null;
 
   return (
     <Document>
@@ -196,7 +198,9 @@ export default function MedicalQuotation({ data, lang = "ko" }) {
             <Text style={styles.costNote}></Text>
             <View style={styles.costAmount}>
               <Text style={styles.costTotal}>{fmtKRW(totalKRW)}</Text>
-              <Text style={{ ...styles.small, textAlign: "right", marginTop: 2 }}>{fmtUSD(totalUSD)}</Text>
+              {totalUSD != null && (
+                <Text style={{ ...styles.small, textAlign: "right", marginTop: 2 }}>{fmtUSD(totalUSD)}</Text>
+              )}
             </View>
           </View>
         </View>
