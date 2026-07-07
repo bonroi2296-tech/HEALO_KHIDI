@@ -31,6 +31,10 @@ export async function POST(request: NextRequest) {
     const inquiryId = body?.inquiryId != null ? (typeof body.inquiryId === "string" ? body.inquiryId : String(body.inquiryId)) : null;
     const path = body?.path ? String(body.path) : null;
     const publicToken = body?.publicToken ? String(body.publicToken) : null;
+    // download=원본파일명 이면 Content-Disposition: attachment 로 바로 다운로드(원본 이름 보존).
+    // 없으면 종전대로 미리보기(새 탭). 헤더 인젝션 방지로 개행·따옴표 제거 + 길이 캡.
+    const downloadName = body?.download ? String(body.download).replace(/[\r\n"\\]/g, "").slice(0, 200) : null;
+    const signOpts = downloadName ? { download: downloadName } : undefined;
 
     // path 는 항상 필수. inquiryId·publicToken 은 비회원(공개 토큰) 경로에서만 필수.
     if (!path) {
@@ -64,7 +68,7 @@ export async function POST(request: NextRequest) {
     if (adminAuth.isAdmin) {
       const { data: signed, error: signErr } = await supabaseAdmin.storage
         .from("attachments")
-        .createSignedUrl(path, 300);
+        .createSignedUrl(path, 300, signOpts);
       if (signErr) {
         console.error("[api/attachments/sign] admin signed URL error:", signErr);
         return Response.json({ ok: false, error: "signed_url_failed" }, { status: 500 });
@@ -78,7 +82,7 @@ export async function POST(request: NextRequest) {
     if (portalAuth.success) {
       const { data: signed, error: signErr } = await supabaseAdmin.storage
         .from("attachments")
-        .createSignedUrl(path, 300);
+        .createSignedUrl(path, 300, signOpts);
       if (signErr) {
         console.error("[api/attachments/sign] staff signed URL error:", signErr);
         return Response.json({ ok: false, error: "signed_url_failed" }, { status: 500 });
@@ -141,7 +145,7 @@ export async function POST(request: NextRequest) {
     // 모든 검증 통과 → signed URL 발급 (만료 5분)
     const { data: signedUrlData, error: signedUrlError } = await supabaseAdmin.storage
       .from("attachments")
-      .createSignedUrl(path, 300); // 5분 = 300초
+      .createSignedUrl(path, 300, signOpts); // 5분 = 300초
 
     if (signedUrlError) {
       console.error("[api/attachments/sign] signed URL error:", signedUrlError);
