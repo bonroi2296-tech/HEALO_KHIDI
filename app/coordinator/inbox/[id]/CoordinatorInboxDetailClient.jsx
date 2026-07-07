@@ -451,23 +451,43 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
               const name = (typeof a === "object" && a?.name) || (path ? path.split("/").pop() : `첨부 ${i + 1}`);
               const cat = typeof a === "object" ? a?.category : null;
               return (
-                <button
+                <div
                   key={path || i}
-                  onClick={() => viewAttachment(path)}
-                  disabled={!path || attLoadingPath === path}
-                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg border border-gray-200 hover:border-teal-300 hover:bg-teal-50 transition text-left disabled:opacity-50"
+                  className="w-full flex items-center gap-2 px-3 py-2.5 rounded-lg border border-gray-200 hover:border-teal-300 transition"
                 >
-                  <FileText size={18} className="text-teal-600 shrink-0" />
-                  <span className="flex-1 text-sm text-gray-800 truncate">{name}</span>
-                  {cat && cat !== "other" && (
-                    <span className="text-[11px] text-gray-400 shrink-0">{cat}</span>
-                  )}
-                  {attLoadingPath === path ? (
-                    <span className="w-4 h-4 border-2 border-teal-500 border-t-transparent rounded-full animate-spin shrink-0" />
-                  ) : (
-                    <ExternalLink size={14} className="text-gray-400 shrink-0" />
-                  )}
-                </button>
+                  {/* 미리보기(새 탭) */}
+                  <button
+                    onClick={() => viewAttachment(path)}
+                    disabled={!path || attLoadingPath === path}
+                    className="flex-1 min-w-0 flex items-center gap-3 text-left disabled:opacity-50"
+                    title="새 탭에서 미리보기"
+                  >
+                    <FileText size={18} className="text-teal-600 shrink-0" />
+                    <span className="flex-1 text-sm text-gray-800 truncate">{name}</span>
+                    {cat && cat !== "other" && (
+                      <span className="text-[11px] text-gray-400 shrink-0">{cat}</span>
+                    )}
+                    {attLoadingPath === path ? (
+                      <span className="w-4 h-4 border-2 border-teal-500 border-t-transparent rounded-full animate-spin shrink-0" />
+                    ) : (
+                      <ExternalLink size={14} className="text-gray-400 shrink-0" />
+                    )}
+                  </button>
+                  {/* 다운로드(원본 파일명으로 바로 저장) */}
+                  <button
+                    onClick={() => downloadAttachment(path, name)}
+                    disabled={!path || attDownloadPath === path}
+                    className="shrink-0 inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md border border-gray-200 text-xs font-medium text-gray-600 hover:border-teal-400 hover:bg-teal-50 hover:text-teal-700 transition disabled:opacity-50"
+                    title={`다운로드 (${name})`}
+                  >
+                    {attDownloadPath === path ? (
+                      <span className="w-3.5 h-3.5 border-2 border-teal-500 border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <Download size={14} />
+                    )}
+                    <span className="hidden sm:inline">다운로드</span>
+                  </button>
+                </div>
               );
             })}
           </div>
