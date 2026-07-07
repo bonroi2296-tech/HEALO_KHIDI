@@ -153,6 +153,18 @@ for (const file of SCAN_DIRS.flatMap(walk)) {
     if (isPatientApp && HANGUL_JSX_TEXT.test(line)) {
       errors.push(`[한글누출] ${file}:${i + 1} — 환자앱 JSX 텍스트에 하드코딩 한글. useLang()+{ko,en,ru,kz,zh,ja}로 감쌀 것(비한국어 환자에게 한글 노출)\n    ${line.trim().slice(0, 120)}`);
     }
+    // ── 1e) scheduled_at 을 timeZone 없이 화면표시 차단 (#45·#69 부류: UTC로 샘) ──────
+    // scheduled_at 을 toLocale*String 으로 찍는데 Asia/Seoul 이 없으면 뷰어 tz(서버=UTC)로 렌더돼
+    // 알마티 환자가 예약시각을 4시간 밀려 보고 상담을 놓친다. 예약시각은 항상 KST 표시가 계약.
+    // → src/lib/datetime/kst.js 의 kstDate/kstTime/kstDateTime 를 쓸 것(또는 timeZone:"Asia/Seoul" 명시).
+    // 한 줄 패턴만 잡는다(대부분 `new Date(x.scheduled_at).toLocale…`). 변수에 담아 여러 줄로 쓰면 리뷰 몫.
+    if (
+      /scheduled_at/.test(line) &&
+      /\.toLocale(?:Date|Time)?String\s*\(/.test(line) &&
+      !/Asia\/Seoul/.test(line)
+    ) {
+      errors.push(`[시간대] ${file}:${i + 1} — scheduled_at 을 timeZone 없이 표시(UTC로 샘). kstDate/kstTime/kstDateTime(@/lib/datetime/kst) 사용 또는 timeZone:"Asia/Seoul" 명시 (#45·#69)\n    ${line.trim().slice(0, 120)}`);
+    }
     for (const f of FORBIDDEN) {
       if (f.re.test(line) && !(f.allow && f.allow.test(file))) errors.push(`[금지토큰] ${file}:${i + 1} — ${f.msg}\n    ${line.trim().slice(0, 120)}`);
     }

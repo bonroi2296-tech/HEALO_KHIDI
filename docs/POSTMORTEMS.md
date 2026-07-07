@@ -14,6 +14,30 @@
 
 ---
 
+## #70 — KHIDI 평가지표 은닉 유실 2건: admin 리드확정 미집계(K-01) + 설문 이메일 실패 영구유실(K-03) (감사 발견, 2026-07-07)
+
+**무슨 일** — 버그 사냥 2라운드에서 8/27 평가지표를 조용히 깎는 2건. ①admin 화면에서 리드를 '치료 확정(converted)'으로 바꿔도 `inquiries.outcome='admitted'` 동기화를 안 해 유치(K-01) 카운트 누락(병원/partner 경로만 `syncLeadStatusToCase` 호출). ②만족도(K-03) 설문이 이메일 전송 실패 시 영구 유실 — `dispatch-surveys` 가 발송 전에 survey 행부터 insert 하고 idempotency 가드가 "행 존재?"라서, 전송 실패해도 행이 남아 다음 실행부터 영구 skip.
+
+**왜 못 잡았나 (근본원인)** — ①유치 자동집계가 DB 트리거가 아니라 앱 코드라(그래서 `leadCaseSync` 모듈+회귀테스트까지 만들었음, C레벨진단 KHIDI-8) admin 라우트가 그 함수를 안 부르는 사각이 남음 = "같은 규칙을 경로마다 복제해야 하는데 한 경로 누락"(#63 부류). ②설문 idempotency 를 "발송 성공"이 아니라 "행 존재"로 판정 — 실패 경로를 안 지워서 존재-가드가 영구 skip 으로 굳음. 둘 다 정상 흐름 테스트는 통과하고 실패/희귀 경로에서만 샘.
+
+**어떻게 고쳤나** — ①`admin/leads/[id]` PATCH 에 partner 와 동일한 `syncLeadStatusToCase` 호출 추가(outcome IS NULL 가드는 함수 내부 = 코디 수동결정 보존·되돌리기 가능, PO 2026-06-21 정책과 일치). ②`dispatch-surveys` 이메일 실패 시 방금 만든 pending survey 행 삭제 → 다음 cron 재시도(성공 시엔 sent_at 채워져 정상 skip). (빌드·check:content 통과)
+
+**재발 방지** — ①유치집계는 "리드 상태를 바꾸는 모든 경로"가 지켜야 하는 규칙 → admin·partner 가 이제 같은 함수 공유. 세 번째 경로가 생기면 반드시 `syncLeadStatusToCase` 경유가 표준(코드리뷰 체크포인트). ②"발송물 idempotency 는 '시도'가 아니라 '성공' 기준" 원칙 — 실패분은 재시도 가능하게 되돌린다. 발송성공률 자동 모니터(설문 sent/실패 분포)는 후속 과제로 기록.
+
+---
+
+## #69 — 🔁 #45 부류 재발: 예약시각을 클라이언트 화면에서 timeZone 없이 표시 → 뷰어 tz(UTC)로 샘 (2026-07-07)
+
+**무슨 일** — 버그 사냥 2라운드에서 발견. `scheduled_at`(예약시각)을 화면에 찍는 클라이언트 컴포넌트 ~10곳(환자 상담목록·캘린더·대시보드·문서, 코디 대시보드·상담목록·인테이크, admin 상담, 에이전시 포털)이 `toLocale*String` 에 timeZone 없이 렌더 → 뷰어 브라우저 tz 로 표시. 알마티(UTC+5) 환자는 예약시각을 4시간 밀려 보고, 자정 근처엔 캘린더 날짜까지 틀림 → 화상 사전상담 놓침(KHIDI KPI 직결). + 재예약 기본 10:00 이 서버(UTC) 기준이라 19:00 KST 로 저장되던 것도 같이 발견.
+
+**왜 못 잡았나 (그때의 방지책이 왜 못 막았나)** — #45(2026-06-29)에서 같은 부류(`toLocaleString` timeZone 누락)를 고쳤지만 대상이 **서버측 알림(adminNotifier·kakao·consultationReminder)** 뿐이었고, 교훈도 "서버에서 시각 보여줄 땐 timeZone 명시"로 서버에 국한 + **자동 가드가 없었다**. 그래서 클라이언트 React 화면의 동일 버그는 스캔 안 된 채 남아 드리프트. `check:content` 는 브랜드/i18n 키만 봐서 tz 누락은 원래 사각.
+
+**어떻게 고쳤나** — `src/lib/datetime/kst.js` 신설(kstDate/kstTime/kstDateTime/kstDateParts — 전부 Asia/Seoul 고정) → 15개 표시 지점 전부 통일. 캘린더 월그리드 버킷팅·"오늘 상담" 판정도 `kstDateParts` 로 KST 기준. 재예약 기본시각은 KST 벽시계로 01:00 UTC(=10:00 KST) 생성.
+
+**재발 방지 (뚫린 가드 보강)** — `check-content-consistency.mjs` §1e 신설: `scheduled_at` 을 `toLocale*String` 으로 찍는데 `Asia/Seoul` 없으면 CI 실패(#45 가 못 만든 자동 가드를 이제 만듦). 한 줄 패턴만 잡는 한계는 주석 명시(변수에 담은 다중행은 리뷰 몫). **실제로 이 가드가 커밋 전 `coordinator/consultations` 누락 2줄을 잡아냄**(사람 미스 차단 실증). 앞으로 예약시각 표시는 kst 헬퍼가 단일 통로.
+
+---
+
 ## #68 — 목록 API가 코디 전용 암호문 반환 + 복호화 무방비로 인박스 전멸 위험 (감사 발견, 2026-07-07)
 
 **무슨 일** — 전방위 버그 사냥 중 데이터 경로 2건. ①`cost-estimates`·`visa/applications` **목록 API**가 `select("*")`로 `coordinator_notes_encrypted`(코디 전용 내부필드)를 그대로 반환 — 환자도 본인 건을 목록조회하므로 코디 노트 암호문이 환자 브라우저로 나감(상세 API `[id]`는 일부러 떼는데 목록만 누락 = 경로 불일치). ②`decryptMaybe`가 암호문 복호화(`decryptString`)를 try-catch 없이 호출 → 게스트 리드 이름 한 행이라도 복호화 실패(키 교체·손상)하면 그 `map` 전체가 throw → 코디 AI상담 인박스 전체 500 = 리드 전부 안 보임(리드 유실 = 북극성 지표 직결).
