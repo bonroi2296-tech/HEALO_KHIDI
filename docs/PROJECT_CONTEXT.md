@@ -7,6 +7,45 @@
 
 ---
 
+## 🔖 세션 핸드오프 (2026-07-07 — 상표권용 한국어 로고 「힐위드」 단독 배선·머지·배포 #691 + 한/영 제안서 PPT + 네이버 힐위드 노출 검증)
+
+> PO 지시: `healwith`·`힐위드` 상표권 출원 중, 변리사 3요청 — ①한국어 페이지에 「힐위드」 한글 로고 ②네이버에서 "힐위드" 검색 노출 ③운영 증빙용 한/영 브로슈어. 로고 전용 작업본(브랜치)에서 작업.
+
+**1. 이번 세션 한 일**
+- **PR [#691](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/691) ✅ 스쿼시 머지·프로덕션 자동배포** (origin/main `0279326`). 한국어(ko) 화면 로고 = healwith → **「힐위드」 단독**(Pretendard SemiBold), healwith 있던 **같은 위치·같은 높이**(폭만 짧아짐). 영·러·카·중·일 화면은 healwith 유지. 6파일: `components/brand/Logo.jsx`(locale-aware, `lang` prop — `lang==="ko"`면 `wordmark-ko.svg`), `src/components.jsx`·`app/ClientShell.jsx`(헤더·모바일·포털바 3개 Logo 호출부에 `lang={langCode}`), `scripts/gen-wordmark.mjs`(영문 ExtraBold / 한글 SemiBold **분리 폰트**), `public/brand/wordmark-ko.svg`·`wordmark-ko-dark.svg`(신규 SemiBold 벡터, 힐=teal/위드=slate).
+- **한/영 제안서 PPT 완성**: `healwith 회사·서비스 소개서`(8장) — 바탕화면 `C:\Users\user\Desktop\healwith_소개서_한영.pptx`(+채팅). 변리사 제출용 **상표 실사용 증빙**. 실데이터만(유치업등록 A-2026-01-02-06761·SGI보증보험 1억·제휴병원 8곳[면력한방 4+협진 대학병원 4]·6개언어·KHIDI). 전 슬라이드 한/영 병기. **repo엔 커밋 안 함**(스크래치패드 pptxgenjs 생성물).
+- **네이버 힐위드 노출 검증**: 2026-07-06(#656) 적용분(meta설명·구조화데이터 `alternateName`·푸터 카피에 "힐위드")이 프로덕션 `healwith.co.kr/ko`에 **살아있음 직접 확인**(힐위드 16회). PO가 네이버 서치어드바이저에서 `/ko`·`/` **수집 요청 완료**.
+
+**2. 왜 그렇게 했는지**
+- 배치: 처음 병기(healwith+힐위드)로 배선했으나 PO가 **단독(힐위드만)**으로 변경 요청 — 변리사 요청("한국어 페이지에 힐위드 한글 로고")에도 단독이 더 정확. 같은 위치·높이 유지가 조건.
+- 폰트: Pretendard **ExtraBold는 한글이 투박** → 대체폰트 7종(Gowun Dodum·IBM Plex KR·SUIT·Gothic A1·나눔스퀘어네오·주아·도현) 이미지 비교시켰으나 PO가 **다 거부하고 "그냥 기본형 SemiBold"** 확정. 영문 healwith는 ExtraBold 그대로(두 굵기 분리 = 병기 시 무게 균형).
+- Logo 컴포넌트 한 곳만 lang 인지 → 헤더·모바일·포털바 전역 반영. ko만 힐위드(한글누출 가드 준수).
+
+**3. 안 끝났거나 보류**
+- ⏸ **제안서 PPT 표지**: 현재 병기(healwith 힐위드). 단독으로 바꿀지 **PO 미결**(제안서엔 두 상표 노출이 증빙상 유리해 일부러 병기). 원하면 표지만 교체.
+- ⏳ **네이버 「힐위드」 실제 검색 노출**: 네이버 재수집·색인 대기(며칠~2주, 우리 몫 아님). PO가 며칠 뒤 "힐위드" 직접 검색으로 확인.
+
+**4. 주의·함정**
+- **자동저장 훅(2분 git add -A)이 세션 중 브랜치를 여러 번 갈아치우고 무관 변경(다른 세션 handoff 문서·next-env.d.ts)을 브랜치에 섞음.** → 깨끗한 PR 위해 `origin/main`에서 새 브랜치 따서 상표 파일 6개만 `git checkout <src> -- <files>`. 멀티파일 작업 시 이 훅 주의([[autosave_hook_hazard]]).
+- 로고 SVG 재생성: `WORDMARK_FONT=<ExtraBold.otf> WORDMARK_FONT_KO=<SemiBold.otf> node scripts/gen-wordmark.mjs`. 폰트 없으면 KO도 EB로 폴백.
+- **PO는 폰에서 `mcp__visualize__show_widget` 인터랙티브 위젯이 안 뜸** → 시안·비교는 **정적 이미지(한 변 2048px 미만)**로 SendUserFile. AskUserQuestion 버튼은 정상([[po-mobile-widget-images]]).
+
+**5. 다음 세션이 먼저 할 일**
+1. ⚠️ **직전 미검증분 먼저 확인**: 프로덕션 배포 완료 후 실브라우저에서 `healwith.co.kr/ko` 헤더가 **힐위드 단독**으로 뜨는지 1회 확인(로컬 dev·SSR·DOM은 검증됨, 프로덕션 배포 완료 화면은 미확인).
+2. PO가 제안서 PPT 표지 단독 전환을 원하면 교체.
+3. 네이버 색인 반영은 시간 대기(PO 몫).
+
+**6. 검증 상태**
+- ✅ **PR #691 스쿼시 머지 확인**(origin/main `0279326`). CI **Smoke Tests(PR)·ci·Vercel 배포 pass**, merge state CLEAN. 독립 리뷰 게이트(작성맥락 미공유 subagent) **정합성 결함 0**.
+- ✅ 로컬 dev SSR+DOM 실검증: `/ko`=힐위드만(left16·h20 = healwith 슬롯 동일), `/en`=healwith만(한글 0회). `npm run check:content` 통과.
+- ✅ 네이버 힐위드 텍스트 **프로덕션 live 확인**(healwith.co.kr/ko meta·구조화데이터·푸터, 16회).
+- ⚠️ **검증 못 함**: 2026-07-07 로고 머지분의 **프로덕션 배포 완료 화면**은 직접 안 봄(로컬만) → 5-1로 승격.
+
+**7. 다음 세션 첫 프롬프트**
+> docs/PROJECT_CONTEXT.md 최상단 읽어. 상표용 한국어 로고(힐위드 단독, Pretendard SemiBold, PR #691)는 머지·배포됨. 먼저 프로덕션 healwith.co.kr/ko 헤더가 힐위드 단독으로 뜨는지 1회 확인(로컬만 검증됨). 제안서 PPT는 바탕화면 `healwith_소개서_한영.pptx`(변리사 제출용, 표지 단독 전환은 PO 미결). 네이버 힐위드는 수집요청 완료·색인 대기(며칠~2주). ⚠️ 로고는 Logo.jsx가 lang==="ko"일 때만 힐위드, 나머지 언어 healwith(한글누출 가드).
+
+---
+
 ## 🔖 세션 핸드오프 (2026-07-07 — KHIDI 실적 정합성: is_test 감지기에 '로그인 계정 이메일' 추가·머지·배포 #690)
 
 > PO 지시: "공유 테스트 계정(`@test.com`)으로 로그인한 채 폼엔 개인 이메일을 적어 접수하면 `is_test=false`로 실적에 섞인다. 감지기에 계정 이메일 인자 추가 + 백필 + 반성문." → 합치기신청서(PR) #690으로 본판(main) 머지·실서비스 반영(배포) 완료. **핵심 반전: 실제 DB를 확인하니 오염은 딱 1건(#37)이었고, 그건 PO가 유지하기로 한 첫 실고객 건이라 백필은 손댈 게 없었다.**
@@ -46,47 +85,6 @@
 
 **7. 다음 세션 첫 프롬프트**
 > 먼저 docs/PROJECT_CONTEXT.md 최상단 핸드오프 읽어. 직전(실적 정합성 #690)에서 못 끝낸 것: **일일 오염 감시 크론이 아직 실행 전**이야 — 2026-07-08 첫 크론(00:05 KST) 돈 뒤 Vercel 로그/운영알림에서 "실적 오염 의심" 경고가 #37 없이 0건인지 1번만 확인해줘(ignore env 적용됐는지). 그리고 #37 정식계정 이관은 에이전시 백오피스 완성되면 진행(아직 대기).
-
----
-
-## 🔖 세션 핸드오프 (2026-07-07 — 코디네이터 백오피스 전면 다국어(6개 언어) + 스태프 전용 언어쿠키 회귀수정·머지·배포 #678)
-
-> PO 지시: "전반적인 백오피스 다국어가 제대로 안 됨. admin은 한글 유지, 에이전시·의료기관(해외)·코디네이터(외국인)는 다국어 꼼꼼히." 코디 포털은 다국어가 통째로 없었음(전 화면 한글 하드코딩). 별도 작업본(브랜치)에서 작업 → 합치기신청서(PR) #678로 본판(main)에 합침·실서비스 반영(배포). 중간에 자동검사(CI)의 E2E 테스트가 **진짜 회귀 버그 하나**를 잡아줌(아래 4·2번).
-
-**1. 이번 세션 한 일** (전부 main 머지·프로덕션 배포)
-- **PR [#678](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/678) ✅ 머지·프로덕션 자동배포** (origin/main 머지커밋 `c421f7a`). 코디네이터 백오피스 16개 화면을 **6개 언어(ko·en·ru·kz·zh·ja)**로:
-  - 레이아웃·대시보드·인박스(목록+상세)·인테이크·상담일정·견적(목록+상세)·비자(목록+상세)·메시지·증상알림·AI상담리드 — 토스트·확인창·툴팁·표헤더까지 전부.
-  - 공용 사전 `src/lib/i18n/coordinator.js`(key-first) + `useCoordinatorL`/`useDateLocale` 훅. 국적·암종·연락방법 라벨 헬퍼(`khidi/nationality.ts`·`medicalLabels.ts` 신규), 케이스단계는 기존 `caseStatusLabelL` 재사용.
-- **어드민 공유 컴포넌트 언어인식화**: `admin/khidi/cases`(케이스보드)·`PartnerOutreachTracker`(파트너발굴) — 파일 안 로컬 TR + `useBackofficeLang`. **ko 원문 그대로라 어드민 화면은 글자 하나 안 바뀜**, 코디만 선택 언어로.
-- **포털 공통 chrome**: `StaffPortalGate`(문지기 화면)·`ManualDrawer`(사용설명서 버튼·하단 문구) 6개어. **사용설명서 본문**은 `getManual(role, lang)`+`i18n` override(하위호환)로 코디·에이전시·의료기관만 5개어 번역(admin·hospital은 국내용이라 한국어 유지).
-- **에이전시/의료기관 포털**(`PartnerPortal`)은 이미 6개어 완비 확인(렌더 한글누출 0). WhatsApp 발송 문구는 코디 언어→**환자 언어**(`preferred_language`)로 수정.
-- **핵심 회귀수정(`5ef91a2`)**: 스태프 전용 언어쿠키 `healo_bo_lang`(기본 한국어) 신설.
-
-**2. 왜 그렇게 했는지**
-- **소비 패턴 3분리**(코디=공유사전 / 어드민공유=로컬TR·ko보존 / enum=공용헬퍼): 어드민 한글 유지하면서 코디만 다국어 달성하려고. 상세는 메모리 [[backoffice-i18n-pattern]].
-- **스태프 전용 쿠키가 이번의 핵심**: `useLang()`은 언어쿠키 없으면 기본이 영어(en). 그런데 공개 사이트 미들웨어가 브라우저 언어(영어)로 `healo_lang=en` 쿠키를 심어서, 스태프 화면이 그걸 따라 **영어로 뜸** → ①한국인 어드민/코디가 영어로 보이는 회귀 ②한국어를 찾는 E2E 스모크 테스트 실패. → 스태프 화면은 `healo_lang`을 안 보고 **`healo_bo_lang`(기본 ko)만** 봄(`useBackofficeLang`, useSyncExternalStore로 하이드레이션 안전). 포털 상단 스위처가 두 쿠키를 다 세팅. 에이전시/의료기관(해외 대상)은 healo_lang(영어 기본)이 맞아 그대로 둠.
-- 큰 파일은 병렬 서브에이전트로 변환하고 번역키는 내가 공용사전에 통합·빌드검증. 작업 중 main이 3번 전진 → 매번 재병합(예약시각 KST 헬퍼 `kstDate/kstTime`과 다국어 로케일 `dateLoc` 공존으로 충돌해소).
-
-**3. 안 끝났거나 보류**
-- ⏸ **언어 스위처 하이라이트 코스메틱(비차단)**: 스태프 화면에선 처음 언어를 한 번 고르기 전까지 상단 버튼의 "현재 언어" 표시가 공개 langCode를 보여줌(화면 본문은 정상적으로 한국어). 다음에 스위처를 스태프 lang 인지하게 다듬으면 됨.
-- 내 작업 아님(별도 세션): [[coordinator-detail-display-gap]] — 코디 인박스 상세의 raw 키 노출·우선순위/동의 누락(유실 아님). 다른 세션 대기.
-
-**4. 주의·함정**
-- **스태프 백오피스(admin·coordinator) 화면은 `useLang()` 쓰지 마라 → `useBackofficeLang()`(`@/lib/i18n/coordinator`).** useLang은 공개 영어쿠키를 따라 스태프가 영어로 뜬다(이번 회귀 원인). enum용 lang 변수도 useBackofficeLang. 에이전시/의료기관(overseas)만 useLang/영어기본 유지.
-- 코디 새 문자열 추가 = `coordinator.js`의 CT에 한 블록(6개어). 새 백오피스 화면 다국어 시 이 패턴 재사용.
-- `intakes`의 DB저장 notes(`[코디네이터]…`)·`StaffPortalGate`의 미표시 `portalName` prop은 한글이지만 화면에 렌더 안 됨(의도).
-
-**5. 다음 세션이 먼저 할 일**
-1. ⚠️ **직전 미검증분 먼저 확인**: 코디/어드민 실브라우저 클릭검증은 미실시(로그인 필요, SSR쿠키 자동화 불가). E2E(스모크+Full)로 코디 화면 렌더 자체는 검증됨. 다음에 코디/에이전시 계정으로 Vercel에서 상단 언어 스위처를 눌러 **러시아어·카자흐어 번역·전환을 눈으로 1회** 확인 권장(핵심 타깃 언어 품질).
-2. 스위처 하이라이트 코스메틱(위 3번)을 다듬을지 판단.
-
-**6. 검증 상태**
-- ✅ **PR #678 머지 확인**(origin/main `c421f7a`). CI **ci·Smoke Tests(PR)·Full E2E(main push)·Vercel 배포 전부 pass**(머지 직후 main HEAD `a92862f`의 Full E2E success 실측 확인). `npx next build --webpack`·`npm run check:content`·lint(0 error) 통과.
-- ✅ 독립 자체검증: 훅 선언 누락 0·placeholder(`{n}` 등) 치환 정상·어드민 ko원문 바이트동일(cases/partners)·`L.<키>` 참조 누락 0.
-- ⚠️ **검증 못 함**: 실브라우저에서 언어 스위처 눌러 각 언어 전환·번역 품질은 직접 안 봄(E2E가 한국어 렌더는 커버, 위 5-1로 승격).
-
-**7. 다음 세션 첫 프롬프트**
-> docs/PROJECT_CONTEXT.md 최상단 읽어. 코디네이터 백오피스 다국어(#678)는 머지·배포·전체E2E까지 끝났어. 스태프 화면은 이제 기본 한국어(healo_bo_lang 쿠키), 외국인 스태프는 상단 버튼으로 전환. 남은 건 미검증분: 코디/에이전시 계정으로 Vercel에서 언어 스위처 눌러 러시아어·카자흐어 번역·전환을 눈으로 1회 확인. ⚠️ 스태프 화면 다국어는 useBackofficeLang 써야 함(useLang 쓰면 영어로 뜸).
 
 ---
 
