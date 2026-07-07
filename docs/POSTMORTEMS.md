@@ -14,6 +14,26 @@
 
 ---
 
+## #77 — 🔁 #30 부류 재발: `/ru`(러시아 홈) React Hydration 에러 — 프록시 레거시 분기가 healo_lang 쿠키를 안 심어 서버=ru·클라=en 갈림 (Sentry 발견, 2026-07-07)
+
+**무슨 일**
+- 프로덕션 Sentry: `Hydration failed - the server rendered HTML didn't match the client` (`/ru`, 2주간 11건, 진행 중). 러시아 홈이 핵심 타겟이라 우선.
+- 근본원인(확정): `proxy.ts`의 **레거시 랜딩 분기**(`LEGACY_SKIP` = 옛 러/카 전용 URL `/ru/for-russian-patients` 등, 191~198줄)가 `x-locale: ru` **헤더만** 박고 `healo_lang` 쿠키는 안 심는다. 반면 **일반 로케일 분기**(209~219줄)는 `res.cookies.set(LOCALE_COOKIE, seg …)`로 쿠키까지 심는다. → 쿠키 없는 첫 방문자는 **서버는 `x-locale`(=initialLang)로 `ru` 렌더**, **클라는 `getClientLang()=getLangCodeFromCookie()`가 쿠키 없어 `en`** 반환(`LangContext.jsx`의 `useSyncExternalStore` 서버/클라 스냅샷 갈림) → 공유 `ClientShell` 크롬(헤더·푸터·쿠키배너 등 `useLang()` 소비처)이 서버=ru·클라=en 으로 어긋나 hydration mismatch. "쿠키 없는 첫 방문"에서만 나므로 매 로드가 아니라 간헐 11건.
+
+**왜 못 잡았나 (그때의 방지책이 왜 못 막았나)**
+- **#30(SSR 언어 갈림) 부류의 재발**: #30 방지책 `check-content §1`은 **정확히 `setLang(getLangCodeFromCookie())` 리터럴 패턴만** 정규식 차단한다. 이번 갈림은 그 코드 패턴이 아니라 **프록시 분기 간 쿠키 설정 비대칭**(한 분기는 쿠키 심고 다른 분기는 안 심음)에서 왔다 → 정적 규칙 밖. `useSyncExternalStore` 서버/클라 스냅샷 divergence 도 정규식으론 못 봄.
+- `next build`·lint 통과(런타임 hydration은 실브라우저에서만 드러남, 카테고리 A). 사람이 콘솔을 봐야 보이는데 이번엔 Sentry가 대신 잡음(= Sentry 연결의 실효 증명).
+
+**어떻게 고쳤나**
+- `proxy.ts` 레거시 분기가 일반 분기와 **동일하게 `healo_lang` 쿠키를 심도록** 통일(`res.cookies.set(LOCALE_COOKIE, locale, { path:"/", maxAge:1y })`). 첫 방문부터 서버 initialLang 과 클라 쿠키가 같은 언어 → hydration 일치. (라우팅·rewrite 는 불변, 쿠키 set 만 추가라 저위험.)
+- 부차 잠복(이번 PR 범위 밖, 후속): `src/components.jsx:137` `getLangCodeFromCookie()` 렌더 중 직접 호출(#30 안티패턴) — 현재는 `ClientShell`이 `langCode` prop 을 넘겨 `??` 폴백이 안 타 무해하나, prop 안 넘기는 호출부 생기면 같은 갈림. `useLang()`로 이관 권장.
+
+**재발 방지 (뚫린 가드 보강)**
+- **불변식(코드 주석으로 고정)**: "`x-locale` 를 주입하는 **모든** 프록시 분기는 `healo_lang` 쿠키도 같이 심어야 한다"(안 그러면 서버 렌더 언어 ≠ 클라 쿠키 언어 → hydration). 레거시 분기에 그 주석을 박음.
+- 정직한 한계: 이 부류(프록시 분기 비대칭·useSyncExternalStore 갈림)는 정규식 정적검사로 잡기 어렵다. 진짜 그물은 **레거시 로케일 라우트를 쿠키 없이 로드해 hydration 경고를 감시하는 E2E**인데, 이번 범위 밖 → 후속 후보로 남김(지금은 Sentry hydration 이슈 감시가 사후 그물).
+
+---
+
 ## #76 — 🔁 #58 부류 재발: 어드민 병원·시술 관리 폼이 열 때 ReferenceError 로 크래시 (컴포넌트를 `_`프리픽스로 받아 스코프에 없음) — Sentry가 잡음 (2026-07-07)
 
 **무슨 일**
