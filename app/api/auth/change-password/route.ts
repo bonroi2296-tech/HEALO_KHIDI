@@ -59,13 +59,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 비활성(소프트 삭제) 계정 차단: requireAuthenticatedUser 는 disabled 여부를 보지 않아
-    //   세션이 남아있으면 통과한다 → 소프트삭제 보장을 위해 여기서 명시적으로 막는다.
-    //   (계정 비활성 = app_metadata.disabled 토글, /admin/staff 기준)
-    const { data: udata } = await supabaseAdmin.auth.admin.getUserById(userId);
-    if ((udata?.user?.app_metadata as any)?.disabled === true) {
-      return Response.json({ ok: false, error: "account_disabled" }, { status: 403 });
-    }
+    // 비활성(소프트삭제) 계정은 requireAuthenticatedUser(→checkAdminAuth)가 이미 401 로 막는다
+    //   (checkAdminAuth 가 disabled 계정엔 userId 를 비워 반환 → 여기 도달 못 함). #677 후속으로
+    //   차단을 인증 헬퍼로 승격했으므로 예전의 로컬 getUserById 가드는 제거.
 
     const body = await request.json().catch(() => ({}));
     const currentPassword =

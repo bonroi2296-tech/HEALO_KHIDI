@@ -196,13 +196,18 @@ export async function checkAdminAuth(request?: NextRequest): Promise<{
     // 4-0. 비활성(소프트삭제) 계정 차단 — /admin/staff 토글이 app_metadata.disabled=true 를
     //   세팅하는데, 그동안 인증 단계에서 안 읽혀 "비활성" 직원/어드민이 그대로 로그인·PII
     //   복호화 가능했음(소프트삭제 무력화, 퍼널감사 #3). 명시적 true 일 때만 차단(fail-safe:
-    //   undefined/false 는 정상 통과 → 정상 계정 잠금 위험 없음). appRole 미설정으로 반환해
-    //   requirePortalAuth 의 isStaff 도 false → 코디·어드민 양쪽 차단.
+    //   undefined/false 는 정상 통과 → 정상 계정 잠금 위험 없음).
+    //   ⚠️ userId 를 의도적으로 비운다: 비활성 계정은 '유효한 주체(principal)'가 아니므로
+    //   userId 만 검사하는 모든 게이트(requireAuthenticatedUser / requireConsultationAccess /
+    //   requirePortalAuth / cost·visa·followup·rebooking 등 `if(!auth.userId)`)가 자동으로
+    //   401 거부하게 하려는 것. 예전엔 여기서 userId 를 채워 반환해 그 게이트들이 통과됐음
+    //   (살아있는 세션 = 소프트삭제 우회 구멍, #677 후속). isAdmin=false + appRole 미설정은
+    //   그대로라 isAdmin/isStaff 게이트도 계속 차단. email·reason 은 감사(audit)·디버그용 유지.
+    //   → 미래에 추가될 게이트도 이 한 곳으로 커버(재발방지).
     if (user.app_metadata?.disabled === true) {
       if (isDev) console.warn("[checkAdminAuth] account disabled:", userEmail);
       return {
         isAdmin: false,
-        userId,
         email: userEmail,
         reason: "account_disabled",
         authMethod,
