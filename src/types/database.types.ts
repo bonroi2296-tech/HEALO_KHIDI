@@ -14,6 +14,78 @@ export type Database = {
   }
   public: {
     Tables: {
+      attachment_translations: {
+        Row: {
+          created_at: string
+          doc: Json
+          edited_at: string | null
+          edited_by: string | null
+          edited_doc: Json | null
+          id: number
+          lang: string
+          model: string | null
+          path: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          doc: Json
+          edited_at?: string | null
+          edited_by?: string | null
+          edited_doc?: Json | null
+          id?: number
+          lang: string
+          model?: string | null
+          path: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          doc?: Json
+          edited_at?: string | null
+          edited_by?: string | null
+          edited_doc?: Json | null
+          id?: number
+          lang?: string
+          model?: string | null
+          path?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      doc_glossary_terms: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          en: string | null
+          id: number
+          ko: string | null
+          note: string | null
+          ru: string | null
+          src: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          en?: string | null
+          id?: number
+          ko?: string | null
+          note?: string | null
+          ru?: string | null
+          src: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          en?: string | null
+          id?: number
+          ko?: string | null
+          note?: string | null
+          ru?: string | null
+          src?: string
+        }
+        Relationships: []
+      }
       admin_audit_logs: {
         Row: {
           action: string
