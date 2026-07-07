@@ -537,6 +537,17 @@ const TR_GUIDE = {
 };
 for (const l of Object.keys(TR)) Object.assign(TR[l], TR_GUIDE[l] || TR_GUIDE.en);
 
+// 좌측 탭 라벨(진행 현황 / 환자 의뢰) — 6개 언어. 위 TR 에 병합.
+const TR_NAV = {
+  ko: { navTrack: "진행 현황", navRefer: "환자 의뢰" },
+  en: { navTrack: "Progress", navRefer: "Refer patient" },
+  ru: { navTrack: "Ход", navRefer: "Направить" },
+  kz: { navTrack: "Барыс", navRefer: "Жолдау" },
+  zh: { navTrack: "进度", navRefer: "转介患者" },
+  ja: { navTrack: "進捗", navRefer: "患者紹介" },
+};
+for (const l of Object.keys(TR)) Object.assign(TR[l], TR_NAV[l] || TR_NAV.en);
+
 // 해외 파트너 포털 본체. expected 로 이 URL이 어느 파트너 유형 전용인지 지정한다.
 //  - /agency  → expected="agency"            (해외 에이전시)
 //  - /clinic  → expected="medical_institution" (해외 의료기관, 경과 업로드 가능)
@@ -553,8 +564,9 @@ export default function PartnerPortal({ expected = "agency" }) {
   const [filter, setFilter] = useState("all"); // all | active | done | hold
   const [query, setQuery] = useState("");
 
+  const [view, setView] = useState("track"); // 좌측 탭: "track"(진행 현황) | "refer"(환자 의뢰)
+
   // 환자 의뢰하기 폼
-  const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
   const [files, setFiles] = useState([]); // [{ path, name, type, category }] — 추가 즉시 업로드(인테이크 방식)
   const [uploading, setUploading] = useState(false);
@@ -638,7 +650,7 @@ export default function PartnerPortal({ expected = "agency" }) {
         setSubmitMsg({ type: "ok", text: tt("okSubmitted") });
         setForm(EMPTY_FORM);
         setFiles([]);
-        setShowForm(false);
+        setView("track");
         await load();
       } else {
         const map = {
@@ -698,26 +710,40 @@ export default function PartnerPortal({ expected = "agency" }) {
 
   return (
     <>
-    <div className="max-w-4xl mx-auto px-4 pt-20 md:pt-24 pb-10">
+    <div className="max-w-5xl mx-auto px-4 pt-20 md:pt-24 pb-10">
       <div className="mb-6">
         <span className={`inline-block text-[11px] font-semibold px-2 py-0.5 rounded-full mb-2 ${isClinic ? "bg-indigo-50 text-indigo-700" : "bg-teal-50 text-teal-700"}`}>{partnerKind}</span>
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">{data?.agency?.name} {tt("titleSuffix")}</h1>
-            <p className="text-sm text-gray-500 mt-1">{tt("subtitle")}</p>
-          </div>
-          <button
-            onClick={() => { setShowForm((v) => !v); setSubmitMsg(null); }}
-            className="shrink-0 inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-teal-700 text-white text-sm font-bold hover:bg-teal-800 transition-all duration-200"
-          >
-            {showForm ? <X size={16} /> : <Plus size={16} />}
-            {showForm ? tt("btnClose") : tt("btnRefer")}
-          </button>
-        </div>
+        <h1 className="text-2xl font-bold text-gray-900 mt-1">{data?.agency?.name} {tt("titleSuffix")}</h1>
+        <p className="text-sm text-gray-500 mt-1">{tt("subtitle")}</p>
       </div>
 
+      <div className="flex flex-col md:flex-row md:items-start gap-5">
+        {/* 좌측 탭: 진행 현황 ↔ 환자 의뢰 (직관적 분리) */}
+        <nav className="flex md:flex-col gap-1.5 md:w-44 shrink-0">
+          {[
+            { key: "track", label: tt("navTrack"), icon: Activity, badge: cnt.total },
+            { key: "refer", label: tt("navRefer"), icon: Plus, badge: null },
+          ].map((it) => {
+            const on = view === it.key;
+            const NIcon = it.icon;
+            return (
+              <button key={it.key} type="button"
+                onClick={() => { setView(it.key); setSubmitMsg(null); }}
+                className={`flex-1 md:flex-none flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 ${on ? "bg-teal-700 text-white shadow-sm" : "bg-white border border-gray-200 text-gray-700 hover:bg-gray-50"}`}>
+                <NIcon size={16} className="shrink-0" />
+                <span className="flex-1 text-left">{it.label}</span>
+                {it.badge != null && it.badge > 0 && (
+                  <span className={`text-xs tabular-nums rounded-full px-1.5 ${on ? "bg-white/20" : "bg-gray-100 text-gray-500"}`}>{it.badge}</span>
+                )}
+              </button>
+            );
+          })}
+        </nav>
+
+        <div className="flex-1 min-w-0">
+
       {/* 요약 지표 카드 (코디 대시보드 톤) — 누르면 필터 */}
-      {cnt.total > 0 && (
+      {view === "track" && cnt.total > 0 && (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
           {STAT_CARDS.map((card) => {
             const Icon = card.icon;
@@ -745,7 +771,7 @@ export default function PartnerPortal({ expected = "agency" }) {
         </div>
       )}
 
-      {showForm && (
+      {view === "refer" && (
         <form onSubmit={submitReferral} className="bg-white border border-gray-200 rounded-2xl shadow-sm p-5 md:p-7 mb-6 space-y-6">
           <div>
             <h2 className="text-lg font-bold text-gray-900">{tt("formHeading")}</h2>
@@ -868,7 +894,7 @@ export default function PartnerPortal({ expected = "agency" }) {
           </Section>
 
           <div className="flex justify-end gap-2 pt-1">
-            <button type="button" onClick={() => { setShowForm(false); setSubmitMsg(null); }}
+            <button type="button" onClick={() => { setView("track"); setSubmitMsg(null); }}
               className="px-4 py-2.5 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-50">{tt("btnCancel")}</button>
             <button type="submit" disabled={submitting || uploading}
               className="px-6 py-2.5 rounded-xl text-sm font-bold bg-teal-700 text-white hover:bg-teal-800 transition-all duration-200 disabled:opacity-40">
@@ -878,7 +904,7 @@ export default function PartnerPortal({ expected = "agency" }) {
         </form>
       )}
 
-      {cases.length === 0 ? (
+      {view === "track" && (cases.length === 0 ? (
         <div className="text-center py-14 px-4 bg-white border border-gray-100 rounded-2xl">
           <div className="w-12 h-12 mx-auto rounded-xl bg-teal-50 flex items-center justify-center mb-4">
             <ClipboardList size={24} className="text-teal-600" />
@@ -893,7 +919,7 @@ export default function PartnerPortal({ expected = "agency" }) {
               </div>
             ))}
           </div>
-          <button onClick={() => { setShowForm(true); setSubmitMsg(null); }}
+          <button onClick={() => { setView("refer"); setSubmitMsg(null); }}
             className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-teal-700 text-white text-sm font-bold hover:bg-teal-800 transition-all duration-200">
             <Plus size={16} />{tt("btnRefer")}
           </button>
@@ -1018,7 +1044,9 @@ export default function PartnerPortal({ expected = "agency" }) {
             </div>
           )}
         </>
-      )}
+      ))}
+        </div>
+      </div>
     </div>
     <ManualDrawer role={isClinic ? "clinic" : "agency"} buttonLabel={tt("manualBtn")} />
     </>
