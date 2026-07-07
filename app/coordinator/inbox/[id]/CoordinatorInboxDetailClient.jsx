@@ -11,7 +11,7 @@ import Link from "next/link";
 import {
   ArrowLeft, User, Globe, Mail, Phone, MessageCircle, Calendar,
   AlertCircle, FileText, Stethoscope, ClipboardList, Video,
-  Send, Copy, Check, ExternalLink, Download,
+  Send, Copy, Check, ExternalLink, Download, Languages,
 } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { CASE_STATUS_STEPS } from "@/lib/khidi/caseStatus";
