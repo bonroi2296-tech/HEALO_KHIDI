@@ -97,7 +97,8 @@ export default function ResetPasswordClient() {
     setSaving(true);
     const { error } = await supabase.auth.updateUser({ password });
     if (error) {
-      toast.error(pick(L.updateFailed, langCode) + ": " + error.message);
+      // ponytail: 보안규칙 — Supabase 원문 error.message(영어) 노출 금지, 로컬라이즈 코드형만
+      toast.error(pick(L.updateFailed, langCode));
       setSaving(false);
       return;
     }

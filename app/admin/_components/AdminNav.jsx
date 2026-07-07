@@ -11,6 +11,7 @@ import {
   FileText,
   Brain,
   LogOut,
+  KeyRound,
   Users,
   Bell,
   Palette,
@@ -263,7 +264,14 @@ export function AdminNav() {
         })}
       </nav>
 
-      <div className="p-3 lg:p-4 border-t border-gray-200 pb-safe-area">
+      <div className="p-3 lg:p-4 border-t border-gray-200 pb-safe-area space-y-1">
+        <Link
+          href="/account/password"
+          className="w-full flex items-center gap-3 px-3 lg:px-4 py-2.5 lg:py-3 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 transition-all min-h-[44px] md:min-h-0"
+        >
+          <KeyRound size={18} />
+          <span>비밀번호 변경</span>
+        </Link>
         <button
           onClick={handleLogout}
           className="w-full flex items-center gap-3 px-3 lg:px-4 py-2.5 lg:py-3 rounded-lg text-sm font-medium text-gray-700 hover:bg-red-50 hover:text-red-600 transition-all min-h-[44px] md:min-h-0"

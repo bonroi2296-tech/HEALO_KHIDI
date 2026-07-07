@@ -7,7 +7,7 @@ import Image from 'next/image';
 import {
   Search, MapPin, Globe, Menu, Star, Zap, ChevronDown, CheckCircle,
   MessageCircle, X, ArrowRight, Stethoscope, Building2, Settings,
-  FileText, UserCheck, Clock, ShieldCheck, Shield, Sparkles, User, LogOut, Video
+  FileText, UserCheck, Clock, ShieldCheck, Shield, Sparkles, User, LogOut, Video, KeyRound
 } from 'lucide-react';
 import { getLangCodeFromCookie, setLangCookie, LANG_OPTIONS as I18N_LANG_OPTIONS, LANG_OPTIONS_PRIMARY, t } from "./lib/i18n";
 import { useLang } from "./lib/i18n/LangContext";
@@ -36,6 +36,10 @@ const useLangCode = () => useLang();
 
 const MY_PAGE_LABEL = {
   ko: '내 페이지', en: 'My Page', ru: 'Мой кабинет', kz: 'Менің бетім', zh: '我的页面', ja: 'マイページ',
+};
+
+const CHANGE_PW_LABEL = {
+  ko: '비밀번호 변경', en: 'Change password', ru: 'Смена пароля', kz: 'Құпиясөзді өзгерту', zh: '修改密码', ja: 'パスワードの変更',
 };
 
 // "내 페이지" 링크를 역할별로 곧장 보낸다. (코디·에이전시가 /patient 들렀다 튕기는 hop 방지)
@@ -100,6 +104,14 @@ const UserMenu = ({ session, onLogout, langCode, isHospitalUser, isAdmin }) => {
             >
               <User size={15} className="text-teal-700" />
               <span>{myPageLabel}</span>
+            </a>
+            <a
+              href="/account/password"
+              onClick={() => setIsOpen(false)}
+              className="w-full text-left px-4 py-2.5 text-sm hover:bg-teal-50 transition-colors flex items-center gap-2.5 text-gray-700 font-medium border-b border-gray-100"
+            >
+              <KeyRound size={15} className="text-teal-700" />
+              <span>{CHANGE_PW_LABEL[langCode] || CHANGE_PW_LABEL.en}</span>
             </a>
             <button
               onClick={() => { setIsOpen(false); onLogout(); }}
@@ -400,10 +412,16 @@ export const Header = ({ setView, view, _handleGlobalInquiry, isMobileMenuOpen, 
             {/* Bottom: Auth */}
             <div className="border-t border-gray-100 px-5 py-4">
               {session ? (
-                <button onClick={() => { onLogout(); setIsMobileMenuOpen(false); }} className="w-full py-2.5 px-4 text-red-600 hover:bg-red-50 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors">
-                  <LogOut size={16} />
-                  {t("auth.logout", langCode)}
-                </button>
+                <>
+                  <a href="/account/password" onClick={() => setIsMobileMenuOpen(false)} className="w-full py-2.5 px-4 text-gray-700 hover:bg-gray-50 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors">
+                    <KeyRound size={16} className="text-teal-700" />
+                    {CHANGE_PW_LABEL[langCode] || CHANGE_PW_LABEL.en}
+                  </a>
+                  <button onClick={() => { onLogout(); setIsMobileMenuOpen(false); }} className="w-full py-2.5 px-4 text-red-600 hover:bg-red-50 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors">
+                    <LogOut size={16} />
+                    {t("auth.logout", langCode)}
+                  </button>
+                </>
               ) : (
                 <div className="flex gap-2">
                   <button onClick={() => { setView('login'); setIsMobileMenuOpen(false); }} className="flex-1 py-2.5 text-center text-sm font-medium text-gray-600 hover:text-gray-900 border border-gray-200 rounded-lg transition-colors">
