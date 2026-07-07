@@ -2,18 +2,22 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useCoordinatorL, useDateLocale } from "@/lib/i18n/coordinator";
+import { useLang } from "@/lib/i18n/LangContext";
+import { nationalityLabelL } from "@/lib/khidi/nationality";
 
-const STATUS_LABELS = {
-  draft: { ko: "작성 중", color: "bg-gray-100 text-gray-700" },
-  documents_pending: { ko: "서류 준비", color: "bg-amber-100 text-amber-800" },
-  under_review: { ko: "검수 중", color: "bg-blue-100 text-blue-800" },
-  changes_requested: { ko: "수정 요청", color: "bg-orange-100 text-orange-800" },
-  invitation_ready: { ko: "초청장 준비", color: "bg-indigo-100 text-indigo-800" },
-  invitation_issued: { ko: "초청장 발급", color: "bg-emerald-100 text-emerald-800" },
-  submitted_embassy: { ko: "대사관 접수", color: "bg-teal-100 text-teal-800" },
-  approved: { ko: "비자 승인", color: "bg-green-100 text-green-800" },
-  rejected: { ko: "거절", color: "bg-red-100 text-red-800" },
-  cancelled: { ko: "취소", color: "bg-gray-100 text-gray-500" },
+// 상태 색상만 모듈 상수(언어 무관). 라벨은 컴포넌트에서 L로 해석.
+const STATUS_COLOR = {
+  draft: "bg-gray-100 text-gray-700",
+  documents_pending: "bg-amber-100 text-amber-800",
+  under_review: "bg-blue-100 text-blue-800",
+  changes_requested: "bg-orange-100 text-orange-800",
+  invitation_ready: "bg-indigo-100 text-indigo-800",
+  invitation_issued: "bg-emerald-100 text-emerald-800",
+  submitted_embassy: "bg-teal-100 text-teal-800",
+  approved: "bg-green-100 text-green-800",
+  rejected: "bg-red-100 text-red-800",
+  cancelled: "bg-gray-100 text-gray-500",
 };
 
 const STATUS_ORDER = [
@@ -29,6 +33,22 @@ const STATUS_ORDER = [
 ];
 
 export default function CoordinatorVisaListClient() {
+  const L = useCoordinatorL();
+  const lang = useLang();
+  const dateLoc = useDateLocale();
+  // 비자 진행 상태 라벨(색상은 모듈 상수 STATUS_COLOR, 라벨만 L로 해석)
+  const STATUS_LABEL = {
+    draft: L.viStatusDraft,
+    documents_pending: L.viStatusDocsPending,
+    under_review: L.viStatusUnderReview,
+    changes_requested: L.viStatusChangesRequested,
+    invitation_ready: L.viStatusInvitationReady,
+    invitation_issued: L.viStatusInvitationIssued,
+    submitted_embassy: L.viStatusSubmittedEmbassy,
+    approved: L.viStatusApproved,
+    rejected: L.viStatusRejected,
+    cancelled: L.viStatusCancelled,
+  };
   const [applications, setApplications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -53,7 +73,7 @@ export default function CoordinatorVisaListClient() {
       setApplications(json.data || []);
     } catch (err) {
       console.error("[coordinator/visa]", err);
-      setError("목록을 불러오지 못했습니다.");
+      setError(L.viLoadListError);
     } finally {
       setLoading(false);
     }
@@ -62,16 +82,16 @@ export default function CoordinatorVisaListClient() {
   // 통계 집계
   const stats = STATUS_ORDER.map((s) => ({
     status: s,
-    label: STATUS_LABELS[s].ko,
+    label: STATUS_LABEL[s],
     count: applications.filter((a) => a.status === s).length,
   }));
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-10">
       <div className="mb-8">
-        <h1 className="text-3xl font-semibold tracking-tight">비자 트래킹 대시보드</h1>
+        <h1 className="text-3xl font-semibold tracking-tight">{L.viTitle}</h1>
         <p className="text-gray-500 mt-1 text-sm">
-          환자 비자 발급 신청을 단계별로 관리하고 초청장을 발급합니다.
+          {L.viSubtitle}
         </p>
       </div>
 
@@ -83,7 +103,7 @@ export default function CoordinatorVisaListClient() {
             !statusFilter ? "border-black bg-gray-50" : "border-gray-200 bg-white"
           }`}
         >
-          <div className="text-xs text-gray-500">전체</div>
+          <div className="text-xs text-gray-500">{L.all}</div>
           <div className="text-2xl font-semibold mt-1">{applications.length}</div>
         </button>
         {stats
@@ -103,15 +123,15 @@ export default function CoordinatorVisaListClient() {
           ))}
       </div>
 
-      {loading && <p className="text-gray-500 text-sm">불러오는 중...</p>}
-      {error && <p className="text-red-600 text-sm">오류: {error}</p>}
+      {loading && <p className="text-gray-500 text-sm">{L.processing}</p>}
+      {error && <p className="text-red-600 text-sm">{L.viErrorPrefix}: {error}</p>}
 
       {!loading && applications.length === 0 && (
         <div className="text-center py-16 border-2 border-dashed border-gray-200 rounded-lg">
           <p className="text-gray-500">
             {statusFilter
-              ? `${STATUS_LABELS[statusFilter]?.ko || statusFilter} 상태의 신청이 없습니다.`
-              : "진행 중인 비자 신청이 없습니다."}
+              ? L.viEmptyFiltered.replace("{status}", STATUS_LABEL[statusFilter] || statusFilter)
+              : L.viEmpty}
           </p>
         </div>
       )}
@@ -121,42 +141,43 @@ export default function CoordinatorVisaListClient() {
           <table className="w-full text-sm">
             <thead className="bg-gray-50 text-xs text-gray-600 uppercase">
               <tr>
-                <th className="px-4 py-3 text-left">비자 종류</th>
-                <th className="px-4 py-3 text-left">국적</th>
-                <th className="px-4 py-3 text-left">목적</th>
-                <th className="px-4 py-3 text-left">체류</th>
-                <th className="px-4 py-3 text-left">상태</th>
-                <th className="px-4 py-3 text-left">생성</th>
+                <th className="px-4 py-3 text-left">{L.viColType}</th>
+                <th className="px-4 py-3 text-left">{L.nationality}</th>
+                <th className="px-4 py-3 text-left">{L.viColPurpose}</th>
+                <th className="px-4 py-3 text-left">{L.viColStay}</th>
+                <th className="px-4 py-3 text-left">{L.status}</th>
+                <th className="px-4 py-3 text-left">{L.viColCreated}</th>
                 <th className="px-4 py-3"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
               {applications.map((app) => {
-                const label = STATUS_LABELS[app.status] || STATUS_LABELS.draft;
+                const statusColor = STATUS_COLOR[app.status] || STATUS_COLOR.draft;
+                const statusLabel = STATUS_LABEL[app.status] || STATUS_LABEL.draft;
                 return (
                   <tr key={app.id} className="hover:bg-gray-50">
                     <td className="px-4 py-3 font-medium">{app.visa_type}</td>
-                    <td className="px-4 py-3">{app.nationality}</td>
+                    <td className="px-4 py-3">{nationalityLabelL(app.nationality, lang)}</td>
                     <td className="px-4 py-3 text-gray-600 truncate max-w-xs">
                       {app.purpose || "—"}
                     </td>
                     <td className="px-4 py-3 text-gray-600">
-                      {app.duration_days ? `${app.duration_days}일` : "—"}
+                      {app.duration_days ? L.viDurationDays.replace("{n}", app.duration_days) : "—"}
                     </td>
                     <td className="px-4 py-3">
-                      <span className={`text-xs px-2 py-1 rounded ${label.color}`}>
-                        {label.ko}
+                      <span className={`text-xs px-2 py-1 rounded ${statusColor}`}>
+                        {statusLabel}
                       </span>
                     </td>
                     <td className="px-4 py-3 text-gray-500 text-xs">
-                      {new Date(app.created_at).toLocaleDateString("ko-KR")}
+                      {new Date(app.created_at).toLocaleDateString(dateLoc)}
                     </td>
                     <td className="px-4 py-3 text-right">
                       <Link
                         href={`/coordinator/visa/${app.id}`}
                         className="text-sm text-blue-600 hover:underline"
                       >
-                        상세 →
+                        {L.viDetailArrow}
                       </Link>
                     </td>
                   </tr>

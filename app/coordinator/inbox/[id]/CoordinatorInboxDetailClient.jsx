@@ -14,19 +14,11 @@ import {
   Send, Copy, Check, ExternalLink,
 } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
-import { CASE_STATUS_STEPS } from "@/lib/khidi/caseStatus";
-
-const CANCER_LABELS = {
-  stomach: "위암", liver: "간암", lung: "폐암",
-  breast: "유방암", thyroid: "갑상선암", colorectal: "대장암",
-  pancreatic: "췌장암", other: "기타",
-};
-
-const NATIONALITY_LABELS = {
-  KZ: "카자흐스탄", RU: "러시아", UZ: "우즈베키스탄",
-  KG: "키르기스스탄", MN: "몽골", CN: "중국",
-  JP: "일본", KR: "한국", OTHER: "기타",
-};
+import { CASE_STATUS_STEPS, caseStatusLabelL } from "@/lib/khidi/caseStatus";
+import { cancerTypeLabelL } from "@/lib/khidi/medicalLabels";
+import { nationalityLabelL } from "@/lib/khidi/nationality";
+import { useCoordinatorL, useDateLocale } from "@/lib/i18n/coordinator";
+import { useLang } from "@/lib/i18n/LangContext";
 
 const STATUS_COLORS = {
   received: "bg-yellow-100 text-yellow-700",
@@ -36,26 +28,18 @@ const STATUS_COLORS = {
   pending: "bg-yellow-100 text-yellow-700",
 };
 
-// 암 인테이크(Step2) 코드값 → 코디용 한글 라벨. 폼(IntakeClient)의 value 와 1:1.
-const CI = {
-  diagnosis_timing: { label: "진단 시기", map: { lt1m: "최근 1개월", "1to6m": "1~6개월", "6mto1y": "6개월~1년", gt1y: "1년 이상", unknown: "모름" } },
-  stage: { label: "병기", map: { "1": "1기", "2": "2기", "3": "3기", "4": "4기", unknown: "모름" } },
-  current_status: { label: "현재 치료 상태", map: { diagnosed: "진단만 받음", surgery_done: "수술 받음", chemo: "항암치료 중", radiation: "방사선치료 중", completed: "치료 완료", recurrence: "재발·전이" } },
-  entry_timing: { label: "입국 희망 시기", map: { lt1m: "1개월 내", "1to3m": "1~3개월", gt3m: "3개월 이후", undecided: "미정" } },
+// 암 인테이크(Step2) 코드값 → L 라벨키. 폼(IntakeClient)의 value 와 1:1.
+// label/값 모두 L.<키> 로 해석(컴포넌트 안에서 현재 언어로 매핑).
+const CI_DEF = {
+  diagnosis_timing: { label: "ibFieldDiagnosisTiming", map: { lt1m: "ibDiagLt1m", "1to6m": "ibDiag1to6m", "6mto1y": "ibDiag6mto1y", gt1y: "ibDiagGt1y", unknown: "ibUnknown" } },
+  stage: { label: "fieldStage", map: { "1": "ibStage1", "2": "ibStage2", "3": "ibStage3", "4": "ibStage4", unknown: "ibUnknown" } },
+  current_status: { label: "ibFieldCurrentStatus", map: { diagnosed: "ibStatDiagnosed", surgery_done: "ibStatSurgeryDone", chemo: "ibStatChemo", radiation: "ibStatRadiation", completed: "ibStatCompleted", recurrence: "ibStatRecurrence" } },
+  entry_timing: { label: "ibFieldEntryTiming", map: { lt1m: "ibEntryLt1m", "1to3m": "ibEntry1to3m", gt3m: "ibEntryGt3m", undecided: "ibEntryUndecided" } },
 };
-const CI_MULTI = {
-  treatments_received: { label: "받은 치료", map: { surgery: "수술", chemo: "항암", radiation: "방사선", immuno: "면역", oriental: "한방", none: "없음" } },
-  documents: { label: "보유 서류", map: { pathology: "병리결과", imaging: "영상(CT·MRI·PET)", records: "진료기록" } },
+const CI_MULTI_DEF = {
+  treatments_received: { label: "ibFieldTreatmentsReceived", map: { surgery: "ibTxSurgery", chemo: "ibTxChemo", radiation: "ibTxRadiation", immuno: "ibTxImmuno", oriental: "ibTxOriental", none: "ibTxNone" } },
+  documents: { label: "ibFieldDocuments", map: { pathology: "ibDocPathology", imaging: "ibDocImaging", records: "ibDocRecords" } },
 };
-
-function fmtDate(v) {
-  if (!v) return "—";
-  try {
-    return new Date(v).toLocaleString("ko-KR");
-  } catch {
-    return String(v);
-  }
-}
 
 function Row({ icon: Icon, label, value }) {
   return (
@@ -79,6 +63,41 @@ function Card({ title, children }) {
 }
 
 export default function CoordinatorInboxDetailClient({ inquiryId }) {
+  const L = useCoordinatorL();
+  const lang = useLang();
+  const dateLoc = useDateLocale();
+
+  // inquiries.status enum → 언어별 라벨. (목록 페이지와 동일. pending 은 접수됨과 같은 대기.)
+  const STATUS_LABELS = {
+    received: L.invStatusReceived, reviewing: L.invStatusReviewing,
+    matched: L.invStatusMatched, completed: L.invStatusCompleted,
+    pending: L.invStatusReceived,
+  };
+
+  // 날짜/시간 — 앱 언어 로케일로(ko-KR 하드코딩 방지).
+  const fmtDate = (v) => {
+    if (!v) return "—";
+    try {
+      return new Date(v).toLocaleString(dateLoc);
+    } catch {
+      return String(v);
+    }
+  };
+
+  // 인테이크 코드값 정의 → 현재 언어 라벨로 해석.
+  const CI = Object.fromEntries(
+    Object.entries(CI_DEF).map(([field, def]) => [
+      field,
+      { label: L[def.label], map: Object.fromEntries(Object.entries(def.map).map(([k, v]) => [k, L[v]])) },
+    ])
+  );
+  const CI_MULTI = Object.fromEntries(
+    Object.entries(CI_MULTI_DEF).map(([field, def]) => [
+      field,
+      { label: L[def.label], map: Object.fromEntries(Object.entries(def.map).map(([k, v]) => [k, L[v]])) },
+    ])
+  );
+
   const [inquiry, setInquiry] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -101,7 +120,7 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
     try {
       const supabase = createSupabaseBrowserClient();
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) { setReqError("로그인이 필요합니다."); setReqLoading(false); return; }
+      if (!session) { setReqError(L.ibLoginRequired); setReqLoading(false); return; }
 
       const res = await fetch(`/api/coordinator/inquiries/${inquiryId}/request-info`, {
         method: "POST",
@@ -112,7 +131,7 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
       setReqResult(result);
     } catch (e) {
       console.error("[request-info] error:", e);
-      setReqError("요청 발송 중 문제가 발생했습니다.");
+      setReqError(L.ibReqSendError);
     }
     setReqLoading(false);
   }
@@ -189,7 +208,7 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
     try {
       const supabase = createSupabaseBrowserClient();
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) { setError("로그인이 필요합니다."); setLoading(false); return; }
+      if (!session) { setError(L.ibLoginRequired); setLoading(false); return; }
 
       const res = await fetch(`/api/portal/inbox/${inquiryId}`, {
         headers: { Authorization: `Bearer ${session.access_token}` },
@@ -202,7 +221,7 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
       setCaseNote(result.inquiry?.case_status_note || "");
     } catch (e) {
       console.error("[inbox/detail] fetch error:", e);
-      setError("조회 중 문제가 발생했습니다.");
+      setError(L.ibLoadError);
     }
     setLoading(false);
   }
@@ -212,7 +231,7 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
       href="/coordinator/inbox"
       className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-teal-700 transition"
     >
-      <ArrowLeft size={16} /> 인박스로
+      <ArrowLeft size={16} /> {L.ibBackToInbox}
     </Link>
   );
 
@@ -233,8 +252,8 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
         {backLink}
         <div className="text-center py-16 bg-gray-50 rounded-xl">
           <AlertCircle size={40} className="mx-auto text-gray-300 mb-3" />
-          <p className="text-gray-600 font-medium">문의를 찾을 수 없습니다.</p>
-          <p className="text-gray-400 text-sm mt-1">삭제되었거나 잘못된 주소예요.</p>
+          <p className="text-gray-600 font-medium">{L.ibNotFoundTitle}</p>
+          <p className="text-gray-400 text-sm mt-1">{L.ibNotFoundDesc}</p>
         </div>
       </div>
     );
@@ -246,12 +265,12 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
         {backLink}
         <div className="text-center py-16 bg-red-50 rounded-xl">
           <AlertCircle size={40} className="mx-auto text-red-300 mb-3" />
-          <p className="text-red-600">{error || "문의를 불러오지 못했습니다."}</p>
+          <p className="text-red-600">{error || L.ibLoadFailed}</p>
           <button
             onClick={load}
             className="mt-3 px-4 py-2 text-sm bg-white border border-red-200 text-red-600 rounded-lg hover:bg-red-50"
           >
-            다시 시도
+            {L.ibRetry}
           </button>
         </div>
       </div>
@@ -259,12 +278,13 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
   }
 
   const fullName =
-    [inquiry.first_name, inquiry.last_name].filter(Boolean).join(" ").trim() || "(이름 미상)";
+    [inquiry.first_name, inquiry.last_name].filter(Boolean).join(" ").trim() || L.ibNameUnknown;
   const step2Done = !!inquiry.step2_completed_at;
   const cancer =
-    CANCER_LABELS[inquiry.cancer_type] || inquiry.cancer_type || inquiry.treatment_type || "—";
+    (inquiry.cancer_type ? cancerTypeLabelL(inquiry.cancer_type, lang) : "") ||
+    inquiry.treatment_type || "—";
   const nationality =
-    NATIONALITY_LABELS[inquiry.nationality] || inquiry.nationality || "—";
+    inquiry.nationality ? nationalityLabelL(inquiry.nationality, lang) : "—";
 
   // intake JSONB 의 추가 정보(있으면 key/value 로 표시).
   // 혹시 복호화 안 된 암호문 문자열({"v":"v1",...})은 화면에 안 띄움.
@@ -297,15 +317,15 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
               {/* 접수 주체 배지: 에이전시 의뢰 vs 환자 직접 — 코디가 한눈에 구분 */}
               {inquiry.agency_id ? (
                 <span className="px-2 py-0.5 text-xs font-semibold rounded-full bg-violet-100 text-violet-700">
-                  🏢 에이전시 의뢰{inquiry.agency_name ? ` · ${inquiry.agency_name}` : ""}
+                  🏢 {L.agencyReferral}{inquiry.agency_name ? ` · ${inquiry.agency_name}` : ""}
                 </span>
               ) : (
                 <span className="px-2 py-0.5 text-xs font-semibold rounded-full bg-sky-100 text-sky-700">
-                  🙋 환자 직접
+                  🙋 {L.ibPatientDirect}
                 </span>
               )}
             </div>
-            <p className="text-xs text-gray-400 mt-0.5">문의 #{inquiry.id} · 접수 {fmtDate(inquiry.created_at)}</p>
+            <p className="text-xs text-gray-400 mt-0.5">{L.ibInquiryNo} #{inquiry.id} · {L.ibReceivedLabel} {fmtDate(inquiry.created_at)}</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -314,55 +334,55 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
               step2Done ? "bg-teal-100 text-teal-700" : "bg-red-100 text-red-700"
             }`}
           >
-            {step2Done ? "Step 1+2 완료" : "Step 1만 (추가 정보 필요)"}
+            {step2Done ? L.ibStepBothDone : L.ibStepOneNeedInfo}
           </span>
           <span
             className={`px-2.5 py-1 text-xs font-semibold rounded-full ${
               STATUS_COLORS[inquiry.status] || "bg-gray-100 text-gray-600"
             }`}
           >
-            {inquiry.status || "received"}
+            {STATUS_LABELS[inquiry.status] || L.invStatusReceived}
           </span>
         </div>
       </div>
 
       <div className="grid gap-5 md:grid-cols-2">
         {/* 연락 정보 */}
-        <Card title="연락 정보">
-          <Row icon={MessageCircle} label="연락 방법" value={inquiry.contact_method} />
-          <Row icon={Phone} label="연락처(ID)" value={safe(inquiry.contact_id)} />
-          <Row icon={Mail} label="이메일" value={safe(inquiry.email)} />
-          <Row icon={Phone} label="전화" value={safe(inquiry.phone)} />
+        <Card title={L.ibContactCard}>
+          <Row icon={MessageCircle} label={L.contactMethod} value={inquiry.contact_method} />
+          <Row icon={Phone} label={L.ibContactId} value={safe(inquiry.contact_id)} />
+          <Row icon={Mail} label={L.ibEmail} value={safe(inquiry.email)} />
+          <Row icon={Phone} label={L.ibPhone} value={safe(inquiry.phone)} />
         </Card>
 
         {/* 의료 / 여정 정보 */}
-        <Card title="의료 · 여정 정보">
-          <Row icon={Globe} label="국적" value={nationality} />
-          <Row icon={Stethoscope} label="암종" value={cancer} />
+        <Card title={L.ibMedicalCard}>
+          <Row icon={Globe} label={L.nationality} value={nationality} />
+          <Row icon={Stethoscope} label={L.cancerType} value={cancer} />
           <Row
             icon={Calendar}
-            label="희망일"
+            label={L.ibPreferredDate}
             value={
               inquiry.preferred_date
-                ? `${new Date(inquiry.preferred_date).toLocaleDateString("ko-KR")}${inquiry.preferred_date_flex ? " (조율 가능)" : ""}`
+                ? `${new Date(inquiry.preferred_date).toLocaleDateString(dateLoc)}${inquiry.preferred_date_flex ? ` (${L.ibFlexible})` : ""}`
                 : "—"
             }
           />
           <Row
             icon={Globe}
-            label="언어"
+            label={L.fieldLanguage}
             value={inquiry.preferred_language || inquiry.spoken_language}
           />
-          <Row icon={ClipboardList} label="매칭 정확도" value={`${inquiry.match_accuracy ?? 60}%`} />
+          <Row icon={ClipboardList} label={L.inboxColMatch} value={`${inquiry.match_accuracy ?? 60}%`} />
         </Card>
       </div>
 
       {/* 문의 메시지 */}
-      <Card title="문의 메시지">
+      <Card title={L.ibMessageCard}>
         {inquiry.message && !looksEncrypted(inquiry.message) ? (
           <p className="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed">{inquiry.message}</p>
         ) : (
-          <p className="text-sm text-gray-400">남긴 메시지가 없습니다.</p>
+          <p className="text-sm text-gray-400">{L.ibNoMessage}</p>
         )}
       </Card>
 
@@ -386,7 +406,7 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
         const legacy = intakeEntries.filter(([k]) => k !== "notes" && k !== "cancer");
         if (rows.length === 0 && legacy.length === 0 && !notes) return null;
         return (
-          <Card title="추가 정보 (인테이크)">
+          <Card title={L.ibIntakeCard}>
             <div className="grid gap-x-6 sm:grid-cols-2">
               {rows.map(([k, v]) => (
                 <div key={k} className="flex gap-2 py-1.5 border-b border-gray-50 text-sm">
@@ -403,7 +423,7 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
             </div>
             {notes && (
               <div className="mt-3 pt-3 border-t border-gray-100">
-                <span className="text-xs text-gray-500">메모</span>
+                <span className="text-xs text-gray-500">{L.notes}</span>
                 <p className="text-sm text-gray-900 whitespace-pre-wrap mt-1">{notes}</p>
               </div>
             )}
@@ -413,11 +433,11 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
 
       {/* 첨부 서류 — 에이전시/환자가 올린 의료서류(병리·영상·진료기록). staff 서명URL로 열람. */}
       {Array.isArray(inquiry.attachments) && inquiry.attachments.length > 0 && (
-        <Card title={`첨부 서류 (${inquiry.attachments.length})`}>
+        <Card title={`${L.ibAttachmentsCard} (${inquiry.attachments.length})`}>
           <div className="space-y-2">
             {inquiry.attachments.map((a, i) => {
               const path = typeof a === "string" ? a : a?.path;
-              const name = (typeof a === "object" && a?.name) || (path ? path.split("/").pop() : `첨부 ${i + 1}`);
+              const name = (typeof a === "object" && a?.name) || (path ? path.split("/").pop() : `${L.ibAttachment} ${i + 1}`);
               const cat = typeof a === "object" ? a?.category : null;
               return (
                 <button
@@ -444,7 +464,7 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
       )}
 
       {/* 진행 단계 — 코디가 설정. 환자·에이전시 포털에 같은 상태가 노출된다(흐름: 접수→사전상담→병원검토→일정조율→비자준비→입국치료→사후관리→완료). */}
-      <Card title="진행 단계 (설정하면 환자·에이전시에게 표시)">
+      <Card title={L.ibCaseCard}>
         <div className="space-y-3">
           <div className="flex flex-wrap items-center gap-2">
             {CASE_STATUS_STEPS.filter((s) => s.order < 90).map((s) => (
@@ -458,7 +478,7 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
                     : "bg-white text-gray-600 border-gray-300 hover:border-teal-400"
                 }`}
               >
-                {s.order}. {s.ko}
+                {s.order}. {caseStatusLabelL(s.key, lang)}
               </button>
             ))}
           </div>
@@ -466,7 +486,7 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
             value={caseNote}
             onChange={(e) => setCaseNote(e.target.value)}
             rows={2}
-            placeholder='환자·에이전시에게 표시될 메모 (예: "병원 검토 중, 3일 내 회신")'
+            placeholder={L.ibCaseNotePlaceholder}
             className="w-full text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500 resize-none"
           />
           <div className="flex items-center gap-3">
@@ -475,27 +495,27 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
               disabled={caseSaving}
               className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold bg-teal-700 text-white rounded-lg hover:bg-teal-800 transition disabled:opacity-50"
             >
-              {caseSaving ? "저장 중…" : "진행 단계 저장"}
+              {caseSaving ? L.ibCaseSaving : L.ibCaseSave}
             </button>
-            {caseSaved && <span className="text-sm text-teal-600 inline-flex items-center gap-1"><Check size={15} /> 저장됨</span>}
+            {caseSaved && <span className="text-sm text-teal-600 inline-flex items-center gap-1"><Check size={15} /> {L.ibCaseSaved}</span>}
           </div>
         </div>
       </Card>
 
       {/* 접수 정보 (타임라인) */}
-      <Card title="접수 정보">
-        <Row icon={FileText} label="접수 경로" value={inquiry.agency_id ? `에이전시 의뢰${inquiry.agency_name ? ` (${inquiry.agency_name})` : ""}` : (inquiry.source || "환자 직접 접수")} />
-        <Row icon={Calendar} label="접수일" value={fmtDate(inquiry.created_at)} />
-        <Row icon={Calendar} label="Step 1 완료" value={fmtDate(inquiry.step1_completed_at)} />
-        <Row icon={Calendar} label="Step 2 완료" value={fmtDate(inquiry.step2_completed_at)} />
+      <Card title={L.ibIntakeInfoCard}>
+        <Row icon={FileText} label={L.ibIntakeChannel} value={inquiry.agency_id ? `${L.agencyReferral}${inquiry.agency_name ? ` (${inquiry.agency_name})` : ""}` : (inquiry.source || L.ibPatientDirectIntake)} />
+        <Row icon={Calendar} label={L.receivedDate} value={fmtDate(inquiry.created_at)} />
+        <Row icon={Calendar} label={L.ibStep1Done} value={fmtDate(inquiry.step1_completed_at)} />
+        <Row icon={Calendar} label={L.ibStep2Done} value={fmtDate(inquiry.step2_completed_at)} />
       </Card>
 
       {/* 추가 정보 요청 — 환자에게 Step2 상세폼 링크 발송(이메일) + 코디용 복사/왓츠앱 */}
       {!step2Done && (
-        <Card title="추가 정보 요청">
+        <Card title={L.ibReqCard}>
           <p className="text-sm text-gray-600 mb-3 leading-relaxed">
-            환자에게 상세 정보(진단·치료 단계·희망 일정 등) 입력 링크를 보냅니다.
-            환자는 <b>회원가입·앱 설치 없이</b> 링크로 바로 작성하고, 완료되면 이 문의에 자동 반영됩니다.
+            {L.ibReqDesc1}
+            {" "}<b>{L.ibReqDescBold}</b>{L.ibReqDesc2}
           </p>
 
           {!reqResult ? (
@@ -505,11 +525,11 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
                 disabled={reqLoading}
                 className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition disabled:opacity-50"
               >
-                <Send size={16} /> {reqLoading ? "발송 중…" : "추가 정보 요청"}
+                <Send size={16} /> {reqLoading ? L.ibReqSending : L.ibReqButton}
               </button>
               {inquiry.info_requested_at && (
                 <span className="text-xs text-gray-400">
-                  마지막 요청: {fmtDate(inquiry.info_requested_at)}
+                  {L.ibReqLast}: {fmtDate(inquiry.info_requested_at)}
                 </span>
               )}
               {reqError && <span className="text-sm text-red-600">{reqError}</span>}
@@ -519,10 +539,10 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
               <p className={`text-sm font-medium flex items-center gap-1.5 ${reqResult.emailSent ? "text-teal-700" : "text-amber-700"}`}>
                 <Check size={16} />
                 {reqResult.emailSent
-                  ? `이메일 발송 완료 (${reqResult.email})`
+                  ? `${L.ibReqEmailSent} (${reqResult.email})`
                   : reqResult.email
-                    ? `메일 자동발송은 안 됐어요 (${reqResult.email}) — 아래 링크를 직접 보내세요.`
-                    : "이메일 주소가 없어요 — 아래 링크를 직접 보내세요."}
+                    ? `${L.ibReqEmailFailed.replace("{email}", reqResult.email)}`
+                    : L.ibReqNoEmail}
               </p>
 
               {/* 코디가 어떤 채널로든 보낼 수 있는 링크 */}
@@ -537,13 +557,13 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
                   onClick={copyLink}
                   className="inline-flex items-center gap-1.5 px-3 py-2 text-sm font-medium bg-white border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition shrink-0"
                 >
-                  {copied ? <Check size={15} /> : <Copy size={15} />} {copied ? "복사됨" : "복사"}
+                  {copied ? <Check size={15} /> : <Copy size={15} />} {copied ? L.ibCopied : L.ibCopy}
                 </button>
               </div>
 
               {/* 환자가 쓴 채널(왓츠앱 등)로 바로 보내기 */}
               {(() => {
-                const msg = `healwith: 치료 안내를 위해 추가 정보를 입력해 주세요 / Please share a few more details: ${reqResult.link}`;
+                const msg = `${L.ibWaMessage}: ${reqResult.link}`;
                 const digits = String(inquiry.contact_id || "").replace(/[^\d]/g, "");
                 const isWa = String(inquiry.contact_method || "").toLowerCase().includes("whats");
                 const waUrl = `https://wa.me/${isWa && digits.length >= 6 ? digits : ""}?text=${encodeURIComponent(msg)}`;
@@ -554,7 +574,7 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium bg-[#25D366] text-white rounded-lg hover:opacity-90 transition"
                   >
-                    <ExternalLink size={15} /> 왓츠앱으로 보내기
+                    <ExternalLink size={15} /> {L.ibWaSend}
                   </a>
                 );
               })()}
@@ -565,12 +585,12 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
 
       {/* 다음 단계 — 병원 검토 후 화상 상담 (흐름상 진행 단계·추가정보 다음). */}
       <div className="border-t border-gray-100 pt-4">
-        <p className="text-xs text-gray-400 mb-2">병원 치료가능 검토가 끝나면 환자와 화상 상담을 잡습니다.</p>
+        <p className="text-xs text-gray-400 mb-2">{L.ibNextStepDesc}</p>
         <Link
           href="/coordinator/consultations"
           className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition"
         >
-          <Video size={16} /> 상담 일정 잡기
+          <Video size={16} /> {L.ibScheduleConsult}
         </Link>
       </div>
     </div>

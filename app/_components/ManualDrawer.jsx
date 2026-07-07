@@ -15,10 +15,25 @@
 import { useState, useEffect } from "react";
 import { BookOpen, X } from "lucide-react";
 import { getManual } from "@/lib/manuals";
+import { useLang } from "@/lib/i18n/LangContext";
 
-export default function ManualDrawer({ role, buttonLabel = "사용설명서" }) {
+// 드로어 chrome(버튼 라벨·하단 갱신문구) — 6개 언어. (설명서 '본문'은 manuals/index.js에서 옴)
+// buttonLabel prop이 오면 그걸 우선(에이전시 등 자체 번역 전달). 없으면 현재 언어로.
+const MD_TR = {
+  en: { manualBtn: "User guide", footer: "Last updated {updated} · The guide is kept in sync as features change" },
+  ko: { manualBtn: "사용설명서", footer: "마지막 업데이트 {updated} · 기능이 바뀌면 설명서도 함께 갱신됩니다" },
+  ru: { manualBtn: "Руководство", footer: "Последнее обновление {updated} · Руководство обновляется при изменении функций" },
+  kz: { manualBtn: "Нұсқаулық", footer: "Соңғы жаңарту {updated} · Функциялар өзгергенде нұсқаулық та жаңартылады" },
+  zh: { manualBtn: "使用说明", footer: "最后更新 {updated} · 功能变更时说明书也会同步更新" },
+  ja: { manualBtn: "使い方ガイド", footer: "最終更新 {updated} · 機能が変わればガイドも更新されます" },
+};
+
+export default function ManualDrawer({ role, buttonLabel }) {
   const [open, setOpen] = useState(false);
   const manual = getManual(role);
+  const lang = useLang();
+  const T = MD_TR[lang] || MD_TR.en;
+  const label = buttonLabel || T.manualBtn;
 
   // ESC 닫기 + 열렸을 때 배경 스크롤 잠금
   useEffect(() => {
@@ -40,11 +55,11 @@ export default function ManualDrawer({ role, buttonLabel = "사용설명서" }) 
       <button
         type="button"
         onClick={() => setOpen(true)}
-        aria-label={buttonLabel}
+        aria-label={label}
         className="fixed bottom-5 right-5 z-40 inline-flex items-center gap-2 px-4 py-3 rounded-full bg-white text-gray-700 border border-gray-200 shadow-lg hover:shadow-xl hover:text-teal-700 hover:border-teal-200 transition-all duration-200 min-h-[44px]"
       >
         <BookOpen size={18} className="text-teal-600" />
-        <span className="text-sm font-semibold hidden sm:inline">{buttonLabel}</span>
+        <span className="text-sm font-semibold hidden sm:inline">{label}</span>
       </button>
 
       {/* 드로어 */}
@@ -114,7 +129,7 @@ export default function ManualDrawer({ role, buttonLabel = "사용설명서" }) 
           {/* 푸터 — 갱신일 */}
           {manual.updated && (
             <div className="px-5 py-3 border-t border-gray-100 text-[11px] text-gray-400 shrink-0">
-              마지막 업데이트 {manual.updated} · 기능이 바뀌면 설명서도 함께 갱신됩니다
+              {T.footer.replace("{updated}", manual.updated)}
             </div>
           )}
         </div>
