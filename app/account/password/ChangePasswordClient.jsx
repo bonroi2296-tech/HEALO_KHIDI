@@ -24,6 +24,7 @@ const L = {
   title: { ko: "비밀번호 변경", en: "Change password", ru: "Смена пароля", kz: "Құпиясөзді өзгерту", zh: "修改密码", ja: "パスワードの変更" },
   subtitle: { ko: "현재 비밀번호를 확인한 뒤 새 비밀번호로 바꿉니다", en: "Confirm your current password, then set a new one", ru: "Подтвердите текущий пароль и задайте новый", kz: "Ағымдағы құпиясөзді растап, жаңасын енгізіңіз", zh: "确认当前密码后设置新密码", ja: "現在のパスワードを確認して新しいパスワードを設定します" },
   current: { ko: "현재 비밀번호", en: "Current password", ru: "Текущий пароль", kz: "Ағымдағы құпиясөз", zh: "当前密码", ja: "現在のパスワード" },
+  enterCurrent: { ko: "현재 비밀번호를 입력하세요", en: "Enter your current password", ru: "Введите текущий пароль", kz: "Ағымдағы құпиясөзді енгізіңіз", zh: "请输入当前密码", ja: "現在のパスワードを入力してください" },
   newPassword: { ko: "새 비밀번호", en: "New password", ru: "Новый пароль", kz: "Жаңа құпиясөз", zh: "新密码", ja: "新しいパスワード" },
   confirm: { ko: "새 비밀번호 확인", en: "Confirm new password", ru: "Подтвердите новый пароль", kz: "Жаңа құпиясөзді растау", zh: "确认新密码", ja: "新しいパスワードの確認" },
   submit: { ko: "비밀번호 변경", en: "Change password", ru: "Сменить пароль", kz: "Құпиясөзді өзгерту", zh: "修改密码", ja: "パスワードを変更" },
@@ -45,7 +46,7 @@ const L = {
 const ERR_MSG = {
   wrong_current: L.wrongCurrent,
   same_password: L.sameAsOld,
-  current_required: L.current,
+  current_required: L.enterCurrent,
   weak_password: L.updateFailed, // 클라에서 선검증하므로 사실상 도달X
   no_password_account: L.noPwAccount,
   rate_limited: L.rateLimited,
@@ -102,7 +103,7 @@ export default function ChangePasswordClient() {
 
   const handleSubmit = async () => {
     if (!current) {
-      toast.error(pick(L.current, langCode));
+      toast.error(pick(L.enterCurrent, langCode));
       return;
     }
     if (!pwCheck.valid) {
