@@ -11,7 +11,7 @@ import { useRouter } from "next/navigation";
 import { kstDateTime } from "@/lib/datetime/kst";
 import {
   UploadCloud, File as FileIcon, X, ClipboardList, Activity, CheckCircle2, PauseCircle,
-  Plus, ArrowRight, ChevronDown, Paperclip, MessageCircle, FileText, Video, Send, Clock,
+  Plus, ArrowRight, ChevronDown, Paperclip, MessageCircle, FileText, Video, Send, Clock, Languages,
 } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { useLang } from "@/lib/i18n/LangContext";
@@ -573,6 +573,7 @@ export default function PartnerPortal({ expected = "agency" }) {
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitMsg, setSubmitMsg] = useState(null);
+  const [noteTr, setNoteTr] = useState({}); // 코디 한글 메모 자동번역 { 원문 → 번역문 }
   const fileInputRef = useRef(null);
 
   // 첨부 추가 = 즉시 /api/attachments/upload (path 참조만 보관). 최대 10개.
@@ -617,6 +618,39 @@ export default function PartnerPortal({ expected = "agency" }) {
   useEffect(() => {
     if (portalMismatch) router.replace(accountIsMedical ? "/clinic" : "/agency");
   }, [portalMismatch, accountIsMedical, router]);
+
+  // 코디 한글 메모 자동번역: 화면 언어가 한국어가 아니면 case_status_note + 타임라인 note 를
+  // 한 번에 모아 서버에 번역 요청(캐시 우선). 결과는 원문→번역문 맵. 실패/한국어는 원문 폴백.
+  useEffect(() => {
+    const cases = data?.cases;
+    if (!cases || lang === "ko") { setNoteTr({}); return; }
+    const texts = [];
+    for (const c of cases) {
+      if (c.case_status_note) texts.push(c.case_status_note);
+      for (const tl of (c.timeline || [])) if (tl.note) texts.push(tl.note);
+    }
+    if (texts.length === 0) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data: sess } = await supabase.auth.getSession();
+        const token = sess?.session?.access_token;
+        if (!token) return;
+        const res = await fetch("/api/agency/translate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ texts, lang }),
+        });
+        const json = await res.json();
+        if (!cancelled && json?.ok && json.translations) setNoteTr(json.translations);
+      } catch { /* 실패 시 원문 유지 */ }
+    })();
+    return () => { cancelled = true; };
+  }, [data, lang]);
+
+  // 원문(한글) → 번역문. 없으면 원문 그대로. (서버가 trim 한 키로 저장하므로 trim 폴백)
+  const trNote = (t) => (t && lang !== "ko" ? (noteTr[t] || noteTr[String(t).trim()] || t) : t);
+  const noteIsTr = (t) => !!(t && lang !== "ko" && (noteTr[t] || noteTr[String(t).trim()]));
 
   const submitReferral = async (e) => {
     e.preventDefault();
@@ -1010,7 +1044,10 @@ export default function PartnerPortal({ expected = "agency" }) {
                     })}
                   </div>
                   {c.case_status_note && (
-                    <p className="text-xs text-gray-500 mt-2">{c.case_status_note}</p>
+                    <p className="text-xs text-gray-500 mt-2" title={noteIsTr(c.case_status_note) ? c.case_status_note : undefined}>
+                      {trNote(c.case_status_note)}
+                      {noteIsTr(c.case_status_note) && <Languages size={11} className="inline-block ml-1 -mt-0.5 text-gray-300" />}
+                    </p>
                   )}
                   {c.case_status && tt(`nextStep_${c.case_status}`) && (
                     <p className="text-xs text-teal-700 bg-teal-50/70 rounded-lg px-2.5 py-1.5 mt-2 flex items-start gap-1.5">
@@ -1058,7 +1095,7 @@ export default function PartnerPortal({ expected = "agency" }) {
                             <li key={i} className="ml-4">
                               <span className="absolute -left-[5px] mt-1 w-2.5 h-2.5 rounded-full bg-teal-500 ring-2 ring-white" />
                               <div className="text-[11px] text-gray-400">{new Date(tl.at).toLocaleDateString()}</div>
-                              <div className="text-sm text-gray-700"><b>{caseStatusLabelL(tl.status, lang)}</b>{tl.note ? ` — ${tl.note}` : ""}</div>
+                              <div className="text-sm text-gray-700" title={noteIsTr(tl.note) ? tl.note : undefined}><b>{caseStatusLabelL(tl.status, lang)}</b>{tl.note ? ` — ${trNote(tl.note)}` : ""}{noteIsTr(tl.note) && <Languages size={11} className="inline-block ml-1 -mt-0.5 text-gray-300" />}</div>
                             </li>
                           ))}
                         </ol>
@@ -1292,7 +1329,9 @@ function CaseActions({ c, tt, onDone }) {
 
 // 에이전시 ↔ 코디 양방향 메신저 — 오른쪽 슬라이드 대화창(드로어). 열려 있을 때만 8초 폴링.
 function ChatDrawer({ open, onClose, inquiryId, caseName, tt, getToken }) {
+  const lang = useLang();
   const [messages, setMessages] = useState([]);
+  const [msgTr, setMsgTr] = useState({}); // 코디 한글 메시지 자동번역 { 원문 → 번역문 }
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
   const [loaded, setLoaded] = useState(false);
@@ -1332,6 +1371,31 @@ function ChatDrawer({ open, onClose, inquiryId, caseName, tt, getToken }) {
   }, [open, onClose]);
 
   useEffect(() => { if (open) endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages.length, open]);
+
+  // 코디(상대) 메시지 자동번역 — 내가 쓴 것(agency)은 제외, 나머지 한글 메시지만 상대 언어로.
+  useEffect(() => {
+    if (lang === "ko") { setMsgTr({}); return; }
+    const texts = messages.filter((m) => m.actor_type !== "agency" && m.message_text).map((m) => m.message_text);
+    if (texts.length === 0) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const token = await getToken();
+        if (!token) return;
+        const res = await fetch("/api/agency/translate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ texts, lang }),
+        });
+        const json = await res.json();
+        if (!cancelled && json?.ok && json.translations) setMsgTr((prev) => ({ ...prev, ...json.translations }));
+      } catch { /* 실패 시 원문 유지 */ }
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [messages, lang]);
+  const trMsg = (t) => (t && lang !== "ko" ? (msgTr[t] || msgTr[String(t).trim()] || t) : t);
+  const msgIsTr = (t) => !!(t && lang !== "ko" && (msgTr[t] || msgTr[String(t).trim()]));
 
   const send = async () => {
     const text = draft.trim();
@@ -1396,8 +1460,8 @@ function ChatDrawer({ open, onClose, inquiryId, caseName, tt, getToken }) {
             const mine = m.actor_type === "agency";
             const coord = m.actor_type === "coordinator" || m.actor_type === "admin";
             if (!mine && !coord) {
-              // 시스템 메시지 — 가운데 칩
-              return <div key={m.id} className="text-center"><span className="inline-block text-[11px] text-gray-500 bg-gray-100 rounded-full px-3 py-1">{m.message_text}</span></div>;
+              // 시스템 메시지 — 가운데 칩 (한글이면 상대 언어로 번역)
+              return <div key={m.id} className="text-center"><span className="inline-block text-[11px] text-gray-500 bg-gray-100 rounded-full px-3 py-1" title={msgIsTr(m.message_text) ? m.message_text : undefined}>{trMsg(m.message_text)}</span></div>;
             }
             const who = mine ? tt("msgrYou") : tt("msgrCoord");
             return (
@@ -1405,8 +1469,9 @@ function ChatDrawer({ open, onClose, inquiryId, caseName, tt, getToken }) {
                 <span className="text-[10px] text-gray-400 mb-1 px-1">{who} · {new Date(m.created_at).toLocaleString()}</span>
                 <div className={`max-w-[85%] px-3.5 py-2.5 text-sm leading-relaxed whitespace-pre-wrap break-words shadow-sm ${
                   mine ? "bg-teal-600 text-white rounded-2xl rounded-br-md" : "bg-white text-gray-800 border border-gray-200 rounded-2xl rounded-bl-md"
-                }`}>
-                  {m.message_text}
+                }`} title={!mine && msgIsTr(m.message_text) ? m.message_text : undefined}>
+                  {mine ? m.message_text : trMsg(m.message_text)}
+                  {!mine && msgIsTr(m.message_text) && <Languages size={11} className="inline-block ml-1 -mt-0.5 text-gray-300" />}
                 </div>
               </div>
             );

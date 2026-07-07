@@ -31,6 +31,7 @@ export type AiSurface =
   | "triage"
   | "doc_translate"
   | "doc_translate_verify"
+  | "note_translate"
   | "embedding"
   | "other";
 
