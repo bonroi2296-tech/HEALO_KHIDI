@@ -7,6 +7,53 @@
 
 ---
 
+## 🔖 세션 핸드오프 (2026-07-07 — 에이전시 포털 후속 4건 완료·머지: 좌측탭 확대·진행단계 명확화·코디 메모 자동번역·설명서 #708)
+
+> 직전 #706 세션이 "기록만, 내일"로 미룬 후속 4건을 이번 세션에서 전부 구현·머지. 합치기신청서(PR) **#708 ✅ 스쿼시 머지·프로덕션 반영**(origin/main `cfdaabd`, MERGED). CI(`ci`·`Smoke Tests`·Vercel) **전부 SUCCESS**.
+
+**1. 이번 세션 한 일** (PR [#708](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/708) MERGED)
+- **① 좌측 탭 확대**(`app/agency/PartnerPortal.jsx`): 어드민 좌측 nav 톤으로 — 컬러 아이콘칩 + 굵은 라벨(text-base font-bold), `md:w-56`, py-3.5. (PO "왜케 쪼잔하게, 어드민 좌측탭은 대문짝만한데".)
+- **② 진행 단계 표시 명확화**: 케이스 카드에 **현재 단계명 + 위치(예: 단계 3/8)** 크게. 완료=진한초록(체크)·보류=앰버(일시정지)·진행중=teal 색 구분, 진행 바도 완료 시 진한초록. "단계는 담당 코디네이터가 진행을 업데이트할 때마다 올라갑니다" 안내 6개어. (PO "접수했는데 1단계?"/"완료랑 같아 보임".)
+- **③ 코디 한글 메모 자동번역**(신규): 에이전시가 화면 언어(en/ru/kz/zh/ja)로 바꾸면 코디의 **진행노트·타임라인·채팅**을 자동 번역해 표시.
+  - `src/lib/translate/shortText.ts`: 짧은텍스트 번역 — **캐시 우선**(note_translations) + Gemini 배치 + 한글감지 필터 + **인덱스(i) 기반 매핑**(순서 뒤섞임 방어).
+  - `app/api/agency/translate/route.ts`: POST(`checkAgencyAuth` + `checkAiGuards` 일일상한 + IP rate limit + MAX_TEXTS/MAX_LEN 가드).
+  - `migrations/20260707_note_translations.sql`: 캐시 테이블(source_hash,target_lang / **RLS on·정책없음=service_role 전용**). **프로덕션 적용 + RLS 검증 완료**.
+  - 클라이언트 `trNote`/`trMsg` + 자동번역 아이콘(Languages) + **원문 hover(title) 폴백**. 내가 쓴 메시지는 번역 안 함. `usageLog` AiSurface `note_translate` 계측.
+- **④ 에이전시 설명서 6개어 갱신**(`src/lib/manuals/index.js`): 좌측탭·단계표시·자동번역 반영, `updated` 2026-07-07.
+
+**2. 왜 그렇게 했는지**
+- PO가 자동번역 **비용**을 먼저 물음("무료티어로 커버 안 되냐") → "짧은 텍스트 + 캐시라 무료티어 안에서 사실상 무료, aiGuard 일일상한 유효"로 설명 후 PO "붙이자" 승인. 비용이 걸림돌 아님을 확인하고 진행.
+- **독립리뷰(작성맥락 미공유 subagent)가 CONFIRMED 2건**을 잡아 수정 — 작성자=판정자=머지자 동일인 사각지대를 정확히 커버:
+  - (1) **aiGuard 일일상한이 라우트에 실제 안 걸림**(커밋 주장과 코드 불일치, 비용 남용 공백) → `checkAiGuards` + IP rate limit 추가.
+  - (2) **배치번역 순서 미검증 + 영구캐시** → 모델이 순서 뒤섞으면 A 메모에 B 번역이 붙어 영구 저장될 위험 → **인덱스(i) 기반 매핑**으로 원문↔번역 못 박음(빠진 항목은 원문 폴백).
+- 라우트 단일 POST + 캐시 키 (source_hash,target_lang)는 #701 attachment_translations 패턴 재활용(신뢰수준 동일 = service_role 전용).
+
+**3. 안 끝났거나 보류**
+- ⏸ **자동번역 실화면 런타임 미검증**: en/ru 실제 출력·타임라인·채팅 번역은 코디+에이전시 로그인 필요 → 로컬 자동화 불가([[verify_authgated_portal]]). 빌드·타입·CI·독립리뷰는 통과했으나 실클릭 미실시.
+- ⏸ **PO 방향 반응 "좀 애매하다"**(포털 전반): 기능은 유지·머지했으나 PO가 원한 형태가 이게 맞는지는 열려있음 — 프리뷰/실사용 보고 조정 여지.
+
+**4. 주의·함정**
+- **`note_translations`는 service_role 전용**(RLS on·정책 없음) — 브라우저 직접 쿼리 금지, 서버 API(`/api/agency/translate`) 경유.
+- **캐시 무효화 없음**(TTL·버전 없음, `ignoreDuplicates`): 잘못/환각 번역이 한 번 저장되면 영구 → 탈출구는 수동 DB 삭제. 인덱스 매핑으로 오매핑은 막았으나 품질 자체 재검증 장치는 없음.
+- **PII**: 코디 메모(환자정보 가능)가 Gemini로 전송 + `note_translations.translated`에 평문 저장(원문 메모도 각 테이블 평문이라 새 클래스는 아님, 접근은 service_role 차단). "PII는 `*_encrypted`" 원칙과 어긋나는 평문 사본이 하나 늘어난 점 인지.
+- 새 `inquiries` insert 경로를 만들면 `agency_id`·`user_id`·`is_test(accountEmail)`를 다 채워라(#74·#75 자매 사고 근본원인).
+
+**5. 다음 세션이 먼저 할 일**
+1. ⚠️ **직전 미검증분 먼저 확인**: 에이전시 계정 로그인 → 화면 언어 en/ru로 → **코디 한글 메모/타임라인/채팅이 번역돼 보이는지 + 원문 hover** 각 1회 실클릭(코드·CI·독립리뷰 통과, 실화면만 미검증).
+2. (열려있음) PO가 "애매하다"고 한 포털 방향 — 프리뷰/실사용 보고 필요시 조정.
+
+**6. 검증 상태**
+- ✅ PR #708 스쿼시 머지(origin/main `cfdaabd`, MERGED). CI(`ci`·`Smoke Tests(PR)`·Vercel) **전부 SUCCESS**.
+- ✅ `npx next build --webpack`·`npm run lint`(0 error)·`check:schema-refs`·`check:migrations`·`check:content` 전부 통과.
+- ✅ DB 마이그레이션 프로덕션 적용 + RLS(service_role 전용, 정책 0개) 확인.
+- ✅ 독립리뷰(작성맥락 미공유): CONFIRMED 2건(비용가드 공백·번역 오매핑) → 둘 다 수정 완료. 인증·React 경합·실패폴백·키매칭은 clean.
+- ⚠️ **검증 못 함**: 자동번역 실화면 런타임(로그인 필요 코디+에이전시 인박스) 미실시 → 5-1로 승격.
+
+**7. 다음 세션 첫 프롬프트**
+> docs/PROJECT_CONTEXT.md 최상단 읽어. 에이전시 포털 후속 4건(좌측탭 확대·진행단계 명확화·코디 메모 자동번역·설명서, PR #708)은 머지·배포됨. 먼저 프로덕션에서 **에이전시 계정 로그인 → 화면 언어 en/ru로 → 코디 한글 메모/타임라인/채팅이 번역돼 보이는지 + 원문 hover** 각 1회 실클릭 확인(빌드·CI·독립리뷰 통과, 실화면만 미검증). 그리고 PO가 포털 방향에 "좀 애매하다" 했으니 프리뷰/실사용 보고 필요시 조정. ⚠️ `note_translations`는 service_role 전용(서버 API 경유), 캐시 무효화 없음(잘못 캐시=수동삭제). 새 `inquiries` insert 경로엔 `agency_id`·`user_id`·`is_test` 다 채워라(#74·#75).
+
+---
+
 ## 🔖 세션 핸드오프 (2026-07-07 밤 — 에이전시 포털 UX 개선: 좌측탭·다음단계안내·실명표시·타임라인중복제거 #706)
 
 > PO와 라이브(크롬 공유)로 에이전시 포털(`/agency`)을 함께 보며 다듬음. 합치기신청서(PR) #706 **✅ 스쿼시 머지·프로덕션 반영**(origin/main `930f846`). 후속 4건은 PO "기록만, 내일".
@@ -30,92 +77,6 @@
 **4. 주의**
 - **병원응답 경로**(hospital_leads→case_status_history) 타임라인 중복은 이번 수정 밖(코디 저장 경로만 잡음) — 별도 소스, 미해결.
 - 세부·후속은 memory [[agency-portal-improvements-0707]]. ⚠️ **핸드오프 3개 쌓임**(#706·#701·#696) — 수동 작성이라 rotate 미실행, 다음 `/handoff`(node 有)에서 가장 오래된 #696을 `docs/archive/`로 회전.
-
----
-
-## 🔖 세션 핸드오프 (2026-07-07 — 첨부 의료문서 번역 다국어화+품질: 용어사전·캐시·숫자대조검증·수정 학습루프 #701)
-
-> PO 지시: 코디 인박스의 첨부 외국 검사지 자동번역(현 한국어 전용)을 "다국어 기반으로 품질 개선"하라 → 스코프 버튼으로 **풀세트**(다국어+사전+숫자검증+캐시+수정학습루프)·출력 **한·영·러** 확정. 합치기신청서(PR) #701로 본판(main) 머지·실서비스 반영(배포) 완료. (세션 앞부분엔 별개로 #37 키르기스 환자 검사결과 세컨드오피니언·한글번역 품질 리뷰를 대화로 제공 — 코드 아님.)
-
-**1. 이번 세션 한 일** (전부 main 머지·프로덕션 자동배포, PR [#701](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/701) `d2a6201` MERGED)
-- **다국어 출력(ko/en/ru)**: `src/lib/documents/translateDoc.ts` 프롬프트 언어 파라미터화(언어명·표헤더·판독불가표기·기본docType), 라우트 `body.lang`, UI 첨부별 `[한][EN][RU]` 토글 + 번역 캐시를 `path::lang` 키로 분리.
-- **의료용어 사전** `src/lib/documents/medicalGlossary.ts`(신규): CIS 종양·부인과 씨앗 28종(원문→ko/en/ru + 모호어 주의노트, 예 эндоцервикоз→'자궁경부 원주상피 증식' **NOT 자궁내막증**). seed + learned(DB) 병합해 프롬프트 주입.
-- **DB 캐시+학습사전** `migrations/20260707_attachment_translations.sql`(프로덕션 적용완료): `attachment_translations`(path,lang unique; doc/edited_doc), `doc_glossary_terms`. 둘 다 RLS on·정책없음=service_role 전용.
-- **숫자 대조검증**: 모델이 번역표↔원본이미지 **직접 대조** → 어긋난 숫자만 `{item, translated, source}` 쌍 반환. 배너 "항목: 번역 X / 원본재판독 Y" + "검증기도 AI라 보증 아님·최종은 원본" 고지.
-- **코디 수정→학습루프**: 번역표 인라인 수정→저장(edited_doc 보존), '＋사전 등록'으로 (원문→대상언어) 용어를 doc_glossary_terms에 축적 → 다음 번역 프롬프트 자동 반영.
-- **라우트 통합**: `/api/attachments/translate` 단일 POST에 `action`(translate/verify/save/glossary) 분기, 인증(admin|staff)·path검증 공유.
-- 부수: `AiSurface`에 `doc_translate_verify`, `database.types.ts` 새 테이블 2종 타입, 코디 사용설명서(ko/en/ru) '첨부 서류 번역' 항목 + updated 2026-07-07.
-
-**2. 왜 그렇게 했는지**
-- 품질 최대 레버 = ①다국어 출력(엔진이 이미 근접구조) ②용어사전(오역 부류 못박기). 나머지(캐시·검증·학습)는 PO 풀세트 선택.
-- **OCR 라이브러리 추가 안 함(의도)** — 스캔·깨진 폰트엔 멀티모달 이미지 판독이 더 강함. 되살리지 마라.
-- **숫자검증 = 판사 아니라 신호기** (PO가 "검증기도 AI라 틀릴 수 있잖아"를 정확히 지적): 원본 재판독이 틀리면 헛알람(안전), 둘 다 같게 틀리면 놓침 → 최종진실=원본(항상 한 클릭 보존)임을 화면에 명시. 초기 "다중집합 diff→못찾은숫자 나열"에서 PO 요청으로 "모델이 직접 대조→번역/원본 쌍 표시"로 재설계(행정렬은 모델이 시각적으로).
-- 라우트 단일 action 분기 = 인증·경로검증 공유로 파일 최소화.
-
-**3. 안 끝났거나 보류**
-- ⏸ **런타임 실화면 미검증**: en/ru 실제 출력·숫자검증·수정저장·사전학습은 코디 로그인 필요 → 로컬 자동화 불가([[verify_authgated_portal]]). 빌드·타입·CI·독립리뷰는 통과했으나 실클릭 미실시.
-- ⏸ **PO 방향 반응 "좀 애매하다"**: 기능은 유지·머지했으나 PO가 원래 그린 형태가 이게 맞는지는 열려있음 — 다음에 조정 여지.
-
-**4. 주의·함정**
-- 캐시 키는 (path,lang)뿐 → 같은 경로에 **다른 파일 재업로드** 시 옛 번역 반환(escape=「다시 변환」=force). storage 경로는 사실상 불변이라 실무 위험 낮음.
-- `TranslatedDocView`엔 **`key={curKey}` 필수** — 없으면 언어전환 시 편집 draft가 살아남아 다른 언어 캐시 오염(독립리뷰 CONFIRMED, 이번에 수정). 이 컴포넌트 리팩터 시 유지.
-- 새 테이블은 **service_role 전용**(RLS 정책 없음) — 브라우저 직접 쿼리 금지, 서버 API 경유. 마이그레이션은 이미 프로덕션 Supabase 적용됨(코드보다 먼저 적용해 머지 시 안전).
-- 자동저장 훅이 커밋을 가로채 일부 커밋 메시지가 "작업 자동 저장"으로 남음(diff·머지는 PR에 정상) [[autosave_hook_hazard]].
-
-**5. 다음 세션이 먼저 할 일**
-1. ⚠️ **직전 미검증분 먼저 확인**: 프로덕션에서 코디 로그인 → 문의 첨부 → `[EN]`/`[RU]` 변환 · 「숫자검증」(번역/원본 쌍이 뜨는지) · 「수정」저장 · 「＋사전 등록」을 각 1회 실클릭 확인.
-2. (열려있음) PO가 "애매하다"고 한 지점 — 이 번역 UX가 PO가 원한 방향인지 확인, 필요시 조정.
-
-**6. 검증 상태**
-- ✅ PR #701 스쿼시 머지(origin/main `d2a6201`, state MERGED). CI(ci·Smoke Tests(PR)·Vercel) **전부 SUCCESS**.
-- ✅ `npx next build --webpack`·`npm run check:content` 통과. DB 마이그레이션 프로덕션 적용 확인.
-- ✅ 독립리뷰(작성맥락 미공유 subagent): 보안·인증·캐시 로직 clean, CONFIRMED 결함 1건(언어전환 편집 오염)→수정 완료.
-- ⚠️ **검증 못 함**: 실화면 런타임(로그인 필요 코디 인박스) 미실시 → 5-1로 승격.
-
-**7. 다음 세션 첫 프롬프트**
-> docs/PROJECT_CONTEXT.md 최상단 읽어. 코디 인박스 첨부 의료문서 번역 다국어화+품질(용어사전·캐시·숫자대조검증·수정 학습루프, PR #701)은 머지·배포됨. 먼저 프로덕션에서 코디 로그인→문의 첨부→`[EN]`/`[RU]` 변환·「숫자검증」(번역/원본 쌍)·「수정」저장·「＋사전등록」을 각 1회 실클릭 확인(빌드·CI·독립리뷰 통과, 실화면만 미검증). 그리고 PO가 이 번역 UX에 "좀 애매하다"고 했으니 원하는 방향 맞는지 확인하고 필요시 조정. 새 attachment_translations/doc_glossary_terms는 service_role 전용(서버 API 경유).
-
----
-
-## 🔖 세션 핸드오프 (2026-07-07 — 에이전시 공개폼 접수 가시성 버그: 로그인 에이전시 소속 자동 각인·머지·배포 #696)
-
-> PO 지시: "로그인한 에이전시 유저가 **공개 웹폼**으로 문의를 넣으면 `inquiries.agency_id`가 NULL로 저장돼, 에이전시 포털에서 자기 문의·진행상황이 안 보인다. 접수 시 소속을 자동 각인해라. #37 백필은 하지 말고 forward-looking 로직만." → 합치기신청서(PR) #696으로 본판(main) 머지·실서비스 반영(배포) 완료.
-
-**1. 이번 세션 한 일** (전부 main 머지·프로덕션 자동배포)
-- **PR [#696](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/696) ✅ 스쿼시 머지·프로덕션 자동배포** (origin/main `7dcf881`, state MERGED).
-  - **신규 `src/lib/auth/resolveAgencyIdForUser.ts`**: 로그인 `userId` → 활성 `agency_users` 멤버십에서 `agency_id` 조회(service_role, RLS 우회). 미소속·게스트·조회실패는 `null` → **접수 자체는 진행(fail-safe)**.
-  - **`app/api/inquiries/step1/route.ts`**: 이미 Bearer 토큰으로 받던 `userId`로 각인, `inquiries` insert에 `agency_id` 추가(`user_id` 옆, 추가 조회 0).
-  - **유닛테스트 `resolveAgencyIdForUser.test.ts`**(회귀 가드 4케이스): userId 없으면 조회 안 함 / 활성멤버면 id / 미소속 null / 조회 던져도 null.
-  - **POSTMORTEMS #75** 기록 — #63 "경로별 규칙 드리프트" **🔁 재발**(#74 is_test와 같은 날 같은 `inquiries` insert 테이블 자매 사고).
-
-**2. 왜 그렇게 했는지**
-- **근본원인 = 접수 경로마다 `agency_id` 각인 규칙이 갈림**: 정식 의뢰 `/api/agency/refer`는 찍는데 **공개폼 `step1`만 누락**. 첫 실고객 #37(agency@test.com, "TEST 에이전시" 소속)이 정확히 이 표본 — 임시 stamp 시 포털에 #37+코디노트+타임라인 정상 노출(기능 멀쩡, 연결만 끊김).
-- **살아있는 공개 insert 경로는 step1 하나뿐**이라 각인 지점 1곳이면 충분: `create`=410 Gone(사문), `intake`=기존 row UPDATE(step1 각인이면 커버), `normalize`=`normalized_inquiries`(다른 테이블). → 유사 스캔 전수 완료.
-- **로직을 헬퍼로 뽑은 이유**: 라우트 본체는 rate-limit·암호화·auth 때문에 격리 유닛테스트 불가 → 조회만 순수 헬퍼로 분리해 테스트 가능하게.
-- **독립 리뷰 지적 처리(멀티-에이전시 소속 edge)**: 리뷰가 "헬퍼에만 ORDER BY 추가"를 제안했으나 **채택 안 함** — 조회측 `checkAgencyAuth`도 동일한 무순서 `limit(1)`이라, 헬퍼가 그걸 **의도적으로 미러해야 각인==조회로 일치**한다(한쪽만 정렬하면 각인≠조회 divergence로 오히려 악화). 스키마상 `agency_id` nullable·FK `ON DELETE SET NULL`이라 insert 신규 실패 없음. `ponytail:` 주석으로 상한·업그레이드 경로 명시.
-
-**3. 안 끝났거나 보류**
-- ⏸ **라이브 E2E 미실시**: 실제 에이전시 계정 로그인→공개폼 접수→포털 노출은 로컬 자동화 불가(로그인 포털 SSR 쿠키 [[verify_authgated_portal]]). 배포 후 PO/다음 세션 스팟 확인 필요.
-- ⏸ **(권장·범위 밖) 데이터 감시망**: "agency 소속 user_id로 접수됐는데 agency_id NULL"인 문의를, #690에서 붙인 일일 KPI 오염 감사 cron에 얹으면 미래 재발도 데이터에서 잡힘. 이번 PR엔 미포함.
-- ⏸ **#37 백필 안 함**: 정식계정 이관 계획으로 별도 처리([[first-real-inquiry-37-migration]]). 이 PR은 forward-looking 로직만.
-
-**4. 주의·함정**
-- **새 `inquiries` insert 경로를 만들면 `agency_id`(로그인 에이전시면)·`user_id`·`is_test(accountEmail)`를 다 채워라.** step1이 참고 패턴. 이 셋은 "접수 경로가 각자 채우는 귀속/판정 필드"라 경로마다 빠지기 쉬움(#74·#75 자매 사고의 공통 근본원인 = 단일 SoR 부재).
-- 접수 주체 배지는 `agency_id` 기준(있으면 "에이전시 의뢰", 없으면 "환자 직접 접수") → 각인되면 자동 정정(부수효과 정상). 배지 코드는 안 건드림.
-- 세션 도중 worktree(`friendly-swanson-f6b6c0`)가 머지 후 삭제돼 origin repo로 전환됨. 이 핸드오프는 `claude/handoff-testdata-0707`(4 behind·stale)이 아니라 **origin/main 기준 새 브랜치**에서 작성(stale 브랜치에 쓰면 main 최신분 되돌릴 위험).
-
-**5. 다음 세션이 먼저 할 일**
-1. ⚠️ **직전 미검증분 먼저 확인**: 프로덕션 배포 완료 후 **에이전시 계정으로 로그인 → 공개 문의폼 접수 → `/agency`에서 그 문의가 바로 보이는지** 1회 확인(코드·유닛·CI·독립리뷰는 통과, 라이브 E2E만 미실시).
-2. (선택) 위 3번의 "agency_id NULL 감시"를 일일 KPI 감사 cron에 추가.
-
-**6. 검증 상태**
-- ✅ **PR #696 스쿼시 머지 확인**(origin/main `7dcf881`, state MERGED). CI **Smoke Tests(PR)·ci·Vercel 배포 pass**. E2E 잡은 PR에선 skip(main push/cron 전용).
-- ✅ 유닛테스트 4/4 · `npm run check:content` · `npx next build --webpack` 통과.
-- ✅ 독립 리뷰 게이트(작성맥락 미공유 subagent): insert 신규 실패 없음·RLS 안전·게스트 경로 보존 확인, CONFIRMED 블로킹 결함 0(멀티-에이전시 edge는 상한 문서화로 처리).
-- ⚠️ **검증 못 함**: 라이브 E2E(에이전시 로그인→공개폼→포털 노출) 미실시 → 5-1로 승격.
-
-**7. 다음 세션 첫 프롬프트**
-> docs/PROJECT_CONTEXT.md 최상단 읽어. 에이전시 공개폼 접수 가시성 버그(로그인 에이전시 소속 `agency_id` 자동 각인, PR #696)는 머지·배포됨. 먼저 프로덕션에서 **에이전시 계정 로그인→공개 문의폼 접수→`/agency`에 바로 보이는지** 1회 확인(코드·유닛·CI·독립리뷰 통과, 라이브 E2E만 미실시). ⚠️ 새 `inquiries` insert 경로를 만들면 `agency_id`·`user_id`·`is_test(accountEmail)`를 다 채워라(step1이 참고 패턴 — 경로별 각인 누락이 #74·#75 반복 근본원인). #37 백필은 하지 마(이관 계획 별도 [[first-real-inquiry-37-migration]]).
 
 ---
 
