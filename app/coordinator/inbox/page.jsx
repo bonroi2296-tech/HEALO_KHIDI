@@ -13,18 +13,10 @@ import {
   Calendar, ChevronRight, RefreshCw,
 } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
-
-const CANCER_LABELS = {
-  stomach: "위암", liver: "간암", lung: "폐암",
-  breast: "유방암", thyroid: "갑상선암", colorectal: "대장암",
-  pancreatic: "췌장암", other: "기타",
-};
-
-const NATIONALITY_LABELS = {
-  KZ: "카자흐스탄", RU: "러시아", UZ: "우즈베키스탄",
-  KG: "키르기스스탄", MN: "몽골", CN: "중국",
-  JP: "일본", KR: "한국", OTHER: "기타",
-};
+import { useCoordinatorL, useDateLocale } from "@/lib/i18n/coordinator";
+import { useLang } from "@/lib/i18n/LangContext";
+import { cancerTypeLabelL, contactMethodLabelL } from "@/lib/khidi/medicalLabels";
+import { nationalityLabelL } from "@/lib/khidi/nationality";
 
 const STATUS_COLORS = {
   received: "bg-yellow-100 text-yellow-700",
@@ -35,6 +27,13 @@ const STATUS_COLORS = {
 
 export default function CoordinatorInboxPage() {
   const router = useRouter();
+  const L = useCoordinatorL();
+  const lang = useLang();
+  const dateLoc = useDateLocale();
+  const STATUS_LABELS = {
+    received: L.invStatusReceived, reviewing: L.invStatusReviewing,
+    matched: L.invStatusMatched, completed: L.invStatusCompleted,
+  };
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("all"); // all | step1_only | step2_done
@@ -77,31 +76,31 @@ export default function CoordinatorInboxPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            <Inbox size={24} className="text-teal-700" /> 신규 상담 인박스
+            <Inbox size={24} className="text-teal-700" /> {L.inboxTitle}
           </h1>
-          <p className="text-gray-500 text-sm mt-1">접수된 모든 상담 문의 목록입니다 (퍼널·메신저·에이전시 포함).</p>
+          <p className="text-gray-500 text-sm mt-1">{L.inboxSubtitle}</p>
         </div>
         <button
           onClick={load}
           className="flex items-center gap-2 px-3 py-2 text-sm text-gray-500 hover:text-teal-700 hover:bg-teal-50 rounded-lg transition"
         >
-          <RefreshCw size={16} /> 새로 고침
+          <RefreshCw size={16} /> {L.refresh}
         </button>
       </div>
 
       {/* 필터 탭 */}
       <div className="flex gap-2 border-b border-gray-200">
         {[
-          { key: "all", label: "전체", count: items.length },
+          { key: "all", label: L.all, count: items.length },
           {
             key: "step1_only",
-            label: "추가 정보 필요",
+            label: L.inboxFilterNeedInfo,
             count: step1OnlyCount,
             badge: "red",
           },
           {
             key: "step2_done",
-            label: "매칭 준비 완료",
+            label: L.inboxFilterReady,
             count: items.filter((i) => !!i.step2_completed_at).length,
           },
         ].map((tab) => (
@@ -136,21 +135,21 @@ export default function CoordinatorInboxPage() {
       ) : filtered.length === 0 ? (
         <div className="text-center py-16 bg-gray-50 rounded-xl">
           <Inbox size={40} className="mx-auto text-gray-300 mb-3" />
-          <p className="text-gray-500">해당 조건의 상담이 없습니다.</p>
+          <p className="text-gray-500">{L.inboxEmpty}</p>
         </div>
       ) : (
         <div className="overflow-hidden rounded-xl border border-gray-200 bg-white">
           <table className="w-full text-sm">
             <thead>
               <tr className="bg-gray-50 border-b border-gray-200">
-                <th className="px-4 py-3 text-left font-semibold text-gray-600">이름</th>
-                <th className="px-4 py-3 text-left font-semibold text-gray-600">국적</th>
-                <th className="px-4 py-3 text-left font-semibold text-gray-600">암종</th>
-                <th className="px-4 py-3 text-left font-semibold text-gray-600">연락방법</th>
-                <th className="px-4 py-3 text-left font-semibold text-gray-600">Step 완료</th>
-                <th className="px-4 py-3 text-left font-semibold text-gray-600">매칭 정확도</th>
-                <th className="px-4 py-3 text-left font-semibold text-gray-600">접수일</th>
-                <th className="px-4 py-3 text-left font-semibold text-gray-600">상태</th>
+                <th className="px-4 py-3 text-left font-semibold text-gray-600">{L.name}</th>
+                <th className="px-4 py-3 text-left font-semibold text-gray-600">{L.nationality}</th>
+                <th className="px-4 py-3 text-left font-semibold text-gray-600">{L.cancerType}</th>
+                <th className="px-4 py-3 text-left font-semibold text-gray-600">{L.contactMethod}</th>
+                <th className="px-4 py-3 text-left font-semibold text-gray-600">{L.inboxColStep}</th>
+                <th className="px-4 py-3 text-left font-semibold text-gray-600">{L.inboxColMatch}</th>
+                <th className="px-4 py-3 text-left font-semibold text-gray-600">{L.receivedDate}</th>
+                <th className="px-4 py-3 text-left font-semibold text-gray-600">{L.status}</th>
                 <th className="px-4 py-3" />
               </tr>
             </thead>
@@ -174,10 +173,10 @@ export default function CoordinatorInboxPage() {
                         {/* 접수 주체 구분: 에이전시 의뢰면 배지(환자 직접은 배지 없음=기본) */}
                         {item.agency_id && (
                           <span
-                            title={item.agency_name || "에이전시 의뢰"}
+                            title={item.agency_name || L.agencyReferral}
                             className="px-1.5 py-0.5 text-[10px] font-semibold rounded-full bg-violet-100 text-violet-700 shrink-0"
                           >
-                            🏢 에이전시
+                            🏢 {L.badgeAgency}
                           </span>
                         )}
                       </div>
@@ -185,14 +184,18 @@ export default function CoordinatorInboxPage() {
                     <td className="px-4 py-3 text-gray-600">
                       <span className="flex items-center gap-1">
                         <Globe size={12} />
-                        {NATIONALITY_LABELS[item.nationality] || item.nationality || "—"}
+                        {item.nationality ? nationalityLabelL(item.nationality, lang) : "—"}
                       </span>
                     </td>
                     <td className="px-4 py-3 text-gray-600">
-                      {CANCER_LABELS[item.cancer_type] || item.cancer_type || "—"}
+                      {item.cancer_type ? cancerTypeLabelL(item.cancer_type, lang) : "—"}
                     </td>
                     <td className="px-4 py-3 text-gray-600">
-                      {item.contact_method || (item.preferred_language ? "이메일" : "—")}
+                      {item.contact_method
+                        ? contactMethodLabelL(item.contact_method, lang)
+                        : item.preferred_language
+                        ? contactMethodLabelL("email", lang)
+                        : "—"}
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-1.5">
@@ -203,7 +206,7 @@ export default function CoordinatorInboxPage() {
                               : "bg-red-100 text-red-700"
                           }`}
                         >
-                          {step2Done ? "Step 1+2" : "Step 1만"}
+                          {step2Done ? "Step 1+2" : L.inboxStepOneOnly}
                         </span>
                         {!step2Done && (
                           <AlertCircle size={14} className="text-red-500" />
@@ -225,7 +228,7 @@ export default function CoordinatorInboxPage() {
                       <span className="flex items-center gap-1">
                         <Calendar size={12} />
                         {item.created_at
-                          ? new Date(item.created_at).toLocaleDateString("ko-KR")
+                          ? new Date(item.created_at).toLocaleDateString(dateLoc)
                           : "—"}
                       </span>
                     </td>
@@ -235,7 +238,7 @@ export default function CoordinatorInboxPage() {
                           STATUS_COLORS[item.status] || "bg-gray-100 text-gray-600"
                         }`}
                       >
-                        {item.status || "received"}
+                        {STATUS_LABELS[item.status] || L.invStatusReceived}
                       </span>
                     </td>
                     <td className="px-4 py-3 text-gray-400">

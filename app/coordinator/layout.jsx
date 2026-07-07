@@ -8,28 +8,31 @@ import {
   LogOut, Menu, X, LayoutDashboard, Building2, Bot, Target,
 } from 'lucide-react';
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser';
+import { useCoordinatorL } from '@/lib/i18n/coordinator';
 import StaffPortalGate from '../_components/StaffPortalGate';
 import ManualDrawer from '../_components/ManualDrawer';
 
 // 메뉴 = 실제 존재하는 라우트만 (옛 patients·kpi 화면은 미구현 → 404라 제거).
+// 라벨은 언어 스위처에 반응하도록 사전 키(labelKey)로 — 렌더 시 L[labelKey]로 해석.
 const NAV_ITEMS = [
-  { id: 'dashboard', label: '대시보드', icon: LayoutDashboard, href: '/coordinator' },
-  { id: 'inbox', label: '문의함', icon: Inbox, href: '/coordinator/inbox' },
-  { id: 'chat', label: 'AI 상담 리드', icon: Bot, href: '/coordinator/chat' },
-  { id: 'cases', label: '의뢰·케이스/병원배정', icon: Building2, href: '/coordinator/cases' },
-  { id: 'consultations', label: '상담 일정', icon: Video, href: '/coordinator/consultations' },
-  { id: 'partners', label: '파트너 발굴', icon: Target, href: '/coordinator/partners' },
-  { id: 'intakes', label: '인테이크 관리', icon: ClipboardList, href: '/coordinator/intakes' },
-  { id: 'messages', label: '메시지', icon: MessageSquare, href: '/coordinator/messages' },
-  { id: 'visa', label: '비자 트래킹', icon: Plane, href: '/coordinator/visa' },
-  { id: 'cost-estimates', label: '견적', icon: Calculator, href: '/coordinator/cost-estimates' },
-  { id: 'alerts', label: '증상 알림', icon: Bell, href: '/coordinator/alerts' },
+  { id: 'dashboard', labelKey: 'navDashboard', icon: LayoutDashboard, href: '/coordinator' },
+  { id: 'inbox', labelKey: 'navInbox', icon: Inbox, href: '/coordinator/inbox' },
+  { id: 'chat', labelKey: 'navChat', icon: Bot, href: '/coordinator/chat' },
+  { id: 'cases', labelKey: 'navCases', icon: Building2, href: '/coordinator/cases' },
+  { id: 'consultations', labelKey: 'navConsultations', icon: Video, href: '/coordinator/consultations' },
+  { id: 'partners', labelKey: 'navPartners', icon: Target, href: '/coordinator/partners' },
+  { id: 'intakes', labelKey: 'navIntakes', icon: ClipboardList, href: '/coordinator/intakes' },
+  { id: 'messages', labelKey: 'navMessages', icon: MessageSquare, href: '/coordinator/messages' },
+  { id: 'visa', labelKey: 'navVisa', icon: Plane, href: '/coordinator/visa' },
+  { id: 'cost-estimates', labelKey: 'navCostEstimates', icon: Calculator, href: '/coordinator/cost-estimates' },
+  { id: 'alerts', labelKey: 'navAlerts', icon: Bell, href: '/coordinator/alerts' },
 ];
 
 export default function CoordinatorLayout({ children }) {
   const pathname = usePathname();
   const router = useRouter();
   const supabase = createSupabaseBrowserClient();
+  const L = useCoordinatorL();
   const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => { setMobileOpen(false); }, [pathname]);
@@ -49,7 +52,7 @@ export default function CoordinatorLayout({ children }) {
             </div>
             <div>
               <h1 className="text-base font-bold text-gray-900">healwith</h1>
-              <p className="text-[10px] text-gray-500">코디네이터</p>
+              <p className="text-[10px] text-gray-500">{L.brandRole}</p>
             </div>
           </div>
           <button onClick={() => setMobileOpen(false)} className="lg:hidden p-2 text-gray-400 hover:text-gray-600 rounded-lg">
@@ -71,7 +74,7 @@ export default function CoordinatorLayout({ children }) {
               }`}
             >
               <Icon size={18} className={active ? 'text-blue-600' : 'text-gray-400'} />
-              <span>{item.label}</span>
+              <span>{L[item.labelKey]}</span>
             </Link>
           );
         })}
@@ -83,7 +86,7 @@ export default function CoordinatorLayout({ children }) {
           className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-700 hover:bg-red-50 hover:text-red-600 transition-all min-h-[44px]"
         >
           <LogOut size={18} />
-          <span>로그아웃</span>
+          <span>{L.logout}</span>
         </button>
       </div>
     </>
@@ -98,7 +101,7 @@ export default function CoordinatorLayout({ children }) {
           <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
             <ClipboardList size={16} className="text-white" />
           </div>
-          <span className="font-bold text-gray-900">코디네이터</span>
+          <span className="font-bold text-gray-900">{L.brandRole}</span>
         </div>
         <button onClick={() => setMobileOpen(true)} className="p-2 text-gray-600 hover:bg-gray-100 rounded-lg">
           <Menu size={22} />
