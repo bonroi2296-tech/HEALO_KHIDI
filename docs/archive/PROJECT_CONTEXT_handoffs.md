@@ -3,6 +3,51 @@
 
 
 
+
+## 🔖 세션 핸드오프 (2026-07-07 — 전방위 버그 사냥 2라운드 + 보류목록: main에 PR 4개 머지·배포 #675·#680·#682·#685)
+
+> "세션 만든 김에 뭐하고 놀까"에서 시작 → PO가 "버그 사냥" 선택. subagent 8마리로 2라운드 훑고(보안·데이터·i18n·백오피스로직·돈/시간대·크론·프론트훅), **찾은 건 내가 직접 코드 재확인한 것만** 심각도순 보고 → PO가 범위 버튼선택 → 수정. **매 PR을 작성맥락 미공유 독립 리뷰 subagent로 검증 후 자동머지.** KHIDI 8/27 정량지표 유실 구멍 3개를 닫은 게 핵심.
+
+**1. 이번 세션 한 일** (전부 main 머지·프로덕션 배포)
+- **PR [#675](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/675)**: 환자앱(6개어) 한글누출 3곳(`/patient/visa` 허브 통짜·증상분석 긴급도배지·권장조치문구) 6개어화 · 목록 API 2곳(cost-estimates·visa)이 환자에게 코디노트 암호문 반환하던 것 strip · `decryptMaybe` 무방비 복호화로 리드 인박스 전체 500 나던 것 try-catch(7개 호출부 보호). 가드 §1d(환자앱 JSX 한글) 신설.
+- **PR [#680](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/680)**: **BO-1** admin 리드확정 시 유치(K-01) 미집계 봉쇄(`admin/leads/[id]`에 `syncLeadStatusToCase` 추가 — partner 경로만 집계하던 구멍) · **CRON-1** 만족도(K-03) 설문 이메일실패 영구유실 방지(실패 시 pending행 삭제→재시도) · **예약시각 시간대 15곳** KST 고정(`src/lib/datetime/kst.js` 신설: kstDate/kstTime/kstDateTime/kstDateParts) · 재예약 기본10시가 UTC라 19:00 KST 잡히던 것. 가드 §1e(`scheduled_at` Asia/Seoul 누락) 신설.
+- **PR [#682](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/682)**: **FE-1** 환자·코디 메시지 폴링이 전체교체라 전송 직후 메시지가 폴링 때 깜빡 사라지던 것→id 병합 · **BO-2** `/api/admin/analytics`가 테스트문의 미제외로 대시보드 리드수 부풀리던 것 `.not(is_test,is,true)`.
+- **PR [#685](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/685)**: **MONEY-4** 견적서 USD총액이 KRW와 독립합산돼 불일치하던 것 → 모든 라인에 USD 있을 때만 표기(불완전시 `total_usd=null`→표시화면 truthy가드가 자동 숨김 + PDF 별도가드).
+- 반성문 **#67~#72** 기록. 비번 `error.message` 노출(#6)은 작업칩으로 넘겨 **딴 세션이 수리·머지**(#684 계열).
+
+**2. 왜 그렇게 했는지**
+- 유치·설문·시간대 수정은 KHIDI 8/27 **정량지표(유치/상담/만족도) 유실을 직접 막은 것** — 실적이 통과관건인데 그게 조용히 새던 구멍. 시간대는 러/카(핵심타깃) 환자가 예약시각을 4시간 밀려 보고 상담 놓치던 문제.
+- **CRON-3/4 리마인더 이중발송은 의도적 보류(현행유지)**: 의료 리마인더는 **at-least-once(중복)가 유실보다 안전**하고 Vercel 크론은 겹쳐 안 돌아, 순진한 dedup/claim은 오히려 리마인더 유실 위험. 완전 idempotency 재설계 전엔 현행이 옳음.
+- **MONEY-4는 환율정책=PO 결정 사항**(법적 문서). 환율 임의계산 대신 "불완전시 USD 숨김"(틀린 숫자 안 나감) 채택.
+
+**3. 안 끝났거나 보류**
+- ⏸ **CRON-3/4 리마인더 이중발송** — 의도적 현행유지(위 2번 근거). 완전 idempotency가 필요해지면 그때 dedupe키 설계.
+- ⏸ **코디 내부 견적 편집화면 하단 합계**(`CoordinatorCostDetailClient`)는 단순합산 유지 — 코디가 입력 중인 작업용 실시간 총액이라 의도적 비변경(환자/법적문서 아님).
+
+**4. 주의·함정**
+- **예약시각(`scheduled_at`) 표시는 반드시 `src/lib/datetime/kst.js`의 kstDate/kstTime/kstDateTime/kstDateParts 경유.** 가드 §1e가 `scheduled_at`+`toLocale`+`Asia/Seoul`없으면 CI 차단(단, 변수에 담은 다중행은 못 잡음 — 리뷰 몫). 환자앱 JSX 텍스트 한글은 §1d가 차단.
+- **`.ts` 수정은 `next build`만으론 타입에러 안 잡힘**(strict:false) → **`npm run typecheck` 필수**(이번 1차 CI fail 원인: `string|null`→`string`). `.next/dev/types`의 낡은 캐시 에러(딴 브랜치 페이지)는 `rm -rf .next/dev/types` 후 재검사.
+- ⚠️ **이 세션 내내 로컬 working tree가 딴 브랜치로 튐**(auto-save훅+병렬세션+세션resume). 코드는 매 PR로 origin에 안전히 남았으나 **로컬 상태를 믿지 말고 origin 기준으로 확인**할 것.
+
+**5. 다음 세션이 먼저 할 일**
+1. ⚠️ **직전 미검증분 먼저**: 이번 4개 PR의 **실화면 렌더는 인증필요라 눈으로 못 봄**(빌드·타입·독립리뷰·CI로 대체) → 배포후 실클릭으로 ①환자앱 러/카 화면 한글 안 새는지 ②예약시각이 KST로 뜨는지(브라우저 tz 바꿔 확인) ③견적서 USD 부분입력시 숨는지 확인.
+2. **07-06 미검증분 유지**: 다기기 화상 테스트(초대링크 **2026-07-10 만료** → 그 전에 진행 보채기) + LiveKit webhook 첫 수신(Vercel 로그 `[livekit/webhook]`).
+3. (선택) 보류한 CRON-3/4·MONEY 후속은 위 3번 참조.
+
+**6. 검증 상태**
+- ✅ PR **#675·#680·#682·#685** 전부 CI(`ci`·`Smoke`)초록 + Vercel 배포 + **독립 리뷰 subagent CLEAN** 확인 후 squash 머지, origin/main 반영 실확인. #680은 1차 `tsc` fail(`hospital_id` string|null)→null가드 수정 후 통과.
+- ✅ MONEY-4: `cost_estimates.total_usd` nullable 실DB 확인(integer, is_nullable=YES) → null 저장 안전.
+- ✅ 자동검사: 매 PR `next build --webpack`·`typecheck`·`check:content` 통과. 새 가드 §1d·§1e 포함 통과(§1e가 커밋 전 누락 2줄 실제로 잡음).
+- ⚠️ **검증 못 함**: 위 4개 PR의 **실화면 렌더(환자앱 6개어·예약시각 KST·견적서 USD숨김)** — 전부 인증게이트라 로컬 자동화 불가. 5-1로 승격.
+
+**7. 다음 세션 첫 프롬프트**
+> docs/PROJECT_CONTEXT.md 최상단 읽어. 2026-07-07 버그사냥으로 머지한 4개 PR(#675·#680·#682·#685)의 실화면을 배포본에서 확인해 — 환자앱 러/카 한글 안 새는지·예약시각 KST로 뜨는지(브라우저 tz 바꿔)·견적서 USD 부분입력시 숨는지. 그리고 다기기 화상 테스트가 아직이면 초대링크 만료(2026-07-10) 전에 하자고 보채. 예약시각 표시는 이제 src/lib/datetime/kst 헬퍼만 써(가드 §1e). .ts 고치면 typecheck도 꼭 돌려.
+
+---
+
+
+---
+
 ## 🔖 세션 핸드오프 (2026-07-07 — 비활성(소프트삭제) 계정 차단을 인증 헬퍼로 승격·머지·배포 #681)
 
 > #677 독립 보안 리뷰 후속. "계정을 비활성(퇴사·삭제) 처리해도 로그인 세션이 살아있으면 인증 필요 API를 계속 쓸 수 있던 구멍"을 인증 검문소 한 곳에서 봉쇄. 독립 리뷰(별도 subagent) APPROVE + CI 초록 → PO 버튼 승인으로 머지·프로덕션 자동배포. 단일 집중 세션(코드만).
