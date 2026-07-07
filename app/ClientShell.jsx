@@ -407,7 +407,7 @@ function PortalTopBar({ session, onLogout, siteConfig, langCode }) {
         {siteConfig?.logo ? (
           <img src={siteConfig.logo} alt="healwith" className="h-8 w-auto object-contain" />
         ) : (
-          <Logo tone="light" />
+          <Logo tone="light" lang={langCode} />
         )}
       </Link>
 

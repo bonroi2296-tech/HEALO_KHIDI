@@ -167,7 +167,7 @@ export const Header = ({ setView, view, _handleGlobalInquiry, isMobileMenuOpen, 
               {siteConfig?.logo ? (
                   <img src={siteConfig.logo} alt="healwith" className="h-8 md:h-9 object-contain" />
               ) : (
-                  <Logo tone="light" />
+                  <Logo tone="light" lang={langCode} />
               )}
             </div>
             <nav className="hidden xl:flex items-center gap-0.5">
@@ -307,7 +307,7 @@ export const Header = ({ setView, view, _handleGlobalInquiry, isMobileMenuOpen, 
           <div className="relative w-[85%] max-w-[320px] h-full bg-white shadow-2xl flex flex-col animate-in slide-in-from-right duration-300">
             {/* Mobile header */}
             <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-              <Logo tone="light" size="sm" />
+              <Logo tone="light" size="sm" lang={langCode} />
               <button onClick={() => setIsMobileMenuOpen(false)} className="p-1.5 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
                 <X size={20} />
               </button>
