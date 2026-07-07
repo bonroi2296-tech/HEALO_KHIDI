@@ -44,6 +44,7 @@ const ROUTES = [
   "/medical-disclaimer",
   "/education",
   "/insurance",
+  "/partners",
   "/visa",
   "/inquiry",
   "/intake",

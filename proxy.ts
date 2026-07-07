@@ -37,6 +37,7 @@ const PUBLIC_PREFIXES = [
   "/faq",
   "/education",
   "/insurance",
+  "/partners",
   "/visa",
   "/about",
   "/contact",
