@@ -149,6 +149,37 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
     setAttLoadingPath(null);
   }
 
+  // 첨부 다운로드: download=원본파일명 으로 서명URL 발급 → Content-Disposition 으로 한 번에 원본 이름 저장.
+  // (미리보기와 달리 새 탭이 아니라 즉시 다운로드. 스토리지 난수 대신 원래 문서명이 붙는다.)
+  const [attDownloadPath, setAttDownloadPath] = useState(null);
+  async function downloadAttachment(path, name) {
+    if (!path) return;
+    setAttDownloadPath(path);
+    try {
+      const supabase = createSupabaseBrowserClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      const cleanPath = path.startsWith("/") ? path.slice(1) : path;
+      const res = await fetch("/api/attachments/sign", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({ path: cleanPath, download: name || cleanPath.split("/").pop() }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.signedUrl) {
+        const a = document.createElement("a");
+        a.href = data.signedUrl;
+        a.rel = "noopener";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      }
+    } catch (e) {
+      console.error("[attachment] download error:", e);
+    }
+    setAttDownloadPath(null);
+  }
+
   // 케이스 진행 단계 저장 (코디·어드민 공용 API 재사용). 환자/에이전시 포털에 같은 상태가 노출됨.
   async function saveCase() {
     setCaseSaving(true);
