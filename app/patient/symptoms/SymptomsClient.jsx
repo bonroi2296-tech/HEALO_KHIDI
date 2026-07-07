@@ -24,6 +24,10 @@ const L = {
   urgency: { ko: '긴급도', en: 'Urgency', ru: 'Срочность', kz: 'Жеделдік', zh: '紧急程度', ja: '緊急度' },
   riskScore: { ko: '위험 점수', en: 'Risk Score', ru: 'Оценка риска', kz: 'Тәуекел бағасы', zh: '风险评分', ja: 'リスクスコア' },
   recommendation: { ko: '권장 조치', en: 'Recommended Action', ru: 'Рекомендация', kz: 'Ұсыныс', zh: '建议措施', ja: '推奨アクション' },
+  recFollowup: { ko: '재진 예약이 권장됩니다', en: 'A follow-up appointment is recommended', ru: 'Рекомендуется повторный приём', kz: 'Қайта қабылдауға жазылу ұсынылады', zh: '建议预约复诊', ja: '再診の予約をお勧めします' },
+  recDoctor: { ko: '의사 상담이 필요합니다', en: 'A doctor consultation is needed', ru: 'Необходима консультация врача', kz: 'Дәрігермен кеңесу қажет', zh: '需要医生咨询', ja: '医師の診察が必要です' },
+  recEmergency: { ko: '즉시 응급 서비스에 연락하세요', en: 'Contact emergency services immediately', ru: 'Немедленно обратитесь в скорую помощь', kz: 'Дереу жедел жәрдемге хабарласыңыз', zh: '请立即联系急救服务', ja: 'ただちに救急サービスに連絡してください' },
+  rebookConfirm: { ko: '재진 예약 확인', en: 'Confirm follow-up booking', ru: 'Подтвердить запись', kz: 'Қайта жазылуды растау', zh: '确认复诊预约', ja: '再診予約を確認' },
   loginRequired: { ko: '로그인이 필요합니다', en: 'Please log in first', ru: 'Войдите в систему', kz: 'Жүйеге кіріңіз', zh: '请先登录', ja: 'ログインしてください' },
   loginBtn: { ko: '로그인', en: 'Log In', ru: 'Войти', kz: 'Кіру', zh: '登录', ja: 'ログイン' },
   placeholders: {
@@ -33,11 +37,11 @@ const L = {
 };
 
 const URGENCY_STYLE = {
-  emergency: { label: '긴급', color: 'bg-red-100 text-red-800' },
-  high: { label: '높음', color: 'bg-orange-100 text-orange-800' },
-  medium: { label: '보통', color: 'bg-yellow-100 text-yellow-800' },
-  low: { label: '낮음', color: 'bg-green-100 text-green-800' },
-  minimal: { label: '최소', color: 'bg-gray-100 text-gray-600' },
+  emergency: { label: { ko: '긴급', en: 'Emergency', ru: 'Экстренно', kz: 'Шұғыл', zh: '紧急', ja: '緊急' }, color: 'bg-red-100 text-red-800' },
+  high: { label: { ko: '높음', en: 'High', ru: 'Высокая', kz: 'Жоғары', zh: '高', ja: '高' }, color: 'bg-orange-100 text-orange-800' },
+  medium: { label: { ko: '보통', en: 'Medium', ru: 'Средняя', kz: 'Орташа', zh: '中', ja: '中' }, color: 'bg-yellow-100 text-yellow-800' },
+  low: { label: { ko: '낮음', en: 'Low', ru: 'Низкая', kz: 'Төмен', zh: '低', ja: '低' }, color: 'bg-green-100 text-green-800' },
+  minimal: { label: { ko: '최소', en: 'Minimal', ru: 'Минимальная', kz: 'Ең төмен', zh: '最低', ja: '最小' }, color: 'bg-gray-100 text-gray-600' },
 };
 
 export default function SymptomsClient() {
@@ -246,7 +250,7 @@ export default function SymptomsClient() {
               <span className={`text-xs px-3 py-1 rounded-full font-medium ${
                 (URGENCY_STYLE[result.urgency_level] || URGENCY_STYLE.minimal).color
               }`}>
-                {(URGENCY_STYLE[result.urgency_level] || URGENCY_STYLE.minimal).label}
+                {l((URGENCY_STYLE[result.urgency_level] || URGENCY_STYLE.minimal).label)}
               </span>
             </div>
 
@@ -300,9 +304,9 @@ export default function SymptomsClient() {
                   : 'bg-gray-50 border-gray-200'
               }`}>
                 <p className="text-sm font-medium text-blue-800">
-                  {result.recommended_action === 'schedule_followup' ? '재진 예약이 권장됩니다' :
-                   result.recommended_action === 'escalate_doctor' ? '의사 상담이 필요합니다' :
-                   result.recommended_action === 'emergency' ? '즉시 응급 서비스에 연락하세요' :
+                  {result.recommended_action === 'schedule_followup' ? l(L.recFollowup) :
+                   result.recommended_action === 'escalate_doctor' ? l(L.recDoctor) :
+                   result.recommended_action === 'emergency' ? l(L.recEmergency) :
                    result.recommended_action}
                 </p>
                 {(result.recommended_action === 'schedule_followup' || result.recommended_action === 'escalate_doctor') && (
@@ -310,7 +314,7 @@ export default function SymptomsClient() {
                     onClick={() => router.push('/patient/rebooking')}
                     className="mt-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition"
                   >
-                    재진 예약 확인
+                    {l(L.rebookConfirm)}
                   </button>
                 )}
               </div>
