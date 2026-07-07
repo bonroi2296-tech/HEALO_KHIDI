@@ -140,12 +140,17 @@ export const Header = ({ setView, view, _handleGlobalInquiry, isMobileMenuOpen, 
 
   const isActive = (targetView) => String(view).includes(targetView);
 
+  // 러시아어·카자흐어만 컴팩트 헤더 — 6개 언어 중 라벨이 가장 길어 xl에서 빡빡함(PO 2026-07-07).
+  // 타 언어는 기존 클래스 그대로(배치 불변). 값은 여백·글자만 한 단계 축소, 축(rounded·색·모션)은 동일.
+  const denseNav = langCode === "ru" || langCode === "kz";
+  const navItemSize = denseNav ? "px-1.5 text-[13px]" : "px-2.5 text-sm";
+
   return (
     <>
       <header className="bg-teal-100 text-slate-700 border-b border-teal-200 sticky top-0 z-50 shadow-sm pt-safe-area">
         <div className="max-w-7xl mx-auto px-4 h-14 md:h-16 flex items-center justify-between">
           {/* Left: Logo + Nav */}
-          <div className="flex items-center gap-6 z-20">
+          <div className={`flex items-center ${denseNav ? "gap-3" : "gap-6"} z-20`}>
             <div className="flex items-center cursor-pointer shrink-0" onClick={() => onNavClick('home')}>
               {siteConfig?.logo ? (
                   <img src={siteConfig.logo} alt="healwith" className="h-8 md:h-9 object-contain" />
@@ -156,38 +161,38 @@ export const Header = ({ setView, view, _handleGlobalInquiry, isMobileMenuOpen, 
             <nav className="hidden xl:flex items-center gap-0.5">
               <a
                 href="/telemedicine"
-                className="px-2.5 py-1.5 rounded-full text-sm font-semibold transition-all text-slate-600 hover:text-teal-700 hover:bg-teal-200/70 inline-flex items-center gap-1.5 whitespace-nowrap"
+                className={`${navItemSize} py-1.5 rounded-full font-semibold transition-all text-slate-600 hover:text-teal-700 hover:bg-teal-200/70 inline-flex items-center gap-1.5 whitespace-nowrap`}
               >
                 {t("nav.telemedicine", langCode)}
                 <span className="text-[9px] font-extrabold bg-teal-700 text-white px-1.5 py-0.5 rounded-full leading-none">NEW</span>
               </a>
               <button
                 onClick={() => onNavClick('list_treatment')}
-                className={`px-2.5 py-1.5 rounded-full text-sm font-semibold transition-all whitespace-nowrap ${isActive('treatment') ? 'bg-teal-200 text-teal-800' : 'text-slate-600 hover:text-teal-700 hover:bg-teal-200/70'}`}
+                className={`${navItemSize} py-1.5 rounded-full font-semibold transition-all whitespace-nowrap ${isActive('treatment') ? 'bg-teal-200 text-teal-800' : 'text-slate-600 hover:text-teal-700 hover:bg-teal-200/70'}`}
               >
                 {t("nav.treatments", langCode)}
               </button>
               <button
                 onClick={() => onNavClick('list_hospital')}
-                className={`px-2.5 py-1.5 rounded-full text-sm font-semibold transition-all whitespace-nowrap ${isActive('hospital') ? 'bg-teal-200 text-teal-800' : 'text-slate-600 hover:text-teal-700 hover:bg-teal-200/70'}`}
+                className={`${navItemSize} py-1.5 rounded-full font-semibold transition-all whitespace-nowrap ${isActive('hospital') ? 'bg-teal-200 text-teal-800' : 'text-slate-600 hover:text-teal-700 hover:bg-teal-200/70'}`}
               >
                 {t("nav.hospitals", langCode)}
               </button>
               <a
                 href="/care-journey"
-                className="px-2.5 py-1.5 rounded-full text-sm font-semibold transition-all text-slate-600 hover:text-teal-700 hover:bg-teal-200/70 whitespace-nowrap"
+                className={`${navItemSize} py-1.5 rounded-full font-semibold transition-all text-slate-600 hover:text-teal-700 hover:bg-teal-200/70 whitespace-nowrap`}
               >
                 {t("nav.careJourney", langCode)}
               </a>
               <a
                 href="/visa"
-                className="px-2.5 py-1.5 rounded-full text-sm font-semibold transition-all text-slate-600 hover:text-teal-700 hover:bg-teal-200/70 whitespace-nowrap"
+                className={`${navItemSize} py-1.5 rounded-full font-semibold transition-all text-slate-600 hover:text-teal-700 hover:bg-teal-200/70 whitespace-nowrap`}
               >
                 {t("nav.visa", langCode)}
               </a>
               <a
                 href="/insurance"
-                className="px-2.5 py-1.5 rounded-full text-sm font-semibold transition-all text-slate-600 hover:text-teal-700 hover:bg-teal-200/70 whitespace-nowrap"
+                className={`${navItemSize} py-1.5 rounded-full font-semibold transition-all text-slate-600 hover:text-teal-700 hover:bg-teal-200/70 whitespace-nowrap`}
               >
                 {t("nav.insurance", langCode)}
               </a>
@@ -208,7 +213,7 @@ export const Header = ({ setView, view, _handleGlobalInquiry, isMobileMenuOpen, 
           )} */}
 
           {/* Right: Lang + Auth + Portal (desktop) */}
-          <div className="hidden xl:flex items-center gap-1.5 z-20">
+          <div className={`hidden xl:flex items-center ${denseNav ? "gap-1" : "gap-1.5"} z-20`}>
             {/* Language */}
             <div className="relative" ref={langRef}>
               <button
@@ -242,10 +247,10 @@ export const Header = ({ setView, view, _handleGlobalInquiry, isMobileMenuOpen, 
               <UserMenu session={session} onLogout={onLogout} langCode={langCode} isHospitalUser={isHospitalUser} isAdmin={isAdmin} />
             ) : (
               <div className="flex items-center gap-1.5">
-                <button onClick={() => setView('login')} className="px-3 py-1.5 text-sm font-medium text-slate-600 hover:text-teal-700 hover:bg-teal-200/70 rounded-full transition-all whitespace-nowrap">
+                <button onClick={() => setView('login')} className={`${denseNav ? "px-2 text-[13px]" : "px-3 text-sm"} py-1.5 font-medium text-slate-600 hover:text-teal-700 hover:bg-teal-200/70 rounded-full transition-all whitespace-nowrap`}>
                   {t("auth.login", langCode)}
                 </button>
-                <button onClick={() => setView('signup')} className="px-4 py-1.5 text-sm font-semibold text-white bg-teal-700 rounded-full hover:bg-teal-800 transition-all whitespace-nowrap shadow-sm">
+                <button onClick={() => setView('signup')} className={`${denseNav ? "px-3 text-[13px]" : "px-4 text-sm"} py-1.5 font-semibold text-white bg-teal-700 rounded-full hover:bg-teal-800 transition-all whitespace-nowrap shadow-sm`}>
                   {t("auth.signup", langCode)}
                 </button>
               </div>
