@@ -1,0 +1,223 @@
+"use client";
+
+/**
+ * 전문의 세컨드 오피니언 — 계정 없는 의사용 소견 작성 화면.
+ * 링크(토큰)만으로 케이스 임상요약·검사지를 보고, 명단에서 본인을 골라 소견을 남긴다.
+ * 명단 밖이면 "그 외 의료진" — 의사는 이름 안 적어도 되고, 코디가 나중에 라벨한다.
+ */
+
+import { useEffect, useState } from "react";
+import { FileText, Stethoscope, CheckCircle2, Loader2 } from "lucide-react";
+import { OPINION_ROSTER, OPINION_OTHER_KEY, OPINION_OTHER_LABEL } from "@/lib/opinions/roster";
+
+export default function OpinionClient({ token }) {
+  const [loading, setLoading] = useState(true);
+  const [caseData, setCaseData] = useState(null);
+  const [requestNote, setRequestNote] = useState(null);
+  const [error, setError] = useState("");
+
+  const [doctorKey, setDoctorKey] = useState("");
+  const [opinion, setOpinion] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [submitError, setSubmitError] = useState("");
+
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const res = await fetch(`/api/opinions/${token}`);
+        const data = await res.json();
+        if (!alive) return;
+        if (!res.ok || !data.ok) {
+          setError(data.error === "rate_limited" ? "rate_limited" : "invalid_link");
+        } else {
+          setCaseData(data.case);
+          setRequestNote(data.requestNote || null);
+        }
+      } catch {
+        if (alive) setError("network");
+      } finally {
+        if (alive) setLoading(false);
+      }
+    })();
+    return () => { alive = false; };
+  }, [token]);
+
+  const submit = async () => {
+    if (!doctorKey || opinion.trim().length < 5 || submitting) return;
+    setSubmitting(true);
+    setSubmitError("");
+    try {
+      const res = await fetch(`/api/opinions/${token}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ doctorKey, opinionText: opinion.trim() }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        setSubmitError(
+          data.error === "opinion_too_short" ? "소견 내용을 입력해 주세요."
+          : data.error === "rate_limited" ? "잠시 후 다시 시도해 주세요."
+          : "제출에 실패했습니다. 잠시 후 다시 시도해 주세요."
+        );
+        return;
+      }
+      setSubmitted(true);
+    } catch {
+      setSubmitError("네트워크 오류입니다. 잠시 후 다시 시도해 주세요.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <Shell>
+        <div className="flex items-center justify-center py-24 text-gray-400">
+          <Loader2 size={22} className="animate-spin" />
+        </div>
+      </Shell>
+    );
+  }
+
+  if (error) {
+    return (
+      <Shell>
+        <div className="text-center py-20">
+          <p className="text-gray-900 font-semibold mb-1">
+            {error === "rate_limited" ? "잠시 후 다시 시도해 주세요" : "링크가 유효하지 않습니다"}
+          </p>
+          <p className="text-sm text-gray-500">
+            {error === "rate_limited"
+              ? "요청이 많습니다. 잠시 뒤에 새로고침 해주세요."
+              : "링크가 만료되었거나 잘못되었습니다. 담당 코디네이터에게 새 링크를 요청해 주세요."}
+          </p>
+        </div>
+      </Shell>
+    );
+  }
+
+  if (submitted) {
+    return (
+      <Shell>
+        <div className="text-center py-20">
+          <CheckCircle2 size={44} className="mx-auto mb-3 text-teal-600" />
+          <p className="text-gray-900 font-semibold mb-1">소견이 제출되었습니다</p>
+          <p className="text-sm text-gray-500">감사합니다. 담당 코디네이터가 확인합니다.</p>
+        </div>
+      </Shell>
+    );
+  }
+
+  const c = caseData || {};
+  return (
+    <Shell>
+      {/* 케이스 임상 요약 */}
+      <section className="bg-white rounded-2xl border border-gray-200 p-5 mb-4">
+        <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">환자 / 임상 정보</h2>
+        <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-700 mb-3">
+          <span><span className="text-gray-400">환자</span> {c.patient}</span>
+          {c.nationality && <span><span className="text-gray-400">국적</span> {c.nationality}</span>}
+          {c.language && <span><span className="text-gray-400">언어</span> {c.language}</span>}
+        </div>
+        {(c.cancer_type || c.treatment_type) && (
+          <div className="flex flex-wrap gap-2 mb-3">
+            {c.cancer_type && <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-teal-50 text-teal-700 text-xs font-medium">{c.cancer_type}</span>}
+            {c.treatment_type && <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 text-xs">{c.treatment_type}</span>}
+          </div>
+        )}
+        {c.clinical?.length > 0 && (
+          <dl className="grid grid-cols-2 gap-x-3 gap-y-2 mb-3">
+            {c.clinical.map((d, i) => (
+              <div key={i} className="min-w-0">
+                <dt className="text-[11px] text-gray-400">{d.label}</dt>
+                <dd className="text-sm text-gray-900">{d.value}</dd>
+              </div>
+            ))}
+          </dl>
+        )}
+        {c.message && (
+          <div className="mb-3">
+            <p className="text-[11px] text-gray-400 mb-1">환자 메시지</p>
+            <p className="text-sm text-gray-800 whitespace-pre-wrap bg-gray-50 border border-gray-100 rounded-lg p-3 leading-relaxed">{c.message}</p>
+          </div>
+        )}
+        {c.attachments?.length > 0 && (
+          <div>
+            <p className="text-[11px] text-gray-400 mb-1.5">첨부 의료기록 ({c.attachments.length})</p>
+            <div className="space-y-1.5">
+              {c.attachments.map((a, i) => (
+                a.url ? (
+                  <a key={i} href={a.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-teal-700 hover:underline text-sm">
+                    <FileText size={15} /> <span className="truncate">{a.name}</span>
+                  </a>
+                ) : (
+                  <div key={i} className="flex items-center gap-2 text-gray-400 text-sm"><FileText size={15} /> <span className="truncate">{a.name} (열람 불가)</span></div>
+                )
+              ))}
+            </div>
+          </div>
+        )}
+      </section>
+
+      {requestNote && (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 mb-4 text-sm text-amber-900 whitespace-pre-wrap">
+          {requestNote}
+        </div>
+      )}
+
+      {/* 소견 작성 */}
+      <section className="bg-white rounded-2xl border border-gray-200 p-5">
+        <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">소견 작성</h2>
+
+        <label className="block text-sm text-gray-600 mb-1.5">소견 주시는 분</label>
+        <select
+          value={doctorKey}
+          onChange={(e) => setDoctorKey(e.target.value)}
+          className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm bg-white outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent mb-4"
+        >
+          <option value="" disabled>선택해 주세요</option>
+          {OPINION_ROSTER.map((r) => (
+            <option key={r.key} value={r.key}>{r.name}</option>
+          ))}
+          <option value={OPINION_OTHER_KEY}>{OPINION_OTHER_LABEL}</option>
+        </select>
+
+        <label className="block text-sm text-gray-600 mb-1.5">소견 내용</label>
+        <textarea
+          value={opinion}
+          onChange={(e) => setOpinion(e.target.value)}
+          rows={7}
+          placeholder="검사지·상세를 보시고 소견을 남겨 주세요."
+          className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent resize-none mb-3"
+        />
+
+        {submitError && <p className="text-sm text-red-600 mb-3">{submitError}</p>}
+
+        <button
+          onClick={submit}
+          disabled={!doctorKey || opinion.trim().length < 5 || submitting}
+          className="w-full bg-teal-600 text-white py-3 rounded-lg text-sm font-semibold hover:bg-teal-700 transition disabled:opacity-40"
+        >
+          {submitting ? "제출 중…" : "소견 제출"}
+        </button>
+      </section>
+    </Shell>
+  );
+}
+
+function Shell({ children }) {
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <header className="bg-white border-b border-gray-100">
+        <div className="max-w-lg mx-auto px-5 py-4 flex items-center gap-2">
+          <Stethoscope size={18} className="text-teal-600" />
+          <span className="font-semibold text-gray-900">전문의 소견 요청</span>
+          <span className="ml-auto text-sm text-gray-400">healwith</span>
+        </div>
+      </header>
+      <main className="max-w-lg mx-auto px-5 py-5">{children}</main>
+    </div>
+  );
+}

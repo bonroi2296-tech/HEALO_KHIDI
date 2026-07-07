@@ -137,6 +137,38 @@ export async function notifyStaffNewInquiry(notice: NewInquiryNotice): Promise<v
   }
 }
 
+export interface OpinionArrivedNotice {
+  inquiryId: number;
+  /** 소견 주신 분 표시명(명단 원장 또는 "그 외 의료진") */
+  doctorName: string;
+}
+
+/**
+ * 전문의 세컨드 오피니언(소견)이 케이스에 도착했을 때 코디네이터 + 어드민에게 종(bell) 알림.
+ * 링크는 코디 인박스 상세(`/coordinator/inbox/[id]` — 실재 라우트)로. Fail-safe: throw 안 함.
+ */
+export async function notifyStaffOpinionArrived(notice: OpinionArrivedNotice): Promise<void> {
+  try {
+    const { admins, coordinators } = await getStaffIdsByRole();
+    if (admins.length === 0 && coordinators.length === 0) return;
+    const title = `🩺 전문의 소견 도착 #${notice.inquiryId}`;
+    const body = `${notice.doctorName} 소견 제출`;
+    const link = `/coordinator/inbox/${notice.inquiryId}`;
+    await Promise.allSettled([
+      broadcastInAppNotification(coordinators, {
+        type: "opinion_arrived", title, body, priority: "high", link,
+        payload: { inquiryId: notice.inquiryId },
+      }),
+      broadcastInAppNotification(admins, {
+        type: "opinion_arrived", title, body, priority: "high", link,
+        payload: { inquiryId: notice.inquiryId },
+      }),
+    ]);
+  } catch {
+    /* fail-safe */
+  }
+}
+
 export interface ChatHandoffNotice {
   /** chat_threads.id */
   threadId: string;
