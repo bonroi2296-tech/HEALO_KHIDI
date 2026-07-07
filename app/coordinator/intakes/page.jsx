@@ -6,6 +6,7 @@ import {
   ClipboardList, User, Calendar, Globe, ChevronDown,
   UserPlus, CheckCircle, Clock, AlertCircle,
 } from 'lucide-react';
+import { kstDate } from '@/lib/datetime/kst';
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser';
 
 const STATUS_MAP = {
@@ -155,7 +156,7 @@ export default function IntakesPage() {
                           <span className="text-xs text-gray-300">|</span>
                           <span className="text-xs text-gray-400 flex items-center gap-1">
                             <Calendar size={10} />
-                            {intake.scheduled_at ? new Date(intake.scheduled_at).toLocaleDateString('ko-KR') : '-'}
+                            {intake.scheduled_at ? kstDate(intake.scheduled_at, 'ko-KR') : '-'}
                           </span>
                         </div>
                       </div>

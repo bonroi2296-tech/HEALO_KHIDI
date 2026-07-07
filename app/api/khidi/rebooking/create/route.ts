@@ -74,9 +74,15 @@ export async function POST(request: NextRequest) {
     const sessionType = payload.sessionType || 'follow_up';
     const daysFromNow = payload.daysFromNow ?? 3;
 
-    const scheduledAt = new Date();
-    scheduledAt.setDate(scheduledAt.getDate() + daysFromNow);
-    scheduledAt.setHours(10, 0, 0, 0); // Default to 10:00 AM
+    // 기본 10:00 은 KST 기준이어야 한다. setHours 는 서버(Vercel=UTC) 로컬시간이라
+    // 그대로 두면 10:00 UTC = 19:00 KST 로 잡힌다. KST 벽시계로 daysFromNow 일 뒤 10:00 = 01:00 UTC.
+    const kstNow = new Date(Date.now() + 9 * 60 * 60 * 1000);
+    const scheduledAt = new Date(Date.UTC(
+      kstNow.getUTCFullYear(),
+      kstNow.getUTCMonth(),
+      kstNow.getUTCDate() + daysFromNow,
+      1, 0, 0, 0 // 10:00 KST
+    ));
 
     const { getSupabaseServerClient } = await import(
       "@/lib/data/supabaseServerClient"

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useLang } from '@/lib/i18n/LangContext';
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser';
+import { kstDate } from '@/lib/datetime/kst';
 import {
   FileText, Video, BookOpen, Activity, Calendar,
   Upload, ChevronRight, AlertCircle, User, Phone, ArrowRight,
@@ -185,7 +186,7 @@ export default function PatientDashboardClient() {
                     const active = consultations.find(c => c.status === 'active');
                     const scheduled = consultations.find(c => c.status === 'scheduled');
                     const c = active || scheduled;
-                    return c?.scheduled_at ? new Date(c.scheduled_at).toLocaleDateString() : '';
+                    return c?.scheduled_at ? kstDate(c.scheduled_at) : '';
                   })()}
                 </p>
               </div>
@@ -334,7 +335,7 @@ export default function PatientDashboardClient() {
                     {sessionLabel(c.session_type)}
                   </div>
                   <div className="text-xs text-gray-400">
-                    {c.scheduled_at ? new Date(c.scheduled_at).toLocaleDateString() : '-'}
+                    {c.scheduled_at ? kstDate(c.scheduled_at) : '-'}
                   </div>
                 </div>
               </div>
