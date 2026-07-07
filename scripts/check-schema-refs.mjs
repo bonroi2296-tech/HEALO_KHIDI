@@ -46,6 +46,7 @@ const PUBLIC_TABLES = new Set([
   "partner_outreach", // 2026-07-01 적용 (PR #567 — 파트너 아웃리치 추적기). RLS=서비스롤 전용
   "opinion_requests", // 2026-07-07 적용 — 전문의 세컨드 오피니언 요청(매직링크 토큰). RLS=서비스롤 전용
   "case_opinions", // 2026-07-07 적용 — 도착한 전문의 소견(코디·어드민 전용). RLS=서비스롤 전용
+  "note_translations", // 2026-07-07 적용 — 코디 짧은 메모 자동번역 캐시(source_hash,target_lang). RLS=서비스롤 전용
 ]);
 
 // `.from()` 첫 인자가 DB 테이블이 아닌 것 — Supabase Storage 버킷(.storage.from). 오탐 제외.
