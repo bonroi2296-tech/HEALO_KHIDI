@@ -14,8 +14,8 @@ const HOSPITAL_STRIP = [
   { slug: "severance-sinchon", name: { ko: "신촌세브란스병원", en: "Sinchon Severance Hospital", ru: "Больница Северанс Синчхон", kz: "Синчон Северанс ауруханасы", zh: "新村世福兰斯医院", ja: "新村セブランス病院" } },
 ];
 
-/* 섹션 이미지 = Madanes/МСР 홈페이지 비주얼(대리석 아트) — 로컬 다운로드본(핫링크 아님).
-   서면 사용허가 전 실서비스 반영 금지(RESEARCH.md §6) — 프리뷰 데모 전용. */
+/* 섹션 사진 = Unsplash 무료 라이선스 로컬 저장본(핫링크 아님). 대리석 아트(МСР 비주얼)는 PO 지시로 제거(2026-07-07).
+   Madanes 관련 잔여 노출은 로고 2종뿐 — 서면허가·롤백 절차는 docs/marketing/madanes-insurance/ROLLBACK.md. */
 
 export default function InsuranceClient() {
   const lang = useLang() || "ko";
@@ -34,7 +34,8 @@ export default function InsuranceClient() {
             <h1 className="text-3xl md:text-4xl font-bold text-gray-900 leading-tight whitespace-pre-line text-balance">
               {c.hero.title}
             </h1>
-            <p className="mt-4 text-base md:text-lg text-gray-500 leading-relaxed text-pretty">{c.hero.lede}</p>
+            {/* lede의 \n = 문장 단위 단락 분리 (PO 지시: 사실 문장 / 제안 문장 나눠 보이게) */}
+            <p className="mt-4 text-base md:text-lg text-gray-500 leading-relaxed text-pretty whitespace-pre-line">{c.hero.lede}</p>
             <ul className="mt-5 space-y-2.5">
               {(c.hero.bullets || []).map((b, i) => (
                 <li key={i} className="flex items-start gap-2.5 text-sm md:text-base font-semibold text-gray-800">
@@ -103,7 +104,7 @@ export default function InsuranceClient() {
         </ol>
       </section>
 
-      {/* 보험 상품 상세 — 스펙 칩 카드 (+ 정의의 여신 = МСР 사이트 비주얼) */}
+      {/* 보험 상품 상세 — 스펙 칩 카드 (+ 보험 서류 검토 사진) */}
       <section className="bg-gray-50 border-y border-gray-100">
         <div className="max-w-4xl mx-auto px-4 py-12 md:py-16">
           <div className="grid grid-cols-1 md:grid-cols-[1fr,220px] gap-6 items-center mb-6">
@@ -113,7 +114,7 @@ export default function InsuranceClient() {
             </div>
             <div className="relative hidden md:block h-40 overflow-hidden rounded-xl border border-gray-100">
               <Image
-                src="/images/insurance/madanes-justice.jpg"
+                src="/images/insurance/policy-review.jpg"
                 alt={c.products.title}
                 fill
                 sizes="220px"
@@ -194,7 +195,7 @@ export default function InsuranceClient() {
         </div>
       </section>
 
-      {/* B2B — 제휴 안내 (МСР 홈페이지 비주얼 + 로고) */}
+      {/* B2B — 제휴 안내 (파트너십 사진 + 로고) */}
       <section className="bg-gray-50 border-y border-gray-100">
         <div className="max-w-4xl mx-auto px-4 py-12 md:py-16">
           <div className="grid grid-cols-1 md:grid-cols-[1fr,280px] gap-8 items-center">
@@ -209,7 +210,7 @@ export default function InsuranceClient() {
             </div>
             <div className="relative hidden md:block h-48 overflow-hidden rounded-xl border border-gray-100">
               <Image
-                src="/images/insurance/madanes-partners.jpg"
+                src="/images/insurance/partnership.jpg"
                 alt={c.partner.title}
                 fill
                 sizes="280px"

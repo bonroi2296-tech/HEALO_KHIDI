@@ -7,12 +7,13 @@
 
 "로고·이름을 빼달라"는 수준의 거부일 때. 페이지는 살리고 걔들 브랜드만 걷어낸다.
 
+> (2026-07-07 갱신: 대리석 아트 2장(justice·partners.jpg)은 PO 지시로 이미 제거됨 — Unsplash 사진으로 교체. 남은 Madanes 노출 = 로고 2종 + МСР 상품 카드 + disclaimer 사명.)
+
 1. `app/insurance/InsuranceClient.jsx`
-   - B2B 섹션: 로고 `<Image>` 2개(managedcare-ru-logo, madanes-global-logo) + `madanes-partners.jpg` 이미지 블록 제거
-   - 상품 섹션 헤더: `madanes-justice.jpg` 이미지 블록 제거 (걔들 사이트 출처 비주얼)
+   - B2B 섹션: 로고 `<Image>` 2개(managedcare-ru-logo, madanes-global-logo) 제거
    - 상품 카드: `{i === 2 && (<Image ... managedcare-ru-logo ... />)}` 제거
    - 3번째 상품 카드(МСР) 자체를 뺄 경우: `c.products.items.map` → `c.products.items.slice(0, 2).map`
-2. `public/images/insurance/` 에서 삭제: `managedcare-ru-logo.png`, `madanes-global-logo.png`, `madanes-justice.jpg`, `madanes-partners.jpg` (hero-consult.jpg는 Unsplash — 유지)
+2. `public/images/insurance/` 에서 삭제: `managedcare-ru-logo.png`, `madanes-global-logo.png` (hero-consult·policy-review·partnership.jpg는 Unsplash — 유지)
 3. `app/insurance/copy.js` — 6개 언어 각각 `disclaimer.body`의 "ManagedCare Russia" 사명 제거(카드를 뺐다면 함께). 카드 유지 시엔 그대로.
 4. `npm run check:content` + `npx next build --webpack` → PR → 머지.
 

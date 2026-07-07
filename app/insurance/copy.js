@@ -1,26 +1,26 @@
-// /insurance 보험 가이드 카피 v4 (6개 언어) — 재구성+6개 언어 원어민 다듬기 워크플로(2026-07-06, PO 가독성·외래어·두괄식 후킹 피드백 반영).
+// /insurance 보험 가이드 카피 v5 (6개 언어) — 재구성+6개 언어 원어민 다듬기 워크플로(2026-07-06, PO 가독성·외래어·두괄식·대시 정리 피드백 반영).
 // 구조: 짧은 문장 + 스펙 칩(specs) + 대기기간 콜아웃(waitNote). 사실 기준: docs/marketing/madanes-insurance/RESEARCH.md.
 export const COPY = {
   "ko": {
     "hero": {
       "eyebrow": "안내 · 보험으로 받는 한국 치료",
       "title": "한국에서 받는 암치료,\n내 보험이 이미 보장하고 있다면?",
-      "lede": "러시아의 일부 중증질환 보험은 해외 치료까지 보장하고, 치료 가능 국가 목록에 한국이 들어 있습니다. 내 보험이 해당되는지 무료로 확인해 드리고, 한국에서 받으실 치료까지 저희가 준비합니다.",
+      "lede": "러시아의 일부 중증질환 보험은 해외 치료까지 보장하고, 치료 가능 국가 목록에 한국이 들어 있습니다.\n내 보험이 해당되는지 무료로 확인해 드리고, 한국에서 받으실 치료까지 저희가 준비합니다.",
       "cta": "무료 상담 받기",
-      "note": "이미 진단을 받으셨어도, 보험이 없어도 — 무료 상담은 똑같이 열려 있습니다.",
+      "note": "이미 진단을 받으셨어도, 보험이 없어도 무료 상담은 똑같이 열려 있습니다.",
       "bullets": [
-        "치료비도, 오가는 길도, 환자·동반자 숙박까지 — 보험이 부담합니다",
-        "보험사가 병원에 직접 지불하는 방식 — 내 돈을 먼저 낼 일이 없습니다",
-        "보장 한도 최대 €1,000,000 — 치료 국가 목록에 한국 명시"
+        "치료비도, 오가는 길도, 환자·동반자 숙박까지 보험이 부담합니다",
+        "보험사가 병원에 직접 지불하는 방식이라 내 돈을 먼저 낼 일이 없습니다",
+        "보장 한도 최대 €1,000,000 · 치료 국가 목록에 한국 명시"
       ]
     },
     "products": {
       "title": "해외 치료를 보장하는 보험 상품",
       "lede": "러시아 밖에서 받는 암치료를 공식적으로 보장하는 현행 러시아 보험 상품, 그리고 그 치료를 실제로 준비해 주는 치료 지원 회사를 소개합니다. 내용은 각 회사의 공개 자료 기준이며, 정확한 조건은 각자의 계약이 정합니다.",
-      "waitNote": "한 가지 기억해 두세요 — 이 상품들의 해외 치료에는 대기 기간(180일·120일)이 있습니다. 그래서 건강할 때 미리 준비해 두는 보험입니다. 이미 진단을 받으셨다면, 아래 무료 상담에서 지금 가능한 길부터 함께 찾아드립니다.",
+      "waitNote": "한 가지 기억해 두세요. 이 상품들의 해외 치료에는 대기 기간(180일·120일)이 있습니다. 그래서 건강할 때 미리 준비해 두는 보험입니다. 이미 진단을 받으셨다면, 아래 무료 상담에서 지금 가능한 길부터 함께 찾아드립니다.",
       "items": [
         {
-          "name": "레소-가란티야(РЕСО-Гарантия) — «국경 없는 건강»(Здоровье без границ)",
+          "name": "레소-가란티야(РЕСО-Гарантия) «국경 없는 건강»(Здоровье без границ)",
           "tag": "보험 상품",
           "desc": "암은 물론 심혈관 수술, 신경외과 수술, 골수이식까지 보장합니다.",
           "specs": [
@@ -41,10 +41,10 @@ export const COPY = {
               "value": "해외 치료 180일"
             }
           ],
-          "korea": "치료 가능 국가 목록에 한국이 명시되어 있습니다 — 이스라엘·스페인과 나란히."
+          "korea": "치료 가능 국가 목록에 이스라엘·스페인과 나란히 한국이 명시되어 있습니다."
         },
         {
-          "name": "로스고스스트라흐(Росгосстрах) — «국경 없는 치료»(Лечение без границ)",
+          "name": "로스고스스트라흐(Росгосстрах) «국경 없는 치료»(Лечение без границ)",
           "tag": "보험 상품",
           "desc": "암과 심장·신경외과 수술, 재활을 보장합니다. 처음 진단이 확정되면 일시금 20만 루블이 따로 지급됩니다.",
           "specs": [
@@ -68,9 +68,9 @@ export const COPY = {
           "korea": "치료 지역은 미국을 뺀 전 세계. 한국은 명시된 제외 대상이 아니지만, 실제 적용 여부는 꼭 보험사 약관으로 확인하세요."
         },
         {
-          "name": "마다네스(Маданес)/МСР — ManagedCare Russia",
+          "name": "마다네스(Маданес)/МСР · ManagedCare Russia",
           "tag": "치료 지원 회사",
-          "desc": "보험사가 아니라, 보험사의 위탁을 받아 환자의 치료를 대신 준비하는 회사입니다. 회사 발표 기준 환자 5년 생존율은 85% — 다만 자사 고객만 집계한 수치여서 국가 통계와 직접 비교하기는 어렵습니다.",
+          "desc": "보험사가 아니라, 보험사의 위탁을 받아 환자의 치료를 대신 준비하는 회사입니다. 회사 발표 기준 환자 5년 생존율은 85%입니다. 다만 자사 고객만 집계한 수치여서 국가 통계와 직접 비교하기는 어렵습니다.",
           "specs": [
             {
               "label": "운영 이력",
@@ -94,7 +94,7 @@ export const COPY = {
       ]
     },
     "coverage": {
-      "title": "치료비만이 아닙니다 — 보험이 대신 내주는 것들",
+      "title": "치료비만이 아닌, 보험이 대신 내주는 것들",
       "lede": "«국경 없는 건강»을 예로 들면, 병원비는 시작일 뿐입니다. 치료를 둘러싼 거의 모든 것을 보험이 부담합니다. 정확한 보장 구성은 각자의 약관이 정합니다.",
       "items": [
         {
@@ -106,7 +106,7 @@ export const COPY = {
           "body": "치료받으러 가는 길도, 돌아오는 길도 보장에 들어 있습니다. 준비는 치료 지원 회사가 맡습니다."
         },
         {
-          "title": "숙박 — 환자와 동반자",
+          "title": "환자와 동반자의 숙박",
           "body": "환자와 동반자의 숙박을 상품 조건과 한도 안에서 지원합니다. 치료 기간 내내 가족이 곁을 지킬 수 있습니다."
         },
         {
@@ -120,7 +120,7 @@ export const COPY = {
       ]
     },
     "steps": {
-      "title": "이용 절차 5단계 — «국경 없는 건강» 예시",
+      "title": "이용 절차 5단계: «국경 없는 건강» 예시",
       "items": [
         {
           "title": "보험사에 연락",
@@ -131,7 +131,7 @@ export const COPY = {
           "body": "보험사와 치료 지원 회사가 소견서와 검사 결과를 요청합니다. 한국 병원이 주로 찾는 서류를 미리 알려드려, 한 번에 준비하실 수 있게 돕습니다."
         },
         {
-          "title": "병원 선택 — 최소 3곳 제안",
+          "title": "병원 선택: 최소 3곳 제안",
           "body": "상품 조건에 따라 최소 3곳의 병원을 제안받습니다. 그 안에 한국이 있다면, healwith가 진단에 맞는 병원과 진료과 선택을 돕습니다."
         },
         {
@@ -149,7 +149,7 @@ export const COPY = {
       "lede": "한국은 «국경 없는 건강»의 치료 가능 국가 목록에 이스라엘·스페인과 함께 올라 있습니다. 그 이유는 숫자가 먼저 말해 줍니다.",
       "stat": {
         "value": "72.9%",
-        "label": "한국 암환자 5년 생존율 — 특정 병원이 아닌 전국 공식 통계",
+        "label": "한국 암환자 5년 생존율(특정 병원이 아닌 전국 공식 통계)",
         "source": "국립암센터 국가암등록통계 2018–2022"
       },
       "hospitals": {
@@ -170,29 +170,29 @@ export const COPY = {
       "items": [
         {
           "q": "제 보험으로 한국 치료가 가능한가요?",
-          "a": "답은 가입하신 보험 증권 안에 있습니다. 확인할 것은 세 가지 — 암을 보장하는지, 해외 치료가 들어 있는지, 보장 지역에 한국이 포함되는지. 최종 판단은 보험사의 몫이지만, 확인 과정과 보험사에 물어볼 질문 정리는 healwith가 무료로 돕습니다."
+          "a": "답은 가입하신 보험 증권 안에 있습니다. 확인할 것은 세 가지: 암을 보장하는지, 해외 치료가 들어 있는지, 보장 지역에 한국이 포함되는지. 최종 판단은 보험사의 몫이지만, 확인 과정과 보험사에 물어볼 질문 정리는 healwith가 무료로 돕습니다."
         },
         {
           "q": "제 돈은 얼마나 드나요?",
-          "a": "보험사가 병원에 직접 내는 방식에서는 환자가 미리 낼 돈이 없습니다 — 한도와 약관 조건 안에서 그렇습니다. 보장을 넘어서는 비용이 있다면 그 범위는 가입하신 증권이 정하며, healwith 상담은 무료입니다."
+          "a": "보험사가 병원에 직접 내는 방식에서는 환자가 미리 낼 돈이 없습니다. 한도와 약관 조건 안에서 그렇습니다. 보장을 넘어서는 비용이 있다면 그 범위는 가입하신 증권이 정하며, healwith 상담은 무료입니다."
         },
         {
           "q": "한국어도 영어도 못하는데, 소통이 될까요?",
-          "a": "네, healwith 팀이 한국 병원에서 러시아어·카자흐어 의료통역과 동행을 맡습니다 — 어떤 보험이든, 보험이 없어도 똑같습니다. «국경 없는 건강»에는 러시아어 전담 안내인의 동행도 포함됩니다."
+          "a": "네, healwith 팀이 한국 병원에서 러시아어·카자흐어 의료통역과 동행을 맡습니다. 어떤 보험이든, 보험이 없어도 똑같습니다. «국경 없는 건강»에는 러시아어 전담 안내인의 동행도 포함됩니다."
         },
         {
           "q": "이런 보험이 없다면요?",
-          "a": "보험 없이도 한국 치료는 가능합니다 — 치료비를 병원에 직접 내는 방식입니다. 예상 비용을 미리 구체적으로 알려드리고, 병원 찾기·비자 초청장·동행까지 똑같이 무료로 돕습니다."
+          "a": "보험 없이도 한국 치료는 가능합니다. 치료비를 병원에 직접 내는 방식입니다. 예상 비용을 미리 구체적으로 알려드리고, 병원 찾기·비자 초청장·동행까지 똑같이 무료로 돕습니다."
         }
       ]
     },
     "disclaimer": {
       "title": "중요 안내",
-      "body": "이 페이지에 소개한 보험 상품은 레소-가란티야, 로스고스스트라흐, ManagedCare Russia가 제공합니다. 조건·한도·면책은 각 회사의 공식 약관과 개별 계약이 정하므로, 가입 전에 보험사의 공식 문서를 꼭 확인하세요. healwith는 보험사가 아니며 보험을 판매하지 않습니다 — 보건복지부에 등록된 외국인환자 유치업체로서 치료 과정을 준비하고 도울 뿐, 의료행위는 하지 않습니다. 본 내용은 각 회사의 공개 자료를 기준으로 하며, 기준일은 2026년 7월입니다."
+      "body": "이 페이지에 소개한 보험 상품은 레소-가란티야, 로스고스스트라흐, ManagedCare Russia가 제공합니다. 조건·한도·면책은 각 회사의 공식 약관과 개별 계약이 정하므로, 가입 전에 보험사의 공식 문서를 꼭 확인하세요. healwith는 보험사가 아니며 보험을 판매하지 않습니다. 보건복지부에 등록된 외국인환자 유치업체로서 치료 과정을 준비하고 도울 뿐, 의료행위는 하지 않습니다. 본 내용은 각 회사의 공개 자료를 기준으로 하며, 기준일은 2026년 7월입니다."
     },
     "closing": {
       "title": "간단한 질문 하나면 충분합니다",
-      "body": "가입하신 보험 상품 이름을 보내 주시거나, 지금 상황을 편하게 적어 주세요. 보장을 확인하는 방법부터 한국 치료가 진행되는 과정까지 무료로 알려드립니다 — 어떤 의무도 부담도 없습니다.",
+      "body": "가입하신 보험 상품 이름을 보내 주시거나, 지금 상황을 편하게 적어 주세요. 보장을 확인하는 방법부터 한국 치료가 진행되는 과정까지 무료로 알려드립니다. 어떤 의무도 부담도 없습니다.",
       "cta": "무료로 문의하기"
     }
   },
@@ -200,24 +200,24 @@ export const COPY = {
     "hero": {
       "eyebrow": "Guide · Treatment in Korea, covered by insurance",
       "title": "Does your insurance already cover\ncancer treatment in Korea?",
-      "lede": "Some Russian critical-illness policies pay for treatment abroad — and South Korea is one of the destinations. We'll help you check your policy for free, and if it qualifies, we'll arrange everything on the Korean side.",
+      "lede": "Some Russian critical-illness policies pay for treatment abroad, and South Korea is one of the destinations.\nWe'll help you check your policy for free, and if it qualifies, we'll arrange everything on the Korean side.",
       "cta": "Get a free consultation",
       "note": "Already diagnosed, or no insurance at all? The consultation is still free.",
       "bullets": [
         "The policy pays for treatment, round-trip travel, and accommodation — for you and a companion",
-        "No upfront payments in direct-payment programs — the insurer settles with the hospital",
+        "No upfront payments in direct-payment programs: the insurer settles with the hospital",
         "Coverage up to €1,000,000, with South Korea named as a treatment country"
       ]
     },
     "products": {
       "title": "Which policies cover treatment abroad",
-      "lede": "Here are the current Russian insurance products that officially cover cancer treatment outside Russia — and the assistance company that arranges the care. Details come from the companies' public materials; the exact terms are set by your own contract.",
-      "waitNote": "Keep one thing in mind: both policies have a waiting period for treatment abroad — 180 or 120 days. That's why this is insurance you take out in advance, while you're still healthy. Already diagnosed? Treatment in Korea is still possible — start with the free consultation below.",
+      "lede": "Here are the current Russian insurance products that officially cover cancer treatment outside Russia, and the assistance company that arranges the care. Details come from the companies' public materials; the exact terms are set by your own contract.",
+      "waitNote": "Keep one thing in mind: both policies have a waiting period for treatment abroad — 180 or 120 days. That's why this is insurance you take out in advance, while you're still healthy. Already diagnosed? Treatment in Korea is still possible. Start with the free consultation below.",
       "items": [
         {
           "name": "RESO-Garantia (РЕСО-Гарантия) — \"Health Without Borders\"",
           "tag": "Insurance product",
-          "desc": "Covers cancer, cardiovascular surgery, neurosurgery, and bone marrow transplants — with no medical exam to enroll.",
+          "desc": "Covers cancer, cardiovascular surgery, neurosurgery, and bone marrow transplants, with no medical exam to enroll.",
           "specs": [
             {
               "label": "Coverage limit",
@@ -260,12 +260,12 @@ export const COPY = {
               "value": "120 days"
             }
           ],
-          "korea": "Treatment is available worldwide except the USA. South Korea is not a named exclusion — but confirm with the insurer that it applies to your case."
+          "korea": "Treatment is available worldwide except the USA. South Korea is not a named exclusion, but confirm with the insurer that it applies to your case."
         },
         {
           "name": "Madanes / MCR — ManagedCare Russia",
           "tag": "Treatment support company",
-          "desc": "Not an insurer — an assistance company that arranges treatment for patients on insurers' behalf. Its Extended package arranges treatment abroad: choosing a clinic, coordinating admission, communicating with international doctors, and sourcing medications from overseas. The company reports an 85% five-year survival rate among its patients — its own count of its own clients, so it can't be compared directly with national statistics.",
+          "desc": "Not an insurer, but an assistance company that arranges treatment for patients on insurers' behalf. Its Extended package arranges treatment abroad: choosing a clinic, coordinating admission, communicating with international doctors, and sourcing medications from overseas. The company reports an 85% five-year survival rate among its patients. That's its own count of its own clients, so it can't be compared directly with national statistics.",
           "specs": [
             {
               "label": "In Russia since",
@@ -284,24 +284,24 @@ export const COPY = {
               "value": "₽100,000 a month"
             }
           ],
-          "korea": "If your insurer works with MCR, ask how treatment abroad works under your policy — healwith can take on the Korean side."
+          "korea": "If your insurer works with MCR, ask how treatment abroad works under your policy. healwith can take on the Korean side."
         }
       ]
     },
     "coverage": {
       "title": "What this insurance takes care of",
-      "lede": "Take Health Without Borders as an example: the policy pays for far more than the hospital bill — nearly everything around your treatment. The exact scope is set by your contract.",
+      "lede": "Take Health Without Borders as an example: the policy pays for far more than the hospital bill. It covers nearly everything around your treatment. The exact scope is set by your contract.",
       "items": [
         {
           "title": "Treatment",
-          "body": "The medical care you need is paid in full, within the program limit — up to €1,000,000 on the Classic plan."
+          "body": "The medical care you need is paid in full, within the program limit: up to €1,000,000 on the Classic plan."
         },
         {
           "title": "Travel",
-          "body": "Your trip to treatment and home again is covered — and the service company handles the arrangements."
+          "body": "Your trip to treatment and home again is covered, and the service company handles the arrangements."
         },
         {
-          "title": "Accommodation — for you and a loved one",
+          "title": "Accommodation for you and a loved one",
           "body": "The policy pays for your accommodation and your companion's, within the program's terms and limit. Someone close to you can stay by your side through the whole treatment."
         },
         {
@@ -309,13 +309,13 @@ export const COPY = {
           "body": "A Russian-speaking medical coordinator stays with you, and a second medical opinion is included. At the hospital in Korea, the healwith team adds medical interpretation."
         },
         {
-          "title": "Payment — straight to the clinic",
+          "title": "Payment straight to the clinic",
           "body": "The insurer pays the clinic directly. You never pay upfront and wait to be reimbursed."
         }
       ]
     },
     "steps": {
-      "title": "How it works in five steps — the Health Without Borders example",
+      "title": "How it works in five steps: the Health Without Borders example",
       "items": [
         {
           "title": "Contact your insurer",
@@ -323,10 +323,10 @@ export const COPY = {
         },
         {
           "title": "Submit your diagnosis documents",
-          "body": "The insurer and its assistance company will ask for medical records — discharge summaries and test results. We'll tell you what Korean hospitals usually need, so you can gather everything in one go."
+          "body": "The insurer and its assistance company will ask for medical records: discharge summaries and test results. We'll tell you what Korean hospitals usually need, so you can gather everything in one go."
         },
         {
-          "title": "Choose a clinic — at least three options",
+          "title": "Choose a clinic: at least three options",
           "body": "Under the program's terms, you're offered at least three clinics to choose from. If South Korea is among them, healwith will help you compare hospitals and find the right department for your diagnosis."
         },
         {
@@ -335,25 +335,25 @@ export const COPY = {
         },
         {
           "title": "The insurer pays the clinic directly",
-          "body": "Payment is settled between the insurer and the clinic — nothing upfront from you, so you can focus on getting better. Once you're home, healwith continues remote follow-up and connects you with your Korean doctors whenever needed."
+          "body": "Payment is settled between the insurer and the clinic: nothing upfront from you, so you can focus on getting better. Once you're home, healwith continues remote follow-up and connects you with your Korean doctors whenever needed."
         }
       ]
     },
     "whyKorea": {
       "title": "Why South Korea",
-      "lede": "South Korea is on the Health Without Borders list of treatment countries, alongside Israel and Spain — and the numbers help explain why.",
+      "lede": "South Korea is on the Health Without Borders list of treatment countries, alongside Israel and Spain, and the numbers help explain why.",
       "stat": {
         "value": "72.9%",
-        "label": "Five-year cancer survival rate in Korea — an official nationwide figure, not one hospital's estimate",
+        "label": "Five-year cancer survival rate in Korea: an official nationwide figure, not one hospital's estimate",
         "source": "National Cancer Center of Korea, national cancer registry statistics, 2018–2022"
       },
       "hospitals": {
         "title": "The hospitals we work with",
-        "caption": "Ewha Womans University Seoul and Mokdong Hospitals · Korea University Guro Hospital · Severance Hospital in Sinchon — plus four branches of the Immune Hospital of Korean Medicine"
+        "caption": "Ewha Womans University Seoul and Mokdong Hospitals · Korea University Guro Hospital · Severance Hospital in Sinchon, plus four branches of the Immune Hospital of Korean Medicine"
       },
       "support": {
         "title": "Russian at your side",
-        "body": "From your first message until you're back home, you're supported in Russian — medical interpretation, help at the hospital, communication with your doctors. healwith works in six languages, including Russian and Kazakh, and stays in touch after discharge."
+        "body": "From your first message until you're back home, you're supported in Russian: medical interpretation, help at the hospital, communication with your doctors. healwith works in six languages, including Russian and Kazakh, and stays in touch after discharge."
       }
     },
     "partner": {
@@ -365,29 +365,29 @@ export const COPY = {
       "items": [
         {
           "q": "Will my insurance work for treatment in Korea?",
-          "a": "That depends on your policy. Check three things: whether cancer is covered, whether treatment abroad is included, and whether the program's geography includes South Korea. The final answer always comes from your insurer — healwith will help you check and prepare the right questions, free of charge."
+          "a": "That depends on your policy. Check three things: whether cancer is covered, whether treatment abroad is included, and whether the program's geography includes South Korea. The final answer always comes from your insurer. healwith will help you check and prepare the right questions, free of charge."
         },
         {
           "q": "How much will I pay out of pocket?",
-          "a": "In direct-payment programs, the insurer settles with the clinic — nothing upfront from you, within your contract's limit and terms. Anything beyond the coverage is governed by your policy. The healwith consultation is free."
+          "a": "In direct-payment programs, the insurer settles with the clinic: nothing upfront from you, within your contract's limit and terms. Anything beyond the coverage is governed by your policy. The healwith consultation is free."
         },
         {
           "q": "Will I be understood? I speak neither Korean nor English.",
-          "a": "Yes. healwith provides medical interpretation and accompaniment at Korean hospitals in Russian and Kazakh — whatever your insurance situation. Under Health Without Borders, a Russian-speaking medical coordinator stays with you as well."
+          "a": "Yes. healwith provides medical interpretation and accompaniment at Korean hospitals in Russian and Kazakh, whatever your insurance situation. Under Health Without Borders, a Russian-speaking medical coordinator stays with you as well."
         },
         {
           "q": "What if I don't have insurance like this?",
-          "a": "You can still be treated in Korea — you'd pay the hospital directly. We'll give you a clear picture of the costs, find a hospital for your diagnosis, help with the visa invitation letter, and stay at your side. The consultation is free."
+          "a": "You can still be treated in Korea: you'd pay the hospital directly. We'll give you a clear picture of the costs, find a hospital for your diagnosis, help with the visa invitation letter, and stay at your side. The consultation is free."
         }
       ]
     },
     "disclaimer": {
       "title": "Important information",
-      "body": "The programs on this page are provided by the respective insurance and assistance companies — RESO-Garantia, Rosgosstrakh, and ManagedCare Russia. Their terms, limits, and exclusions are set by each company's official rules and your own contract — check the insurer's documents before you buy. healwith is not an insurance company and does not sell policies. We are a Korea-registered international patient facilitator: we organize the treatment process, but we do not provide medical or insurance services. All information comes from the companies' public materials, as of July 2026."
+      "body": "The programs on this page are provided by the respective insurance and assistance companies: RESO-Garantia, Rosgosstrakh, and ManagedCare Russia. Their terms, limits, and exclusions are set by each company's official rules and your own contract. Check the insurer's documents before you buy. healwith is not an insurance company and does not sell policies. We are a Korea-registered international patient facilitator: we organize the treatment process, but we do not provide medical or insurance services. All information comes from the companies' public materials, as of July 2026."
     },
     "closing": {
       "title": "Start with a simple question",
-      "body": "Send us the name of your insurance program — or just describe your situation in your own words. We'll explain how to check your coverage and how treatment in Korea works, free of charge — no obligation, no pressure.",
+      "body": "Send us the name of your insurance program, or just describe your situation in your own words. We'll explain how to check your coverage and how treatment in Korea works, free of charge. No obligation, no pressure.",
       "cta": "Write to us — it's free"
     }
   },
@@ -395,7 +395,7 @@ export const COPY = {
     "hero": {
       "eyebrow": "Гид · Лечение в Корее по страховке",
       "title": "Что, если ваша страховка уже покрывает\nлечение рака в Корее?",
-      "lede": "Некоторые российские полисы от критических заболеваний оплачивают лечение за границей — и Южная Корея входит в их географию. Мы бесплатно поможем проверить ваш полис и возьмём на себя всю корейскую часть: от первого обращения до возвращения домой.",
+      "lede": "Некоторые российские полисы от критических заболеваний оплачивают лечение за границей — и Южная Корея входит в их географию.\nМы бесплатно поможем проверить ваш полис и возьмём на себя всю корейскую часть: от первого обращения до возвращения домой.",
       "cta": "Получить бесплатную консультацию",
       "note": "Консультация бесплатна, даже если диагноз уже поставлен или полиса нет: лечение в Корее возможно и без страховки.",
       "bullets": [
@@ -560,7 +560,7 @@ export const COPY = {
       "items": [
         {
           "q": "Подойдёт ли моя страховка для лечения в Корее?",
-          "a": "Это решают условия вашего полиса. Проверьте три вещи: входит ли онкология в покрытие, предусмотрено ли лечение за границей и есть ли Южная Корея в географии программы. Окончательный ответ всегда за страховой — а healwith бесплатно поможет разобраться и подготовить вопросы для неё."
+          "a": "Это решают условия вашего полиса. Проверьте три вещи: входит ли онкология в покрытие, предусмотрено ли лечение за границей и есть ли Южная Корея в географии программы. Окончательный ответ всегда за страховой, а healwith бесплатно поможет разобраться и подготовить вопросы для неё."
         },
         {
           "q": "Сколько я заплачу из своего кармана?",
@@ -582,7 +582,7 @@ export const COPY = {
     },
     "closing": {
       "title": "Начните с простого вопроса",
-      "body": "Напишите нам название вашей страховой программы — или просто опишите ситуацию своими словами. Мы бесплатно подскажем, как проверить покрытие, и объясним, как устроено лечение в Корее. Это ни к чему вас не обязывает.",
+      "body": "Напишите нам название вашей страховой программы или просто опишите ситуацию своими словами. Мы бесплатно подскажем, как проверить покрытие, и объясним, как устроено лечение в Корее. Это ни к чему вас не обязывает.",
       "cta": "Написать нам — это бесплатно"
     }
   },
@@ -590,7 +590,7 @@ export const COPY = {
     "hero": {
       "eyebrow": "Нұсқаулық · Кореяда сақтандырумен емделу",
       "title": "Кореядағы қатерлі ісік емі\nполисіңізде жазулы тұрған болуы мүмкін",
-      "lede": "Ресейдің ауыр аурулардан сақтандыратын бірқатар бағдарламасы шетелдегі емді де қамтиды — Оңтүстік Корея да сол тізімде. Полисіңіздің жарайтын-жарамайтынын тексеруге тегін көмектесеміз, ал Корея жағындағы емді басынан аяғына дейін өзіміз ұйымдастырамыз.",
+      "lede": "Ресейдің ауыр аурулардан сақтандыратын бірқатар бағдарламасы шетелдегі емді де қамтиды — Оңтүстік Корея да сол тізімде.\nПолисіңіздің жарайтын-жарамайтынын тексеруге тегін көмектесеміз, ал Корея жағындағы емді басынан аяғына дейін өзіміз ұйымдастырамыз.",
       "cta": "Тегін кеңес алу",
       "note": "Диагноз қойылып қойған болса да, полисіңіз мүлде болмаса да — тегін кеңес есігі бәріне ашық.",
       "bullets": [
@@ -655,7 +655,7 @@ export const COPY = {
         {
           "name": "Маданес / МСР — ManagedCare Russia ассистансы",
           "tag": "Ем ұйымдастыратын компания",
-          "desc": "Бұл — сақтандыру компаниясы емес: сақтандырушылардың тапсырысымен науқастың емін ұйымдастыратын көмекші компания. Компанияның өз мәліметі бойынша, науқастарының бес жылдық өмір сүру көрсеткіші — 85%; бұл — өз клиенттері бойынша ғана жүргізілген ішкі есеп, сондықтан оны елдердің мемлекеттік статистикасымен тікелей салыстыруға болмайды.",
+          "desc": "Бұл — сақтандыру компаниясы емес: сақтандырушылардың тапсырысымен науқастың емін ұйымдастыратын көмекші компания. Компанияның өз мәліметі бойынша, науқастарының бес жылдық өмір сүру көрсеткіші — 85%; бұл ішкі есеп өз клиенттері бойынша ғана жүргізілген, сондықтан оны елдердің мемлекеттік статистикасымен тікелей салыстыруға болмайды.",
           "specs": [
             {
               "label": "Тәжірибе",
@@ -785,7 +785,7 @@ export const COPY = {
     "hero": {
       "eyebrow": "指南 · 用保险赴韩治疗",
       "title": "您手里的保险，也许早就\n涵盖了在韩国的癌症治疗",
-      "lede": "俄罗斯的一些重大疾病保险，保障范围一直延伸到海外——韩国就在名单上。我们免费帮您核实手中的保单是否适用，韩国这边的治疗也由我们来安排。",
+      "lede": "俄罗斯的一些重大疾病保险，保障范围一直延伸到海外——韩国就在名单上。\n我们免费帮您核实手中的保单是否适用，韩国这边的治疗也由我们来安排。",
       "cta": "免费咨询",
       "note": "已经确诊，或者没有任何保险？也一样可以免费咨询。",
       "bullets": [
@@ -980,7 +980,7 @@ export const COPY = {
     "hero": {
       "eyebrow": "ガイド · 保険で受ける韓国での治療",
       "title": "その保険、韓国でのがん治療まで\n保障しているかもしれません",
-      "lede": "ロシアの重大疾病保険のなかには、韓国を含む海外での治療まで保障する商品があります。ご自身の保険が対象かどうか、無料でお調べします。該当すれば、韓国での治療の準備はまるごとお任せください。",
+      "lede": "ロシアの重大疾病保険のなかには、韓国を含む海外での治療まで保障する商品があります。\nご自身の保険が対象かどうか、無料でお調べします。該当すれば、韓国での治療の準備はまるごとお任せください。",
       "cta": "無料相談を受ける",
       "note": "すでに診断を受けた方も、保険をお持ちでない方も、無料相談はそのままご利用いただけます。",
       "bullets": [
@@ -992,7 +992,7 @@ export const COPY = {
     "products": {
       "title": "海外での治療を保障する保険商品",
       "lede": "ロシア国外でのがん治療を公式に保障している現行のロシアの保険商品と、その治療を実際に手配するアシスタンス会社をご紹介します。内容は各社の公開資料に基づくもので、正確な条件は個々のご契約で定められます。",
-      "waitNote": "これらの商品の海外治療には、待機期間（180日・120日）があります。だからこそ、元気なうちに将来に備えておく保険です。すでに診断を受けている方は、ページ下部の無料相談へ — 保険がなくても、韓国での治療は可能です。",
+      "waitNote": "これらの商品の海外治療には、待機期間（180日・120日）があります。だからこそ、元気なうちに将来に備えておく保険です。すでに診断を受けている方は、ページ下部の無料相談へ。保険がなくても、韓国での治療は可能です。",
       "items": [
         {
           "name": "レソ・ガランティア（РЕСО-Гарантия）『国境なき健康（Здоровье без границ）』",
@@ -1043,7 +1043,7 @@ export const COPY = {
           "korea": "治療できる地域は米国を除く全世界。韓国は明示された除外対象ではありませんが、ご自身のケースに当てはまるかどうかは、保険会社の約款でご確認ください。"
         },
         {
-          "name": "マダネス／МСР — ManagedCare Russia",
+          "name": "マダネス／МСР（ManagedCare Russia）",
           "tag": "治療サポート会社",
           "desc": "保険会社ではなく、保険会社から委託を受けて患者の治療を手配するアシスタンス会社です。同社の発表によると、患者の5年生存率は85%。ただし自社の利用者だけを集計した数値のため、国全体の公式統計とそのまま比べることはできません。",
           "specs": [
@@ -1077,7 +1077,7 @@ export const COPY = {
           "body": "治療先への行きも帰りも、保障の範囲内。手配はサービス会社が担当します。"
         },
         {
-          "title": "宿泊 — ご本人と付き添いの方",
+          "title": "宿泊：ご本人と付き添いの方",
           "body": "患者ご本人はもちろん、付き添いの方の宿泊費もプランの条件と限度額の範囲内で支払われます。治療のあいだずっと、ご家族がそばにいられます。"
         },
         {
@@ -1086,12 +1086,12 @@ export const COPY = {
         },
         {
           "title": "支払いは病院へ直接",
-          "body": "保険会社が治療費を病院へ直接支払います。立て替えて払い戻しを待つ — そんな心配は要りません。"
+          "body": "保険会社が治療費を病院へ直接支払います。立て替えて払い戻しを待つ、そんな心配は要りません。"
         }
       ]
     },
     "steps": {
-      "title": "ご利用の流れは5ステップ — 『国境なき健康』の例",
+      "title": "ご利用の流れは5ステップ：『国境なき健康』の例",
       "items": [
         {
           "title": "保険会社に連絡する",
@@ -1102,7 +1102,7 @@ export const COPY = {
           "body": "保険会社とアシスタンス会社から、紹介状や検査結果などの提出を求められます。韓国の病院がよく求める書類は事前にお伝えするので、準備は一度で済みます。"
         },
         {
-          "title": "病院を選ぶ — 最低3か所の中から",
+          "title": "病院を選ぶ：最低3か所の中から",
           "body": "プランの条件により、少なくとも3か所の病院が提案されます。その中に韓国があれば、healwithが病院の比較と、診断に合った診療科探しをお手伝いします。"
         },
         {
@@ -1120,7 +1120,7 @@ export const COPY = {
       "lede": "韓国は『国境なき健康』の治療先リストに、イスラエル・スペインと並んで明記されています。その裏付けとなる数字と体制を、そのままご覧ください。",
       "stat": {
         "value": "72.9%",
-        "label": "韓国のがん患者の5年生存率 — 特定の病院ではなく、国全体を対象とした公式統計",
+        "label": "韓国のがん患者の5年生存率（特定の病院ではなく、国全体を対象とした公式統計）",
         "source": "韓国国立がんセンター・国家がん登録統計 2018–2022"
       },
       "hospitals": {
@@ -1141,7 +1141,7 @@ export const COPY = {
       "items": [
         {
           "q": "私の保険で、韓国での治療は受けられますか？",
-          "a": "決めるのは、ご自身の保険証券の条件です。確認するのは3点 — がんが保障の対象か、海外治療が含まれるか、保障地域に韓国が入っているか。最終的な判断は保険会社が行いますが、確認の進め方も、保険会社への質問の整理も、healwithが無料でお手伝いします。"
+          "a": "決めるのは、ご自身の保険証券の条件です。確認するのは3点：がんが保障の対象か、海外治療が含まれるか、保障地域に韓国が入っているか。最終的な判断は保険会社が行いますが、確認の進め方も、保険会社への質問の整理も、healwithが無料でお手伝いします。"
         },
         {
           "q": "自己負担はどれくらいかかりますか？",
@@ -1163,7 +1163,7 @@ export const COPY = {
     },
     "closing": {
       "title": "質問ひとつから、始めてみませんか",
-      "body": "ご加入の保険商品の名前をお送りください。状況をご自身の言葉で書いていただくだけでも大丈夫です。保障の確認方法と、韓国での治療の進み方を無料でご案内します — 義務も、無理な勧誘もありません。",
+      "body": "ご加入の保険商品の名前をお送りください。状況をご自身の言葉で書いていただくだけでも大丈夫です。保障の確認方法と、韓国での治療の進み方を無料でご案内します。義務も、無理な勧誘もありません。",
       "cta": "無料で問い合わせる"
     }
   }
