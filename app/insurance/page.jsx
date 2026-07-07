@@ -10,7 +10,7 @@ export async function generateMetadata() {
 const baseMeta = {
   title: "보험으로 받는 한국 암치료 | healwith",
   description:
-    "중증질환 보험으로 한국 암치료 — 치료비·항공·숙박까지 보험이 커버할 수 있습니다. healwith가 한국 측 병원·통역·케어를 조직합니다.",
+    "중증질환 보험으로 받는 한국 암치료. 치료비·항공·숙박까지 보험이 커버할 수 있고, healwith가 한국 측 병원·통역·케어를 조직합니다.",
   keywords: [
     "보험 한국 암치료",
     "лечение рака в Корее по страховке",
@@ -21,7 +21,7 @@ const baseMeta = {
   openGraph: {
     title: "보험으로 받는 한국 암치료 | healwith",
     description:
-      "중증질환 보험 프로그램이 한국 치료를 커버합니다 — 치료·항공·숙박·통역, 보험사가 병원에 직접 지불.",
+      "중증질환 보험 프로그램이 한국 치료를 커버합니다. 치료·항공·숙박·통역까지, 보험사가 병원에 직접 지불합니다.",
     type: "website",
   },
 };

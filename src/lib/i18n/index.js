@@ -493,7 +493,7 @@ const DICTIONARY = {
     "seo.careJourney.title": "치료 여정 — 진단부터 회복까지 토탈 케어 | healwith",
     "seo.careJourney.desc": "한국에서의 암 치료 전 과정 — 진단·상담부터 치료, 비자, 사후관리까지.",
     "seo.insurance.title": "보험으로 받는 한국 암치료 | healwith",
-    "seo.insurance.desc": "중증질환 보험으로 한국 암치료 — 치료비·항공·숙박까지 보험이 커버할 수 있습니다. healwith가 한국 측 병원·통역·케어를 조직합니다.",
+    "seo.insurance.desc": "중증질환 보험으로 받는 한국 암치료. 치료비·항공·숙박까지 보험이 커버할 수 있고, healwith가 한국 측 병원·통역·케어를 조직합니다.",
     "seo.inquiry.title": "상담 신청 — 한국 암 치료 연결 | healwith",
     "seo.inquiry.desc": "healwith 문의 시작 — AI 상담, 전담 코디네이터, 또는 문의 폼으로 한국 암 치료에 연결.",
     "seo.immune.title": "Immune Hospital — 면력한방병원 | healwith",
