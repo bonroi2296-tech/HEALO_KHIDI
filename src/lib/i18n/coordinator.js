@@ -18,7 +18,7 @@
  */
 
 import { useSyncExternalStore } from "react";
-import { getLangCodeFromCookie } from "./index";
+import { getBackofficeLangFromCookie } from "./index";
 
 const CT = {
   // ── 레이아웃 / 내비게이션 ─────────────────────────────
@@ -484,7 +484,8 @@ function subscribeLang(cb) {
   };
 }
 export function useBackofficeLang() {
-  return useSyncExternalStore(subscribeLang, () => getLangCodeFromCookie() || "ko", () => "ko");
+  // 스태프 전용 쿠키(healo_bo_lang)만 본다 → 공개 healo_lang(en 등)에 안 휘둘리고 기본 ko.
+  return useSyncExternalStore(subscribeLang, () => getBackofficeLangFromCookie() || "ko", () => "ko");
 }
 
 /**
