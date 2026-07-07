@@ -54,6 +54,12 @@ export async function checkAgencyAuth(request?: NextRequest): Promise<AgencyAuth
       };
     }
 
+    // 계정 비활성(app_metadata.disabled) — 계층 무관 전역 킬스위치. checkAdminAuth와 정합.
+    // 에이전시 계정은 agency_users.is_active로도 막히지만, disabled가 어느 계층에 찍혀도 잠기게 이중 안전.
+    if ((user.app_metadata as { disabled?: boolean } | undefined)?.disabled === true) {
+      return { isAgencyUser: false, userId: user.id, email: user.email, error: "account_disabled" };
+    }
+
     const userId = user.id;
     // service_role 클라이언트: agency_users 테이블/조인이 생성 스키마 타입에 없어 캐스팅 유지
     const serviceClient = createServiceRoleClient() as any;
