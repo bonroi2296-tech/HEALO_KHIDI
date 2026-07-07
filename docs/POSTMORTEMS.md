@@ -14,6 +14,18 @@
 
 ---
 
+## #73 — 「🔁 #63/#71 부류 재발」 is_test 감지기가 '로그인 계정'을 안 봐 공유 테스트계정 접수가 실적 오염 (감사 발견, 2026-07-07)
+
+**무슨 일** — `detectInquiryIsTest({ip, email, manual})` 가 **폼에 적은 이메일**만 봤다. 공유 테스트 계정(예: agency@test.com)으로 **로그인한 채** 폼엔 개인 이메일(gmail 등)을 적어 접수하면 `is_test=false` 로 KHIDI 실적에 섞였다. 실측 4건(전부 source=web): #37(agency@test.com)·#23·#22(patient@test.com)·#19(coordinator@test.com). 특히 #37 은 PO 가 "첫 실고객"으로 인지한 건인데 실제 접수는 공유 테스트 계정으로 이뤄짐 → 평가 실적(유치·상담 카운트)의 신뢰를 흔드는 오염.
+
+**왜 못 잡았나 (그때 방지책이 왜 뚫렸나)** — #63/#71 의 방지책은 "**새 집계 쿼리마다 is_test 제외**"·"**경로별 규칙 드리프트는 코드리뷰 체크포인트**"라는 *수동 리뷰 규칙*이었다. 그런데 이번 구멍은 "어떤 insert 경로가 감지기를 빠뜨렸나"가 아니라 **감지기 자신에 차원이 없었다**(accountEmail 슬롯 부재) — 그래서 감지기를 부른 step1 조차 계정을 검사할 방법이 없었다. `agency/refer` 만 감지기를 두 번 호출(`{email: auth.email}`)해 손으로 우회했는데, 이 우회가 곧 "중앙 감지기가 불완전"이라는 신호였음에도 감지기 본체로 승격되지 않아 다른 모든 호출부가 계속 눈이 먼 상태였다. 수동 체크포인트는 "차원 자체의 누락"을 못 잡는다.
+
+**어떻게 고쳤나** — ①차원을 **감지기 단일 SoR 로 흡수**: `detectInquiryIsTest` 에 `accountEmail` 인자 추가 → 폼·계정 이메일 중 하나라도 테스트 도메인이면 true(기존 `isTestEmail` 룰 재사용). ②`step1` 이 `getUser` 로 이미 받는 user 객체에서 `email` 을 함께 캡처해 전달(추가 조회 0). ③`agency/refer` 의 손 우회(2회 호출)를 새 인자로 통일. ④게스트 경로(AI챗 승격)는 로그인 계정이 없어 해당 없음(사무실 IP 가드가 백스톱) — 확인 후 무변경.
+
+**재발 방지 (뚫린 가드 보강 — 수동→자동)** — (a) **유닛테스트**로 "accountEmail=@test.com 이면 폼이 gmail 이어도 true" 회귀 고정(`testData.test.ts`, +5 케이스). (b) **능동 데이터 드리프트 감사**: `findTestPollutedInquiryIds`(순수·테스트됨) + `alertTestDataPollution` 을 KPI 스냅샷 cron 일일 감사에 연결 → "is_test=false 인데 접수 계정이 테스트 도메인"인 문의를 매일 훑어 경고(#37 등 의도적 예외는 env `TEST_POLLUTION_AUDIT_IGNORE` 로 제외해 오탐 방지). 이로써 미래에 새 insert 경로가 accountEmail 을 또 빠뜨려도 **데이터에서** 잡힌다(사후 그물). (c) 기존 오염 4건은 1회성 SQL(`scripts/backfill_test_account_inquiries.sql`, is_test 플래그만 — 되돌리기 쉬움)로 정정, #37 처리는 PO 결정. **교훈**: "규칙을 경로마다 복붙하라"는 수동 방지책은 *차원 누락*엔 무력 → 판정 차원은 감지기 단일 SoR 에 넣고, 우회 코드가 보이면 그게 곧 SoR 이 불완전하다는 신호다.
+
+---
+
 ## #72 — 견적서 USD 총액이 KRW 와 독립 합산돼 불일치 가능 (감사 발견·안전수정, 2026-07-07)
 
 **무슨 일** — cost-estimate 견적서가 라인별 KRW·USD 를 각각 독립 합산(`total_krw=Σkrw`, `total_usd=Σusd`). 코디가 일부 라인만 USD 를 채우면 `total_usd` 가 `total_krw` 와 안 맞는 값이 되어 **법적 견적 PDF + 환자화면 3곳 + 에이전시**에 오해 소지 있는 USD 총액 노출(#71 에서 'PO 결정 대기'로 보류했던 MONEY-4 — PO 가 '환율 임의계산 말고 불완전 시 숨김'으로 결정).

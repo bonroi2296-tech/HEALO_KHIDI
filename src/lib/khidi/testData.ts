@@ -46,6 +46,13 @@ export interface DetectTestInput {
   ip?: string | null;
   /** 평문 이메일 (암호화 전). 없으면 무시. */
   email?: string | null;
+  /**
+   * 로그인 계정(auth.users)의 이메일 — 폼에 적은 email 과 별개.
+   * 왜: 공유 테스트 계정(예: agency@test.com)으로 로그인한 채 폼엔 개인 이메일(gmail)을 적으면
+   *     폼 email 만 보던 옛 판정이 실제 유치(is_test=false)로 오인해 KHIDI 실적을 오염시켰다.
+   *     계정 이메일도 같은 테스트 도메인 룰로 검사(POSTMORTEMS — 로그인 계정 경로 누락).
+   */
+  accountEmail?: string | null;
   /** 폼/어드민에서 명시적으로 테스트라고 표시했는가. */
   manual?: boolean | null;
   /** 테스트용 주입(미지정 시 process.env 사용). */
@@ -63,7 +70,29 @@ export function detectInquiryIsTest(input: DetectTestInput): boolean {
   if (input.manual === true) return true;
   if (isOfficeIp(input.ip, officeIps)) return true;
   if (isTestEmail(input.email, testDomains)) return true;
+  if (isTestEmail(input.accountEmail, testDomains)) return true;
   return false;
+}
+
+/**
+ * 실적 오염 감사(드리프트 모니터): is_test=false 로 실적에 잡혀 있으나 '접수 계정'이
+ * 테스트 도메인인 문의 id 를 골라낸다. 코드 가드(감지기)를 우회해 새는 경로를 사후에도 잡는 그물.
+ * 순수 함수 — DB 조회(계정 이메일 해석)는 호출부(cron)가 하고 여기엔 결과만 넘긴다.
+ */
+export function findTestPollutedInquiryIds(
+  rows: Array<{ id: number; accountEmail: string | null }>,
+  domains: string[]
+): number[] {
+  return rows
+    .filter((r) => isTestEmail(r.accountEmail, domains))
+    .map((r) => r.id)
+    .filter((v) => v != null);
+}
+
+/** 감사에서 쓸 테스트 도메인 목록(env → 기본 test.com). detectInquiryIsTest 와 동일 규칙. */
+export function resolveTestDomains(): string[] {
+  const fromEnv = parseList(process.env.TEST_EMAIL_DOMAINS);
+  return fromEnv.length > 0 ? fromEnv : ["test.com"];
 }
 
 /**
