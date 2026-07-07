@@ -522,12 +522,27 @@ try {
 //     사각지대였음 → 알림 link 가 가리키는 라우트 존재를 매번 자동 대조.
 // ponytail: 값이 "/" 로 시작하는 link 리터럴만 검사(가장 흔한 in-app 알림 링크). ${baseUrl}…
 //     처럼 절대 URL 로 조립되는 링크는 범위 밖(정적 분석 불가) — 그건 코드리뷰 몫.
+// Next.js 라우트 그룹 (group) 은 URL 세그먼트를 만들지 않음 → 각 레벨에서 투명하게 통과.
+// (그룹은 중첩 가능하므로 재귀 확장. 이게 없으면 app/(portal)/coordinator/… 같은 라우트를
+//  가리키는 정상 link 를 "없는 라우트"로 오탐한다 — App Router 리팩터에서 흔한 함정.)
+function expandRouteGroups(dirs) {
+  const out = [];
+  const stack = [...dirs];
+  while (stack.length) {
+    const d = stack.pop();
+    out.push(d);
+    let entries;
+    try { entries = readdirSync(d); } catch { continue; }
+    for (const e of entries) if (/^\(.+\)$/.test(e)) stack.push(join(d, e));
+  }
+  return out;
+}
 function notifRouteExists(segments) {
   // segments: 경로 세그먼트 배열. `${…}` 를 포함한 세그먼트는 "*"(동적)로 표시.
   let dirs = [join(ROOT, "app")];
   for (const seg of segments) {
     const next = [];
-    for (const dir of dirs) {
+    for (const dir of expandRouteGroups(dirs)) {
       let entries;
       try { entries = readdirSync(dir); } catch { continue; }
       if (seg === "*") {
@@ -540,7 +555,7 @@ function notifRouteExists(segments) {
     if (!next.length) return false;
     dirs = next;
   }
-  for (const dir of dirs) {
+  for (const dir of expandRouteGroups(dirs)) {
     for (const f of ["page.jsx", "page.tsx", "page.js", "page.ts"]) {
       try { statSync(join(dir, f)); return true; } catch { /* 다음 */ }
     }
