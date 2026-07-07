@@ -1,0 +1,164 @@
+/**
+ * healwith: 세컨드 오피니언 — 코디/어드민용 소견 요청 생성 + 조회 (staff 전용)
+ *
+ * POST /api/coordinator/opinions        → 케이스에 소견 요청(매직링크) 생성. 링크 + 카톡 붙여넣기용 요약 반환.
+ * GET  /api/coordinator/opinions?inquiryId=  → 그 케이스의 활성 요청 + 도착한 소견 목록.
+ *
+ * inquiries·opinion_* 는 RLS상 service_role 전용 → 서버 경유 필수.
+ * 소견은 hospital_leads(치료 유치 집계)와 분리된 case_opinions 에 저장(유치 KPI 오염 방지).
+ */
+export const runtime = "nodejs";
+
+import crypto from "crypto";
+import { NextRequest } from "next/server";
+import { requirePortalAuth } from "@/lib/auth/requirePortalAuth";
+import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
+
+const SITE_URL =
+  process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_URL || "https://healwith.co.kr";
+
+// 링크 유효기간 — 30일(그 후 만료). 재요청은 새 링크 생성.
+const EXPIRY_DAYS = 30;
+
+function opinionUrl(token: string): string {
+  return `${SITE_URL}/opinion/${token}`;
+}
+
+/** intake JSONB 에서 병기(stage)만 안전하게 뽑기(신·구 키). PII 아님. */
+function stageOf(intake: any): string | null {
+  const o = intake && typeof intake === "object" && !Array.isArray(intake) ? intake : {};
+  const cancer = o.cancer && typeof o.cancer === "object" ? o.cancer : {};
+  const v = o.stage ?? cancer.stage ?? null;
+  return v != null && String(v).trim() ? String(v).trim() : null;
+}
+
+/** 카톡 붙여넣기용 요약 — PII(이름·연락처) 제외. 임상 맥락 + 링크만. */
+function buildSummary(inq: any, url: string, note?: string | null): string {
+  const lines = [
+    "[healwith 전문의 소견 요청]",
+    `케이스 #${inq.id}`,
+  ];
+  if (inq.nationality) lines.push(`· 국적: ${inq.nationality}`);
+  const cancer = inq.cancer_type || inq.treatment_type;
+  if (cancer) lines.push(`· 암종/치료: ${cancer}`);
+  const stage = stageOf(inq.intake);
+  if (stage) lines.push(`· 병기: ${stage}`);
+  if (note && note.trim()) lines.push(`· 요청: ${note.trim()}`);
+  lines.push("");
+  lines.push("아래 링크에서 검사지·상세를 보시고 소견 부탁드립니다(로그인 불필요):");
+  lines.push(url);
+  return lines.join("\n");
+}
+
+export async function POST(request: NextRequest) {
+  const auth = await requirePortalAuth(request, { staffOnly: true });
+  if (!auth.success) return auth.response;
+
+  try {
+    const body = await request.json().catch(() => ({}));
+    const inquiryId = Number(body?.inquiryId);
+    if (!Number.isInteger(inquiryId) || inquiryId <= 0) {
+      return Response.json({ ok: false, error: "invalid_inquiry_id" }, { status: 400 });
+    }
+    const note = typeof body?.note === "string" ? body.note.slice(0, 500) : null;
+
+    // 케이스 존재 확인 + 요약 재료(PII 아닌 임상 필드만)
+    const { data: inq, error: inqErr } = await supabaseAdmin
+      .from("inquiries")
+      .select("id, nationality, cancer_type, treatment_type, intake")
+      .eq("id", inquiryId)
+      .single();
+    if (inqErr || !inq) {
+      return Response.json({ ok: false, error: "inquiry_not_found" }, { status: 404 });
+    }
+
+    // 추측 불가 토큰(48 hex). 케이스당 여러 번 생성 가능(각각 유효 — 재요청은 새 링크).
+    const token = crypto.randomBytes(24).toString("hex");
+    const expiresAt = new Date(Date.now() + EXPIRY_DAYS * 24 * 60 * 60 * 1000).toISOString();
+
+    const { data: reqRow, error: insErr } = await (supabaseAdmin as any)
+      .from("opinion_requests")
+      .insert({
+        inquiry_id: inquiryId,
+        token,
+        created_by: auth.userId,
+        note,
+        expires_at: expiresAt,
+      })
+      .select("id, token, note, created_at, expires_at")
+      .single();
+    if (insErr || !reqRow) {
+      console.error("[coordinator/opinions] insert error:", insErr?.message);
+      return Response.json({ ok: false, error: "create_failed" }, { status: 500 });
+    }
+
+    const url = opinionUrl(reqRow.token);
+    return Response.json({
+      ok: true,
+      request: {
+        id: reqRow.id,
+        token: reqRow.token,
+        url,
+        note: reqRow.note,
+        created_at: reqRow.created_at,
+        expires_at: reqRow.expires_at,
+      },
+      summaryText: buildSummary(inq, url, note),
+    });
+  } catch (e: any) {
+    console.error("[coordinator/opinions] POST error:", e?.message);
+    return Response.json({ ok: false, error: "internal_error" }, { status: 500 });
+  }
+}
+
+export async function GET(request: NextRequest) {
+  const auth = await requirePortalAuth(request, { staffOnly: true });
+  if (!auth.success) return auth.response;
+
+  const inquiryId = Number(new URL(request.url).searchParams.get("inquiryId"));
+  if (!Number.isInteger(inquiryId) || inquiryId <= 0) {
+    return Response.json({ ok: false, error: "invalid_inquiry_id" }, { status: 400 });
+  }
+
+  try {
+    const nowIso = new Date().toISOString();
+    // 활성 요청(가장 최근, 미폐기·미만료) 1건 — 코디가 링크 재확인·재공유용.
+    const { data: reqs } = await (supabaseAdmin as any)
+      .from("opinion_requests")
+      .select("id, token, note, created_at, expires_at, revoked")
+      .eq("inquiry_id", inquiryId)
+      .eq("revoked", false)
+      .order("created_at", { ascending: false })
+      .limit(1);
+    const active = (reqs || []).find((r: any) => !r.expires_at || r.expires_at > nowIso) || null;
+
+    const { data: opinions } = await (supabaseAdmin as any)
+      .from("case_opinions")
+      .select("id, doctor_key, doctor_name, opinion_text, attribution_note, created_at")
+      .eq("inquiry_id", inquiryId)
+      .order("created_at", { ascending: false });
+
+    // 활성 링크가 있으면 카톡 붙여넣기용 요약도 함께(코디가 재공유 시 다시 복사할 수 있게).
+    let summaryText: string | null = null;
+    if (active) {
+      const { data: inq } = await supabaseAdmin
+        .from("inquiries")
+        .select("id, nationality, cancer_type, treatment_type, intake")
+        .eq("id", inquiryId)
+        .single();
+      if (inq) summaryText = buildSummary(inq, opinionUrl(active.token), active.note);
+    }
+
+    return Response.json({
+      ok: true,
+      request: active
+        ? { id: active.id, token: active.token, url: opinionUrl(active.token), note: active.note, created_at: active.created_at, expires_at: active.expires_at }
+        : null,
+      summaryText,
+      opinions: opinions || [],
+    });
+  } catch (e: any) {
+    console.error("[coordinator/opinions] GET error:", e?.message);
+    return Response.json({ ok: false, error: "internal_error" }, { status: 500 });
+  }
+}
