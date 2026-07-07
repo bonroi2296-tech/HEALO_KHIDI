@@ -514,6 +514,62 @@ try {
   }
 }
 
+// ── 14) 알림(in-app) link 가 실제 app 라우트로 존재하는지 (404 방지, 🔁 #31 부류 재발) ──────
+// 왜: 새 문의 종(bell) 알림의 어드민 link 가 /admin/inquiries/${id} 인데 그 [id] 상세 라우트가
+//     없어 클릭 시 404 (2026-07-07 첫 실고객 #37 — 어드민 2명에게 죽은 링크 발송, POSTMORTEMS).
+//     이메일 알림(adminNotifier.ts)은 목록으로 고쳤는데 종 알림만 누락된 "한 곳만 적용된 표류".
+//     §4(동적링크)는 app/ 의 router.push·href 만 봐서 src/lib/notifications 의 link 문자열은
+//     사각지대였음 → 알림 link 가 가리키는 라우트 존재를 매번 자동 대조.
+// ponytail: 값이 "/" 로 시작하는 link 리터럴만 검사(가장 흔한 in-app 알림 링크). ${baseUrl}…
+//     처럼 절대 URL 로 조립되는 링크는 범위 밖(정적 분석 불가) — 그건 코드리뷰 몫.
+function notifRouteExists(segments) {
+  // segments: 경로 세그먼트 배열. `${…}` 를 포함한 세그먼트는 "*"(동적)로 표시.
+  let dirs = [join(ROOT, "app")];
+  for (const seg of segments) {
+    const next = [];
+    for (const dir of dirs) {
+      let entries;
+      try { entries = readdirSync(dir); } catch { continue; }
+      if (seg === "*") {
+        for (const e of entries) if (/^\[.+\]$/.test(e)) next.push(join(dir, e)); // 동적 → [param]/[...param]
+      } else {
+        if (entries.includes(seg)) next.push(join(dir, seg));
+        for (const e of entries) if (/^\[.+\]$/.test(e)) next.push(join(dir, e)); // 리터럴을 동적 라우트가 받을 수도
+      }
+    }
+    if (!next.length) return false;
+    dirs = next;
+  }
+  for (const dir of dirs) {
+    for (const f of ["page.jsx", "page.tsx", "page.js", "page.ts"]) {
+      try { statSync(join(dir, f)); return true; } catch { /* 다음 */ }
+    }
+  }
+  return false;
+}
+const NOTIF_LINK_RE = /\blink\s*[:=]\s*[`"'](\/[^`"'\n]*)[`"']/g;
+const notifLinkSeen = new Set();
+for (const dir of SCAN_DIRS) {
+  for (const file of walk(dir)) {
+    if (!CODE_EXT.test(file) || EXCLUDE.test(file)) continue;
+    const text = readFileSync(join(ROOT, file), "utf8");
+    let m;
+    while ((m = NOTIF_LINK_RE.exec(text)) !== null) {
+      const raw = m[1];
+      if (raw.startsWith("/api")) continue;                 // API 경로는 페이지 아님
+      const path = raw.split("?")[0].split("#")[0];          // 쿼리·해시 제거
+      const segs = path.split("/").filter(Boolean).map((s) => (/\$\{[^}]*\}/.test(s) ? "*" : s));
+      if (!segs.length) continue;                            // 루트 "/" 는 항상 존재
+      const key = file + "|" + path;
+      if (notifLinkSeen.has(key)) continue;
+      notifLinkSeen.add(key);
+      if (!notifRouteExists(segs)) {
+        errors.push(`[알림링크404] ${file.replace(/\\/g, "/")} — 알림 link "${raw}" 가 가리키는 app 라우트가 없음 → 클릭 시 404 (🔁 #31 부류 재발, #37 사고). 존재하는 라우트로 고치거나 상세 페이지를 만들 것.`);
+      }
+    }
+  }
+}
+
 // ── 결과 ────────────────────────────────────────────────────────
 if (errors.length) {
   console.error(`\n❌ 콘텐츠 일관성 검사 실패 (${errors.length}건)\n`);
