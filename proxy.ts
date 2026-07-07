@@ -194,7 +194,12 @@ export async function proxy(request: NextRequest) {
     const headers = new Headers(request.headers);
     headers.set("x-locale", locale);
     headers.set("x-pathname", pathname);
-    return NextResponse.next({ request: { headers } });
+    const res = NextResponse.next({ request: { headers } });
+    // 서버는 x-locale(=initialLang)로 ru/kz 렌더하는데 클라 getLangCodeFromCookie 가
+    // healo_lang 쿠키를 못 읽으면 en 으로 갈려 hydration mismatch (POSTMORTEMS #77).
+    // 아래 일반 로케일 분기(res.cookies.set(LOCALE_COOKIE, seg …))와 동일하게 쿠키를 맞춘다.
+    res.cookies.set(LOCALE_COOKIE, locale, { path: "/", maxAge: 31536000 });
+    return res;
   }
 
   // ========================================
