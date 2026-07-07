@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
       system: SYSTEM,
       messages: [{ role: "user", content: `이 화면을 만들어줘: ${screen}` }],
       temperature: 0.7,
-      maxOutputTokens: 8000,
+      maxOutputTokens: 32000,
     });
 
     // 혹시 모델이 펜스를 붙이면 제거.
