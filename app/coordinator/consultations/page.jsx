@@ -10,25 +10,32 @@ import { createSupabaseBrowserClient } from '@/lib/supabase/browser';
 import { useToast } from '@/components/Toast';
 import { kstDate, kstTime } from '@/lib/datetime/kst';
 import { CreateConsultationModal } from '@/components/consultation/CreateConsultationModal';
+import { useBackofficeLang, useCoordinatorL, useDateLocale } from '@/lib/i18n/coordinator';
+import { cancerTypeLabelL } from '@/lib/khidi/medicalLabels';
 
-const SESSION_TYPE = {
-  pre_consultation: '사전상담',
-  follow_up: '추후진료',
-  emergency: '긴급상담',
-  diagnostic: '검사결과 검토',
-};
-
-const STATUS_STYLE = {
-  scheduled: { label: '예정', color: 'bg-blue-100 text-blue-800' },
-  active: { label: '진행 중', color: 'bg-green-100 text-green-800' },
-  completed: { label: '완료', color: 'bg-gray-100 text-gray-600' },
-  cancelled: { label: '취소', color: 'bg-red-100 text-red-800' },
-  no_show: { label: '무응답', color: 'bg-yellow-100 text-yellow-800' },
+// 상태 색상만 모듈 상수(언어 무관). 라벨은 컴포넌트에서 L로 해석.
+const STATUS_COLOR = {
+  scheduled: 'bg-blue-100 text-blue-800',
+  active: 'bg-green-100 text-green-800',
+  completed: 'bg-gray-100 text-gray-600',
+  cancelled: 'bg-red-100 text-red-800',
+  no_show: 'bg-yellow-100 text-yellow-800',
 };
 
 export default function CoordinatorConsultationsPage() {
   const router = useRouter();
   const toast = useToast();
+  const L = useCoordinatorL();
+  const lang = useBackofficeLang();
+  const dateLoc = useDateLocale();
+  const SESSION_LABEL = {
+    pre_consultation: L.sessionPre, follow_up: L.sessionFollow,
+    emergency: L.sessionEmergency, diagnostic: L.sessionDiagnostic,
+  };
+  const STATUS_LABEL = {
+    scheduled: L.cStatusScheduled, active: L.cStatusActive, completed: L.cStatusCompleted,
+    cancelled: L.cStatusCancelled, no_show: L.cStatusNoShow,
+  };
   const [consultations, setConsultations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('scheduled');
@@ -60,7 +67,7 @@ export default function CoordinatorConsultationsPage() {
   const issueInvite = async (id) => {
     const supabase = createSupabaseBrowserClient();
     const { data: { session } } = await supabase.auth.getSession();
-    if (!session) { toast.error('인증 오류 — 다시 로그인해주세요'); return null; }
+    if (!session) { toast.error(L.toastAuthErr); return null; }
     try {
       const res = await fetch(`/api/khidi/consultation/${id}/invite`, {
         method: 'POST',
@@ -73,13 +80,13 @@ export default function CoordinatorConsultationsPage() {
       });
       const result = await res.json();
       if (!res.ok || !result.ok) {
-        toast.error(`상담 링크 생성 실패: ${result.error || res.status}`);
+        toast.error(`${L.toastLinkCreateFail}: ${result.error || res.status}`);
         return null;
       }
       return result;
     } catch (err) {
       console.error('[issueInvite] error:', err);
-      toast.error('상담 링크 생성 실패');
+      toast.error(L.toastLinkCreateFail);
       return null;
     }
   };
@@ -91,12 +98,12 @@ export default function CoordinatorConsultationsPage() {
     if (!result?.inviteUrl) {
       // ⚠️ 발급 실패 시 입장권 없는 맨주소로 조용히 입장하지 않는다 — 그 주소창을 복사해 공유하면
       //   받는 사람 전원이 "입장권 없음"에 막힘(2026-07-02 '남들만 안 됨' 함정, POSTMORTEMS #61 연관).
-      toast.error('상담 링크 발급이 안 돼 입장을 멈췄어요. 새로고침(또는 다시 로그인) 후 다시 눌러주세요.');
+      toast.error(L.toastStartStopped);
       return;
     }
     try {
       await navigator.clipboard.writeText(result.inviteUrl);
-      toast.success('상담 링크를 복사했어요 — 상대에게 붙여넣어 보내세요. 나는 지금 입장합니다');
+      toast.success(L.toastStartCopied);
     } catch { /* 클립보드 권한 없으면 조용히 패스 — 입장은 계속 */ }
     // 절대 URL(origin 포함) → 클라이언트 라우팅용 상대경로로
     router.push(result.inviteUrl.replace(/^https?:\/\/[^/]+/, ''));
@@ -105,10 +112,10 @@ export default function CoordinatorConsultationsPage() {
   // 상담 완료 처리 — status=completed 로 PATCH (KHIDI K-02 사전상담·K-04 사후관리 실적 집계).
   //   방의 '통화 나가기'는 상태를 안 바꾸므로(재입장 회귀 방지), 완료 기록은 이 staff 액션이 유일한 경로.
   const handleComplete = async (id) => {
-    if (!confirm("이 상담을 '완료' 처리할까요?\n완료하면 발송된 초대 링크가 폐기되어 재입장할 수 없습니다.")) return;
+    if (!confirm(L.confirmComplete)) return;
     const supabase = createSupabaseBrowserClient();
     const { data: { session } } = await supabase.auth.getSession();
-    if (!session) { toast.error('인증 오류 — 다시 로그인해주세요'); return; }
+    if (!session) { toast.error(L.toastAuthErr); return; }
     try {
       const res = await fetch(`/api/khidi/consultation/${id}`, {
         method: 'PATCH',
@@ -120,14 +127,14 @@ export default function CoordinatorConsultationsPage() {
       });
       const result = await res.json();
       if (!res.ok || !result.ok) {
-        toast.error(`완료 처리 실패: ${result.error || res.status}`);
+        toast.error(`${L.toastCompleteFail}: ${result.error || res.status}`);
         return;
       }
-      toast.success('상담을 완료 처리했어요. (사전상담·사후관리 실적에 집계됩니다)');
+      toast.success(L.toastCompleted);
       fetchData();
     } catch (err) {
       console.error('[handleComplete] error:', err);
-      toast.error('완료 처리 실패');
+      toast.error(L.toastCompleteFail);
     }
   };
 
@@ -139,11 +146,11 @@ export default function CoordinatorConsultationsPage() {
       await navigator.clipboard.writeText(result.inviteUrl);
       toast.success(
         result.emailSent
-          ? '상담 링크를 복사했고, 등록된 이메일로도 발송했습니다'
-          : `상담 링크가 클립보드에 복사됐습니다 (만료: ${new Date(result.expiresAt).toLocaleString('ko-KR')})`
+          ? L.toastCopiedEmailed
+          : L.toastCopiedExpiry.replace('{time}', new Date(result.expiresAt).toLocaleString(dateLoc))
       );
     } catch {
-      prompt('아래 링크를 복사해 공유하세요:', result.inviteUrl);
+      prompt(L.promptCopyShare, result.inviteUrl);
     }
   };
 
@@ -151,25 +158,25 @@ export default function CoordinatorConsultationsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">상담 일정 관리</h1>
-          <p className="text-gray-500 text-sm mt-1">원격 화상 상담 스케줄링 및 진행 관리</p>
+          <h1 className="text-2xl font-bold text-gray-900">{L.consultTitle}</h1>
+          <p className="text-gray-500 text-sm mt-1">{L.consultSubtitle}</p>
         </div>
         <button
           onClick={() => setShowCreateModal(true)}
           className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium"
         >
           <Plus size={16} />
-          새 상담 생성
+          {L.consultNew}
         </button>
       </div>
 
       {/* Filter */}
       <div className="flex gap-2 border-b border-gray-200">
         {[
-          { key: 'scheduled', label: '예정' },
-          { key: 'active', label: '진행 중' },
-          { key: 'completed', label: '완료' },
-          { key: 'all', label: '전체' },
+          { key: 'scheduled', label: L.cStatusScheduled },
+          { key: 'active', label: L.cStatusActive },
+          { key: 'completed', label: L.cStatusCompleted },
+          { key: 'all', label: L.all },
         ].map(tab => (
           <button
             key={tab.key}
@@ -190,13 +197,14 @@ export default function CoordinatorConsultationsPage() {
       ) : consultations.length === 0 ? (
         <div className="text-center py-12 bg-gray-50 rounded-xl">
           <Calendar size={40} className="mx-auto text-gray-300 mb-3" />
-          <p className="text-gray-500 font-medium">해당 상태의 상담이 없습니다</p>
+          <p className="text-gray-500 font-medium">{L.consultEmpty}</p>
         </div>
       ) : (
         <div className="space-y-3">
           {consultations.map(c => {
             const isExpanded = expandedId === c.id;
-            const status = STATUS_STYLE[c.status] || STATUS_STYLE.scheduled;
+            const statusColor = STATUS_COLOR[c.status] || STATUS_COLOR.scheduled;
+            const statusLabel = STATUS_LABEL[c.status] || STATUS_LABEL.scheduled;
             const patient = c.cancer_patient_intakes?.[0];
             return (
               <div key={c.id} className="bg-white border border-gray-200 rounded-xl overflow-hidden">
@@ -213,16 +221,16 @@ export default function CoordinatorConsultationsPage() {
                       </div>
                       <div>
                         <div className="font-semibold text-sm">
-                          {patient?.first_name || 'Patient'} — {SESSION_TYPE[c.session_type] || c.session_type}
+                          {patient?.first_name || 'Patient'} — {SESSION_LABEL[c.session_type] || c.session_type}
                         </div>
                         <div className="flex items-center gap-3 mt-0.5 text-xs text-gray-400">
                           <span className="flex items-center gap-1">
                             <Calendar size={10} />
-                            {c.scheduled_at ? kstDate(c.scheduled_at, 'ko-KR') : '-'}
+                            {c.scheduled_at ? kstDate(c.scheduled_at, dateLoc) : '-'}
                           </span>
                           <span className="flex items-center gap-1">
                             <Clock size={10} />
-                            {c.scheduled_at ? kstTime(c.scheduled_at, 'ko-KR') : '-'}
+                            {c.scheduled_at ? kstTime(c.scheduled_at, dateLoc) : '-'}
                           </span>
                           <span className="flex items-center gap-1">
                             <Globe size={10} />
@@ -232,8 +240,8 @@ export default function CoordinatorConsultationsPage() {
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${status.color}`}>
-                        {status.label}
+                      <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${statusColor}`}>
+                        {statusLabel}
                       </span>
                       <ChevronDown size={16} className={`text-gray-400 transition ${isExpanded ? 'rotate-180' : ''}`} />
                     </div>
@@ -244,22 +252,22 @@ export default function CoordinatorConsultationsPage() {
                   <div className="border-t border-gray-100 bg-gray-50 p-4 space-y-3">
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                       <div className="bg-white rounded-lg p-3 border border-gray-100">
-                        <div className="text-xs text-gray-400 mb-1">환자</div>
+                        <div className="text-xs text-gray-400 mb-1">{L.fieldPatient}</div>
                         <div className="text-sm font-medium">{patient?.first_name || '-'}</div>
                       </div>
                       <div className="bg-white rounded-lg p-3 border border-gray-100">
-                        <div className="text-xs text-gray-400 mb-1">암종/병기</div>
-                        <div className="text-sm font-medium">{patient?.cancer_type || '-'} / Stage {patient?.cancer_stage || '-'}</div>
+                        <div className="text-xs text-gray-400 mb-1">{L.fieldCancerStage}</div>
+                        <div className="text-sm font-medium">{patient?.cancer_type ? cancerTypeLabelL(patient.cancer_type, lang) : '-'} / Stage {patient?.cancer_stage || '-'}</div>
                       </div>
                       <div className="bg-white rounded-lg p-3 border border-gray-100">
-                        <div className="text-xs text-gray-400 mb-1">의사 배정</div>
-                        <div className="text-sm font-medium">{c.doctor_id ? '배정완료' : '미배정'}</div>
+                        <div className="text-xs text-gray-400 mb-1">{L.fieldDoctorAssign}</div>
+                        <div className="text-sm font-medium">{c.doctor_id ? L.badgeAssigned : L.unassigned}</div>
                       </div>
                     </div>
 
                     {c.notes && (
                       <div className="bg-white rounded-lg p-3 border border-gray-100">
-                        <div className="text-xs text-gray-400 mb-1">메모</div>
+                        <div className="text-xs text-gray-400 mb-1">{L.notes}</div>
                         <div className="text-sm text-gray-600">{c.notes}</div>
                       </div>
                     )}
@@ -270,24 +278,24 @@ export default function CoordinatorConsultationsPage() {
                           <button
                             onClick={() => handleStart(c.id)}
                             className="flex items-center gap-2 px-4 py-2 bg-teal-700 text-white rounded-lg hover:bg-teal-800 transition text-sm font-medium"
-                            title="이 링크로 내가 입장하고, 같은 링크가 복사됩니다 (복사해서 상대에게 전송)"
+                            title={L.ttStart}
                           >
                             <Phone size={14} />
-                            {c.status === 'active' ? '상담 재진입' : '상담 시작'}
+                            {c.status === 'active' ? L.btnReenter : L.btnStart}
                           </button>
                           <button
                             onClick={() => handleCopyLink(c.id)}
                             className="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-700 border border-blue-200 rounded-lg hover:bg-blue-100 transition text-sm font-medium"
-                            title="입장 없이 링크만 복사(+등록 이메일 발송) — 「상담 시작」과 같은 링크"
+                            title={L.ttCopyLink}
                           >
-                            🔗 링크 복사
+                            🔗 {L.btnCopyLink}
                           </button>
                           <button
                             onClick={() => handleComplete(c.id)}
                             className="flex items-center gap-2 px-4 py-2 bg-teal-50 text-teal-700 border border-teal-200 rounded-lg hover:bg-teal-100 transition text-sm font-medium"
-                            title="상담을 '완료'로 기록 (사전상담·사후관리 실적 집계) — 초대 링크도 폐기"
+                            title={L.ttComplete}
                           >
-                            <CheckCircle size={14} /> 상담 완료
+                            <CheckCircle size={14} /> {L.btnComplete}
                           </button>
                         </>
                       )}
@@ -307,7 +315,7 @@ export default function CoordinatorConsultationsPage() {
           onSuccess={() => {
             setShowCreateModal(false);
             fetchData();
-            toast.success('상담 예약이 생성되었습니다');
+            toast.success(L.toastCreated);
           }}
         />
       )}

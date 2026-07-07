@@ -11,14 +11,10 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { MessageSquare } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
+import { useCoordinatorL, useDateLocale } from "@/lib/i18n/coordinator";
 
-// 대화 처리 단계(워크플로): 신규 → (응답 필요 ↔ 환자 응답 대기) → 완료
-const STATUS_OPTIONS = [
-  { value: "open", label: "신규" },
-  { value: "waiting_coordinator", label: "응답 필요" },
-  { value: "waiting_patient", label: "환자 응답 대기" },
-  { value: "resolved", label: "완료" },
-];
+// 대화 처리 단계(워크플로): 신규 → (응답 필요 ↔ 환자 응답 대기) → 완료. 라벨은 컴포넌트에서 L로 해석.
+const STATUS_VALUES = ["open", "waiting_coordinator", "waiting_patient", "resolved"];
 
 const STATUS_BADGE = {
   open: "bg-blue-50 text-blue-600",
@@ -27,39 +23,60 @@ const STATUS_BADGE = {
   resolved: "bg-gray-100 text-gray-500",
 };
 
-const CHANNEL = {
-  web: { color: "#0d9488", label: "웹" },
-  whatsapp: { color: "#25D366", label: "WhatsApp" },
-  telegram: { color: "#0088cc", label: "Telegram" },
-  email: { color: "#8c3a2e", label: "이메일" },
-  line: { color: "#06C755", label: "LINE" },
-  kakao: { color: "#FEE500", label: "카카오" },
-  agency: { color: "#7c3aed", label: "에이전시" },
+// 채널 색상만 모듈 상수(언어 무관). 라벨은 컴포넌트에서 L로 해석(WhatsApp/Telegram/LINE은 고유명사라 그대로).
+const CHANNEL_COLOR = {
+  web: "#0d9488",
+  whatsapp: "#25D366",
+  telegram: "#0088cc",
+  email: "#8c3a2e",
+  line: "#06C755",
+  kakao: "#FEE500",
+  agency: "#7c3aed",
 };
-
-function fmtDate(v) {
-  try { return new Date(v).toLocaleDateString("ko-KR"); } catch { return ""; }
-}
-function statusLabel(s) {
-  return STATUS_OPTIONS.find((o) => o.value === s)?.label || "신규";
-}
-// 미리보기 앞에 발신자 표시 (누가 마지막 말 했는지). 실제 actor_type 값 기준.
-function actorPrefix(actor) {
-  const m = { patient: "환자: ", user: "환자: ", system: "AI: ", bot: "AI: ", coordinator: "나: ", agency: "에이전시: ", admin: "관리자: " };
-  const label = m[actor];
-  return label ? <span className="font-medium text-gray-400">{label}</span> : null;
-}
-// 스레드 제목: 게스트명 > 제목 > 폴백. AI 채팅 기본 제목은 한국어로 다듬음.
-function threadTitle(t) {
-  if (t.guest_name) return t.guest_name;
-  const s = (t.subject || "").trim();
-  if (!s || s === "New Chat") return "환자 상담";
-  if (s === "AI Health Consultation") return "AI 건강 상담";
-  return s;
-}
 
 export default function CoordinatorMessagesClient() {
   const router = useRouter();
+  const L = useCoordinatorL();
+  const dateLoc = useDateLocale();
+
+  // 대화 처리 단계 라벨 (L 해석)
+  const STATUS_LABEL = {
+    open: L.msStatusOpen,
+    waiting_coordinator: L.msStatusWaitingCoord,
+    waiting_patient: L.msStatusWaitingPatient,
+    resolved: L.msStatusResolved,
+  };
+  // 채널 라벨 (L 해석). WhatsApp/Telegram/LINE은 고유명사라 번역하지 않음.
+  const CHANNEL_LABEL = {
+    web: L.msChannelWeb,
+    whatsapp: "WhatsApp",
+    telegram: "Telegram",
+    email: L.msChannelEmail,
+    line: "LINE",
+    kakao: L.msChannelKakao,
+    agency: L.msChannelAgency,
+  };
+  const statusLabel = (s) => STATUS_LABEL[s] || L.msStatusOpen;
+  const fmtDate = (v) => { try { return new Date(v).toLocaleDateString(dateLoc); } catch { return ""; } };
+  // 미리보기 앞에 발신자 표시 (누가 마지막 말 했는지). 실제 actor_type 값 기준.
+  const actorPrefix = (actor) => {
+    const m = {
+      patient: `${L.msActorPatient}: `, user: `${L.msActorPatient}: `,
+      system: `${L.msActorAI}: `, bot: `${L.msActorAI}: `,
+      coordinator: `${L.msActorMe}: `, agency: `${L.msActorAgency}: `, admin: `${L.msActorAdmin}: `,
+    };
+    const label = m[actor];
+    return label ? <span className="font-medium text-gray-400">{label}</span> : null;
+  };
+  // 스레드 제목: 게스트명 > 제목 > 폴백. AI 채팅 기본 제목은 현지어로 다듬음.
+  const threadTitle = (t) => {
+    if (t.guest_name) return t.guest_name;
+    const s = (t.subject || "").trim();
+    if (!s || s === "New Chat") return L.msTitlePatientConsult;
+    if (s === "AI Health Consultation") return L.msTitleAIConsult;
+    return s;
+  };
+
   const [me, setMe] = useState(null);
   const [threads, setThreads] = useState([]);
   const [selectedId, setSelectedId] = useState(null);
@@ -198,10 +215,10 @@ export default function CoordinatorMessagesClient() {
       <aside className="flex flex-col overflow-hidden border-r border-gray-200 bg-white">
         <div className="border-b border-gray-200 px-4 py-3">
           <h2 className="mb-2 flex items-center gap-1.5 text-sm font-bold text-gray-900">
-            <MessageSquare size={16} className="text-teal-700" /> 메시지
+            <MessageSquare size={16} className="text-teal-700" /> {L.navMessages}
           </h2>
           <div className="flex flex-wrap gap-1.5">
-            {["all", ...STATUS_OPTIONS.map((s) => s.value)].map((s) => (
+            {["all", ...STATUS_VALUES].map((s) => (
               <button
                 key={s}
                 onClick={() => setStatusFilter(s)}
@@ -211,7 +228,7 @@ export default function CoordinatorMessagesClient() {
                     : "bg-gray-100 text-gray-500 hover:bg-gray-200"
                 }`}
               >
-                {s === "all" ? "전체" : statusLabel(s)}
+                {s === "all" ? L.all : statusLabel(s)}
               </button>
             ))}
           </div>
@@ -219,12 +236,13 @@ export default function CoordinatorMessagesClient() {
 
         <div className="min-h-0 flex-1 overflow-y-auto">
           {loading ? (
-            <div className="p-6 text-sm text-gray-400">불러오는 중…</div>
+            <div className="p-6 text-sm text-gray-400">{L.msLoading}</div>
           ) : threads.length === 0 ? (
-            <div className="p-6 text-sm text-gray-400">이 조건의 대화가 없습니다.</div>
+            <div className="p-6 text-sm text-gray-400">{L.msNoThreads}</div>
           ) : (
             threads.map((t) => {
-              const ch = CHANNEL[t.channel] || CHANNEL.web;
+              const chColor = CHANNEL_COLOR[t.channel] || CHANNEL_COLOR.web;
+              const chLabel = CHANNEL_LABEL[t.channel] || CHANNEL_LABEL.web;
               const active = selectedId === t.id;
               return (
                 <button
@@ -235,7 +253,7 @@ export default function CoordinatorMessagesClient() {
                   }`}
                 >
                   <div className="mb-0.5 flex items-center gap-2">
-                    <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: ch.color }} title={`채널: ${ch.label}`} />
+                    <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: chColor }} title={`${L.msChannelLabel}: ${chLabel}`} />
                     <span className="truncate text-sm font-medium text-gray-900">{threadTitle(t)}</span>
                     {t.guest_country && <span className="shrink-0 text-xs text-gray-400">· {t.guest_country}</span>}
                     <span className="ml-auto shrink-0 text-xs text-gray-400">
@@ -246,7 +264,7 @@ export default function CoordinatorMessagesClient() {
                   <div className="truncate text-xs text-gray-500">
                     {t.last_message
                       ? <>{actorPrefix(t.last_actor)}{t.last_message}</>
-                      : <span className="text-gray-400">{t.inquiry_id ? `문의 #${t.inquiry_id}` : "메시지 없음"}</span>}
+                      : <span className="text-gray-400">{t.inquiry_id ? `${L.msInquiry} #${t.inquiry_id}` : L.msNoMessages}</span>}
                   </div>
                   <span className={`mt-1.5 inline-block rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_BADGE[t.status] || STATUS_BADGE.open}`}>
                     {statusLabel(t.status)}
@@ -262,7 +280,7 @@ export default function CoordinatorMessagesClient() {
       <div className="flex h-full min-h-0 flex-col overflow-hidden">
         {!selectedThread ? (
           <div className="flex flex-1 items-center justify-center text-sm text-gray-400">
-            왼쪽에서 대화를 선택하세요.
+            {L.msSelectConversation}
           </div>
         ) : (
           <>
@@ -276,25 +294,25 @@ export default function CoordinatorMessagesClient() {
                       {selectedThread.guest_email && <span>✉ {selectedThread.guest_email}</span>}
                       {selectedThread.guest_country && <span>🌐 {selectedThread.guest_country}</span>}
                       {selectedThread.guest_phone && <span>📞 {selectedThread.guest_phone}</span>}
-                      <span>· 게스트(비회원)</span>
+                      <span>· {L.msGuestBadge}</span>
                     </>
                   ) : (
-                    <span>{selectedThread.inquiry_id ? `문의 #${selectedThread.inquiry_id}` : "AI 채팅"}</span>
+                    <span>{selectedThread.inquiry_id ? `${L.msInquiry} #${selectedThread.inquiry_id}` : L.msAIChat}</span>
                   )}
                 </div>
               </div>
               <div className="flex shrink-0 flex-wrap gap-1.5">
-                {STATUS_OPTIONS.map((s) => (
+                {STATUS_VALUES.map((s) => (
                   <button
-                    key={s.value}
-                    onClick={() => changeThreadStatus(s.value)}
+                    key={s}
+                    onClick={() => changeThreadStatus(s)}
                     className={`rounded-full px-2.5 py-1 text-xs font-medium transition ${
-                      selectedThread.status === s.value
+                      selectedThread.status === s
                         ? "bg-teal-600 text-white"
                         : "bg-gray-100 text-gray-500 hover:bg-gray-200"
                     }`}
                   >
-                    {s.label}
+                    {statusLabel(s)}
                   </button>
                 ))}
               </div>
@@ -307,11 +325,11 @@ export default function CoordinatorMessagesClient() {
                   <div className="h-6 w-6 animate-spin rounded-full border-2 border-teal-600 border-t-transparent" />
                 </div>
               ) : messages.length === 0 ? (
-                <div className="flex h-full items-center justify-center text-sm text-gray-400">아직 메시지가 없습니다.</div>
+                <div className="flex h-full items-center justify-center text-sm text-gray-400">{L.msNoMessagesYet}</div>
               ) : (
                 <>
                   {messages.map((m) => (
-                    <Message key={m.id} m={m} meId={me?.id} />
+                    <Message key={m.id} m={m} meId={me?.id} L={L} dateLoc={dateLoc} />
                   ))}
                   <div ref={msgEndRef} />
                 </>
@@ -326,7 +344,7 @@ export default function CoordinatorMessagesClient() {
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); send(); }
                 }}
-                placeholder="환자에게 답장… (Ctrl+Enter 전송)"
+                placeholder={L.msReplyPlaceholder}
                 rows={2}
                 className="flex-1 resize-none rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-teal-500"
               />
@@ -335,7 +353,7 @@ export default function CoordinatorMessagesClient() {
                 disabled={!draft.trim() || sending}
                 className="shrink-0 rounded-lg bg-teal-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-teal-700 disabled:opacity-50"
               >
-                {sending ? "전송 중…" : "보내기"}
+                {sending ? L.msSending : L.msSend}
               </button>
             </div>
           </>
@@ -345,7 +363,7 @@ export default function CoordinatorMessagesClient() {
   );
 }
 
-function Message({ m, meId }) {
+function Message({ m, meId, L, dateLoc }) {
   // 실제 actor_type 값(DB): patient(환자 입력) · system(AI 답변) · coordinator · agency · admin
   const isMine = m.actor_type === "coordinator" && m.actor_id === meId;
   const isPatient = m.actor_type === "patient" || m.actor_type === "user";
@@ -353,15 +371,15 @@ function Message({ m, meId }) {
   const isAdmin = m.actor_type === "admin";
   const isAgency = m.actor_type === "agency";
 
-  // 발신자별 라벨 + 색 — 환자(파랑)·AI(보라)를 한눈에 구분
+  // 발신자별 라벨 + 색 — 환자(파랑)·AI(보라)를 한눈에 구분. healwith는 고유명사라 그대로.
   const label =
-    isMine ? "나 (코디네이터)" :
-    isPatient ? "🙋 환자" :
-    isAI ? "🤖 healwith AI" :
-    isAgency ? "🏢 에이전시" :
-    isAdmin ? "healwith 관리자" :
-    m.actor_type === "coordinator" ? "다른 코디네이터" :
-    "시스템";
+    isMine ? L.msSenderMe :
+    isPatient ? `🙋 ${L.msActorPatient}` :
+    isAI ? `🤖 healwith ${L.msActorAI}` :
+    isAgency ? `🏢 ${L.msActorAgency}` :
+    isAdmin ? `healwith ${L.msActorAdmin}` :
+    m.actor_type === "coordinator" ? L.msSenderOtherCoord :
+    L.msSenderSystem;
   const labelColor =
     isPatient ? "text-blue-600" :
     isAI ? "text-violet-600" :
@@ -381,7 +399,7 @@ function Message({ m, meId }) {
     <div className={`mb-3.5 flex ${isMine ? "justify-end" : "justify-start"}`}>
       <div className={`max-w-[72%] ${isMine ? "text-right" : "text-left"}`}>
         <div className={`mb-1 text-xs font-semibold ${isMine ? "text-gray-400" : labelColor}`}>
-          {label} <span className="font-normal text-gray-400">· {new Date(m.created_at).toLocaleString("ko-KR")}</span>
+          {label} <span className="font-normal text-gray-400">· {new Date(m.created_at).toLocaleString(dateLoc)}</span>
         </div>
         <div className={`inline-block whitespace-pre-wrap break-words rounded-xl px-4 py-2.5 text-sm leading-relaxed ${bubble}`}>
           {m.message_text}

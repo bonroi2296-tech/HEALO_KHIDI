@@ -1,0 +1,514 @@
+"use client";
+
+/**
+ * 코디네이터 포털 전용 다국어 사전 (6개 언어: ko·en·ru·kz·zh·ja).
+ *
+ * 왜 별도 파일인가: 공개 사이트용 거대 사전(i18n/index.js, 400KB+)에 섞지 않고
+ * 백오피스 문자열은 포털별로 분리한다(에이전시 포털 PartnerPortal.jsx의 로컬 TR 패턴과 동일 취지).
+ * 코디는 페이지가 16개라 공용어(nav·상태·버튼)를 많이 공유 → 파일마다 TR을 복붙하는 대신
+ * 이 공유 모듈 1개를 useCoordinatorL() 훅으로 가져다 쓴다.
+ *
+ * 구조(key-first): CT[key] = { ko, en, ru, kz, zh, ja }. 키 하나 추가 = 한 블록만 추가하면
+ * 6개 언어가 같이 붙는다(언어별로 6군데 흩어지지 않게 — 사전이 커져도 유지보수 쉬움).
+ * caseStatus.ts / medicalLabels.ts 의 라벨 맵과 같은 모양.
+ *
+ * 언어 전환: 포털 상단바 언어 스위처(ClientShell PortalLangSwitcher)가 쿠키를 바꾸고
+ * healo:langchange 이벤트를 쏘면 useLang()이 즉시 리렌더 → 이 훅도 새 언어로 갱신된다.
+ * 누락 안전장치: 특정 언어에 값이 없으면 en → ko 순으로 폴백해 빈 화면이 안 나온다.
+ */
+
+import { useSyncExternalStore } from "react";
+import { getBackofficeLangFromCookie } from "./index";
+
+const CT = {
+  // ── 레이아웃 / 내비게이션 ─────────────────────────────
+  brandRole: { ko: "코디네이터", en: "Coordinator", ru: "Координатор", kz: "Үйлестіруші", zh: "协调员", ja: "コーディネーター" },
+  navDashboard: { ko: "대시보드", en: "Dashboard", ru: "Панель", kz: "Басқару тақтасы", zh: "仪表盘", ja: "ダッシュボード" },
+  navInbox: { ko: "문의함", en: "Inbox", ru: "Входящие", kz: "Кіріс жәшігі", zh: "收件箱", ja: "受信箱" },
+  navChat: { ko: "AI 상담 리드", en: "AI chat leads", ru: "AI-лиды чата", kz: "AI чат лидтері", zh: "AI 咨询线索", ja: "AIチャットリード" },
+  navCases: { ko: "의뢰·케이스/병원배정", en: "Cases / Hospital assignment", ru: "Кейсы / Назначение больницы", kz: "Кейстер / Аурухана тағайындау", zh: "病例 / 医院分配", ja: "ケース / 病院割当" },
+  navConsultations: { ko: "상담 일정", en: "Consultation schedule", ru: "Расписание консультаций", kz: "Консультация кестесі", zh: "咨询日程", ja: "相談スケジュール" },
+  navPartners: { ko: "파트너 발굴", en: "Partner outreach", ru: "Поиск партнёров", kz: "Серіктес іздеу", zh: "合作伙伴开发", ja: "パートナー開拓" },
+  navIntakes: { ko: "인테이크 관리", en: "Intake management", ru: "Управление заявками", kz: "Өтінімдерді басқару", zh: "接诊管理", ja: "インテーク管理" },
+  navMessages: { ko: "메시지", en: "Messages", ru: "Сообщения", kz: "Хабарлар", zh: "消息", ja: "メッセージ" },
+  navVisa: { ko: "비자 트래킹", en: "Visa tracking", ru: "Отслеживание виз", kz: "Виза мониторингі", zh: "签证跟踪", ja: "ビザ管理" },
+  navCostEstimates: { ko: "견적", en: "Quotes", ru: "Сметы", kz: "Смета", zh: "报价", ja: "見積もり" },
+  navAlerts: { ko: "증상 알림", en: "Symptom alerts", ru: "Оповещения о симптомах", kz: "Симптом ескертулері", zh: "症状提醒", ja: "症状アラート" },
+  changePassword: { ko: "비밀번호 변경", en: "Change password", ru: "Сменить пароль", kz: "Құпиясөзді өзгерту", zh: "修改密码", ja: "パスワード変更" },
+  logout: { ko: "로그아웃", en: "Log out", ru: "Выйти", kz: "Шығу", zh: "退出", ja: "ログアウト" },
+
+  // ── 공용 (여러 페이지 공유) ─────────────────────────────
+  all: { ko: "전체", en: "All", ru: "Все", kz: "Барлығы", zh: "全部", ja: "すべて" },
+  status: { ko: "상태", en: "Status", ru: "Статус", kz: "Күйі", zh: "状态", ja: "ステータス" },
+  refresh: { ko: "새로 고침", en: "Refresh", ru: "Обновить", kz: "Жаңарту", zh: "刷新", ja: "更新" },
+  name: { ko: "이름", en: "Name", ru: "Имя", kz: "Аты", zh: "姓名", ja: "氏名" },
+  nationality: { ko: "국적", en: "Nationality", ru: "Гражданство", kz: "Азаматтығы", zh: "国籍", ja: "国籍" },
+  cancerType: { ko: "암종", en: "Cancer type", ru: "Тип рака", kz: "Обыр түрі", zh: "癌种", ja: "がん種" },
+  contactMethod: { ko: "연락방법", en: "Contact method", ru: "Способ связи", kz: "Байланыс тәсілі", zh: "联系方式", ja: "連絡方法" },
+  receivedDate: { ko: "접수일", en: "Received", ru: "Дата заявки", kz: "Қабылданған күні", zh: "接收日期", ja: "受付日" },
+  viewAll: { ko: "전체 보기", en: "View all", ru: "Показать все", kz: "Барлығын көру", zh: "查看全部", ja: "すべて表示" },
+
+  // ── 대시보드 ─────────────────────────────
+  dashTitle: { ko: "코디네이터 대시보드", en: "Coordinator dashboard", ru: "Панель координатора", kz: "Үйлестіруші тақтасы", zh: "协调员仪表盘", ja: "コーディネーターダッシュボード" },
+  dashSubtitle: { ko: "환자 인테이크 접수, 의사 배정, 상담 스케줄링을 관리합니다.", en: "Manage patient intake, doctor assignment, and consultation scheduling.", ru: "Управление приёмом пациентов, назначением врачей и планированием консультаций.", kz: "Пациенттерді қабылдау, дәрігерді тағайындау және консультация кестесін басқарыңыз.", zh: "管理患者接诊、医生分配和咨询排期。", ja: "患者インテーク、医師の割り当て、相談スケジュールを管理します。" },
+  statPendingIntakes: { ko: "대기 인테이크", en: "Pending intakes", ru: "Ожидающие заявки", kz: "Күтудегі өтінімдер", zh: "待处理接诊", ja: "保留中のインテーク" },
+  statTodayConsult: { ko: "오늘 상담", en: "Today's consultations", ru: "Консультации сегодня", kz: "Бүгінгі консультациялар", zh: "今日咨询", ja: "本日の相談" },
+  statActivePatients: { ko: "활성 환자", en: "Active patients", ru: "Активные пациенты", kz: "Белсенді пациенттер", zh: "活跃患者", ja: "アクティブ患者" },
+  statUrgentAlerts: { ko: "긴급 알림", en: "Urgent alerts", ru: "Срочные оповещения", kz: "Шұғыл ескертулер", zh: "紧急提醒", ja: "緊急アラート" },
+  upcomingConsult: { ko: "예정 상담", en: "Upcoming consultations", ru: "Предстоящие консультации", kz: "Алдағы консультациялар", zh: "即将进行的咨询", ja: "予定の相談" },
+  noUpcoming: { ko: "예정된 상담이 없습니다", en: "No upcoming consultations", ru: "Нет предстоящих консультаций", kz: "Алдағы консультациялар жоқ", zh: "暂无即将进行的咨询", ja: "予定の相談はありません" },
+  sessionPre: { ko: "사전상담", en: "Pre-consultation", ru: "Предварительная консультация", kz: "Алдын ала консультация", zh: "预咨询", ja: "事前相談" },
+  sessionFollow: { ko: "추후진료", en: "Follow-up", ru: "Повторный приём", kz: "Қайта қабылдау", zh: "复诊", ja: "フォローアップ" },
+  sessionEmergency: { ko: "긴급상담", en: "Emergency consultation", ru: "Экстренная консультация", kz: "Шұғыл консультация", zh: "紧急咨询", ja: "緊急相談" },
+  sessionGeneric: { ko: "상담", en: "Consultation", ru: "Консультация", kz: "Консультация", zh: "咨询", ja: "相談" },
+  qaIntakeTitle: { ko: "인테이크 접수", en: "Receive intake", ru: "Приём заявок", kz: "Өтінім қабылдау", zh: "接收接诊", ja: "インテーク受付" },
+  qaIntakeDesc: { ko: "새 환자 접수 확인 및 의사 배정", en: "Review new patient intakes and assign a doctor", ru: "Проверка новых заявок и назначение врача", kz: "Жаңа өтінімдерді тексеру және дәрігер тағайындау", zh: "确认新患者接诊并分配医生", ja: "新規患者の受付確認と医師の割り当て" },
+  qaSchedTitle: { ko: "상담 스케줄링", en: "Consultation scheduling", ru: "Планирование консультаций", kz: "Консультацияны жоспарлау", zh: "咨询排期", ja: "相談スケジューリング" },
+  qaSchedDesc: { ko: "화상 상담 일정 관리", en: "Manage video consultation schedules", ru: "Управление расписанием видеоконсультаций", kz: "Бейнеконсультация кестесін басқару", zh: "管理视频咨询日程", ja: "ビデオ相談スケジュールの管理" },
+  qaAlertDesc: { ko: "고위험 증상 보고 확인", en: "Review high-risk symptom reports", ru: "Проверка отчётов о симптомах высокого риска", kz: "Жоғары қауіпті симптом есептерін тексеру", zh: "查看高危症状报告", ja: "高リスク症状レポートの確認" },
+
+  // ── 인박스 (신규 상담) ─────────────────────────────
+  inboxTitle: { ko: "신규 상담 인박스", en: "New consultation inbox", ru: "Входящие новых консультаций", kz: "Жаңа консультация кіріс жәшігі", zh: "新咨询收件箱", ja: "新規相談の受信箱" },
+  inboxSubtitle: { ko: "접수된 모든 상담 문의 목록입니다 (퍼널·메신저·에이전시 포함).", en: "All received consultation inquiries (funnel, messenger, and agency).", ru: "Все полученные заявки на консультацию (воронка, мессенджеры, агентства).", kz: "Барлық қабылданған консультация сұраныстары (воронка, мессенджер, агенттіктер).", zh: "所有已接收的咨询请求（漏斗、即时通讯、代理机构）。", ja: "受け付けたすべての相談問い合わせ（ファネル・メッセンジャー・代理店を含む）。" },
+  inboxFilterNeedInfo: { ko: "추가 정보 필요", en: "Needs more info", ru: "Нужна доп. информация", kz: "Қосымша ақпарат қажет", zh: "需补充信息", ja: "追加情報が必要" },
+  inboxFilterReady: { ko: "매칭 준비 완료", en: "Ready to match", ru: "Готово к подбору", kz: "Сәйкестендіруге дайын", zh: "可匹配", ja: "マッチング準備完了" },
+  inboxEmpty: { ko: "해당 조건의 상담이 없습니다.", en: "No consultations match this filter.", ru: "Нет консультаций по этому фильтру.", kz: "Бұл сүзгіге сәйкес консультация жоқ.", zh: "没有符合此筛选条件的咨询。", ja: "この条件に該当する相談はありません。" },
+  inboxColStep: { ko: "Step 완료", en: "Step done", ru: "Этап", kz: "Кезең", zh: "步骤完成", ja: "ステップ完了" },
+  inboxColMatch: { ko: "매칭 정확도", en: "Match accuracy", ru: "Точность подбора", kz: "Сәйкестік дәлдігі", zh: "匹配准确度", ja: "マッチング精度" },
+  inboxStepOneOnly: { ko: "Step 1만", en: "Step 1 only", ru: "Только этап 1", kz: "Тек 1-кезең", zh: "仅步骤 1", ja: "ステップ1のみ" },
+  badgeAgency: { ko: "에이전시", en: "Agency", ru: "Агентство", kz: "Агенттік", zh: "代理机构", ja: "代理店" },
+  agencyReferral: { ko: "에이전시 의뢰", en: "Agency referral", ru: "Направление от агентства", kz: "Агенттік жолдамасы", zh: "代理机构转介", ja: "代理店からの紹介" },
+  invStatusReceived: { ko: "접수됨", en: "Received", ru: "Получено", kz: "Қабылданды", zh: "已接收", ja: "受付済み" },
+  invStatusReviewing: { ko: "검토 중", en: "Reviewing", ru: "На рассмотрении", kz: "Қаралуда", zh: "审核中", ja: "確認中" },
+  invStatusMatched: { ko: "매칭됨", en: "Matched", ru: "Подобрано", kz: "Сәйкестендірілді", zh: "已匹配", ja: "マッチ済み" },
+  invStatusCompleted: { ko: "완료", en: "Completed", ru: "Завершено", kz: "Аяқталды", zh: "已完成", ja: "完了" },
+
+  // ── 공용 (추가) ─────────────────────────────
+  notes: { ko: "메모", en: "Notes", ru: "Заметки", kz: "Ескертпе", zh: "备注", ja: "メモ" },
+  viewDetail: { ko: "상세 보기", en: "View details", ru: "Подробнее", kz: "Толығырақ", zh: "查看详情", ja: "詳細を見る" },
+  processing: { ko: "처리 중...", en: "Processing…", ru: "Обработка…", kz: "Өңделуде…", zh: "处理中…", ja: "処理中…" },
+  fieldStage: { ko: "병기", en: "Stage", ru: "Стадия", kz: "Сатысы", zh: "分期", ja: "病期" },
+  fieldLanguage: { ko: "언어", en: "Language", ru: "Язык", kz: "Тіл", zh: "语言", ja: "言語" },
+
+  // ── 인테이크 관리 ─────────────────────────────
+  intakesSubtitle: { ko: "카자흐스탄 암환자 사전상담 접수를 검토하고 의사를 배정합니다.", en: "Review pre-consultation intakes from Kazakhstan cancer patients and assign a doctor.", ru: "Проверяйте заявки на предварительную консультацию от онкопациентов из Казахстана и назначайте врача.", kz: "Қазақстандық онкологиялық пациенттердің алдын ала консультация өтінімдерін қарап, дәрігер тағайындаңыз.", zh: "审核来自哈萨克斯坦癌症患者的预咨询接诊并分配医生。", ja: "カザフスタンのがん患者からの事前相談インテークを確認し、医師を割り当てます。" },
+  intakeFilterUnassigned: { ko: "의사 미배정", en: "Doctor unassigned", ru: "Врач не назначен", kz: "Дәрігер тағайындалмаған", zh: "未分配医生", ja: "医師未割当" },
+  intakeFilterAssigned: { ko: "배정 완료", en: "Assigned", ru: "Назначено", kz: "Тағайындалды", zh: "已分配", ja: "割当済み" },
+  intakeEmpty: { ko: "해당 조건의 인테이크가 없습니다", en: "No intakes match this filter", ru: "Нет заявок по этому фильтру", kz: "Бұл сүзгіге сәйкес өтінім жоқ", zh: "没有符合此筛选条件的接诊", ja: "この条件に該当するインテークはありません" },
+  badgeAssigned: { ko: "배정완료", en: "Assigned", ru: "Назначено", kz: "Тағайындалды", zh: "已分配", ja: "割当済み" },
+  badgePending: { ko: "대기", en: "Pending", ru: "Ожидание", kz: "Күтуде", zh: "待处理", ja: "保留" },
+  fieldConsultType: { ko: "상담 유형", en: "Consultation type", ru: "Тип консультации", kz: "Консультация түрі", zh: "咨询类型", ja: "相談タイプ" },
+  assignDoctor: { ko: "의사 배정", en: "Assign doctor", ru: "Назначить врача", kz: "Дәрігер тағайындау", zh: "分配医生", ja: "医師を割り当て" },
+  sessionDiagnostic: { ko: "검사결과 검토", en: "Test result review", ru: "Разбор результатов обследования", kz: "Тексеру нәтижелерін қарау", zh: "检查结果审查", ja: "検査結果レビュー" },
+  unassigned: { ko: "미배정", en: "Unassigned", ru: "Не назначено", kz: "Тағайындалмаған", zh: "未分配", ja: "未割当" },
+
+  // ── 상담 일정 관리 ─────────────────────────────
+  consultTitle: { ko: "상담 일정 관리", en: "Consultation schedule", ru: "Управление расписанием консультаций", kz: "Консультация кестесін басқару", zh: "咨询日程管理", ja: "相談スケジュール管理" },
+  consultSubtitle: { ko: "원격 화상 상담 스케줄링 및 진행 관리", en: "Schedule and manage remote video consultations", ru: "Планирование и ведение удалённых видеоконсультаций", kz: "Қашықтағы бейнеконсультацияларды жоспарлау және жүргізу", zh: "远程视频咨询的排期与进行管理", ja: "遠隔ビデオ相談のスケジュールと進行管理" },
+  consultNew: { ko: "새 상담 생성", en: "New consultation", ru: "Новая консультация", kz: "Жаңа консультация", zh: "新建咨询", ja: "新規相談を作成" },
+  cStatusScheduled: { ko: "예정", en: "Scheduled", ru: "Запланировано", kz: "Жоспарланған", zh: "已排期", ja: "予定" },
+  cStatusActive: { ko: "진행 중", en: "In progress", ru: "В процессе", kz: "Жүріп жатыр", zh: "进行中", ja: "進行中" },
+  cStatusCompleted: { ko: "완료", en: "Completed", ru: "Завершено", kz: "Аяқталды", zh: "已完成", ja: "完了" },
+  cStatusCancelled: { ko: "취소", en: "Cancelled", ru: "Отменено", kz: "Болдырылмаған", zh: "已取消", ja: "キャンセル" },
+  cStatusNoShow: { ko: "무응답", en: "No-show", ru: "Не явился", kz: "Келмеді", zh: "未出席", ja: "無応答" },
+  consultEmpty: { ko: "해당 상태의 상담이 없습니다", en: "No consultations with this status", ru: "Нет консультаций с этим статусом", kz: "Бұл күйдегі консультация жоқ", zh: "没有该状态的咨询", ja: "このステータスの相談はありません" },
+  fieldPatient: { ko: "환자", en: "Patient", ru: "Пациент", kz: "Пациент", zh: "患者", ja: "患者" },
+  fieldCancerStage: { ko: "암종/병기", en: "Cancer / stage", ru: "Рак / стадия", kz: "Обыр / саты", zh: "癌种/分期", ja: "がん種/病期" },
+  fieldDoctorAssign: { ko: "의사 배정", en: "Doctor assignment", ru: "Назначение врача", kz: "Дәрігер тағайындау", zh: "医生分配", ja: "医師の割り当て" },
+  btnReenter: { ko: "상담 재진입", en: "Rejoin", ru: "Вернуться", kz: "Қайта кіру", zh: "重新进入", ja: "再入室" },
+  btnStart: { ko: "상담 시작", en: "Start consultation", ru: "Начать консультацию", kz: "Консультацияны бастау", zh: "开始咨询", ja: "相談を開始" },
+  btnCopyLink: { ko: "링크 복사", en: "Copy link", ru: "Копировать ссылку", kz: "Сілтемені көшіру", zh: "复制链接", ja: "リンクをコピー" },
+  btnComplete: { ko: "상담 완료", en: "Complete", ru: "Завершить", kz: "Аяқтау", zh: "完成咨询", ja: "相談を完了" },
+  ttStart: { ko: "이 링크로 내가 입장하고, 같은 링크가 복사됩니다 (복사해서 상대에게 전송)", en: "You join via this link, and the same link is copied (share it with the other party).", ru: "Вы входите по этой ссылке, и та же ссылка копируется (отправьте её собеседнику).", kz: "Осы сілтеме арқылы кіресіз, дәл сол сілтеме көшіріледі (қарсы тарапқа жіберіңіз).", zh: "您通过此链接进入，同一链接会被复制（复制后发送给对方）。", ja: "このリンクで入室し、同じリンクがコピーされます（相手に送ってください）。" },
+  ttCopyLink: { ko: "입장 없이 링크만 복사(+등록 이메일 발송) — 「상담 시작」과 같은 링크", en: "Copy the link only (and email it) without joining — same link as \"Start consultation\".", ru: "Скопировать только ссылку (и отправить на email) без входа — та же ссылка, что и «Начать консультацию».", kz: "Кірмей тек сілтемені көшіру (+ email жіберу) — «Консультацияны бастау» сілтемесімен бірдей.", zh: "不进入，仅复制链接（并发送邮件）——与\"开始咨询\"相同的链接。", ja: "入室せずリンクだけコピー（＋メール送信）—「相談を開始」と同じリンク。" },
+  ttComplete: { ko: "상담을 '완료'로 기록 (사전상담·사후관리 실적 집계) — 초대 링크도 폐기", en: "Mark the consultation as completed (counts toward pre-consultation / follow-up metrics) — the invite link is revoked.", ru: "Отметить консультацию завершённой (учитывается в показателях предконсультаций / наблюдения) — ссылка-приглашение аннулируется.", kz: "Консультацияны 'аяқталды' деп белгілеу (алдын ала консультация / бақылау көрсеткіштеріне есептеледі) — шақыру сілтемесі жойылады.", zh: "将咨询标记为\"已完成\"（计入预咨询/随访绩效）——邀请链接将作废。", ja: "相談を「完了」として記録（事前相談・フォローアップ実績に集計）—招待リンクは失効します。" },
+  toastAuthErr: { ko: "인증 오류 — 다시 로그인해주세요", en: "Authentication error — please sign in again", ru: "Ошибка аутентификации — войдите снова", kz: "Аутентификация қатесі — қайта кіріңіз", zh: "认证错误——请重新登录", ja: "認証エラー — 再度ログインしてください" },
+  toastLinkCreateFail: { ko: "상담 링크 생성 실패", en: "Failed to create consultation link", ru: "Не удалось создать ссылку на консультацию", kz: "Консультация сілтемесін жасау сәтсіз аяқталды", zh: "创建咨询链接失败", ja: "相談リンクの作成に失敗しました" },
+  toastStartStopped: { ko: "상담 링크 발급이 안 돼 입장을 멈췄어요. 새로고침(또는 다시 로그인) 후 다시 눌러주세요.", en: "The consultation link couldn't be issued, so entry was stopped. Refresh (or sign in again) and try once more.", ru: "Ссылку на консультацию не удалось выдать, вход остановлен. Обновите страницу (или войдите снова) и повторите.", kz: "Консультация сілтемесі берілмегендіктен кіру тоқтатылды. Бетті жаңартып (немесе қайта кіріп) қайта басыңыз.", zh: "无法签发咨询链接，已停止进入。请刷新（或重新登录）后再试。", ja: "相談リンクを発行できず入室を中止しました。更新（または再ログイン）してもう一度押してください。" },
+  toastStartCopied: { ko: "상담 링크를 복사했어요 — 상대에게 붙여넣어 보내세요. 나는 지금 입장합니다", en: "Copied the consultation link — paste and send it to the other party. Joining now.", ru: "Ссылка на консультацию скопирована — вставьте и отправьте её собеседнику. Вхожу.", kz: "Консультация сілтемесі көшірілді — қарсы тарапқа қойып жіберіңіз. Мен қазір кіремін.", zh: "已复制咨询链接——粘贴发送给对方。我现在进入。", ja: "相談リンクをコピーしました — 相手に貼り付けて送ってください。私は今入室します。" },
+  confirmComplete: { ko: "이 상담을 '완료' 처리할까요?\n완료하면 발송된 초대 링크가 폐기되어 재입장할 수 없습니다.", en: "Mark this consultation as completed?\nOnce completed, the sent invite link is revoked and cannot be used to rejoin.", ru: "Отметить эту консультацию как завершённую?\nПосле завершения отправленная ссылка-приглашение аннулируется, и повторный вход невозможен.", kz: "Осы консультацияны 'аяқталды' деп белгілейсіз бе?\nАяқталғаннан кейін жіберілген шақыру сілтемесі жойылып, қайта кіру мүмкін болмайды.", zh: "将此咨询标记为\"已完成\"？\n完成后已发送的邀请链接将作废，无法再次进入。", ja: "この相談を「完了」にしますか？\n完了すると送信済みの招待リンクが失効し、再入室できなくなります。" },
+  toastCompleteFail: { ko: "완료 처리 실패", en: "Failed to complete", ru: "Не удалось завершить", kz: "Аяқтау сәтсіз", zh: "完成处理失败", ja: "完了処理に失敗しました" },
+  toastCompleted: { ko: "상담을 완료 처리했어요. (사전상담·사후관리 실적에 집계됩니다)", en: "Consultation marked as completed. (Counted toward pre-consultation / follow-up metrics.)", ru: "Консультация завершена. (Учтено в показателях предконсультаций / наблюдения.)", kz: "Консультация аяқталды деп белгіленді. (Алдын ала консультация / бақылау көрсеткіштеріне есептелді.)", zh: "已将咨询标记为完成。（已计入预咨询/随访绩效。）", ja: "相談を完了にしました。（事前相談・フォローアップ実績に集計されます。）" },
+  toastCopiedEmailed: { ko: "상담 링크를 복사했고, 등록된 이메일로도 발송했습니다", en: "Copied the consultation link and also sent it to the registered email", ru: "Ссылка на консультацию скопирована и отправлена на зарегистрированный email", kz: "Консультация сілтемесі көшіріліп, тіркелген email-ге де жіберілді", zh: "已复制咨询链接，并已发送至注册邮箱", ja: "相談リンクをコピーし、登録済みのメールにも送信しました" },
+  toastCopiedExpiry: { ko: "상담 링크가 클립보드에 복사됐습니다 (만료: {time})", en: "Consultation link copied to clipboard (expires: {time})", ru: "Ссылка на консультацию скопирована в буфер обмена (истекает: {time})", kz: "Консультация сілтемесі алмасу буферіне көшірілді (мерзімі: {time})", zh: "咨询链接已复制到剪贴板（过期时间：{time}）", ja: "相談リンクをクリップボードにコピーしました（有効期限：{time}）" },
+  promptCopyShare: { ko: "아래 링크를 복사해 공유하세요:", en: "Copy the link below and share it:", ru: "Скопируйте ссылку ниже и поделитесь ею:", kz: "Төмендегі сілтемені көшіріп бөлісіңіз:", zh: "请复制下方链接并分享：", ja: "下のリンクをコピーして共有してください:" },
+  toastCreated: { ko: "상담 예약이 생성되었습니다", en: "Consultation booking created", ru: "Запись на консультацию создана", kz: "Консультация жазбасы жасалды", zh: "已创建咨询预约", ja: "相談予約が作成されました" },
+
+  // ── 증상 알림 (alerts) ─────────────────────────────
+  alTitle: { ko: "증상 이상치 알림", en: "Symptom anomaly alerts", ru: "Оповещения об аномальных симптомах", kz: "Симптом ауытқулары туралы ескертулер", zh: "症状异常提醒", ja: "症状異常アラート" },
+  alSubtitle: { ko: "환자 증상 이상치를 AI·규칙으로 자동 감지한 결과입니다.", en: "Patient symptom anomalies detected automatically by AI and rules.", ru: "Аномалии симптомов пациентов, автоматически обнаруженные ИИ и правилами.", kz: "AI мен ережелер арқылы автоматты түрде анықталған пациент симптомдарының ауытқулары.", zh: "由 AI 和规则自动检测出的患者症状异常结果。", ja: "AIとルールで自動検知した患者の症状異常の結果です。" },
+  alNoticeLabel: { ko: "안내:", en: "Note:", ru: "Примечание:", kz: "Ескерту:", zh: "说明：", ja: "案内：" },
+  alDisclaimer: { ko: "이 화면의 감지 결과는 의학적 진단이 아닙니다. 코디네이터가 직접 환자 상태를 확인하고 필요 시 의료진에게 연결하세요.", en: "The detection results on this screen are not a medical diagnosis. Coordinators should check the patient's condition directly and connect them to medical staff if needed.", ru: "Результаты обнаружения на этом экране не являются медицинским диагнозом. Координатор должен лично проверить состояние пациента и при необходимости связать его с медперсоналом.", kz: "Осы экрандағы анықтау нәтижелері медициналық диагноз емес. Үйлестіруші пациенттің жағдайын өзі тексеріп, қажет болса медицина қызметкерлеріне жалғауы тиіс.", zh: "本页面的检测结果并非医学诊断。协调员应亲自确认患者状态，必要时联系医护人员。", ja: "この画面の検知結果は医学的診断ではありません。コーディネーターが患者の状態を直接確認し、必要に応じて医療スタッフにつないでください。" },
+  alAllSeverities: { ko: "모든 심각도", en: "All severities", ru: "Все уровни", kz: "Барлық деңгейлер", zh: "所有严重程度", ja: "すべての重大度" },
+  alSeverityCritical: { ko: "긴급", en: "Critical", ru: "Критично", kz: "Шұғыл", zh: "紧急", ja: "緊急" },
+  alSeverityHigh: { ko: "높음", en: "High", ru: "Высокий", kz: "Жоғары", zh: "高", ja: "高" },
+  alSeverityMedium: { ko: "보통", en: "Medium", ru: "Средний", kz: "Орташа", zh: "中", ja: "中" },
+  alSeverityLow: { ko: "낮음", en: "Low", ru: "Низкий", kz: "Төмен", zh: "低", ja: "低" },
+  alTypeFeverHigh: { ko: "고열 감지", en: "High fever detected", ru: "Обнаружена высокая температура", kz: "Жоғары қызу анықталды", zh: "检测到高烧", ja: "高熱を検知" },
+  alTypePainCritical: { ko: "통증 위험", en: "Critical pain", ru: "Критическая боль", kz: "Қауіпті ауырсыну", zh: "疼痛危险", ja: "痛みの危険" },
+  alTypeSilenceLong: { ko: "장기 무입력", en: "Long silence", ru: "Долгое молчание", kz: "Ұзақ енгізілмеу", zh: "长期无输入", ja: "長期未入力" },
+  alTypeSymptomWorsening: { ko: "증상 급악화", en: "Rapid worsening", ru: "Резкое ухудшение", kz: "Күрт нашарлау", zh: "症状急剧恶化", ja: "症状の急悪化" },
+  alTypeAiRisk: { ko: "AI 위험 감지", en: "AI risk detected", ru: "ИИ обнаружил риск", kz: "AI қауіп анықтады", zh: "AI 检测到风险", ja: "AIがリスクを検知" },
+  alFilterUnacknowledged: { ko: "미확인", en: "Unacknowledged", ru: "Непросмотренные", kz: "Расталмаған", zh: "未确认", ja: "未確認" },
+  alFilterUnresolved: { ko: "미해결", en: "Unresolved", ru: "Нерешённые", kz: "Шешілмеген", zh: "未解决", ja: "未解決" },
+  alEmptyTitle: { ko: "해당 조건의 알림이 없습니다", en: "No alerts match this filter", ru: "Нет оповещений по этому фильтру", kz: "Бұл сүзгіге сәйкес ескерту жоқ", zh: "没有符合此筛选条件的提醒", ja: "この条件に該当するアラートはありません" },
+  alEmptyDesc: { ko: "모든 환자 상태가 양호합니다.", en: "All patients are in good condition.", ru: "Все пациенты в хорошем состоянии.", kz: "Барлық пациенттердің жағдайы жақсы.", zh: "所有患者状态良好。", ja: "すべての患者の状態は良好です。" },
+  alBadgeResolved: { ko: "해결됨", en: "Resolved", ru: "Решено", kz: "Шешілді", zh: "已解决", ja: "解決済み" },
+  alBadgeAcknowledged: { ko: "확인됨", en: "Acknowledged", ru: "Просмотрено", kz: "Расталды", zh: "已确认", ja: "確認済み" },
+  alPatient: { ko: "환자", en: "Patient", ru: "Пациент", kz: "Пациент", zh: "患者", ja: "患者" },
+  alInquiry: { ko: "문의", en: "Inquiry", ru: "Заявка", kz: "Сұраныс", zh: "咨询", ja: "問い合わせ" },
+  alUnknown: { ko: "미상", en: "Unknown", ru: "Неизвестно", kz: "Белгісіз", zh: "未知", ja: "不明" },
+  alDetectedByRule: { ko: "규칙", en: "Rule", ru: "Правило", kz: "Ереже", zh: "规则", ja: "ルール" },
+  alTemperature: { ko: "체온", en: "Temp", ru: "Температура", kz: "Дене қызуы", zh: "体温", ja: "体温" },
+  alPain: { ko: "통증", en: "Pain", ru: "Боль", kz: "Ауырсыну", zh: "疼痛", ja: "痛み" },
+  alSilenceDays: { ko: "{days}일 무입력", en: "{days} days of silence", ru: "{days} дн. без активности", kz: "{days} күн енгізілмеді", zh: "{days} 天无输入", ja: "{days}日間 未入力" },
+  alPainRise: { ko: "통증 +{delta}점 상승", en: "Pain up +{delta} pts", ru: "Боль +{delta} балла", kz: "Ауырсыну +{delta} ұпайға өсті", zh: "疼痛上升 +{delta} 分", ja: "痛みが+{delta}点 上昇" },
+  alAcknowledge: { ko: "확인", en: "Acknowledge", ru: "Просмотрено", kz: "Растау", zh: "确认", ja: "確認" },
+  alResolve: { ko: "해결", en: "Resolve", ru: "Решить", kz: "Шешу", zh: "解决", ja: "解決" },
+  alDetectionData: { ko: "감지 데이터", en: "Detection data", ru: "Данные обнаружения", kz: "Анықтау деректері", zh: "检测数据", ja: "検知データ" },
+  alAcknowledgedAt: { ko: "확인", en: "Acknowledged", ru: "Просмотрено", kz: "Расталды", zh: "确认", ja: "確認" },
+  alResolutionNote: { ko: "해결 메모", en: "Resolution note", ru: "Заметка о решении", kz: "Шешім ескертпесі", zh: "解决备注", ja: "解決メモ" },
+  alResolvedAt: { ko: "해결", en: "Resolved", ru: "Решено", kz: "Шешілді", zh: "解决", ja: "解決" },
+  alResolveModalTitle: { ko: "알림 해결 처리", en: "Resolve alert", ru: "Закрыть оповещение", kz: "Ескертуді шешу", zh: "处理提醒解决", ja: "アラートを解決" },
+  alResolveModalDesc: { ko: "환자 상태 확인 후 조치 내용을 기록하세요. (선택사항)", en: "Record the action taken after checking the patient's condition. (Optional)", ru: "Запишите принятые меры после проверки состояния пациента. (Необязательно)", kz: "Пациенттің жағдайын тексергеннен кейін қабылданған шараны жазыңыз. (Міндетті емес)", zh: "确认患者状态后记录处理内容。（可选）", ja: "患者の状態を確認後、対応内容を記録してください。（任意）" },
+  alResolvePlaceholder: { ko: "예: 환자에게 연락하여 확인. 현재 안정 상태. 주치의에게 보고 완료.", en: "e.g. Contacted and checked the patient. Currently stable. Reported to the attending doctor.", ru: "напр.: Связались с пациентом и проверили. Состояние стабильное. Доложено лечащему врачу.", kz: "мыс.: Пациентпен байланысып тексерілді. Қазір тұрақты. Емдеуші дәрігерге хабарланды.", zh: "例如：已联系患者并确认。目前状态稳定。已向主治医生报告。", ja: "例：患者に連絡し確認。現在は安定。主治医へ報告済み。" },
+  alResolveConfirm: { ko: "해결 완료", en: "Mark resolved", ru: "Отметить решённым", kz: "Шешілді деп белгілеу", zh: "标记为已解决", ja: "解決完了" },
+  alCancel: { ko: "취소", en: "Cancel", ru: "Отмена", kz: "Болдырмау", zh: "取消", ja: "キャンセル" },
+  alFooterDisclaimer: { ko: "감지 결과는 참고용입니다. 실제 의료적 판단은 반드시 면허 보유 의료 전문가가 수행해야 합니다.", en: "Detection results are for reference only. Actual medical decisions must be made by a licensed medical professional.", ru: "Результаты обнаружения носят справочный характер. Медицинские решения должен принимать только лицензированный медицинский специалист.", kz: "Анықтау нәтижелері тек анықтама үшін. Нақты медициналық шешімді тек лицензиясы бар медицина маманы қабылдауы тиіс.", zh: "检测结果仅供参考。实际的医疗判断必须由持证医疗专业人员做出。", ja: "検知結果は参考用です。実際の医療判断は必ず有資格の医療専門家が行ってください。" },
+
+  // ── 비자 트래킹 (visa) ─────────────────────────────
+  viTitle: { ko: "비자 트래킹 대시보드", en: "Visa tracking dashboard", ru: "Панель отслеживания виз", kz: "Виза мониторингі тақтасы", zh: "签证跟踪仪表盘", ja: "ビザ管理ダッシュボード" },
+  viSubtitle: { ko: "환자 비자 발급 신청을 단계별로 관리하고 초청장을 발급합니다.", en: "Track patient visa applications by stage and issue invitation letters.", ru: "Управляйте заявками пациентов на визу по этапам и выдавайте приглашения.", kz: "Пациенттердің виза өтінімдерін кезеңдер бойынша басқарып, шақыру хаттарын беріңіз.", zh: "按阶段管理患者签证申请并签发邀请函。", ja: "患者のビザ申請を段階ごとに管理し、招待状を発行します。" },
+  viStatusDraft: { ko: "작성 중", en: "Draft", ru: "Черновик", kz: "Жоба", zh: "草稿", ja: "作成中" },
+  viStatusDocsPending: { ko: "서류 준비", en: "Documents pending", ru: "Ожидание документов", kz: "Құжаттар дайындалуда", zh: "待备材料", ja: "書類準備中" },
+  viStatusUnderReview: { ko: "검수 중", en: "Under review", ru: "На проверке", kz: "Тексерілуде", zh: "审核中", ja: "審査中" },
+  viStatusChangesRequested: { ko: "수정 요청", en: "Changes requested", ru: "Запрошены изменения", kz: "Түзету сұралды", zh: "已要求修改", ja: "修正依頼" },
+  viStatusInvitationReady: { ko: "초청장 준비", en: "Invitation ready", ru: "Приглашение готово", kz: "Шақыру дайын", zh: "邀请函待发", ja: "招待状準備完了" },
+  viStatusInvitationIssued: { ko: "초청장 발급", en: "Invitation issued", ru: "Приглашение выдано", kz: "Шақыру берілді", zh: "邀请函已发", ja: "招待状発行済み" },
+  viStatusSubmittedEmbassy: { ko: "대사관 접수", en: "Submitted to embassy", ru: "Подано в посольство", kz: "Елшілікке тапсырылды", zh: "已递交使馆", ja: "大使館提出済み" },
+  viStatusApproved: { ko: "비자 승인", en: "Visa approved", ru: "Виза одобрена", kz: "Виза мақұлданды", zh: "签证已批准", ja: "ビザ承認" },
+  viStatusRejected: { ko: "거절", en: "Rejected", ru: "Отклонено", kz: "Қабылданбады", zh: "已拒签", ja: "却下" },
+  viStatusCancelled: { ko: "취소", en: "Cancelled", ru: "Отменено", kz: "Болдырылмады", zh: "已取消", ja: "キャンセル" },
+  viReviewPending: { ko: "대기", en: "Pending", ru: "Ожидание", kz: "Күтуде", zh: "待处理", ja: "保留" },
+  viReviewApproved: { ko: "승인", en: "Approved", ru: "Одобрено", kz: "Мақұлданды", zh: "已通过", ja: "承認" },
+  viReviewRejected: { ko: "반려", en: "Rejected", ru: "Отклонено", kz: "Қайтарылды", zh: "已退回", ja: "差戻し" },
+  viReviewNeedsRevision: { ko: "수정 요청", en: "Needs revision", ru: "Требует правки", kz: "Түзету қажет", zh: "需修改", ja: "修正必要" },
+  viColType: { ko: "비자 종류", en: "Visa type", ru: "Тип визы", kz: "Виза түрі", zh: "签证类型", ja: "ビザ種類" },
+  viColPurpose: { ko: "목적", en: "Purpose", ru: "Цель", kz: "Мақсаты", zh: "目的", ja: "目的" },
+  viColStay: { ko: "체류", en: "Stay", ru: "Пребывание", kz: "Болу мерзімі", zh: "停留", ja: "滞在" },
+  viColCreated: { ko: "생성", en: "Created", ru: "Создано", kz: "Жасалды", zh: "创建", ja: "作成" },
+  viDurationDays: { ko: "{n}일", en: "{n} days", ru: "{n} дн.", kz: "{n} күн", zh: "{n}天", ja: "{n}日" },
+  viDetailArrow: { ko: "상세 →", en: "Details →", ru: "Подробнее →", kz: "Толығырақ →", zh: "详情 →", ja: "詳細 →" },
+  viEmpty: { ko: "진행 중인 비자 신청이 없습니다.", en: "No visa applications in progress.", ru: "Нет активных заявок на визу.", kz: "Жүріп жатқан виза өтінімдері жоқ.", zh: "没有进行中的签证申请。", ja: "進行中のビザ申請はありません。" },
+  viEmptyFiltered: { ko: "{status} 상태의 신청이 없습니다.", en: "No applications with status \"{status}\".", ru: "Нет заявок со статусом «{status}».", kz: "\"{status}\" күйіндегі өтінімдер жоқ.", zh: "没有\"{status}\"状态的申请。", ja: "「{status}」状態の申請はありません。" },
+  viLoadListError: { ko: "목록을 불러오지 못했습니다.", en: "Failed to load the list.", ru: "Не удалось загрузить список.", kz: "Тізімді жүктеу мүмкін болмады.", zh: "无法加载列表。", ja: "一覧を読み込めませんでした。" },
+  viErrorPrefix: { ko: "오류", en: "Error", ru: "Ошибка", kz: "Қате", zh: "错误", ja: "エラー" },
+  viLoadDetailError: { ko: "신청 정보를 불러오지 못했습니다.", en: "Failed to load application details.", ru: "Не удалось загрузить данные заявки.", kz: "Өтінім деректерін жүктеу мүмкін болмады.", zh: "无法加载申请信息。", ja: "申請情報を読み込めませんでした。" },
+  viBackShort: { ko: "← 목록", en: "← List", ru: "← Список", kz: "← Тізім", zh: "← 列表", ja: "← 一覧" },
+  viBackToList: { ko: "← 비자 목록", en: "← Visa list", ru: "← Список виз", kz: "← Виза тізімі", zh: "← 签证列表", ja: "← ビザ一覧" },
+  viPatientId: { ko: "환자 ID", en: "Patient ID", ru: "ID пациента", kz: "Пациент ID", zh: "患者 ID", ja: "患者 ID" },
+  viCreatedLabel: { ko: "생성", en: "Created", ru: "Создано", kz: "Жасалды", zh: "创建", ja: "作成" },
+  viCurrentLabel: { ko: "현재", en: "Current", ru: "Текущий", kz: "Ағымдағы", zh: "当前", ja: "現在" },
+  viStatusChangeTitle: { ko: "상태 변경", en: "Change status", ru: "Изменить статус", kz: "Күйін өзгерту", zh: "变更状态", ja: "ステータス変更" },
+  viPromptStatusChange: { ko: "\"{status}\" 로 상태 변경. 메모(선택):", en: "Change status to \"{status}\". Note (optional):", ru: "Изменить статус на «{status}». Заметка (необязательно):", kz: "Күйді \"{status}\" етіп өзгерту. Ескертпе (қаласаңыз):", zh: "将状态变更为\"{status}\"。备注（可选）：", ja: "ステータスを「{status}」に変更。メモ（任意）:" },
+  viStatusChangeFail: { ko: "상태 변경 실패", en: "Failed to change status", ru: "Не удалось изменить статус", kz: "Күйді өзгерту сәтсіз аяқталды", zh: "状态变更失败", ja: "ステータス変更に失敗しました" },
+  viPromptReviewReason: { ko: "사유(환자에게 보일 메모):", en: "Reason (note shown to the patient):", ru: "Причина (заметка для пациента):", kz: "Себебі (пациентке көрінетін ескертпе):", zh: "原因（将向患者显示的备注）：", ja: "理由（患者に表示されるメモ）:" },
+  viReviewFail: { ko: "검수 실패", en: "Review failed", ru: "Проверка не удалась", kz: "Тексеру сәтсіз аяқталды", zh: "审核失败", ja: "検査に失敗しました" },
+  viNotesSaved: { ko: "메모 저장됨", en: "Note saved", ru: "Заметка сохранена", kz: "Ескертпе сақталды", zh: "备注已保存", ja: "メモを保存しました" },
+  viNotesSaveFail: { ko: "저장 실패", en: "Failed to save", ru: "Не удалось сохранить", kz: "Сақтау сәтсіз аяқталды", zh: "保存失败", ja: "保存に失敗しました" },
+  viConfirmIssue: { ko: "초청장을 발급하시겠습니까? PDF 가 생성되고 상태가 '초청장 발급' 로 변경됩니다.", en: "Issue the invitation letter? A PDF will be generated and the status changes to \"Invitation issued\".", ru: "Выдать пригласительное письмо? Будет создан PDF, а статус изменится на «Приглашение выдано».", kz: "Шақыру хатын бересіз бе? PDF жасалып, күй \"Шақыру берілді\" болып өзгереді.", zh: "签发邀请函？将生成 PDF，状态变更为\"邀请函已发\"。", ja: "招待状を発行しますか？PDFが生成され、ステータスが「招待状発行済み」に変わります。" },
+  viIssueDone: { ko: "초청장 발급 완료", en: "Invitation letter issued", ru: "Пригласительное письмо выдано", kz: "Шақыру хаты берілді", zh: "邀请函已签发", ja: "招待状を発行しました" },
+  viIssueFail: { ko: "발급 실패", en: "Failed to issue", ru: "Не удалось выдать", kz: "Беру сәтсіз аяқталды", zh: "签发失败", ja: "発行に失敗しました" },
+  viInvitationTitle: { ko: "초청장 (Invitation Letter)", en: "Invitation Letter", ru: "Пригласительное письмо (Invitation Letter)", kz: "Шақыру хаты (Invitation Letter)", zh: "邀请函 (Invitation Letter)", ja: "招待状 (Invitation Letter)" },
+  viInvitationDesc: { ko: "서류 검수 완료 후 초청장 PDF 를 자동 발급합니다. 발급되면 환자에게 즉시 노출됩니다.", en: "After document review is complete, the invitation PDF is issued automatically. Once issued, it is shown to the patient immediately.", ru: "После проверки документов PDF-приглашение выдаётся автоматически. После выдачи оно сразу отображается пациенту.", kz: "Құжаттар тексерілгеннен кейін шақыру PDF-і автоматты түрде беріледі. Берілген соң пациентке бірден көрінеді.", zh: "文件审核完成后将自动签发邀请函 PDF。签发后立即向患者显示。", ja: "書類審査の完了後、招待状PDFを自動発行します。発行されると患者にすぐ表示されます。" },
+  viIssuedDoneLabel: { ko: "발급 완료", en: "Issued", ru: "Выдано", kz: "Берілді", zh: "已签发", ja: "発行完了" },
+  viPdfDownload: { ko: "PDF 다운로드", en: "Download PDF", ru: "Скачать PDF", kz: "PDF жүктеу", zh: "下载 PDF", ja: "PDFダウンロード" },
+  viIssueDisabledHint: { ko: "현재 상태({status})에서는 발급 불가", en: "Cannot issue in the current status ({status})", ru: "Нельзя выдать в текущем статусе ({status})", kz: "Ағымдағы күйде ({status}) беру мүмкін емес", zh: "当前状态（{status}）无法签发", ja: "現在の状態（{status}）では発行できません" },
+  viIssuing: { ko: "발급 중...", en: "Issuing…", ru: "Выдача…", kz: "Берілуде…", zh: "签发中…", ja: "発行中…" },
+  viIssueBtn: { ko: "초청장 발급", en: "Issue invitation", ru: "Выдать приглашение", kz: "Шақыру беру", zh: "签发邀请函", ja: "招待状を発行" },
+  viNotesTitle: { ko: "코디 메모 (환자에게도 표시됨)", en: "Coordinator note (also shown to the patient)", ru: "Заметка координатора (видна пациенту)", kz: "Үйлестіруші ескертпесі (пациентке де көрінеді)", zh: "协调员备注（也会显示给患者）", ja: "コーディネーターメモ（患者にも表示）" },
+  viNotesPlaceholder: { ko: "환자에게 전달할 메모 (서류 수정 사항, 일정 공유 등)", en: "Note to pass on to the patient (document fixes, schedule sharing, etc.)", ru: "Заметка для пациента (правки документов, расписание и т. д.)", kz: "Пациентке жеткізілетін ескертпе (құжат түзетулері, кесте, т.б.)", zh: "转达给患者的备注（材料修改、日程共享等）", ja: "患者に伝えるメモ（書類の修正、日程共有など）" },
+  viNotesSaving: { ko: "저장 중...", en: "Saving…", ru: "Сохранение…", kz: "Сақталуда…", zh: "保存中…", ja: "保存中…" },
+  viNotesSaveBtn: { ko: "메모 저장", en: "Save note", ru: "Сохранить заметку", kz: "Ескертпені сақтау", zh: "保存备注", ja: "メモを保存" },
+  viDocsTitle: { ko: "제출 서류 ({n}건)", en: "Submitted documents ({n})", ru: "Поданные документы ({n})", kz: "Тапсырылған құжаттар ({n})", zh: "已提交材料（{n}件）", ja: "提出書類（{n}件）" },
+  viDocsEmpty: { ko: "제출된 서류 없음", en: "No documents submitted", ru: "Документы не поданы", kz: "Тапсырылған құжат жоқ", zh: "无已提交材料", ja: "提出書類なし" },
+  viReviewNoteLabel: { ko: "메모", en: "Note", ru: "Заметка", kz: "Ескертпе", zh: "备注", ja: "メモ" },
+  viDocView: { ko: "보기", en: "View", ru: "Открыть", kz: "Қарау", zh: "查看", ja: "表示" },
+  viDocApprove: { ko: "승인", en: "Approve", ru: "Одобрить", kz: "Мақұлдау", zh: "通过", ja: "承認" },
+  viDocRequestRevision: { ko: "수정요청", en: "Request revision", ru: "Запросить правку", kz: "Түзету сұрау", zh: "要求修改", ja: "修正依頼" },
+  viDocReject: { ko: "반려", en: "Reject", ru: "Отклонить", kz: "Қайтару", zh: "退回", ja: "差戻し" },
+
+  // ── 메시지 (messages) ─────────────────────────────
+  msStatusOpen: { ko: "신규", en: "New", ru: "Новое", kz: "Жаңа", zh: "新", ja: "新規" },
+  msStatusWaitingCoord: { ko: "응답 필요", en: "Needs reply", ru: "Требует ответа", kz: "Жауап қажет", zh: "需回复", ja: "要返信" },
+  msStatusWaitingPatient: { ko: "환자 응답 대기", en: "Awaiting patient", ru: "Ожидание пациента", kz: "Пациентті күтуде", zh: "等待患者回复", ja: "患者の返信待ち" },
+  msStatusResolved: { ko: "완료", en: "Resolved", ru: "Завершено", kz: "Аяқталды", zh: "已完成", ja: "完了" },
+  msChannelLabel: { ko: "채널", en: "Channel", ru: "Канал", kz: "Арна", zh: "渠道", ja: "チャネル" },
+  msChannelWeb: { ko: "웹", en: "Web", ru: "Веб", kz: "Веб", zh: "网页", ja: "ウェブ" },
+  msChannelEmail: { ko: "이메일", en: "Email", ru: "Эл. почта", kz: "Email", zh: "邮件", ja: "メール" },
+  msChannelKakao: { ko: "카카오", en: "KakaoTalk", ru: "KakaoTalk", kz: "KakaoTalk", zh: "KakaoTalk", ja: "カカオトーク" },
+  msChannelAgency: { ko: "에이전시", en: "Agency", ru: "Агентство", kz: "Агенттік", zh: "代理机构", ja: "代理店" },
+  msActorPatient: { ko: "환자", en: "Patient", ru: "Пациент", kz: "Пациент", zh: "患者", ja: "患者" },
+  msActorAI: { ko: "AI", en: "AI", ru: "ИИ", kz: "AI", zh: "AI", ja: "AI" },
+  msActorMe: { ko: "나", en: "Me", ru: "Я", kz: "Мен", zh: "我", ja: "自分" },
+  msActorAgency: { ko: "에이전시", en: "Agency", ru: "Агентство", kz: "Агенттік", zh: "代理机构", ja: "代理店" },
+  msActorAdmin: { ko: "관리자", en: "Admin", ru: "Администратор", kz: "Әкімші", zh: "管理员", ja: "管理者" },
+  msSenderMe: { ko: "나 (코디네이터)", en: "Me (coordinator)", ru: "Я (координатор)", kz: "Мен (үйлестіруші)", zh: "我（协调员）", ja: "自分（コーディネーター）" },
+  msSenderOtherCoord: { ko: "다른 코디네이터", en: "Another coordinator", ru: "Другой координатор", kz: "Басқа үйлестіруші", zh: "其他协调员", ja: "他のコーディネーター" },
+  msSenderSystem: { ko: "시스템", en: "System", ru: "Система", kz: "Жүйе", zh: "系统", ja: "システム" },
+  msTitlePatientConsult: { ko: "환자 상담", en: "Patient consultation", ru: "Консультация пациента", kz: "Пациент консультациясы", zh: "患者咨询", ja: "患者相談" },
+  msTitleAIConsult: { ko: "AI 건강 상담", en: "AI health consultation", ru: "ИИ-консультация по здоровью", kz: "AI денсаулық консультациясы", zh: "AI 健康咨询", ja: "AI健康相談" },
+  msLoading: { ko: "불러오는 중…", en: "Loading…", ru: "Загрузка…", kz: "Жүктелуде…", zh: "加载中…", ja: "読み込み中…" },
+  msNoThreads: { ko: "이 조건의 대화가 없습니다.", en: "No conversations match this filter.", ru: "Нет диалогов по этому фильтру.", kz: "Бұл сүзгіге сәйкес әңгіме жоқ.", zh: "没有符合此筛选条件的对话。", ja: "この条件に該当する会話はありません。" },
+  msInquiry: { ko: "문의", en: "Inquiry", ru: "Заявка", kz: "Сұраныс", zh: "咨询", ja: "問い合わせ" },
+  msNoMessages: { ko: "메시지 없음", en: "No messages", ru: "Нет сообщений", kz: "Хабар жоқ", zh: "无消息", ja: "メッセージなし" },
+  msSelectConversation: { ko: "왼쪽에서 대화를 선택하세요.", en: "Select a conversation on the left.", ru: "Выберите диалог слева.", kz: "Сол жақтан әңгімені таңдаңыз.", zh: "请在左侧选择一个对话。", ja: "左側から会話を選択してください。" },
+  msGuestBadge: { ko: "게스트(비회원)", en: "Guest (non-member)", ru: "Гость (не участник)", kz: "Қонақ (мүше емес)", zh: "访客（非会员）", ja: "ゲスト（非会員）" },
+  msAIChat: { ko: "AI 채팅", en: "AI chat", ru: "AI-чат", kz: "AI чат", zh: "AI 聊天", ja: "AIチャット" },
+  msNoMessagesYet: { ko: "아직 메시지가 없습니다.", en: "No messages yet.", ru: "Сообщений пока нет.", kz: "Әзірге хабар жоқ.", zh: "还没有消息。", ja: "まだメッセージがありません。" },
+  msReplyPlaceholder: { ko: "환자에게 답장… (Ctrl+Enter 전송)", en: "Reply to the patient… (Ctrl+Enter to send)", ru: "Ответить пациенту… (Ctrl+Enter — отправить)", kz: "Пациентке жауап беру… (Ctrl+Enter — жіберу)", zh: "回复患者……（Ctrl+Enter 发送）", ja: "患者へ返信…（Ctrl+Enterで送信）" },
+  msSending: { ko: "전송 중…", en: "Sending…", ru: "Отправка…", kz: "Жіберілуде…", zh: "发送中…", ja: "送信中…" },
+  msSend: { ko: "보내기", en: "Send", ru: "Отправить", kz: "Жіберу", zh: "发送", ja: "送信" },
+
+  // ── AI 상담 리드 (chat) ─────────────────────────────
+  chTitle: { ko: "AI 대화 · 환자자료", en: "AI chats · patient files", ru: "AI-чаты · файлы пациентов", kz: "AI чаттар · пациент файлдары", zh: "AI 对话 · 患者资料", ja: "AIチャット · 患者資料" },
+  chSubtitle: { ko: "환자가 AI 챗에 올린 검사결과지·사진과 상담사 연결 요청을 확인합니다(읽기전용 — 검수·정정은 의사/관리자 화면). (AI는 판독하지 않음)", en: "Review test results, photos, and agent-connection requests patients submitted in the AI chat (read-only — review/correction is done on the doctor/admin screen). (AI does not interpret them.)", ru: "Просматривайте результаты обследований, фото и запросы на связь с консультантом, отправленные пациентами в AI-чате (только чтение — проверка/исправление выполняется на экране врача/администратора). (AI их не интерпретирует.)", kz: "Пациенттер AI чатқа жүктеген тексеру нәтижелерін, фотоларды және кеңесшіге қосылу сұраныстарын қараңыз (тек оқу — тексеру/түзету дәрігер/әкімші экранында). (AI оларды талдамайды.)", zh: "查看患者在 AI 对话中上传的检查结果、照片以及转接咨询师请求（只读——审核/更正在医生/管理员界面进行）。（AI 不做判读。）", ja: "患者がAIチャットに送った検査結果・写真と相談員接続リクエストを確認します（読み取り専用 — 検収・訂正は医師／管理者画面）。（AIは判読しません。）" },
+  chTabReview: { ko: "검토요청", en: "Review requests", ru: "Запросы на проверку", kz: "Тексеру сұраныстары", zh: "审核请求", ja: "確認リクエスト" },
+  chTabAttachments: { ko: "자료 첨부", en: "Attachments", ru: "Вложения", kz: "Тіркемелер", zh: "附件资料", ja: "資料添付" },
+  chBadgeReview: { ko: "검토요청", en: "Review", ru: "Проверка", kz: "Тексеру", zh: "审核", ja: "確認" },
+  chBadgeAttachment: { ko: "자료", en: "Files", ru: "Файлы", kz: "Файлдар", zh: "资料", ja: "資料" },
+  chEmptyReview: { ko: "검토 대기 중인 요청이 없습니다.", en: "No requests awaiting review.", ru: "Нет запросов, ожидающих проверки.", kz: "Тексеруді күтіп тұрған сұраныстар жоқ.", zh: "没有待审核的请求。", ja: "確認待ちのリクエストはありません。" },
+  chEmptyAttachments: { ko: "첨부 자료가 있는 대화가 없습니다.", en: "No conversations with attachments.", ru: "Нет диалогов с вложениями.", kz: "Тіркемесі бар сөйлесулер жоқ.", zh: "没有带附件的对话。", ja: "添付資料のある会話はありません。" },
+  chEmptyThreads: { ko: "대화가 없습니다.", en: "No conversations.", ru: "Нет диалогов.", kz: "Сөйлесулер жоқ.", zh: "没有对话。", ja: "会話はありません。" },
+  chNoMessages: { ko: "메시지가 없습니다.", en: "No messages.", ru: "Нет сообщений.", kz: "Хабарлар жоқ.", zh: "没有消息。", ja: "メッセージはありません。" },
+  chLoading: { ko: "불러오는 중...", en: "Loading…", ru: "Загрузка…", kz: "Жүктелуде…", zh: "加载中…", ja: "読み込み中…" },
+  chLoadingThread: { ko: "대화 불러오는 중...", en: "Loading conversation…", ru: "Загрузка диалога…", kz: "Сөйлесу жүктелуде…", zh: "加载对话中…", ja: "会話を読み込み中…" },
+  chBackToList: { ko: "목록", en: "List", ru: "Список", kz: "Тізім", zh: "列表", ja: "一覧" },
+  chBannerPending: { ko: "상담사 연결(검토) 대기 {n}건 — 아래 \"검토요청\" 탭부터 처리하세요.", en: "{n} agent-connection (review) request(s) pending — start with the \"Review requests\" tab below.", ru: "Ожидает запросов на связь с консультантом (проверку): {n} — начните с вкладки «Запросы на проверку» ниже.", kz: "Кеңесшіге қосылу (тексеру) сұраныстары күтуде: {n} — төмендегі «Тексеру сұраныстары» қойындысынан бастаңыз.", zh: "有 {n} 条转接咨询师（审核）请求待处理——请先处理下方的\"审核请求\"标签页。", ja: "相談員接続（確認）待ちが{n}件 — 下の「確認リクエスト」タブから対応してください。" },
+  chBannerClear: { ko: "검토 대기 없음 — 모든 상담사 연결 요청을 처리했습니다.", en: "No pending reviews — all agent-connection requests are handled.", ru: "Нет ожидающих проверок — все запросы на связь обработаны.", kz: "Күтудегі тексеру жоқ — барлық қосылу сұраныстары өңделді.", zh: "无待审核项——所有转接咨询师请求均已处理。", ja: "確認待ちなし — すべての相談員接続リクエストを処理しました。" },
+  chReviewQueueTitle: { ko: "검토 대기 {n}건", en: "{n} awaiting review", ru: "Ожидают проверки: {n}", kz: "Тексеруді күтуде: {n}", zh: "{n} 项待审核", ja: "確認待ち {n}件" },
+  chReviewQueueHint: { ko: "오래 기다린 순 — 위에서부터 클릭해 확인·회신하세요.", en: "Oldest first — click from the top to review and respond.", ru: "Сначала самые старые — нажимайте сверху, чтобы проверить и ответить.", kz: "Ең ескісінен бастап — жоғарыдан бастап басып, тексеріп жауап беріңіз.", zh: "按等待时间排序——从上到下点击查看并回复。", ja: "待機の長い順 — 上からクリックして確認・返信してください。" },
+  chNoReviewPending: { ko: "검토 대기 없음", en: "No pending reviews", ru: "Нет ожидающих проверок", kz: "Күтудегі тексеру жоқ", zh: "无待审核项", ja: "確認待ちなし" },
+  chNoReviewHint: { ko: "왼쪽 목록에서 대화를 골라 내용을 확인할 수 있습니다.", en: "Pick a conversation from the list on the left to view its contents.", ru: "Выберите диалог из списка слева, чтобы просмотреть его содержимое.", kz: "Мазмұнын көру үшін сол жақтағы тізімнен сөйлесуді таңдаңыз.", zh: "从左侧列表中选择一个对话以查看内容。", ja: "左側の一覧から会話を選んで内容を確認できます。" },
+  chWaitDays: { ko: "{n}일 대기", en: "waiting {n}d", ru: "ждёт {n} дн.", kz: "{n} күн күтуде", zh: "已等待 {n} 天", ja: "{n}日待機" },
+  chWaitHours: { ko: "{n}시간 대기", en: "waiting {n}h", ru: "ждёт {n} ч.", kz: "{n} сағат күтуде", zh: "已等待 {n} 小时", ja: "{n}時間待機" },
+  chWaitJustNow: { ko: "방금", en: "just now", ru: "только что", kz: "жаңа ғана", zh: "刚刚", ja: "たった今" },
+  chPacketTitle: { ko: "진료의뢰 패킷 · AI 정리", en: "Referral packet · AI summary", ru: "Пакет направления · сводка AI", kz: "Жолдама пакеті · AI жинағы", zh: "转诊资料包 · AI 整理", ja: "診療依頼パケット · AI整理" },
+  chReviewed: { ko: "검수완료", en: "Reviewed", ru: "Проверено", kz: "Тексерілді", zh: "已审核", ja: "検収完了" },
+  chReviewPending: { ko: "검수 대기", en: "Awaiting review", ru: "Ожидает проверки", kz: "Тексеруді күтуде", zh: "待审核", ja: "検収待ち" },
+  chUrgency: { ko: "시급도", en: "Urgency", ru: "Срочность", kz: "Жеделдік", zh: "紧急度", ja: "緊急度" },
+  chUrgencyHigh: { ko: "높음", en: "High", ru: "Высокая", kz: "Жоғары", zh: "高", ja: "高" },
+  chUrgencyMedium: { ko: "보통", en: "Medium", ru: "Средняя", kz: "Орташа", zh: "中", ja: "中" },
+  chUrgencyLow: { ko: "낮음", en: "Low", ru: "Низкая", kz: "Төмен", zh: "低", ja: "低" },
+  chCondition: { ko: "상태", en: "Condition", ru: "Состояние", kz: "Жағдайы", zh: "病情", ja: "状態" },
+  chRequest: { ko: "요청", en: "Request", ru: "Запрос", kz: "Сұраныс", zh: "请求", ja: "リクエスト" },
+  chSuggestedSpecialty: { ko: "추천 진료과", en: "Suggested specialty", ru: "Рекомендуемая специальность", kz: "Ұсынылған мамандық", zh: "推荐科室", ja: "推奨診療科" },
+  chMissingDocs: { ko: "필요한데 빠진 자료", en: "Missing required documents", ru: "Отсутствующие необходимые документы", kz: "Қажет, бірақ жоқ құжаттар", zh: "缺少的必需资料", ja: "必要だが不足の資料" },
+  chRedFlags: { ko: "주의해서 볼 점", en: "Points to watch", ru: "На что обратить внимание", kz: "Назар аударатын тұстар", zh: "需注意的要点", ja: "注意すべき点" },
+  chCorrectionSent: { ko: "정정 발송됨", en: "Correction sent", ru: "Исправление отправлено", kz: "Түзету жіберілді", zh: "已发送更正", ja: "訂正送信済み" },
+  chReviewWaitingNote: { ko: "의료진 검수 대기 — 검수·정정은 의사/관리자 화면에서 진행됩니다.", en: "Awaiting clinical review — review and corrections are done on the doctor/admin screen.", ru: "Ожидает медицинской проверки — проверка и исправления выполняются на экране врача/администратора.", kz: "Медициналық тексеруді күтуде — тексеру мен түзету дәрігер/әкімші экранында жүргізіледі.", zh: "等待医疗审核——审核与更正在医生/管理员界面进行。", ja: "医療スタッフの検収待ち — 検収・訂正は医師／管理者画面で行います。" },
+  chLoadListFail: { ko: "목록 로딩 실패", en: "Failed to load the list", ru: "Не удалось загрузить список", kz: "Тізімді жүктеу сәтсіз", zh: "列表加载失败", ja: "一覧の読み込みに失敗しました" },
+  chLoadThreadFail: { ko: "대화 로딩 실패", en: "Failed to load the conversation", ru: "Не удалось загрузить диалог", kz: "Сөйлесуді жүктеу сәтсіз", zh: "对话加载失败", ja: "会話の読み込みに失敗しました" },
+  chOpenFileFail: { ko: "파일 열기 실패", en: "Failed to open the file", ru: "Не удалось открыть файл", kz: "Файлды ашу сәтсіз", zh: "打开文件失败", ja: "ファイルを開けませんでした" },
+
+  // ── 견적 (cost-estimates) ─────────────────────────────
+  coStatusAutoRange: { ko: "자동 범위", en: "Auto range", ru: "Автодиапазон", kz: "Автоматты ауқым", zh: "自动范围", ja: "自動レンジ" },
+  coStatusFormalRequested: { ko: "정식 요청", en: "Formal request", ru: "Официальный запрос", kz: "Ресми сұраныс", zh: "正式请求", ja: "正式依頼" },
+  coStatusHospitalPending: { ko: "병원 응답 대기", en: "Awaiting hospital", ru: "Ожидание больницы", kz: "Аурухана жауабын күту", zh: "等待医院回复", ja: "病院回答待ち" },
+  coStatusDraft: { ko: "코디 작성 중", en: "Coordinator drafting", ru: "Координатор готовит", kz: "Үйлестіруші дайындауда", zh: "协调员编写中", ja: "コーディネーター作成中" },
+  coStatusIssued: { ko: "견적서 발급", en: "Quote issued", ru: "Смета выдана", kz: "Смета берілді", zh: "已出具报价", ja: "見積書発行" },
+  coStatusAccepted: { ko: "동의 완료", en: "Accepted", ru: "Согласовано", kz: "Келісілді", zh: "已同意", ja: "同意完了" },
+  coStatusRejected: { ko: "거절", en: "Rejected", ru: "Отклонено", kz: "Қабылданбады", zh: "已拒绝", ja: "却下" },
+  coStatusExpired: { ko: "만료", en: "Expired", ru: "Истёк срок", kz: "Мерзімі бітті", zh: "已过期", ja: "期限切れ" },
+  coLoading: { ko: "불러오는 중...", en: "Loading…", ru: "Загрузка…", kz: "Жүктелуде…", zh: "加载中…", ja: "読み込み中…" },
+  coError: { ko: "오류", en: "Error", ru: "Ошибка", kz: "Қате", zh: "错误", ja: "エラー" },
+  coListTitle: { ko: "예상 진료비 견적 대시보드", en: "Estimated treatment cost dashboard", ru: "Панель смет на лечение", kz: "Болжамды емдеу құны тақтасы", zh: "预估诊疗费报价看板", ja: "予想診療費見積ダッシュボード" },
+  coListSubtitle: { ko: "정식 견적 요청을 받아 병원 문의 후 견적서 PDF 를 발급합니다.", en: "Receive formal quote requests, inquire with the hospital, and issue a quotation PDF.", ru: "Принимайте официальные запросы смет, уточняйте в больнице и выдавайте PDF-смету.", kz: "Ресми смета сұранысын алып, ауруханадан сұрап, PDF смета беріңіз.", zh: "接收正式报价请求，向医院咨询后出具报价单 PDF。", ja: "正式な見積依頼を受け、病院に照会のうえ見積書PDFを発行します。" },
+  coListLoadFail: { ko: "목록을 불러오지 못했습니다.", en: "Failed to load the list.", ru: "Не удалось загрузить список.", kz: "Тізімді жүктеу сәтсіз аяқталды.", zh: "无法加载列表。", ja: "一覧を読み込めませんでした。" },
+  coNoStatus: { ko: "{status} 상태 없음", en: "No items with status \"{status}\"", ru: "Нет записей со статусом «{status}»", kz: "\"{status}\" күйіндегі жазба жоқ", zh: "无\"{status}\"状态的记录", ja: "「{status}」ステータスの項目なし" },
+  coNoRequests: { ko: "견적 요청 없음", en: "No quote requests", ru: "Нет запросов смет", kz: "Смета сұранысы жоқ", zh: "无报价请求", ja: "見積依頼なし" },
+  coColNo: { ko: "No.", en: "No.", ru: "№", kz: "№", zh: "编号", ja: "No." },
+  coColAutoRange: { ko: "자동 범위", en: "Auto range", ru: "Автодиапазон", kz: "Автоматты ауқым", zh: "自动范围", ja: "自動レンジ" },
+  coColTotal: { ko: "확정 총액", en: "Final total", ru: "Итоговая сумма", kz: "Түпкі жиынтық", zh: "确定总额", ja: "確定総額" },
+  coColCreated: { ko: "생성", en: "Created", ru: "Создано", kz: "Жасалды", zh: "创建", ja: "作成" },
+  coDetailLoadFail: { ko: "견적 정보를 불러오지 못했습니다.", en: "Failed to load quote details.", ru: "Не удалось загрузить данные сметы.", kz: "Смета мәліметтерін жүктеу сәтсіз аяқталды.", zh: "无法加载报价信息。", ja: "見積情報を読み込めませんでした。" },
+  coSaveDone: { ko: "저장 완료", en: "Saved", ru: "Сохранено", kz: "Сақталды", zh: "保存完成", ja: "保存完了" },
+  coSaveFail: { ko: "저장 실패", en: "Save failed", ru: "Не удалось сохранить", kz: "Сақтау сәтсіз", zh: "保存失败", ja: "保存失敗" },
+  coFail: { ko: "실패", en: "Failed", ru: "Ошибка", kz: "Сәтсіз", zh: "失败", ja: "失敗" },
+  coStatusChangePrompt: { ko: "\"{status}\" 로 변경. 메모(선택):", en: "Change to \"{status}\". Note (optional):", ru: "Изменить на «{status}». Примечание (необязательно):", kz: "\"{status}\" күйіне өзгерту. Ескертпе (міндетті емес):", zh: "更改为\"{status}\"。备注（可选）：", ja: "「{status}」に変更。メモ（任意）：" },
+  coAddItemFirst: { ko: "견적 항목을 먼저 추가하세요", en: "Add a quote item first", ru: "Сначала добавьте позицию сметы", kz: "Алдымен смета жолын қосыңыз", zh: "请先添加报价项目", ja: "先に見積項目を追加してください" },
+  coIssueConfirm: { ko: "견적서 PDF 를 발급하시겠습니까? 상태가 'issued' 로 변경되고 환자에게 노출됩니다.", en: "Issue the quotation PDF? The status becomes 'issued' and it is shown to the patient.", ru: "Выдать PDF-смету? Статус изменится на «issued» и станет виден пациенту.", kz: "Смета PDF-ін бересіз бе? Күйі 'issued' болып, пациентке көрінеді.", zh: "确定出具报价单 PDF 吗？状态将变为\"issued\"并对患者可见。", ja: "見積書PDFを発行しますか？ステータスが「issued」になり患者に表示されます。" },
+  coIssueDone: { ko: "견적서 발급 완료!", en: "Quotation issued!", ru: "Смета выдана!", kz: "Смета берілді!", zh: "报价单已出具！", ja: "見積書を発行しました！" },
+  coIssueFail: { ko: "발급 실패", en: "Issue failed", ru: "Не удалось выдать", kz: "Беру сәтсіз", zh: "出具失败", ja: "発行失敗" },
+  coBackList: { ko: "목록", en: "List", ru: "Список", kz: "Тізім", zh: "列表", ja: "一覧" },
+  coQuoteList: { ko: "견적 목록", en: "Quote list", ru: "Список смет", kz: "Смета тізімі", zh: "报价列表", ja: "見積一覧" },
+  coQuotePrefix: { ko: "견적", en: "Quote", ru: "Смета", kz: "Смета", zh: "报价", ja: "見積" },
+  coCurrent: { ko: "현재", en: "Current", ru: "Текущий", kz: "Ағымдағы", zh: "当前", ja: "現在" },
+  coStatusChange: { ko: "상태 변경", en: "Change status", ru: "Изменить статус", kz: "Күйін өзгерту", zh: "更改状态", ja: "ステータス変更" },
+  coAutoRangeTier1: { ko: "자동 범위 (Tier 1)", en: "Auto range (Tier 1)", ru: "Автодиапазон (Tier 1)", kz: "Автоматты ауқым (Tier 1)", zh: "自动范围（Tier 1）", ja: "自動レンジ（Tier 1）" },
+  coItems: { ko: "견적 항목", en: "Quote items", ru: "Позиции сметы", kz: "Смета жолдары", zh: "报价项目", ja: "見積項目" },
+  coAddItem: { ko: "항목 추가", en: "Add item", ru: "Добавить позицию", kz: "Жол қосу", zh: "添加项目", ja: "項目追加" },
+  coColItem: { ko: "항목", en: "Item", ru: "Позиция", kz: "Жол", zh: "项目", ja: "項目" },
+  coColNote: { ko: "비고", en: "Note", ru: "Примечание", kz: "Ескертпе", zh: "备注", ja: "備考" },
+  coNoItems: { ko: "항목 없음", en: "No items", ru: "Нет позиций", kz: "Жол жоқ", zh: "无项目", ja: "項目なし" },
+  coNoItemsHint: { ko: "— 위 버튼으로 추가", en: "— add with the button above", ru: "— добавьте кнопкой выше", kz: "— жоғарыдағы түймемен қосыңыз", zh: "— 用上方按钮添加", ja: "— 上のボタンで追加" },
+  coItemPlaceholder: { ko: "예: 위절제술", en: "e.g. Gastrectomy", ru: "напр. Гастрэктомия", kz: "мыс. Гастрэктомия", zh: "例：胃切除术", ja: "例：胃切除術" },
+  coNotePlaceholder: { ko: "병원 요금", en: "Hospital fee", ru: "Тариф больницы", kz: "Аурухана бағасы", zh: "医院收费", ja: "病院料金" },
+  coRemove: { ko: "제거", en: "Remove", ru: "Удалить", kz: "Жою", zh: "移除", ja: "削除" },
+  coTotal: { ko: "합계", en: "Total", ru: "Итого", kz: "Жиыны", zh: "合计", ja: "合計" },
+  coNotesTitle: { ko: "코디 메모 (환자에게 표시됨)", en: "Coordinator note (shown to patient)", ru: "Заметка координатора (видна пациенту)", kz: "Үйлестіруші ескертпесі (пациентке көрінеді)", zh: "协调员备注（对患者显示）", ja: "コーディネーターメモ（患者に表示）" },
+  coNotesPlaceholder: { ko: "환자에게 전달할 메모 (비용 구성, 결제 일정 등)", en: "Note to convey to the patient (cost breakdown, payment schedule, etc.)", ru: "Заметка для пациента (структура расходов, график оплаты и т. д.)", kz: "Пациентке жеткізетін ескертпе (шығын құрылымы, төлем кестесі, т.б.)", zh: "向患者传达的备注（费用构成、付款计划等）", ja: "患者へ伝えるメモ（費用構成・支払スケジュール等）" },
+  coSaving: { ko: "저장 중...", en: "Saving…", ru: "Сохранение…", kz: "Сақталуда…", zh: "保存中…", ja: "保存中…" },
+  coSaveItemsNotes: { ko: "항목/메모 저장", en: "Save items / note", ru: "Сохранить позиции / заметку", kz: "Жолдар / ескертпені сақтау", zh: "保存项目/备注", ja: "項目/メモを保存" },
+  coIssuing: { ko: "발급 중...", en: "Issuing…", ru: "Выдача…", kz: "Берілуде…", zh: "出具中…", ja: "発行中…" },
+  coIssuePdf: { ko: "견적서 PDF 발급", en: "Issue quotation PDF", ru: "Выдать PDF-смету", kz: "Смета PDF беру", zh: "出具报价单 PDF", ja: "見積書PDF発行" },
+  coViewPdf: { ko: "발급된 PDF 보기", en: "View issued PDF", ru: "Открыть выданный PDF", kz: "Берілген PDF-ті көру", zh: "查看已出具的 PDF", ja: "発行済みPDFを見る" },
+  coPatientAccepted: { ko: "환자 동의 완료", en: "Patient accepted", ru: "Пациент согласился", kz: "Пациент келісті", zh: "患者已同意", ja: "患者同意完了" },
+
+  // ── 인박스 상세 (ib) ─────────────────────────────
+  ibBackToInbox: { ko: "인박스로", en: "Back to inbox", ru: "К входящим", kz: "Кіріс жәшігіне", zh: "返回收件箱", ja: "受信箱へ" },
+  ibLoginRequired: { ko: "로그인이 필요합니다.", en: "Sign-in required.", ru: "Требуется вход.", kz: "Кіру қажет.", zh: "需要登录。", ja: "ログインが必要です。" },
+  ibLoadError: { ko: "조회 중 문제가 발생했습니다.", en: "Something went wrong while loading.", ru: "Произошла ошибка при загрузке.", kz: "Жүктеу кезінде қате шықты.", zh: "加载时出现问题。", ja: "読み込み中に問題が発生しました。" },
+  ibLoadFailed: { ko: "문의를 불러오지 못했습니다.", en: "Failed to load the inquiry.", ru: "Не удалось загрузить заявку.", kz: "Сұранысты жүктеу мүмкін болмады.", zh: "无法加载咨询。", ja: "問い合わせを読み込めませんでした。" },
+  ibRetry: { ko: "다시 시도", en: "Retry", ru: "Повторить", kz: "Қайталау", zh: "重试", ja: "再試行" },
+  ibNotFoundTitle: { ko: "문의를 찾을 수 없습니다.", en: "Inquiry not found.", ru: "Заявка не найдена.", kz: "Сұраныс табылмады.", zh: "未找到咨询。", ja: "問い合わせが見つかりません。" },
+  ibNotFoundDesc: { ko: "삭제되었거나 잘못된 주소예요.", en: "It was deleted or the address is wrong.", ru: "Она удалена или адрес неверный.", kz: "Ол жойылған немесе мекенжай қате.", zh: "已被删除或地址有误。", ja: "削除されたか、アドレスが正しくありません。" },
+  ibNameUnknown: { ko: "(이름 미상)", en: "(Name unknown)", ru: "(Имя неизвестно)", kz: "(Аты белгісіз)", zh: "(姓名不详)", ja: "(氏名不明)" },
+  ibPatientDirect: { ko: "환자 직접", en: "Patient direct", ru: "Напрямую от пациента", kz: "Пациенттен тікелей", zh: "患者直接", ja: "患者直接" },
+  ibInquiryNo: { ko: "문의", en: "Inquiry", ru: "Заявка", kz: "Сұраныс", zh: "咨询", ja: "問い合わせ" },
+  ibReceivedLabel: { ko: "접수", en: "Received", ru: "Получено", kz: "Қабылданды", zh: "接收", ja: "受付" },
+  ibStepBothDone: { ko: "Step 1+2 완료", en: "Step 1+2 done", ru: "Этапы 1+2 завершены", kz: "1+2 кезең аяқталды", zh: "步骤 1+2 完成", ja: "ステップ1+2 完了" },
+  ibStepOneNeedInfo: { ko: "Step 1만 (추가 정보 필요)", en: "Step 1 only (needs more info)", ru: "Только этап 1 (нужна доп. информация)", kz: "Тек 1-кезең (қосымша ақпарат қажет)", zh: "仅步骤 1（需补充信息）", ja: "ステップ1のみ（追加情報が必要）" },
+  ibContactCard: { ko: "연락 정보", en: "Contact info", ru: "Контактная информация", kz: "Байланыс ақпараты", zh: "联系信息", ja: "連絡先情報" },
+  ibContactId: { ko: "연락처(ID)", en: "Contact (ID)", ru: "Контакт (ID)", kz: "Байланыс (ID)", zh: "联系方式(ID)", ja: "連絡先(ID)" },
+  ibEmail: { ko: "이메일", en: "Email", ru: "Эл. почта", kz: "Эл. пошта", zh: "电子邮件", ja: "メール" },
+  ibPhone: { ko: "전화", en: "Phone", ru: "Телефон", kz: "Телефон", zh: "电话", ja: "電話" },
+  ibMedicalCard: { ko: "의료 · 여정 정보", en: "Medical & journey info", ru: "Медицинская информация и маршрут", kz: "Медициналық және сапар ақпараты", zh: "医疗与行程信息", ja: "医療・行程情報" },
+  ibPreferredDate: { ko: "희망일", en: "Preferred date", ru: "Желаемая дата", kz: "Қалаған күні", zh: "期望日期", ja: "希望日" },
+  ibFlexible: { ko: "조율 가능", en: "flexible", ru: "можно согласовать", kz: "келісуге болады", zh: "可协调", ja: "調整可能" },
+  ibMessageCard: { ko: "문의 메시지", en: "Inquiry message", ru: "Сообщение заявки", kz: "Сұраныс хабары", zh: "咨询留言", ja: "問い合わせメッセージ" },
+  ibNoMessage: { ko: "남긴 메시지가 없습니다.", en: "No message was left.", ru: "Сообщение не оставлено.", kz: "Хабар қалдырылмаған.", zh: "没有留言。", ja: "メッセージはありません。" },
+  ibIntakeCard: { ko: "추가 정보 (인테이크)", en: "Additional info (intake)", ru: "Доп. информация (заявка)", kz: "Қосымша ақпарат (өтінім)", zh: "补充信息（接诊）", ja: "追加情報（インテーク）" },
+  ibAttachmentsCard: { ko: "첨부 서류", en: "Attachments", ru: "Вложения", kz: "Тіркемелер", zh: "附件", ja: "添付書類" },
+  ibAttachment: { ko: "첨부", en: "Attachment", ru: "Вложение", kz: "Тіркеме", zh: "附件", ja: "添付" },
+  ibCaseCard: { ko: "진행 단계 (설정하면 환자·에이전시에게 표시)", en: "Case stage (shown to patient & agency once set)", ru: "Этап дела (после установки виден пациенту и агентству)", kz: "Кезең (орнатылған соң пациент пен агенттікке көрінеді)", zh: "进展阶段（设置后向患者和代理机构显示）", ja: "進捗ステージ（設定すると患者・代理店に表示）" },
+  ibCaseNotePlaceholder: { ko: '환자·에이전시에게 표시될 메모 (예: "병원 검토 중, 3일 내 회신")', en: 'Note shown to patient & agency (e.g. "Under hospital review, reply within 3 days")', ru: 'Заметка для пациента и агентства (напр. «На рассмотрении в больнице, ответ в течение 3 дней»)', kz: 'Пациент пен агенттікке көрінетін ескертпе (мыс. "Аурухана қарауда, 3 күн ішінде жауап")', zh: '向患者和代理机构显示的备注（例："医院评估中，3日内回复"）', ja: '患者・代理店に表示されるメモ（例：「病院検討中、3日以内に返信」）' },
+  ibCaseSaving: { ko: "저장 중…", en: "Saving…", ru: "Сохранение…", kz: "Сақталуда…", zh: "保存中…", ja: "保存中…" },
+  ibCaseSave: { ko: "진행 단계 저장", en: "Save case stage", ru: "Сохранить этап", kz: "Кезеңді сақтау", zh: "保存进展阶段", ja: "進捗ステージを保存" },
+  ibCaseSaved: { ko: "저장됨", en: "Saved", ru: "Сохранено", kz: "Сақталды", zh: "已保存", ja: "保存済み" },
+  ibIntakeInfoCard: { ko: "접수 정보", en: "Intake info", ru: "Информация о заявке", kz: "Қабылдау ақпараты", zh: "接收信息", ja: "受付情報" },
+  ibIntakeChannel: { ko: "접수 경로", en: "Intake channel", ru: "Канал заявки", kz: "Қабылдау арнасы", zh: "接收渠道", ja: "受付経路" },
+  ibPatientDirectIntake: { ko: "환자 직접 접수", en: "Patient direct intake", ru: "Заявка напрямую от пациента", kz: "Пациенттен тікелей өтінім", zh: "患者直接接收", ja: "患者直接受付" },
+  ibStep1Done: { ko: "Step 1 완료", en: "Step 1 done", ru: "Этап 1 завершён", kz: "1-кезең аяқталды", zh: "步骤 1 完成", ja: "ステップ1 完了" },
+  ibStep2Done: { ko: "Step 2 완료", en: "Step 2 done", ru: "Этап 2 завершён", kz: "2-кезең аяқталды", zh: "步骤 2 完成", ja: "ステップ2 完了" },
+  ibReqCard: { ko: "추가 정보 요청", en: "Request more info", ru: "Запросить доп. информацию", kz: "Қосымша ақпарат сұрау", zh: "请求补充信息", ja: "追加情報をリクエスト" },
+  ibReqDesc1: { ko: "환자에게 상세 정보(진단·치료 단계·희망 일정 등) 입력 링크를 보냅니다. 환자는", en: "Send the patient a link to enter details (diagnosis, treatment stage, preferred schedule, etc.). The patient", ru: "Отправьте пациенту ссылку для ввода данных (диагноз, этап лечения, желаемые сроки и т. д.). Пациент", kz: "Пациентке егжей-тегжейлі ақпарат (диагноз, емдеу кезеңі, қалаған кесте т.б.) енгізу сілтемесін жіберіңіз. Пациент", zh: "向患者发送填写详细信息（诊断、治疗阶段、期望日程等）的链接。患者", ja: "患者に詳細情報（診断・治療段階・希望日程など）を入力するリンクを送ります。患者は" },
+  ibReqDescBold: { ko: "회원가입·앱 설치 없이", en: "without signing up or installing an app", ru: "без регистрации и установки приложения", kz: "тіркелусіз және қолданба орнатпай", zh: "无需注册或安装应用", ja: "会員登録・アプリ不要で" },
+  ibReqDesc2: { ko: " 링크로 바로 작성하고, 완료되면 이 문의에 자동 반영됩니다.", en: " fills it in directly via the link, and it's automatically reflected in this inquiry once done.", ru: " заполняет её прямо по ссылке, и по завершении данные автоматически появляются в этой заявке.", kz: " сілтеме арқылы тікелей толтырады, аяқталған соң осы сұранысқа автоматты түрде енгізіледі.", zh: " 通过链接直接填写，完成后会自动反映到本咨询中。", ja: " リンクから直接入力でき、完了するとこの問い合わせに自動反映されます。" },
+  ibReqSending: { ko: "발송 중…", en: "Sending…", ru: "Отправка…", kz: "Жіберілуде…", zh: "发送中…", ja: "送信中…" },
+  ibReqButton: { ko: "추가 정보 요청", en: "Request more info", ru: "Запросить доп. информацию", kz: "Қосымша ақпарат сұрау", zh: "请求补充信息", ja: "追加情報をリクエスト" },
+  ibReqLast: { ko: "마지막 요청", en: "Last request", ru: "Последний запрос", kz: "Соңғы сұраныс", zh: "上次请求", ja: "最終リクエスト" },
+  ibReqSendError: { ko: "요청 발송 중 문제가 발생했습니다.", en: "Something went wrong while sending the request.", ru: "Произошла ошибка при отправке запроса.", kz: "Сұранысты жіберу кезінде қате шықты.", zh: "发送请求时出现问题。", ja: "リクエスト送信中に問題が発生しました。" },
+  ibReqEmailSent: { ko: "이메일 발송 완료", en: "Email sent", ru: "Письмо отправлено", kz: "Email жіберілді", zh: "邮件已发送", ja: "メール送信完了" },
+  ibReqEmailFailed: { ko: "메일 자동발송은 안 됐어요 ({email}) — 아래 링크를 직접 보내세요.", en: "Auto-email didn't go through ({email}) — send the link below yourself.", ru: "Автоотправка письма не прошла ({email}) — отправьте ссылку ниже вручную.", kz: "Email автожіберу өтпеді ({email}) — төмендегі сілтемені өзіңіз жіберіңіз.", zh: "邮件未能自动发送（{email}）——请手动发送下方链接。", ja: "メールの自動送信ができませんでした（{email}）— 下のリンクを直接送ってください。" },
+  ibReqNoEmail: { ko: "이메일 주소가 없어요 — 아래 링크를 직접 보내세요.", en: "No email address — send the link below yourself.", ru: "Нет адреса эл. почты — отправьте ссылку ниже вручную.", kz: "Email мекенжайы жоқ — төмендегі сілтемені өзіңіз жіберіңіз.", zh: "没有电子邮件地址——请手动发送下方链接。", ja: "メールアドレスがありません — 下のリンクを直接送ってください。" },
+  ibCopy: { ko: "복사", en: "Copy", ru: "Копировать", kz: "Көшіру", zh: "复制", ja: "コピー" },
+  ibCopied: { ko: "복사됨", en: "Copied", ru: "Скопировано", kz: "Көшірілді", zh: "已复制", ja: "コピー済み" },
+  ibWaMessage: { ko: "healwith: 치료 안내를 위해 추가 정보를 입력해 주세요", en: "healwith: please share a few more details for your care", ru: "healwith: пожалуйста, укажите ещё немного данных для вашего лечения", kz: "healwith: емдеуге қажет қосымша ақпаратты енгізіңіз", zh: "healwith：请填写更多信息以便为您安排治疗", ja: "healwith: 治療案内のため追加情報をご入力ください" },
+  ibWaSend: { ko: "왓츠앱으로 보내기", en: "Send via WhatsApp", ru: "Отправить в WhatsApp", kz: "WhatsApp арқылы жіберу", zh: "通过 WhatsApp 发送", ja: "WhatsAppで送る" },
+  ibNextStepDesc: { ko: "병원 치료가능 검토가 끝나면 환자와 화상 상담을 잡습니다.", en: "Once the hospital's feasibility review is done, schedule a video consultation with the patient.", ru: "После проверки возможности лечения в больнице назначьте видеоконсультацию с пациентом.", kz: "Аурухананың емдеу мүмкіндігін қарауы аяқталған соң пациентпен бейнеконсультация тағайындаңыз.", zh: "医院可治疗性评估完成后，安排与患者的视频咨询。", ja: "病院の治療可否検討が終わったら、患者とのビデオ相談を設定します。" },
+  ibScheduleConsult: { ko: "상담 일정 잡기", en: "Schedule consultation", ru: "Назначить консультацию", kz: "Консультация жоспарлау", zh: "安排咨询日程", ja: "相談日程を組む" },
+  ibFieldDiagnosisTiming: { ko: "진단 시기", en: "Diagnosis timing", ru: "Время постановки диагноза", kz: "Диагноз қою уақыты", zh: "确诊时间", ja: "診断時期" },
+  ibFieldCurrentStatus: { ko: "현재 치료 상태", en: "Current treatment status", ru: "Текущий статус лечения", kz: "Ағымдағы емдеу жағдайы", zh: "当前治疗状态", ja: "現在の治療状況" },
+  ibFieldEntryTiming: { ko: "입국 희망 시기", en: "Preferred arrival timing", ru: "Желаемое время прибытия", kz: "Қалаған келу уақыты", zh: "期望入境时间", ja: "入国希望時期" },
+  ibFieldTreatmentsReceived: { ko: "받은 치료", en: "Treatments received", ru: "Полученное лечение", kz: "Алынған емдеу", zh: "已接受的治疗", ja: "受けた治療" },
+  ibFieldDocuments: { ko: "보유 서류", en: "Documents on hand", ru: "Имеющиеся документы", kz: "Қолдағы құжаттар", zh: "持有的文件", ja: "保有書類" },
+  ibUnknown: { ko: "모름", en: "Unknown", ru: "Неизвестно", kz: "Белгісіз", zh: "不清楚", ja: "不明" },
+  ibDiagLt1m: { ko: "최근 1개월", en: "Within last month", ru: "За последний месяц", kz: "Соңғы 1 айда", zh: "最近1个月", ja: "直近1か月" },
+  ibDiag1to6m: { ko: "1~6개월", en: "1–6 months ago", ru: "1–6 месяцев назад", kz: "1–6 ай бұрын", zh: "1~6个月", ja: "1〜6か月" },
+  ibDiag6mto1y: { ko: "6개월~1년", en: "6 months–1 year ago", ru: "6 месяцев–1 год назад", kz: "6 ай–1 жыл бұрын", zh: "6个月~1年", ja: "6か月〜1年" },
+  ibDiagGt1y: { ko: "1년 이상", en: "Over a year ago", ru: "Более года назад", kz: "1 жылдан астам", zh: "1年以上", ja: "1年以上" },
+  ibStage1: { ko: "1기", en: "Stage 1", ru: "Стадия 1", kz: "1-саты", zh: "1期", ja: "1期" },
+  ibStage2: { ko: "2기", en: "Stage 2", ru: "Стадия 2", kz: "2-саты", zh: "2期", ja: "2期" },
+  ibStage3: { ko: "3기", en: "Stage 3", ru: "Стадия 3", kz: "3-саты", zh: "3期", ja: "3期" },
+  ibStage4: { ko: "4기", en: "Stage 4", ru: "Стадия 4", kz: "4-саты", zh: "4期", ja: "4期" },
+  ibStatDiagnosed: { ko: "진단만 받음", en: "Diagnosed only", ru: "Только поставлен диагноз", kz: "Тек диагноз қойылған", zh: "仅确诊", ja: "診断のみ" },
+  ibStatSurgeryDone: { ko: "수술 받음", en: "Surgery done", ru: "Операция проведена", kz: "Ота жасалған", zh: "已手术", ja: "手術済み" },
+  ibStatChemo: { ko: "항암치료 중", en: "On chemotherapy", ru: "Проходит химиотерапию", kz: "Химиотерапия алуда", zh: "化疗中", ja: "化学療法中" },
+  ibStatRadiation: { ko: "방사선치료 중", en: "On radiation therapy", ru: "Проходит лучевую терапию", kz: "Сәулелік терапия алуда", zh: "放疗中", ja: "放射線治療中" },
+  ibStatCompleted: { ko: "치료 완료", en: "Treatment completed", ru: "Лечение завершено", kz: "Емдеу аяқталды", zh: "治疗完成", ja: "治療完了" },
+  ibStatRecurrence: { ko: "재발·전이", en: "Recurrence / metastasis", ru: "Рецидив / метастазы", kz: "Қайталану / метастаз", zh: "复发·转移", ja: "再発・転移" },
+  ibEntryLt1m: { ko: "1개월 내", en: "Within 1 month", ru: "В течение 1 месяца", kz: "1 ай ішінде", zh: "1个月内", ja: "1か月以内" },
+  ibEntry1to3m: { ko: "1~3개월", en: "1–3 months", ru: "1–3 месяца", kz: "1–3 ай", zh: "1~3个月", ja: "1〜3か月" },
+  ibEntryGt3m: { ko: "3개월 이후", en: "After 3 months", ru: "Позже 3 месяцев", kz: "3 айдан кейін", zh: "3个月以后", ja: "3か月以降" },
+  ibEntryUndecided: { ko: "미정", en: "Undecided", ru: "Не определено", kz: "Шешілмеген", zh: "未定", ja: "未定" },
+  ibTxSurgery: { ko: "수술", en: "Surgery", ru: "Операция", kz: "Ота", zh: "手术", ja: "手術" },
+  ibTxChemo: { ko: "항암", en: "Chemotherapy", ru: "Химиотерапия", kz: "Химиотерапия", zh: "化疗", ja: "化学療法" },
+  ibTxRadiation: { ko: "방사선", en: "Radiation", ru: "Лучевая терапия", kz: "Сәулелік терапия", zh: "放疗", ja: "放射線" },
+  ibTxImmuno: { ko: "면역", en: "Immunotherapy", ru: "Иммунотерапия", kz: "Иммунотерапия", zh: "免疫治疗", ja: "免疫療法" },
+  ibTxOriental: { ko: "한방", en: "Oriental medicine", ru: "Восточная медицина", kz: "Шығыс медицинасы", zh: "韩方", ja: "漢方" },
+  ibTxNone: { ko: "없음", en: "None", ru: "Нет", kz: "Жоқ", zh: "无", ja: "なし" },
+  ibDocPathology: { ko: "병리결과", en: "Pathology report", ru: "Результаты патологии", kz: "Патология нәтижесі", zh: "病理结果", ja: "病理結果" },
+  ibDocImaging: { ko: "영상(CT·MRI·PET)", en: "Imaging (CT/MRI/PET)", ru: "Снимки (КТ/МРТ/ПЭТ)", kz: "Бейнелеу (КТ/МРТ/ПЭТ)", zh: "影像(CT·MRI·PET)", ja: "画像(CT・MRI・PET)" },
+  ibDocRecords: { ko: "진료기록", en: "Medical records", ru: "Медицинские записи", kz: "Медициналық жазбалар", zh: "诊疗记录", ja: "診療記録" },
+};
+
+// 현재 언어(lang)로 CT 전체를 평탄화 — L.key 로 바로 문자열이 나오게. 누락은 en→ko 폴백.
+function flatten(lang) {
+  const out = {};
+  for (const key in CT) {
+    const row = CT[key];
+    out[key] = row[lang] || row.en || row.ko || key;
+  }
+  return out;
+}
+
+/**
+ * 코디 포털 컴포넌트에서 현재 언어의 문구 묶음을 가져온다.
+ * 사용: const L = useCoordinatorL();  →  L.navDashboard
+ */
+/**
+ * 백오피스(스태프) 포털 기본 언어 = 한국어. 쿠키로 다른 언어를 고르면 그 언어로.
+ * 왜 ko 기본: 공개 사이트는 en 기본(SEO)이지만 스태프 화면(admin·coordinator)은 한국 운영이 기본이고,
+ * 이전엔 하드코딩 한국어였다 — en 기본으로 두면 한국인 운영자·어드민 cases 보드가 영어로 떠 회귀한다.
+ * 외국인 스태프는 상단 언어 스위처로 전환(선택은 쿠키에 유지). LangContext.useLang 과 같은
+ * store(healo:langchange)를 구독하되 기본값만 ko. SSR/hydration 안전(useSyncExternalStore).
+ */
+function subscribeLang(cb) {
+  if (typeof window === "undefined") return () => {};
+  window.addEventListener("storage", cb);
+  window.addEventListener("healo:langchange", cb);
+  return () => {
+    window.removeEventListener("storage", cb);
+    window.removeEventListener("healo:langchange", cb);
+  };
+}
+export function useBackofficeLang() {
+  // 스태프 전용 쿠키(healo_bo_lang)만 본다 → 공개 healo_lang(en 등)에 안 휘둘리고 기본 ko.
+  return useSyncExternalStore(subscribeLang, () => getBackofficeLangFromCookie() || "ko", () => "ko");
+}
+
+/**
+ * 코디 포털 컴포넌트에서 현재 언어의 문구 묶음을 가져온다.
+ * 사용: const L = useCoordinatorL();  →  L.navDashboard
+ */
+export function useCoordinatorL() {
+  return flatten(useBackofficeLang());
+}
+
+// 훅을 못 쓰는 곳(명시적 lang — 예: 환자 언어로 WhatsApp 문구)에서 직접 뽑을 때.
+export function coordinatorL(lang) {
+  return flatten(lang);
+}
+
+// 날짜/시간 toLocaleString용 BCP47 로케일 — 앱 언어코드를 매핑.
+// (ko-KR 하드코딩 시 러시아어 화면에도 한국식 표기가 새어나오는 걸 방지)
+const LOCALE_MAP = { ko: "ko-KR", en: "en-US", ru: "ru-RU", kz: "kk-KZ", zh: "zh-CN", ja: "ja-JP" };
+export function dateLocale(lang) {
+  return LOCALE_MAP[lang] || "en-US";
+}
+export function useDateLocale() {
+  return dateLocale(useBackofficeLang());
+}
+
+export default CT;

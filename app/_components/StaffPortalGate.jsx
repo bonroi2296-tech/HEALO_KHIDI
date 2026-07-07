@@ -14,9 +14,23 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ShieldAlert } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
+import { useBackofficeLang } from "@/lib/i18n/coordinator";
 
-export default function StaffPortalGate({ allow = [], portalName = "포털", redirect, children }) {
+// 포털 공통 문지기 문구 — 6개 언어. (코디·에이전시·의료기관 등 외국인 스태프가 보는 화면)
+const GATE_TR = {
+  en: { checking: "Verifying access…", denied: "Access denied", loginRequired: "Please sign in.", noPermission: "This account doesn't have access to this portal. Please contact the administrator.", login: "Sign in", goHome: "Back to home" },
+  ko: { checking: "접속 확인 중…", denied: "접근 권한 없음", loginRequired: "로그인이 필요합니다.", noPermission: "이 계정은 이 포털 권한이 없습니다. 관리자에게 문의해 주세요.", login: "로그인", goHome: "홈으로 돌아가기" },
+  ru: { checking: "Проверка доступа…", denied: "Доступ запрещён", loginRequired: "Требуется вход.", noPermission: "У этого аккаунта нет доступа к этому порталу. Обратитесь к администратору.", login: "Войти", goHome: "На главную" },
+  kz: { checking: "Кіру тексерілуде…", denied: "Кіруге рұқсат жоқ", loginRequired: "Кіру қажет.", noPermission: "Бұл аккаунтта осы порталға кіру рұқсаты жоқ. Әкімшіге хабарласыңыз.", login: "Кіру", goHome: "Басты бетке" },
+  zh: { checking: "正在验证访问权限…", denied: "无访问权限", loginRequired: "请先登录。", noPermission: "此账户无权访问该门户。请联系管理员。", login: "登录", goHome: "返回首页" },
+  ja: { checking: "アクセスを確認中…", denied: "アクセス権限がありません", loginRequired: "ログインが必要です。", noPermission: "このアカウントにはこのポータルへのアクセス権がありません。管理者にお問い合わせください。", login: "ログイン", goHome: "ホームに戻る" },
+};
+
+// portalName prop 은 더 이상 표시하지 않음(문구를 범용 "이 포털"로 통일) — 호출부 호환 위해 받되 무시.
+export default function StaffPortalGate({ allow = [], redirect, children }) {
   const [state, setState] = useState("checking"); // checking | ok | denied | login
+  const lang = useBackofficeLang();
+  const L = { ...GATE_TR.en, ...(GATE_TR[lang] || {}) };
 
   useEffect(() => {
     let cancelled = false;
@@ -58,7 +72,7 @@ export default function StaffPortalGate({ allow = [], portalName = "포털", red
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4" />
-          <p className="text-gray-500 text-sm">{portalName} 접속 확인 중…</p>
+          <p className="text-gray-500 text-sm">{L.checking}</p>
         </div>
       </div>
     );
@@ -71,20 +85,18 @@ export default function StaffPortalGate({ allow = [], portalName = "포털", red
           <div className="w-14 h-14 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4">
             <ShieldAlert size={28} className="text-red-500" />
           </div>
-          <h2 className="text-xl font-bold text-gray-900 mb-2">접근 권한 없음</h2>
+          <h2 className="text-xl font-bold text-gray-900 mb-2">{L.denied}</h2>
           <p className="text-sm text-gray-500 mb-6 leading-relaxed">
-            {state === "login"
-              ? "로그인이 필요합니다."
-              : `이 계정은 ${portalName} 권한이 없습니다. 관리자에게 문의해 주세요.`}
+            {state === "login" ? L.loginRequired : L.noPermission}
           </p>
           <div className="space-y-3">
             {state === "login" ? (
               <Link href={`/login?redirect=${encodeURIComponent(redirect || "/")}`} className="block w-full py-3 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition">
-                로그인
+                {L.login}
               </Link>
             ) : (
               <Link href="/" className="block w-full py-3 rounded-xl bg-blue-600 text-white text-sm font-semibold hover:bg-blue-700 transition">
-                홈으로 돌아가기
+                {L.goHome}
               </Link>
             )}
           </div>

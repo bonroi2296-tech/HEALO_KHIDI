@@ -5876,6 +5876,24 @@ export const setLangCookie = (code) => {
   document.cookie = "googtrans=; path=/; max-age=0";
 };
 
+// ── 백오피스(스태프 포털) 전용 언어 쿠키 ────────────────────────────────
+// 왜 분리: 공개 사이트는 브라우저/URL 언어로 healo_lang 을 en 등으로 심는다(프록시·미들웨어).
+// 스태프 화면(admin·coordinator)이 그 healo_lang 을 따르면 한국인 운영자·어드민이 영어로 떠 회귀한다.
+// → 스태프는 이 healo_bo_lang 만 본다. 기본은 한국어, 포털 상단 스위처로 고른 값만 여기 저장.
+export const getBackofficeLangFromCookie = () => {
+  if (typeof document === "undefined") return null;
+  const row = document.cookie.split(";").find((r) => r.trim().startsWith("healo_bo_lang="));
+  if (!row) return null;
+  const code = row.split("=")[1].trim();
+  return DICTIONARY[code] ? code : null;
+};
+
+export const setBackofficeLangCookie = (code) => {
+  if (typeof document === "undefined") return;
+  if (!DICTIONARY[code]) return;
+  document.cookie = `healo_bo_lang=${code}; path=/; max-age=31536000`;
+};
+
 export const getLangCodeFromLabel = (label) => {
   if (DICTIONARY[label]) return label;
   switch (label) {
