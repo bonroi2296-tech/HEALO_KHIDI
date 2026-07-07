@@ -78,8 +78,60 @@ function Card({ title, children }) {
   );
 }
 
+// HTML 이스케이프(모델 출력을 새 창에 안전 렌더).
+function escHtml(s) {
+  return String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+
+// 번역 결과를 깨끗한 새 창으로 열어 인쇄 → 'PDF로 저장'. 한글+키릴이 한 줄에 섞여 있어
+// @react-pdf(단일 폰트) 로는 깨진다 → 브라우저 인쇄(시스템 폰트)가 유일하게 안전. 새 의존성 0.
+function printTranslation(doc, name) {
+  const sections = (doc.sections || []).map((s) => {
+    let inner = "";
+    if (s.title) inner += `<h2>${escHtml(s.title)}</h2>`;
+    if (s.note) inner += `<p class="note">${escHtml(s.note)}</p>`;
+    if (Array.isArray(s.columns) && Array.isArray(s.rows) && s.rows.length) {
+      const head = `<tr>${s.columns.map((c) => `<th>${escHtml(c)}</th>`).join("")}</tr>`;
+      const body = s.rows.map((r) => `<tr>${(r?.cells || []).map((c) => `<td>${escHtml(c)}</td>`).join("")}</tr>`).join("");
+      inner += `<table><thead>${head}</thead><tbody>${body}</tbody></table>`;
+    }
+    if (s.text) inner += `<p class="text">${escHtml(s.text)}</p>`;
+    return `<section>${inner}</section>`;
+  }).join("");
+
+  const html = `<!doctype html><html lang="ko"><head><meta charset="utf-8">
+<title>${escHtml(name || doc.docType)} — 한글 번역</title>
+<style>
+*{box-sizing:border-box}
+body{font-family:-apple-system,"Malgun Gothic","Segoe UI",sans-serif;color:#111;margin:24px;font-size:12px}
+h1{font-size:16px;margin:0 0 2px}
+.sub{color:#555;margin:0 0 4px}
+.disc{color:#888;font-size:10px;margin:0 0 16px}
+h2{font-size:13px;margin:18px 0 6px}
+.note{color:#555;white-space:pre-wrap;margin:0 0 6px}
+.text{white-space:pre-wrap;line-height:1.5}
+table{width:100%;border-collapse:collapse;margin:4px 0 8px}
+th,td{border:1px solid #ccc;padding:4px 6px;text-align:left;vertical-align:top}
+th{background:#f3f4f6}
+@media print{body{margin:12mm}tr{page-break-inside:avoid}}
+</style></head><body>
+<h1>${escHtml(doc.docType)}</h1>
+<p class="sub">원본: ${escHtml(name || "")} · healwith 한글 번역</p>
+<p class="disc">원문을 그대로 옮긴 번역입니다(요약 아님). 숫자·정상범위는 원본과 대조하세요.</p>
+${sections}
+</body></html>`;
+
+  const w = window.open("", "_blank");
+  if (!w) { alert("팝업이 차단됐어요. 팝업 허용 후 다시 눌러주세요."); return; }
+  w.document.open();
+  w.document.write(html);
+  w.document.close();
+  w.focus();
+  setTimeout(() => { try { w.print(); } catch { /* 사용자가 수동 인쇄 */ } }, 400);
+}
+
 // 외국 검사지 한글 번역 결과(요약 아님, 원문 1:1). 표는 가로 스크롤로 감싼다(반응형).
-function TranslatedDocView({ doc, onCopy, copied }) {
+function TranslatedDocView({ doc, onCopy, copied, onPdf }) {
   return (
     <div>
       <div className="flex items-center justify-between gap-2 mb-1.5">
@@ -89,12 +141,21 @@ function TranslatedDocView({ doc, onCopy, copied }) {
           </span>
           <span className="text-xs text-gray-500 truncate">{doc.docType}</span>
         </div>
-        <button
-          onClick={onCopy}
-          className="shrink-0 inline-flex items-center gap-1 px-2 py-1 text-xs rounded border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 transition"
-        >
-          {copied ? <Check size={13} /> : <Copy size={13} />} {copied ? "복사됨" : "복사"}
-        </button>
+        <div className="flex items-center gap-1.5 shrink-0">
+          <button
+            onClick={onPdf}
+            className="inline-flex items-center gap-1 px-2 py-1 text-xs rounded border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 transition"
+            title="PDF로 저장 (인쇄 → PDF로 저장 선택)"
+          >
+            <FileText size={13} /> PDF로 저장
+          </button>
+          <button
+            onClick={onCopy}
+            className="inline-flex items-center gap-1 px-2 py-1 text-xs rounded border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 transition"
+          >
+            {copied ? <Check size={13} /> : <Copy size={13} />} {copied ? "복사됨" : "복사"}
+          </button>
+        </div>
       </div>
       <p className="text-[11px] text-gray-400 mb-3">
         원문을 그대로 옮긴 번역입니다(요약 아님). 숫자·정상범위는 원본과 대조하세요.
@@ -627,6 +688,7 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
                           doc={translations[path].doc}
                           copied={copiedTransPath === path}
                           onCopy={() => copyTranslation(path, translations[path].doc)}
+                          onPdf={() => printTranslation(translations[path].doc, name)}
                         />
                       )}
                     </div>
