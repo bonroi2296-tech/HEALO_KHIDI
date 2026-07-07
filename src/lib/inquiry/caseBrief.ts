@@ -103,11 +103,11 @@ function buildPrompt(): string {
     "A foreign patient (Russian/Kazakh/CIS) submitted an inquiry. You are given: (1) structured intake fields, (2) the patient's free-text message, (3) uploaded medical documents (images/PDF).",
     "Produce a CONCISE Korean BRIEF that lets the coordinator make a fast judgment. Output JSON:",
     "- overview: one or two sentences — who (age/sex if evident, nationality) and their clinical situation (what the records/intake suggest). Use careful, non-definitive language ('~로 보임', '~시사'). DO NOT include the patient's name, phone, email, or any personal identifier.",
-    "- request: what the patient wants — target treatment/stage, travel timing, stated priorities.",
-    "- points: array of short bullet strings — what the coordinator should look at or do next (e.g. needed precision tests, suggested hospital department, missing documents, scheduling notes).",
+    "- request: ONLY what the patient EXPLICITLY stated — from their free-text message and the intake fields (travel timing, stated priorities, the treatment stage they reported). Do NOT name or infer a specific treatment (e.g. conization/LEEP) that the patient did not state. If the patient did not specify a desired treatment, say so plainly (e.g. '구체적 치료는 명시하지 않음') — never invent a wish.",
+    "- points: array of short bullet strings — what the coordinator should look at or do next. Put YOUR CLINICAL INFERENCES here (e.g. 'CIN3 → 원추절제술(LEEP) 검토 대상'), clearly framed as coordinator considerations, NOT as the patient's request. Also: needed precision tests, suggested hospital department, missing documents, scheduling.",
     "- red_flags: array of short strings — anything needing careful attention (urgency, abnormal critical values, contradictions). Empty array if none.",
     "",
-    "RULES (medical redline): You are NOT the treating doctor. Do NOT give a definitive diagnosis, prescribe, or guarantee outcomes. Summarize what the records appear to show, carefully. Preserve any critical values/findings faithfully (do not invent). Keep it brief and skimmable. Write everything in Korean.",
+    "RULES (medical redline): You are NOT the treating doctor. Do NOT give a definitive diagnosis, prescribe, or guarantee outcomes. Summarize what the records appear to show, carefully. Preserve any critical values/findings faithfully (do not invent). **Strictly separate what the patient STATED (goes in `request`) from your clinical INFERENCE (goes in `points`) — never present an inference as the patient's stated wish.** Keep it brief and skimmable. Write everything in Korean.",
     "Return ONLY the JSON object.",
   ].join("\n");
 }
