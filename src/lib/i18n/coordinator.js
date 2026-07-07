@@ -17,7 +17,8 @@
  * 누락 안전장치: 특정 언어에 값이 없으면 en → ko 순으로 폴백해 빈 화면이 안 나온다.
  */
 
-import { useLang } from "./LangContext";
+import { useSyncExternalStore } from "react";
+import { getLangCodeFromCookie } from "./index";
 
 const CT = {
   // ── 레이아웃 / 내비게이션 ─────────────────────────────
@@ -466,11 +467,35 @@ function flatten(lang) {
  * 코디 포털 컴포넌트에서 현재 언어의 문구 묶음을 가져온다.
  * 사용: const L = useCoordinatorL();  →  L.navDashboard
  */
-export function useCoordinatorL() {
-  return flatten(useLang());
+/**
+ * 백오피스(스태프) 포털 기본 언어 = 한국어. 쿠키로 다른 언어를 고르면 그 언어로.
+ * 왜 ko 기본: 공개 사이트는 en 기본(SEO)이지만 스태프 화면(admin·coordinator)은 한국 운영이 기본이고,
+ * 이전엔 하드코딩 한국어였다 — en 기본으로 두면 한국인 운영자·어드민 cases 보드가 영어로 떠 회귀한다.
+ * 외국인 스태프는 상단 언어 스위처로 전환(선택은 쿠키에 유지). LangContext.useLang 과 같은
+ * store(healo:langchange)를 구독하되 기본값만 ko. SSR/hydration 안전(useSyncExternalStore).
+ */
+function subscribeLang(cb) {
+  if (typeof window === "undefined") return () => {};
+  window.addEventListener("storage", cb);
+  window.addEventListener("healo:langchange", cb);
+  return () => {
+    window.removeEventListener("storage", cb);
+    window.removeEventListener("healo:langchange", cb);
+  };
+}
+export function useBackofficeLang() {
+  return useSyncExternalStore(subscribeLang, () => getLangCodeFromCookie() || "ko", () => "ko");
 }
 
-// 훅을 못 쓰는 곳(예: 유틸)에서 언어 코드로 직접 뽑을 때.
+/**
+ * 코디 포털 컴포넌트에서 현재 언어의 문구 묶음을 가져온다.
+ * 사용: const L = useCoordinatorL();  →  L.navDashboard
+ */
+export function useCoordinatorL() {
+  return flatten(useBackofficeLang());
+}
+
+// 훅을 못 쓰는 곳(명시적 lang — 예: 환자 언어로 WhatsApp 문구)에서 직접 뽑을 때.
 export function coordinatorL(lang) {
   return flatten(lang);
 }
@@ -482,7 +507,7 @@ export function dateLocale(lang) {
   return LOCALE_MAP[lang] || "en-US";
 }
 export function useDateLocale() {
-  return dateLocale(useLang());
+  return dateLocale(useBackofficeLang());
 }
 
 export default CT;

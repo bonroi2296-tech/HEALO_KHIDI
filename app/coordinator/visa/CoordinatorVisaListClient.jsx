@@ -2,8 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { useCoordinatorL, useDateLocale } from "@/lib/i18n/coordinator";
-import { useLang } from "@/lib/i18n/LangContext";
+import { useBackofficeLang, useCoordinatorL, useDateLocale } from "@/lib/i18n/coordinator";
 import { nationalityLabelL } from "@/lib/khidi/nationality";
 
 // 상태 색상만 모듈 상수(언어 무관). 라벨은 컴포넌트에서 L로 해석.
@@ -34,7 +33,7 @@ const STATUS_ORDER = [
 
 export default function CoordinatorVisaListClient() {
   const L = useCoordinatorL();
-  const lang = useLang();
+  const lang = useBackofficeLang();
   const dateLoc = useDateLocale();
   // 비자 진행 상태 라벨(색상은 모듈 상수 STATUS_COLOR, 라벨만 L로 해석)
   const STATUS_LABEL = {

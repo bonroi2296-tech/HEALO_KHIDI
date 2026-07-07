@@ -7,14 +7,13 @@ import {
   UserPlus, CheckCircle, Clock, AlertCircle,
 } from 'lucide-react';
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser';
-import { useCoordinatorL, useDateLocale } from '@/lib/i18n/coordinator';
-import { useLang } from '@/lib/i18n/LangContext';
+import { useBackofficeLang, useCoordinatorL, useDateLocale } from '@/lib/i18n/coordinator';
 import { cancerTypeLabelL } from '@/lib/khidi/medicalLabels';
 
 export default function IntakesPage() {
   const router = useRouter();
   const L = useCoordinatorL();
-  const lang = useLang();
+  const lang = useBackofficeLang();
   const dateLoc = useDateLocale();
   const [intakes, setIntakes] = useState([]);
   const [loading, setLoading] = useState(true);

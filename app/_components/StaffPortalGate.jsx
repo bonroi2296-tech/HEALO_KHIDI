@@ -14,7 +14,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ShieldAlert } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
-import { useLang } from "@/lib/i18n/LangContext";
+import { useBackofficeLang } from "@/lib/i18n/coordinator";
 
 // 포털 공통 문지기 문구 — 6개 언어. (코디·에이전시·의료기관 등 외국인 스태프가 보는 화면)
 const GATE_TR = {
@@ -26,9 +26,10 @@ const GATE_TR = {
   ja: { checking: "アクセスを確認中…", denied: "アクセス権限がありません", loginRequired: "ログインが必要です。", noPermission: "このアカウントにはこのポータルへのアクセス権がありません。管理者にお問い合わせください。", login: "ログイン", goHome: "ホームに戻る" },
 };
 
-export default function StaffPortalGate({ allow = [], portalName = "포털", redirect, children }) {
+// portalName prop 은 더 이상 표시하지 않음(문구를 범용 "이 포털"로 통일) — 호출부 호환 위해 받되 무시.
+export default function StaffPortalGate({ allow = [], redirect, children }) {
   const [state, setState] = useState("checking"); // checking | ok | denied | login
-  const lang = useLang();
+  const lang = useBackofficeLang();
   const L = { ...GATE_TR.en, ...(GATE_TR[lang] || {}) };
 
   useEffect(() => {

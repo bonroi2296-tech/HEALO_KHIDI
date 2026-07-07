@@ -9,8 +9,7 @@ import {
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser';
 import { useToast } from '@/components/Toast';
 import { CreateConsultationModal } from '@/components/consultation/CreateConsultationModal';
-import { useCoordinatorL, useDateLocale } from '@/lib/i18n/coordinator';
-import { useLang } from '@/lib/i18n/LangContext';
+import { useBackofficeLang, useCoordinatorL, useDateLocale } from '@/lib/i18n/coordinator';
 import { cancerTypeLabelL } from '@/lib/khidi/medicalLabels';
 
 // 상태 색상만 모듈 상수(언어 무관). 라벨은 컴포넌트에서 L로 해석.
@@ -26,7 +25,7 @@ export default function CoordinatorConsultationsPage() {
   const router = useRouter();
   const toast = useToast();
   const L = useCoordinatorL();
-  const lang = useLang();
+  const lang = useBackofficeLang();
   const dateLoc = useDateLocale();
   const SESSION_LABEL = {
     pre_consultation: L.sessionPre, follow_up: L.sessionFollow,

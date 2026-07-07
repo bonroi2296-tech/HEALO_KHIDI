@@ -2,8 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { useCoordinatorL, useDateLocale } from "@/lib/i18n/coordinator";
-import { useLang } from "@/lib/i18n/LangContext";
+import { useBackofficeLang, useCoordinatorL, useDateLocale } from "@/lib/i18n/coordinator";
 import { nationalityLabelL } from "@/lib/khidi/nationality";
 
 // 비자 진행 상태 코드(라벨은 컴포넌트에서 L로 해석). 목록 파일의 STATUS_LABEL과 같은 vi 키 공유.
@@ -30,7 +29,7 @@ const REVIEW_COLOR = {
 
 export default function CoordinatorVisaDetailClient({ applicationId }) {
   const L = useCoordinatorL();
-  const lang = useLang();
+  const lang = useBackofficeLang();
   const dateLoc = useDateLocale();
   // 비자 진행 상태 라벨(목록 파일과 동일한 vi 키)
   const STATUS_LABEL = {

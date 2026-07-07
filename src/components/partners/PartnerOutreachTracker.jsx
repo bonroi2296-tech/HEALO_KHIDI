@@ -9,8 +9,7 @@ import {
 } from 'lucide-react';
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser';
 import { useToast } from '@/components/Toast';
-import { useLang } from '@/lib/i18n/LangContext';
-import { dateLocale } from '@/lib/i18n/coordinator';
+import { dateLocale, useBackofficeLang } from '@/lib/i18n/coordinator';
 
 // 코디·어드민 공용 부품이라 언어 인식(쿠키 스위처 반응). 어드민은 ko 로 남고, 코디(외국인)는 선택 언어.
 // ko 값 = 기존 원문 그대로(어드민 무변화). 자기 완결형 로컬 TR 패턴(에이전시 포털과 동일 취지).
@@ -346,7 +345,7 @@ function siteUrl(source) {
 
 export default function PartnerOutreachTracker({ accent = 'teal' }) {
   const a = ACCENT[accent] || ACCENT.teal;
-  const lang = useLang();
+  const lang = useBackofficeLang();
   const t = { ...TR.en, ...(TR[lang] || {}) };
   const toast = useToast();
   const [rows, setRows] = useState([]);

@@ -13,8 +13,7 @@ import {
   Calendar, ChevronRight, RefreshCw,
 } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
-import { useCoordinatorL, useDateLocale } from "@/lib/i18n/coordinator";
-import { useLang } from "@/lib/i18n/LangContext";
+import { useBackofficeLang, useCoordinatorL, useDateLocale } from "@/lib/i18n/coordinator";
 import { cancerTypeLabelL, contactMethodLabelL } from "@/lib/khidi/medicalLabels";
 import { nationalityLabelL } from "@/lib/khidi/nationality";
 
@@ -28,7 +27,7 @@ const STATUS_COLORS = {
 export default function CoordinatorInboxPage() {
   const router = useRouter();
   const L = useCoordinatorL();
-  const lang = useLang();
+  const lang = useBackofficeLang();
   const dateLoc = useDateLocale();
   const STATUS_LABELS = {
     received: L.invStatusReceived, reviewing: L.invStatusReviewing,

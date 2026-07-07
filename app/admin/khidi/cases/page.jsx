@@ -6,7 +6,7 @@
  */
 
 import { useState, useEffect, useCallback } from "react";
-import { useLang } from "@/lib/i18n/LangContext";
+import { useBackofficeLang } from "@/lib/i18n/coordinator";
 import { caseStatusLabelL } from "@/lib/khidi/caseStatus";
 import { nationalityLabelL } from "@/lib/khidi/nationality";
 import { cancerTypeLabelL } from "@/lib/khidi/medicalLabels";
@@ -248,7 +248,7 @@ const TR = {
 };
 
 export default function CasesPage() {
-  const lang = useLang();
+  const lang = useBackofficeLang();
   const t = { ...TR.en, ...(TR[lang] || {}) };
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);

@@ -17,8 +17,7 @@ import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { CASE_STATUS_STEPS, caseStatusLabelL } from "@/lib/khidi/caseStatus";
 import { cancerTypeLabelL } from "@/lib/khidi/medicalLabels";
 import { nationalityLabelL } from "@/lib/khidi/nationality";
-import { useCoordinatorL, useDateLocale, coordinatorL } from "@/lib/i18n/coordinator";
-import { useLang } from "@/lib/i18n/LangContext";
+import { useBackofficeLang, useCoordinatorL, useDateLocale, coordinatorL } from "@/lib/i18n/coordinator";
 
 const STATUS_COLORS = {
   received: "bg-yellow-100 text-yellow-700",
@@ -64,7 +63,7 @@ function Card({ title, children }) {
 
 export default function CoordinatorInboxDetailClient({ inquiryId }) {
   const L = useCoordinatorL();
-  const lang = useLang();
+  const lang = useBackofficeLang();
   const dateLoc = useDateLocale();
 
   // inquiries.status enum → 언어별 라벨. (목록 페이지와 동일. pending 은 접수됨과 같은 대기.)
