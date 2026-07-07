@@ -5,6 +5,7 @@ import {
   detectInquiryIsTest,
   detectSessionIsTest,
   fetchTestSessionIds,
+  findTestPollutedInquiryIds,
   idsToInFilter,
 } from "./testData";
 
@@ -54,6 +55,21 @@ describe("detectInquiryIsTest", () => {
   });
   it("트리거 전부 없으면 false", () => {
     expect(detectInquiryIsTest({ ...cfg })).toBe(false);
+  });
+  // 로그인 계정 경로(실적 오염 버그): 공유 @test.com 계정으로 폼엔 개인 이메일을 적어도 테스트로 걸러야 함.
+  it("계정 이메일이 테스트 도메인이면 폼 이메일이 gmail이어도 true", () => {
+    expect(
+      detectInquiryIsTest({ ip: "95.56.1.2", email: "patient@gmail.com", accountEmail: "agency@test.com", ...cfg })
+    ).toBe(true);
+  });
+  it("계정 이메일도 폼 이메일도 일반이면 false (진짜 유치 보존)", () => {
+    expect(
+      detectInquiryIsTest({ ip: "95.56.1.2", email: "patient@gmail.com", accountEmail: "coord@healwith.co.kr", ...cfg })
+    ).toBe(false);
+  });
+  it("게스트(accountEmail 없음)는 폼 이메일 판정 그대로", () => {
+    expect(detectInquiryIsTest({ email: "qa@test.com", accountEmail: null, ...cfg })).toBe(true);
+    expect(detectInquiryIsTest({ email: "patient@gmail.com", accountEmail: undefined, ...cfg })).toBe(false);
   });
 });
 
@@ -129,6 +145,22 @@ describe("fetchTestSessionIds (세션 표식 ∪ inquiry 체인 합집합)", () 
   it("둘 다 비면 빈 배열", async () => {
     const db = fakeDb({ flaggedSessionIds: [], testInquiryIds: [], chainSessionIds: [] });
     expect(await fetchTestSessionIds(db)).toEqual([]);
+  });
+});
+
+describe("findTestPollutedInquiryIds (드리프트 감사)", () => {
+  const domains = ["test.com"];
+  it("계정이 테스트 도메인인 행만 골라낸다", () => {
+    const rows = [
+      { id: 37, accountEmail: "agency@test.com" },
+      { id: 40, accountEmail: "real-patient@gmail.com" },
+      { id: 19, accountEmail: "coordinator@test.com" },
+      { id: 41, accountEmail: null },
+    ];
+    expect(findTestPollutedInquiryIds(rows, domains).sort((a, b) => a - b)).toEqual([19, 37]);
+  });
+  it("오염 없으면 빈 배열", () => {
+    expect(findTestPollutedInquiryIds([{ id: 1, accountEmail: "a@gmail.com" }], domains)).toEqual([]);
   });
 });
 

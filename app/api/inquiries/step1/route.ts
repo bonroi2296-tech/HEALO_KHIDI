@@ -101,11 +101,15 @@ export async function POST(request: NextRequest) {
   // 로그인 상태로 제출했으면 본인 계정에 귀속(환자 마이페이지 '내 문의'에 노출용).
   // 게스트 제출은 토큰 없음 → NULL 유지(공개 폼 보존). 토큰 검증 실패도 게스트로 처리.
   let userId: string | null = null;
+  // 로그인 계정 이메일 — 실적 오염 차단용(공유 @test.com 계정이 폼엔 개인 이메일을 적는 경로).
+  // getUser 가 이미 user 객체를 주므로 추가 조회 없이 email 을 함께 캡처한다.
+  let accountEmail: string | null = null;
   const authHeader = request.headers.get("authorization") || request.headers.get("Authorization");
   if (authHeader?.startsWith("Bearer ")) {
     try {
       const { data: u } = await supabaseAdmin.auth.getUser(authHeader.substring(7));
       userId = u?.user?.id ?? null;
+      accountEmail = u?.user?.email ?? null;
     } catch { /* 게스트로 처리 */ }
   }
 
@@ -148,8 +152,8 @@ export async function POST(request: NextRequest) {
         step1_completed_at: new Date().toISOString(),
         ai_chat_thread_id: data.aiChatThreadId ?? null,
         user_id: userId,
-        // 테스트/실제 분리: 사무실IP·테스트이메일·수동도장이면 테스트로 표시(KPI 기본 제외).
-        is_test: detectInquiryIsTest({ ip: clientIp, email: data.email, manual: (body as any)?.isTest === true }),
+        // 테스트/실제 분리: 사무실IP·테스트이메일·(로그인)계정이메일·수동도장이면 테스트로 표시(KPI 기본 제외).
+        is_test: detectInquiryIsTest({ ip: clientIp, email: data.email, accountEmail, manual: (body as any)?.isTest === true }),
       })
       .select("id, public_token")
       .single();

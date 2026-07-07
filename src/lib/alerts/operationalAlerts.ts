@@ -29,6 +29,7 @@ export type AlertType =
   | 'no_inquiries'             // 문의 급감 (시스템 문제?)
   | 'high_priority_lead'       // 고가치 리드 유입
   | 'kpi_aggregation_error'    // KHIDI KPI 집계 쿼리 오류 (평가 숫자 깨짐 — #102 부류)
+  | 'test_data_pollution'      // is_test=false 인데 접수 계정이 테스트 도메인 (실적 오염 — 로그인계정 경로)
   | 'deadman_coverage';        // "있어야 할 신호가 없음" — cron 멈춤·설문 0 등 (#35 S1)
 
 /**
@@ -381,6 +382,36 @@ export async function alertKpiAggregationErrors(
     },
     threshold: 0,
     currentValue: errors.length,
+    timestamp: new Date().toISOString(),
+  });
+}
+
+/**
+ * ✅ 실적 오염 알림 — is_test=false 인데 접수 계정이 테스트 도메인(로그인 계정 경로 누락 부류).
+ *
+ * 왜: 감지기(detectInquiryIsTest)에 accountEmail 검사를 추가해 신규 접수는 막았지만,
+ *     ①이후 새 insert 호출부가 accountEmail 을 빠뜨리거나 ②접수 후 계정이 테스트로 바뀌면
+ *     또 샐 수 있다. 코드 가드는 사전, 이 알림은 데이터 사후 그물(defense-in-depth).
+ *     KPI 스냅샷 cron 이 매일 감사해 발견 시 경고(평가 직결이라 시끄럽게).
+ * 순수 판정은 src/lib/khidi/testData.ts(findTestPollutedInquiryIds, 단위테스트). 여기선 발신만.
+ */
+export async function alertTestDataPollution(
+  pollutedInquiryIds: number[],
+  context: string
+): Promise<void> {
+  if (!pollutedInquiryIds || pollutedInquiryIds.length === 0) return; // 정상이면 no-op
+
+  await sendAlert({
+    type: 'test_data_pollution',
+    severity: 'warning',
+    message: `실적 오염 의심 ${pollutedInquiryIds.length}건 (${context}) — is_test=false 인데 접수 계정이 테스트 도메인`,
+    details: {
+      context,
+      inquiryIds: pollutedInquiryIds.slice(0, 50),
+      action: 'is_test 백필(scripts/backfill_test_account_inquiries.sql) 또는 계정/접수 확인. 단 #37 등 의도적 예외는 제외.',
+    },
+    threshold: 0,
+    currentValue: pollutedInquiryIds.length,
     timestamp: new Date().toISOString(),
   });
 }

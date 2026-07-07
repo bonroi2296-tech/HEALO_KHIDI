@@ -128,6 +128,62 @@ export async function GET(request: NextRequest) {
       console.error("[cron/kpi-snapshot] deadman 점검 실패(무시):", (e as Error).message);
     }
 
+    // ── 실적 오염 감사(로그인 계정 경로) ──────────────────────
+    // is_test=false 로 실적에 잡혀 있으나 '접수 계정(auth.users.email)'이 테스트 도메인인 문의를
+    // 매일 훑어 경고한다. 감지기(detectInquiryIsTest.accountEmail)는 사전 차단, 이 감사는 사후 그물
+    // (새 insert 호출부가 accountEmail 을 빠뜨리거나 접수 후 계정이 테스트로 바뀌는 경우 대비).
+    // #37 등 '의도적 예외'는 env TEST_POLLUTION_AUDIT_IGNORE(콤마구분 id)로 제외해 매일 오탐 방지.
+    // best-effort — 실패해도 cron 본 결과에 영향 없음.
+    try {
+      const { findTestPollutedInquiryIds, resolveTestDomains } = await import("@/lib/khidi/testData");
+      const { alertTestDataPollution } = await import("@/lib/alerts/operationalAlerts");
+      const { supabaseAdmin } = await import("@/lib/rag/supabaseAdmin");
+
+      // 로그인 접수만 계정이 있음(게스트는 user_id=null) → 스캔 대상이 작다. 안전 상한.
+      const SCAN_CAP = 1000;
+      const { data: suspects } = await (supabaseAdmin as any)
+        .from("inquiries")
+        .select("id, user_id")
+        .eq("is_test", false)
+        .not("user_id", "is", null)
+        .limit(SCAN_CAP);
+
+      const list: Array<{ id: number; user_id: string }> = suspects || [];
+      if (list.length === SCAN_CAP) {
+        console.warn(`[cron/kpi-snapshot] 오염감사 스캔 상한(${SCAN_CAP}) 도달 — 일부 미검사 가능`);
+      }
+
+      // 계정 이메일 해석: 같은 계정이 여러 문의를 낼 수 있어 user_id 중복 제거 후 조회.
+      const uniqUserIds = Array.from(new Set(list.map((r) => r.user_id)));
+      const emailByUser = new Map<string, string | null>();
+      for (const uid of uniqUserIds) {
+        try {
+          const { data: u } = await supabaseAdmin.auth.admin.getUserById(uid);
+          emailByUser.set(uid, u?.user?.email ?? null);
+        } catch {
+          emailByUser.set(uid, null);
+        }
+      }
+
+      const rows = list.map((r) => ({ id: r.id, accountEmail: emailByUser.get(r.user_id) ?? null }));
+      const ignore = new Set(
+        (process.env.TEST_POLLUTION_AUDIT_IGNORE || "")
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean) // 빈 env → [""] → Number("")=0 오염 방지(빈 문자열 먼저 제거)
+          .map(Number)
+          .filter((n) => Number.isFinite(n))
+      );
+      const polluted = findTestPollutedInquiryIds(rows, resolveTestDomains()).filter((id) => !ignore.has(id));
+
+      if (polluted.length > 0) {
+        console.warn(`[cron/kpi-snapshot] 실적 오염 의심 ${polluted.length}건:`, polluted.slice(0, 20));
+        await alertTestDataPollution(polluted, "kpi-snapshot 일일감사");
+      }
+    } catch (e) {
+      console.error("[cron/kpi-snapshot] 오염 감사 실패(무시):", (e as Error).message);
+    }
+
     return NextResponse.json({
       ok: true,
       date: targetDate,
