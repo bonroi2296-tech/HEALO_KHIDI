@@ -14,6 +14,27 @@
 
 ---
 
+## #76 — 🔁 #58 부류 재발: 어드민 병원·시술 관리 폼이 열 때 ReferenceError 로 크래시 (컴포넌트를 `_`프리픽스로 받아 스코프에 없음) — Sentry가 잡음 (2026-07-07)
+
+**무슨 일**
+- 프로덕션 Sentry에 `ReferenceError: AddressInput is not defined` (`/admin/hospitals`) 수집됨. 어드민이 **병원 추가/수정 폼을 열면** `FormContent`가 `<AddressInput/>`을 렌더하는데 그 이름이 스코프에 없어 폼이 통째로 크래시.
+- 근본원인: `FormContent`가 인자를 **`_AddressInput`·`_DynamicListInput`·`_ImageUploader`**(언더스코어=미사용 표시)로 받는데, 본문 JSX는 언더스코어 없는 원래 이름으로 사용 → 이름이 정의 안 됨. 호출부는 `AddressInput={AddressInput}`로 **정확히 넘기는데** 받는 인자명만 틀림. (렌더 순서상 `<AddressInput/>`이 먼저 터져 Sentry엔 AddressInput만 보였음.)
+- **가드가 켜지자 2번째 피해 파일이 드러남**: `app/admin/treatments/_client/TreatmentManager.jsx`도 동일 — `DynamicListInput: _DynamicListInput`·`ImageUploader: _ImageUploader`로 rename destructure 하고 JSX는 원래 이름 사용 + "직접 쓰이진 않음"이라는 **틀린 주석**까지 달려 있었음. → 시술 관리 폼도 열면 크래시.
+
+**왜 못 잡았나 (그때의 방지책이 왜 못 막았나)**
+- **🔁 #58(2026-07-01)의 `_showScheduleModal` 재발**: #58도 "언더스코어=미사용으로 오인해 실제 쓰이는 바인딩을 죽인" 같은 부류였으나, 그 instance만 고치고 **가드를 안 심었음** → 같은 실수(이번엔 JSX 컴포넌트 인자)가 다른 화면에서 재발.
+- **lint가 이 부류를 못 봤음(핵심 갭)**: eslint 설정이 `react/jsx-uses-vars`(사용됨 표시)만 켜고 **`react/jsx-no-undef`(정의 안 된 JSX 컴포넌트 차단)를 안 켬**. core `no-undef`는 JSX를 못 읽고, `no-unused-vars`의 `varsIgnorePattern:^[A-Z_]`·`argsIgnorePattern:^_`가 `_AddressInput`·`AddressInput`을 둘 다 무시 → 어느 룰도 안 걸림. `next build`도 문법만 봐서 통과(카테고리 A "빌드 통과 ≠ 런타임 동작").
+
+**어떻게 고쳤나**
+- `HospitalManager.jsx` `FormContent` 인자: `_DynamicListInput·_ImageUploader·_AddressInput` → 원래 이름. `TreatmentManager.jsx` rename destructure 제거 + 주석을 현실("직접 사용됨")로 교정. 두 파일 모두 호출부가 이미 올바른 이름으로 prop을 넘기고 있어 인자명만 맞추면 해결.
+- 검증: `npm run lint` jsx-no-undef 0 / 전체 error 0, `next build --webpack` 통과.
+
+**재발 방지 (시스템 적용 — 뚫린 가드 보강)**
+- **`eslint.config.js`에 `react/jsx-no-undef: 'error'` 신설**(CI `npm run lint`가 매 PR 차단). 이제 `<Foo/>`인데 `Foo`가 스코프에 없으면 **머지 전 lint 실패** = 이 크래시 부류가 프로덕션에 못 나감. 룰 켜자마자 잠복해 있던 `TreatmentManager.jsx` 7건을 실제로 잡아냄(가드가 동작 증명).
+- 한계(정직): jsx-no-undef는 **JSX 컴포넌트** 미정의만 잡는다. #58의 `_showScheduleModal`처럼 "state를 set만 하고 안 씀" 류(비-JSX)는 이 룰 밖 — 그건 여전히 코드리뷰/수동 감사 몫. 이번 가드는 이 부류 중 **가장 크래시가 잦은 형태(undefined JSX 컴포넌트)**를 영구 차단.
+
+---
+
 ## #75 — 「🔁 #63 부류 재발」 공개 문의 폼이 agency_id 를 안 찍어 에이전시 유저가 자기 접수건을 포털에서 못 봄 (2026-07-07, 첫 실고객 #37에서 발현)
 
 **무슨 일** — 로그인한 에이전시 유저가 공개 웹폼(UnifiedInquiryFunnel → `/api/inquiries/step1`)으로 문의를 넣으면 `inquiries.agency_id` 가 NULL 로 저장됐다. 에이전시 포털(`/api/agency/inquiries` 는 `.eq("agency_id", auth.agencyId)` 로 필터)에서 자기 문의가 아예 안 뜨고, 접수 주체 배지도 "환자 직접 접수"로 잘못 표시됐다. 정식 의뢰 경로 `/api/agency/refer` 는 `agency_id: auth.agencyId` 를 찍는데 **공개 폼 경로만 누락**. 첫 실고객 #37(agency@test.com, "TEST 에이전시" 71ce80fb 소속)이 정확히 이 표본 — 임시로 agency_id 를 stamp 하니 포털에 #37 + 코디 노트 + 타임라인이 정상 노출됨(기능은 멀쩡, 연결만 끊김).

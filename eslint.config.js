@@ -52,6 +52,11 @@ export default [
       // JSX 안에서 사용되는 변수는 no-unused-vars 가 감지하도록 명시 등록
       'react/jsx-uses-vars': 'error',
       'react/jsx-uses-react': 'error',
+      // JSX 로 쓴 컴포넌트가 스코프에 없으면 에러(런타임 ReferenceError 사전 차단).
+      // core no-undef 는 JSX 를 모르고, jsx-uses-vars 는 "사용됨" 표시만 해서
+      // `<Foo/>` 인데 Foo 가 정의 안 된 케이스가 lint 를 통과하던 갭(POSTMORTEMS).
+      // 예: FormContent 가 인자를 _AddressInput 로 받는데 본문에서 <AddressInput/> 사용 → 배포 후 크래시.
+      'react/jsx-no-undef': 'error',
       // React 19 preview rule — cascading rerender 위험을 경고하지만,
       // SSR hydration 용 useEffect + setState 같은 의도적 사용에서 false positive.
       // 빌드를 막지 않고 경고만 내보내도록 warn 으로 조정. 점진적 useSyncExternalStore
