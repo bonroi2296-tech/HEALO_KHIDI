@@ -7,6 +7,50 @@
 
 ---
 
+## 🔖 세션 핸드오프 (2026-07-07 — 첨부 의료문서 번역 다국어화+품질: 용어사전·캐시·숫자대조검증·수정 학습루프 #701)
+
+> PO 지시: 코디 인박스의 첨부 외국 검사지 자동번역(현 한국어 전용)을 "다국어 기반으로 품질 개선"하라 → 스코프 버튼으로 **풀세트**(다국어+사전+숫자검증+캐시+수정학습루프)·출력 **한·영·러** 확정. 합치기신청서(PR) #701로 본판(main) 머지·실서비스 반영(배포) 완료. (세션 앞부분엔 별개로 #37 키르기스 환자 검사결과 세컨드오피니언·한글번역 품질 리뷰를 대화로 제공 — 코드 아님.)
+
+**1. 이번 세션 한 일** (전부 main 머지·프로덕션 자동배포, PR [#701](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/701) `d2a6201` MERGED)
+- **다국어 출력(ko/en/ru)**: `src/lib/documents/translateDoc.ts` 프롬프트 언어 파라미터화(언어명·표헤더·판독불가표기·기본docType), 라우트 `body.lang`, UI 첨부별 `[한][EN][RU]` 토글 + 번역 캐시를 `path::lang` 키로 분리.
+- **의료용어 사전** `src/lib/documents/medicalGlossary.ts`(신규): CIS 종양·부인과 씨앗 28종(원문→ko/en/ru + 모호어 주의노트, 예 эндоцервикоз→'자궁경부 원주상피 증식' **NOT 자궁내막증**). seed + learned(DB) 병합해 프롬프트 주입.
+- **DB 캐시+학습사전** `migrations/20260707_attachment_translations.sql`(프로덕션 적용완료): `attachment_translations`(path,lang unique; doc/edited_doc), `doc_glossary_terms`. 둘 다 RLS on·정책없음=service_role 전용.
+- **숫자 대조검증**: 모델이 번역표↔원본이미지 **직접 대조** → 어긋난 숫자만 `{item, translated, source}` 쌍 반환. 배너 "항목: 번역 X / 원본재판독 Y" + "검증기도 AI라 보증 아님·최종은 원본" 고지.
+- **코디 수정→학습루프**: 번역표 인라인 수정→저장(edited_doc 보존), '＋사전 등록'으로 (원문→대상언어) 용어를 doc_glossary_terms에 축적 → 다음 번역 프롬프트 자동 반영.
+- **라우트 통합**: `/api/attachments/translate` 단일 POST에 `action`(translate/verify/save/glossary) 분기, 인증(admin|staff)·path검증 공유.
+- 부수: `AiSurface`에 `doc_translate_verify`, `database.types.ts` 새 테이블 2종 타입, 코디 사용설명서(ko/en/ru) '첨부 서류 번역' 항목 + updated 2026-07-07.
+
+**2. 왜 그렇게 했는지**
+- 품질 최대 레버 = ①다국어 출력(엔진이 이미 근접구조) ②용어사전(오역 부류 못박기). 나머지(캐시·검증·학습)는 PO 풀세트 선택.
+- **OCR 라이브러리 추가 안 함(의도)** — 스캔·깨진 폰트엔 멀티모달 이미지 판독이 더 강함. 되살리지 마라.
+- **숫자검증 = 판사 아니라 신호기** (PO가 "검증기도 AI라 틀릴 수 있잖아"를 정확히 지적): 원본 재판독이 틀리면 헛알람(안전), 둘 다 같게 틀리면 놓침 → 최종진실=원본(항상 한 클릭 보존)임을 화면에 명시. 초기 "다중집합 diff→못찾은숫자 나열"에서 PO 요청으로 "모델이 직접 대조→번역/원본 쌍 표시"로 재설계(행정렬은 모델이 시각적으로).
+- 라우트 단일 action 분기 = 인증·경로검증 공유로 파일 최소화.
+
+**3. 안 끝났거나 보류**
+- ⏸ **런타임 실화면 미검증**: en/ru 실제 출력·숫자검증·수정저장·사전학습은 코디 로그인 필요 → 로컬 자동화 불가([[verify_authgated_portal]]). 빌드·타입·CI·독립리뷰는 통과했으나 실클릭 미실시.
+- ⏸ **PO 방향 반응 "좀 애매하다"**: 기능은 유지·머지했으나 PO가 원래 그린 형태가 이게 맞는지는 열려있음 — 다음에 조정 여지.
+
+**4. 주의·함정**
+- 캐시 키는 (path,lang)뿐 → 같은 경로에 **다른 파일 재업로드** 시 옛 번역 반환(escape=「다시 변환」=force). storage 경로는 사실상 불변이라 실무 위험 낮음.
+- `TranslatedDocView`엔 **`key={curKey}` 필수** — 없으면 언어전환 시 편집 draft가 살아남아 다른 언어 캐시 오염(독립리뷰 CONFIRMED, 이번에 수정). 이 컴포넌트 리팩터 시 유지.
+- 새 테이블은 **service_role 전용**(RLS 정책 없음) — 브라우저 직접 쿼리 금지, 서버 API 경유. 마이그레이션은 이미 프로덕션 Supabase 적용됨(코드보다 먼저 적용해 머지 시 안전).
+- 자동저장 훅이 커밋을 가로채 일부 커밋 메시지가 "작업 자동 저장"으로 남음(diff·머지는 PR에 정상) [[autosave_hook_hazard]].
+
+**5. 다음 세션이 먼저 할 일**
+1. ⚠️ **직전 미검증분 먼저 확인**: 프로덕션에서 코디 로그인 → 문의 첨부 → `[EN]`/`[RU]` 변환 · 「숫자검증」(번역/원본 쌍이 뜨는지) · 「수정」저장 · 「＋사전 등록」을 각 1회 실클릭 확인.
+2. (열려있음) PO가 "애매하다"고 한 지점 — 이 번역 UX가 PO가 원한 방향인지 확인, 필요시 조정.
+
+**6. 검증 상태**
+- ✅ PR #701 스쿼시 머지(origin/main `d2a6201`, state MERGED). CI(ci·Smoke Tests(PR)·Vercel) **전부 SUCCESS**.
+- ✅ `npx next build --webpack`·`npm run check:content` 통과. DB 마이그레이션 프로덕션 적용 확인.
+- ✅ 독립리뷰(작성맥락 미공유 subagent): 보안·인증·캐시 로직 clean, CONFIRMED 결함 1건(언어전환 편집 오염)→수정 완료.
+- ⚠️ **검증 못 함**: 실화면 런타임(로그인 필요 코디 인박스) 미실시 → 5-1로 승격.
+
+**7. 다음 세션 첫 프롬프트**
+> docs/PROJECT_CONTEXT.md 최상단 읽어. 코디 인박스 첨부 의료문서 번역 다국어화+품질(용어사전·캐시·숫자대조검증·수정 학습루프, PR #701)은 머지·배포됨. 먼저 프로덕션에서 코디 로그인→문의 첨부→`[EN]`/`[RU]` 변환·「숫자검증」(번역/원본 쌍)·「수정」저장·「＋사전등록」을 각 1회 실클릭 확인(빌드·CI·독립리뷰 통과, 실화면만 미검증). 그리고 PO가 이 번역 UX에 "좀 애매하다"고 했으니 원하는 방향 맞는지 확인하고 필요시 조정. 새 attachment_translations/doc_glossary_terms는 service_role 전용(서버 API 경유).
+
+---
+
 ## 🔖 세션 핸드오프 (2026-07-07 — 에이전시 공개폼 접수 가시성 버그: 로그인 에이전시 소속 자동 각인·머지·배포 #696)
 
 > PO 지시: "로그인한 에이전시 유저가 **공개 웹폼**으로 문의를 넣으면 `inquiries.agency_id`가 NULL로 저장돼, 에이전시 포털에서 자기 문의·진행상황이 안 보인다. 접수 시 소속을 자동 각인해라. #37 백필은 하지 말고 forward-looking 로직만." → 합치기신청서(PR) #696으로 본판(main) 머지·실서비스 반영(배포) 완료.
@@ -46,45 +90,6 @@
 
 **7. 다음 세션 첫 프롬프트**
 > docs/PROJECT_CONTEXT.md 최상단 읽어. 에이전시 공개폼 접수 가시성 버그(로그인 에이전시 소속 `agency_id` 자동 각인, PR #696)는 머지·배포됨. 먼저 프로덕션에서 **에이전시 계정 로그인→공개 문의폼 접수→`/agency`에 바로 보이는지** 1회 확인(코드·유닛·CI·독립리뷰 통과, 라이브 E2E만 미실시). ⚠️ 새 `inquiries` insert 경로를 만들면 `agency_id`·`user_id`·`is_test(accountEmail)`를 다 채워라(step1이 참고 패턴 — 경로별 각인 누락이 #74·#75 반복 근본원인). #37 백필은 하지 마(이관 계획 별도 [[first-real-inquiry-37-migration]]).
-
----
-
-## 🔖 세션 핸드오프 (2026-07-07 — 상표권용 한국어 로고 「힐위드」 단독 배선·머지·배포 #691 + 한/영 제안서 PPT + 네이버 힐위드 노출 검증)
-
-> PO 지시: `healwith`·`힐위드` 상표권 출원 중, 변리사 3요청 — ①한국어 페이지에 「힐위드」 한글 로고 ②네이버에서 "힐위드" 검색 노출 ③운영 증빙용 한/영 브로슈어. 로고 전용 작업본(브랜치)에서 작업.
-
-**1. 이번 세션 한 일**
-- **PR [#691](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/691) ✅ 스쿼시 머지·프로덕션 자동배포** (origin/main `0279326`). 한국어(ko) 화면 로고 = healwith → **「힐위드」 단독**(Pretendard SemiBold), healwith 있던 **같은 위치·같은 높이**(폭만 짧아짐). 영·러·카·중·일 화면은 healwith 유지. 6파일: `components/brand/Logo.jsx`(locale-aware, `lang` prop — `lang==="ko"`면 `wordmark-ko.svg`), `src/components.jsx`·`app/ClientShell.jsx`(헤더·모바일·포털바 3개 Logo 호출부에 `lang={langCode}`), `scripts/gen-wordmark.mjs`(영문 ExtraBold / 한글 SemiBold **분리 폰트**), `public/brand/wordmark-ko.svg`·`wordmark-ko-dark.svg`(신규 SemiBold 벡터, 힐=teal/위드=slate).
-- **한/영 제안서 PPT 완성**: `healwith 회사·서비스 소개서`(8장) — 바탕화면 `C:\Users\user\Desktop\healwith_소개서_한영.pptx`(+채팅). 변리사 제출용 **상표 실사용 증빙**. 실데이터만(유치업등록 A-2026-01-02-06761·SGI보증보험 1억·제휴병원 8곳[면력한방 4+협진 대학병원 4]·6개언어·KHIDI). 전 슬라이드 한/영 병기. **repo엔 커밋 안 함**(스크래치패드 pptxgenjs 생성물).
-- **네이버 힐위드 노출 검증**: 2026-07-06(#656) 적용분(meta설명·구조화데이터 `alternateName`·푸터 카피에 "힐위드")이 프로덕션 `healwith.co.kr/ko`에 **살아있음 직접 확인**(힐위드 16회). PO가 네이버 서치어드바이저에서 `/ko`·`/` **수집 요청 완료**.
-
-**2. 왜 그렇게 했는지**
-- 배치: 처음 병기(healwith+힐위드)로 배선했으나 PO가 **단독(힐위드만)**으로 변경 요청 — 변리사 요청("한국어 페이지에 힐위드 한글 로고")에도 단독이 더 정확. 같은 위치·높이 유지가 조건.
-- 폰트: Pretendard **ExtraBold는 한글이 투박** → 대체폰트 7종(Gowun Dodum·IBM Plex KR·SUIT·Gothic A1·나눔스퀘어네오·주아·도현) 이미지 비교시켰으나 PO가 **다 거부하고 "그냥 기본형 SemiBold"** 확정. 영문 healwith는 ExtraBold 그대로(두 굵기 분리 = 병기 시 무게 균형).
-- Logo 컴포넌트 한 곳만 lang 인지 → 헤더·모바일·포털바 전역 반영. ko만 힐위드(한글누출 가드 준수).
-
-**3. 안 끝났거나 보류**
-- ⏸ **제안서 PPT 표지**: 현재 병기(healwith 힐위드). 단독으로 바꿀지 **PO 미결**(제안서엔 두 상표 노출이 증빙상 유리해 일부러 병기). 원하면 표지만 교체.
-- ⏳ **네이버 「힐위드」 실제 검색 노출**: 네이버 재수집·색인 대기(며칠~2주, 우리 몫 아님). PO가 며칠 뒤 "힐위드" 직접 검색으로 확인.
-
-**4. 주의·함정**
-- **자동저장 훅(2분 git add -A)이 세션 중 브랜치를 여러 번 갈아치우고 무관 변경(다른 세션 handoff 문서·next-env.d.ts)을 브랜치에 섞음.** → 깨끗한 PR 위해 `origin/main`에서 새 브랜치 따서 상표 파일 6개만 `git checkout <src> -- <files>`. 멀티파일 작업 시 이 훅 주의([[autosave_hook_hazard]]).
-- 로고 SVG 재생성: `WORDMARK_FONT=<ExtraBold.otf> WORDMARK_FONT_KO=<SemiBold.otf> node scripts/gen-wordmark.mjs`. 폰트 없으면 KO도 EB로 폴백.
-- **PO는 폰에서 `mcp__visualize__show_widget` 인터랙티브 위젯이 안 뜸** → 시안·비교는 **정적 이미지(한 변 2048px 미만)**로 SendUserFile. AskUserQuestion 버튼은 정상([[po-mobile-widget-images]]).
-
-**5. 다음 세션이 먼저 할 일**
-1. ⚠️ **직전 미검증분 먼저 확인**: 프로덕션 배포 완료 후 실브라우저에서 `healwith.co.kr/ko` 헤더가 **힐위드 단독**으로 뜨는지 1회 확인(로컬 dev·SSR·DOM은 검증됨, 프로덕션 배포 완료 화면은 미확인).
-2. PO가 제안서 PPT 표지 단독 전환을 원하면 교체.
-3. 네이버 색인 반영은 시간 대기(PO 몫).
-
-**6. 검증 상태**
-- ✅ **PR #691 스쿼시 머지 확인**(origin/main `0279326`). CI **Smoke Tests(PR)·ci·Vercel 배포 pass**, merge state CLEAN. 독립 리뷰 게이트(작성맥락 미공유 subagent) **정합성 결함 0**.
-- ✅ 로컬 dev SSR+DOM 실검증: `/ko`=힐위드만(left16·h20 = healwith 슬롯 동일), `/en`=healwith만(한글 0회). `npm run check:content` 통과.
-- ✅ 네이버 힐위드 텍스트 **프로덕션 live 확인**(healwith.co.kr/ko meta·구조화데이터·푸터, 16회).
-- ⚠️ **검증 못 함**: 2026-07-07 로고 머지분의 **프로덕션 배포 완료 화면**은 직접 안 봄(로컬만) → 5-1로 승격.
-
-**7. 다음 세션 첫 프롬프트**
-> docs/PROJECT_CONTEXT.md 최상단 읽어. 상표용 한국어 로고(힐위드 단독, Pretendard SemiBold, PR #691)는 머지·배포됨. 먼저 프로덕션 healwith.co.kr/ko 헤더가 힐위드 단독으로 뜨는지 1회 확인(로컬만 검증됨). 제안서 PPT는 바탕화면 `healwith_소개서_한영.pptx`(변리사 제출용, 표지 단독 전환은 PO 미결). 네이버 힐위드는 수집요청 완료·색인 대기(며칠~2주). ⚠️ 로고는 Logo.jsx가 lang==="ko"일 때만 힐위드, 나머지 언어 healwith(한글누출 가드).
 
 ---
 
