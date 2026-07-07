@@ -7,6 +7,51 @@
 
 ---
 
+## 🔖 세션 핸드오프 (2026-07-07 — Sentry 연결 검증 + Sentry가 잡은 실버그 2건 수정·머지·배포 #693·#697·#698)
+
+> PO가 Sentry(에러 감시 도구)에 로그인해 "뭘 확인해야 하냐" 물음 → 4개 이슈 트리아지 → 실버그 2건 고쳐 배포. **Sentry 켜둔 게 실제로 값을 함**(실브라우저에서만 보이던 크래시·hydration을 대신 잡아줌). 세션 앞부분의 알림 종(bell) 404 수정(#686)·그 핸드오프(#689)는 이미 별도로 머지·핸드오프됨 — 이 블록은 Sentry 파트만.
+
+**1. 이번 세션 한 일** (전부 main 머지·프로덕션 배포)
+- **Sentry 연결 상태 라이브 검증 + 문서 현행화** ([PR #693](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/693)): 문서가 엇갈려("미설정" vs "가동") 기억으로 답 안 하고 실측 — `healwith.co.kr` 프로덕션 HTML에 `sentry-trace`/`sentry-environment` 메타 + 응답 CSP에 `*.ingest.de.sentry.io` 허용 확인 → **프로덕션 실가동 확정**(DSN 리전=독일/EU). `EXTERNAL_SETUP_GUIDE §8`을 "가동 중"으로 교정.
+- **어드민 병원·시술 관리 폼 크래시 수정** ([PR #697](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/697), POSTMORTEMS **#76**): Sentry `ReferenceError: AddressInput is not defined`(`/admin/hospitals`). `FormContent`가 컴포넌트를 `_AddressInput` 등 언더스코어(미사용 표시)로 받는데 JSX는 원래 이름 사용 → 스코프에 없어 폼 열면 크래시. 인자명 교정 + **`eslint.config.js`에 `react/jsx-no-undef: 'error'` 가드 신설**. 가드 켜자 **잠복해 있던 2번째 파일(`/admin/treatments` 시술 폼) 7건이 드러나** 같이 수리.
+- **`/ru` 러시아 홈 Hydration 에러 수정** ([PR #698](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/698), POSTMORTEMS **#77**): `proxy.ts` 레거시 랜딩 분기(`LEGACY_SKIP`)가 `x-locale` 헤더만 박고 `healo_lang` 쿠키를 안 심어, 쿠키 없는 첫 방문자 서버=ru·클라=en 갈림. 일반 분기와 동일하게 쿠키 심도록 1줄 통일.
+- **노이즈 2건**은 PO에게 mute 방법 안내만(AbortError=Archive 권장, `/consultation` promise rejection=영상방이라 지켜보기 권장).
+
+**2. 왜 그렇게 했는지**
+- Sentry 연결 여부를 **엇갈리는 문서로 답하지 않고 라이브 프로덕션으로 실측**(PO "검증 정직" 취향). 낡은 문서(드리프트)까지 그 결과로 교정.
+- AddressInput: 없는 상세 페이지 신설(YAGNI) 대신 **근본 수정(인자명) + 가드로 재발 영구 차단**. `jsx-no-undef`를 `error`로 켜자 같은 부류 잠복 버그(treatments)가 자동 노출 → "가드가 값을 한다"의 실증.
+- hydration: **작동 중인 일반 분기와 동일화(쿠키 set만 추가)** = 라우팅 불변·저위험. 미들웨어(전 요청 영향)라 독립 리뷰로 부작용 전수 확인.
+- 두 수정 다 CLAUDE.md 독립 리뷰 게이트(작성맥락 미공유 subagent) 통과 후 자동머지.
+
+**3. 안 끝났거나 보류 (PO "추가 작업은 메모만" — 착수 안 함)**
+- ⏸ **Sentry 노이즈 코드 필터(미착수)**: `sentry.client.config.js` `beforeSend`에서 AbortError를 아예 안 보내게 필터 → UI에서 클릭 mute 안 해도 되고 무료 할당량 절약. **PO가 "노이즈 코드로 막아줘" 하면 착수.** 지금은 UI Archive 안내만 함.
+- ⏸ **`<unknown>` promise rejection (`/consultation/:id` 영상방)**: 저신호(2건)라 하드 뮤트 대신 **지켜보기**. 늘면 LiveKit(화상) 실문제일 수 있어 조사. Sentry Events 추이 관찰.
+- ⏸ **hydration E2E 가드(미구현)**: "쿠키 없는 레거시 로케일 라우트 로드 → hydration 경고 감시" E2E가 이 부류(프록시 분기 비대칭)의 진짜 그물인데 이번 범위 밖. #77에 후속 후보로 기록. 지금은 Sentry가 사후 그물.
+- ⏸ **부차 잠복 #30**: `src/components.jsx:137` 렌더 중 `getLangCodeFromCookie()` 직접 호출(현재 `ClientShell`이 `langCode` prop 넘겨 무해하나, prop 안 넘기는 호출부 생기면 같은 hydration 갈림). `useLang()`로 이관 권장. #77 기록.
+
+**4. 주의·함정**
+- **`react/jsx-no-undef`가 이제 `error`**: 새 JSX 컴포넌트를 import/스코프 없이 `<Foo/>`로 쓰면 **lint 실패로 머지 차단**(정상 — 이 크래시 부류 방지). 새 컴포넌트는 반드시 import/props로 스코프에 두기.
+- **불변식**: `proxy.ts`에서 `x-locale`를 주입하는 **모든** 분기는 `healo_lang` 쿠키도 같이 심어야 함(안 그러면 서버 렌더 언어 ≠ 클라 쿠키 언어 → hydration). 레거시 분기 주석에 박아둠.
+- **로컬 typecheck 스테일 에러**: `next build` 직후 `.next/types` 재생성 전엔 `TS6053: file not found`(딴 페이지)가 뜰 수 있음 — 빌드 완료 후 재실행하면 0(기존 알려진 #675). 실코드 에러 아님.
+- **auto-save 훅(2분마다 `git add -A` 커밋+푸시)**: 멀티파일 작업 중 커밋 메시지를 "작업 자동 저장"으로 가로챔 → 이번엔 `git commit --amend`로 제대로 된 메시지로 교정 후 push 함. 다음에도 커밋 확인 시 이 훅 유의.
+
+**5. 다음 세션이 먼저 할 일**
+1. ⚠️ **직전 미검증분 먼저 확인**: 두 수정의 **실효를 Sentry 대시보드에서 확인** — `AddressInput`·`Hydration(/ru)` 이슈의 Events 수가 배포(2026-07-07) 이후 **더 안 늘면 해결 확정**. (실브라우저 클릭 재현은 안 함 — 원인은 코드상 확정.)
+2. ⚠️ **이전 미검증분 유지**: 다기기 화상 테스트(초대링크 **2026-07-10 만료** → 그 전에 진행) + LiveKit webhook 첫 수신(Vercel 로그 `[livekit/webhook]`).
+3. (PO가 원하면) 위 3번 보류: Sentry 노이즈 코드 필터 / components.jsx #30 이관 / hydration E2E 가드.
+
+**6. 검증 상태**
+- ✅ **#693·#697·#698 전부 MERGED**(gh pr view 실측: state=MERGED, `ci`·`Smoke Tests(PR)`·`Vercel` 전부 SUCCESS, E2E는 PR skip). origin/main에 proxy 쿠키·HospitalManager 인자·jsx-no-undef 가드·POSTMORTEMS #76/#77 반영 실확인.
+- ✅ #697: `npm run lint` jsx-no-undef **0**·전체 error **0**, `next build --webpack` 통과, 독립 리뷰 결함 0.
+- ✅ #698: `next build --webpack`·`typecheck` **0**·`check:content` 통과, 독립 리뷰(미들웨어 부작용 전수 — Set-Cookie 타이밍·staff 별도 `healo_bo_lang` 격리·캐시/리다이렉트 무영향) 결함 0.
+- ✅ Sentry 연결: 라이브 프로덕션 HTML 메타태그 + CSP `connect-src`로 "가동 중" 실측(2026-07-07).
+- ⚠️ **검증 못 함**: 두 수정의 **실브라우저 재현**(어드민 폼 열기·`/ru` 첫 방문 hydration) 직접 안 함 — 원인은 코드상 확정 + 독립 리뷰로 방어, **Sentry Events 감소로 사후 확인 예정**(5-1로 승격).
+
+**7. 다음 세션 첫 프롬프트**
+> docs/PROJECT_CONTEXT.md 최상단 읽어. Sentry가 잡은 실버그 2건(어드민 병원·시술 폼 크래시 #697 / `/ru` 러시아 홈 hydration #698) 고쳐 머지·배포 끝났어. 먼저 ①Sentry 대시보드에서 그 두 이슈(AddressInput·Hydration) Events가 2026-07-07 배포 이후 안 느는지 확인(=실효 검증) ②다기기 화상 테스트(초대링크 2026-07-10 만료 전) + LiveKit webhook 첫 수신 Vercel 로그. Sentry 노이즈 코드필터·components.jsx #30 이관·hydration E2E 가드는 보류 상태니 내가 시키면 착수해.
+
+---
+
 ## 🔖 세션 핸드오프 (2026-07-07 — 에이전시 공개폼 접수 가시성 버그: 로그인 에이전시 소속 자동 각인·머지·배포 #696)
 
 > PO 지시: "로그인한 에이전시 유저가 **공개 웹폼**으로 문의를 넣으면 `inquiries.agency_id`가 NULL로 저장돼, 에이전시 포털에서 자기 문의·진행상황이 안 보인다. 접수 시 소속을 자동 각인해라. #37 백필은 하지 말고 forward-looking 로직만." → 합치기신청서(PR) #696으로 본판(main) 머지·실서비스 반영(배포) 완료.
@@ -46,45 +91,6 @@
 
 **7. 다음 세션 첫 프롬프트**
 > docs/PROJECT_CONTEXT.md 최상단 읽어. 에이전시 공개폼 접수 가시성 버그(로그인 에이전시 소속 `agency_id` 자동 각인, PR #696)는 머지·배포됨. 먼저 프로덕션에서 **에이전시 계정 로그인→공개 문의폼 접수→`/agency`에 바로 보이는지** 1회 확인(코드·유닛·CI·독립리뷰 통과, 라이브 E2E만 미실시). ⚠️ 새 `inquiries` insert 경로를 만들면 `agency_id`·`user_id`·`is_test(accountEmail)`를 다 채워라(step1이 참고 패턴 — 경로별 각인 누락이 #74·#75 반복 근본원인). #37 백필은 하지 마(이관 계획 별도 [[first-real-inquiry-37-migration]]).
-
----
-
-## 🔖 세션 핸드오프 (2026-07-07 — 상표권용 한국어 로고 「힐위드」 단독 배선·머지·배포 #691 + 한/영 제안서 PPT + 네이버 힐위드 노출 검증)
-
-> PO 지시: `healwith`·`힐위드` 상표권 출원 중, 변리사 3요청 — ①한국어 페이지에 「힐위드」 한글 로고 ②네이버에서 "힐위드" 검색 노출 ③운영 증빙용 한/영 브로슈어. 로고 전용 작업본(브랜치)에서 작업.
-
-**1. 이번 세션 한 일**
-- **PR [#691](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/691) ✅ 스쿼시 머지·프로덕션 자동배포** (origin/main `0279326`). 한국어(ko) 화면 로고 = healwith → **「힐위드」 단독**(Pretendard SemiBold), healwith 있던 **같은 위치·같은 높이**(폭만 짧아짐). 영·러·카·중·일 화면은 healwith 유지. 6파일: `components/brand/Logo.jsx`(locale-aware, `lang` prop — `lang==="ko"`면 `wordmark-ko.svg`), `src/components.jsx`·`app/ClientShell.jsx`(헤더·모바일·포털바 3개 Logo 호출부에 `lang={langCode}`), `scripts/gen-wordmark.mjs`(영문 ExtraBold / 한글 SemiBold **분리 폰트**), `public/brand/wordmark-ko.svg`·`wordmark-ko-dark.svg`(신규 SemiBold 벡터, 힐=teal/위드=slate).
-- **한/영 제안서 PPT 완성**: `healwith 회사·서비스 소개서`(8장) — 바탕화면 `C:\Users\user\Desktop\healwith_소개서_한영.pptx`(+채팅). 변리사 제출용 **상표 실사용 증빙**. 실데이터만(유치업등록 A-2026-01-02-06761·SGI보증보험 1억·제휴병원 8곳[면력한방 4+협진 대학병원 4]·6개언어·KHIDI). 전 슬라이드 한/영 병기. **repo엔 커밋 안 함**(스크래치패드 pptxgenjs 생성물).
-- **네이버 힐위드 노출 검증**: 2026-07-06(#656) 적용분(meta설명·구조화데이터 `alternateName`·푸터 카피에 "힐위드")이 프로덕션 `healwith.co.kr/ko`에 **살아있음 직접 확인**(힐위드 16회). PO가 네이버 서치어드바이저에서 `/ko`·`/` **수집 요청 완료**.
-
-**2. 왜 그렇게 했는지**
-- 배치: 처음 병기(healwith+힐위드)로 배선했으나 PO가 **단독(힐위드만)**으로 변경 요청 — 변리사 요청("한국어 페이지에 힐위드 한글 로고")에도 단독이 더 정확. 같은 위치·높이 유지가 조건.
-- 폰트: Pretendard **ExtraBold는 한글이 투박** → 대체폰트 7종(Gowun Dodum·IBM Plex KR·SUIT·Gothic A1·나눔스퀘어네오·주아·도현) 이미지 비교시켰으나 PO가 **다 거부하고 "그냥 기본형 SemiBold"** 확정. 영문 healwith는 ExtraBold 그대로(두 굵기 분리 = 병기 시 무게 균형).
-- Logo 컴포넌트 한 곳만 lang 인지 → 헤더·모바일·포털바 전역 반영. ko만 힐위드(한글누출 가드 준수).
-
-**3. 안 끝났거나 보류**
-- ⏸ **제안서 PPT 표지**: 현재 병기(healwith 힐위드). 단독으로 바꿀지 **PO 미결**(제안서엔 두 상표 노출이 증빙상 유리해 일부러 병기). 원하면 표지만 교체.
-- ⏳ **네이버 「힐위드」 실제 검색 노출**: 네이버 재수집·색인 대기(며칠~2주, 우리 몫 아님). PO가 며칠 뒤 "힐위드" 직접 검색으로 확인.
-
-**4. 주의·함정**
-- **자동저장 훅(2분 git add -A)이 세션 중 브랜치를 여러 번 갈아치우고 무관 변경(다른 세션 handoff 문서·next-env.d.ts)을 브랜치에 섞음.** → 깨끗한 PR 위해 `origin/main`에서 새 브랜치 따서 상표 파일 6개만 `git checkout <src> -- <files>`. 멀티파일 작업 시 이 훅 주의([[autosave_hook_hazard]]).
-- 로고 SVG 재생성: `WORDMARK_FONT=<ExtraBold.otf> WORDMARK_FONT_KO=<SemiBold.otf> node scripts/gen-wordmark.mjs`. 폰트 없으면 KO도 EB로 폴백.
-- **PO는 폰에서 `mcp__visualize__show_widget` 인터랙티브 위젯이 안 뜸** → 시안·비교는 **정적 이미지(한 변 2048px 미만)**로 SendUserFile. AskUserQuestion 버튼은 정상([[po-mobile-widget-images]]).
-
-**5. 다음 세션이 먼저 할 일**
-1. ⚠️ **직전 미검증분 먼저 확인**: 프로덕션 배포 완료 후 실브라우저에서 `healwith.co.kr/ko` 헤더가 **힐위드 단독**으로 뜨는지 1회 확인(로컬 dev·SSR·DOM은 검증됨, 프로덕션 배포 완료 화면은 미확인).
-2. PO가 제안서 PPT 표지 단독 전환을 원하면 교체.
-3. 네이버 색인 반영은 시간 대기(PO 몫).
-
-**6. 검증 상태**
-- ✅ **PR #691 스쿼시 머지 확인**(origin/main `0279326`). CI **Smoke Tests(PR)·ci·Vercel 배포 pass**, merge state CLEAN. 독립 리뷰 게이트(작성맥락 미공유 subagent) **정합성 결함 0**.
-- ✅ 로컬 dev SSR+DOM 실검증: `/ko`=힐위드만(left16·h20 = healwith 슬롯 동일), `/en`=healwith만(한글 0회). `npm run check:content` 통과.
-- ✅ 네이버 힐위드 텍스트 **프로덕션 live 확인**(healwith.co.kr/ko meta·구조화데이터·푸터, 16회).
-- ⚠️ **검증 못 함**: 2026-07-07 로고 머지분의 **프로덕션 배포 완료 화면**은 직접 안 봄(로컬만) → 5-1로 승격.
-
-**7. 다음 세션 첫 프롬프트**
-> docs/PROJECT_CONTEXT.md 최상단 읽어. 상표용 한국어 로고(힐위드 단독, Pretendard SemiBold, PR #691)는 머지·배포됨. 먼저 프로덕션 healwith.co.kr/ko 헤더가 힐위드 단독으로 뜨는지 1회 확인(로컬만 검증됨). 제안서 PPT는 바탕화면 `healwith_소개서_한영.pptx`(변리사 제출용, 표지 단독 전환은 PO 미결). 네이버 힐위드는 수집요청 완료·색인 대기(며칠~2주). ⚠️ 로고는 Logo.jsx가 lang==="ko"일 때만 힐위드, 나머지 언어 healwith(한글누출 가드).
 
 ---
 
