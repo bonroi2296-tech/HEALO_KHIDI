@@ -180,6 +180,56 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
     setAttDownloadPath(null);
   }
 
+  // 첨부 한글 변환: 외국 검사지를 한국 병원 전달용으로 원문 1:1 한국어 번역(요약 아님, 숫자 보존).
+  const [transLoadingPath, setTransLoadingPath] = useState(null);
+  const [translations, setTranslations] = useState({}); // path -> { doc } | { error }
+  const [copiedTransPath, setCopiedTransPath] = useState(null);
+  async function translateAttachment(path, name) {
+    if (!path) return;
+    setTransLoadingPath(path);
+    try {
+      const supabase = createSupabaseBrowserClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      const cleanPath = path.startsWith("/") ? path.slice(1) : path;
+      const res = await fetch("/api/attachments/translate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({ path: cleanPath, name }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.ok && data.doc) {
+        setTranslations((prev) => ({ ...prev, [path]: { doc: data.doc } }));
+      } else {
+        setTranslations((prev) => ({ ...prev, [path]: { error: data.error || "translate_failed" } }));
+      }
+    } catch (e) {
+      console.error("[attachment] translate error:", e);
+      setTranslations((prev) => ({ ...prev, [path]: { error: "translate_failed" } }));
+    }
+    setTransLoadingPath(null);
+  }
+
+  // 번역 결과를 한국 의료진에게 넘길 수 있게 평문으로 클립보드 복사(표는 탭 구분).
+  async function copyTranslation(path, doc) {
+    const lines = [`[${doc.docType}]`, ""];
+    for (const s of doc.sections || []) {
+      lines.push(`■ ${s.title || ""}`);
+      if (s.note) lines.push(s.note);
+      if (Array.isArray(s.columns) && Array.isArray(s.rows)) {
+        lines.push(s.columns.join("\t"));
+        for (const r of s.rows) lines.push((r?.cells || []).join("\t"));
+      }
+      if (s.text) lines.push(s.text);
+      lines.push("");
+    }
+    try {
+      await navigator.clipboard.writeText(lines.join("\n"));
+      setCopiedTransPath(path);
+      setTimeout(() => setCopiedTransPath(null), 2000);
+    } catch { /* clipboard 미지원 무시 */ }
+  }
+
   // 케이스 진행 단계 저장 (코디·어드민 공용 API 재사용). 환자/에이전시 포털에 같은 상태가 노출됨.
   async function saveCase() {
     setCaseSaving(true);
