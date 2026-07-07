@@ -17,7 +17,7 @@
 | 5 | Google Maps 키 회전 + HTTP Referrer 제한 | 중간 | 15분 | 🔴 즉시 |
 | 6 | HIRA / Kakao / Naver 키 회전 | 쉬움 | 각 5~10분 | 🟠 24시간 |
 | 7 | LiveKit Cloud 계정 개설 + API Key | 중간 | 20분 | 🔴 즉시 (원격진료 동작 안 함) |
-| 8 | Sentry 계정 + 프로젝트 + DSN | 쉬움 | 10분 | 🟠 24시간 |
+| 8 | Sentry 계정 + 프로젝트 + DSN | 쉬움 | 10분 | ✅ 완료 (프로덕션 가동, 2026-07-07 검증) |
 | 9 | AWS SES (이메일 발송) | 중간 | 30~60분 | 🟠 24시간 |
 | 10 | DROP 마이그레이션 2종 실행 | 쉬움 | 5분 | 🟡 일주일 |
 | 11 | 개인정보처리방침 법무 리뷰 | — | 법무팀 | 🟠 런칭 전 |
@@ -297,7 +297,8 @@ LIVEKIT_API_SECRET=<API Secret>
 
 ## 8. 🟠 Sentry — 에러 모니터링
 
-> 현재 상태: 코드 전부 준비됨 (`instrumentation.ts`, `sentry.*.config.js`). DSN 만 채우면 즉시 작동.
+> ✅ **현재 상태: 프로덕션 연결·가동 중** (2026-07-07 라이브 검증 — healwith.co.kr HTML에 `sentry-trace`·`sentry-environment` 메타 주입 + CSP `connect-src`에 `*.ingest.de.sentry.io` 허용 확인. DSN 리전 = `ingest.de.sentry.io`). 코드는 `NEXT_PUBLIC_SENTRY_DSN` 있을 때만 켜지며(`instrumentation.ts`·`sentry.*.config.js`), 그 DSN이 Vercel 프로덕션에 설정돼 있음.
+> 아래 8-1~8-2는 **재설정·신규 프로젝트가 필요할 때만** 참고(이미 켜져 있으면 손댈 것 없음).
 
 ### 8-1. 계정 + 프로젝트
 
