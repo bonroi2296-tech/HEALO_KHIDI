@@ -537,14 +537,15 @@ const TR_GUIDE = {
 };
 for (const l of Object.keys(TR)) Object.assign(TR[l], TR_GUIDE[l] || TR_GUIDE.en);
 
-// 좌측 탭 라벨(진행 현황 / 환자 의뢰) — 6개 언어. 위 TR 에 병합.
+// 좌측 탭 라벨(진행 현황 / 환자 의뢰) + 진행 단계 표시 — 6개 언어. 위 TR 에 병합.
+// stepWord = "단계 3/8" 의 '단계'. advanceHint = 단계가 코디 업데이트로만 전진함을 안내.
 const TR_NAV = {
-  ko: { navTrack: "진행 현황", navRefer: "환자 의뢰" },
-  en: { navTrack: "Progress", navRefer: "Refer patient" },
-  ru: { navTrack: "Ход", navRefer: "Направить" },
-  kz: { navTrack: "Барыс", navRefer: "Жолдау" },
-  zh: { navTrack: "进度", navRefer: "转介患者" },
-  ja: { navTrack: "進捗", navRefer: "患者紹介" },
+  ko: { navTrack: "진행 현황", navRefer: "환자 의뢰", stepWord: "단계", advanceHint: "단계는 담당 코디네이터가 진행을 업데이트할 때마다 올라갑니다." },
+  en: { navTrack: "Progress", navRefer: "Refer patient", stepWord: "Step", advanceHint: "The step advances each time your coordinator updates the case." },
+  ru: { navTrack: "Ход", navRefer: "Направить", stepWord: "Этап", advanceHint: "Этап продвигается каждый раз, когда координатор обновляет статус." },
+  kz: { navTrack: "Барыс", navRefer: "Жолдау", stepWord: "Кезең", advanceHint: "Кезең үйлестіруші статусты жаңартқан сайын алға жылжиды." },
+  zh: { navTrack: "进度", navRefer: "转介患者", stepWord: "步骤", advanceHint: "每当协调员更新病例时，步骤就会前进。" },
+  ja: { navTrack: "進捗", navRefer: "患者紹介", stepWord: "ステップ", advanceHint: "ステップは担当コーディネーターが進捗を更新するたびに進みます。" },
 };
 for (const l of Object.keys(TR)) Object.assign(TR[l], TR_NAV[l] || TR_NAV.en);
 
@@ -718,8 +719,8 @@ export default function PartnerPortal({ expected = "agency" }) {
       </div>
 
       <div className="flex flex-col md:flex-row md:items-start gap-5">
-        {/* 좌측 탭: 진행 현황 ↔ 환자 의뢰 (직관적 분리) */}
-        <nav className="flex md:flex-col gap-1.5 md:w-44 shrink-0">
+        {/* 좌측 탭: 진행 현황 ↔ 환자 의뢰 — 어드민 좌측 nav 톤(대문짝 사이즈: 컬러 아이콘칩+굵은 라벨) */}
+        <nav className="flex md:flex-col gap-2 md:w-56 shrink-0">
           {[
             { key: "track", label: tt("navTrack"), icon: Activity, badge: cnt.total },
             { key: "refer", label: tt("navRefer"), icon: Plus, badge: null },
@@ -729,11 +730,13 @@ export default function PartnerPortal({ expected = "agency" }) {
             return (
               <button key={it.key} type="button"
                 onClick={() => { setView(it.key); setSubmitMsg(null); }}
-                className={`flex-1 md:flex-none flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 ${on ? "bg-teal-700 text-white shadow-sm" : "bg-white border border-gray-200 text-gray-700 hover:bg-gray-50"}`}>
-                <NIcon size={16} className="shrink-0" />
+                className={`flex-1 md:flex-none flex items-center gap-3 px-4 py-3.5 rounded-xl text-base font-bold transition-all duration-200 ${on ? "bg-teal-700 text-white shadow-md" : "bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300"}`}>
+                <span className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${on ? "bg-white/20 text-white" : "bg-teal-50 text-teal-600"}`}>
+                  <NIcon size={20} />
+                </span>
                 <span className="flex-1 text-left">{it.label}</span>
                 {it.badge != null && it.badge > 0 && (
-                  <span className={`text-xs tabular-nums rounded-full px-1.5 ${on ? "bg-white/20" : "bg-gray-100 text-gray-500"}`}>{it.badge}</span>
+                  <span className={`text-sm tabular-nums font-semibold rounded-full px-2 py-0.5 ${on ? "bg-white/20 text-white" : "bg-gray-100 text-gray-500"}`}>{it.badge}</span>
                 )}
               </button>
             );
@@ -763,6 +766,14 @@ export default function PartnerPortal({ expected = "agency" }) {
             );
           })}
         </div>
+      )}
+
+      {/* 단계가 코디 업데이트로만 전진함을 한 줄 안내 (완료·1단계 혼동 방지) */}
+      {view === "track" && cnt.total > 0 && (
+        <p className="flex items-start gap-1.5 text-xs text-gray-400 mb-4 -mt-2">
+          <Activity size={13} className="mt-0.5 shrink-0" />
+          <span>{tt("advanceHint")}</span>
+        </p>
       )}
 
       {submitMsg && (
@@ -963,19 +974,40 @@ export default function PartnerPortal({ expected = "agency" }) {
                         )}
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <span className={`text-xs px-2.5 py-1 rounded-full ${c.case_status ? "bg-teal-50 text-teal-700" : "bg-gray-100 text-gray-400"}`}>
-                        {caseStatusLabelL(c.case_status, lang)}
-                      </span>
-                      <ChevronDown size={16} className={`text-gray-400 transition-transform duration-200 ${openId === c.id ? "rotate-180" : ""}`} />
-                    </div>
+                    <ChevronDown size={16} className={`text-gray-400 transition-transform duration-200 shrink-0 ${openId === c.id ? "rotate-180" : ""}`} />
                   </div>
-                  {/* 단계 진행 바 */}
+                  {/* 현재 단계 — 이름 + 위치(N/8) 크게, 완료·보류는 색으로 구분 */}
+                  {(() => {
+                    const isHold = c.case_status === "on_hold";
+                    const isDone = c.case_status === "completed";
+                    const total = steps.length; // 실단계 8 (보류 제외)
+                    return (
+                      <div className="flex items-center flex-wrap gap-2 mb-1.5">
+                        <span className={`inline-flex items-center gap-1.5 text-sm font-bold px-3 py-1 rounded-lg ${
+                          isHold ? "bg-amber-50 text-amber-700"
+                          : isDone ? "bg-emerald-600 text-white"
+                          : c.case_status ? "bg-teal-700 text-white"
+                          : "bg-gray-100 text-gray-400"}`}>
+                          {isDone && <CheckCircle2 size={14} className="shrink-0" />}
+                          {isHold && <PauseCircle size={14} className="shrink-0" />}
+                          {caseStatusLabelL(c.case_status, lang)}
+                        </span>
+                        {c.case_status && !isHold && (
+                          <span className="text-xs font-semibold text-gray-400 tabular-nums">{tt("stepWord")} {curOrder}/{total}</span>
+                        )}
+                      </div>
+                    );
+                  })()}
+                  {/* 단계 진행 바 — 완료는 진한 초록, 진행 중은 teal */}
                   <div className="flex items-center gap-1">
-                    {steps.map((s) => (
-                      <div key={s.key} className="flex-1 h-1.5 rounded-full"
-                        style={{ background: s.order <= curOrder ? "#14b8a6" : "#e5e7eb" }} title={caseStatusLabelL(s.key, lang)} />
-                    ))}
+                    {steps.map((s) => {
+                      const filled = s.order <= curOrder && c.case_status !== "on_hold";
+                      const done = c.case_status === "completed";
+                      return (
+                        <div key={s.key} className="flex-1 h-2 rounded-full transition-colors"
+                          style={{ background: filled ? (done ? "#059669" : "#14b8a6") : "#e5e7eb" }} title={caseStatusLabelL(s.key, lang)} />
+                      );
+                    })}
                   </div>
                   {c.case_status_note && (
                     <p className="text-xs text-gray-500 mt-2">{c.case_status_note}</p>
