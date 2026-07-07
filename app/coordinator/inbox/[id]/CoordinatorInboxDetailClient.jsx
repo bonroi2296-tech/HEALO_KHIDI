@@ -19,7 +19,7 @@ import { cancerTypeLabelL } from "@/lib/khidi/medicalLabels";
 import { nationalityLabelL } from "@/lib/khidi/nationality";
 import { useBackofficeLang, useCoordinatorL, useDateLocale, coordinatorL } from "@/lib/i18n/coordinator";
 // 인테이크 선택지 라벨(6개국어)·값 = 폼과 공용 단일 SoR. 코디 화면에서 raw 코드 대신 번역 표시.
-import { TREATMENT_STATES, TRAVEL_TIMING, PRIORITIES, CONSENT_ITEMS, INTAKE_UI, labelOf, pick } from "@/lib/inquiry/intakeLabels";
+import { TREATMENT_STATES, TRAVEL_TIMING, PRIORITIES, PRIORITIES_LEGACY, CONSENT_ITEMS, INTAKE_UI, labelOf, pick } from "@/lib/inquiry/intakeLabels";
 
 const STATUS_COLORS = {
   received: "bg-yellow-100 text-yellow-700",
@@ -742,23 +742,30 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
               ))}
             </div>
 
-            {/* 우선순위 → 칩 (flat 폼은 미입력이어도 '입력하지 않음'으로 표시) */}
-            {!cancer && (
-              <div className="mt-3 pt-3 border-t border-gray-100">
-                <span className="text-xs text-gray-500">{pick(INTAKE_UI.priorities, lang)}</span>
-                {priorities.length > 0 ? (
-                  <div className="flex flex-wrap gap-1.5 mt-1.5">
-                    {priorities.map((p) => (
-                      <span key={p} className="px-2 py-0.5 text-xs rounded-full bg-teal-50 text-teal-700 border border-teal-100">
-                        {labelOf(PRIORITIES, p, lang)}
-                      </span>
-                    ))}
+            {/* 우선순위 → 선택지 전부 ✓/✗ (동의처럼 — 뭘 고르고 뭘 안 골랐나 한눈에).
+                옛 데이터(구 선택지)면 구 옵션으로 자동 판별해 표시. */}
+            {!cancer && (() => {
+              const inNew = priorities.some((p) => PRIORITIES.some((o) => o.value === p));
+              const inLegacy = priorities.some((p) => PRIORITIES_LEGACY.some((o) => o.value === p));
+              const opts = inLegacy && !inNew ? PRIORITIES_LEGACY : PRIORITIES;
+              return (
+                <div className="mt-3 pt-3 border-t border-gray-100">
+                  <span className="text-xs text-gray-500">{pick(INTAKE_UI.priorities, lang)}</span>
+                  <div className="grid gap-x-6 sm:grid-cols-2 mt-1.5">
+                    {opts.map((o) => {
+                      const on = priorities.includes(o.value);
+                      return (
+                        <div key={o.value} className="flex items-center gap-2 py-1 text-sm">
+                          {on ? <Check size={14} className="text-teal-600 shrink-0" /> : <X size={14} className="text-gray-300 shrink-0" />}
+                          <span className={on ? "text-gray-800" : "text-gray-400"}>{pick(o.label, lang)}</span>
+                        </div>
+                      );
+                    })}
                   </div>
-                ) : (
-                  <span className="ml-2 text-sm text-gray-400">{NE}</span>
-                )}
-              </div>
-            )}
+                  {priorities.length === 0 && <span className="text-xs text-gray-400">{NE}</span>}
+                </div>
+              );
+            })()}
 
             {/* 동의 항목 → 목록(동의/미동의) */}
             {consents && (

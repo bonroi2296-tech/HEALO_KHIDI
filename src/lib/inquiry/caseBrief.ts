@@ -101,10 +101,18 @@ function buildContext(inq: any): string {
   if (clean(intake.treatment_state)) lines.push(`treatment_state: ${clean(intake.treatment_state)}`);
   if (clean(intake.diagnosis_date)) lines.push(`diagnosis_date: ${clean(intake.diagnosis_date)}`);
   if (clean(intake.travel_timing)) lines.push(`travel_timing: ${intake.travel_timing}`);
-  if (Array.isArray(intake.priorities) && intake.priorities.length) lines.push(`priorities: ${intake.priorities.join(", ")}`);
+  if (Array.isArray(intake.priorities) && intake.priorities.length) {
+    lines.push(`priorities: ${intake.priorities.map((p: string) => PRIORITY_KO[p] || p).join(", ")}`);
+  }
   if (inq?.preferred_date) lines.push(`preferred_date: ${inq.preferred_date}`);
   return lines.join("\n");
 }
+
+// 우선순위 코드 → 한글 라벨(신·구 값 모두). 서버 모듈이라 intakeLabels(lucide) 를 안 끌어오려고 인라인.
+const PRIORITY_KO: Record<string, string> = {
+  cost: "비용", fast_start: "빠른 치료 시작", short_stay: "짧은 체류·치료 기간", expertise: "의료진·병원 실력", communication: "소통·통역",
+  price: "가격", duration: "기간", doctor: "의료진", accessibility: "접근성",
+};
 
 function buildPrompt(): string {
   return [
@@ -113,6 +121,7 @@ function buildPrompt(): string {
     "Produce a CONCISE Korean BRIEF that lets the coordinator make a fast judgment. Output JSON:",
     "- overview: one or two sentences — who (age/sex if evident, nationality) and their clinical situation (what the records/intake suggest). Use careful, non-definitive language ('~로 보임', '~시사'). DO NOT include the patient's name, phone, email, or any personal identifier.",
     "- request: ONLY what the patient EXPLICITLY stated — from their free-text message and the intake fields (travel timing, stated priorities, the treatment stage they reported). Do NOT name or infer a specific treatment (e.g. conization/LEEP) that the patient did not state. If the patient did not specify a desired treatment, say so plainly (e.g. '구체적 치료는 명시하지 않음') — never invent a wish.",
+    "  When listing the patient's priorities, quote each selected option by its plain label ONLY (e.g. '의료진', '비용', '빠른 치료 시작'). Do NOT expand a label into an interpretive phrase — e.g. do NOT turn '의료진' into '의료진의 전문성', or '기간/짧은 체류' into '치료 기간 단축'. Just state which priorities they picked.",
     "- points: array of short bullet strings — what the coordinator should look at or do next. Put YOUR CLINICAL INFERENCES here (e.g. 'CIN3 → 원추절제술(LEEP) 검토 대상'), clearly framed as coordinator considerations, NOT as the patient's request. Also: needed precision tests, suggested hospital department, missing documents, scheduling.",
     "- red_flags: array of short strings — anything needing careful attention (urgency, abnormal critical values, contradictions). Empty array if none.",
     "",

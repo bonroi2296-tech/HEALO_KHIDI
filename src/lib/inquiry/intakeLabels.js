@@ -39,7 +39,18 @@ export const TRAVEL_TIMING = [
   { value: "undecided", label: { ko: "미정", en: "Undecided", ru: "Не решено", kz: "Белгісіз", zh: "未定", ja: "未定" } },
 ];
 
+// 우선순위(복수 선택) — 2026-07-07 명확화: 옛 '기간(duration)'이 모호(빨리 오고 싶다/짧게 끝내고 싶다)
+// → '빠른 치료 시작(fast_start)'과 '짧은 체류 기간(short_stay)'으로 분리. 모호한 '접근성'→'소통·통역'.
 export const PRIORITIES = [
+  { value: "cost", label: { ko: "비용", en: "Cost", ru: "Стоимость", kz: "Құны", zh: "费用", ja: "費用" } },
+  { value: "fast_start", label: { ko: "빠른 치료 시작", en: "Fast treatment start", ru: "Быстрое начало лечения", kz: "Емдеуді тез бастау", zh: "尽快开始治疗", ja: "早期の治療開始" } },
+  { value: "short_stay", label: { ko: "짧은 체류·치료 기간", en: "Short stay & treatment", ru: "Короткое пребывание и лечение", kz: "Қысқа болу және емдеу мерзімі", zh: "短期停留与治疗", ja: "短期滞在・治療" } },
+  { value: "expertise", label: { ko: "의료진·병원 실력", en: "Doctor & hospital expertise", ru: "Опыт врачей и клиники", kz: "Дәрігер мен клиника тәжірибесі", zh: "医生与医院水平", ja: "医師・病院の実力" } },
+  { value: "communication", label: { ko: "소통·통역 편의", en: "Communication & interpreting", ru: "Общение и перевод", kz: "Қарым-қатынас пен аударма", zh: "沟通与翻译", ja: "コミュニケーション・通訳" } },
+];
+
+// 구 우선순위 값(2026-07-07 이전 접수) — 표시 하위호환용. 새 폼은 위 PRIORITIES 사용.
+export const PRIORITIES_LEGACY = [
   { value: "price", label: { ko: "가격", en: "Price", ru: "Цена", kz: "Баға", zh: "价格", ja: "価格" } },
   { value: "duration", label: { ko: "기간", en: "Duration", ru: "Сроки", kz: "Мерзім", zh: "疗程", ja: "期間" } },
   { value: "doctor", label: { ko: "의료진", en: "Doctor", ru: "Врачи", kz: "Дәрігерлер", zh: "医生", ja: "医師" } },
