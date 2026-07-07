@@ -109,7 +109,7 @@ export async function translateNotes(
       maxOutputTokens: 2048,
     });
 
-    let cleaned = raw.trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "");
+    const cleaned = raw.trim().replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "");
     const arr = JSON.parse(cleaned);
     if (!Array.isArray(arr) || arr.length !== misses.length) {
       throw new Error("shape_mismatch");
