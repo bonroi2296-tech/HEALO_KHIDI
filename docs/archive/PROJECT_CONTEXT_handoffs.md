@@ -2,6 +2,49 @@
 
 
 
+
+## 🔖 세션 핸드오프 (2026-07-07 — 비활성(소프트삭제) 계정 차단을 인증 헬퍼로 승격·머지·배포 #681)
+
+> #677 독립 보안 리뷰 후속. "계정을 비활성(퇴사·삭제) 처리해도 로그인 세션이 살아있으면 인증 필요 API를 계속 쓸 수 있던 구멍"을 인증 검문소 한 곳에서 봉쇄. 독립 리뷰(별도 subagent) APPROVE + CI 초록 → PO 버튼 승인으로 머지·프로덕션 자동배포. 단일 집중 세션(코드만).
+
+**1. 이번 세션 한 일**
+- **PR [#681](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/681) ✅ 머지·프로덕션 자동배포** (origin/main `0c87146`). 근본원인 1곳 수정: `src/lib/auth/checkAdminAuth.ts` 비활성(`app_metadata.disabled===true`) 브랜치가 **`userId`를 비워 반환** → `if(!auth.userId)` 만 검사하던 인증 게이트 ~13곳(`requireAuthenticatedUser`·`requireConsultationAccess`·`requirePortalAuth`·cost·visa·followup·rebooking·me 등) + 미래 게이트까지 자동 401 거부.
+- `app/api/auth/change-password/route.ts` — #677에서 넣었던 로컬 `getUserById` 비활성 가드 제거(승격 후 도달 불가능한 죽은 코드 + DB 왕복 제거).
+- `src/lib/auth/checkAdminAuth.test.ts` — 회귀 테스트 4개 신설(비활성 차단 2 + 정상 admin·일반 계정 오탐없음 2).
+- **독립 리뷰 게이트 실행**: 작성 맥락 미공유 별도 subagent가 전 소비자·supabase-js 버전·freshness·테스트 mutation-resistance까지 검토 → **APPROVE(결함 0)**.
+- **후속 작업 칩 생성**(task_19f05a2a) → PO가 **별도 세션에서 착수**: 병원·에이전시 포털 비활성 체계 일원화 검토.
+
+**2. 왜 그렇게 했는지**
+- 구멍의 근본원인 = 비활성 계정이 truthy `userId`를 받아 통과. **소스 1곳(userId 비움)** 으로 13곳+미래 게이트를 한 번에 닫음 = CLAUDE.md "오류는 기계가 잡는다·재발방지"에 부합. 각 게이트에 개별 `disabled` 체크를 넣는 대안은 코드량↑ + 미래 게이트가 또 빠뜨릴 위험이라 기각.
+- `email`·`reason:"account_disabled"`는 감사(audit)·디버그용으로 유지(userId만 제거). `isAdmin=false`·`appRole` 미설정은 그대로라 `isAdmin`/`isStaff` 게이트도 계속 차단.
+- change-password 가드 제거로 비활성 계정 응답이 `403 account_disabled`→`401 unauthorized`로 바뀜(둘 다 거부, 이 문자열 검사하는 테스트·클라 없음 확인).
+
+**3. 안 끝났거나 보류**
+- ⏸ **병원·에이전시 포털은 `app_metadata.disabled`를 안 봄**(`checkHospitalAuth`/`checkAgencyAuth`) — 단 각자 `is_active` 자체 비활성 체계로 막혀 **보안 구멍 아님**. 문서 명시 or 방어적 이중차단은 후속 칩(task_19f05a2a)으로 **별도 세션 진행 중**. 결과만 확인하면 됨.
+- 이 세션 자체의 미완/보류 없음(단일 작업 완결).
+
+**4. 주의·함정**
+- **계정 비활성이 계층별 3가지 플래그로 분리**: 코디·어드민=`app_metadata.disabled`(/admin/staff), 국내병원=`hospital_users.is_active`, 해외에이전시=`agency_users.is_active`. "disabled 토글이 전 계정을 잠근다"고 오해 금지.
+- `checkAdminAuth`가 **비활성 계정엔 `userId`를 안 준다** — 이 반환값에서 `userId`를 "로그인된 주체"로 쓰는 새 코드 넣지 마라(비활성이 통과함). `email`은 감사용으로 남아있음.
+- `getUser()`는 supabase-js v2에서 **네트워크로 최신 app_metadata 조회**(로컬 JWT 아님) → 관리자가 비활성 토글하면 다음 요청부터 즉시 반영.
+
+**5. 다음 세션이 먼저 할 일**
+1. (이 세션 미검증분 없음 — 코드는 테스트·타입·독립리뷰·CI 초록으로 검증됨. 실 로그인 세션 클릭검증만 자동화 불가라 회귀테스트로 대체.)
+2. ⚠️ **아래 07-06 세션 미검증분 유지**: 다기기 화상 테스트(초대링크 **2026-07-10 만료** → 그 전에 진행 보채기) + LiveKit webhook 첫 수신(Vercel 로그 `[livekit/webhook]`).
+3. 후속 칩(병원·에이전시 비활성 일원화, task_19f05a2a) 결과 확인.
+
+**6. 검증 상태**
+- ✅ `vitest` 23개 통과(신규 회귀 4 포함), `tsc --noEmit` 변경파일 클린, 독립 리뷰 **APPROVE**, CI(Smoke Tests·ci·Vercel 배포) **전부 pass**, PR #681 머지 → `origin/main 0c87146` 반영·원격 브랜치 삭제 확인.
+- ⚠️ **검증 못 함**: 실제 로그인 세션으로 비활성 계정이 브라우저에서 401 받는지 클릭검증은 미실시(SSR 쿠키 세션 자동화 불가 영역) — 회귀 테스트가 계약(userId 비움)을 고정.
+
+**7. 다음 세션 첫 프롬프트**
+> docs/PROJECT_CONTEXT.md 최상단 읽어. 비활성 계정 차단(#681)은 머지·배포 끝났어. 병원·에이전시 비활성 체계 일원화 후속(칩)이 별도 세션에서 돌고 있으니 결과만 챙기고, 07-06 미검증분(다기기 화상 테스트 링크 2026-07-10 만료 전 진행 보채기 + webhook 첫 수신 Vercel 로그)이 아직이면 그거 먼저 해.
+
+---
+
+
+---
+
 ## 🔖 세션 핸드오프 (2026-07-06 낮~밤 종결 — 주말 정리 + PO 결정 일괄 완결: notes 암호화 100%·2인 레이아웃·#562 초청장·#658 튕김수리 + webhook 최초 등록 + 루프 정지 + ⚠️다기기 테스트 연기)
 
 > PO 출근 준비 세션("금토일 작업 정리"). 주말 요약 → PO 버튼 결정으로 보류 3건 착수·완결 + 미머지 PR 4건 머지(#654·#567·#562·#658) + 유실 전수조사 0건. **오후 PO 지시로 자동 루프 전부 정지.** ⚠️ **다기기 테스트는 직원 퇴근으로 2026-07-06 미실시 — 연기, 링크 2026-07-10 만료**(5번). (낮 상세 기록은 archive 회전분 참조 — 여기는 종결판)
