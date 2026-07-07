@@ -18,6 +18,7 @@ import {
 } from "@/lib/rateLimit";
 import { sendAdminNotification } from "@/lib/notifications/adminNotifier";
 import { detectInquiryIsTest } from "@/lib/khidi/testData";
+import { resolveAgencyIdForUser } from "@/lib/auth/resolveAgencyIdForUser";
 
 const Step1Schema = z.object({
   firstName: z.string().min(1).max(100),
@@ -113,6 +114,11 @@ export async function POST(request: NextRequest) {
     } catch { /* 게스트로 처리 */ }
   }
 
+  // 로그인 계정이 에이전시 소속이면 본인 에이전시로 귀속 → 에이전시 포털(agency_id 필터)에서
+  // 자기 접수건·진행상황이 보이게. 공개 폼만 이 각인이 누락돼 있었음(/api/agency/refer 는 찍음).
+  // service_role 조회(agency_users RLS 우회). 실패해도 접수는 진행(fail-safe, agency_id 없이 저장).
+  const agencyId = await resolveAgencyIdForUser(supabaseAdmin, userId);
+
   try {
     const encFirstName = encryptString(data.firstName);
     const encLastName = encryptStringNullable(data.lastName ?? null);
@@ -152,6 +158,8 @@ export async function POST(request: NextRequest) {
         step1_completed_at: new Date().toISOString(),
         ai_chat_thread_id: data.aiChatThreadId ?? null,
         user_id: userId,
+        // 에이전시 유저의 공개 폼 접수를 본인 에이전시로 귀속(포털 가시성). 비에이전시/게스트는 null.
+        agency_id: agencyId,
         // 테스트/실제 분리: 사무실IP·테스트이메일·(로그인)계정이메일·수동도장이면 테스트로 표시(KPI 기본 제외).
         is_test: detectInquiryIsTest({ ip: clientIp, email: data.email, accountEmail, manual: (body as any)?.isTest === true }),
       })
