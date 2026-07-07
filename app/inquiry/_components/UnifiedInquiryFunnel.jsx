@@ -13,10 +13,10 @@ import { useRouter, useSearchParams } from "next/navigation";
 import {
   Check, ChevronRight, ChevronLeft, UploadCloud, X, File,
   AlertCircle, Loader2, Shield, Clock,
-  Activity, Heart, Brain, Stethoscope, Wind,
-  Zap, Microscope, HelpCircle,
   Bot, MessageCircle, ClipboardList, Headset, BadgeCheck
 } from "lucide-react";
+// 인테이크 선택지 라벨(6개국어)·값은 코디 상세화면과 공용 — 단일 SoR.
+import { CANCER_TYPES, STAGES, TREATMENT_STATES, TRAVEL_TIMING, PRIORITIES } from "@/lib/inquiry/intakeLabels";
 import { useLang } from "@/lib/i18n/LangContext";
 import { event } from "@/lib/ga";
 import { SITE_INFO } from "@/lib/siteSettings";
@@ -86,16 +86,7 @@ const PREFERRED_LANGUAGES = [
   { value: "ko", label: "한국어" },
 ];
 
-const CANCER_TYPES = [
-  { value: "stomach", label: { ko: "위암", en: "Stomach", ru: "Желудок", kz: "Асқазан", zh: "胃癌", ja: "胃がん" }, icon: Activity },
-  { value: "liver", label: { ko: "간암", en: "Liver", ru: "Печень", kz: "Бауыр", zh: "肝癌", ja: "肝がん" }, icon: Zap },
-  { value: "lung", label: { ko: "폐암", en: "Lung", ru: "Лёгкое", kz: "Өкпе", zh: "肺癌", ja: "肺がん" }, icon: Wind },
-  { value: "breast", label: { ko: "유방암", en: "Breast", ru: "Грудь", kz: "Сүт без", zh: "乳腺癌", ja: "乳がん" }, icon: Heart },
-  { value: "thyroid", label: { ko: "갑상선암", en: "Thyroid", ru: "Щитовидка", kz: "Қалқанша", zh: "甲状腺癌", ja: "甲状腺がん" }, icon: Stethoscope },
-  { value: "colorectal", label: { ko: "대장암", en: "Colorectal", ru: "Толстая кишка", kz: "Тоқ ішек", zh: "结肠癌", ja: "大腸がん" }, icon: Activity },
-  { value: "pancreatic", label: { ko: "췌장암", en: "Pancreatic", ru: "Поджелудочная", kz: "Ұйқы без", zh: "胰腺癌", ja: "膵がん" }, icon: Microscope },
-  { value: "other", label: { ko: "기타", en: "Other", ru: "Другое", kz: "Басқа", zh: "其他", ja: "その他" }, icon: HelpCircle },
-];
+// CANCER_TYPES·STAGES·TREATMENT_STATES·TRAVEL_TIMING·PRIORITIES → @/lib/inquiry/intakeLabels 로 이동(코디 상세화면과 공용).
 
 const CANCER_TYPE_COLORS = {
   stomach: "text-orange-600 bg-orange-50 border-orange-200",
@@ -107,29 +98,6 @@ const CANCER_TYPE_COLORS = {
   pancreatic: "text-red-600 bg-red-50 border-red-200",
   other: "text-gray-600 bg-gray-50 border-gray-200",
 };
-
-const STAGES = ["I", "II", "III", "IV"];
-const TREATMENT_STATES = [
-  { value: "pre_surgery", label: { ko: "수술 전", en: "Pre-surgery", ru: "До операции", kz: "Операцияға дейін", zh: "术前", ja: "術前" } },
-  { value: "post_surgery", label: { ko: "수술 후", en: "Post-surgery", ru: "После операции", kz: "Операциядан кейін", zh: "术后", ja: "術後" } },
-  { value: "chemotherapy", label: { ko: "항암 중", en: "Chemotherapy", ru: "Химиотерапия", kz: "Химиотерапия", zh: "化疗中", ja: "化学療法中" } },
-  { value: "follow_up", label: { ko: "추적 관찰", en: "Follow-up", ru: "Наблюдение", kz: "Бақылау", zh: "随访", ja: "経過観察" } },
-  { value: "other", label: { ko: "기타", en: "Other", ru: "Другое", kz: "Басқа", zh: "其他", ja: "その他" } },
-];
-
-const TRAVEL_TIMING = [
-  { value: "2weeks", label: { ko: "2주 내", en: "Within 2 weeks", ru: "В течение 2 нед.", kz: "2 апта ішінде", zh: "2周内", ja: "2週間以内" } },
-  { value: "1month", label: { ko: "1개월", en: "~1 month", ru: "~1 месяц", kz: "~1 ай", zh: "约1个月", ja: "約1ヶ月" } },
-  { value: "3months", label: { ko: "3개월", en: "~3 months", ru: "~3 месяца", kz: "~3 ай", zh: "约3个月", ja: "約3ヶ月" } },
-  { value: "undecided", label: { ko: "미정", en: "Undecided", ru: "Не решено", kz: "Белгісіз", zh: "未定", ja: "未定" } },
-];
-
-const PRIORITIES = [
-  { value: "price", label: { ko: "가격", en: "Price", ru: "Цена", kz: "Баға", zh: "价格", ja: "価格" } },
-  { value: "duration", label: { ko: "기간", en: "Duration", ru: "Сроки", kz: "Мерзім", zh: "疗程", ja: "期間" } },
-  { value: "doctor", label: { ko: "의료진", en: "Doctor", ru: "Врачи", kz: "Дәрігерлер", zh: "医生", ja: "医師" } },
-  { value: "accessibility", label: { ko: "접근성", en: "Accessibility", ru: "Доступность", kz: "Қолжетімділік", zh: "便利性", ja: "アクセス" } },
-];
 
 const LANG_NAMES = {
   ko: "한국어", en: "English", ru: "Русский", kz: "Қазақша", zh: "中文", ja: "日本語",

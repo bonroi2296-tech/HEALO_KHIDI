@@ -45,6 +45,8 @@ const DETAIL_FIELDS = [
   // 접수 주체 구분(에이전시 vs 환자) + 에이전시명 표시
   "agency_id",
   "agencies(name)",
+  // 회원/비회원 배지: 접수한 계정(user_id)으로 이메일·role·테스트여부 조회(응답엔 submitter 만 실음)
+  "user_id",
 ].join(",");
 
 export async function GET(
@@ -88,6 +90,25 @@ export async function GET(
 
     // 에이전시명 평탄화(관계조인 → 단일 필드)
     inquiry.agency_name = (data as any)?.agencies?.name || null;
+
+    // 접수 주체(회원/비회원) — user_id 로 계정 조회해 email·role·@test.com 여부만 실음(PII 최소).
+    // 비번·토큰 등 절대 미노출. 조회 실패해도 본 응답은 진행(fail-safe).
+    const submitterUserId = (data as any)?.user_id || null;
+    inquiry.submitter = null;
+    if (submitterUserId) {
+      try {
+        const { data: u } = await supabaseAdmin.auth.admin.getUserById(submitterUserId);
+        const email = u?.user?.email || null;
+        if (email) {
+          const role = (u?.user?.app_metadata as any)?.role || null;
+          inquiry.submitter = { email, role, isTest: /@test\.com$/i.test(email) };
+        }
+      } catch (e: any) {
+        console.error("[portal/inbox/:id] submitter lookup error:", e?.message);
+      }
+    }
+    // user_id 자체는 응답에서 제거(PII 최소 — 배지엔 submitter 만 필요).
+    delete (inquiry as any).user_id;
 
     // 감사로그: staff(코디·관리자)가 환자 PII(복호화된 이름·연락처·의료상세)를 열람했음 기록.
     // 정부 의료데이터 과제 추적성(GDPR/PIPA·복호화 열람 감사). 실패해도 본 응답은 진행.

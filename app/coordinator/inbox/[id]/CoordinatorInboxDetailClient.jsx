@@ -11,13 +11,15 @@ import Link from "next/link";
 import {
   ArrowLeft, User, Globe, Mail, Phone, MessageCircle, Calendar,
   AlertCircle, FileText, Stethoscope, ClipboardList, Video,
-  Send, Copy, Check, ExternalLink, Download, Languages,
+  Send, Copy, Check, ExternalLink, Download, Languages, X, ShieldCheck,
 } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { CASE_STATUS_STEPS, caseStatusLabelL } from "@/lib/khidi/caseStatus";
 import { cancerTypeLabelL } from "@/lib/khidi/medicalLabels";
 import { nationalityLabelL } from "@/lib/khidi/nationality";
 import { useBackofficeLang, useCoordinatorL, useDateLocale, coordinatorL } from "@/lib/i18n/coordinator";
+// 인테이크 선택지 라벨(6개국어)·값 = 폼과 공용 단일 SoR. 코디 화면에서 raw 코드 대신 번역 표시.
+import { TREATMENT_STATES, TRAVEL_TIMING, PRIORITIES, CONSENT_ITEMS, INTAKE_UI, labelOf, pick } from "@/lib/inquiry/intakeLabels";
 
 const STATUS_COLORS = {
   received: "bg-yellow-100 text-yellow-700",
@@ -57,6 +59,16 @@ function Card({ title, children }) {
     <div className="rounded-xl border border-gray-200 bg-white p-5">
       <h2 className="text-sm font-semibold text-gray-700 mb-2">{title}</h2>
       {children}
+    </div>
+  );
+}
+
+// 한눈 요약 카드의 개별 사실(라벨 + 값). 값 없으면 "—".
+function Fact({ label, value }) {
+  return (
+    <div className="flex gap-2 min-w-0">
+      <span className="text-gray-500 shrink-0">{label}</span>
+      <span className="text-gray-900 font-medium break-words min-w-0">{value || "—"}</span>
     </div>
   );
 }
@@ -197,6 +209,16 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
     if (!v) return "—";
     try {
       return new Date(v).toLocaleString(dateLoc);
+    } catch {
+      return String(v);
+    }
+  };
+
+  // 동의 시각 등은 KST 고정 표기(UTC 저장값이 코디에게 명확하게). 예약시각 UTC노출(#70) 부류 방지.
+  const fmtKST = (v) => {
+    if (!v) return "—";
+    try {
+      return new Date(v).toLocaleString(dateLoc, { timeZone: "Asia/Seoul" }) + " KST";
     } catch {
       return String(v);
     }
@@ -500,6 +522,19 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
         )
       : [];
 
+  // 한눈 요약 파생값 — 코디가 케이스를 3초에 파악.
+  const intakeObj = inquiry.intake && typeof inquiry.intake === "object" ? inquiry.intake : {};
+  const tsSafe = safe(intakeObj.treatment_state);
+  const treatmentStateLabel = tsSafe && tsSafe !== "—" ? labelOf(TREATMENT_STATES, tsSafe, lang) : null;
+  const travelTimingLabel = intakeObj.travel_timing ? labelOf(TRAVEL_TIMING, intakeObj.travel_timing, lang) : null;
+  const hasAttachments = Array.isArray(inquiry.attachments) && inquiry.attachments.length > 0;
+  const messageOneLine =
+    inquiry.message && !looksEncrypted(inquiry.message) ? String(inquiry.message).replace(/\s+/g, " ").trim() : null;
+  const submitLang = inquiry.preferred_language || inquiry.spoken_language || "—";
+  const sourceLabel = inquiry.agency_id
+    ? `${L.agencyReferral}${inquiry.agency_name ? ` (${inquiry.agency_name})` : ""}`
+    : (inquiry.submitter?.email ? pick(INTAKE_UI.submitterMember, lang) : (inquiry.source || pick(INTAKE_UI.submitterGuest, lang)));
+
   return (
     <div className="space-y-6">
       {backLink}
@@ -513,14 +548,22 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
           <div>
             <div className="flex items-center gap-2 flex-wrap">
               <h1 className="text-xl font-bold text-gray-900">{fullName}</h1>
-              {/* 접수 주체 배지: 에이전시 의뢰 vs 환자 직접 — 코디가 한눈에 구분 */}
-              {inquiry.agency_id ? (
+              {/* 접수 주체 배지: 에이전시 의뢰 + 회원(계정 이메일·role)/비회원(게스트) — 코디가 한눈에.
+                  @test.com 계정이면 ⚠️ 테스트로 강조(실적 오집계 방지 시각단서). submitter 는 API가 user_id로 조회. */}
+              {inquiry.agency_id && (
                 <span className="px-2 py-0.5 text-xs font-semibold rounded-full bg-violet-100 text-violet-700">
                   🏢 {L.agencyReferral}{inquiry.agency_name ? ` · ${inquiry.agency_name}` : ""}
                 </span>
+              )}
+              {inquiry.submitter?.email ? (
+                <span className={`px-2 py-0.5 text-xs font-semibold rounded-full ${inquiry.submitter.isTest ? "bg-amber-100 text-amber-800" : "bg-sky-100 text-sky-700"}`}>
+                  👤 {pick(INTAKE_UI.submitterMember, lang)} · {inquiry.submitter.email}
+                  {inquiry.submitter.role ? ` · ${inquiry.submitter.role}` : ""}
+                  {inquiry.submitter.isTest ? ` · ⚠️ ${pick(INTAKE_UI.submitterTest, lang)}` : ""}
+                </span>
               ) : (
                 <span className="px-2 py-0.5 text-xs font-semibold rounded-full bg-sky-100 text-sky-700">
-                  🙋 {L.ibPatientDirect}
+                  🙋 {pick(INTAKE_UI.submitterGuest, lang)}
                 </span>
               )}
             </div>
@@ -543,6 +586,27 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
             {STATUS_LABELS[inquiry.status] || L.invStatusReceived}
           </span>
         </div>
+      </div>
+
+      {/* 한눈 요약 — 국적·언어 / 암종 / 치료단계 / 방한시기 / 접수경로 / 첨부 + 메시지 1줄. 코디가 3초에 파악. */}
+      <div className="rounded-xl border border-teal-100 bg-teal-50/40 p-5">
+        <h2 className="text-sm font-semibold text-teal-800 mb-3">{pick(INTAKE_UI.summaryTitle, lang)}</h2>
+        <div className="grid gap-x-6 gap-y-2 sm:grid-cols-2 text-sm">
+          <Fact label={L.nationality} value={`${nationality} · ${submitLang}`} />
+          <Fact label={L.cancerType} value={cancer} />
+          <Fact label={L.ibFieldCurrentStatus} value={treatmentStateLabel} />
+          <Fact label={L.ibFieldEntryTiming} value={travelTimingLabel} />
+          <Fact label={L.ibIntakeChannel} value={sourceLabel} />
+          <Fact
+            label={pick(INTAKE_UI.attachments, lang)}
+            value={hasAttachments ? `${pick(INTAKE_UI.attachmentsYes, lang)} (${inquiry.attachments.length})` : pick(INTAKE_UI.attachmentsNo, lang)}
+          />
+        </div>
+        {messageOneLine && (
+          <div className="mt-3 pt-3 border-t border-teal-100 text-sm text-gray-700 truncate">
+            <MessageCircle size={13} className="inline mr-1 text-teal-600" />{messageOneLine}
+          </div>
+        )}
       </div>
 
       <div className="grid gap-5 md:grid-cols-2">
@@ -585,12 +649,23 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
         )}
       </Card>
 
-      {/* 추가 인테이크 정보 (암 Step2) */}
+      {/* 추가 인테이크 정보 (Step2) — flat 구조를 라벨링·번역하고 우선순위/동의를 표시.
+          (옛 nested intake.cancer 구조도 하위호환. 미분류 키는 '기타'로 노출해 정보 숨김 방지.) */}
       {(() => {
         const intake = inquiry.intake && typeof inquiry.intake === "object" ? inquiry.intake : {};
         const cancer = intake.cancer && typeof intake.cancer === "object" ? intake.cancer : null;
         const notes = !looksEncrypted(intake.notes) ? intake.notes : null;
+
+        // 알려진 flat 필드 → 라벨 + 현재 언어 번역값.
         const rows = [];
+        const ts = safe(intake.treatment_state);
+        if (ts && ts !== "—") rows.push([L.ibFieldCurrentStatus, labelOf(TREATMENT_STATES, ts, lang)]);
+        if (intake.travel_timing) rows.push([L.ibFieldEntryTiming, labelOf(TRAVEL_TIMING, intake.travel_timing, lang)]);
+        if (intake.stage) rows.push([pick(INTAKE_UI.stage, lang), String(intake.stage)]);
+        const dd = safe(intake.diagnosis_date);
+        if (dd && dd !== "—") rows.push([pick(INTAKE_UI.diagnosisDate, lang), dd]);
+
+        // 옛 nested cancer 구조(하위호환).
         if (cancer) {
           for (const k of Object.keys(CI)) {
             const v = cancer[k];
@@ -601,25 +676,80 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
             if (arr && arr.length) rows.push([CI_MULTI[k].label, arr.map((x) => CI_MULTI[k].map[x] || x).join(", ")]);
           }
         }
-        // 옛 데이터(complaint/history 구조 등) 호환: 위 매핑에 안 잡힌 top-level 스칼라.
-        const legacy = intakeEntries.filter(([k]) => k !== "notes" && k !== "cancer");
-        if (rows.length === 0 && legacy.length === 0 && !notes) return null;
+
+        const priorities = Array.isArray(intake.priorities) ? intake.priorities : [];
+        const consents = intake.consents && typeof intake.consents === "object" ? intake.consents : null;
+
+        // 처리한 키·메타키를 뺀 나머지 스칼라 → '기타'로 노출(정보 숨김 방지).
+        const handled = new Set(["treatment_state", "travel_timing", "stage", "diagnosis_date", "priorities", "consents", "consentAt", "consentVersion", "notes", "cancer"]);
+        const others = intakeEntries.filter(([k]) => !handled.has(k));
+
+        if (rows.length === 0 && priorities.length === 0 && !consents && others.length === 0 && !notes) return null;
         return (
           <Card title={L.ibIntakeCard}>
             <div className="grid gap-x-6 sm:grid-cols-2">
-              {rows.map(([k, v]) => (
-                <div key={k} className="flex gap-2 py-1.5 border-b border-gray-50 text-sm">
+              {rows.map(([k, v], i) => (
+                <div key={`${k}-${i}`} className="flex gap-2 py-1.5 border-b border-gray-50 text-sm">
                   <span className="text-gray-500 shrink-0">{k}</span>
                   <span className="text-gray-900 break-words">{v}</span>
                 </div>
               ))}
-              {legacy.map(([k, v]) => (
-                <div key={k} className="flex gap-2 py-1.5 border-b border-gray-50 text-sm">
-                  <span className="text-gray-500 shrink-0">{k}</span>
-                  <span className="text-gray-900 break-words">{String(v)}</span>
-                </div>
-              ))}
             </div>
+
+            {/* 우선순위 → 칩 */}
+            {priorities.length > 0 && (
+              <div className="mt-3 pt-3 border-t border-gray-100">
+                <span className="text-xs text-gray-500">{pick(INTAKE_UI.priorities, lang)}</span>
+                <div className="flex flex-wrap gap-1.5 mt-1.5">
+                  {priorities.map((p) => (
+                    <span key={p} className="px-2 py-0.5 text-xs rounded-full bg-teal-50 text-teal-700 border border-teal-100">
+                      {labelOf(PRIORITIES, p, lang)}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* 동의 항목 → 목록(동의/미동의) */}
+            {consents && (
+              <div className="mt-3 pt-3 border-t border-gray-100">
+                <span className="text-xs text-gray-500 inline-flex items-center gap-1"><ShieldCheck size={13} />{pick(INTAKE_UI.consentsTitle, lang)}</span>
+                <div className="grid gap-x-6 sm:grid-cols-2 mt-1.5">
+                  {CONSENT_ITEMS.map((c) => {
+                    const agreed = consents[c.key] === true;
+                    return (
+                      <div key={c.key} className="flex items-center gap-2 py-1 text-sm">
+                        {agreed ? <Check size={14} className="text-teal-600 shrink-0" /> : <X size={14} className="text-gray-300 shrink-0" />}
+                        <span className={agreed ? "text-gray-800" : "text-gray-400"}>{pick(c.label, lang)}</span>
+                        <span className={`ml-auto text-[11px] ${agreed ? "text-teal-600" : "text-gray-400"}`}>
+                          {agreed ? pick(INTAKE_UI.agreed, lang) : pick(INTAKE_UI.declined, lang)}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+                {(intake.consentAt || intake.consentVersion) && (
+                  <p className="mt-2 text-[11px] text-gray-400">
+                    {intake.consentAt ? `${pick(INTAKE_UI.consentAt, lang)}: ${fmtKST(intake.consentAt)}` : ""}
+                    {intake.consentAt && intake.consentVersion ? " · " : ""}
+                    {intake.consentVersion ? `${pick(INTAKE_UI.consentVersion, lang)} ${intake.consentVersion}` : ""}
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* 기타(미분류 원본 키) — 정보 숨김 방지 */}
+            {others.length > 0 && (
+              <div className="mt-3 pt-3 border-t border-gray-100">
+                {others.map(([k, v]) => (
+                  <div key={k} className="flex gap-2 py-1 text-sm">
+                    <span className="text-gray-400 shrink-0 font-mono text-xs">{k}</span>
+                    <span className="text-gray-600 break-words">{String(v)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
             {notes && (
               <div className="mt-3 pt-3 border-t border-gray-100">
                 <span className="text-xs text-gray-500">{L.notes}</span>
