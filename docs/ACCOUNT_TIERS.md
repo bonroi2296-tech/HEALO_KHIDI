@@ -49,8 +49,31 @@
 | 국내 의료기관 | `checkHospitalAuth` (`/api/partner/whoami`) |
 | 해외 에이전시·의료기관 | `checkAgencyAuth` |
 
+## 계정 비활성(잠금)은 계층별로 나뉜다 — ⚠️ 오해 주의
+
+**"관리자 화면에서 disabled 토글 하나 끄면 모든 계정이 잠긴다"는 착각.** 계정을 잠그는
+스위치는 계층마다 다르다:
+
+| 계층 | 잠그는 방법 | 막는 곳 |
+|------|-------------|---------|
+| 코디·관리자(스태프) | `app_metadata.disabled=true` (`/admin/staff` 토글, 소프트삭제) | `checkAdminAuth` |
+| 국내 의료기관 | `hospital_users.is_active=false` | `checkHospitalAuth` |
+| 해외 에이전시·의료기관 | `agency_users.is_active` + `agencies.is_active` | `checkAgencyAuth` |
+
+즉 `/admin/staff`의 disabled 토글은 **코디네이터 계정만** 잠근다(`ALLOWED_ROLES=["coordinator"]`).
+병원·에이전시 계정은 각자의 `is_active`로 따로 잠가야 한다.
+
+**단, 이중 안전장치가 있다(2026-07-07):** `checkHospitalAuth`·`checkAgencyAuth`도
+`app_metadata.disabled===true`면 무조건 거부한다. 그래서 disabled가 **어느 계층 계정에 찍히든**
+(지금은 스태프 전용이지만 미래 툴링이 더 넓게 찍어도) 전 포털에서 즉시 잠긴다 =
+`disabled`는 계층 무관 전역 킬스위치. 각 계층의 `is_active`는 그대로 1차 방어로 남는다.
+
 ## 변경 이력
 
+- 2026-07-07: **비활성(disabled) 킬스위치를 전 계층으로 확장(PR #681 후속).** `checkHospitalAuth`·
+  `checkAgencyAuth`에 `app_metadata.disabled===true` 방어 차단 한 줄씩 추가 — `user` 객체를
+  이미 읽으므로 추가 쿼리 없음. 계층별 `is_active` 스위치가 여전히 1차 방어이고, 이건 오해 방지용
+  이중 안전(위 "계정 비활성" 절 참조).
 - 2026-06-24: **의사(doctor) 계정 계층 완전 제거 → 8계층에서 7계층으로.** 의사는 더 이상
   만들 수 있는 계정이 아니다. 계정 없이 **화상상담 초대링크**로 참여한다(줌처럼 링크면 입장).
   `accountTiers.ts`(타입·`STAFF_TIERS`·`ASSIGNABLE_TIERS`·`resolveTier`)·`roles.ts`·
