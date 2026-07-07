@@ -241,7 +241,15 @@ export default function MessagesClient() {
           headers: { Authorization: `Bearer ${token}` },
         });
         const result = await res.json();
-        if (!cancelled && result.ok) setMessages(result.messages || []);
+        if (!cancelled && result.ok) {
+          const server = result.messages || [];
+          // id 병합: 방금 낙관적으로 보낸(아직 서버 목록에 안 뜬) 메시지가 폴링 전체교체에
+          // 깜빡 사라졌다 다시 뜨는 것(전송 실패처럼 보임) 방지. 서버가 따라잡으면 dedupe 됨.
+          setMessages((prev) => {
+            const ids = new Set(server.map((m) => m.id));
+            return [...server, ...prev.filter((m) => !ids.has(m.id))];
+          });
+        }
       } catch {
         /* 폴링 실패는 무시 (다음 주기에 재시도) */
       }
