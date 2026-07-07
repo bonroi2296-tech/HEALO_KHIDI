@@ -661,7 +661,7 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
         const ts = safe(intake.treatment_state);
         if (ts && ts !== "—") rows.push([L.ibFieldCurrentStatus, labelOf(TREATMENT_STATES, ts, lang)]);
         if (intake.travel_timing) rows.push([L.ibFieldEntryTiming, labelOf(TRAVEL_TIMING, intake.travel_timing, lang)]);
-        if (intake.stage) rows.push([L.ibFieldStage, String(intake.stage)]);
+        if (intake.stage) rows.push([pick(INTAKE_UI.stage, lang), String(intake.stage)]);
         const dd = safe(intake.diagnosis_date);
         if (dd && dd !== "—") rows.push([pick(INTAKE_UI.diagnosisDate, lang), dd]);
 

@@ -59,6 +59,7 @@ export const CONSENT_ITEMS = [
 // 코디 상세화면 전용 UI 라벨(필드명·동의·요약·배지) — 6개국어. 대형 공용사전(coordinator.js)을
 // 건드리지 않고 인테이크 표시 라벨을 여기 co-locate 한다(격리·저위험). 현재 언어로 pick() 해서 쓴다.
 export const INTAKE_UI = {
+  stage: { ko: "병기", en: "Stage", ru: "Стадия", kz: "Кезең", zh: "分期", ja: "病期" },
   diagnosisDate: { ko: "진단일", en: "Diagnosis date", ru: "Дата диагноза", kz: "Диагноз күні", zh: "诊断日期", ja: "診断日" },
   priorities: { ko: "우선순위", en: "Priorities", ru: "Приоритеты", kz: "Басымдықтар", zh: "优先事项", ja: "優先事項" },
   consentsTitle: { ko: "동의 항목", en: "Consents", ru: "Согласия", kz: "Келісімдер", zh: "同意项", ja: "同意項目" },
