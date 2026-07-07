@@ -8,6 +8,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { kstDateTime } from "@/lib/datetime/kst";
 import {
   UploadCloud, File as FileIcon, X, ClipboardList, Activity, CheckCircle2, PauseCircle,
   Plus, ArrowRight, ChevronDown, Paperclip, MessageCircle, FileText, Video, Send, Clock,
@@ -1040,7 +1041,7 @@ function CaseActions({ c, tt, onDone }) {
             {c.consultations.map((s) => (
               <div key={s.id} className="flex items-center justify-between gap-2 text-xs bg-indigo-50 rounded-lg px-3 py-2">
                 <span className="text-indigo-900">
-                  {s.scheduled_at ? new Date(s.scheduled_at).toLocaleString() : "—"}
+                  {s.scheduled_at ? kstDateTime(s.scheduled_at) : "—"}
                 </span>
                 <span className="shrink-0 px-2 py-0.5 rounded-full bg-white text-indigo-700 font-semibold border border-indigo-200">
                   {tt(CONS_STATUS_KEY[s.status] || "consScheduled")}

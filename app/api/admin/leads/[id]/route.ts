@@ -24,6 +24,7 @@ import {
   LeadUpdateSchema,
   validationErrorResponse,
 } from "@/lib/validation/admin";
+import { syncLeadStatusToCase } from "@/lib/khidi/leadCaseSync";
 
 /**
  * PATCH: 리드 상태/정보 업데이트
@@ -174,6 +175,26 @@ export async function PATCH(
           error: "update_failed",
         },
         { status: 500 }
+      );
+    }
+
+    // ========================================
+    // 6b. 유치(KHIDI K-01) 자동집계 — 병원(partner) 경로와 동일하게 admin 상태 변경도 반영
+    // ========================================
+    // 안 하면 admin 화면에서 '치료 확정(converted)'해도 inquiries.outcome 이 안 찍혀
+    // 유치 전환 점수판(8/27 평가지표)에서 누락된다(partner/leads/[id] 만 sync 하던 구멍).
+    // PO 2026-06-21 결정: 확정분 자동집계 + 되돌리기 가능(outcome IS NULL 가드는 sync 내부).
+    if (validatedData.status !== undefined) {
+      await syncLeadStatusToCase(
+        supabaseAdmin,
+        id,
+        validatedData.status,
+        updatedLead.hospital_id,
+        authResult.userId,
+        { min: updatedLead.quoted_price_min, max: updatedLead.quoted_price_max },
+        []
+      ).catch((e: any) =>
+        console.error("[admin/leads/[id]] case sync error:", e?.message?.slice(0, 200))
       );
     }
 

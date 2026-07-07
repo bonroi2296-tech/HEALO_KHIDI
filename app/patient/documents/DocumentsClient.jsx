@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Upload, FileText, AlertCircle, ChevronDown } from 'lucide-react';
 import { useLang } from '@/lib/i18n/LangContext';
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser';
+import { kstDate } from '@/lib/datetime/kst';
 
 const LABELS = {
   title: { ko: '의료 문서 관리', en: 'Medical Documents', ru: 'Медицинские документы', zh: '医疗文档', ja: '医療書類', kz: 'Медициналық құжаттар' },
@@ -234,7 +235,7 @@ export default function DocumentsClient() {
                   <option key={c.id} value={c.id}>
                     {sessionLabel(c.session_type)}
                     {' · '}
-                    {c.scheduled_at ? new Date(c.scheduled_at).toLocaleDateString() : '-'}
+                    {c.scheduled_at ? kstDate(c.scheduled_at) : '-'}
                     {' · '}
                     {c.status}
                   </option>
@@ -342,7 +343,7 @@ export default function DocumentsClient() {
                 {doc.consultation && (
                   <div className="text-[10px] text-gray-400 mt-0.5">
                     {sessionLabel(doc.consultation.session_type)}
-                    {doc.consultation.scheduled_at && ` · ${new Date(doc.consultation.scheduled_at).toLocaleDateString()}`}
+                    {doc.consultation.scheduled_at && ` · ${kstDate(doc.consultation.scheduled_at)}`}
                   </div>
                 )}
               </div>
