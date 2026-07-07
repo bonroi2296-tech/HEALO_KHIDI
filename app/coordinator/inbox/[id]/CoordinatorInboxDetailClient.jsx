@@ -202,17 +202,25 @@ function TranslatedDocView({ doc, onCopy, copied, onPdf, lang = "ko", onVerify, 
         </div>
       </div>
 
-      {/* 숫자검증 결과 배너 */}
+      {/* 숫자검증 결과 배너 — 어긋난 항목만 (번역값 / 원본재판독값) 쌍으로 */}
       {verify && !verify.loading && (
         verify.error ? (
           <p className="text-xs text-amber-700 mb-2">숫자검증에 실패했어요. 잠시 후 다시 시도해 주세요.</p>
-        ) : verify.suspicious?.length ? (
-          <div className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-2 mb-2">
-            ⚠️ 원본 재판독에서 못 찾은 숫자 {verify.suspicious.length}개 — 오기 가능, 원본과 대조하세요:
-            <span className="font-medium"> {verify.suspicious.join(", ")}</span>
+        ) : verify.mismatches?.length ? (
+          <div className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-2 mb-2 space-y-1">
+            <div className="font-medium">⚠️ 원본과 다르게 읽힌 숫자 {verify.mismatches.length}곳 — 원본을 직접 확인하세요</div>
+            <ul className="space-y-0.5">
+              {verify.mismatches.map((m, i) => (
+                <li key={i} className="flex flex-wrap gap-x-2">
+                  <span className="text-amber-900">{m.item || "(항목)"}</span>
+                  <span>번역 <b>{m.translated}</b> / 원본재판독 <b>{m.source}</b></span>
+                </li>
+              ))}
+            </ul>
+            <div className="text-[11px] text-amber-600">※ 검증기도 AI라 원본을 잘못 읽었을 수 있어요 — 원본이 맞으면 무시하세요.</div>
           </div>
         ) : (
-          <p className="text-xs text-teal-700 mb-2">✓ 번역의 숫자 {verify.docCount}개가 원본 재판독과 일치했어요.</p>
+          <p className="text-xs text-teal-700 mb-2">✓ 번역 숫자가 원본 재판독과 일치했어요 (참고용 — 최종은 원본 대조).</p>
         )
       )}
 
@@ -492,7 +500,7 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
       const d = await res.json().catch(() => ({}));
       setVerifyResults((p) => ({
         ...p,
-        [key]: res.ok && d.ok ? { suspicious: d.suspicious || [], docCount: d.docCount, sourceCount: d.sourceCount } : { error: d.error || "verify_failed" },
+        [key]: res.ok && d.ok ? { mismatches: d.mismatches || [] } : { error: d.error || "verify_failed" },
       }));
     } catch (e) {
       console.error("[attachment] verify error:", e);

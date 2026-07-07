@@ -336,37 +336,47 @@ export async function translateMedicalDoc(opts: {
   }
 }
 
-// ── 숫자 되돌림검증(numeric back-check) ─────────────────────────────────────
-// 왜: 의료번역의 최악 실패 = 수치 오기(141을 114로). 원본을 독립적으로 한 번 더 읽어
-// 번역표의 숫자와 대조 → 원본에 없는 숫자가 표에 있으면 "확인 필요"로 표시(진단 아님, 안전장치).
+// ── 숫자 대조검증(numeric cross-check) ──────────────────────────────────────
+// 왜: 의료번역의 최악 실패 = 수치 오기(141을 114로). 모델이 "번역표"와 "원본 이미지"를
+// 직접 대조해 어긋난 숫자만 (번역값·원본재판독값) 쌍으로 돌려준다 → 코디가 원본 딱 보고 판단.
+// ⚠️ 검증기도 AI라 절대 보증 아님: 원본을 잘못 읽으면 헛알람(안전), 둘 다 같게 틀리면 놓칠 수 있음.
+// 그래서 "판사"가 아니라 "여기 원본 봐라" 신호기 — 최종 진실은 늘 원본(항상 한 클릭 옆에 보존).
 
-const NUM_RE = /\d+(?:[.,]\d+)?/g;
-function extractNumbers(text: unknown): string[] {
-  return (String(text ?? "").match(NUM_RE) || []).map((n) => n.replace(",", "."));
-}
-function collectDocNumbers(doc: TranslatedDoc): string[] {
-  const out: string[] = [];
+/** 번역 결과를 모델 대조용 텍스트로 평탄화(라벨+숫자가 함께 보이게). */
+function docToText(doc: TranslatedDoc): string {
+  const lines: string[] = [];
   for (const s of doc.sections || []) {
-    for (const r of s.rows || []) for (const c of r?.cells || []) out.push(...extractNumbers(c));
-    if (s.text) out.push(...extractNumbers(s.text));
-    if (s.note) out.push(...extractNumbers(s.note));
+    if (s.title) lines.push(`# ${s.title}`);
+    if (s.note) lines.push(s.note);
+    for (const r of s.rows || []) lines.push((r?.cells || []).join(" | "));
+    if (s.text) lines.push(s.text);
   }
-  return out;
+  return lines.join("\n");
 }
 
+export type NumberMismatch = { item: string; translated: string; source: string };
 export type VerifyResult =
-  | { ok: true; suspicious: string[]; docCount: number; sourceCount: number }
+  | { ok: true; mismatches: NumberMismatch[] }
   | { ok: false; error: string };
 
 const VERIFY_SCHEMA = {
   type: "object",
-  properties: { numbers: { type: "array", items: { type: "string" } } },
-  required: ["numbers"],
+  properties: {
+    mismatches: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: { item: { type: "string" }, translated: { type: "string" }, source: { type: "string" } },
+        required: ["item", "translated", "source"],
+      },
+    },
+  },
+  required: ["mismatches"],
 };
 
 /**
- * 번역표의 숫자를 원본 독립판독과 대조. 원본에 없는(=모델이 잘못 넣었을 수 있는) 숫자를 돌려준다.
- * 별도 모델 호출 1회(비용 2배) → 코디가 '숫자 정밀검증' 눌렀을 때만 실행.
+ * 번역표를 원본 이미지와 대조해 숫자가 어긋난 항목만 (번역값/원본재판독값) 쌍으로 반환.
+ * 별도 모델 호출 1회(비용 2배) → 코디가 '숫자검증' 눌렀을 때만 실행.
  */
 export async function verifyTranslationNumbers(opts: {
   path: string; mimeType?: string | null; name?: string | null; doc: TranslatedDoc;
@@ -395,9 +405,15 @@ export async function verifyTranslationNumbers(opts: {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        systemInstruction: { parts: [{ text: "You are an OCR number extractor. From the attached medical document, list EVERY number exactly as printed (lab values, reference ranges, dates, counts, IDs). Do NOT translate, interpret, or deduplicate — include each occurrence. Return JSON {numbers:[...]}." }] },
+        systemInstruction: { parts: [{ text: [
+          "You are a medical number auditor. You are given a TRANSLATION of a document (text) and the ORIGINAL document (image).",
+          "For EVERY number in the translation (lab values, reference ranges, counts, dates, IDs), check whether it matches the number printed in the ORIGINAL image.",
+          "Report ONLY disagreements. For each, return: item = the field/parameter name (as in the original, so a human can locate it), translated = the number as written in the translation, source = the number you read in the original image.",
+          "Ignore pure formatting differences (1.0 vs 1; comma vs dot decimal; spacing). Do NOT translate — only compare digits.",
+          "If everything matches, return an empty mismatches array. Return ONLY JSON {mismatches:[...]}.",
+        ].join("\n") }] },
         contents: [{ role: "user", parts: [
-          { text: "Extract all numbers. Return only JSON." },
+          { text: `TRANSLATION:\n${docToText(opts.doc).slice(0, 12000)}\n\nCompare against the attached ORIGINAL image. Return only JSON.` },
           { inlineData: { mimeType: mime, data: base64 } },
         ] }],
         safetySettings: [
@@ -421,19 +437,11 @@ export async function verifyTranslationNumbers(opts: {
     const raw = json?.candidates?.[0]?.content?.parts?.map((p: any) => p.text).join("") || "";
     let parsed: any = null;
     try { parsed = JSON.parse(raw); } catch { return { ok: false, error: "parse_error" }; }
-    const srcNums = (Array.isArray(parsed?.numbers) ? parsed.numbers : []).flatMap((n: any) => extractNumbers(n));
-
-    // 원본 숫자를 다중집합으로 두고, 번역표 숫자를 하나씩 소거. 원본에서 못 찾는 숫자 = 확인 필요.
-    const pool = new Map<string, number>();
-    for (const n of srcNums) pool.set(n, (pool.get(n) || 0) + 1);
-    const docNums = collectDocNumbers(opts.doc);
-    const suspicious: string[] = [];
-    for (const n of docNums) {
-      const c = pool.get(n) || 0;
-      if (c > 0) pool.set(n, c - 1);
-      else if (!suspicious.includes(n)) suspicious.push(n);
-    }
-    return { ok: true, suspicious: suspicious.slice(0, 40), docCount: docNums.length, sourceCount: srcNums.length };
+    const mismatches: NumberMismatch[] = (Array.isArray(parsed?.mismatches) ? parsed.mismatches : [])
+      .filter((m: any) => m && typeof m === "object")
+      .map((m: any) => ({ item: String(m.item ?? ""), translated: String(m.translated ?? ""), source: String(m.source ?? "") }))
+      .slice(0, 40);
+    return { ok: true, mismatches };
   } catch {
     return { ok: false, error: "internal_error" };
   }

@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
         const status = result.error === "unsupported_type" ? 415 : result.error === "invalid_doc" ? 400 : 502;
         return Response.json({ ok: false, error: result.error }, { status });
       }
-      return Response.json({ ok: true, suspicious: result.suspicious, docCount: result.docCount, sourceCount: result.sourceCount });
+      return Response.json({ ok: true, mismatches: result.mismatches });
     }
 
     if (action === "save") {
