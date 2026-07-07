@@ -14,6 +14,18 @@
 
 ---
 
+## #75 — 「🔁 #63 부류 재발」 공개 문의 폼이 agency_id 를 안 찍어 에이전시 유저가 자기 접수건을 포털에서 못 봄 (2026-07-07, 첫 실고객 #37에서 발현)
+
+**무슨 일** — 로그인한 에이전시 유저가 공개 웹폼(UnifiedInquiryFunnel → `/api/inquiries/step1`)으로 문의를 넣으면 `inquiries.agency_id` 가 NULL 로 저장됐다. 에이전시 포털(`/api/agency/inquiries` 는 `.eq("agency_id", auth.agencyId)` 로 필터)에서 자기 문의가 아예 안 뜨고, 접수 주체 배지도 "환자 직접 접수"로 잘못 표시됐다. 정식 의뢰 경로 `/api/agency/refer` 는 `agency_id: auth.agencyId` 를 찍는데 **공개 폼 경로만 누락**. 첫 실고객 #37(agency@test.com, "TEST 에이전시" 71ce80fb 소속)이 정확히 이 표본 — 임시로 agency_id 를 stamp 하니 포털에 #37 + 코디 노트 + 타임라인이 정상 노출됨(기능은 멀쩡, 연결만 끊김).
+
+**왜 못 잡았나 (그때 방지책이 왜 뚫렸나)** — #63 "경로별 규칙 드리프트"의 방지책은 *"한 경로에 넣은 규칙을 형제 경로에도 복붙하라"는 수동 코드리뷰 체크포인트*였다. 이번엔 귀속 필드(`agency_id`) 각인이 접수 경로마다 갈렸는데(refer O / 공개폼 X) 그 드리프트를 리뷰가 못 잡았다 — #74(is_test 차원 누락)와 **같은 주(2026-07-07)에 같은 `inquiries` insert 테이블에서** 터진 자매 사고다. 근본은 동일: "여러 접수 경로가 각자 손으로 채워야 하는 귀속 필드"가 있는데 단일 SoR 이 없어, 한 경로에 넣어도 다른 경로가 눈이 먼다. 게다가 이전 관련 반성문(POSTMORTEMS 1301~1312, 코디 인박스 `agency_id`/`attachments` 누락)이 **agency_id 배지 로직을 이미 건드렸는데도** "그럼 agency_id 를 *채우는* 경로가 다 채우나"까지는 안 봤다.
+
+**어떻게 고쳤나** — `step1` 이 이미 Bearer 토큰으로 받은 `userId` 로 `agency_users`(active) 를 service_role 조회해 `agency_id` 를 insert 에 각인. 조회는 작은 순수 헬퍼 `resolveAgencyIdForUser(serviceClient, userId)` 로 뽑아 유닛테스트 가능하게 함(라우트 본체는 rate-limit·암호화·auth 때문에 격리 테스트 불가). 미소속/게스트/조회실패는 null → 접수 자체는 진행(fail-safe). 배지는 `agency_id` 기준이라 각인되면 "에이전시 의뢰"로 자동 정정(부수효과 정상). **#37 백필은 안 함** — 정식계정 이관 계획(memory/first-real-inquiry-37-migration.md)으로 별도 처리, 이 PR 은 forward-looking 로직만. **유사 스캔**: 다른 `inquiries` insert 경로 점검 — `/api/inquiries/create` 는 410 Gone(사문), `/api/inquiries/intake` 는 기존 row UPDATE(step1 각인이면 커버), `/api/inquiry/normalize` 는 `normalized_inquiries` 에 insert(다른 테이블)라 무관 → **살아있는 공개 insert 경로는 step1 하나뿐**, 각인 지점도 하나면 충분.
+
+**재발 방지 (뚫린 가드 보강)** — (a) **유닛테스트**로 헬퍼 회귀 고정(`resolveAgencyIdForUser.test.ts`: userId 없으면 조회 안 함/활성멤버면 id/미소속 null/조회 던져도 null). (b) **권장 데이터 그물(미구현, 후속)**: "agency 소속 user_id 로 접수됐는데 `agency_id` NULL 인 문의"를 감시 — #74 가 방금 붙인 **일일 KPI 스냅샷 cron 감사에 얹으면** 미래에 또 어떤 insert 경로가 각인을 빠뜨려도 데이터에서 잡힌다(is_test 오염 감사와 같은 패턴, 중복 인프라 없이). 이번 PR 범위 밖이라 후속으로 남김. **교훈**: #74 와 묶어 보면 규칙은 하나다 — `inquiries` 에 "접수 경로가 각자 채우는 귀속/판정 필드"(is_test·agency_id·source·user_id 등)는 경로마다 복붙하지 말고 **단일 지점(헬퍼/감지기)으로 흡수**하라. 복붙 규칙은 *새 경로 추가*와 *차원 누락*을 못 막는다.
+
+---
+
 ## #74 — 「🔁 #63/#71 부류 재발」 is_test 감지기가 '로그인 계정'을 안 봐 공유 테스트계정 접수가 실적 오염 (감사 발견, 2026-07-07)
 
 **무슨 일** — `detectInquiryIsTest({ip, email, manual})` 가 **폼에 적은 이메일**만 봤다. 공유 테스트 계정(예: agency@test.com)으로 **로그인한 채** 폼엔 개인 이메일(gmail 등)을 적어 접수하면 `is_test=false` 로 KHIDI 실적에 섞였다. **실DB 감사(2026-07-07) 결과 실제 오염은 #37(agency@test.com) 1건뿐**: 나머지 후보 #19(coordinator@test.com)·#22·#23(patient@test.com)은 **폼 이메일도 @test.com 이라 옛 감지기가 접수 시점에 이미 `is_test=true` 로 잡아둔 상태**였다(백필 불필요). #37 만 폼 이메일이 개인 주소라 계정 경로로 샜고, 하필 PO 가 "첫 실고객"으로 인지한 건이라(정식계정 이관 전까지 실적 유지 결정) 평가 실적 신뢰를 흔드는 오염의 정확한 표본이 됐다.
