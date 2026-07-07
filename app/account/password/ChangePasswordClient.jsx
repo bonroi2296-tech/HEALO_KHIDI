@@ -138,10 +138,13 @@ export default function ChangePasswordClient() {
         setSaving(false);
         return;
       }
+      // 서버가 관리자 권한으로 비번을 바꾸면 기존 세션이 무효화된다 → 방금 새 비번으로
+      // 즉시 재로그인해 로그아웃 없이 포털로 진입(안 그러면 /login 으로 튕김).
+      await supabase.auth.signInWithPassword({ email, password }).catch(() => {});
       toast.success(pick(L.success, langCode));
       setCurrent(""); setPassword(""); setConfirmPassword("");
-      // 완료 → 역할별 초기 화면으로 이동(토스트 잠깐 보이게 지연). saving 유지 = 중복 제출/재입력 방지.
-      setTimeout(() => router.push(resolveHome(role)), 900);
+      // 완료 → 역할별 초기 화면으로 이동(토스트 잠깐 보이게 지연). saving 유지 = 중복 제출 방지.
+      setTimeout(() => router.push(resolveHome(role)), 700);
       return;
     } catch {
       toast.error(pick(L.updateFailed, langCode));
