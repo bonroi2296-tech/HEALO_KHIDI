@@ -63,9 +63,10 @@ export async function POST(
     // 캐시 저장(암호화) — 열람 때 즉시 뜨게. 첨부 서명도 저장(바뀌면 자동 재생성). 실패해도 응답은 진행.
     try {
       const enc = encryptStringNullable(JSON.stringify(result.brief));
+      // 새 컬럼(coordinator_brief*)은 생성 타입(database.types)에 아직 없어 as any 로 우회(마이그레이션은 적용됨).
       await supabaseAdmin
         .from("inquiries")
-        .update({ coordinator_brief: enc, coordinator_brief_sig: briefSig(inquiry?.attachments || []) })
+        .update({ coordinator_brief: enc, coordinator_brief_sig: briefSig(inquiry?.attachments || []) } as any)
         .eq("id", Number(id));
     } catch (e: any) {
       console.error("[coordinator/brief] cache write error:", e?.message);

@@ -369,7 +369,7 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
     try {
       const supabase = createSupabaseBrowserClient();
       const { data: { session } } = await supabase.auth.getSession();
-      if (!session) { setBriefLoading(false); return; }
+      if (!session) { setBriefError(true); setBriefLoading(false); return; }
       const res = await fetch(`/api/coordinator/inquiries/${inquiryId}/brief`, {
         method: "POST",
         headers: { Authorization: `Bearer ${session.access_token}` },
