@@ -184,7 +184,7 @@ export async function PATCH(
     // 안 하면 admin 화면에서 '치료 확정(converted)'해도 inquiries.outcome 이 안 찍혀
     // 유치 전환 점수판(8/27 평가지표)에서 누락된다(partner/leads/[id] 만 sync 하던 구멍).
     // PO 2026-06-21 결정: 확정분 자동집계 + 되돌리기 가능(outcome IS NULL 가드는 sync 내부).
-    if (validatedData.status !== undefined) {
+    if (validatedData.status !== undefined && updatedLead.hospital_id) {
       await syncLeadStatusToCase(
         supabaseAdmin,
         id,
