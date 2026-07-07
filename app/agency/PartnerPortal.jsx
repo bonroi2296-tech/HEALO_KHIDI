@@ -435,6 +435,119 @@ const TR_MSG = {
 };
 for (const l of Object.keys(TR)) Object.assign(TR[l], TR_MSG[l] || TR_MSG.en);
 
+// 케이스 단계별 "다음 단계 안내"(에이전시가 지금·다음을 이해) + 빈 화면 온보딩 — 6개 언어. 위 TR 에 병합.
+// nextStep_<case_status> 키는 caseStatus.ts 의 단계 key 와 1:1.
+const TR_GUIDE = {
+  ko: {
+    nextStep_received: "코디가 서류를 검토 중이에요. 곧 병원 치료가능 여부를 확인합니다.",
+    nextStep_pre_consult: "사전상담을 진행하고 있어요.",
+    nextStep_hospital_review: "병원이 치료 가능 여부를 검토 중이에요. 회신을 기다리고 있어요.",
+    nextStep_scheduling: "치료 일정과 견적을 조율 중이에요. 견적이 나오면 여기에 표시됩니다.",
+    nextStep_visa_prep: "비자와 예약을 준비 중이에요.",
+    nextStep_treatment: "환자가 입국해 치료를 받고 있어요.",
+    nextStep_follow_up: "치료 후 사후관리를 진행 중이에요.",
+    nextStep_completed: "완료된 케이스예요.",
+    nextStep_on_hold: "현재 보류 상태예요. 궁금하면 코디에게 메시지를 보내세요.",
+    emptyHeading: "아직 의뢰한 환자가 없어요",
+    emptySub: "첫 환자를 의뢰하면 여기서 진행 상황을 실시간으로 확인할 수 있어요.",
+    emptyStep1: "환자 정보·서류로 의뢰",
+    emptyStep2: "코디가 병원 매칭·견적·상담 조율",
+    emptyStep3: "단계별 진행상황·메시지 확인",
+  },
+  en: {
+    nextStep_received: "Our coordinator is reviewing the documents. We'll check hospital eligibility shortly.",
+    nextStep_pre_consult: "A pre-consultation is underway.",
+    nextStep_hospital_review: "The hospital is reviewing whether treatment is possible. Awaiting their reply.",
+    nextStep_scheduling: "Coordinating the treatment schedule and quote. The quote will appear here once ready.",
+    nextStep_visa_prep: "Preparing the visa and booking.",
+    nextStep_treatment: "The patient has arrived and is receiving treatment.",
+    nextStep_follow_up: "Follow-up care is underway after treatment.",
+    nextStep_completed: "This case is completed.",
+    nextStep_on_hold: "Currently on hold. Message the coordinator if you have questions.",
+    emptyHeading: "No referred patients yet",
+    emptySub: "Refer your first patient to track their progress here in real time.",
+    emptyStep1: "Refer with patient info & documents",
+    emptyStep2: "Coordinator matches hospital, quote & consult",
+    emptyStep3: "Track each stage & message us",
+  },
+  ru: {
+    nextStep_received: "Координатор проверяет документы. Скоро уточним возможность лечения в больнице.",
+    nextStep_pre_consult: "Идёт предварительная консультация.",
+    nextStep_hospital_review: "Больница рассматривает возможность лечения. Ожидаем ответа.",
+    nextStep_scheduling: "Согласуем сроки лечения и смету. Смета появится здесь, когда будет готова.",
+    nextStep_visa_prep: "Готовим визу и бронирование.",
+    nextStep_treatment: "Пациент прибыл и проходит лечение.",
+    nextStep_follow_up: "После лечения идёт наблюдение.",
+    nextStep_completed: "Случай завершён.",
+    nextStep_on_hold: "Сейчас приостановлено. Напишите координатору, если есть вопросы.",
+    emptyHeading: "Пока нет направленных пациентов",
+    emptySub: "Направьте первого пациента, чтобы отслеживать его ход здесь в реальном времени.",
+    emptyStep1: "Направьте с данными и документами пациента",
+    emptyStep2: "Координатор подбирает больницу, смету и консультацию",
+    emptyStep3: "Отслеживайте этапы и пишите нам",
+  },
+  kz: {
+    nextStep_received: "Үйлестіруші құжаттарды тексеруде. Жақында аурухананың емдеу мүмкіндігін нақтылаймыз.",
+    nextStep_pre_consult: "Алдын ала кеңес жүргізілуде.",
+    nextStep_hospital_review: "Аурухана емдеу мүмкіндігін қарастыруда. Жауабын күтудеміз.",
+    nextStep_scheduling: "Емдеу кестесі мен бағаны келісудеміз. Баға дайын болғанда осында көрсетіледі.",
+    nextStep_visa_prep: "Виза мен брондауды дайындаудамыз.",
+    nextStep_treatment: "Науқас келіп, ем қабылдап жатыр.",
+    nextStep_follow_up: "Емнен кейін бақылау жүргізілуде.",
+    nextStep_completed: "Бұл жағдай аяқталды.",
+    nextStep_on_hold: "Қазір кейінге қалдырылған. Сұрағыңыз болса, үйлестірушіге жазыңыз.",
+    emptyHeading: "Әзірге жолданған науқас жоқ",
+    emptySub: "Бірінші науқасты жолдаңыз, барысын осында нақты уақытта қадағалай аласыз.",
+    emptyStep1: "Науқас деректері мен құжаттарымен жолдаңыз",
+    emptyStep2: "Үйлестіруші аурухана, баға, кеңесті ұйымдастырады",
+    emptyStep3: "Кезеңдерді қадағалап, бізге жазыңыз",
+  },
+  zh: {
+    nextStep_received: "协调员正在审核资料，即将确认医院能否治疗。",
+    nextStep_pre_consult: "正在进行初步咨询。",
+    nextStep_hospital_review: "医院正在评估能否治疗，正在等待回复。",
+    nextStep_scheduling: "正在协调治疗日程与报价。报价出来后将显示在此处。",
+    nextStep_visa_prep: "正在准备签证与预约。",
+    nextStep_treatment: "患者已入境，正在接受治疗。",
+    nextStep_follow_up: "治疗后正在进行后续护理。",
+    nextStep_completed: "此病例已完成。",
+    nextStep_on_hold: "目前暂缓。如有疑问，请给协调员留言。",
+    emptyHeading: "还没有转介的患者",
+    emptySub: "转介第一位患者后，即可在此实时追踪进度。",
+    emptyStep1: "用患者信息与资料转介",
+    emptyStep2: "协调员匹配医院、报价与会诊",
+    emptyStep3: "追踪各阶段并与我们沟通",
+  },
+  ja: {
+    nextStep_received: "コーディネーターが書類を確認中です。まもなく病院で治療可能か確認します。",
+    nextStep_pre_consult: "事前相談を進めています。",
+    nextStep_hospital_review: "病院が治療可能か検討中です。返答を待っています。",
+    nextStep_scheduling: "治療日程と見積を調整中です。見積ができ次第ここに表示されます。",
+    nextStep_visa_prep: "ビザと予約を準備中です。",
+    nextStep_treatment: "患者が入国し、治療を受けています。",
+    nextStep_follow_up: "治療後の経過観察を進めています。",
+    nextStep_completed: "この案件は完了しました。",
+    nextStep_on_hold: "現在保留中です。ご質問があればコーディネーターにメッセージしてください。",
+    emptyHeading: "まだ紹介した患者はいません",
+    emptySub: "最初の患者を紹介すると、ここで進捗をリアルタイムに確認できます。",
+    emptyStep1: "患者情報・書類で紹介",
+    emptyStep2: "コーディネーターが病院・見積・相談を調整",
+    emptyStep3: "各段階を確認しメッセージ",
+  },
+};
+for (const l of Object.keys(TR)) Object.assign(TR[l], TR_GUIDE[l] || TR_GUIDE.en);
+
+// 좌측 탭 라벨(진행 현황 / 환자 의뢰) — 6개 언어. 위 TR 에 병합.
+const TR_NAV = {
+  ko: { navTrack: "진행 현황", navRefer: "환자 의뢰" },
+  en: { navTrack: "Progress", navRefer: "Refer patient" },
+  ru: { navTrack: "Ход", navRefer: "Направить" },
+  kz: { navTrack: "Барыс", navRefer: "Жолдау" },
+  zh: { navTrack: "进度", navRefer: "转介患者" },
+  ja: { navTrack: "進捗", navRefer: "患者紹介" },
+};
+for (const l of Object.keys(TR)) Object.assign(TR[l], TR_NAV[l] || TR_NAV.en);
+
 // 해외 파트너 포털 본체. expected 로 이 URL이 어느 파트너 유형 전용인지 지정한다.
 //  - /agency  → expected="agency"            (해외 에이전시)
 //  - /clinic  → expected="medical_institution" (해외 의료기관, 경과 업로드 가능)
@@ -451,8 +564,9 @@ export default function PartnerPortal({ expected = "agency" }) {
   const [filter, setFilter] = useState("all"); // all | active | done | hold
   const [query, setQuery] = useState("");
 
+  const [view, setView] = useState("track"); // 좌측 탭: "track"(진행 현황) | "refer"(환자 의뢰)
+
   // 환자 의뢰하기 폼
-  const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
   const [files, setFiles] = useState([]); // [{ path, name, type, category }] — 추가 즉시 업로드(인테이크 방식)
   const [uploading, setUploading] = useState(false);
@@ -536,7 +650,7 @@ export default function PartnerPortal({ expected = "agency" }) {
         setSubmitMsg({ type: "ok", text: tt("okSubmitted") });
         setForm(EMPTY_FORM);
         setFiles([]);
-        setShowForm(false);
+        setView("track");
         await load();
       } else {
         const map = {
@@ -596,26 +710,40 @@ export default function PartnerPortal({ expected = "agency" }) {
 
   return (
     <>
-    <div className="max-w-4xl mx-auto px-4 pt-20 md:pt-24 pb-10">
+    <div className="max-w-5xl mx-auto px-4 pt-20 md:pt-24 pb-10">
       <div className="mb-6">
         <span className={`inline-block text-[11px] font-semibold px-2 py-0.5 rounded-full mb-2 ${isClinic ? "bg-indigo-50 text-indigo-700" : "bg-teal-50 text-teal-700"}`}>{partnerKind}</span>
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">{data?.agency?.name} {tt("titleSuffix")}</h1>
-            <p className="text-sm text-gray-500 mt-1">{tt("subtitle")}</p>
-          </div>
-          <button
-            onClick={() => { setShowForm((v) => !v); setSubmitMsg(null); }}
-            className="shrink-0 inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-teal-700 text-white text-sm font-bold hover:bg-teal-800 transition-all duration-200"
-          >
-            {showForm ? <X size={16} /> : <Plus size={16} />}
-            {showForm ? tt("btnClose") : tt("btnRefer")}
-          </button>
-        </div>
+        <h1 className="text-2xl font-bold text-gray-900 mt-1">{data?.agency?.name} {tt("titleSuffix")}</h1>
+        <p className="text-sm text-gray-500 mt-1">{tt("subtitle")}</p>
       </div>
 
+      <div className="flex flex-col md:flex-row md:items-start gap-5">
+        {/* 좌측 탭: 진행 현황 ↔ 환자 의뢰 (직관적 분리) */}
+        <nav className="flex md:flex-col gap-1.5 md:w-44 shrink-0">
+          {[
+            { key: "track", label: tt("navTrack"), icon: Activity, badge: cnt.total },
+            { key: "refer", label: tt("navRefer"), icon: Plus, badge: null },
+          ].map((it) => {
+            const on = view === it.key;
+            const NIcon = it.icon;
+            return (
+              <button key={it.key} type="button"
+                onClick={() => { setView(it.key); setSubmitMsg(null); }}
+                className={`flex-1 md:flex-none flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 ${on ? "bg-teal-700 text-white shadow-sm" : "bg-white border border-gray-200 text-gray-700 hover:bg-gray-50"}`}>
+                <NIcon size={16} className="shrink-0" />
+                <span className="flex-1 text-left">{it.label}</span>
+                {it.badge != null && it.badge > 0 && (
+                  <span className={`text-xs tabular-nums rounded-full px-1.5 ${on ? "bg-white/20" : "bg-gray-100 text-gray-500"}`}>{it.badge}</span>
+                )}
+              </button>
+            );
+          })}
+        </nav>
+
+        <div className="flex-1 min-w-0">
+
       {/* 요약 지표 카드 (코디 대시보드 톤) — 누르면 필터 */}
-      {cnt.total > 0 && (
+      {view === "track" && cnt.total > 0 && (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
           {STAT_CARDS.map((card) => {
             const Icon = card.icon;
@@ -643,7 +771,7 @@ export default function PartnerPortal({ expected = "agency" }) {
         </div>
       )}
 
-      {showForm && (
+      {view === "refer" && (
         <form onSubmit={submitReferral} className="bg-white border border-gray-200 rounded-2xl shadow-sm p-5 md:p-7 mb-6 space-y-6">
           <div>
             <h2 className="text-lg font-bold text-gray-900">{tt("formHeading")}</h2>
@@ -766,7 +894,7 @@ export default function PartnerPortal({ expected = "agency" }) {
           </Section>
 
           <div className="flex justify-end gap-2 pt-1">
-            <button type="button" onClick={() => { setShowForm(false); setSubmitMsg(null); }}
+            <button type="button" onClick={() => { setView("track"); setSubmitMsg(null); }}
               className="px-4 py-2.5 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-50">{tt("btnCancel")}</button>
             <button type="submit" disabled={submitting || uploading}
               className="px-6 py-2.5 rounded-xl text-sm font-bold bg-teal-700 text-white hover:bg-teal-800 transition-all duration-200 disabled:opacity-40">
@@ -776,8 +904,26 @@ export default function PartnerPortal({ expected = "agency" }) {
         </form>
       )}
 
-      {cases.length === 0 ? (
-        <p className="text-sm text-gray-400">{tt("emptyList")}</p>
+      {view === "track" && (cases.length === 0 ? (
+        <div className="text-center py-14 px-4 bg-white border border-gray-100 rounded-2xl">
+          <div className="w-12 h-12 mx-auto rounded-xl bg-teal-50 flex items-center justify-center mb-4">
+            <ClipboardList size={24} className="text-teal-600" />
+          </div>
+          <h2 className="text-base font-bold text-gray-900">{tt("emptyHeading")}</h2>
+          <p className="text-sm text-gray-500 mt-1 max-w-sm mx-auto">{tt("emptySub")}</p>
+          <div className="flex flex-col sm:flex-row gap-2 justify-center mt-5 mb-6 text-xs text-gray-600">
+            {[tt("emptyStep1"), tt("emptyStep2"), tt("emptyStep3")].map((s, i) => (
+              <div key={i} className="flex items-center gap-1.5 bg-gray-50 rounded-lg px-3 py-2">
+                <span className="w-5 h-5 rounded-full bg-teal-600 text-white flex items-center justify-center text-[11px] font-bold shrink-0">{i + 1}</span>
+                <span>{s}</span>
+              </div>
+            ))}
+          </div>
+          <button onClick={() => { setView("refer"); setSubmitMsg(null); }}
+            className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-teal-700 text-white text-sm font-bold hover:bg-teal-800 transition-all duration-200">
+            <Plus size={16} />{tt("btnRefer")}
+          </button>
+        </div>
       ) : (
         <>
           {/* 필터 탭 + 검색 (DESIGN: 알약 rounded-full, tabular-nums, duration-200) */}
@@ -833,6 +979,12 @@ export default function PartnerPortal({ expected = "agency" }) {
                   </div>
                   {c.case_status_note && (
                     <p className="text-xs text-gray-500 mt-2">{c.case_status_note}</p>
+                  )}
+                  {c.case_status && tt(`nextStep_${c.case_status}`) && (
+                    <p className="text-xs text-teal-700 bg-teal-50/70 rounded-lg px-2.5 py-1.5 mt-2 flex items-start gap-1.5">
+                      <ArrowRight size={12} className="mt-0.5 shrink-0" />
+                      <span>{tt(`nextStep_${c.case_status}`)}</span>
+                    </p>
                   )}
                   <div className="flex gap-3 mt-2 text-xs text-gray-400">
                     {c.insurance_status && <span>{tt("insuranceLabel")} {c.insurance_status}</span>}
@@ -892,7 +1044,9 @@ export default function PartnerPortal({ expected = "agency" }) {
             </div>
           )}
         </>
-      )}
+      ))}
+        </div>
+      </div>
     </div>
     <ManualDrawer role={isClinic ? "clinic" : "agency"} buttonLabel={tt("manualBtn")} />
     </>
