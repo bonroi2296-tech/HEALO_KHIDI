@@ -97,6 +97,8 @@ function buildPrompt(): string {
     "2. Preserve ALL numbers, units, reference ranges, dates, IDs, and Latin abbreviations (HGB, RBC, WBC, PLT, MCV, СОЭ→ESR, etc.) EXACTLY as in the source — copy them character-for-character. NEVER guess, round, or 'correct' a value. If unsure of a digit, copy what you see verbatim.",
     "3. Translate ONLY the human-language label text (the Russian/Kazakh medical term) into Korean. Keep the source term in parentheses where useful so doctors can cross-check.",
     "4. Do NOT add any diagnosis, interpretation, opinion, or clinical advice. This is a translation, not a reading.",
+    "5. COMPLETENESS — read EVERY page of the document. Any section that contains results, findings, or measurements in the source MUST include those values. NEVER output a section that has only a header/patient info and no results. Concretely: for a smear/microscopy, transcribe every measured value (leukocytes, flora, epithelium, etc.); for an infection/STI PCR panel, list EVERY pathogen tested with its positive/negative (or detected/not-detected) result; for any quantitative assay, give every value. A section with a results table in the source but empty results in your output is a FAILURE.",
+    "6. UNREADABLE ≠ OMIT — if a value or line is too faint, blurred, cropped, or handwritten to read with confidence, write '(원문 판독 불가)' in its place. NEVER silently drop it. Flagging an unreadable value is far safer than leaving it out.",
     "",
     "OUTPUT (JSON):",
     "- docTypeShort: a SHORT Korean chip label for the document type (e.g. '혈액검사', '소변검사', '세포검사', '영상판독', '진료기록', '병리').",
@@ -199,7 +201,8 @@ export async function translateMedicalDoc(opts: {
       doc: {
         docTypeShort: String(parsed.docTypeShort || "의료서류"),
         docType: String(parsed.docType || parsed.docTypeShort || "의료서류"),
-        sections: parsed.sections,
+        // 방어: 구조화출력이 드물게 null/비객체 원소를 내도 렌더가 안 터지게 거른다.
+        sections: parsed.sections.filter((s: any) => s && typeof s === "object"),
       },
     };
   } catch {
