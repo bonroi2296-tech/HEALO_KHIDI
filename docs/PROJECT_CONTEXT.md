@@ -7,6 +7,47 @@
 
 ---
 
+## 🔖 세션 핸드오프 (2026-07-07 — 코디네이터 백오피스 전면 다국어(6개 언어) + 스태프 전용 언어쿠키 회귀수정·머지·배포 #678)
+
+> PO 지시: "전반적인 백오피스 다국어가 제대로 안 됨. admin은 한글 유지, 에이전시·의료기관(해외)·코디네이터(외국인)는 다국어 꼼꼼히." 코디 포털은 다국어가 통째로 없었음(전 화면 한글 하드코딩). 별도 작업본(브랜치)에서 작업 → 합치기신청서(PR) #678로 본판(main)에 합침·실서비스 반영(배포). 중간에 자동검사(CI)의 E2E 테스트가 **진짜 회귀 버그 하나**를 잡아줌(아래 4·2번).
+
+**1. 이번 세션 한 일** (전부 main 머지·프로덕션 배포)
+- **PR [#678](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/678) ✅ 머지·프로덕션 자동배포** (origin/main 머지커밋 `c421f7a`). 코디네이터 백오피스 16개 화면을 **6개 언어(ko·en·ru·kz·zh·ja)**로:
+  - 레이아웃·대시보드·인박스(목록+상세)·인테이크·상담일정·견적(목록+상세)·비자(목록+상세)·메시지·증상알림·AI상담리드 — 토스트·확인창·툴팁·표헤더까지 전부.
+  - 공용 사전 `src/lib/i18n/coordinator.js`(key-first) + `useCoordinatorL`/`useDateLocale` 훅. 국적·암종·연락방법 라벨 헬퍼(`khidi/nationality.ts`·`medicalLabels.ts` 신규), 케이스단계는 기존 `caseStatusLabelL` 재사용.
+- **어드민 공유 컴포넌트 언어인식화**: `admin/khidi/cases`(케이스보드)·`PartnerOutreachTracker`(파트너발굴) — 파일 안 로컬 TR + `useBackofficeLang`. **ko 원문 그대로라 어드민 화면은 글자 하나 안 바뀜**, 코디만 선택 언어로.
+- **포털 공통 chrome**: `StaffPortalGate`(문지기 화면)·`ManualDrawer`(사용설명서 버튼·하단 문구) 6개어. **사용설명서 본문**은 `getManual(role, lang)`+`i18n` override(하위호환)로 코디·에이전시·의료기관만 5개어 번역(admin·hospital은 국내용이라 한국어 유지).
+- **에이전시/의료기관 포털**(`PartnerPortal`)은 이미 6개어 완비 확인(렌더 한글누출 0). WhatsApp 발송 문구는 코디 언어→**환자 언어**(`preferred_language`)로 수정.
+- **핵심 회귀수정(`5ef91a2`)**: 스태프 전용 언어쿠키 `healo_bo_lang`(기본 한국어) 신설.
+
+**2. 왜 그렇게 했는지**
+- **소비 패턴 3분리**(코디=공유사전 / 어드민공유=로컬TR·ko보존 / enum=공용헬퍼): 어드민 한글 유지하면서 코디만 다국어 달성하려고. 상세는 메모리 [[backoffice-i18n-pattern]].
+- **스태프 전용 쿠키가 이번의 핵심**: `useLang()`은 언어쿠키 없으면 기본이 영어(en). 그런데 공개 사이트 미들웨어가 브라우저 언어(영어)로 `healo_lang=en` 쿠키를 심어서, 스태프 화면이 그걸 따라 **영어로 뜸** → ①한국인 어드민/코디가 영어로 보이는 회귀 ②한국어를 찾는 E2E 스모크 테스트 실패. → 스태프 화면은 `healo_lang`을 안 보고 **`healo_bo_lang`(기본 ko)만** 봄(`useBackofficeLang`, useSyncExternalStore로 하이드레이션 안전). 포털 상단 스위처가 두 쿠키를 다 세팅. 에이전시/의료기관(해외 대상)은 healo_lang(영어 기본)이 맞아 그대로 둠.
+- 큰 파일은 병렬 서브에이전트로 변환하고 번역키는 내가 공용사전에 통합·빌드검증. 작업 중 main이 3번 전진 → 매번 재병합(예약시각 KST 헬퍼 `kstDate/kstTime`과 다국어 로케일 `dateLoc` 공존으로 충돌해소).
+
+**3. 안 끝났거나 보류**
+- ⏸ **언어 스위처 하이라이트 코스메틱(비차단)**: 스태프 화면에선 처음 언어를 한 번 고르기 전까지 상단 버튼의 "현재 언어" 표시가 공개 langCode를 보여줌(화면 본문은 정상적으로 한국어). 다음에 스위처를 스태프 lang 인지하게 다듬으면 됨.
+- 내 작업 아님(별도 세션): [[coordinator-detail-display-gap]] — 코디 인박스 상세의 raw 키 노출·우선순위/동의 누락(유실 아님). 다른 세션 대기.
+
+**4. 주의·함정**
+- **스태프 백오피스(admin·coordinator) 화면은 `useLang()` 쓰지 마라 → `useBackofficeLang()`(`@/lib/i18n/coordinator`).** useLang은 공개 영어쿠키를 따라 스태프가 영어로 뜬다(이번 회귀 원인). enum용 lang 변수도 useBackofficeLang. 에이전시/의료기관(overseas)만 useLang/영어기본 유지.
+- 코디 새 문자열 추가 = `coordinator.js`의 CT에 한 블록(6개어). 새 백오피스 화면 다국어 시 이 패턴 재사용.
+- `intakes`의 DB저장 notes(`[코디네이터]…`)·`StaffPortalGate`의 미표시 `portalName` prop은 한글이지만 화면에 렌더 안 됨(의도).
+
+**5. 다음 세션이 먼저 할 일**
+1. ⚠️ **직전 미검증분 먼저 확인**: 코디/어드민 실브라우저 클릭검증은 미실시(로그인 필요, SSR쿠키 자동화 불가). E2E(스모크+Full)로 코디 화면 렌더 자체는 검증됨. 다음에 코디/에이전시 계정으로 Vercel에서 상단 언어 스위처를 눌러 **러시아어·카자흐어 번역·전환을 눈으로 1회** 확인 권장(핵심 타깃 언어 품질).
+2. 스위처 하이라이트 코스메틱(위 3번)을 다듬을지 판단.
+
+**6. 검증 상태**
+- ✅ **PR #678 머지 확인**(origin/main `c421f7a`). CI **ci·Smoke Tests(PR)·Full E2E(main push)·Vercel 배포 전부 pass**(머지 직후 main HEAD `a92862f`의 Full E2E success 실측 확인). `npx next build --webpack`·`npm run check:content`·lint(0 error) 통과.
+- ✅ 독립 자체검증: 훅 선언 누락 0·placeholder(`{n}` 등) 치환 정상·어드민 ko원문 바이트동일(cases/partners)·`L.<키>` 참조 누락 0.
+- ⚠️ **검증 못 함**: 실브라우저에서 언어 스위처 눌러 각 언어 전환·번역 품질은 직접 안 봄(E2E가 한국어 렌더는 커버, 위 5-1로 승격).
+
+**7. 다음 세션 첫 프롬프트**
+> docs/PROJECT_CONTEXT.md 최상단 읽어. 코디네이터 백오피스 다국어(#678)는 머지·배포·전체E2E까지 끝났어. 스태프 화면은 이제 기본 한국어(healo_bo_lang 쿠키), 외국인 스태프는 상단 버튼으로 전환. 남은 건 미검증분: 코디/에이전시 계정으로 Vercel에서 언어 스위처 눌러 러시아어·카자흐어 번역·전환을 눈으로 1회 확인. ⚠️ 스태프 화면 다국어는 useBackofficeLang 써야 함(useLang 쓰면 영어로 뜸).
+
+---
+
 ## 🔖 세션 핸드오프 (2026-07-07 — 어드민 새문의 종(bell) 알림 404 수리 + 알림링크 라우트 대조 가드 신설·머지·배포 #686)
 
 > PO가 완전 진단해 넘긴 단일 버그: 새 문의 종 알림의 어드민 링크가 없는 상세 라우트(`/admin/inquiries/${id}`)를 가리켜 클릭 시 404. **2026-07-07 첫 실고객 #37에서 실제 발송됨.** 이메일 알림은 이미 목록으로 고쳐뒀는데 종 알림만 누락된 "한 곳만 적용된 표류" = #31 부류 재발. 알림 영역 전용 새 작업본에서 작업(로고 세션과 안 섞음).
@@ -43,47 +84,6 @@
 
 **7. 다음 세션 첫 프롬프트**
 > docs/PROJECT_CONTEXT.md 최상단 읽어. 어드민 종 알림 404(#686)는 머지·배포 끝났고 재발방지 가드(§14)까지 심었어. 남은 건 미검증분: ①어드민 계정으로 실제 새 문의 종 알림 눌러 /admin/inquiries 목록 열리는지 1회 확인 ②다기기 화상 테스트(초대링크 2026-07-10 만료 전) + LiveKit webhook 첫 수신 Vercel 로그. 이거부터 챙겨.
-
----
-
-## 🔖 세션 핸드오프 (2026-07-07 — 전방위 버그 사냥 2라운드 + 보류목록: main에 PR 4개 머지·배포 #675·#680·#682·#685)
-
-> "세션 만든 김에 뭐하고 놀까"에서 시작 → PO가 "버그 사냥" 선택. subagent 8마리로 2라운드 훑고(보안·데이터·i18n·백오피스로직·돈/시간대·크론·프론트훅), **찾은 건 내가 직접 코드 재확인한 것만** 심각도순 보고 → PO가 범위 버튼선택 → 수정. **매 PR을 작성맥락 미공유 독립 리뷰 subagent로 검증 후 자동머지.** KHIDI 8/27 정량지표 유실 구멍 3개를 닫은 게 핵심.
-
-**1. 이번 세션 한 일** (전부 main 머지·프로덕션 배포)
-- **PR [#675](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/675)**: 환자앱(6개어) 한글누출 3곳(`/patient/visa` 허브 통짜·증상분석 긴급도배지·권장조치문구) 6개어화 · 목록 API 2곳(cost-estimates·visa)이 환자에게 코디노트 암호문 반환하던 것 strip · `decryptMaybe` 무방비 복호화로 리드 인박스 전체 500 나던 것 try-catch(7개 호출부 보호). 가드 §1d(환자앱 JSX 한글) 신설.
-- **PR [#680](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/680)**: **BO-1** admin 리드확정 시 유치(K-01) 미집계 봉쇄(`admin/leads/[id]`에 `syncLeadStatusToCase` 추가 — partner 경로만 집계하던 구멍) · **CRON-1** 만족도(K-03) 설문 이메일실패 영구유실 방지(실패 시 pending행 삭제→재시도) · **예약시각 시간대 15곳** KST 고정(`src/lib/datetime/kst.js` 신설: kstDate/kstTime/kstDateTime/kstDateParts) · 재예약 기본10시가 UTC라 19:00 KST 잡히던 것. 가드 §1e(`scheduled_at` Asia/Seoul 누락) 신설.
-- **PR [#682](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/682)**: **FE-1** 환자·코디 메시지 폴링이 전체교체라 전송 직후 메시지가 폴링 때 깜빡 사라지던 것→id 병합 · **BO-2** `/api/admin/analytics`가 테스트문의 미제외로 대시보드 리드수 부풀리던 것 `.not(is_test,is,true)`.
-- **PR [#685](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/685)**: **MONEY-4** 견적서 USD총액이 KRW와 독립합산돼 불일치하던 것 → 모든 라인에 USD 있을 때만 표기(불완전시 `total_usd=null`→표시화면 truthy가드가 자동 숨김 + PDF 별도가드).
-- 반성문 **#67~#72** 기록. 비번 `error.message` 노출(#6)은 작업칩으로 넘겨 **딴 세션이 수리·머지**(#684 계열).
-
-**2. 왜 그렇게 했는지**
-- 유치·설문·시간대 수정은 KHIDI 8/27 **정량지표(유치/상담/만족도) 유실을 직접 막은 것** — 실적이 통과관건인데 그게 조용히 새던 구멍. 시간대는 러/카(핵심타깃) 환자가 예약시각을 4시간 밀려 보고 상담 놓치던 문제.
-- **CRON-3/4 리마인더 이중발송은 의도적 보류(현행유지)**: 의료 리마인더는 **at-least-once(중복)가 유실보다 안전**하고 Vercel 크론은 겹쳐 안 돌아, 순진한 dedup/claim은 오히려 리마인더 유실 위험. 완전 idempotency 재설계 전엔 현행이 옳음.
-- **MONEY-4는 환율정책=PO 결정 사항**(법적 문서). 환율 임의계산 대신 "불완전시 USD 숨김"(틀린 숫자 안 나감) 채택.
-
-**3. 안 끝났거나 보류**
-- ⏸ **CRON-3/4 리마인더 이중발송** — 의도적 현행유지(위 2번 근거). 완전 idempotency가 필요해지면 그때 dedupe키 설계.
-- ⏸ **코디 내부 견적 편집화면 하단 합계**(`CoordinatorCostDetailClient`)는 단순합산 유지 — 코디가 입력 중인 작업용 실시간 총액이라 의도적 비변경(환자/법적문서 아님).
-
-**4. 주의·함정**
-- **예약시각(`scheduled_at`) 표시는 반드시 `src/lib/datetime/kst.js`의 kstDate/kstTime/kstDateTime/kstDateParts 경유.** 가드 §1e가 `scheduled_at`+`toLocale`+`Asia/Seoul`없으면 CI 차단(단, 변수에 담은 다중행은 못 잡음 — 리뷰 몫). 환자앱 JSX 텍스트 한글은 §1d가 차단.
-- **`.ts` 수정은 `next build`만으론 타입에러 안 잡힘**(strict:false) → **`npm run typecheck` 필수**(이번 1차 CI fail 원인: `string|null`→`string`). `.next/dev/types`의 낡은 캐시 에러(딴 브랜치 페이지)는 `rm -rf .next/dev/types` 후 재검사.
-- ⚠️ **이 세션 내내 로컬 working tree가 딴 브랜치로 튐**(auto-save훅+병렬세션+세션resume). 코드는 매 PR로 origin에 안전히 남았으나 **로컬 상태를 믿지 말고 origin 기준으로 확인**할 것.
-
-**5. 다음 세션이 먼저 할 일**
-1. ⚠️ **직전 미검증분 먼저**: 이번 4개 PR의 **실화면 렌더는 인증필요라 눈으로 못 봄**(빌드·타입·독립리뷰·CI로 대체) → 배포후 실클릭으로 ①환자앱 러/카 화면 한글 안 새는지 ②예약시각이 KST로 뜨는지(브라우저 tz 바꿔 확인) ③견적서 USD 부분입력시 숨는지 확인.
-2. **07-06 미검증분 유지**: 다기기 화상 테스트(초대링크 **2026-07-10 만료** → 그 전에 진행 보채기) + LiveKit webhook 첫 수신(Vercel 로그 `[livekit/webhook]`).
-3. (선택) 보류한 CRON-3/4·MONEY 후속은 위 3번 참조.
-
-**6. 검증 상태**
-- ✅ PR **#675·#680·#682·#685** 전부 CI(`ci`·`Smoke`)초록 + Vercel 배포 + **독립 리뷰 subagent CLEAN** 확인 후 squash 머지, origin/main 반영 실확인. #680은 1차 `tsc` fail(`hospital_id` string|null)→null가드 수정 후 통과.
-- ✅ MONEY-4: `cost_estimates.total_usd` nullable 실DB 확인(integer, is_nullable=YES) → null 저장 안전.
-- ✅ 자동검사: 매 PR `next build --webpack`·`typecheck`·`check:content` 통과. 새 가드 §1d·§1e 포함 통과(§1e가 커밋 전 누락 2줄 실제로 잡음).
-- ⚠️ **검증 못 함**: 위 4개 PR의 **실화면 렌더(환자앱 6개어·예약시각 KST·견적서 USD숨김)** — 전부 인증게이트라 로컬 자동화 불가. 5-1로 승격.
-
-**7. 다음 세션 첫 프롬프트**
-> docs/PROJECT_CONTEXT.md 최상단 읽어. 2026-07-07 버그사냥으로 머지한 4개 PR(#675·#680·#682·#685)의 실화면을 배포본에서 확인해 — 환자앱 러/카 한글 안 새는지·예약시각 KST로 뜨는지(브라우저 tz 바꿔)·견적서 USD 부분입력시 숨는지. 그리고 다기기 화상 테스트가 아직이면 초대링크 만료(2026-07-10) 전에 하자고 보채. 예약시각 표시는 이제 src/lib/datetime/kst 헬퍼만 써(가드 §1e). .ts 고치면 typecheck도 꼭 돌려.
 
 ---
 
