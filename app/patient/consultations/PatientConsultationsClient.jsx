@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { kstDate, kstTime } from "@/lib/datetime/kst";
 import {
   Video,
   Calendar,
@@ -403,7 +404,7 @@ function ConsultationCard({ session, past, copy, lang }) {
           <div className="flex items-center gap-4 mt-2 text-sm text-gray-600 flex-wrap">
             <span className="flex items-center gap-1">
               <Calendar size={14} />
-              {scheduled.toLocaleDateString(locale, {
+              {kstDate(scheduled, locale, {
                 month: "short",
                 day: "numeric",
                 weekday: "short",
@@ -411,7 +412,7 @@ function ConsultationCard({ session, past, copy, lang }) {
             </span>
             <span className="flex items-center gap-1">
               <Clock size={14} />
-              {scheduled.toLocaleTimeString(locale, {
+              {kstTime(scheduled, locale, {
                 hour: "2-digit",
                 minute: "2-digit",
               })}

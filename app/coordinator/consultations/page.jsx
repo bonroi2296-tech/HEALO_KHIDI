@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser';
 import { useToast } from '@/components/Toast';
+import { kstDate, kstTime } from '@/lib/datetime/kst';
 import { CreateConsultationModal } from '@/components/consultation/CreateConsultationModal';
 import { useBackofficeLang, useCoordinatorL, useDateLocale } from '@/lib/i18n/coordinator';
 import { cancerTypeLabelL } from '@/lib/khidi/medicalLabels';
@@ -225,11 +226,11 @@ export default function CoordinatorConsultationsPage() {
                         <div className="flex items-center gap-3 mt-0.5 text-xs text-gray-400">
                           <span className="flex items-center gap-1">
                             <Calendar size={10} />
-                            {c.scheduled_at ? new Date(c.scheduled_at).toLocaleDateString(dateLoc) : '-'}
+                            {c.scheduled_at ? kstDate(c.scheduled_at, dateLoc) : '-'}
                           </span>
                           <span className="flex items-center gap-1">
                             <Clock size={10} />
-                            {c.scheduled_at ? new Date(c.scheduled_at).toLocaleTimeString(dateLoc, { hour: '2-digit', minute: '2-digit' }) : '-'}
+                            {c.scheduled_at ? kstTime(c.scheduled_at, dateLoc) : '-'}
                           </span>
                           <span className="flex items-center gap-1">
                             <Globe size={10} />

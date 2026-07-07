@@ -26,6 +26,8 @@ export const SITE_INFO = {
     representative: "Juyoung Kang",
     businessRegistrationNumber: "463-35-00902",
     foreignPatientAttractionRegistration: "A-2026-01-02-06761",
+    // SGI 서울보증 배상책임(의료관광) 1억 — 유치업 법정 요건 실물. 갱신형이라 만료일은 표기하지 않음(드리프트 방지).
+    guaranteeInsurance: "SGI Seoul Guarantee Insurance (Liability, KRW 100,000,000)",
     addressLine1: "Room 613, 385 Gangseo-ro, Gangseo-gu,",
     addressLine2: "Seoul, Republic of Korea",
     contactEmail: "admin@healwith.co.kr",

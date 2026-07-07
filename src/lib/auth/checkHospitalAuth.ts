@@ -60,6 +60,12 @@ export async function checkHospitalAuth(request?: NextRequest): Promise<Hospital
       };
     }
 
+    // 계정 비활성(app_metadata.disabled) — 계층 무관 전역 킬스위치. checkAdminAuth와 정합.
+    // 병원 계정은 hospital_users.is_active로도 막히지만, disabled가 어느 계층에 찍혀도 잠기게 이중 안전.
+    if ((user.app_metadata as { disabled?: boolean } | undefined)?.disabled === true) {
+      return { isHospitalUser: false, userId: user.id, email: user.email?.trim().toLowerCase(), error: "account_disabled" };
+    }
+
     const userId = user.id;
     const userEmail = user.email?.trim().toLowerCase();
 

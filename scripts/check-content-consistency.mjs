@@ -138,9 +138,33 @@ const XSS_INNERHTML_ALLOWLIST = new Set([
 
 const errors = [];
 
+// ── 1d) 환자앱(6개어 프론트) JSX 텍스트에 하드코딩 한글 차단 ──────────────────
+// 왜: /patient 은 러·카 등 외국인 환자용 6개어 화면. 태그 사이 텍스트(>…<)에 한글을 직접
+//     박으면 비한국어 환자에게 한국어가 그대로 노출된다(2026-07-07 비자 허브 통짜 한글·
+//     증상분석 누출 — check:content 사각지대였음). i18n(useLang()+{ko,en,…})로 감쌀 것.
+// ponytail: '>텍스트<' 형태(가장 흔하고 제일 위험한 통짜 누출)만 잡는다. 중괄호 표현식
+//     {cond?'한글':…} 안이나 객체 label:'한글' 은 못 잡음 — 그건 코드리뷰 몫(정직하게 명시).
+const HANGUL_JSX_TEXT = />[^<>{}]*[가-힣][^<>{}]*</;
+
 for (const file of SCAN_DIRS.flatMap(walk)) {
   const lines = readFileSync(join(ROOT, file), "utf8").split("\n");
+  const isPatientApp = /^app\/patient\//.test(file.replace(/\\/g, "/"));
   lines.forEach((line, i) => {
+    if (isPatientApp && HANGUL_JSX_TEXT.test(line)) {
+      errors.push(`[한글누출] ${file}:${i + 1} — 환자앱 JSX 텍스트에 하드코딩 한글. useLang()+{ko,en,ru,kz,zh,ja}로 감쌀 것(비한국어 환자에게 한글 노출)\n    ${line.trim().slice(0, 120)}`);
+    }
+    // ── 1e) scheduled_at 을 timeZone 없이 화면표시 차단 (#45·#69 부류: UTC로 샘) ──────
+    // scheduled_at 을 toLocale*String 으로 찍는데 Asia/Seoul 이 없으면 뷰어 tz(서버=UTC)로 렌더돼
+    // 알마티 환자가 예약시각을 4시간 밀려 보고 상담을 놓친다. 예약시각은 항상 KST 표시가 계약.
+    // → src/lib/datetime/kst.js 의 kstDate/kstTime/kstDateTime 를 쓸 것(또는 timeZone:"Asia/Seoul" 명시).
+    // 한 줄 패턴만 잡는다(대부분 `new Date(x.scheduled_at).toLocale…`). 변수에 담아 여러 줄로 쓰면 리뷰 몫.
+    if (
+      /scheduled_at/.test(line) &&
+      /\.toLocale(?:Date|Time)?String\s*\(/.test(line) &&
+      !/Asia\/Seoul/.test(line)
+    ) {
+      errors.push(`[시간대] ${file}:${i + 1} — scheduled_at 을 timeZone 없이 표시(UTC로 샘). kstDate/kstTime/kstDateTime(@/lib/datetime/kst) 사용 또는 timeZone:"Asia/Seoul" 명시 (#45·#69)\n    ${line.trim().slice(0, 120)}`);
+    }
     for (const f of FORBIDDEN) {
       if (f.re.test(line) && !(f.allow && f.allow.test(file))) errors.push(`[금지토큰] ${file}:${i + 1} — ${f.msg}\n    ${line.trim().slice(0, 120)}`);
     }

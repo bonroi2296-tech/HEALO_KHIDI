@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { kstDate, kstTime } from "@/lib/datetime/kst";
 import {
   Calendar,
   Clock,
@@ -422,21 +423,16 @@ export default function ConsultationsPage() {
                       <div className="flex items-center gap-2 text-sm text-gray-600">
                         <Calendar size={16} />
                         <span>
-                          {new Date(consultation.scheduled_at).toLocaleDateString(
-                            "ko-KR"
-                          )}
+                          {kstDate(consultation.scheduled_at, "ko-KR")}
                         </span>
                       </div>
                       <div className="flex items-center gap-2 text-sm text-gray-600">
                         <Clock size={16} />
                         <span>
-                          {new Date(consultation.scheduled_at).toLocaleTimeString(
-                            "ko-KR",
-                            {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            }
-                          )}
+                          {kstTime(consultation.scheduled_at, "ko-KR", {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
                         </span>
                       </div>
                       <div className="flex items-center gap-2 text-sm text-gray-600">

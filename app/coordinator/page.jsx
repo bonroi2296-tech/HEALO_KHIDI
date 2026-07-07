@@ -6,6 +6,7 @@ import {
   ClipboardList, Video, Users, AlertTriangle,
   Clock, CheckCircle, ArrowRight, TrendingUp,
 } from 'lucide-react';
+import { kstDateTime, kstDateParts } from '@/lib/datetime/kst';
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser';
 import { useCoordinatorL, useDateLocale } from '@/lib/i18n/coordinator';
 
@@ -39,9 +40,13 @@ export default function CoordinatorDashboard() {
         const consultData = await consultRes.json();
         const consultations = consultData.ok ? (consultData.data || []) : [];
 
-        const today = new Date().toDateString();
+        const nowKst = kstDateParts(new Date());
         const scheduled = consultations.filter(c => c.status === 'scheduled');
-        const todayOnes = scheduled.filter(c => c.scheduled_at && new Date(c.scheduled_at).toDateString() === today);
+        const todayOnes = scheduled.filter(c => {
+          if (!c.scheduled_at) return false;
+          const p = kstDateParts(c.scheduled_at); // "오늘 상담" 판정도 KST 기준(직원 PC tz 무관)
+          return p.year === nowKst.year && p.month === nowKst.month && p.day === nowKst.day;
+        });
 
         // Fetch symptom alerts
         const alertRes = await fetch('/api/khidi/followup?urgency=high&limit=10', {
@@ -156,7 +161,7 @@ export default function CoordinatorDashboard() {
                        c.session_type === 'emergency' ? L.sessionEmergency : L.sessionGeneric}
                     </div>
                     <div className="text-xs text-gray-400">
-                      {c.scheduled_at ? new Date(c.scheduled_at).toLocaleString(dateLoc, {
+                      {c.scheduled_at ? kstDateTime(c.scheduled_at, dateLoc, {
                         month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
                       }) : '-'}
                     </div>

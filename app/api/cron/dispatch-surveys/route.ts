@@ -172,8 +172,12 @@ export async function GET(request: NextRequest) {
           sent_at: new Date().toISOString(),
         });
       } else {
+        // 이메일 실패 시 방금 만든 pending 설문 행을 삭제한다. 안 지우면 존재-가드(위 86-95)에
+        // 걸려 다음 실행부터 영구 skip → 만족도(K-03) 설문이 조용히 유실된다(전송 실패=영구 실패).
+        // 삭제하면 다음 cron 이 재시도한다. (성공 시엔 sent_at 이 채워져 정상 skip)
+        await db.from("surveys").delete().eq("id", tokenResult.surveyId);
         errors.push(
-          `session=${session.id}: email send failed — ${emailResult.error}`
+          `session=${session.id}: email send failed — ${emailResult.error} (pending survey row deleted for retry)`
         );
       }
     } catch (err: any) {

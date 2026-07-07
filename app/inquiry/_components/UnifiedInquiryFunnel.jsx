@@ -262,6 +262,12 @@ const T = {
   trustResponse: {
     ko: "영업일 1일 이내 응답", en: "Reply within 1 business day", ru: "Ответ в течение 1 рабочего дня", kz: "1 жұмыс күні ішінде жауап", zh: "1个工作日内回复", ja: "1営業日以内に返信",
   },
+  // ZIVO 벤치마크(2026-07-07): 외국인 의료관광 1순위 불신 = 바가지 공포 → 직접결제·병원가 그대로를 행동 지점에 명시.
+  // ⚠️ "마진/수수료 없음" 같은 절대 표현 금지 — FAQ(faqData.js)가 컨시어지 수수료(견적서 명시)를 고지하므로
+  //    "치료비(병원비)에 부풀림 없음"의 좁은 의미로만 쓴다(독립 리뷰 2026-07-07 지적).
+  trustDirectPay: {
+    ko: "치료비는 병원에 직접 결제 · 병원 수가 그대로", en: "Treatment paid directly to the hospital · No markup", ru: "Оплата лечения напрямую клинике · Без наценки", kz: "Ем ақысы тікелей ауруханаға төленеді · Үстеме жоқ", zh: "治疗费直接支付给医院 · 不加价", ja: "治療費は病院へ直接支払い · 上乗せなし",
+  },
   trustFree: {
     ko: "상담 무료 · 부담 없이", en: "Free consultation · No obligation", ru: "Бесплатная консультация · Без обязательств", kz: "Тегін кеңес · Еркін шешім", zh: "免费咨询 · 无需承诺", ja: "相談無料 · 強制なし",
   },
@@ -1163,6 +1169,7 @@ export default function UnifiedInquiryFunnel() {
         <div className="mt-6 md:mt-8 flex flex-col items-center gap-2.5">
           <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-1.5 text-[11px] md:text-xs text-gray-500">
             <span className="flex items-center gap-1"><Check size={12} className="text-teal-600" /> {tl("trustFree", lang)}</span>
+            <span className="flex items-center gap-1"><Check size={12} className="text-teal-600" /> {tl("trustDirectPay", lang)}</span>
             <span className="flex items-center gap-1"><Shield size={12} className="text-teal-600" /> {tl("trustEncryption", lang)}</span>
             <span className="flex items-center gap-1"><Clock size={12} className="text-teal-600" /> {tl("trustResponse", lang)}</span>
           </div>
@@ -1485,6 +1492,7 @@ export default function UnifiedInquiryFunnel() {
       {/* 신뢰 배지 */}
       <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-1.5 mt-5 text-[11px] text-gray-500">
         <span className="flex items-center gap-1"><Check size={12} className="text-teal-600" /> {tl("trustFree", lang)}</span>
+        <span className="flex items-center gap-1"><Check size={12} className="text-teal-600" /> {tl("trustDirectPay", lang)}</span>
         <span className="flex items-center gap-1"><Shield size={12} /> {tl("trustEncryption", lang)}</span>
         <span className="flex items-center gap-1"><Clock size={12} /> {tl("trustResponse", lang)}</span>
       </div>

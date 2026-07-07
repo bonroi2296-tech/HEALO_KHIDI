@@ -362,6 +362,7 @@ function ClientShellContent({
               Foreign Patient Attraction Business Registration:{" "}
               {SITE_INFO.legal.foreignPatientAttractionRegistration}
             </div>
+            <div>Guarantee Insurance: {SITE_INFO.legal.guaranteeInsurance}</div>
             <div>
               Address: {SITE_INFO.legal.addressLine1}{" "}
               {SITE_INFO.legal.addressLine2}

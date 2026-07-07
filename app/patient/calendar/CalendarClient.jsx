@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Eyebrow, Rule, Chip, ButtonGold, LinkArrow } from "../../../components/healo/Primitives";
+import { kstDate, kstTime, kstDateParts } from "@/lib/datetime/kst";
 import { useLang } from "@/lib/i18n/LangContext";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { fetchPatientJourney } from "@/lib/patient/journeyState";
@@ -420,8 +421,9 @@ function MonthGrid({ cursor, events, daysOfWeek, copy, lang }) {
   // Group events by day
   const eventsByDay = {};
   events.forEach((e) => {
-    if (e.date.getFullYear() === year && e.date.getMonth() === month) {
-      const d = e.date.getDate();
+    const p = kstDateParts(e.date); // KST 달력일로 버킷팅(뷰어 tz 무관 — 자정 근처 날짜밀림 방지)
+    if (p.year === year && p.month === month) {
+      const d = p.day;
       if (!eventsByDay[d]) eventsByDay[d] = [];
       eventsByDay[d].push(e);
     }
@@ -529,7 +531,7 @@ function EventPill({ event, copy: _copy, lang }) {
   };
   const c = colors[event.type] || colors.consultation;
 
-  const time = event.date.toLocaleTimeString(localeFor(lang), { hour: "numeric", minute: "2-digit" });
+  const time = kstTime(event.date, localeFor(lang), { hour: "numeric", minute: "2-digit" });
 
   const content = (
     <div
@@ -604,7 +606,7 @@ function ListView({ events, copy, lang }) {
                 letterSpacing: "0.1em",
               }}
             >
-              {e.date.toLocaleDateString(localeFor(lang), {
+              {kstDate(e.date, localeFor(lang), {
                 year: "numeric",
                 month: "short",
                 day: "2-digit",
@@ -619,7 +621,7 @@ function ListView({ events, copy, lang }) {
                 marginTop: 2,
               }}
             >
-              {e.date.toLocaleTimeString(localeFor(lang), {
+              {kstTime(e.date, localeFor(lang), {
                 hour: "numeric",
                 minute: "2-digit",
               })}

@@ -132,9 +132,13 @@ export async function GET(request: NextRequest) {
       return Response.json({ ok: false, error: "list_failed" }, { status: 500 });
     }
 
+    // coordinator_notes_encrypted 는 코디 전용 내부 필드 — 목록 응답에서 제거(상세 API [id] 와 일관).
+    // 환자도 본인 건을 목록 조회하므로 그대로 두면 코디 노트 암호문이 환자 브라우저로 나감.
+    const rows = (data || []).map(({ coordinator_notes_encrypted: _drop, ...rest }) => rest);
+
     return Response.json({
       ok: true,
-      data: data || [],
+      data: rows,
       total: count,
       limit,
       offset,
