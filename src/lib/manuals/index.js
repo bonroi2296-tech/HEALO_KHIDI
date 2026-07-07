@@ -65,7 +65,7 @@ export const MANUALS = {
   coordinator: {
     title: "코디네이터 포털 사용설명서",
     summary: "들어온 문의를 환자별 케이스로 만들어 병원 배정·상담·비자·견적까지 끌고 가는 실무 화면입니다.",
-    updated: "2026-07-01",
+    updated: "2026-07-07",
     sections: [
       {
         heading: "하루 업무 순서(추천)",
@@ -83,6 +83,13 @@ export const MANUALS = {
           { title: "비자 트래킹", desc: "초청장·비자 진행 단계 추적." },
           { title: "견적", desc: "치료·체류 비용 견적 작성/공유." },
           { title: "증상 알림", desc: "환자가 올린 증상 기록 중 살펴야 할 알림." },
+        ],
+      },
+      {
+        heading: "첨부 서류 번역(외국 검사지)",
+        items: [
+          { title: "한·영·러 변환", desc: "환자·에이전시가 올린 외국어 검사지를 문의 상세의 첨부에서 [한][EN][RU] 버튼으로 골라 원문 1:1 번역합니다(요약 아님, 숫자 그대로). 코디는 한글, 병원 의뢰는 영문, 환자 전달은 러시아어로." },
+          { title: "숫자검증·수정·사전", desc: "「숫자검증」은 표의 숫자를 원본과 다시 대조해 오기 의심 숫자를 표시합니다. 「수정」으로 번역을 고쳐 저장하면 보존되고, 자주 틀리는 용어는 ‘＋사전 등록’으로 넣으면 다음 번역부터 자동 반영됩니다." },
         ],
       },
       {
@@ -126,6 +133,13 @@ export const MANUALS = {
             ],
           },
           {
+            heading: "Attachment translation (foreign lab reports)",
+            items: [
+              { title: "KO/EN/RU conversion", desc: "On an inquiry's attachments, translate foreign-language reports uploaded by patients/agencies 1:1 (not a summary; numbers kept verbatim) — pick [한][EN][RU]. Korean for coordinators, English for hospital referrals, Russian for the patient." },
+              { title: "Number check, edit, glossary", desc: "'Number check' re-reads the source and flags digits that may be mistyped. 'Edit' lets you correct and save the translation; register recurring terms with '＋glossary' so they apply automatically to future translations." },
+            ],
+          },
+          {
             heading: "Partner outreach (overseas agencies & hospitals)",
             items: [
               { title: "What", desc: "Register overseas agencies and hospitals as candidates and classify/track them by contact status. You share the same list with administrators (synchronized)." },
@@ -163,6 +177,13 @@ export const MANUALS = {
               { title: "Отслеживание визы", desc: "Отслеживание этапов оформления приглашения и визы." },
               { title: "Смета", desc: "Составление/отправка сметы расходов на лечение и пребывание." },
               { title: "Оповещения о симптомах", desc: "Оповещения среди записей о симптомах, присланных пациентом, требующие внимания." },
+            ],
+          },
+          {
+            heading: "Перевод вложений (иностранные бланки анализов)",
+            items: [
+              { title: "Перевод на KO/EN/RU", desc: "Во вложениях запроса дословно переведите иностранные бланки, загруженные пациентами/агентствами (не резюме; числа сохраняются как есть) — выберите [한][EN][RU]. Корейский для координаторов, английский для направлений в больницу, русский для пациента." },
+              { title: "Проверка чисел, правка, словарь", desc: "«Проверка чисел» повторно считывает оригинал и отмечает возможные опечатки в цифрах. «Правка» позволяет исправить и сохранить перевод; часто встречающиеся термины добавляйте через «＋словарь», чтобы они автоматически применялись в следующих переводах." },
             ],
           },
           {

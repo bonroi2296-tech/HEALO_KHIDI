@@ -17,7 +17,8 @@ import "server-only";
 
 import { supabaseAdmin } from "../rag/supabaseAdmin";
 import { logAiUsage } from "@/lib/ai/usageLog";
-import { glossaryBlock, type DocLang } from "./medicalGlossary";
+import { glossaryBlock, type DocLang, type GlossaryEntry } from "./medicalGlossary";
+import type { Json } from "@/types/database.types";
 
 export type { DocLang };
 
@@ -103,13 +104,13 @@ const RESPONSE_SCHEMA = {
   required: ["docTypeShort", "docType", "sections"],
 };
 
-function buildPrompt(lang: DocLang): string {
+function buildPrompt(lang: DocLang, learned: GlossaryEntry[] = []): string {
   const T = LANG_NAME[lang];             // 대상 언어(대문자)
   const cols = COLUMNS[lang];            // 표 헤더(대상 언어)
   const colList = cols.map((c) => `'${c}'`).join(",");
   const unread = UNREADABLE[lang];       // 판독불가 표기(대상 언어)
   const labelCol = cols[1];              // 번역 라벨이 들어가는 열 이름
-  const glossary = glossaryBlock(lang);  // 용어 사전(대상 언어)
+  const glossary = glossaryBlock(lang, learned); // 씨앗+학습 용어 사전(대상 언어)
 
   return [
     "You are a medical document translator for healwith, a Korea-based medical-tourism platform.",
@@ -139,21 +140,111 @@ function buildPrompt(lang: DocLang): string {
   ].filter((l) => l !== null).join("\n");
 }
 
+const CACHE_TABLE = "attachment_translations";
+const GLOSSARY_TABLE = "doc_glossary_terms";
+
+/** 캐시 조회 → 코디 수정본(edited_doc) 우선, 없으면 모델 원출력(doc). 없으면 null. */
+async function readCache(path: string, lang: DocLang): Promise<TranslatedDoc | null> {
+  try {
+    const { data } = await supabaseAdmin
+      .from(CACHE_TABLE)
+      .select("doc, edited_doc")
+      .eq("path", path).eq("lang", lang)
+      .maybeSingle();
+    const doc = (data?.edited_doc || data?.doc) as TranslatedDoc | undefined;
+    return doc && Array.isArray(doc.sections) ? doc : null;
+  } catch {
+    return null; // 캐시는 최적화일 뿐 — 실패해도 번역은 진행
+  }
+}
+
+/** 캐시 저장(upsert). 강제 재변환이면 기존 코디 수정본을 비운다(재변환=새 출발). */
+async function writeCache(path: string, lang: DocLang, doc: TranslatedDoc, force: boolean): Promise<void> {
+  try {
+    const row = {
+      path, lang, doc: doc as unknown as Json, model: MODEL, updated_at: new Date().toISOString(),
+      ...(force ? { edited_doc: null, edited_by: null, edited_at: null } : {}),
+    };
+    await supabaseAdmin.from(CACHE_TABLE).upsert(row, { onConflict: "path,lang" });
+  } catch { /* 캐시 실패는 무시 */ }
+}
+
+/** 학습 용어사전(코디 수정에서 축적) 로드 → 프롬프트 병합용. */
+async function fetchLearnedGlossary(): Promise<GlossaryEntry[]> {
+  try {
+    const { data } = await supabaseAdmin
+      .from(GLOSSARY_TABLE)
+      .select("src, ko, en, ru, note")
+      .order("created_at", { ascending: false })
+      .limit(500);
+    return (data || []).map((r: any) => ({
+      src: [String(r.src)], ko: r.ko || "", en: r.en || "", ru: r.ru || "", note: r.note || undefined,
+    }));
+  } catch {
+    return [];
+  }
+}
+
+/** 코디 수정본 저장(번역 표를 사람이 고친 결과). */
+export async function saveTranslationEdit(opts: {
+  path: string; lang: DocLang | string; editedDoc: TranslatedDoc; userId?: string | null;
+}): Promise<{ ok: boolean; error?: string }> {
+  const lang = normalizeLang(opts.lang);
+  if (!opts.editedDoc || !Array.isArray(opts.editedDoc.sections)) return { ok: false, error: "invalid_doc" };
+  try {
+    const { error } = await supabaseAdmin.from(CACHE_TABLE).upsert({
+      path: opts.path, lang,
+      doc: opts.editedDoc as unknown as Json, edited_doc: opts.editedDoc as unknown as Json,
+      edited_by: opts.userId || null, edited_at: new Date().toISOString(), model: MODEL,
+      updated_at: new Date().toISOString(),
+    }, { onConflict: "path,lang" });
+    return error ? { ok: false, error: "save_failed" } : { ok: true };
+  } catch {
+    return { ok: false, error: "internal_error" };
+  }
+}
+
+/** 학습 용어사전에 (원문→대상언어) 한 줄 등록. 다음 번역부터 프롬프트에 반영된다. */
+export async function addGlossaryTerm(opts: {
+  src: string; ko?: string | null; en?: string | null; ru?: string | null; note?: string | null; userId?: string | null;
+}): Promise<{ ok: boolean; error?: string }> {
+  const src = (opts.src || "").trim();
+  if (!src || !(opts.ko || opts.en || opts.ru)) return { ok: false, error: "invalid_term" };
+  try {
+    const { error } = await supabaseAdmin.from(GLOSSARY_TABLE).insert({
+      src, ko: opts.ko || null, en: opts.en || null, ru: opts.ru || null,
+      note: opts.note || null, created_by: opts.userId || null,
+    });
+    return error ? { ok: false, error: "save_failed" } : { ok: true };
+  } catch {
+    return { ok: false, error: "internal_error" };
+  }
+}
+
 /**
- * 저장소의 첨부 1건을 한국어로 충실 번역한다.
+ * 저장소의 첨부 1건을 대상 언어로 충실 번역한다(캐시 우선).
  * @param path  storage 경로 (inquiry/...)
  * @param mimeType  없으면 파일명으로 추정
+ * @param lang  출력 언어(ko/en/ru, 기본 ko)
+ * @param force  true 면 캐시 무시하고 재변환
  */
 export async function translateMedicalDoc(opts: {
   path: string;
   mimeType?: string | null;
   name?: string | null;
   lang?: DocLang | string | null;
+  force?: boolean;
 }): Promise<TranslateResult> {
   const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
   if (!apiKey) return { ok: false, error: "no_api_key" };
 
   const lang = normalizeLang(opts.lang);
+
+  // 1) 캐시 우선(강제 재변환이 아니면). 재호출 비용·지연 제거 + 코디 수정본 반영.
+  if (!opts.force) {
+    const cached = await readCache(opts.path, lang);
+    if (cached) return { ok: true, doc: cached };
+  }
 
   const mime = opts.mimeType || (opts.name ? inferMimeFromName(opts.name) : null) || inferMimeFromName(opts.path) || "";
   if (!MODEL_READABLE.has(mime)) {
@@ -173,13 +264,16 @@ export async function translateMedicalDoc(opts: {
     return { ok: false, error: "download_failed" };
   }
 
+  // 학습 용어사전(코디 수정 축적)을 씨앗 사전과 병합해 프롬프트에 주입.
+  const learned = await fetchLearnedGlossary();
+
   try {
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${apiKey}`;
     const res = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        systemInstruction: { parts: [{ text: buildPrompt(lang) }] },
+        systemInstruction: { parts: [{ text: buildPrompt(lang, learned) }] },
         contents: [{ role: "user", parts: [
           { text: `Translate this medical document faithfully into ${LANG_NAME[lang]} per the rules. Return only JSON.` },
           { inlineData: { mimeType: mime, data: base64 } },
@@ -226,15 +320,120 @@ export async function translateMedicalDoc(opts: {
       return { ok: false, error: "empty_result" };
     }
 
-    return {
-      ok: true,
-      doc: {
-        docTypeShort: String(parsed.docTypeShort || DEFAULT_DOCTYPE[lang]),
-        docType: String(parsed.docType || parsed.docTypeShort || DEFAULT_DOCTYPE[lang]),
-        // 방어: 구조화출력이 드물게 null/비객체 원소를 내도 렌더가 안 터지게 거른다.
-        sections: parsed.sections.filter((s: any) => s && typeof s === "object"),
-      },
+    const doc: TranslatedDoc = {
+      docTypeShort: String(parsed.docTypeShort || DEFAULT_DOCTYPE[lang]),
+      docType: String(parsed.docType || parsed.docTypeShort || DEFAULT_DOCTYPE[lang]),
+      // 방어: 구조화출력이 드물게 null/비객체 원소를 내도 렌더가 안 터지게 거른다.
+      sections: parsed.sections.filter((s: any) => s && typeof s === "object"),
     };
+
+    // 캐시 저장(강제 재변환이면 기존 코디 수정본 초기화). fire-and-forget — 실패해도 결과는 반환.
+    writeCache(opts.path, lang, doc, opts.force === true).catch(() => {});
+
+    return { ok: true, doc };
+  } catch {
+    return { ok: false, error: "internal_error" };
+  }
+}
+
+// ── 숫자 되돌림검증(numeric back-check) ─────────────────────────────────────
+// 왜: 의료번역의 최악 실패 = 수치 오기(141을 114로). 원본을 독립적으로 한 번 더 읽어
+// 번역표의 숫자와 대조 → 원본에 없는 숫자가 표에 있으면 "확인 필요"로 표시(진단 아님, 안전장치).
+
+const NUM_RE = /\d+(?:[.,]\d+)?/g;
+function extractNumbers(text: unknown): string[] {
+  return (String(text ?? "").match(NUM_RE) || []).map((n) => n.replace(",", "."));
+}
+function collectDocNumbers(doc: TranslatedDoc): string[] {
+  const out: string[] = [];
+  for (const s of doc.sections || []) {
+    for (const r of s.rows || []) for (const c of r?.cells || []) out.push(...extractNumbers(c));
+    if (s.text) out.push(...extractNumbers(s.text));
+    if (s.note) out.push(...extractNumbers(s.note));
+  }
+  return out;
+}
+
+export type VerifyResult =
+  | { ok: true; suspicious: string[]; docCount: number; sourceCount: number }
+  | { ok: false; error: string };
+
+const VERIFY_SCHEMA = {
+  type: "object",
+  properties: { numbers: { type: "array", items: { type: "string" } } },
+  required: ["numbers"],
+};
+
+/**
+ * 번역표의 숫자를 원본 독립판독과 대조. 원본에 없는(=모델이 잘못 넣었을 수 있는) 숫자를 돌려준다.
+ * 별도 모델 호출 1회(비용 2배) → 코디가 '숫자 정밀검증' 눌렀을 때만 실행.
+ */
+export async function verifyTranslationNumbers(opts: {
+  path: string; mimeType?: string | null; name?: string | null; doc: TranslatedDoc;
+}): Promise<VerifyResult> {
+  const apiKey = process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+  if (!apiKey) return { ok: false, error: "no_api_key" };
+  if (!opts.doc || !Array.isArray(opts.doc.sections)) return { ok: false, error: "invalid_doc" };
+
+  const mime = opts.mimeType || (opts.name ? inferMimeFromName(opts.name) : null) || inferMimeFromName(opts.path) || "";
+  if (!MODEL_READABLE.has(mime)) return { ok: false, error: "unsupported_type" };
+
+  let base64: string;
+  try {
+    const { data, error } = await supabaseAdmin.storage.from("attachments").download(opts.path);
+    if (error || !data) return { ok: false, error: "download_failed" };
+    const buf = Buffer.from(await data.arrayBuffer());
+    if (buf.length > MAX_BYTES) return { ok: false, error: "file_too_large" };
+    base64 = buf.toString("base64");
+  } catch {
+    return { ok: false, error: "download_failed" };
+  }
+
+  try {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${apiKey}`;
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        systemInstruction: { parts: [{ text: "You are an OCR number extractor. From the attached medical document, list EVERY number exactly as printed (lab values, reference ranges, dates, counts, IDs). Do NOT translate, interpret, or deduplicate — include each occurrence. Return JSON {numbers:[...]}." }] },
+        contents: [{ role: "user", parts: [
+          { text: "Extract all numbers. Return only JSON." },
+          { inlineData: { mimeType: mime, data: base64 } },
+        ] }],
+        safetySettings: [
+          { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
+          { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
+          { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
+          { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" },
+        ],
+        generationConfig: { temperature: 0, maxOutputTokens: 4096, thinkingConfig: { thinkingBudget: 0 }, responseMimeType: "application/json", responseSchema: VERIFY_SCHEMA },
+      }),
+    });
+    if (!res.ok) return { ok: false, error: "model_http_error" };
+    const json = await res.json();
+    logAiUsage({
+      surface: "doc_translate_verify", model: MODEL,
+      promptTokens: json?.usageMetadata?.promptTokenCount ?? null,
+      completionTokens: json?.usageMetadata?.candidatesTokenCount ?? null,
+      meta: { mime },
+    }).catch(() => {});
+
+    const raw = json?.candidates?.[0]?.content?.parts?.map((p: any) => p.text).join("") || "";
+    let parsed: any = null;
+    try { parsed = JSON.parse(raw); } catch { return { ok: false, error: "parse_error" }; }
+    const srcNums = (Array.isArray(parsed?.numbers) ? parsed.numbers : []).flatMap((n: any) => extractNumbers(n));
+
+    // 원본 숫자를 다중집합으로 두고, 번역표 숫자를 하나씩 소거. 원본에서 못 찾는 숫자 = 확인 필요.
+    const pool = new Map<string, number>();
+    for (const n of srcNums) pool.set(n, (pool.get(n) || 0) + 1);
+    const docNums = collectDocNumbers(opts.doc);
+    const suspicious: string[] = [];
+    for (const n of docNums) {
+      const c = pool.get(n) || 0;
+      if (c > 0) pool.set(n, c - 1);
+      else if (!suspicious.includes(n)) suspicious.push(n);
+    }
+    return { ok: true, suspicious: suspicious.slice(0, 40), docCount: docNums.length, sourceCount: srcNums.length };
   } catch {
     return { ok: false, error: "internal_error" };
   }
