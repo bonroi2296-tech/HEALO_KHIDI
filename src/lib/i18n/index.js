@@ -2491,7 +2491,7 @@ const DICTIONARY = {
     "nav.careJourney": "Маршрут лечения",
     "nav.telemedicine": "Телемедицина",
     "nav.education": "Гид по лечению",
-    "nav.insurance": "Страховка и лечение",
+    "nav.insurance": "Страховой гид",
     "nav.about": "О healwith",
     "nav.contact": "Контакты",
     "nav.menu": "Меню",
