@@ -14,15 +14,38 @@
 
 ---
 
-## #73 — 「🔁 #63/#71 부류 재발」 is_test 감지기가 '로그인 계정'을 안 봐 공유 테스트계정 접수가 실적 오염 (감사 발견, 2026-07-07)
+## #74 — 「🔁 #63/#71 부류 재발」 is_test 감지기가 '로그인 계정'을 안 봐 공유 테스트계정 접수가 실적 오염 (감사 발견, 2026-07-07)
 
-**무슨 일** — `detectInquiryIsTest({ip, email, manual})` 가 **폼에 적은 이메일**만 봤다. 공유 테스트 계정(예: agency@test.com)으로 **로그인한 채** 폼엔 개인 이메일(gmail 등)을 적어 접수하면 `is_test=false` 로 KHIDI 실적에 섞였다. 실측 4건(전부 source=web): #37(agency@test.com)·#23·#22(patient@test.com)·#19(coordinator@test.com). 특히 #37 은 PO 가 "첫 실고객"으로 인지한 건인데 실제 접수는 공유 테스트 계정으로 이뤄짐 → 평가 실적(유치·상담 카운트)의 신뢰를 흔드는 오염.
+**무슨 일** — `detectInquiryIsTest({ip, email, manual})` 가 **폼에 적은 이메일**만 봤다. 공유 테스트 계정(예: agency@test.com)으로 **로그인한 채** 폼엔 개인 이메일(gmail 등)을 적어 접수하면 `is_test=false` 로 KHIDI 실적에 섞였다. **실DB 감사(2026-07-07) 결과 실제 오염은 #37(agency@test.com) 1건뿐**: 나머지 후보 #19(coordinator@test.com)·#22·#23(patient@test.com)은 **폼 이메일도 @test.com 이라 옛 감지기가 접수 시점에 이미 `is_test=true` 로 잡아둔 상태**였다(백필 불필요). #37 만 폼 이메일이 개인 주소라 계정 경로로 샜고, 하필 PO 가 "첫 실고객"으로 인지한 건이라(정식계정 이관 전까지 실적 유지 결정) 평가 실적 신뢰를 흔드는 오염의 정확한 표본이 됐다.
 
 **왜 못 잡았나 (그때 방지책이 왜 뚫렸나)** — #63/#71 의 방지책은 "**새 집계 쿼리마다 is_test 제외**"·"**경로별 규칙 드리프트는 코드리뷰 체크포인트**"라는 *수동 리뷰 규칙*이었다. 그런데 이번 구멍은 "어떤 insert 경로가 감지기를 빠뜨렸나"가 아니라 **감지기 자신에 차원이 없었다**(accountEmail 슬롯 부재) — 그래서 감지기를 부른 step1 조차 계정을 검사할 방법이 없었다. `agency/refer` 만 감지기를 두 번 호출(`{email: auth.email}`)해 손으로 우회했는데, 이 우회가 곧 "중앙 감지기가 불완전"이라는 신호였음에도 감지기 본체로 승격되지 않아 다른 모든 호출부가 계속 눈이 먼 상태였다. 수동 체크포인트는 "차원 자체의 누락"을 못 잡는다.
 
 **어떻게 고쳤나** — ①차원을 **감지기 단일 SoR 로 흡수**: `detectInquiryIsTest` 에 `accountEmail` 인자 추가 → 폼·계정 이메일 중 하나라도 테스트 도메인이면 true(기존 `isTestEmail` 룰 재사용). ②`step1` 이 `getUser` 로 이미 받는 user 객체에서 `email` 을 함께 캡처해 전달(추가 조회 0). ③`agency/refer` 의 손 우회(2회 호출)를 새 인자로 통일. ④게스트 경로(AI챗 승격)는 로그인 계정이 없어 해당 없음(사무실 IP 가드가 백스톱) — 확인 후 무변경.
 
-**재발 방지 (뚫린 가드 보강 — 수동→자동)** — (a) **유닛테스트**로 "accountEmail=@test.com 이면 폼이 gmail 이어도 true" 회귀 고정(`testData.test.ts`, +5 케이스). (b) **능동 데이터 드리프트 감사**: `findTestPollutedInquiryIds`(순수·테스트됨) + `alertTestDataPollution` 을 KPI 스냅샷 cron 일일 감사에 연결 → "is_test=false 인데 접수 계정이 테스트 도메인"인 문의를 매일 훑어 경고(#37 등 의도적 예외는 env `TEST_POLLUTION_AUDIT_IGNORE` 로 제외해 오탐 방지). 이로써 미래에 새 insert 경로가 accountEmail 을 또 빠뜨려도 **데이터에서** 잡힌다(사후 그물). (c) 기존 오염 4건은 1회성 SQL(`scripts/backfill_test_account_inquiries.sql`, is_test 플래그만 — 되돌리기 쉬움)로 정정, #37 처리는 PO 결정. **교훈**: "규칙을 경로마다 복붙하라"는 수동 방지책은 *차원 누락*엔 무력 → 판정 차원은 감지기 단일 SoR 에 넣고, 우회 코드가 보이면 그게 곧 SoR 이 불완전하다는 신호다.
+**재발 방지 (뚫린 가드 보강 — 수동→자동)** — (a) **유닛테스트**로 "accountEmail=@test.com 이면 폼이 gmail 이어도 true" 회귀 고정(`testData.test.ts`, +5 케이스). (b) **능동 데이터 드리프트 감사**: `findTestPollutedInquiryIds`(순수·테스트됨) + `alertTestDataPollution` 을 KPI 스냅샷 cron 일일 감사에 연결 → "is_test=false 인데 접수 계정이 테스트 도메인"인 문의를 매일 훑어 경고(#37 등 의도적 예외는 env `TEST_POLLUTION_AUDIT_IGNORE` 로 제외해 오탐 방지). 이로써 미래에 새 insert 경로가 accountEmail 을 또 빠뜨려도 **데이터에서** 잡힌다(사후 그물). (c) 백필 스크립트(`scripts/backfill_test_account_inquiries.sql`, is_test 플래그만·되돌리기 쉬움)를 준비했으나 **실DB 확인 결과 손댈 행 0**(#19·22·23 이미 true, #37 은 PO 유지결정) → 실행 안 함, 스크립트는 향후 재사용·문서용으로 보존. #37 은 새 일일감사에 매일 뜨므로 prod env `TEST_POLLUTION_AUDIT_IGNORE=37` 로 제외해 오탐 없이 예외 유지. **교훈**: "규칙을 경로마다 복붙하라"는 수동 방지책은 *차원 누락*엔 무력 → 판정 차원은 감지기 단일 SoR 에 넣고, 우회 코드가 보이면 그게 곧 SoR 이 불완전하다는 신호다. (부수 교훈: 반성문 쓰기 전 **실DB로 오염 범위를 확인**하라 — 초기 제보의 "4건"은 옛 스냅샷이었고 실제론 1건이었다.)
+
+---
+
+## #73 — 🔁 #31 부류 재발: 새 문의 어드민 종(bell) 알림 링크가 없는 상세 라우트 → 클릭 시 404 (2026-07-07, 첫 실고객 #37에서 발송됨)
+
+**무슨 일**
+- 새 문의 접수 시 어드민에게 가는 웹/앱 종(bell) 알림의 링크가 `/admin/inquiries/${inquiryId}`(예: `/admin/inquiries/37`)였는데, `app/admin/inquiries/` 아래엔 목록 `page.jsx`만 있고 **`[id]` 동적 상세 라우트가 없어** 클릭 시 404.
+- 대조군은 정상이었음: **이메일 알림**(`adminNotifier.ts`)은 주석("상세 [id] 라우트 없음")대로 목록 `/admin/inquiries`로 링크, **코디 종 알림**은 존재하는 `/coordinator/inbox`로 링크. **어드민 종 알림 한 곳만** 깨져 있었다.
+- 실제 영향: 2026-07-07 **첫 실고객 #37**에서 어드민 2명에게 이 깨진 링크가 발송됐고 1명은 읽음 표시(=404 화면을 봤을 가능성).
+
+**왜 못 잡았나 (근본원인 — 그때의 방지책이 왜 못 막았나)**
+1. **링크 문자열을 라우트 존재와 분리해 하드코딩한 "한 곳만 적용된 표류"**: 이메일 쪽은 목록 링크로 고쳤는데(주석까지 달아둠) 같은 정책이 종 알림 쪽엔 복제 안 됨(#63 "경로별 규칙 드리프트"의 알림판).
+2. **#31(2026-06-23)이 만든 동적링크 404 가드가 이 벡터를 안 봄**: #31 가드(§4)는 `app/`의 `router.push(\`…\`)`·`href={\`…\`}` 네비게이션만 스캔한다. 종 알림 링크는 **서버 모듈 `src/lib/notifications/inApp.ts`의 `link:` 문자열**로 조립돼 그 그물 밖이었음 → 같은 "죽은 링크/없는 라우트" 부류가 다른 통로로 재발.
+3. `next build`는 런타임 404를 검증 안 함(#31과 동일) — 사람이 클릭해야만 보임. 이번엔 그 사람이 실고객.
+
+**어떻게 고쳤나**
+- `inApp.ts`의 어드민 종 알림 링크를 이메일과 동일하게 **목록 `/admin/inquiries`로 변경**(문의번호는 알림 title `#N`에 이미 있음). 상세 [id] 페이지는 YAGNI라 안 만듦.
+- 함수 주석(어드민→"문의 상세")도 현실(문의 목록)에 맞게 수정 + 링크 옆에 이메일과 동일 정책임을 명시.
+- **유사 스캔(전수)**: 코드베이스의 in-app 알림 `link:`/`link =` 내부경로 10곳을 실제 `app/` 라우트와 대조 → **끊긴 건 이 어드민 종 알림 하나뿐**, 나머지 9곳(`/coordinator/inbox`·`/admin/chat`·`/admin/khidi/ai-regression`·`/patient/consultations`·`/patient/cost-estimates/[id]`·`/coordinator/messages`·`/coordinator/alerts`·`/patient/symptoms`·`/consultation/[id]`) 전부 존재 확인 ✅.
+
+**재발 방지 (시스템 적용 — 뚫린 #31 가드의 보강)**
+- `scripts/check-content-consistency.mjs`에 **§14 알림링크404 검사 룰 추가**(CI 매 PR): `src`·`app`의 `link:`/`link =` 값이 `/`로 시작하는 내부경로면 `${…}`를 동적 세그먼트로 치환·쿼리 제거 후 **실제 `app/` 라우트 트리(page.jsx/tsx/js/ts + `[param]`·`[...param]`)와 대조**, 없으면 빌드 실패. #31 가드가 `app/` 네비게이션만 보던 **사각(서버 알림 모듈)을 메움**.
+- 자체 검증: 룰 추가 후 (a)수정 상태 = 통과, (b)일부러 링크 재-破 = `[알림링크404]`로 정확히 검출 확인. `${baseUrl}…`로 조립되는 절대 URL 링크는 정적분석 밖이라 코드리뷰 몫으로 명시(주석).
 
 ---
 

@@ -2,21 +2,35 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useCoordinatorL, useDateLocale } from "@/lib/i18n/coordinator";
 
-const STATUS_LABELS = {
-  auto_range: { ko: "자동 범위", color: "bg-gray-100 text-gray-700" },
-  formal_requested: { ko: "정식 요청", color: "bg-amber-100 text-amber-800" },
-  hospital_pending: { ko: "병원 응답 대기", color: "bg-blue-100 text-blue-800" },
-  draft: { ko: "코디 작성 중", color: "bg-indigo-100 text-indigo-800" },
-  issued: { ko: "견적서 발급", color: "bg-emerald-100 text-emerald-800" },
-  accepted: { ko: "동의 완료", color: "bg-green-100 text-green-800" },
-  rejected: { ko: "거절", color: "bg-red-100 text-red-800" },
-  expired: { ko: "만료", color: "bg-gray-100 text-gray-500" },
+// 색상만 모듈 상수(언어 무관). 라벨은 컴포넌트에서 L로 해석.
+const STATUS_COLOR = {
+  auto_range: "bg-gray-100 text-gray-700",
+  formal_requested: "bg-amber-100 text-amber-800",
+  hospital_pending: "bg-blue-100 text-blue-800",
+  draft: "bg-indigo-100 text-indigo-800",
+  issued: "bg-emerald-100 text-emerald-800",
+  accepted: "bg-green-100 text-green-800",
+  rejected: "bg-red-100 text-red-800",
+  expired: "bg-gray-100 text-gray-500",
 };
 
-const STATUS_ORDER = Object.keys(STATUS_LABELS);
+const STATUS_ORDER = Object.keys(STATUS_COLOR);
 
 export default function CoordinatorCostListClient() {
+  const L = useCoordinatorL();
+  const dateLoc = useDateLocale();
+  const STATUS_LABEL = {
+    auto_range: L.coStatusAutoRange,
+    formal_requested: L.coStatusFormalRequested,
+    hospital_pending: L.coStatusHospitalPending,
+    draft: L.coStatusDraft,
+    issued: L.coStatusIssued,
+    accepted: L.coStatusAccepted,
+    rejected: L.coStatusRejected,
+    expired: L.coStatusExpired,
+  };
   const [estimates, setEstimates] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -39,7 +53,7 @@ export default function CoordinatorCostListClient() {
       setEstimates(json.data || []);
     } catch (err) {
       console.error("[coordinator/cost-estimate]", err);
-      setError("목록을 불러오지 못했습니다.");
+      setError(L.coListLoadFail);
     } finally {
       setLoading(false);
     }
@@ -47,17 +61,17 @@ export default function CoordinatorCostListClient() {
 
   const stats = STATUS_ORDER.map((s) => ({
     status: s,
-    label: STATUS_LABELS[s].ko,
+    label: STATUS_LABEL[s],
     count: estimates.filter((e) => e.status === s).length,
   }));
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-10">
       <h1 className="text-3xl font-semibold tracking-tight">
-        예상 진료비 견적 대시보드
+        {L.coListTitle}
       </h1>
       <p className="text-gray-500 mt-1 text-sm">
-        정식 견적 요청을 받아 병원 문의 후 견적서 PDF 를 발급합니다.
+        {L.coListSubtitle}
       </p>
 
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mt-8">
@@ -67,7 +81,7 @@ export default function CoordinatorCostListClient() {
             !statusFilter ? "border-black bg-gray-50" : "border-gray-200 bg-white"
           }`}
         >
-          <div className="text-xs text-gray-500">전체</div>
+          <div className="text-xs text-gray-500">{L.all}</div>
           <div className="text-2xl font-semibold mt-1">{estimates.length}</div>
         </button>
         {stats
@@ -87,13 +101,15 @@ export default function CoordinatorCostListClient() {
           ))}
       </div>
 
-      {loading && <p className="mt-8 text-sm text-gray-500">불러오는 중...</p>}
-      {error && <p className="mt-8 text-sm text-red-600">오류: {error}</p>}
+      {loading && <p className="mt-8 text-sm text-gray-500">{L.coLoading}</p>}
+      {error && <p className="mt-8 text-sm text-red-600">{L.coError}: {error}</p>}
 
       {!loading && estimates.length === 0 && (
         <div className="mt-8 text-center py-16 border-2 border-dashed border-gray-200 rounded-lg">
           <p className="text-gray-500">
-            {statusFilter ? `${STATUS_LABELS[statusFilter]?.ko} 상태 없음` : "견적 요청 없음"}
+            {statusFilter
+              ? L.coNoStatus.replace("{status}", STATUS_LABEL[statusFilter] || statusFilter)
+              : L.coNoRequests}
           </p>
         </div>
       )}
@@ -103,18 +119,19 @@ export default function CoordinatorCostListClient() {
           <table className="w-full text-sm">
             <thead className="bg-gray-50 text-xs text-gray-600 uppercase">
               <tr>
-                <th className="px-4 py-3 text-left">No.</th>
-                <th className="px-4 py-3 text-left">환자</th>
-                <th className="px-4 py-3 text-left">자동 범위</th>
-                <th className="px-4 py-3 text-left">확정 총액</th>
-                <th className="px-4 py-3 text-left">상태</th>
-                <th className="px-4 py-3 text-left">생성</th>
+                <th className="px-4 py-3 text-left">{L.coColNo}</th>
+                <th className="px-4 py-3 text-left">{L.fieldPatient}</th>
+                <th className="px-4 py-3 text-left">{L.coColAutoRange}</th>
+                <th className="px-4 py-3 text-left">{L.coColTotal}</th>
+                <th className="px-4 py-3 text-left">{L.status}</th>
+                <th className="px-4 py-3 text-left">{L.coColCreated}</th>
                 <th className="px-4 py-3"></th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
               {estimates.map((est) => {
-                const label = STATUS_LABELS[est.status] || STATUS_LABELS.auto_range;
+                const statusColor = STATUS_COLOR[est.status] || STATUS_COLOR.auto_range;
+                const statusLabel = STATUS_LABEL[est.status] || STATUS_LABEL.auto_range;
                 return (
                   <tr key={est.id} className="hover:bg-gray-50">
                     <td className="px-4 py-3 font-mono text-xs">
@@ -130,23 +147,23 @@ export default function CoordinatorCostListClient() {
                     </td>
                     <td className="px-4 py-3 font-medium">
                       {est.total_krw
-                        ? `${Number(est.total_krw).toLocaleString("ko-KR")} KRW`
+                        ? `${Number(est.total_krw).toLocaleString(dateLoc)} KRW`
                         : "—"}
                     </td>
                     <td className="px-4 py-3">
-                      <span className={`text-xs px-2 py-1 rounded ${label.color}`}>
-                        {label.ko}
+                      <span className={`text-xs px-2 py-1 rounded ${statusColor}`}>
+                        {statusLabel}
                       </span>
                     </td>
                     <td className="px-4 py-3 text-gray-500 text-xs">
-                      {new Date(est.created_at).toLocaleDateString("ko-KR")}
+                      {new Date(est.created_at).toLocaleDateString(dateLoc)}
                     </td>
                     <td className="px-4 py-3 text-right">
                       <Link
                         href={`/coordinator/cost-estimates/${est.id}`}
                         className="text-sm text-blue-600 hover:underline"
                       >
-                        상세 →
+                        {L.viewDetail} →
                       </Link>
                     </td>
                   </tr>

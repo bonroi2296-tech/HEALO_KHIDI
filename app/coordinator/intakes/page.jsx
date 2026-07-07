@@ -8,22 +8,14 @@ import {
 } from 'lucide-react';
 import { kstDate } from '@/lib/datetime/kst';
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser';
-
-const STATUS_MAP = {
-  pending: { label: '대기', color: 'bg-yellow-100 text-yellow-800' },
-  reviewing: { label: '검토 중', color: 'bg-blue-100 text-blue-800' },
-  doctor_assigned: { label: '의사 배정', color: 'bg-green-100 text-green-800' },
-  scheduled: { label: '상담 예정', color: 'bg-teal-100 text-teal-800' },
-  completed: { label: '완료', color: 'bg-gray-100 text-gray-600' },
-};
-
-const CANCER_TYPES = {
-  stomach: '위암', liver: '간암', lung: '폐암',
-  breast: '유방암', thyroid: '갑상선암', colorectal: '대장암',
-};
+import { useBackofficeLang, useCoordinatorL, useDateLocale } from '@/lib/i18n/coordinator';
+import { cancerTypeLabelL } from '@/lib/khidi/medicalLabels';
 
 export default function IntakesPage() {
   const router = useRouter();
+  const L = useCoordinatorL();
+  const lang = useBackofficeLang();
+  const dateLoc = useDateLocale();
   const [intakes, setIntakes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState(null);
@@ -89,16 +81,16 @@ export default function IntakesPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">인테이크 관리</h1>
-        <p className="text-gray-500 text-sm mt-1">카자흐스탄 암환자 사전상담 접수를 검토하고 의사를 배정합니다.</p>
+        <h1 className="text-2xl font-bold text-gray-900">{L.navIntakes}</h1>
+        <p className="text-gray-500 text-sm mt-1">{L.intakesSubtitle}</p>
       </div>
 
       {/* Filter tabs */}
       <div className="flex gap-2 border-b border-gray-200">
         {[
-          { key: 'pending', label: '의사 미배정' },
-          { key: 'assigned', label: '배정 완료' },
-          { key: 'all', label: '전체' },
+          { key: 'pending', label: L.intakeFilterUnassigned },
+          { key: 'assigned', label: L.intakeFilterAssigned },
+          { key: 'all', label: L.all },
         ].map(tab => (
           <button
             key={tab.key}
@@ -121,7 +113,7 @@ export default function IntakesPage() {
       {filteredIntakes.length === 0 ? (
         <div className="text-center py-12 bg-gray-50 rounded-xl">
           <ClipboardList size={40} className="mx-auto text-gray-300 mb-3" />
-          <p className="text-gray-500 font-medium">해당 조건의 인테이크가 없습니다</p>
+          <p className="text-gray-500 font-medium">{L.intakeEmpty}</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -142,7 +134,7 @@ export default function IntakesPage() {
                       </div>
                       <div>
                         <div className="font-semibold text-sm">
-                          {patientInfo?.first_name || 'Patient'} — {CANCER_TYPES[patientInfo?.cancer_type] || patientInfo?.cancer_type || 'N/A'}
+                          {patientInfo?.first_name || 'Patient'} — {patientInfo?.cancer_type ? cancerTypeLabelL(patientInfo.cancer_type, lang) : 'N/A'}
                         </div>
                         <div className="flex items-center gap-2 mt-0.5">
                           <span className="text-xs text-gray-400">
@@ -156,7 +148,7 @@ export default function IntakesPage() {
                           <span className="text-xs text-gray-300">|</span>
                           <span className="text-xs text-gray-400 flex items-center gap-1">
                             <Calendar size={10} />
-                            {intake.scheduled_at ? kstDate(intake.scheduled_at, 'ko-KR') : '-'}
+                            {intake.scheduled_at ? kstDate(intake.scheduled_at, dateLoc) : '-'}
                           </span>
                         </div>
                       </div>
@@ -164,11 +156,11 @@ export default function IntakesPage() {
                     <div className="flex items-center gap-3">
                       {intake.doctor_id ? (
                         <span className="text-xs px-2.5 py-1 rounded-full bg-green-100 text-green-700 font-medium flex items-center gap-1">
-                          <CheckCircle size={12} /> 배정완료
+                          <CheckCircle size={12} /> {L.badgeAssigned}
                         </span>
                       ) : (
                         <span className="text-xs px-2.5 py-1 rounded-full bg-yellow-100 text-yellow-700 font-medium flex items-center gap-1">
-                          <Clock size={12} /> 대기
+                          <Clock size={12} /> {L.badgePending}
                         </span>
                       )}
                       <ChevronDown size={16} className={`text-gray-400 transition ${isExpanded ? 'rotate-180' : ''}`} />
@@ -182,22 +174,22 @@ export default function IntakesPage() {
                     {/* Patient details grid */}
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                       <div className="bg-white rounded-lg p-3 border border-gray-100">
-                        <div className="text-xs text-gray-400 mb-1">암종</div>
-                        <div className="text-sm font-medium">{CANCER_TYPES[patientInfo?.cancer_type] || patientInfo?.cancer_type || '-'}</div>
+                        <div className="text-xs text-gray-400 mb-1">{L.cancerType}</div>
+                        <div className="text-sm font-medium">{patientInfo?.cancer_type ? cancerTypeLabelL(patientInfo.cancer_type, lang) : '-'}</div>
                       </div>
                       <div className="bg-white rounded-lg p-3 border border-gray-100">
-                        <div className="text-xs text-gray-400 mb-1">병기</div>
+                        <div className="text-xs text-gray-400 mb-1">{L.fieldStage}</div>
                         <div className="text-sm font-medium">Stage {patientInfo?.cancer_stage || '-'}</div>
                       </div>
                       <div className="bg-white rounded-lg p-3 border border-gray-100">
-                        <div className="text-xs text-gray-400 mb-1">상담 유형</div>
+                        <div className="text-xs text-gray-400 mb-1">{L.fieldConsultType}</div>
                         <div className="text-sm font-medium">
-                          {intake.session_type === 'pre_consultation' ? '사전상담' :
-                           intake.session_type === 'follow_up' ? '추후진료' : intake.session_type || '-'}
+                          {intake.session_type === 'pre_consultation' ? L.sessionPre :
+                           intake.session_type === 'follow_up' ? L.sessionFollow : intake.session_type || '-'}
                         </div>
                       </div>
                       <div className="bg-white rounded-lg p-3 border border-gray-100">
-                        <div className="text-xs text-gray-400 mb-1">언어</div>
+                        <div className="text-xs text-gray-400 mb-1">{L.fieldLanguage}</div>
                         <div className="text-sm font-medium">{intake.patient_language?.toUpperCase() || 'RU'} → {intake.doctor_language?.toUpperCase() || 'KO'}</div>
                       </div>
                     </div>
@@ -205,7 +197,7 @@ export default function IntakesPage() {
                     {/* Notes */}
                     {intake.notes && (
                       <div className="bg-white rounded-lg p-3 border border-gray-100">
-                        <div className="text-xs text-gray-400 mb-1">메모</div>
+                        <div className="text-xs text-gray-400 mb-1">{L.notes}</div>
                         <div className="text-sm text-gray-600">{intake.notes}</div>
                       </div>
                     )}
@@ -219,14 +211,14 @@ export default function IntakesPage() {
                           className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium disabled:opacity-50"
                         >
                           <UserPlus size={16} />
-                          {assigning === intake.id ? '처리 중...' : '의사 배정'}
+                          {assigning === intake.id ? L.processing : L.assignDoctor}
                         </button>
                       )}
                       <button
                         onClick={() => router.push(`/consultation/${intake.id}`)}
                         className="flex items-center gap-2 px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition text-sm font-medium"
                       >
-                        상세 보기
+                        {L.viewDetail}
                       </button>
                     </div>
                   </div>

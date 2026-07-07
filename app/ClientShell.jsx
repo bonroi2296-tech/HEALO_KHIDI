@@ -6,7 +6,7 @@ import Link from "next/link";
 import { LogOut, Globe, ChevronDown, Check } from "lucide-react";
 import { supabaseClient } from "@/lib/data/supabaseClient";
 import { SITE_INFO } from "@/lib/siteSettings";
-import { getLangCodeFromCookie, setLangCookie, LANG_OPTIONS_PRIMARY, t } from "@/lib/i18n";
+import { getLangCodeFromCookie, setLangCookie, setBackofficeLangCookie, LANG_OPTIONS_PRIMARY, t } from "@/lib/i18n";
 import { LangProvider, useLang } from "@/lib/i18n/LangContext";
 import {
   Header,
@@ -447,8 +447,8 @@ function PortalLangSwitcher({ langCode }) {
   const current = LANG_OPTIONS_PRIMARY.find((l) => l.code === langCode) || LANG_OPTIONS_PRIMARY[0];
   const pick = (code) => {
     setOpen(false);
-    if (code === langCode) return;
-    setLangCookie(code);
+    setLangCookie(code);            // 공개/에이전시·의료기관용 (healo_lang)
+    setBackofficeLangCookie(code);  // 스태프 포털용 (healo_bo_lang) — 코디/어드민 화면이 이걸 따름
     if (typeof window !== "undefined") window.dispatchEvent(new Event("healo:langchange"));
   };
   return (

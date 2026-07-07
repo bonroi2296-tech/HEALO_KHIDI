@@ -7,84 +7,83 @@
 
 ---
 
-## 🔖 세션 핸드오프 (2026-07-07 — 비활성(소프트삭제) 계정 차단을 인증 헬퍼로 승격·머지·배포 #681)
+## 🔖 세션 핸드오프 (2026-07-07 — 어드민 새문의 종(bell) 알림 404 수리 + 알림링크 라우트 대조 가드 신설·머지·배포 #686)
 
-> #677 독립 보안 리뷰 후속. "계정을 비활성(퇴사·삭제) 처리해도 로그인 세션이 살아있으면 인증 필요 API를 계속 쓸 수 있던 구멍"을 인증 검문소 한 곳에서 봉쇄. 독립 리뷰(별도 subagent) APPROVE + CI 초록 → PO 버튼 승인으로 머지·프로덕션 자동배포. 단일 집중 세션(코드만).
+> PO가 완전 진단해 넘긴 단일 버그: 새 문의 종 알림의 어드민 링크가 없는 상세 라우트(`/admin/inquiries/${id}`)를 가리켜 클릭 시 404. **2026-07-07 첫 실고객 #37에서 실제 발송됨.** 이메일 알림은 이미 목록으로 고쳐뒀는데 종 알림만 누락된 "한 곳만 적용된 표류" = #31 부류 재발. 알림 영역 전용 새 작업본에서 작업(로고 세션과 안 섞음).
 
 **1. 이번 세션 한 일**
-- **PR [#681](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/681) ✅ 머지·프로덕션 자동배포** (origin/main `0c87146`). 근본원인 1곳 수정: `src/lib/auth/checkAdminAuth.ts` 비활성(`app_metadata.disabled===true`) 브랜치가 **`userId`를 비워 반환** → `if(!auth.userId)` 만 검사하던 인증 게이트 ~13곳(`requireAuthenticatedUser`·`requireConsultationAccess`·`requirePortalAuth`·cost·visa·followup·rebooking·me 등) + 미래 게이트까지 자동 401 거부.
-- `app/api/auth/change-password/route.ts` — #677에서 넣었던 로컬 `getUserById` 비활성 가드 제거(승격 후 도달 불가능한 죽은 코드 + DB 왕복 제거).
-- `src/lib/auth/checkAdminAuth.test.ts` — 회귀 테스트 4개 신설(비활성 차단 2 + 정상 admin·일반 계정 오탐없음 2).
-- **독립 리뷰 게이트 실행**: 작성 맥락 미공유 별도 subagent가 전 소비자·supabase-js 버전·freshness·테스트 mutation-resistance까지 검토 → **APPROVE(결함 0)**.
-- **후속 작업 칩 생성**(task_19f05a2a) → PO가 **별도 세션에서 착수**: 병원·에이전시 포털 비활성 체계 일원화 검토.
+- **PR [#686](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/686) ✅ 스쿼시 머지·프로덕션 자동배포** (origin/main 머지커밋 `9454e28`). 3파일:
+  - `src/lib/notifications/inApp.ts` — 어드민 종 알림 `link: /admin/inquiries/${id}` → **목록 `/admin/inquiries`** (문의번호는 알림 제목 `#N`에 이미 있음, 이메일 알림 `adminNotifier.ts`와 동일 정책). 함수 주석도 "상세→목록" 현실화.
+  - `scripts/check-content-consistency.mjs` — **§14 알림링크404 가드 신설**: `src`·`app`의 `link:`/`link =` 내부경로를 실제 `app/` 라우트 트리와 정적 대조(없으면 CI 실패). `${…}`→동적세그먼트·쿼리제거·`[param]`/`[...]` 인식 + **Next 라우트 그룹 `(group)` 투명 통과**.
+  - `docs/POSTMORTEMS.md` — **#73** 기록 (🔁 **#31 부류 재발**).
+- **유사 스캔 전수**: 코드베이스 in-app 알림 링크 10곳 대조 → **끊긴 건 이 하나뿐**, 나머지 9곳(`/coordinator/inbox`·`/admin/chat`·`/patient/cost-estimates/[id]` 등) 전부 존재 확인.
+- **독립 리뷰 게이트**: 작성 맥락 미공유 별도 subagent → 정합성 결함 0. 라우트 그룹 오탐 가능성 지적 → 하드닝 반영.
 
 **2. 왜 그렇게 했는지**
-- 구멍의 근본원인 = 비활성 계정이 truthy `userId`를 받아 통과. **소스 1곳(userId 비움)** 으로 13곳+미래 게이트를 한 번에 닫음 = CLAUDE.md "오류는 기계가 잡는다·재발방지"에 부합. 각 게이트에 개별 `disabled` 체크를 넣는 대안은 코드량↑ + 미래 게이트가 또 빠뜨릴 위험이라 기각.
-- `email`·`reason:"account_disabled"`는 감사(audit)·디버그용으로 유지(userId만 제거). `isAdmin=false`·`appRole` 미설정은 그대로라 `isAdmin`/`isStaff` 게이트도 계속 차단.
-- change-password 가드 제거로 비활성 계정 응답이 `403 account_disabled`→`401 unauthorized`로 바뀜(둘 다 거부, 이 문자열 검사하는 테스트·클라 없음 확인).
+- 상세 `[id]` 페이지를 새로 만드는 대신 **목록 링크(YAGNI)** — 이메일 알림과 정책 일치 + 문의번호는 제목에 있어 정보 손실 0.
+- #31이 만든 404 가드(§4)는 `app/`의 `router.push`·`href`만 스캔 → 서버 알림 모듈의 `link:` 문자열은 사각지대였음. **뚫린 가드를 그대로 두지 않고** §14로 그 벡터를 메움(재발 추적 규칙: "새 가드만 얹지 말고 뚫린 가드를 보강").
+- 라우트 그룹 투명 통과는 현재 트리엔 `(group)`이 0개라 동작 변화 없음 — 향후 App Router 리팩터 때 정상 링크를 헛-빨강 처리하는 것 예방(값싼 예방코드).
 
 **3. 안 끝났거나 보류**
-- ⏸ **병원·에이전시 포털은 `app_metadata.disabled`를 안 봄**(`checkHospitalAuth`/`checkAgencyAuth`) — 단 각자 `is_active` 자체 비활성 체계로 막혀 **보안 구멍 아님**. 문서 명시 or 방어적 이중차단은 후속 칩(task_19f05a2a)으로 **별도 세션 진행 중**. 결과만 확인하면 됨.
-- 이 세션 자체의 미완/보류 없음(단일 작업 완결).
+- 이 세션 자체 미완/보류 **없음**(단일 버그 완결).
 
 **4. 주의·함정**
-- **계정 비활성이 계층별 3가지 플래그로 분리**: 코디·어드민=`app_metadata.disabled`(/admin/staff), 국내병원=`hospital_users.is_active`, 해외에이전시=`agency_users.is_active`. "disabled 토글이 전 계정을 잠근다"고 오해 금지.
-- `checkAdminAuth`가 **비활성 계정엔 `userId`를 안 준다** — 이 반환값에서 `userId`를 "로그인된 주체"로 쓰는 새 코드 넣지 마라(비활성이 통과함). `email`은 감사용으로 남아있음.
-- `getUser()`는 supabase-js v2에서 **네트워크로 최신 app_metadata 조회**(로컬 JWT 아님) → 관리자가 비활성 토글하면 다음 요청부터 즉시 반영.
+- **어드민 문의 상세 `[id]` 라우트는 여전히 없음** — `/admin/inquiries`는 목록 페이지만 존재. 새 코드에서 `/admin/inquiries/숫자`로 링크 걸지 마라(404). 상세가 필요하면 `app/admin/inquiries/[id]/page.jsx`를 먼저 만들 것.
+- **§14 가드는 값이 `/`로 시작하는 `link` 리터럴만 검사** — `${baseUrl}…`로 조립되는 절대 URL 링크(예: `dispatch-reminders`의 `/consultation/${id}`)는 정적분석 밖 = 코드리뷰 몫(주석에 명시). 새 알림에 절대 URL 링크를 쓰면 가드가 못 잡으니 라우트 존재를 직접 확인.
 
 **5. 다음 세션이 먼저 할 일**
-1. (이 세션 미검증분 없음 — 코드는 테스트·타입·독립리뷰·CI 초록으로 검증됨. 실 로그인 세션 클릭검증만 자동화 불가라 회귀테스트로 대체.)
-2. ⚠️ **아래 07-06 세션 미검증분 유지**: 다기기 화상 테스트(초대링크 **2026-07-10 만료** → 그 전에 진행 보채기) + LiveKit webhook 첫 수신(Vercel 로그 `[livekit/webhook]`).
-3. 후속 칩(병원·에이전시 비활성 일원화, task_19f05a2a) 결과 확인.
+1. ⚠️ **직전 미검증분 먼저 확인**: 종 알림 실브라우저 클릭검증은 미실시(로그인+실제 문의 필요, SSR 쿠키 자동화 불가). 다음에 어드민 계정으로 실제 새 문의 종 알림을 눌러 `/admin/inquiries` 목록이 열리는지 1회 확인(경위: 목록 페이지 자체는 매일 열려 정상 확인된 화면이라 위험 낮음).
+2. ⚠️ **07-06 이전 미검증분 유지**: 다기기 화상 테스트(초대링크 **2026-07-10 만료** → 그 전에 진행) + LiveKit webhook 첫 수신(Vercel 로그 `[livekit/webhook]`).
+3. 병원·에이전시 비활성 일원화 후속(#681 칩) 결과 확인.
 
 **6. 검증 상태**
-- ✅ `vitest` 23개 통과(신규 회귀 4 포함), `tsc --noEmit` 변경파일 클린, 독립 리뷰 **APPROVE**, CI(Smoke Tests·ci·Vercel 배포) **전부 pass**, PR #681 머지 → `origin/main 0c87146` 반영·원격 브랜치 삭제 확인.
-- ⚠️ **검증 못 함**: 실제 로그인 세션으로 비활성 계정이 브라우저에서 401 받는지 클릭검증은 미실시(SSR 쿠키 세션 자동화 불가 영역) — 회귀 테스트가 계약(userId 비움)을 고정.
+- ✅ **PR #686 머지 확인**(origin/main `9454e28` — `git show origin/main`으로 #73·inApp 수정 반영 실측). CI **ci·Smoke Tests(PR)·Vercel 배포 전부 pass**, E2E는 PR에서 정상 skip.
+- ✅ `npx next build --webpack` 통과 / `npm run check:content` 통과(origin/main 리베이스 후 재확인) / 가드 자체 검증: 링크 재-破 시 `[알림링크404]` 검출·그룹중첩 라우트 오탐 0·없는 라우트 검출 유지 3종 확인.
+- ⚠️ **검증 못 함**: 실브라우저에서 종 알림 클릭→목록 열림은 직접 확인 안 함(위 5-1로 승격). 링크 목적지 존재는 기계 대조로 확인됨.
 
 **7. 다음 세션 첫 프롬프트**
-> docs/PROJECT_CONTEXT.md 최상단 읽어. 비활성 계정 차단(#681)은 머지·배포 끝났어. 병원·에이전시 비활성 체계 일원화 후속(칩)이 별도 세션에서 돌고 있으니 결과만 챙기고, 07-06 미검증분(다기기 화상 테스트 링크 2026-07-10 만료 전 진행 보채기 + webhook 첫 수신 Vercel 로그)이 아직이면 그거 먼저 해.
+> docs/PROJECT_CONTEXT.md 최상단 읽어. 어드민 종 알림 404(#686)는 머지·배포 끝났고 재발방지 가드(§14)까지 심었어. 남은 건 미검증분: ①어드민 계정으로 실제 새 문의 종 알림 눌러 /admin/inquiries 목록 열리는지 1회 확인 ②다기기 화상 테스트(초대링크 2026-07-10 만료 전) + LiveKit webhook 첫 수신 Vercel 로그. 이거부터 챙겨.
 
 ---
 
-## 🔖 세션 핸드오프 (2026-07-06 낮~밤 종결 — 주말 정리 + PO 결정 일괄 완결: notes 암호화 100%·2인 레이아웃·#562 초청장·#658 튕김수리 + webhook 최초 등록 + 루프 정지 + ⚠️다기기 테스트 연기)
+## 🔖 세션 핸드오프 (2026-07-07 — 전방위 버그 사냥 2라운드 + 보류목록: main에 PR 4개 머지·배포 #675·#680·#682·#685)
 
-> PO 출근 준비 세션("금토일 작업 정리"). 주말 요약 → PO 버튼 결정으로 보류 3건 착수·완결 + 미머지 PR 4건 머지(#654·#567·#562·#658) + 유실 전수조사 0건. **오후 PO 지시로 자동 루프 전부 정지.** ⚠️ **다기기 테스트는 직원 퇴근으로 2026-07-06 미실시 — 연기, 링크 2026-07-10 만료**(5번). (낮 상세 기록은 archive 회전분 참조 — 여기는 종결판)
+> "세션 만든 김에 뭐하고 놀까"에서 시작 → PO가 "버그 사냥" 선택. subagent 8마리로 2라운드 훑고(보안·데이터·i18n·백오피스로직·돈/시간대·크론·프론트훅), **찾은 건 내가 직접 코드 재확인한 것만** 심각도순 보고 → PO가 범위 버튼선택 → 수정. **매 PR을 작성맥락 미공유 독립 리뷰 subagent로 검증 후 자동머지.** KHIDI 8/27 정량지표 유실 구멍 3개를 닫은 게 핵심.
 
-**1. 이번 세션 한 일**
-- **PR #654 ✅ 머지·배포**: ①상담 notes 암호화(AES-256-GCM, `consultationNotes.ts` 신설, 기회주의적 백필) ②데스크톱 1:1 반반분할 + 세로영상 blur-fill. 독립 리뷰 통과 + PLAUSIBLE 2건 반영(구형 iOS matchMedia 폴백·복호화 실패 로그 마커).
-- **notes 암호화 100% 완결 실측**: PO가 관리자 계정으로 /admin/consultations + 「전체」 탭 열어 백필 완료 — **DB 실측 평문 0건 / 암호문 7건**.
-- **PR #567 ✅ 머지·배포**: 파트너 발굴 추적기(schema-refs 스냅샷 수리 + flaky 스모크 재실행 판별 포함). **Assel 코디 계정 생성·실로그인 검증**(`assel@healwith.co.kr`, 임시비번 PO 채팅 전달).
-- **PR #562 ✅ 머지·배포**: 초청장 = 면력한방병원(등록 유치의료기관) 명의 + 본로이 공동.
-- **PR #658 ✅ 머지·배포·PO 실화면 검증**: 권한 없는 계정의 /admin 진입 시 "말없이 /login 튕김"(PO 실사고) → proxy.ts 가 로그인O·권한X 를 신설 `/no-access` 안내로, 미로그인만 /login(딥링크 보존). 독립 리뷰가 1차 수정(클라이언트 게이트)=프로덕션 죽은코드임을 CONFIRMED로 잡아 미들웨어로 이전 + open-redirect `/\` 우회 차단.
-- **LiveKit webhook 최초 등록(PO 직접)**: 등록된 적 자체가 없었음(이벤트 0의 진짜 원인). `https://healwith.co.kr/api/livekit/webhook` + Signing key `healo`. 첫 실통화 때 Vercel 로그 `[livekit/webhook]` 수신/서명워닝 확인 필요.
-- **테스트 상담방 2개 삭제**(PO 승인) / **유실 전수조사**: 브랜치 205개 merge-tree 시뮬레이션 = **main 유실 0건 확정**. 잔여 브랜치 182개 착시가 원인 — GitHub 자동삭제 설정 PO가 켬. 182개 삭제는 원격 환경 3중 차단으로 보류(목록 PO 채팅 전달).
+**1. 이번 세션 한 일** (전부 main 머지·프로덕션 배포)
+- **PR [#675](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/675)**: 환자앱(6개어) 한글누출 3곳(`/patient/visa` 허브 통짜·증상분석 긴급도배지·권장조치문구) 6개어화 · 목록 API 2곳(cost-estimates·visa)이 환자에게 코디노트 암호문 반환하던 것 strip · `decryptMaybe` 무방비 복호화로 리드 인박스 전체 500 나던 것 try-catch(7개 호출부 보호). 가드 §1d(환자앱 JSX 한글) 신설.
+- **PR [#680](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/680)**: **BO-1** admin 리드확정 시 유치(K-01) 미집계 봉쇄(`admin/leads/[id]`에 `syncLeadStatusToCase` 추가 — partner 경로만 집계하던 구멍) · **CRON-1** 만족도(K-03) 설문 이메일실패 영구유실 방지(실패 시 pending행 삭제→재시도) · **예약시각 시간대 15곳** KST 고정(`src/lib/datetime/kst.js` 신설: kstDate/kstTime/kstDateTime/kstDateParts) · 재예약 기본10시가 UTC라 19:00 KST 잡히던 것. 가드 §1e(`scheduled_at` Asia/Seoul 누락) 신설.
+- **PR [#682](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/682)**: **FE-1** 환자·코디 메시지 폴링이 전체교체라 전송 직후 메시지가 폴링 때 깜빡 사라지던 것→id 병합 · **BO-2** `/api/admin/analytics`가 테스트문의 미제외로 대시보드 리드수 부풀리던 것 `.not(is_test,is,true)`.
+- **PR [#685](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/685)**: **MONEY-4** 견적서 USD총액이 KRW와 독립합산돼 불일치하던 것 → 모든 라인에 USD 있을 때만 표기(불완전시 `total_usd=null`→표시화면 truthy가드가 자동 숨김 + PDF 별도가드).
+- 반성문 **#67~#72** 기록. 비번 `error.message` 노출(#6)은 작업칩으로 넘겨 **딴 세션이 수리·머지**(#684 계열).
 
 **2. 왜 그렇게 했는지**
-- notes 백필을 "조회 시점"으로: ENCRYPTION_KEY_V1 이 서버(Vercel)에만 있고 어드민 목록이 매일 열림 → 자동 전량 이전. `.is("notes_encrypted", null)` 가드로 이중 변환 방지.
-- blur-fill 방향 감지 생략: 가로 영상은 앞장(contain)이 타일을 채워 뒷장이 안 보임 — 감지 자체가 불필요.
+- 유치·설문·시간대 수정은 KHIDI 8/27 **정량지표(유치/상담/만족도) 유실을 직접 막은 것** — 실적이 통과관건인데 그게 조용히 새던 구멍. 시간대는 러/카(핵심타깃) 환자가 예약시각을 4시간 밀려 보고 상담 놓치던 문제.
+- **CRON-3/4 리마인더 이중발송은 의도적 보류(현행유지)**: 의료 리마인더는 **at-least-once(중복)가 유실보다 안전**하고 Vercel 크론은 겹쳐 안 돌아, 순진한 dedup/claim은 오히려 리마인더 유실 위험. 완전 idempotency 재설계 전엔 현행이 옳음.
+- **MONEY-4는 환율정책=PO 결정 사항**(법적 문서). 환율 임의계산 대신 "불완전시 USD 숨김"(틀린 숫자 안 나감) 채택.
 
 **3. 안 끝났거나 보류**
-- ⏸ **다기기 화상 테스트 연기 (2026-07-06 직원 퇴근)**: 초대 링크 상담방 87710d1d, **2026-07-10 만료** → **2026-07-07(화)~07-09(목) 진행 필요**(만료 시 재발급 가능). 새 반반분할 화면이 이미 배포돼 있어 그 화면으로 검증됨.
-- ⏸ **자동 루프 전부 정지 (PO 지시)**: 이 세션 자가점검 예약 비활성 + 「사고·품질 순찰(2시간)」 cron 삭제(타 세션 바인딩이라 정지 불가 → 삭제, 복원 프롬프트는 archive 낮 블록에). **PO가 "루프 다시 켜"라고 하기 전까지 새 루프·자가점검 예약 금지.**
-- ⏸ 옛 브랜치 182개 삭제 보류(원격 환경 차단, 서비스 영향 0) / 잔존: 게스트토큰 E2E 스펙 고정 실패 / **PR #514(사업계획서) = 마지막 남은 열린 PR, PO 검토 대기**.
+- ⏸ **CRON-3/4 리마인더 이중발송** — 의도적 현행유지(위 2번 근거). 완전 idempotency가 필요해지면 그때 dedupe키 설계.
+- ⏸ **코디 내부 견적 편집화면 하단 합계**(`CoordinatorCostDetailClient`)는 단순합산 유지 — 코디가 입력 중인 작업용 실시간 총액이라 의도적 비변경(환자/법적문서 아님).
 
 **4. 주의·함정**
-- notes 는 이제 **API 경유로만 읽어라** — DB 직접 조회하면 암호문. `[TEST]` 마커 판정은 저장 전 평문이라 동작 불변.
-- 상담방 `useIsDesktopViewport`는 iOS 13 이하 폴백(addListener) 포함 — matchMedia 새 API만 쓰면 구형 폰에서 상담방이 죽는다.
-- 이 세션 브랜치(claude/work-summary-prep-f1499o)는 PR 4개를 재활용한 뒤 **GitHub Actions 가 PR 이벤트에 검사를 안 붙이는 상태**(다른 브랜치는 정상) — 다음 세션은 새 브랜치로 시작 권장.
+- **예약시각(`scheduled_at`) 표시는 반드시 `src/lib/datetime/kst.js`의 kstDate/kstTime/kstDateTime/kstDateParts 경유.** 가드 §1e가 `scheduled_at`+`toLocale`+`Asia/Seoul`없으면 CI 차단(단, 변수에 담은 다중행은 못 잡음 — 리뷰 몫). 환자앱 JSX 텍스트 한글은 §1d가 차단.
+- **`.ts` 수정은 `next build`만으론 타입에러 안 잡힘**(strict:false) → **`npm run typecheck` 필수**(이번 1차 CI fail 원인: `string|null`→`string`). `.next/dev/types`의 낡은 캐시 에러(딴 브랜치 페이지)는 `rm -rf .next/dev/types` 후 재검사.
+- ⚠️ **이 세션 내내 로컬 working tree가 딴 브랜치로 튐**(auto-save훅+병렬세션+세션resume). 코드는 매 PR로 origin에 안전히 남았으나 **로컬 상태를 믿지 말고 origin 기준으로 확인**할 것.
 
 **5. 다음 세션이 먼저 할 일**
-1. ⚠️ **직전 미검증분 (다기기 테스트 연기로 대기)**: ①2인 반반분할·blur-fill 육안 ②webhook 첫 수신(Vercel 로그 `[livekit/webhook]`/서명 워닝) — 둘 다 첫 실통화 때 확인. **링크 2026-07-10 만료 → 테스트하자고 PO 보채기(보채기는 PO가 요청한 서비스).**
-2. 다기기 테스트 결과 판독(실패 기기 = admin_audit_logs CONSULTATION_CLIENT_ERROR).
-3. GSC/얀덱스 후속은 아래 "구글 서치콘솔" 블록 5번 참조.
+1. ⚠️ **직전 미검증분 먼저**: 이번 4개 PR의 **실화면 렌더는 인증필요라 눈으로 못 봄**(빌드·타입·독립리뷰·CI로 대체) → 배포후 실클릭으로 ①환자앱 러/카 화면 한글 안 새는지 ②예약시각이 KST로 뜨는지(브라우저 tz 바꿔 확인) ③견적서 USD 부분입력시 숨는지 확인.
+2. **07-06 미검증분 유지**: 다기기 화상 테스트(초대링크 **2026-07-10 만료** → 그 전에 진행 보채기) + LiveKit webhook 첫 수신(Vercel 로그 `[livekit/webhook]`).
+3. (선택) 보류한 CRON-3/4·MONEY 후속은 위 3번 참조.
 
 **6. 검증 상태**
-- ✅ 2026-07-06 머지 4건(#654·#567·#562·#658) 전부 CI 초록 확인 후 머지, 프로덕션 health ok·핵심 페이지 200 재검증. #658은 PO 실화면 검증까지.
-- ✅ notes: DB 실측 평문 0/암호문 7. 열린 PR 실확인(API 조회): #514 하나뿐.
-- ⚠️ **검증 못 함**: 2인 레이아웃 육안·webhook 첫 수신(5-1 승격). 핸드오프 PR(#665)은 Actions 미부착으로 CI 없이 머지 — 로컬에서 동일 검사(check:handoff·check:content) 통과가 근거.
+- ✅ PR **#675·#680·#682·#685** 전부 CI(`ci`·`Smoke`)초록 + Vercel 배포 + **독립 리뷰 subagent CLEAN** 확인 후 squash 머지, origin/main 반영 실확인. #680은 1차 `tsc` fail(`hospital_id` string|null)→null가드 수정 후 통과.
+- ✅ MONEY-4: `cost_estimates.total_usd` nullable 실DB 확인(integer, is_nullable=YES) → null 저장 안전.
+- ✅ 자동검사: 매 PR `next build --webpack`·`typecheck`·`check:content` 통과. 새 가드 §1d·§1e 포함 통과(§1e가 커밋 전 누락 2줄 실제로 잡음).
+- ⚠️ **검증 못 함**: 위 4개 PR의 **실화면 렌더(환자앱 6개어·예약시각 KST·견적서 USD숨김)** — 전부 인증게이트라 로컬 자동화 불가. 5-1로 승격.
 
 **7. 다음 세션 첫 프롬프트**
-> docs/PROJECT_CONTEXT.md 최상단 읽어. 다기기 테스트가 아직이면 링크 만료(2026-07-10) 전에 하자고 PO를 보채고, 끝났으면 결과 판독(CONSULTATION_CLIENT_ERROR) + webhook 첫 수신(Vercel 로그) + 반반분할 육안 피드백 확인해. 자동 루프는 PO 지시로 전부 정지 — "다시 켜" 전까지 만들지 마라. 작업은 새 브랜치로 시작해(이 세션 브랜치는 Actions 미부착 상태).
+> docs/PROJECT_CONTEXT.md 최상단 읽어. 2026-07-07 버그사냥으로 머지한 4개 PR(#675·#680·#682·#685)의 실화면을 배포본에서 확인해 — 환자앱 러/카 한글 안 새는지·예약시각 KST로 뜨는지(브라우저 tz 바꿔)·견적서 USD 부분입력시 숨는지. 그리고 다기기 화상 테스트가 아직이면 초대링크 만료(2026-07-10) 전에 하자고 보채. 예약시각 표시는 이제 src/lib/datetime/kst 헬퍼만 써(가드 §1e). .ts 고치면 typecheck도 꼭 돌려.
 
 ---
 

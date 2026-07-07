@@ -2,30 +2,55 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useBackofficeLang, useCoordinatorL, useDateLocale } from "@/lib/i18n/coordinator";
+import { nationalityLabelL } from "@/lib/khidi/nationality";
 
-const STATUS_LABELS = {
-  draft: "작성 중",
-  documents_pending: "서류 준비",
-  under_review: "검수 중",
-  changes_requested: "수정 요청",
-  invitation_ready: "초청장 준비",
-  invitation_issued: "초청장 발급",
-  submitted_embassy: "대사관 접수",
-  approved: "비자 승인",
-  rejected: "거절",
-  cancelled: "취소",
-};
+// 비자 진행 상태 코드(라벨은 컴포넌트에서 L로 해석). 목록 파일의 STATUS_LABEL과 같은 vi 키 공유.
+const ALL_STATUSES = [
+  "draft",
+  "documents_pending",
+  "under_review",
+  "changes_requested",
+  "invitation_ready",
+  "invitation_issued",
+  "submitted_embassy",
+  "approved",
+  "rejected",
+  "cancelled",
+];
 
-const ALL_STATUSES = Object.keys(STATUS_LABELS);
-
-const REVIEW_LABELS = {
-  pending: { ko: "대기", color: "text-amber-700 bg-amber-50" },
-  approved: { ko: "승인", color: "text-emerald-700 bg-emerald-50" },
-  rejected: { ko: "반려", color: "text-red-700 bg-red-50" },
-  needs_revision: { ko: "수정 요청", color: "text-orange-700 bg-orange-50" },
+// 서류 검수 상태 색상만 모듈 상수(언어 무관). 라벨은 컴포넌트에서 L로 해석.
+const REVIEW_COLOR = {
+  pending: "text-amber-700 bg-amber-50",
+  approved: "text-emerald-700 bg-emerald-50",
+  rejected: "text-red-700 bg-red-50",
+  needs_revision: "text-orange-700 bg-orange-50",
 };
 
 export default function CoordinatorVisaDetailClient({ applicationId }) {
+  const L = useCoordinatorL();
+  const lang = useBackofficeLang();
+  const dateLoc = useDateLocale();
+  // 비자 진행 상태 라벨(목록 파일과 동일한 vi 키)
+  const STATUS_LABEL = {
+    draft: L.viStatusDraft,
+    documents_pending: L.viStatusDocsPending,
+    under_review: L.viStatusUnderReview,
+    changes_requested: L.viStatusChangesRequested,
+    invitation_ready: L.viStatusInvitationReady,
+    invitation_issued: L.viStatusInvitationIssued,
+    submitted_embassy: L.viStatusSubmittedEmbassy,
+    approved: L.viStatusApproved,
+    rejected: L.viStatusRejected,
+    cancelled: L.viStatusCancelled,
+  };
+  // 서류 검수 상태 라벨
+  const REVIEW_LABEL = {
+    pending: L.viReviewPending,
+    approved: L.viReviewApproved,
+    rejected: L.viReviewRejected,
+    needs_revision: L.viReviewNeedsRevision,
+  };
   const [application, setApplication] = useState(null);
   const [documents, setDocuments] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -63,14 +88,14 @@ export default function CoordinatorVisaDetailClient({ applicationId }) {
       }
     } catch (err) {
       console.error("[coordinator/visa]", err);
-      setError("신청 정보를 불러오지 못했습니다.");
+      setError(L.viLoadDetailError);
     } finally {
       setLoading(false);
     }
   }
 
   async function handleStatusChange(newStatus) {
-    const note = prompt(`"${STATUS_LABELS[newStatus]}" 로 상태 변경. 메모(선택):`);
+    const note = prompt(L.viPromptStatusChange.replace("{status}", STATUS_LABEL[newStatus]));
     if (note === null) return;
     try {
       const res = await fetch(
@@ -86,13 +111,13 @@ export default function CoordinatorVisaDetailClient({ applicationId }) {
       if (!res.ok || !json.ok) throw new Error(json.error || json.detail || "failed");
       await loadAll();
     } catch (_err) {
-      alert("상태 변경 실패");
+      alert(L.viStatusChangeFail);
     }
   }
 
   async function handleDocReview(docId, reviewStatus) {
     const note = reviewStatus === "rejected" || reviewStatus === "needs_revision"
-      ? prompt("사유(환자에게 보일 메모):")
+      ? prompt(L.viPromptReviewReason)
       : null;
     if (note === null && (reviewStatus === "rejected" || reviewStatus === "needs_revision")) return;
     try {
@@ -109,7 +134,7 @@ export default function CoordinatorVisaDetailClient({ applicationId }) {
       if (!res.ok || !json.ok) throw new Error(json.error || "failed");
       await loadAll();
     } catch (_err) {
-      alert("검수 실패");
+      alert(L.viReviewFail);
     }
   }
 
@@ -127,16 +152,16 @@ export default function CoordinatorVisaDetailClient({ applicationId }) {
       );
       const json = await res.json();
       if (!res.ok || !json.ok) throw new Error(json.error || "failed");
-      alert("메모 저장됨");
+      alert(L.viNotesSaved);
     } catch (_err) {
-      alert("저장 실패");
+      alert(L.viNotesSaveFail);
     } finally {
       setSaving(false);
     }
   }
 
   async function handleIssueInvitation() {
-    if (!confirm("초청장을 발급하시겠습니까? PDF 가 생성되고 상태가 'invitation_issued' 로 변경됩니다.")) return;
+    if (!confirm(L.viConfirmIssue)) return;
     setIssuing(true);
     try {
       const res = await fetch(
@@ -146,22 +171,22 @@ export default function CoordinatorVisaDetailClient({ applicationId }) {
       const json = await res.json();
       if (!res.ok || !json.ok) throw new Error(json.error || json.detail || "failed");
       await loadAll();
-      alert("초청장 발급 완료");
+      alert(L.viIssueDone);
     } catch (_err) {
-      alert("발급 실패");
+      alert(L.viIssueFail);
     } finally {
       setIssuing(false);
     }
   }
 
   if (loading) {
-    return <div className="max-w-5xl mx-auto px-4 py-10"><p className="text-gray-500 text-sm">불러오는 중...</p></div>;
+    return <div className="max-w-5xl mx-auto px-4 py-10"><p className="text-gray-500 text-sm">{L.processing}</p></div>;
   }
   if (error || !application) {
     return (
       <div className="max-w-5xl mx-auto px-4 py-10">
-        <p className="text-red-600 text-sm">오류: {error}</p>
-        <Link href="/coordinator/visa" className="text-sm underline mt-4 inline-block">← 목록</Link>
+        <p className="text-red-600 text-sm">{L.viErrorPrefix}: {error}</p>
+        <Link href="/coordinator/visa" className="text-sm underline mt-4 inline-block">{L.viBackShort}</Link>
       </div>
     );
   }
@@ -172,29 +197,29 @@ export default function CoordinatorVisaDetailClient({ applicationId }) {
   return (
     <div className="max-w-5xl mx-auto px-4 py-10">
       <Link href="/coordinator/visa" className="text-sm text-gray-600 hover:text-gray-900 underline underline-offset-4">
-        ← 비자 목록
+        {L.viBackToList}
       </Link>
 
       <div className="mt-4 flex items-start justify-between">
         <div>
           <h1 className="text-3xl font-semibold tracking-tight">
-            {application.visa_type} · {application.nationality}
+            {application.visa_type} · {nationalityLabelL(application.nationality, lang)}
           </h1>
           <p className="text-sm text-gray-500 mt-1">
-            환자 ID: <span className="font-mono">{application.patient_user_id.slice(0, 8)}...</span> ·
-            생성 {new Date(application.created_at).toLocaleString("ko-KR")}
+            {L.viPatientId}: <span className="font-mono">{application.patient_user_id.slice(0, 8)}...</span> ·
+            {" "}{L.viCreatedLabel} {new Date(application.created_at).toLocaleString(dateLoc)}
           </p>
         </div>
         <div className="text-right">
           <span className="text-xs bg-gray-100 px-2 py-1 rounded">
-            현재: {STATUS_LABELS[application.status]}
+            {L.viCurrentLabel}: {STATUS_LABEL[application.status]}
           </span>
         </div>
       </div>
 
       {/* 상태 변경 */}
       <section className="mt-6 border border-gray-200 rounded-lg p-4 bg-white">
-        <h2 className="font-medium text-sm mb-3">상태 변경</h2>
+        <h2 className="font-medium text-sm mb-3">{L.viStatusChangeTitle}</h2>
         <div className="flex flex-wrap gap-2">
           {ALL_STATUSES.map((s) => (
             <button
@@ -207,7 +232,7 @@ export default function CoordinatorVisaDetailClient({ applicationId }) {
                   : "border-gray-300 hover:border-black"
               }`}
             >
-              {STATUS_LABELS[s]}
+              {STATUS_LABEL[s]}
             </button>
           ))}
         </div>
@@ -217,15 +242,15 @@ export default function CoordinatorVisaDetailClient({ applicationId }) {
       <section className="mt-6 border border-gray-200 rounded-lg p-4 bg-white">
         <div className="flex items-start justify-between">
           <div>
-            <h2 className="font-medium text-sm">초청장 (Invitation Letter)</h2>
+            <h2 className="font-medium text-sm">{L.viInvitationTitle}</h2>
             <p className="text-xs text-gray-500 mt-1">
-              서류 검수 완료 후 초청장 PDF 를 자동 발급합니다. 발급되면 환자에게 즉시 노출됩니다.
+              {L.viInvitationDesc}
             </p>
           </div>
           {application.invitation_issued_at ? (
             <div className="text-right">
               <p className="text-xs text-emerald-700">
-                발급 완료 {new Date(application.invitation_issued_at).toLocaleDateString("ko-KR")}
+                {L.viIssuedDoneLabel} {new Date(application.invitation_issued_at).toLocaleDateString(dateLoc)}
               </p>
               {invitationUrl && (
                 <a
@@ -234,7 +259,7 @@ export default function CoordinatorVisaDetailClient({ applicationId }) {
                   rel="noopener noreferrer"
                   className="text-xs text-blue-600 hover:underline block mt-1"
                 >
-                  PDF 다운로드
+                  {L.viPdfDownload}
                 </a>
               )}
             </div>
@@ -243,9 +268,9 @@ export default function CoordinatorVisaDetailClient({ applicationId }) {
               onClick={handleIssueInvitation}
               disabled={!canIssueInvitation || issuing}
               className="bg-emerald-700 text-white px-4 py-2 rounded text-sm hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed"
-              title={!canIssueInvitation ? `현재 상태(${STATUS_LABELS[application.status]})에서는 발급 불가` : ""}
+              title={!canIssueInvitation ? L.viIssueDisabledHint.replace("{status}", STATUS_LABEL[application.status]) : ""}
             >
-              {issuing ? "발급 중..." : "초청장 발급"}
+              {issuing ? L.viIssuing : L.viIssueBtn}
             </button>
           )}
         </div>
@@ -253,12 +278,12 @@ export default function CoordinatorVisaDetailClient({ applicationId }) {
 
       {/* 코디 메모 */}
       <section className="mt-6 border border-gray-200 rounded-lg p-4 bg-white">
-        <h2 className="font-medium text-sm mb-2">코디 메모 (환자에게도 표시됨)</h2>
+        <h2 className="font-medium text-sm mb-2">{L.viNotesTitle}</h2>
         <textarea
           value={coordinatorNotes}
           onChange={(e) => setCoordinatorNotes(e.target.value)}
           rows={4}
-          placeholder="환자에게 전달할 메모 (서류 수정 사항, 일정 공유 등)"
+          placeholder={L.viNotesPlaceholder}
           className="w-full border border-gray-300 rounded p-2 text-sm"
         />
         <div className="flex justify-end mt-2">
@@ -267,7 +292,7 @@ export default function CoordinatorVisaDetailClient({ applicationId }) {
             disabled={saving}
             className="bg-black text-white px-4 py-2 rounded text-sm hover:bg-gray-800 disabled:opacity-50"
           >
-            {saving ? "저장 중..." : "메모 저장"}
+            {saving ? L.viNotesSaving : L.viNotesSaveBtn}
           </button>
         </div>
       </section>
@@ -275,14 +300,15 @@ export default function CoordinatorVisaDetailClient({ applicationId }) {
       {/* 서류 검수 */}
       <section className="mt-6 border border-gray-200 rounded-lg overflow-hidden bg-white">
         <div className="p-4 border-b border-gray-200">
-          <h2 className="font-medium text-sm">제출 서류 ({documents.length}건)</h2>
+          <h2 className="font-medium text-sm">{L.viDocsTitle.replace("{n}", documents.length)}</h2>
         </div>
         {documents.length === 0 ? (
-          <p className="p-6 text-sm text-gray-500 text-center">제출된 서류 없음</p>
+          <p className="p-6 text-sm text-gray-500 text-center">{L.viDocsEmpty}</p>
         ) : (
           <ul className="divide-y divide-gray-200">
             {documents.map((doc) => {
-              const review = REVIEW_LABELS[doc.review_status] || REVIEW_LABELS.pending;
+              const reviewColor = REVIEW_COLOR[doc.review_status] || REVIEW_COLOR.pending;
+              const reviewLabel = REVIEW_LABEL[doc.review_status] || REVIEW_LABEL.pending;
               return (
                 <li key={doc.id} className="p-4">
                   <div className="flex items-start justify-between gap-4">
@@ -291,17 +317,17 @@ export default function CoordinatorVisaDetailClient({ applicationId }) {
                         <span className="font-medium text-sm">
                           {doc.document_label || doc.document_type}
                         </span>
-                        <span className={`text-xs px-1.5 py-0.5 rounded ${review.color}`}>
-                          {review.ko}
+                        <span className={`text-xs px-1.5 py-0.5 rounded ${reviewColor}`}>
+                          {reviewLabel}
                         </span>
                       </div>
                       <p className="text-xs text-gray-500 mt-1 truncate">
                         {doc.file_name} · {(doc.file_size / 1024).toFixed(0)} KB ·{" "}
-                        {new Date(doc.created_at).toLocaleString("ko-KR")}
+                        {new Date(doc.created_at).toLocaleString(dateLoc)}
                       </p>
                       {doc.review_note && (
                         <p className="text-xs text-orange-700 mt-1">
-                          메모: {doc.review_note}
+                          {L.viReviewNoteLabel}: {doc.review_note}
                         </p>
                       )}
                     </div>
@@ -313,26 +339,26 @@ export default function CoordinatorVisaDetailClient({ applicationId }) {
                           rel="noopener noreferrer"
                           className="text-xs text-blue-600 hover:underline"
                         >
-                          보기
+                          {L.viDocView}
                         </a>
                       )}
                       <button
                         onClick={() => handleDocReview(doc.id, "approved")}
                         className="text-xs text-emerald-700 hover:underline"
                       >
-                        승인
+                        {L.viDocApprove}
                       </button>
                       <button
                         onClick={() => handleDocReview(doc.id, "needs_revision")}
                         className="text-xs text-orange-700 hover:underline"
                       >
-                        수정요청
+                        {L.viDocRequestRevision}
                       </button>
                       <button
                         onClick={() => handleDocReview(doc.id, "rejected")}
                         className="text-xs text-red-700 hover:underline"
                       >
-                        반려
+                        {L.viDocReject}
                       </button>
                     </div>
                   </div>
