@@ -212,7 +212,7 @@ function TranslatedDocView({ doc, onCopy, copied, onPdf, lang = "ko", onVerify, 
             <span className="font-medium"> {verify.suspicious.join(", ")}</span>
           </div>
         ) : (
-          <p className="text-xs text-teal-700 mb-2">✓ 표의 숫자 {verify.docCount}개가 원본 재판독과 일치했어요.</p>
+          <p className="text-xs text-teal-700 mb-2">✓ 번역의 숫자 {verify.docCount}개가 원본 재판독과 일치했어요.</p>
         )
       )}
 
@@ -247,7 +247,7 @@ function TranslatedDocView({ doc, onCopy, copied, onPdf, lang = "ko", onVerify, 
                         {(r?.cells || []).map((cell, ci) => (
                           <td key={ci} className="px-2.5 py-1.5 text-gray-800 align-top">
                             {editing ? (
-                              <input value={cell} onChange={(e) => patch((d) => { d.sections[si].rows[ri].cells[ci] = e.target.value; })}
+                              <input value={cell ?? ""} onChange={(e) => patch((d) => { d.sections[si].rows[ri].cells[ci] = e.target.value; })}
                                 className="w-full min-w-[5rem] border border-gray-200 rounded px-1 py-0.5 text-xs" />
                             ) : cell}
                           </td>
@@ -1017,6 +1017,7 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
                         </p>
                       ) : (
                         <TranslatedDocView
+                          key={curKey}
                           doc={entry.doc}
                           lang={curLang}
                           copied={copiedTransPath === curKey}
