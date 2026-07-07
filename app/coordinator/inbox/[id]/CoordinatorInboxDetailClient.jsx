@@ -11,7 +11,7 @@ import Link from "next/link";
 import {
   ArrowLeft, User, Globe, Mail, Phone, MessageCircle, Calendar,
   AlertCircle, FileText, Stethoscope, ClipboardList, Video,
-  Send, Copy, Check, ExternalLink,
+  Send, Copy, Check, ExternalLink, Download, Languages,
 } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { CASE_STATUS_STEPS, caseStatusLabelL } from "@/lib/khidi/caseStatus";
@@ -57,6 +57,125 @@ function Card({ title, children }) {
     <div className="rounded-xl border border-gray-200 bg-white p-5">
       <h2 className="text-sm font-semibold text-gray-700 mb-2">{title}</h2>
       {children}
+    </div>
+  );
+}
+
+// HTML 이스케이프(모델 출력을 새 창에 안전 렌더).
+function escHtml(s) {
+  return String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+}
+
+// 번역 결과를 깨끗한 새 창으로 열어 인쇄 → 'PDF로 저장'. 한글+키릴이 한 줄에 섞여 있어
+// @react-pdf(단일 폰트) 로는 깨진다 → 브라우저 인쇄(시스템 폰트)가 유일하게 안전. 새 의존성 0.
+function printTranslation(doc, name) {
+  const sections = (doc.sections || []).map((s) => {
+    let inner = "";
+    if (s.title) inner += `<h2>${escHtml(s.title)}</h2>`;
+    if (s.note) inner += `<p class="note">${escHtml(s.note)}</p>`;
+    if (Array.isArray(s.columns) && Array.isArray(s.rows) && s.rows.length) {
+      const head = `<tr>${s.columns.map((c) => `<th>${escHtml(c)}</th>`).join("")}</tr>`;
+      const body = s.rows.map((r) => `<tr>${(r?.cells || []).map((c) => `<td>${escHtml(c)}</td>`).join("")}</tr>`).join("");
+      inner += `<table><thead>${head}</thead><tbody>${body}</tbody></table>`;
+    }
+    if (s.text) inner += `<p class="text">${escHtml(s.text)}</p>`;
+    return `<section>${inner}</section>`;
+  }).join("");
+
+  const html = `<!doctype html><html lang="ko"><head><meta charset="utf-8">
+<title>${escHtml(name || doc.docType)} — 한글 번역</title>
+<style>
+*{box-sizing:border-box}
+body{font-family:-apple-system,"Malgun Gothic","Segoe UI",sans-serif;color:#111;margin:24px;font-size:12px}
+h1{font-size:16px;margin:0 0 2px}
+.sub{color:#555;margin:0 0 4px}
+.disc{color:#888;font-size:10px;margin:0 0 16px}
+h2{font-size:13px;margin:18px 0 6px}
+.note{color:#555;white-space:pre-wrap;margin:0 0 6px}
+.text{white-space:pre-wrap;line-height:1.5}
+table{width:100%;border-collapse:collapse;margin:4px 0 8px}
+th,td{border:1px solid #ccc;padding:4px 6px;text-align:left;vertical-align:top}
+th{background:#f3f4f6}
+@media print{body{margin:12mm}tr{page-break-inside:avoid}}
+</style></head><body>
+<h1>${escHtml(doc.docType)}</h1>
+<p class="sub">원본: ${escHtml(name || "")} · healwith 한글 번역</p>
+<p class="disc">원문을 그대로 옮긴 번역입니다(요약 아님). 숫자·정상범위는 원본과 대조하세요.</p>
+${sections}
+</body></html>`;
+
+  const w = window.open("", "_blank");
+  if (!w) { alert("팝업이 차단됐어요. 팝업 허용 후 다시 눌러주세요."); return; }
+  w.document.open();
+  w.document.write(html);
+  w.document.close();
+  w.focus();
+  setTimeout(() => { try { w.print(); } catch { /* 사용자가 수동 인쇄 */ } }, 400);
+}
+
+// 외국 검사지 한글 번역 결과(요약 아님, 원문 1:1). 표는 가로 스크롤로 감싼다(반응형).
+function TranslatedDocView({ doc, onCopy, copied, onPdf }) {
+  return (
+    <div>
+      <div className="flex items-center justify-between gap-2 mb-1.5">
+        <div className="flex items-center gap-2 flex-wrap min-w-0">
+          <span className="px-2 py-0.5 text-xs font-semibold rounded-full bg-teal-100 text-teal-700 shrink-0">
+            {doc.docTypeShort}
+          </span>
+          <span className="text-xs text-gray-500 truncate">{doc.docType}</span>
+        </div>
+        <div className="flex items-center gap-1.5 shrink-0">
+          <button
+            onClick={onPdf}
+            className="inline-flex items-center gap-1 px-2 py-1 text-xs rounded border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 transition"
+            title="PDF로 저장 (인쇄 → PDF로 저장 선택)"
+          >
+            <FileText size={13} /> PDF로 저장
+          </button>
+          <button
+            onClick={onCopy}
+            className="inline-flex items-center gap-1 px-2 py-1 text-xs rounded border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 transition"
+          >
+            {copied ? <Check size={13} /> : <Copy size={13} />} {copied ? "복사됨" : "복사"}
+          </button>
+        </div>
+      </div>
+      <p className="text-[11px] text-gray-400 mb-3">
+        원문을 그대로 옮긴 번역입니다(요약 아님). 숫자·정상범위는 원본과 대조하세요.
+      </p>
+      <div className="space-y-4">
+        {(doc.sections || []).map((s, si) => (
+          <div key={si}>
+            {s.title && <div className="text-sm font-semibold text-gray-700 mb-1">{s.title}</div>}
+            {s.note && <p className="text-xs text-gray-500 mb-1.5 whitespace-pre-wrap">{s.note}</p>}
+            {Array.isArray(s.columns) && Array.isArray(s.rows) && s.rows.length > 0 && (
+              <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white">
+                <table className="w-full text-xs">
+                  <thead className="bg-gray-50 text-gray-500">
+                    <tr>
+                      {s.columns.map((c, ci) => (
+                        <th key={ci} className="text-left font-medium px-2.5 py-1.5 whitespace-nowrap">{c}</th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {s.rows.map((r, ri) => (
+                      <tr key={ri} className="border-t border-gray-100">
+                        {(r?.cells || []).map((cell, ci) => (
+                          <td key={ci} className="px-2.5 py-1.5 text-gray-800 align-top">{cell}</td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+            {s.text && (
+              <p className="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed">{s.text}</p>
+            )}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -165,6 +284,87 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
       console.error("[attachment] sign error:", e);
     }
     setAttLoadingPath(null);
+  }
+
+  // 첨부 다운로드: download=원본파일명 으로 서명URL 발급 → Content-Disposition 으로 한 번에 원본 이름 저장.
+  // (미리보기와 달리 새 탭이 아니라 즉시 다운로드. 스토리지 난수 대신 원래 문서명이 붙는다.)
+  const [attDownloadPath, setAttDownloadPath] = useState(null);
+  async function downloadAttachment(path, name) {
+    if (!path) return;
+    setAttDownloadPath(path);
+    try {
+      const supabase = createSupabaseBrowserClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      const cleanPath = path.startsWith("/") ? path.slice(1) : path;
+      const res = await fetch("/api/attachments/sign", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({ path: cleanPath, download: name || cleanPath.split("/").pop() }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.signedUrl) {
+        const a = document.createElement("a");
+        a.href = data.signedUrl;
+        a.rel = "noopener";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      }
+    } catch (e) {
+      console.error("[attachment] download error:", e);
+    }
+    setAttDownloadPath(null);
+  }
+
+  // 첨부 한글 변환: 외국 검사지를 한국 병원 전달용으로 원문 1:1 한국어 번역(요약 아님, 숫자 보존).
+  const [transLoadingPath, setTransLoadingPath] = useState(null);
+  const [translations, setTranslations] = useState({}); // path -> { doc } | { error }
+  const [copiedTransPath, setCopiedTransPath] = useState(null);
+  async function translateAttachment(path, name) {
+    if (!path) return;
+    setTransLoadingPath(path);
+    try {
+      const supabase = createSupabaseBrowserClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      const cleanPath = path.startsWith("/") ? path.slice(1) : path;
+      const res = await fetch("/api/attachments/translate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({ path: cleanPath, name }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.ok && data.doc) {
+        setTranslations((prev) => ({ ...prev, [path]: { doc: data.doc } }));
+      } else {
+        setTranslations((prev) => ({ ...prev, [path]: { error: data.error || "translate_failed" } }));
+      }
+    } catch (e) {
+      console.error("[attachment] translate error:", e);
+      setTranslations((prev) => ({ ...prev, [path]: { error: "translate_failed" } }));
+    }
+    setTransLoadingPath(null);
+  }
+
+  // 번역 결과를 한국 의료진에게 넘길 수 있게 평문으로 클립보드 복사(표는 탭 구분).
+  async function copyTranslation(path, doc) {
+    const lines = [`[${doc.docType}]`, ""];
+    for (const s of doc.sections || []) {
+      lines.push(`■ ${s.title || ""}`);
+      if (s.note) lines.push(s.note);
+      if (Array.isArray(s.columns) && Array.isArray(s.rows)) {
+        lines.push(s.columns.join("\t"));
+        for (const r of s.rows) lines.push((r?.cells || []).join("\t"));
+      }
+      if (s.text) lines.push(s.text);
+      lines.push("");
+    }
+    try {
+      await navigator.clipboard.writeText(lines.join("\n"));
+      setCopiedTransPath(path);
+      setTimeout(() => setCopiedTransPath(null), 2000);
+    } catch { /* clipboard 미지원 무시 */ }
   }
 
   // 케이스 진행 단계 저장 (코디·어드민 공용 API 재사용). 환자/에이전시 포털에 같은 상태가 노출됨.
@@ -439,23 +639,80 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
               const name = (typeof a === "object" && a?.name) || (path ? path.split("/").pop() : `${L.ibAttachment} ${i + 1}`);
               const cat = typeof a === "object" ? a?.category : null;
               return (
-                <button
+                <div
                   key={path || i}
-                  onClick={() => viewAttachment(path)}
-                  disabled={!path || attLoadingPath === path}
-                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg border border-gray-200 hover:border-teal-300 hover:bg-teal-50 transition text-left disabled:opacity-50"
+                  className="rounded-lg border border-gray-200 overflow-hidden"
                 >
-                  <FileText size={18} className="text-teal-600 shrink-0" />
-                  <span className="flex-1 text-sm text-gray-800 truncate">{name}</span>
-                  {cat && cat !== "other" && (
-                    <span className="text-[11px] text-gray-400 shrink-0">{cat}</span>
+                  <div className="flex items-center gap-2 px-3 py-2.5">
+                    {/* 미리보기(새 탭) */}
+                    <button
+                      onClick={() => viewAttachment(path)}
+                      disabled={!path || attLoadingPath === path}
+                      className="flex-1 min-w-0 flex items-center gap-3 text-left disabled:opacity-50"
+                      title="새 탭에서 미리보기"
+                    >
+                      <FileText size={18} className="text-teal-600 shrink-0" />
+                      <span className="flex-1 text-sm text-gray-800 truncate">{name}</span>
+                      {cat && cat !== "other" && (
+                        <span className="text-[11px] text-gray-400 shrink-0">{cat}</span>
+                      )}
+                      {attLoadingPath === path ? (
+                        <span className="w-4 h-4 border-2 border-teal-500 border-t-transparent rounded-full animate-spin shrink-0" />
+                      ) : (
+                        <ExternalLink size={14} className="text-gray-400 shrink-0" />
+                      )}
+                    </button>
+                    {/* 한글로 변환(한국 병원 전달용 원문 1:1 번역) */}
+                    <button
+                      onClick={() => translateAttachment(path, name)}
+                      disabled={!path || transLoadingPath === path}
+                      className="shrink-0 inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md border border-teal-200 bg-teal-50 text-xs font-medium text-teal-700 hover:bg-teal-100 transition disabled:opacity-50"
+                      title="한국 병원 전달용 한글 번역 (요약 아님·원문 그대로)"
+                    >
+                      {transLoadingPath === path ? (
+                        <span className="w-3.5 h-3.5 border-2 border-teal-500 border-t-transparent rounded-full animate-spin" />
+                      ) : (
+                        <Languages size={14} />
+                      )}
+                      <span className="hidden sm:inline">
+                        {translations[path]?.doc ? "다시 변환" : "한글로 변환"}
+                      </span>
+                    </button>
+                    {/* 다운로드(원본 파일명으로 바로 저장) */}
+                    <button
+                      onClick={() => downloadAttachment(path, name)}
+                      disabled={!path || attDownloadPath === path}
+                      className="shrink-0 inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md border border-gray-200 text-xs font-medium text-gray-600 hover:border-teal-400 hover:bg-teal-50 hover:text-teal-700 transition disabled:opacity-50"
+                      title={`다운로드 (${name})`}
+                    >
+                      {attDownloadPath === path ? (
+                        <span className="w-3.5 h-3.5 border-2 border-teal-500 border-t-transparent rounded-full animate-spin" />
+                      ) : (
+                        <Download size={14} />
+                      )}
+                      <span className="hidden sm:inline">다운로드</span>
+                    </button>
+                  </div>
+                  {/* 한글 번역 결과 패널 */}
+                  {translations[path] && (
+                    <div className="border-t border-gray-100 bg-gray-50/60 px-3 py-3">
+                      {translations[path].error ? (
+                        <p className="text-sm text-amber-700">
+                          {translations[path].error === "unsupported_type"
+                            ? "이 형식(doc·docx 등)은 자동 번역이 안 돼요. 원본을 직접 확인해 주세요."
+                            : "번역 중 문제가 발생했어요. 잠시 후 다시 시도해 주세요."}
+                        </p>
+                      ) : (
+                        <TranslatedDocView
+                          doc={translations[path].doc}
+                          copied={copiedTransPath === path}
+                          onCopy={() => copyTranslation(path, translations[path].doc)}
+                          onPdf={() => printTranslation(translations[path].doc, name)}
+                        />
+                      )}
+                    </div>
                   )}
-                  {attLoadingPath === path ? (
-                    <span className="w-4 h-4 border-2 border-teal-500 border-t-transparent rounded-full animate-spin shrink-0" />
-                  ) : (
-                    <ExternalLink size={14} className="text-gray-400 shrink-0" />
-                  )}
-                </button>
+                </div>
               );
             })}
           </div>
