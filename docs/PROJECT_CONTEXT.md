@@ -7,83 +7,84 @@
 
 ---
 
-## 🔖 세션 핸드오프 (2026-07-07 — 코디네이터 백오피스 전면 다국어(6개 언어) + 스태프 전용 언어쿠키 회귀수정·머지·배포 #678)
+## 🔖 세션 핸드오프 (2026-07-07 — 상표권용 한국어 로고 「힐위드」 단독 배선·머지·배포 #691 + 한/영 제안서 PPT + 네이버 힐위드 노출 검증)
 
-> PO 지시: "전반적인 백오피스 다국어가 제대로 안 됨. admin은 한글 유지, 에이전시·의료기관(해외)·코디네이터(외국인)는 다국어 꼼꼼히." 코디 포털은 다국어가 통째로 없었음(전 화면 한글 하드코딩). 별도 작업본(브랜치)에서 작업 → 합치기신청서(PR) #678로 본판(main)에 합침·실서비스 반영(배포). 중간에 자동검사(CI)의 E2E 테스트가 **진짜 회귀 버그 하나**를 잡아줌(아래 4·2번).
+> PO 지시: `healwith`·`힐위드` 상표권 출원 중, 변리사 3요청 — ①한국어 페이지에 「힐위드」 한글 로고 ②네이버에서 "힐위드" 검색 노출 ③운영 증빙용 한/영 브로슈어. 로고 전용 작업본(브랜치)에서 작업.
 
-**1. 이번 세션 한 일** (전부 main 머지·프로덕션 배포)
-- **PR [#678](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/678) ✅ 머지·프로덕션 자동배포** (origin/main 머지커밋 `c421f7a`). 코디네이터 백오피스 16개 화면을 **6개 언어(ko·en·ru·kz·zh·ja)**로:
-  - 레이아웃·대시보드·인박스(목록+상세)·인테이크·상담일정·견적(목록+상세)·비자(목록+상세)·메시지·증상알림·AI상담리드 — 토스트·확인창·툴팁·표헤더까지 전부.
-  - 공용 사전 `src/lib/i18n/coordinator.js`(key-first) + `useCoordinatorL`/`useDateLocale` 훅. 국적·암종·연락방법 라벨 헬퍼(`khidi/nationality.ts`·`medicalLabels.ts` 신규), 케이스단계는 기존 `caseStatusLabelL` 재사용.
-- **어드민 공유 컴포넌트 언어인식화**: `admin/khidi/cases`(케이스보드)·`PartnerOutreachTracker`(파트너발굴) — 파일 안 로컬 TR + `useBackofficeLang`. **ko 원문 그대로라 어드민 화면은 글자 하나 안 바뀜**, 코디만 선택 언어로.
-- **포털 공통 chrome**: `StaffPortalGate`(문지기 화면)·`ManualDrawer`(사용설명서 버튼·하단 문구) 6개어. **사용설명서 본문**은 `getManual(role, lang)`+`i18n` override(하위호환)로 코디·에이전시·의료기관만 5개어 번역(admin·hospital은 국내용이라 한국어 유지).
-- **에이전시/의료기관 포털**(`PartnerPortal`)은 이미 6개어 완비 확인(렌더 한글누출 0). WhatsApp 발송 문구는 코디 언어→**환자 언어**(`preferred_language`)로 수정.
-- **핵심 회귀수정(`5ef91a2`)**: 스태프 전용 언어쿠키 `healo_bo_lang`(기본 한국어) 신설.
+**1. 이번 세션 한 일**
+- **PR [#691](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/691) ✅ 스쿼시 머지·프로덕션 자동배포** (origin/main `0279326`). 한국어(ko) 화면 로고 = healwith → **「힐위드」 단독**(Pretendard SemiBold), healwith 있던 **같은 위치·같은 높이**(폭만 짧아짐). 영·러·카·중·일 화면은 healwith 유지. 6파일: `components/brand/Logo.jsx`(locale-aware, `lang` prop — `lang==="ko"`면 `wordmark-ko.svg`), `src/components.jsx`·`app/ClientShell.jsx`(헤더·모바일·포털바 3개 Logo 호출부에 `lang={langCode}`), `scripts/gen-wordmark.mjs`(영문 ExtraBold / 한글 SemiBold **분리 폰트**), `public/brand/wordmark-ko.svg`·`wordmark-ko-dark.svg`(신규 SemiBold 벡터, 힐=teal/위드=slate).
+- **한/영 제안서 PPT 완성**: `healwith 회사·서비스 소개서`(8장) — 바탕화면 `C:\Users\user\Desktop\healwith_소개서_한영.pptx`(+채팅). 변리사 제출용 **상표 실사용 증빙**. 실데이터만(유치업등록 A-2026-01-02-06761·SGI보증보험 1억·제휴병원 8곳[면력한방 4+협진 대학병원 4]·6개언어·KHIDI). 전 슬라이드 한/영 병기. **repo엔 커밋 안 함**(스크래치패드 pptxgenjs 생성물).
+- **네이버 힐위드 노출 검증**: 2026-07-06(#656) 적용분(meta설명·구조화데이터 `alternateName`·푸터 카피에 "힐위드")이 프로덕션 `healwith.co.kr/ko`에 **살아있음 직접 확인**(힐위드 16회). PO가 네이버 서치어드바이저에서 `/ko`·`/` **수집 요청 완료**.
 
 **2. 왜 그렇게 했는지**
-- **소비 패턴 3분리**(코디=공유사전 / 어드민공유=로컬TR·ko보존 / enum=공용헬퍼): 어드민 한글 유지하면서 코디만 다국어 달성하려고. 상세는 메모리 [[backoffice-i18n-pattern]].
-- **스태프 전용 쿠키가 이번의 핵심**: `useLang()`은 언어쿠키 없으면 기본이 영어(en). 그런데 공개 사이트 미들웨어가 브라우저 언어(영어)로 `healo_lang=en` 쿠키를 심어서, 스태프 화면이 그걸 따라 **영어로 뜸** → ①한국인 어드민/코디가 영어로 보이는 회귀 ②한국어를 찾는 E2E 스모크 테스트 실패. → 스태프 화면은 `healo_lang`을 안 보고 **`healo_bo_lang`(기본 ko)만** 봄(`useBackofficeLang`, useSyncExternalStore로 하이드레이션 안전). 포털 상단 스위처가 두 쿠키를 다 세팅. 에이전시/의료기관(해외 대상)은 healo_lang(영어 기본)이 맞아 그대로 둠.
-- 큰 파일은 병렬 서브에이전트로 변환하고 번역키는 내가 공용사전에 통합·빌드검증. 작업 중 main이 3번 전진 → 매번 재병합(예약시각 KST 헬퍼 `kstDate/kstTime`과 다국어 로케일 `dateLoc` 공존으로 충돌해소).
+- 배치: 처음 병기(healwith+힐위드)로 배선했으나 PO가 **단독(힐위드만)**으로 변경 요청 — 변리사 요청("한국어 페이지에 힐위드 한글 로고")에도 단독이 더 정확. 같은 위치·높이 유지가 조건.
+- 폰트: Pretendard **ExtraBold는 한글이 투박** → 대체폰트 7종(Gowun Dodum·IBM Plex KR·SUIT·Gothic A1·나눔스퀘어네오·주아·도현) 이미지 비교시켰으나 PO가 **다 거부하고 "그냥 기본형 SemiBold"** 확정. 영문 healwith는 ExtraBold 그대로(두 굵기 분리 = 병기 시 무게 균형).
+- Logo 컴포넌트 한 곳만 lang 인지 → 헤더·모바일·포털바 전역 반영. ko만 힐위드(한글누출 가드 준수).
 
 **3. 안 끝났거나 보류**
-- ⏸ **언어 스위처 하이라이트 코스메틱(비차단)**: 스태프 화면에선 처음 언어를 한 번 고르기 전까지 상단 버튼의 "현재 언어" 표시가 공개 langCode를 보여줌(화면 본문은 정상적으로 한국어). 다음에 스위처를 스태프 lang 인지하게 다듬으면 됨.
-- 내 작업 아님(별도 세션): [[coordinator-detail-display-gap]] — 코디 인박스 상세의 raw 키 노출·우선순위/동의 누락(유실 아님). 다른 세션 대기.
+- ⏸ **제안서 PPT 표지**: 현재 병기(healwith 힐위드). 단독으로 바꿀지 **PO 미결**(제안서엔 두 상표 노출이 증빙상 유리해 일부러 병기). 원하면 표지만 교체.
+- ⏳ **네이버 「힐위드」 실제 검색 노출**: 네이버 재수집·색인 대기(며칠~2주, 우리 몫 아님). PO가 며칠 뒤 "힐위드" 직접 검색으로 확인.
 
 **4. 주의·함정**
-- **스태프 백오피스(admin·coordinator) 화면은 `useLang()` 쓰지 마라 → `useBackofficeLang()`(`@/lib/i18n/coordinator`).** useLang은 공개 영어쿠키를 따라 스태프가 영어로 뜬다(이번 회귀 원인). enum용 lang 변수도 useBackofficeLang. 에이전시/의료기관(overseas)만 useLang/영어기본 유지.
-- 코디 새 문자열 추가 = `coordinator.js`의 CT에 한 블록(6개어). 새 백오피스 화면 다국어 시 이 패턴 재사용.
-- `intakes`의 DB저장 notes(`[코디네이터]…`)·`StaffPortalGate`의 미표시 `portalName` prop은 한글이지만 화면에 렌더 안 됨(의도).
+- **자동저장 훅(2분 git add -A)이 세션 중 브랜치를 여러 번 갈아치우고 무관 변경(다른 세션 handoff 문서·next-env.d.ts)을 브랜치에 섞음.** → 깨끗한 PR 위해 `origin/main`에서 새 브랜치 따서 상표 파일 6개만 `git checkout <src> -- <files>`. 멀티파일 작업 시 이 훅 주의([[autosave_hook_hazard]]).
+- 로고 SVG 재생성: `WORDMARK_FONT=<ExtraBold.otf> WORDMARK_FONT_KO=<SemiBold.otf> node scripts/gen-wordmark.mjs`. 폰트 없으면 KO도 EB로 폴백.
+- **PO는 폰에서 `mcp__visualize__show_widget` 인터랙티브 위젯이 안 뜸** → 시안·비교는 **정적 이미지(한 변 2048px 미만)**로 SendUserFile. AskUserQuestion 버튼은 정상([[po-mobile-widget-images]]).
 
 **5. 다음 세션이 먼저 할 일**
-1. ⚠️ **직전 미검증분 먼저 확인**: 코디/어드민 실브라우저 클릭검증은 미실시(로그인 필요, SSR쿠키 자동화 불가). E2E(스모크+Full)로 코디 화면 렌더 자체는 검증됨. 다음에 코디/에이전시 계정으로 Vercel에서 상단 언어 스위처를 눌러 **러시아어·카자흐어 번역·전환을 눈으로 1회** 확인 권장(핵심 타깃 언어 품질).
-2. 스위처 하이라이트 코스메틱(위 3번)을 다듬을지 판단.
+1. ⚠️ **직전 미검증분 먼저 확인**: 프로덕션 배포 완료 후 실브라우저에서 `healwith.co.kr/ko` 헤더가 **힐위드 단독**으로 뜨는지 1회 확인(로컬 dev·SSR·DOM은 검증됨, 프로덕션 배포 완료 화면은 미확인).
+2. PO가 제안서 PPT 표지 단독 전환을 원하면 교체.
+3. 네이버 색인 반영은 시간 대기(PO 몫).
 
 **6. 검증 상태**
-- ✅ **PR #678 머지 확인**(origin/main `c421f7a`). CI **ci·Smoke Tests(PR)·Full E2E(main push)·Vercel 배포 전부 pass**(머지 직후 main HEAD `a92862f`의 Full E2E success 실측 확인). `npx next build --webpack`·`npm run check:content`·lint(0 error) 통과.
-- ✅ 독립 자체검증: 훅 선언 누락 0·placeholder(`{n}` 등) 치환 정상·어드민 ko원문 바이트동일(cases/partners)·`L.<키>` 참조 누락 0.
-- ⚠️ **검증 못 함**: 실브라우저에서 언어 스위처 눌러 각 언어 전환·번역 품질은 직접 안 봄(E2E가 한국어 렌더는 커버, 위 5-1로 승격).
+- ✅ **PR #691 스쿼시 머지 확인**(origin/main `0279326`). CI **Smoke Tests(PR)·ci·Vercel 배포 pass**, merge state CLEAN. 독립 리뷰 게이트(작성맥락 미공유 subagent) **정합성 결함 0**.
+- ✅ 로컬 dev SSR+DOM 실검증: `/ko`=힐위드만(left16·h20 = healwith 슬롯 동일), `/en`=healwith만(한글 0회). `npm run check:content` 통과.
+- ✅ 네이버 힐위드 텍스트 **프로덕션 live 확인**(healwith.co.kr/ko meta·구조화데이터·푸터, 16회).
+- ⚠️ **검증 못 함**: 2026-07-07 로고 머지분의 **프로덕션 배포 완료 화면**은 직접 안 봄(로컬만) → 5-1로 승격.
 
 **7. 다음 세션 첫 프롬프트**
-> docs/PROJECT_CONTEXT.md 최상단 읽어. 코디네이터 백오피스 다국어(#678)는 머지·배포·전체E2E까지 끝났어. 스태프 화면은 이제 기본 한국어(healo_bo_lang 쿠키), 외국인 스태프는 상단 버튼으로 전환. 남은 건 미검증분: 코디/에이전시 계정으로 Vercel에서 언어 스위처 눌러 러시아어·카자흐어 번역·전환을 눈으로 1회 확인. ⚠️ 스태프 화면 다국어는 useBackofficeLang 써야 함(useLang 쓰면 영어로 뜸).
+> docs/PROJECT_CONTEXT.md 최상단 읽어. 상표용 한국어 로고(힐위드 단독, Pretendard SemiBold, PR #691)는 머지·배포됨. 먼저 프로덕션 healwith.co.kr/ko 헤더가 힐위드 단독으로 뜨는지 1회 확인(로컬만 검증됨). 제안서 PPT는 바탕화면 `healwith_소개서_한영.pptx`(변리사 제출용, 표지 단독 전환은 PO 미결). 네이버 힐위드는 수집요청 완료·색인 대기(며칠~2주). ⚠️ 로고는 Logo.jsx가 lang==="ko"일 때만 힐위드, 나머지 언어 healwith(한글누출 가드).
 
 ---
 
-## 🔖 세션 핸드오프 (2026-07-07 — 어드민 새문의 종(bell) 알림 404 수리 + 알림링크 라우트 대조 가드 신설·머지·배포 #686)
+## 🔖 세션 핸드오프 (2026-07-07 — KHIDI 실적 정합성: is_test 감지기에 '로그인 계정 이메일' 추가·머지·배포 #690)
 
-> PO가 완전 진단해 넘긴 단일 버그: 새 문의 종 알림의 어드민 링크가 없는 상세 라우트(`/admin/inquiries/${id}`)를 가리켜 클릭 시 404. **2026-07-07 첫 실고객 #37에서 실제 발송됨.** 이메일 알림은 이미 목록으로 고쳐뒀는데 종 알림만 누락된 "한 곳만 적용된 표류" = #31 부류 재발. 알림 영역 전용 새 작업본에서 작업(로고 세션과 안 섞음).
+> PO 지시: "공유 테스트 계정(`@test.com`)으로 로그인한 채 폼엔 개인 이메일을 적어 접수하면 `is_test=false`로 실적에 섞인다. 감지기에 계정 이메일 인자 추가 + 백필 + 반성문." → 합치기신청서(PR) #690으로 본판(main) 머지·실서비스 반영(배포) 완료. **핵심 반전: 실제 DB를 확인하니 오염은 딱 1건(#37)이었고, 그건 PO가 유지하기로 한 첫 실고객 건이라 백필은 손댈 게 없었다.**
 
-**1. 이번 세션 한 일**
-- **PR [#686](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/686) ✅ 스쿼시 머지·프로덕션 자동배포** (origin/main 머지커밋 `9454e28`). 3파일:
-  - `src/lib/notifications/inApp.ts` — 어드민 종 알림 `link: /admin/inquiries/${id}` → **목록 `/admin/inquiries`** (문의번호는 알림 제목 `#N`에 이미 있음, 이메일 알림 `adminNotifier.ts`와 동일 정책). 함수 주석도 "상세→목록" 현실화.
-  - `scripts/check-content-consistency.mjs` — **§14 알림링크404 가드 신설**: `src`·`app`의 `link:`/`link =` 내부경로를 실제 `app/` 라우트 트리와 정적 대조(없으면 CI 실패). `${…}`→동적세그먼트·쿼리제거·`[param]`/`[...]` 인식 + **Next 라우트 그룹 `(group)` 투명 통과**.
-  - `docs/POSTMORTEMS.md` — **#73** 기록 (🔁 **#31 부류 재발**).
-- **유사 스캔 전수**: 코드베이스 in-app 알림 링크 10곳 대조 → **끊긴 건 이 하나뿐**, 나머지 9곳(`/coordinator/inbox`·`/admin/chat`·`/patient/cost-estimates/[id]` 등) 전부 존재 확인.
-- **독립 리뷰 게이트**: 작성 맥락 미공유 별도 subagent → 정합성 결함 0. 라우트 그룹 오탐 가능성 지적 → 하드닝 반영.
+**1. 이번 세션 한 일** (전부 main 머지·프로덕션 배포)
+- **PR [#690](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/690) ✅ 머지·프로덕션 자동배포** (squash 커밋 `3454db3`).
+  - 감지기 `detectInquiryIsTest`(`src/lib/khidi/testData.ts`)에 **`accountEmail`(로그인 계정 이메일) 인자 추가** — 폼 이메일이 개인 주소라도 로그인 계정이 `@test.com`이면 테스트로 잡음(기존 `isTestEmail` 룰 재사용).
+  - 호출부 연결: `step1`(`getUser`가 주는 `user.email`을 추가조회 0으로 캡처)·`agency/refer`(손 우회 2회호출을 새 인자로 통일). 게스트 AI챗 승격은 로그인 계정 없어 해당 없음.
+  - **일일 오염 감시(사후 그물)**: `findTestPollutedInquiryIds`(순수함수) + `alertTestDataPollution`을 `kpi-snapshot` 크론에 연결 — "is_test=false인데 접수 계정이 테스트 도메인"이면 매일 경고. 의도적 예외는 env `TEST_POLLUTION_AUDIT_IGNORE`로 제외.
+  - 유닛테스트 +7(계정 이메일 경로 회귀 고정), POSTMORTEMS **#74**(🔁 #63/#71 부류 재발) 기록.
+- **실DB 감사(Supabase MCP)**: 전체 문의 37건 중 실적(is_test=false) 11건, 그중 로그인 접수는 **#37 단 1건**. #19·22·23은 폼 이메일도 `@test.com`이라 옛 감지기가 이미 `is_test=true`로 잡아둠 → **백필 실행 안 함(손댈 행 0)**. 백필 SQL(`scripts/backfill_test_account_inquiries.sql`)은 문서·재사용용 보존.
+- **#37 처리**: is_test=false 유지(PO 결정) + **prod env `TEST_POLLUTION_AUDIT_IGNORE=37` 설정 완료**(production target, Vercel API 201). 메모리 [[first-real-inquiry-37-migration]] 갱신.
 
 **2. 왜 그렇게 했는지**
-- 상세 `[id]` 페이지를 새로 만드는 대신 **목록 링크(YAGNI)** — 이메일 알림과 정책 일치 + 문의번호는 제목에 있어 정보 손실 0.
-- #31이 만든 404 가드(§4)는 `app/`의 `router.push`·`href`만 스캔 → 서버 알림 모듈의 `link:` 문자열은 사각지대였음. **뚫린 가드를 그대로 두지 않고** §14로 그 벡터를 메움(재발 추적 규칙: "새 가드만 얹지 말고 뚫린 가드를 보강").
-- 라우트 그룹 투명 통과는 현재 트리엔 `(group)`이 0개라 동작 변화 없음 — 향후 App Router 리팩터 때 정상 링크를 헛-빨강 처리하는 것 예방(값싼 예방코드).
+- **근본원인 = 감지기 자신에 차원이 없었음**(경로 누락 아님). step1조차 감지기를 불렀지만 accountEmail 슬롯이 없어 계정을 볼 수 없었다. agency/refer만 감지기를 2번 호출해 손 우회 중이었는데, 그 우회가 곧 "중앙 감지기가 불완전"이라는 신호 → 차원을 단일 SoR(감지기)로 흡수. 수동 리뷰 체크포인트(과거 #63/#71 방지책)는 "차원 자체 누락"을 못 잡음.
+- **백필 안 한 이유**: 반성문·백필 짜기 전에 실DB로 오염 범위부터 확인했더니 제보의 "4건"은 옛 스냅샷이고 실제 오염은 #37 1건뿐이었다. 나머지 3건은 이미 올바르게 테스트 처리됨.
+- **#37은 예외 유지**: PO가 "첫 실고객, 정식계정 이관 전까지 실적 유지"로 결정한 건([[first-real-inquiry-37-migration]]). 매일 오탐 방지로 ignore env 설정(이관하면 계정이 @test.com이 아니게 되어 자동 해제).
 
 **3. 안 끝났거나 보류**
-- 이 세션 자체 미완/보류 **없음**(단일 버그 완결).
+- ⏸ **일일 오염 감시망 실동작 미검증**: 다음 크론(2026-07-08 00:05 KST)부터 실행. 로직은 유닛테스트로만 확인, 실크론은 아직 안 돎.
+- ⏸ **#37 정식 계정 이관 여전히 대기**([[first-real-inquiry-37-migration]] 레시피): 에이전시 백오피스 완성 → 정식 계정 발급 → `UPDATE inquiries ... WHERE id=37` → 그 후 env에서 `37` 제거.
 
 **4. 주의·함정**
-- **어드민 문의 상세 `[id]` 라우트는 여전히 없음** — `/admin/inquiries`는 목록 페이지만 존재. 새 코드에서 `/admin/inquiries/숫자`로 링크 걸지 마라(404). 상세가 필요하면 `app/admin/inquiries/[id]/page.jsx`를 먼저 만들 것.
-- **§14 가드는 값이 `/`로 시작하는 `link` 리터럴만 검사** — `${baseUrl}…`로 조립되는 절대 URL 링크(예: `dispatch-reminders`의 `/consultation/${id}`)는 정적분석 밖 = 코드리뷰 몫(주석에 명시). 새 알림에 절대 URL 링크를 쓰면 가드가 못 잡으니 라우트 존재를 직접 확인.
+- **새 `inquiries` insert 경로를 만들면 반드시 `detectInquiryIsTest`에 `accountEmail`을 넘겨라**(로그인 세션이면). step1·agency/refer가 참고 패턴. 빠뜨리면 같은 구멍 재발(단, 일일 감시가 사후에 잡음).
+- `TEST_POLLUTION_AUDIT_IGNORE`는 **production 타깃에만** 설정됨. #37 이관 후 이 값에서 37 제거(안 하면 그 자리에 다른 예외 안 뜸).
+- 백필 SQL을 지금 그대로 돌리면 **no-op**(손댈 행 0). 새 오염이 생겼을 때만 SELECT로 먼저 확인 후 사용.
 
 **5. 다음 세션이 먼저 할 일**
-1. ⚠️ **직전 미검증분 먼저 확인**: 종 알림 실브라우저 클릭검증은 미실시(로그인+실제 문의 필요, SSR 쿠키 자동화 불가). 다음에 어드민 계정으로 실제 새 문의 종 알림을 눌러 `/admin/inquiries` 목록이 열리는지 1회 확인(경위: 목록 페이지 자체는 매일 열려 정상 확인된 화면이라 위험 낮음).
-2. ⚠️ **07-06 이전 미검증분 유지**: 다기기 화상 테스트(초대링크 **2026-07-10 만료** → 그 전에 진행) + LiveKit webhook 첫 수신(Vercel 로그 `[livekit/webhook]`).
-3. 병원·에이전시 비활성 일원화 후속(#681 칩) 결과 확인.
+1. ⚠️ **직전 미검증분 먼저 확인**: 일일 오염 감시 크론은 아직 실행 전이다. 2026-07-08 첫 크론(00:05 KST) 이후(또는 수동으로 `GET /api/cron/kpi-snapshot` with CRON_SECRET) Vercel 런타임 로그/운영알림에서 "실적 오염 의심" 경고가 **#37 없이(=ignore 적용됨) 0건**인지 1회 확인. (위험 낮음: 감시망은 best-effort라 실패해도 크론 본 로직 무영향.)
+2. #37 정식 계정 이관은 에이전시 백오피스 완성 후 진행(대기).
 
 **6. 검증 상태**
-- ✅ **PR #686 머지 확인**(origin/main `9454e28` — `git show origin/main`으로 #73·inApp 수정 반영 실측). CI **ci·Smoke Tests(PR)·Vercel 배포 전부 pass**, E2E는 PR에서 정상 skip.
-- ✅ `npx next build --webpack` 통과 / `npm run check:content` 통과(origin/main 리베이스 후 재확인) / 가드 자체 검증: 링크 재-破 시 `[알림링크404]` 검출·그룹중첩 라우트 오탐 0·없는 라우트 검출 유지 3종 확인.
-- ⚠️ **검증 못 함**: 실브라우저에서 종 알림 클릭→목록 열림은 직접 확인 안 함(위 5-1로 승격). 링크 목적지 존재는 기계 대조로 확인됨.
+- ✅ 유닛테스트 25 passed(계정 이메일 경로 +7) · ✅ `npx next build --webpack` 통과 · ✅ 독립 코드리뷰 게이트 통과(merge-blocking 0, 저심각 2건 반영)
+- ✅ PR #690 CI(`ci`·`Smoke Tests`) 통과 → **머지 완료**(`3454db3`, origin/main 확인). 브랜치 자동삭제.
+- ✅ 실DB 감사(Supabase MCP)로 오염범위 #37 1건 확인 · ✅ prod env `TEST_POLLUTION_AUDIT_IGNORE=37` 설정 확인(Vercel API 201)
+- ⚠️ **일일 오염 감시 크론 실동작은 미검증**(다음 크론부터) — 순수로직만 유닛테스트로 확인. 백엔드 변경이라 실브라우저 검증은 해당 없음.
 
 **7. 다음 세션 첫 프롬프트**
-> docs/PROJECT_CONTEXT.md 최상단 읽어. 어드민 종 알림 404(#686)는 머지·배포 끝났고 재발방지 가드(§14)까지 심었어. 남은 건 미검증분: ①어드민 계정으로 실제 새 문의 종 알림 눌러 /admin/inquiries 목록 열리는지 1회 확인 ②다기기 화상 테스트(초대링크 2026-07-10 만료 전) + LiveKit webhook 첫 수신 Vercel 로그. 이거부터 챙겨.
+> 먼저 docs/PROJECT_CONTEXT.md 최상단 핸드오프 읽어. 직전(실적 정합성 #690)에서 못 끝낸 것: **일일 오염 감시 크론이 아직 실행 전**이야 — 2026-07-08 첫 크론(00:05 KST) 돈 뒤 Vercel 로그/운영알림에서 "실적 오염 의심" 경고가 #37 없이 0건인지 1번만 확인해줘(ignore env 적용됐는지). 그리고 #37 정식계정 이관은 에이전시 백오피스 완성되면 진행(아직 대기).
 
 ---
 
