@@ -106,7 +106,7 @@ export interface NewInquiryNotice {
 
 /**
  * 새 문의 접수 시 코디네이터 + 어드민에게 웹/앱 종(bell) 알림.
- * 역할별로 링크가 달라 따로 발송(코디→문의함, 어드민→문의 상세).
+ * 역할별로 링크가 달라 따로 발송(코디→문의함, 어드민→문의 목록).
  * Fail-safe: 실패해도 throw 하지 않음(문의 접수 자체에 영향 0).
  */
 export async function notifyStaffNewInquiry(notice: NewInquiryNotice): Promise<void> {
@@ -126,7 +126,9 @@ export async function notifyStaffNewInquiry(notice: NewInquiryNotice): Promise<v
       }),
       broadcastInAppNotification(admins, {
         type: "new_inquiry", title, body, priority: "high",
-        link: `/admin/inquiries/${notice.inquiryId}`,
+        // ⚠️ /admin/inquiries 는 목록 페이지만 존재(상세 [id] 라우트 없음) → 목록으로 링크.
+        //    문의번호는 title(#N)에 있음. 이메일 알림(adminNotifier.ts)과 동일 정책(404 방지).
+        link: "/admin/inquiries",
         payload: { inquiryId: notice.inquiryId },
       }),
     ]);
