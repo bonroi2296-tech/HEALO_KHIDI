@@ -170,7 +170,7 @@ export default function PlaybookPage() {
       {/* Create form */}
       {showCreate && (
         <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-3">
-          <h3 className="font-semibold text-gray-800">새 응대 등록</h3>
+          <h3 className="text-base font-semibold text-gray-800">새 응대 등록</h3>
           <textarea
             className="w-full border border-gray-300 rounded-lg p-3 text-sm min-h-[120px] resize-y"
             placeholder="응대 원문 (raw) — PII가 포함되어 있어도 서버에서 자동 마스킹됩니다"
@@ -336,7 +336,7 @@ export default function PlaybookPage() {
         {selected && (
           <div className="w-1/2 bg-white rounded-xl border border-gray-200 p-5 space-y-4 sticky top-20 self-start max-h-[calc(100vh-10rem)] overflow-y-auto">
             <div className="flex items-center justify-between">
-              <h3 className="font-semibold text-gray-800">상세 보기</h3>
+              <h3 className="text-base font-semibold text-gray-800">상세 보기</h3>
               <button
                 onClick={() => setSelectedId(null)}
                 className="p-1 text-gray-400 hover:text-gray-600 rounded transition"

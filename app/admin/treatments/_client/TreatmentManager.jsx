@@ -84,7 +84,7 @@ export const TreatmentManager = ({
         <p className="text-xs text-red-500 mb-2">Treatments error: {treatmentsError.message}</p>
       )}
       <div className="flex justify-between items-center mb-4">
-        <h2 className="font-bold">시술 목록</h2>
+        <h2 className="text-lg font-bold">시술 목록</h2>
         {selectedHospitalId && (
           <button onClick={handleNew} className="bg-teal-700 text-white p-1 lg:p-1 rounded flex items-center gap-1 text-sm">
             <Plus size={14}/>

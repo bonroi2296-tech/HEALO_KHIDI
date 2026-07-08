@@ -347,7 +347,7 @@ export default function CoordinatorChatPage() {
                 <>
                   <div className="flex items-center gap-2 mb-1">
                     <Headset size={18} className="text-amber-600" />
-                    <h2 className="font-bold text-gray-900">{L.chReviewQueueTitle.replace("{n}", reviewQueue.length)}</h2>
+                    <h2 className="text-lg font-bold text-gray-900">{L.chReviewQueueTitle.replace("{n}", reviewQueue.length)}</h2>
                   </div>
                   <p className="text-sm text-gray-500 mb-4">{L.chReviewQueueHint}</p>
                   <ul className="space-y-2">

@@ -189,7 +189,7 @@ export default function EnrichmentPage() {
         <div className="lg:col-span-1 space-y-4">
           {/* Source Selection */}
           <div className="bg-white rounded-xl border border-gray-200 p-5">
-            <h3 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
+            <h3 className="text-base font-semibold text-gray-800 mb-3 flex items-center gap-2">
               <Sparkles size={16} className="text-teal-700" />
               수집 소스
             </h3>
@@ -234,7 +234,7 @@ export default function EnrichmentPage() {
 
           {/* Filter */}
           <div className="bg-white rounded-xl border border-gray-200 p-5">
-            <h3 className="font-semibold text-gray-800 mb-3 flex items-center gap-2">
+            <h3 className="text-base font-semibold text-gray-800 mb-3 flex items-center gap-2">
               <Filter size={16} className="text-teal-700" />
               필터 조건
             </h3>

@@ -585,6 +585,29 @@ for (const dir of SCAN_DIRS) {
   }
 }
 
+// ── 15) 백오피스 raw h1/h2/h3 에 글자크기 클래스 누락 (마케팅 히어로 크기 유출) ──────
+// 왜: app/styles/healo-tokens.css 는 공개 마케팅 페이지용 h1~h3 를 전역 태그 선택자로 정의한다
+//     (예: h2 { font-size: clamp(36px, 4.5vw, 64px) }). 백오피스(coordinator/admin/agency/
+//     hospital/clinic) 화면에서 <h2 className="font-bold ...">처럼 명시적 text-size 유틸리티
+//     없이 raw 헤딩 태그를 쓰면 이 마케팅 히어로 크기가 그대로 새어 들어와 화면이 깨진다
+//     (2026-07-08 코디 "AI 상담 리드" — "검토 대기 22건"이 히어로 크기로 렌더, PO 리포트).
+//     같은 패턴이 admin 등 12곳에서 동시 발견됨 — 개별 수정이 아니라 검사기로 부류 자체를 차단.
+const BACKOFFICE_DIRS = ["app/coordinator", "app/admin", "app/agency", "app/hospital", "app/clinic"];
+const HEADING_RE = /<h[123]\s+className="([^"]*)"/g;
+const HEADING_SIZE_RE = /text-(xs|sm|base|lg|\d?xl|\[)/;
+for (const dir of BACKOFFICE_DIRS) {
+  for (const file of walk(dir)) {
+    if (!CODE_EXT.test(file) || EXCLUDE.test(file)) continue;
+    const text = readFileSync(join(ROOT, file), "utf8");
+    let m;
+    while ((m = HEADING_RE.exec(text)) !== null) {
+      if (!HEADING_SIZE_RE.test(m[1])) {
+        errors.push(`[헤딩크기누락] ${file.replace(/\\/g, "/")} — raw <h1/h2/h3 className="${m[1]}">에 text-size 유틸 없음 → 마케팅 히어로 크기(h2 최대 64px) 유출 위험. text-base/text-lg/text-xl 등을 명시할 것 (2026-07-08 부류).`);
+      }
+    }
+  }
+}
+
 // ── 결과 ────────────────────────────────────────────────────────
 if (errors.length) {
   console.error(`\n❌ 콘텐츠 일관성 검사 실패 (${errors.length}건)\n`);

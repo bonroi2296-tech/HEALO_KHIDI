@@ -453,7 +453,7 @@ export default function AdminChatPage() {
                 <>
                   <div className="flex items-center gap-2 mb-1">
                     <Headset size={18} className="text-amber-600" />
-                    <h2 className="font-bold text-gray-900">검토 대기 {reviewQueue.length}건</h2>
+                    <h2 className="text-lg font-bold text-gray-900">검토 대기 {reviewQueue.length}건</h2>
                   </div>
                   <p className="text-sm text-gray-500 mb-4">오래 기다린 순 — 위에서부터 클릭해 확인·회신하세요.</p>
                   <ul className="space-y-2">

@@ -376,7 +376,7 @@ export default function BrandingSettingsPage() {
 
       {/* 안내 사항 */}
       <div className="mt-8 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-        <h3 className="font-bold mb-2 text-blue-900">💡 참고 사항</h3>
+        <h3 className="text-base font-bold mb-2 text-blue-900">💡 참고 사항</h3>
         <ul className="text-sm text-blue-800 space-y-1.5">
           <li>• <strong>로고:</strong> 투명 배경 PNG 권장, 최대 높이 40px 내외</li>
           <li>• <strong>히어로 배경:</strong> 1920x1080 이상 해상도 권장</li>
@@ -389,7 +389,7 @@ export default function BrandingSettingsPage() {
       {/* Storage 설정 안내 (에러 시) */}
       {error && error.includes("버킷") && (
         <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-          <h3 className="font-bold mb-2 text-yellow-900">⚙️ Storage 버킷 설정 필요</h3>
+          <h3 className="text-base font-bold mb-2 text-yellow-900">⚙️ Storage 버킷 설정 필요</h3>
           <div className="text-sm text-yellow-800 space-y-2">
             <p>Supabase Dashboard에서 다음 작업을 수행하세요:</p>
             <ol className="list-decimal list-inside space-y-1 ml-2">
