@@ -295,10 +295,7 @@ export async function translateMedicalDoc(opts: {
       }),
     });
 
-    if (!res.ok) {
-      console.error("[translateDoc] model_http_error status:", res.status, await res.text().catch(() => ""));
-      return { ok: false, error: "model_http_error" };
-    }
+    if (!res.ok) return { ok: false, error: "model_http_error" };
     const json = await res.json();
 
     // 💰 비용 계측 (fire-and-forget)
@@ -428,10 +425,7 @@ export async function verifyTranslationNumbers(opts: {
         generationConfig: { temperature: 0, maxOutputTokens: 4096, thinkingConfig: { thinkingBudget: 0 }, responseMimeType: "application/json", responseSchema: VERIFY_SCHEMA },
       }),
     });
-    if (!res.ok) {
-      console.error("[translateDoc] model_http_error status:", res.status, await res.text().catch(() => ""));
-      return { ok: false, error: "model_http_error" };
-    }
+    if (!res.ok) return { ok: false, error: "model_http_error" };
     const json = await res.json();
     logAiUsage({
       surface: "doc_translate_verify", model: MODEL,
