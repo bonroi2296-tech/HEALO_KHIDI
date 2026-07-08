@@ -6,15 +6,31 @@
  */
 
 import { writeFileSync, chmodSync, mkdirSync, existsSync } from "fs";
-import { join } from "path";
+import { join, isAbsolute, resolve } from "path";
+import { execSync } from "child_process";
 
 const ROOT = process.cwd();
-const HOOKS_DIR = join(ROOT, ".git", "hooks");
 
 if (!existsSync(join(ROOT, ".git"))) {
   // CI 환경 등 .git 없으면 조용히 종료
   process.exit(0);
 }
+
+// worktree에서는 .git이 디렉토리가 아니라 gitdir 포인터 파일이라
+// git-common-dir(진짜 .git 위치)을 물어봐서 훅을 설치한다.
+let gitCommonDir;
+try {
+  gitCommonDir = execSync("git rev-parse --git-common-dir", {
+    cwd: ROOT,
+    encoding: "utf-8",
+  }).trim();
+} catch {
+  // git 명령 실패 시 조용히 종료 (훅은 없어도 개발은 가능)
+  console.log("git rev-parse 실패 — hooks 설치 건너뜀");
+  process.exit(0);
+}
+
+const HOOKS_DIR = join(isAbsolute(gitCommonDir) ? gitCommonDir : resolve(ROOT, gitCommonDir), "hooks");
 
 mkdirSync(HOOKS_DIR, { recursive: true });
 
