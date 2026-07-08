@@ -39,7 +39,18 @@ export const TRAVEL_TIMING = [
   { value: "undecided", label: { ko: "미정", en: "Undecided", ru: "Не решено", kz: "Белгісіз", zh: "未定", ja: "未定" } },
 ];
 
+// 우선순위(복수 선택) — 2026-07-07 명확화: 옛 '기간(duration)'이 모호(빨리 오고 싶다/짧게 끝내고 싶다)
+// → '빠른 치료 시작(fast_start)'과 '짧은 체류 기간(short_stay)'으로 분리. 모호한 '접근성'→'소통·통역'.
 export const PRIORITIES = [
+  { value: "cost", label: { ko: "비용", en: "Cost", ru: "Стоимость", kz: "Құны", zh: "费用", ja: "費用" } },
+  { value: "fast_start", label: { ko: "빠른 치료 시작", en: "Fast treatment start", ru: "Быстрое начало лечения", kz: "Емдеуді тез бастау", zh: "尽快开始治疗", ja: "早期の治療開始" } },
+  { value: "short_stay", label: { ko: "짧은 체류·치료 기간", en: "Short stay & treatment", ru: "Короткое пребывание и лечение", kz: "Қысқа болу және емдеу мерзімі", zh: "短期停留与治疗", ja: "短期滞在・治療" } },
+  { value: "expertise", label: { ko: "의료진·병원 실력", en: "Doctor & hospital expertise", ru: "Опыт врачей и клиники", kz: "Дәрігер мен клиника тәжірибесі", zh: "医生与医院水平", ja: "医師・病院の実力" } },
+  { value: "communication", label: { ko: "소통·통역 편의", en: "Communication & interpreting", ru: "Общение и перевод", kz: "Қарым-қатынас пен аударма", zh: "沟通与翻译", ja: "コミュニケーション・通訳" } },
+];
+
+// 구 우선순위 값(2026-07-07 이전 접수) — 표시 하위호환용. 새 폼은 위 PRIORITIES 사용.
+export const PRIORITIES_LEGACY = [
   { value: "price", label: { ko: "가격", en: "Price", ru: "Цена", kz: "Баға", zh: "价格", ja: "価格" } },
   { value: "duration", label: { ko: "기간", en: "Duration", ru: "Сроки", kz: "Мерзім", zh: "疗程", ja: "期間" } },
   { value: "doctor", label: { ko: "의료진", en: "Doctor", ru: "Врачи", kz: "Дәрігерлер", zh: "医生", ja: "医師" } },
@@ -74,6 +85,20 @@ export const INTAKE_UI = {
   attachments: { ko: "첨부", en: "Attachments", ru: "Вложения", kz: "Тіркемелер", zh: "附件", ja: "添付" },
   attachmentsYes: { ko: "있음", en: "Yes", ru: "Есть", kz: "Бар", zh: "有", ja: "あり" },
   attachmentsNo: { ko: "없음", en: "None", ru: "Нет", kz: "Жоқ", zh: "无", ja: "なし" },
+  // 미입력 선택값 — 숨기지 말고 '입력하지 않음'으로 표기(관리 가시성).
+  notEntered: { ko: "입력하지 않음", en: "Not entered", ru: "Не указано", kz: "Көрсетілмеген", zh: "未填写", ja: "未入力" },
+  // 케이스 브리프(AI 초안) 카드
+  briefTitle: { ko: "케이스 브리프", en: "Case brief", ru: "Бриф по случаю", kz: "Кейс брифі", zh: "病例简报", ja: "ケース概要" },
+  briefAiDraft: { ko: "AI 초안", en: "AI draft", ru: "Черновик ИИ", kz: "AI жобасы", zh: "AI草稿", ja: "AI下書き" },
+  briefHint: { ko: "접수 내용·문서를 AI가 정리해 빠른 판단을 돕습니다.", en: "AI organizes the intake and documents to speed up your judgment.", ru: "ИИ обобщает заявку и документы для быстрой оценки.", kz: "AI өтінім мен құжаттарды жылдам бағалауға жинақтайды.", zh: "AI 整理接诊内容与文档，助您快速判断。", ja: "AIが受付内容と書類を整理し判断を助けます。" },
+  briefGenerate: { ko: "브리프 생성", en: "Generate brief", ru: "Создать бриф", kz: "Бриф жасау", zh: "生成简报", ja: "概要を生成" },
+  briefRegenerate: { ko: "다시 생성", en: "Regenerate", ru: "Пересоздать", kz: "Қайта жасау", zh: "重新生成", ja: "再生成" },
+  briefGenerating: { ko: "생성 중…", en: "Generating…", ru: "Создание…", kz: "Жасалуда…", zh: "生成中…", ja: "生成中…" },
+  briefRequest: { ko: "원하는 것", en: "Wants", ru: "Запрос", kz: "Сұраныс", zh: "需求", ja: "希望" },
+  briefPoints: { ko: "코디가 볼 포인트", en: "Points for coordinator", ru: "На что обратить внимание", kz: "Назар аударатын тұстар", zh: "协调员关注点", ja: "確認ポイント" },
+  briefFlags: { ko: "주의", en: "Flags", ru: "Внимание", kz: "Ескерту", zh: "注意", ja: "注意" },
+  briefDisclaimer: { ko: "AI가 정리한 초안입니다. 진단이 아니며 코디·의료진 검수가 필요합니다.", en: "AI-generated draft — not a diagnosis; coordinator/doctor review required.", ru: "Черновик ИИ — не диагноз; требуется проверка координатора/врача.", kz: "AI жобасы — диагноз емес; тексеру қажет.", zh: "AI草稿——非诊断，需协调员/医生审核。", ja: "AIによる下書きです。診断ではなく確認が必要です。" },
+  briefFailed: { ko: "브리프 생성에 실패했어요. 잠시 후 다시 시도해 주세요.", en: "Failed to generate the brief. Please try again.", ru: "Не удалось создать бриф. Повторите попытку.", kz: "Бриф жасалмады. Қайталап көріңіз.", zh: "简报生成失败，请稍后重试。", ja: "概要の生成に失敗しました。再度お試しください。" },
 };
 
 /** 다국어 라벨 객체({ko,en,...})에서 현재 언어 값을 뽑는다. 없으면 en → ko 폴백. */

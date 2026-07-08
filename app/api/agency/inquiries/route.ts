@@ -16,10 +16,12 @@ import { decryptInquiryForAdmin } from "@/lib/security/decryptForAdmin";
 import { caseStatusLabel, CASE_STATUS_STEPS } from "@/lib/khidi/caseStatus";
 import { logAdminAction, getIpFromRequest, getUserAgentFromRequest } from "@/lib/audit/adminAuditLog";
 
-function maskName(first?: string | null, last?: string | null): string {
+// 에이전시는 본인이 의뢰한 환자만 조회한다(아래 GET 은 agency_id 로 스코프). 즉 여기 이름은
+// 에이전시가 직접 입력·의뢰한 자기 환자 → 실명을 그대로 표시한다. (PO 결정 2026-07-07: A***
+// 마스킹은 파트너가 자기 환자를 이름으로 구분하지 못하게 만들어 실사용을 저해했음.)
+function patientDisplayName(first?: string | null, last?: string | null): string {
   const n = `${(first || "").trim()} ${(last || "").trim()}`.trim();
-  if (!n) return "(이름없음)";
-  return `${[...n][0] || ""}***`;
+  return n || "(이름없음)";
 }
 
 // 첨부서류(attachments 버킷) → signed URL.
@@ -188,7 +190,7 @@ export async function GET(request: NextRequest) {
       const dec = await decryptInquiryForAdmin(r).catch(() => r);
       return {
         id: r.id,
-        name: maskName(dec?.first_name, dec?.last_name),
+        name: patientDisplayName(dec?.first_name, dec?.last_name),
         nationality: r.nationality || "(미상)",
         cancer_type: r.cancer_type || "-",
         created_at: r.created_at,

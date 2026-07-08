@@ -10,8 +10,8 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   ArrowLeft, User, Globe, Mail, Phone, MessageCircle, Calendar,
-  AlertCircle, FileText, Stethoscope, ClipboardList, Video,
-  Send, Copy, Check, ExternalLink, Download, Languages, X, ShieldCheck,
+  AlertCircle, FileText, Stethoscope, Video,
+  Send, Copy, Check, ExternalLink, Download, Languages, X, ShieldCheck, Sparkles, Pencil,
 } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { CASE_STATUS_STEPS, caseStatusLabelL } from "@/lib/khidi/caseStatus";
@@ -19,7 +19,7 @@ import { cancerTypeLabelL } from "@/lib/khidi/medicalLabels";
 import { nationalityLabelL } from "@/lib/khidi/nationality";
 import { useBackofficeLang, useCoordinatorL, useDateLocale, coordinatorL } from "@/lib/i18n/coordinator";
 // 인테이크 선택지 라벨(6개국어)·값 = 폼과 공용 단일 SoR. 코디 화면에서 raw 코드 대신 번역 표시.
-import { TREATMENT_STATES, TRAVEL_TIMING, PRIORITIES, CONSENT_ITEMS, INTAKE_UI, labelOf, pick } from "@/lib/inquiry/intakeLabels";
+import { TREATMENT_STATES, TRAVEL_TIMING, PRIORITIES, PRIORITIES_LEGACY, CONSENT_ITEMS, INTAKE_UI, labelOf, pick } from "@/lib/inquiry/intakeLabels";
 import OpinionsSection from "./OpinionsSection";
 
 const STATUS_COLORS = {
@@ -64,24 +64,23 @@ function Card({ title, children }) {
   );
 }
 
-// 한눈 요약 카드의 개별 사실(라벨 + 값). 값 없으면 "—".
-function Fact({ label, value }) {
-  return (
-    <div className="flex gap-2 min-w-0">
-      <span className="text-gray-500 shrink-0">{label}</span>
-      <span className="text-gray-900 font-medium break-words min-w-0">{value || "—"}</span>
-    </div>
-  );
-}
-
 // HTML 이스케이프(모델 출력을 새 창에 안전 렌더).
 function escHtml(s) {
   return String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 }
 
+// 첨부 번역 출력 언어(코디=한글 / 병원의뢰=영문 / 환자·에이전시=러시아어). 고지문은 출력 언어에 맞춘다.
+const OUT_LANGS = [{ key: "ko", label: "한" }, { key: "en", label: "EN" }, { key: "ru", label: "RU" }];
+const DISCLAIMER = {
+  ko: "원문을 그대로 옮긴 번역입니다(요약 아님). 숫자·정상범위는 원본과 대조하세요.",
+  en: "Faithful full translation (not a summary). Verify numbers and reference ranges against the original.",
+  ru: "Дословный полный перевод (не резюме). Сверяйте цифры и референсные значения с оригиналом.",
+};
+const TR_LABEL = { ko: "한글 번역", en: "Translation", ru: "Перевод" };
+
 // 번역 결과를 깨끗한 새 창으로 열어 인쇄 → 'PDF로 저장'. 한글+키릴이 한 줄에 섞여 있어
 // @react-pdf(단일 폰트) 로는 깨진다 → 브라우저 인쇄(시스템 폰트)가 유일하게 안전. 새 의존성 0.
-function printTranslation(doc, name) {
+function printTranslation(doc, name, lang = "ko") {
   const sections = (doc.sections || []).map((s) => {
     let inner = "";
     if (s.title) inner += `<h2>${escHtml(s.title)}</h2>`;
@@ -95,8 +94,8 @@ function printTranslation(doc, name) {
     return `<section>${inner}</section>`;
   }).join("");
 
-  const html = `<!doctype html><html lang="ko"><head><meta charset="utf-8">
-<title>${escHtml(name || doc.docType)} — 한글 번역</title>
+  const html = `<!doctype html><html lang="${lang}"><head><meta charset="utf-8">
+<title>${escHtml(name || doc.docType)} — ${escHtml(TR_LABEL[lang] || TR_LABEL.ko)}</title>
 <style>
 *{box-sizing:border-box}
 body{font-family:-apple-system,"Malgun Gothic","Segoe UI",sans-serif;color:#111;margin:24px;font-size:12px}
@@ -112,8 +111,8 @@ th{background:#f3f4f6}
 @media print{body{margin:12mm}tr{page-break-inside:avoid}}
 </style></head><body>
 <h1>${escHtml(doc.docType)}</h1>
-<p class="sub">원본: ${escHtml(name || "")} · healwith 한글 번역</p>
-<p class="disc">원문을 그대로 옮긴 번역입니다(요약 아님). 숫자·정상범위는 원본과 대조하세요.</p>
+<p class="sub">원본: ${escHtml(name || "")} · healwith ${escHtml(TR_LABEL[lang] || TR_LABEL.ko)}</p>
+<p class="disc">${escHtml(DISCLAIMER[lang] || DISCLAIMER.ko)}</p>
 ${sections}
 </body></html>`;
 
@@ -126,8 +125,36 @@ ${sections}
   setTimeout(() => { try { w.print(); } catch { /* 사용자가 수동 인쇄 */ } }, 400);
 }
 
-// 외국 검사지 한글 번역 결과(요약 아님, 원문 1:1). 표는 가로 스크롤로 감싼다(반응형).
-function TranslatedDocView({ doc, onCopy, copied, onPdf }) {
+// 외국 검사지 번역 결과(요약 아님, 원문 1:1). 표는 가로 스크롤(반응형).
+// 기능: 숫자검증(원본 대조) · 수정(코디 교정→저장) · 용어 사전 등록(다음 번역에 반영).
+function TranslatedDocView({ doc, onCopy, copied, onPdf, lang = "ko", onVerify, verify, onSave, onGlossary }) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(null);
+  const [saving, setSaving] = useState(false);
+  const [gSrc, setGSrc] = useState("");
+  const [gTgt, setGTgt] = useState("");
+  const [gDone, setGDone] = useState(false);
+  const langLabel = (OUT_LANGS.find((o) => o.key === lang) || {}).label || lang;
+  const view = editing && draft ? draft : doc;
+
+  function startEdit() { setDraft(JSON.parse(JSON.stringify(doc))); setEditing(true); }
+  function cancelEdit() { setEditing(false); setDraft(null); }
+  function patch(updater) {
+    setDraft((prev) => { const next = JSON.parse(JSON.stringify(prev)); updater(next); return next; });
+  }
+  async function save() {
+    setSaving(true);
+    await onSave?.(draft);
+    setSaving(false); setEditing(false); setDraft(null);
+  }
+  async function submitGlossary() {
+    const src = gSrc.trim(), tgt = gTgt.trim();
+    if (!src || !tgt) return;
+    await onGlossary?.(src, tgt);
+    setGDone(true); setGSrc(""); setGTgt("");
+    setTimeout(() => setGDone(false), 2500);
+  }
+
   return (
     <div>
       <div className="flex items-center justify-between gap-2 mb-1.5">
@@ -138,29 +165,71 @@ function TranslatedDocView({ doc, onCopy, copied, onPdf }) {
           <span className="text-xs text-gray-500 truncate">{doc.docType}</span>
         </div>
         <div className="flex items-center gap-1.5 shrink-0">
-          <button
-            onClick={onPdf}
-            className="inline-flex items-center gap-1 px-2 py-1 text-xs rounded border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 transition"
-            title="PDF로 저장 (인쇄 → PDF로 저장 선택)"
-          >
-            <FileText size={13} /> PDF로 저장
-          </button>
-          <button
-            onClick={onCopy}
-            className="inline-flex items-center gap-1 px-2 py-1 text-xs rounded border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 transition"
-          >
-            {copied ? <Check size={13} /> : <Copy size={13} />} {copied ? "복사됨" : "복사"}
-          </button>
+          {editing ? (
+            <>
+              <button onClick={save} disabled={saving} className="inline-flex items-center gap-1 px-2 py-1 text-xs rounded border border-teal-300 bg-teal-600 text-white hover:bg-teal-700 transition disabled:opacity-50">
+                {saving ? <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Check size={13} />} 저장
+              </button>
+              <button onClick={cancelEdit} className="inline-flex items-center gap-1 px-2 py-1 text-xs rounded border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 transition">
+                <X size={13} /> 취소
+              </button>
+            </>
+          ) : (
+            <>
+              <button onClick={onVerify} disabled={verify?.loading} className="inline-flex items-center gap-1 px-2 py-1 text-xs rounded border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 transition disabled:opacity-50" title="번역표 숫자를 원본과 대조">
+                {verify?.loading ? <span className="w-3 h-3 border-2 border-teal-500 border-t-transparent rounded-full animate-spin" /> : <ShieldCheck size={13} />} 숫자검증
+              </button>
+              <button onClick={startEdit} className="inline-flex items-center gap-1 px-2 py-1 text-xs rounded border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 transition" title="번역 수정(저장 시 보존)">
+                <Pencil size={13} /> 수정
+              </button>
+              <button onClick={onPdf} className="inline-flex items-center gap-1 px-2 py-1 text-xs rounded border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 transition" title="PDF로 저장 (인쇄 → PDF로 저장 선택)">
+                <FileText size={13} /> PDF
+              </button>
+              <button onClick={onCopy} className="inline-flex items-center gap-1 px-2 py-1 text-xs rounded border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 transition">
+                {copied ? <Check size={13} /> : <Copy size={13} />} {copied ? "복사됨" : "복사"}
+              </button>
+            </>
+          )}
         </div>
       </div>
+
+      {/* 숫자검증 결과 배너 — 어긋난 항목만 (번역값 / 원본재판독값) 쌍으로 */}
+      {verify && !verify.loading && (
+        verify.error ? (
+          <p className="text-xs text-amber-700 mb-2">숫자검증에 실패했어요. 잠시 후 다시 시도해 주세요.</p>
+        ) : verify.mismatches?.length ? (
+          <div className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg px-2.5 py-2 mb-2 space-y-1">
+            <div className="font-medium">⚠️ 원본과 다르게 읽힌 숫자 {verify.mismatches.length}곳 — 원본을 직접 확인하세요</div>
+            <ul className="space-y-0.5">
+              {verify.mismatches.map((m, i) => (
+                <li key={i} className="flex flex-wrap gap-x-2">
+                  <span className="text-amber-900">{m.item || "(항목)"}</span>
+                  <span>번역 <b>{m.translated}</b> / 원본재판독 <b>{m.source}</b></span>
+                </li>
+              ))}
+            </ul>
+            <div className="text-[11px] text-amber-600">※ 검증기도 AI라 원본을 잘못 읽었을 수 있어요 — 원본이 맞으면 무시하세요.</div>
+          </div>
+        ) : (
+          <p className="text-xs text-teal-700 mb-2">✓ 번역 숫자가 원본 재판독과 일치했어요 (참고용 — 최종은 원본 대조).</p>
+        )
+      )}
+
       <p className="text-[11px] text-gray-400 mb-3">
-        원문을 그대로 옮긴 번역입니다(요약 아님). 숫자·정상범위는 원본과 대조하세요.
+        {DISCLAIMER[lang] || DISCLAIMER.ko}
       </p>
       <div className="space-y-4">
-        {(doc.sections || []).map((s, si) => (
+        {(view.sections || []).map((s, si) => (
           <div key={si}>
             {s.title && <div className="text-sm font-semibold text-gray-700 mb-1">{s.title}</div>}
-            {s.note && <p className="text-xs text-gray-500 mb-1.5 whitespace-pre-wrap">{s.note}</p>}
+            {s.note != null && s.note !== "" && (
+              editing ? (
+                <textarea value={s.note} onChange={(e) => patch((d) => { d.sections[si].note = e.target.value; })}
+                  rows={2} className="w-full text-xs text-gray-600 border border-gray-200 rounded px-1.5 py-1 mb-1.5" />
+              ) : (
+                <p className="text-xs text-gray-500 mb-1.5 whitespace-pre-wrap">{s.note}</p>
+              )
+            )}
             {Array.isArray(s.columns) && Array.isArray(s.rows) && s.rows.length > 0 && (
               <div className="overflow-x-auto rounded-lg border border-gray-200 bg-white">
                 <table className="w-full text-xs">
@@ -175,7 +244,12 @@ function TranslatedDocView({ doc, onCopy, copied, onPdf }) {
                     {s.rows.map((r, ri) => (
                       <tr key={ri} className="border-t border-gray-100">
                         {(r?.cells || []).map((cell, ci) => (
-                          <td key={ci} className="px-2.5 py-1.5 text-gray-800 align-top">{cell}</td>
+                          <td key={ci} className="px-2.5 py-1.5 text-gray-800 align-top">
+                            {editing ? (
+                              <input value={cell ?? ""} onChange={(e) => patch((d) => { d.sections[si].rows[ri].cells[ci] = e.target.value; })}
+                                className="w-full min-w-[5rem] border border-gray-200 rounded px-1 py-0.5 text-xs" />
+                            ) : cell}
+                          </td>
                         ))}
                       </tr>
                     ))}
@@ -183,12 +257,38 @@ function TranslatedDocView({ doc, onCopy, copied, onPdf }) {
                 </table>
               </div>
             )}
-            {s.text && (
-              <p className="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed">{s.text}</p>
+            {s.text != null && s.text !== "" && (
+              editing ? (
+                <textarea value={s.text} onChange={(e) => patch((d) => { d.sections[si].text = e.target.value; })}
+                  rows={4} className="w-full text-sm text-gray-800 border border-gray-200 rounded px-1.5 py-1" />
+              ) : (
+                <p className="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed">{s.text}</p>
+              )
             )}
           </div>
         ))}
       </div>
+
+      {/* 편집 모드: 용어 사전 등록(원문→대상언어). 다음 번역부터 반영 */}
+      {editing && (
+        <div className="mt-3 pt-3 border-t border-gray-100 flex flex-wrap items-end gap-2">
+          <div className="flex flex-col">
+            <span className="text-[11px] text-gray-500 mb-0.5">원문 용어</span>
+            <input value={gSrc} onChange={(e) => setGSrc(e.target.value)} placeholder="예: эндоцервикоз"
+              className="border border-gray-200 rounded px-1.5 py-1 text-xs w-40" />
+          </div>
+          <div className="flex flex-col">
+            <span className="text-[11px] text-gray-500 mb-0.5">번역({langLabel})</span>
+            <input value={gTgt} onChange={(e) => setGTgt(e.target.value)} placeholder="고정할 번역"
+              className="border border-gray-200 rounded px-1.5 py-1 text-xs w-48" />
+          </div>
+          <button onClick={submitGlossary} disabled={!gSrc.trim() || !gTgt.trim()}
+            className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs rounded border border-teal-200 bg-teal-50 text-teal-700 hover:bg-teal-100 transition disabled:opacity-40">
+            ＋사전 등록
+          </button>
+          {gDone && <span className="text-xs text-teal-700">등록됨 — 다음 번역부터 적용</span>}
+        </div>
+      )}
     </div>
   );
 }
@@ -340,13 +440,17 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
     setAttDownloadPath(null);
   }
 
-  // 첨부 한글 변환: 외국 검사지를 한국 병원 전달용으로 원문 1:1 한국어 번역(요약 아님, 숫자 보존).
-  const [transLoadingPath, setTransLoadingPath] = useState(null);
-  const [translations, setTranslations] = useState({}); // path -> { doc } | { error }
+  // 첨부 번역: 외국 검사지를 병원·환자 전달용으로 원문 1:1 번역(요약 아님, 숫자 보존). 출력 언어=ko/en/ru.
+  const [transLoadingKey, setTransLoadingKey] = useState(null); // `${path}::${lang}` 로딩중
+  const [translations, setTranslations] = useState({}); // `${path}::${lang}` -> { doc } | { error }
+  const [attLang, setAttLang] = useState({}); // path -> 선택 출력 언어(기본 ko)
   const [copiedTransPath, setCopiedTransPath] = useState(null);
-  async function translateAttachment(path, name) {
+  const [verifyResults, setVerifyResults] = useState({}); // key -> { loading } | { suspicious,... } | { error }
+  const tKey = (path, lg) => `${path}::${lg}`;
+  async function translateAttachment(path, name, lg, force = false) {
     if (!path) return;
-    setTransLoadingPath(path);
+    const key = tKey(path, lg);
+    setTransLoadingKey(key);
     try {
       const supabase = createSupabaseBrowserClient();
       const { data: { session } } = await supabase.auth.getSession();
@@ -355,23 +459,108 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
       const res = await fetch("/api/attachments/translate", {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
-        body: JSON.stringify({ path: cleanPath, name }),
+        body: JSON.stringify({ path: cleanPath, name, lang: lg, force }),
       });
       const data = await res.json().catch(() => ({}));
       if (res.ok && data.ok && data.doc) {
-        setTranslations((prev) => ({ ...prev, [path]: { doc: data.doc } }));
+        setTranslations((prev) => ({ ...prev, [key]: { doc: data.doc } }));
+        setVerifyResults((prev) => { const n = { ...prev }; delete n[key]; return n; }); // 새 번역 → 낡은 검증 제거
       } else {
-        setTranslations((prev) => ({ ...prev, [path]: { error: data.error || "translate_failed" } }));
+        setTranslations((prev) => ({ ...prev, [key]: { error: data.error || "translate_failed" } }));
       }
     } catch (e) {
       console.error("[attachment] translate error:", e);
-      setTranslations((prev) => ({ ...prev, [path]: { error: "translate_failed" } }));
+      setTranslations((prev) => ({ ...prev, [key]: { error: "translate_failed" } }));
     }
-    setTransLoadingPath(null);
+    setTransLoadingKey(null);
+  }
+
+  // 숫자 되돌림검증: 번역표 숫자를 원본 독립판독과 대조 → 확인 필요 숫자.
+  async function verifyNumbers(path, name, key, doc) {
+    setVerifyResults((p) => ({ ...p, [key]: { loading: true } }));
+    try {
+      const supabase = createSupabaseBrowserClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) { setVerifyResults((p) => ({ ...p, [key]: { error: "no_session" } })); return; }
+      const cleanPath = path.startsWith("/") ? path.slice(1) : path;
+      const res = await fetch("/api/attachments/translate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({ action: "verify", path: cleanPath, name, doc }),
+      });
+      const d = await res.json().catch(() => ({}));
+      setVerifyResults((p) => ({
+        ...p,
+        [key]: res.ok && d.ok ? { mismatches: d.mismatches || [] } : { error: d.error || "verify_failed" },
+      }));
+    } catch (e) {
+      console.error("[attachment] verify error:", e);
+      setVerifyResults((p) => ({ ...p, [key]: { error: "verify_failed" } }));
+    }
+  }
+
+  // 코디 수정본 저장 → 캐시(edited_doc)에 보존, 화면도 수정본으로 갱신.
+  async function saveEdit(path, lg, key, editedDoc) {
+    try {
+      const supabase = createSupabaseBrowserClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      const cleanPath = path.startsWith("/") ? path.slice(1) : path;
+      const res = await fetch("/api/attachments/translate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({ action: "save", path: cleanPath, lang: lg, doc: editedDoc }),
+      });
+      const d = await res.json().catch(() => ({}));
+      if (res.ok && d.ok) setTranslations((prev) => ({ ...prev, [key]: { doc: editedDoc } }));
+    } catch (e) {
+      console.error("[attachment] save error:", e);
+    }
+  }
+
+  // 학습 용어사전 등록(원문→대상언어). 다음 번역부터 프롬프트에 반영.
+  async function addGlossary(lg, src, target) {
+    try {
+      const supabase = createSupabaseBrowserClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      await fetch("/api/attachments/translate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({ action: "glossary", src, [lg]: target }),
+      });
+    } catch (e) {
+      console.error("[attachment] glossary error:", e);
+    }
+  }
+
+  // 케이스 브리프(AI 초안) — 접수내용+문서를 AI가 정리. 저장 안 함(on-demand), 클릭 시 생성해 화면에만.
+  const [brief, setBrief] = useState(null);
+  const [briefLoading, setBriefLoading] = useState(false);
+  const [briefError, setBriefError] = useState(false);
+  async function generateBrief() {
+    setBriefLoading(true);
+    setBriefError(false);
+    try {
+      const supabase = createSupabaseBrowserClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) { setBriefError(true); setBriefLoading(false); return; }
+      const res = await fetch(`/api/coordinator/inquiries/${inquiryId}/brief`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.ok && data.brief) setBrief(data.brief);
+      else setBriefError(true);
+    } catch (e) {
+      console.error("[case-brief] error:", e);
+      setBriefError(true);
+    }
+    setBriefLoading(false);
   }
 
   // 번역 결과를 한국 의료진에게 넘길 수 있게 평문으로 클립보드 복사(표는 탭 구분).
-  async function copyTranslation(path, doc) {
+  async function copyTranslation(key, doc) {
     const lines = [`[${doc.docType}]`, ""];
     for (const s of doc.sections || []) {
       lines.push(`■ ${s.title || ""}`);
@@ -385,7 +574,7 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
     }
     try {
       await navigator.clipboard.writeText(lines.join("\n"));
-      setCopiedTransPath(path);
+      setCopiedTransPath(key);
       setTimeout(() => setCopiedTransPath(null), 2000);
     } catch { /* clipboard 미지원 무시 */ }
   }
@@ -441,6 +630,12 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
       setInquiry(result.inquiry);
       setCaseStatus(result.inquiry?.case_status || "");
       setCaseNote(result.inquiry?.case_status_note || "");
+      // 케이스 브리프: 캐시가 최신이면 즉시 표시, 없거나 낡았으면(첨부 변경) 자동 생성 — 수동 버튼 없음.
+      if (result.inquiry?.brief && !result.inquiry?.briefStale) {
+        setBrief(result.inquiry.brief);
+      } else {
+        generateBrief();
+      }
     } catch (e) {
       console.error("[inbox/detail] fetch error:", e);
       setError(L.ibLoadError);
@@ -523,19 +718,6 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
         )
       : [];
 
-  // 한눈 요약 파생값 — 코디가 케이스를 3초에 파악.
-  const intakeObj = inquiry.intake && typeof inquiry.intake === "object" ? inquiry.intake : {};
-  const tsSafe = safe(intakeObj.treatment_state);
-  const treatmentStateLabel = tsSafe && tsSafe !== "—" ? labelOf(TREATMENT_STATES, tsSafe, lang) : null;
-  const travelTimingLabel = intakeObj.travel_timing ? labelOf(TRAVEL_TIMING, intakeObj.travel_timing, lang) : null;
-  const hasAttachments = Array.isArray(inquiry.attachments) && inquiry.attachments.length > 0;
-  const messageOneLine =
-    inquiry.message && !looksEncrypted(inquiry.message) ? String(inquiry.message).replace(/\s+/g, " ").trim() : null;
-  const submitLang = inquiry.preferred_language || inquiry.spoken_language || "—";
-  const sourceLabel = inquiry.agency_id
-    ? `${L.agencyReferral}${inquiry.agency_name ? ` (${inquiry.agency_name})` : ""}`
-    : (inquiry.submitter?.email ? pick(INTAKE_UI.submitterMember, lang) : (inquiry.source || pick(INTAKE_UI.submitterGuest, lang)));
-
   return (
     <div className="space-y-6">
       {backLink}
@@ -589,23 +771,60 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
         </div>
       </div>
 
-      {/* 한눈 요약 — 국적·언어 / 암종 / 치료단계 / 방한시기 / 접수경로 / 첨부 + 메시지 1줄. 코디가 3초에 파악. */}
+      {/* 케이스 브리프 (AI 초안) — 접수내용+문서를 AI가 정리해 코디가 빠르게 판단. 저장 안 함(on-demand). */}
       <div className="rounded-xl border border-teal-100 bg-teal-50/40 p-5">
-        <h2 className="text-sm font-semibold text-teal-800 mb-3">{pick(INTAKE_UI.summaryTitle, lang)}</h2>
-        <div className="grid gap-x-6 gap-y-2 sm:grid-cols-2 text-sm">
-          <Fact label={L.nationality} value={`${nationality} · ${submitLang}`} />
-          <Fact label={L.cancerType} value={cancer} />
-          <Fact label={L.ibFieldCurrentStatus} value={treatmentStateLabel} />
-          <Fact label={L.ibFieldEntryTiming} value={travelTimingLabel} />
-          <Fact label={L.ibIntakeChannel} value={sourceLabel} />
-          <Fact
-            label={pick(INTAKE_UI.attachments, lang)}
-            value={hasAttachments ? `${pick(INTAKE_UI.attachmentsYes, lang)} (${inquiry.attachments.length})` : pick(INTAKE_UI.attachmentsNo, lang)}
-          />
+        <div className="flex items-center gap-1.5 mb-2">
+          <h2 className="text-sm font-semibold text-teal-800 inline-flex items-center gap-1.5 flex-wrap">
+            <Sparkles size={15} /> {pick(INTAKE_UI.briefTitle, lang)}
+            <span className="px-1.5 py-0.5 text-[10px] font-medium rounded bg-amber-100 text-amber-700">{pick(INTAKE_UI.briefAiDraft, lang)}</span>
+          </h2>
         </div>
-        {messageOneLine && (
-          <div className="mt-3 pt-3 border-t border-teal-100 text-sm text-gray-700 truncate">
-            <MessageCircle size={13} className="inline mr-1 text-teal-600" />{messageOneLine}
+
+        {/* 케이스 열면 자동 생성/표시 — 최초 생성 중이거나 로딩이면 스피너(수동 버튼 없음). */}
+        {(briefLoading || (!brief && !briefError)) && (
+          <div className="flex items-center gap-2 text-sm text-teal-700 py-2">
+            <span className="w-4 h-4 border-2 border-teal-500 border-t-transparent rounded-full animate-spin" />
+            {pick(INTAKE_UI.briefGenerating, lang)}
+          </div>
+        )}
+
+        {briefError && !briefLoading && (
+          <div className="flex items-center gap-3">
+            <p className="text-sm text-amber-700">{pick(INTAKE_UI.briefFailed, lang)}</p>
+            <button onClick={generateBrief} className="text-sm text-teal-700 underline">{pick(INTAKE_UI.briefRegenerate, lang)}</button>
+          </div>
+        )}
+
+        {brief && !briefLoading && (
+          <div className="space-y-2.5 text-sm">
+            <p className="text-gray-900 font-medium leading-relaxed">{brief.overview}</p>
+            {brief.request && (
+              <div>
+                <span className="text-xs text-gray-500">{pick(INTAKE_UI.briefRequest, lang)}</span>
+                <p className="text-gray-800">{brief.request}</p>
+              </div>
+            )}
+            {Array.isArray(brief.points) && brief.points.length > 0 && (
+              <div>
+                <span className="text-xs text-gray-500">{pick(INTAKE_UI.briefPoints, lang)}</span>
+                <ul className="mt-1 space-y-1">
+                  {brief.points.map((p, i) => (
+                    <li key={i} className="flex gap-1.5 text-gray-800"><span className="text-teal-600 shrink-0">•</span><span>{p}</span></li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {Array.isArray(brief.red_flags) && brief.red_flags.length > 0 && (
+              <div className="rounded-lg bg-amber-50 border border-amber-100 px-3 py-2">
+                <span className="text-xs font-semibold text-amber-700 inline-flex items-center gap-1"><AlertCircle size={12} />{pick(INTAKE_UI.briefFlags, lang)}</span>
+                <ul className="mt-1 space-y-0.5">
+                  {brief.red_flags.map((f, i) => (
+                    <li key={i} className="text-amber-800 flex gap-1.5"><span className="shrink-0">•</span><span>{f}</span></li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            <p className="text-[11px] text-gray-400 pt-1.5 border-t border-teal-100">{pick(INTAKE_UI.briefDisclaimer, lang)}</p>
           </div>
         )}
       </div>
@@ -637,7 +856,6 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
             label={L.fieldLanguage}
             value={inquiry.preferred_language || inquiry.spoken_language}
           />
-          <Row icon={ClipboardList} label={L.inboxColMatch} value={`${inquiry.match_accuracy ?? 60}%`} />
         </Card>
       </div>
 
@@ -657,17 +875,11 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
         const cancer = intake.cancer && typeof intake.cancer === "object" ? intake.cancer : null;
         const notes = !looksEncrypted(intake.notes) ? intake.notes : null;
 
-        // 알려진 flat 필드 → 라벨 + 현재 언어 번역값.
+        // 미입력값도 항목은 기재하고 '입력하지 않음'으로 표시(관리 가시성 — PO 요청).
+        const NE = pick(INTAKE_UI.notEntered, lang);
         const rows = [];
-        const ts = safe(intake.treatment_state);
-        if (ts && ts !== "—") rows.push([L.ibFieldCurrentStatus, labelOf(TREATMENT_STATES, ts, lang)]);
-        if (intake.travel_timing) rows.push([L.ibFieldEntryTiming, labelOf(TRAVEL_TIMING, intake.travel_timing, lang)]);
-        if (intake.stage) rows.push([pick(INTAKE_UI.stage, lang), String(intake.stage)]);
-        const dd = safe(intake.diagnosis_date);
-        if (dd && dd !== "—") rows.push([pick(INTAKE_UI.diagnosisDate, lang), dd]);
-
-        // 옛 nested cancer 구조(하위호환).
         if (cancer) {
+          // 옛 nested cancer 구조(하위호환) — 있는 것만.
           for (const k of Object.keys(CI)) {
             const v = cancer[k];
             if (v) rows.push([CI[k].label, CI[k].map[v] || String(v)]);
@@ -676,6 +888,14 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
             const arr = Array.isArray(cancer[k]) ? cancer[k] : null;
             if (arr && arr.length) rows.push([CI_MULTI[k].label, arr.map((x) => CI_MULTI[k].map[x] || x).join(", ")]);
           }
+        } else {
+          // 현재 폼(flat) — 핵심 선택값을 항상 나열(미입력=입력하지 않음).
+          const ts = safe(intake.treatment_state);
+          rows.push([L.ibFieldCurrentStatus, (ts && ts !== "—") ? labelOf(TREATMENT_STATES, ts, lang) : NE]);
+          rows.push([pick(INTAKE_UI.stage, lang), intake.stage ? String(intake.stage) : NE]);
+          const dd = safe(intake.diagnosis_date);
+          rows.push([pick(INTAKE_UI.diagnosisDate, lang), (dd && dd !== "—") ? dd : NE]);
+          rows.push([L.ibFieldEntryTiming, intake.travel_timing ? labelOf(TRAVEL_TIMING, intake.travel_timing, lang) : NE]);
         }
 
         const priorities = Array.isArray(intake.priorities) ? intake.priorities : [];
@@ -697,19 +917,30 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
               ))}
             </div>
 
-            {/* 우선순위 → 칩 */}
-            {priorities.length > 0 && (
-              <div className="mt-3 pt-3 border-t border-gray-100">
-                <span className="text-xs text-gray-500">{pick(INTAKE_UI.priorities, lang)}</span>
-                <div className="flex flex-wrap gap-1.5 mt-1.5">
-                  {priorities.map((p) => (
-                    <span key={p} className="px-2 py-0.5 text-xs rounded-full bg-teal-50 text-teal-700 border border-teal-100">
-                      {labelOf(PRIORITIES, p, lang)}
-                    </span>
-                  ))}
+            {/* 우선순위 → 선택지 전부 ✓/✗ (동의처럼 — 뭘 고르고 뭘 안 골랐나 한눈에).
+                옛 데이터(구 선택지)면 구 옵션으로 자동 판별해 표시. */}
+            {!cancer && (() => {
+              const inNew = priorities.some((p) => PRIORITIES.some((o) => o.value === p));
+              const inLegacy = priorities.some((p) => PRIORITIES_LEGACY.some((o) => o.value === p));
+              const opts = inLegacy && !inNew ? PRIORITIES_LEGACY : PRIORITIES;
+              return (
+                <div className="mt-3 pt-3 border-t border-gray-100">
+                  <span className="text-xs text-gray-500">{pick(INTAKE_UI.priorities, lang)}</span>
+                  <div className="grid gap-x-6 sm:grid-cols-2 mt-1.5">
+                    {opts.map((o) => {
+                      const on = priorities.includes(o.value);
+                      return (
+                        <div key={o.value} className="flex items-center gap-2 py-1 text-sm">
+                          {on ? <Check size={14} className="text-teal-600 shrink-0" /> : <X size={14} className="text-gray-300 shrink-0" />}
+                          <span className={on ? "text-gray-800" : "text-gray-400"}>{pick(o.label, lang)}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  {priorities.length === 0 && <span className="text-xs text-gray-400">{NE}</span>}
                 </div>
-              </div>
-            )}
+              );
+            })()}
 
             {/* 동의 항목 → 목록(동의/미동의) */}
             {consents && (
@@ -769,6 +1000,9 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
               const path = typeof a === "string" ? a : a?.path;
               const name = (typeof a === "object" && a?.name) || (path ? path.split("/").pop() : `${L.ibAttachment} ${i + 1}`);
               const cat = typeof a === "object" ? a?.category : null;
+              const curLang = attLang[path] || "ko";        // 선택된 출력 언어
+              const curKey = tKey(path, curLang);            // 현재 언어의 번역 캐시 키
+              const entry = translations[curKey];            // { doc } | { error } | undefined
               return (
                 <div
                   key={path || i}
@@ -793,20 +1027,34 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
                         <ExternalLink size={14} className="text-gray-400 shrink-0" />
                       )}
                     </button>
-                    {/* 한글로 변환(한국 병원 전달용 원문 1:1 번역) */}
+                    {/* 출력 언어 선택(한/영/러) — 코디=한글, 병원의뢰=영문, 환자·에이전시=러시아어 */}
+                    <div className="shrink-0 inline-flex rounded-md border border-gray-200 overflow-hidden" role="group" aria-label="번역 언어">
+                      {OUT_LANGS.map((o) => (
+                        <button
+                          key={o.key}
+                          type="button"
+                          onClick={() => setAttLang((prev) => ({ ...prev, [path]: o.key }))}
+                          className={`px-2 py-1.5 text-xs font-medium transition ${curLang === o.key ? "bg-teal-600 text-white" : "bg-white text-gray-500 hover:bg-gray-50"}`}
+                          title={`${o.label} 로 번역`}
+                        >
+                          {o.label}
+                        </button>
+                      ))}
+                    </div>
+                    {/* 변환(병원·환자 전달용 원문 1:1 번역, 선택 언어로) */}
                     <button
-                      onClick={() => translateAttachment(path, name)}
-                      disabled={!path || transLoadingPath === path}
+                      onClick={() => translateAttachment(path, name, curLang, !!entry?.doc)}
+                      disabled={!path || transLoadingKey === curKey}
                       className="shrink-0 inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md border border-teal-200 bg-teal-50 text-xs font-medium text-teal-700 hover:bg-teal-100 transition disabled:opacity-50"
-                      title="한국 병원 전달용 한글 번역 (요약 아님·원문 그대로)"
+                      title="병원·환자 전달용 번역 (요약 아님·원문 그대로)"
                     >
-                      {transLoadingPath === path ? (
+                      {transLoadingKey === curKey ? (
                         <span className="w-3.5 h-3.5 border-2 border-teal-500 border-t-transparent rounded-full animate-spin" />
                       ) : (
                         <Languages size={14} />
                       )}
                       <span className="hidden sm:inline">
-                        {translations[path]?.doc ? "다시 변환" : "한글로 변환"}
+                        {entry?.doc ? "다시 변환" : "변환"}
                       </span>
                     </button>
                     {/* 다운로드(원본 파일명으로 바로 저장) */}
@@ -824,21 +1072,27 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
                       <span className="hidden sm:inline">다운로드</span>
                     </button>
                   </div>
-                  {/* 한글 번역 결과 패널 */}
-                  {translations[path] && (
+                  {/* 번역 결과 패널(선택 언어) */}
+                  {entry && (
                     <div className="border-t border-gray-100 bg-gray-50/60 px-3 py-3">
-                      {translations[path].error ? (
+                      {entry.error ? (
                         <p className="text-sm text-amber-700">
-                          {translations[path].error === "unsupported_type"
+                          {entry.error === "unsupported_type"
                             ? "이 형식(doc·docx 등)은 자동 번역이 안 돼요. 원본을 직접 확인해 주세요."
                             : "번역 중 문제가 발생했어요. 잠시 후 다시 시도해 주세요."}
                         </p>
                       ) : (
                         <TranslatedDocView
-                          doc={translations[path].doc}
-                          copied={copiedTransPath === path}
-                          onCopy={() => copyTranslation(path, translations[path].doc)}
-                          onPdf={() => printTranslation(translations[path].doc, name)}
+                          key={curKey}
+                          doc={entry.doc}
+                          lang={curLang}
+                          copied={copiedTransPath === curKey}
+                          onCopy={() => copyTranslation(curKey, entry.doc)}
+                          onPdf={() => printTranslation(entry.doc, name, curLang)}
+                          onVerify={() => verifyNumbers(path, name, curKey, entry.doc)}
+                          verify={verifyResults[curKey]}
+                          onSave={(edited) => saveEdit(path, curLang, curKey, edited)}
+                          onGlossary={(src, target) => addGlossary(curLang, src, target)}
                         />
                       )}
                     </div>
