@@ -151,7 +151,7 @@ export default function OpinionClient({ token }) {
           </div>
         )}
         {c.clinical?.length > 0 && (
-          <dl className="grid grid-cols-2 gap-x-3 gap-y-2 mb-3">
+          <dl className="grid grid-cols-2 lg:grid-cols-4 gap-x-3 gap-y-2 mb-3">
             {c.clinical.map((d, i) => (
               <div key={i} className="min-w-0">
                 <dt className="text-[11px] text-gray-400">{d.label}</dt>
@@ -297,13 +297,13 @@ function Shell({ children }) {
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white border-b border-gray-100">
-        <div className="max-w-lg lg:max-w-4xl mx-auto px-5 lg:px-8 py-4 flex items-center gap-2">
+        <div className="max-w-lg lg:max-w-[1400px] mx-auto px-5 lg:px-10 py-4 flex items-center gap-2">
           <Stethoscope size={18} className="text-teal-600" />
           <span className="font-semibold text-gray-900">전문의 소견 요청</span>
           <span className="ml-auto text-sm text-gray-400">healwith</span>
         </div>
       </header>
-      <main className="max-w-lg lg:max-w-4xl mx-auto px-5 lg:px-8 py-5 lg:py-8">{children}</main>
+      <main className="max-w-lg lg:max-w-[1400px] mx-auto px-5 lg:px-10 py-5 lg:py-8">{children}</main>
     </div>
   );
 }
