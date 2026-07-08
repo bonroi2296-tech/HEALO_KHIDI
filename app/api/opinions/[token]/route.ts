@@ -15,6 +15,7 @@ export const runtime = "nodejs";
 import { NextRequest } from "next/server";
 import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
 import { decryptInquiryForAdmin } from "@/lib/security/decryptForAdmin";
+import { decryptStringNullable } from "@/lib/security/encryptionV2";
 import {
   checkRateLimit,
   checkRateLimitPersistent,
@@ -25,6 +26,26 @@ import {
 import { rosterName, isValidOpinionDoctorKey } from "@/lib/opinions/roster";
 import { notifyStaffOpinionArrived } from "@/lib/notifications/inApp";
 import { logAdminAction, getIpFromRequest, getUserAgentFromRequest } from "@/lib/audit/adminAuditLog";
+
+// 코디가 문의상세에서 이미 만들어둔 AI 케이스 브리프(한국어 요약)를 그대로 재사용.
+// 원문(러시아어 등)·미기재 필드보다 훨씬 낫다 — 새로 만들지 않고 캐시만 복호화해서 보여준다.
+function decodeCachedBrief(encBrief: unknown): { overview: string; request: string; points: string[]; red_flags: string[] } | null {
+  if (typeof encBrief !== "string" || !encBrief) return null;
+  try {
+    const dec = decryptStringNullable(encBrief);
+    if (!dec) return null;
+    const parsed = JSON.parse(dec);
+    if (!parsed?.overview) return null;
+    return {
+      overview: String(parsed.overview || ""),
+      request: String(parsed.request || ""),
+      points: Array.isArray(parsed.points) ? parsed.points.map((s: any) => String(s)) : [],
+      red_flags: Array.isArray(parsed.red_flags) ? parsed.red_flags.map((s: any) => String(s)) : [],
+    };
+  } catch {
+    return null;
+  }
+}
 
 const VIEW_RATE = { windowMs: 60 * 1000, maxRequests: 30, apiName: "opinion_view" };
 
@@ -101,7 +122,7 @@ export async function GET(
 
     const { data: inqRaw } = await (supabaseAdmin as any)
       .from("inquiries")
-      .select("id, first_name, last_name, nationality, spoken_language, preferred_date, preferred_date_flex, cancer_type, treatment_type, message, intake, attachments")
+      .select("id, first_name, last_name, nationality, spoken_language, preferred_date, preferred_date_flex, cancer_type, treatment_type, message, intake, attachments, coordinator_brief")
       .eq("id", req.inquiry_id)
       .maybeSingle();
     if (!inqRaw) {
@@ -136,6 +157,8 @@ export async function GET(
         message: typeof inq.message === "string" ? inq.message : null,
         clinical: pickDetail(inq.intake),
         attachments: await signAttachments(inqRaw.attachments),
+        // 코디가 만들어둔 AI 케이스 브리프(한국어 요약) — 없으면 null(코디가 아직 안 만든 케이스).
+        brief: decodeCachedBrief(inqRaw.coordinator_brief),
       },
     });
   } catch (e: any) {

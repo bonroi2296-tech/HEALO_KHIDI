@@ -113,6 +113,29 @@ export default function OpinionClient({ token }) {
   const c = caseData || {};
   return (
     <Shell>
+      {/* AI 케이스 브리프 — 코디가 만들어둔 한국어 요약(원문이 러시아어 등이라도 이걸로 빠르게 파악) */}
+      {c.brief && (
+        <section className="bg-amber-50 rounded-2xl border border-amber-200 p-5 mb-4">
+          <h2 className="text-xs font-semibold text-amber-700 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+            케이스 요약 <span className="px-1.5 py-0.5 text-[10px] font-medium rounded bg-amber-200 text-amber-800">AI 초안 — 참고용</span>
+          </h2>
+          <p className="text-gray-900 font-medium leading-relaxed mb-2">{c.brief.overview}</p>
+          {c.brief.request && (
+            <p className="text-sm text-gray-700 mb-2"><span className="text-gray-400">환자가 원하는 것 </span>{c.brief.request}</p>
+          )}
+          {c.brief.points?.length > 0 && (
+            <ul className="text-sm text-gray-700 list-disc pl-4 space-y-0.5 mb-2">
+              {c.brief.points.map((p, i) => <li key={i}>{p}</li>)}
+            </ul>
+          )}
+          {c.brief.red_flags?.length > 0 && (
+            <ul className="text-sm text-red-700 list-disc pl-4 space-y-0.5">
+              {c.brief.red_flags.map((p, i) => <li key={i}>{p}</li>)}
+            </ul>
+          )}
+        </section>
+      )}
+
       {/* 케이스 임상 요약 */}
       <section className="bg-white rounded-2xl border border-gray-200 p-5 mb-4">
         <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">환자 / 임상 정보</h2>
