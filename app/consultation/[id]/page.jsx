@@ -211,6 +211,35 @@ function MicOffBanner({ failed, onClear }) {
   );
 }
 
+// ── 카메라 재시작 안전망 (LiveKitRoom 내부 전용) ──
+// (2026-07-08 Sentry OverconstrainedError 대응) 화면 잠금 해제·앱 전환 후 LiveKit이 카메라를
+// ROOM_OPTIONS 의 1080p 로 다시 켜려다, 그 폰 카메라가 재시작 시점에 1080p 를 못 맞추면 실패한다
+// (안드로이드 저사양 기종에서 종종 발생). 한 번 실패하면 낮은 화질로 자동 재시도 —
+// 의료상담은 '화질'보다 '화면이 아예 안 나옴'을 피하는 게 우선.
+function CameraRestartGuard() {
+  const room = useRoomContext();
+  const retryingRef = useRef(false);
+  useEffect(() => {
+    if (!room) return;
+    const onDeviceError = (error, kind) => {
+      if (kind !== "videoinput" || error?.name !== "OverconstrainedError") return;
+      if (retryingRef.current) return;
+      retryingRef.current = true;
+      room.localParticipant
+        .setCameraEnabled(true, { resolution: VideoPresets.h540.resolution })
+        .catch(() => {
+          /* 낮은 화질도 실패 — 카메라 없이 듣기·보기 참여는 그대로 유지 */
+        })
+        .finally(() => {
+          retryingRef.current = false;
+        });
+    };
+    room.on(RoomEvent.MediaDevicesError, onDeviceError);
+    return () => room.off(RoomEvent.MediaDevicesError, onDeviceError);
+  }, [room]);
+  return null;
+}
+
 // ── 상대 대기 안내 (LiveKitRoom 내부 전용) ──
 // 연결은 됐는데 아직 나 혼자면 검은 화면이 '고장'처럼 보인다 → "상대를 기다리는 중" 명시.
 // (PO 제보 '각각 입장은 되는데 서로 안 보임'의 절반은 '상대 없음'과 '고장'이 구분 안 되는 혼란.)
