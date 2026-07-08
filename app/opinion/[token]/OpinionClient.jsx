@@ -169,15 +169,22 @@ export default function OpinionClient({ token }) {
         {c.attachments?.length > 0 && (
           <div>
             <p className="text-[11px] text-gray-400 mb-1.5">첨부 의료기록 ({c.attachments.length})</p>
-            <div className="space-y-1.5">
+            <div className="space-y-3">
               {c.attachments.map((a, i) => (
-                a.url ? (
-                  <a key={i} href={a.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-teal-700 hover:underline text-sm">
-                    <FileText size={15} /> <span className="truncate">{a.name}</span>
-                  </a>
-                ) : (
-                  <div key={i} className="flex items-center gap-2 text-gray-400 text-sm"><FileText size={15} /> <span className="truncate">{a.name} (열람 불가)</span></div>
-                )
+                <div key={i}>
+                  {a.url ? (
+                    <a href={a.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-teal-700 hover:underline text-sm">
+                      <FileText size={15} /> <span className="truncate">{a.name}</span> <span className="text-gray-400 text-xs">(원본)</span>
+                    </a>
+                  ) : (
+                    <div className="flex items-center gap-2 text-gray-400 text-sm"><FileText size={15} /> <span className="truncate">{a.name} (열람 불가)</span></div>
+                  )}
+                  {a.translated ? (
+                    <TranslatedDocView doc={a.translated} />
+                  ) : (
+                    a.url && <p className="text-xs text-gray-400 mt-1">번역 실패 — 원본을 직접 확인해 주세요.</p>
+                  )}
+                </div>
               ))}
             </div>
           </div>
@@ -227,6 +234,45 @@ export default function OpinionClient({ token }) {
         </button>
       </section>
     </Shell>
+  );
+}
+
+// 번역된 검사지(한국어) — 원문 항목명·수치는 그대로 두고 항목명만 번역한 표(요약 아님).
+function TranslatedDocView({ doc }) {
+  if (!doc?.sections?.length) return null;
+  return (
+    <div className="mt-1.5 border border-gray-100 rounded-lg bg-gray-50 p-2.5 space-y-2">
+      {doc.docTypeShort && <p className="text-[11px] font-semibold text-gray-500">{doc.docType || doc.docTypeShort}</p>}
+      {doc.sections.map((s, si) => (
+        <div key={si}>
+          {s.title && <p className="text-xs font-medium text-gray-600 mb-1">{s.title}</p>}
+          {s.note && <p className="text-[11px] text-gray-400 mb-1">{s.note}</p>}
+          {Array.isArray(s.columns) && Array.isArray(s.rows) && s.rows.length > 0 && (
+            <div className="overflow-x-auto">
+              <table className="text-xs w-full border-collapse">
+                <thead>
+                  <tr>
+                    {s.columns.map((col, ci) => (
+                      <th key={ci} className="text-left text-gray-400 font-medium border-b border-gray-200 py-1 pr-2">{col}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {s.rows.map((r, ri) => (
+                    <tr key={ri}>
+                      {(r?.cells || []).map((cell, ci) => (
+                        <td key={ci} className="text-gray-800 py-1 pr-2 border-b border-gray-100 align-top">{cell}</td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+          {s.text && <p className="text-xs text-gray-800 whitespace-pre-wrap leading-relaxed">{s.text}</p>}
+        </div>
+      ))}
+    </div>
   );
 }
 

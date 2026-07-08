@@ -26,6 +26,7 @@ import {
 import { rosterName, isValidOpinionDoctorKey } from "@/lib/opinions/roster";
 import { notifyStaffOpinionArrived } from "@/lib/notifications/inApp";
 import { logAdminAction, getIpFromRequest, getUserAgentFromRequest } from "@/lib/audit/adminAuditLog";
+import { translateMedicalDoc } from "@/lib/documents/translateDoc";
 
 // 코디가 문의상세에서 이미 만들어둔 AI 케이스 브리프(한국어 요약)를 그대로 재사용.
 // 원문(러시아어 등)·미기재 필드보다 훨씬 낫다 — 새로 만들지 않고 캐시만 복호화해서 보여준다.
@@ -74,16 +75,25 @@ function patientName(first?: string | null, last?: string | null): string {
   const n = `${(first || "").trim()} ${(last || "").trim()}`.trim();
   return n || "익명 환자";
 }
-async function signAttachments(atts: any): Promise<{ name: string; url: string | null }[]> {
+// 한국 의료진용 화면이므로 검사지도 한국어로 번역해서 같이 준다(원문 링크는 그대로 유지).
+// translateMedicalDoc 은 캐시 우선 — 코디가 이미 번역해뒀으면 즉시, 아니면 그 자리에서 생성(최초 1회만 비용 발생).
+// 첨부가 많은 케이스에서 비용 폭주 방지를 위해 앞 5개까지만 번역.
+const MAX_TRANSLATE = 5;
+async function signAttachments(atts: any): Promise<{ name: string; url: string | null; translated: unknown | null }[]> {
   if (!Array.isArray(atts) || atts.length === 0) return [];
   return Promise.all(
-    atts.slice(0, 20).map(async (a: any) => {
+    atts.slice(0, 20).map(async (a: any, i: number) => {
       let url: string | null = null;
       if (a?.path) {
         const { data } = await supabaseAdmin.storage.from("attachments").createSignedUrl(a.path, 3600);
         url = data?.signedUrl || null;
       }
-      return { name: a?.name || "첨부파일", url };
+      let translated: unknown | null = null;
+      if (a?.path && i < MAX_TRANSLATE) {
+        const result = await translateMedicalDoc({ path: a.path, name: a?.name, lang: "ko" }).catch(() => null);
+        if (result?.ok) translated = result.doc;
+      }
+      return { name: a?.name || "첨부파일", url, translated };
     })
   );
 }
