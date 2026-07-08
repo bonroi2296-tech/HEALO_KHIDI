@@ -4,7 +4,7 @@
 // Toast = 화면에 잠깐 나타났다 사라지는 알림 메시지
 // alert() 대신 사용하는 더 예쁘고 사용자 친화적인 방법
 
-import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, useMemo } from 'react';
 import { CheckCircle2, XCircle, Info, AlertCircle, X } from 'lucide-react';
 import { getLangCodeFromCookie } from '../lib/i18n';
 
@@ -57,12 +57,14 @@ export const ToastProvider = ({ children }) => {
     }
   }, []);
 
-  const toast = {
+  // 참조 안정성 필수: 메모 없이 두면 매 렌더 새 객체가 나가서, useToast()를 deps에 쓰는
+  // 화면(예: 코디 AI 상담 리드)의 useEffect가 렌더마다 재실행 → 무한 재요청 루프.
+  const toast = useMemo(() => ({
     success: (message) => addToast(message, "success"),
     error: (message) => addToast(message, "error"),
     info: (message) => addToast(message, "info"),
     warning: (message) => addToast(message, "warning", 5000),
-  };
+  }), [addToast]);
 
   const removeToast = useCallback((id) => {
     setToasts((prev) => prev.filter((t) => t.id !== id));

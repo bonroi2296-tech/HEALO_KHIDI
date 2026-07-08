@@ -17,7 +17,7 @@
  * 누락 안전장치: 특정 언어에 값이 없으면 en → ko 순으로 폴백해 빈 화면이 안 나온다.
  */
 
-import { useSyncExternalStore } from "react";
+import { useSyncExternalStore, useMemo } from "react";
 import { getBackofficeLangFromCookie } from "./index";
 
 const CT = {
@@ -493,7 +493,10 @@ export function useBackofficeLang() {
  * 사용: const L = useCoordinatorL();  →  L.navDashboard
  */
 export function useCoordinatorL() {
-  return flatten(useBackofficeLang());
+  const lang = useBackofficeLang();
+  // 참조 안정성 필수: flatten()은 매번 새 객체를 만들어서, 메모 없이 두면 L을 deps에 쓰는
+  // useEffect/useCallback이 렌더마다 재실행 → 무한 재요청 루프(코디 AI 상담 리드 화면 rate_limited 원인).
+  return useMemo(() => flatten(lang), [lang]);
 }
 
 // 훅을 못 쓰는 곳(명시적 lang — 예: 환자 언어로 WhatsApp 문구)에서 직접 뽑을 때.
