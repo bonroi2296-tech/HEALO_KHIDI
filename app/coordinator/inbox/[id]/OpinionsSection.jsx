@@ -8,7 +8,7 @@
  */
 
 import { useState, useEffect, useCallback } from "react";
-import { Stethoscope, Copy, Check, Link2, Loader2 } from "lucide-react";
+import { Stethoscope, Copy, Check, Link2, Loader2, Pencil } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 
 async function authFetch(url, options = {}) {
@@ -30,6 +30,11 @@ export default function OpinionsSection({ inquiryId }) {
   const [opinions, setOpinions] = useState([]);
   const [creating, setCreating] = useState(false);
   const [copied, setCopied] = useState("");
+
+  const [showDirect, setShowDirect] = useState(false);
+  const [directDoctor, setDirectDoctor] = useState("");
+  const [directText, setDirectText] = useState("");
+  const [addingDirect, setAddingDirect] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -62,6 +67,25 @@ export default function OpinionsSection({ inquiryId }) {
       }
     } catch { /* silent */ } finally {
       setCreating(false);
+    }
+  };
+
+  const addDirect = async () => {
+    if (!directDoctor.trim() || directText.trim().length < 5) return;
+    setAddingDirect(true);
+    try {
+      const res = await authFetch(`/api/coordinator/opinions`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ inquiryId: Number(inquiryId), direct: true, doctorName: directDoctor, opinionText: directText }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        setDirectDoctor(""); setDirectText(""); setShowDirect(false);
+        await load();
+      }
+    } catch { /* silent */ } finally {
+      setAddingDirect(false);
     }
   };
 
@@ -118,6 +142,41 @@ export default function OpinionsSection({ inquiryId }) {
               </button>
             </div>
           )}
+
+          {/* 이미 카톡·메일 등으로 받은 소견을 링크 없이 직접 입력 */}
+          <div className="mt-2">
+            {!showDirect ? (
+              <button onClick={() => setShowDirect(true)} className="inline-flex items-center gap-1 text-xs text-gray-500 hover:text-teal-700 hover:underline">
+                <Pencil size={12} /> 이미 받은 소견 직접 입력
+              </button>
+            ) : (
+              <div className="space-y-2 bg-gray-50 border border-gray-100 rounded-lg p-3">
+                <input
+                  value={directDoctor}
+                  onChange={(e) => setDirectDoctor(e.target.value)}
+                  placeholder="소견 주신 분 (예: ○○대병원 종양내과 김○○)"
+                  className="w-full text-xs border border-gray-200 rounded px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                />
+                <textarea
+                  value={directText}
+                  onChange={(e) => setDirectText(e.target.value)}
+                  rows={3}
+                  placeholder="받은 소견 원문을 그대로 붙여넣으세요"
+                  className="w-full text-sm border border-gray-200 rounded px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                />
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={addDirect}
+                    disabled={addingDirect || !directDoctor.trim() || directText.trim().length < 5}
+                    className="inline-flex items-center px-3 py-1.5 text-xs font-semibold bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition disabled:opacity-50"
+                  >
+                    {addingDirect ? "추가 중…" : "추가"}
+                  </button>
+                  <button onClick={() => setShowDirect(false)} className="text-xs text-gray-400 hover:underline">취소</button>
+                </div>
+              </div>
+            )}
+          </div>
 
           {/* 도착한 소견 */}
           <div className="mt-4 space-y-3">
