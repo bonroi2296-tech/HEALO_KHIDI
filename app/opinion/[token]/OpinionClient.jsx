@@ -7,7 +7,7 @@
  */
 
 import { useEffect, useState } from "react";
-import { FileText, Stethoscope, CheckCircle2, Loader2 } from "lucide-react";
+import { FileText, Stethoscope, CheckCircle2, Loader2, ChevronDown } from "lucide-react";
 import { OPINION_ROSTER, OPINION_OTHER_KEY, OPINION_OTHER_LABEL } from "@/lib/opinions/roster";
 
 export default function OpinionClient({ token }) {
@@ -180,7 +180,7 @@ export default function OpinionClient({ token }) {
                     <div className="flex items-center gap-2 text-gray-400 text-sm"><FileText size={15} /> <span className="truncate">{a.name} (열람 불가)</span></div>
                   )}
                   {a.translated ? (
-                    <TranslatedDocView doc={a.translated} />
+                    <TranslatedDocToggle doc={a.translated} />
                   ) : (
                     a.url && <p className="text-xs text-gray-400 mt-1">번역 실패 — 원본을 직접 확인해 주세요.</p>
                   )}
@@ -237,6 +237,23 @@ export default function OpinionClient({ token }) {
   );
 }
 
+// 번역본이 길어서(검사지 여러 장) 기본은 접어두고 필요할 때 펼침.
+function TranslatedDocToggle({ doc }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="mt-1.5">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="flex items-center gap-1 text-xs text-teal-700 font-medium hover:underline"
+      >
+        <ChevronDown size={13} className={`transition-transform ${open ? "rotate-180" : ""}`} />
+        번역본 {open ? "접기" : "펼쳐 보기"}
+      </button>
+      {open && <TranslatedDocView doc={doc} />}
+    </div>
+  );
+}
+
 // 번역된 검사지(한국어) — 원문 항목명·수치는 그대로 두고 항목명만 번역한 표(요약 아님).
 function TranslatedDocView({ doc }) {
   if (!doc?.sections?.length) return null;
@@ -280,13 +297,13 @@ function Shell({ children }) {
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white border-b border-gray-100">
-        <div className="max-w-lg mx-auto px-5 py-4 flex items-center gap-2">
+        <div className="max-w-lg lg:max-w-4xl mx-auto px-5 lg:px-8 py-4 flex items-center gap-2">
           <Stethoscope size={18} className="text-teal-600" />
           <span className="font-semibold text-gray-900">전문의 소견 요청</span>
           <span className="ml-auto text-sm text-gray-400">healwith</span>
         </div>
       </header>
-      <main className="max-w-lg mx-auto px-5 py-5">{children}</main>
+      <main className="max-w-lg lg:max-w-4xl mx-auto px-5 lg:px-8 py-5 lg:py-8">{children}</main>
     </div>
   );
 }
