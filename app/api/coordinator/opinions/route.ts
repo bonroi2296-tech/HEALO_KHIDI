@@ -111,7 +111,11 @@ export async function POST(request: NextRequest) {
       }
 
       if (filePath && !opinionText) {
-        const result = await translateMedicalDoc({ path: filePath, name: fileName, lang: "ko" }).catch(() => null);
+        const result = await translateMedicalDoc({ path: filePath, name: fileName, lang: "ko" }).catch((e) => {
+          console.error("[coordinator/opinions] translate threw:", e?.message);
+          return null;
+        });
+        if (!result?.ok) console.error("[coordinator/opinions] translate failed:", (result as any)?.error);
         opinionText = result?.ok ? flattenTranslatedDoc(result.doc) : "";
         if (!opinionText) {
           opinionText = "(자동 번역 실패 — 첨부 원본을 직접 확인해 주세요)";
