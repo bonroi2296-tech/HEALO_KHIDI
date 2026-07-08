@@ -65,7 +65,7 @@ export const MANUALS = {
   coordinator: {
     title: "코디네이터 포털 사용설명서",
     summary: "들어온 문의를 환자별 케이스로 만들어 병원 배정·상담·비자·견적까지 끌고 가는 실무 화면입니다.",
-    updated: "2026-07-01",
+    updated: "2026-07-07",
     sections: [
       {
         heading: "하루 업무 순서(추천)",
@@ -83,6 +83,14 @@ export const MANUALS = {
           { title: "비자 트래킹", desc: "초청장·비자 진행 단계 추적." },
           { title: "견적", desc: "치료·체류 비용 견적 작성/공유." },
           { title: "증상 알림", desc: "환자가 올린 증상 기록 중 살펴야 할 알림." },
+          { title: "전문의 소견(세컨드 오피니언)", desc: "문의 상세 안 「전문의 소견」에서 '소견 요청 링크 만들기'를 누르면 계정 없이 열 수 있는 링크 + 카톡 붙여넣기용 요약이 나옵니다. 이걸 협력병원·전문의에게 카톡으로 보내면, 원장님이 로그인 없이 검사지를 보고 소견을 남깁니다(명단에서 본인 선택, 명단 밖이면 '그 외 의료진'→나중에 코디가 라벨). 도착한 소견은 같은 화면에 쌓이고 종 알림이 옵니다. 환자·에이전시에는 안 보이는 내부 전용입니다." },
+        ],
+      },
+      {
+        heading: "첨부 서류 번역(외국 검사지)",
+        items: [
+          { title: "한·영·러 변환", desc: "환자·에이전시가 올린 외국어 검사지를 문의 상세의 첨부에서 [한][EN][RU] 버튼으로 골라 원문 1:1 번역합니다(요약 아님, 숫자 그대로). 코디는 한글, 병원 의뢰는 영문, 환자 전달은 러시아어로." },
+          { title: "숫자검증·수정·사전", desc: "「숫자검증」은 표의 숫자를 원본과 다시 대조해 오기 의심 숫자를 표시합니다. 「수정」으로 번역을 고쳐 저장하면 보존되고, 자주 틀리는 용어는 ‘＋사전 등록’으로 넣으면 다음 번역부터 자동 반영됩니다." },
         ],
       },
       {
@@ -126,6 +134,13 @@ export const MANUALS = {
             ],
           },
           {
+            heading: "Attachment translation (foreign lab reports)",
+            items: [
+              { title: "KO/EN/RU conversion", desc: "On an inquiry's attachments, translate foreign-language reports uploaded by patients/agencies 1:1 (not a summary; numbers kept verbatim) — pick [한][EN][RU]. Korean for coordinators, English for hospital referrals, Russian for the patient." },
+              { title: "Number check, edit, glossary", desc: "'Number check' re-reads the source and flags digits that may be mistyped. 'Edit' lets you correct and save the translation; register recurring terms with '＋glossary' so they apply automatically to future translations." },
+            ],
+          },
+          {
             heading: "Partner outreach (overseas agencies & hospitals)",
             items: [
               { title: "What", desc: "Register overseas agencies and hospitals as candidates and classify/track them by contact status. You share the same list with administrators (synchronized)." },
@@ -163,6 +178,13 @@ export const MANUALS = {
               { title: "Отслеживание визы", desc: "Отслеживание этапов оформления приглашения и визы." },
               { title: "Смета", desc: "Составление/отправка сметы расходов на лечение и пребывание." },
               { title: "Оповещения о симптомах", desc: "Оповещения среди записей о симптомах, присланных пациентом, требующие внимания." },
+            ],
+          },
+          {
+            heading: "Перевод вложений (иностранные бланки анализов)",
+            items: [
+              { title: "Перевод на KO/EN/RU", desc: "Во вложениях запроса дословно переведите иностранные бланки, загруженные пациентами/агентствами (не резюме; числа сохраняются как есть) — выберите [한][EN][RU]. Корейский для координаторов, английский для направлений в больницу, русский для пациента." },
+              { title: "Проверка чисел, правка, словарь", desc: "«Проверка чисел» повторно считывает оригинал и отмечает возможные опечатки в цифрах. «Правка» позволяет исправить и сохранить перевод; часто встречающиеся термины добавляйте через «＋словарь», чтобы они автоматически применялись в следующих переводах." },
             ],
           },
           {
@@ -335,13 +357,13 @@ export const MANUALS = {
   agency: {
     title: "에이전시 포털 사용설명서",
     summary: "현지에서 발굴한 환자를 한국 병원으로 의뢰하고, 코디네이터와 케이스별로 소통하는 화면입니다.",
-    updated: "2026-06-24",
+    updated: "2026-07-07",
     sections: [
       {
         heading: "기본 흐름",
         items: [
-          { title: "1. 환자 의뢰하기", desc: "우측 상단 '환자 의뢰' 버튼으로 새 케이스를 등록합니다." },
-          { title: "2. 진행 상황 보기", desc: "상단 요약 카드(전체/진행/완료 등)를 누르면 상태별로 필터됩니다." },
+          { title: "1. 환자 의뢰하기", desc: "왼쪽 탭 '환자 의뢰'에서 새 케이스를 등록합니다." },
+          { title: "2. 진행 상황 보기", desc: "왼쪽 탭 '진행 현황'에서 케이스별 현재 단계(예: 단계 3/8)와 진행 바를 확인합니다. 상단 요약 카드를 누르면 상태별(전체/진행/완료)로 필터됩니다. 완료는 초록색으로 구분되고, 단계는 담당 코디네이터가 진행을 업데이트할 때마다 올라갑니다." },
           { title: "3. 코디와 소통", desc: "케이스의 메신저로 한국 코디네이터와 직접 대화합니다(운영시간 안내 표시)." },
         ],
       },
@@ -349,6 +371,7 @@ export const MANUALS = {
         heading: "알아두기",
         items: [
           "메신저는 한국 운영시간 동안 답이 빠릅니다(시간 외에는 안내 배너가 뜸).",
+          "코디네이터의 진행 메모·타임라인·채팅은 화면 언어로 자동 번역되어 표시됩니다(원문은 마우스를 올리면 볼 수 있어요).",
           "환자 정보는 안전하게 보호됩니다 — 필요한 최소 정보만 입력하세요.",
         ],
       },
@@ -361,8 +384,8 @@ export const MANUALS = {
           {
             heading: "Basic flow",
             items: [
-              { title: "1. Refer a patient", desc: "Register a new case with the 'Refer patient' button at the top right." },
-              { title: "2. View progress", desc: "Pressing the summary cards at the top (all/in progress/completed, etc.) filters by status." },
+              { title: "1. Refer a patient", desc: "Register a new case from the left tab 'Refer patient'." },
+              { title: "2. View progress", desc: "The left tab 'Progress' shows each case's current step (e.g. Step 3/8) and progress bar. The summary cards at the top filter by status (all/in progress/completed). Completed cases are marked in green, and the step advances each time your coordinator updates the case." },
               { title: "3. Communicate with the coordinator", desc: "Talk directly with the Korean coordinator through the case messenger (operating hours are shown)." },
             ],
           },
@@ -370,6 +393,7 @@ export const MANUALS = {
             heading: "Good to know",
             items: [
               "The messenger gets fast replies during Korean operating hours (outside those hours, an informational banner appears).",
+              "The coordinator's progress notes, timeline and chat are automatically translated into your display language (hover to see the original).",
               "Patient information is securely protected — enter only the minimum necessary information.",
             ],
           },
@@ -382,8 +406,8 @@ export const MANUALS = {
           {
             heading: "Базовый процесс",
             items: [
-              { title: "1. Направить пациента", desc: "Зарегистрируйте новое дело кнопкой «Направить пациента» в правом верхнем углу." },
-              { title: "2. Просмотр хода дела", desc: "При нажатии на сводные карточки вверху (все/в процессе/завершено и т. д.) выполняется фильтрация по статусу." },
+              { title: "1. Направить пациента", desc: "Зарегистрируйте новое дело во вкладке слева «Направить пациента»." },
+              { title: "2. Просмотр хода дела", desc: "Во вкладке слева «Ход» видны текущий этап каждого дела (например, Этап 3/8) и индикатор прогресса. Сводные карточки вверху фильтруют по статусу (все/в процессе/завершено). Завершённые дела отмечены зелёным, а этап продвигается каждый раз, когда координатор обновляет дело." },
               { title: "3. Общение с координатором", desc: "Общайтесь напрямую с корейским координатором через мессенджер дела (отображаются часы работы)." },
             ],
           },
@@ -391,6 +415,7 @@ export const MANUALS = {
             heading: "Полезно знать",
             items: [
               "В мессенджере ответы приходят быстро в корейские рабочие часы (вне этих часов появляется информационный баннер).",
+              "Заметки координатора о ходе дела, хронология и чат автоматически переводятся на язык вашего интерфейса (наведите курсор, чтобы увидеть оригинал).",
               "Данные пациента надёжно защищены — вводите только минимально необходимую информацию.",
             ],
           },
@@ -403,8 +428,8 @@ export const MANUALS = {
           {
             heading: "Негізгі ағын",
             items: [
-              { title: "1. Пациентті жолдау", desc: "Жоғарғы оң жақтағы «Пациентті жолдау» батырмасымен жаңа іс тіркеңіз." },
-              { title: "2. Барысын көру", desc: "Жоғарыдағы жиынтық карталарды (барлығы/жүріп жатыр/аяқталды және т. б.) бассаңыз, күй бойынша сүзіледі." },
+              { title: "1. Пациентті жолдау", desc: "Сол жақтағы «Пациентті жолдау» қойындысында жаңа іс тіркеңіз." },
+              { title: "2. Барысын көру", desc: "Сол жақтағы «Барыс» қойындысында әр істің ағымдағы кезеңі (мысалы, Кезең 3/8) мен барыс жолағы көрінеді. Жоғарыдағы жиынтық карталар күй бойынша сүзеді (барлығы/жүріп жатыр/аяқталды). Аяқталған істер жасыл түспен белгіленеді, ал кезең координатор істі жаңартқан сайын алға жылжиды." },
               { title: "3. Координатормен байланыс", desc: "Іс мессенджері арқылы корей координаторымен тікелей сөйлесіңіз (жұмыс уақыты көрсетіледі)." },
             ],
           },
@@ -412,6 +437,7 @@ export const MANUALS = {
             heading: "Біліп қою",
             items: [
               "Мессенджерде корей жұмыс уақытында жауап жылдам келеді (уақыттан тыс кезде ақпараттық баннер шығады).",
+              "Үйлестірушінің барыс жазбалары, хронология және чат интерфейс тіліне автоматты түрде аударылады (түпнұсқаны көру үшін тінтуірді апарыңыз).",
               "Пациент туралы ақпарат сенімді қорғалады — тек қажетті ең аз ақпаратты енгізіңіз.",
             ],
           },
@@ -424,8 +450,8 @@ export const MANUALS = {
           {
             heading: "基本流程",
             items: [
-              { title: "1. 转诊患者", desc: "通过右上角「转诊患者」按钮登记新病例。" },
-              { title: "2. 查看进展", desc: "点击顶部的汇总卡片（全部/进行中/已完成等）即可按状态筛选。" },
+              { title: "1. 转诊患者", desc: "在左侧标签「转诊患者」中登记新病例。" },
+              { title: "2. 查看进展", desc: "左侧标签「进度」显示每个病例的当前步骤（例如 步骤 3/8）和进度条。点击顶部汇总卡片可按状态筛选（全部/进行中/已完成）。已完成的病例以绿色区分，步骤会在协调员每次更新病例时前进。" },
               { title: "3. 与协调员沟通", desc: "通过病例的通讯工具与韩国协调员直接对话（显示运营时间提示）。" },
             ],
           },
@@ -433,6 +459,7 @@ export const MANUALS = {
             heading: "须知",
             items: [
               "通讯工具在韩国运营时间内回复较快（非工作时间会显示提示横幅）。",
+              "协调员的进展备注、时间线和聊天会自动翻译成您的界面语言（将鼠标悬停可查看原文）。",
               "患者信息受到安全保护——只需输入必要的最少信息。",
             ],
           },
@@ -445,8 +472,8 @@ export const MANUALS = {
           {
             heading: "基本の流れ",
             items: [
-              { title: "1. 患者を紹介する", desc: "右上の「患者紹介」ボタンで新しいケースを登録します。" },
-              { title: "2. 進捗を見る", desc: "上部のサマリーカード（全体/進行中/完了など）を押すと状態別にフィルターされます。" },
+              { title: "1. 患者を紹介する", desc: "左のタブ「患者紹介」から新しいケースを登録します。" },
+              { title: "2. 進捗を見る", desc: "左のタブ「進捗」でケースごとの現在のステップ（例：ステップ 3/8）と進捗バーを確認できます。上部のサマリーカードで状態別（全体/進行中/完了）に絞り込めます。完了は緑色で区別され、ステップは担当コーディネーターがケースを更新するたびに進みます。" },
               { title: "3. コーディネーターと連絡", desc: "ケースのメッセンジャーで韓国のコーディネーターと直接会話します（営業時間の案内が表示）。" },
             ],
           },
@@ -454,6 +481,7 @@ export const MANUALS = {
             heading: "知っておくこと",
             items: [
               "メッセンジャーは韓国の営業時間中は返信が早いです（時間外は案内バナーが表示されます）。",
+              "コーディネーターの進捗メモ・タイムライン・チャットは表示言語へ自動翻訳されます（原文はマウスを乗せると見られます）。",
               "患者情報は安全に保護されます — 必要最小限の情報だけを入力してください。",
             ],
           },

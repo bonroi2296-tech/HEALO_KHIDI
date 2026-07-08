@@ -135,15 +135,20 @@ export async function PATCH(request: NextRequest) {
     if (!id) return NextResponse.json({ ok: false, error: "inquiry_id_required" }, { status: 400 });
 
     const patch: Record<string, any> = {};
-    let statusChanged = false;
+    let statusChanged = false; // 값이 "실제로" 바뀐 경우만 true — 같은 상태 재저장 시 이력·유치집계 중복 방지
 
     if (body.case_status !== undefined) {
       if (body.case_status !== null && !CASE_STATUS_KEYS.includes(body.case_status)) {
         return NextResponse.json({ ok: false, error: "invalid_case_status" }, { status: 400 });
       }
+      // 현재 상태와 비교: 같은 값으로 다시 저장(예: 노트만 수정)하면 타임라인에 같은 단계가
+      // 중복으로 쌓이던 문제 차단. case_status_updated_at 은 저장 시각 반영 위해 계속 갱신하되,
+      // 이력(case_status_history)·유치 자동집계는 값이 바뀐 경우에만.
+      const { data: cur } = await (supabaseAdmin as any)
+        .from("inquiries").select("case_status").eq("id", id).maybeSingle();
       patch.case_status = body.case_status;
       patch.case_status_updated_at = new Date().toISOString();
-      statusChanged = true;
+      statusChanged = (cur?.case_status ?? null) !== body.case_status;
     }
     if (body.case_status_note !== undefined)
       patch.case_status_note = typeof body.case_status_note === "string" ? body.case_status_note.slice(0, 500) : null;

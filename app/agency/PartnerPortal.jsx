@@ -11,7 +11,7 @@ import { useRouter } from "next/navigation";
 import { kstDateTime } from "@/lib/datetime/kst";
 import {
   UploadCloud, File as FileIcon, X, ClipboardList, Activity, CheckCircle2, PauseCircle,
-  Plus, ArrowRight, ChevronDown, Paperclip, MessageCircle, FileText, Video, Send, Clock,
+  Plus, ArrowRight, ChevronDown, Paperclip, MessageCircle, FileText, Video, Send, Clock, Languages,
 } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { useLang } from "@/lib/i18n/LangContext";
@@ -435,6 +435,120 @@ const TR_MSG = {
 };
 for (const l of Object.keys(TR)) Object.assign(TR[l], TR_MSG[l] || TR_MSG.en);
 
+// 케이스 단계별 "다음 단계 안내"(에이전시가 지금·다음을 이해) + 빈 화면 온보딩 — 6개 언어. 위 TR 에 병합.
+// nextStep_<case_status> 키는 caseStatus.ts 의 단계 key 와 1:1.
+const TR_GUIDE = {
+  ko: {
+    nextStep_received: "코디가 서류를 검토 중이에요. 곧 병원 치료가능 여부를 확인합니다.",
+    nextStep_pre_consult: "사전상담을 진행하고 있어요.",
+    nextStep_hospital_review: "병원이 치료 가능 여부를 검토 중이에요. 회신을 기다리고 있어요.",
+    nextStep_scheduling: "치료 일정과 견적을 조율 중이에요. 견적이 나오면 여기에 표시됩니다.",
+    nextStep_visa_prep: "비자와 예약을 준비 중이에요.",
+    nextStep_treatment: "환자가 입국해 치료를 받고 있어요.",
+    nextStep_follow_up: "치료 후 사후관리를 진행 중이에요.",
+    nextStep_completed: "완료된 케이스예요.",
+    nextStep_on_hold: "현재 보류 상태예요. 궁금하면 코디에게 메시지를 보내세요.",
+    emptyHeading: "아직 의뢰한 환자가 없어요",
+    emptySub: "첫 환자를 의뢰하면 여기서 진행 상황을 실시간으로 확인할 수 있어요.",
+    emptyStep1: "환자 정보·서류로 의뢰",
+    emptyStep2: "코디가 병원 매칭·견적·상담 조율",
+    emptyStep3: "단계별 진행상황·메시지 확인",
+  },
+  en: {
+    nextStep_received: "Our coordinator is reviewing the documents. We'll check hospital eligibility shortly.",
+    nextStep_pre_consult: "A pre-consultation is underway.",
+    nextStep_hospital_review: "The hospital is reviewing whether treatment is possible. Awaiting their reply.",
+    nextStep_scheduling: "Coordinating the treatment schedule and quote. The quote will appear here once ready.",
+    nextStep_visa_prep: "Preparing the visa and booking.",
+    nextStep_treatment: "The patient has arrived and is receiving treatment.",
+    nextStep_follow_up: "Follow-up care is underway after treatment.",
+    nextStep_completed: "This case is completed.",
+    nextStep_on_hold: "Currently on hold. Message the coordinator if you have questions.",
+    emptyHeading: "No referred patients yet",
+    emptySub: "Refer your first patient to track their progress here in real time.",
+    emptyStep1: "Refer with patient info & documents",
+    emptyStep2: "Coordinator matches hospital, quote & consult",
+    emptyStep3: "Track each stage & message us",
+  },
+  ru: {
+    nextStep_received: "Координатор проверяет документы. Скоро уточним возможность лечения в больнице.",
+    nextStep_pre_consult: "Идёт предварительная консультация.",
+    nextStep_hospital_review: "Больница рассматривает возможность лечения. Ожидаем ответа.",
+    nextStep_scheduling: "Согласуем сроки лечения и смету. Смета появится здесь, когда будет готова.",
+    nextStep_visa_prep: "Готовим визу и бронирование.",
+    nextStep_treatment: "Пациент прибыл и проходит лечение.",
+    nextStep_follow_up: "После лечения идёт наблюдение.",
+    nextStep_completed: "Случай завершён.",
+    nextStep_on_hold: "Сейчас приостановлено. Напишите координатору, если есть вопросы.",
+    emptyHeading: "Пока нет направленных пациентов",
+    emptySub: "Направьте первого пациента, чтобы отслеживать его ход здесь в реальном времени.",
+    emptyStep1: "Направьте с данными и документами пациента",
+    emptyStep2: "Координатор подбирает больницу, смету и консультацию",
+    emptyStep3: "Отслеживайте этапы и пишите нам",
+  },
+  kz: {
+    nextStep_received: "Үйлестіруші құжаттарды тексеруде. Жақында аурухананың емдеу мүмкіндігін нақтылаймыз.",
+    nextStep_pre_consult: "Алдын ала кеңес жүргізілуде.",
+    nextStep_hospital_review: "Аурухана емдеу мүмкіндігін қарастыруда. Жауабын күтудеміз.",
+    nextStep_scheduling: "Емдеу кестесі мен бағаны келісудеміз. Баға дайын болғанда осында көрсетіледі.",
+    nextStep_visa_prep: "Виза мен брондауды дайындаудамыз.",
+    nextStep_treatment: "Науқас келіп, ем қабылдап жатыр.",
+    nextStep_follow_up: "Емнен кейін бақылау жүргізілуде.",
+    nextStep_completed: "Бұл жағдай аяқталды.",
+    nextStep_on_hold: "Қазір кейінге қалдырылған. Сұрағыңыз болса, үйлестірушіге жазыңыз.",
+    emptyHeading: "Әзірге жолданған науқас жоқ",
+    emptySub: "Бірінші науқасты жолдаңыз, барысын осында нақты уақытта қадағалай аласыз.",
+    emptyStep1: "Науқас деректері мен құжаттарымен жолдаңыз",
+    emptyStep2: "Үйлестіруші аурухана, баға, кеңесті ұйымдастырады",
+    emptyStep3: "Кезеңдерді қадағалап, бізге жазыңыз",
+  },
+  zh: {
+    nextStep_received: "协调员正在审核资料，即将确认医院能否治疗。",
+    nextStep_pre_consult: "正在进行初步咨询。",
+    nextStep_hospital_review: "医院正在评估能否治疗，正在等待回复。",
+    nextStep_scheduling: "正在协调治疗日程与报价。报价出来后将显示在此处。",
+    nextStep_visa_prep: "正在准备签证与预约。",
+    nextStep_treatment: "患者已入境，正在接受治疗。",
+    nextStep_follow_up: "治疗后正在进行后续护理。",
+    nextStep_completed: "此病例已完成。",
+    nextStep_on_hold: "目前暂缓。如有疑问，请给协调员留言。",
+    emptyHeading: "还没有转介的患者",
+    emptySub: "转介第一位患者后，即可在此实时追踪进度。",
+    emptyStep1: "用患者信息与资料转介",
+    emptyStep2: "协调员匹配医院、报价与会诊",
+    emptyStep3: "追踪各阶段并与我们沟通",
+  },
+  ja: {
+    nextStep_received: "コーディネーターが書類を確認中です。まもなく病院で治療可能か確認します。",
+    nextStep_pre_consult: "事前相談を進めています。",
+    nextStep_hospital_review: "病院が治療可能か検討中です。返答を待っています。",
+    nextStep_scheduling: "治療日程と見積を調整中です。見積ができ次第ここに表示されます。",
+    nextStep_visa_prep: "ビザと予約を準備中です。",
+    nextStep_treatment: "患者が入国し、治療を受けています。",
+    nextStep_follow_up: "治療後の経過観察を進めています。",
+    nextStep_completed: "この案件は完了しました。",
+    nextStep_on_hold: "現在保留中です。ご質問があればコーディネーターにメッセージしてください。",
+    emptyHeading: "まだ紹介した患者はいません",
+    emptySub: "最初の患者を紹介すると、ここで進捗をリアルタイムに確認できます。",
+    emptyStep1: "患者情報・書類で紹介",
+    emptyStep2: "コーディネーターが病院・見積・相談を調整",
+    emptyStep3: "各段階を確認しメッセージ",
+  },
+};
+for (const l of Object.keys(TR)) Object.assign(TR[l], TR_GUIDE[l] || TR_GUIDE.en);
+
+// 좌측 탭 라벨(진행 현황 / 환자 의뢰) + 진행 단계 표시 — 6개 언어. 위 TR 에 병합.
+// stepWord = "단계 3/8" 의 '단계'. advanceHint = 단계가 코디 업데이트로만 전진함을 안내.
+const TR_NAV = {
+  ko: { navTrack: "진행 현황", navRefer: "환자 의뢰", stepWord: "단계", advanceHint: "단계는 담당 코디네이터가 진행을 업데이트할 때마다 올라갑니다." },
+  en: { navTrack: "Progress", navRefer: "Refer patient", stepWord: "Step", advanceHint: "The step advances each time your coordinator updates the case." },
+  ru: { navTrack: "Ход", navRefer: "Направить", stepWord: "Этап", advanceHint: "Этап продвигается каждый раз, когда координатор обновляет статус." },
+  kz: { navTrack: "Барыс", navRefer: "Жолдау", stepWord: "Кезең", advanceHint: "Кезең үйлестіруші статусты жаңартқан сайын алға жылжиды." },
+  zh: { navTrack: "进度", navRefer: "转介患者", stepWord: "步骤", advanceHint: "每当协调员更新病例时，步骤就会前进。" },
+  ja: { navTrack: "進捗", navRefer: "患者紹介", stepWord: "ステップ", advanceHint: "ステップは担当コーディネーターが進捗を更新するたびに進みます。" },
+};
+for (const l of Object.keys(TR)) Object.assign(TR[l], TR_NAV[l] || TR_NAV.en);
+
 // 해외 파트너 포털 본체. expected 로 이 URL이 어느 파트너 유형 전용인지 지정한다.
 //  - /agency  → expected="agency"            (해외 에이전시)
 //  - /clinic  → expected="medical_institution" (해외 의료기관, 경과 업로드 가능)
@@ -451,13 +565,15 @@ export default function PartnerPortal({ expected = "agency" }) {
   const [filter, setFilter] = useState("all"); // all | active | done | hold
   const [query, setQuery] = useState("");
 
+  const [view, setView] = useState("track"); // 좌측 탭: "track"(진행 현황) | "refer"(환자 의뢰)
+
   // 환자 의뢰하기 폼
-  const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
   const [files, setFiles] = useState([]); // [{ path, name, type, category }] — 추가 즉시 업로드(인테이크 방식)
   const [uploading, setUploading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitMsg, setSubmitMsg] = useState(null);
+  const [noteTr, setNoteTr] = useState({}); // 코디 한글 메모 자동번역 { 원문 → 번역문 }
   const fileInputRef = useRef(null);
 
   // 첨부 추가 = 즉시 /api/attachments/upload (path 참조만 보관). 최대 10개.
@@ -503,6 +619,39 @@ export default function PartnerPortal({ expected = "agency" }) {
     if (portalMismatch) router.replace(accountIsMedical ? "/clinic" : "/agency");
   }, [portalMismatch, accountIsMedical, router]);
 
+  // 코디 한글 메모 자동번역: 화면 언어가 한국어가 아니면 case_status_note + 타임라인 note 를
+  // 한 번에 모아 서버에 번역 요청(캐시 우선). 결과는 원문→번역문 맵. 실패/한국어는 원문 폴백.
+  useEffect(() => {
+    const cases = data?.cases;
+    if (!cases || lang === "ko") { setNoteTr({}); return; }
+    const texts = [];
+    for (const c of cases) {
+      if (c.case_status_note) texts.push(c.case_status_note);
+      for (const tl of (c.timeline || [])) if (tl.note) texts.push(tl.note);
+    }
+    if (texts.length === 0) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const { data: sess } = await supabase.auth.getSession();
+        const token = sess?.session?.access_token;
+        if (!token) return;
+        const res = await fetch("/api/agency/translate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ texts, lang }),
+        });
+        const json = await res.json();
+        if (!cancelled && json?.ok && json.translations) setNoteTr(json.translations);
+      } catch { /* 실패 시 원문 유지 */ }
+    })();
+    return () => { cancelled = true; };
+  }, [data, lang]);
+
+  // 원문(한글) → 번역문. 없으면 원문 그대로. (서버가 trim 한 키로 저장하므로 trim 폴백)
+  const trNote = (t) => (t && lang !== "ko" ? (noteTr[t] || noteTr[String(t).trim()] || t) : t);
+  const noteIsTr = (t) => !!(t && lang !== "ko" && (noteTr[t] || noteTr[String(t).trim()]));
+
   const submitReferral = async (e) => {
     e.preventDefault();
     setSubmitMsg(null);
@@ -536,7 +685,7 @@ export default function PartnerPortal({ expected = "agency" }) {
         setSubmitMsg({ type: "ok", text: tt("okSubmitted") });
         setForm(EMPTY_FORM);
         setFiles([]);
-        setShowForm(false);
+        setView("track");
         await load();
       } else {
         const map = {
@@ -596,26 +745,42 @@ export default function PartnerPortal({ expected = "agency" }) {
 
   return (
     <>
-    <div className="max-w-4xl mx-auto px-4 pt-20 md:pt-24 pb-10">
+    <div className="max-w-5xl mx-auto px-4 pt-20 md:pt-24 pb-10">
       <div className="mb-6">
         <span className={`inline-block text-[11px] font-semibold px-2 py-0.5 rounded-full mb-2 ${isClinic ? "bg-indigo-50 text-indigo-700" : "bg-teal-50 text-teal-700"}`}>{partnerKind}</span>
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">{data?.agency?.name} {tt("titleSuffix")}</h1>
-            <p className="text-sm text-gray-500 mt-1">{tt("subtitle")}</p>
-          </div>
-          <button
-            onClick={() => { setShowForm((v) => !v); setSubmitMsg(null); }}
-            className="shrink-0 inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-teal-700 text-white text-sm font-bold hover:bg-teal-800 transition-all duration-200"
-          >
-            {showForm ? <X size={16} /> : <Plus size={16} />}
-            {showForm ? tt("btnClose") : tt("btnRefer")}
-          </button>
-        </div>
+        <h1 className="text-2xl font-bold text-gray-900 mt-1">{data?.agency?.name} {tt("titleSuffix")}</h1>
+        <p className="text-sm text-gray-500 mt-1">{tt("subtitle")}</p>
       </div>
 
+      <div className="flex flex-col md:flex-row md:items-start gap-5">
+        {/* 좌측 탭: 진행 현황 ↔ 환자 의뢰 — 어드민 좌측 nav 톤(대문짝 사이즈: 컬러 아이콘칩+굵은 라벨) */}
+        <nav className="flex md:flex-col gap-2 md:w-56 shrink-0">
+          {[
+            { key: "track", label: tt("navTrack"), icon: Activity, badge: cnt.total },
+            { key: "refer", label: tt("navRefer"), icon: Plus, badge: null },
+          ].map((it) => {
+            const on = view === it.key;
+            const NIcon = it.icon;
+            return (
+              <button key={it.key} type="button"
+                onClick={() => { setView(it.key); setSubmitMsg(null); }}
+                className={`flex-1 md:flex-none flex items-center gap-3 px-4 py-3.5 rounded-xl text-base font-bold transition-all duration-200 ${on ? "bg-teal-700 text-white shadow-md" : "bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300"}`}>
+                <span className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${on ? "bg-white/20 text-white" : "bg-teal-50 text-teal-600"}`}>
+                  <NIcon size={20} />
+                </span>
+                <span className="flex-1 text-left">{it.label}</span>
+                {it.badge != null && it.badge > 0 && (
+                  <span className={`text-sm tabular-nums font-semibold rounded-full px-2 py-0.5 ${on ? "bg-white/20 text-white" : "bg-gray-100 text-gray-500"}`}>{it.badge}</span>
+                )}
+              </button>
+            );
+          })}
+        </nav>
+
+        <div className="flex-1 min-w-0">
+
       {/* 요약 지표 카드 (코디 대시보드 톤) — 누르면 필터 */}
-      {cnt.total > 0 && (
+      {view === "track" && cnt.total > 0 && (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
           {STAT_CARDS.map((card) => {
             const Icon = card.icon;
@@ -637,13 +802,21 @@ export default function PartnerPortal({ expected = "agency" }) {
         </div>
       )}
 
+      {/* 단계가 코디 업데이트로만 전진함을 한 줄 안내 (완료·1단계 혼동 방지) */}
+      {view === "track" && cnt.total > 0 && (
+        <p className="flex items-start gap-1.5 text-xs text-gray-400 mb-4 -mt-2">
+          <Activity size={13} className="mt-0.5 shrink-0" />
+          <span>{tt("advanceHint")}</span>
+        </p>
+      )}
+
       {submitMsg && (
         <div className={`mb-4 rounded-xl px-4 py-3 text-sm ${submitMsg.type === "ok" ? "bg-teal-50 text-teal-800 border border-teal-200" : "bg-red-50 text-red-700 border border-red-200"}`}>
           {submitMsg.text}
         </div>
       )}
 
-      {showForm && (
+      {view === "refer" && (
         <form onSubmit={submitReferral} className="bg-white border border-gray-200 rounded-2xl shadow-sm p-5 md:p-7 mb-6 space-y-6">
           <div>
             <h2 className="text-lg font-bold text-gray-900">{tt("formHeading")}</h2>
@@ -766,7 +939,7 @@ export default function PartnerPortal({ expected = "agency" }) {
           </Section>
 
           <div className="flex justify-end gap-2 pt-1">
-            <button type="button" onClick={() => { setShowForm(false); setSubmitMsg(null); }}
+            <button type="button" onClick={() => { setView("track"); setSubmitMsg(null); }}
               className="px-4 py-2.5 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-50">{tt("btnCancel")}</button>
             <button type="submit" disabled={submitting || uploading}
               className="px-6 py-2.5 rounded-xl text-sm font-bold bg-teal-700 text-white hover:bg-teal-800 transition-all duration-200 disabled:opacity-40">
@@ -776,8 +949,26 @@ export default function PartnerPortal({ expected = "agency" }) {
         </form>
       )}
 
-      {cases.length === 0 ? (
-        <p className="text-sm text-gray-400">{tt("emptyList")}</p>
+      {view === "track" && (cases.length === 0 ? (
+        <div className="text-center py-14 px-4 bg-white border border-gray-100 rounded-2xl">
+          <div className="w-12 h-12 mx-auto rounded-xl bg-teal-50 flex items-center justify-center mb-4">
+            <ClipboardList size={24} className="text-teal-600" />
+          </div>
+          <h2 className="text-base font-bold text-gray-900">{tt("emptyHeading")}</h2>
+          <p className="text-sm text-gray-500 mt-1 max-w-sm mx-auto">{tt("emptySub")}</p>
+          <div className="flex flex-col sm:flex-row gap-2 justify-center mt-5 mb-6 text-xs text-gray-600">
+            {[tt("emptyStep1"), tt("emptyStep2"), tt("emptyStep3")].map((s, i) => (
+              <div key={i} className="flex items-center gap-1.5 bg-gray-50 rounded-lg px-3 py-2">
+                <span className="w-5 h-5 rounded-full bg-teal-600 text-white flex items-center justify-center text-[11px] font-bold shrink-0">{i + 1}</span>
+                <span>{s}</span>
+              </div>
+            ))}
+          </div>
+          <button onClick={() => { setView("refer"); setSubmitMsg(null); }}
+            className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-teal-700 text-white text-sm font-bold hover:bg-teal-800 transition-all duration-200">
+            <Plus size={16} />{tt("btnRefer")}
+          </button>
+        </div>
       ) : (
         <>
           {/* 필터 탭 + 검색 (DESIGN: 알약 rounded-full, tabular-nums, duration-200) */}
@@ -817,22 +1008,52 @@ export default function PartnerPortal({ expected = "agency" }) {
                         )}
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <span className={`text-xs px-2.5 py-1 rounded-full ${c.case_status ? "bg-teal-50 text-teal-700" : "bg-gray-100 text-gray-400"}`}>
-                        {caseStatusLabelL(c.case_status, lang)}
-                      </span>
-                      <ChevronDown size={16} className={`text-gray-400 transition-transform duration-200 ${openId === c.id ? "rotate-180" : ""}`} />
-                    </div>
+                    <ChevronDown size={16} className={`text-gray-400 transition-transform duration-200 shrink-0 ${openId === c.id ? "rotate-180" : ""}`} />
                   </div>
-                  {/* 단계 진행 바 */}
+                  {/* 현재 단계 — 이름 + 위치(N/8) 크게, 완료·보류는 색으로 구분 */}
+                  {(() => {
+                    const isHold = c.case_status === "on_hold";
+                    const isDone = c.case_status === "completed";
+                    const total = steps.length; // 실단계 8 (보류 제외)
+                    return (
+                      <div className="flex items-center flex-wrap gap-2 mb-1.5">
+                        <span className={`inline-flex items-center gap-1.5 text-sm font-bold px-3 py-1 rounded-lg ${
+                          isHold ? "bg-amber-50 text-amber-700"
+                          : isDone ? "bg-emerald-600 text-white"
+                          : c.case_status ? "bg-teal-700 text-white"
+                          : "bg-gray-100 text-gray-400"}`}>
+                          {isDone && <CheckCircle2 size={14} className="shrink-0" />}
+                          {isHold && <PauseCircle size={14} className="shrink-0" />}
+                          {caseStatusLabelL(c.case_status, lang)}
+                        </span>
+                        {c.case_status && !isHold && (
+                          <span className="text-xs font-semibold text-gray-400 tabular-nums">{tt("stepWord")} {curOrder}/{total}</span>
+                        )}
+                      </div>
+                    );
+                  })()}
+                  {/* 단계 진행 바 — 완료는 진한 초록, 진행 중은 teal */}
                   <div className="flex items-center gap-1">
-                    {steps.map((s) => (
-                      <div key={s.key} className="flex-1 h-1.5 rounded-full"
-                        style={{ background: s.order <= curOrder ? "#14b8a6" : "#e5e7eb" }} title={caseStatusLabelL(s.key, lang)} />
-                    ))}
+                    {steps.map((s) => {
+                      const filled = s.order <= curOrder && c.case_status !== "on_hold";
+                      const done = c.case_status === "completed";
+                      return (
+                        <div key={s.key} className="flex-1 h-2 rounded-full transition-colors"
+                          style={{ background: filled ? (done ? "#059669" : "#14b8a6") : "#e5e7eb" }} title={caseStatusLabelL(s.key, lang)} />
+                      );
+                    })}
                   </div>
                   {c.case_status_note && (
-                    <p className="text-xs text-gray-500 mt-2">{c.case_status_note}</p>
+                    <p className="text-xs text-gray-500 mt-2" title={noteIsTr(c.case_status_note) ? c.case_status_note : undefined}>
+                      {trNote(c.case_status_note)}
+                      {noteIsTr(c.case_status_note) && <Languages size={11} className="inline-block ml-1 -mt-0.5 text-gray-300" />}
+                    </p>
+                  )}
+                  {c.case_status && tt(`nextStep_${c.case_status}`) && (
+                    <p className="text-xs text-teal-700 bg-teal-50/70 rounded-lg px-2.5 py-1.5 mt-2 flex items-start gap-1.5">
+                      <ArrowRight size={12} className="mt-0.5 shrink-0" />
+                      <span>{tt(`nextStep_${c.case_status}`)}</span>
+                    </p>
                   )}
                   <div className="flex gap-3 mt-2 text-xs text-gray-400">
                     {c.insurance_status && <span>{tt("insuranceLabel")} {c.insurance_status}</span>}
@@ -874,7 +1095,7 @@ export default function PartnerPortal({ expected = "agency" }) {
                             <li key={i} className="ml-4">
                               <span className="absolute -left-[5px] mt-1 w-2.5 h-2.5 rounded-full bg-teal-500 ring-2 ring-white" />
                               <div className="text-[11px] text-gray-400">{new Date(tl.at).toLocaleDateString()}</div>
-                              <div className="text-sm text-gray-700"><b>{caseStatusLabelL(tl.status, lang)}</b>{tl.note ? ` — ${tl.note}` : ""}</div>
+                              <div className="text-sm text-gray-700" title={noteIsTr(tl.note) ? tl.note : undefined}><b>{caseStatusLabelL(tl.status, lang)}</b>{tl.note ? ` — ${trNote(tl.note)}` : ""}{noteIsTr(tl.note) && <Languages size={11} className="inline-block ml-1 -mt-0.5 text-gray-300" />}</div>
                             </li>
                           ))}
                         </ol>
@@ -892,7 +1113,9 @@ export default function PartnerPortal({ expected = "agency" }) {
             </div>
           )}
         </>
-      )}
+      ))}
+        </div>
+      </div>
     </div>
     <ManualDrawer role={isClinic ? "clinic" : "agency"} buttonLabel={tt("manualBtn")} />
     </>
@@ -1106,7 +1329,9 @@ function CaseActions({ c, tt, onDone }) {
 
 // 에이전시 ↔ 코디 양방향 메신저 — 오른쪽 슬라이드 대화창(드로어). 열려 있을 때만 8초 폴링.
 function ChatDrawer({ open, onClose, inquiryId, caseName, tt, getToken }) {
+  const lang = useLang();
   const [messages, setMessages] = useState([]);
+  const [msgTr, setMsgTr] = useState({}); // 코디 한글 메시지 자동번역 { 원문 → 번역문 }
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
   const [loaded, setLoaded] = useState(false);
@@ -1146,6 +1371,31 @@ function ChatDrawer({ open, onClose, inquiryId, caseName, tt, getToken }) {
   }, [open, onClose]);
 
   useEffect(() => { if (open) endRef.current?.scrollIntoView({ behavior: "smooth" }); }, [messages.length, open]);
+
+  // 코디(상대) 메시지 자동번역 — 내가 쓴 것(agency)은 제외, 나머지 한글 메시지만 상대 언어로.
+  useEffect(() => {
+    if (lang === "ko") { setMsgTr({}); return; }
+    const texts = messages.filter((m) => m.actor_type !== "agency" && m.message_text).map((m) => m.message_text);
+    if (texts.length === 0) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const token = await getToken();
+        if (!token) return;
+        const res = await fetch("/api/agency/translate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ texts, lang }),
+        });
+        const json = await res.json();
+        if (!cancelled && json?.ok && json.translations) setMsgTr((prev) => ({ ...prev, ...json.translations }));
+      } catch { /* 실패 시 원문 유지 */ }
+    })();
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [messages, lang]);
+  const trMsg = (t) => (t && lang !== "ko" ? (msgTr[t] || msgTr[String(t).trim()] || t) : t);
+  const msgIsTr = (t) => !!(t && lang !== "ko" && (msgTr[t] || msgTr[String(t).trim()]));
 
   const send = async () => {
     const text = draft.trim();
@@ -1210,8 +1460,8 @@ function ChatDrawer({ open, onClose, inquiryId, caseName, tt, getToken }) {
             const mine = m.actor_type === "agency";
             const coord = m.actor_type === "coordinator" || m.actor_type === "admin";
             if (!mine && !coord) {
-              // 시스템 메시지 — 가운데 칩
-              return <div key={m.id} className="text-center"><span className="inline-block text-[11px] text-gray-500 bg-gray-100 rounded-full px-3 py-1">{m.message_text}</span></div>;
+              // 시스템 메시지 — 가운데 칩 (한글이면 상대 언어로 번역)
+              return <div key={m.id} className="text-center"><span className="inline-block text-[11px] text-gray-500 bg-gray-100 rounded-full px-3 py-1" title={msgIsTr(m.message_text) ? m.message_text : undefined}>{trMsg(m.message_text)}</span></div>;
             }
             const who = mine ? tt("msgrYou") : tt("msgrCoord");
             return (
@@ -1219,8 +1469,9 @@ function ChatDrawer({ open, onClose, inquiryId, caseName, tt, getToken }) {
                 <span className="text-[10px] text-gray-400 mb-1 px-1">{who} · {new Date(m.created_at).toLocaleString()}</span>
                 <div className={`max-w-[85%] px-3.5 py-2.5 text-sm leading-relaxed whitespace-pre-wrap break-words shadow-sm ${
                   mine ? "bg-teal-600 text-white rounded-2xl rounded-br-md" : "bg-white text-gray-800 border border-gray-200 rounded-2xl rounded-bl-md"
-                }`}>
-                  {m.message_text}
+                }`} title={!mine && msgIsTr(m.message_text) ? m.message_text : undefined}>
+                  {mine ? m.message_text : trMsg(m.message_text)}
+                  {!mine && msgIsTr(m.message_text) && <Languages size={11} className="inline-block ml-1 -mt-0.5 text-gray-300" />}
                 </div>
               </div>
             );
