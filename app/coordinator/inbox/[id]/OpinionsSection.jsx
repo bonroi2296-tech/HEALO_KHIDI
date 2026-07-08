@@ -138,6 +138,10 @@ function OpinionItem({ opinion }) {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
+  const [released, setReleased] = useState(!!opinion.released_at);
+  const [draft, setDraft] = useState(opinion.released_text || opinion.opinion_text || "");
+  const [releasing, setReleasing] = useState(false);
+
   const save = async () => {
     setSaving(true);
     setSaved(false);
@@ -154,13 +158,76 @@ function OpinionItem({ opinion }) {
     }
   };
 
+  const publish = async () => {
+    if (!draft.trim()) return;
+    setReleasing(true);
+    try {
+      const res = await authFetch(`/api/coordinator/opinions/${opinion.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ releasedText: draft }),
+      });
+      const data = await res.json();
+      if (data.ok) setReleased(true);
+    } catch { /* silent */ } finally {
+      setReleasing(false);
+    }
+  };
+
+  const unpublish = async () => {
+    setReleasing(true);
+    try {
+      const res = await authFetch(`/api/coordinator/opinions/${opinion.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ release: false }),
+      });
+      const data = await res.json();
+      if (data.ok) setReleased(false);
+    } catch { /* silent */ } finally {
+      setReleasing(false);
+    }
+  };
+
   return (
     <div className="border border-gray-200 rounded-lg p-3">
       <div className="flex items-center gap-2 mb-1.5">
         <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-teal-50 text-teal-700 text-xs font-medium">{opinion.doctor_name}</span>
         <span className="text-[11px] text-gray-400">{fmt(opinion.created_at)}</span>
+        {released && (
+          <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 text-[11px] font-medium">에이전시 공개됨</span>
+        )}
       </div>
+      <p className="text-xs text-gray-400 mb-1">원장님 원문 (내부용, 에이전시에 안 보임)</p>
       <p className="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed">{opinion.opinion_text}</p>
+
+      {/* 에이전시 공개 — 원문을 교정/번역해 확정본을 만들고 공개해야만 에이전시에 노출 */}
+      <div className="mt-3 bg-blue-50/40 border border-blue-100 rounded-lg p-3">
+        <p className="text-[11px] text-blue-700 mb-1.5">에이전시에 보낼 확정본 (오탈자·외국어 교정 후 공개)</p>
+        <textarea
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          rows={3}
+          disabled={released}
+          className="w-full text-sm border border-gray-200 rounded px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:bg-gray-50 disabled:text-gray-500"
+        />
+        <div className="mt-2">
+          {released ? (
+            <button onClick={unpublish} disabled={releasing} className="text-xs text-gray-500 hover:text-red-600 hover:underline disabled:opacity-50">
+              {releasing ? "처리 중…" : "공개 취소 (다시 비공개로)"}
+            </button>
+          ) : (
+            <button
+              onClick={publish}
+              disabled={releasing || !draft.trim()}
+              className="inline-flex items-center px-3 py-1.5 text-xs font-semibold bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:opacity-50"
+            >
+              {releasing ? "공개 중…" : "에이전시에 공개"}
+            </button>
+          )}
+        </div>
+      </div>
+
       {/* 소견 주신 분 라벨 — '그 외 의료진'이면 코디가 신원을 채운다 */}
       <div className="mt-2 flex items-center gap-2">
         <input

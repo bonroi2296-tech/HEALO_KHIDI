@@ -135,7 +135,7 @@ export async function GET(request: NextRequest) {
 
     const { data: opinions } = await (supabaseAdmin as any)
       .from("case_opinions")
-      .select("id, doctor_key, doctor_name, opinion_text, attribution_note, created_at")
+      .select("id, doctor_key, doctor_name, opinion_text, attribution_note, released_text, released_at, created_at")
       .eq("inquiry_id", inquiryId)
       .order("created_at", { ascending: false });
 
