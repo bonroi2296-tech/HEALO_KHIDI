@@ -7,7 +7,7 @@
  */
 
 import { useEffect, useState } from "react";
-import { FileText, Stethoscope, CheckCircle2, Loader2 } from "lucide-react";
+import { FileText, Stethoscope, CheckCircle2, Loader2, ChevronDown } from "lucide-react";
 import { OPINION_ROSTER, OPINION_OTHER_KEY, OPINION_OTHER_LABEL } from "@/lib/opinions/roster";
 
 export default function OpinionClient({ token }) {
@@ -113,6 +113,29 @@ export default function OpinionClient({ token }) {
   const c = caseData || {};
   return (
     <Shell>
+      {/* AI 케이스 브리프 — 코디가 만들어둔 한국어 요약(원문이 러시아어 등이라도 이걸로 빠르게 파악) */}
+      {c.brief && (
+        <section className="bg-amber-50 rounded-2xl border border-amber-200 p-5 mb-4">
+          <h2 className="text-xs font-semibold text-amber-700 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+            케이스 요약 <span className="px-1.5 py-0.5 text-[10px] font-medium rounded bg-amber-200 text-amber-800">AI 초안 — 참고용</span>
+          </h2>
+          <p className="text-gray-900 font-medium leading-relaxed mb-2">{c.brief.overview}</p>
+          {c.brief.request && (
+            <p className="text-sm text-gray-700 mb-2"><span className="text-gray-400">환자가 원하는 것 </span>{c.brief.request}</p>
+          )}
+          {c.brief.points?.length > 0 && (
+            <ul className="text-sm text-gray-700 list-disc pl-4 space-y-0.5 mb-2">
+              {c.brief.points.map((p, i) => <li key={i}>{p}</li>)}
+            </ul>
+          )}
+          {c.brief.red_flags?.length > 0 && (
+            <ul className="text-sm text-red-700 list-disc pl-4 space-y-0.5">
+              {c.brief.red_flags.map((p, i) => <li key={i}>{p}</li>)}
+            </ul>
+          )}
+        </section>
+      )}
+
       {/* 케이스 임상 요약 */}
       <section className="bg-white rounded-2xl border border-gray-200 p-5 mb-4">
         <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">환자 / 임상 정보</h2>
@@ -128,7 +151,7 @@ export default function OpinionClient({ token }) {
           </div>
         )}
         {c.clinical?.length > 0 && (
-          <dl className="grid grid-cols-2 gap-x-3 gap-y-2 mb-3">
+          <dl className="grid grid-cols-2 lg:grid-cols-4 gap-x-3 gap-y-2 mb-3">
             {c.clinical.map((d, i) => (
               <div key={i} className="min-w-0">
                 <dt className="text-[11px] text-gray-400">{d.label}</dt>
@@ -146,15 +169,22 @@ export default function OpinionClient({ token }) {
         {c.attachments?.length > 0 && (
           <div>
             <p className="text-[11px] text-gray-400 mb-1.5">첨부 의료기록 ({c.attachments.length})</p>
-            <div className="space-y-1.5">
+            <div className="space-y-3">
               {c.attachments.map((a, i) => (
-                a.url ? (
-                  <a key={i} href={a.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-teal-700 hover:underline text-sm">
-                    <FileText size={15} /> <span className="truncate">{a.name}</span>
-                  </a>
-                ) : (
-                  <div key={i} className="flex items-center gap-2 text-gray-400 text-sm"><FileText size={15} /> <span className="truncate">{a.name} (열람 불가)</span></div>
-                )
+                <div key={i}>
+                  {a.url ? (
+                    <a href={a.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-teal-700 hover:underline text-sm">
+                      <FileText size={15} /> <span className="truncate">{a.name}</span> <span className="text-gray-400 text-xs">(원본)</span>
+                    </a>
+                  ) : (
+                    <div className="flex items-center gap-2 text-gray-400 text-sm"><FileText size={15} /> <span className="truncate">{a.name} (열람 불가)</span></div>
+                  )}
+                  {a.translated ? (
+                    <TranslatedDocToggle doc={a.translated} />
+                  ) : (
+                    a.url && <p className="text-xs text-gray-400 mt-1">번역 실패 — 원본을 직접 확인해 주세요.</p>
+                  )}
+                </div>
               ))}
             </div>
           </div>
@@ -207,17 +237,106 @@ export default function OpinionClient({ token }) {
   );
 }
 
+// 번역본이 길어서(검사지 여러 장) 기본은 접어두고 필요할 때 펼침.
+function TranslatedDocToggle({ doc }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="mt-1.5">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="flex items-center gap-1 text-xs text-teal-700 font-medium hover:underline"
+      >
+        <ChevronDown size={13} className={`transition-transform ${open ? "rotate-180" : ""}`} />
+        번역본 {open ? "접기" : "펼쳐 보기"}
+      </button>
+      {open && <TranslatedDocView doc={doc} />}
+    </div>
+  );
+}
+
+// 번역된 검사지(한국어) — 원문 항목명·수치는 그대로 두고 항목명만 번역한 표(요약 아님).
+// 컬럼 순서는 항상 [항목(원문), 항목(한글), 결과, 정상범위, 단위](ko 고정 호출).
+// 검사지 하나에 패널(CBC·소변·호르몬…)이 여러 개라 전부 펼치면 스크롤이 너무 길어짐 —
+// 패널(섹션)별로 접어두고, 원장님은 이상치(▲▼) 있는 패널부터 골라 열어보면 됨.
+function TranslatedDocView({ doc }) {
+  if (!doc?.sections?.length) return null;
+  return (
+    <div className="mt-2 border border-gray-200 rounded-xl bg-white p-3 space-y-3">
+      {doc.docTypeShort && <p className="text-xs font-semibold text-teal-700">{doc.docType || doc.docTypeShort}</p>}
+      {doc.sections.map((s, si) => (
+        <div key={si} className={si > 0 ? "pt-3 border-t border-gray-100" : ""}>
+          {s.title && <p className="text-sm font-semibold text-gray-700 mb-1">{s.title}</p>}
+          {s.note && <p className="text-xs text-gray-400 mb-1">{s.note}</p>}
+          {Array.isArray(s.columns) && Array.isArray(s.rows) && s.rows.length > 0 && (
+            <SectionTable columns={s.columns} rows={s.rows} />
+          )}
+          {s.text && <p className="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed">{s.text}</p>}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// 패널(검사 항목군) 하나 — 기본 접힘. 이상치(▲▼ 포함 행)가 있으면 빨간 배지로 몇 건인지 미리 보여줘서
+// 원장님이 어느 패널부터 열어볼지 판단할 수 있게 함(전부 열어야 알 수 있으면 의미 없음).
+function SectionTable({ columns, rows }) {
+  const [open, setOpen] = useState(false);
+  const abnormal = rows.filter((r) => (r?.cells || []).some((c) => typeof c === "string" && (c.includes("▲") || c.includes("▼")))).length;
+  return (
+    <div>
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="flex items-center gap-1.5 text-xs text-teal-700 font-medium hover:underline mb-1"
+      >
+        <ChevronDown size={12} className={`transition-transform ${open ? "rotate-180" : ""}`} />
+        {rows.length}개 항목 {open ? "접기" : "보기"}
+        {abnormal > 0 && (
+          <span className="px-1.5 py-0.5 rounded-full bg-red-50 text-red-600 text-[11px] font-semibold">이상치 {abnormal}건</span>
+        )}
+      </button>
+      {open && (
+        <div className="overflow-x-auto">
+          <table className="text-[13px] sm:text-sm w-full border-collapse">
+            <thead>
+              <tr>
+                <th className="hidden sm:table-cell text-left text-gray-400 font-medium border-b border-gray-200 py-1.5 pr-3">{columns[0]}</th>
+                <th className="text-left text-gray-400 font-medium border-b border-gray-200 py-1.5 pr-3">{columns[1] || columns[0]}</th>
+                <th className="text-left text-gray-400 font-medium border-b border-gray-200 py-1.5 pr-3">{columns[2]}</th>
+                <th className="text-left text-gray-400 font-medium border-b border-gray-200 py-1.5 pr-3">정상범위·단위</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((r, ri) => {
+                const [orig, ko, result, range, unit] = r?.cells || [];
+                const isAbnormal = (r?.cells || []).some((c) => typeof c === "string" && (c.includes("▲") || c.includes("▼")));
+                return (
+                  <tr key={ri} className={isAbnormal ? "bg-red-50/60" : ri % 2 === 1 ? "bg-gray-50/60" : ""}>
+                    <td className="hidden sm:table-cell text-gray-500 py-1.5 pr-3 border-b border-gray-100 align-top">{orig}</td>
+                    <td className="text-gray-800 font-medium py-1.5 pr-3 border-b border-gray-100 align-top">{ko || orig}</td>
+                    <td className={`py-1.5 pr-3 border-b border-gray-100 align-top font-semibold ${isAbnormal ? "text-red-700" : "text-gray-900"}`}>{result}</td>
+                    <td className="text-gray-500 py-1.5 pr-3 border-b border-gray-100 align-top">{[range, unit].filter(Boolean).join(" ")}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function Shell({ children }) {
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white border-b border-gray-100">
-        <div className="max-w-lg mx-auto px-5 py-4 flex items-center gap-2">
+        <div className="max-w-lg lg:max-w-[1400px] mx-auto px-5 lg:px-10 py-4 flex items-center gap-2">
           <Stethoscope size={18} className="text-teal-600" />
           <span className="font-semibold text-gray-900">전문의 소견 요청</span>
           <span className="ml-auto text-sm text-gray-400">healwith</span>
         </div>
       </header>
-      <main className="max-w-lg mx-auto px-5 py-5">{children}</main>
+      <main className="max-w-lg lg:max-w-[1400px] mx-auto px-5 lg:px-10 py-5 lg:py-8">{children}</main>
     </div>
   );
 }
