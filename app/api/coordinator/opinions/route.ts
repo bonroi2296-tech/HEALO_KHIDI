@@ -3,6 +3,9 @@
  *
  * POST /api/coordinator/opinions        → 케이스에 소견 요청(매직링크) 생성. 링크 + 카톡 붙여넣기용 요약 반환.
  *   body.direct === true 이면 링크 없이, 이미 카톡·메일 등으로 받은 소견을 코디가 직접 입력(doctorName/opinionText).
+ *   filePath/fileName 을 같이 주면(원장님이 문서·이미지로 준 경우) translateMedicalDoc(ko)으로
+ *   자동 번역해 opinion_text 초안을 채운다 — 의료용어 비전문가인 코디의 손번역보다 이쪽이 낫다는
+ *   PO 판단(2026-07-08). 코디가 검수 후 "에이전시에 공개"하는 기존 흐름은 그대로(AI 번역=초안일 뿐).
  * GET  /api/coordinator/opinions?inquiryId=  → 그 케이스의 활성 요청 + 도착한 소견 목록.
  *
  * inquiries·opinion_* 는 RLS상 service_role 전용 → 서버 경유 필수.
@@ -15,6 +18,24 @@ import { NextRequest } from "next/server";
 import { requirePortalAuth } from "@/lib/auth/requirePortalAuth";
 import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
 import { notifyStaffOpinionArrived } from "@/lib/notifications/inApp";
+import { translateMedicalDoc } from "@/lib/documents/translateDoc";
+
+// 번역된 문서(섹션 배열)를 사람이 읽을 평문으로 펼침 — case_opinions.opinion_text 는 plain text 컬럼이라.
+function flattenTranslatedDoc(doc: { docType?: string; sections?: any[] } | null | undefined): string {
+  if (!doc?.sections?.length) return "";
+  const lines: string[] = [];
+  if (doc.docType) lines.push(doc.docType, "");
+  for (const s of doc.sections) {
+    if (s.title) lines.push(s.title);
+    if (s.note) lines.push(s.note);
+    if (Array.isArray(s.columns) && Array.isArray(s.rows)) {
+      for (const r of s.rows) lines.push((r?.cells || []).filter(Boolean).join(": "));
+    }
+    if (s.text) lines.push(s.text);
+    lines.push("");
+  }
+  return lines.join("\n").trim();
+}
 
 const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_URL || "https://healwith.co.kr";
@@ -75,12 +96,31 @@ export async function POST(request: NextRequest) {
     }
 
     // 직접 입력 — 링크 없이 이미 받은(카톡·메일 등) 소견을 코디가 그대로 기록.
+    // 문서·이미지로 받았으면 filePath/fileName 을 같이 보냄 → 서버가 자동 번역해 초안을 채운다.
     if (body?.direct === true) {
       const doctorName = typeof body?.doctorName === "string" ? body.doctorName.slice(0, 100).trim() : "";
-      const opinionText = typeof body?.opinionText === "string" ? body.opinionText.trim() : "";
-      if (!doctorName || opinionText.length < 5) {
+      const filePath = typeof body?.filePath === "string" ? body.filePath : null;
+      const fileName = typeof body?.fileName === "string" ? body.fileName.slice(0, 200) : null;
+      let opinionText = typeof body?.opinionText === "string" ? body.opinionText.trim() : "";
+
+      if (!doctorName) {
         return Response.json({ ok: false, error: "invalid_direct_entry" }, { status: 400 });
       }
+      if (!opinionText && !filePath) {
+        return Response.json({ ok: false, error: "invalid_direct_entry" }, { status: 400 });
+      }
+
+      if (filePath && !opinionText) {
+        const result = await translateMedicalDoc({ path: filePath, name: fileName, lang: "ko" }).catch(() => null);
+        opinionText = result?.ok ? flattenTranslatedDoc(result.doc) : "";
+        if (!opinionText) {
+          opinionText = "(자동 번역 실패 — 첨부 원본을 직접 확인해 주세요)";
+        }
+      }
+      if (opinionText.length < 5) {
+        return Response.json({ ok: false, error: "invalid_direct_entry" }, { status: 400 });
+      }
+
       const { data: row, error: dErr } = await (supabaseAdmin as any)
         .from("case_opinions")
         .insert({
@@ -88,8 +128,10 @@ export async function POST(request: NextRequest) {
           doctor_key: null,
           doctor_name: doctorName,
           opinion_text: opinionText.slice(0, 8000),
+          file_path: filePath,
+          file_name: fileName,
         })
-        .select("id, doctor_name, opinion_text, created_at")
+        .select("id, doctor_name, opinion_text, file_path, file_name, created_at")
         .single();
       if (dErr || !row) {
         console.error("[coordinator/opinions] direct insert error:", dErr?.message);
@@ -162,9 +204,16 @@ export async function GET(request: NextRequest) {
 
     const { data: opinions } = await (supabaseAdmin as any)
       .from("case_opinions")
-      .select("id, doctor_key, doctor_name, opinion_text, attribution_note, released_text, released_at, created_at")
+      .select("id, doctor_key, doctor_name, opinion_text, attribution_note, released_text, released_at, file_path, file_name, created_at")
       .eq("inquiry_id", inquiryId)
       .order("created_at", { ascending: false });
+
+    // 첨부 원본(문서·이미지)이 있으면 서명 URL로("이미 받은 소견"이 파일로 온 경우 코디가 원본 대조).
+    const opinionsWithUrls = await Promise.all((opinions || []).map(async (o: any) => {
+      if (!o.file_path) return o;
+      const { data } = await supabaseAdmin.storage.from("attachments").createSignedUrl(o.file_path, 3600);
+      return { ...o, file_url: data?.signedUrl || null };
+    }));
 
     // 활성 링크가 있으면 카톡 붙여넣기용 요약도 함께(코디가 재공유 시 다시 복사할 수 있게).
     let summaryText: string | null = null;
@@ -183,7 +232,7 @@ export async function GET(request: NextRequest) {
         ? { id: active.id, token: active.token, url: opinionUrl(active.token), note: active.note, created_at: active.created_at, expires_at: active.expires_at }
         : null,
       summaryText,
-      opinions: opinions || [],
+      opinions: opinionsWithUrls,
     });
   } catch (e: any) {
     console.error("[coordinator/opinions] GET error:", e?.message);
