@@ -256,8 +256,8 @@ function TranslatedDocToggle({ doc }) {
 
 // 번역된 검사지(한국어) — 원문 항목명·수치는 그대로 두고 항목명만 번역한 표(요약 아님).
 // 컬럼 순서는 항상 [항목(원문), 항목(한글), 결과, 정상범위, 단위](ko 고정 호출).
-// 모바일: 카드형은 항목 수가 많으면 스크롤이 너무 길어져서 안 씀 — 대신 표 그대로 두되
-// '원문' 열만 숨기고 정상범위·단위를 한 칸으로 합쳐 4열로 줄여 압축(줄 수는 원본과 동일).
+// 검사지 하나에 패널(CBC·소변·호르몬…)이 여러 개라 전부 펼치면 스크롤이 너무 길어짐 —
+// 패널(섹션)별로 접어두고, 원장님은 이상치(▲▼) 있는 패널부터 골라 열어보면 됨.
 function TranslatedDocView({ doc }) {
   if (!doc?.sections?.length) return null;
   return (
@@ -268,35 +268,60 @@ function TranslatedDocView({ doc }) {
           {s.title && <p className="text-sm font-semibold text-gray-700 mb-1">{s.title}</p>}
           {s.note && <p className="text-xs text-gray-400 mb-1">{s.note}</p>}
           {Array.isArray(s.columns) && Array.isArray(s.rows) && s.rows.length > 0 && (
-            <div className="overflow-x-auto">
-              <table className="text-[13px] sm:text-sm w-full border-collapse">
-                <thead>
-                  <tr>
-                    <th className="hidden sm:table-cell text-left text-gray-400 font-medium border-b border-gray-200 py-1.5 pr-3">{s.columns[0]}</th>
-                    <th className="text-left text-gray-400 font-medium border-b border-gray-200 py-1.5 pr-3">{s.columns[1] || s.columns[0]}</th>
-                    <th className="text-left text-gray-400 font-medium border-b border-gray-200 py-1.5 pr-3">{s.columns[2]}</th>
-                    <th className="text-left text-gray-400 font-medium border-b border-gray-200 py-1.5 pr-3">정상범위·단위</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {s.rows.map((r, ri) => {
-                    const [orig, ko, result, range, unit] = r?.cells || [];
-                    return (
-                      <tr key={ri} className={ri % 2 === 1 ? "bg-gray-50/60" : ""}>
-                        <td className="hidden sm:table-cell text-gray-500 py-1.5 pr-3 border-b border-gray-100 align-top">{orig}</td>
-                        <td className="text-gray-800 font-medium py-1.5 pr-3 border-b border-gray-100 align-top">{ko || orig}</td>
-                        <td className="text-gray-900 font-semibold py-1.5 pr-3 border-b border-gray-100 align-top">{result}</td>
-                        <td className="text-gray-500 py-1.5 pr-3 border-b border-gray-100 align-top">{[range, unit].filter(Boolean).join(" ")}</td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+            <SectionTable columns={s.columns} rows={s.rows} />
           )}
           {s.text && <p className="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed">{s.text}</p>}
         </div>
       ))}
+    </div>
+  );
+}
+
+// 패널(검사 항목군) 하나 — 기본 접힘. 이상치(▲▼ 포함 행)가 있으면 빨간 배지로 몇 건인지 미리 보여줘서
+// 원장님이 어느 패널부터 열어볼지 판단할 수 있게 함(전부 열어야 알 수 있으면 의미 없음).
+function SectionTable({ columns, rows }) {
+  const [open, setOpen] = useState(false);
+  const abnormal = rows.filter((r) => (r?.cells || []).some((c) => typeof c === "string" && (c.includes("▲") || c.includes("▼")))).length;
+  return (
+    <div>
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="flex items-center gap-1.5 text-xs text-teal-700 font-medium hover:underline mb-1"
+      >
+        <ChevronDown size={12} className={`transition-transform ${open ? "rotate-180" : ""}`} />
+        {rows.length}개 항목 {open ? "접기" : "보기"}
+        {abnormal > 0 && (
+          <span className="px-1.5 py-0.5 rounded-full bg-red-50 text-red-600 text-[11px] font-semibold">이상치 {abnormal}건</span>
+        )}
+      </button>
+      {open && (
+        <div className="overflow-x-auto">
+          <table className="text-[13px] sm:text-sm w-full border-collapse">
+            <thead>
+              <tr>
+                <th className="hidden sm:table-cell text-left text-gray-400 font-medium border-b border-gray-200 py-1.5 pr-3">{columns[0]}</th>
+                <th className="text-left text-gray-400 font-medium border-b border-gray-200 py-1.5 pr-3">{columns[1] || columns[0]}</th>
+                <th className="text-left text-gray-400 font-medium border-b border-gray-200 py-1.5 pr-3">{columns[2]}</th>
+                <th className="text-left text-gray-400 font-medium border-b border-gray-200 py-1.5 pr-3">정상범위·단위</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((r, ri) => {
+                const [orig, ko, result, range, unit] = r?.cells || [];
+                const isAbnormal = (r?.cells || []).some((c) => typeof c === "string" && (c.includes("▲") || c.includes("▼")));
+                return (
+                  <tr key={ri} className={isAbnormal ? "bg-red-50/60" : ri % 2 === 1 ? "bg-gray-50/60" : ""}>
+                    <td className="hidden sm:table-cell text-gray-500 py-1.5 pr-3 border-b border-gray-100 align-top">{orig}</td>
+                    <td className="text-gray-800 font-medium py-1.5 pr-3 border-b border-gray-100 align-top">{ko || orig}</td>
+                    <td className={`py-1.5 pr-3 border-b border-gray-100 align-top font-semibold ${isAbnormal ? "text-red-700" : "text-gray-900"}`}>{result}</td>
+                    <td className="text-gray-500 py-1.5 pr-3 border-b border-gray-100 align-top">{[range, unit].filter(Boolean).join(" ")}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }
