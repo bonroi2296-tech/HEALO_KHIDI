@@ -11,7 +11,7 @@ import { useRouter } from "next/navigation";
 import { kstDateTime } from "@/lib/datetime/kst";
 import {
   UploadCloud, File as FileIcon, X, ClipboardList, Activity, CheckCircle2, PauseCircle,
-  Plus, ArrowRight, ChevronDown, Paperclip, MessageCircle, FileText, Video, Send, Clock, Languages,
+  Plus, ArrowRight, ChevronDown, Paperclip, MessageCircle, FileText, Video, Send, Clock, Stethoscope, Languages,
 } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { useLang } from "@/lib/i18n/LangContext";
@@ -390,7 +390,7 @@ const TR_MSG = {
     msgrHours: "코디 운영시간 · 한국시간(KST) 월–금 09:00–18:00", msgrOpen: "지금 운영 중", msgrClosed: "운영시간 외 — 다음 영업일에 답장드립니다", msgrNew: "새 답장",
     estTitle: "견적 (코디 발행)", estView: "PDF", estNo: "견적", estTotal: "총액",
     consTitle: "화상상담", consScheduled: "예정", consLive: "진행 중", consDone: "완료", consCancelled: "취소", consJoinNote: "입장 링크는 환자에게 발송됩니다. 필요 시 위 대화로 코디에게 요청하세요.",
-    docsTitle: "문서함",
+    docsTitle: "문서함", opinTitle: "전문의 소견",
   },
   en: {
     msgrTitle: "Chat with coordinator", msgrEmpty: "No messages yet. Anything you send reaches our coordinator.",
@@ -398,7 +398,7 @@ const TR_MSG = {
     msgrHours: "Coordinator hours · Mon–Fri 09:00–18:00 KST", msgrOpen: "Open now", msgrClosed: "Outside hours — we reply on the next business day", msgrNew: "New reply",
     estTitle: "Quotation (issued)", estView: "PDF", estNo: "Quote", estTotal: "Total",
     consTitle: "Video consultation", consScheduled: "Scheduled", consLive: "Live", consDone: "Completed", consCancelled: "Cancelled", consJoinNote: "The join link is sent to the patient. Ask the coordinator in chat above if needed.",
-    docsTitle: "Documents",
+    docsTitle: "Documents", opinTitle: "Specialist opinion",
   },
   ru: {
     msgrTitle: "Чат с координатором", msgrEmpty: "Сообщений пока нет. Всё, что вы напишете, получит наш координатор.",
@@ -406,7 +406,7 @@ const TR_MSG = {
     msgrHours: "Часы координатора · Пн–Пт 09:00–18:00 (KST)", msgrOpen: "Сейчас на связи", msgrClosed: "Вне рабочих часов — ответим в следующий рабочий день", msgrNew: "Новый ответ",
     estTitle: "Смета (выставлена)", estView: "PDF", estNo: "Смета", estTotal: "Итого",
     consTitle: "Видеоконсультация", consScheduled: "Запланирована", consLive: "Идёт", consDone: "Завершена", consCancelled: "Отменена", consJoinNote: "Ссылка для входа отправляется пациенту. При необходимости спросите координатора в чате выше.",
-    docsTitle: "Документы",
+    docsTitle: "Документы", opinTitle: "Мнение специалиста",
   },
   kz: {
     msgrTitle: "Үйлестірушімен чат", msgrEmpty: "Әзірге хабарлама жоқ. Жазғаныңызды үйлестіруші алады.",
@@ -414,7 +414,7 @@ const TR_MSG = {
     msgrHours: "Үйлестіруші уақыты · Дс–Жм 09:00–18:00 (KST)", msgrOpen: "Қазір желіде", msgrClosed: "Жұмыс уақытынан тыс — келесі жұмыс күні жауап береміз", msgrNew: "Жаңа жауап",
     estTitle: "Смета (берілген)", estView: "PDF", estNo: "Смета", estTotal: "Барлығы",
     consTitle: "Бейнекеңес", consScheduled: "Жоспарланған", consLive: "Жүруде", consDone: "Аяқталды", consCancelled: "Бас тартылды", consJoinNote: "Кіру сілтемесі науқасқа жіберіледі. Қажет болса жоғарыдағы чатта үйлестірушіден сұраңыз.",
-    docsTitle: "Құжаттар",
+    docsTitle: "Құжаттар", opinTitle: "Маман пікірі",
   },
   zh: {
     msgrTitle: "与协调员对话", msgrEmpty: "暂无消息。您发送的内容将转达给协调员。",
@@ -422,7 +422,7 @@ const TR_MSG = {
     msgrHours: "协调员工作时间 · 周一至周五 09:00–18:00（韩国时间）", msgrOpen: "现在在线", msgrClosed: "非工作时间 — 将在下一个工作日回复", msgrNew: "新回复",
     estTitle: "报价（已出具）", estView: "PDF", estNo: "报价", estTotal: "合计",
     consTitle: "视频会诊", consScheduled: "已预约", consLive: "进行中", consDone: "已完成", consCancelled: "已取消", consJoinNote: "入会链接将发送给患者。如有需要，请在上方对话中向协调员咨询。",
-    docsTitle: "资料库",
+    docsTitle: "资料库", opinTitle: "专家意见",
   },
   ja: {
     msgrTitle: "コーディネーターと会話", msgrEmpty: "まだメッセージはありません。送信内容はコーディネーターに届きます。",
@@ -430,7 +430,7 @@ const TR_MSG = {
     msgrHours: "対応時間 · 月–金 09:00–18:00（韓国時間）", msgrOpen: "現在対応中", msgrClosed: "時間外 — 翌営業日に返信します", msgrNew: "新着返信",
     estTitle: "見積（発行済み）", estView: "PDF", estNo: "見積", estTotal: "合計",
     consTitle: "ビデオ相談", consScheduled: "予定", consLive: "進行中", consDone: "完了", consCancelled: "キャンセル", consJoinNote: "入室リンクは患者へ送信されます。必要なら上のチャットでコーディネーターにご依頼ください。",
-    docsTitle: "書類",
+    docsTitle: "書類", opinTitle: "専門医の所見",
   },
 };
 for (const l of Object.keys(TR)) Object.assign(TR[l], TR_MSG[l] || TR_MSG.en);
@@ -1273,6 +1273,21 @@ function CaseActions({ c, tt, onDone }) {
             ))}
           </div>
           <p className="text-[11px] text-gray-400 mt-1">{tt("consJoinNote")}</p>
+        </div>
+      )}
+
+      {/* 전문의 소견 — 코디가 공개(교정본)한 것만 */}
+      {c.opinions?.length > 0 && (
+        <div>
+          <p className="text-xs font-bold text-gray-600 mb-1.5 flex items-center gap-1"><Stethoscope size={13} className="text-blue-600" />{tt("opinTitle")}</p>
+          <div className="space-y-1.5">
+            {c.opinions.map((o, i) => (
+              <div key={i} className="text-xs bg-blue-50 rounded-lg px-3 py-2">
+                <div className="font-semibold text-blue-800 mb-0.5">{o.doctor}</div>
+                <p className="text-blue-900 whitespace-pre-wrap leading-relaxed">{o.text}</p>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 

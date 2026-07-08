@@ -2,6 +2,7 @@
  * healwith: 세컨드 오피니언 — 코디/어드민용 소견 요청 생성 + 조회 (staff 전용)
  *
  * POST /api/coordinator/opinions        → 케이스에 소견 요청(매직링크) 생성. 링크 + 카톡 붙여넣기용 요약 반환.
+ *   body.direct === true 이면 링크 없이, 이미 카톡·메일 등으로 받은 소견을 코디가 직접 입력(doctorName/opinionText).
  * GET  /api/coordinator/opinions?inquiryId=  → 그 케이스의 활성 요청 + 도착한 소견 목록.
  *
  * inquiries·opinion_* 는 RLS상 service_role 전용 → 서버 경유 필수.
@@ -13,6 +14,7 @@ import crypto from "crypto";
 import { NextRequest } from "next/server";
 import { requirePortalAuth } from "@/lib/auth/requirePortalAuth";
 import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
+import { notifyStaffOpinionArrived } from "@/lib/notifications/inApp";
 
 const SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_URL || "https://healwith.co.kr";
@@ -70,6 +72,31 @@ export async function POST(request: NextRequest) {
       .single();
     if (inqErr || !inq) {
       return Response.json({ ok: false, error: "inquiry_not_found" }, { status: 404 });
+    }
+
+    // 직접 입력 — 링크 없이 이미 받은(카톡·메일 등) 소견을 코디가 그대로 기록.
+    if (body?.direct === true) {
+      const doctorName = typeof body?.doctorName === "string" ? body.doctorName.slice(0, 100).trim() : "";
+      const opinionText = typeof body?.opinionText === "string" ? body.opinionText.trim() : "";
+      if (!doctorName || opinionText.length < 5) {
+        return Response.json({ ok: false, error: "invalid_direct_entry" }, { status: 400 });
+      }
+      const { data: row, error: dErr } = await (supabaseAdmin as any)
+        .from("case_opinions")
+        .insert({
+          inquiry_id: inquiryId,
+          doctor_key: null,
+          doctor_name: doctorName,
+          opinion_text: opinionText.slice(0, 8000),
+        })
+        .select("id, doctor_name, opinion_text, created_at")
+        .single();
+      if (dErr || !row) {
+        console.error("[coordinator/opinions] direct insert error:", dErr?.message);
+        return Response.json({ ok: false, error: "create_failed" }, { status: 500 });
+      }
+      await notifyStaffOpinionArrived({ inquiryId, doctorName }).catch(() => {});
+      return Response.json({ ok: true, opinion: row });
     }
 
     // 추측 불가 토큰(48 hex). 케이스당 여러 번 생성 가능(각각 유효 — 재요청은 새 링크).
@@ -135,7 +162,7 @@ export async function GET(request: NextRequest) {
 
     const { data: opinions } = await (supabaseAdmin as any)
       .from("case_opinions")
-      .select("id, doctor_key, doctor_name, opinion_text, attribution_note, created_at")
+      .select("id, doctor_key, doctor_name, opinion_text, attribution_note, released_text, released_at, created_at")
       .eq("inquiry_id", inquiryId)
       .order("created_at", { ascending: false });
 

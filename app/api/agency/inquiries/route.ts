@@ -75,6 +75,8 @@ export async function GET(request: NextRequest) {
     const estimateMap = new Map<number, any[]>();
     // 에이전시 메신저 미읽음(코디 답장 안 본 수) + 스레드 상태
     const threadMap = new Map<number, { threadId: string; unread: number; status: string }>();
+    // 전문의 소견 — 코디가 "공개"한 확정본만(원문 opinion_text 는 절대 미노출)
+    const opinionMap = new Map<number, any[]>();
 
     if (ids.length > 0) {
       const { data: hist } = await (supabaseAdmin as any)
@@ -153,6 +155,23 @@ export async function GET(request: NextRequest) {
         const unread = (coordByThread.get(t.id) || []).filter((at: string) => at > lastRead).length;
         threadMap.set(t.inquiry_id, { threadId: t.id, unread, status: t.status });
       });
+
+      // 전문의 소견 — released_at 이 찍힌(코디가 공개한) 것만, released_text(교정본)만 전달
+      const { data: opinions } = await (supabaseAdmin as any)
+        .from("case_opinions")
+        .select("inquiry_id, doctor_name, attribution_note, released_text, released_at")
+        .in("inquiry_id", ids)
+        .not("released_at", "is", null)
+        .order("released_at", { ascending: false });
+      (opinions || []).forEach((o: any) => {
+        const arr = opinionMap.get(o.inquiry_id) || [];
+        arr.push({
+          doctor: o.attribution_note || o.doctor_name,
+          text: o.released_text,
+          released_at: o.released_at,
+        });
+        opinionMap.set(o.inquiry_id, arr);
+      });
     }
 
     // intake 에서 안전한 의료 상세필드만 화이트리스트로 추출(암호화 PII 키는 제외)
@@ -186,6 +205,7 @@ export async function GET(request: NextRequest) {
         timeline: historyMap.get(r.id) || [],
         consultations: consultMap.get(r.id) || [],
         estimates: estimateMap.get(r.id) || [],
+        opinions: opinionMap.get(r.id) || [],
         thread: threadMap.get(r.id) || null,
       };
     }));
