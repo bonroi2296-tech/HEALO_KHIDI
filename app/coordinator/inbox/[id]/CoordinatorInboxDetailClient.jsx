@@ -10,8 +10,8 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   ArrowLeft, User, Globe, Mail, Phone, MessageCircle, Calendar,
-  AlertCircle, FileText, Stethoscope, ClipboardList, Video,
-  Send, Copy, Check, ExternalLink, Download, Languages, X, ShieldCheck, Pencil,
+  AlertCircle, FileText, Stethoscope, Video,
+  Send, Copy, Check, ExternalLink, Download, Languages, X, ShieldCheck, Sparkles, Pencil,
 } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { CASE_STATUS_STEPS, caseStatusLabelL } from "@/lib/khidi/caseStatus";
@@ -19,7 +19,7 @@ import { cancerTypeLabelL } from "@/lib/khidi/medicalLabels";
 import { nationalityLabelL } from "@/lib/khidi/nationality";
 import { useBackofficeLang, useCoordinatorL, useDateLocale, coordinatorL } from "@/lib/i18n/coordinator";
 // 인테이크 선택지 라벨(6개국어)·값 = 폼과 공용 단일 SoR. 코디 화면에서 raw 코드 대신 번역 표시.
-import { TREATMENT_STATES, TRAVEL_TIMING, PRIORITIES, CONSENT_ITEMS, INTAKE_UI, labelOf, pick } from "@/lib/inquiry/intakeLabels";
+import { TREATMENT_STATES, TRAVEL_TIMING, PRIORITIES, PRIORITIES_LEGACY, CONSENT_ITEMS, INTAKE_UI, labelOf, pick } from "@/lib/inquiry/intakeLabels";
 import OpinionsSection from "./OpinionsSection";
 
 const STATUS_COLORS = {
@@ -60,16 +60,6 @@ function Card({ title, children }) {
     <div className="rounded-xl border border-gray-200 bg-white p-5">
       <h2 className="text-sm font-semibold text-gray-700 mb-2">{title}</h2>
       {children}
-    </div>
-  );
-}
-
-// 한눈 요약 카드의 개별 사실(라벨 + 값). 값 없으면 "—".
-function Fact({ label, value }) {
-  return (
-    <div className="flex gap-2 min-w-0">
-      <span className="text-gray-500 shrink-0">{label}</span>
-      <span className="text-gray-900 font-medium break-words min-w-0">{value || "—"}</span>
     </div>
   );
 }
@@ -544,6 +534,31 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
     }
   }
 
+  // 케이스 브리프(AI 초안) — 접수내용+문서를 AI가 정리. 저장 안 함(on-demand), 클릭 시 생성해 화면에만.
+  const [brief, setBrief] = useState(null);
+  const [briefLoading, setBriefLoading] = useState(false);
+  const [briefError, setBriefError] = useState(false);
+  async function generateBrief() {
+    setBriefLoading(true);
+    setBriefError(false);
+    try {
+      const supabase = createSupabaseBrowserClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) { setBriefError(true); setBriefLoading(false); return; }
+      const res = await fetch(`/api/coordinator/inquiries/${inquiryId}/brief`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.ok && data.brief) setBrief(data.brief);
+      else setBriefError(true);
+    } catch (e) {
+      console.error("[case-brief] error:", e);
+      setBriefError(true);
+    }
+    setBriefLoading(false);
+  }
+
   // 번역 결과를 한국 의료진에게 넘길 수 있게 평문으로 클립보드 복사(표는 탭 구분).
   async function copyTranslation(key, doc) {
     const lines = [`[${doc.docType}]`, ""];
@@ -615,6 +630,12 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
       setInquiry(result.inquiry);
       setCaseStatus(result.inquiry?.case_status || "");
       setCaseNote(result.inquiry?.case_status_note || "");
+      // 케이스 브리프: 캐시가 최신이면 즉시 표시, 없거나 낡았으면(첨부 변경) 자동 생성 — 수동 버튼 없음.
+      if (result.inquiry?.brief && !result.inquiry?.briefStale) {
+        setBrief(result.inquiry.brief);
+      } else {
+        generateBrief();
+      }
     } catch (e) {
       console.error("[inbox/detail] fetch error:", e);
       setError(L.ibLoadError);
@@ -697,19 +718,6 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
         )
       : [];
 
-  // 한눈 요약 파생값 — 코디가 케이스를 3초에 파악.
-  const intakeObj = inquiry.intake && typeof inquiry.intake === "object" ? inquiry.intake : {};
-  const tsSafe = safe(intakeObj.treatment_state);
-  const treatmentStateLabel = tsSafe && tsSafe !== "—" ? labelOf(TREATMENT_STATES, tsSafe, lang) : null;
-  const travelTimingLabel = intakeObj.travel_timing ? labelOf(TRAVEL_TIMING, intakeObj.travel_timing, lang) : null;
-  const hasAttachments = Array.isArray(inquiry.attachments) && inquiry.attachments.length > 0;
-  const messageOneLine =
-    inquiry.message && !looksEncrypted(inquiry.message) ? String(inquiry.message).replace(/\s+/g, " ").trim() : null;
-  const submitLang = inquiry.preferred_language || inquiry.spoken_language || "—";
-  const sourceLabel = inquiry.agency_id
-    ? `${L.agencyReferral}${inquiry.agency_name ? ` (${inquiry.agency_name})` : ""}`
-    : (inquiry.submitter?.email ? pick(INTAKE_UI.submitterMember, lang) : (inquiry.source || pick(INTAKE_UI.submitterGuest, lang)));
-
   return (
     <div className="space-y-6">
       {backLink}
@@ -763,23 +771,60 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
         </div>
       </div>
 
-      {/* 한눈 요약 — 국적·언어 / 암종 / 치료단계 / 방한시기 / 접수경로 / 첨부 + 메시지 1줄. 코디가 3초에 파악. */}
+      {/* 케이스 브리프 (AI 초안) — 접수내용+문서를 AI가 정리해 코디가 빠르게 판단. 저장 안 함(on-demand). */}
       <div className="rounded-xl border border-teal-100 bg-teal-50/40 p-5">
-        <h2 className="text-sm font-semibold text-teal-800 mb-3">{pick(INTAKE_UI.summaryTitle, lang)}</h2>
-        <div className="grid gap-x-6 gap-y-2 sm:grid-cols-2 text-sm">
-          <Fact label={L.nationality} value={`${nationality} · ${submitLang}`} />
-          <Fact label={L.cancerType} value={cancer} />
-          <Fact label={L.ibFieldCurrentStatus} value={treatmentStateLabel} />
-          <Fact label={L.ibFieldEntryTiming} value={travelTimingLabel} />
-          <Fact label={L.ibIntakeChannel} value={sourceLabel} />
-          <Fact
-            label={pick(INTAKE_UI.attachments, lang)}
-            value={hasAttachments ? `${pick(INTAKE_UI.attachmentsYes, lang)} (${inquiry.attachments.length})` : pick(INTAKE_UI.attachmentsNo, lang)}
-          />
+        <div className="flex items-center gap-1.5 mb-2">
+          <h2 className="text-sm font-semibold text-teal-800 inline-flex items-center gap-1.5 flex-wrap">
+            <Sparkles size={15} /> {pick(INTAKE_UI.briefTitle, lang)}
+            <span className="px-1.5 py-0.5 text-[10px] font-medium rounded bg-amber-100 text-amber-700">{pick(INTAKE_UI.briefAiDraft, lang)}</span>
+          </h2>
         </div>
-        {messageOneLine && (
-          <div className="mt-3 pt-3 border-t border-teal-100 text-sm text-gray-700 truncate">
-            <MessageCircle size={13} className="inline mr-1 text-teal-600" />{messageOneLine}
+
+        {/* 케이스 열면 자동 생성/표시 — 최초 생성 중이거나 로딩이면 스피너(수동 버튼 없음). */}
+        {(briefLoading || (!brief && !briefError)) && (
+          <div className="flex items-center gap-2 text-sm text-teal-700 py-2">
+            <span className="w-4 h-4 border-2 border-teal-500 border-t-transparent rounded-full animate-spin" />
+            {pick(INTAKE_UI.briefGenerating, lang)}
+          </div>
+        )}
+
+        {briefError && !briefLoading && (
+          <div className="flex items-center gap-3">
+            <p className="text-sm text-amber-700">{pick(INTAKE_UI.briefFailed, lang)}</p>
+            <button onClick={generateBrief} className="text-sm text-teal-700 underline">{pick(INTAKE_UI.briefRegenerate, lang)}</button>
+          </div>
+        )}
+
+        {brief && !briefLoading && (
+          <div className="space-y-2.5 text-sm">
+            <p className="text-gray-900 font-medium leading-relaxed">{brief.overview}</p>
+            {brief.request && (
+              <div>
+                <span className="text-xs text-gray-500">{pick(INTAKE_UI.briefRequest, lang)}</span>
+                <p className="text-gray-800">{brief.request}</p>
+              </div>
+            )}
+            {Array.isArray(brief.points) && brief.points.length > 0 && (
+              <div>
+                <span className="text-xs text-gray-500">{pick(INTAKE_UI.briefPoints, lang)}</span>
+                <ul className="mt-1 space-y-1">
+                  {brief.points.map((p, i) => (
+                    <li key={i} className="flex gap-1.5 text-gray-800"><span className="text-teal-600 shrink-0">•</span><span>{p}</span></li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {Array.isArray(brief.red_flags) && brief.red_flags.length > 0 && (
+              <div className="rounded-lg bg-amber-50 border border-amber-100 px-3 py-2">
+                <span className="text-xs font-semibold text-amber-700 inline-flex items-center gap-1"><AlertCircle size={12} />{pick(INTAKE_UI.briefFlags, lang)}</span>
+                <ul className="mt-1 space-y-0.5">
+                  {brief.red_flags.map((f, i) => (
+                    <li key={i} className="text-amber-800 flex gap-1.5"><span className="shrink-0">•</span><span>{f}</span></li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            <p className="text-[11px] text-gray-400 pt-1.5 border-t border-teal-100">{pick(INTAKE_UI.briefDisclaimer, lang)}</p>
           </div>
         )}
       </div>
@@ -811,7 +856,6 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
             label={L.fieldLanguage}
             value={inquiry.preferred_language || inquiry.spoken_language}
           />
-          <Row icon={ClipboardList} label={L.inboxColMatch} value={`${inquiry.match_accuracy ?? 60}%`} />
         </Card>
       </div>
 
@@ -831,17 +875,11 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
         const cancer = intake.cancer && typeof intake.cancer === "object" ? intake.cancer : null;
         const notes = !looksEncrypted(intake.notes) ? intake.notes : null;
 
-        // 알려진 flat 필드 → 라벨 + 현재 언어 번역값.
+        // 미입력값도 항목은 기재하고 '입력하지 않음'으로 표시(관리 가시성 — PO 요청).
+        const NE = pick(INTAKE_UI.notEntered, lang);
         const rows = [];
-        const ts = safe(intake.treatment_state);
-        if (ts && ts !== "—") rows.push([L.ibFieldCurrentStatus, labelOf(TREATMENT_STATES, ts, lang)]);
-        if (intake.travel_timing) rows.push([L.ibFieldEntryTiming, labelOf(TRAVEL_TIMING, intake.travel_timing, lang)]);
-        if (intake.stage) rows.push([pick(INTAKE_UI.stage, lang), String(intake.stage)]);
-        const dd = safe(intake.diagnosis_date);
-        if (dd && dd !== "—") rows.push([pick(INTAKE_UI.diagnosisDate, lang), dd]);
-
-        // 옛 nested cancer 구조(하위호환).
         if (cancer) {
+          // 옛 nested cancer 구조(하위호환) — 있는 것만.
           for (const k of Object.keys(CI)) {
             const v = cancer[k];
             if (v) rows.push([CI[k].label, CI[k].map[v] || String(v)]);
@@ -850,6 +888,14 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
             const arr = Array.isArray(cancer[k]) ? cancer[k] : null;
             if (arr && arr.length) rows.push([CI_MULTI[k].label, arr.map((x) => CI_MULTI[k].map[x] || x).join(", ")]);
           }
+        } else {
+          // 현재 폼(flat) — 핵심 선택값을 항상 나열(미입력=입력하지 않음).
+          const ts = safe(intake.treatment_state);
+          rows.push([L.ibFieldCurrentStatus, (ts && ts !== "—") ? labelOf(TREATMENT_STATES, ts, lang) : NE]);
+          rows.push([pick(INTAKE_UI.stage, lang), intake.stage ? String(intake.stage) : NE]);
+          const dd = safe(intake.diagnosis_date);
+          rows.push([pick(INTAKE_UI.diagnosisDate, lang), (dd && dd !== "—") ? dd : NE]);
+          rows.push([L.ibFieldEntryTiming, intake.travel_timing ? labelOf(TRAVEL_TIMING, intake.travel_timing, lang) : NE]);
         }
 
         const priorities = Array.isArray(intake.priorities) ? intake.priorities : [];
@@ -871,19 +917,30 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
               ))}
             </div>
 
-            {/* 우선순위 → 칩 */}
-            {priorities.length > 0 && (
-              <div className="mt-3 pt-3 border-t border-gray-100">
-                <span className="text-xs text-gray-500">{pick(INTAKE_UI.priorities, lang)}</span>
-                <div className="flex flex-wrap gap-1.5 mt-1.5">
-                  {priorities.map((p) => (
-                    <span key={p} className="px-2 py-0.5 text-xs rounded-full bg-teal-50 text-teal-700 border border-teal-100">
-                      {labelOf(PRIORITIES, p, lang)}
-                    </span>
-                  ))}
+            {/* 우선순위 → 선택지 전부 ✓/✗ (동의처럼 — 뭘 고르고 뭘 안 골랐나 한눈에).
+                옛 데이터(구 선택지)면 구 옵션으로 자동 판별해 표시. */}
+            {!cancer && (() => {
+              const inNew = priorities.some((p) => PRIORITIES.some((o) => o.value === p));
+              const inLegacy = priorities.some((p) => PRIORITIES_LEGACY.some((o) => o.value === p));
+              const opts = inLegacy && !inNew ? PRIORITIES_LEGACY : PRIORITIES;
+              return (
+                <div className="mt-3 pt-3 border-t border-gray-100">
+                  <span className="text-xs text-gray-500">{pick(INTAKE_UI.priorities, lang)}</span>
+                  <div className="grid gap-x-6 sm:grid-cols-2 mt-1.5">
+                    {opts.map((o) => {
+                      const on = priorities.includes(o.value);
+                      return (
+                        <div key={o.value} className="flex items-center gap-2 py-1 text-sm">
+                          {on ? <Check size={14} className="text-teal-600 shrink-0" /> : <X size={14} className="text-gray-300 shrink-0" />}
+                          <span className={on ? "text-gray-800" : "text-gray-400"}>{pick(o.label, lang)}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  {priorities.length === 0 && <span className="text-xs text-gray-400">{NE}</span>}
                 </div>
-              </div>
-            )}
+              );
+            })()}
 
             {/* 동의 항목 → 목록(동의/미동의) */}
             {consents && (

@@ -12,6 +12,8 @@ import { requirePortalAuth } from "@/lib/auth/requirePortalAuth";
 import { logAdminAction, getIpFromRequest, getUserAgentFromRequest } from "@/lib/audit/adminAuditLog";
 import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
 import { decryptInquiryForAdmin } from "@/lib/security/decryptForAdmin";
+import { decryptStringNullable } from "@/lib/security/encryptionV2";
+import { briefSig } from "@/lib/inquiry/caseBrief";
 
 // detail 화면에 필요한 필드만 SELECT (불필요한 PII·내부필드 노출 최소화)
 const DETAIL_FIELDS = [
@@ -47,6 +49,9 @@ const DETAIL_FIELDS = [
   "agencies(name)",
   // 회원/비회원 배지: 접수한 계정(user_id)으로 이메일·role·테스트여부 조회(응답엔 submitter 만 실음)
   "user_id",
+  // 케이스 브리프 캐시(암호화) + 입력 서명 — 열람 즉시 표시, 첨부 바뀌면 stale 판정해 자동 재생성
+  "coordinator_brief",
+  "coordinator_brief_sig",
 ].join(",");
 
 export async function GET(
@@ -109,6 +114,27 @@ export async function GET(
     }
     // user_id 자체는 응답에서 제거(PII 최소 — 배지엔 submitter 만 필요).
     delete (inquiry as any).user_id;
+
+    // 케이스 브리프 캐시: 복호화해서 실음 + 첨부 서명 비교로 stale 판정(다르면 클라가 자동 재생성).
+    // 브리프는 암호화 저장(민감내용) → staff 인증 통과 후 복호화. 원본 암호문 컬럼은 응답서 제거.
+    inquiry.brief = null;
+    inquiry.briefStale = true;
+    try {
+      const encBrief = (data as any)?.coordinator_brief;
+      if (encBrief) {
+        const dec = decryptStringNullable(encBrief);
+        if (dec) {
+          inquiry.brief = JSON.parse(dec);
+          inquiry.briefStale = ((data as any)?.coordinator_brief_sig || "") !== briefSig((data as any)?.attachments || []);
+        }
+      }
+    } catch (e: any) {
+      console.error("[portal/inbox/:id] brief decode error:", e?.message);
+      inquiry.brief = null;
+      inquiry.briefStale = true;
+    }
+    delete (inquiry as any).coordinator_brief;
+    delete (inquiry as any).coordinator_brief_sig;
 
     // 감사로그: staff(코디·관리자)가 환자 PII(복호화된 이름·연락처·의료상세)를 열람했음 기록.
     // 정부 의료데이터 과제 추적성(GDPR/PIPA·복호화 열람 감사). 실패해도 본 응답은 진행.
