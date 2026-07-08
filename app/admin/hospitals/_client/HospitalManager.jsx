@@ -385,7 +385,7 @@ export const HospitalManager = ({
         <div className="col-span-4 bg-white rounded-2xl border border-gray-200 h-[calc(100vh-100px)] flex flex-col">
           <div className="p-4 space-y-3 border-b border-gray-100 shrink-0">
             <div className="flex justify-between items-center">
-              <h2 className="font-bold">등록된 병원</h2>
+              <h2 className="text-lg font-bold">등록된 병원</h2>
               <button onClick={handleNew} className="bg-teal-700 text-white p-1 rounded">
                 <Plus size={16}/>
               </button>

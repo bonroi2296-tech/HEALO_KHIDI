@@ -150,7 +150,7 @@ export default function UsagePage() {
               <div className="flex items-start justify-between gap-2 mb-2">
                 <div>
                   <div className="flex items-center gap-2 flex-wrap">
-                    <h3 className="font-bold text-gray-900">{s.name}</h3>
+                    <h3 className="text-base font-bold text-gray-900">{s.name}</h3>
                     <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded border ${CATEGORY_TONE[s.category] ?? CATEGORY_TONE["모니터링"]}`}>
                       {s.category}
                     </span>

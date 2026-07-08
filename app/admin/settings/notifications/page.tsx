@@ -181,7 +181,7 @@ export default function NotificationsSettingsPage() {
         {/* 테이블 누락 경고 */}
         {tableMissing && (
           <div className="mb-6 p-4 bg-yellow-50 border border-yellow-200 text-yellow-800 rounded">
-            <h3 className="font-bold mb-2">⚠️ 테이블이 존재하지 않습니다</h3>
+            <h3 className="text-base font-bold mb-2">⚠️ 테이블이 존재하지 않습니다</h3>
             <p className="text-sm">
               다음 SQL을 실행하세요:{" "}
               <code className="bg-yellow-100 px-2 py-1 rounded">
@@ -227,7 +227,7 @@ export default function NotificationsSettingsPage() {
         {/* 활성 수신자 0명 경고 */}
         {recipients.filter((r) => r.is_active).length === 0 && !tableMissing && (
           <div className="mt-6 p-4 bg-red-50 border border-red-200 rounded">
-            <h3 className="font-bold mb-2 text-red-800">⚠️ 경고: 활성 수신자가 없습니다</h3>
+            <h3 className="text-base font-bold mb-2 text-red-800">⚠️ 경고: 활성 수신자가 없습니다</h3>
             <p className="text-sm text-red-700 mb-2">
               현재 활성화된 수신자가 없어 <strong>알림이 발송되지 않습니다</strong>.
             </p>

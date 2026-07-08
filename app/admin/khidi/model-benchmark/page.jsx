@@ -126,7 +126,7 @@ export default function ModelBenchmarkPage() {
           {/* 맞대결 요약 (핵심) */}
           {pw && (
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
-              <h2 className="font-bold text-gray-900 mb-3">⚔️ 맞대결 — 우리 vs 하이엔드 맨몸</h2>
+              <h2 className="text-lg font-bold text-gray-900 mb-3">⚔️ 맞대결 — 우리 vs 하이엔드 맨몸</h2>
               <div className="flex flex-wrap items-end gap-6">
                 <div>
                   <div className="text-4xl font-bold text-teal-700">{fmt(pw.ourWinRatePct, 0)}%</div>
@@ -147,7 +147,7 @@ export default function ModelBenchmarkPage() {
           {/* 종합 절대점수 표 */}
           <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
             <div className="px-5 py-4 border-b border-gray-100">
-              <h2 className="font-bold text-gray-900">종합 절대점수 (0~1, 높을수록 좋음 / 위반·지연은 낮을수록 좋음)</h2>
+              <h2 className="text-lg font-bold text-gray-900">종합 절대점수 (0~1, 높을수록 좋음 / 위반·지연은 낮을수록 좋음)</h2>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
@@ -195,7 +195,7 @@ export default function ModelBenchmarkPage() {
           {result.calibration?.length > 0 && (
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
               <div className="px-5 py-4 border-b border-gray-100">
-                <h2 className="font-bold text-gray-900">👤 사람 검수용 표본</h2>
+                <h2 className="text-lg font-bold text-gray-900">👤 사람 검수용 표본</h2>
                 <p className="text-xs text-gray-500 mt-1">
                   AI 채점이 맞는지 직접 눈으로 확인하세요(자기채점 편향 점검). 우리/하이엔드 답을 비교하고 판정이 타당한지 보세요.
                 </p>
@@ -237,7 +237,7 @@ export default function ModelBenchmarkPage() {
           {/* 시나리오별 상세 (전체) */}
           <div className="bg-white rounded-xl border border-gray-200 shadow-sm">
             <div className="px-5 py-4 border-b border-gray-100">
-              <h2 className="font-bold text-gray-900">전체 시나리오별 응답 ({scenarioIds.length}개)</h2>
+              <h2 className="text-lg font-bold text-gray-900">전체 시나리오별 응답 ({scenarioIds.length}개)</h2>
             </div>
             <div className="divide-y divide-gray-100">
               {scenarioIds.map((sid) => {

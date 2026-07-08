@@ -14,6 +14,47 @@
 
 ---
 
+## #79 — 백오피스 raw h1/h2/h3에 글자크기 클래스 누락 → 마케팅 히어로 폰트(최대 88px) 유출, 12곳 동시 발견 (2026-07-08, PO 리포트)
+
+**무슨 일**
+- PO가 "AI 상담 리드"(`/coordinator/chat`) 화면에서 "검토 대기 22건" 글자가 화면 전체를 채울 만큼 거대하게 뜨는 걸 발견. 실로그인해서 확인하니 재현됨.
+- 근본원인: `app/styles/healo-tokens.css`가 **공개 마케팅 페이지용** `h1`/`h2`/`h3`을 전역 태그 선택자로 정의(`h2 { font-size: clamp(36px, 4.5vw, 64px) }` 등, `h1`은 최대 88px). 백오피스 화면에서 `<h2 className="font-bold text-gray-900">`처럼 **명시적 text-size 유틸리티 없이** raw 헤딩 태그를 쓰면 이 마케팅 히어로 크기가 그대로 새어 들어옴.
+- 전수 스캔 결과 같은 패턴이 `app/admin/chat`(완전 동일 코드— 코디용을 복제한 원본), `app/admin/doctors`, `app/admin/enrichment`(2곳), `app/admin/hospitals`, `app/admin/khidi/model-benchmark`(4곳), `app/admin/khidi/usage`, `app/admin/playbook`(2곳), `app/admin/settings/branding`(2곳), `app/admin/settings/notifications`(2곳), `app/admin/treatments` — 총 12개 파일 18곳에서 동시 발견.
+
+**왜 못 잡았나**
+- 시각 회귀라 `next build`/`lint`/타입체크 전부 통과(카테고리 A — 실 브라우저에서만 드러남). 이 부류를 잡는 검사기가 아예 없었음(콘텐츠 검사는 텍스트 내용만 보지 폰트 크기 유틸리티 누락은 안 봄).
+- 코디용(`app/coordinator/chat`)이 어드민용(`app/admin/chat`)을 복제해 만들어져(#449 히스토리) 버그도 같이 복제됨 — 리뷰 시점에 "새 파일이니 원본과 비교" 절차가 없었음.
+
+**어떻게 고쳤나**
+- 발견된 12개 파일 18곳 전부에 `text-base`/`text-lg` 등 명시적 Tailwind text-size 유틸리티 추가(문맥상 섹션 제목급 = `text-lg`, 카드/아이템 제목급 = `text-base`).
+- **검사기 신설(§15, `scripts/check-content-consistency.mjs`)**: `app/{coordinator,admin,agency,hospital,clinic}` 전역에서 `<h1/h2/h3 className="...">`에 `text-*` 유틸리티가 없으면 CI 실패. 재현 테스트(임시로 한 곳 되돌려 검사기가 실제로 잡는지 확인) 통과.
+
+**재발 방지**
+- 새 백오피스 화면에서 raw `<h1>/<h2>/<h3>`를 쓸 때는 반드시 `text-*` 크기를 명시할 것(공개 페이지의 히어로 스타일이 전역 태그 선택자로 깔려 있다는 걸 기억). 검사기 §15가 앞으로 이 부류를 자동 차단.
+
+---
+
+## #78 — 코디 "AI 상담 리드"(`/coordinator/chat`) 무한 재요청 루프 → rate_limited 에러 토스트 도배 (2026-07-08, PO 리포트)
+
+**무슨 일**
+- PO가 코디 화면에서 "AI 상담 리드" 페이지가 "고장났다"고 리포트. 실제 로그인(coordinator@test.com)해서 재현: "목록 로딩 실패: rate_limited" 에러 토스트가 5개 넘게 계속 쌓이며 화면이 사실상 못 쓰는 상태.
+- 근본원인: `useCoordinatorL()`(`src/lib/i18n/coordinator.js`)과 `useToast()`(`src/components/Toast.jsx`)가 **렌더마다 새 객체**를 반환(메모 없음) — 전자는 `flatten(lang)`을 매번 새로 계산, 후자는 `ToastProvider`가 `toast` 객체 리터럴을 매 렌더 새로 만듦. `app/coordinator/chat/page.jsx`의 `fetchThreads = useCallback(..., [getToken, toast, L])`가 이 둘을 deps로 두고 있어 **매 렌더 새 함수**가 되고, 그 함수를 deps로 둔 `useEffect`가 렌더마다 재실행 → `/api/admin/chat/threads`를 무한 재요청 → 결국 rate limit(또는 Supabase Auth 세션 재조회 한도)에 걸려 에러가 계속 쌓임.
+
+**왜 못 잡았나**
+- 순수 클라이언트 렌더 루프라 서버 로그(Sentry `get_runtime_errors`)에는 아무 것도 안 남음(무한 fetch 자체는 200/429일 뿐 서버 예외가 아님) — 실브라우저로 로그인해서 화면을 봐야만 드러남.
+- `useCoordinatorL`/`useToast`는 코디 포털 전체가 공용으로 쓰는 훅이라, 이 두 훅에 deps를 건 다른 화면에서도 같은 조건이면 잠재적으로 같은 루프가 날 수 있는 구조였는데 지금까지는 우연히 안 걸림(다른 화면은 deps에 안 넣었거나 폴링 빈도가 낮았을 수 있음).
+
+**어떻게 고쳤나**
+- `useCoordinatorL`: `flatten(lang)` 결과를 `useMemo(lang 키)`로 안정화.
+- `ToastProvider`: `toast` 객체를 `useMemo(addToast 키)`로 안정화(`addToast` 자체는 이미 `useCallback`으로 안정적).
+- 페이지 코드(`page.jsx`)는 변경 없음 — 훅이 안정된 참조를 돌려주면 기존 `useCallback`/`useEffect` deps 배열이 의도대로 동작.
+- 실로그인으로 재검증: 스레드 100건 정상 로딩, 에러 토스트 0건, 스레드 상세도 정상.
+
+**재발 방지**
+- 공용 훅(특히 컨텍스트/i18n 훅)은 반환값을 **의존성 배열에 넣을 걸 전제로 설계** — 값이 안 바뀌면 참조도 안 바뀌게 `useMemo`/`useCallback`으로 안정화하는 걸 기본으로 한다. 이번엔 자동 검사기로 잡기 어려운 부류(정적 분석으론 "이 훅이 메모됐는지"를 일반화해 판단하기 어려움)라 코드리뷰 시 "커스텀 훅이 객체/함수를 반환하면 메모 여부 확인"을 체크리스트에 추가.
+
+---
+
 ## #77 — 🔁 #30 부류 재발: `/ru`(러시아 홈) React Hydration 에러 — 프록시 레거시 분기가 healo_lang 쿠키를 안 심어 서버=ru·클라=en 갈림 (Sentry 발견, 2026-07-07)
 
 **무슨 일**

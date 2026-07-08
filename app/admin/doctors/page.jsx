@@ -588,7 +588,7 @@ export default function AdminDoctorsPage() {
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-1">
                         <Building2 size={18} className="text-teal-700" />
-                        <h3 className="font-bold text-gray-900">{branch.name_ko}</h3>
+                        <h3 className="text-base font-bold text-gray-900">{branch.name_ko}</h3>
                         <StatusBadge status={branch.status} />
                       </div>
                       {branch.name_en && <p className="text-sm text-gray-500 ml-8">{branch.name_en}</p>}
