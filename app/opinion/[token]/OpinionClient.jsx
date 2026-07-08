@@ -255,38 +255,59 @@ function TranslatedDocToggle({ doc }) {
 }
 
 // 번역된 검사지(한국어) — 원문 항목명·수치는 그대로 두고 항목명만 번역한 표(요약 아님).
+// 컬럼 순서는 항상 [항목(원문), 항목(한글), 결과, 정상범위, 단위](ko 고정 호출) — 모바일 카드에서 위치로 매핑.
 function TranslatedDocView({ doc }) {
   if (!doc?.sections?.length) return null;
   return (
-    <div className="mt-1.5 border border-gray-100 rounded-lg bg-gray-50 p-2.5 space-y-2">
-      {doc.docTypeShort && <p className="text-[11px] font-semibold text-gray-500">{doc.docType || doc.docTypeShort}</p>}
+    <div className="mt-2 border border-gray-200 rounded-xl bg-white p-3.5 space-y-4">
+      {doc.docTypeShort && <p className="text-xs font-semibold text-teal-700">{doc.docType || doc.docTypeShort}</p>}
       {doc.sections.map((s, si) => (
-        <div key={si}>
-          {s.title && <p className="text-xs font-medium text-gray-600 mb-1">{s.title}</p>}
-          {s.note && <p className="text-[11px] text-gray-400 mb-1">{s.note}</p>}
+        <div key={si} className={si > 0 ? "pt-3 border-t border-gray-100" : ""}>
+          {s.title && <p className="text-sm font-semibold text-gray-700 mb-1.5">{s.title}</p>}
+          {s.note && <p className="text-xs text-gray-400 mb-1.5">{s.note}</p>}
           {Array.isArray(s.columns) && Array.isArray(s.rows) && s.rows.length > 0 && (
-            <div className="overflow-x-auto">
-              <table className="text-xs w-full border-collapse">
-                <thead>
-                  <tr>
-                    {s.columns.map((col, ci) => (
-                      <th key={ci} className="text-left text-gray-400 font-medium border-b border-gray-200 py-1 pr-2">{col}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {s.rows.map((r, ri) => (
-                    <tr key={ri}>
-                      {(r?.cells || []).map((cell, ci) => (
-                        <td key={ci} className="text-gray-800 py-1 pr-2 border-b border-gray-100 align-top">{cell}</td>
+            <>
+              {/* 모바일: 항목당 카드(작은 화면에서 5열 표는 읽기 힘듦) */}
+              <div className="sm:hidden space-y-1.5">
+                {s.rows.map((r, ri) => {
+                  const cells = r?.cells || [];
+                  const [orig, ko, result, range, unit] = cells;
+                  return (
+                    <div key={ri} className="bg-gray-50 rounded-lg px-3 py-2">
+                      <div className="flex items-baseline justify-between gap-2">
+                        <span className="text-sm font-medium text-gray-800">{ko || orig}</span>
+                        <span className="text-sm font-semibold text-gray-900 shrink-0">{result}{unit ? ` ${unit}` : ""}</span>
+                      </div>
+                      {orig && ko && <p className="text-[11px] text-gray-400 mt-0.5">{orig}</p>}
+                      {range && <p className="text-[11px] text-gray-500 mt-0.5">정상범위 {range}</p>}
+                    </div>
+                  );
+                })}
+              </div>
+              {/* 데스크탑/태블릿: 표 */}
+              <div className="hidden sm:block overflow-x-auto">
+                <table className="text-sm w-full border-collapse">
+                  <thead>
+                    <tr>
+                      {s.columns.map((col, ci) => (
+                        <th key={ci} className="text-left text-gray-400 font-medium border-b border-gray-200 py-1.5 pr-4">{col}</th>
                       ))}
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {s.rows.map((r, ri) => (
+                      <tr key={ri} className={ri % 2 === 1 ? "bg-gray-50/60" : ""}>
+                        {(r?.cells || []).map((cell, ci) => (
+                          <td key={ci} className="text-gray-800 py-1.5 pr-4 border-b border-gray-100 align-top">{cell}</td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
           )}
-          {s.text && <p className="text-xs text-gray-800 whitespace-pre-wrap leading-relaxed">{s.text}</p>}
+          {s.text && <p className="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed">{s.text}</p>}
         </div>
       ))}
     </div>
