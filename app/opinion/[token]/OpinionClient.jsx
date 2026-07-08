@@ -255,38 +255,46 @@ function TranslatedDocToggle({ doc }) {
 }
 
 // 번역된 검사지(한국어) — 원문 항목명·수치는 그대로 두고 항목명만 번역한 표(요약 아님).
+// 컬럼 순서는 항상 [항목(원문), 항목(한글), 결과, 정상범위, 단위](ko 고정 호출).
+// 모바일: 카드형은 항목 수가 많으면 스크롤이 너무 길어져서 안 씀 — 대신 표 그대로 두되
+// '원문' 열만 숨기고 정상범위·단위를 한 칸으로 합쳐 4열로 줄여 압축(줄 수는 원본과 동일).
 function TranslatedDocView({ doc }) {
   if (!doc?.sections?.length) return null;
   return (
-    <div className="mt-1.5 border border-gray-100 rounded-lg bg-gray-50 p-2.5 space-y-2">
-      {doc.docTypeShort && <p className="text-[11px] font-semibold text-gray-500">{doc.docType || doc.docTypeShort}</p>}
+    <div className="mt-2 border border-gray-200 rounded-xl bg-white p-3 space-y-3">
+      {doc.docTypeShort && <p className="text-xs font-semibold text-teal-700">{doc.docType || doc.docTypeShort}</p>}
       {doc.sections.map((s, si) => (
-        <div key={si}>
-          {s.title && <p className="text-xs font-medium text-gray-600 mb-1">{s.title}</p>}
-          {s.note && <p className="text-[11px] text-gray-400 mb-1">{s.note}</p>}
+        <div key={si} className={si > 0 ? "pt-3 border-t border-gray-100" : ""}>
+          {s.title && <p className="text-sm font-semibold text-gray-700 mb-1">{s.title}</p>}
+          {s.note && <p className="text-xs text-gray-400 mb-1">{s.note}</p>}
           {Array.isArray(s.columns) && Array.isArray(s.rows) && s.rows.length > 0 && (
             <div className="overflow-x-auto">
-              <table className="text-xs w-full border-collapse">
+              <table className="text-[13px] sm:text-sm w-full border-collapse">
                 <thead>
                   <tr>
-                    {s.columns.map((col, ci) => (
-                      <th key={ci} className="text-left text-gray-400 font-medium border-b border-gray-200 py-1 pr-2">{col}</th>
-                    ))}
+                    <th className="hidden sm:table-cell text-left text-gray-400 font-medium border-b border-gray-200 py-1.5 pr-3">{s.columns[0]}</th>
+                    <th className="text-left text-gray-400 font-medium border-b border-gray-200 py-1.5 pr-3">{s.columns[1] || s.columns[0]}</th>
+                    <th className="text-left text-gray-400 font-medium border-b border-gray-200 py-1.5 pr-3">{s.columns[2]}</th>
+                    <th className="text-left text-gray-400 font-medium border-b border-gray-200 py-1.5 pr-3">정상범위·단위</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {s.rows.map((r, ri) => (
-                    <tr key={ri}>
-                      {(r?.cells || []).map((cell, ci) => (
-                        <td key={ci} className="text-gray-800 py-1 pr-2 border-b border-gray-100 align-top">{cell}</td>
-                      ))}
-                    </tr>
-                  ))}
+                  {s.rows.map((r, ri) => {
+                    const [orig, ko, result, range, unit] = r?.cells || [];
+                    return (
+                      <tr key={ri} className={ri % 2 === 1 ? "bg-gray-50/60" : ""}>
+                        <td className="hidden sm:table-cell text-gray-500 py-1.5 pr-3 border-b border-gray-100 align-top">{orig}</td>
+                        <td className="text-gray-800 font-medium py-1.5 pr-3 border-b border-gray-100 align-top">{ko || orig}</td>
+                        <td className="text-gray-900 font-semibold py-1.5 pr-3 border-b border-gray-100 align-top">{result}</td>
+                        <td className="text-gray-500 py-1.5 pr-3 border-b border-gray-100 align-top">{[range, unit].filter(Boolean).join(" ")}</td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
           )}
-          {s.text && <p className="text-xs text-gray-800 whitespace-pre-wrap leading-relaxed">{s.text}</p>}
+          {s.text && <p className="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed">{s.text}</p>}
         </div>
       ))}
     </div>
