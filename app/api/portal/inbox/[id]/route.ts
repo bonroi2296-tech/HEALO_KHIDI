@@ -49,6 +49,8 @@ const DETAIL_FIELDS = [
   "agencies(name)",
   // 회원/비회원 배지: 접수한 계정(user_id)으로 이메일·role·테스트여부 조회(응답엔 submitter 만 실음)
   "user_id",
+  // 환자 계정 연결(claim) 링크 생성용 — 비회원 케이스에서 코디가 "링크 복사" 버튼으로 공유
+  "public_token",
   // 케이스 브리프 캐시(암호화) + 입력 서명 — 열람 즉시 표시, 첨부 바뀌면 stale 판정해 자동 재생성
   "coordinator_brief",
   "coordinator_brief_sig",
@@ -98,7 +100,11 @@ export async function GET(
 
     // 접수 주체(회원/비회원) — user_id 로 계정 조회해 email·role·@test.com 여부만 실음(PII 최소).
     // 비번·토큰 등 절대 미노출. 조회 실패해도 본 응답은 진행(fail-safe).
+    // has_account 는 submitter 조회 성공 여부와 무관하게 user_id 존재 자체로만 판정 —
+    // "환자 연결 링크 복사" 버튼이 조회 실패(auth 유저 삭제·API 오류) 시에도 이미 연결된
+    // 케이스를 비회원으로 오판해 불필요한 링크를 다시 보내는 걸 막는다.
     const submitterUserId = (data as any)?.user_id || null;
+    inquiry.has_account = !!submitterUserId;
     inquiry.submitter = null;
     if (submitterUserId) {
       try {

@@ -12,10 +12,11 @@ import { kstDateTime } from "@/lib/datetime/kst";
 import {
   UploadCloud, File as FileIcon, X, ClipboardList, Activity, CheckCircle2, PauseCircle,
   Plus, ArrowRight, ChevronDown, Paperclip, MessageCircle, FileText, Video, Send, Clock, Stethoscope, Languages,
+  Link2, Check,
 } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { useLang } from "@/lib/i18n/LangContext";
-import { caseStatusLabelL } from "@/lib/khidi/caseStatus";
+import { caseStatusLabelL, OLD_KEY_ALIASES } from "@/lib/khidi/caseStatus";
 import ManualDrawer from "../_components/ManualDrawer";
 
 const supabase = createSupabaseBrowserClient();
@@ -439,11 +440,9 @@ for (const l of Object.keys(TR)) Object.assign(TR[l], TR_MSG[l] || TR_MSG.en);
 // nextStep_<case_status> 키는 caseStatus.ts 의 단계 key 와 1:1.
 const TR_GUIDE = {
   ko: {
-    nextStep_received: "코디가 서류를 검토 중이에요. 곧 병원 치료가능 여부를 확인합니다.",
-    nextStep_pre_consult: "사전상담을 진행하고 있어요.",
-    nextStep_hospital_review: "병원이 치료 가능 여부를 검토 중이에요. 회신을 기다리고 있어요.",
-    nextStep_scheduling: "치료 일정과 견적을 조율 중이에요. 견적이 나오면 여기에 표시됩니다.",
-    nextStep_visa_prep: "비자와 예약을 준비 중이에요.",
+    nextStep_intake: "코디가 서류를 검토 중이에요. 곧 병원 치료가능 여부를 확인합니다.",
+    nextStep_consultation: "사전상담·병원 검토를 진행하고 있어요. 회신을 기다리고 있어요.",
+    nextStep_preparation: "치료 일정·견적과 비자·예약을 준비 중이에요.",
     nextStep_treatment: "환자가 입국해 치료를 받고 있어요.",
     nextStep_follow_up: "치료 후 사후관리를 진행 중이에요.",
     nextStep_completed: "완료된 케이스예요.",
@@ -453,13 +452,13 @@ const TR_GUIDE = {
     emptyStep1: "환자 정보·서류로 의뢰",
     emptyStep2: "코디가 병원 매칭·견적·상담 조율",
     emptyStep3: "단계별 진행상황·메시지 확인",
+    claimCopyBtn: "환자 연결 링크 복사",
+    claimCopied: "복사됨!",
   },
   en: {
-    nextStep_received: "Our coordinator is reviewing the documents. We'll check hospital eligibility shortly.",
-    nextStep_pre_consult: "A pre-consultation is underway.",
-    nextStep_hospital_review: "The hospital is reviewing whether treatment is possible. Awaiting their reply.",
-    nextStep_scheduling: "Coordinating the treatment schedule and quote. The quote will appear here once ready.",
-    nextStep_visa_prep: "Preparing the visa and booking.",
+    nextStep_intake: "Our coordinator is reviewing the documents. We'll check hospital eligibility shortly.",
+    nextStep_consultation: "Pre-consultation and hospital review are underway. Awaiting their reply.",
+    nextStep_preparation: "Coordinating the treatment schedule, quote, visa and booking.",
     nextStep_treatment: "The patient has arrived and is receiving treatment.",
     nextStep_follow_up: "Follow-up care is underway after treatment.",
     nextStep_completed: "This case is completed.",
@@ -469,13 +468,13 @@ const TR_GUIDE = {
     emptyStep1: "Refer with patient info & documents",
     emptyStep2: "Coordinator matches hospital, quote & consult",
     emptyStep3: "Track each stage & message us",
+    claimCopyBtn: "Copy patient link",
+    claimCopied: "Copied!",
   },
   ru: {
-    nextStep_received: "Координатор проверяет документы. Скоро уточним возможность лечения в больнице.",
-    nextStep_pre_consult: "Идёт предварительная консультация.",
-    nextStep_hospital_review: "Больница рассматривает возможность лечения. Ожидаем ответа.",
-    nextStep_scheduling: "Согласуем сроки лечения и смету. Смета появится здесь, когда будет готова.",
-    nextStep_visa_prep: "Готовим визу и бронирование.",
+    nextStep_intake: "Координатор проверяет документы. Скоро уточним возможность лечения в больнице.",
+    nextStep_consultation: "Идёт предварительная консультация и рассмотрение в больнице. Ожидаем ответа.",
+    nextStep_preparation: "Согласуем сроки лечения, смету, визу и бронирование.",
     nextStep_treatment: "Пациент прибыл и проходит лечение.",
     nextStep_follow_up: "После лечения идёт наблюдение.",
     nextStep_completed: "Случай завершён.",
@@ -485,13 +484,13 @@ const TR_GUIDE = {
     emptyStep1: "Направьте с данными и документами пациента",
     emptyStep2: "Координатор подбирает больницу, смету и консультацию",
     emptyStep3: "Отслеживайте этапы и пишите нам",
+    claimCopyBtn: "Копировать ссылку пациента",
+    claimCopied: "Скопировано!",
   },
   kz: {
-    nextStep_received: "Үйлестіруші құжаттарды тексеруде. Жақында аурухананың емдеу мүмкіндігін нақтылаймыз.",
-    nextStep_pre_consult: "Алдын ала кеңес жүргізілуде.",
-    nextStep_hospital_review: "Аурухана емдеу мүмкіндігін қарастыруда. Жауабын күтудеміз.",
-    nextStep_scheduling: "Емдеу кестесі мен бағаны келісудеміз. Баға дайын болғанда осында көрсетіледі.",
-    nextStep_visa_prep: "Виза мен брондауды дайындаудамыз.",
+    nextStep_intake: "Үйлестіруші құжаттарды тексеруде. Жақында аурухананың емдеу мүмкіндігін нақтылаймыз.",
+    nextStep_consultation: "Алдын ала кеңес және аурухана қарауы жүргізілуде. Жауабын күтудеміз.",
+    nextStep_preparation: "Емдеу кестесі, бағасы, виза мен брондауды дайындаудамыз.",
     nextStep_treatment: "Науқас келіп, ем қабылдап жатыр.",
     nextStep_follow_up: "Емнен кейін бақылау жүргізілуде.",
     nextStep_completed: "Бұл жағдай аяқталды.",
@@ -501,13 +500,13 @@ const TR_GUIDE = {
     emptyStep1: "Науқас деректері мен құжаттарымен жолдаңыз",
     emptyStep2: "Үйлестіруші аурухана, баға, кеңесті ұйымдастырады",
     emptyStep3: "Кезеңдерді қадағалап, бізге жазыңыз",
+    claimCopyBtn: "Науқас сілтемесін көшіру",
+    claimCopied: "Көшірілді!",
   },
   zh: {
-    nextStep_received: "协调员正在审核资料，即将确认医院能否治疗。",
-    nextStep_pre_consult: "正在进行初步咨询。",
-    nextStep_hospital_review: "医院正在评估能否治疗，正在等待回复。",
-    nextStep_scheduling: "正在协调治疗日程与报价。报价出来后将显示在此处。",
-    nextStep_visa_prep: "正在准备签证与预约。",
+    nextStep_intake: "协调员正在审核资料，即将确认医院能否治疗。",
+    nextStep_consultation: "正在进行初步咨询与医院评估，正在等待回复。",
+    nextStep_preparation: "正在协调治疗日程、报价、签证与预约。",
     nextStep_treatment: "患者已入境，正在接受治疗。",
     nextStep_follow_up: "治疗后正在进行后续护理。",
     nextStep_completed: "此病例已完成。",
@@ -517,13 +516,13 @@ const TR_GUIDE = {
     emptyStep1: "用患者信息与资料转介",
     emptyStep2: "协调员匹配医院、报价与会诊",
     emptyStep3: "追踪各阶段并与我们沟通",
+    claimCopyBtn: "复制患者链接",
+    claimCopied: "已复制！",
   },
   ja: {
-    nextStep_received: "コーディネーターが書類を確認中です。まもなく病院で治療可能か確認します。",
-    nextStep_pre_consult: "事前相談を進めています。",
-    nextStep_hospital_review: "病院が治療可能か検討中です。返答を待っています。",
-    nextStep_scheduling: "治療日程と見積を調整中です。見積ができ次第ここに表示されます。",
-    nextStep_visa_prep: "ビザと予約を準備中です。",
+    nextStep_intake: "コーディネーターが書類を確認中です。まもなく病院で治療可能か確認します。",
+    nextStep_consultation: "事前相談・病院検討を進めています。返答を待っています。",
+    nextStep_preparation: "治療日程・見積とビザ・予約を準備中です。",
     nextStep_treatment: "患者が入国し、治療を受けています。",
     nextStep_follow_up: "治療後の経過観察を進めています。",
     nextStep_completed: "この案件は完了しました。",
@@ -533,6 +532,8 @@ const TR_GUIDE = {
     emptyStep1: "患者情報・書類で紹介",
     emptyStep2: "コーディネーターが病院・見積・相談を調整",
     emptyStep3: "各段階を確認しメッセージ",
+    claimCopyBtn: "患者リンクをコピー",
+    claimCopied: "コピーしました！",
   },
 };
 for (const l of Object.keys(TR)) Object.assign(TR[l], TR_GUIDE[l] || TR_GUIDE.en);
@@ -564,6 +565,7 @@ export default function PartnerPortal({ expected = "agency" }) {
   const [openId, setOpenId] = useState(null);
   const [filter, setFilter] = useState("all"); // all | active | done | hold
   const [query, setQuery] = useState("");
+  const [claimCopiedId, setClaimCopiedId] = useState(null); // 환자 연결 링크 복사 버튼 피드백
 
   const [view, setView] = useState("track"); // 좌측 탭: "track"(진행 현황) | "refer"(환자 의뢰)
 
@@ -1014,7 +1016,7 @@ export default function PartnerPortal({ expected = "agency" }) {
                   {(() => {
                     const isHold = c.case_status === "on_hold";
                     const isDone = c.case_status === "completed";
-                    const total = steps.length; // 실단계 8 (보류 제외)
+                    const total = steps.length; // 실단계 6 (보류 제외)
                     return (
                       <div className="flex items-center flex-wrap gap-2 mb-1.5">
                         <span className={`inline-flex items-center gap-1.5 text-sm font-bold px-3 py-1 rounded-lg ${
@@ -1049,10 +1051,12 @@ export default function PartnerPortal({ expected = "agency" }) {
                       {noteIsTr(c.case_status_note) && <Languages size={11} className="inline-block ml-1 -mt-0.5 text-gray-300" />}
                     </p>
                   )}
-                  {c.case_status && tt(`nextStep_${c.case_status}`) && (
+                  {/* 구단계 값(과거 이력 등)이 흘러 들어와도 신단계 키로 별칭 해석 — 안내문구가 조용히
+                      사라지지 않게(TR_GUIDE 는 신 6단계 키로만 정의돼 있음). */}
+                  {c.case_status && tt(`nextStep_${OLD_KEY_ALIASES[c.case_status] || c.case_status}`) && (
                     <p className="text-xs text-teal-700 bg-teal-50/70 rounded-lg px-2.5 py-1.5 mt-2 flex items-start gap-1.5">
                       <ArrowRight size={12} className="mt-0.5 shrink-0" />
-                      <span>{tt(`nextStep_${c.case_status}`)}</span>
+                      <span>{tt(`nextStep_${OLD_KEY_ALIASES[c.case_status] || c.case_status}`)}</span>
                     </p>
                   )}
                   <div className="flex gap-3 mt-2 text-xs text-gray-400">
@@ -1060,6 +1064,22 @@ export default function PartnerPortal({ expected = "agency" }) {
                     {c.case_status_updated_at && <span>{tt("updatedLabel")} {new Date(c.case_status_updated_at).toLocaleDateString()}</span>}
                   </div>
                 </button>
+
+                {/* 계정 미연결 케이스만 — 환자 계정연결(claim) 링크를 복사해 공유 */}
+                {!c.has_account && c.public_token && (
+                  <button
+                    onClick={() => {
+                      const url = `${window.location.origin}/claim/${c.public_token}`;
+                      navigator.clipboard.writeText(url).then(() => {
+                        setClaimCopiedId(c.id);
+                        setTimeout(() => setClaimCopiedId((prev) => (prev === c.id ? null : prev)), 2000);
+                      });
+                    }}
+                    className="mt-2 inline-flex items-center gap-1 px-2 py-0.5 text-xs font-semibold rounded-full bg-teal-50 text-teal-700 hover:bg-teal-100 transition"
+                  >
+                    {claimCopiedId === c.id ? <Check size={12} /> : <Link2 size={12} />} {claimCopiedId === c.id ? tt("claimCopied") : tt("claimCopyBtn")}
+                  </button>
+                )}
 
                 {openId === c.id && (
                   <div className="mt-4 pt-4 border-t border-gray-100 space-y-4">

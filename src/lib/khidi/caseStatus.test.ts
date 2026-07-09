@@ -14,9 +14,17 @@ import {
  */
 describe("caseStatusLabel", () => {
   it("알려진 키를 한국어 레이블로 바꾼다", () => {
-    expect(caseStatusLabel("received")).toBe("문의 접수");
+    expect(caseStatusLabel("intake")).toBe("문의·의뢰 접수");
     expect(caseStatusLabel("treatment")).toBe("입국·치료 중");
     expect(caseStatusLabel("completed")).toBe("완료");
+  });
+
+  it("구 9단계 키(과거 이력)도 별칭으로 신단계 레이블로 바꾼다", () => {
+    expect(caseStatusLabel("received")).toBe("문의·의뢰 접수");
+    expect(caseStatusLabel("pre_consult")).toBe("상담·검토 진행");
+    expect(caseStatusLabel("hospital_review")).toBe("상담·검토 진행");
+    expect(caseStatusLabel("scheduling")).toBe("일정·비자 준비");
+    expect(caseStatusLabel("visa_prep")).toBe("일정·비자 준비");
   });
 
   it("빈 값은 '미설정'", () => {
@@ -32,8 +40,8 @@ describe("caseStatusLabel", () => {
 
 describe("caseStatusOrder", () => {
   it("단계 순서를 반환한다", () => {
-    expect(caseStatusOrder("received")).toBe(1);
-    expect(caseStatusOrder("completed")).toBe(8);
+    expect(caseStatusOrder("intake")).toBe(1);
+    expect(caseStatusOrder("completed")).toBe(6);
     expect(caseStatusOrder("on_hold")).toBe(99); // 보류는 맨 뒤
   });
 
@@ -44,11 +52,9 @@ describe("caseStatusOrder", () => {
 
   it("정상 진행 단계는 순서가 단조 증가한다", () => {
     const flow = [
-      "received",
-      "pre_consult",
-      "hospital_review",
-      "scheduling",
-      "visa_prep",
+      "intake",
+      "consultation",
+      "preparation",
       "treatment",
       "follow_up",
       "completed",
@@ -61,7 +67,7 @@ describe("caseStatusOrder", () => {
 
   it("KEYS 와 STEPS 가 일관된다", () => {
     expect(CASE_STATUS_KEYS).toHaveLength(CASE_STATUS_STEPS.length);
-    expect(CASE_STATUS_KEYS).toContain("received");
+    expect(CASE_STATUS_KEYS).toContain("intake");
   });
 });
 
@@ -92,7 +98,7 @@ describe("outcomeForCaseStatus (코디 case_status 전진 → 유치 자동 집�
   });
 
   it("입국 전 단계는 아직 유치 아님(null) — 비자준비도 아직 미확정", () => {
-    for (const s of ["received", "pre_consult", "hospital_review", "scheduling", "visa_prep", "on_hold"]) {
+    for (const s of ["intake", "consultation", "preparation", "on_hold"]) {
       expect(outcomeForCaseStatus(s)).toBeNull();
     }
   });
@@ -107,14 +113,20 @@ describe("outcomeForCaseStatus (코디 case_status 전진 → 유치 자동 집�
 
 describe("caseStatusToJourneyStage (EDGE-1: 코디 case_status → 환자 여정바 단계)", () => {
   it("각 case_status 를 알맞은 여정 단계로 매핑", () => {
-    expect(caseStatusToJourneyStage("received")).toBe("inquiry");
-    expect(caseStatusToJourneyStage("pre_consult")).toBe("consultation");
-    expect(caseStatusToJourneyStage("hospital_review")).toBe("proposal");
-    expect(caseStatusToJourneyStage("scheduling")).toBe("proposal");
-    expect(caseStatusToJourneyStage("visa_prep")).toBe("visa");
+    expect(caseStatusToJourneyStage("intake")).toBe("inquiry");
+    expect(caseStatusToJourneyStage("consultation")).toBe("consultation");
+    expect(caseStatusToJourneyStage("preparation")).toBe("visa");
     expect(caseStatusToJourneyStage("treatment")).toBe("treatment");
     expect(caseStatusToJourneyStage("follow_up")).toBe("recovery");
     expect(caseStatusToJourneyStage("completed")).toBe("recovery");
+  });
+
+  it("구 9단계 키(과거 이력)도 별칭으로 매핑된다", () => {
+    expect(caseStatusToJourneyStage("received")).toBe("inquiry");
+    expect(caseStatusToJourneyStage("pre_consult")).toBe("consultation");
+    expect(caseStatusToJourneyStage("hospital_review")).toBe("consultation");
+    expect(caseStatusToJourneyStage("scheduling")).toBe("visa");
+    expect(caseStatusToJourneyStage("visa_prep")).toBe("visa");
   });
 
   it("보류(on_hold)는 단계를 강제하지 않는다(null → 기존 계산 유지)", () => {

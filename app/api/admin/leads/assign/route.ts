@@ -185,7 +185,7 @@ export async function POST(request: NextRequest) {
         await advanceCaseStatus(
           supabaseAdmin,
           (inquiry as any).source_inquiry_id,
-          "hospital_review",
+          "consultation",
           `병원 배정 (${assignedCount}곳, admin)`,
           authResult.userId ?? null
         );

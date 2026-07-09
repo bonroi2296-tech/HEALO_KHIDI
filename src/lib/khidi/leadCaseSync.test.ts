@@ -44,7 +44,7 @@ const NO_SLOTS: { at: string; note: string | null }[] = [];
 
 describe("syncLeadStatusToCase — 병원 확정 → 유치 자동집계 (KHIDI-8 회귀잠금)", () => {
   it("'converted' 면 inquiries.outcome='admitted' 자동기록 + outcome IS NULL 가드 + 자동표시", async () => {
-    const { db, calls } = makeFakeSupabase({ caseStatus: "hospital_review" });
+    const { db, calls } = makeFakeSupabase({ caseStatus: "consultation" });
     await syncLeadStatusToCase(db, "lead-1", "converted", "hosp-1", "user-1", { min: 100, max: 200 }, NO_SLOTS);
 
     const outcomeWrite = calls.find((c) => c.table === "inquiries" && c.payload?.outcome !== undefined);
@@ -57,21 +57,21 @@ describe("syncLeadStatusToCase — 병원 확정 → 유치 자동집계 (KHIDI-
   });
 
   it("'replied' 는 유치(admitted) 자동집계 안 함 (case_status 메모만)", async () => {
-    const { db, calls } = makeFakeSupabase({ caseStatus: "hospital_review" });
+    const { db, calls } = makeFakeSupabase({ caseStatus: "consultation" });
     await syncLeadStatusToCase(db, "lead-1", "replied", "hosp-1", "user-1", {}, NO_SLOTS);
     expect(calls.some((c) => c.payload?.outcome === "admitted")).toBe(false);
-    // case_status 전진은 일어남(회신 시 scheduling 으로)
-    expect(calls.some((c) => c.table === "inquiries" && c.payload?.case_status === "scheduling")).toBe(true);
+    // case_status 전진은 일어남(회신 시 preparation 으로)
+    expect(calls.some((c) => c.table === "inquiries" && c.payload?.case_status === "preparation")).toBe(true);
   });
 
   it("'rejected' 도 유치 자동집계 안 함", async () => {
-    const { db, calls } = makeFakeSupabase({ caseStatus: "hospital_review" });
+    const { db, calls } = makeFakeSupabase({ caseStatus: "consultation" });
     await syncLeadStatusToCase(db, "lead-1", "rejected", "hosp-1", "user-1", {}, NO_SLOTS);
     expect(calls.some((c) => c.payload?.outcome === "admitted")).toBe(false);
   });
 
   it("'viewed' 는 케이스에 아예 반영 안 함(쓰기 0)", async () => {
-    const { db, calls } = makeFakeSupabase({ caseStatus: "hospital_review" });
+    const { db, calls } = makeFakeSupabase({ caseStatus: "consultation" });
     await syncLeadStatusToCase(db, "lead-1", "viewed", "hosp-1", "user-1", {}, NO_SLOTS);
     expect(calls.length).toBe(0);
   });

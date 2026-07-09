@@ -57,7 +57,7 @@ export async function GET(request: NextRequest) {
     assertSupabaseEnv();
     const { data: rows, error } = await (supabaseAdmin as any)
       .from("inquiries")
-      .select("id, created_at, nationality, cancer_type, first_name, last_name, case_status, case_status_note, case_status_updated_at, insurance_provider, insurance_status, outcome, attachments, intake")
+      .select("id, created_at, nationality, cancer_type, first_name, last_name, case_status, case_status_note, case_status_updated_at, insurance_provider, insurance_status, outcome, attachments, intake, public_token, user_id")
       .eq("agency_id", auth.agencyId)
       .order("created_at", { ascending: false })
       .limit(300);
@@ -207,6 +207,10 @@ export async function GET(request: NextRequest) {
         estimates: estimateMap.get(r.id) || [],
         opinions: opinionMap.get(r.id) || [],
         thread: threadMap.get(r.id) || null,
+        // 환자 계정 연결(claim) — 계정 미연결 케이스만 링크 복사 버튼을 보이기 위한 토큰.
+        // user_id 자체는 PII 최소화를 위해 응답에 싣지 않고 boolean 만.
+        has_account: !!r.user_id,
+        public_token: r.user_id ? null : r.public_token,
       };
     }));
 

@@ -226,7 +226,7 @@ export async function PATCH(
 
     // EDGE-3 (POSTMORTEM #18→#20): 상담이 '완료'로 전환되면 케이스 진행상황을 전진시켜
     //   에이전시·코디 타임라인에 반영(이전엔 상담만 완료되고 case_status 는 정체했음).
-    //   사전상담→'pre_consult', 사후관리→'follow_up'. 뒤로 가지 않음(advanceCaseStatus 가드).
+    //   사전상담→'consultation', 사후관리→'follow_up'. 뒤로 가지 않음(advanceCaseStatus 가드).
     if (
       payload.status === "completed" &&
       priorStatus !== "completed" &&
@@ -234,7 +234,7 @@ export async function PATCH(
     ) {
       try {
         const sType = (prevSession as any).session_type;
-        const target = sType === "follow_up" ? "follow_up" : "pre_consult";
+        const target = sType === "follow_up" ? "follow_up" : "consultation";
         const label = sType === "follow_up" ? "사후관리 완료" : "사전상담 완료";
         const { advanceCaseStatus } = await import("@/lib/khidi/advanceCaseStatus");
         await advanceCaseStatus(

@@ -346,6 +346,7 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
   const [reqResult, setReqResult] = useState(null); // { link, emailSent, email, lang }
   const [reqError, setReqError] = useState(null);
   const [copied, setCopied] = useState(false);
+  const [claimCopied, setClaimCopied] = useState(false); // "환자 연결 링크 복사" 버튼 피드백
 
   // 케이스 진행 단계(코디가 설정 → 환자·에이전시가 같은 상태를 봄). 인라인 편집.
   const [caseStatus, setCaseStatus] = useState("");
@@ -756,6 +757,22 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
                 <span className="px-2 py-0.5 text-xs font-semibold rounded-full bg-sky-100 text-sky-700">
                   🙋 {pick(INTAKE_UI.submitterGuest, lang)}
                 </span>
+              )}
+              {/* 계정 미연결 케이스만 — 환자 계정연결(claim) 링크를 복사해 왓츠앱 등으로 공유.
+                  has_account 는 submitter 조회 성공 여부와 무관하게 user_id 존재로만 판정(안정적). */}
+              {!inquiry.has_account && inquiry.public_token && (
+                <button
+                  onClick={() => {
+                    const url = `${window.location.origin}/claim/${inquiry.public_token}`;
+                    navigator.clipboard.writeText(url).then(() => {
+                      setClaimCopied(true);
+                      setTimeout(() => setClaimCopied(false), 2000);
+                    });
+                  }}
+                  className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-semibold rounded-full bg-teal-50 text-teal-700 hover:bg-teal-100 transition"
+                >
+                  {claimCopied ? <Check size={12} /> : <Copy size={12} />} {claimCopied ? L.ibClaimCopied : L.ibClaimCopy}
+                </button>
               )}
             </div>
             <p className="text-xs text-gray-400 mt-0.5">{L.ibInquiryNo} #{inquiry.id} · {L.ibReceivedLabel} {fmtDate(inquiry.created_at)}</p>

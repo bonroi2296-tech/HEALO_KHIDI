@@ -18,7 +18,10 @@ export async function GET(request: NextRequest) {
   
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
-  const _next = searchParams.get("next") || "/";
+  // claim(환자 계정연결) 링크로 시작된 가입/로그인만 착지 경로를 덮어씀 — 그 외 값은 무시하고
+  // 역할별 기본 착지(resolveLandingPath)를 그대로 쓴다(오픈 리다이렉트 방지, 범위 최소화).
+  const nextParam = searchParams.get("next") || "";
+  const claimRedirect = nextParam.startsWith("/claim/") ? nextParam : null;
 
   console.log("[auth/callback] code:", code ? "exists" : "missing");
   console.log("[auth/callback] origin:", origin);
@@ -98,13 +101,18 @@ export async function GET(request: NextRequest) {
         }
       }
 
-      // Redirect 결정 — 역할별 포털로 (admin/coordinator/doctor/agency/병원/환자)
-      const { resolveLandingPath } = await import("@/lib/auth/resolveLanding");
-      const redirectTo = await resolveLandingPath({
-        userId: user?.id,
-        appRole: user?.app_metadata?.role,
-        isAdmin,
-      });
+      // Redirect 결정 — claim 링크 경유면 그 케이스 연결 화면으로, 아니면 역할별 포털로
+      // (admin/coordinator/doctor/agency/병원/환자). claim 자체의 직원/에이전시 차단은
+      // POST /api/inquiries/claim 이 서버에서 다시 확인하므로 여기 라우팅은 안전.
+      let redirectTo = claimRedirect;
+      if (!redirectTo) {
+        const { resolveLandingPath } = await import("@/lib/auth/resolveLanding");
+        redirectTo = await resolveLandingPath({
+          userId: user?.id,
+          appRole: user?.app_metadata?.role,
+          isAdmin,
+        });
+      }
       console.log(
         `[auth/callback] ✅ Redirecting to ${redirectTo} (isAdmin: ${isAdmin})`
       );

@@ -108,11 +108,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ ok: false, error: "assign_failed" }, { status: 500 });
     }
 
-    // 5) 케이스 진행단계를 '병원 치료가능 검토 중'으로 + 이력
-    // POSTMORTEM #80: 재배정(추가 병원 배정) 시 이미 더 진행된 케이스(scheduling 이후)를
-    // hospital_review로 강제 되돌리던 문제 — 전진-only 헬퍼로 교체(뒤로 안 감, 이력은 항상 남음).
+    // 5) 케이스 진행단계를 '상담·검토 진행'으로 + 이력
+    // POSTMORTEM #80: 재배정(추가 병원 배정) 시 이미 더 진행된 케이스(preparation 이후)를
+    // 강제로 되돌리던 문제 — 전진-only 헬퍼로 교체(뒤로 안 감, 이력은 항상 남음).
     const note = `병원 배정 (${targetIds.length}곳)`;
-    await advanceCaseStatus(supabaseAdmin, inquiryId, "hospital_review", note, auth.userId);
+    await advanceCaseStatus(supabaseAdmin, inquiryId, "consultation", note, auth.userId);
 
     return NextResponse.json({
       ok: true,

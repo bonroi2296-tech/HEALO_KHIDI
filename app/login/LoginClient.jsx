@@ -171,7 +171,7 @@ export const LoginPage = ({ setView }) => {
                                 
                                 setOauthLoading(true);
                                 try {
-                                    const redirectUrl = `${window.location.origin}/auth/callback`;
+                                    const redirectUrl = `${window.location.origin}/auth/callback${redirectTarget ? `?next=${encodeURIComponent(redirectTarget)}` : ''}`;
                                     console.log('[LoginPage] redirectTo:', redirectUrl);
                                     
                                     console.log('[LoginPage] Calling signInWithOAuth...');
