@@ -7,6 +7,54 @@
 
 ---
 
+## 🔖 세션 핸드오프 (2026-07-09 저녁 — Sentry/Vercel MCP 연결 + 에이전시 소견 첨부파일 노출 버그 수정 + 문의함 에이전시 이름·환자 계정연결(claim) 기능)
+
+> 이 세션은 **메인 폴더(`docs/handoff-amend-717`)에서 시작해 도중에 별도 worktree(`work/agency-claim-inbox`)로 옮겨 작업**했다. 같은 시간대에 다른 세션이 이 메인 폴더에서 케이스 진행단계 9→6단계 재설계·소견 자동번역 작업을 동시에 진행 중이었음(바로 아래 블록이 그 세션의 핸드오프) — 두 세션의 산출물이 얽혀 있어 아래에 명확히 구분해 기록.
+
+**1. 이번 세션 한 일**
+- **Sentry MCP·Vercel MCP 연결(PO 인터랙티브 터미널 가이드)**: PO가 별도 터미널(`claude` 인터랙티브 세션)에서 `claude mcp add --transport http sentry https://mcp.sentry.dev/mcp` 실행 → OAuth 인증까지 단계별로 안내해 완료. Vercel MCP도 같은 방식으로 연결 완료. 둘 다 그 터미널 세션(로컬 CLI, `C:\Users\user`에 등록)에서만 유효 — 이 대화창(cowork 세션)엔 자동 반영 안 됨, 다음에 필요하면 다시 연결 안내 필요.
+- **버그 수정 — 에이전시 포털에 소견 첨부 원본문서가 전혀 안 보이던 문제** (메인 폴더에서 직접 수정, 이미 커밋됨):
+  - 원인: `app/api/agency/inquiries/route.ts`의 `case_opinions` 조회가 `file_path/file_name/files` 컬럼을 아예 select 안 해서, 코디가 소견과 함께 올린 원본 PDF가 DB엔 있어도 에이전시 화면 API 응답에 전혀 안 실림.
+  - 수정: 위 파일에 파일 컬럼 select 추가 + signed URL 일괄 서명 로직 추가, `app/agency/PartnerPortal.jsx`의 소견 카드에 첨부파일 "보기" 링크 렌더링 추가.
+  - 겸사겸사 무관한 기존 타입체크 오류 3건도 같이 고침: `app/api/coordinator/opinions/route.ts` 2곳(`(supabaseAdmin as any)` 캐스팅 누락), `src/lib/ai/usageLog.ts`(`AiSurface` 타입에 `"opinion_translate"` 누락) — 전부 빌드를 막고 있던 것들.
+- **기능 2건(별도 worktree `work/agency-claim-inbox`, 브랜치는 `origin/main` 최신 기준):**
+  1. **코디 문의함 에이전시 이름 표시**: `app/coordinator/inbox/page.jsx` 배지가 "🏢 에이전시" 고정 텍스트였던 걸 `item.agency_name`으로 교체(이미 API는 이름을 내려주고 있었음, 프론트 렌더링만 문제).
+  2. **환자 계정 연결(claim) 기능**: 에이전시 경유로 접수돼 계정이 없던 환자가, 코디/에이전시가 공유하는 링크(`healwith.co.kr/claim/[public_token]`)로 회원가입/로그인하면 그 케이스가 본인 계정에 자동 연결돼 **이미 완성된 `/patient` 포털**(대시보드·진행상황·증상기록·비용견적)을 바로 쓸 수 있게 됨. 신규 파일: `app/api/inquiries/claim/route.ts`(연결 API, GET=미리보기·POST=연결), `app/claim/[token]/page.jsx`+`ClaimClient.jsx`(공개 랜딩). 기존 파일 수정: `app/signup/SignupClient.jsx`·`app/login/LoginClient.jsx`·`app/auth/callback/route.ts`(`?redirect=`/`?next=` 파라미터를 인증 완료 후까지 유지하도록), 코디 상세·에이전시 케이스 카드에 "링크 복사" 버튼, `src/lib/manuals/index.js` 갱신.
+  3. **버그 발견·즉시 수정(구현 중 실클릭 검증으로 발견)**: 직원(admin/coordinator)이나 에이전시 계정으로 로그인한 채 저 claim 링크를 열면 그 계정이 환자 케이스를 "가져가 버리는" 구멍을 실제로 재현 → `app/api/inquiries/claim/route.ts`에 `auth.isStaff` + `agency_users` 멤버십 체크로 차단(`staff_cannot_claim`), 랜딩 화면에도 전용 안내 문구 추가.
+
+**2. 왜 그렇게 했는지**
+- claim 기능은 원래 "계정 없이 토큰 링크로 진행상황만 읽기 전용 조회"로 설계했으나, PO가 "그럼 사후관리·서류전달도 계속 에이전시 거쳐야 하냐, 비효율 아니냐"고 지적 → 조사해보니 `/patient` 포털에 이미 문서함·채팅·재진예약까지 다 있는데 에이전시 경유 케이스만 `inquiries.user_id`가 비어있어 접근 불가였던 게 진짜 문제. 그래서 읽기전용 미니 페이지를 새로 만드는 대신 "계정 연결" 한 기능만 추가해 기존 포털을 재사용하는 쪽으로 설계 전환(중복 개발 방지).
+- claim은 `inquiries.user_id`만 채우는데, `/patient` 포털의 문서함·채팅·재진예약은 `consultation_sessions.patient_user_id`(별도 컬럼) 기반이라 claim만으로는 100% 안 열림 — 이건 알고 있는 제약이라 3번(안 끝났거나 보류)에 기록.
+- PO가 "에이전시 백오피스랑 동기화하지 말고 환자 백오피스는 따로 두면서 데이터만 연동"이라고 명시적으로 요구 → `/patient`와 `/agency`는 원래도 완전히 분리된 인증·화면이고, claim은 `inquiries` 테이블 행 하나의 접근권만 주는 구조라 그 요구에 부합함을 확인. 향후 `inquiries`에 정산 등 민감 컬럼이 추가될 리스크에 대비해 "환자용 API는 항상 명시적 필드 화이트리스트만 쓴다" 원칙을 코드 주석으로 명문화.
+
+**3. 안 끝났거나 보류**
+- **PR 둘 다 미생성 — PO 확인 대기**: `work/agency-claim-inbox` 브랜치는 다른 세션의 미완성 작업(케이스 진행단계 9→6단계 재설계, 소견 자동번역)까지 머지해서 갖고 있어서, 지금 PR을 열면 그 세션이 아직 안 끝낸 작업까지 같이 main에 들어가려 함. PO에게 "하나로 합쳐서 PR / 그 세션 끝날 때까지 보류" 버튼으로 물었으나 **응답 없이 넘어감(미결정)** — 다음 세션에서 다시 물어볼 것.
+- **claim 후 문서함·채팅·재진예약 완전 개방**: `app/api/khidi/consultation` 라우트에서 상담 세션 생성 시 `consultation_sessions.patient_user_id`를 자동으로 채워주는 로직이 없음(claim된 `inquiries.user_id`를 그대로 넣어주면 됨, 몇 줄 추가 수준) — 후속 작업으로 남겨둠, 지금은 claim 직후 대시보드·진행상황·증상기록·비용견적(단수 라우트)만 즉시 열림.
+- **Sentry MCP로 실제 오류 조회는 아직 안 해봄** — 연결만 완료, 다음에 필요할 때 써보면서 검증.
+
+**4. 주의·함정**
+- **메인 폴더(`docs/handoff-amend-717`)에 다른 세션(케이스단계 재설계)의 작업이 계속 자동저장 중이었음** — 이 세션은 그 파일들(예: `src/lib/opinions/translateOpinion.ts`, `migrations/20260709_opinion_auto_translate.sql` 등)이 아직 커밋 안 된 상태(untracked)인 걸 발견하고, **PO 승인을 받은 뒤** `work/agency-claim-inbox` worktree에 복사해서 빌드를 살렸다(원본은 그대로 둠, 삭제·이동 안 함). 다음 세션이 메인 폴더에서 이어갈 때 이 파일들이 여전히 untracked로 남아있을 수 있음 — 그 세션이 커밋했는지 먼저 확인할 것.
+- **`work/agency-claim-inbox` worktree는 `git merge docs/handoff-amend-717`로 병합된 상태** — 충돌 5건(케이스단계 후퇴방지 로직 vs 6단계 재설계 substep 로직)을 수동으로 풀어 합쳤음(`app/api/admin/khidi/cases/route.ts`·`app/api/coordinator/cases/assign/route.ts`·`CoordinatorInboxDetailClient.jsx`·문서 2건). 병합 로직은 빌드+실클릭 검증 통과했지만, **원본 세션이 이후 그 파일들을 또 고치면 이 worktree가 낡은 스냅샷이 됨** — PR 올리기 전에 최신 main(또는 그 세션 브랜치)과 다시 맞춰볼 것.
+- **claim 기능 테스트 데이터**: 검증 중 `inquiries.id=11`(TEST 에이전시 케이스)의 `user_id`를 `patient@test.com`/`agency@test.com`으로 두 번 연결했다가 **매번 즉시 `null`로 원복**해둠 — DB엔 오염 안 남음. `docs/TEST_ACCOUNTS.md`의 `patient@test.com`/`Healwith2026!` 계정으로 재현 가능.
+- **Sentry MCP 인증 요청 화면에서 권한 범위를 PO가 직접 조정**: Inspect Issues & Events만 남기고 Seer·Triage Issues·Manage Projects & Teams는 껐는지 여부는 PO의 최종 클릭에 달림(어시는 권장만 하고 최종 선택은 PO가 함) — 다음 세션에서 Sentry MCP로 뭔가 시도했다가 권한 부족 오류 나면 이게 원인일 수 있음.
+
+**5. 다음 세션이 먼저 할 일**
+1. ⚠️ **PR 스코프 재확인(미결정 상태)**: `work/agency-claim-inbox`를 그대로 PR 올릴지, 원본 세션(케이스단계 재설계) 머지 완료를 기다렸다가 그 위에 다시 맞춰서 올릴지 PO에게 버튼으로 확인.
+2. claim 기능 실사용 최종 점검: 실제 회원가입(이메일 인증 클릭 포함) 전체 플로우는 기존 계정 재사용 우회 검증만 했음 — 여유 있으면 진짜 신규 이메일로 인증 링크까지 눌러서 1회 확인 권장.
+3. `app/api/khidi/consultation`에 `consultation_sessions.patient_user_id` 자동 채움 추가(claim 후속, 문서함·채팅·재진예약 완전 개방).
+4. 메인 폴더 다른 세션이 진행하던 케이스단계 재설계·소견 자동번역이 커밋/머지됐는지 확인.
+
+**6. 검증 상태**
+- ✅ `npx next build --webpack` 통과(메인 폴더·worktree 둘 다).
+- ✅ 로컬 dev(포트 3211)에서 실클릭 검증: claim 랜딩(정상 토큰·존재하지 않는 토큰), 회원가입 폼 제출(이메일 인증 대기까지), 기존 계정으로 로그인 후 자동 claim→`/patient` 착지(DB `user_id` 반영까지 SQL로 확인), 직원/에이전시 계정 차단, 코디 문의함 에이전시 이름 배지 노출 — 전부 브라우저로 직접 확인.
+- ⚠️ **미검증**: 진짜 신규 이메일 인증메일 링크 클릭 후 `?next=` 리다이렉트가 실제로 동작하는지(코드 리뷰로는 확인, 실클릭은 이메일 발송 제약으로 못 함). Google OAuth 경유 claim도 미검증.
+- PR/CI: 이번 세션 산출물은 **PR 미생성**이라 CI 실행 자체가 없음(위 3번 참고).
+
+**7. 다음 세션 첫 프롬프트**
+> docs/PROJECT_CONTEXT.md 최상단 읽어. work/agency-claim-inbox worktree에 문의함 에이전시 이름 배지 + 환자 계정연결(claim) 기능이 빌드·실클릭 검증까지 끝난 채 커밋만 돼 있고 PR은 아직 안 올렸어(다른 세션 미완성 작업이 섞여 있어서 스코프 확인 필요). 그것부터 버튼으로 물어보고 진행해.
+
+---
+
 ## 🔖 세션 핸드오프 (2026-07-09 — 소견 첨부 개선·자동번역 + 케이스 진행단계 재설계(9→6단계) + 로컬 성능 3종)
 
 > 마무리가 아니라 **다음 세션 이어가기용 갈무리**(PO 명시). 미커밋 변경 다수 있음 — 다음 세션이 먼저 커밋 정리부터.
@@ -53,55 +101,6 @@
 
 **7. 다음 세션 첫 프롬프트**
 > docs/PROJECT_CONTEXT.md 최상단 읽어. 소견 첨부·자동번역 기능 + 케이스 진행단계 9→6단계 재설계 다 끝났는데 미커밋 상태니 먼저 git status 보고 커밋부터 정리해. 그다음 로컬(`npm run dev`)에서 코디+에이전시 양쪽으로 케이스 #37 열어서 6단계 스테퍼·하위단계 칩·"다음 행동" 문구 실제로 눈으로 확인해(이번 세션엔 로그인 세션이 계속 끊겨서 못 봄). Turbopack으로 바꿨으니 이상 없는지도 한번 체크.
-
----
-
-## 🔖 세션 핸드오프 (2026-07-08 — 밀린 핸드오프 소급 기록: PR #702·#703·#711·#713·#714·#715·#716·#718)
-
-> 이번 세션은 새 코드 작업이 아니라 **PO 질문(여러 세션에 지시 흩뿌리고 마지막에 몰아서 정리해도 되냐) 답변 + 밀린 핸드오프 소급 메우기**. 직전 핸드오프(PR #709, 2026-07-07)가 다룬 #708 이후, **완전히 끝나서 머지까지 된 작업 8건**이 각자 핸드오프 커밋 없이 쌓여 있던 걸 확인하고 여기 한 번에 기록.
-
-**1. 이번 세션 한 일**
-- PO 질문 답변: 병렬세션 구조(여러 창에 영역 나눠 지시 → 각자 PR → 합침) 자체는 문제없다고 확인. 근거: 세션 시작 훅이 실시간으로 "핸드오프 뒤처짐(마지막 핸드오프 이후 커밋 25개·1일 경과)" 경보를 스스로 띄운 것 — 실제로 지금 그 상태였음.
-- git log·GitHub PR 조회로 직전 핸드오프(#709, 커밋 `806321c6`) 이후 **머지 완료됐는데 핸드오프 없는 PR 8개**를 확인해 아래에 소급 기록:
-  - **[#702](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/702)** `feat(coordinator)`: 케이스 브리프(AI 초안, `src/lib/inquiry/caseBrief.ts`) 신규 + 가짜정밀도였던 "매칭 정확도" 컬럼 제거 + 인테이크 미입력값 "입력하지 않음" 표기.
-  - **[#703](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/703)** `feat(opinions)`: 전문의 세컨드 오피니언 — 계정 없는 매직링크로 외부 원장 소견 수집(`case_opinions` 신규 테이블, 화상상담 게스트링크 패턴 재사용). 별도 저장소라 KHIDI 유치 KPI 안 걸림.
-  - **[#711](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/711)** `feat(opinions)`: 원장 원문을 코디가 교정(확정)한 뒤 **명시적으로 "에이전시에 공개"를 눌러야만** 노출되는 게이트 추가(`released_text/released_at/released_by`). 원문은 절대 에이전시에 안 나감.
-  - **[#713](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/713)**: 한국어 화면 로고 병기 복원(healwith + 힐위드) — 변리사 요청으로 두 상표 동시 출원하게 되어 #691(단독 표기)에서 병기로 되돌림. 한국어 페이지만, 다른 5개 언어는 healwith 단독 유지.
-  - **[#714](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/714)** `feat(opinions)`: 원장님 소견 요청 화면(`/opinion/[token]`)에도 코디용 AI 케이스 브리프(#702 산출물)를 재사용해 노출 — **새로 안 만들고 이미 캐시된 것만** 보여줌(비용·속도).
-  - **[#715](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/715)** `fix(coordinator)`: "AI 상담 리드"(`/coordinator/chat`) 무한 재요청 루프 수정(POSTMORTEMS #78) — `useCoordinatorL`/`useToast`가 렌더마다 새 객체를 반환해 `useEffect`가 무한 재실행하던 것을 `useMemo`로 안정화.
-  - **[#716](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/716)** `fix`: worktree 폴더에서 `npm install` 시 `install-hooks.js`가 ENOTDIR로 크래시하던 문제 — `.git`이 디렉토리가 아니라 포인터 파일인 worktree 케이스를 `git rev-parse --git-common-dir`로 처리.
-  - **[#718](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/718)** `fix(consultation)`: 화상상담 카메라가 1080p로 재시작 실패(안드로이드 화면잠금 해제 후 등)하면 540p로 자동 재시도, 그래도 실패하면 카메라 없이 상담 유지.
-  - **[#717](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/717)** `feat(opinions)`: 소견을 텍스트 대신 문서 파일(PDF 등)로 첨부 + AI 자동번역 — ✅ **머지 완료**(origin/main `95d0fb0`, 뒤이은 세션이 CI 확인 후 머지·확인 완료. 아래 「추가 갱신」 참고).
-
-> **📝 추가 갱신 (2026-07-08 2차 세션)**: 위 소급 기록 직후 **PR #717이 머지 완료**됨을 확인 (`gh pr view 717 --json state,mergedAt`). 아래는 그 머지 세션에서 드러난, 이 블록에 없던 추가 정보만 보완(8건 재서술 아님).
-> - **UI 설계 확정**: #717에서 번역 문서 UI를 "카드형(스크롤 과다) → 최종: 패널별 접기 + 「이상치 N건」 빨간 배지"로 2회 반려·재설계(PO: "이게 최선일까? 더 좋은 방법 없어?"). 원문 컬럼은 `hidden sm:table-cell`로 모바일에선 숨김.
-> - **QA 도구 특성**: `claude-in-chrome`으로 토글 버튼("번역본 펼쳐 보기" 등) 클릭 시 `ref` 기반 첫 클릭이 상태를 안 바꾸는 경우가 잦음 — 좌표 기반 재클릭으로 항상 성공. 실사용자에게 관찰된 버그 아님, 자동화 QA 특성으로 기록만.
-> - **PR #716(worktree install-hooks 수정)도 머지 확인** — 이 블록 §3의 "안 끝났거나 보류" 대상 아님.
-
-**2. 왜 그렇게 했는지**
-- PO가 "이거 저거 여러 세션에 지시 흩뿌려두고 나중에 정리시켜도 되냐"고 직접 물음 → 답: 구조는 괜찮음(그러려고 만든 병렬세션 규칙). 문제는 **"세션 끝나면 handoff" 규칙이 100%는 안 지켜지고 있었다는 것** — #711·#714처럼 완전히 끝나 머지까지 된 작업도 handoff 커밋 없이 새고 있었음(2026-07-08에 켜둔 세션 얘기가 아니라 이미 지나간 세션들 얘기). PO가 "이번 세션이 메워라"로 결정 → 이 소급 기록.
-- 각 항목 "왜"는 PR 본문 그대로: #711은 "원장 원문 그대로 노출은 안 되고, 코디 교정 뒤 코디가 판단해서 내보내야 함"(PO 확인), #714는 "코디용으로 이미 만든 걸 의사 화면에도 재사용 = 비용·속도 이득", #715 근본원인은 미검증 관례가 아니라 **React 훅 참조 안정성** 문제(다른 코디 화면도 같은 패턴 쓰면 잠재적으로 같은 버그 있었을 수 있음).
-
-**3. 안 끝났거나 보류**
-- ~~PR #717 미머지~~ → ✅ 머지 완료(위 「추가 갱신」 참고).
-- **실화면 클릭 검증 전부 미실시** — #702·#703·#711·#713·#714·#715·#716·#718 전부 PR 본문에 "로그인 필요/실기기 필요라 미검증" 명시. 이 세션도 문서 소급 기록만 했고 실클릭은 안 함.
-
-**4. 주의·함정**
-- `case_opinions` 관련 흐름이 이번에 3단계로 늘어남: **요청 발송(#703) → 코디 교정+공개게이트(#711) → 의사화면 브리프 노출(#714) → 파일첨부(#717, 아직 미머지)**. 다음에 이 영역 손댈 때 순서·의존관계 헷갈리기 쉬우니 이 목록부터 확인.
-- #714 브리프는 **캐시된 것만 재사용, 새로 생성 안 함** — 코디가 아직 브리프를 안 만든 케이스는 의사 화면에 브리프가 안 뜨는 게 정상(버그 아님).
-- #715 수정은 `useCoordinatorL`/`useToast`를 쓰는 코디 포털 다른 화면의 잠재적 동일 버그도 같이 막았을 가능성 — 다른 화면에서 비슷한 무한루프/rate_limited 도배 보고되면 이 커밋(참조 안정화)부터 확인.
-
-**5. 다음 세션이 먼저 할 일**
-1. ⚠️ **밀린 실화면 검증 8+1건** — 로그인 필요한 화면들을 실클릭 확인: 코디 케이스브리프 카드(#702)·세컨드오피니언 요청/작성 화면(#703)·공개게이트 토글(#711)·한국어 로고 병기(#713)·의사화면 브리프(#714)·AI 상담 리드 화면 정상 로딩(#715)·화상상담 카메라 540p 폴백(#718)·소견 파일첨부+AI번역(#717).
-2. ~~PR #717 CI 통과 확인 후 머지~~ → ✅ 완료.
-
-**6. 검증 상태**
-- ✅ 8건(#702·#703·#711·#713·#714·#715·#716·#718) 전부 PR 본문 기준 build/lint/check:content/check:schema-refs 통과 후 머지 완료(GitHub MCP로 병합 상태 직접 확인).
-- ⚠️ **실화면 클릭 검증 전부 미실시** — 위 8건 모두 로그인 게이트라 로컬 자동화 불가, PR 본문에도 "미검증" 명시. 이 세션도 실클릭은 안 함(문서 소급 기록만 진행) → 5-1로 승격.
-- ✅ **PR #717**: 머지 완료(`95d0fb0`) — 위 「추가 갱신」 참고.
-
-**7. 다음 세션 첫 프롬프트**
-> docs/PROJECT_CONTEXT.md 최상단 읽어. #702·703·711·713·714·715·716·717·718 전부 머지·배포 완료(717도 「추가 갱신」에서 확인됨). 남은 건 로그인 필요한 실화면들(코디+에이전시+의사 매직링크) 실클릭 검증 9건뿐.
 
 ---
 
