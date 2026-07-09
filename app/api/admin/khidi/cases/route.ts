@@ -14,7 +14,7 @@ import { requirePortalAuth } from "@/lib/auth/requirePortalAuth";
 import { supabaseAdmin, assertSupabaseEnv } from "@/lib/rag/supabaseAdmin";
 import { decryptInquiryForAdmin } from "@/lib/security/decryptForAdmin";
 import { encryptStringNullable, decryptStringNullable } from "@/lib/security/encryptionV2";
-import { CASE_STATUS_KEYS, CASE_STATUS_STEPS, outcomeForCaseStatus } from "@/lib/khidi/caseStatus";
+import { CASE_STATUS_KEYS, CASE_STATUS_STEPS, SUBSTEP_SUGGESTIONS, outcomeForCaseStatus } from "@/lib/khidi/caseStatus";
 
 // 케이스 보드는 관리자 + 코디네이터가 쓴다(의사 제외 — 보험 PII 쓰기 포함이라 범위 최소화).
 async function requireCaseStaff(request: NextRequest) {
@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
     assertSupabaseEnv();
     const { data: rows, error } = await (supabaseAdmin as any)
       .from("inquiries")
-      .select("id, created_at, nationality, cancer_type, first_name, last_name, agency_id, case_status, case_status_note, case_status_updated_at, insurance_provider, insurance_policy_no_encrypted, insurance_coverage, insurance_status, outcome")
+      .select("id, created_at, nationality, cancer_type, first_name, last_name, agency_id, case_status, case_status_note, case_status_updated_at, case_substeps, insurance_provider, insurance_policy_no_encrypted, insurance_coverage, insurance_status, outcome")
       .order("created_at", { ascending: false })
       .limit(200);
     if (error) {
@@ -103,6 +103,7 @@ export async function GET(request: NextRequest) {
         case_status: r.case_status,
         case_status_note: r.case_status_note,
         case_status_updated_at: r.case_status_updated_at,
+        case_substeps: Array.isArray(r.case_substeps) ? r.case_substeps : [],
         insurance_provider: r.insurance_provider,
         insurance_policy_no: policyNo,
         insurance_coverage: r.insurance_coverage,
@@ -118,6 +119,7 @@ export async function GET(request: NextRequest) {
       agencies: agencies || [],
       hospitals: (hospitals || []).map((h: any) => ({ id: h.id, name: h.name })),
       statusSteps: CASE_STATUS_STEPS,
+      substepSuggestions: SUBSTEP_SUGGESTIONS,
     });
   } catch (err: any) {
     console.error("[cases] GET error:", err?.message?.slice(0, 200));
@@ -152,6 +154,20 @@ export async function PATCH(request: NextRequest) {
     }
     if (body.case_status_note !== undefined)
       patch.case_status_note = typeof body.case_status_note === "string" ? body.case_status_note.slice(0, 500) : null;
+    // 하위단계 체크리스트 — 순서/필수 강제 없는 자유 배열(코디가 토글·자유추가). 전체 배열 교체.
+    if (body.case_substeps !== undefined) {
+      patch.case_substeps = Array.isArray(body.case_substeps)
+        ? body.case_substeps
+            .filter((s: any) => s && typeof s.key === "string" && typeof s.label === "string")
+            .slice(0, 30)
+            .map((s: any) => ({
+              key: s.key.slice(0, 100),
+              label: s.label.slice(0, 200),
+              done_at: typeof s.done_at === "string" ? s.done_at : new Date().toISOString(),
+              done_by: auth.userId,
+            }))
+        : [];
+    }
     if (body.agency_id !== undefined) patch.agency_id = body.agency_id || null;
     if (body.insurance_provider !== undefined)
       patch.insurance_provider = typeof body.insurance_provider === "string" ? body.insurance_provider.slice(0, 200) : null;

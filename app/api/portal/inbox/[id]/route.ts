@@ -36,6 +36,7 @@ const DETAIL_FIELDS = [
   "status",
   "case_status",
   "case_status_note",
+  "case_substeps",
   "match_accuracy",
   "source",
   "short_memo",

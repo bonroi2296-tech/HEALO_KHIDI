@@ -247,9 +247,11 @@ export async function GET(request: NextRequest) {
     }));
 
     // 환자 언어(접수 시 선택) — 에이전시 확정본 AI 번역 타겟 언어로 재사용.
+    // case_status/case_substeps 도 같이 내려줘서, 소견 공개 배너가 코디의 진행단계 상태를
+    // 부모 컴포넌트 prop 동기화 없이도 스스로 판단할 수 있게 한다.
     const { data: inq } = await (supabaseAdmin as any)
       .from("inquiries")
-      .select("id, nationality, cancer_type, treatment_type, intake, spoken_language")
+      .select("id, nationality, cancer_type, treatment_type, intake, spoken_language, case_status, case_substeps")
       .eq("id", inquiryId)
       .single();
 
@@ -265,6 +267,8 @@ export async function GET(request: NextRequest) {
       summaryText,
       opinions: opinionsWithUrls,
       patientLang: inq?.spoken_language || null,
+      caseStatus: inq?.case_status || null,
+      caseSubsteps: Array.isArray(inq?.case_substeps) ? inq.case_substeps : [],
     });
   } catch (e: any) {
     console.error("[coordinator/opinions] GET error:", e?.message);

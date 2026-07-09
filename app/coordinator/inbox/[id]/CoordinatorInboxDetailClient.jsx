@@ -14,7 +14,7 @@ import {
   Send, Copy, Check, ExternalLink, Download, Languages, X, ShieldCheck, Sparkles, Pencil,
 } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
-import { CASE_STATUS_STEPS, caseStatusLabelL } from "@/lib/khidi/caseStatus";
+import { CASE_STATUS_STEPS, caseStatusLabelL, caseStatusNextActorL, SUBSTEP_SUGGESTIONS } from "@/lib/khidi/caseStatus";
 import { cancerTypeLabelL } from "@/lib/khidi/medicalLabels";
 import { nationalityLabelL } from "@/lib/khidi/nationality";
 import { useBackofficeLang, useCoordinatorL, useDateLocale, coordinatorL } from "@/lib/i18n/coordinator";
@@ -350,6 +350,7 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
   // 케이스 진행 단계(코디가 설정 → 환자·에이전시가 같은 상태를 봄). 인라인 편집.
   const [caseStatus, setCaseStatus] = useState("");
   const [caseNote, setCaseNote] = useState("");
+  const [caseSubsteps, setCaseSubsteps] = useState([]);
   const [caseSaving, setCaseSaving] = useState(false);
   const [caseSaved, setCaseSaved] = useState(false);
 
@@ -608,6 +609,27 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
     setCaseSaving(false);
   }
 
+  // 하위단계(체크리스트) 토글 — 순서·필수 강제 없이 케이스별로 자유롭게. 즉시 저장.
+  async function toggleSubstep(sub) {
+    const exists = caseSubsteps.some((s) => s.key === sub.key);
+    const next = exists
+      ? caseSubsteps.filter((s) => s.key !== sub.key)
+      : [...caseSubsteps, { ...sub, done_at: new Date().toISOString() }];
+    setCaseSubsteps(next);
+    try {
+      const supabase = createSupabaseBrowserClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) return;
+      await fetch("/api/admin/khidi/cases", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session.access_token}` },
+        body: JSON.stringify({ inquiry_id: Number(inquiryId), case_substeps: next }),
+      });
+    } catch (e) {
+      console.error("[case] substep toggle error:", e);
+    }
+  }
+
   useEffect(() => {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -630,6 +652,7 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
       setInquiry(result.inquiry);
       setCaseStatus(result.inquiry?.case_status || "");
       setCaseNote(result.inquiry?.case_status_note || "");
+      setCaseSubsteps(Array.isArray(result.inquiry?.case_substeps) ? result.inquiry.case_substeps : []);
       // 케이스 브리프: 캐시가 최신이면 즉시 표시, 없거나 낡았으면(첨부 변경) 자동 생성 — 수동 버튼 없음.
       if (result.inquiry?.brief && !result.inquiry?.briefStale) {
         setBrief(result.inquiry.brief);
@@ -1107,16 +1130,15 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
       {/* 전문의 세컨드 오피니언 — 협력병원/외부 전문의 소견 요청·수집 (코디·어드민 전용, 자체완결 컴포넌트) */}
       <OpinionsSection
         inquiryId={inquiryId}
-        currentCaseStatus={caseStatus}
         onCaseStatusAdvanced={(key) => setCaseStatus(key)}
       />
 
-      {/* 진행 단계 — 코디가 설정. 환자·에이전시 포털에 같은 상태가 노출된다(흐름: 접수→사전상담→병원검토→일정조율→비자준비→입국치료→사후관리→완료). */}
+      {/* 진행 단계 — 코디가 설정. 환자·에이전시 포털에 같은 상태가 노출된다
+          (흐름: 문의접수→상담·검토→일정·비자준비→입국치료→사후관리→완료).
+          대단계는 굵게, 케이스별 디테일(자문했는지·병원 정식회신 대기인지·환자가 결정 중인지 등)은
+          아래 하위단계 체크리스트로 자유롭게 표시(순서·필수 강제 없음). */}
       <Card title={L.ibCaseCard}>
         <div className="space-y-3">
-          <p className="text-[11px] text-gray-400 -mt-1">
-            ※ &apos;사전상담 진행&apos;은 화상상담만이 아니라 소견서 등 서면으로 오간 상담도 포함합니다.
-          </p>
           <div className="flex flex-wrap items-center gap-2">
             {CASE_STATUS_STEPS.filter((s) => s.order < 90).map((s) => (
               <button
@@ -1133,6 +1155,30 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
               </button>
             ))}
           </div>
+          {caseStatus && caseStatusNextActorL(caseStatus, lang) && (
+            <p className="text-xs text-teal-700">다음 행동: {caseStatusNextActorL(caseStatus, lang)}</p>
+          )}
+          {caseStatus && (SUBSTEP_SUGGESTIONS[caseStatus] || []).length > 0 && (
+            <div className="flex flex-wrap items-center gap-1.5">
+              {(SUBSTEP_SUGGESTIONS[caseStatus] || []).map((sub) => {
+                const active = caseSubsteps.some((s) => s.key === sub.key);
+                return (
+                  <button
+                    key={sub.key}
+                    type="button"
+                    onClick={() => toggleSubstep({ key: sub.key, label: sub.label.ko })}
+                    className={`px-2.5 py-1 rounded-full text-[11px] font-medium border transition ${
+                      active
+                        ? "bg-teal-50 text-teal-700 border-teal-300"
+                        : "bg-white text-gray-500 border-gray-200 hover:border-teal-300"
+                    }`}
+                  >
+                    {active ? "✓ " : ""}{sub.label.ko}
+                  </button>
+                );
+              })}
+            </div>
+          )}
           <textarea
             value={caseNote}
             onChange={(e) => setCaseNote(e.target.value)}

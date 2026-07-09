@@ -57,7 +57,7 @@ export async function GET(request: NextRequest) {
     assertSupabaseEnv();
     const { data: rows, error } = await (supabaseAdmin as any)
       .from("inquiries")
-      .select("id, created_at, nationality, cancer_type, first_name, last_name, case_status, case_status_note, case_status_updated_at, insurance_provider, insurance_status, outcome, attachments, intake")
+      .select("id, created_at, nationality, cancer_type, first_name, last_name, case_status, case_status_note, case_status_updated_at, case_substeps, insurance_provider, insurance_status, outcome, attachments, intake")
       .eq("agency_id", auth.agencyId)
       .order("created_at", { ascending: false })
       .limit(300);
@@ -214,6 +214,7 @@ export async function GET(request: NextRequest) {
         case_status_label: caseStatusLabel(r.case_status),
         case_status_note: r.case_status_note,
         case_status_updated_at: r.case_status_updated_at,
+        case_substeps: Array.isArray(r.case_substeps) ? r.case_substeps : [],
         insurance_provider: r.insurance_provider,
         insurance_status: r.insurance_status,
         detail: pickDetail(r.intake),

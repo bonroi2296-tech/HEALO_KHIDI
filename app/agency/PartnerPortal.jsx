@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { useLang } from "@/lib/i18n/LangContext";
-import { caseStatusLabelL } from "@/lib/khidi/caseStatus";
+import { caseStatusLabelL, caseStatusNextActorL } from "@/lib/khidi/caseStatus";
 import ManualDrawer from "../_components/ManualDrawer";
 
 const supabase = createSupabaseBrowserClient();
@@ -65,7 +65,7 @@ const TR = {
     phEmail: "Email (optional)", phContactId: "Messenger ID / number (optional)", phMemo: "Note (symptoms / diagnosis summary, optional)", optPhone: "Phone",
     btnCancel: "Cancel", btnSubmit: "Submit referral", btnSubmitting: "Submitting…",
     emptyList: "No patients to show yet.", timelineEmpty: "No progress history recorded yet.",
-    insuranceLabel: "Insurance:", updatedLabel: "Updated",
+    insuranceLabel: "Insurance:", updatedLabel: "Updated", nextActorLabel: "Next action",
   },
   ko: {
     loading: "불러오는 중…", loginRequired: "로그인이 필요합니다.", loginLink: "로그인",
@@ -89,7 +89,7 @@ const TR = {
     phEmail: "이메일 (선택)", phContactId: "메신저 아이디/번호 (선택)", phMemo: "메모 (증상·진단 요약 등, 선택)", optPhone: "전화",
     btnCancel: "취소", btnSubmit: "의뢰 접수", btnSubmitting: "접수 중…",
     emptyList: "표시할 환자가 없습니다.", timelineEmpty: "아직 기록된 진행 이력이 없습니다.",
-    insuranceLabel: "보험:", updatedLabel: "업데이트",
+    insuranceLabel: "보험:", updatedLabel: "업데이트", nextActorLabel: "다음 행동",
   },
   ru: {
     loading: "Загрузка…", loginRequired: "Пожалуйста, войдите.", loginLink: "Войти",
@@ -113,7 +113,7 @@ const TR = {
     phEmail: "Email (необязательно)", phContactId: "ID / номер в мессенджере (необязательно)", phMemo: "Заметка (симптомы / краткий диагноз, необязательно)", optPhone: "Телефон",
     btnCancel: "Отмена", btnSubmit: "Отправить", btnSubmitting: "Отправка…",
     emptyList: "Пока нет пациентов для показа.", timelineEmpty: "История этапов пока не записана.",
-    insuranceLabel: "Страховка:", updatedLabel: "Обновлено",
+    insuranceLabel: "Страховка:", updatedLabel: "Обновлено", nextActorLabel: "Следующее действие",
   },
   kz: {
     loading: "Жүктелуде…", loginRequired: "Жүйеге кіріңіз.", loginLink: "Кіру",
@@ -137,7 +137,7 @@ const TR = {
     phEmail: "Email (міндетті емес)", phContactId: "Мессенджер ID / нөмірі (міндетті емес)", phMemo: "Ескертпе (симптомдар / диагноз қысқаша, міндетті емес)", optPhone: "Телефон",
     btnCancel: "Болдырмау", btnSubmit: "Жолдау", btnSubmitting: "Жіберілуде…",
     emptyList: "Әзірге көрсететін науқас жоқ.", timelineEmpty: "Барыс тарихы әлі жазылмаған.",
-    insuranceLabel: "Сақтандыру:", updatedLabel: "Жаңартылды",
+    insuranceLabel: "Сақтандыру:", updatedLabel: "Жаңартылды", nextActorLabel: "Келесі әрекет",
   },
   zh: {
     loading: "加载中…", loginRequired: "请先登录。", loginLink: "登录",
@@ -161,7 +161,7 @@ const TR = {
     phEmail: "电子邮箱（选填）", phContactId: "即时通讯 ID / 号码（选填）", phMemo: "备注（症状 / 诊断摘要，选填）", optPhone: "电话",
     btnCancel: "取消", btnSubmit: "提交转介", btnSubmitting: "提交中…",
     emptyList: "暂无可显示的患者。", timelineEmpty: "暂无进度记录。",
-    insuranceLabel: "保险：", updatedLabel: "更新",
+    insuranceLabel: "保险：", updatedLabel: "更新", nextActorLabel: "下一步行动",
   },
   ja: {
     loading: "読み込み中…", loginRequired: "ログインしてください。", loginLink: "ログイン",
@@ -185,7 +185,7 @@ const TR = {
     phEmail: "メール（任意）", phContactId: "メッセンジャー ID / 番号（任意）", phMemo: "メモ（症状・診断の要約など、任意）", optPhone: "電話",
     btnCancel: "キャンセル", btnSubmit: "紹介を送信", btnSubmitting: "送信中…",
     emptyList: "表示する患者はまだありません。", timelineEmpty: "進捗履歴はまだ記録されていません。",
-    insuranceLabel: "保険:", updatedLabel: "更新",
+    insuranceLabel: "保険:", updatedLabel: "更新", nextActorLabel: "次のアクション",
   },
 };
 
@@ -439,11 +439,9 @@ for (const l of Object.keys(TR)) Object.assign(TR[l], TR_MSG[l] || TR_MSG.en);
 // nextStep_<case_status> 키는 caseStatus.ts 의 단계 key 와 1:1.
 const TR_GUIDE = {
   ko: {
-    nextStep_received: "코디가 서류를 검토 중이에요. 곧 병원 치료가능 여부를 확인합니다.",
-    nextStep_pre_consult: "사전상담을 진행하고 있어요.",
-    nextStep_hospital_review: "병원이 치료 가능 여부를 검토 중이에요. 회신을 기다리고 있어요.",
-    nextStep_scheduling: "치료 일정과 견적을 조율 중이에요. 견적이 나오면 여기에 표시됩니다.",
-    nextStep_visa_prep: "비자와 예약을 준비 중이에요.",
+    nextStep_intake: "의뢰가 접수됐어요. 코디가 서류를 확인하고 있어요.",
+    nextStep_consultation: "상담·소견 등 정보를 주고받으며 치료 가능 여부를 확인하는 단계예요.",
+    nextStep_preparation: "치료 일정·견적·비자를 준비 중이에요. 견적이 나오면 여기에 표시됩니다.",
     nextStep_treatment: "환자가 입국해 치료를 받고 있어요.",
     nextStep_follow_up: "치료 후 사후관리를 진행 중이에요.",
     nextStep_completed: "완료된 케이스예요.",
@@ -455,11 +453,9 @@ const TR_GUIDE = {
     emptyStep3: "단계별 진행상황·메시지 확인",
   },
   en: {
-    nextStep_received: "Our coordinator is reviewing the documents. We'll check hospital eligibility shortly.",
-    nextStep_pre_consult: "A pre-consultation is underway.",
-    nextStep_hospital_review: "The hospital is reviewing whether treatment is possible. Awaiting their reply.",
-    nextStep_scheduling: "Coordinating the treatment schedule and quote. The quote will appear here once ready.",
-    nextStep_visa_prep: "Preparing the visa and booking.",
+    nextStep_intake: "The referral was received. Our coordinator is reviewing the documents.",
+    nextStep_consultation: "Consultation and opinions are being exchanged to confirm treatment feasibility.",
+    nextStep_preparation: "Coordinating the treatment schedule, quote, and visa. The quote will appear here once ready.",
     nextStep_treatment: "The patient has arrived and is receiving treatment.",
     nextStep_follow_up: "Follow-up care is underway after treatment.",
     nextStep_completed: "This case is completed.",
@@ -471,11 +467,9 @@ const TR_GUIDE = {
     emptyStep3: "Track each stage & message us",
   },
   ru: {
-    nextStep_received: "Координатор проверяет документы. Скоро уточним возможность лечения в больнице.",
-    nextStep_pre_consult: "Идёт предварительная консультация.",
-    nextStep_hospital_review: "Больница рассматривает возможность лечения. Ожидаем ответа.",
-    nextStep_scheduling: "Согласуем сроки лечения и смету. Смета появится здесь, когда будет готова.",
-    nextStep_visa_prep: "Готовим визу и бронирование.",
+    nextStep_intake: "Заявка получена. Координатор проверяет документы.",
+    nextStep_consultation: "Идёт обмен консультациями/заключениями для подтверждения возможности лечения.",
+    nextStep_preparation: "Согласуем сроки лечения, смету и визу. Смета появится здесь, когда будет готова.",
     nextStep_treatment: "Пациент прибыл и проходит лечение.",
     nextStep_follow_up: "После лечения идёт наблюдение.",
     nextStep_completed: "Случай завершён.",
@@ -487,11 +481,9 @@ const TR_GUIDE = {
     emptyStep3: "Отслеживайте этапы и пишите нам",
   },
   kz: {
-    nextStep_received: "Үйлестіруші құжаттарды тексеруде. Жақында аурухананың емдеу мүмкіндігін нақтылаймыз.",
-    nextStep_pre_consult: "Алдын ала кеңес жүргізілуде.",
-    nextStep_hospital_review: "Аурухана емдеу мүмкіндігін қарастыруда. Жауабын күтудеміз.",
-    nextStep_scheduling: "Емдеу кестесі мен бағаны келісудеміз. Баға дайын болғанда осында көрсетіледі.",
-    nextStep_visa_prep: "Виза мен брондауды дайындаудамыз.",
+    nextStep_intake: "Сұраныс қабылданды. Үйлестіруші құжаттарды тексеруде.",
+    nextStep_consultation: "Емдеу мүмкіндігін растау үшін кеңес/қорытынды алмасу жүруде.",
+    nextStep_preparation: "Емдеу кестесі, бағасы және визаны келісудеміз. Баға дайын болғанда осында көрсетіледі.",
     nextStep_treatment: "Науқас келіп, ем қабылдап жатыр.",
     nextStep_follow_up: "Емнен кейін бақылау жүргізілуде.",
     nextStep_completed: "Бұл жағдай аяқталды.",
@@ -503,11 +495,9 @@ const TR_GUIDE = {
     emptyStep3: "Кезеңдерді қадағалап, бізге жазыңыз",
   },
   zh: {
-    nextStep_received: "协调员正在审核资料，即将确认医院能否治疗。",
-    nextStep_pre_consult: "正在进行初步咨询。",
-    nextStep_hospital_review: "医院正在评估能否治疗，正在等待回复。",
-    nextStep_scheduling: "正在协调治疗日程与报价。报价出来后将显示在此处。",
-    nextStep_visa_prep: "正在准备签证与预约。",
+    nextStep_intake: "已收到转介。协调员正在审核资料。",
+    nextStep_consultation: "正在通过咨询/意见交流确认治疗可行性。",
+    nextStep_preparation: "正在协调治疗日程、报价与签证。报价出来后将显示在此处。",
     nextStep_treatment: "患者已入境，正在接受治疗。",
     nextStep_follow_up: "治疗后正在进行后续护理。",
     nextStep_completed: "此病例已完成。",
@@ -519,11 +509,9 @@ const TR_GUIDE = {
     emptyStep3: "追踪各阶段并与我们沟通",
   },
   ja: {
-    nextStep_received: "コーディネーターが書類を確認中です。まもなく病院で治療可能か確認します。",
-    nextStep_pre_consult: "事前相談を進めています。",
-    nextStep_hospital_review: "病院が治療可能か検討中です。返答を待っています。",
-    nextStep_scheduling: "治療日程と見積を調整中です。見積ができ次第ここに表示されます。",
-    nextStep_visa_prep: "ビザと予約を準備中です。",
+    nextStep_intake: "紹介を受け付けました。コーディネーターが書類を確認中です。",
+    nextStep_consultation: "治療可能かどうかを確認するため、相談・意見交換を行っています。",
+    nextStep_preparation: "治療日程・見積・ビザを調整中です。見積ができ次第ここに表示されます。",
     nextStep_treatment: "患者が入国し、治療を受けています。",
     nextStep_follow_up: "治療後の経過観察を進めています。",
     nextStep_completed: "この案件は完了しました。",
@@ -1054,6 +1042,16 @@ export default function PartnerPortal({ expected = "agency" }) {
                       <ArrowRight size={12} className="mt-0.5 shrink-0" />
                       <span>{tt(`nextStep_${c.case_status}`)}</span>
                     </p>
+                  )}
+                  {c.case_status && caseStatusNextActorL(c.case_status, lang) && (
+                    <p className="text-[11px] text-gray-400 mt-1">{tt("nextActorLabel")}: {caseStatusNextActorL(c.case_status, lang)}</p>
+                  )}
+                  {c.case_substeps?.length > 0 && (
+                    <div className="flex flex-wrap items-center gap-1 mt-1.5">
+                      {c.case_substeps.map((s, i) => (
+                        <span key={i} className="px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 text-[10px]">{s.label}</span>
+                      ))}
+                    </div>
                   )}
                   <div className="flex gap-3 mt-2 text-xs text-gray-400">
                     {c.insurance_status && <span>{tt("insuranceLabel")} {c.insurance_status}</span>}

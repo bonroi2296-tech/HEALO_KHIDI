@@ -60,8 +60,8 @@ describe("syncLeadStatusToCase — 병원 확정 → 유치 자동집계 (KHIDI-
     const { db, calls } = makeFakeSupabase({ caseStatus: "hospital_review" });
     await syncLeadStatusToCase(db, "lead-1", "replied", "hosp-1", "user-1", {}, NO_SLOTS);
     expect(calls.some((c) => c.payload?.outcome === "admitted")).toBe(false);
-    // case_status 전진은 일어남(회신 시 scheduling 으로)
-    expect(calls.some((c) => c.table === "inquiries" && c.payload?.case_status === "scheduling")).toBe(true);
+    // case_status 전진은 일어남(회신 시 preparation 으로)
+    expect(calls.some((c) => c.table === "inquiries" && c.payload?.case_status === "preparation")).toBe(true);
   });
 
   it("'rejected' 도 유치 자동집계 안 함", async () => {

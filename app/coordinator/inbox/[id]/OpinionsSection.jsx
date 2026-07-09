@@ -10,10 +10,10 @@
 import { useState, useEffect, useCallback } from "react";
 import { Stethoscope, Copy, Check, Link2, Loader2, Pencil, Paperclip, FileText, X, ArrowRight } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
-import { CASE_STATUS_STEPS } from "@/lib/khidi/caseStatus";
+import { CASE_STATUS_STEPS, caseStatusOrder } from "@/lib/khidi/caseStatus";
 
-const STEP_ORDER = Object.fromEntries(CASE_STATUS_STEPS.map((s) => [s.key, s.order]));
 const STEP_LABEL = Object.fromEntries(CASE_STATUS_STEPS.map((s) => [s.key, s.ko]));
+const PATIENT_DECISION_SUBSTEP = { key: "patient_decision", label: "환자·에이전시 결정" };
 
 async function authFetch(url, options = {}) {
   const supabase = createSupabaseBrowserClient();
@@ -27,7 +27,7 @@ function fmt(iso) {
   try { return new Date(iso).toLocaleString("ko-KR"); } catch { return iso; }
 }
 
-export default function OpinionsSection({ inquiryId, currentCaseStatus, onCaseStatusAdvanced }) {
+export default function OpinionsSection({ inquiryId, onCaseStatusAdvanced }) {
   const [loading, setLoading] = useState(true);
   const [request, setRequest] = useState(null);
   const [summary, setSummary] = useState("");
@@ -46,6 +46,8 @@ export default function OpinionsSection({ inquiryId, currentCaseStatus, onCaseSt
   const [fileError, setFileError] = useState("");
   const [dragOver, setDragOver] = useState(false);
   const [patientLang, setPatientLang] = useState(null); // 접수 시 선택한 환자 언어 — 확정본 AI 번역 타겟
+  const [caseStatusLocal, setCaseStatusLocal] = useState(null);
+  const [caseSubsteps, setCaseSubsteps] = useState([]);
 
   const load = useCallback(async () => {
     try {
@@ -56,6 +58,8 @@ export default function OpinionsSection({ inquiryId, currentCaseStatus, onCaseSt
         setSummary(data.summaryText || "");
         setOpinions(data.opinions || []);
         setPatientLang(data.patientLang || null);
+        setCaseStatusLocal(data.caseStatus || null);
+        setCaseSubsteps(Array.isArray(data.caseSubsteps) ? data.caseSubsteps : []);
       }
     } catch { /* silent */ } finally {
       setLoading(false);
@@ -82,19 +86,24 @@ export default function OpinionsSection({ inquiryId, currentCaseStatus, onCaseSt
     }
   };
 
-  // 소견 공개 후 "진행 단계"를 깜빡하고 안 올리는 문제(PO 2026-07-09) — 여기서 바로 올릴 수 있게 제안.
-  // 이미 hospital_review 이상이면 더 올릴 게 없으니 제안 자체를 안 띄운다.
-  const advanceStage = async (key) => {
+  // 소견 공개 후 "환자·에이전시가 판단하는 차례"라는 걸 깜빡하고 안 남기는 문제(PO 2026-07-09)
+  // — 여기서 바로 표시할 수 있게 제안. 대단계는 최소 'consultation'까지 올리고(이미 그 이상이면
+  // 유지), 하위단계에 '환자·에이전시 결정' 태그를 추가한다.
+  const markPatientDecision = async () => {
     setAdvancingStage(true);
     try {
+      const nextStatus = caseStatusOrder(caseStatusLocal) < caseStatusOrder("consultation") ? "consultation" : caseStatusLocal;
+      const nextSubsteps = [...caseSubsteps, { ...PATIENT_DECISION_SUBSTEP, done_at: new Date().toISOString() }];
       const res = await authFetch(`/api/admin/khidi/cases`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ inquiry_id: Number(inquiryId), case_status: key }),
+        body: JSON.stringify({ inquiry_id: Number(inquiryId), case_status: nextStatus, case_substeps: nextSubsteps }),
       });
       const data = await res.json();
       if (data.ok) {
-        onCaseStatusAdvanced?.(key);
+        onCaseStatusAdvanced?.(nextStatus);
+        setCaseStatusLocal(nextStatus);
+        setCaseSubsteps(nextSubsteps);
         setStageSuggestDismissed(true);
       }
     } catch { /* silent */ } finally {
@@ -288,28 +297,21 @@ export default function OpinionsSection({ inquiryId, currentCaseStatus, onCaseSt
             )}
           </div>
 
-          {/* 소견 공개했는데 진행 단계는 그대로인 경우 — 깜빡하기 쉬워서 여기서 바로 올리게 제안(강제 아님). */}
+          {/* 소견 공개했는데 "환자·에이전시 결정" 하위단계가 아직 안 남아있는 경우 — 깜빡하기 쉬워서 제안(강제 아님). */}
           {!stageSuggestDismissed &&
             opinions.some((o) => o.released_at) &&
-            (STEP_ORDER[currentCaseStatus] || 0) < STEP_ORDER.hospital_review && (
+            !caseSubsteps.some((s) => s.key === "patient_decision") &&
+            caseStatusOrder(caseStatusLocal) < caseStatusOrder("treatment") && (
               <div className="mt-3 flex flex-wrap items-center gap-2 bg-amber-50 border border-amber-200 rounded-lg p-3">
                 <span className="text-xs text-amber-800">
-                  소견을 에이전시에 공개했어요 — 보통은 환자·에이전시가 이걸 보고 판단하는 &apos;사전상담&apos; 단계예요.
+                  소견을 에이전시에 공개했어요 — 병원 쪽 검토는 끝났고, 이제 환자·에이전시가 판단할 차례예요.
                 </span>
                 <button
-                  onClick={() => advanceStage("pre_consult")}
+                  onClick={markPatientDecision}
                   disabled={advancingStage}
                   className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium bg-amber-600 text-white rounded-lg hover:bg-amber-700 disabled:opacity-50"
                 >
-                  {advancingStage ? <Loader2 size={11} className="animate-spin" /> : <ArrowRight size={11} />} {STEP_LABEL.pre_consult}
-                </button>
-                <button
-                  onClick={() => advanceStage("hospital_review")}
-                  disabled={advancingStage}
-                  className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium bg-white border border-amber-300 text-amber-800 rounded-lg hover:bg-amber-100 disabled:opacity-50"
-                  title="병원이 아직 치료 가능 여부 자체를 확인 중인 경우에만"
-                >
-                  <ArrowRight size={11} /> {STEP_LABEL.hospital_review}
+                  {advancingStage ? <Loader2 size={11} className="animate-spin" /> : <ArrowRight size={11} />} {STEP_LABEL.consultation} — 환자·에이전시 결정
                 </button>
                 <button
                   onClick={() => setStageSuggestDismissed(true)}

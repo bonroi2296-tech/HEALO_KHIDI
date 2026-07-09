@@ -177,7 +177,7 @@ export async function POST(request: NextRequest) {
     const skippedCount = foundHospitalIds.length - assignedCount;
 
     // EDGE-4 (POSTMORTEM #18→#20): coordinator/cases/assign 와 대칭 — admin 경로로 병원
-    //   배정해도 케이스 진행단계를 '병원 치료가능 검토 중'으로 전진+이력 기록(이전엔 admin
+    //   배정해도 케이스 진행단계를 '상담·검토 진행'으로 전진+이력 기록(이전엔 admin
     //   배정만 하면 에이전시·환자 타임라인이 안 움직였음). source_inquiry_id 로 연결.
     if ((inquiry as any)?.source_inquiry_id) {
       try {
@@ -185,7 +185,7 @@ export async function POST(request: NextRequest) {
         await advanceCaseStatus(
           supabaseAdmin,
           (inquiry as any).source_inquiry_id,
-          "hospital_review",
+          "consultation",
           `병원 배정 (${assignedCount}곳, admin)`,
           authResult.userId ?? null
         );
