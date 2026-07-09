@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { useToast } from "@/components/Toast";
-import { useLang } from "@/lib/i18n/LangContext";
+import { useBackofficeLang } from "@/lib/i18n/coordinator";
 
 const supabase = createSupabaseBrowserClient();
 
@@ -125,7 +125,7 @@ function fmtDate(d, lang) {
 
 export default function AdminUsersPage() {
   const toast = useToast();
-  const lang = useLang();
+  const lang = useBackofficeLang();
   const tt = (k) => (TR[lang] || TR.en)[k] ?? TR.en[k];
   const fmt = (tpl, vals) => Object.entries(vals).reduce((s, [k, v]) => s.replace(`{${k}}`, v), tpl);
   const [patients, setPatients] = useState([]);

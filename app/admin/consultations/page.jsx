@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { useToast } from "@/components/Toast";
-import { useLang } from "@/lib/i18n/LangContext";
+import { useBackofficeLang } from "@/lib/i18n/coordinator";
 import { CreateConsultationModal } from "@/components/consultation/CreateConsultationModal";
 
 const supabase = createSupabaseBrowserClient();
@@ -225,7 +225,7 @@ const TR = {
 export default function ConsultationsPage() {
   const router = useRouter();
   const toast = useToast();
-  const lang = useLang();
+  const lang = useBackofficeLang();
   const tt = (k) => (TR[lang] || TR.en)[k] ?? TR.en[k];
   const fmt = (tpl, vals) => Object.entries(vals).reduce((s, [k, v]) => s.replace(`{${k}}`, v), tpl);
   const locale = LOCALE_MAP[lang] || "en-US";

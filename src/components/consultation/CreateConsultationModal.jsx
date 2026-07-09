@@ -9,7 +9,7 @@ import { useState, useEffect } from "react";
 import { Video, X } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { useToast } from "@/components/Toast";
-import { useLang } from "@/lib/i18n/LangContext";
+import { useBackofficeLang } from "@/lib/i18n/coordinator";
 import QRCode from "qrcode";
 
 const supabase = createSupabaseBrowserClient();
@@ -238,7 +238,7 @@ const TR = {
 // ─── 새 상담 예약 모달 ──────────────────────────────────────────
 export function CreateConsultationModal({ onClose, onSuccess }) {
   const toast = useToast();
-  const lang = useLang();
+  const lang = useBackofficeLang();
   const tt = (k) => (TR[lang] || TR.en)[k] ?? TR.en[k];
   const fmt = (tpl, vals) => Object.entries(vals).reduce((s, [k, v]) => s.replace(`{${k}}`, v), tpl);
   const [form, setForm] = useState(() => {
@@ -759,7 +759,7 @@ export function CreateConsultationModal({ onClose, onSuccess }) {
 // 이메일로 auth.users 검색 → 선택 → UUID 자동 입력
 // 역할(doctor/coordinator) 회원을 드롭다운으로 — 이메일 검색 대신 지정 명단에서 선택
 function RoleUserSelect({ label, role, value, onSelect }) {
-  const lang = useLang();
+  const lang = useBackofficeLang();
   const tt = (k) => (TR[lang] || TR.en)[k] ?? TR.en[k];
   const fmt = (tpl, vals) => Object.entries(vals).reduce((s, [k, v]) => s.replace(`{${k}}`, v), tpl);
   const [options, setOptions] = useState([]);
@@ -808,7 +808,7 @@ function RoleUserSelect({ label, role, value, onSelect }) {
 }
 
 function UserSearchField({ label, value, onSelect, placeholder }) {
-  const lang = useLang();
+  const lang = useBackofficeLang();
   const tt = (k) => (TR[lang] || TR.en)[k] ?? TR.en[k];
   const [query, setQuery] = useState("");
   const [results, setResults] = useState([]);
@@ -950,7 +950,7 @@ function roleLabel(role, lang) {
 
 // ─── 초대 링크 + QR 코드 블록 ─────────────────────────────
 function InviteLinkBlock({ url, expiresAt, toast, label }) {
-  const lang = useLang();
+  const lang = useBackofficeLang();
   const tt = (k) => (TR[lang] || TR.en)[k] ?? TR.en[k];
   const resolvedLabel = label || tt("defaultInviteLabel");
   const [qrDataUrl, setQrDataUrl] = useState("");
