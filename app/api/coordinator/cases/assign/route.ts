@@ -15,6 +15,7 @@ export const runtime = "nodejs";
 import { NextRequest, NextResponse } from "next/server";
 import { requirePortalAuth } from "@/lib/auth/requirePortalAuth";
 import { supabaseAdmin, assertSupabaseEnv } from "@/lib/rag/supabaseAdmin";
+import { advanceCaseStatus } from "@/lib/khidi/advanceCaseStatus";
 
 export async function POST(request: NextRequest) {
   const auth = await requirePortalAuth(request, { staffOnly: true });
@@ -108,17 +109,10 @@ export async function POST(request: NextRequest) {
     }
 
     // 5) 케이스 진행단계를 '병원 치료가능 검토 중'으로 + 이력
+    // POSTMORTEM #80: 재배정(추가 병원 배정) 시 이미 더 진행된 케이스(scheduling 이후)를
+    // hospital_review로 강제 되돌리던 문제 — 전진-only 헬퍼로 교체(뒤로 안 감, 이력은 항상 남음).
     const note = `병원 배정 (${targetIds.length}곳)`;
-    await (supabaseAdmin as any)
-      .from("inquiries")
-      .update({ case_status: "hospital_review", case_status_note: note, case_status_updated_at: now })
-      .eq("id", inquiryId);
-    await (supabaseAdmin as any).from("case_status_history").insert({
-      inquiry_id: inquiryId,
-      status: "hospital_review",
-      note,
-      created_by: auth.userId,
-    });
+    await advanceCaseStatus(supabaseAdmin, inquiryId, "hospital_review", note, auth.userId);
 
     return NextResponse.json({
       ok: true,

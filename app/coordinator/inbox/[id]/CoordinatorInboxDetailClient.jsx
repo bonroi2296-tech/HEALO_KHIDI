@@ -350,6 +350,7 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
   // 케이스 진행 단계(코디가 설정 → 환자·에이전시가 같은 상태를 봄). 인라인 편집.
   const [caseStatus, setCaseStatus] = useState("");
   const [caseNote, setCaseNote] = useState("");
+  const [caseStatusForce, setCaseStatusForce] = useState(false); // 되돌리기 확인을 거쳤는지(뒤로가기 방지 가드 우회용)
   const [caseSaving, setCaseSaving] = useState(false);
   const [caseSaved, setCaseSaved] = useState(false);
 
@@ -594,13 +595,19 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
           inquiry_id: Number(inquiryId),
           case_status: caseStatus || null,
           case_status_note: caseNote || null,
+          force_backward: caseStatusForce,
         }),
       });
       const result = await res.json().catch(() => ({}));
       if (res.ok && result.ok) {
         setCaseSaved(true);
+        setCaseStatusForce(false);
         setInquiry((prev) => prev ? { ...prev, case_status: caseStatus, case_status_note: caseNote } : prev);
         setTimeout(() => setCaseSaved(false), 2000);
+      } else if (result?.error === "status_would_go_backward") {
+        // 확인창을 거치지 않고(예: 저장 버튼 재시도) 서버 가드에 막힌 경우 — 화면 상태를 서버 기준으로 되돌림
+        alert("이전 단계로는 되돌릴 수 없어요. 단계 버튼을 다시 눌러 확인 후 저장해주세요.");
+        setCaseStatus(result.current || "");
       }
     } catch (e) {
       console.error("[case] save error:", e);
@@ -630,6 +637,7 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
       setInquiry(result.inquiry);
       setCaseStatus(result.inquiry?.case_status || "");
       setCaseNote(result.inquiry?.case_status_note || "");
+      setCaseStatusForce(false);
       // 케이스 브리프: 캐시가 최신이면 즉시 표시, 없거나 낡았으면(첨부 변경) 자동 생성 — 수동 버튼 없음.
       if (result.inquiry?.brief && !result.inquiry?.briefStale) {
         setBrief(result.inquiry.brief);
@@ -1115,7 +1123,23 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
               <button
                 key={s.key}
                 type="button"
-                onClick={() => setCaseStatus(s.key)}
+                onClick={() => {
+                  if (s.key === caseStatus) return;
+                  const curOrder = CASE_STATUS_STEPS.find((x) => x.key === caseStatus)?.order || 0;
+                  // on_hold(보류)는 순서상 99지만 실제 단계가 아니라 일시정지 — 재개/재보류는
+                  // "되돌리기"로 취급하지 않는다(그래야 확인창 문구가 실제 방향과 맞음, POSTMORTEM #80).
+                  if (s.key !== "on_hold" && caseStatus !== "on_hold" && s.order < curOrder) {
+                    const ok = window.confirm(
+                      `"${caseStatusLabelL(caseStatus, lang)}" 단계에서 "${caseStatusLabelL(s.key, lang)}" 단계로 되돌립니다. 되돌릴까요?`
+                    );
+                    if (!ok) return;
+                    setCaseStatusForce(true);
+                  } else {
+                    setCaseStatusForce(false);
+                  }
+                  setCaseNote(""); // 이전 단계 메모가 다음 단계로 그대로 복사되지 않게 초기화
+                  setCaseStatus(s.key);
+                }}
                 className={`px-3 py-1.5 rounded-full text-xs font-medium border transition ${
                   caseStatus === s.key
                     ? "bg-teal-600 text-white border-teal-600"

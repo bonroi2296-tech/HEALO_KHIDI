@@ -14,7 +14,7 @@ import { requirePortalAuth } from "@/lib/auth/requirePortalAuth";
 import { supabaseAdmin, assertSupabaseEnv } from "@/lib/rag/supabaseAdmin";
 import { decryptInquiryForAdmin } from "@/lib/security/decryptForAdmin";
 import { encryptStringNullable, decryptStringNullable } from "@/lib/security/encryptionV2";
-import { CASE_STATUS_KEYS, CASE_STATUS_STEPS, outcomeForCaseStatus } from "@/lib/khidi/caseStatus";
+import { CASE_STATUS_KEYS, CASE_STATUS_STEPS, caseStatusOrder, outcomeForCaseStatus } from "@/lib/khidi/caseStatus";
 
 // 케이스 보드는 관리자 + 코디네이터가 쓴다(의사 제외 — 보험 PII 쓰기 포함이라 범위 최소화).
 async function requireCaseStaff(request: NextRequest) {
@@ -146,6 +146,22 @@ export async function PATCH(request: NextRequest) {
       // 이력(case_status_history)·유치 자동집계는 값이 바뀐 경우에만.
       const { data: cur } = await (supabaseAdmin as any)
         .from("inquiries").select("case_status").eq("id", id).maybeSingle();
+      // POSTMORTEM #80: 코디가 실수로 이전 단계 버튼을 눌러 저장하면 이 컬럼 하나가 그대로
+      // 덮어써져 이미 진행된 단계가 사라져 보였다(이력엔 남는데 배지만 후퇴). on_hold(보류)는
+      // 단계가 아니라 일시정지(순서 99는 비교용 편의값일 뿐)라 현재/목표 어느 쪽이든 예외 —
+      // 아니면 보류 케이스를 재개할 때마다, 또는 재개 후 보류로 돌릴 때마다 오탐으로 막힌다.
+      // 미설정(null)으로 초기화하는 것도 "이전 단계로 되돌림"이 아니라 명시적 리셋이라 예외.
+      const isRealBackward =
+        body.case_status !== "on_hold" &&
+        body.case_status !== null &&
+        cur?.case_status !== "on_hold" &&
+        caseStatusOrder(body.case_status) < caseStatusOrder(cur?.case_status);
+      if (isRealBackward && !body.force_backward) {
+        return NextResponse.json(
+          { ok: false, error: "status_would_go_backward", current: cur?.case_status ?? null },
+          { status: 409 }
+        );
+      }
       patch.case_status = body.case_status;
       patch.case_status_updated_at = new Date().toISOString();
       statusChanged = (cur?.case_status ?? null) !== body.case_status;
