@@ -100,7 +100,11 @@ export async function GET(
 
     // 접수 주체(회원/비회원) — user_id 로 계정 조회해 email·role·@test.com 여부만 실음(PII 최소).
     // 비번·토큰 등 절대 미노출. 조회 실패해도 본 응답은 진행(fail-safe).
+    // has_account 는 submitter 조회 성공 여부와 무관하게 user_id 존재 자체로만 판정 —
+    // "환자 연결 링크 복사" 버튼이 조회 실패(auth 유저 삭제·API 오류) 시에도 이미 연결된
+    // 케이스를 비회원으로 오판해 불필요한 링크를 다시 보내는 걸 막는다.
     const submitterUserId = (data as any)?.user_id || null;
+    inquiry.has_account = !!submitterUserId;
     inquiry.submitter = null;
     if (submitterUserId) {
       try {

@@ -20,6 +20,8 @@ import { NextRequest } from "next/server";
 import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
 import { requirePortalAuth } from "@/lib/auth/requirePortalAuth";
 import { checkAgencyAuth } from "@/lib/auth/checkAgencyAuth";
+import { checkHospitalAuth } from "@/lib/auth/checkHospitalAuth";
+import { resolveTier } from "@/lib/auth/accountTiers";
 import { checkRateLimit, getClientIp, getRateLimitHeaders } from "@/lib/rateLimit";
 import { decryptAuto } from "@/lib/security/encryptionV2";
 
@@ -43,18 +45,24 @@ async function resolveInquiry(token: string) {
   return data;
 }
 
-/** 직원·에이전시·병원 계정은 환자 케이스를 claim 할 수 없다(순수 환자 계정만 허용). */
-async function isNonPatientAccount(request: NextRequest, userId: string): Promise<boolean> {
-  const agency = await checkAgencyAuth(request);
-  if (agency.isAgencyUser) return true;
-  const { data: hospitalUser } = await (supabaseAdmin as any)
-    .from("hospital_users")
-    .select("hospital_id")
-    .eq("user_id", userId)
-    .eq("is_active", true)
-    .limit(1)
-    .maybeSingle();
-  return !!hospitalUser;
+/**
+ * 직원·에이전시·병원 계정은 환자 케이스를 claim 할 수 없다(순수 환자 계정만 허용).
+ * "누가 어떤 계층인가" 판정은 src/lib/auth/accountTiers.ts 의 resolveTier() 가 단일 SoR —
+ * 여기서 역할 목록을 따로 하드코딩하지 않는다(그 파일 헤더 주석의 명시적 요구사항).
+ */
+async function isNonPatientAccount(
+  request: NextRequest,
+  auth: { isAdmin: boolean; appRole?: string }
+): Promise<boolean> {
+  const [agency, hospital] = await Promise.all([checkAgencyAuth(request), checkHospitalAuth(request)]);
+  const tier = resolveTier({
+    isAdmin: auth.isAdmin,
+    appRole: auth.appRole,
+    isHospitalUser: hospital.isHospitalUser,
+    isAgencyUser: agency.isAgencyUser,
+    partnerType: agency.partnerType,
+  });
+  return tier !== "patient";
 }
 
 export async function GET(request: NextRequest) {
@@ -110,7 +118,7 @@ export async function POST(request: NextRequest) {
   if (!auth.success) return auth.response;
 
   try {
-    if (auth.isStaff || (await isNonPatientAccount(request, auth.userId))) {
+    if (auth.isStaff || (await isNonPatientAccount(request, { isAdmin: auth.isAdmin, appRole: auth.appRole }))) {
       return Response.json({ ok: false, error: "staff_cannot_claim" }, { status: 403 });
     }
 

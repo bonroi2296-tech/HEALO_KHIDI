@@ -758,8 +758,9 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
                   🙋 {pick(INTAKE_UI.submitterGuest, lang)}
                 </span>
               )}
-              {/* 비회원(계정 미연결) 케이스만 — 환자 계정연결(claim) 링크를 복사해 왓츠앱 등으로 공유 */}
-              {!inquiry.submitter?.email && inquiry.public_token && (
+              {/* 계정 미연결 케이스만 — 환자 계정연결(claim) 링크를 복사해 왓츠앱 등으로 공유.
+                  has_account 는 submitter 조회 성공 여부와 무관하게 user_id 존재로만 판정(안정적). */}
+              {!inquiry.has_account && inquiry.public_token && (
                 <button
                   onClick={() => {
                     const url = `${window.location.origin}/claim/${inquiry.public_token}`;

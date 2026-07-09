@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { useLang } from "@/lib/i18n/LangContext";
-import { caseStatusLabelL } from "@/lib/khidi/caseStatus";
+import { caseStatusLabelL, OLD_KEY_ALIASES } from "@/lib/khidi/caseStatus";
 import ManualDrawer from "../_components/ManualDrawer";
 
 const supabase = createSupabaseBrowserClient();
@@ -1051,10 +1051,12 @@ export default function PartnerPortal({ expected = "agency" }) {
                       {noteIsTr(c.case_status_note) && <Languages size={11} className="inline-block ml-1 -mt-0.5 text-gray-300" />}
                     </p>
                   )}
-                  {c.case_status && tt(`nextStep_${c.case_status}`) && (
+                  {/* 구단계 값(과거 이력 등)이 흘러 들어와도 신단계 키로 별칭 해석 — 안내문구가 조용히
+                      사라지지 않게(TR_GUIDE 는 신 6단계 키로만 정의돼 있음). */}
+                  {c.case_status && tt(`nextStep_${OLD_KEY_ALIASES[c.case_status] || c.case_status}`) && (
                     <p className="text-xs text-teal-700 bg-teal-50/70 rounded-lg px-2.5 py-1.5 mt-2 flex items-start gap-1.5">
                       <ArrowRight size={12} className="mt-0.5 shrink-0" />
-                      <span>{tt(`nextStep_${c.case_status}`)}</span>
+                      <span>{tt(`nextStep_${OLD_KEY_ALIASES[c.case_status] || c.case_status}`)}</span>
                     </p>
                   )}
                   <div className="flex gap-3 mt-2 text-xs text-gray-400">

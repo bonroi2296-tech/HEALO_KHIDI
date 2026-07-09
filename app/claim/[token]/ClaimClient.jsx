@@ -36,6 +36,7 @@ const L = {
   staffBlockedHint: { ko: "직원·에이전시·병원 계정으로는 환자 케이스를 연결할 수 없어요. 환자 본인 계정으로 로그인해주세요.", en: "Staff, agency and hospital accounts can't link a patient case. Please log in with the patient's own account.", ru: "Аккаунты сотрудников, агентств и больниц не могут привязать случай пациента. Войдите под аккаунтом самого пациента.", kz: "Қызметкер, агенттік және аурухана тіркелгілері науқас жағдайын байланыстыра алмайды. Науқастың өз тіркелгісімен кіріңіз.", zh: "员工、代理机构与医院账户无法关联患者病例，请使用患者本人账户登录。", ja: "スタッフ・エージェンシー・病院アカウントでは患者案件を連携できません。患者ご本人のアカウントでログインしてください。" },
   conflictTitle: { ko: "이미 다른 계정에 연결됐어요", en: "Already linked to a different account", ru: "Уже привязано к другому аккаунту", kz: "Басқа тіркелгіге байланысты", zh: "已关联到其他账户", ja: "既に別のアカウントに連携済みです" },
   conflictHint: { ko: "이 케이스는 이미 다른 계정에 연결돼 있어요. 잘못됐다면 코디네이터에게 알려주세요.", en: "This case is already linked to a different account. If this seems wrong, please tell your coordinator.", ru: "Этот случай уже привязан к другому аккаунту. Если это ошибка, сообщите координатору.", kz: "Бұл жағдай басқа тіркелгіге байланысты. Қате болса, үйлестірушіге хабарлаңыз.", zh: "该病例已关联到其他账户。如有误，请告知协调员。", ja: "この案件は既に別のアカウントに連携されています。誤りがあればコーディネーターにご連絡ください。" },
+  retryBtn: { ko: "다시 시도", en: "Try again", ru: "Повторить попытку", kz: "Қайталап көру", zh: "重试", ja: "再試行" },
 };
 
 function pick(dict, lang) {
@@ -88,9 +89,11 @@ export default function ClaimClient({ token }) {
     return () => { alive = false; };
   }, []);
 
-  // 3) 이미 로그인 + 미리보기 유효 → 자동으로 연결 시도
+  // 3) 이미 로그인 → 자동으로 연결 시도. POST 쪽이 claim 판정의 최종 권위자라
+  // (본인 소유면 alreadyOwned:true로 성공 처리) alreadyClaimed=true(GET 기준)여도 시도한다 —
+  // "이미 연결됨" 화면이 실제로는 본인 소유인 재방문 케이스를 오탐하지 않게.
   useEffect(() => {
-    if (!session || !preview || claiming || claimResult) return;
+    if (!session || (!preview && !alreadyClaimed) || claiming || claimResult) return;
     (async () => {
       setClaiming(true);
       try {
@@ -146,7 +149,9 @@ export default function ClaimClient({ token }) {
     );
   }
 
-  if (alreadyClaimed) {
+  // session===null(확인 끝, 비로그인)일 때만 정적 안내 — 로그인 상태면 위 3번 효과가 본인 소유 여부를
+  // POST로 재확인하므로 여기서 먼저 "로그인하세요"라고 오탐 안내하지 않는다.
+  if (alreadyClaimed && session === null) {
     return (
       <Shell>
         <Message
@@ -212,7 +217,28 @@ export default function ClaimClient({ token }) {
     );
   }
 
-  if (claiming || (session && preview)) {
+  if (claimResult === "error") {
+    return (
+      <Shell>
+        <Message
+          icon={<ShieldAlert className="text-amber-600" size={22} />}
+          iconBg="bg-amber-50"
+          title={pick(L.network, lang)}
+        >
+          <button
+            onClick={() => window.location.reload()}
+            className="mt-6 w-full bg-teal-700 text-white font-bold py-3.5 rounded-xl hover:bg-teal-800 transition"
+          >
+            {pick(L.retryBtn, lang)}
+          </button>
+        </Message>
+      </Shell>
+    );
+  }
+
+  // session===undefined(확인 중)일 때도 계속 스피너 — 여기서 false로 새면 이미 로그인한
+  // 사용자에게 잠깐 회원가입/로그인 버튼이 깜빡였다 사라지는 오탐 화면이 뜬다.
+  if (claiming || session === undefined || (session && (preview || alreadyClaimed))) {
     return (
       <Shell>
         <div className="flex flex-col items-center justify-center py-16 text-gray-500 gap-3">
