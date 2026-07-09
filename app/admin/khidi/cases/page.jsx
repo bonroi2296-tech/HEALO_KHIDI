@@ -7,7 +7,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useBackofficeLang } from "@/lib/i18n/coordinator";
-import { caseStatusLabelL } from "@/lib/khidi/caseStatus";
+import { caseStatusLabelL, caseStatusOrder } from "@/lib/khidi/caseStatus";
 import { nationalityLabelL } from "@/lib/khidi/nationality";
 import { cancerTypeLabelL } from "@/lib/khidi/medicalLabels";
 
@@ -309,6 +309,18 @@ export default function CasesPage() {
   };
 
   const save = async (id) => {
+    // 되돌리기 확인(POSTMORTEM #80) — 코디 인박스는 원클릭 버튼이라 확인창을 넣었는데,
+    // 이 화면은 드롭다운이지만 실수로 이전 단계를 고를 수 있는 건 똑같다. on_hold(보류)
+    // 관련·미설정(null) 전환은 서버 가드가 이미 예외 처리하므로 확인 불필요.
+    const cur = (data?.cases ?? []).find((c) => c.id === id)?.case_status ?? null;
+    const target = draft.case_status || null;
+    const isRealBackward =
+      target !== "on_hold" && target !== null && cur !== "on_hold" &&
+      caseStatusOrder(target) < caseStatusOrder(cur);
+    if (isRealBackward && !window.confirm(
+      `"${caseStatusLabelL(cur, lang)}" 단계에서 "${caseStatusLabelL(target, lang)}" 단계로 되돌립니다. 되돌릴까요?`
+    )) return;
+
     setSaving(true);
     try {
       const res = await fetch("/api/admin/khidi/cases", {
@@ -319,9 +331,7 @@ export default function CasesPage() {
           inquiry_id: id,
           case_status: draft.case_status || null,
           case_status_note: draft.case_status_note || null,
-          // 어드민 케이스보드는 드롭다운으로 임의 선택하는 화면이라(코디 인박스의 원클릭 단계
-          // 버튼과 다름) 선택 자체가 이미 의도적 확인 — 뒤로가기 가드는 우회한다(PR #724).
-          force_backward: true,
+          force_backward: isRealBackward,
           agency_id: draft.agency_id || null,
           insurance_provider: draft.insurance_provider || null,
           insurance_policy_no: draft.insurance_policy_no || null,
