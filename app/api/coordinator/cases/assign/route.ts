@@ -107,15 +107,26 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ ok: false, error: "assign_failed" }, { status: 500 });
     }
 
-    // 5) 케이스 진행단계를 '병원 치료가능 검토 중'으로 + 이력
+    // 5) 케이스 진행단계를 '상담·검토 진행'(공식 병원 회신 대기 하위단계)으로 + 이력
     const note = `병원 배정 (${targetIds.length}곳)`;
+    const { data: curInq } = await (supabaseAdmin as any)
+      .from("inquiries")
+      .select("case_substeps")
+      .eq("id", inquiryId)
+      .maybeSingle();
+    const substeps = Array.isArray(curInq?.case_substeps) ? curInq.case_substeps : [];
     await (supabaseAdmin as any)
       .from("inquiries")
-      .update({ case_status: "hospital_review", case_status_note: note, case_status_updated_at: now })
+      .update({
+        case_status: "consultation",
+        case_status_note: note,
+        case_status_updated_at: now,
+        case_substeps: [...substeps, { key: "hospital_reply_pending", label: "병원 정식 회신 대기", done_at: now }],
+      })
       .eq("id", inquiryId);
     await (supabaseAdmin as any).from("case_status_history").insert({
       inquiry_id: inquiryId,
-      status: "hospital_review",
+      status: "consultation",
       note,
       created_by: auth.userId,
     });

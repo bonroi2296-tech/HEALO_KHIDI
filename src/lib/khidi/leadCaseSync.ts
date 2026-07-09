@@ -67,8 +67,8 @@ export async function syncLeadStatusToCase(
     if (newStatus === "replied" || newStatus === "converted") {
       const q = quote.min != null || quote.max != null ? ` (견적 ${quote.min ?? "?"}~${quote.max ?? "?"})` : "";
       note = `🏥 ${hName} ${newStatus === "converted" ? "치료 확정" : "회신"}${q}${slotText}`;
-      // 병원이 회신/확정하면 '치료 일정·견적 조율 중'으로 전진(이미 더 간 단계면 유지).
-      if (caseStatusOrder(curStatus) < caseStatusOrder("scheduling")) targetStatus = "scheduling";
+      // 병원이 회신/확정하면 '일정·비자 준비'로 전진(이미 더 간 단계면 유지).
+      if (caseStatusOrder(curStatus) < caseStatusOrder("preparation")) targetStatus = "preparation";
     } else if (newStatus === "rejected") {
       note = `🏥 ${hName} 거절`;
       // 다른 병원이 수락할 수 있으니 단계는 후퇴/변경하지 않음(메모·이력만).
@@ -83,7 +83,7 @@ export async function syncLeadStatusToCase(
     await supabase.from("inquiries").update(patch).eq("id", inquiryId);
     await supabase.from("case_status_history").insert({
       inquiry_id: inquiryId,
-      status: targetStatus || curStatus || "hospital_review",
+      status: targetStatus || curStatus || "consultation",
       note,
       created_by: userId ?? null,
     });
