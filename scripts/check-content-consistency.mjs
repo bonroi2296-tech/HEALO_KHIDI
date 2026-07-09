@@ -318,26 +318,40 @@ for (const file of SCAN_DIRS.flatMap(walk)) {
   }
 }
 
-// ── 7) 환자 포털(app/patient) 클라이언트 컴포넌트 하드코딩 한국어 가드 ──────
+// ── 7) 환자/공개 화면용 컴포넌트 클라이언트 컴포넌트 하드코딩 한국어 가드 ──────
 // 왜: /patient 는 6개 언어 환자 화면인데 consultations·cost-estimates·visa 등 5개가
 //     한국어로 완전 하드코딩(useLang 미사용)돼 ru/kz 환자가 못 읽던 사고(2026-06-29 전수조사).
 //     키 패리티검사는 글로벌 DICTIONARY만 봐서 파일 *내부* 인라인 한국어를 못 잡음(사람이 스샷으로 찾던 부류).
-//     → app/patient 클라이언트 컴포넌트가 '한국어를 코드에 쓰는데 useLang/t() 다국어 처리를 안 하면' 실패.
+//     → 환자/공개용 클라이언트 컴포넌트가 '한국어를 코드에 쓰는데 useLang/t() 다국어 처리를 안 하면' 실패.
 //     정상 패턴: COPY={en,ko,ru,kz,zh,ja}+useLang() (한국어가 ko 블록에만 → useLang 쓰므로 통과).
 //     allow: 한국어를 useLang() 또는 글로벌 t("키") 로 처리하는 파일은 통과(주석 속 한국어는 무시).
+// 🔁 2026-07-09 확장: app/patient 안에서만 보던 검사가 src/components/costs/CostEstimateCard.jsx
+//     (환자용이지만 app/patient 밖에 위치)를 놓쳤음(PO 질문 계기 발견 — 아직 어디서도 안 쓰이던 컴포넌트라
+//     리뷰도 자동검사도 안 거침). 컴포넌트 위치가 아니라 "환자에게 보여줄 의도"가 기준이어야 하므로
+//     환자용 공용 컴포넌트 디렉토리(src/components/patient, src/components/costs)도 같이 스캔.
+//     동시에 stripComments 를 줄 단위(→ 여러 줄 /** */ 블록 못 거름)에서 파일 전체 기준으로 교체 —
+//     이 확장판을 돌려보니 줄 단위 버전이 여러 줄 JSDoc 코멘트 속 한글을 오탐으로 잡아냄(§12와 동일한 함정).
 const HANGUL_RE = /[가-힣]/;
-const stripComments = (line) => line.replace(/\/\/.*$/, "").replace(/\/\*.*?\*\//g, "");
-for (const file of walk("app/patient")) {
-  if (!/\.jsx?$/.test(file) || EXCLUDE.test(file)) continue;
-  const text = readFileSync(join(ROOT, file), "utf8");
-  if (!/["']use client["']/.test(text)) continue;          // 클라이언트 렌더 컴포넌트만
-  // 다국어 처리 중이면 통과: useLang() 사용 · 글로벌 t("키") 호출 · 또는 인라인 다국어 객체(kz:/ru: 키 제공).
-  // 깨진 파일은 ko: 라벨만 있고 ru:/kz: 가 전혀 없던 게 특징 → 그 부류만 정확히 잡는다.
-  if (/\buseLang\b/.test(text) || /\bt\(\s*["']/.test(text) || /\bkz\s*:/.test(text) || /\bru\s*:/.test(text)) continue;
-  const lines = text.split("\n");
-  const hit = lines.findIndex((l) => HANGUL_RE.test(stripComments(l)));
-  if (hit !== -1) {
-    errors.push(`[환자i18n] ${file.replace(/\\/g, "/")}:${hit + 1} — /patient 화면에 한국어가 하드코딩됨(useLang/t() 미사용) → ru/kz 등 다른 언어 환자에게 한국어로 노출. COPY={en,ko,ru,kz,zh,ja}+useLang() 패턴으로 다국어화할 것(전수조사 2026-06-29).\n    ${lines[hit].trim().slice(0, 120)}`);
+function stripCommentsWholeFile(src) {
+  return src
+    .replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, " "))
+    .replace(/(^|[^:"'`\\])\/\/[^\n]*/g, (m, p1) => p1);
+}
+const PATIENT_FACING_DIRS = ["app/patient", "src/components/patient", "src/components/costs"];
+for (const scanDir of PATIENT_FACING_DIRS) {
+  for (const file of walk(scanDir)) {
+    if (!/\.jsx?$/.test(file) || EXCLUDE.test(file)) continue;
+    const text = readFileSync(join(ROOT, file), "utf8");
+    if (!/["']use client["']/.test(text)) continue;          // 클라이언트 렌더 컴포넌트만
+    // 다국어 처리 중이면 통과: useLang() 사용 · 글로벌 t("키") 호출 · 또는 인라인 다국어 객체(kz:/ru: 키 제공).
+    // 깨진 파일은 ko: 라벨만 있고 ru:/kz: 가 전혀 없던 게 특징 → 그 부류만 정확히 잡는다.
+    if (/\buseLang\b/.test(text) || /\bt\(\s*["']/.test(text) || /\bkz\s*:/.test(text) || /\bru\s*:/.test(text)) continue;
+    const rawLines = text.split("\n");
+    const strippedLines = stripCommentsWholeFile(text).split("\n");
+    const hit = strippedLines.findIndex((l) => HANGUL_RE.test(l));
+    if (hit !== -1) {
+      errors.push(`[환자i18n] ${file.replace(/\\/g, "/")}:${hit + 1} — 환자/공개용 화면에 한국어가 하드코딩됨(useLang/t() 미사용) → ru/kz 등 다른 언어 환자에게 한국어로 노출. COPY={en,ko,ru,kz,zh,ja}+useLang() 패턴으로 다국어화할 것(전수조사 2026-06-29, 확장 2026-07-09).\n    ${rawLines[hit].trim().slice(0, 120)}`);
+    }
   }
 }
 
