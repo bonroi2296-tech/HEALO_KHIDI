@@ -39,6 +39,7 @@ export default function OpinionsSection({ inquiryId }) {
   const [uploadingFile, setUploadingFile] = useState(false);
   const [fileError, setFileError] = useState("");
   const [dragOver, setDragOver] = useState(false);
+  const [patientLang, setPatientLang] = useState(null); // 접수 시 선택한 환자 언어 — 확정본 AI 번역 타겟
 
   const load = useCallback(async () => {
     try {
@@ -48,6 +49,7 @@ export default function OpinionsSection({ inquiryId }) {
         setRequest(data.request || null);
         setSummary(data.summaryText || "");
         setOpinions(data.opinions || []);
+        setPatientLang(data.patientLang || null);
       }
     } catch { /* silent */ } finally {
       setLoading(false);
@@ -206,18 +208,20 @@ export default function OpinionsSection({ inquiryId }) {
                     placeholder="받은 소견 원문을 그대로 붙여넣거나, 문서·이미지 파일을 여기로 드래그하세요 (여러 개 가능 — 텍스트 대신 자동 번역)"
                     className="w-full text-sm bg-transparent px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-teal-500 rounded"
                   />
-                  <label className="flex items-center gap-1 px-2 pb-1.5 text-[11px] text-teal-700 hover:underline cursor-pointer w-fit">
-                    {uploadingFile ? <Loader2 size={11} className="animate-spin" /> : <Paperclip size={11} />}
-                    {uploadingFile ? "업로드 중…" : "파일 선택 (여러 개 가능)"}
-                    <input
-                      type="file"
-                      multiple
-                      accept="image/jpeg,image/png,image/gif,image/webp,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                      className="hidden"
-                      disabled={uploadingFile}
-                      onChange={(e) => uploadDirectFiles(e.target.files)}
-                    />
-                  </label>
+                  <div className="px-2 pb-2 pt-1 border-t border-gray-100">
+                    <label className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-teal-700 bg-teal-50 border border-teal-200 rounded-lg hover:bg-teal-100 cursor-pointer">
+                      {uploadingFile ? <Loader2 size={13} className="animate-spin" /> : <Paperclip size={13} />}
+                      {uploadingFile ? "업로드 중…" : "파일 업로드 (여러 개 가능)"}
+                      <input
+                        type="file"
+                        multiple
+                        accept="image/jpeg,image/png,image/gif,image/webp,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                        className="hidden"
+                        disabled={uploadingFile}
+                        onChange={(e) => uploadDirectFiles(e.target.files)}
+                      />
+                    </label>
+                  </div>
                 </div>
 
                 {directFiles.length > 0 && (
@@ -254,7 +258,7 @@ export default function OpinionsSection({ inquiryId }) {
             {opinions.length === 0 ? (
               <p className="text-xs text-gray-400">아직 도착한 소견이 없습니다.</p>
             ) : (
-              opinions.map((o) => <OpinionItem key={o.id} opinion={o} />)
+              opinions.map((o) => <OpinionItem key={o.id} opinion={o} patientLang={patientLang} />)
             )}
           </div>
         </>
@@ -263,7 +267,9 @@ export default function OpinionsSection({ inquiryId }) {
   );
 }
 
-function OpinionItem({ opinion }) {
+const LANG_LABEL = { en: "영어", ru: "러시아어", kz: "카자흐어", zh: "중국어", ja: "일본어" };
+
+function OpinionItem({ opinion, patientLang }) {
   const [attr, setAttr] = useState(opinion.attribution_note || "");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -271,6 +277,30 @@ function OpinionItem({ opinion }) {
   const [released, setReleased] = useState(!!opinion.released_at);
   const [draft, setDraft] = useState(opinion.released_text || opinion.opinion_text || "");
   const [releasing, setReleasing] = useState(false);
+  const [translating, setTranslating] = useState(false);
+  const [translateError, setTranslateError] = useState("");
+  const canAiTranslate = LANG_LABEL[patientLang];
+
+  // 1차 AI 번역(원장 한글 소견 → 환자 언어 초안) — 코디는 이후 draft 를 직접 교정(2차)하고 공개.
+  const aiTranslate = async () => {
+    if (!draft.trim()) return;
+    setTranslating(true);
+    setTranslateError("");
+    try {
+      const res = await authFetch(`/api/coordinator/opinions/translate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: draft, lang: patientLang }),
+      });
+      const data = await res.json();
+      if (data.ok) setDraft(data.translated);
+      else setTranslateError("번역 실패 — 다시 시도해 주세요.");
+    } catch {
+      setTranslateError("번역 실패 — 다시 시도해 주세요.");
+    } finally {
+      setTranslating(false);
+    }
+  };
 
   const save = async () => {
     setSaving(true);
@@ -348,9 +378,24 @@ function OpinionItem({ opinion }) {
       </div>
       <p className="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed">{opinion.opinion_text}</p>
 
-      {/* 에이전시 공개 — 원문을 교정/번역해 확정본을 만들고 공개해야만 에이전시에 노출 */}
+      {/* 에이전시 공개 — 1차 AI 번역(환자 언어) → 2차 코디 교정 → 공개해야만 에이전시에 노출 */}
       <div className="mt-3 bg-blue-50/40 border border-blue-100 rounded-lg p-3">
-        <p className="text-[11px] text-blue-700 mb-1.5">에이전시에 보낼 확정본 (오탈자·외국어 교정 후 공개)</p>
+        <div className="flex items-center justify-between gap-2 mb-1.5">
+          <p className="text-[11px] text-blue-700">
+            에이전시에 보낼 확정본{canAiTranslate ? ` (환자 언어: ${LANG_LABEL[patientLang]})` : ""} — AI 초벌 번역 후 직접 교정하고 공개
+          </p>
+          {canAiTranslate && !released && (
+            <button
+              onClick={aiTranslate}
+              disabled={translating || !draft.trim()}
+              className="shrink-0 inline-flex items-center gap-1 text-[11px] font-medium text-blue-700 hover:underline disabled:opacity-50"
+            >
+              {translating && <Loader2 size={11} className="animate-spin" />}
+              {translating ? "번역 중…" : `AI 번역 (→ ${LANG_LABEL[patientLang]})`}
+            </button>
+          )}
+        </div>
+        {translateError && <p className="text-[11px] text-red-600 mb-1">{translateError}</p>}
         <textarea
           value={draft}
           onChange={(e) => setDraft(e.target.value)}

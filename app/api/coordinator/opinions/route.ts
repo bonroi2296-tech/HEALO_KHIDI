@@ -231,16 +231,16 @@ export async function GET(request: NextRequest) {
       return { ...o, file_url: withUrls[0]?.url || null, attached_files: withUrls };
     }));
 
+    // 환자 언어(접수 시 선택) — 에이전시 확정본 AI 번역 타겟 언어로 재사용.
+    const { data: inq } = await supabaseAdmin
+      .from("inquiries")
+      .select("id, nationality, cancer_type, treatment_type, intake, spoken_language")
+      .eq("id", inquiryId)
+      .single();
+
     // 활성 링크가 있으면 카톡 붙여넣기용 요약도 함께(코디가 재공유 시 다시 복사할 수 있게).
     let summaryText: string | null = null;
-    if (active) {
-      const { data: inq } = await supabaseAdmin
-        .from("inquiries")
-        .select("id, nationality, cancer_type, treatment_type, intake")
-        .eq("id", inquiryId)
-        .single();
-      if (inq) summaryText = buildSummary(inq, opinionUrl(active.token), active.note);
-    }
+    if (active && inq) summaryText = buildSummary(inq, opinionUrl(active.token), active.note);
 
     return Response.json({
       ok: true,
@@ -249,6 +249,7 @@ export async function GET(request: NextRequest) {
         : null,
       summaryText,
       opinions: opinionsWithUrls,
+      patientLang: inq?.spoken_language || null,
     });
   } catch (e: any) {
     console.error("[coordinator/opinions] GET error:", e?.message);
