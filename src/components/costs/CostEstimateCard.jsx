@@ -34,6 +34,8 @@ const COPY = {
   bandMiddle: { ko: "중위 구간", en: "middle range", ru: "средний диапазон", zh: "中位区间", ja: "中位区間", kz: "орта ауқым" },
   bandUpper: { ko: "상위 구간", en: "upper range", ru: "верхний диапазон", zh: "较高区间", ja: "上位区間", kz: "жоғарғы ауқым" },
   breakdownSummary: { ko: "단계별 상세", en: "Breakdown by stage", ru: "Подробности по этапам", zh: "分阶段明细", ja: "段階別詳細", kz: "Кезеңдер бойынша егжей-тегжей" },
+  stepsUnit: { ko: "단계", en: " steps", ru: " этапов", zh: "个阶段", ja: "段階", kz: " кезең" },
+  likelihood: { ko: "가능성", en: "likelihood", ru: "вероятность", zh: "可能性", ja: "可能性", kz: "мүмкіндігі" },
   phasePre: { ko: "진단·검사", en: "Diagnosis & tests", ru: "Диагностика и анализы", zh: "诊断·检查", ja: "診断・検査", kz: "Диагностика және тексеру" },
   phaseDuring: { ko: "치료", en: "Treatment", ru: "Лечение", zh: "治疗", ja: "治療", kz: "Емдеу" },
   phasePost: { ko: "사후관리", en: "Follow-up care", ru: "Последующий уход", zh: "术后管理", ja: "アフターケア", kz: "Кейінгі күтім" },
@@ -223,7 +225,7 @@ export default function CostEstimateCard({
       {refined && band && (
         <div className="mt-4 border-t border-dashed border-gray-200 pt-4">
           <p className="text-xs text-blue-700 mb-1">
-            ✨ {l(COPY.aiEstimatePrefix)} · {bandLabel[band]}
+            ✨ {l(COPY.aiEstimatePrefix)} · {bandLabel[band]} {l(COPY.likelihood)}
           </p>
           <div className="flex items-baseline gap-2">
             <span className="text-xl font-semibold text-blue-900">
@@ -244,7 +246,7 @@ export default function CostEstimateCard({
       {data.breakdown && data.breakdown.length > 0 && (
         <details className="mt-4">
           <summary className="text-xs text-gray-500 cursor-pointer hover:text-gray-900">
-            {l(COPY.breakdownSummary)} ({data.breakdown.length})
+            {l(COPY.breakdownSummary)} ({data.breakdown.length}{l(COPY.stepsUnit)})
           </summary>
           <ul className="mt-2 space-y-2">
             {data.breakdown.map((b, i) => (
