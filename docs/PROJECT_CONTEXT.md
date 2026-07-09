@@ -21,12 +21,17 @@
 
 **규모**: `app/admin`(68파일)+`app/coordinator`(22)+`app/hospital`(7) = 97파일, 약 28,469줄(2026-07-09 측정). **여러 세션에 걸쳐 진행될 대형 작업** — 아래 섹션 진행 상황을 최신으로 유지할 것.
 
-**패턴(고정)**: `app/agency/PartnerPortal.jsx`·`app/patient/documents/DocumentsClient.jsx`와 동일한 컨벤션. 모듈 최상단에 `TR`(또는 `COPY`) = `{ko,en,ru,kz,zh,ja}` 사전, `useLang()` + `const tt = (k) => (TR[lang]||TR.en)[k] || TR.en[k]` (또는 `l = (obj) => obj?.[lang] || obj?.en`) 헬퍼로 조회. 이 화면들은 이미 `app/ClientShell.jsx`의 `isPortalPage`(admin·coordinator·hospital·agency·clinic·patient 전부 포함)가 상단바 언어 스위처(`PortalLangSwitcher`)를 띄우고 있어서 — **UI 스위처는 이미 있고, 화면 콘텐츠(라벨·버튼·alert 등)만 그 스위처를 따라가게 만드는 작업**.
+**패턴(고정)**: `app/agency/PartnerPortal.jsx`·`app/patient/documents/DocumentsClient.jsx`와 동일한 컨벤션. 모듈 최상단에 `TR`(또는 `COPY`) = `{ko,en,ru,kz,zh,ja}` 사전, `const tt = (k) => (TR[lang]||TR.en)[k] || TR.en[k]` (또는 `l = (obj) => obj?.[lang] || obj?.en`) 헬퍼로 조회. 이 화면들은 이미 `app/ClientShell.jsx`의 `isPortalPage`(admin·coordinator·hospital·agency·clinic·patient 전부 포함)가 상단바 언어 스위처(`PortalLangSwitcher`)를 띄우고 있어서 — **UI 스위처는 이미 있고, 화면 콘텐츠(라벨·버튼·alert 등)만 그 스위처를 따라가게 만드는 작업**.
+
+⚠️ **언어 훅은 대상에 따라 다르다(섹션1에서 CI가 잡은 실수, POSTMORTEMS #82) — 반드시 맞는 쪽을 쓸 것**:
+- `admin`·`coordinator`·`hospital`(국내 스태프, 기본 한국 운영) → **`useBackofficeLang()`** from `@/lib/i18n/coordinator` (쿠키 `healo_bo_lang`, **쿠키 없으면 ko 기본**).
+- `agency`·`clinic`·`patient`·공개 페이지(해외 파트너·환자·일반 방문자, 기본 SEO 영어) → `useLang()` from `@/lib/i18n/LangContext` (쿠키 `healo_lang`, **쿠키 없으면 en 기본**).
+- 둘을 바꿔 쓰면 인터페이스가 똑같아서(둘 다 언어코드 문자열 반환) 로컬에서 안 걸리고, 로그인 직후(쿠키 없는 새 세션) 화면이 엉뚱한 기본언어로 뜨는 형태로만 드러남. `check-content-consistency.mjs` §16이 `app/admin`·`coordinator`·`hospital` 안에서 잘못된 훅 import 시 CI를 막지만, 그 세 디렉토리 밖의 백오피스 전용 공용 컴포넌트(`src/components/consultation/CreateConsultationModal.jsx` 같은)는 정적 스캔이 못 미치니 코드리뷰에서 직접 확인.
 
 **섹션 진행 상황** (완료마다 이 표를 갱신):
 | # | 섹션 | 파일 | 상태 |
 |---|------|------|------|
-| 1 | `app/admin/consultations`·`users`·`staff` + 공용 `src/components/consultation/CreateConsultationModal.jsx`(admin·coordinator 공용, 이번에 같이 완료) | 4개, ~1940줄 | ✅ 완료(PR 진행 중) |
+| 1 | `app/admin/consultations`·`users`·`staff` + 공용 `src/components/consultation/CreateConsultationModal.jsx`(admin·coordinator 공용, 이번에 같이 완료) | 4개, ~1940줄 | ✅ 완료(PR #727) — ⚠️ 첫 커밋이 `useLang()`(공개용) 오적용으로 CI(E2E Smoke) 적발·`useBackofficeLang()`으로 수정 완료(POSTMORTEMS #82), 가드(§16) 신설 |
 | 2 | `app/admin/khidi/*` (KHIDI 지표 대시보드) | 미측정 | ⏳ 대기 |
 | 3 | `app/admin/{hospitals,treatments,doctors,import,rag}` | 미측정 | ⏳ 대기 |
 | 4 | `app/admin` 나머지(playbook·agent·ai-status·chat·observability·analytics·automation·audit·crawl·enrichment·leads·reminders·inquiries·settings·account 등) | 미측정 | ⏳ 대기 |

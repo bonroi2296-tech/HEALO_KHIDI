@@ -622,6 +622,32 @@ for (const dir of BACKOFFICE_DIRS) {
   }
 }
 
+// ── 16) 스태프 백오피스가 공개용 useLang()(healo_lang, 쿠키 없으면 en 기본) 써서
+//        기본 언어가 영어로 새는 회귀 차단 (2026-07-09, PR #727 CI 적발) ──────
+// 왜: app/admin·coordinator·hospital 은 스태프(기본 한국 운영)용이라 기본언어가 ko 여야 하는데,
+//     공개/에이전시·의료기관용 useLang()(@/lib/i18n/LangContext, 쿠키 없으면 en 기본)을 쓰면
+//     로그인 직후(쿠키 없는 새 세션)에 화면이 영어로 뜬다. 정답은 useBackofficeLang()
+//     (@/lib/i18n/coordinator, healo_bo_lang 쿠키·기본 ko). 이번 섹션1 다국어화(PR #727)에서
+//     4개 파일이 이 실수를 해 E2E Smoke(consultation-create-modal.spec.ts)가 3연속 실패했음
+//     (새 세션 기본언어가 en으로 바뀌어 한국어 텍스트 어설션이 깨짐).
+// 범위: app/admin, app/coordinator, app/hospital 내부 파일만(도메인 확정). 이 세 디렉토리
+//     밖의 공용 컴포넌트(예: src/components/consultation/CreateConsultationModal.jsx — admin·
+//     coordinator 공용)는 정적 스캔으로 못 잡음 — 새 백오피스 공용 컴포넌트를 만들 때 이 점을
+//     코드리뷰에서 챙길 것(회귀는 여기서 났었음, 커밋 0c41e94f 로 수정).
+{
+  const BACKOFFICE_ONLY_DIRS = ["app/admin", "app/coordinator", "app/hospital"];
+  const PUBLIC_USELANG_IMPORT_RE = /import\s*\{[^}]*\buseLang\b[^}]*\}\s*from\s*["'][^"']*\/i18n\/LangContext["']/;
+  for (const dir of BACKOFFICE_ONLY_DIRS) {
+    for (const file of walk(dir)) {
+      if (!CODE_EXT.test(file) || EXCLUDE.test(file)) continue;
+      const text = readFileSync(join(ROOT, file), "utf8");
+      if (PUBLIC_USELANG_IMPORT_RE.test(text)) {
+        errors.push(`[백오피스언어훅] ${file.replace(/\\/g, "/")} — 공개용 useLang()(@/lib/i18n/LangContext, 쿠키 없으면 en 기본)을 스태프 백오피스에서 사용 중 → 로그인 직후 화면이 영어로 뜸. useBackofficeLang()(@/lib/i18n/coordinator, healo_bo_lang·기본 ko)으로 교체할 것 (PR #727 회귀, 커밋 0c41e94f).`);
+      }
+    }
+  }
+}
+
 // ── 결과 ────────────────────────────────────────────────────────
 if (errors.length) {
   console.error(`\n❌ 콘텐츠 일관성 검사 실패 (${errors.length}건)\n`);
