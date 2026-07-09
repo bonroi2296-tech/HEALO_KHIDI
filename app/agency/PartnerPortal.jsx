@@ -1285,6 +1285,16 @@ function CaseActions({ c, tt, onDone }) {
               <div key={i} className="text-xs bg-blue-50 rounded-lg px-3 py-2">
                 <div className="font-semibold text-blue-800 mb-0.5">{o.doctor}</div>
                 <p className="text-blue-900 whitespace-pre-wrap leading-relaxed">{o.text}</p>
+                {o.files?.length > 0 && (
+                  <div className="mt-1.5 pt-1.5 border-t border-blue-100 space-y-0.5">
+                    {o.files.map((f, fi) => (
+                      <div key={fi} className="flex items-center justify-between gap-2">
+                        <span className="truncate text-blue-700">📎 {f.name || tt("docsTitle")}</span>
+                        {f.url && <a href={f.url} target="_blank" rel="noopener noreferrer" className="text-teal-700 underline shrink-0">{tt("attView")}</a>}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             ))}
           </div>

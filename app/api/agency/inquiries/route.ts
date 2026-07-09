@@ -157,18 +157,34 @@ export async function GET(request: NextRequest) {
       });
 
       // 전문의 소견 — released_at 이 찍힌(코디가 공개한) 것만, released_text(교정본)만 전달
+      // files/file_path 도 같이 받는다 — 코디가 소견과 함께 올린 원본 문서(검사지·소견서 스캔본)를
+      // 에이전시가 볼 수 있어야 하는데, 예전엔 이 컬럼들을 아예 안 뽑아서 문서함에 절대 안 나타났음.
       const { data: opinions } = await (supabaseAdmin as any)
         .from("case_opinions")
-        .select("inquiry_id, doctor_name, attribution_note, released_text, released_at")
+        .select("inquiry_id, doctor_name, attribution_note, released_text, released_at, file_path, file_name, files")
         .in("inquiry_id", ids)
         .not("released_at", "is", null)
         .order("released_at", { ascending: false });
+      const opinionFilePaths: string[] = Array.from(new Set(
+        (opinions || []).flatMap((o: any) =>
+          Array.isArray(o.files) && o.files.length > 0 ? o.files : (o.file_path ? [{ path: o.file_path, name: o.file_name }] : [])
+        ).map((f: any) => f?.path).filter((p: any): p is string => typeof p === "string" && p.length > 0)
+      ));
+      const opinionUrlByPath = new Map<string, string>();
+      if (opinionFilePaths.length > 0) {
+        const { data: signed } = await supabaseAdmin.storage.from("attachments").createSignedUrls(opinionFilePaths, 3600);
+        (signed || []).forEach((s: any) => { if (s?.path && s?.signedUrl) opinionUrlByPath.set(s.path, s.signedUrl); });
+      }
       (opinions || []).forEach((o: any) => {
         const arr = opinionMap.get(o.inquiry_id) || [];
+        const fileList: { path: string; name?: string | null }[] = Array.isArray(o.files) && o.files.length > 0
+          ? o.files
+          : (o.file_path ? [{ path: o.file_path, name: o.file_name }] : []);
         arr.push({
           doctor: o.attribution_note || o.doctor_name,
           text: o.released_text,
           released_at: o.released_at,
+          files: fileList.map((f) => ({ name: f.name || null, url: f.path ? (opinionUrlByPath.get(f.path) || null) : null })),
         });
         opinionMap.set(o.inquiry_id, arr);
       });

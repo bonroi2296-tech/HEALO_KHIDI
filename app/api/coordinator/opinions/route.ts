@@ -97,7 +97,7 @@ export async function POST(request: NextRequest) {
     const note = typeof body?.note === "string" ? body.note.slice(0, 500) : null;
 
     // 케이스 존재 확인 + 요약 재료(PII 아닌 임상 필드만)
-    const { data: inq, error: inqErr } = await supabaseAdmin
+    const { data: inq, error: inqErr } = await (supabaseAdmin as any)
       .from("inquiries")
       .select("id, nationality, cancer_type, treatment_type, intake, spoken_language")
       .eq("id", inquiryId)
@@ -247,7 +247,7 @@ export async function GET(request: NextRequest) {
     }));
 
     // 환자 언어(접수 시 선택) — 에이전시 확정본 AI 번역 타겟 언어로 재사용.
-    const { data: inq } = await supabaseAdmin
+    const { data: inq } = await (supabaseAdmin as any)
       .from("inquiries")
       .select("id, nationality, cancer_type, treatment_type, intake, spoken_language")
       .eq("id", inquiryId)
