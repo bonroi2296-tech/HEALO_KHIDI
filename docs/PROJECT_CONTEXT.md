@@ -26,7 +26,7 @@
 **섹션 진행 상황** (완료마다 이 표를 갱신):
 | # | 섹션 | 파일 | 상태 |
 |---|------|------|------|
-| 1 | `app/admin/consultations`·`users`·`staff` | 3개, 1128줄 | 🔄 진행 중 |
+| 1 | `app/admin/consultations`·`users`·`staff` + 공용 `src/components/consultation/CreateConsultationModal.jsx`(admin·coordinator 공용, 이번에 같이 완료) | 4개, ~1940줄 | ✅ 완료(PR 진행 중) |
 | 2 | `app/admin/khidi/*` (KHIDI 지표 대시보드) | 미측정 | ⏳ 대기 |
 | 3 | `app/admin/{hospitals,treatments,doctors,import,rag}` | 미측정 | ⏳ 대기 |
 | 4 | `app/admin` 나머지(playbook·agent·ai-status·chat·observability·analytics·automation·audit·crawl·enrichment·leads·reminders·inquiries·settings·account 등) | 미측정 | ⏳ 대기 |
