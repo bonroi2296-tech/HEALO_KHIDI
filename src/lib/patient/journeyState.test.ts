@@ -19,9 +19,9 @@ describe("computeCurrentStage — case_status 반영(EDGE-1)", () => {
       coordinatorResponses: [],
       followup: null,
       events: [],
-      inquiry: { id: 1, case_status: "visa_prep" },
+      inquiry: { id: 1, case_status: "preparation" },
     };
-    // 이벤트 기반이면 'inquiry' 에 머물지만, case_status=visa_prep → 'visa'
+    // 이벤트 기반이면 'inquiry' 에 머물지만, case_status=preparation → 'visa'
     expect(computeCurrentStage(data)).toBe("visa");
   });
 
@@ -42,7 +42,7 @@ describe("computeCurrentStage — case_status 반영(EDGE-1)", () => {
       coordinatorResponses: [],
       followup: { id: 9 }, // → recovery (가장 앞 단계)
       events: [],
-      inquiry: { id: 1, case_status: "pre_consult" }, // consultation (뒤 단계)
+      inquiry: { id: 1, case_status: "consultation" }, // consultation (뒤 단계)
     };
     // recovery(7) > consultation(2) → recovery 유지
     expect(computeCurrentStage(data)).toBe("recovery");

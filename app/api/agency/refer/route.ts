@@ -106,7 +106,7 @@ export async function POST(request: NextRequest) {
         status: "received",
         source: "agency_referral",
         agency_id: auth.agencyId,
-        case_status: "received",
+        case_status: "intake",
         case_status_note: `에이전시 의뢰 (${auth.agencyName || ""})`.trim(),
         case_status_updated_at: new Date().toISOString(),
         // 테스트/실적 분리(PR #501): 생성 시점 판정 — 데모 에이전시 계정(@test.com)·사무실 IP·

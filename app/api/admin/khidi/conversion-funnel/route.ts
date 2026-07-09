@@ -226,7 +226,7 @@ export async function PATCH(request: NextRequest) {
           .maybeSingle();
         await (supabaseAdmin as any).from("case_status_history").insert({
           inquiry_id: inquiryId,
-          status: inq?.case_status ?? "received",
+          status: inq?.case_status ?? "intake",
           note: outcome === "lost" ? "🚫 이탈 처리" : "↩️ 유치 취소 (집계 제외)",
           created_by: uid,
         });

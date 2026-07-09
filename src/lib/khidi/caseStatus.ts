@@ -1,36 +1,56 @@
 /**
  * 케이스(환자 유치) 진행 상황 단계 — 단일 정의
  * 코디가 설정하고, 환자·에이전시가 확인. 카자흐 에이전시 요구(병원 응답 느림 → 단계 가시성).
+ *
+ * 2026-07-09 9단계→6단계(+보류) 압축: "병원 치료가능 검토 중" 한 단계 안에 원장님 비공식
+ * 자문과 공식 병원 배정·회신이 뒤섞여 코디/에이전시가 같은 단어를 다르게 읽던 문제를 해소.
+ * 케이스별 디테일은 inquiries.case_substeps(자유 체크리스트, jsonb)가 흡수한다.
+ * DB CHECK 제약(inquiries_case_status_chk)도 이 6+on_hold 키로 맞춰져 있다 — 여기서 키를
+ * 추가/변경하면 그쪽 마이그레이션도 같이 맞출 것.
  */
 
 export const CASE_STATUS_STEPS = [
-  { key: "received", ko: "문의 접수", order: 1 },
-  { key: "pre_consult", ko: "사전상담 진행", order: 2 },
-  { key: "hospital_review", ko: "병원 치료가능 검토 중", order: 3 },
-  { key: "scheduling", ko: "치료 일정·견적 조율 중", order: 4 },
-  { key: "visa_prep", ko: "비자·예약 준비", order: 5 },
-  { key: "treatment", ko: "입국·치료 중", order: 6 },
-  { key: "follow_up", ko: "사후관리 중", order: 7 },
-  { key: "completed", ko: "완료", order: 8 },
+  { key: "intake", ko: "문의·의뢰 접수", order: 1 },
+  { key: "consultation", ko: "상담·검토 진행", order: 2 },
+  { key: "preparation", ko: "일정·비자 준비", order: 3 },
+  { key: "treatment", ko: "입국·치료 중", order: 4 },
+  { key: "follow_up", ko: "사후관리 중", order: 5 },
+  { key: "completed", ko: "완료", order: 6 },
   { key: "on_hold", ko: "보류", order: 99 },
 ] as const;
 
 export type CaseStatusKey = (typeof CASE_STATUS_STEPS)[number]["key"];
 
 /**
+ * 구 9단계 → 신 6단계 별칭 — 압축 전 case_status_history 원문(received·pre_consult·
+ * hospital_review·scheduling·visa_prep)이 과거 이력에 그대로 남아있어, 라벨·순서 조회 시
+ * 자동으로 신단계로 치환한다. **지우면 과거 타임라인이 깨진다.**
+ */
+export const OLD_KEY_ALIASES: Record<string, CaseStatusKey> = {
+  received: "intake",
+  pre_consult: "consultation",
+  hospital_review: "consultation",
+  scheduling: "preparation",
+  visa_prep: "preparation",
+};
+
+function resolveKey(key?: string | null): string | null {
+  if (!key) return null;
+  return OLD_KEY_ALIASES[key] || key;
+}
+
+/**
  * 단계 라벨 다국어 — 환자·해외 에이전시/의료기관 포털에서 각 언어로 표시.
  * 활성 6개 언어(ko·en·ru·kz·zh·ja). 코디/어드민 화면은 ko 유지(caseStatusLabel).
  */
 export const CASE_STATUS_LABELS: Record<string, Record<string, string>> = {
-  received:        { ko: "문의 접수",            en: "Inquiry received",       ru: "Заявка получена",            kz: "Сұраныс қабылданды",      zh: "已收到咨询",   ja: "お問い合わせ受付" },
-  pre_consult:     { ko: "사전상담 진행",        en: "Pre-consultation",       ru: "Предварительная консультация", kz: "Алдын ала кеңес",       zh: "初步咨询中",   ja: "事前相談中" },
-  hospital_review: { ko: "병원 치료가능 검토 중", en: "Hospital review",        ru: "Рассмотрение в больнице",    kz: "Аурухана қарауда",        zh: "医院评估中",   ja: "病院検討中" },
-  scheduling:      { ko: "치료 일정·견적 조율 중", en: "Scheduling & quote",    ru: "Согласование сроков и сметы", kz: "Кесте мен бағаны келісу", zh: "安排日程与报价", ja: "日程・見積調整中" },
-  visa_prep:       { ko: "비자·예약 준비",        en: "Visa & booking",         ru: "Подготовка визы и брони",    kz: "Виза мен брондау",        zh: "签证与预约准备", ja: "ビザ・予約準備" },
-  treatment:       { ko: "입국·치료 중",          en: "Arrival & treatment",    ru: "Прибытие и лечение",         kz: "Келу және емдеу",         zh: "入境治疗中",   ja: "入国・治療中" },
-  follow_up:       { ko: "사후관리 중",           en: "Follow-up care",         ru: "Послелечебное наблюдение",   kz: "Кейінгі бақылау",         zh: "后续护理中",   ja: "経過観察中" },
-  completed:       { ko: "완료",                 en: "Completed",              ru: "Завершено",                  kz: "Аяқталды",                zh: "已完成",       ja: "完了" },
-  on_hold:         { ko: "보류",                 en: "On hold",                ru: "Приостановлено",             kz: "Кейінге қалдырылды",      zh: "暂缓",         ja: "保留" },
+  intake:       { ko: "문의·의뢰 접수",   en: "Inquiry received",         ru: "Заявка принята",              kz: "Өтінім қабылданды",        zh: "已受理咨询",     ja: "お問い合わせ受付" },
+  consultation: { ko: "상담·검토 진행",   en: "Consultation & review",    ru: "Консультация и рассмотрение", kz: "Кеңес және қарау",          zh: "咨询与评估中",   ja: "相談・検討中" },
+  preparation:  { ko: "일정·비자 준비",   en: "Scheduling & visa prep",   ru: "Подготовка визы и графика",   kz: "Кесте мен виза дайындығы", zh: "日程与签证准备", ja: "日程・ビザ準備" },
+  treatment:    { ko: "입국·치료 중",     en: "Arrival & treatment",      ru: "Прибытие и лечение",          kz: "Келу және емдеу",           zh: "入境治疗中",     ja: "入国・治療中" },
+  follow_up:    { ko: "사후관리 중",      en: "Follow-up care",           ru: "Послелечебное наблюдение",    kz: "Кейінгі бақылау",           zh: "后续护理中",     ja: "経過観察中" },
+  completed:    { ko: "완료",            en: "Completed",                ru: "Завершено",                   kz: "Аяқталды",                  zh: "已完成",         ja: "完了" },
+  on_hold:      { ko: "보류",            en: "On hold",                  ru: "Приостановлено",              kz: "Кейінге қалдырылды",        zh: "暂缓",           ja: "保留" },
 };
 
 /** 미설정 라벨 다국어 */
@@ -42,20 +62,22 @@ export const CASE_STATUS_KEYS: string[] = CASE_STATUS_STEPS.map((s) => s.key);
 
 export function caseStatusLabel(key?: string | null): string {
   if (!key) return "미설정";
-  return CASE_STATUS_STEPS.find((s) => s.key === key)?.ko || key;
+  const resolved = resolveKey(key);
+  return CASE_STATUS_STEPS.find((s) => s.key === resolved)?.ko || key;
 }
 
 /** 언어별 단계 라벨 (포털용). 없는 언어는 en→ko 순으로 폴백. */
 export function caseStatusLabelL(key?: string | null, lang = "en"): string {
   if (!key) return UNSET_LABEL[lang] || UNSET_LABEL.en;
-  const row = CASE_STATUS_LABELS[key];
+  const row = CASE_STATUS_LABELS[resolveKey(key) as string];
   if (!row) return key;
   return row[lang] || row.en || row.ko || key;
 }
 
 export function caseStatusOrder(key?: string | null): number {
   if (!key) return 0;
-  return CASE_STATUS_STEPS.find((s) => s.key === key)?.order || 0;
+  const resolved = resolveKey(key);
+  return CASE_STATUS_STEPS.find((s) => s.key === resolved)?.order || 0;
 }
 
 /**
@@ -69,11 +91,9 @@ export function caseStatusOrder(key?: string | null): number {
  * on_hold(보류)는 의도적으로 제외 — 보류는 단계를 전진/후퇴시키지 않고 기존 계산을 유지한다.
  */
 export const CASE_STATUS_TO_JOURNEY_STAGE: Record<string, string> = {
-  received: "inquiry",
-  pre_consult: "consultation",
-  hospital_review: "proposal",
-  scheduling: "proposal",
-  visa_prep: "visa",
+  intake: "inquiry",
+  consultation: "consultation",
+  preparation: "visa",
   treatment: "treatment",
   follow_up: "recovery",
   completed: "recovery",
@@ -83,7 +103,7 @@ export function caseStatusToJourneyStage(
   caseStatus?: string | null
 ): string | null {
   if (!caseStatus) return null;
-  return CASE_STATUS_TO_JOURNEY_STAGE[caseStatus] || null;
+  return CASE_STATUS_TO_JOURNEY_STAGE[resolveKey(caseStatus) as string] || null;
 }
 
 /**
@@ -102,17 +122,18 @@ export function outcomeForHospitalLeadStatus(
  * 케이스 진행상황(case_status) → 유치 전환 점수판(KHIDI 평가)의 outcome 매핑.
  * 코디가 케이스를 **실제 입국·치료 이후 단계**로 전진시키면 = 실제 유치 → outcome='admitted'.
  *   - treatment(입국·치료 중) / follow_up(사후관리 중) / completed(완료) → 'admitted'
- *   - 그 이전(received…visa_prep)·보류(on_hold) 는 아직 유치 확정 아님 → null
+ *   - 그 이전(intake…preparation)·보류(on_hold) 는 아직 유치 확정 아님 → null
  * (POSTMORTEM #17 의 미해결 잔여위험 #19: 코디가 case_status 만 올리고 outcome 을 안 박아
  *  유치가 누락되던 구멍. 병원 'converted' 자동집계와 대칭. 호출부는 outcome IS NULL 가드로
  *  코디가 이미 정한 결정은 덮지 않는다.)
+ *
+ * treatment/follow_up/completed 키는 9→6단계 압축 전후로 이름이 그대로라 압축과 무관하게 동작.
  */
 export function outcomeForCaseStatus(
   caseStatus?: string | null
 ): "admitted" | null {
-  return caseStatus === "treatment" ||
-    caseStatus === "follow_up" ||
-    caseStatus === "completed"
+  const resolved = resolveKey(caseStatus);
+  return resolved === "treatment" || resolved === "follow_up" || resolved === "completed"
     ? "admitted"
     : null;
 }

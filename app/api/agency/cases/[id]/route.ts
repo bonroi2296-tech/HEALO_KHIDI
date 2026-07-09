@@ -70,7 +70,7 @@ export async function POST(
     const insertEvent = (note: string) =>
       (supabaseAdmin as any).from("case_status_history").insert({
         inquiry_id: inquiryId,
-        status: inq.case_status || "received",
+        status: inq.case_status || "intake",
         note,
         created_by: auth.userId || null,
       });
