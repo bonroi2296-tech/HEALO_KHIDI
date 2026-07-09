@@ -6,8 +6,10 @@ const isProd = process.env.NODE_ENV === "production";
 if (SENTRY_DSN) {
   Sentry.init({
     dsn: SENTRY_DSN,
-    // production 10%, dev 100%
-    tracesSampleRate: isProd ? 0.1 : 1.0,
+    // production 10%, dev 0% — 로컬 성능 추적은 쓸모없고(수신자가 개발자 1명뿐) 매 요청마다
+    // 트레이싱 오버헤드만 붙는다(PO 2026-07-09: 백오피스 로컬 로딩 무거움 신고). 에러는
+    // tracesSampleRate와 무관하게 항상 그대로 잡힌다 — 이건 퍼포먼스 트레이스만 끄는 것.
+    tracesSampleRate: isProd ? 0.1 : 0,
     replaysSessionSampleRate: 0,
     replaysOnErrorSampleRate: isProd ? 1.0 : 0,
     environment: process.env.NODE_ENV,
