@@ -7,6 +7,34 @@
 
 ---
 
+## 🔖 진행 중 — PO 정책결정 즉시기록 (2026-07-09): 스태프 백오피스 "한국어 전용" 예외 폐지 → 전체 6개 언어화
+
+> 세션 도중 결정(2026-07-05 PO 승인 "중간저장" 규칙 적용 — 세션 끝까지 안 기다리고 그 즉시 기록). 이 세션이 아직 진행 중이라 정식 `/handoff` 블록은 아님. 다음 `/handoff` 때 이 내용을 아래 정식 세션 블록으로 흡수할 것.
+
+**결정 배경**: `src/components/costs/CostEstimateCard.jsx`(환자용, 미배선 컴포넌트) 한글 하드코딩을 고치던 중 PO가 "어드민도 그냥 예외 없이 다국어 적용해"라고 직접 지시. 기존 전제였던 "**백오피스(admin·coordinator·hospital)는 스태프가 한국인이라 한국어 고정**"(`src/lib/i18n/index.js` 5882행 주석, `getBackofficeLangFromCookie` 설계 근거)을 **PO가 명시적으로 폐기**.
+
+**⚠️ 다음 세션 필수 확인**: 이 결정 이후 CLAUDE.md·코드 주석에 남아있는 "백오피스=한국어 고정" 전제 문구를 만나면 **낡은 전제로 취급하고 이 블록을 근거로 무시**할 것(문서 갱신이 코드 전환 속도를 못 따라갈 수 있음 — 아래 진행 상황이 SoR).
+
+**범위**: admin(관리자)·coordinator(코디)·hospital(국내병원) 전체(PO 확정, "일부만"이 아닌 전체 스태프 백오피스). `agency`·`clinic`은 이미 완료 상태였음(확인 완료 — `app/agency/PartnerPortal.jsx`가 이미 `TR`+`useLang()`으로 6개 언어 구현돼 있었음, 잘못된 첫 판단을 정정).
+
+**진행 방식**: PO 확정 — 섹션(화면 묶음)별로 나눠 각각 독립 PR·독립 리뷰·CI 통과 후 자동머지(저위험 판단 근거: 문구만 바뀌는 변경, 로직 변경 없음, 컴포넌트 렌더 트리 동일).
+
+**규모**: `app/admin`(68파일)+`app/coordinator`(22)+`app/hospital`(7) = 97파일, 약 28,469줄(2026-07-09 측정). **여러 세션에 걸쳐 진행될 대형 작업** — 아래 섹션 진행 상황을 최신으로 유지할 것.
+
+**패턴(고정)**: `app/agency/PartnerPortal.jsx`·`app/patient/documents/DocumentsClient.jsx`와 동일한 컨벤션. 모듈 최상단에 `TR`(또는 `COPY`) = `{ko,en,ru,kz,zh,ja}` 사전, `useLang()` + `const tt = (k) => (TR[lang]||TR.en)[k] || TR.en[k]` (또는 `l = (obj) => obj?.[lang] || obj?.en`) 헬퍼로 조회. 이 화면들은 이미 `app/ClientShell.jsx`의 `isPortalPage`(admin·coordinator·hospital·agency·clinic·patient 전부 포함)가 상단바 언어 스위처(`PortalLangSwitcher`)를 띄우고 있어서 — **UI 스위처는 이미 있고, 화면 콘텐츠(라벨·버튼·alert 등)만 그 스위처를 따라가게 만드는 작업**.
+
+**섹션 진행 상황** (완료마다 이 표를 갱신):
+| # | 섹션 | 파일 | 상태 |
+|---|------|------|------|
+| 1 | `app/admin/consultations`·`users`·`staff` | 3개, 1128줄 | 🔄 진행 중 |
+| 2 | `app/admin/khidi/*` (KHIDI 지표 대시보드) | 미측정 | ⏳ 대기 |
+| 3 | `app/admin/{hospitals,treatments,doctors,import,rag}` | 미측정 | ⏳ 대기 |
+| 4 | `app/admin` 나머지(playbook·agent·ai-status·chat·observability·analytics·automation·audit·crawl·enrichment·leads·reminders·inquiries·settings·account 등) | 미측정 | ⏳ 대기 |
+| 5 | `app/coordinator/*` | 22개 | ⏳ 대기 |
+| 6 | `app/hospital/*` | 7개 | ⏳ 대기 |
+
+---
+
 ## 🔖 세션 핸드오프 (2026-07-08 — 밀린 핸드오프 소급 기록: PR #702·#703·#711·#713·#714·#715·#716·#718)
 
 > 이번 세션은 새 코드 작업이 아니라 **PO 질문(여러 세션에 지시 흩뿌리고 마지막에 몰아서 정리해도 되냐) 답변 + 밀린 핸드오프 소급 메우기**. 직전 핸드오프(PR #709, 2026-07-07)가 다룬 #708 이후, **완전히 끝나서 머지까지 된 작업 8건**이 각자 핸드오프 커밋 없이 쌓여 있던 걸 확인하고 여기 한 번에 기록.
