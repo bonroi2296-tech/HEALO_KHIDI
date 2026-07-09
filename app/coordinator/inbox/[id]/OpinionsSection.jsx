@@ -294,21 +294,22 @@ export default function OpinionsSection({ inquiryId, currentCaseStatus, onCaseSt
             (STEP_ORDER[currentCaseStatus] || 0) < STEP_ORDER.hospital_review && (
               <div className="mt-3 flex flex-wrap items-center gap-2 bg-amber-50 border border-amber-200 rounded-lg p-3">
                 <span className="text-xs text-amber-800">
-                  소견을 에이전시에 공개했어요 — 진행 단계도 같이 올릴까요?
+                  소견을 에이전시에 공개했어요 — 보통은 환자·에이전시가 이걸 보고 판단하는 &apos;사전상담&apos; 단계예요.
                 </span>
                 <button
                   onClick={() => advanceStage("pre_consult")}
                   disabled={advancingStage}
-                  className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium bg-white border border-amber-300 text-amber-800 rounded-lg hover:bg-amber-100 disabled:opacity-50"
+                  className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium bg-amber-600 text-white rounded-lg hover:bg-amber-700 disabled:opacity-50"
                 >
-                  <ArrowRight size={11} /> {STEP_LABEL.pre_consult}
+                  {advancingStage ? <Loader2 size={11} className="animate-spin" /> : <ArrowRight size={11} />} {STEP_LABEL.pre_consult}
                 </button>
                 <button
                   onClick={() => advanceStage("hospital_review")}
                   disabled={advancingStage}
-                  className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium bg-amber-600 text-white rounded-lg hover:bg-amber-700 disabled:opacity-50"
+                  className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium bg-white border border-amber-300 text-amber-800 rounded-lg hover:bg-amber-100 disabled:opacity-50"
+                  title="병원이 아직 치료 가능 여부 자체를 확인 중인 경우에만"
                 >
-                  {advancingStage ? <Loader2 size={11} className="animate-spin" /> : <ArrowRight size={11} />} {STEP_LABEL.hospital_review}
+                  <ArrowRight size={11} /> {STEP_LABEL.hospital_review}
                 </button>
                 <button
                   onClick={() => setStageSuggestDismissed(true)}
