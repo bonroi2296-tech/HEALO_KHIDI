@@ -100,11 +100,19 @@ export const SignUpPage = ({ setView }) => {
     const [oauthRedirecting, setOauthRedirecting] = useState(false);
     const [pendingEmail, setPendingEmail] = useState(null); // 가입 후 인증메일 안내 화면용
     const [existingEmail, setExistingEmail] = useState(null); // 중복 가입(이미 가입된 이메일) 안내 화면용
+    // claim(환자 계정연결) 링크 경유 가입 — /signup?redirect=/claim/[token]. 로그인 화면의
+    // ?redirect= 와 동일 규약(오픈 리다이렉트 방지: 내부 경로만). 인증메일/구글OAuth 콜백엔
+    // /auth/callback?next=<이 값> 으로 전달(그쪽은 /claim/ 로 시작하는 값만 인정).
+    const [redirectTarget, setRedirectTarget] = useState(null);
 
     // /inquiry → /signup?provider=google 자동 OAuth 트리거 (+ ?email= 프리필)
     useEffect(() => {
         if (typeof window === 'undefined') return;
         const params = new URLSearchParams(window.location.search);
+        const target = params.get('redirect');
+        if (typeof target === 'string' && target.startsWith('/') && !target.startsWith('//') && !target.startsWith('/\\')) {
+            setRedirectTarget(target);
+        }
         // 퍼널 '이메일로 가입' 버튼이 ?email=<입력값> 을 보내는데 여기서 안 읽어 프리필이
         // 안 되던 버그(2026-07-02 전수 감사) — 형식이 이메일일 때만 초기값 주입.
         const prefill = params.get('email');
@@ -124,7 +132,7 @@ export const SignUpPage = ({ setView }) => {
         setOauthRedirecting(true);
         (async () => {
             try {
-                const redirectUrl = `${window.location.origin}/auth/callback`;
+                const redirectUrl = `${window.location.origin}/auth/callback${target ? `?next=${encodeURIComponent(target)}` : ''}`;
                 // signInWithOAuth 는 throw 가 아니라 { error } 를 반환 — error 객체를 직접 검사
                 const { error } = await supabase.auth.signInWithOAuth({
                     provider: 'google',
@@ -173,7 +181,9 @@ export const SignUpPage = ({ setView }) => {
             options: {
                 // 인증메일 링크가 홈(/)이 아니라 /auth/callback 으로 돌아오게 → code를 세션으로 교환해 자동 로그인.
                 // (없으면 Site URL=홈으로 떨어져 code가 교환 안 됨 → 인증해도 로그인 안 되는 버그)
-                emailRedirectTo: typeof window !== 'undefined' ? `${window.location.origin}/auth/callback` : undefined,
+                emailRedirectTo: typeof window !== 'undefined'
+                    ? `${window.location.origin}/auth/callback${redirectTarget ? `?next=${encodeURIComponent(redirectTarget)}` : ''}`
+                    : undefined,
                 data: {
                     first_name: firstName,
                     last_name: lastName,
@@ -200,7 +210,7 @@ export const SignUpPage = ({ setView }) => {
         if (_data?.session) {
             // 이메일 인증 OFF → 바로 로그인 처리
             toast.success(langCode === 'ko' ? '가입 완료! 환영합니다.' : 'Welcome! Account created successfully.');
-            router.push('/');
+            router.push(redirectTarget || '/');
         } else if (isExisting) {
             setExistingEmail(email);
         } else {
@@ -461,7 +471,7 @@ export const SignUpPage = ({ setView }) => {
                             console.log('[SignUpPage] 🔵 Google sign-up clicked!');
                             setLoading(true);
                             try {
-                                const redirectUrl = `${window.location.origin}/auth/callback`;
+                                const redirectUrl = `${window.location.origin}/auth/callback${redirectTarget ? `?next=${encodeURIComponent(redirectTarget)}` : ''}`;
                                 const { error } = await supabase.auth.signInWithOAuth({
                                     provider: 'google',
                                     options: {

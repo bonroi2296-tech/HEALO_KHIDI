@@ -12,6 +12,7 @@ import { kstDateTime } from "@/lib/datetime/kst";
 import {
   UploadCloud, File as FileIcon, X, ClipboardList, Activity, CheckCircle2, PauseCircle,
   Plus, ArrowRight, ChevronDown, Paperclip, MessageCircle, FileText, Video, Send, Clock, Stethoscope, Languages,
+  Link2, Check,
 } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { useLang } from "@/lib/i18n/LangContext";
@@ -451,6 +452,8 @@ const TR_GUIDE = {
     emptyStep1: "환자 정보·서류로 의뢰",
     emptyStep2: "코디가 병원 매칭·견적·상담 조율",
     emptyStep3: "단계별 진행상황·메시지 확인",
+    claimCopyBtn: "환자 연결 링크 복사",
+    claimCopied: "복사됨!",
   },
   en: {
     nextStep_intake: "Our coordinator is reviewing the documents. We'll check hospital eligibility shortly.",
@@ -465,6 +468,8 @@ const TR_GUIDE = {
     emptyStep1: "Refer with patient info & documents",
     emptyStep2: "Coordinator matches hospital, quote & consult",
     emptyStep3: "Track each stage & message us",
+    claimCopyBtn: "Copy patient link",
+    claimCopied: "Copied!",
   },
   ru: {
     nextStep_intake: "Координатор проверяет документы. Скоро уточним возможность лечения в больнице.",
@@ -479,6 +484,8 @@ const TR_GUIDE = {
     emptyStep1: "Направьте с данными и документами пациента",
     emptyStep2: "Координатор подбирает больницу, смету и консультацию",
     emptyStep3: "Отслеживайте этапы и пишите нам",
+    claimCopyBtn: "Копировать ссылку пациента",
+    claimCopied: "Скопировано!",
   },
   kz: {
     nextStep_intake: "Үйлестіруші құжаттарды тексеруде. Жақында аурухананың емдеу мүмкіндігін нақтылаймыз.",
@@ -493,6 +500,8 @@ const TR_GUIDE = {
     emptyStep1: "Науқас деректері мен құжаттарымен жолдаңыз",
     emptyStep2: "Үйлестіруші аурухана, баға, кеңесті ұйымдастырады",
     emptyStep3: "Кезеңдерді қадағалап, бізге жазыңыз",
+    claimCopyBtn: "Науқас сілтемесін көшіру",
+    claimCopied: "Көшірілді!",
   },
   zh: {
     nextStep_intake: "协调员正在审核资料，即将确认医院能否治疗。",
@@ -507,6 +516,8 @@ const TR_GUIDE = {
     emptyStep1: "用患者信息与资料转介",
     emptyStep2: "协调员匹配医院、报价与会诊",
     emptyStep3: "追踪各阶段并与我们沟通",
+    claimCopyBtn: "复制患者链接",
+    claimCopied: "已复制！",
   },
   ja: {
     nextStep_intake: "コーディネーターが書類を確認中です。まもなく病院で治療可能か確認します。",
@@ -521,6 +532,8 @@ const TR_GUIDE = {
     emptyStep1: "患者情報・書類で紹介",
     emptyStep2: "コーディネーターが病院・見積・相談を調整",
     emptyStep3: "各段階を確認しメッセージ",
+    claimCopyBtn: "患者リンクをコピー",
+    claimCopied: "コピーしました！",
   },
 };
 for (const l of Object.keys(TR)) Object.assign(TR[l], TR_GUIDE[l] || TR_GUIDE.en);
@@ -552,6 +565,7 @@ export default function PartnerPortal({ expected = "agency" }) {
   const [openId, setOpenId] = useState(null);
   const [filter, setFilter] = useState("all"); // all | active | done | hold
   const [query, setQuery] = useState("");
+  const [claimCopiedId, setClaimCopiedId] = useState(null); // 환자 연결 링크 복사 버튼 피드백
 
   const [view, setView] = useState("track"); // 좌측 탭: "track"(진행 현황) | "refer"(환자 의뢰)
 
@@ -1048,6 +1062,22 @@ export default function PartnerPortal({ expected = "agency" }) {
                     {c.case_status_updated_at && <span>{tt("updatedLabel")} {new Date(c.case_status_updated_at).toLocaleDateString()}</span>}
                   </div>
                 </button>
+
+                {/* 계정 미연결 케이스만 — 환자 계정연결(claim) 링크를 복사해 공유 */}
+                {!c.has_account && c.public_token && (
+                  <button
+                    onClick={() => {
+                      const url = `${window.location.origin}/claim/${c.public_token}`;
+                      navigator.clipboard.writeText(url).then(() => {
+                        setClaimCopiedId(c.id);
+                        setTimeout(() => setClaimCopiedId((prev) => (prev === c.id ? null : prev)), 2000);
+                      });
+                    }}
+                    className="mt-2 inline-flex items-center gap-1 px-2 py-0.5 text-xs font-semibold rounded-full bg-teal-50 text-teal-700 hover:bg-teal-100 transition"
+                  >
+                    {claimCopiedId === c.id ? <Check size={12} /> : <Link2 size={12} />} {claimCopiedId === c.id ? tt("claimCopied") : tt("claimCopyBtn")}
+                  </button>
+                )}
 
                 {openId === c.id && (
                   <div className="mt-4 pt-4 border-t border-gray-100 space-y-4">

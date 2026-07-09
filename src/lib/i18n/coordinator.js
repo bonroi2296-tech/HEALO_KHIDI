@@ -376,6 +376,8 @@ const CT = {
   ibNameUnknown: { ko: "(이름 미상)", en: "(Name unknown)", ru: "(Имя неизвестно)", kz: "(Аты белгісіз)", zh: "(姓名不详)", ja: "(氏名不明)" },
   ibPatientDirect: { ko: "환자 직접", en: "Patient direct", ru: "Напрямую от пациента", kz: "Пациенттен тікелей", zh: "患者直接", ja: "患者直接" },
   ibInquiryNo: { ko: "문의", en: "Inquiry", ru: "Заявка", kz: "Сұраныс", zh: "咨询", ja: "問い合わせ" },
+  ibClaimCopy: { ko: "환자 연결 링크 복사", en: "Copy patient link", ru: "Копировать ссылку пациента", kz: "Науқас сілтемесін көшіру", zh: "复制患者链接", ja: "患者リンクをコピー" },
+  ibClaimCopied: { ko: "복사됨!", en: "Copied!", ru: "Скопировано!", kz: "Көшірілді!", zh: "已复制！", ja: "コピーしました！" },
   ibReceivedLabel: { ko: "접수", en: "Received", ru: "Получено", kz: "Қабылданды", zh: "接收", ja: "受付" },
   ibStepBothDone: { ko: "Step 1+2 완료", en: "Step 1+2 done", ru: "Этапы 1+2 завершены", kz: "1+2 кезең аяқталды", zh: "步骤 1+2 完成", ja: "ステップ1+2 完了" },
   ibStepOneNeedInfo: { ko: "Step 1만 (추가 정보 필요)", en: "Step 1 only (needs more info)", ru: "Только этап 1 (нужна доп. информация)", kz: "Тек 1-кезең (қосымша ақпарат қажет)", zh: "仅步骤 1（需补充信息）", ja: "ステップ1のみ（追加情報が必要）" },

@@ -49,6 +49,8 @@ const DETAIL_FIELDS = [
   "agencies(name)",
   // 회원/비회원 배지: 접수한 계정(user_id)으로 이메일·role·테스트여부 조회(응답엔 submitter 만 실음)
   "user_id",
+  // 환자 계정 연결(claim) 링크 생성용 — 비회원 케이스에서 코디가 "링크 복사" 버튼으로 공유
+  "public_token",
   // 케이스 브리프 캐시(암호화) + 입력 서명 — 열람 즉시 표시, 첨부 바뀌면 stale 판정해 자동 재생성
   "coordinator_brief",
   "coordinator_brief_sig",
