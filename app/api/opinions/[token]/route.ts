@@ -27,6 +27,7 @@ import { rosterName, isValidOpinionDoctorKey } from "@/lib/opinions/roster";
 import { notifyStaffOpinionArrived } from "@/lib/notifications/inApp";
 import { logAdminAction, getIpFromRequest, getUserAgentFromRequest } from "@/lib/audit/adminAuditLog";
 import { translateMedicalDoc } from "@/lib/documents/translateDoc";
+import { translateOpinionText } from "@/lib/opinions/translateOpinion";
 
 // 코디가 문의상세에서 이미 만들어둔 AI 케이스 브리프(한국어 요약)를 그대로 재사용.
 // 원문(러시아어 등)·미기재 필드보다 훨씬 낫다 — 새로 만들지 않고 캐시만 복호화해서 보여준다.
@@ -210,7 +211,7 @@ export async function POST(
 
     const doctorName = rosterName(doctorKey) || "그 외 의료진";
 
-    const { error: insErr } = await (supabaseAdmin as any)
+    const { data: row, error: insErr } = await (supabaseAdmin as any)
       .from("case_opinions")
       .insert({
         request_id: req.id,
@@ -219,14 +220,34 @@ export async function POST(
         doctor_name: doctorName,
         opinion_text: opinionText.slice(0, 8000),
         submitted_ip: ip,
-      });
-    if (insErr) {
-      console.error("[opinions/:token] insert error:", insErr.message);
+      })
+      .select("id")
+      .single();
+    if (insErr || !row) {
+      console.error("[opinions/:token] insert error:", insErr?.message);
       return Response.json({ ok: false, error: "submit_failed" }, { status: 500 });
     }
 
     // 코디·어드민에게만 종(bell) 알림 — 소견은 내부 전용(에이전시·환자 미노출).
     await notifyStaffOpinionArrived({ inquiryId: Number(req.inquiry_id), doctorName }).catch(() => {});
+
+    // 접수 즉시 환자 언어로 자동 번역해 코디 확정본 초안에 미리 채워둠(PO 결정 2026-07-09 —
+    // "버튼 누르게 하지 말고 데이터 넘어오는 시점부터"). 의사는 응답을 기다리지 않게 fire-and-forget.
+    void (async () => {
+      const { data: inqRow } = await supabaseAdmin
+        .from("inquiries")
+        .select("spoken_language")
+        .eq("id", req.inquiry_id)
+        .maybeSingle();
+      const translated = await translateOpinionText(opinionText, inqRow?.spoken_language || "").catch(() => null);
+      if (translated) {
+        await (supabaseAdmin as any)
+          .from("case_opinions")
+          .update({ auto_translated_text: translated })
+          .eq("id", row.id)
+          .then(() => {}, () => {});
+      }
+    })();
 
     return Response.json({ ok: true });
   } catch (e: any) {

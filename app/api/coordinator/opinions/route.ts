@@ -19,6 +19,7 @@ import { requirePortalAuth } from "@/lib/auth/requirePortalAuth";
 import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
 import { notifyStaffOpinionArrived } from "@/lib/notifications/inApp";
 import { translateMedicalDoc } from "@/lib/documents/translateDoc";
+import { translateOpinionText } from "@/lib/opinions/translateOpinion";
 
 // 파일 여러 개 — 각각 번역 후 파일명 헤더로 구분해 하나의 opinion_text 로 이어붙임.
 async function translateMultiple(files: { path: string; name?: string | null }[]): Promise<string> {
@@ -98,7 +99,7 @@ export async function POST(request: NextRequest) {
     // 케이스 존재 확인 + 요약 재료(PII 아닌 임상 필드만)
     const { data: inq, error: inqErr } = await supabaseAdmin
       .from("inquiries")
-      .select("id, nationality, cancer_type, treatment_type, intake")
+      .select("id, nationality, cancer_type, treatment_type, intake, spoken_language")
       .eq("id", inquiryId)
       .single();
     if (inqErr || !inq) {
@@ -147,6 +148,20 @@ export async function POST(request: NextRequest) {
         return Response.json({ ok: false, error: "create_failed" }, { status: 500 });
       }
       await notifyStaffOpinionArrived({ inquiryId, doctorName }).catch(() => {});
+
+      // 접수 즉시 환자 언어로 자동 번역해 확정본 초안에 미리 채워둠(PO 결정 2026-07-09).
+      // 코디의 "추가" 클릭 응답을 기다리게 하지 않도록 fire-and-forget.
+      void (async () => {
+        const translated = await translateOpinionText(opinionText, inq.spoken_language || "").catch(() => null);
+        if (translated) {
+          await (supabaseAdmin as any)
+            .from("case_opinions")
+            .update({ auto_translated_text: translated })
+            .eq("id", row.id)
+            .then(() => {}, () => {});
+        }
+      })();
+
       return Response.json({ ok: true, opinion: row });
     }
 
@@ -213,7 +228,7 @@ export async function GET(request: NextRequest) {
 
     const { data: opinions } = await (supabaseAdmin as any)
       .from("case_opinions")
-      .select("id, doctor_key, doctor_name, opinion_text, attribution_note, released_text, released_at, file_path, file_name, files, created_at")
+      .select("id, doctor_key, doctor_name, opinion_text, attribution_note, released_text, released_at, auto_translated_text, file_path, file_name, files, created_at")
       .eq("inquiry_id", inquiryId)
       .order("created_at", { ascending: false });
 

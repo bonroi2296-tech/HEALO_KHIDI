@@ -275,22 +275,25 @@ function OpinionItem({ opinion, patientLang }) {
   const [saved, setSaved] = useState(false);
 
   const [released, setReleased] = useState(!!opinion.released_at);
-  const [draft, setDraft] = useState(opinion.released_text || opinion.opinion_text || "");
+  // 접수 시점에 서버가 이미 환자 언어로 자동 번역해둔 초안(auto_translated_text)이 있으면 그걸 기본값으로.
+  // 없으면(번역 실패·미지원 언어·아직 처리 중) 원문(한글) 폴백 — 아래 "다시 번역" 버튼으로 수동 재시도 가능.
+  const [draft, setDraft] = useState(opinion.released_text || opinion.auto_translated_text || opinion.opinion_text || "");
   const [releasing, setReleasing] = useState(false);
   const [translating, setTranslating] = useState(false);
   const [translateError, setTranslateError] = useState("");
   const canAiTranslate = LANG_LABEL[patientLang];
+  const preTranslated = !opinion.released_at && !!opinion.auto_translated_text;
 
-  // 1차 AI 번역(원장 한글 소견 → 환자 언어 초안) — 코디는 이후 draft 를 직접 교정(2차)하고 공개.
+  // 재번역 — 원문(한글)을 다시 환자 언어로 번역해 draft 를 덮어씀(코디 교정 전 초기화 용도).
   const aiTranslate = async () => {
-    if (!draft.trim()) return;
+    if (!opinion.opinion_text?.trim()) return;
     setTranslating(true);
     setTranslateError("");
     try {
       const res = await authFetch(`/api/coordinator/opinions/translate`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: draft, lang: patientLang }),
+        body: JSON.stringify({ text: opinion.opinion_text, lang: patientLang }),
       });
       const data = await res.json();
       if (data.ok) setDraft(data.translated);
@@ -378,20 +381,21 @@ function OpinionItem({ opinion, patientLang }) {
       </div>
       <p className="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed">{opinion.opinion_text}</p>
 
-      {/* 에이전시 공개 — 1차 AI 번역(환자 언어) → 2차 코디 교정 → 공개해야만 에이전시에 노출 */}
+      {/* 에이전시 공개 — 접수 시점에 이미 AI 초벌 번역(환자 언어) 완료 → 코디 교정 → 공개해야만 노출 */}
       <div className="mt-3 bg-blue-50/40 border border-blue-100 rounded-lg p-3">
         <div className="flex items-center justify-between gap-2 mb-1.5">
           <p className="text-[11px] text-blue-700">
-            에이전시에 보낼 확정본{canAiTranslate ? ` (환자 언어: ${LANG_LABEL[patientLang]})` : ""} — AI 초벌 번역 후 직접 교정하고 공개
+            에이전시에 보낼 확정본{canAiTranslate ? ` (환자 언어: ${LANG_LABEL[patientLang]})` : ""}
+            {preTranslated ? " — AI가 자동 번역해뒀습니다, 확인·교정 후 공개" : " — 직접 교정 후 공개"}
           </p>
           {canAiTranslate && !released && (
             <button
               onClick={aiTranslate}
-              disabled={translating || !draft.trim()}
+              disabled={translating || !opinion.opinion_text?.trim()}
               className="shrink-0 inline-flex items-center gap-1 text-[11px] font-medium text-blue-700 hover:underline disabled:opacity-50"
             >
               {translating && <Loader2 size={11} className="animate-spin" />}
-              {translating ? "번역 중…" : `AI 번역 (→ ${LANG_LABEL[patientLang]})`}
+              {translating ? "번역 중…" : "다시 번역"}
             </button>
           )}
         </div>
