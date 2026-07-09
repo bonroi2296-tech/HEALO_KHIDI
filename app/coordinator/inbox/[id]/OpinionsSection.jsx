@@ -8,8 +8,12 @@
  */
 
 import { useState, useEffect, useCallback } from "react";
-import { Stethoscope, Copy, Check, Link2, Loader2, Pencil, Paperclip, FileText, X } from "lucide-react";
+import { Stethoscope, Copy, Check, Link2, Loader2, Pencil, Paperclip, FileText, X, ArrowRight } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
+import { CASE_STATUS_STEPS } from "@/lib/khidi/caseStatus";
+
+const STEP_ORDER = Object.fromEntries(CASE_STATUS_STEPS.map((s) => [s.key, s.order]));
+const STEP_LABEL = Object.fromEntries(CASE_STATUS_STEPS.map((s) => [s.key, s.ko]));
 
 async function authFetch(url, options = {}) {
   const supabase = createSupabaseBrowserClient();
@@ -23,13 +27,15 @@ function fmt(iso) {
   try { return new Date(iso).toLocaleString("ko-KR"); } catch { return iso; }
 }
 
-export default function OpinionsSection({ inquiryId }) {
+export default function OpinionsSection({ inquiryId, currentCaseStatus, onCaseStatusAdvanced }) {
   const [loading, setLoading] = useState(true);
   const [request, setRequest] = useState(null);
   const [summary, setSummary] = useState("");
   const [opinions, setOpinions] = useState([]);
   const [creating, setCreating] = useState(false);
   const [copied, setCopied] = useState("");
+  const [stageSuggestDismissed, setStageSuggestDismissed] = useState(false);
+  const [advancingStage, setAdvancingStage] = useState(false);
 
   const [showDirect, setShowDirect] = useState(false);
   const [directDoctor, setDirectDoctor] = useState("");
@@ -73,6 +79,26 @@ export default function OpinionsSection({ inquiryId }) {
       }
     } catch { /* silent */ } finally {
       setCreating(false);
+    }
+  };
+
+  // 소견 공개 후 "진행 단계"를 깜빡하고 안 올리는 문제(PO 2026-07-09) — 여기서 바로 올릴 수 있게 제안.
+  // 이미 hospital_review 이상이면 더 올릴 게 없으니 제안 자체를 안 띄운다.
+  const advanceStage = async (key) => {
+    setAdvancingStage(true);
+    try {
+      const res = await authFetch(`/api/admin/khidi/cases`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ inquiry_id: Number(inquiryId), case_status: key }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        onCaseStatusAdvanced?.(key);
+        setStageSuggestDismissed(true);
+      }
+    } catch { /* silent */ } finally {
+      setAdvancingStage(false);
     }
   };
 
@@ -261,6 +287,37 @@ export default function OpinionsSection({ inquiryId }) {
               opinions.map((o) => <OpinionItem key={o.id} opinion={o} patientLang={patientLang} />)
             )}
           </div>
+
+          {/* 소견 공개했는데 진행 단계는 그대로인 경우 — 깜빡하기 쉬워서 여기서 바로 올리게 제안(강제 아님). */}
+          {!stageSuggestDismissed &&
+            opinions.some((o) => o.released_at) &&
+            (STEP_ORDER[currentCaseStatus] || 0) < STEP_ORDER.hospital_review && (
+              <div className="mt-3 flex flex-wrap items-center gap-2 bg-amber-50 border border-amber-200 rounded-lg p-3">
+                <span className="text-xs text-amber-800">
+                  소견을 에이전시에 공개했어요 — 진행 단계도 같이 올릴까요?
+                </span>
+                <button
+                  onClick={() => advanceStage("pre_consult")}
+                  disabled={advancingStage}
+                  className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium bg-white border border-amber-300 text-amber-800 rounded-lg hover:bg-amber-100 disabled:opacity-50"
+                >
+                  <ArrowRight size={11} /> {STEP_LABEL.pre_consult}
+                </button>
+                <button
+                  onClick={() => advanceStage("hospital_review")}
+                  disabled={advancingStage}
+                  className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium bg-amber-600 text-white rounded-lg hover:bg-amber-700 disabled:opacity-50"
+                >
+                  {advancingStage ? <Loader2 size={11} className="animate-spin" /> : <ArrowRight size={11} />} {STEP_LABEL.hospital_review}
+                </button>
+                <button
+                  onClick={() => setStageSuggestDismissed(true)}
+                  className="text-xs text-gray-400 hover:underline ml-auto"
+                >
+                  넘어가기
+                </button>
+              </div>
+            )}
         </>
       )}
     </div>

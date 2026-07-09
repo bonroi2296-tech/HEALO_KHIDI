@@ -1105,11 +1105,18 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
       )}
 
       {/* 전문의 세컨드 오피니언 — 협력병원/외부 전문의 소견 요청·수집 (코디·어드민 전용, 자체완결 컴포넌트) */}
-      <OpinionsSection inquiryId={inquiryId} />
+      <OpinionsSection
+        inquiryId={inquiryId}
+        currentCaseStatus={caseStatus}
+        onCaseStatusAdvanced={(key) => setCaseStatus(key)}
+      />
 
       {/* 진행 단계 — 코디가 설정. 환자·에이전시 포털에 같은 상태가 노출된다(흐름: 접수→사전상담→병원검토→일정조율→비자준비→입국치료→사후관리→완료). */}
       <Card title={L.ibCaseCard}>
         <div className="space-y-3">
+          <p className="text-[11px] text-gray-400 -mt-1">
+            ※ &apos;사전상담 진행&apos;은 화상상담만이 아니라 소견서 등 서면으로 오간 상담도 포함합니다.
+          </p>
           <div className="flex flex-wrap items-center gap-2">
             {CASE_STATUS_STEPS.filter((s) => s.order < 90).map((s) => (
               <button
