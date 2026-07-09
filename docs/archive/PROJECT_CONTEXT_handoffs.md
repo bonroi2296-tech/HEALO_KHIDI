@@ -1,5 +1,56 @@
 # PR
 
+
+## 🔖 세션 핸드오프 (2026-07-07 — 에이전시 포털 후속 4건 완료·머지: 좌측탭 확대·진행단계 명확화·코디 메모 자동번역·설명서 #708)
+
+> 직전 #706 세션이 "기록만, 내일"로 미룬 후속 4건을 이번 세션에서 전부 구현·머지. 합치기신청서(PR) **#708 ✅ 스쿼시 머지·프로덕션 반영**(origin/main `cfdaabd`, MERGED). CI(`ci`·`Smoke Tests`·Vercel) **전부 SUCCESS**.
+
+**1. 이번 세션 한 일** (PR [#708](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/708) MERGED)
+- **① 좌측 탭 확대**(`app/agency/PartnerPortal.jsx`): 어드민 좌측 nav 톤으로 — 컬러 아이콘칩 + 굵은 라벨(text-base font-bold), `md:w-56`, py-3.5. (PO "왜케 쪼잔하게, 어드민 좌측탭은 대문짝만한데".)
+- **② 진행 단계 표시 명확화**: 케이스 카드에 **현재 단계명 + 위치(예: 단계 3/8)** 크게. 완료=진한초록(체크)·보류=앰버(일시정지)·진행중=teal 색 구분, 진행 바도 완료 시 진한초록. "단계는 담당 코디네이터가 진행을 업데이트할 때마다 올라갑니다" 안내 6개어. (PO "접수했는데 1단계?"/"완료랑 같아 보임".)
+- **③ 코디 한글 메모 자동번역**(신규): 에이전시가 화면 언어(en/ru/kz/zh/ja)로 바꾸면 코디의 **진행노트·타임라인·채팅**을 자동 번역해 표시.
+  - `src/lib/translate/shortText.ts`: 짧은텍스트 번역 — **캐시 우선**(note_translations) + Gemini 배치 + 한글감지 필터 + **인덱스(i) 기반 매핑**(순서 뒤섞임 방어).
+  - `app/api/agency/translate/route.ts`: POST(`checkAgencyAuth` + `checkAiGuards` 일일상한 + IP rate limit + MAX_TEXTS/MAX_LEN 가드).
+  - `migrations/20260707_note_translations.sql`: 캐시 테이블(source_hash,target_lang / **RLS on·정책없음=service_role 전용**). **프로덕션 적용 + RLS 검증 완료**.
+  - 클라이언트 `trNote`/`trMsg` + 자동번역 아이콘(Languages) + **원문 hover(title) 폴백**. 내가 쓴 메시지는 번역 안 함. `usageLog` AiSurface `note_translate` 계측.
+- **④ 에이전시 설명서 6개어 갱신**(`src/lib/manuals/index.js`): 좌측탭·단계표시·자동번역 반영, `updated` 2026-07-07.
+
+**2. 왜 그렇게 했는지**
+- PO가 자동번역 **비용**을 먼저 물음("무료티어로 커버 안 되냐") → "짧은 텍스트 + 캐시라 무료티어 안에서 사실상 무료, aiGuard 일일상한 유효"로 설명 후 PO "붙이자" 승인. 비용이 걸림돌 아님을 확인하고 진행.
+- **독립리뷰(작성맥락 미공유 subagent)가 CONFIRMED 2건**을 잡아 수정 — 작성자=판정자=머지자 동일인 사각지대를 정확히 커버:
+  - (1) **aiGuard 일일상한이 라우트에 실제 안 걸림**(커밋 주장과 코드 불일치, 비용 남용 공백) → `checkAiGuards` + IP rate limit 추가.
+  - (2) **배치번역 순서 미검증 + 영구캐시** → 모델이 순서 뒤섞으면 A 메모에 B 번역이 붙어 영구 저장될 위험 → **인덱스(i) 기반 매핑**으로 원문↔번역 못 박음(빠진 항목은 원문 폴백).
+- 라우트 단일 POST + 캐시 키 (source_hash,target_lang)는 #701 attachment_translations 패턴 재활용(신뢰수준 동일 = service_role 전용).
+
+**3. 안 끝났거나 보류**
+- ⏸ **자동번역 실화면 런타임 미검증**: en/ru 실제 출력·타임라인·채팅 번역은 코디+에이전시 로그인 필요 → 로컬 자동화 불가([[verify_authgated_portal]]). 빌드·타입·CI·독립리뷰는 통과했으나 실클릭 미실시.
+- ⏸ **PO 방향 반응 "좀 애매하다"**(포털 전반): 기능은 유지·머지했으나 PO가 원한 형태가 이게 맞는지는 열려있음 — 프리뷰/실사용 보고 조정 여지.
+
+**4. 주의·함정**
+- **`note_translations`는 service_role 전용**(RLS on·정책 없음) — 브라우저 직접 쿼리 금지, 서버 API(`/api/agency/translate`) 경유.
+- **캐시 무효화 없음**(TTL·버전 없음, `ignoreDuplicates`): 잘못/환각 번역이 한 번 저장되면 영구 → 탈출구는 수동 DB 삭제. 인덱스 매핑으로 오매핑은 막았으나 품질 자체 재검증 장치는 없음.
+- **PII**: 코디 메모(환자정보 가능)가 Gemini로 전송 + `note_translations.translated`에 평문 저장(원문 메모도 각 테이블 평문이라 새 클래스는 아님, 접근은 service_role 차단). "PII는 `*_encrypted`" 원칙과 어긋나는 평문 사본이 하나 늘어난 점 인지.
+- 새 `inquiries` insert 경로를 만들면 `agency_id`·`user_id`·`is_test(accountEmail)`를 다 채워라(#74·#75 자매 사고 근본원인).
+
+**5. 다음 세션이 먼저 할 일**
+1. ⚠️ **직전 미검증분 먼저 확인**: 에이전시 계정 로그인 → 화면 언어 en/ru로 → **코디 한글 메모/타임라인/채팅이 번역돼 보이는지 + 원문 hover** 각 1회 실클릭(코드·CI·독립리뷰 통과, 실화면만 미검증).
+2. (열려있음) PO가 "애매하다"고 한 포털 방향 — 프리뷰/실사용 보고 필요시 조정.
+
+**6. 검증 상태**
+- ✅ PR #708 스쿼시 머지(origin/main `cfdaabd`, MERGED). CI(`ci`·`Smoke Tests(PR)`·Vercel) **전부 SUCCESS**.
+- ✅ `npx next build --webpack`·`npm run lint`(0 error)·`check:schema-refs`·`check:migrations`·`check:content` 전부 통과.
+- ✅ DB 마이그레이션 프로덕션 적용 + RLS(service_role 전용, 정책 0개) 확인.
+- ✅ 독립리뷰(작성맥락 미공유): CONFIRMED 2건(비용가드 공백·번역 오매핑) → 둘 다 수정 완료. 인증·React 경합·실패폴백·키매칭은 clean.
+- ⚠️ **검증 못 함**: 자동번역 실화면 런타임(로그인 필요 코디+에이전시 인박스) 미실시 → 5-1로 승격.
+
+**7. 다음 세션 첫 프롬프트**
+> docs/PROJECT_CONTEXT.md 최상단 읽어. 에이전시 포털 후속 4건(좌측탭 확대·진행단계 명확화·코디 메모 자동번역·설명서, PR #708)은 머지·배포됨. 먼저 프로덕션에서 **에이전시 계정 로그인 → 화면 언어 en/ru로 → 코디 한글 메모/타임라인/채팅이 번역돼 보이는지 + 원문 hover** 각 1회 실클릭 확인(빌드·CI·독립리뷰 통과, 실화면만 미검증). 그리고 PO가 포털 방향에 "좀 애매하다" 했으니 프리뷰/실사용 보고 필요시 조정. ⚠️ `note_translations`는 service_role 전용(서버 API 경유), 캐시 무효화 없음(잘못 캐시=수동삭제). 새 `inquiries` insert 경로엔 `agency_id`·`user_id`·`is_test` 다 채워라(#74·#75).
+
+---
+
+
+---
+
 ## 🔖 세션 핸드오프 (2026-07-07 밤 — 에이전시 포털 UX 개선: 좌측탭·다음단계안내·실명표시·타임라인중복제거 #706)
 
 > PO와 라이브(크롬 공유)로 에이전시 포털(`/agency`)을 함께 보며 다듬음. 합치기신청서(PR) #706 **✅ 스쿼시 머지·프로덕션 반영**(origin/main `930f846`). 후속 4건은 PO "기록만, 내일".
