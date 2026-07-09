@@ -38,6 +38,7 @@ export default function OpinionsSection({ inquiryId }) {
   const [directFile, setDirectFile] = useState(null); // { path, name }
   const [uploadingFile, setUploadingFile] = useState(false);
   const [fileError, setFileError] = useState("");
+  const [dragOver, setDragOver] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -200,9 +201,18 @@ export default function OpinionsSection({ inquiryId }) {
                     </button>
                   </div>
                 ) : (
-                  <label className="inline-flex items-center gap-1.5 text-xs text-gray-500 hover:text-teal-700 cursor-pointer">
+                  <label
+                    onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+                    onDragLeave={() => setDragOver(false)}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      setDragOver(false);
+                      uploadDirectFile(e.dataTransfer.files?.[0]);
+                    }}
+                    className={`flex items-center gap-1.5 text-xs px-2 py-1.5 rounded border border-dashed cursor-pointer ${dragOver ? "border-teal-500 bg-teal-50 text-teal-700" : "border-gray-200 text-gray-500 hover:text-teal-700"}`}
+                  >
                     {uploadingFile ? <Loader2 size={13} className="animate-spin" /> : <Paperclip size={13} />}
-                    {uploadingFile ? "업로드 중…" : "원장님이 주신 문서·이미지 첨부 (텍스트 대신 자동 번역)"}
+                    {uploadingFile ? "업로드 중…" : "원장님이 주신 문서·이미지 첨부 또는 여기로 드래그 (텍스트 대신 자동 번역)"}
                     <input
                       type="file"
                       accept="image/jpeg,image/png,image/gif,image/webp,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
