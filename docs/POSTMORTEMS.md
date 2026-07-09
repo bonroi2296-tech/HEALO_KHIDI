@@ -34,6 +34,7 @@
 - 유사 스캔 결과 `app/api/coordinator/cases/assign/route.ts`(병원 배정)도 같은 부류 — 병원을 재배정할 때마다 `case_status`를 무조건 `hospital_review`로 되돌려 쓰고 있었다(이미 scheduling 이후로 진행된 케이스도 강제 후퇴). 이 경로를 기존 `advanceCaseStatus` 헬퍼로 교체해 같은 PR에서 같이 닫음.
 - `case_status_history`에 쓰는 경로 전수 확인(6곳): `agency/refer`(신규 INSERT라 후퇴 위험 없음) · `leadCaseSync.ts`(이미 `caseStatusOrder` 비교로 가드됨, 정상) · `khidi/progress`(case_status 자체는 안 건드리고 이력만 남김, 정상) · `admin/khidi/cases`·`coordinator/cases/assign` 2곳만 실제 버그 — 이번에 둘 다 고침. **다른 경로에서 case_status를 직접 쓰는 코드가 새로 생기면 반드시 `caseStatusOrder` 가드 또는 `advanceCaseStatus` 헬퍼를 경유하게 리뷰에서 체크할 것.**
 - 코디 UI에 상태 전이 버튼을 추가할 때는 "뒤로 가는 클릭"에 확인창이 있는지, "단계 바뀌면 종속 입력값(메모 등)이 초기화되는지" 둘 다 기본 체크 항목으로 삼는다.
+- 🔴 **작업 사고(같은 세션 내)**: PO가 "TEST 에이전시" 화면에 보이는 테스트 문의 정리를 요청해 최근 1건만 남기고 5건(21·20·17·14·13)을 DB에서 삭제했는데, 그중 **#17을 `e2e/coordinator-request-info.spec.ts:24`가 `/coordinator/inbox/17`로 하드코딩 참조**하고 있어 PR #724 Smoke Tests가 빨강으로 깨짐. 원인: "에이전시 화면에 보이는 데이터=지워도 되는 테스트 데이터"라고만 판단하고 **e2e 스펙에서 같은 ID를 참조하는지 grep하지 않음**. 조치: id=17 자리에 `is_test=true`·`source='e2e_fixture'`인 최소 픽스처 행을 재생성(원본 PII 데이터는 복구 불가 — PITR 미구독, `docs/khidi-stack-quality-eval.md` 결정과 일치)해 CI green 복구. **재발 방지: 앞으로 프로덕션 DB에서 문의(inquiries) 행을 정리/삭제하기 전에는 반드시 `grep -rn "inbox/<id>\|inquiry.*<id>" e2e/`로 e2e 스펙의 하드코딩 참조 여부를 먼저 확인한다** — 화면에 "테스트"로 보인다고 곧 지워도 되는 데이터가 아니다.
 
 ---
 
