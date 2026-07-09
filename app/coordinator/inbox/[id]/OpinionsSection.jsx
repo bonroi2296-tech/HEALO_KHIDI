@@ -35,7 +35,7 @@ export default function OpinionsSection({ inquiryId }) {
   const [directDoctor, setDirectDoctor] = useState("");
   const [directText, setDirectText] = useState("");
   const [addingDirect, setAddingDirect] = useState(false);
-  const [directFile, setDirectFile] = useState(null); // { path, name }
+  const [directFiles, setDirectFiles] = useState([]); // [{ path, name }]
   const [uploadingFile, setUploadingFile] = useState(false);
   const [fileError, setFileError] = useState("");
   const [dragOver, setDragOver] = useState(false);
@@ -74,26 +74,31 @@ export default function OpinionsSection({ inquiryId }) {
     }
   };
 
-  const uploadDirectFile = async (file) => {
-    if (!file) return;
+  // 여러 파일(FileList/배열) 순차 업로드 — 검사지+진단서처럼 첨부가 여러 개인 경우.
+  const uploadDirectFiles = async (fileList) => {
+    const files = Array.from(fileList || []).filter(Boolean);
+    if (files.length === 0) return;
     setUploadingFile(true);
     setFileError("");
     try {
-      const fd = new FormData();
-      fd.append("file", file);
-      const res = await fetch("/api/attachments/upload", { method: "POST", body: fd });
-      const data = await res.json();
-      if (data.ok) setDirectFile({ path: data.path, name: data.name || file.name });
-      else setFileError("업로드 실패 — 다시 시도해 주세요.");
+      for (const file of files) {
+        const fd = new FormData();
+        fd.append("file", file);
+        const res = await fetch("/api/attachments/upload", { method: "POST", body: fd });
+        const data = await res.json();
+        if (data.ok) setDirectFiles((prev) => [...prev, { path: data.path, name: data.name || file.name }]);
+        else setFileError("일부 업로드 실패 — 다시 시도해 주세요.");
+      }
     } catch {
       setFileError("업로드 실패 — 다시 시도해 주세요.");
     } finally {
       setUploadingFile(false);
     }
   };
+  const removeDirectFile = (path) => setDirectFiles((prev) => prev.filter((f) => f.path !== path));
 
   const addDirect = async () => {
-    if (!directDoctor.trim() || (directText.trim().length < 5 && !directFile)) return;
+    if (!directDoctor.trim() || (directText.trim().length < 5 && directFiles.length === 0)) return;
     setAddingDirect(true);
     try {
       const res = await authFetch(`/api/coordinator/opinions`, {
@@ -102,12 +107,12 @@ export default function OpinionsSection({ inquiryId }) {
         body: JSON.stringify({
           inquiryId: Number(inquiryId), direct: true, doctorName: directDoctor,
           opinionText: directText,
-          ...(directFile ? { filePath: directFile.path, fileName: directFile.name } : {}),
+          ...(directFiles.length > 0 ? { files: directFiles } : {}),
         }),
       });
       const data = await res.json();
       if (data.ok) {
-        setDirectDoctor(""); setDirectText(""); setDirectFile(null); setShowDirect(false);
+        setDirectDoctor(""); setDirectText(""); setDirectFiles([]); setShowDirect(false);
         await load();
       }
     } catch { /* silent */ } finally {
@@ -183,54 +188,60 @@ export default function OpinionsSection({ inquiryId }) {
                   placeholder="소견 주신 분 (예: ○○대병원 종양내과 김○○)"
                   className="w-full text-xs border border-gray-200 rounded px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-teal-500"
                 />
-                <textarea
-                  value={directText}
-                  onChange={(e) => setDirectText(e.target.value)}
-                  rows={3}
-                  placeholder="받은 소견 원문을 그대로 붙여넣으세요 (또는 아래에 문서·이미지로 첨부)"
-                  className="w-full text-sm border border-gray-200 rounded px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-teal-500"
-                />
-
-                {/* 텍스트 대신(또는 추가로) 원장님이 준 문서·이미지 파일을 그대로 첨부 — 서버가 자동 번역 */}
-                {directFile ? (
-                  <div className="flex items-center gap-2 text-xs bg-white border border-gray-200 rounded px-2 py-1.5">
-                    <FileText size={13} className="text-teal-600 shrink-0" />
-                    <span className="truncate flex-1 text-gray-700">{directFile.name}</span>
-                    <button onClick={() => setDirectFile(null)} className="shrink-0 text-gray-400 hover:text-red-600">
-                      <X size={13} />
-                    </button>
-                  </div>
-                ) : (
-                  <label
-                    onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
-                    onDragLeave={() => setDragOver(false)}
-                    onDrop={(e) => {
-                      e.preventDefault();
-                      setDragOver(false);
-                      uploadDirectFile(e.dataTransfer.files?.[0]);
-                    }}
-                    className={`flex items-center gap-1.5 text-xs px-2 py-1.5 rounded border border-dashed cursor-pointer ${dragOver ? "border-teal-500 bg-teal-50 text-teal-700" : "border-gray-200 text-gray-500 hover:text-teal-700"}`}
-                  >
-                    {uploadingFile ? <Loader2 size={13} className="animate-spin" /> : <Paperclip size={13} />}
-                    {uploadingFile ? "업로드 중…" : "원장님이 주신 문서·이미지 첨부 또는 여기로 드래그 (텍스트 대신 자동 번역)"}
+                {/* 텍스트 입력칸이자 드롭존 — 원장님이 주신 문서·이미지 파일(여러 개 가능)을 여기로 바로 드래그 */}
+                <div
+                  onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+                  onDragLeave={() => setDragOver(false)}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    setDragOver(false);
+                    uploadDirectFiles(e.dataTransfer.files);
+                  }}
+                  className={`rounded border ${dragOver ? "border-teal-500 bg-teal-50/60" : "border-gray-200"}`}
+                >
+                  <textarea
+                    value={directText}
+                    onChange={(e) => setDirectText(e.target.value)}
+                    rows={3}
+                    placeholder="받은 소견 원문을 그대로 붙여넣거나, 문서·이미지 파일을 여기로 드래그하세요 (여러 개 가능 — 텍스트 대신 자동 번역)"
+                    className="w-full text-sm bg-transparent px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-teal-500 rounded"
+                  />
+                  <label className="flex items-center gap-1 px-2 pb-1.5 text-[11px] text-teal-700 hover:underline cursor-pointer w-fit">
+                    {uploadingFile ? <Loader2 size={11} className="animate-spin" /> : <Paperclip size={11} />}
+                    {uploadingFile ? "업로드 중…" : "파일 선택 (여러 개 가능)"}
                     <input
                       type="file"
+                      multiple
                       accept="image/jpeg,image/png,image/gif,image/webp,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
                       className="hidden"
                       disabled={uploadingFile}
-                      onChange={(e) => uploadDirectFile(e.target.files?.[0])}
+                      onChange={(e) => uploadDirectFiles(e.target.files)}
                     />
                   </label>
+                </div>
+
+                {directFiles.length > 0 && (
+                  <div className="space-y-1">
+                    {directFiles.map((f) => (
+                      <div key={f.path} className="flex items-center gap-2 text-xs bg-white border border-gray-200 rounded px-2 py-1.5">
+                        <FileText size={13} className="text-teal-600 shrink-0" />
+                        <span className="truncate flex-1 text-gray-700">{f.name}</span>
+                        <button onClick={() => removeDirectFile(f.path)} className="shrink-0 text-gray-400 hover:text-red-600">
+                          <X size={13} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
                 )}
                 {fileError && <p className="text-[11px] text-red-600">{fileError}</p>}
 
                 <div className="flex items-center gap-2">
                   <button
                     onClick={addDirect}
-                    disabled={addingDirect || uploadingFile || !directDoctor.trim() || (directText.trim().length < 5 && !directFile)}
+                    disabled={addingDirect || uploadingFile || !directDoctor.trim() || (directText.trim().length < 5 && directFiles.length === 0)}
                     className="inline-flex items-center px-3 py-1.5 text-xs font-semibold bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition disabled:opacity-50"
                   >
-                    {addingDirect ? (directFile ? "번역 중…" : "추가 중…") : "추가"}
+                    {addingDirect ? (directFiles.length > 0 ? "번역 중…" : "추가 중…") : "추가"}
                   </button>
                   <button onClick={() => setShowDirect(false)} className="text-xs text-gray-400 hover:underline">취소</button>
                 </div>
@@ -317,11 +328,19 @@ function OpinionItem({ opinion }) {
           <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 text-[11px] font-medium">에이전시 공개됨</span>
         )}
       </div>
-      <div className="flex items-center justify-between mb-1">
+      <div className="flex items-center justify-between mb-1 gap-2 flex-wrap">
         <p className="text-xs text-gray-400">
           {opinion.file_path ? "원장님 원문 — AI 번역 초안(내부용, 에이전시에 안 보임)" : "원장님 원문 (내부용, 에이전시에 안 보임)"}
         </p>
-        {opinion.file_url && (
+        {opinion.attached_files?.length > 0 ? (
+          <div className="flex items-center gap-2 flex-wrap">
+            {opinion.attached_files.map((f, i) => f.url && (
+              <a key={i} href={f.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[11px] text-teal-700 hover:underline shrink-0">
+                <Paperclip size={11} /> {f.name || `원본 ${i + 1}`}
+              </a>
+            ))}
+          </div>
+        ) : opinion.file_url && (
           <a href={opinion.file_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[11px] text-teal-700 hover:underline shrink-0">
             <Paperclip size={11} /> 원본 파일 ({opinion.file_name || "첨부"})
           </a>

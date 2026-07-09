@@ -20,6 +20,16 @@ import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
 import { notifyStaffOpinionArrived } from "@/lib/notifications/inApp";
 import { translateMedicalDoc } from "@/lib/documents/translateDoc";
 
+// 파일 여러 개 — 각각 번역 후 파일명 헤더로 구분해 하나의 opinion_text 로 이어붙임.
+async function translateMultiple(files: { path: string; name?: string | null }[]): Promise<string> {
+  const parts = await Promise.all(files.map(async (f) => {
+    const result = await translateMedicalDoc({ path: f.path, name: f.name, lang: "ko" }).catch(() => null);
+    const body = result?.ok ? flattenTranslatedDoc(result.doc) : "(자동 번역 실패 — 첨부 원본을 직접 확인해 주세요)";
+    return `[${f.name || "첨부파일"}]\n${body}`;
+  }));
+  return parts.join("\n\n");
+}
+
 // 번역된 문서(섹션 배열)를 사람이 읽을 평문으로 펼침 — case_opinions.opinion_text 는 plain text 컬럼이라.
 function flattenTranslatedDoc(doc: { docType?: string; sections?: any[] } | null | undefined): string {
   if (!doc?.sections?.length) return "";
@@ -99,23 +109,21 @@ export async function POST(request: NextRequest) {
     // 문서·이미지로 받았으면 filePath/fileName 을 같이 보냄 → 서버가 자동 번역해 초안을 채운다.
     if (body?.direct === true) {
       const doctorName = typeof body?.doctorName === "string" ? body.doctorName.slice(0, 100).trim() : "";
-      const filePath = typeof body?.filePath === "string" ? body.filePath : null;
-      const fileName = typeof body?.fileName === "string" ? body.fileName.slice(0, 200) : null;
+      // 다중 첨부(files: [{path,name}]). 구버전 단일 filePath/fileName 도 계속 지원(하위호환).
+      const files: { path: string; name?: string | null }[] = Array.isArray(body?.files)
+        ? body.files.filter((f: any) => f && typeof f.path === "string").slice(0, 10)
+        : (typeof body?.filePath === "string" ? [{ path: body.filePath, name: body?.fileName || null }] : []);
       let opinionText = typeof body?.opinionText === "string" ? body.opinionText.trim() : "";
 
       if (!doctorName) {
         return Response.json({ ok: false, error: "invalid_direct_entry" }, { status: 400 });
       }
-      if (!opinionText && !filePath) {
+      if (!opinionText && files.length === 0) {
         return Response.json({ ok: false, error: "invalid_direct_entry" }, { status: 400 });
       }
 
-      if (filePath && !opinionText) {
-        const result = await translateMedicalDoc({ path: filePath, name: fileName, lang: "ko" }).catch(() => null);
-        opinionText = result?.ok ? flattenTranslatedDoc(result.doc) : "";
-        if (!opinionText) {
-          opinionText = "(자동 번역 실패 — 첨부 원본을 직접 확인해 주세요)";
-        }
+      if (files.length > 0 && !opinionText) {
+        opinionText = await translateMultiple(files);
       }
       if (opinionText.length < 5) {
         return Response.json({ ok: false, error: "invalid_direct_entry" }, { status: 400 });
@@ -128,10 +136,11 @@ export async function POST(request: NextRequest) {
           doctor_key: null,
           doctor_name: doctorName,
           opinion_text: opinionText.slice(0, 8000),
-          file_path: filePath,
-          file_name: fileName,
+          file_path: files[0]?.path || null,
+          file_name: files[0]?.name || null,
+          files: files.length > 0 ? files : null,
         })
-        .select("id, doctor_name, opinion_text, file_path, file_name, created_at")
+        .select("id, doctor_name, opinion_text, file_path, file_name, files, created_at")
         .single();
       if (dErr || !row) {
         console.error("[coordinator/opinions] direct insert error:", dErr?.message);
@@ -204,15 +213,22 @@ export async function GET(request: NextRequest) {
 
     const { data: opinions } = await (supabaseAdmin as any)
       .from("case_opinions")
-      .select("id, doctor_key, doctor_name, opinion_text, attribution_note, released_text, released_at, file_path, file_name, created_at")
+      .select("id, doctor_key, doctor_name, opinion_text, attribution_note, released_text, released_at, file_path, file_name, files, created_at")
       .eq("inquiry_id", inquiryId)
       .order("created_at", { ascending: false });
 
     // 첨부 원본(문서·이미지)이 있으면 서명 URL로("이미 받은 소견"이 파일로 온 경우 코디가 원본 대조).
+    // files(다중)가 있으면 그걸 우선, 없으면 구버전 단일 file_path 폴백.
     const opinionsWithUrls = await Promise.all((opinions || []).map(async (o: any) => {
-      if (!o.file_path) return o;
-      const { data } = await supabaseAdmin.storage.from("attachments").createSignedUrl(o.file_path, 3600);
-      return { ...o, file_url: data?.signedUrl || null };
+      const list: { path: string; name?: string | null }[] = Array.isArray(o.files) && o.files.length > 0
+        ? o.files
+        : (o.file_path ? [{ path: o.file_path, name: o.file_name }] : []);
+      if (list.length === 0) return o;
+      const withUrls = await Promise.all(list.map(async (f) => {
+        const { data } = await supabaseAdmin.storage.from("attachments").createSignedUrl(f.path, 3600);
+        return { name: f.name, url: data?.signedUrl || null };
+      }));
+      return { ...o, file_url: withUrls[0]?.url || null, attached_files: withUrls };
     }));
 
     // 활성 링크가 있으면 카톡 붙여넣기용 요약도 함께(코디가 재공유 시 다시 복사할 수 있게).
