@@ -319,6 +319,9 @@ export default function CasesPage() {
           inquiry_id: id,
           case_status: draft.case_status || null,
           case_status_note: draft.case_status_note || null,
+          // 어드민 케이스보드는 드롭다운으로 임의 선택하는 화면이라(코디 인박스의 원클릭 단계
+          // 버튼과 다름) 선택 자체가 이미 의도적 확인 — 뒤로가기 가드는 우회한다(PR #724).
+          force_backward: true,
           agency_id: draft.agency_id || null,
           insurance_provider: draft.insurance_provider || null,
           insurance_policy_no: draft.insurance_policy_no || null,

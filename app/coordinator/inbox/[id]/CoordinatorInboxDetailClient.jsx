@@ -1126,7 +1126,9 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
                 onClick={() => {
                   if (s.key === caseStatus) return;
                   const curOrder = CASE_STATUS_STEPS.find((x) => x.key === caseStatus)?.order || 0;
-                  if (s.key !== "on_hold" && s.order < curOrder) {
+                  // on_hold(보류)는 순서상 99지만 실제 단계가 아니라 일시정지 — 재개/재보류는
+                  // "되돌리기"로 취급하지 않는다(그래야 확인창 문구가 실제 방향과 맞음, POSTMORTEM #80).
+                  if (s.key !== "on_hold" && caseStatus !== "on_hold" && s.order < curOrder) {
                     const ok = window.confirm(
                       `"${caseStatusLabelL(caseStatus, lang)}" 단계에서 "${caseStatusLabelL(s.key, lang)}" 단계로 되돌립니다. 되돌릴까요?`
                     );
