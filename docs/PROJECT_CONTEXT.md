@@ -31,7 +31,7 @@
 **섹션 진행 상황** (완료마다 이 표를 갱신):
 | # | 섹션 | 파일 | 상태 |
 |---|------|------|------|
-| 1 | `app/admin/consultations`·`users`·`staff` + 공용 `src/components/consultation/CreateConsultationModal.jsx`(admin·coordinator 공용, 이번에 같이 완료) | 4개, ~1940줄 | ✅ 완료(PR #727) — ⚠️ 첫 커밋이 `useLang()`(공개용) 오적용으로 CI(E2E Smoke) 적발·`useBackofficeLang()`으로 수정 완료(POSTMORTEMS #82), 가드(§16) 신설 |
+| 1 | `app/admin/consultations`·`users`·`staff` + 공용 `src/components/consultation/CreateConsultationModal.jsx`(admin·coordinator 공용, 이번에 같이 완료) | 4개, ~1940줄 | ✅ **머지 완료(PR #727, main 반영)** — 첫 커밋이 `useLang()`(공개용) 오적용으로 CI(E2E Smoke) 적발·`useBackofficeLang()`으로 수정 완료(POSTMORTEMS #82), 가드(§16) 신설. 머지 직전 다른 세션과 `docs/POSTMORTEMS.md` 같은 위치 삽입 충돌 발생·수동 해결(PO가 GitHub 화면에서 직접 Squash and merge 확정) |
 | 2 | `app/admin/khidi/*` (KHIDI 지표 대시보드) | 미측정 | ⏳ 대기 |
 | 3 | `app/admin/{hospitals,treatments,doctors,import,rag}` | 미측정 | ⏳ 대기 |
 | 4 | `app/admin` 나머지(playbook·agent·ai-status·chat·observability·analytics·automation·audit·crawl·enrichment·leads·reminders·inquiries·settings·account 등) | 미측정 | ⏳ 대기 |
