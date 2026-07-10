@@ -14,6 +14,18 @@
 
 ---
 
+## #82 — 백오피스 다국어화 섹션1이 공개용 useLang() 써서 로그인 직후 화면이 영어로 새는 CI 회귀 (2026-07-09)
+
+**무슨 일** — PO 지시(#81 계기, "백오피스도 예외 없이 다국어")로 `app/admin/{consultations,users,staff}` + 공용 `CreateConsultationModal.jsx`를 6개 언어화한 PR #727의 Smoke Test(`consultation-create-modal.spec.ts`)가 3연속 실패. 새로 로그인한 코디 세션(언어 쿠키 없음)에서 모달 제목이 한국어 "새 원격 상담 예약"일 거라 기대했는데 실제론 영어로 떠서 텍스트 어설션이 안 잡힘.
+
+**왜 못 잡았나 (근본원인)** — 이 저장소엔 언어 훅이 **두 종류** 있다: ①`useLang()`(`@/lib/i18n/LangContext`, 공개 사이트·에이전시/의료기관용 `healo_lang` 쿠키, **쿠키 없으면 en 기본** — SEO 상 영어 우선)  ②`useBackofficeLang()`(`@/lib/i18n/coordinator`, 스태프 전용 `healo_bo_lang` 쿠키, **쿠키 없으면 ko 기본** — "스태프는 한국 운영이 기본"이라는 명시적 설계 결정, 이미 코드 주석에 남아 있었음). 네 파일 다국어화 작업 때 이미 존재하던 `app/agency/PartnerPortal.jsx`(에이전시·의료기관용, `useLang()`이 정답)를 참조 패턴으로 삼았는데, **admin/coordinator는 다른 훅을 써야 한다는 걸 확인 안 하고 같은 훅을 그대로 복붙**함. 두 훅이 이름도 비슷하고(`useLang` vs `useBackofficeLang`) 인터페이스도 동일(둘 다 언어 코드 문자열 반환)해서 어느 쪽이든 "그냥 동작"은 하니 로컬에서 안 걸리고, 실제 사용자 흐름(로그인 직후 첫 화면)에서만 드러나는 부류 — E2E Smoke가 정확히 그 흐름을 재현해서 잡음(자동 가드가 실제로 일한 사례).
+
+**어떻게 고쳤나** — 4개 파일 전부 `import { useLang } from "@/lib/i18n/LangContext"` → `import { useBackofficeLang } from "@/lib/i18n/coordinator"`, `useLang()` 호출 → `useBackofficeLang()` 호출로 교체(번역 문구·로직은 무변경, 언어 판정 소스만 정정). 커밋 `0c41e94f`.
+
+**재발 방지** — `check-content-consistency.mjs` §16 신설: `app/admin`·`app/coordinator`·`app/hospital` 내부 파일이 공개용 `useLang()`(`@/lib/i18n/LangContext`)을 import 하면 CI 실패, `useBackofficeLang()`으로 교체하라고 안내. 가드가 실제로 잡아내는지 직접 검증(파일에 일부러 재도입 → 에러 발생 확인 → 원복 → 통과 확인). **한계**: 정적 스캔이라 세 디렉토리 밖의 백오피스 전용 공용 컴포넌트(`src/components/consultation/CreateConsultationModal.jsx` 등, admin·coordinator가 같이 쓰는 파일)는 못 잡음 — 이번 버그의 실제 발생지 중 하나가 바로 이 파일이었음(디렉토리 스캔으로 admin/coordinator 쪽 3개는 못 걸렸어도 애초에 고쳤으니 무관하지만, **앞으로 새 백오피스 공용 컴포넌트를 `src/components/`에 만들 때는 이 문서를 참고해 코드리뷰에서 훅 선택을 직접 확인**할 것). 남은 섹션(2~6, `docs/PROJECT_CONTEXT.md` 진행표)은 이제 이 가드가 있어 같은 실수를 하면 CI가 바로 잡는다.
+
+---
+
 ## #81 — 🔁 #67 부류 재발: 환자용 컴포넌트(`src/components/costs`)가 app/patient 스캔 범위 밖이라 한글 통짜 하드코딩 그대로 방치 (2026-07-09, PO 질문 계기)
 
 **무슨 일** — PO가 "왜 가끔 텍스트가 한 언어로 고정되냐"고 물어 조사하던 중 발견. `src/components/costs/CostEstimateCard.jsx`(환자에게 예상 진료비 카드를 보여주는 컴포넌트, KHIDI 정부요건 #3·#6 대응용)가 `alert()` 3곳을 포함해 전체 텍스트가 한국어로 통짜 하드코딩돼 있었음. `useLang`/`t()` 미사용. 다행히 아직 어느 화면에도 연결(import)되지 않은 컴포넌트라 실제 환자 노출은 없었음 — 그러나 연결되는 순간 ru/kz 환자에게 한국어가 그대로 뜰 뻔함.

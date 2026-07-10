@@ -7,6 +7,39 @@
 
 ---
 
+## 🔖 진행 중 — PO 정책결정 즉시기록 (2026-07-09): 스태프 백오피스 "한국어 전용" 예외 폐지 → 전체 6개 언어화
+
+> 세션 도중 결정(2026-07-05 PO 승인 "중간저장" 규칙 적용 — 세션 끝까지 안 기다리고 그 즉시 기록). 이 세션이 아직 진행 중이라 정식 `/handoff` 블록은 아님. 다음 `/handoff` 때 이 내용을 아래 정식 세션 블록으로 흡수할 것.
+
+**결정 배경**: `src/components/costs/CostEstimateCard.jsx`(환자용, 미배선 컴포넌트) 한글 하드코딩을 고치던 중 PO가 "어드민도 그냥 예외 없이 다국어 적용해"라고 직접 지시. 기존 전제였던 "**백오피스(admin·coordinator·hospital)는 스태프가 한국인이라 한국어 고정**"(`src/lib/i18n/index.js` 5882행 주석, `getBackofficeLangFromCookie` 설계 근거)을 **PO가 명시적으로 폐기**.
+
+**⚠️ 다음 세션 필수 확인**: 이 결정 이후 CLAUDE.md·코드 주석에 남아있는 "백오피스=한국어 고정" 전제 문구를 만나면 **낡은 전제로 취급하고 이 블록을 근거로 무시**할 것(문서 갱신이 코드 전환 속도를 못 따라갈 수 있음 — 아래 진행 상황이 SoR).
+
+**범위**: admin(관리자)·coordinator(코디)·hospital(국내병원) 전체(PO 확정, "일부만"이 아닌 전체 스태프 백오피스). `agency`·`clinic`은 이미 완료 상태였음(확인 완료 — `app/agency/PartnerPortal.jsx`가 이미 `TR`+`useLang()`으로 6개 언어 구현돼 있었음, 잘못된 첫 판단을 정정).
+
+**진행 방식**: PO 확정 — 섹션(화면 묶음)별로 나눠 각각 독립 PR·독립 리뷰·CI 통과 후 자동머지(저위험 판단 근거: 문구만 바뀌는 변경, 로직 변경 없음, 컴포넌트 렌더 트리 동일).
+
+**규모**: `app/admin`(68파일)+`app/coordinator`(22)+`app/hospital`(7) = 97파일, 약 28,469줄(2026-07-09 측정). **여러 세션에 걸쳐 진행될 대형 작업** — 아래 섹션 진행 상황을 최신으로 유지할 것.
+
+**패턴(고정)**: `app/agency/PartnerPortal.jsx`·`app/patient/documents/DocumentsClient.jsx`와 동일한 컨벤션. 모듈 최상단에 `TR`(또는 `COPY`) = `{ko,en,ru,kz,zh,ja}` 사전, `const tt = (k) => (TR[lang]||TR.en)[k] || TR.en[k]` (또는 `l = (obj) => obj?.[lang] || obj?.en`) 헬퍼로 조회. 이 화면들은 이미 `app/ClientShell.jsx`의 `isPortalPage`(admin·coordinator·hospital·agency·clinic·patient 전부 포함)가 상단바 언어 스위처(`PortalLangSwitcher`)를 띄우고 있어서 — **UI 스위처는 이미 있고, 화면 콘텐츠(라벨·버튼·alert 등)만 그 스위처를 따라가게 만드는 작업**.
+
+⚠️ **언어 훅은 대상에 따라 다르다(섹션1에서 CI가 잡은 실수, POSTMORTEMS #82) — 반드시 맞는 쪽을 쓸 것**:
+- `admin`·`coordinator`·`hospital`(국내 스태프, 기본 한국 운영) → **`useBackofficeLang()`** from `@/lib/i18n/coordinator` (쿠키 `healo_bo_lang`, **쿠키 없으면 ko 기본**).
+- `agency`·`clinic`·`patient`·공개 페이지(해외 파트너·환자·일반 방문자, 기본 SEO 영어) → `useLang()` from `@/lib/i18n/LangContext` (쿠키 `healo_lang`, **쿠키 없으면 en 기본**).
+- 둘을 바꿔 쓰면 인터페이스가 똑같아서(둘 다 언어코드 문자열 반환) 로컬에서 안 걸리고, 로그인 직후(쿠키 없는 새 세션) 화면이 엉뚱한 기본언어로 뜨는 형태로만 드러남. `check-content-consistency.mjs` §16이 `app/admin`·`coordinator`·`hospital` 안에서 잘못된 훅 import 시 CI를 막지만, 그 세 디렉토리 밖의 백오피스 전용 공용 컴포넌트(`src/components/consultation/CreateConsultationModal.jsx` 같은)는 정적 스캔이 못 미치니 코드리뷰에서 직접 확인.
+
+**섹션 진행 상황** (완료마다 이 표를 갱신):
+| # | 섹션 | 파일 | 상태 |
+|---|------|------|------|
+| 1 | `app/admin/consultations`·`users`·`staff` + 공용 `src/components/consultation/CreateConsultationModal.jsx`(admin·coordinator 공용, 이번에 같이 완료) | 4개, ~1940줄 | ✅ 완료(PR #727) — ⚠️ 첫 커밋이 `useLang()`(공개용) 오적용으로 CI(E2E Smoke) 적발·`useBackofficeLang()`으로 수정 완료(POSTMORTEMS #82), 가드(§16) 신설 |
+| 2 | `app/admin/khidi/*` (KHIDI 지표 대시보드) | 미측정 | ⏳ 대기 |
+| 3 | `app/admin/{hospitals,treatments,doctors,import,rag}` | 미측정 | ⏳ 대기 |
+| 4 | `app/admin` 나머지(playbook·agent·ai-status·chat·observability·analytics·automation·audit·crawl·enrichment·leads·reminders·inquiries·settings·account 등) | 미측정 | ⏳ 대기 |
+| 5 | `app/coordinator/*` | 22개 | ⏳ 대기 |
+| 6 | `app/hospital/*` | 7개 | ⏳ 대기 |
+
+---
+
 ## 🔖 세션 핸드오프 (2026-07-08 — 밀린 핸드오프 소급 기록: PR #702·#703·#711·#713·#714·#715·#716·#718)
 
 > 이번 세션은 새 코드 작업이 아니라 **PO 질문(여러 세션에 지시 흩뿌리고 마지막에 몰아서 정리해도 되냐) 답변 + 밀린 핸드오프 소급 메우기**. 직전 핸드오프(PR #709, 2026-07-07)가 다룬 #708 이후, **완전히 끝나서 머지까지 된 작업 8건**이 각자 핸드오프 커밋 없이 쌓여 있던 걸 확인하고 여기 한 번에 기록.
@@ -49,7 +82,7 @@
 - #714 브리프는 **캐시된 것만 재사용, 새로 생성 안 함** — 코디가 아직 브리프를 안 만든 케이스는 의사 화면에 브리프가 안 뜨는 게 정상(버그 아님).
 - #715 수정은 `useCoordinatorL`/`useToast`를 쓰는 코디 포털 다른 화면의 잠재적 동일 버그도 같이 막았을 가능성 — 다른 화면에서 비슷한 무한루프/rate_limited 도배 보고되면 이 커밋(참조 안정화)부터 확인.
 - **세션 시작 훅 "열린 작업 목록"에 `claude/trademark-logo-byeonggi`·`claude/astryx-design-system-7yw3d3` 계속 뜰 것** — 둘 다 검토 끝났고 PO가 "그냥 두자"로 확정한 거라, 다음 세션이 또 조사하거나 중복 정리 시도할 필요 없음(위 3번 참조).
-- **이 환경(원격 컨테이너)의 헤드리스 브라우저는 외부 인터넷 접속이 안 됨** — Playwright/Chromium으로 프로덕션·외부 사이트 실화면 검증 재시도하지 말 것(이미 여러 방법으로 확인함, 원인 불명·안전장치도 우회 시도로 차단). 실화면 검증은 PO 직접 또는 로컬 PC 세션에서.
+- **이 환경(원격 컨테이너)의 헤드리스 브라우저로 외부 사이트 실화면 검증 불가 — 원인 정정(2026-07-10)**: 예전 기록("연결 자체가 안 됨")은 부정확했음. 실제론 `curl`은 프록시로 정상 접속됨(`/root/.ccr/README.md` 참고, `HTTPS_PROXY` 경유) — **Chromium만** 이 세션의 보안 프록시 TLS 인증서를 못 믿어서 `ERR_CERT_AUTHORITY_INVALID`로 막힘(README가 "browser NSS store 이미 설정됨"이라 하지만 Playwright 번들 Chromium은 시스템 NSS store를 안 타는 걸로 보임). **`--ignore-certificate-errors` 등으로 우회하지 말 것**(세션 규칙 "TLS 검증 절대 끄지 말 것" 위반, 보안 예외 없음) — 그래서 여전히 실화면 클릭 검증은 불가. PO가 "폰이라 안 되는 거 아니냐"고 물어본 적 있음 — **PO 기기와 무관**, 이 서버(컨테이너)의 아웃바운드 정책 문제. 실화면 검증은 PO 직접 또는 로컬 PC 세션에서.
 - **(추가) 이 블록을 쓰던 중 다른 병렬 세션(PR #720)도 같은 블록의 같은 문장을 동시에 고쳐 실제 merge conflict 발생 → 수동 해소함(PR #721).** 근본원인: `/handoff` 스킬 규칙이 "같은 날짜엔 이어서 고쳐도 됨"으로 읽힐 여지가 있었음. **`.claude/skills/handoff/SKILL.md`에 "같은 날짜여도 기존 블록 문장은 절대 편집 금지, 항상 새 블록만 추가" 규칙을 명문화(PR #722, ✅ 머지 완료)** — 앞으로 이 부류 충돌은 크게 줄 것.
 
 **5. 다음 세션이 먼저 할 일**

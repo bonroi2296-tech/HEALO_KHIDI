@@ -20,13 +20,215 @@ import {
 } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { useToast } from "@/components/Toast";
+import { useBackofficeLang } from "@/lib/i18n/coordinator";
 import { CreateConsultationModal } from "@/components/consultation/CreateConsultationModal";
 
 const supabase = createSupabaseBrowserClient();
 
+// 스태프 백오피스 6개 언어화(2026-07-09 PO 결정 — 예외 없이 전체 다국어 전환).
+const LOCALE_MAP = { ko: "ko-KR", en: "en-US", ru: "ru-RU", kz: "kk-KZ", zh: "zh-CN", ja: "ja-JP" };
+const TR = {
+  ko: {
+    errAuth: "인증 오류. 다시 로그인하세요.", errLoadFailedTpl: "상담 로딩 실패: {msg}", errLoadFailed: "상담 로딩 실패",
+    errAuthSimple: "인증 오류", errInviteFailedTpl: "상담 링크 생성 실패: {msg}", errInviteFailed: "상담 링크 생성 실패",
+    errJoinBlocked: "상담 링크 발급이 안 돼 입장을 멈췄어요. 새로고침(또는 다시 로그인) 후 다시 눌러주세요.",
+    toastLinkCopiedJoin: "상담 링크를 복사했어요 — 상대에게 붙여넣어 보내세요. 나는 지금 입장합니다",
+    toastLinkCopiedAndEmailed: "상담 링크를 복사했고, 등록된 이메일로도 발송했습니다",
+    toastLinkCopiedExpiresTpl: "상담 링크가 클립보드에 복사됐습니다 (만료: {date})",
+    promptCopyLink: "아래 링크를 복사해 공유하세요:",
+    confirmCancel: "상담을 취소하시겠습니까? 발송된 초대 링크도 함께 폐기됩니다.",
+    errAuthReLogin: "인증 오류 — 다시 로그인하세요.", errCancelFailedTpl: "취소 실패: {msg}",
+    toastCancelled: "상담이 취소되었습니다. 초대 링크도 폐기됐습니다.", errCancelFailed: "취소 실패",
+    confirmComplete: "이 상담을 '완료' 처리할까요?\n완료하면 발송된 초대 링크가 폐기되어 재입장할 수 없습니다.",
+    errCompleteFailedTpl: "완료 처리 실패: {msg}", toastCompleted: "상담을 완료 처리했습니다. (사전상담·사후관리 실적에 집계됩니다)", errCompleteFailed: "완료 처리 실패",
+    errBillingRequired: "AI 회의록은 Gemini 유료 설정 후 켜집니다 (현재 비활성).",
+    errNoTranscript: "번역 기록이 없어 회의록을 만들 수 없어요.",
+    errAiFailed: "AI 생성에 실패했어요. 잠시 후 다시 시도해 주세요.", errSummaryFailed: "회의록 생성 실패",
+    toastSummaryDone: "AI 회의록을 만들었어요.",
+    sessionTypePre: "진료 전 평가", sessionTypeFollow: "추후 진료", sessionTypeEmergency: "긴급 상담", sessionTypeDiagnostic: "검사 결과 검토",
+    statusScheduled: "예정됨", statusActive: "진행 중", statusCompleted: "완료", statusCancelled: "취소됨", statusNoShow: "무응답",
+    pageTitle: "원격협진 관리", pageDesc: "카자흐스탄 환자와 한국 병원 간 WebRTC 화상 상담", btnNewConsult: "새 상담 예약",
+    tabAll: "전체", loadingText: "로딩 중...", emptyHeading: "상담이 없습니다.",
+    emptyUpcoming: "예정된 상담이 없습니다.", emptyActive: "진행 중인 상담이 없습니다.", emptyCompleted: "완료된 상담이 없습니다.", emptyAll: "상담 기록이 없습니다.",
+    lblDoctor: "담당 의사", lblCoordinator: "코디네이터", lblRoomInfo: "방 정보", lblNotes: "비고",
+    btnJoin: "상담 시작", btnCopyLink: "🔗 링크 복사", titleCopyLink: "입장 없이 링크만 복사 — 「상담 시작」과 같은 링크",
+    btnCompleteAction: "완료", titleCompleteAction: "상담을 '완료'로 기록 (사전상담·사후관리 실적 집계) — 초대 링크도 폐기",
+    btnCancelAction: "취소", titleCancelAction: "상담 취소 (초대 링크도 폐기)",
+    btnRejoin: "상담 재진입", completedBadge: "완료됨",
+    btnGenSummary: "AI 회의록 생성", btnRegenSummary: "AI 회의록 다시 생성", summaryGenerating: "회의록 생성 중…",
+    aiSummaryTitle: "AI 회의록", aiSummaryNote: "(AI 자동 생성 · 참고용, 의료진 확인 필요)",
+    secSummary: "요약", secDecisions: "결정사항", secNextSteps: "다음 단계", secConcerns: "환자 우려",
+    toastNewConsultCreated: "상담 예약이 생성되었습니다",
+  },
+  en: {
+    errAuth: "Authentication error. Please log in again.", errLoadFailedTpl: "Failed to load consultations: {msg}", errLoadFailed: "Failed to load consultations",
+    errAuthSimple: "Authentication error", errInviteFailedTpl: "Failed to create consultation link: {msg}", errInviteFailed: "Failed to create consultation link",
+    errJoinBlocked: "Couldn't issue a consultation link, so we stopped before entering. Refresh (or log in again) and try again.",
+    toastLinkCopiedJoin: "Consultation link copied — paste it to send to the other party. You're entering now.",
+    toastLinkCopiedAndEmailed: "Consultation link copied, and also sent to the registered email",
+    toastLinkCopiedExpiresTpl: "Consultation link copied to clipboard (expires: {date})",
+    promptCopyLink: "Copy the link below to share:",
+    confirmCancel: "Cancel this consultation? The sent invite link will also be revoked.",
+    errAuthReLogin: "Authentication error — please log in again.", errCancelFailedTpl: "Cancellation failed: {msg}",
+    toastCancelled: "The consultation was cancelled. The invite link was also revoked.", errCancelFailed: "Cancellation failed",
+    confirmComplete: "Mark this consultation as 'completed'?\nOnce completed, the sent invite link is revoked and can't be re-entered.",
+    errCompleteFailedTpl: "Failed to mark as completed: {msg}", toastCompleted: "Consultation marked as completed. (Counted toward pre-consultation / follow-up-care metrics)", errCompleteFailed: "Failed to mark as completed",
+    errBillingRequired: "AI meeting notes require a paid Gemini setup (currently disabled).",
+    errNoTranscript: "No translation transcript, so meeting notes can't be generated.",
+    errAiFailed: "AI generation failed. Please try again shortly.", errSummaryFailed: "Failed to generate meeting notes",
+    toastSummaryDone: "AI meeting notes generated.",
+    sessionTypePre: "Pre-treatment assessment", sessionTypeFollow: "Follow-up", sessionTypeEmergency: "Emergency consult", sessionTypeDiagnostic: "Test result review",
+    statusScheduled: "Scheduled", statusActive: "Active", statusCompleted: "Completed", statusCancelled: "Cancelled", statusNoShow: "No-show",
+    pageTitle: "Telemedicine Management", pageDesc: "WebRTC video consultations between Kazakhstan patients and Korean hospitals", btnNewConsult: "New consultation",
+    tabAll: "All", loadingText: "Loading...", emptyHeading: "No consultations.",
+    emptyUpcoming: "No upcoming consultations.", emptyActive: "No active consultations.", emptyCompleted: "No completed consultations.", emptyAll: "No consultation records.",
+    lblDoctor: "Attending doctor", lblCoordinator: "Coordinator", lblRoomInfo: "Room info", lblNotes: "Notes",
+    btnJoin: "Start consultation", btnCopyLink: "🔗 Copy link", titleCopyLink: "Copy the link without entering — same link as \"Start consultation\"",
+    btnCompleteAction: "Complete", titleCompleteAction: "Record this consultation as 'completed' (counted toward pre-consultation / follow-up-care metrics) — also revokes the invite link",
+    btnCancelAction: "Cancel", titleCancelAction: "Cancel the consultation (also revokes the invite link)",
+    btnRejoin: "Rejoin consultation", completedBadge: "Completed",
+    btnGenSummary: "Generate AI meeting notes", btnRegenSummary: "Regenerate AI meeting notes", summaryGenerating: "Generating meeting notes…",
+    aiSummaryTitle: "AI meeting notes", aiSummaryNote: "(Auto-generated by AI · for reference, needs medical staff review)",
+    secSummary: "Summary", secDecisions: "Decisions", secNextSteps: "Next steps", secConcerns: "Patient concerns",
+    toastNewConsultCreated: "The consultation was scheduled",
+  },
+  ru: {
+    errAuth: "Ошибка авторизации. Войдите снова.", errLoadFailedTpl: "Не удалось загрузить консультации: {msg}", errLoadFailed: "Не удалось загрузить консультации",
+    errAuthSimple: "Ошибка авторизации", errInviteFailedTpl: "Не удалось создать ссылку на консультацию: {msg}", errInviteFailed: "Не удалось создать ссылку на консультацию",
+    errJoinBlocked: "Не удалось выдать ссылку на консультацию, вход остановлен. Обновите страницу (или войдите снова) и попробуйте ещё раз.",
+    toastLinkCopiedJoin: "Ссылка на консультацию скопирована — вставьте и отправьте собеседнику. Вы входите сейчас.",
+    toastLinkCopiedAndEmailed: "Ссылка на консультацию скопирована и отправлена на зарегистрированный email",
+    toastLinkCopiedExpiresTpl: "Ссылка на консультацию скопирована в буфер обмена (истекает: {date})",
+    promptCopyLink: "Скопируйте ссылку ниже, чтобы поделиться:",
+    confirmCancel: "Отменить эту консультацию? Отправленная ссылка-приглашение также будет аннулирована.",
+    errAuthReLogin: "Ошибка авторизации — войдите снова.", errCancelFailedTpl: "Не удалось отменить: {msg}",
+    toastCancelled: "Консультация отменена. Ссылка-приглашение также аннулирована.", errCancelFailed: "Не удалось отменить",
+    confirmComplete: "Отметить эту консультацию как «завершена»?\nПосле завершения отправленная ссылка-приглашение аннулируется и повторный вход невозможен.",
+    errCompleteFailedTpl: "Не удалось отметить как завершённую: {msg}", toastCompleted: "Консультация отмечена как завершённая. (Учитывается в показателях предварительных консультаций / последующего наблюдения)", errCompleteFailed: "Не удалось отметить как завершённую",
+    errBillingRequired: "Протоколы ИИ требуют платной настройки Gemini (сейчас отключено).",
+    errNoTranscript: "Нет расшифровки перевода, протокол создать нельзя.",
+    errAiFailed: "Не удалось сгенерировать через ИИ. Попробуйте ещё раз чуть позже.", errSummaryFailed: "Не удалось создать протокол",
+    toastSummaryDone: "Протокол ИИ создан.",
+    sessionTypePre: "Оценка перед лечением", sessionTypeFollow: "Повторный приём", sessionTypeEmergency: "Экстренная консультация", sessionTypeDiagnostic: "Разбор результатов анализов",
+    statusScheduled: "Запланирована", statusActive: "Идёт", statusCompleted: "Завершена", statusCancelled: "Отменена", statusNoShow: "Неявка",
+    pageTitle: "Управление телемедициной", pageDesc: "Видеоконсультации WebRTC между пациентами из Казахстана и корейскими больницами", btnNewConsult: "Новая консультация",
+    tabAll: "Все", loadingText: "Загрузка...", emptyHeading: "Нет консультаций.",
+    emptyUpcoming: "Нет предстоящих консультаций.", emptyActive: "Нет активных консультаций.", emptyCompleted: "Нет завершённых консультаций.", emptyAll: "Нет записей консультаций.",
+    lblDoctor: "Лечащий врач", lblCoordinator: "Координатор", lblRoomInfo: "Информация о комнате", lblNotes: "Примечания",
+    btnJoin: "Начать консультацию", btnCopyLink: "🔗 Скопировать ссылку", titleCopyLink: "Скопировать ссылку без входа — та же ссылка, что и «Начать консультацию»",
+    btnCompleteAction: "Завершить", titleCompleteAction: "Отметить консультацию как «завершена» (учитывается в показателях) — также аннулирует ссылку-приглашение",
+    btnCancelAction: "Отменить", titleCancelAction: "Отменить консультацию (также аннулирует ссылку-приглашение)",
+    btnRejoin: "Вернуться в консультацию", completedBadge: "Завершена",
+    btnGenSummary: "Создать протокол ИИ", btnRegenSummary: "Пересоздать протокол ИИ", summaryGenerating: "Создание протокола…",
+    aiSummaryTitle: "Протокол ИИ", aiSummaryNote: "(Автоматически создано ИИ · только для справки, требуется проверка медперсонала)",
+    secSummary: "Резюме", secDecisions: "Решения", secNextSteps: "Следующие шаги", secConcerns: "Опасения пациента",
+    toastNewConsultCreated: "Консультация запланирована",
+  },
+  kz: {
+    errAuth: "Аутентификация қатесі. Қайта кіріңіз.", errLoadFailedTpl: "Кеңестерді жүктеу сәтсіз: {msg}", errLoadFailed: "Кеңестерді жүктеу сәтсіз",
+    errAuthSimple: "Аутентификация қатесі", errInviteFailedTpl: "Кеңес сілтемесін жасау сәтсіз: {msg}", errInviteFailed: "Кеңес сілтемесін жасау сәтсіз",
+    errJoinBlocked: "Кеңес сілтемесі шығарылмады, кіру тоқтатылды. Бетті жаңартып (немесе қайта кіріп) қайталап көріңіз.",
+    toastLinkCopiedJoin: "Кеңес сілтемесі көшірілді — қарсы тарапқа жіберіңіз. Қазір кіресіз.",
+    toastLinkCopiedAndEmailed: "Кеңес сілтемесі көшірілді және тіркелген email-ге жіберілді",
+    toastLinkCopiedExpiresTpl: "Кеңес сілтемесі буферге көшірілді (мерзімі: {date})",
+    promptCopyLink: "Бөлісу үшін төмендегі сілтемені көшіріңіз:",
+    confirmCancel: "Бұл кеңесті бас тартасыз ба? Жіберілген шақыру сілтемесі де жойылады.",
+    errAuthReLogin: "Аутентификация қатесі — қайта кіріңіз.", errCancelFailedTpl: "Бас тарту сәтсіз: {msg}",
+    toastCancelled: "Кеңес бас тартылды. Шақыру сілтемесі де жойылды.", errCancelFailed: "Бас тарту сәтсіз",
+    confirmComplete: "Бұл кеңесті «аяқталды» деп белгілейсіз бе?\nАяқталған соң жіберілген шақыру сілтемесі жойылады және қайта кіру мүмкін емес.",
+    errCompleteFailedTpl: "Аяқталды деп белгілеу сәтсіз: {msg}", toastCompleted: "Кеңес аяқталды деп белгіленді. (Алдын ала кеңес / емнен кейінгі бақылау көрсеткіштеріне есептеледі)", errCompleteFailed: "Аяқталды деп белгілеу сәтсіз",
+    errBillingRequired: "AI хаттамалары ақылы Gemini баптауын талап етеді (қазір өшірулі).",
+    errNoTranscript: "Аударма жазбасы жоқ, хаттама жасау мүмкін емес.",
+    errAiFailed: "AI жасау сәтсіз болды. Сәл кейін қайталап көріңіз.", errSummaryFailed: "Хаттама жасау сәтсіз",
+    toastSummaryDone: "AI хаттамасы жасалды.",
+    sessionTypePre: "Емдеу алдындағы бағалау", sessionTypeFollow: "Қайталама қабылдау", sessionTypeEmergency: "Шұғыл кеңес", sessionTypeDiagnostic: "Талдау нәтижесін қарау",
+    statusScheduled: "Жоспарланған", statusActive: "Жүруде", statusCompleted: "Аяқталды", statusCancelled: "Бас тартылды", statusNoShow: "Келмеді",
+    pageTitle: "Телемедицинаны басқару", pageDesc: "Қазақстандық науқастар мен корей ауруханалары арасындағы WebRTC бейнекеңестер", btnNewConsult: "Жаңа кеңес",
+    tabAll: "Барлығы", loadingText: "Жүктелуде...", emptyHeading: "Кеңестер жоқ.",
+    emptyUpcoming: "Жоспарланған кеңестер жоқ.", emptyActive: "Белсенді кеңестер жоқ.", emptyCompleted: "Аяқталған кеңестер жоқ.", emptyAll: "Кеңес жазбалары жоқ.",
+    lblDoctor: "Емдеуші дәрігер", lblCoordinator: "Үйлестіруші", lblRoomInfo: "Бөлме туралы ақпарат", lblNotes: "Ескертпе",
+    btnJoin: "Кеңесті бастау", btnCopyLink: "🔗 Сілтемені көшіру", titleCopyLink: "Кірмей-ақ тек сілтемені көшіру — «Кеңесті бастаумен» бірдей сілтеме",
+    btnCompleteAction: "Аяқтау", titleCompleteAction: "Кеңесті «аяқталды» деп белгілеу (көрсеткіштерге есептеледі) — шақыру сілтемесі де жойылады",
+    btnCancelAction: "Бас тарту", titleCancelAction: "Кеңесті бас тарту (шақыру сілтемесі де жойылады)",
+    btnRejoin: "Кеңеске қайта кіру", completedBadge: "Аяқталды",
+    btnGenSummary: "AI хаттамасын жасау", btnRegenSummary: "AI хаттамасын қайта жасау", summaryGenerating: "Хаттама жасалуда…",
+    aiSummaryTitle: "AI хаттамасы", aiSummaryNote: "(AI автоматты жасаған · анықтама үшін, медперсонал тексеруі қажет)",
+    secSummary: "Қорытынды", secDecisions: "Шешімдер", secNextSteps: "Келесі қадамдар", secConcerns: "Науқас алаңдаушылығы",
+    toastNewConsultCreated: "Кеңес жоспарланды",
+  },
+  zh: {
+    errAuth: "身份验证错误，请重新登录。", errLoadFailedTpl: "会诊加载失败：{msg}", errLoadFailed: "会诊加载失败",
+    errAuthSimple: "身份验证错误", errInviteFailedTpl: "会诊链接创建失败：{msg}", errInviteFailed: "会诊链接创建失败",
+    errJoinBlocked: "会诊链接生成失败，已停止进入。请刷新（或重新登录）后再试。",
+    toastLinkCopiedJoin: "会诊链接已复制 — 请粘贴发送给对方，您现在进入。",
+    toastLinkCopiedAndEmailed: "会诊链接已复制，并已发送至注册邮箱",
+    toastLinkCopiedExpiresTpl: "会诊链接已复制到剪贴板（过期时间：{date}）",
+    promptCopyLink: "请复制以下链接分享：",
+    confirmCancel: "确定取消此次会诊吗？已发送的邀请链接也将同时失效。",
+    errAuthReLogin: "身份验证错误 — 请重新登录。", errCancelFailedTpl: "取消失败：{msg}",
+    toastCancelled: "会诊已取消，邀请链接也已失效。", errCancelFailed: "取消失败",
+    confirmComplete: "将此次会诊标记为“已完成”吗？\n完成后已发送的邀请链接将失效，无法再次进入。",
+    errCompleteFailedTpl: "标记完成失败：{msg}", toastCompleted: "会诊已标记为完成。（计入术前咨询/术后随访绩效）", errCompleteFailed: "标记完成失败",
+    errBillingRequired: "AI会议记录需先开通Gemini付费设置（当前未启用）。",
+    errNoTranscript: "没有翻译记录，无法生成会议记录。",
+    errAiFailed: "AI生成失败，请稍后重试。", errSummaryFailed: "会议记录生成失败",
+    toastSummaryDone: "AI会议记录已生成。",
+    sessionTypePre: "治疗前评估", sessionTypeFollow: "复诊", sessionTypeEmergency: "紧急会诊", sessionTypeDiagnostic: "检查结果review",
+    statusScheduled: "已预约", statusActive: "进行中", statusCompleted: "已完成", statusCancelled: "已取消", statusNoShow: "未出席",
+    pageTitle: "远程会诊管理", pageDesc: "哈萨克斯坦患者与韩国医院之间的WebRTC视频会诊", btnNewConsult: "新建会诊预约",
+    tabAll: "全部", loadingText: "加载中...", emptyHeading: "暂无会诊。",
+    emptyUpcoming: "暂无预约中的会诊。", emptyActive: "暂无进行中的会诊。", emptyCompleted: "暂无已完成的会诊。", emptyAll: "暂无会诊记录。",
+    lblDoctor: "主治医生", lblCoordinator: "协调员", lblRoomInfo: "房间信息", lblNotes: "备注",
+    btnJoin: "开始会诊", btnCopyLink: "🔗 复制链接", titleCopyLink: "不进入仅复制链接 — 与「开始会诊」相同的链接",
+    btnCompleteAction: "完成", titleCompleteAction: "将会诊标记为“完成”（计入绩效）— 邀请链接也将失效",
+    btnCancelAction: "取消", titleCancelAction: "取消会诊（邀请链接也将失效）",
+    btnRejoin: "重新进入会诊", completedBadge: "已完成",
+    btnGenSummary: "生成AI会议记录", btnRegenSummary: "重新生成AI会议记录", summaryGenerating: "正在生成会议记录…",
+    aiSummaryTitle: "AI会议记录", aiSummaryNote: "（AI自动生成 · 仅供参考，需医护人员确认）",
+    secSummary: "摘要", secDecisions: "决定事项", secNextSteps: "后续步骤", secConcerns: "患者关切",
+    toastNewConsultCreated: "会诊预约已创建",
+  },
+  ja: {
+    errAuth: "認証エラー。再度ログインしてください。", errLoadFailedTpl: "相談の読み込みに失敗しました: {msg}", errLoadFailed: "相談の読み込みに失敗しました",
+    errAuthSimple: "認証エラー", errInviteFailedTpl: "相談リンクの作成に失敗しました: {msg}", errInviteFailed: "相談リンクの作成に失敗しました",
+    errJoinBlocked: "相談リンクを発行できなかったため入室を中止しました。再読み込み（または再ログイン）後、もう一度お試しください。",
+    toastLinkCopiedJoin: "相談リンクをコピーしました — 相手に貼り付けて送信してください。あなたは今すぐ入室します。",
+    toastLinkCopiedAndEmailed: "相談リンクをコピーし、登録メールにも送信しました",
+    toastLinkCopiedExpiresTpl: "相談リンクをクリップボードにコピーしました（有効期限: {date}）",
+    promptCopyLink: "以下のリンクをコピーして共有してください：",
+    confirmCancel: "この相談をキャンセルしますか？送信済みの招待リンクも同時に無効になります。",
+    errAuthReLogin: "認証エラー — 再度ログインしてください。", errCancelFailedTpl: "キャンセル失敗: {msg}",
+    toastCancelled: "相談をキャンセルしました。招待リンクも無効になりました。", errCancelFailed: "キャンセル失敗",
+    confirmComplete: "この相談を「完了」にしますか？\n完了すると送信済みの招待リンクが無効になり、再入室できなくなります。",
+    errCompleteFailedTpl: "完了処理に失敗しました: {msg}", toastCompleted: "相談を完了として記録しました。（事前相談・アフターケア実績に集計されます）", errCompleteFailed: "完了処理に失敗しました",
+    errBillingRequired: "AI議事録はGeminiの有料設定後に利用できます（現在無効）。",
+    errNoTranscript: "翻訳記録がないため議事録を作成できません。",
+    errAiFailed: "AI生成に失敗しました。しばらくしてから再度お試しください。", errSummaryFailed: "議事録の生成に失敗しました",
+    toastSummaryDone: "AI議事録を作成しました。",
+    sessionTypePre: "治療前評価", sessionTypeFollow: "再診", sessionTypeEmergency: "緊急相談", sessionTypeDiagnostic: "検査結果レビュー",
+    statusScheduled: "予定", statusActive: "進行中", statusCompleted: "完了", statusCancelled: "キャンセル済み", statusNoShow: "無応答",
+    pageTitle: "遠隔診療管理", pageDesc: "カザフスタンの患者と韓国の病院間のWebRTCビデオ相談", btnNewConsult: "新規相談予約",
+    tabAll: "すべて", loadingText: "読み込み中...", emptyHeading: "相談はありません。",
+    emptyUpcoming: "予定の相談はありません。", emptyActive: "進行中の相談はありません。", emptyCompleted: "完了した相談はありません。", emptyAll: "相談記録はありません。",
+    lblDoctor: "担当医師", lblCoordinator: "コーディネーター", lblRoomInfo: "ルーム情報", lblNotes: "備考",
+    btnJoin: "相談を開始", btnCopyLink: "🔗 リンクをコピー", titleCopyLink: "入室せずリンクのみコピー — 「相談を開始」と同じリンク",
+    btnCompleteAction: "完了", titleCompleteAction: "相談を「完了」として記録（事前相談・アフターケア実績に集計）— 招待リンクも無効化",
+    btnCancelAction: "キャンセル", titleCancelAction: "相談をキャンセル（招待リンクも無効化）",
+    btnRejoin: "相談に再入室", completedBadge: "完了済み",
+    btnGenSummary: "AI議事録を生成", btnRegenSummary: "AI議事録を再生成", summaryGenerating: "議事録を生成中…",
+    aiSummaryTitle: "AI議事録", aiSummaryNote: "（AI自動生成 · 参考用、医療スタッフの確認が必要）",
+    secSummary: "要約", secDecisions: "決定事項", secNextSteps: "次のステップ", secConcerns: "患者の懸念",
+    toastNewConsultCreated: "相談予約を作成しました",
+  },
+};
+
 export default function ConsultationsPage() {
   const router = useRouter();
   const toast = useToast();
+  const lang = useBackofficeLang();
+  const tt = (k) => (TR[lang] || TR.en)[k] ?? TR.en[k];
+  const fmt = (tpl, vals) => Object.entries(vals).reduce((s, [k, v]) => s.replace(`{${k}}`, v), tpl);
+  const locale = LOCALE_MAP[lang] || "en-US";
 
   const [consultations, setConsultations] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -48,7 +250,7 @@ export default function ConsultationsPage() {
       const token = sessionData?.session?.access_token;
 
       if (!token) {
-        toast.error("인증 오류. 다시 로그인하세요.");
+        toast.error(tt("errAuth"));
         return;
       }
 
@@ -69,11 +271,11 @@ export default function ConsultationsPage() {
       if (result.ok) {
         setConsultations(result.data || []);
       } else {
-        toast.error(`상담 로딩 실패: ${result.error}`);
+        toast.error(fmt(tt("errLoadFailedTpl"), { msg: result.error }));
       }
     } catch (error) {
       console.error("[ConsultationsPage] fetchConsultations error:", error);
-      toast.error("상담 로딩 실패");
+      toast.error(tt("errLoadFailed"));
     } finally {
       setLoading(false);
     }
@@ -84,7 +286,7 @@ export default function ConsultationsPage() {
     const { data: sessionData } = await supabase.auth.getSession();
     const token = sessionData?.session?.access_token;
     if (!token) {
-      toast.error("인증 오류");
+      toast.error(tt("errAuthSimple"));
       return null;
     }
     try {
@@ -106,13 +308,13 @@ export default function ConsultationsPage() {
       );
       const result = await res.json();
       if (!res.ok || !result.ok) {
-        toast.error(`상담 링크 생성 실패: ${result.error}`);
+        toast.error(fmt(tt("errInviteFailedTpl"), { msg: result.error }));
         return null;
       }
       return result;
     } catch (err) {
       console.error("[issueInvite] error:", err);
-      toast.error("상담 링크 생성 실패");
+      toast.error(tt("errInviteFailed"));
       return null;
     }
   };
@@ -124,12 +326,12 @@ export default function ConsultationsPage() {
     if (!result?.inviteUrl) {
       // ⚠️ 발급 실패 시 입장권 없는 맨주소로 조용히 입장하지 않는다 — 그 주소창을 복사해 공유하면
       //   받는 사람 전원이 "입장권 없음"에 막힘(2026-07-02 '남들만 안 됨' 함정, POSTMORTEMS #61 연관).
-      toast.error("상담 링크 발급이 안 돼 입장을 멈췄어요. 새로고침(또는 다시 로그인) 후 다시 눌러주세요.");
+      toast.error(tt("errJoinBlocked"));
       return;
     }
     try {
       await navigator.clipboard.writeText(result.inviteUrl);
-      toast.success("상담 링크를 복사했어요 — 상대에게 붙여넣어 보내세요. 나는 지금 입장합니다");
+      toast.success(tt("toastLinkCopiedJoin"));
     } catch { /* 클립보드 권한 없으면 조용히 패스 — 입장은 계속 */ }
     router.push(result.inviteUrl.replace(/^https?:\/\/[^/]+/, ""));
   };
@@ -142,25 +344,23 @@ export default function ConsultationsPage() {
       await navigator.clipboard.writeText(result.inviteUrl);
       toast.success(
         result.emailSent
-          ? "상담 링크를 복사했고, 등록된 이메일로도 발송했습니다"
-          : `상담 링크가 클립보드에 복사됐습니다 (만료: ${new Date(
-              result.expiresAt
-            ).toLocaleString("ko-KR")})`
+          ? tt("toastLinkCopiedAndEmailed")
+          : fmt(tt("toastLinkCopiedExpiresTpl"), { date: new Date(result.expiresAt).toLocaleString(locale) })
       );
     } catch {
       // 클립보드 권한 없으면 prompt 로
-      prompt("아래 링크를 복사해 공유하세요:", result.inviteUrl);
+      prompt(tt("promptCopyLink"), result.inviteUrl);
     }
   };
 
   const handleCancel = async (id) => {
-    if (!confirm("상담을 취소하시겠습니까? 발송된 초대 링크도 함께 폐기됩니다.")) return;
+    if (!confirm(tt("confirmCancel"))) return;
 
     try {
       const { data: sessionData } = await supabase.auth.getSession();
       const token = sessionData?.session?.access_token;
       if (!token) {
-        toast.error("인증 오류 — 다시 로그인하세요.");
+        toast.error(tt("errAuthReLogin"));
         return;
       }
 
@@ -176,17 +376,17 @@ export default function ConsultationsPage() {
       });
       const result = await res.json();
       if (!res.ok || !result.ok) {
-        toast.error(`취소 실패: ${result.error || res.statusText}`);
+        toast.error(fmt(tt("errCancelFailedTpl"), { msg: result.error || res.statusText }));
         return;
       }
 
-      toast.success("상담이 취소되었습니다. 초대 링크도 폐기됐습니다.");
+      toast.success(tt("toastCancelled"));
       setConsultations((cs) =>
         cs.map((c) => (c.id === id ? { ...c, status: "cancelled" } : c))
       );
     } catch (error) {
       console.error("[ConsultationsPage] handleCancel error:", error);
-      toast.error("취소 실패");
+      toast.error(tt("errCancelFailed"));
     }
   };
 
@@ -194,12 +394,12 @@ export default function ConsultationsPage() {
   //   방의 '통화 나가기'는 상태를 안 바꾸므로(재입장 회귀 방지), 완료 기록은 여기 staff 액션이 유일한 경로.
   //   서버가 completed 시 게스트 초대 토큰도 폐기하고 case_status 를 전진시킴.
   const handleComplete = async (id) => {
-    if (!confirm("이 상담을 '완료' 처리할까요?\n완료하면 발송된 초대 링크가 폐기되어 재입장할 수 없습니다.")) return;
+    if (!confirm(tt("confirmComplete"))) return;
     try {
       const { data: sessionData } = await supabase.auth.getSession();
       const token = sessionData?.session?.access_token;
       if (!token) {
-        toast.error("인증 오류 — 다시 로그인하세요.");
+        toast.error(tt("errAuthReLogin"));
         return;
       }
       const res = await fetch(`/api/khidi/consultation/${id}`, {
@@ -212,16 +412,16 @@ export default function ConsultationsPage() {
       });
       const result = await res.json();
       if (!res.ok || !result.ok) {
-        toast.error(`완료 처리 실패: ${result.error || res.statusText}`);
+        toast.error(fmt(tt("errCompleteFailedTpl"), { msg: result.error || res.statusText }));
         return;
       }
-      toast.success("상담을 완료 처리했습니다. (사전상담·사후관리 실적에 집계됩니다)");
+      toast.success(tt("toastCompleted"));
       setConsultations((cs) =>
         cs.map((c) => (c.id === id ? { ...c, status: "completed" } : c))
       );
     } catch (error) {
       console.error("[ConsultationsPage] handleComplete error:", error);
-      toast.error("완료 처리 실패");
+      toast.error(tt("errCompleteFailed"));
     }
   };
 
@@ -242,12 +442,12 @@ export default function ConsultationsPage() {
       if (!res.ok || !json.ok) {
         const msg =
           json.error === "billing_required"
-            ? "AI 회의록은 Gemini 유료 설정 후 켜집니다 (현재 비활성)."
+            ? tt("errBillingRequired")
             : json.error === "no_transcript"
-            ? "번역 기록이 없어 회의록을 만들 수 없어요."
+            ? tt("errNoTranscript")
             : json.error === "ai_failed" || json.error === "ai_parse_failed"
-            ? "AI 생성에 실패했어요. 잠시 후 다시 시도해 주세요."
-            : "회의록 생성 실패";
+            ? tt("errAiFailed")
+            : tt("errSummaryFailed");
         setSummaryState((s) => ({ ...s, [id]: { error: msg } }));
         toast.error(msg);
         return;
@@ -256,27 +456,27 @@ export default function ConsultationsPage() {
       setConsultations((cs) =>
         cs.map((c) => (c.id === id ? { ...c, ai_summary: json.data } : c))
       );
-      toast.success("AI 회의록을 만들었어요.");
+      toast.success(tt("toastSummaryDone"));
     } catch (error) {
       console.error("[ConsultationsPage] handleGenerateSummary error:", error);
-      setSummaryState((s) => ({ ...s, [id]: { error: "회의록 생성 실패" } }));
-      toast.error("회의록 생성 실패");
+      setSummaryState((s) => ({ ...s, [id]: { error: tt("errSummaryFailed") } }));
+      toast.error(tt("errSummaryFailed"));
     }
   };
 
   const sessionTypeLabel = {
-    pre_consultation: "진료 전 평가",
-    follow_up: "추후 진료",
-    emergency: "긴급 상담",
-    diagnostic: "검사 결과 검토",
+    pre_consultation: tt("sessionTypePre"),
+    follow_up: tt("sessionTypeFollow"),
+    emergency: tt("sessionTypeEmergency"),
+    diagnostic: tt("sessionTypeDiagnostic"),
   };
 
   const statusLabel = {
-    scheduled: "예정됨",
-    active: "진행 중",
-    completed: "완료",
-    cancelled: "취소됨",
-    no_show: "무응답",
+    scheduled: tt("statusScheduled"),
+    active: tt("statusActive"),
+    completed: tt("statusCompleted"),
+    cancelled: tt("statusCancelled"),
+    no_show: tt("statusNoShow"),
   };
 
   const statusColor = {
@@ -298,9 +498,9 @@ export default function ConsultationsPage() {
       {/* Header */}
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">원격협진 관리</h1>
+          <h1 className="text-3xl font-bold text-gray-900">{tt("pageTitle")}</h1>
           <p className="text-gray-500 mt-2">
-            카자흐스탄 환자와 한국 병원 간 WebRTC 화상 상담
+            {tt("pageDesc")}
           </p>
         </div>
         <button
@@ -308,17 +508,17 @@ export default function ConsultationsPage() {
           className="inline-flex items-center gap-2 px-5 py-3 bg-teal-700 text-white rounded-lg font-semibold shadow-md hover:bg-teal-800 active:scale-[0.98] transition"
         >
           <Plus size={18} />
-          새 상담 예약
+          {tt("btnNewConsult")}
         </button>
       </div>
 
       {/* Filter tabs */}
       <div className="flex gap-2 border-b border-gray-200">
         {[
-          { key: "upcoming", label: "예정됨" },
-          { key: "active", label: "진행 중" },
-          { key: "completed", label: "완료" },
-          { key: "all", label: "전체" },
+          { key: "upcoming", label: tt("statusScheduled") },
+          { key: "active", label: tt("statusActive") },
+          { key: "completed", label: tt("statusCompleted") },
+          { key: "all", label: tt("tabAll") },
         ].map((tab) => (
           <button
             key={tab.key}
@@ -338,7 +538,7 @@ export default function ConsultationsPage() {
       {loading && (
         <div className="text-center py-12">
           <div className="w-12 h-12 border-4 border-teal-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-gray-500">로딩 중...</p>
+          <p className="text-gray-500">{tt("loadingText")}</p>
         </div>
       )}
 
@@ -346,12 +546,12 @@ export default function ConsultationsPage() {
       {!loading && filteredConsultations.length === 0 && (
         <div className="text-center py-12 bg-gray-50 rounded-lg">
           <Calendar size={48} className="mx-auto text-gray-400 mb-4" />
-          <p className="text-gray-600 font-semibold">상담이 없습니다.</p>
+          <p className="text-gray-600 font-semibold">{tt("emptyHeading")}</p>
           <p className="text-gray-500 text-sm mt-1">
-            {filter === "upcoming" && "예정된 상담이 없습니다."}
-            {filter === "active" && "진행 중인 상담이 없습니다."}
-            {filter === "completed" && "완료된 상담이 없습니다."}
-            {filter === "all" && "상담 기록이 없습니다."}
+            {filter === "upcoming" && tt("emptyUpcoming")}
+            {filter === "active" && tt("emptyActive")}
+            {filter === "completed" && tt("emptyCompleted")}
+            {filter === "all" && tt("emptyAll")}
           </p>
         </div>
       )}
@@ -423,13 +623,13 @@ export default function ConsultationsPage() {
                       <div className="flex items-center gap-2 text-sm text-gray-600">
                         <Calendar size={16} />
                         <span>
-                          {kstDate(consultation.scheduled_at, "ko-KR")}
+                          {kstDate(consultation.scheduled_at, locale)}
                         </span>
                       </div>
                       <div className="flex items-center gap-2 text-sm text-gray-600">
                         <Clock size={16} />
                         <span>
-                          {kstTime(consultation.scheduled_at, "ko-KR", {
+                          {kstTime(consultation.scheduled_at, locale, {
                             hour: "2-digit",
                             minute: "2-digit",
                           })}
@@ -473,7 +673,7 @@ export default function ConsultationsPage() {
                       <Stethoscope size={20} className="text-teal-700 mt-1" />
                       <div className="flex-1">
                         <p className="text-sm font-semibold text-gray-900">
-                          담당 의사
+                          {tt("lblDoctor")}
                         </p>
                         <p className="text-sm text-gray-600">
                           {consultation.doctor_id}
@@ -488,7 +688,7 @@ export default function ConsultationsPage() {
                       <User size={20} className="text-teal-700 mt-1" />
                       <div className="flex-1">
                         <p className="text-sm font-semibold text-gray-900">
-                          코디네이터
+                          {tt("lblCoordinator")}
                         </p>
                         <p className="text-sm text-gray-600">
                           {consultation.coordinator_id}
@@ -502,7 +702,7 @@ export default function ConsultationsPage() {
                     <AlertCircle size={20} className="text-gray-400 mt-1" />
                     <div className="flex-1">
                       <p className="text-sm font-semibold text-gray-900">
-                        방 정보
+                        {tt("lblRoomInfo")}
                       </p>
                       <p className="text-xs text-gray-600 font-mono mt-1">
                         {consultation.livekit_room_name}
@@ -514,7 +714,7 @@ export default function ConsultationsPage() {
                   {consultation.notes && (
                     <div className="p-4 bg-white rounded-lg border border-gray-200">
                       <p className="text-sm font-semibold text-gray-900 mb-2">
-                        비고
+                        {tt("lblNotes")}
                       </p>
                       <p className="text-sm text-gray-600">
                         {consultation.notes}
@@ -531,28 +731,28 @@ export default function ConsultationsPage() {
                           className="flex-1 min-w-[140px] px-4 py-2 bg-teal-700 text-white rounded-lg hover:bg-teal-800 transition font-medium flex items-center justify-center gap-2"
                         >
                           <Phone size={16} />
-                          상담 시작
+                          {tt("btnJoin")}
                         </button>
                         <button
                           onClick={() => handleIssueInvite(consultation)}
                           className="flex-1 min-w-[140px] px-4 py-2 bg-blue-50 text-blue-700 border border-blue-200 rounded-lg hover:bg-blue-100 transition font-medium flex items-center justify-center gap-2"
-                          title="입장 없이 링크만 복사 — 「상담 시작」과 같은 링크"
+                          title={tt("titleCopyLink")}
                         >
-                          🔗 링크 복사
+                          {tt("btnCopyLink")}
                         </button>
                         <button
                           onClick={() => handleComplete(consultation.id)}
                           className="px-4 py-2 bg-teal-50 text-teal-700 border border-teal-200 rounded-lg hover:bg-teal-100 transition font-medium flex items-center gap-1.5"
-                          title="상담을 '완료'로 기록 (사전상담·사후관리 실적 집계) — 초대 링크도 폐기"
+                          title={tt("titleCompleteAction")}
                         >
-                          <CheckCircle size={16} /> 완료
+                          <CheckCircle size={16} /> {tt("btnCompleteAction")}
                         </button>
                         <button
                           onClick={() => handleCancel(consultation.id)}
                           className="px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition font-medium flex items-center gap-1.5"
-                          title="상담 취소 (초대 링크도 폐기)"
+                          title={tt("titleCancelAction")}
                         >
-                          <X size={16} /> 취소
+                          <X size={16} /> {tt("btnCancelAction")}
                         </button>
                       </>
                     )}
@@ -563,21 +763,21 @@ export default function ConsultationsPage() {
                           className="flex-1 min-w-[140px] px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-medium flex items-center justify-center gap-2"
                         >
                           <Phone size={16} />
-                          상담 재진입
+                          {tt("btnRejoin")}
                         </button>
                         <button
                           onClick={() => handleComplete(consultation.id)}
                           className="px-4 py-2 bg-teal-50 text-teal-700 border border-teal-200 rounded-lg hover:bg-teal-100 transition font-medium flex items-center gap-1.5"
-                          title="상담을 '완료'로 기록 (사전상담·사후관리 실적 집계) — 초대 링크도 폐기"
+                          title={tt("titleCompleteAction")}
                         >
-                          <CheckCircle size={16} /> 완료
+                          <CheckCircle size={16} /> {tt("btnCompleteAction")}
                         </button>
                       </>
                     )}
                     {consultation.status === "completed" && (
                       <>
                         <span className="px-4 py-2 bg-gray-200 text-gray-600 rounded-lg text-sm font-medium flex items-center">
-                          완료됨
+                          {tt("completedBadge")}
                         </span>
                         <button
                           onClick={() => handleGenerateSummary(consultation)}
@@ -587,14 +787,14 @@ export default function ConsultationsPage() {
                           {summaryState[consultation.id]?.loading ? (
                             <>
                               <Loader2 size={16} className="animate-spin" />
-                              회의록 생성 중…
+                              {tt("summaryGenerating")}
                             </>
                           ) : (
                             <>
                               <FileText size={16} />
                               {consultation.ai_summary
-                                ? "AI 회의록 다시 생성"
-                                : "AI 회의록 생성"}
+                                ? tt("btnRegenSummary")
+                                : tt("btnGenSummary")}
                             </>
                           )}
                         </button>
@@ -626,16 +826,16 @@ export default function ConsultationsPage() {
                         <div className="flex items-center gap-2 mb-1">
                           <FileText size={16} className="text-teal-700" />
                           <p className="text-sm font-semibold text-gray-900">
-                            AI 회의록
+                            {tt("aiSummaryTitle")}
                           </p>
                           <span className="text-xs text-gray-400">
-                            (AI 자동 생성 · 참고용, 의료진 확인 필요)
+                            {tt("aiSummaryNote")}
                           </span>
                         </div>
-                        {section("요약", ai.summary)}
-                        {section("결정사항", ai.decisions)}
-                        {section("다음 단계", ai.next_steps)}
-                        {section("환자 우려", ai.patient_concerns)}
+                        {section(tt("secSummary"), ai.summary)}
+                        {section(tt("secDecisions"), ai.decisions)}
+                        {section(tt("secNextSteps"), ai.next_steps)}
+                        {section(tt("secConcerns"), ai.patient_concerns)}
                       </div>
                     );
                   })()}
@@ -653,7 +853,7 @@ export default function ConsultationsPage() {
           onSuccess={() => {
             setShowCreateModal(false);
             fetchConsultations();
-            toast.success("상담 예약이 생성되었습니다");
+            toast.success(tt("toastNewConsultCreated"));
           }}
         />
       )}
