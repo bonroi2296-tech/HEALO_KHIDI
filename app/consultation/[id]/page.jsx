@@ -103,6 +103,18 @@ function roleLabel(role, c) {
 }
 
 
+// ── 마이크 상태 브릿지 (LiveKitRoom 내부 전용, 렌더링 없음) ──
+// LiveKit 마이크 ON/OFF 를 페이지 레벨 state 로 올린다. 통역 스위치 통일(2026-07-11 PO):
+// 통역 ON + 마이크 ON = 내 말 자막 송신 / 통역 ON + 마이크 OFF = 상대 말 자막만(듣기).
+// 마이크 게이트는 privacy 도 겸함 — 음소거 상태 발화가 자막 텍스트로 방송되지 않게.
+function MicStateBridge({ onChange }) {
+  const { isMicrophoneEnabled } = useLocalParticipant();
+  useEffect(() => {
+    onChange?.(!!isMicrophoneEnabled);
+  }, [isMicrophoneEnabled, onChange]);
+  return null;
+}
+
 // ── DataChannel bridge (LiveKitRoom 내부에서만 사용 가능) ──
 // props 로 외부 state setter 를 받아서 DataChannel 수신 결과를 부모에 전달
 function DataChannelBridge({ onRemoteSubtitle, publishRef }) {
@@ -810,10 +822,9 @@ export default function ConsultationRoomPage() {
   const [ttsEnabled, _setTtsEnabled] = useState(false);
   const [isTranslating, setIsTranslating] = useState(false);
 
-  // 청취 모드 — 상대가 통역을 안 켜도 원격 음성을 이쪽에서 전사·번역해 자막으로.
-  // (마이크·스피커 꺼짐과 무관하게 동작. 재입장 시 기본 꺼짐 — AI 호출 비용이 드는
-  //  기능이라 매 통화 명시적으로 켜게 한다)
-  const [listenMode, setListenMode] = useState(false);
+  // 내 LiveKit 마이크 상태 (MicStateBridge 가 갱신) — 통역 스위치 통일 규칙의 게이트.
+  // LiveKit 비활성 폴백 화면에선 room 이 없어 갱신 안 됨 → 기본 true(현행 동작 보존).
+  const [myMicOn, setMyMicOn] = useState(true);
   // DataChannel 자막 최근 수신 시각(참가자 identity 별) — 그 참가자가 직접 통역을
   // 켠 동안엔 청취 모드 STT 를 억제 (이중 자막 방지, 화자 기기 인식이 더 정확)
   const dcActivityRef = useRef(new Map());
@@ -1110,7 +1121,8 @@ export default function ConsultationRoomPage() {
   const [forceServerStt, setForceServerStt] = useState(false);
   const stt = useSpeechRecognition({
     language: myLang,
-    enabled: translationEnabled,
+    // 마이크 게이트(통역 통일 규칙): 마이크 꺼짐 = 내 말 자막 송신 안 함 (privacy 겸용)
+    enabled: translationEnabled && myMicOn,
     onInterim: useCallback((text) => {
       lastBrowserSttRef.current = Date.now();
       setInterimText(text);
@@ -1136,13 +1148,26 @@ export default function ConsultationRoomPage() {
       toast.success(c.translationStopped);
     } else {
       // 이미 서버 STT 로 전환됐거나, 브라우저가 폴백으로만 처리하는 언어(kz)면
-      // 브라우저 STT 시작 안 함 (이중 자막·오인식 방지) → 서버 STT 로 라우팅
-      if (!forceServerStt && isBrowserSttNative(myLang)) stt.start();
+      // 브라우저 STT 시작 안 함 (이중 자막·오인식 방지) → 서버 STT 로 라우팅.
+      // 마이크 꺼짐이면 송신 STT 는 시작 안 함 — 수신 자막(ListenModeBridge)만 동작(듣기).
+      if (myMicOn && !forceServerStt && isBrowserSttNative(myLang)) stt.start();
       setTranslationEnabled(true);
       // 패널은 자동으로 안 엶 — 자막은 영상 위 오버레이, 입력은 하단 미니 바 (Zoom/Meet 식)
       toast.success(`${c.translationStartedPrefix} (${LANG_LABELS[myLang]} → ${LANG_LABELS[targetLang]})`);
     }
-  }, [translationEnabled, forceServerStt, stt, myLang, targetLang, toast]);
+  }, [translationEnabled, forceServerStt, stt, myLang, myMicOn, targetLang, toast]);
+
+  // 통화 중 마이크 토글 → 송신(브라우저) STT 도 따라서 start/stop.
+  // (서버 STT 경로는 useServerStt 조건의 myMicOn 게이트가 effect cleanup 으로 처리)
+  useEffect(() => {
+    if (!translationEnabled) return;
+    if (forceServerStt || !isBrowserSttNative(myLang)) return;
+    if (myMicOn) {
+      if (stt.isSupported && !stt.failed) stt.start();
+    } else {
+      stt.stop();
+    }
+  }, [myMicOn, translationEnabled, forceServerStt, myLang, stt.isSupported, stt.failed, stt.start, stt.stop]);
 
   // Scroll to bottom of translations
   useEffect(() => {
@@ -1671,7 +1696,10 @@ export default function ConsultationRoomPage() {
     );
   }, []);
   const useServerStt =
-    translationEnabled && (stt.failed || !stt.isSupported || forceServerStt) && mediaRecOk;
+    translationEnabled &&
+    myMicOn && // 마이크 꺼짐 = 송신 STT 중지 (수신 자막은 ListenModeBridge 가 별도 동작)
+    (stt.failed || !stt.isSupported || forceServerStt) &&
+    mediaRecOk;
 
   // 카자흐어 등 브라우저가 '폴백'(딴 언어 인식기)으로만 처리하는 언어는 처음부터
   // 서버 STT(Gemini — kz 직접 지원)로 보낸다. 브라우저 STT 는 kz 를 ru-RU 로 폴백해
@@ -1690,7 +1718,7 @@ export default function ConsultationRoomPage() {
   // 강제 전환. 크롬에서 8초간 말을 안 했어도 전환되지만, 서버 STT 도 같은 자막
   // 파이프라인 + 무음 스킵(VAD)이라 동작·비용 차이 없음.
   useEffect(() => {
-    if (!translationEnabled || forceServerStt || !mediaRecOk) return;
+    if (!translationEnabled || forceServerStt || !mediaRecOk || !myMicOn) return;
     if (stt.failed || !stt.isSupported) return; // 이 경우는 기존 조건으로 이미 서버 STT
     const enabledAt = Date.now();
     const timer = setInterval(() => {
@@ -1705,7 +1733,7 @@ export default function ConsultationRoomPage() {
       }
     }, 1000);
     return () => clearInterval(timer);
-  }, [translationEnabled, forceServerStt, mediaRecOk, stt.failed, stt.isSupported, stt.stop]);
+  }, [translationEnabled, forceServerStt, mediaRecOk, myMicOn, stt.failed, stt.isSupported, stt.stop]);
   const translateTextRef = useRef(translateText);
   useEffect(() => {
     translateTextRef.current = translateText;
@@ -2346,6 +2374,8 @@ export default function ConsultationRoomPage() {
             >
               {/* 백그라운드/이탈 시 유령 참가자 방지 — 렌더링 없음 */}
               <PresenceGuard />
+              {/* 마이크 상태 → 페이지 state (통역 통일 규칙의 게이트) — 렌더링 없음 */}
+              <MicStateBridge onChange={setMyMicOn} />
               {/* DataChannel 수신/송신 브릿지 — 렌더링 없음 */}
               <DataChannelBridge
                 onRemoteSubtitle={handleRemoteSubtitle}
@@ -2358,9 +2388,11 @@ export default function ConsultationRoomPage() {
                 myRole={myRole}
                 onRemoteSubtitle={handleRemoteSubtitle}
               />
-              {/* 청취 모드 — 상대가 통역을 안 켜도 원격 음성을 이쪽에서 전사·번역 (렌더링 없음) */}
+              {/* 수신 자막 — 상대가 통역을 안 켜도 원격 음성을 이쪽에서 전사·번역 (렌더링 없음).
+                  별도 토글 없이 통역 스위치에 통합(2026-07-11 PO "하나로 통일") — 상대가 직접
+                  자막을 보내오면 자동 억제되므로 양쪽 다 켜도 중복 없음 */}
               <ListenModeBridge
-                enabled={listenMode}
+                enabled={translationEnabled}
                 langHint={targetLang}
                 targetLang={myLang}
                 consultationId={consultationId}
@@ -2940,25 +2972,6 @@ export default function ConsultationRoomPage() {
                   </button>
                 ))}
               </div>
-            </div>
-            {/* 청취 모드 — 상대가 통역을 안 켜도, 이쪽에서 원격 음성을 자막으로.
-                핵심 시나리오: 제3자끼리의 외국어 대화(코디↔외국인)를 듣기만 하는 참가자가
-                자기 화면에서 자막으로 따라가기 (마이크·스피커 꺼도 동작) */}
-            <div>
-              <div className="flex items-center justify-between">
-                <p className="text-xs text-gray-400">{c.listenModeLabel}</p>
-                <button
-                  onClick={() => setListenMode((v) => !v)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition border ${
-                    listenMode
-                      ? "bg-teal-700 border-teal-500 text-white"
-                      : "bg-gray-900 border-gray-600 text-gray-300 hover:border-gray-400"
-                  }`}
-                >
-                  {listenMode ? c.listenModeOn : c.listenModeOff}
-                </button>
-              </div>
-              <p className="text-[11px] text-gray-500 mt-1.5">{c.listenModeHint}</p>
             </div>
             <div>
               <p className="text-xs text-gray-400 mb-2">{c.subtitleSizeTitle}</p>
