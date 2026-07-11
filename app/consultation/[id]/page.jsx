@@ -2224,15 +2224,19 @@ export default function ConsultationRoomPage() {
                     </button>
                   </div>
                 )}
-                <SubtitleOverlay
-                  original={currentSubtitle?.original}
-                  translated={currentSubtitle?.translated}
-                  interimText={interimText}
-                  sourceLang={myLang}
-                  targetLang={targetLang}
-                  remoteSubtitle={remoteSubtitle}
-                  size={subtitleSize}
-                />
+                {/* 패널(채팅·번역기록) 열림 = 자막 숨김 — 모바일에선 패널이 자막을 덮고,
+                    번역 기록 탭이 같은 내용을 보여주므로 겹쳐 띄우지 않는다(PO 요청 2026-07-11) */}
+                {!panelOpen && (
+                  <SubtitleOverlay
+                    original={currentSubtitle?.original}
+                    translated={currentSubtitle?.translated}
+                    interimText={interimText}
+                    sourceLang={myLang}
+                    targetLang={targetLang}
+                    remoteSubtitle={remoteSubtitle}
+                    size={subtitleSize}
+                  />
+                )}
                 {/* 서버 STT 상태 표시 — 듣는 중(회색)/목소리 감지(초록)/자막 생성 중(노랑).
                     "되는 건지 알 수 없다"는 피드백 해소용 생존 신호 */}
                 {useServerStt && serverSttStatus !== "idle" && (
@@ -2323,15 +2327,17 @@ export default function ConsultationRoomPage() {
                   <p className="text-gray-400 font-semibold">{c.patientTile}</p>
                   <p className="text-xs text-gray-500 mt-1">{c.myScreen}</p>
                 </div>
-                <SubtitleOverlay
-                  original={currentSubtitle?.original}
-                  translated={currentSubtitle?.translated}
-                  interimText={interimText}
-                  sourceLang={myLang}
-                  targetLang={targetLang}
-                  remoteSubtitle={remoteSubtitle}
-                  size={subtitleSize}
-                />
+                {!panelOpen && (
+                  <SubtitleOverlay
+                    original={currentSubtitle?.original}
+                    translated={currentSubtitle?.translated}
+                    interimText={interimText}
+                    sourceLang={myLang}
+                    targetLang={targetLang}
+                    remoteSubtitle={remoteSubtitle}
+                    size={subtitleSize}
+                  />
+                )}
               </div>
               <div className="bg-gray-800 border-t border-gray-700 px-6 py-3 text-center text-sm text-yellow-400">
                 {c.livekitDisabled}
