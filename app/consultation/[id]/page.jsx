@@ -71,6 +71,7 @@ import { useTTS } from "@/lib/consultation/useTTS";
 import { useRealtimeMessages } from "@/lib/consultation/useRealtimeMessages";
 import { useLiveKitDataChannel } from "@/lib/consultation/useLiveKitDataChannel";
 import { LiveTranslateBridge } from "@/lib/consultation/LiveTranslateBridge";
+import { ListenModeBridge } from "@/lib/consultation/ListenModeBridge";
 
 const supabase = createSupabaseBrowserClient();
 
@@ -594,7 +595,10 @@ function SubtitleOverlay({
         <div className={`${boxBase} bg-black/60 border border-yellow-500/20`}>
           <p className={`${remoteColor} ${sz.trans} font-medium`}>
             <span className="text-yellow-500/70 text-[11px] font-normal mr-1.5">
-              {roleLabel(remoteSubtitle.role, c)} · {LANG_LABELS[remoteSubtitle.lang] || remoteSubtitle.lang}
+              {/* 화자 구분: 이름(있으면) + 역할 + 언어 */}
+              {remoteSubtitle.name ? `${remoteSubtitle.name} · ` : ""}
+              {remoteSubtitle.role ? `${roleLabel(remoteSubtitle.role, c)} · ` : ""}
+              {LANG_LABELS[remoteSubtitle.lang] || remoteSubtitle.lang}
             </span>
             {remoteSubtitle.text}
           </p>
@@ -811,6 +815,14 @@ export default function ConsultationRoomPage() {
   const [ttsEnabled, _setTtsEnabled] = useState(false);
   const [isTranslating, setIsTranslating] = useState(false);
 
+  // 청취 모드 — 상대가 통역을 안 켜도 원격 음성을 이쪽에서 전사·번역해 자막으로.
+  // (마이크·스피커 꺼짐과 무관하게 동작. 재입장 시 기본 꺼짐 — AI 호출 비용이 드는
+  //  기능이라 매 통화 명시적으로 켜게 한다)
+  const [listenMode, setListenMode] = useState(false);
+  // DataChannel 자막 최근 수신 시각(참가자 identity 별) — 그 참가자가 직접 통역을
+  // 켠 동안엔 청취 모드 STT 를 억제 (이중 자막 방지, 화자 기기 인식이 더 정확)
+  const dcActivityRef = useRef(new Map());
+
   // 자막 크기: "sm" | "md" | "lg" — 선택은 localStorage 에 저장해 재입장에도 유지.
   // (lazy initializer 로 읽으면 SSR 첫 렌더와 달라 hydration mismatch → 마운트 후 effect 로 복원)
   const [subtitleSize, setSubtitleSize] = useState("md");
@@ -995,8 +1007,10 @@ export default function ConsultationRoomPage() {
 
   // ── 상대방 자막 수신 핸들러 (DataChannel) ──
   const handleRemoteSubtitle = useCallback(
-    ({ text, lang, role }) => {
-      setRemoteSubtitle({ text, lang, role });
+    ({ text, lang, role, name, participantIdentity }) => {
+      setRemoteSubtitle({ text, lang, role, name });
+      // 이 참가자는 직접 통역을 켠 상태 — 청취 모드 STT 억제용 시각 기록
+      if (participantIdentity) dcActivityRef.current.set(participantIdentity, Date.now());
       // 상대 발화도 문맥으로 축적 (수신되는 건 번역문이지만 대명사·용어 일관성엔 유효)
       pushConvoContext("other", lang, text);
       // 문장 길이에 비례해 자동 숨김(8~15초) — 긴 번역문을 다 읽기 전에 사라지지 않게
@@ -1005,6 +1019,33 @@ export default function ConsultationRoomPage() {
       remoteSubtitleTimerRef.current = setTimeout(() => setRemoteSubtitle(null), holdMs);
     },
     [pushConvoContext]
+  );
+
+  // ── 청취 모드 자막 수신 (ListenModeBridge) — 원격 참가자 음성을 이쪽에서 전사·번역 ──
+  const handleListenSubtitle = useCallback(
+    ({ transcript, translated, lang, name }) => {
+      setRemoteSubtitle({ text: translated, lang, name });
+      if (remoteSubtitleTimerRef.current) clearTimeout(remoteSubtitleTimerRef.current);
+      const holdMs = Math.min(15000, Math.max(8000, (translated?.length || 0) * 90));
+      remoteSubtitleTimerRef.current = setTimeout(() => setRemoteSubtitle(null), holdMs);
+      // 문맥 축적은 원문(전사)으로 — 번역문보다 정보 보존이 좋음
+      pushConvoContext("other", lang, transcript);
+      // 번역 기록 패널에도 남긴다 (화자 이름 포함)
+      setTranslations((prev) => [
+        ...prev,
+        {
+          id: Date.now(),
+          original_text: transcript,
+          translated_text: translated,
+          source_language: lang,
+          target_language: myLang,
+          speaker_role: "other",
+          speaker_name: name,
+          created_at: new Date().toISOString(),
+        },
+      ]);
+    },
+    [myLang, pushConvoContext]
   );
 
   // ── Speech Recognition ──
@@ -2259,6 +2300,17 @@ export default function ConsultationRoomPage() {
                 myRole={myRole}
                 onRemoteSubtitle={handleRemoteSubtitle}
               />
+              {/* 청취 모드 — 상대가 통역을 안 켜도 원격 음성을 이쪽에서 전사·번역 (렌더링 없음) */}
+              <ListenModeBridge
+                enabled={listenMode}
+                langHint={targetLang}
+                targetLang={myLang}
+                consultationId={consultationId}
+                getAuthHeaders={getConsultAuthHeaders}
+                contextRef={convoContextRef}
+                dcActivityRef={dcActivityRef}
+                onSubtitle={handleListenSubtitle}
+              />
               <div className="flex-1 relative" style={{ height: "calc(100% - 64px)" }}>
                 <VideoGrid />
                 <WaitingForOthers />
@@ -2622,7 +2674,9 @@ export default function ConsultationRoomPage() {
                     >
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-xs text-gray-500">
-                          {trans.speaker_role === "doctor"
+                          {trans.speaker_name
+                            ? trans.speaker_name
+                            : trans.speaker_role === "doctor"
                             ? c.roleDoctor
                             : trans.speaker_role === "patient"
                             ? c.rolePatient
@@ -2826,6 +2880,25 @@ export default function ConsultationRoomPage() {
                   </button>
                 ))}
               </div>
+            </div>
+            {/* 청취 모드 — 상대가 통역을 안 켜도, 이쪽에서 원격 음성을 자막으로.
+                핵심 시나리오: 제3자끼리의 외국어 대화(코디↔외국인)를 듣기만 하는 참가자가
+                자기 화면에서 자막으로 따라가기 (마이크·스피커 꺼도 동작) */}
+            <div>
+              <div className="flex items-center justify-between">
+                <p className="text-xs text-gray-400">{c.listenModeLabel}</p>
+                <button
+                  onClick={() => setListenMode((v) => !v)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition border ${
+                    listenMode
+                      ? "bg-teal-700 border-teal-500 text-white"
+                      : "bg-gray-900 border-gray-600 text-gray-300 hover:border-gray-400"
+                  }`}
+                >
+                  {listenMode ? c.listenModeOn : c.listenModeOff}
+                </button>
+              </div>
+              <p className="text-[11px] text-gray-500 mt-1.5">{c.listenModeHint}</p>
             </div>
             <div>
               <p className="text-xs text-gray-400 mb-2">{c.subtitleSizeTitle}</p>
