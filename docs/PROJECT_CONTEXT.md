@@ -49,6 +49,20 @@
 - ⚠️ **실화면 클릭 검증(언어 전환이 실제로 눈에 보이게 되는지)은 미실시** — 로그인 필요한 백오피스라 이 환경에서 자동화 불가(위 4번 참고), PO가 직접 확인하기로 확정. 결과 대기 중 → 5-1로 승격.
 - ✅ `npm run check:content`·`npx next build --webpack` 매 커밋 후 로컬 실행, 전부 통과 확인.
 
+**참고 자료 (다국어화 섹션2~6에서도 계속 쓸 고정 정보 — 이번 핸드오프에 흡수)**
+- **패턴(고정)**: `app/agency/PartnerPortal.jsx`·`app/patient/documents/DocumentsClient.jsx`와 동일한 컨벤션. 모듈 최상단에 `TR`(또는 `COPY`) = `{ko,en,ru,kz,zh,ja}` 사전, `const tt = (k) => (TR[lang]||TR.en)[k] || TR.en[k]` (또는 `l = (obj) => obj?.[lang] || obj?.en`) 헬퍼로 조회. 이 화면들은 이미 `app/ClientShell.jsx`의 `isPortalPage`(admin·coordinator·hospital·agency·clinic·patient 전부 포함)가 상단바 언어 스위처(`PortalLangSwitcher`)를 띄우고 있어서 — **UI 스위처는 이미 있고, 화면 콘텐츠(라벨·버튼·alert 등)만 그 스위처를 따라가게 만드는 작업**.
+- ⚠️ **언어 훅은 대상에 따라 다르다(섹션1에서 CI가 잡은 실수, POSTMORTEMS #82) — 반드시 맞는 쪽을 쓸 것**: `admin`·`coordinator`·`hospital`(국내 스태프, 기본 한국 운영) → `useBackofficeLang()` from `@/lib/i18n/coordinator`(쿠키 `healo_bo_lang`, 쿠키 없으면 ko 기본). `agency`·`clinic`·`patient`·공개 페이지(해외 파트너·환자·일반 방문자, 기본 SEO 영어) → `useLang()` from `@/lib/i18n/LangContext`(쿠키 `healo_lang`, 쿠키 없으면 en 기본). 자세한 내용은 위 4번 참고.
+- **섹션 진행 상황** (완료마다 이 표를 갱신):
+
+| # | 섹션 | 파일 | 상태 |
+|---|------|------|------|
+| 1 | `app/admin/consultations`·`users`·`staff` + 공용 `src/components/consultation/CreateConsultationModal.jsx`(admin·coordinator 공용, 이번에 같이 완료) | 4개, ~1940줄 | ✅ **머지 완료(PR #727·#728, main 반영)** — 자세한 경위는 위 1~6번 참고 |
+| 2 | `app/admin/khidi/*` (KHIDI 지표 대시보드) | 미측정 | ⏳ 대기 |
+| 3 | `app/admin/{hospitals,treatments,doctors,import,rag}` | 미측정 | ⏳ 대기 |
+| 4 | `app/admin` 나머지(playbook·agent·ai-status·chat·observability·analytics·automation·audit·crawl·enrichment·leads·reminders·inquiries·settings·account 등) | 미측정 | ⏳ 대기 |
+| 5 | `app/coordinator/*` | 22개 | ⏳ 대기 |
+| 6 | `app/hospital/*` | 7개 | ⏳ 대기 |
+
 **7. 다음 세션 첫 프롬프트**
 > docs/PROJECT_CONTEXT.md 최상단 읽어. 백오피스(admin/coordinator/hospital) 다국어화 섹션1(상담·회원·직원관리) 머지 완료(PR #727·#728), PO 실화면 검증 결과부터 확인. 문제없으면 섹션2(app/admin/khidi/*) 진행 — TR+useBackofficeLang()+tt() 패턴, 언어훅 선택 실수 주의(4번 함정 참고).
 
