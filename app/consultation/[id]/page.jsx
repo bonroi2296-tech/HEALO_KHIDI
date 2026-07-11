@@ -66,6 +66,7 @@ import { setLangCookie } from "@/lib/i18n";
 import { useToast } from "@/components/Toast";
 import { useSpeechRecognition, isBrowserSttNative } from "@/lib/consultation/useSpeechRecognition";
 import { isFillerOnly } from "@/lib/consultation/fillerFilter";
+import { getBackchannelTranslation } from "@/lib/consultation/backchannelMap";
 import { useTTS } from "@/lib/consultation/useTTS";
 import { useRealtimeMessages } from "@/lib/consultation/useRealtimeMessages";
 import { useLiveKitDataChannel } from "@/lib/consultation/useLiveKitDataChannel";
@@ -958,13 +959,21 @@ export default function ConsultationRoomPage() {
   const translateText = useCallback(
     (text) => {
       if (!text || !text.trim()) return;
+      const trimmed = text.trim();
+      // 맞장구('네','Да','спасибо' 등)는 API 없이 사전으로 즉시 자막 — 발화의 39%가
+      // 이런 한두 단어라(7/10 로그) 비용·지연 절감 + 짧은 조각 오역 여지 제거
+      const quick = getBackchannelTranslation(trimmed, targetLang);
+      if (quick) {
+        applyTranslation(trimmed, quick);
+        return;
+      }
       const q = translateQueueRef.current;
-      q.push(text.trim());
+      q.push(trimmed);
       // 느린 회선에서 큐가 폭주하지 않게 최근 15개만 유지(오래된 조각은 버림)
       if (q.length > 15) q.splice(0, q.length - 15);
       drainTranslateQueue();
     },
-    [drainTranslateQueue]
+    [drainTranslateQueue, targetLang, applyTranslation]
   );
 
   // ── 상대방 자막 수신 핸들러 (DataChannel) ──
