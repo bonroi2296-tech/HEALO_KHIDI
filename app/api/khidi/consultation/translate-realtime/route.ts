@@ -59,6 +59,7 @@ RULES:
 - For medical terms, use the standard term in the target language
 - Keep the translation concise — this is for real-time subtitles
 - Omit hesitation fillers (e.g. "음", "어", "그…", "uh", "um", "э-э", "ну", "えっと") from the translation; if the text is ONLY fillers with no content, output nothing at all
+- If the input text is already entirely in ${tgt} (mislabeled source), output it unchanged — never "translate" it into broken text
 - Output ONLY the translated text, nothing else — no quotes, no explanations`;
 }
 

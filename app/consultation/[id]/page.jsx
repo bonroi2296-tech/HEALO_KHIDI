@@ -871,12 +871,13 @@ export default function ConsultationRoomPage() {
   // ── 번역 결과를 자막·기록·상대 전송·TTS 에 일괄 반영 ──
   // (브라우저 STT→번역 / 수동입력→번역 / 서버 STT 전사+번역 통합응답 공용)
   const applyTranslation = useCallback(
-    (original, translated) => {
+    (original, translated, srcLangOverride) => {
       const entry = {
         id: Date.now(),
         original_text: original,
         translated_text: translated,
-        source_language: myLang,
+        // 서버 STT 가 언어를 자동 감지하면 그 언어로 기록 (같은 마이크 다국어 혼용 대응)
+        source_language: srcLangOverride || myLang,
         target_language: targetLang,
         speaker_role: "self",
         created_at: new Date().toISOString(),
@@ -1682,7 +1683,7 @@ export default function ConsultationRoomPage() {
               if (result.ok && result.transcript) {
                 if (result.translated) {
                   // 전사+번역 통합 응답 — 추가 번역 호출 없이 바로 자막 반영
-                  applyTranslationRef.current(result.transcript, result.translated);
+                  applyTranslationRef.current(result.transcript, result.translated, result.detectedLang);
                 } else {
                   // 번역이 비어 오면(파싱 실패 등) 기존 번역 API 로 폴백
                   translateTextRef.current(result.transcript);

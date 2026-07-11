@@ -109,8 +109,14 @@ export async function POST(
     let transcript = "";
     let translated = "";
 
+    let detectedLang = "";
+
     if (targetLang && targetLang !== lang) {
       // ── 전사+번역 단일 호출 — 왕복 1회로 자막 지연 절반 ──
+      // 언어 자동 감지: 화자가 설정 언어(lang)와 다른 언어를 말해도(같은 방 마이크에
+      // 한국어·카자흐어 혼용, 언어 설정 실수 등) 실제 감지 언어 → targetLang 으로 번역.
+      // 감지 언어가 이미 targetLang 이면 번역하지 않고 전사를 그대로 자막으로 (echo 방지 —
+      // 7/10 로그 전수조사에서 한국어 발화가 ru→ko 로 들어가 원문 그대로 echo 된 건 10건).
       const targetName = LANG_NAMES[targetLang];
       const text = await genWithFallback(sttModelFor(lang), {
         messages: [
@@ -121,12 +127,12 @@ export async function POST(
               {
                 type: "text",
                 text: `${DOMAIN_PRIMING}
-The speaker is speaking ${langName} (may include code-switching).
+The speaker most likely speaks ${langName}, but this microphone may be shared by people speaking different languages — DETECT the language actually spoken (candidates: Korean ko, Russian ru, English en, Kazakh kz, Chinese zh, Japanese ja; prefer ${langName}/${targetName} when ambiguous).
 1. Transcribe the speech verbatim in the original language(s), but OMIT hesitation fillers (e.g. "음", "어", "그…", "uh", "um", "э-э", "ну", "えっと"). Keep all meaningful words and proper nouns exactly.
-2. Translate the transcript into ${targetName} — formal/polite register, standard medical terminology, concise (for real-time subtitles).
+2. If the detected language is already ${targetName}, set "x" to the transcript itself (do NOT translate). Otherwise translate the transcript into ${targetName} — formal/polite register, standard medical terminology, concise (for real-time subtitles).
 Respond with ONLY this JSON on one line, no markdown, no code fences:
-{"t":"<transcript>","x":"<translation>"}
-If there is no clear human speech, or the speech is ONLY hesitation fillers with no content, respond exactly: {"t":"","x":""}`,
+{"t":"<transcript>","x":"<translation>","l":"<detected language code>"}
+If there is no clear human speech, or the speech is ONLY hesitation fillers with no content, respond exactly: {"t":"","x":"","l":""}`,
               },
             ],
           },
@@ -143,6 +149,8 @@ If there is no clear human speech, or the speech is ONLY hesitation fillers with
           const j = JSON.parse(m[0]);
           transcript = String(j.t || "").trim();
           translated = String(j.x || "").trim();
+          const l = String(j.l || "").trim().toLowerCase();
+          detectedLang = LANG_NAMES[l] ? l : "";
         } catch {
           // 파싱 실패 — 조각 폐기 (깨진 텍스트를 자막으로 내보내는 것보다 안전)
         }
@@ -179,18 +187,19 @@ Transcribe the speech in this audio clip. The speaker is speaking ${langName} (m
     }
 
     // 번역 로그 저장 — translate-realtime 와 동일 테이블/형식 (fire-and-forget)
+    // source_lang 은 감지 언어 우선 — 설정 언어로 기록하면 echo 건이 ru→ko 로 오염됨(7/10 로그)
     if (transcript && translated && targetLang) {
       saveTranslationLog(consultationId, {
         originalText: transcript,
         translatedText: translated,
-        sourceLang: lang,
+        sourceLang: detectedLang || lang,
         targetLang,
       }).catch((err: any) =>
         console.error("[consultation/stt] DB save error:", err?.message?.slice(0, 200))
       );
     }
 
-    return Response.json({ ok: true, transcript, translated });
+    return Response.json({ ok: true, transcript, translated, detectedLang: detectedLang || lang });
   } catch (err: any) {
     console.error("[consultation/stt] error:", err?.message?.slice(0, 200));
     return Response.json({ ok: false, error: "stt_failed" }, { status: 500 });
