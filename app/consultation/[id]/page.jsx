@@ -869,6 +869,18 @@ export default function ConsultationRoomPage() {
   // ── TTS ──
   const tts = useTTS({ language: targetLang });
 
+  // ── 대화 문맥 링버퍼 — 직전 발화들을 번역 프롬프트에 문맥으로 전달 ──
+  // 조각 단위 무맥락 번역이 대명사·생략 주어를 뒤집던 문제(7/10 로그: 수수료 지급 방향
+  // 반전 등) 대응. ref 라 리렌더·의존성 오염 없음. 세션 스코프(재입장 시 초기화)라
+  // 과거 통화 로그가 섞일 일도 없음.
+  const convoContextRef = useRef([]);
+  const pushConvoContext = useCallback((speaker, lang, text) => {
+    if (!text) return;
+    const buf = convoContextRef.current;
+    buf.push({ speaker, lang, text });
+    if (buf.length > 8) buf.splice(0, buf.length - 8);
+  }, []);
+
   // ── 번역 결과를 자막·기록·상대 전송·TTS 에 일괄 반영 ──
   // (브라우저 STT→번역 / 수동입력→번역 / 서버 STT 전사+번역 통합응답 공용)
   const applyTranslation = useCallback(
@@ -886,6 +898,9 @@ export default function ConsultationRoomPage() {
 
       // Add to translation log
       setTranslations((prev) => [...prev, entry]);
+
+      // 다음 번역의 문맥으로 축적
+      pushConvoContext("self", srcLangOverride || myLang, original);
 
       // Show subtitle
       setCurrentSubtitle({ original, translated });
@@ -909,7 +924,7 @@ export default function ConsultationRoomPage() {
       // Clear interim
       setInterimText("");
     },
-    [myLang, targetLang, myRole, ttsEnabled, tts]
+    [myLang, targetLang, myRole, ttsEnabled, tts, pushConvoContext]
   );
 
   // ── Translate (큐 순차처리) ──
@@ -939,6 +954,8 @@ export default function ConsultationRoomPage() {
               targetLang,
               consultationId,
               speakerRole: "self",
+              // 직전 대화 문맥 — 대명사·생략 주어·용어 일관성 (자기 자신은 아직 버퍼에 없음)
+              context: convoContextRef.current.slice(-6),
             }),
           });
           const result = await res.json();
@@ -980,12 +997,14 @@ export default function ConsultationRoomPage() {
   const handleRemoteSubtitle = useCallback(
     ({ text, lang, role }) => {
       setRemoteSubtitle({ text, lang, role });
+      // 상대 발화도 문맥으로 축적 (수신되는 건 번역문이지만 대명사·용어 일관성엔 유효)
+      pushConvoContext("other", lang, text);
       // 문장 길이에 비례해 자동 숨김(8~15초) — 긴 번역문을 다 읽기 전에 사라지지 않게
       if (remoteSubtitleTimerRef.current) clearTimeout(remoteSubtitleTimerRef.current);
       const holdMs = Math.min(15000, Math.max(8000, (text?.length || 0) * 90));
       remoteSubtitleTimerRef.current = setTimeout(() => setRemoteSubtitle(null), holdMs);
     },
-    []
+    [pushConvoContext]
   );
 
   // ── Speech Recognition ──
@@ -1696,6 +1715,8 @@ export default function ConsultationRoomPage() {
               fd.append("audio", blob, "chunk.webm");
               fd.append("lang", myLang);
               fd.append("targetLang", targetLang);
+              // 직전 대화 문맥 — 전사(동음이의)·번역(대명사) 양쪽 정확도에 기여. ref 라 의존성 불변.
+              fd.append("context", JSON.stringify(convoContextRef.current.slice(-6)));
               const res = await fetch(
                 `/api/khidi/consultation/${consultationId}/stt`,
                 { method: "POST", headers, body: fd }
