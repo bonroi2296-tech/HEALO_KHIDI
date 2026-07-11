@@ -1,5 +1,15 @@
 # HEALO KHIDI — 알려진 이슈 / 전수 QA 발견사항
 
+## 🟢 2026-07-11 화상상담 통역 개선 후속 과제 (기능 동작엔 지장 없음 — 다음에 화상 만질 때)
+
+> 통역 품질 대수술 PR(자막 UI 4건 + 언어 자동감지·문맥 전달·청취 모드·화자 이름표) 작업 중 남긴 의도적 부채. 배경: 7/10 통화 로그 194건 전수조사(실질 정상률 46%, 원인 1위 문장 절단 52% — 상세는 PR 본문).
+
+- **① 문맥 검증 헬퍼 중복**: `translate-realtime/route.ts`와 `[id]/stt/route.ts`에 context 검증·블록 생성이 각각 인라인 구현(+`scripts/eval-translation-cases.mjs`의 프롬프트 사본). 프롬프트를 고치면 세 곳 수동 동기화 필요 — `src/lib/consultation/translationPrompt.ts`로 공유화할 것.
+- **② 녹음 파이프라인 중복**: `ListenModeBridge.jsx`(청취 모드)의 VAD·MediaRecorder 사이클이 page.jsx 내 마이크 서버 STT와 같은 패턴의 별도 구현. 마이크 경로는 라이브 검증 없이 못 건드려 의도적으로 분리 — 2인 실통화 검증 기회에 공용 훅으로 통합.
+- **③ STT confidence 미수집**: `consultation_translations.confidence` 전량 null — 저품질 구간 자동 플래그·`/admin/khidi/ai-regression` 분포 지표 연동 불가. Gemini는 진짜 확률을 안 주므로 자기평가 점수 또는 휴리스틱(길이·재시도 여부) 설계 필요.
+- **④ 청취 모드 실기기 미검증**: 원격 트랙 MediaRecorder 녹음이 iOS Safari에서 동작하는지 미확인(마이크 캡처와 달리 getUserMedia 불필요라 이론상 안전). 2인 실통화 검증 체크리스트는 PR 본문.
+- ✅ **참고 — 언어 라우팅 echo 버그 해결됨**: 한국어 발화가 ru→ko 설정에서 번역 없이 원문 echo(7/10 로그 10건·문제의 16%)되던 것 — 서버 STT 언어 자동 감지 + translate-realtime 가드로 차단. 번역 로그 `source_lang`도 감지 언어로 기록되므로 이후 로그 분석 시 7/10 이전 데이터의 source_lang 은 신뢰 금지.
+
 ## 🟡 2026-07-07 수익모델 문구 불일치 — 컨시어지 수수료를 "누가 내는가" PO 확정 필요
 
 > 신뢰 칩(#679) 독립 리뷰에서 발견. 사이트 공식 FAQ(`src/lib/faq/faqData.js` "이용료")는 **환자에게 컨시어지 수수료 5-10%(견적서 명시)**를 고지하고 약관도 "이용자가 회사에 지급한 수수료"를 전제하는데, 내부 문서(BUSINESS_PLAYBOOK·벤치마크 §5 등)는 **병원측 유치 수수료** 모델로 기술 — 서로 다른 얘기.
