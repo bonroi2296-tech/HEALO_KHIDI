@@ -538,12 +538,15 @@ function VideoGrid() {
   );
 }
 
-// 자막 크기별 Tailwind 클래스
+// 자막 크기별 Tailwind 클래스 — 핵심 번역문(trans) 기준 小14 / 中18 / 大24px.
+// (예전 14/16/18px 는 小↔大 차이가 4px 뿐이라 "크기 버튼이 안 먹는다"는 체감 — PO 제보 2026-07-11)
 const SUBTITLE_SIZE_CLASS = {
-  sm: { text: "text-xs", trans: "text-sm", meta: "text-xs" },
-  md: { text: "text-sm", trans: "text-base", meta: "text-xs" },
-  lg: { text: "text-base", trans: "text-lg", meta: "text-sm" },
+  sm: { text: "text-xs", trans: "text-sm", meta: "text-[10px]" },
+  md: { text: "text-sm", trans: "text-lg", meta: "text-xs" },
+  lg: { text: "text-base", trans: "text-2xl", meta: "text-xs" },
 };
+// 자막 크기 선택 저장 키 — 재입장해도 유지 (hw_device_id 와 같은 localStorage 패턴)
+const SUBTITLE_SIZE_STORAGE_KEY = "hw_subtitle_size";
 
 // ── Subtitle overlay ──
 // size: "sm" | "md" | "lg"
@@ -800,8 +803,25 @@ export default function ConsultationRoomPage() {
   const [ttsEnabled, _setTtsEnabled] = useState(false);
   const [isTranslating, setIsTranslating] = useState(false);
 
-  // 자막 크기: "sm" | "md" | "lg"
+  // 자막 크기: "sm" | "md" | "lg" — 선택은 localStorage 에 저장해 재입장에도 유지.
+  // (lazy initializer 로 읽으면 SSR 첫 렌더와 달라 hydration mismatch → 마운트 후 effect 로 복원)
   const [subtitleSize, setSubtitleSize] = useState("md");
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(SUBTITLE_SIZE_STORAGE_KEY);
+      if (saved === "sm" || saved === "md" || saved === "lg") setSubtitleSize(saved);
+    } catch {
+      /* 인앱 브라우저 등 localStorage 차단 환경 — 기본값 유지 */
+    }
+  }, []);
+  const changeSubtitleSize = useCallback((v) => {
+    setSubtitleSize(v);
+    try {
+      localStorage.setItem(SUBTITLE_SIZE_STORAGE_KEY, v);
+    } catch {
+      /* 저장 실패해도 이번 세션엔 적용됨 */
+    }
+  }, []);
   // 상대방 자막 (DataChannel 수신)
   const [remoteSubtitle, setRemoteSubtitle] = useState(null);
   const remoteSubtitleTimerRef = useRef(null);
@@ -2744,7 +2764,7 @@ export default function ConsultationRoomPage() {
                 ].map(([v, label]) => (
                   <button
                     key={v}
-                    onClick={() => setSubtitleSize(v)}
+                    onClick={() => changeSubtitleSize(v)}
                     className={`px-3 py-2 rounded-lg text-sm transition border ${
                       subtitleSize === v
                         ? "bg-teal-700 border-teal-500 text-white font-semibold"
