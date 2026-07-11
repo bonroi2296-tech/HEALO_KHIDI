@@ -130,6 +130,8 @@ export async function POST(
 The speaker most likely speaks ${langName}, but this microphone may be shared by people speaking different languages — DETECT the language actually spoken (candidates: Korean ko, Russian ru, English en, Kazakh kz, Chinese zh, Japanese ja; prefer ${langName}/${targetName} when ambiguous).
 1. Transcribe the speech verbatim in the original language(s), but OMIT hesitation fillers (e.g. "음", "어", "그…", "uh", "um", "э-э", "ну", "えっと"). Keep all meaningful words and proper nouns exactly.
 2. If the detected language is already ${targetName}, set "x" to the transcript itself (do NOT translate). Otherwise translate the transcript into ${targetName} — formal/polite register, standard medical terminology, concise (for real-time subtitles).
+The clip may start or end mid-sentence: transcribe and translate the fragment faithfully AS-IS — never invent a completion for a cut-off sentence (this is a medical setting; invented content is dangerous).
+If the audio contains only silence, background noise, breathing, or music, you MUST return the empty JSON — NEVER invent greetings ("Здравствуйте", "안녕하세요") or filler phrases for unclear audio.
 Respond with ONLY this JSON on one line, no markdown, no code fences:
 {"t":"<transcript>","x":"<translation>","l":"<detected language code>"}
 If there is no clear human speech, or the speech is ONLY hesitation fillers with no content, respond exactly: {"t":"","x":"","l":""}`,

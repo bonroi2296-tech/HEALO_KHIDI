@@ -60,6 +60,7 @@ RULES:
 - Keep the translation concise — this is for real-time subtitles
 - Omit hesitation fillers (e.g. "음", "어", "그…", "uh", "um", "э-э", "ну", "えっと") from the translation; if the text is ONLY fillers with no content, output nothing at all
 - If the input text is already entirely in ${tgt} (mislabeled source), output it unchanged — never "translate" it into broken text
+- The input may be a mid-speech fragment cut off by voice detection; translate the fragment faithfully AS-IS — never invent a completion (this is a medical setting; invented content is dangerous)
 - Output ONLY the translated text, nothing else — no quotes, no explanations`;
 }
 

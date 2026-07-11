@@ -1592,6 +1592,18 @@ export default function ConsultationRoomPage() {
   // 서버 STT 상태 표시: idle(꺼짐) | listening(대기) | speaking(목소리 감지) | processing(자막 생성 중)
   const [serverSttStatus, setServerSttStatus] = useState("idle");
 
+  // 침묵 환각 필터 — Gemini STT 가 무음·잡음 구간에서 인사말을 창작하는 패턴
+  // (7/10 로그: 'Здравствуйте' 가 회의 한중간에 맥락 없이 20회+ 반복). 같은 전사가
+  // 30초 안에 또 오면 자막 스킵. 짧은 맞장구('да','네')는 실제로도 반복되므로 5자 이상만.
+  const lastServerSttRef = useRef({ text: "", at: 0 });
+  const isHallucinatedRepeat = useCallback((text) => {
+    const now = Date.now();
+    const prev = lastServerSttRef.current;
+    const dup = text.length >= 5 && text === prev.text && now - prev.at < 30000;
+    lastServerSttRef.current = { text, at: now };
+    return dup;
+  }, []);
+
   useEffect(() => {
     if (!useServerStt) {
       setServerSttStatus("idle");
@@ -1680,7 +1692,7 @@ export default function ConsultationRoomPage() {
                 { method: "POST", headers, body: fd }
               );
               const result = await res.json();
-              if (result.ok && result.transcript) {
+              if (result.ok && result.transcript && !isHallucinatedRepeat(result.transcript)) {
                 if (result.translated) {
                   // 전사+번역 통합 응답 — 추가 번역 호출 없이 바로 자막 반영
                   applyTranslationRef.current(result.transcript, result.translated, result.detectedLang);
@@ -1718,8 +1730,8 @@ export default function ConsultationRoomPage() {
           }
           const dur = Date.now() - startedAt;
           const shouldCut =
-            (voicedFrames >= 3 && silentStreak >= 7) || // 말 끝남(0.7초 무음) → 즉시 전송
-            (voicedFrames >= 3 && dur >= 8000) || // 8초 넘는 긴 발화는 강제 컷 — 문단처럼 긴 조각은 전사 정확도·지연을 둘 다 망침(STT 권고 2~5초, 상한 ~15초)
+            (voicedFrames >= 3 && silentStreak >= 12) || // 말 끝남(1.2초 무음) → 전송. 0.7초는 쉼표 호흡에도 끊겨 문장 중간 절단이 양산됨(7/10 로그: 조각 오류가 문제의 52%)
+            (voicedFrames >= 3 && dur >= 10000) || // 10초 넘는 긴 발화는 강제 컷 — 문단처럼 긴 조각은 전사 정확도·지연을 둘 다 망침(STT 상한 ~15초)
             (voicedFrames < 3 && dur >= 5000); // 무음만 5초 — 버리고 새 사이클
           if (shouldCut) {
             try {
@@ -1781,7 +1793,7 @@ export default function ConsultationRoomPage() {
       audioCtx?.close().catch(() => {});
       setServerSttStatus("idle");
     };
-  }, [useServerStt, myLang, targetLang, consultationId, getConsultAuthHeaders]);
+  }, [useServerStt, myLang, targetLang, consultationId, getConsultAuthHeaders, isHallucinatedRepeat]);
 
   // ── End call ──
   const handleEndCall = async () => {
