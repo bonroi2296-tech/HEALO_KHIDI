@@ -16,6 +16,7 @@ import { google } from "@ai-sdk/google";
 import { requireConsultationAccess, requireAuthenticatedUser } from "@/lib/auth/requireConsultationAccess";
 import { verifyGuestTokenReadOnly } from "@/lib/auth/guestToken";
 import { checkConsultationAiGuard } from "@/lib/ai/aiGuard";
+import { detectLanguage } from "@/lib/translate";
 
 // Origin 화이트리스트 (브라우저에서 진료 중 호출되므로 시크릿 대신 Origin 검증)
 const ALLOWED_ORIGINS = new Set<string>([
@@ -139,6 +140,26 @@ export async function POST(request: NextRequest) {
     // Skip if same language
     if (sourceLang === targetLang) {
       return Response.json({ ok: true, translated: text });
+    }
+
+    // 결정론적 echo 가드 — 입력이 이미 타겟 언어면(문자셋 판정) 모델 호출 없이 그대로 반환.
+    // 프롬프트 지시("output it unchanged")에만 의존하면 비결정적 + 매 echo 마다 비용·지연 발생.
+    // 7/10 로그: 한국어 발화가 ru→ko 설정으로 들어와 echo 된 건 10건 — 이 경로가 그 재발 방지.
+    // 로그도 감지 언어로 기록해 source_lang 오염(ru→ko로 남던 것)을 막는다.
+    const detectedSrc = detectLanguage(text);
+    if (detectedSrc === targetLang) {
+      if (consultationId) {
+        saveTranslationLog(consultationId, {
+          originalText: text,
+          translatedText: text,
+          sourceLang: detectedSrc,
+          targetLang,
+          speakerRole: speakerRole || "unknown",
+        }).catch((err) =>
+          console.error("[translate-realtime] DB save error:", err.message)
+        );
+      }
+      return Response.json({ ok: true, translated: text, sourceLang: detectedSrc, targetLang });
     }
 
     // 비용 가드 (상담 안 끊는 높은 천장 — 유료키 전환 시 봇·루프발 청구 폭주 backstop)

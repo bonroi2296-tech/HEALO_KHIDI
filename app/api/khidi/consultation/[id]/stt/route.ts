@@ -73,8 +73,12 @@ Use it to resolve pronouns, omitted subjects, homophones, and to keep terminolog
 
 // 모델 선택: 저자원 카자흐어만 Pro(정확도 격차 큼), 나머지는 Flash 유지(비용·지연).
 // env STT_KZ_MODEL 로 override 가능. Pro 별칭이 틀려도 kz 가 죽지 않게 아래 genWithFallback 가 Flash 로 폴백.
-function sttModelFor(lang: string): string {
-  if (lang === "kz") return process.env.STT_KZ_MODEL || "gemini-pro-latest";
+// ⚠️ 언어 자동 감지 도입(2026-07-11) 후엔 '설정 언어'만으론 부족 — 같은 마이크에 카자흐어가
+// 섞여 들어올 수 있는 세션(lang 또는 targetLang 이 kz)이면 Pro 를 쓴다. 안 그러면 공유 마이크의
+// 카자흐 발화가 Flash 로 떨어져, kz 경로에 Pro 를 도입한 이유(정확도 격차)가 도로 사라짐.
+function sttModelFor(lang: string, targetLang?: string): string {
+  if (lang === "kz" || targetLang === "kz")
+    return process.env.STT_KZ_MODEL || "gemini-pro-latest";
   return "gemini-flash-latest";
 }
 
@@ -150,7 +154,7 @@ export async function POST(
       // 감지 언어가 이미 targetLang 이면 번역하지 않고 전사를 그대로 자막으로 (echo 방지 —
       // 7/10 로그 전수조사에서 한국어 발화가 ru→ko 로 들어가 원문 그대로 echo 된 건 10건).
       const targetName = LANG_NAMES[targetLang];
-      const text = await genWithFallback(sttModelFor(lang), {
+      const text = await genWithFallback(sttModelFor(lang, targetLang), {
         messages: [
           {
             role: "user",

@@ -553,28 +553,24 @@ const SUBTITLE_SIZE_STORAGE_KEY = "hw_subtitle_size";
 
 // ── Subtitle overlay ──
 // size: "sm" | "md" | "lg"
-// remoteSubtitle: { text, lang, role } | null  — 상대방 자막 (DataChannel 수신)
+// remoteSubtitles: [{ key, text, lang, role, name }] — 상대방 자막 (DataChannel·청취모드),
+//   화자별 슬롯 최대 2개 — 두 화자가 교대로 말해도 앞 자막이 즉시 덮이지 않게(청취 시나리오 핵심)
+// showDisclaimer: 면책 문구 표시 여부 — 페이지 레벨 15초 타이머가 결정(패널 토글로
+//   오버레이가 리마운트돼도 리셋 안 되게 여기 두지 않는다)
 function SubtitleOverlay({
   original,
   translated,
   interimText,
   sourceLang,
   targetLang,
-  remoteSubtitle,
+  remoteSubtitles = [],
   size = "md",
+  showDisclaimer = false,
 }) {
   const lang = useLang();
   const c = COPY[lang] || COPY.en;
-  const hasContent = original || interimText || remoteSubtitle?.text;
-
-  // 면책 문구는 자막 첫 노출 후 15초만 — 상시 띄우면 화면만 가림.
-  // (같은 문구를 번역 기록 패널 상단에 상시 병기 — 컴플라이언스 유지)
-  const firstShownAtRef = useRef(null);
-  if (hasContent && firstShownAtRef.current === null) {
-    firstShownAtRef.current = Date.now();
-  }
+  const hasContent = original || interimText || remoteSubtitles.length > 0;
   if (!hasContent) return null;
-  const showDisclaimer = Date.now() - firstShownAtRef.current < 15000;
 
   const sz = SUBTITLE_SIZE_CLASS[size] || SUBTITLE_SIZE_CLASS.md;
 
@@ -584,26 +580,25 @@ function SubtitleOverlay({
     patient: "text-teal-300",
     coordinator: "text-gray-300",
   };
-  const remoteColor = roleColor[remoteSubtitle?.role] || "text-teal-300";
   // 각 자막 박스: 화면 전체폭 대신 글자 폭만큼만(w-fit) — 검은 배경이 영상을 덜 가리게 (PO 제보 2026-07-11)
   const boxBase = "w-fit max-w-[min(92%,42rem)] backdrop-blur-sm rounded-lg px-3 py-1.5 text-center";
 
   return (
     <div className="absolute bottom-4 inset-x-0 z-10 pointer-events-none flex flex-col items-center gap-1.5 px-4">
-      {/* 상대방 자막 (DataChannel 수신) — 화자 라벨은 본문 앞 인라인(줄 수 절약) */}
-      {remoteSubtitle?.text && (
-        <div className={`${boxBase} bg-black/60 border border-yellow-500/20`}>
-          <p className={`${remoteColor} ${sz.trans} font-medium`}>
+      {/* 상대방 자막 (DataChannel·청취모드) — 화자 라벨은 본문 앞 인라인(줄 수 절약) */}
+      {remoteSubtitles.map((rs) => (
+        <div key={rs.key} className={`${boxBase} bg-black/60 border border-yellow-500/20`}>
+          <p className={`${roleColor[rs.role] || "text-teal-300"} ${sz.trans} font-medium`}>
             <span className="text-yellow-500/70 text-[11px] font-normal mr-1.5">
               {/* 화자 구분: 이름(있으면) + 역할 + 언어 */}
-              {remoteSubtitle.name ? `${remoteSubtitle.name} · ` : ""}
-              {remoteSubtitle.role ? `${roleLabel(remoteSubtitle.role, c)} · ` : ""}
-              {LANG_LABELS[remoteSubtitle.lang] || remoteSubtitle.lang}
+              {rs.name ? `${rs.name} · ` : ""}
+              {rs.role ? `${roleLabel(rs.role, c)} · ` : ""}
+              {LANG_LABELS[rs.lang] || rs.lang}
             </span>
-            {remoteSubtitle.text}
+            {rs.text}
           </p>
         </div>
-      )}
+      ))}
 
       {/* 내 음성 인식 중간 결과 */}
       {interimText && (
@@ -823,6 +818,12 @@ export default function ConsultationRoomPage() {
   // 켠 동안엔 청취 모드 STT 를 억제 (이중 자막 방지, 화자 기기 인식이 더 정확)
   const dcActivityRef = useRef(new Map());
 
+  // 면책 문구 — 자막 활동이 시작된 뒤 15초만 표시. 페이지 레벨 상태·타이머로 관리해야
+  // ①패널 토글로 오버레이가 리마운트돼도 리셋 안 되고 ②리렌더가 없어도 15초에 정확히 꺼진다.
+  const [subtitleDisclaimerVisible, setSubtitleDisclaimerVisible] = useState(true);
+  const disclaimerTimerRef = useRef(null);
+  useEffect(() => () => clearTimeout(disclaimerTimerRef.current), []);
+
   // 자막 크기: "sm" | "md" | "lg" — 선택은 localStorage 에 저장해 재입장에도 유지.
   // (lazy initializer 로 읽으면 SSR 첫 렌더와 달라 hydration mismatch → 마운트 후 effect 로 복원)
   const [subtitleSize, setSubtitleSize] = useState("md");
@@ -842,9 +843,47 @@ export default function ConsultationRoomPage() {
       /* 저장 실패해도 이번 세션엔 적용됨 */
     }
   }, []);
-  // 상대방 자막 (DataChannel 수신)
-  const [remoteSubtitle, setRemoteSubtitle] = useState(null);
-  const remoteSubtitleTimerRef = useRef(null);
+  // 상대방 자막 (DataChannel 수신 + 청취 모드) — 화자별 슬롯 최대 2개.
+  // 단일 슬롯이면 두 화자가 교대할 때 뒤 자막이 앞 자막을 즉시 덮어 읽다 만 자막이
+  // 사라진다(청취 모드 핵심 시나리오: 코디↔외국인 교대 대화). 화자 key 별 타이머 관리.
+  const [remoteSubtitles, setRemoteSubtitles] = useState([]);
+  const remoteSubtitleTimersRef = useRef(new Map());
+  useEffect(() => {
+    const timers = remoteSubtitleTimersRef.current;
+    return () => {
+      for (const t of timers.values()) clearTimeout(t);
+      timers.clear();
+    };
+  }, []);
+  const showRemoteSubtitle = useCallback(({ key, text, lang, role, name }) => {
+    const k = key || "dc";
+    setRemoteSubtitles((prev) => {
+      const next = prev.filter((s) => s.key !== k);
+      next.push({ key: k, text, lang, role, name });
+      return next.slice(-2); // 최근 화자 2명까지
+    });
+    // 문장 길이에 비례해 자동 숨김(8~15초) — 긴 번역문을 다 읽기 전에 사라지지 않게
+    const timers = remoteSubtitleTimersRef.current;
+    if (timers.has(k)) clearTimeout(timers.get(k));
+    const holdMs = Math.min(15000, Math.max(8000, (text?.length || 0) * 90));
+    timers.set(
+      k,
+      setTimeout(() => {
+        setRemoteSubtitles((prev) => prev.filter((s) => s.key !== k));
+        timers.delete(k);
+      }, holdMs)
+    );
+  }, []);
+  // 면책 타이머 arming — 자막 활동(내 자막·중간결과·상대 자막)이 처음 생기면 15초 카운트 시작
+  useEffect(() => {
+    if (disclaimerTimerRef.current) return; // 한 번만
+    if (!(currentSubtitle || interimText || remoteSubtitles.length)) return;
+    disclaimerTimerRef.current = setTimeout(
+      () => setSubtitleDisclaimerVisible(false),
+      15000
+    );
+  }, [currentSubtitle, interimText, remoteSubtitles]);
+
   // 내 역할 (token metadata 에서 추론: guest=patient 기본)
   const [myRole, setMyRole] = useState("patient");
 
@@ -908,8 +947,8 @@ export default function ConsultationRoomPage() {
         created_at: new Date().toISOString(),
       };
 
-      // Add to translation log
-      setTranslations((prev) => [...prev, entry]);
+      // Add to translation log (최근 300개 캡 — 장시간 통화에서 배열·렌더 무한 증가 방지)
+      setTranslations((prev) => [...prev.slice(-299), entry]);
 
       // 다음 번역의 문맥으로 축적
       pushConvoContext("self", srcLangOverride || myLang, original);
@@ -951,7 +990,30 @@ export default function ConsultationRoomPage() {
     setIsTranslating(true);
     try {
       while (translateQueueRef.current.length) {
-        const text = translateQueueRef.current.shift();
+        const item = translateQueueRef.current.shift();
+        const text = typeof item === "string" ? item : item.text;
+        // 백채널 사전 매칭 항목 — API 호출 없이 즉시 반영하되, 반드시 '큐 순서대로'
+        // 처리한다(직전 긴 문장 번역이 끝나기 전에 "네"가 먼저 뜨면 대화 순서·문맥이 꼬임).
+        // DB 번역 로그에도 기록 — 회의록·상대방 폴링 로그에서 예/아니오 답변이 빠지면 안 됨.
+        if (typeof item !== "string" && item.pre) {
+          applyTranslation(text, item.pre);
+          if (consultationId) {
+            fetch(`/api/khidi/consultation/${consultationId}/translate`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                ...(isGuestMode ? { "X-Guest-Token": inviteToken } : {}),
+              },
+              body: JSON.stringify({
+                originalText: text,
+                translatedText: item.pre,
+                sourceLanguage: myLang,
+                targetLanguage: targetLang,
+              }),
+            }).catch(() => {});
+          }
+          continue;
+        }
         try {
           const res = await fetch("/api/khidi/consultation/translate-realtime", {
             method: "POST",
@@ -989,50 +1051,44 @@ export default function ConsultationRoomPage() {
     (text) => {
       if (!text || !text.trim()) return;
       const trimmed = text.trim();
-      // 맞장구('네','Да','спасибо' 등)는 API 없이 사전으로 즉시 자막 — 발화의 39%가
-      // 이런 한두 단어라(7/10 로그) 비용·지연 절감 + 짧은 조각 오역 여지 제거
-      const quick = getBackchannelTranslation(trimmed, targetLang);
-      if (quick) {
-        applyTranslation(trimmed, quick);
-        return;
-      }
+      // 맞장구('네','Да','спасибо' 등)는 API 없이 사전으로 처리 — 발화의 39%가
+      // 이런 한두 단어라(7/10 로그) 비용·지연 절감 + 짧은 조각 오역 여지 제거.
+      // ⚠️ 물음표가 있으면 사전 금지: "네?"(반문)를 "네"(긍정)로 둔갑시키면 의료 상담에서
+      // 질문이 동의로 보인다 — 의문문은 API 번역으로.
+      const quick = /[?？]/.test(trimmed)
+        ? null
+        : getBackchannelTranslation(trimmed, targetLang);
       const q = translateQueueRef.current;
-      q.push(trimmed);
+      // 사전 매칭도 큐를 태워 발화 순서를 보존한다 (즉시 반영하면 앞 문장보다 먼저 뜸)
+      q.push(quick ? { text: trimmed, pre: quick } : trimmed);
       // 느린 회선에서 큐가 폭주하지 않게 최근 15개만 유지(오래된 조각은 버림)
       if (q.length > 15) q.splice(0, q.length - 15);
       drainTranslateQueue();
     },
-    [drainTranslateQueue, targetLang, applyTranslation]
+    [drainTranslateQueue, targetLang]
   );
 
   // ── 상대방 자막 수신 핸들러 (DataChannel) ──
   const handleRemoteSubtitle = useCallback(
     ({ text, lang, role, name, participantIdentity }) => {
-      setRemoteSubtitle({ text, lang, role, name });
+      showRemoteSubtitle({ key: participantIdentity, text, lang, role, name });
       // 이 참가자는 직접 통역을 켠 상태 — 청취 모드 STT 억제용 시각 기록
       if (participantIdentity) dcActivityRef.current.set(participantIdentity, Date.now());
       // 상대 발화도 문맥으로 축적 (수신되는 건 번역문이지만 대명사·용어 일관성엔 유효)
       pushConvoContext("other", lang, text);
-      // 문장 길이에 비례해 자동 숨김(8~15초) — 긴 번역문을 다 읽기 전에 사라지지 않게
-      if (remoteSubtitleTimerRef.current) clearTimeout(remoteSubtitleTimerRef.current);
-      const holdMs = Math.min(15000, Math.max(8000, (text?.length || 0) * 90));
-      remoteSubtitleTimerRef.current = setTimeout(() => setRemoteSubtitle(null), holdMs);
     },
-    [pushConvoContext]
+    [pushConvoContext, showRemoteSubtitle]
   );
 
   // ── 청취 모드 자막 수신 (ListenModeBridge) — 원격 참가자 음성을 이쪽에서 전사·번역 ──
   const handleListenSubtitle = useCallback(
-    ({ transcript, translated, lang, name }) => {
-      setRemoteSubtitle({ text: translated, lang, name });
-      if (remoteSubtitleTimerRef.current) clearTimeout(remoteSubtitleTimerRef.current);
-      const holdMs = Math.min(15000, Math.max(8000, (translated?.length || 0) * 90));
-      remoteSubtitleTimerRef.current = setTimeout(() => setRemoteSubtitle(null), holdMs);
+    ({ transcript, translated, lang, name, identity }) => {
+      showRemoteSubtitle({ key: identity, text: translated, lang, name });
       // 문맥 축적은 원문(전사)으로 — 번역문보다 정보 보존이 좋음
       pushConvoContext("other", lang, transcript);
-      // 번역 기록 패널에도 남긴다 (화자 이름 포함)
+      // 번역 기록 패널에도 남긴다 (화자 이름 포함, 최근 300개 캡 — 장시간 통화 메모리·렌더 보호)
       setTranslations((prev) => [
-        ...prev,
+        ...prev.slice(-299),
         {
           id: Date.now(),
           original_text: transcript,
@@ -1045,7 +1101,7 @@ export default function ConsultationRoomPage() {
         },
       ]);
     },
-    [myLang, pushConvoContext]
+    [myLang, pushConvoContext, showRemoteSubtitle]
   );
 
   // ── Speech Recognition ──
@@ -1669,7 +1725,9 @@ export default function ConsultationRoomPage() {
     const now = Date.now();
     const prev = lastServerSttRef.current;
     const dup = text.length >= 5 && text === prev.text && now - prev.at < 30000;
-    lastServerSttRef.current = { text, at: now };
+    // ⚠️ 억제된 호출에서 타임스탬프를 갱신하면 창이 계속 미끄러져("알겠습니다"를 25초마다
+    // 반복하면 영구 억제) 정당한 반복 발화가 사라진다 — 마지막으로 '표시한' 시각 기준 고정.
+    if (!dup) lastServerSttRef.current = { text, at: now };
     return dup;
   }, []);
 
@@ -2355,8 +2413,9 @@ export default function ConsultationRoomPage() {
                     interimText={interimText}
                     sourceLang={myLang}
                     targetLang={targetLang}
-                    remoteSubtitle={remoteSubtitle}
+                    remoteSubtitles={remoteSubtitles}
                     size={subtitleSize}
+                    showDisclaimer={subtitleDisclaimerVisible}
                   />
                 )}
                 {/* 서버 STT 상태 표시 — 듣는 중(회색)/목소리 감지(초록)/자막 생성 중(노랑).
@@ -2456,8 +2515,9 @@ export default function ConsultationRoomPage() {
                     interimText={interimText}
                     sourceLang={myLang}
                     targetLang={targetLang}
-                    remoteSubtitle={remoteSubtitle}
+                    remoteSubtitles={remoteSubtitles}
                     size={subtitleSize}
+                    showDisclaimer={subtitleDisclaimerVisible}
                   />
                 )}
               </div>

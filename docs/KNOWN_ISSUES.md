@@ -8,6 +8,9 @@
 - **② 녹음 파이프라인 중복**: `ListenModeBridge.jsx`(청취 모드)의 VAD·MediaRecorder 사이클이 page.jsx 내 마이크 서버 STT와 같은 패턴의 별도 구현. 마이크 경로는 라이브 검증 없이 못 건드려 의도적으로 분리 — 2인 실통화 검증 기회에 공용 훅으로 통합.
 - **③ STT confidence 미수집**: `consultation_translations.confidence` 전량 null — 저품질 구간 자동 플래그·`/admin/khidi/ai-regression` 분포 지표 연동 불가. Gemini는 진짜 확률을 안 주므로 자기평가 점수 또는 휴리스틱(길이·재시도 여부) 설계 필요.
 - **④ 청취 모드 실기기 미검증**: 원격 트랙 MediaRecorder 녹음이 iOS Safari에서 동작하는지 미확인(마이크 캡처와 달리 getUserMedia 불필요라 이론상 안전). 2인 실통화 검증 체크리스트는 PR 본문.
+- **⑤ 청취 모드 이중 자막 경계 케이스**: 화자가 직접 통역을 켠 경우 DataChannel 자막 우선(60초 억제창)이지만, 그 화자의 **첫 발화**와 60초+ 침묵 직후 발화는 청취 STT와 한 번씩 겹칠 수 있음(비용 2배 + 같은 문장 두 번 표시). 또 Gemini Live Translate(경로 C, 현재 꺼짐)를 켜면 그 자막은 dcActivityRef에 안 잡혀 청취 모드와 상시 중복 — **Live Translate GA 재검토 시 함께 처리**.
+- **⑥ 청취 모드 N명 중복 비용**: 여러 참가자가 동시에 청취 모드를 켜면 같은 발화를 각자 STT(비용 N배). 실사용은 듣는 사람 1명(PO) 가정이라 방치 — 사용 늘면 전사 결과를 DataChannel로 공유해 1회 전사로 통일.
+- **⑦ 무음 환각이 DB 로그엔 여전히 쌓임**: 반복 필터는 클라이언트 자막 표시만 막고, 서버 stt 라우트는 환각 전사를 `consultation_translations`에 저장함(서버는 요청 간 상태가 없어 반복 감지 불가). AI 회의록(summarize)과 차기 로그 분석이 오염될 수 있음 — confidence 수집(③)과 묶어 서버측 품질 게이트로 해결할 것.
 - ✅ **참고 — 언어 라우팅 echo 버그 해결됨**: 한국어 발화가 ru→ko 설정에서 번역 없이 원문 echo(7/10 로그 10건·문제의 16%)되던 것 — 서버 STT 언어 자동 감지 + translate-realtime 가드로 차단. 번역 로그 `source_lang`도 감지 언어로 기록되므로 이후 로그 분석 시 7/10 이전 데이터의 source_lang 은 신뢰 금지.
 
 ## 🟡 2026-07-07 수익모델 문구 불일치 — 컨시어지 수수료를 "누가 내는가" PO 확정 필요
