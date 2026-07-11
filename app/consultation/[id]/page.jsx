@@ -573,8 +573,6 @@ function SubtitleOverlay({
   original,
   translated,
   interimText,
-  sourceLang,
-  targetLang,
   remoteSubtitles = [],
   size = "md",
   showDisclaimer = false,
@@ -2443,8 +2441,6 @@ export default function ConsultationRoomPage() {
                     original={currentSubtitle?.original}
                     translated={currentSubtitle?.translated}
                     interimText={interimText}
-                    sourceLang={myLang}
-                    targetLang={targetLang}
                     remoteSubtitles={remoteSubtitles}
                     size={subtitleSize}
                     showDisclaimer={subtitleDisclaimerVisible}
@@ -2545,8 +2541,6 @@ export default function ConsultationRoomPage() {
                     original={currentSubtitle?.original}
                     translated={currentSubtitle?.translated}
                     interimText={interimText}
-                    sourceLang={myLang}
-                    targetLang={targetLang}
                     remoteSubtitles={remoteSubtitles}
                     size={subtitleSize}
                     showDisclaimer={subtitleDisclaimerVisible}
