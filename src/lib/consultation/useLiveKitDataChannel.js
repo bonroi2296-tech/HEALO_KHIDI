@@ -4,7 +4,8 @@
  * 자기 음성 STT 결과를 DataChannel로 다른 참가자에게 전송하고,
  * 상대방이 보낸 STT 결과를 수신해 콜백으로 전달합니다.
  *
- * 프로토콜: JSON { type: "subtitle", text, lang, role, ts }
+ * 프로토콜: JSON { type: "subtitle", text, lang, role, name, ts }
+ *   name = 화자 표시 이름 (LiveKit 참가자 이름) — 같은 역할이 여럿이어도 자막에서 화자 구분
  *
  * 사용처: consultation/[id]/page.jsx
  */
@@ -44,6 +45,8 @@ export function useLiveKitDataChannel({ onRemoteSubtitle } = {}) {
           text: msg.text,
           lang: msg.lang,
           role: msg.role,
+          // 화자 이름 — payload 우선, 없으면(구버전 클라) LiveKit 참가자 이름으로 폴백
+          name: msg.name || participant?.name || undefined,
           ts: msg.ts,
           participantIdentity: participant?.identity,
         });
@@ -75,6 +78,8 @@ export function useLiveKitDataChannel({ onRemoteSubtitle } = {}) {
           text,
           lang,
           role,
+          // 화자 이름 자동 첨부 — 게스트는 입장 폼 이름, 스태프는 계정 이름 (토큰에 설정됨)
+          name: room.localParticipant?.name || undefined,
           ts: Date.now(),
         });
         const data = ENCODER.encode(msg);
