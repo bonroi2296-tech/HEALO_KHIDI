@@ -563,7 +563,15 @@ function SubtitleOverlay({
   const lang = useLang();
   const c = COPY[lang] || COPY.en;
   const hasContent = original || interimText || remoteSubtitle?.text;
+
+  // 면책 문구는 자막 첫 노출 후 15초만 — 상시 띄우면 화면만 가림.
+  // (같은 문구를 번역 기록 패널 상단에 상시 병기 — 컴플라이언스 유지)
+  const firstShownAtRef = useRef(null);
+  if (hasContent && firstShownAtRef.current === null) {
+    firstShownAtRef.current = Date.now();
+  }
   if (!hasContent) return null;
+  const showDisclaimer = Date.now() - firstShownAtRef.current < 15000;
 
   const sz = SUBTITLE_SIZE_CLASS[size] || SUBTITLE_SIZE_CLASS.md;
 
@@ -574,46 +582,44 @@ function SubtitleOverlay({
     coordinator: "text-gray-300",
   };
   const remoteColor = roleColor[remoteSubtitle?.role] || "text-teal-300";
+  // 각 자막 박스: 화면 전체폭 대신 글자 폭만큼만(w-fit) — 검은 배경이 영상을 덜 가리게 (PO 제보 2026-07-11)
+  const boxBase = "w-fit max-w-[min(92%,42rem)] backdrop-blur-sm rounded-lg px-3 py-1.5 text-center";
 
   return (
-    <div className="absolute bottom-4 left-4 right-4 z-10 pointer-events-none space-y-2">
-      {/* 상대방 자막 (DataChannel 수신) */}
+    <div className="absolute bottom-4 inset-x-0 z-10 pointer-events-none flex flex-col items-center gap-1.5 px-4">
+      {/* 상대방 자막 (DataChannel 수신) — 화자 라벨은 본문 앞 인라인(줄 수 절약) */}
       {remoteSubtitle?.text && (
-        <div className="bg-black/75 backdrop-blur-sm rounded-lg px-4 py-2 text-center border border-yellow-500/20">
-          <p className="text-yellow-500/70 text-xs mb-0.5">
-            {roleLabel(remoteSubtitle.role, c)} — {LANG_LABELS[remoteSubtitle.lang] || remoteSubtitle.lang}
+        <div className={`${boxBase} bg-black/60 border border-yellow-500/20`}>
+          <p className={`${remoteColor} ${sz.trans} font-medium`}>
+            <span className="text-yellow-500/70 text-[11px] font-normal mr-1.5">
+              {roleLabel(remoteSubtitle.role, c)} · {LANG_LABELS[remoteSubtitle.lang] || remoteSubtitle.lang}
+            </span>
+            {remoteSubtitle.text}
           </p>
-          <p className={`${remoteColor} ${sz.trans} font-medium`}>{remoteSubtitle.text}</p>
         </div>
       )}
 
       {/* 내 음성 인식 중간 결과 */}
       {interimText && (
-        <div className="bg-black/70 backdrop-blur-sm rounded-lg px-4 py-2 text-center">
+        <div className={`${boxBase} bg-black/50`}>
           <p className={`text-gray-300 ${sz.text} italic`}>🎤 {interimText}</p>
         </div>
       )}
 
-      {/* 내 발화 번역 결과 */}
+      {/* 내 발화 원문+번역 — 원문은 STT 오인식 확인용 1줄, 번역 1줄 (예전 5줄 스택이 화면을 과하게 가림) */}
       {original && (
-        <div className="bg-black/80 backdrop-blur-sm rounded-lg px-4 py-3 text-center">
-          <p className={`text-gray-400 ${sz.meta} mb-1`}>
-            {LANG_LABELS[sourceLang] || sourceLang}
-          </p>
-          <p className={`text-white ${sz.text} mb-2`}>{original}</p>
-          <div className="border-t border-gray-600 pt-2">
-            <p className={`text-teal-400 ${sz.meta} mb-1`}>
-              → {LANG_LABELS[targetLang] || targetLang}
-            </p>
-            <p className={`text-teal-300 ${sz.trans} font-medium`}>{translated}</p>
-          </div>
+        <div className={`${boxBase} bg-black/60`}>
+          <p className={`text-white ${sz.text}`}>{original}</p>
+          <p className={`text-teal-300 ${sz.text}`}>{translated}</p>
         </div>
       )}
 
-      {/* 의료 면책 문구 */}
-      <p className="text-center text-gray-500 text-[10px] leading-tight">
-        {c.aiSubtitleDisclaimer}
-      </p>
+      {/* 의료 면책 문구 — 첫 15초만 */}
+      {showDisclaimer && (
+        <p className="text-center text-gray-500 text-[10px] leading-tight">
+          {c.aiSubtitleDisclaimer}
+        </p>
+      )}
     </div>
   );
 }
@@ -2536,6 +2542,10 @@ export default function ConsultationRoomPage() {
           {/* Translation log panel */}
           {activePanel === "translation" && (
             <div className="flex-1 flex flex-col overflow-hidden">
+              {/* 의료 면책 상시 문구 — 자막 오버레이에선 첫 15초만 보이므로 여기서 상시 유지 */}
+              <p className="px-4 pt-2 text-[10px] text-gray-500 leading-tight">
+                {c.aiSubtitleDisclaimer}
+              </p>
               <div className="flex-1 overflow-y-auto p-4 space-y-3">
                 {translations.length === 0 ? (
                   <div className="text-center text-gray-500 text-sm py-8">
