@@ -1,0 +1,72 @@
+/**
+ * 스토어 제출용 스크린샷 자동 촬영 (2026-07-13)
+ *
+ * 왜: 앱이 라이브 사이트를 그대로 싣는 구조(Capacitor server.url)라, 스토어 규격 해상도로
+ *     실사이트를 찍으면 그게 곧 앱 화면. 계정·결제 없이 미리 준비 가능한 유일한 대형 준비물.
+ *
+ * 사용: node scripts/appstore-screenshots.mjs [locales]   (기본 ko,en,ru — 예: node ... ko,en,ru,kk,zh,ja)
+ * 출력: appstore-assets/screenshots/<기기>/<언어>-<페이지>.png  (git 미추적 — .gitignore 등재)
+ * 규격: iOS 6.7" 1290×2796 / iOS 6.5" 1242×2688 (애플 필수 2종) / Android 폰 1080×2400
+ * 주의: 웹 캡처 초안임 — 최종 제출 전 실기기/시뮬레이터 캡처로 교체 권장(상태바 없음).
+ */
+import { chromium } from "playwright";
+import { mkdirSync } from "node:fs";
+
+const BASE = process.env.SHOT_BASE_URL || "https://healwith.co.kr";
+const LOCALES = (process.argv[2] || "ko,en,ru").split(",");
+
+// 스토어가 요구하는 픽셀 크기 = viewport × scale (정수로 떨어지게 선정)
+const DEVICES = {
+  "ios-6.7": { width: 430, height: 932, scale: 3 },   // 1290×2796
+  "ios-6.5": { width: 414, height: 896, scale: 3 },   // 1242×2688
+  "android": { width: 360, height: 800, scale: 3 },   // 1080×2400
+};
+
+// 스토어에 보여줄 대표 화면 4개 (스토어 문구의 기능 소개 순서와 일치)
+const PAGES = [
+  ["home", "/"],
+  ["care-journey", "/care-journey"],
+  ["telemedicine", "/telemedicine"],
+  ["inquiry", "/inquiry"],
+];
+
+const browser = await chromium.launch();
+let shot = 0, failed = 0;
+for (const [deviceName, d] of Object.entries(DEVICES)) {
+  const dir = `appstore-assets/screenshots/${deviceName}`;
+  mkdirSync(dir, { recursive: true });
+  for (const locale of LOCALES) {
+    const ctx = await browser.newContext({
+      viewport: { width: d.width, height: d.height },
+      deviceScaleFactor: d.scale,
+      isMobile: true,
+      hasTouch: true,
+      userAgent:
+        "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1",
+      locale,
+    });
+    // 공개 사이트 언어 쿠키(healo_lang) — src/lib/i18n/config.js 의 LOCALE_COOKIE
+    await ctx.addCookies([{ name: "healo_lang", value: locale, domain: new URL(BASE).hostname, path: "/" }]);
+    // 배너류 전부 숨김(스토어 스크린샷에 금지): 쿠키 동의(CookieConsent.jsx) + PWA 설치 안내(InstallPrompt/IosInstallHint)
+    await ctx.addInitScript(() => {
+      localStorage.setItem("healo_cookie_consent", "essential");
+      localStorage.setItem("a2hs-dismissed", "1");
+      localStorage.setItem("ios-a2hs-dismissed", "1");
+    });
+    const page = await ctx.newPage();
+    for (const [name, path] of PAGES) {
+      try {
+        await page.goto(`${BASE}${path}`, { waitUntil: "networkidle", timeout: 45000 });
+        await page.waitForTimeout(1500); // 폰트·이미지 안착
+        await page.screenshot({ path: `${dir}/${locale}-${name}.png` });
+        shot++;
+      } catch (e) {
+        failed++;
+        console.error(`✗ ${deviceName} ${locale} ${name}: ${e.message.split("\n")[0]}`);
+      }
+    }
+    await ctx.close();
+  }
+}
+await browser.close();
+console.log(`완료: ${shot}장 촬영, 실패 ${failed}건 → appstore-assets/screenshots/`);
