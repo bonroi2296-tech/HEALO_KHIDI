@@ -10,6 +10,49 @@
 > 💾 **중간 저장 (2026-07-13, Supabase 디스크 I/O 점검 세션 — 진단 완결, 별도 worktree)**
 > - **Supabase "디스크 I/O 예산 부족" 경고 — 실측 진단 완결(무혐의 확정, 대응=관찰)**: 세션 재개로 Supabase MCP가 붙어 토큰 없이 실측 완료. ①쿼리별 I/O(pg_stat_statements) 전부 디스크 대기 0ms ②WAL 하루 5MB ③체크포인트 쓰기 하루 11MB ④임시파일 22.6GB는 2~5월(마이그레이션·인덱스 구축) 과거 누적분, 5/18 통계리셋 후 ~0. **결론: DB/앱은 디스크를 거의 안 씀 — 인덱스·쿼리 최적화 대상 자체가 없음.** 경고는 무료 Nano 인스턴스에서 플랫폼 자체 운영(로그·백업·모니터링)이 작은 I/O 예산을 먹는 것 = 앱에서 해결 불가 영역. 근본 해결은 Pro($25/월)뿐이나 성능 저하 신호 없어 **관찰이 합리적**(돈 결정이라 PO 몫으로 보고). 점검 도구는 [PR #735](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/735) 머지(`npm run check:supabase-io`, 토큰은 이제 선택사항). 참고: performance advisors 129건은 전부 위생 수준(미사용 인덱스 73·FK인덱스누락 24·RLS initplan 22 등) — I/O 무관, 한가할 때 정리거리.
 
+## 🔖 세션 핸드오프 (2026-07-13 오후 — Zoho→러시아(mail.ru) 메일 불달 진단: 인프라 결백 확정, 남은 건 Assel 답변)
+
+**1. 이번 세션 한 일**
+- 제보("우리 Zoho 메일이 @mail.ru·@inbox.ru로 안 간대" — Assel발) 진단 세션. 워크트리 `email-deliverability-ru`(작업본 브랜치 `worktree-email-deliverability-ru`), 문서 전용 **[PR #737](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/737)**.
+- **DNS 실조회(7/13)**: SPF·DKIM(zmail)·DMARC+감시리포트 전부 정상 — 2026-07-01 세팅 그대로 살아있음. 인증 누락 아님.
+- **시스템 자동메일 결백**: `admin_notification_logs`에 이메일 채널 기록 0건(SMS뿐), `auth.users`에 .ru/.kz 가입자 0명 → Resend/SES 경로 무관.
+- **assel@healwith.co.kr 우편함 전수 확인**(PO가 크롬 시크릿창에 로그인해줌): **보낸 메일 0통**, 대기열·스팸함 0, 유일한 흔적 = 7/3 미발송 초안 1개. → "보냈는데 반송"이 아니라 **발송 시도가 성공한 적 자체가 없음**.
+- **실측 테스트 2건**(PO 버튼 승인 후 발송): ①assel@→PO 지메일 11:37 = **받은편지함 정상 도착**(스팸 아님, PO 스크린샷 확인) ②assel@→mail-tester(러시아어 실전형 아웃리치 본문) 11:52 = **10/10 만점** — SPF/DKIM/DMARC 전부 pass, Zoho 발신 IP `136.143.188.54` 블랙리스트 0곳+Mailspike 화이트리스트 "Very Good reputation", SpamAssassin -0.2.
+- **결론: "Zoho라서 러시아에 못 보낸다" 가설 기각.** 발송 인프라·인증·IP평판·콘텐츠 전부 결백. 유일 용의자 = **Assel의 발송 과정**(계정 접근/사용 문제 — PO가 7/13 11:03 비번 리셋해야 로그인됐던 것도 정황). 상세 = `docs/EMAIL_DELIVERABILITY.md` **§7 신설**(진단 루트+실측 로그).
+- 부수 1: Sentry 주간 리포트 질문 답변 — 에러 1건(`OverconstrainedError`)은 7/8 [PR #718](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/718)로 이미 수리·배포된 화상상담 카메라 재시작 건의 수리 전 마지막 발생. 조치 불필요, 2026-07-20(월) 주간 리포트에 재등장 시에만 재조사.
+- 부수 2: 지메일에서 Supabase 디스크 I/O 경고 발견 → 조사 태스크 칩 발행 → 별도 세션이 완결(위 💾 중간저장 참고: DB 무혐의, 대응=관찰).
+
+**2. 왜 그렇게 했는지**
+- **증거 우선, 추측 금지**: DNS→시스템메일→우편함 실물→실측 발송 순으로 용의자를 소거. "mail.ru가 차단했다"는 통념부터 검증했으면 헛수고할 뻔 — 실제론 보낸 적 자체가 없었음.
+- mail-tester 본문을 실전형(러시아어+링크 1개+유치업 등록번호+실명 서명, §6D 규격)으로 쓴 이유: 콘텐츠 점수까지 실전과 같은 조건으로 재야 "보내도 된다" 판정이 의미 있음.
+- 테스트 발송 2건은 각각 PO 버튼 승인 후 진행(메일 발송 = 명시 허가 대상).
+
+**3. 안 끝났거나 보류**
+- **Assel 답변 대기**: ①어느 계정에서 보냈나 ②보내기 눌렀을 때 에러 문구(스크린샷) ③assel@ 로그인 가능했나 — PO에게 복붙용 러시아어 질문 전달해둠.
+- (선택) 실제 .ru 주소 교차 테스트, GlockApps 시드테스트(mail.ru 실수신함 판정, PO 가입 필요) — Assel 답변 따라 결정.
+- DMARC `p=none→quarantine` 상향: 2026-07-15 이후 Postmark 주간 리포트(admin@healwith.co.kr 수신) 확인 후 (§2 기존 일정).
+
+**4. 주의·함정**
+- **assel@ 새 비밀번호(7/13 PO 리셋)를 Assel에게 전달해야 함** — 안 하면 이제 Assel이 로그인 불가(문제 악화).
+- Zoho 웹메일 폴더명 함정: 한국어 UI의 "보낸 편지함" = **대기열(Outbox)**이고 진짜 보낸함은 **"보냄"**. 헷갈리기 쉬움.
+- Zoho 새메일 화면에서 받는사람 입력 직후 제목칸 클릭하면 타이핑이 받는사람 칩으로 들어가는 UI 습성 있음(이번 세션 2회 재현) — 자동화로 조작 시 입력 후 스크린샷 검증 필수.
+- mail.ru·inbox.ru·list.ru·bk.ru = 전부 VK 한 회사 — 하나 판정이면 나머지도 같이 움직임.
+
+**5. 다음 세션이 먼저 할 일**
+1. ⚠️ **직전 미검증분 먼저 확인: Assel 답변**(에러 문구·계정·로그인 여부) — "로그인을 못 했던 것"이면 새 비번 전달로 사건 종결. "보냈는데 에러"면 스크린샷 기반 재진단(§7 대응표). mail.ru 실주소 교차 테스트 여부도 이때 결정.
+2. 2026-07-15 지났으면 **DMARC quarantine 상향** 검토 — Postmark 주간 리포트에서 정상 발송 전부 pass 확인이 선행 조건(§2 단계표, 바로 reject 점프 금지).
+3. 아웃리치 상시 프로세스 가동: **Assel 초안은 발송 전 어시 검토**(§6D 체크: 러시아어·링크 1개·스팸 단어·서명) — PO 합의됨.
+
+**6. 검증 상태**
+- ✅ 실측 완료: DNS 3종 조회, 지메일 도착(PO 스크린샷 육안 확인), mail-tester 10/10(성적표 원문 §7에 기록) — 전부 직접 검증.
+- ⚠️ **mail.ru 실수신함 도달은 미검증**(테스트용 .ru 주소가 없음) — "mail.ru가 100% 받는다"고는 못 함. 확정된 건 "우리 쪽엔 거부당할 사유가 없다"까지. → 5-1에 승격.
+- **[PR #737](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/737)**: 이 세션 작업본(문서 전용, 코드 무변경). 이 핸드오프 작성 시점 CI 진행 중 — green 확인 후 자동머지 예정(문서 전용이라 독립 리뷰 생략 규정 적용). 머지 실패 시 다음 세션이 이어받을 것.
+
+**7. 다음 세션 첫 프롬프트**
+> docs/PROJECT_CONTEXT.md 최상단 읽어. Zoho→러시아 메일 건: 인프라는 mail-tester 10/10으로 결백 확정(EMAIL_DELIVERABILITY.md §7), Assel 답변(에러문구·어느 계정·로그인 가능했나)부터 확인해 — 로그인 문제면 새 비번 전달로 종결. 7/15 지났으면 DMARC quarantine 상향 검토(Postmark 리포트 먼저 확인). PR #737 머지 여부도 확인.
+
+---
+
 ## 🔖 세션 핸드오프 (2026-07-13 — AI 품질 경보 폐루프: 알림 딥링크 수리 + 첨부 환각 차단 + 주간 자동개선 루틴)
 
 **1. 이번 세션 한 일**
@@ -53,67 +96,6 @@
 
 **7. 다음 세션 첫 프롬프트**
 > 먼저 docs/PROJECT_CONTEXT.md 최상단 핸드오프 읽어. 그 다음: ①프로덕션에서 품질 경고 알림 눌러 대화 열리는지 + 첨부 올리고 "서류 설명해줘" 물어 "파일 못 읽음" 답 나오는지 확인해(PO 확인 결과 왔는지 먼저 보고). ②7/20 지났으면 ai-quality-auto-improve 루틴 첫 실행 결과(자동머지 PR·플레이북 draft) 타당한지 검사해. ③끝나면 다국어 섹션2 등 이전 백로그 이어가.
-
----
-
-## 🔖 세션 핸드오프 (2026-07-09~10 — 백오피스 다국어화 정책결정 + 섹션1 구현·머지, 8시간 CI 정체 진단)
-
-**1. 이번 세션 한 일**
-- PO 질문("텍스트가 왜 가끔 한 언어로 고정되냐") 답변: i18n 사전(TR/COPY 딕셔너리)을 안 거치고 코드에 직접 문자열을 박으면 그 언어로 고정된다고 설명.
-- 조사 중 `src/components/costs/CostEstimateCard.jsx`(환자용, 당시 미배선 컴포넌트)가 `alert()` 3곳 포함 전체 한국어 하드코딩인 걸 발견 → 6개 언어(`COPY`+`useLang()`)로 전면 수정 + 독립 리뷰(별도 에이전트)로 문구 누락 2건 보강 + `check-content-consistency.mjs` §7 스캔범위를 `app/patient` 밖 `src/components/{patient,costs}`까지 확장. **[PR #726](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/726) 머지 완료**(POSTMORTEMS #81 기록).
-- PO가 그 김에 **"어드민도 그냥 예외 없이 다국어 적용해"**로 정책 전환 지시 → 기존 전제("백오피스는 스태프가 한국인이라 한국어 고정")를 명시적으로 폐기. 범위(admin·coordinator·hospital 전체)·진행방식(섹션별 순차 PR)을 버튼으로 확정.
-- **섹션1 구현**: `app/admin/{consultations,users,staff}/page.jsx` + 공용 `src/components/consultation/CreateConsultationModal.jsx`(admin·coordinator 둘 다 씀) 6개 언어화. `app/agency/PartnerPortal.jsx`·`app/patient/documents/DocumentsClient.jsx`와 동일한 `TR/COPY`+훅+`tt()` 컨벤션 재사용.
-- **버그 발견·수정**: 섹션1 초회 커밋이 공개용 `useLang()`(쿠키 없으면 en 기본)을 백오피스에 잘못 적용 → E2E Smoke(`consultation-create-modal.spec.ts`)가 3연속 실패로 적발 → `useBackofficeLang()`(쿠키 없으면 ko 기본)으로 교체. 재발방지로 `check-content-consistency.mjs` §16 신설(POSTMORTEMS #82).
-- **8시간 CI 정체 진단·해결**: PR #727이 8시간 동안 CI가 전혀 안 도는 것처럼 보였음 — 처음엔 GitHub Actions 인프라 장애로 오판(전역 조사·빈 커밋 재트리거 등 시도). 실제 원인은 **다른 병렬 세션이 `docs/POSTMORTEMS.md` 같은 삽입 위치에 동시에 글을 써서 생긴 진짜 머지 충돌**(`git merge-tree`로 직접 재확인해서 발견) — 이게 CI 트리거 자체를 막고 있었던 것으로 보임. 두 세션 내용을 다 살려 순서(최신 #82 위, #81 아래) 맞춰 수동 병합 → 이후 CI 정상 작동.
-- GitHub API(`merge_pull_request`)가 "충돌 있음"으로 반복 거부해 PO에게 "GitHub 화면에서 직접 머지" 요청 → **PO가 웹 UI에서 Squash and merge 직접 확정**. 이후 어시가 무심코 API 머지를 한 번 더 시도했다가 auto mode classifier가 "PO가 이미 수동 머지를 선택했는데 왜 또 시도하냐"고 정확히 차단(올바른 제지) — 이후 머지는 시도 안 함.
-- **[PR #727](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/727) 머지 완료**(PO 수동 머지, main 반영). 후속 **[PR #728](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/728)**(진행표 갱신 문서 1줄)은 CI green 확인 후 어시가 자동머지.
-- PO가 "브라우저로 GitHub 화면 직접 못 여냐"고 반복 질문 → 실측 재검증한 결과, 예전 문서("연결 자체 불가")가 부정확했음을 확인·정정: 실제로는 `curl`은 이 세션의 보안 프록시로 정상 접속되고, **Chromium만 프록시 TLS 인증서를 못 믿어서(`ERR_CERT_AUTHORITY_INVALID`) 막힘** — PO 기기(폰/PC)와 무관, 세션 서버 쪽 문제. TLS 검증 우회는 보안 규칙상 시도 안 함. 문서 정정.
-- PO가 섹션1 완료 후 다음 액션을 묻자 **"PO가 먼저 직접 확인하고 싶음"**을 선택 → 실화면 클릭검증 방법(로그인·언어스위처·확인할 화면 3곳)을 딸깍 가능하게 안내하고 결과 대기 중.
-
-**2. 왜 그렇게 했는지**
-- `agency`·`clinic`은 이미 다국어 완료 상태였음을 뒤늦게 확인 — 처음엔 검사기 스크립트의 무관한 배열(직원→퍼널 리다이렉트 방지용, 언어와 무관)만 보고 "한국어 고정 그룹"이라 잘못 판단했다가, 코드(`PartnerPortal.jsx`)를 직접 열어 이미 `TR`+`useLang()`+언어스위처로 완비된 걸 확인하고 PO에게 정정 보고함.
-- `useBackofficeLang()` vs `useLang()` 구분: 저장소에 두 개의 독립적인 언어 쿠키/훅 체계가 있음(`healo_lang`=공개·에이전시·의료기관용 en 기본, `healo_bo_lang`=국내 스태프용 ko 기본) — 인터페이스가 동일해 로컬에서 안 걸리고 실사용 흐름(로그인 직후)에서만 드러나는 부류라 E2E가 유일한 방어선이었음.
-- 브라우저 TLS 우회를 시도하지 않은 이유: 세션 운영 규칙("TLS 검증 절대 끄지 말 것")이 보안 예외 없이 명시돼 있어, 기술적으로 가능해도 하지 않음.
-
-**3. 안 끝났거나 보류**
-- **섹션 2~6 전부 미착수**: `app/admin/khidi/*`(KHIDI 지표 대시보드)·`app/admin/{hospitals,treatments,doctors,import,rag}`·`app/admin` 나머지·`app/coordinator/*`(22개)·`app/hospital/*`(7개). 규모 약 26,500줄 남음(전체 28,469줄 중 섹션1 ~1940줄만 완료).
-- **섹션1 실화면 클릭 검증**: PO가 직접 로그인해서 언어 스위처로 확인하기로 함 — 이 세션 종료 시점까지 결과 안 들어옴.
-
-**4. 주의·함정**
-- **언어 훅 선택을 섹션2부터도 매번 의식적으로 확인할 것**: `admin`/`coordinator`/`hospital` 안 파일은 `useBackofficeLang()`(`@/lib/i18n/coordinator`), `agency`/`clinic`/`patient`/공개 페이지는 `useLang()`(`@/lib/i18n/LangContext`). 헷갈리면 `check-content-consistency.mjs` §16이 `app/admin`·`coordinator`·`hospital` **디렉토리 안**은 잡아주지만, 그 세 디렉토리 밖에 있는 백오피스 전용 공용 컴포넌트(`src/components/` 하위 새 파일 등)는 못 잡음 — 코드리뷰에서 직접 확인 필요.
-- **병렬 세션과 `docs/POSTMORTEMS.md`·`docs/PROJECT_CONTEXT.md` 최상단 동시 삽입 충돌 위험**: 2026-07-10에 실제로 발생(다른 세션이 같은 자리에 POSTMORTEMS #81을 이미 넣어놨는데 이 세션도 같은 자리에 #82를 넣으려다 충돌). 커밋 전 `git fetch origin main && git log origin/main -3`로 그 사이 다른 세션이 머지했는지 먼저 확인하는 습관 재확인(기존 규칙 I).
-- **GitHub `mergeable_state`가 "dirty"/"blocked"라고 곧바로 인프라 장애로 단정하지 말 것**: 겉보기엔 애매하게 보여도 `git merge-tree <base> origin/main HEAD`로 직접 3-way 병합을 시뮬레이션해보면 진짜 충돌인지 바로 판별된다(오늘은 초반에 grep 패턴이 틀려서 "충돌 없음"으로 오판했다가, 나중에 정확한 패턴으로 재확인해 진짜 충돌을 찾음 — grep 시 `+<<<<<<<`처럼 diff 접두사가 붙을 수 있음에 주의).
-- **PO가 명시적으로 "내가 직접 할게"로 경계를 정하면 그 뒤로 같은 행동(머지 등)을 어시가 다시 시도하지 말 것** — 2026-07-10에 auto mode classifier가 이를 정확히 차단해준 사례가 있었음, 앞으로도 같은 패턴 주의.
-- **헤드리스 브라우저로 외부 사이트(GitHub 등) 화면을 열어 클릭하는 건 여전히 불가** — 원인이 "연결 자체 불가"가 아니라 "Chromium이 세션 프록시 인증서를 신뢰 안 함"으로 정정됐을 뿐, 결론(실화면 조작 불가)은 그대로. 우회 시도 금지.
-
-**5. 다음 세션이 먼저 할 일**
-1. ⚠️ **PO의 섹션1 실화면 검증 결과 확인** — 아직 안 왔으면 리마인드(로그인 후 `/admin/consultations`·`/admin/users`·`/admin/staff` + 새 상담 예약 모달에서 언어 스위처로 EN/RU 전환 확인 요청해둔 상태). 이상 있으면 먼저 고치고, 문제없으면 섹션2로.
-2. **섹션2 착수**: `app/admin/khidi/*`(KHIDI 지표 대시보드) 6개 언어화. 섹션1과 동일한 `TR`+`useBackofficeLang()`+`tt()` 패턴, 독립 리뷰 후 CI green이면 자동머지(저위험 판단 기준 동일 — 순수 텍스트 치환, 로직 무변경).
-3. 섹션3~6(병원/치료관리, admin 나머지, coordinator, hospital)은 위 섹션 진행표 순서대로.
-
-**6. 검증 상태**
-- ✅ **PR #726**: 머지 완료(GitHub MCP로 직접 확인), CI green.
-- ✅ **PR #727**: 머지 완료(GitHub MCP로 직접 확인 — `merged:true`, `merged_by: bonroi2296-tech`), `ci`·`Smoke Tests(PR)` 최종 커밋 기준 둘 다 success.
-- ✅ **PR #728**: 머지 완료(어시 자동머지), CI green, 문서 전용이라 독립리뷰 생략.
-- ⚠️ **실화면 클릭 검증(언어 전환이 실제로 눈에 보이게 되는지)은 미실시** — 로그인 필요한 백오피스라 이 환경에서 자동화 불가(위 4번 참고), PO가 직접 확인하기로 확정. 결과 대기 중 → 5-1로 승격.
-- ✅ `npm run check:content`·`npx next build --webpack` 매 커밋 후 로컬 실행, 전부 통과 확인.
-
-**참고 자료 (다국어화 섹션2~6에서도 계속 쓸 고정 정보 — 이번 핸드오프에 흡수)**
-- **패턴(고정)**: `app/agency/PartnerPortal.jsx`·`app/patient/documents/DocumentsClient.jsx`와 동일한 컨벤션. 모듈 최상단에 `TR`(또는 `COPY`) = `{ko,en,ru,kz,zh,ja}` 사전, `const tt = (k) => (TR[lang]||TR.en)[k] || TR.en[k]` (또는 `l = (obj) => obj?.[lang] || obj?.en`) 헬퍼로 조회. 이 화면들은 이미 `app/ClientShell.jsx`의 `isPortalPage`(admin·coordinator·hospital·agency·clinic·patient 전부 포함)가 상단바 언어 스위처(`PortalLangSwitcher`)를 띄우고 있어서 — **UI 스위처는 이미 있고, 화면 콘텐츠(라벨·버튼·alert 등)만 그 스위처를 따라가게 만드는 작업**.
-- ⚠️ **언어 훅은 대상에 따라 다르다(섹션1에서 CI가 잡은 실수, POSTMORTEMS #82) — 반드시 맞는 쪽을 쓸 것**: `admin`·`coordinator`·`hospital`(국내 스태프, 기본 한국 운영) → `useBackofficeLang()` from `@/lib/i18n/coordinator`(쿠키 `healo_bo_lang`, 쿠키 없으면 ko 기본). `agency`·`clinic`·`patient`·공개 페이지(해외 파트너·환자·일반 방문자, 기본 SEO 영어) → `useLang()` from `@/lib/i18n/LangContext`(쿠키 `healo_lang`, 쿠키 없으면 en 기본). 자세한 내용은 위 4번 참고.
-- **섹션 진행 상황** (완료마다 이 표를 갱신):
-
-| # | 섹션 | 파일 | 상태 |
-|---|------|------|------|
-| 1 | `app/admin/consultations`·`users`·`staff` + 공용 `src/components/consultation/CreateConsultationModal.jsx`(admin·coordinator 공용, 이번에 같이 완료) | 4개, ~1940줄 | ✅ **머지 완료(PR #727·#728, main 반영)** — 자세한 경위는 위 1~6번 참고 |
-| 2 | `app/admin/khidi/*` (KHIDI 지표 대시보드) | 미측정 | ⏳ 대기 |
-| 3 | `app/admin/{hospitals,treatments,doctors,import,rag}` | 미측정 | ⏳ 대기 |
-| 4 | `app/admin` 나머지(playbook·agent·ai-status·chat·observability·analytics·automation·audit·crawl·enrichment·leads·reminders·inquiries·settings·account 등) | 미측정 | ⏳ 대기 |
-| 5 | `app/coordinator/*` | 22개 | ⏳ 대기 |
-| 6 | `app/hospital/*` | 7개 | ⏳ 대기 |
-
-**7. 다음 세션 첫 프롬프트**
-> docs/PROJECT_CONTEXT.md 최상단 읽어. 백오피스(admin/coordinator/hospital) 다국어화 섹션1(상담·회원·직원관리) 머지 완료(PR #727·#728), PO 실화면 검증 결과부터 확인. 문제없으면 섹션2(app/admin/khidi/*) 진행 — TR+useBackofficeLang()+tt() 패턴, 언어훅 선택 실수 주의(4번 함정 참고).
 
 ---
 
