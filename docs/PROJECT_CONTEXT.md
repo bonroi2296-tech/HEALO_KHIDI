@@ -7,6 +7,9 @@
 
 ---
 
+> 💾 **중간 저장 (2026-07-13, Supabase 디스크 I/O 점검 세션 — 진행 중, 별도 worktree)**
+> - **Supabase "디스크 I/O 예산 부족" 경고 점검 + PO 결정: 관리 토큰 연결** — 실측 결과 DB 29MB/500MB(6%)·쓰기 미미·의심 후보(소견서 번역 4건, 브리프 캐시 0건) 전부 무혐의 = 앱 폭주 아님, 무료 플랜 Nano 컴퓨트의 작은 I/O 예산 특성일 가능성. PO가 "토큰 발급해 자동 점검 연결" 선택 → `scripts/check-supabase-io.mjs`(`npm run check:supabase-io`) 추가: `.env.local`에 `SUPABASE_ACCESS_TOKEN`(sbp_, [발급](https://supabase.com/dashboard/account/tokens)) 넣으면 쿼리별 디스크 I/O(pg_stat_statements)·순차스캔·advisors 자동 점검, 토큰 없으면 안내만 출력. **토큰은 PO 발급 대기 중** — 들어오면 첫 실행 결과로 정밀 진단 이어갈 것. 함정: 이 세션엔 Supabase MCP 미연결·metrics 엔드포인트도 service_role로 401 — 토큰 없인 I/O 실측 불가.
+
 ## 🔖 세션 핸드오프 (2026-07-13 — AI 품질 경보 폐루프: 알림 딥링크 수리 + 첨부 환각 차단 + 주간 자동개선 루틴)
 
 **1. 이번 세션 한 일**

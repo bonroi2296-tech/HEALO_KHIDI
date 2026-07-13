@@ -16,6 +16,7 @@
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage",
     "check:content": "node scripts/check-content-consistency.mjs",
+    "check:supabase-io": "node scripts/check-supabase-io.mjs",
     "optimize:images": "node scripts/optimize-images.mjs",
     "audit:images": "node scripts/optimize-images.mjs --check",
     "check:env": "node scripts/check-env.js",
