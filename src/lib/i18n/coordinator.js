@@ -76,6 +76,7 @@ const CT = {
   inboxColStep: { ko: "Step 완료", en: "Step done", ru: "Этап", kz: "Кезең", zh: "步骤完成", ja: "ステップ完了" },
   inboxColMatch: { ko: "매칭 정확도", en: "Match accuracy", ru: "Точность подбора", kz: "Сәйкестік дәлдігі", zh: "匹配准确度", ja: "マッチング精度" },
   inboxStepOneOnly: { ko: "Step 1만", en: "Step 1 only", ru: "Только этап 1", kz: "Тек 1-кезең", zh: "仅步骤 1", ja: "ステップ1のみ" },
+  inboxDelayedDays: { ko: "{n}일째 정체", en: "Stalled {n}d", ru: "Застой {n} дн.", kz: "{n} күн тоқтап тұр", zh: "已停滞 {n} 天", ja: "{n}日間停滞" },
   badgeAgency: { ko: "에이전시", en: "Agency", ru: "Агентство", kz: "Агенттік", zh: "代理机构", ja: "代理店" },
   agencyReferral: { ko: "에이전시 의뢰", en: "Agency referral", ru: "Направление от агентства", kz: "Агенттік жолдамасы", zh: "代理机构转介", ja: "代理店からの紹介" },
   invStatusReceived: { ko: "접수됨", en: "Received", ru: "Получено", kz: "Қабылданды", zh: "已接收", ja: "受付済み" },
@@ -267,6 +268,7 @@ const CT = {
   msAIChat: { ko: "AI 채팅", en: "AI chat", ru: "AI-чат", kz: "AI чат", zh: "AI 聊天", ja: "AIチャット" },
   msNoMessagesYet: { ko: "아직 메시지가 없습니다.", en: "No messages yet.", ru: "Сообщений пока нет.", kz: "Әзірге хабар жоқ.", zh: "还没有消息。", ja: "まだメッセージがありません。" },
   msReplyPlaceholder: { ko: "환자에게 답장… (Ctrl+Enter 전송)", en: "Reply to the patient… (Ctrl+Enter to send)", ru: "Ответить пациенту… (Ctrl+Enter — отправить)", kz: "Пациентке жауап беру… (Ctrl+Enter — жіберу)", zh: "回复患者……（Ctrl+Enter 发送）", ja: "患者へ返信…（Ctrl+Enterで送信）" },
+  msSuggestedReplies: { ko: "추천 답장", en: "Suggested replies", ru: "Готовые ответы", kz: "Дайын жауаптар", zh: "推荐回复", ja: "返信候補" },
   msSending: { ko: "전송 중…", en: "Sending…", ru: "Отправка…", kz: "Жіберілуде…", zh: "发送中…", ja: "送信中…" },
   msSend: { ko: "보내기", en: "Send", ru: "Отправить", kz: "Жіберу", zh: "发送", ja: "送信" },
 

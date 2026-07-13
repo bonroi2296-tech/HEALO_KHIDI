@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
     const { data, error } = await supabaseAdmin
       .from("inquiries")
       .select(
-        "id, nationality, cancer_type, preferred_language, contact_method, match_accuracy, status, step1_completed_at, step2_completed_at, created_at, first_name, last_name, agency_id, agencies(name)"
+        "id, nationality, cancer_type, preferred_language, contact_method, match_accuracy, status, case_status, case_status_updated_at, step1_completed_at, step2_completed_at, created_at, first_name, last_name, agency_id, agencies(name)"
       )
       .order("created_at", { ascending: false })
       .limit(200);
@@ -52,6 +52,8 @@ export async function GET(request: NextRequest) {
       contact_method: i.contact_method || null,
       match_accuracy: i.match_accuracy ?? null,
       status: i.status || null,
+      case_status: i.case_status || null,
+      case_status_updated_at: i.case_status_updated_at || null,
       step1_completed_at: i.step1_completed_at,
       step2_completed_at: i.step2_completed_at,
       created_at: i.created_at,

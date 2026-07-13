@@ -14,6 +14,18 @@
 
 ---
 
+## #85 — 🔁 #18 부류 재발: 응대 패턴 자동 추출(runPostResolve)이 어드민 전용 경로에만 배선 — 코디 실사용 경로에선 안 불려 playbook_patterns 영영 0건 (2026-07-13, 답장 추천 칩 작업 중 실DB 확인 계기)
+
+**무슨 일** — 상담 종료 시 응대 패턴을 자동 추출→품질 게이트→승인→RAG 재사용하는 파이프라인(auto_improvement, 2026-02)이 실DB에서 **한 번도 안 돌았음**(playbook_patterns 0건). 코디 답장 추천 칩(패턴 재사용 신기능)을 만들며 실데이터를 확인하다 발견 — 배선 없이는 신기능도 영영 빈 화면이었을 것.
+
+**왜 못 잡았나 (근본원인 — 그때의 방지책이 왜 못 막았나)** — `runPostResolve` 호출이 어드민 resolve 라우트(`app/api/admin/chat/threads/[threadId]/resolve`)에만 있고, **코디가 실제로 완료 처리하는 경로(`PATCH /api/portal/threads/:id` status=resolved)에는 없었다.** 전형적 #18 반쪽 부류(노드는 만들었는데 실사용 경로 엣지 미연결). #18의 방지책("새 기능은 교차역할 워크플로 끝까지")은 사람 원칙일 뿐 기계 가드가 없었고, fire-and-forget + 실패해도 무영향 설계라 **무발화조차 무증상** — 0건이어도 아무 데서도 경고가 안 울렸다.
+
+**어떻게 고쳤나** — portal PATCH의 resolved 분기에 어드민 라우트와 동일한 fire-and-forget `runPostResolve` 배선(워커에 스레드당 1회 중복가드가 있어 재-resolve 안전).
+
+**재발 방지 (기계 가드 신설)** — ①유사 스캔: chat_threads를 resolved로 바꾸는 경로는 어드민 resolve + portal PATCH 2곳뿐, 둘 다 배선 확인. ②`check-content-consistency.mjs`에 [반쪽배선] 룰 추가: app/api 아래에서 chat_threads를 resolved로 update하면서 runPostResolve 참조가 없는 파일은 CI 실패 — 미래의 제3 resolve 경로도 자동으로 걸림. ③교훈: **fire-and-forget 파이프라인은 "실패"만이 아니라 "무발화"도 감시 대상** — 이런 기능을 만들면 실DB 행 수를 한 번은 확인할 것.
+
+---
+
 ## #84 — AI 챗이 환자 첨부파일(검사지) 내용을 지어내 설명 — "읽을 수 없다"는 사실을 모델에 안 알려줌 (2026-07-13, PO 품질경고 4건 확인 계기)
 
 **무슨 일** — 환자가 검사결과지 등을 올린 뒤 "이 서류가 뭔지 설명해줘 / 러시아어라 무슨 말인지 모르겠다"고 묻자, AI가 실제로는 파일을 열 수 없는데도 문서 내용(예: 컨텍스트와 무관한 자궁경부 세포검사 결과)을 지어내 설명. Judge(LLM 판사)가 hallucination 플래그로 4건 전부 잡아 경고 알림은 발송됨(7·39·43·51점) — 즉 **감지는 작동, 생성 쪽 방지책이 0**이었다.

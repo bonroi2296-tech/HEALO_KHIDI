@@ -107,6 +107,37 @@ export function caseStatusToJourneyStage(
 }
 
 /**
+ * 단계별 지연 기준일 — 이 일수를 넘기면 코디 인박스에 「N일째 정체」 배지.
+ * 목적: 파이프라인에서 조용히 죽는 케이스 감지(유치 K-01 누수 방지, 2026-07-13).
+ * treatment/follow_up 은 원래 오래 걸리는 단계라 제외, completed/on_hold 도 제외.
+ * 기준일은 운영하며 조정 가능한 초기값(PO 미확정) — 여기 한 곳만 고치면 됨.
+ */
+export const CASE_STATUS_DELAY_DAYS: Record<string, number> = {
+  intake: 3,
+  consultation: 7,
+  preparation: 14,
+};
+
+/**
+ * 지연 일수 계산 — 기준일 초과 시 경과 일수를, 아니면 null.
+ * case_status 미설정 문의는 intake 로 간주(접수 후 방치가 가장 흔한 누수 지점).
+ * 앵커는 case_status_updated_at, 없으면 호출부가 created_at 을 넘긴다.
+ */
+export function caseDelayDays(
+  caseStatus: string | null | undefined,
+  anchorIso: string | null | undefined,
+  now: Date = new Date()
+): number | null {
+  const resolved = resolveKey(caseStatus) || "intake";
+  const threshold = CASE_STATUS_DELAY_DAYS[resolved];
+  if (!threshold || !anchorIso) return null;
+  const anchorMs = new Date(anchorIso).getTime();
+  if (!Number.isFinite(anchorMs)) return null;
+  const days = Math.floor((now.getTime() - anchorMs) / 86400000);
+  return days >= threshold ? days : null;
+}
+
+/**
  * 병원 리드 상태 → 유치 전환 점수판(KHIDI 평가)의 outcome 매핑.
  * 병원이 '치료 확정(converted)'하면 실제 유치 → outcome='admitted' 자동 집계.
  * 그 외(sent/viewed/replied/rejected)는 outcome 을 건드리지 않는다(null 반환).

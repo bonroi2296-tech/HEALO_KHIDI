@@ -151,8 +151,24 @@ const errors = [];
 const HANGUL_JSX_TEXT = />[^<>{}]*[가-힣][^<>{}]*</;
 
 for (const file of SCAN_DIRS.flatMap(walk)) {
-  const lines = readFileSync(join(ROOT, file), "utf8").split("\n");
+  const content = readFileSync(join(ROOT, file), "utf8");
+  const lines = content.split("\n");
   const isPatientApp = /^app\/patient\//.test(file.replace(/\\/g, "/"));
+  // ── 1f) 반쪽 배선 방지: chat_threads 를 'resolved' 로 바꾸는 API 는 자동 패턴 추출 배선 필수 ──
+  // 왜: runPostResolve(응대 패턴 자동 추출→playbook_patterns)가 어드민 resolve 라우트에만 배선되고
+  //     코디가 실제 쓰는 완료 경로(portal PATCH)에 빠져 playbook_patterns 가 영영 0건이었음
+  //     (POSTMORTEMS #85, 🔁 #18 반쪽 부류). fire-and-forget이라 무발화도 무증상 → 기계가 잡는다.
+  // 판별: status 를 resolved 로 "쓰는" 파일만(리터럴 payload `status: "resolved"` 또는
+  // resolved_at 기록). status === "resolved" 읽기 전용 게이트(public stream 등)는 오탐 제외.
+  if (
+    /^app\/api\//.test(file.replace(/\\/g, "/")) &&
+    /\.from\(\s*["']chat_threads["']\s*\)/.test(content) &&
+    /\.update\(/.test(content) &&
+    (/status:\s*["']resolved["']/.test(content) || /resolved_at/.test(content)) &&
+    !/runPostResolve/.test(content)
+  ) {
+    errors.push(`[반쪽배선] ${file} — chat_threads 를 'resolved' 로 바꾸는데 runPostResolve(자동 패턴 추출) 배선이 없음. 새 resolve 경로에도 fire-and-forget 호출을 붙일 것 (POSTMORTEMS #85, 🔁 #18 부류)`);
+  }
   lines.forEach((line, i) => {
     if (isPatientApp && HANGUL_JSX_TEXT.test(line)) {
       errors.push(`[한글누출] ${file}:${i + 1} — 환자앱 JSX 텍스트에 하드코딩 한글. useLang()+{ko,en,ru,kz,zh,ja}로 감쌀 것(비한국어 환자에게 한글 노출)\n    ${line.trim().slice(0, 120)}`);

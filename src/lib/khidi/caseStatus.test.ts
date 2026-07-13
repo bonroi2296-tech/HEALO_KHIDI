@@ -5,6 +5,8 @@ import {
   outcomeForHospitalLeadStatus,
   outcomeForCaseStatus,
   caseStatusToJourneyStage,
+  caseDelayDays,
+  CASE_STATUS_DELAY_DAYS,
   CASE_STATUS_KEYS,
   CASE_STATUS_STEPS,
 } from "./caseStatus";
@@ -144,6 +146,54 @@ describe("caseStatusToJourneyStage (EDGE-1: 코디 case_status → 환자 여정
     for (const k of CASE_STATUS_KEYS) {
       if (k === "on_hold") continue;
       expect(caseStatusToJourneyStage(k)).not.toBeNull();
+    }
+  });
+});
+
+describe("caseDelayDays (지연 감지 — 파이프라인에서 조용히 죽는 케이스, K-01 누수 방지)", () => {
+  const NOW = new Date("2026-07-13T12:00:00Z");
+  const daysAgo = (n: number) => new Date(NOW.getTime() - n * 86400000).toISOString();
+
+  it("기준일을 넘기면 경과 일수를 반환", () => {
+    expect(caseDelayDays("intake", daysAgo(5), NOW)).toBe(5); // 기준 3일
+    expect(caseDelayDays("consultation", daysAgo(10), NOW)).toBe(10); // 기준 7일
+    expect(caseDelayDays("preparation", daysAgo(20), NOW)).toBe(20); // 기준 14일
+  });
+
+  it("기준일 이내면 null (정상 진행)", () => {
+    expect(caseDelayDays("intake", daysAgo(2), NOW)).toBeNull();
+    expect(caseDelayDays("consultation", daysAgo(6), NOW)).toBeNull();
+    expect(caseDelayDays("preparation", daysAgo(13), NOW)).toBeNull();
+  });
+
+  it("기준일 정확히 도달한 날부터 표시(경계값)", () => {
+    expect(caseDelayDays("intake", daysAgo(3), NOW)).toBe(3);
+  });
+
+  it("치료·사후관리·완료·보류는 기준 없음 → 항상 null", () => {
+    for (const s of ["treatment", "follow_up", "completed", "on_hold"]) {
+      expect(caseDelayDays(s, daysAgo(100), NOW)).toBeNull();
+    }
+  });
+
+  it("case_status 미설정은 intake(접수 방치)로 간주", () => {
+    expect(caseDelayDays(null, daysAgo(5), NOW)).toBe(5);
+    expect(caseDelayDays(undefined, daysAgo(2), NOW)).toBeNull();
+  });
+
+  it("구 9단계 키도 별칭으로 판정", () => {
+    expect(caseDelayDays("received", daysAgo(5), NOW)).toBe(5); // → intake(3일)
+    expect(caseDelayDays("hospital_review", daysAgo(10), NOW)).toBe(10); // → consultation(7일)
+  });
+
+  it("앵커 없음·깨진 날짜는 null", () => {
+    expect(caseDelayDays("intake", null, NOW)).toBeNull();
+    expect(caseDelayDays("intake", "not-a-date", NOW)).toBeNull();
+  });
+
+  it("기준일 상수는 진행 단계에만 정의돼 있다", () => {
+    for (const k of Object.keys(CASE_STATUS_DELAY_DAYS)) {
+      expect(["intake", "consultation", "preparation"]).toContain(k);
     }
   });
 });
