@@ -270,6 +270,9 @@ export interface ChatSession {
   isLoggedIn?: boolean;
   // 코디네이터가 연락할 수단(이메일·전화) 또는 계정이 있는가. 접수 멘트 분기의 기준.
   hasReachableContact?: boolean;
+  // 이 스레드에 환자가 올린 첨부(검사지·사진)가 있는가. true 면 "AI는 파일을 읽을 수 없다"
+  // 하드룰 주입 — 첨부 내용을 지어내던 환각(2026-07-13 품질경고 4건 전부 이 패턴)의 방지책.
+  hasAttachments?: boolean;
 }
 
 
@@ -289,7 +292,7 @@ export function buildSystemPrompt(
   const hasHira = externalSources.includes("hira");
   const hasNaver = externalSources.includes("naver");
   const { hospitalGuardActive = false, hospitalIntentNoMatch = false, hospitalRankingAsk = false } = hospitalGuard;
-  const { isLoggedIn = false, hasReachableContact = false } = session;
+  const { isLoggedIn = false, hasReachableContact = false, hasAttachments = false } = session;
   // 선택 언어를 모델에 명시(특히 카자흐어 ↔ 러시아어 혼동 방지 — 둘 다 키릴문자라 모델이
   // 카자흐어 사용자에게 러시아어로 답하는 일이 잦음. 핵심 타겟이라 결정적으로 못박는다).
   const LANG_NAMES: Record<string, string> = {
@@ -313,6 +316,17 @@ export function buildSystemPrompt(
     "- NEVER use a user's word as a hospital name. Example: if user says '안녕' (hello), never recommend '안녕성형외과'.",
     "- NEVER answer medical diagnosis or treatment-decision questions. Defer to actual doctors.",
     "",
+    // 첨부 하드룰 — 환자가 파일을 올린 스레드에서만 주입. AI는 업로드 파일을 실제로 못 보는데
+    // 모델이 내용을 지어내 설명하던 환각(품질경고 4건 재현 패턴)을 원천 차단한다.
+    hasAttachments
+      ? [
+          "UPLOADED FILES (CRITICAL — the patient uploaded document(s)/image(s) in this chat):",
+          "- You CANNOT open, see, or read the contents of ANY uploaded file. You only know that files were received.",
+          "- NEVER describe, summarize, translate, interpret, or GUESS what an uploaded document says — not the document type, not test names, not results, not numbers. Inventing file contents is the single worst failure.",
+          "- If asked what an uploaded document says or means ('what is this paper?', 'translate it', 'explain my results', 'какой это документ?'): say honestly in ONE short line that you cannot read the uploaded files yourself, reassure that the medical team/coordinator reviews the actual files directly and will explain them, and offer to connect a coordinator.",
+          "",
+        ].join("\n")
+      : "",
     "INTENT DETECTION (decide before responding):",
     "- Greeting/smalltalk/thanks → respond naturally, NO hospital recommendation.",
     "- Vague question ('treatments?', 'help me') → ask 1 clarifying question.",

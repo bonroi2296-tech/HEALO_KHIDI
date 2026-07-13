@@ -209,7 +209,8 @@ export default function AiQualityPage() {
   }, [load]);
 
   const handleOpenThread = (threadId) => {
-    window.open(`/admin/agent?thread=${threadId}`, "_blank");
+    // /admin/chat 이 실제 대화 뷰어 (?thread= 딥링크 지원). 옛 /admin/agent 는 파라미터 무시.
+    window.open(`/admin/chat?thread=${threadId}`, "_blank");
   };
 
   const s = data?.summary;

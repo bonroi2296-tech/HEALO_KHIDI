@@ -202,6 +202,8 @@ export async function POST(request: NextRequest) {
       const r = await generateChatReply(chatMessages, trimmedMsg, lang, thread_id, {
         isLoggedIn: !!thread.user_id,
         hasReachableContact: reachable,
+        // 이번 턴 첨부 or 과거 첨부 스레드 → "파일 못 읽음" 하드룰 (첨부 내용 환각 방지)
+        hasAttachments: hasAttachments || !!threadMeta.has_attachments,
       });
       reply = r.reply;
       ragChunks = r.ragChunks;

@@ -78,6 +78,10 @@ const FORBIDDEN = [
   // 원본이 바뀌면/삭제되면 고객 화면 이미지가 깨진다. 자체호스팅: public/immune/cancer/ 에
   // 내려받고 로컬 경로(/immune/cancer/…)로 참조(다운로드: scripts/fetch-cancer-card-images.mjs).
   { re: /immunehospital\.com\/resource\/images/i, msg: "외부 이미지 핫링크 immunehospital.com/resource/images — public/immune/cancer/ 로 자체호스팅하고 로컬 경로로 참조할 것(scripts/fetch-cancer-card-images.mjs). 원본 변경 시 이미지 깨짐 방지." },
+  // 죽은 딥링크: /admin/agent 는 ?thread= 파라미터를 읽지 않는다 — 품질경고 알림이 여길 가리켜
+  // "눌러도 아무것도 안 열리는" 막다른길이 됨(2026-07-13 PO 재현). 대화 딥링크의 정본은
+  // /admin/chat?thread= (어드민) · /coordinator/chat?thread= (코디).
+  { re: /\/admin\/agent\?thread/, msg: "죽은 딥링크 /admin/agent?thread=… — Human Agent 대시보드는 thread 파라미터를 읽지 않음. 대화 딥링크는 /admin/chat?thread= (어드민) 또는 /coordinator/chat?thread= (코디)로" },
   // 외부 이미지 핫링크 금지 ②: immunehospital.com/uploads/* (의사 사진). 원본이 파일명 변경/삭제
   // 시 화면에서 깨진다(2026-07-01 병원 페이지 의사사진 다수 404 사고, POSTMORTEMS). public/doctors/
   // 에 자체 호스팅하고 로컬 경로(/doctors/…)로 참조. /resource/images·/uploads/ 만 정밀 차단해

@@ -15,8 +15,8 @@ import "server-only";
 
 import { generateText } from "ai";
 import { google } from "@ai-sdk/google";
+import { sendInAppNotification, getStaffIdsByRole } from "../notifications/inApp";
 import { supabaseAdmin } from "../rag/supabaseAdmin";
-import { sendInAppNotification } from "../notifications/inApp";
 import { computeOverall, QUALITY_THRESHOLDS } from "./qualityStandards";
 import { scanRedlines, applyRedlineFloor } from "./safetyGuard";
 
@@ -244,50 +244,36 @@ async function notifyCoordinators(
       ? ` [${judgeResult.flags.join(", ")}]`
       : "";
 
-    // coordinator/admin 유저 목록 조회 (최대 50명)
-    const { data: { users }, error: listErr } = await (supabaseAdmin as any)
-      .auth.admin.listUsers({ page: 1, perPage: 50 });
-
-    if (listErr || !users) {
-      console.warn("[judge] 코디네이터 목록 조회 실패:", listErr?.message);
-      return;
-    }
-
-    const targetIds: string[] = (users as any[])
-      .filter((u: any) => {
-        const role = u.app_metadata?.role;
-        return role === "coordinator" || role === "admin";
-      })
-      .map((u: any) => u.id);
-
-    if (targetIds.length === 0) {
+    const { admins, coordinators } = await getStaffIdsByRole();
+    if (admins.length === 0 && coordinators.length === 0) {
       console.log("[judge] 알림 대상 코디네이터 없음");
       return;
     }
 
-    const threadLink = input.threadId
-      ? `/admin/agent?thread=${input.threadId}`
-      : "/admin/agent";
+    // 역할별로 "실제 열리는" 대화 뷰어로 딥링크. (옛 Human Agent 대시보드 링크는 thread
+    // 파라미터를 안 읽는 죽은 링크였음 — 2026-07-13 PO 재현. 코디는 /admin 접근 불가라 별도 경로.)
+    const threadQS = input.threadId ? `?thread=${input.threadId}` : "";
+    const notice = (uid: string, link: string) =>
+      sendInAppNotification({
+        userId: uid,
+        type: "ai_quality_alert",
+        title: `AI 응답 품질 경고 (${scoreLabel})${flagsLabel}`,
+        body: `질의: "${input.query.slice(0, 80)}…" — ${judgeResult.judge_reasoning}`,
+        link,
+        priority,
+        payload: {
+          thread_id: input.threadId,
+          overall_score: judgeResult.overall_score,
+          flags: judgeResult.flags,
+        },
+      });
 
-    await Promise.allSettled(
-      targetIds.map((uid) =>
-        sendInAppNotification({
-          userId: uid,
-          type: "ai_quality_alert",
-          title: `AI 응답 품질 경고 (${scoreLabel})${flagsLabel}`,
-          body: `질의: "${input.query.slice(0, 80)}…" — ${judgeResult.judge_reasoning}`,
-          link: threadLink,
-          priority,
-          payload: {
-            thread_id: input.threadId,
-            overall_score: judgeResult.overall_score,
-            flags: judgeResult.flags,
-          },
-        })
-      )
-    );
+    await Promise.allSettled([
+      ...admins.map((uid) => notice(uid, `/admin/chat${threadQS}`)),
+      ...coordinators.map((uid) => notice(uid, `/coordinator/chat${threadQS}`)),
+    ]);
 
-    console.log(`[judge] 코디네이터 ${targetIds.length}명에게 알림 발송 (priority=${priority}, score=${judgeResult.overall_score})`);
+    console.log(`[judge] 직원 ${admins.length + coordinators.length}명에게 알림 발송 (priority=${priority}, score=${judgeResult.overall_score})`);
   } catch (err: any) {
     console.warn("[judge] 코디 알림 예외:", err.message);
   }
