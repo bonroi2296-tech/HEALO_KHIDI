@@ -207,17 +207,9 @@ export async function runPostResolve(threadId: string): Promise<{
       }
     }
 
-    // 4. 패턴 추출 (rule-based + LLM)
-    const patternMessages: PatternMessage[] = messages.map((m: any) => ({
-      id: m.id,
-      actor_type: m.actor_type,
-      message_text: m.message_text,
-      created_at: m.created_at,
-    }));
-
-    const extracted = await extractPattern(patternMessages, ctx);
-
-    // 5. 중복 체크: 같은 thread에서 이미 추출된 패턴 있는지
+    // 4. 중복 체크: 같은 thread에서 이미 추출된 패턴 있는지 — LLM 추출 **앞**에서.
+    // (과거엔 추출 뒤였어서 재-resolve 토글마다 Gemini 호출을 낭비, 독립리뷰 #738 지적.
+    //  동시 이중 resolve 레이스는 uq_playbook_patterns_source_thread UNIQUE 인덱스가 봉쇄)
     const { data: existing } = await (supabaseAdmin as any)
       .from("playbook_patterns")
       .select("id")
@@ -231,6 +223,16 @@ export async function runPostResolve(threadId: string): Promise<{
         .eq("id", jobId);
       return { pattern_id: existing[0].id, auto_approved: false, error: "pattern already exists for this thread" };
     }
+
+    // 5. 패턴 추출 (rule-based + LLM)
+    const patternMessages: PatternMessage[] = messages.map((m: any) => ({
+      id: m.id,
+      actor_type: m.actor_type,
+      message_text: m.message_text,
+      created_at: m.created_at,
+    }));
+
+    const extracted = await extractPattern(patternMessages, ctx);
 
     // 6. playbook_patterns에 삽입 (draft)
     // TODO(schema-drift): playbook_patterns 의 일부 컬럼 (source_thread_id 등) 이

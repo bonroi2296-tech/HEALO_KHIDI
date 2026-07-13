@@ -87,7 +87,7 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json().catch(() => ({}));
     const patternId = typeof body?.patternId === "string" ? body.patternId : "";
-    if (!/^[0-9a-f-]{36}$/i.test(patternId)) {
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(patternId)) {
       return Response.json({ ok: false, error: "invalid_pattern_id" }, { status: 400 });
     }
 

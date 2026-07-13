@@ -5,7 +5,7 @@
  */
 export const runtime = "nodejs";
 
-import { NextRequest } from "next/server";
+import { NextRequest, after } from "next/server";
 import { requirePortalAuth } from "@/lib/auth/requirePortalAuth";
 import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
 import { runPostResolve } from "@/lib/automation/postResolveWorker";
@@ -50,13 +50,16 @@ export async function PATCH(
       return Response.json({ ok: false, error: "update_failed" }, { status: 500 });
     }
 
-    // Fire-and-forget: 자동 패턴 추출 — 어드민 resolve 라우트에만 배선돼 있고
-    // 코디가 실제로 쓰는 이 경로엔 빠져 있어 playbook_patterns 가 늘 0건이던 누락 보수.
+    // 자동 패턴 추출 — 어드민 resolve 라우트에만 배선돼 있고 코디가 실제로 쓰는
+    // 이 경로엔 빠져 있어 playbook_patterns 가 늘 0건이던 누락 보수(POSTMORTEMS #85).
+    // after(): 응답 후에도 함수를 살려 LLM 추출이 잘리지 않게(서버리스 freeze 방지).
     // (postResolveWorker 는 스레드당 1회 중복가드가 있어 재-resolve 해도 안전)
     if (status === "resolved") {
-      runPostResolve(threadId).catch((err) => {
-        console.error("[portal/threads PATCH] postResolve background error:", err.message);
-      });
+      after(() =>
+        runPostResolve(threadId).catch((err) => {
+          console.error("[portal/threads PATCH] postResolve background error:", err.message);
+        })
+      );
     }
 
     return Response.json({ ok: true, status });

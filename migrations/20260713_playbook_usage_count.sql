@@ -17,3 +17,10 @@ AS $$
 $$;
 
 REVOKE ALL ON FUNCTION public.increment_pattern_usage(uuid) FROM PUBLIC, anon, authenticated;
+
+-- 스레드당 패턴 1건 보장 — 어드민 resolve + 포털 PATCH 가 동시에 resolve 할 때
+-- 워커의 check-then-insert 레이스로 중복 삽입되는 걸 DB 가 봉쇄(독립리뷰 #738 지적).
+-- 현재 테이블 0건이라 기존 데이터 충돌 없음.
+CREATE UNIQUE INDEX IF NOT EXISTS uq_playbook_patterns_source_thread
+  ON public.playbook_patterns (source_thread_id)
+  WHERE source_thread_id IS NOT NULL;

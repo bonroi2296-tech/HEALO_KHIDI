@@ -155,10 +155,11 @@ export default function CoordinatorInboxPage() {
             <tbody>
               {filtered.map((item) => {
                 const step2Done = !!item.step2_completed_at;
-                // 지연 감지: 완료·보류 아닌 케이스가 단계 기준일을 넘기면 「N일째 정체」.
+                // 지연 감지: 살아있는 케이스가 단계 기준일을 넘기면 「N일째 정체」.
                 // 앵커는 단계 갱신 시각, 단계 미설정이면 접수 시각(방치 케이스 감지).
+                // 완료·차단(스팸)·오류 문의는 죽은 문의라 제외(독립리뷰 #738 지적).
                 const delayDays =
-                  item.status === "completed"
+                  ["completed", "blocked", "error"].includes(item.status)
                     ? null
                     : caseDelayDays(item.case_status, item.case_status_updated_at || item.created_at);
                 return (

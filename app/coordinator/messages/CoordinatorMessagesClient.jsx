@@ -172,7 +172,8 @@ export default function CoordinatorMessagesClient() {
 
   // 답장 추천 칩: 승인된 플레이북 패턴(상담 종료 시 자동 추출)을 단골순으로 로드.
   useEffect(() => {
-    if (!selectedId) { setSuggestions([]); return; }
+    setSuggestions([]); // 스레드 전환 시 이전 스레드 칩 잔상 방지
+    if (!selectedId) return;
     let cancelled = false;
     (async () => {
       const token = await getAccessToken();
