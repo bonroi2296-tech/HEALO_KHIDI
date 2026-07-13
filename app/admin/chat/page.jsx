@@ -8,7 +8,7 @@
  * ⚠️ AI는 자료를 판독하지 않음 — 의료진/코디가 직접 검토 후 회신하는 흐름.
  */
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import {
   MessageSquare, Paperclip, FileText, Image as ImageIcon,
   Clock, RefreshCw, User, Bot, Headset, Inbox, CheckCircle2, ArrowRight,
@@ -207,6 +207,19 @@ export default function AdminChatPage() {
   }, [getToken, toast]);
 
   useEffect(() => { fetchThreads(); }, [fetchThreads]);
+
+  // 딥링크: 품질 경고 알림 등에서 ?thread=<id> 로 들어오면 해당 대화를 바로 연다.
+  // (useSearchParams 대신 window 사용 — Suspense 경계 불필요, 최초 1회만)
+  const deepLinked = useRef(false);
+  useEffect(() => {
+    if (deepLinked.current || loading) return;
+    deepLinked.current = true;
+    const id = new URLSearchParams(window.location.search).get("thread");
+    if (!id) return;
+    // 목록(최근 100개)에 없어도 id 만으로 메시지는 열린다.
+    openThread(threads.find((t) => t.id === id) || { id });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, threads]);
 
   const openThread = async (thread) => {
     setSelected(thread);

@@ -250,7 +250,12 @@ export async function POST(request: NextRequest) {
             lang,
             thread_id,
             (chunk) => enqueue(chunk),
-            { isLoggedIn: !!thread.user_id, hasReachableContact: reachable }
+            {
+              isLoggedIn: !!thread.user_id,
+              hasReachableContact: reachable,
+              // 이번 턴 첨부 or 과거 첨부 스레드 → "파일 못 읽음" 하드룰 (첨부 내용 환각 방지)
+              hasAttachments: hasAttachments || !!threadMeta.has_attachments,
+            }
           );
           aiReply = r.reply;
           finalReply = aiReply;

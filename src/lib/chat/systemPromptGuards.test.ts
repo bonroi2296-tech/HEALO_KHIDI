@@ -60,6 +60,17 @@ describe("system prompt behavioral guards (regression lock)", () => {
     expect(SRC).toMatch(/DE-ESCALATION/);
     expect(SRC).toMatch(/do NOT respond by dumping documents/);
   });
+
+  // ── 2026-07-13 품질경고 4건 재현: 환자가 올린 첨부(검사지)를 AI가 읽을 수 없는데
+  //    내용을 지어내 설명(자궁경부 세포검사 등) → hallucination 저점수. 첨부 스레드에만
+  //    hasAttachments 하드룰을 주입해 차단. 누가 지우면 이 테스트가 막는다.
+  it("첨부 스레드에서 파일 내용 추측 금지(UPLOADED FILES) 하드룰이 있다", () => {
+    expect(SRC).toMatch(/UPLOADED FILES \(CRITICAL/);
+    expect(SRC).toMatch(/You CANNOT open, see, or read the contents of ANY uploaded file/);
+    expect(SRC).toMatch(/Inventing file contents is the single worst failure/);
+    // 세션 사실 주입 배선(hasAttachments)이 살아 있어야
+    expect(SRC).toMatch(/hasAttachments\s*=\s*false\s*\}\s*=\s*session/);
+  });
 });
 
 // 접수 연락처 게이트의 실제 동작 검증은 ./contactGate.test.ts 에서(순수 모듈이라 직접 import 가능).
