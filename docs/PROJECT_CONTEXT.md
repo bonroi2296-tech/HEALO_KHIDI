@@ -7,8 +7,8 @@
 
 ---
 
-> 💾 **중간 저장 (2026-07-13, Supabase 디스크 I/O 점검 세션 — 진행 중, 별도 worktree)**
-> - **Supabase "디스크 I/O 예산 부족" 경고 점검 + PO 결정: 관리 토큰 연결** — 실측 결과 DB 29MB/500MB(6%)·쓰기 미미·의심 후보(소견서 번역 4건, 브리프 캐시 0건) 전부 무혐의 = 앱 폭주 아님, 무료 플랜 Nano 컴퓨트의 작은 I/O 예산 특성일 가능성. PO가 "토큰 발급해 자동 점검 연결" 선택 → `scripts/check-supabase-io.mjs`(`npm run check:supabase-io`) 추가: `.env.local`에 `SUPABASE_ACCESS_TOKEN`(sbp_, [발급](https://supabase.com/dashboard/account/tokens)) 넣으면 쿼리별 디스크 I/O(pg_stat_statements)·순차스캔·advisors 자동 점검, 토큰 없으면 안내만 출력. **토큰은 PO 발급 대기 중** — 들어오면 첫 실행 결과로 정밀 진단 이어갈 것. 함정: 이 세션엔 Supabase MCP 미연결·metrics 엔드포인트도 service_role로 401 — 토큰 없인 I/O 실측 불가.
+> 💾 **중간 저장 (2026-07-13, Supabase 디스크 I/O 점검 세션 — 진단 완결, 별도 worktree)**
+> - **Supabase "디스크 I/O 예산 부족" 경고 — 실측 진단 완결(무혐의 확정, 대응=관찰)**: 세션 재개로 Supabase MCP가 붙어 토큰 없이 실측 완료. ①쿼리별 I/O(pg_stat_statements) 전부 디스크 대기 0ms ②WAL 하루 5MB ③체크포인트 쓰기 하루 11MB ④임시파일 22.6GB는 2~5월(마이그레이션·인덱스 구축) 과거 누적분, 5/18 통계리셋 후 ~0. **결론: DB/앱은 디스크를 거의 안 씀 — 인덱스·쿼리 최적화 대상 자체가 없음.** 경고는 무료 Nano 인스턴스에서 플랫폼 자체 운영(로그·백업·모니터링)이 작은 I/O 예산을 먹는 것 = 앱에서 해결 불가 영역. 근본 해결은 Pro($25/월)뿐이나 성능 저하 신호 없어 **관찰이 합리적**(돈 결정이라 PO 몫으로 보고). 점검 도구는 [PR #735](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/735) 머지(`npm run check:supabase-io`, 토큰은 이제 선택사항). 참고: performance advisors 129건은 전부 위생 수준(미사용 인덱스 73·FK인덱스누락 24·RLS initplan 22 등) — I/O 무관, 한가할 때 정리거리.
 
 ## 🔖 세션 핸드오프 (2026-07-13 — AI 품질 경보 폐루프: 알림 딥링크 수리 + 첨부 환각 차단 + 주간 자동개선 루틴)
 
