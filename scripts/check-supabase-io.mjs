@@ -19,9 +19,10 @@ const API = "https://api.supabase.com/v1";
 function loadEnvLocal() {
   for (const dir of [process.cwd(), resolve(process.cwd(), "../../..")]) {
     try {
-      for (const line of readFileSync(resolve(dir, ".env.local"), "utf8").split("\n")) {
+      // CRLF(윈도) 줄끝 + 따옴표 감싼 값 허용 — 독립리뷰 CONFIRMED 2건 반영
+      for (const line of readFileSync(resolve(dir, ".env.local"), "utf8").split(/\r?\n/)) {
         const m = line.match(/^([A-Z_][A-Z0-9_]*)=(.*)$/);
-        if (m && !process.env[m[1]]) process.env[m[1]] = m[2].trim();
+        if (m && !process.env[m[1]]) process.env[m[1]] = m[2].trim().replace(/^["']|["']$/g, "");
       }
       return;
     } catch { /* 다음 후보 폴더 */ }
@@ -67,7 +68,7 @@ async function main() {
       SELECT left(query, 90) AS query, calls,
              round((total_exec_time)::numeric, 0) AS total_ms,
              shared_blks_read + shared_blks_written + temp_blks_read + temp_blks_written AS disk_blks,
-             round((blk_read_time + blk_write_time)::numeric, 0) AS io_wait_ms
+             round((shared_blk_read_time + shared_blk_write_time)::numeric, 0) AS io_wait_ms -- PG17 컬럼명(구 blk_read_time)
       FROM pg_stat_statements
       ORDER BY (shared_blks_read + shared_blks_written + temp_blks_read + temp_blks_written) DESC
       LIMIT 10`);
