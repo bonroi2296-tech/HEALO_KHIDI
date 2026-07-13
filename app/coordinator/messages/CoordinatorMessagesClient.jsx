@@ -86,6 +86,7 @@ export default function CoordinatorMessagesClient() {
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
   const [msgLoading, setMsgLoading] = useState(false);
+  const [suggestions, setSuggestions] = useState([]);
   const msgEndRef = useRef(null);
   const prevCountRef = useRef(0);
 
@@ -168,6 +169,40 @@ export default function CoordinatorMessagesClient() {
     }
     prevCountRef.current = messages.length;
   }, [messages]);
+
+  // 답장 추천 칩: 승인된 플레이북 패턴(상담 종료 시 자동 추출)을 단골순으로 로드.
+  useEffect(() => {
+    setSuggestions([]); // 스레드 전환 시 이전 스레드 칩 잔상 방지
+    if (!selectedId) return;
+    let cancelled = false;
+    (async () => {
+      const token = await getAccessToken();
+      if (!token || cancelled) return;
+      try {
+        const res = await fetch(`/api/portal/reply-suggestions?threadId=${selectedId}`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const result = await res.json();
+        if (!cancelled) setSuggestions(res.ok && result.ok ? result.items || [] : []);
+      } catch { if (!cancelled) setSuggestions([]); }
+    })();
+    return () => { cancelled = true; };
+  }, [selectedId]);
+
+  // 칩 클릭 = 입력창 채움(자동 전송 아님 — 코디가 수정 후 직접 전송). 사용횟수는 fire-and-forget.
+  async function applySuggestion(s) {
+    setDraft(s.response_template);
+    try {
+      const token = await getAccessToken();
+      if (token) {
+        fetch("/api/portal/reply-suggestions", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ patternId: s.id }),
+        }).catch(() => {});
+      }
+    } catch { /* 사용횟수 기록 실패는 무시 */ }
+  }
 
   async function send() {
     if (!draft.trim() || !selectedId || sending) return;
@@ -335,6 +370,23 @@ export default function CoordinatorMessagesClient() {
                 </>
               )}
             </div>
+
+            {/* 답장 추천 칩 — 입력 중(draft 있음)에는 숨겨 타이핑 덮어쓰기 방지 */}
+            {suggestions.length > 0 && !draft.trim() && (
+              <div className="flex items-center gap-2 overflow-x-auto border-t border-gray-100 bg-white px-6 pt-2.5">
+                <span className="shrink-0 text-xs font-medium text-gray-400">💬 {L.msSuggestedReplies}</span>
+                {suggestions.map((s) => (
+                  <button
+                    key={s.id}
+                    onClick={() => applySuggestion(s)}
+                    title={s.response_template}
+                    className="max-w-[240px] shrink-0 truncate rounded-full border border-teal-200 bg-teal-50 px-3 py-1 text-xs text-teal-800 transition hover:bg-teal-100"
+                  >
+                    {s.user_intent || s.response_template}
+                  </button>
+                ))}
+              </div>
+            )}
 
             {/* 입력 */}
             <div className="flex items-end gap-3 border-t border-gray-200 bg-white px-6 py-3">

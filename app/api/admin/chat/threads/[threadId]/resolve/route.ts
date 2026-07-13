@@ -10,7 +10,7 @@
 
 export const runtime = "nodejs";
 
-import { NextRequest } from "next/server";
+import { NextRequest, after } from "next/server";
 import { supabaseAdmin, assertSupabaseEnv } from "@/lib/rag/supabaseAdmin";
 import { requireAdminAuth } from "@/lib/auth/requireAdminAuth";
 import { sanitizeResponse, computeQualityScore } from "@/lib/playbook/sanitize";
@@ -111,11 +111,13 @@ export async function POST(
       .update({ status: "resolved", updated_at: now })
       .eq("id", threadId);
 
-    // Fire-and-forget: 자동 패턴 추출 파이프라인
-    // resolve 응답에 영향 없이 백그라운드로 실행
-    runPostResolve(threadId).catch((err) => {
-      console.error("[resolve] postResolve background error:", err.message);
-    });
+    // 자동 패턴 추출 파이프라인 — resolve 응답에 영향 없이 백그라운드로 실행.
+    // after(): 응답 후에도 함수를 살려 LLM 추출이 잘리지 않게(서버리스 freeze, 독립리뷰 #738 지적).
+    after(() =>
+      runPostResolve(threadId).catch((err) => {
+        console.error("[resolve] postResolve background error:", err.message);
+      })
+    );
 
     return Response.json({
       ok: true,

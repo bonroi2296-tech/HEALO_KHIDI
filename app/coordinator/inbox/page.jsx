@@ -13,6 +13,7 @@ import {
   Calendar, ChevronRight, RefreshCw,
 } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
+import { caseDelayDays } from "@/lib/khidi/caseStatus";
 import { useBackofficeLang, useCoordinatorL, useDateLocale } from "@/lib/i18n/coordinator";
 import { cancerTypeLabelL, contactMethodLabelL } from "@/lib/khidi/medicalLabels";
 import { nationalityLabelL } from "@/lib/khidi/nationality";
@@ -154,6 +155,13 @@ export default function CoordinatorInboxPage() {
             <tbody>
               {filtered.map((item) => {
                 const step2Done = !!item.step2_completed_at;
+                // 지연 감지: 살아있는 케이스가 단계 기준일을 넘기면 「N일째 정체」.
+                // 앵커는 단계 갱신 시각, 단계 미설정이면 접수 시각(방치 케이스 감지).
+                // 완료·차단(스팸)·오류 문의는 죽은 문의라 제외(독립리뷰 #738 지적).
+                const delayDays =
+                  ["completed", "blocked", "error"].includes(item.status)
+                    ? null
+                    : caseDelayDays(item.case_status, item.case_status_updated_at || item.created_at);
                 return (
                   <tr
                     key={item.id}
@@ -220,13 +228,23 @@ export default function CoordinatorInboxPage() {
                       </span>
                     </td>
                     <td className="px-4 py-3">
-                      <span
-                        className={`px-2 py-0.5 text-xs font-semibold rounded-full ${
-                          STATUS_COLORS[item.status] || "bg-gray-100 text-gray-600"
-                        }`}
-                      >
-                        {STATUS_LABELS[item.status] || L.invStatusReceived}
-                      </span>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span
+                          className={`px-2 py-0.5 text-xs font-semibold rounded-full ${
+                            STATUS_COLORS[item.status] || "bg-gray-100 text-gray-600"
+                          }`}
+                        >
+                          {STATUS_LABELS[item.status] || L.invStatusReceived}
+                        </span>
+                        {delayDays !== null && (
+                          <span
+                            className="px-2 py-0.5 text-xs font-semibold rounded-full bg-red-100 text-red-700 shrink-0"
+                            title={L.inboxDelayedDays.replace("{n}", String(delayDays))}
+                          >
+                            ⏰ {L.inboxDelayedDays.replace("{n}", String(delayDays))}
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-4 py-3 text-gray-400">
                       <ChevronRight size={16} />
