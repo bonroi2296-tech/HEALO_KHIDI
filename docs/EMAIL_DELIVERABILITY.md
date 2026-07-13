@@ -159,3 +159,25 @@ Zoho에 `dmarc@healwith.co.kr` 별칭 하나 만들고:
 
 ### G. 커질 때 (미래 트리거)
 하루 100통+ 되는 순간 → 별도 도메인 + 워밍업 + 전용 툴로 전환. 그때 세팅 도움 요청.
+
+---
+
+## 7. Mail.ru / inbox.ru 불달(不達) 진단 루트 — 2026-07-13
+
+> 증상 제보: `@mail.ru`·`@inbox.ru`로 보낸 Zoho 메일이 안 닿는다.
+> 참고: mail.ru·inbox.ru·list.ru·bk.ru는 전부 VK(구 Mail.ru Group) 한 회사 도메인 — 하나 막히면 다 같이 막힌다.
+
+**2026-07-13 실측: DNS 인증 3종(SPF·DKIM zmail·DMARC+rua)은 전부 정상.** → 인증 누락은 용의선상 제외. 남은 용의자는 ①Zoho 공유 IP의 mail.ru 쪽 평판 ②스팸함행(조용히) ③메일 내용/패턴.
+
+### 진단 순서 (증거 먼저, 추측 금지)
+1. **반송메일(Mail Delivery Failed) 확인** — Zoho 받은편지함에서 검색. 있으면 그 안의 에러코드가 정답 (mail.ru는 550 코드에 사유 URL을 같이 준다).
+2. 반송이 없으면 = 스팸함 or 조용한 수신거부 → **수신자에게 스팸(Спам) 폴더 확인** 요청.
+3. **Postmark DMARC 주간 리포트**(admin@healwith.co.kr 수신)에서 mail.ru 계열 pass/fail 집계 확인.
+4. Zoho 보낸편지함에서 해당 메일이 **발송 성공 상태인지**부터 확인 (Outbox 멈춤/Zoho 자체 차단 가능성 배제).
+
+### 원인별 대응
+| 증거 | 원인 | 대응 |
+|---|---|---|
+| 반송 550 spam rejected | Zoho 공유 IP가 mail.ru 블랙리스트 | ① https://help.mail.ru/notspam-support/ 폼에 반송 전문 제출 ② Zoho 지원 티켓(공유 IP 평판은 Zoho가 풀어야 함) |
+| 스팸함에서 발견 | 콘텐츠/평판 점수 부족 | §6D 내용 위생 + 러시아어 작성 + DMARC `p=quarantine` 상향(§2 — 7/15 이후 가능) |
+| 반송도 없고 스팸함에도 없음 | 수신측 조용한 드롭(드묾) 또는 주소 오타 | 주소 재확인 → 다른 mail.ru 주소로 교차 테스트 |
