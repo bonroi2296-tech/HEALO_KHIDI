@@ -27,8 +27,9 @@ export function breadcrumbLd(items) {
 }
 
 /**
- * WebSite + SearchAction — 구글 검색결과에 사이트 내 검색창(Sitelinks Search Box) 노출.
- * /search?q= 엔드포인트가 실재하므로 정당한 SearchAction.
+ * WebSite 구조화 데이터.
+ * SearchAction(Sitelinks Search Box)은 2026-07-14 제거 — /search 라우트 비활성화(옛 프로젝트
+ * 잔재, /hospitals 리다이렉트)로 엔드포인트가 실재하지 않게 됨. 검색을 재도입하면 그때 복원.
  */
 export function websiteLd() {
   return {
@@ -37,14 +38,6 @@ export function websiteLd() {
     name: ORG_NAME,
     url: SITE_URL,
     inLanguage: ["ko", "en", "ru", "kk", "zh", "ja"],
-    potentialAction: {
-      "@type": "SearchAction",
-      target: {
-        "@type": "EntryPoint",
-        urlTemplate: `${SITE_URL}/search?q={search_term_string}`,
-      },
-      "query-input": "required name=search_term_string",
-    },
   };
 }
 

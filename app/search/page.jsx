@@ -1,27 +1,9 @@
-import { Suspense } from "react";
-import SearchResultsClient from "./SearchResultsClient";
+import { redirect } from "next/navigation";
 
-export const metadata = {
-  title: "Search Treatments & Hospitals in Korea",
-  description:
-    "Search cancer treatments and hospitals across Korea. Compare specialties, prices, and reviews to find the best medical care for international patients.",
-  keywords: ["Korea hospital search", "cancer treatment search Korea", "medical tourism Korea comparison"],
-  openGraph: {
-    title: "Search Treatments & Hospitals | healwith Korea",
-    description: "Find and compare cancer treatments and hospitals in Korea. Full concierge support for international patients.",
-    type: "website",
-  },
-  twitter: {
-    card: "summary",
-    title: "Search Treatments & Hospitals | healwith Korea",
-    description: "Search and compare cancer treatments and hospitals in Korea for international patients.",
-  },
-};
-
+// 2026-07-14: /search(옛 프로젝트 검색+가격비교) 비활성화 — PO 지시(피벗 잔재 정리).
+// 헤더·홈 어디에서도 연결되지 않는 고아 페이지였는데 sitemap·robots가 색인을 광고하고 있었음.
+// SearchResultsClient.jsx 코드는 보존(향후 검색 재도입 대비), 라우트만 병원 목록으로 리다이렉트.
+// (/stories 비활성화와 동일 패턴 — 하드 삭제 아님, 되돌리려면 이 파일만 원복.)
 export default function SearchPage() {
-  return (
-    <Suspense>
-      <SearchResultsClient />
-    </Suspense>
-  );
+  redirect("/hospitals");
 }

@@ -41,7 +41,6 @@ export default function robots() {
           "/patient/visa",
           "/about",
           "/contact",
-          "/search",
           "/ru/for-russian-patients",
           "/kk/for-kazakh-patients",
         ],
