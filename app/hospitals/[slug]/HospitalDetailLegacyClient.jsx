@@ -258,10 +258,29 @@ export const HospitalDetailPage = ({ selectedId, setView, onTreatmentClick, init
   const galleryImages = allGalleryImages.slice(0, 5);
   const [lightboxIdx, setLightboxIdx] = useState(-1);
 
-  const [currentSlide, setCurrentSlide] = useState(0);
-  useEffect(() => { setCurrentSlide(0); }, [hospital?.id]);
-  const nextSlide = (e) => { e?.stopPropagation(); setCurrentSlide((prev) => (prev + 1) % galleryImages.length); };
-  const prevSlide = (e) => { e?.stopPropagation(); setCurrentSlide((prev) => (prev - 1 + galleryImages.length) % galleryImages.length); };
+  // 무한 루프 캐러셀 — 트랙 = [마지막 클론, ...실제 1..len, 첫 클론].
+  // slidePos: 트랙 위치(1..len = 실제, 순간적으로 0/len+1 = 클론 위 → 도착 즉시 무전환 점프로 정규화).
+  // 마지막 장에서 넘기면 1장이 옆에서 이어져 들어옴(PO 요청 2026-07-14).
+  const slideCount = galleryImages.length;
+  const [slidePos, setSlidePos] = useState(1);
+  const [noAnim, setNoAnim] = useState(false);
+  const currentSlide = slideCount > 0 ? (((slidePos - 1) % slideCount) + slideCount) % slideCount : 0;
+  useEffect(() => { setSlidePos(1); }, [hospital?.id]);
+  const stepSlide = (dir) => setSlidePos((p) => (p < 1 || p > slideCount ? p : p + dir)); // 클론 정규화 중 연타 보호
+  const nextSlide = (e) => { e?.stopPropagation(); stepSlide(1); };
+  const prevSlide = (e) => { e?.stopPropagation(); stepSlide(-1); };
+  const onTrackTransitionEnd = (e) => {
+    if (e.target !== e.currentTarget) return; // 자식 전환 무시
+    if (slidePos === slideCount + 1) { setNoAnim(true); setSlidePos(1); }
+    else if (slidePos === 0) { setNoAnim(true); setSlidePos(slideCount); }
+  };
+  useEffect(() => {
+    if (!noAnim) return;
+    // 무전환 점프가 그려진 다음 프레임에 애니메이션 복구 (더블 rAF = 페인트 보장)
+    let id2;
+    const id1 = requestAnimationFrame(() => { id2 = requestAnimationFrame(() => setNoAnim(false)); });
+    return () => { cancelAnimationFrame(id1); if (id2) cancelAnimationFrame(id2); };
+  }, [noAnim]);
   // 모바일 스와이프 — 손가락을 따라 트랙이 움직이다 놓으면 스냅(슬라이드 전환).
   // 세로 스크롤과 공존: 축이 세로로 잠기면 개입 안 함(touch-action: pan-y와 세트).
   const [dragX, setDragX] = useState(0);
@@ -277,16 +296,14 @@ export const HospitalDetailPage = ({ selectedId, setView, onTreatmentClick, init
     if (!t.axis && (Math.abs(dx) > 8 || Math.abs(dy) > 8)) t.axis = Math.abs(dx) > Math.abs(dy) ? "x" : "y";
     if (t.axis !== "x") return;
     setIsDragging(true);
-    // 끝 슬라이드에서 더 당기면 고무줄처럼 저항
-    const atEdge = (currentSlide === 0 && dx > 0) || (currentSlide === galleryImages.length - 1 && dx < 0);
-    setDragX(atEdge ? dx * 0.35 : dx);
+    setDragX(dx); // 루프라 끝이 없음 — 고무줄 저항 불필요, 양쪽 다 이웃(클론)이 보임
   };
   const onCarouselTouchEnd = (e) => {
     const t = touchRef.current;
     if (t.axis === "x") {
       const dx = e.changedTouches[0].clientX - t.x;
-      if (dx < -40 && currentSlide < galleryImages.length - 1) setCurrentSlide((p) => p + 1);
-      else if (dx > 40 && currentSlide > 0) setCurrentSlide((p) => p - 1);
+      if (dx < -40) stepSlide(1);
+      else if (dx > 40) stepSlide(-1);
     }
     touchRef.current = { x: 0, y: 0, axis: null };
     setDragX(0);
@@ -295,10 +312,11 @@ export const HospitalDetailPage = ({ selectedId, setView, onTreatmentClick, init
   // 터치가 시스템에 의해 끊길 때(팝업·탭 전환) 트랙이 어중간하게 멈추지 않게 원위치
   const onCarouselTouchCancel = () => { touchRef.current = { x: 0, y: 0, axis: null }; setDragX(0); setIsDragging(false); };
   useEffect(() => {
-    if (galleryImages.length <= 1 || isDragging) return;
-    const timer = setInterval(() => setCurrentSlide((prev) => (prev + 1) % galleryImages.length), 3000);
+    if (slideCount <= 1 || isDragging) return;
+    const timer = setInterval(() => stepSlide(1), 3000);
     return () => clearInterval(timer);
-  }, [galleryImages.length, isDragging]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- stepSlide는 안정적(함수형 setState만 사용)
+  }, [slideCount, isDragging]);
 
   const doctor = useMemo(() => hospital?.doctorProfile || hospital?.doctor_profile || null, [hospital]);
   const isPartner = hospital?.is_partner ?? false;
@@ -430,13 +448,14 @@ export const HospitalDetailPage = ({ selectedId, setView, onTreatmentClick, init
               <div
                 className="flex h-full"
                 style={{
-                  transform: `translateX(calc(${-currentSlide * 100}% + ${dragX}px))`,
-                  transition: isDragging ? "none" : "transform 300ms cubic-bezier(0.22, 1, 0.36, 1)",
+                  transform: `translateX(calc(${-slidePos * 100}% + ${dragX}px))`,
+                  transition: isDragging || noAnim ? "none" : "transform 300ms cubic-bezier(0.22, 1, 0.36, 1)",
                 }}
+                onTransitionEnd={onTrackTransitionEnd}
               >
-                {galleryImages.map((img, index) => (
+                {[galleryImages[slideCount - 1], ...galleryImages, galleryImages[0]].map((img, index) => (
                   <div key={index} className="w-full h-full shrink-0">
-                    <img src={img} onError={handleImgError} className="w-full h-full object-cover" alt={`${hospital?.name || "Hospital"} ${index + 1}`} draggable={false} />
+                    <img src={img} onError={handleImgError} className="w-full h-full object-cover" alt={`${hospital?.name || "Hospital"} ${index}`} draggable={false} />
                   </div>
                 ))}
               </div>

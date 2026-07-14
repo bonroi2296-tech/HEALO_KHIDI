@@ -41,7 +41,9 @@ export const TreatmentDetailPage = ({
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
   const [relatedTreatments, setRelatedTreatments] = useState([]);
   const [similarTreatments, setSimilarTreatments] = useState([]);
-  const [currentSlide, setCurrentSlide] = useState(0);
+  // 무한 루프 캐러셀 위치 — 병원 상세와 동일 구조(1..len 실제, 0/len+1 클론 위)
+  const [slidePos, setSlidePos] = useState(1);
+  const [noAnim, setNoAnim] = useState(false);
   const langCode = useLang();
 
   // Helper: build treatment view object from raw DB row
@@ -273,10 +275,24 @@ export const TreatmentDetailPage = ({
     return allImages.length > 0 ? allImages.slice(0, 5) : [];
   }, [treatment?.images]);
 
-  useEffect(() => { setCurrentSlide(0); }, [galleryImages.length, id]);
-
-  const nextSlide = (e) => { e?.stopPropagation(); setCurrentSlide((prev) => (prev + 1) % galleryImages.length); };
-  const prevSlide = (e) => { e?.stopPropagation(); setCurrentSlide((prev) => (prev - 1 + galleryImages.length) % galleryImages.length); };
+  // 무한 루프 — 마지막 장에서 넘기면 1장이 이어져 들어옴 (병원 상세와 동일, PO 요청 2026-07-14)
+  const slideCount = galleryImages.length;
+  const currentSlide = slideCount > 0 ? (((slidePos - 1) % slideCount) + slideCount) % slideCount : 0;
+  useEffect(() => { setSlidePos(1); }, [galleryImages.length, id]);
+  const stepSlide = (dir) => setSlidePos((p) => (p < 1 || p > slideCount ? p : p + dir)); // 클론 정규화 중 연타 보호
+  const nextSlide = (e) => { e?.stopPropagation(); stepSlide(1); };
+  const prevSlide = (e) => { e?.stopPropagation(); stepSlide(-1); };
+  const onTrackTransitionEnd = (e) => {
+    if (e.target !== e.currentTarget) return; // 자식 전환 무시
+    if (slidePos === slideCount + 1) { setNoAnim(true); setSlidePos(1); }
+    else if (slidePos === 0) { setNoAnim(true); setSlidePos(slideCount); }
+  };
+  useEffect(() => {
+    if (!noAnim) return;
+    let id2;
+    const id1 = requestAnimationFrame(() => { id2 = requestAnimationFrame(() => setNoAnim(false)); });
+    return () => { cancelAnimationFrame(id1); if (id2) cancelAnimationFrame(id2); };
+  }, [noAnim]);
   // 모바일 스와이프 — 손가락을 따라 트랙이 움직이다 놓으면 스냅 (병원 상세와 동일 동작).
   const [dragX, setDragX] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
@@ -291,15 +307,14 @@ export const TreatmentDetailPage = ({
     if (!t.axis && (Math.abs(dx) > 8 || Math.abs(dy) > 8)) t.axis = Math.abs(dx) > Math.abs(dy) ? "x" : "y";
     if (t.axis !== "x") return;
     setIsDragging(true);
-    const atEdge = (currentSlide === 0 && dx > 0) || (currentSlide === galleryImages.length - 1 && dx < 0);
-    setDragX(atEdge ? dx * 0.35 : dx);
+    setDragX(dx); // 루프라 끝이 없음 — 고무줄 저항 불필요
   };
   const onCarouselTouchEnd = (e) => {
     const t = touchRef.current;
     if (t.axis === "x") {
       const dx = e.changedTouches[0].clientX - t.x;
-      if (dx < -40 && currentSlide < galleryImages.length - 1) setCurrentSlide((p) => p + 1);
-      else if (dx > 40 && currentSlide > 0) setCurrentSlide((p) => p - 1);
+      if (dx < -40) stepSlide(1);
+      else if (dx > 40) stepSlide(-1);
     }
     touchRef.current = { x: 0, y: 0, axis: null };
     setDragX(0);
@@ -342,13 +357,14 @@ export const TreatmentDetailPage = ({
               <div
                 className="flex h-full"
                 style={{
-                  transform: `translateX(calc(${-currentSlide * 100}% + ${dragX}px))`,
-                  transition: isDragging ? "none" : "transform 300ms cubic-bezier(0.22, 1, 0.36, 1)",
+                  transform: `translateX(calc(${-slidePos * 100}% + ${dragX}px))`,
+                  transition: isDragging || noAnim ? "none" : "transform 300ms cubic-bezier(0.22, 1, 0.36, 1)",
                 }}
+                onTransitionEnd={onTrackTransitionEnd}
               >
-                {galleryImages.map((img, index) => (
+                {[galleryImages[slideCount - 1], ...galleryImages, galleryImages[0]].map((img, index) => (
                   <div key={index} className="w-full h-full shrink-0">
-                    <img src={img} className="w-full h-full object-cover" alt={`Slide ${index + 1}`} draggable={false} />
+                    <img src={img} className="w-full h-full object-cover" alt={`Slide ${index}`} draggable={false} />
                   </div>
                 ))}
               </div>
