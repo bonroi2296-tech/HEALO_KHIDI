@@ -23,17 +23,26 @@
   - ⚠️ 이 권한이 없으면 iOS 는 카메라 접근 시 **크래시 + 심사 반려**, Android 는 WebView `getUserMedia` 거부로 **영상상담 먹통**이었음 → 2026-06-29 보강.
 - **푸시 클라이언트·서버 배선 완료** — `src/lib/push/registerPush.ts`(앱에서만 동작) + `/api/push/register`·`/api/push/test`.
 
-## ⚠️ 제출 전 선결(내가 못 하는 PO 작업)
-- **🌐 도메인 먼저**: `capacitor.config.ts` 의 앱 셸이 `https://healwith.co.kr` 을 로드한다. **이 도메인이 아직 미등록(죽은 주소)** → 등록·Vercel 연결 전에 앱을 제출하면 빈 화면. `docs/DOMAIN_CUTOVER_healwith.md` 순서대로. (임시로 `healo-khidi.vercel.app` 을 가리키게 바꿔 테스트는 가능하나, 정식 제출 전 도메인 확정 권장 — server.url 변경은 네이티브 재빌드 필요.)
-- **애플 개발자 $99/년 결제** + App ID `kr.co.healwith.app` 등록(+ Push Notifications capability).
-- **구글 플레이 $25 결제** + 앱 생성.
-- **Firebase 설정파일 다운로드 → 커밋**: `android/app/google-services.json`, `ios/App/App/GoogleService-Info.plist`. (Firebase 콘솔에 iOS/Android 앱을 `kr.co.healwith.app` 로 추가) + iOS 는 **APNs 인증키(.p8)** 를 Firebase Cloud Messaging 에 업로드.
-- **Vercel env 2개**(서버 푸시 발송): `FCM_PROJECT_ID`, `GOOGLE_SERVICE_ACCOUNT_JSON`(서비스계정 키 JSON 전체). 설정 후 `/api/push/test`(admin)로 실기기 수신 확인.
-- **스크린샷**: 아직 없음. 실기기/시뮬레이터에서 홈·치료여정·원격협진·문의 화면 캡처.
-  - iOS 필수: 6.7"(1290×2796) + 6.5"(1242×2688) 각 최소 1장. iPad 선택.
-  - Android 필수: 폰 스크린샷 2~8장(min 320px) + **피처 그래픽 1024×500**.
-- **앱 아이콘**: 현재 플레이스홀더(브랜드 심볼). PO 최종안 확정 시 `npx @capacitor/assets generate` 로 재생성.
-- **데이터 안전(Play)/개인정보 라벨(App Store)**: 수집 항목 신고 — 이름·이메일·전화(문의), 건강정보(상담), 기기 토큰(푸시). 암호화 전송·삭제요청 가능 명시.
+## ⚠️ 제출 전 선결 — PO 체크리스트 (2026-07-14 갱신)
+
+**PO가 직접 할 것 (지금은 결제 2건뿐):**
+1. ⬜ **애플 개발자 등록 + $99/년 결제** — https://developer.apple.com/programs/enroll/
+   - 본로이는 개인사업자 → **개인(Individual) 계정**으로 등록. 판매자명이 개인 이름으로 노출됨(법인 전환 시 조직 계정 이전 가능).
+   - 🛑 **함정**: 애플 가이드라인 5.1.1은 의료성 앱에 법인 계정을 요구할 수 있음 → 심사에서 이 사유로 반려될 가능성 있음(반려 시 항소·법인 검토 대응 — 어시가 그때 정리).
+2. ⬜ **구글 플레이 개발자 등록 + $25(일회) 결제** — https://play.google.com/console/signup
+3. ⬜ (결제 후, 어시가 화면 안내) **Firebase 무료 가입** → 프로젝트 생성 → iOS/Android 앱(`kr.co.healwith.app`) 추가 → 설정파일 2개 다운로드해 어시에게 전달: `google-services.json`(→ `android/app/`)·`GoogleService-Info.plist`(→ `ios/App/App/`). iOS는 APNs 인증키(.p8)도 Firebase에 업로드(애플 계정 생긴 뒤).
+4. ⬜ (결제 후, 어시가 안내) **Codemagic 무료 가입**(GitHub 로그인) — iOS 클라우드 맥 빌드용. 설정은 `codemagic.yaml`에 준비돼 있음.
+
+**어시가 할 것 (계정 열리면):**
+- Vercel env 2개(`FCM_PROJECT_ID`·`GOOGLE_SERVICE_ACCOUNT_JSON`) 설정 + `/api/push/test` 실기기 수신 확인
+- 빌드→TestFlight/Play 내부트랙 업로드, 등록 문구 6개 언어 입력, 심사 설문 제출(→ `APP_STORE_REVIEW_ANSWERS.md` 복붙), 반려 대응
+
+**이미 끝난 것:**
+- ✅ **앱 아이콘 최종 확정(2026-07-14 PO)** — 흰 바탕 + 청록→남색 그라데이션 말풍선 h(폰 PWA와 동일). 3벌(PWA·안드로이드·iOS) 규격 검증 완료, 추가 작업 불필요. 다크 전용 변형은 선택사항으로 보류.
+- ✅ **스크린샷 초안 36장** — `scripts/appstore-screenshots.mjs`로 ko·en·ru × 3규격 × 4화면 촬영(`appstore-assets/screenshots/`, git 미추적·재생성 가능). 최종 제출 전 실기기 캡처 교체 권장. Android 피처 그래픽(1024×500)은 제출 직전 제작.
+- ✅ **도메인** — healwith.co.kr 정식 가동(2026-06-22 컷오버). ~~미등록 경고~~는 폐기.
+- ✅ **데이터 안전/개인정보 라벨 답변지** — `docs/APP_STORE_REVIEW_ANSWERS.md`(문항별 답 완성).
+- ✅ 계정 삭제 요건(애플 5.1.1(v)) — `/patient/account`에 구현 확인.
 
 ---
 
