@@ -7,6 +7,46 @@
 
 ---
 
+## 🔖 세션 핸드오프 (2026-07-14 — 상세페이지 대청소: 지도 CSP·화살표·스와이프·무한루프·러카 날짜·잔재 정리, PR 7건 배포)
+
+**1. 이번 세션 한 일** — 전부 머지·프로덕션 반영·기계 실측 완료(7 PR + DB 토글 2건):
+- **[#742](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/742) 지도 복구 + 화살표 통일**: 병원·암종 상세 지도가 회색 박스였던 원인 = **CSP script-src에 maps.googleapis.com 누락**(키·결제 정상 — 소거 진단). CSP 추가 + 대학병원 4곳 정적 좌표 + 캐러셀·라이트박스 화살표 Chevron 통일·원형 버튼 중앙정렬. 반성문 #86(🔁 #43 부류) + `check:content` **§17**(외부 스크립트↔CSP 자동 대조).
+- **[#744](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/744) 다듬기 2차**: '제공 항목'에 언어코드(ko/en) 원시 노출 → 원어 표기(`languageLabel`, LANG_OPTIONS 재사용) / 후기 날짜 `formatDate("en")` 고정 → langCode / 모바일 스와이프 1차.
+- **[#745](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/745) 러·카 현지화**: `localeFromLang`에 ru-RU·kk-KZ 추가 — 러/카 화면 날짜 14.07.2026·숫자 1 234 567. 암종 상세 후기 날짜 고정 "en"도 제거.
+- **[#746](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/746) /search 잔재 비활성**(PO 지시): 고아 페이지를 /hospitals 리다이렉트(코드 보존), sitemap·robots·홈 JSON-LD SearchAction 제거. **비암종 치료 상세는 잔재 아님 판정**(한방 특화 페이지가 실링크) — 이후 **PO가 "더미데이터" 확정** → DB 토글 2건: 한방 프로그램 6건 `is_published=false` + **RAG 문서 `expires_at=now()`**(⚠️ 검색 RPC는 is_active 안 보고 expires_at만 필터). 낡은 장부(면력 3지점 설명 — 실은 이미 동기화됨) 실측 마감.
+- **[#750](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/750)+[#755](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/755) 캐러셀 대개편**(PO "샤라락"·"마지막→1페이지" 요청): 페이드 → **손가락 추적 트랙**(드래그 추종, 300ms 스냅, touch-pan-y+축잠금으로 세로 스크롤 공존, touchcancel 원위치) → **무한 루프**(클론 기법: 트랙=[마지막클론,...실제,첫클론], 도착 시 무전환 점프 정규화, 교착 방지 2겹=재터치 정규화+400ms 워치독). 자동넘김 되감기 스윕도 해소.
+- 문서: 반성문 #86, KHIDI §4 7월 로그, PO 취향 2건, midsave 2건([#748](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/748) 포함).
+
+**2. 왜 그렇게 했는지**
+- 지도: "키/결제 문제" 통념 대신 프로덕션 번들·Static Maps 실측으로 소거 → CSP가 범인. #43과 같은 부류인데 습관(교훈)만 있고 기계 가드가 없어 재발 → §17로 기계화.
+- 이미지 호버 확대(scale)는 DESIGN.md 금지 문구에도 불구 **유지** — 홈·검색 등 사이트 전체 관행이라 정합성(1원칙) 우선(한 번 바꿨다 스스로 되돌림).
+- 무한 루프에서 고무줄 저항 제거(끝이 없어졌으므로), 스와이프 임계 40px·스냅 300ms cubic-bezier(0.22,1,0.36,1) — PO 감각 피드백 오면 이 숫자들만 조정.
+- 한방 프로그램 6건은 처음엔 "살아있는 콘텐츠" 판정(실링크 확인)했으나 PO가 더미 확정 — 삭제 아닌 비공개 토글(소프트 원칙, 재활용 대비).
+
+**3. 안 끝났거나 보류**
+- **유사부류 스캔 발견분 중 미진행**(PO 보류): ①환자 페이지 날짜가 브라우저 설정 의존 3곳(PatientDashboard 263·symptoms 349·inquiry/ThreadChat 18) + patient/chat 1곳(ko 아니면 en 고정) ②후기 국가(review.country) 원시 노출 방어(현재 데이터 0건이라 무증상) ③암종 상세 가격 3곳 `formatPriceRange("en")` 고정. PO가 "날짜 건 보류" 명시(버튼 dismiss) — 시키면 진행.
+- KHIDI 점수판 데모 4건 삭제(스크립트 준비됨, 8/27 전 필수) / Madanes 서면허가 대기 / 비자 초청장용 성동·광명 등록증 정보(PO 제공 대기) — 기존 장부 그대로.
+
+**4. 주의·함정**
+- **RAG 숨김은 `expires_at`으로**: 검색 RPC(`rag_search_chunks_v1_1`)는 `is_active`를 안 봄 — is_active만 끄면 AI가 계속 인용(이번에 실측). 더미 치료 복원 = `is_published=true` + `expires_at=NULL`.
+- **캐러셀 구조**: slidePos 1..len이 실제, 0/len+1은 클론(도착 즉시 정규화). 새 캐러셀 만들 땐 이 두 파일(병원·암종 상세) 복사가 표준. 사진 캐러셀은 서비스 전체에 이 2곳뿐임을 전수 스캔으로 확인(화상방 CarouselLayout은 LiveKit 부품 — 별개).
+- 지도는 **로컬 dev에서 안 뜨는 게 정상**(비용 절감 설계) — 실검증은 프리뷰/프로덕션에서만.
+- /search 재도입 시: page.jsx 원복 + sitemap·robots + `structuredData.js` SearchAction 3곳 복원.
+
+**5. 다음 세션이 먼저 할 일**
+1. ⚠️ **직전 미검증분 먼저 확인**: 캐러셀 실기기 감각(무한 루프 스와이프·빠른 연타·세로 스크롤 공존)과 지도 실화면 — 기계 검증(번들·헤더·404·리다이렉트)은 전부 끝났으나 **실폰 터치 감각과 지도 렌더 육안은 PO 확인이 안 옴**. PO가 별말 없으면 통과로 간주, "이상하다" 하면 임계값(40px)·스냅(300ms)부터.
+2. PO가 날짜 잔여 4곳(3번 참고) 진행 지시하면 이어서. KHIDI 데모 4건 삭제는 8/27 전 반드시.
+
+**6. 검증 상태**
+- ✅ 직접 검증: PR 7건(#742·744·745·746·748·750·755) 전부 **MERGED + CI(ci·Smoke·Vercel) 초록 + 코드 PR은 독립 리뷰 게이트 통과**(#746은 리뷰가 JSON-LD 잔재 적발→반영, #755는 PLAUSIBLE 교착 지적 선반영). 프로덕션 실측: CSP 헤더 maps 도메인 2곳, /search 307→/hospitals, 더미 치료 404, 배포마다 번들 반영 폴링 확인. 빌드·check:content 매 PR 통과(§17 가드는 누락 주입→적발 역검증까지).
+- ✅ 열린 PR 실조회(2026-07-14): #760·#731·#729·#669·#514 — **전부 타 세션 것, 이 세션 열린 PR 없음**.
+- ⚠️ **미검증**: 실기기 터치 감각·지도 육안(→5-1), ru/kz 날짜의 실브라우저 렌더(Node 실측만 — Intl 데이터는 브라우저도 동일해 리스크 낮음).
+
+**7. 다음 세션 첫 프롬프트**
+> docs/PROJECT_CONTEXT.md 최상단 읽어. 상세페이지 대청소(7 PR) 전부 프로덕션 반영됨. PO에게 폰 확인 2개(무한루프 스와이프 감각·지도 표시) 리마인드 한 줄만 하고, "이상하다" 피드백 오면 캐러셀 임계 40px·스냅 300ms부터 조정. 날짜 잔여 4곳(환자 페이지 브라우저 의존)은 PO가 시키면 진행. KHIDI 점수판 데모 4건 삭제는 8/27 전 필수 — 하루 요약에 리마인드 유지.
+
+---
+
 > 💾 **중간 저장 (2026-07-14 오후, 앱스토어 세션 속편 — Firebase 열쇠 2개 머지 완료)**
 > - **📝 정정: 아래 「앱스토어 사전준비」 핸드오프의 "Firebase는 결제 후" 계획이 앞당겨짐** — Firebase는 결제 무관(무료) 확인 후 PO가 즉시 진행. 기존 Firebase 프로젝트 **healo(healo-e3e58)** 재사용(새로 안 만듦), Android·iOS 앱 추가 완료. `google-services.json` **[PR #757](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/757) 머지**(gradle 조건부 플러그인이 자동 인식 — 배선 완비), `GoogleService-Info.plist` **[PR #758](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/758) 머지**. 둘 다 번들/패키지·프로젝트 ID 검증 + audit:secret 0건.
 > - ⚠️ **iOS는 파일만으론 푸시 안 됨(중요)**: 이 프로젝트는 CocoaPods 아닌 **SPM(CapApp-SPM)** 구조라 ①FirebaseMessaging SPM 추가 ②AppDelegate APNs→FCM 토큰 교환 ③pbxproj에 plist 리소스 등록(현재 참조 0건) ④codemagic.yaml `pod install` 단계 손질 — **첫 Codemagic 빌드 때** 컴파일 피드백 보며 진행(윈도우 검증 불가). 상세 = `APP_STORE_LISTING.md` §어시가 할 것.
