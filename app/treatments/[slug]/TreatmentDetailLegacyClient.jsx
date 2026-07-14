@@ -277,15 +277,36 @@ export const TreatmentDetailPage = ({
 
   const nextSlide = (e) => { e?.stopPropagation(); setCurrentSlide((prev) => (prev + 1) % galleryImages.length); };
   const prevSlide = (e) => { e?.stopPropagation(); setCurrentSlide((prev) => (prev - 1 + galleryImages.length) % galleryImages.length); };
-  // 모바일 스와이프 — 40px 이상 가로 이동 시 슬라이드 전환 (병원 상세와 동일 동작)
-  const touchStartX = useRef(null);
-  const onCarouselTouchStart = (e) => { touchStartX.current = e.touches[0].clientX; };
-  const onCarouselTouchEnd = (e) => {
-    if (touchStartX.current == null) return;
-    const dx = e.changedTouches[0].clientX - touchStartX.current;
-    touchStartX.current = null;
-    if (Math.abs(dx) > 40) (dx < 0 ? nextSlide : prevSlide)();
+  // 모바일 스와이프 — 손가락을 따라 트랙이 움직이다 놓으면 스냅 (병원 상세와 동일 동작).
+  const [dragX, setDragX] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const touchRef = useRef({ x: 0, y: 0, axis: null });
+  const onCarouselTouchStart = (e) => {
+    touchRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY, axis: null };
   };
+  const onCarouselTouchMove = (e) => {
+    const t = touchRef.current;
+    const dx = e.touches[0].clientX - t.x;
+    const dy = e.touches[0].clientY - t.y;
+    if (!t.axis && (Math.abs(dx) > 8 || Math.abs(dy) > 8)) t.axis = Math.abs(dx) > Math.abs(dy) ? "x" : "y";
+    if (t.axis !== "x") return;
+    setIsDragging(true);
+    const atEdge = (currentSlide === 0 && dx > 0) || (currentSlide === galleryImages.length - 1 && dx < 0);
+    setDragX(atEdge ? dx * 0.35 : dx);
+  };
+  const onCarouselTouchEnd = (e) => {
+    const t = touchRef.current;
+    if (t.axis === "x") {
+      const dx = e.changedTouches[0].clientX - t.x;
+      if (dx < -40 && currentSlide < galleryImages.length - 1) setCurrentSlide((p) => p + 1);
+      else if (dx > 40 && currentSlide > 0) setCurrentSlide((p) => p - 1);
+    }
+    touchRef.current = { x: 0, y: 0, axis: null };
+    setDragX(0);
+    setIsDragging(false);
+  };
+  // 터치가 시스템에 의해 끊길 때(팝업·탭 전환) 트랙이 어중간하게 멈추지 않게 원위치
+  const onCarouselTouchCancel = () => { touchRef.current = { x: 0, y: 0, axis: null }; setDragX(0); setIsDragging(false); };
 
   const averageRating = realReviews.length > 0
     ? (realReviews.reduce((acc, r) => acc + (r.rating || 5), 0) / realReviews.length).toFixed(1)
@@ -317,8 +338,20 @@ export const TreatmentDetailPage = ({
           </div>
         ) : (
           <>
-            <div className="md:hidden w-full aspect-[4/3] relative group overflow-hidden rounded-2xl bg-gray-100" onTouchStart={onCarouselTouchStart} onTouchEnd={onCarouselTouchEnd}>
-              <img src={galleryImages[currentSlide]} className="w-full h-full object-cover" alt="Main" />
+            <div className="md:hidden w-full aspect-[4/3] relative group overflow-hidden rounded-2xl bg-gray-100 touch-pan-y" onTouchStart={onCarouselTouchStart} onTouchMove={onCarouselTouchMove} onTouchEnd={onCarouselTouchEnd} onTouchCancel={onCarouselTouchCancel}>
+              <div
+                className="flex h-full"
+                style={{
+                  transform: `translateX(calc(${-currentSlide * 100}% + ${dragX}px))`,
+                  transition: isDragging ? "none" : "transform 300ms cubic-bezier(0.22, 1, 0.36, 1)",
+                }}
+              >
+                {galleryImages.map((img, index) => (
+                  <div key={index} className="w-full h-full shrink-0">
+                    <img src={img} className="w-full h-full object-cover" alt={`Slide ${index + 1}`} draggable={false} />
+                  </div>
+                ))}
+              </div>
               <button onClick={prevSlide} aria-label="Previous" className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 flex items-center justify-center bg-black/30 hover:bg-black/50 text-white rounded-full backdrop-blur-sm transition duration-200 z-20"><ChevronLeft size={20} /></button>
               <button onClick={nextSlide} aria-label="Next" className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 flex items-center justify-center bg-black/30 hover:bg-black/50 text-white rounded-full backdrop-blur-sm transition duration-200 z-20"><ChevronRight size={20} /></button>
               <div className="absolute bottom-3 right-3 z-20">
