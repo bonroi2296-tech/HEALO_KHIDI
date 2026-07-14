@@ -793,6 +793,35 @@ for (const dir of BACKOFFICE_DIRS) {
   }
 }
 
+// ── 20) POSTMORTEMS 반성문 번호 중복 차단 (반성문 #90 — #89를 #66으로 잘못 발번한 사고) ──
+// 왜: 반성문은 파일 상단이 최신인데, 아래쪽(옛 항목)만 보고 다음 번호를 이어붙이면 중복 발번.
+//     번호가 겹치면 "🔁 #NN 부류 재발" 추적·재발률 집계(grep 기반)가 다른 사건을 가리켜 오염됨.
+// 과거 충돌 12쌍은 재번호 안 하고 허용목록(🔁 참조·가드 주석이 옛 번호를 가리켜 전면 재번호는
+//     참조를 깨는 대수술 — KNOWN_ISSUES 등재, /doc-health 몫). 새 중복만 차단한다.
+{
+  const HISTORICAL_DUPS = new Set(["31", "32", "39", "42", "55", "56", "57", "58", "59", "60", "61", "62"]);
+  try {
+    const pm = readFileSync(join(ROOT, "docs/POSTMORTEMS.md"), "utf8");
+    const seen = new Map(); // 번호 → 등장 행 목록
+    pm.split("\n").forEach((line, i) => {
+      const m = line.match(/^##+ #(\d+)\b/);
+      if (!m) return;
+      const rows = seen.get(m[1]) || [];
+      rows.push(i + 1);
+      seen.set(m[1], rows);
+    });
+    for (const [num, rows] of seen) {
+      // 허용목록 번호도 '이미 알려진 2회'까지만 — 3회째부터는 새 발번 사고 (독립 리뷰 지적)
+      const limit = HISTORICAL_DUPS.has(num) ? 2 : 1;
+      if (rows.length > limit) {
+        errors.push(`[반성문중복] docs/POSTMORTEMS.md — 반성문 번호 #${num} 이 ${rows.length}회 발번됨 (${rows.join("행 · ")}행, 허용 ${limit}회). 최신 번호는 파일 '상단'에서 확인할 것 — 아래쪽은 옛 항목이라 tail 로 보면 낮은 번호가 나옴 (반성문 #90).`);
+      }
+    }
+  } catch (e) {
+    errors.push(`[반성문중복] 검사 실패: ${e.message}`);
+  }
+}
+
 // ── 결과 ────────────────────────────────────────────────────────
 if (errors.length) {
   console.error(`\n❌ 콘텐츠 일관성 검사 실패 (${errors.length}건)\n`);
