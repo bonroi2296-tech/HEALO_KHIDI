@@ -558,7 +558,8 @@ function DoctorCard({ doc, l, lang, onSelect }) {
         </div>
 
         {/* Info */}
-        <div className="flex-1 p-4 sm:p-5 flex flex-col">
+        {/* min-w-0 필수: 자식 truncate(nowrap) 줄이 flex 아이템의 최소폭을 밀어올려 카드 밖으로 넘침 → overflow-hidden에 잘림 (반성문 #66) */}
+        <div className="flex-1 min-w-0 p-4 sm:p-5 flex flex-col">
           <div className="flex items-center gap-2 mb-1">
             <h4 className="font-extrabold text-lg">{l(doc.name)}</h4>
             {roleBadge && (
