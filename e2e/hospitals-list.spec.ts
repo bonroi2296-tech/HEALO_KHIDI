@@ -36,7 +36,7 @@ test.describe("병원 목록 페이지 @smoke", () => {
   });
 
   test("의료진 카드가 가로로 넘치지 않는다 (flex min-w-0 회귀 가드)", async ({ page }) => {
-    // 재발 방지 #66: truncate(nowrap) 자식이 flex 아이템 최소폭을 밀어올려
+    // 재발 방지 #89: truncate(nowrap) 자식이 flex 아이템 최소폭을 밀어올려
     // 카드 밖 내용이 overflow-hidden에 잘리던 버그 (영어가 최장 텍스트라 /en으로 검사)
     await page.goto("/en/hospitals");
     await page.waitForSelector('[role="button"]');
