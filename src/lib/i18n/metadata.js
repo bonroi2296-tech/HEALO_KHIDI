@@ -22,6 +22,13 @@ export async function getRequestLocale() {
   };
 }
 
+// 다국어 객체({ko,en,ru,...})에서 요청 언어 → en 순으로 고른다. 값 없으면 null.
+// generateMetadata·JSON-LD·breadcrumb 등 서버 쪽 언어 폴백의 단일 구현 (사본 금지 — #86 리뷰 게이트).
+export function pickLocalized(obj, locale) {
+  const lc = locale || DEFAULT_LOCALE;
+  return obj?.[lc] || obj?.en || null;
+}
+
 // 정적 metadata(base)에 요청 언어별 제목/설명을 입혀 반환. 공개페이지 generateMetadata에서 사용.
 // title은 absolute로 줘 루트 template "%s | healwith" 중복을 피한다. OG 제목/설명도 같이 언어화.
 export async function localizedMeta(base, titleKey, descKey) {

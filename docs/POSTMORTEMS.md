@@ -31,7 +31,8 @@ PO가 GSC 「발견됨 - 색인 안 됨」 21건을 파다 옛 쓰레기 슬러�
 
 **재발 방지 (뚫린 가드 보강 + 신규)**
 - **뚫린 가드 보강(#20 부류)**: "404다"의 판정 기준을 화면→**상태코드**로. 상세페이지류 라우트를 만들거나 고치면 "없는 slug 1개를 `curl -o /dev/null -w "%{http_code}"`로 실측"이 self-QA 기본. **notFound() 쓰는 공개 동적 라우트 위엔 loading.jsx 금지**가 이 저장소 표준.
-- **신규 가드 2개**: `check:content` §17 — 최상위 metadata.title이 " | healwith"로 끝나면 CI 실패(템플릿 중복 부류). §18 — notFound() 쓰는 공개 동적 라우트의 조상에 loading 파일이 있으면 CI 실패(소프트 404 부류 — 로딩 스켈레톤을 누가 다시 추가하면 즉시 적발).
+- **신규 가드 2개**: `check:content` §17 — 템플릿 적용 title에 "| healwith"가 있으면(꼬리든 중간이든, 따옴표 3종) CI 실패(템플릿 중복 부류). §18 — notFound() 쓰는 공개 동적 라우트의 조상에 loading 파일이 있으면 CI 실패(소프트 404 부류 — 로딩 스켈레톤을 누가 다시 추가하면 즉시 적발).
+- **독립 리뷰 게이트가 초안을 4건 더 뚫음(가치 입증)**: ①일시적 DB 오류도 null로 뭉개져 살아있는 페이지가 404(색인 제거!)될 뻔 → 데이터 계층이 "없음(null)"과 "조회 실패(throw→500)"를 구분하게 수정 ②ko 로케일만 partner 설명 폴백이 누락 ③§17 초안이 작은따옴표·중간 삽입형("FAQ | healwith — …")·generateMetadata 반환 객체를 다 놓침(실제 뚫린 파일 3개 발견: search·design-preview·coordinator/messages) ④목록 스켈레톤 삭제는 DESIGN.md 로딩 상태 규칙 위반 → 페이지 안 Suspense fallback으로 복원(상태코드 무관). JSON-LD·breadcrumb도 metadata와 같은 언어화 헬퍼(localizedHospitalText)를 쓰게 통일.
 
 ---
 

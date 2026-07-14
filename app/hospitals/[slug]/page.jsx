@@ -6,7 +6,7 @@ import {
 } from "@/lib/data/hospitals";
 import { getPartnerHospital, convertPartnerToInitialData } from "@/lib/data/partnerHospitals";
 import HospitalDetailClient from "./HospitalDetailClient";
-import { localeAlternates, getRequestLocale } from "@/lib/i18n/metadata";
+import { localeAlternates, getRequestLocale, pickLocalized } from "@/lib/i18n/metadata";
 import { breadcrumbLd } from "@/lib/seo/structuredData";
 
 const UUID_REGEX =
@@ -22,14 +22,31 @@ const getBaseUrl = () =>
 const partnerFolderImage = (slug) =>
   slug ? `${getBaseUrl()}/images/hospitals/${slug}/1.jpg` : null;
 
+// 요청 언어에 맞는 병원 이름·설명 한 곳에서 계산 — <title>·OG·JSON-LD·breadcrumb가
+// 전부 이걸 쓴다(메타만 언어화되고 구조화데이터는 한국어로 남는 드리프트 방지 — #86 리뷰 게이트).
+// DB hospitals 테이블엔 name 단일 컬럼(한국어)뿐이라, 같은 slug의 제휴 정적 데이터
+// (partnerHospitals, 6개 언어)를 언어화 소스로 겹쳐 쓴다. ko는 DB 원문 우선.
+const localizedHospitalText = (hospital, partner, lc) => {
+  const name =
+    (lc === "ko" ? hospital?.name : pickLocalized(partner?.name, lc)) ||
+    hospital?.name ||
+    pickLocalized(partner?.name, lc) ||
+    partner?.name?.ko ||
+    null;
+  const description =
+    (lc === "ko"
+      ? hospital?.description || pickLocalized(partner?.description, lc)
+      : pickLocalized(partner?.description, lc) || hospital?.description) ||
+    partner?.description?.ko ||
+    "Explore this healwith partner hospital in Korea.";
+  return { name, description };
+};
+
 export async function generateMetadata({ params }) {
   const { slug } = await params;
   const { locale } = await getRequestLocale();
   const lc = locale || "en";
-  // 제휴 병원 정적 데이터(6개 언어 이름·설명) — DB 병원이어도 같은 slug면 언어화 소스로 쓴다.
-  // (DB hospitals 테이블엔 name 단일 컬럼뿐이라 /en·/ru 페이지에 한국어 제목이 나가던 문제 대응.)
   const partner = getPartnerHospital(slug);
-  const pick = (obj) => obj?.[lc] || obj?.en || null;
 
   // Try DB first
   const hospital = slug
@@ -40,16 +57,15 @@ export async function generateMetadata({ params }) {
   // Fallback to static partner data if not in DB
   if (!hospital) {
     if (partner) {
-      const name = pick(partner.name) || partner.name?.ko;
-      const desc = pick(partner.description) || partner.description?.ko;
+      const { name, description } = localizedHospitalText(null, partner, lc);
       const ogImg = partnerFolderImage(slug);
       const ogImages = ogImg ? [{ url: ogImg }] : undefined;
       return {
         title: name,
-        description: desc,
+        description,
         alternates: (await localeAlternates()) || { canonical: `/hospitals/${slug}` },
-        openGraph: { title: name, description: desc, type: "article", images: ogImages },
-        twitter: ogImages ? { card: "summary_large_image", title: name, description: desc, images: [ogImg] } : undefined,
+        openGraph: { title: name, description, type: "article", images: ogImages },
+        twitter: ogImages ? { card: "summary_large_image", title: name, description, images: [ogImg] } : undefined,
       };
     }
     // 없는 slug는 메타 단계에서도 notFound() (이중 방어). 상태코드 404의 진짜 조건은 이 라우트
@@ -57,13 +73,7 @@ export async function generateMetadata({ params }) {
     notFound();
   }
 
-  const name =
-    (lc === "ko" ? hospital.name : pick(partner?.name)) || hospital.name;
-  const description =
-    (lc === "ko"
-      ? hospital.description
-      : pick(partner?.description) || hospital.description) ||
-    "Explore this healwith partner hospital in Korea.";
+  const { name, description } = localizedHospitalText(hospital, partner, lc);
   const canonical = `/hospitals/${hospital.slug || slug}`;
   const folderOg = hospital.is_partner ? partnerFolderImage(hospital.slug || slug) : null;
   const ogImages = folderOg
@@ -99,6 +109,10 @@ export default async function HospitalDetailPage({ params }) {
     if (resolvedSlug) redirect(`/hospitals/${resolvedSlug}`);
   }
 
+  const { locale } = await getRequestLocale();
+  const lc = locale || "en";
+  const partner = getPartnerHospital(slug);
+
   // Try DB first
   const hospital = slug
     ? (await getHospitalBySlug(slug)) ||
@@ -107,15 +121,15 @@ export default async function HospitalDetailPage({ params }) {
 
   // If in DB → render normally (original flow with full DB data)
   if (hospital) {
+    const { name, description } = localizedHospitalText(hospital, partner, lc);
     const baseUrl = getBaseUrl();
     const canonical = `${baseUrl}/hospitals/${hospital.slug || slug}`;
     const folderOg = hospital.is_partner ? partnerFolderImage(hospital.slug || slug) : null;
     const jsonLd = {
       "@context": "https://schema.org",
       "@type": "MedicalOrganization",
-      name: hospital.name,
-      description:
-        hospital.description || "Explore this healwith partner hospital in Korea.",
+      name,
+      description,
       image: folderOg
         ? [folderOg]
         : Array.isArray(hospital.images) && hospital.images.length > 0
@@ -134,7 +148,7 @@ export default async function HospitalDetailPage({ params }) {
     const breadcrumb = breadcrumbLd([
       { name: "Home", url: "/" },
       { name: "Hospitals", url: "/hospitals" },
-      { name: hospital.name, url: `/hospitals/${hospital.slug || slug}` },
+      { name, url: `/hospitals/${hospital.slug || slug}` },
     ]);
     return (
       <>
@@ -149,28 +163,29 @@ export default async function HospitalDetailPage({ params }) {
   }
 
   // Fallback: static partner data (university hospitals not in DB)
-  const partner = getPartnerHospital(slug);
   if (partner) {
+    const { name, description } = localizedHospitalText(null, partner, lc);
     const initialData = convertPartnerToInitialData(partner);
     const baseUrl = getBaseUrl();
     const folderOg = partnerFolderImage(slug);
+    const localizedAddress = pickLocalized(partner.address, lc) || partner.address?.ko;
     const partnerJsonLd = {
       "@context": "https://schema.org",
       "@type": "MedicalOrganization",
-      name: partner.name?.en || partner.name?.ko,
-      description: partner.description?.en || partner.description?.ko || "Explore this healwith partner hospital in Korea.",
+      name,
+      description,
       image: folderOg ? [folderOg] : undefined,
       url: `${baseUrl}/hospitals/${slug}`,
       areaServed: "KR",
-      ...(partner.address?.en || partner.address?.ko
-        ? { address: { "@type": "PostalAddress", streetAddress: partner.address?.en || partner.address?.ko, addressCountry: "KR" } }
+      ...(localizedAddress
+        ? { address: { "@type": "PostalAddress", streetAddress: localizedAddress, addressCountry: "KR" } }
         : {}),
       ...(partner.phone ? { telephone: partner.phone } : {}),
     };
     const partnerBreadcrumb = breadcrumbLd([
       { name: "Home", url: "/" },
       { name: "Hospitals", url: "/hospitals" },
-      { name: partner.name?.en || partner.name?.ko, url: `/hospitals/${slug}` },
+      { name, url: `/hospitals/${slug}` },
     ]);
     return (
       <>

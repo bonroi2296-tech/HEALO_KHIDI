@@ -668,23 +668,42 @@ for (const dir of BACKOFFICE_DIRS) {
   }
 }
 
-// ── 17) metadata.title 브랜드 꼬리 중복 차단 (2026-07-14, GSC 색인 실사에서 발견) ──
+// ── 17) metadata.title 브랜드 중복 차단 (2026-07-14, GSC 색인 실사 → 리뷰 게이트에서 3회 보강) ──
 // 왜: 루트 layout.jsx 의 title.template("%s | healwith")가 하위 페이지 title 문자열에
-//     자동으로 브랜드를 붙이는데, 페이지가 손으로 " | healwith"를 또 붙이면 실제 <title>이
-//     "… | healwith | healwith"로 나간다(privacy 등 27개 파일에서 실발생, 구글 색인 품질 저하).
-// 규칙: 최상위 metadata title(들여쓰기 2칸) 문자열은 " | healwith"로 끝나면 안 됨 — 템플릿이 붙여줌.
-//     브랜드를 넣고 싶으면 title: { absolute: "…" } 를 쓸 것(cost-calculator 방식).
-// 한계(정직하게): openGraph/twitter 의 title(들여쓰기 4칸+)은 템플릿 미적용이라 " | healwith" 허용
-//     — 이 검사는 2칸 들여쓰기·한 줄 inline metadata 만 본다. 형식을 벗어난 중첩 구조는 코드리뷰 몫.
+//     자동으로 브랜드를 붙이므로, 템플릿 적용 대상 title 에 "| healwith"가 이미 들어 있으면
+//     실제 <title>에 브랜드가 두 번 나간다(privacy 등 27+3파일에서 실발생, 구글 색인 품질 저하).
+// 규칙: 템플릿이 적용되는 title 문자열(최상위 metadata·generateMetadata 반환 객체)에는
+//     "| healwith"가 꼬리든 중간이든 들어가면 안 됨. 브랜드를 직접 쓰려면 title: { absolute: "…" }.
+// 검사 방식: 줄 단위 스캔 + openGraph/twitter 블록 추적(그 안의 title 은 템플릿 미적용이라 허용).
+//     따옴표는 ' " ` 전부, 브랜드 위치는 문자열 어디든 잡는다(리뷰 게이트가 찾은 우회 3종:
+//     작은따옴표·"FAQ | healwith — …" 중간형·generateMetadata 4칸 들여쓰기 반환 객체).
+// 한계(정직하게): openGraph: { title: "… | healwith" } 처럼 한 줄로 접힌 og/tw 는 블록 추적이
+//     못 들어가 문자열 리터럴이면 오탐 가능(현재 저장소엔 변수만 씀). 변수로 조립한 title 은 못 잡음.
 {
-  const TITLE_DUP_LINE_RE = /^ {2}title:\s*"[^"\n]*\| healwith",?\s*$/m;
-  const TITLE_DUP_INLINE_RE = /metadata\s*=\s*\{\s*title:\s*"[^"\n]*\| healwith"/;
+  const TITLE_BRAND_RE = /^\s{2,8}title:\s*['"`][^'"`\n]*\|\s*healwith/;
+  const OGTW_OPEN_RE = /(openGraph|twitter)\s*:\s*(\S.*)?\{/;
+  const braceDelta = (s) => (s.match(/\{/g) || []).length - (s.match(/\}/g) || []).length;
   for (const file of walk("app")) {
     if (!CODE_EXT.test(file) || EXCLUDE.test(file)) continue;
     if (/layout\.(jsx?|tsx?)$/.test(file)) continue; // 템플릿 정의 자체는 제외
-    const text = readFileSync(join(ROOT, file), "utf8");
-    if (TITLE_DUP_LINE_RE.test(text) || TITLE_DUP_INLINE_RE.test(text)) {
-      errors.push(`[제목중복] ${file.replace(/\\/g, "/")} — metadata.title 이 " | healwith"로 끝남 → 루트 template 이 또 붙여 "… | healwith | healwith"가 됨. 꼬리를 빼거나 title: { absolute: "…" } 를 쓸 것 (2026-07-14 GSC 실사 부류).`);
+    const lines = readFileSync(join(ROOT, file), "utf8").split("\n");
+    let ogDepth = 0;
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      if (ogDepth > 0) {
+        ogDepth += braceDelta(line);
+        continue; // og/twitter 블록 안 title 은 템플릿 미적용 — 허용
+      }
+      const m = line.match(OGTW_OPEN_RE);
+      if (m) {
+        const after = line.slice(line.indexOf(m[0]));
+        const d = braceDelta(after);
+        if (d > 0) ogDepth = d; // 여러 줄 블록 진입 (한 줄로 닫히면 d=0 → 통과)
+        continue;
+      }
+      if (TITLE_BRAND_RE.test(line)) {
+        errors.push(`[제목중복] ${file.replace(/\\/g, "/")}:${i + 1} — 템플릿 적용 title 에 "| healwith" 포함 → 루트 template 이 또 붙여 브랜드가 두 번 나감. 브랜드를 빼거나 title: { absolute: "…" } 를 쓸 것 (2026-07-14 GSC 실사 부류).`);
+      }
     }
   }
 }
@@ -696,9 +715,14 @@ for (const dir of BACKOFFICE_DIRS) {
 //     실측: 메타/페이지 어디서 notFound()를 불러도 loading 경계가 있으면 200 (POSTMORTEMS #86).
 // 규칙: 공개(비로그인) 영역의 동적 세그먼트([slug]·[id]) page 가 notFound() 를 쓰면,
 //     그 라우트의 조상 디렉토리(app 루트 포함)에 loading.(js|jsx|ts|tsx) 가 없어야 한다.
-// 한계(정직하게): 로그인 뒤편(admin·coordinator·patient 등 noindex 구역)은 SEO 무관이라 제외.
+// 한계(정직하게): ①로그인 뒤편(admin·coordinator·patient 등 noindex 구역)은 SEO 무관이라 제외
+//     — 라우트그룹 (group) 세그먼트는 괄호를 벗겨 어느 깊이에 있어도 인식. ②notFound() 를
+//     page 파일이 아니라 import 한 하위 컴포넌트/헬퍼 안에서만 부르는 라우트는 이 정적 스캔이
+//     못 잡음(page 본문만 grep) — 공개 상세 라우트를 만들 땐 notFound() 를 page 에서 부르는 게 관례.
 {
-  const PRIVATE_TOP = new Set(["admin", "coordinator", "patient", "hospital", "agency", "clinic", "doctor", "api", "auth", "dev", "design-preview", "account"]);
+  const PRIVATE_SEGS = new Set(["admin", "coordinator", "patient", "hospital", "agency", "clinic", "doctor", "api", "auth", "dev", "design-preview", "account"]);
+  const isPrivateRoute = (norm) =>
+    norm.split("/").some((seg) => PRIVATE_SEGS.has(seg.replace(/^\((.+)\)$/, "$1")));
   const LOADING_RE = /^loading\.(jsx?|tsx?)$/;
   const findLoadingAncestor = (relDir) => {
     let dir = relDir;
@@ -715,8 +739,7 @@ for (const dir of BACKOFFICE_DIRS) {
     if (!/page\.(jsx?|tsx?)$/.test(file) || EXCLUDE.test(file)) continue;
     const norm = file.replace(/\\/g, "/");
     if (!/\/\[[^\]]+\]\//.test(norm)) continue; // 동적 세그먼트만
-    const top = norm.split("/")[1];
-    if (PRIVATE_TOP.has(top)) continue; // 로그인 뒤편 = SEO 무관
+    if (isPrivateRoute(norm)) continue; // 로그인 뒤편 = SEO 무관 (라우트그룹 안이어도 인식)
     const text = readFileSync(join(ROOT, file), "utf8");
     if (!/\bnotFound\s*\(/.test(text)) continue;
     const loadingFile = findLoadingAncestor(dirname(norm));
