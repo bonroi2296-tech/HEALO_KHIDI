@@ -668,6 +668,50 @@ for (const dir of BACKOFFICE_DIRS) {
   }
 }
 
+// ── 17) 외부 스크립트 도메인 ↔ CSP script-src 커버리지 (🔁 #43 부류 재발 — Google Maps) ──
+// 왜: next.config.js 의 CSP script-src 에 없는 외부 도메인 스크립트는 브라우저가 조용히 차단한다.
+//     #43(Turnstile 캡차 빈 박스)에서 "외부 스크립트 추가 즉시 CSP 확인" 교훈을 얻었지만 습관에만
+//     의존해 또 물림(2026-07-14: 병원 상세 지도 — maps.googleapis.com 이 script-src 에 없어
+//     Google Maps JS 가 차단, 전 병원·암종 상세가 회색 fallback). → 기계가 매번 차단.
+// 탐지: ①알려진 로더 라이브러리 사용 여부 → 필요한 도메인이 script-src(필요 시 connect-src)에
+//     있는지. ②next/script <Script src="https://..."> 리터럴의 호스트가 script-src 에 있는지.
+{
+  try {
+    const cfg = readFileSync(join(ROOT, "next.config.js"), "utf8");
+    const scriptSrc = cfg.match(/script-src[^,]*/)?.[0] || "";
+    const connectSrc = cfg.match(/["'`]connect-src[^,]*/)?.[0] || "";
+    const KNOWN_LOADERS = [
+      { lib: "@react-google-maps/api (Google Maps JS)", needle: /@react-google-maps\/api|maps\.googleapis\.com\/maps\/api\/js/, domain: "maps.googleapis.com", alsoConnect: true },
+    ];
+    const usedBy = new Map(); // domain → 최초 발견 파일 + 로더 정보
+    const scriptTagHosts = new Map(); // host → 최초 발견 파일
+    for (const file of SCAN_DIRS.flatMap(walk)) {
+      if (!CODE_EXT.test(file) || EXCLUDE.test(file)) continue;
+      let text;
+      try { text = readFileSync(join(ROOT, file), "utf8"); } catch { continue; }
+      for (const l of KNOWN_LOADERS) {
+        if (l.needle.test(text) && !usedBy.has(l.domain)) usedBy.set(l.domain, { file, ...l });
+      }
+      for (const m of text.matchAll(/<Script[^>]+src=["'`]https:\/\/([^/"'`]+)/g)) {
+        if (!scriptTagHosts.has(m[1])) scriptTagHosts.set(m[1], file);
+      }
+    }
+    for (const [domain, info] of usedBy) {
+      if (!scriptSrc.includes(domain)) {
+        errors.push(`[CSP누락] ${info.file.replace(/\\/g, "/")} — ${info.lib} 사용 중인데 next.config.js CSP script-src 에 ${domain} 없음 → 브라우저가 스크립트를 조용히 차단(기능이 fallback 으로 죽음, 🔁 #43 부류). script-src 에 https://${domain} 추가할 것.`);
+      }
+      if (info.alsoConnect && !connectSrc.includes(domain)) {
+        errors.push(`[CSP누락] next.config.js — ${info.lib} 은 런타임 fetch 도 하므로 connect-src 에도 https://${domain} 필요.`);
+      }
+    }
+    for (const [host, file] of scriptTagHosts) {
+      if (!scriptSrc.includes(host)) {
+        errors.push(`[CSP누락] ${file.replace(/\\/g, "/")} — <Script src="https://${host}/..."> 가 CSP script-src 에 없음 → 프로덕션에서 조용히 차단(🔁 #43 부류). script-src 에 추가할 것.`);
+      }
+    }
+  } catch { /* next.config.js 없는 환경(테스트 등)은 통과 */ }
+}
+
 // ── 결과 ────────────────────────────────────────────────────────
 if (errors.length) {
   console.error(`\n❌ 콘텐츠 일관성 검사 실패 (${errors.length}건)\n`);
