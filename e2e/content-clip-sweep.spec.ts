@@ -1,5 +1,8 @@
 import { test, expect } from "@playwright/test";
 
+// 66회 페이지 로드 스윕이라 재시도(전역 retries:2)는 시간 3배 = 잡 25분 상한 위협 (독립 리뷰 A1)
+test.describe.configure({ retries: 0 });
+
 // ── 공개 페이지 "글자 잘림" 전수 스캔 — 읽을 콘텐츠가 상자 밖으로 절단되면 실패 (POSTMORTEMS #89) ──
 // 왜: /hospitals 의료진 카드에서 flex min-w-0 누락으로 "Full Profile"이 "Fu…"로 잘렸는데,
 //     시각 레이아웃 회귀를 잡는 기계 검사가 없어 PO 눈이 검사기였다(그 페이지만 4번째 제보).
@@ -61,14 +64,28 @@ test("공개 페이지에서 읽을 텍스트가 클리핑 경계에 잘리지 �
         }
         node = node.parentElement;
       }
-      if (!clipper) return;
-      const cr = clipper.getBoundingClientRect();
-      const over = Math.max(r.right - cr.right, cr.left - r.left);
+      // 잘림은 두 형태: ①요소 상자가 경계를 넘음(rect) ②nowrap 텍스트가 자기 상자 안에서
+      // 옆으로 흘러넘침(ink overflow — rect는 안 넘지만 글자는 밖에 그려져 잘림). ②는
+      // scrollWidth로 본다(자신이 클리퍼면 자기 설계로 숨긴 것이라 제외).
+      const inkRight = !isClipper(el) ? r.left + el.scrollWidth : r.right;
+      const effRight = Math.max(r.right, inkRight);
+      // 중간 클리퍼가 없어도 body/html이 전역 overflow-x hidden(healo-tokens.css 모바일
+      // 수평스크롤 방지) → 뷰포트 가장자리가 곧 클리핑 경계다 (독립 리뷰 C1 지적)
+      let over: number;
+      let clipperLabel: string;
+      if (clipper) {
+        const cr = clipper.getBoundingClientRect();
+        over = Math.max(effRight - cr.right, cr.left - r.left);
+        clipperLabel = (typeof clipper.className === "string" ? clipper.className : "").slice(0, 60);
+      } else {
+        over = Math.max(effRight - document.documentElement.clientWidth, -r.left);
+        clipperLabel = "(viewport — body overflow-x hidden)";
+      }
       if (over > 4) {
         bad.push({
           text: txt.replace(/\s+/g, " ").slice(0, 50),
           over: Math.round(over),
-          clipper: (typeof clipper.className === "string" ? clipper.className : "").slice(0, 60),
+          clipper: clipperLabel,
         });
       }
     });
@@ -76,6 +93,7 @@ test("공개 페이지에서 읽을 텍스트가 클리핑 경계에 잘리지 �
   };
 
   const failures: string[] = [];
+  let scanned = 0;
   for (const vp of [
     { name: "desktop", width: 1440, height: 900 },
     { name: "mobile", width: 375, height: 812 },
@@ -84,18 +102,26 @@ test("공개 페이지에서 읽을 텍스트가 클리핑 경계에 잘리지 �
     const page = await ctx.newPage();
     for (const p of paths) {
       try {
-        await page.goto(p, { waitUntil: "domcontentloaded", timeout: 30_000 });
-        await page.waitForTimeout(1500); // hydration + 데이터 fetch 여유
-        const bad = await page.evaluate(scanner);
-        bad.forEach((b) =>
-          failures.push(`[${vp.name}] ${p} — "${b.text}" 이(가) ${b.over}px 잘림 (클리퍼: ${b.clipper})`)
-        );
+        // 15초: 느린 밤에 66회 로드가 600초 예산을 못 넘게 (독립 리뷰 A1)
+        await page.goto(p, { waitUntil: "domcontentloaded", timeout: 15_000 });
       } catch {
-        // 페이지 자체가 안 열리는 건 sitemap-health 몫 — 여기선 잘림만 본다
+        continue; // 안 열리는 페이지는 sitemap-health 몫 — 여기선 잘림만 본다
       }
+      await page.waitForTimeout(1500); // hydration + 데이터 fetch 여유
+      // 스캐너 자체의 예외는 삼키지 않는다 — 조용히 죽은 가드 방지 (독립 리뷰 A2)
+      const bad = await page.evaluate(scanner);
+      scanned += 1;
+      bad.forEach((b) =>
+        failures.push(`[${vp.name}] ${p} — "${b.text}" 이(가) ${b.over}px 잘림 (클리퍼: ${b.clipper})`)
+      );
     }
     await ctx.close();
   }
+
+  // 대부분 페이지가 안 열려 스캔이 형해화됐는데 초록으로 끝나는 것 방지 (독립 리뷰 A2)
+  expect(scanned, "스캔된 페이지가 너무 적음 — 가드가 형해화됨").toBeGreaterThanOrEqual(
+    Math.floor(paths.length * 2 * 0.8)
+  );
 
   expect(
     failures,
