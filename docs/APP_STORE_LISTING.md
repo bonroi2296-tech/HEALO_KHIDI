@@ -35,6 +35,7 @@
 
 **어시가 할 것 (계정 열리면):**
 - Vercel env 2개(`FCM_PROJECT_ID`·`GOOGLE_SERVICE_ACCOUNT_JSON`) 설정 + `/api/push/test` 실기기 수신 확인
+- ⚠️ **iOS 푸시 마무리 배선(첫 Codemagic 빌드 때)**: 이 프로젝트는 CocoaPods가 아니라 **SPM(CapApp-SPM)** 구조 — ①Firebase iOS SDK(FirebaseMessaging)를 SPM으로 추가 ②AppDelegate에 APNs 토큰→FCM 토큰 교환 배선(안 하면 iOS 푸시 무음 실패 — registerPush.ts가 보내는 token.value가 iOS에선 APNs 원시 토큰이라 FCM 발송이 못 씀) ③`GoogleService-Info.plist`를 Xcode 프로젝트 리소스에 등록(파일만 폴더에 있음, pbxproj 참조 0건) ④codemagic.yaml의 `pod install` 단계는 SPM 구조라 손질 필요. 전부 클라우드 맥 빌드의 컴파일 피드백을 보며 진행(윈도우에선 검증 불가).
 - 빌드→TestFlight/Play 내부트랙 업로드, 등록 문구 6개 언어 입력, 심사 설문 제출(→ `APP_STORE_REVIEW_ANSWERS.md` 복붙), 반려 대응
 
 **이미 끝난 것:**
