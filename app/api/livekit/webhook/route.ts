@@ -71,6 +71,31 @@ export async function POST(request: NextRequest) {
       } else if (event.event === "participant_joined" && roomName) {
         // 참가 로그 - metadata 에 append
         console.log(`[livekit/webhook] ${participantIdentity} joined ${roomName}`);
+      } else if (
+        event.event === "participant_left" &&
+        roomName &&
+        participantIdentity
+      ) {
+        // 퇴장 시각 영속(left_at) — Vercel 런타임 로그는 1시간이면 증발해 "회의가 몇 분이었나"
+        // 사후 분석이 불가했음(2026-07-14 실회의에서 확인). status 는 여전히 안 건드린다(K-02 정본 경로).
+        const { data: session } = await supabase
+          .from("consultation_sessions")
+          .select("id")
+          .eq("livekit_room_name", roomName)
+          .maybeSingle();
+        if ((session as any)?.id) {
+          // 같은 identity 재입장(LiveKit 자동 교체) 시 left 이벤트가 방금 생성된 새 입장
+          // 기록까지 닫지 않도록 5초 이내 생성분은 제외.
+          // ponytail: 5초 휴리스틱 — 정밀 매칭이 필요해지면 connection id 대조로 올린다.
+          await supabase
+            .from("consultation_admissions")
+            .update({ left_at: new Date().toISOString() } as any)
+            .eq("consultation_id", (session as any).id)
+            .eq("participant_identity", participantIdentity)
+            .is("left_at", null)
+            .lt("requested_at", new Date(Date.now() - 5000).toISOString());
+        }
+        console.log(`[livekit/webhook] ${participantIdentity} left ${roomName}`);
       } else if ((event.event as string) === "recording_finished" && roomName) {
         // 녹화 URL 을 consultation 에 저장 (있으면)
         const fileUrl = (event as any).egressInfo?.fileResults?.[0]?.location;

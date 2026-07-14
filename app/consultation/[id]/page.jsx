@@ -164,7 +164,10 @@ function AudioUnblock() {
 // 경고 + '마이크 켜기' 재시도(사용자 제스처 = 가장 안정적인 재획득). 마이크가 켜지면 자동으로 사라진다.
 // ⚠️ 마이크 장치가 '실제로 있는' 기기에서만 띄운다 — 스피커만 있는 PC에 "켜라" 잔소리 금지(PO 지시).
 //    X로 언제든 닫을 수 있고, 장치가 없어도 듣기·보기 참여는 원래대로 그대로 된다.
-function MicOffBanner({ failed, onClear }) {
+// reason: 실패 원인(MediaDeviceFailure 문자열). "PermissionDenied"면 재시도가 아니라 브라우저
+// 설정(자물쇠→허용)을 풀어야 하므로 그 안내문을 배너 본문에 상주시킨다 — 기존엔 몇 초짜리
+// 토스트뿐이라 2026-07-14 실회의에서 참가자 3명이 7분간 못 빠져나온 것 보완.
+function MicOffBanner({ failed, reason, onClear }) {
   const lang = useLang();
   const c = COPY[lang] || COPY.en;
   const { localParticipant, isMicrophoneEnabled } = useLocalParticipant();
@@ -192,14 +195,17 @@ function MicOffBanner({ failed, onClear }) {
     }
     setRetrying(false);
   };
+  const permissionBlocked = reason === "PermissionDenied";
   return (
-    <div className="absolute bottom-16 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2 bg-red-600/95 text-white text-xs font-semibold px-3 py-2 rounded-full shadow-lg">
-      <MicOff size={14} />
-      <span>{c.micOffWarn}</span>
+    <div className="absolute bottom-16 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2 max-w-[92%] bg-red-600/95 text-white text-xs font-semibold px-3 py-2 rounded-full shadow-lg">
+      <MicOff size={14} className="shrink-0" />
+      <span className="leading-snug">
+        {permissionBlocked ? c.mediaDeniedToast : c.micOffWarn}
+      </span>
       <button
         onClick={retry}
         disabled={retrying}
-        className="ml-1 underline disabled:opacity-60"
+        className="ml-1 underline disabled:opacity-60 shrink-0"
       >
         {c.micRetry}
       </button>
@@ -650,6 +656,7 @@ export default function ConsultationRoomPage() {
   const [connectErrorDetail, setConnectErrorDetail] = useState("");
   // 입장 시 자동 켜기에서 마이크가 실패했을 때 경고 — '켠 줄 아는데 무음' 방지 (장치 있는 기기만)
   const [micActivationFailed, setMicActivationFailed] = useState(false);
+  const [micFailureReason, setMicFailureReason] = useState("");
 
   // Guest mode state
   const [guestName, setGuestName] = useState("");
@@ -2199,6 +2206,7 @@ export default function ConsultationRoomPage() {
               onMediaDeviceFailure={(failure) => {
                 // 장치 없음/거부여도 입장은 계속. 마이크 상태는 MicOffBanner(장치 있는 기기만)가 안내.
                 setMicActivationFailed(true);
+                setMicFailureReason(String(failure));
                 if (String(failure) === "PermissionDenied") toast.error(c.mediaDeniedToast);
                 reportClientEvent("media_failure", String(failure));
               }}
@@ -2240,6 +2248,7 @@ export default function ConsultationRoomPage() {
                 <AudioUnblock />
                 <MicOffBanner
                   failed={micActivationFailed}
+                  reason={micFailureReason}
                   onClear={() => setMicActivationFailed(false)}
                 />
                 <ConnectionBanner />
