@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ChevronLeft, ChevronRight, ChevronDown,
   MapPin, Star, Shield, Check, Image as ImageIcon, ArrowRight, Sparkles,
@@ -277,6 +277,15 @@ export const TreatmentDetailPage = ({
 
   const nextSlide = (e) => { e?.stopPropagation(); setCurrentSlide((prev) => (prev + 1) % galleryImages.length); };
   const prevSlide = (e) => { e?.stopPropagation(); setCurrentSlide((prev) => (prev - 1 + galleryImages.length) % galleryImages.length); };
+  // 모바일 스와이프 — 40px 이상 가로 이동 시 슬라이드 전환 (병원 상세와 동일 동작)
+  const touchStartX = useRef(null);
+  const onCarouselTouchStart = (e) => { touchStartX.current = e.touches[0].clientX; };
+  const onCarouselTouchEnd = (e) => {
+    if (touchStartX.current == null) return;
+    const dx = e.changedTouches[0].clientX - touchStartX.current;
+    touchStartX.current = null;
+    if (Math.abs(dx) > 40) (dx < 0 ? nextSlide : prevSlide)();
+  };
 
   const averageRating = realReviews.length > 0
     ? (realReviews.reduce((acc, r) => acc + (r.rating || 5), 0) / realReviews.length).toFixed(1)
@@ -308,7 +317,7 @@ export const TreatmentDetailPage = ({
           </div>
         ) : (
           <>
-            <div className="md:hidden w-full aspect-[4/3] relative group overflow-hidden rounded-2xl bg-gray-100">
+            <div className="md:hidden w-full aspect-[4/3] relative group overflow-hidden rounded-2xl bg-gray-100" onTouchStart={onCarouselTouchStart} onTouchEnd={onCarouselTouchEnd}>
               <img src={galleryImages[currentSlide]} className="w-full h-full object-cover" alt="Main" />
               <button onClick={prevSlide} aria-label="Previous" className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 flex items-center justify-center bg-black/30 hover:bg-black/50 text-white rounded-full backdrop-blur-sm transition duration-200 z-20"><ChevronLeft size={20} /></button>
               <button onClick={nextSlide} aria-label="Next" className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 flex items-center justify-center bg-black/30 hover:bg-black/50 text-white rounded-full backdrop-blur-sm transition duration-200 z-20"><ChevronRight size={20} /></button>
