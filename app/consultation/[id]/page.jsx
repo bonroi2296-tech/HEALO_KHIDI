@@ -775,7 +775,12 @@ export default function ConsultationRoomPage() {
   const [openGuideShown, setOpenGuideShown] = useState(false);
   const copyRoomLink = useCallback(() => {
     const url = window.location.href;
-    navigator.clipboard?.writeText(url).then(
+    // 클립보드 API 자체가 없는 웹뷰(구형 인앱) — ?.체인이면 폴백까지 통째로 건너뛰므로 명시 분기
+    if (!navigator.clipboard?.writeText) {
+      prompt("URL", url);
+      return;
+    }
+    navigator.clipboard.writeText(url).then(
       () => toast.success(c.linkCopied),
       () => prompt("URL", url)
     );
