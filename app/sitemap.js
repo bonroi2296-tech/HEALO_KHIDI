@@ -55,10 +55,12 @@ export default async function sitemap() {
       
       [treatments, hospitals] = await Promise.race([dataPromise, timeoutPromise]);
     } catch (error) {
-      // 에러 발생 시 빈 배열 반환 (빌드 실패 방지)
-      console.warn("[sitemap] Failed to fetch data:", error?.message);
-      treatments = [];
-      hospitals = [];
+      // DB 순간 장애·타임아웃이면 500으로 실패시킨다 — 크롤러는 5xx면 기존 사이트맵을
+      // 유지하고 재시도하지만, "빈 사이트맵 200"은 의도적 축소로 읽어 상세 URL들이
+      // 크롤 우선순위에서 밀린다(#88 독립 리뷰 지적). force-dynamic 전환으로 이 함수는
+      // 더 이상 빌드에서 안 돌므로 옛 "빌드 실패 방지" 빈 배열 폴백은 폐기.
+      console.warn("[sitemap] data fetch failed — 5xx로 응답(크롤러 재시도 유도):", error?.message);
+      throw error;
     }
   }
 
