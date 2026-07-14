@@ -260,22 +260,43 @@ export const HospitalDetailPage = ({ selectedId, setView, onTreatmentClick, init
 
   const [currentSlide, setCurrentSlide] = useState(0);
   useEffect(() => { setCurrentSlide(0); }, [hospital?.id]);
-  useEffect(() => {
-    if (galleryImages.length <= 1) return;
-    const timer = setInterval(() => setCurrentSlide((prev) => (prev + 1) % galleryImages.length), 3000);
-    return () => clearInterval(timer);
-  }, [galleryImages.length]);
   const nextSlide = (e) => { e?.stopPropagation(); setCurrentSlide((prev) => (prev + 1) % galleryImages.length); };
   const prevSlide = (e) => { e?.stopPropagation(); setCurrentSlide((prev) => (prev - 1 + galleryImages.length) % galleryImages.length); };
-  // 모바일 스와이프 — 40px 이상 가로 이동 시 슬라이드 전환
-  const touchStartX = useRef(null);
-  const onCarouselTouchStart = (e) => { touchStartX.current = e.touches[0].clientX; };
-  const onCarouselTouchEnd = (e) => {
-    if (touchStartX.current == null) return;
-    const dx = e.changedTouches[0].clientX - touchStartX.current;
-    touchStartX.current = null;
-    if (Math.abs(dx) > 40) (dx < 0 ? nextSlide : prevSlide)();
+  // 모바일 스와이프 — 손가락을 따라 트랙이 움직이다 놓으면 스냅(슬라이드 전환).
+  // 세로 스크롤과 공존: 축이 세로로 잠기면 개입 안 함(touch-action: pan-y와 세트).
+  const [dragX, setDragX] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const touchRef = useRef({ x: 0, y: 0, axis: null });
+  const onCarouselTouchStart = (e) => {
+    touchRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY, axis: null };
   };
+  const onCarouselTouchMove = (e) => {
+    const t = touchRef.current;
+    const dx = e.touches[0].clientX - t.x;
+    const dy = e.touches[0].clientY - t.y;
+    if (!t.axis && (Math.abs(dx) > 8 || Math.abs(dy) > 8)) t.axis = Math.abs(dx) > Math.abs(dy) ? "x" : "y";
+    if (t.axis !== "x") return;
+    setIsDragging(true);
+    // 끝 슬라이드에서 더 당기면 고무줄처럼 저항
+    const atEdge = (currentSlide === 0 && dx > 0) || (currentSlide === galleryImages.length - 1 && dx < 0);
+    setDragX(atEdge ? dx * 0.35 : dx);
+  };
+  const onCarouselTouchEnd = (e) => {
+    const t = touchRef.current;
+    if (t.axis === "x") {
+      const dx = e.changedTouches[0].clientX - t.x;
+      if (dx < -40 && currentSlide < galleryImages.length - 1) setCurrentSlide((p) => p + 1);
+      else if (dx > 40 && currentSlide > 0) setCurrentSlide((p) => p - 1);
+    }
+    touchRef.current = { x: 0, y: 0, axis: null };
+    setDragX(0);
+    setIsDragging(false);
+  };
+  useEffect(() => {
+    if (galleryImages.length <= 1 || isDragging) return;
+    const timer = setInterval(() => setCurrentSlide((prev) => (prev + 1) % galleryImages.length), 3000);
+    return () => clearInterval(timer);
+  }, [galleryImages.length, isDragging]);
 
   const doctor = useMemo(() => hospital?.doctorProfile || hospital?.doctor_profile || null, [hospital]);
   const isPartner = hospital?.is_partner ?? false;
@@ -403,12 +424,20 @@ export const HospitalDetailPage = ({ selectedId, setView, onTreatmentClick, init
           </div>
         ) : (
           <>
-            <div className="md:hidden w-full aspect-[4/3] relative group overflow-hidden rounded-2xl bg-gray-100" onTouchStart={onCarouselTouchStart} onTouchEnd={onCarouselTouchEnd}>
-              {galleryImages.map((img, index) => (
-                <div key={index} className={`absolute inset-0 transition-opacity duration-300 ease-in-out ${index === currentSlide ? "opacity-100" : "opacity-0"}`}>
-                  <img src={img} onError={handleImgError} className="w-full h-full object-cover" alt={`${hospital?.name || "Hospital"} ${index + 1}`} />
-                </div>
-              ))}
+            <div className="md:hidden w-full aspect-[4/3] relative group overflow-hidden rounded-2xl bg-gray-100 touch-pan-y" onTouchStart={onCarouselTouchStart} onTouchMove={onCarouselTouchMove} onTouchEnd={onCarouselTouchEnd}>
+              <div
+                className="flex h-full"
+                style={{
+                  transform: `translateX(calc(${-currentSlide * 100}% + ${dragX}px))`,
+                  transition: isDragging ? "none" : "transform 300ms cubic-bezier(0.22, 1, 0.36, 1)",
+                }}
+              >
+                {galleryImages.map((img, index) => (
+                  <div key={index} className="w-full h-full shrink-0">
+                    <img src={img} onError={handleImgError} className="w-full h-full object-cover" alt={`${hospital?.name || "Hospital"} ${index + 1}`} draggable={false} />
+                  </div>
+                ))}
+              </div>
               <button onClick={prevSlide} aria-label="Previous image" className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 flex items-center justify-center bg-black/30 hover:bg-black/50 text-white rounded-full backdrop-blur-sm transition duration-200 z-20 focus:outline-none focus:ring-2 focus:ring-teal-400"><ChevronLeft size={20} /></button>
               <button onClick={nextSlide} aria-label="Next image" className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 flex items-center justify-center bg-black/30 hover:bg-black/50 text-white rounded-full backdrop-blur-sm transition duration-200 z-20 focus:outline-none focus:ring-2 focus:ring-teal-400"><ChevronRight size={20} /></button>
               <div className="absolute bottom-3 right-3 z-20">
