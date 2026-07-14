@@ -67,7 +67,7 @@ export const getTreatmentById = cache(async (id) => {
   if (error) {
     // PGRST116 = 행 없음(진짜 404). 그 외 오류는 던져서 500 — null로 뭉개면
     // 상세페이지가 일시적 DB 오류에 notFound()를 불러 살아있는 페이지가
-    // 구글 색인에서 빠진다(404는 제거, 5xx는 재시도 — POSTMORTEMS #86 리뷰 게이트).
+    // 구글 색인에서 빠진다(404는 제거, 5xx는 재시도 — POSTMORTEMS #87 리뷰 게이트).
     if (error.code === "PGRST116") return null;
     logError("getTreatmentById", error);
     throw new Error("treatment_lookup_failed");
@@ -87,7 +87,7 @@ export const getTreatmentBySlug = cache(async (slug) => {
 
   if (error) {
     // maybeSingle: 행 없음은 error 없이 data=null. error가 있으면 진짜 조회 실패 →
-    // 던져서 500 (null 반환 시 살아있는 페이지가 404로 색인 제거됨 — #86 리뷰 게이트).
+    // 던져서 500 (null 반환 시 살아있는 페이지가 404로 색인 제거됨 — #87 리뷰 게이트).
     if (error?.message) logError("getTreatmentBySlug", error);
     throw new Error("treatment_lookup_failed");
   }

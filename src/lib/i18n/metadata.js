@@ -23,7 +23,7 @@ export async function getRequestLocale() {
 }
 
 // 다국어 객체({ko,en,ru,...})에서 요청 언어 → en 순으로 고른다. 값 없으면 null.
-// generateMetadata·JSON-LD·breadcrumb 등 서버 쪽 언어 폴백의 단일 구현 (사본 금지 — #86 리뷰 게이트).
+// generateMetadata·JSON-LD·breadcrumb 등 서버 쪽 언어 폴백의 단일 구현 (사본 금지 — #87 리뷰 게이트).
 export function pickLocalized(obj, locale) {
   const lc = locale || DEFAULT_LOCALE;
   return obj?.[lc] || obj?.en || null;

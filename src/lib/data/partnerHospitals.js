@@ -201,6 +201,7 @@ const PARTNER_HOSPITALS = {
     website: "https://seoulehospital.ewha.ac.kr",
     phone: "1666-5000",
     address: { ko: "서울특별시 강서구 공항대로 260", en: "260 Gonghang-daero, Gangseo-gu, Seoul" },
+    lat: 37.5573, lng: 126.8358,
     specialties: {
       ko: ["암센터", "종양내과", "유방·갑상선외과", "소화기내과", "방사선종양학과", "영상의학과", "병리과", "핵의학과"],
       en: ["Cancer Center", "Oncology", "Breast & Thyroid Surgery", "Gastroenterology", "Radiation Oncology", "Radiology", "Pathology", "Nuclear Medicine"],
@@ -243,6 +244,7 @@ const PARTNER_HOSPITALS = {
     website: "https://mokdong.ewha.ac.kr",
     phone: "1666-5000",
     address: { ko: "서울특별시 양천구 안양천로 1071", en: "1071 Anyangcheon-ro, Yangcheon-gu, Seoul" },
+    lat: 37.5372, lng: 126.8861,
     specialties: {
       ko: ["암센터", "종양내과", "소아청소년과", "산부인과", "유방외과", "소화기내과", "방사선종양학과"],
       en: ["Cancer Center", "Oncology", "Pediatrics", "OB/GYN", "Breast Surgery", "Gastroenterology", "Radiation Oncology"],
@@ -284,6 +286,7 @@ const PARTNER_HOSPITALS = {
     website: "https://guro.kumc.or.kr",
     phone: "02-2626-1114",
     address: { ko: "서울특별시 구로구 구로동로 148", en: "148 Gurodong-ro, Guro-gu, Seoul" },
+    lat: 37.4919, lng: 126.8845,
     specialties: {
       ko: ["암센터", "종양내과", "혈액종양내과", "간담췌외과", "흉부외과", "위장관외과", "방사선종양학과", "로봇수술센터", "핵의학과"],
       en: ["Cancer Center", "Oncology", "Hematologic Oncology", "Hepatobiliary & Pancreatic Surgery", "Thoracic Surgery", "GI Surgery", "Radiation Oncology", "Robotic Surgery Center", "Nuclear Medicine"],
@@ -325,6 +328,7 @@ const PARTNER_HOSPITALS = {
     website: "https://sev.severance.healthcare",
     phone: "02-2228-0114",
     address: { ko: "서울특별시 서대문구 연세로 50-1", en: "50-1 Yonsei-ro, Seodaemun-gu, Seoul" },
+    lat: 37.5622, lng: 126.9410,
     specialties: {
       ko: ["연세암병원", "종양내과", "유방외과", "간담췌외과", "대장항문외과", "흉부외과", "방사선종양학과", "핵의학과", "양성자치료센터"],
       en: ["Yonsei Cancer Hospital", "Oncology", "Breast Surgery", "Hepatobiliary & Pancreatic Surgery", "Colorectal Surgery", "Thoracic Surgery", "Radiation Oncology", "Nuclear Medicine", "Proton Therapy Center"],

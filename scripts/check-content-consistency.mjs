@@ -668,7 +668,51 @@ for (const dir of BACKOFFICE_DIRS) {
   }
 }
 
-// ── 17) metadata.title 브랜드 중복 차단 (2026-07-14, GSC 색인 실사 → 리뷰 게이트에서 3회 보강) ──
+// ── 17) 외부 스크립트 도메인 ↔ CSP script-src 커버리지 (🔁 #43 부류 재발 — Google Maps) ──
+// 왜: next.config.js 의 CSP script-src 에 없는 외부 도메인 스크립트는 브라우저가 조용히 차단한다.
+//     #43(Turnstile 캡차 빈 박스)에서 "외부 스크립트 추가 즉시 CSP 확인" 교훈을 얻었지만 습관에만
+//     의존해 또 물림(2026-07-14: 병원 상세 지도 — maps.googleapis.com 이 script-src 에 없어
+//     Google Maps JS 가 차단, 전 병원·암종 상세가 회색 fallback). → 기계가 매번 차단.
+// 탐지: ①알려진 로더 라이브러리 사용 여부 → 필요한 도메인이 script-src(필요 시 connect-src)에
+//     있는지. ②next/script <Script src="https://..."> 리터럴의 호스트가 script-src 에 있는지.
+{
+  try {
+    const cfg = readFileSync(join(ROOT, "next.config.js"), "utf8");
+    const scriptSrc = cfg.match(/script-src[^,]*/)?.[0] || "";
+    const connectSrc = cfg.match(/["'`]connect-src[^,]*/)?.[0] || "";
+    const KNOWN_LOADERS = [
+      { lib: "@react-google-maps/api (Google Maps JS)", needle: /@react-google-maps\/api|maps\.googleapis\.com\/maps\/api\/js/, domain: "maps.googleapis.com", alsoConnect: true },
+    ];
+    const usedBy = new Map(); // domain → 최초 발견 파일 + 로더 정보
+    const scriptTagHosts = new Map(); // host → 최초 발견 파일
+    for (const file of SCAN_DIRS.flatMap(walk)) {
+      if (!CODE_EXT.test(file) || EXCLUDE.test(file)) continue;
+      let text;
+      try { text = readFileSync(join(ROOT, file), "utf8"); } catch { continue; }
+      for (const l of KNOWN_LOADERS) {
+        if (l.needle.test(text) && !usedBy.has(l.domain)) usedBy.set(l.domain, { file, ...l });
+      }
+      for (const m of text.matchAll(/<Script[^>]+src=["'`]https:\/\/([^/"'`]+)/g)) {
+        if (!scriptTagHosts.has(m[1])) scriptTagHosts.set(m[1], file);
+      }
+    }
+    for (const [domain, info] of usedBy) {
+      if (!scriptSrc.includes(domain)) {
+        errors.push(`[CSP누락] ${info.file.replace(/\\/g, "/")} — ${info.lib} 사용 중인데 next.config.js CSP script-src 에 ${domain} 없음 → 브라우저가 스크립트를 조용히 차단(기능이 fallback 으로 죽음, 🔁 #43 부류). script-src 에 https://${domain} 추가할 것.`);
+      }
+      if (info.alsoConnect && !connectSrc.includes(domain)) {
+        errors.push(`[CSP누락] next.config.js — ${info.lib} 은 런타임 fetch 도 하므로 connect-src 에도 https://${domain} 필요.`);
+      }
+    }
+    for (const [host, file] of scriptTagHosts) {
+      if (!scriptSrc.includes(host)) {
+        errors.push(`[CSP누락] ${file.replace(/\\/g, "/")} — <Script src="https://${host}/..."> 가 CSP script-src 에 없음 → 프로덕션에서 조용히 차단(🔁 #43 부류). script-src 에 추가할 것.`);
+      }
+    }
+  } catch { /* next.config.js 없는 환경(테스트 등)은 통과 */ }
+}
+
+// ── 18) metadata.title 브랜드 중복 차단 (2026-07-14, GSC 색인 실사 → 리뷰 게이트에서 3회 보강) ──
 // 왜: 루트 layout.jsx 의 title.template("%s | healwith")가 하위 페이지 title 문자열에
 //     자동으로 브랜드를 붙이므로, 템플릿 적용 대상 title 에 "| healwith"가 이미 들어 있으면
 //     실제 <title>에 브랜드가 두 번 나간다(privacy 등 27+3파일에서 실발생, 구글 색인 품질 저하).
@@ -708,11 +752,11 @@ for (const dir of BACKOFFICE_DIRS) {
   }
 }
 
-// ── 18) 소프트 404 차단: notFound() 쓰는 공개 동적 라우트 위에 loading 파일 금지 (2026-07-14, #86) ──
+// ── 19) 소프트 404 차단: notFound() 쓰는 공개 동적 라우트 위에 loading 파일 금지 (2026-07-14, #87) ──
 // 왜: loading.jsx(Suspense 경계)가 라우트 위에 하나라도 있으면 스트리밍이 먼저 열려,
 //     없는 slug에 notFound()를 불러도 HTTP 상태코드가 200으로 굳는다(화면만 404).
 //     구글은 이런 "소프트 404"를 살아있는 페이지로 발견해 색인 대기열이 쓰레기 URL로 오염됨.
-//     실측: 메타/페이지 어디서 notFound()를 불러도 loading 경계가 있으면 200 (POSTMORTEMS #86).
+//     실측: 메타/페이지 어디서 notFound()를 불러도 loading 경계가 있으면 200 (POSTMORTEMS #87).
 // 규칙: 공개(비로그인) 영역의 동적 세그먼트([slug]·[id]) page 가 notFound() 를 쓰면,
 //     그 라우트의 조상 디렉토리(app 루트 포함)에 loading.(js|jsx|ts|tsx) 가 없어야 한다.
 // 한계(정직하게): ①로그인 뒤편(admin·coordinator·patient 등 noindex 구역)은 SEO 무관이라 제외
@@ -744,7 +788,7 @@ for (const dir of BACKOFFICE_DIRS) {
     if (!/\bnotFound\s*\(/.test(text)) continue;
     const loadingFile = findLoadingAncestor(dirname(norm));
     if (loadingFile) {
-      errors.push(`[소프트404] ${norm} — notFound() 쓰는 공개 동적 라우트인데 조상에 ${loadingFile} 존재 → 스트리밍 경계 때문에 없는 slug 도 HTTP 200(소프트 404)이 됨. 해당 loading 파일을 제거하거나 라우트를 옮길 것 (POSTMORTEMS #86).`);
+      errors.push(`[소프트404] ${norm} — notFound() 쓰는 공개 동적 라우트인데 조상에 ${loadingFile} 존재 → 스트리밍 경계 때문에 없는 slug 도 HTTP 200(소프트 404)이 됨. 해당 loading 파일을 제거하거나 라우트를 옮길 것 (POSTMORTEMS #87).`);
     }
   }
 }

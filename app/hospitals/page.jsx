@@ -31,7 +31,7 @@ const baseMeta = {
 };
 
 // 목록 스켈레톤 — 옛 app/hospitals/loading.jsx 를 페이지 안 Suspense fallback 으로 이전.
-// 라우트 레벨 loading.jsx 는 [slug] 상세의 notFound() 상태코드를 200으로 굳혀 금지(#86, §18).
+// 라우트 레벨 loading.jsx 는 [slug] 상세의 notFound() 상태코드를 200으로 굳혀 금지(#87, §19).
 // 페이지 내부 경계는 항상 존재하는 이 목록 페이지만 감싸므로 소프트 404와 무관.
 function HospitalsSkeleton() {
   return (

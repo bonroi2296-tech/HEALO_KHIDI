@@ -23,7 +23,7 @@ const partnerFolderImage = (slug) =>
   slug ? `${getBaseUrl()}/images/hospitals/${slug}/1.jpg` : null;
 
 // 요청 언어에 맞는 병원 이름·설명 한 곳에서 계산 — <title>·OG·JSON-LD·breadcrumb가
-// 전부 이걸 쓴다(메타만 언어화되고 구조화데이터는 한국어로 남는 드리프트 방지 — #86 리뷰 게이트).
+// 전부 이걸 쓴다(메타만 언어화되고 구조화데이터는 한국어로 남는 드리프트 방지 — #87 리뷰 게이트).
 // DB hospitals 테이블엔 name 단일 컬럼(한국어)뿐이라, 같은 slug의 제휴 정적 데이터
 // (partnerHospitals, 6개 언어)를 언어화 소스로 겹쳐 쓴다. ko는 DB 원문 우선.
 const localizedHospitalText = (hospital, partner, lc) => {
@@ -69,7 +69,7 @@ export async function generateMetadata({ params }) {
       };
     }
     // 없는 slug는 메타 단계에서도 notFound() (이중 방어). 상태코드 404의 진짜 조건은 이 라우트
-    // 위에 loading.jsx 가 없는 것 — 경계가 있으면 어디서 불러도 200으로 굳음(POSTMORTEMS #86).
+    // 위에 loading.jsx 가 없는 것 — 경계가 있으면 어디서 불러도 200으로 굳음(POSTMORTEMS #87).
     notFound();
   }
 

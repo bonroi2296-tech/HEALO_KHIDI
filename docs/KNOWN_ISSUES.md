@@ -2,7 +2,7 @@
 
 ## 🟢 2026-07-14 병원 상세 본문 H1은 여전히 DB 한국어 이름 (metadata·JSON-LD만 언어화됨)
 
-> GSC 색인 실사 수리(#86, PR #743)의 독립 리뷰에서 발견. `<title>`·OG·JSON-LD·breadcrumb는 요청 언어로 나가지만, **화면 본문 H1은 HospitalDetailClient가 클라이언트에서 DB `name`(한국어)을 그대로 렌더** — /en 페이지에서 제목(영어)과 H1(한국어)이 어긋남. 구글은 렌더된 DOM도 보므로 언어 신호가 반쪽.
+> GSC 색인 실사 수리(#87, PR #743)의 독립 리뷰에서 발견. `<title>`·OG·JSON-LD·breadcrumb는 요청 언어로 나가지만, **화면 본문 H1은 HospitalDetailClient가 클라이언트에서 DB `name`(한국어)을 그대로 렌더** — /en 페이지에서 제목(영어)과 H1(한국어)이 어긋남. 구글은 렌더된 DOM도 보므로 언어 신호가 반쪽.
 
 - 수리하려면 클라이언트 데이터 경로(API 응답 or initialData)에 언어화 이름을 태워야 함 — partner 병원은 `localizedHospitalText` 재사용으로 가능, DB-only 병원은 다국어 이름 컬럼(스키마 추가) 없이는 불가.
 - 발견 시점엔 metadata 언어화가 우선이라 범위에서 뺌. 다음 SEO 라운드 후보.

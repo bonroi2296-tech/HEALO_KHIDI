@@ -14,7 +14,7 @@
 
 ---
 
-## #86 — 🔁 #20 부류 재발: 없는 치료·병원 상세가 "404 화면 + HTTP 200"(소프트 404) — 구글엔 여전히 살아있는 페이지 (2026-07-14, PO가 GSC 색인 리포트 직접 파다 발견)
+## #87 — 🔁 #20 부류 재발: 없는 치료·병원 상세가 "404 화면 + HTTP 200"(소프트 404) — 구글엔 여전히 살아있는 페이지 (2026-07-14, PO가 GSC 색인 리포트 직접 파다 발견)
 
 **무슨 일**
 PO가 GSC 「발견됨 - 색인 안 됨」 21건을 파다 옛 쓰레기 슬러그 `/en/treatments/item-1772088315868`을 클릭 → 404 화면이 떴는데, 실측하니 **HTTP 상태코드는 200**(구글봇 UA로도 200). `notFound()`를 불러도 `loading.jsx`가 스트리밍을 먼저 시작해 상태코드가 200으로 굳는 Next.js 특성. 같은 실사에서 동반 결함 2건 추가 발견: ①`/en/hospitals/*` 영어 페이지 `<title>`이 DB 한국어 이름 그대로(「이대목동병원」) ②페이지 27개의 `<title>`이 "… | healwith | healwith" 꼬리 중복(루트 template이 자동으로 붙이는데 손으로 또 붙임).
@@ -31,8 +31,20 @@ PO가 GSC 「발견됨 - 색인 안 됨」 21건을 파다 옛 쓰레기 슬러�
 
 **재발 방지 (뚫린 가드 보강 + 신규)**
 - **뚫린 가드 보강(#20 부류)**: "404다"의 판정 기준을 화면→**상태코드**로. 상세페이지류 라우트를 만들거나 고치면 "없는 slug 1개를 `curl -o /dev/null -w "%{http_code}"`로 실측"이 self-QA 기본. **notFound() 쓰는 공개 동적 라우트 위엔 loading.jsx 금지**가 이 저장소 표준.
-- **신규 가드 2개**: `check:content` §17 — 템플릿 적용 title에 "| healwith"가 있으면(꼬리든 중간이든, 따옴표 3종) CI 실패(템플릿 중복 부류). §18 — notFound() 쓰는 공개 동적 라우트의 조상에 loading 파일이 있으면 CI 실패(소프트 404 부류 — 로딩 스켈레톤을 누가 다시 추가하면 즉시 적발).
-- **독립 리뷰 게이트가 초안을 4건 더 뚫음(가치 입증)**: ①일시적 DB 오류도 null로 뭉개져 살아있는 페이지가 404(색인 제거!)될 뻔 → 데이터 계층이 "없음(null)"과 "조회 실패(throw→500)"를 구분하게 수정 ②ko 로케일만 partner 설명 폴백이 누락 ③§17 초안이 작은따옴표·중간 삽입형("FAQ | healwith — …")·generateMetadata 반환 객체를 다 놓침(실제 뚫린 파일 3개 발견: search·design-preview·coordinator/messages) ④목록 스켈레톤 삭제는 DESIGN.md 로딩 상태 규칙 위반 → 페이지 안 Suspense fallback으로 복원(상태코드 무관). JSON-LD·breadcrumb도 metadata와 같은 언어화 헬퍼(localizedHospitalText)를 쓰게 통일.
+- **신규 가드 2개**: `check:content` §18 — 템플릿 적용 title에 "| healwith"가 있으면(꼬리든 중간이든, 따옴표 3종) CI 실패(템플릿 중복 부류). §19 — notFound() 쓰는 공개 동적 라우트의 조상에 loading 파일이 있으면 CI 실패(소프트 404 부류 — 로딩 스켈레톤을 누가 다시 추가하면 즉시 적발).
+- **독립 리뷰 게이트가 초안을 4건 더 뚫음(가치 입증)**: ①일시적 DB 오류도 null로 뭉개져 살아있는 페이지가 404(색인 제거!)될 뻔 → 데이터 계층이 "없음(null)"과 "조회 실패(throw→500)"를 구분하게 수정 ②ko 로케일만 partner 설명 폴백이 누락 ③§18(제목중복) 초안이 작은따옴표·중간 삽입형("FAQ | healwith — …")·generateMetadata 반환 객체를 다 놓침(실제 뚫린 파일 3개 발견: search·design-preview·coordinator/messages) ④목록 스켈레톤 삭제는 DESIGN.md 로딩 상태 규칙 위반 → 페이지 안 Suspense fallback으로 복원(상태코드 무관). JSON-LD·breadcrumb도 metadata와 같은 언어화 헬퍼(localizedHospitalText)를 쓰게 통일.
+
+---
+
+## #86 — 🔁 #43 부류 재발: 병원·암종 상세 지도(Google Maps)가 CSP script-src 누락으로 전 페이지 회색 박스 — 키·결제 다 정상인데 스크립트가 브라우저에서 차단 (2026-07-14, PO 스크린샷 제보 계기)
+
+**무슨 일** — 실서비스 병원 상세(`/hospitals/[slug]`)·암종 상세의 「위치」 지도가 항상 회색 fallback(핀+주소 텍스트)으로만 뜸. 조사 결과 API 키는 번들에 정상 포함, 키 자체도 살아있음(Static Maps로 검증: 결제 OK·키 유효). 진짜 원인은 **next.config.js CSP의 `script-src`에 `maps.googleapis.com`이 없어서** 브라우저가 Google Maps JS 로드를 조용히 차단 → `useLoadScript`가 loadError → fallback. 즉 지도는 코드·키·돈 문제가 아니라 우리 보안 헤더가 우리 기능을 막고 있었다.
+
+**왜 못 잡았나 (근본원인 — 그때의 방지책이 왜 못 막았나)** — #43(Turnstile 캡차가 CSP에 막혀 빈 박스)에서 "외부 도메인 스크립트를 띄우는 기능은 추가 즉시 CSP 확인" 교훈을 얻었지만 **사람 습관으로만 남기고 기계 가드를 안 만들었다.** 게다가 이 건은 순서가 반대라 더 안 보였음: 지도는 CSP 도입 *전부터* 있던 기능이라 "새 기능 추가 시 CSP 확인" 습관으로는 영영 안 걸리고, CSP를 *나중에* 조이면서 기존 기능이 부러진 케이스. 로컬 dev는 의도적으로 지도를 안 불러(비용 절감 fallback) 개발 중엔 차단이 재현 안 되고, 프로덕션에선 fallback이 "예쁘게" 떠서 에러로 안 보임 — #43과 같은 "조용한 실패" + fallback이 사고를 가려주는 이중 무증상.
+
+**어떻게 고쳤나** — ①CSP `script-src`·`connect-src`에 `https://maps.googleapis.com https://maps.gstatic.com` 추가(next.config.js). ②협진 대학병원 4곳(이대서울·이대목동·고대구로·신촌세브란스)에 실좌표(lat/lng) 추가 — 좌표 없으면 지도가 열려도 주소 파싱 fallback이 서울시청을 찍었음(성동점은 상세주소 미정이라 제외).
+
+**재발 방지 (뚫린 가드의 보강 = 기계화)** — `check-content-consistency.mjs`에 [CSP누락] 룰 17 신설: ①`@react-google-maps/api` 등 알려진 외부 스크립트 로더 사용 시 해당 도메인이 script-src(+필요 시 connect-src)에 없으면 CI 실패 ②`<Script src="https://…">` 리터럴 호스트가 script-src에 없어도 실패. **새 기능→CSP 방향(#43)과 CSP 조임→기존 기능 파손 방향(이번) 양쪽 다** 커밋마다 기계가 잡는다. 교훈: "습관으로 남긴 교훈은 반대 방향 사고를 못 막는다 — 검사기로 내려라."
 
 ---
 

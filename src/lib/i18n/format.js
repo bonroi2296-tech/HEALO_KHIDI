@@ -8,6 +8,10 @@ const localeFromLang = (lang) => {
       return "zh-CN";
     case "ja":
       return "ja-JP";
+    case "ru":
+      return "ru-RU";
+    case "kz":
+      return "kk-KZ"; // 내부 코드 kz = 카자흐어 (BCP47 표준 코드는 kk)
     case "en":
     default:
       return "en-US";
