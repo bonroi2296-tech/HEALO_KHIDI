@@ -573,7 +573,7 @@ export const TreatmentDetailPage = ({
                           <div className="w-8 h-8 bg-teal-50 rounded-full flex items-center justify-center text-teal-700 font-bold text-xs uppercase">{review.user_name?.[0] || "U"}</div>
                           <div>
                             <p className="font-semibold text-gray-900 text-sm line-clamp-1">{review.user_name} <span className="text-[10px] text-gray-500 uppercase">{review.country}</span></p>
-                            <p className="text-xs text-gray-500">{review.created_at ? formatDate(review.created_at, "en") : ""}</p>
+                            <p className="text-xs text-gray-500">{review.created_at ? formatDate(review.created_at, langCode) : ""}</p>
                           </div>
                         </div>
                         <div className="flex text-yellow-400 gap-0.5">{[...Array(review.rating || 5)].map((_, i) => <Star key={i} size={11} fill="currentColor" />)}</div>
