@@ -52,8 +52,8 @@ export async function generateMetadata({ params }) {
         twitter: ogImages ? { card: "summary_large_image", title: name, description: desc, images: [ogImg] } : undefined,
       };
     }
-    // 없는 slug는 메타 단계에서 notFound() — 페이지 본문 시점엔 loading.jsx 스트리밍으로
-    // 상태코드가 이미 200으로 굳어 소프트 404가 된다(구글 색인 방해).
+    // 없는 slug는 메타 단계에서도 notFound() (이중 방어). 상태코드 404의 진짜 조건은 이 라우트
+    // 위에 loading.jsx 가 없는 것 — 경계가 있으면 어디서 불러도 200으로 굳음(POSTMORTEMS #86).
     notFound();
   }
 

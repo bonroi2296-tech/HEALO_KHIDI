@@ -25,13 +25,13 @@ PO가 GSC 「발견됨 - 색인 안 됨」 21건을 파다 옛 쓰레기 슬러�
 3. 병원 제목 한국어: DB `hospitals.name`이 단일 컬럼(한국어)인데 metadata가 locale 무관하게 그대로 사용 — #30(SSR 언어 누출)과 사촌이지만 "DB 데이터의 언어"는 그 가드(정적 스캔) 밖.
 
 **어떻게 고쳤나**
-- 소프트 404: `treatments/[slug]`·`hospitals/[slug]`의 **`generateMetadata`에서 notFound()** — 메타 단계는 스트리밍 시작 전이라 상태코드가 진짜 404로 나감(로컬 `next build`+`next start` 실측으로 확인).
+- 소프트 404: **`app/loading.jsx`(루트)·`app/treatments/loading.jsx`·`app/hospitals/loading.jsx` 제거**가 진짜 수리 — loading 경계가 하나라도 위에 있으면 스트리밍이 먼저 열려 `notFound()`를 페이지에서 부르든 `generateMetadata`에서 부르든 상태코드가 200으로 굳는다(둘 다 로컬 `next build`+`next start` 실측: 메타 notFound만으론 여전히 200, 로딩 제거 후 404). generateMetadata의 notFound()는 이중 방어로 유지. 대가: 전역 스피너·목록 스켈레톤 제거(클라이언트 컴포넌트 자체 로딩은 그대로). `app/patient/loading.jsx`는 noindex 구역이라 유지.
 - 병원 제목: `partnerHospitals`(6개 언어 정적 데이터)를 DB 병원에도 언어화 소스로 사용(`lc==="ko"`면 DB, 아니면 partner[lc]→en→DB 폴백). 한계: partner에 없는 DB-only 병원은 여전히 DB 이름 — DB에 다국어 이름 컬럼이 없어서(스키마 변경은 별도 결정).
 - 제목 중복: 27개 파일 최상위 title 꼬리 제거(og/twitter는 template 미적용이라 유지).
 
 **재발 방지 (뚫린 가드 보강 + 신규)**
-- **뚫린 가드 보강(#20 부류)**: "404다"의 판정 기준을 화면→**상태코드**로. 상세페이지류 라우트를 만들거나 고치면 "없는 slug 1개를 `curl -o /dev/null -w "%{http_code}"`로 실측"이 self-QA 기본. `notFound()`는 loading.jsx 아래에선 상태코드를 못 바꾼다 — **존재 검증은 generateMetadata에서**가 이 저장소 표준.
-- **신규 가드**: `check:content` §17 — 최상위 metadata.title이 " | healwith"로 끝나면 CI 실패(템플릿 중복 부류 영구 차단).
+- **뚫린 가드 보강(#20 부류)**: "404다"의 판정 기준을 화면→**상태코드**로. 상세페이지류 라우트를 만들거나 고치면 "없는 slug 1개를 `curl -o /dev/null -w "%{http_code}"`로 실측"이 self-QA 기본. **notFound() 쓰는 공개 동적 라우트 위엔 loading.jsx 금지**가 이 저장소 표준.
+- **신규 가드 2개**: `check:content` §17 — 최상위 metadata.title이 " | healwith"로 끝나면 CI 실패(템플릿 중복 부류). §18 — notFound() 쓰는 공개 동적 라우트의 조상에 loading 파일이 있으면 CI 실패(소프트 404 부류 — 로딩 스켈레톤을 누가 다시 추가하면 즉시 적발).
 
 ---
 

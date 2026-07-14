@@ -12,7 +12,7 @@
  * 실행: node scripts/check-content-consistency.mjs   (npm run check:content)
  */
 import { readFileSync, readdirSync, statSync } from "node:fs";
-import { join } from "node:path";
+import { join, dirname } from "node:path";
 
 const ROOT = process.cwd();
 const SCAN_DIRS = ["app", "src", "components"];
@@ -685,6 +685,43 @@ for (const dir of BACKOFFICE_DIRS) {
     const text = readFileSync(join(ROOT, file), "utf8");
     if (TITLE_DUP_LINE_RE.test(text) || TITLE_DUP_INLINE_RE.test(text)) {
       errors.push(`[제목중복] ${file.replace(/\\/g, "/")} — metadata.title 이 " | healwith"로 끝남 → 루트 template 이 또 붙여 "… | healwith | healwith"가 됨. 꼬리를 빼거나 title: { absolute: "…" } 를 쓸 것 (2026-07-14 GSC 실사 부류).`);
+    }
+  }
+}
+
+// ── 18) 소프트 404 차단: notFound() 쓰는 공개 동적 라우트 위에 loading 파일 금지 (2026-07-14, #86) ──
+// 왜: loading.jsx(Suspense 경계)가 라우트 위에 하나라도 있으면 스트리밍이 먼저 열려,
+//     없는 slug에 notFound()를 불러도 HTTP 상태코드가 200으로 굳는다(화면만 404).
+//     구글은 이런 "소프트 404"를 살아있는 페이지로 발견해 색인 대기열이 쓰레기 URL로 오염됨.
+//     실측: 메타/페이지 어디서 notFound()를 불러도 loading 경계가 있으면 200 (POSTMORTEMS #86).
+// 규칙: 공개(비로그인) 영역의 동적 세그먼트([slug]·[id]) page 가 notFound() 를 쓰면,
+//     그 라우트의 조상 디렉토리(app 루트 포함)에 loading.(js|jsx|ts|tsx) 가 없어야 한다.
+// 한계(정직하게): 로그인 뒤편(admin·coordinator·patient 등 noindex 구역)은 SEO 무관이라 제외.
+{
+  const PRIVATE_TOP = new Set(["admin", "coordinator", "patient", "hospital", "agency", "clinic", "doctor", "api", "auth", "dev", "design-preview", "account"]);
+  const LOADING_RE = /^loading\.(jsx?|tsx?)$/;
+  const findLoadingAncestor = (relDir) => {
+    let dir = relDir;
+    while (dir.startsWith("app")) {
+      const entries = readdirSync(join(ROOT, dir), { withFileTypes: true });
+      const hit = entries.find((e) => e.isFile() && LOADING_RE.test(e.name));
+      if (hit) return join(dir, hit.name).replace(/\\/g, "/");
+      if (dir === "app") break;
+      dir = dirname(dir);
+    }
+    return null;
+  };
+  for (const file of walk("app")) {
+    if (!/page\.(jsx?|tsx?)$/.test(file) || EXCLUDE.test(file)) continue;
+    const norm = file.replace(/\\/g, "/");
+    if (!/\/\[[^\]]+\]\//.test(norm)) continue; // 동적 세그먼트만
+    const top = norm.split("/")[1];
+    if (PRIVATE_TOP.has(top)) continue; // 로그인 뒤편 = SEO 무관
+    const text = readFileSync(join(ROOT, file), "utf8");
+    if (!/\bnotFound\s*\(/.test(text)) continue;
+    const loadingFile = findLoadingAncestor(dirname(norm));
+    if (loadingFile) {
+      errors.push(`[소프트404] ${norm} — notFound() 쓰는 공개 동적 라우트인데 조상에 ${loadingFile} 존재 → 스트리밍 경계 때문에 없는 slug 도 HTTP 200(소프트 404)이 됨. 해당 loading 파일을 제거하거나 라우트를 옮길 것 (POSTMORTEMS #86).`);
     }
   }
 }
