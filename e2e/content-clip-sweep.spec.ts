@@ -90,7 +90,7 @@ test("공개 페이지에서 읽을 텍스트가 클리핑 경계에 잘리지 �
         bad.forEach((b) =>
           failures.push(`[${vp.name}] ${p} — "${b.text}" 이(가) ${b.over}px 잘림 (클리퍼: ${b.clipper})`)
         );
-      } catch (e) {
+      } catch {
         // 페이지 자체가 안 열리는 건 sitemap-health 몫 — 여기선 잘림만 본다
       }
     }
