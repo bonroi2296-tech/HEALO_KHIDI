@@ -768,25 +768,42 @@ export default function ConsultationRoomPage() {
     };
   }, [checkingAuth, isGuestMode, livekitToken, stopPreview]);
 
-  const openInExternalBrowser = useCallback(() => {
+  // "브라우저에서 열기"가 조용히 막히는 메신저(왓츠앱·텔레그램 등) 폴백 —
+  // 인앱 브라우저 상당수가 외부 이동(intent/스킴)을 차단해 버튼이 눌러도 아무 일이 없다.
+  // 그 상태로 방에 들어가면 권한창 자체가 안 떠 '무음 통화'가 된다(2026-07-14 PO 실기기 확인).
+  // → 누르는 순간 링크를 미리 복사해 두고, 1.5초 뒤에도 화면이 그대로면 수동 안내를 띄운다.
+  const [openGuideShown, setOpenGuideShown] = useState(false);
+  const copyRoomLink = useCallback(() => {
     const url = window.location.href;
-    const ua = navigator.userAgent || "";
-    if (/KAKAOTALK/i.test(ua)) {
-      // 카카오톡 공식 외부 브라우저 열기 스킴
-      window.location.href = `kakaotalk://web/openExternal?url=${encodeURIComponent(url)}`;
+    // 클립보드 API 자체가 없는 웹뷰(구형 인앱) — ?.체인이면 폴백까지 통째로 건너뛰므로 명시 분기
+    if (!navigator.clipboard?.writeText) {
+      prompt("URL", url);
       return;
     }
-    if (/Android/i.test(ua)) {
-      // Android: 기본 브라우저로 강제 (intent)
-      window.location.href = `intent://${url.replace(/^https?:\/\//, "")}#Intent;scheme=https;action=android.intent.action.VIEW;end`;
-      return;
-    }
-    // iOS 등: 스킴 강제가 불가 → 링크 복사 안내
-    navigator.clipboard?.writeText(url).then(
+    navigator.clipboard.writeText(url).then(
       () => toast.success(c.linkCopied),
       () => prompt("URL", url)
     );
   }, [toast, c]);
+  const openInExternalBrowser = useCallback(() => {
+    const url = window.location.href;
+    const ua = navigator.userAgent || "";
+    // 전환이 막혀도 수동 입장이 되도록 먼저 복사 (실패는 아래 안내의 '다시 복사'로 커버)
+    navigator.clipboard?.writeText(url).catch(() => {});
+    if (/KAKAOTALK/i.test(ua)) {
+      // 카카오톡 공식 외부 브라우저 열기 스킴
+      window.location.href = `kakaotalk://web/openExternal?url=${encodeURIComponent(url)}`;
+    } else if (/Android/i.test(ua)) {
+      // Android: 기본 브라우저로 강제 (intent)
+      window.location.href = `intent://${url.replace(/^https?:\/\//, "")}#Intent;scheme=https;action=android.intent.action.VIEW;end`;
+    }
+    // iOS 비카카오 인앱은 스킴 강제가 불가 → 바로 수동 안내로.
+    setTimeout(() => {
+      if (typeof document === "undefined" || document.visibilityState === "visible") {
+        setOpenGuideShown(true);
+      }
+    }, 1500);
+  }, []);
 
   // 공유 자료 (consultation_documents)
   const [sharedDocs, setSharedDocs] = useState([]);
@@ -1799,6 +1816,19 @@ export default function ConsultationRoomPage() {
                 >
                   <ExternalLink size={16} /> {c.openExternal}
                 </button>
+                {/* 앱이 외부 이동을 차단한 경우(버튼 무반응) — 수동 입장 안내 */}
+                {openGuideShown && (
+                  <div className="mt-3 pt-3 border-t border-amber-500/30">
+                    <p className="text-xs text-amber-100 leading-snug">{c.openExternalGuide}</p>
+                    <button
+                      type="button"
+                      onClick={copyRoomLink}
+                      className="mt-2 px-3 py-1.5 bg-amber-500/30 hover:bg-amber-500/40 text-amber-100 text-xs font-bold rounded-lg transition"
+                    >
+                      {c.copyLinkBtn}
+                    </button>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -2052,14 +2082,28 @@ export default function ConsultationRoomPage() {
 
       {/* 인앱 브라우저 경고 — 영상·음성 제한 가능 → 외부 브라우저 유도 */}
       {isInAppBrowser && (
-        <div className="flex items-center justify-between gap-3 bg-yellow-500/10 border-b border-yellow-600/40 px-3 py-2">
-          <p className="text-xs text-yellow-200 leading-snug">{c.inAppNotice}</p>
-          <button
-            onClick={openInExternalBrowser}
-            className="shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 bg-yellow-500 hover:bg-yellow-400 text-gray-900 text-xs font-bold rounded-lg transition"
-          >
-            <ExternalLink size={13} /> {c.openExternal}
-          </button>
+        <div className="bg-yellow-500/10 border-b border-yellow-600/40 px-3 py-2">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-xs text-yellow-200 leading-snug">{c.inAppNotice}</p>
+            <button
+              onClick={openInExternalBrowser}
+              className="shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 bg-yellow-500 hover:bg-yellow-400 text-gray-900 text-xs font-bold rounded-lg transition"
+            >
+              <ExternalLink size={13} /> {c.openExternal}
+            </button>
+          </div>
+          {/* 앱이 외부 이동을 차단한 경우(버튼 무반응) — 수동 입장 안내 */}
+          {openGuideShown && (
+            <div className="mt-2 pt-2 border-t border-yellow-600/30 flex items-center justify-between gap-3">
+              <p className="text-xs text-yellow-100 leading-snug">{c.openExternalGuide}</p>
+              <button
+                onClick={copyRoomLink}
+                className="shrink-0 px-2.5 py-1.5 bg-gray-700 hover:bg-gray-600 text-yellow-100 text-xs font-semibold rounded-lg transition"
+              >
+                {c.copyLinkBtn}
+              </button>
+            </div>
+          )}
         </div>
       )}
 
