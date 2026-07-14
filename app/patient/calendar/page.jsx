@@ -1,7 +1,7 @@
 import CalendarClient from "./CalendarClient";
 
 export const metadata = {
-  title: "Calendar | healwith",
+  title: "Calendar",
   description: "Unified calendar for consultations, follow-ups, and milestones.",
   robots: { index: false, follow: false },
 };

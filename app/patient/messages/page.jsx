@@ -1,7 +1,7 @@
 import MessagesClient from "./MessagesClient";
 
 export const metadata = {
-  title: "Messages | healwith",
+  title: "Messages",
   description: "Unified inbox for coordinator messages and AI assistant threads.",
   robots: { index: false, follow: false },
 };

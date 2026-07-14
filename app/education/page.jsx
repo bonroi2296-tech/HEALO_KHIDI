@@ -1,7 +1,7 @@
 import EducationClient from "../patient/education/EducationClient";
 
 export const metadata = {
-  title: "Patient Education | healwith",
+  title: "Patient Education",
   description:
     "Cancer-specific education content for post-treatment care. Medication guides, diet plans, exercise routines, warning signs, and mental health support in 6 languages.",
   keywords: ["cancer education", "post-treatment care", "patient guide", "cancer recovery"],

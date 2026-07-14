@@ -1,7 +1,7 @@
 import KoreanMedicineClient from "./KoreanMedicineClient";
 
 export const metadata = {
-  title: "Korean Traditional Medicine | healwith",
+  title: "Korean Traditional Medicine",
   description:
     "Experience Korea's unique traditional medicine — herbal formulas, acupuncture, and holistic healing. Compare top Korean Medicine hospitals and treatment programs.",
   keywords: [

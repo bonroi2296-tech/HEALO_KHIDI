@@ -1,7 +1,7 @@
 import ResetPasswordClient from "./ResetPasswordClient";
 
 export const metadata = {
-  title: "Reset password | healwith",
+  title: "Reset password",
   description: "Set a new password for your healwith account.",
   robots: { index: false, follow: false },
 };

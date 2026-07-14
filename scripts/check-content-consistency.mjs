@@ -12,7 +12,7 @@
  * 실행: node scripts/check-content-consistency.mjs   (npm run check:content)
  */
 import { readFileSync, readdirSync, statSync } from "node:fs";
-import { join } from "node:path";
+import { join, dirname } from "node:path";
 
 const ROOT = process.cwd();
 const SCAN_DIRS = ["app", "src", "components"];
@@ -710,6 +710,87 @@ for (const dir of BACKOFFICE_DIRS) {
       }
     }
   } catch { /* next.config.js 없는 환경(테스트 등)은 통과 */ }
+}
+
+// ── 18) metadata.title 브랜드 중복 차단 (2026-07-14, GSC 색인 실사 → 리뷰 게이트에서 3회 보강) ──
+// 왜: 루트 layout.jsx 의 title.template("%s | healwith")가 하위 페이지 title 문자열에
+//     자동으로 브랜드를 붙이므로, 템플릿 적용 대상 title 에 "| healwith"가 이미 들어 있으면
+//     실제 <title>에 브랜드가 두 번 나간다(privacy 등 27+3파일에서 실발생, 구글 색인 품질 저하).
+// 규칙: 템플릿이 적용되는 title 문자열(최상위 metadata·generateMetadata 반환 객체)에는
+//     "| healwith"가 꼬리든 중간이든 들어가면 안 됨. 브랜드를 직접 쓰려면 title: { absolute: "…" }.
+// 검사 방식: 줄 단위 스캔 + openGraph/twitter 블록 추적(그 안의 title 은 템플릿 미적용이라 허용).
+//     따옴표는 ' " ` 전부, 브랜드 위치는 문자열 어디든 잡는다(리뷰 게이트가 찾은 우회 3종:
+//     작은따옴표·"FAQ | healwith — …" 중간형·generateMetadata 4칸 들여쓰기 반환 객체).
+// 한계(정직하게): openGraph: { title: "… | healwith" } 처럼 한 줄로 접힌 og/tw 는 블록 추적이
+//     못 들어가 문자열 리터럴이면 오탐 가능(현재 저장소엔 변수만 씀). 변수로 조립한 title 은 못 잡음.
+{
+  const TITLE_BRAND_RE = /^\s{2,8}title:\s*['"`][^'"`\n]*\|\s*healwith/;
+  const OGTW_OPEN_RE = /(openGraph|twitter)\s*:\s*(\S.*)?\{/;
+  const braceDelta = (s) => (s.match(/\{/g) || []).length - (s.match(/\}/g) || []).length;
+  for (const file of walk("app")) {
+    if (!CODE_EXT.test(file) || EXCLUDE.test(file)) continue;
+    if (/layout\.(jsx?|tsx?)$/.test(file)) continue; // 템플릿 정의 자체는 제외
+    const lines = readFileSync(join(ROOT, file), "utf8").split("\n");
+    let ogDepth = 0;
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      if (ogDepth > 0) {
+        ogDepth += braceDelta(line);
+        continue; // og/twitter 블록 안 title 은 템플릿 미적용 — 허용
+      }
+      const m = line.match(OGTW_OPEN_RE);
+      if (m) {
+        const after = line.slice(line.indexOf(m[0]));
+        const d = braceDelta(after);
+        if (d > 0) ogDepth = d; // 여러 줄 블록 진입 (한 줄로 닫히면 d=0 → 통과)
+        continue;
+      }
+      if (TITLE_BRAND_RE.test(line)) {
+        errors.push(`[제목중복] ${file.replace(/\\/g, "/")}:${i + 1} — 템플릿 적용 title 에 "| healwith" 포함 → 루트 template 이 또 붙여 브랜드가 두 번 나감. 브랜드를 빼거나 title: { absolute: "…" } 를 쓸 것 (2026-07-14 GSC 실사 부류).`);
+      }
+    }
+  }
+}
+
+// ── 19) 소프트 404 차단: notFound() 쓰는 공개 동적 라우트 위에 loading 파일 금지 (2026-07-14, #87) ──
+// 왜: loading.jsx(Suspense 경계)가 라우트 위에 하나라도 있으면 스트리밍이 먼저 열려,
+//     없는 slug에 notFound()를 불러도 HTTP 상태코드가 200으로 굳는다(화면만 404).
+//     구글은 이런 "소프트 404"를 살아있는 페이지로 발견해 색인 대기열이 쓰레기 URL로 오염됨.
+//     실측: 메타/페이지 어디서 notFound()를 불러도 loading 경계가 있으면 200 (POSTMORTEMS #87).
+// 규칙: 공개(비로그인) 영역의 동적 세그먼트([slug]·[id]) page 가 notFound() 를 쓰면,
+//     그 라우트의 조상 디렉토리(app 루트 포함)에 loading.(js|jsx|ts|tsx) 가 없어야 한다.
+// 한계(정직하게): ①로그인 뒤편(admin·coordinator·patient 등 noindex 구역)은 SEO 무관이라 제외
+//     — 라우트그룹 (group) 세그먼트는 괄호를 벗겨 어느 깊이에 있어도 인식. ②notFound() 를
+//     page 파일이 아니라 import 한 하위 컴포넌트/헬퍼 안에서만 부르는 라우트는 이 정적 스캔이
+//     못 잡음(page 본문만 grep) — 공개 상세 라우트를 만들 땐 notFound() 를 page 에서 부르는 게 관례.
+{
+  const PRIVATE_SEGS = new Set(["admin", "coordinator", "patient", "hospital", "agency", "clinic", "doctor", "api", "auth", "dev", "design-preview", "account"]);
+  const isPrivateRoute = (norm) =>
+    norm.split("/").some((seg) => PRIVATE_SEGS.has(seg.replace(/^\((.+)\)$/, "$1")));
+  const LOADING_RE = /^loading\.(jsx?|tsx?)$/;
+  const findLoadingAncestor = (relDir) => {
+    let dir = relDir;
+    while (dir.startsWith("app")) {
+      const entries = readdirSync(join(ROOT, dir), { withFileTypes: true });
+      const hit = entries.find((e) => e.isFile() && LOADING_RE.test(e.name));
+      if (hit) return join(dir, hit.name).replace(/\\/g, "/");
+      if (dir === "app") break;
+      dir = dirname(dir);
+    }
+    return null;
+  };
+  for (const file of walk("app")) {
+    if (!/page\.(jsx?|tsx?)$/.test(file) || EXCLUDE.test(file)) continue;
+    const norm = file.replace(/\\/g, "/");
+    if (!/\/\[[^\]]+\]\//.test(norm)) continue; // 동적 세그먼트만
+    if (isPrivateRoute(norm)) continue; // 로그인 뒤편 = SEO 무관 (라우트그룹 안이어도 인식)
+    const text = readFileSync(join(ROOT, file), "utf8");
+    if (!/\bnotFound\s*\(/.test(text)) continue;
+    const loadingFile = findLoadingAncestor(dirname(norm));
+    if (loadingFile) {
+      errors.push(`[소프트404] ${norm} — notFound() 쓰는 공개 동적 라우트인데 조상에 ${loadingFile} 존재 → 스트리밍 경계 때문에 없는 slug 도 HTTP 200(소프트 404)이 됨. 해당 loading 파일을 제거하거나 라우트를 옮길 것 (POSTMORTEMS #87).`);
+    }
+  }
 }
 
 // ── 결과 ────────────────────────────────────────────────────────

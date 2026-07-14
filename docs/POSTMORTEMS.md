@@ -14,6 +14,28 @@
 
 ---
 
+## #87 — 🔁 #20 부류 재발: 없는 치료·병원 상세가 "404 화면 + HTTP 200"(소프트 404) — 구글엔 여전히 살아있는 페이지 (2026-07-14, PO가 GSC 색인 리포트 직접 파다 발견)
+
+**무슨 일**
+PO가 GSC 「발견됨 - 색인 안 됨」 21건을 파다 옛 쓰레기 슬러그 `/en/treatments/item-1772088315868`을 클릭 → 404 화면이 떴는데, 실측하니 **HTTP 상태코드는 200**(구글봇 UA로도 200). `notFound()`를 불러도 `loading.jsx`가 스트리밍을 먼저 시작해 상태코드가 200으로 굳는 Next.js 특성. 같은 실사에서 동반 결함 2건 추가 발견: ①`/en/hospitals/*` 영어 페이지 `<title>`이 DB 한국어 이름 그대로(「이대목동병원」) ②페이지 27개의 `<title>`이 "… | healwith | healwith" 꼬리 중복(루트 template이 자동으로 붙이는데 손으로 또 붙임).
+
+**왜 못 잡았나 (근본원인) + 그때의 방지책이 왜 못 막았나**
+1. **(🔁 #20)** #20의 수리는 "비공개·없는 slug → 상세 `notFound()` = 404"라고 믿고 닫았는데, **화면만 404고 상태코드는 200인 걸 아무도 실측 안 함**. `curl -w "%{http_code}"` 한 줄이면 잡혔을 것 — "404가 뜬다"의 검증이 눈(화면)이었지 기계(상태코드)가 아니었다.
+2. 제목 중복: 루트 template(`%s | healwith`) 도입 시 기존 페이지들의 수동 꼬리를 전수 정리 안 했고, `localizedMeta`가 absolute로 중복을 피하는 걸 아는 사람만 알았음(주석에만 존재).
+3. 병원 제목 한국어: DB `hospitals.name`이 단일 컬럼(한국어)인데 metadata가 locale 무관하게 그대로 사용 — #30(SSR 언어 누출)과 사촌이지만 "DB 데이터의 언어"는 그 가드(정적 스캔) 밖.
+
+**어떻게 고쳤나**
+- 소프트 404: **`app/loading.jsx`(루트)·`app/treatments/loading.jsx`·`app/hospitals/loading.jsx` 제거**가 진짜 수리 — loading 경계가 하나라도 위에 있으면 스트리밍이 먼저 열려 `notFound()`를 페이지에서 부르든 `generateMetadata`에서 부르든 상태코드가 200으로 굳는다(둘 다 로컬 `next build`+`next start` 실측: 메타 notFound만으론 여전히 200, 로딩 제거 후 404). generateMetadata의 notFound()는 이중 방어로 유지. 대가: 전역 스피너·목록 스켈레톤 제거(클라이언트 컴포넌트 자체 로딩은 그대로). `app/patient/loading.jsx`는 noindex 구역이라 유지.
+- 병원 제목: `partnerHospitals`(6개 언어 정적 데이터)를 DB 병원에도 언어화 소스로 사용(`lc==="ko"`면 DB, 아니면 partner[lc]→en→DB 폴백). 한계: partner에 없는 DB-only 병원은 여전히 DB 이름 — DB에 다국어 이름 컬럼이 없어서(스키마 변경은 별도 결정).
+- 제목 중복: 27개 파일 최상위 title 꼬리 제거(og/twitter는 template 미적용이라 유지).
+
+**재발 방지 (뚫린 가드 보강 + 신규)**
+- **뚫린 가드 보강(#20 부류)**: "404다"의 판정 기준을 화면→**상태코드**로. 상세페이지류 라우트를 만들거나 고치면 "없는 slug 1개를 `curl -o /dev/null -w "%{http_code}"`로 실측"이 self-QA 기본. **notFound() 쓰는 공개 동적 라우트 위엔 loading.jsx 금지**가 이 저장소 표준.
+- **신규 가드 2개**: `check:content` §18 — 템플릿 적용 title에 "| healwith"가 있으면(꼬리든 중간이든, 따옴표 3종) CI 실패(템플릿 중복 부류). §19 — notFound() 쓰는 공개 동적 라우트의 조상에 loading 파일이 있으면 CI 실패(소프트 404 부류 — 로딩 스켈레톤을 누가 다시 추가하면 즉시 적발).
+- **독립 리뷰 게이트가 초안을 4건 더 뚫음(가치 입증)**: ①일시적 DB 오류도 null로 뭉개져 살아있는 페이지가 404(색인 제거!)될 뻔 → 데이터 계층이 "없음(null)"과 "조회 실패(throw→500)"를 구분하게 수정 ②ko 로케일만 partner 설명 폴백이 누락 ③§18(제목중복) 초안이 작은따옴표·중간 삽입형("FAQ | healwith — …")·generateMetadata 반환 객체를 다 놓침(실제 뚫린 파일 3개 발견: search·design-preview·coordinator/messages) ④목록 스켈레톤 삭제는 DESIGN.md 로딩 상태 규칙 위반 → 페이지 안 Suspense fallback으로 복원(상태코드 무관). JSON-LD·breadcrumb도 metadata와 같은 언어화 헬퍼(localizedHospitalText)를 쓰게 통일.
+
+---
+
 ## #86 — 🔁 #43 부류 재발: 병원·암종 상세 지도(Google Maps)가 CSP script-src 누락으로 전 페이지 회색 박스 — 키·결제 다 정상인데 스크립트가 브라우저에서 차단 (2026-07-14, PO 스크린샷 제보 계기)
 
 **무슨 일** — 실서비스 병원 상세(`/hospitals/[slug]`)·암종 상세의 「위치」 지도가 항상 회색 fallback(핀+주소 텍스트)으로만 뜸. 조사 결과 API 키는 번들에 정상 포함, 키 자체도 살아있음(Static Maps로 검증: 결제 OK·키 유효). 진짜 원인은 **next.config.js CSP의 `script-src`에 `maps.googleapis.com`이 없어서** 브라우저가 Google Maps JS 로드를 조용히 차단 → `useLoadScript`가 loadError → fallback. 즉 지도는 코드·키·돈 문제가 아니라 우리 보안 헤더가 우리 기능을 막고 있었다.

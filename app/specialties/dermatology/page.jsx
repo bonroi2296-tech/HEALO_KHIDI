@@ -13,7 +13,7 @@ import {
 export const metadata = {
   // 암환자 컨시어지 피벗과 안 맞아 검색 제외(2026-06-17 PO 결정). 코드·라우트는 보존.
   robots: { index: false, follow: false },
-  title: "Dermatology & Skin Treatments in Korea | healwith",
+  title: "Dermatology & Skin Treatments in Korea",
   description:
     "Explore advanced dermatology and skin treatments in Korea. Laser therapy, Botox, fillers, and skin rejuvenation at competitive prices. Free consultation.",
   keywords: [

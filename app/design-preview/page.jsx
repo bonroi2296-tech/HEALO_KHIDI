@@ -7,7 +7,7 @@
 import { notFound } from 'next/navigation';
 
 export const metadata = {
-  title: 'Design Preview | healwith',
+  title: 'Design Preview',
   robots: { index: false, follow: false },
 };
 

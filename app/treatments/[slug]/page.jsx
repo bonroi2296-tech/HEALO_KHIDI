@@ -116,7 +116,10 @@ export async function generateMetadata({ params }) {
     ? (await getTreatmentBySlug(slug)) ||
       (isUuid(slug) ? await getTreatmentById(slug) : null)
     : null;
-  if (!treatment) return {};
+  // 없는 slug는 메타 단계에서도 notFound() (이중 방어). 단 상태코드 404를 지키는 진짜 조건은
+  // 이 라우트 위에 loading.jsx 가 없는 것 — loading 경계가 있으면 스트리밍이 먼저 열려
+  // notFound()를 어디서 불러도 200으로 굳는다(소프트 404, POSTMORTEMS #87 실측).
+  if (!treatment) notFound();
   const description =
     treatment.desc ||
     treatment.fullDescription ||

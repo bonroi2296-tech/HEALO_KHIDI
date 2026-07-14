@@ -6,7 +6,7 @@ export async function generateMetadata() {
 }
 
 const baseMeta = {
-  title: "Immune Hospital — 면력한방병원 | healwith",
+  title: "Immune Hospital — 면력한방병원",
   description:
     "Immune Hospital — healwith's direct partner. Korean Medicine immune care for cancer patients. ITCR 5-principles, 50,000+ cases, chef-led therapeutic meals. 4 branches in Seoul & Gyeonggi.",
   keywords: ["면력한방병원", "Immune Hospital Korea", "Korean Medicine cancer immune therapy", "ITCR protocol", "cancer hospital Seoul"],
