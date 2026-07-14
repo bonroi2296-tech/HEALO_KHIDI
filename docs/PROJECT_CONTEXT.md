@@ -13,6 +13,10 @@
 > - **함정 기록**: ①이 저장소에서 **draft PR엔 GitHub Actions CI가 안 돎**(2시간 헤맴 — draft 해제하니 즉시 돎. 자동머지 플로우는 ready 전환 필수) ②Stop훅 자동저장 커밋("chore: 작업 자동 저장")과 빈 커밋은 Vercel이 배포 생략(vercel-ignore-build.sh) — 프리뷰 검증하려면 정식 메시지+실변경 커밋.
 > - **다음 세션 확인거리**: 며칠 뒤 시크릿창 구글 `힐위드` 검색 or GSC 실적 탭(뜨면 종결, 네이버 7/6 조치분 동일 대기) + GSC 미색인 21건이 재크롤 후 404로 떨어져 나가는지. 병원 본문 H1 언어화는 KNOWN_ISSUES 기록(다음 SEO 라운드). 배경 가이드 = `docs/검색노출_PO가이드.md`.
 
+> 💾 **중간 저장 (2026-07-14, 잔재 정리 — PO 결정 2건: /search 비활성 + 더미 치료 데이터 비공개)**
+> - **PO 지시("예전 프로젝트 잔재 없애기로 했잖아") → 조사 결과 반반**: ①**/search = 잔재 확정** — 진입 링크 0인 고아 페이지인데 sitemap(0.8)·robots·홈 JSON-LD SearchAction이 색인을 광고 중이었음 → [PR #746](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/746) 머지: /hospitals 리다이렉트(**코드 보존** — `SearchResultsClient.jsx` 살아있음, 재도입 시 page.jsx 원복+SearchAction 복원) + sitemap/robots/JSON-LD 제거. 프로덕션 307 리다이렉트 실측 확인. ②**비암종 /treatments/[slug] = PO가 "더미데이터, 구조만 남기고 데이터 없애도 됨" 확정(7/14)** → 한방 프로그램 6건 `is_published=false`(행 보존 토글) + **RAG 문서 6건 `expires_at=now()`**(⚠️ 함정: 검색 RPC `rag_search_chunks_v1_1`은 `is_active`를 안 보고 `expires_at`만 필터 — is_active만 끄면 AI가 계속 인용함). 프로덕션 404 실측 확인. 되돌리기 = is_published true + expires_at NULL.
+> - **왜 잔재가 살아남았었나**: 당시 "없앤다" 결정이 기록에 안 남아 이후 세션들이 살아있는 기능으로 취급(sitemap에까지 추가). → 결정은 그 자리에서 기록(이 블록이 그 실천).
+
 > 💾 **중간 저장 (2026-07-14, 상세페이지 지도·화살표 세션 — 중요 발견)**
 > - **병원·암종 상세 지도가 회색 박스였던 진짜 원인 = 우리 CSP(next.config.js)가 `maps.googleapis.com` 스크립트를 차단**(키·결제·코드 전부 정상 — 프로덕션 번들·Static Maps 실측으로 소거 진단). #43(Turnstile) 부류 재발이라 POSTMORTEMS #86 기록 + `check:content`에 [CSP누락] 룰 17 신설(외부 스크립트 도메인↔CSP 자동 대조 — 앞으로 CSP를 조이다 기존 기능 부러뜨리면 CI가 잡음). 협진 대학병원 4곳 실좌표 추가(없으면 지도가 서울시청을 찍음 — 성동점은 상세주소 미정이라 의도적 제외). 갤러리 좌우 화살표 Chevron 통일(병원+암종 상세). **로컬 dev는 설계상 지도를 안 불러오므로(비용 절감) 지도 실검증은 배포 후 프로덕션/프리뷰에서만 가능.**
 
