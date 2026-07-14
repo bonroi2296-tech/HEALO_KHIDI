@@ -31,7 +31,7 @@
    - 🛑 **함정**: 애플 가이드라인 5.1.1은 의료성 앱에 법인 계정을 요구할 수 있음 → 심사에서 이 사유로 반려될 가능성 있음(반려 시 항소·법인 검토 대응 — 어시가 그때 정리).
 2. ⬜ **구글 플레이 개발자 등록 + $25(일회) 결제** — https://play.google.com/console/signup
 3. ✅ **Firebase 설정파일 2개 완료(2026-07-14)** — PO가 기존 프로젝트 `healo`(healo-e3e58)에 iOS/Android 앱 추가·파일 발급, 어시가 검증 후 배치·머지(PR #757 android / #758 ios). 남은 조각: **APNs 인증키(.p8) Firebase 업로드는 애플 결제 후**(어시가 안내).
-4. ⬜ (아무 때나, 어시가 안내) **Codemagic 무료 가입**(GitHub 로그인) — iOS 클라우드 맥 빌드용. 설정은 `codemagic.yaml`에 준비돼 있음(월 500분 무료 — 2026-07-14 요금 페이지 실측 확인).
+4. ✅ **Codemagic 가입·저장소 연결 완료(2026-07-14)** — Personal(Individual) 계정, HEALO_KHIDI 연결, codemagic.yaml 자동 인식 확인(PO 스크린샷). ⚠️ 서명 열쇠 없이 빌드 시작 금지(실패만 뜨고 무료분 낭비) — 결제 후 열쇠 3종(ASC API 키·Play 서비스계정·키스토어) 등록부터.
 
 **어시가 할 것 (계정 열리면):**
 - Vercel env 2개(`FCM_PROJECT_ID`·`GOOGLE_SERVICE_ACCOUNT_JSON`) 설정 + `/api/push/test` 실기기 수신 확인
