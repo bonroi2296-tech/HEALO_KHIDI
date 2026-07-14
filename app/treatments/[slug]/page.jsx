@@ -116,7 +116,9 @@ export async function generateMetadata({ params }) {
     ? (await getTreatmentBySlug(slug)) ||
       (isUuid(slug) ? await getTreatmentById(slug) : null)
     : null;
-  if (!treatment) return {};
+  // 없는 slug는 여기서 notFound() — 페이지 본문의 notFound()는 loading.jsx 스트리밍이
+  // 시작된 뒤라 상태코드가 200으로 굳음(소프트 404 → 구글 색인 방해). 메타 단계가 마지막 방어선.
+  if (!treatment) notFound();
   const description =
     treatment.desc ||
     treatment.fullDescription ||

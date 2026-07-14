@@ -8,7 +8,7 @@ export async function generateMetadata() {
 }
 
 const baseMeta = {
-  title: "보험으로 받는 한국 암치료 | healwith",
+  title: "보험으로 받는 한국 암치료",
   description:
     "중증질환 보험으로 받는 한국 암치료. 치료비·항공·숙박까지 보험이 커버할 수 있고, healwith가 한국 측 병원·통역·케어를 조직합니다.",
   keywords: [

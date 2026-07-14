@@ -1,7 +1,7 @@
 import CookiePolicyClient from "./CookiePolicyClient";
 
 export const metadata = {
-  title: "Cookie Policy | healwith",
+  title: "Cookie Policy",
   description: "Learn about how healwith uses cookies.",
 };
 

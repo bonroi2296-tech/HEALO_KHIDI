@@ -1,7 +1,7 @@
 import FindIdClient from "./FindIdClient";
 
 export const metadata = {
-  title: "Find your email | healwith",
+  title: "Find your email",
   description: "Find the email you signed up with using your name and date of birth.",
   robots: { index: false, follow: false },
 };

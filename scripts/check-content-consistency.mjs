@@ -668,6 +668,27 @@ for (const dir of BACKOFFICE_DIRS) {
   }
 }
 
+// ── 17) metadata.title 브랜드 꼬리 중복 차단 (2026-07-14, GSC 색인 실사에서 발견) ──
+// 왜: 루트 layout.jsx 의 title.template("%s | healwith")가 하위 페이지 title 문자열에
+//     자동으로 브랜드를 붙이는데, 페이지가 손으로 " | healwith"를 또 붙이면 실제 <title>이
+//     "… | healwith | healwith"로 나간다(privacy 등 27개 파일에서 실발생, 구글 색인 품질 저하).
+// 규칙: 최상위 metadata title(들여쓰기 2칸) 문자열은 " | healwith"로 끝나면 안 됨 — 템플릿이 붙여줌.
+//     브랜드를 넣고 싶으면 title: { absolute: "…" } 를 쓸 것(cost-calculator 방식).
+// 한계(정직하게): openGraph/twitter 의 title(들여쓰기 4칸+)은 템플릿 미적용이라 " | healwith" 허용
+//     — 이 검사는 2칸 들여쓰기·한 줄 inline metadata 만 본다. 형식을 벗어난 중첩 구조는 코드리뷰 몫.
+{
+  const TITLE_DUP_LINE_RE = /^ {2}title:\s*"[^"\n]*\| healwith",?\s*$/m;
+  const TITLE_DUP_INLINE_RE = /metadata\s*=\s*\{\s*title:\s*"[^"\n]*\| healwith"/;
+  for (const file of walk("app")) {
+    if (!CODE_EXT.test(file) || EXCLUDE.test(file)) continue;
+    if (/layout\.(jsx?|tsx?)$/.test(file)) continue; // 템플릿 정의 자체는 제외
+    const text = readFileSync(join(ROOT, file), "utf8");
+    if (TITLE_DUP_LINE_RE.test(text) || TITLE_DUP_INLINE_RE.test(text)) {
+      errors.push(`[제목중복] ${file.replace(/\\/g, "/")} — metadata.title 이 " | healwith"로 끝남 → 루트 template 이 또 붙여 "… | healwith | healwith"가 됨. 꼬리를 빼거나 title: { absolute: "…" } 를 쓸 것 (2026-07-14 GSC 실사 부류).`);
+    }
+  }
+}
+
 // ── 결과 ────────────────────────────────────────────────────────
 if (errors.length) {
   console.error(`\n❌ 콘텐츠 일관성 검사 실패 (${errors.length}건)\n`);

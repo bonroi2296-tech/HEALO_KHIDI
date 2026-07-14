@@ -7,7 +7,7 @@ export async function generateMetadata() {
 }
 
 const baseMeta = {
-  title: "암종별 치료 안내 — 한국 암 치료와 한방 통합 케어 | healwith",
+  title: "암종별 치료 안내 — 한국 암 치료와 한방 통합 케어",
   description:
     "유방·자궁·난소암, 대장·위암, 간·담도·췌장암, 폐암, 갑상선암 등 6개 암종 전문 치료 안내. 면력한방병원 ITCRN 5축 통합 면역치료.",
   keywords: [

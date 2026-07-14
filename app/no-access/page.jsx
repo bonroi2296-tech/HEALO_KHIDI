@@ -7,7 +7,7 @@
  */
 
 export const metadata = {
-  title: "접근 권한 없음 | healwith",
+  title: "접근 권한 없음",
   robots: { index: false, follow: false },
 };
 

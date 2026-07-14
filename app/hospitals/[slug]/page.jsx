@@ -6,7 +6,7 @@ import {
 } from "@/lib/data/hospitals";
 import { getPartnerHospital, convertPartnerToInitialData } from "@/lib/data/partnerHospitals";
 import HospitalDetailClient from "./HospitalDetailClient";
-import { localeAlternates } from "@/lib/i18n/metadata";
+import { localeAlternates, getRequestLocale } from "@/lib/i18n/metadata";
 import { breadcrumbLd } from "@/lib/seo/structuredData";
 
 const UUID_REGEX =
@@ -24,6 +24,12 @@ const partnerFolderImage = (slug) =>
 
 export async function generateMetadata({ params }) {
   const { slug } = await params;
+  const { locale } = await getRequestLocale();
+  const lc = locale || "en";
+  // 제휴 병원 정적 데이터(6개 언어 이름·설명) — DB 병원이어도 같은 slug면 언어화 소스로 쓴다.
+  // (DB hospitals 테이블엔 name 단일 컬럼뿐이라 /en·/ru 페이지에 한국어 제목이 나가던 문제 대응.)
+  const partner = getPartnerHospital(slug);
+  const pick = (obj) => obj?.[lc] || obj?.en || null;
 
   // Try DB first
   const hospital = slug
@@ -33,23 +39,31 @@ export async function generateMetadata({ params }) {
 
   // Fallback to static partner data if not in DB
   if (!hospital) {
-    const partner = getPartnerHospital(slug);
     if (partner) {
+      const name = pick(partner.name) || partner.name?.ko;
+      const desc = pick(partner.description) || partner.description?.ko;
       const ogImg = partnerFolderImage(slug);
       const ogImages = ogImg ? [{ url: ogImg }] : undefined;
       return {
-        title: partner.name.en,
-        description: partner.description.en,
+        title: name,
+        description: desc,
         alternates: (await localeAlternates()) || { canonical: `/hospitals/${slug}` },
-        openGraph: { title: partner.name.en, description: partner.description.en, type: "article", images: ogImages },
-        twitter: ogImages ? { card: "summary_large_image", title: partner.name.en, description: partner.description.en, images: [ogImg] } : undefined,
+        openGraph: { title: name, description: desc, type: "article", images: ogImages },
+        twitter: ogImages ? { card: "summary_large_image", title: name, description: desc, images: [ogImg] } : undefined,
       };
     }
-    return {};
+    // 없는 slug는 메타 단계에서 notFound() — 페이지 본문 시점엔 loading.jsx 스트리밍으로
+    // 상태코드가 이미 200으로 굳어 소프트 404가 된다(구글 색인 방해).
+    notFound();
   }
 
+  const name =
+    (lc === "ko" ? hospital.name : pick(partner?.name)) || hospital.name;
   const description =
-    hospital.description || "Explore this healwith partner hospital in Korea.";
+    (lc === "ko"
+      ? hospital.description
+      : pick(partner?.description) || hospital.description) ||
+    "Explore this healwith partner hospital in Korea.";
   const canonical = `/hospitals/${hospital.slug || slug}`;
   const folderOg = hospital.is_partner ? partnerFolderImage(hospital.slug || slug) : null;
   const ogImages = folderOg
@@ -58,11 +72,11 @@ export async function generateMetadata({ params }) {
       ? [{ url: hospital.images[0] }]
       : undefined;
   return {
-    title: hospital.name,
+    title: name,
     description,
     alternates: (await localeAlternates()) || { canonical },
     openGraph: {
-      title: hospital.name,
+      title: name,
       description,
       url: canonical,
       type: "article",
@@ -70,7 +84,7 @@ export async function generateMetadata({ params }) {
     },
     twitter: {
       card: ogImages ? "summary_large_image" : "summary",
-      title: hospital.name,
+      title: name,
       description,
       images: ogImages ? ogImages.map((img) => img.url) : undefined,
     },

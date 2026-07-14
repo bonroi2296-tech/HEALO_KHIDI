@@ -13,7 +13,7 @@ import {
 export const metadata = {
   // 암환자 컨시어지 피벗과 안 맞아 검색 제외(2026-06-17 PO 결정). 코드·라우트는 보존.
   robots: { index: false, follow: false },
-  title: "Plastic Surgery in Korea | Prices, Top Clinics & Guide | healwith",
+  title: "Plastic Surgery in Korea | Prices, Top Clinics & Guide",
   description:
     "Complete guide to plastic surgery in Korea. Compare prices, find verified clinics, and get a free personalized treatment plan. Rhinoplasty from $2,500.",
   keywords: [

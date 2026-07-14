@@ -1,7 +1,7 @@
 import VisaClient from "../patient/visa/VisaClient";
 
 export const metadata = {
-  title: "Medical Visa Guide | healwith",
+  title: "Medical Visa Guide",
   description:
     "Complete guide to Korean medical visas (C-3-3, G-1-10). Required documents checklist, processing times, fees, and embassy information for international patients.",
   keywords: ["Korea medical visa", "C-3-3 visa", "G-1-10 visa", "medical tourism visa"],

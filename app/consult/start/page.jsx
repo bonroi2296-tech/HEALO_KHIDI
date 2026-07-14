@@ -4,7 +4,7 @@
 import { redirect } from "next/navigation";
 
 export const metadata = {
-  title: "상담 신청 | healwith",
+  title: "상담 신청",
   alternates: { canonical: "/inquiry" },
 };
 
