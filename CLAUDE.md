@@ -91,7 +91,7 @@ PO(프로덕트 오너) 혼자 운영. Bonroi 개인사업자, KHIDI(한국보�
 - `/inquiry` **통합 문의 퍼널** — 진입 시 AI Agent / Human Agent / Inquiry Form 선택. `/intake`·`/consult/start`는 여기로 redirect (통폐합 완료). Human Agent = WhatsApp·Telegram·WeChat·LINE 4채널.
 - `/care-journey` 치료 여정 안내 (정적, 6개 언어)
 - `/telemedicine` 원격협진 (헤더 전면 배치, NEW)
-- `/hospitals` `/treatments` 목록 | `/treatments/[slug]` 암종 상세 | `/search` 검색
+- `/hospitals` `/treatments` 목록 | `/treatments/[slug]` 암종 상세(비암종 slug = 한방 프로그램 상세, 한방 특화 페이지에서 링크 — 잔재 아님 2026-07-14 확인) | `/search` **비활성**(옛 프로젝트 잔재, `/hospitals` 리다이렉트, 코드 보존 2026-07-14)
 - `/consultation/[id]` **LiveKit 영상 상담방** (게스트 초대 링크로 계정 없이 입장)
 - `/patient/*` 환자 | `/admin/*` 어드민 | `/coordinator/*` 코디네이터 | `/hospital/*` 국내병원(구 `/partner`, 리다이렉트) | `/agency` 해외 에이전시 · `/clinic` 해외 의료기관 | `/doctor` 비활성화(상담방 초대링크 참여)
 - `/stories` 후기 — **비활성화**(홈 리다이렉트, 코드는 보존)

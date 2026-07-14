@@ -75,7 +75,7 @@ export default async function sitemap() {
     localized('/treatments', { changeFrequency: 'weekly', priority: 0.9 }),
     localized('/hospitals', { changeFrequency: 'weekly', priority: 0.9 }),
     localized('/telemedicine', { changeFrequency: 'weekly', priority: 0.9 }),
-    localized('/search', { changeFrequency: 'weekly', priority: 0.8 }),
+    // /search 는 2026-07-14 비활성화(옛 프로젝트 잔재, /hospitals 리다이렉트) → 색인 제외
     localized('/specialties/korean-medicine', { changeFrequency: 'monthly', priority: 0.8 }),
     localized('/hospitals/immune', { changeFrequency: 'monthly', priority: 0.85 }),
     localized('/care-journey', { changeFrequency: 'monthly', priority: 0.8 }),
