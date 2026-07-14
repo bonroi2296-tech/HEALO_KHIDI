@@ -47,6 +47,7 @@ PO가 /en/hospitals에서 발견: 의료진 카드 오른쪽이 잘려 "Full Pro
 
 **재발 방지**
 - `e2e/hospitals-list.spec.ts`에 "의료진 카드 가로 넘침 0px" 회귀 가드(@smoke = 매 PR 실행) — 수정을 일부러 빼고 돌려 **실제로 실패함을 확인**(가드 유효성 검증).
+- **(확장, 같은 날)** PO "다른 페이지는?" → 공개 페이지 전수(사이트맵 19템플릿 × PC/모바일 = 38회) 실측 스캔: 추가 잘림 0건(히어로 장식 번짐·지도 내부·폰트 프로브·캐러셀·sr-only는 전부 의도된 패턴으로 판독). 그 스캐너를 `e2e/content-clip-sweep.spec.ts`로 상설화 — **"읽을 텍스트가 클리핑 경계에 잘리면 실패"**를 매일 밤 프로덕션 전 페이지에서 기계 검증(main push Full E2E에도 포함, PR 게이트 제외). 가드 유효성: min-w-0 재제거 시 70건 적발·수정 상태 0건.
 - 교훈: **flex 아이템 안에 truncate/nowrap 자식을 두면 그 flex 아이템에 min-w-0 필수** (grep 키워드: min-w-0, truncate, 잘림, overflow).
 
 ---
