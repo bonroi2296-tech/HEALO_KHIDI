@@ -293,11 +293,20 @@ export const TreatmentDetailPage = ({
     const id1 = requestAnimationFrame(() => { id2 = requestAnimationFrame(() => setNoAnim(false)); });
     return () => { cancelAnimationFrame(id1); if (id2) cancelAnimationFrame(id2); };
   }, [noAnim]);
+  // 워치독: 전환이 중간에 끊겨 transitionend가 안 울려도(재터치 등) 400ms 내 클론 정규화 — 교착 방지
+  useEffect(() => {
+    if (slidePos !== 0 && slidePos !== slideCount + 1) return;
+    const id = setTimeout(() => { setNoAnim(true); setSlidePos(slidePos === 0 ? slideCount : 1); }, 400);
+    return () => clearTimeout(id);
+  }, [slidePos, slideCount]);
   // 모바일 스와이프 — 손가락을 따라 트랙이 움직이다 놓으면 스냅 (병원 상세와 동일 동작).
   const [dragX, setDragX] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const touchRef = useRef({ x: 0, y: 0, axis: null });
   const onCarouselTouchStart = (e) => {
+    // 클론 위에서 새 터치가 시작되면(전환 중단으로 미정규화) 즉시 실제 장으로 점프 — 화면상 동일 프레임이라 무감
+    if (slidePos === slideCount + 1) { setNoAnim(true); setSlidePos(1); }
+    else if (slidePos === 0) { setNoAnim(true); setSlidePos(slideCount); }
     touchRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY, axis: null };
   };
   const onCarouselTouchMove = (e) => {
