@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import {
-  ChevronLeft, ChevronDown, MapPin, Star, Shield, Info, FileText, Globe, Stethoscope, Sparkles,
+  ChevronLeft, ChevronRight, ChevronDown, MapPin, Star, Shield, Info, FileText, Globe, Stethoscope, Sparkles,
   GraduationCap, Award, ShieldCheck, Check, Building2, Image as ImageIcon, ArrowRight,
   MessageCircle, HelpCircle, CheckCircle2, Activity, Calendar, Users, ClipboardCheck,
   Clock, Coffee, Languages, Phone, ExternalLink, X
@@ -392,8 +392,8 @@ export const HospitalDetailPage = ({ selectedId, setView, onTreatmentClick, init
                   <img src={img} onError={handleImgError} className="w-full h-full object-cover" alt={`${hospital?.name || "Hospital"} ${index + 1}`} />
                 </div>
               ))}
-              <button onClick={prevSlide} aria-label="Previous image" className="absolute left-3 top-1/2 -translate-y-1/2 bg-black/20 hover:bg-black/40 text-white p-1.5 rounded-full backdrop-blur-sm transition z-20 focus:outline-none focus:ring-2 focus:ring-teal-400"><ChevronLeft size={20} /></button>
-              <button onClick={nextSlide} aria-label="Next image" className="absolute right-3 top-1/2 -translate-y-1/2 bg-black/20 hover:bg-black/40 text-white p-1.5 rounded-full backdrop-blur-sm transition z-20 focus:outline-none focus:ring-2 focus:ring-teal-400"><ArrowRight size={20} /></button>
+              <button onClick={prevSlide} aria-label="Previous image" className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 flex items-center justify-center bg-black/30 hover:bg-black/50 text-white rounded-full backdrop-blur-sm transition duration-200 z-20 focus:outline-none focus:ring-2 focus:ring-teal-400"><ChevronLeft size={20} /></button>
+              <button onClick={nextSlide} aria-label="Next image" className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 flex items-center justify-center bg-black/30 hover:bg-black/50 text-white rounded-full backdrop-blur-sm transition duration-200 z-20 focus:outline-none focus:ring-2 focus:ring-teal-400"><ChevronRight size={20} /></button>
               <div className="absolute bottom-3 right-3 z-20">
                 <div className="bg-black/60 backdrop-blur-md text-white px-2.5 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1">
                   <ImageIcon size={10} /> {currentSlide + 1}/{galleryImages.length}
@@ -442,9 +442,9 @@ export const HospitalDetailPage = ({ selectedId, setView, onTreatmentClick, init
             </div>
             {/* Main image */}
             <div className="relative flex-1 min-h-0 bg-gray-900 flex items-center justify-center">
-              <button onClick={() => setLightboxIdx((lightboxIdx - 1 + allGalleryImages.length) % allGalleryImages.length)} aria-label="Previous image" className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/20 hover:bg-white/40 text-white p-1.5 rounded-full backdrop-blur-sm transition z-10 focus:outline-none focus:ring-2 focus:ring-teal-400"><ChevronLeft size={22} /></button>
+              <button onClick={() => setLightboxIdx((lightboxIdx - 1 + allGalleryImages.length) % allGalleryImages.length)} aria-label="Previous image" className="absolute left-2 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center bg-white/20 hover:bg-white/40 text-white rounded-full backdrop-blur-sm transition duration-200 z-10 focus:outline-none focus:ring-2 focus:ring-teal-400"><ChevronLeft size={22} /></button>
               <img src={allGalleryImages[lightboxIdx]} onError={handleImgError} className="max-w-full max-h-[60vh] object-contain" alt={hospital?.name || "Hospital"} referrerPolicy="no-referrer" />
-              <button onClick={() => setLightboxIdx((lightboxIdx + 1) % allGalleryImages.length)} aria-label="Next image" className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/20 hover:bg-white/40 text-white p-1.5 rounded-full backdrop-blur-sm transition z-10 focus:outline-none focus:ring-2 focus:ring-teal-400"><ArrowRight size={22} /></button>
+              <button onClick={() => setLightboxIdx((lightboxIdx + 1) % allGalleryImages.length)} aria-label="Next image" className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center bg-white/20 hover:bg-white/40 text-white rounded-full backdrop-blur-sm transition duration-200 z-10 focus:outline-none focus:ring-2 focus:ring-teal-400"><ChevronRight size={22} /></button>
             </div>
             <div className="px-4 py-2 bg-gray-50 text-center text-xs text-gray-500 border-t shrink-0">
               {lightboxIdx + 1} / {allGalleryImages.length}

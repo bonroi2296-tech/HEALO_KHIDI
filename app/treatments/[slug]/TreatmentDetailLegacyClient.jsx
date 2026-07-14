@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import {
-  ChevronLeft, ChevronDown,
+  ChevronLeft, ChevronRight, ChevronDown,
   MapPin, Star, Shield, Check, Image as ImageIcon, ArrowRight, Sparkles,
   ShieldCheck, CheckCircle2, MessageCircle, ThumbsUp, Map, UserCheck,
   Clock, FileText, Globe, Activity, AlertTriangle, Syringe, BarChart3
@@ -310,8 +310,8 @@ export const TreatmentDetailPage = ({
           <>
             <div className="md:hidden w-full aspect-[4/3] relative group overflow-hidden rounded-2xl bg-gray-100">
               <img src={galleryImages[currentSlide]} className="w-full h-full object-cover" alt="Main" />
-              <button onClick={prevSlide} aria-label="Previous" className="absolute left-3 top-1/2 -translate-y-1/2 bg-black/20 hover:bg-black/40 text-white p-1.5 rounded-full backdrop-blur-sm transition z-20"><ChevronLeft size={20} /></button>
-              <button onClick={nextSlide} aria-label="Next" className="absolute right-3 top-1/2 -translate-y-1/2 bg-black/20 hover:bg-black/40 text-white p-1.5 rounded-full backdrop-blur-sm transition z-20"><ArrowRight size={20} /></button>
+              <button onClick={prevSlide} aria-label="Previous" className="absolute left-3 top-1/2 -translate-y-1/2 w-9 h-9 flex items-center justify-center bg-black/30 hover:bg-black/50 text-white rounded-full backdrop-blur-sm transition duration-200 z-20"><ChevronLeft size={20} /></button>
+              <button onClick={nextSlide} aria-label="Next" className="absolute right-3 top-1/2 -translate-y-1/2 w-9 h-9 flex items-center justify-center bg-black/30 hover:bg-black/50 text-white rounded-full backdrop-blur-sm transition duration-200 z-20"><ChevronRight size={20} /></button>
               <div className="absolute bottom-3 right-3 z-20">
                 <div className="bg-black/60 backdrop-blur-md text-white px-2.5 py-1 rounded-lg text-[10px] font-bold flex items-center gap-1"><ImageIcon size={10} /> {currentSlide + 1}/{galleryImages.length}</div>
               </div>
