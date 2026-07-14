@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "319034203375",
+    "project_id": "healo-e3e58",
+    "storage_bucket": "healo-e3e58.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:319034203375:android:4aa8f9ff6b62055f40cf1a",
+        "android_client_info": {
+          "package_name": "kr.co.healwith.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBBoDGCq25KmeHBIEsiY8Nf_LC-9y0L0gs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
