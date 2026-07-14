@@ -5,6 +5,14 @@ import { LOCALES, DEFAULT_LOCALE } from "@/lib/i18n/config";
 
 const DEFAULT_LIMIT = 1000;
 
+// ⚠️ 사이트맵은 요청 시마다 실DB로 생성한다(빌드 시점 고정 금지 — POSTMORTEMS #88).
+// 왜: Vercel이 빌드 시점에 구운 사이트맵을 배포를 거듭해도 눌러앉혀, 비공개 처리된
+//     치료 6종이 몇 달째 구글에 "있다"고 광고됐다(열면 404 = 색인 신뢰 훼손).
+//     같은 코드+같은 DB 로컬 빌드는 깨끗했음 = 코드 무죄, 배포 캐시가 범인.
+// 비용: 크롤러가 하루 몇 번 요청하는 수준 + 아래 10초 타임아웃 가드 있음 = 무시 가능.
+// 이득: 치료/병원 공개·비공개가 재배포 없이 사이트맵에 즉시 반영.
+export const dynamic = "force-dynamic";
+
 // 정적 페이지 lastmod는 "요청시각(now)"이 아니라 고정된 콘텐츠 검토일을 쓴다.
 // now 를 쓰면 매 크롤마다 lastmod 가 바뀌어 구글이 lastmod 신호를 불신함(내용은 그대로인데).
 // ⚠️ 정적 페이지 콘텐츠를 의미있게 바꾸면 이 날짜를 올려라.
@@ -47,10 +55,12 @@ export default async function sitemap() {
       
       [treatments, hospitals] = await Promise.race([dataPromise, timeoutPromise]);
     } catch (error) {
-      // 에러 발생 시 빈 배열 반환 (빌드 실패 방지)
-      console.warn("[sitemap] Failed to fetch data:", error?.message);
-      treatments = [];
-      hospitals = [];
+      // DB 순간 장애·타임아웃이면 500으로 실패시킨다 — 크롤러는 5xx면 기존 사이트맵을
+      // 유지하고 재시도하지만, "빈 사이트맵 200"은 의도적 축소로 읽어 상세 URL들이
+      // 크롤 우선순위에서 밀린다(#88 독립 리뷰 지적). force-dynamic 전환으로 이 함수는
+      // 더 이상 빌드에서 안 돌므로 옛 "빌드 실패 방지" 빈 배열 폴백은 폐기.
+      console.warn("[sitemap] data fetch failed — 5xx로 응답(크롤러 재시도 유도):", error?.message);
+      throw error;
     }
   }
 
