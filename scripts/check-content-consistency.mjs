@@ -802,17 +802,21 @@ for (const dir of BACKOFFICE_DIRS) {
   const HISTORICAL_DUPS = new Set(["31", "32", "39", "42", "55", "56", "57", "58", "59", "60", "61", "62"]);
   try {
     const pm = readFileSync(join(ROOT, "docs/POSTMORTEMS.md"), "utf8");
-    const seen = new Map();
+    const seen = new Map(); // 번호 → 등장 행 목록
     pm.split("\n").forEach((line, i) => {
       const m = line.match(/^##+ #(\d+)\b/);
       if (!m) return;
-      const num = m[1];
-      if (seen.has(num) && !HISTORICAL_DUPS.has(num)) {
-        errors.push(`[반성문중복] docs/POSTMORTEMS.md — 반성문 번호 #${num} 이 두 번 발번됨 (${seen.get(num)}행 · ${i + 1}행). 최신 번호는 파일 '상단'에서 확인할 것 — 아래쪽은 옛 항목이라 tail 로 보면 낮은 번호가 나옴 (반성문 #90).`);
-      } else {
-        seen.set(num, i + 1);
-      }
+      const rows = seen.get(m[1]) || [];
+      rows.push(i + 1);
+      seen.set(m[1], rows);
     });
+    for (const [num, rows] of seen) {
+      // 허용목록 번호도 '이미 알려진 2회'까지만 — 3회째부터는 새 발번 사고 (독립 리뷰 지적)
+      const limit = HISTORICAL_DUPS.has(num) ? 2 : 1;
+      if (rows.length > limit) {
+        errors.push(`[반성문중복] docs/POSTMORTEMS.md — 반성문 번호 #${num} 이 ${rows.length}회 발번됨 (${rows.join("행 · ")}행, 허용 ${limit}회). 최신 번호는 파일 '상단'에서 확인할 것 — 아래쪽은 옛 항목이라 tail 로 보면 낮은 번호가 나옴 (반성문 #90).`);
+      }
+    }
   } catch (e) {
     errors.push(`[반성문중복] 검사 실패: ${e.message}`);
   }
