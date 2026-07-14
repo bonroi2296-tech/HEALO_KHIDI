@@ -7,7 +7,10 @@
 
 ---
 
-## 🔖 세션 핸드오프 (2026-07-14 — 구글 색인 대청소: 힐위드 질문 → 결함 4종 수리·가드 3종 신설, PR #743·#747·#749 전부 머지 + 네이버 진단 판정)
+> 💾 **중간 저장 (2026-07-14 오후, 앱스토어 세션 속편 — Firebase 열쇠 2개 머지 완료)**
+> - **📝 정정: 아래 「앱스토어 사전준비」 핸드오프의 "Firebase는 결제 후" 계획이 앞당겨짐** — Firebase는 결제 무관(무료) 확인 후 PO가 즉시 진행. 기존 Firebase 프로젝트 **healo(healo-e3e58)** 재사용(새로 안 만듦), Android·iOS 앱 추가 완료. `google-services.json` **[PR #757](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/757) 머지**(gradle 조건부 플러그인이 자동 인식 — 배선 완비), `GoogleService-Info.plist` **[PR #758](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/758) 머지**. 둘 다 번들/패키지·프로젝트 ID 검증 + audit:secret 0건.
+> - ⚠️ **iOS는 파일만으론 푸시 안 됨(중요)**: 이 프로젝트는 CocoaPods 아닌 **SPM(CapApp-SPM)** 구조라 ①FirebaseMessaging SPM 추가 ②AppDelegate APNs→FCM 토큰 교환 ③pbxproj에 plist 리소스 등록(현재 참조 0건) ④codemagic.yaml `pod install` 단계 손질 — **첫 Codemagic 빌드 때** 컴파일 피드백 보며 진행(윈도우 검증 불가). 상세 = `APP_STORE_LISTING.md` §어시가 할 것.
+> - Codemagic 무료 확인(요금 페이지 실측: 월 500분 맥 M2, 우리 라이브로드 구조는 연 0~2회 빌드라 충분) — PO 가입은 아직. 남은 PO 몫 = 결제 2건 + Codemagic 가입(아무 때나).
 
 **1. 이번 세션 한 일**
 - 시작은 PO 질문 "구글에서 힐위드 검색하면 나오게 어케함?" → GSC(구글 서치콘솔) 실사로 확장, **결함 4종 발견·수리·프로덕션 실측 검증까지 완료**. PR 3개 전부 머지: **[#743](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/743)**(수리 본체) · **[#747](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/747)**(중간저장 문서) · **[#749](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/749)**(사이트맵 유령+야간 가드).
