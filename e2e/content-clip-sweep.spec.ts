@@ -58,6 +58,8 @@ test("공개 페이지에서 읽을 텍스트가 클리핑 경계에 잘리지 �
         const cs = getComputedStyle(node);
         if (cs.transform !== "none") return; // 캐러셀/애니메이션 계열
         if (cs.position === "fixed") return;
+        // 스크롤하라고 만든 영역(표 래퍼 등)은 잘림이 아니라 설계 (독립 리뷰 D1)
+        if (cs.overflowX === "auto" || cs.overflowX === "scroll") return;
         if (node !== el && isClipper(node)) {
           clipper = node;
           break;
@@ -66,9 +68,19 @@ test("공개 페이지에서 읽을 텍스트가 클리핑 경계에 잘리지 �
       }
       // 잘림은 두 형태: ①요소 상자가 경계를 넘음(rect) ②nowrap 텍스트가 자기 상자 안에서
       // 옆으로 흘러넘침(ink overflow — rect는 안 넘지만 글자는 밖에 그려져 잘림). ②는
-      // scrollWidth로 본다(자신이 클리퍼면 자기 설계로 숨긴 것이라 제외).
-      const inkRight = !isClipper(el) ? r.left + el.scrollWidth : r.right;
-      const effRight = Math.max(r.right, inkRight);
+      // "자기 텍스트 노드"만 Range로 실측 — scrollWidth는 자손 상자까지 섞여 장식 자손이
+      // 텍스트 조상 명의로 오탐됨 (독립 리뷰 D1·D2). overflow가 visible일 때만 의미 있음.
+      let effRight = r.right;
+      if (getComputedStyle(el).overflowX === "visible") {
+        for (const n of el.childNodes) {
+          if (n.nodeType === 3 && (n.textContent || "").trim()) {
+            const range = document.createRange();
+            range.selectNodeContents(n);
+            const tr = range.getBoundingClientRect();
+            if (tr.right > effRight) effRight = tr.right;
+          }
+        }
+      }
       // 중간 클리퍼가 없어도 body/html이 전역 overflow-x hidden(healo-tokens.css 모바일
       // 수평스크롤 방지) → 뷰포트 가장자리가 곧 클리핑 경계다 (독립 리뷰 C1 지적)
       let over: number;
@@ -100,10 +112,12 @@ test("공개 페이지에서 읽을 텍스트가 클리핑 경계에 잘리지 �
   ]) {
     const ctx = await browser.newContext({ viewport: { width: vp.width, height: vp.height } });
     const page = await ctx.newPage();
+    // 프로덕션(nightly)은 15초로 총예산 방어, 로컬 dev(main push Full E2E)는 라우트별
+    // 첫 컴파일이 느려 30초 (독립 리뷰 A1·D3)
+    const gotoTimeout = process.env.E2E_SKIP_SERVER === "1" ? 15_000 : 30_000;
     for (const p of paths) {
       try {
-        // 15초: 느린 밤에 66회 로드가 600초 예산을 못 넘게 (독립 리뷰 A1)
-        await page.goto(p, { waitUntil: "domcontentloaded", timeout: 15_000 });
+        await page.goto(p, { waitUntil: "domcontentloaded", timeout: gotoTimeout });
       } catch {
         continue; // 안 열리는 페이지는 sitemap-health 몫 — 여기선 잘림만 본다
       }
