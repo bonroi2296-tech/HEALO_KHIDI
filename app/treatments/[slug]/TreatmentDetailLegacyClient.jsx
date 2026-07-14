@@ -305,6 +305,8 @@ export const TreatmentDetailPage = ({
     setDragX(0);
     setIsDragging(false);
   };
+  // 터치가 시스템에 의해 끊길 때(팝업·탭 전환) 트랙이 어중간하게 멈추지 않게 원위치
+  const onCarouselTouchCancel = () => { touchRef.current = { x: 0, y: 0, axis: null }; setDragX(0); setIsDragging(false); };
 
   const averageRating = realReviews.length > 0
     ? (realReviews.reduce((acc, r) => acc + (r.rating || 5), 0) / realReviews.length).toFixed(1)
@@ -336,7 +338,7 @@ export const TreatmentDetailPage = ({
           </div>
         ) : (
           <>
-            <div className="md:hidden w-full aspect-[4/3] relative group overflow-hidden rounded-2xl bg-gray-100 touch-pan-y" onTouchStart={onCarouselTouchStart} onTouchMove={onCarouselTouchMove} onTouchEnd={onCarouselTouchEnd}>
+            <div className="md:hidden w-full aspect-[4/3] relative group overflow-hidden rounded-2xl bg-gray-100 touch-pan-y" onTouchStart={onCarouselTouchStart} onTouchMove={onCarouselTouchMove} onTouchEnd={onCarouselTouchEnd} onTouchCancel={onCarouselTouchCancel}>
               <div
                 className="flex h-full"
                 style={{
