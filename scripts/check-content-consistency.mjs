@@ -829,8 +829,12 @@ for (const dir of BACKOFFICE_DIRS) {
 //     무죄 — 저장 전 입구에서 막는 게 유일한 차단점. inquiries 에 insert 하는 라우트(동적
 //     탐지)와 intake 패치 라우트(고정)는 hasMojibake(@/lib/inquiry/noMojibake) 가드 필수.
 {
-  // intake 는 insert 가 아니라 기존 행 patch 라 동적 탐지에 안 걸림 → 고정 지정
-  const MUST_GUARD = new Set(["app/api/inquiries/intake/route.ts"]);
+  // intake·step2 는 insert 가 아니라 기존 행 patch/update 라 동적 탐지에 안 걸림 → 고정 지정
+  // (step2 는 실제 퍼널 Step2 가 호출하는 라우트 — 독립 리뷰가 누락 적발)
+  const MUST_GUARD = new Set([
+    "app/api/inquiries/intake/route.ts",
+    "app/api/inquiries/step2/route.ts",
+  ]);
   const INSERTS_INQUIRY_RE = /from\(\s*["']inquiries["']\s*\)\s*[\r\n\s]*\.insert\(/;
   for (const file of walk("app/api")) {
     if (!CODE_EXT.test(file) || EXCLUDE.test(file)) continue;

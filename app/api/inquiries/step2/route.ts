@@ -10,6 +10,7 @@ import { NextRequest } from "next/server";
 import { z } from "zod";
 import { supabaseAdmin, assertSupabaseEnv } from "@/lib/rag/supabaseAdmin";
 import { encryptStringNullable } from "@/lib/security/encryptionV2";
+import { hasMojibake } from "@/lib/inquiry/noMojibake";
 import {
   checkRateLimitPersistent,
   getClientIp,
@@ -56,6 +57,14 @@ export async function POST(request: NextRequest) {
     body = await request.json();
   } catch {
     return Response.json({ ok: false, error: "invalid_json" }, { status: 400 });
+  }
+
+  // 인코딩 깨진 본문(U+FFFD) 거부 — CP949 등으로 깨진 한글이 DB·알림메일에 그대로 박힘 (POSTMORTEMS #92)
+  if (hasMojibake(body)) {
+    return Response.json(
+      { ok: false, error: "broken_encoding", detail: "body contains U+FFFD — send UTF-8" },
+      { status: 400 }
+    );
   }
 
   const parsed = Step2Schema.safeParse(body);
