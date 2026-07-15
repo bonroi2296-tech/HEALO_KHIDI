@@ -27,6 +27,7 @@ import { rosterName, isValidOpinionDoctorKey } from "@/lib/opinions/roster";
 import { notifyStaffOpinionArrived } from "@/lib/notifications/inApp";
 import { logAdminAction, getIpFromRequest, getUserAgentFromRequest } from "@/lib/audit/adminAuditLog";
 import { translateMedicalDoc } from "@/lib/documents/translateDoc";
+import { hasMojibake } from "@/lib/inquiry/noMojibake";
 
 // 코디가 문의상세에서 이미 만들어둔 AI 케이스 브리프(한국어 요약)를 그대로 재사용.
 // 원문(러시아어 등)·미기재 필드보다 훨씬 낫다 — 새로 만들지 않고 캐시만 복호화해서 보여준다.
@@ -198,6 +199,15 @@ export async function POST(
     }
 
     const body = await request.json().catch(() => ({}));
+
+    // 인코딩 깨진 본문(U+FFFD) 거부 — 깨진 한글이 DB·알림메일에 그대로 박힘 (POSTMORTEMS #92)
+    if (hasMojibake(body)) {
+      return Response.json(
+        { ok: false, error: "broken_encoding", detail: "body contains U+FFFD — send UTF-8" },
+        { status: 400 }
+      );
+    }
+
     const doctorKey = body?.doctorKey;
     const opinionText = typeof body?.opinionText === "string" ? body.opinionText.trim() : "";
 

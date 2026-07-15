@@ -831,9 +831,16 @@ for (const dir of BACKOFFICE_DIRS) {
 {
   // intake·step2 는 insert 가 아니라 기존 행 patch/update 라 동적 탐지에 안 걸림 → 고정 지정
   // (step2 는 실제 퍼널 Step2 가 호출하는 라우트 — 독립 리뷰가 누락 적발)
+  // 2026-07-15 확장(PO 승인): 자유텍스트를 다른 테이블에 쓰는 공개/포털 경로 + AI챗(승격 시
+  // inquiries 로 흘러감 — src/lib/chat/publicChatHelpers.ts 는 app/api 밖이라 입구에서 차단).
   const MUST_GUARD = new Set([
     "app/api/inquiries/intake/route.ts",
     "app/api/inquiries/step2/route.ts",
+    "app/api/portal/symptoms/route.ts",
+    "app/api/opinions/[token]/route.ts",
+    "app/api/public/chat/start/route.ts",
+    "app/api/public/chat/message/route.ts",
+    "app/api/public/chat/stream/route.ts",
   ]);
   const INSERTS_INQUIRY_RE = /from\(\s*["']inquiries["']\s*\)\s*[\r\n\s]*\.insert\(/;
   for (const file of walk("app/api")) {
