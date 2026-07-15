@@ -21,7 +21,7 @@ import {
 import "@livekit/components-styles";
 import "./consultation.css"; // 미트식 발화자 테두리(teal)·1:1 PiP 보정 — LiveKit 기본 덮어쓰기
 import { COPY } from "./_roomCopy";
-import { Track, ConnectionState, VideoPresets, RoomEvent, DisconnectReason } from "livekit-client";
+import { Track, ConnectionState, VideoPresets, RoomEvent, DisconnectReason, ConnectionCheck, CheckStatus } from "livekit-client";
 
 // LiveKit 방 옵션 — 화질 보강: 1080p 캡처 + 명시적 1080p 인코딩.
 // adaptiveStream: 작은 타일엔 저화질 자동(대역폭 절약), 큰 화면엔 고화질. dynacast: 안 보는 트랙 안 보냄.
@@ -1359,6 +1359,74 @@ export default function ConsultationRoomPage() {
     reportClientEventRef.current = reportClientEvent;
   }, [reportClientEvent]);
 
+  // ── 입장 전 연결 사전점검 (안전망 ①, 2026-07-15 PO 승인) ──
+  // 회사·기관망의 영상 차단이 '입장 후 18초 타임아웃'에서야 드러나던 것(7/14 실회의)을
+  // 입장 폼 단계에서 미리 검사: 일회용 토큰으로 웹소켓+WebRTC 경로만 확인하고 버린다.
+  // 결과는 안내일 뿐 입장을 막지 않는다(오탐으로 사람을 문 앞에서 돌려세우지 않기).
+  const [preflightStatus, setPreflightStatus] = useState(""); // "" | checking | ok | blocked
+  const preflightRanRef = useRef(false);
+  useEffect(() => {
+    if (checkingAuth || !isGuestMode || livekitToken || sessionTakenOver) return;
+    if (preflightRanRef.current) return;
+    preflightRanRef.current = true;
+    let cancelled = false;
+    (async () => {
+      let creds = null;
+      try {
+        setPreflightStatus("checking");
+        const headers = await getConsultAuthHeaders();
+        if (!headers) return void setPreflightStatus("");
+        const res = await fetch(
+          `/api/khidi/consultation/${consultationId}/preflight-token`,
+          { method: "POST", headers }
+        );
+        const data = await res.json();
+        if (!data.ok) return void setPreflightStatus(""); // 점검 불가 = 조용히 생략(안내 없음)
+        creds = data;
+      } catch {
+        if (!cancelled) setPreflightStatus(""); // 토큰 획득 실패 ≠ 네트워크 차단 — 오탐 방지 위해 무안내
+        return;
+      }
+      try {
+        const checker = new ConnectionCheck(creds.livekitUrl, creds.token);
+        const withTimeout = (p) =>
+          Promise.race([
+            p,
+            new Promise((_, rej) => setTimeout(() => rej(new Error("preflight timeout")), 12000)),
+          ]);
+        const ws = await withTimeout(checker.checkWebsocket());
+        const rtc = await withTimeout(checker.checkWebRTC());
+        if (cancelled) return;
+        const ok =
+          ws?.status === CheckStatus.SUCCESS && rtc?.status === CheckStatus.SUCCESS;
+        setPreflightStatus(ok ? "ok" : "blocked");
+        if (!ok) {
+          reportClientEvent(
+            "connect_error",
+            `preflight blocked ws=${ws?.status} rtc=${rtc?.status}`
+          );
+        }
+      } catch {
+        // 검사 자체가 던지면(타임아웃 포함) 차단 가능성이 높은 환경
+        if (!cancelled) {
+          setPreflightStatus("blocked");
+          reportClientEvent("connect_error", "preflight blocked (check threw/timeout)");
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    checkingAuth,
+    isGuestMode,
+    livekitToken,
+    sessionTakenOver,
+    consultationId,
+    getConsultAuthHeaders,
+    reportClientEvent,
+  ]);
+
   // 서버 메시지 row(message/sender_role) → 렌더 형태(message_text/sender_name)로 정규화
   const normalizeMsg = useCallback((row) => ({
     id: row.id,
@@ -1935,6 +2003,25 @@ export default function ConsultationRoomPage() {
               )}
             </div>
             <p className="text-xs text-gray-400 -mt-1">{c.cameraPreviewHint}</p>
+
+            {/* 입장 전 연결 사전점검 결과 — 차단 의심이면 입장 '전'에 핫스팟 안내 (안전망 ①) */}
+            {preflightStatus && (
+              <div
+                className={`text-xs rounded-lg px-3 py-2 leading-snug ${
+                  preflightStatus === "ok"
+                    ? "bg-teal-900/40 text-teal-200"
+                    : preflightStatus === "checking"
+                    ? "bg-gray-700/50 text-gray-300"
+                    : "bg-amber-500/10 border border-amber-500/40 text-amber-200"
+                }`}
+              >
+                {preflightStatus === "checking"
+                  ? c.preflightChecking
+                  : preflightStatus === "ok"
+                  ? c.preflightOk
+                  : `⚠️ ${c.connectNetworkTip}`}
+              </div>
+            )}
 
             {/* 내가 말하는 언어 — 사이트 언어로 미리 선택돼 있음, 자막·번역 방향 결정 */}
             <div>
