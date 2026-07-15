@@ -1476,7 +1476,12 @@ export default function ConsultationRoomPage() {
 
     try {
       const headers = await getConsultAuthHeaders();
-      if (!headers) return;
+      if (!headers) {
+        // 인증 헤더 없음도 조용히 삼키지 않는다(리뷰 지적, 채팅 무증상 삼킴과 동일 부류)
+        toast.error(c.sendFailed);
+        setMessageInput(text);
+        return;
+      }
       const res = await fetch(`/api/khidi/consultation/${consultationId}/messages`, {
         method: "POST",
         headers: { "Content-Type": "application/json", ...headers },
