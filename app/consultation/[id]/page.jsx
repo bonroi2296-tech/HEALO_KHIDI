@@ -1359,6 +1359,19 @@ export default function ConsultationRoomPage() {
     reportClientEventRef.current = reportClientEvent;
   }, [reportClientEvent]);
 
+  // 통화 중 실수 이탈 방지 — 탭 닫기·새로고침·(문서 이탈형) 뒤로가기에 브라우저 확인창.
+  // ponytail: 앱 내부(SPA) 뒤로가기는 App Router 가 차단 API 를 안 줘 미커버 — 대신 통화 중
+  // 헤더 ← 을 숨겨(위 정책) 앱 내 이탈 동선 자체를 없앰. 정밀 차단이 필요해지면 history 트랩.
+  useEffect(() => {
+    if (!connected) return;
+    const warn = (e) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [connected]);
+
   // ── 입장 전 연결 사전점검 (안전망 ①, 2026-07-15 PO 승인) ──
   // 회사·기관망의 영상 차단이 '입장 후 18초 타임아웃'에서야 드러나던 것(7/14 실회의)을
   // 입장 폼 단계에서 미리 검사: 일회용 토큰으로 웹소켓+WebRTC 경로만 확인하고 버린다.
@@ -2126,25 +2139,27 @@ export default function ConsultationRoomPage() {
     !!livekitToken && (admissionStatus === "pending" || admissionStatus === "rejected");
 
   // ── 컨트롤 버튼 (헤더에서 공용 재사용 — 중복 정의 방지) ──
+  // 컨트롤 버튼 공통 문법(2026-07-15 PO): 아이콘 위 + 짧은 라벨 아래(모바일 포함 항상 표시) —
+  // 아이콘만으론 연령대 높은 사용자가 뜻을 못 알아봄. 상태는 색으로(켜짐 teal / 꺼짐·종료 red).
   const endButton = (
     <button
       onClick={handleEndCall}
-      className="px-4 py-2.5 rounded-lg bg-red-600 hover:bg-red-700 transition flex items-center gap-1.5 text-sm font-medium"
+      className="hw-ctrl-btn rounded-lg bg-red-600 hover:bg-red-700 transition font-medium text-white"
     >
-      <Phone size={16} /> <span className="hidden sm:inline">{c.endCall}</span>
+      <Phone size={18} /> <span>{c.endCall}</span>
     </button>
   );
 
+  // 「통역」(시작/중지)과 헷갈리던 쌍둥이 해소 — 이 버튼 라벨은 「언어」 하나로 고정,
+  // 언어쌍 문자열은 시트·번역 입력줄에서만 (PO 제보: 두 버튼이 같은 "한국어→EN"으로 보임)
   const languageButton = (
     <button
       onClick={() => setLangSheetOpen(true)}
       title={c.langChangeTitle}
-      className="px-3 py-2.5 rounded-lg bg-gray-700 hover:bg-gray-600 text-gray-200 transition flex items-center gap-1.5 text-xs"
+      className="hw-ctrl-btn rounded-lg bg-gray-700 hover:bg-gray-600 text-gray-200 transition"
     >
       <Globe size={18} />
-      <span className="hidden md:inline">
-        {LANG_LABELS[myLang]} → {LANG_LABELS[targetLang]}
-      </span>
+      <span>{c.ctrlLang}</span>
     </button>
   );
 
@@ -2152,7 +2167,7 @@ export default function ConsultationRoomPage() {
     <>
       <button
         onClick={toggleTranslation}
-        className={`px-3 py-2.5 rounded-lg text-sm font-medium flex items-center gap-2 transition ${
+        className={`hw-ctrl-btn relative rounded-lg font-medium transition ${
           translationEnabled
             ? "bg-teal-700 hover:bg-teal-800 text-white"
             : "bg-gray-700 hover:bg-gray-600 text-gray-200"
@@ -2160,24 +2175,21 @@ export default function ConsultationRoomPage() {
         title={translationEnabled ? c.stopTranslation : c.startTranslation}
       >
         <Languages size={18} />
-        <span className="hidden sm:inline">
-          {translationEnabled
-            ? `${LANG_LABELS[myLang]} → ${LANG_LABELS[targetLang]}`
-            : c.interpretation}
-        </span>
+        <span>{c.interpretation}</span>
         {translationEnabled && isTranslating && (
-          <span className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse" />
+          <span className="absolute top-1 right-1 w-2 h-2 bg-yellow-400 rounded-full animate-pulse" />
         )}
       </button>
       <button
         onClick={() => setPanelOpen((v) => !v)}
         aria-label="Toggle chat panel"
-        className={`relative p-2.5 rounded-lg transition ${
+        className={`hw-ctrl-btn relative rounded-lg transition ${
           panelOpen ? "bg-teal-700 text-white" : "bg-gray-700 hover:bg-gray-600 text-gray-200"
         }`}
         title={c.togglePanel}
       >
         <MessageSquare size={18} />
+        <span>{c.ctrlChat}</span>
         {!panelOpen && translations.length + messages.length > 0 && (
           <span className="absolute -top-1 -right-1 bg-teal-700 text-white text-[10px] leading-none px-1 py-0.5 rounded-full">
             {translations.length + messages.length > 9
@@ -2195,20 +2207,24 @@ export default function ConsultationRoomPage() {
       <div className="bg-gray-800 border-b border-gray-700 px-3 py-2 md:px-6 md:py-3">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 md:gap-4 min-w-0">
-            <button
-              onClick={() => {
-                // 초대 링크를 새 탭·직접 입력으로 연 경우 방문 기록이 없어 router.back()이
-                // 무반응(2026-07-15 PO 제보) → 기록 없으면 역할별 홈으로 보낸다.
-                if (window.history.length > 1) router.back();
-                else if (myRole === "admin") router.push("/admin/consultations");
-                else if (myRole === "coordinator") router.push("/coordinator");
-                else router.push("/");
-              }}
-              aria-label="Back"
-              className="p-2 hover:bg-gray-700 rounded-lg transition shrink-0"
-            >
-              <ChevronLeft size={24} />
-            </button>
+            {/* 통화 연결 중엔 ← 숨김(줌·미트 문법) — 한 번 스치면 확인 없이 통화에서 나가지는
+                함정 방지(2026-07-15 PO 실경험·정책 확정). 나가는 문 = 빨간 「종료」(확인창 있음)만. */}
+            {!connected && (
+              <button
+                onClick={() => {
+                  // 초대 링크를 새 탭·직접 입력으로 연 경우 방문 기록이 없어 router.back()이
+                  // 무반응(2026-07-15 PO 제보) → 기록 없으면 역할별 홈으로 보낸다.
+                  if (window.history.length > 1) router.back();
+                  else if (myRole === "admin") router.push("/admin/consultations");
+                  else if (myRole === "coordinator") router.push("/coordinator");
+                  else router.push("/");
+                }}
+                aria-label="Back"
+                className="p-2 hover:bg-gray-700 rounded-lg transition shrink-0"
+              >
+                <ChevronLeft size={24} />
+              </button>
+            )}
             <div className="min-w-0">
               <h1 className="text-base md:text-lg font-bold truncate">
                 {consultation?.cancer_patient_intakes?.[0]?.cancer_type || c.consultationFallback}
@@ -2482,11 +2498,13 @@ export default function ConsultationRoomPage() {
               </div>
               {/* 단순 컨트롤 — 기기 선택 메뉴 없이 켜기/끄기만.
                   소리는 기기 기본 출력(이어폰 연결 시 이어폰), 카메라는 기본(전면) 1개 */}
-              <div className="lk-control-bar flex-wrap" style={{ justifyContent: "center" }}>
-                <TrackToggle source={Track.Source.Microphone} />
-                <TrackToggle source={Track.Source.Camera} />
-                <TrackToggle source={Track.Source.ScreenShare} className="hidden sm:inline-flex" />
-                <span className="hidden sm:block w-px h-7 bg-gray-600 mx-1" />
+              <div className="lk-control-bar hw-controls flex-wrap" style={{ justifyContent: "center" }}>
+                <TrackToggle source={Track.Source.Microphone}>{c.ctrlMic}</TrackToggle>
+                <TrackToggle source={Track.Source.Camera}>{c.ctrlCam}</TrackToggle>
+                <TrackToggle source={Track.Source.ScreenShare} className="hidden sm:inline-flex">
+                  {c.ctrlShare}
+                </TrackToggle>
+                <span className="hidden sm:block w-px h-9 bg-gray-600 mx-1 self-center" />
                 {sessionActions}
                 {languageButton}
                 {endButton}
