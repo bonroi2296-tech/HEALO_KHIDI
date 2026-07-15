@@ -112,3 +112,6 @@ playwright-report/
 # ⚠️ 미추적+비ignore 로 두면 git clean -fd 에 쓸려 사라진다 (POSTMORTEM #34).
 #    재생성 불가한 자산(로고 등)은 ignore 말고 반드시 git 에 커밋해서 추적시킬 것.
 lighthouse/
+
+# 다운로드한 참고 문서(대용량 PDF/ZIP) — 저장소에 커밋 안 함
+KHIDI_유치문서/
