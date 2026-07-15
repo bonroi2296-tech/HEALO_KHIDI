@@ -21,7 +21,7 @@ import {
 import "@livekit/components-styles";
 import "./consultation.css"; // 미트식 발화자 테두리(teal)·1:1 PiP 보정 — LiveKit 기본 덮어쓰기
 import { COPY } from "./_roomCopy";
-import { Track, ConnectionState, VideoPresets, RoomEvent } from "livekit-client";
+import { Track, ConnectionState, VideoPresets, RoomEvent, DisconnectReason } from "livekit-client";
 
 // LiveKit 방 옵션 — 화질 보강: 1080p 캡처 + 명시적 1080p 인코딩.
 // adaptiveStream: 작은 타일엔 저화질 자동(대역폭 절약), 큰 화면엔 고화질. dynacast: 안 보는 트랙 안 보냄.
@@ -538,9 +538,15 @@ function VideoGrid() {
   }
 
   return (
-    <GridLayout tracks={tracks} style={{ height: "100%" }}>
-      <ParticipantTile onParticipantClick={pinFromEvent} />
-    </GridLayout>
+    // 갤러리 폭 상한 — 채팅 닫힌 초광폭 화면에서 3~4인 타일이 옆으로 퍼지는 것 방지(2026-07-15 PO 제보:
+    // "채팅창 키면 적당해짐" = 적정 폭이 곧 상한값의 근거). ponytail: 화면높이×1.78(16:9 두 줄 기준) 휴리스틱.
+    <div className="h-full flex justify-center">
+      <div className="h-full w-full" style={{ maxWidth: "calc((100vh - 8rem) * 1.78)" }}>
+        <GridLayout tracks={tracks} style={{ height: "100%" }}>
+          <ParticipantTile onParticipantClick={pinFromEvent} />
+        </GridLayout>
+      </div>
+    </div>
   );
 }
 
@@ -657,6 +663,8 @@ export default function ConsultationRoomPage() {
   // 입장 시 자동 켜기에서 마이크가 실패했을 때 경고 — '켠 줄 아는데 무음' 방지 (장치 있는 기기만)
   const [micActivationFailed, setMicActivationFailed] = useState(false);
   const [micFailureReason, setMicFailureReason] = useState("");
+  // 같은 신분(identity)으로 다른 탭·기기가 입장해 이 화면이 밀려난 상태 — 재연결 경쟁 금지(새 세션 승리)
+  const [sessionTakenOver, setSessionTakenOver] = useState(false);
 
   // Guest mode state
   const [guestName, setGuestName] = useState("");
@@ -743,7 +751,8 @@ export default function ConsultationRoomPage() {
   // (PO 지시 2026-07-02: 권한은 시스템 권한창으로만. 방 안 커스텀 버튼 없음 → 입장 후엔 자동 켜기)
   // 실패는 원인별로 구분: 권한 차단(previewBlocked=허용 안내) vs 장치 없음(previewNoDevice=차분한 안내).
   useEffect(() => {
-    if (checkingAuth || !isGuestMode || livekitToken) return;
+    // sessionTakenOver: 밀려나 정지된 화면이 백그라운드에서 카메라를 다시 잡지 않게
+    if (checkingAuth || !isGuestMode || livekitToken || sessionTakenOver) return;
     let cancelled = false;
     (async () => {
       try {
@@ -773,7 +782,7 @@ export default function ConsultationRoomPage() {
       cancelled = true;
       stopPreview();
     };
-  }, [checkingAuth, isGuestMode, livekitToken, stopPreview]);
+  }, [checkingAuth, isGuestMode, livekitToken, stopPreview, sessionTakenOver]);
 
   // "브라우저에서 열기"가 조용히 막히는 메신저(왓츠앱·텔레그램 등) 폴백 —
   // 인앱 브라우저 상당수가 외부 이동(intent/스킴)을 차단해 버튼이 눌러도 아무 일이 없다.
@@ -1800,6 +1809,27 @@ export default function ConsultationRoomPage() {
     router.push("/");
   };
 
+  // ── 이중 접속으로 밀려난 화면 — 새 세션에 양보하고 여기서 정지 (재연결 핑퐁 금지) ──
+  if (sessionTakenOver) {
+    return (
+      <div className="w-full h-screen flex items-center justify-center bg-gray-900 text-white">
+        <div className="text-center max-w-sm px-6">
+          <div className="w-14 h-14 rounded-full bg-amber-500/15 text-amber-300 flex items-center justify-center mx-auto mb-4">
+            <Users size={26} />
+          </div>
+          <h2 className="text-lg font-bold mb-2">{c.takenOverTitle}</h2>
+          <p className="text-sm text-gray-400 leading-relaxed mb-6">{c.takenOverBody}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-5 py-2.5 bg-teal-700 hover:bg-teal-800 rounded-lg font-semibold"
+          >
+            {c.takenOverRejoin}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   // ── Guest mode: 이름 입력 폼 먼저 표시 (staff 여부 판정이 끝난 뒤에만) ──
   if (isGuestMode && !livekitToken && !checkingAuth) {
     // 모바일: 인사말 압축 + 이름칸 상단 + 하단 고정 입장 바 — 첫 화면에 "뭘 해야 하는지"가
@@ -2079,7 +2109,14 @@ export default function ConsultationRoomPage() {
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 md:gap-4 min-w-0">
             <button
-              onClick={() => router.back()}
+              onClick={() => {
+                // 초대 링크를 새 탭·직접 입력으로 연 경우 방문 기록이 없어 router.back()이
+                // 무반응(2026-07-15 PO 제보) → 기록 없으면 역할별 홈으로 보낸다.
+                if (window.history.length > 1) router.back();
+                else if (myRole === "admin") router.push("/admin/consultations");
+                else if (myRole === "coordinator") router.push("/coordinator");
+                else router.push("/");
+              }}
               aria-label="Back"
               className="p-2 hover:bg-gray-700 rounded-lg transition shrink-0"
             >
@@ -2241,7 +2278,16 @@ export default function ConsultationRoomPage() {
                 setConnectError(false);
                 setConnectErrorDetail("");
               }}
-              onDisconnected={() => setConnected(false)}
+              onDisconnected={(reason) => {
+                setConnected(false);
+                // 같은 신분으로 다른 탭·기기가 새로 입장(DUPLICATE_IDENTITY) → 이 화면은 양보하고 정지.
+                // 예전엔 두 탭이 서로 연결을 도로 뺏으며 핑퐁('붙었다 끊겼다') — 2026-07-15 PO 제보·정책 확정.
+                if (reason === DisconnectReason.DUPLICATE_IDENTITY) {
+                  setSessionTakenOver(true);
+                  setLivekitToken(""); // 연결 워치독·재시도 루프 중지
+                  reportClientEvent("connect_error", "duplicate identity takeover - this tab yielded");
+                }
+              }}
               onError={(e) => {
                 console.error("[livekit] error:", e?.message);
                 // "Client initiated disconnect" = 사용자 나가기·재시도 리마운트의 정상 종료 신호 —
