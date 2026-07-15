@@ -29,6 +29,8 @@ const L = {
   recEmergency: { ko: '즉시 응급 서비스에 연락하세요', en: 'Contact emergency services immediately', ru: 'Немедленно обратитесь в скорую помощь', kz: 'Дереу жедел жәрдемге хабарласыңыз', zh: '请立即联系急救服务', ja: 'ただちに救急サービスに連絡してください' },
   rebookConfirm: { ko: '재진 예약 확인', en: 'Confirm follow-up booking', ru: 'Подтвердить запись', kz: 'Қайта жазылуды растау', zh: '确认复诊预约', ja: '再診予約を確認' },
   loginRequired: { ko: '로그인이 필요합니다', en: 'Please log in first', ru: 'Войдите в систему', kz: 'Жүйеге кіріңіз', zh: '请先登录', ja: 'ログインしてください' },
+  submitFailed: { ko: '제출에 실패했습니다. 잠시 후 다시 시도해주세요.', en: 'Submission failed. Please try again shortly.', ru: 'Не удалось отправить. Повторите попытку позже.', kz: 'Жіберу сәтсіз аяқталды. Кейінірек қайталап көріңіз.', zh: '提交失败，请稍后重试。', ja: '送信に失敗しました。しばらくしてからもう一度お試しください。' },
+  brokenEncoding: { ko: '입력에 깨진 문자(�)가 있어요. 지우고 다시 제출해주세요.', en: 'Your input contains a broken character (�). Please remove it and resubmit.', ru: 'В тексте есть повреждённый символ (�). Удалите его и отправьте снова.', kz: 'Мәтінде бүлінген таңба (�) бар. Оны өшіріп, қайта жіберіңіз.', zh: '输入中包含损坏字符（�），请删除后重新提交。', ja: '入力に壊れた文字（�）が含まれています。削除して再送信してください。' },
   loginBtn: { ko: '로그인', en: 'Log In', ru: 'Войти', kz: 'Кіру', zh: '登录', ja: 'ログイン' },
   placeholders: {
     name: { ko: '예: 두통, 구토, 피로감', en: 'e.g. headache, nausea, fatigue', ru: 'напр. головная боль, тошнота', kz: 'мыс. бас ауруы, жүрек айну', zh: '如：头痛、恶心、疲劳', ja: '例：頭痛、吐き気、疲労' },
@@ -52,6 +54,7 @@ export default function SymptomsClient() {
   const [submitting, setSubmitting] = useState(false);
   const [symptoms, setSymptoms] = useState([{ name: '', severity: 5, duration: '' }]);
   const [result, setResult] = useState(null);
+  const [submitError, setSubmitError] = useState(null);
   const [previousReports, setPreviousReports] = useState([]);
   const [showPrevious, setShowPrevious] = useState(false);
 
@@ -99,6 +102,7 @@ export default function SymptomsClient() {
 
     setSubmitting(true);
     setResult(null);
+    setSubmitError(null);
 
     try {
       const res = await fetch('/api/portal/symptoms', {
@@ -122,9 +126,13 @@ export default function SymptomsClient() {
         setResult(data.analysis || data);
         setSymptoms([{ name: '', severity: 5, duration: '' }]);
         if (data.saved && user?.access_token) await loadReports(user.access_token);
+      } else {
+        // 실패가 무증상(스피너만 멈춤)으로 끝나던 구멍 — 깨진 문자 거부(#92)는 원인까지 안내
+        setSubmitError(l(data.error === 'broken_encoding' ? L.brokenEncoding : L.submitFailed));
       }
     } catch (e) {
       console.error('Submit error:', e);
+      setSubmitError(l(L.submitFailed));
     }
     setSubmitting(false);
   };
@@ -233,6 +241,12 @@ export default function SymptomsClient() {
             {submitting ? l(L.submitting) : l(L.submit)}
           </button>
         </div>
+        {submitError && (
+          <p className="mt-3 text-sm text-red-600 flex items-center gap-1.5">
+            <AlertTriangle size={14} />
+            {submitError}
+          </p>
+        )}
       </div>
 
       {/* Analysis Result */}

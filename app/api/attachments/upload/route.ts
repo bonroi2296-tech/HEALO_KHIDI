@@ -118,7 +118,9 @@ export async function POST(request: NextRequest) {
       {
         ok: true,
         path: filePath,
-        name: file.name,
+        // U+FFFD 세척: zip 등에서 깨진 키릴 파일명이 그대로 돌아가면 클라가 이후 요청 본문에
+        // 실어 보내다 인코딩 가드(#92)에 계속 400으로 막힘 — 표시용 이름이라 제거해도 무손실.
+        name: file.name.replace(/�/g, ""),
         type: file.type,
       },
       { headers: getRateLimitHeaders(rl) }
