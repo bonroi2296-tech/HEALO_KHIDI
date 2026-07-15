@@ -22,6 +22,7 @@ import { logRateLimitExceeded, logEncryptionFailed, logInquiryReceived, logInqui
 import { trackFunnelEvent } from "@/lib/events/funnelTracking";
 import { checkBlockRate } from "@/lib/alerts/operationalAlerts";
 import { sendAdminNotification } from "@/lib/notifications/adminNotifier";
+import { hasMojibake } from "@/lib/inquiry/noMojibake";
 
 export async function POST(request: NextRequest) {
   assertSupabaseEnv();
@@ -65,6 +66,15 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json().catch(() => ({}));
+
+    // 인코딩 깨진 본문(U+FFFD) 거부 — CP949 등으로 깨진 한글이 DB·알림메일에 그대로 박힘 (POSTMORTEMS #92)
+    if (hasMojibake(body)) {
+      return Response.json(
+        { ok: false, error: "broken_encoding", detail: "body contains U+FFFD — send UTF-8" },
+        { status: 400 }
+      );
+    }
+
     const inquiryId = body?.inquiryId != null
       ? (typeof body.inquiryId === "number" ? body.inquiryId : Number(body.inquiryId))
       : null;
