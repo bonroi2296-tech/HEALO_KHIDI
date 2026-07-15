@@ -6,6 +6,17 @@
 
 ---
 
+## 2026-07-15 축 C #2 (유형 6 — 컬럼레벨 schema-refs + stale 생성타입 발견·재생성 + 실버그 2건)
+
+- 작업: `check:schema-refs`를 테이블 레벨 → **평문 select 컬럼 레벨**로 확장(생성타입 `src/types/database.types.ts` 대조, 비차단·경고).
+- **발견①(도구가 도구를 고침)**: 확장 직후 22건 경고 → 전부 실재 컬럼이라 이상 → 생성타입이 **stale**(inquiries 35 vs 실DB 61 컬럼, Supabase MCP 실측)임을 발견. **생성타입 재생성**(148KB, 26컬럼 복원) = #63 문서-현실 드리프트를 코드 타입에 적용.
+- **발견②(실버그 2건 수확, DB 실측 대조)**: 재생성 후에도 남은 = 진짜 없는 컬럼 참조 →
+  1. 🟡 `reminders/scheduleReminder.ts:237` profiles 없는컬럼 5개(email·phone·name_ko·name_en·preferred_lang) → 등록사용자 리마인더 연락처 조용히 실패. 연락처 출처 데이터모델 결정 필요(PO) → KNOWN_ISSUES.
+  2. 🟢 `crawl/jobs/[id]/items/route.ts:39` crawl_raw_items.name(실=title) → KNOWN_ISSUES.
+- 정책: 컬럼레벨 우선 비차단(경고) — 재생성 직후 파서 엣지 대비. 안정 후 blocking 승격.
+- rubric DoD-6 + DEFINITION_OF_DONE + KNOWN_ISSUES 동기 갱신.
+- 의미: 유형6 가드 확장 한 번에 (a)stale 타입 발견·수리 (b)조용한 0 실버그 2건을 PO 화면 없이 수확 = 완성도 루프가 "그물 밖 통로"를 실제로 메움.
+
 ## 2026-07-15 축 C #1 (범위 무한정화 — 유형 1·5 가드 확장 + 실누출 수확)
 
 - 작업: check:content 한글누출 가드 2룰(§4 줄단위·§7 파일단위)의 폴더 화이트리스트(app/patient+3폴더)를 `isPublicFacingFile()`(공개 화이트리스트 ∧ ¬백오피스 ∧ ¬api) 판정으로 확장 + 동적링크 404 검사 app/→src/ 확장.

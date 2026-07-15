@@ -8,7 +8,8 @@
  *     → 결국 PO가 화면에서 발견. 그걸 막으려 코드의 `.from("테이블")` 리터럴이
  *     실재 public 테이블인지 매 PR 검사한다.
  *
- * 범위: 테이블 레벨(견고·오탐 0 목표). 컬럼 레벨 대조는 후속(생성타입 도입과 함께).
+ * 범위: 테이블 레벨(견고·오탐 0, 차단) + 평문 select 컬럼 레벨(생성타입 대조, 비차단·경고).
+ *        축 C(2026-07-15)에 컬럼 레벨 추가 — 상세는 아래 buildColumnMap 주석.
  *
  * 스냅샷 재생성(스키마 바뀌면):
  *   Supabase MCP list_tables(public) 또는
@@ -67,6 +68,35 @@ function walk(dir, out) {
   }
 }
 
+// ── 컬럼 레벨 대조 (축 C 2026-07-15 — 유형6: cron/KPI 가 없는 컬럼 select→조용한 0) ──
+// 왜: #7(visit_confirmed_at)·#35 처럼 존재하지 않는 '컬럼'을 select 하면 PostgREST 가 에러를
+//     내는데 try/catch 가 삼켜 화면에 0/[] 로 떨어진다. 생성타입(src/types/database.types.ts)의
+//     Row 컬럼 집합과 대조해 매 PR 차단. 오탐 0 목표라 **가장 안전한 패턴만** 본다:
+//     `.from("t").select("평문,컬럼,목록")` — select 인자에 *·(·:·.·->·${…} 가 있으면(임베드/별칭/
+//     JSON/동적) 통째로 건너뜀. 필터(.eq 등)·insert 객체키는 임베드·동적 위험이 커 이번 범위 밖.
+function buildColumnMap() {
+  const map = new Map();
+  let types;
+  try { types = fs.readFileSync(path.join("src", "types", "database.types.ts"), "utf8"); }
+  catch { return map; }
+  // "      table: {\n        Row: {\n  <cols>  \n        }" (public.Tables·Views 공통)
+  const tableRe = /^ {6}(\w+): \{\n {8}Row: \{\n([\s\S]*?)\n {8}\}/gm;
+  let m;
+  while ((m = tableRe.exec(types)) !== null) {
+    const cols = new Set();
+    for (const line of m[2].split("\n")) {
+      const cm = /^ {10}(\w+)\??:/.exec(line);
+      if (cm) cols.add(cm[1]);
+    }
+    if (cols.size) map.set(m[1], cols);
+  }
+  return map;
+}
+const COLUMN_MAP = buildColumnMap();
+const colViolations = [];
+// select 인자가 '평문 컬럼 목록'인지: 임베드/별칭/JSON/함수/동적 신호가 하나도 없어야 함.
+const PLAIN_SELECT = /^[\w,\s]+$/;
+
 const FROM_RE = /\.from\(\s*["'`]([A-Za-z_][\w]*)["'`]/g;
 
 const violations = [];
@@ -94,6 +124,25 @@ for (const root of ROOTS) {
       const trimmed = lineHead.trimStart();
       if (trimmed.startsWith("//") || trimmed.startsWith("*") || lineHead.includes("//")) continue;
 
+      // 2.5) 컬럼 레벨: `.from("t").select("평문,컬럼")` 만 대조(가장 안전한 패턴).
+      //      window 를 다음 `.from(` 전까지로 잘라 이웃 쿼리의 select 를 오인하지 않게 한다.
+      if (COLUMN_MAP.has(name)) {
+        let win = content.slice(idx + 6, idx + 600);
+        const nextFrom = win.search(/\.from\(/);
+        if (nextFrom !== -1) win = win.slice(0, nextFrom);
+        const sel = /\.select\(\s*(["'])([^"'`\n]*)\1/.exec(win);
+        if (sel && PLAIN_SELECT.test(sel[2]) && sel[2].trim()) {
+          const cols = COLUMN_MAP.get(name);
+          for (const raw of sel[2].split(",")) {
+            const col = raw.trim();
+            if (col && /^\w+$/.test(col) && !cols.has(col)) {
+              const line = content.slice(0, idx).split("\n").length;
+              colViolations.push({ table: name, col, rel: `${file}:${line}` });
+            }
+          }
+        }
+      }
+
       // 3) 실재 테이블이면 OK
       if (PUBLIC_TABLES.has(name)) continue;
 
@@ -119,4 +168,13 @@ if (violations.length) {
   process.exit(1);
 }
 
-console.log("✓ 스키마 참조 검사 통과 (모든 .from(\"테이블\") 이 실재 public 테이블)");
+// 컬럼 레벨은 우선 **비차단(경고)** — 생성타입 재생성 직후라 파서 엣지·잔여 오탐 여지가 있어
+// CI 를 빨갛게 만들지 않는다(축 C 롤아웃 정책, check:completeness 와 동일). 알려진 실버그는
+// KNOWN_ISSUES 에 기록. 안정 확인 후 process.exit(1) 로 승격 예정(docs/DEFINITION_OF_DONE.md 로드맵).
+if (colViolations.length) {
+  console.warn(`\n⚠️  존재하지 않는 컬럼 select ${colViolations.length}건 (생성타입 Row 에 없음 — 조용한 0/[] 위험, 유형6, 비차단):`);
+  for (const v of colViolations) console.warn(`   - ${v.table}.select("…${v.col}…")  ${v.rel}`);
+  console.warn(`   → 오타/옛 컬럼명이면 교정. 평문 select 만 검사(임베드/별칭/JSON 은 리뷰 몫).`);
+}
+
+console.log(`\n✓ 스키마 참조 검사 통과 (테이블 실재 + 평문 select 컬럼 ${COLUMN_MAP.size}개 테이블 대조 · 컬럼경고 ${colViolations.length})`);

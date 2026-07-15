@@ -144,9 +144,9 @@ export const RUBRIC = [
     ],
     verify: "semantic",
     scope: "app/api/cron/**, src/lib/**(KPI·설문·침묵환자 집계)",
-    guards: ["check:schema-refs (테이블 레벨만)"],
+    guards: ["check:schema-refs (테이블 + 평문 select 컬럼 레벨)"],
     postmortems: [7, 8, 12, 13, 14, 35],
-    gap: "check:schema-refs가 테이블 레벨만 — 없는 컬럼(chat_messages.content 등)·복호화 누락·'같은 가정 쓰는 다른 소비자'는 못 잡음. TODO(축 C): database.types.ts 생성타입으로 컬럼 레벨 + 공통가정 소비자 전수 스캐너.",
+    gap: "✅ 축 C(2026-07-15): check:schema-refs를 컬럼 레벨로 확장(생성타입 대조, 평문 select만·비차단). 이 과정에 생성타입 stale(inquiries 35 vs 61) 발견→재생성, 실 버그 2건(reminders profiles 5컬럼·crawl name) 수확→KNOWN_ISSUES. 잔여: 필터(.eq 등)·복호화 누락·'같은 가정 쓰는 다른 소비자 전수'는 여전히 미검사(코드리뷰/감사루프 몫).",
   },
 
   // ── 유형 7 · UI 반쪽/시각회귀 (골격 첫 타깃) ────────────────────────────

@@ -1,5 +1,13 @@
 # HEALO KHIDI — 알려진 이슈 / 전수 QA 발견사항
 
+## 🟡 2026-07-15 완성도 감사(컬럼레벨 schema-refs)가 잡은 없는-컬럼 select 2건 (유형6 조용한 0)
+
+> 축 C 잔여로 `check:schema-refs`를 컬럼레벨 확장하다 발견 + 생성타입(`src/types/database.types.ts`)이 **stale**(inquiries 35 vs 실DB 61 컬럼)임을 발견해 재생성함. 아래는 재생성 후에도 남은 = **실제 없는 컬럼 참조**(DB 실측 대조 완료). 쿼리가 에러→try/catch 삼킴→화면 0/[]로 떨어지는 부류.
+
+- 🟡 **`src/lib/reminders/scheduleReminder.ts:237` — profiles 에서 없는 컬럼 5개 select**: `.select("id, email, phone, name_ko, name_en, preferred_lang, role")` 하는데 profiles 실컬럼은 `avatar_url, created_at, full_name, id, role, updated_at`뿐. → 등록사용자(환자/의사/코디) 상담 리마인더 타깃이 **연락처를 조용히 못 얻음**(profilesRaw=null→[]). **고치려면 등록사용자 연락처의 실제 출처 확정 필요**(email=auth.users? phone/lang=inquiries? 이름=full_name). 데이터모델 결정이라 PO/설계 확인 후 수리.
+- 🟢 **`app/api/admin/crawl/jobs/[id]/items/route.ts:39` — crawl_raw_items.select("…name…")**: 실컬럼은 `title`(name 없음). 어드민 크롤 도구라 저영향 — `name`→`title` 교정하면 됨(다음 손볼 때).
+- 가드: 컬럼레벨 검사는 우선 **비차단(경고)** — 안정 후 blocking 승격. 새 없는-컬럼 select 는 이제 매 PR 경고로 뜸.
+
 ## 🟢 2026-07-14 POSTMORTEMS 반성문 번호 충돌 12쌍 (과거 발번 실수 누적 — 새 중복은 §20이 차단)
 
 > 반성문 #90 기록 중 발견. **#31·32·39·42·55~62 — 서로 다른 사건이 같은 번호를 공유**(아래로 append하던 시절과 위로 prepend하는 지금 시절이 각자 발번). 🔁 재발 추적·재발률 집계(grep 기반)가 이 12개 번호에선 두 사건을 겹쳐 볼 수 있음 — 조회 시 날짜로 구분.
