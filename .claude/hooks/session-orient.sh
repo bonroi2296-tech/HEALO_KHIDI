@@ -144,6 +144,24 @@ if [ -f "$DHLOG" ]; then
   fi
 fi
 
+# ── 주간 완성도 감사 리마인드 (2026-07-15 — 완성도 루프 축 B: "완성 판정(Manager)"을 사람 눈에서 기계로) ──
+CPLOG="docs/audit/COMPLETENESS_LOG.md"
+if [ -f "$CPLOG" ]; then
+  last_cp=$(grep -m1 -oE '^## [0-9]{4}-[0-9]{2}-[0-9]{2}' "$CPLOG" 2>/dev/null | awk '{print $2}')
+  if [ -n "$last_cp" ]; then
+    now_s=$(date +%s 2>/dev/null)
+    last_cp_s=$(date -d "$last_cp" +%s 2>/dev/null || echo "")
+    if [ -n "$last_cp_s" ] && [ -n "$now_s" ]; then
+      cp_days=$(( (now_s - last_cp_s) / 86400 ))
+      if [ "$cp_days" -ge 7 ] 2>/dev/null; then
+        echo ""
+        echo "## 🧩 완성도 감사 기한 경과 — 마지막 감사 ${last_cp} (${cp_days}일 전)"
+        echo "  → 이 세션 본 작업 전후로 \`/completeness-audit\` 를 1회 실행하라(반복 미완성 7유형을 PO 눈 대신 기계가 훑음). diff 범위 우선(전면은 무거움). 감사 후 ${CPLOG} 최상단에 엔트리를 남겨야 이 알림이 꺼진다."
+      fi
+    fi
+  fi
+fi
+
 echo ""
 echo "## 🗣️ 말투 규칙 (PO=비개발자, 매 응답 강제)"
 echo "- **개발 용어는 반드시 쉽게 풀어 설명 + 원어 병기.** 풀이 없이 용어만 쓰기 금지. 예: 정식주소(canonical), 주소록(DNS), 설정값(env), 검색등록(색인·index)."
