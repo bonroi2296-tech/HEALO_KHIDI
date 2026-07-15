@@ -5,7 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import {
   ClipboardList, Video, Bell, Inbox, MessageSquare, Plane, Calculator,
-  LogOut, Menu, X, LayoutDashboard, Building2, Bot, Target, KeyRound,
+  LogOut, Menu, X, LayoutDashboard, Building2, Bot, Target, KeyRound, TrendingUp,
 } from 'lucide-react';
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser';
 import { useCoordinatorL } from '@/lib/i18n/coordinator';
@@ -20,6 +20,7 @@ const NAV_ITEMS = [
   { id: 'chat', labelKey: 'navChat', icon: Bot, href: '/coordinator/chat' },
   { id: 'cases', labelKey: 'navCases', icon: Building2, href: '/coordinator/cases' },
   { id: 'consultations', labelKey: 'navConsultations', icon: Video, href: '/coordinator/consultations' },
+  { id: 'conversion', labelKey: 'navConversion', icon: TrendingUp, href: '/coordinator/conversion' },
   { id: 'partners', labelKey: 'navPartners', icon: Target, href: '/coordinator/partners' },
   { id: 'intakes', labelKey: 'navIntakes', icon: ClipboardList, href: '/coordinator/intakes' },
   { id: 'messages', labelKey: 'navMessages', icon: MessageSquare, href: '/coordinator/messages' },
