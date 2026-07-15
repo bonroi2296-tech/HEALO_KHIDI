@@ -97,9 +97,10 @@
   font-size: 10px;
   line-height: 1.1;
 }
-/* 마이크·카메라 꺼짐 = 빨간 배경(줌과 동일 신호). 화면공유는 '안 하는 중'이 기본이라 제외 */
+/* 마이크·카메라 꺼짐 = 빨간 배경(줌과 동일 신호). 화면공유는 '안 하는 중'이 기본이라 제외.
+   !important: LiveKit 기본 테마(.lk-button 배경)가 캐스케이드에서 이겨 색이 안 먹던 것(실측) 강제 */
 .hw-controls .lk-button[data-lk-source="microphone"][data-lk-enabled="false"],
 .hw-controls .lk-button[data-lk-source="camera"][data-lk-enabled="false"] {
-  background-color: rgb(185 28 28 / 0.9);
-  color: #fff;
+  background-color: rgb(185 28 28 / 0.9) !important;
+  color: #fff !important;
 }
