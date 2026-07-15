@@ -2285,6 +2285,12 @@ export default function ConsultationRoomPage() {
                 if (reason === DisconnectReason.DUPLICATE_IDENTITY) {
                   setSessionTakenOver(true);
                   setLivekitToken(""); // 연결 워치독·재시도 루프 중지
+                  // 통역 파이프라인 완전 정지 (독립 리뷰 적발: 안 끄면 밀려난 탭이 마이크를 쥔 채
+                  // STT·번역 API를 계속 호출 — 프라이버시·비용 구멍). handleEndCall 과 동일 정리.
+                  if (translationEnabled) stt.stop();
+                  setTranslationEnabled(false);
+                  setInterimText("");
+                  tts.stop();
                   reportClientEvent("connect_error", "duplicate identity takeover - this tab yielded");
                 }
               }}
