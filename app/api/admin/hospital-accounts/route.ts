@@ -102,9 +102,11 @@ export async function POST(request: NextRequest) {
       (u: any) => u.email?.toLowerCase() === email.trim().toLowerCase()
     );
 
+    // 신규 생성 시에만 임시비번을 어드민에게 1회 반환(에이전시 온보딩과 동일 패턴).
+    // 이게 없으면 병원 담당자가 로그인할 방법이 없었음(온보딩 마감 미비 — 완성도 감사 2026-07-15).
+    let tempPassword: string | null = null;
     if (!targetUser) {
-      // Create user with random password (they'll reset via email)
-      const tempPassword = crypto.randomUUID().slice(0, 16) + "Aa1!";
+      tempPassword = crypto.randomUUID().slice(0, 16) + "Aa1!";
       const { data: newUser, error: createErr } = await supabase.auth.admin.createUser({
         email: email.trim().toLowerCase(),
         password: tempPassword,
@@ -149,6 +151,8 @@ export async function POST(request: NextRequest) {
 
     return Response.json({
       ok: true,
+      // tempPassword 는 신규 계정일 때만 채워짐(기존 유저 재사용 시 null). 어드민이 담당자에게 1회 전달.
+      tempPassword,
       account: {
         ...newRecord,
         email: targetUser.email,
