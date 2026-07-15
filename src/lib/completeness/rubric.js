@@ -58,10 +58,10 @@ export const RUBRIC = [
       "렌더 언어는 useLang()(서버 initialLang 주입)로 결정 — SSR이 항상 en으로 굳지 않는다",
     ],
     verify: "auto",
-    scope: "app/**, src/components/**, src/lib/i18n/index.js (공개·환자 화면)",
-    guards: ["check:content §i18n키패리티", "check:content §환자앱한글누출", "check:i18n"],
+    scope: "app/** 공개 라우트 + src/components/** 공개·환자 컴포넌트 + src/lib/i18n/index.js",
+    guards: ["check:content §i18n키패리티", "check:content §한글누출(isPublicFacingFile 판정)", "check:content §환자i18n(공개/환자 전체)", "check:i18n"],
     postmortems: [3, 67, 81, 2, 30, 38, 39],
-    gap: "스캔 범위가 폴더 화이트리스트(app/patient 등)에 한정 — 그 밖 컴포넌트(src/components/costs 등)는 통과. 중괄호식·객체 label 안 한글은 정적분석 사각. TODO(축 C): 폴더 화이트리스트 제거 → 전 컴포넌트 스캔.",
+    gap: "✅ 축 C(2026-07-15): 폴더 화이트리스트 → isPublicFacingFile(공개 화이트리스트 ∧ ¬백오피스 ∧ ¬api) 판정으로 확장(공개 마케팅/환자 퍼널 전체 스캔, #81식 경계누출 차단). 잔여 사각: 중괄호식 {cond?'한글':…}·객체 label:'한글'은 여전히 정적분석 밖(코드리뷰 몫).",
   },
 
   // ── 유형 2 · 조용한 실패 ────────────────────────────────────────────────
@@ -126,10 +126,10 @@ export const RUBRIC = [
       "네비게이션 대상이 존재하는 페이지다(클릭 시 404 0)",
     ],
     verify: "auto",
-    scope: "app/** router.push·href, src/lib/notifications/** link 조립",
-    guards: ["check:content §동적링크404", "check:content §알림link404"],
+    scope: "app/** + src/** router.push·href, src/lib/notifications/** link 조립",
+    guards: ["check:content §동적링크404(app+src)", "check:content §알림link404"],
     postmortems: [31, 73, 83, 37],
-    gap: "가드가 'app/의 코드 패턴'과 'notifications의 link 문자열'만 봄. 서버 모듈에서 변수로 조립한 링크·파라미터 미해석 화면은 통로 밖. TODO(축 C): 링크 조립 경로 전체를 대상으로.",
+    gap: "✅ 축 C(2026-07-15): 동적링크 404 검사를 app/ → src/(컴포넌트 내부 네비)까지 확장. #73(notifications link)은 이미 §알림link404로 해소. 잔여 사각: 변수/절대URL(${baseUrl}…)로 조립한 링크·파라미터 미해석 화면은 정적분석 밖(코드리뷰 몫).",
   },
 
   // ── 유형 6 · cron/KPI 조용한 0 ──────────────────────────────────────────

@@ -6,6 +6,17 @@
 
 ---
 
+## 2026-07-15 축 C #1 (범위 무한정화 — 유형 1·5 가드 확장 + 실누출 수확)
+
+- 작업: check:content 한글누출 가드 2룰(§4 줄단위·§7 파일단위)의 폴더 화이트리스트(app/patient+3폴더)를 `isPublicFacingFile()`(공개 화이트리스트 ∧ ¬백오피스 ∧ ¬api) 판정으로 확장 + 동적링크 404 검사 app/→src/ 확장.
+- 측정→수확: 확장 직후 findings 소수(§7 2·§4 2)라 홍수 없음. 진짜 누출 2건 6개어화(**미완성→완성**):
+  1. `app/inquiry/_components/UnifiedInquiryFunnel.jsx:946` — 업로드 힌트 "최대 10MB · 5개" 통짜 한글 → `tl("uploadHint")` 6개어 추가.
+  2. (§7) 공개 컴포넌트 스캔이 이제 마케팅/환자 퍼널 전체를 봄.
+- 오탐 정밀 제외(의도적 한국어 보호): ① `app/opinion`(국내 의사용 소견 화면) → 백오피스 제외목록으로 ② `src/components/GoogleMap.jsx`(한글=지오코딩 매칭 리터럴, 표시 아님) → allow ③ `대한민국 / Korea`(국가선택 자국명, 中国/日本과 동일 패턴) → allow.
+- #81(costs 사각)·#73(알림링크 사각)은 **이미 해소돼 있었음**을 매핑으로 확인 — 재수리 아님, 진짜 남은 사각(공개 퍼널)만 닫음.
+- rubric DoD-1·DoD-5 gap/guards + DEFINITION_OF_DONE.md 동기 갱신(check:completeness 정합 통과).
+- 남음(축 C 잔여): 컬럼레벨 schema-refs(유형6) + 공통가정 소비자 전수 스캐너.
+
 ## 2026-07-15 완성도 감사 #1 (유형 3 문서-현실 드리프트 · 첫 실가동)
 
 - 스캔: 유형 3(문서-현실 드리프트) — 살아있는 문서(KNOWN_ISSUES·PROJECT_CONTEXT 핸드오프·CLAUDE·DESIGN·manuals) 근거 대조.
