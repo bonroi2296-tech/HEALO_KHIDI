@@ -7,6 +7,38 @@
 
 ---
 
+## 🔖 세션 핸드오프 (2026-07-15 밤 — 완성도 루프 구축: "완성 판정을 사람 눈에서 기계로" + 협업방식 codify)
+
+**1. 이번 세션 한 일** — OKKY 칼럼("Codex 72시간 사이클") 분석 → 우리가 반복 발견하는 "미완성"을 "완성"으로 끌어올리는 시스템 구축. **[PR #784](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/784)** (CI 초록).
+- **완성도 루프 3축**: 축A 판단기준 SoR(`docs/DEFINITION_OF_DONE.md` + 기계판독 `src/lib/completeness/rubric.js` 7유형) + `check:completeness` 게이트(ci.yml 비차단). 축B 감사루프 스킬(`.claude/skills/completeness-audit`) + `session-orient.sh` 7일 리마인드 + `CLAUDE.md` 자동머지 전 완성도 감사 게이트(PO 승인). 축C 범위 무한정화(check:content 한글누출 → `isPublicFacingFile()` 공개/환자 전체, 동적링크 app→src, `check-schema-refs` 컬럼레벨·비차단).
+- **루프 실가동 = 실제 수확(제안 아님)**: 유형3 문서-현실 드리프트 **3건 종결**(consultation notes 암호화·"미머지" 3건·리브랜드 TODO) + 유형1 한글누출 **2건 6개어화**(inquiry 업로드힌트 등) + 유형6 **실버그 2건 수리**(리마인더 profiles 없는컬럼 5개→실컬럼+auth 이메일+in_app 보장 / crawl name→title alias) + **stale 생성타입 재생성**(inquiries 35→61 컬럼).
+- **1차(협업방식 개선) codify**: `docs/PO_PREFERENCES.md`에 3건 — 완성기준 먼저·자가검증 / PO주의력=병목이니 아껴라 / "자율주행" 명령 템플릿.
+
+**2. 왜 그렇게 했는지** — 칼럼 요지: AI시대 사람 일 = 목표+판단기준 주기, 병목 = 사람 주의력. 우리 진단: 고치는 루프(부검→가드)는 최고인데 **"완성 판정(Manager)"이 아직 PO의 눈=스크린샷** → 그걸 기계로 옮겨 PO 보기 전에 미완성 소진.
+
+**3. 안 끝났거나 보류**
+- 컬럼레벨 schema-refs·`check:completeness` = **비차단(경고)** — 안정 후 blocking 승격(DEFINITION_OF_DONE 로드맵).
+- 축C 잔여: 필터(.eq)·복호화 누락·"같은 가정 쓰는 소비자 전수 스캐너" = 감사루프 몫.
+
+**4. 주의·함정**
+- **⚠️ 로컬 tsc 못 돌림(node_modules 없는 fresh clone)** — 생성타입 재생성이 tsc 1건 깼고(step2 intake=Json spread) CI가 잡음. 타입·빌드 건드리면 **CI typecheck가 유일한 검증** → 푸시 후 CI 주시 필수. 마찬가지로 playwright(clip-sweep) 로컬 실행 불가 → 나이틀리 커버.
+- 리마인더 수정은 **코드·스키마 정합만 확인, 실발송(이메일/in_app) 런타임 미검증**.
+
+**5. 다음 세션이 먼저 할 일**
+1. **리마인더 수정 실동작 확인**(등록회원 in_app/이메일 리마인더 실제 나가는지 — 미검증).
+2. 완성도 루프 후속: `check:completeness`·컬럼레벨 **blocking 승격**, 축C 잔여(소비자 전수 스캐너).
+3. (#784 이 세션 끝에 머지 처리 — main 반영됐는지 확인 후 진행.)
+
+**6. 검증 상태**
+- ✅ CI 초록(`ci` success·Smoke success, HeadSHA 2fe48289). check:content/schema-refs/completeness 로컬 초록.
+- ✅ 실버그 2건 = DB 실측(Supabase MCP)으로 컬럼 부재 확인 후 수리. 유형3 드리프트 3건 = 코드/커밋 대조 확인.
+- ⚠️ **검증 못 함**: 리마인더 실발송 / 감사루프 유형7 clip-sweep ad-hoc(node_modules 없음, 나이틀리 커버) / 재생성 타입 tsc는 CI로만 확인.
+
+**7. 다음 세션 첫 프롬프트**
+> docs/PROJECT_CONTEXT.md 최상단 읽어. 완성도 루프(PR #784)=「완성 판정을 기계로」 — 7유형 판단기준(DEFINITION_OF_DONE)+감사루프(/completeness-audit)+가드확장. 이어서 할 거면 ①리마인더 수정 실발송 확인 ②check:completeness·컬럼레벨 가드 blocking 승격부터.
+
+---
+
 ## 🔖 세션 핸드오프 (2026-07-15 — KHIDI 외국인환자 유치 표준계약서·공식문서 총수집)
 
 **1. 이번 세션 한 일** — 코드 아님, **문서 리서치/수집** 세션. PO 질문("KHIDI 유치 표준계약서 최신본, 환자-병원용인지 에이전시-병원용인지")에서 출발.
@@ -46,47 +78,6 @@
 
 ---
 
-## 🔖 세션 핸드오프 (2026-07-14 밤 — /hospitals 카드 잘림 수리 + 사이트 전역 '글자 잘림' 야간 가드 상설화 + 반성문 번호체계 수습)
-
-**1. 이번 세션 한 일** — PR 3건 전부 머지·자동머지 규칙 준수(독립 리뷰 게이트 4라운드):
-- **[PR #752](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/752) 카드 잘림 수정**: PO 스크린샷 제보(/en/hospitals 의료진 카드 "Full Profile"→"Fu…" 절단) → 원인 = DoctorCard `flex-1`에 `min-w-0` 누락(truncate 자식이 카드 폭을 밀어냄 → overflow-hidden 절단, 영어가 최장이라 /en 최심). 한 단어 수정 + `e2e/hospitals-list.spec.ts`에 @smoke 넘침 0px 가드. **프로덕션 실측 완료**(카드 28개 넘침 0px, 데스크톱+모바일). 반성문 #89.
-- **[PR #753](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/753) 반성문 번호 사고 수습**: #89를 #66으로 중복 발번한 실수(최신 번호는 파일 '상단' — tail로 보면 옛 번호) → 재발번 + 사고 자체를 #90 기록 + `check:content` **§20**(번호 새 중복 CI 차단 — 자가검증: 과거 충돌 13쌍 적발 확인 후 12쌍 허용목록). **과거 충돌 12쌍(#31·32·39·42·55~62)은 KNOWN_ISSUES 등재**(전면 재번호는 🔁 참조 깨는 대수술 — /doc-health 몫).
-- **[PR #756](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/756) 사이트 전역 잘림 가드**: PO "다른 페이지는?" → 공개 페이지 전수(사이트맵 19템플릿 × PC/모바일 = 38회) 실측 스캔 = **추가 잘림 0건**(히어로 장식·지도 내부·폰트 프로브·캐러셀·sr-only 전부 의도 패턴 판독). 스캐너를 `e2e/content-clip-sweep.spec.ts`로 상설화 — 야간 프로덕션 cron + main push Full E2E에서 "읽을 텍스트가 클리핑/뷰포트 경계에 잘리면 실패"(PR 게이트 제외).
-
-**2. 왜 그렇게 했는지**
-- /hospitals는 PO 제보 수정만 4번째(#565·#660·#663·이번) — 공통 원인이 "시각 회귀 무검사"라 페이지 가드로 안 끝내고 **사이트 전역 가드**까지 올림(오류는 기계가 잡는다 원칙).
-- 가드는 만들 때마다 **"버그를 일부러 심어 적발되는지"로 유효성 검증**(카드 min-w-0 재제거 → 17~70건 적발, 상자/ink 카나리 적발, 스크롤 표 래퍼 음성 0건). "가드 있음"과 "가드 작동함"은 다르다.
-- 독립 리뷰 게이트가 실결함 3건을 연속 적발(§20 허용목록 3회째 통과 구멍 / 뷰포트 경계 사각 / 스크롤 설계 영역 오인) — 전부 수정·재검증 후 머지. 게이트 가치 실증 사례.
-
-**3. 안 끝났거나 보류**
-- **백오피스(로그인 뒤편) 잘림 미스캔** — 로컬 로그인 자동화 불가(기존 확인). 확장하려면 nightly의 E2E 계정(secrets)으로 로그인 후 스캔하는 별도 스펙 필요 — 공개 페이지보다 저위험이라 보류.
-- ru/kz 언어 변형은 스캔 제외(시간 3배, 영어 = 최장 텍스트 = 최악 케이스). 러시아어 긴 단어의 word-break 부류는 이 가드 표적 밖.
-- 반성문 과거 충돌 12쌍 정리 — `/doc-health` 주간 검진에서 참조까지 일괄 교정 검토.
-
-**4. 주의·함정**
-- **(2026-07-15 중간저장 2, 화상상담 세션)** 7/14 실회의 후속 전부 진행: **머지·배포 = [#765](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/765)**(권한차단 상주배너·퇴장시각 left_at·네트워크 팁·비콘 위생) + **[#769](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/769)**(오류 폭증 시 직원 종 경보 — 실서버 9발 발사로 "8발째 경보 1회·쿨다운" 검증 완료, 안전망 ③). **PO 프리뷰 확인 대기 = [#767](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/767)**(모바일 입장폼·갤러리 폭·뒤로가기·이중접속 정지 — 두 탭 뺏기는 프리뷰 실험으로 재현·검증). 7/14 두탭 사건 재해석: 공유 기기 = **태블릿**(PO 확인, Moon 이름 탭 + Assel 탭). 남은 안전망: ①입장 전 자동점검 ②야간 로봇 통화(PO 승인, 착수 예정). #731 통역 대수술 실기기 테스트 여전히 대기.
-- **(2026-07-15 중간저장, 메일 한글깨짐 세션)** ①**Windows 콘솔에서 한글 포함 API 테스트 금지** — 콘솔(CP949) 리터럴 한글 본문은 UTF-8 디코딩에서 U+FFFD로 파괴돼 DB·알림메일에 "���"로 박힘(테스트 문의 4건 실사고, 반성문 #92 — 이제 입력 라우트가 400 거부 + 검사기 §21). 본문은 UTF-8 파일 저장 후 `curl --data-binary @file` 또는 node 스크립트로. 가드 = [#768](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/768)(문의 4라우트) + 후속 [#770](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/770)(증상·소견·AI챗 5라우트 + 증상제출 무증상실패 수리 + 업로드 파일명 세척, PO 승인) — 둘 다 머지·프로덕션 실측 완료(깨진 본문→400 broken_encoding). ②**아래 "서비스 키 죽어있음" 메모는 오진** — 키는 살아있음(오늘 조회·PATCH 정상). 그때 401의 진짜 원인은 `.env.local` 값 끝에 붙은 **리터럴 `\n` 두 글자**: env 파일을 직접 파싱하는 스크립트는 이걸 벗겨야 함(Next.js dotenv는 자동 처리라 앱은 무관).
-- **(2026-07-14 중간저장, 화상상담 세션)** 실회의(카자흐 파트너, 한→러 통역 112건 실작동) 로그 분석으로 결함 3종 수리: 인앱 「브라우저에서 열기」 무반응 함정(#760 머지·배포), 권한차단 안내 상주 배너화 + 퇴장시각(left_at) webhook 기록(후속 PR). ~~로컬 `.env.local`의 SUPABASE_SERVICE_ROLE_KEY 는 **회전돼 죽어있음**(REST 401) — 로컬 DB 스크립트 짜기 전에 키부터 갱신할 것.~~ (2026-07-15 정정: 키 정상 — 위 ② 참고)
-- **반성문 다음 번호는 반드시 파일 '상단'에서 확인**(최신이 위에 쌓임 — tail/아래쪽은 항상 낮은 옛 번호). 새 중복은 §20이 CI에서 잡아줌. 현재 최신 = #91(타 세션).
-- `content-clip-sweep`는 **retries 0 + 스캔률 80% 게이트** — 야간 빨간불이면 ①진짜 잘림 ②프로덕션 접근 장애 둘 중 하나(형해화 방지 설계). goto 타임아웃은 프로덕션 15초/로컬 dev 30초 분기.
-- **E2E·문서만 바꾼 머지는 Vercel이 빌드 생략**("Canceled by Ignored Build Step" = 정상, 배포 실패 아님).
-- 임시 워크트리용 launch.json 항목은 로컬 전용(git 미추적) — 이번 세션 것들은 정리 완료.
-
-**5. 다음 세션이 먼저 할 일**
-1. ⚠️ **직전 미검증분 먼저 확인: `content-clip-sweep` 야간 cron 첫 실행 결과**(2026-07-15 새벽 4시 KST, Production Nightly E2E) — 수동 프로덕션 실행 3회는 통과했지만 cron 환경 실행은 미검증. 빨간불이면 리포트 아티팩트에서 잘림 목록/스캔률부터 판독.
-2. (앞선 블록 승계) 앱스토어 결제 여부 확인 → APNs 키·서명 3종·첫 빌드 (2026-07-14 저녁 블록 참고).
-
-**6. 검증 상태**
-- ✅ PR #752·#753·#756 전부 **MERGED + CI 초록**(gh 실조회). check:content(§20 포함)·eslint 통과.
-- ✅ 프로덕션 실측: 카드 수정 반영(healwith.co.kr/en/hospitals 28카드 넘침 0px) + 전수 스캔 38회 잘림 0건 + 가드 유효성(양성 3경로 적발·음성 1경로 무반응) + 프로덕션 캘리브레이션 3회 통과(2.0~3.5분).
-- ⚠️ **미검증**: content-clip-sweep의 **야간 cron 환경 첫 실행**(위 5-1) / 로그인 뒤편 백오피스 잘림(위 3).
-- 열린 PR(2026-07-14 밤 실조회): #731·#729·#669·#514 — 전부 타 세션 것, 이 세션 몫 열린 PR 없음.
-
-**7. 다음 세션 첫 프롬프트**
-> docs/PROJECT_CONTEXT.md 최상단 읽어. 어젯밤(2026-07-15 새벽 4시) 야간 프로덕션 E2E에서 새 잘림 스캔(content-clip-sweep)이 처음 돌았을 거야 — 그 결과부터 확인해(초록이면 종결, 빨간불이면 아티팩트 판독). 그다음 앱스토어 결제 여부 물어보고 저녁 블록 체크리스트대로 진행해.
-
----
-
 ## 🧭 오전 다중세션 통합 정리 (2026-07-01) — 무엇이 배포됐고 / 무엇이 미머지로 남았나
 
 > **왜 이 블록:** 오늘 오전 여러 창(병렬 세션)에서 각자 작업 후 각자 핸드오프 → 배포된 건 main·SoR에 잘 쌓였지만, **끝냈는데 아직 본판에 안 합친(미머지) 작업 3건**이 각 세션 브랜치에만 있고 이 SoR엔 기록이 없었음(=다음 세션이 놓칠 위험). 그 3건을 여기 한 곳에 모아 다음 세션 큐로 승격. (세부 이야기는 아래 오후·오전(2) 핸드오프 + `archive/`에 이미 있음 — 여기선 안 겹치게 '무엇이 남았나'만.)
@@ -101,13 +92,13 @@
 - **SEO** #547 BreadcrumbList·WebSite SearchAction 구조화데이터
 - **디자인/정리** #560·#561 활성 디자인 명칭 'legacy'→'기본 톤' 개명 · #539 죽은 premium 이메일 시스템 삭제
 
-**⚠️ 끝냈지만 미머지 — 다음 세션이 먼저 처리 (브랜치에만 있음, 안 잃게):**
+**✅ (완성도 감사 2026-07-15 종결) 아래 3건은 전부 main 머지 완료** — #562=`45e58f7c`·#567=`e83f9b50`·#545=`9a8dcb9c`. 문서만 "미머지"로 남아 있던 드리프트(#63 부류). 아래는 이력 보존용:
 1. **파트너 발굴 아웃리치 추적기** [PR #567 · 브랜치 `work/partner-outreach`] — 코디·어드민 백오피스 신규 기능(카자흐 직원 Assel이 파일 대신 백오피스에서 파트너 영업 추적). **완성 + 프로덕션 DB에 표 `partner_outreach`+시드 6곳 이미 적용.** 남은 것: ①프리뷰에서 화면 클릭 검증(후보추가·상태변경·탭필터·CRUD, 코디+어드민 둘 다) → 이상 없으면 **머지** ②Assel 계정에 코디네이터 권한 부여(`/admin/staff`). (큰 UI라 PO 눈으로 보고 머지하기로 했던 건)
 2. **초청장 발급주체 = 등록 유치의료기관(병원) 명의** [PR #562 · 브랜치 `claude/kazakhstan-keta-config-ko4g7b`] — `VisaInvitationLetter.jsx`+`inviterHospitals.ts` 완성, 미머지. (같은 세션의 비자 정정 #535·541·549·552는 이미 머지됨 — #562만 남음.)
 3. **이메일 수신률 문서** [PR #545 · 브랜치 `work/email-deliverability`] — `docs/EMAIL_DELIVERABILITY.md`(DMARC·콜드 아웃리치 플레이북). DMARC 감시 켜기·Google Postmaster 등록은 이미 실행(외부 완료). 문서라 CI 초록시 자동머지 대상.
 - (추가 열린 검증) #565 토글 "밀림"은 코드·배포 반영됐으나 **실브라우저 스크롤 동작만 미검증**(검증환경 헤드리스라 눈으로 못 봄) — 오전(2) 핸드오프 6번 참조.
 
-**🧹 정리해도 되는 브랜치(작업 이미 main에 반영 = squash 머지됨, 지워도 안전):** `claude/handoff-2026-07-01-am`·`handoff/admin-cleanup-0701`·`work/admin-backoffice`·`work/hospitals-roster-refresh`·`work/hospitals-toggle-ui`·`work/hospital-toggle-scroll-fix`·`claude/rescue-548-doctor-selfhost`·`claude/seo-audit-improvements`·`claude/inspiring-williamson-56fbfc`·`claude/patient-detail-i18n`·`claude/satisfaction-min-n-env`·`claude/fix-all-errors-sweep`·`claude/khidi-conversion-source-breakdown`·`claude/handoff-cancer-img-selfhost`. **남겨둘 것(미머지 작업 있음):** `work/partner-outreach`·`claude/kazakhstan-keta-config-ko4g7b`·`work/email-deliverability`.
+**🧹 정리해도 되는 브랜치(작업 이미 main에 반영 = squash 머지됨, 지워도 안전):** `claude/handoff-2026-07-01-am`·`handoff/admin-cleanup-0701`·`work/admin-backoffice`·`work/hospitals-roster-refresh`·`work/hospitals-toggle-ui`·`work/hospital-toggle-scroll-fix`·`claude/rescue-548-doctor-selfhost`·`claude/seo-audit-improvements`·`claude/inspiring-williamson-56fbfc`·`claude/patient-detail-i18n`·`claude/satisfaction-min-n-env`·`claude/fix-all-errors-sweep`·`claude/khidi-conversion-source-breakdown`·`claude/handoff-cancer-img-selfhost`. ~~**남겨둘 것(미머지 작업 있음):** `work/partner-outreach`·`claude/kazakhstan-keta-config-ko4g7b`·`work/email-deliverability`.~~ → 세 브랜치 모두 머지 완료(위 참조), 이제 정리해도 안전 (완성도 감사 2026-07-15).
 
 ---
 
@@ -122,8 +113,8 @@
   - `healo-khidi` (Vercel 프로젝트명·배포 URL·repo = 인프라), `components/healo/` (폴더 경로), 소문자 `healo`(예시 비번 `healo1234`·placeholder 이메일·기존 `healo.kr` URL)
   - **docs 내부 개발 히스토리 문서**: 과거 기록이라 본문 유지 (이 핸드오프 노트로 변경 사실만 명시).
 - **아직 남음 (TODO)**:
-  - **PNG 앱아이콘 재생성**: `public/icons/icon-*.png`·`apple-touch-icon.png`·`favicon-16/32.png` 가 옛 `H` 마크. 래스터라이저(rsvg/sharp) 환경에서 새 `favicon.svg`(소문자 h)로 재생성 필요.
-  - **도메인**: `healwith.co.kr` 등록 예정(후이즈) → 등록 후 `healo.kr`/`khidi.healo.kr` 구조화데이터 URL·OG·canonical 교체 + Vercel 도메인 연결.
+  - ~~PNG 앱아이콘 재생성~~ ✅ **완료**(2026-06-23 `943481c`, KNOWN_ISSUES:358 종결과 일치 — 완성도 감사 2026-07-15가 문서 간 모순 교정).
+  - ~~도메인 `healwith.co.kr` 등록~~ ✅ **완료**(2026-06-29 라이브 HTTP 200, LAUNCH_GATES 관문12 일치 — 완성도 감사 2026-07-15 교정).
   - **상표 출원**(Madrid) 별도 트랙.
   - Vercel 프로젝트명/배포 URL 변경은 인프라 마이그레이션이라 보류(현 `healo-khidi.vercel.app` 유지).
 - 계획·범위 상세: `docs/REBRAND_HEALWITH_PLAN.md`.

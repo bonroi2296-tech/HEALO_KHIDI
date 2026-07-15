@@ -19,6 +19,25 @@ const SCAN_DIRS = ["app", "src", "components"];
 const EXCLUDE = /node_modules|\.next|\.test\.|\.spec\.|__tests__|\/archive\//;
 const CODE_EXT = /\.(js|jsx|ts|tsx)$/;
 
+// ── 공개/환자 화면 판정 (축 C 2026-07-15 — 완성도 루프 DoD-1) ─────────────────
+// 왜: 한글누출 가드가 app/patient + 3폴더만 봐서 공개 마케팅/환자 퍼널(app/home·care-journey·
+//     treatments·hospitals·inquiry 등)이 통째로 사각이었다. 폴더 배열만 늘리면 새 공개 폴더가
+//     또 경계로 샌다(#81 부류 재발). → "공개 화이트리스트 ∧ ¬백오피스 ∧ ¬api" 판정으로
+//     경계 누출을 원천 차단하고, 의도적 한국어 백오피스(CLAUDE.md)는 확실히 제외한다.
+// 제외(의도적 한국어): app/{admin,coordinator,hospital,agency,clinic,doctor,opinion,dev,
+//     design-preview,account,ad-budget,api} + 백오피스 전용 공용 컴포넌트(consultation/marketing/partners).
+//     ※ opinion = 계정 없는 '국내 의사'용 세컨드오피니언 소견 화면(한국어 의도) → doctor 계열로 제외.
+const BACKOFFICE_FILE_RE =
+  /^app\/(admin|coordinator|hospital|agency|clinic|doctor|opinion|dev|design-preview|account|ad-budget|api)\/|^src\/components\/(consultation|marketing|partners)\//;
+// 공개/환자 렌더 경로: app 공개 라우트(6개어) + 환자/공개 컴포넌트 폴더 + src/components 루트 공개 파일.
+const PUBLIC_FILE_RE =
+  /^app\/(patient|home|care-journey|telemedicine|treatments|hospitals|inquiry|intake|consult|consultation|insurance|cost-calculator|faq|about|contact|education|specialties|stories|visa|search|survey|claim|kk|ru)\/|^src\/components\/(patient|costs)\/|^src\/components\/(SocialProofSection|GoogleMap|Modals|CookieConsent)\.jsx$/;
+function isPublicFacingFile(file) {
+  const f = file.replace(/\\/g, "/");
+  if (BACKOFFICE_FILE_RE.test(f)) return false; // 의도적 한국어 백오피스 보호
+  return PUBLIC_FILE_RE.test(f);
+}
+
 // ── 1) 금지 토큰 (고객/제품 코드에 절대 없어야 함) ──────────────
 const FORBIDDEN = [
   // PO 반복 지시(2026-07-06): 얼굴 사진 없는 의료진은 로고가 아니라 "팔짱 낀 가운" 이미지(69cddae60209c3)로.
@@ -149,11 +168,14 @@ const errors = [];
 // ponytail: '>텍스트<' 형태(가장 흔하고 제일 위험한 통짜 누출)만 잡는다. 중괄호 표현식
 //     {cond?'한글':…} 안이나 객체 label:'한글' 은 못 잡음 — 그건 코드리뷰 몫(정직하게 명시).
 const HANGUL_JSX_TEXT = />[^<>{}]*[가-힣][^<>{}]*</;
+// allow: 국가선택 드롭다운의 '자국어 / English' 라벨(대한민국 / Korea)은 의도적 자국명 표기.
+//   guard 가 한글(가-힣)만 봐서 中国/日本/Қазақстан 등과 달리 한국만 오탐으로 걸림(축 C 2026-07-15).
+const NATIVE_COUNTRY_OPTION = /<option[^>]*>\s*대한민국\s*\/\s*Korea\s*<\/option>/;
 
 for (const file of SCAN_DIRS.flatMap(walk)) {
   const content = readFileSync(join(ROOT, file), "utf8");
   const lines = content.split("\n");
-  const isPatientApp = /^app\/patient\//.test(file.replace(/\\/g, "/"));
+  const isPatientApp = isPublicFacingFile(file); // 축 C 2026-07-15: app/patient → 공개/환자 전체로 확장
   // ── 1f) 반쪽 배선 방지: chat_threads 를 'resolved' 로 바꾸는 API 는 자동 패턴 추출 배선 필수 ──
   // 왜: runPostResolve(응대 패턴 자동 추출→playbook_patterns)가 어드민 resolve 라우트에만 배선되고
   //     코디가 실제 쓰는 완료 경로(portal PATCH)에 빠져 playbook_patterns 가 영영 0건이었음
@@ -170,7 +192,7 @@ for (const file of SCAN_DIRS.flatMap(walk)) {
     errors.push(`[반쪽배선] ${file} — chat_threads 를 'resolved' 로 바꾸는데 runPostResolve(자동 패턴 추출) 배선이 없음. 새 resolve 경로에도 fire-and-forget 호출을 붙일 것 (POSTMORTEMS #85, 🔁 #18 부류)`);
   }
   lines.forEach((line, i) => {
-    if (isPatientApp && HANGUL_JSX_TEXT.test(line)) {
+    if (isPatientApp && HANGUL_JSX_TEXT.test(line) && !NATIVE_COUNTRY_OPTION.test(line)) {
       errors.push(`[한글누출] ${file}:${i + 1} — 환자앱 JSX 텍스트에 하드코딩 한글. useLang()+{ko,en,ru,kz,zh,ja}로 감쌀 것(비한국어 환자에게 한글 노출)\n    ${line.trim().slice(0, 120)}`);
     }
     // ── 1e) scheduled_at 을 timeZone 없이 화면표시 차단 (#45·#69 부류: UTC로 샘) ──────
@@ -288,7 +310,9 @@ function hasDynamicRoute(prefixSegs) {
 // 리터럴이 더 붙는 것(예: `/templates/${x}-import.csv` = 정적 파일) → 라우트 아님, 제외.
 const NAV_RE = /(?:router\.(?:push|replace)\(|href=\{)`(\/[A-Za-z0-9/_-]+)\/\$\{[^}]*\}([^`]?)/g;
 const navSeen = new Set();
-for (const file of walk("app")) {
+// 축 C 2026-07-15: app/ 만 보던 것을 src/ 까지 확장 — src/components 의 컴포넌트가 내부
+//   동적 네비게이션(router.push(`/x/${id}`))을 가지면 그동안 사각이었음(대상 [id] 라우트는 app/ 에 존재).
+for (const file of ["app", "src"].flatMap(walk)) {
   const text = readFileSync(join(ROOT, file), "utf8");
   let m;
   while ((m = NAV_RE.exec(text)) !== null) {
@@ -357,10 +381,17 @@ function stripCommentsWholeFile(src) {
     .replace(/\/\*[\s\S]*?\*\//g, (m) => m.replace(/[^\n]/g, " "))
     .replace(/(^|[^:"'`\\])\/\/[^\n]*/g, (m, p1) => p1);
 }
-const PATIENT_FACING_DIRS = ["app/patient", "src/components/patient", "src/components/costs"];
-for (const scanDir of PATIENT_FACING_DIRS) {
-  for (const file of walk(scanDir)) {
+// 축 C 2026-07-15: 폴더 배열(app/patient+3폴더) → isPublicFacingFile() 판정으로 확장.
+//   공개 마케팅/환자 퍼널(app/home·treatments·hospitals·inquiry…)+루트 공개 컴포넌트까지 스캔.
+//   "use client 인데 다국어 처리 전무" 파일만 실패하므로 정상 파일엔 무해(오탐 적음).
+// allow: 표시 텍스트가 아니라 '한국 주소 매칭 리터럴'(location.includes('강남'))로 한글이
+//   정당하게 필요한 파일 — GoogleMap 은 화면 표시문구가 전부 영어이고 한글은 지오코딩 비교용.
+const I18N_HARDCODE_ALLOW = /^src\/components\/GoogleMap\.jsx$/;
+for (const file of SCAN_DIRS.flatMap(walk)) {
+  {
     if (!/\.jsx?$/.test(file) || EXCLUDE.test(file)) continue;
+    if (!isPublicFacingFile(file)) continue;
+    if (I18N_HARDCODE_ALLOW.test(file.replace(/\\/g, "/"))) continue;
     const text = readFileSync(join(ROOT, file), "utf8");
     if (!/["']use client["']/.test(text)) continue;          // 클라이언트 렌더 컴포넌트만
     // 다국어 처리 중이면 통과: useLang() 사용 · 글로벌 t("키") 호출 · 또는 인라인 다국어 객체(kz:/ru: 키 제공).
