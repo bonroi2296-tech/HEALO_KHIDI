@@ -103,6 +103,10 @@ test.describe("야간 로봇 통화 — 2인 실연결 검증", () => {
         console.log(`[robot-call] ${name} 실패 화면:`, txt.replace(/\n+/g, " | ").slice(0, 600));
         throw e;
       }
+      // 쿠키 동의 배너(fixed z-9999)가 컨트롤 바를 덮어 클릭을 가로챔(리허설 실측).
+      // goto 직후엔 아직 안 떠 있어 못 닫음 → 연결 확인 후 최대 5초 기다려 '필수만 동의'로 닫기
+      const cookieBtn = robot.getByRole("button", { name: /Essential Only|필수만/i }).first();
+      await cookieBtn.click({ timeout: 5_000 }).catch(() => {}); // 배너 없으면(이미 동의) 조용히 통과
       return robot;
     };
 
@@ -118,5 +122,28 @@ test.describe("야간 로봇 통화 — 2인 실연결 검증", () => {
       robotB.getByText("E2E-ROBOT-A").first(),
       "로봇B 화면에 로봇A 가 안 보임"
     ).toBeVisible({ timeout: 30_000 });
+
+    // 4) 채팅 왕복 — 게스트 채팅이 DB 제약·API 회귀로 조용히 죽는 부류를 매일 밤 검출
+    //    (2026-07-15 실사고: sender_role CHECK 에 guest·admin 누락 → 전송 500 무증상, 반성문 #94)
+    const chatMsg = `robot-chat-${Date.now()}`;
+    await robotA.locator('button[aria-label="Toggle chat panel"]').first().click(); // 라벨 유무 무관(구·신 UI 겸용)
+    // 패널 기본 탭이 '번역'이라 채팅 입력칸이 안 보임(리허설 실측) → 채팅 탭으로 전환
+    await robotA.getByRole("button", { name: /^(채팅|Chat)$/ }).first().click();
+    const msgInput = robotA
+      .locator('input[placeholder*="메시지"], input[placeholder*="message" i]')
+      .first();
+    await msgInput.waitFor({ state: "visible", timeout: 10_000 });
+    await msgInput.fill(chatMsg);
+    await msgInput.press("Enter");
+    await expect(
+      robotA.getByText(chatMsg).first(),
+      "로봇A 자기 화면에 보낸 채팅이 안 보임(전송 실패 의심)"
+    ).toBeVisible({ timeout: 10_000 });
+    await robotB.locator('button[aria-label="Toggle chat panel"]').first().click();
+    await robotB.getByRole("button", { name: /^(채팅|Chat)$/ }).first().click();
+    await expect(
+      robotB.getByText(chatMsg).first(),
+      "로봇B 에게 채팅이 전달되지 않음"
+    ).toBeVisible({ timeout: 20_000 });
   });
 });
