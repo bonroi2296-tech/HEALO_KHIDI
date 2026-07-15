@@ -2157,18 +2157,8 @@ export default function ConsultationRoomPage() {
     </button>
   );
 
-  // 「통역」(시작/중지)과 헷갈리던 쌍둥이 해소 — 이 버튼 라벨은 「언어」 하나로 고정,
-  // 언어쌍 문자열은 시트·번역 입력줄에서만 (PO 제보: 두 버튼이 같은 "한국어→EN"으로 보임)
-  const languageButton = (
-    <button
-      onClick={() => setLangSheetOpen(true)}
-      title={c.langChangeTitle}
-      className="hw-ctrl-btn rounded-lg bg-gray-700 hover:bg-gray-600 text-gray-200 transition"
-    >
-      <Globe size={18} />
-      <span>{c.ctrlLang}</span>
-    </button>
-  );
+  // (2026-07-15 PO) 컨트롤 바의 「언어」 버튼은 제거 — 언어 설정은 번역 전용이라 번역 패널
+  // 맨 위 헤더로 입구를 단일화했다(중복 입구 해소). 언어쌍 변경은 langSheetOpen 시트로 동일.
 
   const sessionActions = (
     <>
@@ -2513,7 +2503,6 @@ export default function ConsultationRoomPage() {
                 </TrackToggle>
                 <span className="hidden sm:block w-px h-9 bg-gray-600 mx-1 self-center" />
                 {sessionActions}
-                {languageButton}
                 {endButton}
               </div>
             </LiveKitRoom>
@@ -2592,7 +2581,6 @@ export default function ConsultationRoomPage() {
               {!isWaitingScreen && (
                 <div className="bg-gray-800 border-t border-gray-700 px-3 py-3 flex items-center justify-center gap-2 flex-wrap">
                   {sessionActions}
-                  {languageButton}
                   {endButton}
                 </div>
               )}
@@ -2762,6 +2750,19 @@ export default function ConsultationRoomPage() {
           {/* Translation log panel */}
           {activePanel === "translation" && (
             <div className="flex-1 flex flex-col overflow-hidden">
+              {/* 언어쌍 단일 입구 — 컨트롤 바의 중복 「언어」 버튼을 없애고 여기로 통일(2026-07-15 PO).
+                  언어 설정은 번역 전용이라, 번역 패널 맨 위에 항상 두는 게 자연스럽다. */}
+              <button
+                onClick={() => setLangSheetOpen(true)}
+                className="flex items-center justify-center gap-2 border-b border-gray-700 px-4 py-2.5 text-sm text-gray-200 hover:bg-gray-750 transition"
+                title={c.langChangeTitle}
+              >
+                <Globe size={16} className="text-teal-400 shrink-0" />
+                <span className="font-medium">
+                  {LANG_LABELS[myLang]} → {LANG_LABELS[targetLang]}
+                </span>
+                <span className="text-xs text-gray-500">({c.ctrlLang})</span>
+              </button>
               <div className="flex-1 overflow-y-auto p-4 space-y-3">
                 {translations.length === 0 ? (
                   <div className="text-center text-gray-500 text-sm py-8">
@@ -2832,12 +2833,10 @@ export default function ConsultationRoomPage() {
                   <div className="flex items-center gap-2 text-xs">
                     <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
                     <span className="text-gray-400">{c.translationActive}</span>
-                    <button
-                      onClick={() => setLangSheetOpen(true)}
-                      className="px-2 py-1 bg-gray-700 hover:bg-gray-600 rounded text-teal-300 font-medium transition"
-                    >
+                    {/* 언어 변경 입구는 패널 상단 헤더로 단일화 — 여기선 현재 방향만 표시(중복 제거) */}
+                    <span className="text-teal-300 font-medium">
                       {LANG_LABELS[myLang]} → {LANG_LABELS[targetLang]}
-                    </button>
+                    </span>
                     {isTranslating && (
                       <span className="text-yellow-400 ml-auto">{c.translatingNow}</span>
                     )}
