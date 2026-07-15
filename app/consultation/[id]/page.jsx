@@ -1802,15 +1802,17 @@ export default function ConsultationRoomPage() {
 
   // ── Guest mode: 이름 입력 폼 먼저 표시 (staff 여부 판정이 끝난 뒤에만) ──
   if (isGuestMode && !livekitToken && !checkingAuth) {
+    // 모바일: 인사말 압축 + 이름칸 상단 + 하단 고정 입장 바 — 첫 화면에 "뭘 해야 하는지"가
+    // 다 보이게 (7/14 카자흐 에이전시가 버튼을 못 찾아 "로그인이 안 된다"로 오인한 실사고).
     return (
-      <div className="w-full min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-slate-900 to-teal-950 text-white p-4">
+      <div className="w-full min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-slate-900 to-teal-950 text-white p-4 pb-32 sm:pb-4">
         <div className="max-w-md w-full bg-gray-800/90 backdrop-blur rounded-2xl shadow-2xl overflow-hidden border border-gray-700">
-          <div className="p-8 border-b border-gray-700">
-            <div className="w-14 h-14 rounded-2xl bg-teal-700/10 text-teal-400 flex items-center justify-center mb-4">
-              <Video size={28} />
+          <div className="p-5 sm:p-8 border-b border-gray-700">
+            <div className="w-10 h-10 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-teal-700/10 text-teal-400 flex items-center justify-center mb-3 sm:mb-4">
+              <Video size={24} />
             </div>
-            <h1 className="text-2xl font-bold mb-2">{c.guestTitle}</h1>
-            <p className="text-sm text-gray-400 leading-relaxed">
+            <h1 className="text-xl sm:text-2xl font-bold mb-1.5 sm:mb-2">{c.guestTitle}</h1>
+            <p className="text-[13px] sm:text-sm text-gray-400 leading-relaxed">
               {c.guestLede}
             </p>
             {/* 인앱 브라우저(카카오톡·왓츠앱 등) → 영상·음성이 막힘 → 크게 눈에 띄게 외부 브라우저 유도.
@@ -1851,8 +1853,27 @@ export default function ConsultationRoomPage() {
               e.preventDefault();
               joinAsGuest();
             }}
-            className="p-8 space-y-4"
+            className="p-5 sm:p-8 space-y-4"
           >
+            {/* 이름 먼저 — "해야 할 일"이 첫 화면에 오게 (미리보기는 그 아래) */}
+            <div>
+              <label className="block text-sm font-semibold mb-2 text-gray-200">
+                {c.nameLabel}
+              </label>
+              <input
+                type="text"
+                autoFocus
+                value={guestName}
+                onChange={(e) => {
+                  setGuestName(e.target.value);
+                  setGuestError("");
+                }}
+                placeholder={c.namePlaceholder}
+                className="w-full px-4 py-3 bg-gray-900 border border-gray-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                maxLength={50}
+              />
+            </div>
+
             {/* 셀프뷰 — 입장 전 카메라·권한 확인 (거울 모드) */}
             <div className="rounded-xl overflow-hidden bg-black aspect-video relative border border-gray-700">
               {previewBlocked ? (
@@ -1884,24 +1905,6 @@ export default function ConsultationRoomPage() {
               )}
             </div>
             <p className="text-xs text-gray-400 -mt-1">{c.cameraPreviewHint}</p>
-
-            <div>
-              <label className="block text-sm font-semibold mb-2 text-gray-200">
-                {c.nameLabel}
-              </label>
-              <input
-                type="text"
-                autoFocus
-                value={guestName}
-                onChange={(e) => {
-                  setGuestName(e.target.value);
-                  setGuestError("");
-                }}
-                placeholder={c.namePlaceholder}
-                className="w-full px-4 py-3 bg-gray-900 border border-gray-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500"
-                maxLength={50}
-              />
-            </div>
 
             {/* 내가 말하는 언어 — 사이트 언어로 미리 선택돼 있음, 자막·번역 방향 결정 */}
             <div>
@@ -1935,10 +1938,11 @@ export default function ConsultationRoomPage() {
               </p>
             )}
 
+            {/* 데스크톱용 제출 버튼 — 모바일은 아래 '고정 입장 바'가 대신한다 */}
             <button
               type="submit"
               disabled={guestJoining || !guestName.trim()}
-              className="w-full py-3 bg-teal-700 hover:bg-teal-800 disabled:opacity-60 disabled:cursor-not-allowed rounded-lg font-semibold transition"
+              className="hidden sm:block w-full py-3 bg-teal-700 hover:bg-teal-800 disabled:opacity-60 disabled:cursor-not-allowed rounded-lg font-semibold transition"
             >
               {guestJoining ? c.joining : c.startConsult}
             </button>
@@ -1949,6 +1953,21 @@ export default function ConsultationRoomPage() {
               {c.guestSecurity2}
             </p>
           </form>
+        </div>
+        {/* 모바일 고정 입장 바 — 카드가 backdrop-blur(fixed 기준 조상)라 카드 '밖'에 렌더.
+            폼 밖이므로 제출은 joinAsGuest 직접 호출(검증은 함수 안에서 동일 수행). */}
+        <div className="sm:hidden fixed inset-x-0 bottom-0 z-40 px-4 pt-2.5 pb-[max(0.75rem,env(safe-area-inset-bottom))] bg-gray-900/95 backdrop-blur border-t border-gray-700">
+          {!guestName.trim() && (
+            <p className="text-[11px] text-gray-400 text-center mb-1.5">{c.enterNameHint}</p>
+          )}
+          <button
+            type="button"
+            onClick={() => joinAsGuest()}
+            disabled={guestJoining || !guestName.trim()}
+            className="w-full py-3.5 bg-teal-700 hover:bg-teal-800 disabled:opacity-60 disabled:cursor-not-allowed rounded-lg font-semibold transition"
+          >
+            {guestJoining ? c.joining : c.startConsult}
+          </button>
         </div>
       </div>
     );
