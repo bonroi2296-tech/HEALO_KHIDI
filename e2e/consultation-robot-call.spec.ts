@@ -6,12 +6,14 @@
  * 파이프라인 고장)를 사람 대신 기계가 아침 전에 잡는 층 —
  * 근거: 7/2 'invalid token: revoked'는 이틀, 7/14 실회의 연결 문제는 회의 중에야 발견됨.
  *
- * 흐름: 어드민 UI 로그인 → 상담 생성(inquiry 미연결 = is_test 자동 도장, KPI 무오염)
+ * 흐름: 어드민 UI 로그인 → 상담 생성(isTest 명시 + notes [TEST] 마커 — "자동 도장" 아님!
+ *       독립 리뷰 적발: inquiry 미연결만으론 is_test 가 안 찍혀 KHIDI 증빙에 실데이터처럼 낌)
  *       → 초대 발급 → 가짜 미디어 브라우저 2대가 게스트 입장 → 상호 확인 → 종료.
- * 상담 레코드는 소프트 원칙대로 남긴다(밤마다 1건, is_test 라 집계 제외).
+ * 상담 레코드는 소프트 원칙대로 남긴다(밤마다 1건, is_test 라 집계·증빙 제외).
  *
- * @smoke 아님 = PR 게이트 제외. Full E2E(main push) + Production Nightly(cron)에서 실행.
- * E2E_ADMIN_EMAIL 미설정(로컬 등)이면 스킵.
+ * @smoke 아님 = PR 게이트 제외. 실행 조건 = E2E_ROBOT_CALL=1 (Production Nightly 잡에만
+ * 설정 — Full E2E(main push)는 로컬 dev 서버에 LiveKit env 가 없어 구조적으로 503 실패라 제외,
+ * 독립 리뷰 적발).
  */
 
 import { test, expect, chromium, type Browser } from "@playwright/test";
@@ -19,6 +21,10 @@ import { loginAs } from "./fixtures/auth";
 
 test.describe("야간 로봇 통화 — 2인 실연결 검증", () => {
   test.skip(!process.env.E2E_ADMIN_EMAIL, "E2E_ADMIN_EMAIL 미설정 — 스킵");
+  test.skip(
+    process.env.E2E_ROBOT_CALL !== "1",
+    "E2E_ROBOT_CALL!=1 — 야간 프로덕션 잡 전용 (Full E2E 로컬 서버엔 LiveKit env 없음)"
+  );
   // 방 연결·ICE 협상까지 실네트워크라 넉넉히 (이 스펙만; 전역 timeout 무관)
   test.setTimeout(180_000);
 
@@ -37,7 +43,10 @@ test.describe("야간 로봇 통화 — 2인 실연결 검증", () => {
       data: {
         sessionType: "pre_consultation",
         scheduledAt: new Date().toISOString(),
-        notes: "E2E 야간 로봇 통화 검증 (자동 생성, is_test)",
+        // isTest 명시 = is_test 도장의 정본 경로. notes 의 [TEST] 는 이중 안전벨트
+        // (detectSessionIsTest 가 notes 대문자화 후 "[TEST]" 리터럴을 찾음).
+        isTest: true,
+        notes: "[TEST] E2E 야간 로봇 통화 검증 (자동 생성)",
       },
     });
     expect(createRes.ok(), "상담 생성 API 실패").toBeTruthy();

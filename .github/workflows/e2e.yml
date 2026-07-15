@@ -269,6 +269,9 @@ jobs:
           # 프로덕션 URL 대상 (서버 자동 시작 안 함)
           E2E_BASE_URL: ${{ secrets.E2E_PROD_BASE_URL || 'https://www.healwith.co.kr' }}
           E2E_SKIP_SERVER: "1"
+          # 로봇 통화 스펙(안전망 ②)은 프로덕션 야간 잡에서만 — Full E2E 의 로컬 dev 서버엔
+          # LiveKit env 가 없어 게스트 입장이 구조적으로 503 (독립 리뷰 적발)
+          E2E_ROBOT_CALL: "1"
           E2E_TEST_USER_EMAIL: ${{ secrets.E2E_TEST_USER_EMAIL }}
           E2E_TEST_USER_PASSWORD: ${{ secrets.E2E_TEST_USER_PASSWORD }}
           E2E_ADMIN_EMAIL: ${{ secrets.E2E_ADMIN_EMAIL }}
