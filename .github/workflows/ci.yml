@@ -29,6 +29,11 @@ jobs:
         run: npm run lint
       - name: 콘텐츠 일관성 (옛 브랜드·이메일 잔재 + i18n 키 누락 자동 차단)
         run: npm run check:content
+      # 완성도 루브릭(Definition of Done) SoR 무결성 — 골격 단계라 비차단(경고).
+      # 안정·오탐 검증 후 continue-on-error 제거해 blocking 으로 승격 예정(docs/DEFINITION_OF_DONE.md 로드맵).
+      - name: 완성도 루브릭 SoR 정합성 (판단 기준 채점표가 부패·문서 드리프트하지 않게 — 비차단)
+        run: npm run check:completeness
+        continue-on-error: true
       - name: 마이그레이션 멱등성 (재실행 충돌 위험·DROP IF EXISTS 가드 누락 차단)
         run: npm run check:migrations
       - name: 스키마 참조 (존재하지 않는 테이블 .from() 차단 — 조용한 빈데이터 방지 #35-S2)
