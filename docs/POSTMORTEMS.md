@@ -14,6 +14,31 @@
 
 ---
 
+## #92 — 관리자 알림 메일에 시술명이 "���ϸ�ũ"로 깨져 발송 — 원인은 메일이 아니라 DB에 이미 깨진 채 저장된 입력 (2026-07-15)
+
+**무슨 일**
+- 2026-06-29 admin@healwith.co.kr 수신 「New inquiry received #30」 알림 메일에서 시술명이 `[TEST] ���ϸ�ũ ���� (������)` 로 렌더. 같은 메일의 다른 한글(국가/시술/연락 라벨)은 정상이라 메일 인코딩 문제가 아니었음.
+- 실DB 전수 스캔(33행): **깨진 행 4건 = 전부 테스트 문의**(#27·#30·#35·#36, `is_test=true`). 실고객(#37 키르기스)은 정상(`other`). 즉 **DB에 저장될 때부터 U+FFFD(대체문자)로 깨져 있었고**, 메일 파이프라인(adminNotifier→sendEmail, html `charset=utf-8`)은 그 값을 그대로 출력했을 뿐(무죄).
+- 원인 확정 근거: 깨진 값에 살아남은 `ũ`(U+0169)는 **CP949 "크"(0xC5A9)를 UTF-8로 해석한 결과** — Windows 콘솔(CP949, curl/PowerShell 등 비브라우저 클라이언트)에서 만든 한글 테스트 본문이 UTF-8로 디코딩되며 깨진 것. 브라우저 폼은 항상 UTF-8이라 실환자 경로는 무관.
+- 원본 기록(DB 정리 전 보존 — 아래 4행은 2026-07-15 읽기 쉬운 라벨로 교체함):
+  - #27 `treatment_type` = `[TEST] from-email ����`
+  - #30 `treatment_type` = `[TEST] ���ϸ�ũ ���� (������)` (U+FFFD×3 U+03F8 U+FFFD U+0169 / U+FFFD×4 / U+FFFD×6)
+  - #35 `treatment_type` = `����`, #36 `treatment_type`·`cancer_type` = `����` (U+FFFD×4)
+
+**왜 못 잡았나 (근본원인)**
+1. **입력 경계에 인코딩 무결성 검사가 없었음** — `request.json()`은 깨진 바이트를 조용히 U+FFFD로 치환해 성공하고, zod도 U+FFFD를 유효 문자열로 통과시킴. 깨진 값이 DB→알림메일→어드민 화면까지 무저항 통과.
+2. 테스트 문의를 Windows 콘솔에서 만들 때 CP949 함정을 인지 못 함(과거 세션들의 curl 테스트 추정). 깨진 알림 메일이 와도 "테스트니까"로 넘어가 6/29~7/1 3회 반복됨.
+
+**어떻게 고쳤나**
+- `src/lib/inquiry/noMojibake.ts` `hasMojibake()` — 요청 본문 어디든(중첩 포함) U+FFFD가 있으면 검출. 문의 입력 라우트 4곳(`/api/inquiries/step1`·`step2`·`intake`·`/api/agency/refer`)에서 `request.json()` 직후 **400 `broken_encoding` 거부**(저장 전 차단). U+FFFD 존재 = 전송 단계에서 원문이 이미 파괴된 증거라 "정리 저장"이 아니라 거부가 정답(잔여 문자 `ϸũ`류는 strip해도 쓰레기). step2 누락과 재귀 스택오버플로(깊은 중첩 적대 페이로드→500)는 **독립 리뷰 게이트가 적발**해 머지 전 보강(스택 순회로 교체).
+- E2E 재현 검증: 로컬 dev에 CP949 바이트 본문 POST → `400 broken_encoding` / 정상 한글("위암") 본문 → 가드 통과(후속 consent 검사 도달) 확인. vitest 3케이스(`noMojibake.test.ts`, CP949→UTF-8 실사고 재현 포함).
+- DB 정리: 깨진 테스트 4행의 해당 컬럼을 `[TEST] 인코딩깨짐(원문유실·PM#92)` 라벨로 교체(원본은 위에 보존). 전부 `is_test=true`라 KPI 무관.
+
+**재발 방지**
+- 검사기 §21 신설: `inquiries` 에 요청 본문을 쓰는 app/api 라우트(동적 탐지 + intake 고정)에 `hasMojibake` 가드가 없으면 CI 실패 — 새 문의 입력 라우트가 가드 없이 생기는 부류를 영구 차단.
+- 교훈: **Windows에서 한글 포함 API 테스트는 콘솔 리터럴 금지** — 본문을 UTF-8 파일로 저장해 `curl --data-binary @file` 또는 node 스크립트로 보낼 것(콘솔 CP949가 바이트를 깨뜨림).
+- 한계(정직하게): 가드는 문의 계열 4라우트만. 다른 자유텍스트 공개/포털 라우트(예: portal/symptoms, opinions)와 AI챗→문의 승격 insert(`src/lib/chat/publicChatHelpers.ts`, app/api 밖이라 §21 탐지 범위 밖)는 이번 범위 외 — 같은 증상이 그쪽에서 보이면 같은 가드를 이식.
+
 ## #91 — "브라우저에서 열기" 버튼이 일부 메신저에서 무반응 → 인앱에 남은 채 '무음 통화' (2026-07-14)
 
 **무슨 일**

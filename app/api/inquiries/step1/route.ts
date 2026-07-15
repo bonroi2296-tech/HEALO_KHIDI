@@ -19,6 +19,7 @@ import {
 import { sendAdminNotification } from "@/lib/notifications/adminNotifier";
 import { detectInquiryIsTest } from "@/lib/khidi/testData";
 import { resolveAgencyIdForUser } from "@/lib/auth/resolveAgencyIdForUser";
+import { hasMojibake } from "@/lib/inquiry/noMojibake";
 
 const Step1Schema = z.object({
   firstName: z.string().min(1).max(100),
@@ -67,6 +68,14 @@ export async function POST(request: NextRequest) {
     body = await request.json();
   } catch {
     return Response.json({ ok: false, error: "invalid_json" }, { status: 400 });
+  }
+
+  // 인코딩 깨진 본문(U+FFFD) 거부 — CP949 등으로 깨진 한글이 DB·알림메일에 그대로 박힘 (POSTMORTEMS #92)
+  if (hasMojibake(body)) {
+    return Response.json(
+      { ok: false, error: "broken_encoding", detail: "body contains U+FFFD — send UTF-8" },
+      { status: 400 }
+    );
   }
 
   const parsed = Step1Schema.safeParse(body);

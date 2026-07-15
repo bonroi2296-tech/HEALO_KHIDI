@@ -822,6 +822,31 @@ for (const dir of BACKOFFICE_DIRS) {
   }
 }
 
+// ── 21) 문의 입력 라우트 인코딩(U+FFFD) 가드 필수 (반성문 #92 — 알림메일 한글 깨짐) ──
+// 왜: CP949 콘솔(curl/PowerShell 등 비브라우저 클라이언트)에서 만든 한글 본문이 UTF-8로
+//     디코딩되며 U+FFFD("�")로 깨진 채 inquiries 에 저장 → 관리자 알림 메일·어드민 화면에
+//     "���ϸ�ũ" 그대로 노출(테스트 문의 #27·#30·#35·#36, 반성문 #92). 메일 파이프라인은
+//     무죄 — 저장 전 입구에서 막는 게 유일한 차단점. inquiries 에 insert 하는 라우트(동적
+//     탐지)와 intake 패치 라우트(고정)는 hasMojibake(@/lib/inquiry/noMojibake) 가드 필수.
+{
+  // intake·step2 는 insert 가 아니라 기존 행 patch/update 라 동적 탐지에 안 걸림 → 고정 지정
+  // (step2 는 실제 퍼널 Step2 가 호출하는 라우트 — 독립 리뷰가 누락 적발)
+  const MUST_GUARD = new Set([
+    "app/api/inquiries/intake/route.ts",
+    "app/api/inquiries/step2/route.ts",
+  ]);
+  const INSERTS_INQUIRY_RE = /from\(\s*["']inquiries["']\s*\)\s*[\r\n\s]*\.insert\(/;
+  for (const file of walk("app/api")) {
+    if (!CODE_EXT.test(file) || EXCLUDE.test(file)) continue;
+    const norm = file.replace(/\\/g, "/");
+    let text;
+    try { text = readFileSync(join(ROOT, file), "utf8"); } catch { continue; }
+    if ((INSERTS_INQUIRY_RE.test(text) || MUST_GUARD.has(norm)) && !/\bhasMojibake\b/.test(text)) {
+      errors.push(`[인코딩가드누락] ${norm} — inquiries 에 요청 본문을 쓰는 라우트인데 hasMojibake(U+FFFD 거부) 가드 없음 → 깨진 한글이 DB·알림메일에 그대로 박힘 (반성문 #92). request.json() 직후 hasMojibake(body) 면 400 broken_encoding 으로 거부할 것.`);
+    }
+  }
+}
+
 // ── 결과 ────────────────────────────────────────────────────────
 if (errors.length) {
   console.error(`\n❌ 콘텐츠 일관성 검사 실패 (${errors.length}건)\n`);
