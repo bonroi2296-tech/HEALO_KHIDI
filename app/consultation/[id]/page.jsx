@@ -21,7 +21,7 @@ import {
 import "@livekit/components-styles";
 import "./consultation.css"; // 미트식 발화자 테두리(teal)·1:1 PiP 보정 — LiveKit 기본 덮어쓰기
 import { COPY } from "./_roomCopy";
-import { Track, ConnectionState, VideoPresets, RoomEvent } from "livekit-client";
+import { Track, ConnectionState, VideoPresets, RoomEvent, DisconnectReason, ConnectionCheck, CheckStatus } from "livekit-client";
 
 // LiveKit 방 옵션 — 화질 보강: 1080p 캡처 + 명시적 1080p 인코딩.
 // adaptiveStream: 작은 타일엔 저화질 자동(대역폭 절약), 큰 화면엔 고화질. dynacast: 안 보는 트랙 안 보냄.
@@ -538,9 +538,15 @@ function VideoGrid() {
   }
 
   return (
-    <GridLayout tracks={tracks} style={{ height: "100%" }}>
-      <ParticipantTile onParticipantClick={pinFromEvent} />
-    </GridLayout>
+    // 갤러리 폭 상한 — 채팅 닫힌 초광폭 화면에서 3~4인 타일이 옆으로 퍼지는 것 방지(2026-07-15 PO 제보:
+    // "채팅창 키면 적당해짐" = 적정 폭이 곧 상한값의 근거). ponytail: 화면높이×1.78(16:9 두 줄 기준) 휴리스틱.
+    <div className="h-full flex justify-center">
+      <div className="h-full w-full" style={{ maxWidth: "calc((100vh - 8rem) * 1.78)" }}>
+        <GridLayout tracks={tracks} style={{ height: "100%" }}>
+          <ParticipantTile onParticipantClick={pinFromEvent} />
+        </GridLayout>
+      </div>
+    </div>
   );
 }
 
@@ -657,6 +663,8 @@ export default function ConsultationRoomPage() {
   // 입장 시 자동 켜기에서 마이크가 실패했을 때 경고 — '켠 줄 아는데 무음' 방지 (장치 있는 기기만)
   const [micActivationFailed, setMicActivationFailed] = useState(false);
   const [micFailureReason, setMicFailureReason] = useState("");
+  // 같은 신분(identity)으로 다른 탭·기기가 입장해 이 화면이 밀려난 상태 — 재연결 경쟁 금지(새 세션 승리)
+  const [sessionTakenOver, setSessionTakenOver] = useState(false);
 
   // Guest mode state
   const [guestName, setGuestName] = useState("");
@@ -743,7 +751,8 @@ export default function ConsultationRoomPage() {
   // (PO 지시 2026-07-02: 권한은 시스템 권한창으로만. 방 안 커스텀 버튼 없음 → 입장 후엔 자동 켜기)
   // 실패는 원인별로 구분: 권한 차단(previewBlocked=허용 안내) vs 장치 없음(previewNoDevice=차분한 안내).
   useEffect(() => {
-    if (checkingAuth || !isGuestMode || livekitToken) return;
+    // sessionTakenOver: 밀려나 정지된 화면이 백그라운드에서 카메라를 다시 잡지 않게
+    if (checkingAuth || !isGuestMode || livekitToken || sessionTakenOver) return;
     let cancelled = false;
     (async () => {
       try {
@@ -773,7 +782,7 @@ export default function ConsultationRoomPage() {
       cancelled = true;
       stopPreview();
     };
-  }, [checkingAuth, isGuestMode, livekitToken, stopPreview]);
+  }, [checkingAuth, isGuestMode, livekitToken, stopPreview, sessionTakenOver]);
 
   // "브라우저에서 열기"가 조용히 막히는 메신저(왓츠앱·텔레그램 등) 폴백 —
   // 인앱 브라우저 상당수가 외부 이동(intent/스킴)을 차단해 버튼이 눌러도 아무 일이 없다.
@@ -1350,6 +1359,87 @@ export default function ConsultationRoomPage() {
     reportClientEventRef.current = reportClientEvent;
   }, [reportClientEvent]);
 
+  // 통화 중 실수 이탈 방지 — 탭 닫기·새로고침·(문서 이탈형) 뒤로가기에 브라우저 확인창.
+  // ponytail: 앱 내부(SPA) 뒤로가기는 App Router 가 차단 API 를 안 줘 미커버 — 대신 통화 중
+  // 헤더 ← 을 숨겨(위 정책) 앱 내 이탈 동선 자체를 없앰. 정밀 차단이 필요해지면 history 트랩.
+  useEffect(() => {
+    if (!connected) return;
+    const warn = (e) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [connected]);
+
+  // ── 입장 전 연결 사전점검 (안전망 ①, 2026-07-15 PO 승인) ──
+  // 회사·기관망의 영상 차단이 '입장 후 18초 타임아웃'에서야 드러나던 것(7/14 실회의)을
+  // 입장 폼 단계에서 미리 검사: 일회용 토큰으로 웹소켓+WebRTC 경로만 확인하고 버린다.
+  // 결과는 안내일 뿐 입장을 막지 않는다(오탐으로 사람을 문 앞에서 돌려세우지 않기).
+  const [preflightStatus, setPreflightStatus] = useState(""); // "" | checking | ok | blocked
+  const preflightRanRef = useRef(false);
+  useEffect(() => {
+    if (checkingAuth || !isGuestMode || livekitToken || sessionTakenOver) return;
+    if (preflightRanRef.current) return;
+    preflightRanRef.current = true;
+    let cancelled = false;
+    (async () => {
+      let creds = null;
+      try {
+        setPreflightStatus("checking");
+        const headers = await getConsultAuthHeaders();
+        if (!headers) return void setPreflightStatus("");
+        const res = await fetch(
+          `/api/khidi/consultation/${consultationId}/preflight-token`,
+          { method: "POST", headers }
+        );
+        const data = await res.json();
+        if (!data.ok) return void setPreflightStatus(""); // 점검 불가 = 조용히 생략(안내 없음)
+        creds = data;
+      } catch {
+        if (!cancelled) setPreflightStatus(""); // 토큰 획득 실패 ≠ 네트워크 차단 — 오탐 방지 위해 무안내
+        return;
+      }
+      try {
+        const checker = new ConnectionCheck(creds.livekitUrl, creds.token);
+        const withTimeout = (p) =>
+          Promise.race([
+            p,
+            new Promise((_, rej) => setTimeout(() => rej(new Error("preflight timeout")), 12000)),
+          ]);
+        const ws = await withTimeout(checker.checkWebsocket());
+        const rtc = await withTimeout(checker.checkWebRTC());
+        if (cancelled) return;
+        const ok =
+          ws?.status === CheckStatus.SUCCESS && rtc?.status === CheckStatus.SUCCESS;
+        setPreflightStatus(ok ? "ok" : "blocked");
+        if (!ok) {
+          reportClientEvent(
+            "connect_error",
+            `preflight blocked ws=${ws?.status} rtc=${rtc?.status}`
+          );
+        }
+      } catch {
+        // 검사 자체가 던지면(타임아웃 포함) 차단 가능성이 높은 환경
+        if (!cancelled) {
+          setPreflightStatus("blocked");
+          reportClientEvent("connect_error", "preflight blocked (check threw/timeout)");
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    checkingAuth,
+    isGuestMode,
+    livekitToken,
+    sessionTakenOver,
+    consultationId,
+    getConsultAuthHeaders,
+    reportClientEvent,
+  ]);
+
   // 서버 메시지 row(message/sender_role) → 렌더 형태(message_text/sender_name)로 정규화
   const normalizeMsg = useCallback((row) => ({
     id: row.id,
@@ -1386,7 +1476,12 @@ export default function ConsultationRoomPage() {
 
     try {
       const headers = await getConsultAuthHeaders();
-      if (!headers) return;
+      if (!headers) {
+        // 인증 헤더 없음도 조용히 삼키지 않는다(리뷰 지적, 채팅 무증상 삼킴과 동일 부류)
+        toast.error(c.sendFailed);
+        setMessageInput(text);
+        return;
+      }
       const res = await fetch(`/api/khidi/consultation/${consultationId}/messages`, {
         method: "POST",
         headers: { "Content-Type": "application/json", ...headers },
@@ -1400,11 +1495,18 @@ export default function ConsultationRoomPage() {
             ? prev
             : [...prev, normalizeMsg(result.data)]
         );
+      } else {
+        // 실패를 조용히 삼키지 않는다 — 2026-07-15 게스트·관리자 채팅이 DB 제약 500으로
+        // 죽어 있는데 화면엔 아무 표시가 없어 "입력해도 안 나온다"로만 보였음(PO 발견).
+        toast.error(c.sendFailed);
+        setMessageInput(text); // 쓴 글 복원 — 재시도 가능하게
       }
     } catch (error) {
       console.error("[ConsultationRoom] Send message error:", error);
+      toast.error(c.sendFailed);
+      setMessageInput(text);
     }
-  }, [messageInput, consultationId, getConsultAuthHeaders, normalizeMsg]);
+  }, [messageInput, consultationId, getConsultAuthHeaders, normalizeMsg, toast, c]);
 
   // ── 게스트 메시지/번역 로그 폴링 ──
   // 게스트는 RLS상 Supabase realtime 구독이 안 됨 → 서버 API 폴링으로 채팅·번역기록 동기화.
@@ -1800,17 +1902,40 @@ export default function ConsultationRoomPage() {
     router.push("/");
   };
 
+  // ── 이중 접속으로 밀려난 화면 — 새 세션에 양보하고 여기서 정지 (재연결 핑퐁 금지) ──
+  if (sessionTakenOver) {
+    return (
+      <div className="w-full h-screen flex items-center justify-center bg-gray-900 text-white">
+        <div className="text-center max-w-sm px-6">
+          <div className="w-14 h-14 rounded-full bg-amber-500/15 text-amber-300 flex items-center justify-center mx-auto mb-4">
+            <Users size={26} />
+          </div>
+          <h2 className="text-lg font-bold mb-2">{c.takenOverTitle}</h2>
+          <p className="text-sm text-gray-400 leading-relaxed mb-6">{c.takenOverBody}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-5 py-2.5 bg-teal-700 hover:bg-teal-800 rounded-lg font-semibold"
+          >
+            {c.takenOverRejoin}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   // ── Guest mode: 이름 입력 폼 먼저 표시 (staff 여부 판정이 끝난 뒤에만) ──
   if (isGuestMode && !livekitToken && !checkingAuth) {
+    // 모바일: 인사말 압축 + 이름칸 상단 + 하단 고정 입장 바 — 첫 화면에 "뭘 해야 하는지"가
+    // 다 보이게 (7/14 카자흐 에이전시가 버튼을 못 찾아 "로그인이 안 된다"로 오인한 실사고).
     return (
-      <div className="w-full min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-slate-900 to-teal-950 text-white p-4">
+      <div className="w-full min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-slate-900 to-teal-950 text-white p-4 pb-32 sm:pb-4">
         <div className="max-w-md w-full bg-gray-800/90 backdrop-blur rounded-2xl shadow-2xl overflow-hidden border border-gray-700">
-          <div className="p-8 border-b border-gray-700">
-            <div className="w-14 h-14 rounded-2xl bg-teal-700/10 text-teal-400 flex items-center justify-center mb-4">
-              <Video size={28} />
+          <div className="p-5 sm:p-8 border-b border-gray-700">
+            <div className="w-10 h-10 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-teal-700/10 text-teal-400 flex items-center justify-center mb-3 sm:mb-4">
+              <Video size={24} />
             </div>
-            <h1 className="text-2xl font-bold mb-2">{c.guestTitle}</h1>
-            <p className="text-sm text-gray-400 leading-relaxed">
+            <h1 className="text-xl sm:text-2xl font-bold mb-1.5 sm:mb-2">{c.guestTitle}</h1>
+            <p className="text-[13px] sm:text-sm text-gray-400 leading-relaxed">
               {c.guestLede}
             </p>
             {/* 인앱 브라우저(카카오톡·왓츠앱 등) → 영상·음성이 막힘 → 크게 눈에 띄게 외부 브라우저 유도.
@@ -1851,8 +1976,27 @@ export default function ConsultationRoomPage() {
               e.preventDefault();
               joinAsGuest();
             }}
-            className="p-8 space-y-4"
+            className="p-5 sm:p-8 space-y-4"
           >
+            {/* 이름 먼저 — "해야 할 일"이 첫 화면에 오게 (미리보기는 그 아래) */}
+            <div>
+              <label className="block text-sm font-semibold mb-2 text-gray-200">
+                {c.nameLabel}
+              </label>
+              <input
+                type="text"
+                autoFocus
+                value={guestName}
+                onChange={(e) => {
+                  setGuestName(e.target.value);
+                  setGuestError("");
+                }}
+                placeholder={c.namePlaceholder}
+                className="w-full px-4 py-3 bg-gray-900 border border-gray-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                maxLength={50}
+              />
+            </div>
+
             {/* 셀프뷰 — 입장 전 카메라·권한 확인 (거울 모드) */}
             <div className="rounded-xl overflow-hidden bg-black aspect-video relative border border-gray-700">
               {previewBlocked ? (
@@ -1885,23 +2029,24 @@ export default function ConsultationRoomPage() {
             </div>
             <p className="text-xs text-gray-400 -mt-1">{c.cameraPreviewHint}</p>
 
-            <div>
-              <label className="block text-sm font-semibold mb-2 text-gray-200">
-                {c.nameLabel}
-              </label>
-              <input
-                type="text"
-                autoFocus
-                value={guestName}
-                onChange={(e) => {
-                  setGuestName(e.target.value);
-                  setGuestError("");
-                }}
-                placeholder={c.namePlaceholder}
-                className="w-full px-4 py-3 bg-gray-900 border border-gray-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500"
-                maxLength={50}
-              />
-            </div>
+            {/* 입장 전 연결 사전점검 결과 — 차단 의심이면 입장 '전'에 핫스팟 안내 (안전망 ①) */}
+            {preflightStatus && (
+              <div
+                className={`text-xs rounded-lg px-3 py-2 leading-snug ${
+                  preflightStatus === "ok"
+                    ? "bg-teal-900/40 text-teal-200"
+                    : preflightStatus === "checking"
+                    ? "bg-gray-700/50 text-gray-300"
+                    : "bg-amber-500/10 border border-amber-500/40 text-amber-200"
+                }`}
+              >
+                {preflightStatus === "checking"
+                  ? c.preflightChecking
+                  : preflightStatus === "ok"
+                  ? c.preflightOk
+                  : `⚠️ ${c.connectNetworkTip}`}
+              </div>
+            )}
 
             {/* 내가 말하는 언어 — 사이트 언어로 미리 선택돼 있음, 자막·번역 방향 결정 */}
             <div>
@@ -1935,10 +2080,11 @@ export default function ConsultationRoomPage() {
               </p>
             )}
 
+            {/* 데스크톱용 제출 버튼 — 모바일은 아래 '고정 입장 바'가 대신한다 */}
             <button
               type="submit"
               disabled={guestJoining || !guestName.trim()}
-              className="w-full py-3 bg-teal-700 hover:bg-teal-800 disabled:opacity-60 disabled:cursor-not-allowed rounded-lg font-semibold transition"
+              className="hidden sm:block w-full py-3 bg-teal-700 hover:bg-teal-800 disabled:opacity-60 disabled:cursor-not-allowed rounded-lg font-semibold transition"
             >
               {guestJoining ? c.joining : c.startConsult}
             </button>
@@ -1949,6 +2095,21 @@ export default function ConsultationRoomPage() {
               {c.guestSecurity2}
             </p>
           </form>
+        </div>
+        {/* 모바일 고정 입장 바 — 카드가 backdrop-blur(fixed 기준 조상)라 카드 '밖'에 렌더.
+            폼 밖이므로 제출은 joinAsGuest 직접 호출(검증은 함수 안에서 동일 수행). */}
+        <div className="sm:hidden fixed inset-x-0 bottom-0 z-40 px-4 pt-2.5 pb-[max(0.75rem,env(safe-area-inset-bottom))] bg-gray-900/95 backdrop-blur border-t border-gray-700">
+          {!guestName.trim() && (
+            <p className="text-[11px] text-gray-400 text-center mb-1.5">{c.enterNameHint}</p>
+          )}
+          <button
+            type="button"
+            onClick={() => joinAsGuest()}
+            disabled={guestJoining || !guestName.trim()}
+            className="w-full py-3.5 bg-teal-700 hover:bg-teal-800 disabled:opacity-60 disabled:cursor-not-allowed rounded-lg font-semibold transition"
+          >
+            {guestJoining ? c.joining : c.startConsult}
+          </button>
         </div>
       </div>
     );
@@ -1990,33 +2151,25 @@ export default function ConsultationRoomPage() {
     !!livekitToken && (admissionStatus === "pending" || admissionStatus === "rejected");
 
   // ── 컨트롤 버튼 (헤더에서 공용 재사용 — 중복 정의 방지) ──
+  // 컨트롤 버튼 공통 문법(2026-07-15 PO): 아이콘 위 + 짧은 라벨 아래(모바일 포함 항상 표시) —
+  // 아이콘만으론 연령대 높은 사용자가 뜻을 못 알아봄. 상태는 색으로(켜짐 teal / 꺼짐·종료 red).
   const endButton = (
     <button
       onClick={handleEndCall}
-      className="px-4 py-2.5 rounded-lg bg-red-600 hover:bg-red-700 transition flex items-center gap-1.5 text-sm font-medium"
+      className="hw-ctrl-btn rounded-lg bg-red-600 hover:bg-red-700 transition font-medium text-white"
     >
-      <Phone size={16} /> <span className="hidden sm:inline">{c.endCall}</span>
+      <Phone size={18} /> <span>{c.endCall}</span>
     </button>
   );
 
-  const languageButton = (
-    <button
-      onClick={() => setLangSheetOpen(true)}
-      title={c.langChangeTitle}
-      className="px-3 py-2.5 rounded-lg bg-gray-700 hover:bg-gray-600 text-gray-200 transition flex items-center gap-1.5 text-xs"
-    >
-      <Globe size={18} />
-      <span className="hidden md:inline">
-        {LANG_LABELS[myLang]} → {LANG_LABELS[targetLang]}
-      </span>
-    </button>
-  );
+  // (2026-07-15 PO) 컨트롤 바의 「언어」 버튼은 제거 — 언어 설정은 번역 전용이라 번역 패널
+  // 맨 위 헤더로 입구를 단일화했다(중복 입구 해소). 언어쌍 변경은 langSheetOpen 시트로 동일.
 
   const sessionActions = (
     <>
       <button
         onClick={toggleTranslation}
-        className={`px-3 py-2.5 rounded-lg text-sm font-medium flex items-center gap-2 transition ${
+        className={`hw-ctrl-btn relative rounded-lg font-medium transition ${
           translationEnabled
             ? "bg-teal-700 hover:bg-teal-800 text-white"
             : "bg-gray-700 hover:bg-gray-600 text-gray-200"
@@ -2024,24 +2177,21 @@ export default function ConsultationRoomPage() {
         title={translationEnabled ? c.stopTranslation : c.startTranslation}
       >
         <Languages size={18} />
-        <span className="hidden sm:inline">
-          {translationEnabled
-            ? `${LANG_LABELS[myLang]} → ${LANG_LABELS[targetLang]}`
-            : c.interpretation}
-        </span>
+        <span>{c.interpretation}</span>
         {translationEnabled && isTranslating && (
-          <span className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse" />
+          <span className="absolute top-1 right-1 w-2 h-2 bg-yellow-400 rounded-full animate-pulse" />
         )}
       </button>
       <button
         onClick={() => setPanelOpen((v) => !v)}
         aria-label="Toggle chat panel"
-        className={`relative p-2.5 rounded-lg transition ${
+        className={`hw-ctrl-btn relative rounded-lg transition ${
           panelOpen ? "bg-teal-700 text-white" : "bg-gray-700 hover:bg-gray-600 text-gray-200"
         }`}
         title={c.togglePanel}
       >
         <MessageSquare size={18} />
+        <span>{c.ctrlChat}</span>
         {!panelOpen && translations.length + messages.length > 0 && (
           <span className="absolute -top-1 -right-1 bg-teal-700 text-white text-[10px] leading-none px-1 py-0.5 rounded-full">
             {translations.length + messages.length > 9
@@ -2059,13 +2209,24 @@ export default function ConsultationRoomPage() {
       <div className="bg-gray-800 border-b border-gray-700 px-3 py-2 md:px-6 md:py-3">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 md:gap-4 min-w-0">
-            <button
-              onClick={() => router.back()}
-              aria-label="Back"
-              className="p-2 hover:bg-gray-700 rounded-lg transition shrink-0"
-            >
-              <ChevronLeft size={24} />
-            </button>
+            {/* 통화 연결 중엔 ← 숨김(줌·미트 문법) — 한 번 스치면 확인 없이 통화에서 나가지는
+                함정 방지(2026-07-15 PO 실경험·정책 확정). 나가는 문 = 빨간 「종료」(확인창 있음)만. */}
+            {!connected && (
+              <button
+                onClick={() => {
+                  // 초대 링크를 새 탭·직접 입력으로 연 경우 방문 기록이 없어 router.back()이
+                  // 무반응(2026-07-15 PO 제보) → 기록 없으면 역할별 홈으로 보낸다.
+                  if (window.history.length > 1) router.back();
+                  else if (myRole === "admin") router.push("/admin/consultations");
+                  else if (myRole === "coordinator") router.push("/coordinator");
+                  else router.push("/");
+                }}
+                aria-label="Back"
+                className="p-2 hover:bg-gray-700 rounded-lg transition shrink-0"
+              >
+                <ChevronLeft size={24} />
+              </button>
+            )}
             <div className="min-w-0">
               <h1 className="text-base md:text-lg font-bold truncate">
                 {consultation?.cancer_patient_intakes?.[0]?.cancer_type || c.consultationFallback}
@@ -2222,7 +2383,22 @@ export default function ConsultationRoomPage() {
                 setConnectError(false);
                 setConnectErrorDetail("");
               }}
-              onDisconnected={() => setConnected(false)}
+              onDisconnected={(reason) => {
+                setConnected(false);
+                // 같은 신분으로 다른 탭·기기가 새로 입장(DUPLICATE_IDENTITY) → 이 화면은 양보하고 정지.
+                // 예전엔 두 탭이 서로 연결을 도로 뺏으며 핑퐁('붙었다 끊겼다') — 2026-07-15 PO 제보·정책 확정.
+                if (reason === DisconnectReason.DUPLICATE_IDENTITY) {
+                  setSessionTakenOver(true);
+                  setLivekitToken(""); // 연결 워치독·재시도 루프 중지
+                  // 통역 파이프라인 완전 정지 (독립 리뷰 적발: 안 끄면 밀려난 탭이 마이크를 쥔 채
+                  // STT·번역 API를 계속 호출 — 프라이버시·비용 구멍). handleEndCall 과 동일 정리.
+                  if (translationEnabled) stt.stop();
+                  setTranslationEnabled(false);
+                  setInterimText("");
+                  tts.stop();
+                  reportClientEvent("connect_error", "duplicate identity takeover - this tab yielded");
+                }
+              }}
               onError={(e) => {
                 console.error("[livekit] error:", e?.message);
                 // "Client initiated disconnect" = 사용자 나가기·재시도 리마운트의 정상 종료 신호 —
@@ -2324,13 +2500,14 @@ export default function ConsultationRoomPage() {
               </div>
               {/* 단순 컨트롤 — 기기 선택 메뉴 없이 켜기/끄기만.
                   소리는 기기 기본 출력(이어폰 연결 시 이어폰), 카메라는 기본(전면) 1개 */}
-              <div className="lk-control-bar flex-wrap" style={{ justifyContent: "center" }}>
-                <TrackToggle source={Track.Source.Microphone} />
-                <TrackToggle source={Track.Source.Camera} />
-                <TrackToggle source={Track.Source.ScreenShare} className="hidden sm:inline-flex" />
-                <span className="hidden sm:block w-px h-7 bg-gray-600 mx-1" />
+              <div className="lk-control-bar hw-controls flex-wrap" style={{ justifyContent: "center" }}>
+                <TrackToggle source={Track.Source.Microphone}>{c.ctrlMic}</TrackToggle>
+                <TrackToggle source={Track.Source.Camera}>{c.ctrlCam}</TrackToggle>
+                <TrackToggle source={Track.Source.ScreenShare} className="hidden sm:inline-flex">
+                  {c.ctrlShare}
+                </TrackToggle>
+                <span className="hidden sm:block w-px h-9 bg-gray-600 mx-1 self-center" />
                 {sessionActions}
-                {languageButton}
                 {endButton}
               </div>
             </LiveKitRoom>
@@ -2409,7 +2586,6 @@ export default function ConsultationRoomPage() {
               {!isWaitingScreen && (
                 <div className="bg-gray-800 border-t border-gray-700 px-3 py-3 flex items-center justify-center gap-2 flex-wrap">
                   {sessionActions}
-                  {languageButton}
                   {endButton}
                 </div>
               )}
@@ -2579,6 +2755,19 @@ export default function ConsultationRoomPage() {
           {/* Translation log panel */}
           {activePanel === "translation" && (
             <div className="flex-1 flex flex-col overflow-hidden">
+              {/* 언어쌍 단일 입구 — 컨트롤 바의 중복 「언어」 버튼을 없애고 여기로 통일(2026-07-15 PO).
+                  언어 설정은 번역 전용이라, 번역 패널 맨 위에 항상 두는 게 자연스럽다. */}
+              <button
+                onClick={() => setLangSheetOpen(true)}
+                className="flex items-center justify-center gap-2 border-b border-gray-700 px-4 py-2.5 text-sm text-gray-200 hover:bg-gray-750 transition"
+                title={c.langChangeTitle}
+              >
+                <Globe size={16} className="text-teal-400 shrink-0" />
+                <span className="font-medium">
+                  {LANG_LABELS[myLang]} → {LANG_LABELS[targetLang]}
+                </span>
+                <span className="text-xs text-gray-500">({c.ctrlLang})</span>
+              </button>
               <div className="flex-1 overflow-y-auto p-4 space-y-3">
                 {translations.length === 0 ? (
                   <div className="text-center text-gray-500 text-sm py-8">
@@ -2649,12 +2838,10 @@ export default function ConsultationRoomPage() {
                   <div className="flex items-center gap-2 text-xs">
                     <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
                     <span className="text-gray-400">{c.translationActive}</span>
-                    <button
-                      onClick={() => setLangSheetOpen(true)}
-                      className="px-2 py-1 bg-gray-700 hover:bg-gray-600 rounded text-teal-300 font-medium transition"
-                    >
+                    {/* 언어 변경 입구는 패널 상단 헤더로 단일화 — 여기선 현재 방향만 표시(중복 제거) */}
+                    <span className="text-teal-300 font-medium">
                       {LANG_LABELS[myLang]} → {LANG_LABELS[targetLang]}
-                    </button>
+                    </span>
                     {isTranslating && (
                       <span className="text-yellow-400 ml-auto">{c.translatingNow}</span>
                     )}
