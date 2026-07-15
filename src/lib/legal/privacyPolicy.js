@@ -15,10 +15,17 @@
  * - DPO 지정 및 연락처
  * - SCC (Standard Contractual Clauses) 체결 여부
  * - 보관기간 세부 (의료법 §22 진료기록 10년 vs 마케팅 정보)
+ * - 해외 유치 에이전시 국외이전(위탁) — §8·§9에 수탁자로 공개(2.2.0). 에이전시와의
+ *   개인정보 처리위탁계약(docs/marketing/agency-contract-compliance-supplement.md) 체결·서명 필요.
+ *   ⚠️ 현재 반영 언어: KO(지배본)·EN·RU·KZ. ZH·JA는 동일 문구 추가 필요.
+ *
+ * ⚠️ 배포 전(2.2.0): 변호사 최종검토 + PRIVACY_EFFECTIVE_DATE를 배포일 기준으로 설정 +
+ *    각 언어 §18 본문의 "현재 버전 2.1.0" 표기를 2.2.0로 동기화 + PIPA §18 사전공지(중요변경 7일 전).
  */
 
+// ⚠️ 2.2.0 콘텐츠 반영됨. 시행일은 배포 확정 시 갱신(현재는 직전 시행일 유지).
 export const PRIVACY_EFFECTIVE_DATE = "2026-06-29";
-export const PRIVACY_VERSION = "2.1.0";
+export const PRIVACY_VERSION = "2.2.0";
 
 /**
  * 동의 항목 구조 (필수/선택 분리)
@@ -207,6 +214,7 @@ const KO = {
       "· 이메일 발송: Resend Inc. (미국)",
       "· 원격협진 영상통화: LiveKit Inc. (미국)",
       "· AI 챗봇·번역: Google LLC (Gemini API, 미국 — 이용자 동의 시)",
+      "· 환자를 의뢰한 해외 유치 에이전시 (환자 소재국, 예: 카자흐스탄·러시아): 전문의 소견·치료 안내 전달 및 사전·사후관리 지원 — 제9조 처리위탁 및 위탁계약에 의함",
       "· 고객지원 도구: [확정 시 기입]",
       "",
       "【이전 목적 및 항목】",
@@ -235,6 +243,7 @@ const KO = {
       "· Resend Inc. — 알림·안내 이메일 송신 (미국)",
       "· LiveKit Inc. — 원격협진 영상통화 (미국)",
       "· Google LLC (Gemini API) — AI 챗봇 응답 및 번역 (이용자 동의 시, 미국)",
+      "· 해외 유치 에이전시 — 환자를 의뢰한 현지 에이전시에 전문의 소견·치료 안내를 현지어로 전달, 통역, 사전·사후관리 연락 (수탁자 소재국: 카자흐스탄·러시아 등 환자 소재국. 위탁계약에 따른 국외이전이며, 해당 환자를 의뢰한 에이전시에 한함)",
       "· [결제대행사 확정 시 기입] — 결제 처리",
       "",
       "위탁 업체는 계약을 통해 개인정보 보호 의무, 목적 외 이용 금지, 기술적·관리적 보호조치를 준수하며, 회사는 정기적으로 감독합니다.",
@@ -523,6 +532,7 @@ const EN = {
       "· Email delivery: Resend Inc. (USA)",
       "· Telemedicine video calls: LiveKit Inc. (USA)",
       "· AI chatbot / translation: Google LLC (Gemini API, USA — with user consent)",
+      "· Overseas patient-referring agency (patient's country of residence, e.g., Kazakhstan, Russia): delivery of specialist opinions and treatment guidance, and pre/post-care support — governed by the data-processing entrustment in Section 9 and a processing agreement",
       "· Customer support tools: [To be confirmed]",
       "",
       "【Purposes & Items】",
@@ -551,6 +561,7 @@ const EN = {
       "· Resend Inc. — Notification and informational email delivery (USA)",
       "· LiveKit Inc. — Telemedicine video calls (USA)",
       "· Google LLC (Gemini API) — AI chatbot responses and translation (with user consent, USA)",
+      "· Overseas patient-referring agencies — delivery of specialist opinions and treatment guidance in the local language, interpretation, and pre/post-care communication, limited to the agency that referred the patient (processor's country: the patient's country of residence, e.g., Kazakhstan, Russia; cross-border transfer under a data-processing agreement)",
       "· [Payment Gateway — TBC] — Payment processing",
       "",
       "Contracts require processors to observe data protection obligations, prohibition on use beyond stated purposes, and technical/organizational safeguards. We audit processors regularly.",
@@ -840,6 +851,7 @@ const RU = {
       "· Отправка электронной почты: Resend Inc. (США)",
       "· Видеозвонки для дистанционных консультаций: LiveKit Inc. (США)",
       "· ИИ-чатбот и перевод: Google LLC (Gemini API, США — при согласии пользователя)",
+      "· Зарубежное агентство, направившее пациента (страна проживания пациента, напр. Казахстан, Россия): передача заключений специалистов и рекомендаций по лечению, поддержка до- и послелечебного сопровождения — регулируется поручением обработки (раздел 9) и договором поручения",
       "· Инструменты поддержки клиентов: [подлежит уточнению]",
       "",
       "【Цели и состав данных】",
@@ -868,6 +880,7 @@ const RU = {
       "· Resend Inc. — отправка уведомительных и информационных электронных писем (США)",
       "· LiveKit Inc. — видеозвонки для дистанционных консультаций (США)",
       "· Google LLC (Gemini API) — ответы ИИ-чатбота и перевод (при согласии пользователя, США)",
+      "· Зарубежные агентства, направившие пациента — передача заключений специалистов и рекомендаций по лечению на местном языке, перевод, связь по до- и послелечебному сопровождению; только агентству, направившему данного пациента (страна обработчика: страна проживания пациента, напр. Казахстан, Россия; трансграничная передача на основании договора поручения обработки)",
       "· [Платёжный агент — подлежит уточнению] — обработка платежей",
       "",
       "Договоры обязывают обработчиков соблюдать обязанности по защите данных, запрет на использование сверх заявленных целей, а также технические и организационные меры защиты. Мы регулярно осуществляем контроль за обработчиками.",
@@ -1157,6 +1170,7 @@ const KZ = {
       "· Электрондық пошта жіберу: Resend Inc. (АҚШ)",
       "· Қашықтан кеңес беру бейнеқоңыраулары: LiveKit Inc. (АҚШ)",
       "· ЖИ чат-бот және аударма: Google LLC (Gemini API, АҚШ — пайдаланушының келісімімен)",
+      "· Пациентті жолдаған шетелдік агенттік (пациенттің тұрғылықты елі, мыс. Қазақстан, Ресей): маман қорытындылары мен емдеу нұсқауларын жеткізу, емге дейінгі және кейінгі қолдау — 9-бөлімдегі өңдеуді тапсыру және тапсыру шарты негізінде",
       "· Клиенттерді қолдау құралдары: [нақтылануы тиіс]",
       "",
       "【Мақсаттар мен деректер құрамы】",
@@ -1185,6 +1199,7 @@ const KZ = {
       "· Resend Inc. — хабарлама және ақпараттық электрондық хаттарды жіберу (АҚШ)",
       "· LiveKit Inc. — қашықтан кеңес беру бейнеқоңыраулары (АҚШ)",
       "· Google LLC (Gemini API) — ЖИ чат-бот жауаптары және аударма (пайдаланушының келісімімен, АҚШ)",
+      "· Пациентті жолдаған шетелдік агенттіктер — маман қорытындылары мен емдеу нұсқауларын жергілікті тілде жеткізу, аударма, емге дейінгі және кейінгі байланыс; тек осы пациентті жолдаған агенттікке ғана (өңдеуші елі: пациенттің тұрғылықты елі, мыс. Қазақстан, Ресей; өңдеуді тапсыру шарты негізінде шекарадан тыс беру)",
       "· [Төлем агенті — нақтылануы тиіс] — төлемдерді өңдеу",
       "",
       "Шарттар өңдеушілерден деректерді қорғау міндеттерін, мәлімделген мақсаттардан тыс пайдалануға тыйым салуды, сондай-ақ техникалық және ұйымдастырушылық қорғау шараларын сақтауды талап етеді. Біз өңдеушілерді тұрақты түрде бақылаймыз.",
