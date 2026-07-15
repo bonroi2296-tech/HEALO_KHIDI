@@ -301,8 +301,9 @@ export default function ConsultationsPage() {
           body: JSON.stringify({
             role: "patient",
             expiresInHours: 72,
-            // 재접속마다 1회 차감 → 끊김 잦은 모바일 환경 고려해 넉넉하게
-            maxUses: 20,
+            // 회수 제한 없음(만료 전까지 무제한) — 끊김·새로고침·재입장이 잦은 실환경에서
+            // "1회 쓰면 링크 죽음"이 진짜 문제였다(PO 2026-07-15). 안전선은 72h 만료.
+            maxUses: 0,
           }),
         }
       );
