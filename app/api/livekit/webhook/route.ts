@@ -84,16 +84,23 @@ export async function POST(request: NextRequest) {
           .eq("livekit_room_name", roomName)
           .maybeSingle();
         if ((session as any)?.id) {
-          // 같은 identity 재입장(LiveKit 자동 교체) 시 left 이벤트가 방금 생성된 새 입장
-          // 기록까지 닫지 않도록 5초 이내 생성분은 제외.
-          // ponytail: 5초 휴리스틱 — 정밀 매칭이 필요해지면 connection id 대조로 올린다.
+          // 같은 identity 재입장(LiveKit 자동 교체) 시, 떠나는 '옛 접속'의 left 이벤트가 방금
+          // 생성된 '새 접속'의 입장 기록까지 닫으면 안 된다. 기준 = 떠나는 접속의 LiveKit 합류
+          // 시각(joinedAt): 그보다 나중에 생성된 열린 기록은 새 접속의 것이므로 보호.
+          // (독립 리뷰 지적: 고정 5초 휴리스틱은 연결이 느리면 — 워치독 예산이 18초 — 새 기록까지
+          // 닫는 구멍. joinedAt 없는 페이로드만 5초 휴리스틱 폴백.)
+          const joinedAtSec = Number((event.participant as any)?.joinedAt || 0);
+          const cutoff =
+            joinedAtSec > 0
+              ? new Date(joinedAtSec * 1000 + 2000).toISOString()
+              : new Date(Date.now() - 5000).toISOString();
           await supabase
             .from("consultation_admissions")
             .update({ left_at: new Date().toISOString() } as any)
             .eq("consultation_id", (session as any).id)
             .eq("participant_identity", participantIdentity)
             .is("left_at", null)
-            .lt("requested_at", new Date(Date.now() - 5000).toISOString());
+            .lt("requested_at", cutoff);
         }
         console.log(`[livekit/webhook] ${participantIdentity} left ${roomName}`);
       } else if ((event.event as string) === "recording_finished" && roomName) {

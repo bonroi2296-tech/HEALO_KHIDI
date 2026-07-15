@@ -124,13 +124,14 @@ describe("livekit webhook 계약 — 자동완료 금지(K-02 인플레·재입�
     expect(calls.length).toBe(0);
   });
 
-  it("participant_left 는 열린 입장기록의 left_at 만 채운다(status 불변, 5초 이내 신규기록 보호)", async () => {
+  it("participant_left 는 열린 입장기록의 left_at 만 채운다(status 불변, 재입장 새 기록 보호)", async () => {
     const POST = await loadPost();
     mockState.sessionRow = { id: "session-123" };
+    const joinedAtSec = 1_700_000_000; // 떠나는 접속의 LiveKit 합류 시각(초)
     mockState.event = {
       event: "participant_left",
       room: { name: "khidi-room-1" },
-      participant: { identity: "guest-guest-abc12345-dev1" },
+      participant: { identity: "guest-guest-abc12345-dev1", joinedAt: joinedAtSec },
     };
 
     const res = await POST(makeReq({ event: "participant_left" }));
@@ -141,7 +142,7 @@ describe("livekit webhook 계약 — 자동완료 금지(K-02 인플레·재입�
     // left_at 만 기록 — status 자동완료(K-02 인플레) 금지 계약은 여기서도 유지
     expect(calls[0].update.left_at).toBeTruthy();
     expect(calls[0].update.status).toBeUndefined();
-    // 필터: 세션 매칭 + identity 매칭 + 아직 안 닫힌 기록 + 5초 이내 신규기록 제외
+    // 필터: 세션 매칭 + identity 매칭 + 아직 안 닫힌 기록 + 재입장 새 기록 보호(joinedAt 기준)
     const ops = calls[0].filters.map((f) => `${f.op}:${f.field}`);
     expect(ops).toEqual([
       "eq:consultation_id",
@@ -151,6 +152,10 @@ describe("livekit webhook 계약 — 자동완료 금지(K-02 인플레·재입�
     ]);
     expect(calls[0].filters[0].val).toBe("session-123");
     expect(calls[0].filters[1].val).toBe("guest-guest-abc12345-dev1");
+    // 컷오프 = 떠나는 접속의 joinedAt + 2초 — 그 이후 생성된 기록(재입장 새 기록)은 안 닫힘
+    expect(calls[0].filters[3].val).toBe(
+      new Date(joinedAtSec * 1000 + 2000).toISOString()
+    );
   });
 
   it("participant_left 인데 방 이름으로 세션을 못 찾으면 아무것도 안 건드린다", async () => {
