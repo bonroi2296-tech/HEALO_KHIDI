@@ -65,9 +65,9 @@ export const COPY = {
     ttsOff: "음성 출력 끄기",
     ttsOn: "음성 출력 켜기",
     subtitleSizeTitle: "자막 크기",
-    subtitleSmall: "자막 小",
-    subtitleMedium: "자막 中",
-    subtitleLarge: "자막 大",
+    subtitleSmall: "작게",
+    subtitleMedium: "보통",
+    subtitleLarge: "크게",
     endCall: "종료",
     // Admission states
     admissionRejectedTitle: "입장이 거절되었습니다",
