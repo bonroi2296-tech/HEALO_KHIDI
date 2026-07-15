@@ -182,16 +182,6 @@ export default function CoordinatorDashboard() {
       {/* Quick Actions */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <button
-          onClick={() => router.push('/coordinator/intakes')}
-          className="flex items-center gap-3 p-4 bg-blue-50 rounded-xl hover:bg-blue-100 transition text-left"
-        >
-          <ClipboardList size={20} className="text-blue-600" />
-          <div>
-            <div className="font-semibold text-sm text-blue-900">{L.qaIntakeTitle}</div>
-            <div className="text-xs text-blue-600">{L.qaIntakeDesc}</div>
-          </div>
-        </button>
-        <button
           onClick={() => router.push('/coordinator/consultations')}
           className="flex items-center gap-3 p-4 bg-green-50 rounded-xl hover:bg-green-100 transition text-left"
         >

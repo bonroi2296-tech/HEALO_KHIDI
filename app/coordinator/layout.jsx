@@ -22,7 +22,7 @@ const NAV_ITEMS = [
   { id: 'consultations', labelKey: 'navConsultations', icon: Video, href: '/coordinator/consultations' },
   { id: 'conversion', labelKey: 'navConversion', icon: TrendingUp, href: '/coordinator/conversion' },
   { id: 'partners', labelKey: 'navPartners', icon: Target, href: '/coordinator/partners' },
-  { id: 'intakes', labelKey: 'navIntakes', icon: ClipboardList, href: '/coordinator/intakes' },
+  // 인테이크 메뉴 제거(2026-07-15 PO): 상담 일정과 중복 + '의사 배정' 노-옵이라 상담 일정으로 통합.
   { id: 'messages', labelKey: 'navMessages', icon: MessageSquare, href: '/coordinator/messages' },
   { id: 'visa', labelKey: 'navVisa', icon: Plane, href: '/coordinator/visa' },
   { id: 'cost-estimates', labelKey: 'navCostEstimates', icon: Calculator, href: '/coordinator/cost-estimates' },
