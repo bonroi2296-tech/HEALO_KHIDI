@@ -1490,11 +1490,18 @@ export default function ConsultationRoomPage() {
             ? prev
             : [...prev, normalizeMsg(result.data)]
         );
+      } else {
+        // 실패를 조용히 삼키지 않는다 — 2026-07-15 게스트·관리자 채팅이 DB 제약 500으로
+        // 죽어 있는데 화면엔 아무 표시가 없어 "입력해도 안 나온다"로만 보였음(PO 발견).
+        toast.error(c.sendFailed);
+        setMessageInput(text); // 쓴 글 복원 — 재시도 가능하게
       }
     } catch (error) {
       console.error("[ConsultationRoom] Send message error:", error);
+      toast.error(c.sendFailed);
+      setMessageInput(text);
     }
-  }, [messageInput, consultationId, getConsultAuthHeaders, normalizeMsg]);
+  }, [messageInput, consultationId, getConsultAuthHeaders, normalizeMsg, toast, c]);
 
   // ── 게스트 메시지/번역 로그 폴링 ──
   // 게스트는 RLS상 Supabase realtime 구독이 안 됨 → 서버 API 폴링으로 채팅·번역기록 동기화.
