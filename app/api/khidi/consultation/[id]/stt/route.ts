@@ -40,10 +40,45 @@ const LANG_NAMES: Record<string, string> = {
 // 코드스위치(카자흐+러시아, 한국어+영어 차용어)를 줄이기 위해 매 호출에 맥락을 주입한다.
 const DOMAIN_PRIMING = `Domain: a Korea–CIS medical-tourism teleconsultation (cancer / oncology care). Participants: a Korean doctor, a coordinator, and a foreign patient (often from Kazakhstan or Russia). Frequent proper nouns and business terms appear — hospital names, cancer types, drug/test names, staff names, and words like "바이어"(buyer), "컨택/컨택트"(contact), "에이전시"(agency), "인플루언서"(influencer), and brand names. Treat these as proper nouns; do NOT mis-hear them as unrelated homophones (e.g. "큰 다리" = a big bridge, never the body part "leg"; "유플러스/Uplus" is a company, not "you plus"). The speaker may code-switch (e.g. Kazakh mixed with Russian, or Korean mixed with English loanwords) — transcribe exactly as spoken in whatever languages are used.`;
 
+// 대화 문맥(직전 발화) — 클라이언트 링버퍼에서 FormData 로 전달. 전사(동음이의)·번역(대명사)
+// 양쪽 정확도에 기여. 개수·길이 상한으로 프롬프트 오염 방지.
+// (translate-realtime 와 중복 구현 — 공유 모듈화는 후속 과제, docs/KNOWN_ISSUES.md)
+const MAX_CONTEXT_ITEMS = 6;
+const MAX_CONTEXT_ITEM_CHARS = 300;
+
+function parseContext(raw: unknown): string {
+  let items: any[] = [];
+  try {
+    const parsed = JSON.parse(String(raw || "[]"));
+    if (Array.isArray(parsed)) items = parsed;
+  } catch {
+    return "";
+  }
+  const lines = items
+    .slice(-MAX_CONTEXT_ITEMS)
+    .map((it: any) => ({
+      speaker: it?.speaker === "other" ? "other" : "self",
+      lang: typeof it?.lang === "string" && LANG_NAMES[it.lang] ? it.lang : "",
+      text: typeof it?.text === "string" ? it.text.slice(0, MAX_CONTEXT_ITEM_CHARS) : "",
+    }))
+    .filter((it) => it.text)
+    .map((it) => `[${it.speaker}${it.lang ? `, ${it.lang}` : ""}] ${it.text}`);
+  if (!lines.length) return "";
+  return `Recent conversation (oldest first) — for context ONLY, do NOT transcribe or translate it:
+${lines.join("\n")}
+Use it to resolve pronouns, omitted subjects, homophones, and to keep terminology, names, numbers, and the direction of payments/actions consistent.
+
+`;
+}
+
 // 모델 선택: 저자원 카자흐어만 Pro(정확도 격차 큼), 나머지는 Flash 유지(비용·지연).
 // env STT_KZ_MODEL 로 override 가능. Pro 별칭이 틀려도 kz 가 죽지 않게 아래 genWithFallback 가 Flash 로 폴백.
-function sttModelFor(lang: string): string {
-  if (lang === "kz") return process.env.STT_KZ_MODEL || "gemini-pro-latest";
+// ⚠️ 언어 자동 감지 도입(2026-07-11) 후엔 '설정 언어'만으론 부족 — 같은 마이크에 카자흐어가
+// 섞여 들어올 수 있는 세션(lang 또는 targetLang 이 kz)이면 Pro 를 쓴다. 안 그러면 공유 마이크의
+// 카자흐 발화가 Flash 로 떨어져, kz 경로에 Pro 를 도입한 이유(정확도 격차)가 도로 사라짐.
+function sttModelFor(lang: string, targetLang?: string): string {
+  if (lang === "kz" || targetLang === "kz")
+    return process.env.STT_KZ_MODEL || "gemini-pro-latest";
   return "gemini-flash-latest";
 }
 
@@ -82,6 +117,7 @@ export async function POST(
     const lang = String(formData.get("lang") || "ko");
     const targetLangRaw = String(formData.get("targetLang") || "");
     const targetLang = LANG_NAMES[targetLangRaw] ? targetLangRaw : "";
+    const contextBlock = parseContext(formData.get("context"));
 
     if (!audio || typeof audio.arrayBuffer !== "function") {
       return Response.json({ ok: false, error: "audio_required" }, { status: 400 });
@@ -109,10 +145,16 @@ export async function POST(
     let transcript = "";
     let translated = "";
 
+    let detectedLang = "";
+
     if (targetLang && targetLang !== lang) {
       // ── 전사+번역 단일 호출 — 왕복 1회로 자막 지연 절반 ──
+      // 언어 자동 감지: 화자가 설정 언어(lang)와 다른 언어를 말해도(같은 방 마이크에
+      // 한국어·카자흐어 혼용, 언어 설정 실수 등) 실제 감지 언어 → targetLang 으로 번역.
+      // 감지 언어가 이미 targetLang 이면 번역하지 않고 전사를 그대로 자막으로 (echo 방지 —
+      // 7/10 로그 전수조사에서 한국어 발화가 ru→ko 로 들어가 원문 그대로 echo 된 건 10건).
       const targetName = LANG_NAMES[targetLang];
-      const text = await genWithFallback(sttModelFor(lang), {
+      const text = await genWithFallback(sttModelFor(lang, targetLang), {
         messages: [
           {
             role: "user",
@@ -121,12 +163,14 @@ export async function POST(
               {
                 type: "text",
                 text: `${DOMAIN_PRIMING}
-The speaker is speaking ${langName} (may include code-switching).
+${contextBlock}The speaker most likely speaks ${langName}, but this microphone may be shared by people speaking different languages — DETECT the language actually spoken (candidates: Korean ko, Russian ru, English en, Kazakh kz, Chinese zh, Japanese ja; prefer ${langName}/${targetName} when ambiguous).
 1. Transcribe the speech verbatim in the original language(s), but OMIT hesitation fillers (e.g. "음", "어", "그…", "uh", "um", "э-э", "ну", "えっと"). Keep all meaningful words and proper nouns exactly.
-2. Translate the transcript into ${targetName} — formal/polite register, standard medical terminology, concise (for real-time subtitles).
+2. If the detected language is already ${targetName}, set "x" to the transcript itself (do NOT translate). Otherwise translate the transcript into ${targetName} — formal/polite register, standard medical terminology, concise (for real-time subtitles).
+The clip may start or end mid-sentence: transcribe and translate the fragment faithfully AS-IS — never invent a completion for a cut-off sentence (this is a medical setting; invented content is dangerous).
+If the audio contains only silence, background noise, breathing, or music, you MUST return the empty JSON — NEVER invent greetings ("Здравствуйте", "안녕하세요") or filler phrases for unclear audio.
 Respond with ONLY this JSON on one line, no markdown, no code fences:
-{"t":"<transcript>","x":"<translation>"}
-If there is no clear human speech, or the speech is ONLY hesitation fillers with no content, respond exactly: {"t":"","x":""}`,
+{"t":"<transcript>","x":"<translation>","l":"<detected language code>"}
+If there is no clear human speech, or the speech is ONLY hesitation fillers with no content, respond exactly: {"t":"","x":"","l":""}`,
               },
             ],
           },
@@ -143,6 +187,8 @@ If there is no clear human speech, or the speech is ONLY hesitation fillers with
           const j = JSON.parse(m[0]);
           transcript = String(j.t || "").trim();
           translated = String(j.x || "").trim();
+          const l = String(j.l || "").trim().toLowerCase();
+          detectedLang = LANG_NAMES[l] ? l : "";
         } catch {
           // 파싱 실패 — 조각 폐기 (깨진 텍스트를 자막으로 내보내는 것보다 안전)
         }
@@ -158,7 +204,7 @@ If there is no clear human speech, or the speech is ONLY hesitation fillers with
               {
                 type: "text",
                 text: `${DOMAIN_PRIMING}
-Transcribe the speech in this audio clip. The speaker is speaking ${langName} (may include code-switching) during a medical consultation. Output ONLY the transcript in the original language(s), nothing else. OMIT hesitation fillers (e.g. "음", "어", "그…", "uh", "um", "э-э", "ну", "えっと") but keep all meaningful words and proper nouns exactly. If there is no clear human speech, or the speech is ONLY hesitation fillers, output exactly: [NO_SPEECH]`,
+${contextBlock}Transcribe the speech in this audio clip. The speaker is speaking ${langName} (may include code-switching) during a medical consultation. Output ONLY the transcript in the original language(s), nothing else. OMIT hesitation fillers (e.g. "음", "어", "그…", "uh", "um", "э-э", "ну", "えっと") but keep all meaningful words and proper nouns exactly. If there is no clear human speech, or the speech is ONLY hesitation fillers, output exactly: [NO_SPEECH]`,
               },
             ],
           },
@@ -179,18 +225,19 @@ Transcribe the speech in this audio clip. The speaker is speaking ${langName} (m
     }
 
     // 번역 로그 저장 — translate-realtime 와 동일 테이블/형식 (fire-and-forget)
+    // source_lang 은 감지 언어 우선 — 설정 언어로 기록하면 echo 건이 ru→ko 로 오염됨(7/10 로그)
     if (transcript && translated && targetLang) {
       saveTranslationLog(consultationId, {
         originalText: transcript,
         translatedText: translated,
-        sourceLang: lang,
+        sourceLang: detectedLang || lang,
         targetLang,
       }).catch((err: any) =>
         console.error("[consultation/stt] DB save error:", err?.message?.slice(0, 200))
       );
     }
 
-    return Response.json({ ok: true, transcript, translated });
+    return Response.json({ ok: true, transcript, translated, detectedLang: detectedLang || lang });
   } catch (err: any) {
     console.error("[consultation/stt] error:", err?.message?.slice(0, 200));
     return Response.json({ ok: false, error: "stt_failed" }, { status: 500 });
