@@ -37,7 +37,8 @@ export async function GET(
   // For large datasets: select minimal columns, use planned count to avoid timeout
   let query = supabaseAdmin
     .from("crawl_raw_items")
-    .select("id,name,data,status,source_unique_id,change_diff,review_action", { count: "planned" })
+    // 실컬럼은 title(name 없음) — 응답 키는 name 으로 유지하려 alias(name:title). 완성도 감사 2026-07-15.
+    .select("id,name:title,data,status,source_unique_id,change_diff,review_action", { count: "planned" })
     .eq("job_id", jobId)
     .order("created_at", { ascending: true })
     .range(offset, offset + limit - 1);
@@ -45,7 +46,7 @@ export async function GET(
   if (status) query = query.eq("status", status);
   if (reviewed === "true") query = query.not("review_action", "is", null);
   if (reviewed === "false") query = query.is("review_action", null);
-  if (search) query = query.ilike("name", `%${search}%`);
+  if (search) query = query.ilike("title", `%${search}%`);
   if (region) query = query.filter("data->>addr", "ilike", `%${region}%`);
   if (type) query = query.filter("data->>clCdNm", "eq", type);
   if (specialty) query = query.filter("data->>dgsbjtCdNm", "ilike", `%${specialty}%`);

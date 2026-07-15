@@ -232,28 +232,37 @@ export async function autoScheduleReminders(
   ].filter(Boolean) as string[];
 
   if (userIds.length > 0) {
+    // profiles 에는 full_name·role 만 있다(email·phone·언어 컬럼은 애초에 없음). 이전 코드가
+    // 없는 컬럼(email·phone·name_ko·name_en·preferred_lang)을 select 해 쿼리가 조용히 0건 →
+    // 등록사용자 리마인더가 무증상 실패했음(완성도 감사 2026-07-15 발견, 유형6). 실컬럼만 조회하고
+    // 이메일은 auth.users(서비스롤 admin)에서 가져온다. 언어는 세션 값(게스트 경로와 동일 규칙).
     const { data: profilesRaw } = await (supabaseAdmin as any)
       .from("profiles")
-      .select("id, email, phone, name_ko, name_en, preferred_lang, role")
+      .select("id, full_name, role")
       .in("id", userIds);
     const profiles = (profilesRaw ?? []) as Array<{
       id: string;
-      email?: string | null;
-      phone?: string | null;
-      name_ko?: string | null;
-      name_en?: string | null;
-      preferred_lang?: string | null;
+      full_name?: string | null;
       role?: string | null;
     }>;
+    const profileById = new Map(profiles.map((p) => [p.id, p]));
 
-    for (const profile of profiles) {
+    for (const userId of userIds) {
+      const profile = profileById.get(userId);
+      // 이메일은 profiles 가 아니라 auth.users 에 있다. 못 얻어도 userId 로 in_app 채널은 발송된다.
+      let email: string | undefined;
+      try {
+        const { data: authData } = await (supabaseAdmin as any).auth.admin.getUserById(userId);
+        email = authData?.user?.email ?? undefined;
+      } catch {
+        /* 이메일 조회 실패해도 in_app 리마인더는 나가므로 무시 */
+      }
       targets.push({
-        userId: profile.id,
-        email: profile.email ?? undefined,
-        phone: profile.phone ?? undefined,
-        role: profile.role ?? "user",
-        name: profile.name_ko ?? profile.name_en ?? undefined,
-        lang: profile.preferred_lang ?? "ko",
+        userId,
+        email,
+        role: profile?.role ?? "user",
+        name: profile?.full_name ?? undefined,
+        lang: userId === session.patient_id ? (session.patient_language ?? "ko") : "ko",
       });
     }
   }

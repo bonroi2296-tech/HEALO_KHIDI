@@ -1,12 +1,12 @@
 # HEALO KHIDI — 알려진 이슈 / 전수 QA 발견사항
 
-## 🟡 2026-07-15 완성도 감사(컬럼레벨 schema-refs)가 잡은 없는-컬럼 select 2건 (유형6 조용한 0)
+## ✅ 2026-07-15 완성도 감사(컬럼레벨 schema-refs)가 잡은 없는-컬럼 select 2건 — 종결
 
-> 축 C 잔여로 `check:schema-refs`를 컬럼레벨 확장하다 발견 + 생성타입(`src/types/database.types.ts`)이 **stale**(inquiries 35 vs 실DB 61 컬럼)임을 발견해 재생성함. 아래는 재생성 후에도 남은 = **실제 없는 컬럼 참조**(DB 실측 대조 완료). 쿼리가 에러→try/catch 삼킴→화면 0/[]로 떨어지는 부류.
+> 축 C 잔여로 `check:schema-refs`를 컬럼레벨 확장하다 발견 + 생성타입(`src/types/database.types.ts`)이 **stale**(inquiries 35 vs 실DB 61 컬럼)임을 발견해 재생성함. 아래는 재생성 후에도 남은 = **실제 없는 컬럼 참조**(DB 실측 대조 완료). 쿼리가 에러→try/catch 삼킴→화면 0/[]로 떨어지는 부류. **둘 다 같은 PR(#784)에서 수리 완료.**
 
-- 🟡 **`src/lib/reminders/scheduleReminder.ts:237` — profiles 에서 없는 컬럼 5개 select**: `.select("id, email, phone, name_ko, name_en, preferred_lang, role")` 하는데 profiles 실컬럼은 `avatar_url, created_at, full_name, id, role, updated_at`뿐. → 등록사용자(환자/의사/코디) 상담 리마인더 타깃이 **연락처를 조용히 못 얻음**(profilesRaw=null→[]). **고치려면 등록사용자 연락처의 실제 출처 확정 필요**(email=auth.users? phone/lang=inquiries? 이름=full_name). 데이터모델 결정이라 PO/설계 확인 후 수리.
-- 🟢 **`app/api/admin/crawl/jobs/[id]/items/route.ts:39` — crawl_raw_items.select("…name…")**: 실컬럼은 `title`(name 없음). 어드민 크롤 도구라 저영향 — `name`→`title` 교정하면 됨(다음 손볼 때).
-- 가드: 컬럼레벨 검사는 우선 **비차단(경고)** — 안정 후 blocking 승격. 새 없는-컬럼 select 는 이제 매 PR 경고로 뜸.
+- ✅ **`src/lib/reminders/scheduleReminder.ts` — profiles 없는 컬럼 5개 select** → 등록사용자 상담 리마인더가 연락처를 조용히 못 얻던 무증상 실패. **수리**: 실컬럼(`id, full_name, role`)만 조회 + 이메일은 `auth.users`(서비스롤 `getUserById`) 조회 + 언어는 세션 값. 이메일 못 얻어도 `userId`로 **in_app 채널 리마인더는 발송**(총실패→최소 in_app 보장). 유형6 종결.
+- ✅ **`app/api/admin/crawl/jobs/[id]/items/route.ts` — crawl_raw_items.select("…name…")** → 실컬럼은 `title`. **수리**: `name:title` alias(응답 키 `name` 유지) + 검색 필터 `ilike("title")`.
+- 가드: 컬럼레벨 검사는 우선 **비차단(경고)** — 현재 경고 0. 안정 후 blocking 승격(DEFINITION_OF_DONE 로드맵). 새 없는-컬럼 select 는 이제 매 PR 경고로 뜸.
 
 ## 🟢 2026-07-14 POSTMORTEMS 반성문 번호 충돌 12쌍 (과거 발번 실수 누적 — 새 중복은 §20이 차단)
 
