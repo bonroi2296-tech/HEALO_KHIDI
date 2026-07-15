@@ -1322,9 +1322,15 @@ export default function ConsultationRoomPage() {
   // ── 클라이언트 오류 자동 보고 (진단 비콘) ──
   // 원격 기기(환자 폰 등)의 연결 실패 원인이 아무 데도 안 남아 진단이 이틀 밀렸던
   // 'invalid token: revoked' 장애(POSTMORTEMS #61) 재발 방지. 실패해도 조용히 무시(UX 영향 0).
+  // 같은 type 비콘은 10초에 1건만 — 이벤트 폭주(7/14 실회의: 40초에 17발)가 진단 기록과
+  // IP 레이트리밋(분당 20)을 오염시키던 것 방지. ponytail: 타입별 스로틀 — 부족하면 메시지별로.
+  const beaconLastSentRef = useRef({});
   const reportClientEvent = useCallback(
     async (type, message) => {
       try {
+        const now = Date.now();
+        if (now - (beaconLastSentRef.current[type] || 0) < 10000) return;
+        beaconLastSentRef.current[type] = now;
         const headers = await getConsultAuthHeaders();
         if (!headers) return;
         await fetch(`/api/khidi/consultation/${consultationId}/client-event`, {
@@ -2219,6 +2225,9 @@ export default function ConsultationRoomPage() {
               onDisconnected={() => setConnected(false)}
               onError={(e) => {
                 console.error("[livekit] error:", e?.message);
+                // "Client initiated disconnect" = 사용자 나가기·재시도 리마운트의 정상 종료 신호 —
+                // 오류 화면·서버 비콘 대상이 아님 (7/14 실회의에서 40초에 17발 기록 오염 확인)
+                if (/client initiated disconnect/i.test(String(e?.message || ""))) return;
                 setConnectError(true);
                 // 실제 원인을 화면에도 — "인터넷 확인" 뭉뚱그림 금지(#61 재발 방지)
                 if (e?.message) setConnectErrorDetail(String(e.message).slice(0, 200));
@@ -2264,6 +2273,13 @@ export default function ConsultationRoomPage() {
                     {connectErrorDetail && (
                       <p className="text-gray-400 text-[11px] mb-4 max-w-sm break-all leading-snug">
                         ({connectErrorDetail})
+                      </p>
+                    )}
+                    {/* 재시도 2회 이상 실패 = 네트워크(회사·기관망의 영상통화 차단)일 확률이 높다
+                        — 7/14 실회의 2건 모두 사무실 PC가 이 패턴. 구체 우회로(핫스팟)를 알려준다. */}
+                    {connectAttempt >= 2 && (
+                      <p className="text-amber-200 text-xs mb-4 max-w-xs leading-relaxed bg-amber-500/10 border border-amber-500/40 rounded-lg px-3 py-2">
+                        {c.connectNetworkTip}
                       </p>
                     )}
                     <button
