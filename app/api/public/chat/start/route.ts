@@ -15,6 +15,7 @@ import { supabaseAdmin, assertSupabaseEnv } from "@/lib/rag/supabaseAdmin";
 import { createSupabaseServerClientFromRequest } from "@/lib/supabase/server";
 import { checkRateLimit, getClientIp, RATE_LIMITS } from "@/lib/rateLimit";
 import { encryptStringNullable, safeHash } from "@/lib/security/encryptionV2";
+import { hasMojibake } from "@/lib/inquiry/noMojibake";
 
 // 공개 라우트지만 same-origin 쿠키로 로그인 사용자 식별 가능 → 새 스레드를 계정에 연결.
 async function getOptionalUser(request: NextRequest) {
@@ -40,6 +41,15 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json().catch(() => ({}));
+
+    // 인코딩 깨진 본문(U+FFFD) 거부 — 깨진 한글이 chat_threads→inquiries 승격까지 그대로 박힘 (POSTMORTEMS #92)
+    if (hasMojibake(body)) {
+      return Response.json(
+        { ok: false, error: "broken_encoding", detail: "body contains U+FFFD — send UTF-8" },
+        { status: 400 }
+      );
+    }
+
     const {
       treatment_slug,
       language = "en",

@@ -37,7 +37,7 @@
 **재발 방지**
 - 검사기 §21 신설: `inquiries` 에 요청 본문을 쓰는 app/api 라우트(동적 탐지 + intake 고정)에 `hasMojibake` 가드가 없으면 CI 실패 — 새 문의 입력 라우트가 가드 없이 생기는 부류를 영구 차단.
 - 교훈: **Windows에서 한글 포함 API 테스트는 콘솔 리터럴 금지** — 본문을 UTF-8 파일로 저장해 `curl --data-binary @file` 또는 node 스크립트로 보낼 것(콘솔 CP949가 바이트를 깨뜨림).
-- 한계(정직하게): 가드는 문의 계열 4라우트만. 다른 자유텍스트 공개/포털 라우트(예: portal/symptoms, opinions)와 AI챗→문의 승격 insert(`src/lib/chat/publicChatHelpers.ts`, app/api 밖이라 §21 탐지 범위 밖)는 이번 범위 외 — 같은 증상이 그쪽에서 보이면 같은 가드를 이식.
+- ~~한계: 가드는 문의 계열 4라우트만~~ → **2026-07-15 후속(PO 승인)으로 해소**: 자유텍스트 공개/포털 라우트 5곳(portal/symptoms·opinions/[token]·public/chat start·message·stream)에도 이식 — AI챗→문의 승격(`publicChatHelpers.ts`)은 챗 입구 3라우트에서 차단. §21 고정 목록에 전부 등재(총 9라우트).
 
 ## #91 — "브라우저에서 열기" 버튼이 일부 메신저에서 무반응 → 인앱에 남은 채 '무음 통화' (2026-07-14)
 

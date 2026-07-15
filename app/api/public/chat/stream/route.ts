@@ -16,6 +16,7 @@ import { supabaseAdmin, assertSupabaseEnv } from "@/lib/rag/supabaseAdmin";
 import { createSupabaseServerClientFromRequest } from "@/lib/supabase/server";
 import { checkRateLimitPersistent, getClientIp, RATE_LIMITS } from "@/lib/rateLimit";
 import { checkAiGuards } from "@/lib/ai/aiGuard";
+import { hasMojibake } from "@/lib/inquiry/noMojibake";
 import {
   streamChatReply,
   detectHandOff,
@@ -71,6 +72,11 @@ export async function POST(request: NextRequest) {
     body = await request.json();
   } catch {
     return jsonError("invalid_body", 400);
+  }
+
+  // 인코딩 깨진 본문(U+FFFD) 거부 — 깨진 한글이 chat_threads→inquiries 승격까지 그대로 박힘 (POSTMORTEMS #92)
+  if (hasMojibake(body)) {
+    return jsonError("broken_encoding", 400);
   }
 
   const { thread_id, public_token, message_text } = body;

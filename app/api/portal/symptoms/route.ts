@@ -17,6 +17,7 @@ import { requirePortalAuth } from "@/lib/auth/requirePortalAuth";
 import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
 import { decryptStringNullable } from "@/lib/security/encryptionV2";
 import { analyzeSymptoms, type SymptomReport } from "@/lib/followup/symptomAnalyzer";
+import { hasMojibake } from "@/lib/inquiry/noMojibake";
 
 function safeDecrypt(enc: any): string {
   try {
@@ -77,6 +78,14 @@ export async function POST(request: NextRequest) {
     payload = await request.json();
   } catch {
     return Response.json({ ok: false, error: "invalid_json" }, { status: 400 });
+  }
+
+  // 인코딩 깨진 본문(U+FFFD) 거부 — 깨진 한글이 DB·알림메일에 그대로 박힘 (POSTMORTEMS #92)
+  if (hasMojibake(payload)) {
+    return Response.json(
+      { ok: false, error: "broken_encoding", detail: "body contains U+FFFD — send UTF-8" },
+      { status: 400 }
+    );
   }
 
   if (!payload?.symptoms || !Array.isArray(payload.symptoms) || payload.symptoms.length === 0) {
