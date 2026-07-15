@@ -1,6 +1,44 @@
 # PR
 
+## 🔖 세션 핸드오프 (2026-07-14 저녁 — 앱스토어 실행 편: Firebase 열쇠 2개 머지 + Codemagic 연결 완료, 남은 건 결제뿐)
 
+**1. 이번 세션 한 일**
+- 결제 없이 가능한 계정 작업을 PO와 실시간(스크린샷 왕복)으로 전부 완료:
+  - **Firebase**: PO가 기존 프로젝트 `healo`(healo-e3e58)에 Android·iOS 앱 추가(새 프로젝트 안 만듦) → 열쇠 2개를 어시가 검증(번들/패키지·프로젝트 ID 파싱 대조)·배치·머지: `google-services.json` **[PR #757](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/757)** / `GoogleService-Info.plist` **[PR #758](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/758)**.
+  - **Codemagic**: PO가 Individual(Personal) 가입 + GitHub 연동 + `HEALO_KHIDI` 연결 — codemagic.yaml 자동 인식까지 실화면 확인. 무료 한도 실측(요금 페이지: 월 500분 맥 M2 — 라이브로드 구조라 연 0~2회 빌드면 충분).
+  - 기록: 중간저장 **[PR #759](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/759)** + 체크리스트 3·4번 완료 처리 **[PR #762](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/762)**.
+- PO 개념 질문 3건 답변: 우리 앱은 왜 스토어 업데이트가 거의 불필요한가(라이브로드=TV 비유), 남들은 왜 네이티브로 하나(감촉·오프라인·인력 규모 — 대형사도 웹뷰 혼용), Codemagic 무료 여부.
+- (문서 사고 수리) 「구글 색인 대청소」 핸드오프 블록의 제목줄이 유실돼 본문이 고아로 남아 있던 것 발견 → 제목줄 복원(보관소 대조로 유일본 확인 후).
+
+**2. 왜 그렇게 했는지**
+- Firebase 새 프로젝트를 안 만든 이유: 프로젝트명(healo)은 내부 식별자라 브랜드(healwith) 불일치 무해 — 기존 웹 앱(healo-web)과 공존, 관리 지점 1개 유지.
+- "결제 후 Firebase" 계획을 앞당긴 이유: Firebase는 개발자 등록(결제)과 무관한 무료 서비스임을 확인 — PO 여세가 있을 때 계정 문턱을 미리 넘어둠.
+- Codemagic 첫 빌드를 일부러 안 돌림: 서명 열쇠(결제 후 발급) 없이는 실패 확정 — 무료 분량 낭비 방지, PO에게도 "버튼 누르지 마세요" 안내.
+
+**3. 안 끝났거나 보류**
+- **결제 2건만 남음**(애플 $99/년·구글 $25) — PO가 "나중에 알아서" 하기로. 이게 풀려야 서명 열쇠 3종(ASC API 키·Play 서비스계정·키스토어)·APNs .p8 발급 가능.
+- **iOS 푸시 마무리 배선은 첫 Codemagic 빌드 때**: SPM(CapApp-SPM) 구조라 FirebaseMessaging SPM 추가·AppDelegate APNs→FCM 토큰 교환·pbxproj에 plist 리소스 등록(현재 참조 0건)·codemagic.yaml `pod install` 단계 손질 — 상세는 `APP_STORE_LISTING.md` §어시가 할 것.
+
+**4. 주의·함정**
+- **iOS는 plist 파일만으론 푸시 안 됨**(안드로이드처럼 자동 인식 없음) — `registerPush.ts`의 token.value가 iOS에선 APNs 원시 토큰이라 FCM 발송이 못 씀. 3번의 배선 전까지 iOS 푸시는 무음 실패가 정상.
+- Codemagic **"Start your first build" 누르지 말 것**(서명 없음 = 실패 + 무료분 소모) — PO에게도 안내함.
+- 핸드오프 문서 편집 후엔 `## 🔖` 개수와 `**1. 이번 세션 한 일**` 개수 일치를 확인하라 — 이번에 제목줄 유실 사고(원인 미상, 병렬 편집 추정)를 실제로 발견·복원함.
+
+**5. 다음 세션이 먼저 할 일**
+1. ⚠️ **PO 결제 여부 확인** → 됐으면: 애플 콘솔에서 APNs 키(.p8) 발급·Firebase 업로드(화면 안내) → Codemagic에 서명 열쇠 3종 등록 → 첫 빌드(iOS 푸시 배선 4종 포함, 컴파일 피드백 기반) → TestFlight·Play 내부트랙 → 심사 제출(`APP_STORE_REVIEW_ANSWERS.md` 복붙). 안 됐으면 하루 요약 리마인드 한 줄만.
+2. (앞선 블록 승계) 상세페이지 캐러셀·지도 실기기 확인 리마인드, KHIDI 점수판 데모 4건 삭제(2026-08-27 전 필수).
+
+**6. 검증 상태**
+- ✅ PR #757·#758·#759·#762 전부 **MERGED + CI 초록**(gh 실조회, 기억 아님). 설정파일 2개는 내용 파싱 검증(패키지·번들 `kr.co.healwith.app`, 프로젝트 `healo-e3e58` 일치) + `audit:secret` 0건.
+- ✅ Codemagic 연결·yaml 인식 = PO 실화면 스크린샷으로 확인.
+- ⚠️ **미검증**: 푸시 실수신(계정·빌드 필요 — 결제 후에만 가능), iOS 컴파일(맥 필요). 열린 PR(2026-07-14 저녁 실조회): #731·#729·#669·#514 — 전부 타 세션 것, 이 세션 열린 PR 없음.
+
+**7. 다음 세션 첫 프롬프트**
+> docs/PROJECT_CONTEXT.md 최상단 읽어. 앱스토어 건: PO가 애플($99)·구글($25) 결제했는지 물어봐 — 했으면 APNs 키 발급부터 화면 안내로 시작해서 Codemagic 서명 3종 등록 → 첫 빌드(iOS 푸시 배선 포함) → TestFlight까지 가. 안 했으면 리마인드 한 줄만 하고 다른 백로그 진행. Firebase·Codemagic·아이콘·스크린샷·심사답변지는 전부 끝나 있음(APP_STORE_LISTING.md 체크리스트 참고). Codemagic 빌드 버튼은 서명 등록 전까지 누르지 마.
+
+---
+
+---
 
 ## 🔖 세션 핸드오프 (2026-07-14 — 상세페이지 대청소: 지도 CSP·화살표·스와이프·무한루프·러카 날짜·잔재 정리, PR 7건 배포)
 
