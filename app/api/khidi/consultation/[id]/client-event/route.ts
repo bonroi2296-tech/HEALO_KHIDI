@@ -97,13 +97,14 @@ export async function POST(
         .filter("metadata->>consultation_id", "eq", consultationId);
       if ((recentErrors ?? 0) >= 8) {
         const since30m = new Date(Date.now() - 30 * 60 * 1000).toISOString();
-        const { count: recentAlerts } = await supabaseAdmin
+        const { count: recentAlerts, error: alertsErr } = await supabaseAdmin
           .from("admin_audit_logs")
           .select("id", { count: "exact", head: true })
           .eq("action", "CONSULTATION_ERROR_STORM_ALERT")
           .gte("created_at", since30m)
           .filter("metadata->>consultation_id", "eq", consultationId);
-        if ((recentAlerts ?? 0) === 0) {
+        // 쿨다운 조회가 실패하면 '이미 울렸다'로 간주(fail-closed) — 조회 에러로 종이 중복 발사되지 않게 (독립 리뷰 반영)
+        if (!alertsErr && (recentAlerts ?? 0) === 0) {
           await supabaseAdmin.from("admin_audit_logs").insert({
             admin_email: "client-event@consultation",
             action: "CONSULTATION_ERROR_STORM_ALERT",
@@ -122,7 +123,7 @@ export async function POST(
         }
       }
     } catch (e) {
-      console.warn("[client-event] audit insert failed:", (e as Error).message);
+      console.warn("[client-event] audit/storm-alert failed:", (e as Error).message);
     }
 
     return Response.json({ ok: true });
