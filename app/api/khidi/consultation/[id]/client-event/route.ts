@@ -83,8 +83,47 @@ export async function POST(
           user_agent: userAgent,
         },
       } as any);
+
+      // ── 오류 폭증 경보 (안전망 ③, 2026-07-15 PO 승인) ──
+      // 같은 상담에서 최근 10분 내 오류 비콘이 임계치(8건)를 넘으면 직원 종 알림 —
+      // 진행 중 회의의 장애(7/14 18:02 연결 폭풍 부류)를 화면을 안 보고도 즉시 인지.
+      // 쿨다운: 상담당 30분 1회(경보 발송 자체를 audit 로그로 남겨 재발송 판단).
+      const since10m = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+      const { count: recentErrors } = await supabaseAdmin
+        .from("admin_audit_logs")
+        .select("id", { count: "exact", head: true })
+        .eq("action", "CONSULTATION_CLIENT_ERROR")
+        .gte("created_at", since10m)
+        .filter("metadata->>consultation_id", "eq", consultationId);
+      if ((recentErrors ?? 0) >= 8) {
+        const since30m = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+        const { count: recentAlerts, error: alertsErr } = await supabaseAdmin
+          .from("admin_audit_logs")
+          .select("id", { count: "exact", head: true })
+          .eq("action", "CONSULTATION_ERROR_STORM_ALERT")
+          .gte("created_at", since30m)
+          .filter("metadata->>consultation_id", "eq", consultationId);
+        // 쿨다운 조회가 실패하면 '이미 울렸다'로 간주(fail-closed) — 조회 에러로 종이 중복 발사되지 않게 (독립 리뷰 반영)
+        if (!alertsErr && (recentAlerts ?? 0) === 0) {
+          await supabaseAdmin.from("admin_audit_logs").insert({
+            admin_email: "client-event@consultation",
+            action: "CONSULTATION_ERROR_STORM_ALERT",
+            metadata: { consultation_id: consultationId, count: recentErrors },
+          } as any);
+          const { notifyStaffConsultationErrorStorm } = await import(
+            "@/lib/notifications/inApp"
+          );
+          await notifyStaffConsultationErrorStorm({
+            consultationId,
+            count: recentErrors ?? 0,
+          });
+          console.warn(
+            `[client-event] storm alert fired: consultation=${consultationId} count=${recentErrors}`
+          );
+        }
+      }
     } catch (e) {
-      console.warn("[client-event] audit insert failed:", (e as Error).message);
+      console.warn("[client-event] audit/storm-alert failed:", (e as Error).message);
     }
 
     return Response.json({ ok: true });

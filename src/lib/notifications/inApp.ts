@@ -169,6 +169,37 @@ export async function notifyStaffOpinionArrived(notice: OpinionArrivedNotice): P
   }
 }
 
+export interface ConsultationErrorStormNotice {
+  consultationId: string;
+  /** 최근 10분간 오류 비콘 수 */
+  count: number;
+}
+
+/**
+ * 화상상담방에서 연결 오류 비콘이 단시간에 폭증했을 때(회의 중 장애 신호) 직원 종(bell) 알림.
+ * 안전망 ③(2026-07-15 PO 승인) — 사람이 화면을 지켜보지 않아도 진행 중 회의의 장애를 즉시 인지.
+ * 링크는 해당 상담방(직원은 계정으로 바로 입장 가능 — 통합 링크 #576)으로.
+ * 쿨다운(상담당 30분 1회)은 호출부(client-event 라우트)가 담당. Fail-safe: throw 안 함.
+ */
+export async function notifyStaffConsultationErrorStorm(
+  notice: ConsultationErrorStormNotice
+): Promise<void> {
+  try {
+    const { admins, coordinators } = await getStaffIdsByRole();
+    if (admins.length === 0 && coordinators.length === 0) return;
+    await broadcastInAppNotification([...admins, ...coordinators], {
+      type: "consultation_error_storm",
+      title: "📵 화상상담 연결 장애 의심",
+      body: `최근 10분간 연결 오류 ${notice.count}건 — 참가자가 접속에 어려움을 겪고 있을 수 있어요.`,
+      priority: "urgent",
+      link: `/consultation/${notice.consultationId}`,
+      payload: { consultationId: notice.consultationId, count: notice.count },
+    });
+  } catch {
+    /* fail-safe */
+  }
+}
+
 export interface ChatHandoffNotice {
   /** chat_threads.id */
   threadId: string;
