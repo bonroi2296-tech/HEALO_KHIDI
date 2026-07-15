@@ -14,6 +14,24 @@
 
 ---
 
+## #94 — 🔁 #62 부류 재발: 게스트·관리자 채팅 전송이 DB CHECK 제약으로 500 — 화면엔 무증상 (2026-07-15, PO 프리뷰 테스트 중 발견)
+
+**무슨 일**
+- 상담방 채팅에서 "입력해도 출력이 안 된다"(PO). 재현 결과 전송 POST 가 500 — `consultation_messages_sender_role_check` 위반. 허용 목록(patient/doctor/coordinator/translator/system)에 **admin·guest·observer 가 없음** → 통합 링크(#576, 7/2)로 게스트 role 이 생긴 뒤 **게스트·관리자 채팅은 줄곧 조용히 고장**. 클라이언트는 실패를 콘솔에만 삼켜 사용자에겐 "그냥 안 나옴".
+
+**왜 못 잡았나(근본원인) — 🔁 #62 의 방지책이 왜 못 막았나**
+- #62(7/2, admissions 동일 부류)의 재발방지는 "role enum 추가 시 같은 PR에서 CHECK 도 갱신 + pg_constraint 검색"이었으나, **그때의 유사 스캔이 admissions 하나만 고치고 role CHECK 전수 스캔을 실제로 돌리지 않았다**(이번에 돌리니 messages 가 바로 나옴). 방지책이 '규칙'으로만 남고 '실행'이 안 된 것.
+- 전송 실패가 UI 에 무표시(콘솔 error 만) — 실사용자 언어로는 "안 나온다"뿐이라 신고가 늦음.
+
+**어떻게 고쳤나**
+- CHECK 를 코드가 쓰는 role 전체(admin·guest·observer 추가)로 확장 — apply_migration 즉시 적용 + `migrations/20260715_consultation_messages_allow_all_actor_roles.sql` 기록. 프리뷰 실전송으로 표시까지 검증.
+- 클라이언트: 전송 실패 시 토스트(sendFailed, 6개 언어) + 입력 복원 — 무증상 삼킴 제거.
+
+**재발 방지**
+- **야간 로봇 통화 테스트에 채팅 왕복 추가**(A 전송→A 표시→B 수신) — 이 부류가 다시 깨지면 새벽 E2E 가 빨간불 + 자동 이슈. 프로덕션 리허설 1 passed 로 가드 유효성 실증.
+- 교훈 보강: 부류 재발 방지책에 '스캔하라'가 들어 있으면 **그 자리에서 스캔을 실행하고 결과를 반성문에 남긴다**(이번 전수 스캔 결과: role CHECK 4건 중 messages 만 누락, 나머지 admissions·guest_tokens·user_roles 정상).
+- 교훈: 사용자 액션의 실패는 화면에 보여야 신고된다 — best-effort 라도 토스트 1줄.
+
 ## #93 — 로봇 통화 테스트가 만든 상담이 test 표식 없이 프로덕션 증빙 목록에 낌 (2026-07-15, 독립 리뷰 적발 — 머지 전 차단)
 
 **무슨 일**
