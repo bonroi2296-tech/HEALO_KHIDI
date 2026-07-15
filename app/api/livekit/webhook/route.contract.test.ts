@@ -15,7 +15,10 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 // LiveKit 서명검증 우회 — receive() 는 우리가 세팅한 event 를 그대로 반환
-const mockState: { event: any } = { event: null };
+const mockState: { event: any; sessionRow?: { id: string } | null } = {
+  event: null,
+  sessionRow: null,
+};
 vi.mock("livekit-server-sdk", () => ({
   WebhookReceiver: class {
     constructor(_key: string, _secret: string) {}
@@ -25,22 +28,45 @@ vi.mock("livekit-server-sdk", () => ({
   },
 }));
 
-// 서버 클라이언트 — update 호출을 캡처(어떤 테이블에 무슨 payload 로 어디를 eq 했는지)
-type Call = { table: string; update: any; eqField?: string; eqVal?: any };
+// 서버 클라이언트 — update 호출을 캡처(어떤 테이블에 무슨 payload 로 어떤 필터를 걸었는지).
+// update 는 체인형 thenable(eq/is/lt 를 이어 붙이고 await 가능) — 실제 supabase-js 빌더와 동형.
+// select().eq().maybeSingle() 은 mockState.sessionRow 를 돌려준다(participant_left 의 방 조회용).
+type Call = {
+  table: string;
+  update: any;
+  eqField?: string;
+  eqVal?: any;
+  filters: Array<{ op: string; field: string; val: any }>;
+};
 const calls: Call[] = [];
 vi.mock("@/lib/data/supabaseServerClient", () => ({
   getSupabaseServerClient: () => ({
     from: (table: string) => ({
+      select: (_cols: string) => ({
+        eq: (_field: string, _val: any) => ({
+          maybeSingle: async () => ({
+            data: mockState.sessionRow ?? null,
+            error: null,
+          }),
+        }),
+      }),
       update: (payload: any) => {
-        const rec: Call = { table, update: payload };
+        const rec: Call = { table, update: payload, filters: [] };
         calls.push(rec);
-        return {
-          eq: (field: string, val: any) => {
-            rec.eqField = field;
-            rec.eqVal = val;
-            return Promise.resolve({ data: null, error: null });
-          },
+        const builder: any = {
+          then: (resolve: any) => resolve({ data: null, error: null }),
         };
+        for (const op of ["eq", "is", "lt"]) {
+          builder[op] = (field: string, val: any) => {
+            rec.filters.push({ op, field, val });
+            if (op === "eq" && rec.eqField === undefined) {
+              rec.eqField = field;
+              rec.eqVal = val;
+            }
+            return builder;
+          };
+        }
+        return builder;
       },
     }),
   }),
@@ -69,6 +95,7 @@ describe("livekit webhook 계약 — 자동완료 금지(K-02 인플레·재입�
   beforeEach(() => {
     calls.length = 0;
     mockState.event = null;
+    mockState.sessionRow = null;
   });
 
   it("room_finished 는 consultation_sessions 를 건드리지 않는다(자동완료 금지)", async () => {
@@ -93,6 +120,54 @@ describe("livekit webhook 계약 — 자동완료 금지(K-02 인플레·재입�
     };
 
     const res = await POST(makeReq({ event: "participant_joined" }));
+    expect((await res.json()).ok).toBe(true);
+    expect(calls.length).toBe(0);
+  });
+
+  it("participant_left 는 열린 입장기록의 left_at 만 채운다(status 불변, 재입장 새 기록 보호)", async () => {
+    const POST = await loadPost();
+    mockState.sessionRow = { id: "session-123" };
+    const joinedAtSec = 1_700_000_000; // 떠나는 접속의 LiveKit 합류 시각(초)
+    mockState.event = {
+      event: "participant_left",
+      room: { name: "khidi-room-1" },
+      participant: { identity: "guest-guest-abc12345-dev1", joinedAt: joinedAtSec },
+    };
+
+    const res = await POST(makeReq({ event: "participant_left" }));
+    expect((await res.json()).ok).toBe(true);
+
+    expect(calls.length).toBe(1);
+    expect(calls[0].table).toBe("consultation_admissions");
+    // left_at 만 기록 — status 자동완료(K-02 인플레) 금지 계약은 여기서도 유지
+    expect(calls[0].update.left_at).toBeTruthy();
+    expect(calls[0].update.status).toBeUndefined();
+    // 필터: 세션 매칭 + identity 매칭 + 아직 안 닫힌 기록 + 재입장 새 기록 보호(joinedAt 기준)
+    const ops = calls[0].filters.map((f) => `${f.op}:${f.field}`);
+    expect(ops).toEqual([
+      "eq:consultation_id",
+      "eq:participant_identity",
+      "is:left_at",
+      "lt:requested_at",
+    ]);
+    expect(calls[0].filters[0].val).toBe("session-123");
+    expect(calls[0].filters[1].val).toBe("guest-guest-abc12345-dev1");
+    // 컷오프 = 떠나는 접속의 joinedAt + 2초 — 그 이후 생성된 기록(재입장 새 기록)은 안 닫힘
+    expect(calls[0].filters[3].val).toBe(
+      new Date(joinedAtSec * 1000 + 2000).toISOString()
+    );
+  });
+
+  it("participant_left 인데 방 이름으로 세션을 못 찾으면 아무것도 안 건드린다", async () => {
+    const POST = await loadPost();
+    mockState.sessionRow = null;
+    mockState.event = {
+      event: "participant_left",
+      room: { name: "unknown-room" },
+      participant: { identity: "guest-guest-abc12345-dev1" },
+    };
+
+    const res = await POST(makeReq({ event: "participant_left" }));
     expect((await res.json()).ok).toBe(true);
     expect(calls.length).toBe(0);
   });
