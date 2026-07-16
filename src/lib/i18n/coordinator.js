@@ -29,6 +29,7 @@ const CT = {
   navCases: { ko: "의뢰·케이스/병원배정", en: "Cases / Hospital assignment", ru: "Кейсы / Назначение больницы", kz: "Кейстер / Аурухана тағайындау", zh: "病例 / 医院分配", ja: "ケース / 病院割当" },
   navConsultations: { ko: "상담 일정", en: "Consultation schedule", ru: "Расписание консультаций", kz: "Консультация кестесі", zh: "咨询日程", ja: "相談スケジュール" },
   navConversion: { ko: "유치 전환", en: "Conversion", ru: "Конверсия", kz: "Тарту конверсиясы", zh: "招引转化", ja: "誘致コンバージョン" },
+  navSatisfaction: { ko: "사후관리·만족도", en: "Follow-up & satisfaction", ru: "Сопровождение и удовлетворённость", kz: "Кейінгі бақылау және қанағаттану", zh: "随访与满意度", ja: "フォローアップと満足度" },
   navPartners: { ko: "파트너 발굴", en: "Partner outreach", ru: "Поиск партнёров", kz: "Серіктес іздеу", zh: "合作伙伴开发", ja: "パートナー開拓" },
   navIntakes: { ko: "인테이크 관리", en: "Intake management", ru: "Управление заявками", kz: "Өтінімдерді басқару", zh: "接诊管理", ja: "インテーク管理" },
   navMessages: { ko: "메시지", en: "Messages", ru: "Сообщения", kz: "Хабарлар", zh: "消息", ja: "メッセージ" },
