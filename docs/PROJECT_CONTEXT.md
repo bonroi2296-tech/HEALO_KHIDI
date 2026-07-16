@@ -24,7 +24,7 @@
 - cmd `.bat`에 한글 넣으면 CP949로 깨져 파싱 폭탄(이번에도 재발) → 배치는 ASCII, 로직은 PowerShell(.ps1).
 
 **3. 안 끝났거나 보류**
-- **폴더 통합(PO 승인, 미완)**: PO가 "바탕화면 HEALO_KHIDI = main으로 통합(중복 hospital-info 워크트리 정리)" 승인 → 작업칩 `task_8e160626` 스폰. **완료 안 됨**(hospital-info 아직 main 점유, HEALO_KHIDI 아직 rescue 브랜치 — 다른 세션이 이 폴더 만지는 중이라 안전장치가 중단한 듯). 다음: **폴더 조용해지면 재실행**, 통합 후 `healoautosync.ps1`의 `$SyncDir`을 HEALO_KHIDI로 교체. 절차는 기억파일 `local-git-autosync-setup`에.
+- ⛔ **폴더 통합 = PO가 최종적으로 "안 하기로" 결정(2026-07-16). 다음 세션은 다시 시도하지 마라.** 경위: PO가 처음엔 승인해 작업칩 `task_8e160626`을 띄웠으나 완료되지 않음(폴더에 커밋 안 된 파일이 있어 안전장치가 중단 — 설계대로 그 파일들을 지킨 것). 이후 PO에게 "이건 순수 정리정돈이라 기능 영향 0"임을 설명하니 **"그냥 놔두기" 선택**. 근거: 동기화·자동동기화는 **현재 2폴더 구조(main=hospital-info)로 정상 작동** → 통합은 불필요. PO가 새로 요청할 때만 하고, 그때 `healoautosync.ps1`의 `$SyncDir`을 HEALO_KHIDI로 교체하는 것 잊지 마라. 절차는 기억파일 `local-git-autosync-setup`에.
 - **백업 5파일 → main 반영**: 판정=대부분 살릴 신규/개선(설문트리거·다중첨부=신규, 소견 번역 라우트=#717과 다른 개선안). main 직접 머지 안 함 — 각각 정식 PR 필요(PO 지정).
 - (곁가지) PO가 "폰으로 밖에서 PC 깨우기(WoL)" 궁금 → 꺼진 PC 원격기상은 하드웨어/공유기설정 필수(순수 SW 불가). 사무실 KT GiGA 공유기·공인IP 확인함. **동기화엔 불필요라 안 함**(PO "그냥 궁금").
 
@@ -34,17 +34,17 @@
 - 예약작업은 **로컬 PC 전용(클라우드 아님)** — 9시에 PC 꺼져있으면 스킵, `StartWhenAvailable`로 다음 부팅때 따라잡음.
 
 **5. 다음 세션이 먼저 할 일**
-1. ⚠️ **미완분 먼저**: 폴더 통합(`task_8e160626`) — HEALO_KHIDI·hospital-info 조용한지 확인 후 재실행(중복 워크트리 정리 + HEALO_KHIDI를 main으로 + `$SyncDir` 갱신).
-2. 백업 5파일 중 살릴 것 정식 PR로 main 반영(PO 지정).
+1. 백업 5파일 중 살릴 것 정식 PR로 main 반영(PO 지정) — **이 세션이 남긴 유일한 후속.**
+2. ⛔ 폴더 통합은 **PO가 안 하기로 결정했으니 하지 마라**(3번 참고). 동기화는 현 구조로 정상 작동 중.
 
 **6. 검증 상태**
 - ✅ **백업**: `rescue/local-uncommitted-20260716` origin에 존재(실측). 5파일이 origin/main·전 원격에 없음도 `git ls-tree`로 확인.
 - ✅ **자동동기화**: 예약작업 Last Result 0(실행 테스트), 로그 `[OK]`, `sync-now.bat`이 실드리프트(#787) 잡아 당김 실증.
-- ⚠️ **미완/대기**: 폴더 통합(안 됨) · 5파일 살릴지 최종 PR. 이 핸드오프는 docs-only.
+- ⚠️ **대기**: 5파일 살릴지 최종 PR(PO 지정)뿐. 폴더 통합은 "미완"이 아니라 **PO 스킵 결정**(3번) — 되살리지 마라. 이 핸드오프는 docs-only.
 - 열린 PR: 이 핸드오프(`docs/handoff-sync-local-20260716`). 이 세션 코드 PR 없음.
 
 **7. 다음 세션 첫 프롬프트**
-> docs/PROJECT_CONTEXT.md 최상단 읽어. 2026-07-16 PC↔GitHub 동기화: 미커밋 5파일 백업(`rescue/local-uncommitted-20260716`)·자동동기화 수리(매일 hospital-info에서 ff-pull, 실행 테스트됨) 완료. **폴더 통합(task_8e160626)은 미완** — HEALO_KHIDI·hospital-info 조용하면 재실행하고 통합 후 `healoautosync.ps1`의 `$SyncDir`을 HEALO_KHIDI로 바꿔. 백업 5파일 중 살릴 건 PR로 main 반영. 상세=기억파일 `local-git-autosync-setup`.
+> docs/PROJECT_CONTEXT.md 최상단 읽어. 2026-07-16 PC↔GitHub 동기화: 미커밋 5파일 백업(`rescue/local-uncommitted-20260716`)·자동동기화 수리(매일 hospital-info에서 ff-pull, 실행 테스트됨) 완료 — **PO PC는 이제 손 안 대도 최신 유지됨.** ⛔ **폴더 통합은 PO가 안 하기로 최종 결정했으니 건드리지 마라**(정리정돈일 뿐 기능 영향 0, 현 2폴더 구조로 정상 작동). 남은 후속은 백업 5파일 중 살릴 것 PR로 main 반영뿐(PO 지정). 상세=기억파일 `local-git-autosync-setup`.
 
 ---
 
