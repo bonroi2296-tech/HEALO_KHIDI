@@ -8,7 +8,8 @@
  * - D+0 앵커 = inquiries.followup_started_at (없으면 이번 실행에 stamp). scheduler.ts 의
  *   D+ 케이던스(암종별 가감 포함)를 재계산해 '설문' 단계만 발송: 기본 D+7(1주 경과)·D+90(3개월)·
  *   D+180(6개월). 기한 도래 + 미발송(surveys.survey_type='fu_<phase>') 단계만, 멱등.
- *   (화상상담·복약확인·검사리뷰 단계는 코디 액션 — 여기서 안 보냄, 후속 배선.)
+ *   비설문 단계(복약확인 D+14·화상상담 D+30·검사리뷰)는 환자 '제안'(followup_schedules,
+ *   schedule.kind='cadence') + 코디 종 알림(followup_due)으로 띄운다 — phase당 1회 멱등.
  * - 테스트 케이스(is_test) 제외. 이메일/이름 AES 암호화 → decryptMaybe 복호화(#13).
  * - generateSurveyToken({inquiryId,surveyType}) → sendSurveyEmail → reminders_scheduled 기록
  *
@@ -36,6 +37,7 @@ import { resolveSurveyRecipient } from "@/lib/surveys/resolveRecipient";
 import { alertIfKpiStale } from "@/lib/khidi/kpiHealthcheck";
 import { decryptMaybe } from "@/lib/security/encryptionV2";
 import { createFollowupSchedule } from "@/lib/followup/scheduler";
+import { broadcastInAppNotification, getStaffIdsByRole } from "@/lib/notifications/inApp";
 
 function verifyCronSecret(header: string | null): boolean {
   const expected = process.env.CRON_SECRET;
@@ -74,8 +76,12 @@ export async function GET(request: NextRequest) {
   }
 
   let surveysDispatched = 0;
+  let proposalsCreated = 0;
   let skipped = 0;
   const errors: string[] = [];
+
+  // 비설문 단계(화상/복약/검사) 코디 종 알림용 — 코디 user_id 는 케이스 루프 밖에서 1회만 조회.
+  const { coordinators } = await getStaffIdsByRole();
 
   for (const c of (cases as any[]) || []) {
     try {
@@ -111,9 +117,9 @@ export async function GET(request: NextRequest) {
         continue;
       }
 
-      // D+ 케이던스를 스케줄러로 재계산(순수·결정적, 암종별 가감 포함) → '설문' 단계만 추림.
-      // 기한 도래(now ≥ 앵커+D) + 아직 미발송(surveys.survey_type='fu_<phase>')인 단계만 발송.
-      // 화상상담·복약확인·검사리뷰 단계는 여기서 안 보냄(코디 액션 — 후속 배선).
+      // D+ 케이던스를 스케줄러로 재계산(순수·결정적, 암종별 가감 포함).
+      // 설문 단계 → 이메일 발송(멱등: surveys.survey_type='fu_<phase>').
+      // 비설문 단계(화상/복약/검사) → 환자 제안 + 코디 알림(멱등: followup_schedules cadence phase).
       const schedule = createFollowupSchedule(
         String(c.id),
         c.cancer_type || "unspecified",
@@ -123,61 +129,115 @@ export async function GET(request: NextRequest) {
       const anchorMs = new Date(anchor).getTime();
       const now = Date.now();
 
+      // 이 케이스에 이미 만든 케이던스 '제안'(비설문 단계)들의 키 — 재발동 방지(멱등).
+      // 키 = phase:action (유방암처럼 같은 phase 에 화상+검사가 겹칠 수 있어 action 까지 포함).
+      const { data: props } = await db
+        .from("followup_schedules")
+        .select("schedule")
+        .eq("inquiry_id", c.id);
+      const firedSteps = new Set<string>(
+        ((props as any[]) || [])
+          .map((r) => (r.schedule?.kind === "cadence" ? `${r.schedule?.phase}:${r.schedule?.action}` : null))
+          .filter((k): k is string => !!k)
+      );
+
       for (const step of schedule.schedule) {
-        if (step.type !== "survey") continue;
         if (now < anchorMs + step.daysFromTreatment * 86400000) continue; // 아직 기한 전
-        const surveyType = `fu_${step.phase}`; // fu_week_1 / fu_month_3 / fu_month_6 …
 
-        // 멱등: 이 단계 설문이 이미 나갔으면 skip.
-        const { data: existing } = await db
-          .from("surveys")
-          .select("id")
-          .eq("inquiry_id", c.id)
-          .eq("survey_type", surveyType)
-          .maybeSingle();
-        if (existing) {
-          skipped++;
-          continue;
-        }
+        // ── 설문 단계: 이메일 발송 (KHIDI 경과·만족도) ──
+        if (step.type === "survey") {
+          const surveyType = `fu_${step.phase}`; // fu_week_1 / fu_month_3 / fu_month_6 …
+          const { data: existing } = await db
+            .from("surveys")
+            .select("id")
+            .eq("inquiry_id", c.id)
+            .eq("survey_type", surveyType)
+            .maybeSingle();
+          if (existing) {
+            skipped++;
+            continue;
+          }
 
-        const tokenResult = await generateSurveyToken({
-          inquiryId: c.id,
-          patientId: c.user_id ?? null,
-          surveyType,
-        });
-        if (!tokenResult.ok || !tokenResult.surveyId || !tokenResult.token) {
-          errors.push(`inquiry=${c.id} ${surveyType}: token generation failed`);
-          continue;
-        }
-
-        const emailResult = await sendSurveyEmail({
-          surveyId: tokenResult.surveyId,
-          token: tokenResult.token,
-          toEmail: recipient.email,
-          patientName: recipient.name,
-          lang: recipient.lang,
-        });
-
-        if (emailResult.ok) {
-          surveysDispatched++;
-          await db.from("reminders_scheduled").insert({
-            consultation_session_id: null,
-            reminder_type: "survey_request",
-            fire_at: new Date().toISOString(),
-            channel: "email",
-            recipient_user_id: c.user_id || null,
-            recipient_address: recipient.email,
-            payload: { inquiry_id: c.id, phase: step.phase, survey_id: tokenResult.surveyId, token: tokenResult.token },
-            status: "sent",
-            sent_at: new Date().toISOString(),
+          const tokenResult = await generateSurveyToken({
+            inquiryId: c.id,
+            patientId: c.user_id ?? null,
+            surveyType,
           });
-        } else {
-          // 전송 실패 시 pending 설문 행 삭제 → 다음 cron 재시도(멱등 가드에 영구 걸리지 않게).
-          await db.from("surveys").delete().eq("id", tokenResult.surveyId);
-          errors.push(
-            `inquiry=${c.id} ${surveyType}: email send failed — ${emailResult.error} (pending row deleted for retry)`
-          );
+          if (!tokenResult.ok || !tokenResult.surveyId || !tokenResult.token) {
+            errors.push(`inquiry=${c.id} ${surveyType}: token generation failed`);
+            continue;
+          }
+
+          const emailResult = await sendSurveyEmail({
+            surveyId: tokenResult.surveyId,
+            token: tokenResult.token,
+            toEmail: recipient.email,
+            patientName: recipient.name,
+            lang: recipient.lang,
+          });
+
+          if (emailResult.ok) {
+            surveysDispatched++;
+            await db.from("reminders_scheduled").insert({
+              consultation_session_id: null,
+              reminder_type: "survey_request",
+              fire_at: new Date().toISOString(),
+              channel: "email",
+              recipient_user_id: c.user_id || null,
+              recipient_address: recipient.email,
+              payload: { inquiry_id: c.id, phase: step.phase, survey_id: tokenResult.surveyId, token: tokenResult.token },
+              status: "sent",
+              sent_at: new Date().toISOString(),
+            });
+          } else {
+            // 전송 실패 시 pending 설문 행 삭제 → 다음 cron 재시도(멱등 가드에 영구 걸리지 않게).
+            await db.from("surveys").delete().eq("id", tokenResult.surveyId);
+            errors.push(
+              `inquiry=${c.id} ${surveyType}: email send failed — ${emailResult.error} (pending row deleted for retry)`
+            );
+          }
+          continue;
         }
+
+        // ── 비설문 단계(화상상담·복약확인·검사리뷰): 환자 '제안' + 코디 종 알림 (단계당 1회) ──
+        const stepKey = `${step.phase}:${step.type}`;
+        if (firedSteps.has(stepKey)) continue;
+        const dueAt = new Date(anchorMs + step.daysFromTreatment * 86400000).toISOString();
+
+        // 1) 환자 포털(/api/portal/followup)에 뜨는 '제안' 행. 재예약 단발과 구분하려고 schedule.kind='cadence'.
+        const { error: propErr } = await db.from("followup_schedules").insert({
+          inquiry_id: c.id,
+          patient_user_id: c.user_id ?? null,
+          cancer_type: c.cancer_type || "unspecified",
+          status: "proposed",
+          current_phase: step.phase,
+          next_action_at: dueAt,
+          schedule: {
+            kind: "cadence",
+            phase: step.phase,
+            action: step.type,
+            title_ko: step.title_ko,
+            days_from_treatment: step.daysFromTreatment,
+          },
+        });
+        if (propErr) {
+          errors.push(`inquiry=${c.id} ${step.phase}: proposal insert failed — ${propErr.message}`);
+          continue;
+        }
+
+        // 2) 코디 종(bell) 알림 — 코디가 케이스 열어 기존 재예약/상담 도구로 처리.
+        if (coordinators.length > 0) {
+          await broadcastInAppNotification(coordinators, {
+            type: "followup_due",
+            title: `🗓️ 사후관리 ${step.title_ko} #${c.id}`,
+            body: step.description_ko,
+            priority: "normal",
+            link: `/coordinator/inbox/${c.id}`,
+            payload: { inquiryId: c.id, phase: step.phase, action: step.type },
+          });
+        }
+        firedSteps.add(stepKey);
+        proposalsCreated++;
       }
     } catch (err: any) {
       errors.push(`inquiry=${c.id}: ${err.message}`);
@@ -193,6 +253,7 @@ export async function GET(request: NextRequest) {
     ok: true,
     casesChecked: (cases as any[])?.length || 0,
     surveysDispatched,
+    proposalsCreated,
     skipped,
     errors,
     kpiHealth,
