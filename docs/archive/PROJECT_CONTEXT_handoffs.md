@@ -1,6 +1,50 @@
 # PR
 
 
+## 🔖 세션 핸드오프 (2026-07-16 — PC↔GitHub 동기화 로컬 실행: 미커밋 5건 백업 + 자동동기화 수리 완료)
+
+> 클라우드 상담 세션이 넘긴 4단계 이관 프롬프트를 **PC 로컬 세션이 실제 실행·검증한 결과.** (그 클라우드 세션 핸드오프는 `claude/source-sync-deployment-ygfb0c` 브랜치에 미머지 초안으로 있고 "로컬 결과 미확인" 구멍을 남김 — 이 블록이 그 구멍을 검증된 결과로 채움. 그 브랜치는 이제 중복이라 닫아도 됨.)
+
+**1. 이번 세션 한 일** (전부 PC 로컬 실행·검증)
+- **미커밋 5파일 백업 push 완료** → `rescue/local-uncommitted-20260716`(origin 확인). = 소견 수동재번역 라우트·통번역 공유함수·소견 `auto_translated_text`·다중첨부 `files jsonb`·설문 followup 트리거. `.env`·키는 gitignore로 스테이징 제외 확인, 카톡사진/잡파일은 개인정보·용량 이유로 제외(로컬 보존).
+- **main 워크트리(hospital-info) 최신화** — origin/main으로 15커밋 fast-forward(충돌 0).
+- **자동동기화 수리** — 기존 `HEALO_AutoSync` 예약작업이 **매일 실패만 하고 있었음**(이 폴더서 `git checkout main` 시도 → 워크트리 충돌 `already used by worktree`, 로그 실측). 원인=이 폴더는 main을 못 잡음. 고침: main이 실제 있는 **hospital-info 워크트리에서 `pull --ff-only`** 하는 `healoautosync.ps1`로 교체(미커밋 있으면 skip). 예약작업 재등록 → **실제 실행 테스트 성공(Last Result 0)**. `sync-now.bat`=수동 "차이확인+당기기"(실행 순간 #787 드리프트를 실시간 잡아 당김=실증). `StartWhenAvailable`+배터리무시 설정(9시에 PC 꺼져있으면 다음 부팅때 따라잡기).
+- 로컬 운영파일(ps1/bat/log/test-image)은 `.git/info/exclude`에 로컬무시 등록(저장소 안 더럽힘).
+
+**2. 왜 그렇게 했는지**
+- 원본(SoR)=GitHub. 로컬은 `pull`해야 갱신, 매 세션 자동 push라 GitHub는 항상 최신·로컬만 뒤처짐(잃은 건 없음).
+- **백업이 동기화보다 먼저**: 미커밋 5파일 위에 pull로 덮으면 소실 → rescue push 완료 후에만 동기화. `--ff-only`가 실제 안전망(divergence면 `aborting`=정상, 롤백·유실 구조적으로 없음).
+- **자동동기화 target은 반드시 hospital-info**(main 보유 폴더). HEALO_KHIDI는 워크트리 규칙상 main checkout 불가 → 여기서 pull 시도가 옛 자동동기화 실패의 진짜 원인.
+- cmd `.bat`에 한글 넣으면 CP949로 깨져 파싱 폭탄(이번에도 재발) → 배치는 ASCII, 로직은 PowerShell(.ps1).
+
+**3. 안 끝났거나 보류**
+- ⛔ **폴더 통합 = PO가 최종적으로 "안 하기로" 결정(2026-07-16). 다음 세션은 다시 시도하지 마라.** 경위: PO가 처음엔 승인해 작업칩 `task_8e160626`을 띄웠으나 완료되지 않음(폴더에 커밋 안 된 파일이 있어 안전장치가 중단 — 설계대로 그 파일들을 지킨 것). 이후 PO에게 "이건 순수 정리정돈이라 기능 영향 0"임을 설명하니 **"그냥 놔두기" 선택**. 근거: 동기화·자동동기화는 **현재 2폴더 구조(main=hospital-info)로 정상 작동** → 통합은 불필요. PO가 새로 요청할 때만 하고, 그때 `healoautosync.ps1`의 `$SyncDir`을 HEALO_KHIDI로 교체하는 것 잊지 마라. 절차는 기억파일 `local-git-autosync-setup`에.
+- **백업 5파일 → main 반영**: 판정=대부분 살릴 신규/개선(설문트리거·다중첨부=신규, 소견 번역 라우트=#717과 다른 개선안). main 직접 머지 안 함 — 각각 정식 PR 필요(PO 지정).
+- (곁가지) PO가 "폰으로 밖에서 PC 깨우기(WoL)" 궁금 → 꺼진 PC 원격기상은 하드웨어/공유기설정 필수(순수 SW 불가). 사무실 KT GiGA 공유기·공인IP 확인함. **동기화엔 불필요라 안 함**(PO "그냥 궁금").
+
+**4. 주의·함정**
+- **PO PC 구조**: `HEALO_KHIDI`=작업폴더(현재 rescue 브랜치) / `main`=`HEALO_worktrees/hospital-info` 워크트리 점유. HEALO_KHIDI서 `checkout main`=`already used by worktree` 에러(정상).
+- 자동동기화=`pull --ff-only`+미커밋시 skip → 앞으로만 감. **유일 위험지점=통합의 `checkout main` 순간 미커밋 있으면 밀림** → 그래서 "폴더 조용할 때"로 미룸.
+- 예약작업은 **로컬 PC 전용(클라우드 아님)** — 9시에 PC 꺼져있으면 스킵, `StartWhenAvailable`로 다음 부팅때 따라잡음.
+
+**5. 다음 세션이 먼저 할 일**
+1. 백업 5파일 중 살릴 것 정식 PR로 main 반영(PO 지정) — **이 세션이 남긴 유일한 후속.**
+2. ⛔ 폴더 통합은 **PO가 안 하기로 결정했으니 하지 마라**(3번 참고). 동기화는 현 구조로 정상 작동 중.
+
+**6. 검증 상태**
+- ✅ **백업**: `rescue/local-uncommitted-20260716` origin에 존재(실측). 5파일이 origin/main·전 원격에 없음도 `git ls-tree`로 확인.
+- ✅ **자동동기화**: 예약작업 Last Result 0(실행 테스트), 로그 `[OK]`, `sync-now.bat`이 실드리프트(#787) 잡아 당김 실증.
+- ⚠️ **대기**: 5파일 살릴지 최종 PR(PO 지정)뿐. 폴더 통합은 "미완"이 아니라 **PO 스킵 결정**(3번) — 되살리지 마라. 이 핸드오프는 docs-only.
+- 열린 PR: 이 핸드오프(`docs/handoff-sync-local-20260716`). 이 세션 코드 PR 없음.
+
+**7. 다음 세션 첫 프롬프트**
+> docs/PROJECT_CONTEXT.md 최상단 읽어. 2026-07-16 PC↔GitHub 동기화: 미커밋 5파일 백업(`rescue/local-uncommitted-20260716`)·자동동기화 수리(매일 hospital-info에서 ff-pull, 실행 테스트됨) 완료 — **PO PC는 이제 손 안 대도 최신 유지됨.** ⛔ **폴더 통합은 PO가 안 하기로 최종 결정했으니 건드리지 마라**(정리정돈일 뿐 기능 영향 0, 현 2폴더 구조로 정상 작동). 남은 후속은 백업 5파일 중 살릴 것 PR로 main 반영뿐(PO 지정). 상세=기억파일 `local-git-autosync-setup`.
+
+---
+
+
+---
+
 ## 🔖 세션 핸드오프 (2026-07-16 밤 — 실서비스 검증으로 실버그 수리 + "목표·지시법" 합의)
 
 📝 **정정**: 바로 아래 블록(백오피스 8개 #787)이 "실동작 전부 미검증"이라 했는데, 이 세션에서 **실서비스 로그인으로 실제 눌러 검증했고 그 중 1건이 고장나 있어 수리**함(아래).
