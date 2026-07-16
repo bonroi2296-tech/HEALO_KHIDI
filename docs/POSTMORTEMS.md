@@ -14,6 +14,28 @@
 
 ---
 
+## #95 — 🔁 #94/#62 부류 재발: 병원→코디 메신저 전송이 chat_messages CHECK 제약으로 실패 — 화면엔 무증상 (2026-07-16, 실서비스 로그인 검증 중 발견)
+
+**무슨 일**
+- 계층별 백오피스 8개(PR #787) 머지 후 **실서비스(healwith.co.kr)에 hospital@test.com 로 로그인해 병원↔코디 대화창(Feature 8)을 실제 호출**해보니, 스레드 조회(GET)는 되는데 **메시지 전송(POST)만 `internal_error`**. 원인 = `chat_messages_actor_type_check` 허용목록(patient/admin/system/user/coordinator/bot/agency)에 **'hospital' 이 없음** → 병원이 보내는 모든 메시지 insert 가 CHECK 위반으로 거부. 코드는 fail 을 try/catch 로 삼켜 화면엔 "그냥 안 나옴".
+- 즉 Feature 8 의 전송 경로는 머지된 순간부터 **한 번도 동작한 적이 없음**(CI·빌드·리뷰 전부 통과했는데도).
+
+**왜 못 잡았나(근본원인) — 🔁 #94 의 방지책이 왜 못 막았나**
+- 완전히 같은 부류: "새 actor_type/role 값을 코드에 추가하면서 DB CHECK 제약을 같이 안 넓힘 → insert 조용히 실패". #62(admissions)→#94(consultation_messages)에서 이미 두 번 물린 것.
+- #94 의 재발방지는 **consultation_messages(상담방 채팅)용 런타임 E2E(로봇 통화에 채팅 왕복 추가)** 였다. 그런데 이번 표면은 **chat_messages(코디·에이전시·병원 메신저)** — 다른 테이블이라 그 E2E 밖. 그리고 핵심 교훈("enum 추가 시 CHECK 도 갱신")은 여전히 **사람이 기억해야 하는 규칙**으로만 남아 정적 차단이 없었다.
+- CI 가 못 잡은 이유: 모든 가드가 정적(코드·타입)인데 CHECK 제약 위반은 **런타임 DB 레벨**에서만 터진다. 로컬 node_modules 없어 tsc/E2E 도 못 돌린 채 머지 → "빌드 통과 ≠ 동작"의 교과서 사례.
+
+**어떻게 고쳤나**
+- CHECK 를 코드가 쓰는 값 전체로 확장('hospital' 추가) — `apply_migration` 즉시 프로덕션 적용 + `migrations/20260716_chat_messages_actor_type_hospital.sql` 기록(가역·추가형). 적용 후 **같은 실서비스 실호출로 재검증**: POST ok, GET 로 읽힘, 코디/어드민 종 알림 4건 생성까지 확인 → 테스트 데이터 정리.
+- 유사 스캔(그 자리에서 실행): chat_messages 에 코드가 쓰는 actor_type 리터럴 11곳 전수 확인 = {admin,patient,agency,hospital,system,user} 전부 확장 후 허용집합 내. chat_threads 는 channel/status CHECK 없음(무해). 다른 채팅 테이블(consultation_messages)은 #94 에서 이미 확장됨.
+
+**재발 방지 (시스템 적용)**
+- **정적 가드 신설**(`scripts/check-content-consistency.mjs` §22): `migrations/*.sql` 에서 `chat_messages_actor_type_check` 최신 정의를 파싱해 허용집합을 만들고, `app/·src/` 의 `actor_type:"…"` 리터럴이 전부 그 집합 안인지 CI 매 PR 검사. 코드에 새 actor_type 를 넣고 CHECK 확장 마이그레이션을 안 올리면 **머지 전 빨간불**. 음성테스트로 실증: 'hospital' 을 제약에서 빼면 정확히 그 파일을 짚어 실패, 되돌리면 통과.
+- 이로써 #94 의 "규칙으로만 남아 실행 안 됨" 구멍을 메움 — enum→CHECK 정합이 이제 사람 기억이 아니라 CI 가 강제. (한계: chat_messages.actor_type 한 축만 정적 커버. participant_role·기타 status CHECK 로 확장은 후속 — 같은 패턴 한 줄 추가로 가능하게 구조화.)
+- 교훈 승격: **머지된 백오피스 기능도 "실서비스에 로그인해 실호출"로 최소 1회 검증**해야 한다(빌드·CI·리뷰 초록은 런타임 CHECK 위반을 못 봄). 이번처럼 로컬 실행환경이 없으면 실서비스+테스트계정 실호출이 유일한 진짜 검증.
+
+---
+
 ## #94 — 🔁 #62 부류 재발: 게스트·관리자 채팅 전송이 DB CHECK 제약으로 500 — 화면엔 무증상 (2026-07-15, PO 프리뷰 테스트 중 발견)
 
 **무슨 일**
