@@ -7,6 +7,26 @@
 
 ---
 
+## 🔖 세션 핸드오프 (2026-07-16 — 계층별 백오피스 완성 8개 [PR #787])
+
+**1. 이번 세션 한 일** — PO 지시("이해관계자 계층별 필요기능 완성, 백오피스 우선 — 파트너 넘기기 전 단계, 실사용자 없으니 빠르게"). 3개 계층 전수 스캔(어드민·코디 / 병원·에이전시·의료기관 / 공통기반)으로 완성/반쪽/없음 매핑 후 랭킹 상위부터 8개 구현. **[PR #787](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/787)** (CI 초록·머지 예정).
+- ①**병원 계정 온보딩**: `admin/hospital-accounts` 신규계정 tempPassword 어드민에 1회 반환 + UI 표시(로그인 불가 블로커 해소). ②**코디 유치 전환**: `conversion-funnel` requireAdminAuth→requirePortalAuth(staffOnly) + 코디 화면(`app/coordinator/conversion` 재사용)+네비(PO 권한확대 승인). ③**코디 인테이크 메뉴 정리**: 상담일정 중복+의사배정 노-옵 → redirect+네비제거+매뉴얼 5개어 정리. ④⑤**위생**: 코디 죽은지표(activePatients→예정상담)·병원 매뉴얼 4→2 드리프트. ⑥**코디 만족도 화면**: `khidi/satisfaction` staffOnly 확대 + 코디 재사용화면+네비. ⑦**병원 알림 종**: `inApp.ts` 파트너 리졸버+notifyHospitalNewLead, 리드배정 양경로(admin+coordinator) 배선(#85 반쪽 방지). ⑧**병원↔코디 대화창**: `hospital/leads/[id]/messages`(channel='hospital', 리드→source_inquiry_id) + 코디 콘솔 hospital 채널 + 병원 리드화면 채팅 드로어.
+
+**2. 왜 그렇게 했는지** — 백오피스가 완성돼야 파트너(병원·에이전시·의료기관)에 전달 가능. 코디 관련은 KHIDI 성과지표(유치12·사후관리120·만족도90)를 코디가 실제로 굴리게. 재사용 우선(어드민 화면 re-export, 에이전시 메신저 템플릿) → 파일 최소.
+
+**3. 안 끝났거나 보류** — 🔴 에이전시 **정산/수수료**(대) · 의료기관 **소견 발신**(중대) · 케이스 **생애주기 지도**(구조). 소refinement: 코디→병원 **답장 종 알림**(현재 병원은 8초 폴링으로 봄) · 파트너 **초대메일 자동화**.
+
+**4. 주의·함정** — ⚠️ **로컬 node_modules 없어 실제 클릭·실발송·tsc 못 함** → 코드+CI+프리뷰 빌드까지만 검증, **실동작은 미검증**(누군가 눌러봐야 함). 커밋 게이팅 실수로 가드 위반본(h3 크기) 1회 푸시→즉시 수정(다음엔 커밋 전 가드 통과 gate). 병원 리드 스레드는 `normalized_inquiries.source_inquiry_id`로 inquiries 키공간에 맞춤(그게 없으면 대화 불가 — coordinator_referral·admin배정은 있음).
+
+**5. 다음 세션이 먼저 할 일** — 1) **실동작 검증**(프리뷰/실서비스에서 병원계정 비번·코디 유치도장·종알림·대화창 실제 눌러보기). 2) 남은 🔴(정산 등) 중 PO 지정. 3) 코디→병원 답장 종(소).
+
+**6. 검증 상태** — ✅ #787 CI 초록(ci·smoke success). check:content/schema-refs/completeness 로컬 초록. ⚠️ 실동작 전부 미검증(로컬 한계). 스캔 근거는 실코드+DB 실측(notifications RLS=본인것, profiles 컬럼 등).
+
+**7. 다음 세션 첫 프롬프트**
+> docs/PROJECT_CONTEXT.md 최상단 읽어. 계층별 백오피스 8개(PR #787) 머지됨 — 근데 **실동작은 아무도 안 눌러봄**(로컬 한계). 이어가려면 ①프리뷰/실서비스에서 눌러 검증 or ②남은 큰 거(에이전시 정산·의료기관 소견·케이스 지도) 중 하나.
+
+---
+
 ## 🔖 세션 핸드오프 (2026-07-15 오후 — PO 취향 원장 슬림화: 히스토리 "쌓기 OK, 정리 고장" 진단·수리)
 
 **1. 이번 세션 한 일** — 코드 아님, **기억 시스템(취향 원장) 정리** 세션. PO 질문("핸드오프 반복되며 내 요구사항이 쌓이는데 히스토리 제대로 쌓고 있냐?")에서 출발.
@@ -41,38 +61,6 @@
 
 **7. 다음 세션 첫 프롬프트**
 > 먼저 docs/PROJECT_CONTEXT.md 최상단 핸드오프를 읽어. 취향 원장 슬림화는 종결됐고(활성 117→84), 이어서 할 건 직전 세션 승계분(화상상담 UX #777 프로덕션 실측 / KHIDI 계약 협약서 최종본·번역 / 앱스토어 결제·APNs) 중 PO가 고르는 것. PO가 "취향 더 줄여" 하면 PO_PREFERENCES 상단 주석의 "다음 슬림화 후보"부터.
-
----
-
-## 🔖 세션 핸드오프 (2026-07-15 밤 — 완성도 루프 구축: "완성 판정을 사람 눈에서 기계로" + 협업방식 codify)
-
-**1. 이번 세션 한 일** — OKKY 칼럼("Codex 72시간 사이클") 분석 → 우리가 반복 발견하는 "미완성"을 "완성"으로 끌어올리는 시스템 구축. **[PR #784](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/784)** (CI 초록).
-- **완성도 루프 3축**: 축A 판단기준 SoR(`docs/DEFINITION_OF_DONE.md` + 기계판독 `src/lib/completeness/rubric.js` 7유형) + `check:completeness` 게이트(ci.yml 비차단). 축B 감사루프 스킬(`.claude/skills/completeness-audit`) + `session-orient.sh` 7일 리마인드 + `CLAUDE.md` 자동머지 전 완성도 감사 게이트(PO 승인). 축C 범위 무한정화(check:content 한글누출 → `isPublicFacingFile()` 공개/환자 전체, 동적링크 app→src, `check-schema-refs` 컬럼레벨·비차단).
-- **루프 실가동 = 실제 수확(제안 아님)**: 유형3 문서-현실 드리프트 **3건 종결**(consultation notes 암호화·"미머지" 3건·리브랜드 TODO) + 유형1 한글누출 **2건 6개어화**(inquiry 업로드힌트 등) + 유형6 **실버그 2건 수리**(리마인더 profiles 없는컬럼 5개→실컬럼+auth 이메일+in_app 보장 / crawl name→title alias) + **stale 생성타입 재생성**(inquiries 35→61 컬럼).
-- **1차(협업방식 개선) codify**: `docs/PO_PREFERENCES.md`에 3건 — 완성기준 먼저·자가검증 / PO주의력=병목이니 아껴라 / "자율주행" 명령 템플릿.
-
-**2. 왜 그렇게 했는지** — 칼럼 요지: AI시대 사람 일 = 목표+판단기준 주기, 병목 = 사람 주의력. 우리 진단: 고치는 루프(부검→가드)는 최고인데 **"완성 판정(Manager)"이 아직 PO의 눈=스크린샷** → 그걸 기계로 옮겨 PO 보기 전에 미완성 소진.
-
-**3. 안 끝났거나 보류**
-- 컬럼레벨 schema-refs·`check:completeness` = **비차단(경고)** — 안정 후 blocking 승격(DEFINITION_OF_DONE 로드맵).
-- 축C 잔여: 필터(.eq)·복호화 누락·"같은 가정 쓰는 소비자 전수 스캐너" = 감사루프 몫.
-
-**4. 주의·함정**
-- **⚠️ 로컬 tsc 못 돌림(node_modules 없는 fresh clone)** — 생성타입 재생성이 tsc 1건 깼고(step2 intake=Json spread) CI가 잡음. 타입·빌드 건드리면 **CI typecheck가 유일한 검증** → 푸시 후 CI 주시 필수. 마찬가지로 playwright(clip-sweep) 로컬 실행 불가 → 나이틀리 커버.
-- 리마인더 수정은 **코드·스키마 정합만 확인, 실발송(이메일/in_app) 런타임 미검증**.
-
-**5. 다음 세션이 먼저 할 일**
-1. **리마인더 수정 실동작 확인**(등록회원 in_app/이메일 리마인더 실제 나가는지 — 미검증).
-2. 완성도 루프 후속: `check:completeness`·컬럼레벨 **blocking 승격**, 축C 잔여(소비자 전수 스캐너).
-3. (#784 이 세션 끝에 머지 처리 — main 반영됐는지 확인 후 진행.)
-
-**6. 검증 상태**
-- ✅ CI 초록(`ci` success·Smoke success, HeadSHA 2fe48289). check:content/schema-refs/completeness 로컬 초록.
-- ✅ 실버그 2건 = DB 실측(Supabase MCP)으로 컬럼 부재 확인 후 수리. 유형3 드리프트 3건 = 코드/커밋 대조 확인.
-- ⚠️ **검증 못 함**: 리마인더 실발송 / 감사루프 유형7 clip-sweep ad-hoc(node_modules 없음, 나이틀리 커버) / 재생성 타입 tsc는 CI로만 확인.
-
-**7. 다음 세션 첫 프롬프트**
-> docs/PROJECT_CONTEXT.md 최상단 읽어. 완성도 루프(PR #784)=「완성 판정을 기계로」 — 7유형 판단기준(DEFINITION_OF_DONE)+감사루프(/completeness-audit)+가드확장. 이어서 할 거면 ①리마인더 수정 실발송 확인 ②check:completeness·컬럼레벨 가드 blocking 승격부터.
 
 ---
 

@@ -32,6 +32,7 @@ const CHANNEL_COLOR = {
   line: "#06C755",
   kakao: "#FEE500",
   agency: "#7c3aed",
+  hospital: "#0369a1",
 };
 
 export default function CoordinatorMessagesClient() {
@@ -55,6 +56,7 @@ export default function CoordinatorMessagesClient() {
     line: "LINE",
     kakao: L.msChannelKakao,
     agency: L.msChannelAgency,
+    hospital: L.msChannelHospital,
   };
   const statusLabel = (s) => STATUS_LABEL[s] || L.msStatusOpen;
   const fmtDate = (v) => { try { return new Date(v).toLocaleDateString(dateLoc); } catch { return ""; } };
@@ -64,6 +66,7 @@ export default function CoordinatorMessagesClient() {
       patient: `${L.msActorPatient}: `, user: `${L.msActorPatient}: `,
       system: `${L.msActorAI}: `, bot: `${L.msActorAI}: `,
       coordinator: `${L.msActorMe}: `, agency: `${L.msActorAgency}: `, admin: `${L.msActorAdmin}: `,
+      hospital: `${L.msActorHospital}: `,
     };
     const label = m[actor];
     return label ? <span className="font-medium text-gray-400">{label}</span> : null;
@@ -422,13 +425,15 @@ function Message({ m, meId, L, dateLoc }) {
   const isAI = m.actor_type === "system" || m.actor_type === "bot";
   const isAdmin = m.actor_type === "admin";
   const isAgency = m.actor_type === "agency";
+  const isHospital = m.actor_type === "hospital";
 
-  // 발신자별 라벨 + 색 — 환자(파랑)·AI(보라)를 한눈에 구분. healwith는 고유명사라 그대로.
+  // 발신자별 라벨 + 색 — 환자(파랑)·AI(보라)·에이전시(초록)·병원(하늘)을 한눈에 구분.
   const label =
     isMine ? L.msSenderMe :
     isPatient ? `🙋 ${L.msActorPatient}` :
     isAI ? `🤖 healwith ${L.msActorAI}` :
     isAgency ? `🏢 ${L.msActorAgency}` :
+    isHospital ? `🏥 ${L.msActorHospital}` :
     isAdmin ? `healwith ${L.msActorAdmin}` :
     m.actor_type === "coordinator" ? L.msSenderOtherCoord :
     L.msSenderSystem;
@@ -436,14 +441,16 @@ function Message({ m, meId, L, dateLoc }) {
     isPatient ? "text-blue-600" :
     isAI ? "text-violet-600" :
     isAgency ? "text-emerald-600" :
+    isHospital ? "text-sky-600" :
     isAdmin ? "text-amber-600" :
     "text-gray-400";
-  // 버블: 나=teal 우측 / 환자=흰색+파란 좌측 액센트 / AI=보라 틴트 / 에이전시=초록 / 관리자=앰버
+  // 버블: 나=teal 우측 / 환자=흰색+파란 좌측 / AI=보라 / 에이전시=초록 / 병원=하늘 / 관리자=앰버
   const bubble =
     isMine ? "bg-teal-600 text-white" :
     isPatient ? "border border-gray-200 border-l-[3px] border-l-blue-400 bg-white text-gray-900" :
     isAI ? "border border-violet-100 bg-violet-50 text-gray-800" :
     isAgency ? "border border-emerald-100 bg-emerald-50 text-gray-800" :
+    isHospital ? "border border-sky-100 bg-sky-50 text-gray-800" :
     isAdmin ? "border border-amber-100 bg-amber-50 text-gray-800" :
     "border border-gray-200 bg-gray-100 text-gray-700";
 

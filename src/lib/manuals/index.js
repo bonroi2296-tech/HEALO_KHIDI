@@ -79,9 +79,7 @@ export const MANUALS = {
       },
       {
         heading: "각 메뉴 한 줄 설명",
-        items: [
-          { title: "인테이크 관리", desc: "환자 초기 문진/접수 정보 정리." },
-          { title: "비자 트래킹", desc: "초청장·비자 진행 단계 추적." },
+        items: [          { title: "비자 트래킹", desc: "초청장·비자 진행 단계 추적." },
           { title: "견적", desc: "치료·체류 비용 견적 작성/공유." },
           { title: "증상 알림", desc: "환자가 올린 증상 기록 중 살펴야 할 알림." },
           { title: "AI 품질 경고 알림", desc: "AI가 환자에게 이상한 답(지어낸 정보 등)을 하면 종(🔔) 알림이 옵니다. 누르면 「AI 상담 리드」 대화 뷰에서 그 대화가 바로 열려요 — 어떤 답이 나갔는지 확인하고, 환자에게 정정이 필요하면 담당자(어드민·의료진)에게 알리세요(코디 화면은 읽기 전용)." },
@@ -140,9 +138,7 @@ export const MANUALS = {
           },
           {
             heading: "One-line description of each menu",
-            items: [
-              { title: "Intake management", desc: "Organizes the patient's initial questionnaire/registration information." },
-              { title: "Visa tracking", desc: "Tracks the invitation letter and visa progress stages." },
+            items: [              { title: "Visa tracking", desc: "Tracks the invitation letter and visa progress stages." },
               { title: "Estimate", desc: "Creates/shares estimates of treatment and stay costs." },
               { title: "Symptom alerts", desc: "Alerts among patient-submitted symptom records that need attention." },
             ],
@@ -187,9 +183,7 @@ export const MANUALS = {
           },
           {
             heading: "Однострочное описание каждого меню",
-            items: [
-              { title: "Управление приёмом", desc: "Упорядочивание первичной анкеты/регистрационных данных пациента." },
-              { title: "Отслеживание визы", desc: "Отслеживание этапов оформления приглашения и визы." },
+            items: [              { title: "Отслеживание визы", desc: "Отслеживание этапов оформления приглашения и визы." },
               { title: "Смета", desc: "Составление/отправка сметы расходов на лечение и пребывание." },
               { title: "Оповещения о симптомах", desc: "Оповещения среди записей о симптомах, присланных пациентом, требующие внимания." },
             ],
@@ -274,9 +268,7 @@ export const MANUALS = {
           },
           {
             heading: "各菜单一句话说明",
-            items: [
-              { title: "接诊管理", desc: "整理患者的初诊问诊/受理信息。" },
-              { title: "签证跟踪", desc: "跟踪邀请函·签证办理阶段。" },
+            items: [              { title: "签证跟踪", desc: "跟踪邀请函·签证办理阶段。" },
               { title: "报价", desc: "编制/共享治疗·停留费用报价。" },
               { title: "症状提醒", desc: "患者提交的症状记录中需要留意的提醒。" },
             ],
@@ -314,9 +306,7 @@ export const MANUALS = {
           },
           {
             heading: "各メニューの一言説明",
-            items: [
-              { title: "インテーク管理", desc: "患者の初期問診/受付情報の整理。" },
-              { title: "ビザトラッキング", desc: "招へい状・ビザの進行段階を追跡。" },
+            items: [              { title: "ビザトラッキング", desc: "招へい状・ビザの進行段階を追跡。" },
               { title: "見積もり", desc: "治療・滞在費用の見積もり作成/共有。" },
               { title: "症状アラート", desc: "患者が投稿した症状記録のうち、目を通すべきアラート。" },
             ],
@@ -345,22 +335,22 @@ export const MANUALS = {
   // ─────────────────────────────────────── 국내 병원 ───────────────────────────────────────
   hospital: {
     title: "병원 포털 사용설명서",
-    summary: "우리 병원으로 들어온 진료 의뢰(리드)를 확인하고, 병원 정보·시술 카탈로그를 관리하는 화면입니다.",
-    updated: "2026-06-24",
+    summary: "우리 병원으로 들어온 진료 의뢰(리드)를 확인하고 진행하는 화면입니다. (병원 정보·시술 카탈로그 관리 메뉴는 공개 연동 준비 중이라 현재 비활성입니다.)",
+    updated: "2026-07-15",
     sections: [
       {
         heading: "메뉴 설명",
         items: [
           { title: "대시보드", desc: "들어온 의뢰 요약을 한눈에." },
           { title: "진료 의뢰(리드)", desc: "환자가 우리 병원으로 매칭된 의뢰 목록. 상태를 갱신하며 진행하세요." },
-          { title: "병원 정보", desc: "환자/AI에게 보이는 병원 소개·강점. 정확하게 채울수록 매칭이 잘 됩니다." },
-          { title: "시술 카탈로그", desc: "우리 병원이 제공하는 암 치료·시술 목록. AI가 환자에게 추천할 때 참고합니다." },
+          { title: "병원 정보 (준비 중)", desc: "환자/AI에게 보이는 병원 소개·강점 편집 화면. 공개 연동 준비가 끝나면 열립니다(현재 비활성)." },
+          { title: "시술 카탈로그 (준비 중)", desc: "우리 병원 암 치료·시술 목록 편집 화면. 공개 연동 준비가 끝나면 열립니다(현재 비활성)." },
         ],
       },
       {
         heading: "팁",
         items: [
-          "「병원 정보」·「시술 카탈로그」를 충실히 채우면 AI 추천·환자 매칭 정확도가 올라갑니다.",
+          "「병원 정보」·「시술 카탈로그」 메뉴는 공개 연동 준비 중이라 지금은 비활성입니다(준비되면 안내드립니다).",
           "새 의뢰가 오면 상태를 빠르게 업데이트해 코디네이터가 다음 단계를 진행하게 하세요.",
         ],
       },

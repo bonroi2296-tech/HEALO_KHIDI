@@ -7,13 +7,15 @@
  *   body: { inquiry_id, outcome: 'admitted'|'lost'|null, note? }
  *   → 코디가 유치 확정/이탈 1클릭 (감사 로그 기록)
  *
- * 인증: requireAdminAuth (admin/coordinator). inquiries 는 service_role 전용이라 서버 경유.
+ * 인증: requirePortalAuth(staffOnly) = admin + coordinator. inquiries 는 service_role 전용이라 서버 경유.
+ *   (2026-07-15 PO 승인: 코디가 KHIDI 유치확정/이탈을 직접 찍게 권한 확대 — 이전엔 admin 전용이라
+ *    주석-현실 드리프트였음. 코디는 이미 케이스·환자정보를 다루는 신뢰 스태프.)
  */
 
 export const runtime = "nodejs";
 
 import { NextRequest, NextResponse } from "next/server";
-import { requireAdminAuth } from "@/lib/auth/requireAdminAuth";
+import { requirePortalAuth } from "@/lib/auth/requirePortalAuth";
 import { supabaseAdmin, assertSupabaseEnv } from "@/lib/rag/supabaseAdmin";
 import { decryptInquiryForAdmin } from "@/lib/security/decryptForAdmin";
 import { pct, maskName } from "@/lib/khidi/funnelMetrics";
@@ -31,7 +33,7 @@ function resolveRange(searchParams: URLSearchParams) {
 }
 
 export async function GET(request: NextRequest) {
-  const auth = await requireAdminAuth(request);
+  const auth = await requirePortalAuth(request, { staffOnly: true });
   if (!auth.success) return auth.response;
 
   try {
@@ -164,7 +166,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function PATCH(request: NextRequest) {
-  const auth = await requireAdminAuth(request);
+  const auth = await requirePortalAuth(request, { staffOnly: true });
   if (!auth.success) return auth.response;
 
   try {
@@ -201,7 +203,7 @@ export async function PATCH(request: NextRequest) {
         outcome,
         outcome_note: note,
         outcome_updated_at: new Date().toISOString(),
-        outcome_updated_by: auth.authResult.userId,
+        outcome_updated_by: auth.userId,
       })
       .eq("id", inquiryId);
 
@@ -214,7 +216,7 @@ export async function PATCH(request: NextRequest) {
     //   에이전시 포털 타임라인에 반영(이전엔 outcome 만 바뀌고 에이전시는 확정/이탈을 못 봤음).
     //   admitted = 입국·치료 단계로 전진(뒤로 안 감), lost/취소 = 단계 유지하고 이력만.
     try {
-      const uid = auth.authResult.userId ?? null;
+      const uid = auth.userId ?? null;
       if (outcome === "admitted") {
         const { advanceCaseStatus } = await import("@/lib/khidi/advanceCaseStatus");
         await advanceCaseStatus(supabaseAdmin, inquiryId, "treatment", "🎯 유치 확정", uid);

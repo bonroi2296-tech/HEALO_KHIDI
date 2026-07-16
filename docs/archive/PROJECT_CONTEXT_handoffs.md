@@ -1,5 +1,39 @@
 # PR
 
+## 🔖 세션 핸드오프 (2026-07-15 밤 — 완성도 루프 구축: "완성 판정을 사람 눈에서 기계로" + 협업방식 codify)
+
+**1. 이번 세션 한 일** — OKKY 칼럼("Codex 72시간 사이클") 분석 → 우리가 반복 발견하는 "미완성"을 "완성"으로 끌어올리는 시스템 구축. **[PR #784](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/784)** (CI 초록).
+- **완성도 루프 3축**: 축A 판단기준 SoR(`docs/DEFINITION_OF_DONE.md` + 기계판독 `src/lib/completeness/rubric.js` 7유형) + `check:completeness` 게이트(ci.yml 비차단). 축B 감사루프 스킬(`.claude/skills/completeness-audit`) + `session-orient.sh` 7일 리마인드 + `CLAUDE.md` 자동머지 전 완성도 감사 게이트(PO 승인). 축C 범위 무한정화(check:content 한글누출 → `isPublicFacingFile()` 공개/환자 전체, 동적링크 app→src, `check-schema-refs` 컬럼레벨·비차단).
+- **루프 실가동 = 실제 수확(제안 아님)**: 유형3 문서-현실 드리프트 **3건 종결**(consultation notes 암호화·"미머지" 3건·리브랜드 TODO) + 유형1 한글누출 **2건 6개어화**(inquiry 업로드힌트 등) + 유형6 **실버그 2건 수리**(리마인더 profiles 없는컬럼 5개→실컬럼+auth 이메일+in_app 보장 / crawl name→title alias) + **stale 생성타입 재생성**(inquiries 35→61 컬럼).
+- **1차(협업방식 개선) codify**: `docs/PO_PREFERENCES.md`에 3건 — 완성기준 먼저·자가검증 / PO주의력=병목이니 아껴라 / "자율주행" 명령 템플릿.
+
+**2. 왜 그렇게 했는지** — 칼럼 요지: AI시대 사람 일 = 목표+판단기준 주기, 병목 = 사람 주의력. 우리 진단: 고치는 루프(부검→가드)는 최고인데 **"완성 판정(Manager)"이 아직 PO의 눈=스크린샷** → 그걸 기계로 옮겨 PO 보기 전에 미완성 소진.
+
+**3. 안 끝났거나 보류**
+- 컬럼레벨 schema-refs·`check:completeness` = **비차단(경고)** — 안정 후 blocking 승격(DEFINITION_OF_DONE 로드맵).
+- 축C 잔여: 필터(.eq)·복호화 누락·"같은 가정 쓰는 소비자 전수 스캐너" = 감사루프 몫.
+
+**4. 주의·함정**
+- **⚠️ 로컬 tsc 못 돌림(node_modules 없는 fresh clone)** — 생성타입 재생성이 tsc 1건 깼고(step2 intake=Json spread) CI가 잡음. 타입·빌드 건드리면 **CI typecheck가 유일한 검증** → 푸시 후 CI 주시 필수. 마찬가지로 playwright(clip-sweep) 로컬 실행 불가 → 나이틀리 커버.
+- 리마인더 수정은 **코드·스키마 정합만 확인, 실발송(이메일/in_app) 런타임 미검증**.
+
+**5. 다음 세션이 먼저 할 일**
+1. **리마인더 수정 실동작 확인**(등록회원 in_app/이메일 리마인더 실제 나가는지 — 미검증).
+2. 완성도 루프 후속: `check:completeness`·컬럼레벨 **blocking 승격**, 축C 잔여(소비자 전수 스캐너).
+3. (#784 이 세션 끝에 머지 처리 — main 반영됐는지 확인 후 진행.)
+
+**6. 검증 상태**
+- ✅ CI 초록(`ci` success·Smoke success, HeadSHA 2fe48289). check:content/schema-refs/completeness 로컬 초록.
+- ✅ 실버그 2건 = DB 실측(Supabase MCP)으로 컬럼 부재 확인 후 수리. 유형3 드리프트 3건 = 코드/커밋 대조 확인.
+- ⚠️ **검증 못 함**: 리마인더 실발송 / 감사루프 유형7 clip-sweep ad-hoc(node_modules 없음, 나이틀리 커버) / 재생성 타입 tsc는 CI로만 확인.
+
+**7. 다음 세션 첫 프롬프트**
+> docs/PROJECT_CONTEXT.md 최상단 읽어. 완성도 루프(PR #784)=「완성 판정을 기계로」 — 7유형 판단기준(DEFINITION_OF_DONE)+감사루프(/completeness-audit)+가드확장. 이어서 할 거면 ①리마인더 수정 실발송 확인 ②check:completeness·컬럼레벨 가드 blocking 승격부터.
+
+---
+
+---
+
 ## 🔖 세션 핸드오프 (2026-07-15 — KHIDI 외국인환자 유치 표준계약서·공식문서 총수집)
 
 **1. 이번 세션 한 일** — 코드 아님, **문서 리서치/수집** 세션. PO 질문("KHIDI 유치 표준계약서 최신본, 환자-병원용인지 에이전시-병원용인지")에서 출발.

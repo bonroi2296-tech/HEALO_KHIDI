@@ -28,6 +28,9 @@ export function HospitalAccountManager({ hospitals }) {
   const [newRole, setNewRole] = useState("manager");
   const [adding, setAdding] = useState(false);
   const [error, setError] = useState("");
+  // 신규 계정 생성 시 1회 표시되는 로그인 정보(임시비번). 담당자에게 전달용.
+  const [newCredential, setNewCredential] = useState(null);
+  const [copied, setCopied] = useState(false);
 
   const loadAccounts = useCallback(async () => {
     if (!selectedHospitalId) {
@@ -66,6 +69,11 @@ export function HospitalAccountManager({ hospitals }) {
         setAccounts((prev) => [data.account, ...prev]);
         setNewEmail("");
         setShowAddForm(false);
+        // 신규 계정이면 임시비번을 1회 표시(담당자에게 전달). 기존 유저 재사용 시 tempPassword=null.
+        if (data.tempPassword) {
+          setNewCredential({ email: data.account?.email || newEmail.trim(), tempPassword: data.tempPassword });
+          setCopied(false);
+        }
       } else {
         setError(
           data.error === "already_registered"
@@ -173,6 +181,50 @@ export function HospitalAccountManager({ hospitals }) {
                 {adding && <Loader2 size={14} className="animate-spin" />}
                 {adding ? "등록 중..." : "등록"}
               </button>
+            </div>
+          )}
+
+          {/* 신규 계정 로그인 정보 (1회 표시 — 담당자 전달용) */}
+          {newCredential && (
+            <div className="bg-teal-50 border border-teal-200 rounded-xl p-4 space-y-2">
+              <div className="flex items-start justify-between gap-2">
+                <p className="text-sm font-bold text-teal-800">✅ 계정 생성됨 — 아래 로그인 정보를 담당자에게 전달하세요</p>
+                <button
+                  onClick={() => setNewCredential(null)}
+                  className="p-1 text-teal-400 hover:text-teal-700"
+                  title="닫기"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+              <div className="bg-white rounded-lg border border-teal-200 divide-y divide-gray-100 text-sm">
+                <div className="flex items-center justify-between px-3 py-2">
+                  <span className="text-gray-500">이메일</span>
+                  <span className="font-mono text-gray-900">{newCredential.email}</span>
+                </div>
+                <div className="flex items-center justify-between px-3 py-2">
+                  <span className="text-gray-500">임시 비밀번호</span>
+                  <span className="font-mono text-gray-900">{newCredential.tempPassword}</span>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => {
+                    try {
+                      navigator.clipboard?.writeText(
+                        `로그인: ${window.location.origin}/hospital\n이메일: ${newCredential.email}\n임시 비밀번호: ${newCredential.tempPassword}`
+                      );
+                      setCopied(true);
+                    } catch {
+                      /* clipboard 실패해도 화면 값으로 직접 복사 가능 */
+                    }
+                  }}
+                  className="text-xs bg-teal-700 text-white px-3 py-1.5 rounded-lg font-medium hover:bg-teal-800 transition"
+                >
+                  {copied ? "복사됨 ✓" : "로그인 안내 복사"}
+                </button>
+                <p className="text-[11px] text-teal-700/80">이 화면을 벗어나면 임시 비밀번호는 다시 볼 수 없습니다.</p>
+              </div>
             </div>
           )}
 

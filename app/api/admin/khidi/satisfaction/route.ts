@@ -15,13 +15,14 @@ export const runtime = "nodejs";
 
 import { NextRequest } from "next/server";
 import { supabaseAdmin, assertSupabaseEnv } from "@/lib/rag/supabaseAdmin";
-import { requireAdminAuth } from "@/lib/auth/requireAdminAuth";
+import { requirePortalAuth } from "@/lib/auth/requirePortalAuth";
 import { KHIDI_TARGETS } from "@/lib/khidi/targets";
 import { likertTo100, avgSatisfaction100 } from "@/lib/khidi/satisfaction";
 import { fetchTestSurveyIds, idsToInFilter } from "@/lib/khidi/testData";
 
 export async function GET(request: NextRequest) {
-  const auth = await requireAdminAuth(request);
+  // 2026-07-15: 코디도 사후관리·만족도를 챙기게 admin 전용 → staffOnly(admin+coordinator) 확대.
+  const auth = await requirePortalAuth(request, { staffOnly: true });
   if (!auth.success) return auth.response;
 
   assertSupabaseEnv();
