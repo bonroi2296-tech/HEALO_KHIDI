@@ -27,7 +27,7 @@ const baseMeta = {
 };
 
 export default function CareJourneyPage() {
-  const jsonLd = careJourneyLd({ description: baseMeta.description });
+  const jsonLd = careJourneyLd();
   return (
     <>
       <script
