@@ -885,6 +885,49 @@ for (const dir of BACKOFFICE_DIRS) {
   }
 }
 
+// ── 22) chat_messages.actor_type 코드 리터럴 ↔ DB CHECK 허용집합 (🔁 #94/#62 부류 — enum→CHECK 누락) ──
+// 왜: 코드가 actor_type:"X" 로 chat_messages 에 insert 하는데 chat_messages_actor_type_check CHECK 에
+//     X 가 없으면 insert 가 조용히 실패(500/internal_error) — 화면엔 "그냥 안 나옴"으로 무증상.
+//     이 부류가 agency→hospital 로 반복(반성문 #95). #94 의 방지책은 consultation_messages(상담방)용
+//     런타임 E2E 였고 chat_messages(코디·에이전시·병원 메신저)는 정적으로 안 막혀 또 뚫림.
+//     → 여기서 정적 차단: enum 값을 코드에 추가하면 같은 PR에 CHECK 확장 마이그레이션이 없으면 빨간불.
+// 방식: migrations/*.sql 에서 chat_messages_actor_type_check 최신 정의(파일명=날짜 최대)를 파싱해
+//     허용집합을 만들고, app/·src/ 의 actor_type:"…" 리터럴이 전부 그 집합 안인지 검사.
+{
+  try {
+    const allowed = new Set();
+    let latestFile = "";
+    // walk() 는 CODE_EXT(js/ts)만 반환하므로 .sql 은 readdirSync 로 직접 읽는다.
+    let sqlFiles = [];
+    try { sqlFiles = readdirSync(join(ROOT, "migrations")).filter((f) => /\.sql$/.test(f)); } catch { sqlFiles = []; }
+    for (const f of sqlFiles) {
+      let sql;
+      try { sql = readFileSync(join(ROOT, "migrations", f), "utf8"); } catch { continue; }
+      const m = sql.match(/chat_messages_actor_type_check[\s\S]*?array\s*\[([^\]]*)\]/i);
+      if (!m) continue;
+      if (f < latestFile) continue; // 파일명(날짜) 순서상 가장 나중에 적용되는 정의만 채택
+      latestFile = f;
+      allowed.clear();
+      for (const v of m[1].matchAll(/'([^']+)'/g)) allowed.add(v[1]);
+    }
+    if (allowed.size > 0) {
+      const ACTOR_LITERAL_RE = /actor_type:\s*["'`]([a-z_]+)["'`]/g;
+      for (const file of ["app", "src"].flatMap(walk)) {
+        if (!CODE_EXT.test(file) || EXCLUDE.test(file)) continue;
+        let text;
+        try { text = readFileSync(join(ROOT, file), "utf8"); } catch { continue; }
+        for (const mm of text.matchAll(ACTOR_LITERAL_RE)) {
+          if (!allowed.has(mm[1])) {
+            errors.push(`[actor_type-CHECK] ${file.replace(/\\/g, "/")} — 코드가 actor_type:"${mm[1]}" 로 chat_messages 에 쓰는데 DB CHECK 허용집합(${[...allowed].join("/")})에 없음 → insert 가 조용히 실패(무증상, 🔁 #94/#62 부류). 같은 PR에 CHECK 확장 마이그레이션을 추가할 것(예: migrations/20260716_chat_messages_actor_type_hospital.sql).`);
+          }
+        }
+      }
+    }
+  } catch (e) {
+    errors.push(`[actor_type-CHECK] 검사 실패: ${e.message}`);
+  }
+}
+
 // ── 결과 ────────────────────────────────────────────────────────
 if (errors.length) {
   console.error(`\n❌ 콘텐츠 일관성 검사 실패 (${errors.length}건)\n`);
