@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import HomeClient from "./home/HomeClient";
 import { localizedMeta } from "@/lib/i18n/metadata";
-import { partnerHospitalLdList, websiteLd } from "@/lib/seo/structuredData";
+import { partnerHospitalLdList, websiteLd, ORG_ID } from "@/lib/seo/structuredData";
 
 // 홈 페이지 메타 — 언어별 alternates 로 각 언어권 검색엔진이 올바른 버전 노출
 // Google·Yandex·Baidu 모두 hreflang 을 통해 언어별 title 매칭
@@ -69,19 +69,15 @@ const baseMeta = {
   // alternates(hreflang/canonical)는 layout generateMetadata가 요청 언어별로 생성.
 };
 
+// app/layout.jsx <head> 의 브랜드 엔티티(#organization)와 "같은 회사" → @id 로 병합시킨다.
+// 그래야 layout 의 sameAs(공식 SNS)·설명·서비스국가 신호와 여기의 의료 정보가 한 엔티티로 합쳐진다
+// (@id 없으면 홈에 회사가 2개로 쪼개져 읽혀 브랜드 신호가 흩어짐).
+// ⚠️ 정체성(name·description·url·logo·areaServed)은 layout 이 단일 SoR — 여기서 다시 선언하면
+//    병합 후 값이 충돌(설명 2개 등)하므로, 홈에서만 의미있는 의료 facet 만 얹는다.
 const jsonLd = {
   "@context": "https://schema.org",
   "@type": "MedicalBusiness",
-  name: "healwith",
-  description:
-    "ICT pre-consultation and post-care platform connecting international cancer patients with top Korean oncologists. Real-time interpretation in 6 languages.",
-  url: "https://healwith.co.kr",
-  logo: "https://healwith.co.kr/icons/icon-512x512.png",
-  areaServed: [
-    { "@type": "Country", name: "South Korea" },
-    { "@type": "Country", name: "Kazakhstan" },
-    { "@type": "Country", name: "Russia" },
-  ],
+  "@id": ORG_ID,
   availableLanguage: [
     { "@type": "Language", name: "Korean" },
     { "@type": "Language", name: "Russian" },
