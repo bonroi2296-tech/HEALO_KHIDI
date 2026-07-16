@@ -1,15 +1,16 @@
 /**
  * healwith: 환자 만족도 설문 자동 발송 cron
  *
- * 동작 (2026-07-16 재배선):
- * - 사후관리(follow_up)·완료(completed) 단계 케이스(inquiries.case_status) 중 사후관리 설문
- *   미발송인 것 조회. 케이스당 1건, surveys.inquiry_id 존재검사로 멱등(재실행 중복 없음).
- *   (구: consultation_sessions.status='completed' — 실데이터상 영구 0건이라 설문 0건이었음.
- *    실제 환자 여정은 case_status 에 있어 그리로 옮김. PO 결정 "사후관리 진입 시".)
- * - 테스트 케이스(is_test) 제외. 수신자 결정(resolveSurveyRecipient): inquiries.email 기준
- *   inquiries 의 email/이름은 AES 암호화 저장 → decryptMaybe 로 복호화 후 사용
- *   (복호화 안 하면 암호문에 '@' 없어 영구 0건 — POSTMORTEMS #13)
- * - generateSurveyToken({inquiryId,…}) → sendSurveyEmail → reminders_scheduled 기록
+ * 동작 (2026-07-16 재배선 → D+ 케이던스):
+ * - 사후관리(follow_up)·완료(completed) 케이스(inquiries.case_status)를 조회.
+ *   구: consultation_sessions.status='completed' — 실데이터상 영구 0건이라 설문 0건이었음.
+ *   실제 환자 여정은 case_status 에 있어 그리로 옮김.
+ * - D+0 앵커 = inquiries.followup_started_at (없으면 이번 실행에 stamp). scheduler.ts 의
+ *   D+ 케이던스(암종별 가감 포함)를 재계산해 '설문' 단계만 발송: 기본 D+7(1주 경과)·D+90(3개월)·
+ *   D+180(6개월). 기한 도래 + 미발송(surveys.survey_type='fu_<phase>') 단계만, 멱등.
+ *   (화상상담·복약확인·검사리뷰 단계는 코디 액션 — 여기서 안 보냄, 후속 배선.)
+ * - 테스트 케이스(is_test) 제외. 이메일/이름 AES 암호화 → decryptMaybe 복호화(#13).
+ * - generateSurveyToken({inquiryId,surveyType}) → sendSurveyEmail → reminders_scheduled 기록
  *
  * 스케줄:
  * - vercel.json crons 에 `0 9 * * *` (매일 09:00 UTC) 등록됨
@@ -34,6 +35,7 @@ import {
 import { resolveSurveyRecipient } from "@/lib/surveys/resolveRecipient";
 import { alertIfKpiStale } from "@/lib/khidi/kpiHealthcheck";
 import { decryptMaybe } from "@/lib/security/encryptionV2";
+import { createFollowupSchedule } from "@/lib/followup/scheduler";
 
 function verifyCronSecret(header: string | null): boolean {
   const expected = process.env.CRON_SECRET;
@@ -63,7 +65,7 @@ export async function GET(request: NextRequest) {
   //  = 케이스가 follow_up 에 처음 도달했을 때 1회만 발송, 재실행에도 중복 없음.)
   const { data: cases, error: caseErr } = await db
     .from("inquiries")
-    .select("id, email, preferred_language, spoken_language, first_name, last_name, user_id, is_test, case_status")
+    .select("id, email, preferred_language, spoken_language, first_name, last_name, user_id, is_test, case_status, cancer_type, followup_started_at")
     .in("case_status", ["follow_up", "completed"]);
 
   if (caseErr) {
@@ -83,84 +85,99 @@ export async function GET(request: NextRequest) {
         continue;
       }
 
-      // 이 케이스에 사후관리 설문이 이미 나갔는지 확인(멱등 — 케이스당 1건).
-      const { data: existing } = await db
-        .from("surveys")
-        .select("id")
-        .eq("inquiry_id", c.id)
-        .eq("survey_type", "post_followup")
-        .maybeSingle();
-
-      if (existing) {
-        skipped++;
-        continue;
+      // D+0 앵커: 사후관리 진입 시각. 없으면 지금(이번에 처음 본 시점 ≈ 진입)으로 stamp.
+      // (case_status_history 는 옛 단계 키만 담아 신뢰 불가 → inquiries.followup_started_at 사용.)
+      let anchor: string = c.followup_started_at;
+      if (!anchor) {
+        anchor = new Date().toISOString();
+        await db.from("inquiries").update({ followup_started_at: anchor }).eq("id", c.id);
       }
 
-      // inquiries 의 email/first_name/last_name 은 AES-256-GCM 암호화 저장 → decryptMaybe 로
-      // 복호화(옛 평문 행은 그대로 통과 — 마이그레이션 호환). 복호화 없이 쓰면 암호문에 '@' 가
-      // 없어 resolveSurveyRecipient 가 항상 null → 설문 영구 0건. POSTMORTEMS #13.
-      const inquiryRow = {
-        email: decryptMaybe(c.email),
-        preferred_language: c.preferred_language,
-        spoken_language: c.spoken_language,
-        first_name: decryptMaybe(c.first_name),
-        last_name: decryptMaybe(c.last_name),
-      };
-
-      // 수신자 결정(순수함수 재사용). 세션이 없으므로 언어는 inquiry 기준으로만 판단.
+      // 수신자 결정(케이스당 1회). email/이름은 AES-256-GCM 암호화 → decryptMaybe 복호화
+      // (안 하면 암호문에 '@' 없어 항상 null → 설문 0건. POSTMORTEMS #13).
       const recipient = resolveSurveyRecipient(
         { inquiry_id: c.id, patient_language: null },
         null,
-        inquiryRow
+        {
+          email: decryptMaybe(c.email),
+          preferred_language: c.preferred_language,
+          spoken_language: c.spoken_language,
+          first_name: decryptMaybe(c.first_name),
+          last_name: decryptMaybe(c.last_name),
+        }
       );
       if (!recipient) {
         skipped++;
         continue;
       }
 
-      const tokenResult = await generateSurveyToken({
-        inquiryId: c.id,
-        patientId: c.user_id ?? null,
-        surveyType: "post_followup",
-      });
+      // D+ 케이던스를 스케줄러로 재계산(순수·결정적, 암종별 가감 포함) → '설문' 단계만 추림.
+      // 기한 도래(now ≥ 앵커+D) + 아직 미발송(surveys.survey_type='fu_<phase>')인 단계만 발송.
+      // 화상상담·복약확인·검사리뷰 단계는 여기서 안 보냄(코디 액션 — 후속 배선).
+      const schedule = createFollowupSchedule(
+        String(c.id),
+        c.cancer_type || "unspecified",
+        anchor,
+        c.user_id || undefined
+      );
+      const anchorMs = new Date(anchor).getTime();
+      const now = Date.now();
 
-      if (!tokenResult.ok || !tokenResult.surveyId || !tokenResult.token) {
-        errors.push(`inquiry=${c.id}: token generation failed`);
-        continue;
-      }
+      for (const step of schedule.schedule) {
+        if (step.type !== "survey") continue;
+        if (now < anchorMs + step.daysFromTreatment * 86400000) continue; // 아직 기한 전
+        const surveyType = `fu_${step.phase}`; // fu_week_1 / fu_month_3 / fu_month_6 …
 
-      // 이메일 발송
-      const emailResult = await sendSurveyEmail({
-        surveyId: tokenResult.surveyId,
-        token: tokenResult.token,
-        toEmail: recipient.email,
-        patientName: recipient.name,
-        lang: recipient.lang,
-      });
+        // 멱등: 이 단계 설문이 이미 나갔으면 skip.
+        const { data: existing } = await db
+          .from("surveys")
+          .select("id")
+          .eq("inquiry_id", c.id)
+          .eq("survey_type", surveyType)
+          .maybeSingle();
+        if (existing) {
+          skipped++;
+          continue;
+        }
 
-      if (emailResult.ok) {
-        surveysDispatched++;
-
-        // reminders_scheduled 에 발송 기록. 세션 미연결이라 consultation_session_id=null,
-        // inquiry 연결은 payload 로 보존.
-        await db.from("reminders_scheduled").insert({
-          consultation_session_id: null,
-          reminder_type: "survey_request",
-          fire_at: new Date().toISOString(),
-          channel: "email",
-          recipient_user_id: c.user_id || null,
-          recipient_address: recipient.email,
-          payload: { inquiry_id: c.id, survey_id: tokenResult.surveyId, token: tokenResult.token },
-          status: "sent",
-          sent_at: new Date().toISOString(),
+        const tokenResult = await generateSurveyToken({
+          inquiryId: c.id,
+          patientId: c.user_id ?? null,
+          surveyType,
         });
-      } else {
-        // 전송 실패 시 방금 만든 pending 설문 행 삭제 → 다음 cron 재시도(멱등 가드에 영구 걸리지 않게).
-        // 삭제 안 하면 존재-가드에 걸려 영구 skip → 만족도(K-03) 조용히 유실.
-        await db.from("surveys").delete().eq("id", tokenResult.surveyId);
-        errors.push(
-          `inquiry=${c.id}: email send failed — ${emailResult.error} (pending survey row deleted for retry)`
-        );
+        if (!tokenResult.ok || !tokenResult.surveyId || !tokenResult.token) {
+          errors.push(`inquiry=${c.id} ${surveyType}: token generation failed`);
+          continue;
+        }
+
+        const emailResult = await sendSurveyEmail({
+          surveyId: tokenResult.surveyId,
+          token: tokenResult.token,
+          toEmail: recipient.email,
+          patientName: recipient.name,
+          lang: recipient.lang,
+        });
+
+        if (emailResult.ok) {
+          surveysDispatched++;
+          await db.from("reminders_scheduled").insert({
+            consultation_session_id: null,
+            reminder_type: "survey_request",
+            fire_at: new Date().toISOString(),
+            channel: "email",
+            recipient_user_id: c.user_id || null,
+            recipient_address: recipient.email,
+            payload: { inquiry_id: c.id, phase: step.phase, survey_id: tokenResult.surveyId, token: tokenResult.token },
+            status: "sent",
+            sent_at: new Date().toISOString(),
+          });
+        } else {
+          // 전송 실패 시 pending 설문 행 삭제 → 다음 cron 재시도(멱등 가드에 영구 걸리지 않게).
+          await db.from("surveys").delete().eq("id", tokenResult.surveyId);
+          errors.push(
+            `inquiry=${c.id} ${surveyType}: email send failed — ${emailResult.error} (pending row deleted for retry)`
+          );
+        }
       }
     } catch (err: any) {
       errors.push(`inquiry=${c.id}: ${err.message}`);
