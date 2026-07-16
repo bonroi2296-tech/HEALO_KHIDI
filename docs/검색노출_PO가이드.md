@@ -23,14 +23,17 @@
 - `힐위드` (한글 표기) — 한국·네이버에서 강함. 설명문·전 페이지 푸터·구조화데이터에 "힐위드" 글자를 심어 매칭됨.
 - `healwith korea`, `healwith 암` — 한국 구글에선 잘 뜸. 단 해외 구글(google.kz 등)은 .co.kr 지역감점으로 약할 수 있음.
 
-> ⚠️ 그냥 `healwith` 만 쳐서 **카자흐·러시아 사람**이 우리를 1등으로 보게 만드는 건 단기간엔 어렵다(동명 선점자 + .co.kr 지역감점). → 해외 노출은 **(a) 주소·힐위드로 유도 (b) Yandex 밀기 (c) 백링크 쌓기** 로 푼다(3·4번 참고).
+> ⚠️ 그냥 `healwith` 만 쳐서 **카자흐·러시아 사람**이 우리를 1등으로 보게 만드는 건 단기간엔 어렵다(동명 선점자 + .co.kr 지역감점). → 해외 노출은 **(a) 주소·힐위드로 유도 (b) 백링크 쌓기(.co.kr 지역감점을 이기는 유일한 정공법) (c) 나라별 맞는 엔진 공략** 으로 푼다(3번 참고).
+>
+> 🚫 **"카자흐 = 얀덱스"는 틀린 상식이다(반복 주의).** 리서치 결과 **카자흐스탄은 Google 약 70% / Yandex 약 28%** — 즉 **카자흐 노출 문제는 구글에서 푸는 것**이 맞다. Yandex가 주력인 곳은 **러시아**(Yandex 66~73%). 단일 SoR = `docs/GROWTH_PLAN.md` §C · `docs/marketing/paid-ads-plan.md`.
 
 ---
 
 ## 2. 🎯 "이걸로 떠라" 하고 노려둔 검색어 (경쟁 있음 — 보장 아님)
 
 코드(`app/page.jsx`, `app/layout.jsx`)의 keywords + 페이지 제목/본문이 노리는 말들.
-**핵심 시장 = 러시아·카자흐(얀덱스)** 이므로 러시아어/카자흐어가 제일 의미 있음.
+**핵심 시장 = 러시아·카자흐**이므로 러시아어/카자흐어가 제일 의미 있음.
+**엔진은 나라별로 다르다: 🇰🇿카자흐=Google(약 70%) / 🇷🇺러시아=Yandex(66~73%)** — "러·카=얀덱스"로 뭉뚱그리지 말 것.
 
 | 언어 | 노린 검색어 |
 |---|---|
@@ -40,7 +43,7 @@
 | 🇬🇧 영어 | Korea cancer treatment concierge · second opinion Korea oncologist · cost of cancer treatment in Korea |
 | 🇨🇳/🇯🇵 | 韩国癌症治疗 / 韓国がん治療 |
 
-> ⚠️ keywords 태그는 **구글 순위엔 영향 0**(구글이 무시함). 단 **얀덱스는 아직 약간 본다** → 우리 시장(러·카자흐)엔 의미 있어서 유지·보강함.
+> ⚠️ keywords 태그는 **구글 순위엔 영향 0**(구글이 무시함). 단 **얀덱스는 아직 약간 본다** → **러시아** 시장엔 의미 있어서 유지·보강함. (카자흐는 구글이 주력이라 keywords 태그로 덕 볼 게 없다.)
 > 구글에서 진짜 순위를 올리는 건 **페이지 제목·본문 내용·외부에서 우리를 링크한 수**다.
 
 ---
@@ -55,14 +58,16 @@
 
 ## 4. 색인(인덱싱) 빨리 시키는 법 — 클릭 몇 번
 
-검색엔진이 우리 페이지를 "등록"해야 검색에 나옴. 소유권 인증은 끝났으니 sitemap만 제출/재요청하면 됨.
+> ✅ **최초 등록은 이미 다 끝났다(2026-06-22 컷오버 시 PO가 완료): 구글·얀덱스·네이버 3사 소유권 인증 + sitemap 제출.**
+> 아래는 **"새로 만든 페이지를 빨리 넣고 싶을 때"** 다시 누르는 방법이지, 처음부터 다시 하라는 게 아니다.
+> (색인 실측 2026-07-16: `site:healwith.co.kr` → 구글에 수십 페이지 정상 노출.)
 
-**구글:** [Google Search Console](https://search.google.com/search-console) 로그인 → 속성 `healwith.co.kr` →
-- 좌측 `Sitemaps` → `https://healwith.co.kr/sitemap.xml` 제출(이미 있으면 OK)
-- 상단 검색창에 특정 URL 붙여넣고 `색인 생성 요청(Request Indexing)`
+**구글** (= 카자흐 노출의 주 무대): [Google Search Console](https://search.google.com/search-console) 로그인 → 속성 `healwith.co.kr` →
+- 상단 검색창에 새 URL 붙여넣고 `색인 생성 요청(Request Indexing)` ← **새 페이지 만들었을 때 이것만 누르면 됨**
+- 좌측 `Sitemaps` 는 이미 제출돼 있음(재제출 불필요).
 
-**얀덱스:** [Yandex Webmaster](https://webmaster.yandex.com) → `Индексирование → Файлы Sitemap` → `https://healwith.co.kr/sitemap.xml` 등록.
-(상세는 `docs/YANDEX_SEO_SETUP.md` — 단 그 문서의 도메인 예시는 옛 `khidi.healo.kr`이니 실도메인 `healwith.co.kr`로 읽을 것.)
+**얀덱스** (= 러시아용. 카자흐엔 영향 작음): [Yandex Webmaster](https://webmaster.yandex.com) → `Индексирование → Переобход страниц`(재크롤 요청).
+- sitemap 등록은 완료 상태. (상세는 `docs/YANDEX_SEO_SETUP.md` — 단 그 문서의 도메인 예시는 옛 `khidi.healo.kr`이니 실도메인 `healwith.co.kr`로 읽을 것.)
 
 **네이버:** [네이버 서치어드바이저](https://searchadvisor.naver.com) 로그인 → `웹마스터 도구` → `healwith.co.kr` 선택 →
 - `요청 → 웹 페이지 수집` 에 `https://healwith.co.kr/` 넣고 요청 (사이트 내용 바꾼 뒤 이걸 눌러야 네이버가 빨리 다시 읽어감)
@@ -87,4 +92,4 @@
 
 ---
 
-*최종 갱신: 2026-07-16 (「healwith 한 단어는 동명 선점자 여럿」 사실 정정 + 한국vs카자흐 .co.kr 지역감점 원인 추가 — 옛 "고유명이라 경쟁 없음→1등" 주장은 오류였음). 기능·도메인 바뀌면 같이 갱신.*
+*최종 갱신: 2026-07-16. 정정 3건 — ①「healwith 한 단어는 동명 선점자 여럿」(옛 "고유명이라 경쟁 없음→1등"은 오류) ②한국vs카자흐 `.co.kr` 지역감점 원인 추가 ③**「카자흐=얀덱스」오해 제거**(실제 KZ=Google 70%, Yandex는 러시아용 — `GROWTH_PLAN.md` §C 리서치와 일치시킴) + 3사 등록이 이미 완료(2026-06-22)임을 명시(할 일처럼 읽히던 것 수정). 기능·도메인 바뀌면 같이 갱신.*
