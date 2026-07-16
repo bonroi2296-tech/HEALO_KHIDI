@@ -176,6 +176,18 @@ export async function POST(request: NextRequest) {
     const assignedCount = insertedLeads?.length || 0;
     const skippedCount = foundHospitalIds.length - assignedCount;
 
+    // 파트너 알림(2026-07-15): 배정된 병원 담당자에게 '새 진료 의뢰' 종 알림.
+    //   종 UI는 이미 병원 상단바에 있음(ClientShell) — 백엔드 INSERT만. 본문 비-PII(이름 등 금지).
+    //   ⚠️ coordinator/cases/assign 경로에도 같이 붙임(#85 '한 경로만 배선' 반쪽 방지).
+    try {
+      const { notifyHospitalNewLead } = await import("@/lib/notifications/inApp");
+      await Promise.allSettled(
+        foundHospitalIds.map((hid) => notifyHospitalNewLead({ hospitalId: hid }))
+      );
+    } catch {
+      /* fail-safe */
+    }
+
     // EDGE-4 (POSTMORTEM #18→#20): coordinator/cases/assign 와 대칭 — admin 경로로 병원
     //   배정해도 케이스 진행단계를 '병원 치료가능 검토 중'으로 전진+이력 기록(이전엔 admin
     //   배정만 하면 에이전시·환자 타임라인이 안 움직였음). source_inquiry_id 로 연결.

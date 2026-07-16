@@ -96,6 +96,70 @@ export async function getStaffIdsByRole(): Promise<{ admins: string[]; coordinat
   }
 }
 
+/**
+ * 파트너(국내병원·에이전시/의료기관) 담당자 user_id 조회.
+ * 파트너는 app_metadata.role 이 아니라 매핑 테이블(hospital_users / agency_users)에 있음(auth 헬퍼와 동일).
+ * is_active=true 만 대상(비활성 담당자에겐 알림 안 감). Fail-safe: 실패 시 빈 배열.
+ */
+export async function getHospitalUserIds(hospitalId: string): Promise<string[]> {
+  try {
+    const { supabaseAdmin } = await import("../rag/supabaseAdmin");
+    const { data, error } = await (supabaseAdmin as any)
+      .from("hospital_users")
+      .select("user_id")
+      .eq("hospital_id", hospitalId)
+      .eq("is_active", true);
+    if (error || !data) return [];
+    return data.map((r: any) => r.user_id).filter(Boolean);
+  } catch {
+    return [];
+  }
+}
+
+export async function getAgencyUserIds(agencyId: string): Promise<string[]> {
+  try {
+    const { supabaseAdmin } = await import("../rag/supabaseAdmin");
+    const { data, error } = await (supabaseAdmin as any)
+      .from("agency_users")
+      .select("user_id")
+      .eq("agency_id", agencyId)
+      .eq("is_active", true);
+    if (error || !data) return [];
+    return data.map((r: any) => r.user_id).filter(Boolean);
+  } catch {
+    return [];
+  }
+}
+
+export interface HospitalNewLeadNotice {
+  hospitalId: string;
+  /** 비-PII 요약(예: "위암 · 카자흐스탄"). ⚠️ 환자 이름 등 PII 넣지 말 것(파트너 알림 본문). */
+  summary?: string | null;
+}
+
+/**
+ * 병원에 새 진료 의뢰(리드)가 배정됐을 때 그 병원 담당자에게 종(bell) 알림.
+ * 종 UI는 이미 파트너 상단바(ClientShell PortalTopBar)에 렌더링 중 — 백엔드 INSERT만 하면 뜬다.
+ * 링크는 병원 리드 목록(/hospital/leads — 상세 [id] 라우트 없음, 목록에서 열림).
+ * Fail-safe: throw 안 함(리드 배정 자체에 영향 0).
+ */
+export async function notifyHospitalNewLead(notice: HospitalNewLeadNotice): Promise<void> {
+  try {
+    const userIds = await getHospitalUserIds(notice.hospitalId);
+    if (userIds.length === 0) return;
+    const body = notice.summary?.trim() || "새 진료 의뢰가 도착했습니다.";
+    await broadcastInAppNotification(userIds, {
+      type: "hospital_new_lead",
+      title: "📥 새 진료 의뢰",
+      body,
+      priority: "high",
+      link: "/hospital/leads",
+    });
+  } catch {
+    /* fail-safe */
+  }
+}
+
 export interface NewInquiryNotice {
   inquiryId: number;
   nationality?: string | null;
