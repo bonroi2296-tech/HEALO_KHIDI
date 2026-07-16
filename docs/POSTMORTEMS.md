@@ -14,6 +14,26 @@
 
 ---
 
+## #81 — 🔁 #70 부류 재발: 만족도(K-03) 설문이 '아무도 안 만드는 신호'에 물려 구조적 0건 — 사후관리 배선 중 발견 (2026-07-16, 서비스 진단)
+
+**무슨 일**
+- `dispatch-surveys` cron 이 `consultation_sessions.status='completed'` 에만 반응했는데, 실DB상 completed 세션이 **영구 0건**(28개 전부 `scheduled`, 대부분 테스트). → 만족도 설문·K-03 데이터가 **구조적으로 0건**. 실제 환자 여정은 `inquiries.case_status`(follow_up/completed)에 있었다. 실DB 확인: `surveys` 0건·`followup_schedules` 0건·완료 상담세션 0건.
+
+**왜 못 잡았나 (근본원인 + 뚫린 가드)**
+- 과거 수정 #12(patient_id 전부 null)·#13(이메일 암호화)·#19(발송윈도우)·#70(전송실패 영구유실)은 **전부 "발송 메커니즘"만** 고쳤고 "소스 테이블이 애초에 빈다"는 못 봤다. 정상흐름 테스트는 "완료 세션이 있다"를 가정해 통과 → 표본이 0인 침묵은 코드로 안 드러남.
+- **뚫린 가드**: #70 재발방지에 *"설문 발송률 자동 모니터(sent/실패 분포)는 후속 과제로 기록"* 이라 적어두고 안 만든 그 감지기가 바로 이걸 잡았을 것. "표본 자체가 0"을 데이터에서 경보하는 장치가 없어 아무도 몰랐다.
+
+**어떻게 고쳤나**
+- 설문 트리거를 `consultation_sessions.completed` → `inquiries.case_status(follow_up/completed)` 로 재배선(마이그레이션 `surveys.inquiry_id`).
+- 더 나아가 **D+ 케이던스** 배선(기존 `scheduler.ts` 재사용, 안 켜져 있던 걸 켬): 설문 D+7·90·180 이메일 + 비설문(복약 D+14·화상 D+30·유방암 검사 D+45)은 환자 '제안'(`followup_schedules`, schedule.kind='cadence')+코디 종 알림. D+0 앵커로 `inquiries.followup_started_at` 추가. (tsc 통과, 실대상 0건 드라이런 안전.)
+
+**재발 방지 (뚫린 가드 보강 — 수동 후속과제 → 실제 코드)**
+- **#70이 미뤄둔 "설문 발송 모니터"를 실제 구현**: `alertIfSurveysStale`(`src/lib/khidi/kpiHealthcheck.ts`) — 사후관리 진입 8일↑(D+7+유예) 비테스트 케이스인데 1주차 설문(fu_week_1) 미발송이면 Sentry 경보. `dispatch-surveys` cron 에 매일 연결(`alertIfKpiStale` 데드맨 스위치와 대칭).
+- **교훈**: "발송 메커니즘을 고친다"는 *표본이 0인 침묵*을 절대 못 잡는다 → 지표는 "메커니즘 정상"이 아니라 **"데이터가 실제로 쌓이나"로 감시**한다(데드맨 스위치 부류). KPI마다 '생산량 0 경보'가 표준이어야 함.
+- **유사 스캔**: 다른 평가지표(유치 K-01·사전상담)는 `leads`·`case_status` 라이브 신호를 봐 같은 "영구 0 소스" 함정 없음 확인. `consultation_sessions.completed` 에 물린 다른 로직도 없음(이 cron 이 유일).
+
+---
+
 ## #80 — 인코딩 깨진 출력에서 한글 주소를 추측 복원 → 제안서에 가짜 주소 기재 + 멀쩡한 옛 문서 탓 (2026-07-13, PO가 잡음)
 
 **무슨 일**

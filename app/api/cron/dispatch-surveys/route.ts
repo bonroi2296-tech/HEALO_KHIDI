@@ -34,7 +34,7 @@ import {
   sendSurveyEmail,
 } from "@/lib/surveys/generateSurveyToken";
 import { resolveSurveyRecipient } from "@/lib/surveys/resolveRecipient";
-import { alertIfKpiStale } from "@/lib/khidi/kpiHealthcheck";
+import { alertIfKpiStale, alertIfSurveysStale } from "@/lib/khidi/kpiHealthcheck";
 import { decryptMaybe } from "@/lib/security/encryptionV2";
 import { createFollowupSchedule } from "@/lib/followup/scheduler";
 import { broadcastInAppNotification, getStaffIdsByRole } from "@/lib/notifications/inApp";
@@ -249,6 +249,10 @@ export async function GET(request: NextRequest) {
   let kpiHealth: { stale: boolean; latest: string | null } = { stale: false, latest: null };
   try { kpiHealth = await alertIfKpiStale(); } catch { /* noop */ }
 
+  // 감지가드(#81): 사후관리 진입 8일↑인데 1주차 설문 안 나간 게 있으면 경보(설문 침묵 = K-03 유실).
+  let surveyHealth: { stale: boolean; overdue: number } = { stale: false, overdue: 0 };
+  try { surveyHealth = await alertIfSurveysStale(); } catch { /* noop */ }
+
   return Response.json({
     ok: true,
     casesChecked: (cases as any[])?.length || 0,
@@ -257,6 +261,7 @@ export async function GET(request: NextRequest) {
     skipped,
     errors,
     kpiHealth,
+    surveyHealth,
   });
 }
 
