@@ -558,7 +558,7 @@ function HospitalChatDrawer({ leadId, onClose }) {
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
       <div className="relative bg-white w-full sm:max-w-md h-full flex flex-col shadow-2xl">
         <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
-          <h3 className="font-bold text-gray-900 flex items-center gap-2">
+          <h3 className="text-base font-bold text-gray-900 flex items-center gap-2">
             <MessageSquare size={18} className="text-sky-600" /> 코디네이터와 대화
           </h3>
           <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg transition">
