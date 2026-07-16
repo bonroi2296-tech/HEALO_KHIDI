@@ -114,4 +114,8 @@ playwright-report/
 lighthouse/
 
 # 다운로드한 참고 문서(대용량 PDF/ZIP) — 저장소에 커밋 안 함
-KHIDI_유치문서/
+# 대용량 PDF/ZIP/HWP는 제외하되, 텍스트 기록(README·적용지도)은 git 백업(PC 유실 대비).
+KHIDI_유치문서/*
+KHIDI_유치문서/*/
+!KHIDI_유치문서/00_README.txt
+!KHIDI_유치문서/00_분석_적용지도.md
