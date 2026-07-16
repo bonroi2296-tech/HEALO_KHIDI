@@ -20,6 +20,7 @@
   - (c) **국외이전 처리방침** §8·§9에 해외 유치 에이전시 **수탁자 공개**(KO·EN·RU·KZ) — PO 선택 '위탁' 방식. `src/lib/legal/privacyPolicy.js`(v2.2.0)+`consentForms.js`.
   - (d) **설문 침묵 감지가드** `alertIfSurveysStale`(`src/lib/khidi/kpiHealthcheck.ts`)+cron 연결 + **POSTMORTEM #81**(🔁 #70 부류 재발).
 - **마이그레이션 2건 프로덕션 DB 이미 적용**(가역적 컬럼 추가): `surveys.inquiry_id`, `inquiries.followup_started_at`.
+- **아카이브 영속화**(세션 말미, PO "다시 안 줘도 되게 박아둬" 요청): `KHIDI_유치문서/`의 **텍스트 기록만**(`00_README.txt`·`00_분석_적용지도.md`) `.gitignore` 열어 **git 백업**(큰 PDF/ZIP/HWP는 계속 제외 — 재다운 링크가 README에 있음). 메모리 3건(비대면 법제화·아카이브+2025실적+적용지도 pointer·이대 협약서 판정)으로 딥 결론이 다음 세션에 자동 소환되게.
 
 **2. 왜 그렇게 했는지**
 - 설문 K-03(만족도) 0건의 진짜 원인 = 트리거가 '아무도 안 만드는 신호'에 물림(실DB로 확정: completed 세션 0). 발송 메커니즘만 고치던 과거(#12·13·19·70)는 "표본 0"을 못 봄 → 데이터로 감시하는 가드(#81)를 #70이 미뤄둔 그대로 구현.
@@ -50,7 +51,7 @@
 - `check:content`·빌드: 미실행(브랜치 미배포).
 - **PR/CI: 이 세션 PR 없음**(배포 보류). rescue 브랜치에 자동커밋만.
 - 마이그레이션 2건 프로덕션 DB 적용 확인(컬럼 존재 쿼리).
-- 메모리 2건 추가(telemedicine-legalization-2027, khidi-doc-archive-2026)+MEMORY.md.
+- 메모리 3건(telemedicine-legalization-2027·khidi-doc-archive-2026·ewha-agreement-2026)+MEMORY.md 인덱스. 아카이브 텍스트 2개(README·적용지도.md)는 `.gitignore` 수정으로 git 추적됨(스테이징 확인, 자동커밋 대기).
 
 **7. 다음 세션 첫 프롬프트**
 > docs/PROJECT_CONTEXT.md 최상단 읽어. 2026-07-16 세션에서 사후관리 코드 4건(설문 배선·D+ 케이던스·국외이전 처리방침·감지가드+POSTMORTEM #81)을 `rescue/local-uncommitted-20260716` 브랜치에 만들었고 main 배포는 보류했어(브랜치가 다른 미완성 작업과 섞임+main 잠김+처리방침 미완+실환자0 미검증). 먼저 ①D+ 케이던스·설문 배선을 테스트 케이스로 실검증(dispatch-surveys 수동 트리거) ②원하면 내 6파일만 깨끗한 브랜치로 떼서 독립리뷰 거쳐 배포. 뭐부터 할지 PO에게 버튼으로 물어봐.
