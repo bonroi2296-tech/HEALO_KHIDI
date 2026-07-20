@@ -69,6 +69,15 @@ if (!url || !key) {
     // 테스트 상담(is_test)은 막지 않는다 — 내가 만든 스모크 방까지 배포를 막으면 가드를 끄게 된다.
     for (const r of rows.filter((x) => !x.is_test)) {
       const mins = Math.round((new Date(r.scheduled_at) - Date.now()) / 60_000);
+      // ⚠️ **이미 시작 시각이 지난 상담은 이 축으로 막지 않는다**(LATE_GRACE 이후).
+      //    `status='completed'` 는 staff 가 상담관리 화면에서 직접 찍는 값이고, 그게 KHIDI
+      //    성과지표 K-02 의 정본 경로다(webhook 이 room_finished 로 자동 완료 처리를 *일부러*
+      //    안 한다 — 테스트콜·중단콜까지 실적으로 잡히면 평가 숫자가 부풀려지므로).
+      //    즉 **끝난 상담이 한동안 'scheduled' 로 남아 있는 건 정상**이고, 그걸 "임박"으로
+      //    읽으면 가드가 영구히 빨간불이 되어 결국 무시당한다(가드가 죽는 가장 흔한 방식).
+      //    진행 중인지는 아래 ②축(방에 사람이 있나)이 실시간으로 본다 — 그게 더 정확하다.
+      const LATE_GRACE = 15; // 늦게 시작하는 회의 여유(분)
+      if (mins < -LATE_GRACE) continue;
       problems.push(
         `예정 상담: ${r.livekit_room_name} (${mins >= 0 ? `${mins}분 후` : `${-mins}분 전 시작`}, status=${r.status})`
       );
