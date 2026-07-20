@@ -6,7 +6,9 @@ import Link from "next/link";
 // ─────────────────────────────────────────────────────────────
 
 export const metadata = {
-  title: "Кореядағы онкологиялық емдеу | Медициналық туризм — healwith",
+  // 루트 layout 의 title.template("%s | healwith")이 브랜드를 붙여준다 →
+  // 여기서 "— healwith"를 또 쓰면 "… — healwith | healwith"로 중복 렌더된다(실측 확인).
+  title: "Кореядағы онкологиялық емдеу | Медициналық туризм",
   description:
     "Оңтүстік Кореядағы онкологиялық емдеу: иммунотерапия, корей медицинасы. Immune Hospital — 50 000+ науқас. healwith толық консьерж қызметі. Тегін кеңес.",
   keywords: [
