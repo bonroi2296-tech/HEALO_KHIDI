@@ -19,7 +19,7 @@
 
 import { useEffect, useRef } from "react";
 import { useRoomContext } from "@livekit/components-react";
-import { RoomEvent } from "livekit-client";
+import { RoomEvent, ConnectionState } from "livekit-client";
 import {
   isLiveTranslateEnabledClient,
   PARTICIPANT_LANG_ATTR,
@@ -60,16 +60,28 @@ export function LiveTranslateBridge({ myLang, myRole, onRemoteSubtitle }) {
   const enabled = isLiveTranslateEnabledClient();
 
   // ── 1) 내 언어를 방에 알림 (lang 속성) ──
+  // ⚠️ 반드시 **연결 완료 후에** 보낼 것. `setAttributes` 는 서버 ack 를 5초 기다리다
+  //    타임아웃하는데, 연결 전에 부르면 그 ack 가 영영 안 와서 조용히 실패한다.
+  //    → 그러면 에이전트가 이 사람의 언어를 몰라 **통역쌍 자체를 안 만든다**(기능 전체 무력화).
+  //    2026-07-20 프로덕션 실측: 게스트 입장 시 "Request to update local metadata timed out"
+  //    경고만 남고 서버 참가자에 attributes 가 통째로 비어 있었다(POSTMORTEMS #100).
+  //    재연결 시에도 다시 알린다 — 재협상 과정에서 속성이 유실될 수 있다.
   useEffect(() => {
     if (!enabled || !room || !myLang) return;
-    const lp = room.localParticipant;
-    if (!lp) return;
     const apply = () => {
+      const lp = room.localParticipant;
+      if (!lp) return;
       lp.setAttributes({ [PARTICIPANT_LANG_ATTR]: myLang || NATIVE_LANG }).catch(
         (e) => console.warn("[LiveTranslate] setAttributes lang 실패:", e?.message)
       );
     };
-    apply();
+    if (room.state === ConnectionState.Connected) apply();
+    room.on(RoomEvent.Connected, apply);
+    room.on(RoomEvent.Reconnected, apply);
+    return () => {
+      room.off(RoomEvent.Connected, apply);
+      room.off(RoomEvent.Reconnected, apply);
+    };
   }, [enabled, room, myLang]);
 
   // ── 2) 통역 자막(텍스트 스트림 lk.translation) 수신 → 기존 자막 UI 로 ──

@@ -83,3 +83,40 @@
 - 통역 **음성 라우팅**(원음 음소거 ↔ 통역 재생 전환), 지연, 정확도 — 실 2인 통화(아이폰 포함).
 
 → 위 "테스트" 단계에서 사람이 1회 확인.
+
+---
+
+## 마이크 없이 통역을 실검증하는 법 (2026-07-20 확립 — POSTMORTEMS #100)
+
+**왜 필요한가**: 자동화 환경(에이전트 브라우저·CI)에는 마이크가 없어 "통역봇이 방에 들어온다"까지만 확인하고 멈추기 쉽다. 실제로 그 상태에서 **통역이 전혀 안 되는 버그(#100)를 놓쳤다.** 아래 방법이면 사람 없이도 실제 음성을 방에 흘려 통역 경로를 끝까지 태울 수 있다.
+
+```bash
+# 1) TTS 로 음성 생성 (한국어 예시) — Gemini TTS, 응답은 24kHz s16le PCM
+#    모델: gemini-2.5-flash-preview-tts / responseModalities: ["AUDIO"]
+#    → inlineData.data (base64) 를 디코드해 ko_speech.pcm 으로 저장
+
+# 2) LiveKit 규격(Ogg Opus 48kHz mono)으로 변환
+ffmpeg -y -f s16le -ar 24000 -ac 1 -i ko_speech.pcm \
+       -c:a libopus -b:a 32k -ar 48000 -ac 1 ko_speech.ogg
+
+# 3) 청취자 먼저 넣기 (마이크 불필요 — 언어만 알리면 통역 대상이 된다)
+lk room join --project healo --identity listener-ru --attribute lang=ru \
+             --auto-subscribe <room-name> &
+
+# 4) 발화자로 음성 발행 (--exit-after-publish 로 재생 후 자동 퇴장)
+lk room join --project healo --identity doctor-ko --attribute lang=ko \
+             --publish ko_speech.ogg --exit-after-publish <room-name>
+
+# 5) 판정 — 에이전트 로그에 통역쌍이 떠야 성공
+lk agent logs --project healo | grep "session up"
+#   기대: session up: doctor-ko -> ru
+```
+
+**핵심 판정 기준**: `session up: <발화자> -> <대상언어>` 로그가 떠야 **실제로 통역이 도는 것**이다.
+봇이 방에 들어오는 것(`translation router ready`)만으로는 부족하다 — #100 이 정확히 그 함정이었다.
+
+**참가자 속성 확인**(통역쌍이 안 만들어질 때 1순위로 볼 곳):
+```bash
+lk room participants get --project healo -r <room> -i <identity>
+#   attributes 에 lang 이 있어야 한다. 비어 있으면 클라이언트가 못 보낸 것(#100).
+```
