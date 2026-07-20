@@ -273,6 +273,25 @@ if (process.argv.includes("--selftest")) {
     checkWriteKeys(code, "__t", code, "selftest.ts", 0);
     return writeViolations.map((v) => v.col);
   };
+  // 실제 호출부와 **같은 방식으로** back/win 을 잘라 돌린다. 예전 자기시험은 늘 back="" 이라
+  // 창 분할 로직을 한 번도 검사하지 않았고, 그래서 독립 리뷰가 오탐을 찾아낼 때까지 몰랐다.
+  const runSplit = (code) => {
+    writeViolations.length = 0;
+    const FR = /\.from\(\s*["'`](\w+)["'`]/g;
+    let m;
+    while ((m = FR.exec(code)) !== null) {
+      if (m[1] !== "__t") continue;
+      const idx = m.index;
+      let win = code.slice(idx + 6, idx + 600);
+      const nextFrom = win.search(/\.from\(/);
+      if (nextFrom !== -1) win = win.slice(0, nextFrom);
+      let back = code.slice(Math.max(0, idx - 2500), idx);
+      const prevFrom = back.lastIndexOf(".from(");
+      if (prevFrom !== -1) back = back.slice(prevFrom + 6);
+      checkWriteKeys(code, "__t", win, "selftest.ts", idx, back);
+    }
+    return writeViolations.map((v) => v.col);
+  };
   let failed = 0;
   const expect = (label, got, want) => {
     const ok = JSON.stringify(got.sort()) === JSON.stringify(want.sort());
@@ -325,6 +344,29 @@ if (process.argv.includes("--selftest")) {
 
   expect("쓰기에 안 쓰이는 그냥 객체 변수는 건드리지 않는다",
     run(`const opts = { ghost_col: 1 };\nconsole.log(opts)`), []);
+
+  // ── 창 분할(back/win) 시험 — 독립 리뷰가 실제로 뚫은 오탐 ──
+  // 앞선 **다른 테이블** 쿼리의 `payload`(같은 이름!)가 이 테이블 것으로 붙으면 안 된다.
+  // 차단 게이트라 이 오탐 하나가 곧 CI 마비다.
+  expect("앞선 다른 테이블의 동명 payload 를 끌어오지 않는다(오탐 방지)",
+    runSplit(
+      `const payload = { ghost_col: "u" };\n` +
+      `await sb.from("other").insert({ ...payload });\n` +
+      `const payload2 = { response_text_raw: "y" };\n` +
+      `await sb.from("__t").insert(payload2);`
+    ), []);
+
+  expect("창 분할에서도 진짜 유령 컬럼은 잡는다",
+    runSplit(
+      `const payload = { response_text_raw: "a", ghost_col: 1 };\n` +
+      `await sb.from("__t").insert([payload]);`
+    ), ["ghost_col"]);
+
+  expect("직전 쿼리의 인라인 insert 를 이 테이블 것으로 오인하지 않는다",
+    runSplit(
+      `await sb.from("other").insert({ ghost_col: 1 });\n` +
+      `await sb.from("__t").update({ response_text_raw: "b" });`
+    ), []);
 
   expect("중첩 객체(jsonb) 안쪽 키는 컬럼이 아니다",
     run(`.from("__t").insert({ response_text_raw: "a", metadata: {\n  inner_key: 1\n} })`), ["metadata"]);
@@ -387,7 +429,13 @@ for (const root of ROOTS) {
         //   (2026-07-20 밤 발견: `treatments` 유령 컬럼 17개가 5개월간 이 통로로 샘).
         //   그래서 쓰기 검사에는 **앞쪽도 포함**한 창을 준다. 이웃 쿼리의 payload 를
         //   집어오지 않도록 앞쪽은 직전 `.from(` 까지만 거슬러 올라간다.
-        const back = content.slice(Math.max(0, idx - 2500), idx);
+        //   앞쪽은 **직전 `.from(` 이후**까지만 본다. 그러지 않으면 앞선 다른 테이블 쿼리의
+        //   `const payload` 를 이 테이블 것으로 오인한다(독립 리뷰 2026-07-20 실측 오탐:
+        //   `.from("hospitals")` 용 payload 가 뒤이은 `.from("treatments")` 검사에 붙었다).
+        //   인라인 insert 를 앞쪽에서 찾지 않기 때문에(win 전용) 이 컷은 이제 안전하다.
+        let back = content.slice(Math.max(0, idx - 2500), idx);
+        const prevFrom = back.lastIndexOf(".from(");
+        if (prevFrom !== -1) back = back.slice(prevFrom + 6);
         checkWriteKeys(content, name, win, file, idx, back);
       }
 

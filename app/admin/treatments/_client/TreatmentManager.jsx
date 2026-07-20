@@ -56,13 +56,12 @@ export const TreatmentManager = ({
 
   const handleNew = () => {
     setEditingTreatmentId(null);
-    setTreatmentForm({ 
+    // ⚠️ page.jsx 의 `emptyTreatmentForm` 과 **같은 필드 집합**을 유지해야 한다
+    //    (둘이 어긋나면 입력칸은 있는데 저장이 안 되는 반쪽 상태가 된다 — #103).
+    setTreatmentForm({
       title: '', desc: '', fullDescription: '', priceMin: '', priceMax: '',
-      recoveryTimeMin: '', recoveryTimeMax: '', sideEffects: [], sideEffectsDetail: '', precautions: [],
-      anesthesiaType: '', surgeryDurationMin: '', surgeryDurationMax: '', requiredEquipment: [],
-      insuranceCoverage: false, insuranceCoverageDetail: '', annualProcedureCount: '', successRate: '',
+      duration: '', recoveryTime: '', preparation: '', risks: '',
       benefits: [], tags: [], images: [], displayOrder: null, isPublished: true,
-      beforeAfterImages: [], priceIncludes: [],
       i18n: {}
     });
     setShowForm(true);
@@ -184,82 +183,28 @@ export const TreatmentManager = ({
                 <textarea placeholder="상세 설명 (페이지용)" rows="4" value={treatmentForm.fullDescription} onChange={e=>setTreatmentForm({...treatmentForm, fullDescription: e.target.value})} className="w-full p-2 border rounded text-sm"/>
               </div>
 
-              <div className="space-y-3 bg-blue-50 p-4 rounded-xl border border-blue-100">
-                <h3 className="text-sm font-bold text-blue-900 flex items-center gap-2"><Clock size={16}/> 시술 정보</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              {/* 치료 상세 — 실DB `treatments` 컬럼이자 환자 상세페이지에 그대로 표시되는 항목.
+                  옛 미용시술 패널 4개(마취·시술시간·필요장비 / 회복기간 min·max / 부작용태그 /
+                  보험·연간건수·성공률)는 실컬럼이 아니라 저장 자체를 깨뜨리고 있었다(#103). */}
+              <div className="space-y-3">
+                <h3 className="text-sm font-bold text-gray-400 flex items-center gap-2"><Clock size={16}/> 치료 상세</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   <div>
-                    <label className="text-xs text-gray-500 mb-1 block">마취 방식</label>
-                    <select value={treatmentForm.anesthesiaType||''} onChange={e=>setTreatmentForm({...treatmentForm, anesthesiaType: e.target.value})} className="w-full border p-2 rounded text-sm">
-                      <option value="">선택하세요</option>
-                      <option value="local">국소마취</option>
-                      <option value="sedation">수면마취</option>
-                      <option value="general">전신마취</option>
-                      <option value="none">마취 없음</option>
-                      <option value="topical">도포마취</option>
-                    </select>
+                    <label className="text-xs text-gray-500 mb-1 block">소요 시간</label>
+                    <input placeholder="예: 1회 30분, 주 2회" value={treatmentForm.duration||''} onChange={e=>setTreatmentForm({...treatmentForm, duration: e.target.value})} className="w-full border p-2 rounded text-sm"/>
                   </div>
                   <div>
-                    <label className="text-xs text-gray-500 mb-1 block">시술 시간 (최소, 분)</label>
-                    <input type="number" placeholder="예: 30" value={treatmentForm.surgeryDurationMin||''} onChange={e=>setTreatmentForm({...treatmentForm, surgeryDurationMin: e.target.value})} className="w-full border p-2 rounded text-sm"/>
-                  </div>
-                  <div>
-                    <label className="text-xs text-gray-500 mb-1 block">시술 시간 (최대, 분)</label>
-                    <input type="number" placeholder="예: 60" value={treatmentForm.surgeryDurationMax||''} onChange={e=>setTreatmentForm({...treatmentForm, surgeryDurationMax: e.target.value})} className="w-full border p-2 rounded text-sm"/>
+                    <label className="text-xs text-gray-500 mb-1 block">회복 기간</label>
+                    <input placeholder="예: 3~14일" value={treatmentForm.recoveryTime||''} onChange={e=>setTreatmentForm({...treatmentForm, recoveryTime: e.target.value})} className="w-full border p-2 rounded text-sm"/>
                   </div>
                 </div>
                 <div>
-                  <h4 className="text-xs font-bold text-gray-500 mb-1 flex items-center gap-1"><Activity size={12}/> 필요 장비</h4>
-                  <DynamicListInput items={treatmentForm.requiredEquipment||[]} onAdd={t=>setTreatmentForm({...treatmentForm, requiredEquipment:[...(treatmentForm.requiredEquipment||[]),t]})} onRemove={i=>setTreatmentForm({...treatmentForm, requiredEquipment:(treatmentForm.requiredEquipment||[]).filter((_,x)=>x!==i)})} placeholder="예: 레이저, 초음파"/>
+                  <label className="text-xs text-gray-500 mb-1 block">사전 준비사항</label>
+                  <textarea placeholder="예: 검사 전 8시간 금식, 복용 중인 약 지참" rows="2" value={treatmentForm.preparation||''} onChange={e=>setTreatmentForm({...treatmentForm, preparation: e.target.value})} className="w-full p-2 border rounded text-sm"/>
                 </div>
-              </div>
-
-              <div className="space-y-3 bg-orange-50 p-4 rounded-xl border border-orange-100">
-                <h3 className="text-sm font-bold text-orange-900 flex items-center gap-2"><Clock size={16}/> 회복 정보</h3>
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <label className="text-xs text-gray-500 mb-1 block">최소 회복기간 (일)</label>
-                    <input type="number" placeholder="예: 3" value={treatmentForm.recoveryTimeMin||''} onChange={e=>setTreatmentForm({...treatmentForm, recoveryTimeMin: e.target.value})} className="w-full border p-2 rounded text-sm"/>
-                  </div>
-                  <div>
-                    <label className="text-xs text-gray-500 mb-1 block">최대 회복기간 (일)</label>
-                    <input type="number" placeholder="예: 14" value={treatmentForm.recoveryTimeMax||''} onChange={e=>setTreatmentForm({...treatmentForm, recoveryTimeMax: e.target.value})} className="w-full border p-2 rounded text-sm"/>
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-3 bg-red-50 p-4 rounded-xl border border-red-100">
-                <h3 className="text-sm font-bold text-red-900 flex items-center gap-2"><AlertTriangle size={16}/> 부작용 / 주의사항</h3>
                 <div>
-                  <label className="text-xs font-bold text-gray-500 mb-1 block">부작용 태그</label>
-                  <DynamicListInput items={treatmentForm.sideEffects||[]} onAdd={t=>setTreatmentForm({...treatmentForm, sideEffects:[...(treatmentForm.sideEffects||[]),t]})} onRemove={i=>setTreatmentForm({...treatmentForm, sideEffects:(treatmentForm.sideEffects||[]).filter((_,x)=>x!==i)})} placeholder="예: 부기, 멍"/>
-                </div>
-                <textarea placeholder="부작용 상세 설명" rows="2" value={treatmentForm.sideEffectsDetail||''} onChange={e=>setTreatmentForm({...treatmentForm, sideEffectsDetail: e.target.value})} className="w-full p-2 border rounded text-sm"/>
-                <div>
-                  <label className="text-xs font-bold text-gray-500 mb-1 block">주의사항</label>
-                  <DynamicListInput items={treatmentForm.precautions||[]} onAdd={t=>setTreatmentForm({...treatmentForm, precautions:[...(treatmentForm.precautions||[]),t]})} onRemove={i=>setTreatmentForm({...treatmentForm, precautions:(treatmentForm.precautions||[]).filter((_,x)=>x!==i)})} placeholder="예: 음주 금지, 사우나 금지"/>
-                </div>
-              </div>
-
-              <div className="space-y-3 bg-green-50 p-4 rounded-xl border border-green-100">
-                <h3 className="text-sm font-bold text-green-900 flex items-center gap-2"><Shield size={16}/> 보험 / 통계</h3>
-                <div className="flex items-center gap-3">
-                  <label className="text-sm text-gray-700 flex-1">보험 적용 가능</label>
-                  <button type="button" onClick={()=>setTreatmentForm({...treatmentForm, insuranceCoverage: !treatmentForm.insuranceCoverage})} className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${treatmentForm.insuranceCoverage?'bg-green-600':'bg-gray-300'}`}>
-                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${treatmentForm.insuranceCoverage?'translate-x-6':'translate-x-1'}`}/>
-                  </button>
-                </div>
-                {treatmentForm.insuranceCoverage && (
-                  <input placeholder="보험 상세 (예: 국민건강보험 일부 적용)" value={treatmentForm.insuranceCoverageDetail||''} onChange={e=>setTreatmentForm({...treatmentForm, insuranceCoverageDetail: e.target.value})} className="w-full p-2 border rounded text-sm"/>
-                )}
-                <div className="grid grid-cols-2 gap-2">
-                  <div>
-                    <label className="text-xs text-gray-500 mb-1 block">연간 시술 건수</label>
-                    <input type="number" placeholder="예: 1200" value={treatmentForm.annualProcedureCount||''} onChange={e=>setTreatmentForm({...treatmentForm, annualProcedureCount: e.target.value})} className="w-full border p-2 rounded text-sm"/>
-                  </div>
-                  <div>
-                    <label className="text-xs text-gray-500 mb-1 block">성공률 (%)</label>
-                    <input type="number" step="0.1" min="0" max="100" placeholder="예: 98.5" value={treatmentForm.successRate||''} onChange={e=>setTreatmentForm({...treatmentForm, successRate: e.target.value})} className="w-full border p-2 rounded text-sm"/>
-                  </div>
+                  <label className="text-xs text-gray-500 mb-1 flex items-center gap-1"><AlertTriangle size={12}/> 주의사항 · 부작용</label>
+                  <textarea placeholder="예: 시술 후 음주·사우나 금지, 일시적 부기 가능" rows="2" value={treatmentForm.risks||''} onChange={e=>setTreatmentForm({...treatmentForm, risks: e.target.value})} className="w-full p-2 border rounded text-sm"/>
                 </div>
               </div>
 
@@ -279,29 +224,6 @@ export const TreatmentManager = ({
                 onRemove={(idx) => setTreatmentForm(prev => ({...prev, images: (prev.images||[]).filter((_, i) => i !== idx)}))}
                 uploading={uploading}
               />
-
-              <div className="space-y-3 bg-violet-50 p-4 rounded-xl border border-violet-100 mt-4">
-                <h3 className="text-sm font-bold text-violet-900 flex items-center gap-2"><Image size={16}/> Before / After 이미지</h3>
-                {(treatmentForm.beforeAfterImages || []).map((item, idx) => (
-                  <div key={idx} className="bg-white border rounded-lg p-3 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-gray-400">#{idx + 1}</span>
-                      <button onClick={() => setTreatmentForm({...treatmentForm, beforeAfterImages: (treatmentForm.beforeAfterImages||[]).filter((_, i) => i !== idx)})} className="text-red-400 hover:text-red-600"><X size={14}/></button>
-                    </div>
-                    <input placeholder="Before 이미지 URL" value={item.before || ''} onChange={e => { const arr = [...(treatmentForm.beforeAfterImages||[])]; arr[idx] = {...arr[idx], before: e.target.value}; setTreatmentForm({...treatmentForm, beforeAfterImages: arr}); }} className="w-full border p-2 rounded text-xs"/>
-                    <input placeholder="After 이미지 URL" value={item.after || ''} onChange={e => { const arr = [...(treatmentForm.beforeAfterImages||[])]; arr[idx] = {...arr[idx], after: e.target.value}; setTreatmentForm({...treatmentForm, beforeAfterImages: arr}); }} className="w-full border p-2 rounded text-xs"/>
-                    <input placeholder="설명 (선택)" value={item.caption || ''} onChange={e => { const arr = [...(treatmentForm.beforeAfterImages||[])]; arr[idx] = {...arr[idx], caption: e.target.value}; setTreatmentForm({...treatmentForm, beforeAfterImages: arr}); }} className="w-full border p-2 rounded text-xs"/>
-                  </div>
-                ))}
-                <button type="button" onClick={() => setTreatmentForm({...treatmentForm, beforeAfterImages: [...(treatmentForm.beforeAfterImages||[]), {before: '', after: '', caption: ''}]})} className="text-violet-600 text-xs font-bold flex items-center gap-1 hover:underline">
-                  <Plus size={12}/> Before/After 추가
-                </button>
-              </div>
-
-              <div className="space-y-3 bg-emerald-50 p-4 rounded-xl border border-emerald-100 mt-4">
-                <h3 className="text-sm font-bold text-emerald-900 flex items-center gap-2"><DollarSign size={16}/> 가격 포함 항목</h3>
-                <DynamicListInput items={treatmentForm.priceIncludes||[]} onAdd={t=>setTreatmentForm({...treatmentForm, priceIncludes:[...(treatmentForm.priceIncludes||[]),t]})} onRemove={i=>setTreatmentForm({...treatmentForm, priceIncludes:(treatmentForm.priceIncludes||[]).filter((_,x)=>x!==i)})} placeholder="예: 상담, 마취, 사후관리"/>
-              </div>
 
               <TranslationPanel
                 i18n={treatmentForm.i18n || {}}

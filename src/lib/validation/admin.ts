@@ -78,10 +78,8 @@ export const HospitalCreateSchema = z.object({
     question: z.string().default(""),
     answer: z.string().default(""),
   })).optional().default([]),
-  name_kr: z.string().optional().nullable(),
-  description_kr: z.string().optional().nullable(),
-  tags_kr: z.array(z.string()).optional().default([]),
-  specialties_kr: z.array(z.string()).optional().default([]),
+  // ⛔ name_kr·description_kr·tags_kr·specialties_kr 은 실DB 에 없는 컬럼이라 제거(#103).
+  //    (실측: `%_kr` 컬럼은 위 `location_kr` 하나뿐. 나머지는 넣는 순간 저장이 통째로 실패했다.)
   i18n: z.record(z.any()).optional().default({}),
   is_partner: z.boolean().optional().default(false),
   offers_auto_failed_at: z.string().datetime().optional().nullable(),
@@ -121,9 +119,7 @@ const TreatmentBaseSchema = z.object({
   preparation: z.string().optional().nullable(),
   risks: z.string().optional().nullable(),
   currency: z.string().optional().nullable(),
-  name_kr: z.string().optional().nullable(),
-  description_kr: z.string().optional().nullable(),
-  tags_kr: z.array(z.string()).optional().default([]),
+  // ⛔ name_kr·description_kr·tags_kr 은 실DB `treatments` 에 없는 컬럼이라 제거(#103).
   i18n: z.record(z.any()).optional().default({}),
 });
 

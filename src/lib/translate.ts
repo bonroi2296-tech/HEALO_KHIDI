@@ -207,14 +207,14 @@ export async function triggerMultiLangTranslation(
 // Backward compat exports (used by existing API routes)
 // ============================================================
 
-export function extractKrFields(payload: Record<string, any>): Record<string, any> {
-  const kr: Record<string, any> = {};
-  if (payload.name && containsKorean(payload.name)) kr.name_kr = payload.name;
-  if (payload.description && containsKorean(payload.description)) kr.description_kr = payload.description;
-  if (Array.isArray(payload.tags) && payload.tags.some(containsKorean)) kr.tags_kr = payload.tags;
-  if (Array.isArray(payload.specialties) && payload.specialties.some(containsKorean)) kr.specialties_kr = payload.specialties;
-  return kr;
-}
+// ⛔ `extractKrFields` 는 2026-07-20 밤 제거됐다 (POSTMORTEMS #103).
+//   내보내던 `name_kr`·`description_kr`·`tags_kr`·`specialties_kr` 은 **어느 테이블에도 없는
+//   컬럼**이었다(실측: `information_schema` 전수 — `%_kr` 은 `hospitals.location_kr` 하나뿐).
+//   그래서 이 함수가 낀 insert/update 는 **이름에 한글이 들어가는 순간 통째로 실패**했다
+//   — 치료 등록이 5개월간 0건이던 진짜 원인이고, 병원 등록·수정도 같이 막고 있었다.
+//   되읽는 코드는 0건이었다(쓰기·스키마 선언만 존재) → 되살리지 말 것.
+//   한국어 원문은 `name_ko`/`description_ko` + `i18n` 으로 가며, 그건
+//   `triggerMultiLangTranslation` 이 담당한다.
 
 /** @deprecated Use triggerMultiLangTranslation instead */
 export async function triggerTranslation(

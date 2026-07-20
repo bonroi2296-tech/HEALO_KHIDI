@@ -17,21 +17,7 @@ import {
 } from "@/lib/audit/adminAuditLog";
 import { generateSlug } from "@/lib/utils/slug";
 import type { OffersPreviewPayload, OfferItem } from "@/lib/hospitalOffers/types";
-
-/**
- * 크롤이 뽑아온 회복기간 숫자(min/max 일)를 실DB 컬럼 `recovery_time`(글자형) 한 칸으로 합친다.
- * 미리보기 화면(HospitalOffersPreview)이 쓰는 "3~7일" 표기와 같은 형식.
- */
-// (Next.js 라우트 파일은 핸들러 외 export 를 허용하지 않는다 → 모듈 안에만 둔다)
-function formatRecoveryTime(
-  min?: number | null,
-  max?: number | null
-): string | null {
-  const days = [min, max].filter((n): n is number => typeof n === "number");
-  if (days.length === 0) return null;
-  const uniq = [...new Set(days)];
-  return `${uniq.join("~")}일`;
-}
+import { formatRecoveryTime, formatDuration } from "@/lib/hospitalOffers/formatOfferFields";
 
 export async function POST(
   request: NextRequest,
@@ -130,7 +116,7 @@ export async function POST(
       // 실DB `treatments` 에 없어서 이 insert/update 를 통째로 실패시키고 있었다.
       // 크롤이 뽑아온 값 중 되읽는 곳이 있는 건 회복기간·소요시간뿐이라 실컬럼으로만 옮긴다.
       // (POSTMORTEMS #97 부류 — raw_hash 건과 동일한 처방)
-      duration: t.duration != null ? String(t.duration) : null,
+      duration: formatDuration(t.duration),
       recovery_time: formatRecoveryTime(t.recovery_time_min, t.recovery_time_max),
     };
 

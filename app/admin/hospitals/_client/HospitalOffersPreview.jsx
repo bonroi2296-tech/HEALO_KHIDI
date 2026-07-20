@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { X, Loader2, ExternalLink, FileText, Save, Info, ChevronDown, ChevronUp } from 'lucide-react';
+import { formatRecoveryTime, formatDuration } from '@/lib/hospitalOffers/formatOfferFields';
 
 const PREVIEW_STEPS = [
   { label: '웹사이트 수집 중', detail: '페이지를 불러오고 있습니다 (약 3초 이내)' },
@@ -67,11 +68,10 @@ function OfferCard({ offer, index }) {
     t.price_min != null || t.price_max != null
       ? [t.price_min, t.price_max].filter((n) => n != null).join(' ~ ') + (t.currency ? ` ${t.currency}` : '')
       : null;
-  const durationStr = t.duration != null ? `${t.duration}분` : null;
-  const recoveryStr =
-    t.recovery_time_min != null || t.recovery_time_max != null
-      ? [t.recovery_time_min, t.recovery_time_max].filter((n) => n != null).join('~') + '일'
-      : null;
+  // 적용(offers/apply)이 DB에 넣는 것과 **같은 함수**를 쓴다 — 예전엔 각자 포맷해서
+  // min==max 일 때 미리보기 "3~3일" vs 적용 결과 "3일" 로 갈렸다(#103 독립 리뷰 지적).
+  const durationStr = formatDuration(t.duration);
+  const recoveryStr = formatRecoveryTime(t.recovery_time_min, t.recovery_time_max);
 
   return (
     <div className="border border-gray-200 rounded-xl p-4 bg-white shadow-sm">

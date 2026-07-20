@@ -31,7 +31,7 @@ import {
   TreatmentUpdateSchema,
   validationErrorResponse,
 } from "@/lib/validation/admin";
-import { extractKrFields, triggerMultiLangTranslation } from "@/lib/translate";
+import { triggerMultiLangTranslation } from "@/lib/translate";
 
 /**
  * GET: 시술 목록 조회 (관리자 전용)
@@ -224,11 +224,6 @@ export async function POST(request: NextRequest) {
     preparation: validatedData.preparation ?? null,
     risks: validatedData.risks ?? null,
     ...(validatedData.currency ? { currency: validatedData.currency } : {}),
-    ...extractKrFields({
-      name: validatedData.name,
-      description: validatedData.description,
-      tags: validatedData.tags,
-    }),
   };
 
   // ========================================
@@ -407,9 +402,6 @@ export async function PATCH(request: NextRequest) {
     if (validatedData.preparation !== undefined) payload.preparation = validatedData.preparation;
     if (validatedData.risks !== undefined) payload.risks = validatedData.risks;
     if (validatedData.currency !== undefined) payload.currency = validatedData.currency;
-
-    const krFields = extractKrFields(payload);
-    Object.assign(payload, krFields);
 
     // ========================================
     // 7. DB 업데이트

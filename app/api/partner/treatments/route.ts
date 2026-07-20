@@ -3,7 +3,7 @@ export const runtime = "nodejs";
 import { NextRequest } from "next/server";
 import { checkHospitalAuth } from "@/lib/auth/checkHospitalAuth";
 import { createServiceRoleClient } from "@/lib/supabase/server";
-import { extractKrFields, triggerMultiLangTranslation } from "@/lib/translate";
+import { triggerMultiLangTranslation } from "@/lib/translate";
 
 export async function GET(request: NextRequest) {
   const auth = await checkHospitalAuth(request);
@@ -72,7 +72,6 @@ export async function POST(request: NextRequest) {
       risks: body.risks || null,
       is_published: body.is_published ?? false,
       display_order: body.display_order || null,
-      ...extractKrFields({ name: body.name, description: body.description, tags: body.tags }),
     };
 
     const { data, error } = await supabase
@@ -136,7 +135,6 @@ export async function PATCH(request: NextRequest) {
       "images", "tags", "benefits",
       "duration", "recovery_time", "preparation", "risks",
       "is_published", "display_order",
-      "name_kr", "description_kr", "tags_kr",
       "i18n",
     ];
     const updates: Record<string, any> = {};
@@ -145,9 +143,6 @@ export async function PATCH(request: NextRequest) {
     }
     if (body.price_range_min !== undefined && updates.price_min === undefined) updates.price_min = body.price_range_min;
     if (body.price_range_max !== undefined && updates.price_max === undefined) updates.price_max = body.price_range_max;
-
-    const krFields = extractKrFields(updates);
-    Object.assign(updates, krFields);
 
     if (Object.keys(updates).length === 0) {
       return Response.json({ ok: false, error: "no_fields" }, { status: 400 });
