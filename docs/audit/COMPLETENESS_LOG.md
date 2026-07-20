@@ -6,6 +6,15 @@
 
 ---
 
+## 2026-07-20 완성도 감사 (범위: diff — 후임 운영자 인수인계서)
+- 스캔: 유형 3(문서-현실 드리프트) 중심 / 발견: **0건**
+- 대조: 문서가 가리키는 참조 전수 실측 — docs 13개 파일 전부 존재, `DESIGN.md`(루트)·`/admin/khidi/conversion` 라우트(`app/admin/khidi/conversion/page.jsx`) 실재, 슬래시 명령 5종 전부 유효(`/handoff`·`/doc-health`·`/completeness-audit`=skills, `/trend`=commands, `/code-review`=빌트인), 계정·지표(Supabase ID·Vercel `healo-khidi`/`bonrois-projects`·Zoho 3계정·KHIDI 12/120/90·8/27)가 CLAUDE.md·핸드오프와 일치, `QUICK_START.md 무시` 안내도 실제 Vite/Cursor 잔재로 정확.
+- 유형 7(시각 회귀)·1·2·6: 앱 UI/코드 변경 없음(docs-only + 별도 아티팩트) → 해당 없음.
+- 수정: 없음(발견 0) / 보류: 없음 / (제안) 향후 세션 발견성 위해 CLAUDE.md·PROJECT_CONTEXT에서 이 문서 1줄 링크 가능 — 저위험이나 이번 범위 밖이라 미실행.
+- 라운드: 2 (연속 무발견 도달)
+
+---
+
 ## 2026-07-15 축 C #2 (유형 6 — 컬럼레벨 schema-refs + stale 생성타입 발견·재생성 + 실버그 2건)
 
 - 작업: `check:schema-refs`를 테이블 레벨 → **평문 select 컬럼 레벨**로 확장(생성타입 `src/types/database.types.ts` 대조, 비차단·경고).
