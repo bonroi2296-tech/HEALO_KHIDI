@@ -71,6 +71,7 @@ import { useTTS } from "@/lib/consultation/useTTS";
 import { useRealtimeMessages } from "@/lib/consultation/useRealtimeMessages";
 import { useLiveKitDataChannel } from "@/lib/consultation/useLiveKitDataChannel";
 import { LiveTranslateBridge } from "@/lib/consultation/LiveTranslateBridge";
+import { SameRoomGuard } from "@/lib/consultation/SameRoomGuard";
 import { ListenModeBridge } from "@/lib/consultation/ListenModeBridge";
 
 const supabase = createSupabaseBrowserClient();
@@ -2243,20 +2244,23 @@ export default function ConsultationRoomPage() {
               </div>
             )}
 
-            {/* 내가 말하는 언어 — 사이트 언어로 미리 선택돼 있음, 자막·번역 방향 결정 */}
+            {/* 내 언어 — 이 언어로 "말하고 듣는다"(상대 말이 이 언어로 통역돼 온다).
+                ⚠️ 화면(UI) 언어는 여기서 바꾸지 않는다.
+                2026-07-20 PO 제보: "러시아어를 한국어로 듣고 싶어" 러시아어를 골랐더니
+                ①러→러가 되고(시스템은 "나는 러시아어 사용자"로 해석) ②화면까지 러시아어로 바뀜.
+                한국인 코디가 러시아 환자 말을 들으려다 화면이 러시아어가 되면 쓸 수가 없다.
+                → 통역 언어와 화면 언어를 분리. 화면 언어는 헤더의 언어 메뉴로만 바꾼다. */}
             <div>
               <label className="block text-sm font-semibold mb-2 text-gray-200">
                 {c.myLangLabel}
               </label>
+              <p className="text-xs text-gray-400 mb-2">{c.myLangHint}</p>
               <div className="flex flex-wrap gap-2">
                 {["ko", "en", "ru", "kz", "zh", "ja"].map((l) => (
                   <button
                     key={l}
                     type="button"
-                    onClick={() => {
-                      setGuestLang(l);
-                      switchUiLang(l);
-                    }}
+                    onClick={() => setGuestLang(l)}
                     className={`px-3 py-2 rounded-lg text-sm transition border ${
                       guestLang === l
                         ? "bg-teal-700 border-teal-500 text-white font-semibold"
@@ -2618,6 +2622,8 @@ export default function ConsultationRoomPage() {
               />
               {/* Gemini Live Translate 브릿지 — 스위치 꺼짐이면 무동작(null).
                   켜지면 내 언어 통역 음성·자막을 기존 자막 UI 로 흘려보낸다. */}
+              {/* 같은 공간 다른 기기 감지 → 하울링 안내 배너 (감지만 자동, 끄기는 사람이) */}
+              <SameRoomGuard copy={c} />
               <LiveTranslateBridge
                 myLang={myLang}
                 myRole={myRole}

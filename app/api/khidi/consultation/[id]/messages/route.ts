@@ -11,6 +11,8 @@
 
 export const runtime = "nodejs";
 
+import { encryptStringNullable } from "@/lib/security/encryptionV2";
+import { readTranscriptField } from "@/lib/consultation/transcriptCrypto";
 import { NextRequest } from "next/server";
 import { resolveConsultationActor } from "@/lib/auth/requireConsultationAccess";
 
@@ -50,8 +52,11 @@ export async function POST(
           session_id: consultationId,
           sender_id: access.userId,
           sender_role: access.role,
-          message: messageText,
-          translated_text: payload.translatedText || null,
+          // 채팅 본문도 암호문으로만 저장(평문 컬럼 null) — 상담 채팅에도 증상·진단이 오간다.
+          message: null,
+          message_encrypted: encryptStringNullable(messageText),
+          translated_text: null,
+          translated_text_encrypted: encryptStringNullable(payload.translatedText || null),
         },
       ])
       .select()
@@ -106,9 +111,19 @@ export async function GET(
       );
     }
 
+    // 암호문을 평문화하고, 암호문 컬럼은 응답에서 제거(select("*") 라 그냥 두면 그대로 나간다).
+    const messages = (data || []).map((r: any) => {
+      const { message_encrypted, translated_text_encrypted, ...rest } = r;
+      return {
+        ...rest,
+        message: readTranscriptField(message_encrypted, r.message),
+        translated_text: readTranscriptField(translated_text_encrypted, r.translated_text),
+      };
+    });
+
     return Response.json({
       ok: true,
-      data: data || [],
+      data: messages,
       total: count,
       limit,
       offset,
