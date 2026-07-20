@@ -392,7 +392,11 @@ function ClientShellContent({
         </>
       )}
 
-      <CookieConsent />
+      {/* 상담방에서는 띄우지 않는다 — 배너가 `fixed bottom-0 … z-[9999]` 라서 하단 조작바
+          (마이크·카메라·채팅·종료)를 그대로 덮는다. 2026-07-20 실통화 검증 중 채팅 버튼을
+          누르려다 배너의 "자세히 보기" 링크가 눌려 **통화 중 상담방을 이탈**했다.
+          헤더·푸터·하단내비·문의버튼은 이미 isConsultationPage 로 빠져 있었는데 이것만 누락. */}
+      {!isConsultationPage && <CookieConsent />}
     </div>
   );
 }
