@@ -70,7 +70,16 @@ export async function POST(
       );
     }
 
-    return Response.json({ ok: true, data });
+    // ⚠️ insert 결과를 그대로 돌려주면 안 된다 — 이제 `message` 는 null(암호문만 저장)이라
+    //    프론트가 빈 말풍선을 그린다(page.jsx normalizeMsg 가 row.message ?? "" 로 읽음).
+    //    암호문 컬럼도 브라우저로 나가면 안 되므로 제거하고, 평문은 방금 보낸 값으로 되돌려준다.
+    const row: any = { ...(data || {}) };
+    delete row.message_encrypted;
+    delete row.translated_text_encrypted;
+    return Response.json({
+      ok: true,
+      data: { ...row, message: messageText, translated_text: payload.translatedText || null },
+    });
   } catch (error: any) {
     console.error("[api/khidi/consultation/messages] Exception:", error?.message);
     return Response.json(
@@ -113,12 +122,12 @@ export async function GET(
 
     // 암호문을 평문화하고, 암호문 컬럼은 응답에서 제거(select("*") 라 그냥 두면 그대로 나간다).
     const messages = (data || []).map((r: any) => {
-      const { message_encrypted, translated_text_encrypted, ...rest } = r;
-      return {
-        ...rest,
-        message: readTranscriptField(message_encrypted, r.message),
-        translated_text: readTranscriptField(translated_text_encrypted, r.translated_text),
-      };
+      const out: any = { ...r };
+      out.message = readTranscriptField(r.message_encrypted, r.message);
+      out.translated_text = readTranscriptField(r.translated_text_encrypted, r.translated_text);
+      delete out.message_encrypted;
+      delete out.translated_text_encrypted;
+      return out;
     });
 
     return Response.json({

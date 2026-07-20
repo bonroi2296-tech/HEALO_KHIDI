@@ -67,29 +67,51 @@ export function SameRoomGuard({ copy }) {
   const room = useRoomContext();
   const { localTrack, remoteTracks } = useAudioTracks(room);
   const [dismissed, setDismissed] = useState(false);
+  const [screenOnly, setScreenOnly_] = useState(false);
 
   const { sameRoomWith } = useSameRoomDetect({
     localTrack,
     remoteTracks,
-    enabled: !!localTrack && !dismissed,
+    enabled: !!localTrack && !dismissed && !screenOnly,
   });
 
-  if (!sameRoomWith || dismissed) return null;
-
-  /** 이 기기를 "화면 전용"으로 — 마이크 끄고 상대 음성도 안 듣는다(양방향 차단해야 순환이 끊긴다). */
-  const goScreenOnly = async () => {
+  /**
+   * 이 기기를 "화면 전용"으로 — 마이크 끄고 상대 음성도 안 듣는다(양방향 차단해야 순환이 끊긴다).
+   * @param {boolean} off  true=끄기, false=되돌리기
+   */
+  const setScreenOnly = async (off) => {
     try {
-      await room?.localParticipant?.setMicrophoneEnabled(false);
+      await room?.localParticipant?.setMicrophoneEnabled(!off);
       for (const p of room?.remoteParticipants?.values?.() ?? []) {
         for (const pub of p.trackPublications?.values?.() ?? []) {
-          if (pub.kind === "audio") pub.setEnabled?.(false);
+          if (pub.kind === "audio") pub.setEnabled?.(!off);
         }
       }
     } catch {
-      /* 실패해도 배너만 닫는다 — 사용자는 수동으로 끌 수 있다 */
+      /* 실패해도 상태만 바꾼다 — 사용자는 하단 버튼으로 수동 조작 가능 */
     }
-    setDismissed(true);
+    setScreenOnly_(off);
   };
+
+  // 소리를 껐으면 "되돌리기" 막대를 계속 보여준다.
+  // (독립리뷰 지적: 예전엔 끄고 배너가 사라져 **새로고침 말고는 소리를 되살릴 방법이 없었다** —
+  //  오탐이거나 실제로는 다른 방이었으면 상담이 그대로 먹통이 된다.)
+  if (screenOnly) {
+    return (
+      <div className="fixed left-1/2 -translate-x-1/2 top-4 z-50 max-w-md w-[92%] rounded-xl bg-gray-900/95 border border-gray-600 shadow-xl p-3 text-sm text-gray-100 flex items-center justify-between gap-3">
+        <span className="text-xs text-gray-300">{copy.sameRoomMutedNote}</span>
+        <button
+          type="button"
+          onClick={() => setScreenOnly(false)}
+          className="shrink-0 px-3 py-1.5 rounded-lg bg-teal-700 hover:bg-teal-600 text-white font-semibold text-xs"
+        >
+          {copy.sameRoomUndo}
+        </button>
+      </div>
+    );
+  }
+
+  if (!sameRoomWith || dismissed) return null;
 
   return (
     <div className="fixed left-1/2 -translate-x-1/2 top-4 z-50 max-w-md w-[92%] rounded-xl bg-amber-950/95 border border-amber-600 shadow-xl p-3 text-sm text-amber-50">
@@ -98,7 +120,7 @@ export function SameRoomGuard({ copy }) {
       <div className="flex gap-2">
         <button
           type="button"
-          onClick={goScreenOnly}
+          onClick={() => setScreenOnly(true)}
           className="px-3 py-1.5 rounded-lg bg-amber-600 hover:bg-amber-500 text-white font-semibold text-xs"
         >
           {copy.sameRoomAction}

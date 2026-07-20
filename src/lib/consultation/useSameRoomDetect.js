@@ -83,12 +83,19 @@ export function useSameRoomDetect({ localTrack, remoteTracks, enabled }) {
       return;
     }
 
+    // effect 가 다시 돌 때(마이크 토글·참가자 변동 등) 옛 의심 시각이 남아 있으면
+    // SUSTAIN_MS(4초) 조건이 **즉시 참**이 되어 오탐이 튄다(독립리뷰 지적) → 매번 초기화.
+    suspectSinceRef.current = {};
+
     const AudioCtx = window.AudioContext || window.webkitAudioContext;
     if (!AudioCtx) return; // 지원 안 하면 조용히 포기(기능 없음 = 기존 동작)
 
     let ctx;
     try {
       ctx = new AudioCtx();
+      // 브라우저 자동재생 정책상 suspended 로 시작하면 분석이 조용히 안 돈다(독립리뷰 지적).
+      // 상담방은 사용자가 버튼을 눌러 입장하므로 대개 running 이지만 보장은 없다 → 깨워둔다.
+      if (ctx.state === "suspended") ctx.resume?.().catch(() => {});
     } catch {
       return;
     }

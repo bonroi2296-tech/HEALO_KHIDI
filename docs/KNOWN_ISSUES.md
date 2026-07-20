@@ -64,7 +64,7 @@
 - **③ Next.js 2026-05 보안 13종 CVE — 우리 이미 안전**: 패치 버전 15.5.18/16.2.6, 우리는 `next@^16.2.9` → 반영됨. 조치 없음(기록만).
 - **관망**: Gemini 3.5 Live Translate(실시간 음성 통역, ru·kz·ko·zh·ja 지원) — 원격협진 자막·통역 직결이나 **프리뷰**(프로덕션 비권장)+God 컴포넌트 이식 리스크라 GA·가격 공개 시 재검토.
   - 📌 **재검토 조건 절반 충족(2026-07-20 /trend 스캔)**: **가격 공개됨** — 오디오 입력 $3.50 / 출력 $21 per 1M tokens, 실효 ≈ **$0.037/분**(30분 상담 1건 ≈ $1.1), 프리뷰 기간 무료 티어 있음. [가격표](https://ai.google.dev/gemini-api/docs/pricing) · [Live Translate 문서](https://ai.google.dev/gemini-api/docs/live-api/live-translate). **GA는 아직 아님**(`gemini-3.5-live-translate-preview`) → 관망 조건 완전 충족은 아직.
-  - ✅ **코드는 이미 다 있음**(#455, 2026-06-30): `agents/live-translate/`(LiveKit Agents 워커, `kz`→`kk` BCP-47 매핑 포함) + `src/lib/consultation/LiveTranslateBridge.jsx`. **스위치 뒤에서 꺼져 있음** — 로컬·프로덕션 env 모두 `LIVE_TRANSLATE_ENABLED`·`GEMINI_API_KEY` 미설정(2026-07-20 Vercel env 실조회 확인). 즉 남은 일은 "만들기"가 아니라 **켜기 + LiveKit Cloud 에이전트 배포 + 라이브 2인 통화 검증**(README가 "라이브 미검증"으로 명시).
+  - ✅ **코드는 이미 다 있음**(#455, 2026-06-30): `agents/live-translate/`(LiveKit Agents 워커, `kz`→`kk` BCP-47 매핑 포함) + `src/lib/consultation/LiveTranslateBridge.jsx`. ~~**스위치 뒤에서 꺼져 있음**~~ → ✅ **켜짐(2026-07-20 오후)**: 에이전트 LiveKit Cloud(ap-south) 배포 + 프로덕션 env `LIVE_TRANSLATE_ENABLED`·`NEXT_PUBLIC_LIVE_TRANSLATE_ENABLED` 설정 완료. `lang` 속성 전송 버그(#100)도 수정·검증(`session up` 로그 확인). 즉 남은 일은 "만들기"가 아니라 **켜기 + LiveKit Cloud 에이전트 배포 + 라이브 2인 통화 검증**(README가 "라이브 미검증"으로 명시).
   - ⚖️ **경쟁 벤더 비교(2026-07-20 조사)**: 카자흐어(kk) 지원이 사실상 유일한 필터 — OpenAI `gpt-realtime-translate`(출력 13개 언어)·AssemblyAI Universal-3.5 모두 **kk 미지원**. Gemini만 ko·ru·kk 전부 지원 → 벤더 대안이 없다.
 
 ---
