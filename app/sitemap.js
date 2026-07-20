@@ -64,19 +64,27 @@ export default async function sitemap() {
     }
   }
 
-  // 언어화 공개경로 → 6개 언어 URL + hreflang. canonical/대표 URL = 기본언어(en).
+  // 언어화 공개경로 → **언어별로 각각 <loc> 을 가진 항목**을 반환(6개 언어 = 6개 항목).
   // languages 맵의 키는 BCP47(kz→kk), 값의 경로는 우리 locale 코드(/kz/).
+  //
+  // ⚠️ 왜 언어마다 따로 내보내나(2026-07-20 수정, 이전엔 /en 하나만 냈음):
+  // 구글 hreflang 사이트맵 사양은 "각 언어판이 자기 <loc> 을 가진 별도 <url> 블록으로
+  // 제출되고, 각 블록이 전체 alternate 목록을 반복"하는 형태다. 예전처럼 /en 만 <loc> 으로
+  // 내보내면 ru·kz·ko·zh·ja 는 **부록(alternate)으로만 언급될 뿐 "색인해달라고 제출된 적이
+  // 없는" 상태**가 된다 → 크롤 우선순위에서 밀린다. 러·카가 우리 1순위 시장인데 정작
+  // 그 페이지들을 제출 안 하고 있었음(서치콘솔 실측: 러시아어 검색어 노출 0건).
+  // 6개 언어 전부 200 서빙 확인 후 적용.
   const localized = (path, { priority, changeFrequency }) => {
     const clean = path === "/" ? "" : path;
     const languages = {};
     for (const l of LOCALES) languages[HREF_LANG[l]] = `${baseUrl}/${l}${clean}`;
     languages["x-default"] = `${baseUrl}/${DEFAULT_LOCALE}${clean}`;
-    return {
-      url: `${baseUrl}/${DEFAULT_LOCALE}${clean}`,
+    return LOCALES.map((l) => ({
+      url: `${baseUrl}/${l}${clean}`,
       changeFrequency,
       priority,
       alternates: { languages },
-    };
+    }));
   };
 
   // Static pages (언어화 대상)
@@ -113,17 +121,20 @@ export default async function sitemap() {
       alternates: { languages: { 'ru': `${baseUrl}/ru/for-russian-patients`, 'x-default': `${baseUrl}/${DEFAULT_LOCALE}` } } },
     { url: `${baseUrl}/kk/for-kazakh-patients`, changeFrequency: 'weekly', priority: 0.9,
       alternates: { languages: { 'kk': `${baseUrl}/kk/for-kazakh-patients`, 'x-default': `${baseUrl}/${DEFAULT_LOCALE}` } } },
-  ].map(p => ({ ...p, lastModified: STATIC_LASTMOD }));
+    // localized() 는 언어 수만큼의 배열을 반환하므로 flat() 로 펼친다.
+    // (아래 러/카 전용 랜딩 2건은 단일 객체 — flat() 는 그대로 통과시킨다.)
+  ].flat().map(p => ({ ...p, lastModified: STATIC_LASTMOD }));
 
   const urls = [...staticPages];
 
   for (const t of treatments || []) {
     const slugOrId = t?.slug || t?.id;
     if (!slugOrId) continue;
-    urls.push({
-      ...localized(`/treatments/${slugOrId}`, { changeFrequency: 'weekly', priority: 0.8 }),
-      lastModified: t?.updated_at || t?.created_at || now,
-    });
+    const lastModified = t?.updated_at || t?.created_at || now;
+    urls.push(
+      ...localized(`/treatments/${slugOrId}`, { changeFrequency: 'weekly', priority: 0.8 })
+        .map((e) => ({ ...e, lastModified }))
+    );
   }
 
   const seenHospitalSlugs = new Set();
@@ -131,19 +142,20 @@ export default async function sitemap() {
     const slugOrId = h?.slug || h?.id;
     if (!slugOrId) continue;
     seenHospitalSlugs.add(String(slugOrId));
-    urls.push({
-      ...localized(`/hospitals/${slugOrId}`, { changeFrequency: 'weekly', priority: 0.8 }),
-      lastModified: h?.updated_at || h?.created_at || now,
-    });
+    const lastModified = h?.updated_at || h?.created_at || now;
+    urls.push(
+      ...localized(`/hospitals/${slugOrId}`, { changeFrequency: 'weekly', priority: 0.8 })
+        .map((e) => ({ ...e, lastModified }))
+    );
   }
 
   // 정적 제휴 병원(DB 미등록 — 예: 성동점)도 누락 없이 포함
   for (const slug of getAllPartnerSlugs()) {
     if (seenHospitalSlugs.has(slug)) continue;
-    urls.push({
-      ...localized(`/hospitals/${slug}`, { changeFrequency: 'weekly', priority: 0.8 }),
-      lastModified: now,
-    });
+    urls.push(
+      ...localized(`/hospitals/${slug}`, { changeFrequency: 'weekly', priority: 0.8 })
+        .map((e) => ({ ...e, lastModified: now }))
+    );
   }
 
   return urls;
