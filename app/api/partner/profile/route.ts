@@ -3,7 +3,7 @@ export const runtime = "nodejs";
 import { NextRequest } from "next/server";
 import { checkHospitalAuth } from "@/lib/auth/checkHospitalAuth";
 import { createServiceRoleClient } from "@/lib/supabase/server";
-import { triggerMultiLangTranslation } from "@/lib/translate";
+import { triggerMultiLangTranslation, hasTranslatableField } from "@/lib/translate";
 
 const EDITABLE_FIELDS = [
   "name",
@@ -90,7 +90,7 @@ export async function PATCH(request: NextRequest) {
       return Response.json({ ok: false, error: "update_failed" }, { status: 500 });
     }
 
-    const hasTranslatableContent = updates.name || updates.description || updates.tags || updates.specialties || updates.location_kr;
+    const hasTranslatableContent = hasTranslatableField(updates);
     if (hasTranslatableContent) {
       triggerMultiLangTranslation("hospitals", auth.hospitalId, updates, supabase).catch((e) =>
         console.error("[hospital/profile] translation error:", e.message)

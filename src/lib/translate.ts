@@ -77,6 +77,9 @@ TRANSLATION RULES:
 - "description": Natural 1-2 sentence description. Professional and welcoming tone for medical tourists.
 - "tags": Standard medical terminology in each language. Hospital types: "상급종합"→"Tertiary Hospital"(en)/"三级综合医院"(zh)/"上級総合病院"(ja), "종합병원"→"General Hospital"/"综合医院"/"総合病院", "의원"→"Clinic"/"诊所"/"クリニック".
 - "specialties": Standard medical specialties. Examples: "성형외과"→"Plastic Surgery"/"整形外科"/"整形外科"/"Пластическая хирургия"/"Пластикалық хирургия", "피부과"→"Dermatology"/"皮肤科"/"皮膚科"/"Дерматология"/"Дерматология".
+- "full_description": Full treatment/hospital detail. Keep paragraph breaks and the original structure.
+- "duration", "recovery_time": Keep every number and unit exactly as given ("1회 30분, 주 2회" → "30 min per session, twice a week"). Never round, drop, or invent a figure.
+- "preparation", "risks": Patient-safety text (pre-visit instructions, precautions, side effects). Translate LITERALLY and completely — do not soften, summarize, omit, or add any item. A dropped precaution is a safety incident. Keep list structure and line breaks.
 
 Return ONLY valid JSON with language codes as keys. Each key contains an object with the translated fields.
 Example format: { "en": { "name": "...", "description": "..." }, "zh": { "name": "...", "description": "..." } }
@@ -97,9 +100,16 @@ function getModel() {
 interface TranslatableFields {
   name?: string;
   description?: string;
+  full_description?: string;
   tags?: string[];
   specialties?: string[];
   location?: string;
+  // 치료 서술 필드(실DB `treatments` 컬럼). 어드민·병원포털이 한국어로 입력하는데
+  // 번역 대상에 없으면 러시아·카자흐 환자가 그 칸만 한국어로 보게 된다(유형1 반쪽배선).
+  duration?: string;
+  recovery_time?: string;
+  preparation?: string;
+  risks?: string;
 }
 
 type MultiLangResult = Partial<Record<LangCode, TranslatableFields>>;
@@ -117,9 +127,14 @@ export async function translateToAllLanguages(
   const compact: Record<string, any> = {};
   if (input.name) compact.name = input.name;
   if (input.description) compact.description = input.description;
+  if (input.full_description) compact.full_description = input.full_description;
   if (input.tags && input.tags.length > 0) compact.tags = input.tags;
   if (input.specialties && input.specialties.length > 0) compact.specialties = input.specialties;
   if (input.location) compact.location = input.location;
+  if (input.duration) compact.duration = input.duration;
+  if (input.recovery_time) compact.recovery_time = input.recovery_time;
+  if (input.preparation) compact.preparation = input.preparation;
+  if (input.risks) compact.risks = input.risks;
 
   if (Object.keys(compact).length === 0) return null;
 
@@ -148,13 +163,28 @@ export async function translateToAllLanguages(
 // Build i18n JSONB from payload and translations
 // ============================================================
 
+/**
+ * 이 payload 에 번역할 게 하나라도 있나 — 번역 트리거 조건의 단일 SoR.
+ * 호출부가 `payload.name || payload.description || payload.tags` 처럼 손으로 나열하면
+ * 번역 대상이 늘어날 때마다 조건을 빠뜨린다(실제로 「주의사항」만 고치면 번역이 안 돌았다).
+ */
+export function hasTranslatableField(payload: Record<string, any>): boolean {
+  const f = extractTranslatableFields(payload);
+  return Object.values(f).some((v) => (Array.isArray(v) ? v.length > 0 : Boolean(v)));
+}
+
 function extractTranslatableFields(payload: Record<string, any>): TranslatableFields {
   return {
     name: payload.name || undefined,
     description: payload.description || undefined,
+    full_description: payload.full_description || undefined,
     tags: Array.isArray(payload.tags) && payload.tags.length > 0 ? payload.tags : undefined,
     specialties: Array.isArray(payload.specialties) && payload.specialties.length > 0 ? payload.specialties : undefined,
     location: payload.location_kr || payload.location_en || undefined,
+    duration: payload.duration || undefined,
+    recovery_time: payload.recovery_time || undefined,
+    preparation: payload.preparation || undefined,
+    risks: payload.risks || undefined,
   };
 }
 

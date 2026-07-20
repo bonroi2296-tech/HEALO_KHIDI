@@ -31,7 +31,7 @@ import {
   TreatmentUpdateSchema,
   validationErrorResponse,
 } from "@/lib/validation/admin";
-import { triggerMultiLangTranslation } from "@/lib/translate";
+import { triggerMultiLangTranslation, hasTranslatableField } from "@/lib/translate";
 
 /**
  * GET: 시술 목록 조회 (관리자 전용)
@@ -261,7 +261,9 @@ export async function POST(request: NextRequest) {
       console.error("[admin/treatments] Audit log failed:", err.message);
     });
 
-    if (payload.name || payload.description || payload.tags) {
+    // 번역 대상 필드가 하나라도 있으면 돈다. 예전엔 name·description·tags 만 봐서,
+    // 「주의사항」만 고치면 번역이 안 돌아 그 칸만 영원히 한국어로 남았다(유형1 반쪽배선).
+    if (hasTranslatableField(payload)) {
       triggerMultiLangTranslation("treatments", data.id, payload, supabaseAdmin).catch((e) =>
         console.error("[admin/treatments] translation error:", e.message)
       );
@@ -438,7 +440,9 @@ export async function PATCH(request: NextRequest) {
       console.error("[admin/treatments] Audit log failed:", err.message);
     });
 
-    if (payload.name || payload.description || payload.tags) {
+    // 번역 대상 필드가 하나라도 있으면 돈다. 예전엔 name·description·tags 만 봐서,
+    // 「주의사항」만 고치면 번역이 안 돌아 그 칸만 영원히 한국어로 남았다(유형1 반쪽배선).
+    if (hasTranslatableField(payload)) {
       triggerMultiLangTranslation("treatments", id, payload, supabaseAdmin).catch((e) =>
         console.error("[admin/treatments] translation error:", e.message)
       );

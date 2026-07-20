@@ -65,10 +65,13 @@ export const TreatmentDetailPage = ({
       price_min: tRow.price_min, price_max: tRow.price_max,
       // 실DB `treatments` 의 서술 필드. 위 select 가 이미 가져오는데 예전엔 여기서 버려져
       // 화면에 한 번도 뜨지 않았다(옛 미용시술 스키마 필드만 넘기고 있었음).
-      duration: tRow.duration || null,
-      recovery_time: tRow.recovery_time || null,
-      preparation: tRow.preparation || null,
-      risks: tRow.risks || null,
+      // ⚠️ 어드민·병원포털이 **한국어로 입력**하는 칸이라 반드시 localize() 를 태운다 —
+      //    안 그러면 러시아·카자흐 환자 화면에 이 칸만 한국어로 뜬다(유형1 반쪽배선).
+      //    번역은 triggerMultiLangTranslation 이 i18n JSONB 에 채워 넣는다.
+      duration: localize(tRow, "duration", lang) || tRow.duration || null,
+      recovery_time: localize(tRow, "recovery_time", lang) || tRow.recovery_time || null,
+      preparation: localize(tRow, "preparation", lang) || tRow.preparation || null,
+      risks: localize(tRow, "risks", lang) || tRow.risks || null,
     };
   };
 

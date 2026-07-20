@@ -3,7 +3,7 @@ export const runtime = "nodejs";
 import { NextRequest } from "next/server";
 import { checkHospitalAuth } from "@/lib/auth/checkHospitalAuth";
 import { createServiceRoleClient } from "@/lib/supabase/server";
-import { triggerMultiLangTranslation } from "@/lib/translate";
+import { triggerMultiLangTranslation, hasTranslatableField } from "@/lib/translate";
 
 export async function GET(request: NextRequest) {
   const auth = await checkHospitalAuth(request);
@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
       return Response.json({ ok: false, error: "insert_failed" }, { status: 500 });
     }
 
-    if (payload.name || payload.description || payload.tags) {
+    if (hasTranslatableField(payload)) {
       triggerMultiLangTranslation("treatments", data.id, payload, supabase).catch((e) =>
         console.error("[hospital/treatments] translation error:", e.message)
       );
@@ -160,7 +160,7 @@ export async function PATCH(request: NextRequest) {
       return Response.json({ ok: false, error: "update_failed" }, { status: 500 });
     }
 
-    if (updates.name || updates.description || updates.tags) {
+    if (hasTranslatableField(updates)) {
       triggerMultiLangTranslation("treatments", id, updates, supabase).catch((e) =>
         console.error("[hospital/treatments] translation error:", e.message)
       );
