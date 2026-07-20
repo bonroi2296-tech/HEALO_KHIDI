@@ -94,8 +94,53 @@ function buildColumnMap() {
 }
 const COLUMN_MAP = buildColumnMap();
 const colViolations = [];
+const writeViolations = [];
 // select 인자가 '평문 컬럼 목록'인지: 임베드/별칭/JSON/함수/동적 신호가 하나도 없어야 함.
 const PLAIN_SELECT = /^[\w,\s]+$/;
+
+// ── 쓰기 경로 컬럼 대조 (축 D 2026-07-20 — POSTMORTEMS #97) ──
+// 왜: 축 C 는 `select` 문자열만 봤고, 주석에도 "insert 객체키는 이번 범위 밖"이라고 적혀 있었다.
+//     그 그물 밖 통로에서 실제 사고가 났다 — `coordinator_responses`(플레이북)·`crawl_raw_items`
+//     (크롤)가 **없는 컬럼에 insert/update** 해서 두 기능이 한 번도 작동하지 않았는데(각 0건)
+//     select 는 멀쩡해 가드가 통과시켰다. select 만 막고 쓰기를 안 막으면 "저장이 안 되는 화면"이
+//     조용히 남는다 → 여기서 닫는다.
+// 오탐 0 원칙(축 C 계승): **직접 객체 리터럴만** 본다. 변수를 넘기거나(.insert(payload)),
+//     스프레드(...)·계산된 키([x]:)가 있으면 통째로 건너뛴다. 그런 동적 형태는
+//     @supabase/supabase-js 2.110+ 의 타입 대조가 잡는 몫(KNOWN_ISSUES).
+function checkWriteKeys(content, table, win, file, idx) {
+  const cols = COLUMN_MAP.get(table);
+  if (!cols) return;
+  const callRe = /\.(insert|update|upsert)\(\s*\{/g;
+  let c;
+  while ((c = callRe.exec(win)) !== null) {
+    const op = c[1];
+    // 객체 리터럴 본문을 괄호 균형으로 잘라낸다.
+    let depth = 1, i = c.index + c[0].length, body = "";
+    while (i < win.length && depth > 0) {
+      const ch = win[i];
+      if (ch === "{") depth++;
+      else if (ch === "}") depth--;
+      if (depth > 0) body += ch;
+      i++;
+    }
+    if (depth !== 0) continue;                 // 잘린 window — 판단 보류
+    if (body.includes("...") || /\[[^\]]+\]\s*:/.test(body)) continue; // 동적 → 건너뜀
+
+    // 최상위 키만 (중첩 객체·배열 안쪽은 jsonb 값이라 컬럼이 아님)
+    let d = 0;
+    for (const line of body.split("\n")) {
+      const km = /^\s*(\w+)\s*:/.exec(line);
+      if (km && d === 0 && !cols.has(km[1])) {
+        const ln = content.slice(0, idx).split("\n").length;
+        writeViolations.push({ table, col: km[1], op, rel: `${file}:${ln}` });
+      }
+      for (const ch of line) {
+        if (ch === "{" || ch === "[") d++;
+        else if (ch === "}" || ch === "]") d--;
+      }
+    }
+  }
+}
 
 const FROM_RE = /\.from\(\s*["'`]([A-Za-z_][\w]*)["'`]/g;
 

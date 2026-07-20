@@ -370,9 +370,8 @@ async function classifyAndInsert(
         if (Object.keys(diff).length > 0) {
           insertBatch.push({
             job_id: jobId,
-            source_id: sourceId,
-            source_unique_id: row.source_unique_id,
-            name: row.name,
+                        source_unique_id: row.source_unique_id,
+            title: row.name,
             data: row.data,
             status: "changed",
             hospital_id: byName.id,
@@ -386,9 +385,8 @@ async function classifyAndInsert(
       } else {
         insertBatch.push({
           job_id: jobId,
-          source_id: sourceId,
-          source_unique_id: row.source_unique_id,
-          name: row.name,
+                    source_unique_id: row.source_unique_id,
+          title: row.name,
           data: row.data,
           status: "new",
         });
@@ -399,9 +397,8 @@ async function classifyAndInsert(
       if (Object.keys(diff).length > 0) {
         insertBatch.push({
           job_id: jobId,
-          source_id: sourceId,
-          source_unique_id: row.source_unique_id,
-          name: row.name,
+                    source_unique_id: row.source_unique_id,
+          title: row.name,
           data: row.data,
           status: "changed",
           hospital_id: existing.id,
@@ -487,9 +484,8 @@ async function detectClosures(
     if (h.source_unique_id && !foundSet.has(h.source_unique_id)) {
       closedBatch.push({
         job_id: jobId,
-        source_id: sourceId,
         source_unique_id: h.source_unique_id || `name:${h.name}`,
-        name: h.name,
+        title: h.name,
         data: {},
         status: "closed",
         hospital_id: h.id,

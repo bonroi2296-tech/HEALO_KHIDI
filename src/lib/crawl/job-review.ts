@@ -45,7 +45,7 @@ export async function approveItems(itemIds: string[]): Promise<{
 
       approved++;
     } catch (err: any) {
-      errors.push(`Item ${itemId} (${(item as any).name || "unknown"}): ${err.message}`);
+      errors.push(`Item ${itemId} (${(item as any).title || "unknown"}): ${err.message}`);
     }
   }
 
@@ -77,7 +77,7 @@ export async function skipItems(itemIds: string[]): Promise<number> {
 async function approveNewItem(item: any) {
   const d = item.data || {};
 
-  const slug = generateSlug(d.yadmNm || d.name || item.name);
+  const slug = generateSlug(d.yadmNm || d.name || item.title);
 
   // Check for duplicate slug
   const { data: existing } = await supabaseAdmin
@@ -89,7 +89,7 @@ async function approveNewItem(item: any) {
   const finalSlug = existing ? slug + "-" + Math.random().toString(36).slice(2, 6) : slug;
 
   const hospitalData: Record<string, any> = {
-    name: d.yadmNm || d.name || item.name,
+    name: d.yadmNm || d.name || item.title,
     slug: finalSlug,
     location_kr: d.addr || d.location_kr || null,
     latitude: d.YPos ? Number(d.YPos) : d.latitude || null,

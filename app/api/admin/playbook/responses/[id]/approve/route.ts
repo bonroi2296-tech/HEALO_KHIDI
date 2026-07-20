@@ -32,7 +32,7 @@ export async function POST(
 
   try {
     const { data: respRaw, error: fetchErr } = await supabaseAdmin
-      .from("coordinator_responses")
+      .from("playbook_responses")
       .select("*")
       .eq("id", id)
       .single();
@@ -41,10 +41,9 @@ export async function POST(
       return Response.json({ ok: false, error: "Response not found" }, { status: 404 });
     }
 
-    // TODO(schema-drift): coordinator_responses 실제 스키마에는 case_tags /
-    // rag_document_id / response_text_sanitized / language / approved_at /
-    // approved_by 컬럼이 없음. 아래 코드가 런타임에 실패하는지 실사용 경로 확인 필요.
-    // 단기 해결: metadata jsonb 로 옮기거나 마이그레이션으로 컬럼 복원.
+    // (해결 2026-07-20, POSTMORTEMS #97) 위 TODO(schema-drift)는 추측이 아니라 실제였다 —
+    // `coordinator_responses` 는 동명의 기존 견적 테이블이라 이 컬럼들이 없었고, 이 경로는
+    // 한 번도 성공한 적이 없었다(테이블 0건). 전용 테이블 `playbook_responses` 로 이전 완료.
     const resp = respRaw as any;
 
     if (resp.status === "approved") {
@@ -115,7 +114,7 @@ export async function POST(
     }
 
     const { data: updated, error: approveErr } = await supabaseAdmin
-      .from("coordinator_responses")
+      .from("playbook_responses")
       // TODO(schema-drift): approved_at / approved_by / rag_document_id 컬럼 부재.
       // 현재는 any 로 캐스트 — 마이그레이션으로 컬럼 복원하거나 metadata 에 저장하도록 리팩터 필요.
       .update({

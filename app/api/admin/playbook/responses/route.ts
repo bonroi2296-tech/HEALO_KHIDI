@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
     }
 
     const { data, error } = await supabaseAdmin
-      .from("coordinator_responses")
+      .from("playbook_responses")
       .insert(row)
       .select("*")
       .single();
@@ -82,7 +82,7 @@ export async function GET(request: NextRequest) {
     const offset = Math.max(Number(url.searchParams.get("offset")) || 0, 0);
 
     let query = supabaseAdmin
-      .from("coordinator_responses")
+      .from("playbook_responses")
       .select("*", { count: "exact" });
 
     if (status) query = query.eq("status", status);

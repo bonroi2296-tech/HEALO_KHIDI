@@ -5,7 +5,7 @@
  *
  * 1. thread.status → 'resolved'
  * 2. 메시지들 합쳐서 transcript 생성
- * 3. sanitize → coordinator_responses(draft) 자동 생성
+ * 3. sanitize → playbook_responses(draft) 자동 생성
  */
 
 export const runtime = "nodejs";
@@ -83,7 +83,7 @@ export async function POST(
     }
 
     const { data: draft, error: draftErr } = await (supabaseAdmin as any)
-      .from("coordinator_responses")
+      .from("playbook_responses")
       .insert({
         normalized_inquiry_id: thread.normalized_inquiry_id || null,
         language,
