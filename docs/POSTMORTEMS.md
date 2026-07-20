@@ -22,7 +22,9 @@
 - 정적 검사로는 안 잡힌다: 문법·타입·i18n·스키마 어디에도 안 걸리고, 화면은 정상적으로 "그려진다". **겹침은 렌더 결과의 기하학 문제**라 빌드가 볼 수 없다.
 - 사람 눈으로도 잘 안 보인다: 개발 중엔 이미 동의를 눌러 `localStorage` 에 남아 배너가 안 뜬다. **첫 방문자(=실제 환자)에게만** 나타난다.
 
-**어떻게 고쳤나** — `ClientShell.jsx` 에서 기존 관례 그대로 `{!isConsultationPage && <CookieConsent />}`. (`CookieConsent` 내부에 `usePathname` 분기를 넣는 안도 만들어봤다가 되돌렸다 — 같은 판정이 이미 부모에 있는데 자식에 또 두면 SoR 이 둘로 갈라진다.) 동의 상태는 `localStorage` 전역이라 다른 페이지에서 정상적으로 받으며, 상담방에서만 표시를 미루는 것이라 **동의 기능 자체는 그대로**다.
+**어떻게 고쳤나** — `ClientShell.jsx` 에서 헤더·푸터와 같은 관례대로 `{!isConsultationPage && <CookieConsent />}`. 동의 상태는 `localStorage` 전역이라 다른 페이지에서 정상적으로 받으며, 상담방에서만 표시를 미루는 것이라 **동의 기능 자체는 그대로**다. 오히려 동의 게이트는 fail-closed 라(`hasAnalyticsConsent()` 는 기록이 없으면 `false`) 초대링크로 상담방만 방문한 게스트는 **추적이 아예 안 돈다**.
+
+> ℹ️ 정정(독립 리뷰 지적): 처음엔 `CookieConsent` 내부에 `usePathname` 분기를 넣었다가 "같은 판정이 부모에 있는데 자식에 또 두면 SoR 이 갈라진다"는 이유로 되돌렸는데, **이 저장소엔 이미 내부 가드 선례가 있다** — `app/InstallPrompt.jsx` 는 자체 `HIDE_ON` 배열로 `/consultation` 을 스스로 제외한다(덕분에 PWA 설치 배너는 원래부터 이 문제가 없었다). 즉 두 패턴이 공존하며, 부모 가드를 고른 건 *ClientShell 의 다른 전역 UI 와 맞춘 선택*이지 내부 가드가 틀려서가 아니다. **"관례에 맞췄다"는 맞고 "SoR 이 갈라진다"는 과했다.**
 
 **검증** — 로컬 dev 에서 동의기록 없는 상태로 대조: 상담방 `bannerVisible=false` / `/telemedicine` `bannerVisible=true`. 즉 "상담방에서만 빠지고 나머지는 정상".
 
