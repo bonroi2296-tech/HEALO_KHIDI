@@ -149,17 +149,12 @@ export async function POST(request: NextRequest) {
     // 로그도 감지 언어로 기록해 source_lang 오염(ru→ko로 남던 것)을 막는다.
     const detectedSrc = detectLanguage(text);
     if (detectedSrc === targetLang) {
-      if (consultationId) {
-        saveTranslationLog(consultationId, {
-          originalText: text,
-          translatedText: text,
-          sourceLang: detectedSrc,
-          targetLang,
-          speakerRole: speakerRole || "unknown",
-        }).catch((err) =>
-          console.error("[translate-realtime] DB save error:", err.message)
-        );
-      }
+      // ⚠️ 저장하지 않는다. 여기는 "이미 타겟 언어라 번역이 필요 없다"는 경로인데,
+      //    예전엔 원문을 translatedText 로 넣어 저장했다 → **원문을 번역문이라고 기록**.
+      //    2026-07-20 실회의 로그에서 ru→ru 53건이 전부 이 경로였다(전체 무의미 기록의 80%).
+      //    번역 기록 탭이 같은 말로 도배되고, AI 회의록 입력에도 중복으로 들어간다.
+      //    자막 표시는 아래 응답으로 이미 되므로 저장만 건너뛰면 화면 동작은 그대로다.
+      //    (같은 부류를 stt 라우트에서도 막았다 — ko→ko 13건.)
       return Response.json({ ok: true, translated: text, sourceLang: detectedSrc, targetLang });
     }
 

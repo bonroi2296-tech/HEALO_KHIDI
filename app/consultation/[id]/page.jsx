@@ -62,7 +62,6 @@ import {
 } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { useLang } from "@/lib/i18n/LangContext";
-import { setLangCookie } from "@/lib/i18n";
 import { useToast } from "@/components/Toast";
 import { useSpeechRecognition, isBrowserSttNative } from "@/lib/consultation/useSpeechRecognition";
 import { isFillerOnly } from "@/lib/consultation/fillerFilter";
@@ -706,13 +705,9 @@ export default function ConsultationRoomPage() {
   const [guestLang, setGuestLang] = useState(() =>
     ["ko", "en", "ru", "kz", "zh", "ja"].includes(lang) ? lang : "ru"
   );
-  // 언어 선택 시 화면 전체 UI 텍스트도 그 언어로 전환 (쿠키 + langchange 이벤트 → useLang 전역 갱신)
-  const switchUiLang = useCallback((code) => {
-    setLangCookie(code);
-    if (typeof window !== "undefined") {
-      window.dispatchEvent(new Event("healo:langchange"));
-    }
-  }, []);
+  // (2026-07-20 제거) 통역 언어를 고르면 화면 UI 언어까지 바꾸던 switchUiLang.
+  //   한국인 코디가 러시아 환자 말을 들으려고 언어를 만졌더니 화면 전체가 러시아어가 됐다(PO 제보).
+  //   통역 언어와 화면 언어는 별개다 — 화면 언어는 헤더의 언어 메뉴에서만 바꾼다.
   // Waiting Room — 의사 승인 대기
   const [admissionId, setAdmissionId] = useState(null);
   const [admissionStatus, setAdmissionStatus] = useState(null);

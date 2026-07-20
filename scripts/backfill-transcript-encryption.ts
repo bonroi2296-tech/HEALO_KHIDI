@@ -14,8 +14,8 @@
  *   · 배치(기본 100) 단위로 처리하고 진행률을 찍는다.
  *
  * 사용 (tsx 필요 — encryptionV2 가 .ts 라 node 로는 못 읽는다):
- *   npx tsx scripts/backfill-transcript-encryption.mjs --dry     # 대상 건수만
-npx tsx scripts/backfill-transcript-encryption.mjs           # 실제 이전
+ *   npx tsx scripts/backfill-transcript-encryption.ts --dry     # 대상 건수만
+npx tsx scripts/backfill-transcript-encryption.ts           # 실제 이전
  *
  * ⚠️ 선행조건: migrations/20260720_transcript_encryption.sql 적용(평문 컬럼 NOT NULL 해제).
  *    안 하면 평문을 null 로 못 지운다.
@@ -123,6 +123,8 @@ async function backfill(spec) {
     }
     if (!data?.length) break;
 
+    let progressed = 0;
+
     for (const row of data) {
       const patch = {};
       for (const [plain, enc] of fields) {
@@ -136,9 +138,16 @@ async function backfill(spec) {
         console.error(`  ✗ ${row.id}: ${uErr.message}`);
       } else {
         done++;
+        progressed++;
       }
     }
     console.log(`  ... ${done}/${count} 완료${failed ? ` (실패 ${failed})` : ""}`);
+    // ⚠️ 이 배치에서 하나도 성공 못 했으면 중단. SELECT 조건이 "평문 있고 암호문 없음"이라
+    //    UPDATE 가 계속 실패하면 **같은 행을 영원히 재조회**한다(독립리뷰 지적).
+    if (progressed === 0) {
+      console.error("  배치 전체 실패 — 중단합니다(키·권한·제약 확인 필요).");
+      break;
+    }
     if (data.length < BATCH) break;
   }
   console.log(`[${table}] 완료 ${done}건${failed ? ` / 실패 ${failed}건` : ""}`);
