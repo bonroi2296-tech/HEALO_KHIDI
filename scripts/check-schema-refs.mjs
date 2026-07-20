@@ -48,6 +48,9 @@ const PUBLIC_TABLES = new Set([
   "opinion_requests", // 2026-07-07 적용 — 전문의 세컨드 오피니언 요청(매직링크 토큰). RLS=서비스롤 전용
   "case_opinions", // 2026-07-07 적용 — 도착한 전문의 소견(코디·어드민 전용). RLS=서비스롤 전용
   "note_translations", // 2026-07-07 적용 — 코디 짧은 메모 자동번역 캐시(source_hash,target_lang). RLS=서비스롤 전용
+  "playbook_responses", // 2026-07-20 적용 (POSTMORTEMS #97) — 플레이북 응대 원문·정제본·승인.
+                        // 옛 `coordinator_responses` 는 동명의 견적 테이블과 충돌해 쓰기가 항상 실패했다
+                        // → 전용 이름으로 분리. 견적용 coordinator_responses 는 그대로 남아 있음.
 ]);
 
 // `.from()` 첫 인자가 DB 테이블이 아닌 것 — Supabase Storage 버킷(.storage.from). 오탐 제외.
@@ -93,6 +96,19 @@ function buildColumnMap() {
   return map;
 }
 const COLUMN_MAP = buildColumnMap();
+
+// 자기점검 — 파서가 0개를 뱉으면 **검사기 자신이 죽은 것**이다(생성타입 포맷 변경·줄바꿈
+// CRLF 화 등으로 정규식이 통째로 빗나가면 조용히 0개가 되고, 아래 검사는 전부 no-op 인데
+// 스크립트는 "✓ 통과"를 찍는다 — 2026-07-20 실제로 이 상태를 만들 뻔했다).
+// #97 의 교훈이 정확히 이것("성공 보고 ≠ 실제로 한 일")이라 여기서 크게 실패시킨다.
+if (COLUMN_MAP.size === 0) {
+  console.error("\n❌ 컬럼 대조 맵이 비었다 — 검사기 자신이 고장난 상태다(조용한 no-op).");
+  console.error("   원인 후보: src/types/database.types.ts 가 없거나, 줄바꿈이 CRLF 로 바뀌었거나,");
+  console.error("   생성타입 포맷이 바뀌어 buildColumnMap 의 정규식이 안 맞음.");
+  console.error("   → 파일 줄바꿈(LF) 확인 + 정규식 갱신. 이 검사를 건너뛰지 마라.");
+  process.exit(1);
+}
+
 const colViolations = [];
 const writeViolations = [];
 // select 인자가 '평문 컬럼 목록'인지: 임베드/별칭/JSON/함수/동적 신호가 하나도 없어야 함.
@@ -186,6 +202,9 @@ for (const root of ROOTS) {
             }
           }
         }
+
+        // 축 D: 같은 window 에서 쓰기 경로(insert/update/upsert) 객체키도 대조.
+        checkWriteKeys(content, name, win, file, idx);
       }
 
       // 3) 실재 테이블이면 OK
@@ -222,4 +241,18 @@ if (colViolations.length) {
   console.warn(`   → 오타/옛 컬럼명이면 교정. 평문 select 만 검사(임베드/별칭/JSON 은 리뷰 몫).`);
 }
 
-console.log(`\n✓ 스키마 참조 검사 통과 (테이블 실재 + 평문 select 컬럼 ${COLUMN_MAP.size}개 테이블 대조 · 컬럼경고 ${colViolations.length})`);
+// 쓰기 경로는 **차단**. 이유: select 오류는 화면에 0/[] 로 뜨기라도 하지만, insert/update 오류는
+// "저장 눌렀는데 아무 일도 안 일어남"으로 끝나 아무도 신고하지 않는다(#97 에서 두 기능이 그렇게
+// 몇 달을 죽어 있었다). 축 C(select)를 비차단으로 둔 판단과 달리, 여기는 처음부터 빨갛게 만든다.
+// 오탐 0 설계(직접 객체 리터럴만·스프레드/계산키 제외)라 정상 코드가 걸릴 여지가 없다.
+if (writeViolations.length) {
+  console.error(`\n❌ 존재하지 않는 컬럼에 쓰기 ${writeViolations.length}건 (생성타입 Row 에 없음 — 저장이 조용히 실패, 유형6-쓰기):`);
+  for (const v of writeViolations) console.error(`   - ${v.table}.${v.op}({ ${v.col}: … })  ${v.rel}`);
+  console.error(`\n→ 오타/옛 컬럼명이면 교정. 컬럼이 진짜 필요하면 마이그레이션으로 추가하고`);
+  console.error(`  **적용 후 information_schema 로 실제 생겼는지 확인**하라 —`);
+  console.error(`  CREATE TABLE IF NOT EXISTS 는 이름이 겹치면 에러 없이 no-op 이다(POSTMORTEMS #97).`);
+  console.error(`  생성타입이 낡았으면 Supabase MCP generate_typescript_types 로 재생성.`);
+  process.exit(1);
+}
+
+console.log(`\n✓ 스키마 참조 검사 통과 (테이블 실재 + select/쓰기 컬럼 ${COLUMN_MAP.size}개 테이블 대조 · 컬럼경고 ${colViolations.length})`);
