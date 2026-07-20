@@ -28,7 +28,7 @@
     "check:handoff": "node scripts/check-handoff.mjs",
     "check:hook-data": "node scripts/check-hook-data.mjs",
     "check:migrations": "node scripts/check-migration-idempotency.mjs",
-    "check:schema-refs": "node scripts/check-schema-refs.mjs",
+    "check:schema-refs": "node scripts/check-schema-refs.mjs --selftest && node scripts/check-schema-refs.mjs",
     "check:visa-freshness": "node scripts/check-visa-freshness.mjs",
     "check:pdf-tone": "node scripts/check-pdf-tone.mjs",
     "handoff:rotate": "node scripts/handoff-rotate.mjs",
