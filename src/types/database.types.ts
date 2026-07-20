@@ -1678,6 +1678,7 @@ export type Database = {
           content_hash: string | null
           created_at: string | null
           data: Json
+          hospital_id: string | null
           extracted_data: Json | null
           id: string
           job_id: string | null
@@ -1685,6 +1686,8 @@ export type Database = {
           metadata: Json | null
           raw_html: string | null
           review_action: string | null
+          reviewed_at: string | null
+          source_id: string | null
           source_type: string | null
           source_unique_id: string | null
           status: string | null
@@ -1697,6 +1700,7 @@ export type Database = {
           content_hash?: string | null
           created_at?: string | null
           data?: Json
+          hospital_id?: string | null
           extracted_data?: Json | null
           id?: string
           job_id?: string | null
@@ -1704,6 +1708,8 @@ export type Database = {
           metadata?: Json | null
           raw_html?: string | null
           review_action?: string | null
+          reviewed_at?: string | null
+          source_id?: string | null
           source_type?: string | null
           source_unique_id?: string | null
           status?: string | null
@@ -1716,6 +1722,7 @@ export type Database = {
           content_hash?: string | null
           created_at?: string | null
           data?: Json
+          hospital_id?: string | null
           extracted_data?: Json | null
           id?: string
           job_id?: string | null
@@ -1723,6 +1730,8 @@ export type Database = {
           metadata?: Json | null
           raw_html?: string | null
           review_action?: string | null
+          reviewed_at?: string | null
+          source_id?: string | null
           source_type?: string | null
           source_unique_id?: string | null
           status?: string | null
@@ -1735,6 +1744,13 @@ export type Database = {
             columns: ["job_id"]
             isOneToOne: false
             referencedRelation: "crawl_jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "crawl_raw_items_hospital_id_fkey"
+            columns: ["hospital_id"]
+            isOneToOne: false
+            referencedRelation: "hospitals"
             referencedColumns: ["id"]
           },
         ]
@@ -2152,6 +2168,7 @@ export type Database = {
           source_url: string | null
           started_at: string | null
           status: string | null
+          updated_at: string
         }
         Insert: {
           completed_at?: string | null
@@ -2166,6 +2183,7 @@ export type Database = {
           source_url?: string | null
           started_at?: string | null
           status?: string | null
+          updated_at?: string
         }
         Update: {
           completed_at?: string | null
@@ -2180,6 +2198,7 @@ export type Database = {
           source_url?: string | null
           started_at?: string | null
           status?: string | null
+          updated_at?: string
         }
         Relationships: [
           {
@@ -3272,6 +3291,72 @@ export type Database = {
             columns: ["source_thread_id"]
             isOneToOne: false
             referencedRelation: "chat_threads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      playbook_responses: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          case_tags: string[]
+          created_at: string
+          id: string
+          language: string
+          metadata: Json
+          normalized_inquiry_id: string | null
+          quality_score: number
+          rag_document_id: string | null
+          response_text_raw: string
+          response_text_sanitized: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          case_tags?: string[]
+          created_at?: string
+          id?: string
+          language?: string
+          metadata?: Json
+          normalized_inquiry_id?: string | null
+          quality_score?: number
+          rag_document_id?: string | null
+          response_text_raw: string
+          response_text_sanitized: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          case_tags?: string[]
+          created_at?: string
+          id?: string
+          language?: string
+          metadata?: Json
+          normalized_inquiry_id?: string | null
+          quality_score?: number
+          rag_document_id?: string | null
+          response_text_raw?: string
+          response_text_sanitized?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "playbook_responses_normalized_inquiry_id_fkey"
+            columns: ["normalized_inquiry_id"]
+            isOneToOne: false
+            referencedRelation: "normalized_inquiries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "playbook_responses_rag_document_id_fkey"
+            columns: ["rag_document_id"]
+            isOneToOne: false
+            referencedRelation: "rag_documents"
             referencedColumns: ["id"]
           },
         ]

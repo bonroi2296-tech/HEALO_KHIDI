@@ -164,14 +164,15 @@ export async function POST(
 
     treatmentIds.push(treatmentId);
 
-    const rawHash = body.captured_at + treatmentId + JSON.stringify(offer.evidence);
+    // (2026-07-20, POSTMORTEMS #97) `raw_hash` 컬럼은 실DB `treatment_sources` 에 없어서
+    // 이 insert 가 항상 실패하고 있었다(테이블 0건). 어디서도 되읽지 않는 값이라 컬럼을
+    // 새로 만들지 않고 제거한다 — 중복 판정이 필요해지면 그때 컬럼과 함께 되살릴 것.
     await supabaseAdmin.from("treatment_sources").insert({
       treatment_id: treatmentId,
       hospital_id: hospitalId,
       captured_at: captured_at,
       sources,
       evidence: offer.evidence ?? {},
-      raw_hash: rawHash.slice(0, 512),
     } as any);
   }
 
