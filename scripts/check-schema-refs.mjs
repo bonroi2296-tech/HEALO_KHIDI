@@ -211,17 +211,22 @@ function checkWriteKeys(content, table, win, file, idx, back = "") {
   //     무검사였고, 실제로 `treatments` 유령 컬럼 17개가 이 통로로 5개월간 새어나갔다
   //     (어드민·병원포털 치료 등록 0건). 축 D 를 만들고도 같은 부류를 또 놓친 이유.
   //     오탐 0 유지: ①**쓰임(.insert(payload))이 이 쿼리 체인 안**일 때만 인정 ②선언 이후
-  //     `payload.x = ...`/`Object.assign(payload` 같은 동적 변형이 있으면 건너뛴다.
+  //     `payload.x = ...`/`payload = {...}`/`Object.assign(payload` 같은 변형이 있으면 건너뛴다
+  //     ③같은 이름이 여러 번 선언되면 **가장 마지막(=쓰임에 가장 가까운) 것**만 본다.
+  //     ③이 없으면 형제 분기에 동명 변수가 있을 때 엉뚱한 쪽을 집는다(독립 리뷰 2차 지적, 실측 재현).
   const varRe = /\b(?:const|let|var)\s+(\w+)(?:\s*:\s*[^=]+?)?\s*=\s*\{/g;
+  const decls = new Map();               // 이름 → 마지막 선언 위치
   let v;
   while ((v = varRe.exec(masked)) !== null) {
-    const name = v[1];
-    const bodyStart = v.index + v[0].length;
+    decls.set(v[1], v.index + v[0].length);
+  }
+  for (const [name, bodyStart] of decls) {
     const body = sliceObjectBody(masked, bodyStart - 1);
     if (body === null) continue;
     const rest = masked.slice(bodyStart);
     const esc = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     if (new RegExp(`\\b${esc}\\s*(\\.\\w+|\\[)\\s*=[^=]`).test(rest)) continue;   // payload.x = ...
+    if (new RegExp(`\\b${esc}\\s*=[^=]`).test(rest)) continue;                    // payload = {...} 재대입
     if (new RegExp(`Object\\.assign\\(\\s*${esc}\\b`).test(rest)) continue;
     const useRe = new RegExp(`\\.(insert|update|upsert)\\(\\s*\\[?\\s*${esc}\\s*[\\],)]`);
     const use = useRe.exec(rest);
@@ -366,6 +371,23 @@ if (process.argv.includes("--selftest")) {
     runSplit(
       `await sb.from("other").insert({ ghost_col: 1 });\n` +
       `await sb.from("__t").update({ response_text_raw: "b" });`
+    ), []);
+
+  // 독립 리뷰 2차 지적 — 형제 분기의 동명 변수. 쓰임에 가장 가까운 선언을 봐야 한다.
+  expect("형제 분기의 동명 변수를 끌어오지 않는다(오탐 방지)",
+    runSplit(
+      `await sb.from("other").select("id");\n` +
+      `if (a) {\n  const payload = { ghost_col: "u" };\n  console.log(payload);\n` +
+      `} else {\n  const payload = { response_text_raw: "y" };\n` +
+      `  await sb.from("__t").insert(payload);\n}`
+    ), []);
+
+  // 평범한 재대입(`payload = {...}`)도 동적 변형이다 — 예전엔 `payload.x =` 만 봤다.
+  expect("선언 후 통째 재대입이 있으면 건너뛴다",
+    runSplit(
+      `let payload = { ghost_col: "u" };\nconsole.log(payload);\n` +
+      `payload = { response_text_raw: "y" };\n` +
+      `await sb.from("__t").insert(payload);`
     ), []);
 
   expect("중첩 객체(jsonb) 안쪽 키는 컬럼이 아니다",

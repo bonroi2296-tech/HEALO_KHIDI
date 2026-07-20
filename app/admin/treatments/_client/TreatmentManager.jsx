@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Plus, Trash2, Loader2, Save, Info, ChevronLeft, Shield, Activity, Clock, AlertTriangle, Image, DollarSign, X, ExternalLink } from 'lucide-react';
+import { Plus, Trash2, Loader2, Save, Info, ChevronLeft, Clock, AlertTriangle, ExternalLink } from 'lucide-react';
 import { TranslationPanel } from '../../_shared/TranslationPanel';
 
 export const TreatmentManager = ({

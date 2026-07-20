@@ -10,13 +10,15 @@ import { NextRequest } from "next/server";
 import { supabaseAdmin, assertSupabaseEnv } from "@/lib/rag/supabaseAdmin";
 import { requireAdminAuth } from "@/lib/auth/requireAdminAuth";
 
+// 실DB `rag_documents` 에 있는 컬럼만. `verified_at`·`verified_by` 는 실재하지 않는데
+// 허용목록에 있어서, 그 필드를 담은 PATCH 가 오면 **update 전체가 실패**해 같이 보낸
+// `trust_tier` 까지 날아갔다(#103 부류, 독립 리뷰 2차 지적 — 실측: information_schema 확인).
+// 허용목록 루프는 계산된 키라 축 D 가드의 사각이다. 목록을 늘릴 땐 실컬럼인지 직접 확인할 것.
 const ALLOWED_FIELDS = [
   "trust_tier",
   "source_label",
   "source_url",
   "expires_at",
-  "verified_at",
-  "verified_by",
 ] as const;
 
 function isValidUrl(s: string): boolean {
@@ -71,17 +73,6 @@ export async function PATCH(
           const d = new Date(body[key]);
           if (isNaN(d.getTime())) {
             errors.push("expires_at must be a valid ISO datetime or null");
-            continue;
-          }
-          update[key] = d.toISOString();
-        }
-      } else if (key === "verified_at") {
-        if (body[key] === null) {
-          update[key] = null;
-        } else {
-          const d = new Date(body[key]);
-          if (isNaN(d.getTime())) {
-            errors.push("verified_at must be a valid ISO datetime or null");
             continue;
           }
           update[key] = d.toISOString();
