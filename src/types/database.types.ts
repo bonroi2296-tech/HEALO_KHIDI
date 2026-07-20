@@ -1114,7 +1114,7 @@ export type Database = {
         Row: {
           created_at: string | null
           id: string
-          message: string
+          message: string | null
           message_encrypted: string | null
           sender_id: string | null
           sender_role: string | null
@@ -1125,7 +1125,7 @@ export type Database = {
         Insert: {
           created_at?: string | null
           id?: string
-          message: string
+          message: string | null
           message_encrypted?: string | null
           sender_id?: string | null
           sender_role?: string | null
@@ -1301,10 +1301,10 @@ export type Database = {
           id: string
           session_id: string | null
           source_lang: string
-          source_text: string
+          source_text: string | null
           source_text_encrypted: string | null
           target_lang: string
-          translated_text: string
+          translated_text: string | null
           translated_text_encrypted: string | null
         }
         Insert: {
@@ -1313,10 +1313,10 @@ export type Database = {
           id?: string
           session_id?: string | null
           source_lang: string
-          source_text: string
+          source_text: string | null
           source_text_encrypted?: string | null
           target_lang: string
-          translated_text: string
+          translated_text: string | null
           translated_text_encrypted?: string | null
         }
         Update: {
