@@ -279,6 +279,7 @@ function LeadDetailSheet({ lead, onClose, onUpdateStatus }) {
   // 원격협진 가능 시간 슬롯 — datetime-local 값
   const [slots, setSlots] = useState([]);
   const [saving, setSaving] = useState(false);
+  const [showChat, setShowChat] = useState(false); // 코디와 대화 드로어
 
   useEffect(() => {
     let alive = true;
@@ -339,10 +340,19 @@ function LeadDetailSheet({ lead, onClose, onUpdateStatus }) {
               {sc.label}
             </span>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg transition">
-            <X size={18} />
-          </button>
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={() => setShowChat(true)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-sky-600 text-white hover:bg-sky-700 transition"
+            >
+              <MessageSquare size={14} /> 코디와 대화
+            </button>
+            <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg transition">
+              <X size={18} />
+            </button>
+          </div>
         </div>
+        {showChat && <HospitalChatDrawer leadId={lead.id} onClose={() => setShowChat(false)} />}
 
         <div className="p-5 space-y-5">
           {/* 임상 정보 — 견적·치료가능 판단 근거 */}
@@ -493,6 +503,107 @@ function LeadDetailSheet({ lead, onClose, onUpdateStatus }) {
               </div>
             </div>
           )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// 병원 ↔ 코디 대화 드로어 (2026-07-15). /api/hospital/leads/[id]/messages 사용. 병원은 한국어라
+// 번역 없음. 8초 폴링. 코디는 /coordinator/messages 콘솔에서 같은 스레드를 봄(channel='hospital').
+function HospitalChatDrawer({ leadId, onClose }) {
+  const [messages, setMessages] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [text, setText] = useState("");
+  const [sending, setSending] = useState(false);
+
+  const load = useCallback(async () => {
+    try {
+      const res = await fetchWithAuth(`/api/hospital/leads/${leadId}/messages`);
+      const data = await res.json();
+      if (data.ok) setMessages(data.messages || []);
+    } catch {
+      /* 폴링 실패는 조용히 무시 */
+    }
+    setLoading(false);
+  }, [leadId]);
+
+  useEffect(() => {
+    load();
+    const t = setInterval(load, 8000);
+    return () => clearInterval(t);
+  }, [load]);
+
+  const send = async () => {
+    const t = text.trim();
+    if (!t || sending) return;
+    setSending(true);
+    try {
+      const res = await fetchWithAuth(`/api/hospital/leads/${leadId}/messages`, {
+        method: "POST",
+        body: JSON.stringify({ text: t }),
+      });
+      const data = await res.json();
+      if (data.ok) { setText(""); await load(); }
+      else alert("전송 실패: " + (data.error || ""));
+    } catch {
+      alert("전송 중 오류가 발생했습니다.");
+    } finally {
+      setSending(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-[60] flex justify-end">
+      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
+      <div className="relative bg-white w-full sm:max-w-md h-full flex flex-col shadow-2xl">
+        <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+          <h3 className="text-base font-bold text-gray-900 flex items-center gap-2">
+            <MessageSquare size={18} className="text-sky-600" /> 코디네이터와 대화
+          </h3>
+          <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg transition">
+            <X size={18} />
+          </button>
+        </div>
+        <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50">
+          {loading ? (
+            <div className="flex items-center justify-center py-10 text-gray-400">
+              <Loader2 size={20} className="animate-spin" />
+            </div>
+          ) : messages.length === 0 ? (
+            <p className="text-center text-sm text-gray-400 py-10">
+              아직 대화가 없습니다. 코디네이터에게 궁금한 점·추가 서류 요청 등을 남겨보세요.
+            </p>
+          ) : (
+            messages.map((m) => {
+              const mine = m.actor_type === "hospital";
+              return (
+                <div key={m.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
+                  <div className={`max-w-[80%] rounded-xl px-3.5 py-2 text-sm whitespace-pre-wrap break-words ${mine ? "bg-sky-600 text-white" : "border border-gray-200 bg-white text-gray-800"}`}>
+                    {!mine && <div className="text-[10px] text-gray-400 mb-0.5">코디네이터</div>}
+                    {m.message_text}
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+        <div className="p-3 border-t border-gray-100 flex items-end gap-2">
+          <textarea
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }}
+            rows={2}
+            placeholder="코디에게 메시지…"
+            className="flex-1 resize-none border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-sky-500"
+          />
+          <button
+            onClick={send}
+            disabled={sending || !text.trim()}
+            className="p-2.5 rounded-lg bg-sky-600 text-white hover:bg-sky-700 disabled:opacity-40 transition"
+          >
+            {sending ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
+          </button>
         </div>
       </div>
     </div>

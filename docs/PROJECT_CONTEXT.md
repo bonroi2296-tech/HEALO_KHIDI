@@ -7,86 +7,96 @@
 
 ---
 
-## 🔖 세션 핸드오프 (2026-07-16 — 실환자 SOP + 보험 GOP + ⭐계약·동의 세트·KHIDI공식본·이대 실제 협약서·병원계약 서류 체크리스트)
+## 🔖 세션 핸드오프 (2026-07-16 — "카자흐서 healwith 검색 안 됨" 원인 규명 + 브랜드 엔티티 강화 #796·798·799·801)
 
-**1. 이번 세션 한 일** (전부 PR [#776](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/776) draft, 문서만·실서비스 무관. `coo/04-operations/PATIENT_JOURNEY_SOP.md` **v0.5.1**)
-- **실환자 여정 4단계 SOP** + **§6 "삐끗할 때·안전" 10개**(응급·수용판정·보증금·국외이전동의·할랄·지연·컴플레인·KHIDI증빙·1인백업·**§6.10 보험 GOP**) + 대표원장님 미팅 문서 프레임(§4 면력 담당자 8창구).
-- **`의료용어집_러한_v0.md`**(코디 통역 시드) + **`보험사_미팅_질문체크리스트.md` v0.1**(완곡 질문 6축) + **`scripts/md2docx.cjs`**(md→한글워드 변환기).
-- ⭐ **계약·동의 문서 세트(최우선, §0 뒤 앞단)** 신설(PO "0번"): KHIDI 공식 유치문서 아카이브로 확정 — 표준계약서=**강남구 표준협약서(2014·유치업자↔병원)**·**공정위 표준약관 없음**·유치계약 **2갈래**(유치협약 우리↔병원 / 진료동의 환자↔병원, "환자↔유치업자 별도계약 없음").
-- **이대 실제 「의료서비스 협약서」(2026) 확보·분석** → 우리 모델 실물검증(환자직접결제 7.2·을 서면GOP 7.4·수수료는 완납/보험지불 후 8.2·통역숙박 별개 2.3·의료사고 병원책임 12.1·이중과금금지 8.6). 이대 수수료 목동15/서울20→상급종합시15, 정산 청구 익월5일→지급 익월말일 무이자.
-- **병원 계약 체결 서류 체크리스트**(이대 MOU 검토): 5종+체결前 3대확인(개인사업자 "대표"문구·유효기간·명의4개 일치) + 대표 연락처 국제형식(+82-10 확실/070 미확인).
+> PO 질문 하나("카자흐스탄에서 구글에 healwith 검색하면 안 나온다 원인 파악해봐")로 시작 → **버그 아님**을 실측으로 규명하고, 코드로 고칠 수 있는 유일한 축(브랜드 구별)만 손봄. **이 세션에서 어시가 오류 2건을 냈고 둘 다 어시가 아니라 독립 리뷰·PO가 잡음**(4번 함정 필독).
+
+**1. 이번 세션 한 일** (PR 4건 전부 머지·실서비스 배포·라이브 실측 확인)
+- **원인 규명(핵심 산출물)**: `healwith`가 카자흐 구글에 안 뜨는 건 **버그가 아니다.** 실측 = 구글 색인 정상(`site:healwith.co.kr` 수십 페이지), robots·sitemap(47 URL)·hreflang·canonical 정상, **noindex 없음**. 진짜 원인 3개 → ①**"healwith" 이름을 동명 선점자 다수 보유**(healwith.com 홍콩 병원예약 플랫폼·아제르바이잔 AI 스타트업·팟캐스트 등이 구글 1페이지 점유) ②**새 도메인**(컷오버 2026-06-22, 4주차라 권위 낮음) ③**`.co.kr` = 구글이 "한국 전용"으로 지역타겟** → 한국 구글은 가산점(그래서 **한국선 뜸**), google.kz는 감점(**카자흐선 안 뜸**). ③은 서치콘솔에서 **국가 변경 불가**(ccTLD는 잠김) = 설정으로 못 고침.
+- **#796 브랜드 엔티티 강화(머지·배포)** — `app/layout.jsx` Organization JSON-LD에 **`sameAs`(공식 인스타 `@healwith.kz` + 페이스북 id=61590609467130)** + `description`·`areaServed`(한/카/러)·`@id`·로고 512px. 두 계정 실존 확인 후 심음.
+- **#798 구조화데이터 그래프 통합(머지·배포)** — `ORG_ID`/`WEBSITE_ID`(`src/lib/seo/structuredData.js` export)로 홈 `MedicalBusiness`·`careJourneyLd`·`insuranceGuideLd` publisher·`websiteLd`를 layout 엔티티에 `@id` 병합. 가드 테스트 2건 추가(3→5).
+- **#799 반성문 POSTMORTEMS #96** — 어시가 낸 사고 기록(4번 참고).
+- **#801 「카자흐=얀덱스」오해 정정(머지)** — `검색노출_PO가이드.md` 3곳 + `YANDEX_SEO_SETUP.md` 범위 한정. **PO 지적으로 발견.**
+- 문서 정정: `검색노출_PO가이드.md`의 **"healwith는 경쟁 없는 고유명 → 색인만 되면 1등"이 사실과 달라 정정**(선점자 존재).
 
 **2. 왜 그렇게 했는지**
-- 케어경로 **케바케 유연**(면력 앵커+4갈래) / 대학병원 **현행 유지**(포털은 나중) / 대표님 **미팅 문서화**(별도 요청서 대신 SOP 같이 보며 교정).
-- **보험사 GOP 리스크(§6.10) = PO 반론 4회 거쳐 현실화**: ①"미지급 시 환자 전액부담"은 비현실(귀국 후 수금 불가) ②"수술 쪼개 단계청구"는 불가(암 수술 1회) ③**글로벌 탑클래스 보험사도 떼먹음 — 이대 억 단위·아산 십억 단위 미수**(대형병원도 못 막음) ④선입금은 "요구" 아닌 **완곡한 질문**으로. → 결론: **리스크 제거 불가 → "떼여도 안 죽는 구조"**: 우리는 지불보증 안 함(면책)·저위험 "필터" 역할, 큰돈은 치료 전 선입금/에스크로, 초기 **면력 중심 저위험**부터, 사전승인·서류로 부분지급 방어, 손절.
+- 원인 3개 중 **②③은 시간·백링크의 영역이라 코드로 못 고친다.** ①(동명이인 구별)만 구조화데이터로 직접 개선 가능 → 거기만 손댔다. 과잉 대응(도메인 변경 등) 안 함.
+- **#798이 필요했던 이유**: #796으로 `sameAs`를 심었지만 layout의 Organization에만 있고 홈의 `MedicalBusiness`(제휴병원망 보유)는 `@id`가 없어 **구글이 "SNS 있는 healwith"와 "병원망 가진 healwith"를 다른 회사로 읽었다** → 브랜드 신호가 안 합쳐짐. `@id`로 같은 실체 선언 = 신호 병합.
+- **화면 변화 0** 원칙 유지 — 전부 검색엔진 전용 `<script type="application/ld+json">`.
 
-**3. 안 끝났거나 보류 / PO가 채울 칸**
-- 🔴 면력 담당자 8창구 지정(대표님 미팅) · 항공숙소 주체 · 보험 수수료 회수경로 · 리드타임/SLA · 응급 당직연락 · 수용/거절 기준 · 할랄 대응범위.
-- 🔴 **이대서울 IPD 정산·클레임 프로세스·GOP 체크리스트 확보**(미팅 후속) → 보험사 계약 정산조항(`docs/marketing/*-agreement-draft.md`)에 반영.
-- 🟡 본로이 실무인력(코디 명단·캐파) · 번역 QA 주체 · 주력 유입경로 — 전부 "아직 미정"으로 PO가 남김.
-- 🔴 **계약 후속**: 대학병원 협진 전용 계약 초안(표준 없음·유일 신규) · 통역사·코디 NDA 양식 · `hospital-commission-agreement-draft.md` ↔ 이대본/강남구 표준협약서 조문 대조·보강 · 등록증(~2029-03-10)·SGI보증보험(~2027-02-26) **유효기간 실확인**(02·04 PDF 필요, 현재 우리 기록 추정) · 협약서 "대표이사"→"대표(개인사업자)" 교정 · 070 국제착신 해외 테스트콜.
+**3. 안 끝났거나 보류**
+- **구글 비즈니스 프로필 등록 완료**(PO 2026-07-17 직접 등록) — 이름 `healwith`/의료 그룹, 주소 서울 강서구 강서로 385 613호, **웹사이트 `healwith.co.kr` 연결 확인(PO)**. 🟡 현재 **"공개되지 않음" = 구글 인증(verify) 심사 중(최대 5일)** → 공개되면 지도·검색 노출. **남은 일: 공개 후 프로필 URL을 받아 `app/layout.jsx` sameAs 배열에 한 줄 추가하면 끝**(구글 자기 서비스라 브랜드 구별 신호가 제일 셈 + 카자흐가 구글 주무대라 지금 가장 값나가는 한 방).
+- **카자흐 노출 액션카드 (a)(b)는 PO·시간의 영역** — ⓐ광고·명함·WhatsApp·에이전시 소개에 `healwith` 대신 **`healwith.co.kr` 주소 통째로** 안내(PO가 문구만 바꾸면 끝) ⓑ**백링크**(카자흐 에이전시·디렉토리가 우리를 링크 = `.co.kr` 지역감점을 이기는 유일한 정공법, 파트너 확보하며 자연히).
+- (이전 세션 후속 미해결) **백업 5파일 → main 정식 PR 반영**(`rescue/local-uncommitted-20260716`). 이번 세션은 안 건드림.
 
-**4. 주의·함정**
-- 문서 = **PO 교정 대기(실환자 前 가설)**. 🔴=미지정/🟡=내 가정 — "확정"으로 오독 금지.
-- ⚠️ **이 브랜치는 main과 diverge** — main에 그새 #785(PO취향 원장 슬림화 117→84)·#787(계층별 백오피스) 머지됨. **PR #776 머지 시 주의**: ①`PO_PREFERENCES.md`는 **main의 슬림화(84건)를 base로, 이 브랜치의 신규 취향 2건(현실론 선호·파일전달 구분)만 얹어라 — 옛 full(117) 복원 금지.** ②`PROJECT_CONTEXT.md`는 블록 다 살리고 순서만(이 07-16 블록 + main의 07-16 백오피스 블록). (이번 세션은 문서 SoR 파일 충돌 회피 위해 main 병합 안 하고 브랜치에만 기록.)
-- 이대 협약서 원본·MOU 서류(01~05)는 이대 계좌·서명 포함 → **깃 미보관(PO PC 레퍼런스)**, 핵심 조항만 SOP 반영.
-- `coo/`는 운영이 **`04-operations/`**(03은 privacy-data).
-- **hwpx 함정**: `kordoc`(npx -y kordoc)은 파싱·`fill`(양식 빈칸 채우기) 전용 — **자유문서 md→hwpx 생성 기능 없음.** 자유문서 hwpx화 = **docx로 뽑아 한글에서 '다른이름저장→hwpx'**. docx생성 = `docx` npm(`--no-save`) + `scripts/md2docx.cjs`를 `NODE_PATH=<repo>/node_modules`로 실행.
-- **⚠️ 원격 클라우드 세션 = PO PC에 직접 파일 못 씀.** 파일 전달은 **SendUserFile→PO가 다운로드**가 유일(그게 곧 PO PC 저장). git 저장은 백업일 뿐. **PO가 이 둘을 헷갈려 함**(2026-07-15 실제 혼선). PO 로컬 세션이었다면 직접 저장됐을 것.
+**4. 주의·함정** ⚠️ **여기가 이 핸드오프의 핵심**
+- 🚫 **「카자흐=얀덱스」는 틀린 상식이다. 반복 금지.** **카자흐스탄 = Google 약 70% / Yandex 약 28%** → **카자흐 노출은 구글에서 푼다.** Yandex 주력은 **러시아**(66~73%). SoR = `docs/GROWTH_PLAN.md` §C · `docs/marketing/paid-ads-plan.md`(**둘 다 이미 이렇게 교정돼 있었는데 어시가 안 읽고 "러·카=얀덱스" 통념을 되풀이해 PO에게 잘못 추천함** → PO가 잡음). **러·카를 한 덩어리로 묶지 마라.**
+- ✅ **검색엔진 3사 등록은 2026-06-22에 PO가 이미 완료**(구글·얀덱스·네이버 소유권 인증 + sitemap 제출). **"등록하세요"라고 다시 추천하지 마라** — 남은 건 새 페이지 색인요청(GSC Request Indexing / Yandex `Переобход страниц`)뿐.
+- 🔥 **파일 통째 `cp` 금지 (POSTMORTEMS #96)** — 어시가 낡은 `rescue/` 브랜치의 `structuredData.js`를 main 위에 `cp`로 덮어써, **2026-07-14 #746(PO 직접 지시)이 지운 죽은 `/search` SearchAction이 부활**했다(없는 검색 기능을 구글에 광고하는 상태). **CI·빌드·테스트·Vercel 전부 초록**이었고 어시는 그걸 "기능 보존"이라며 성과로 보고까지 함. **독립 리뷰 게이트만이 적발.** → 브랜치 간 변경 이전엔 반드시 `git checkout <base> -- <file>` 후 의도한 편집만 재적용. cp를 썼다면 `git diff <base>`의 `-` 라인을 전부 읽어라. **⚠️ 이 핸드오프를 쓰면서 같은 실수를 또 할 뻔했다** — 이 문서를 cp로 덮었으면 그새 머지된 #802(Zoho) 핸드오프가 통째로 소실될 뻔(직전 `git log origin/main`으로 발견해 origin/main 원본 위에 새 블록만 얹는 방식으로 회피). **핸드오프 쓰기 직전 `git fetch && git log origin/main -3`은 형식이 아니라 실제 안전장치다.**
+- ⚠️ **`@id` 병합 규칙(어기면 조용히 깨짐)**: `@id`를 쓰는 노드에 정체성(name·description·url·logo·areaServed)을 layout과 **다른 값**으로 재선언하지 마라 → 병합 후 회사 설명이 2개가 되거나 회사 url이 페이지주소로 오염. **정체성 단일 SoR = `app/layout.jsx`.** 가드 테스트 있음(`structuredData.test.ts`).
+- ⚠️ **배포 확인 마커는 "변경 후에만 참인 것"으로 걸어라** — 어시가 `@id...#organization` 존재로 폴링했는데 그건 #796이 이미 넣어둔 것이라 **0회 폴링으로 즉시 통과 = 거짓 초록**(배포 안 됐는데 "반영 확인"이라 보고). 변경 전에도 참인 조건은 아무것도 증명하지 않는다.
+- `gh pr merge --delete-branch` 후 로컬이 `rescue/` 브랜치로 되돌아가며 `main is already used by worktree` 에러가 뜬다 — **머지 자체는 성공**한 것이니 놀라지 마라(이 폴더는 main checkout 불가).
 
 **5. 다음 세션이 먼저 할 일**
-1. ⚠️ **직전 미검증분**: 등록증·SGI보증보험 유효기간 실확인(PO가 02·04 PDF 붙여주면) · SOP·체크리스트 실무 정합은 실환자·실미팅 前이라 첫 환자/미팅 결과로만 확정.
-2. PO 지시 시 **계약 후속**(§3): 대학병원 협진 계약 초안 / hospital 초안 이대본 대조 보강 / 코디·통역 NDA.
-3. (승계) content-clip-sweep 야간 cron 첫 실행 결과 / 앱스토어 결제 여부.
+1. ⚠️ **직전 미검증분 먼저 확인**: 이번 변경의 **실제 효과(구글이 healwith를 동명이인과 구별하기 시작했는지)는 검증 못 했다** — 구글이 새 구조화데이터를 읽는 데 며칠~2주 걸려 원리적으로 지금은 확인 불가. → 며칠 뒤 **GSC 실적(Queries) + 시크릿창에서 google.kz `healwith` 검색**으로 순위 변화 확인. 기대치는 낮게(원인 3개 중 1개만 고침).
+2. **구글 비즈니스 프로필** — PO 2026-07-17 등록 완료, 구글 인증 심사 중(최대 5일). **공개되면(며칠 뒤 "내 비즈니스" 검색해 "공개되지 않음" 사라졌는지 확인) 프로필 URL을 받아 `app/layout.jsx` sameAs 배열에 한 줄 추가.** 카자흐=구글 주무대라 지금 가장 값나가는 한 방.
+3. (이전 세션 후속) 백업 5파일 중 살릴 것 정식 PR로 main 반영(PO 지정).
 
 **6. 검증 상태**
-- ✅ `npm run check:content` 통과(전 커밋). SOP·체크리스트·용어집·docx·상호링크 반영.
-- **PR/CI**: PR **#776 열림(draft)**, 문서만이라 Vercel 배포 생략(=정상). 다른 열린 PR은 타 세션 몫.
-- ⚠️ **미검증**: 문서 실무 정합(실환자·실미팅 前 — 설계상 검증 불가) / 러↔한 의료용어집은 **원어민+의료진 검수 前 실사용 금지**.
+- ✅ **PR 4건 전부 MERGED 확인(실측 `gh pr view`)**: #796(09:41)·#798(10:23)·#799(10:33)·#801(11:47). 이 세션 열린 PR 없음(이 핸드오프 제외). CI 전부 초록(`ci`·`Smoke Tests`·Vercel).
+- ✅ **프로덕션 라이브 실측**(healwith.co.kr에서 전 JSON-LD 노드를 `@id`로 묶어 병합 시뮬레이션): `#organization` = Organization+MedicalBusiness **단일 엔티티**, 속성에 `sameAs`+`department`(병원 8곳)+`medicalSpecialty` 공존, `description` **1개**(충돌 없음), 고아 노드 **0개**, 죽은 SearchAction **없음**.
+- ✅ **가드 테스트가 실제로 무는지 검증**: 결함 2건을 일부러 재주입 → 정확히 그 2개만 실패 → 복구. (독립 리뷰어도 별도로 재주입해 교차확인.)
+- ✅ vitest 5/5, `check:content` 통과, `next build --webpack` exit 0(독립 리뷰어 실행).
+- ✅ 독립 리뷰 게이트 2회 통과(#796 결함 0 / #798 결함 2건 지적 → 수정 후 재검증 "no collateral, no new defects"). 머지 전 예정 화상상담 0건 확인(회의 중 배포 금지 규칙).
+- ❌ **검증 못 함(원리적으로 불가)**: 구글 검색 순위·브랜드 구별의 **실제 효과**. 시간 필요 → 5번 1항으로 승격.
 
 **7. 다음 세션 첫 프롬프트**
-> docs/PROJECT_CONTEXT.md 최상단 읽어. coo/04-operations/PATIENT_JOURNEY_SOP.md(v0.5.1)의 「계약·동의 문서 세트」+실환자 SOP가 최신 작업이야(PR #776, PO 교정 대기). PO가 등록증·SGI보증보험 PDF 주면 유효기간 실확인, 대학병원 협진 계약·NDA·hospital 초안 이대본 대조를 지시하면 착수. ⚠️ 이 브랜치는 main과 diverge(§4 머지법 주의 — PO_PREFERENCES는 main 슬림화 84 base). 문서는 scripts/md2docx.cjs로 docx 뽑아 SendUserFile(다운로드=PO PC 저장). 그다음 content-clip-sweep 야간 cron·앱스토어 결제.
+> docs/PROJECT_CONTEXT.md 최상단 읽어. 2026-07-16 "카자흐서 healwith 검색 안 됨" = **버그 아님**으로 규명 끝(색인·robots·hreflang 전부 정상). 원인 3개 = ①동명 선점자(healwith.com 홍콩 등) ②새 도메인 4주차 ③**`.co.kr`이 구글에 "한국 전용"으로 잡혀 google.kz에선 감점**(설정 변경 불가). 코드로 되는 ①만 손봄 → 브랜드 엔티티 `sameAs`+그래프 통합 머지·배포·라이브 검증 완료(#796·798·801, 반성문 #96). 🚫 **「카자흐=얀덱스」는 틀렸다 — KZ=Google 70%, 얀덱스는 러시아용이고 3사 등록은 2026-06-22 PO가 이미 끝냄. 다시 등록 추천 금지.** 🔥 **파일 통째 `cp` 금지**(#96: PO가 지운 코드를 부활시켜 CI 전부 초록으로 통과, 독립 리뷰만 적발). 먼저 할 일 = ①며칠 지났으면 GSC Queries·시크릿창 google.kz로 효과 확인(기대치 낮게) ②PO에게 구글 비즈니스 프로필 주소 받아 `sameAs`에 추가(카자흐=구글 주무대라 제일 값나감) ③백업 5파일 PR(이전 세션 후속).
 
 ---
 
-## 🔖 세션 핸드오프 (2026-07-14 밤 — /hospitals 카드 잘림 수리 + 사이트 전역 '글자 잘림' 야간 가드 상설화 + 반성문 번호체계 수습)
+## 🔖 세션 핸드오프 (2026-07-16 밤 — Zoho 코디 메일계정 coordinator@ 신설: 코드 0, 순수 운영작업)
 
-**1. 이번 세션 한 일** — PR 3건 전부 머지·자동머지 규칙 준수(독립 리뷰 게이트 4라운드):
-- **[PR #752](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/752) 카드 잘림 수정**: PO 스크린샷 제보(/en/hospitals 의료진 카드 "Full Profile"→"Fu…" 절단) → 원인 = DoctorCard `flex-1`에 `min-w-0` 누락(truncate 자식이 카드 폭을 밀어냄 → overflow-hidden 절단, 영어가 최장이라 /en 최심). 한 단어 수정 + `e2e/hospitals-list.spec.ts`에 @smoke 넘침 0px 가드. **프로덕션 실측 완료**(카드 28개 넘침 0px, 데스크톱+모바일). 반성문 #89.
-- **[PR #753](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/753) 반성문 번호 사고 수습**: #89를 #66으로 중복 발번한 실수(최신 번호는 파일 '상단' — tail로 보면 옛 번호) → 재발번 + 사고 자체를 #90 기록 + `check:content` **§20**(번호 새 중복 CI 차단 — 자가검증: 과거 충돌 13쌍 적발 확인 후 12쌍 허용목록). **과거 충돌 12쌍(#31·32·39·42·55~62)은 KNOWN_ISSUES 등재**(전면 재번호는 🔁 참조 깨는 대수술 — /doc-health 몫).
-- **[PR #756](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/756) 사이트 전역 잘림 가드**: PO "다른 페이지는?" → 공개 페이지 전수(사이트맵 19템플릿 × PC/모바일 = 38회) 실측 스캔 = **추가 잘림 0건**(히어로 장식·지도 내부·폰트 프로브·캐러셀·sr-only 전부 의도 패턴 판독). 스캐너를 `e2e/content-clip-sweep.spec.ts`로 상설화 — 야간 프로덕션 cron + main push Full E2E에서 "읽을 텍스트가 클리핑/뷰포트 경계에 잘리면 실패"(PR 게이트 제외).
+> **코드 변경 없음(docs-only).** 이 세션은 전부 **Zoho Mail 관리콘솔 브라우저 작업**(PO 크롬을 어시가 대신 조작). 저장소 기능과 무관하니 코드 쪽 기대하고 읽지 마라. 얻은 건 **역할 메일주소 1개 + Zoho 함정 2개 학습**.
+
+**1. 이번 세션 한 일**
+- **`coordinator@healwith.co.kr` 신설 완료** — Zoho 사용자 3번째. 표시이름 "Healwith Coordinator"(이름=Healwith/성=Coordinator), 역할=사용자, 5GB, 첫 로그인 시 비번변경 강제 ☑. **로그인ID·기준주소·표시이름이 전부 coordinator@로 깔끔**(관리콘솔 개인정보 헤더 실측).
+- **`assel@healwith.co.kr` 원상복구** — 중간에 어시가 붙였던 coordinator@ 별칭·사서함주소 변경을 **전부 되돌림**(현재 assel@ 단독 = 손대기 전 상태). Assel Almukhanova 개인 계정으로 그대로 유지.
+- **잘못 만든 `healwith.coordinator@` 삭제** — 아래 4번 함정으로 오생성된 계정. PO가 직접 삭제(어시는 재인증 못 해 실패).
+- **기억파일 2개 갱신** — 신규 `zoho-admin-gotchas`(함정 2개), `zoho-bounce-diagnosis`(계정 2개→3개 현황 정정).
+- 최종 Zoho 계정 3개: `admin@`(최고관리자) / `assel@`(코디 개인) / `coordinator@`(역할계정).
 
 **2. 왜 그렇게 했는지**
-- /hospitals는 PO 제보 수정만 4번째(#565·#660·#663·이번) — 공통 원인이 "시각 회귀 무검사"라 페이지 가드로 안 끝내고 **사이트 전역 가드**까지 올림(오류는 기계가 잡는다 원칙).
-- 가드는 만들 때마다 **"버그를 일부러 심어 적발되는지"로 유효성 검증**(카드 min-w-0 재제거 → 17~70건 적발, 상자/ink 카나리 적발, 스크롤 표 래퍼 음성 0건). "가드 있음"과 "가드 작동함"은 다르다.
-- 독립 리뷰 게이트가 실결함 3건을 연속 적발(§20 허용목록 3회째 통과 구멍 / 뷰포트 경계 사각 / 스크롤 설계 영역 오인) — 전부 수정·재검증 후 머지. 게이트 가치 실증 사례.
+- PO 원래 요구는 "assel@를 coordinator@로 **개명**". 개명 시도했으나 Zoho가 **기준 로그인주소(canonical)를 인플레이스로 못 바꾸게** 함(4번) → **"assel@ 남기고 coordinator@ 별도 신설"** 로 PO가 방향 전환.
+- 이게 **더 나은 구조**라 그대로 감: 역할주소가 사람(Assel)과 분리 → **담당자 바뀌어도 주소가 안 죽음**. assel@는 실제 쓰는 사람(2일 전 로그인 이력)이라 지우지 않음.
+- **어시가 비번을 안 침**(고정 규칙). PO가 채팅에 비번을 줬어도 거절하고 PO가 직접 입력 → 그래서 계정 생성·삭제의 마지막 클릭은 PO 몫이었음. **첫 로그인 시 비번변경 강제 ☑를 켜둔 이유**: 채팅에 남은 비번을 첫 로그인 때 자동 무효화시키려고.
 
 **3. 안 끝났거나 보류**
-- **백오피스(로그인 뒤편) 잘림 미스캔** — 로컬 로그인 자동화 불가(기존 확인). 확장하려면 nightly의 E2E 계정(secrets)으로 로그인 후 스캔하는 별도 스펙 필요 — 공개 페이지보다 저위험이라 보류.
-- ru/kz 언어 변형은 스캔 제외(시간 3배, 영어 = 최장 텍스트 = 최악 케이스). 러시아어 긴 단어의 word-break 부류는 이 가드 표적 밖.
-- 반성문 과거 충돌 12쌍 정리 — `/doc-health` 주간 검진에서 참조까지 일괄 교정 검토.
+- **coordinator@ 실제 송수신 테스트 안 함** — 메일 한 통 안 쏴봄(아래 6번). PO가 폰에서 보내보면 끝나는 2분짜리.
+- **첫 로그인 안 함** — 로그인 이력 0. PO가 첫 로그인하면 비번변경 프롬프트 뜰 것.
+- **HEALO 앱 쪽 코디 계정과는 무관** — 이번 건은 **메일함만**. 앱 `/admin/staff`의 role=coordinator 계정 발급은 별개이며 이 세션은 손 안 댔음(PO가 요청 안 함). 헷갈리지 마라.
 
-**4. 주의·함정**
-- **(2026-07-15 중간저장 2, 화상상담 세션)** 7/14 실회의 후속 전부 진행: **머지·배포 = [#765](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/765)**(권한차단 상주배너·퇴장시각 left_at·네트워크 팁·비콘 위생) + **[#769](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/769)**(오류 폭증 시 직원 종 경보 — 실서버 9발 발사로 "8발째 경보 1회·쿨다운" 검증 완료, 안전망 ③). **PO 프리뷰 확인 대기 = [#767](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/767)**(모바일 입장폼·갤러리 폭·뒤로가기·이중접속 정지 — 두 탭 뺏기는 프리뷰 실험으로 재현·검증). 7/14 두탭 사건 재해석: 공유 기기 = **태블릿**(PO 확인, Moon 이름 탭 + Assel 탭). 남은 안전망: ①입장 전 자동점검 ②야간 로봇 통화(PO 승인, 착수 예정). #731 통역 대수술 실기기 테스트 여전히 대기.
-- **(2026-07-15 중간저장, 메일 한글깨짐 세션)** ①**Windows 콘솔에서 한글 포함 API 테스트 금지** — 콘솔(CP949) 리터럴 한글 본문은 UTF-8 디코딩에서 U+FFFD로 파괴돼 DB·알림메일에 "���"로 박힘(테스트 문의 4건 실사고, 반성문 #92 — 이제 입력 라우트가 400 거부 + 검사기 §21). 본문은 UTF-8 파일 저장 후 `curl --data-binary @file` 또는 node 스크립트로. 가드 = [#768](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/768)(문의 4라우트) + 후속 [#770](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/770)(증상·소견·AI챗 5라우트 + 증상제출 무증상실패 수리 + 업로드 파일명 세척, PO 승인) — 둘 다 머지·프로덕션 실측 완료(깨진 본문→400 broken_encoding). ②**아래 "서비스 키 죽어있음" 메모는 오진** — 키는 살아있음(오늘 조회·PATCH 정상). 그때 401의 진짜 원인은 `.env.local` 값 끝에 붙은 **리터럴 `\n` 두 글자**: env 파일을 직접 파싱하는 스크립트는 이걸 벗겨야 함(Next.js dotenv는 자동 처리라 앱은 무관).
-- **(2026-07-14 중간저장, 화상상담 세션)** 실회의(카자흐 파트너, 한→러 통역 112건 실작동) 로그 분석으로 결함 3종 수리: 인앱 「브라우저에서 열기」 무반응 함정(#760 머지·배포), 권한차단 안내 상주 배너화 + 퇴장시각(left_at) webhook 기록(후속 PR). ~~로컬 `.env.local`의 SUPABASE_SERVICE_ROLE_KEY 는 **회전돼 죽어있음**(REST 401) — 로컬 DB 스크립트 짜기 전에 키부터 갱신할 것.~~ (2026-07-15 정정: 키 정상 — 위 ② 참고)
-- **반성문 다음 번호는 반드시 파일 '상단'에서 확인**(최신이 위에 쌓임 — tail/아래쪽은 항상 낮은 옛 번호). 새 중복은 §20이 CI에서 잡아줌. 현재 최신 = #91(타 세션).
-- `content-clip-sweep`는 **retries 0 + 스캔률 80% 게이트** — 야간 빨간불이면 ①진짜 잘림 ②프로덕션 접근 장애 둘 중 하나(형해화 방지 설계). goto 타임아웃은 프로덕션 15초/로컬 dev 30초 분기.
-- **E2E·문서만 바꾼 머지는 Vercel이 빌드 생략**("Canceled by Ignored Build Step" = 정상, 배포 실패 아님).
-- 임시 워크트리용 launch.json 항목은 로컬 전용(git 미추적) — 이번 세션 것들은 정리 완료.
+**4. 주의·함정** (⭐ 다음 세션이 같은 데서 또 헤맴 방지 — 상세는 기억파일 `zoho-admin-gotchas`)
+- ⭐ **Zoho 민감작업은 관리자 비번 재인증 요구 → 어시가 대신 못 함.** 계정 삭제·로그인 기준주소(별표) 변경을 누르면 **버튼이 무한 스피너로 멈추고** 에러 토스트만 뜸("Unable to complete re-authorization. Please try again."). **실패 이유가 화면에 안 떠서 "Zoho 제한"으로 오진하기 쉬움** — 실제론 재인증 문제. 이런 건 **PO가 직접**. (계정 *생성*은 PO가 비번 치니 통과.)
+- ⭐ **사용자 추가 폼: 사용자이름이 `이름.성`으로 조용히 자동 덮어써짐.** 사용자이름(coordinator)을 먼저 넣고 이름/성을 나중에 넣었더니 → `healwith.coordinator`로 덮여 **엉뚱한 주소로 계정 생성됨**(실제 발생, 지우고 재작업). **이름/성 먼저 → 사용자이름 마지막**, 그리고 [추가] 직전 눈으로 재확인. 이름/성 칸을 다시 건드리면 또 덮어씀. 크롬이 새 암호 칸에 저장된 비번을 자동으로 채우기도 함(지우고 새로 칠 것).
+- **주소 2종 구분**: `사서함 주소`(메일 송수신 기본, 별칭 페이지서 교체 가능) vs `로그인 기준 주소`(계정 canonical, 사용자목록·개인정보에 뜨는 것)는 **별개**. 사서함 주소만 바꾸면 목록엔 여전히 옛 주소가 떠서 "안 바뀌었네?"로 착각함.
+- **assel@ 별칭 지우지 마라**: assel@는 그 계정의 로그인 ID다.
+- ⚠️ **(저장소 쪽 실사고) 공용 폴더 `HEALO_KHIDI`에서 이 핸드오프 쓰다 다른 병렬 세션이 자기 브랜치를 checkout 해 편집분이 통째로 날아감** — reflog 증거: `checkout: moving from docs/handoff-zoho-coordinator-20260716 to docs/fix-kz-yandex-misconception`. `git add`를 해둔 덕에 **dangling blob(`git fsck --lost-found`)에서 3파일 전부 복구**하고 **worktree(`HEALO_worktrees/handoff-zoho`)로 격리해 커밋**함. 교훈 = CLAUDE.md 병렬세션 규칙("공용 폴더 작업 금지, worktree 먼저")은 장식이 아니다. **공용 폴더에서 여러 파일 편집 중이면 수시로 `git add`** — 그래야 날아가도 blob으로 살린다.
 
 **5. 다음 세션이 먼저 할 일**
-1. ⚠️ **직전 미검증분 먼저 확인: `content-clip-sweep` 야간 cron 첫 실행 결과**(2026-07-15 새벽 4시 KST, Production Nightly E2E) — 수동 프로덕션 실행 3회는 통과했지만 cron 환경 실행은 미검증. 빨간불이면 리포트 아티팩트에서 잘림 목록/스캔률부터 판독.
-2. (앞선 블록 승계) 앱스토어 결제 여부 확인 → APNs 키·서명 3종·첫 빌드 (2026-07-14 저녁 블록 참고).
+1. ⚠️ **직전 미검증분 먼저 확인**: `coordinator@healwith.co.kr` **실제 송수신 + 첫 로그인** 확인(이 세션이 설정만 하고 실물 테스트 못 함). PO가 이미 했으면 넘어가라.
+2. (직전 세션에서 넘어온 것) 백업 5파일 중 살릴 것 정식 PR로 main 반영(PO 지정) — `rescue/local-uncommitted-20260716`.
 
 **6. 검증 상태**
-- ✅ PR #752·#753·#756 전부 **MERGED + CI 초록**(gh 실조회). check:content(§20 포함)·eslint 통과.
-- ✅ 프로덕션 실측: 카드 수정 반영(healwith.co.kr/en/hospitals 28카드 넘침 0px) + 전수 스캔 38회 잘림 0건 + 가드 유효성(양성 3경로 적발·음성 1경로 무반응) + 프로덕션 캘리브레이션 3회 통과(2.0~3.5분).
-- ⚠️ **미검증**: content-clip-sweep의 **야간 cron 환경 첫 실행**(위 5-1) / 로그인 뒤편 백오피스 잘림(위 3).
-- 열린 PR(2026-07-14 밤 실조회): #731·#729·#669·#514 — 전부 타 세션 것, 이 세션 몫 열린 PR 없음.
+- ✅ **coordinator@ 계정 생성**: 관리콘솔 개인정보 헤더가 `Healwith Coordinator (coordinator@healwith.co.kr)` 로 뜨는 것 **실측**(예전 assel@가 고집부리던 그 칸이 깔끔히 바뀜 = 이번엔 진짜 clean). 상태 활성·메일/캘린더/연락처 활성화됨·0B/5GB·생성 2026-07-16 18:41.
+- ✅ **assel@ 원상복구**: 별칭 페이지에 assel@ 단독 = 사서함 주소(실측). 어시가 붙인 흔적 0.
+- ✅ **잘못된 계정 삭제**: "삭제 성공" 토스트 + 사용자 목록 3개(healwith.coordinator@ 사라짐) 확인.
+- ❌ **실제 메일 송수신 미검증** — 테스트 메일 **안 보냄**. "설정상 될 것"이지 실물 확인 아님.
+- ❌ **첫 로그인 미검증** — 로그인 이력 0.
+- 코드·CI: **이 세션 코드 변경 0** → 빌드/`check:content` 해당 없음. 열린 PR: 이 핸드오프뿐(`docs/handoff-zoho-coordinator-20260716`).
 
 **7. 다음 세션 첫 프롬프트**
-> docs/PROJECT_CONTEXT.md 최상단 읽어. 어젯밤(2026-07-15 새벽 4시) 야간 프로덕션 E2E에서 새 잘림 스캔(content-clip-sweep)이 처음 돌았을 거야 — 그 결과부터 확인해(초록이면 종결, 빨간불이면 아티팩트 판독). 그다음 앱스토어 결제 여부 물어보고 저녁 블록 체크리스트대로 진행해.
+> docs/PROJECT_CONTEXT.md 최상단 읽어. 2026-07-16 밤 세션은 **코드 0, Zoho 메일 운영작업**이었다: 역할계정 `coordinator@healwith.co.kr` 신설 완료(로그인ID·기준주소 전부 깔끔, 관리콘솔 실측)·`assel@` 원상복구·오생성 계정 삭제. ⚠️ **미검증 2개 먼저**: coordinator@ 실제 송수신 + 첫 로그인(설정만 했고 메일 안 쏴봄) — PO가 이미 했으면 스킵. **Zoho 재작업 시 함정 2개 반드시 먼저 읽어라**(기억파일 `zoho-admin-gotchas`): ①삭제·로그인주소변경은 비번 재인증 요구라 어시가 못 함(무한 스피너로 멈춤 → "Zoho 제한"으로 오진 금지) ②사용자추가 폼은 `이름.성`으로 사용자이름을 덮어써서 엉뚱한 주소로 생성됨(이름/성 먼저→사용자이름 마지막). 앱 `/admin/staff` 코디 계정은 이번 건과 **무관**(메일함만 함).
 
 ---
 
@@ -104,13 +114,13 @@
 - **SEO** #547 BreadcrumbList·WebSite SearchAction 구조화데이터
 - **디자인/정리** #560·#561 활성 디자인 명칭 'legacy'→'기본 톤' 개명 · #539 죽은 premium 이메일 시스템 삭제
 
-**⚠️ 끝냈지만 미머지 — 다음 세션이 먼저 처리 (브랜치에만 있음, 안 잃게):**
+**✅ (완성도 감사 2026-07-15 종결) 아래 3건은 전부 main 머지 완료** — #562=`45e58f7c`·#567=`e83f9b50`·#545=`9a8dcb9c`. 문서만 "미머지"로 남아 있던 드리프트(#63 부류). 아래는 이력 보존용:
 1. **파트너 발굴 아웃리치 추적기** [PR #567 · 브랜치 `work/partner-outreach`] — 코디·어드민 백오피스 신규 기능(카자흐 직원 Assel이 파일 대신 백오피스에서 파트너 영업 추적). **완성 + 프로덕션 DB에 표 `partner_outreach`+시드 6곳 이미 적용.** 남은 것: ①프리뷰에서 화면 클릭 검증(후보추가·상태변경·탭필터·CRUD, 코디+어드민 둘 다) → 이상 없으면 **머지** ②Assel 계정에 코디네이터 권한 부여(`/admin/staff`). (큰 UI라 PO 눈으로 보고 머지하기로 했던 건)
 2. **초청장 발급주체 = 등록 유치의료기관(병원) 명의** [PR #562 · 브랜치 `claude/kazakhstan-keta-config-ko4g7b`] — `VisaInvitationLetter.jsx`+`inviterHospitals.ts` 완성, 미머지. (같은 세션의 비자 정정 #535·541·549·552는 이미 머지됨 — #562만 남음.)
 3. **이메일 수신률 문서** [PR #545 · 브랜치 `work/email-deliverability`] — `docs/EMAIL_DELIVERABILITY.md`(DMARC·콜드 아웃리치 플레이북). DMARC 감시 켜기·Google Postmaster 등록은 이미 실행(외부 완료). 문서라 CI 초록시 자동머지 대상.
 - (추가 열린 검증) #565 토글 "밀림"은 코드·배포 반영됐으나 **실브라우저 스크롤 동작만 미검증**(검증환경 헤드리스라 눈으로 못 봄) — 오전(2) 핸드오프 6번 참조.
 
-**🧹 정리해도 되는 브랜치(작업 이미 main에 반영 = squash 머지됨, 지워도 안전):** `claude/handoff-2026-07-01-am`·`handoff/admin-cleanup-0701`·`work/admin-backoffice`·`work/hospitals-roster-refresh`·`work/hospitals-toggle-ui`·`work/hospital-toggle-scroll-fix`·`claude/rescue-548-doctor-selfhost`·`claude/seo-audit-improvements`·`claude/inspiring-williamson-56fbfc`·`claude/patient-detail-i18n`·`claude/satisfaction-min-n-env`·`claude/fix-all-errors-sweep`·`claude/khidi-conversion-source-breakdown`·`claude/handoff-cancer-img-selfhost`. **남겨둘 것(미머지 작업 있음):** `work/partner-outreach`·`claude/kazakhstan-keta-config-ko4g7b`·`work/email-deliverability`.
+**🧹 정리해도 되는 브랜치(작업 이미 main에 반영 = squash 머지됨, 지워도 안전):** `claude/handoff-2026-07-01-am`·`handoff/admin-cleanup-0701`·`work/admin-backoffice`·`work/hospitals-roster-refresh`·`work/hospitals-toggle-ui`·`work/hospital-toggle-scroll-fix`·`claude/rescue-548-doctor-selfhost`·`claude/seo-audit-improvements`·`claude/inspiring-williamson-56fbfc`·`claude/patient-detail-i18n`·`claude/satisfaction-min-n-env`·`claude/fix-all-errors-sweep`·`claude/khidi-conversion-source-breakdown`·`claude/handoff-cancer-img-selfhost`. ~~**남겨둘 것(미머지 작업 있음):** `work/partner-outreach`·`claude/kazakhstan-keta-config-ko4g7b`·`work/email-deliverability`.~~ → 세 브랜치 모두 머지 완료(위 참조), 이제 정리해도 안전 (완성도 감사 2026-07-15).
 
 ---
 
@@ -125,8 +135,8 @@
   - `healo-khidi` (Vercel 프로젝트명·배포 URL·repo = 인프라), `components/healo/` (폴더 경로), 소문자 `healo`(예시 비번 `healo1234`·placeholder 이메일·기존 `healo.kr` URL)
   - **docs 내부 개발 히스토리 문서**: 과거 기록이라 본문 유지 (이 핸드오프 노트로 변경 사실만 명시).
 - **아직 남음 (TODO)**:
-  - **PNG 앱아이콘 재생성**: `public/icons/icon-*.png`·`apple-touch-icon.png`·`favicon-16/32.png` 가 옛 `H` 마크. 래스터라이저(rsvg/sharp) 환경에서 새 `favicon.svg`(소문자 h)로 재생성 필요.
-  - **도메인**: `healwith.co.kr` 등록 예정(후이즈) → 등록 후 `healo.kr`/`khidi.healo.kr` 구조화데이터 URL·OG·canonical 교체 + Vercel 도메인 연결.
+  - ~~PNG 앱아이콘 재생성~~ ✅ **완료**(2026-06-23 `943481c`, KNOWN_ISSUES:358 종결과 일치 — 완성도 감사 2026-07-15가 문서 간 모순 교정).
+  - ~~도메인 `healwith.co.kr` 등록~~ ✅ **완료**(2026-06-29 라이브 HTTP 200, LAUNCH_GATES 관문12 일치 — 완성도 감사 2026-07-15 교정).
   - **상표 출원**(Madrid) 별도 트랙.
   - Vercel 프로젝트명/배포 URL 변경은 인프라 마이그레이션이라 보류(현 `healo-khidi.vercel.app` 유지).
 - 계획·범위 상세: `docs/REBRAND_HEALWITH_PLAN.md`.

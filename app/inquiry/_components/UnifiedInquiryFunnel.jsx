@@ -404,6 +404,14 @@ const T = {
     zh: "拖动文件到此处或点击上传",
     ja: "ファイルをここにドラッグまたはクリックしてアップロード",
   },
+  uploadHint: {
+    ko: "PDF / JPG / PNG · 최대 10MB · 5개",
+    en: "PDF / JPG / PNG · max 10MB · 5 files",
+    ru: "PDF / JPG / PNG · макс. 10МБ · 5 файлов",
+    kz: "PDF / JPG / PNG · макс. 10МБ · 5 файл",
+    zh: "PDF / JPG / PNG · 最多10MB · 5个",
+    ja: "PDF / JPG / PNG · 最大10MB・5ファイル",
+  },
   travelTimingLabel: {
     ko: "입국 희망 기간", en: "Preferred Travel Window", ru: "Желаемые сроки поездки", kz: "Саяхат мерзімі", zh: "希望入境时间", ja: "希望渡航時期",
   },
@@ -943,7 +951,7 @@ export default function UnifiedInquiryFunnel() {
             >
               <UploadCloud size={24} className="mx-auto text-gray-400 mb-2" />
               <p className="text-xs text-gray-500">{tl("uploadDrop", lang)}</p>
-              <p className="text-[11px] text-gray-400 mt-1">PDF / JPG / PNG · 최대 10MB · 5개</p>
+              <p className="text-[11px] text-gray-400 mt-1">{tl("uploadHint", lang)}</p>
             </div>
             <input
               ref={fileInputRef}

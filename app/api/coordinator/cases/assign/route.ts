@@ -114,6 +114,18 @@ export async function POST(request: NextRequest) {
     const note = `병원 배정 (${targetIds.length}곳)`;
     await advanceCaseStatus(supabaseAdmin, inquiryId, "consultation", note, auth.userId);
 
+    // 파트너 알림(2026-07-15): 배정된 병원 담당자에게 '새 진료 의뢰' 종 알림(비-PII 요약: 암종·국적).
+    //   admin/leads/assign 과 대칭 배선 — 한 경로만 붙이면 #85 '반쪽' 재발.
+    try {
+      const { notifyHospitalNewLead } = await import("@/lib/notifications/inApp");
+      const summary = [inq.cancer_type, inq.nationality].filter(Boolean).join(" · ") || null;
+      await Promise.allSettled(
+        targetIds.map((hid) => notifyHospitalNewLead({ hospitalId: hid, summary }))
+      );
+    } catch {
+      /* fail-safe */
+    }
+
     return NextResponse.json({
       ok: true,
       normalized_inquiry_id: normalizedId,

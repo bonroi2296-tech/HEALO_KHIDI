@@ -75,8 +75,8 @@ export default function CoordinatorConsultationsPage() {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${session.access_token}`,
         },
-        // 재접속마다 1회 차감 → 끊김 잦은 모바일 환경 고려해 넉넉하게 (admin 과 동일)
-        body: JSON.stringify({ role: 'patient', expiresInHours: 72, maxUses: 20 }),
+        // 회수 제한 없음(만료 전까지 무제한, PO 2026-07-15) — 안전선은 72h 만료 (admin 과 동일)
+        body: JSON.stringify({ role: 'patient', expiresInHours: 72, maxUses: 0 }),
       });
       const result = await res.json();
       if (!res.ok || !result.ok) {

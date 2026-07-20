@@ -82,3 +82,36 @@
 .hw-pip-tile .lk-focus-toggle-button {
   display: none; /* 작은 창에선 포커스 토글 숨김 — 클릭(핀)으로 대체 */
 }
+
+/* ── 통화 컨트롤 바 배경: 뒤의 blur-fill 영상이 비쳐 버튼이 얼룩덜룩 어둡게 보이던 것 차단 ──
+   (2026-07-15 PO 제보: "language 버튼 위 음영") — 불투명 바 + 상단 경계선으로 영상과 분리 */
+.hw-controls {
+  position: relative;
+  z-index: 5;
+  background: rgb(31 41 55 / 0.96); /* gray-800 — 헤더와 동일 톤 */
+  border-top: 1px solid rgb(55 65 81); /* gray-700 */
+  padding: 8px 6px;
+  border-radius: 12px 12px 0 0;
+}
+
+/* ── 통화 컨트롤 바: 줌 문법 — 아이콘 위·라벨 아래(모바일 포함 항상), 꺼짐은 빨강 ──
+   (2026-07-15 PO 제보: 아이콘만으론 연령대 높은 사용자가 버튼 뜻을 못 알아봄) */
+.hw-controls .lk-button,
+.hw-ctrl-btn {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  min-width: 58px;
+  padding: 7px 10px;
+  font-size: 10px;
+  line-height: 1.1;
+}
+/* 마이크·카메라 꺼짐 = 빨간 배경(줌과 동일 신호). 화면공유는 '안 하는 중'이 기본이라 제외.
+   !important: LiveKit 기본 테마(.lk-button 배경)가 캐스케이드에서 이겨 색이 안 먹던 것(실측) 강제 */
+.hw-controls .lk-button[data-lk-source="microphone"][data-lk-enabled="false"],
+.hw-controls .lk-button[data-lk-source="camera"][data-lk-enabled="false"] {
+  background-color: rgb(185 28 28 / 0.9) !important;
+  color: #fff !important;
+}

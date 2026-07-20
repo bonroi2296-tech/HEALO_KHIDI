@@ -31,7 +31,7 @@ export interface GenerateGuestTokenParams {
   inviteeName?: string;
   inviteeEmail?: string;
   expiresAt?: Date;         // 기본: 24h 후
-  maxUses?: number;         // 기본: 1
+  maxUses?: number;         // 기본: 0 = 만료 전까지 무제한(회수 제한 없음, 2026-07-15 PO)
   createdBy?: string;       // admin user_id
 }
 
@@ -76,7 +76,7 @@ export async function generateGuestToken(
       invitee_email: params.inviteeEmail ?? null,
       created_by: params.createdBy ?? null,
       expires_at: expiresAt.toISOString(),
-      max_uses: params.maxUses ?? 1,
+      max_uses: params.maxUses ?? 0, // 0 = 무제한(만료 전까지) — 회수 제한 제거(PO 2026-07-15)
     })
     .select("id")
     .single();
@@ -151,7 +151,9 @@ export async function verifyAndConsumeGuestToken(
     return { valid: false, reason: "token_expired" };
   }
 
-  if (row.used_count >= row.max_uses) {
+  // max_uses<=0 = 무제한(만료 전까지). 회수 제한은 만료시각으로만 건다(줌 링크 방식, PO 2026-07-15).
+  // used_count 는 아래에서 계속 증가시켜 분석·audit 는 유지.
+  if (row.max_uses > 0 && row.used_count >= row.max_uses) {
     return { valid: false, reason: "max_uses_exceeded" };
   }
 

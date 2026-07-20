@@ -1,5 +1,13 @@
 # HEALO KHIDI — 알려진 이슈 / 전수 QA 발견사항
 
+## ✅ 2026-07-15 완성도 감사(컬럼레벨 schema-refs)가 잡은 없는-컬럼 select 2건 — 종결
+
+> 축 C 잔여로 `check:schema-refs`를 컬럼레벨 확장하다 발견 + 생성타입(`src/types/database.types.ts`)이 **stale**(inquiries 35 vs 실DB 61 컬럼)임을 발견해 재생성함. 아래는 재생성 후에도 남은 = **실제 없는 컬럼 참조**(DB 실측 대조 완료). 쿼리가 에러→try/catch 삼킴→화면 0/[]로 떨어지는 부류. **둘 다 같은 PR(#784)에서 수리 완료.**
+
+- ✅ **`src/lib/reminders/scheduleReminder.ts` — profiles 없는 컬럼 5개 select** → 등록사용자 상담 리마인더가 연락처를 조용히 못 얻던 무증상 실패. **수리**: 실컬럼(`id, full_name, role`)만 조회 + 이메일은 `auth.users`(서비스롤 `getUserById`) 조회 + 언어는 세션 값. 이메일 못 얻어도 `userId`로 **in_app 채널 리마인더는 발송**(총실패→최소 in_app 보장). 유형6 종결.
+- ✅ **`app/api/admin/crawl/jobs/[id]/items/route.ts` — crawl_raw_items.select("…name…")** → 실컬럼은 `title`. **수리**: `name:title` alias(응답 키 `name` 유지) + 검색 필터 `ilike("title")`.
+- 가드: 컬럼레벨 검사는 우선 **비차단(경고)** — 현재 경고 0. 안정 후 blocking 승격(DEFINITION_OF_DONE 로드맵). 새 없는-컬럼 select 는 이제 매 PR 경고로 뜸.
+
 ## 🟢 2026-07-14 POSTMORTEMS 반성문 번호 충돌 12쌍 (과거 발번 실수 누적 — 새 중복은 §20이 차단)
 
 > 반성문 #90 기록 중 발견. **#31·32·39·42·55~62 — 서로 다른 사건이 같은 번호를 공유**(아래로 append하던 시절과 위로 prepend하는 지금 시절이 각자 발번). 🔁 재발 추적·재발률 집계(grep 기반)가 이 12개 번호에선 두 사건을 겹쳐 볼 수 있음 — 조회 시 날짜로 구분.
@@ -85,7 +93,7 @@
 - 🟢 **성능 advisor 133건**(RLS auth 함수 행별 재평가 22·중복 permissive 정책 8·중복 인덱스 2쌍) — 전부 DDL이라 한가할 때 일괄, PO 확인 후.
 - 🟢 **vector 익스텐션 public 스키마**(security advisor WARN) — 재설치 필요라 RAG 재적재와 묶어 처리 권장.
 - 🟢 **레거시 /api/public/chat/message 라우트** — 동의 게이트·레드라인 기록은 이번에 이식했으나 프론트는 stream만 사용. 다음 정리 때 410 폐쇄 검토.
-- (화상영역 — 타 세션 인계) ~~LiveKit webhook room_finished 가 세션을 무조건 completed 처리(K-02 인플레 벡터)~~ ✅ **해결(2026-07-05 밤, #637)** — room_finished 는 status 미변경(staff 완료가 K-02 정본 경로), 자동완료가 재입장까지 막던 부작용(token·guest-join `consultation_closed`)도 함께 예방. **#642 회귀 테스트로 잠금**(room_finished/participant_joined DB 무변경, recording_finished 만 recording_url 저장). / ~~webhook URL 옛 도메인 healo-khidi.com~~ ✅ **해결(#637)** — 주석·EXTERNAL_SETUP_GUIDE 를 healwith.co.kr 로 교정 + `check:content` 에 `healo-khidi.com` 가드 룰 추가(MKT-08). ⚠️ **단 LiveKit 대시보드의 실제 webhook URL 교체는 PO 손 필요**(외부 설정 — 코드/주석만으론 이벤트 안 옴). / 게스트토큰 E2E 스펙 고정 실패(잔존) / 테스트 상담방 2개(50d5bc43…·aa9804ee…) 삭제 대기(PO 확인) / **consultation notes 평문(notes_encrypted 미사용) — 잔존, PII라 PO 확인 후 암호화**(visa/cost-estimates 라우트의 `encryptStringNullable`/`decryptStringNullable` 패턴 그대로 + 기존 평문 행 마이그레이션).
+- (화상영역 — 타 세션 인계) ~~LiveKit webhook room_finished 가 세션을 무조건 completed 처리(K-02 인플레 벡터)~~ ✅ **해결(2026-07-05 밤, #637)** — room_finished 는 status 미변경(staff 완료가 K-02 정본 경로), 자동완료가 재입장까지 막던 부작용(token·guest-join `consultation_closed`)도 함께 예방. **#642 회귀 테스트로 잠금**(room_finished/participant_joined DB 무변경, recording_finished 만 recording_url 저장). / ~~webhook URL 옛 도메인 healo-khidi.com~~ ✅ **해결(#637)** — 주석·EXTERNAL_SETUP_GUIDE 를 healwith.co.kr 로 교정 + `check:content` 에 `healo-khidi.com` 가드 룰 추가(MKT-08). ⚠️ **단 LiveKit 대시보드의 실제 webhook URL 교체는 PO 손 필요**(외부 설정 — 코드/주석만으론 이벤트 안 옴). / 게스트토큰 E2E 스펙 고정 실패(잔존) / 테스트 상담방 2개(50d5bc43…·aa9804ee…) 삭제 대기(PO 확인) / ~~consultation notes 평문(notes_encrypted 미사용)~~ ✅ **해결(완성도 감사 2026-07-15 발견·종결)** — 이미 AES-256-GCM 암호화 배선 완료: `src/lib/khidi/consultationNotes.ts`(`encryptSessionNotes`/`readSessionNotes`) 경유, `app/api/khidi/consultation/[id]/route.ts`가 `notes_encrypted` 저장 + 평문 `notes=null`, contract test로 잠금. (문서-현실 드리프트 #63 부류 — 고쳤는데 장부가 안 닫혀 있던 것.)
 - (화상 자막, 2026-07-05 밤 #637) ~~DataChannel 자막이 RELIABLE 의도인데 livekit-client v2 API 오용(`{kind:...}`)으로 LOSSY 전송 → 불안정 CIS 회선 자막 유실~~ ✅ **해결** — `{ reliable: true }` 로 수정(`useLiveKitDataChannel.js`).
 - (화상 1:1 레이아웃, #612 감성 백로그) 카메라 꺼짐 검은 박스 → 브랜드 teal 아바타 CSS 적용(#637, 육안 미검증). **잔존(PO 결정/라이브 검증 필요)**: 2인 데스크톱 반반분할 / 세로영상 blur-fill 배경(레이아웃 로직 — 라이브 2인 검증 필요, 자동검증 불가).
 

@@ -89,13 +89,15 @@ export async function POST(request: NextRequest) {
       .eq("id", inquiryId)
       .maybeSingle();
 
-    const existing = existingRaw as
-      | (typeof existingRaw & {
+    // 생성타입에서 intake(jsonb)는 Json(원시값 포함)이라 spread 가 안 됨 → 명시 타입으로 정리.
+    const existing = existingRaw as unknown as
+      | {
+          id: number;
           step1_completed_at?: string | null;
           public_token?: string | null;
           cancer_type?: string | null;
           intake?: Record<string, any> | null;
-        })
+        }
       | null;
 
     if (fetchErr || !existing) {

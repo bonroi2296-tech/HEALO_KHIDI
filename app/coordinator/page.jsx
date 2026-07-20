@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  ClipboardList, Video, Users, AlertTriangle,
+  ClipboardList, Video, AlertTriangle,
   Clock, CheckCircle, ArrowRight, TrendingUp,
 } from 'lucide-react';
 import { kstDateTime, kstDateParts } from '@/lib/datetime/kst';
@@ -68,7 +68,9 @@ export default function CoordinatorDashboard() {
         setStats({
           pendingIntakes: pendingInquiries,
           todayConsultations: todayOnes.length,
-          activePatients: consultations.filter(c => c.status === 'active').length,
+          // '예정 상담' = 앞으로 예정된(scheduled) 상담 전체. 예전엔 거의 안 쓰이는 status==='active'
+          // 를 세어 항상 0에 가깝던 죽은 지표였음(2026-07-15 위생 정리).
+          activePatients: scheduled.length,
           urgentAlerts: urgentCount,
         });
 
@@ -84,7 +86,7 @@ export default function CoordinatorDashboard() {
   const STAT_CARDS = [
     { label: L.statPendingIntakes, value: stats.pendingIntakes, icon: ClipboardList, color: 'bg-blue-50 text-blue-600', href: '/coordinator/inbox' },
     { label: L.statTodayConsult, value: stats.todayConsultations, icon: Video, color: 'bg-green-50 text-green-600', href: '/coordinator/consultations' },
-    { label: L.statActivePatients, value: stats.activePatients, icon: Users, color: 'bg-purple-50 text-purple-600', href: '/coordinator/cases' },
+    { label: L.statActivePatients, value: stats.activePatients, icon: Video, color: 'bg-purple-50 text-purple-600', href: '/coordinator/consultations' },
     { label: L.statUrgentAlerts, value: stats.urgentAlerts, icon: AlertTriangle, color: 'bg-red-50 text-red-600', href: '/coordinator/alerts' },
   ];
 
@@ -181,16 +183,6 @@ export default function CoordinatorDashboard() {
 
       {/* Quick Actions */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <button
-          onClick={() => router.push('/coordinator/intakes')}
-          className="flex items-center gap-3 p-4 bg-blue-50 rounded-xl hover:bg-blue-100 transition text-left"
-        >
-          <ClipboardList size={20} className="text-blue-600" />
-          <div>
-            <div className="font-semibold text-sm text-blue-900">{L.qaIntakeTitle}</div>
-            <div className="text-xs text-blue-600">{L.qaIntakeDesc}</div>
-          </div>
-        </button>
         <button
           onClick={() => router.push('/coordinator/consultations')}
           className="flex items-center gap-3 p-4 bg-green-50 rounded-xl hover:bg-green-100 transition text-left"

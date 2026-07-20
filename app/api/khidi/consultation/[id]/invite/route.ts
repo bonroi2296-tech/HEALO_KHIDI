@@ -63,16 +63,18 @@ export async function POST(
   }
 
   const expiresInHours = Number(body.expiresInHours) || 24;
-  const maxUses = Number(body.maxUses) || 1;
+  // maxUses 0 = 만료 전까지 무제한(회수 제한 제거, PO 2026-07-15). 미지정도 0(무제한).
+  const maxUses = body.maxUses === undefined || body.maxUses === null ? 0 : Number(body.maxUses);
   if (expiresInHours < 1 || expiresInHours > 24 * 7) {
     return Response.json(
       { ok: false, error: "expiresInHours must be 1-168 (max 1 week)" },
       { status: 400 }
     );
   }
-  if (maxUses < 1 || maxUses > 20) {
+  // 0(무제한) 허용. 상한은 폭주 방지용 넉넉한 값만 유지(만료가 진짜 안전선).
+  if (!Number.isInteger(maxUses) || maxUses < 0 || maxUses > 1000) {
     return Response.json(
-      { ok: false, error: "maxUses must be 1-20" },
+      { ok: false, error: "maxUses must be 0 (unlimited) or 1-1000" },
       { status: 400 }
     );
   }

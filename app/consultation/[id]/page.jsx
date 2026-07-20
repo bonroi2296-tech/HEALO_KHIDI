@@ -21,7 +21,7 @@ import {
 import "@livekit/components-styles";
 import "./consultation.css"; // 미트식 발화자 테두리(teal)·1:1 PiP 보정 — LiveKit 기본 덮어쓰기
 import { COPY } from "./_roomCopy";
-import { Track, ConnectionState, VideoPresets, RoomEvent } from "livekit-client";
+import { Track, ConnectionState, VideoPresets, RoomEvent, DisconnectReason, ConnectionCheck, CheckStatus } from "livekit-client";
 
 // LiveKit 방 옵션 — 화질 보강: 1080p 캡처 + 명시적 1080p 인코딩.
 // adaptiveStream: 작은 타일엔 저화질 자동(대역폭 절약), 큰 화면엔 고화질. dynacast: 안 보는 트랙 안 보냄.
@@ -58,6 +58,7 @@ import {
   FileText,
   X,
   Users,
+  ArrowLeftRight,
 } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { useLang } from "@/lib/i18n/LangContext";
@@ -65,10 +66,12 @@ import { setLangCookie } from "@/lib/i18n";
 import { useToast } from "@/components/Toast";
 import { useSpeechRecognition, isBrowserSttNative } from "@/lib/consultation/useSpeechRecognition";
 import { isFillerOnly } from "@/lib/consultation/fillerFilter";
+import { getBackchannelTranslation } from "@/lib/consultation/backchannelMap";
 import { useTTS } from "@/lib/consultation/useTTS";
 import { useRealtimeMessages } from "@/lib/consultation/useRealtimeMessages";
 import { useLiveKitDataChannel } from "@/lib/consultation/useLiveKitDataChannel";
 import { LiveTranslateBridge } from "@/lib/consultation/LiveTranslateBridge";
+import { ListenModeBridge } from "@/lib/consultation/ListenModeBridge";
 
 const supabase = createSupabaseBrowserClient();
 
@@ -99,6 +102,18 @@ function roleLabel(role, c) {
   }
 }
 
+
+// ── 마이크 상태 브릿지 (LiveKitRoom 내부 전용, 렌더링 없음) ──
+// LiveKit 마이크 ON/OFF 를 페이지 레벨 state 로 올린다. 통역 스위치 통일(2026-07-11 PO):
+// 통역 ON + 마이크 ON = 내 말 자막 송신 / 통역 ON + 마이크 OFF = 상대 말 자막만(듣기).
+// 마이크 게이트는 privacy 도 겸함 — 음소거 상태 발화가 자막 텍스트로 방송되지 않게.
+function MicStateBridge({ onChange }) {
+  const { isMicrophoneEnabled } = useLocalParticipant();
+  useEffect(() => {
+    onChange?.(!!isMicrophoneEnabled);
+  }, [isMicrophoneEnabled, onChange]);
+  return null;
+}
 
 // ── DataChannel bridge (LiveKitRoom 내부에서만 사용 가능) ──
 // props 로 외부 state setter 를 받아서 DataChannel 수신 결과를 부모에 전달
@@ -538,34 +553,45 @@ function VideoGrid() {
   }
 
   return (
-    <GridLayout tracks={tracks} style={{ height: "100%" }}>
-      <ParticipantTile onParticipantClick={pinFromEvent} />
-    </GridLayout>
+    // 갤러리 폭 상한 — 채팅 닫힌 초광폭 화면에서 3~4인 타일이 옆으로 퍼지는 것 방지(2026-07-15 PO 제보:
+    // "채팅창 키면 적당해짐" = 적정 폭이 곧 상한값의 근거). ponytail: 화면높이×1.78(16:9 두 줄 기준) 휴리스틱.
+    <div className="h-full flex justify-center">
+      <div className="h-full w-full" style={{ maxWidth: "calc((100vh - 8rem) * 1.78)" }}>
+        <GridLayout tracks={tracks} style={{ height: "100%" }}>
+          <ParticipantTile onParticipantClick={pinFromEvent} />
+        </GridLayout>
+      </div>
+    </div>
   );
 }
 
-// 자막 크기별 Tailwind 클래스
+// 자막 크기별 Tailwind 클래스 — 핵심 번역문(trans) 기준 小14 / 中18 / 大24px.
+// (예전 14/16/18px 는 小↔大 차이가 4px 뿐이라 "크기 버튼이 안 먹는다"는 체감 — PO 제보 2026-07-11)
 const SUBTITLE_SIZE_CLASS = {
-  sm: { text: "text-xs", trans: "text-sm", meta: "text-xs" },
-  md: { text: "text-sm", trans: "text-base", meta: "text-xs" },
-  lg: { text: "text-base", trans: "text-lg", meta: "text-sm" },
+  sm: { text: "text-xs", trans: "text-sm", meta: "text-[10px]" },
+  md: { text: "text-sm", trans: "text-lg", meta: "text-xs" },
+  lg: { text: "text-base", trans: "text-2xl", meta: "text-xs" },
 };
+// 자막 크기 선택 저장 키 — 재입장해도 유지 (hw_device_id 와 같은 localStorage 패턴)
+const SUBTITLE_SIZE_STORAGE_KEY = "hw_subtitle_size";
 
 // ── Subtitle overlay ──
 // size: "sm" | "md" | "lg"
-// remoteSubtitle: { text, lang, role } | null  — 상대방 자막 (DataChannel 수신)
+// remoteSubtitles: [{ key, text, lang, role, name }] — 상대방 자막 (DataChannel·청취모드),
+//   화자별 슬롯 최대 2개 — 두 화자가 교대로 말해도 앞 자막이 즉시 덮이지 않게(청취 시나리오 핵심)
+// showDisclaimer: 면책 문구 표시 여부 — 페이지 레벨 15초 타이머가 결정(패널 토글로
+//   오버레이가 리마운트돼도 리셋 안 되게 여기 두지 않는다)
 function SubtitleOverlay({
   original,
   translated,
   interimText,
-  sourceLang,
-  targetLang,
-  remoteSubtitle,
+  remoteSubtitles = [],
   size = "md",
+  showDisclaimer = false,
 }) {
   const lang = useLang();
   const c = COPY[lang] || COPY.en;
-  const hasContent = original || interimText || remoteSubtitle?.text;
+  const hasContent = original || interimText || remoteSubtitles.length > 0;
   if (!hasContent) return null;
 
   const sz = SUBTITLE_SIZE_CLASS[size] || SUBTITLE_SIZE_CLASS.md;
@@ -576,47 +602,47 @@ function SubtitleOverlay({
     patient: "text-teal-300",
     coordinator: "text-gray-300",
   };
-  const remoteColor = roleColor[remoteSubtitle?.role] || "text-teal-300";
+  // 각 자막 박스: 화면 전체폭 대신 글자 폭만큼만(w-fit) — 검은 배경이 영상을 덜 가리게 (PO 제보 2026-07-11)
+  const boxBase = "w-fit max-w-[min(92%,42rem)] backdrop-blur-sm rounded-lg px-3 py-1.5 text-center";
 
   return (
-    <div className="absolute bottom-4 left-4 right-4 z-10 pointer-events-none space-y-2">
-      {/* 상대방 자막 (DataChannel 수신) */}
-      {remoteSubtitle?.text && (
-        <div className="bg-black/75 backdrop-blur-sm rounded-lg px-4 py-2 text-center border border-yellow-500/20">
-          <p className="text-yellow-500/70 text-xs mb-0.5">
-            {roleLabel(remoteSubtitle.role, c)} — {LANG_LABELS[remoteSubtitle.lang] || remoteSubtitle.lang}
+    <div className="absolute bottom-4 inset-x-0 z-10 pointer-events-none flex flex-col items-center gap-1.5 px-4">
+      {/* 상대방 자막 (DataChannel·청취모드) — 화자 라벨은 본문 앞 인라인(줄 수 절약) */}
+      {remoteSubtitles.map((rs) => (
+        <div key={rs.key} className={`${boxBase} bg-black/60 border border-yellow-500/20`}>
+          <p className={`${roleColor[rs.role] || "text-teal-300"} ${sz.trans} font-medium`}>
+            <span className="text-yellow-500/70 text-[11px] font-normal mr-1.5">
+              {/* 화자 구분: 이름(있으면) + 역할 + 언어 */}
+              {rs.name ? `${rs.name} · ` : ""}
+              {rs.role ? `${roleLabel(rs.role, c)} · ` : ""}
+              {LANG_LABELS[rs.lang] || rs.lang}
+            </span>
+            {rs.text}
           </p>
-          <p className={`${remoteColor} ${sz.trans} font-medium`}>{remoteSubtitle.text}</p>
         </div>
-      )}
+      ))}
 
       {/* 내 음성 인식 중간 결과 */}
       {interimText && (
-        <div className="bg-black/70 backdrop-blur-sm rounded-lg px-4 py-2 text-center">
+        <div className={`${boxBase} bg-black/50`}>
           <p className={`text-gray-300 ${sz.text} italic`}>🎤 {interimText}</p>
         </div>
       )}
 
-      {/* 내 발화 번역 결과 */}
+      {/* 내 발화 원문+번역 — 원문은 STT 오인식 확인용 1줄, 번역 1줄 (예전 5줄 스택이 화면을 과하게 가림) */}
       {original && (
-        <div className="bg-black/80 backdrop-blur-sm rounded-lg px-4 py-3 text-center">
-          <p className={`text-gray-400 ${sz.meta} mb-1`}>
-            {LANG_LABELS[sourceLang] || sourceLang}
-          </p>
-          <p className={`text-white ${sz.text} mb-2`}>{original}</p>
-          <div className="border-t border-gray-600 pt-2">
-            <p className={`text-teal-400 ${sz.meta} mb-1`}>
-              → {LANG_LABELS[targetLang] || targetLang}
-            </p>
-            <p className={`text-teal-300 ${sz.trans} font-medium`}>{translated}</p>
-          </div>
+        <div className={`${boxBase} bg-black/60`}>
+          <p className={`text-white ${sz.text}`}>{original}</p>
+          <p className={`text-teal-300 ${sz.text}`}>{translated}</p>
         </div>
       )}
 
-      {/* 의료 면책 문구 */}
-      <p className="text-center text-gray-500 text-[10px] leading-tight">
-        {c.aiSubtitleDisclaimer}
-      </p>
+      {/* 의료 면책 문구 — 첫 15초만 */}
+      {showDisclaimer && (
+        <p className="text-center text-gray-500 text-[10px] leading-tight">
+          {c.aiSubtitleDisclaimer}
+        </p>
+      )}
     </div>
   );
 }
@@ -657,6 +683,8 @@ export default function ConsultationRoomPage() {
   // 입장 시 자동 켜기에서 마이크가 실패했을 때 경고 — '켠 줄 아는데 무음' 방지 (장치 있는 기기만)
   const [micActivationFailed, setMicActivationFailed] = useState(false);
   const [micFailureReason, setMicFailureReason] = useState("");
+  // 같은 신분(identity)으로 다른 탭·기기가 입장해 이 화면이 밀려난 상태 — 재연결 경쟁 금지(새 세션 승리)
+  const [sessionTakenOver, setSessionTakenOver] = useState(false);
 
   // Guest mode state
   const [guestName, setGuestName] = useState("");
@@ -743,7 +771,8 @@ export default function ConsultationRoomPage() {
   // (PO 지시 2026-07-02: 권한은 시스템 권한창으로만. 방 안 커스텀 버튼 없음 → 입장 후엔 자동 켜기)
   // 실패는 원인별로 구분: 권한 차단(previewBlocked=허용 안내) vs 장치 없음(previewNoDevice=차분한 안내).
   useEffect(() => {
-    if (checkingAuth || !isGuestMode || livekitToken) return;
+    // sessionTakenOver: 밀려나 정지된 화면이 백그라운드에서 카메라를 다시 잡지 않게
+    if (checkingAuth || !isGuestMode || livekitToken || sessionTakenOver) return;
     let cancelled = false;
     (async () => {
       try {
@@ -773,7 +802,7 @@ export default function ConsultationRoomPage() {
       cancelled = true;
       stopPreview();
     };
-  }, [checkingAuth, isGuestMode, livekitToken, stopPreview]);
+  }, [checkingAuth, isGuestMode, livekitToken, stopPreview, sessionTakenOver]);
 
   // "브라우저에서 열기"가 조용히 막히는 메신저(왓츠앱·텔레그램 등) 폴백 —
   // 인앱 브라우저 상당수가 외부 이동(intent/스킴)을 차단해 버튼이 눌러도 아무 일이 없다.
@@ -824,11 +853,79 @@ export default function ConsultationRoomPage() {
   const [ttsEnabled, _setTtsEnabled] = useState(false);
   const [isTranslating, setIsTranslating] = useState(false);
 
-  // 자막 크기: "sm" | "md" | "lg"
+  // 내 LiveKit 마이크 상태 (MicStateBridge 가 갱신) — 통역 스위치 통일 규칙의 게이트.
+  // LiveKit 비활성 폴백 화면에선 room 이 없어 갱신 안 됨 → 기본 true(현행 동작 보존).
+  const [myMicOn, setMyMicOn] = useState(true);
+  // DataChannel 자막 최근 수신 시각(참가자 identity 별) — 그 참가자가 직접 통역을
+  // 켠 동안엔 청취 모드 STT 를 억제 (이중 자막 방지, 화자 기기 인식이 더 정확)
+  const dcActivityRef = useRef(new Map());
+
+  // 면책 문구 — 자막 활동이 시작된 뒤 15초만 표시. 페이지 레벨 상태·타이머로 관리해야
+  // ①패널 토글로 오버레이가 리마운트돼도 리셋 안 되고 ②리렌더가 없어도 15초에 정확히 꺼진다.
+  const [subtitleDisclaimerVisible, setSubtitleDisclaimerVisible] = useState(true);
+  const disclaimerTimerRef = useRef(null);
+  useEffect(() => () => clearTimeout(disclaimerTimerRef.current), []);
+
+  // 자막 크기: "sm" | "md" | "lg" — 선택은 localStorage 에 저장해 재입장에도 유지.
+  // (lazy initializer 로 읽으면 SSR 첫 렌더와 달라 hydration mismatch → 마운트 후 effect 로 복원)
   const [subtitleSize, setSubtitleSize] = useState("md");
-  // 상대방 자막 (DataChannel 수신)
-  const [remoteSubtitle, setRemoteSubtitle] = useState(null);
-  const remoteSubtitleTimerRef = useRef(null);
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(SUBTITLE_SIZE_STORAGE_KEY);
+      if (saved === "sm" || saved === "md" || saved === "lg") setSubtitleSize(saved);
+    } catch {
+      /* 인앱 브라우저 등 localStorage 차단 환경 — 기본값 유지 */
+    }
+  }, []);
+  const changeSubtitleSize = useCallback((v) => {
+    setSubtitleSize(v);
+    try {
+      localStorage.setItem(SUBTITLE_SIZE_STORAGE_KEY, v);
+    } catch {
+      /* 저장 실패해도 이번 세션엔 적용됨 */
+    }
+  }, []);
+  // 상대방 자막 (DataChannel 수신 + 청취 모드) — 화자별 슬롯 최대 2개.
+  // 단일 슬롯이면 두 화자가 교대할 때 뒤 자막이 앞 자막을 즉시 덮어 읽다 만 자막이
+  // 사라진다(청취 모드 핵심 시나리오: 코디↔외국인 교대 대화). 화자 key 별 타이머 관리.
+  const [remoteSubtitles, setRemoteSubtitles] = useState([]);
+  const remoteSubtitleTimersRef = useRef(new Map());
+  useEffect(() => {
+    const timers = remoteSubtitleTimersRef.current;
+    return () => {
+      for (const t of timers.values()) clearTimeout(t);
+      timers.clear();
+    };
+  }, []);
+  const showRemoteSubtitle = useCallback(({ key, text, lang, role, name }) => {
+    const k = key || "dc";
+    setRemoteSubtitles((prev) => {
+      const next = prev.filter((s) => s.key !== k);
+      next.push({ key: k, text, lang, role, name });
+      return next.slice(-2); // 최근 화자 2명까지
+    });
+    // 문장 길이에 비례해 자동 숨김(8~15초) — 긴 번역문을 다 읽기 전에 사라지지 않게
+    const timers = remoteSubtitleTimersRef.current;
+    if (timers.has(k)) clearTimeout(timers.get(k));
+    const holdMs = Math.min(15000, Math.max(8000, (text?.length || 0) * 90));
+    timers.set(
+      k,
+      setTimeout(() => {
+        setRemoteSubtitles((prev) => prev.filter((s) => s.key !== k));
+        timers.delete(k);
+      }, holdMs)
+    );
+  }, []);
+  // 면책 타이머 arming — 자막 활동(내 자막·중간결과·상대 자막)이 처음 생기면 15초 카운트 시작
+  useEffect(() => {
+    if (disclaimerTimerRef.current) return; // 한 번만
+    if (!(currentSubtitle || interimText || remoteSubtitles.length)) return;
+    disclaimerTimerRef.current = setTimeout(
+      () => setSubtitleDisclaimerVisible(false),
+      15000
+    );
+  }, [currentSubtitle, interimText, remoteSubtitles]);
+
   // 내 역할 (token metadata 에서 추론: guest=patient 기본)
   const [myRole, setMyRole] = useState("patient");
 
@@ -865,22 +962,38 @@ export default function ConsultationRoomPage() {
   // ── TTS ──
   const tts = useTTS({ language: targetLang });
 
+  // ── 대화 문맥 링버퍼 — 직전 발화들을 번역 프롬프트에 문맥으로 전달 ──
+  // 조각 단위 무맥락 번역이 대명사·생략 주어를 뒤집던 문제(7/10 로그: 수수료 지급 방향
+  // 반전 등) 대응. ref 라 리렌더·의존성 오염 없음. 세션 스코프(재입장 시 초기화)라
+  // 과거 통화 로그가 섞일 일도 없음.
+  const convoContextRef = useRef([]);
+  const pushConvoContext = useCallback((speaker, lang, text) => {
+    if (!text) return;
+    const buf = convoContextRef.current;
+    buf.push({ speaker, lang, text });
+    if (buf.length > 8) buf.splice(0, buf.length - 8);
+  }, []);
+
   // ── 번역 결과를 자막·기록·상대 전송·TTS 에 일괄 반영 ──
   // (브라우저 STT→번역 / 수동입력→번역 / 서버 STT 전사+번역 통합응답 공용)
   const applyTranslation = useCallback(
-    (original, translated) => {
+    (original, translated, srcLangOverride) => {
       const entry = {
         id: Date.now(),
         original_text: original,
         translated_text: translated,
-        source_language: myLang,
+        // 서버 STT 가 언어를 자동 감지하면 그 언어로 기록 (같은 마이크 다국어 혼용 대응)
+        source_language: srcLangOverride || myLang,
         target_language: targetLang,
         speaker_role: "self",
         created_at: new Date().toISOString(),
       };
 
-      // Add to translation log
-      setTranslations((prev) => [...prev, entry]);
+      // Add to translation log (최근 300개 캡 — 장시간 통화에서 배열·렌더 무한 증가 방지)
+      setTranslations((prev) => [...prev.slice(-299), entry]);
+
+      // 다음 번역의 문맥으로 축적
+      pushConvoContext("self", srcLangOverride || myLang, original);
 
       // Show subtitle
       setCurrentSubtitle({ original, translated });
@@ -904,7 +1017,7 @@ export default function ConsultationRoomPage() {
       // Clear interim
       setInterimText("");
     },
-    [myLang, targetLang, myRole, ttsEnabled, tts]
+    [myLang, targetLang, myRole, ttsEnabled, tts, pushConvoContext]
   );
 
   // ── Translate (큐 순차처리) ──
@@ -919,7 +1032,30 @@ export default function ConsultationRoomPage() {
     setIsTranslating(true);
     try {
       while (translateQueueRef.current.length) {
-        const text = translateQueueRef.current.shift();
+        const item = translateQueueRef.current.shift();
+        const text = typeof item === "string" ? item : item.text;
+        // 백채널 사전 매칭 항목 — API 호출 없이 즉시 반영하되, 반드시 '큐 순서대로'
+        // 처리한다(직전 긴 문장 번역이 끝나기 전에 "네"가 먼저 뜨면 대화 순서·문맥이 꼬임).
+        // DB 번역 로그에도 기록 — 회의록·상대방 폴링 로그에서 예/아니오 답변이 빠지면 안 됨.
+        if (typeof item !== "string" && item.pre) {
+          applyTranslation(text, item.pre);
+          if (consultationId) {
+            fetch(`/api/khidi/consultation/${consultationId}/translate`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                ...(isGuestMode ? { "X-Guest-Token": inviteToken } : {}),
+              },
+              body: JSON.stringify({
+                originalText: text,
+                translatedText: item.pre,
+                sourceLanguage: myLang,
+                targetLanguage: targetLang,
+              }),
+            }).catch(() => {});
+          }
+          continue;
+        }
         try {
           const res = await fetch("/api/khidi/consultation/translate-realtime", {
             method: "POST",
@@ -934,6 +1070,8 @@ export default function ConsultationRoomPage() {
               targetLang,
               consultationId,
               speakerRole: "self",
+              // 직전 대화 문맥 — 대명사·생략 주어·용어 일관성 (자기 자신은 아직 버퍼에 없음)
+              context: convoContextRef.current.slice(-6),
             }),
           });
           const result = await res.json();
@@ -954,25 +1092,58 @@ export default function ConsultationRoomPage() {
   const translateText = useCallback(
     (text) => {
       if (!text || !text.trim()) return;
+      const trimmed = text.trim();
+      // 맞장구('네','Да','спасибо' 등)는 API 없이 사전으로 처리 — 발화의 39%가
+      // 이런 한두 단어라(7/10 로그) 비용·지연 절감 + 짧은 조각 오역 여지 제거.
+      // ⚠️ 물음표가 있으면 사전 금지: "네?"(반문)를 "네"(긍정)로 둔갑시키면 의료 상담에서
+      // 질문이 동의로 보인다 — 의문문은 API 번역으로.
+      const quick = /[?？]/.test(trimmed)
+        ? null
+        : getBackchannelTranslation(trimmed, targetLang);
       const q = translateQueueRef.current;
-      q.push(text.trim());
+      // 사전 매칭도 큐를 태워 발화 순서를 보존한다 (즉시 반영하면 앞 문장보다 먼저 뜸)
+      q.push(quick ? { text: trimmed, pre: quick } : trimmed);
       // 느린 회선에서 큐가 폭주하지 않게 최근 15개만 유지(오래된 조각은 버림)
       if (q.length > 15) q.splice(0, q.length - 15);
       drainTranslateQueue();
     },
-    [drainTranslateQueue]
+    [drainTranslateQueue, targetLang]
   );
 
   // ── 상대방 자막 수신 핸들러 (DataChannel) ──
   const handleRemoteSubtitle = useCallback(
-    ({ text, lang, role }) => {
-      setRemoteSubtitle({ text, lang, role });
-      // 문장 길이에 비례해 자동 숨김(8~15초) — 긴 번역문을 다 읽기 전에 사라지지 않게
-      if (remoteSubtitleTimerRef.current) clearTimeout(remoteSubtitleTimerRef.current);
-      const holdMs = Math.min(15000, Math.max(8000, (text?.length || 0) * 90));
-      remoteSubtitleTimerRef.current = setTimeout(() => setRemoteSubtitle(null), holdMs);
+    ({ text, lang, role, name, participantIdentity }) => {
+      showRemoteSubtitle({ key: participantIdentity, text, lang, role, name });
+      // 이 참가자는 직접 통역을 켠 상태 — 청취 모드 STT 억제용 시각 기록
+      if (participantIdentity) dcActivityRef.current.set(participantIdentity, Date.now());
+      // 상대 발화도 문맥으로 축적 (수신되는 건 번역문이지만 대명사·용어 일관성엔 유효)
+      pushConvoContext("other", lang, text);
     },
-    []
+    [pushConvoContext, showRemoteSubtitle]
+  );
+
+  // ── 청취 모드 자막 수신 (ListenModeBridge) — 원격 참가자 음성을 이쪽에서 전사·번역 ──
+  const handleListenSubtitle = useCallback(
+    ({ transcript, translated, lang, name, identity }) => {
+      showRemoteSubtitle({ key: identity, text: translated, lang, name });
+      // 문맥 축적은 원문(전사)으로 — 번역문보다 정보 보존이 좋음
+      pushConvoContext("other", lang, transcript);
+      // 번역 기록 패널에도 남긴다 (화자 이름 포함, 최근 300개 캡 — 장시간 통화 메모리·렌더 보호)
+      setTranslations((prev) => [
+        ...prev.slice(-299),
+        {
+          id: Date.now(),
+          original_text: transcript,
+          translated_text: translated,
+          source_language: lang,
+          target_language: myLang,
+          speaker_role: "other",
+          speaker_name: name,
+          created_at: new Date().toISOString(),
+        },
+      ]);
+    },
+    [myLang, pushConvoContext, showRemoteSubtitle]
   );
 
   // ── Speech Recognition ──
@@ -981,7 +1152,8 @@ export default function ConsultationRoomPage() {
   const [forceServerStt, setForceServerStt] = useState(false);
   const stt = useSpeechRecognition({
     language: myLang,
-    enabled: translationEnabled,
+    // 마이크 게이트(통역 통일 규칙): 마이크 꺼짐 = 내 말 자막 송신 안 함 (privacy 겸용)
+    enabled: translationEnabled && myMicOn,
     onInterim: useCallback((text) => {
       lastBrowserSttRef.current = Date.now();
       setInterimText(text);
@@ -1007,13 +1179,26 @@ export default function ConsultationRoomPage() {
       toast.success(c.translationStopped);
     } else {
       // 이미 서버 STT 로 전환됐거나, 브라우저가 폴백으로만 처리하는 언어(kz)면
-      // 브라우저 STT 시작 안 함 (이중 자막·오인식 방지) → 서버 STT 로 라우팅
-      if (!forceServerStt && isBrowserSttNative(myLang)) stt.start();
+      // 브라우저 STT 시작 안 함 (이중 자막·오인식 방지) → 서버 STT 로 라우팅.
+      // 마이크 꺼짐이면 송신 STT 는 시작 안 함 — 수신 자막(ListenModeBridge)만 동작(듣기).
+      if (myMicOn && !forceServerStt && isBrowserSttNative(myLang)) stt.start();
       setTranslationEnabled(true);
       // 패널은 자동으로 안 엶 — 자막은 영상 위 오버레이, 입력은 하단 미니 바 (Zoom/Meet 식)
       toast.success(`${c.translationStartedPrefix} (${LANG_LABELS[myLang]} → ${LANG_LABELS[targetLang]})`);
     }
-  }, [translationEnabled, forceServerStt, stt, myLang, targetLang, toast]);
+  }, [translationEnabled, forceServerStt, stt, myLang, myMicOn, targetLang, toast]);
+
+  // 통화 중 마이크 토글 → 송신(브라우저) STT 도 따라서 start/stop.
+  // (서버 STT 경로는 useServerStt 조건의 myMicOn 게이트가 effect cleanup 으로 처리)
+  useEffect(() => {
+    if (!translationEnabled) return;
+    if (forceServerStt || !isBrowserSttNative(myLang)) return;
+    if (myMicOn) {
+      if (stt.isSupported && !stt.failed) stt.start();
+    } else {
+      stt.stop();
+    }
+  }, [myMicOn, translationEnabled, forceServerStt, myLang, stt.isSupported, stt.failed, stt.start, stt.stop]);
 
   // Scroll to bottom of translations
   useEffect(() => {
@@ -1350,6 +1535,87 @@ export default function ConsultationRoomPage() {
     reportClientEventRef.current = reportClientEvent;
   }, [reportClientEvent]);
 
+  // 통화 중 실수 이탈 방지 — 탭 닫기·새로고침·(문서 이탈형) 뒤로가기에 브라우저 확인창.
+  // ponytail: 앱 내부(SPA) 뒤로가기는 App Router 가 차단 API 를 안 줘 미커버 — 대신 통화 중
+  // 헤더 ← 을 숨겨(위 정책) 앱 내 이탈 동선 자체를 없앰. 정밀 차단이 필요해지면 history 트랩.
+  useEffect(() => {
+    if (!connected) return;
+    const warn = (e) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [connected]);
+
+  // ── 입장 전 연결 사전점검 (안전망 ①, 2026-07-15 PO 승인) ──
+  // 회사·기관망의 영상 차단이 '입장 후 18초 타임아웃'에서야 드러나던 것(7/14 실회의)을
+  // 입장 폼 단계에서 미리 검사: 일회용 토큰으로 웹소켓+WebRTC 경로만 확인하고 버린다.
+  // 결과는 안내일 뿐 입장을 막지 않는다(오탐으로 사람을 문 앞에서 돌려세우지 않기).
+  const [preflightStatus, setPreflightStatus] = useState(""); // "" | checking | ok | blocked
+  const preflightRanRef = useRef(false);
+  useEffect(() => {
+    if (checkingAuth || !isGuestMode || livekitToken || sessionTakenOver) return;
+    if (preflightRanRef.current) return;
+    preflightRanRef.current = true;
+    let cancelled = false;
+    (async () => {
+      let creds = null;
+      try {
+        setPreflightStatus("checking");
+        const headers = await getConsultAuthHeaders();
+        if (!headers) return void setPreflightStatus("");
+        const res = await fetch(
+          `/api/khidi/consultation/${consultationId}/preflight-token`,
+          { method: "POST", headers }
+        );
+        const data = await res.json();
+        if (!data.ok) return void setPreflightStatus(""); // 점검 불가 = 조용히 생략(안내 없음)
+        creds = data;
+      } catch {
+        if (!cancelled) setPreflightStatus(""); // 토큰 획득 실패 ≠ 네트워크 차단 — 오탐 방지 위해 무안내
+        return;
+      }
+      try {
+        const checker = new ConnectionCheck(creds.livekitUrl, creds.token);
+        const withTimeout = (p) =>
+          Promise.race([
+            p,
+            new Promise((_, rej) => setTimeout(() => rej(new Error("preflight timeout")), 12000)),
+          ]);
+        const ws = await withTimeout(checker.checkWebsocket());
+        const rtc = await withTimeout(checker.checkWebRTC());
+        if (cancelled) return;
+        const ok =
+          ws?.status === CheckStatus.SUCCESS && rtc?.status === CheckStatus.SUCCESS;
+        setPreflightStatus(ok ? "ok" : "blocked");
+        if (!ok) {
+          reportClientEvent(
+            "connect_error",
+            `preflight blocked ws=${ws?.status} rtc=${rtc?.status}`
+          );
+        }
+      } catch {
+        // 검사 자체가 던지면(타임아웃 포함) 차단 가능성이 높은 환경
+        if (!cancelled) {
+          setPreflightStatus("blocked");
+          reportClientEvent("connect_error", "preflight blocked (check threw/timeout)");
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    checkingAuth,
+    isGuestMode,
+    livekitToken,
+    sessionTakenOver,
+    consultationId,
+    getConsultAuthHeaders,
+    reportClientEvent,
+  ]);
+
   // 서버 메시지 row(message/sender_role) → 렌더 형태(message_text/sender_name)로 정규화
   const normalizeMsg = useCallback((row) => ({
     id: row.id,
@@ -1386,7 +1652,12 @@ export default function ConsultationRoomPage() {
 
     try {
       const headers = await getConsultAuthHeaders();
-      if (!headers) return;
+      if (!headers) {
+        // 인증 헤더 없음도 조용히 삼키지 않는다(리뷰 지적, 채팅 무증상 삼킴과 동일 부류)
+        toast.error(c.sendFailed);
+        setMessageInput(text);
+        return;
+      }
       const res = await fetch(`/api/khidi/consultation/${consultationId}/messages`, {
         method: "POST",
         headers: { "Content-Type": "application/json", ...headers },
@@ -1400,11 +1671,18 @@ export default function ConsultationRoomPage() {
             ? prev
             : [...prev, normalizeMsg(result.data)]
         );
+      } else {
+        // 실패를 조용히 삼키지 않는다 — 2026-07-15 게스트·관리자 채팅이 DB 제약 500으로
+        // 죽어 있는데 화면엔 아무 표시가 없어 "입력해도 안 나온다"로만 보였음(PO 발견).
+        toast.error(c.sendFailed);
+        setMessageInput(text); // 쓴 글 복원 — 재시도 가능하게
       }
     } catch (error) {
       console.error("[ConsultationRoom] Send message error:", error);
+      toast.error(c.sendFailed);
+      setMessageInput(text);
     }
-  }, [messageInput, consultationId, getConsultAuthHeaders, normalizeMsg]);
+  }, [messageInput, consultationId, getConsultAuthHeaders, normalizeMsg, toast, c]);
 
   // ── 게스트 메시지/번역 로그 폴링 ──
   // 게스트는 RLS상 Supabase realtime 구독이 안 됨 → 서버 API 폴링으로 채팅·번역기록 동기화.
@@ -1548,7 +1826,10 @@ export default function ConsultationRoomPage() {
     );
   }, []);
   const useServerStt =
-    translationEnabled && (stt.failed || !stt.isSupported || forceServerStt) && mediaRecOk;
+    translationEnabled &&
+    myMicOn && // 마이크 꺼짐 = 송신 STT 중지 (수신 자막은 ListenModeBridge 가 별도 동작)
+    (stt.failed || !stt.isSupported || forceServerStt) &&
+    mediaRecOk;
 
   // 카자흐어 등 브라우저가 '폴백'(딴 언어 인식기)으로만 처리하는 언어는 처음부터
   // 서버 STT(Gemini — kz 직접 지원)로 보낸다. 브라우저 STT 는 kz 를 ru-RU 로 폴백해
@@ -1567,7 +1848,7 @@ export default function ConsultationRoomPage() {
   // 강제 전환. 크롬에서 8초간 말을 안 했어도 전환되지만, 서버 STT 도 같은 자막
   // 파이프라인 + 무음 스킵(VAD)이라 동작·비용 차이 없음.
   useEffect(() => {
-    if (!translationEnabled || forceServerStt || !mediaRecOk) return;
+    if (!translationEnabled || forceServerStt || !mediaRecOk || !myMicOn) return;
     if (stt.failed || !stt.isSupported) return; // 이 경우는 기존 조건으로 이미 서버 STT
     const enabledAt = Date.now();
     const timer = setInterval(() => {
@@ -1582,7 +1863,7 @@ export default function ConsultationRoomPage() {
       }
     }, 1000);
     return () => clearInterval(timer);
-  }, [translationEnabled, forceServerStt, mediaRecOk, stt.failed, stt.isSupported, stt.stop]);
+  }, [translationEnabled, forceServerStt, mediaRecOk, myMicOn, stt.failed, stt.isSupported, stt.stop]);
   const translateTextRef = useRef(translateText);
   useEffect(() => {
     translateTextRef.current = translateText;
@@ -1593,6 +1874,20 @@ export default function ConsultationRoomPage() {
   }, [applyTranslation]);
   // 서버 STT 상태 표시: idle(꺼짐) | listening(대기) | speaking(목소리 감지) | processing(자막 생성 중)
   const [serverSttStatus, setServerSttStatus] = useState("idle");
+
+  // 침묵 환각 필터 — Gemini STT 가 무음·잡음 구간에서 인사말을 창작하는 패턴
+  // (7/10 로그: 'Здравствуйте' 가 회의 한중간에 맥락 없이 20회+ 반복). 같은 전사가
+  // 30초 안에 또 오면 자막 스킵. 짧은 맞장구('да','네')는 실제로도 반복되므로 5자 이상만.
+  const lastServerSttRef = useRef({ text: "", at: 0 });
+  const isHallucinatedRepeat = useCallback((text) => {
+    const now = Date.now();
+    const prev = lastServerSttRef.current;
+    const dup = text.length >= 5 && text === prev.text && now - prev.at < 30000;
+    // ⚠️ 억제된 호출에서 타임스탬프를 갱신하면 창이 계속 미끄러져("알겠습니다"를 25초마다
+    // 반복하면 영구 억제) 정당한 반복 발화가 사라진다 — 마지막으로 '표시한' 시각 기준 고정.
+    if (!dup) lastServerSttRef.current = { text, at: now };
+    return dup;
+  }, []);
 
   useEffect(() => {
     if (!useServerStt) {
@@ -1677,15 +1972,17 @@ export default function ConsultationRoomPage() {
               fd.append("audio", blob, "chunk.webm");
               fd.append("lang", myLang);
               fd.append("targetLang", targetLang);
+              // 직전 대화 문맥 — 전사(동음이의)·번역(대명사) 양쪽 정확도에 기여. ref 라 의존성 불변.
+              fd.append("context", JSON.stringify(convoContextRef.current.slice(-6)));
               const res = await fetch(
                 `/api/khidi/consultation/${consultationId}/stt`,
                 { method: "POST", headers, body: fd }
               );
               const result = await res.json();
-              if (result.ok && result.transcript) {
+              if (result.ok && result.transcript && !isHallucinatedRepeat(result.transcript)) {
                 if (result.translated) {
                   // 전사+번역 통합 응답 — 추가 번역 호출 없이 바로 자막 반영
-                  applyTranslationRef.current(result.transcript, result.translated);
+                  applyTranslationRef.current(result.transcript, result.translated, result.detectedLang);
                 } else {
                   // 번역이 비어 오면(파싱 실패 등) 기존 번역 API 로 폴백
                   translateTextRef.current(result.transcript);
@@ -1720,8 +2017,8 @@ export default function ConsultationRoomPage() {
           }
           const dur = Date.now() - startedAt;
           const shouldCut =
-            (voicedFrames >= 3 && silentStreak >= 7) || // 말 끝남(0.7초 무음) → 즉시 전송
-            (voicedFrames >= 3 && dur >= 8000) || // 8초 넘는 긴 발화는 강제 컷 — 문단처럼 긴 조각은 전사 정확도·지연을 둘 다 망침(STT 권고 2~5초, 상한 ~15초)
+            (voicedFrames >= 3 && silentStreak >= 12) || // 말 끝남(1.2초 무음) → 전송. 0.7초는 쉼표 호흡에도 끊겨 문장 중간 절단이 양산됨(7/10 로그: 조각 오류가 문제의 52%)
+            (voicedFrames >= 3 && dur >= 10000) || // 10초 넘는 긴 발화는 강제 컷 — 문단처럼 긴 조각은 전사 정확도·지연을 둘 다 망침(STT 상한 ~15초)
             (voicedFrames < 3 && dur >= 5000); // 무음만 5초 — 버리고 새 사이클
           if (shouldCut) {
             try {
@@ -1783,7 +2080,7 @@ export default function ConsultationRoomPage() {
       audioCtx?.close().catch(() => {});
       setServerSttStatus("idle");
     };
-  }, [useServerStt, myLang, targetLang, consultationId, getConsultAuthHeaders]);
+  }, [useServerStt, myLang, targetLang, consultationId, getConsultAuthHeaders, isHallucinatedRepeat]);
 
   // ── End call ──
   const handleEndCall = async () => {
@@ -1800,17 +2097,40 @@ export default function ConsultationRoomPage() {
     router.push("/");
   };
 
+  // ── 이중 접속으로 밀려난 화면 — 새 세션에 양보하고 여기서 정지 (재연결 핑퐁 금지) ──
+  if (sessionTakenOver) {
+    return (
+      <div className="w-full h-screen flex items-center justify-center bg-gray-900 text-white">
+        <div className="text-center max-w-sm px-6">
+          <div className="w-14 h-14 rounded-full bg-amber-500/15 text-amber-300 flex items-center justify-center mx-auto mb-4">
+            <Users size={26} />
+          </div>
+          <h2 className="text-lg font-bold mb-2">{c.takenOverTitle}</h2>
+          <p className="text-sm text-gray-400 leading-relaxed mb-6">{c.takenOverBody}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-5 py-2.5 bg-teal-700 hover:bg-teal-800 rounded-lg font-semibold"
+          >
+            {c.takenOverRejoin}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   // ── Guest mode: 이름 입력 폼 먼저 표시 (staff 여부 판정이 끝난 뒤에만) ──
   if (isGuestMode && !livekitToken && !checkingAuth) {
+    // 모바일: 인사말 압축 + 이름칸 상단 + 하단 고정 입장 바 — 첫 화면에 "뭘 해야 하는지"가
+    // 다 보이게 (7/14 카자흐 에이전시가 버튼을 못 찾아 "로그인이 안 된다"로 오인한 실사고).
     return (
-      <div className="w-full min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-slate-900 to-teal-950 text-white p-4">
+      <div className="w-full min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-slate-900 to-teal-950 text-white p-4 pb-32 sm:pb-4">
         <div className="max-w-md w-full bg-gray-800/90 backdrop-blur rounded-2xl shadow-2xl overflow-hidden border border-gray-700">
-          <div className="p-8 border-b border-gray-700">
-            <div className="w-14 h-14 rounded-2xl bg-teal-700/10 text-teal-400 flex items-center justify-center mb-4">
-              <Video size={28} />
+          <div className="p-5 sm:p-8 border-b border-gray-700">
+            <div className="w-10 h-10 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl bg-teal-700/10 text-teal-400 flex items-center justify-center mb-3 sm:mb-4">
+              <Video size={24} />
             </div>
-            <h1 className="text-2xl font-bold mb-2">{c.guestTitle}</h1>
-            <p className="text-sm text-gray-400 leading-relaxed">
+            <h1 className="text-xl sm:text-2xl font-bold mb-1.5 sm:mb-2">{c.guestTitle}</h1>
+            <p className="text-[13px] sm:text-sm text-gray-400 leading-relaxed">
               {c.guestLede}
             </p>
             {/* 인앱 브라우저(카카오톡·왓츠앱 등) → 영상·음성이 막힘 → 크게 눈에 띄게 외부 브라우저 유도.
@@ -1851,8 +2171,27 @@ export default function ConsultationRoomPage() {
               e.preventDefault();
               joinAsGuest();
             }}
-            className="p-8 space-y-4"
+            className="p-5 sm:p-8 space-y-4"
           >
+            {/* 이름 먼저 — "해야 할 일"이 첫 화면에 오게 (미리보기는 그 아래) */}
+            <div>
+              <label className="block text-sm font-semibold mb-2 text-gray-200">
+                {c.nameLabel}
+              </label>
+              <input
+                type="text"
+                autoFocus
+                value={guestName}
+                onChange={(e) => {
+                  setGuestName(e.target.value);
+                  setGuestError("");
+                }}
+                placeholder={c.namePlaceholder}
+                className="w-full px-4 py-3 bg-gray-900 border border-gray-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500"
+                maxLength={50}
+              />
+            </div>
+
             {/* 셀프뷰 — 입장 전 카메라·권한 확인 (거울 모드) */}
             <div className="rounded-xl overflow-hidden bg-black aspect-video relative border border-gray-700">
               {previewBlocked ? (
@@ -1885,23 +2224,24 @@ export default function ConsultationRoomPage() {
             </div>
             <p className="text-xs text-gray-400 -mt-1">{c.cameraPreviewHint}</p>
 
-            <div>
-              <label className="block text-sm font-semibold mb-2 text-gray-200">
-                {c.nameLabel}
-              </label>
-              <input
-                type="text"
-                autoFocus
-                value={guestName}
-                onChange={(e) => {
-                  setGuestName(e.target.value);
-                  setGuestError("");
-                }}
-                placeholder={c.namePlaceholder}
-                className="w-full px-4 py-3 bg-gray-900 border border-gray-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500"
-                maxLength={50}
-              />
-            </div>
+            {/* 입장 전 연결 사전점검 결과 — 차단 의심이면 입장 '전'에 핫스팟 안내 (안전망 ①) */}
+            {preflightStatus && (
+              <div
+                className={`text-xs rounded-lg px-3 py-2 leading-snug ${
+                  preflightStatus === "ok"
+                    ? "bg-teal-900/40 text-teal-200"
+                    : preflightStatus === "checking"
+                    ? "bg-gray-700/50 text-gray-300"
+                    : "bg-amber-500/10 border border-amber-500/40 text-amber-200"
+                }`}
+              >
+                {preflightStatus === "checking"
+                  ? c.preflightChecking
+                  : preflightStatus === "ok"
+                  ? c.preflightOk
+                  : `⚠️ ${c.connectNetworkTip}`}
+              </div>
+            )}
 
             {/* 내가 말하는 언어 — 사이트 언어로 미리 선택돼 있음, 자막·번역 방향 결정 */}
             <div>
@@ -1935,10 +2275,11 @@ export default function ConsultationRoomPage() {
               </p>
             )}
 
+            {/* 데스크톱용 제출 버튼 — 모바일은 아래 '고정 입장 바'가 대신한다 */}
             <button
               type="submit"
               disabled={guestJoining || !guestName.trim()}
-              className="w-full py-3 bg-teal-700 hover:bg-teal-800 disabled:opacity-60 disabled:cursor-not-allowed rounded-lg font-semibold transition"
+              className="hidden sm:block w-full py-3 bg-teal-700 hover:bg-teal-800 disabled:opacity-60 disabled:cursor-not-allowed rounded-lg font-semibold transition"
             >
               {guestJoining ? c.joining : c.startConsult}
             </button>
@@ -1949,6 +2290,21 @@ export default function ConsultationRoomPage() {
               {c.guestSecurity2}
             </p>
           </form>
+        </div>
+        {/* 모바일 고정 입장 바 — 카드가 backdrop-blur(fixed 기준 조상)라 카드 '밖'에 렌더.
+            폼 밖이므로 제출은 joinAsGuest 직접 호출(검증은 함수 안에서 동일 수행). */}
+        <div className="sm:hidden fixed inset-x-0 bottom-0 z-40 px-4 pt-2.5 pb-[max(0.75rem,env(safe-area-inset-bottom))] bg-gray-900/95 backdrop-blur border-t border-gray-700">
+          {!guestName.trim() && (
+            <p className="text-[11px] text-gray-400 text-center mb-1.5">{c.enterNameHint}</p>
+          )}
+          <button
+            type="button"
+            onClick={() => joinAsGuest()}
+            disabled={guestJoining || !guestName.trim()}
+            className="w-full py-3.5 bg-teal-700 hover:bg-teal-800 disabled:opacity-60 disabled:cursor-not-allowed rounded-lg font-semibold transition"
+          >
+            {guestJoining ? c.joining : c.startConsult}
+          </button>
         </div>
       </div>
     );
@@ -1990,33 +2346,25 @@ export default function ConsultationRoomPage() {
     !!livekitToken && (admissionStatus === "pending" || admissionStatus === "rejected");
 
   // ── 컨트롤 버튼 (헤더에서 공용 재사용 — 중복 정의 방지) ──
+  // 컨트롤 버튼 공통 문법(2026-07-15 PO): 아이콘 위 + 짧은 라벨 아래(모바일 포함 항상 표시) —
+  // 아이콘만으론 연령대 높은 사용자가 뜻을 못 알아봄. 상태는 색으로(켜짐 teal / 꺼짐·종료 red).
   const endButton = (
     <button
       onClick={handleEndCall}
-      className="px-4 py-2.5 rounded-lg bg-red-600 hover:bg-red-700 transition flex items-center gap-1.5 text-sm font-medium"
+      className="hw-ctrl-btn rounded-lg bg-red-600 hover:bg-red-700 transition font-medium text-white"
     >
-      <Phone size={16} /> <span className="hidden sm:inline">{c.endCall}</span>
+      <Phone size={18} /> <span>{c.endCall}</span>
     </button>
   );
 
-  const languageButton = (
-    <button
-      onClick={() => setLangSheetOpen(true)}
-      title={c.langChangeTitle}
-      className="px-3 py-2.5 rounded-lg bg-gray-700 hover:bg-gray-600 text-gray-200 transition flex items-center gap-1.5 text-xs"
-    >
-      <Globe size={18} />
-      <span className="hidden md:inline">
-        {LANG_LABELS[myLang]} → {LANG_LABELS[targetLang]}
-      </span>
-    </button>
-  );
+  // (2026-07-15 PO) 컨트롤 바의 「언어」 버튼은 제거 — 언어 설정은 번역 전용이라 번역 패널
+  // 맨 위 헤더로 입구를 단일화했다(중복 입구 해소). 언어쌍 변경은 langSheetOpen 시트로 동일.
 
   const sessionActions = (
     <>
       <button
         onClick={toggleTranslation}
-        className={`px-3 py-2.5 rounded-lg text-sm font-medium flex items-center gap-2 transition ${
+        className={`hw-ctrl-btn relative rounded-lg font-medium transition ${
           translationEnabled
             ? "bg-teal-700 hover:bg-teal-800 text-white"
             : "bg-gray-700 hover:bg-gray-600 text-gray-200"
@@ -2024,24 +2372,21 @@ export default function ConsultationRoomPage() {
         title={translationEnabled ? c.stopTranslation : c.startTranslation}
       >
         <Languages size={18} />
-        <span className="hidden sm:inline">
-          {translationEnabled
-            ? `${LANG_LABELS[myLang]} → ${LANG_LABELS[targetLang]}`
-            : c.interpretation}
-        </span>
+        <span>{c.interpretation}</span>
         {translationEnabled && isTranslating && (
-          <span className="w-2 h-2 bg-yellow-400 rounded-full animate-pulse" />
+          <span className="absolute top-1 right-1 w-2 h-2 bg-yellow-400 rounded-full animate-pulse" />
         )}
       </button>
       <button
         onClick={() => setPanelOpen((v) => !v)}
         aria-label="Toggle chat panel"
-        className={`relative p-2.5 rounded-lg transition ${
+        className={`hw-ctrl-btn relative rounded-lg transition ${
           panelOpen ? "bg-teal-700 text-white" : "bg-gray-700 hover:bg-gray-600 text-gray-200"
         }`}
         title={c.togglePanel}
       >
         <MessageSquare size={18} />
+        <span>{c.ctrlChat}</span>
         {!panelOpen && translations.length + messages.length > 0 && (
           <span className="absolute -top-1 -right-1 bg-teal-700 text-white text-[10px] leading-none px-1 py-0.5 rounded-full">
             {translations.length + messages.length > 9
@@ -2059,13 +2404,24 @@ export default function ConsultationRoomPage() {
       <div className="bg-gray-800 border-b border-gray-700 px-3 py-2 md:px-6 md:py-3">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 md:gap-4 min-w-0">
-            <button
-              onClick={() => router.back()}
-              aria-label="Back"
-              className="p-2 hover:bg-gray-700 rounded-lg transition shrink-0"
-            >
-              <ChevronLeft size={24} />
-            </button>
+            {/* 통화 연결 중엔 ← 숨김(줌·미트 문법) — 한 번 스치면 확인 없이 통화에서 나가지는
+                함정 방지(2026-07-15 PO 실경험·정책 확정). 나가는 문 = 빨간 「종료」(확인창 있음)만. */}
+            {!connected && (
+              <button
+                onClick={() => {
+                  // 초대 링크를 새 탭·직접 입력으로 연 경우 방문 기록이 없어 router.back()이
+                  // 무반응(2026-07-15 PO 제보) → 기록 없으면 역할별 홈으로 보낸다.
+                  if (window.history.length > 1) router.back();
+                  else if (myRole === "admin") router.push("/admin/consultations");
+                  else if (myRole === "coordinator") router.push("/coordinator");
+                  else router.push("/");
+                }}
+                aria-label="Back"
+                className="p-2 hover:bg-gray-700 rounded-lg transition shrink-0"
+              >
+                <ChevronLeft size={24} />
+              </button>
+            )}
             <div className="min-w-0">
               <h1 className="text-base md:text-lg font-bold truncate">
                 {consultation?.cancer_patient_intakes?.[0]?.cancer_type || c.consultationFallback}
@@ -2222,7 +2578,22 @@ export default function ConsultationRoomPage() {
                 setConnectError(false);
                 setConnectErrorDetail("");
               }}
-              onDisconnected={() => setConnected(false)}
+              onDisconnected={(reason) => {
+                setConnected(false);
+                // 같은 신분으로 다른 탭·기기가 새로 입장(DUPLICATE_IDENTITY) → 이 화면은 양보하고 정지.
+                // 예전엔 두 탭이 서로 연결을 도로 뺏으며 핑퐁('붙었다 끊겼다') — 2026-07-15 PO 제보·정책 확정.
+                if (reason === DisconnectReason.DUPLICATE_IDENTITY) {
+                  setSessionTakenOver(true);
+                  setLivekitToken(""); // 연결 워치독·재시도 루프 중지
+                  // 통역 파이프라인 완전 정지 (독립 리뷰 적발: 안 끄면 밀려난 탭이 마이크를 쥔 채
+                  // STT·번역 API를 계속 호출 — 프라이버시·비용 구멍). handleEndCall 과 동일 정리.
+                  if (translationEnabled) stt.stop();
+                  setTranslationEnabled(false);
+                  setInterimText("");
+                  tts.stop();
+                  reportClientEvent("connect_error", "duplicate identity takeover - this tab yielded");
+                }
+              }}
               onError={(e) => {
                 console.error("[livekit] error:", e?.message);
                 // "Client initiated disconnect" = 사용자 나가기·재시도 리마운트의 정상 종료 신호 —
@@ -2238,6 +2609,8 @@ export default function ConsultationRoomPage() {
             >
               {/* 백그라운드/이탈 시 유령 참가자 방지 — 렌더링 없음 */}
               <PresenceGuard />
+              {/* 마이크 상태 → 페이지 state (통역 통일 규칙의 게이트) — 렌더링 없음 */}
+              <MicStateBridge onChange={setMyMicOn} />
               {/* DataChannel 수신/송신 브릿지 — 렌더링 없음 */}
               <DataChannelBridge
                 onRemoteSubtitle={handleRemoteSubtitle}
@@ -2249,6 +2622,19 @@ export default function ConsultationRoomPage() {
                 myLang={myLang}
                 myRole={myRole}
                 onRemoteSubtitle={handleRemoteSubtitle}
+              />
+              {/* 수신 자막 — 상대가 통역을 안 켜도 원격 음성을 이쪽에서 전사·번역 (렌더링 없음).
+                  별도 토글 없이 통역 스위치에 통합(2026-07-11 PO "하나로 통일") — 상대가 직접
+                  자막을 보내오면 자동 억제되므로 양쪽 다 켜도 중복 없음 */}
+              <ListenModeBridge
+                enabled={translationEnabled}
+                langHint={targetLang}
+                targetLang={myLang}
+                consultationId={consultationId}
+                getAuthHeaders={getConsultAuthHeaders}
+                contextRef={convoContextRef}
+                dcActivityRef={dcActivityRef}
+                onSubtitle={handleListenSubtitle}
               />
               <div className="flex-1 relative" style={{ height: "calc(100% - 64px)" }}>
                 <VideoGrid />
@@ -2293,15 +2679,18 @@ export default function ConsultationRoomPage() {
                     </button>
                   </div>
                 )}
-                <SubtitleOverlay
-                  original={currentSubtitle?.original}
-                  translated={currentSubtitle?.translated}
-                  interimText={interimText}
-                  sourceLang={myLang}
-                  targetLang={targetLang}
-                  remoteSubtitle={remoteSubtitle}
-                  size={subtitleSize}
-                />
+                {/* 패널(채팅·번역기록) 열림 = 자막 숨김 — 모바일에선 패널이 자막을 덮고,
+                    번역 기록 탭이 같은 내용을 보여주므로 겹쳐 띄우지 않는다(PO 요청 2026-07-11) */}
+                {!panelOpen && (
+                  <SubtitleOverlay
+                    original={currentSubtitle?.original}
+                    translated={currentSubtitle?.translated}
+                    interimText={interimText}
+                    remoteSubtitles={remoteSubtitles}
+                    size={subtitleSize}
+                    showDisclaimer={subtitleDisclaimerVisible}
+                  />
+                )}
                 {/* 서버 STT 상태 표시 — 듣는 중(회색)/목소리 감지(초록)/자막 생성 중(노랑).
                     "되는 건지 알 수 없다"는 피드백 해소용 생존 신호 */}
                 {useServerStt && serverSttStatus !== "idle" && (
@@ -2324,13 +2713,14 @@ export default function ConsultationRoomPage() {
               </div>
               {/* 단순 컨트롤 — 기기 선택 메뉴 없이 켜기/끄기만.
                   소리는 기기 기본 출력(이어폰 연결 시 이어폰), 카메라는 기본(전면) 1개 */}
-              <div className="lk-control-bar flex-wrap" style={{ justifyContent: "center" }}>
-                <TrackToggle source={Track.Source.Microphone} />
-                <TrackToggle source={Track.Source.Camera} />
-                <TrackToggle source={Track.Source.ScreenShare} className="hidden sm:inline-flex" />
-                <span className="hidden sm:block w-px h-7 bg-gray-600 mx-1" />
+              <div className="lk-control-bar hw-controls flex-wrap" style={{ justifyContent: "center" }}>
+                <TrackToggle source={Track.Source.Microphone}>{c.ctrlMic}</TrackToggle>
+                <TrackToggle source={Track.Source.Camera}>{c.ctrlCam}</TrackToggle>
+                <TrackToggle source={Track.Source.ScreenShare} className="hidden sm:inline-flex">
+                  {c.ctrlShare}
+                </TrackToggle>
+                <span className="hidden sm:block w-px h-9 bg-gray-600 mx-1 self-center" />
                 {sessionActions}
-                {languageButton}
                 {endButton}
               </div>
             </LiveKitRoom>
@@ -2392,15 +2782,16 @@ export default function ConsultationRoomPage() {
                   <p className="text-gray-400 font-semibold">{c.patientTile}</p>
                   <p className="text-xs text-gray-500 mt-1">{c.myScreen}</p>
                 </div>
-                <SubtitleOverlay
-                  original={currentSubtitle?.original}
-                  translated={currentSubtitle?.translated}
-                  interimText={interimText}
-                  sourceLang={myLang}
-                  targetLang={targetLang}
-                  remoteSubtitle={remoteSubtitle}
-                  size={subtitleSize}
-                />
+                {!panelOpen && (
+                  <SubtitleOverlay
+                    original={currentSubtitle?.original}
+                    translated={currentSubtitle?.translated}
+                    interimText={interimText}
+                    remoteSubtitles={remoteSubtitles}
+                    size={subtitleSize}
+                    showDisclaimer={subtitleDisclaimerVisible}
+                  />
+                )}
               </div>
               <div className="bg-gray-800 border-t border-gray-700 px-6 py-3 text-center text-sm text-yellow-400">
                 {c.livekitDisabled}
@@ -2409,7 +2800,6 @@ export default function ConsultationRoomPage() {
               {!isWaitingScreen && (
                 <div className="bg-gray-800 border-t border-gray-700 px-3 py-3 flex items-center justify-center gap-2 flex-wrap">
                   {sessionActions}
-                  {languageButton}
                   {endButton}
                 </div>
               )}
@@ -2579,6 +2969,23 @@ export default function ConsultationRoomPage() {
           {/* Translation log panel */}
           {activePanel === "translation" && (
             <div className="flex-1 flex flex-col overflow-hidden">
+              {/* 언어쌍 단일 입구 — 컨트롤 바의 중복 「언어」 버튼을 없애고 여기로 통일(2026-07-15 PO).
+                  언어 설정은 번역 전용이라, 번역 패널 맨 위에 항상 두는 게 자연스럽다. */}
+              <button
+                onClick={() => setLangSheetOpen(true)}
+                className="flex items-center justify-center gap-2 border-b border-gray-700 px-4 py-2.5 text-sm text-gray-200 hover:bg-gray-750 transition"
+                title={c.langChangeTitle}
+              >
+                <Globe size={16} className="text-teal-400 shrink-0" />
+                <span className="font-medium">
+                  {LANG_LABELS[myLang]} → {LANG_LABELS[targetLang]}
+                </span>
+                <span className="text-xs text-gray-500">({c.ctrlLang})</span>
+              </button>
+              {/* 의료 면책 상시 문구 — 자막 오버레이에선 첫 15초만 보이므로 여기서 상시 유지 (#731) */}
+              <p className="px-4 pt-2 text-[10px] text-gray-500 leading-tight">
+                {c.aiSubtitleDisclaimer}
+              </p>
               <div className="flex-1 overflow-y-auto p-4 space-y-3">
                 {translations.length === 0 ? (
                   <div className="text-center text-gray-500 text-sm py-8">
@@ -2611,7 +3018,9 @@ export default function ConsultationRoomPage() {
                     >
                       <div className="flex items-center justify-between mb-2">
                         <span className="text-xs text-gray-500">
-                          {trans.speaker_role === "doctor"
+                          {trans.speaker_name
+                            ? trans.speaker_name
+                            : trans.speaker_role === "doctor"
                             ? c.roleDoctor
                             : trans.speaker_role === "patient"
                             ? c.rolePatient
@@ -2649,12 +3058,10 @@ export default function ConsultationRoomPage() {
                   <div className="flex items-center gap-2 text-xs">
                     <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
                     <span className="text-gray-400">{c.translationActive}</span>
-                    <button
-                      onClick={() => setLangSheetOpen(true)}
-                      className="px-2 py-1 bg-gray-700 hover:bg-gray-600 rounded text-teal-300 font-medium transition"
-                    >
+                    {/* 언어 변경 입구는 패널 상단 헤더로 단일화 — 여기선 현재 방향만 표시(중복 제거) */}
+                    <span className="text-teal-300 font-medium">
                       {LANG_LABELS[myLang]} → {LANG_LABELS[targetLang]}
-                    </button>
+                    </span>
                     {isTranslating && (
                       <span className="text-yellow-400 ml-auto">{c.translatingNow}</span>
                     )}
@@ -2758,8 +3165,27 @@ export default function ConsultationRoomPage() {
             onClick={(e) => e.stopPropagation()}
           >
             <p className="text-sm font-bold text-white">{c.langChangeTitle}</p>
+            {/* 통역 방향 한눈에: [내 언어] ⇄ [상대 언어] — "xx언어를 yy언어로" 멘탈모델(PO 요청 2026-07-11).
+                스왑은 기존 언어 칩과 동일하게 UI 언어도 함께 전환("내 언어 = UI 언어" 계약 유지) */}
+            <div className="flex items-center justify-center gap-3 bg-gray-900 border border-gray-700 rounded-xl px-4 py-3">
+              <span className="text-base font-bold text-teal-300">{LANG_LABELS[myLang]}</span>
+              <button
+                onClick={() => {
+                  const prevMy = myLang;
+                  setMyLang(targetLang);
+                  setTargetLang(prevMy);
+                  switchUiLang(targetLang);
+                }}
+                aria-label={c.langSwap}
+                title={c.langSwap}
+                className="p-2 bg-gray-700 hover:bg-gray-600 rounded-full text-teal-300 transition"
+              >
+                <ArrowLeftRight size={16} />
+              </button>
+              <span className="text-base font-bold text-white">{LANG_LABELS[targetLang]}</span>
+            </div>
             <div>
-              <p className="text-xs text-gray-400 mb-2">{c.myLangLabel}</p>
+              <p className="text-xs text-gray-400 mb-2">{c.langFromLabel}</p>
               <div className="flex flex-wrap gap-2">
                 {["ko", "en", "ru", "kz", "zh", "ja"].map((l) => (
                   <button
@@ -2780,7 +3206,7 @@ export default function ConsultationRoomPage() {
               </div>
             </div>
             <div>
-              <p className="text-xs text-gray-400 mb-2">{c.langTheirLabel}</p>
+              <p className="text-xs text-gray-400 mb-2">{c.langToLabel}</p>
               <div className="flex flex-wrap gap-2">
                 {["ko", "en", "ru", "kz", "zh", "ja"].map((l) => (
                   <button
@@ -2807,7 +3233,7 @@ export default function ConsultationRoomPage() {
                 ].map(([v, label]) => (
                   <button
                     key={v}
-                    onClick={() => setSubtitleSize(v)}
+                    onClick={() => changeSubtitleSize(v)}
                     className={`px-3 py-2 rounded-lg text-sm transition border ${
                       subtitleSize === v
                         ? "bg-teal-700 border-teal-500 text-white font-semibold"

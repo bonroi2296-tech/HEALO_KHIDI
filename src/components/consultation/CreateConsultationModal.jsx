@@ -435,8 +435,8 @@ export function CreateConsultationModal({ onClose, onSuccess }) {
                 inviteeName: form.inviteeName || undefined,
                 inviteeEmail: form.inviteeEmail || undefined,
                 expiresInHours: 72,
-                // 재접속(끊김·새로고침)·여러 참여자 공용이라 넉넉하게 — API 상한 20
-                maxUses: 20,
+                // 회수 제한 없음(만료 전까지 무제한, PO 2026-07-15) — 재접속·공용 참여 자유, 안전선은 72h 만료
+                maxUses: 0,
               }),
             }
           );

@@ -145,16 +145,34 @@ export default async function RootLayout({ children }) {
               "@graph": [
                 {
                   "@type": "WebSite",
+                  "@id": "https://healwith.co.kr/#website",
                   name: "healwith",
                   alternateName: ["힐위드", "Healwith"],
                   url: "https://healwith.co.kr",
+                  inLanguage: ["ko", "en", "ru", "kk", "zh", "ja"],
+                  publisher: { "@id": "https://healwith.co.kr/#organization" },
                 },
                 {
                   "@type": "Organization",
+                  "@id": "https://healwith.co.kr/#organization",
                   name: "healwith",
                   alternateName: ["힐위드", "Healwith"],
                   url: "https://healwith.co.kr",
-                  logo: "https://healwith.co.kr/icons/icon-192x192.png",
+                  logo: "https://healwith.co.kr/icons/icon-512x512.png",
+                  // 동명이인(healwith.com 홍콩 등)과 구별시키는 엔티티 명세. 구글이 "healwith=이 회사"로 못박게.
+                  description:
+                    "International cancer-patient concierge connecting patients from Kazakhstan, Russia and the CIS with Korean oncology hospitals — online pre-consultation, remote diagnosis, care-path design, and post-return care.",
+                  areaServed: [
+                    { "@type": "Country", name: "South Korea" },
+                    { "@type": "Country", name: "Kazakhstan" },
+                    { "@type": "Country", name: "Russia" },
+                  ],
+                  // 공식 계정 = "healwith=이 회사" 확정 신호(동명이인 healwith.com 홍콩 등과 구별).
+                  // ⚠️ 반드시 실재하는 공식 계정만(가짜·추측 URL 금지). 계정 추가/변경 시 여기도 갱신.
+                  sameAs: [
+                    "https://www.instagram.com/healwith.kz",
+                    "https://www.facebook.com/profile.php?id=61590609467130",
+                  ],
                 },
               ],
             }),
