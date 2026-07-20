@@ -934,26 +934,16 @@ export default function ConsultationRoomPage() {
   const subtitleTimerRef = useRef(null);
   // DataChannel publish 함수 ref (LiveKitRoom 내부 DataChannelBridge 에서 주입)
   const publishSubtitleRef = useRef(null);
+  // realtime 신호를 받으면 서버에서 메시지를 다시 받아온다(본문은 서버가 복호화).
+  // ref 인 이유: 구독 콜백이 매 렌더마다 바뀌면 채널을 다시 붙이게 된다.
+  const refetchMessagesRef = useRef(null);
 
   // ── Realtime subscription (계정 사용자만 — 게스트는 RLS상 구독 불가, 아래 폴링으로 대체) ──
-  useRealtimeMessages(consultationId, (msg) => {
-    const norm = {
-      id: msg.id,
-      sender_id: msg.sender_id || null,
-      sender_role: msg.sender_role || "patient",
-      sender_name:
-        msg.sender_role === "doctor" ? "Doctor"
-        : msg.sender_role === "coordinator" ? "Coordinator"
-        : msg.sender_role === "translator" ? "Interpreter"
-        : msg.sender_role === "guest" ? "Guest"
-        : "Patient",
-      message_text: msg.message ?? msg.message_text ?? "",
-      created_at: msg.created_at || new Date().toISOString(),
-    };
-    setMessages((prev) => {
-      if (prev.some((m) => m.id === norm.id)) return prev;
-      return [...prev, norm];
-    });
+  // ⚠️ 구독은 "새 메시지가 있다"는 **신호만** 준다. 본문은 암호문으로 저장되므로(#102)
+  //    realtime 페이로드를 그대로 쓰면 암호문/빈칸이 뜬다 → 서버 API 로 다시 받아 복호화본을 쓴다.
+  //    (예전엔 payload.new 를 바로 화면에 썼는데, 애초에 필터 컬럼명이 틀려 한 번도 안 걸렸다.)
+  useRealtimeMessages(consultationId, () => {
+    refetchMessagesRef.current?.();
   });
 
   // ── TTS ──
@@ -1629,6 +1619,32 @@ export default function ConsultationRoomPage() {
     message_text: row.message ?? row.message_text ?? "",
     created_at: row.created_at || new Date().toISOString(),
   }), []);
+
+  // realtime 신호(계정 사용자)로 메시지를 서버에서 다시 받는다 — 본문 복호화는 서버 몫.
+  // 구독 콜백이 참조하는 ref 에 넣어, 콜백 신원이 바뀌어 채널이 재구독되는 일을 막는다.
+  useEffect(() => {
+    refetchMessagesRef.current = async () => {
+      try {
+        const headers = await getConsultAuthHeaders();
+        if (!headers) return;
+        const res = await fetch(
+          `/api/khidi/consultation/${consultationId}/messages?limit=200`,
+          { headers }
+        );
+        const json = await res.json().catch(() => null);
+        if (!json?.ok) return;
+        setMessages((prev) => {
+          const seen = new Set(prev.map((m) => m.id));
+          const incoming = (json.data || [])
+            .filter((row) => !seen.has(row.id))
+            .map(normalizeMsg);
+          return incoming.length ? [...prev, ...incoming] : prev;
+        });
+      } catch {
+        /* 일시 오류는 무시 — 다음 신호나 재입장 시 복구된다 */
+      }
+    };
+  }, [consultationId, getConsultAuthHeaders, normalizeMsg]);
 
   // 서버 번역 row(source_text/source_lang) → 렌더 형태(original_text/source_language)로 정규화
   const normalizeTrans = useCallback((row) => ({
