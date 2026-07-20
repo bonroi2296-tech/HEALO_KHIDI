@@ -114,7 +114,7 @@
   - 🛠️ **PO 결정 대기**: 죽은 기능을 (a)컬럼 추가로 되살리기 vs (b)기능 삭제. 한 번도 쓰인 적 없는 화면이라 제품 판단.
 - ✅ **해결(2026-07-20)** `/admin/crawl` 병원 크롤 검수도 같은 부류로 죽어 있던 것**: `crawl_raw_items`에 코드가 쓰는 `source_id`·`name`·`hospital_id`(insert)·`reviewed_at`(승인/거절/건너뛰기 update)가 실DB에 없음 → `crawl_raw_items` 0건·`crawl_jobs` 0건. 조회 쪽만 2026-07-15 감사에서 `name:title` alias로 우회돼 있고 쓰기 경로는 그대로(반쪽 수정). 위와 같이 되살리기/삭제 PO 결정 대기.
 - **스키마 드리프트 전수 결과(2026-07-20)**: 마이그레이션 선언 61개 테이블 vs 실DB 대조 → 드리프트 12개, 마이그레이션에만 있고 실DB엔 없는 테이블 8개(`inquiry_contacts`·`inquiry_medical`·`hospital_lead_assignments`·`hospital_performance_stats`·`hospital_performance_global_avg`·`hospital_responses`·`operational_alerts`·`treatment_translations`). 코드가 실제로 유령 컬럼을 쓰는 진짜 버그는 위 2건뿐, 나머지는 후속 마이그레이션의 컬럼명 변경(양성). **상설 가드 = `@supabase/supabase-js` 2.110+ 업그레이드**(아래 항목).
-- 🔴 **치료(시술) 등록·수정이 유령 컬럼 4개로 실패 중 (2026-07-20 발견 — 타입 못박기 작업 시작 5분 만에)**: `treatments` 테이블에 **`category`·`gallery_images`·`recovery_time_min`·`thumbnail_image` 가 없다**(`information_schema` 실조회 확인. 비슷한 건 `images` 하나뿐). 그런데 아래 4곳이 이 컬럼들에 쓴다 → **저장이 통째로 실패**:
+- 🔴 **치료(시술) 등록·수정이 유령 컬럼 4개로 실패 중** — 🙋 **담당: 다른 병렬 세션이 이미 정리 중**(2026-07-20 PO 확인: "리뉴얼 하기 전 시스템의 잔재인 거 같다, 걔가 정리하고 있다"). **새 세션은 여기 중복 착수하지 마라** — 상태만 확인하고, 아래 기록은 근거 보존용이다. *(2026-07-20 발견 — 타입 못박기 작업 시작 5분 만에)*:: `treatments` 테이블에 **`category`·`gallery_images`·`recovery_time_min`·`thumbnail_image` 가 없다**(`information_schema` 실조회 확인. 비슷한 건 `images` 하나뿐). 그런데 아래 4곳이 이 컬럼들에 쓴다 → **저장이 통째로 실패**:
   - `app/api/admin/treatments/route.ts` (POST 222행 `thumbnail_image`, PUT 417행)
   - `app/api/partner/treatments/route.ts` (POST 61행 `category`, PUT 137행 allowlist)
   현재 `treatments` 9건은 다른 경로(크롤·수기 SQL 등)로 들어온 것으로 보인다. POSTMORTEMS #97 과 정확히 같은 부류(에러가 조용히 삼켜지고 화면은 멀쩡).
