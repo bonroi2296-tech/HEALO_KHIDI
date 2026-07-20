@@ -56,24 +56,22 @@ export async function POST(request: NextRequest) {
       slug,
       description: body.description || null,
       full_description: body.full_description || null,
-      category: body.category || null,
       price_min: body.price_range_min ?? body.price_min ?? null,
       price_max: body.price_range_max ?? body.price_max ?? null,
       currency: body.currency || "USD",
       images: body.images || [],
       tags: body.tags || [],
       benefits: body.benefits || [],
-      recovery_time_min: body.recovery_time_min ?? null,
-      recovery_time_max: body.recovery_time_max ?? null,
-      side_effects: body.side_effects || [],
-      precautions: body.precautions || [],
-      anesthesia_type: body.anesthesia_type || null,
-      surgery_duration_min: body.surgery_duration_min ?? null,
-      surgery_duration_max: body.surgery_duration_max ?? null,
+      // ponytail: 실DB `treatments` 에 있는 서술 필드는 아래 4개(글자형)뿐이다.
+      // 옛 미용시술 스키마의 category·recovery_time_min/max·side_effects·anesthesia_type·
+      // surgery_duration_*·before_after_images·price_includes 는 실제 컬럼이 아니라서
+      // 이 insert 를 통째로 실패시키고 있었다(치료 등록 5개월간 0건).
+      duration: body.duration || null,
+      recovery_time: body.recovery_time || null,
+      preparation: body.preparation || null,
+      risks: body.risks || null,
       is_published: body.is_published ?? false,
       display_order: body.display_order || null,
-      before_after_images: body.before_after_images || [],
-      price_includes: body.price_includes || [],
       ...extractKrFields({ name: body.name, description: body.description, tags: body.tags }),
     };
 
@@ -131,15 +129,13 @@ export async function PATCH(request: NextRequest) {
       return Response.json({ ok: false, error: "treatment_not_found" }, { status: 404 });
     }
 
+    // 실DB `treatments` 에 실제로 있는 컬럼만. (위 POST 주석 참고)
     const EDITABLE = [
-      "name", "description", "full_description", "category",
+      "name", "description", "full_description",
       "price_min", "price_max", "currency",
       "images", "tags", "benefits",
-      "recovery_time_min", "recovery_time_max",
-      "side_effects", "precautions",
-      "anesthesia_type", "surgery_duration_min", "surgery_duration_max",
+      "duration", "recovery_time", "preparation", "risks",
       "is_published", "display_order",
-      "before_after_images", "price_includes",
       "name_kr", "description_kr", "tags_kr",
       "i18n",
     ];

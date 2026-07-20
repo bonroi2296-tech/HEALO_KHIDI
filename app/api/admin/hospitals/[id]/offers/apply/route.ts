@@ -22,7 +22,8 @@ import type { OffersPreviewPayload, OfferItem } from "@/lib/hospitalOffers/types
  * 크롤이 뽑아온 회복기간 숫자(min/max 일)를 실DB 컬럼 `recovery_time`(글자형) 한 칸으로 합친다.
  * 미리보기 화면(HospitalOffersPreview)이 쓰는 "3~7일" 표기와 같은 형식.
  */
-export function formatRecoveryTime(
+// (Next.js 라우트 파일은 핸들러 외 export 를 허용하지 않는다 → 모듈 안에만 둔다)
+function formatRecoveryTime(
   min?: number | null,
   max?: number | null
 ): string | null {

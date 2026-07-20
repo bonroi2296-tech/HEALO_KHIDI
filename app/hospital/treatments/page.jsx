@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import { redirect } from "next/navigation";
-import { Stethoscope, Plus, Save, X, Eye, EyeOff, ArrowLeft, Pencil, Clock, AlertTriangle, UploadCloud, Loader2, ImageIcon, Shield, Activity, Info, Trash2, Image, DollarSign } from "lucide-react";
+import { Stethoscope, Plus, Save, X, Eye, EyeOff, ArrowLeft, Pencil, Clock, AlertTriangle, UploadCloud, Loader2, Info } from "lucide-react";
 import { HOSPITAL_CONTENT_ENABLED } from "../_components/featureFlags";
 
 export default function HospitalTreatmentsPage() {
@@ -49,29 +49,19 @@ const emptyForm = {
   name: "",
   description: "",
   full_description: "",
-  category: "",
   price_min: "",
   price_max: "",
   currency: "USD",
   tags: [],
   benefits: [],
   images: [],
-  recovery_time_min: "",
-  recovery_time_max: "",
-  side_effects: [],
-  side_effects_detail: "",
-  precautions: [],
-  anesthesia_type: "",
-  surgery_duration_min: "",
-  surgery_duration_max: "",
-  required_equipment: [],
-  insurance_coverage: false,
-  insurance_coverage_detail: "",
-  annual_procedure_count: "",
-  success_rate: "",
+  // 실DB `treatments` 의 서술 필드(글자형). 옛 미용시술 스키마의 숫자형 min/max·
+  // 부작용·마취·보험·성공률 필드는 실제 컬럼이 아니어서 저장 자체를 막고 있었다.
+  duration: "",
+  recovery_time: "",
+  preparation: "",
+  risks: "",
   is_published: false,
-  before_after_images: [],
-  price_includes: [],
 };
 
 function TreatmentsManager() {
@@ -113,29 +103,17 @@ function TreatmentsManager() {
       name: treatment.name || "",
       description: treatment.description || "",
       full_description: treatment.full_description || "",
-      category: treatment.category || "",
       price_min: treatment.price_min || "",
       price_max: treatment.price_max || "",
       currency: treatment.currency || "USD",
       tags: treatment.tags || [],
       benefits: treatment.benefits || [],
       images: Array.isArray(treatment.images) ? treatment.images : [],
-      recovery_time_min: treatment.recovery_time_min || "",
-      recovery_time_max: treatment.recovery_time_max || "",
-      side_effects: treatment.side_effects || [],
-      side_effects_detail: treatment.side_effects_detail || "",
-      precautions: treatment.precautions || [],
-      anesthesia_type: treatment.anesthesia_type || "",
-      surgery_duration_min: treatment.surgery_duration_min || "",
-      surgery_duration_max: treatment.surgery_duration_max || "",
-      required_equipment: treatment.required_equipment || [],
-      insurance_coverage: treatment.insurance_coverage ?? false,
-      insurance_coverage_detail: treatment.insurance_coverage_detail || "",
-      annual_procedure_count: treatment.annual_procedure_count || "",
-      success_rate: treatment.success_rate || "",
+      duration: treatment.duration || "",
+      recovery_time: treatment.recovery_time || "",
+      preparation: treatment.preparation || "",
+      risks: treatment.risks || "",
       is_published: treatment.is_published ?? false,
-      before_after_images: Array.isArray(treatment.before_after_images) ? treatment.before_after_images : [],
-      price_includes: Array.isArray(treatment.price_includes) ? treatment.price_includes : [],
     });
     setEditing(treatment.id);
   };
@@ -152,10 +130,6 @@ function TreatmentsManager() {
         ...form,
         price_min: form.price_min ? Number(form.price_min) : null,
         price_max: form.price_max ? Number(form.price_max) : null,
-        recovery_time_min: form.recovery_time_min ? Number(form.recovery_time_min) : null,
-        recovery_time_max: form.recovery_time_max ? Number(form.recovery_time_max) : null,
-        surgery_duration_min: form.surgery_duration_min ? Number(form.surgery_duration_min) : null,
-        surgery_duration_max: form.surgery_duration_max ? Number(form.surgery_duration_max) : null,
       };
 
       let res;
@@ -260,7 +234,6 @@ function TreatmentsManager() {
           <div className="space-y-3">
             <h3 className="text-sm font-bold text-gray-400">기본 정보</h3>
             <input placeholder="시술명 (영어/한글) *" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} className="w-full p-2 border rounded text-sm"/>
-            <input placeholder="카테고리 (예: Cosmetic, Dental)" value={form.category} onChange={e => setForm({ ...form, category: e.target.value })} className="w-full p-2 border rounded text-sm"/>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
               <input type="number" placeholder="최소 가격 ($)" value={form.price_min} onChange={e => setForm({ ...form, price_min: e.target.value })} className="w-full p-2 border rounded text-sm"/>
               <input type="number" placeholder="최대 가격 ($)" value={form.price_max} onChange={e => setForm({ ...form, price_max: e.target.value })} className="w-full p-2 border rounded text-sm"/>
@@ -309,86 +282,26 @@ function TreatmentsManager() {
             </button>
           </div>
 
-          {/* 시술 정보 */}
-          <div className="space-y-3 bg-blue-50 p-4 rounded-xl border border-blue-100">
-            <h3 className="text-sm font-bold text-blue-900 flex items-center gap-2"><Clock size={16}/> 시술 정보</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+          {/* 치료 상세 — 환자 상세페이지에 그대로 표시되는 항목 */}
+          <div className="space-y-3">
+            <h3 className="text-sm font-bold text-gray-400 flex items-center gap-2"><Clock size={16}/> 치료 상세</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <div>
-                <label className="text-xs text-gray-500 mb-1 block">마취 방식</label>
-                <select value={form.anesthesia_type || ""} onChange={e => setForm({ ...form, anesthesia_type: e.target.value })} className="w-full border p-2 rounded text-sm">
-                  <option value="">선택하세요</option>
-                  <option value="local">국소마취</option>
-                  <option value="sedation">수면마취</option>
-                  <option value="general">전신마취</option>
-                  <option value="none">마취 없음</option>
-                  <option value="topical">도포마취</option>
-                </select>
+                <label className="text-xs text-gray-500 mb-1 block">소요 시간</label>
+                <input placeholder="예: 1회 30분, 주 2회" value={form.duration || ""} onChange={e => setForm({ ...form, duration: e.target.value })} className="w-full border p-2 rounded text-sm"/>
               </div>
               <div>
-                <label className="text-xs text-gray-500 mb-1 block">시술 시간 (최소, 분)</label>
-                <input type="number" placeholder="예: 30" value={form.surgery_duration_min || ""} onChange={e => setForm({ ...form, surgery_duration_min: e.target.value })} className="w-full border p-2 rounded text-sm"/>
-              </div>
-              <div>
-                <label className="text-xs text-gray-500 mb-1 block">시술 시간 (최대, 분)</label>
-                <input type="number" placeholder="예: 60" value={form.surgery_duration_max || ""} onChange={e => setForm({ ...form, surgery_duration_max: e.target.value })} className="w-full border p-2 rounded text-sm"/>
+                <label className="text-xs text-gray-500 mb-1 block">회복 기간</label>
+                <input placeholder="예: 3~14일" value={form.recovery_time || ""} onChange={e => setForm({ ...form, recovery_time: e.target.value })} className="w-full border p-2 rounded text-sm"/>
               </div>
             </div>
             <div>
-              <h4 className="text-xs font-bold text-gray-500 mb-1 flex items-center gap-1"><Activity size={12}/> 필요 장비</h4>
-              <TagListEditor items={form.required_equipment || []} onAdd={t => setForm({ ...form, required_equipment: [...(form.required_equipment || []), t] })} onRemove={i => setForm({ ...form, required_equipment: (form.required_equipment || []).filter((_, x) => x !== i) })} placeholder="예: 레이저, 초음파"/>
+              <label className="text-xs text-gray-500 mb-1 block">사전 준비사항</label>
+              <textarea placeholder="예: 검사 전 8시간 금식, 복용 중인 약 지참" rows="2" value={form.preparation || ""} onChange={e => setForm({ ...form, preparation: e.target.value })} className="w-full p-2 border rounded text-sm"/>
             </div>
-          </div>
-
-          {/* 회복 정보 */}
-          <div className="space-y-3 bg-orange-50 p-4 rounded-xl border border-orange-100">
-            <h3 className="text-sm font-bold text-orange-900 flex items-center gap-2"><Clock size={16}/> 회복 정보</h3>
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <label className="text-xs text-gray-500 mb-1 block">최소 회복기간 (일)</label>
-                <input type="number" placeholder="예: 3" value={form.recovery_time_min || ""} onChange={e => setForm({ ...form, recovery_time_min: e.target.value })} className="w-full border p-2 rounded text-sm"/>
-              </div>
-              <div>
-                <label className="text-xs text-gray-500 mb-1 block">최대 회복기간 (일)</label>
-                <input type="number" placeholder="예: 14" value={form.recovery_time_max || ""} onChange={e => setForm({ ...form, recovery_time_max: e.target.value })} className="w-full border p-2 rounded text-sm"/>
-              </div>
-            </div>
-          </div>
-
-          {/* 부작용 / 주의사항 */}
-          <div className="space-y-3 bg-red-50 p-4 rounded-xl border border-red-100">
-            <h3 className="text-sm font-bold text-red-900 flex items-center gap-2"><AlertTriangle size={16}/> 부작용 / 주의사항</h3>
             <div>
-              <label className="text-xs font-bold text-gray-500 mb-1 block">부작용 태그</label>
-              <TagListEditor items={form.side_effects || []} onAdd={t => setForm({ ...form, side_effects: [...(form.side_effects || []), t] })} onRemove={i => setForm({ ...form, side_effects: (form.side_effects || []).filter((_, x) => x !== i) })} placeholder="예: 부기, 멍" colorClass="bg-red-100 text-red-700"/>
-            </div>
-            <textarea placeholder="부작용 상세 설명" rows="2" value={form.side_effects_detail || ""} onChange={e => setForm({ ...form, side_effects_detail: e.target.value })} className="w-full p-2 border rounded text-sm"/>
-            <div>
-              <label className="text-xs font-bold text-gray-500 mb-1 block">주의사항</label>
-              <TagListEditor items={form.precautions || []} onAdd={t => setForm({ ...form, precautions: [...(form.precautions || []), t] })} onRemove={i => setForm({ ...form, precautions: (form.precautions || []).filter((_, x) => x !== i) })} placeholder="예: 음주 금지, 사우나 금지" colorClass="bg-orange-100 text-orange-700"/>
-            </div>
-          </div>
-
-          {/* 보험 / 통계 */}
-          <div className="space-y-3 bg-green-50 p-4 rounded-xl border border-green-100">
-            <h3 className="text-sm font-bold text-green-900 flex items-center gap-2"><Shield size={16}/> 보험 / 통계</h3>
-            <div className="flex items-center gap-3">
-              <label className="text-sm text-gray-700 flex-1">보험 적용 가능</label>
-              <button type="button" onClick={() => setForm({ ...form, insurance_coverage: !form.insurance_coverage })} className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${form.insurance_coverage ? 'bg-green-600' : 'bg-gray-300'}`}>
-                <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${form.insurance_coverage ? 'translate-x-6' : 'translate-x-1'}`}/>
-              </button>
-            </div>
-            {form.insurance_coverage && (
-              <input placeholder="보험 상세 (예: 국민건강보험 일부 적용)" value={form.insurance_coverage_detail || ""} onChange={e => setForm({ ...form, insurance_coverage_detail: e.target.value })} className="w-full p-2 border rounded text-sm"/>
-            )}
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <label className="text-xs text-gray-500 mb-1 block">연간 시술 건수</label>
-                <input type="number" placeholder="예: 1200" value={form.annual_procedure_count || ""} onChange={e => setForm({ ...form, annual_procedure_count: e.target.value })} className="w-full border p-2 rounded text-sm"/>
-              </div>
-              <div>
-                <label className="text-xs text-gray-500 mb-1 block">성공률 (%)</label>
-                <input type="number" step="0.1" min="0" max="100" placeholder="예: 98.5" value={form.success_rate || ""} onChange={e => setForm({ ...form, success_rate: e.target.value })} className="w-full border p-2 rounded text-sm"/>
-              </div>
+              <label className="text-xs text-gray-500 mb-1 flex items-center gap-1"><AlertTriangle size={12}/> 주의사항 · 부작용</label>
+              <textarea placeholder="예: 시술 후 음주·사우나 금지, 일시적 부기 가능" rows="2" value={form.risks || ""} onChange={e => setForm({ ...form, risks: e.target.value })} className="w-full p-2 border rounded text-sm"/>
             </div>
           </div>
 
@@ -404,30 +317,6 @@ function TreatmentsManager() {
             </div>
           </div>
 
-          {/* Before / After */}
-          <div className="space-y-3 bg-violet-50 p-4 rounded-xl border border-violet-100">
-            <h3 className="text-sm font-bold text-violet-900 flex items-center gap-2"><Image size={16}/> Before / After 이미지</h3>
-            {(form.before_after_images || []).map((item, idx) => (
-              <div key={idx} className="bg-white border rounded-lg p-3 space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-gray-400">#{idx + 1}</span>
-                  <button onClick={() => setForm({...form, before_after_images: (form.before_after_images||[]).filter((_, i) => i !== idx)})} className="text-red-400 hover:text-red-600"><X size={14}/></button>
-                </div>
-                <input placeholder="Before 이미지 URL" value={item.before || ''} onChange={e => { const arr = [...(form.before_after_images||[])]; arr[idx] = {...arr[idx], before: e.target.value}; setForm({...form, before_after_images: arr}); }} className="w-full border p-2 rounded text-xs"/>
-                <input placeholder="After 이미지 URL" value={item.after || ''} onChange={e => { const arr = [...(form.before_after_images||[])]; arr[idx] = {...arr[idx], after: e.target.value}; setForm({...form, before_after_images: arr}); }} className="w-full border p-2 rounded text-xs"/>
-                <input placeholder="설명 (선택)" value={item.caption || ''} onChange={e => { const arr = [...(form.before_after_images||[])]; arr[idx] = {...arr[idx], caption: e.target.value}; setForm({...form, before_after_images: arr}); }} className="w-full border p-2 rounded text-xs"/>
-              </div>
-            ))}
-            <button type="button" onClick={() => setForm({...form, before_after_images: [...(form.before_after_images||[]), {before: '', after: '', caption: ''}]})} className="text-violet-600 text-xs font-bold flex items-center gap-1 hover:underline">
-              <Plus size={12}/> Before/After 추가
-            </button>
-          </div>
-
-          {/* Price Includes */}
-          <div className="space-y-3 bg-emerald-50 p-4 rounded-xl border border-emerald-100">
-            <h3 className="text-sm font-bold text-emerald-900 flex items-center gap-2"><DollarSign size={16}/> 가격 포함 항목</h3>
-            <TagListEditor items={form.price_includes || []} onAdd={t => setForm({...form, price_includes: [...(form.price_includes||[]), t]})} onRemove={i => setForm({...form, price_includes: (form.price_includes||[]).filter((_, x) => x !== i)})} placeholder="예: 상담, 마취, 사후관리" colorClass="bg-emerald-100 text-emerald-700"/>
-          </div>
         </div>
 
       </div>

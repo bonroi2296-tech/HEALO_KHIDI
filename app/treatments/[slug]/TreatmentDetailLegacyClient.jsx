@@ -5,7 +5,7 @@ import {
   ChevronLeft, ChevronRight, ChevronDown,
   MapPin, Star, Shield, Check, Image as ImageIcon, ArrowRight, Sparkles,
   ShieldCheck, CheckCircle2, MessageCircle, ThumbsUp, Map, UserCheck,
-  Clock, FileText, Globe, Activity, AlertTriangle, Syringe, BarChart3
+  Clock, FileText, Globe, AlertTriangle, Syringe
 } from "lucide-react";
 import { supabaseClient as supabase } from "@/lib/data/supabaseClient";
 import { ReviewModal } from "@/components/Modals";
@@ -48,11 +48,9 @@ export const TreatmentDetailPage = ({
 
   // Helper: build treatment view object from raw DB row
   const buildTreatmentView = (tRow, lang) => {
-    const thumb = tRow.thumbnail_image;
-    const gallery = normalizeImages(tRow.gallery_images);
-    const legacyImgs = normalizeImages(tRow.images);
-    const legacyThumb = normalizeImages(tRow.thumbnail);
-    const imgsWithThumbFallback = [thumb, ...gallery, ...legacyImgs, ...legacyThumb].filter(Boolean);
+    // ponytail: 예전엔 thumbnail_image·gallery_images 도 합쳤지만 둘 다 실DB `treatments` 에
+    // 없는 컬럼이라 늘 undefined 였다(위 select 에도 없음). 실컬럼은 `images` 하나뿐.
+    const imgsWithThumbFallback = normalizeImages(tRow.images);
     return {
       id: tRow.id, slug: tRow.slug || null,
       title: localize(tRow, "name", lang) || tRow.name || "",
@@ -65,22 +63,12 @@ export const TreatmentDetailPage = ({
       hospitalId: tRow.hospital_id,
       price: formatPriceRange(tRow.price_min, tRow.price_max, "en"),
       price_min: tRow.price_min, price_max: tRow.price_max,
-      recovery_time_min: tRow.recovery_time_min, recovery_time_max: tRow.recovery_time_max,
-      recovery_process: tRow.recovery_process,
-      side_effects: Array.isArray(tRow.side_effects) ? tRow.side_effects : [],
-      side_effects_detail: tRow.side_effects_detail,
-      precautions: Array.isArray(tRow.precautions) ? tRow.precautions : [],
-      anesthesia_type: tRow.anesthesia_type,
-      surgery_duration_min: tRow.surgery_duration_min, surgery_duration_max: tRow.surgery_duration_max,
-      required_equipment: Array.isArray(tRow.required_equipment) ? tRow.required_equipment : [],
-      insurance_coverage: tRow.insurance_coverage,
-      insurance_coverage_detail: tRow.insurance_coverage_detail,
-      annual_procedure_count: tRow.annual_procedure_count,
-      success_rate: tRow.success_rate,
-      similar_treatments: Array.isArray(tRow.similar_treatments) ? tRow.similar_treatments : [],
-      comparison_data: tRow.comparison_data || null,
-      before_after_images: Array.isArray(tRow.before_after_images) ? tRow.before_after_images : [],
-      price_includes: Array.isArray(tRow.price_includes) ? tRow.price_includes : [],
+      // 실DB `treatments` 의 서술 필드. 위 select 가 이미 가져오는데 예전엔 여기서 버려져
+      // 화면에 한 번도 뜨지 않았다(옛 미용시술 스키마 필드만 넘기고 있었음).
+      duration: tRow.duration || null,
+      recovery_time: tRow.recovery_time || null,
+      preparation: tRow.preparation || null,
+      risks: tRow.risks || null,
     };
   };
 
@@ -243,6 +231,9 @@ export const TreatmentDetailPage = ({
   useEffect(() => {
     let alive = true;
     const fetchSimilar = async () => {
+      // ponytail: `similar_treatments` 는 실DB `treatments` 에 없는 옛 컬럼이라 이 목록은 늘 비어
+      // 있고 「관련 치료」 섹션도 뜨지 않는다. 살리려면 "같은 병원의 다른 치료" 같은 실제 신호로
+      // 갈아끼워야 하는데, 그건 코드 문제가 아니라 무엇을 관련으로 볼지의 제품 결정이라 PO 몫으로 남긴다.
       const ids = treatment?.similar_treatments;
       if (!Array.isArray(ids) || ids.length === 0) { setSimilarTreatments([]); return; }
       try {
@@ -444,163 +435,49 @@ export const TreatmentDetailPage = ({
               )}
             </section>
 
-            {/* Before/After Gallery */}
-            {treatment.before_after_images?.length > 0 && (
-              <section className="border-t border-gray-200 pt-8 pb-2">
-                <h3 className="text-lg font-bold text-gray-900 mb-4">{t("detail.beforeAfter", langCode)}</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {treatment.before_after_images.map((pair, idx) => (
-                    <div key={idx} className="rounded-xl border border-gray-200 overflow-hidden">
-                      <div className="grid grid-cols-2">
-                        <div className="relative aspect-square bg-gray-100">
-                          <img src={pair.before} className="w-full h-full object-cover" alt={`Before ${idx + 1}`} />
-                          <span className="absolute top-2 left-2 bg-gray-900/70 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">BEFORE</span>
-                        </div>
-                        <div className="relative aspect-square bg-gray-100">
-                          <img src={pair.after} className="w-full h-full object-cover" alt={`After ${idx + 1}`} />
-                          <span className="absolute top-2 left-2 bg-teal-700/90 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">AFTER</span>
-                        </div>
-                      </div>
-                      {pair.caption && <p className="px-4 py-2.5 text-xs text-gray-600 text-center border-t border-gray-100">{pair.caption}</p>}
-                    </div>
-                  ))}
-                </div>
-              </section>
-            )}
-
             {/* Procedure Details + Recovery */}
-            {(treatment.surgery_duration_min || treatment.anesthesia_type || treatment.recovery_time_min || treatment.recovery_time_max || treatment.recovery_process) && (
+            {(treatment.duration || treatment.recovery_time || treatment.preparation) && (
               <section className="border-t border-gray-200 pt-8 pb-2">
                 <h3 className="text-lg font-bold text-gray-900 mb-4">{t("detail.procedureRecovery", langCode)}</h3>
 
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-5">
-                  {(treatment.surgery_duration_min || treatment.surgery_duration_max) && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-5">
+                  {treatment.duration && (
                     <div className="flex items-center gap-3 p-3 rounded-xl bg-gray-50">
                       <Syringe size={18} className="text-gray-500 shrink-0" />
                       <div>
                         <p className="text-xs text-gray-500">{t("detail.duration", langCode)}</p>
-                        <p className="text-sm font-semibold text-gray-900">
-                          {treatment.surgery_duration_min && treatment.surgery_duration_max
-                            ? `${treatment.surgery_duration_min}-${treatment.surgery_duration_max} min`
-                            : treatment.surgery_duration_min ? `${treatment.surgery_duration_min}+ min` : `${treatment.surgery_duration_max} min`}
-                        </p>
+                        <p className="text-sm font-semibold text-gray-900">{treatment.duration}</p>
                       </div>
                     </div>
                   )}
-                  {treatment.anesthesia_type && (
-                    <div className="flex items-center gap-3 p-3 rounded-xl bg-gray-50">
-                      <Activity size={18} className="text-gray-500 shrink-0" />
-                      <div>
-                        <p className="text-xs text-gray-500">{t("detail.anesthesia", langCode)}</p>
-                        <p className="text-sm font-semibold text-gray-900">{treatment.anesthesia_type}</p>
-                      </div>
-                    </div>
-                  )}
-                  {(treatment.recovery_time_min || treatment.recovery_time_max) && (
+                  {treatment.recovery_time && (
                     <div className="flex items-center gap-3 p-3 rounded-xl bg-teal-50">
                       <Clock size={18} className="text-teal-700 shrink-0" />
                       <div>
                         <p className="text-xs text-teal-700">{t("detail.recovery", langCode)}</p>
-                        <p className="text-sm font-semibold text-teal-800">
-                          {treatment.recovery_time_min && treatment.recovery_time_max
-                            ? `${treatment.recovery_time_min}-${treatment.recovery_time_max} days`
-                            : treatment.recovery_time_min ? `${treatment.recovery_time_min}+ days` : `${treatment.recovery_time_max} days`}
-                        </p>
+                        <p className="text-sm font-semibold text-teal-800">{treatment.recovery_time}</p>
                       </div>
                     </div>
                   )}
                 </div>
 
-                {treatment.recovery_process && typeof treatment.recovery_process === "object" && (
-                  <div className="space-y-3">
-                    {Object.entries(treatment.recovery_process).map(([key, value], idx) => (
-                      <div key={idx} className="flex gap-3">
-                        <div className="shrink-0 w-8 h-8 bg-teal-100 rounded-full flex items-center justify-center text-teal-700 font-bold text-xs">{idx + 1}</div>
-                        <div className="flex-1">
-                          <p className="font-semibold text-gray-900 text-sm capitalize">{key.replace(/_/g, " ")}</p>
-                          <p className="text-sm text-gray-600 mt-0.5">{value}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {treatment.required_equipment?.length > 0 && (
-                  <div className="mt-5 pt-4 border-t border-gray-100">
-                    <p className="text-sm font-semibold text-gray-900 mb-2">{t("detail.equipmentUsed", langCode)}</p>
-                    <div className="flex flex-wrap gap-2">
-                      {treatment.required_equipment.map((eq, idx) => (
-                        <span key={idx} className="px-2.5 py-1 bg-gray-50 text-gray-600 text-xs rounded-lg border border-gray-100">{eq}</span>
-                      ))}
-                    </div>
+                {treatment.preparation && (
+                  <div className="pt-4 border-t border-gray-100">
+                    <p className="text-sm font-semibold text-gray-900 mb-2">{t("detail.preparation", langCode)}</p>
+                    <p className="text-sm text-gray-700 whitespace-pre-line">{treatment.preparation}</p>
                   </div>
                 )}
               </section>
             )}
 
-            {/* Side Effects & Precautions */}
-            {(treatment.side_effects?.length > 0 || treatment.precautions?.length > 0) && (
+            {/* Precautions (실컬럼 `risks`) */}
+            {treatment.risks && (
               <section className="border-t border-gray-200 pt-8 pb-2">
                 <h3 className="text-lg font-bold text-gray-900 mb-4">{t("detail.sideEffectsTitle", langCode)}</h3>
-                {treatment.side_effects?.length > 0 && (
-                  <div className="mb-5">
-                    <p className="text-sm font-semibold text-gray-900 mb-2 flex items-center gap-1.5"><AlertTriangle size={15} className="text-amber-500" /> {t("detail.possibleSideEffects", langCode)}</p>
-                    <ul className="space-y-1.5">
-                      {treatment.side_effects.map((effect, idx) => (
-                        <li key={idx} className="flex items-start gap-2 text-sm text-gray-700"><span className="text-amber-500 mt-0.5">•</span>{effect}</li>
-                      ))}
-                    </ul>
-                    {treatment.side_effects_detail && <p className="text-xs text-gray-500 mt-3 p-3 bg-amber-50 rounded-lg">{treatment.side_effects_detail}</p>}
-                  </div>
-                )}
-                {treatment.precautions?.length > 0 && (
-                  <div>
-                    <p className="text-sm font-semibold text-gray-900 mb-2 flex items-center gap-1.5"><ShieldCheck size={15} className="text-teal-700" /> {t("detail.precautions", langCode)}</p>
-                    <ul className="space-y-1.5">
-                      {treatment.precautions.map((precaution, idx) => (
-                        <li key={idx} className="flex items-start gap-2 text-sm text-gray-700"><CheckCircle2 size={14} className="text-teal-700 mt-0.5 shrink-0" />{precaution}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-              </section>
-            )}
-
-            {/* Insurance + Statistics */}
-            {(treatment.insurance_coverage || treatment.annual_procedure_count || treatment.success_rate) && (
-              <section className="border-t border-gray-200 pt-8 pb-2">
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                  {treatment.annual_procedure_count && (
-                    <div className="flex items-center gap-3 p-3 rounded-xl bg-gray-50">
-                      <BarChart3 size={18} className="text-gray-500 shrink-0" />
-                      <div>
-                        <p className="text-sm font-semibold text-gray-900">{treatment.annual_procedure_count.toLocaleString()}</p>
-                        <p className="text-xs text-gray-500">{t("detail.annualProcedures", langCode)}</p>
-                      </div>
-                    </div>
-                  )}
-                  {treatment.success_rate && (
-                    <div className="flex items-center gap-3 p-3 rounded-xl bg-gray-50">
-                      <CheckCircle2 size={18} className="text-teal-700 shrink-0" />
-                      <div>
-                        <p className="text-sm font-semibold text-gray-900">{treatment.success_rate}%</p>
-                        <p className="text-xs text-gray-500">{t("detail.successRate", langCode)}</p>
-                      </div>
-                    </div>
-                  )}
-                  {treatment.insurance_coverage && (
-                    <div className="flex items-center gap-3 p-3 rounded-xl bg-green-50">
-                      <ShieldCheck size={18} className="text-green-600 shrink-0" />
-                      <div>
-                        <p className="text-sm font-semibold text-gray-900">{t("detail.insurance", langCode)}</p>
-                        <p className="text-xs text-green-600">{t("detail.mayApply", langCode)}</p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-                {treatment.insurance_coverage_detail && (
-                  <p className="text-xs text-gray-600 mt-3 p-3 bg-blue-50 rounded-lg">{treatment.insurance_coverage_detail}</p>
-                )}
+                <p className="text-sm font-semibold text-gray-900 mb-2 flex items-center gap-1.5">
+                  <AlertTriangle size={15} className="text-amber-500" /> {t("detail.precautions", langCode)}
+                </p>
+                <p className="text-sm text-gray-700 whitespace-pre-line">{treatment.risks}</p>
               </section>
             )}
 
@@ -742,17 +619,6 @@ export const TreatmentDetailPage = ({
                 <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">{t("detail.estimatedPrice", langCode)}</p>
                 <div className="text-2xl font-bold text-teal-700 mb-5">{treatment.price}</div>
 
-                {treatment.price_includes?.length > 0 && (
-                  <div className="mb-4 text-left">
-                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">{t("detail.includes", langCode)}</p>
-                    <ul className="space-y-1.5">
-                      {treatment.price_includes.map((item, idx) => (
-                        <li key={idx} className="flex items-center gap-2 text-xs text-gray-700"><CheckCircle2 size={12} className="text-teal-700 shrink-0" />{item}</li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-
                 <div className="space-y-2.5">
                   <button onClick={() => { setInquiryMode?.("select"); setView?.("inquiry"); }} className="w-full bg-teal-700 hover:bg-teal-800 text-white font-bold py-3.5 rounded-xl transition flex items-center justify-center gap-2">
                     <MessageCircle size={18} /> {t("detail.contactViahealwith", langCode)}
@@ -805,18 +671,8 @@ export const TreatmentDetailPage = ({
           </div>
         </div>
 
-        {/* Mobile: Price Includes + Benefits */}
+        {/* Mobile: Benefits */}
         <div className="lg:hidden mt-6 mb-4 space-y-3">
-          {treatment.price_includes?.length > 0 && (
-            <div className="bg-white rounded-xl p-4 border border-gray-100">
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">{t("detail.includes", langCode)}</p>
-              <ul className="space-y-1.5">
-                {treatment.price_includes.map((item, idx) => (
-                  <li key={idx} className="flex items-center gap-2 text-xs text-gray-700"><CheckCircle2 size={12} className="text-teal-700 shrink-0" />{item}</li>
-                ))}
-              </ul>
-            </div>
-          )}
           <div className="bg-teal-50/80 rounded-xl p-4 border border-teal-100">
             <p className="text-xs font-semibold text-teal-800 mb-2 uppercase tracking-wide flex items-center gap-1"><ShieldCheck size={13} /> {t("detail.healoGuarantee", langCode)}</p>
             <ul className="space-y-2">

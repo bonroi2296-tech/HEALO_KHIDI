@@ -82,6 +82,9 @@ function buildColumnMap() {
   let types;
   try { types = fs.readFileSync(path.join("src", "types", "database.types.ts"), "utf8"); }
   catch { return map; }
+  // 윈도우 체크아웃(autocrlf)에서 이 파일이 CRLF 로 떨어지면 아래 \n 정규식이 통째로 안 맞아
+  // 검사기가 조용히 no-op 이 된다(2026-07-20 실제로 겪음 — CI 는 리눅스라 못 잡는다).
+  types = types.replace(/\r\n/g, "\n");
   // "      table: {\n        Row: {\n  <cols>  \n        }" (public.Tables·Views 공통)
   const tableRe = /^ {6}(\w+): \{\n {8}Row: \{\n([\s\S]*?)\n {8}\}/gm;
   let m;
@@ -166,26 +169,72 @@ function maskLiterals(src) {
   return out.join("");
 }
 
-function checkWriteKeys(content, table, win, file, idx) {
+// 객체 리터럴 본문을 `{` 다음 위치에서 괄호 균형으로 잘라낸다. 실패하면 null.
+// (문자열·주석은 이미 maskLiterals 로 지워진 사본을 넘겨받는다.)
+function sliceObjectBody(masked, openBraceIdx) {
+  let depth = 1, i = openBraceIdx + 1;
+  const from = i;
+  while (i < masked.length && depth > 0) {
+    const ch = masked[i];
+    if (ch === "{") depth++;
+    else if (ch === "}") depth--;
+    i++;
+  }
+  if (depth !== 0) return null;             // window 경계에서 잘림 — 판단 보류
+  return masked.slice(from, i - 1);
+}
+
+// back = `.from(` **앞쪽** 문맥(변수 선언을 찾기 위해서만 쓴다), win = 뒤쪽 체인.
+// 이 둘을 나눠 받는 이유: 인라인 `.insert({…})` 를 앞쪽까지 뒤지면 **직전 쿼리의 insert** 를
+// 이 테이블 것으로 오인한다(실측 오탐: `.from("survey_responses").insert({…})` 가
+// 뒤이은 `.from("surveys")` 검사에 딸려 들어옴). 인라인은 뒤쪽만, 선언은 앞쪽까지.
+function checkWriteKeys(content, table, win, file, idx, back = "") {
   const cols = COLUMN_MAP.get(table);
   if (!cols) return;
-  const masked = maskLiterals(win);         // 이후 판단은 전부 마스킹본 위에서
+  const masked = maskLiterals(back + win);  // 이후 판단은 전부 마스킹본 위에서
+  const winStart = back.length;             // 이 지점부터가 `.from(` 뒤쪽(= 이 쿼리의 체인)
+
+  // 검사할 (연산, 객체본문) 목록을 모은다.
+  const targets = [];
+
+  // (1) 인라인: `.insert({ ... })` — 반드시 이 쿼리의 체인(win) 안에 있어야 한다.
   const callRe = /\.(insert|update|upsert)\(\s*\{/g;
   let c;
   while ((c = callRe.exec(masked)) !== null) {
-    const op = c[1];
-    // 객체 리터럴 본문을 괄호 균형으로 잘라낸다(문자열 속 중괄호는 이미 지워졌다).
-    let depth = 1, i = c.index + c[0].length;
-    const from = i;
-    while (i < masked.length && depth > 0) {
-      const ch = masked[i];
-      if (ch === "{") depth++;
-      else if (ch === "}") depth--;
-      i++;
-    }
-    if (depth !== 0) continue;              // window 경계에서 잘림 — 판단 보류
-    const body = masked.slice(from, i - 1);
-    if (body.includes("...") || /\[[^\]]+\]\s*:/.test(body)) continue; // 동적 → 건너뜀
+    if (c.index < winStart) continue;
+    const body = sliceObjectBody(masked, c.index + c[0].length - 1);
+    if (body !== null) targets.push({ op: c[1], body });
+  }
+
+  // (2) 변수 경유: `const payload = { ... }` … `.insert([payload])` (2026-07-20 밤 구멍)
+  //     왜: 실제 코드는 대부분 payload 를 먼저 만들고 넘긴다. (1)만 보면 그 경로가 통째로
+  //     무검사였고, 실제로 `treatments` 유령 컬럼 17개가 이 통로로 5개월간 새어나갔다
+  //     (어드민·병원포털 치료 등록 0건). 축 D 를 만들고도 같은 부류를 또 놓친 이유.
+  //     오탐 0 유지: ①**쓰임(.insert(payload))이 이 쿼리 체인 안**일 때만 인정 ②선언 이후
+  //     `payload.x = ...`/`Object.assign(payload` 같은 동적 변형이 있으면 건너뛴다.
+  const varRe = /\b(?:const|let|var)\s+(\w+)(?:\s*:\s*[^=]+?)?\s*=\s*\{/g;
+  let v;
+  while ((v = varRe.exec(masked)) !== null) {
+    const name = v[1];
+    const bodyStart = v.index + v[0].length;
+    const body = sliceObjectBody(masked, bodyStart - 1);
+    if (body === null) continue;
+    const rest = masked.slice(bodyStart);
+    const esc = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    if (new RegExp(`\\b${esc}\\s*(\\.\\w+|\\[)\\s*=[^=]`).test(rest)) continue;   // payload.x = ...
+    if (new RegExp(`Object\\.assign\\(\\s*${esc}\\b`).test(rest)) continue;
+    const useRe = new RegExp(`\\.(insert|update|upsert)\\(\\s*\\[?\\s*${esc}\\s*[\\],)]`);
+    const use = useRe.exec(rest);
+    if (use && bodyStart + use.index >= winStart) targets.push({ op: use[1], body });
+  }
+
+  for (const { op, body } of targets) {
+    // 계산된 키(`[x]:`)는 이름을 정적으로 알 수 없어 건너뛴다.
+    // 스프레드(`...`)는 **건너뛰지 않는다**(2026-07-20 밤): 스프레드는 "키가 더 있을 수 있다"는
+    // 뜻이지 "적혀 있는 키가 틀려도 된다"는 뜻이 아니다. 예전엔 통째로 건너뛰어서
+    // `{ ...extractKrFields(...), ghost_col: 1 }` 한 줄이 그 객체의 유령 컬럼 전부를
+    // 무사통과시켰다(실제 사고 경로). 리터럴로 적힌 키는 그대로 대조한다.
+    if (/\[[^\]]+\]\s*:/.test(body)) continue;
 
     // 최상위 키만 (중첩 객체·배열 안쪽은 jsonb 값이라 컬럼이 아님).
     // 줄 단위로 훑으면 `{ a: 1, ghost: 2 }` 처럼 **한 줄에 키가 여러 개**일 때 첫 키만 보고
@@ -248,8 +297,34 @@ if (process.argv.includes("--selftest")) {
   expect("주석 속 중괄호가 검사를 끊지 않는다",
     run(`.from("__t").insert({ /* 여는 괄호 { 만 있는 주석 */ ghost_after_comment: 1 })`), ["ghost_after_comment"]);
 
-  expect("스프레드가 있으면 통째로 건너뛴다(동적)",
-    run(`.from("__t").insert({ ...base, ghost_ignored: 1 })`), []);
+  // 2026-07-20 밤 정책 변경: 스프레드는 "키가 더 있을 수 있다"이지 "적힌 키가 틀려도 된다"가
+  // 아니다. 예전엔 통째로 건너뛰어 `...extractKrFields(...)` 한 줄이 유령 컬럼 17개를
+  // 무사통과시켰다(treatments 등록 5개월 0건).
+  expect("스프레드가 있어도 리터럴로 적힌 키는 검사한다",
+    run(`.from("__t").insert({ ...base, ghost_col: 1 })`), ["ghost_col"]);
+
+  expect("스프레드 안쪽 인자 객체의 키는 컬럼이 아니다",
+    run(`.from("__t").insert({ ...kr({ name: 1, tags: 2 }), response_text_raw: "a" })`), []);
+
+  // 변수 경유 쓰기 — 실제 코드가 거의 다 이 모양인데 예전엔 통째로 무검사였다.
+  expect("변수에 담아 넘겨도 검사한다(insert([payload]))",
+    run(`const payload = { response_text_raw: "a", ghost_col: 1 };\n.from("__t").insert([payload])`), ["ghost_col"]);
+
+  expect("변수 경유 + 정상 컬럼만이면 조용하다",
+    run(`const payload = { response_text_raw: "a" };\n.from("__t").insert([payload])`), []);
+
+  expect("타입 주석이 붙은 선언도 본다",
+    run(`const payload: Record<string, any> = { ghost_col: 1 };\n.from("__t").update(payload)`), ["ghost_col"]);
+
+  // 오탐 0 유지 — 선언 뒤 동적으로 키를 붙이면 정적 판단이 불가능하므로 건너뛴다.
+  expect("선언 후 동적 대입이 있으면 건너뛴다",
+    run(`const payload = { response_text_raw: "a" };\npayload.whatever = 1;\n.from("__t").insert([payload])`), []);
+
+  expect("Object.assign 으로 변형되면 건너뛴다",
+    run(`const payload = { ghost_col: 1 };\nObject.assign(payload, extra);\n.from("__t").insert([payload])`), []);
+
+  expect("쓰기에 안 쓰이는 그냥 객체 변수는 건드리지 않는다",
+    run(`const opts = { ghost_col: 1 };\nconsole.log(opts)`), []);
 
   expect("중첩 객체(jsonb) 안쪽 키는 컬럼이 아니다",
     run(`.from("__t").insert({ response_text_raw: "a", metadata: {\n  inner_key: 1\n} })`), ["metadata"]);
@@ -305,8 +380,15 @@ for (const root of ROOTS) {
           }
         }
 
-        // 축 D: 같은 window 에서 쓰기 경로(insert/update/upsert) 객체키도 대조.
-        checkWriteKeys(content, name, win, file, idx);
+        // 축 D: 쓰기 경로(insert/update/upsert) 객체키 대조.
+        // ⚠️ select 용 window 는 `.from(` **뒤쪽만** 본다. 하지만 실제 코드는
+        //   `const payload = { ... }` 를 먼저 만들고 그 아래에서 `.from(t).insert([payload])`
+        //   를 부른다 → 선언이 창 밖이라 변수 경유 쓰기가 통째로 무검사였다
+        //   (2026-07-20 밤 발견: `treatments` 유령 컬럼 17개가 5개월간 이 통로로 샘).
+        //   그래서 쓰기 검사에는 **앞쪽도 포함**한 창을 준다. 이웃 쿼리의 payload 를
+        //   집어오지 않도록 앞쪽은 직전 `.from(` 까지만 거슬러 올라간다.
+        const back = content.slice(Math.max(0, idx - 2500), idx);
+        checkWriteKeys(content, name, win, file, idx, back);
       }
 
       // 3) 실재 테이블이면 OK
