@@ -72,6 +72,7 @@ import { useRealtimeMessages } from "@/lib/consultation/useRealtimeMessages";
 import { useLiveKitDataChannel } from "@/lib/consultation/useLiveKitDataChannel";
 import { LiveTranslateBridge } from "@/lib/consultation/LiveTranslateBridge";
 import { SameRoomGuard } from "@/lib/consultation/SameRoomGuard";
+import { PartnerLangBridge } from "@/lib/consultation/PartnerLangBridge";
 import { ListenModeBridge } from "@/lib/consultation/ListenModeBridge";
 
 const supabase = createSupabaseBrowserClient();
@@ -2009,7 +2010,13 @@ export default function ConsultationRoomPage() {
             sum += v * v;
           }
           const rms = Math.sqrt(sum / buf.length);
-          if (rms > 0.02) {
+          // 발화 판정 문턱. 0.02 는 한국어 말끝(어미가 작아지는 "…했는데요")을 무음으로 보고
+          // 문장 중간에서 잘라냈다 — 2026-07-20 실회의 로그: 한국어 124건 중 59%가 문장을
+          // 못 맺고 끊김(4자 이하 24건). 문턱을 낮추면 그 꼬리가 발화로 남아 컷이 밀린다.
+          // ⚠️ 더 낮추면 숨소리·잡음이 발화로 잡혀 컷이 안 일어난다(10초 강제컷까지 감) — 이 값이 하한.
+          // ※ 그 회의엔 하울링도 있었다(에코제거가 음량을 들쭉날쭉하게 만듦) → 하울링 배너와
+          //   함께 배포 후 다음 실회의에서 이 비율을 다시 재는 게 정확하다.
+          if (rms > 0.014) {
             voicedFrames += 1;
             silentStreak = 0;
             if (lastStatus === "listening") setStatus("speaking");
@@ -2624,6 +2631,9 @@ export default function ConsultationRoomPage() {
                   켜지면 내 언어 통역 음성·자막을 기존 자막 UI 로 흘려보낸다. */}
               {/* 같은 공간 다른 기기 감지 → 하울링 안내 배너 (감지만 자동, 끄기는 사람이) */}
               <SameRoomGuard copy={c} />
+              {/* 상대가 고른 언어를 따라가 "내 말이 나갈 언어"를 자동 설정 (렌더링 없음).
+                  언어 선택을 «내 언어» 하나로 줄인 대가로, 보낼 언어는 상대에게서 알아낸다. */}
+              <PartnerLangBridge myLang={myLang} onPartnerLang={setTargetLang} />
               <LiveTranslateBridge
                 myLang={myLang}
                 myRole={myRole}
@@ -3171,35 +3181,28 @@ export default function ConsultationRoomPage() {
             onClick={(e) => e.stopPropagation()}
           >
             <p className="text-sm font-bold text-white">{c.langChangeTitle}</p>
-            {/* 통역 방향 한눈에: [내 언어] ⇄ [상대 언어] — "xx언어를 yy언어로" 멘탈모델(PO 요청 2026-07-11).
-                스왑은 기존 언어 칩과 동일하게 UI 언어도 함께 전환("내 언어 = UI 언어" 계약 유지) */}
-            <div className="flex items-center justify-center gap-3 bg-gray-900 border border-gray-700 rounded-xl px-4 py-3">
-              <span className="text-base font-bold text-teal-300">{LANG_LABELS[myLang]}</span>
-              <button
-                onClick={() => {
-                  const prevMy = myLang;
-                  setMyLang(targetLang);
-                  setTargetLang(prevMy);
-                  switchUiLang(targetLang);
-                }}
-                aria-label={c.langSwap}
-                title={c.langSwap}
-                className="p-2 bg-gray-700 hover:bg-gray-600 rounded-full text-teal-300 transition"
-              >
-                <ArrowLeftRight size={16} />
-              </button>
-              <span className="text-base font-bold text-white">{LANG_LABELS[targetLang]}</span>
+            {/* ── 「내 언어」 하나만 고른다 (2026-07-20 PO 지적으로 재설계) ──
+                이전: [내가 말하는 언어] + [상대방에게 보이는 자막] 2개를 내가 골랐다.
+                문제: ①통역은 *나를 위한* 기능인데 남이 볼 자막을 내가 정하는 구조 ②내가 잘못
+                고르면 상대는 못 알아듣는데 나는 모름 ③상대가 자기 언어를 바꾸면 내 설정과 어긋남.
+                실회의 로그(179건)에서 37%가 "번역했다면서 원문 그대로"(ru→ru 53·ko→ko 13)로 나왔고,
+                PO 는 30분간 언어를 4번 바꾸며 방법을 찾다 실패했다 — 설계 결함의 증거.
+                → 각자 «내 언어»만 선언하고, 상대에게 보낼 언어는 **상대가 선언한 값**을 쓴다.
+                  (이게 Gemini 통역 에이전트의 모델이기도 하다 — router 는 청취자 언어로 짝을 만든다.)
+                UI 언어도 여기서 바꾸지 않는다(한국인 코디가 러시아어 들으려다 화면이 러시아어가 되던 문제). */}
+            <div className="rounded-xl bg-gray-900 border border-gray-700 px-4 py-3">
+              <p className="text-center text-base font-bold text-teal-300">
+                {LANG_LABELS[myLang]}
+              </p>
+              <p className="mt-1 text-center text-xs text-gray-400">{c.langMineHint}</p>
             </div>
             <div>
-              <p className="text-xs text-gray-400 mb-2">{c.langFromLabel}</p>
+              <p className="text-xs text-gray-400 mb-2">{c.langMineLabel}</p>
               <div className="flex flex-wrap gap-2">
                 {["ko", "en", "ru", "kz", "zh", "ja"].map((l) => (
                   <button
                     key={l}
-                    onClick={() => {
-                      setMyLang(l);
-                      switchUiLang(l);
-                    }}
+                    onClick={() => setMyLang(l)}
                     className={`px-3 py-2 rounded-lg text-sm transition border ${
                       myLang === l
                         ? "bg-teal-700 border-teal-500 text-white font-semibold"
@@ -3210,24 +3213,9 @@ export default function ConsultationRoomPage() {
                   </button>
                 ))}
               </div>
-            </div>
-            <div>
-              <p className="text-xs text-gray-400 mb-2">{c.langToLabel}</p>
-              <div className="flex flex-wrap gap-2">
-                {["ko", "en", "ru", "kz", "zh", "ja"].map((l) => (
-                  <button
-                    key={l}
-                    onClick={() => setTargetLang(l)}
-                    className={`px-3 py-2 rounded-lg text-sm transition border ${
-                      targetLang === l
-                        ? "bg-teal-700 border-teal-500 text-white font-semibold"
-                        : "bg-gray-900 border-gray-600 text-gray-300 hover:border-gray-400"
-                    }`}
-                  >
-                    {LANG_LABELS[l]}
-                  </button>
-                ))}
-              </div>
+              <p className="mt-2 text-xs text-gray-500">
+                {c.langPartnerNote} <span className="text-gray-300">{LANG_LABELS[targetLang]}</span>
+              </p>
             </div>
             <div>
               <p className="text-xs text-gray-400 mb-2">{c.subtitleSizeTitle}</p>
