@@ -18,6 +18,20 @@ import {
 import { generateSlug } from "@/lib/utils/slug";
 import type { OffersPreviewPayload, OfferItem } from "@/lib/hospitalOffers/types";
 
+/**
+ * 크롤이 뽑아온 회복기간 숫자(min/max 일)를 실DB 컬럼 `recovery_time`(글자형) 한 칸으로 합친다.
+ * 미리보기 화면(HospitalOffersPreview)이 쓰는 "3~7일" 표기와 같은 형식.
+ */
+export function formatRecoveryTime(
+  min?: number | null,
+  max?: number | null
+): string | null {
+  const days = [min, max].filter((n): n is number => typeof n === "number");
+  if (days.length === 0) return null;
+  const uniq = [...new Set(days)];
+  return `${uniq.join("~")}일`;
+}
+
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -108,24 +122,15 @@ export async function POST(
       benefits: [],
       tags: t.tags ?? [],
       images: t.images ?? [],
-      thumbnail_image: (t.images && t.images[0]) ?? null,
-      gallery_images: t.images ?? [],
       display_order: null,
-      recovery_time_min: t.recovery_time_min ?? null,
-      recovery_time_max: t.recovery_time_max ?? null,
-      side_effects: t.side_effects ?? [],
-      side_effects_detail: null,
-      precautions: t.precautions ?? [],
-      anesthesia_type: t.anesthesia_type ?? null,
-      surgery_duration_min: t.duration ?? null,
-      surgery_duration_max: t.duration ?? null,
-      required_equipment: [],
-      insurance_coverage: false,
-      insurance_coverage_detail: null,
-      annual_procedure_count: null,
-      success_rate: null,
-      before_after_images: [],
-      price_includes: t.price_includes ?? [],
+      // ponytail: 아래 서술 필드만 실DB 컬럼이다. 옛 미용시술 스키마 잔재
+      // (thumbnail_image·gallery_images·recovery_time_min/max·side_effects·anesthesia_type·
+      //  surgery_duration_*·insurance_*·success_rate·before_after_images·price_includes)는
+      // 실DB `treatments` 에 없어서 이 insert/update 를 통째로 실패시키고 있었다.
+      // 크롤이 뽑아온 값 중 되읽는 곳이 있는 건 회복기간·소요시간뿐이라 실컬럼으로만 옮긴다.
+      // (POSTMORTEMS #97 부류 — raw_hash 건과 동일한 처방)
+      duration: t.duration != null ? String(t.duration) : null,
+      recovery_time: formatRecoveryTime(t.recovery_time_min, t.recovery_time_max),
     };
 
     const existing = (existingTreatments || []).find((e) => e.slug === slug);

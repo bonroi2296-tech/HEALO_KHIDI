@@ -217,25 +217,13 @@ export async function POST(request: NextRequest) {
     benefits: validatedData.benefits || [],
     tags: validatedData.tags || [],
     images: validatedData.images || [],
-    thumbnail_image: validatedData.thumbnail_image ?? null,
-    gallery_images: validatedData.gallery_images || [],
     display_order: validatedData.display_order || null,
     is_published: validatedData.is_published,
-    recovery_time_min: validatedData.recovery_time_min ?? null,
-    recovery_time_max: validatedData.recovery_time_max ?? null,
-    side_effects: validatedData.side_effects || [],
-    side_effects_detail: validatedData.side_effects_detail ?? null,
-    precautions: validatedData.precautions || [],
-    anesthesia_type: validatedData.anesthesia_type ?? null,
-    surgery_duration_min: validatedData.surgery_duration_min ?? null,
-    surgery_duration_max: validatedData.surgery_duration_max ?? null,
-    required_equipment: validatedData.required_equipment || [],
-    insurance_coverage: validatedData.insurance_coverage ?? false,
-    insurance_coverage_detail: validatedData.insurance_coverage_detail ?? null,
-    annual_procedure_count: validatedData.annual_procedure_count ?? null,
-    success_rate: validatedData.success_rate ?? null,
-    before_after_images: validatedData.before_after_images || [],
-    price_includes: validatedData.price_includes || [],
+    duration: validatedData.duration ?? null,
+    recovery_time: validatedData.recovery_time ?? null,
+    preparation: validatedData.preparation ?? null,
+    risks: validatedData.risks ?? null,
+    ...(validatedData.currency ? { currency: validatedData.currency } : {}),
     ...extractKrFields({
       name: validatedData.name,
       description: validatedData.description,
@@ -412,25 +400,13 @@ export async function PATCH(request: NextRequest) {
     if (validatedData.benefits !== undefined) payload.benefits = validatedData.benefits ?? [];
     if (validatedData.tags !== undefined) payload.tags = validatedData.tags ?? [];
     if (validatedData.images !== undefined) payload.images = validatedData.images ?? [];
-    if (validatedData.thumbnail_image !== undefined) payload.thumbnail_image = validatedData.thumbnail_image;
-    if (validatedData.gallery_images !== undefined) payload.gallery_images = validatedData.gallery_images ?? [];
     if (validatedData.display_order !== undefined) payload.display_order = validatedData.display_order;
     if (validatedData.is_published !== undefined) payload.is_published = validatedData.is_published;
-    if (validatedData.recovery_time_min !== undefined) payload.recovery_time_min = validatedData.recovery_time_min;
-    if (validatedData.recovery_time_max !== undefined) payload.recovery_time_max = validatedData.recovery_time_max;
-    if (validatedData.side_effects !== undefined) payload.side_effects = validatedData.side_effects ?? [];
-    if (validatedData.side_effects_detail !== undefined) payload.side_effects_detail = validatedData.side_effects_detail;
-    if (validatedData.precautions !== undefined) payload.precautions = validatedData.precautions ?? [];
-    if (validatedData.anesthesia_type !== undefined) payload.anesthesia_type = validatedData.anesthesia_type;
-    if (validatedData.surgery_duration_min !== undefined) payload.surgery_duration_min = validatedData.surgery_duration_min;
-    if (validatedData.surgery_duration_max !== undefined) payload.surgery_duration_max = validatedData.surgery_duration_max;
-    if (validatedData.required_equipment !== undefined) payload.required_equipment = validatedData.required_equipment ?? [];
-    if (validatedData.insurance_coverage !== undefined) payload.insurance_coverage = validatedData.insurance_coverage;
-    if (validatedData.insurance_coverage_detail !== undefined) payload.insurance_coverage_detail = validatedData.insurance_coverage_detail;
-    if (validatedData.annual_procedure_count !== undefined) payload.annual_procedure_count = validatedData.annual_procedure_count;
-    if (validatedData.success_rate !== undefined) payload.success_rate = validatedData.success_rate;
-    if (validatedData.before_after_images !== undefined) payload.before_after_images = validatedData.before_after_images ?? [];
-    if (validatedData.price_includes !== undefined) payload.price_includes = validatedData.price_includes ?? [];
+    if (validatedData.duration !== undefined) payload.duration = validatedData.duration;
+    if (validatedData.recovery_time !== undefined) payload.recovery_time = validatedData.recovery_time;
+    if (validatedData.preparation !== undefined) payload.preparation = validatedData.preparation;
+    if (validatedData.risks !== undefined) payload.risks = validatedData.risks;
+    if (validatedData.currency !== undefined) payload.currency = validatedData.currency;
 
     const krFields = extractKrFields(payload);
     Object.assign(payload, krFields);

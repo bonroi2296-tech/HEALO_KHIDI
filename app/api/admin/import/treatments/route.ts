@@ -66,12 +66,6 @@ export async function POST(request: NextRequest) {
           tags: parseJsonField(row.tags, []),
           images: parseJsonField(row.images, []),
           benefits: parseJsonField(row.benefits, []),
-          recovery_process: parseJsonField(row.recovery_process, null),
-          side_effects: parseJsonField(row.side_effects, []),
-          precautions: parseJsonField(row.precautions, []),
-          required_equipment: parseJsonField(row.required_equipment, []),
-          similar_treatments: parseJsonField(row.similar_treatments, []),
-          comparison_data: parseJsonField(row.comparison_data, null),
         };
 
         // 빈 문자열을 null로 변환
@@ -84,18 +78,9 @@ export async function POST(request: NextRequest) {
         // 숫자 필드 변환
         if (parsedRow.price_min) parsedRow.price_min = Number(parsedRow.price_min);
         if (parsedRow.price_max) parsedRow.price_max = Number(parsedRow.price_max);
-        if (parsedRow.recovery_time_min) parsedRow.recovery_time_min = Number(parsedRow.recovery_time_min);
-        if (parsedRow.recovery_time_max) parsedRow.recovery_time_max = Number(parsedRow.recovery_time_max);
-        if (parsedRow.surgery_duration_min) parsedRow.surgery_duration_min = Number(parsedRow.surgery_duration_min);
-        if (parsedRow.surgery_duration_max) parsedRow.surgery_duration_max = Number(parsedRow.surgery_duration_max);
-        if (parsedRow.annual_procedure_count) parsedRow.annual_procedure_count = Number(parsedRow.annual_procedure_count);
-        if (parsedRow.success_rate) parsedRow.success_rate = Number(parsedRow.success_rate);
         if (parsedRow.display_order) parsedRow.display_order = Number(parsedRow.display_order);
 
         // 불리언 필드 변환
-        if (typeof parsedRow.insurance_coverage === 'string') {
-          parsedRow.insurance_coverage = parsedRow.insurance_coverage === 'true';
-        }
         if (typeof parsedRow.is_published === 'string') {
           parsedRow.is_published = parsedRow.is_published === 'true';
         }
@@ -144,13 +129,14 @@ export async function POST(request: NextRequest) {
           treatmentData.slug = generateSlug(treatmentData.name);
         }
 
-        // 이미지 fallback (없는 경우 Unsplash 임시 이미지)
-        if (!treatmentData.thumbnail_image) {
-          treatmentData.thumbnail_image = getFallbackImage(treatmentData.name, 0, 800, 600);
-        }
-        
-        if (!treatmentData.gallery_images || treatmentData.gallery_images.length === 0) {
-          treatmentData.gallery_images = getTreatmentGalleryImages(treatmentData.name);
+        // 이미지 fallback (없는 경우 임시 이미지)
+        // ponytail: 옛 thumbnail_image·gallery_images 는 실DB `treatments` 에 없는 컬럼이었다.
+        // 실컬럼은 `images` 배열 하나뿐이라 폴백도 거기로 모은다.
+        if (!treatmentData.images || treatmentData.images.length === 0) {
+          treatmentData.images = [
+            getFallbackImage(treatmentData.name, 0, 800, 600),
+            ...getTreatmentGalleryImages(treatmentData.name),
+          ].filter(Boolean);
         }
 
         // 중복 체크 (hospital_id + slug 기준)

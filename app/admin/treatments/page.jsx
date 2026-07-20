@@ -92,18 +92,14 @@ export default function TreatmentsPage() {
   const [treatmentsError, setTreatmentsError] = useState(null);
   const [selectedHospitalId, setSelectedHospitalId] = useState('');
   const [editingTreatmentId, setEditingTreatmentId] = useState(null);
-  const emptyTreatmentForm = { 
-    title: '', desc: '', fullDescription: '', 
+  // ponytail: 옛 미용시술 카탈로그 시절 필드(회복기간 min/max·부작용·마취·보험 등)는
+  // 입력칸도 없이 payload 에만 남아 실DB 에 없는 컬럼으로 저장을 통째로 깨뜨리고 있었다.
+  // 여기 있는 값 = 실제 `treatments` 컬럼만. (POSTMORTEMS #97 부류)
+  const emptyTreatmentForm = {
+    title: '', desc: '', fullDescription: '',
     priceMin: '', priceMax: '',
-    recoveryTimeMin: '', recoveryTimeMax: '',
-    sideEffects: [], sideEffectsDetail: '', precautions: [],
-    anesthesiaType: '', surgeryDurationMin: '', surgeryDurationMax: '',
-    requiredEquipment: [],
-    insuranceCoverage: false, insuranceCoverageDetail: '',
-    annualProcedureCount: '', successRate: '',
     benefits: [], tags: [], images: [],
     displayOrder: null, isPublished: true,
-    beforeAfterImages: [], priceIncludes: [],
     i18n: {}
   };
   const [treatmentForm, setTreatmentForm] = useState(emptyTreatmentForm);
@@ -245,26 +241,11 @@ export default function TreatmentsPage() {
       fullDescription: t.full_description || '',
       priceMin: t.price_min || '',
       priceMax: t.price_max || '',
-      recoveryTimeMin: t.recovery_time_min || '',
-      recoveryTimeMax: t.recovery_time_max || '',
-      sideEffects: t.side_effects || [],
-      sideEffectsDetail: t.side_effects_detail || '',
-      precautions: t.precautions || [],
-      anesthesiaType: t.anesthesia_type || '',
-      surgeryDurationMin: t.surgery_duration_min || '',
-      surgeryDurationMax: t.surgery_duration_max || '',
-      requiredEquipment: t.required_equipment || [],
-      insuranceCoverage: t.insurance_coverage || false,
-      insuranceCoverageDetail: t.insurance_coverage_detail || '',
-      annualProcedureCount: t.annual_procedure_count || '',
-      successRate: t.success_rate || '',
       benefits: t.benefits || [],
       tags: t.tags || [],
       images: imagesArray,
       displayOrder: t.display_order,
       isPublished: t.is_published !== undefined ? t.is_published : true,
-      beforeAfterImages: Array.isArray(t.before_after_images) ? t.before_after_images : [],
-      priceIncludes: Array.isArray(t.price_includes) ? t.price_includes : [],
       i18n: t.i18n || {}
     });
   };
@@ -284,26 +265,11 @@ export default function TreatmentsPage() {
       full_description: treatmentForm.fullDescription, 
       price_min: Number(treatmentForm.priceMin) || 0,
       price_max: treatmentForm.priceMax ? Number(treatmentForm.priceMax) : null,
-      recovery_time_min: treatmentForm.recoveryTimeMin ? Number(treatmentForm.recoveryTimeMin) : null,
-      recovery_time_max: treatmentForm.recoveryTimeMax ? Number(treatmentForm.recoveryTimeMax) : null,
-      side_effects: treatmentForm.sideEffects,
-      side_effects_detail: treatmentForm.sideEffectsDetail || null,
-      precautions: treatmentForm.precautions,
-      anesthesia_type: treatmentForm.anesthesiaType || null,
-      surgery_duration_min: treatmentForm.surgeryDurationMin ? Number(treatmentForm.surgeryDurationMin) : null,
-      surgery_duration_max: treatmentForm.surgeryDurationMax ? Number(treatmentForm.surgeryDurationMax) : null,
-      required_equipment: treatmentForm.requiredEquipment,
-      insurance_coverage: treatmentForm.insuranceCoverage,
-      insurance_coverage_detail: treatmentForm.insuranceCoverageDetail || null,
-      annual_procedure_count: treatmentForm.annualProcedureCount ? Number(treatmentForm.annualProcedureCount) : null,
-      success_rate: treatmentForm.successRate ? Number(treatmentForm.successRate) : null,
-      benefits: treatmentForm.benefits, 
-      tags: treatmentForm.tags, 
+      benefits: treatmentForm.benefits,
+      tags: treatmentForm.tags,
       images: imagesArray,
       display_order: treatmentForm.displayOrder ? Number(treatmentForm.displayOrder) : null,
       is_published: treatmentForm.isPublished !== undefined ? treatmentForm.isPublished : true,
-      before_after_images: treatmentForm.beforeAfterImages || [],
-      price_includes: treatmentForm.priceIncludes || [],
       i18n: treatmentForm.i18n || {}
     };
     
