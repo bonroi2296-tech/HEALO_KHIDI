@@ -11,6 +11,7 @@ import { NextRequest } from "next/server";
 import { supabaseAdmin, assertSupabaseEnv } from "@/lib/rag/supabaseAdmin";
 import { requireAdminAuth } from "@/lib/auth/requireAdminAuth";
 import { sanitizeResponse, computeQualityScore } from "@/lib/playbook/sanitize";
+import type { Database } from "@/types/database.types";
 
 export async function POST(request: NextRequest) {
   assertSupabaseEnv();
@@ -34,7 +35,9 @@ export async function POST(request: NextRequest) {
     const { sanitized, flags } = sanitizeResponse(response_text_raw);
     const qualityScore = computeQualityScore(flags);
 
-    const row: Record<string, any> = {
+    // 생성타입으로 못박는다(옛 `Record<string, any>` 는 스키마와 어긋나도 통과시켰다 —
+    // 그게 POSTMORTEMS #97 의 통로였다). 컬럼명이 틀리면 여기서 컴파일이 깨진다.
+    const row: Database["public"]["Tables"]["playbook_responses"]["Insert"] = {
       language,
       case_tags: Array.isArray(case_tags) ? case_tags : [],
       response_text_raw: response_text_raw.trim(),
@@ -42,11 +45,8 @@ export async function POST(request: NextRequest) {
       quality_score: qualityScore,
       status: "draft",
       metadata: { sanitize_flags: flags },
+      normalized_inquiry_id: normalized_inquiry_id || null,
     };
-
-    if (normalized_inquiry_id) {
-      row.normalized_inquiry_id = normalized_inquiry_id;
-    }
 
     const { data, error } = await supabaseAdmin
       .from("playbook_responses")
