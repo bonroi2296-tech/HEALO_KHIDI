@@ -152,10 +152,10 @@ export default async function sitemap() {
   // 정적 제휴 병원(DB 미등록 — 예: 성동점)도 누락 없이 포함
   for (const slug of getAllPartnerSlugs()) {
     if (seenHospitalSlugs.has(slug)) continue;
-    urls.push({
-      ...localized(`/hospitals/${slug}`, { changeFrequency: 'weekly', priority: 0.8 }),
-      lastModified: now,
-    });
+    urls.push(
+      ...localized(`/hospitals/${slug}`, { changeFrequency: 'weekly', priority: 0.8 })
+        .map((e) => ({ ...e, lastModified: now }))
+    );
   }
 
   return urls;
