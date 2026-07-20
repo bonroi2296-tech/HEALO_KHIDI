@@ -117,10 +117,14 @@ export default async function sitemap() {
     localized('/cookies', { changeFrequency: 'yearly', priority: 0.2 }),
     localized('/medical-disclaimer', { changeFrequency: 'yearly', priority: 0.2 }),
     // ── Yandex 대응 러시아어·카자흐어 전용 랜딩(언어 prefix와 별개 자산 — 그대로 유지)
-    { url: `${baseUrl}/ru/for-russian-patients`, changeFrequency: 'weekly', priority: 0.9,
-      alternates: { languages: { 'ru': `${baseUrl}/ru/for-russian-patients`, 'x-default': `${baseUrl}/${DEFAULT_LOCALE}` } } },
-    { url: `${baseUrl}/kk/for-kazakh-patients`, changeFrequency: 'weekly', priority: 0.9,
-      alternates: { languages: { 'kk': `${baseUrl}/kk/for-kazakh-patients`, 'x-default': `${baseUrl}/${DEFAULT_LOCALE}` } } },
+    // hreflang 을 일부러 안 단다: 이 둘은 **번역판이 없는 단독 페이지**다.
+    // 예전엔 { 'ru': 자기자신, 'x-default': 홈페이지 } 를 달았는데, hreflang 은 상호참조가
+    // 성립해야 유효한데(A가 B를 가리키면 B도 A를 가리켜야 함) 홈페이지 쪽은 이 랜딩들을
+    // 가리키지 않아 **비상호 = 구글이 그 표기를 통째로 무시**했다. 게다가 x-default 가
+    // 홈페이지를 가리켜 "이 러시아어 랜딩의 기본판은 영어 홈"이라는 잘못된 신호까지 줬다.
+    // 번역판이 없으면 hreflang 을 안 다는 게 맞다(달아서 얻을 게 없고 잘못된 신호만 남음).
+    { url: `${baseUrl}/ru/for-russian-patients`, changeFrequency: 'weekly', priority: 0.9 },
+    { url: `${baseUrl}/kk/for-kazakh-patients`, changeFrequency: 'weekly', priority: 0.9 },
     // localized() 는 언어 수만큼의 배열을 반환하므로 flat() 로 펼친다.
     // (아래 러/카 전용 랜딩 2건은 단일 객체 — flat() 는 그대로 통과시킨다.)
   ].flat().map(p => ({ ...p, lastModified: STATIC_LASTMOD }));
