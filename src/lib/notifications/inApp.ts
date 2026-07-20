@@ -300,3 +300,48 @@ export async function notifyStaffChatHandoff(notice: ChatHandoffNotice): Promise
     /* fail-safe */
   }
 }
+
+export interface UnclosedConsultationsNotice {
+  /** 예정시각이 하루 이상 지났는데 아직 'completed' 가 아닌 실상담 수 */
+  count: number;
+  /** 그중 가장 오래 방치된 건의 경과 일수 */
+  oldestDays: number;
+}
+
+/**
+ * 끝난 것으로 보이는데 「완료」 처리가 안 된 상담이 쌓였을 때 직원 종(bell) 알림.
+ *
+ * 왜 필요한가 (2026-07-20 실측으로 드러난 구멍):
+ *   `completed` 는 KHIDI 성과지표 K-02(사전상담·사후관리 120건) 집계의 기준이고,
+ *   설문 발송 cron 도 `status='completed'` 인 세션만 찾는다 → K-03(만족도 90점)의 입구다.
+ *   그런데 LiveKit webhook 은 **의도적으로** status 를 자동 변경하지 않는다(실적 정직성 —
+ *   방이 물리적으로 닫혔다고 상담이 성사된 건 아니므로 사람이 확인 후 누르게 한 설계).
+ *   그 결과 아무도 버튼을 안 누르면 **지표가 조용히 0 에 고정된다.** 실제로 실상담 5건이
+ *   전부 'scheduled' 로 남아 설문 0건이었다.
+ *   → 자동 변경(정직성 훼손) 대신 **안 누른 사실을 시끄럽게 만드는 쪽**으로 푼다.
+ *
+ * ponytail: 매일 1회 알림이라 미처리가 계속되면 매일 울린다(디듀프 없음). 눌러야 멈추는 게
+ *   의도다. 도배가 문제되면 그때 payload 기준 N일 1회로 줄일 것.
+ * Fail-safe: 실패해도 throw 하지 않음.
+ */
+export async function notifyStaffUnclosedConsultations(
+  notice: UnclosedConsultationsNotice
+): Promise<void> {
+  try {
+    const { admins, coordinators } = await getStaffIdsByRole();
+    if (admins.length === 0 && coordinators.length === 0) return;
+    await broadcastInAppNotification([...admins, ...coordinators], {
+      type: "consultation_unclosed",
+      title: `⏰ 완료 처리 안 된 상담 ${notice.count}건`,
+      body:
+        `예정시각이 지났는데 「완료」를 누르지 않은 상담이 ${notice.count}건 있어요` +
+        `(최장 ${notice.oldestDays}일 방치). 완료해야 사전상담·사후관리 실적으로 집계되고 ` +
+        `만족도 설문도 발송됩니다.`,
+      priority: "high",
+      link: "/admin/consultations",
+      payload: { count: notice.count, oldestDays: notice.oldestDays },
+    });
+  } catch {
+    /* fail-safe */
+  }
+}
