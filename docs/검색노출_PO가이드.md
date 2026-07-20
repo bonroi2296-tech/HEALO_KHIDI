@@ -107,7 +107,52 @@ google.kz에서 직접 4번 쳐본 결과:
 > 아래는 **"새로 만든 페이지를 빨리 넣고 싶을 때"** 다시 누르는 방법이지, 처음부터 다시 하라는 게 아니다.
 > (색인 실측 2026-07-16: `site:healwith.co.kr` → 구글에 수십 페이지 정상 노출.)
 
-**구글** (= 카자흐 노출의 주 무대): [Google Search Console](https://search.google.com/search-console) 로그인 → 속성 `healwith.co.kr` →
+### 🔴 지금 당장 할 것 — 러·카 페이지가 구글에 거의 안 들어가 있다 (2026-07-20 실측)
+
+**측정 결과**: `site:healwith.co.kr/ru` → **약 4개만 색인**(sitemap엔 33개). `/kz` → **3개**(sitemap 31개).
+**즉 러시아어·카자흐어 페이지 대부분이 구글에 아예 없다** → 순위 이전에 **출전 자체를 못 하고 있는 상태.**
+
+**원인은 버그 아님**(확인함): canonical 자기참조 정상 · `<html lang="ru">` 정상 · 제목도 러시아어로 제대로 겨냥됨. **신생·저권위 사이트라 구글이 천천히·선별적으로만 읽어가는 정상 현상.**
+→ **해법: "읽어가라"고 직접 요청.** 무료, 1개당 1분. 지금 할 수 있는 가장 빠른 수단.
+
+**방법**: [Google Search Console](https://search.google.com/search-console) → 속성 `healwith.co.kr` → **맨 위 검색창에 URL 붙여넣기** → 결과 화면에서 **`색인 생성 요청(Request Indexing)`** 클릭 → 끝.
+⚠️ 하루 **약 10개** 제한 → 아래 순서대로 이틀에 나눠서.
+
+**1일차 (전환에 직결되는 것부터)**
+```
+https://healwith.co.kr/ru/cost-calculator
+https://healwith.co.kr/ru/treatments
+https://healwith.co.kr/ru/telemedicine
+https://healwith.co.kr/ru/hospitals
+https://healwith.co.kr/ru/care-journey
+https://healwith.co.kr/kz/cost-calculator
+https://healwith.co.kr/kz/treatments
+https://healwith.co.kr/kz/telemedicine
+https://healwith.co.kr/kk/for-kazakh-patients
+https://healwith.co.kr/ru/insurance
+```
+> 💡 `cost-calculator`(치료비 계산기)를 1번에 둔 이유: **"стоимость лечения рака в Корее"(한국 암치료 비용)는 가격 의도 = 전환율 최고** 키워드인데 우리 페이지 제목이 정확히 그걸 겨냥하고 있다(`docs/marketing/paid-ads-plan.md` §1의 ⭐⭐⭐).
+
+**2일차 (암종별 상세 — 롱테일용)**
+```
+https://healwith.co.kr/ru/treatments/lung
+https://healwith.co.kr/ru/treatments/female
+https://healwith.co.kr/ru/treatments/digest
+https://healwith.co.kr/ru/treatments/liver
+https://healwith.co.kr/kz/treatments/lung
+https://healwith.co.kr/kz/treatments/female
+https://healwith.co.kr/kz/hospitals
+https://healwith.co.kr/kz/care-journey
+https://healwith.co.kr/ru/faq
+https://healwith.co.kr/ru/visa
+```
+
+> ⚠️ **기대치**: 색인 요청은 "구글이 읽어가게 하는 것"이지 **순위를 보장하지 않는다.** 다만 색인이 안 되면 순위는 **0%**라, 이건 최소 조건을 갖추는 작업이다. 순위를 실제로 올리는 건 백링크(`docs/marketing/backlink-plan.md`).
+> 📊 며칠 뒤 `site:healwith.co.kr/ru` 를 다시 쳐서 숫자가 늘었는지 확인하면 효과를 볼 수 있다.
+
+---
+
+**구글 (일반 안내)** (= 카자흐 노출의 주 무대): [Google Search Console](https://search.google.com/search-console) 로그인 → 속성 `healwith.co.kr` →
 - 상단 검색창에 새 URL 붙여넣고 `색인 생성 요청(Request Indexing)` ← **새 페이지 만들었을 때 이것만 누르면 됨**
 - 좌측 `Sitemaps` 는 이미 제출돼 있음(재제출 불필요).
 
