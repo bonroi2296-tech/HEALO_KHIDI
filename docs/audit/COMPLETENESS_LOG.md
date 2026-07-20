@@ -6,6 +6,20 @@
 
 ---
 
+## 2026-07-20 PR #831 치료 유령 컬럼 (범위: diff)
+
+- 스캔: 유형 1·2·7 / **발견 3건 (전부 「내가 방금 만든」 반쪽배선 — 독립 리뷰 2라운드가 못 본 각도)**
+- **유형1-①**: 새로 표시하게 만든 `duration`·`recovery_time`·`preparation`·`risks` 가 **번역 대상에 없고** 공개 상세에서 `localize()` 도 안 거쳤다 → 어드민이 한국어로 입력하면 **러시아·카자흐 환자 화면에 그 칸만 한국어**로 뜬다. 지금은 값이 전부 null 이라 안 터졌을 뿐, PO가 쓰는 순간 새는 구조였다.
+  → `TranslatableFields`·`extractTranslatableFields`·프롬프트에 4개 추가 + 읽기 경로 `localize()` 경유. `risks`·`preparation` 은 **환자 안전 문구**라 "축약·생략 금지, 항목 누락은 사고" 규칙을 프롬프트에 명시.
+  → 같은 부류 **`full_description`** 도 읽기는 `localize()` 인데 번역 대상엔 없었다(기존 구멍) → 같이 메움.
+- **유형1-②(2라운드에서 발견)**: 번역 트리거 조건이 `name || description || tags` 손나열이라 **「주의사항」만 고치면 번역이 안 돌아** 그 칸만 영원히 한국어로 남는다. 호출부 6곳이 제각각(병원은 `+ specialties`, 프로필은 `+ location_kr`) → 단일 SoR `hasTranslatableField()` 로 통일. 번역 대상이 늘어도 조건을 빠뜨릴 수 없다.
+- **유형7**: 어드민 폼(`TreatmentManager.jsx`) ↔ 저장 payload(`page.jsx`) **필드 집합 15개 완전 일치** 확인(입력칸 있는데 저장 안 되는 칸 0, 반대도 0).
+- 보류(고치지 않음): `address_detail`(병원 주소 상세)도 `localize()` 없이 원문 노출 — **기존 것이고 주소는 한국어 표기가 오히려 유용**할 수 있어 PO 판단 몫으로 남김.
+- 라운드: 3 (3라운드 무발견 도달)
+- 검증: `tsc` 0 · `lint` 에러 0 · `vitest` 64파일 566개 · `next build --webpack` · `check:content` · `check:schema-refs`(자기시험 19개)
+
+---
+
 ## 2026-07-15 축 C #2 (유형 6 — 컬럼레벨 schema-refs + stale 생성타입 발견·재생성 + 실버그 2건)
 
 - 작업: `check:schema-refs`를 테이블 레벨 → **평문 select 컬럼 레벨**로 확장(생성타입 `src/types/database.types.ts` 대조, 비차단·경고).

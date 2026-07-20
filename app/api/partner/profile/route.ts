@@ -3,7 +3,7 @@ export const runtime = "nodejs";
 import { NextRequest } from "next/server";
 import { checkHospitalAuth } from "@/lib/auth/checkHospitalAuth";
 import { createServiceRoleClient } from "@/lib/supabase/server";
-import { extractKrFields, triggerMultiLangTranslation } from "@/lib/translate";
+import { triggerMultiLangTranslation, hasTranslatableField } from "@/lib/translate";
 
 const EDITABLE_FIELDS = [
   "name",
@@ -21,10 +21,8 @@ const EDITABLE_FIELDS = [
   "certifications",
   "faq",
   "location_kr",
-  "name_kr",
-  "description_kr",
-  "tags_kr",
-  "specialties_kr",
+  // ⛔ name_kr·description_kr·tags_kr·specialties_kr 은 실DB `hospitals` 에 없는 컬럼이라
+  //    제거했다(#103). 넣으면 병원 프로필 저장이 통째로 실패한다. `location_kr` 만 실재.
   "i18n",
 ];
 
@@ -77,8 +75,7 @@ export async function PATCH(request: NextRequest) {
       return Response.json({ ok: false, error: "no_editable_fields" }, { status: 400 });
     }
 
-    const krFields = extractKrFields(updates);
-    const finalUpdates = { ...updates, ...krFields };
+    const finalUpdates = { ...updates };
 
     const supabase = createServiceRoleClient();
     const { data, error } = await supabase
@@ -93,7 +90,7 @@ export async function PATCH(request: NextRequest) {
       return Response.json({ ok: false, error: "update_failed" }, { status: 500 });
     }
 
-    const hasTranslatableContent = updates.name || updates.description || updates.tags || updates.specialties || updates.location_kr;
+    const hasTranslatableContent = hasTranslatableField(updates);
     if (hasTranslatableContent) {
       triggerMultiLangTranslation("hospitals", auth.hospitalId, updates, supabase).catch((e) =>
         console.error("[hospital/profile] translation error:", e.message)

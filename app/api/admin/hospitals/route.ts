@@ -30,7 +30,7 @@ import {
   HospitalUpdateSchema,
   validationErrorResponse,
 } from "@/lib/validation/admin";
-import { extractKrFields, triggerMultiLangTranslation } from "@/lib/translate";
+import { triggerMultiLangTranslation, hasTranslatableField } from "@/lib/translate";
 
 /**
  * GET: 병원 목록 조회 (관리자 전용)
@@ -211,12 +211,6 @@ export async function POST(request: NextRequest) {
     is_published: validatedData.is_published,
     is_partner: validatedData.is_partner ?? false,
     faq: validatedData.faq || [],
-    ...extractKrFields({
-      name: validatedData.name,
-      description: validatedData.description,
-      tags: validatedData.tags,
-      specialties: validatedData.specialties,
-    }),
   };
 
   // ========================================
@@ -257,7 +251,7 @@ export async function POST(request: NextRequest) {
     // ========================================
     // 6.5. 비동기 번역 트리거
     // ========================================
-    if (payload.name || payload.description || payload.tags || payload.specialties) {
+    if (hasTranslatableField(payload)) {
       triggerMultiLangTranslation("hospitals", data.id, payload, supabaseAdmin).catch((e) =>
         console.error("[admin/hospitals] translation error:", e.message)
       );
@@ -416,9 +410,6 @@ export async function PATCH(request: NextRequest) {
     if (validatedData.offers_auto_fail_reason !== undefined) payload.offers_auto_fail_reason = validatedData.offers_auto_fail_reason;
     if (validatedData.offers_auto_skip !== undefined) payload.offers_auto_skip = validatedData.offers_auto_skip;
 
-    const krFields = extractKrFields(payload);
-    Object.assign(payload, krFields);
-
     // ========================================
     // 7. DB 업데이트
     // ========================================
@@ -458,7 +449,7 @@ export async function PATCH(request: NextRequest) {
     // 8.5. 비동기 번역 트리거 (수동 i18n 입력이 없을 때만)
     // ========================================
     const hasManualI18n = payload.i18n && Object.keys(payload.i18n).length > 0;
-    if (!hasManualI18n && (payload.name || payload.description || payload.tags || payload.specialties)) {
+    if (!hasManualI18n && hasTranslatableField(payload)) {
       triggerMultiLangTranslation("hospitals", id, payload, supabaseAdmin).catch((e) =>
         console.error("[admin/hospitals] translation error:", e.message)
       );

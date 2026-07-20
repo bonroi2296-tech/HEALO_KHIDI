@@ -78,10 +78,8 @@ export const HospitalCreateSchema = z.object({
     question: z.string().default(""),
     answer: z.string().default(""),
   })).optional().default([]),
-  name_kr: z.string().optional().nullable(),
-  description_kr: z.string().optional().nullable(),
-  tags_kr: z.array(z.string()).optional().default([]),
-  specialties_kr: z.array(z.string()).optional().default([]),
+  // ⛔ name_kr·description_kr·tags_kr·specialties_kr 은 실DB 에 없는 컬럼이라 제거(#103).
+  //    (실측: `%_kr` 컬럼은 위 `location_kr` 하나뿐. 나머지는 넣는 순간 저장이 통째로 실패했다.)
   i18n: z.record(z.any()).optional().default({}),
   is_partner: z.boolean().optional().default(false),
   offers_auto_failed_at: z.string().datetime().optional().nullable(),
@@ -113,42 +111,15 @@ const TreatmentBaseSchema = z.object({
     (v) => (Array.isArray(v) ? v.filter((s) => typeof s === "string" && s.trim()) : []),
     z.array(z.string()).default([])
   ),
-  thumbnail_image: z.preprocess(
-    (v) => (typeof v === "string" && v.trim() ? v.trim() : null),
-    z.string().nullable().optional()
-  ),
-  gallery_images: z.preprocess(
-    (v) => (Array.isArray(v) ? v.filter((s) => typeof s === "string" && s.trim()) : []),
-    z.array(z.string()).default([])
-  ),
   display_order: z.number().int().min(0).optional().nullable(),
   is_published: z.boolean().optional().default(true),
-  // Extended metadata fields
-  recovery_time_min: z.number().int().min(0).optional().nullable(),
-  recovery_time_max: z.number().int().min(0).optional().nullable(),
-  recovery_process: z.record(z.string()).optional().nullable(),
-  side_effects: z.array(z.string()).optional().default([]),
-  side_effects_detail: z.string().optional().nullable(),
-  precautions: z.array(z.string()).optional().default([]),
-  anesthesia_type: z.string().optional().nullable(),
-  surgery_duration_min: z.number().int().min(0).optional().nullable(),
-  surgery_duration_max: z.number().int().min(0).optional().nullable(),
-  required_equipment: z.array(z.string()).optional().default([]),
-  insurance_coverage: z.boolean().optional().default(false),
-  insurance_coverage_detail: z.string().optional().nullable(),
-  annual_procedure_count: z.number().int().min(0).optional().nullable(),
-  success_rate: z.number().min(0).max(100).optional().nullable(),
-  similar_treatments: z.array(z.string().uuid()).optional().default([]),
-  comparison_data: z.record(z.any()).optional().nullable(),
-  before_after_images: z.array(z.object({
-    before: z.string(),
-    after: z.string(),
-    caption: z.string().optional(),
-  })).optional().default([]),
-  price_includes: z.array(z.string()).optional().default([]),
-  name_kr: z.string().optional().nullable(),
-  description_kr: z.string().optional().nullable(),
-  tags_kr: z.array(z.string()).optional().default([]),
+  // 실DB `treatments` 에 존재하는 서술 필드 (공개 상세가 읽는다)
+  duration: z.string().optional().nullable(),
+  recovery_time: z.string().optional().nullable(),
+  preparation: z.string().optional().nullable(),
+  risks: z.string().optional().nullable(),
+  currency: z.string().optional().nullable(),
+  // ⛔ name_kr·description_kr·tags_kr 은 실DB `treatments` 에 없는 컬럼이라 제거(#103).
   i18n: z.record(z.any()).optional().default({}),
 });
 
@@ -164,32 +135,6 @@ export const TreatmentCreateSchema = TreatmentBaseSchema.refine(
   {
     message: "price_min은 price_max보다 작거나 같아야 합니다",
     path: ["price_max"],
-  }
-).refine(
-  (data) => {
-    if (data.recovery_time_min !== undefined && data.recovery_time_max !== undefined &&
-        data.recovery_time_min !== null && data.recovery_time_max !== null &&
-        data.recovery_time_min > data.recovery_time_max) {
-      return false;
-    }
-    return true;
-  },
-  {
-    message: "recovery_time_min은 recovery_time_max보다 작거나 같아야 합니다",
-    path: ["recovery_time_max"],
-  }
-).refine(
-  (data) => {
-    if (data.surgery_duration_min !== undefined && data.surgery_duration_max !== undefined &&
-        data.surgery_duration_min !== null && data.surgery_duration_max !== null &&
-        data.surgery_duration_min > data.surgery_duration_max) {
-      return false;
-    }
-    return true;
-  },
-  {
-    message: "surgery_duration_min은 surgery_duration_max보다 작거나 같아야 합니다",
-    path: ["surgery_duration_max"],
   }
 );
 

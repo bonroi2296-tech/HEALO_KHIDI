@@ -14,6 +14,57 @@
 
 ---
 
+## #103 — 🔁 #97 부류 재발 (그 가드가 뚫린 채였다): 치료(시술) 등록이 **유령 컬럼 17개** 때문에 5개월간 0건. `.insert(payload)` 처럼 **변수를 넘기는 쓰기**는 축 D 가드가 아예 안 보고 있었다 (2026-07-20 밤, PO "이거 예전 시스템 잔재 아냐?" 되물음에서 시작)
+
+**무슨 일**
+- `treatments` 테이블에 **없는 컬럼 17개**(`thumbnail_image`·`gallery_images`·`recovery_time_min/max`·`side_effects`·`side_effects_detail`·`precautions`·`anesthesia_type`·`surgery_duration_min/max`·`required_equipment`·`insurance_coverage(_detail)`·`annual_procedure_count`·`success_rate`·`before_after_images`·`price_includes`·`category`)를 payload 에 담아 insert/update → **항상 실패**.
+- 실측: `treatments` 행 9개, **최신 행 `2026-02-26`** → 5개월간 등록 0건. "가끔 실패"가 아니라 **한 번도 성공한 적 없음**.
+- 걸린 쓰기 경로 4곳: `app/api/admin/treatments`(어드민 치료 등록) · `app/api/partner/treatments`(국내병원 포털) · `app/api/admin/import/treatments`(CSV 일괄) · `app/api/admin/hospitals/[id]/offers/apply`(**오퍼 자동추출의 마지막 단계 — #97 에서 살린 기능이 여기서 다시 막혀 있었다**).
+- 정체: 옛 **미용시술 상품 카탈로그** 스키마. 지금 서비스(암종별 치료 안내 + 한방 프로그램)는 그 필드를 하나도 안 쓴다. 어드민 폼엔 **입력칸조차 없이** state·payload 에만 남아 있었다.
+- 곁다리 반쪽배선: 공개 상세(`/treatments/[slug]`)는 실컬럼 `duration`·`recovery_time`·`preparation`·`risks` 를 **쿼리로 가져와놓고 view 객체에서 버려** 화면에 한 번도 안 띄웠다. 대신 유령 필드용 섹션(부작용·마취·보험·Before/After·가격포함)만 그리고 있었고 그 값은 영원히 `undefined` → **죽은 UI**.
+
+**왜 못 잡았나 (근본원인 — #97 의 방지책이 왜 뚫렸나)**
+1. **축 D 가드가 인라인 `.insert({…})` 만 봤다.** 실제 코드는 거의 다 `const payload = {…}` 를 먼저 만들고 `.insert([payload])` 로 넘긴다 → **그 통로 전체가 무검사.** #97 에서 "쓰기 경로를 닫았다"고 적었지만 닫힌 건 소수 형태뿐이었다.
+2. **`select` 용 window 가 `.from(` 뒤쪽만 본다.** payload 선언은 `.from(` **앞**에 있어서, 설령 변수 경로를 봤어도 창 밖이었다.
+3. **스프레드 한 줄이면 객체를 통째로 건너뛰었다.** `...extractKrFields({…})` 가 붙은 payload 는 나머지 리터럴 키가 전부 무사통과. (「동적이니 봐줄 수 없다」로 설계했는데, 스프레드는 *키가 더 있을 수 있다*는 뜻이지 *적힌 키가 틀려도 된다*가 아니다.)
+4. **가드가 PO PC 에서는 아예 죽어 있었다.** 윈도우 체크아웃(autocrlf)이 `database.types.ts` 를 CRLF 로 떨궈 컬럼 맵 정규식이 통째로 안 맞았다. 자기시험이 이를 큰 소리로 알려준 건 설계가 옳았기 때문이지만(조용한 no-op 을 막음), **CI 는 리눅스라 이 고장을 영영 못 본다.**
+5. 화면 쪽에서도 안 보였다 — 어드민 폼에 입력칸이 없으니 사람이 "저장이 안 되네"를 겪을 일조차 없었다.
+
+**어떻게 고쳤나**
+- 쓰기 경로 4곳에서 유령 컬럼 제거, 실컬럼으로 대체(`duration`·`recovery_time`·`preparation`·`risks`·`currency`). 크롤이 뽑은 회복기간 숫자는 `formatRecoveryTime()` 으로 실컬럼 `recovery_time`(글자형) 한 칸에 합침("3~7일").
+- zod 스키마(`src/lib/validation/admin.ts`)의 치료 파트를 실컬럼만으로 정리 + 유령 필드용 refine 2개 제거.
+- 공개 상세: 실컬럼 4개를 view 에 실어 **실제로 화면에 표시**(소요시간·회복기간·사전 준비사항·주의사항), 죽은 섹션(Before/After·보험통계·가격포함·부작용태그) 제거. i18n 키 `detail.preparation` 6개 언어 추가.
+- 국내병원 포털 폼도 같은 처방(단 이 화면은 `HOSPITAL_CONTENT_ENABLED=false` 로 **PO 가 2026-06-24 꺼둔 상태** — 재활성 시 즉시 고장나지 않게 미리 정리한 것).
+
+**재발 방지 (뚫린 가드를 고쳤다 — 새 가드를 얹지 않았다)**
+`scripts/check-schema-refs.mjs` 축 D 를 4군데 보강:
+1. **변수 경유 쓰기 검사** — `const payload = {…}` … `.insert([payload])` 를 추적. 오탐 0 유지 장치: ①쓰임이 **이 쿼리 체인 안**일 때만 인정 ②선언 뒤 `payload.x = …` / `Object.assign(payload,…)` 같은 동적 변형이 있으면 건너뜀.
+2. **뒤쪽 문맥 창 추가**(`.from(` 앞 2500자) — 단 **인라인 `.insert({…})` 는 앞쪽을 보지 않는다.** 처음엔 앞쪽까지 뒤졌다가 *직전 쿼리의 insert* 를 이 테이블 것으로 오인하는 **실측 오탐**이 났다(`.from("survey_responses").insert({…})` 가 뒤이은 `.from("surveys")` 검사에 딸려 들어옴). 차단 게이트라 오탐은 곧 CI 마비 → 선언 탐색용/인라인용 창을 분리.
+3. **스프레드가 있어도 리터럴 키는 검사** — 통째 건너뛰기 폐지.
+4. **CRLF 정규화** — 윈도우 체크아웃에서 검사기가 죽던 것 제거.
+- 자기시험 7개 → **14개**(변수경유·타입주석선언·동적대입·Object.assign·스프레드·비쓰기 객체 등).
+- **가드가 실제로 이 버그를 잡는지 실측 검증**: 고치기 전 코드로 되돌려 실행 → `treatments.insert({ category / recovery_time_min / … })` **10건 적발**. 어드민 경로도 유령 컬럼 1개를 일부러 심어 발화 확인. 현재 코드 기준 **오탐 0**.
+
+**🔍 독립 리뷰가 1차 수정을 반려했다 — 그게 진짜 원인을 찾아냈다**
+자동머지 전 독립 리뷰 게이트(CLAUDE.md 자율규칙)에서 **1차 수정이 버그를 못 고친다**는 판정이 나왔다. 실측으로 전부 확인됐다:
+1. **🔴 진범은 따로 있었다 — `extractKrFields()`.** `src/lib/translate.ts` 의 이 헬퍼가 `name_kr`·`description_kr`·`tags_kr`·`specialties_kr` 을 payload 에 얹는데, **이 네 컬럼은 어느 테이블에도 없다**(실측: `%_kr` 컬럼은 `hospitals.location_kr` 하나뿐). 즉 **이름에 한글이 들어가면 저장이 통째로 실패**한다. 기존 치료 9건이 전부 한글 이름이고 최신 행이 2026-02-26 인 게 이것과 정확히 맞아떨어진다. 유령 컬럼 17개를 지워도 이게 남아 있으면 **등록은 계속 0건**이었다.
+   - 파급이 치료보다 넓었다: `app/api/admin/hospitals`·`app/api/partner/profile` 도 같은 헬퍼를 써서 **병원 등록·수정도 한글 이름이면 막혀 있었다.**
+   - 되읽는 코드 0건(쓰기·스키마 선언만) → 헬퍼를 **삭제**하고 호출처 4파일·zod 스키마·`EDITABLE`/`ALLOWED` 목록에서 제거. 한국어 원문 경로는 `name_ko`+`i18n`(`triggerMultiLangTranslation`)이 이미 담당한다.
+   - **가드가 왜 못 잡았나**: 유령 키가 *함수 호출의 반환값 스프레드* 안에서 들어와 정적으로 안 보인다. 새로 넣은 자기시험은 `{ ...base, ghost_col: 1 }` 을 검사했는데 **실제 사고 모양은 정반대**(`...extractKrFields(...)`)라 «잡는다»는 착각만 줬다. → 스프레드 안쪽은 원리적으로 정적 검사 불가. **supabase-js 2.110 타입 대조로만 닫힌다**(아래 남은 것).
+2. **🔴 강화한 가드에 CI 마비급 오탐.** 뒤쪽 창이 직전 `.from(` 에서 안 잘려, **앞선 다른 테이블 쿼리의 동명 `payload`** 를 이 테이블 것으로 붙였다. 리뷰가 제시한 재현 코드로 실제 `exit=1` 확인 → 인라인 검사를 win 전용으로 만든 뒤 뒤쪽 창을 직전 `.from(` 에서 자르도록 수정, 그 재현 코드로 오탐 사라진 것 확인. **자기시험이 늘 `back=""` 으로 돌아 창 분할을 한 번도 검사하지 않던 것**이 근본이라 `runSplit()` 을 추가해 실제 호출부와 같은 방식으로 시험한다.
+3. **🔴 어드민 폼은 다른 파일이었다.** 내가 `page.jsx` 만 보고 "입력칸이 없다"고 **추측을 단정으로 말했는데**, 실제 렌더되는 폼은 `_client/TreatmentManager.jsx` 였고 유령 필드 입력칸이 전부 살아 있었다. 그대로 뒀으면 **관리자가 값을 입력→저장→성공 토스트→값 증발**. 실컬럼 4개 입력칸으로 교체하고 `page.jsx` 의 payload·`handleEditTreatment` 와 필드 집합을 맞췄다.
+4. `duration` 단위 유실(분 → 환자 화면에 "30" 만) · 미리보기와 적용의 회복기간 표기 불일치("3~3일" vs "3일") → 공용 헬퍼 `src/lib/hospitalOffers/formatOfferFields.ts`(+시험 7개)로 통일.
+
+**교훈**: ①"입력칸이 없다"처럼 **화면 정체를 grep 한 파일로 단정하지 마라**(PO 고정규칙 «추측으로 단정 금지» 위반). ②가드에 자기시험을 넣을 때 **실제 사고 모양과 같은 입력**인지 확인하라 — 아니면 통과가 곧 착각이다. ③독립 리뷰 게이트가 없었으면 «고쳤다»고 보고한 채 등록 0건이 유지됐다.
+
+**실측 최종 검증**: 고친 코드가 만드는 payload 모양 그대로 **한글 이름 치료를 실DB 에 실제로 insert → 조회 성공 → 삭제**. (`duration`·`recovery_time`·`preparation`·`risks` 값 왕복 확인)
+
+**남은 것**
+- `similar_treatments`(유령) 기반 「관련 치료」 섹션은 여전히 비어 있다. 살리려면 "같은 병원의 다른 치료" 같은 실제 신호로 갈아끼워야 하는데 **무엇을 관련으로 볼지는 제품 결정**이라 PO 몫으로 남김(코드에 `ponytail:` 주석).
+- 이 부류의 진짜 종결은 **supabase-js 2.110 업그레이드**(생성타입과 `.insert/.update` 를 컴파일 타임에 대조). 가드는 그때까지의 그물이다.
+
+---
+
 ## #102 — 상담 **대화 내용 전체가 평문 저장**. 같은 테이블의 코디 메모는 암호화하면서 정작 진단·병기가 오가는 대화만 규칙 밖에 있었다 (2026-07-20, PO 질문 "로그가 어디까지 남냐"에서 드러남)
 
 **무슨 일** — 프로젝트 규칙은 **"환자 PII 는 AES-256-GCM 으로 `*_encrypted` 컬럼"**(CLAUDE.md 보안 핵심 규칙)인데, 실측하니:
