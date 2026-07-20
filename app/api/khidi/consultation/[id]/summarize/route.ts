@@ -16,6 +16,7 @@
 
 export const runtime = "nodejs";
 
+import { decryptTranscriptRows } from "@/lib/consultation/transcriptCrypto";
 import { NextRequest } from "next/server";
 import { generateText } from "ai";
 import { google } from "@ai-sdk/google";
@@ -82,11 +83,16 @@ export async function POST(
     }
 
     // 2) 번역기록(대화) — 시간순
-    const { data: rows, error: trErr } = await supabaseAdmin
+    //    대화 내용은 암호문 컬럼에 저장된다(옛 행은 평문) → 아래 decryptTranscriptRows 로 평문화.
+    const { data: rawRows, error: trErr } = await supabaseAdmin
       .from("consultation_translations")
-      .select("source_lang, source_text, translated_text, created_at")
+      .select(
+        "source_lang, source_text, source_text_encrypted, translated_text, translated_text_encrypted, created_at"
+      )
       .eq("session_id", consultationId)
       .order("created_at", { ascending: true });
+    // 복호화 실패한 줄은 source_text 가 null 이 되므로 요약 입력에서 제외한다.
+    const rows = decryptTranscriptRows(rawRows as any).filter((r) => r.source_text);
 
     if (trErr) {
       console.error(

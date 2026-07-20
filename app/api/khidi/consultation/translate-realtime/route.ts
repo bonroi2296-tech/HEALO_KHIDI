@@ -10,6 +10,7 @@
 
 export const runtime = "nodejs";
 
+import { encryptTranscriptRow } from "@/lib/consultation/transcriptCrypto";
 import { NextRequest } from "next/server";
 import { generateText } from "ai";
 import { google } from "@ai-sdk/google";
@@ -230,13 +231,16 @@ async function saveTranslationLog(
   );
   const supabase = getSupabaseServerClient();
 
+  // 대화 내용은 암호문으로만 저장한다(평문 컬럼 null) — 상담엔 진단·병기가 그대로 들어간다.
   await supabase.from("consultation_translations").insert([
     {
       session_id: consultationId,
-      source_text: data.originalText,
-      translated_text: data.translatedText,
       source_lang: data.sourceLang,
       target_lang: data.targetLang,
+      ...encryptTranscriptRow({
+        sourceText: data.originalText,
+        translatedText: data.translatedText,
+      }),
     },
   ]);
 }

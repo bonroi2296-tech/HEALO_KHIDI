@@ -11,6 +11,7 @@
 
 export const runtime = "nodejs";
 
+import { encryptTranscriptRow, decryptTranscriptRows } from "@/lib/consultation/transcriptCrypto";
 import { NextRequest } from "next/server";
 import { resolveConsultationActor } from "@/lib/auth/requireConsultationAccess";
 
@@ -48,6 +49,7 @@ export async function POST(
 
     const { supabaseAdmin } = await import("@/lib/rag/supabaseAdmin");
 
+    // 대화 내용은 암호문으로만 저장한다(평문 컬럼 null).
     const { data, error } = await supabaseAdmin
       .from("consultation_translations")
       .insert([
@@ -55,9 +57,11 @@ export async function POST(
           session_id: consultationId,
           source_lang: payload.sourceLanguage,
           target_lang: payload.targetLanguage,
-          source_text: payload.originalText,
-          translated_text: payload.translatedText || null,
           confidence: payload.confidence ?? null,
+          ...encryptTranscriptRow({
+            sourceText: payload.originalText,
+            translatedText: payload.translatedText || null,
+          }),
         },
       ])
       .select()
@@ -112,9 +116,16 @@ export async function GET(
       );
     }
 
+    // 대화 내용을 평문화해서 내보내되, **암호문 컬럼 자체는 응답에서 제거**한다.
+    // (select("*") 라 그냥 두면 암호문이 그대로 클라이언트로 나간다 — 쓸모도 없고 노출면만 넓힌다.)
+    const rows = decryptTranscriptRows(data as any).map((r: any) => {
+      const { source_text_encrypted, translated_text_encrypted, ...rest } = r;
+      return rest;
+    });
+
     return Response.json({
       ok: true,
-      data: data || [],
+      data: rows,
       total: count,
       limit,
       offset,

@@ -18,6 +18,7 @@
 
 export const runtime = "nodejs";
 
+import { encryptTranscriptRow } from "@/lib/consultation/transcriptCrypto";
 import { NextRequest } from "next/server";
 import { generateText } from "ai";
 import { google } from "@ai-sdk/google";
@@ -226,7 +227,13 @@ ${contextBlock}Transcribe the speech in this audio clip. The speaker is speaking
 
     // 번역 로그 저장 — translate-realtime 와 동일 테이블/형식 (fire-and-forget)
     // source_lang 은 감지 언어 우선 — 설정 언어로 기록하면 echo 건이 ru→ko 로 오염됨(7/10 로그)
-    if (transcript && translated && targetLang) {
+    //
+    // ⚠️ 출발어 == 도착어면 저장하지 않는다. 219행에서 "같은 언어면 번역=원문"으로 채우는데,
+    //    그걸 그대로 저장하면 **원문을 번역문이라고 기록**하게 된다(2026-07-20 실측 ko→ko 13건).
+    //    번역 기록 탭이 의미 없는 줄로 차고, 회의록 요약 입력도 같은 말이 두 번 들어간다.
+    //    (자막 표시는 위에서 이미 끝났으므로 저장만 건너뛰면 화면 동작엔 영향 없다.)
+    const effectiveSrc = detectedLang || lang;
+    if (transcript && translated && targetLang && effectiveSrc !== targetLang) {
       saveTranslationLog(consultationId, {
         originalText: transcript,
         translatedText: translated,
@@ -256,13 +263,16 @@ async function saveTranslationLog(
   const { getSupabaseServerClient } = await import("@/lib/data/supabaseServerClient");
   const supabase = getSupabaseServerClient();
 
+  // 대화 내용은 암호문으로만 저장한다(평문 컬럼 null) — 상담엔 진단·병기가 그대로 들어간다.
   await supabase.from("consultation_translations").insert([
     {
       session_id: consultationId,
-      source_text: data.originalText,
-      translated_text: data.translatedText,
       source_lang: data.sourceLang,
       target_lang: data.targetLang,
+      ...encryptTranscriptRow({
+        sourceText: data.originalText,
+        translatedText: data.translatedText,
+      }),
     },
   ]);
 }
