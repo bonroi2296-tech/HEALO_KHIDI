@@ -1,0 +1,18 @@
+-- 사후관리 D+ 케이던스의 기준일(D+0) 앵커.
+--
+-- 왜: 케이던스(scheduler.ts, D+7/14/30/90/180/365)가 "치료 후 며칠째인지"를 계산하려면
+--     기준일이 필요한데 — case_status_history 는 2026-07-09 재설계 이전 옛 단계 키만 담고 있어
+--     신뢰 불가(follow_up 진입 기록 0건), inquiries 에도 치료완료/사후관리 진입 시각 컬럼이 없다.
+--     그래서 사후관리 cron 이 케이스를 follow_up 단계에서 처음 볼 때 now() 로 stamp 하고,
+--     이후 D+n 설문 타이밍을 이 값 기준으로 계산한다. (PO 결정 2026-07-16)
+--
+-- 가역적(컬럼 추가)이라 자동 적용 대상.
+--
+-- ⚠️ 상태 (2026-07-20 실측): 프로덕션에 **적용됨**(information_schema 확인)이나 이 파일이
+--    커밋 안 된 채 4일간 로컬에만 있었다 = DB엔 있는데 저장소엔 없는 드리프트.
+--    그리고 **아직 아무 코드도 이 컬럼을 읽거나 쓰지 않는다**(inquiries 34행 중 stamp 0건).
+--    즉 D+ 케이던스는 "배선이 끊긴" 게 아니라 소비자(cron)가 아직 없는 상태다.
+--    scheduler.ts 는 순수 계산 함수만 있고, 이를 호출하는 cron 은 vercel.json 에 없다.
+--    참고: 중간평가 지표 "사후관리 건수"는 이것과 무관하게 케이스 단계(follow_up)로 집계된다
+--    (app/api/admin/khidi/conversion-funnel/route.ts) → 이 컬럼이 비어도 KPI 는 안 죽는다.
+alter table inquiries add column if not exists followup_started_at timestamptz;
