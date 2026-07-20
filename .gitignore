@@ -115,3 +115,11 @@ lighthouse/
 
 # 스토어 스크린샷 산출물(재생성 가능, scripts/appstore-screenshots.mjs)
 appstore-assets/
+
+# KHIDI 유치 공식문서 수집본 (2026-07-15 세션, 64파일 780MB — PDF 6개가 GitHub 100MB 제한 초과라
+# 애초에 push 불가). 여기에 적는 두 번째 이유: 미추적+비ignore 로 두면 git clean -fd 에 쓸려
+# 사라진다(POSTMORTEM #34) — ignore 해두면 clean -fd 가 건드리지 않는다.
+# ⚠️ 단 이 문서들은 재생성 불가다(표준계약서 등 KHIDI 배포경로가 이미 끊김 — 기억파일
+#    khidi-standard-contract-forms). git 밖 = 백업 없음이므로 외부 백업은 PO 몫.
+#    텍스트 요약·적용지도는 docs/ 에 별도 커밋돼 있다.
+KHIDI_유치문서/
