@@ -1687,6 +1687,7 @@ export type Database = {
           raw_html: string | null
           review_action: string | null
           reviewed_at: string | null
+          source_id: string | null
           source_type: string | null
           source_unique_id: string | null
           status: string | null
@@ -1708,6 +1709,7 @@ export type Database = {
           raw_html?: string | null
           review_action?: string | null
           reviewed_at?: string | null
+          source_id?: string | null
           source_type?: string | null
           source_unique_id?: string | null
           status?: string | null
@@ -1729,6 +1731,7 @@ export type Database = {
           raw_html?: string | null
           review_action?: string | null
           reviewed_at?: string | null
+          source_id?: string | null
           source_type?: string | null
           source_unique_id?: string | null
           status?: string | null

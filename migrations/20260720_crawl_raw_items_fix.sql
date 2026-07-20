@@ -12,8 +12,14 @@
 --   · reviewed_at  → 승인/거절/건너뛰기 update 3곳이 씀. **추가한다.**
 --   · name         → 이미 동일 의미의 `title` 컬럼이 있다. 중복 컬럼을 만들지 않고
 --                    **코드를 title 로 고친다**(이 마이그레이션에선 아무것도 안 함).
---   · source_id    → crawl_raw_items 에서 되읽는 곳이 전혀 없다(전부 crawl_jobs 대상).
---                    job_id → crawl_jobs.source_id 로 유도 가능. **코드에서 제거**(컬럼 안 만듦).
+--   · source_id    → ⚠️ **처음엔 "아무도 안 읽는다"고 판단해 코드에서 제거했다가 되돌렸다**
+--                    (독립 리뷰 지적, 2026-07-20). 실제로는 job-review.ts:113,142 가
+--                    `item.source_id` 를 읽어 `hospitals.data_source` 에 넣고, job-runner 가
+--                    그 값으로 기존 병원·폐업을 조회한다(.eq("data_source", sourceId)).
+--                    없으면 data_source 가 NULL 로 들어가 다음 크롤에서 같은 병원이 "신규"로
+--                    중복 생성되고 폐업 감지에서도 빠진다. **컬럼을 만든다.**
+--                    ※ 오판 원인: grep 결과를 `head` 로 자른 채 "없다"고 결론냈다.
+--                      잘린 검색 결과는 "결과 없음"이 아니다.
 -- ============================================================
 
 ALTER TABLE public.crawl_raw_items
@@ -21,6 +27,12 @@ ALTER TABLE public.crawl_raw_items
 
 ALTER TABLE public.crawl_raw_items
   ADD COLUMN IF NOT EXISTS reviewed_at timestamptz NULL;
+
+ALTER TABLE public.crawl_raw_items
+  ADD COLUMN IF NOT EXISTS source_id text NULL;
+
+CREATE INDEX IF NOT EXISTS idx_crawl_raw_items_source
+  ON public.crawl_raw_items (source_id);
 
 CREATE INDEX IF NOT EXISTS idx_crawl_raw_items_hospital
   ON public.crawl_raw_items (hospital_id);

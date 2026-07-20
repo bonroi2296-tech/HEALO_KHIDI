@@ -123,39 +123,141 @@ const PLAIN_SELECT = /^[\w,\s]+$/;
 // 오탐 0 원칙(축 C 계승): **직접 객체 리터럴만** 본다. 변수를 넘기거나(.insert(payload)),
 //     스프레드(...)·계산된 키([x]:)가 있으면 통째로 건너뛴다. 그런 동적 형태는
 //     @supabase/supabase-js 2.110+ 의 타입 대조가 잡는 몫(KNOWN_ISSUES).
+//
+// ⚠️ 파서는 **문자열·주석을 반드시 구분해야 한다**(독립 리뷰 2026-07-20 지적, 실측 재현됨):
+//   · 값이 멀티라인 템플릿 리터럴이면 그 안의 `Subject: hello` 같은 줄이 컬럼으로 오인 →
+//     차단 게이트라서 **정상 코드가 CI를 막는다**(오탐).
+//   · 값 문자열 안의 `}` 하나가 괄호 깊이를 0으로 만들어 본문이 잘리고, 이후 키는
+//     전부 무검사인데 "✓ 통과"가 찍힌다(미탐 — 이 가드가 막으려던 #97 실패 모양 그대로).
+//   → 아래 maskLiterals 가 문자열/템플릿/주석 **내용만 공백으로 덮고** 길이·줄바꿈은 보존한다.
+//     이후의 괄호 세기·키 추출은 전부 마스킹된 사본 위에서 한다.
+function maskLiterals(src) {
+  const out = src.split("");
+  let i = 0;
+  const blank = (from, to) => {
+    for (let k = from; k < to && k < out.length; k++) {
+      if (out[k] !== "\n") out[k] = " ";   // 줄 구조는 유지(줄번호·라인 파싱 보존)
+    }
+  };
+  while (i < src.length) {
+    const ch = src[i];
+    const next = src[i + 1];
+    if (ch === "/" && next === "/") {
+      let j = src.indexOf("\n", i); if (j === -1) j = src.length;
+      blank(i, j); i = j; continue;
+    }
+    if (ch === "/" && next === "*") {
+      let j = src.indexOf("*/", i + 2); j = j === -1 ? src.length : j + 2;
+      blank(i, j); i = j; continue;
+    }
+    if (ch === '"' || ch === "'" || ch === "`") {
+      const quote = ch;
+      let j = i + 1;
+      while (j < src.length) {
+        if (src[j] === "\\") { j += 2; continue; }
+        if (src[j] === quote) { j++; break; }
+        j++;
+      }
+      blank(i + 1, j - 1);                  // 따옴표는 남기고 내용만 지움
+      i = j; continue;
+    }
+    i++;
+  }
+  return out.join("");
+}
+
 function checkWriteKeys(content, table, win, file, idx) {
   const cols = COLUMN_MAP.get(table);
   if (!cols) return;
+  const masked = maskLiterals(win);         // 이후 판단은 전부 마스킹본 위에서
   const callRe = /\.(insert|update|upsert)\(\s*\{/g;
   let c;
-  while ((c = callRe.exec(win)) !== null) {
+  while ((c = callRe.exec(masked)) !== null) {
     const op = c[1];
-    // 객체 리터럴 본문을 괄호 균형으로 잘라낸다.
-    let depth = 1, i = c.index + c[0].length, body = "";
-    while (i < win.length && depth > 0) {
-      const ch = win[i];
+    // 객체 리터럴 본문을 괄호 균형으로 잘라낸다(문자열 속 중괄호는 이미 지워졌다).
+    let depth = 1, i = c.index + c[0].length;
+    const from = i;
+    while (i < masked.length && depth > 0) {
+      const ch = masked[i];
       if (ch === "{") depth++;
       else if (ch === "}") depth--;
-      if (depth > 0) body += ch;
       i++;
     }
-    if (depth !== 0) continue;                 // 잘린 window — 판단 보류
+    if (depth !== 0) continue;              // window 경계에서 잘림 — 판단 보류
+    const body = masked.slice(from, i - 1);
     if (body.includes("...") || /\[[^\]]+\]\s*:/.test(body)) continue; // 동적 → 건너뜀
 
-    // 최상위 키만 (중첩 객체·배열 안쪽은 jsonb 값이라 컬럼이 아님)
-    let d = 0;
-    for (const line of body.split("\n")) {
-      const km = /^\s*(\w+)\s*:/.exec(line);
-      if (km && d === 0 && !cols.has(km[1])) {
-        const ln = content.slice(0, idx).split("\n").length;
-        writeViolations.push({ table, col: km[1], op, rel: `${file}:${ln}` });
+    // 최상위 키만 (중첩 객체·배열 안쪽은 jsonb 값이라 컬럼이 아님).
+    // 줄 단위로 훑으면 `{ a: 1, ghost: 2 }` 처럼 **한 줄에 키가 여러 개**일 때 첫 키만 보고
+    // 나머지를 놓친다(자기시험이 잡아낸 실제 구멍) → 문자 단위로 depth 를 따라가며
+    // "구분자(`{` 시작 또는 `,`) 다음에 오는 식별자 + `:`" 만 키로 인정한다.
+    let d = 0, expectKey = true;
+    for (let k = 0; k < body.length; k++) {
+      const ch = body[k];
+      if (ch === "{" || ch === "[") { d++; expectKey = false; continue; }
+      if (ch === "}" || ch === "]") { d--; expectKey = false; continue; }
+      if (ch === ",") { expectKey = d === 0; continue; }
+      if (/\s/.test(ch)) continue;
+      if (expectKey && d === 0) {
+        const km = /^(\w+)\s*:/.exec(body.slice(k));
+        if (km) {
+          if (!cols.has(km[1])) {
+            const ln = content.slice(0, idx).split("\n").length;
+            writeViolations.push({ table, col: km[1], op, rel: `${file}:${ln}` });
+          }
+          k += km[0].length - 1;
+        }
       }
-      for (const ch of line) {
-        if (ch === "{" || ch === "[") d++;
-        else if (ch === "}" || ch === "]") d--;
-      }
+      expectKey = false;
     }
   }
+}
+
+// ── 자기시험 (`node scripts/check-schema-refs.mjs --selftest`) ──
+// 축 D 파서는 정규식·괄호세기·마스킹이 얽혀 눈으로 맞는지 알기 어렵다. 독립 리뷰가 실제로
+// 뚫었던 입력을 그대로 박아두어, 다음에 파서를 건드릴 때 같은 구멍이 다시 열리면 실패하게 한다.
+if (process.argv.includes("--selftest")) {
+  const cols = new Set(["response_text_raw", "response_text_sanitized", "id"]);
+  COLUMN_MAP.set("__t", cols);
+  const run = (code) => {
+    writeViolations.length = 0;
+    checkWriteKeys(code, "__t", code, "selftest.ts", 0);
+    return writeViolations.map((v) => v.col);
+  };
+  let failed = 0;
+  const expect = (label, got, want) => {
+    const ok = JSON.stringify(got.sort()) === JSON.stringify(want.sort());
+    if (!ok) { failed++; console.error(`  ✗ ${label}\n     기대=${JSON.stringify(want)} 실제=${JSON.stringify(got)}`); }
+    else console.log(`  ✓ ${label}`);
+  };
+
+  expect("평범한 유령 컬럼을 잡는다",
+    run(`.from("__t").insert({ response_text_raw: "a", ghost_col: 1 })`), ["ghost_col"]);
+
+  expect("정상 컬럼만이면 조용하다",
+    run(`.from("__t").insert({ response_text_raw: "a", response_text_sanitized: "b" })`), []);
+
+  // 리뷰 지적 #2 — 멀티라인 템플릿 안의 "Subject:" 를 컬럼으로 오인하면 CI가 막힌다(오탐)
+  expect("멀티라인 템플릿 리터럴 내부는 컬럼이 아니다",
+    run('.from("__t").insert({ response_text_raw: `Dear patient\nSubject: hello world\nRegards`, response_text_sanitized: "x" })'), []);
+
+  // 리뷰 지적 #3 — 값 문자열 속 `}` 로 본문이 잘려 뒤쪽 키가 무검사로 새면 안 된다(미탐)
+  expect("값 문자열 속 중괄호가 검사를 끊지 않는다",
+    run(`.from("__t").insert({ response_text_raw: "괄호 } 포함", ghost_after_brace: 1 })`), ["ghost_after_brace"]);
+
+  expect("주석 속 중괄호가 검사를 끊지 않는다",
+    run(`.from("__t").insert({ /* 여는 괄호 { 만 있는 주석 */ ghost_after_comment: 1 })`), ["ghost_after_comment"]);
+
+  expect("스프레드가 있으면 통째로 건너뛴다(동적)",
+    run(`.from("__t").insert({ ...base, ghost_ignored: 1 })`), []);
+
+  expect("중첩 객체(jsonb) 안쪽 키는 컬럼이 아니다",
+    run(`.from("__t").insert({ response_text_raw: "a", metadata: {\n  inner_key: 1\n} })`), ["metadata"]);
+
+  writeViolations.length = 0;
+  COLUMN_MAP.delete("__t");
+  console.log(failed ? `\n❌ 자기시험 ${failed}건 실패` : "\n✓ 자기시험 통과");
+  process.exit(failed ? 1 : 0);
 }
 
 const FROM_RE = /\.from\(\s*["'`]([A-Za-z_][\w]*)["'`]/g;
