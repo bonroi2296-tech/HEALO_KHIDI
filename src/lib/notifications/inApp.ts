@@ -320,8 +320,10 @@ export interface UnclosedConsultationsNotice {
  *   전부 'scheduled' 로 남아 설문 0건이었다.
  *   → 자동 변경(정직성 훼손) 대신 **안 누른 사실을 시끄럽게 만드는 쪽**으로 푼다.
  *
- * ponytail: 매일 1회 알림이라 미처리가 계속되면 매일 울린다(디듀프 없음). 눌러야 멈추는 게
- *   의도다. 도배가 문제되면 그때 payload 기준 N일 1회로 줄일 것.
+ * 디듀프: **이미 안 읽은 같은 알림이 있는 직원에게는 다시 보내지 않는다.** 안 그러면 매일
+ *   1건씩 쌓여, 종 목록이 15건만 보이는 탓에(NotificationBell) 2주면 종이 넛지로 가득 차
+ *   정작 중요한 새 문의(new_inquiry) 알림을 밀어낸다. 방치가 길수록 도배되는 구조라
+ *   "눌러야 멈춘다"는 의도는 유지하되 1인 1건으로 접는다. (독립 리뷰 지적, 2026-07-20)
  * Fail-safe: 실패해도 throw 하지 않음.
  */
 export async function notifyStaffUnclosedConsultations(
@@ -329,14 +331,30 @@ export async function notifyStaffUnclosedConsultations(
 ): Promise<void> {
   try {
     const { admins, coordinators } = await getStaffIdsByRole();
-    if (admins.length === 0 && coordinators.length === 0) return;
-    await broadcastInAppNotification([...admins, ...coordinators], {
+    const staff = [...admins, ...coordinators];
+    if (staff.length === 0) return;
+
+    // 안 읽은 같은 타입 알림을 이미 가진 직원은 제외(종 도배 방지).
+    const supabase = getSupabaseServerClient();
+    const { data: existing, error } = await (supabase as any)
+      .from("notifications")
+      .select("user_id")
+      .eq("type", "consultation_unclosed")
+      .is("read_at", null)
+      .in("user_id", staff);
+    // 조회가 실패하면 디듀프를 포기하고 그냥 보낸다 — 도배보다 미발송이 더 나쁘다.
+    if (error) console.warn("[inApp] unclosed 디듀프 조회 실패(그대로 발송):", error.message);
+    const alreadyNotified = new Set(((existing as any[]) || []).map((r) => r.user_id));
+    const targets = staff.filter((id) => !alreadyNotified.has(id));
+    if (targets.length === 0) return;
+
+    await broadcastInAppNotification(targets, {
       type: "consultation_unclosed",
       title: `⏰ 완료 처리 안 된 상담 ${notice.count}건`,
       body:
         `예정시각이 지났는데 「완료」를 누르지 않은 상담이 ${notice.count}건 있어요` +
-        `(최장 ${notice.oldestDays}일 방치). 완료해야 사전상담·사후관리 실적으로 집계되고 ` +
-        `만족도 설문도 발송됩니다.`,
+        `(최장 ${notice.oldestDays}일 방치). 완료해야 사전상담·사후관리 실적으로 집계돼요. ` +
+        `문의와 연결된 상담이면 만족도 설문도 함께 발송됩니다.`,
       priority: "high",
       link: "/admin/consultations",
       payload: { count: notice.count, oldestDays: notice.oldestDays },

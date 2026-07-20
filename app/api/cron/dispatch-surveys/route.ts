@@ -195,11 +195,20 @@ export async function GET(request: NextRequest) {
   // → 여기서 같이 감지해 직원 종을 울린다(같은 테이블을 이미 읽는 자리라 추가 cron 불필요).
   let unclosed = 0;
   try {
-    const { data: pending } = await db
+    const { data: pending, error: pendingErr } = await db
       .from("consultation_sessions")
       .select("id, scheduled_at")
-      .eq("status", "scheduled")
-      .not("is_test", "is", true); // 테스트 세션은 실적이 아니므로 넛지 대상도 아님
+      // 'active'(상담이 실제로 시작됨) 인데 완료로 안 넘어간 것이야말로 가장 확실한
+      // 미완료다. 'scheduled' 만 보면 그 케이스를 통째로 놓친다. (독립 리뷰 지적)
+      .in("status", ["scheduled", "active"])
+      .not("is_test", "is", true) // 테스트 세션은 실적이 아니므로 넛지 대상도 아님
+      .limit(500); // 상한 없으면 PostgREST max-rows 에 조용히 잘려 과소집계된다
+
+    // ⚠️ supabase-js 는 PostgREST 오류에 reject 하지 않고 {data:null, error} 로 resolve 한다.
+    //    error 를 안 보면 컬럼 변경·RLS 변경 때 pending=null → 대상 0건 → "울릴 게 없음"과
+    //    구별이 안 되는 조용한 실패가 된다 — 조용한 실패를 막으려고 만든 기능이 조용히
+    //    죽는 셈. 명시적으로 throw 해서 아래 catch 가 로그를 남기게 한다. (독립 리뷰 지적)
+    if (pendingErr) throw new Error(`unclosed query failed: ${pendingErr.message}`);
 
     // 임계값·경과일 판정은 순수함수(단위 테스트로 고정). 알림이 "안 울리는" 버그는
     // 화면에 안 보여서 아무도 모르므로 계산부는 테스트로 묶어둔다.
