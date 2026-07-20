@@ -32,6 +32,7 @@ import {
 } from "@/lib/surveys/generateSurveyToken";
 import { resolveSurveyRecipient } from "@/lib/surveys/resolveRecipient";
 import { surveyDispatchWindow } from "@/lib/surveys/dispatchWindow";
+import { computeUnclosedNudge } from "@/lib/surveys/unclosedNudge";
 import { alertIfKpiStale } from "@/lib/khidi/kpiHealthcheck";
 import { decryptMaybe } from "@/lib/security/encryptionV2";
 
@@ -185,6 +186,52 @@ export async function GET(request: NextRequest) {
     }
   }
 
+  // ── 미완료 상담 넛지 ────────────────────────────────────────────────────
+  // 이 cron 이 설문을 못 보내는 가장 흔한 이유는 "완료(completed) 로 바뀐 세션이 없어서"다.
+  // `completed` 는 사람이 직접 눌러야 바뀐다(LiveKit webhook 이 의도적으로 status 를 안 건드림
+  // — 방이 닫혔다고 상담이 성사된 게 아니라서. 실적 정직성 설계). 그래서 아무도 안 누르면
+  // K-02(사전상담·사후관리)·K-03(만족도)이 조용히 0 에 고정된다.
+  // 실제로 2026-07-20 실측 시 실상담 5건이 전부 'scheduled' 로 남아 설문 0건이었다.
+  // → 여기서 같이 감지해 직원 종을 울린다(같은 테이블을 이미 읽는 자리라 추가 cron 불필요).
+  let unclosed = 0;
+  let unclosedCheckFailed = false;
+  try {
+    const { data: pending, error: pendingErr } = await db
+      .from("consultation_sessions")
+      .select("id, scheduled_at")
+      // 'active'(상담이 실제로 시작됨) 인데 완료로 안 넘어간 것이야말로 가장 확실한
+      // 미완료다. 'scheduled' 만 보면 그 케이스를 통째로 놓친다. (독립 리뷰 지적)
+      .in("status", ["scheduled", "active"])
+      .not("is_test", "is", true) // 테스트 세션은 실적이 아니므로 넛지 대상도 아님
+      // 상한을 두는 건 Math.max 스프레드·메모리 폭주를 막기 위한 것이지 "잘림 방지"가
+      // 아니다(오히려 이 limit 자체가 PostgREST 기본 1000 보다 낮은 지점에서 자른다).
+      // 넛지는 "몇 건인지 대충 알고 화면으로 가라"는 신호라 500 에서 잘려도 목적을 해치지
+      // 않는다. 정확한 수는 /admin/consultations 가 보여준다. 목표 규모가 상담 120건이라
+      // 실무상 도달하지도 않는다.
+      .limit(500);
+
+    // ⚠️ supabase-js 는 PostgREST 오류에 reject 하지 않고 {data:null, error} 로 resolve 한다.
+    //    error 를 안 보면 컬럼 변경·RLS 변경 때 pending=null → 대상 0건 → "울릴 게 없음"과
+    //    구별이 안 되는 조용한 실패가 된다 — 조용한 실패를 막으려고 만든 기능이 조용히
+    //    죽는 셈. 명시적으로 throw 해서 아래 catch 가 로그를 남기게 한다. (독립 리뷰 지적)
+    if (pendingErr) throw new Error(`unclosed query failed: ${pendingErr.message}`);
+
+    // 임계값·경과일 판정은 순수함수(단위 테스트로 고정). 알림이 "안 울리는" 버그는
+    // 화면에 안 보여서 아무도 모르므로 계산부는 테스트로 묶어둔다.
+    const nudge = computeUnclosedNudge((pending as any[]) || [], now);
+    if (nudge) {
+      unclosed = nudge.count;
+      const { notifyStaffUnclosedConsultations } = await import("@/lib/notifications/inApp");
+      await notifyStaffUnclosedConsultations(nudge);
+    }
+  } catch (err: any) {
+    // 넛지 실패가 본업(설문 발송)을 죽이지 않게 흡수. 단 응답에 실패 사실을 남긴다 —
+    // 안 그러면 {unclosed: 0} 이 "울릴 게 없음"과 "감지가 죽음" 둘 다를 뜻해
+    // 응답만 읽는 쪽(수동 트리거·모니터링)이 구별할 수 없다.
+    unclosedCheckFailed = true;
+    console.warn("[cron/dispatch-surveys] unclosed nudge 실패(무시):", err?.message);
+  }
+
   // KHIDI 데드맨 스위치: KPI 일일 집계 누락 감지(이 cron은 kpi-snapshot과 다른 시간대라
   // kpi-snapshot 트리거가 죽어도 여기서 잡아 Sentry 경보). 본업에 영향 없게 흡수.
   let kpiHealth: { stale: boolean; latest: string | null } = { stale: false, latest: null };
@@ -195,6 +242,8 @@ export async function GET(request: NextRequest) {
     sessionsChecked: (sessions as any[])?.length || 0,
     surveysDispatched,
     skipped,
+    unclosed,
+    unclosedCheckFailed,
     errors,
     kpiHealth,
   });

@@ -300,3 +300,79 @@ export async function notifyStaffChatHandoff(notice: ChatHandoffNotice): Promise
     /* fail-safe */
   }
 }
+
+export interface UnclosedConsultationsNotice {
+  /** 예정시각이 하루 이상 지났는데 아직 'completed' 가 아닌 실상담 수 */
+  count: number;
+  /** 그중 가장 오래 방치된 건의 경과 일수 */
+  oldestDays: number;
+}
+
+/** 같은 직원에게 넛지를 다시 보내기까지의 최소 간격(일). */
+export const UNCLOSED_NUDGE_COOLDOWN_DAYS = 7;
+
+/**
+ * 끝난 것으로 보이는데 「완료」 처리가 안 된 상담이 쌓였을 때 직원 종(bell) 알림.
+ *
+ * 왜 필요한가 (2026-07-20 실측으로 드러난 구멍):
+ *   `completed` 는 KHIDI 성과지표 K-02(사전상담·사후관리 120건) 집계의 기준이고,
+ *   설문 발송 cron 도 `status='completed'` 인 세션만 찾는다 → K-03(만족도 90점)의 입구다.
+ *   그런데 LiveKit webhook 은 **의도적으로** status 를 자동 변경하지 않는다(실적 정직성 —
+ *   방이 물리적으로 닫혔다고 상담이 성사된 건 아니므로 사람이 확인 후 누르게 한 설계).
+ *   그 결과 아무도 버튼을 안 누르면 **지표가 조용히 0 에 고정된다.** 실제로 실상담 5건이
+ *   전부 'scheduled' 로 남아 설문 0건이었다.
+ *   → 자동 변경(정직성 훼손) 대신 **안 누른 사실을 시끄럽게 만드는 쪽**으로 푼다.
+ *
+ * 디듀프: **최근 7일 안에 같은 알림을 보낸 직원에게는 다시 보내지 않는다**(= 주 1회 재알림).
+ *   - 왜 디듀프가 필요한가: cron 이 매일 돌아 1건씩 무한 적립되는데 종 목록은 15건만
+ *     보인다(NotificationBell) → 2주면 종이 넛지로 가득 차 정작 중요한 새 문의(new_inquiry)
+ *     알림을 밀어낸다.
+ *   - 왜 "안 읽음" 기준이면 안 되는가: 이 서비스의 알림은 **96% 가 영영 안 읽힌다**
+ *     (실측 2026-07-20: ai_quality_alert 353건 중 339건 미열람, 직원 2명이 각 247·246건
+ *     미열람). 안 읽음을 기준으로 접으면 첫 발송 뒤 **영구히 침묵**하고, 그 1건의 제목은
+ *     "5건"에 고정된 채 남는다 — 미완료가 50건이 돼도 조용해진다. 시끄럽게 만들려던
+ *     기능의 정반대. (독립 리뷰 재검증에서 적발, 2026-07-20)
+ *   - 시간창 기준이면 볼륨도 묶이고(월 ~4건) 재알림 때마다 **최신 건수**로 다시 뜬다.
+ * Fail-safe: 실패해도 throw 하지 않음.
+ */
+export async function notifyStaffUnclosedConsultations(
+  notice: UnclosedConsultationsNotice
+): Promise<void> {
+  try {
+    const { admins, coordinators } = await getStaffIdsByRole();
+    const staff = [...admins, ...coordinators];
+    if (staff.length === 0) return;
+
+    // 최근 쿨다운 기간 안에 이미 받은 직원은 제외(종 도배 방지).
+    // 열람 여부가 아니라 **발송 시각** 기준 — 이유는 위 주석 참조.
+    const since = new Date(
+      Date.now() - UNCLOSED_NUDGE_COOLDOWN_DAYS * 24 * 60 * 60 * 1000
+    ).toISOString();
+    const supabase = getSupabaseServerClient();
+    const { data: existing, error } = await (supabase as any)
+      .from("notifications")
+      .select("user_id")
+      .eq("type", "consultation_unclosed")
+      .gte("created_at", since)
+      .in("user_id", staff);
+    // 조회가 실패하면 디듀프를 포기하고 그냥 보낸다 — 도배보다 미발송이 더 나쁘다.
+    if (error) console.warn("[inApp] unclosed 디듀프 조회 실패(그대로 발송):", error.message);
+    const alreadyNotified = new Set(((existing as any[]) || []).map((r) => r.user_id));
+    const targets = staff.filter((id) => !alreadyNotified.has(id));
+    if (targets.length === 0) return;
+
+    await broadcastInAppNotification(targets, {
+      type: "consultation_unclosed",
+      title: `⏰ 완료 처리 안 된 상담 ${notice.count}건`,
+      body:
+        `예정시각이 지났는데 「완료」를 누르지 않은 상담이 ${notice.count}건 있어요` +
+        `(최장 ${notice.oldestDays}일 방치). 완료해야 사전상담·사후관리 실적으로 집계돼요. ` +
+        `문의와 연결된 상담이면 만족도 설문도 함께 발송됩니다.`,
+      priority: "high",
+      link: "/admin/consultations",
+      payload: { count: notice.count, oldestDays: notice.oldestDays },
+    });
+  } catch {
+    /* fail-safe */
+  }
+}
