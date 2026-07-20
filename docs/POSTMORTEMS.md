@@ -14,6 +14,38 @@
 
 ---
 
+## #97 — 🔁 #85 부류 재발(그 근본원인): `CREATE TABLE IF NOT EXISTS` 이름충돌이 조용한 no-op → 플레이북·크롤 두 기능이 "없는 컬럼"에 쓰고 있었음. 마이그레이션은 성공 보고, 테이블 0건 (2026-07-20, 트렌드 스캔 중 supabase-js 업그레이드가 적발)
+
+**무슨 일** — `/admin/playbook`(응대 패턴 저장·승인)과 `/admin/crawl`(병원 크롤 검수)이 **한 번도 작동한 적이 없다.** 실DB 확인: `coordinator_responses` 0건, `crawl_raw_items` 0건, `crawl_jobs` 0건.
+
+- `migrations/20260225_coordinator_responses.sql`은 `coordinator_responses`를 PLAYBOOK-V1 스키마(`language`·`case_tags`·`response_text_sanitized`·`quality_score`·`approved_at`·`rag_document_id` …)로 선언한다.
+- 그런데 **그 이름의 테이블이 이미 있었다** — 병원 견적 응답용(`inquiry_id`·`hospital_id`·`quoted_price`·`currency`·`is_final`…). 완전히 다른 기능이 같은 이름을 먼저 선점.
+- `CREATE TABLE IF NOT EXISTS`는 이 충돌에서 **에러를 내지 않고 조용히 아무것도 안 한다.** 마이그레이션은 "성공"으로 기록되고, 코드는 그날부터 남의 테이블 스키마에 글을 썼다.
+- 결과: INSERT는 없는 컬럼 때문에 항상 실패(→ 0건), 필터 조회도 항상 실패. 걸린 곳 19군데(`app/api/admin/playbook/responses/route.ts`, `.../responses/[id]/approve/route.ts`, `app/api/admin/chat/threads/[threadId]/resolve/route.ts`).
+- 같은 부류로 `crawl_raw_items`도: 코드가 `source_id`·`name`·`hospital_id`(insert)·`reviewed_at`(승인/거절/건너뛰기 update)를 쓰는데 실DB엔 전부 없음.
+
+**왜 못 잡았나(근본원인)** — 세 겹으로 안 보였다.
+
+1. **`IF NOT EXISTS`가 이름충돌을 성공으로 위장.** 마이그레이션 실행 로그만 보면 정상이다. "적용됨 ≠ 의도대로 만들어짐"인데 아무도 사후 대조를 안 했다.
+2. **타입이 안 잡았다.** 프로젝트가 쓰던 `@supabase/supabase-js` 2.90은 `.insert()/.update()`에 `Record<string, any>`를 그냥 통과시킨다. 생성된 `database.types.ts`는 진짜 스키마를 알고 있었지만, 클라이언트 타입이 느슨해 대조가 일어나지 않았다.
+3. **런타임 에러가 삼켜졌다.** 실패해도 어드민 화면 한 구석에서 조용히 끝나고, 아무도 안 쓰는 화면이라 신고가 없었다. **0건이라는 사실 자체가 유일한 증거였는데, 0건을 "아직 데이터가 없네"로 읽었다.**
+
+**#85의 방지책이 왜 못 막았나** — #85(2026-07-13)는 같은 증상(`playbook_patterns` 0건)을 잡고 "배선 누락"으로 결론냈다. **증상은 맞게 봤지만 원인을 한 겹 얕게 짚었다** — 배선을 고쳐도 그 아래 스키마가 유령이면 여전히 0건이다. 그때의 방지책("실DB 건수 확인")은 *발견*엔 성공했지만 *원인 규명*에서 멈췄다. **교훈: 0건을 찾았으면 배선뿐 아니라 스키마까지 파고들어라 — "쓰는 컬럼이 실제로 있는가"가 마지막 바닥이다.**
+
+**어떻게 고쳤나** — (2026-07-20 현재) **원인 규명·전수 스캔까지 완료, 수리 방향은 PO 결정 대기.** 두 기능 다 "한 번도 안 쓰인 죽은 화면"이라 *컬럼 추가로 되살리기* vs *기능 삭제*가 제품 판단이라 임의로 정하지 않았다.
+
+**전수 스캔 결과** — `migrations/*.sql` 61개 테이블 선언 vs 실DB `information_schema` 대조:
+- **스키마 드리프트 12개 테이블**, 마이그레이션에만 있고 실DB엔 없는 테이블 8개(`inquiry_contacts`·`inquiry_medical`·`hospital_lead_assignments`·`hospital_performance_stats`·`hospital_performance_global_avg`·`hospital_responses`·`operational_alerts`·`treatment_translations`).
+- 그중 **코드가 실제로 유령 컬럼을 쓰는 진짜 버그 = `coordinator_responses`·`crawl_raw_items` 2건**. 나머지는 뒤 마이그레이션이 컬럼명을 바꾼 양성(예: `consultation_messages.consultation_id`→실제 `session_id`)이거나 JSONB `data` 안의 키(오탐).
+- `crawl_raw_items.name`은 이미 2026-07-15 완성도 감사에서 부분 발견돼 조회 쪽만 `name:title` alias로 우회돼 있었다 — **조회는 고쳤는데 insert/update는 그대로 둔 반쪽 수정**(#18 부류와 동일한 모양).
+
+**재발 방지(시스템 적용)**
+1. **`@supabase/supabase-js`를 2.110+로 올리는 것이 곧 이 가드다.** 신버전의 `RejectExcessProperties` 타입이 `.insert()/.update()/.eq()`를 생성 타입과 대조해 **이 부류를 컴파일 타임에 전부 잡는다** — 실제로 이번 발견이 그 업그레이드를 시도하다 나왔다(32건 타입 에러 중 2건이 진짜 버그). 별도 커스텀 검사기를 만들지 말고 **업그레이드를 가드로 삼는다**(중복 기계 금지). 단 32곳 타입 정리가 선행 작업이라 별건 PR로 분리.
+2. **새 마이그레이션 규칙**: `CREATE TABLE IF NOT EXISTS`로 새 테이블을 만들 때는 **그 이름이 이미 없는지 먼저 확인**한다(`information_schema` 조회 1줄). `IF NOT EXISTS`는 "재실행 안전"용이지 "이름 선점 감지"용이 아니다.
+3. **0건 판독 규칙**: 기능 테이블이 0건이면 "데이터가 아직 없다"로 넘기지 말고 **INSERT 경로를 실제로 1회 태워본다**(#85 방지책의 보강).
+
+---
+
 ## #96 — 어시스턴트가 낡은 작업본 파일을 main 위에 통째로 복사 → PO가 직접 지시해 지운 코드(#746)가 조용히 부활. CI 전부 초록. 독립 리뷰만이 적발 (2026-07-16, SEO 브랜드 작업 중)
 
 **무슨 일**
