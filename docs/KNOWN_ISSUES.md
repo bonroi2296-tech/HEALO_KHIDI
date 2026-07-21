@@ -1,5 +1,38 @@
 # HEALO KHIDI — 알려진 이슈 / 전수 QA 발견사항
 
+## 🔴 만족도 설문이 **구조적으로 0건** — KHIDI K-03 지표에 데이터가 안 쌓인다 (2026-07-21 실측)
+
+> 아래 「📦 보관」 항목의 코드가 이걸 고치려던 것이지만, **되살리든 안 되살리든 문제 자체는 지금 진행 중**이라 따로 세워둔다.
+
+**실측(2026-07-21)**: `surveys` **0건**(응답도 0) / `consultation_sessions` **35건 전부 `scheduled`, `completed` 0건** / 그런데 `inquiries.case_status` 에는 **`follow_up` 1건**이 실제로 있다.
+
+**왜 0건인가** — 운영에서 설문을 만드는 경로는 `app/api/cron/dispatch-surveys` **하나뿐**인데(전수 확인: `generateSurveyToken` 호출처 = 이 cron + 응답 처리 라우트뿐, 어드민 수동 발송 없음), 그 cron 이 `consultation_sessions.status = 'completed'` 를 찾는다. **completed 가 영구 0건이라 대상이 항상 비어 있다.**
+
+**왜 중요한가** — 만족도는 **8/27 중간평가 공식 성과지표 4개 중 하나**(목표 90점). 지금 구조로는 평가일까지 0으로 남는다.
+
+**고치는 방향(이미 설계·DB 준비 완료)** — 발송 기준을 「상담 completed」→「케이스가 **사후관리(`follow_up`) 단계 진입**」으로 옮긴다. PO 결정 2026-07-16.
+- DB 는 **이미 준비돼 있다**: `surveys.inquiry_id` + `idx_surveys_inquiry`(PR #844 로 저장소 회수 완료) · `inquiries.followup_started_at` 실재 확인.
+- 중복 발송 방지 설계됨: `surveys.inquiry_id` 존재검사로 **케이스당 1회**, cron 재실행에도 중복 없음.
+- **화면은 안 바뀐다.** 단계를 옮기는 곳(`/coordinator/cases`·`/coordinator/inbox/[id]`, `/admin/khidi/cases`, 에이전시 포털)은 그대로고, 뒤에서 자동 발송만 붙는 구조.
+
+---
+
+## 📦 보관 — `rescue/local-uncommitted-20260716` 미머지 코드 974줄 (**PO 지시로 보류**, 2026-07-21)
+
+> **PO 지시: "일단 메모해놓고 나중에 쓸 일 있음 쓰게 보관만 해둬"** — 지우지 마라.
+
+- **어디에**: 브랜치 `rescue/local-uncommitted-20260716` (PR 없음). 2026-07-16 세션의 로컬 미커밋분을 구조해 둔 것. 커밋 39개 중 대부분은 자동저장 노이즈이고, 실제 알맹이는 아래 3덩어리.
+- **⚠️ 「방치 브랜치」로 오해해 지우지 마라.** PR 이 없어서 정리 대상처럼 보이지만 **본판에 없는 진짜 작업**이 들어 있다.
+
+| 덩어리 | 파일 | 상태 |
+|---|---|---|
+| **설문 발송 기준 변경** | `app/api/cron/dispatch-surveys/route.ts`(291줄) · `src/lib/surveys/generateSurveyToken.ts` | 위 🔴 항목의 해법. **DB 준비 끝, 코드만 없음.** 범위 좁음(파일 2개) |
+| **소견 AI 자동번역** | `src/lib/opinions/translateOpinion.ts`(신규) · `app/api/coordinator/opinions/translate/route.ts`(신규) · `OpinionsSection.jsx` | DB 칸(`case_opinions.auto_translated_text`)은 있는데 **채우는 코드가 없어 소견 2건 중 번역 0건** |
+| **기타** | `src/lib/khidi/kpiHealthcheck.ts`(신규) · `caseStatus.ts`(128줄) · 개인정보처리방침·동의서 문구 | — |
+
+- ✅ **마이그레이션 3개는 이미 회수 완료**(PR #844) — 이 브랜치에서 건져야 할 DB 분은 남아 있지 않다.
+- ⚠️ **통째로 얹지 마라.** 2026-07-16 이후 본판이 크게 움직였고, 특히 `caseStatus.ts` 는 **KHIDI 지표 계산에 직결**돼 잘못 얹으면 숫자가 틀어진다. 살릴 때는 **덩어리 단위로 떼서** 최신 본판 위에 재작성하는 게 안전하다.
+
 ## 📦 보관 — 공개 제휴 랜딩 `/partners` (완성돼 있으나 **PO 지시로 보류**, 2026-07-21)
 
 > **PO 지시: "이건 일단 보관만 해둬"** — 지우지 말고, 머지도 하지 마라. 되살릴 때 아래를 그대로 쓰면 된다.
