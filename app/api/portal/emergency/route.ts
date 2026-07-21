@@ -25,15 +25,22 @@ export async function POST(request: NextRequest) {
 
   try {
     // 기존 응급 스레드 재사용 (중복 생성 방지)
-    const { data: existing } = await supabaseAdmin
+    // ⚠️ error 를 받는다 — 안 받으면 조회 실패가 "기존 스레드 없음"으로 둔갑해 SOS 를 누를
+    // 때마다 응급 스레드가 새로 생기고, 코디 화면이 같은 환자의 응급 건으로 도배된다
+    // (POSTMORTEMS #105 부류).
+    const { data: existingRows, error: threadLookupErr } = await supabaseAdmin
       .from("chat_threads")
       .select("id")
       .eq("user_id", auth.userId)
       .eq("subject", EMERGENCY_SUBJECT)
-      .limit(1)
-      .maybeSingle();
+      .limit(1);
 
-    let threadId = existing?.id;
+    if (threadLookupErr) {
+      console.error("[portal/emergency] 기존 스레드 조회 실패:", threadLookupErr.message);
+      return Response.json({ ok: false, error: "internal_error" }, { status: 500 });
+    }
+
+    let threadId = existingRows?.[0]?.id;
     if (!threadId) {
       const { data: newThread, error: threadErr } = await supabaseAdmin
         .from("chat_threads")

@@ -58,6 +58,40 @@ function verifyCronSecret(header: string | null): boolean {
   }
 }
 
+
+/**
+ * 이 세션/케이스에 설문이 이미 나갔는지. 멱등 가드의 단일 창구.
+ *
+ * 왜 함수로 뺐나 — 두 발송 경로가 **서로 다른 키**로 검사하다 엇갈려 중복 발송이 났다
+ * (독립 리뷰 2026-07-21). 이제 둘 다 여기를 거치고, 세션 경로도 케이스 키를 함께 본다.
+ *
+ * 왜 maybeSingle 이 아닌가 — maybeSingle 은 행이 2개 이상이면 **에러**를 낸다. 그 에러를
+ * "행 없음"으로 흘리면 매 실행마다 새 설문을 보내는 무한 루프가 된다(하루 1건씩 누적).
+ * limit(1) 로 그 실패 모드 자체를 없애고, 조회 실패는 "error" 로 구분해 호출부가 실패-닫힘
+ * 하도록 한다 — 못 보내는 건 되돌릴 수 있지만 잘못 보낸 메일은 못 되돌린다.
+ */
+async function surveyExists(
+  db: any,
+  keys: { consultationSessionId?: string | null; inquiryId?: number | null }
+): Promise<boolean | "error"> {
+  const clauses: string[] = [];
+  if (keys.consultationSessionId) clauses.push(`consultation_session_id.eq.${keys.consultationSessionId}`);
+  if (keys.inquiryId) clauses.push(`inquiry_id.eq.${keys.inquiryId}`);
+  if (clauses.length === 0) return false;
+
+  const { data, error } = await db
+    .from("surveys")
+    .select("id")
+    .or(clauses.join(","))
+    .limit(1);
+
+  if (error) {
+    console.error("[cron/dispatch-surveys] 설문 존재검사 실패:", error.message);
+    return "error";
+  }
+  return (data?.length || 0) > 0;
+}
+
 export async function GET(request: NextRequest) {
   if (!verifyCronSecret(request.headers.get("authorization"))) {
     return Response.json({ ok: false, error: "unauthorized" }, { status: 401 });
@@ -91,14 +125,24 @@ export async function GET(request: NextRequest) {
 
   for (const session of (sessions as any[]) || []) {
     try {
-      // 이 세션에 설문이 이미 생성됐는지 확인 (중복 방지)
-      const { data: existing } = await db
-        .from("surveys")
-        .select("id")
-        .eq("consultation_session_id", session.id)
-        .maybeSingle();
-
-      if (existing) {
+      // 이 세션(또는 그 케이스)에 설문이 이미 생성됐는지 확인 (중복 방지).
+      //
+      // ⚠️ 세션 키만 보면 안 된다 — 케이스 경로가 먼저 보낸 설문은 consultation_session_id 가
+      // null 이라 여기 안 걸리고, 나중에 누가 그 케이스의 상담을 'completed' 로 바꾸는 순간
+      // **같은 환자에게 두 번** 나간다(독립 리뷰 2026-07-21 지적). 세션에 inquiry 가 연결돼
+      // 있으면 케이스 키로도 함께 검사한다.
+      const alreadySent = await surveyExists(db, {
+        consultationSessionId: session.id,
+        inquiryId: session.inquiry_id ?? null,
+      });
+      if (alreadySent === "error") {
+        // 조회 자체가 실패한 경우 보내지 않는다(실패-닫힘). 보내고 중복을 만드는 것보다
+        // 한 번 거르는 쪽이 안전하다 — 다음 실행에서 재시도된다.
+        errors.push(`session=${session.id}: 존재검사 실패 — 이번 실행 건너뜀`);
+        skipped++;
+        continue;
+      }
+      if (alreadySent) {
         skipped++;
         continue;
       }
@@ -189,9 +233,10 @@ export async function GET(request: NextRequest) {
         // 걸려 다음 실행부터 영구 skip → 만족도(K-03) 설문이 조용히 유실된다(전송 실패=영구 실패).
         // 삭제하면 다음 cron 이 재시도한다. (성공 시엔 sent_at 이 채워져 정상 skip)
         await db.from("surveys").delete().eq("id", tokenResult.surveyId);
-        errors.push(
-          `session=${session.id}: email send failed — ${emailResult.error} (pending survey row deleted for retry)`
-        );
+        // ⚠️ emailResult.error 는 Resend 원문이라 수신자 이메일이 섞여 나올 수 있다 →
+        // 응답 본문(cron 결과 JSON)에 넣지 않고 서버 로그로만 남긴다.
+        console.error(`[cron/dispatch-surveys] session=${session.id} email failed:`, emailResult.error);
+        errors.push(`session=${session.id}: email send failed (pending survey row deleted for retry)`);
       }
     } catch (err: any) {
       errors.push(`session=${session.id}: ${err.message}`);
@@ -224,14 +269,14 @@ export async function GET(request: NextRequest) {
 
     for (const c of (cases as any[]) || []) {
       try {
-        // 이 케이스에 이미 설문이 나갔는지(멱등 가드). 세션 경로로 나간 것도 inquiry_id 를
-        // 채우므로 같은 환자에게 두 번 가지 않는다.
-        const { data: existing } = await db
-          .from("surveys")
-          .select("id")
-          .eq("inquiry_id", c.id)
-          .maybeSingle();
-        if (existing) {
+        // 이 케이스에 이미 설문이 나갔는지(멱등 가드).
+        const alreadySent = await surveyExists(db, { inquiryId: c.id });
+        if (alreadySent === "error") {
+          errors.push(`case=${c.id}: 존재검사 실패 — 이번 실행 건너뜀`);
+          skipped++;
+          continue;
+        }
+        if (alreadySent) {
           skipped++;
           continue;
         }
@@ -276,11 +321,24 @@ export async function GET(request: NextRequest) {
 
         if (emailResult.ok) {
           caseSurveysDispatched++;
+          // 세션 경로와 동일하게 발송 이력을 남긴다 — 안 남기면 /admin/reminders 에서
+          // 케이스 설문만 흔적 없이 사라진 것처럼 보인다.
+          await db.from("reminders_scheduled").insert({
+            reminder_type: "survey_request",
+            fire_at: new Date().toISOString(),
+            channel: "email",
+            recipient_user_id: c.user_id || null,
+            recipient_address: recipient.email,
+            payload: { survey_id: tokenResult.surveyId, inquiry_id: c.id },
+            status: "sent",
+            sent_at: new Date().toISOString(),
+          }).then(() => {}, () => { /* 이력 실패는 발송을 되돌리지 않는다 */ });
         } else {
           // 발송 실패 시 pending 행을 지운다. 안 지우면 위 존재검사에 걸려 다음 실행부터
           // 영구 skip → 설문이 조용히 유실된다(세션 경로와 동일 정책).
           await db.from("surveys").delete().eq("id", tokenResult.surveyId);
-          errors.push(`case=${c.id}: email send failed — ${emailResult.error} (pending survey row deleted for retry)`);
+          console.error(`[cron/dispatch-surveys] case=${c.id} email failed:`, emailResult.error);
+          errors.push(`case=${c.id}: email send failed (pending survey row deleted for retry)`);
         }
       } catch (err: any) {
         errors.push(`case=${c.id}: ${err.message}`);

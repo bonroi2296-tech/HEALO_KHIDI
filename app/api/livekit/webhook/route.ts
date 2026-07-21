@@ -78,11 +78,17 @@ export async function POST(request: NextRequest) {
       ) {
         // 퇴장 시각 영속(left_at) — Vercel 런타임 로그는 1시간이면 증발해 "회의가 몇 분이었나"
         // 사후 분석이 불가했음(2026-07-14 실회의에서 확인). status 는 여전히 안 건드린다(K-02 정본 경로).
-        const { data: session } = await supabase
+        // ⚠️ error 를 받는다 — 안 받으면 조회 실패가 "그런 방 없음"과 구별되지 않아, 이 기능이
+        // 막으려던 바로 그 증상(퇴장 시각 유실)이 조용히 재발한다(POSTMORTEMS #105 부류).
+        const { data: sessionRows, error: sessionErr } = await supabase
           .from("consultation_sessions")
           .select("id")
           .eq("livekit_room_name", roomName)
-          .maybeSingle();
+          .limit(1);
+        if (sessionErr) {
+          console.error("[livekit/webhook] 상담 세션 조회 실패:", sessionErr.message);
+        }
+        const session = (sessionRows as any)?.[0] || null;
         if ((session as any)?.id) {
           // 같은 identity 재입장(LiveKit 자동 교체) 시, 떠나는 '옛 접속'의 left 이벤트가 방금
           // 생성된 '새 접속'의 입장 기록까지 닫으면 안 된다. 기준 = 떠나는 접속의 LiveKit 합류

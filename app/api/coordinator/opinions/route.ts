@@ -140,24 +140,26 @@ export async function POST(request: NextRequest) {
       }
       await notifyStaffOpinionArrived({ inquiryId, doctorName }).catch(() => {});
 
-      // 접수 즉시 환자 언어로 자동 번역해 확정본 초안을 채워둔다(의사 링크 경로와 동일 정책 —
-      // PO 2026-07-09 "데이터 넘어오는 시점부터"). 코디가 응답을 기다리지 않게 fire-and-forget:
-      // 실패해도 기록은 남고 화면은 원문 폴백 + "다시 번역" 버튼으로 복구 가능.
-      void (async () => {
-        try {
-          const translated = await translateOpinionText(opinionText, (inq as any)?.spoken_language || "");
-          if (translated) {
-            await (supabaseAdmin as any)
-              .from("case_opinions")
-              .update({ auto_translated_text: translated })
-              .eq("id", row.id);
-          }
-        } catch (e: any) {
-          console.error("[coordinator/opinions] auto-translate failed:", e?.message?.slice(0, 160));
+      // 접수 즉시 환자 언어로 자동 번역해 확정본 초안을 채운다(PO 2026-07-09 "데이터 넘어오는
+      // 시점부터"). 여기는 **응답 전에 끝낸다** — 의사 매직링크 경로와 달리 이 화면은 코디가
+      // 보고 있고, 저장 직후 목록을 다시 불러온다. 뒤에서 처리하면 그 재조회가 번역보다 먼저
+      // 도착해 코디 화면에 한글 원문이 남고, 라벨만 "AI가 번역해뒀습니다"로 뜨는 어긋남이
+      // 생긴다(독립 리뷰 2026-07-21). 코디는 이미 파일 번역을 기다리는 화면이라 대기가 새롭지 않다.
+      let autoTranslated: string | null = null;
+      try {
+        autoTranslated = await translateOpinionText(opinionText, (inq as any)?.spoken_language || "");
+        if (autoTranslated) {
+          await (supabaseAdmin as any)
+            .from("case_opinions")
+            .update({ auto_translated_text: autoTranslated })
+            .eq("id", row.id);
         }
-      })();
+      } catch (e: any) {
+        // 번역 실패가 접수를 되돌리지 않는다 — 화면은 원문 폴백 + "다시 번역"으로 복구 가능.
+        console.error("[coordinator/opinions] auto-translate failed:", e?.message?.slice(0, 160));
+      }
 
-      return Response.json({ ok: true, opinion: row });
+      return Response.json({ ok: true, opinion: { ...row, auto_translated_text: autoTranslated } });
     }
 
     // 추측 불가 토큰(48 hex). 케이스당 여러 번 생성 가능(각각 유효 — 재요청은 새 링크).

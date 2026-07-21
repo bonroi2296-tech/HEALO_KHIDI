@@ -55,15 +55,20 @@ export async function POST(request: NextRequest) {
     }
 
     // 중복 피드백 확인 (같은 message_id + public_token)
-    const { data: existing } = await (supabaseAdmin as any)
+    // ⚠️ error 를 반드시 받는다 — supabase-js 는 오류에 reject 하지 않아, 안 받으면 조회 실패가
+    // "중복 없음"으로 둔갑해 가드를 그냥 통과한다(POSTMORTEMS #105 부류).
+    const { data: existingRows, error: dupErr } = await (supabaseAdmin as any)
       .from("chat_feedback")
       .select("id")
       .eq("message_id", message_id)
       .eq("thread_id", thread_id)
-      .limit(1)
-      .maybeSingle();
+      .limit(1);
 
-    if (existing) {
+    if (dupErr) {
+      console.error("[chat/feedback] 중복검사 실패:", dupErr.message);
+      return Response.json({ ok: false, error: "internal_error" }, { status: 500 });
+    }
+    if (existingRows?.length) {
       return Response.json({ ok: false, error: "already_submitted" }, { status: 409 });
     }
 

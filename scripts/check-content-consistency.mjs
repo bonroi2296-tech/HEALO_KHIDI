@@ -963,6 +963,57 @@ for (const dir of BACKOFFICE_DIRS) {
   }
 }
 
+
+// ── §21 멱등 가드에 .maybeSingle() 금지 (POSTMORTEMS #105) ──────────────
+// 왜: 중복 방지용 "이미 있나?" 검사에 maybeSingle() 을 쓰면, **중복이 실제로 생긴 순간**
+// PGRST116 에러가 나고 data 가 null 이 된다 → "없음"으로 오인 → 매 실행마다 새로 만드는
+// 무한 루프. 즉 가드가 스스로를 무력화한다. limit(1) + 명시적 error 검사로 써야 한다.
+// 실제로 설문 발송 cron 이 이 구조였고(2026-07-21 독립 리뷰 적발), 그대로 갔으면 환자에게
+// 매일 설문 메일이 나가고 K-03 만족도 응답률이 망가졌다.
+//
+// 유예 목록(GRANDFATHERED): 룰을 만들 때 이미 있던 자리들. 이번 PR 범위(설문·소견) 밖이라
+// 한꺼번에 고치지 않고 유예하되, **새로 생기는 건 즉시 차단**한다. 이 목록은 줄어들기만 해야
+// 한다 — 목록에 있는 파일이 고쳐지면 여기서도 지워라(늘리려면 그 이유를 PR 에 적을 것).
+// 위험도 순: invite(초대 재발급)·assign(케이스 배정) > crawl/offers-jobs(관리자 배치) >
+// site-settings(단일행 설정, 사실상 무해).
+{
+  const GRANDFATHERED = new Set([
+    "app/api/admin/crawl/route.ts",
+    "app/api/admin/khidi/agencies/route.ts",
+    "app/api/admin/offers-jobs/process/route.ts",
+    "app/api/admin/site-settings/route.ts",
+    "app/api/admin/site-settings/upload/route.ts",
+    "app/api/coordinator/cases/assign/route.ts",
+    "app/api/khidi/consultation/[id]/invite/route.ts",
+  ]);
+  const idSelectThenMaybeSingle = /\.select\(\s*["'`]id["'`]\s*\)[\s\S]{0,200}?\.maybeSingle\(\)/g;
+  const receivesError = /\{\s*data\s*(?::\s*\w+)?\s*,\s*error/;
+  let grandfatheredSeen = 0;
+  for (const file of [...walk("app"), ...walk("src")]) {
+    if (!/\.(ts|tsx|jsx|js)$/.test(file)) continue;
+    let text;
+    try { text = readFileSync(join(ROOT, file), "utf8"); } catch { continue; }
+    if (!text.includes("maybeSingle")) continue;
+    const norm = file.split("\\").join("/");
+    let m;
+    idSelectThenMaybeSingle.lastIndex = 0;
+    while ((m = idSelectThenMaybeSingle.exec(text))) {
+      // error 를 실제로 받고 있으면 통과 — 의도적으로 다룬 것.
+      const context = text.slice(Math.max(0, m.index - 300), m.index);
+      if (receivesError.test(context)) continue;
+      if (GRANDFATHERED.has(norm)) { grandfatheredSeen++; continue; }
+      const line = text.slice(0, m.index).split("\n").length;
+      errors.push(
+        `[멱등가드] ${norm}:${line} — 존재검사에 .maybeSingle() 을 쓰면서 error 를 안 받는다. ` +
+        `행이 2개가 되는 순간 에러가 "없음"으로 둔갑해 무한 재생성이 된다. .limit(1) + error 명시 검사로 바꿀 것 (POSTMORTEMS #105).`
+      );
+    }
+  }
+  if (grandfatheredSeen > 0) {
+    console.warn(`⚠️  [멱등가드] 유예 중인 기존 자리 ${grandfatheredSeen}건 — 손볼 때 같이 고치고 §21 목록에서 지울 것.`);
+  }
+}
+
 // ── 결과 ────────────────────────────────────────────────────────
 if (errors.length) {
   console.error(`\n❌ 콘텐츠 일관성 검사 실패 (${errors.length}건)\n`);

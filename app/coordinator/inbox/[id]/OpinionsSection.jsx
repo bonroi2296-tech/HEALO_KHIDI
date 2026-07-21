@@ -236,7 +236,16 @@ export default function OpinionsSection({ inquiryId }) {
             {opinions.length === 0 ? (
               <p className="text-xs text-gray-400">아직 도착한 소견이 없습니다.</p>
             ) : (
-              opinions.map((o) => <OpinionItem key={o.id} opinion={o} patientLang={patientLang} />)
+              opinions.map((o) => (
+                // key 에 번역 유무를 섞는 이유: draft 는 useState 초기값이라 같은 id 로
+                // 재조회되면 갱신되지 않는다 → 번역이 늦게 도착하면 라벨만 "번역해뒀습니다"로
+                // 바뀌고 본문은 한글 원문인 어긋남이 난다. 번역이 붙는 순간 새로 마운트시킨다.
+                <OpinionItem
+                  key={`${o.id}:${o.auto_translated_text ? "t" : "raw"}`}
+                  opinion={o}
+                  patientLang={patientLang}
+                />
+              ))
             )}
           </div>
         </>
