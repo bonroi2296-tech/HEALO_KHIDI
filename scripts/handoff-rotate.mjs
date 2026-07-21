@@ -20,7 +20,7 @@ const MARK = "## 🔖 세션 핸드오프";
 const args = process.argv.slice(2);
 const dry = args.includes("--dry");
 const keepArg = args.indexOf("--keep");
-const KEEP = keepArg !== -1 ? parseInt(args[keepArg + 1], 10) || 2 : 2;
+const KEEP = keepArg !== -1 ? parseInt(args[keepArg + 1], 10) || 4 : 4;
 
 const lines = readFileSync(CTX, "utf8").split("\n");
 
