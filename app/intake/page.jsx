@@ -1,7 +1,7 @@
 // /intake → /inquiry 영구 리디렉트
 // 기존 컴포넌트: _archive/IntakePremium.jsx, _archive/IntakeLegacy.jsx
 
-import { redirect } from "next/navigation";
+import { permanentRedirect } from "next/navigation";
 
 export const metadata = {
   title: "상담 신청",
@@ -9,5 +9,5 @@ export const metadata = {
 };
 
 export default function IntakePage() {
-  redirect("/inquiry");
+  permanentRedirect("/inquiry");
 }

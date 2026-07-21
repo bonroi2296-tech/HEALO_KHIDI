@@ -928,6 +928,29 @@ for (const dir of BACKOFFICE_DIRS) {
   }
 }
 
+// ── 23) 폐기된 공개 라우트는 영구(308) 리다이렉트 (반성문 #104 — GSC "색인 안 됨" 잔재) ──
+// 왜: Next.js 의 redirect() 는 307(임시) 이다. 임시는 구글에 "원본이 곧 돌아온다"는 신호라
+//     폐기한 옛 URL 이 색인에 계속 남는다(그래서 GSC 에 몇 달째 유령 항목). permanentRedirect()
+//     = 308 이어야 구글이 옛 URL 을 새 URL 로 교체하고 색인에서 뺀다.
+// 규칙: 공개(비로그인) 영역에서 **본문이 리다이렉트뿐인** page(= 라우트 폐기용 껍데기)는
+//     redirect() 대신 permanentRedirect() 를 써야 한다.
+// 오탐 방지: ①JSX(<)가 있으면 실제 화면이 있는 페이지 → 제외(조건부 리다이렉트는 임시가 맞음).
+//     ②로그인 뒤편(PRIVATE_SEGS)은 SEO 무관 → 제외. ③proxy.ts 의 /partner·/doctor 는 파일이
+//     아니라 미들웨어 분기라 이 검사 밖 — 거긴 robots Disallow + "되돌리기 쉽게 임시" 의도적 선택.
+{
+  const PRIVATE_SEGS = new Set(["admin", "coordinator", "patient", "hospital", "agency", "clinic", "doctor", "api", "auth", "dev", "design-preview", "account"]);
+  for (const file of walk("app")) {
+    if (!/page\.(jsx?|tsx?)$/.test(file) || EXCLUDE.test(file)) continue;
+    const norm = file.replace(/\\/g, "/");
+    if (norm.split("/").some((seg) => PRIVATE_SEGS.has(seg.replace(/^\((.+)\)$/, "$1")))) continue;
+    let text;
+    try { text = readFileSync(join(ROOT, file), "utf8"); } catch { continue; }
+    if (text.includes("<")) continue; // 화면이 있는 페이지 = 폐기용 껍데기 아님
+    if (!/\bredirect\s*\(/.test(text) || /\bpermanentRedirect\s*\(/.test(text)) continue;
+    errors.push(`[임시리다이렉트] ${norm} — 폐기된 공개 라우트인데 redirect()(307 임시) 사용 → 구글이 옛 URL 을 색인에 계속 붙들어 둠. permanentRedirect()(308 영구) 로 바꿀 것 (POSTMORTEMS #104).`);
+  }
+}
+
 // ── 결과 ────────────────────────────────────────────────────────
 if (errors.length) {
   console.error(`\n❌ 콘텐츠 일관성 검사 실패 (${errors.length}건)\n`);
