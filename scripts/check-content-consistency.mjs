@@ -934,19 +934,31 @@ for (const dir of BACKOFFICE_DIRS) {
 //     = 308 이어야 구글이 옛 URL 을 새 URL 로 교체하고 색인에서 뺀다.
 // 규칙: 공개(비로그인) 영역에서 **본문이 리다이렉트뿐인** page(= 라우트 폐기용 껍데기)는
 //     redirect() 대신 permanentRedirect() 를 써야 한다.
-// 오탐 방지: ①JSX(<)가 있으면 실제 화면이 있는 페이지 → 제외(조건부 리다이렉트는 임시가 맞음).
-//     ②로그인 뒤편(PRIVATE_SEGS)은 SEO 무관 → 제외. ③proxy.ts 의 /partner·/doctor 는 파일이
-//     아니라 미들웨어 분기라 이 검사 밖 — 거긴 robots Disallow + "되돌리기 쉽게 임시" 의도적 선택.
+// 판정 방식: "화면이 없나"(부정 제외)가 아니라 **"폐기용 껍데기 모양인가"**(긍정 식별)로 본다.
+//     껍데기 = 기본 export 함수의 **본문이 리다이렉트 한 줄뿐인** 것. 살아있는 페이지는 본문이
+//     길어서 절대 안 걸린다. 로그인 뒤편(PRIVATE_SEGS)은 SEO 무관 → 제외. proxy.ts 의
+//     /partner·/doctor 는 파일이 아니라 미들웨어 분기라 이 검사 밖 — 거긴 코드에서 직접 308.
+// ⚠️ 이 형태에 도달하기까지 초안 2개가 독립 리뷰·실측에 깨졌다(둘 다 부정 제외 방식이라 깨진 것):
+//     ①`text.includes("<")` → 주석의 `<StoriesClient />` 부등호 하나로 검사가 통째로 꺼짐(fail-open
+//       실증). .tsx 제네릭(Array<string>)·비교연산자(<=)·JSDoc 링크도 같은 구멍.
+//     ②주석 제거 후 "JSX 를 반환하나(`return <`)" → **오탐**. app/treatments/[slug]/page.jsx 는
+//       JSX 를 변수에 담아 `return content;` 로 반환해서 껍데기로 오인됨(실측으로 잡음).
+//     한계(정직): 껍데기를 화살표 함수 등 다른 형태로 쓰면 이 검사가 그냥 안 돈다(오탐 대신 미탐).
+//     오탐으로 CI 를 막는 것보다 낫다고 보고 이 쪽을 택함.
 {
   const PRIVATE_SEGS = new Set(["admin", "coordinator", "patient", "hospital", "agency", "clinic", "doctor", "api", "auth", "dev", "design-preview", "account"]);
+  // 주석(줄·블록) 제거 — 주석 내용이 판정에 끼어들면 안 된다.
+  const stripComments = (s) => s.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
+  // 폐기용 껍데기: `export default function X() { redirect("/어디"); }` — 본문이 리다이렉트뿐.
+  const SHELL_RE = /export\s+default\s+(?:async\s+)?function\s+\w*\s*\([^)]*\)\s*\{\s*(redirect|permanentRedirect)\s*\(\s*["'`][^"'`]*["'`]\s*\)\s*;?\s*\}/;
   for (const file of walk("app")) {
     if (!/page\.(jsx?|tsx?)$/.test(file) || EXCLUDE.test(file)) continue;
     const norm = file.replace(/\\/g, "/");
     if (norm.split("/").some((seg) => PRIVATE_SEGS.has(seg.replace(/^\((.+)\)$/, "$1")))) continue;
     let text;
     try { text = readFileSync(join(ROOT, file), "utf8"); } catch { continue; }
-    if (text.includes("<")) continue; // 화면이 있는 페이지 = 폐기용 껍데기 아님
-    if (!/\bredirect\s*\(/.test(text) || /\bpermanentRedirect\s*\(/.test(text)) continue;
+    const m = stripComments(text).match(SHELL_RE);
+    if (!m || m[1] === "permanentRedirect") continue; // 껍데기가 아니거나 이미 영구
     errors.push(`[임시리다이렉트] ${norm} — 폐기된 공개 라우트인데 redirect()(307 임시) 사용 → 구글이 옛 URL 을 색인에 계속 붙들어 둠. permanentRedirect()(308 영구) 로 바꿀 것 (POSTMORTEMS #104).`);
   }
 }
