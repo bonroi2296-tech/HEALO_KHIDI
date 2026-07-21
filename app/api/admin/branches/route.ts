@@ -6,6 +6,9 @@
  */
 export const runtime = "nodejs";
 
+import type { Database } from "@/types/database.types";
+import { pickAllowed } from "@/lib/data/pickAllowed";
+
 import { NextRequest, NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
 import { requireAdminAuth } from "@/lib/auth/requireAdminAuth";
@@ -88,14 +91,13 @@ export async function PUT(req: NextRequest) {
       return NextResponse.json({ ok: false, error: "id is required" }, { status: 400 });
     }
 
-    const allowed = [
+    // 허용 컬럼을 테이블 타입으로 검사 — 이름이 틀리면 컴파일 에러(POSTMORTEMS #97).
+    const sanitized = pickAllowed<
+      Database["public"]["Tables"]["partner_branches"]["Update"]
+    >(updates, [
       "branch_code", "name_ko", "name_en", "address_ko", "address_en",
       "phone", "status", "i18n", "display_order",
-    ];
-    const sanitized: Record<string, any> = {};
-    for (const key of allowed) {
-      if (key in updates) sanitized[key] = updates[key];
-    }
+    ]);
 
     const { data, error } = await supabaseAdmin
       .from("partner_branches")

@@ -8,6 +8,7 @@
  * - PUT: 사이트 설정 업데이트 (upsert)
  */
 
+import type { Database } from "@/types/database.types";
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdminAuth } from "@/lib/auth/requireAdminAuth";
 import { supabaseAdmin, assertSupabaseEnv } from "@/lib/rag/supabaseAdmin";
@@ -91,7 +92,8 @@ export async function PUT(request: NextRequest) {
     const { logo_url, hero_background_url } = body;
 
     // 3) 업데이트할 데이터 구성
-    const updateData: Record<string, any> = {};
+    // 테이블 타입으로 못박음 — 컬럼명이 틀리면 컴파일 에러(POSTMORTEMS #97).
+    const updateData: Database["public"]["Tables"]["site_settings"]["Update"] = {};
     if (logo_url !== undefined) updateData.logo_url = logo_url;
     if (hero_background_url !== undefined) updateData.hero_background_url = hero_background_url;
 
