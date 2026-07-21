@@ -2,6 +2,17 @@
 
 import { getMedicalDisclaimer } from "@/lib/legal/medicalDisclaimer";
 import { useLang } from "@/lib/i18n/LangContext";
+import EmergencyNumbers from "@/components/EmergencyNumbers";
+
+// 응급 연락처 블록 제목 — 본문 프로즈의 【응급 연락처】와 같은 뜻, 누를 수 있는 버전.
+const EMERGENCY_HEADING = {
+  ko: "응급 연락처",
+  en: "Emergency Numbers",
+  ru: "Номера экстренных служб",
+  kz: "Төтенше нөмірлер",
+  zh: "紧急电话",
+  ja: "緊急連絡先",
+};
 
 export default function MedicalDisclaimerClientLegacy() {
   const langCode = useLang();
@@ -24,6 +35,16 @@ export default function MedicalDisclaimerClientLegacy() {
           <p className="text-amber-900 font-semibold text-base md:text-lg leading-relaxed">
             {disclaimer.short}
           </p>
+        </div>
+
+        {/* 응급 연락처 — 누를 수 있는 형태로 본문보다 위에.
+            이 페이지가 환자 「더보기」의 응급 동선 착지점이라, 긴 고지문을 스크롤해서
+            번호를 찾게 두면 안 된다. */}
+        <div className="mb-10">
+          <h2 className="text-xs font-semibold uppercase tracking-widest text-gray-500 mb-3">
+            {EMERGENCY_HEADING[langCode] || EMERGENCY_HEADING.en}
+          </h2>
+          <EmergencyNumbers lang={langCode} />
         </div>
 
         {/* Full disclaimer */}

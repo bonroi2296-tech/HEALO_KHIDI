@@ -129,3 +129,35 @@ const LANGUAGES = { ko: KO, en: EN, ru: RU, kz: KZ, zh: ZH, ja: JA };
 export function getMedicalDisclaimer(lang = "ko") {
   return LANGUAGES[lang] || KO;
 }
+
+/**
+ * 응급 전화 — tel: 링크용 구조화 데이터 (단일 SoR).
+ *
+ * 위 각 언어 full[] 안에도 같은 번호가 "글"로 들어 있다. 프로즈는 법적 고지 문구라
+ * 그대로 두고(문구 버전 관리 대상), 화면에서 "누를 수 있는 번호"가 필요한 곳은 여기를 읽는다.
+ * ⚠️ 둘이 어긋나면 응급 상황에서 환자가 잘못된 번호를 건다
+ *    → scripts/check-content-consistency.mjs §24 가 매 PR 마다 두 곳을 대조한다.
+ *
+ * 국가명은 위 프로즈에 이미 있는 표기를 그대로 옮긴 것(표기 흔들림 방지).
+ */
+export const EMERGENCY_NUMBERS = [
+  { code: "KR", tel: ["119"], label: { ko: "대한민국", en: "South Korea", ru: "Южная Корея", kz: "Оңтүстік Корея", zh: "韩国", ja: "韓国" } },
+  { code: "KZ", tel: ["103", "112"], label: { ko: "카자흐스탄", en: "Kazakhstan", ru: "Казахстан", kz: "Қазақстан", zh: "哈萨克斯坦", ja: "カザフスタン" } },
+  { code: "RU", tel: ["103", "112"], label: { ko: "러시아", en: "Russia", ru: "Россия", kz: "Ресей", zh: "俄罗斯", ja: "ロシア" } },
+  { code: "CN", tel: ["120", "110"], label: { ko: "중국", en: "China", ru: "Китай", kz: "Қытай", zh: "中国", ja: "中国" } },
+  { code: "JP", tel: ["119"], label: { ko: "일본", en: "Japan", ru: "Япония", kz: "Жапония", zh: "日本", ja: "日本" } },
+];
+
+/**
+ * 언어별로 펼친 응급번호 목록 — { code, label, tel } 한 줄에 번호 하나.
+ *
+ * 폴백은 위 getMedicalDisclaimer 와 **같은 기준(ko)** 이어야 한다. 다르게 두면 한 화면에
+ * 영어 국가명 + 한국어 고지문이 섞인다 — 활성 6개 언어 밖의 옛 `healo_lang` 쿠키(예 vi·ar)를
+ * 들고 오면 실제로 도달하는 조합이라 이론적 얘기가 아니다.
+ */
+export function getEmergencyNumbers(lang = "ko") {
+  const l = LANGUAGES[lang] ? lang : "ko";
+  return EMERGENCY_NUMBERS.flatMap((c) =>
+    c.tel.map((tel) => ({ code: c.code, tel, label: c.label[l] }))
+  );
+}
