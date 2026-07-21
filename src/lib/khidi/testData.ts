@@ -169,16 +169,39 @@ export async function fetchTestSessionIds(db: any): Promise<string[]> {
 }
 
 /**
- * 테스트 문의에 딸린 설문(survey) id 목록(uuid).
- * 체인: 테스트 inquiry → consultation_sessions(inquiry_id) → surveys(consultation_session_id).
- * survey_responses 제외에 사용(K-03 만족도).
+ * 테스트 문의에 딸린 설문(survey) id 목록(uuid). survey_responses 제외에 사용(K-03 만족도).
+ *
+ * 체인이 **두 갈래**다 — 설문이 두 경로로 만들어지기 때문:
+ *  ① 상담 경로: 테스트 inquiry → consultation_sessions(inquiry_id) → surveys(consultation_session_id)
+ *  ② 케이스 경로: 테스트 inquiry → surveys(inquiry_id)  ← 2026-07-21 추가
+ *
+ * ②가 없으면 케이스 경로로 나간 설문은 `consultation_session_id` 가 null 이라 ①에 **영원히 안 걸려**
+ * 테스트 응답이 K-03 만족도 점수에 그대로 섞인다(독립 리뷰 2026-07-21 지적). 특히 이 프로젝트는
+ * `is_test` 를 사무실 IP·수동 도장으로 **사후에** 붙이므로, 설문이 나간 뒤 테스트로 뒤집힌 문의도
+ * 여기서 걸러져야 한다.
  */
 export async function fetchTestSurveyIds(db: any): Promise<string[]> {
+  const ids = new Set<string>();
+
+  // ① 상담 세션을 거친 설문
   const sessionIds = await fetchTestSessionIds(db);
-  if (sessionIds.length === 0) return [];
-  const { data: surveyRows } = await db
-    .from("surveys")
-    .select("id")
-    .in("consultation_session_id", sessionIds);
-  return (surveyRows || []).map((r: any) => r.id).filter(Boolean);
+  if (sessionIds.length > 0) {
+    const { data: bySession } = await db
+      .from("surveys")
+      .select("id")
+      .in("consultation_session_id", sessionIds);
+    (bySession || []).forEach((r: any) => { if (r?.id) ids.add(r.id); });
+  }
+
+  // ② 케이스(문의)에 직접 붙은 설문
+  const inquiryIds = await fetchTestInquiryIds(db);
+  if (inquiryIds.length > 0) {
+    const { data: byInquiry } = await db
+      .from("surveys")
+      .select("id")
+      .in("inquiry_id", inquiryIds);
+    (byInquiry || []).forEach((r: any) => { if (r?.id) ids.add(r.id); });
+  }
+
+  return Array.from(ids);
 }

@@ -12,6 +12,9 @@
  * 소견은 hospital_leads(치료 유치 집계)와 분리된 case_opinions 에 저장(유치 KPI 오염 방지).
  */
 export const runtime = "nodejs";
+// 직접입력은 응답 전에 소견 번역(Gemini)을 끝낸다 → 기본 타임아웃으로는 잘릴 수 있다.
+// 잘리면 insert 는 이미 커밋된 뒤라 코디가 다시 누르며 소견이 중복 입력된다(2라운드 리뷰 지적).
+export const maxDuration = 120;
 
 import crypto from "crypto";
 import { NextRequest } from "next/server";
@@ -19,6 +22,7 @@ import { requirePortalAuth } from "@/lib/auth/requirePortalAuth";
 import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
 import { notifyStaffOpinionArrived } from "@/lib/notifications/inApp";
 import { translateMedicalDoc } from "@/lib/documents/translateDoc";
+import { translateOpinionText } from "@/lib/opinions/translateOpinion";
 
 // 번역된 문서(섹션 배열)를 사람이 읽을 평문으로 펼침 — case_opinions.opinion_text 는 plain text 컬럼이라.
 function flattenTranslatedDoc(doc: { docType?: string; sections?: any[] } | null | undefined): string {
@@ -88,7 +92,7 @@ export async function POST(request: NextRequest) {
     // 케이스 존재 확인 + 요약 재료(PII 아닌 임상 필드만)
     const { data: inq, error: inqErr } = await supabaseAdmin
       .from("inquiries")
-      .select("id, nationality, cancer_type, treatment_type, intake")
+      .select("id, nationality, cancer_type, treatment_type, intake, spoken_language")
       .eq("id", inquiryId)
       .single();
     if (inqErr || !inq) {
@@ -138,7 +142,27 @@ export async function POST(request: NextRequest) {
         return Response.json({ ok: false, error: "create_failed" }, { status: 500 });
       }
       await notifyStaffOpinionArrived({ inquiryId, doctorName }).catch(() => {});
-      return Response.json({ ok: true, opinion: row });
+
+      // 접수 즉시 환자 언어로 자동 번역해 확정본 초안을 채운다(PO 2026-07-09 "데이터 넘어오는
+      // 시점부터"). 여기는 **응답 전에 끝낸다** — 의사 매직링크 경로와 달리 이 화면은 코디가
+      // 보고 있고, 저장 직후 목록을 다시 불러온다. 뒤에서 처리하면 그 재조회가 번역보다 먼저
+      // 도착해 코디 화면에 한글 원문이 남고, 라벨만 "AI가 번역해뒀습니다"로 뜨는 어긋남이
+      // 생긴다(독립 리뷰 2026-07-21). 코디는 이미 파일 번역을 기다리는 화면이라 대기가 새롭지 않다.
+      let autoTranslated: string | null = null;
+      try {
+        autoTranslated = await translateOpinionText(opinionText, (inq as any)?.spoken_language || "");
+        if (autoTranslated) {
+          await (supabaseAdmin as any)
+            .from("case_opinions")
+            .update({ auto_translated_text: autoTranslated })
+            .eq("id", row.id);
+        }
+      } catch (e: any) {
+        // 번역 실패가 접수를 되돌리지 않는다 — 화면은 원문 폴백 + "다시 번역"으로 복구 가능.
+        console.error("[coordinator/opinions] auto-translate failed:", e?.message?.slice(0, 160));
+      }
+
+      return Response.json({ ok: true, opinion: { ...row, auto_translated_text: autoTranslated } });
     }
 
     // 추측 불가 토큰(48 hex). 케이스당 여러 번 생성 가능(각각 유효 — 재요청은 새 링크).
@@ -204,7 +228,7 @@ export async function GET(request: NextRequest) {
 
     const { data: opinions } = await (supabaseAdmin as any)
       .from("case_opinions")
-      .select("id, doctor_key, doctor_name, opinion_text, attribution_note, released_text, released_at, file_path, file_name, created_at")
+      .select("id, doctor_key, doctor_name, opinion_text, attribution_note, released_text, released_at, auto_translated_text, file_path, file_name, created_at")
       .eq("inquiry_id", inquiryId)
       .order("created_at", { ascending: false });
 
@@ -215,15 +239,18 @@ export async function GET(request: NextRequest) {
       return { ...o, file_url: data?.signedUrl || null };
     }));
 
+    // 환자 언어 — 코디 화면의 "다시 번역" 버튼이 어느 언어로 번역할지 정하는 데 필요하다.
+    // (활성 링크 유무와 무관하게 항상 필요해서 summaryText 조회와 분리해 한 번만 읽는다.)
+    const { data: inq } = await (supabaseAdmin as any)
+      .from("inquiries")
+      .select("id, nationality, cancer_type, treatment_type, intake, spoken_language")
+      .eq("id", inquiryId)
+      .single();
+
     // 활성 링크가 있으면 카톡 붙여넣기용 요약도 함께(코디가 재공유 시 다시 복사할 수 있게).
     let summaryText: string | null = null;
-    if (active) {
-      const { data: inq } = await supabaseAdmin
-        .from("inquiries")
-        .select("id, nationality, cancer_type, treatment_type, intake")
-        .eq("id", inquiryId)
-        .single();
-      if (inq) summaryText = buildSummary(inq, opinionUrl(active.token), active.note);
+    if (active && inq) {
+      summaryText = buildSummary(inq, opinionUrl(active.token), active.note);
     }
 
     return Response.json({
@@ -232,6 +259,7 @@ export async function GET(request: NextRequest) {
         ? { id: active.id, token: active.token, url: opinionUrl(active.token), note: active.note, created_at: active.created_at, expires_at: active.expires_at }
         : null,
       summaryText,
+      patientLang: (inq as any)?.spoken_language || null,
       opinions: opinionsWithUrls,
     });
   } catch (e: any) {

@@ -36,13 +36,29 @@ export interface GenerateSurveyTokenResult {
 /**
  * 새 설문 토큰 생성 + surveys 테이블 insert
  *
- * @param consultationSessionId 사전상담 세션 ID
- * @param patientId             환자 auth.users.id (nullable — 게스트 환자 대응)
+ * 설문은 상담세션(consultationSessionId) 또는 케이스(inquiryId) 중 하나에 연결한다.
+ * 2026-07-21: consultation_sessions.status='completed' 가 영구 0건이라 설문이 구조적으로
+ * 0건이었다(실측: 세션 35건 전부 scheduled). 사후관리(follow_up) 케이스에도 보낼 수 있게
+ * inquiryId 경로를 추가한다(surveys.inquiry_id — 컬럼·인덱스는 이미 실재, PR #844).
+ *
+ * @param opts.consultationSessionId 사전상담 세션 ID (세션 연결 시)
+ * @param opts.inquiryId             문의/케이스 ID (사후관리 케이스 연결 시)
+ * @param opts.patientId             환자 auth.users.id (nullable — 게스트 환자 대응)
+ * @param opts.surveyType            기본 'post_consultation'. 사후관리는 'post_followup'
  */
-export async function generateSurveyToken(
-  consultationSessionId: string,
-  patientId?: string | null
-): Promise<GenerateSurveyTokenResult> {
+export async function generateSurveyToken(opts: {
+  consultationSessionId?: string | null;
+  inquiryId?: number | null;
+  patientId?: string | null;
+  surveyType?: string;
+}): Promise<GenerateSurveyTokenResult> {
+  // 세션·케이스 둘 다 없으면 어디에도 안 붙은 고아 설문이 된다 — 존재검사(멱등 가드)가
+  // 영원히 못 찾아 매 실행마다 새 행이 쌓이고, K-03 집계도 대상을 못 짚는다. 실패-닫힘.
+  if (!opts.consultationSessionId && !opts.inquiryId) {
+    console.error("[surveys/generateToken] consultationSessionId·inquiryId 둘 다 없음");
+    return { ok: false, error: "missing_link" };
+  }
+
   const token = generateToken();
   const expiresAt = new Date(
     Date.now() + 14 * 24 * 60 * 60 * 1000
@@ -51,16 +67,17 @@ export async function generateSurveyToken(
   const db = supabaseAdmin as any;
 
   const insertPayload: Record<string, unknown> = {
-    consultation_session_id: consultationSessionId,
-    survey_type: "post_consultation",
+    consultation_session_id: opts.consultationSessionId ?? null,
+    inquiry_id: opts.inquiryId ?? null,
+    survey_type: opts.surveyType ?? "post_consultation",
     token,
     expires_at: expiresAt,
     responded: false,
     // sent_at 은 sendSurveyEmail 에서 업데이트
   };
 
-  if (patientId) {
-    insertPayload.patient_id = patientId;
+  if (opts.patientId) {
+    insertPayload.patient_id = opts.patientId;
   }
 
   const { data, error } = await db

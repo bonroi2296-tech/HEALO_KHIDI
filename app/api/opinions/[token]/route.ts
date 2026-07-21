@@ -12,7 +12,7 @@
  */
 export const runtime = "nodejs";
 
-import { NextRequest } from "next/server";
+import { NextRequest, after } from "next/server";
 import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
 import { decryptInquiryForAdmin } from "@/lib/security/decryptForAdmin";
 import { decryptStringNullable } from "@/lib/security/encryptionV2";
@@ -27,6 +27,7 @@ import { rosterName, isValidOpinionDoctorKey } from "@/lib/opinions/roster";
 import { notifyStaffOpinionArrived } from "@/lib/notifications/inApp";
 import { logAdminAction, getIpFromRequest, getUserAgentFromRequest } from "@/lib/audit/adminAuditLog";
 import { translateMedicalDoc } from "@/lib/documents/translateDoc";
+import { translateOpinionText } from "@/lib/opinions/translateOpinion";
 import { hasMojibake } from "@/lib/inquiry/noMojibake";
 
 // 코디가 문의상세에서 이미 만들어둔 AI 케이스 브리프(한국어 요약)를 그대로 재사용.
@@ -220,7 +221,7 @@ export async function POST(
 
     const doctorName = rosterName(doctorKey) || "그 외 의료진";
 
-    const { error: insErr } = await (supabaseAdmin as any)
+    const { data: row, error: insErr } = await (supabaseAdmin as any)
       .from("case_opinions")
       .insert({
         request_id: req.id,
@@ -229,14 +230,42 @@ export async function POST(
         doctor_name: doctorName,
         opinion_text: opinionText.slice(0, 8000),
         submitted_ip: ip,
-      });
-    if (insErr) {
-      console.error("[opinions/:token] insert error:", insErr.message);
+      })
+      .select("id")
+      .single();
+    if (insErr || !row) {
+      console.error("[opinions/:token] insert error:", insErr?.message);
       return Response.json({ ok: false, error: "submit_failed" }, { status: 500 });
     }
 
     // 코디·어드민에게만 종(bell) 알림 — 소견은 내부 전용(에이전시·환자 미노출).
     await notifyStaffOpinionArrived({ inquiryId: Number(req.inquiry_id), doctorName }).catch(() => {});
+
+    // 접수 즉시 환자 언어로 자동 번역해 코디 확정본 초안(auto_translated_text)에 미리 채워둔다.
+    // PO 결정(2026-07-09): "버튼 누르게 하지 말고 데이터 넘어오는 시점부터."
+    // 의사(제출자)는 번역을 기다릴 이유가 없으므로 fire-and-forget — 실패해도 소견 접수는 성공이고
+    // 코디 화면은 원문(한글)으로 폴백한다(OpinionsSection 의 "다시 번역" 버튼으로 수동 재시도 가능).
+    // after(): 응답 후에도 함수를 살려 번역이 잘리지 않게 (서버리스 freeze 방지).
+    // 맨 `void` IIFE 는 keep-alive 계약이 없어 인스턴스가 얼면 Gemini 호출과 DB 쓰기가
+    // 통째로 유실된다 — 에러도 안 남아 "번역이 가끔 안 됨"으로만 보인다(독립 리뷰 2026-07-21).
+    after(async () => {
+      try {
+        const { data: inqRow } = await (supabaseAdmin as any)
+          .from("inquiries")
+          .select("spoken_language")
+          .eq("id", req.inquiry_id)
+          .maybeSingle();
+        const translated = await translateOpinionText(opinionText, inqRow?.spoken_language || "");
+        if (translated) {
+          await (supabaseAdmin as any)
+            .from("case_opinions")
+            .update({ auto_translated_text: translated })
+            .eq("id", row.id);
+        }
+      } catch (e: any) {
+        console.error("[opinions/:token] auto-translate failed:", e?.message?.slice(0, 160));
+      }
+    });
 
     return Response.json({ ok: true });
   } catch (e: any) {

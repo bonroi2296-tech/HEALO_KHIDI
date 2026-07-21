@@ -44,6 +44,13 @@ vi.mock("@/lib/data/supabaseServerClient", () => ({
     from: (table: string) => ({
       select: (_cols: string) => ({
         eq: (_field: string, _val: any) => ({
+          // 실제 코드는 limit(1) 로 조회한다 — maybeSingle 은 같은 방 이름 행이 2개면 에러를
+          // 내고 data 를 null 로 만들어 "그런 방 없음"과 구별이 안 되기 때문(POSTMORTEMS #105).
+          // 목도 배열을 돌려주는 실제 모양으로 맞춘다.
+          limit: async (_n: number) => ({
+            data: mockState.sessionRow ? [mockState.sessionRow] : [],
+            error: null,
+          }),
           maybeSingle: async () => ({
             data: mockState.sessionRow ?? null,
             error: null,

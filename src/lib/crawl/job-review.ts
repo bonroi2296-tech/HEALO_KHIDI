@@ -80,13 +80,18 @@ async function approveNewItem(item: any) {
   const slug = generateSlug(d.yadmNm || d.name || item.title);
 
   // Check for duplicate slug
-  const { data: existing } = await supabaseAdmin
+  // ⚠️ limit(1) + error 수신 — maybeSingle() 은 같은 slug 행이 2개면 에러를 내고 data 가 null 이
+  // 되어 "중복 없음"으로 둔갑한다 → 충돌하는 slug 를 그대로 써버린다(POSTMORTEMS #105 부류).
+  // 조회 실패 시엔 충돌이 있다고 보고 접미사를 붙인다(잘못 붙는 건 무해, 겹치는 건 사고).
+  const { data: existingRows, error: slugErr } = await supabaseAdmin
     .from("hospitals")
     .select("id")
     .eq("slug", slug)
-    .maybeSingle();
+    .limit(1);
 
-  const finalSlug = existing ? slug + "-" + Math.random().toString(36).slice(2, 6) : slug;
+  if (slugErr) console.error("[crawl/job-review] slug 중복검사 실패:", slugErr.message);
+  const slugTaken = slugErr ? true : (existingRows?.length || 0) > 0;
+  const finalSlug = slugTaken ? slug + "-" + Math.random().toString(36).slice(2, 6) : slug;
 
   const hospitalData: Record<string, any> = {
     name: d.yadmNm || d.name || item.title,
