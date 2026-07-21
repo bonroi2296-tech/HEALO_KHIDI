@@ -59,6 +59,7 @@ export async function POST(request: NextRequest) {
       let targetUser = userList?.users?.find((u: any) => u.email?.toLowerCase() === email);
       let tempPassword: string | null = null;
       if (!targetUser) {
+        // 갓 만든 계정은 소속 행이 있을 수 없으니 중복검사 불필요.
         tempPassword = crypto.randomUUID().slice(0, 12) + "Aa1!";
         const { data: newUser, error: createErr } = await supabase.auth.admin.createUser({
           email, password: tempPassword, email_confirm: true,
@@ -67,15 +68,22 @@ export async function POST(request: NextRequest) {
         if (createErr || !newUser?.user) return Response.json({ ok: false, error: "user_creation_failed" }, { status: 500 });
         targetUser = newUser.user;
       } else {
+        // 기존 유저만 중복소속 검사 대상. ⚠️ 계정을 건드리기 **전에** 확인한다 — 뒤에서 막으면
+        // 이미 만든 계정만 남고 임시비번은 응답에서 사라져(재시도 시 "기존 계정") 로그인 불가.
+        // 실패-닫힘: 못 읽은 걸 "미등록"으로 보면 같은 사람이 같은 에이전시에 두 번 붙는다.
+        const { data: existing, error: existingErr } = await supabase
+          .from("agency_users").select("id").eq("user_id", targetUser.id).eq("agency_id", body.agency_id).limit(1);
+        if (existingErr) {
+          console.error("[admin/agencies] agency_users lookup error:", existingErr.message);
+          return Response.json({ ok: false, error: "internal_error" }, { status: 500 });
+        }
+        if (existing?.length) return Response.json({ ok: false, error: "already_registered" }, { status: 409 });
+
         // 기존 유저면 role 부여 (권한은 app_metadata)
         await supabase.auth.admin.updateUserById(targetUser.id, {
           app_metadata: { ...(targetUser.app_metadata || {}), role: "agency" },
         });
       }
-
-      const { data: existing } = await supabase
-        .from("agency_users").select("id").eq("user_id", targetUser.id).eq("agency_id", body.agency_id).limit(1).maybeSingle();
-      if (existing) return Response.json({ ok: false, error: "already_registered" }, { status: 409 });
 
       const { error: insErr } = await supabase.from("agency_users").insert({
         user_id: targetUser.id, agency_id: body.agency_id, role: "member", is_active: true,

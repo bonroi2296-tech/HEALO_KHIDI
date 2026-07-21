@@ -62,12 +62,19 @@ export async function POST(request: NextRequest) {
 
     // 3) normalized_inquiry 재사용 또는 최소 생성
     let normalizedId: string | null = null;
-    const { data: existing } = await (supabaseAdmin as any)
+    const { data: existingRows, error: existingErr } = await (supabaseAdmin as any)
       .from("normalized_inquiries")
       .select("id")
       .eq("source_inquiry_id", inquiryId)
       .is("deleted_at", null)
-      .maybeSingle();
+      .limit(1);
+    // 실패-닫힘: 재사용 대상을 못 읽은 채 else 로 떨어지면 같은 문의에 normalized_inquiry 가
+    // 하나 더 생기고, 그 뒤 매칭·배정이 두 갈래로 갈라진다.
+    if (existingErr) {
+      console.error("[coordinator/assign] normalized lookup error:", existingErr.message);
+      return NextResponse.json({ ok: false, error: "internal_error" }, { status: 500 });
+    }
+    const existing = existingRows?.[0];
     if (existing?.id) {
       normalizedId = existing.id;
     } else {

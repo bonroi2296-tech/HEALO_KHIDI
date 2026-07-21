@@ -105,11 +105,18 @@ export async function PUT(request: NextRequest) {
     }
 
     // 4) 기존 설정 확인
-    const { data: existing } = await supabaseAdmin
+    const { data: existingRows, error: existingErr } = await supabaseAdmin
       .from("site_settings")
       .select("id")
-      .limit(1)
-      .maybeSingle();
+      .limit(1);
+
+    // 실패-닫힘: 못 읽은 걸 "설정 없음"으로 보면 INSERT 로 흘러 단일행이어야 할 설정이
+    // 두 줄이 되고, 이후 어느 줄이 읽힐지가 운에 달린다.
+    if (existingErr) {
+      console.error(`[${apiPath}] 기존 설정 조회 실패:`, existingErr);
+      return NextResponse.json({ ok: false, error: "internal_error" }, { status: 500 });
+    }
+    const existing = existingRows?.[0];
 
     let result;
     if (existing?.id) {

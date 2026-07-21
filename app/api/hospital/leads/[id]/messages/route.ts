@@ -40,13 +40,15 @@ async function resolveLead(leadId: string, hospitalId: string): Promise<number |
 
 // 리드 스레드 find-or-create (원본 inquiry당 channel='hospital' 스레드 1개)
 async function getOrCreateThread(inquiryId: number, hospitalId: string, hospitalName?: string) {
-  const { data: existing } = await (supabaseAdmin as any)
+  // (inquiry_id, channel) 유니크 제약 부재 — agency 쪽과 같은 이유로 limit(1) + 실패-닫힘.
+  const { data: existingRows, error: existingErr } = await (supabaseAdmin as any)
     .from("chat_threads")
     .select("id, metadata, status")
     .eq("inquiry_id", inquiryId)
     .eq("channel", "hospital")
-    .maybeSingle();
-  if (existing) return existing;
+    .limit(1);
+  if (existingErr) throw new Error(existingErr.message);
+  if (existingRows?.[0]) return existingRows[0];
 
   const { data: created, error } = await (supabaseAdmin as any)
     .from("chat_threads")

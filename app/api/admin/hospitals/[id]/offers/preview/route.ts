@@ -57,14 +57,20 @@ export async function POST(
     });
   }
 
-  const { data: existing } = await supabaseAdmin
+  // 실패-닫힘: 진행 중 작업을 못 읽은 걸 "없음"으로 보면 같은 병원에 크롤 작업이 하나 더 쌓인다.
+  const { data: existingRows, error: existingErr } = await supabaseAdmin
     .from("hospital_offer_jobs")
     .select("id, status")
     .eq("hospital_id", hospitalId)
     .in("status", ["queued", "running"])
     .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .limit(1);
+
+  if (existingErr) {
+    console.error("[admin/offers/preview] job lookup error:", existingErr.message);
+    return Response.json({ ok: false, error: "internal_error" }, { status: 500 });
+  }
+  const existing = existingRows?.[0];
 
   if (existing) {
     const origin = new URL(request.url).origin;

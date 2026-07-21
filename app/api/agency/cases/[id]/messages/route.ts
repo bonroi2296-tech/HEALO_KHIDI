@@ -28,13 +28,17 @@ async function ownInquiry(inquiryId: number, agencyId: string) {
 
 // 케이스 스레드 find-or-create (케이스당 channel='agency' 스레드 1개)
 async function getOrCreateThread(inquiryId: number, agencyId: string, agencyName?: string) {
-  const { data: existing } = await (supabaseAdmin as any)
+  // (inquiry_id, channel) 에 유니크 제약이 없어 중복이 물리적으로 가능하다. maybeSingle() 은
+  // 그 순간 PGRST116 → data null → "없음"으로 둔갑해 매 메시지마다 스레드를 새로 만든다
+  // (대화가 N개로 쪼개짐). limit(1) 로 그 실패모드를 없애고, 조회 실패는 실패-닫힘.
+  const { data: existingRows, error: existingErr } = await (supabaseAdmin as any)
     .from("chat_threads")
     .select("id, metadata, status")
     .eq("inquiry_id", inquiryId)
     .eq("channel", "agency")
-    .maybeSingle();
-  if (existing) return existing;
+    .limit(1);
+  if (existingErr) throw new Error(existingErr.message);
+  if (existingRows?.[0]) return existingRows[0];
 
   const { data: created, error } = await (supabaseAdmin as any)
     .from("chat_threads")
