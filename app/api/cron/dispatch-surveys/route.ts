@@ -10,6 +10,14 @@
  *   (복호화 안 하면 암호문에 '@' 없어 또 영구 0건 — POSTMORTEMS #13)
  * - generateSurveyToken → sendSurveyEmail → reminders_scheduled 기록
  *
+ * 2026-07-21 추가 — 케이스(사후관리) 경로:
+ * - 위 세션 경로는 consultation_sessions.status='completed' 를 찾는데, 실측상 completed 가
+ *   영구 0건이라(35건 전부 scheduled) 설문이 구조적으로 0건이었다. 'completed' 는 사람이
+ *   직접 눌러야 바뀌는데 아무도 안 누른다.
+ * - 그래서 inquiries.case_status 가 'follow_up'(사후관리)·'completed' 인 케이스에도 보낸다
+ *   (PO 결정 2026-07-16). 세션 경로는 그대로 둔다 — 누군가 완료를 누르면 여전히 동작해야 하고,
+ *   빼면 회귀다. 중복은 surveys.inquiry_id 존재검사로 막는다(케이스당 1회, 재실행에 멱등).
+ *
  * 스케줄:
  * - vercel.json crons 에 `0 9 * * *` (매일 09:00 UTC) 등록됨
  * - Authorization: Bearer {CRON_SECRET} 필수
@@ -141,7 +149,11 @@ export async function GET(request: NextRequest) {
       const lang = recipient.lang;
 
       // 토큰 생성
-      const tokenResult = await generateSurveyToken(session.id, session.patient_id);
+      const tokenResult = await generateSurveyToken({
+        consultationSessionId: session.id,
+        inquiryId: session.inquiry_id ?? null,
+        patientId: session.patient_id,
+      });
 
       if (!tokenResult.ok || !tokenResult.surveyId || !tokenResult.token) {
         errors.push(`session=${session.id}: token generation failed`);
@@ -184,6 +196,99 @@ export async function GET(request: NextRequest) {
     } catch (err: any) {
       errors.push(`session=${session.id}: ${err.message}`);
     }
+  }
+
+  // ── 케이스(사후관리) 기반 발송 ─────────────────────────────────────────
+  // 위 세션 루프는 consultation_sessions.status='completed' 를 찾는데 실측상 completed 가
+  // 영구 0건이라(2026-07-21: 세션 35건 전부 scheduled) 설문이 구조적으로 0건이었다.
+  // 실제 환자 여정은 inquiries.case_status 에 기록되므로 거기서도 발송한다(PO 결정 2026-07-16).
+  // 시간창(window) 없이 "이 케이스에 설문이 나갔나"만 보는 이유: 케이스가 사후관리에 처음
+  // 도달한 시점을 정확히 알 필요가 없고, surveys.inquiry_id 존재검사만으로 케이스당 1회가
+  // 보장되기 때문(재실행에도 멱등).
+  let caseSurveysDispatched = 0;
+  let casesChecked = 0;
+  try {
+    const { data: cases, error: caseErr } = await db
+      .from("inquiries")
+      .select("id, email, preferred_language, spoken_language, first_name, last_name, user_id, case_status")
+      .in("case_status", ["follow_up", "completed"])
+      // 테스트 케이스는 실적이 아니므로 실제 메일을 보내지 않는다(KPI·수신자 오염 방지).
+      .not("is_test", "is", true)
+      .limit(500);
+
+    // supabase-js 는 PostgREST 오류에 reject 하지 않고 {data:null,error} 로 resolve 한다 →
+    // error 를 안 보면 "대상 0건"과 "쿼리가 죽음"이 구별되지 않는다(조용한 실패).
+    if (caseErr) throw new Error(`cases query failed: ${caseErr.message}`);
+
+    casesChecked = (cases as any[])?.length || 0;
+
+    for (const c of (cases as any[]) || []) {
+      try {
+        // 이 케이스에 이미 설문이 나갔는지(멱등 가드). 세션 경로로 나간 것도 inquiry_id 를
+        // 채우므로 같은 환자에게 두 번 가지 않는다.
+        const { data: existing } = await db
+          .from("surveys")
+          .select("id")
+          .eq("inquiry_id", c.id)
+          .maybeSingle();
+        if (existing) {
+          skipped++;
+          continue;
+        }
+
+        // inquiries 의 email/이름은 AES-256-GCM 암호화 저장 → 복호화 없이 쓰면 암호문에 '@' 가
+        // 없어 수신자 결정이 항상 null → 또 영구 0건이 된다(POSTMORTEMS #13).
+        const inquiryRow = {
+          email: decryptMaybe(c.email),
+          preferred_language: c.preferred_language,
+          spoken_language: c.spoken_language,
+          first_name: decryptMaybe(c.first_name),
+          last_name: decryptMaybe(c.last_name),
+        };
+
+        const recipient = resolveSurveyRecipient(
+          { patient_id: c.user_id || null, inquiry_id: c.id, patient_language: null },
+          null,
+          inquiryRow
+        );
+        if (!recipient) {
+          skipped++;
+          continue;
+        }
+
+        const tokenResult = await generateSurveyToken({
+          inquiryId: c.id,
+          patientId: c.user_id || null,
+          surveyType: "post_followup",
+        });
+        if (!tokenResult.ok || !tokenResult.surveyId || !tokenResult.token) {
+          errors.push(`case=${c.id}: token generation failed`);
+          continue;
+        }
+
+        const emailResult = await sendSurveyEmail({
+          surveyId: tokenResult.surveyId,
+          token: tokenResult.token,
+          toEmail: recipient.email,
+          patientName: recipient.name,
+          lang: recipient.lang,
+        });
+
+        if (emailResult.ok) {
+          caseSurveysDispatched++;
+        } else {
+          // 발송 실패 시 pending 행을 지운다. 안 지우면 위 존재검사에 걸려 다음 실행부터
+          // 영구 skip → 설문이 조용히 유실된다(세션 경로와 동일 정책).
+          await db.from("surveys").delete().eq("id", tokenResult.surveyId);
+          errors.push(`case=${c.id}: email send failed — ${emailResult.error} (pending survey row deleted for retry)`);
+        }
+      } catch (err: any) {
+        errors.push(`case=${c.id}: ${err.message}`);
+      }
+    }
+  } catch (err: any) {
+    // 케이스 경로 실패가 세션 경로 결과를 죽이지 않게 흡수하되, 응답에 남긴다.
+    errors.push(`cases: ${err?.message}`);
   }
 
   // ── 미완료 상담 넛지 ────────────────────────────────────────────────────
@@ -240,7 +345,9 @@ export async function GET(request: NextRequest) {
   return Response.json({
     ok: true,
     sessionsChecked: (sessions as any[])?.length || 0,
+    casesChecked,
     surveysDispatched,
+    caseSurveysDispatched,
     skipped,
     unclosed,
     unclosedCheckFailed,
