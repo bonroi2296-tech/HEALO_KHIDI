@@ -148,9 +148,16 @@ export const EMERGENCY_NUMBERS = [
   { code: "JP", tel: ["119"], label: { ko: "일본", en: "Japan", ru: "Япония", kz: "Жапония", zh: "日本", ja: "日本" } },
 ];
 
-/** 언어별로 펼친 응급번호 목록 — { code, label, tel } 한 줄에 번호 하나. */
+/**
+ * 언어별로 펼친 응급번호 목록 — { code, label, tel } 한 줄에 번호 하나.
+ *
+ * 폴백은 위 getMedicalDisclaimer 와 **같은 기준(ko)** 이어야 한다. 다르게 두면 한 화면에
+ * 영어 국가명 + 한국어 고지문이 섞인다 — 활성 6개 언어 밖의 옛 `healo_lang` 쿠키(예 vi·ar)를
+ * 들고 오면 실제로 도달하는 조합이라 이론적 얘기가 아니다.
+ */
 export function getEmergencyNumbers(lang = "ko") {
+  const l = LANGUAGES[lang] ? lang : "ko";
   return EMERGENCY_NUMBERS.flatMap((c) =>
-    c.tel.map((tel) => ({ code: c.code, tel, label: c.label[lang] || c.label.en }))
+    c.tel.map((tel) => ({ code: c.code, tel, label: c.label[l] }))
   );
 }

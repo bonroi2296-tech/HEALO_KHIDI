@@ -1084,8 +1084,18 @@ for (const dir of BACKOFFICE_DIRS) {
 //     바꿔도 통과했다 — 같은 블록의 **일본이 119** 라 존재검사가 만족돼서. 한국·일본(119),
 //     카자흐·러시아(103·112) 가 번호를 공유하니 5개국 중 4개가 이 구멍에 들어간다.
 //     = 가장 흔한 드리프트(한 국가 번호만 수정)를 정확히 못 잡는 검사였음.
-//     → **국가별로** 본다: 그 언어의 국가 표기가 있는 줄을 찾아, 그 줄에 그 국가의 번호가
-//       전부 있는지 대조. (국가 표기는 EMERGENCY_NUMBERS 가 프로즈에서 그대로 옮겨온 값)
+//     → **국가별로** 본다: 그 언어의 국가 표기가 있는 줄을 찾아, 그 줄의 번호와 대조.
+//       (국가 표기는 EMERGENCY_NUMBERS 가 프로즈에서 그대로 옮겨온 값)
+// ⚠️⚠️ 2차 초안도 독립 리뷰의 변이 테스트에서 깨졌다 — **검사 방향이 한쪽뿐**이었다.
+//     `c.tel` 을 돌며 "이 번호가 프로즈에 있나"만 봐서, **구조 데이터(=환자가 누르는 버튼)가
+//     줄어드는 쪽**은 통째로 사각이었다. 통과해버린 변이 3종(전부 실측):
+//       ①KZ tel 에서 "112" 삭제 → 통과(112 버튼이 사라지는데 프로즈엔 112 가 남아 있으니).
+//       ②CN tel 을 ["120","120"] 오타 → 통과(110 버튼 소멸).
+//       ③JP 항목 통째 삭제 → 통과(루프가 JP 를 아예 안 돎).
+//     즉 "프로즈를 지키는" 검사였고, 정작 **지켜야 할 건 tel: 링크 쪽**이었다(취지의 정반대).
+//     또 `line.includes("103")` 은 부분일치라 프로즈를 **1030** 으로 늘려도 통과했다.
+//     → ⓐ줄의 숫자를 다 뽑아 **집합 비교**(부분일치·누락·추가·중복 동시 차단)
+//       ⓑ프로즈의 국가 줄 개수 == 구조 항목 개수(**국가 통째 삭제** 차단)로 **양방향** 확인.
 {
   try {
     const mod = await import(
@@ -1097,6 +1107,12 @@ for (const dir of BACKOFFICE_DIRS) {
     }
     for (const lang of ["ko", "en", "ru", "kz", "zh", "ja"]) {
       const lines = getMedicalDisclaimer(lang).full;
+      // ⓑ 역방향: 프로즈의 국가 줄("· "로 시작) 개수와 구조 항목 개수가 같아야 한다.
+      //    한쪽에서 국가가 통째로 사라지는 드리프트는 국가별 루프로는 절대 안 잡힌다.
+      const bullets = lines.filter((l) => l.trimStart().startsWith("·"));
+      if (bullets.length !== EMERGENCY_NUMBERS.length) {
+        errors.push(`[응급번호] ${lang} 고지 문구의 국가 줄 ${bullets.length}개 ≠ EMERGENCY_NUMBERS ${EMERGENCY_NUMBERS.length}개 — 한쪽에서 국가가 통째로 빠졌다(환자가 누르는 tel: 링크 목록과 고지문이 불일치). 두 곳을 같이 고칠 것`);
+      }
       for (const c of EMERGENCY_NUMBERS) {
         const label = c.label[lang];
         const line = lines.find((l) => l.includes(label));
@@ -1104,10 +1120,11 @@ for (const dir of BACKOFFICE_DIRS) {
           errors.push(`[응급번호] ${lang} 고지 문구에 "${label}"(${c.code}) 줄이 없음 — EMERGENCY_NUMBERS 에는 있는데 고지문에 빠졌다. 두 곳을 같이 고칠 것`);
           continue;
         }
-        for (const t of c.tel) {
-          if (!line.includes(t)) {
-            errors.push(`[응급번호] ${lang} 고지 문구의 "${label}" 줄에 ${t} 이 없음 (문구: "${line}") — 환자가 누르는 tel: 링크(EMERGENCY_NUMBERS)와 어긋나면 응급 상황에서 잘못된 번호로 건다. 두 곳을 같이 고칠 것`);
-          }
+        // ⓐ 집합 비교. includes 부분일치(103 ⊂ 1030)·중복 오타·양쪽 누락을 한 번에 잡는다.
+        const inProse = [...line.matchAll(/\d+/g)].map((m) => m[0]).sort().join(",");
+        const inCode = [...c.tel].sort().join(",");
+        if (inProse !== inCode) {
+          errors.push(`[응급번호] ${lang} "${label}" 줄의 번호가 EMERGENCY_NUMBERS 와 다름 — 고지문 [${inProse}] vs tel:링크 [${inCode}] (문구: "${line}"). 환자가 누르는 번호와 고지문이 어긋나면 응급 상황에서 잘못된 번호로 건다. 두 곳을 같이 고칠 것`);
         }
       }
     }
