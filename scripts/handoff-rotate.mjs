@@ -2,11 +2,11 @@
 /**
  * 핸드오프 자동 보관 회전 (D) — npm run handoff:rotate
  *
- * 왜: PROJECT_CONTEXT.md 최상단엔 최신 2개 세션 핸드오프만 유지(군살 방지)인데,
+ * 왜: PROJECT_CONTEXT.md 최상단엔 최신 4개 세션 핸드오프만 유지(군살 방지)인데,
  *     "3개째 쌓이면 가장 오래된 걸 archive로" 를 사람이 손으로 하면 빠뜨리거나 실수.
  *     → 기계가 회전시킨다. 기록은 docs/archive/PROJECT_CONTEXT_handoffs.md 로 보존(삭제 X).
  *
- * 동작: 최상단 "## 🔖 세션 핸드오프" 블록들 중 **최신 2개만 남기고**, 나머지는
+ * 동작: 최상단 "## 🔖 세션 핸드오프" 블록들 중 **최신 4개만 남기고**, 나머지는
  *       archive 파일 맨 위(헤더 다음)로 옮긴다. 핸드오프 블록이 2개 이하면 아무것도 안 함.
  *
  * 옵션: --keep N (기본 2), --dry (실제로 안 쓰고 무엇을 옮길지만 출력).
@@ -20,7 +20,7 @@ const MARK = "## 🔖 세션 핸드오프";
 const args = process.argv.slice(2);
 const dry = args.includes("--dry");
 const keepArg = args.indexOf("--keep");
-const KEEP = keepArg !== -1 ? parseInt(args[keepArg + 1], 10) || 2 : 2;
+const KEEP = keepArg !== -1 ? parseInt(args[keepArg + 1], 10) || 4 : 4;
 
 const lines = readFileSync(CTX, "utf8").split("\n");
 
@@ -73,7 +73,7 @@ let archiveDoc;
 if (existsSync(ARCHIVE)) {
   archiveDoc = readFileSync(ARCHIVE, "utf8");
 } else {
-  archiveDoc = "# PROJECT_CONTEXT 핸드오프 보관 (과거 세션)\n\n> 최신 2개는 docs/PROJECT_CONTEXT.md 에 있고, 그 이전은 여기로 회전 보관된다(기록 보존).\n";
+  archiveDoc = "# PROJECT_CONTEXT 핸드오프 보관 (과거 세션)\n\n> 최신 4개는 docs/PROJECT_CONTEXT.md 에 있고, 그 이전은 여기로 회전 보관된다(기록 보존).\n";
 }
 // 기존 첫 핸드오프 블록(MARK) 바로 앞에 삽입 → 최신 보관분이 위로(newest-first).
 // MARK가 없으면(첫 보관) intro 다음(첫 빈 줄 뒤)에 삽입.
