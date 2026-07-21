@@ -986,9 +986,62 @@ for (const dir of BACKOFFICE_DIRS) {
     "app/api/coordinator/cases/assign/route.ts",
     "app/api/khidi/consultation/[id]/invite/route.ts",
   ]);
-  const idSelectThenMaybeSingle = /\.select\(\s*["'`]id["'`]\s*\)[\s\S]{0,200}?\.maybeSingle\(\)/g;
-  const receivesError = /\{\s*data\s*(?::\s*\w+)?\s*,\s*error/;
+  // ⚠️ **이 룰은 전수 검사가 아니다 — 커버리지를 부풀리지 마라.**
+  // 대상은 `select("id")` 하나만 가져오는 모양뿐이다. `select("id, …")` 까지 넓혀 봤더니
+  // (2라운드 리뷰 지적으로 시도) **권한 확인용 조회 19곳**이 딸려 들어왔다 — 그건 "케이스
+  // 주인이 맞나"를 보는 코드라 error 를 삼켜도 접근 거부(fail-closed)로 떨어지므로 이 룰이
+  // 막으려는 부류(= 결과를 보고 **새로 만들지 말지** 정하는 자리)가 아니다.
+  // 정적 분석으로 둘을 기계적으로 못 가른다 → **좁게 정확히** 잡고 나머지는 사람이 본다.
+  // 저장소의 maybeSingle 사용처는 약 96곳이고 이 룰이 보는 건 그중 일부다. 과신 금지.
+  const idSelectThenMaybeSingle =
+    /\.select\(\s*["'`]id["'`]\s*\)[\s\S]{0,240}?\.maybeSingle\(\)/g;
   let grandfatheredSeen = 0;
+
+  // error 수신 여부는 **그 호출이 속한 문장 안에서만** 판정한다.
+  // (앞 300자를 통째로 보면 바로 위의 무관한 쿼리가 `const { data, error }` 로 받았다는
+  //  이유만으로 진짜 위반이 통과됐다 — "행 하나 읽고 → error 체크 → 중복 검사"가 이 저장소에서
+  //  가장 흔한 모양이라 #105 재발 방지 룰이 정작 #105 를 놓쳤다. 2라운드 리뷰 지적.)
+  const statementReceivesError = (text, callIndex) => {
+    // 이 호출을 대입받는 구조분해의 시작점 = 직전의 `const {` / `let {` 중 가장 가까운 것.
+    const head = text.lastIndexOf("const {", callIndex);
+    const headLet = text.lastIndexOf("let {", callIndex);
+    const start = Math.max(head, headLet);
+    if (start < 0) return false;
+    const close = text.indexOf("}", start);
+    if (close < 0 || close > callIndex) return false;
+    // 구조분해 패턴 안에 error 키가 있으면 통과 — 순서(data 먼저/ error 먼저)는 상관없다.
+    return /\berror\b/.test(text.slice(start, close + 1));
+  };
+
+  // ── 자기시험: 이 룰이 실제로 잡는지/안 잡을 것은 안 잡는지 매 실행 확인 ──────────
+  // 왜: 가드를 만들어놓고 **정작 뚫린 채로 초록불**이던 사고가 있었다(POSTMORTEMS #103).
+  // 아래 3개는 2라운드 독립 리뷰가 찾아낸 실제 실패 모양이다. 룰을 손대다 이게 깨지면 즉시 실패.
+  {
+    const fixtures = [
+      // 잡아야 함 — 앞의 무관한 쿼리가 error 를 받았다고 통과되면 안 된다(옛 300자 창의 구멍)
+      [true, `const { data: rows, error: e } = await db.from("x").select("a,b").eq("id", id);
+if (e) throw e;
+const { data: existing } = await db.from("s").select("id").eq("inquiry_id", id).maybeSingle();`],
+      // 잡아야 함 — 가장 단순한 위반 모양
+      [true, `const { data: existing } = await db.from("s").select("id").eq("inquiry_id", id).maybeSingle();`],
+      // 잡으면 안 됨 — select 목록이 길면 권한확인 조회일 공산이 커서 이 룰의 대상 밖(위 주석)
+      [false, `const { data: row } = await db.from("cases").select("id, agency_id").eq("id", id).maybeSingle();`],
+      // 잡으면 안 됨 — error 를 먼저 구조분해한 정상 코드
+      [false, `const { error: e, data: existing } = await db.from("s").select("id").eq("inquiry_id", id).maybeSingle();`],
+    ];
+    for (const [shouldFlag, src] of fixtures) {
+      idSelectThenMaybeSingle.lastIndex = 0;
+      const hit = idSelectThenMaybeSingle.exec(src);
+      const flagged = !!hit && !statementReceivesError(src, hit.index);
+      if (flagged !== shouldFlag) {
+        errors.push(
+          `[멱등가드-자기시험] §21 룰이 깨졌다 — ${shouldFlag ? "잡아야 할" : "잡으면 안 될"} 모양을 ` +
+          `${flagged ? "잡았다" : "놓쳤다"}. 룰을 고쳤으면 자기시험도 같이 맞출 것 (POSTMORTEMS #103·#105).`
+        );
+      }
+    }
+  }
+
   for (const file of [...walk("app"), ...walk("src")]) {
     if (!/\.(ts|tsx|jsx|js)$/.test(file)) continue;
     let text;
@@ -999,8 +1052,7 @@ for (const dir of BACKOFFICE_DIRS) {
     idSelectThenMaybeSingle.lastIndex = 0;
     while ((m = idSelectThenMaybeSingle.exec(text))) {
       // error 를 실제로 받고 있으면 통과 — 의도적으로 다룬 것.
-      const context = text.slice(Math.max(0, m.index - 300), m.index);
-      if (receivesError.test(context)) continue;
+      if (statementReceivesError(text, m.index)) continue;
       if (GRANDFATHERED.has(norm)) { grandfatheredSeen++; continue; }
       const line = text.slice(0, m.index).split("\n").length;
       errors.push(

@@ -12,6 +12,9 @@
  * 소견은 hospital_leads(치료 유치 집계)와 분리된 case_opinions 에 저장(유치 KPI 오염 방지).
  */
 export const runtime = "nodejs";
+// 직접입력은 응답 전에 소견 번역(Gemini)을 끝낸다 → 기본 타임아웃으로는 잘릴 수 있다.
+// 잘리면 insert 는 이미 커밋된 뒤라 코디가 다시 누르며 소견이 중복 입력된다(2라운드 리뷰 지적).
+export const maxDuration = 120;
 
 import crypto from "crypto";
 import { NextRequest } from "next/server";

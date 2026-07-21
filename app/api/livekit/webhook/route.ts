@@ -78,15 +78,19 @@ export async function POST(request: NextRequest) {
       ) {
         // 퇴장 시각 영속(left_at) — Vercel 런타임 로그는 1시간이면 증발해 "회의가 몇 분이었나"
         // 사후 분석이 불가했음(2026-07-14 실회의에서 확인). status 는 여전히 안 건드린다(K-02 정본 경로).
-        // ⚠️ error 를 받는다 — 안 받으면 조회 실패가 "그런 방 없음"과 구별되지 않아, 이 기능이
-        // 막으려던 바로 그 증상(퇴장 시각 유실)이 조용히 재발한다(POSTMORTEMS #105 부류).
+        // ⚠️ error 를 받아 **502 로 실패시킨다** — 로그만 남기고 넘어가면 조회 실패가 "그런 방
+        // 없음"과 똑같이 조용히 지나가, 이 기능이 막으려던 증상(퇴장 시각 유실)이 그대로 재발한다.
+        // 이 파일 위 주석대로 Vercel 런타임 로그는 1시간이면 증발하므로 "로그를 남겼다"는 대책이
+        // 아니다. LiveKit 은 webhook 이 비-2xx 면 재시도하므로, 실패를 알려야 다음 시도에서
+        // left_at 이 채워진다. (POSTMORTEMS #105 — 1차 수정이 로그만 추가해 무동작이었던 것 보완)
         const { data: sessionRows, error: sessionErr } = await supabase
           .from("consultation_sessions")
           .select("id")
           .eq("livekit_room_name", roomName)
           .limit(1);
         if (sessionErr) {
-          console.error("[livekit/webhook] 상담 세션 조회 실패:", sessionErr.message);
+          console.error("[livekit/webhook] 상담 세션 조회 실패(재시도 유도):", sessionErr.message);
+          return Response.json({ ok: false, error: "internal_error" }, { status: 502 });
         }
         const session = (sessionRows as any)?.[0] || null;
         if ((session as any)?.id) {

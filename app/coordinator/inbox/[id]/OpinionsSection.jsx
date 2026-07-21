@@ -40,6 +40,7 @@ export default function OpinionsSection({ inquiryId }) {
   const [directFile, setDirectFile] = useState(null); // { path, name }
   const [uploadingFile, setUploadingFile] = useState(false);
   const [fileError, setFileError] = useState("");
+  const [directError, setDirectError] = useState("");
 
   const load = useCallback(async () => {
     try {
@@ -97,6 +98,7 @@ export default function OpinionsSection({ inquiryId }) {
   const addDirect = async () => {
     if (!directDoctor.trim() || (directText.trim().length < 5 && !directFile)) return;
     setAddingDirect(true);
+    setDirectError("");
     try {
       const res = await authFetch(`/api/coordinator/opinions`, {
         method: "POST",
@@ -111,8 +113,17 @@ export default function OpinionsSection({ inquiryId }) {
       if (data.ok) {
         setDirectDoctor(""); setDirectText(""); setDirectFile(null); setShowDirect(false);
         await load();
+      } else {
+        // ⚠️ 실패를 삼키면 안 된다 — 서버는 소견을 저장한 뒤 번역 단계에서 잘릴 수 있는데,
+        // 화면이 조용하면 코디가 "안 됐나 보다" 하고 다시 눌러 **같은 소견이 두 번 들어간다**
+        // (case_opinions 에 유일 제약 없음, 2라운드 리뷰 지적).
+        setDirectError("저장 여부가 확인되지 않았습니다. 다시 누르기 전에 아래 목록을 새로고침해 이미 들어갔는지 확인해 주세요.");
+        await load();
       }
-    } catch { /* silent */ } finally {
+    } catch {
+      setDirectError("저장 여부가 확인되지 않았습니다. 다시 누르기 전에 아래 목록을 새로고침해 이미 들어갔는지 확인해 주세요.");
+      await load();
+    } finally {
       setAddingDirect(false);
     }
   };
@@ -216,6 +227,7 @@ export default function OpinionsSection({ inquiryId }) {
                   </label>
                 )}
                 {fileError && <p className="text-[11px] text-red-600">{fileError}</p>}
+                {directError && <p className="text-[11px] text-red-600">{directError}</p>}
 
                 <div className="flex items-center gap-2">
                   <button
@@ -223,7 +235,7 @@ export default function OpinionsSection({ inquiryId }) {
                     disabled={addingDirect || uploadingFile || !directDoctor.trim() || (directText.trim().length < 5 && !directFile)}
                     className="inline-flex items-center px-3 py-1.5 text-xs font-semibold bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition disabled:opacity-50"
                   >
-                    {addingDirect ? (directFile ? "번역 중…" : "추가 중…") : "추가"}
+                    {addingDirect ? "저장·번역 중… (최대 1~2분)" : "추가"}
                   </button>
                   <button onClick={() => setShowDirect(false)} className="text-xs text-gray-400 hover:underline">취소</button>
                 </div>
@@ -236,16 +248,7 @@ export default function OpinionsSection({ inquiryId }) {
             {opinions.length === 0 ? (
               <p className="text-xs text-gray-400">아직 도착한 소견이 없습니다.</p>
             ) : (
-              opinions.map((o) => (
-                // key 에 번역 유무를 섞는 이유: draft 는 useState 초기값이라 같은 id 로
-                // 재조회되면 갱신되지 않는다 → 번역이 늦게 도착하면 라벨만 "번역해뒀습니다"로
-                // 바뀌고 본문은 한글 원문인 어긋남이 난다. 번역이 붙는 순간 새로 마운트시킨다.
-                <OpinionItem
-                  key={`${o.id}:${o.auto_translated_text ? "t" : "raw"}`}
-                  opinion={o}
-                  patientLang={patientLang}
-                />
-              ))
+              opinions.map((o) => <OpinionItem key={o.id} opinion={o} patientLang={patientLang} />)
             )}
           </div>
         </>
@@ -265,11 +268,25 @@ function OpinionItem({ opinion, patientLang }) {
   const [draft, setDraft] = useState(
     opinion.released_text || opinion.auto_translated_text || opinion.opinion_text || ""
   );
+  // 코디가 손댔는지 추적 — 아래 동기화가 편집분을 덮지 않게 하는 유일한 근거.
+  const [draftTouched, setDraftTouched] = useState(false);
   const [releasing, setReleasing] = useState(false);
   const [translating, setTranslating] = useState(false);
   const [translateError, setTranslateError] = useState("");
   // 아직 공개 전인데 자동 번역본이 있으면 = 코디가 교정만 하면 되는 상태(안내 문구 분기용).
   const preTranslated = !opinion.released_at && !!opinion.auto_translated_text;
+
+  // 의사 매직링크 경로는 번역을 응답 후(after())에 채우므로, 처음 조회 땐 auto_translated_text 가
+  // 없다가 다음 재조회에서 생긴다. draft 는 useState 초기값이라 그대로면 라벨만 "AI가 번역해뒀습니다"
+  // 로 바뀌고 본문은 한글 원문인 어긋남이 난다 → 늦게 도착한 번역을 초안에 반영한다.
+  // ⚠️ 단 **코디가 이미 손댔으면 절대 덮지 않는다.** (초기엔 key 를 뒤집어 재마운트시켰는데,
+  // 그러면 다른 소견을 추가하다 재조회될 때 편집 중이던 확정본이 말없이 날아갔다 — 2라운드 리뷰 지적.)
+  useEffect(() => {
+    if (draftTouched) return;
+    if (opinion.released_text) return;      // 이미 공개된 확정본이 우선
+    if (!opinion.auto_translated_text) return;
+    setDraft(opinion.auto_translated_text);
+  }, [opinion.auto_translated_text, opinion.released_text, draftTouched]);
 
   // 재번역 — 원문(한글)을 다시 환자 언어로 번역해 draft 를 덮어쓴다(코디가 초안을 날렸거나
   // 접수 시점 자동번역이 실패한 경우의 복구 경로). 저장은 안 하고 화면 초안만 바꾼다.
@@ -283,7 +300,7 @@ function OpinionItem({ opinion, patientLang }) {
         body: JSON.stringify({ text: opinion.opinion_text || "", lang: patientLang }),
       });
       const data = await res.json();
-      if (data.ok) setDraft(data.translated);
+      if (data.ok) { setDraft(data.translated); setDraftTouched(true); }
       else setTranslateError("번역 실패 — 다시 시도해 주세요.");
     } catch {
       setTranslateError("번역 실패 — 다시 시도해 주세요.");
@@ -368,7 +385,7 @@ function OpinionItem({ opinion, patientLang }) {
         </p>
         <textarea
           value={draft}
-          onChange={(e) => setDraft(e.target.value)}
+          onChange={(e) => { setDraft(e.target.value); setDraftTouched(true); }}
           rows={3}
           disabled={released}
           className="w-full text-sm border border-gray-200 rounded px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:bg-gray-50 disabled:text-gray-500"

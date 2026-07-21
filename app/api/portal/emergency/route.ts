@@ -25,9 +25,12 @@ export async function POST(request: NextRequest) {
 
   try {
     // 기존 응급 스레드 재사용 (중복 생성 방지)
-    // ⚠️ error 를 받는다 — 안 받으면 조회 실패가 "기존 스레드 없음"으로 둔갑해 SOS 를 누를
-    // 때마다 응급 스레드가 새로 생기고, 코디 화면이 같은 환자의 응급 건으로 도배된다
-    // (POSTMORTEMS #105 부류).
+    //
+    // ⚠️ 여기는 **일부러 fail-open** 이다 — 다른 멱등 가드(POSTMORTEMS #105)와 반대 방향.
+    // 조회가 실패하면 재사용을 포기하고 새 스레드를 만든다. 최악이 "코디 화면에 응급 스레드가
+    // 하나 더 생김"(미관 문제)인 반면, 막으면 "환자가 응급 상황에서 아무것도 못 함"(실제 피해)
+    // 이기 때문. 응급 경로에서 실패-닫힘은 거꾸로 된 트레이드오프다.
+    // error 를 받는 이유는 차단하려는 게 아니라 **조용한 실패를 로그에 남기기 위해서**다.
     const { data: existingRows, error: threadLookupErr } = await supabaseAdmin
       .from("chat_threads")
       .select("id")
@@ -36,8 +39,7 @@ export async function POST(request: NextRequest) {
       .limit(1);
 
     if (threadLookupErr) {
-      console.error("[portal/emergency] 기존 스레드 조회 실패:", threadLookupErr.message);
-      return Response.json({ ok: false, error: "internal_error" }, { status: 500 });
+      console.error("[portal/emergency] 기존 스레드 조회 실패(새로 생성으로 진행):", threadLookupErr.message);
     }
 
     let threadId = existingRows?.[0]?.id;
