@@ -17,6 +17,22 @@
 
 ---
 
+## 📦 보관 목록 — 한눈에 (2026-07-21 밤 전수 색출)
+
+> **"만들었는데 적용 안 한 것"은 아래 3건이 전부다.** 로컬 브랜치 190개·PR 637건을 **「이 브랜치로 PR 을 올린 적이 있는가」** 기준으로 갈라서 확정했다(스쿼시 머지 때문에 `git rev-list` 로 재면 141개가 전부 미머지로 뜬다 — 그래서 이전 정리 세션들이 여기서 막혔다).
+
+| # | 무엇 | 어디에 | 되살리는 비용 |
+|---|---|---|---|
+| 1 | `/partners` 공개 제휴 랜딩 | `work/partners-landing` · PR #849 초안 | **0** (검증 끝, 머지만) — 단 PO 결정 2개 선행 |
+| 2 | 만족도 설문 발송 기준 변경 | `rescue/local-uncommitted-20260716` | 작음(파일 2개), DB 준비 끝 |
+| 3 | 소견 AI 자동번역 | 같은 rescue · `work/agency-claim-inbox` 에도 동일본 | 작음(신규 파일 2개, 172줄) |
+
+- ⚠️ **위 3개 브랜치를 「방치 브랜치」로 오해해 지우지 마라.**
+- ⚠️ **`partners-preview` 브랜치는 1번의 중복본**이다(`/partners` 파일 내용 동일). 보관 정본은 `work/partners-landing` 하나 — 되살릴 때 이쪽을 쓸 것.
+- 📌 **3번은 PO 가 보류한 게 아니다** — 2번에 딸려 rescue 브랜치에 묻힌 것이고, **DB 칸·마이그레이션은 이미 본판에 있는 반쪽 배선 상태**다. 별도 판단 필요(상세는 아래 표).
+
+---
+
 ## 📦 보관 — `rescue/local-uncommitted-20260716` 미머지 코드 974줄 (**PO 지시로 보류**, 2026-07-21)
 
 > **PO 지시: "일단 메모해놓고 나중에 쓸 일 있음 쓰게 보관만 해둬"** — 지우지 마라.
@@ -27,8 +43,9 @@
 | 덩어리 | 파일 | 상태 |
 |---|---|---|
 | **설문 발송 기준 변경** | `app/api/cron/dispatch-surveys/route.ts`(291줄) · `src/lib/surveys/generateSurveyToken.ts` | 위 🔴 항목의 해법. **DB 준비 끝, 코드만 없음.** 범위 좁음(파일 2개) |
-| **소견 AI 자동번역** | `src/lib/opinions/translateOpinion.ts`(신규) · `app/api/coordinator/opinions/translate/route.ts`(신규) · `OpinionsSection.jsx` | DB 칸(`case_opinions.auto_translated_text`)은 있는데 **채우는 코드가 없어 소견 2건 중 번역 0건** |
-| **기타** | `src/lib/khidi/kpiHealthcheck.ts`(신규) · `caseStatus.ts`(128줄) · 개인정보처리방침·동의서 문구 | — |
+| **소견 AI 자동번역** | `src/lib/opinions/translateOpinion.ts`(신규 45줄) · `app/api/coordinator/opinions/translate/route.ts`(신규 65줄) · `OpinionsSection.jsx` | DB 칸(`case_opinions.auto_translated_text`)·마이그레이션은 **본판에 이미 있는데 채우는 코드만 없다** = 반쪽 배선 → 소견 2건 중 번역 0건. **`work/agency-claim-inbox` 브랜치에도 동일본이 있다**(둘 중 아무거나) |
+| **기타** | `caseStatus.ts`(128줄) · 개인정보처리방침·동의서 문구 | — |
+| ~~`kpiHealthcheck.ts`(신규)~~ | ~~`src/lib/khidi/kpiHealthcheck.ts`~~ | ❌ **정정(2026-07-21 밤 실측)**: 「신규」가 아니다. **본판에 이미 50줄짜리가 있고** rescue 것은 104줄 **확장판**이다. 살릴 거면 신규 추가가 아니라 **차이분 병합**으로 접근할 것 |
 
 - ✅ **마이그레이션 3개는 이미 회수 완료**(PR #844) — 이 브랜치에서 건져야 할 DB 분은 남아 있지 않다.
 - ⚠️ **통째로 얹지 마라.** 2026-07-16 이후 본판이 크게 움직였고, 특히 `caseStatus.ts` 는 **KHIDI 지표 계산에 직결**돼 잘못 얹으면 숫자가 틀어진다. 살릴 때는 **덩어리 단위로 떼서** 최신 본판 위에 재작성하는 게 안전하다.
