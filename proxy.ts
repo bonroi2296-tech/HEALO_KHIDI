@@ -247,19 +247,26 @@ export async function proxy(request: NextRequest) {
 
   // ========================================
   // 레거시 경로 리다이렉트 (계층 재편 — 옛 링크/북마크 안 깨지게)
-  // 로그인 벽 안이라 SEO 무관 → 되돌리기 쉽게 임시(307) redirect.
+  // ⚠️ 308(영구)을 쓴다. 옛 주석은 "로그인 벽 안이라 SEO 무관 → 임시(307)"라고 했으나
+  //    2026-07-21 실측으로 **둘 다 거짓**임이 드러났다(반성문 #104):
+  //    ①이 분기는 아래 /hospital 인증 체크(L299)보다 먼저 실행돼 미로그인·구글봇도 그냥 307을 받는다
+  //      (= 로그인 벽 밖). ②/partner 는 app/robots.js Disallow 목록에 아예 없다(/hospital·/doctor만 있음).
+  //    임시 리다이렉트는 구글이 옛 URL을 색인에 붙들어 두는 신호라, 영구 폐기엔 308이 맞다.
   // ========================================
-  // /partner/* → /hospital/* (국내 병원 포털 리네임, 의사 흡수)
+  // /partner/* → /hospital/* (국내 병원 포털 리네임, 의사 흡수) — 영구 리네임
   if (pathname === "/partner" || pathname.startsWith("/partner/")) {
     const url = request.nextUrl.clone();
     url.pathname = "/hospital" + pathname.slice("/partner".length);
-    return NextResponse.redirect(url);
+    return NextResponse.redirect(url, 308);
   }
-  // /doctor/* → 비활성화 (의사는 별도 포털 없이 상담방 초대링크 참여자). 홈으로.
+  // /doctor/* → 비활성화 (의사는 별도 포털 없이 상담방 초대링크 참여자). 홈으로. 영구 폐지(#334).
+  // 단, /doctor 는 robots.js Disallow 대상이라 구글이 크롤 자체를 안 한다 → 이 308을 못 본다.
+  // (Disallow 는 색인 제거가 아니라 오히려 URL-only 항목을 남긴다. 실제로 색인에 뜨면
+  //  robots 에서 /doctor 를 풀어 308 을 보게 하는 게 제거 경로 — 지금은 노출 근거가 없어 보류.)
   if (pathname === "/doctor" || pathname.startsWith("/doctor/")) {
     const url = request.nextUrl.clone();
     url.pathname = "/";
-    return NextResponse.redirect(url);
+    return NextResponse.redirect(url, 308);
   }
 
   // ========================================
