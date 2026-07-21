@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation';
 import { getLangCodeFromCookie } from '@/lib/i18n';
 import {
   Home, FileText, BookOpen, Activity, Calendar, Globe,
-  MoreHorizontal, X, ShieldCheck,
+  MoreHorizontal, X, ShieldCheck, Phone,
 } from 'lucide-react';
 import PatientNotificationBell from '@/components/patient/PatientNotificationBell';
 
@@ -21,6 +21,9 @@ const MORE_TABS = [
   { href: '/patient/rebooking', icon: Calendar, label: { ko: '재진 예약', en: 'Rebooking', ru: 'Запись', kz: 'Қайта жазу', zh: '复诊', ja: '再診' } },
   { href: '/visa', icon: Globe, label: { ko: '비자 가이드', en: 'Visa Guide', ru: 'Виза', kz: 'Виза', zh: '签证指南', ja: 'ビザ' } },
   { href: '/patient/account', icon: ShieldCheck, label: { ko: '계정·개인정보', en: 'Account & Privacy', ru: 'Аккаунт', kz: 'Аккаунт', zh: '账户与隐私', ja: 'アカウント' } },
+  // 응급 동선. 상시 노출(플로팅 버튼·헤더 전화번호)은 DESIGN.md brand_misuse 금지라
+  // 「더보기」 안에 둔다 — 착지점 상단에 걸 수 있는 번호가 있다.
+  { href: '/medical-disclaimer', icon: Phone, label: { ko: '응급 연락처', en: 'Emergency Numbers', ru: 'Экстренные службы', kz: 'Төтенше нөмірлер', zh: '紧急电话', ja: '緊急連絡先' } },
 ];
 
 const MORE_LABEL = { ko: '더보기', en: 'More', ru: 'Ещё', kz: 'Көбірек', zh: '更多', ja: 'もっと' };

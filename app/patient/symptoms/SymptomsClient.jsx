@@ -8,6 +8,7 @@ import {
   Activity, AlertTriangle, Plus, Send, Trash2,
   CheckCircle, Clock, ChevronDown,
 } from 'lucide-react';
+import EmergencyNumbers from '@/components/EmergencyNumbers';
 
 const L = {
   title: { ko: '증상 기록', en: 'Symptom Log', ru: 'Журнал симптомов', kz: 'Симптом журналы', zh: '症状记录', ja: '症状記録' },
@@ -27,6 +28,7 @@ const L = {
   recFollowup: { ko: '재진 예약이 권장됩니다', en: 'A follow-up appointment is recommended', ru: 'Рекомендуется повторный приём', kz: 'Қайта қабылдауға жазылу ұсынылады', zh: '建议预约复诊', ja: '再診の予約をお勧めします' },
   recDoctor: { ko: '의사 상담이 필요합니다', en: 'A doctor consultation is needed', ru: 'Необходима консультация врача', kz: 'Дәрігермен кеңесу қажет', zh: '需要医生咨询', ja: '医師の診察が必要です' },
   recEmergency: { ko: '즉시 응급 서비스에 연락하세요', en: 'Contact emergency services immediately', ru: 'Немедленно обратитесь в скорую помощь', kz: 'Дереу жедел жәрдемге хабарласыңыз', zh: '请立即联系急救服务', ja: 'ただちに救急サービスに連絡してください' },
+  emergencyCallHint: { ko: '지금 계신 국가의 번호를 누르세요.', en: 'Tap the number for the country you are in now.', ru: 'Нажмите номер страны, в которой вы находитесь.', kz: 'Қазір тұрған еліңіздің нөмірін басыңыз.', zh: '请点击您当前所在国家的号码。', ja: '現在いる国の番号をタップしてください。' },
   rebookConfirm: { ko: '재진 예약 확인', en: 'Confirm follow-up booking', ru: 'Подтвердить запись', kz: 'Қайта жазылуды растау', zh: '确认复诊预约', ja: '再診予約を確認' },
   loginRequired: { ko: '로그인이 필요합니다', en: 'Please log in first', ru: 'Войдите в систему', kz: 'Жүйеге кіріңіз', zh: '请先登录', ja: 'ログインしてください' },
   submitFailed: { ko: '제출에 실패했습니다. 잠시 후 다시 시도해주세요.', en: 'Submission failed. Please try again shortly.', ru: 'Не удалось отправить. Повторите попытку позже.', kz: 'Жіберу сәтсіз аяқталды. Кейінірек қайталап көріңіз.', zh: '提交失败，请稍后重试。', ja: '送信に失敗しました。しばらくしてからもう一度お試しください。' },
@@ -310,8 +312,18 @@ export default function SymptomsClient() {
               </div>
             )}
 
-            {/* Rebooking suggestion */}
-            {result.recommended_action && (
+            {/* Emergency — 별도 분기. 가장 급한 상태가 가장 강하게 보여야 한다
+                (기존엔 재진 권유와 같은 파란 카드에 문구만 달랐고, 걸 수 있는 번호가 없었음) */}
+            {result.recommended_action === 'emergency' ? (
+              <div className="p-4 rounded-xl border border-red-300 bg-red-50">
+                <div className="flex items-center gap-2">
+                  <AlertTriangle size={18} className="text-red-600 shrink-0" />
+                  <p className="text-sm font-bold text-red-800">{l(L.recEmergency)}</p>
+                </div>
+                <p className="mt-1.5 mb-3 text-xs text-red-700">{l(L.emergencyCallHint)}</p>
+                <EmergencyNumbers lang={lang} urgent />
+              </div>
+            ) : result.recommended_action ? (
               <div className={`p-3 rounded-lg border ${
                 result.recommended_action === 'schedule_followup' || result.recommended_action === 'escalate_doctor'
                   ? 'bg-blue-50 border-blue-200'
@@ -320,7 +332,6 @@ export default function SymptomsClient() {
                 <p className="text-sm font-medium text-blue-800">
                   {result.recommended_action === 'schedule_followup' ? l(L.recFollowup) :
                    result.recommended_action === 'escalate_doctor' ? l(L.recDoctor) :
-                   result.recommended_action === 'emergency' ? l(L.recEmergency) :
                    result.recommended_action}
                 </p>
                 {(result.recommended_action === 'schedule_followup' || result.recommended_action === 'escalate_doctor') && (
@@ -332,7 +343,7 @@ export default function SymptomsClient() {
                   </button>
                 )}
               </div>
-            )}
+            ) : null}
           </div>
         </div>
       )}

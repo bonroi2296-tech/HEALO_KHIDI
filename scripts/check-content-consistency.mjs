@@ -13,6 +13,7 @@
  */
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join, dirname } from "node:path";
+import { pathToFileURL } from "node:url";
 
 const ROOT = process.cwd();
 const SCAN_DIRS = ["app", "src", "components"];
@@ -1071,6 +1072,47 @@ for (const dir of BACKOFFICE_DIRS) {
       `⚠️  [멱등가드] 유예 중 ${grandfatheredSeen}건 — 삭제 예정 파일이라 통과시킴. ` +
       `파일이 지워지면 §21 의 GRANDFATHERED Set 도 같이 지울 것.`
     );
+  }
+}
+
+// ── 24) 응급 전화번호: 구조화 SoR(tel: 링크) ↔ 고지 프로즈 대조 ──────────────────
+// 왜: 응급번호가 두 곳에 산다 — EMERGENCY_NUMBERS(화면에서 누르는 tel: 링크)와 각 언어
+//     full[] 의 법적 고지 문구(글). 프로즈는 문구 버전 관리 대상이라 자동 생성하지 않고
+//     그대로 두기로 했고, 그 대가로 "한쪽만 고치는" 드리프트가 가능해졌다.
+//     이 부류가 어긋나면 결과가 응급 상황의 오연결이라 사람 검토에 맡기지 않는다.
+// ⚠️ 초안은 "번호가 그 언어 블록에 존재하나"로 봤다가 실측에서 깨졌다: 한국 119 를 118 로
+//     바꿔도 통과했다 — 같은 블록의 **일본이 119** 라 존재검사가 만족돼서. 한국·일본(119),
+//     카자흐·러시아(103·112) 가 번호를 공유하니 5개국 중 4개가 이 구멍에 들어간다.
+//     = 가장 흔한 드리프트(한 국가 번호만 수정)를 정확히 못 잡는 검사였음.
+//     → **국가별로** 본다: 그 언어의 국가 표기가 있는 줄을 찾아, 그 줄에 그 국가의 번호가
+//       전부 있는지 대조. (국가 표기는 EMERGENCY_NUMBERS 가 프로즈에서 그대로 옮겨온 값)
+{
+  try {
+    const mod = await import(
+      pathToFileURL(join(ROOT, "src/lib/legal/medicalDisclaimer.js")).href
+    );
+    const { EMERGENCY_NUMBERS, getMedicalDisclaimer } = mod;
+    if (!Array.isArray(EMERGENCY_NUMBERS) || !EMERGENCY_NUMBERS.length) {
+      errors.push(`[응급번호] EMERGENCY_NUMBERS 를 못 읽음 — 구조를 바꿨으면 이 검사(§24)도 같이 갱신할 것`);
+    }
+    for (const lang of ["ko", "en", "ru", "kz", "zh", "ja"]) {
+      const lines = getMedicalDisclaimer(lang).full;
+      for (const c of EMERGENCY_NUMBERS) {
+        const label = c.label[lang];
+        const line = lines.find((l) => l.includes(label));
+        if (!line) {
+          errors.push(`[응급번호] ${lang} 고지 문구에 "${label}"(${c.code}) 줄이 없음 — EMERGENCY_NUMBERS 에는 있는데 고지문에 빠졌다. 두 곳을 같이 고칠 것`);
+          continue;
+        }
+        for (const t of c.tel) {
+          if (!line.includes(t)) {
+            errors.push(`[응급번호] ${lang} 고지 문구의 "${label}" 줄에 ${t} 이 없음 (문구: "${line}") — 환자가 누르는 tel: 링크(EMERGENCY_NUMBERS)와 어긋나면 응급 상황에서 잘못된 번호로 건다. 두 곳을 같이 고칠 것`);
+          }
+        }
+      }
+    }
+  } catch (e) {
+    errors.push(`[응급번호] 검사 실패: ${e.message}`);
   }
 }
 
