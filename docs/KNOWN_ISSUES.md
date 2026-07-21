@@ -1,5 +1,27 @@
 # HEALO KHIDI — 알려진 이슈 / 전수 QA 발견사항
 
+## 🔴 환자 포털 ↔ 운영데이터 구조적 단절 (2026-06-23 진단 · **2026-07-21 실측 재확인 — 그대로임**)
+
+> ♻️ **회수 항목**: 이 진단은 `fix/inquiry-visibility-link` 작업본에만 있고 **본판 장부에 한 번도 안 들어와 있었다**(브랜치 정리 중 발견). 4주가 지났는데도 실DB 상태가 **하나도 안 변해서** 되살린다.
+
+**2026-07-21 실측** (괄호는 2026-06-23 당시): `inquiries` **34행**(17) — `patient_user_id` **컬럼 자체가 없음**(그때도 없음) / `followup_schedules` **0행**(0) — 쓰는 코드 부재 → 환자 「재예약 관리」 영구 공백 / `consultation_sessions` **35행**(17) 중 `patient_id` 채워진 것 **0건**(0) / `symptom_reports` 1행 중 `patient_user_id` **0건**(0).
+→ **문제는 그대로인데 그 위에 쌓이는 데이터만 2배가 됐다.**
+
+**연결 메커니즘 현황:**
+- 유일한 다리 = `app/api/portal/symptoms/route.ts` 의 **이메일 복호화 매칭**(`findOwnInquiryIds`: 로그인 환자 이메일로 모든 inquiry 의 AES 이메일을 복호화·대조, O(n) 파일럿 규모). **증상 경로에만** 존재.
+- `app/api/portal/followup/route.ts` 는 이 다리가 **없음** — `patient_user_id` 일치만 봄. + `followup_schedules` 에 INSERT 하는 코드가 어디에도 없음 → **이중 단절**.
+- `inquiries` 엔 `cancer_type` 은 있으나 `patient_user_id` 는 없음. 어드민 「재예약 제안」 버튼(`SymptomAlerts.jsx`)은 `inquiryId` 만 보냄(환자 uuid·암종 미전달).
+
+**제대로 잇는 설계(미구현 — PO 가 "제대로 잇기" 선택):**
+1. 재진 엔진(`/api/khidi/rebooking/create`)이 `followup_schedules` 에 기록(status='proposed'). cancer_type=inquiry 에서, current_phase=source/reason, next_action_at=scheduledAt.
+2. `patient_user_id` 는 inquiry 이메일 ↔ auth 이메일 매칭으로 해석(symptoms 패턴 재사용). 매칭 계정 없으면 리드 상태라 환자 포털 표시 불가(본질적 한계).
+3. `followup` GET 도 symptoms 처럼 이메일 다리 추가.
+- ⚠️ **접수(intake)에서 환자계정을 안 만드는 게 근본 원인.** 접수 재설계와 합쳐야 깔끔하다. 단독으로 1~3 만 해도 화면은 살지만 재작업 위험.
+
+⚠️ **KHIDI 관련성**: `followup_schedules` 0행은 **사후관리 지표(K-03, 목표 120건)** 배선과 맞닿아 있다. 8/27 평가 전에 이 단절을 어떻게 다룰지 판단이 필요하다.
+
+---
+
 ## ✅ 2026-07-15 완성도 감사(컬럼레벨 schema-refs)가 잡은 없는-컬럼 select 2건 — 종결
 
 > 축 C 잔여로 `check:schema-refs`를 컬럼레벨 확장하다 발견 + 생성타입(`src/types/database.types.ts`)이 **stale**(inquiries 35 vs 실DB 61 컬럼)임을 발견해 재생성함. 아래는 재생성 후에도 남은 = **실제 없는 컬럼 참조**(DB 실측 대조 완료). 쿼리가 에러→try/catch 삼킴→화면 0/[]로 떨어지는 부류. **둘 다 같은 PR(#784)에서 수리 완료.**

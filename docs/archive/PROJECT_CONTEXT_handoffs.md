@@ -5641,3 +5641,54 @@ OJECT_CONTEXT 핸드오프 아카이브
 > docs/PROJECT_CONTEXT.md 최상단 읽어. 비번 보안수정(d78d194)은 claude/staff-change-password 브랜치에 얹혀 있고 아직 PR 없음 — 그 세션이 PR 열 때 이 커밋 포함되는지 확인해. ResetPassword 실패 토스트 실동작은 미검증(약한 비번 거부 시 뜨는 조건부 문구)이라 프리뷰로 재현 가능하면 확인해. ChangePasswordClient 는 이미 서버라우트라 손대지 마. 다기기 화상 테스트는 아래 2026-07-06 블록대로 링크 만료(2026-07-10) 전에 PO 보채기.
 
 ---
+
+---
+
+## 🔖 세션 핸드오프 (2026-06-23 새벽 — "정식 운영" 자율: 안전선 확대 + 출시 3종 수정 + 포털 실작동화 1단계)
+
+> 브랜치 `claude/extended-reasoning-tokens-dvmu0a`. 이 세션 PR 3개: **#266(머지)**, **#269(머지)**, **#274(초안, CI 진행중)**. PO가 "한 번 지시로 토큰 남는 동안 몇 시간 자율로 굴러가게" + "내일 당장 운영해도 버그0·만족도100%(사용자=외부 협력기관 포함)"라고 큰 틀 위임.
+
+**1. 이번 세션 한 일:**
+- **자율 안전선 확대(PO가 직접 넓힘) → PR #266 머지**: CLAUDE.md §자동운영 + PO_PREFERENCES 갱신. 이제 ①UI/보이는 변경도 매번 안 묻고 프리뷰 남겨 비동기 검토 ②저위험 UI는 prod 자동 ③가역 DB 마이그레이션 자동. **멈추는 건 딱 2가지: 돈 / 되돌리기 어려움(삭제·보안·PII)**. DESIGN.md·보안·check:content는 그대로. (이전 "UI는 무조건 물어봐" 류 명시적으로 뒤집음 — 되돌리지 마라.)
+- **출시 전수 점검(환자/협력기관/인프라 3축 병렬 감사) + 실코드·실DB 검증**: 감사봇이 "런치블로커"로 올린 것 중 EDGE-3/4/5(케이스상태 전파)는 **이미 구현됨**, intake 무음실패는 **영향 낮음**(정본은 inquiries.intake 암호화)으로 정정. 결과를 `KNOWN_ISSUES.md` 최상단 "출시 점검 보드"에 기록.
+- **출시 리스크 3종 수정(PO가 버튼으로 선택) → PR #269 머지**:
+  - ①**iOS 영상상담 마이크 탈취 → 안전 폴백**(PO 옵션A): `app/consultation/[id]/page.jsx` 서버STT effect 진입부에서 iOS(WebKit) 감지 시 2차 getUserMedia 자체를 막고 텍스트 입력 폴백(`mediaRecOk=false`). LiveKit 송출 마이크 사망 차단.
+  - ②**intake 저장버그 정상화**: 마이그레이션 `cancer_patient_intakes.inquiry_id` **UNIQUE 인덱스**(prod 적용+`migrations/20260622_...sql`) + cancer_type를 inquiry에서 가져와 NOT NULL 충족 + 민감필드 `*_encrypted` AES 저장. step2 route.
+  - ③**EDGE-1 환자 여정바 case_status 반영**: `caseStatus.ts`에 `caseStatusToJourneyStage` + `journeyState.computeCurrentStage`가 이벤트단계·case_status단계 중 더 진행된 쪽 반환(후퇴 방지). 회귀테스트(caseStatus.test.ts·journeyState.test.ts).
+- **포털 실작동화 1단계 → PR #274(초안)**: 환자 여정바가 브라우저에서 service_role 테이블 직접조회(RLS상 빈 데이터)+암호화 email 매칭 불가였음(P1). **신설 `GET /api/portal/journey`**(requirePortalAuth, 본인 이메일 복호화-매칭으로 IDOR 차단, admin/users 패턴) → service_role 집계 반환. `journeyState.fetchPatientJourney`는 이 엔드포인트 호출로 교체.
+
+**2. 왜 그렇게 했는지:**
+- **감사봇 추정 그대로 안 믿고 실코드·실DB로 재검증**(PO "추정 불신·실측" 취향) → 위험한 수정에 시간 낭비 방지. 실제로 cancer_patient_intakes 0행·정본 안전 확인해 "긴급 아님"으로 강등.
+- **iOS는 blind 수정 위험**(빌드·아이폰 검증 불가 환경) → 견고판(LiveKit 트랙 재사용) 대신 PO가 고른 **안전 폴백**만(블래스트 반경 최소).
+- **포털 email 매칭**: inquiries.email은 AES(IV랜덤)라 SQL/브라우저 비교 불가 → 서버에서 복호화-매칭(admin/users 기존 패턴 재사용). 파일럿 규모 전제(대량화 시 email_hash 블라인드 인덱스).
+
+**3. 안 끝났거나 보류:**
+- **포털 실작동화 2단계 이후**: 환자 캘린더(`CalendarClient`)는 같은 journey 데이터라 #274로 자동 수혜되나 화면 확인 필요. 코디/에이전시/병원 포털의 남은 직접조회 빈틈은 추가 매핑·서버API화 필요(이번엔 환자 여정만).
+- **#274 머지**: 초안. CI 통과+PO 프리뷰 확인 후 머지 판단.
+- **cancer_patient_intakes 동작 변화**: 이제 퍼널 step2 인테이크가 이 테이블에도 쌓임 → `GET /api/khidi/intake` 어드민 목록에 퍼널 문의 표시(중복 표시 가능). 의도된 정상화지만 코디 UX 관찰 필요.
+
+**4. 주의·함정:**
+- **환자 여정바는 #274로 데이터는 오지만, EDGE-1 case_status가 화면에 진짜 반영되는지는 실계정 로그인 검증 안 함**(이 환경 빌드·로그인 불가).
+- **iOS 마이크 폴백 = 실아이폰 미검증**(코드 가드는 결정적). iOS 환자는 자동자막 대신 텍스트 입력으로 폴백됨(의도).
+- **다른 세션 동시 진행**: #267(카자흐 차단·레이트리밋), #271(히어로 로컬화), #272(OG 제거) 등이 같은 기간 main에 머지됨. step2 route는 #267의 레이트리밋 변경과 내 intake 수정이 머지 충돌 없이 합쳐짐.
+- **squash 머지 후 브랜치 재사용**: 이 브랜치는 #266·#269 squash 머지됨 → main 동기화는 `git merge origin/main`으로(reset 금지됨). 이어가려면 먼저 `git fetch origin main && git merge origin/main`.
+
+**5. 다음 세션이 먼저 할 일 (우선순위):**
+1. **⚠️ 직전 미검증분 먼저**: (a) **#274 CI 초록 확인** 후 머지 판단. (b) **환자 여정바 실계정 검증** — 환자 로그인 → `/patient` 대시보드에 여정 단계·다음할일이 실제로 뜨는지(프리뷰 또는 prod). (c) **iOS 영상 마이크** 실아이폰 1회(환자가 아이폰으로 상담 입장 → 의사가 환자 소리 들리는지).
+2. **포털 실작동화 = 완료**(2026-06-23). 코디·에이전시(`/api/agency/*`)·병원(`/api/partner/*`)·환자 메시지/상담은 원래 서버 API라 멀쩡. 이번에 추가로: 환자 **여정바**(`/api/portal/journey`)·**재예약**(`/api/portal/followup`)·**증상기록**(`/api/portal/symptoms`, AI분석+본인 inquiry 서버해석으로 IDOR 차단) 3종을 서버 API화 → 환자 포털 직접조회 0건. **남은 검증**: 위 1번(실계정 로그인으로 여정·재예약·증상 화면에 실제 데이터 뜨는지 + 증상 제출 시 본인 inquiry 연결돼 사후관리 KPI 잡히는지). 후속(선택): symptoms 급성 이상치 감지(detectAlerts) 이 경로엔 미포함 — cron이 침묵감지는 함.
+3. **#274 머지되면** 환자 캘린더(`CalendarClient`)도 데이터 뜨는지 확인.
+4. KHIDI 중간평가(8/27) 상시 — 실유치 0 끌어올리기.
+
+**6. 검증 상태:**
+- **PR #266**: 머지 완료(CI 초록이었음).
+- **PR #269**: 머지 완료. `ci`(tsc+vitest)·Smoke 초록 확인 후 머지.
+- **PR #274**: 핸드오프 작성 시점 **CI(ci·Smoke) in_progress** — 결과 미확인. Vercel 프리뷰는 빌드됨(한도 풀림): https://healo-khidi-git-claude-extended-reasoni-52974c-bonrois-projects.vercel.app
+- **`check:content`**: 로컬 통과(매 커밋).
+- **tsc/vitest/next build**: 이 환경 node_modules 없어 **로컬 못 돌림 → CI 위임**.
+- **실계정·실아이폰·실화면 검증**: **전부 안 함**(환경 한계) — 위 5번 1번으로 승격.
+- **DB 마이그레이션**: `cancer_patient_intakes.inquiry_id` UNIQUE 인덱스 **prod 적용 완료**(중복행 0 확인 후).
+
+**7. 다음 세션 첫 프롬프트:**
+> 먼저 docs/PROJECT_CONTEXT.md 최상단 핸드오프 읽어. "정식 운영 자율" 이어가자. ①PR #274(환자 여정 서버 API화) CI 초록이면 머지 판단하고, 환자 계정으로 로그인해 /patient 대시보드에 여정 단계가 실제로 뜨는지 확인해줘. ②iOS 영상상담 마이크 폴백도 실아이폰으로 한 번 확인. ③그다음 포털 실작동화 2단계 — 코디·에이전시·병원 포털의 남은 브라우저 직접조회(service_role)를 서버 API로 이관해줘(외부 협력기관도 실제로 쓸 수 있게).
+
+---
