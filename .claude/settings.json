@@ -42,6 +42,12 @@
             "command": "bash .claude/hooks/handoff-gate.sh",
             "timeout": 20,
             "statusMessage": "핸드오프 종료 문지기 검사 중..."
+          },
+          {
+            "type": "command",
+            "command": "bash .claude/hooks/self-check.sh",
+            "timeout": 10,
+            "statusMessage": "규칙 자기점검 중..."
           }
         ]
       }
