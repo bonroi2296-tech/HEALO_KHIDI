@@ -22,7 +22,12 @@
 
 export function pickAllowed<T extends object>(
   source: unknown,
-  keys: readonly (keyof T & string)[]
+  // `NoInfer` 가 핵심이다. 이게 없으면 TS 가 **keys 배열에서 T 를 거꾸로 추론**해서,
+  // 타입 인자를 빠뜨린 호출(`pickAllowed(body, ["없는컬럼"])`)이 그냥 통과한다 —
+  // 즉 «조용한 저장 실패»를 막으려는 가드가 저 자신도 조용히 실패한다(독립 리뷰 2026-07-21 실증).
+  // NoInfer 를 붙이면 T 가 `object` 로 떨어지고 `keyof object` = never 라 **컴파일이 막힌다**.
+  // (축 D 정적 가드는 객체 리터럴만 읽어서 pickAllowed 호출부를 못 본다 → 이중 사각이 될 뻔했다.)
+  keys: readonly (keyof NoInfer<T> & string)[]
 ): T {
   const out: Record<string, unknown> = {};
   if (!source || typeof source !== "object") return out as T;

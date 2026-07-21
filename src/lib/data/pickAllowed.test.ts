@@ -23,6 +23,15 @@ describe("pickAllowed — 허용 컬럼만 통과", () => {
     expect(pickAllowed<Row>({ phone: null }, ["phone"])).toEqual({ phone: null });
   });
 
+  // 위 "undefined 로 덮어쓰기 방지" 시험은 사실 `key in src` 와 `src[key] !== undefined` 를
+  // 구별하지 못했다(독립 리뷰 2026-07-21: 구현을 후자로 바꿔도 5개 전부 통과했다).
+  // 두 구현이 갈리는 유일한 입력 = **키는 있는데 값이 undefined** 인 경우라 그걸 박아둔다.
+  it("키가 있고 값이 undefined 면 그대로 통과시킨다 (`in` 기준임을 못박음)", () => {
+    const out = pickAllowed<Row>({ name_ko: "대구점", phone: undefined }, ["name_ko", "phone"]);
+    expect("phone" in out).toBe(true);
+    expect(out.phone).toBeUndefined();
+  });
+
   it("본문이 객체가 아니면 빈 객체", () => {
     expect(pickAllowed<Row>(null, ["name_ko"])).toEqual({});
     expect(pickAllowed<Row>("문자열", ["name_ko"])).toEqual({});
