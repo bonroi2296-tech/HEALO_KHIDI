@@ -108,6 +108,7 @@ export default async function sitemap() {
     localized('/faq', { changeFrequency: 'monthly', priority: 0.75 }),
     // /education 은 공개 탭 비활성화(2026-07 보험 가이드로 교체) — 환자앱 링크용 라우트는 유지, 색인만 제외
     localized('/insurance', { changeFrequency: 'weekly', priority: 0.85 }),
+    localized('/partners', { changeFrequency: 'monthly', priority: 0.6 }),
     localized('/visa', { changeFrequency: 'monthly', priority: 0.7 }),
     // /inquiry 는 robots.js 에서 Disallow(전환 퍼널·PII 폼) → sitemap 에서 제외
     localized('/about', { changeFrequency: 'monthly', priority: 0.5 }),
