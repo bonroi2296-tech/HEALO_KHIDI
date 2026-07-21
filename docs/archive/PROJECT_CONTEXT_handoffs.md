@@ -5633,3 +5633,152 @@ OJECT_CONTEXT 핸드오프 아카이브
 > 먼저 docs/PROJECT_CONTEXT.md 최상단 핸드오프 읽어. 2026-07-01 저녁에 화상 상담 테스트용 임시 링크를 DB에 심어 발급하고(코드수정 X), "각각 입장은 되는데 서로 안 보임(👥 둘 다 1)"을 진단해 다른 세션(work/consult-av-basics-fixes)에 넘겼어. 유력원인=로그인 없이 양쪽 게스트+같은 초대토큰이라 guest identity가 겹쳐 서로 튕김(guest-join의 removeParticipant). 그 세션이 A/V 수정 배포했으면 **먼저 통합 링크(상담방 50d5bc43…) 하나로 재검증**: 컴·폰 둘 다 로그인 없이 같은 링크(크롬/사파리) 열어 👥가 2 뜨는지 → 2면 해소, 1이면 media(TURN)로 파. 그 뒤 테스트 상담방 2개(50d5bc43…, aa9804ee…) 삭제하고, 여유되면 LiveKit webhook URL을 healwith.co.kr로 교체.
 
 ---
+
+---
+
+> ♻️ **회수분(2026-07-21)** — 아래 두 블록은 각자의 작업본에만 있고 **본판에 한 번도 안 들어간 채 방치**돼 있던 세션 기록이다. 브랜치 정리 중 발견해 여기로 옮겼다(브랜치는 회수 후 삭제). 시간순 위치가 아니라 회수 순서로 붙인다.
+
+---
+
+## 🔖 세션 핸드오프 (2026-07-01 (오전) — 이메일 수신률(deliverability) + 코디·어드민 「파트너 발굴」 아웃리치 추적기)
+
+> PO "healwith(Zoho) 해외 메일링이 스팸/무시 안 되게 세팅·분석" → DMARC 등 실측·개선 → "우체국 등록 다 하자"(얀덱스 폐쇄·Mail.ru 한국차단 확인) → "콜드 아웃리치 플레이북" → "근데 누구한테 보낼지 명단은?"(전략+실검색 시드) → "카자흐 직원 Assel이 파일 대신 백오피스에서 파트너 추적하게(이미 보낸 곳 분류)·어드민도 동기화" → 코디·어드민 기능 구현 → "핸드오프".
+
+**1. 이번 세션 한 일**
+- 📧 **이메일 수신률(스팸함 방지 인증)** — 작업본(브랜치) `work/email-deliverability`, PR [#545](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/545) (문서만):
+  - **DMARC(도장·허가증 틀릴 때 규칙+감시) 켬** — 제일 큰 구멍이었음: 가비아 DNS `_dmarc` TXT를 Postmark 무료 리포트(rua) 연결로 교체 → DNS 전파 실측 확인. healwith 메일 통과/스팸 여부가 매주 `admin@healwith.co.kr`로 옴.
+  - **Google Postmaster(구글 우체국) 등록 완료**(verified). Yandex Postmaster=2020 서비스폐쇄(할 것 없음)·Mail.ru=한국 번호/IP로 VK ID 가입차단(보류) → 둘 다 DMARC 리포트로 갈음.
+  - DKIM(위조방지 도장) 2048비트는 **의도적으로 안 함**(Zoho 키 스왑 위험>이득, 1024도 통과중).
+  - 산출물: `docs/EMAIL_DELIVERABILITY.md`(진단+실행 체크리스트+콜드 아웃리치 플레이북). **PR #545 미머지(문서, CI 초록시 자동머지 대상).**
+- 🎯 **「파트너 발굴」 아웃리치 추적기**(코디·어드민 백오피스 신규 기능) — 브랜치 `work/partner-outreach`, PR [#567](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/567):
+  - 새 표(테이블) `partner_outreach`(상태 7단계 후보→발송·답장대기→답장옴→미팅→제휴/거절/보류, RLS 서비스롤전용, **프로덕션 DB 적용+시드 6곳 완료**) + API `/api/partners/outreach`(requirePortalAuth staffOnly=코디·어드민 공용) + 공용 화면 `src/components/partners/PartnerOutreachTracker.jsx`(상태 분류·탭 필터·CRUD, accent로 코디=blue·어드민=teal) + `/coordinator/partners`·`/admin/khidi/partners`(같은 데이터 동기화) + 두 포털 메뉴 "파트너 발굴" + 코디 사용설명서 갱신.
+  - 실제 웹검색으로 찾은 카자흐 후보 6곳 시드(MedicalTour·Wellness Travel[contactus@wellnesstravel.kz]·ALPHA-MED[info@alpha-med.kz]·MedSolution·Atyrau Planeta·UMIT종양센터). 이메일 미확인은 null(지어내지 않음).
+
+**2. 왜 그렇게 했는지**
+- DMARC가 `p=none`+리포트없음 = "사칭도 안 막고 스팸여부도 못 봄"(최악 조합) → 리포트부터 켜서 눈을 뜸. `reject`로 바로 안 올린 건 리포트 0건에서 강화하면 우리 정상메일(환자·거래)이 스팸행 위험 → 2~4주 관찰 필수.
+- 우체국(얀덱스/Mail.ru)은 도구가 죽었거나(폐쇄) 지역차단이라 헛수고 → 그쪽 데이터도 DMARC rua 리포트에 다 들어오니 실손해 없음(추측 말고 실 URL 확인 후 판단).
+- 파트너 추적: 기존 `agencies`(이미 파트너)·`hospital_responses`(환자별)와 중복 아님 → 신규 '영업 파이프라인' 별도 표. 상태에 'prospect(후보=아직 안 보냄)'를 둬서 "이미 보낸 곳" 필터가 깔끔.
+- 백오피스는 코디=blue/어드민=teal 각 포털 정합성 유지(DESIGN.md teal은 공개페이지 기준).
+
+**3. 안 끝났거나 보류**
+- **PR #567 미머지**: 큰 UI 추가라 PO가 프리뷰에서 눈으로 보고 머지 결정하기로 함.
+- **Assel 계정 코디네이터 권한 부여 필요**(`/admin/staff`) — 없으면 `/coordinator/partners` 접근 불가.
+- **DMARC 강화(quarantine→reject)**: 2~4주 뒤 Postmark 리포트 확인 후.
+- **콜드 발송 서브도메인 분리**: 대량 아웃리치 시작 직전에.
+- 시드 후보 중 이메일 미확인 4곳: Assel이 사이트에서 확정.
+
+**4. 주의·함정**
+- `partner_outreach`는 자동생성 Supabase 타입에 없어 API에서 `(supabaseAdmin as any)` 캐스트(프로젝트 kpi.ts·conversion-funnel 패턴과 동일). 후속 types regen 시 정리.
+- 새 작업본(worktree)은 `node_modules`(설치된 부품) 없이 생성됨 → 빌드 전 `npm install` 필요(이번에 `@sentry/nextjs` 못 찾아 첫 빌드 실패, 설치 후 해결).
+- 마이그레이션은 **프로덕션 DB에 이미 적용**됨(추가형이라 안전). PR 머지 전에도 표·시드는 살아있음.
+- 코디·어드민 화면은 로그인 안쪽 → 로컬 자동 시각검증 불가(SSR 쿠키). `tail | ...` 파이프는 exit코드를 가리니 빌드 성공여부는 로그 본문으로 확인.
+
+**5. 다음 세션이 먼저 할 일**
+1. ⚠️ **직전 미검증분 먼저**: PR #567 **프리뷰에서 「파트너 발굴」 화면 직접 클릭 검증**(후보 추가/상태 드롭다운 변경/탭 필터/편집·삭제) — 코디·어드민 둘 다. 문제없으면 **#567 머지(본판에 합침)**.
+2. **Assel 계정에 코디네이터 권한 부여**(`/admin/staff`) → assel@healwith.co.kr로 로그인해 파트너 발굴 쓰게.
+3. (문서) **PR #545(이메일)** CI 초록이면 머지.
+4. (2~4주 후) Postmark 주간 리포트 확인 → DMARC `p=none`→`quarantine`→`reject` 단계 상향.
+- ※ 6/30(7) 핸드오프 미검증분(사용량·funnel_events 라이브 실측, 채널별 전환분해 C)도 여전히 열림 — 병행/후순위.
+
+**6. 검증 상태**
+- ✅ 이메일: `_dmarc` TXT DNS 전파 로컬+구글DNS(8.8.8.8) 교차확인. Google Postmaster verified(화면 확인).
+- ✅ 파트너 기능: `next build --webpack` 컴파일·타입체크 통과(새 라우트 3개 `/coordinator/partners`·`/admin/khidi/partners`·`/api/partners/outreach` 생성 확인). 마이그레이션 적용 + 시드 6곳 DB SELECT로 확인.
+- ❌ **미검증(솔직히)**: 파트너 발굴 **인증 화면 실제 클릭 안 함**(SSR 쿠키 로그인 자동화 불가) → 프리뷰에서 확인 필요. 상태변경·필터·CRUD 런타임 동작 미확인.
+- **PR/CI 상태**: #545·#567 둘 다 열림. CI 통과 여부는 이 세션에서 미확인(GitHub MCP 미인증) → 다음 세션이 확인.
+
+**7. 다음 세션 첫 프롬프트**
+> 먼저 docs/PROJECT_CONTEXT.md 최상단 핸드오프 읽어. 2026-07-01 오전에 ①이메일 수신률(DMARC 감시 켬·Google Postmaster 등록·PR #545 문서) ②코디·어드민 「파트너 발굴」 아웃리치 추적기(PR #567, 프로덕션 DB에 표+시드 6곳 적용됨, 아직 미머지)를 만들었어. **먼저 미검증분**: PR #567 프리뷰에서 파트너 발굴 화면을 코디·어드민 둘 다 열어 후보 추가·상태변경·탭 필터·편집/삭제가 실제로 되는지 클릭 검증하고, 괜찮으면 #567 머지해. 그다음 Assel 계정(assel@healwith.co.kr)에 코디네이터 권한을 /admin/staff에서 부여해줘.
+
+---
+
+---
+
+## 🔖 세션 핸드오프 (2026-07-07 — 비번 플로우 원문 에러 노출 보안 수정: ResetPassword 누출 제거 + 현재비번 빈칸 안내 개선 → claude/staff-change-password 브랜치에 얹음)
+
+> 짧은 보안 수정 세션. 신고 = 「비번 변경 실패 토스트에 Supabase 원문 error.message(영어) 노출 = 보안규칙 위반」. 조사해보니 신고된 ChangePasswordClient 는 **이미 고쳐져 있었고**(서버라우트 리팩터로 원문 노출 경로 소멸), 같은 버그가 복붙된 **ResetPasswordClient** 가 진짜 남은 누출이라 그걸 고침. PO 지시로 이 세션 워크트리(loving-mahavira)가 아니라 **claude/staff-change-password 브랜치**(그 파일들 담당 브랜치)에 얹음.
+
+**1. 이번 세션 한 일**
+- **ResetPasswordClient.jsx:100 보안 수정** — 실패 토스트 `pick(L.updateFailed) + ": " + error.message` → `+ error.message` 삭제, 로컬라이즈 문구만. 이제 Supabase 서버 비번정책 영어 원문("Password should be…")이 6개어 UI를 못 뚫음.
+- **ChangePasswordClient.jsx 저순위 UX** — 현재비번 빈칸 시 라벨("현재 비밀번호")만 뜨던 것 → 전용 안내문구 `enterCurrent`("현재 비밀번호를 입력하세요") 6개어 추가. 클라 빈칸체크 + 서버 `current_required` 에러 매핑 두 군데 다 교체.
+- **커밋 `d78d194` → `origin/claude/staff-change-password` 푸시 완료.** 머지·배포는 안 함(아래 4번).
+
+**2. 왜 그렇게 했는지**
+- **왜 staff-change-password 브랜치?** PO 지시. 그 브랜치가 이 파일들 담당(비번 변경 기능 개발 중). 별도 버그수정 브랜치 claude/bugsweep-i18n-encryption 은 이 파일 안 건드림 → 충돌 없음.
+- **ChangePasswordClient 는 왜 손 안 댔나?** 신고 시점(옛 line 113)의 `supabase.auth.updateUser` 직접호출 + `error.message` 노출 경로가, 그 사이 서버라우트(`/api/auth/change-password`)로 리팩터되며 통째로 사라짐. 지금은 서버가 준 에러코드(`j.error`)를 `ERR_MSG` 로 로컬라이즈 → 원문 노출 없음. 손댈 게 없어서 안 댐(있지도 않은 걸 고치지 마라).
+- **ResetPassword 도 같이 고친 이유:** 동일 보안규칙 위반이 sibling 파일에 원본 복붙돼 있었음(유사이슈 스캔 = 반성문 루틴 2단계). 신고엔 "고칠지 확인"이었지만 = 보안규칙 하드 위반이라 재량 아님 → 그냥 고침.
+
+**3. 안 끝났거나 보류**
+- **staff-change-password 아직 열린 PR 없음**(gh 확인 `[]`). 다른 세션이 그 기능 PR을 열 때 이 보안커밋이 자연히 딸려감 → 그때 포함 여부만 확인하면 됨.
+- 이 세션 브랜치(loving-mahavira)엔 **코드 변경 0** — 이 핸드오프 문서 갱신만 있음.
+
+**4. 주의·함정**
+- **ChangePasswordClient 는 이미 서버라우트 방식.** 옛 "line 113 error.message" 기준으로 다시 고치려 들지 마라 — 이미 없음(있지도 않은 버그 재수정 방지).
+- **이번 수정 위치 = `C:/Users/user/Desktop/HEALO_worktrees/staff-change-password` 워크트리**(loving-mahavira 아님). staff 워크트리는 이 커밋 전까지 clean 이었음(남 작업 안 밟음).
+- **머지 금지 이유:** staff-change-password 는 남(다른 세션)의 «비번 변경» 기능 브랜치라, 머지하면 그 기능 전체가 같이 프로덕션에 나감. 보안 한 줄만 얹고 머지·배포는 그 세션에 맡김.
+
+**5. 다음 세션이 먼저 할 일**
+1. ⚠️ **직전 미검증분 먼저 확인**: ResetPassword 실패 토스트 실동작 — Supabase 가 비번을 거부해야(약한 비번 등) 뜨는 **조건부 문구**라 이번엔 브라우저 미검증. 프리뷰에서 재현 가능하면 확인(약한 비번 넣어 토스트에 영어 원문 안 새는지).
+2. staff-change-password PR 열릴 때 보안커밋 `d78d194` 포함됐는지 확인.
+3. (직전 세션 미해결 이월) 다기기 화상 테스트 — 아래 2026-07-06 블록 참조(링크 2026-07-10 만료).
+
+**6. 검증 상태**
+- ✅ `npm run check:content` 통과(staff 워크트리 — 금지토큰 0 · i18n 6개어 키 패리티 OK). enterCurrent 6개어 다 채움.
+- ✅ 커밋·푸시 성공(`d78d194` → origin/claude/staff-change-password). diff 로 `error.message` 참조 제거 확정.
+- ⚠️ **PR/CI 미확인**: staff-change-password 열린 PR 없음(gh `[]`) → 내 커밋에 CI 아직 안 돌았음. 로컬 check:content 만 근거.
+- ⚠️ **검증 못 함**: ResetPassword 토스트 브라우저 실동작(조건부 에러라 미재현 — 5-1로 승격).
+
+**7. 다음 세션 첫 프롬프트**
+> docs/PROJECT_CONTEXT.md 최상단 읽어. 비번 보안수정(d78d194)은 claude/staff-change-password 브랜치에 얹혀 있고 아직 PR 없음 — 그 세션이 PR 열 때 이 커밋 포함되는지 확인해. ResetPassword 실패 토스트 실동작은 미검증(약한 비번 거부 시 뜨는 조건부 문구)이라 프리뷰로 재현 가능하면 확인해. ChangePasswordClient 는 이미 서버라우트라 손대지 마. 다기기 화상 테스트는 아래 2026-07-06 블록대로 링크 만료(2026-07-10) 전에 PO 보채기.
+
+---
+
+---
+
+## 🔖 세션 핸드오프 (2026-06-23 새벽 — "정식 운영" 자율: 안전선 확대 + 출시 3종 수정 + 포털 실작동화 1단계)
+
+> 브랜치 `claude/extended-reasoning-tokens-dvmu0a`. 이 세션 PR 3개: **#266(머지)**, **#269(머지)**, **#274(초안, CI 진행중)**. PO가 "한 번 지시로 토큰 남는 동안 몇 시간 자율로 굴러가게" + "내일 당장 운영해도 버그0·만족도100%(사용자=외부 협력기관 포함)"라고 큰 틀 위임.
+
+**1. 이번 세션 한 일:**
+- **자율 안전선 확대(PO가 직접 넓힘) → PR #266 머지**: CLAUDE.md §자동운영 + PO_PREFERENCES 갱신. 이제 ①UI/보이는 변경도 매번 안 묻고 프리뷰 남겨 비동기 검토 ②저위험 UI는 prod 자동 ③가역 DB 마이그레이션 자동. **멈추는 건 딱 2가지: 돈 / 되돌리기 어려움(삭제·보안·PII)**. DESIGN.md·보안·check:content는 그대로. (이전 "UI는 무조건 물어봐" 류 명시적으로 뒤집음 — 되돌리지 마라.)
+- **출시 전수 점검(환자/협력기관/인프라 3축 병렬 감사) + 실코드·실DB 검증**: 감사봇이 "런치블로커"로 올린 것 중 EDGE-3/4/5(케이스상태 전파)는 **이미 구현됨**, intake 무음실패는 **영향 낮음**(정본은 inquiries.intake 암호화)으로 정정. 결과를 `KNOWN_ISSUES.md` 최상단 "출시 점검 보드"에 기록.
+- **출시 리스크 3종 수정(PO가 버튼으로 선택) → PR #269 머지**:
+  - ①**iOS 영상상담 마이크 탈취 → 안전 폴백**(PO 옵션A): `app/consultation/[id]/page.jsx` 서버STT effect 진입부에서 iOS(WebKit) 감지 시 2차 getUserMedia 자체를 막고 텍스트 입력 폴백(`mediaRecOk=false`). LiveKit 송출 마이크 사망 차단.
+  - ②**intake 저장버그 정상화**: 마이그레이션 `cancer_patient_intakes.inquiry_id` **UNIQUE 인덱스**(prod 적용+`migrations/20260622_...sql`) + cancer_type를 inquiry에서 가져와 NOT NULL 충족 + 민감필드 `*_encrypted` AES 저장. step2 route.
+  - ③**EDGE-1 환자 여정바 case_status 반영**: `caseStatus.ts`에 `caseStatusToJourneyStage` + `journeyState.computeCurrentStage`가 이벤트단계·case_status단계 중 더 진행된 쪽 반환(후퇴 방지). 회귀테스트(caseStatus.test.ts·journeyState.test.ts).
+- **포털 실작동화 1단계 → PR #274(초안)**: 환자 여정바가 브라우저에서 service_role 테이블 직접조회(RLS상 빈 데이터)+암호화 email 매칭 불가였음(P1). **신설 `GET /api/portal/journey`**(requirePortalAuth, 본인 이메일 복호화-매칭으로 IDOR 차단, admin/users 패턴) → service_role 집계 반환. `journeyState.fetchPatientJourney`는 이 엔드포인트 호출로 교체.
+
+**2. 왜 그렇게 했는지:**
+- **감사봇 추정 그대로 안 믿고 실코드·실DB로 재검증**(PO "추정 불신·실측" 취향) → 위험한 수정에 시간 낭비 방지. 실제로 cancer_patient_intakes 0행·정본 안전 확인해 "긴급 아님"으로 강등.
+- **iOS는 blind 수정 위험**(빌드·아이폰 검증 불가 환경) → 견고판(LiveKit 트랙 재사용) 대신 PO가 고른 **안전 폴백**만(블래스트 반경 최소).
+- **포털 email 매칭**: inquiries.email은 AES(IV랜덤)라 SQL/브라우저 비교 불가 → 서버에서 복호화-매칭(admin/users 기존 패턴 재사용). 파일럿 규모 전제(대량화 시 email_hash 블라인드 인덱스).
+
+**3. 안 끝났거나 보류:**
+- **포털 실작동화 2단계 이후**: 환자 캘린더(`CalendarClient`)는 같은 journey 데이터라 #274로 자동 수혜되나 화면 확인 필요. 코디/에이전시/병원 포털의 남은 직접조회 빈틈은 추가 매핑·서버API화 필요(이번엔 환자 여정만).
+- **#274 머지**: 초안. CI 통과+PO 프리뷰 확인 후 머지 판단.
+- **cancer_patient_intakes 동작 변화**: 이제 퍼널 step2 인테이크가 이 테이블에도 쌓임 → `GET /api/khidi/intake` 어드민 목록에 퍼널 문의 표시(중복 표시 가능). 의도된 정상화지만 코디 UX 관찰 필요.
+
+**4. 주의·함정:**
+- **환자 여정바는 #274로 데이터는 오지만, EDGE-1 case_status가 화면에 진짜 반영되는지는 실계정 로그인 검증 안 함**(이 환경 빌드·로그인 불가).
+- **iOS 마이크 폴백 = 실아이폰 미검증**(코드 가드는 결정적). iOS 환자는 자동자막 대신 텍스트 입력으로 폴백됨(의도).
+- **다른 세션 동시 진행**: #267(카자흐 차단·레이트리밋), #271(히어로 로컬화), #272(OG 제거) 등이 같은 기간 main에 머지됨. step2 route는 #267의 레이트리밋 변경과 내 intake 수정이 머지 충돌 없이 합쳐짐.
+- **squash 머지 후 브랜치 재사용**: 이 브랜치는 #266·#269 squash 머지됨 → main 동기화는 `git merge origin/main`으로(reset 금지됨). 이어가려면 먼저 `git fetch origin main && git merge origin/main`.
+
+**5. 다음 세션이 먼저 할 일 (우선순위):**
+1. **⚠️ 직전 미검증분 먼저**: (a) **#274 CI 초록 확인** 후 머지 판단. (b) **환자 여정바 실계정 검증** — 환자 로그인 → `/patient` 대시보드에 여정 단계·다음할일이 실제로 뜨는지(프리뷰 또는 prod). (c) **iOS 영상 마이크** 실아이폰 1회(환자가 아이폰으로 상담 입장 → 의사가 환자 소리 들리는지).
+2. **포털 실작동화 = 완료**(2026-06-23). 코디·에이전시(`/api/agency/*`)·병원(`/api/partner/*`)·환자 메시지/상담은 원래 서버 API라 멀쩡. 이번에 추가로: 환자 **여정바**(`/api/portal/journey`)·**재예약**(`/api/portal/followup`)·**증상기록**(`/api/portal/symptoms`, AI분석+본인 inquiry 서버해석으로 IDOR 차단) 3종을 서버 API화 → 환자 포털 직접조회 0건. **남은 검증**: 위 1번(실계정 로그인으로 여정·재예약·증상 화면에 실제 데이터 뜨는지 + 증상 제출 시 본인 inquiry 연결돼 사후관리 KPI 잡히는지). 후속(선택): symptoms 급성 이상치 감지(detectAlerts) 이 경로엔 미포함 — cron이 침묵감지는 함.
+3. **#274 머지되면** 환자 캘린더(`CalendarClient`)도 데이터 뜨는지 확인.
+4. KHIDI 중간평가(8/27) 상시 — 실유치 0 끌어올리기.
+
+**6. 검증 상태:**
+- **PR #266**: 머지 완료(CI 초록이었음).
+- **PR #269**: 머지 완료. `ci`(tsc+vitest)·Smoke 초록 확인 후 머지.
+- **PR #274**: 핸드오프 작성 시점 **CI(ci·Smoke) in_progress** — 결과 미확인. Vercel 프리뷰는 빌드됨(한도 풀림): https://healo-khidi-git-claude-extended-reasoni-52974c-bonrois-projects.vercel.app
+- **`check:content`**: 로컬 통과(매 커밋).
+- **tsc/vitest/next build**: 이 환경 node_modules 없어 **로컬 못 돌림 → CI 위임**.
+- **실계정·실아이폰·실화면 검증**: **전부 안 함**(환경 한계) — 위 5번 1번으로 승격.
+- **DB 마이그레이션**: `cancer_patient_intakes.inquiry_id` UNIQUE 인덱스 **prod 적용 완료**(중복행 0 확인 후).
+
+**7. 다음 세션 첫 프롬프트:**
+> 먼저 docs/PROJECT_CONTEXT.md 최상단 핸드오프 읽어. "정식 운영 자율" 이어가자. ①PR #274(환자 여정 서버 API화) CI 초록이면 머지 판단하고, 환자 계정으로 로그인해 /patient 대시보드에 여정 단계가 실제로 뜨는지 확인해줘. ②iOS 영상상담 마이크 폴백도 실아이폰으로 한 번 확인. ③그다음 포털 실작동화 2단계 — 코디·에이전시·병원 포털의 남은 브라우저 직접조회(service_role)를 서버 API로 이관해줘(외부 협력기관도 실제로 쓸 수 있게).
+
+---

@@ -1,5 +1,79 @@
 # HEALO KHIDI — 알려진 이슈 / 전수 QA 발견사항
 
+## 🔴 만족도 설문이 **구조적으로 0건** — KHIDI K-03 지표에 데이터가 안 쌓인다 (2026-07-21 실측)
+
+> 아래 「📦 보관」 항목의 코드가 이걸 고치려던 것이지만, **되살리든 안 되살리든 문제 자체는 지금 진행 중**이라 따로 세워둔다.
+
+**실측(2026-07-21)**: `surveys` **0건**(응답도 0) / `consultation_sessions` **35건 전부 `scheduled`, `completed` 0건** / 그런데 `inquiries.case_status` 에는 **`follow_up` 1건**이 실제로 있다.
+
+**왜 0건인가** — 운영에서 설문을 만드는 경로는 `app/api/cron/dispatch-surveys` **하나뿐**인데(전수 확인: `generateSurveyToken` 호출처 = 이 cron + 응답 처리 라우트뿐, 어드민 수동 발송 없음), 그 cron 이 `consultation_sessions.status = 'completed'` 를 찾는다. **completed 가 영구 0건이라 대상이 항상 비어 있다.**
+
+**왜 중요한가** — 만족도는 **8/27 중간평가 공식 성과지표 4개 중 하나**(목표 90점). 지금 구조로는 평가일까지 0으로 남는다.
+
+**고치는 방향(이미 설계·DB 준비 완료)** — 발송 기준을 「상담 completed」→「케이스가 **사후관리(`follow_up`) 단계 진입**」으로 옮긴다. PO 결정 2026-07-16.
+- DB 는 **이미 준비돼 있다**: `surveys.inquiry_id` + `idx_surveys_inquiry`(PR #844 로 저장소 회수 완료) · `inquiries.followup_started_at` 실재 확인.
+- 중복 발송 방지 설계됨: `surveys.inquiry_id` 존재검사로 **케이스당 1회**, cron 재실행에도 중복 없음.
+- **화면은 안 바뀐다.** 단계를 옮기는 곳(`/coordinator/cases`·`/coordinator/inbox/[id]`, `/admin/khidi/cases`, 에이전시 포털)은 그대로고, 뒤에서 자동 발송만 붙는 구조.
+
+---
+
+## 📦 보관 — `rescue/local-uncommitted-20260716` 미머지 코드 974줄 (**PO 지시로 보류**, 2026-07-21)
+
+> **PO 지시: "일단 메모해놓고 나중에 쓸 일 있음 쓰게 보관만 해둬"** — 지우지 마라.
+
+- **어디에**: 브랜치 `rescue/local-uncommitted-20260716` (PR 없음). 2026-07-16 세션의 로컬 미커밋분을 구조해 둔 것. 커밋 39개 중 대부분은 자동저장 노이즈이고, 실제 알맹이는 아래 3덩어리.
+- **⚠️ 「방치 브랜치」로 오해해 지우지 마라.** PR 이 없어서 정리 대상처럼 보이지만 **본판에 없는 진짜 작업**이 들어 있다.
+
+| 덩어리 | 파일 | 상태 |
+|---|---|---|
+| **설문 발송 기준 변경** | `app/api/cron/dispatch-surveys/route.ts`(291줄) · `src/lib/surveys/generateSurveyToken.ts` | 위 🔴 항목의 해법. **DB 준비 끝, 코드만 없음.** 범위 좁음(파일 2개) |
+| **소견 AI 자동번역** | `src/lib/opinions/translateOpinion.ts`(신규) · `app/api/coordinator/opinions/translate/route.ts`(신규) · `OpinionsSection.jsx` | DB 칸(`case_opinions.auto_translated_text`)은 있는데 **채우는 코드가 없어 소견 2건 중 번역 0건** |
+| **기타** | `src/lib/khidi/kpiHealthcheck.ts`(신규) · `caseStatus.ts`(128줄) · 개인정보처리방침·동의서 문구 | — |
+
+- ✅ **마이그레이션 3개는 이미 회수 완료**(PR #844) — 이 브랜치에서 건져야 할 DB 분은 남아 있지 않다.
+- ⚠️ **통째로 얹지 마라.** 2026-07-16 이후 본판이 크게 움직였고, 특히 `caseStatus.ts` 는 **KHIDI 지표 계산에 직결**돼 잘못 얹으면 숫자가 틀어진다. 살릴 때는 **덩어리 단위로 떼서** 최신 본판 위에 재작성하는 게 안전하다.
+
+## 📦 보관 — 공개 제휴 랜딩 `/partners` (완성돼 있으나 **PO 지시로 보류**, 2026-07-21)
+
+> **PO 지시: "이건 일단 보관만 해둬"** — 지우지 말고, 머지도 하지 마라. 되살릴 때 아래를 그대로 쓰면 된다.
+
+- **어디에**: 브랜치 `work/partners-landing` · PR [#849](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/849) **(초안 상태로 박아둠 — 실수 머지 방지)**. 2026-07-21 최신 `main` 위로 재기준 완료.
+- **뭔가**: 병원·에이전시·보험사가 제휴 문의를 넣는 **B2B 공개 랜딩**(6개 언어, 1,015줄) + 접수 API. 본판에 없는 페이지다. 원 커밋 의도 = "B2B 유입구 (벤치마크 §5-⑤)".
+- **⚠️ 이 브랜치를 「방치된 것」으로 오해해 지우지 마라.** 2주간 PR 없이 떠 있어서 정리 대상처럼 보이지만, **대체된 게 아니라 완성돼서 보류된 것**이다.
+
+**검증 끝난 것(재조사 불필요)** — 2026-07-21 실측:
+- 6개 언어 완전 번역(ru 내비·폼 라벨·FAQ·푸터까지). 한글 누출 0(남은 건 사이트 공통 메타태그)
+- teal 기본 톤 준수 · 모바일 세로 정렬 정상(잘림 없음)
+- **접수 저장 실동작 확인** — `partner_outreach` 컬럼 11개 실재 + 값이 CHECK 제약 통과(`agency`/`clinic`/`other`, `replied`). 폼 payload 모양 그대로 실DB insert → 성공 → 삭제로 검증. **「없는 컬럼」 부류 아님**
+- 최신 main 위 `tsc` 0 · `check:content` 통과 · Vercel 프리뷰 200
+
+**되살릴 때 먼저 정해야 할 것 2개 (이것 때문에 보류된 게 아니라, 보류 중에도 남아 있는 숙제):**
+1. **유입 경로가 없다** — 사이트맵엔 있는데 **헤더·푸터 어디에도 링크가 없어** 주소를 직접 쳐야만 보인다. B2B 유입구가 목적이면 링크 위치를 정해야 한다.
+2. **대학병원 표기 정직성** — 페이지에 「협진 네트워크: 대학병원 4곳(이대서울·이대목동·고려대구로·신촌세브란스) + 면력한방병원 4개 지점」. 기록상 **대학병원은 면력한방의 협진관계이지 본로이 직접 MOU 가 아니다**(러시아어판도 동일 표현). 파트너에게 보여주는 문서라 삼각구조를 정직하게 쓸지 판단 필요.
+3. 카피 670줄은 **PO 리드 영역** — 어시가 임의로 손대지 않았다.
+
+## 🔴 환자 포털 ↔ 운영데이터 구조적 단절 (2026-06-23 진단 · **2026-07-21 실측 재확인 — 그대로임**)
+
+> ♻️ **회수 항목**: 이 진단은 `fix/inquiry-visibility-link` 작업본에만 있고 **본판 장부에 한 번도 안 들어와 있었다**(브랜치 정리 중 발견). 4주가 지났는데도 실DB 상태가 **하나도 안 변해서** 되살린다.
+
+**2026-07-21 실측** (괄호는 2026-06-23 당시): `inquiries` **34행**(17) — `patient_user_id` **컬럼 자체가 없음**(그때도 없음) / `followup_schedules` **0행**(0) — 쓰는 코드 부재 → 환자 「재예약 관리」 영구 공백 / `consultation_sessions` **35행**(17) 중 `patient_id` 채워진 것 **0건**(0) / `symptom_reports` 1행 중 `patient_user_id` **0건**(0).
+→ **문제는 그대로인데 그 위에 쌓이는 데이터만 2배가 됐다.**
+
+**연결 메커니즘 현황:**
+- 유일한 다리 = `app/api/portal/symptoms/route.ts` 의 **이메일 복호화 매칭**(`findOwnInquiryIds`: 로그인 환자 이메일로 모든 inquiry 의 AES 이메일을 복호화·대조, O(n) 파일럿 규모). **증상 경로에만** 존재.
+- `app/api/portal/followup/route.ts` 는 이 다리가 **없음** — `patient_user_id` 일치만 봄. + `followup_schedules` 에 INSERT 하는 코드가 어디에도 없음 → **이중 단절**.
+- `inquiries` 엔 `cancer_type` 은 있으나 `patient_user_id` 는 없음. 어드민 「재예약 제안」 버튼(`SymptomAlerts.jsx`)은 `inquiryId` 만 보냄(환자 uuid·암종 미전달).
+
+**제대로 잇는 설계(미구현 — PO 가 "제대로 잇기" 선택):**
+1. 재진 엔진(`/api/khidi/rebooking/create`)이 `followup_schedules` 에 기록(status='proposed'). cancer_type=inquiry 에서, current_phase=source/reason, next_action_at=scheduledAt.
+2. `patient_user_id` 는 inquiry 이메일 ↔ auth 이메일 매칭으로 해석(symptoms 패턴 재사용). 매칭 계정 없으면 리드 상태라 환자 포털 표시 불가(본질적 한계).
+3. `followup` GET 도 symptoms 처럼 이메일 다리 추가.
+- ⚠️ **접수(intake)에서 환자계정을 안 만드는 게 근본 원인.** 접수 재설계와 합쳐야 깔끔하다. 단독으로 1~3 만 해도 화면은 살지만 재작업 위험.
+
+⚠️ **KHIDI 관련성**: `followup_schedules` 0행은 **사후관리 지표(K-03, 목표 120건)** 배선과 맞닿아 있다. 8/27 평가 전에 이 단절을 어떻게 다룰지 판단이 필요하다.
+
+---
+
 ## ✅ 2026-07-15 완성도 감사(컬럼레벨 schema-refs)가 잡은 없는-컬럼 select 2건 — 종결
 
 > 축 C 잔여로 `check:schema-refs`를 컬럼레벨 확장하다 발견 + 생성타입(`src/types/database.types.ts`)이 **stale**(inquiries 35 vs 실DB 61 컬럼)임을 발견해 재생성함. 아래는 재생성 후에도 남은 = **실제 없는 컬럼 참조**(DB 실측 대조 완료). 쿼리가 에러→try/catch 삼킴→화면 0/[]로 떨어지는 부류. **둘 다 같은 PR(#784)에서 수리 완료.**
@@ -114,12 +188,11 @@
   - 🛠️ **PO 결정 대기**: 죽은 기능을 (a)컬럼 추가로 되살리기 vs (b)기능 삭제. 한 번도 쓰인 적 없는 화면이라 제품 판단.
 - ✅ **해결(2026-07-20)** `/admin/crawl` 병원 크롤 검수도 같은 부류로 죽어 있던 것**: `crawl_raw_items`에 코드가 쓰는 `source_id`·`name`·`hospital_id`(insert)·`reviewed_at`(승인/거절/건너뛰기 update)가 실DB에 없음 → `crawl_raw_items` 0건·`crawl_jobs` 0건. 조회 쪽만 2026-07-15 감사에서 `name:title` alias로 우회돼 있고 쓰기 경로는 그대로(반쪽 수정). 위와 같이 되살리기/삭제 PO 결정 대기.
 - **스키마 드리프트 전수 결과(2026-07-20)**: 마이그레이션 선언 61개 테이블 vs 실DB 대조 → 드리프트 12개, 마이그레이션에만 있고 실DB엔 없는 테이블 8개(`inquiry_contacts`·`inquiry_medical`·`hospital_lead_assignments`·`hospital_performance_stats`·`hospital_performance_global_avg`·`hospital_responses`·`operational_alerts`·`treatment_translations`). 코드가 실제로 유령 컬럼을 쓰는 진짜 버그는 위 2건뿐, 나머지는 후속 마이그레이션의 컬럼명 변경(양성). **상설 가드 = `@supabase/supabase-js` 2.110+ 업그레이드**(아래 항목).
-- 🔴 **치료(시술) 등록·수정이 유령 컬럼 4개로 실패 중** — 🙋 **담당: 다른 병렬 세션이 이미 정리 중**(2026-07-20 PO 확인: "리뉴얼 하기 전 시스템의 잔재인 거 같다, 걔가 정리하고 있다"). **새 세션은 여기 중복 착수하지 마라** — 상태만 확인하고, 아래 기록은 근거 보존용이다. *(2026-07-20 발견 — 타입 못박기 작업 시작 5분 만에)*:: `treatments` 테이블에 **`category`·`gallery_images`·`recovery_time_min`·`thumbnail_image` 가 없다**(`information_schema` 실조회 확인. 비슷한 건 `images` 하나뿐). 그런데 아래 4곳이 이 컬럼들에 쓴다 → **저장이 통째로 실패**:
-  - `app/api/admin/treatments/route.ts` (POST 222행 `thumbnail_image`, PUT 417행)
-  - `app/api/partner/treatments/route.ts` (POST 61행 `category`, PUT 137행 allowlist)
-  현재 `treatments` 9건은 다른 경로(크롤·수기 SQL 등)로 들어온 것으로 보인다. POSTMORTEMS #97 과 정확히 같은 부류(에러가 조용히 삼켜지고 화면은 멀쩡).
-  → **판단 필요**: (a) 컬럼 4개 추가(가역적) vs (b) 코드에서 제거. `thumbnail_image`/`gallery_images` 는 기존 `images` 배열과 중복 가능성, `recovery_time_min` 은 기존 `recovery_time`(텍스트)와 중복 가능성 → **(b) 가 유력하나 화면(어드민 치료 편집 폼·상세페이지)이 그 값을 실제로 쓰는지 확인 후 결정.**
-  ⚠️ 이 항목은 2026-07-20 세션에서 한 번 기록했다가 **자동저장 훅 브랜치 전환으로 유실**됐다가 재기록한 것이다(PO 가 "반성문 잘 쓴 거 맞냐"고 되물어 재확인하다 발견).
+- ✅ **해결(2026-07-20, PR #831 — POSTMORTEMS #103)** ~~치료(시술) 등록·수정이 유령 컬럼으로 실패 중~~: 예상보다 컸다. **유령 컬럼은 4개가 아니라 17개**(옛 미용시술 카탈로그 스키마 잔재)였고, **진짜 원인은 따로 있었다** — 공용 헬퍼 `extractKrFields()` 가 `name_kr`·`description_kr`·`tags_kr`·`specialties_kr` 을 얹는데 **이 넷은 어느 테이블에도 없는 컬럼**이라(실측: `%_kr` 은 `hospitals.location_kr` 하나뿐) **이름에 한글이 들어가면 저장이 통째로 실패**했다. 그래서 **치료뿐 아니라 병원 등록·수정·프로필도 같이 막혀 있었다**. 실측 근거 = `treatments` 최신 행이 **2026-02-26**(5개월간 등록 0건).
+  - 처방: 판단 (b)**코드에서 제거** 채택 — 읽는 코드가 0건이었다. 실컬럼(`duration`·`recovery_time`·`preparation`·`risks`)으로 대체하고 어드민·병원포털 폼과 환자 상세페이지까지 배선(입력→저장→표시가 처음으로 이어짐). `extractKrFields` 는 삭제(되살리지 말 것).
+  - 곁다리로 닫힘: 오퍼 자동추출 마지막 단계(`offers/apply`)·`rag_documents` 의 `verified_at`/`verified_by`·번역 트리거 누락(주의사항만 고치면 번역이 안 돌던 것).
+  - 가드: 축 D 에 **변수 경유 쓰기**(`const payload={…}` … `.insert([payload])`) 검사 추가 + 스프레드 통째 건너뛰기 폐지 + CRLF 정규화(윈도우에서 검사기가 죽던 것). 자기시험 7→19개. **한계 정직히**: *함수 반환값 스프레드* 안쪽은 원리적으로 정적 검사 불가 → 아래 supabase-js 업그레이드가 진짜 종결.
+  - 데이터: 신촌점 급조 3건(slug 이 `item-<숫자>`·태그 없음·가격 0) 삭제, 강서점 6건은 보존(6개 언어 번역·실가격 있음, 전부 미공개 상태 — 공개 여부는 PO 판단). 백업 = `_backup_treatments_20260720`.
 - **`@supabase/supabase-js` 2.90→2.110 업그레이드 = 스키마 드리프트 상설 가드 (별건 PR 필요)**: 신버전 `RejectExcessProperties` 타입이 `.insert()/.update()/.eq()`를 생성 타입과 대조해 위 버그 부류를 **컴파일 타임에** 잡는다(이번 발견도 이 업그레이드 시도 중 나옴). 다만 `.update(Record<string, any>)` 패턴 **32곳**이 타입 에러가 되어 정리가 선행돼야 함(환자 인테이크·비자·문의 등 민감 라우트 포함) → 8/27 평가 전 리스크 감안해 이번엔 **되돌리고 별건 분리**. `@supabase/ssr` 0.8→0.12(인증 쿠키)도 같은 PR에서 단계적으로.
 - ~~**스키마 드리프트**: `chat_threads.user_id`(+`guest_country`·`guest_phone`·`resolved_at`·`channel`) 마이그레이션 누락~~ ✅ **해결(2026-06-30)**: `migrations/20260630_chat_threads_columns.sql`(IF NOT EXISTS 멱등, prod no-op·재현성용).
 - **앱 설치→푸시 안내 (옵션1 보류분, 2026-06-30 PO)**: 접수 확정 멘트(`HANDOFF_CONFIRM`)에 "앱 설치 시 푸시로 진행상황 안내"를 넣고 싶으나 **푸시는 네이티브 앱 전용**(`src/lib/push/registerPush.ts` 웹 no-op) + **앱 미출시**(스토어 계정·Firebase PO 대기) → 지금 넣으면 거짓 약속. **앱 출시되면** `contactGate.ts`의 TODO 위치에 한 줄 추가. 지금은 PWA 홈화면 추가 인라인 힌트(`ChatInstallHint`)만 노출(푸시 약속 없음).
