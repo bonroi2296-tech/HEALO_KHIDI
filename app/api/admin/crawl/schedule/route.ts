@@ -59,12 +59,19 @@ export async function PUT(request: NextRequest) {
   const { enabled, frequency, sources, dayOfWeek, hour } = body;
 
   try {
-    const { data: existing } = await supabaseAdmin
+    // 실패-닫힘: 못 읽은 걸 "설정 없음"으로 보면 단일행이어야 할 스케줄 설정이 두 줄로 갈라지고,
+    // 이후 어느 줄이 읽히느냐에 따라 자동 크롤 주기가 달라진다.
+    const { data: existingRows, error: existingErr } = await supabaseAdmin
       .from("crawl_jobs")
       .select("id, params")
       .eq("source_id", CONFIG_SOURCE_ID)
-      .limit(1)
-      .maybeSingle();
+      .limit(1);
+
+    if (existingErr) {
+      console.error("[admin/crawl/schedule] config lookup error:", existingErr.message);
+      return NextResponse.json({ ok: false, error: "internal_error" }, { status: 500 });
+    }
+    const existing = existingRows?.[0];
 
     const currentSchedule: any = (existing?.params && typeof existing.params === "object" && !Array.isArray(existing.params)) ? existing.params : DEFAULT_SCHEDULE;
 

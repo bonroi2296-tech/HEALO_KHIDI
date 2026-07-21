@@ -971,92 +971,91 @@ for (const dir of BACKOFFICE_DIRS) {
 // 실제로 설문 발송 cron 이 이 구조였고(2026-07-21 독립 리뷰 적발), 그대로 갔으면 환자에게
 // 매일 설문 메일이 나가고 K-03 만족도 응답률이 망가졌다.
 //
-// 유예 목록(GRANDFATHERED): 룰을 만들 때 이미 있던 자리들. 이번 PR 범위(설문·소견) 밖이라
-// 한꺼번에 고치지 않고 유예하되, **새로 생기는 건 즉시 차단**한다. 이 목록은 줄어들기만 해야
-// 한다 — 목록에 있는 파일이 고쳐지면 여기서도 지워라(늘리려면 그 이유를 PR 에 적을 것).
-// 위험도 순: invite(초대 재발급)·assign(케이스 배정) > crawl/offers-jobs(관리자 배치) >
-// site-settings(단일행 설정, 사실상 무해).
+// 유예 목록(GRANDFATHERED)은 2026-07-21 에 비었다 — 룰 신설 당시 유예했던 8곳(7파일)을
+// 전부 수리하고 목록·경고를 삭제했다. 이제 이 부류는 예외 없이 빌드 실패다. 되살리지 마라.
+//
+// 판정 방식(2026-07-21 독립 리뷰로 2차 보강): "앞 300자에 error 가 보이면 통과" 였던 초판은
+// 두 가지로 샜다 — ①바로 앞 문장이 error 를 받으면 바로 뒤 나쁜 자리가 묻어서 통과(실제로
+// 이 PR 의 crawl 수정이 그 모양을 만들었다) ②주석에 "{ data, error" 만 있어도 통과.
+// 그래서 **그 statement 의 구조분해만** 본다.
+//
+// ⚠️ 알려진 사각(의도적으로 안 넓힘): 이 룰은 `.select("id")` 로 **id 만** 고르는 자리만 본다.
+// `.select("id, status")` 처럼 컬럼을 더 고르는 find-or-create 가드는 못 잡는다. 넓혀서
+// 돌려보니 20건이 걸리는데 그 대부분이 **유니크 키로 한 행 읽는 정상 조회**(토큰 조회 등)라
+// 오탐이 진짜를 덮는다 — 시끄러운 게이트는 결국 꺼진다. 넓히려면 "존재검사"를 컬럼 수가
+// 아니라 용도로 가려내야 하고, 그건 이 정규식의 일이 아니다. 남은 자리 목록은 KNOWN_ISSUES 참고.
 {
-  const GRANDFATHERED = new Set([
-    "app/api/admin/crawl/route.ts",
-    "app/api/admin/khidi/agencies/route.ts",
-    "app/api/admin/offers-jobs/process/route.ts",
-    "app/api/admin/site-settings/route.ts",
-    "app/api/admin/site-settings/upload/route.ts",
-    "app/api/coordinator/cases/assign/route.ts",
-    "app/api/khidi/consultation/[id]/invite/route.ts",
-    // ⏳ 곧 사라진다 — PO 결정(2026-07-21): 이 라우트는 호출부가 0건인 고아 코드라 삭제한다
-    //    (환자 SOS 버튼이 끝내 안 붙었고 실사용 0건). 별도 세션이 처리 중이며, 파일이 지워지면
-    //    이 줄도 같이 지워라. 그때까지 CI 를 막지 않게 유예.
-    "app/api/portal/emergency/route.ts",
-  ]);
-  // ⚠️ **이 룰은 전수 검사가 아니다 — 커버리지를 부풀리지 마라.**
-  // 대상은 `select("id")` 하나만 가져오는 모양뿐이다. `select("id, …")` 까지 넓혀 봤더니
-  // (2라운드 리뷰 지적으로 시도) **권한 확인용 조회 19곳**이 딸려 들어왔다 — 그건 "케이스
-  // 주인이 맞나"를 보는 코드라 error 를 삼켜도 접근 거부(fail-closed)로 떨어지므로 이 룰이
-  // 막으려는 부류(= 결과를 보고 **새로 만들지 말지** 정하는 자리)가 아니다.
-  // 정적 분석으로 둘을 기계적으로 못 가른다 → **좁게 정확히** 잡고 나머지는 사람이 본다.
-  // 저장소의 maybeSingle 사용처는 약 96곳이고 이 룰이 보는 건 그중 일부다. 과신 금지.
-  const idSelectThenMaybeSingle =
-    /\.select\(\s*["'`]id["'`]\s*\)[\s\S]{0,240}?\.maybeSingle\(\)/g;
+  // 유예: 아래 라우트는 호출부 0건인 고아 코드라 **삭제 결정**(PO 2026-07-21)이 나 있고
+  // 별도 세션이 처리 중이다. 곧 사라질 파일 때문에 CI 를 막지 않으려고 한시적으로만 예외.
+  // ⚠️ 파일이 지워지면 이 Set 과 grandfatheredSeen 경고도 같이 삭제할 것(목록은 늘리지 마라).
+  const GRANDFATHERED = new Set(["app/api/portal/emergency/route.ts"]);
   let grandfatheredSeen = 0;
 
-  // error 수신 여부는 **그 호출이 속한 문장 안에서만** 판정한다.
-  // (앞 300자를 통째로 보면 바로 위의 무관한 쿼리가 `const { data, error }` 로 받았다는
-  //  이유만으로 진짜 위반이 통과됐다 — "행 하나 읽고 → error 체크 → 중복 검사"가 이 저장소에서
-  //  가장 흔한 모양이라 #105 재발 방지 룰이 정작 #105 를 놓쳤다. 2라운드 리뷰 지적.)
-  const statementReceivesError = (text, callIndex) => {
-    // 이 호출을 대입받는 구조분해의 시작점 = 직전의 `const {` / `let {` 중 가장 가까운 것.
-    const head = text.lastIndexOf("const {", callIndex);
-    const headLet = text.lastIndexOf("let {", callIndex);
-    const start = Math.max(head, headLet);
-    if (start < 0) return false;
-    const close = text.indexOf("}", start);
-    if (close < 0 || close > callIndex) return false;
-    // 구조분해 패턴 안에 error 키가 있으면 통과 — 순서(data 먼저/ error 먼저)는 상관없다.
-    return /\berror\b/.test(text.slice(start, close + 1));
+  // 존재검사 후보: .select("id") 로 시작해 .maybeSingle() 로 끝나는 체인.
+  // ⚠️ 간격을 [^;] 로 묶는다 — [\s\S] 로 두면 매칭이 **세미콜론을 넘어 다음 문장까지** 뻗어서,
+  // 앞 문장이 error 를 받았다는 이유로 뒤의 진짜 위반이 묻힌다(아래 자기시험 fixture #1 이 그 모양).
+  const idSelectThenMaybeSingle = /\.select\(\s*["'`]id["'`]\s*\)[^;]{0,300}?\.maybeSingle\(\)/g;
+  // 같은 statement 에서 error 를 실제로 구조분해로 받는 형태만 통과.
+  const destructuredWithError =
+    /(?:const|let|var)\s*\{([^}]*)\}\s*=\s*await[^;]{0,300}?\.select\(\s*["'`]id["'`]\s*\)[^;]{0,300}?\.maybeSingle\(\)/g;
+
+  // 주어진 소스에서 "위반"으로 판정되는 자리 수. 본 검사와 자기시험이 같은 로직을 쓴다.
+  const violationsIn = (src) => {
+    const okEnds = new Set();
+    let d;
+    destructuredWithError.lastIndex = 0;
+    while ((d = destructuredWithError.exec(src))) {
+      if (/\berror\b/.test(d[1])) okEnds.add(d.index + d[0].length);
+    }
+    let n = 0, m;
+    idSelectThenMaybeSingle.lastIndex = 0;
+    while ((m = idSelectThenMaybeSingle.exec(src))) {
+      if (!okEnds.has(m.index + m[0].length)) n++;
+    }
+    return n;
   };
 
-  // ── 자기시험: 이 룰이 실제로 잡는지/안 잡을 것은 안 잡는지 매 실행 확인 ──────────
-  // 왜: 가드를 만들어놓고 **정작 뚫린 채로 초록불**이던 사고가 있었다(POSTMORTEMS #103).
-  // 아래 3개는 2라운드 독립 리뷰가 찾아낸 실제 실패 모양이다. 룰을 손대다 이게 깨지면 즉시 실패.
+  // ── 자기시험: 룰이 실제로 잡는지/안 잡을 것은 안 잡는지 매 실행 확인 ──────────────
+  // 왜: 가드를 만들어놓고 **정작 뚫린 채 초록불**이던 사고가 있었다(POSTMORTEMS #103).
+  // 아래는 독립 리뷰가 실제로 찾아낸 실패 모양이다. 룰을 손대다 깨지면 CI 가 즉시 실패한다.
   {
     const fixtures = [
-      // 잡아야 함 — 앞의 무관한 쿼리가 error 를 받았다고 통과되면 안 된다(옛 300자 창의 구멍)
-      [true, `const { data: rows, error: e } = await db.from("x").select("a,b").eq("id", id);
-if (e) throw e;
-const { data: existing } = await db.from("s").select("id").eq("inquiry_id", id).maybeSingle();`],
-      // 잡아야 함 — 가장 단순한 위반 모양
-      [true, `const { data: existing } = await db.from("s").select("id").eq("inquiry_id", id).maybeSingle();`],
-      // 잡으면 안 됨 — select 목록이 길면 권한확인 조회일 공산이 커서 이 룰의 대상 밖(위 주석)
-      [false, `const { data: row } = await db.from("cases").select("id, agency_id").eq("id", id).maybeSingle();`],
-      // 잡으면 안 됨 — error 를 먼저 구조분해한 정상 코드
-      [false, `const { error: e, data: existing } = await db.from("s").select("id").eq("inquiry_id", id).maybeSingle();`],
+      // 잡아야 함 — 앞 문장이 error 를 받았다고 뒤의 위반이 묻어 통과되면 안 된다(초판의 구멍)
+      [1, `const { data: rows, error: e } = await db.from("x").select("a,b").eq("id", id);\nif (e) throw e;\nconst { data: existing } = await db.from("s").select("id").eq("inquiry_id", id).maybeSingle();`],
+      // 잡아야 함 — 가장 단순한 위반
+      [1, `const { data: existing } = await db.from("s").select("id").eq("inquiry_id", id).maybeSingle();`],
+      // 잡으면 안 됨 — error 를 먼저 구조분해한 정상 코드(순서 무관해야 한다)
+      [0, `const { error: e, data: existing } = await db.from("s").select("id").eq("inquiry_id", id).maybeSingle();`],
     ];
-    for (const [shouldFlag, src] of fixtures) {
-      idSelectThenMaybeSingle.lastIndex = 0;
-      const hit = idSelectThenMaybeSingle.exec(src);
-      const flagged = !!hit && !statementReceivesError(src, hit.index);
-      if (flagged !== shouldFlag) {
+    fixtures.forEach(([expected, src], i) => {
+      const got = violationsIn(src);
+      if (got !== expected) {
         errors.push(
-          `[멱등가드-자기시험] §21 룰이 깨졌다 — ${shouldFlag ? "잡아야 할" : "잡으면 안 될"} 모양을 ` +
-          `${flagged ? "잡았다" : "놓쳤다"}. 룰을 고쳤으면 자기시험도 같이 맞출 것 (POSTMORTEMS #103·#105).`
+          `[멱등가드-자기시험] §21 룰이 깨졌다 — fixture #${i + 1} 기대 ${expected}건, 실제 ${got}건. ` +
+          `룰을 고쳤으면 자기시험도 같이 맞출 것 (POSTMORTEMS #103·#105).`
         );
       }
-    }
+    });
   }
-
   for (const file of [...walk("app"), ...walk("src")]) {
     if (!/\.(ts|tsx|jsx|js)$/.test(file)) continue;
     let text;
     try { text = readFileSync(join(ROOT, file), "utf8"); } catch { continue; }
     if (!text.includes("maybeSingle")) continue;
     const norm = file.split("\\").join("/");
+
+    // error 를 제대로 받은 자리의 끝 위치를 모아둔다(체인 끝 = .maybeSingle() 위치로 대조).
+    const okEnds = new Set();
+    let d;
+    destructuredWithError.lastIndex = 0;
+    while ((d = destructuredWithError.exec(text))) {
+      if (/\berror\b/.test(d[1])) okEnds.add(d.index + d[0].length);
+    }
+
     let m;
     idSelectThenMaybeSingle.lastIndex = 0;
     while ((m = idSelectThenMaybeSingle.exec(text))) {
-      // error 를 실제로 받고 있으면 통과 — 의도적으로 다룬 것.
-      if (statementReceivesError(text, m.index)) continue;
+      if (okEnds.has(m.index + m[0].length)) continue;
       if (GRANDFATHERED.has(norm)) { grandfatheredSeen++; continue; }
       const line = text.slice(0, m.index).split("\n").length;
       errors.push(
@@ -1065,8 +1064,13 @@ const { data: existing } = await db.from("s").select("id").eq("inquiry_id", id).
       );
     }
   }
+  // 유예분은 막지 않되 **반드시 말은 한다** — 카운터만 올리고 침묵하면 유예가 영구화된다
+  // (침묵 = "유예 없음"과 구별 불가. 이 검사기가 잡으려는 조용한 실패와 같은 부류다).
   if (grandfatheredSeen > 0) {
-    console.warn(`⚠️  [멱등가드] 유예 중인 기존 자리 ${grandfatheredSeen}건 — 손볼 때 같이 고치고 §21 목록에서 지울 것.`);
+    console.warn(
+      `⚠️  [멱등가드] 유예 중 ${grandfatheredSeen}건 — 삭제 예정 파일이라 통과시킴. ` +
+      `파일이 지워지면 §21 의 GRANDFATHERED Set 도 같이 지울 것.`
+    );
   }
 }
 
