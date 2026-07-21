@@ -32,6 +32,7 @@ export type AiSurface =
   | "doc_translate"
   | "doc_translate_verify"
   | "note_translate"
+  | "opinion_translate"
   | "case_brief"
   | "embedding"
   | "other";

@@ -28,6 +28,8 @@ export default function OpinionsSection({ inquiryId }) {
   const [request, setRequest] = useState(null);
   const [summary, setSummary] = useState("");
   const [opinions, setOpinions] = useState([]);
+  // 환자 언어 — 소견 "다시 번역" 버튼의 타겟(서버가 GET 응답에 실어 보냄).
+  const [patientLang, setPatientLang] = useState(null);
   const [creating, setCreating] = useState(false);
   const [copied, setCopied] = useState("");
 
@@ -47,6 +49,7 @@ export default function OpinionsSection({ inquiryId }) {
         setRequest(data.request || null);
         setSummary(data.summaryText || "");
         setOpinions(data.opinions || []);
+        setPatientLang(data.patientLang || null);
       }
     } catch { /* silent */ } finally {
       setLoading(false);
@@ -233,7 +236,7 @@ export default function OpinionsSection({ inquiryId }) {
             {opinions.length === 0 ? (
               <p className="text-xs text-gray-400">아직 도착한 소견이 없습니다.</p>
             ) : (
-              opinions.map((o) => <OpinionItem key={o.id} opinion={o} />)
+              opinions.map((o) => <OpinionItem key={o.id} opinion={o} patientLang={patientLang} />)
             )}
           </div>
         </>
@@ -242,14 +245,43 @@ export default function OpinionsSection({ inquiryId }) {
   );
 }
 
-function OpinionItem({ opinion }) {
+function OpinionItem({ opinion, patientLang }) {
   const [attr, setAttr] = useState(opinion.attribution_note || "");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
   const [released, setReleased] = useState(!!opinion.released_at);
-  const [draft, setDraft] = useState(opinion.released_text || opinion.opinion_text || "");
+  // 접수 시점에 서버가 이미 환자 언어로 자동 번역해둔 초안(auto_translated_text)이 있으면 그걸 기본값으로.
+  // 없으면(번역 실패·미지원 언어·아직 처리 중) 원문(한글) 폴백 — 아래 "다시 번역"으로 수동 재시도.
+  const [draft, setDraft] = useState(
+    opinion.released_text || opinion.auto_translated_text || opinion.opinion_text || ""
+  );
   const [releasing, setReleasing] = useState(false);
+  const [translating, setTranslating] = useState(false);
+  const [translateError, setTranslateError] = useState("");
+  // 아직 공개 전인데 자동 번역본이 있으면 = 코디가 교정만 하면 되는 상태(안내 문구 분기용).
+  const preTranslated = !opinion.released_at && !!opinion.auto_translated_text;
+
+  // 재번역 — 원문(한글)을 다시 환자 언어로 번역해 draft 를 덮어쓴다(코디가 초안을 날렸거나
+  // 접수 시점 자동번역이 실패한 경우의 복구 경로). 저장은 안 하고 화면 초안만 바꾼다.
+  const retranslate = async () => {
+    setTranslating(true);
+    setTranslateError("");
+    try {
+      const res = await authFetch(`/api/coordinator/opinions/translate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: opinion.opinion_text || "", lang: patientLang }),
+      });
+      const data = await res.json();
+      if (data.ok) setDraft(data.translated);
+      else setTranslateError("번역 실패 — 다시 시도해 주세요.");
+    } catch {
+      setTranslateError("번역 실패 — 다시 시도해 주세요.");
+    } finally {
+      setTranslating(false);
+    }
+  };
 
   const save = async () => {
     setSaving(true);
@@ -319,9 +351,12 @@ function OpinionItem({ opinion }) {
       </div>
       <p className="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed">{opinion.opinion_text}</p>
 
-      {/* 에이전시 공개 — 원문을 교정/번역해 확정본을 만들고 공개해야만 에이전시에 노출 */}
+      {/* 에이전시 공개 — 접수 시점에 AI 초벌 번역(환자 언어) → 코디 교정 → 공개해야만 노출 */}
       <div className="mt-3 bg-blue-50/40 border border-blue-100 rounded-lg p-3">
-        <p className="text-[11px] text-blue-700 mb-1.5">에이전시에 보낼 확정본 (오탈자·외국어 교정 후 공개)</p>
+        <p className="text-[11px] text-blue-700 mb-1.5">
+          에이전시에 보낼 확정본
+          {preTranslated ? " — AI가 자동 번역해뒀습니다, 확인·교정 후 공개" : " — 직접 교정 후 공개"}
+        </p>
         <textarea
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
@@ -329,7 +364,18 @@ function OpinionItem({ opinion }) {
           disabled={released}
           className="w-full text-sm border border-gray-200 rounded px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-teal-500 disabled:bg-gray-50 disabled:text-gray-500"
         />
-        <div className="mt-2">
+        {translateError && <p className="text-[11px] text-red-600 mt-1">{translateError}</p>}
+        <div className="mt-2 flex items-center gap-2">
+          {/* 자동번역이 실패했거나 코디가 초안을 날린 경우의 복구 버튼. 환자 언어를 모르면 숨긴다. */}
+          {!released && patientLang && (
+            <button
+              onClick={retranslate}
+              disabled={translating}
+              className="text-xs text-blue-700 hover:underline disabled:opacity-50"
+            >
+              {translating ? "번역 중…" : "다시 번역"}
+            </button>
+          )}
           {released ? (
             <button onClick={unpublish} disabled={releasing} className="text-xs text-gray-500 hover:text-red-600 hover:underline disabled:opacity-50">
               {releasing ? "처리 중…" : "공개 취소 (다시 비공개로)"}
