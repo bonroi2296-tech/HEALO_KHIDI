@@ -971,46 +971,50 @@ for (const dir of BACKOFFICE_DIRS) {
 // 실제로 설문 발송 cron 이 이 구조였고(2026-07-21 독립 리뷰 적발), 그대로 갔으면 환자에게
 // 매일 설문 메일이 나가고 K-03 만족도 응답률이 망가졌다.
 //
-// 유예 목록(GRANDFATHERED): 룰을 만들 때 이미 있던 자리들. 이번 PR 범위(설문·소견) 밖이라
-// 한꺼번에 고치지 않고 유예하되, **새로 생기는 건 즉시 차단**한다. 이 목록은 줄어들기만 해야
-// 한다 — 목록에 있는 파일이 고쳐지면 여기서도 지워라(늘리려면 그 이유를 PR 에 적을 것).
-// 위험도 순: invite(초대 재발급)·assign(케이스 배정) > crawl/offers-jobs(관리자 배치) >
-// site-settings(단일행 설정, 사실상 무해).
+// 유예 목록(GRANDFATHERED)은 2026-07-21 에 비었다 — 룰 신설 당시 유예했던 8곳(7파일)을
+// 전부 수리하고 목록·경고를 삭제했다. 이제 이 부류는 예외 없이 빌드 실패다. 되살리지 마라.
+//
+// 판정 방식(2026-07-21 독립 리뷰로 2차 보강): "앞 300자에 error 가 보이면 통과" 였던 초판은
+// 두 가지로 샜다 — ①바로 앞 문장이 error 를 받으면 바로 뒤 나쁜 자리가 묻어서 통과(실제로
+// 이 PR 의 crawl 수정이 그 모양을 만들었다) ②주석에 "{ data, error" 만 있어도 통과.
+// 그래서 **그 statement 의 구조분해만** 본다.
+//
+// ⚠️ 알려진 사각(의도적으로 안 넓힘): 이 룰은 `.select("id")` 로 **id 만** 고르는 자리만 본다.
+// `.select("id, status")` 처럼 컬럼을 더 고르는 find-or-create 가드는 못 잡는다. 넓혀서
+// 돌려보니 20건이 걸리는데 그 대부분이 **유니크 키로 한 행 읽는 정상 조회**(토큰 조회 등)라
+// 오탐이 진짜를 덮는다 — 시끄러운 게이트는 결국 꺼진다. 넓히려면 "존재검사"를 컬럼 수가
+// 아니라 용도로 가려내야 하고, 그건 이 정규식의 일이 아니다. 남은 자리 목록은 KNOWN_ISSUES 참고.
 {
-  const GRANDFATHERED = new Set([
-    "app/api/admin/crawl/route.ts",
-    "app/api/admin/khidi/agencies/route.ts",
-    "app/api/admin/offers-jobs/process/route.ts",
-    "app/api/admin/site-settings/route.ts",
-    "app/api/admin/site-settings/upload/route.ts",
-    "app/api/coordinator/cases/assign/route.ts",
-    "app/api/khidi/consultation/[id]/invite/route.ts",
-  ]);
-  const idSelectThenMaybeSingle = /\.select\(\s*["'`]id["'`]\s*\)[\s\S]{0,200}?\.maybeSingle\(\)/g;
-  const receivesError = /\{\s*data\s*(?::\s*\w+)?\s*,\s*error/;
-  let grandfatheredSeen = 0;
+  // 존재검사 후보: .select("id") 로 시작해 .maybeSingle() 로 끝나는 체인.
+  const idSelectThenMaybeSingle = /\.select\(\s*["'`]id["'`]\s*\)[\s\S]{0,300}?\.maybeSingle\(\)/g;
+  // 같은 statement 에서 error 를 실제로 구조분해로 받는 형태만 통과.
+  const destructuredWithError =
+    /(?:const|let|var)\s*\{([^}]*)\}\s*=\s*await[\s\S]{0,300}?\.select\(\s*["'`]id["'`]\s*\)[\s\S]{0,300}?\.maybeSingle\(\)/g;
   for (const file of [...walk("app"), ...walk("src")]) {
     if (!/\.(ts|tsx|jsx|js)$/.test(file)) continue;
     let text;
     try { text = readFileSync(join(ROOT, file), "utf8"); } catch { continue; }
     if (!text.includes("maybeSingle")) continue;
     const norm = file.split("\\").join("/");
+
+    // error 를 제대로 받은 자리의 끝 위치를 모아둔다(체인 끝 = .maybeSingle() 위치로 대조).
+    const okEnds = new Set();
+    let d;
+    destructuredWithError.lastIndex = 0;
+    while ((d = destructuredWithError.exec(text))) {
+      if (/\berror\b/.test(d[1])) okEnds.add(d.index + d[0].length);
+    }
+
     let m;
     idSelectThenMaybeSingle.lastIndex = 0;
     while ((m = idSelectThenMaybeSingle.exec(text))) {
-      // error 를 실제로 받고 있으면 통과 — 의도적으로 다룬 것.
-      const context = text.slice(Math.max(0, m.index - 300), m.index);
-      if (receivesError.test(context)) continue;
-      if (GRANDFATHERED.has(norm)) { grandfatheredSeen++; continue; }
+      if (okEnds.has(m.index + m[0].length)) continue;
       const line = text.slice(0, m.index).split("\n").length;
       errors.push(
         `[멱등가드] ${norm}:${line} — 존재검사에 .maybeSingle() 을 쓰면서 error 를 안 받는다. ` +
         `행이 2개가 되는 순간 에러가 "없음"으로 둔갑해 무한 재생성이 된다. .limit(1) + error 명시 검사로 바꿀 것 (POSTMORTEMS #105).`
       );
     }
-  }
-  if (grandfatheredSeen > 0) {
-    console.warn(`⚠️  [멱등가드] 유예 중인 기존 자리 ${grandfatheredSeen}건 — 손볼 때 같이 고치고 §21 목록에서 지울 것.`);
   }
 }
 

@@ -127,25 +127,37 @@ export async function PUT(request: NextRequest) {
       const slug = generateSlug(item.name);
 
       // Check duplicate by slug
-      const { data: existing } = await supabaseAdmin
+      const { data: slugMatch, error: slugErr } = await supabaseAdmin
         .from("hospitals")
         .select("id")
         .eq("slug", slug)
-        .maybeSingle();
+        .limit(1);
 
-      if (existing) {
+      // 중복 조회가 실패하면 "중복 없음"이 아니다 — 확인 못 한 채 넣으면 병원이 두 번 생긴다.
+      // 배치라 전체를 세우지 않고 이 건만 건너뛴다(다음 실행에서 재시도됨).
+      if (slugErr) {
+        console.error("[admin/crawl] slug lookup error:", slugErr.message);
+        results.push({ name: item.name, success: false, reason: "lookup_failed", slug });
+        continue;
+      }
+      if (slugMatch?.length) {
         results.push({ name: item.name, success: false, reason: "duplicate_slug", slug });
         continue;
       }
 
       // Check duplicate by name + address
-      const { data: nameMatch } = await supabaseAdmin
+      const { data: nameMatch, error: nameErr } = await supabaseAdmin
         .from("hospitals")
         .select("id")
         .eq("name", item.name)
-        .maybeSingle();
+        .limit(1);
 
-      if (nameMatch) {
+      if (nameErr) {
+        console.error("[admin/crawl] name lookup error:", nameErr.message);
+        results.push({ name: item.name, success: false, reason: "lookup_failed" });
+        continue;
+      }
+      if (nameMatch?.length) {
         results.push({ name: item.name, success: false, reason: "duplicate_name" });
         continue;
       }

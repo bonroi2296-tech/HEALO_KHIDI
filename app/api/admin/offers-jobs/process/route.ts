@@ -42,14 +42,19 @@ export async function POST(request: NextRequest) {
   }
 
   if (!jobId) {
-    const { data: queued } = await supabaseAdmin
+    const { data: queued, error: queuedErr } = await supabaseAdmin
       .from("hospital_offer_jobs")
       .select("id")
       .eq("status", "queued")
       .order("created_at", { ascending: true })
-      .limit(1)
-      .maybeSingle();
-    jobId = queued?.id ?? null;
+      .limit(1);
+    // 조회 실패를 "대기 작업 없음"으로 응답하면 큐가 밀려 있어도 조용히 놀고,
+    // 호출자(크론)는 정상으로 보고 재시도조차 안 한다.
+    if (queuedErr) {
+      console.error("[admin/offers-jobs] queued lookup error:", queuedErr.message);
+      return Response.json({ ok: false, error: "internal_error" }, { status: 500 });
+    }
+    jobId = queued?.[0]?.id ?? null;
   }
 
   if (!jobId) {

@@ -34,12 +34,18 @@ export async function POST(
 
   // 대상 상담이 실제로 존재하는지 확인(없는 id로 토큰 생성 방지)
   {
-    const { data: sessionExists } = await supabaseAdmin
+    const { data: sessionRows, error: sessionErr } = await supabaseAdmin
       .from("consultation_sessions")
       .select("id")
       .eq("id", consultationId)
-      .maybeSingle();
-    if (!sessionExists) {
+      .limit(1);
+    // 조회 자체가 실패한 걸 "상담 없음(404)"으로 보고하면 안 된다 — 스태프는 멀쩡한 상담을
+    // 사라진 걸로 오해하고, 진짜 원인(DB 장애)이 묻힌다. 실패-닫힘: 토큰은 안 만든다.
+    if (sessionErr) {
+      console.error("[khidi/invite] session lookup error:", sessionErr.message);
+      return Response.json({ ok: false, error: "internal_error" }, { status: 500 });
+    }
+    if (!sessionRows?.length) {
       return Response.json(
         { ok: false, error: "consultation_not_found" },
         { status: 404 }
@@ -120,13 +126,19 @@ export async function POST(
     if (resolvedEmail) {
       try {
         // 세션 + 병원 + 의사 정보 조회 (이메일 본문에 표시)
-        const { data: session } = await supabaseAdmin
+        const { data: session, error: sessionReadErr } = await supabaseAdmin
           .from("consultation_sessions")
           .select(
             "scheduled_at, hospital_id, partner_doctor_id, patient_language"
           )
           .eq("id", consultationId)
           .maybeSingle();
+
+        // 예약시각을 못 읽었는데 메일을 보내면 안 된다 — 아래 기본값(now)이 환자에게
+        // "지금 바로 상담" 이라고 통지해 빈 방으로 부른다. 링크는 응답에 그대로 실리니
+        // 스태프가 수동 전달/재시도할 수 있다(실패-닫힘).
+        if (sessionReadErr) throw new Error(`session_read_failed: ${sessionReadErr.message}`);
+        if (!(session as any)?.scheduled_at) throw new Error("scheduled_at_missing");
 
         let hospitalName: string | undefined;
         let hospitalAddress: string | undefined;
@@ -168,7 +180,7 @@ export async function POST(
         const { subject, html, text } = renderConsultationInviteEmail({
           recipientName: body.inviteeName,
           inviteUrl,
-          scheduledAt: sessionAny?.scheduled_at || new Date().toISOString(),
+          scheduledAt: sessionAny.scheduled_at,
           role,
           hospitalName,
           hospitalAddress,

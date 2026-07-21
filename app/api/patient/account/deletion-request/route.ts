@@ -67,13 +67,19 @@ export async function POST(request: NextRequest) {
       typeof body?.reason === "string" ? body.reason.trim().slice(0, 1000) : null;
 
     // 이미 대기/처리중 요청이 있으면 중복 생성하지 않음(멱등)
-    const { data: existing } = await (supabaseAdmin as any)
+    // 실패-닫힘: 못 읽은 걸 "요청 없음"으로 보면 같은 사람의 삭제요청이 중복 생성된다.
+    const { data: existingRows, error: existingErr } = await (supabaseAdmin as any)
       .from("account_deletion_requests")
       .select("id, status")
       .eq("user_id", user.id)
       .in("status", ["pending", "processing"])
-      .limit(1)
-      .maybeSingle();
+      .limit(1);
+
+    if (existingErr) {
+      console.error("[patient/deletion-request] lookup error:", existingErr.message);
+      return NextResponse.json({ ok: false, error: "internal_error" }, { status: 500 });
+    }
+    const existing = existingRows?.[0];
 
     if (existing) {
       return NextResponse.json({ ok: true, alreadyRequested: true, status: existing.status });

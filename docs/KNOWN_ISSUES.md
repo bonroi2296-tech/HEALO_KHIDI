@@ -1,5 +1,27 @@
 # HEALO KHIDI — 알려진 이슈 / 전수 QA 발견사항
 
+## 🟡 멱등가드(§21) 사각에 남은 존재검사 12곳 — 미분류, 후속 스윕 필요 (2026-07-21)
+
+**맥락** — `check:content` §21 은 중복방지 존재검사에 `.maybeSingle()` + error 미수신을 막는다(POSTMORTEMS #105). 유예목록(GRANDFATHERED) 8곳은 전부 수리·삭제했고, 독립 리뷰가 정규식 사각에서 추가로 찾아낸 **진짜 결함 5곳도 같이 고쳤다**(agency·hospital 메시지 스레드 find-or-create, offers/preview, deletion-request, crawl/schedule).
+
+**남은 것** — 룰의 정규식은 `.select("id")` 로 **id 만** 고르는 자리만 본다. 컬럼을 더 고르는 형태(`.select("id, status")`)까지 넓혀 돌리면 아래 12곳이 걸리는데, **대부분이 유니크 키(토큰·PK)로 한 행 읽는 정상 조회로 보인다** — 즉 오탐이 섞여 있어 일괄 수리 대상이 아니다. 그래서 룰을 안 넓히고 여기 적어둔다.
+
+```
+app/api/inquiries/claim/route.ts:42
+app/api/khidi/cost-estimates/route.ts:47
+app/api/khidi/visa/applications/route.ts:44
+app/api/khidi/visa/applications/[id]/documents/[docId]/route.ts:41, :93
+app/api/opinions/[token]/route.ts:107, :137
+app/api/partner/leads/[id]/route.ts:86, :122
+app/api/portal/followup/route.ts:121
+app/api/portal/threads/[id]/messages/route.ts:25
+app/api/survey/[token]/route.ts:48
+```
+
+**어떻게 처리할 것인가** — 한 곳씩 "이게 **중복 생성을 막는 가드**인가, 아니면 그냥 한 행 조회인가"로 갈라라. 가드면 `.limit(1)` + error 실패-닫힘, 조회면 그대로 두되 error 는 받는 게 낫다. **일괄 치환 금지** — 이 부류는 실패 시 어느 쪽이 안전한지가 자리마다 다르다.
+
+---
+
 ## 🔴 만족도 설문이 **구조적으로 0건** — KHIDI K-03 지표에 데이터가 안 쌓인다 (2026-07-21 실측)
 
 > 아래 「📦 보관」 항목의 코드가 이걸 고치려던 것이지만, **되살리든 안 되살리든 문제 자체는 지금 진행 중**이라 따로 세워둔다.
