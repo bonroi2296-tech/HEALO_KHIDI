@@ -985,6 +985,10 @@ for (const dir of BACKOFFICE_DIRS) {
     "app/api/admin/site-settings/upload/route.ts",
     "app/api/coordinator/cases/assign/route.ts",
     "app/api/khidi/consultation/[id]/invite/route.ts",
+    // ⏳ 곧 사라진다 — PO 결정(2026-07-21): 이 라우트는 호출부가 0건인 고아 코드라 삭제한다
+    //    (환자 SOS 버튼이 끝내 안 붙었고 실사용 0건). 별도 세션이 처리 중이며, 파일이 지워지면
+    //    이 줄도 같이 지워라. 그때까지 CI 를 막지 않게 유예.
+    "app/api/portal/emergency/route.ts",
   ]);
   // ⚠️ **이 룰은 전수 검사가 아니다 — 커버리지를 부풀리지 마라.**
   // 대상은 `select("id")` 하나만 가져오는 모양뿐이다. `select("id, …")` 까지 넓혀 봤더니
