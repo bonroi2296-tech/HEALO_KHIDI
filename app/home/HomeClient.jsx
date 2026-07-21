@@ -24,7 +24,6 @@ import {
   TrendingUp,
   Lock,
   Headphones,
-  Phone,
   MessageCircle,
   MapPin,
   Mail,
@@ -536,10 +535,6 @@ export default function HomeClient() {
         <div className="max-w-4xl mx-auto px-4">
           <div className="bg-red-50 rounded-xl md:rounded-2xl p-5 md:p-10 border border-red-100">
             <div className="text-center">
-              <div className="inline-flex items-center gap-2 bg-red-100 rounded-full px-3 md:px-4 py-1 md:py-1.5 text-red-700 text-xs md:text-sm font-semibold mb-3 md:mb-4">
-                <Phone size={12} />
-                24/7
-              </div>
               <h2 className="text-xl md:text-3xl font-extrabold text-gray-900 mb-2 md:mb-3">{l(L.emergency.title)}</h2>
               <p className="text-gray-500 text-sm md:text-base mb-5 md:mb-8">{l(L.emergency.subtitle)}</p>
               <div className="flex flex-col sm:flex-row justify-center gap-2 md:gap-4">
