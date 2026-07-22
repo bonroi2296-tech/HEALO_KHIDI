@@ -508,9 +508,15 @@ export default function ImmuneHospitalClient({ branchReviews = {} }) {
                         ({branchReviews[b.slug].count}) · {c.branchReviewSource}
                       </span>
                     </div>
-                    <p className="mt-1.5 text-xs text-gray-500 leading-relaxed line-clamp-2">
-                      “{branchReviews[b.slug].quote}”
-                    </p>
+                    {/* 인용문은 한국어 원문이라 **한국어 화면에서만** 띄운다.
+                        6개 언어 전부에 띄웠더니 i18n-no-korean-leak 가드가 잡았다(2026-07-22 CI).
+                        러시아·영어 환자는 한국어 리뷰를 읽지도 못하니 띄울 가치도 없다.
+                        별점·건수는 숫자라 언어 무관 → 그건 모든 언어에 유지. */}
+                    {lang === "ko" && (
+                      <p className="mt-1.5 text-xs text-gray-500 leading-relaxed line-clamp-2">
+                        “{branchReviews[b.slug].quote}”
+                      </p>
+                    )}
                   </div>
                 ) : (
                   <div className="mb-4" />
