@@ -303,7 +303,7 @@ app/api/survey/[token]/route.ts:48
 
 ### 🔎 겉보기 의심 → 파보니 블로커 아님
 - `/kk` 404는 내부 로케일코드가 `kz`라서(정상, `proxy.ts`가 브라우저 kk→kz 매핑). 카자흐는 `/kz`에서 작동.
-- `/ru/for-russian-patients`·`/kk/for-kazakh-patients`는 의도된 레거시 랜딩(Yandex 색인, `proxy.ts` LEGACY_SKIP). ~~🔸 사소: html `lang="en"` 속성만 영어~~ ✅ **해결(#361)**: LEGACY_SKIP 경로에도 `x-locale` 주입 → `lang="ru"`/`lang="kk"` 렌더(dev 실렌더 확인). **2026-07-06 정비**: 고아 상태 해소(러/카 푸터 내부링크) + 비자 오기 수정(D-2→G-1-10) + CTA `/consult/start`→`/inquiry` 직결. 🔸 비용 숫자($3,000/월 등 2026-04 작성)는 PO 확인 대기.
+- `/ru/for-russian-patients`·`/kk/for-kazakh-patients`는 의도된 레거시 랜딩(Yandex 색인). 이 두 경로의 예외 판정은 **`src/lib/i18n/config.js` 의 `LEGACY_LANDINGS`/`isLegacyLanding()` 한 곳**이 SoR — `proxy.ts` 와 언어 스위처(`localeSwitchTarget`)가 같은 함수를 쓴다 (2026-07-22 통합. 그 전엔 `proxy.ts` 에 `LEGACY_SKIP` 배열이 따로 있었다). ~~🔸 사소: html `lang="en"` 속성만 영어~~ ✅ **해결(#361)**: 이 경로에도 `x-locale` 주입 → `lang="ru"`/`lang="kk"` 렌더(dev 실렌더 확인). **2026-07-06 정비**: 고아 상태 해소(러/카 푸터 내부링크) + 비자 오기 수정(D-2→G-1-10) + CTA `/consult/start`→`/inquiry` 직결. ✅ **2026-07-22 해결(#872, POSTMORTEMS #107)**: 이 랜딩에서 **언어를 바꾸면 404**(ru) / **아무 일도 안 일어남**(kk) 이던 것 수정 — 번역판이 없으므로 그 언어 홈으로 보낸다. 푸터 라벨도 랜딩 h1 과 일치시킴. 재발은 `check:content` §25 가 막는다. 🔸 비용 숫자($3,000/월 등 2026-04 작성)는 PO 확인 대기.
 
 ### 🔴 오픈 전 남은 관문 (PO만 닫을 수 있음 — 이게 닫히면 오픈 OK)
 1. **가입→인증메일→로그인 / 비번찾기→메일** 실제 1회 통과(실메일 — API로는 부작용이라 미검증).
