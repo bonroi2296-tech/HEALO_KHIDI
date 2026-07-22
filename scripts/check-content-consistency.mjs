@@ -1139,8 +1139,10 @@ for (const dir of BACKOFFICE_DIRS) {
 //     번역판 없는 페이지 → 언어 스위처가 /{다른언어}/{같은경로} 로 보내면 404 가 난다(2026-07-22 실측).
 //     LEGACY_LANDINGS 에 등재된 경로만 스위처가 "그 언어 홈으로" 예외 처리한다.
 //     → 등재 안 된 언어 모양 폴더가 새로 생기면 같은 404 함정이 재생산되므로 여기서 막는다.
-// 한계: 폴더 최상위 1단계만 본다(app/ru/x 는 잡고 app/foo/ru/x 는 안 잡음 — 후자는 언어 prefix 로
-//     해석되지 않으므로 이 함정이 아니다).
+// 한계: app/ 최상위 1단계만 본다. app/foo/ru/x 는 URL 이 /foo/ru/x 라 이 함정이 아니지만,
+//     **route group 은 예외다** — app/(marketing)/ru/x 는 URL 이 /ru/x 로 같은 함정인데 이 스캔은
+//     괄호 폴더를 안 들여다봐서 못 잡는다(현재 app/ 최상위에 괄호 폴더 0개라 실害 없음).
+//     최상위에 route group 을 도입하면 이 검사도 그 안을 훑도록 같이 고칠 것.
 {
   try {
     const { LOCALES, LEGACY_LANDINGS } = await import(
@@ -1152,6 +1154,9 @@ for (const dir of BACKOFFICE_DIRS) {
       if (!LOCALE_LIKE.has(seg)) continue;
       if (!statSync(join(ROOT, "app", seg)).isDirectory()) continue;
       for (const child of readdirSync(join(ROOT, "app", seg))) {
+        // 폴더만 라우트다. layout.jsx·not-found.jsx·opengraph-image.js 같은 Next 표준 파일을
+        // 라우트로 세면 "/ru/layout.jsx 를 LEGACY_LANDINGS 에 추가하라"는 헛소리로 CI 가 깨진다.
+        if (!statSync(join(ROOT, "app", seg, child)).isDirectory()) continue;
         const route = `/${seg}/${child}`;
         if (LEGACY_LANDINGS.includes(route)) continue;
         errors.push(

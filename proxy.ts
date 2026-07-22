@@ -19,7 +19,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
-import { LOCALES, LOCALE_COOKIE, DEFAULT_LOCALE, LEGACY_LANDINGS } from "@/lib/i18n/config";
+import { LOCALES, LOCALE_COOKIE, DEFAULT_LOCALE, isLegacyLanding } from "@/lib/i18n/config";
 
 // ── URL 언어화(locale-in-path) ──────────────────────────────
 // 공개 마케팅 경로만 /{locale}/ 로 강제. /ru/treatments → 내부 /treatments rewrite + x-locale 헤더로 언어 전달.
@@ -49,9 +49,9 @@ const PUBLIC_PREFIXES = [
   "/cookies",
   "/medical-disclaimer",
 ];
-// 옛 러/카 전용 랜딩(폴더가 /ru,/kk 라 언어 prefix와 충돌). Yandex 색인 자산이라 이동 안 함 — 이 두 주소만 통과시켜 그대로 유지.
-// 목록의 단일 SoR 은 i18n/config — 언어 스위처(localeSwitchTarget)도 같은 목록을 봐야 한 쪽만 고쳐지는 일이 없다.
-const LEGACY_SKIP = LEGACY_LANDINGS;
+// 옛 러/카 전용 랜딩(폴더가 /ru,/kk 라 언어 prefix와 충돌)은 Yandex 색인 자산이라 이동 안 함 —
+// 이 두 주소만 통과시켜 그대로 유지한다. 목록도 판정식도 i18n/config 의 isLegacyLanding 하나뿐:
+// 언어 스위처(localeSwitchTarget)가 같은 함수를 쓰므로 한쪽만 고쳐지는 일이 없다(POSTMORTEMS #107).
 
 function isPublicLocalePath(pathname: string) {
   return PUBLIC_PREFIXES.some((p) => pathname === p || pathname.startsWith(p + "/"));
@@ -189,8 +189,7 @@ export async function proxy(request: NextRequest) {
   // 옛 러/카 전용 랜딩 — 주소·폴더는 그대로(Yandex 색인 자산)지만
   // x-locale 만 박아 <html lang>이 en 이 아니라 실제 언어(ru/kk)로 렌더되게(SEO).
   // ========================================
-  const legacy = LEGACY_SKIP.find((p) => pathname.startsWith(p));
-  if (legacy) {
+  if (isLegacyLanding(pathname)) {
     const seg = pathname.split("/")[1];        // "ru" | "kk"
     const locale = seg === "kk" ? "kz" : seg;  // URL 표준코드(kk) → 내부코드(kz)
     const headers = new Headers(request.headers);
@@ -207,7 +206,7 @@ export async function proxy(request: NextRequest) {
   // ========================================
   // URL 언어화 (공개 마케팅 경로만) — 인증 로직보다 먼저
   // ========================================
-  if (!LEGACY_SKIP.some((p) => pathname.startsWith(p))) {
+  if (!isLegacyLanding(pathname)) {
     const seg = pathname.split("/")[1];
     const hasLocale = LOCALES.includes(seg);
     const bare = hasLocale ? pathname.slice(seg.length + 1) || "/" : pathname;
