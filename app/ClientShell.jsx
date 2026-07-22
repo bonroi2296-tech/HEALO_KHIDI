@@ -360,27 +360,39 @@ function ClientShellContent({
           </div>
 
           <div className="mt-6 sm:mt-8 pt-4 sm:pt-6 border-t border-gray-100 text-xs text-gray-500 space-y-1.5 break-words">
-            <div>Service Name: {SITE_INFO.legal.serviceName}</div>
-            <div>Operated by: {SITE_INFO.legal.operatedBy}</div>
-            <div>Business Type: {SITE_INFO.legal.businessType}</div>
-            <div>Representative: {SITE_INFO.legal.representative}</div>
+            {/* 라벨은 6개 언어(PO 결정 2026-07-22). 값은 고유명사·번호라 그대로 두되,
+                ①사업자 구분은 분류라 번역 ②주소·대표자·개인정보책임자는 한국어 화면만 한글
+                (외국어 화면에선 로마자가 서류·택시에 실제로 쓸모 있다 — copyrightKo 와 같은 분기). */}
+            <div>{t("footer.biz.serviceName", langCode)}: {SITE_INFO.legal.serviceName}</div>
+            <div>{t("footer.biz.operatedBy", langCode)}: {SITE_INFO.legal.operatedBy}</div>
+            <div>{t("footer.biz.businessType", langCode)}: {t("footer.biz.soleProprietor", langCode)}</div>
             <div>
-              Business Registration Number:{" "}
+              {t("footer.biz.representative", langCode)}:{" "}
+              {langCode === "ko" ? SITE_INFO.legal.representativeKo : SITE_INFO.legal.representative}
+            </div>
+            <div>
+              {t("footer.biz.regNumber", langCode)}:{" "}
               {SITE_INFO.legal.businessRegistrationNumber}
             </div>
             <div>
-              Foreign Patient Attraction Business Registration:{" "}
+              {t("footer.biz.attractionReg", langCode)}:{" "}
               {SITE_INFO.legal.foreignPatientAttractionRegistration}
             </div>
-            <div>Guarantee Insurance: {SITE_INFO.legal.guaranteeInsurance}</div>
             <div>
-              Address: {SITE_INFO.legal.addressLine1}{" "}
-              {SITE_INFO.legal.addressLine2}
+              {t("footer.biz.insurance", langCode)}:{" "}
+              {langCode === "ko" ? SITE_INFO.legal.guaranteeInsurerKo : SITE_INFO.legal.guaranteeInsurer}
+              {" ("}{t("footer.biz.insuranceScope", langCode)}{")"}
             </div>
-            <div>Contact Email: {SITE_INFO.legal.contactEmail}</div>
             <div>
-              Personal Information Protection Officer:{" "}
-              {SITE_INFO.legal.privacyOfficer}
+              {t("footer.biz.address", langCode)}:{" "}
+              {langCode === "ko"
+                ? SITE_INFO.legal.addressKo
+                : `${SITE_INFO.legal.addressLine1} ${SITE_INFO.legal.addressLine2}`}
+            </div>
+            <div>{t("footer.biz.email", langCode)}: {SITE_INFO.legal.contactEmail}</div>
+            <div>
+              {t("footer.biz.privacyOfficer", langCode)}:{" "}
+              {langCode === "ko" ? SITE_INFO.legal.privacyOfficerKo : SITE_INFO.legal.privacyOfficer}
             </div>
             {/* 한국어 화면만 "힐위드" 병기(네이버 브랜드 매칭) — 영어 화면 한글누출 가드 준수 */}
             <div className="pt-2">{langCode === "ko" ? SITE_INFO.legal.copyrightKo : SITE_INFO.legal.copyright}</div>

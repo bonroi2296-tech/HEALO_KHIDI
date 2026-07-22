@@ -1202,6 +1202,39 @@ for (const dir of BACKOFFICE_DIRS) {
   }
 }
 
+// ── §27 전역 공개 크롬(ClientShell)에 하드코딩 라벨 금지 (POSTMORTEMS #108) ──────────
+// 왜: 푸터 사업자 정보 10줄이 `<div>Service Name: {...}</div>` 처럼 **영어 라벨 하드코딩**이라
+//     한국어 화면에서도 영어로 떴다. 데모 베이스(initial commit)에서 넘어온 뒤 i18n 키가
+//     아예 만들어진 적이 없어 **3개월간 아무 검사도 안 걸렸다** — 한글누출 가드(§7·축C)는
+//     "비한국어 화면의 한글"만 보고, 그 **반대 방향(한국어 화면의 영어)** 은 통째로 사각이었다.
+// 무엇을 보나: ClientShell(모든 공개 화면이 쓰는 전역 껍데기)의 JSX 텍스트 노드에
+//     `영어단어 …:` 꼴 라벨 리터럴이 있으면 실패. 라벨은 t() 로 뽑아야 한다.
+// 한계: ClientShell 한 파일만 본다(전역 크롬이라 파급이 가장 크고, 전 파일 스캔은 오탐 폭발).
+//     다른 공개 컴포넌트의 하드코딩 라벨은 여전히 사람/완성도 감사 몫.
+{
+  const FILE = "app/ClientShell.jsx";
+  try {
+    const text = readFileSync(join(ROOT, FILE), "utf8");
+    // JSX 텍스트 노드( `>` 와 `{`/`<` 사이 )에서 "영문 라벨:" 꼴만 집는다.
+    // 주석(//, /* */)·문자열 리터럴 안은 제외하려고 `>` 로 시작하는 자리만 본다.
+    const LABEL = />\s*([A-Z][A-Za-z]+(?: [A-Za-z]+){0,5}):\s*(?=[{<]|\s*$)/gm;
+    const lines = text.split("\n");
+    for (const m of text.matchAll(LABEL)) {
+      const line = text.slice(0, m.index).split("\n").length;
+      const src = lines[line - 1] || "";
+      if (/\/\/|\/\*|\*/.test(src.trimStart().slice(0, 2))) continue; // 주석 줄
+      errors.push(
+        `[하드코딩라벨] ${FILE}:${line} — "${m[1]}:" 가 코드에 그대로 박혀 있다. ` +
+          `ClientShell 은 6개 언어 전 공개화면이 쓰는 전역 껍데기라, 하드코딩 라벨은 ` +
+          `한국어·러시아어 화면에서도 영어로 뜬다(2026-07-22 실제로 사업자 정보 10줄이 그랬음). ` +
+          `t("...", langCode) 로 뽑고 6개 언어 사전에 키를 추가할 것 (POSTMORTEMS #108).`
+      );
+    }
+  } catch (e) {
+    errors.push(`[하드코딩라벨] 검사 실패: ${e.message}`);
+  }
+}
+
 // ── 결과 ────────────────────────────────────────────────────────
 if (errors.length) {
   console.error(`\n❌ 콘텐츠 일관성 검사 실패 (${errors.length}건)\n`);
