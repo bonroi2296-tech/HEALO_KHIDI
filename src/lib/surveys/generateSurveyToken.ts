@@ -16,6 +16,7 @@ import { createHash, randomBytes } from "node:crypto";
 import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
 import { sendEmail } from "@/lib/email/sendEmail";
 import { renderSurveyEmail } from "./surveyEmailTemplate";
+import { siteUrl } from "@/lib/siteUrl";
 
 /** 32자 URL-safe 토큰 (node:crypto 기반, 외부 패키지 의존 없음) */
 function generateToken(): string {
@@ -123,9 +124,9 @@ export interface SendSurveyEmailResult {
 export async function sendSurveyEmail(
   opts: SendSurveyEmailOptions
 ): Promise<SendSurveyEmailResult> {
-  const baseUrl =
-    process.env.NEXT_PUBLIC_SITE_URL ||
-    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "https://healwith.co.kr");
+  // 기준 주소는 siteUrl() 하나로 (VERCEL_URL 폴백 금지 — 실제 환자 메일에 배포 임시주소가
+  // 나갔던 사고 2026-07-22, src/lib/siteUrl.ts 주석 참고)
+  const baseUrl = siteUrl();
 
   const surveyUrl = `${baseUrl.replace(/\/$/, "")}/survey/${opts.token}`;
   const lang = opts.lang || "ko";
