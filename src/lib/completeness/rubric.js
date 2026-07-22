@@ -55,13 +55,14 @@ export const RUBRIC = [
     done: [
       "활성 6개 언어(ko·en·ru·kz·zh·ja)가 같은 i18n 키 집합을 가진다(누락 0)",
       "렌더 텍스트에 하드코딩 한글 누출 0 (비-ko 화면에 한국어가 새지 않는다)",
+      "**반대 방향도** 0 — ko 화면에 영어 라벨이 하드코딩돼 있지 않다(#108)",
       "렌더 언어는 useLang()(서버 initialLang 주입)로 결정 — SSR이 항상 en으로 굳지 않는다",
     ],
     verify: "auto",
     scope: "app/** 공개 라우트 + src/components/** 공개·환자 컴포넌트 + src/lib/i18n/index.js",
-    guards: ["check:content §i18n키패리티", "check:content §한글누출(isPublicFacingFile 판정)", "check:content §환자i18n(공개/환자 전체)", "check:i18n"],
-    postmortems: [3, 67, 81, 2, 30, 38, 39],
-    gap: "✅ 축 C(2026-07-15): 폴더 화이트리스트 → isPublicFacingFile(공개 화이트리스트 ∧ ¬백오피스 ∧ ¬api) 판정으로 확장(공개 마케팅/환자 퍼널 전체 스캔, #81식 경계누출 차단). 잔여 사각: 중괄호식 {cond?'한글':…}·객체 label:'한글'은 여전히 정적분석 밖(코드리뷰 몫).",
+    guards: ["check:content §i18n키패리티", "check:content §한글누출(isPublicFacingFile 판정)", "check:content §환자i18n(공개/환자 전체)", "check:content §27 하드코딩영문라벨(ClientShell)", "check:i18n"],
+    postmortems: [3, 67, 81, 2, 30, 38, 39, 108],
+    gap: "✅ 축 C(2026-07-15): 폴더 화이트리스트 → isPublicFacingFile(공개 화이트리스트 ∧ ¬백오피스 ∧ ¬api) 판정으로 확장(공개 마케팅/환자 퍼널 전체 스캔, #81식 경계누출 차단). 잔여 사각: 중괄호식 {cond?'한글':…}·객체 label:'한글'은 여전히 정적분석 밖(코드리뷰 몫). ⚠️ **방향 사각(2026-07-22 #108)**: 위 가드는 전부 '비-ko 화면의 한글'만 본다 — 그 반대(ko 화면의 영어)는 3개월간 무검사였고 푸터 사업자 정보 10줄이 그대로 방치됐다. i18n 키 패리티도 못 잡는다(**키가 0개면 0개끼리 일치**). §27이 ClientShell 한 파일에 한해 이 방향을 처음 메웠고, 전 저장소 일반화는 의미 판정이 필요해 감사 루프 몫.",
   },
 
   // ── 유형 2 · 조용한 실패 ────────────────────────────────────────────────

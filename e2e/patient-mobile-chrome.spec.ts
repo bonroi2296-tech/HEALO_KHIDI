@@ -31,6 +31,11 @@ test.describe("환자 포털 모바일 단일 크롬 @smoke", () => {
     // ClientShell 에서 공개 마케팅 푸터와 공개 하단바(MobileBottomNav)는 둘 다 동일 조건
     // (!isPortalPage)으로 렌더된다. 즉 푸터가 안 보이면 공개 하단바도 안 뜬 것 = 단일 크롬.
     // 푸터(사업자등록번호)가 보이면 공개 크롬이 환자 포털에 누수된 이중 크롬 회귀.
-    expect(body).not.toMatch(/Business Registration Number/i);
+    //
+    // ⚠️ 여기서 **언어에 안 흔들리는 앵커**를 쓴다(2026-07-22, POSTMORTEMS #108 독립 리뷰 지적).
+    //    예전엔 "Business Registration Number" 라는 영어 라벨로 판정했는데, 그 라벨이 6개 언어로
+    //    번역되면서 ko/ru/kz/zh/ja 문맥에서는 실제로 푸터가 새도 이 부정단언이 **통과**해버린다
+    //    (= 초록불인데 가드는 죽어 있는 상태). 사업자등록번호 값은 어느 언어에서도 같은 숫자다.
+    expect(body).not.toMatch(/463-35-00902/);
   });
 });
