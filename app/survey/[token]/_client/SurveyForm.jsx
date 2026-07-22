@@ -217,12 +217,12 @@ function detectLang() {
 // ─── 상태 화면 컴포넌트 ────────────────────────────────────────────────────────
 function StatusScreen({ icon, title, desc }) {
   return (
-    <div className="min-h-screen bg-[#f5f0e8] flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
       <div className="max-w-md w-full bg-white rounded-xl shadow-lg p-8 text-center">
         <div className="text-5xl mb-4">{icon}</div>
         <h1 className="text-xl font-semibold text-gray-900 mb-3">{title}</h1>
         <p className="text-sm text-gray-500 leading-relaxed">{desc}</p>
-        <div className="mt-6 text-xs text-[#c8a96a] font-semibold tracking-widest uppercase">healwith</div>
+        <div className="mt-6 text-xs text-teal-700 font-semibold tracking-widest uppercase">healwith</div>
       </div>
     </div>
   );
@@ -249,8 +249,8 @@ function ScoreSelector({ qIndex, value, onChange, scaleLabels }) {
             <div
               className={`w-10 h-10 rounded-full border-2 flex items-center justify-center text-sm font-semibold transition-all
                 ${value === score
-                  ? "bg-[#c8a96a] border-[#c8a96a] text-white"
-                  : "border-gray-300 text-gray-500 hover:border-[#c8a96a] hover:text-[#c8a96a]"
+                  ? "bg-teal-600 border-teal-600 text-white"
+                  : "border-gray-300 text-gray-500 hover:border-teal-500 hover:text-teal-700"
                 }`}
             >
               {score}
@@ -267,8 +267,14 @@ function ScoreSelector({ qIndex, value, onChange, scaleLabels }) {
 }
 
 // ─── 메인 폼 ──────────────────────────────────────────────────────────────────
-export default function SurveyForm({ token, initialState, alreadyResponded }) {
-  const lang = detectLang();
+export default function SurveyForm({ token, initialState, alreadyResponded, patientLang }) {
+  // 우선순위: **환자에게 기록된 언어** → 브라우저 언어 → 영어.
+  //
+  // 왜 환자 언어가 먼저인가 — 우리는 이 환자가 무슨 말을 쓰는지 이미 안다(메일도 그 언어로
+  // 보냈다). 브라우저 설정으로 정하면 러시아 환자가 영어 폰을 쓸 때 영어 설문지를 받는다.
+  // 실제로 2026-07-22 에 러시아어 메일 → 한국어 설문지가 나왔다(연 사람 브라우저가 한국어라).
+  // 읽을 수 없으면 답을 못 하고, 그럼 K-03 만족도 표본이 영영 안 쌓인다.
+  const lang = (patientLang && STRINGS[patientLang]) ? patientLang : detectLang();
   const s = STRINGS[lang] || STRINGS.en;
 
   const [scores, setScores] = useState({ q1: 0, q2: 0, q3: 0, q4: 0, q5: 0 });
@@ -346,11 +352,11 @@ export default function SurveyForm({ token, initialState, alreadyResponded }) {
   }
 
   return (
-    <div className="min-h-screen bg-[#f5f0e8] py-10 px-4">
+    <div className="min-h-screen bg-gray-50 py-10 px-4">
       <div className="max-w-lg mx-auto">
         {/* 헤더 */}
         <div className="text-center mb-8">
-          <div className="font-serif text-[#c8a96a] text-3xl tracking-wide mb-1">healwith</div>
+          <div className="text-teal-700 text-3xl font-bold tracking-tight mb-1">healwith</div>
           <h1 className="text-xl font-semibold text-gray-900 mt-4">{s.title}</h1>
           <p className="text-sm text-gray-500 mt-2 leading-relaxed whitespace-pre-line">{s.subtitle}</p>
         </div>
@@ -360,7 +366,7 @@ export default function SurveyForm({ token, initialState, alreadyResponded }) {
           {s.questions.map((question, i) => (
             <div key={i}>
               <p className="text-sm font-medium text-gray-800 leading-snug">
-                <span className="text-[#c8a96a] font-bold mr-1">Q{i + 1}.</span>
+                <span className="text-teal-700 font-bold mr-1">Q{i + 1}.</span>
                 {question}
               </p>
               <ScoreSelector
@@ -383,7 +389,7 @@ export default function SurveyForm({ token, initialState, alreadyResponded }) {
               placeholder={s.commentPlaceholder}
               maxLength={2000}
               rows={3}
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-800 resize-none focus:outline-none focus:ring-2 focus:ring-[#c8a96a]/40"
+              className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-800 resize-none focus:outline-none focus:ring-2 focus:ring-teal-500/40"
             />
           </div>
 
@@ -396,7 +402,7 @@ export default function SurveyForm({ token, initialState, alreadyResponded }) {
           <button
             type="submit"
             disabled={submitting}
-            className="w-full bg-[#c8a96a] hover:bg-[#b8996a] disabled:opacity-60 text-black font-semibold
+            className="w-full bg-teal-600 hover:bg-teal-700 disabled:opacity-60 text-white font-semibold
                        tracking-widest uppercase text-xs py-4 rounded-sm transition-colors"
           >
             {submitting ? s.submitting : s.submit}
