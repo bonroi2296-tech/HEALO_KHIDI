@@ -1133,6 +1133,37 @@ for (const dir of BACKOFFICE_DIRS) {
   }
 }
 
+
+// ── §25 사용자에게 보내는 링크에 VERCEL_URL 폴백 금지 (2026-07-22 실사고) ──────────
+// 왜: `NEXT_PUBLIC_SITE_URL || (VERCEL_URL ? ... )` 패턴은 프로덕션에 그 env 가 없으면
+//     **배포별 임시 주소**(healo-khidi-xxxxx-bonrois-projects.vercel.app)로 조용히 떨어진다.
+//     실제로 만족도 설문 메일과 화상상담 리마인더가 그 주소로 나갔다 — 러시아·카자흐 환자가
+//     의료 메일에서 낯선 .vercel.app 링크를 받으면 피싱으로 보고 안 누른다. 리마인더는
+//     그 링크가 곧 진료 입장 경로다. 기준 주소는 src/lib/siteUrl.ts 의 siteUrl() 하나로 쓴다.
+// ⚠️ 서버가 자기 자신을 fetch 하는 자리는 대상이 아니다(프리뷰에선 프리뷰 자신을 불러야 함).
+//     그래서 "메일 템플릿·초대링크를 만드는 파일"만 본다 — 일괄 금지는 오히려 프리뷰를 깬다.
+{
+  // 대상 판정은 **파일명이 아니라 내용**으로 한다 — 파일명에 "survey" 가 들어간다고
+  // 메일을 보내는 건 아니다(app/survey/[token]/page.jsx 는 서버가 자기 API 를 부르는
+  // 자리라 VERCEL_URL 이 오히려 맞다). "실제로 메일을 보내는 파일"만 본다.
+  const SENDS_EMAIL = /sendEmail|@\/lib\/email\//;
+  const VERCEL_FALLBACK = /process\.env\.VERCEL_URL/;
+  for (const file of [...walk("app"), ...walk("src")]) {
+    if (!/\.(ts|tsx|jsx|js)$/.test(file)) continue;
+    const norm = file.split("\\").join("/");
+    let text;
+    try { text = readFileSync(join(ROOT, file), "utf8"); } catch { continue; }
+    if (!SENDS_EMAIL.test(text)) continue;
+    if (!VERCEL_FALLBACK.test(text)) continue;
+    const line = text.slice(0, text.search(VERCEL_FALLBACK)).split("\n").length;
+    errors.push(
+      `[링크주소] ${norm}:${line} — 사용자에게 나가는 링크에 VERCEL_URL 폴백을 쓰고 있다. ` +
+      `프로덕션에 NEXT_PUBLIC_SITE_URL 이 없으면 배포 임시주소(.vercel.app)가 환자 메일에 나간다. ` +
+      `src/lib/siteUrl.ts 의 siteUrl() 을 쓸 것 (2026-07-22 실사고).`
+    );
+  }
+}
+
 // ── 결과 ────────────────────────────────────────────────────────
 if (errors.length) {
   console.error(`\n❌ 콘텐츠 일관성 검사 실패 (${errors.length}건)\n`);

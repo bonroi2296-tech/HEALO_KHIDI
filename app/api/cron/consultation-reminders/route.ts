@@ -19,6 +19,7 @@ import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
 import { sendEmail } from "@/lib/email/sendEmail";
 import { renderConsultationInviteEmail } from "@/lib/email/templates/consultationInvite";
 import { timingSafeEqual } from "node:crypto";
+import { siteUrl } from "@/lib/siteUrl";
 
 function verifyCronSecret(header: string | null): boolean {
   const expected = process.env.CRON_SECRET;
@@ -79,13 +80,9 @@ export async function GET(request: NextRequest) {
       // 원본 토큰은 hash 만 저장돼 복원 불가 —
       // 대신 consultation URL 만 보내고 '예전에 받은 초대 링크로 접속' 안내
       // (또는 새 토큰 발급 시 링크 재전송 고려. 지금은 기존 링크 재안내)
-      // 연산자 우선순위 주의: (A || B) ? ... 로 묶이면 SITE_URL 만 있고 VERCEL_URL 이
-      // 비었을 때 https://undefined 가 됨 → ?? 로 올바르게 분리(dispatch-reminders 와 동일).
-      const baseUrl =
-        process.env.NEXT_PUBLIC_SITE_URL ||
-        (process.env.VERCEL_URL
-          ? `https://${process.env.VERCEL_URL}`
-          : "https://healwith.co.kr");
+      // 기준 주소는 siteUrl() 하나로 (VERCEL_URL 폴백 금지 — 이 링크가 곧 환자의 진료
+      // 입장 경로라 배포 임시주소로 나가면 안 누른다. 사고 2026-07-22)
+      const baseUrl = siteUrl();
 
       // 리마인더는 token 이 아닌 '이전 메일 확인' 안내 + 직접 문의 링크
       // TODO: 보다 나은 UX 는 새 토큰 발급해 새 링크 발송
