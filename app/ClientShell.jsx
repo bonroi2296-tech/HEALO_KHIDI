@@ -320,15 +320,17 @@ function ClientShellContent({
                     </a>
                   </li>
                 ))}
-                {/* 러/카 검색 랜딩 내부링크 — 고아 페이지 해소(색인 우선순위↑) + 해당 언어 입구. 해당 언어 화면에만 노출 */}
+                {/* 러/카 검색 랜딩 내부링크 — 고아 페이지 해소(색인 우선순위↑) + 해당 언어 입구. 해당 언어 화면에만 노출.
+                    라벨은 랜딩의 h1 과 같게 둔다. "러시아 환자분들께" 류는 이미 러시아어로 보고 있는 사람에겐
+                    동어반복이고, 링크를 눌러 도착한 페이지 제목과도 안 맞아 오작동처럼 보였다(코디 문의 2026-07-22). */}
                 {langCode === "ru" && (
                   <li>
-                    <a className="hover:text-teal-700" href="/ru/for-russian-patients">Пациентам из России</a>
+                    <a className="hover:text-teal-700" href="/ru/for-russian-patients">Лечение рака в Корее</a>
                   </li>
                 )}
                 {langCode === "kz" && (
                   <li>
-                    <a className="hover:text-teal-700" href="/kk/for-kazakh-patients">Қазақстандық науқастарға</a>
+                    <a className="hover:text-teal-700" href="/kk/for-kazakh-patients">Кореяда онкология емдеу</a>
                   </li>
                 )}
               </ul>

@@ -19,7 +19,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
-import { LOCALES, LOCALE_COOKIE, DEFAULT_LOCALE } from "@/lib/i18n/config";
+import { LOCALES, LOCALE_COOKIE, DEFAULT_LOCALE, LEGACY_LANDINGS } from "@/lib/i18n/config";
 
 // ── URL 언어화(locale-in-path) ──────────────────────────────
 // 공개 마케팅 경로만 /{locale}/ 로 강제. /ru/treatments → 내부 /treatments rewrite + x-locale 헤더로 언어 전달.
@@ -50,7 +50,8 @@ const PUBLIC_PREFIXES = [
   "/medical-disclaimer",
 ];
 // 옛 러/카 전용 랜딩(폴더가 /ru,/kk 라 언어 prefix와 충돌). Yandex 색인 자산이라 이동 안 함 — 이 두 주소만 통과시켜 그대로 유지.
-const LEGACY_SKIP = ["/ru/for-russian-patients", "/kk/for-kazakh-patients"];
+// 목록의 단일 SoR 은 i18n/config — 언어 스위처(localeSwitchTarget)도 같은 목록을 봐야 한 쪽만 고쳐지는 일이 없다.
+const LEGACY_SKIP = LEGACY_LANDINGS;
 
 function isPublicLocalePath(pathname: string) {
   return PUBLIC_PREFIXES.some((p) => pathname === p || pathname.startsWith(p + "/"));
