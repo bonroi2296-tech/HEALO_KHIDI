@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight, Phone, MapPin, Clock, Car, Star } from "lucide-react";
+import { ArrowRight, Phone, MapPin, Clock, Car } from "lucide-react";
 import { IMMUNE_PHOTOS } from "../../../components/healo/Photos";
 import { useLang } from "@/lib/i18n/LangContext";
 import { IMMUNE_HOSPITAL as H } from "@/lib/data/immuneHospitalInfo";
@@ -20,7 +20,7 @@ const COPY = {
     statHealing: "힐링 공간",
     yearsUnit: "년",
     philosophyEyebrow: "치료 철학",
-    philosophyTitle: "ITCR — 다섯 가지 원칙",
+    philosophyTitle: "ITCRN — 다섯 가지 원칙",
     philosophyBody:
       "Immune Hospital은 모든 암 회복 프로그램을 이 다섯 가지 원칙 위에 구성합니다. 개별 치료가 아닌, 서로 맞물려 작동하는 하나의 체계입니다.",
     cancerEyebrow: "암종별 프로그램",
@@ -36,7 +36,6 @@ const COPY = {
     branchesEyebrow: "지점 & 오시는 길",
     branchesTitle: "전국 4개 지점",
     branchLabel: "지점",
-    branchReviewSource: "구글 리뷰",
     ctaTitle: "Immune Hospital에서 시작하세요",
     ctaBody: "healwith 코디네이터가 영업일 기준 하루 안에 선호 언어로 회신드립니다.",
   },
@@ -52,7 +51,7 @@ const COPY = {
     statHealing: "Healing space",
     yearsUnit: "yrs",
     philosophyEyebrow: "Care philosophy",
-    philosophyTitle: "ITCR — five principles",
+    philosophyTitle: "ITCRN — five principles",
     philosophyBody:
       "Every Immune Hospital recovery program is built on these five principles — not separate treatments, but an integrated system that works together.",
     cancerEyebrow: "Cancer-specific programs",
@@ -68,7 +67,6 @@ const COPY = {
     branchesEyebrow: "Branches & directions",
     branchesTitle: "4 branches nationwide",
     branchLabel: "Branch",
-    branchReviewSource: "Google reviews",
     ctaTitle: "Start with Immune Hospital",
     ctaBody: "A healwith coordinator responds in your preferred language within one business day.",
   },
@@ -84,7 +82,7 @@ const COPY = {
     statHealing: "Зоны отдыха",
     yearsUnit: "лет",
     philosophyEyebrow: "Философия лечения",
-    philosophyTitle: "ITCR — пять принципов",
+    philosophyTitle: "ITCRN — пять принципов",
     philosophyBody:
       "Каждая программа восстановления Immune Hospital построена на этих пяти принципах — не отдельные процедуры, а единая система, работающая вместе.",
     cancerEyebrow: "Программы по типам рака",
@@ -100,7 +98,6 @@ const COPY = {
     branchesEyebrow: "Филиалы и как добраться",
     branchesTitle: "4 филиала по всей стране",
     branchLabel: "Филиал",
-    branchReviewSource: "отзывы Google",
     ctaTitle: "Начните с Immune Hospital",
     ctaBody: "Координатор healwith ответит на удобном вам языке в течение одного рабочего дня.",
   },
@@ -116,7 +113,7 @@ const COPY = {
     statHealing: "Демалыс аймағы",
     yearsUnit: "жыл",
     philosophyEyebrow: "Емдеу философиясы",
-    philosophyTitle: "ITCR — бес принцип",
+    philosophyTitle: "ITCRN — бес принцип",
     philosophyBody:
       "Immune Hospital-дің әр қалпына келтіру бағдарламасы осы бес принципке негізделген — жеке емдеу емес, бірге жұмыс істейтін біртұтас жүйе.",
     cancerEyebrow: "Обыр түрлері бойынша бағдарлама",
@@ -132,7 +129,6 @@ const COPY = {
     branchesEyebrow: "Филиалдар және жол",
     branchesTitle: "Ел бойынша 4 филиал",
     branchLabel: "Филиал",
-    branchReviewSource: "Google пікірлері",
     ctaTitle: "Immune Hospital-дан бастаңыз",
     ctaBody: "healwith координаторы бір жұмыс күні ішінде сізге қолайлы тілде хабарласады.",
   },
@@ -148,7 +144,7 @@ const COPY = {
     statHealing: "疗愈空间",
     yearsUnit: "年",
     philosophyEyebrow: "治疗理念",
-    philosophyTitle: "ITCR — 五项原则",
+    philosophyTitle: "ITCRN — 五项原则",
     philosophyBody:
       "Immune Hospital 的所有癌症康复项目都建立在这五项原则之上——并非各自独立的治疗，而是相互衔接、协同运作的一套体系。",
     cancerEyebrow: "癌症专科项目",
@@ -164,7 +160,6 @@ const COPY = {
     branchesEyebrow: "分院与交通",
     branchesTitle: "全国 4 家分院",
     branchLabel: "分院",
-    branchReviewSource: "谷歌评价",
     ctaTitle: "从 Immune Hospital 开始",
     ctaBody: "healwith 协调员将在一个工作日内以您偏好的语言与您联系。",
   },
@@ -180,7 +175,7 @@ const COPY = {
     statHealing: "ヒーリング空間",
     yearsUnit: "年",
     philosophyEyebrow: "治療哲学",
-    philosophyTitle: "ITCR — 5つの原則",
+    philosophyTitle: "ITCRN — 5つの原則",
     philosophyBody:
       "Immune Hospitalはすべてのがん回復プログラムをこの5つの原則の上に構成します。個別の治療ではなく、互いに噛み合って機能する一つの体系です。",
     cancerEyebrow: "がん種別プログラム",
@@ -196,7 +191,6 @@ const COPY = {
     branchesEyebrow: "拠点とアクセス",
     branchesTitle: "全国4拠点",
     branchLabel: "拠点",
-    branchReviewSource: "Googleクチコミ",
     ctaTitle: "Immune Hospitalで始めましょう",
     ctaBody: "healwithコーディネーターが営業日基準で1日以内にご希望の言語でご返信します。",
   },
@@ -210,7 +204,7 @@ const PROGRAM_PHOTOS = [
   IMMUNE_PHOTOS.programClass,
 ];
 
-export default function ImmuneHospitalClient({ branchReviews = {} }) {
+export default function ImmuneHospitalClient() {
   const lang = useLang() || "ko";
   const c = COPY[lang] || COPY.ko;
   const l = (obj) => obj?.[lang] || obj?.en || obj?.ko || "";
@@ -283,7 +277,7 @@ export default function ImmuneHospitalClient({ branchReviews = {} }) {
         </div>
       </section>
 
-      {/* ── ITCR 5원칙 ───────────────────────────── */}
+      {/* ── ITCRN 5원칙 ───────────────────────────── */}
       <section className="bg-gray-50 border-y border-gray-100">
         <div className="max-w-5xl mx-auto px-4 py-12 md:py-16">
           <span className="inline-block text-xs font-bold tracking-wide text-teal-700 bg-teal-50 border border-teal-100 rounded-full px-3 py-1 mb-4">
@@ -300,14 +294,23 @@ export default function ImmuneHospitalClient({ branchReviews = {} }) {
               </p>
             </div>
             <div className="divide-y divide-gray-200">
+              {/* 원칙 표기: 이니셜 뱃지(I·T·C·R·N)만 두면 그 글자가 왜 그 글자인지 알 수가 없다
+                  — 한국어 「면역」 옆에 I, 「체온」 옆에 T 가 붙어 있으니 무의미(PO 지적 2026-07-22).
+                  머리글자는 영문 단어에서 나오므로 **영문 전체 표기를 주(主)로** 두고,
+                  그 아래 각 언어 번역을 붙인다. 한국어 화면에서도 영문이 함께 보여야 ITCRN 이 성립. */}
               {H.principles.map((p) => (
                 <div key={p.id} className="flex gap-4 py-4 items-start">
                   <span className="shrink-0 w-9 h-9 rounded-lg bg-teal-700 text-white font-bold flex items-center justify-center text-sm">
                     {p.letter}
                   </span>
                   <div>
-                    <div className="text-base font-bold text-gray-900 mb-1">{l(p.name)}</div>
-                    <div className="text-sm text-gray-500 leading-relaxed">{l(p.description)}</div>
+                    <div className="text-base font-bold text-gray-900 leading-snug">
+                      <span translate="no">{p.name.en}</span>
+                      {lang !== "en" && (
+                        <span className="ml-1.5 font-semibold text-gray-500">{l(p.name)}</span>
+                      )}
+                    </div>
+                    <div className="mt-1 text-sm text-gray-500 leading-relaxed">{l(p.description)}</div>
                   </div>
                 </div>
               ))}
@@ -494,32 +497,23 @@ export default function ImmuneHospitalClient({ branchReviews = {} }) {
                   </div>
                 )}
                 <div className="p-5 md:p-6">
-                <h3 translate="no" className="text-lg font-bold text-gray-900 mb-1 leading-snug">
+                <h3 translate="no" className="text-lg font-bold text-gray-900 mb-3 leading-snug">
                   {l(b.name)}
                 </h3>
-                {/* 구글 리뷰 요약 — 우리가 지어낸 점수가 아니라 실제 구글 리뷰의 평균이다.
-                    리뷰가 없는 지점(성동)은 아무것도 안 띄운다(빈 별점·0건 표기 금지). */}
-                {branchReviews?.[b.slug] ? (
-                  <div className="mb-4">
-                    <div className="flex items-center gap-1.5 text-sm">
-                      <Star size={14} className="text-amber-500 shrink-0" fill="currentColor" />
-                      <span className="font-bold text-gray-900">{branchReviews[b.slug].rating}</span>
-                      <span className="text-gray-500">
-                        ({branchReviews[b.slug].count}) · {c.branchReviewSource}
-                      </span>
-                    </div>
-                    {/* 인용문은 한국어 원문이라 **한국어 화면에서만** 띄운다.
-                        6개 언어 전부에 띄웠더니 i18n-no-korean-leak 가드가 잡았다(2026-07-22 CI).
-                        러시아·영어 환자는 한국어 리뷰를 읽지도 못하니 띄울 가치도 없다.
-                        별점·건수는 숫자라 언어 무관 → 그건 모든 언어에 유지. */}
-                    {lang === "ko" && (
-                      <p className="mt-1.5 text-xs text-gray-500 leading-relaxed line-clamp-2">
-                        “{branchReviews[b.slug].quote}”
-                      </p>
-                    )}
+                {/* 지점 대표원장 — 4개 지점 모두 실명·실사가 있다(홈 「협력 의료진」과 같은 원본).
+                    PO 지시 2026-07-22: 지점 카드에는 리뷰 대신 병원 정보만. 대표원장은 병원 정보다. */}
+                {b.director && (
+                  <div className="flex items-center gap-2.5 mb-4 pb-4 border-b border-gray-100">
+                    <img
+                      src={b.director.photo}
+                      alt={l(b.director.name)}
+                      loading="lazy"
+                      className="w-10 h-10 rounded-full object-cover object-top bg-gray-100 shrink-0"
+                    />
+                    <span translate="no" className="text-sm font-semibold text-gray-800 leading-snug">
+                      {l(b.director.name)}
+                    </span>
                   </div>
-                ) : (
-                  <div className="mb-4" />
                 )}
                 {b.address && (
                   <p className="flex gap-2 text-sm text-gray-600 leading-relaxed mb-3">
