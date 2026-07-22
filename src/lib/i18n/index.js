@@ -1529,7 +1529,9 @@ const DICTIONARY = {
     "footer.legal": "法的情報",
     "footer.tagline": "グローバル患者のためのAI医療コンシェルジュ",
     "footer.biz.serviceName": "サービス名",
-    "footer.biz.operatedBy": "運営会社",
+    // 「運営会社」는 법인을 뜻해 바로 아랫줄 "事業形態: 個人事業主"(개인사업자)와 모순된다
+    // — 본로이는 개인사업자다. 중립어 運営者 를 쓴다(독립 리뷰 지적 2026-07-22).
+    "footer.biz.operatedBy": "運営者",
     "footer.biz.businessType": "事業形態",
     "footer.biz.soleProprietor": "個人事業主",
     "footer.biz.representative": "代表者",

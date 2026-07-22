@@ -1207,24 +1207,46 @@ for (const dir of BACKOFFICE_DIRS) {
 //     한국어 화면에서도 영어로 떴다. 데모 베이스(initial commit)에서 넘어온 뒤 i18n 키가
 //     아예 만들어진 적이 없어 **3개월간 아무 검사도 안 걸렸다** — 한글누출 가드(§7·축C)는
 //     "비한국어 화면의 한글"만 보고, 그 **반대 방향(한국어 화면의 영어)** 은 통째로 사각이었다.
-// 무엇을 보나: ClientShell(모든 공개 화면이 쓰는 전역 껍데기)의 JSX 텍스트 노드에
-//     `영어단어 …:` 꼴 라벨 리터럴이 있으면 실패. 라벨은 t() 로 뽑아야 한다.
+// 무엇을 보나: ClientShell(모든 공개 화면이 쓰는 전역 껍데기)의 **JSX 텍스트 노드**에
+//     `라틴문자…:` 꼴 리터럴이 있으면 실패. 라벨은 t() 로 뽑아야 한다.
+// ⚠️ 1차 초안이 독립 리뷰에서 **두 방향 다** 깨졌다(2026-07-22, 둘 다 실측 재현):
+//   ①미탐 — 값 자리를 `(?=[{<])` 로 강제해 **옛 코드 모양 하나만** 잡았다. 라벨과 값을
+//     둘 다 하드코딩한 `<div>Contact Email: admin@…</div>`(더 나쁜 회귀)는 그냥 통과했고,
+//     `E-mail:`(하이픈)·`Tel/Fax:`(슬래시)·`Address 2:`(숫자)·`<b>Service Name</b>:` 도 전부 샜다.
+//     = "내가 아는 그 버그"만 잡는 가드였다. → 값 모양을 안 보고 **텍스트 노드 전체**를 본다.
+//   ②오탐 — 주석 제외를 `줄 앞 2글자`로 판정해 **`{/* … */}` (jsx 의 주력 주석 형태)** 를
+//     못 걸렀다. 이 저장소는 "이렇게 쓰지 말 것: <div>Service Name: {x}</div>" 류 경고 주석을
+//     실제로 쓴다 → 그 주석 때문에 CI 가 깨진다. → 스캔 **전에** 주석을 원문에서 지운다.
 // 한계: ClientShell 한 파일만 본다(전역 크롬이라 파급이 가장 크고, 전 파일 스캔은 오탐 폭발).
 //     다른 공개 컴포넌트의 하드코딩 라벨은 여전히 사람/완성도 감사 몫.
 {
   const FILE = "app/ClientShell.jsx";
   try {
-    const text = readFileSync(join(ROOT, FILE), "utf8");
-    // JSX 텍스트 노드( `>` 와 `{`/`<` 사이 )에서 "영문 라벨:" 꼴만 집는다.
-    // 주석(//, /* */)·문자열 리터럴 안은 제외하려고 `>` 로 시작하는 자리만 본다.
-    const LABEL = />\s*([A-Z][A-Za-z]+(?: [A-Za-z]+){0,5}):\s*(?=[{<]|\s*$)/gm;
-    const lines = text.split("\n");
-    for (const m of text.matchAll(LABEL)) {
-      const line = text.slice(0, m.index).split("\n").length;
-      const src = lines[line - 1] || "";
-      if (/\/\/|\/\*|\*/.test(src.trimStart().slice(0, 2))) continue; // 주석 줄
+    const raw = readFileSync(join(ROOT, FILE), "utf8");
+    // ⓐ 주석을 먼저 지운다(줄수는 보존해야 줄번호가 안 밀린다 → 개행만 남기고 치환).
+    const keepLines = (s) => s.replace(/[^\n]/g, "");
+    const text = raw
+      .replace(/\{\s*\/\*[\s\S]*?\*\/\s*\}/g, keepLines) // {/* JSX 주석 */}
+      .replace(/\/\*[\s\S]*?\*\//g, keepLines)           // /* 블록 주석 */
+      .replace(/\/\/[^\n]*/g, keepLines);                // // 줄 주석
+    // ⓑ 인라인 서식 태그를 먼저 벗긴다. 안 벗기면 `<b>Service Name</b>: {x}` 처럼
+    //    라벨과 콜론이 **다른 텍스트 노드로 쪼개져** 그대로 샌다(리뷰 변종 시험에서 실제로 샜다).
+    //    길이를 보존해야 줄번호가 안 밀리므로 같은 길이의 공백으로 치환.
+    const keepLen = (s) => " ".repeat(s.length);
+    const flat = text.replace(/<\/?(?:b|strong|em|i|span|small|code)(?:\s[^>]*)?>/g, keepLen);
+    // ⓒ JSX 텍스트 노드 = `>` 다음부터 `<` 나 `{` 전까지. 값이 리터럴이든 표현식이든 똑같이 걸린다.
+    const TEXT_NODE = />([^<>{}]+)(?=[<{])/g;
+    // ⓒ 라틴문자로 시작하는 라벨 + 콜론. 하이픈·슬래시·숫자·앰퍼샌드 포함(E-mail, Tel/Fax, Address 2).
+    //    URL(https://)·시각(10:30)은 콜론 앞이 라틴 '단어'가 아니거나 숫자라 안 걸린다.
+    const LABEL = /(?:^|\s)([A-Za-z][A-Za-z0-9&./-]*(?:[ ][A-Za-z0-9&./-]+){0,5})\s*:/;
+    for (const m of flat.matchAll(TEXT_NODE)) {
+      const seg = m[1];
+      if (!seg.trim() || /https?:\/\//.test(seg)) continue;
+      const hit = seg.match(LABEL);
+      if (!hit) continue;
+      const line = text.slice(0, m.index + 1 + seg.indexOf(hit[1])).split("\n").length;
       errors.push(
-        `[하드코딩라벨] ${FILE}:${line} — "${m[1]}:" 가 코드에 그대로 박혀 있다. ` +
+        `[하드코딩라벨] ${FILE}:${line} — "${hit[1]}:" 가 코드에 그대로 박혀 있다. ` +
           `ClientShell 은 6개 언어 전 공개화면이 쓰는 전역 껍데기라, 하드코딩 라벨은 ` +
           `한국어·러시아어 화면에서도 영어로 뜬다(2026-07-22 실제로 사업자 정보 10줄이 그랬음). ` +
           `t("...", langCode) 로 뽑고 6개 언어 사전에 키를 추가할 것 (POSTMORTEMS #108).`

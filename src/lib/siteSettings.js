@@ -22,7 +22,9 @@ export const SITE_INFO = {
   legal: {
     serviceName: "healwith",
     operatedBy: "Bonroi",
-    businessType: "Sole Proprietorship",
+    // 사업자 구분은 고유명사가 아니라 분류라 i18n(footer.biz.soleProprietor)이 단일 SoR.
+    // 여기 문자열을 되살리면 소비처 0인 유령 값이 되어 "여기만 고치고 화면은 안 바뀌는" 함정이 된다.
+    // 법인 전환 등으로 구분이 바뀌면 6개 언어 사전의 soleProprietor 를 고칠 것.
     representative: "Juyoung Kang",
     businessRegistrationNumber: "463-35-00902",
     foreignPatientAttractionRegistration: "A-2026-01-02-06761",
