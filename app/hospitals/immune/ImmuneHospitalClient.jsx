@@ -246,10 +246,12 @@ export default function ImmuneHospitalClient() {
             </div>
           </div>
 
+          {/* 히어로는 의료진 단체사진 금지 — 「그 병원임을 보여주는 공간 실사」를 쓴다.
+              (PO 지시 2026-07-22: "병원 현판이나 그런걸루". docs/PO_PREFERENCES.md 참조) */}
           <div className="w-full aspect-[4/5] overflow-hidden rounded-xl bg-gray-100">
             <img
-              src={IMMUNE_PHOTOS.team}
-              alt="Immune Hospital team"
+              src={IMMUNE_PHOTOS.signage}
+              alt="면력한방병원 마곡 본원 리셉션"
               className="w-full h-full object-cover"
             />
           </div>

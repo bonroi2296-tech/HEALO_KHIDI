@@ -25,7 +25,12 @@ export const PHOTOS = {
  */
 export const IMMUNE_PHOTOS = {
   // 팀 단체 사진 (면력한방병원 강서 — 원본 고해상도)
+  // ⚠️ 히어로/대표 이미지로 쓰지 마라 — PO 지시(2026-07-22): 병원 페이지 대표는 현판·공간 실사.
+  //    docs/PO_PREFERENCES.md 「병원 페이지 히어로 이미지」 참조. 아래 signage 를 쓸 것.
   team: "/images/immune-gangseo-team.jpg",
+
+  // 현판 실사 — 벽에 「면력 한방병원」 간판이 박힌 마곡 본원 리셉션. 병원 페이지 대표 이미지.
+  signage: "/images/hospitals/immunehospital-magok/1.jpg",
 
   // 시설
   facilityRoom: "/immune/site/resource/images/new-facility1.jpg",      // 프리미엄 입원실
