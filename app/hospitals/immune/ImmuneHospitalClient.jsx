@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight, Phone, MapPin, Clock, Car } from "lucide-react";
+import { ArrowRight, Phone, MapPin, Clock, Car, Star } from "lucide-react";
 import { IMMUNE_PHOTOS } from "../../../components/healo/Photos";
 import { useLang } from "@/lib/i18n/LangContext";
 import { IMMUNE_HOSPITAL as H } from "@/lib/data/immuneHospitalInfo";
@@ -36,6 +36,7 @@ const COPY = {
     branchesEyebrow: "지점 & 오시는 길",
     branchesTitle: "전국 4개 지점",
     branchLabel: "지점",
+    branchReviewSource: "구글 리뷰",
     ctaTitle: "Immune Hospital에서 시작하세요",
     ctaBody: "healwith 코디네이터가 영업일 기준 하루 안에 선호 언어로 회신드립니다.",
   },
@@ -67,6 +68,7 @@ const COPY = {
     branchesEyebrow: "Branches & directions",
     branchesTitle: "4 branches nationwide",
     branchLabel: "Branch",
+    branchReviewSource: "Google reviews",
     ctaTitle: "Start with Immune Hospital",
     ctaBody: "A healwith coordinator responds in your preferred language within one business day.",
   },
@@ -98,6 +100,7 @@ const COPY = {
     branchesEyebrow: "Филиалы и как добраться",
     branchesTitle: "4 филиала по всей стране",
     branchLabel: "Филиал",
+    branchReviewSource: "отзывы Google",
     ctaTitle: "Начните с Immune Hospital",
     ctaBody: "Координатор healwith ответит на удобном вам языке в течение одного рабочего дня.",
   },
@@ -129,6 +132,7 @@ const COPY = {
     branchesEyebrow: "Филиалдар және жол",
     branchesTitle: "Ел бойынша 4 филиал",
     branchLabel: "Филиал",
+    branchReviewSource: "Google пікірлері",
     ctaTitle: "Immune Hospital-дан бастаңыз",
     ctaBody: "healwith координаторы бір жұмыс күні ішінде сізге қолайлы тілде хабарласады.",
   },
@@ -160,6 +164,7 @@ const COPY = {
     branchesEyebrow: "分院与交通",
     branchesTitle: "全国 4 家分院",
     branchLabel: "分院",
+    branchReviewSource: "谷歌评价",
     ctaTitle: "从 Immune Hospital 开始",
     ctaBody: "healwith 协调员将在一个工作日内以您偏好的语言与您联系。",
   },
@@ -191,6 +196,7 @@ const COPY = {
     branchesEyebrow: "拠点とアクセス",
     branchesTitle: "全国4拠点",
     branchLabel: "拠点",
+    branchReviewSource: "Googleクチコミ",
     ctaTitle: "Immune Hospitalで始めましょう",
     ctaBody: "healwithコーディネーターが営業日基準で1日以内にご希望の言語でご返信します。",
   },
@@ -204,7 +210,7 @@ const PROGRAM_PHOTOS = [
   IMMUNE_PHOTOS.programClass,
 ];
 
-export default function ImmuneHospitalClient() {
+export default function ImmuneHospitalClient({ branchReviews = {} }) {
   const lang = useLang() || "ko";
   const c = COPY[lang] || COPY.ko;
   const l = (obj) => obj?.[lang] || obj?.en || obj?.ko || "";
@@ -474,13 +480,41 @@ export default function ImmuneHospitalClient() {
           </h2>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5">
             {H.branches.map((b) => (
-              <div key={b.id} className="bg-white border border-gray-200 rounded-xl p-5 md:p-6">
-                <div className="text-xs font-bold tracking-wide text-gray-500 uppercase mb-2">
-                  {c.branchLabel} · {b.id}
-                </div>
-                <h3 translate="no" className="text-lg font-bold text-gray-900 mb-4 leading-snug">
+              <div key={b.id} className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+                {/* 지점 실사 — 옛 지점 상세 페이지에서 가치 있던 두 가지(사진·구글리뷰) 중 하나.
+                    통합하면서 버리지 않고 카드로 끌어왔다. */}
+                {b.photo && (
+                  <div className="aspect-[16/10] bg-gray-100 overflow-hidden">
+                    <img
+                      src={b.photo}
+                      alt={l(b.name)}
+                      loading="lazy"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                )}
+                <div className="p-5 md:p-6">
+                <h3 translate="no" className="text-lg font-bold text-gray-900 mb-1 leading-snug">
                   {l(b.name)}
                 </h3>
+                {/* 구글 리뷰 요약 — 우리가 지어낸 점수가 아니라 실제 구글 리뷰의 평균이다.
+                    리뷰가 없는 지점(성동)은 아무것도 안 띄운다(빈 별점·0건 표기 금지). */}
+                {branchReviews?.[b.slug] ? (
+                  <div className="mb-4">
+                    <div className="flex items-center gap-1.5 text-sm">
+                      <Star size={14} className="text-amber-500 shrink-0" fill="currentColor" />
+                      <span className="font-bold text-gray-900">{branchReviews[b.slug].rating}</span>
+                      <span className="text-gray-500">
+                        ({branchReviews[b.slug].count}) · {c.branchReviewSource}
+                      </span>
+                    </div>
+                    <p className="mt-1.5 text-xs text-gray-500 leading-relaxed line-clamp-2">
+                      “{branchReviews[b.slug].quote}”
+                    </p>
+                  </div>
+                ) : (
+                  <div className="mb-4" />
+                )}
                 {b.address && (
                   <p className="flex gap-2 text-sm text-gray-600 leading-relaxed mb-3">
                     <MapPin size={15} className="shrink-0 mt-0.5 text-teal-700" />
@@ -513,6 +547,7 @@ export default function ImmuneHospitalClient() {
                 {b.nearby && (
                   <p className="text-xs font-semibold text-teal-700 leading-relaxed">{l(b.nearby)}</p>
                 )}
+                </div>
               </div>
             ))}
           </div>

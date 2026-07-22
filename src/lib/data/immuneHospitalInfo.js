@@ -36,12 +36,17 @@ export const IMMUNE_HOSPITAL = {
 
   // ===== 4개 지점 =====
   branches: [
+    // ⚠️ 지점 표기는 「강서점」으로 통일한다(PO 지시 2026-07-22). 예전엔 화면마다
+    //    「강서점」/「마곡점」이 섞여 같은 지점이 두 곳처럼 보였다(DB 도 name=강서점·name_ko=마곡점).
+    //    행정동(마곡)은 주소에만 남기고, 지점 이름은 강서점 하나로.
     {
       id: "magok",
+      slug: "immunehospital-magok",   // DB(hospitals.slug) 조인용 — 구글 리뷰를 여기서 가져온다
+      photo: "/images/hospitals/immunehospital-magok/1.jpg",
       name: {
-        ko: "마곡 본원 (강서)",
-        en: "Magok HQ (Gangseo)",
-        ru: "Магок (головной офис)",
+        ko: "강서점 (본원)",
+        en: "Gangseo (Main Branch)",
+        ru: "Кансо (главный офис)",
       },
       address: {
         ko: "서울 강서구 마곡중앙6로 93 열린프라자 6층, 7층, 10층",
@@ -70,16 +75,23 @@ export const IMMUNE_HOSPITAL = {
     },
     {
       id: "sinchon",
-      name: { ko: "신촌점", en: "Sinchon" },
+      slug: "immunehospital-sinchon",
+      photo: "/images/hospitals/immunehospital-sinchon/1.jpg",
+      name: { ko: "신촌점", en: "Sinchon", ru: "Синчхон" },
       url: "https://sc.immunehospital.com/",
     },
     {
       id: "gwangmyeong",
-      name: { ko: "광명점", en: "Gwangmyeong" },
+      slug: "immunehospital-gwangmyeong",
+      photo: "/images/hospitals/immunehospital-gwangmyeong/1.jpg",
+      name: { ko: "광명점", en: "Gwangmyeong", ru: "Кванмён" },
       url: "https://km.immunehospital.com/",
     },
     {
       id: "seongdong",
+      // ⚠️ 성동점은 DB(hospitals)에 행이 없다 → 구글 리뷰도 없음. 카드는 정보만 뜬다.
+      slug: "immunehospital-seongdong",
+      photo: "/images/hospitals/immunehospital-seongdong/1.jpg",
       name: { ko: "성동점", en: "Seongdong", ru: "Сондон" },
       address: {
         ko: "서울 성동구 천호대로 320, 2~7층, B101호 (용답동, 장안빌딩)",

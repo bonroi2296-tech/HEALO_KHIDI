@@ -1,5 +1,45 @@
 import ImmuneHospitalClient from "./ImmuneHospitalClient";
 import { localizedMeta } from "@/lib/i18n/metadata";
+import { IMMUNE_HOSPITAL } from "@/lib/data/immuneHospitalInfo";
+import { createClient } from "@supabase/supabase-js";
+
+// 지점별 구글 리뷰를 **서버에서** 읽어 카드에 얹는다.
+// 왜 서버냐: 옛 지점 상세(/hospitals/[slug])는 클라이언트에서 받아와 서버 HTML 이 "로딩 중"뿐이었고
+// 구글이 빈 페이지로 봤다. 이 페이지는 원래도 서버 렌더라 그 함정을 반복하지 않는다.
+// 리뷰는 스크랩 스냅샷이라 자주 안 바뀜 → 하루 캐시.
+export const revalidate = 86400;
+
+async function getBranchReviews() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!url || !key) return {}; // 로컬/프리뷰에 키가 없어도 페이지는 그대로 뜨게(리뷰만 생략)
+  try {
+    const slugs = IMMUNE_HOSPITAL.branches.map((b) => b.slug).filter(Boolean);
+    const { data, error } = await createClient(url, key)
+      .from("hospitals")
+      .select("slug,external_ratings")
+      .in("slug", slugs);
+    if (error || !data) return {};
+    const out = {};
+    for (const row of data) {
+      const list = (row.external_ratings?.google_reviews || []).filter(
+        (r) => r && r.text && Number(r.rating) > 0
+      );
+      if (!list.length) continue;
+      const avg = list.reduce((s, r) => s + Number(r.rating), 0) / list.length;
+      const top = list.slice().sort((a, b) => Number(b.rating) - Number(a.rating))[0];
+      out[row.slug] = {
+        rating: Math.round(avg * 10) / 10,
+        count: list.length,
+        quote: String(top.text).replace(/\s+/g, " ").trim().slice(0, 90),
+        author: top.author || null,
+      };
+    }
+    return out;
+  } catch {
+    return {};
+  }
+}
 
 export async function generateMetadata() {
   return localizedMeta(baseMeta, "seo.immune.title", "seo.immune.desc");
@@ -79,7 +119,8 @@ const hospitalJsonLd = {
   },
 };
 
-export default function ImmuneHospitalPage() {
+export default async function ImmuneHospitalPage() {
+  const branchReviews = await getBranchReviews();
   return (
     <>
       <script
@@ -87,7 +128,7 @@ export default function ImmuneHospitalPage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(hospitalJsonLd) }}
       />
-      <ImmuneHospitalClient />
+      <ImmuneHospitalClient branchReviews={branchReviews} />
     </>
   );
 }
