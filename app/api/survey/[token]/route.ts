@@ -13,6 +13,7 @@ export const runtime = "nodejs";
 import { NextRequest } from "next/server";
 import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
 import { checkRateLimitPersistent, getClientIp } from "@/lib/rateLimit";
+import { normalizeSurveyLang } from "@/lib/surveys/resolveRecipient";
 
 // 토큰 열거(enumeration) 방어: IP당 1분에 30회 (정상 1회 조회엔 충분, 무차별 대입 차단)
 const SURVEY_LOOKUP_RATE_LIMIT = {
@@ -45,7 +46,7 @@ export async function GET(
 
   const { data: survey, error } = await db
     .from("surveys")
-    .select("id, survey_type, responded, expires_at, patient_id, consultation_session_id")
+    .select("id, survey_type, responded, expires_at, patient_id, consultation_session_id, inquiry_id")
     .eq("token", token)
     .maybeSingle();
 
@@ -63,11 +64,44 @@ export async function GET(
     return Response.json({ ok: false, error: "expired" }, { status: 410 });
   }
 
+  // 환자 언어 — **설문 메일을 보낼 때 쓴 것과 같은 기준**으로 결정한다.
+  // 이게 없으면 설문 화면이 `navigator.language`(접속한 기기의 브라우저 설정)로 떨어져서,
+  // 러시아어 메일을 받은 환자가 영어·한국어 설문지를 보게 된다(2026-07-22 실측: 러시아어
+  // 메일 → 한국어 설문지). 읽을 수 없으면 답을 못 하고, 그럼 K-03 만족도 표본이 안 쌓인다.
+  let lang: string | null = null;
+  try {
+    const inquiryId =
+      survey.inquiry_id ??
+      (survey.consultation_session_id
+        ? (
+            await db
+              .from("consultation_sessions")
+              .select("inquiry_id")
+              .eq("id", survey.consultation_session_id)
+              .limit(1)
+          ).data?.[0]?.inquiry_id ?? null
+        : null);
+
+    if (inquiryId) {
+      const { data: inq } = await db
+        .from("inquiries")
+        .select("preferred_language, spoken_language")
+        .eq("id", inquiryId)
+        .limit(1);
+      const raw = inq?.[0]?.preferred_language || inq?.[0]?.spoken_language || null;
+      lang = normalizeSurveyLang(raw);
+    }
+  } catch (e: any) {
+    // 언어를 못 정해도 설문 자체는 열려야 한다 — 화면이 브라우저 언어로 폴백한다.
+    console.warn("[api/survey/token] 환자 언어 조회 실패(무시):", e?.message);
+  }
+
   return Response.json({
     ok: true,
     surveyId: survey.id,
     surveyType: survey.survey_type,
     responded: survey.responded,
     expiresAt: survey.expires_at,
+    lang,
   });
 }
