@@ -1133,6 +1133,44 @@ for (const dir of BACKOFFICE_DIRS) {
   }
 }
 
+// ── §26 언어 prefix 처럼 생긴 app/ 폴더는 전부 LEGACY_LANDINGS 에 등재 (POSTMORTEMS #107) ──
+// 왜: 공개 주소는 프록시가 /{locale}/{경로} → /{경로} 로 rewrite 하므로 **폴더가 없어도** 6개 언어가
+//     다 존재한다. 반대로 app/ru, app/kk 처럼 언어 코드 모양의 **실제 폴더**는 그 언어에만 있는
+//     번역판 없는 페이지 → 언어 스위처가 /{다른언어}/{같은경로} 로 보내면 404 가 난다(2026-07-22 실측).
+//     LEGACY_LANDINGS 에 등재된 경로만 스위처가 "그 언어 홈으로" 예외 처리한다.
+//     → 등재 안 된 언어 모양 폴더가 새로 생기면 같은 404 함정이 재생산되므로 여기서 막는다.
+// 한계: app/ 최상위 1단계만 본다. app/foo/ru/x 는 URL 이 /foo/ru/x 라 이 함정이 아니지만,
+//     **route group 은 예외다** — app/(marketing)/ru/x 는 URL 이 /ru/x 로 같은 함정인데 이 스캔은
+//     괄호 폴더를 안 들여다봐서 못 잡는다(현재 app/ 최상위에 괄호 폴더 0개라 실害 없음).
+//     최상위에 route group 을 도입하면 이 검사도 그 안을 훑도록 같이 고칠 것.
+{
+  try {
+    const { LOCALES, LEGACY_LANDINGS } = await import(
+      pathToFileURL(join(ROOT, "src/lib/i18n/config.js")).href
+    );
+    // 내부 코드(kz)와 URL 표준코드(kk)가 다르다 — 둘 다 폴더 이름으로 나타날 수 있다(POSTMORTEMS #28).
+    const LOCALE_LIKE = new Set([...LOCALES, "kk"]);
+    for (const seg of readdirSync(join(ROOT, "app"))) {
+      if (!LOCALE_LIKE.has(seg)) continue;
+      if (!statSync(join(ROOT, "app", seg)).isDirectory()) continue;
+      for (const child of readdirSync(join(ROOT, "app", seg))) {
+        // 폴더만 라우트다. layout.jsx·not-found.jsx·opengraph-image.js 같은 Next 표준 파일을
+        // 라우트로 세면 "/ru/layout.jsx 를 LEGACY_LANDINGS 에 추가하라"는 헛소리로 CI 가 깨진다.
+        if (!statSync(join(ROOT, "app", seg, child)).isDirectory()) continue;
+        const route = `/${seg}/${child}`;
+        if (LEGACY_LANDINGS.includes(route)) continue;
+        errors.push(
+          `[언어폴더] app${route} 는 언어 prefix(/${seg}/…) 와 생김새가 같은 실제 폴더인데 ` +
+            `src/lib/i18n/config.js 의 LEGACY_LANDINGS 에 없음 — 이대로면 이 화면에서 언어를 바꿀 때 ` +
+            `/{다른언어}${route.slice(seg.length + 1)} 라는 없는 주소로 가서 404 가 난다(POSTMORTEMS #107). ` +
+            `LEGACY_LANDINGS 에 "${route}" 를 추가하거나(=언어 홈으로 보냄), 이 페이지를 일반 공개 경로로 옮길 것`
+        );
+      }
+    }
+  } catch (e) {
+    errors.push(`[언어폴더] 검사 실패: ${e.message}`);
+  }
+}
 
 // ── §25 사용자에게 보내는 링크에 VERCEL_URL 폴백 금지 (2026-07-22 실사고) ──────────
 // 왜: `NEXT_PUBLIC_SITE_URL || (VERCEL_URL ? ... )` 패턴은 프로덕션에 그 env 가 없으면
