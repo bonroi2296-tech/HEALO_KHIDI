@@ -25,6 +25,8 @@ export default async function SurveyPage({ params }) {
   let initialState = "loading";
   let surveyId = null;
   let responded = false;
+  // 환자에게 기록된 언어(메일 발송에 쓴 것과 동일 기준). 없으면 폼이 브라우저 언어로 폴백.
+  let patientLang = null;
 
   try {
     const res = await fetch(`${baseUrl}/api/survey/${encodeURIComponent(token)}`, {
@@ -38,6 +40,7 @@ export default async function SurveyPage({ params }) {
       initialState = "ok";
       surveyId = data.surveyId;
       responded = data.responded;
+      patientLang = data.lang || null;
     }
   } catch {
     initialState = "internal_error";
@@ -49,6 +52,7 @@ export default async function SurveyPage({ params }) {
       surveyId={surveyId}
       initialState={initialState}
       alreadyResponded={responded}
+      patientLang={patientLang}
     />
   );
 }

@@ -259,7 +259,15 @@ function ClientShellContent({
   const langCode = useLang();
   const pathname = usePathname() || "/";
   // 영상 상담방 — 전체화면 몰입(전역 헤더/푸터/하단네비/문의버튼 숨김)
-  const isConsultationPage = pathname.startsWith("/consultation/");
+  // 크롬(헤더·푸터·하단탭) 없이 내용만 렌더하는 **단일 작업 페이지**.
+  // - /consultation/ : 화상상담방
+  // - /survey/       : 메일 링크로 바로 들어오는 만족도 설문. 마케팅 헤더가 붙으면
+  //   ①"로그인/회원가입"이 떠서 "로그인해야 답할 수 있나?"로 읽히고 ②진료과목·병원 메뉴가
+  //   답하러 온 환자를 다른 데로 내보낸다. 2분짜리 설문에 나갈 길만 6개 달아준 꼴이다.
+  //   포털 취급(PortalTopBar)도 안 된다 — 거긴 '로그아웃'이 있는데 설문 응답자는 계정이 없다.
+  //   (2026-07-22 PO 지적: "이건 설문지 아냐? 로그인해야해?")
+  const isConsultationPage =
+    pathname.startsWith("/consultation/") || pathname.startsWith("/survey/");
   // 문의 퍼널(/inquiry) — AI 챗·폼 집중 흐름. 하단 사이트 푸터(회사정보 등)가 채팅 밑에
   // 붙어 화면이 길어지고 "풀스크린 챗" 느낌을 깨므로 푸터 숨김(하단탭바는 이미 숨김).
   const hideFooter = pathname.includes("/inquiry");
