@@ -1,36 +1,5 @@
 # HEALO KHIDI — 알려진 이슈 / 전수 QA 발견사항
 
-## 🟠 면력한방병원 페이지 교통정리 — **A안(통합) 진행 중, PO가 추가 정리해서 다시 지시 예정** (2026-07-22)
-
-> **PO 메모 요청**: *"이거는 내가 추가로 정리해서 다시 알려줄게 메모 남겨줘."* → 아래 상태로 멈춰 있음. PO 지시 오면 이어서.
-> 작업 PR: [#881](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/881) (`work/hospital-traffic`) — **머지 안 함, 대기**.
-> 프리뷰: `https://healo-khidi-git-work-hospital-traffic-bonrois-projects.vercel.app/ko/hospitals/immune`
-
-**왜 손댔나 (실측으로 드러난 상태)**
-- `/hospitals/immune`(브랜드 페이지)는 의료진 27명·ITCRN·시설까지 두꺼운데 **병원목록·홈에서 링크 0인 고아**였다. 한국어 유입구는 비용계산기 링크 1개뿐.
-- 반대로 지점 페이지(`/hospitals/immunehospital-*`)는 링크는 되지만 **서버 HTML 이 「병원 정보 로딩 중…」뿐** → 구글엔 빈 페이지. 내용도 얇음(2,035자).
-- **좋은 페이지는 아무도 못 찾고, 찾을 수 있는 페이지는 구글이 못 본다** — 정확히 거꾸로 붙어 있었다.
-
-**PO 결정**: **A안(통합)** — 브랜드 페이지 하나로 모으고 지점은 그 안의 섹션으로. (B안 지점별 유지는 채울 실데이터가 없어 탈락)
-
-**PR #881 에 이미 들어간 것 (프리뷰에서 확인 가능)**
-- 히어로 이미지 = 의료진 단체사진 → **현판 실사**(PO 지시, `docs/PO_PREFERENCES.md` 기록)
-- 지점 이름 **「강서점」으로 통일**(마곡점 표기 제거). 원인은 DB 한 행에 `name`=강서점·`name_ko`=마곡점이 따로 있던 것.
-- 지점 카드에 **지점 실사 + 대표원장 사진·이름**(강서/황이준·신촌/유형진·광명/배길준·성동/강주안)
-- 지점 카드에서 **구글 리뷰 제거**, 병원 정보만(PO 지시)
-- **신촌·광명 빈 카드 해소** — 주소·전화·시간이 `immuneBranches.js` 에만 있고 화면은 `immuneHospitalInfo.js` 를 봐서 비어 있었다 → 후자로 합쳐 SoR 일원화
-- **ITCR → ITCRN** 6개 언어 + 메타·JSON-LD. 원칙 표기를 **영문 전체 + 각 언어 번역 병기**로(이니셜만 두면 왜 그 글자인지 알 수 없다는 PO 지적)
-- 병원 목록에 「면력한방병원 전체 안내 보기」 링크 신설 → 고아 해소
-
-**🔴 아직 안 한 것 — PO 승인 필요 (되돌리기 번거로운 것들)**
-1. **지점 URL 4개 → `/hospitals/immune` 301 이동**: `immunehospital-magok`·`-sinchon`·`-gwangmyeong`·`-seongdong`. 그냥 지우면 옛 주소·구글이 404 를 본다.
-2. **DB 더미 `doctor_profile` 3건 삭제**: 3개 지점 모두 동일하게 `name:"Medical Team"` / `image:"https://placehold.co/200x200"`(외부 자리표시자 핫링크) / `school:"Certified Medical School"` / **`heroMetric:{Satisfaction,"98%"}`**. ⚠️ 근거 없는 만족도 98% 는 의료 표기로 위험.
-3. **성동점 DB 불일치**: 화면엔 4개 지점인데 `hospitals` 테이블엔 3개(광명·마곡·신촌)뿐, 성동 행 없음.
-
-**참고 실측**: `partner_doctors` 0행 · 면력 `treatments` 0건 · `reviews` 테이블 0행. 지점 페이지의 별점 4.8 은 **가짜가 아니라** `hospitals.external_ratings.google_reviews` 의 실제 구글 리뷰 평균(강서 5건·광명 5건·신촌 1건).
-
----
-
 ## 🟡 멱등가드(§21) 사각에 남은 존재검사 12곳 — 미분류, 후속 스윕 필요 (2026-07-21)
 
 **맥락** — `check:content` §21 은 중복방지 존재검사에 `.maybeSingle()` + error 미수신을 막는다(POSTMORTEMS #105). 유예목록(GRANDFATHERED) 8곳은 전부 수리·삭제했고, 독립 리뷰가 정규식 사각에서 추가로 찾아낸 **진짜 결함 5곳도 같이 고쳤다**(agency·hospital 메시지 스레드 find-or-create, offers/preview, deletion-request, crawl/schedule).
