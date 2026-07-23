@@ -33,6 +33,10 @@ function chainable(op: string, table: string, payload: any, result: any) {
       rec.filters.push([f, v]);
       return builder;
     },
+    is: (f: string, v: any) => {
+      rec.filters.push([`is:${f}`, v]);
+      return builder;
+    },
   };
   return builder;
 }
@@ -67,7 +71,9 @@ vi.mock("@/lib/rag/supabaseAdmin", () => ({
           data: { ...row, id: table === "chat_threads" ? "t-new" : "m-new" },
           error: null,
         }),
-      update: (payload: any) => chainable("update", table, payload, { data: null, error: null }),
+      // update 는 조건부 갱신 결과 확인용으로 .select() 후 rows 를 돌려받는다(멱등 가드).
+      update: (payload: any) =>
+        chainable("update", table, payload, { data: [{ id: "row-1" }], error: null }),
     }),
   },
 }));
@@ -99,10 +105,12 @@ vi.mock("@/lib/chat/publicChatHelpers", () => ({
 const sendTelegramPatientMessage = vi.fn(async (..._args: any[]) => true);
 const sendConsentPrompt = vi.fn(async (..._args: any[]) => true);
 const answerCallbackQuery = vi.fn(async (..._args: any[]) => true);
+const removeInlineKeyboard = vi.fn(async (..._args: any[]) => true);
 vi.mock("@/lib/messaging/telegram", () => ({
   sendTelegramPatientMessage: (...args: any[]) => sendTelegramPatientMessage(...args),
   sendConsentPrompt: (...args: any[]) => sendConsentPrompt(...args),
   answerCallbackQuery: (...args: any[]) => answerCallbackQuery(...args),
+  removeInlineKeyboard: (...args: any[]) => removeInlineKeyboard(...args),
   CONSENT_WELCOME: { en: "welcome" },
   TG_APOLOGY: { en: "sorry" },
   pickTgText: (map: Record<string, string>, lang: string) => map[lang] || map.en,
@@ -165,6 +173,7 @@ describe("텔레그램 웹훅 계약", () => {
     sendTelegramPatientMessage.mockClear();
     sendConsentPrompt.mockClear();
     answerCallbackQuery.mockClear();
+    removeInlineKeyboard.mockClear();
     createDraftIntake.mockClear();
     process.env.TELEGRAM_PATIENT_BOT_TOKEN = "test-bot-token";
     process.env.TELEGRAM_WEBHOOK_SECRET = "test-secret";
@@ -217,7 +226,7 @@ describe("텔레그램 웹훅 계약", () => {
           id: "cb-1",
           data: "consent:1.0.0",
           from: { id: 777, language_code: "en" },
-          message: { chat: { id: 777, type: "private" } },
+          message: { message_id: 4, chat: { id: 777, type: "private" } },
         },
       })
     );
@@ -229,8 +238,35 @@ describe("텔레그램 웹훅 계약", () => {
     expect(consent?.health_crossborder).toBe(true);
     expect(consent?.version).toBe("1.0.0");
     expect(consent?.at).toBeTruthy();
+    // 병렬 더블탭 방어: "consent 가 아직 없을 때만" 조건이 UPDATE 에 걸려 있어야 한다
+    expect(upd?.filters).toContainEqual(["is:metadata->consent->>health_crossborder", null]);
     expect(answerCallbackQuery).toHaveBeenCalledWith("cb-1");
+    // 첫 동의: 버튼 제거 + 환영 인사 발송
+    expect(removeInlineKeyboard).toHaveBeenCalledWith("777", 4);
     expect(sendTelegramPatientMessage).toHaveBeenCalledWith("777", "welcome");
+  });
+
+  it("③-2 이미 동의된 스레드의 콜백 재수신: 환영 인사를 다시 보내지 않는다(실기기 중복 발송 재발 방지)", async () => {
+    const POST = await loadPost();
+    mockState.thread = CONSENTED_THREAD(); // consent 이미 기록됨
+    const res = await POST(
+      makeReq({
+        update_id: 12,
+        callback_query: {
+          id: "cb-2",
+          data: "consent:1.0.0",
+          from: { id: 777, language_code: "en" },
+          message: { message_id: 5, chat: { id: 777, type: "private" } },
+        },
+      })
+    );
+    expect((await res.json()).ok).toBe(true);
+    // 스피너 해제 + 버튼 제거는 하되
+    expect(answerCallbackQuery).toHaveBeenCalledWith("cb-2");
+    expect(removeInlineKeyboard).toHaveBeenCalledWith("777", 5);
+    // 환영 인사 재발송·동의 재기록은 없다
+    expect(sendTelegramPatientMessage).not.toHaveBeenCalled();
+    expect(captured.filter((c) => c.table === "chat_threads" && c.op === "update")).toHaveLength(0);
   });
 
   it("동의 후 메시지: 저장→AI 생성→텔레그램 발신→시스템 메시지 기록", async () => {

@@ -10,10 +10,11 @@ import "server-only";
  * 외부 SDK 없음(fetch만) · fail-safe(throw 금지 — 발신 실패가 메인 로직을 죽이지 않게).
  */
 
+import { stripMarkdownForTelegram, splitTelegramText } from "./telegramText";
+
 const TG_API = "https://api.telegram.org";
 
-// 텔레그램 sendMessage 본문 하드 리밋(4096자) — 초과 시 분할 전송.
-const TG_MAX_LEN = 4096;
+export { stripMarkdownForTelegram, splitTelegramText };
 
 export function isPatientBotConfigured(): boolean {
   return !!process.env.TELEGRAM_PATIENT_BOT_TOKEN;
@@ -40,30 +41,12 @@ async function callBotApi(method: string, payload: Record<string, any>): Promise
   }
 }
 
-// 4096자 안전 분할 — 가급적 문단/줄 경계에서 자른다(말풍선 중간 절단 방지).
-export function splitTelegramText(text: string): string[] {
-  const t = (text || "").trim();
-  if (!t) return [];
-  if (t.length <= TG_MAX_LEN) return [t];
-  const parts: string[] = [];
-  let rest = t;
-  while (rest.length > TG_MAX_LEN) {
-    let cut = rest.lastIndexOf("\n", TG_MAX_LEN);
-    if (cut < TG_MAX_LEN * 0.5) cut = rest.lastIndexOf(" ", TG_MAX_LEN);
-    if (cut < TG_MAX_LEN * 0.5) cut = TG_MAX_LEN;
-    parts.push(rest.slice(0, cut).trim());
-    rest = rest.slice(cut).trim();
-  }
-  if (rest) parts.push(rest);
-  return parts;
-}
-
 /** 환자에게 텍스트 발신. 분할된 모든 조각이 성공해야 true. */
 export async function sendTelegramPatientMessage(
   chatId: string | number,
   text: string
 ): Promise<boolean> {
-  const parts = splitTelegramText(text);
+  const parts = splitTelegramText(stripMarkdownForTelegram(text));
   if (!parts.length) return false;
   let allOk = true;
   for (const part of parts) {
@@ -80,6 +63,18 @@ export async function sendTelegramPatientMessage(
 /** callback_query 응답(버튼 로딩 스피너 해제). */
 export async function answerCallbackQuery(callbackQueryId: string): Promise<boolean> {
   return callBotApi("answerCallbackQuery", { callback_query_id: callbackQueryId });
+}
+
+/** 인라인 버튼 제거(동의 완료 후 재터치 방지 — 원 메시지의 키보드를 비움). */
+export async function removeInlineKeyboard(
+  chatId: string | number,
+  messageId: number
+): Promise<boolean> {
+  return callBotApi("editMessageReplyMarkup", {
+    chat_id: chatId,
+    message_id: messageId,
+    reply_markup: { inline_keyboard: [] },
+  });
 }
 
 // ── PIPA 동의 UX ────────────────────────────────────────────────────────────

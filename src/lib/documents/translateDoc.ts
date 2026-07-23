@@ -17,6 +17,7 @@ import "server-only";
 
 import { supabaseAdmin } from "../rag/supabaseAdmin";
 import { logAiUsage } from "@/lib/ai/usageLog";
+import { fetchGeminiWithCompat } from "@/lib/ai/geminiThinkingCompat";
 import { glossaryBlock, type DocLang, type GlossaryEntry } from "./medicalGlossary";
 import type { Json } from "@/types/database.types";
 
@@ -269,30 +270,27 @@ export async function translateMedicalDoc(opts: {
 
   try {
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${apiKey}`;
-    const res = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        systemInstruction: { parts: [{ text: buildPrompt(lang, learned) }] },
-        contents: [{ role: "user", parts: [
-          { text: `Translate this medical document faithfully into ${LANG_NAME[lang]} per the rules. Return only JSON.` },
-          { inlineData: { mimeType: mime, data: base64 } },
-        ] }],
-        // 의료 내용이 안전필터에 간헐 차단되는 문제(triage/generateReply 와 동일) → 모델단 차단 끔.
-        safetySettings: [
-          { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
-          { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
-          { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
-          { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" },
-        ],
-        generationConfig: {
-          temperature: 0, // 충실 번역 — 창의성 0
-          maxOutputTokens: 8192,
-          thinkingConfig: { thinkingBudget: 0 },
-          responseMimeType: "application/json",
-          responseSchema: RESPONSE_SCHEMA,
-        },
-      }),
+    // 별칭 세대 교체 생존 사다리 — thinkingBudget 거절(400) 시 강등 재시도(geminiThinkingCompat).
+    const res = await fetchGeminiWithCompat(url, {
+      systemInstruction: { parts: [{ text: buildPrompt(lang, learned) }] },
+      contents: [{ role: "user", parts: [
+        { text: `Translate this medical document faithfully into ${LANG_NAME[lang]} per the rules. Return only JSON.` },
+        { inlineData: { mimeType: mime, data: base64 } },
+      ] }],
+      // 의료 내용이 안전필터에 간헐 차단되는 문제(triage/generateReply 와 동일) → 모델단 차단 끔.
+      safetySettings: [
+        { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
+        { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
+        { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
+        { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" },
+      ],
+      generationConfig: {
+        temperature: 0, // 충실 번역 — 창의성 0
+        maxOutputTokens: 8192,
+        thinkingConfig: { thinkingBudget: 0 },
+        responseMimeType: "application/json",
+        responseSchema: RESPONSE_SCHEMA,
+      },
     });
 
     if (!res.ok) return { ok: false, error: "model_http_error" };
@@ -401,29 +399,26 @@ export async function verifyTranslationNumbers(opts: {
 
   try {
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${apiKey}`;
-    const res = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        systemInstruction: { parts: [{ text: [
-          "You are a medical number auditor. You are given a TRANSLATION of a document (text) and the ORIGINAL document (image).",
-          "For EVERY number in the translation (lab values, reference ranges, counts, dates, IDs), check whether it matches the number printed in the ORIGINAL image.",
-          "Report ONLY disagreements. For each, return: item = the field/parameter name (as in the original, so a human can locate it), translated = the number as written in the translation, source = the number you read in the original image.",
-          "Ignore pure formatting differences (1.0 vs 1; comma vs dot decimal; spacing). Do NOT translate — only compare digits.",
-          "If everything matches, return an empty mismatches array. Return ONLY JSON {mismatches:[...]}.",
-        ].join("\n") }] },
-        contents: [{ role: "user", parts: [
-          { text: `TRANSLATION:\n${docToText(opts.doc).slice(0, 12000)}\n\nCompare against the attached ORIGINAL image. Return only JSON.` },
-          { inlineData: { mimeType: mime, data: base64 } },
-        ] }],
-        safetySettings: [
-          { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
-          { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
-          { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
-          { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" },
-        ],
-        generationConfig: { temperature: 0, maxOutputTokens: 4096, thinkingConfig: { thinkingBudget: 0 }, responseMimeType: "application/json", responseSchema: VERIFY_SCHEMA },
-      }),
+    // 별칭 세대 교체 생존 사다리 — thinkingBudget 거절(400) 시 강등 재시도(geminiThinkingCompat).
+    const res = await fetchGeminiWithCompat(url, {
+      systemInstruction: { parts: [{ text: [
+        "You are a medical number auditor. You are given a TRANSLATION of a document (text) and the ORIGINAL document (image).",
+        "For EVERY number in the translation (lab values, reference ranges, counts, dates, IDs), check whether it matches the number printed in the ORIGINAL image.",
+        "Report ONLY disagreements. For each, return: item = the field/parameter name (as in the original, so a human can locate it), translated = the number as written in the translation, source = the number you read in the original image.",
+        "Ignore pure formatting differences (1.0 vs 1; comma vs dot decimal; spacing). Do NOT translate — only compare digits.",
+        "If everything matches, return an empty mismatches array. Return ONLY JSON {mismatches:[...]}.",
+      ].join("\n") }] },
+      contents: [{ role: "user", parts: [
+        { text: `TRANSLATION:\n${docToText(opts.doc).slice(0, 12000)}\n\nCompare against the attached ORIGINAL image. Return only JSON.` },
+        { inlineData: { mimeType: mime, data: base64 } },
+      ] }],
+      safetySettings: [
+        { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
+        { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
+        { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
+        { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" },
+      ],
+      generationConfig: { temperature: 0, maxOutputTokens: 4096, thinkingConfig: { thinkingBudget: 0 }, responseMimeType: "application/json", responseSchema: VERIFY_SCHEMA },
     });
     if (!res.ok) return { ok: false, error: "model_http_error" };
     const json = await res.json();
