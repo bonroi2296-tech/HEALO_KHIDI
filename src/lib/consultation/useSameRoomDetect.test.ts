@@ -55,7 +55,7 @@ describe("correlate — 같은 공간 판정의 핵심", () => {
 });
 
 describe("bothLoud — 하울링 즉발(빠른 경로) 판정", () => {
-  const loud = Array.from({ length: N }, () => 0.4); // 양쪽 마이크가 계속 큰 소리(하울링)
+  const loud = Array.from({ length: N }, () => 0.6); // 양쪽 마이크가 포화 수준으로 계속 큰 소리(하울링)
   const quiet = Array.from({ length: N }, () => 0.02);
 
   it("양쪽이 동시에 계속 큰 소리면 하울링으로 잡는다(true)", () => {
@@ -71,6 +71,12 @@ describe("bothLoud — 하울링 즉발(빠른 경로) 판정", () => {
   it("한쪽만 큰 소리(정상 발화 교대)면 안 잡는다(false)", () => {
     expect(bothLoud(loud, quiet)).toBe(false);
     expect(bothLoud(quiet, loud)).toBe(false);
+  });
+
+  it("양쪽이 '일반 큰 발화'(포화 이하)면 안 잡는다 — 겹발화·소음 오탐 방지(독립리뷰 #1)", () => {
+    // 같은 방이 아닌 정상 원격통화의 겹발화/환자쪽 소음: 크지만 하울링 포화(0.45)엔 못 미침
+    const talkLoud = Array.from({ length: N }, () => 0.3);
+    expect(bothLoud(talkLoud, talkLoud)).toBe(false);
   });
 
   it("둘 다 조용하면 안 잡는다(false)", () => {

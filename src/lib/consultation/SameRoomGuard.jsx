@@ -10,8 +10,9 @@
  *
  * 이 컴포넌트가 하는 일: 감지(useSameRoomDetect) + 상황별 대응.
  *   - 애매한 경우(느린 상관 감지): 경고 배너 + 사람이 눌러 끄기.
- *   - 하울링 즉발(양쪽 동시 큰 소리, 고신뢰): 구글미트처럼 '나중에 들어온' 쪽이 자동으로
- *     화면 전용 전환(2026-07-23 PO 요청). 오탐 위험 낮은 고신뢰일 때만 자동으로 끈다.
+ *   - 하울링 즉발(양쪽이 '포화 수준'으로 동시에 큰 소리, 고신뢰): 구글미트처럼 identity 규칙으로
+ *     정한 한 대가 자동으로 화면 전용 전환(2026-07-23 PO 요청). 겹발화·소음으로 인한 오작동을
+ *     막으려 감지 문턱을 포화 근처로 높게 잡는다(독립리뷰 #1).
  *   되돌리기 막대는 항상 남긴다 — 오탐/실제 다른 방이면 소리를 즉시 되살릴 수 있어야 한다.
  *
  * ⚠️ LiveKitRoom 내부에서만 렌더할 것(useRoomContext 사용).
@@ -70,7 +71,8 @@ export function SameRoomGuard({ copy }) {
   const { localTrack, remoteTracks } = useAudioTracks(room);
   const [dismissed, setDismissed] = useState(false);
   const [screenOnly, setScreenOnly_] = useState(false);
-  const autoMutedRef = useRef(false); // 이번 음소거가 자동(하울링)으로 걸린 것인가
+  const autoMutedRef = useRef(false);      // 이번 음소거가 자동(하울링)으로 걸린 것인가
+  const autoMuteOptOutRef = useRef(false); // 자동 음소거를 사람이 되돌렸으면 재-자동뮤트 중단(무한루프 방지)
 
   const { sameRoomWith, feedbackOnset } = useSameRoomDetect({
     localTrack,
@@ -97,29 +99,21 @@ export function SameRoomGuard({ copy }) {
   };
 
   // ── 구글미트식 자동 음소거 (하울링 즉발 시) ──
-  // 양쪽이 같은 규칙으로 '나중에 들어온 쪽'을 계산해, 그 한 대만 스스로 화면 전용이 된다
-  // (진행 중이던 대화는 살리고, 방금 들어와 하울링을 만든 기기를 끈다 → 중복 뮤트 방지).
+  // '끌 한 대'는 identity 사전순으로 정한다 — 양쪽이 같은 비교(내 id > 상대 id)를 하므로
+  // 정확히 한 대만 꺼진다(둘 다/아무도 안 꺼지는 일 불가). LiveKit joinedAt 은 participantInfo 가
+  // 잠깐 없을 때 'new Date()'(현재시각)를 돌려줘 오판 소지가 있어 안 쓴다(독립리뷰 #2).
+  // 되돌리면 autoMuteOptOut 으로 재-자동뮤트를 멈춘다(무한루프 방지).
   useEffect(() => {
-    if (!feedbackOnset || !sameRoomWith || screenOnly || dismissed) return;
-    const remote =
-      room?.getParticipantByIdentity?.(sameRoomWith) ??
-      [...(room?.remoteParticipants?.values?.() ?? [])].find(
-        (p) => p.identity === sameRoomWith
-      );
-    const localJoin = room?.localParticipant?.joinedAt?.getTime?.();
-    const remoteJoin = remote?.joinedAt?.getTime?.();
-    let iAmNewer;
     if (
-      typeof localJoin === "number" &&
-      typeof remoteJoin === "number" &&
-      localJoin !== remoteJoin
-    ) {
-      iAmNewer = localJoin > remoteJoin; // 내가 더 늦게 입장 = 하울링 유발한 쪽
-    } else {
-      // joinedAt 을 못 읽으면 identity 사전순으로 결정론적 타이브레이크(정확히 한쪽만 끔)
-      iAmNewer = (room?.localParticipant?.identity ?? "") > sameRoomWith;
-    }
-    if (iAmNewer) {
+      !feedbackOnset ||
+      !sameRoomWith ||
+      screenOnly ||
+      dismissed ||
+      autoMuteOptOutRef.current
+    )
+      return;
+    const myId = room?.localParticipant?.identity ?? "";
+    if (myId > sameRoomWith) {
       autoMutedRef.current = true;
       setScreenOnly(true);
     }
@@ -138,11 +132,11 @@ export function SameRoomGuard({ copy }) {
           type="button"
           onClick={() => {
             setScreenOnly(false);
-            // 자동으로 껐던 걸 사람이 되돌리면, 재판정으로 또 자동 음소거되는 루프를 막는다
-            // (사용자가 "그래도 소리 켤래"라고 명시한 것 = 존중). 수동 음소거 되돌리기는 영향 없음.
+            // 자동으로 껐던 걸 사람이 되돌리면 재-자동뮤트만 멈춘다(수동 경고 배너는 남겨 컨트롤 유지 —
+            // 되돌린 뒤 하울링이 계속돼도 사람이 다시 끌 수단이 있어야 한다, 독립리뷰 #3/#4).
             if (autoMutedRef.current) {
               autoMutedRef.current = false;
-              setDismissed(true);
+              autoMuteOptOutRef.current = true;
             }
           }}
           className="shrink-0 px-3 py-1.5 rounded-lg bg-teal-700 hover:bg-teal-600 text-white font-semibold text-xs"
@@ -153,9 +147,10 @@ export function SameRoomGuard({ copy }) {
     );
   }
 
-  // 하울링 즉발(feedbackOnset)은 위 자동 음소거가 처리 중 → 수동 경고 배너는 띄우지 않는다
-  // (양쪽 다 "끄세요" 배너가 뜨면 둘 다 꺼버릴 수 있다). 애매한 상관 감지일 때만 경고한다.
-  if (!sameRoomWith || dismissed || feedbackOnset) return null;
+  // 같은 방 감지 시 경고 배너. 하울링 즉발이면 위 자동 음소거가 identity 로 정한 '끌 한 대'를 끄고,
+  // 나머지 한 대(및 자동을 되돌린 기기)는 이 배너로 수동 컨트롤을 갖는다 — 자동이 못 껐을 때(백그라운드
+  // 스로틀·되돌림) 무대응 사각을 없앤다(독립리뷰 #3/#4). 자동뮤트는 한 대뿐이라 자동 중복뮤트는 없다.
+  if (!sameRoomWith || dismissed) return null;
 
   return (
     <div className="fixed left-1/2 -translate-x-1/2 top-4 z-50 max-w-md w-[92%] rounded-xl bg-amber-950/95 border border-amber-600 shadow-xl p-3 text-sm text-amber-50">
