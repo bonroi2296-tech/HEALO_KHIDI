@@ -3,6 +3,7 @@ import {
   hasReachableContact,
   pickHandoffConfirm,
   HANDOFF_CONFIRM,
+  HANDOFF_CONFIRM_IN_CHANNEL,
   HANDOFF_NEED_CONTACT,
 } from "./contactGate";
 
@@ -35,15 +36,33 @@ describe("pickHandoffConfirm — 연락 가능 여부로 접수 멘트 분기", 
     expect(msg).not.toContain("접수됐");
   });
 
+  it("채널 안 접수(inChannel, 텔레그램 등): 채널을 되묻지 않고 '이 채팅으로 연락' 확정 (실기기 2026-07-23)", () => {
+    const msg = pickHandoffConfirm("ko", true, true);
+    expect(msg).toBe(HANDOFF_CONFIRM_IN_CHANNEL.ko);
+    // 핵심: 이미 메신저 안인데 선호 채널·연락처를 묻는 헛질문 금지
+    expect(msg).not.toContain("어디가 편하신가요");
+    expect(msg).not.toContain("WhatsApp");
+  });
+
+  it("미개통 채널(WeChat·LINE)은 어떤 접수 멘트에도 없다 (2026-07-23 PO — 실운영 2채널만)", () => {
+    for (const map of [HANDOFF_CONFIRM, HANDOFF_NEED_CONTACT, HANDOFF_CONFIRM_IN_CHANNEL]) {
+      for (const [lang, msg] of Object.entries(map)) {
+        expect(msg, `${lang}`).not.toMatch(/WeChat|LINE/);
+      }
+    }
+  });
+
   it("미지원 언어는 en 폴백", () => {
     expect(pickHandoffConfirm("xx", true)).toBe(HANDOFF_CONFIRM.en);
     expect(pickHandoffConfirm("xx", false)).toBe(HANDOFF_NEED_CONTACT.en);
+    expect(pickHandoffConfirm("xx", true, true)).toBe(HANDOFF_CONFIRM_IN_CHANNEL.en);
   });
 
-  it("활성 6개 언어(ko·en·ru·kz·zh·ja) 멘트가 양쪽 맵에 다 존재", () => {
+  it("활성 6개 언어(ko·en·ru·kz·zh·ja) 멘트가 세 맵에 다 존재", () => {
     for (const lang of ACTIVE_LANGS) {
       expect(HANDOFF_CONFIRM[lang], `CONFIRM.${lang}`).toBeTruthy();
       expect(HANDOFF_NEED_CONTACT[lang], `NEED_CONTACT.${lang}`).toBeTruthy();
+      expect(HANDOFF_CONFIRM_IN_CHANNEL[lang], `IN_CHANNEL.${lang}`).toBeTruthy();
     }
   });
 });

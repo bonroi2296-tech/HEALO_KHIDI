@@ -271,6 +271,9 @@ export interface ChatSession {
   isLoggedIn?: boolean;
   // 코디네이터가 연락할 수단(이메일·전화) 또는 계정이 있는가. 접수 멘트 분기의 기준.
   hasReachableContact?: boolean;
+  // 지금 대화 중인 채널 자체가 회신 채널인가(텔레그램 봇 등 메신저). true 면 모델이
+  // 연락처·선호 채널을 되묻는 것 자체가 헛질문 → 프롬프트에서 금지한다.
+  contactInThisChannel?: boolean;
   // 이 스레드에 환자가 올린 첨부(검사지·사진)가 있는가. true 면 "AI는 파일을 읽을 수 없다"
   // 하드룰 주입 — 첨부 내용을 지어내던 환각(2026-07-13 품질경고 4건 전부 이 패턴)의 방지책.
   hasAttachments?: boolean;
@@ -293,7 +296,7 @@ export function buildSystemPrompt(
   const hasHira = externalSources.includes("hira");
   const hasNaver = externalSources.includes("naver");
   const { hospitalGuardActive = false, hospitalIntentNoMatch = false, hospitalRankingAsk = false } = hospitalGuard;
-  const { isLoggedIn = false, hasReachableContact = false, hasAttachments = false } = session;
+  const { isLoggedIn = false, hasReachableContact = false, contactInThisChannel = false, hasAttachments = false } = session;
   // 선택 언어를 모델에 명시(특히 카자흐어 ↔ 러시아어 혼동 방지 — 둘 다 키릴문자라 모델이
   // 카자흐어 사용자에게 러시아어로 답하는 일이 잦음. 핵심 타겟이라 결정적으로 못박는다).
   const LANG_NAMES: Record<string, string> = {
@@ -407,12 +410,16 @@ export function buildSystemPrompt(
     "- ONLY when the patient EXPLICITLY asks the price (e.g. '얼마', 'how much', 'cost'): give just that cancer type's INDICATIVE RANGE (USD and ₩) woven into a full sentence, then ONE line that it is an estimate and the hospital sets the final price after reviewing the diagnosis. Never a single fixed number, never a bare figure, never dump the whole price list. If they did NOT ask about cost, do NOT volunteer a price — answer their real question instead.",
     "- Tag these with '(출처: healwith 안내자료)' (translate '출처' to the user's language).",
     "- Keep the integrative/immune framing: supportive care alongside surgery/chemo, never a cure.",
-    hasReachableContact
+    contactInThisChannel
+      ? "- REGISTER / PROCEED: when the patient wants to formally register, submit, proceed, or book (e.g. '접수해줘', 'оформить заявку', 'I want to proceed'), the coordinator will reply RIGHT HERE in this same chat — this chat IS the contact channel. NEVER ask for an email, phone number, messenger ID, or preferred contact method, and never send them to a separate form. Reassure in 1-2 short lines: their request is registered and a healwith coordinator will follow up in this chat. Only ask for any of the 5 required documents still missing."
+      : hasReachableContact
       ? "- REGISTER / PROCEED: when the patient wants to formally register, submit, proceed, or book (e.g. '접수해줘', 'оформить заявку', 'I want to proceed'), we ALREADY have a way to reach them. NEVER send them to a separate form or tell them to re-enter anything. Reassure in 1-2 short lines: their request is registered and a healwith coordinator will follow up. Only ask for any of the 5 required documents still missing. A patient who already shared their info must never be asked to start over."
-      : "- REGISTER / PROCEED: when the patient wants to register, submit, proceed, or book (e.g. '접수해줘', 'I want to proceed'), we currently have NO way to reach them (no email, phone, or account on file). Do NOT claim they are 'registered' and do NOT promise 'a coordinator will contact you' — with no contact that is a FALSE promise (this caused a real complaint). Instead: warmly say you'll get them set up, and ask for ONE contact detail — an email, or a messenger ID (WhatsApp/Telegram/WeChat/LINE) — so a coordinator can reach them. Reassure that this chat is already saved and reopens on this device, so nothing is lost. Ask for at most one contact + any missing required document; never make them start over.",
+      : "- REGISTER / PROCEED: when the patient wants to register, submit, proceed, or book (e.g. '접수해줘', 'I want to proceed'), we currently have NO way to reach them (no email, phone, or account on file). Do NOT claim they are 'registered' and do NOT promise 'a coordinator will contact you' — with no contact that is a FALSE promise (this caused a real complaint). Instead: warmly say you'll get them set up, and ask for ONE contact detail — an email, or a messenger ID (WhatsApp/Telegram) — so a coordinator can reach them. Reassure that this chat is already saved and reopens on this device, so nothing is lost. Ask for at most one contact + any missing required document; never make them start over.",
     // 접수/핸드오프 턴엔 서버가 답변 뒤에 확정 문구(연락 채널 확인 또는 연락처 요청)를 자동으로 덧붙인다.
     // 모델이 같은 부탁을 또 하거나(중복) "이미 다 있으니 입력 불필요"라고 단정해(모순) 한 말풍선에서 어긋나지 않게 안내.
-    "- IMPORTANT (register/handoff turns): a system line is appended right AFTER your reply — it confirms we received the request and either asks their PREFERRED contact channel (if we can already reach them) or asks for ONE contact (if we cannot). So do NOT duplicate that contact ask yourself, and do NOT contradict it (never say 'no need to provide anything' or 'we already have everything'). Keep your own reply to acknowledging + any missing required documents, and let the appended line handle the contact channel.",
+    contactInThisChannel
+      ? "- IMPORTANT (register/handoff turns): a system line is appended right AFTER your reply — it confirms the request is registered and that the coordinator will follow up in this same chat. So never ask for contact details or a preferred channel yourself, and do NOT contradict the appended line. Keep your own reply to acknowledging + any missing required documents."
+      : "- IMPORTANT (register/handoff turns): a system line is appended right AFTER your reply — it confirms we received the request and either asks their PREFERRED contact channel (if we can already reach them) or asks for ONE contact (if we cannot). So do NOT duplicate that contact ask yourself, and do NOT contradict it (never say 'no need to provide anything' or 'we already have everything'). Keep your own reply to acknowledging + any missing required documents, and let the appended line handle the contact channel.",
     "",
     "SAFETY:",
     "- No medical diagnosis or outcome guarantees.",
