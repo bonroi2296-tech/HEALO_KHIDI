@@ -132,9 +132,9 @@ function DataChannelBridge({ onRemoteSubtitle, publishRef }) {
 // ── 연결 상태 배너 (LiveKitRoom 내부 전용) ──
 // 회선이 끊겨 재연결 중일 때 영상 위에 안내 — 카자흐/러시아 불안정 회선에서
 // "멈춘 줄 알았다"는 혼란 방지. 정상 연결되면 자동으로 사라짐.
-function ConnectionBanner() {
+function ConnectionBanner({ copy }) {
   const lang = useLang();
-  const c = COPY[lang] || COPY.en;
+  const c = copy || COPY[lang] || COPY.en;
   const state = useConnectionState();
   if (state !== ConnectionState.Reconnecting) return null;
   return (
@@ -149,10 +149,10 @@ function ConnectionBanner() {
 // 브라우저는 사용자가 페이지를 한 번 터치/클릭하기 전까지 '들어오는 소리'를 막는다(autoplay 정책).
 // 그러면 상대 목소리가 안 들려 "음성이 안 된다"고 오해한다 → 소리가 막혀 있으면 크고 명확한
 // "소리 켜기" 버튼을 띄우고, 누르면 room.startAudio() 로 재생을 푼다. (막혀있지 않으면 안 보임)
-function AudioUnblock() {
+function AudioUnblock({ copy }) {
   const room = useRoomContext();
   const lang = useLang();
-  const c = COPY[lang] || COPY.en;
+  const c = copy || COPY[lang] || COPY.en;
   const [blocked, setBlocked] = useState(false);
   useEffect(() => {
     if (!room) return;
@@ -183,9 +183,9 @@ function AudioUnblock() {
 // reason: 실패 원인(MediaDeviceFailure 문자열). "PermissionDenied"면 재시도가 아니라 브라우저
 // 설정(자물쇠→허용)을 풀어야 하므로 그 안내문을 배너 본문에 상주시킨다 — 기존엔 몇 초짜리
 // 토스트뿐이라 2026-07-14 실회의에서 참가자 3명이 7분간 못 빠져나온 것 보완.
-function MicOffBanner({ failed, reason, onClear }) {
+function MicOffBanner({ failed, reason, onClear, copy }) {
   const lang = useLang();
-  const c = COPY[lang] || COPY.en;
+  const c = copy || COPY[lang] || COPY.en;
   const { localParticipant, isMicrophoneEnabled } = useLocalParticipant();
   const [retrying, setRetrying] = useState(false);
   const [dismissed, setDismissed] = useState(false);
@@ -265,9 +265,9 @@ function CameraRestartGuard() {
 // ── 상대 대기 안내 (LiveKitRoom 내부 전용) ──
 // 연결은 됐는데 아직 나 혼자면 검은 화면이 '고장'처럼 보인다 → "상대를 기다리는 중" 명시.
 // (PO 제보 '각각 입장은 되는데 서로 안 보임'의 절반은 '상대 없음'과 '고장'이 구분 안 되는 혼란.)
-function WaitingForOthers() {
+function WaitingForOthers({ copy }) {
   const lang = useLang();
-  const c = COPY[lang] || COPY.en;
+  const c = copy || COPY[lang] || COPY.en;
   const participants = useParticipants();
   const state = useConnectionState();
   if (state !== ConnectionState.Connected) return null; // 연결 중/실패는 별도 UI가 담당
@@ -311,9 +311,9 @@ function trackKey(t) {
 // ── 음소거 상태에서 말하면 경고 (LiveKitRoom 내부 전용) ──
 // 마이크가 꺼져 있는데 목소리가 감지되면 "마이크 꺼져 있어요" 안내. 비기술 환자 배려.
 // ponytail: 단순 진폭 임계 휴리스틱. 음소거 시 기기가 해제되면 감지 불가(그땐 조용히 패스).
-function MutedSpeakingWarning() {
+function MutedSpeakingWarning({ copy }) {
   const lang = useLang();
-  const c = COPY[lang] || COPY.en;
+  const c = copy || COPY[lang] || COPY.en;
   const { localParticipant, isMicrophoneEnabled } = useLocalParticipant();
   const [warn, setWarn] = useState(false);
 
@@ -451,9 +451,9 @@ function BlurFillTile({ trackRef, onParticipantClick }) {
 
 // ── LiveKit Video Grid (타일 클릭 = 그 화면 크게 고정 = 핀/포커스. 다자 미팅 대응) ──
 // 발화자 강조·이름표·연결품질·음소거표시는 ParticipantTile 기본 제공(@livekit/components-styles).
-function VideoGrid() {
+function VideoGrid({ copy }) {
   const lang = useLang();
-  const c = COPY[lang] || COPY.en;
+  const c = copy || COPY[lang] || COPY.en;
   const tracks = useTracks(
     [
       { source: Track.Source.Camera, withPlaceholder: true },
@@ -589,9 +589,10 @@ function SubtitleOverlay({
   remoteSubtitles = [],
   size = "md",
   showDisclaimer = false,
+  copy,
 }) {
   const lang = useLang();
-  const c = COPY[lang] || COPY.en;
+  const c = copy || COPY[lang] || COPY.en;
   const hasContent = original || interimText || remoteSubtitles.length > 0;
   if (!hasContent) return null;
 
@@ -704,6 +705,10 @@ export default function ConsultationRoomPage() {
   const [guestLang, setGuestLang] = useState(() =>
     ["ko", "en", "ru", "kz", "zh", "ja"].includes(lang) ? lang : "ru"
   );
+  // 사용자가 입장화면에서 언어를 직접 골랐나 — 안 골랐으면 코디가 상담에 지정한 DB 환자언어를
+  // 기본으로 쓴다(초대 게스트는 guestLang 이 앱로케일 en 으로 기본이라 seed 없으면 카자흐 환자가
+  // 영어로 잡혀 발화가 영어 인식기로 처리됨).
+  const [langPickedByUser, setLangPickedByUser] = useState(false);
   // 방 UI 문구 언어 — 게스트(환자)는 자기 언어(guestLang)로 렌더한다. 초대링크로 들어오면 앱
   // 로케일(lang)이 en 으로 기본값이라 방 전체·언어모달까지 영어로 떠 못 읽던 문제(PO 제보 2026-07-23).
   // staff(코디/의사)는 기존대로 앱 로케일(lang) 유지 — 통역 언어를 만져도 화면이 안 바뀜(2026-07-20 결정).
@@ -904,10 +909,11 @@ export default function ConsultationRoomPage() {
       next.push({ key: k, text, lang, role, name });
       return next.slice(-2); // 최근 화자 2명까지
     });
-    // 문장 길이에 비례해 자동 숨김(8~15초) — 긴 번역문을 다 읽기 전에 사라지지 않게
+    // 문장 길이에 비례해 자동 숨김(12~30초) — "너무 슉슉 넘어가 읽기 힘들다"(PO 제보 2026-07-23)로
+    // 유지시간을 크게 늘림. 지난 자막은 「자막 기록」 패널에 남으므로 다시 읽을 수 있다.
     const timers = remoteSubtitleTimersRef.current;
     if (timers.has(k)) clearTimeout(timers.get(k));
-    const holdMs = Math.min(15000, Math.max(8000, (text?.length || 0) * 90));
+    const holdMs = Math.min(30000, Math.max(12000, (text?.length || 0) * 140));
     timers.set(
       k,
       setTimeout(() => {
@@ -996,7 +1002,7 @@ export default function ConsultationRoomPage() {
 
       // Auto-hide subtitle — 문장 길이에 비례(긴 의료문장을 다 읽기 전에 사라지지 않게, 6~15초)
       if (subtitleTimerRef.current) clearTimeout(subtitleTimerRef.current);
-      const holdMs = Math.min(15000, Math.max(6000, (translated?.length || 0) * 90));
+      const holdMs = Math.min(30000, Math.max(12000, (translated?.length || 0) * 140));
       subtitleTimerRef.current = setTimeout(() => setCurrentSubtitle(null), holdMs);
 
       // TTS playback
@@ -1108,8 +1114,23 @@ export default function ConsultationRoomPage() {
       if (participantIdentity) dcActivityRef.current.set(participantIdentity, Date.now());
       // 상대 발화도 문맥으로 축적 (수신되는 건 번역문이지만 대명사·용어 일관성엔 유효)
       pushConvoContext("other", lang, text);
+      // 「자막 기록」 패널에도 남긴다 — 상대 자막이 기록에 안 쌓이던 것 수정(PO 제보 2026-07-23).
+      //   (통역봇이 통역하던 동안엔 자막이 이 경로로만 와서 기록이 통째로 비어 있었음.)
+      setTranslations((prev) => [
+        ...prev.slice(-299),
+        {
+          id: Date.now(),
+          original_text: "",
+          translated_text: text,
+          source_language: lang,
+          target_language: myLang,
+          speaker_role: "other",
+          speaker_name: name,
+          created_at: new Date().toISOString(),
+        },
+      ]);
     },
-    [pushConvoContext, showRemoteSubtitle]
+    [pushConvoContext, showRemoteSubtitle, myLang]
   );
 
   // ── 청취 모드 자막 수신 (ListenModeBridge) — 원격 참가자 음성을 이쪽에서 전사·번역 ──
@@ -1246,8 +1267,19 @@ export default function ConsultationRoomPage() {
       //   - 의사 게스트면 상대 = 환자 언어, 그 외(환자/코디)면 상대 = 의사 언어.
       //   - 세션에 언어가 없으면 기존 기본값(내 언어의 반대)으로 폴백.
       // 상담 중에도 언어 칩 탭으로 변경 가능.
-      const ml = guestLang || (result.role === "patient" ? "ru" : "ko");
+      // 내 언어: 사용자가 입장화면에서 직접 골랐으면 그 값, 아니면 코디가 상담에 지정한
+      // DB 언어(환자면 patient_language, 의사면 doctor_language)를 기본으로.
+      const myDbLang =
+        result.role === "patient"
+          ? result.patientLanguage
+          : result.role === "doctor"
+            ? result.doctorLanguage
+            : null; // 코디는 한국어(아래 폴백)
+      const ml = langPickedByUser
+        ? guestLang
+        : myDbLang || guestLang || (result.role === "patient" ? "ru" : "ko");
       setMyLang(ml);
+      setGuestLang(ml); // 게스트 방 UI 언어도 내 언어를 따라오게
       const counterpart =
         result.role === "doctor" ? result.patientLanguage : result.doctorLanguage;
       setTargetLang(counterpart || (ml === "ko" ? "ru" : "ko"));
@@ -1259,7 +1291,7 @@ export default function ConsultationRoomPage() {
     } finally {
       setGuestJoining(false);
     }
-  }, [inviteToken, consultationId, guestName, guestLang, stopPreview]);
+  }, [inviteToken, consultationId, guestName, guestLang, langPickedByUser, stopPreview]);
 
   // ── 의사/관리자용 대기열 polling ──
   // 게스트 의사/코디(초대링크 입장)도 X-Guest-Token 으로 대기열 조회·승인 가능
@@ -2281,7 +2313,10 @@ export default function ConsultationRoomPage() {
                   <button
                     key={l}
                     type="button"
-                    onClick={() => setGuestLang(l)}
+                    onClick={() => {
+                      setGuestLang(l);
+                      setLangPickedByUser(true);
+                    }}
                     className={`px-3 py-2 rounded-lg text-sm transition border ${
                       guestLang === l
                         ? "bg-teal-700 border-teal-500 text-white font-semibold"
@@ -2667,17 +2702,18 @@ export default function ConsultationRoomPage() {
                 onSubtitle={handleListenSubtitle}
               />
               <div className="flex-1 relative" style={{ height: "calc(100% - 64px)" }}>
-                <VideoGrid />
-                <WaitingForOthers />
+                <VideoGrid copy={c} />
+                <WaitingForOthers copy={c} />
                 <RoomAudioRenderer />
-                <AudioUnblock />
+                <AudioUnblock copy={c} />
                 <MicOffBanner
                   failed={micActivationFailed}
                   reason={micFailureReason}
                   onClear={() => setMicActivationFailed(false)}
+                  copy={c}
                 />
-                <ConnectionBanner />
-                <MutedSpeakingWarning />
+                <ConnectionBanner copy={c} />
+                <MutedSpeakingWarning copy={c} />
                 <RoomInfoOverlay />
                 {/* 연결 실패/지연 — 무한 '연결중' 대신 재시도 안내 (재시도 = LiveKitRoom 리마운트) */}
                 {connectError && !connected && (
@@ -2719,6 +2755,7 @@ export default function ConsultationRoomPage() {
                     remoteSubtitles={remoteSubtitles}
                     size={subtitleSize}
                     showDisclaimer={subtitleDisclaimerVisible}
+                    copy={c}
                   />
                 )}
                 {/* 서버 STT 상태 표시 — 듣는 중(회색)/목소리 감지(초록)/자막 생성 중(노랑).
@@ -2820,6 +2857,7 @@ export default function ConsultationRoomPage() {
                     remoteSubtitles={remoteSubtitles}
                     size={subtitleSize}
                     showDisclaimer={subtitleDisclaimerVisible}
+                    copy={c}
                   />
                 )}
               </div>
