@@ -88,6 +88,8 @@ app/api/survey/[token]/route.ts:48
 
 ⏰ **만족도는 8/27 중간평가 공식 지표 4개 중 하나(목표 90점)이고, 설문은 보낸 뒤 응답까지 와야 점수가 된다** — 늦어도 **2026-07-31** 까지 첫 케이스가 사후관리로 넘어가야 표본이 쌓인다.
 
+> 📝 **2026-07-23 PO 확인 — 지금 사후관리로 옮길 실제 케이스가 없다.** 앞서 관통된 만족도 1건(100점)은 **PO가 테스트로 만든 것**이지 실환자 완료 건이 아니다. 즉 실 표본은 여전히 0. → **어시는 "케이스를 사후관리로 옮겨달라"고 계속 밀지 말 것**(옮길 실 케이스가 없음). 실 유치·치료가 발생해야 생기는 지표라, 8/27 평가는 정량 표본보다 **정성(체계 구축)·파이프라인 근거** 전략으로 간다(참고 [사업 사각지대 진단]). 실환자 완료가 생기면 그때 사후관리 이동→자동발송이 이미 배선돼 있다.
+
 ---
 
 ## 📦 보관 목록 — 한눈에 (2026-07-21 밤 전수 색출)
@@ -282,11 +284,11 @@ app/api/survey/[token]/route.ts:48
 
 - ~~🔴 **발급 PDF 한글·키릴 전부 깨짐**~~ ✅ **해결(같은 날 #603)** — 감사에서 renderToBuffer 실증으로 발견 → 별도 세션이 Noto Sans/KR 셀프호스팅 등록 + ko/ru/kz 샘플 육안검증으로 수정·머지(반성문 #62, 검사기 룰10 추가). 이 감사 PR의 견적 발급 언어 교정(환자 언어 반영)과 합쳐져 완결.
 - ~~🔴 **K-02 오염 벡터 — inquiry 미연결 상담세션은 테스트 제외 원천 불가**~~ ✅ **해결(2026-07-02 밤)** — `consultation_sessions.is_test` 컬럼 추가(가역 migration, 실DB 적용) + 생성 API 도장(inquiry 상속·notes [TEST]·명시 지정, `detectSessionIsTest`) + 집계 제외를 "세션 표식 ∪ inquiry 체인" 합집합으로(`fetchTestSessionIds`). 백필 17건(inquiry 미연결 4건 포함) 도장 → **실측: 실적 완료 상담 K-02=0·K-04=0**(그간 완료는 전부 테스트였음 — 정직한 0). 단위테스트 20건. 잔여: session_type NULL 1건(아래 🟡)은 별건.
-- 🟡 **월간보고 xlsx 생성이 프로덕션에서 항상 실패** — 템플릿 후보가 ①PO 로컬 절대경로 ②`public/templates/khidi_monthly_report_template.xlsx`(repo에 없음, git 히스토리에도 xlsx 커밋 0회) → 항상 template_not_found 500. **PO가 빈 양식 xlsx 원본을 주면 커밋으로 해결**(1분).
+- ✅ **월간보고 xlsx 생성 500 해결(2026-07-23, PR #900)** — PO 제공 6월 제출본을 `public/templates/khidi_monthly_report_template.xlsx` 로 커밋. 시트(4~11월+환자명단) 호환·요약 수식 자동집계 확인. template_not_found 해소.
 - 🟡 **main 브랜치 보호 0** — required status check·PR 필수 없음(gh API 실측 404). CI 18게이트는 main 직push 를 기계적으로 못 막음(빨간 CI여도 push=즉시 prod 배포). GitHub ruleset 설정은 운영방식 변경이라 **PO 결정**(admin bypass 허용으로 긴급 대응 여지 유지 가능).
-- 🟡 **TEST_OFFICE_IPS prod env 미설정** — 테스트/실적 분리(PR #501)의 사무실IP 자동태깅이 무장해제(Vercel env 32개 전수 실측). PO만 값(사무실 공인IP)을 앎 → LAUNCH_GATES 신규 항목.
+- ✅ **TEST_OFFICE_IPS — PO 결정(2026-07-23): 불필요, 닫음.** @test.com·수동 도장으로 테스트 분리 충분해 사무실 공인IP 태깅은 안 쓴다. 코드의 IP 태깅 경로는 무장해제(env 미설정) 상태로 무해히 잔존 — 다시 요청하지 말 것.
 - 🟡 **E2E 실패 알림 메일 403** — 발신이 미검증 `onboarding@resend.dev` 라 Resend가 거부(로그 실측). Resend 콘솔에서 healwith.co.kr 도메인 검증(PO) 후 발신 주소 교체, 또는 수신자를 계정 소유자 주소로.
-- 🟡 **session_type NULL 완료세션 1건**(f0a36145…, inquiry 12 연결) — 실상담이면 K-02 1건 과소집계. inquiry 12 실상담 여부 PO/코디 확인 후 한 행 백필.
+- ✅ **session_type NULL 완료세션 1건 — PO 결정(2026-07-23): inquiry 12는 실상담 아님, 백필 안 함.** K-02 현재 집계(미포함) 유지가 맞다. 닫음.
 - 🟢 **코디는 유치 확정/이탈 클릭 불가** — conversion-funnel API 주석은 '코디 가능'이라나 실제 requireAdminAuth(admin 전용). 코디 운영을 시작하면 requirePortalAuth(staffOnly) 전환+코디 네비 연결, 지금(PO=어드민)은 무영향.
 - 🟢 **성능 advisor 133건**(RLS auth 함수 행별 재평가 22·중복 permissive 정책 8·중복 인덱스 2쌍) — 전부 DDL이라 한가할 때 일괄, PO 확인 후.
 - 🟢 **vector 익스텐션 public 스키마**(security advisor WARN) — 재설치 필요라 RAG 재적재와 묶어 처리 권장.
