@@ -64,6 +64,8 @@ export async function POST(request: NextRequest) {
       landing_path,
       referrer,
       client_meta,
+      // 브라우저 IANA 시간대(예: Asia/Almaty) — 어드민 챗의 "환자 현지 시각" 표시용(새벽 알림 방지).
+      timezone,
       // PIPA: 게스트가 민감 건강정보를 AI(국외·Google)에 입력하기 전 필수 동의.
       consent,
       consent_version,
@@ -81,6 +83,11 @@ export async function POST(request: NextRequest) {
     const ctry = typeof guest_country === "string" ? guest_country.trim().slice(0, 8) : (country || null);
     const phone = typeof guest_phone === "string" ? guest_phone.trim().slice(0, 32) : null;
     const sessionId = typeof browser_session_id === "string" ? browser_session_id.trim().slice(0, 64) : null;
+    // IANA 형식("지역/도시")만 수용 — 임의 문자열 오염 방지. 시간대는 위치가 아니라 도시권 수준이라 PII 아님.
+    const tz =
+      typeof timezone === "string" && /^[A-Za-z_]+\/[A-Za-z_/+-]+$/.test(timezone.trim()) && timezone.length <= 64
+        ? timezone.trim()
+        : null;
     const consentRecord = {
       health_crossborder: true,
       version: typeof consent_version === "string" ? consent_version.slice(0, 20) : null,
@@ -120,6 +127,7 @@ export async function POST(request: NextRequest) {
           referrer: referrer || null,
           client_meta: client_meta || null,
           treatment_slug: treatment_slug || null,
+          ...(tz ? { tz } : {}),
           started_at: new Date().toISOString(),
           ...(authUser ? { is_logged_in: true } : {}),
           // 재방문 검색용 블라인드 인덱스(평문 저장 아님)
