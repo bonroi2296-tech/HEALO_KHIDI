@@ -144,13 +144,14 @@ export default function TermsOfServiceClientLegacy() {
         </div>
       </div>
 
-      <style jsx>{`
+      {/* ⚠️ styled-jsx(jsx 속성)는 App Router에서 조용히 증발(POSTMORTEMS #113) — 평범한 style 태그로. */}
+      <style>{`
         @media (max-width: 768px) {
-          :global(.healo-terms-legacy-grid) {
+          .healo-terms-legacy-grid {
             grid-template-columns: 1fr !important;
             gap: 24px !important;
           }
-          :global(.healo-terms-legacy-grid aside) {
+          .healo-terms-legacy-grid aside {
             position: static !important;
             max-height: 220px !important;
             border-bottom: 1px solid #e2e8f0;

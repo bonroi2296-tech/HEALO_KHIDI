@@ -434,6 +434,20 @@ for (const file of SCAN_DIRS.flatMap(walk)) {
   errors.push(`[인라인사전] ${f}:${line} — 공개 화면 문구가 컴포넌트 안 const L={} 미니사전에 박혀 코디 콘텐츠 편집기(/coordinator/content)에서 수정 불가(번역돼도 CMS 우회). 문구를 src/lib/i18n/index.js DICTIONARY 에 키로 넣고 t("키", lang) 로 렌더할 것(그러면 편집기에 자동 등록). 기존 5개는 INLINE_L_ALLOW 로 grandfather.`);
 }
 
+// ── 7b) styled-jsx 금지 가드 (POSTMORTEMS #113) ──
+// 왜: <style jsx>는 App Router에서 SSR·클라이언트 모두 조용히 증발한다(registry 미설정).
+//     법률 페이지 모바일 접힘 CSS가 통째로 사라져 본문 전체가 109px씩 잘린 실사고.
+//     고치는 법: jsx 속성을 빼고 평범한 <style>{`...`}</style> 로 (그때 :global() 도 제거).
+const STYLE_JSX_RE = /<style\s+jsx/;
+for (const file of SCAN_DIRS.flatMap(walk)) {
+  if (!/\.[jt]sx$/.test(file) || EXCLUDE.test(file)) continue;
+  const text = readFileSync(join(ROOT, file), "utf8");
+  if (!STYLE_JSX_RE.test(text)) continue;
+  const line = text.split("\n").findIndex((l) => STYLE_JSX_RE.test(l)) + 1;
+  const f = file.replace(/\\/g, "/");
+  errors.push(`[styled-jsx] ${f}:${line} — <style jsx>는 App Router에서 렌더되지 않아 CSS가 통째로 증발한다(POSTMORTEMS #113 모바일 잘림 실사고). jsx 속성 제거하고 평범한 <style>{\`...\`}</style> 로 바꿀 것(:global() 래퍼도 제거).`);
+}
+
 // ── 8) 이메일 템플릿 premium 톤 누수 가드 (DESIGN.md premium_drift, POSTMORTEMS #55) ──
 // 왜: 사이트는 legacy(teal+시스템폰트)인데 상담초대·리마인더·설문 이메일이 옛 premium 톤
 //     (검정 #0a0a0a + 골드 #c8a96a + 크림 #f5f0e8 + Playfair 세리프)으로 살아있어, 환자가

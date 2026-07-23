@@ -140,13 +140,15 @@ export default function PrivacyPolicyClientLegacy() {
         </div>
       </div>
 
-      <style jsx>{`
+      {/* ⚠️ styled-jsx(jsx 속성)는 App Router에서 조용히 증발한다(SSR·클라 모두 미주입,
+          POSTMORTEMS #113 — 모바일에서 전 본문 우측 109px 잘림). 반드시 평범한 style 태그로. */}
+      <style>{`
         @media (max-width: 768px) {
-          :global(.healo-legal-legacy-grid) {
+          .healo-legal-legacy-grid {
             grid-template-columns: 1fr !important;
             gap: 24px !important;
           }
-          :global(.healo-legal-legacy-grid aside) {
+          .healo-legal-legacy-grid aside {
             position: static !important;
             max-height: 220px !important;
             border-bottom: 1px solid #e2e8f0;

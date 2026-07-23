@@ -352,9 +352,10 @@ export default function CalendarClient() {
         </div>
       </section>
 
-      <style jsx>{`
+      {/* styled-jsx silently no-ops in the App Router (POSTMORTEMS #113) — plain style tag. */}
+      <style>{`
         @media (max-width: 640px) {
-          :global(.healo-calendar-list-row) {
+          .healo-calendar-list-row {
             grid-template-columns: 1fr !important;
             gap: 8px !important;
           }

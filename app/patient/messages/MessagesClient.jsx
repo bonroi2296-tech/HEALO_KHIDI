@@ -561,19 +561,21 @@ export default function MessagesClient() {
         </div>
       </section>
 
-      <style jsx>{`
+      {/* styled-jsx silently no-ops in the App Router (POSTMORTEMS #113) — use a plain
+          style tag. The template-literal interpolation below still works as-is. */}
+      <style>{`
         @media (max-width: 768px) {
-          :global(.healo-msg-grid) {
+          .healo-msg-grid {
             grid-template-columns: 1fr !important;
           }
-          :global(.healo-msg-threads) {
+          .healo-msg-threads {
             display: ${selectedId ? "none" : "block"} !important;
             border-right: 0 !important;
           }
-          :global(.healo-msg-conversation) {
+          .healo-msg-conversation {
             display: ${selectedId ? "flex" : "none"} !important;
           }
-          :global(.healo-msg-back) {
+          .healo-msg-back {
             display: inline-block !important;
           }
         }
