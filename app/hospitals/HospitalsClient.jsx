@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import {
   Building2, MapPin, Users, Shield, Leaf,
   ArrowRight, Award, Heart, CheckCircle2, Clock,
@@ -825,7 +826,7 @@ export default function HospitalsClient() {
         {partnerHospitals.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
             {partnerHospitals.map(h => (
-              <div key={h.id} data-testid="hospital-card" role="button" tabIndex={0} onClick={() => router.push(`/hospitals/${h.slug || h.id}`)} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); router.push(`/hospitals/${h.slug || h.id}`); } }} className="bg-white border border-gray-200 rounded-2xl p-6 hover:shadow-lg hover:border-teal-300 transition cursor-pointer group focus:outline-none focus:ring-2 focus:ring-teal-400">
+              <Link key={h.id} href={`/${lang}/hospitals/${h.slug || h.id}`} data-testid="hospital-card" className="block bg-white border border-gray-200 rounded-2xl p-6 hover:shadow-lg hover:border-teal-300 transition cursor-pointer group focus:outline-none focus:ring-2 focus:ring-teal-400">
                 <div className="flex items-start gap-3 mb-3">
                   <div className="w-12 h-12 bg-teal-100 rounded-xl flex items-center justify-center shrink-0">
                     <Stethoscope size={24} className="text-teal-700" />
@@ -846,7 +847,7 @@ export default function HospitalsClient() {
                 <div className="flex items-center gap-1 text-sm text-teal-700 font-medium">
                   {l(L.viewDetails)} <ArrowRight size={14} />
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
         ) : (
