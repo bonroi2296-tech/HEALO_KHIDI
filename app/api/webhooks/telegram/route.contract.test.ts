@@ -16,7 +16,8 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 const mockState: {
   thread: any | null;
   history: any[];
-} = { thread: null, history: [] };
+  dupMsg: boolean; // 같은 tg_update_id 의 기존 저장 메시지 존재 여부(멱등 가드용)
+} = { thread: null, history: [], dupMsg: false };
 
 type Captured = { table: string; op: string; payload: any; filters: Array<[string, any]> };
 const captured: Captured[] = [];
@@ -40,7 +41,7 @@ vi.mock("@/lib/rag/supabaseAdmin", () => ({
   assertSupabaseEnv: () => {},
   supabaseAdmin: {
     from: (table: string) => ({
-      select: (_cols: string) => {
+      select: (cols: string) => {
         const filters: Array<[string, any]> = [];
         const builder: any = {
           eq: (f: string, v: any) => {
@@ -51,6 +52,10 @@ vi.mock("@/lib/rag/supabaseAdmin", () => ({
           limit: async (_n: number) => {
             if (table === "chat_threads") {
               return { data: mockState.thread ? [mockState.thread] : [], error: null };
+            }
+            // chat_messages: 멱등 가드의 중복 조회(select "id") vs 히스토리 조회를 구분
+            if (cols === "id") {
+              return { data: mockState.dupMsg ? [{ id: "m-dup" }] : [], error: null };
             }
             return { data: mockState.history, error: null };
           },
@@ -133,7 +138,7 @@ const CONSENTED_THREAD = () => ({
   channel: "telegram",
   metadata: {
     language: "en",
-    telegram: { chat_id: "777", last_update_id: 5 },
+    telegram: { chat_id: "777" },
     consent: { health_crossborder: true, version: "1.0.0", at: "2026-07-23T00:00:00Z" },
   },
 });
@@ -155,6 +160,7 @@ describe("텔레그램 웹훅 계약", () => {
     captured.length = 0;
     mockState.thread = null;
     mockState.history = [];
+    mockState.dupMsg = false;
     generateChatReply.mockClear();
     sendTelegramPatientMessage.mockClear();
     sendConsentPrompt.mockClear();
@@ -250,13 +256,27 @@ describe("텔레그램 웹훅 계약", () => {
     expect(sIns?.payload.message_text).toBe("AI 답변");
   });
 
-  it("④ update_id 멱등 가드: 재전송(update_id ≤ last) 은 저장하지 않는다", async () => {
+  it("④ 멱등 가드: 같은 update_id 가 이미 저장돼 있으면 재저장·재응답하지 않는다", async () => {
     const POST = await loadPost();
-    mockState.thread = CONSENTED_THREAD(); // last_update_id = 5
+    mockState.thread = CONSENTED_THREAD();
+    mockState.dupMsg = true; // 같은 tg_update_id 의 기존 메시지 존재(텔레그램 재전송 상황)
     const res = await POST(makeReq(msgUpdate("retry delivery", 5)));
     expect((await res.json()).skipped).toBe("duplicate");
-    expect(captured.filter((c) => c.table === "chat_messages")).toHaveLength(0);
+    expect(captured.filter((c) => c.table === "chat_messages" && c.op === "insert")).toHaveLength(0);
     expect(generateChatReply).not.toHaveBeenCalled();
+  });
+
+  it("④-2 역전 도착한 '다른' update_id 는 정상 처리한다(유실 금지 — 리뷰 C1)", async () => {
+    const POST = await loadPost();
+    mockState.thread = CONSENTED_THREAD();
+    mockState.dupMsg = false; // 저장 이력 없음 → 순서가 뒤바뀌어 왔어도 정상 메시지
+    const res = await POST(makeReq(msgUpdate("late arrival", 3)));
+    expect((await res.json()).ok).toBe(true);
+    const pIns = captured.find(
+      (c) => c.table === "chat_messages" && c.payload?.actor_type === "patient"
+    );
+    expect(pIns?.payload.message_text).toBe("late arrival");
+    expect(generateChatReply).toHaveBeenCalledTimes(1);
   });
 
   it("⑤ 코디 인수 후 AI 침묵: 메시지는 저장하되 AI 생성·발신 없음", async () => {
@@ -277,6 +297,87 @@ describe("텔레그램 웹훅 계약", () => {
     // 하지만 AI 는 침묵
     expect(generateChatReply).not.toHaveBeenCalled();
     expect(sendTelegramPatientMessage).not.toHaveBeenCalled();
+  });
+
+  it("코디가 답장 중인 스레드(coordinator_active)에도 AI 는 침묵한다(리뷰 M1)", async () => {
+    const POST = await loadPost();
+    const t = CONSENTED_THREAD();
+    (t.metadata as any).coordinator_active = true;
+    mockState.thread = t;
+
+    const res = await POST(makeReq(msgUpdate("one more question", 10)));
+    expect((await res.json()).ok).toBe(true);
+    expect(
+      captured.find((c) => c.table === "chat_messages" && c.payload?.actor_type === "patient")
+    ).toBeTruthy();
+    expect(generateChatReply).not.toHaveBeenCalled();
+    expect(sendTelegramPatientMessage).not.toHaveBeenCalled();
+  });
+
+  it("사진+캡션: 캡션을 질문으로 처리하고(유실 금지 — 리뷰 C4) 파일 안내를 덧붙인다", async () => {
+    const POST = await loadPost();
+    mockState.thread = CONSENTED_THREAD();
+    const u: any = msgUpdate("", 10);
+    delete u.message.text;
+    u.message.caption = "Here is my CT scan, what stage is this?";
+    u.message.photo = [{ file_id: "f1" }];
+
+    const res = await POST(makeReq(u));
+    expect((await res.json()).ok).toBe(true);
+
+    const pIns = captured.find(
+      (c) => c.table === "chat_messages" && c.payload?.actor_type === "patient"
+    );
+    expect(pIns?.payload.message_text).toBe("Here is my CT scan, what stage is this?");
+    expect(pIns?.payload.metadata.tg_has_attachment).toBe(true);
+    // 첨부 환각 방지 하드룰이 켜진 채 생성
+    expect((generateChatReply.mock.calls[0] as any)[4]?.hasAttachments).toBe(true);
+    // 답변 + 파일 미수신 정직 안내가 함께 발신
+    const sent = String(sendTelegramPatientMessage.mock.calls[0]?.[1] || "");
+    expect(sent).toContain("AI 답변");
+    expect(sent).toContain("📎");
+  });
+
+  it("사진만(캡션 없음)이면 저장 없이 파일 안내만 보낸다", async () => {
+    const POST = await loadPost();
+    mockState.thread = CONSENTED_THREAD();
+    const u: any = msgUpdate("", 10);
+    delete u.message.text;
+    u.message.photo = [{ file_id: "f1" }];
+
+    const res = await POST(makeReq(u));
+    expect((await res.json()).ok).toBe(true);
+    expect(captured.filter((c) => c.table === "chat_messages" && c.op === "insert")).toHaveLength(0);
+    expect(generateChatReply).not.toHaveBeenCalled();
+    expect(sendTelegramPatientMessage).toHaveBeenCalledTimes(1);
+    expect(String(sendTelegramPatientMessage.mock.calls[0]?.[1])).toContain("📎");
+  });
+
+  it("딥링크 ?start=test 로 시작한 스레드는 테스트 표식이 붙는다(KHIDI 실적 오염 방지 — 리뷰 C3)", async () => {
+    const POST = await loadPost();
+    const res = await POST(makeReq(msgUpdate("/start test", 10)));
+    expect((await res.json()).ok).toBe(true);
+    const tIns = captured.find((c) => c.table === "chat_threads" && c.op === "insert");
+    expect(tIns?.payload.metadata.is_test).toBe(true);
+    expect(tIns?.payload.metadata.utm.start_param).toBe("test");
+    // /start 본문은 저장하지 않는다
+    expect(captured.filter((c) => c.table === "chat_messages" && c.op === "insert")).toHaveLength(0);
+  });
+
+  it("3턴째 환자 메시지에서 문의 초안(createDraftIntake)이 발사된다(KHIDI 집계 연결)", async () => {
+    const POST = await loadPost();
+    mockState.thread = CONSENTED_THREAD();
+    // 히스토리(방금 저장분 포함)에 환자 메시지 3개
+    mockState.history = [
+      { actor_type: "patient", message_text: "q1", metadata: {} },
+      { actor_type: "system", message_text: "a1", metadata: {} },
+      { actor_type: "patient", message_text: "q2", metadata: {} },
+      { actor_type: "system", message_text: "a2", metadata: {} },
+      { actor_type: "patient", message_text: "q3", metadata: {} },
+    ];
+    const res = await POST(makeReq(msgUpdate("q3", 12)));
+    expect((await res.json()).ok).toBe(true);
+    expect(createDraftIntake).toHaveBeenCalledTimes(1);
   });
 
   it("그룹 채팅 메시지는 무시한다(1:1 상담 전용)", async () => {

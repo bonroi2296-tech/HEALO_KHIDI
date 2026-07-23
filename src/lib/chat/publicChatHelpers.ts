@@ -90,7 +90,11 @@ async function promoteThreadToInquiry(
   } catch {
     /* 손상 payload 는 판정에서 무시 */
   }
-  const isTest = detectInquiryIsTest({ ip: clientIp, email: guestEmailPlain });
+  // 텔레그램 봇 경로는 IP·이메일이 없어 detectInquiryIsTest 가 항상 false — 스레드에 찍힌
+  // 테스트 표식(딥링크 ?start=test)을 우선 반영해 KHIDI 실적 오염을 막는다.
+  const isTest =
+    thread?.metadata?.is_test === true ||
+    detectInquiryIsTest({ ip: clientIp, email: guestEmailPlain });
 
   // PIPA 동의 보존: AI 챗은 chat/start 와 매 메시지에서 동의(health_crossborder)를
   // 강제하므로 3턴+ 도달한 thread 는 동의가 반드시 있다(thread.metadata.consent).

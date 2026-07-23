@@ -36,18 +36,21 @@ curl -s "https://api.telegram.org/bot<봇토큰>/setWebhook" \
 
 ## 4. 동작 검증 (실기기)
 
-1. `t.me/<봇아이디>?start=inq_human` 접속 → **동의 버튼** 메시지 수신
+> ⚠️ **검증은 반드시 `?start=test` 딥링크로.** 이걸로 시작한 대화는 자동으로 「테스트」 표식이 붙어
+> KHIDI 평가 숫자(유치·상담 집계)를 오염시키지 않는다. `?start=inq_human`으로 테스트하면 가짜 실적이 잡힌다.
+
+1. `t.me/<봇아이디>?start=test` 접속 → **동의 버튼** 메시지 수신
 2. 동의 → 환영 메시지 → 질문 3턴 → AI 답장 수신
-3. `/admin/chat`에 ✈️ Telegram 배지 스레드 확인 → 답장 → 텔레그램 수신 확인
-4. `/admin/khidi/conversion` 채널별 표에 「Telegram 상담」 행 확인
+3. `/admin/chat`에 ✈️ Telegram 배지 스레드 확인 → **관리자(admin) 계정**으로 답장 → 텔레그램 수신 확인 (코디 계정은 현재 열람만 가능 — 답장 권한을 코디에게 열지는 PO 결정)
+4. `/admin/khidi/conversion`에서 「테스트 포함」 토글 켜고 「Telegram 상담」 행 확인 (실적만 보기에선 안 보이는 게 정상)
 5. "I want to talk to a human" → 검토요청 종 + 이후 AI 침묵 확인
 
 ## 동작 방식 요약
 
 - 환자 텔레그램 → 봇 웹훅(`/api/webhooks/telegram`) → `chat_threads`(channel='telegram')
 - PIPA 동의 전에는 **본문 저장 안 함**(동의 버튼만 안내)
-- AI 자동응답(기존 3-Tier RAG) / "사람 연결" 요청 시 코디 종 + AI 침묵
-- 코디는 `/admin/chat`에서 답장 → 환자 텔레그램으로 자동 발신
+- AI 자동응답(기존 3-Tier RAG) / "사람 연결" 요청 시 검토요청 종 + AI 침묵
+- 운영자(admin)가 `/admin/chat`에서 답장 → 환자 텔레그램으로 자동 발신. **사람이 한 번 답장한 스레드는 이후 AI가 끼어들지 않음**(상담 종료 후 재문의는 새 스레드라 다시 AI 응대)
 - 3턴마다 `inquiries(source='messenger_telegram')` 승격 → KHIDI 전환 대시보드 자동 집계
 - 상담 종료(resolve) 시 응대패턴 자동추출 → RAG 자기학습 루프 (기존 파이프라인 그대로)
 - 파일(사진·문서)은 v1 미지원 — 환자에게 웹 채팅 업로드 안내가 자동 발송됨

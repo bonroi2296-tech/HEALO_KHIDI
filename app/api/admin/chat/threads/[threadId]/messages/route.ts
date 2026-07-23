@@ -98,6 +98,22 @@ export async function POST(
       } else {
         delivery = "failed";
       }
+      // 사람이 답장을 시작한 텔레그램 스레드에는 이후 AI 가 끼어들지 않는다(웹훅이 이 플래그를
+      // 보고 침묵). 핸드오프 요청 없이 선제 답장한 경우까지 커버 — resolve 후 재상담은 새
+      // 스레드라 자동으로 다시 AI 응대.
+      if (thread.metadata?.coordinator_active !== true) {
+        await (supabaseAdmin as any)
+          .from("chat_threads")
+          .update({
+            metadata: {
+              ...(thread.metadata && typeof thread.metadata === "object" && !Array.isArray(thread.metadata)
+                ? thread.metadata
+                : {}),
+              coordinator_active: true,
+            },
+          })
+          .eq("id", threadId);
+      }
     }
 
     return Response.json({ ok: true, message: data, ...(delivery ? { delivery } : {}) });
