@@ -8,14 +8,16 @@
  *   되돌이만 지우고, 옆 PC 스피커 소리는 내 마이크 입장에서 그냥 방에서 들린 진짜 소리다.
  *   구글미트도 소리로 풀지 않고 "같은 방인지 감지 → 한쪽 오디오를 끈다"로 푼다. 여기도 같다.
  *
- * 이 컴포넌트가 하는 일: 감지(useSameRoomDetect) + 안내 + **한 번 눌러 이 기기 소리 끄기**.
- *   자동으로 끄지는 않는다 — 오탐 시 사용자가 말 못 하는 상황이 되면 더 나쁘다.
- *   판단은 사람이, 감지와 실행은 기계가.
+ * 이 컴포넌트가 하는 일: 감지(useSameRoomDetect) + 상황별 대응.
+ *   - 애매한 경우(느린 상관 감지): 경고 배너 + 사람이 눌러 끄기.
+ *   - 하울링 즉발(양쪽 동시 큰 소리, 고신뢰): 구글미트처럼 '나중에 들어온' 쪽이 자동으로
+ *     화면 전용 전환(2026-07-23 PO 요청). 오탐 위험 낮은 고신뢰일 때만 자동으로 끈다.
+ *   되돌리기 막대는 항상 남긴다 — 오탐/실제 다른 방이면 소리를 즉시 되살릴 수 있어야 한다.
  *
  * ⚠️ LiveKitRoom 내부에서만 렌더할 것(useRoomContext 사용).
  */
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRoomContext } from "@livekit/components-react";
 import { RoomEvent, Track } from "livekit-client";
 import { useSameRoomDetect } from "./useSameRoomDetect";
@@ -68,8 +70,9 @@ export function SameRoomGuard({ copy }) {
   const { localTrack, remoteTracks } = useAudioTracks(room);
   const [dismissed, setDismissed] = useState(false);
   const [screenOnly, setScreenOnly_] = useState(false);
+  const autoMutedRef = useRef(false); // 이번 음소거가 자동(하울링)으로 걸린 것인가
 
-  const { sameRoomWith } = useSameRoomDetect({
+  const { sameRoomWith, feedbackOnset } = useSameRoomDetect({
     localTrack,
     remoteTracks,
     enabled: !!localTrack && !dismissed && !screenOnly,
@@ -93,6 +96,37 @@ export function SameRoomGuard({ copy }) {
     setScreenOnly_(off);
   };
 
+  // ── 구글미트식 자동 음소거 (하울링 즉발 시) ──
+  // 양쪽이 같은 규칙으로 '나중에 들어온 쪽'을 계산해, 그 한 대만 스스로 화면 전용이 된다
+  // (진행 중이던 대화는 살리고, 방금 들어와 하울링을 만든 기기를 끈다 → 중복 뮤트 방지).
+  useEffect(() => {
+    if (!feedbackOnset || !sameRoomWith || screenOnly || dismissed) return;
+    const remote =
+      room?.getParticipantByIdentity?.(sameRoomWith) ??
+      [...(room?.remoteParticipants?.values?.() ?? [])].find(
+        (p) => p.identity === sameRoomWith
+      );
+    const localJoin = room?.localParticipant?.joinedAt?.getTime?.();
+    const remoteJoin = remote?.joinedAt?.getTime?.();
+    let iAmNewer;
+    if (
+      typeof localJoin === "number" &&
+      typeof remoteJoin === "number" &&
+      localJoin !== remoteJoin
+    ) {
+      iAmNewer = localJoin > remoteJoin; // 내가 더 늦게 입장 = 하울링 유발한 쪽
+    } else {
+      // joinedAt 을 못 읽으면 identity 사전순으로 결정론적 타이브레이크(정확히 한쪽만 끔)
+      iAmNewer = (room?.localParticipant?.identity ?? "") > sameRoomWith;
+    }
+    if (iAmNewer) {
+      autoMutedRef.current = true;
+      setScreenOnly(true);
+    }
+    // setScreenOnly 는 매 렌더 새로 생기지만 재실행 불필요 → deps 제외(기존 파일 관례)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [feedbackOnset, sameRoomWith, screenOnly, dismissed, room]);
+
   // 소리를 껐으면 "되돌리기" 막대를 계속 보여준다.
   // (독립리뷰 지적: 예전엔 끄고 배너가 사라져 **새로고침 말고는 소리를 되살릴 방법이 없었다** —
   //  오탐이거나 실제로는 다른 방이었으면 상담이 그대로 먹통이 된다.)
@@ -102,7 +136,15 @@ export function SameRoomGuard({ copy }) {
         <span className="text-xs text-gray-300">{copy.sameRoomMutedNote}</span>
         <button
           type="button"
-          onClick={() => setScreenOnly(false)}
+          onClick={() => {
+            setScreenOnly(false);
+            // 자동으로 껐던 걸 사람이 되돌리면, 재판정으로 또 자동 음소거되는 루프를 막는다
+            // (사용자가 "그래도 소리 켤래"라고 명시한 것 = 존중). 수동 음소거 되돌리기는 영향 없음.
+            if (autoMutedRef.current) {
+              autoMutedRef.current = false;
+              setDismissed(true);
+            }
+          }}
           className="shrink-0 px-3 py-1.5 rounded-lg bg-teal-700 hover:bg-teal-600 text-white font-semibold text-xs"
         >
           {copy.sameRoomUndo}
@@ -111,7 +153,9 @@ export function SameRoomGuard({ copy }) {
     );
   }
 
-  if (!sameRoomWith || dismissed) return null;
+  // 하울링 즉발(feedbackOnset)은 위 자동 음소거가 처리 중 → 수동 경고 배너는 띄우지 않는다
+  // (양쪽 다 "끄세요" 배너가 뜨면 둘 다 꺼버릴 수 있다). 애매한 상관 감지일 때만 경고한다.
+  if (!sameRoomWith || dismissed || feedbackOnset) return null;
 
   return (
     <div className="fixed left-1/2 -translate-x-1/2 top-4 z-50 max-w-md w-[92%] rounded-xl bg-amber-950/95 border border-amber-600 shadow-xl p-3 text-sm text-amber-50">

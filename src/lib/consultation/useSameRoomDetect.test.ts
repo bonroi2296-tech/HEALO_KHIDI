@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { correlate } from "./useSameRoomDetect";
+import { correlate, bothLoud } from "./useSameRoomDetect";
 
 // 판정 임계값(훅 내부와 동일해야 의미가 있다)
 const CORR_ON = 0.72;
@@ -51,5 +51,33 @@ describe("correlate — 같은 공간 판정의 핵심", () => {
     const mine = speech(2);
     const flat = Array.from({ length: N }, () => 0.3); // 변화 없음 → 분모 0
     expect(correlate(mine, flat)).toBeNull();
+  });
+});
+
+describe("bothLoud — 하울링 즉발(빠른 경로) 판정", () => {
+  const loud = Array.from({ length: N }, () => 0.4); // 양쪽 마이크가 계속 큰 소리(하울링)
+  const quiet = Array.from({ length: N }, () => 0.02);
+
+  it("양쪽이 동시에 계속 큰 소리면 하울링으로 잡는다(true)", () => {
+    expect(bothLoud(loud, loud)).toBe(true);
+  });
+
+  it("지속 하울링(높고 평평)은 correlate 로는 못 잡지만 bothLoud 가 잡는다", () => {
+    // 상관계수는 분산≈0 이라 null → 이게 빠른 경로를 따로 둔 이유다
+    expect(correlate(loud, loud)).toBeNull();
+    expect(bothLoud(loud, loud)).toBe(true);
+  });
+
+  it("한쪽만 큰 소리(정상 발화 교대)면 안 잡는다(false)", () => {
+    expect(bothLoud(loud, quiet)).toBe(false);
+    expect(bothLoud(quiet, loud)).toBe(false);
+  });
+
+  it("둘 다 조용하면 안 잡는다(false)", () => {
+    expect(bothLoud(quiet, quiet)).toBe(false);
+  });
+
+  it("표본이 창 길이보다 모자라면 판정하지 않는다(false)", () => {
+    expect(bothLoud([0.4, 0.4], [0.4, 0.4])).toBe(false);
   });
 });
