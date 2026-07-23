@@ -2248,6 +2248,63 @@ export type Database = {
           },
         ]
       }
+      content_change_log: {
+        Row: {
+          changed_at: string
+          content_key: string
+          editor_email: string | null
+          id: string
+          lang: string
+          new_value: string | null
+          old_value: string | null
+        }
+        Insert: {
+          changed_at?: string
+          content_key: string
+          editor_email?: string | null
+          id?: string
+          lang: string
+          new_value?: string | null
+          old_value?: string | null
+        }
+        Update: {
+          changed_at?: string
+          content_key?: string
+          editor_email?: string | null
+          id?: string
+          lang?: string
+          new_value?: string | null
+          old_value?: string | null
+        }
+        Relationships: []
+      }
+      content_overrides: {
+        Row: {
+          content_key: string
+          id: string
+          lang: string
+          updated_at: string
+          updated_by: string | null
+          value: string
+        }
+        Insert: {
+          content_key: string
+          id?: string
+          lang: string
+          updated_at?: string
+          updated_by?: string | null
+          value: string
+        }
+        Update: {
+          content_key?: string
+          id?: string
+          lang?: string
+          updated_at?: string
+          updated_by?: string | null
+          value?: string
+        }
+        Relationships: []
+      }
       hospitals: {
         Row: {
           address: string | null

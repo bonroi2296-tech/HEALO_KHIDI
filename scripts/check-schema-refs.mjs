@@ -24,6 +24,7 @@ const EXT = /\.(ts|tsx|js|jsx|mjs)$/;
 
 // --- public 스키마 실재 테이블 (2026-06-30 스냅샷, 68개) ---
 const PUBLIC_TABLES = new Set([
+  "content_overrides", "content_change_log", // 코디 콘텐츠 편집(2026-07-23 추가)
   "hospitals", "treatments", "site_settings", "inquiries", "chat_threads",
   "chat_messages", "inquiry_events", "admin_audit_logs", "admin_notification_logs",
   "rag_documents", "rag_chunks", "hospital_users", "hospital_leads", "crawl_jobs",
