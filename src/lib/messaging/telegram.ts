@@ -84,7 +84,8 @@ export async function removeInlineKeyboard(
 export const TG_CONSENT_VERSION = "1.0.0";
 
 // 활성 6개 언어(ko·en·ru·kz·zh·ja). 미지원 언어는 en 폴백.
-const CONSENT_PROMPT: Record<string, string> = {
+// export: 왓츠앱 봇(whatsapp.ts)이 같은 동의 문구를 재사용한다(채널 중립 카피).
+export const CONSENT_PROMPT: Record<string, string> = {
   ko: "안녕하세요, HEALO입니다 🌿 상담을 시작하기 전에 동의가 필요해요.\n\n상담을 위해 입력하시는 개인정보·민감 건강정보를 수집하고, AI 응답 생성을 위해 국외(해외 클라우드·AI)로 이전하는 것에 동의하시나요? 대화는 암호화되어 안전하게 보관됩니다.",
   en: "Hello, this is HEALO 🌿 Before we start, we need your consent.\n\nDo you agree that the personal and sensitive health information you share here is collected and transferred abroad (overseas cloud/AI) to generate responses? Your conversation is encrypted and safely stored.",
   ru: "Здравствуйте, это HEALO 🌿 Прежде чем начать, нам нужно ваше согласие.\n\nВы согласны на сбор персональных и медицинских данных, которые вы сообщите здесь, и их передачу за рубеж (зарубежное облако/ИИ) для формирования ответов? Разговор шифруется и надёжно хранится.",
@@ -93,7 +94,8 @@ const CONSENT_PROMPT: Record<string, string> = {
   ja: "こんにちは、HEALOです 🌿 ご相談を始める前に同意が必要です。\n\nご入力いただく個人情報・健康に関する情報を収集し、回答生成のため国外（海外クラウド・AI）へ移転することに同意いただけますか？会話は暗号化され安全に保管されます。",
 };
 
-const CONSENT_BUTTON: Record<string, string> = {
+// 왓츠앱 interactive 버튼 title 은 20자 하드리밋 — 아래 전부 20자 이내(재사용 시 주의).
+export const CONSENT_BUTTON: Record<string, string> = {
   ko: "✅ 동의하고 시작",
   en: "✅ Agree & start",
   ru: "✅ Согласен, начать",
