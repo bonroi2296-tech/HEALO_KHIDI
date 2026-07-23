@@ -13,6 +13,16 @@ type SourceType =
 
 const nowIso = () => new Date().toISOString();
 
+// 신뢰등급(1=공공/공식, 2=제휴 승인, 3=공개 수집 — migrations/20260225_rag_trust_tier.sql).
+// 우리 DB의 검증된 구조화 데이터(hospitals·treatments)는 2. 명시하지 않으면 DB 기본값 3이 박혀
+// 검색(RPC가 trust_tier 우선 정렬)에서 뒤로 밀리고 모델도 미검증 취급한다 — 실사고(2026-07-23):
+// 성동점 신규 적재가 tier 3으로 들어가 "지점 어디어디 있어"류 답변에서 성동점만 누락.
+// (playbook 승인 라우트는 trust_tier:2 를 명시하는데 이 파일만 빠져 있었다.)
+const TRUST_TIER_BY_SOURCE: Partial<Record<SourceType, number>> = {
+  hospital: 2,
+  treatment: 2,
+};
+
 const fetchSourceRows = async (sourceType: SourceType, sourceId?: string) => {
   switch (sourceType) {
     case "treatment": {
@@ -81,6 +91,8 @@ const upsertDocumentAndChunks = async (doc: {
   let documentId = existing?.id;
   let version = existing?.version ?? 1;
 
+  const trustTier = TRUST_TIER_BY_SOURCE[doc.source_type];
+
   if (!existing) {
     const { data: inserted, error } = await supabaseAdmin
       .from("rag_documents")
@@ -91,6 +103,7 @@ const upsertDocumentAndChunks = async (doc: {
         title: doc.title,
         content: doc.content,
         version: 1,
+        ...(trustTier != null ? { trust_tier: trustTier } : {}),
         created_at: nowIso(),
         updated_at: nowIso(),
       })
@@ -107,6 +120,8 @@ const upsertDocumentAndChunks = async (doc: {
         title: doc.title,
         content: doc.content,
         version: version + 1,
+        // 내부 데이터는 갱신 때도 등급을 바로잡는다(과거 tier 3 오적재분 자기치유).
+        ...(trustTier != null ? { trust_tier: trustTier } : {}),
         updated_at: nowIso(),
       })
       .eq("id", existing.id)
