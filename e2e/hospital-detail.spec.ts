@@ -1,56 +1,54 @@
 /**
  * E2E C-2: 병원 상세 페이지
  *
- * - 목록에서 첫 번째 카드 클릭 → 상세 페이지로 이동
- * - 의료진 또는 시설 정보가 표시되어야 함
+ * - 목록의 상세 링크 클릭 → 상세 페이지로 이동
+ * - 상세 페이지에 의료진 또는 시설 정보가 표시되어야 함
+ *
+ * ⚠️ 2026-07-23 목록 개편 반영(#881 지점 통합 · #897 카드 Link 화, POSTMORTEMS #112):
+ * 지점 카드는 이제 **펼침 아코디언**(링크 아님)이고, 상세로 가는 진입로는
+ * a[href*="/hospitals/"] 링크(면력 대표 페이지 입구 + DB 병원 카드)다.
+ * 이전 버전은 "첫 카드 클릭 = 상세 진입"을 가정한 데다 DOM 첫 번째 링크를
+ * 숨김 여부와 무관하게 잡아, 아코디언을 클릭하고 URL 불변으로 실패했다.
  */
 
 import { test, expect } from "@playwright/test";
 
+// 보이는 상세 링크만 잡는다 — 숨은 내비/메뉴 링크가 first()로 잡히는 오탐 방지.
+const detailLink = (page: import("@playwright/test").Page) =>
+  page.locator('a[href*="/hospitals/"]:visible').first();
+
 test.describe("병원 상세 페이지", () => {
-  test("병원 카드 클릭 → 상세 페이지 진입", async ({ page }) => {
+  test("목록의 상세 링크 클릭 → 상세 페이지 진입", async ({ page }) => {
     await page.goto("/hospitals");
     await page.waitForLoadState("domcontentloaded");
 
-    // 첫 번째 병원 링크 클릭
-    const firstLink = page
-      .locator('a[href*="/hospitals/"]')
-      .first();
-
-    const hasLink = await firstLink.isVisible().catch(() => false);
+    const link = detailLink(page);
+    const hasLink = await link.isVisible().catch(() => false);
     if (!hasLink) {
-      // article 또는 카드 클릭 시도
-      const firstCard = page.locator("article, .card, [class*='hospital']").first();
-      const hasCard = await firstCard.isVisible().catch(() => false);
-      if (!hasCard) {
-        test.skip(true, "병원 목록 없음");
-      }
-      await firstCard.click();
-    } else {
-      await firstLink.click();
+      test.skip(true, "목록에 상세 링크 없음");
     }
 
-    await page.waitForLoadState("domcontentloaded");
-
-    // URL 이 /hospitals/ 하위로 변경됨
-    expect(page.url()).toMatch(/\/hospitals\//);
+    await link.click();
+    // /hospitals/immune → /en/hospitals/immune 처럼 언어 리다이렉트를 거쳐도 통과
+    await page.waitForURL(/\/hospitals\/./, { timeout: 15_000 });
+    expect(page.url()).toMatch(/\/hospitals\/./);
   });
 
   test("상세 페이지에 의료진 또는 시설 정보가 있다", async ({ page }) => {
     await page.goto("/hospitals");
     await page.waitForLoadState("domcontentloaded");
 
-    const firstLink = page.locator('a[href*="/hospitals/"]').first();
-    const hasLink = await firstLink.isVisible().catch(() => false);
+    const link = detailLink(page);
+    const hasLink = await link.isVisible().catch(() => false);
     if (!hasLink) {
-      test.skip(true, "병원 링크 없음");
+      test.skip(true, "목록에 상세 링크 없음");
     }
 
-    const href = await firstLink.getAttribute("href");
+    const href = await link.getAttribute("href");
     if (href) {
       await page.goto(href);
     } else {
-      await firstLink.click();
+      await link.click();
     }
 
     await page.waitForLoadState("domcontentloaded");
