@@ -344,6 +344,52 @@ describe("왓츠앱 웹훅 계약", () => {
     expect(pickHandoffConfirm).toHaveBeenCalledWith("en", true, true);
   });
 
+  it("한 웹훅에 실려 온 여러 메시지를 전부 처리한다 — 배치 유실 금지(독립 리뷰 CONFIRMED①)", async () => {
+    const { POST } = await loadRoute();
+    mockState.thread = CONSENTED_THREAD();
+    const body = {
+      entry: [
+        {
+          changes: [
+            {
+              value: {
+                contacts: [{ profile: { name: "Aisha" }, wa_id: "77471234567" }],
+                messages: [textMsg("first message", "wamid.b1"), textMsg("second message", "wamid.b2")],
+              },
+            },
+          ],
+        },
+      ],
+    };
+    const res = await POST(makeReq(body));
+    expect((await res.json()).ok).toBe(true);
+    await flushAfter();
+
+    const stored = captured
+      .filter((c) => c.table === "chat_messages" && c.op === "insert" && c.payload?.actor_type === "patient")
+      .map((c) => c.payload.message_text);
+    expect(stored).toEqual(["first message", "second message"]);
+    expect(generateChatReply).toHaveBeenCalledTimes(2);
+  });
+
+  it("reaction(👍) 등 비텍스트·비첨부 유형은 조용히 무시 — 파일 안내 오발송 금지(독립 리뷰 P5)", async () => {
+    const { POST } = await loadRoute();
+    mockState.thread = CONSENTED_THREAD();
+    const res = await POST(
+      makeReq(
+        waUpdate({
+          from: "77471234567",
+          id: "wamid.react1",
+          type: "reaction",
+          reaction: { message_id: "wamid.q1", emoji: "👍" },
+        })
+      )
+    );
+    expect((await res.json()).skipped).toBe("unsupported_type");
+    expect(sendWhatsAppPatientMessage).not.toHaveBeenCalled();
+    expect(captured.filter((c) => c.table === "chat_messages" && c.op === "insert")).toHaveLength(0);
+  });
+
   it("배달 영수증(statuses)만 있는 웹훅은 조용히 통과", async () => {
     const { POST } = await loadRoute();
     const res = await POST(

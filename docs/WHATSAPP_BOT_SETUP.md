@@ -39,6 +39,7 @@
 | `WHATSAPP_PHONE_NUMBER_ID` | Phone number ID |
 | `WHATSAPP_APP_SECRET` | 앱 시크릿 (웹훅 위조 차단용) |
 | `WHATSAPP_WEBHOOK_VERIFY_TOKEN` | 직접 만든 랜덤 문자열 |
+| `WHATSAPP_TEST_WA_IDS` | (선택·권장) PO·코디 테스트 번호(국제형식, 쉼표 구분 — 예: `821047721075`). 이 번호의 대화는 **테스트 표식(is_test)**이 붙어 KHIDI 공식 집계를 오염시키지 않음. **개통 E2E 전에 꼭 등록.** |
 
 등록 후 **재배포** 필요.
 

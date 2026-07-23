@@ -14,6 +14,7 @@
  */
 
 export const runtime = "nodejs";
+export const maxDuration = 60; // after() 안의 LLM 호출 보호(텔레그램 라우트와 동일 — 독립 리뷰 C2)
 
 import crypto, { timingSafeEqual, createHmac } from "crypto";
 import { NextRequest } from "next/server";
@@ -68,6 +69,18 @@ async function findOpenThread(waId: string) {
   return data?.[0] || null;
 }
 
+// 테스트 대화 표식 — 왓츠앱은 텔레그램 ?start=test 같은 딥링크가 없어 PO·코디의 테스트
+// 번호를 env(쉼표 구분 wa_id)로 지정한다. 승격 시 is_test 로 이어져 KHIDI 실적 오염을
+// 막는다(독립 리뷰 P3 — 개통 E2E 대화가 공식 집계에 섞이는 사고 방지).
+function isTestWaId(waId: string): boolean {
+  const norm = String(waId || "").replace(/\D/g, "");
+  return (process.env.WHATSAPP_TEST_WA_IDS || "")
+    .split(",")
+    .map((s) => s.trim().replace(/\D/g, ""))
+    .filter(Boolean)
+    .includes(norm);
+}
+
 async function createThread(waId: string, profileName: string | null) {
   const lang = mapWaLang(waId);
   const { data, error } = await (supabaseAdmin as any)
@@ -86,6 +99,7 @@ async function createThread(waId: string, profileName: string | null) {
         whatsapp: { wa_id: waId },
         utm: { source: "whatsapp_bot" },
         started_at: new Date().toISOString(),
+        ...(isTestWaId(waId) ? { is_test: true } : {}),
       },
     })
     .select("*")
@@ -148,31 +162,63 @@ export async function POST(request: NextRequest) {
 
   try {
     const update = JSON.parse(raw || "null");
-    const value = update?.entry?.[0]?.changes?.[0]?.value;
-    const msg = value?.messages?.[0];
+    // Meta 는 한 웹훅 POST 에 메시지 여러 개를 배치로 싣는다(entry[]×changes[]×messages[]).
+    // 첫 개만 읽으면 나머지가 200 응답에 묻혀 영구 유실(독립 리뷰 CONFIRMED①) → 전부 순회.
+    const batch: Array<{ value: any; msg: any }> = [];
+    for (const entry of update?.entry ?? []) {
+      for (const change of entry?.changes ?? []) {
+        const v = change?.value;
+        for (const m of v?.messages ?? []) batch.push({ value: v, msg: m });
+      }
+    }
     // 배달 영수증(statuses)·읽음 등 메시지 아닌 이벤트는 조용히 통과.
-    if (!msg) return Response.json({ ok: true, skipped: "no_message" });
+    if (!batch.length) return Response.json({ ok: true, skipped: "no_message" });
 
+    let retryable = false;
+    let lastSkip: string | null = null;
+    for (const { value, msg } of batch) {
+      const skip = await handleOneMessage(value, msg);
+      if (skip === "retryable") retryable = true;
+      else if (skip) lastSkip = skip;
+    }
+    // 저장 실패가 하나라도 있으면 비-2xx 로 Meta 재전송 유도(멱등 가드가 중복을 걸러냄).
+    if (retryable) return Response.json({ ok: false, error: "internal_error" }, { status: 500 });
+    return Response.json({ ok: true, ...(batch.length === 1 && lastSkip ? { skipped: lastSkip } : {}) });
+  } catch (err: any) {
+    console.error("[webhooks/whatsapp] Unexpected:", err?.message);
+    // 파싱 불능·예상외 오류는 재시도해도 같음 → 200 으로 닫아 재전송 폭주 방지.
+    return Response.json({ ok: false, error: "internal_error" }, { status: 200 });
+  }
+}
+
+// 메시지 1건 처리 — 반환: skip 사유 문자열 / "retryable"(저장 실패 → 배치 전체 500) / null(정상).
+async function handleOneMessage(value: any, msg: any): Promise<string | null> {
+  try {
     const waId = String(msg.from || "");
-    if (!waId) return Response.json({ ok: true, skipped: "no_wa_id" });
+    if (!waId) return "no_wa_id";
     const profileName = value?.contacts?.[0]?.profile?.name || null;
 
-    // 남용 방어 — wa_id 기준 분당 상한(텔레그램 tg:<chat_id> 와 동일 정책).
-    const rl = await checkRateLimitPersistent(`wa:${waId}`, RATE_LIMITS.CHAT);
-    if (!rl.allowed) return Response.json({ ok: true, skipped: "rate_limited" });
+    // 동의 버튼 탭은 rate limit 면제 — 텔레그램 callback_query 와 동일 취지(직전 메시지들로
+    // 상한이 찼어도 동의 탭이 조용히 버려지면 안 됨, 독립 리뷰 P4).
+    const buttonId = String(msg?.interactive?.button_reply?.id || "");
+    const isConsentTap = buttonId.startsWith("consent:");
+    if (!isConsentTap) {
+      // 남용 방어 — wa_id 기준 분당 상한(텔레그램 tg:<chat_id> 와 동일 정책).
+      const rl = await checkRateLimitPersistent(`wa:${waId}`, RATE_LIMITS.CHAT);
+      if (!rl.allowed) return "rate_limited";
+    }
 
     let thread = await findOpenThread(waId);
     if (!thread) {
       thread = await createThread(waId, profileName);
-      if (!thread) return Response.json({ ok: true, skipped: "thread_failed" });
+      if (!thread) return "thread_failed";
     }
     const meta = threadMeta(thread);
     const lang = meta.language || mapWaLang(waId);
     const hasConsent = meta.consent?.health_crossborder === true;
 
-    // ── 동의 버튼(interactive.button_reply) ────────────────────────────────
-    const buttonId = String(msg?.interactive?.button_reply?.id || "");
-    if (buttonId.startsWith("consent:")) {
+    // ── 동의 버튼 처리 ─────────────────────────────────────────────────────
+    if (isConsentTap) {
       // 텔레그램 동의와 동일한 멱등 패턴 — 조건부 UPDATE(consent 가 아직 없을 때만)가
       // 더블탭·재전송을 직렬화해 환영 인사를 정확히 1회만 보낸다.
       let firstConsent = false;
@@ -196,29 +242,33 @@ export async function POST(request: NextRequest) {
       if (firstConsent) {
         await sendWhatsAppPatientMessage(waId, pickTgText(CONSENT_WELCOME, lang));
       }
-      return Response.json({ ok: true });
+      return null;
     }
 
     // ── 일반 메시지 ────────────────────────────────────────────────────────
     // 텍스트: text.body / 미디어 캡션: <type>.caption (텔레그램 caption 유실 교훈 반영).
+    // (음성메모는 Cloud API 에서 audio 로 온다 — voice 키는 없음.)
     const text = String(
       msg?.text?.body ?? msg?.image?.caption ?? msg?.document?.caption ?? msg?.video?.caption ?? ""
     ).trim();
-    const hasAttachment = !!(msg.image || msg.document || msg.video || msg.audio || msg.voice || msg.sticker);
+    const hasAttachment = !!(msg.image || msg.document || msg.video || msg.audio || msg.sticker);
 
     // PIPA: 동의 전 본문 미저장 — 동의 버튼만 안내(텔레그램·웹과 동일 게이트).
     if (!hasConsent) {
       await sendWhatsAppConsentPrompt(waId, lang);
-      return Response.json({ ok: true });
+      return null;
     }
 
     if (!text) {
-      await sendWhatsAppPatientMessage(waId, pickTgText(FILE_GUIDE, lang));
-      return Response.json({ ok: true });
+      // reaction(👍)·location 등 비텍스트·비첨부 유형은 조용히 무시 — 파일 안내 오발송 방지(리뷰 P5).
+      if (hasAttachment) {
+        await sendWhatsAppPatientMessage(waId, pickTgText(FILE_GUIDE, lang));
+      }
+      return hasAttachment ? null : "unsupported_type";
     }
 
     // 멱등 — Meta 는 비-2xx 시 같은 메시지를 재전송. 같은 wamid 저장 이력으로 판정하고
-    // 최종 방어선은 부분 유니크 인덱스(migrations/20260723_chat_messages_wa_uidx.sql).
+    // 최종 방어선은 부분 유니크 인덱스(migrations/20260723_chat_whatsapp_indexes.sql).
     const wamid = String(msg.id || "");
     if (wamid) {
       const { data: dup } = await (supabaseAdmin as any)
@@ -227,7 +277,7 @@ export async function POST(request: NextRequest) {
         .eq("thread_id", thread.id)
         .eq("metadata->>wa_message_id", wamid)
         .limit(1);
-      if (dup?.length) return Response.json({ ok: true, skipped: "duplicate" });
+      if (dup?.length) return "duplicate";
     }
 
     const { error: patientErr } = await (supabaseAdmin as any)
@@ -242,9 +292,10 @@ export async function POST(request: NextRequest) {
         },
       });
     if (patientErr) {
-      if (patientErr.code === "23505") return Response.json({ ok: true, skipped: "duplicate" });
+      if (patientErr.code === "23505") return "duplicate";
       console.error("[webhooks/whatsapp] patient insert:", patientErr.message);
-      return Response.json({ ok: false, error: "internal_error" }, { status: 500 });
+      // 저장 실패는 재시도 가치가 있다 → 배치 전체를 500 으로 닫아 Meta 재전송 유도.
+      return "retryable";
     }
 
     const alreadyHandedOff = meta.hand_off_requested === true;
@@ -380,10 +431,10 @@ export async function POST(request: NextRequest) {
       }
     });
 
-    return Response.json({ ok: true });
+    return null;
   } catch (err: any) {
-    console.error("[webhooks/whatsapp] Unexpected:", err?.message);
-    // 파싱 불능·예상외 오류는 재시도해도 같음 → 200 으로 닫아 재전송 폭주 방지.
-    return Response.json({ ok: false, error: "internal_error" }, { status: 200 });
+    // 메시지 1건의 예상외 오류는 그 건만 스킵(배치의 다른 메시지 처리는 계속).
+    console.error("[webhooks/whatsapp] message error:", err?.message);
+    return "message_error";
   }
 }
