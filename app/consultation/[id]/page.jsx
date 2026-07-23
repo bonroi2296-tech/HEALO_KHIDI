@@ -745,6 +745,8 @@ export default function ConsultationRoomPage() {
   const [interimText, setInterimText] = useState("");
   const [manualInput, setManualInput] = useState("");
   const [translationEnabled, setTranslationEnabled] = useState(false);
+  // 자막/통역 켤 때 "AI 번역이라 참고용" 안내 배너 — 닫을 때까지 유지, 켤 때마다 재표시.
+  const [aiNoticeDismissed, setAiNoticeDismissed] = useState(false);
   // 언어 변경 바텀시트 (모바일에서도 언어쌍 변경 가능하게)
   const [langSheetOpen, setLangSheetOpen] = useState(false);
 
@@ -1194,6 +1196,7 @@ export default function ConsultationRoomPage() {
       // 마이크 꺼짐이면 송신 STT 는 시작 안 함 — 수신 자막(ListenModeBridge)만 동작(듣기).
       if (myMicOn && !forceServerStt && isBrowserSttNative(myLang)) stt.start();
       setTranslationEnabled(true);
+      setAiNoticeDismissed(false); // AI 참고용 안내 배너 다시 표시
       // 패널은 자동으로 안 엶 — 자막은 영상 위 오버레이, 입력은 하단 미니 바 (Zoom/Meet 식)
       toast.success(`${c.translationStartedPrefix} (${LANG_LABELS[myLang]} → ${LANG_LABELS[targetLang]})`);
     }
@@ -2737,6 +2740,21 @@ export default function ConsultationRoomPage() {
                 <ConnectionBanner copy={c} />
                 <MutedSpeakingWarning copy={c} />
                 <RoomInfoOverlay />
+                {/* AI 번역 참고용 안내 — 자막/통역 켠 사람에게(PO 2026-07-23). 닫을 때까지 상주. */}
+                {translationEnabled && !aiNoticeDismissed && (
+                  <div className="absolute top-3 left-1/2 -translate-x-1/2 z-30 flex items-start gap-2 max-w-[92%] bg-gray-900/90 border border-teal-700/60 text-gray-100 text-xs px-3 py-2 rounded-lg shadow-lg">
+                    <Languages size={14} className="text-teal-400 shrink-0 mt-0.5" />
+                    <span className="leading-snug">{c.aiSubtitleDisclaimer}</span>
+                    <button
+                      type="button"
+                      onClick={() => setAiNoticeDismissed(true)}
+                      aria-label="Close"
+                      className="shrink-0 text-gray-400 hover:text-white -mr-1"
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                )}
                 {/* 연결 실패/지연 — 무한 '연결중' 대신 재시도 안내 (재시도 = LiveKitRoom 리마운트) */}
                 {connectError && !connected && (
                   <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-black/70 backdrop-blur-sm px-6 text-center">
