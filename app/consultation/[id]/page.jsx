@@ -2422,6 +2422,7 @@ export default function ConsultationRoomPage() {
 
   const sessionActions = (
     <>
+      {/* 자막(텍스트) 토글 — 실제 동작. 기본 OFF. */}
       <button
         onClick={toggleTranslation}
         className={`hw-ctrl-btn relative rounded-lg font-medium transition ${
@@ -2429,13 +2430,34 @@ export default function ConsultationRoomPage() {
             ? "bg-teal-700 hover:bg-teal-800 text-white"
             : "bg-gray-700 hover:bg-gray-600 text-gray-200"
         }`}
-        title={translationEnabled ? c.stopTranslation : c.startTranslation}
+        title={translationEnabled ? c.captionsOff : c.captionsOn}
       >
         <Languages size={18} />
-        <span>{c.interpretation}</span>
+        <span>{c.captionsLabel}</span>
         {translationEnabled && isTranslating && (
           <span className="absolute top-1 right-1 w-2 h-2 bg-yellow-400 rounded-full animate-pulse" />
         )}
+      </button>
+      {/* 통역(음성) 토글 — 음성 통역은 봇 꺼서 "준비 중". 탭하면 안내(2026-07-23 PO: 통역/자막 2토글). */}
+      <button
+        onClick={() => toast.success(c.voiceComingSoon)}
+        className="hw-ctrl-btn relative rounded-lg font-medium transition bg-gray-800 text-gray-500 cursor-not-allowed"
+        title={c.voiceComingSoon}
+      >
+        <Volume2 size={18} />
+        <span>{c.voiceLabel}</span>
+        <span className="absolute -top-1 -right-1 bg-gray-600 text-gray-200 text-[9px] leading-none px-1 py-0.5 rounded-full">
+          ···
+        </span>
+      </button>
+      {/* 언어 설정 — 자막이 어느 언어로 나올지 바로 설정(PO 2026-07-23: 토글 옆에서 언어 설정). */}
+      <button
+        onClick={() => setLangSheetOpen(true)}
+        className="hw-ctrl-btn relative rounded-lg font-medium transition bg-gray-700 hover:bg-gray-600 text-gray-200"
+        title={c.langChangeTitle}
+      >
+        <Globe size={18} />
+        <span>{LANG_LABELS[myLang]}</span>
       </button>
       <button
         onClick={() => setPanelOpen((v) => !v)}
