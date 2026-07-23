@@ -264,10 +264,14 @@ p, .body { font-size: var(--body-size); line-height: var(--body-leading); }
 .healo-safe-left   { padding-left:   env(safe-area-inset-left); }
 .healo-safe-right  { padding-right:  env(safe-area-inset-right); }
 
-/* 모바일 수평 스크롤 방지 — body 전역 */
+/* 모바일 수평 스크롤 방지 — body 전역.
+   ⚠️ overflow-x: clip (hidden 아님). hidden 은 overflow-y 를 auto 로 승격시켜
+   body 를 스크롤 컨테이너로 만들고, 그러면 헤더의 position:sticky 가 viewport 가
+   아니라 body(스크롤 0)에 붙어 스크롤하면 헤더가 같이 밀려 사라진다(2026-07-23 실측).
+   clip 은 스크롤 컨테이너를 안 만들어(overflow-y 는 visible 유지) sticky 가 정상 작동. */
 html, body {
   max-width: 100%;
-  overflow-x: hidden;
+  overflow-x: clip;
 }
 
 /* 터치 기기에서 링크 tap highlight 제거 */

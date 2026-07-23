@@ -3,10 +3,10 @@
 export const COPY = {
   "ko": {
     "seoTitle": "제휴 안내 | healwith 한국 의료관광 B2B 파트너 프로그램",
-    "seoDesc": "보건복지부 등록 외국인환자 유치업체 healwith와 성과 기반으로 협력하세요. 선불·입점비 0원, 전용 파트너 포털, 대학병원 4곳 협진 네트워크, 6개 언어 운영. 암 중심 중증질환 전문.",
+    "seoDesc": "보건복지부 등록 외국인환자 유치업체 healwith와 성과 기반으로 협력하세요. 선불·입점비 0원, 전용 파트너 포털, 면력한방병원과 협진 대학병원 네트워크, 6개 언어 운영. 암 중심 중증질환 전문.",
     "hero": {
       "eyebrow": "제휴 안내",
-      "title": "귀사의 환자를 한국 대학병원 네트워크와 연결하세요",
+      "title": "귀사의 환자를 한국 암 치료 협진 네트워크와 연결하세요",
       "lede": "healwith는 보건복지부 등록 외국인환자 유치업체입니다. 원격 사전상담부터 귀국 후 사후관리까지 한국 내 전 과정을 직접 운영합니다. 파트너는 선불 비용 없이 성과 기반으로 참여합니다.",
       "cta": "제휴 상담 신청"
     },
@@ -27,7 +27,7 @@ export const COPY = {
         },
         {
           "title": "CIS 특화 6개 언어, 암 중증질환 전문",
-          "body": "한국어·영어·러시아어·카자흐어·중국어·일본어로 운영합니다. 암을 중심으로 한 중증질환에 집중하며, 대학병원 4곳과 한방병원 4개 지점이 협진합니다."
+          "body": "한국어·영어·러시아어·카자흐어·중국어·일본어로 운영합니다. 암을 중심으로 한 중증질환에 집중하며, 면력한방병원 4개 지점과 그 협진 대학병원 4곳을 통해 진행합니다."
         }
       ]
     },
@@ -58,7 +58,7 @@ export const COPY = {
         "보건복지부 등록 외국인환자 유치업체 (등록번호 A-2026-01-02-06761)",
         "SGI 서울보증 배상책임보험 1억원 가입",
         "KHIDI(한국보건산업진흥원) 정부지원과제 수행사",
-        "협진 네트워크: 대학병원 4곳(이대서울·이대목동·고려대구로·신촌세브란스) + 면력한방병원 4개 지점(전 지점 유치의료기관 등록)"
+        "협진 네트워크: 면력한방병원 4개 지점(전 지점 유치의료기관 등록)과, 면력한방병원이 협진하는 대학병원 4곳(이대서울·이대목동·고려대구로·신촌세브란스)"
       ]
     },
     "form": {
@@ -114,11 +114,11 @@ export const COPY = {
   },
   "en": {
     "seoTitle": "Partner with healwith | Cancer Care Referrals to Korea",
-    "seoDesc": "Refer cancer patients to Korean university hospitals. Zero upfront fees, real-time case tracking through a dedicated partner portal, and full on-the-ground support in six languages.",
+    "seoDesc": "Refer cancer patients to Korea — care delivered through our partner Immune Hospital and the Seoul university hospitals it co-treats with. Zero upfront fees, real-time case tracking through a dedicated partner portal, and full on-the-ground support in six languages.",
     "hero": {
       "eyebrow": "Partnership Program",
       "title": "Refer cancer patients to Korea. We run everything on the ground.",
-      "lede": "healwith connects overseas agencies, insurers, and healthcare institutions with university hospitals in Seoul. As a facilitator registered with the Korean Ministry of Health and Welfare, we manage every step — from remote pre-consultation to post-return follow-up — while you track each case in real time through your own partner portal. No upfront fees. Cooperation is strictly performance-based.",
+      "lede": "healwith connects overseas agencies, insurers, and healthcare institutions with cancer care in Seoul — delivered through our partner Immune Hospital and the university hospitals it co-treats with. As a facilitator registered with the Korean Ministry of Health and Welfare, we manage every step — from remote pre-consultation to post-return follow-up — while you track each case in real time through your own partner portal. No upfront fees. Cooperation is strictly performance-based.",
       "cta": "Apply for partnership"
     },
     "values": {
@@ -169,7 +169,7 @@ export const COPY = {
         "Registered international patient facilitator with the Korean Ministry of Health and Welfare — Reg. No. A-2026-01-02-06761",
         "Liability insurance of KRW 100 million through SGI Seoul Guarantee Insurance",
         "Operator of a government-supported project under KHIDI, the Korea Health Industry Development Institute",
-        "Care network of four university hospitals — Ewha Womans University Seoul Hospital, Ewha Womans University Mokdong Hospital, Korea University Guro Hospital, and Sinchon Severance Hospital — plus all four branches of Immune Hospital, a Korean medicine hospital (Gangseo, Sinchon, Gwangmyeong, Seongdong), each registered to receive international patients"
+        "Care network built on Immune Hospital, a Korean-medicine hospital with four branches (Gangseo, Sinchon, Gwangmyeong, Seongdong) — each registered to receive international patients — together with the four university hospitals it co-treats with: Ewha Womans University Seoul Hospital, Ewha Womans University Mokdong Hospital, Korea University Guro Hospital, and Sinchon Severance Hospital"
       ]
     },
     "form": {
@@ -225,11 +225,11 @@ export const COPY = {
   },
   "ru": {
     "seoTitle": "Партнёрская программа healwith — лечение онкологии в Корее для агентств, страховых и клиник",
-    "seoDesc": "B2B-партнёрство без предоплат и абонентской платы: онкология в университетских клиниках Сеула, партнёрский портал с онлайн-статусом кейсов, полный цикл сопровождения. Государственная регистрация Минздрава Кореи, страхование SGI.",
+    "seoDesc": "B2B-партнёрство без предоплат и абонентской платы: лечение онкологии в Сеуле — через нашего партнёра, госпиталь корейской медицины Myeonryeok, и университетские клиники, с которыми он ведёт пациентов совместно. Партнёрский портал с онлайн-статусом кейсов, полный цикл сопровождения. Государственная регистрация Минздрава Кореи, страхование SGI.",
     "hero": {
       "eyebrow": "Партнёрская программа",
       "title": "Направляйте пациентов на лечение в Корею. Всю работу на месте берём на себя.",
-      "lede": "healwith — официально зарегистрированный в Республике Корея оператор по привлечению иностранных пациентов. Мы организуем лечение онкологических и других тяжёлых заболеваний в университетских клиниках Сеула и ведём каждый кейс: от видеоконсультации до поездки и наблюдения после возвращения домой. Вы работаете с клиентом в своей стране — корейская сторона полностью на нас.",
+      "lede": "healwith — официально зарегистрированный в Республике Корея оператор по привлечению иностранных пациентов. Мы организуем лечение онкологических и других тяжёлых заболеваний в Сеуле — через нашего партнёра, госпиталь корейской медицины Myeonryeok, и университетские клиники, с которыми он ведёт пациентов совместно, — и ведём каждый кейс: от видеоконсультации до поездки и наблюдения после возвращения домой. Вы работаете с клиентом в своей стране — корейская сторона полностью на нас.",
       "cta": "Подать заявку"
     },
     "values": {
@@ -280,7 +280,7 @@ export const COPY = {
         "Государственная регистрация оператора по привлечению иностранных пациентов в Министерстве здравоохранения и социального обеспечения Республики Корея, рег. № A-2026-01-02-06761",
         "Страхование ответственности на 100 млн корейских вон в SGI Seoul Guarantee Insurance",
         "Исполнитель государственного проекта KHIDI — Корейского института развития индустрии здравоохранения",
-        "Сеть совместного ведения пациентов: 4 университетские клиники Сеула (Ewha Seoul, Ewha Mokdong, Korea University Guro, Sinchon Severance) и госпиталь корейской медицины Myeonryeok с 4 филиалами — каждый филиал зарегистрирован как медицинское учреждение по приёму иностранных пациентов"
+        "Сеть на основе госпиталя корейской медицины Myeonryeok (4 филиала: Кансо, Синчхон, Кванмён, Сондон — каждый зарегистрирован для приёма иностранных пациентов) и университетских клиник, с которыми он совместно ведёт пациентов: Ewha Seoul, Ewha Mokdong, Korea University Guro, Sinchon Severance"
       ]
     },
     "form": {
@@ -340,7 +340,7 @@ export const COPY = {
     "hero": {
       "eyebrow": "Серіктестік бағдарламасы",
       "title": "Сіз пациентті бағыттайсыз — Кореядағы қалған жұмысты біз атқарамыз",
-      "lede": "healwith — Корея Денсаулық сақтау және әл-ауқат министрлігінде тіркелген шетелдік пациенттерді тарту компаниясы. Университеттік ауруханалармен әріптестікте онкология және басқа ауыр диагноздар бойынша ем ұйымдастырамыз. Алдын ала төлем жоқ: ынтымақтастық тек нәтижеге негізделген.",
+      "lede": "healwith — Корея Денсаулық сақтау және әл-ауқат министрлігінде тіркелген шетелдік пациенттерді тарту компаниясы. Тікелей серіктесіміз — «Мёллёк» дәстүрлі корей медицинасы ауруханасы және ол бірлесіп емдейтін университеттік ауруханалар арқылы онкология және басқа ауыр диагноздар бойынша ем ұйымдастырамыз. Алдын ала төлем жоқ: ынтымақтастық тек нәтижеге негізделген.",
       "cta": "Серіктестікке өтінім беру"
     },
     "values": {
@@ -391,7 +391,7 @@ export const COPY = {
         "Корея Денсаулық сақтау және әл-ауқат министрлігінде тіркелген шетелдік пациенттерді тарту компаниясы (тіркеу № A-2026-01-02-06761)",
         "SGI Seoul Guarantee арқылы 100 миллион вон көлеміндегі азаматтық жауапкершілікті сақтандыру",
         "KHIDI (Корея денсаулық сақтау индустриясын дамыту институты) мемлекеттік жобасының орындаушысы",
-        "Әріптестік желі: 4 университеттік аурухана (Ихва университетінің Сеул және Мокдон ауруханалары, Корё университетінің Куро ауруханасы, Синчхон Северанс) және «Мёллёк» дәстүрлі корей медицинасы ауруханасының 4 бөлімшесі (Кансо, Синчхон, Кванмён, Сондон); «Мёллёк» бөлімшелерінің барлығы шетелдік пациенттерді қабылдауға ресми тіркелген"
+        "Әріптестік желі «Мёллёк» дәстүрлі корей медицинасы ауруханасына негізделген (4 бөлімше: Кансо, Синчхон, Кванмён, Сондон — барлығы шетелдік пациенттерді қабылдауға ресми тіркелген) және ол бірлесіп емдейтін 4 университеттік аурухана: Ихва университетінің Сеул және Мокдон ауруханалары, Корё университетінің Куро ауруханасы, Синчхон Северанс"
       ]
     },
     "form": {
@@ -502,7 +502,7 @@ export const COPY = {
         "韩国保健福祉部注册外国患者招揽机构（注册号：A-2026-01-02-06761）",
         "已投保 SGI 首尔保证赔偿责任保险 1 亿韩元",
         "KHIDI（韩国保健产业振兴院）政府支持项目执行单位",
-        "协诊网络：4 家大学医院（梨大首尔医院、梨大木洞医院、高丽大学九老医院、新村世福兰斯医院）及免疫韩方医院 4 家分院（江西、新村、光明、城东，全部注册为外国患者招揽医疗机构）"
+        "协诊网络：以免疫韩方医院为核心（4 家分院：江西、新村、光明、城东，全部注册为外国患者招揽医疗机构），及其协诊的 4 家大学医院（梨大首尔医院、梨大木洞医院、高丽大学九老医院、新村世福兰斯医院）"
       ]
     },
     "form": {
@@ -558,7 +558,7 @@ export const COPY = {
   },
   "ja": {
     "seoTitle": "提携パートナー募集|healwith 韓国がん治療・医療渡航プラットフォーム",
-    "seoDesc": "韓国保健福祉部登録の外国人患者誘致事業者healwith。大学病院4院と韓方病院4拠点の協診ネットワークで、がん・重症疾患の医療渡航を初期費用ゼロ・成果報酬型で支援。専用ポータルと6言語対応。エージェンシー・保険会社・医療機関の提携申請を受付中。",
+    "seoDesc": "韓国保健福祉部登録の外国人患者誘致事業者healwith。提携先の韓方病院4拠点と、それらが協診する大学病院4院のネットワークで、がん・重症疾患の医療渡航を初期費用ゼロ・成果報酬型で支援。専用ポータルと6言語対応。エージェンシー・保険会社・医療機関の提携申請を受付中。",
     "hero": {
       "eyebrow": "提携のご案内",
       "title": "患者を紹介する。その先はすべて、healwithが担う。",
@@ -613,7 +613,7 @@ export const COPY = {
         "韓国保健福祉部 登録外国人患者誘致事業者(登録番号 A-2026-01-02-06761)",
         "SGIソウル保証 賠償責任保険 1億ウォン加入",
         "KHIDI(韓国保健産業振興院)政府支援事業の遂行企業",
-        "大学病院4院(梨花女子大ソウル病院・梨花女子大木洞病院・高麗大九老病院・新村セブランス病院)と韓方病院4拠点(全拠点が外国人患者誘致医療機関として登録)の協診ネットワーク"
+        "提携先の韓方病院4拠点(全拠点が外国人患者誘致医療機関として登録)と、それらが協診する大学病院4院(梨花女子大ソウル病院・梨花女子大木洞病院・高麗大九老病院・新村セブランス病院)によるネットワーク"
       ]
     },
     "form": {
