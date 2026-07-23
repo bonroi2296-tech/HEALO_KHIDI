@@ -438,7 +438,8 @@ for (const file of SCAN_DIRS.flatMap(walk)) {
 // 왜: <style jsx>는 App Router에서 SSR·클라이언트 모두 조용히 증발한다(registry 미설정).
 //     법률 페이지 모바일 접힘 CSS가 통째로 사라져 본문 전체가 109px씩 잘린 실사고.
 //     고치는 법: jsx 속성을 빼고 평범한 <style>{`...`}</style> 로 (그때 :global() 도 제거).
-const STYLE_JSX_RE = /<style\s+jsx/;
+// jsx 가 두 번째 속성이어도(<style global jsx>) 잡게 태그 안 \bjsx\b 로 (독립 리뷰)
+const STYLE_JSX_RE = /<style\s[^>]*\bjsx\b/;
 for (const file of SCAN_DIRS.flatMap(walk)) {
   if (!/\.[jt]sx$/.test(file) || EXCLUDE.test(file)) continue;
   const text = readFileSync(join(ROOT, file), "utf8");
