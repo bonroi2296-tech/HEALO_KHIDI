@@ -111,6 +111,17 @@ export const CONSENT_WELCOME: Record<string, string> = {
   ja: "ありがとうございます！がん治療・病院・費用・訪韓手続きなど、何でもご質問ください。人間のコーディネーターをご希望の際はいつでもお知らせください 🙌",
 };
 
+// 재입장 /start 한 줄 인사 — 동의·환영을 이미 마친 사용자가 딥링크로 다시 들어올 때.
+// 전체 환영문(CONSENT_WELCOME) 반복은 실기기에서 소음으로 확인(2026-07-23 PO 지적).
+export const TG_WELCOME_BACK: Record<string, string> = {
+  ko: "다시 오셨네요! 이어서 편하게 말씀해 주세요 🙌",
+  en: "Welcome back! Feel free to continue anytime 🙌",
+  ru: "С возвращением! Продолжайте, когда вам удобно 🙌",
+  kz: "Қайта келгеніңізге қуаныштымыз! Жалғастыра беріңіз 🙌",
+  zh: "欢迎回来！随时继续咨询 🙌",
+  ja: "おかえりなさい！引き続きお気軽にどうぞ 🙌",
+};
+
 // AI 생성 실패 시 고정 사과문 — err.message 원문을 환자에게 회신 금지(CLAUDE.md 보안규칙).
 export const TG_APOLOGY: Record<string, string> = {
   ko: "죄송합니다, 지금 답변을 만들지 못했어요. 잠시 후 다시 보내 주시면 꼭 답해 드릴게요.",

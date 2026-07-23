@@ -43,6 +43,7 @@ import {
   answerCallbackQuery,
   removeInlineKeyboard,
   CONSENT_WELCOME,
+  TG_WELCOME_BACK,
   TG_APOLOGY,
   pickTgText,
 } from "@/lib/messaging/telegram";
@@ -257,7 +258,21 @@ export async function POST(request: NextRequest) {
       if (!hasConsent) {
         await sendConsentPrompt(chatId, lang);
       } else if (isStart) {
-        await sendTelegramPatientMessage(chatId, pickTgText(CONSENT_WELCOME, lang));
+        // 재입장 /start: 전체 환영문 반복은 소음(실기기 2026-07-23 PO) → 한 줄 인사 +
+        // 60초 스로틀. "마지막 /start 가 60초보다 이전일 때만" 조건부 UPDATE 가 병렬·연속
+        // 수신을 직렬화해 정확히 한 요청만 인사를 보낸다(동의 더블탭 F1 과 동일 패턴).
+        const cutoffIso = new Date(Date.now() - 60_000).toISOString();
+        const { data: won, error: startErr } = await (supabaseAdmin as any)
+          .from("chat_threads")
+          .update({ metadata: { ...meta, last_start_at: new Date().toISOString() } })
+          .eq("id", thread.id)
+          .or(`metadata->>last_start_at.is.null,metadata->>last_start_at.lt.${cutoffIso}`)
+          .select("id");
+        // 오류면 침묵으로 수렴하지만(다음 /start 가 다시 조건 통과) 원인은 남긴다(독립 리뷰 N4).
+        if (startErr) console.error("[webhooks/telegram] start throttle update:", startErr.message);
+        if (won?.length) {
+          await sendTelegramPatientMessage(chatId, pickTgText(TG_WELCOME_BACK, lang));
+        }
       }
       return Response.json({ ok: true });
     }
