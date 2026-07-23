@@ -655,7 +655,6 @@ export default function ConsultationRoomPage() {
   const searchParams = useSearchParams();
   const toast = useToast();
   const lang = useLang();
-  const c = COPY[lang] || COPY.en;
   const consultationId = params.id;
 
   // 링크 하나로 통일: URL 의 ?invite=<token> 은 "이 방 입장권"이다.
@@ -705,6 +704,10 @@ export default function ConsultationRoomPage() {
   const [guestLang, setGuestLang] = useState(() =>
     ["ko", "en", "ru", "kz", "zh", "ja"].includes(lang) ? lang : "ru"
   );
+  // 방 UI 문구 언어 — 게스트(환자)는 자기 언어(guestLang)로 렌더한다. 초대링크로 들어오면 앱
+  // 로케일(lang)이 en 으로 기본값이라 방 전체·언어모달까지 영어로 떠 못 읽던 문제(PO 제보 2026-07-23).
+  // staff(코디/의사)는 기존대로 앱 로케일(lang) 유지 — 통역 언어를 만져도 화면이 안 바뀜(2026-07-20 결정).
+  const c = COPY[isGuestMode ? guestLang : lang] || COPY[lang] || COPY.en;
   // (2026-07-20 제거) 통역 언어를 고르면 화면 UI 언어까지 바꾸던 switchUiLang.
   //   한국인 코디가 러시아 환자 말을 들으려고 언어를 만졌더니 화면 전체가 러시아어가 됐다(PO 제보).
   //   통역 언어와 화면 언어는 별개다 — 화면 언어는 헤더의 언어 메뉴에서만 바꾼다.
@@ -3213,7 +3216,12 @@ export default function ConsultationRoomPage() {
                 {["ko", "en", "ru", "kz", "zh", "ja"].map((l) => (
                   <button
                     key={l}
-                    onClick={() => setMyLang(l)}
+                    // 게스트는 방 UI 도 자기 언어를 따라가므로 guestLang 도 같이 갱신 → 화면 즉시 그 언어로.
+                    // staff 는 guestLang 을 UI 에 안 쓰므로 통역 언어(myLang)만 바뀌고 화면은 그대로.
+                    onClick={() => {
+                      setMyLang(l);
+                      if (isGuestMode) setGuestLang(l);
+                    }}
                     className={`px-3 py-2 rounded-lg text-sm transition border ${
                       myLang === l
                         ? "bg-teal-700 border-teal-500 text-white font-semibold"
