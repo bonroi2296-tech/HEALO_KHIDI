@@ -79,7 +79,7 @@ const upsertDocumentAndChunks = async (doc: {
 }) => {
   const { data: existing, error: existingError } = await supabaseAdmin
     .from("rag_documents")
-    .select("id, content, version")
+    .select("id, content, version, trust_tier")
     .eq("source_type", doc.source_type)
     .eq("source_id", doc.source_id)
     .eq("lang", doc.lang)
@@ -131,6 +131,14 @@ const upsertDocumentAndChunks = async (doc: {
     if (error) throw error;
     documentId = updated.id;
     version = updated.version ?? 1;
+  } else if (trustTier != null && existing.trust_tier !== trustTier) {
+    // 내용은 동일하지만 등급만 틀어진 문서(과거 tier 3 오적재분) — 재청킹·재임베딩 없이
+    // 등급만 바로잡는다(자기치유). version 은 내용 변경이 아니므로 안 올림.
+    const { error } = await supabaseAdmin
+      .from("rag_documents")
+      .update({ trust_tier: trustTier, updated_at: nowIso() })
+      .eq("id", existing.id);
+    if (error) throw error;
   }
 
   if (!documentId) return { updated: false, documentId: null };
