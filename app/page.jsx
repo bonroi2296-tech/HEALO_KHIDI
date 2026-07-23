@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import HomeClient from "./home/HomeClient";
 import { localizedMeta } from "@/lib/i18n/metadata";
 import { partnerHospitalLdList, websiteLd, ORG_ID } from "@/lib/seo/structuredData";
+import { getMergedHomeContent } from "@/lib/content/overrides";
 
 // 홈 페이지 메타 — 언어별 alternates 로 각 언어권 검색엔진이 올바른 버전 노출
 // Google·Yandex·Baidu 모두 hreflang 을 통해 언어별 title 매칭
@@ -93,6 +94,8 @@ const jsonLd = {
 };
 
 export default async function HomePage() {
+  // 코디 편집 오버라이드를 서버에서 병합(없으면 기본값) → SSR HTML 에 실림(SEO 유지).
+  const content = await getMergedHomeContent();
   return (
     <>
       <script
@@ -101,7 +104,7 @@ export default async function HomePage() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify([jsonLd, websiteLd()]) }}
       />
       <Suspense>
-        <HomeClient />
+        <HomeClient content={content} />
       </Suspense>
     </>
   );

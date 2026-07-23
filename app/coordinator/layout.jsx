@@ -5,7 +5,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import {
   ClipboardList, Video, Bell, Inbox, MessageSquare, Plane, Calculator,
-  LogOut, Menu, X, LayoutDashboard, Building2, Bot, Target, KeyRound, TrendingUp, Star,
+  LogOut, Menu, X, LayoutDashboard, Building2, Bot, Target, KeyRound, TrendingUp, Star, FileText,
 } from 'lucide-react';
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser';
 import { useCoordinatorL } from '@/lib/i18n/coordinator';
@@ -28,6 +28,7 @@ const NAV_ITEMS = [
   { id: 'visa', labelKey: 'navVisa', icon: Plane, href: '/coordinator/visa' },
   { id: 'cost-estimates', labelKey: 'navCostEstimates', icon: Calculator, href: '/coordinator/cost-estimates' },
   { id: 'alerts', labelKey: 'navAlerts', icon: Bell, href: '/coordinator/alerts' },
+  { id: 'content', labelKey: 'navContent', label: '콘텐츠 편집', icon: FileText, href: '/coordinator/content' },
 ];
 
 export default function CoordinatorLayout({ children }) {
@@ -76,7 +77,7 @@ export default function CoordinatorLayout({ children }) {
               }`}
             >
               <Icon size={18} className={active ? 'text-blue-600' : 'text-gray-400'} />
-              <span>{L[item.labelKey]}</span>
+              <span>{L[item.labelKey] || item.label}</span>
             </Link>
           );
         })}
