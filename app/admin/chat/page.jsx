@@ -429,6 +429,11 @@ export default function AdminChatPage() {
                         </span>
                       </div>
                       <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+                        {t.channel === "telegram" && (
+                          <span className="text-[10px] font-semibold text-sky-700 bg-sky-50 border border-sky-200 px-1.5 py-0.5 rounded">
+                            ✈️ Telegram
+                          </span>
+                        )}
                         {t.metadata?.language && (
                           <span className="text-[10px] font-semibold text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">
                             {String(t.metadata.language).toUpperCase()}
@@ -519,6 +524,11 @@ export default function AdminChatPage() {
               <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-gray-100">
                 <div className="flex items-center gap-2 min-w-0">
                   <span className="text-sm font-mono text-gray-600">#{String(selected.id).slice(0, 8)}</span>
+                  {selected.channel === "telegram" && (
+                    <span className="text-[10px] font-semibold text-sky-700 bg-sky-50 border border-sky-200 px-1.5 py-0.5 rounded" title="이 스레드의 답장은 환자의 텔레그램으로 전송됩니다">
+                      ✈️ Telegram 발신
+                    </span>
+                  )}
                   {selected.metadata?.language && (
                     <span className="text-[10px] font-semibold text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">
                       {String(selected.metadata.language).toUpperCase()}

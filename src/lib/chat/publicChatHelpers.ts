@@ -90,15 +90,21 @@ async function promoteThreadToInquiry(
   } catch {
     /* 손상 payload 는 판정에서 무시 */
   }
-  const isTest = detectInquiryIsTest({ ip: clientIp, email: guestEmailPlain });
+  // 텔레그램 봇 경로는 IP·이메일이 없어 detectInquiryIsTest 가 항상 false — 스레드에 찍힌
+  // 테스트 표식(딥링크 ?start=test)을 우선 반영해 KHIDI 실적 오염을 막는다.
+  const isTest =
+    thread?.metadata?.is_test === true ||
+    detectInquiryIsTest({ ip: clientIp, email: guestEmailPlain });
 
   // PIPA 동의 보존: AI 챗은 chat/start 와 매 메시지에서 동의(health_crossborder)를
   // 강제하므로 3턴+ 도달한 thread 는 동의가 반드시 있다(thread.metadata.consent).
   // 폼(web) 경로처럼 inquiry.intake.consents 에 동의 증빙을 남긴다(법적 기록).
+  // 텔레그램 봇 스레드는 동의를 봇 인라인 버튼으로 받았음을 출처(consent_source)로 구분.
+  const isTelegram = thread?.channel === "telegram";
   const tc = thread?.metadata?.consent || null;
   const consentFields = tc
     ? {
-        consent_source: "ai_chat",
+        consent_source: isTelegram ? "telegram_bot" : "ai_chat",
         consents: { ai_chat_health_crossborder: tc.health_crossborder === true },
         consent_version: tc.version || null,
         consent_at: tc.at || null,
@@ -117,7 +123,8 @@ async function promoteThreadToInquiry(
       treatment_type: intake?.body_part || "general_inquiry",
       message: rawEnc,
       intake: { ...(intake || {}), ...consentFields },
-      source: "ai_agent",
+      // KHIDI 채널별 집계(conversion bySource)의 기준값 — 텔레그램 봇 상담을 별도 채널로 센다.
+      source: isTelegram ? "messenger_telegram" : "ai_agent",
       status: "received",
       is_test: isTest,
     })
@@ -169,17 +176,20 @@ export async function createDraftIntake(
 
   const rawEnc = encryptStringNullable(patientTexts.slice(0, 1000));
 
+  // 채널 구분 — 텔레그램 봇 대화는 source_type 을 분리해 유입경로 분석·집계가 가능하게.
+  const sourceType = thread?.channel === "telegram" ? "messenger_telegram" : "ai_agent";
+
   const { data, error } = await (supabaseAdmin as any)
     .from("normalized_inquiries")
     .insert({
-      source_type: "ai_agent",
+      source_type: sourceType,
       language: lang,
       raw_message: rawEnc,
       constraints: {
         intake,
         meta: {
           pipeline_version: "v1_chat_thread",
-          source_type: "ai_agent",
+          source_type: sourceType,
           model: getModelName(),
           thread_id: thread.id,
         },

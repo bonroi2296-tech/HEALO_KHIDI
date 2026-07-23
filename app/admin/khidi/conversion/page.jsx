@@ -18,6 +18,7 @@ const RANGES = [
 const SOURCE_LABELS = {
   web: "웹 문의폼",
   ai_agent: "AI 상담",
+  messenger_telegram: "Telegram 상담",
   "(미상)": "(미상)",
 };
 

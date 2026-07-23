@@ -43,7 +43,7 @@ export async function POST(
 
     const { data: thread } = await (supabaseAdmin as any)
       .from("chat_threads")
-      .select("id, status")
+      .select("id, status, channel, metadata")
       .eq("id", threadId)
       .single();
 
@@ -80,7 +80,43 @@ export async function POST(
       .update({ updated_at: new Date().toISOString() })
       .eq("id", threadId);
 
-    return Response.json({ ok: true, message: data });
+    // 텔레그램 스레드면 코디 답장을 환자의 텔레그램으로 실제 발신(내부 메모는 제외).
+    // 실패해도 저장은 유지하되 delivery='failed' 를 남겨 코디가 미전달을 알 수 있게 한다.
+    let delivery: string | undefined;
+    if (thread.channel === "telegram" && !is_internal && actor_type === "admin") {
+      const tgChatId = thread.metadata?.telegram?.chat_id;
+      if (tgChatId) {
+        const { sendTelegramPatientMessage } = await import("@/lib/messaging/telegram");
+        const sent = await sendTelegramPatientMessage(tgChatId, message_text.trim());
+        delivery = sent ? "sent" : "failed";
+        if (!sent) {
+          await (supabaseAdmin as any)
+            .from("chat_messages")
+            .update({ metadata: { ...(data?.metadata || {}), delivery: "failed" } })
+            .eq("id", data.id);
+        }
+      } else {
+        delivery = "failed";
+      }
+      // 사람이 답장을 시작한 텔레그램 스레드에는 이후 AI 가 끼어들지 않는다(웹훅이 이 플래그를
+      // 보고 침묵). 핸드오프 요청 없이 선제 답장한 경우까지 커버 — resolve 후 재상담은 새
+      // 스레드라 자동으로 다시 AI 응대.
+      if (thread.metadata?.coordinator_active !== true) {
+        await (supabaseAdmin as any)
+          .from("chat_threads")
+          .update({
+            metadata: {
+              ...(thread.metadata && typeof thread.metadata === "object" && !Array.isArray(thread.metadata)
+                ? thread.metadata
+                : {}),
+              coordinator_active: true,
+            },
+          })
+          .eq("id", threadId);
+      }
+    }
+
+    return Response.json({ ok: true, message: data, ...(delivery ? { delivery } : {}) });
   } catch (err: any) {
     console.error("[POST messages] Unexpected:", err.message);
     return Response.json({ ok: false, error: "Internal server error" }, { status: 500 });
