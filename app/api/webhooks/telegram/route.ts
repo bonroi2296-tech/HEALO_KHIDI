@@ -41,6 +41,7 @@ import {
   sendTelegramPatientMessage,
   sendConsentPrompt,
   answerCallbackQuery,
+  removeInlineKeyboard,
   CONSENT_WELCOME,
   TG_APOLOGY,
   pickTgText,
@@ -179,23 +180,38 @@ export async function POST(request: NextRequest) {
 
       const meta = threadMeta(thread);
       const lang = meta.language || mapTgLang(cq.from?.language_code);
-      if (meta.consent?.health_crossborder !== true) {
+      // 멱등: 환영 인사는 "동의를 처음 기록한 요청"만 보낸다 — 실기기에서 버튼 더블탭으로
+      // 환영 인사 2회 발송 재현(2026-07-23). 순차 재수신은 메모리 판정(alreadyConsented)이,
+      // 병렬 더블탭(배달은 병렬·순서 비보장)은 아래 조건부 UPDATE(consent 가 아직 없을 때만
+      // 매칭)가 막는다 — DB 행 잠금이 두 요청을 직렬화해 정확히 한 쪽만 rows 를 돌려받는다.
+      const alreadyConsented = meta.consent?.health_crossborder === true;
+      let firstConsent = false;
+      if (!alreadyConsented) {
         // 웹 챗(start 라우트)과 동일 shape — 승격 시 동의 증빙 복사가 그대로 작동.
         const consentRecord = {
           health_crossborder: true,
           version: data.slice("consent:".length).slice(0, 20) || null,
           at: new Date().toISOString(),
         };
-        await (supabaseAdmin as any)
+        const { data: updated } = await (supabaseAdmin as any)
           .from("chat_threads")
           .update({
             updated_at: new Date().toISOString(),
             metadata: { ...meta, consent: consentRecord },
           })
-          .eq("id", thread.id);
+          .eq("id", thread.id)
+          .is("metadata->consent->>health_crossborder", null)
+          .select("id");
+        firstConsent = !!updated?.length;
       }
       if (cq.id) await answerCallbackQuery(cq.id);
-      await sendTelegramPatientMessage(chatId, pickTgText(CONSENT_WELCOME, lang));
+      // 동의 버튼 자체를 제거해 재터치 여지를 없앤다(실패해도 위 멱등 가드가 최종 방어선).
+      if (cq.message?.message_id) {
+        await removeInlineKeyboard(chatId, cq.message.message_id);
+      }
+      if (firstConsent) {
+        await sendTelegramPatientMessage(chatId, pickTgText(CONSENT_WELCOME, lang));
+      }
       return Response.json({ ok: true });
     }
 
