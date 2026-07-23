@@ -1,7 +1,10 @@
 export const SITE_INFO = {
   messenger: {
     whatsapp: process.env.NEXT_PUBLIC_MESSENGER_WHATSAPP_URL || "https://wa.me/821047721075",
-    telegram: process.env.NEXT_PUBLIC_MESSENGER_TELEGRAM_URL || "",
+    // 환자용 공식 봇 @healwith_bot (2026-07-23 개통). start=inq_human 은 /inquiry Human Agent
+    // 경유 유입 표식 — 웹훅이 metadata.utm 으로 기록. 텔레그램 주소가 차면 /inquiry 의
+    // Human Agent 가 바로가기 대신 WhatsApp·Telegram 선택 화면(picker)을 띄운다.
+    telegram: process.env.NEXT_PUBLIC_MESSENGER_TELEGRAM_URL || "https://t.me/healwith_bot?start=inq_human",
     line: process.env.NEXT_PUBLIC_MESSENGER_LINE_URL || "",
     wechat: process.env.NEXT_PUBLIC_MESSENGER_WECHAT_URL || "",
   },
