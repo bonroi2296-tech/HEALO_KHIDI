@@ -8,7 +8,7 @@
 
 ---
 
-> **📌 중간 저장 (2026-07-23 심야, 하루 마감 점검 세션)** — PO "정상 마무리 맞는지 정리해봐" 실측 중 발견: **main 전체 E2E가 7/21부터 3일째 빨강 방치**(원인 ①clip-sweep 사이트맵 194개 전부 스캔=10분 초과 ②hospital-detail이 #881 아코디언 개편 미반영 ③실패 알림 이메일 Resend 403으로 사망). 수리 PR = `claude/daily-work-summary-tdh8h9` 브랜치(스펙 2개 수정+이슈 dedupe 가드), 반성문 #112, **PO 조치 1건 = KNOWN_ISSUES 최상단(E2E_ALERT_EMAIL 시크릿)**. 실서비스 사용자 영향 없음 실측(런타임 에러 0·주요 라우트 정상). 중복 자동 이슈는 대표 1개(#938)만 남기고 정리.
+> **📌 중간 저장 (2026-07-23 심야, 하루 마감 점검 세션 — ✅ 수리 완료)** — PO "정상 마무리 맞는지 정리해봐" 실측에서 **main 전체 E2E 7/21부터 3일 빨강 방치**를 발견 → 당일 수리 완료: [#939](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/939)(잘림 스캔 예산 — 사이트맵 194개 전수→/en만 · 병원상세 테스트 드리프트 · 실패이슈 dedupe 가드 · **postcss high 취약점 공고 긴급 패치**) + [#940](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/940)(스캔이 첫 완주하자마자 찾은 실결함 — **styled-jsx가 App Router에서 증발**해 모바일 법률 페이지 본문 109px 잘림, 4개 파일 수리 + `<style jsx` CI 가드). **main Full E2E cd69d47 = success 실측(7/21 이후 첫 초록)**, 프로덕션 privacy·terms 모바일 CSS 존재 curl 실측. 반성문 #112·#113. 중복 자동 이슈 117개 정리(#938 completed로 종결). **PO 조치 1건 남음 = KNOWN_ISSUES 최상단(E2E_ALERT_EMAIL 시크릿을 본인 주소로 — 실패 이메일 부활)**.
 
 ## 🔖 세션 핸드오프 (2026-07-23 — **전 화면 콘텐츠 편집 CMS 완성 + 한글 바로수정·하드코딩 우회 가드** (+ SEO 색인·암종별 키워드) 세션 종료)
 
