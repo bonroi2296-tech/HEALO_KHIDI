@@ -18,7 +18,7 @@
 |---|---|
 | `TELEGRAM_PATIENT_BOT_TOKEN` | 위에서 복사한 봇 토큰 |
 | `TELEGRAM_WEBHOOK_SECRET` | 아무 랜덤 문자열 64자 (아래 명령으로 생성: `openssl rand -hex 32`) |
-| `NEXT_PUBLIC_MESSENGER_TELEGRAM_URL` | `https://t.me/<봇아이디>?start=inq_human` — **이걸 넣는 순간 /inquiry Human Agent에 텔레그램 카드가 노출됨** (실기기 검증 후에 넣기) |
+| `NEXT_PUBLIC_MESSENGER_TELEGRAM_URL` | (선택 — 2026-07-23부터 코드 기본값 `https://t.me/healwith_bot`이 있어 **안 넣어도 됨**.) 넣는다면 값은 `https://t.me/<봇아이디>` — ⚠️ **`?start=...` 딥링크 금지**: start 파라미터가 있으면 이미 대화하던 사용자도 재입장 때마다 `/start`가 채팅에 찍힌다(텔레그램 프로토콜, 실기기 확인 2026-07-23 PO). |
 
 등록 후 **재배포** 필요 (env는 배포 시점에 반영).
 

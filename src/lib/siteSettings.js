@@ -1,10 +1,13 @@
 export const SITE_INFO = {
   messenger: {
     whatsapp: process.env.NEXT_PUBLIC_MESSENGER_WHATSAPP_URL || "https://wa.me/821047721075",
-    // 환자용 공식 봇 @healwith_bot (2026-07-23 개통). start=inq_human 은 /inquiry Human Agent
-    // 경유 유입 표식 — 웹훅이 metadata.utm 으로 기록. 텔레그램 주소가 차면 /inquiry 의
+    // 환자용 공식 봇 @healwith_bot (2026-07-23 개통). 텔레그램 주소가 차면 /inquiry 의
     // Human Agent 가 바로가기 대신 WhatsApp·Telegram 선택 화면(picker)을 띄운다.
-    telegram: process.env.NEXT_PUBLIC_MESSENGER_TELEGRAM_URL || "https://t.me/healwith_bot?start=inq_human",
+    // ⚠️ ?start=<표식> 딥링크를 붙이지 말 것(2026-07-23 PO): start 파라미터가 있으면 이미
+    // 대화하던 사용자도 재입장 때마다 '/start'가 채팅에 찍힌다(텔레그램 프로토콜). 표식을
+    // 빼면 재입장은 그냥 채팅이 열리고, /start 는 신규 사용자의 최초 1회(START 버튼)만 남는다.
+    // 대가: 유입경로(utm.start_param) 구분을 포기 — 채널 자체(telegram)는 스레드에 계속 기록됨.
+    telegram: process.env.NEXT_PUBLIC_MESSENGER_TELEGRAM_URL || "https://t.me/healwith_bot",
     line: process.env.NEXT_PUBLIC_MESSENGER_LINE_URL || "",
     wechat: process.env.NEXT_PUBLIC_MESSENGER_WECHAT_URL || "",
   },

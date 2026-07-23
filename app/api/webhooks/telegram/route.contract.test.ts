@@ -105,10 +105,11 @@ vi.mock("@/lib/chat/generateReply", () => ({
   logPlaybookUsage: async () => {},
 }));
 const createDraftIntake = vi.fn(async (..._args: any[]) => {});
+const pickHandoffConfirm = vi.fn((..._args: any[]) => "🔔 접수됐어요");
 vi.mock("@/lib/chat/publicChatHelpers", () => ({
   INTAKE_EVERY_N_TURNS: 3,
   createDraftIntake: (...args: any[]) => createDraftIntake(...args),
-  pickHandoffConfirm: () => "🔔 접수됐어요",
+  pickHandoffConfirm: (...args: any[]) => pickHandoffConfirm(...args),
 }));
 
 const sendTelegramPatientMessage = vi.fn(async (..._args: any[]) => true);
@@ -126,10 +127,17 @@ vi.mock("@/lib/messaging/telegram", () => ({
   pickTgText: (map: Record<string, string>, lang: string) => map[lang] || map.en,
 }));
 
-// after() 는 테스트에서 동기 실행 — AI 생성·발신 분기까지 어설션 가능하게.
+// after() 는 테스트에서 즉시 실행하되 promise 를 모아둔다 — 핸드오프 턴처럼 동적 import 가
+// 끼는 경로는 어설션 전에 `await flushAfter()` 로 완료를 기다려야 한다(아니면 경합 오탐).
+const afterPromises: Promise<unknown>[] = [];
+async function flushAfter() {
+  await Promise.all(afterPromises);
+}
 vi.mock("next/server", () => ({
   NextRequest: class {},
-  after: (fn: () => Promise<void>) => fn(),
+  after: (fn: () => Promise<void>) => {
+    afterPromises.push(Promise.resolve().then(fn));
+  },
 }));
 
 process.env.TELEGRAM_PATIENT_BOT_TOKEN = "test-bot-token";
@@ -186,6 +194,8 @@ describe("텔레그램 웹훅 계약", () => {
     answerCallbackQuery.mockClear();
     removeInlineKeyboard.mockClear();
     createDraftIntake.mockClear();
+    pickHandoffConfirm.mockClear();
+    afterPromises.length = 0;
     process.env.TELEGRAM_PATIENT_BOT_TOKEN = "test-bot-token";
     process.env.TELEGRAM_WEBHOOK_SECRET = "test-secret";
   });
@@ -324,6 +334,20 @@ describe("텔레그램 웹훅 계약", () => {
     );
     expect(pIns?.payload.message_text).toBe("late arrival");
     expect(generateChatReply).toHaveBeenCalledTimes(1);
+  });
+
+  it("핸드오프 요청: 접수 멘트를 '채널 안(inChannel)' 변형으로 붙인다 — 텔레그램에서 연락처 되묻기 금지", async () => {
+    const POST = await loadPost();
+    mockState.thread = CONSENTED_THREAD();
+    const res = await POST(makeReq(msgUpdate("connect me to a human please", 15)));
+    expect((await res.json()).ok).toBe(true);
+    await flushAfter(); // 핸드오프 턴은 after() 안에 동적 import 가 있어 완료를 기다려야 함
+
+    // 접수 멘트가 답변 뒤에 붙어 발신되고
+    const sent = String(sendTelegramPatientMessage.mock.calls[0]?.[1]);
+    expect(sent).toContain("🔔 접수됐어요");
+    // 텔레그램 = 이 채팅이 연락 채널 → inChannel=true 로 선택돼야 한다(채널 되묻기 금지 계약)
+    expect(pickHandoffConfirm).toHaveBeenCalledWith("en", true, true);
   });
 
   it("⑤ 코디 인수 후 AI 침묵: 메시지는 저장하되 AI 생성·발신 없음", async () => {

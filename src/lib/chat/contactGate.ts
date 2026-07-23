@@ -12,26 +12,40 @@
 // 확인받는다. 연락처가 file 에 있어도, 국제 환자는 시차·기기 이탈로 놓치기 쉬워 선호 채널을 한 번 확인하는 게 안전(2026-06-30 PO).
 // ponytail: 네이티브 앱이 스토어에 출시되면(현재 미출시) 여기에 "앱 설치 시 푸시로 진행상황 안내" 한 줄 추가(2026-06-30 PO 보류분).
 //   푸시는 네이티브 앱 전용(src/lib/push/registerPush.ts: 웹 no-op)이라 출시 전엔 거짓 약속이 됨 → 출시 후 추가.
+// ※ 메신저 나열은 실운영 2채널만(WhatsApp·Telegram) — WeChat·LINE 은 미개통이라 제거(2026-07-23 PO).
 export const HANDOFF_CONFIRM: Record<string, string> = {
-  ko: "🔔 접수됐어요! 코디네이터가 무료 사전 검토 후 다음 단계(견적·일정)를 안내드립니다. 시차가 있으니 연락은 이메일과 메신저(WhatsApp·Telegram·WeChat·LINE) 중 어디가 편하신가요? 지금까지 대화는 안전하게 저장돼 있어요.",
-  en: "🔔 You're registered! A coordinator will do a free preliminary review and guide your next steps (quote & schedule). Because time zones differ — is email or a messenger (WhatsApp/Telegram/WeChat/LINE) best to reach you? Your conversation is safely saved.",
-  ru: "🔔 Заявка принята! Координатор проведёт бесплатную предварительную проверку и подскажет следующие шаги (смета и сроки). Из-за разницы во времени — как удобнее связаться: по эл. почте или через мессенджер (WhatsApp/Telegram/WeChat/LINE)? Ваш разговор надёжно сохранён.",
-  kz: "🔔 Өтінім қабылданды! Үйлестіруші тегін алдын ала тексеру жасап, келесі қадамдарды (баға, кесте) түсіндіреді. Уақыт айырмашылығына байланысты — сізбен қалай байланысқан ыңғайлы: email арқылы ма, әлде мессенджер (WhatsApp/Telegram/WeChat/LINE) арқылы ма? Әңгімеңіз қауіпсіз сақталған.",
-  kk: "🔔 Өтінім қабылданды! Үйлестіруші тегін алдын ала тексеру жасап, келесі қадамдарды (баға, кесте) түсіндіреді. Уақыт айырмашылығына байланысты — сізбен қалай байланысқан ыңғайлы: email арқылы ма, әлде мессенджер (WhatsApp/Telegram/WeChat/LINE) арқылы ма? Әңгімеңіз қауіпсіз сақталған.",
-  zh: "🔔 已为您登记！协调员将进行免费初步审核并指导后续步骤（报价与日程）。由于存在时差——通过邮箱还是即时通讯（WhatsApp/Telegram/WeChat/LINE）联系您更方便？您的对话已安全保存。",
-  ja: "🔔 受付しました！コーディネーターが無料の事前確認を行い、次のステップ（見積り・日程）をご案内します。時差がありますので、ご連絡はメールとメッセンジャー（WhatsApp・Telegram・WeChat・LINE）のどちらがよろしいですか？会話内容は安全に保存されています。",
+  ko: "🔔 접수됐어요! 코디네이터가 무료 사전 검토 후 다음 단계(견적·일정)를 안내드립니다. 시차가 있으니 연락은 이메일과 메신저(WhatsApp·Telegram) 중 어디가 편하신가요? 지금까지 대화는 안전하게 저장돼 있어요.",
+  en: "🔔 You're registered! A coordinator will do a free preliminary review and guide your next steps (quote & schedule). Because time zones differ — is email or a messenger (WhatsApp/Telegram) best to reach you? Your conversation is safely saved.",
+  ru: "🔔 Заявка принята! Координатор проведёт бесплатную предварительную проверку и подскажет следующие шаги (смета и сроки). Из-за разницы во времени — как удобнее связаться: по эл. почте или через мессенджер (WhatsApp/Telegram)? Ваш разговор надёжно сохранён.",
+  kz: "🔔 Өтінім қабылданды! Үйлестіруші тегін алдын ала тексеру жасап, келесі қадамдарды (баға, кесте) түсіндіреді. Уақыт айырмашылығына байланысты — сізбен қалай байланысқан ыңғайлы: email арқылы ма, әлде мессенджер (WhatsApp/Telegram) арқылы ма? Әңгімеңіз қауіпсіз сақталған.",
+  kk: "🔔 Өтінім қабылданды! Үйлестіруші тегін алдын ала тексеру жасап, келесі қадамдарды (баға, кесте) түсіндіреді. Уақыт айырмашылығына байланысты — сізбен қалай байланысқан ыңғайлы: email арқылы ма, әлде мессенджер (WhatsApp/Telegram) арқылы ма? Әңгімеңіз қауіпсіз сақталған.",
+  zh: "🔔 已为您登记！协调员将进行免费初步审核并指导后续步骤（报价与日程）。由于存在时差——通过邮箱还是即时通讯（WhatsApp/Telegram）联系您更方便？您的对话已安全保存。",
+  ja: "🔔 受付しました！コーディネーターが無料の事前確認を行い、次のステップ（見積り・日程）をご案内します。時差がありますので、ご連絡はメールとメッセンジャー（WhatsApp・Telegram）のどちらがよろしいですか？会話内容は安全に保存されています。",
+};
+
+// 채널 안 접수(텔레그램 등) — 환자가 이미 회신 가능한 메신저 채팅 안에 있다. 채널을 되묻는 건
+// 헛질문(실기기 2026-07-23 PO: "선택지를 주지 말고 접수된 메신저로 연락드린다고 해라") →
+// "이 채팅으로 연락드립니다"로 확정하고 연락처를 일절 요구하지 않는다.
+export const HANDOFF_CONFIRM_IN_CHANNEL: Record<string, string> = {
+  ko: "🔔 접수됐어요! 코디네이터가 무료 사전 검토 후 다음 단계(견적·일정)를 바로 이 채팅으로 안내드립니다. 따로 연락처를 남기실 필요 없어요 — 지금까지 대화도 코디네이터에게 안전하게 전달돼 있습니다.",
+  en: "🔔 You're registered! A coordinator will do a free preliminary review and follow up right here in this chat with your next steps (quote & schedule). No need to leave any contact details — your conversation is already safely shared with the coordinator.",
+  ru: "🔔 Заявка принята! Координатор проведёт бесплатную предварительную проверку и ответит вам прямо в этом чате (смета и сроки). Оставлять контакты не нужно — ваш разговор уже надёжно передан координатору.",
+  kz: "🔔 Өтінім қабылданды! Үйлестіруші тегін алдын ала тексеруден кейін келесі қадамдарды (баға, кесте) дәл осы чатта хабарлайды. Байланыс деректерін қалдырудың қажеті жоқ — әңгімеңіз үйлестірушіге қауіпсіз жеткізілген.",
+  kk: "🔔 Өтінім қабылданды! Үйлестіруші тегін алдын ала тексеруден кейін келесі қадамдарды (баға, кесте) дәл осы чатта хабарлайды. Байланыс деректерін қалдырудың қажеті жоқ — әңгімеңіз үйлестірушіге қауіпсіз жеткізілген.",
+  zh: "🔔 已为您登记！协调员将进行免费初步审核后，直接在本对话中告知后续步骤（报价与日程）。无需留下联系方式——您的对话已安全转达给协调员。",
+  ja: "🔔 受付しました！コーディネーターが無料の事前確認を行い、次のステップ（見積り・日程）をこのチャットで直接ご案内します。連絡先を残す必要はありません — これまでの会話はコーディネーターに安全に共有されています。",
 };
 
 // 핸드오프 요청인데 연락처(이메일·전화·계정)가 없을 때 — "접수됐다"고 거짓말하지 않고,
 // 대화는 저장돼 있음을 안심시키면서 연락 수단 하나만 부탁한다.
 export const HANDOFF_NEED_CONTACT: Record<string, string> = {
-  ko: "🔔 바로 도와드릴게요! 코디네이터가 연락드리려면 이메일이나 메신저 아이디(WhatsApp·Telegram·WeChat·LINE) 하나만 남겨주세요. 지금까지 대화는 이 브라우저에 안전하게 저장돼 있어 사라지지 않아요.",
-  en: "🔔 Happy to get you started! To have a coordinator follow up, just leave one contact — an email or a messenger ID (WhatsApp/Telegram/WeChat/LINE). This chat is safely saved on this device, so nothing is lost.",
-  ru: "🔔 С радостью помогу! Чтобы координатор связался с вами, оставьте один контакт — эл. почту или мессенджер (WhatsApp/Telegram/WeChat/LINE). Этот чат надёжно сохранён на этом устройстве, ничего не потеряется.",
-  kz: "🔔 Қуана көмектесемін! Үйлестіруші хабарласуы үшін бір байланыс қалдырыңыз — email немесе мессенджер (WhatsApp/Telegram/WeChat/LINE). Бұл чат осы құрылғыда сақталған, ештеңе жоғалмайды.",
-  kk: "🔔 Қуана көмектесемін! Үйлестіруші хабарласуы үшін бір байланыс қалдырыңыз — email немесе мессенджер (WhatsApp/Telegram/WeChat/LINE). Бұл чат осы құрылғыда сақталған, ештеңе жоғалмайды.",
-  zh: "🔔 很乐意为您开始办理！为方便协调员与您联系，请留下一个联系方式——邮箱或即时通讯账号（WhatsApp/Telegram/WeChat/LINE）。本对话已安全保存在此设备上，不会丢失。",
-  ja: "🔔 喜んでお手伝いします！コーディネーターからご連絡できるよう、連絡先を一つだけ（メール、またはWhatsApp・Telegram・WeChat・LINEのID）お知らせください。この会話はこの端末に安全に保存されているので消えません。",
+  ko: "🔔 바로 도와드릴게요! 코디네이터가 연락드리려면 이메일이나 메신저 아이디(WhatsApp·Telegram) 하나만 남겨주세요. 지금까지 대화는 이 브라우저에 안전하게 저장돼 있어 사라지지 않아요.",
+  en: "🔔 Happy to get you started! To have a coordinator follow up, just leave one contact — an email or a messenger ID (WhatsApp/Telegram). This chat is safely saved on this device, so nothing is lost.",
+  ru: "🔔 С радостью помогу! Чтобы координатор связался с вами, оставьте один контакт — эл. почту или мессенджер (WhatsApp/Telegram). Этот чат надёжно сохранён на этом устройстве, ничего не потеряется.",
+  kz: "🔔 Қуана көмектесемін! Үйлестіруші хабарласуы үшін бір байланыс қалдырыңыз — email немесе мессенджер (WhatsApp/Telegram). Бұл чат осы құрылғыда сақталған, ештеңе жоғалмайды.",
+  kk: "🔔 Қуана көмектесемін! Үйлестіруші хабарласуы үшін бір байланыс қалдырыңыз — email немесе мессенджер (WhatsApp/Telegram). Бұл чат осы құрылғыда сақталған, ештеңе жоғалмайды.",
+  zh: "🔔 很乐意为您开始办理！为方便协调员与您联系，请留下一个联系方式——邮箱或即时通讯账号（WhatsApp/Telegram）。本对话已安全保存在此设备上，不会丢失。",
+  ja: "🔔 喜んでお手伝いします！コーディネーターからご連絡できるよう、連絡先を一つだけ（メール、またはWhatsApp・TelegramのID）お知らせください。この会話はこの端末に安全に保存されているので消えません。",
 };
 
 // 코디가 실제로 연락할 수단이 있는가 — 게스트 이메일/전화(암호화 컬럼은 값 있으면 non-null)
@@ -40,8 +54,10 @@ export function hasReachableContact(thread: any): boolean {
   return !!(thread?.guest_email || thread?.guest_phone || thread?.user_id);
 }
 
-// 핸드오프 확인 멘트 선택 — 연락 가능하면 접수완료, 아니면 연락처 요청. 미지원 언어는 en 폴백.
-export function pickHandoffConfirm(lang: string, reachable: boolean): string {
-  const map = reachable ? HANDOFF_CONFIRM : HANDOFF_NEED_CONTACT;
+// 핸드오프 확인 멘트 선택 — 미지원 언어는 en 폴백.
+// inChannel: 환자가 이미 회신 가능한 메신저 채팅 안(텔레그램 등)이면 채널을 되묻지 않고
+// "이 채팅으로 연락드립니다"로 확정(WhatsApp Cloud API 개통 시 그대로 재사용).
+export function pickHandoffConfirm(lang: string, reachable: boolean, inChannel = false): string {
+  const map = inChannel ? HANDOFF_CONFIRM_IN_CHANNEL : reachable ? HANDOFF_CONFIRM : HANDOFF_NEED_CONTACT;
   return map[lang] || map.en;
 }

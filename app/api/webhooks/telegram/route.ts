@@ -398,13 +398,15 @@ export async function POST(request: NextRequest) {
           isLoggedIn: false,
           // 텔레그램은 이 창으로 항상 회신 가능 → "연락처 남겨달라" 거짓 게이트 방지.
           hasReachableContact: true,
+          // 이 채팅 자체가 연락 채널 → 모델이 연락처·선호 채널을 되묻지 않게(실기기 2026-07-23 PO).
+          contactInThisChannel: true,
           // 이번 턴 또는 과거에 첨부가 있던 스레드 → "파일 못 읽음" 하드룰(첨부 환각 방지).
           hasAttachments: hasTgAttachment || history.some((m: any) => m?.metadata?.tg_has_attachment),
         });
 
         let finalReply = r.reply || "";
         if (handOff.requested) {
-          finalReply = `${finalReply ? finalReply + "\n\n" : ""}${pickHandoffConfirm(lang, true)}`;
+          finalReply = `${finalReply ? finalReply + "\n\n" : ""}${pickHandoffConfirm(lang, true, true)}`;
         }
         // 사진·문서를 함께 보낸 턴에는 "파일은 못 받는다" 정직 안내를 덧붙임(캡션 질문엔 답하되).
         if (hasTgAttachment) {
