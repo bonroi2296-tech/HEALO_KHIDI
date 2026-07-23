@@ -36,12 +36,17 @@ export const IMMUNE_HOSPITAL = {
 
   // ===== 4개 지점 =====
   branches: [
+    // ⚠️ 지점 표기는 「강서점」으로 통일한다(PO 지시 2026-07-22). 예전엔 화면마다
+    //    「강서점」/「마곡점」이 섞여 같은 지점이 두 곳처럼 보였다(DB 도 name=강서점·name_ko=마곡점).
+    //    행정동(마곡)은 주소에만 남기고, 지점 이름은 강서점 하나로.
     {
       id: "magok",
+      slug: "immunehospital-magok",   // DB(hospitals.slug) 조인용 — 구글 리뷰를 여기서 가져온다
+      photo: "/images/hospitals/immunehospital-magok/1.jpg",
       name: {
-        ko: "마곡 본원 (강서)",
-        en: "Magok HQ (Gangseo)",
-        ru: "Магок (головной офис)",
+        ko: "강서점 (본원)",
+        en: "Gangseo (Main Branch)",
+        ru: "Кансо (главный офис)",
       },
       address: {
         ko: "서울 강서구 마곡중앙6로 93 열린프라자 6층, 7층, 10층",
@@ -66,20 +71,69 @@ export const IMMUNE_HOSPITAL = {
         ko: "이대서울병원 도보 1분",
         en: "1-min walk from Ewha Womans University Seoul Hospital",
       },
+      director: {
+        name: { ko: "황이준 대표원장", en: "Dr. Hwang I-jun", ru: "Д-р Хван Иджун", kz: "Д-р Хван Иджун", zh: "黄伊俊 代表院长", ja: "黄伊俊 代表院長" },
+        photo: "/immune/doctor/gangeo-dr-hwang-ijun.png",
+      },
       url: "https://immunehospital.com/",
     },
+    // ⚠️ 신촌·광명은 예전에 {id,name,url} 뿐이라 화면 카드가 텅 비어 있었다(2026-07-22 PO 발견).
+    //    주소·전화·시간은 src/lib/data/immuneBranches.js 에 멀쩡히 있었는데 화면은 이 파일만 봤다
+    //    = 같은 데이터가 두 파일에 나뉜 채 빈약한 쪽을 렌더. 여기로 합쳐 이 파일을 SoR 로 둔다.
     {
       id: "sinchon",
-      name: { ko: "신촌점", en: "Sinchon" },
+      slug: "immunehospital-sinchon",
+      photo: "/images/hospitals/immunehospital-sinchon/1.jpg",
+      name: { ko: "신촌점", en: "Sinchon", ru: "Синчхон" },
+      address: {
+        ko: "서울 서대문구 연세로 12, 8층~14층",
+        en: "8F-14F, 12 Yonsei-ro, Seodaemun-gu, Seoul",
+        ru: "Сеул, Содэмун-гу, Ёнсе-ро, 12, 8-14 этажи",
+      },
+      phone: "1588-2915",
+      hours: {
+        weekday: {
+          ko: "평일 09:00-20:00 (점심 13:00-14:00, 야간진료)",
+          en: "Mon-Fri 09:00-20:00 (lunch 13:00-14:00, evening clinic)",
+        },
+        weekend: { ko: "토·일·공휴일 09:00-15:00", en: "Sat/Sun/Holidays 09:00-15:00" },
+      },
+      nearby: { ko: "신촌세브란스병원 인근", en: "Near Severance Hospital, Sinchon" },
+      director: {
+        name: { ko: "유형진 대표원장", en: "Dr. Yu Hyung-jin", ru: "Д-р Ю Хёнджин", kz: "Д-р Ю Хёнджин", zh: "柳炯进 代表院长", ja: "柳炯進 代表院長" },
+        photo: "/immune/doctor/sinchon-dr-yoo-hyeongjin.png",
+      },
       url: "https://sc.immunehospital.com/",
     },
     {
       id: "gwangmyeong",
-      name: { ko: "광명점", en: "Gwangmyeong" },
+      slug: "immunehospital-gwangmyeong",
+      photo: "/images/hospitals/immunehospital-gwangmyeong/1.jpg",
+      name: { ko: "광명점", en: "Gwangmyeong", ru: "Кванмён" },
+      address: {
+        ko: "경기 광명시 철산로 16, 트라이앵글빌딩 6층·8층~11층",
+        en: "Triangle Building 6F, 8F-11F, 16 Cheolsan-ro, Gwangmyeong-si, Gyeonggi-do",
+        ru: "Кёнги-до, Кванмён-си, Чхольсан-ро, 16, Трайэнгл билдинг, 6, 8-11 этажи",
+      },
+      phone: "1588-2915",
+      hours: {
+        weekday: {
+          ko: "평일 09:00-20:00 (점심 13:00-14:00, 야간진료)",
+          en: "Mon-Fri 09:00-20:00 (lunch 13:00-14:00, evening clinic)",
+        },
+        weekend: { ko: "토·일·공휴일 09:00-15:00", en: "Sat/Sun/Holidays 09:00-15:00" },
+      },
+      director: {
+        name: { ko: "배길준 대표원장", en: "Dr. Bae Gil-jun", ru: "Д-р Пэ Гильчжун", kz: "Д-р Пэ Гильчжун", zh: "裴吉俊 代表院长", ja: "裴吉俊 代表院長" },
+        photo: "/immune/doctor/gwangmyeong-dr-bae-giljun.png",
+      },
       url: "https://km.immunehospital.com/",
     },
     {
       id: "seongdong",
+      // ⚠️ 성동점은 DB(hospitals)에 행이 없다 → 구글 리뷰도 없음. 카드는 정보만 뜬다.
+      slug: "immunehospital-seongdong",
+      photo: "/images/hospitals/immunehospital-seongdong/1.jpg",
       name: { ko: "성동점", en: "Seongdong", ru: "Сондон" },
       address: {
         ko: "서울 성동구 천호대로 320, 2~7층, B101호 (용답동, 장안빌딩)",
@@ -96,6 +150,10 @@ export const IMMUNE_HOSPITAL = {
           ko: "토·일·공휴일 09:00-15:00",
           en: "Sat/Sun/Holidays 09:00-15:00",
         },
+      },
+      director: {
+        name: { ko: "강주안 대표원장", en: "Dr. Kang Ju-an", ru: "Д-р Кан Джуан", kz: "Д-р Кан Джуан", zh: "姜周安 代表院长", ja: "姜周安 代表院長" },
+        photo: "/immune/doctor/seongdong-dr-kang-juan.png",
       },
       url: "https://sd.immunehospital.com/",
     },
@@ -129,7 +187,7 @@ export const IMMUNE_HOSPITAL = {
     },
   ],
 
-  // ===== 핵심 치료 철학: ITCR 5원칙 =====
+  // ===== 핵심 치료 철학: ITCRN 5원칙  (I·T·C·R·N = 다섯 원칙의 영문 머리글자) =====
   // Immunity · Temperature · Circulation · Resistibility · Nutrition
   principles: [
     {
@@ -260,8 +318,8 @@ export const IMMUNE_HOSPITAL = {
       id: "thyroid",
       name: { ko: "갑상선암", en: "Thyroid" },
       focus: {
-        ko: "목소리 변화·저칼슘혈증·호르몬 부족·경부 흉터 관리. ITCR 5원칙 기반 회복",
-        en: "Voice changes, hypocalcemia, hormone deficiency, neck scar care. Recovery via 5 ITCR principles",
+        ko: "목소리 변화·저칼슘혈증·호르몬 부족·경부 흉터 관리. ITCRN 5원칙 기반 회복",
+        en: "Voice changes, hypocalcemia, hormone deficiency, neck scar care. Recovery via the 5 ITCRN principles",
       },
     },
     {

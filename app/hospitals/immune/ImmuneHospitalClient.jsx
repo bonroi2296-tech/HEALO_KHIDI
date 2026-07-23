@@ -20,7 +20,7 @@ const COPY = {
     statHealing: "힐링 공간",
     yearsUnit: "년",
     philosophyEyebrow: "치료 철학",
-    philosophyTitle: "ITCR — 다섯 가지 원칙",
+    philosophyTitle: "ITCRN — 다섯 가지 원칙",
     philosophyBody:
       "Immune Hospital은 모든 암 회복 프로그램을 이 다섯 가지 원칙 위에 구성합니다. 개별 치료가 아닌, 서로 맞물려 작동하는 하나의 체계입니다.",
     cancerEyebrow: "암종별 프로그램",
@@ -51,7 +51,7 @@ const COPY = {
     statHealing: "Healing space",
     yearsUnit: "yrs",
     philosophyEyebrow: "Care philosophy",
-    philosophyTitle: "ITCR — five principles",
+    philosophyTitle: "ITCRN — five principles",
     philosophyBody:
       "Every Immune Hospital recovery program is built on these five principles — not separate treatments, but an integrated system that works together.",
     cancerEyebrow: "Cancer-specific programs",
@@ -82,7 +82,7 @@ const COPY = {
     statHealing: "Зоны отдыха",
     yearsUnit: "лет",
     philosophyEyebrow: "Философия лечения",
-    philosophyTitle: "ITCR — пять принципов",
+    philosophyTitle: "ITCRN — пять принципов",
     philosophyBody:
       "Каждая программа восстановления Immune Hospital построена на этих пяти принципах — не отдельные процедуры, а единая система, работающая вместе.",
     cancerEyebrow: "Программы по типам рака",
@@ -113,7 +113,7 @@ const COPY = {
     statHealing: "Демалыс аймағы",
     yearsUnit: "жыл",
     philosophyEyebrow: "Емдеу философиясы",
-    philosophyTitle: "ITCR — бес принцип",
+    philosophyTitle: "ITCRN — бес принцип",
     philosophyBody:
       "Immune Hospital-дің әр қалпына келтіру бағдарламасы осы бес принципке негізделген — жеке емдеу емес, бірге жұмыс істейтін біртұтас жүйе.",
     cancerEyebrow: "Обыр түрлері бойынша бағдарлама",
@@ -144,7 +144,7 @@ const COPY = {
     statHealing: "疗愈空间",
     yearsUnit: "年",
     philosophyEyebrow: "治疗理念",
-    philosophyTitle: "ITCR — 五项原则",
+    philosophyTitle: "ITCRN — 五项原则",
     philosophyBody:
       "Immune Hospital 的所有癌症康复项目都建立在这五项原则之上——并非各自独立的治疗，而是相互衔接、协同运作的一套体系。",
     cancerEyebrow: "癌症专科项目",
@@ -175,7 +175,7 @@ const COPY = {
     statHealing: "ヒーリング空間",
     yearsUnit: "年",
     philosophyEyebrow: "治療哲学",
-    philosophyTitle: "ITCR — 5つの原則",
+    philosophyTitle: "ITCRN — 5つの原則",
     philosophyBody:
       "Immune Hospitalはすべてのがん回復プログラムをこの5つの原則の上に構成します。個別の治療ではなく、互いに噛み合って機能する一つの体系です。",
     cancerEyebrow: "がん種別プログラム",
@@ -246,10 +246,12 @@ export default function ImmuneHospitalClient() {
             </div>
           </div>
 
+          {/* 히어로는 의료진 단체사진 금지 — 「그 병원임을 보여주는 공간 실사」를 쓴다.
+              (PO 지시 2026-07-22: "병원 현판이나 그런걸루". docs/PO_PREFERENCES.md 참조) */}
           <div className="w-full aspect-[4/5] overflow-hidden rounded-xl bg-gray-100">
             <img
-              src={IMMUNE_PHOTOS.team}
-              alt="Immune Hospital team"
+              src={IMMUNE_PHOTOS.signage}
+              alt="면력한방병원 마곡 본원 리셉션"
               className="w-full h-full object-cover"
             />
           </div>
@@ -275,7 +277,7 @@ export default function ImmuneHospitalClient() {
         </div>
       </section>
 
-      {/* ── ITCR 5원칙 ───────────────────────────── */}
+      {/* ── ITCRN 5원칙 ───────────────────────────── */}
       <section className="bg-gray-50 border-y border-gray-100">
         <div className="max-w-5xl mx-auto px-4 py-12 md:py-16">
           <span className="inline-block text-xs font-bold tracking-wide text-teal-700 bg-teal-50 border border-teal-100 rounded-full px-3 py-1 mb-4">
@@ -292,14 +294,23 @@ export default function ImmuneHospitalClient() {
               </p>
             </div>
             <div className="divide-y divide-gray-200">
+              {/* 원칙 표기: 이니셜 뱃지(I·T·C·R·N)만 두면 그 글자가 왜 그 글자인지 알 수가 없다
+                  — 한국어 「면역」 옆에 I, 「체온」 옆에 T 가 붙어 있으니 무의미(PO 지적 2026-07-22).
+                  머리글자는 영문 단어에서 나오므로 **영문 전체 표기를 주(主)로** 두고,
+                  그 아래 각 언어 번역을 붙인다. 한국어 화면에서도 영문이 함께 보여야 ITCRN 이 성립. */}
               {H.principles.map((p) => (
                 <div key={p.id} className="flex gap-4 py-4 items-start">
                   <span className="shrink-0 w-9 h-9 rounded-lg bg-teal-700 text-white font-bold flex items-center justify-center text-sm">
                     {p.letter}
                   </span>
                   <div>
-                    <div className="text-base font-bold text-gray-900 mb-1">{l(p.name)}</div>
-                    <div className="text-sm text-gray-500 leading-relaxed">{l(p.description)}</div>
+                    <div className="text-base font-bold text-gray-900 leading-snug">
+                      <span translate="no">{p.name.en}</span>
+                      {lang !== "en" && (
+                        <span className="ml-1.5 font-semibold text-gray-500">{l(p.name)}</span>
+                      )}
+                    </div>
+                    <div className="mt-1 text-sm text-gray-500 leading-relaxed">{l(p.description)}</div>
                   </div>
                 </div>
               ))}
@@ -472,13 +483,38 @@ export default function ImmuneHospitalClient() {
           </h2>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5">
             {H.branches.map((b) => (
-              <div key={b.id} className="bg-white border border-gray-200 rounded-xl p-5 md:p-6">
-                <div className="text-xs font-bold tracking-wide text-gray-500 uppercase mb-2">
-                  {c.branchLabel} · {b.id}
-                </div>
-                <h3 translate="no" className="text-lg font-bold text-gray-900 mb-4 leading-snug">
+              <div key={b.id} className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+                {/* 지점 실사 — 옛 지점 상세 페이지에서 가치 있던 두 가지(사진·구글리뷰) 중 하나.
+                    통합하면서 버리지 않고 카드로 끌어왔다. */}
+                {b.photo && (
+                  <div className="aspect-[16/10] bg-gray-100 overflow-hidden">
+                    <img
+                      src={b.photo}
+                      alt={l(b.name)}
+                      loading="lazy"
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                )}
+                <div className="p-5 md:p-6">
+                <h3 translate="no" className="text-lg font-bold text-gray-900 mb-3 leading-snug">
                   {l(b.name)}
                 </h3>
+                {/* 지점 대표원장 — 4개 지점 모두 실명·실사가 있다(홈 「협력 의료진」과 같은 원본).
+                    PO 지시 2026-07-22: 지점 카드에는 리뷰 대신 병원 정보만. 대표원장은 병원 정보다. */}
+                {b.director && (
+                  <div className="flex items-center gap-2.5 mb-4 pb-4 border-b border-gray-100">
+                    <img
+                      src={b.director.photo}
+                      alt={l(b.director.name)}
+                      loading="lazy"
+                      className="w-10 h-10 rounded-full object-cover object-top bg-gray-100 shrink-0"
+                    />
+                    <span translate="no" className="text-sm font-semibold text-gray-800 leading-snug">
+                      {l(b.director.name)}
+                    </span>
+                  </div>
+                )}
                 {b.address && (
                   <p className="flex gap-2 text-sm text-gray-600 leading-relaxed mb-3">
                     <MapPin size={15} className="shrink-0 mt-0.5 text-teal-700" />
@@ -511,6 +547,7 @@ export default function ImmuneHospitalClient() {
                 {b.nearby && (
                   <p className="text-xs font-semibold text-teal-700 leading-relaxed">{l(b.nearby)}</p>
                 )}
+                </div>
               </div>
             ))}
           </div>

@@ -1,6 +1,5 @@
 import ImmuneHospitalClient from "./ImmuneHospitalClient";
 import { localizedMeta } from "@/lib/i18n/metadata";
-
 export async function generateMetadata() {
   return localizedMeta(baseMeta, "seo.immune.title", "seo.immune.desc");
 }
@@ -8,12 +7,12 @@ export async function generateMetadata() {
 const baseMeta = {
   title: "Immune Hospital — 면력한방병원",
   description:
-    "Immune Hospital — healwith's direct partner. Korean Medicine immune care for cancer patients. ITCR 5-principles, 50,000+ cases, chef-led therapeutic meals. 4 branches in Seoul & Gyeonggi.",
-  keywords: ["면력한방병원", "Immune Hospital Korea", "Korean Medicine cancer immune therapy", "ITCR protocol", "cancer hospital Seoul"],
+    "Immune Hospital — healwith's direct partner. Korean Medicine immune care for cancer patients. ITCRN 5-principles, 50,000+ cases, chef-led therapeutic meals. 4 branches in Seoul & Gyeonggi.",
+  keywords: ["면력한방병원", "Immune Hospital Korea", "Korean Medicine cancer immune therapy", "ITCRN protocol", "cancer hospital Seoul"],
   openGraph: {
     title: "Immune Hospital — Integrated cancer immune care in Korea",
     description:
-      "50,000+ cancer patient cases. 5-principle ITCR protocol. Chef-led therapeutic meals. healwith's direct partner.",
+      "50,000+ cancer patient cases. 5-principle ITCRN protocol. Chef-led therapeutic meals. healwith's direct partner.",
     type: "website",
   },
   twitter: {
@@ -33,7 +32,7 @@ const hospitalJsonLd = {
     "Корейская больница иммунитета",
   ],
   description:
-    "Immune Hospital is healwith's direct partner specializing in Korean Medicine immune therapy for cancer patients. Operating with the ITCR 5-principle protocol and over 50,000 cancer patient cases.",
+    "Immune Hospital is healwith's direct partner specializing in Korean Medicine immune therapy for cancer patients. Operating with the ITCRN 5-principle protocol and over 50,000 cancer patient cases.",
   url: "https://healwith.co.kr/hospitals/immune",
   address: {
     "@type": "PostalAddress",
@@ -59,11 +58,11 @@ const hospitalJsonLd = {
   ],
   medicalSpecialty: ["Oncology", "Korean Medicine", "Integrative Medicine"],
   availableService: [
-    { "@type": "MedicalTherapy", name: "ITCR Immune Therapy Protocol" },
+    { "@type": "MedicalTherapy", name: "ITCRN Immune Therapy Protocol" },
     { "@type": "MedicalTherapy", name: "Korean Medicine Immune Care" },
     { "@type": "MedicalTherapy", name: "Therapeutic Meal Program" },
     // 러시아어 표기 추가
-    { "@type": "MedicalTherapy", name: "Иммунотерапия по протоколу ITCR" },
+    { "@type": "MedicalTherapy", name: "Иммунотерапия по протоколу ITCRN" },
     { "@type": "MedicalTherapy", name: "Корейская медицина — онкоиммунология" },
   ],
   numberOfBeds: null,

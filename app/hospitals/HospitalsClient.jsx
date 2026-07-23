@@ -34,6 +34,7 @@ const L = {
     desc: { ko: '면력한방병원은 서울 강서구에 본원을 두고 신촌·광명·성동에 분원을 운영하는 한방 면역치료 전문 의료기관입니다. 암 환자의 면역력 강화, 항암 부작용 완화, 체력 회복을 위한 통합 한방 프로그램을 제공합니다.', en: 'Immune Hospital is a Korean Medicine institution headquartered in Gangseo-gu, Seoul, with branches in Sinchon, Gwangmyeong, and Seongdong. We provide integrated Korean Medicine programs for cancer patients including immune enhancement, chemotherapy side-effect relief, and physical recovery.', ru: 'Иммунная Клиника — учреждение корейской медицины с главным офисом в Кансо-гу, Сеул, и филиалами в Синчоне, Кванмёне и Сондоне. Мы предоставляем комплексные программы для онкопациентов.', kz: 'Иммунная Клиника — Кансо-гудағы бас кеңсесі мен Синчон, Кванмён, Сондон филиалдары бар корей медицинасы мекемесі.', zh: '免疫医院总部位于首尔江西区，在新村、光明和城东设有分院。为癌症患者提供综合韩方项目。', ja: '免疫病院はソウル江西区に本院を置き、新村・光明・城東に分院を展開する免疫治療専門韓方医療機関です。' },
   },
   branches: { ko: '지점 네트워크', en: 'Branch Network', ru: 'Сеть филиалов', kz: 'Филиал желісі', zh: '分院网络', ja: '分院ネットワーク' },
+  immuneOverview: { ko: '면력한방병원 전체 안내 보기', en: 'See the full Immune Hospital guide', ru: 'Полный обзор Immune Hospital', kz: 'Immune Hospital толық нұсқаулығы', zh: '查看免疫医院完整介绍', ja: '免疫病院の全体案内を見る' },
   branchesDesc: { ko: '면력한방병원은 서울·경기 4개 지점을 운영하고 있습니다.', en: 'Immune Hospital operates 4 branches across Seoul & Gyeonggi.', ru: 'Иммунная Клиника работает в 4 филиалах.', kz: 'Иммунная Клиника 4 филиалда жұмыс істейді.', zh: '免疫医院在首尔及京畿道运营4家分院。', ja: '免疫病院は4拠点で運営しています。' },
   status: {
     registered: { ko: '외국인환자 유치기관 등록', en: 'Registered for Foreign Patients', ru: 'Зарегистрирован для иностранных пациентов', kz: 'Шетелдік пациенттер үшін тіркелген', zh: '已注册外国患者招引机构', ja: '外国人患者誘致機関登録済み' },
@@ -717,7 +718,15 @@ export default function HospitalsClient() {
       {/* ── Branch Network + Doctors ── */}
       <section className="max-w-6xl mx-auto px-4 py-14">
         <h2 className="text-2xl md:text-3xl font-bold mb-2">{l(L.branches)}</h2>
-        <p className="text-gray-500 text-base mb-8">{l(L.branchesDesc)}</p>
+        <p className="text-gray-500 text-base mb-6">{l(L.branchesDesc)}</p>
+        {/* 면력 대표 페이지 입구. 이게 없어서 /hospitals/immune 이 목록에서 도달 불가한
+            고아였다(2026-07-22 실측: 목록·홈에서 링크 0). 목록 → 대표 페이지 동선을 만든다. */}
+        <Link
+          href="/hospitals/immune"
+          className="inline-flex items-center gap-1.5 text-sm font-semibold text-teal-700 hover:text-teal-800 mb-8"
+        >
+          {l(L.immuneOverview)} <ArrowRight size={15} />
+        </Link>
 
         <div className="space-y-5">
           {BRANCH_CONFIG.map(branch => {

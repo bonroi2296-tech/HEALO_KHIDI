@@ -237,6 +237,17 @@ const nextConfig = {
     // 발급 PDF(견적서·동의서·초청장) 500 의 근본원인. node_modules 그대로 실행해야 함.
     "@react-pdf/renderer",
   ],
+  // 면력 지점 상세 4개 → 통합 브랜드 페이지(/hospitals/immune) 영구 이동.
+  // 지점 페이지는 서버 HTML 이 얇아 구글엔 빈 페이지였고, 가짜 의료진("Medical Team")·
+  // 한국어 이름만 떴다. 브랜드 페이지가 "Immune Hospital" 이름·대표원장 4명·전 콘텐츠를
+  // 담고 있어 그리로 모은다. permanent=true → 308(구글은 301 처럼 취급, 링크 신호 이관).
+  async redirects() {
+    const branches = ["magok", "sinchon", "gwangmyeong", "seongdong"];
+    return branches.flatMap((b) => [
+      { source: `/hospitals/immunehospital-${b}`, destination: "/hospitals/immune", permanent: true },
+      { source: `/:locale/hospitals/immunehospital-${b}`, destination: "/:locale/hospitals/immune", permanent: true },
+    ]);
+  },
 };
 
 // 2026-06-12: Sentry 재활성 (serverExternalPackages 로 OpenTelemetry 충돌 해소).
