@@ -8,6 +8,58 @@
 
 ---
 
+## 🔖 세션 핸드오프 (2026-07-23 — **딥테크 전략 확정 + 텔레그램 봇 완전 개통 + 왓츠앱 준비 + 시차 배지** 세션 종료. PR 8개 머지)
+
+> 딥테크 질문에서 시작해 텔레그램 봇을 실기기 E2E까지 개통하고 왓츠앱을 예열해 둔 세션. 앞서 이 세션이 남긴 「중간 저장」 블록을 이 정식 블록으로 대체함.
+
+**1. 이번 세션 한 일** (PR 전부 머지·프로덕션 배포 — 자동머지, 코드 PR은 독립 리뷰 통과)
+
+- **딥테크 전략(PO 확정)**: 엣지 = **"치료 여권(Treatment Passport)" — 국경간 치료 연속성 인프라**(전: EMR특허 10-2745881 / 중: LiveKit 원격협진 / 후: 경과기록). AI 안전계측·자기학습·6개어는 구성요소로 강등. 1단계 구현은 별도 세션에 위임(trigger 발사, 2026-07-23 05:27Z).
+- **텔레그램 봇(@healwith_bot) 완전 개통** — [#905](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/905) 웹훅·동의 게이트·멱등 + Gemini 별칭 세대교체 전면 장애 복구(생존 사다리, POSTMORTEMS #110) · [#914](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/914) `**` 마크다운 평문화 + 성동점 hospitals 행(실DB) · [#916](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/916) 구어체 회귀 6종(colloquial, 실DB) · [#919](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/919) RAG trust_tier 근본수리(POSTMORTEMS #111) · [#921](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/921) Human Agent → WhatsApp·Telegram 선택 화면 · [#927](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/927) 재입장 /start 한 줄 인사+60초 스로틀 · [#930](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/930) 접수 멘트 채널 인지("이 채팅으로 연락드립니다")+WeChat·LINE 제거+딥링크 소거.
+- **왓츠앱 봇 전체 연동 준비** — [#933](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/933): 웹훅(서명 HMAC·동의 버튼·wamid 멱등·배치 전수 처리)·아웃바운드(24시간 창 131047 감지)·언어 추정(전화 국가번호, +7 대역 카자흐/러시아 구분)·어드민 릴레이·집계(messenger_whatsapp)·인덱스(실DB 적용). **env 4개만 채우면 켜짐** — 절차 = `docs/WHATSAPP_BOT_SETUP.md`.
+- **환자 현지 시각 배지**(#933 동봉) — `/admin/chat`에 🕓 현지 시각 / 🌙 심야(22~08시) 배지 + 말풍선 미전달 표시(failed·window_expired). 신호: 웹=브라우저 tz(정확) > 왓츠앱=국가번호 > 텔레그램=언어 추정.
+- **실기기 E2E(PO)**: 동의→환영 1회·AI 답변(별표 없음·성동점 포함 4지점)·재입장 한 줄 인사·어드민 답장→텔레그램 수신(어시가 admin API 실호출로 실증)·사람 연결 시 AI 침묵 — 전부 통과.
+
+**2. 왜 그렇게 했는지**
+
+- **치료 여권으로 피벗**: PO가 언어·카자흐 특화 엣지를 "시장이 좋게 볼까?"로 기각 → KHIDI 정성지표(사전상담·사후관리 체계)와 시장 엣지가 **같은 물건**이라는 정합성이 결정타.
+- **성동점 누락의 진범**: hospitals 행 추가만으론 안 됨 — ①RAG 재색인 누락 ②ingest 가 trust_tier 미명시(기본값 3=공개수집)라 검색 순위에서 밀림. #48 때 데이터만 고치고 코드를 안 고친 것의 재발(#111) → 코드가 등급 명시 + 자기치유.
+- **/start 소거**: 텔레그램 프로토콜상 신규 1회는 불가피, 재입장 /start 는 링크의 ?start= 표식 제거로 소거(유입 구분 utm 포기 — 채널 기록은 유지).
+- **왓츠앱을 지금 예열**: PO "준비해봐, 인증은 내일" — Meta 사업자 인증(며칠)이 유일한 대기 구간이라 코드를 먼저 완성해 인증만 끝나면 켜지게.
+
+**3. 안 끝났거나 보류**
+
+- **왓츠앱 개통 대기**: 2026-07-24 PO가 Meta 절차(비즈니스 계정→사업자 인증→번호→토큰→env 4개) 진행 예정. **번호 전략 미결**(A안 새 번호 권장 vs B안 기존 010 전환) — PO 결정 필요. E2E 전 `WHATSAPP_TEST_WA_IDS`에 테스트 번호 등록 필수(집계 오염 방지).
+- **구어체 이해력 개선**(과잉 에스컬레이션) — 감시는 colloquial 회귀 6종이 매일 하지만 근본 개선(프롬프트·detectHandOff 점검)은 백로그(KNOWN_ISSUES 2026-07-23 항목).
+- 치료 여권 1단계 = 위임된 별도 세션 담당(이 세션 범위 아님).
+
+**4. 주의·함정** ⚠️
+
+- **hospitals/treatments 에 직접 SQL 로 행 추가하면 `/api/rag/ingest`(admin)를 그 source_id 로 같이 호출할 것** — 자동 동기화 없음(POSTMORTEMS #111). admin API 실호출은 `admin@test.com` Bearer 토큰으로.
+- **텔레그램 링크에 `?start=` 딥링크 금지**(재입장마다 /start 노이즈 — siteSettings.js 주석·TELEGRAM_BOT_SETUP.md 갱신됨).
+- 코디가 어드민에서 답장하면 그 메신저 방은 `coordinator_active` = **AI 영구 침묵**(resolve 후 새 스레드부터 AI 재개). PO 텔레그램 테스트 방(fcd0aea1)이 지금 이 상태 — 봇 AI 재테스트하려면 플래그 해제 필요.
+- 왓츠앱 24시간 창: 환자 마지막 메시지 후 24시간 지나면 어드민 답장이 `window_expired`(말풍선에 표시됨) — 환자가 다시 말 걸어야 열림(v1 은 템플릿 재개 미지원).
+
+**5. 다음 세션이 먼저 할 일**
+
+1. ⚠️ **직전 미검증분 먼저 확인**: ①`/admin/chat` **현지 시각 배지 실화면**(배포는 READY 확인, 화면 실클릭은 안 함 — 텔레그램 대화에 🕓 배지 뜨는지) ②텔레그램 **"상담원 연결" 새 문구 실기기**("이 채팅으로 연락드립니다" — 코드·계약테스트·배포까지만, PO 실기기 재확인 대기) ③`/admin/khidi/conversion`에 Telegram 행(3턴+ 승격 쌓인 뒤).
+2. **왓츠앱 개통 지원**(PO가 Meta 인증 진행 시): `docs/WHATSAPP_BOT_SETUP.md` 따라 안내 + 번호 전략(A/B) 버튼으로 확정 + env 등록 후 E2E.
+3. 구어체 이해력 개선 착수 여부는 colloquial 회귀 첫 점수 보고 판단.
+
+**6. 검증 상태**
+
+- ✅ 이 세션 PR 8개(#905·#914·#916·#919·#921·#927·#930·#933) **전부 머지 + 프로덕션 배포 READY 확인**(마지막 #933 = commit 35f4770). CI 초록(중간 Smoke 빨강 1회는 agency-portal 플레이키 — 재실행 통과). 코드 PR 은 전부 독립 리뷰 통과(발견 결함 즉시 수정: #919 자기치유 범위, #930 문서 드리프트, #933 배치 유실·maxDuration).
+- ✅ 실측: 텔레그램 실기기 E2E(위 1번 목록) · 프로덕션 웹챗 재현(성동점 4지점) · 번들 grep(딥링크 소거) · 어드민 답장 API 실호출(delivery=sent).
+- ✅ vitest 654 · tsc · check:content · next build 통과(마지막 커밋 기준).
+- ❌ **미검증**: /admin/chat 시각 배지 실화면 미클릭 · "상담원 연결" 새 문구 실기기 미확인(PO 차례) · 왓츠앱 전체(Meta 미인증 — env 없으면 웹훅 안전 무시 확인만).
+- 열린 내 PR: 0 (이 핸드오프 PR 제외). 다른 세션 PR 미확인.
+
+**7. 다음 세션 첫 프롬프트**
+
+> 먼저 docs/PROJECT_CONTEXT.md 최상단 읽어. 텔레그램 봇은 완전 개통됐고(PR 8개 머지·배포) 왓츠앱은 코드만 완성 상태다. ⚠️미검증분 먼저: ①/admin/chat 열어 환자 현지 시각 배지(🕓/🌙) 실화면 확인 ②PO 텔레그램 실기기로 "상담원 연결" 새 문구("이 채팅으로 연락드립니다") 확인. 그다음 PO가 Meta 인증 진행하면 docs/WHATSAPP_BOT_SETUP.md 절차로 왓츠앱 개통 지원(번호 전략 A/B 버튼 확정 + WHATSAPP_TEST_WA_IDS 등록 필수). 🚫 함정: hospitals 직접 SQL 추가 시 /api/rag/ingest 같이 호출(#111) · PO 텔레그램 테스트 방은 coordinator_active 라 AI 침묵 상태.
+
+---
+
 ## 🔖 세션 핸드오프 (2026-07-23 오후~저녁 — 화상상담 **통역/자막 대개편**: 봇 OFF·환자언어·2토글·AI안내 + 로봇 시뮬 검증)
 
 > 별도 병렬 세션(하울링 세션과 다름). 화상상담 **통역·자막·언어** 담당 — `page.jsx`·`_roomCopy.js` 대폭 수정. 회의 후 PO가 "문제 많다"며 종합진단 → 봇 끄고 자막경로 정비.
@@ -105,27 +157,6 @@
 **7. 다음 세션 첫 프롬프트**
 
 > 먼저 docs/PROJECT_CONTEXT.md 최상단 읽어. ⚠️직전 미검증분 먼저: 화상상담 하울링 자동차단(#922, 머지됨)을 컴 2대·같은 방에서 실테스트 — 2번째 입장 시 ~0.4초 안에 한 대가 자동 음소거되고 하울링이 끊기는지 봐. 하울링은 나는데 아무것도 안 꺼지면 src/lib/consultation/useSameRoomDetect.js의 HOWL_RMS(0.45)를 낮춰(브라우저 AGC가 눌렀을 가능성). 그다음 consult-subtitle-lang(#915) 세션이 끝났으면 대기 3건(preflight 문구·초대URL 축소·역할 제거)을 내 워크트리 파서 이어받아 — 상세는 기억 consult-redesign-pending-0723.
-
----
-
-## 🔖 세션 핸드오프 (2026-07-23 — 텔레그램 봇 개통 세션 **중간 저장**, 진행 중)
-
-> ⚠️ 진행 중 세션의 중간 저장(결정 유실 방지) — 세션 종료 시 `/handoff`로 정식 7칸 완성 예정. 딥테크 전략 + 텔레그램 봇 개통 세션.
-
-**PO 결정 (즉시 기록)**
-
-- **딥테크 엣지 = "치료 여권(Treatment Passport)" 확정** — 국경간 치료 연속성 인프라(전: EMR특허 / 중: LiveKit / 후: 경과기록). 1단계는 별도 세션에 위임(trigger 발사됨).
-- **왓츠앱 봇(Cloud API)은 텔레그램 마무리 후 시작** (2026-07-23 버튼 확정). 번호 전략(기존 번호 유지+봇용 새 번호 A안 vs 전환 B안)은 그때 논의. 환자발 응대는 무료, 선발송 템플릿만 과금. **비즈니스 앱만으론 봇 불가 — Meta Cloud API + 사업자 인증 필요, 번호 하나는 앱/API 중 하나만.**
-- **Human Agent 선택 화면 활성화 지시** → 텔레그램 봇 주소 코드 기본값으로 반영(#921 머지).
-
-**이번 세션 머지** (전부 CI 초록 + 자동머지, 코드 PR은 독립 리뷰 통과)
-
-- #905 Gemini 별칭 세대교체 전면 장애 복구(생존 사다리) + 텔레그램 동의 멱등 · #909 게스트 방 언어 · #914 텔레그램 `**` 평문화 + 성동점 DB 행 · #916 구어체 회귀 6종 · #919 RAG trust_tier(#111, 성동점 벡터 누락 근본원인) · #921 Human Agent 왓츠앱/텔레그램 picker.
-
-**주의·함정** ⚠️
-
-- 텔레그램 봇 = **@healwith_bot** (문서: docs/TELEGRAM_BOT_SETUP.md). hospitals/treatments **직접 SQL 추가 시 `/api/rag/ingest` 같이 호출**(자동 동기화 없음 — POSTMORTEMS #111).
-- 남은 텔레그램 E2E: ①어드민 답장→환자 수신 ②"사람 연결"→AI 침묵+종 ③conversion 대시보드 Telegram 행. 구어체 이해력 개선은 KNOWN_ISSUES 백로그.
 
 ---
 
