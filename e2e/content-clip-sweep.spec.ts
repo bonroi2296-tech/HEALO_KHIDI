@@ -25,10 +25,20 @@ test("공개 페이지에서 읽을 텍스트가 클리핑 경계에 잘리지 �
   const res = await request.get("/sitemap.xml");
   expect(res.ok(), "sitemap.xml 자체가 안 열림").toBeTruthy();
   const xml = await res.text();
+  // ⚠️ 사이트맵 <loc>은 6개 언어 변형을 **전부 별도 등재**한다(2026-07-23 실측 194개).
+  // 전부 돌면 페이지 로드 ~388회 = 10분 테스트 예산 초과로 이 가드는 태어난 날부터
+  // 타임아웃이었다(POSTMORTEMS #112). 원래 설계 의도("영어가 최장 텍스트 = 최악 케이스")
+  // 대로 /en 변형만 스캔한다 — 아래 "~66회 페이지 로드" 산정이 이 필터 전제다.
   const paths = [
     ...new Set([
-      ...[...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => new URL(m[1]).pathname),
+      ...[...xml.matchAll(/<loc>([^<]+)<\/loc>/g)]
+        .map((m) => new URL(m[1]).pathname)
+        .filter((p) => p === "/en" || p.startsWith("/en/")),
       "/en/inquiry",
+      // /en 변형이 아예 없는 단독 랜딩(1순위 시장, 독립 리뷰 CONFIRMED) — 필터가
+      // 영구 제외하면 이 가드가 태어난 이유(#89 러시아어 잘림 부류)를 못 지킨다.
+      "/ru/for-russian-patients",
+      "/kk/for-kazakh-patients",
     ]),
   ];
   expect(paths.length, "사이트맵 경로가 비정상적으로 적음").toBeGreaterThan(20);
