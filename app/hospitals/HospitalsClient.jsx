@@ -21,6 +21,7 @@ const onImgError = (e) => { e.currentTarget.onerror = null; e.currentTarget.src 
 
 import { getLangCodeFromCookie } from '@/lib/i18n';
 import { useLang } from '@/lib/i18n/LangContext';
+import { localeHref } from '@/lib/i18n/config';
 import { supabaseClient } from '@/lib/data/supabaseClient';
 import { mapHospitalRow } from '@/lib/mapper';
 
@@ -826,7 +827,7 @@ export default function HospitalsClient() {
         {partnerHospitals.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
             {partnerHospitals.map(h => (
-              <Link key={h.id} href={`/${lang}/hospitals/${h.slug || h.id}`} data-testid="hospital-card" className="block bg-white border border-gray-200 rounded-2xl p-6 hover:shadow-lg hover:border-teal-300 transition cursor-pointer group focus:outline-none focus:ring-2 focus:ring-teal-400">
+              <Link key={h.id} href={localeHref(`/hospitals/${h.slug || h.id}`, lang)} data-testid="hospital-card" className="block bg-white border border-gray-200 rounded-2xl p-6 hover:shadow-lg hover:border-teal-300 transition cursor-pointer group focus:outline-none focus:ring-2 focus:ring-teal-400">
                 <div className="flex items-start gap-3 mb-3">
                   <div className="w-12 h-12 bg-teal-100 rounded-xl flex items-center justify-center shrink-0">
                     <Stethoscope size={24} className="text-teal-700" />
