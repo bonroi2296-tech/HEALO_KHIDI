@@ -117,29 +117,48 @@ export async function POST(request: NextRequest) {
     );
 
     const now = new Date().toISOString();
-    const rows = valid.map((u: any) => ({
-      content_key: u.key,
-      lang: u.lang,
-      value: u.value,
-      updated_at: now,
-      updated_by: staff.email,
-    }));
-    const { error: upErr } = await db
-      .from("content_overrides")
-      .upsert(rows, { onConflict: "content_key,lang" });
-    if (upErr) return NextResponse.json({ ok: false, error: "internal_error" }, { status: 500 });
+    // 빈 값 = "기본값으로 되돌리기" → 오버라이드 행 삭제. dict(t())·home(병합) 동작 일관.
+    // (빈 오버라이드를 남기면 t() 는 무시하고 home 은 공란화해 불일치 + 오탐 성공.)
+    const toUpsert = valid.filter((u: any) => u.value !== "");
+    const toDelete = valid.filter((u: any) => u.value === "");
 
-    const logRows = valid.map((u: any) => ({
-      content_key: u.key,
-      lang: u.lang,
-      old_value: oldMap.get(`${u.key}|${u.lang}`) ?? null,
-      new_value: u.value,
-      editor_email: staff.email,
-      changed_at: now,
-    }));
-    await db.from("content_change_log").insert(logRows);
+    if (toUpsert.length > 0) {
+      const rows = toUpsert.map((u: any) => ({
+        content_key: u.key,
+        lang: u.lang,
+        value: u.value,
+        updated_at: now,
+        updated_by: staff.email,
+      }));
+      const { error: upErr } = await db
+        .from("content_overrides")
+        .upsert(rows, { onConflict: "content_key,lang" });
+      if (upErr) return NextResponse.json({ ok: false, error: "internal_error" }, { status: 500 });
+    }
+    for (const u of toDelete) {
+      const { error: delErr } = await db
+        .from("content_overrides")
+        .delete()
+        .eq("content_key", u.key)
+        .eq("lang", u.lang);
+      if (delErr) return NextResponse.json({ ok: false, error: "internal_error" }, { status: 500 });
+    }
 
+    // 쓰기 성공 → 캐시 무효화(즉시 반영). 로그는 best-effort(실패해도 저장은 성공).
     invalidateContentCache();
+    try {
+      const logRows = valid.map((u: any) => ({
+        content_key: u.key,
+        lang: u.lang,
+        old_value: oldMap.get(`${u.key}|${u.lang}`) ?? null,
+        new_value: u.value,
+        editor_email: staff.email,
+        changed_at: now,
+      }));
+      await db.from("content_change_log").insert(logRows);
+    } catch {
+      // 로그 실패는 저장을 되돌리지 않는다(감사로그는 부가).
+    }
 
     return NextResponse.json({ ok: true, saved: valid.length });
   } catch {
