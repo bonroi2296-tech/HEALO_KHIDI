@@ -21,6 +21,7 @@ import { timingSafeEqual } from "node:crypto";
 import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
 import { sendEmail } from "@/lib/email/sendEmail";
 import { renderConsultationReminderEmail } from "@/lib/email/templates/consultationReminder";
+import { siteUrl } from "@/lib/siteUrl";
 import { sendKakaoAlimtalk, KAKAO_TEMPLATES } from "@/lib/notifications/kakao";
 
 // ── 인증 ─────────────────────────────────────────────────────
@@ -183,8 +184,7 @@ async function dispatchEmail(
   const lang = (rawLang === "kz" ? "kk" : rawLang) as any;
 
   // 입장 URL
-  const baseUrl =
-    process.env.NEXT_PUBLIC_SITE_URL ?? "https://healwith.co.kr";
+  const baseUrl = siteUrl();
   const joinUrl = `${baseUrl.replace(/\/$/, "")}/consultation/${row.consultation_session_id}`;
 
   const { subject, html, text } = renderConsultationReminderEmail({
@@ -223,8 +223,7 @@ async function dispatchKakao(
     minute: "2-digit",
   });
 
-  const baseUrl =
-    process.env.NEXT_PUBLIC_SITE_URL ?? "https://healwith.co.kr";
+  const baseUrl = siteUrl();
   const joinUrl = `${baseUrl.replace(/\/$/, "")}/consultation/${row.consultation_session_id}`;
 
   const result = await sendKakaoAlimtalk({
@@ -252,8 +251,7 @@ async function dispatchInApp(
   if (!userId) return { ok: false, error: "no recipient_user_id for in_app channel" };
 
   const payload = row.payload as Record<string, string>;
-  const baseUrl =
-    process.env.NEXT_PUBLIC_SITE_URL ?? "https://healwith.co.kr";
+  const baseUrl = siteUrl();
   const link = `${baseUrl.replace(/\/$/, "")}/consultation/${row.consultation_session_id}`;
 
   const { error } = await supabaseAdmin.from("notifications").insert({

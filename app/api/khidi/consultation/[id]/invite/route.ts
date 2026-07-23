@@ -15,6 +15,7 @@ import { generateGuestToken, type GuestRole } from "@/lib/auth/guestToken";
 import { sendEmail } from "@/lib/email/sendEmail";
 import { renderConsultationInviteEmail } from "@/lib/email/templates/consultationInvite";
 import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
+import { siteUrl } from "@/lib/siteUrl";
 
 const VALID_ROLES: GuestRole[] = ["patient", "doctor", "translator", "coordinator", "observer", "guest"];
 
@@ -117,8 +118,10 @@ export async function POST(
       createdBy: access.userId,
     });
 
-    const origin = request.nextUrl.origin;
-    const inviteUrl = result.inviteUrl(origin);
+    // 환자에게 나가는 진료 입장 링크는 정본 도메인 고정 — request origin 을 쓰면 스태프가
+    // admin 을 배포 임시주소(.vercel.app)로 열었을 때 그 주소가 환자 첫 링크로 샌다(피싱처럼
+    // 보여 안 누름). 토큰은 공용 프로덕션 DB 라 어느 배포에서 만들어도 healwith.co.kr 에서 유효.
+    const inviteUrl = result.inviteUrl(siteUrl());
 
     // 이메일 자동 발송 (해소된 수신 이메일 있을 때만 — 명시 입력 또는 환자계정 폴백)
     let emailSent = false;

@@ -1185,20 +1185,32 @@ for (const dir of BACKOFFICE_DIRS) {
   // 메일을 보내는 건 아니다(app/survey/[token]/page.jsx 는 서버가 자기 API 를 부르는
   // 자리라 VERCEL_URL 이 오히려 맞다). "실제로 메일을 보내는 파일"만 본다.
   const SENDS_EMAIL = /sendEmail|@\/lib\/email\//;
-  const VERCEL_FALLBACK = /process\.env\.VERCEL_URL/;
+  // 사용자에게 나가는 링크의 기준 주소를 "배포별·요청별 주소"에서 끌어오면 조용히 .vercel.app 로
+  // 샌다 — 기준 주소는 siteUrl() 하나만 쓴다. 두 누출원 다 금지:
+  //   ①VERCEL_URL = 배포별 임시주소   ②request origin = 스태프가 admin 을 연 주소
+  // ⚠️ 대상 아님(오탐): `NEXT_PUBLIC_SITE_URL || "https://healwith.co.kr"` 처럼 **canonical 로
+  //    안전하게 떨어지는** env 폴백. 스태프 알림(adminNotifier·alertService)이 의도적 override
+  //    노브로 이 형태를 쓴다 — 배포/요청 주소로 새지 않으니 위험이 아니다.
+  const BASE_URL_LEAKS = [
+    { re: /process\.env\.VERCEL_URL/, what: "VERCEL_URL(배포별 임시주소)" },
+    { re: /nextUrl\.origin|headers\.get\((['"])origin\1\)/, what: "request origin(스태프가 연 주소)" },
+  ];
   for (const file of [...walk("app"), ...walk("src")]) {
     if (!/\.(ts|tsx|jsx|js)$/.test(file)) continue;
     const norm = file.split("\\").join("/");
     let text;
     try { text = readFileSync(join(ROOT, file), "utf8"); } catch { continue; }
     if (!SENDS_EMAIL.test(text)) continue;
-    if (!VERCEL_FALLBACK.test(text)) continue;
-    const line = text.slice(0, text.search(VERCEL_FALLBACK)).split("\n").length;
-    errors.push(
-      `[링크주소] ${norm}:${line} — 사용자에게 나가는 링크에 VERCEL_URL 폴백을 쓰고 있다. ` +
-      `프로덕션에 NEXT_PUBLIC_SITE_URL 이 없으면 배포 임시주소(.vercel.app)가 환자 메일에 나간다. ` +
-      `src/lib/siteUrl.ts 의 siteUrl() 을 쓸 것 (2026-07-22 실사고).`
-    );
+    for (const { re, what } of BASE_URL_LEAKS) {
+      const idx = text.search(re);
+      if (idx < 0) continue;
+      const line = text.slice(0, idx).split("\n").length;
+      errors.push(
+        `[링크주소] ${norm}:${line} — 사용자에게 나가는 링크의 기준 주소를 ${what}에서 끌어온다. ` +
+        `배포/프리뷰에서 임시주소(.vercel.app)가 환자 메일에 나가 피싱처럼 보여 안 누른다. ` +
+        `src/lib/siteUrl.ts 의 siteUrl() 을 쓸 것 (2026-07-22 실사고 · 2026-07-23 origin 확장).`
+      );
+    }
   }
 }
 
