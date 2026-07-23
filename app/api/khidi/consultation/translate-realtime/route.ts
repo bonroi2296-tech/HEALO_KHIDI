@@ -18,6 +18,7 @@ import { requireConsultationAccess, requireAuthenticatedUser } from "@/lib/auth/
 import { verifyGuestTokenReadOnly } from "@/lib/auth/guestToken";
 import { checkConsultationAiGuard } from "@/lib/ai/aiGuard";
 import { detectLanguage } from "@/lib/translate";
+import { looksLikeLeakedTranslation } from "@/lib/consultation/translateOutputGuard";
 
 // Origin 화이트리스트 (브라우저에서 진료 중 호출되므로 시크릿 대신 Origin 검증)
 const ALLOWED_ORIGINS = new Set<string>([
@@ -171,16 +172,27 @@ export async function POST(request: NextRequest) {
     const contextBlock = buildContextBlock(sanitizeContext(context));
 
     // 모델은 env 로 교체 실험 가능(TRANSLATE_MODEL=gemini-pro-latest 등) — 기본은 Flash 유지(비용).
-    const { text: translated } = await generateText({
+    const genArgs = {
       model: google(process.env.TRANSLATE_MODEL || "gemini-flash-latest") as any,
       system: buildPrompt(sourceLang, targetLang),
       prompt: `${contextBlock}Text to translate:
 ${text}`,
       temperature: 0.1,
       maxOutputTokens: 500,
-    });
+    };
+    const { text: translated } = await generateText(genArgs);
 
-    const translatedText = translated.trim();
+    let translatedText = translated.trim();
+
+    // 출력이 번역문이 아니라 규칙 누출/후보 나열이면(위 가드) 1회 재시도, 그래도 이상하면
+    // 이 조각은 버린다(빈 출력 취급 = 아래 저장·자막이 스킵됨). 추임새-빈출력 경로와 동일.
+    // ponytail: 재시도 1회면 대개 복구된다. 여전히 누출이면 자막을 빼는 게 쓰레기를 띄우는 것보다 안전.
+    if (looksLikeLeakedTranslation(translatedText, targetLang)) {
+      const retry = await generateText(genArgs).catch(() => null);
+      const retried = (retry?.text || "").trim();
+      translatedText =
+        retried && !looksLikeLeakedTranslation(retried, targetLang) ? retried : "";
+    }
 
     // Save to DB if consultationId provided (fire-and-forget)
     // 추임새 정리로 번역이 비면 기록도 남기지 않음
