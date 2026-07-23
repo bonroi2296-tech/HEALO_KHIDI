@@ -82,6 +82,18 @@ export async function answerCallbackQuery(callbackQueryId: string): Promise<bool
   return callBotApi("answerCallbackQuery", { callback_query_id: callbackQueryId });
 }
 
+/** 인라인 버튼 제거(동의 완료 후 재터치 방지 — 원 메시지의 키보드를 비움). */
+export async function removeInlineKeyboard(
+  chatId: string | number,
+  messageId: number
+): Promise<boolean> {
+  return callBotApi("editMessageReplyMarkup", {
+    chat_id: chatId,
+    message_id: messageId,
+    reply_markup: { inline_keyboard: [] },
+  });
+}
+
 // ── PIPA 동의 UX ────────────────────────────────────────────────────────────
 // 웹 챗과 동일한 1줄 동의(민감 건강정보 수집 + 국외/AI 이전) — 동의 shape 도 웹과 동일하게
 // thread.metadata.consent = { health_crossborder, version, at } 로 기록한다(웹훅 라우트 담당).

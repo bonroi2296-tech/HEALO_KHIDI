@@ -41,6 +41,7 @@ import {
   sendTelegramPatientMessage,
   sendConsentPrompt,
   answerCallbackQuery,
+  removeInlineKeyboard,
   CONSENT_WELCOME,
   TG_APOLOGY,
   pickTgText,
@@ -179,7 +180,10 @@ export async function POST(request: NextRequest) {
 
       const meta = threadMeta(thread);
       const lang = meta.language || mapTgLang(cq.from?.language_code);
-      if (meta.consent?.health_crossborder !== true) {
+      // 멱등: 이미 동의된 스레드의 콜백(버튼 재터치·텔레그램 재전송)은 스피너만 해제하고
+      // 환영 인사를 다시 보내지 않는다 — 실기기 테스트에서 환영 인사 2회 발송 재현(2026-07-23).
+      const alreadyConsented = meta.consent?.health_crossborder === true;
+      if (!alreadyConsented) {
         // 웹 챗(start 라우트)과 동일 shape — 승격 시 동의 증빙 복사가 그대로 작동.
         const consentRecord = {
           health_crossborder: true,
@@ -195,7 +199,13 @@ export async function POST(request: NextRequest) {
           .eq("id", thread.id);
       }
       if (cq.id) await answerCallbackQuery(cq.id);
-      await sendTelegramPatientMessage(chatId, pickTgText(CONSENT_WELCOME, lang));
+      // 동의 버튼 자체를 제거해 재터치 여지를 없앤다(실패해도 위 멱등 가드가 최종 방어선).
+      if (cq.message?.message_id) {
+        await removeInlineKeyboard(chatId, cq.message.message_id);
+      }
+      if (!alreadyConsented) {
+        await sendTelegramPatientMessage(chatId, pickTgText(CONSENT_WELCOME, lang));
+      }
       return Response.json({ ok: true });
     }
 
