@@ -1,5 +1,57 @@
 # HEALO KHIDI — 알려진 이슈 / 전수 QA 발견사항
 
+## 🟠 러/카 랜딩 푸터 링크 위치 — **미결. 어시 제안 2건 모두 PO 반려** (2026-07-22)
+
+> 대상: 푸터 「회사 정보」칸의 `Лечение рака в Корее` → `/ru/for-russian-patients` (kz 는 `/kk/for-kazakh-patients`).
+> **지금은 아무것도 안 바꾼 상태 그대로 둠**(푸터에 그대로 있음). 라벨만 이미 페이지 h1 과 일치시킴(#872).
+
+**발단**: 코디네이터가 *"이 메뉴가 러/카에서만 보이는데 삭제 누락 아니냐"* 문의 → 삭제 누락 아님(검색 유입 전용 랜딩이라 번역판이 없음). 다만 **「회사 정보」 목록에 낀 이물질처럼 보이는 건 사실**.
+
+**조사로 확정된 사실 (재조사 불필요)**
+- **6개 언어로 만들 필요 없음**: 그 랜딩 7개 섹션 중 **6개가 각 언어 홈에 이미 있음**(고유한 건 「비자+예상비용」뿐, 그것도 `/visa`·`/cost-calculator` 로 따로 존재). 6개어판 = 자기 홈과 겹치는 중복 페이지 4개 추가.
+- **얀덱스 프레이밍은 틀렸다**: 실고객 11건 국적 = **카자흐 7 · 키르기스 2 · 한국 1 · 미기재 1, 러시아 0**. 카자흐스탄은 **구글 ~70%**(얀덱스 ~28%), 러시아만 얀덱스 72%. 코드 주석의 "Yandex 색인 자산" 표현은 실제 고객 분포와 안 맞음.
+- **구글은 사이트 전역 푸터 링크를 boilerplate 로 보고 가중치를 크게 깎는다** → 현재 위치는 사용자에겐 혼란, 구글엔 값어치 낮음.
+- 다만 **내부 링크 0(완전 고아)은 위험** — 구글이 "발견했지만 색인 안 함"으로 방치하는 부류.
+
+**반려된 제안**
+- ❌ **A안**(푸터 안에서 브랜드 칸으로 이동) — PO 버튼 반려.
+- ❌ **C안**(푸터에서 빼고 `/treatments` 하단 CTA 블록 안, 버튼 아래 텍스트 링크) — PO: *"그건 더 애매한데."*
+
+**→ PO 가 위치를 직접 정할 예정.** 어시가 또 후보를 던지지 말고 PO 지시를 기다릴 것.
+
+---
+
+## 🟠 면력한방병원 페이지 교통정리 — **A안(통합) 진행 중, PO가 추가 정리해서 다시 지시 예정** (2026-07-22)
+
+> **PO 메모 요청**: *"이거는 내가 추가로 정리해서 다시 알려줄게 메모 남겨줘."* → 아래 상태로 멈춰 있음. PO 지시 오면 이어서.
+> 작업 PR: [#881](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/881) (`work/hospital-traffic`) — **머지 안 함, 대기**.
+> 프리뷰: `https://healo-khidi-git-work-hospital-traffic-bonrois-projects.vercel.app/ko/hospitals/immune`
+
+**왜 손댔나 (실측으로 드러난 상태)**
+- `/hospitals/immune`(브랜드 페이지)는 의료진 27명·ITCRN·시설까지 두꺼운데 **병원목록·홈에서 링크 0인 고아**였다. 한국어 유입구는 비용계산기 링크 1개뿐.
+- 반대로 지점 페이지(`/hospitals/immunehospital-*`)는 링크는 되지만 **서버 HTML 이 「병원 정보 로딩 중…」뿐** → 구글엔 빈 페이지. 내용도 얇음(2,035자).
+- **좋은 페이지는 아무도 못 찾고, 찾을 수 있는 페이지는 구글이 못 본다** — 정확히 거꾸로 붙어 있었다.
+
+**PO 결정**: **A안(통합)** — 브랜드 페이지 하나로 모으고 지점은 그 안의 섹션으로. (B안 지점별 유지는 채울 실데이터가 없어 탈락)
+
+**PR #881 에 이미 들어간 것 (프리뷰에서 확인 가능)**
+- 히어로 이미지 = 의료진 단체사진 → **현판 실사**(PO 지시, `docs/PO_PREFERENCES.md` 기록)
+- 지점 이름 **「강서점」으로 통일**(마곡점 표기 제거). 원인은 DB 한 행에 `name`=강서점·`name_ko`=마곡점이 따로 있던 것.
+- 지점 카드에 **지점 실사 + 대표원장 사진·이름**(강서/황이준·신촌/유형진·광명/배길준·성동/강주안)
+- 지점 카드에서 **구글 리뷰 제거**, 병원 정보만(PO 지시)
+- **신촌·광명 빈 카드 해소** — 주소·전화·시간이 `immuneBranches.js` 에만 있고 화면은 `immuneHospitalInfo.js` 를 봐서 비어 있었다 → 후자로 합쳐 SoR 일원화
+- **ITCR → ITCRN** 6개 언어 + 메타·JSON-LD. 원칙 표기를 **영문 전체 + 각 언어 번역 병기**로(이니셜만 두면 왜 그 글자인지 알 수 없다는 PO 지적)
+- 병원 목록에 「면력한방병원 전체 안내 보기」 링크 신설 → 고아 해소
+
+**🔴 아직 안 한 것 — PO 승인 필요 (되돌리기 번거로운 것들)**
+1. **지점 URL 4개 → `/hospitals/immune` 301 이동**: `immunehospital-magok`·`-sinchon`·`-gwangmyeong`·`-seongdong`. 그냥 지우면 옛 주소·구글이 404 를 본다.
+2. **DB 더미 `doctor_profile` 3건 삭제**: 3개 지점 모두 동일하게 `name:"Medical Team"` / `image:"https://placehold.co/200x200"`(외부 자리표시자 핫링크) / `school:"Certified Medical School"` / **`heroMetric:{Satisfaction,"98%"}`**. ⚠️ 근거 없는 만족도 98% 는 의료 표기로 위험.
+3. **성동점 DB 불일치**: 화면엔 4개 지점인데 `hospitals` 테이블엔 3개(광명·마곡·신촌)뿐, 성동 행 없음.
+
+**참고 실측**: `partner_doctors` 0행 · 면력 `treatments` 0건 · `reviews` 테이블 0행. 지점 페이지의 별점 4.8 은 **가짜가 아니라** `hospitals.external_ratings.google_reviews` 의 실제 구글 리뷰 평균(강서 5건·광명 5건·신촌 1건).
+
+---
+
 ## 🟡 멱등가드(§21) 사각에 남은 존재검사 12곳 — 미분류, 후속 스윕 필요 (2026-07-21)
 
 **맥락** — `check:content` §21 은 중복방지 존재검사에 `.maybeSingle()` + error 미수신을 막는다(POSTMORTEMS #105). 유예목록(GRANDFATHERED) 8곳은 전부 수리·삭제했고, 독립 리뷰가 정규식 사각에서 추가로 찾아낸 **진짜 결함 5곳도 같이 고쳤다**(agency·hospital 메시지 스레드 find-or-create, offers/preview, deletion-request, crawl/schedule).
@@ -82,6 +134,7 @@ app/api/survey/[token]/route.ts:48
 ## 🟠 2026-07-21 환자 교육 페이지가 "즉시 연락하세요"라고 하는데 **앱 안에 연락 수단이 없다** (응급 SOS 삭제 결정의 잔여)
 
 > PO 결정(2026-07-21): 고아 상태이던 `/api/portal/emergency`(환자 SOS API)는 **삭제**한다. 2026-06-10 에 서버만 만들어지고 버튼이 끝내 안 붙어 **실사용 0건**(응급 스레드 0·응급 메시지 0)이었다. 삭제 자체는 옳지만 **공백은 남는다.**
+> ✅ **라우트 삭제 완료(2026-07-23)** — `app/api/portal/emergency/route.ts` 제거 + `check:content` §21 유예목록 비움. 교육페이지 공백은 #861 이 이미 메웠다. **남은 건 아래 "대표번호 24/7 표기" PO 결정뿐.**
 
 - **공백 내용**: `app/patient/education/EducationClient.jsx` 가 암종별로 *"38.5°C 이상 고열 지속 / 수술 부위 출혈 / 갑작스러운 호흡곤란 → **즉시 담당 병원에 연락하세요**"* 라고 6개 언어로 안내한다. 그런데 환자는 **카자흐스탄·러시아에 있고**, 앱 안에는 그 "즉시 연락"을 실행할 수단이 없다.
 - ✅ **대부분 해소됨 — PR [#861](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/861)(별도 세션)이 아래 ③+①을 구현했다**: 나라별 응급번호(한국 119 / 카자흐 103·112 / 러시아 103·112 등)를 **누르면 바로 걸리는 링크**로 되살리고, 증상기록의 AI "응급" 판정에 빨간 블록 + 번호 버튼, 환자 「더보기」에 진입점, 번호 드리프트 방지 가드(§24)까지 붙였다. 6개 언어 실렌더·모바일 44px 확인 완료.
@@ -505,7 +558,6 @@ app/api/survey/[token]/route.ts:48
 | `app/patient/messages/MessagesClient.jsx` | ✅ | `/api/portal/threads`·`…/[id]/messages` (realtime→5초 폴링) |
 | `app/coordinator/messages/CoordinatorMessagesClient.jsx` | ✅ | 동일 + `PATCH /api/portal/threads/[id]` (상태변경) |
 | `components/healo/NotificationBadge.jsx` | ✅ | `/api/portal/badge` |
-| `components/healo/EmergencyButton.jsx` | ✅ | `/api/portal/emergency` |
 
 **미검증:** 코드·빌드·단위테스트(106개)는 통과했으나 **실제 코디/환자 계정으로 화면 동작은 미확인** (portal 메뉴 미연결 상태 동일). portal 활성화 때 실계정으로 1회 점검 필요.
 

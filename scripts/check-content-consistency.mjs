@@ -986,12 +986,8 @@ for (const dir of BACKOFFICE_DIRS) {
 // 오탐이 진짜를 덮는다 — 시끄러운 게이트는 결국 꺼진다. 넓히려면 "존재검사"를 컬럼 수가
 // 아니라 용도로 가려내야 하고, 그건 이 정규식의 일이 아니다. 남은 자리 목록은 KNOWN_ISSUES 참고.
 {
-  // 유예: 아래 라우트는 호출부 0건인 고아 코드라 **삭제 결정**(PO 2026-07-21)이 나 있고
-  // 별도 세션이 처리 중이다. 곧 사라질 파일 때문에 CI 를 막지 않으려고 한시적으로만 예외.
-  // ⚠️ 파일이 지워지면 이 Set 과 grandfatheredSeen 경고도 같이 삭제할 것(목록은 늘리지 마라).
-  const GRANDFATHERED = new Set(["app/api/portal/emergency/route.ts"]);
-  let grandfatheredSeen = 0;
-
+  // 유예 목록은 비었다 — 마지막 유예분 app/api/portal/emergency/route.ts 는
+  // 고아 코드라 삭제됐다(PO 결정 2026-07-21, 처리 2026-07-23). 목록은 늘리지 마라.
   // 존재검사 후보: .select("id") 로 시작해 .maybeSingle() 로 끝나는 체인.
   // ⚠️ 간격을 [^;] 로 묶는다 — [\s\S] 로 두면 매칭이 **세미콜론을 넘어 다음 문장까지** 뻗어서,
   // 앞 문장이 error 를 받았다는 이유로 뒤의 진짜 위반이 묻힌다(아래 자기시험 fixture #1 이 그 모양).
@@ -1057,21 +1053,12 @@ for (const dir of BACKOFFICE_DIRS) {
     idSelectThenMaybeSingle.lastIndex = 0;
     while ((m = idSelectThenMaybeSingle.exec(text))) {
       if (okEnds.has(m.index + m[0].length)) continue;
-      if (GRANDFATHERED.has(norm)) { grandfatheredSeen++; continue; }
       const line = text.slice(0, m.index).split("\n").length;
       errors.push(
         `[멱등가드] ${norm}:${line} — 존재검사에 .maybeSingle() 을 쓰면서 error 를 안 받는다. ` +
         `행이 2개가 되는 순간 에러가 "없음"으로 둔갑해 무한 재생성이 된다. .limit(1) + error 명시 검사로 바꿀 것 (POSTMORTEMS #105).`
       );
     }
-  }
-  // 유예분은 막지 않되 **반드시 말은 한다** — 카운터만 올리고 침묵하면 유예가 영구화된다
-  // (침묵 = "유예 없음"과 구별 불가. 이 검사기가 잡으려는 조용한 실패와 같은 부류다).
-  if (grandfatheredSeen > 0) {
-    console.warn(
-      `⚠️  [멱등가드] 유예 중 ${grandfatheredSeen}건 — 삭제 예정 파일이라 통과시킴. ` +
-      `파일이 지워지면 §21 의 GRANDFATHERED Set 도 같이 지울 것.`
-    );
   }
 }
 
@@ -1185,20 +1172,32 @@ for (const dir of BACKOFFICE_DIRS) {
   // 메일을 보내는 건 아니다(app/survey/[token]/page.jsx 는 서버가 자기 API 를 부르는
   // 자리라 VERCEL_URL 이 오히려 맞다). "실제로 메일을 보내는 파일"만 본다.
   const SENDS_EMAIL = /sendEmail|@\/lib\/email\//;
-  const VERCEL_FALLBACK = /process\.env\.VERCEL_URL/;
+  // 사용자에게 나가는 링크의 기준 주소를 "배포별·요청별 주소"에서 끌어오면 조용히 .vercel.app 로
+  // 샌다 — 기준 주소는 siteUrl() 하나만 쓴다. 두 누출원 다 금지:
+  //   ①VERCEL_URL = 배포별 임시주소   ②request origin = 스태프가 admin 을 연 주소
+  // ⚠️ 대상 아님(오탐): `NEXT_PUBLIC_SITE_URL || "https://healwith.co.kr"` 처럼 **canonical 로
+  //    안전하게 떨어지는** env 폴백. 스태프 알림(adminNotifier·alertService)이 의도적 override
+  //    노브로 이 형태를 쓴다 — 배포/요청 주소로 새지 않으니 위험이 아니다.
+  const BASE_URL_LEAKS = [
+    { re: /process\.env\.VERCEL_URL/, what: "VERCEL_URL(배포별 임시주소)" },
+    { re: /nextUrl\.origin|headers\.get\((['"])origin\1\)/, what: "request origin(스태프가 연 주소)" },
+  ];
   for (const file of [...walk("app"), ...walk("src")]) {
     if (!/\.(ts|tsx|jsx|js)$/.test(file)) continue;
     const norm = file.split("\\").join("/");
     let text;
     try { text = readFileSync(join(ROOT, file), "utf8"); } catch { continue; }
     if (!SENDS_EMAIL.test(text)) continue;
-    if (!VERCEL_FALLBACK.test(text)) continue;
-    const line = text.slice(0, text.search(VERCEL_FALLBACK)).split("\n").length;
-    errors.push(
-      `[링크주소] ${norm}:${line} — 사용자에게 나가는 링크에 VERCEL_URL 폴백을 쓰고 있다. ` +
-      `프로덕션에 NEXT_PUBLIC_SITE_URL 이 없으면 배포 임시주소(.vercel.app)가 환자 메일에 나간다. ` +
-      `src/lib/siteUrl.ts 의 siteUrl() 을 쓸 것 (2026-07-22 실사고).`
-    );
+    for (const { re, what } of BASE_URL_LEAKS) {
+      const idx = text.search(re);
+      if (idx < 0) continue;
+      const line = text.slice(0, idx).split("\n").length;
+      errors.push(
+        `[링크주소] ${norm}:${line} — 사용자에게 나가는 링크의 기준 주소를 ${what}에서 끌어온다. ` +
+        `배포/프리뷰에서 임시주소(.vercel.app)가 환자 메일에 나가 피싱처럼 보여 안 누른다. ` +
+        `src/lib/siteUrl.ts 의 siteUrl() 을 쓸 것 (2026-07-22 실사고 · 2026-07-23 origin 확장).`
+      );
+    }
   }
 }
 

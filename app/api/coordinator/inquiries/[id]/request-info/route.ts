@@ -19,9 +19,10 @@ import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
 import { decryptInquiryForAdmin } from "@/lib/security/decryptForAdmin";
 import { sendEmail } from "@/lib/email/sendEmail";
 import { renderInfoRequestEmail, type EmailLang } from "@/lib/email/templates/infoRequest";
+import { siteUrl } from "@/lib/siteUrl";
 
-const SITE_URL =
-  process.env.NEXT_PUBLIC_SITE_URL || process.env.NEXT_PUBLIC_URL || "https://healwith.co.kr";
+// 기준 주소는 siteUrl() 하나로 (env 폴백 금지 — 환자에게 나가는 폼 링크가 배포 임시주소로 새면 안 됨)
+const SITE_URL = siteUrl();
 
 const VALID_LANGS: EmailLang[] = ["ko", "en", "ru", "kz", "zh", "ja"];
 

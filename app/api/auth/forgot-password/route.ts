@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { checkRateLimit, getClientIp } from "@/lib/rateLimit";
 import { sendEmail } from "@/lib/email/sendEmail";
+import { siteUrl } from "@/lib/siteUrl";
 
 // 비밀번호 재설정 메일 발송 — 스팸/폭탄 차단을 위해 ①같은 IP ②같은 이메일 횟수제한.
 // 응답은 가입 여부·가입수단과 무관하게 항상 동일(이메일 존재 노출 방지).
@@ -74,10 +75,9 @@ export async function POST(request: Request) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  const siteUrl =
-    process.env.NEXT_PUBLIC_SITE_URL ||
-    request.headers.get("origin") ||
-    "https://healwith.co.kr";
+  // 기준 주소는 siteUrl() 하나로 — origin/env 폴백 금지. 재설정 링크가 배포 임시주소
+  // (.vercel.app)로 나가면 Supabase redirect 허용목록 밖이라 실패하거나 피싱처럼 보인다.
+  const baseUrl = siteUrl();
 
   // 가입수단 판별(service_role). 실패하면 일반 재설정 흐름으로 폴백(안전).
   // ponytail: 수십명 규모라 전수 조회. 수천명 되면 auth.users 직접 조회 RPC로 교체.
@@ -101,8 +101,8 @@ export async function POST(request: Request) {
     await sendEmail({
       to: email,
       subject: "[healwith] 비밀번호 없이 로그인하세요 / Sign in with Google",
-      html: socialHintHtml(`${siteUrl}/login`),
-      text: socialHintText(`${siteUrl}/login`),
+      html: socialHintHtml(`${baseUrl}/login`),
+      text: socialHintText(`${baseUrl}/login`),
       tags: { type: "forgot_password_social_hint" },
     }).catch(() => {});
     return NextResponse.json({ ok: true });
@@ -117,7 +117,7 @@ export async function POST(request: Request) {
       auth: { flowType: "implicit", persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
     });
     await supabase.auth
-      .resetPasswordForEmail(email, { redirectTo: `${siteUrl}/reset-password` })
+      .resetPasswordForEmail(email, { redirectTo: `${baseUrl}/reset-password` })
       .catch(() => {});
   }
 
