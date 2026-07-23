@@ -43,7 +43,7 @@ export async function POST(
 
     const { data: thread } = await (supabaseAdmin as any)
       .from("chat_threads")
-      .select("id, status")
+      .select("id, status, channel, metadata")
       .eq("id", threadId)
       .single();
 
@@ -80,7 +80,27 @@ export async function POST(
       .update({ updated_at: new Date().toISOString() })
       .eq("id", threadId);
 
-    return Response.json({ ok: true, message: data });
+    // 텔레그램 스레드면 코디 답장을 환자의 텔레그램으로 실제 발신(내부 메모는 제외).
+    // 실패해도 저장은 유지하되 delivery='failed' 를 남겨 코디가 미전달을 알 수 있게 한다.
+    let delivery: string | undefined;
+    if (thread.channel === "telegram" && !is_internal && actor_type === "admin") {
+      const tgChatId = thread.metadata?.telegram?.chat_id;
+      if (tgChatId) {
+        const { sendTelegramPatientMessage } = await import("@/lib/messaging/telegram");
+        const sent = await sendTelegramPatientMessage(tgChatId, message_text.trim());
+        delivery = sent ? "sent" : "failed";
+        if (!sent) {
+          await (supabaseAdmin as any)
+            .from("chat_messages")
+            .update({ metadata: { ...(data?.metadata || {}), delivery: "failed" } })
+            .eq("id", data.id);
+        }
+      } else {
+        delivery = "failed";
+      }
+    }
+
+    return Response.json({ ok: true, message: data, ...(delivery ? { delivery } : {}) });
   } catch (err: any) {
     console.error("[POST messages] Unexpected:", err.message);
     return Response.json({ ok: false, error: "Internal server error" }, { status: 500 });
