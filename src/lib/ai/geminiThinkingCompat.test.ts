@@ -134,6 +134,25 @@ describe("geminiThinkingCompat — REST 사다리", () => {
     expect(res.status).toBe(500);
     expect(global.fetch).toHaveBeenCalledTimes(1);
   });
+
+  it("강등 도중 만난 5xx 로 memo 를 고착하지 않는다 — 성공(2xx)만 커밋 (리뷰 F2)", async () => {
+    const bodies: any[] = [];
+    let call = 0;
+    global.fetch = vi.fn(async (_url: any, init: any) => {
+      bodies.push(JSON.parse(init.body));
+      call++;
+      if (call === 1) return new Response("{}", { status: 400 }); // rung 0 거절
+      if (call === 2) return new Response("{}", { status: 503 }); // rung 1 시도 중 일시 오류
+      return new Response("{}", { status: 200 });
+    }) as any;
+
+    const res1 = await fetchGeminiWithCompat("https://x/y", REST_BODY);
+    expect(res1.status).toBe(503); // 5xx 는 그대로 반환하되
+    // 다음 호출은 다시 rung 0(원본 thinkingBudget)부터 — memo 미커밋 증명
+    const res2 = await fetchGeminiWithCompat("https://x/y", REST_BODY);
+    expect(res2.status).toBe(200);
+    expect(bodies[2].generationConfig.thinkingConfig).toEqual({ thinkingBudget: 0 });
+  });
 });
 
 describe("isParamRejection", () => {

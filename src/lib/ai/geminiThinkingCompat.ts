@@ -143,7 +143,9 @@ export async function fetchGeminiWithCompat(url: string, body: any): Promise<Res
       body: JSON.stringify(applyRestRung(body, rung)),
     });
     if (res.status !== 400) {
-      if (rung !== restMemoRung) {
+      // memo 커밋은 "성공 증거(2xx)"가 있을 때만 — 강등 도중 만난 5xx·429 로 칸을 고착하면
+      // 이후 모든 REST 호출이 근거 없이 강등된 설정으로 나간다(독립 리뷰 F2).
+      if (res.ok && rung !== restMemoRung) {
         console.error(
           `[geminiCompat] REST 사다리 강등 ${restMemoRung}→${rung} 로 복구 — 별칭 세대 교체 감지.`
         );

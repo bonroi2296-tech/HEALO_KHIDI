@@ -852,11 +852,25 @@ export async function generateMasterKeyAnalysis(
     if (onChunk) {
       let full = "";
       try {
-        const sr = streamText(params);
-        for await (const chunk of sr.textStream) {
-          full += chunk;
-          onChunk(chunk);
-        }
+        // 사다리 연결 + fullStream 소비(에러 파트는 textStream 이 삼킴 — 독립 리뷰 F1·F4).
+        await callGeminiWithCompat(async (p) => {
+          if (full) return null; // 일부 전송됨 → 재시도 금지
+          const sr = streamText(p as any);
+          for await (const part of sr.fullStream as any) {
+            if (part?.type === "text-delta") {
+              const t = String(part.text ?? "");
+              if (!t) continue;
+              full += t;
+              onChunk(t);
+            } else if (part?.type === "error") {
+              const cause: any = part.error;
+              const err: any = cause instanceof Error ? cause : new Error(String(cause?.message ?? cause));
+              if (!full) throw err;
+              break;
+            }
+          }
+          return null;
+        }, params);
       } catch (e: any) {
         console.warn(`[masterKey] stream error: ${String(e?.message || e).slice(0, 120)}`);
       }
@@ -1278,14 +1292,38 @@ export async function streamChatReply(
     let finishReason: any = undefined;
     let usageForLog: any = undefined; // 💰 사용량 계측용(스트림 usage 또는 fallback usage)
     try {
-      // 별칭 세대 교체 생존 사다리 — 파라미터 거절(400)은 첫 토큰 전에 터지므로,
-      // 아직 아무것도 내보내지 않았을 때만 설정을 낮춰 재시도한다(출력 중복 방지).
+      // 별칭 세대 교체 생존 사다리 — ⚠️ ai@6 의 streamText 는 API 오류(400 포함)를 throw 하지
+      // 않고 스트림의 error 파트로 흘리며, textStream 은 그 파트를 조용히 버린다(독립 리뷰
+      // F1, node_modules/ai/dist 실소스 확인). 그래서 fullStream 을 소비해 error 파트를 직접
+      // 잡고, 첫 토큰 전이면 던져서 사다리가 다음 칸으로 강등하게 한다. 토큰 일부가 이미
+      // 나간 뒤의 오류는 기존처럼 부분 출력을 유지하고 종료(출력 중복 방지).
       await callGeminiWithCompat(async (p) => {
         if (fullText) return null; // 일부 전송됨 → 재시도 금지
         const sr = streamText({ ...p, messages: safeMessages } as any);
-        for await (const chunk of sr.textStream) {
-          fullText += chunk;
-          onChunk(chunk);
+        for await (const part of sr.fullStream as any) {
+          if (part?.type === "text-delta") {
+            const t = String(part.text ?? "");
+            if (!t) continue;
+            fullText += t;
+            try {
+              onChunk(t);
+            } catch (consumerErr: any) {
+              // 소비자(SSE enqueue 등) 오류는 모델 파라미터 문제가 아니다 — 사다리 강등·
+              // memo 오염을 막기 위해 param-rejection 으로 절대 분류되지 않는 형태로 던진다(F3).
+              console.warn(
+                `[streamChatReply] onChunk 소비자 오류: ${String(consumerErr?.message || consumerErr).slice(0, 120)}`
+              );
+              throw new Error("stream_consumer_error");
+            }
+          } else if (part?.type === "error") {
+            const cause: any = part.error;
+            const err: any = cause instanceof Error ? cause : new Error(String(cause?.message ?? cause));
+            if (!fullText) throw err; // 첫 토큰 전 → 사다리로(파라미터 거절이면 강등 재시도)
+            console.warn(
+              `[streamChatReply] mid-stream error(부분 출력 유지): ${String(err?.message || err).slice(0, 120)}`
+            );
+            break;
+          }
         }
         try {
           finishReason = await sr.finishReason;
