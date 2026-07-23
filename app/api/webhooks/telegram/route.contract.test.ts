@@ -33,6 +33,10 @@ function chainable(op: string, table: string, payload: any, result: any) {
       rec.filters.push([f, v]);
       return builder;
     },
+    is: (f: string, v: any) => {
+      rec.filters.push([`is:${f}`, v]);
+      return builder;
+    },
   };
   return builder;
 }
@@ -67,7 +71,9 @@ vi.mock("@/lib/rag/supabaseAdmin", () => ({
           data: { ...row, id: table === "chat_threads" ? "t-new" : "m-new" },
           error: null,
         }),
-      update: (payload: any) => chainable("update", table, payload, { data: null, error: null }),
+      // update 는 조건부 갱신 결과 확인용으로 .select() 후 rows 를 돌려받는다(멱등 가드).
+      update: (payload: any) =>
+        chainable("update", table, payload, { data: [{ id: "row-1" }], error: null }),
     }),
   },
 }));
@@ -220,7 +226,7 @@ describe("텔레그램 웹훅 계약", () => {
           id: "cb-1",
           data: "consent:1.0.0",
           from: { id: 777, language_code: "en" },
-          message: { chat: { id: 777, type: "private" } },
+          message: { message_id: 4, chat: { id: 777, type: "private" } },
         },
       })
     );
@@ -232,7 +238,11 @@ describe("텔레그램 웹훅 계약", () => {
     expect(consent?.health_crossborder).toBe(true);
     expect(consent?.version).toBe("1.0.0");
     expect(consent?.at).toBeTruthy();
+    // 병렬 더블탭 방어: "consent 가 아직 없을 때만" 조건이 UPDATE 에 걸려 있어야 한다
+    expect(upd?.filters).toContainEqual(["is:metadata->consent->>health_crossborder", null]);
     expect(answerCallbackQuery).toHaveBeenCalledWith("cb-1");
+    // 첫 동의: 버튼 제거 + 환영 인사 발송
+    expect(removeInlineKeyboard).toHaveBeenCalledWith("777", 4);
     expect(sendTelegramPatientMessage).toHaveBeenCalledWith("777", "welcome");
   });
 
