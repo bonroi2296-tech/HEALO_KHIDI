@@ -7,6 +7,9 @@ import ClientShell from "./ClientShell";
 import AnalyticsWrapper from "./AnalyticsWrapper";
 import InstallPrompt from "./InstallPrompt";
 import { localeAlternates, OG_LOCALE, getRequestLocale } from "@/lib/i18n/metadata";
+import { getI18nOverrideMap } from "@/lib/content/i18nOverrides";
+import { applyI18nOverrides } from "@/lib/i18n";
+import I18nOverridesApply from "./_components/I18nOverridesApply";
 
 // kz(우리 내부 코드) → kk(BCP47 표준 카자흐 언어코드). <html lang>·hreflang용.
 const HTML_LANG = { en: "en", ko: "ko", ru: "ru", kz: "kk", zh: "zh", ja: "ja" };
@@ -128,6 +131,10 @@ export default async function RootLayout({ children }) {
   // 미들웨어가 URL 언어 prefix(/ru/ 등)에서 읽어 x-locale 헤더로 넘긴다.
   // 없으면(내부도구·prefix 미적용 경로) en. → 서버가 그 언어로 렌더(SEO).
   const lang = (await headers()).get("x-locale") || "en";
+  // 코디 콘텐츠 편집 오버라이드: 서버에서 로드 → SSR t() 즉시 반영 + 클라 provider 로 주입.
+  // 비면 t() 기존 사전 동작(안 깨짐).
+  const i18nOverrides = await getI18nOverrideMap();
+  applyI18nOverrides(i18nOverrides);
   return (
     // suppressHydrationWarning: 브라우저 확장(예: 한글 HWP 뷰어 rhwp 가 data-hwp-extension 주입)이
     // hydration 전에 <html> 속성을 건드려도 경고가 안 뜨게. 확장 종류 무관·안전(루트 태그 한정).
@@ -208,7 +215,9 @@ export default async function RootLayout({ children }) {
         {/* ✅ 성능 최적화: Google Analytics 조건부 로딩 */}
         <AnalyticsWrapper />
         <Providers>
-          <ClientShell initialLang={lang}>{children}</ClientShell>
+          <I18nOverridesApply map={i18nOverrides}>
+            <ClientShell initialLang={lang}>{children}</ClientShell>
+          </I18nOverridesApply>
         </Providers>
         <InstallPrompt lang={lang} />
       </body>

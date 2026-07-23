@@ -5999,7 +5999,22 @@ export const getLangCodeFromLabel = (label) => {
   }
 };
 
+// ── 코디 콘텐츠 오버라이드 (전역 — 모든 사용자 공통 콘텐츠) ──
+// 서버: 렌더 전 applyI18nOverrides() 로 채움. 클라: provider 가 초기 1회 주입.
+// 비어 있으면 t() 는 기존 사전 동작과 100% 동일(폴백 철저 — 사이트 안 깨짐).
+let I18N_OVERRIDES = {}; // { [lang]: { [key]: value } }
+export function applyI18nOverrides(map) {
+  I18N_OVERRIDES = map && typeof map === "object" ? map : {};
+}
+export function getI18nOverrides() {
+  return I18N_OVERRIDES;
+}
+
 export const t = (key, lang = "en") => {
+  // 1) 코디 편집 오버라이드 우선
+  const ov = I18N_OVERRIDES[lang] && I18N_OVERRIDES[lang][key];
+  if (ov != null && ov !== "") return ov;
+  // 2) 기존 사전 동작 (폴백)
   const langDict = DICTIONARY[lang] || DICTIONARY.en;
   const val = langDict[key];
   if (val) return val;
@@ -6013,3 +6028,35 @@ export const t = (key, lang = "en") => {
   }
   return DICTIONARY.en[key] || key;
 };
+
+// ── 편집 백오피스용: 사전 키 검색·검증 ──
+const EDIT_LANGS = ["ko", "en", "ru", "kz", "zh", "ja"];
+
+// key 또는 아무 언어 값에 query 가 포함된 사전 항목을 반환({ key, values:{lang:val} }).
+export function searchI18nKeys(query, limit = 60) {
+  const q = (query || "").trim().toLowerCase();
+  if (!q) return [];
+  const enDict = DICTIONARY.en || {};
+  const out = [];
+  for (const key of Object.keys(enDict)) {
+    let matched = key.toLowerCase().includes(q);
+    if (!matched) {
+      for (const lang of EDIT_LANGS) {
+        const v = DICTIONARY[lang] && DICTIONARY[lang][key];
+        if (typeof v === "string" && v.toLowerCase().includes(q)) { matched = true; break; }
+      }
+    }
+    if (matched) {
+      const values = {};
+      for (const lang of EDIT_LANGS) values[lang] = (DICTIONARY[lang] && DICTIONARY[lang][key]) || "";
+      out.push({ key, values });
+      if (out.length >= limit) break;
+    }
+  }
+  return out;
+}
+
+// 실재하는 사전 키인가(편집 저장 화이트리스트용).
+export function isValidI18nKey(key) {
+  return Boolean(DICTIONARY.en && Object.prototype.hasOwnProperty.call(DICTIONARY.en, key));
+}
