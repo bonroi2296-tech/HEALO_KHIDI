@@ -134,6 +134,7 @@ app/api/survey/[token]/route.ts:48
 ## 🟠 2026-07-21 환자 교육 페이지가 "즉시 연락하세요"라고 하는데 **앱 안에 연락 수단이 없다** (응급 SOS 삭제 결정의 잔여)
 
 > PO 결정(2026-07-21): 고아 상태이던 `/api/portal/emergency`(환자 SOS API)는 **삭제**한다. 2026-06-10 에 서버만 만들어지고 버튼이 끝내 안 붙어 **실사용 0건**(응급 스레드 0·응급 메시지 0)이었다. 삭제 자체는 옳지만 **공백은 남는다.**
+> ✅ **라우트 삭제 완료(2026-07-23)** — `app/api/portal/emergency/route.ts` 제거 + `check:content` §21 유예목록 비움. 교육페이지 공백은 #861 이 이미 메웠다. **남은 건 아래 "대표번호 24/7 표기" PO 결정뿐.**
 
 - **공백 내용**: `app/patient/education/EducationClient.jsx` 가 암종별로 *"38.5°C 이상 고열 지속 / 수술 부위 출혈 / 갑작스러운 호흡곤란 → **즉시 담당 병원에 연락하세요**"* 라고 6개 언어로 안내한다. 그런데 환자는 **카자흐스탄·러시아에 있고**, 앱 안에는 그 "즉시 연락"을 실행할 수단이 없다.
 - ✅ **대부분 해소됨 — PR [#861](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/861)(별도 세션)이 아래 ③+①을 구현했다**: 나라별 응급번호(한국 119 / 카자흐 103·112 / 러시아 103·112 등)를 **누르면 바로 걸리는 링크**로 되살리고, 증상기록의 AI "응급" 판정에 빨간 블록 + 번호 버튼, 환자 「더보기」에 진입점, 번호 드리프트 방지 가드(§24)까지 붙였다. 6개 언어 실렌더·모바일 44px 확인 완료.
@@ -557,7 +558,6 @@ app/api/survey/[token]/route.ts:48
 | `app/patient/messages/MessagesClient.jsx` | ✅ | `/api/portal/threads`·`…/[id]/messages` (realtime→5초 폴링) |
 | `app/coordinator/messages/CoordinatorMessagesClient.jsx` | ✅ | 동일 + `PATCH /api/portal/threads/[id]` (상태변경) |
 | `components/healo/NotificationBadge.jsx` | ✅ | `/api/portal/badge` |
-| `components/healo/EmergencyButton.jsx` | ✅ | `/api/portal/emergency` |
 
 **미검증:** 코드·빌드·단위테스트(106개)는 통과했으나 **실제 코디/환자 계정으로 화면 동작은 미확인** (portal 메뉴 미연결 상태 동일). portal 활성화 때 실계정으로 1회 점검 필요.
 
