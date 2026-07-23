@@ -17,7 +17,8 @@ const mockState: {
   thread: any | null;
   history: any[];
   dupMsg: boolean; // 같은 tg_update_id 의 기존 저장 메시지 존재 여부(멱등 가드용)
-} = { thread: null, history: [], dupMsg: false };
+  throttleStart: boolean; // /start 스로틀: 조건부 UPDATE 가 0행(60초 내 재수신)인 상황 재현
+} = { thread: null, history: [], dupMsg: false, throttleStart: false };
 
 type Captured = { table: string; op: string; payload: any; filters: Array<[string, any]> };
 const captured: Captured[] = [];
@@ -35,6 +36,14 @@ function chainable(op: string, table: string, payload: any, result: any) {
     },
     is: (f: string, v: any) => {
       rec.filters.push([`is:${f}`, v]);
+      return builder;
+    },
+    or: (expr: string) => {
+      rec.filters.push(["or", expr]);
+      // /start 스로틀 계약: 60초 내 재수신이면 조건부 UPDATE 가 0행이어야 한다
+      if (mockState.throttleStart && rec.payload?.metadata?.last_start_at) {
+        (result as any).data = [];
+      }
       return builder;
     },
   };
@@ -112,6 +121,7 @@ vi.mock("@/lib/messaging/telegram", () => ({
   answerCallbackQuery: (...args: any[]) => answerCallbackQuery(...args),
   removeInlineKeyboard: (...args: any[]) => removeInlineKeyboard(...args),
   CONSENT_WELCOME: { en: "welcome" },
+  TG_WELCOME_BACK: { en: "welcome-back" },
   TG_APOLOGY: { en: "sorry" },
   pickTgText: (map: Record<string, string>, lang: string) => map[lang] || map.en,
 }));
@@ -169,6 +179,7 @@ describe("텔레그램 웹훅 계약", () => {
     mockState.thread = null;
     mockState.history = [];
     mockState.dupMsg = false;
+    mockState.throttleStart = false;
     generateChatReply.mockClear();
     sendTelegramPatientMessage.mockClear();
     sendConsentPrompt.mockClear();
@@ -398,6 +409,35 @@ describe("텔레그램 웹훅 계약", () => {
     expect(tIns?.payload.metadata.utm.start_param).toBe("test");
     // /start 본문은 저장하지 않는다
     expect(captured.filter((c) => c.table === "chat_messages" && c.op === "insert")).toHaveLength(0);
+  });
+
+  it("동의된 스레드의 재입장 /start: 전체 환영문 대신 한 줄 인사 + 스로틀 조건부 UPDATE (실기기 소음 재발 방지)", async () => {
+    const POST = await loadPost();
+    mockState.thread = CONSENTED_THREAD();
+    const res = await POST(makeReq(msgUpdate("/start inq_human", 20)));
+    expect((await res.json()).ok).toBe(true);
+
+    // 전체 환영문(welcome)이 아니라 한 줄 인사(welcome-back)
+    expect(sendTelegramPatientMessage).toHaveBeenCalledWith("777", "welcome-back");
+    expect(sendTelegramPatientMessage.mock.calls.every((c: any[]) => c[1] !== "welcome")).toBe(true);
+    // /start 본문 미저장 + AI 미호출은 기존 계약 그대로
+    expect(captured.filter((c) => c.table === "chat_messages" && c.op === "insert")).toHaveLength(0);
+    expect(generateChatReply).not.toHaveBeenCalled();
+    // 스로틀이 조건부 UPDATE(or: last_start_at null 또는 60초 이전)로 걸려 있어야 한다
+    const upd = captured.find(
+      (c) => c.table === "chat_threads" && c.op === "update" && c.payload?.metadata?.last_start_at
+    );
+    const orFilter = upd?.filters.find(([f]) => f === "or");
+    expect(String(orFilter?.[1])).toContain("metadata->>last_start_at.is.null");
+  });
+
+  it("60초 내 연속 /start(더블탭·재진입 연타): 조건부 UPDATE 0행이면 침묵한다", async () => {
+    const POST = await loadPost();
+    mockState.thread = CONSENTED_THREAD();
+    mockState.throttleStart = true;
+    const res = await POST(makeReq(msgUpdate("/start inq_human", 21)));
+    expect((await res.json()).ok).toBe(true);
+    expect(sendTelegramPatientMessage).not.toHaveBeenCalled();
   });
 
   it("3턴째 환자 메시지에서 문의 초안(createDraftIntake)이 발사된다(KHIDI 집계 연결)", async () => {
