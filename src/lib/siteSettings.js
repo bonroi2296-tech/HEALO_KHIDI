@@ -13,6 +13,7 @@ export const SITE_INFO = {
     company: [
       { labelKey: "nav.about", label: "About healwith", href: "/about" },
       { labelKey: "nav.contact", label: "Contact Us", href: "/contact" },
+      { labelKey: "nav.partners", label: "Partners", href: "/partners" },
     ],
     legal: [
       { labelKey: "nav.privacy", label: "Privacy Policy", href: "/privacy" },
