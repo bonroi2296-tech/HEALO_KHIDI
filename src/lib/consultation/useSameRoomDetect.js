@@ -13,7 +13,7 @@
  *      강하게 상관된다. 하울링이 '나기 전'의 애매한 같은-방 상황을 잡는다(경고용).
  *   ② 빠른 경로(동시 큰 소리) — 지속 하울링은 두 마이크 RMS 가 높고 평평해져 상관으로는
  *      못 잡는다(분산≈0 → correlate null). 대신 하울링의 진짜 지문 = "양쪽 마이크가 동시에
- *      계속 큰 소리". 이걸 짧은 창으로 잡아 4초 기다리지 않고 ~1초 안에 확정한다(입장 순간
+ *      계속 큰 소리". 이걸 짧은 창으로 잡아 4초 기다리지 않고 ~0.4초 안에 확정한다(입장 순간
  *      터지는 하울링용 → 배너가 자동 음소거로 대응).
  *
  * ⚠️ 설계 제약 — **getUserMedia 를 새로 부르지 않는다.**
@@ -36,9 +36,9 @@ const SUSTAIN_MS = 4000;     // 의심이 이만큼 지속돼야 확정(기침·
 
 // ── 빠른 경로(하울링 즉발) ── 상관계수는 지속 하울링(높고 평평한 파형)을 못 잡는다.
 // 대신 하울링의 지문 = "양쪽 마이크가 동시에 계속 큰 소리". 짧은 창으로 잡아 ~1초 내 확정.
-const FAST_LEN = 6;          // 최근 표본 개수 ≈ 0.36초(순간 스파이크 평활용)
-const HOWL_RMS = 0.18;       // 최근 창 평균 RMS 가 이 이상이면 "큰 소리"(정상 발화 평균보다 확실히 큼)
-const FAST_SUSTAIN_MS = 700; // 양쪽 동시 큰 소리가 이만큼 지속되면 하울링 확정(짧은 겹발화 오탐 방지)
+const FAST_LEN = 3;          // 최근 표본 개수 ≈ 0.18초(순간 스파이크만 평활 — 반응을 거의 즉각으로)
+const HOWL_RMS = 0.2;        // 최근 창 평균 RMS 가 이 이상이면 "큰 소리". 반응을 당긴 대신 문턱 살짝↑(발화 오탐 방지)
+const FAST_SUSTAIN_MS = 200; // 양쪽 동시 큰 소리가 이만큼 지속되면 확정 → 총 반응 ~0.4초(거의 즉각, 기침 등 단발 소음은 배제)
 
 function rms(analyser, buf) {
   analyser.getByteTimeDomainData(buf);
@@ -170,7 +170,7 @@ export function useSameRoomDetect({ localTrack, remoteTracks, enabled }) {
       for (const r of nodes.remotes) {
         // ── 빠른 경로: 양쪽 마이크가 동시에 계속 큰 소리 = 하울링 즉발 ──
         //   지속 하울링은 RMS 가 높고 평평해 상관으로는 못 잡는다(분산≈0 → null).
-        //   그래서 "동시 큰 소리"로 잡아 ~1초 안에 확정한다(입장 순간 터지는 하울링용).
+        //   그래서 "동시 큰 소리"로 잡아 ~0.4초 안에 확정한다(입장 순간 터지는 하울링용).
         if (bothLoud(nodes.local.samples, r.samples)) {
           const since = loudSinceRef.current[r.identity];
           if (!since) loudSinceRef.current[r.identity] = now;
