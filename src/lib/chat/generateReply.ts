@@ -12,6 +12,7 @@ import { createHash } from "crypto";
 import { generateText, streamText } from "ai";
 import { google } from "@ai-sdk/google";
 import { logAiUsage } from "@/lib/ai/usageLog";
+import { callGeminiWithCompat } from "@/lib/ai/geminiThinkingCompat";
 import { supabaseAdmin } from "../rag/supabaseAdmin";
 import { hashQuery, logRagDisabled } from "../rag/ragQueryEvents";
 import { searchHospitalsAndTreatments } from "./dbSearch";
@@ -508,7 +509,9 @@ async function generateTextWithRetry(params: any, maxAttempts = 3): Promise<any>
   let lastError: any = null;
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     try {
-      const result = await generateText(params);
+      // 별칭 세대 교체 생존 사다리 — thinkingBudget 거절(400) 시 설정을 낮춰 재시도.
+      // (2026-07-23 실사고: gemini-flash-latest 가 새 세대로 바뀌며 전면 400 → 전 채널 AI 불능)
+      const result = await callGeminiWithCompat((p) => generateText(p as any), params);
       if (result?.text && result.text.trim()) return result;
       lastResult = result;
       console.warn(
@@ -1275,21 +1278,27 @@ export async function streamChatReply(
     let finishReason: any = undefined;
     let usageForLog: any = undefined; // 💰 사용량 계측용(스트림 usage 또는 fallback usage)
     try {
-      const sr = streamText({ ...baseParams, messages: safeMessages as any });
-      for await (const chunk of sr.textStream) {
-        fullText += chunk;
-        onChunk(chunk);
-      }
-      try {
-        finishReason = await sr.finishReason;
-      } catch {
-        /* finishReason 조회 실패는 무시 */
-      }
-      try {
-        usageForLog = await sr.usage;
-      } catch {
-        /* usage 조회 실패는 무시(계측만 영향) */
-      }
+      // 별칭 세대 교체 생존 사다리 — 파라미터 거절(400)은 첫 토큰 전에 터지므로,
+      // 아직 아무것도 내보내지 않았을 때만 설정을 낮춰 재시도한다(출력 중복 방지).
+      await callGeminiWithCompat(async (p) => {
+        if (fullText) return null; // 일부 전송됨 → 재시도 금지
+        const sr = streamText({ ...p, messages: safeMessages } as any);
+        for await (const chunk of sr.textStream) {
+          fullText += chunk;
+          onChunk(chunk);
+        }
+        try {
+          finishReason = await sr.finishReason;
+        } catch {
+          /* finishReason 조회 실패는 무시 */
+        }
+        try {
+          usageForLog = await sr.usage;
+        } catch {
+          /* usage 조회 실패는 무시(계측만 영향) */
+        }
+        return null;
+      }, baseParams);
     } catch (e: any) {
       console.warn(`[streamChatReply] stream error: ${String(e?.message || e).slice(0, 120)}`);
     }

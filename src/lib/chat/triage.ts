@@ -15,6 +15,7 @@ import "server-only";
 import { supabaseAdmin } from "../rag/supabaseAdmin";
 import { redactModelPii } from "../security/redactModelPii";
 import { logAiUsage } from "@/lib/ai/usageLog";
+import { fetchGeminiWithCompat } from "@/lib/ai/geminiThinkingCompat";
 
 const MODEL = "gemini-flash-latest";
 
@@ -163,27 +164,24 @@ export async function generateTriage(opts: {
 
   try {
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${apiKey}`;
-    const res = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        systemInstruction: { parts: [{ text: buildSystemPrompt(langName) }] },
-        contents: [{ role: "user", parts: [{ text: userText }, ...fileParts] }],
-        // 의료 논의가 안전필터에 간헐 차단되는 문제(generateReply 와 동일) → 모델단 차단 끔(앱 가드가 진짜 안전선).
-        safetySettings: [
-          { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
-          { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
-          { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
-          { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" },
-        ],
-        generationConfig: {
-          temperature: 0.3,
-          maxOutputTokens: 2048,
-          thinkingConfig: { thinkingBudget: 0 },
-          responseMimeType: "application/json",
-          responseSchema: PACKET_SCHEMA,
-        },
-      }),
+    // 별칭 세대 교체 생존 사다리 — thinkingBudget 거절(400) 시 강등 재시도(geminiThinkingCompat).
+    const res = await fetchGeminiWithCompat(url, {
+      systemInstruction: { parts: [{ text: buildSystemPrompt(langName) }] },
+      contents: [{ role: "user", parts: [{ text: userText }, ...fileParts] }],
+      // 의료 논의가 안전필터에 간헐 차단되는 문제(generateReply 와 동일) → 모델단 차단 끔(앱 가드가 진짜 안전선).
+      safetySettings: [
+        { category: "HARM_CATEGORY_HARASSMENT", threshold: "BLOCK_NONE" },
+        { category: "HARM_CATEGORY_HATE_SPEECH", threshold: "BLOCK_NONE" },
+        { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
+        { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" },
+      ],
+      generationConfig: {
+        temperature: 0.3,
+        maxOutputTokens: 2048,
+        thinkingConfig: { thinkingBudget: 0 },
+        responseMimeType: "application/json",
+        responseSchema: PACKET_SCHEMA,
+      },
     });
 
     if (!res.ok) {

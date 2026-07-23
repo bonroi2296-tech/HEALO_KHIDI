@@ -15,6 +15,7 @@ import "server-only";
 
 import { generateText } from "ai";
 import { google } from "@ai-sdk/google";
+import { callGeminiWithCompat } from "@/lib/ai/geminiThinkingCompat";
 import { sendInAppNotification, getStaffIdsByRole } from "../notifications/inApp";
 import { supabaseAdmin } from "../rag/supabaseAdmin";
 import { computeOverall, QUALITY_THRESHOLDS } from "./qualityStandards";
@@ -120,7 +121,8 @@ export async function evaluateResponse(input: JudgeInput): Promise<JudgeResult |
     const model = google(judgeModel) as any;
     const prompt = buildJudgePrompt(input);
 
-    const result = await generateText({
+    // 별칭 세대 교체 생존 사다리(geminiThinkingCompat) — thinkingBudget 거절(400) 시 강등 재시도.
+    const result = await callGeminiWithCompat((p) => generateText(p as any), {
       model,
       prompt,
       // 짧은 평가 응답 — 최대 512 토큰이면 충분.
@@ -128,7 +130,7 @@ export async function evaluateResponse(input: JudgeInput): Promise<JudgeResult |
       // thinking 도 꺼서 판사 호출 비용 고정(메인 챗 generateReply 와 동일 패턴).
       maxOutputTokens: 512,
       providerOptions: { google: { thinkingConfig: { thinkingBudget: 0 } } },
-    } as any);
+    });
 
     const raw = result.text?.trim() ?? "";
     const latency_ms = Date.now() - t0;
