@@ -18,6 +18,8 @@ const COPY = {
     statBranches: "지점",
     statDoctors: "전담 의료진",
     statHealing: "힐링 공간",
+    statSatisfaction: "환자 만족도",
+    satisfactionNote: "환자 만족도는 면력한방병원 자체 조사 결과입니다 (2024.11.06 · 전지점).",
     yearsUnit: "년",
     philosophyEyebrow: "치료 철학",
     philosophyTitle: "ITCRN — 다섯 가지 원칙",
@@ -49,6 +51,8 @@ const COPY = {
     statBranches: "Branches",
     statDoctors: "Physicians",
     statHealing: "Healing space",
+    statSatisfaction: "Patient satisfaction",
+    satisfactionNote: "Patient satisfaction from Immune Hospital's own survey (Nov 6, 2024 · all branches).",
     yearsUnit: "yrs",
     philosophyEyebrow: "Care philosophy",
     philosophyTitle: "ITCRN — five principles",
@@ -80,6 +84,8 @@ const COPY = {
     statBranches: "Филиалов",
     statDoctors: "Врачей",
     statHealing: "Зоны отдыха",
+    statSatisfaction: "Удовлетворённость пациентов",
+    satisfactionNote: "Удовлетворённость пациентов — по данным собственного опроса Immune Hospital (6 ноября 2024 · все филиалы).",
     yearsUnit: "лет",
     philosophyEyebrow: "Философия лечения",
     philosophyTitle: "ITCRN — пять принципов",
@@ -111,6 +117,8 @@ const COPY = {
     statBranches: "Филиал",
     statDoctors: "Дәрігер",
     statHealing: "Демалыс аймағы",
+    statSatisfaction: "Пациенттердің қанағаттануы",
+    satisfactionNote: "Пациенттердің қанағаттануы — Immune Hospital өз сауалнамасының нәтижесі (2024 ж. 6 қараша · барлық филиалдар).",
     yearsUnit: "жыл",
     philosophyEyebrow: "Емдеу философиясы",
     philosophyTitle: "ITCRN — бес принцип",
@@ -142,6 +150,8 @@ const COPY = {
     statBranches: "分院",
     statDoctors: "专科医师",
     statHealing: "疗愈空间",
+    statSatisfaction: "患者满意度",
+    satisfactionNote: "患者满意度来自免疫医院自主调查（2024.11.06 · 全分院）。",
     yearsUnit: "年",
     philosophyEyebrow: "治疗理念",
     philosophyTitle: "ITCRN — 五项原则",
@@ -173,6 +183,8 @@ const COPY = {
     statBranches: "拠点",
     statDoctors: "専任医療陣",
     statHealing: "ヒーリング空間",
+    statSatisfaction: "患者満足度",
+    satisfactionNote: "患者満足度は免疫病院の自社調査結果です（2024.11.06 · 全拠点）。",
     yearsUnit: "年",
     philosophyEyebrow: "治療哲学",
     philosophyTitle: "ITCRN — 5つの原則",
@@ -258,9 +270,10 @@ export default function ImmuneHospitalClient() {
         </div>
 
         {/* 통계 바 */}
-        <div className="mt-12 pt-8 border-t border-gray-200 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-x-8 gap-y-6">
+        <div className="mt-12 pt-8 border-t border-gray-200 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-x-8 gap-y-6">
           {[
             { num: "50,000+", label: c.statCases },
+            { num: "98%", label: c.statSatisfaction },
             { num: String(years), unit: c.yearsUnit, label: c.statYears },
             { num: String(H.branches.length), label: c.statBranches },
             { num: "7+", label: c.statDoctors },
@@ -275,6 +288,8 @@ export default function ImmuneHospitalClient() {
             </div>
           ))}
         </div>
+        {/* 만족도 98% 출처 명기 — 면력 자체조사(2024.11.06 전지점). 근거 있는 수치임을 표시. */}
+        <p className="mt-4 text-[11px] text-gray-400 leading-relaxed">{c.satisfactionNote}</p>
       </section>
 
       {/* ── ITCRN 5원칙 ───────────────────────────── */}
