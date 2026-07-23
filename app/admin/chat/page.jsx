@@ -16,8 +16,32 @@ import {
 } from "lucide-react";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { useToast } from "@/components/Toast";
+import { guessPatientTimezone, patientLocalTime } from "@/lib/chat/patientLocalTime";
 
 const supabase = createSupabaseBrowserClient();
+
+// 환자 현지 시각 배지 — 새벽인 환자를 알림으로 깨우지 않게 답장 전에 보인다(2026-07-23 PO).
+// 웹=브라우저 시간대(정확) / 왓츠앱=전화 국가번호 / 텔레그램=언어 기반 추정. 추정 불가면 숨김.
+function LocalTimeBadge({ thread }) {
+  const { tz, source } = guessPatientTimezone(thread);
+  if (!tz) return null;
+  const lt = patientLocalTime(tz);
+  if (!lt) return null;
+  const src = source === "browser" ? "브라우저 확인" : "추정";
+  return (
+    <span
+      className={`text-[10px] font-semibold px-1.5 py-0.5 rounded border ${
+        lt.night
+          ? "text-indigo-700 bg-indigo-50 border-indigo-200"
+          : "text-gray-500 bg-gray-50 border-gray-200"
+      }`}
+      title={`환자 현지 시각 (${src}: ${tz})${lt.night ? " — 심야(22~08시)라 지금 답장하면 알림으로 깨울 수 있어요" : ""}`}
+    >
+      {lt.night ? "🌙" : "🕓"} 현지 {lt.label}
+      {lt.night ? " 심야" : ""}
+    </span>
+  );
+}
 
 function fmtTime(s) {
   if (!s) return "";
@@ -434,11 +458,17 @@ export default function AdminChatPage() {
                             ✈️ Telegram
                           </span>
                         )}
+                        {t.channel === "whatsapp" && (
+                          <span className="text-[10px] font-semibold text-green-700 bg-green-50 border border-green-200 px-1.5 py-0.5 rounded">
+                            💬 WhatsApp
+                          </span>
+                        )}
                         {t.metadata?.language && (
                           <span className="text-[10px] font-semibold text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">
                             {String(t.metadata.language).toUpperCase()}
                           </span>
                         )}
+                        <LocalTimeBadge thread={t} />
                         {handoff && (
                           <span className="text-[10px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded flex items-center gap-0.5">
                             <Headset size={10} /> 검토요청
@@ -529,11 +559,17 @@ export default function AdminChatPage() {
                       ✈️ Telegram 발신
                     </span>
                   )}
+                  {selected.channel === "whatsapp" && (
+                    <span className="text-[10px] font-semibold text-green-700 bg-green-50 border border-green-200 px-1.5 py-0.5 rounded" title="이 스레드의 답장은 환자의 왓츠앱으로 전송됩니다 (마지막 환자 메시지 후 24시간이 지나면 전송이 막힐 수 있어요)">
+                      💬 WhatsApp 발신
+                    </span>
+                  )}
                   {selected.metadata?.language && (
                     <span className="text-[10px] font-semibold text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">
                       {String(selected.metadata.language).toUpperCase()}
                     </span>
                   )}
+                  <LocalTimeBadge thread={selected} />
                   {selected.metadata?.hand_off_requested && (
                     <span className="text-[10px] font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-1.5 py-0.5 rounded flex items-center gap-0.5">
                       <Headset size={10} /> 검토요청
@@ -594,6 +630,15 @@ export default function AdminChatPage() {
                             onCancelCorrect={cancelCorrect}
                             onSendCorrect={sendCorrect}
                           />
+                        )}
+                        {/* 메신저 발신 실패 표시 — window_expired 는 왓츠앱 24시간 창 만료(재발신 불가, 환자가 다시 말 걸어야 열림) */}
+                        {!isPatient && m.metadata?.delivery && m.metadata.delivery !== "sent" && (
+                          <div className="text-[10px] font-semibold text-red-600 mt-1 px-1 flex items-center gap-1">
+                            <AlertTriangle size={10} />
+                            {m.metadata.delivery === "window_expired"
+                              ? "미전달 — 24시간 창 만료 (환자가 다시 메시지를 보내면 답장 가능)"
+                              : "미전달 — 메신저 발신 실패"}
+                          </div>
                         )}
                         <div className="text-[10px] text-gray-400 mt-1 px-1">{fmtTime(m.created_at)}</div>
                       </div>

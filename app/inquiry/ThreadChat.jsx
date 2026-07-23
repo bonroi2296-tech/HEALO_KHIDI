@@ -543,6 +543,8 @@ export function ThreadChat({ onBack, backLabel } = {}) {
           browser_session_id: browserSessionId,
           landing_path: typeof window !== "undefined" ? window.location.pathname : null,
           referrer: typeof document !== "undefined" ? document.referrer || null : null,
+          // 환자 현지 시각 표시용(어드민 챗 — 새벽 알림 방지). 브라우저 시간대라 정확.
+          timezone: (() => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone || null; } catch { return null; } })(),
           // PIPA: 동의 게이트 통과분만 true. 서버가 다시 검증.
           consent: consent === true,
           consent_version: "1.0.0",
