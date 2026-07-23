@@ -197,8 +197,12 @@ export default function ContentEditorClient() {
                   ) : (
                     <>
                       <div className="flex items-center gap-2 mb-1.5">
-                        <span className="text-[11px] text-gray-400 w-16 flex-shrink-0">{LANG_LABEL[refLang]} 원문</span>
-                        <span className="text-sm text-gray-500 truncate">{original[r.key]?.[refLang] || "—"}</span>
+                        <span className="text-[11px] text-gray-400 w-16 flex-shrink-0">{LANG_LABEL[refLang]}</span>
+                        <input
+                          value={values[r.key]?.[refLang] ?? ""}
+                          onChange={(e) => onChange(r.key, refLang, e.target.value)}
+                          className={`flex-1 text-sm rounded border px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-teal-400 ${(values[r.key]?.[refLang] ?? "") !== (original[r.key]?.[refLang] ?? "") ? "border-teal-400" : "border-gray-200"}`}
+                        />
                       </div>
                       <div className="flex items-center gap-2">
                         <span className="text-[11px] text-teal-700 w-16 flex-shrink-0">{LANG_LABEL[editLang]}</span>

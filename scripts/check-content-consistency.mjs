@@ -407,6 +407,33 @@ for (const file of SCAN_DIRS.flatMap(walk)) {
   }
 }
 
+// ── 7.5) 인라인 미니사전(const L={...ko/ru...}) CMS 우회 가드 (2026-07-23) ──
+// 왜: 공개 화면 문구가 중앙 사전(t())을 안 거치고 컴포넌트 안 `const L = {}` 미니사전으로 박히면
+//     번역은 되지만 코디 콘텐츠 편집기(/coordinator/content)에 안 잡혀 수정 불가.
+//     바로 위 [환자i18n] 검사는 ru/kz 키만 있으면 통과시켜(번역은 됐으니) 이 우회를 정확히 못 막음
+//     — 오히려 인라인-L 이 그 검사의 '탈출구'라 새 문구가 CMS 밖으로 새는 통로가 됨.
+//     → 공개 파일에 새 인라인-L 이 생기면 CI 차단. 기존 5개는 grandfather(점진 마이그레이션).
+//     고치는 법: 문구를 src/lib/i18n/index.js DICTIONARY 에 키로 넣고 t("키", lang) 로 렌더.
+const INLINE_L_ALLOW = new Set([
+  "app/claim/[token]/ClaimClient.jsx",
+  "app/hospitals/HospitalsClient.jsx",
+  "app/patient/chat/PatientChatClient.jsx",
+  "app/patient/PatientDashboardClient.jsx",
+  "app/patient/symptoms/SymptomsClient.jsx",
+]);
+const INLINE_L_RE = /\bconst\s+L\s*=\s*\{/;
+const INLINE_L_LANGKEY_RE = /\b(ko|en|ru|kz|zh|ja)\s*:/;
+for (const file of SCAN_DIRS.flatMap(walk)) {
+  if (!/\.jsx?$/.test(file) || EXCLUDE.test(file)) continue;
+  if (!isPublicFacingFile(file)) continue;
+  const f = file.replace(/\\/g, "/");
+  if (INLINE_L_ALLOW.has(f)) continue;
+  const text = readFileSync(join(ROOT, file), "utf8");
+  if (!INLINE_L_RE.test(text) || !INLINE_L_LANGKEY_RE.test(text)) continue; // 언어키 있는 진짜 미니사전만
+  const line = text.split("\n").findIndex((l) => INLINE_L_RE.test(l)) + 1;
+  errors.push(`[인라인사전] ${f}:${line} — 공개 화면 문구가 컴포넌트 안 const L={} 미니사전에 박혀 코디 콘텐츠 편집기(/coordinator/content)에서 수정 불가(번역돼도 CMS 우회). 문구를 src/lib/i18n/index.js DICTIONARY 에 키로 넣고 t("키", lang) 로 렌더할 것(그러면 편집기에 자동 등록). 기존 5개는 INLINE_L_ALLOW 로 grandfather.`);
+}
+
 // ── 8) 이메일 템플릿 premium 톤 누수 가드 (DESIGN.md premium_drift, POSTMORTEMS #55) ──
 // 왜: 사이트는 legacy(teal+시스템폰트)인데 상담초대·리마인더·설문 이메일이 옛 premium 톤
 //     (검정 #0a0a0a + 골드 #c8a96a + 크림 #f5f0e8 + Playfair 세리프)으로 살아있어, 환자가
