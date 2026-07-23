@@ -212,11 +212,13 @@ jobs:
               sort: 'created',
               direction: 'desc',
             });
-            if (existing.length > 0) {
+            // listForRepo 는 라벨 일치 시 PR 도 반환 — 이슈만 남긴다 (독립 리뷰)
+            const openIssues = existing.filter((i) => !i.pull_request);
+            if (openIssues.length > 0) {
               await github.rest.issues.createComment({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                issue_number: existing[0].number,
+                issue_number: openIssues[0].number,
                 body,
               });
             } else {
@@ -331,11 +333,13 @@ jobs:
               sort: 'created',
               direction: 'desc',
             });
-            if (existing.length > 0) {
+            // listForRepo 는 라벨 일치 시 PR 도 반환 — 이슈만 남긴다 (독립 리뷰)
+            const openIssues = existing.filter((i) => !i.pull_request);
+            if (openIssues.length > 0) {
               await github.rest.issues.createComment({
                 owner: context.repo.owner,
                 repo: context.repo.repo,
-                issue_number: existing[0].number,
+                issue_number: openIssues[0].number,
                 body,
               });
             } else {

@@ -23,7 +23,12 @@ test.describe("병원 상세 페이지", () => {
     await page.waitForLoadState("domcontentloaded");
 
     const link = detailLink(page);
-    const hasLink = await link.isVisible().catch(() => false);
+    // 즉시 isVisible() 판정은 렌더 지연 시 조용한 skip(=죽은 가드)이 된다(독립 리뷰) —
+    // 잠깐 기다렸다가 그래도 없을 때만 skip.
+    const hasLink = await link
+      .waitFor({ state: "visible", timeout: 10_000 })
+      .then(() => true)
+      .catch(() => false);
     if (!hasLink) {
       test.skip(true, "목록에 상세 링크 없음");
     }
@@ -39,7 +44,12 @@ test.describe("병원 상세 페이지", () => {
     await page.waitForLoadState("domcontentloaded");
 
     const link = detailLink(page);
-    const hasLink = await link.isVisible().catch(() => false);
+    // 즉시 isVisible() 판정은 렌더 지연 시 조용한 skip(=죽은 가드)이 된다(독립 리뷰) —
+    // 잠깐 기다렸다가 그래도 없을 때만 skip.
+    const hasLink = await link
+      .waitFor({ state: "visible", timeout: 10_000 })
+      .then(() => true)
+      .catch(() => false);
     if (!hasLink) {
       test.skip(true, "목록에 상세 링크 없음");
     }

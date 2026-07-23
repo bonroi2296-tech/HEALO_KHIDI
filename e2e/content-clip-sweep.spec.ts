@@ -35,6 +35,10 @@ test("공개 페이지에서 읽을 텍스트가 클리핑 경계에 잘리지 �
         .map((m) => new URL(m[1]).pathname)
         .filter((p) => p === "/en" || p.startsWith("/en/")),
       "/en/inquiry",
+      // /en 변형이 아예 없는 단독 랜딩(1순위 시장, 독립 리뷰 CONFIRMED) — 필터가
+      // 영구 제외하면 이 가드가 태어난 이유(#89 러시아어 잘림 부류)를 못 지킨다.
+      "/ru/for-russian-patients",
+      "/kk/for-kazakh-patients",
     ]),
   ];
   expect(paths.length, "사이트맵 경로가 비정상적으로 적음").toBeGreaterThan(20);
