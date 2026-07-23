@@ -13,8 +13,9 @@ export const runtime = "nodejs";
 import { NextRequest, NextResponse } from "next/server";
 import { checkAdminAuth } from "@/lib/auth/checkAdminAuth";
 import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
-import { REGISTRY_KEYS, EDITABLE_LANGS } from "@/lib/content/registry";
+import { REGISTRY_KEYS, EDITABLE_LANGS, HOME_CONTENT_REGISTRY, getDefaultValueObject } from "@/lib/content/registry";
 import { invalidateContentCache } from "@/lib/content/overrides";
+import { searchI18nKeys, isValidI18nKey } from "@/lib/i18n";
 
 const db = supabaseAdmin as any;
 
@@ -27,12 +28,56 @@ async function requireStaff(request: NextRequest): Promise<{ ok: boolean; email:
 export async function GET(request: NextRequest) {
   const staff = await requireStaff(request);
   if (!staff.ok) return NextResponse.json({ ok: false, error: "forbidden" }, { status: 403 });
+  const q = request.nextUrl.searchParams.get("q");
+  const wantLogs = request.nextUrl.searchParams.get("logs");
   try {
-    const [{ data: overrides }, { data: logs }] = await Promise.all([
-      db.from("content_overrides").select("content_key, lang, value").like("content_key", "home.%"),
-      db.from("content_change_log").select("*").order("changed_at", { ascending: false }).limit(50),
-    ]);
-    return NextResponse.json({ ok: true, overrides: overrides || [], logs: logs || [] });
+    if (wantLogs) {
+      const { data: logs } = await db
+        .from("content_change_log")
+        .select("*")
+        .order("changed_at", { ascending: false })
+        .limit(50);
+      return NextResponse.json({ ok: true, logs: logs || [] });
+    }
+    if (q && q.trim()) {
+      const ql = q.trim().toLowerCase();
+      // 홈 인라인 텍스트(레지스트리) + 사전 텍스트(전 화면) 통합 검색
+      const homeMatches = HOME_CONTENT_REGISTRY.map((r) => ({
+        key: r.key,
+        section: `홈 · ${r.section}`,
+        label: r.label,
+        values: getDefaultValueObject(r.key) || {},
+      })).filter(
+        (r) =>
+          r.key.toLowerCase().includes(ql) ||
+          EDITABLE_LANGS.some((l) => String((r.values as any)[l] || "").toLowerCase().includes(ql))
+      );
+      const dictMatches = searchI18nKeys(q, 50).map((m: any) => ({
+        key: m.key,
+        section: "화면 텍스트",
+        label: m.key,
+        values: m.values,
+      }));
+      const results = [...homeMatches, ...dictMatches];
+      const keys = [...new Set(results.map((r) => r.key))];
+      const { data: ov } = keys.length
+        ? await db.from("content_overrides").select("content_key, lang, value").in("content_key", keys)
+        : { data: [] as any[] };
+      const ovMap: Record<string, string> = {};
+      for (const r of ov || []) ovMap[`${r.content_key}|${r.lang}`] = r.value;
+      const merged = results.map((r) => {
+        const values: Record<string, string> = {};
+        let overridden = false;
+        for (const l of EDITABLE_LANGS) {
+          const o = ovMap[`${r.key}|${l}`];
+          values[l] = o !== undefined ? o : ((r.values as any)[l] ?? "");
+          if (o !== undefined) overridden = true;
+        }
+        return { key: r.key, section: r.section, label: r.label, values, overridden };
+      });
+      return NextResponse.json({ ok: true, results: merged });
+    }
+    return NextResponse.json({ ok: true, results: [] });
   } catch {
     return NextResponse.json({ ok: false, error: "internal_error" }, { status: 500 });
   }
@@ -53,7 +98,7 @@ export async function POST(request: NextRequest) {
   const valid = updates.filter(
     (u: any) =>
       u &&
-      REGISTRY_KEYS.has(u.key) &&
+      (REGISTRY_KEYS.has(u.key) || isValidI18nKey(u.key)) &&
       EDITABLE_LANGS.includes(u.lang) &&
       typeof u.value === "string"
   );

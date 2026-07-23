@@ -1,60 +1,75 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
-const LANG_LABEL = {
-  ko: "한국어",
-  en: "English",
-  ru: "Русский",
-  kz: "Қазақша",
-  zh: "中文",
-  ja: "日本語",
-};
+const LANGS = ["ko", "en", "ru", "kz", "zh", "ja"];
+const LANG_LABEL = { ko: "한국어", en: "English", ru: "Русский", kz: "Қазақша", zh: "中文", ja: "日本語" };
+const LANG_SHORT = { ko: "한", en: "EN", ru: "РУ", kz: "ҚЗ", zh: "中", ja: "日" };
 
-export default function ContentEditorClient({ items, logs, langs }) {
-  const [values, setValues] = useState(() => {
-    const v = {};
-    for (const it of items) v[it.key] = { ...it.values };
-    return v;
-  });
-  const [original] = useState(() => {
-    const v = {};
-    for (const it of items) v[it.key] = { ...it.values };
-    return v;
-  });
+export default function ContentEditorClient() {
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [editLang, setEditLang] = useState("ru");
+  const [expanded, setExpanded] = useState({});
+  const [values, setValues] = useState({});
+  const [original, setOriginal] = useState({});
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState(null);
   const [showLog, setShowLog] = useState(false);
+  const [logs, setLogs] = useState([]);
+  const debounceRef = useRef();
 
-  const dirty = useMemo(() => {
-    const out = [];
-    for (const it of items) {
-      for (const lang of langs) {
-        const cur = values[it.key]?.[lang] ?? "";
-        if (cur !== (original[it.key]?.[lang] ?? "")) out.push({ key: it.key, lang, value: cur });
+  useEffect(() => {
+    const saved = typeof window !== "undefined" && localStorage.getItem("cms-edit-lang");
+    if (saved && LANGS.includes(saved)) setEditLang(saved);
+  }, []);
+  const pickLang = (l) => {
+    setEditLang(l);
+    try { localStorage.setItem("cms-edit-lang", l); } catch {}
+  };
+
+  const runSearch = useCallback(async (q) => {
+    if (!q.trim()) { setResults([]); return; }
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/coordinator/content?q=${encodeURIComponent(q)}`);
+      const data = await res.json();
+      if (data.ok) {
+        setResults(data.results || []);
+        const seed = (prev) => {
+          const next = { ...prev };
+          for (const r of data.results || []) if (!next[r.key]) next[r.key] = { ...r.values };
+          return next;
+        };
+        setValues(seed);
+        setOriginal(seed);
       }
-    }
-    return out;
-  }, [values, items, langs, original]);
+    } catch {} finally { setLoading(false); }
+  }, []);
 
-  const sections = useMemo(() => {
-    const map = new Map();
-    for (const it of items) {
-      if (!map.has(it.section)) map.set(it.section, []);
-      map.get(it.section).push(it);
-    }
-    return [...map.entries()];
-  }, [items]);
+  const onQuery = (v) => {
+    setQuery(v);
+    clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => runSearch(v), 300);
+  };
 
   const onChange = (key, lang, val) => {
-    setValues((prev) => ({ ...prev, [key]: { ...prev[key], [lang]: val } }));
+    setValues((p) => ({ ...p, [key]: { ...p[key], [lang]: val } }));
     setMsg(null);
   };
 
+  const dirty = [];
+  for (const key of Object.keys(values)) {
+    for (const lang of LANGS) {
+      const cur = values[key]?.[lang] ?? "";
+      if (cur !== (original[key]?.[lang] ?? "")) dirty.push({ key, lang, value: cur });
+    }
+  }
+
   const save = async () => {
     if (dirty.length === 0) return;
-    setSaving(true);
-    setMsg(null);
+    setSaving(true); setMsg(null);
     try {
       const res = await fetch("/api/coordinator/content", {
         method: "POST",
@@ -63,27 +78,36 @@ export default function ContentEditorClient({ items, logs, langs }) {
       });
       const data = await res.json();
       if (data.ok) {
-        for (const u of dirty) original[u.key][u.lang] = u.value;
-        setMsg({ type: "ok", text: `저장됨 (${data.saved}건). 홈에 반영됩니다.` });
-      } else {
-        setMsg({ type: "err", text: "저장 실패. 권한 또는 서버 오류." });
-      }
-    } catch {
-      setMsg({ type: "err", text: "저장 실패. 네트워크 오류." });
-    } finally {
-      setSaving(false);
-    }
+        setOriginal((p) => {
+          const n = { ...p };
+          for (const u of dirty) n[u.key] = { ...n[u.key], [u.lang]: u.value };
+          return n;
+        });
+        setMsg({ type: "ok", text: `저장됨 (${data.saved}건). 화면에 반영됩니다.` });
+      } else setMsg({ type: "err", text: "저장 실패 (권한 또는 서버 오류)." });
+    } catch { setMsg({ type: "err", text: "저장 실패 (네트워크)." }); } finally { setSaving(false); }
   };
 
+  const openLogs = async () => {
+    setShowLog(true);
+    try {
+      const res = await fetch("/api/coordinator/content?logs=1");
+      const data = await res.json();
+      if (data.ok) setLogs(data.logs || []);
+    } catch {}
+  };
+
+  const refLang = editLang === "ko" ? "en" : "ko";
+
   return (
-    <div className="max-w-4xl mx-auto p-6">
-      <div className="flex items-center justify-between mb-6">
+    <div className="max-w-4xl mx-auto p-4 md:p-6">
+      <div className="flex items-center justify-between mb-4">
         <div>
-          <h1 className="text-xl font-bold text-gray-900">콘텐츠 편집 · 홈페이지</h1>
-          <p className="text-sm text-gray-500 mt-1">문구를 언어별로 고치고 저장하면 홈에 바로 반영됩니다.</p>
+          <h1 className="text-xl font-bold text-gray-900">콘텐츠 편집 · 전 화면</h1>
+          <p className="text-sm text-gray-500 mt-0.5">문구를 검색해 고치면 해당 화면에 바로 반영됩니다.</p>
         </div>
         <button
-          onClick={() => setShowLog((s) => !s)}
+          onClick={() => (showLog ? setShowLog(false) : openLogs())}
           className="text-sm px-3 py-1.5 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50"
         >
           {showLog ? "편집으로" : "변경 이력"}
@@ -92,64 +116,104 @@ export default function ContentEditorClient({ items, logs, langs }) {
 
       {showLog ? (
         <div className="space-y-2">
-          {(logs || []).length === 0 && <p className="text-sm text-gray-400">아직 변경 이력이 없습니다.</p>}
-          {(logs || []).map((lg) => (
+          {logs.length === 0 && <p className="text-sm text-gray-400">아직 변경 이력이 없습니다.</p>}
+          {logs.map((lg) => (
             <div key={lg.id} className="text-xs bg-white border border-gray-100 rounded-lg p-3">
-              <div className="flex gap-2 text-gray-500 mb-1">
+              <div className="flex flex-wrap gap-2 text-gray-500 mb-1">
                 <span>{new Date(lg.changed_at).toLocaleString("ko-KR")}</span>
-                <span>·</span>
-                <span>{lg.editor_email}</span>
-                <span>·</span>
-                <span className="font-mono">{lg.content_key} ({lg.lang})</span>
+                <span>·</span><span>{lg.editor_email}</span>
+                <span>·</span><span className="font-mono">{lg.content_key} ({lg.lang})</span>
               </div>
               <div className="text-gray-700">
-                <span className="line-through text-gray-400">{lg.old_value || "(없음)"}</span>
-                {" → "}
-                <span>{lg.new_value}</span>
+                <span className="line-through text-gray-400">{lg.old_value || "(없음)"}</span> → <span>{lg.new_value}</span>
               </div>
             </div>
           ))}
         </div>
       ) : (
         <>
-          {sections.map(([section, secItems]) => (
-            <div key={section} className="mb-6">
-              <h2 className="text-sm font-bold text-teal-800 mb-3">{section}</h2>
-              <div className="space-y-3">
-                {secItems.map((it) => (
-                  <div key={it.key} className="bg-white border border-gray-200 rounded-xl p-4">
-                    <div className="flex items-center gap-2 mb-3">
-                      <span className="text-sm font-medium text-gray-800">{it.label}</span>
-                      {it.overridden && (
-                        <span className="text-[11px] text-teal-700 bg-teal-50 px-2 py-0.5 rounded">편집됨</span>
-                      )}
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      {langs.map((lang) => {
-                        const changed = (values[it.key]?.[lang] ?? "") !== (original[it.key]?.[lang] ?? "");
-                        return (
-                          <div key={lang}>
-                            <div className={`text-[11px] mb-1 ${changed ? "text-teal-700" : "text-gray-400"}`}>
-                              {LANG_LABEL[lang]}
-                              {changed && " · 변경됨"}
-                            </div>
-                            <textarea
-                              value={values[it.key]?.[lang] ?? ""}
-                              onChange={(e) => onChange(it.key, lang, e.target.value)}
-                              rows={2}
-                              className={`w-full text-sm rounded-lg border px-2 py-1.5 resize-y focus:outline-none focus:ring-2 focus:ring-teal-400 ${
-                                changed ? "border-teal-400" : "border-gray-200"
-                              }`}
-                            />
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                ))}
-              </div>
+          <div className="flex flex-col md:flex-row md:items-center gap-3 mb-1">
+            <div className="flex items-center gap-2 border border-gray-300 rounded-lg px-3 py-2 bg-white flex-1">
+              <span className="text-gray-400 text-sm">🔍</span>
+              <input
+                value={query}
+                onChange={(e) => onQuery(e.target.value)}
+                placeholder="전 화면 텍스트 검색 (예: 상담, консультация)"
+                className="flex-1 text-sm focus:outline-none"
+              />
             </div>
-          ))}
+            <div className="flex items-center gap-1">
+              <span className="text-[11px] text-gray-400 mr-1">편집 언어</span>
+              {LANGS.map((l) => (
+                <button
+                  key={l}
+                  onClick={() => pickLang(l)}
+                  className={`text-xs px-2 py-1 rounded ${editLang === l ? "bg-teal-600 text-white font-medium" : "text-gray-500 hover:bg-gray-100"}`}
+                >
+                  {LANG_SHORT[l]}
+                </button>
+              ))}
+            </div>
+          </div>
+          <p className="text-[11px] text-gray-400 mb-4">언어는 한 번 고르면 유지됩니다 · 줄을 펼치면 6개어 전부</p>
+
+          {loading && <p className="text-sm text-gray-400">검색 중…</p>}
+          {!loading && query.trim() && results.length === 0 && (
+            <p className="text-sm text-gray-400">"{query}" 로 찾은 문구가 없습니다.</p>
+          )}
+          {!query.trim() && (
+            <p className="text-sm text-gray-400">위에서 바꾸고 싶은 문구를 검색하세요 (한국어·러시아어 등 아무 언어).</p>
+          )}
+
+          <div className="space-y-2.5">
+            {results.map((r) => {
+              const isOpen = !!expanded[r.key];
+              return (
+                <div key={r.key} className={`bg-white border rounded-xl p-3.5 ${dirty.some((d) => d.key === r.key) ? "border-teal-400" : "border-gray-200"}`}>
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-[11px] text-teal-700 bg-teal-50 px-2 py-0.5 rounded">{r.section}</span>
+                    <span className="text-xs text-gray-500 truncate">{r.label}</span>
+                    <button
+                      onClick={() => setExpanded((p) => ({ ...p, [r.key]: !p[r.key] }))}
+                      className="ml-auto text-[11px] text-gray-400 hover:text-gray-600"
+                    >
+                      {isOpen ? "접기 ▲" : "6개어 펼치기 ▾"}
+                    </button>
+                  </div>
+
+                  {isOpen ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                      {LANGS.map((l) => (
+                        <div key={l} className="flex items-center gap-2">
+                          <span className={`text-[11px] w-9 flex-shrink-0 ${l === editLang ? "text-teal-700" : "text-gray-400"}`}>{LANG_SHORT[l]}</span>
+                          <input
+                            value={values[r.key]?.[l] ?? ""}
+                            onChange={(e) => onChange(r.key, l, e.target.value)}
+                            className={`flex-1 text-xs rounded border px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-teal-400 ${(values[r.key]?.[l] ?? "") !== (original[r.key]?.[l] ?? "") ? "border-teal-400" : "border-gray-200"}`}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <>
+                      <div className="flex items-center gap-2 mb-1.5">
+                        <span className="text-[11px] text-gray-400 w-16 flex-shrink-0">{LANG_LABEL[refLang]} 원문</span>
+                        <span className="text-sm text-gray-500 truncate">{original[r.key]?.[refLang] || "—"}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[11px] text-teal-700 w-16 flex-shrink-0">{LANG_LABEL[editLang]}</span>
+                        <input
+                          value={values[r.key]?.[editLang] ?? ""}
+                          onChange={(e) => onChange(r.key, editLang, e.target.value)}
+                          className={`flex-1 text-sm rounded border px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-teal-400 ${(values[r.key]?.[editLang] ?? "") !== (original[r.key]?.[editLang] ?? "") ? "border-teal-400" : "border-gray-200"}`}
+                        />
+                      </div>
+                    </>
+                  )}
+                </div>
+              );
+            })}
+          </div>
 
           <div className="sticky bottom-0 bg-white/90 backdrop-blur border-t border-gray-200 py-3 flex items-center justify-between mt-6">
             <span className="text-sm text-gray-500">
