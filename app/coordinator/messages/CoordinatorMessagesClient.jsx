@@ -88,6 +88,7 @@ export default function CoordinatorMessagesClient() {
   const [statusFilter, setStatusFilter] = useState("open");
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
+  const [sendError, setSendError] = useState(false);
   const [msgLoading, setMsgLoading] = useState(false);
   const [suggestions, setSuggestions] = useState([]);
   const msgEndRef = useRef(null);
@@ -210,6 +211,7 @@ export default function CoordinatorMessagesClient() {
   async function send() {
     if (!draft.trim() || !selectedId || sending) return;
     setSending(true);
+    setSendError(false);
     try {
       const token = await getAccessToken();
       if (!token) return;
@@ -227,7 +229,13 @@ export default function CoordinatorMessagesClient() {
             : result.message;
         setMessages((m) => [...m, sentMsg]);
         setDraft("");
+      } else {
+        setSendError(true);
       }
+    } catch (e) {
+      // 네트워크 예외가 조용히 삼켜져 코디가 실패를 모르던 것 방지 (독립 리뷰 P2)
+      console.error("[coordinator/messages] send failed:", e);
+      setSendError(true);
     } finally {
       setSending(false);
     }
@@ -415,6 +423,12 @@ export default function CoordinatorMessagesClient() {
             {(selectedThread.channel === "telegram" || selectedThread.channel === "whatsapp") && (
               <div className="border-t border-gray-100 bg-white px-6 pt-2 text-xs text-gray-500">
                 📨 {L.msRelayHint.replace("{channel}", selectedThread.channel === "telegram" ? "Telegram" : "WhatsApp")}
+              </div>
+            )}
+
+            {sendError && (
+              <div className="border-t border-gray-100 bg-white px-6 pt-2 text-xs font-medium text-red-500">
+                ⚠️ {L.msSendFailed}
               </div>
             )}
 
