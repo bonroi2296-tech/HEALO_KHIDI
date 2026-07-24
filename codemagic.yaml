@@ -30,20 +30,20 @@ workflows:
         bundle_identifier: kr.co.healwith.app
       node: 20
       xcode: latest
-      cocoapods: default
     scripts:
       - name: npm 의존성 설치
         script: npm ci
-      - name: Capacitor iOS 동기화
+      - name: Capacitor iOS 동기화 (SPM 패키지 해결 포함)
         script: npx cap sync ios
-      - name: CocoaPods 설치
-        script: cd ios/App && pod install
       - name: 서명 프로필 적용
         script: xcode-project use-profiles
       - name: IPA 빌드
+        # ⚠️ 이 앱은 CocoaPods 가 아니라 SPM(CapApp-SPM) 구조 → pod install/.xcworkspace 없음.
+        #    xcodeproj 를 직접 빌드한다. Firebase SDK(FirebaseMessaging)는 첫 클라우드 맥 빌드에서
+        #    App 타겟에 SPM 패키지로 추가해야 AppDelegate 가 컴파일된다(APP_STORE_LISTING.md 참고).
         script: |
           xcode-project build-ipa \
-            --workspace "ios/App/App.xcworkspace" \
+            --project "ios/App/App.xcodeproj" \
             --scheme "App"
     artifacts:
       - build/ios/ipa/*.ipa

@@ -61,5 +61,10 @@
 	<array>
 		<string>remote-notification</string>
 	</array>
+	<!-- Firebase 의 AppDelegate 메서드 스위즐링 비활성 → AppDelegate.swift 에서 APNs 토큰을
+	     수동으로 Firebase 에 넘겨 FCM 토큰만 Capacitor registration 이벤트로 흘려보낸다.
+	     (스위즐링을 켜두면 APNs 원시 토큰과 FCM 토큰이 이중 발화해 서버가 iOS 에서 못 쓰는 토큰을 저장할 수 있음) -->
+	<key>FirebaseAppDelegateProxyEnabled</key>
+	<false/>
 </dict>
 </plist>

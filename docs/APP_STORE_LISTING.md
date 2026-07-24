@@ -25,17 +25,29 @@
 
 ## ⚠️ 제출 전 선결 — PO 체크리스트 (2026-07-14 갱신)
 
-**PO가 직접 할 것 (지금은 결제 2건뿐):**
-1. ⬜ **애플 개발자 등록 + $99/년 결제** — https://developer.apple.com/programs/enroll/
+**PO가 직접 할 것 (애플 계정 로그인 필요 — 어시가 대신 못 누름):**
+1. ✅ **애플 개발자 등록 + $99/년 결제 (2026-07-24 완료)** — https://developer.apple.com/programs/enroll/
    - 본로이는 개인사업자 → **개인(Individual) 계정**으로 등록. 판매자명이 개인 이름으로 노출됨(법인 전환 시 조직 계정 이전 가능).
    - 🛑 **함정**: 애플 가이드라인 5.1.1은 의료성 앱에 법인 계정을 요구할 수 있음 → 심사에서 이 사유로 반려될 가능성 있음(반려 시 항소·법인 검토 대응 — 어시가 그때 정리).
+   - **결제 후 애플 포털에서 순서대로 (이게 "앱 등록"):**
+     1. ⬜ **App ID 등록** — [Identifiers](https://developer.apple.com/account/resources/identifiers/list) → `+` → App ID `kr.co.healwith.app` + **Push Notifications** capability 체크
+     2. ⬜ **앱 레코드 생성** — [App Store Connect](https://appstoreconnect.apple.com) → My Apps → `+` → 이름 `healwith`, 기본 언어 English, 위 App ID 선택
+     3. ⬜ **APNs 인증키(.p8) 발급** — [Keys](https://developer.apple.com/account/resources/authkeys/list) → `+` → APNs 체크 → 다운로드 → **Firebase 콘솔 → Cloud Messaging 에 업로드**(Key ID·Team ID 함께)
+     4. ⬜ **App Store Connect API 키 발급** — Users and Access → Integrations → `+` → 다운로드 → **Codemagic Integrations 에 `healwith_asc` 로 등록**(빌드 자동화용)
 2. ⬜ **구글 플레이 개발자 등록 + $25(일회) 결제** — https://play.google.com/console/signup
 3. ✅ **Firebase 설정파일 2개 완료(2026-07-14)** — PO가 기존 프로젝트 `healo`(healo-e3e58)에 iOS/Android 앱 추가·파일 발급, 어시가 검증 후 배치·머지(PR #757 android / #758 ios). 남은 조각: **APNs 인증키(.p8) Firebase 업로드는 애플 결제 후**(어시가 안내).
 4. ✅ **Codemagic 가입·저장소 연결 완료(2026-07-14)** — Personal(Individual) 계정, HEALO_KHIDI 연결, codemagic.yaml 자동 인식 확인(PO 스크린샷). ⚠️ 서명 열쇠 없이 빌드 시작 금지(실패만 뜨고 무료분 낭비) — 결제 후 열쇠 3종(ASC API 키·Play 서비스계정·키스토어) 등록부터.
 
 **어시가 할 것 (계정 열리면):**
 - Vercel env 2개(`FCM_PROJECT_ID`·`GOOGLE_SERVICE_ACCOUNT_JSON`) 설정 + `/api/push/test` 실기기 수신 확인
-- ⚠️ **iOS 푸시 마무리 배선(첫 Codemagic 빌드 때)**: 이 프로젝트는 CocoaPods가 아니라 **SPM(CapApp-SPM)** 구조 — ①Firebase iOS SDK(FirebaseMessaging)를 SPM으로 추가 ②AppDelegate에 APNs 토큰→FCM 토큰 교환 배선(안 하면 iOS 푸시 무음 실패 — registerPush.ts가 보내는 token.value가 iOS에선 APNs 원시 토큰이라 FCM 발송이 못 씀) ③`GoogleService-Info.plist`를 Xcode 프로젝트 리소스에 등록(파일만 폴더에 있음, pbxproj 참조 0건) ④codemagic.yaml의 `pod install` 단계는 SPM 구조라 손질 필요. 전부 클라우드 맥 빌드의 컴파일 피드백을 보며 진행(윈도우에선 검증 불가).
+- ✅ **iOS 푸시 배선 코드 스테이징 완료 (2026-07-24, 브랜치 `claude/app-registration`)** — 아래 ②④가 코드로 준비됨:
+  - ✅ ② **AppDelegate.swift** — `FirebaseApp.configure()` + `MessagingDelegate`로 APNs→FCM 토큰 교환. **FCM 토큰만** Capacitor `registration` 이벤트로 흘려보내 registerPush.ts가 서버에 올리는 token.value가 iOS에서도 FCM 토큰이 되게 함(무음 실패 원인 해소). Info.plist에 `FirebaseAppDelegateProxyEnabled=NO` 추가(이중 발화 방지).
+  - ✅ ④ **codemagic.yaml** — `pod install`(Podfile 없어 무조건 실패) 제거, `.xcworkspace`→`.xcodeproj` 로 SPM 구조에 맞춤.
+  - ⚠️ **아직 남음(첫 클라우드 맥 빌드에서 Xcode로 — 윈도우/리눅스 검증 불가):**
+    - ⬜ ① **Firebase iOS SDK(FirebaseMessaging) 를 App 타겟에 SPM 패키지로 추가** — 안 하면 AppDelegate의 `import FirebaseCore/FirebaseMessaging`가 컴파일 실패. (Xcode → Add Package → `https://github.com/firebase/firebase-ios-sdk` → FirebaseMessaging)
+    - ⬜ ③ **`GoogleService-Info.plist` 를 App 타겟 리소스로 등록** — 파일은 `ios/App/App/`에 있으나 pbxproj 참조 0건이라 번들에 안 들어감(`FirebaseApp.configure()` 크래시).
+    - ⬜ **Xcode 타겟에 Push Notifications + Background Modes(Remote notifications) capability 추가**(서명 프로필에 반영).
+    - ⚠️ 런타임(실기기 토큰 흐름) 검증은 첫 빌드 후 `/api/push/test` 로. 코드는 표준 패턴대로 짰으나 디바이스 실증 전까지는 "설계상 맞음, 런타임 미검증".
 - 빌드→TestFlight/Play 내부트랙 업로드, 등록 문구 6개 언어 입력, 심사 설문 제출(→ `APP_STORE_REVIEW_ANSWERS.md` 복붙), 반려 대응
 
 **이미 끝난 것:**
