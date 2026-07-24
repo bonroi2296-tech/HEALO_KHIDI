@@ -57,6 +57,14 @@ test.describe("어드민 사이드바 메뉴 @smoke", () => {
     await expect(aiStatusLink).toBeVisible({ timeout: 5_000 });
   });
 
+  test("홈 = 통합 대시보드 골격이 렌더된다 — 리뉴얼 3단계 회귀 방지", async ({ page }) => {
+    await page.goto("/admin");
+    await page.waitForLoadState("domcontentloaded");
+    // 정적 골격(섹션 제목)은 API 성공 여부와 무관하게 즉시 렌더 — 플레이키 방지로 골격만 검증
+    await expect(page.getByText("오늘 현황").first()).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByText("최근 활동").first()).toBeVisible();
+  });
+
   test("비활성(hidden) 화면은 메뉴에 없다 — 리뉴얼 2단계 숨김 회귀 방지", async ({ page }) => {
     await page.goto("/admin");
     await page.waitForLoadState("domcontentloaded");

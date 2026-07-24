@@ -74,7 +74,7 @@
 
 - **1단계 ✅ (2026-07-24)** — 전 계층 청사진(이 문서 §1). 실측: 코드 지도 3종 + 실DB COUNT.
 - **2단계 🔨 어드민 메뉴 정리 (2026-07-24 구현, PO 프리뷰 검토 대기)** — ①그룹 재편: 홈/상담·문의/파트너·회원/콘텐츠/AI 품질(접힘)/시스템 ②생사표 기반 비활성: 플레이북 4·크롤 3(고아 review 포함)·Import·보강·관측 = `AdminNav.jsx`에 `hidden:true`(🛑 삭제 아님 — PO 지시. 라우트·코드 보존, 플래그 한 줄 지우면 복구) ③옛 메뉴명 참조 정리(설명서·페이지 제목·E2E). ⏸ 애매 2화면은 **일단 메뉴 유지**: `/admin/treatments`(데이터 0행·7/20 비워짐)·`/admin/doctors`(partner_doctors 0행이나 화상 상담 의사 드롭다운이 참조) — 숨길지 PO 결정 대기.
-- **3단계 ⬜ 통합 대시보드** — 어드민 홈에 역할별 활동 카드(코디 처리·에이전시 의뢰·병원 리드 응답·환자 문의 채널별) + 활동 피드(`content_change_log`+감사로그 타임라인). 새 테이블 불필요.
+- **3단계 🔨 통합 대시보드 (2026-07-24 구현, PO 검토 대기)** — 어드민 홈(`/admin`) = 역할별 현황 카드 5개 + 최근 활동 피드. API = `/api/admin/dashboard/overview`(requireAdminAuth, PII 반환 금지 — 건수·상태·키만). 피드 소스 = content_change_log·inquiries·consultation_sessions·cotreatment_referrals·hospital_leads(감사로그 대신 도메인 테이블 직접 — 라벨이 사람 말이 됨). 새 테이블 없음.
 - **4단계 ⬜ 권한 구멍 수리** — B(rate limit+감사로그, 저위험 즉시 가능) → A(referrals·leads staffOnly 전환, 코디 운영 전제) → D(partner_type 분기 헬퍼) → C(정책 = PO 확인 후).
 - **5단계 ⬜ 파트너 계층 확장** — 에이전시·클리닉은 이미 실기능이므로 "소생"이 아니라 **확장 여부**(어떤 기능을 더 줄지 = 사업 판단 = PO). hospital 플래그 OFF 2화면(profile·treatments)도 켤지 여기서.
 
