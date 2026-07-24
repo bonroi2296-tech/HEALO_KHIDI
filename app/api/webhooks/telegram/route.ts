@@ -459,11 +459,16 @@ export async function POST(request: NextRequest) {
           });
         }
 
-        // 3턴마다 문의서 초안 + KHIDI 집계(inquiries) 승격 — 웹 챗과 동일 주기.
+        // 문의 승격: ①사람 연결 요청 턴엔 즉시(1~2턴째 요청이면 이후 AI 침묵 때문에 3턴
+        // 규칙에 영영 안 걸려 "접수됐어요"가 거짓이 되던 구멍 — 2026-07-24 실측) ②그 외엔
+        // 3턴마다 — 웹 챗과 동일 주기(잡담뿐이면 게이트가 승격만 보류, intakeGate.ts).
         const patientMsgCount = history.filter((m: any) => m.actor_type === "patient").length;
-        if (patientMsgCount > 0 && patientMsgCount % INTAKE_EVERY_N_TURNS === 0) {
+        const intakeDue = patientMsgCount > 0 && patientMsgCount % INTAKE_EVERY_N_TURNS === 0;
+        if (handOff.requested || intakeDue) {
           try {
-            await createDraftIntake(thread, history as any, lang, null);
+            await createDraftIntake(thread, history as any, lang, null, {
+              handOffRequested: handOff.requested,
+            });
           } catch (e: any) {
             console.error("[webhooks/telegram] intake error:", e.message);
           }

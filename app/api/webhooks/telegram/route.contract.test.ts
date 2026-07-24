@@ -480,6 +480,20 @@ describe("텔레그램 웹훅 계약", () => {
     expect(createDraftIntake).toHaveBeenCalledTimes(1);
   });
 
+  it("사람 연결 요청 턴: 3턴 규칙과 무관하게 문의 승격이 즉시 발사된다(핸드오프 플래그 전달)", async () => {
+    const POST = await loadPost();
+    mockState.thread = CONSENTED_THREAD();
+    // 환자 메시지 1개뿐(3의 배수 아님) — 기존 규칙이면 승격이 영영 안 걸리던 케이스
+    mockState.history = [
+      { actor_type: "patient", message_text: "connect me to a human", metadata: {} },
+    ];
+    const res = await POST(makeReq(msgUpdate("connect me to a human", 14)));
+    expect((await res.json()).ok).toBe(true);
+    await flushAfter();
+    expect(createDraftIntake).toHaveBeenCalledTimes(1);
+    expect(createDraftIntake.mock.calls[0][4]).toEqual({ handOffRequested: true });
+  });
+
   it("그룹 채팅 메시지는 무시한다(1:1 상담 전용)", async () => {
     const POST = await loadPost();
     const u = msgUpdate("hello", 10);

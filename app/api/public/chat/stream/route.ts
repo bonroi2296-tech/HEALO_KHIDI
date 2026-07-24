@@ -346,13 +346,16 @@ export async function POST(request: NextRequest) {
           .eq("id", thread_id);
 
         // 5) 문의서 초안 — 응답 후 백그라운드.
+        // 사람 연결 요청 턴엔 3턴 규칙과 무관하게 즉시(메신저 봇과 동일 — intakeGate.ts 게이트).
         const patientMsgCount = (history || []).filter(
           (m: any) => m.actor_type === "patient"
         ).length;
-        if (patientMsgCount > 0 && patientMsgCount % INTAKE_EVERY_N_TURNS === 0) {
+        if (handOff.requested || (patientMsgCount > 0 && patientMsgCount % INTAKE_EVERY_N_TURNS === 0)) {
           after(async () => {
             try {
-              await createDraftIntake(thread, (history || []) as any, lang, clientIp);
+              await createDraftIntake(thread, (history || []) as any, lang, clientIp, {
+                handOffRequested: handOff.requested,
+              });
             } catch (e: any) {
               console.error("[public/chat/stream] intake error:", e.message);
             }
