@@ -204,7 +204,7 @@ export function AccuracyPanel() {
             자동으로 Playbook에 등록됩니다.
           </p>
           <p className="text-xs text-gray-400 mt-2">
-            자세한 현황은 「AI 품질」·「레거시 도구 › 플레이북」 메뉴에서 확인하세요.
+            자세한 현황은 「AI 품질」 메뉴에서 확인하세요. (플레이북 화면은 2026-07-24 메뉴 정리로 비활성 — 주소 직접 입력으로는 열립니다.)
           </p>
         </div>
       </div>

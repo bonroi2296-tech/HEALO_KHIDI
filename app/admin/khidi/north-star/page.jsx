@@ -171,7 +171,7 @@ export default function NorthStarPage() {
             href="/admin/khidi/kpi-dashboard"
             className="inline-flex items-center gap-1 text-xs text-gray-400 hover:text-teal-700 mb-1"
           >
-            <ArrowLeft size={13} /> 중간평가 현황
+            <ArrowLeft size={13} /> KHIDI 리포트
           </Link>
           <h1 className="text-xl font-bold text-gray-900">🎯 북극성 지표</h1>
           <p className="text-sm text-gray-500 mt-0.5">
