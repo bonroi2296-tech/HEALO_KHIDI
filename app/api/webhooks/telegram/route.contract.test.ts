@@ -68,7 +68,23 @@ vi.mock("@/lib/rag/supabaseAdmin", () => ({
           order: () => builder,
           limit: async (_n: number) => {
             if (table === "chat_threads") {
-              return { data: mockState.thread ? [mockState.thread] : [], error: null };
+              const t = mockState.thread;
+              if (!t) return { data: [], error: null };
+              // status 필터를 실제로 시뮬레이션 — "waiting_patient 이어받기" 계약이
+              // 코드를 .eq("status","open") 으로 되돌리면 빨간불 나게 고정(독립 리뷰 지적:
+              // 필터 무시 목은 연속성 수리를 전혀 고정하지 못했다).
+              const status = (t as any).status || "open";
+              for (const [f, v] of filters) {
+                if (f === "status" && status !== v) return { data: [], error: null };
+                if (f === "not:status:in") {
+                  const excluded = String(v)
+                    .replace(/[()]/g, "")
+                    .split(",")
+                    .map((s) => s.trim());
+                  if (excluded.includes(status)) return { data: [], error: null };
+                }
+              }
+              return { data: [t], error: null };
             }
             // chat_messages: 멱등 가드의 중복 조회(select "id") vs 히스토리 조회를 구분
             if (cols === "id") {
