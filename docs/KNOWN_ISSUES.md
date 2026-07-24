@@ -97,7 +97,7 @@ app/api/survey/[token]/route.ts:48
 
 ---
 
-## 🔴 만족도 설문이 여전히 0건 — **코드는 고쳤지만 케이스가 안 넘어온다** (2026-07-21 갱신)
+## 🔴 만족도(K-03) — 파이프는 뚫렸는데 **실환자 표본이 없다** (2026-07-24 갱신 · 구제목 "설문 0건")
 
 > ✅ **코드 수리 완료(#856)**: cron 발송 기준을 「상담 `completed`」→「케이스 `case_status ∈ (follow_up, completed)`」로 옮겼다. 기존 세션 경로도 유지(누가 완료를 누르면 여전히 동작). 멱등은 `surveys.inquiry_id` + **DB 유일 인덱스**(`uniq_surveys_inquiry`)로 이중 보장.
 >
@@ -112,6 +112,8 @@ app/api/survey/[token]/route.ts:48
 ⏰ **만족도는 8/27 중간평가 공식 지표 4개 중 하나(목표 90점)이고, 설문은 보낸 뒤 응답까지 와야 점수가 된다** — 늦어도 **2026-07-31** 까지 첫 케이스가 사후관리로 넘어가야 표본이 쌓인다.
 
 > 📝 **2026-07-23 PO 확인 — 지금 사후관리로 옮길 실제 케이스가 없다.** 앞서 관통된 만족도 1건(100점)은 **PO가 테스트로 만든 것**이지 실환자 완료 건이 아니다. 즉 실 표본은 여전히 0. → **어시는 "케이스를 사후관리로 옮겨달라"고 계속 밀지 말 것**(옮길 실 케이스가 없음). 실 유치·치료가 발생해야 생기는 지표라, 8/27 평가는 정량 표본보다 **정성(체계 구축)·파이프라인 근거** 전략으로 간다(참고 [사업 사각지대 진단]). 실환자 완료가 생기면 그때 사후관리 이동→자동발송이 이미 배선돼 있다.
+>
+> 📝 **2026-07-24 갱신** — ①설문 파이프 실측: 발송 1(7/22, inquiry #39 케이스 경로)·**응답 1**. ⚠️ 단 #39 는 `is_test=false`인데 위 7/23 기록("만족도 1건=PO 테스트")과 충돌 — **#39 정체(실환자 vs PO 테스트) PO 확인 대기.** 테스트면 is_test 도장을 찍어야 K-03 이 오염 안 됨. ②[#948](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/948)로 케이스 경로가 **D+ 케이던스**로 확장(차수별 설문 D+7/90/180 + 복약·화상·검사 환자 제안/직원 종 + 설문 침묵 Sentry 경보). 사후관리 진입만 하면 이후 차수는 전부 자동.
 
 ---
 
@@ -129,7 +131,7 @@ app/api/survey/[token]/route.ts:48
 
 | 브랜치 | 아직 본판에 없는 것 | 판단 |
 |---|---|---|
-| `rescue/local-uncommitted-20260716` | `caseStatus.ts` 확장 · `kpiHealthcheck` 확장판(본판 50줄 vs 104줄) · 개인정보처리방침·동의서 문구 · `KHIDI_유치문서/` 텍스트 2건 | ⚠️ `caseStatus.ts` 는 **KHIDI 지표 계산 직결** — 필요할 때 덩어리로 떼서 재작성. 통째로 얹지 마라 |
+| `rescue/local-uncommitted-20260716` | `caseStatus.ts` 확장 · 개인정보처리방침·동의서 문구 · `KHIDI_유치문서/` 텍스트 2건 (~~kpiHealthcheck 확장판~~ ✅ #948 로 병합 2026-07-24 · ~~D+ 케이던스~~ ✅ #948 로 이식) | ⚠️ `caseStatus.ts` 는 **KHIDI 지표 계산 직결** — 필요할 때 덩어리로 떼서 재작성. 통째로 얹지 마라 |
 | `work/agency-claim-inbox` | **고유 파일 없음**(소견번역은 머지됨). 나머지는 본판이 앞선 것 | 사실상 정리 대상. 위 잔여 확인 후 지워도 된다 |
 
 
@@ -148,7 +150,7 @@ app/api/survey/[token]/route.ts:48
 
 | 덩어리 | 파일 | 상태 |
 |---|---|---|
-| **설문 발송 기준 변경** | `app/api/cron/dispatch-surveys/route.ts`(291줄) · `src/lib/surveys/generateSurveyToken.ts` | 위 🔴 항목의 해법. **DB 준비 끝, 코드만 없음.** 범위 좁음(파일 2개) |
+| ~~**설문 발송 기준 변경 + D+ 케이던스**~~ | ~~`app/api/cron/dispatch-surveys/route.ts` · `generateSurveyToken.ts`~~ | ✅ **완전 회수** — 기준 변경은 #856(7/21), 케이던스(차수별 설문·제안·종 알림·침묵 경보)는 [#948](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/948)(7/24, 최신 본판 위 재작성) |
 | **소견 AI 자동번역** | `src/lib/opinions/translateOpinion.ts`(신규 45줄) · `app/api/coordinator/opinions/translate/route.ts`(신규 65줄) · `OpinionsSection.jsx` | DB 칸(`case_opinions.auto_translated_text`)·마이그레이션은 **본판에 이미 있는데 채우는 코드만 없다** = 반쪽 배선 → 소견 2건 중 번역 0건. **`work/agency-claim-inbox` 브랜치에도 동일본이 있다**(둘 중 아무거나) |
 | **기타** | `caseStatus.ts`(128줄) · 개인정보처리방침·동의서 문구 | — |
 | ~~`kpiHealthcheck.ts`(신규)~~ | ~~`src/lib/khidi/kpiHealthcheck.ts`~~ | ❌ **정정(2026-07-21 밤 실측)**: 「신규」가 아니다. **본판에 이미 50줄짜리가 있고** rescue 것은 104줄 **확장판**이다. 살릴 거면 신규 추가가 아니라 **차이분 병합**으로 접근할 것 |
