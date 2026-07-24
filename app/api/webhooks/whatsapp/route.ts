@@ -58,13 +58,16 @@ function threadMeta(thread: any): Record<string, any> {
     : {};
 }
 
+// 종료(resolved/closed)만 새 대화로 취급 — "open"만 매칭하면 코디 답장으로 status 가
+// waiting_patient 로 바뀐 순간 다음 환자 메시지가 새 스레드+재동의로 갈라진다
+// (텔레그램에서 2026-07-24 PO 실기기 재현 — 동일 수리를 채널 대칭 적용).
 async function findOpenThread(waId: string) {
   const { data } = await (supabaseAdmin as any)
     .from("chat_threads")
     .select("*")
     .eq("channel", "whatsapp")
     .eq("metadata->whatsapp->>wa_id", waId)
-    .eq("status", "open")
+    .not("status", "in", "(resolved,closed)")
     .order("created_at", { ascending: false })
     .limit(1);
   return data?.[0] || null;

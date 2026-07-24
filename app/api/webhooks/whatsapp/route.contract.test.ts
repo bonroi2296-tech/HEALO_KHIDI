@@ -53,6 +53,7 @@ vi.mock("@/lib/rag/supabaseAdmin", () => ({
       select: (cols: string) => {
         const builder: any = {
           eq: () => builder,
+          not: () => builder,
           order: () => builder,
           limit: async () => {
             if (table === "chat_threads") {
