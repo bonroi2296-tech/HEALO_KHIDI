@@ -765,12 +765,16 @@ export default function ConsultationRoomPage() {
   // DC 자막 억제 판정용 ref (콜백 재생성 없이 최신값 읽기)
   const voiceOnRef = useRef(false);
   const agentPresentRef = useRef(false);
-  // 이 통역 세션에서 봇을 한 번이라도 봤나 — 자동꺼짐(재연결 유예)을 "봇이 있다가 사라진"
-  // 경우로 한정하기 위함. 사용자가 봇 없이 직접 켠 통역은 자동으로 끄지 않는다.
+  // 봇을 한 번이라도 봤나 — 자동꺼짐(재연결 유예)을 "봇이 있다가 사라진" 경우로 한정하기 위함.
+  // 사용자가 봇 없이 직접 켠 통역은 자동으로 끄지 않는다.
+  // ⚠️ voiceOn 껐다고 리셋하지 않는다(독립리뷰 버그): 봇이 계속 방에 있는 채로 통역을 껐다
+  //    켜면 리셋된 ref 가 false 로 굳고(agentPresent 는 true→false 전이가 없어 다시 true 로
+  //    안 세워짐) → 이후 봇이 진짜 끊겨도 자동꺼짐이 안 돌아 "죽은 토글"이 된다. 자동꺼짐은
+  //    어차피 agentPresent 의 진짜 true→false 전이에서만 발동하므로, ref 가 stale-true 여도
+  //    잘못된 자동꺼짐을 일으키지 못한다(그 전이 자체가 봇이 있었다는 뜻).
   const agentEverPresentRef = useRef(false);
   useEffect(() => {
     voiceOnRef.current = voiceOn;
-    if (!voiceOn) agentEverPresentRef.current = false; // 껐으면 다음 세션 위해 리셋
   }, [voiceOn]);
   useEffect(() => {
     agentPresentRef.current = agentPresent;
