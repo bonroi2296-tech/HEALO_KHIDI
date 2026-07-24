@@ -4,182 +4,22 @@ import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import { Eyebrow, Rule, ButtonGold, LinkArrow, Chip } from "../../../components/healo/Primitives";
 import { useLang } from "@/lib/i18n/LangContext";
+import { t } from "@/lib/i18n";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 
-const COPY = {
-  en: {
-    heroEyebrow: "Inbox",
-    heroTitle: "Your conversations,",
-    heroTitleItalic: "in one place.",
-    loading: "Loading conversations…",
-    noThreads: "No conversations yet. Once you inquire or start an AI chat, threads appear here.",
-    startChat: "Start AI chat",
-    startInquiry: "Start a new inquiry",
-    you: "You",
-    coordinator: "Coordinator",
-    ai: "healwith AI",
-    admin: "healwith Support",
-    system: "System",
-    typePlaceholder: "Type your message… Press Enter to send",
-    send: "Send",
-    back: "← All conversations",
-    unread: "Unread",
-    resolved: "Resolved",
-    open: "Open",
-    today: "Today",
-    yesterday: "Yesterday",
-    loginRequired: "Please sign in to view your messages.",
-    signIn: "Sign in",
-    threadsTitle: "Threads",
-    threadTitle: "Thread",
-    selectConversation: "Select a conversation",
-    conversationFallback: "Conversation",
-  },
-  ko: {
-    heroEyebrow: "메시지",
-    heroTitle: "당신의 모든 대화,",
-    heroTitleItalic: "한 곳에서.",
-    loading: "대화 불러오는 중…",
-    noThreads: "아직 대화가 없습니다. 문의를 시작하거나 AI 채팅을 시작하면 여기에 표시됩니다.",
-    startChat: "AI 채팅 시작",
-    startInquiry: "새 문의 시작",
-    you: "나",
-    coordinator: "코디네이터",
-    ai: "healwith AI",
-    admin: "healwith 지원팀",
-    system: "시스템",
-    typePlaceholder: "메시지 입력… 엔터로 전송",
-    send: "전송",
-    back: "← 전체 대화",
-    unread: "읽지 않음",
-    resolved: "해결됨",
-    open: "진행중",
-    today: "오늘",
-    yesterday: "어제",
-    loginRequired: "메시지 확인을 위해 로그인해 주세요.",
-    signIn: "로그인",
-    threadsTitle: "대화 목록",
-    threadTitle: "대화",
-    selectConversation: "대화를 선택하세요",
-    conversationFallback: "대화",
-  },
-  ru: {
-    heroEyebrow: "Входящие",
-    heroTitle: "Все ваши переписки",
-    heroTitleItalic: "в одном месте.",
-    loading: "Загрузка переписок…",
-    noThreads: "Пока нет переписок. Как только вы отправите запрос или начнёте чат с ИИ, диалоги появятся здесь.",
-    startChat: "Начать чат с ИИ",
-    startInquiry: "Создать новый запрос",
-    you: "Вы",
-    coordinator: "Координатор",
-    ai: "healwith ИИ",
-    admin: "Поддержка healwith",
-    system: "Система",
-    typePlaceholder: "Введите сообщение… Нажмите Enter, чтобы отправить",
-    send: "Отправить",
-    back: "← Все переписки",
-    unread: "Непрочитанные",
-    resolved: "Решено",
-    open: "Открыто",
-    today: "Сегодня",
-    yesterday: "Вчера",
-    loginRequired: "Пожалуйста, войдите в систему, чтобы просмотреть свои сообщения.",
-    signIn: "Войти",
-    threadsTitle: "Переписки",
-    threadTitle: "Переписка",
-    selectConversation: "Выберите переписку",
-    conversationFallback: "Переписка",
-  },
-  kz: {
-    heroEyebrow: "Кіріс хаттар",
-    heroTitle: "Барлық хат алмасуыңыз",
-    heroTitleItalic: "бір жерде.",
-    loading: "Хат алмасулар жүктелуде…",
-    noThreads: "Әзірге хат алмасу жоқ. Сұраныс жібергеннен немесе ЖИ-мен чат бастағаннан кейін диалогтар осында пайда болады.",
-    startChat: "ЖИ-мен чат бастау",
-    startInquiry: "Жаңа сұраныс жасау",
-    you: "Сіз",
-    coordinator: "Координатор",
-    ai: "healwith ЖИ",
-    admin: "healwith қолдау қызметі",
-    system: "Жүйе",
-    typePlaceholder: "Хабарлама жазыңыз… Жіберу үшін Enter басыңыз",
-    send: "Жіберу",
-    back: "← Барлық хат алмасулар",
-    unread: "Оқылмаған",
-    resolved: "Шешілді",
-    open: "Ашық",
-    today: "Бүгін",
-    yesterday: "Кеше",
-    loginRequired: "Хабарламаларыңызды көру үшін жүйеге кіріңіз.",
-    signIn: "Кіру",
-    threadsTitle: "Хат алмасулар",
-    threadTitle: "Хат алмасу",
-    selectConversation: "Хат алмасуды таңдаңыз",
-    conversationFallback: "Хат алмасу",
-  },
-  zh: {
-    heroEyebrow: "收件箱",
-    heroTitle: "您的所有对话，",
-    heroTitleItalic: "尽在一处。",
-    loading: "正在加载对话…",
-    noThreads: "暂无对话。当您提交咨询或开始 AI 聊天后，对话将显示在此处。",
-    startChat: "开始 AI 聊天",
-    startInquiry: "发起新咨询",
-    you: "您",
-    coordinator: "协调员",
-    ai: "healwith AI",
-    admin: "healwith 客服",
-    system: "系统",
-    typePlaceholder: "输入消息… 按 Enter 发送",
-    send: "发送",
-    back: "← 全部对话",
-    unread: "未读",
-    resolved: "已解决",
-    open: "进行中",
-    today: "今天",
-    yesterday: "昨天",
-    loginRequired: "请登录以查看您的消息。",
-    signIn: "登录",
-    threadsTitle: "对话列表",
-    threadTitle: "对话",
-    selectConversation: "请选择一个对话",
-    conversationFallback: "对话",
-  },
-  ja: {
-    heroEyebrow: "受信箱",
-    heroTitle: "あなたのすべての会話を、",
-    heroTitleItalic: "ひとつの場所に。",
-    loading: "会話を読み込み中…",
-    noThreads: "まだ会話はありません。お問い合わせやAIチャットを開始すると、ここにスレッドが表示されます。",
-    startChat: "AIチャットを開始",
-    startInquiry: "新しいお問い合わせを開始",
-    you: "あなた",
-    coordinator: "コーディネーター",
-    ai: "healwith AI",
-    admin: "healwith サポート",
-    system: "システム",
-    typePlaceholder: "メッセージを入力… Enterキーで送信",
-    send: "送信",
-    back: "← すべての会話",
-    unread: "未読",
-    resolved: "解決済み",
-    open: "対応中",
-    today: "今日",
-    yesterday: "昨日",
-    loginRequired: "メッセージを表示するにはログインしてください。",
-    signIn: "ログイン",
-    threadsTitle: "スレッド一覧",
-    threadTitle: "スレッド",
-    selectConversation: "会話を選択してください",
-    conversationFallback: "会話",
-  },
+// DB actor_type 코드 → 표시 라벨 키(중앙 사전). 코드값은 서버/DB 비교용이라 그대로 두고
+// 라벨만 t() 경유. 알 수 없는 actor_type 은 기존과 동일하게 system 라벨로 폴백.
+const ACTOR_LABEL_KEYS = {
+  user: "patientMessages.you",
+  bot: "patientMessages.ai",
+  admin: "patientMessages.admin",
+  coordinator: "patientMessages.coordinator",
+  system: "patientMessages.system",
 };
 
 export default function MessagesClient() {
   const lang = useLang();
-  const copy = COPY[lang] || COPY.en;
+  const heroItalic = t("patientMessages.heroTitleItalic", lang);
 
   const [user, setUser] = useState(null);
   const [threads, setThreads] = useState([]);
@@ -272,8 +112,8 @@ export default function MessagesClient() {
     return (
       <main style={{ maxWidth: 1240, margin: "0 auto", paddingTop: 64 }}>
         <div style={{ padding: "24px" }}>
-          <p style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "#0f766e" }}>{copy.heroEyebrow}</p>
-          <h1 style={{ fontSize: 28, fontWeight: 700, color: "#111827", marginTop: 4 }}>{copy.heroTitle}{copy.heroTitleItalic ? ` ${copy.heroTitleItalic}` : ""}</h1>
+          <p style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "#0f766e" }}>{t("patientMessages.heroEyebrow", lang)}</p>
+          <h1 style={{ fontSize: 28, fontWeight: 700, color: "#111827", marginTop: 4 }}>{t("patientMessages.heroTitle", lang)}{heroItalic ? ` ${heroItalic}` : ""}</h1>
         </div>
         <div style={{ padding: "72px 24px", textAlign: "center" }}>
           <p
@@ -284,17 +124,17 @@ export default function MessagesClient() {
               marginBottom: 24,
             }}
           >
-            {copy.loginRequired}
+            {t("patientMessages.loginRequired", lang)}
           </p>
           <Link href="/login" style={{ textDecoration: "none" }}>
-            <ButtonGold>{copy.signIn}</ButtonGold>
+            <ButtonGold>{t("patientMessages.signIn", lang)}</ButtonGold>
           </Link>
         </div>
       </main>
     );
   }
 
-  const selectedThread = threads.find((t) => t.id === selectedId);
+  const selectedThread = threads.find((th) => th.id === selectedId);
 
   async function sendMessage() {
     if (!draft.trim() || !selectedId || !user || sending) return;
@@ -325,8 +165,8 @@ export default function MessagesClient() {
   return (
     <main style={{ maxWidth: 1240, margin: "0 auto", paddingTop: 64 }}>
       <div style={{ padding: "24px" }}>
-        <p style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "#0f766e" }}>{copy.heroEyebrow}</p>
-        <h1 style={{ fontSize: 28, fontWeight: 700, color: "#111827", marginTop: 4 }}>{copy.heroTitle}{copy.heroTitleItalic ? ` ${copy.heroTitleItalic}` : ""}</h1>
+        <p style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "#0f766e" }}>{t("patientMessages.heroEyebrow", lang)}</p>
+        <h1 style={{ fontSize: 28, fontWeight: 700, color: "#111827", marginTop: 4 }}>{t("patientMessages.heroTitle", lang)}{heroItalic ? ` ${heroItalic}` : ""}</h1>
       </div>
       <section style={{ padding: "48px 24px 96px" }}>
         <div
@@ -353,11 +193,11 @@ export default function MessagesClient() {
             }}
           >
             <div style={{ padding: "0 24px 16px" }}>
-              <Eyebrow tone="muted">{copy.threadsTitle}</Eyebrow>
+              <Eyebrow tone="muted">{t("patientMessages.threadsTitle", lang)}</Eyebrow>
             </div>
             {loading ? (
               <div style={{ padding: "24px", color: "var(--fg-on-light-3)", fontStyle: "italic" }}>
-                {copy.loading}
+                {t("patientMessages.loading", lang)}
               </div>
             ) : threads.length === 0 ? (
               <div style={{ padding: "24px" }}>
@@ -371,25 +211,25 @@ export default function MessagesClient() {
                     marginBottom: 24,
                   }}
                 >
-                  {copy.noThreads}
+                  {t("patientMessages.noThreads", lang)}
                 </p>
                 <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                   <Link href="/patient/chat" style={{ textDecoration: "none" }}>
-                    <LinkArrow>{copy.startChat} →</LinkArrow>
+                    <LinkArrow>{t("patientMessages.startChat", lang)} →</LinkArrow>
                   </Link>
                   <Link href="/intake" style={{ textDecoration: "none" }}>
-                    <LinkArrow>{copy.startInquiry} →</LinkArrow>
+                    <LinkArrow>{t("patientMessages.startInquiry", lang)} →</LinkArrow>
                   </Link>
                 </div>
               </div>
             ) : (
-              threads.map((t) => (
+              threads.map((th) => (
                 <ThreadRow
-                  key={t.id}
-                  thread={t}
-                  active={selectedId === t.id}
-                  onClick={() => setSelectedId(t.id)}
-                  copy={copy}
+                  key={th.id}
+                  thread={th}
+                  active={selectedId === th.id}
+                  onClick={() => setSelectedId(th.id)}
+                  lang={lang}
                 />
               ))
             )}
@@ -422,7 +262,7 @@ export default function MessagesClient() {
                     fontSize: 17,
                   }}
                 >
-                  {threads.length > 0 ? copy.selectConversation : ""}
+                  {threads.length > 0 ? t("patientMessages.selectConversation", lang) : ""}
                 </p>
               </div>
             ) : (
@@ -440,7 +280,7 @@ export default function MessagesClient() {
                   }}
                 >
                   <div style={{ minWidth: 0 }}>
-                    <Eyebrow tone="muted">{copy.threadTitle}</Eyebrow>
+                    <Eyebrow tone="muted">{t("patientMessages.threadTitle", lang)}</Eyebrow>
                     <div
                       style={{
                         fontFamily: "var(--font-serif)",
@@ -453,12 +293,12 @@ export default function MessagesClient() {
                         whiteSpace: "nowrap",
                       }}
                     >
-                      {selectedThread.subject || copy.conversationFallback}
+                      {selectedThread.subject || t("patientMessages.conversationFallback", lang)}
                     </div>
                   </div>
                   <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
                     <Chip tone={selectedThread.status === "resolved" ? "success" : "gold"}>
-                      {selectedThread.status === "resolved" ? copy.resolved : copy.open}
+                      {selectedThread.status === "resolved" ? t("patientMessages.resolved", lang) : t("patientMessages.open", lang)}
                     </Chip>
                     <button
                       onClick={() => setSelectedId(null)}
@@ -475,7 +315,7 @@ export default function MessagesClient() {
                         color: "var(--fg-on-light-3)",
                       }}
                     >
-                      {copy.back}
+                      {t("patientMessages.back", lang)}
                     </button>
                   </div>
                 </div>
@@ -490,7 +330,7 @@ export default function MessagesClient() {
                   }}
                 >
                   {messages.map((m) => (
-                    <MessageBubble key={m.id} message={m} user={user} copy={copy} />
+                    <MessageBubble key={m.id} message={m} user={user} lang={lang} />
                   ))}
                   <div ref={messagesEndRef} />
                 </div>
@@ -516,7 +356,7 @@ export default function MessagesClient() {
                           sendMessage();
                         }
                       }}
-                      placeholder={copy.typePlaceholder}
+                      placeholder={t("patientMessages.typePlaceholder", lang)}
                       rows={2}
                       style={{
                         flex: 1,
@@ -551,7 +391,7 @@ export default function MessagesClient() {
                         flexShrink: 0,
                       }}
                     >
-                      {sending ? "…" : copy.send}
+                      {sending ? "…" : t("patientMessages.send", lang)}
                     </button>
                   </div>
                 </div>
@@ -584,8 +424,8 @@ export default function MessagesClient() {
   );
 }
 
-function ThreadRow({ thread, active, onClick, copy }) {
-  const subject = thread.subject || copy.conversationFallback;
+function ThreadRow({ thread, active, onClick, lang }) {
+  const subject = thread.subject || t("patientMessages.conversationFallback", lang);
   return (
     <button
       onClick={onClick}
@@ -628,18 +468,9 @@ function ThreadRow({ thread, active, onClick, copy }) {
   );
 }
 
-function MessageBubble({ message, user, copy }) {
+function MessageBubble({ message, user, lang }) {
   const isMine = message.actor_type === "user" && message.actor_id === user?.id;
-  const who =
-    message.actor_type === "user"
-      ? copy.you
-      : message.actor_type === "bot"
-      ? copy.ai
-      : message.actor_type === "admin"
-      ? copy.admin
-      : message.actor_type === "coordinator"
-      ? copy.coordinator
-      : copy.system;
+  const who = t(ACTOR_LABEL_KEYS[message.actor_type] || ACTOR_LABEL_KEYS.system, lang);
 
   return (
     <div

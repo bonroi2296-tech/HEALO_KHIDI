@@ -4,38 +4,17 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Upload, FileText, AlertCircle, ChevronDown } from 'lucide-react';
 import { useLang } from '@/lib/i18n/LangContext';
+import { t } from '@/lib/i18n';
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser';
 import { kstDate } from '@/lib/datetime/kst';
 
-const LABELS = {
-  title: { ko: '의료 문서 관리', en: 'Medical Documents', ru: 'Медицинские документы', zh: '医疗文档', ja: '医療書類', kz: 'Медициналық құжаттар' },
-  subtitle: { ko: '진단서, 검사 결과 등을 업로드하세요', en: 'Upload medical records, test results, and more', ru: 'Загрузите медицинские записи, результаты анализов и др.', zh: '上传病历、检查结果等', ja: '診断書や検査結果をアップロード', kz: 'Медициналық жазбаларды жүктеңіз' },
-  upload: { ko: '파일 업로드', en: 'Upload File', ru: 'Загрузить файл', zh: '上传文件', ja: 'ファイルをアップロード', kz: 'Файл жүктеу' },
-  dragDrop: { ko: '여기에 파일을 드래그하거나 클릭하세요', en: 'Drag files here or click to browse', ru: 'Перетащите файлы сюда или нажмите для выбора', zh: '将文件拖到此处或点击浏览', ja: 'ファイルをここにドラッグまたはクリック', kz: 'Файлдарды осында сүйреңіз немесе басыңыз' },
-  docType: { ko: '문서 유형', en: 'Document Type', ru: 'Тип документа', zh: '文档类型', ja: '書類タイプ', kz: 'Құжат түрі' },
-  description: { ko: '설명 (선택)', en: 'Description (optional)', ru: 'Описание (необязательно)', zh: '描述（可选）', ja: '説明（任意）', kz: 'Сипаттама (міндетті емес)' },
-  descPlaceholder: { ko: '예: 2026년 3월 혈액검사', en: 'e.g. Blood test from March 2026', ru: 'напр. Анализ крови за март 2026', zh: '例：2026年3月血液检查', ja: '例：2026年3月の血液検査', kz: 'мыс.: 2026 жылғы наурыздағы қан анализі' },
-  uploading: { ko: '업로드 중...', en: 'Uploading...', ru: 'Загрузка...', zh: '上传中...', ja: 'アップロード中...', kz: 'Жүктелуде...' },
-  success: { ko: '업로드 완료!', en: 'Upload complete!', ru: 'Загрузка завершена!', zh: '上传完成！', ja: 'アップロード完了！', kz: 'Жүктеу аяқталды!' },
-  error: { ko: '업로드 실패', en: 'Upload failed', ru: 'Ошибка загрузки', zh: '上传失败', ja: 'アップロード失敗', kz: 'Жүктеу сәтсіз' },
-  noFiles: { ko: '업로드된 파일이 없습니다', en: 'No files uploaded yet', ru: 'Файлы ещё не загружены', zh: '尚未上传文件', ja: 'ファイルはまだありません', kz: 'Файлдар жүктелмеген' },
-  maxSize: { ko: '최대 20MB', en: 'Max 20MB', ru: 'Макс. 20МБ', zh: '最大20MB', ja: '最大20MB', kz: 'Макс. 20МБ' },
-  formats: { ko: 'PDF, JPEG, PNG, WebP', en: 'PDF, JPEG, PNG, WebP', ru: 'PDF, JPEG, PNG, WebP', zh: 'PDF, JPEG, PNG, WebP', ja: 'PDF, JPEG, PNG, WebP', kz: 'PDF, JPEG, PNG, WebP' },
-  myDocs: { ko: '내 문서', en: 'My Documents', ru: 'Мои документы', zh: '我的文档', ja: 'マイ書類', kz: 'Менің құжаттарым' },
-  loading: { ko: '로딩 중...', en: 'Loading...', ru: 'Загрузка...', zh: '加载中...', ja: '読み込み中...', kz: 'Жүктелуде...' },
-  selectConsult: { ko: '연결할 상담', en: 'Linked consultation', ru: 'Связанная консультация', zh: '关联咨询', ja: '関連相談', kz: 'Байланысты кеңес' },
-  noConsult: { ko: '먼저 사전상담을 신청하세요', en: 'Please request a pre-consultation first', ru: 'Сначала запросите консультацию', zh: '请先申请预咨询', ja: 'まず事前相談を申請してください', kz: 'Алдымен кеңес сұраңыз' },
-  noConsultDesc: { ko: '의료 문서는 상담과 연결되어 저장됩니다.', en: 'Medical documents are linked to a consultation.', ru: 'Документы привязываются к консультации.', zh: '医疗文档与咨询关联。', ja: '書類は相談と紐付きます。', kz: 'Құжаттар кеңеспен байланысады.' },
-  requestConsult: { ko: '사전상담 신청', en: 'Request Consultation', ru: 'Запросить консультацию', zh: '申请咨询', ja: '相談を申請', kz: 'Кеңес сұрау' },
-  loginRequired: { ko: '로그인이 필요합니다', en: 'Login required', ru: 'Требуется вход', zh: '需要登录', ja: 'ログインが必要です', kz: 'Кіру қажет' },
-};
-
+// DB document_type 코드 → 표시 라벨 키(중앙 사전)
 const DOC_TYPES = [
-  { value: 'medical_record', label: { ko: '진단서', en: 'Medical Record', ru: 'Медицинская запись', zh: '病历', ja: '診断書', kz: 'Медициналық жазба' } },
-  { value: 'test_result', label: { ko: '검사 결과', en: 'Test Result', ru: 'Результат анализа', zh: '检查结果', ja: '検査結果', kz: 'Талдау нәтижесі' } },
-  { value: 'imaging', label: { ko: '영상 (CT/MRI)', en: 'Imaging (CT/MRI)', ru: 'Снимки (КТ/МРТ)', zh: '影像(CT/MRI)', ja: '画像(CT/MRI)', kz: 'Бейнелер (КТ/МРТ)' } },
-  { value: 'prescription', label: { ko: '처방전', en: 'Prescription', ru: 'Рецепт', zh: '处方', ja: '処方箋', kz: 'Рецепт' } },
-  { value: 'other', label: { ko: '기타', en: 'Other', ru: 'Другое', zh: '其他', ja: 'その他', kz: 'Басқа' } },
+  { value: 'medical_record', label: 'patientDocs.docTypes.medicalRecord' },
+  { value: 'test_result', label: 'patientDocs.docTypes.testResult' },
+  { value: 'imaging', label: 'patientDocs.docTypes.imaging' },
+  { value: 'prescription', label: 'patientDocs.docTypes.prescription' },
+  { value: 'other', label: 'patientDocs.docTypes.other' },
 ];
 
 function formatFileSize(bytes) {
@@ -44,19 +23,18 @@ function formatFileSize(bytes) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-// 상담 유형 라벨 — 6개 활성언어(ko·en·ru·kz·zh·ja)
+// 상담 유형(DB session_type 코드) → 표시 라벨 키(중앙 사전, 6개 활성언어 ko·en·ru·kz·zh·ja)
 const SESSION_LABELS = {
-  pre_consultation: { ko: '사전상담', en: 'Pre-consultation', ru: 'Предварительная консультация', kz: 'Алдын ала кеңес', zh: '术前咨询', ja: '事前相談' },
-  follow_up: { ko: '추후진료', en: 'Follow-up', ru: 'Повторный приём', kz: 'Қайталама қабылдау', zh: '复诊', ja: '再診' },
-  emergency: { ko: '긴급상담', en: 'Emergency', ru: 'Экстренная консультация', kz: 'Шұғыл кеңес', zh: '紧急咨询', ja: '緊急相談' },
-  consultation: { ko: '상담', en: 'Consultation', ru: 'Консультация', kz: 'Кеңес', zh: '咨询', ja: '相談' },
+  pre_consultation: 'patientDocs.session.preConsultation',
+  follow_up: 'patientDocs.session.followUp',
+  emergency: 'patientDocs.session.emergency',
+  consultation: 'patientDocs.session.consultation',
 };
 
 export default function DocumentsClient() {
   const router = useRouter();
   const lang = useLang();
-  const l = (obj) => obj?.[lang] || obj?.['en'] || '';
-  const sessionLabel = (type) => l(SESSION_LABELS[type] || SESSION_LABELS.consultation);
+  const sessionLabel = (type) => t(SESSION_LABELS[type] || SESSION_LABELS.consultation, lang);
 
   const [authChecked, setAuthChecked] = useState(false);
   const [authed, setAuthed] = useState(false);
@@ -114,17 +92,17 @@ export default function DocumentsClient() {
   const handleUpload = async (file) => {
     if (!file) return;
     if (!selectedConsultId) {
-      setMessage({ type: 'error', text: l(LABELS.noConsult) });
+      setMessage({ type: 'error', text: t('patientDocs.noConsult', lang) });
       return;
     }
 
     const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'];
     if (!allowedTypes.includes(file.type)) {
-      setMessage({ type: 'error', text: `${l(LABELS.error)}: ${l(LABELS.formats)}` });
+      setMessage({ type: 'error', text: `${t('patientDocs.error', lang)}: ${t('patientDocs.formats', lang)}` });
       return;
     }
     if (file.size > 20 * 1024 * 1024) {
-      setMessage({ type: 'error', text: `${l(LABELS.error)}: ${l(LABELS.maxSize)}` });
+      setMessage({ type: 'error', text: `${t('patientDocs.error', lang)}: ${t('patientDocs.maxSize', lang)}` });
       return;
     }
 
@@ -148,14 +126,14 @@ export default function DocumentsClient() {
       });
       const result = await res.json();
       if (result.ok) {
-        setMessage({ type: 'success', text: l(LABELS.success) });
+        setMessage({ type: 'success', text: t('patientDocs.success', lang) });
         setDescription('');
         fetchDocuments();
       } else {
-        setMessage({ type: 'error', text: `${l(LABELS.error)}: ${result.error}` });
+        setMessage({ type: 'error', text: `${t('patientDocs.error', lang)}: ${result.error}` });
       }
     } catch (_e) {
-      setMessage({ type: 'error', text: l(LABELS.error) });
+      setMessage({ type: 'error', text: t('patientDocs.error', lang) });
     }
     setUploading(false);
   };
@@ -185,8 +163,8 @@ export default function DocumentsClient() {
   if (!authed) {
     return (
       <main className="max-w-md mx-auto px-4 py-20 text-center">
-        <h1 className="text-2xl font-bold mb-4">{l(LABELS.title)}</h1>
-        <p className="text-gray-500 mb-6">{l(LABELS.loginRequired)}</p>
+        <h1 className="text-2xl font-bold mb-4">{t('patientDocs.title', lang)}</h1>
+        <p className="text-gray-500 mb-6">{t('patientDocs.loginRequired', lang)}</p>
         <button
           onClick={() => router.push('/login')}
           className="bg-teal-700 text-white font-semibold px-6 py-3 rounded-xl hover:bg-teal-800 transition"
@@ -198,23 +176,23 @@ export default function DocumentsClient() {
   }
 
   return (
-    <main className="max-w-3xl mx-auto px-4 py-6" aria-label={l(LABELS.title)}>
+    <main className="max-w-3xl mx-auto px-4 py-6" aria-label={t('patientDocs.title', lang)}>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">{l(LABELS.title)}</h1>
-        <p className="text-gray-500 text-sm mt-1">{l(LABELS.subtitle)}</p>
+        <h1 className="text-2xl font-bold text-gray-900">{t('patientDocs.title', lang)}</h1>
+        <p className="text-gray-500 text-sm mt-1">{t('patientDocs.subtitle', lang)}</p>
       </div>
 
       {/* No consultation yet */}
       {consultations.length === 0 ? (
         <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6 mb-6 text-center">
           <AlertCircle size={36} className="text-amber-500 mx-auto mb-3" />
-          <p className="font-semibold text-amber-900 mb-1">{l(LABELS.noConsult)}</p>
-          <p className="text-sm text-amber-700 mb-4">{l(LABELS.noConsultDesc)}</p>
+          <p className="font-semibold text-amber-900 mb-1">{t('patientDocs.noConsult', lang)}</p>
+          <p className="text-sm text-amber-700 mb-4">{t('patientDocs.noConsultDesc', lang)}</p>
           <button
             onClick={() => router.push('/inquiry')}
             className="bg-teal-700 text-white font-semibold px-5 py-2.5 rounded-xl hover:bg-teal-800 transition text-sm"
           >
-            {l(LABELS.requestConsult)}
+            {t('patientDocs.requestConsult', lang)}
           </button>
         </div>
       ) : (
@@ -222,7 +200,7 @@ export default function DocumentsClient() {
           {/* Consultation picker */}
           <div className="mb-4">
             <label htmlFor="consult-picker" className="block text-xs font-semibold text-gray-700 mb-1.5">
-              {l(LABELS.selectConsult)}
+              {t('patientDocs.selectConsult', lang)}
             </label>
             <div className="relative">
               <select
@@ -249,7 +227,7 @@ export default function DocumentsClient() {
           <div
             role="button"
             tabIndex={0}
-            aria-label={l(LABELS.dragDrop)}
+            aria-label={t('patientDocs.dragDrop', lang)}
             onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
             onDragLeave={() => setDragOver(false)}
             onDrop={handleDrop}
@@ -260,8 +238,8 @@ export default function DocumentsClient() {
             }`}
           >
             <Upload size={36} className="text-gray-400 mx-auto mb-3" />
-            <p className="text-sm font-semibold mb-1">{l(LABELS.dragDrop)}</p>
-            <p className="text-xs text-gray-500">{l(LABELS.formats)} · {l(LABELS.maxSize)}</p>
+            <p className="text-sm font-semibold mb-1">{t('patientDocs.dragDrop', lang)}</p>
+            <p className="text-xs text-gray-500">{t('patientDocs.formats', lang)} · {t('patientDocs.maxSize', lang)}</p>
             <input
               ref={fileRef}
               type="file"
@@ -275,7 +253,7 @@ export default function DocumentsClient() {
           {/* Options */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
             <div className="sm:col-span-1">
-              <label htmlFor="doc-type" className="block text-xs font-semibold text-gray-700 mb-1.5">{l(LABELS.docType)}</label>
+              <label htmlFor="doc-type" className="block text-xs font-semibold text-gray-700 mb-1.5">{t('patientDocs.docType', lang)}</label>
               <select
                 id="doc-type"
                 value={docType}
@@ -283,18 +261,18 @@ export default function DocumentsClient() {
                 className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:border-teal-500 focus:ring-2 focus:ring-teal-100 outline-none"
               >
                 {DOC_TYPES.map((dt) => (
-                  <option key={dt.value} value={dt.value}>{l(dt.label)}</option>
+                  <option key={dt.value} value={dt.value}>{t(dt.label, lang)}</option>
                 ))}
               </select>
             </div>
             <div className="sm:col-span-2">
-              <label htmlFor="doc-desc" className="block text-xs font-semibold text-gray-700 mb-1.5">{l(LABELS.description)}</label>
+              <label htmlFor="doc-desc" className="block text-xs font-semibold text-gray-700 mb-1.5">{t('patientDocs.description', lang)}</label>
               <input
                 id="doc-desc"
                 type="text"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder={l(LABELS.descPlaceholder)}
+                placeholder={t('patientDocs.descPlaceholder', lang)}
                 className="w-full bg-white border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:border-teal-500 focus:ring-2 focus:ring-teal-100 outline-none"
               />
             </div>
@@ -302,7 +280,7 @@ export default function DocumentsClient() {
 
           {uploading && (
             <div className="text-center py-3 text-teal-700 font-medium text-sm">
-              {l(LABELS.uploading)}
+              {t('patientDocs.uploading', lang)}
             </div>
           )}
           {message && (
@@ -318,12 +296,12 @@ export default function DocumentsClient() {
       )}
 
       {/* Document List */}
-      <h2 className="text-lg font-semibold text-gray-900 mt-6 mb-3">{l(LABELS.myDocs)}</h2>
+      <h2 className="text-lg font-semibold text-gray-900 mt-6 mb-3">{t('patientDocs.myDocs', lang)}</h2>
 
       {documents.length === 0 ? (
         <div className="text-center py-10 bg-gray-50 rounded-2xl text-gray-500 text-sm">
           <FileText size={32} className="text-gray-300 mx-auto mb-2" />
-          {l(LABELS.noFiles)}
+          {t('patientDocs.noFiles', lang)}
         </div>
       ) : (
         <div className="flex flex-col gap-2">
@@ -335,7 +313,7 @@ export default function DocumentsClient() {
               <div className="min-w-0 flex-1">
                 <div className="font-medium text-sm text-gray-900 truncate">{doc.file_name}</div>
                 <div className="text-xs text-gray-500 mt-1">
-                  {l(DOC_TYPES.find((dt) => dt.value === doc.document_type)?.label || DOC_TYPES[4].label)}
+                  {t(DOC_TYPES.find((dt) => dt.value === doc.document_type)?.label || DOC_TYPES[4].label, lang)}
                   {' · '}
                   {formatFileSize(doc.file_size)}
                   {doc.description && ` · ${doc.description}`}

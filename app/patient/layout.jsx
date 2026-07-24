@@ -3,30 +3,29 @@
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { getLangCodeFromCookie } from '@/lib/i18n';
+import { getLangCodeFromCookie, t } from '@/lib/i18n';
 import {
   Home, FileText, BookOpen, Activity, Calendar, Globe,
   MoreHorizontal, X, ShieldCheck, Phone,
 } from 'lucide-react';
 import PatientNotificationBell from '@/components/patient/PatientNotificationBell';
 
+// 탭 라벨은 중앙 i18n 사전 patientLayout.tab.* 키(6개 활성언어 ko·en·ru·kz·zh·ja)
 const PRIMARY_TABS = [
-  { href: '/patient', icon: Home, label: { ko: '홈', en: 'Home', ru: 'Главная', kz: 'Басты', zh: '首页', ja: 'ホーム' } },
-  { href: '/patient/documents', icon: FileText, label: { ko: '문서', en: 'Docs', ru: 'Документы', kz: 'Құжаттар', zh: '文档', ja: '文書' } },
+  { href: '/patient', icon: Home, labelKey: 'patientLayout.tab.home' },
+  { href: '/patient/documents', icon: FileText, labelKey: 'patientLayout.tab.docs' },
 ];
 
 const MORE_TABS = [
-  { href: '/education', icon: BookOpen, label: { ko: '암 치료 가이드', en: 'Cancer Guide', ru: 'Гид по лечению', kz: 'Емдеу нұсқаулығы', zh: '癌症治疗指南', ja: 'がん治療ガイド' } },
-  { href: '/patient/symptoms', icon: Activity, label: { ko: '증상 기록', en: 'Symptoms', ru: 'Симптомы', kz: 'Белгілер', zh: '症状', ja: '症状' } },
-  { href: '/patient/rebooking', icon: Calendar, label: { ko: '재진 예약', en: 'Rebooking', ru: 'Запись', kz: 'Қайта жазу', zh: '复诊', ja: '再診' } },
-  { href: '/visa', icon: Globe, label: { ko: '비자 가이드', en: 'Visa Guide', ru: 'Виза', kz: 'Виза', zh: '签证指南', ja: 'ビザ' } },
-  { href: '/patient/account', icon: ShieldCheck, label: { ko: '계정·개인정보', en: 'Account & Privacy', ru: 'Аккаунт', kz: 'Аккаунт', zh: '账户与隐私', ja: 'アカウント' } },
+  { href: '/education', icon: BookOpen, labelKey: 'patientLayout.tab.cancerGuide' },
+  { href: '/patient/symptoms', icon: Activity, labelKey: 'patientLayout.tab.symptoms' },
+  { href: '/patient/rebooking', icon: Calendar, labelKey: 'patientLayout.tab.rebooking' },
+  { href: '/visa', icon: Globe, labelKey: 'patientLayout.tab.visaGuide' },
+  { href: '/patient/account', icon: ShieldCheck, labelKey: 'patientLayout.tab.account' },
   // 응급 동선. 상시 노출(플로팅 버튼·헤더 전화번호)은 DESIGN.md brand_misuse 금지라
   // 「더보기」 안에 둔다 — 착지점 상단에 걸 수 있는 번호가 있다.
-  { href: '/medical-disclaimer', icon: Phone, label: { ko: '응급 연락처', en: 'Emergency Numbers', ru: 'Экстренные службы', kz: 'Төтенше нөмірлер', zh: '紧急电话', ja: '緊急連絡先' } },
+  { href: '/medical-disclaimer', icon: Phone, labelKey: 'patientLayout.tab.emergency' },
 ];
-
-const MORE_LABEL = { ko: '더보기', en: 'More', ru: 'Ещё', kz: 'Көбірек', zh: '更多', ja: 'もっと' };
 
 export default function PatientLayout({ children }) {
   const pathname = usePathname();
@@ -73,7 +72,7 @@ export default function PatientLayout({ children }) {
           className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-white rounded-t-2xl shadow-2xl animate-in slide-in-from-bottom duration-300 pb-safe"
         >
           <div className="flex items-center justify-between px-5 pt-4 pb-2">
-            <span className="text-sm font-semibold text-gray-500">{l(MORE_LABEL)}</span>
+            <span className="text-sm font-semibold text-gray-500">{t("patientLayout.more", lang)}</span>
             <button
               onClick={() => setMoreOpen(false)}
               className="p-1.5 rounded-full hover:bg-gray-100 transition"
@@ -136,7 +135,7 @@ export default function PatientLayout({ children }) {
             <div className={`p-1 rounded-lg transition-all ${isMoreActive || moreOpen ? 'bg-teal-50' : ''}`}>
               <MoreHorizontal size={22} strokeWidth={isMoreActive || moreOpen ? 2.5 : 2} />
             </div>
-            <span className="text-[10px] font-medium leading-tight">{l(MORE_LABEL)}</span>
+            <span className="text-[10px] font-medium leading-tight">{t("patientLayout.more", lang)}</span>
           </button>
         </div>
       </nav>

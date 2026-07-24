@@ -77,42 +77,28 @@ const ICON_MAP = { FileText, Shield, Video, Heart, Globe, Clock, Leaf, Stethosco
 
 // 면력한방병원 4개 지점 대표원장 (강서·신촌·광명·성동 — 전 지점 외국인환자 유치의료기관 등록)
 // 📸 사진은 면력한방병원 공식 사이트에서 가져옴 (self-host, public/immune/doctor/)
-const DOCTORS_DATA = [
-  { name: { ko: "황이준 대표원장", en: "Dr. Hwang Yi-jun", ru: "Д-р Хван Иджун", kz: "Д-р Хван Иджун", zh: "黄以准 代表院长", ja: "黄以準 代表院長" }, title: { ko: "면력한방병원 강서점 대표원장", en: "Chief Director, Immune Hospital Gangseo", ru: "Главный директор, Иммунная Клиника Кансо", kz: "Бас директор, Иммунная Клиника Кансо", zh: "免疫医院 江西 代表院长", ja: "免疫病院 江西 代表院長" }, specialty: { ko: "한방 면역 종양학 · 통합 암 케어", en: "Korean Medicine Immuno-Oncology", ru: "Иммуноонкология корейской медицины", kz: "Корей медицинасы иммуноонкологиясы", zh: "韩方免疫肿瘤学", ja: "韓方免疫腫瘍学" }, exp: "", img: "/immune/doctor/gangeo-dr-hwang-ijun.png" },
-  { name: { ko: "유형진 대표원장", en: "Dr. Yu Hyung-jin", ru: "Д-р Ю Хёнджин", kz: "Д-р Ю Хёнджин", zh: "柳炯进 代表院长", ja: "柳炯進 代表院長" }, title: { ko: "면력한방병원 신촌점 대표원장", en: "Chief Director, Immune Hospital Sinchon", ru: "Главный директор, Иммунная Клиника Синчхон", kz: "Бас директор, Иммунная Клиника Синчхон", zh: "免疫医院 新村 代表院长", ja: "免疫病院 新村 代表院長" }, specialty: { ko: "한방 면역 치료 · 암 통합 케어", en: "Korean Medicine Immunotherapy · Cancer Care", ru: "Иммунотерапия · Онкологическая помощь", kz: "Иммунотерапия · Онкологиялық көмек", zh: "韩方免疫治疗 · 癌症综合护理", ja: "韓方免疫治療 · がん統合ケア" }, exp: "", img: "/immune/doctor/sinchon-dr-yoo-hyeongjin.png" },
-  { name: { ko: "배길준 대표원장", en: "Dr. Bae Gil-jun", ru: "Д-р Пэ Гильчжун", kz: "Д-р Пэ Гильчжун", zh: "裴吉俊 代表院长", ja: "裴吉俊 代表院長" }, title: { ko: "면력한방병원 광명점 대표원장", en: "Chief Director, Immune Hospital Gwangmyeong", ru: "Главный директор, Иммунная Клиника Кванмён", kz: "Бас директор, Иммунная Клиника Кванмён", zh: "免疫医院 光明 代表院长", ja: "免疫病院 光明 代表院長" }, specialty: { ko: "통합면역 · 암환자 케어", en: "Integrative Immunology · Cancer Care", ru: "Интегративная иммунология · Помощь онкопациентам", kz: "Интегративті иммунология · Онкологиялық көмек", zh: "综合免疫 · 癌症患者护理", ja: "統合免疫 · がん患者ケア" }, exp: "", img: "/immune/doctor/gwangmyeong-dr-bae-giljun.png" },
-  { name: { ko: "강주안 대표원장", en: "Dr. Kang Ju-an", ru: "Д-р Кан Джуан", kz: "Д-р Кан Джуан", zh: "姜周安 代表院长", ja: "姜周安 代表院長" }, title: { ko: "면력한방병원 성동점 대표원장", en: "Chief Director, Immune Hospital Seongdong", ru: "Главный директор, Иммунная Клиника Сондон", kz: "Бас директор, Иммунная Клиника Сондон", zh: "免疫医院 城东 代表院长", ja: "免疫病院 城東 代表院長" }, specialty: { ko: "한방내과 · 면역통합의학", en: "Korean Internal Medicine · Integrative Immunology", ru: "Корейская внутренняя медицина · Интегративная иммунология", kz: "Корей ішкі медицинасы · Интегративті иммунология", zh: "韩方内科 · 综合免疫医学", ja: "韓方内科 · 免疫統合医学" }, exp: "", img: "/immune/doctor/seongdong-dr-kang-juan.png" },
+// 문구(이름·직함·전문분야)는 HOME_CONTENT.doctors.items — 코디 콘텐츠 편집기에서 수정.
+// 여기엔 사진 등 비문구 메타만 (HOME_CONTENT.doctors.items 와 순서 일치 필수).
+const DOCTORS_META = [
+  { img: "/immune/doctor/gangeo-dr-hwang-ijun.png" },
+  { img: "/immune/doctor/sinchon-dr-yoo-hyeongjin.png" },
+  { img: "/immune/doctor/gwangmyeong-dr-bae-giljun.png" },
+  { img: "/immune/doctor/seongdong-dr-kang-juan.png" },
 ];
 
 // 📸 교체 대상: 병원 로고 이미지 — 실제 로고 URL로 교체
-const PARTNERS_DATA = [
-  // 면력한방병원 3개 지점 (제휴 병원) — 공식 사이트 이미지
-  { slug: "immunehospital-magok", badge: "partner", name: { ko: "면력한방병원 강서점", en: "Immune Hospital Gangseo", ru: "Иммунная Клиника Кансо", kz: "Иммунная Клиника Кансо", zh: "免疫医院 江西院", ja: "免疫病院 江西院" }, desc: { ko: "강서 소재 한방 면역치료 병원", en: "Korean Medicine immunotherapy in Gangseo", ru: "Иммунотерапия корейской медицины в Кансо", kz: "Кансодағы корей медицинасы иммунотерапиясы", zh: "江西韩方免疫治疗医院", ja: "江西の韓方免疫治療病院" }, img: "/images/hospitals/immunehospital-magok/1.jpg?v=3" },
-  { slug: "immunehospital-sinchon", badge: "partner", name: { ko: "면력한방병원 신촌점", en: "Immune Hospital Sinchon", ru: "Иммунная Клиника Синчхон", kz: "Иммунная Клиника Синчон", zh: "免疫医院 新村院", ja: "免疫病院 新村院" }, desc: { ko: "서대문구 연세로 소재", en: "On Yonsei-ro, Seodaemun-gu", ru: "На Ёнсе-ро, Содэмун-гу", kz: "Ёнсе-ро, Содэмун-гу", zh: "位于延世路", ja: "延世路に位置" }, img: "/images/hospitals/immunehospital-sinchon/1.jpg?v=3" },
-  { slug: "immunehospital-gwangmyeong", badge: "partner", name: { ko: "면력한방병원 광명점", en: "Immune Hospital Gwangmyeong", ru: "Иммунная Клиника Кванмён", kz: "Иммунная Клиника Кванмён", zh: "免疫医院 光明院", ja: "免疫病院 光明院" }, desc: { ko: "광명 철산동 소재", en: "In Cheolsan-dong, Gwangmyeong", ru: "Чхольсан-дон, Кванмён", kz: "Кванмён, Чхольсан-дон", zh: "位于光明市铁山洞", ja: "光明市鉄山洞に位置" }, img: "/images/hospitals/immunehospital-gwangmyeong/1.jpg?v=3" },
-  { slug: "immunehospital-seongdong", badge: "partner", name: { ko: "면력한방병원 성동점", en: "Immune Hospital Seongdong", ru: "Иммунная Клиника Сондон", kz: "Иммунная Клиника Сондон", zh: "免疫医院 城东院", ja: "免疫病院 城東院" }, desc: { ko: "서울 성동구 신규 개원", en: "Newly opened in Seongdong-gu, Seoul", ru: "Недавно открыт в Сондон-гу, Сеул", kz: "Сеул Сондон-гуда жаңадан ашылды", zh: "首尔城东区新开院", ja: "ソウル城東区に新規開院" }, img: "/images/hospitals/immunehospital-seongdong/1.jpg?v=3" },
-  // 협진 대학병원 4곳
-  { slug: "ewha-seoul", badge: "university", name: { ko: "이대서울병원", en: "Ewha Seoul Hospital", ru: "Больница Ихва Сеул", kz: "Ихва Сеул ауруханасы", zh: "梨大首尔医院", ja: "梨大ソウル病院" }, desc: { ko: "서울 마곡 소재 최신 대학병원", en: "Modern university hospital in Magok, Seoul", ru: "Современная больница в Магоке", kz: "Магоктағы заманауи аурухана", zh: "首尔麻谷现代化大学医院", ja: "ソウル麻谷の最新大学病院" }, img: "/images/hospitals/ewha-seoul/1.jpg?v=3" },
-  { slug: "ewha-mokdong", badge: "university", name: { ko: "이대목동병원", en: "Ewha Mokdong Hospital", ru: "Больница Ихва Мокдон", kz: "Ихва Мокдон ауруханасы", zh: "梨大木洞医院", ja: "梨大木洞病院" }, desc: { ko: "이화여자대학교 의료원 목동", en: "Ewha Medical Center, Mokdong", ru: "Медицинский центр Ихва, Мокдон", kz: "Ихва медициналық орталығы, Мокдон", zh: "梨花医疗院木洞", ja: "梨花医療院木洞" }, img: "/images/hospitals/ewha-mokdong/1.jpg?v=3" },
-  { slug: "korea-guro", badge: "university", name: { ko: "고려대 구로병원", en: "Korea Univ. Guro Hospital", ru: "Больница Куро", kz: "Куро ауруханасы", zh: "高丽大九老医院", ja: "高麗大九老病院" }, desc: { ko: "고려대학교 의과대학 부속", en: "Korea University College of Medicine", ru: "При медфакультете Корёского университета", kz: "Корё университеті медицина факультеті", zh: "高丽大学医学院附属", ja: "高麗大学医学部附属" }, img: "/images/hospitals/korea-guro/1.jpg?v=3" },
-  { slug: "severance-sinchon", badge: "university", name: { ko: "신촌세브란스병원", en: "Severance Hospital", ru: "Больница Северанс", kz: "Северанс ауруханасы", zh: "世福兰斯医院", ja: "セブランス病院" }, desc: { ko: "연세대학교 세브란스병원", en: "Yonsei University Severance Hospital", ru: "Больница Северанс университета Ёнсе", kz: "Ёнсе университетінің Северанс ауруханасы", zh: "延世大学世福兰斯医院", ja: "延世大学セブランス病院" }, img: "/images/hospitals/severance-sinchon/1.jpg?v=3" },
+// 문구(병원명·설명)는 HOME_CONTENT.partners.items — 코디 콘텐츠 편집기에서 수정.
+// 여기엔 slug·배지·이미지 등 비문구 메타만 (HOME_CONTENT.partners.items 와 순서 일치 필수).
+const PARTNERS_META = [
+  { slug: "immunehospital-magok", badge: "partner", img: "/images/hospitals/immunehospital-magok/1.jpg?v=3" },
+  { slug: "immunehospital-sinchon", badge: "partner", img: "/images/hospitals/immunehospital-sinchon/1.jpg?v=3" },
+  { slug: "immunehospital-gwangmyeong", badge: "partner", img: "/images/hospitals/immunehospital-gwangmyeong/1.jpg?v=3" },
+  { slug: "immunehospital-seongdong", badge: "partner", img: "/images/hospitals/immunehospital-seongdong/1.jpg?v=3" },
+  { slug: "ewha-seoul", badge: "university", img: "/images/hospitals/ewha-seoul/1.jpg?v=3" },
+  { slug: "ewha-mokdong", badge: "university", img: "/images/hospitals/ewha-mokdong/1.jpg?v=3" },
+  { slug: "korea-guro", badge: "university", img: "/images/hospitals/korea-guro/1.jpg?v=3" },
+  { slug: "severance-sinchon", badge: "university", img: "/images/hospitals/severance-sinchon/1.jpg?v=3" },
 ];
-
-// FAQ 데이터 (실제 내용 — 교체 불필요)
-const FAQ_DATA = {
-  general: [
-    { q: { ko: "healwith는 어떤 서비스인가요?", en: "What is healwith?", ru: "Что такое healwith?", kz: "healwith дегеніміз не?", zh: "healwith是什么？", ja: "healwithとは？" }, a: { ko: "healwith는 해외 암환자가 한국 전문의와 원격 화상 사전상담을 받고, 한국 방문 치료 및 사후관리까지 원스톱으로 지원받을 수 있는 ICT 플랫폼입니다.", en: "healwith is an ICT platform that enables international cancer patients to receive remote video pre-consultations with Korean specialists, with one-stop support from treatment to follow-up care.", ru: "healwith — это ИКТ-платформа для дистанционных видеоконсультаций с корейскими онкологами и комплексной поддержки от лечения до послеоперационного наблюдения.", kz: "healwith — кореялық мамандармен қашықтан бейне кеңес алуға арналған ICT платформасы.", zh: "healwith是帮助海外癌症患者与韩国专家进行远程视频预咨询的ICT平台，提供从治疗到术后管理的一站式支持。", ja: "healwithは海外がん患者が韓国の専門医とリモートビデオ事前相談を受け、治療からフォローアップまでワンストップで支援するICTプラットフォームです。" } },
-    { q: { ko: "비용이 발생하나요?", en: "Is there any cost?", ru: "Это платно?", kz: "Ақылы ма?", zh: "需要费用吗？", ja: "費用はかかりますか？" }, a: { ko: "사전상담 접수와 전문의 상담 배정은 무료입니다. 실제 화상 상담 및 치료 비용은 별도이며, 상담 전 안내해드립니다.", en: "Intake submission and specialist consultation arrangement are free. Video consultation and treatment costs are separate and will be communicated beforehand.", ru: "Подача заявки и организация консультации специалиста бесплатны. Стоимость консультации и лечения сообщается заранее.", kz: "Өтінім беру және маман кеңесін ұйымдастыру тегін. Кеңес және ем құны алдын ала хабарланады.", zh: "提交资料和专家咨询安排是免费的。视频咨询和治疗费用另计，会提前告知。", ja: "インテーク提出と専門医相談の手配は無料です。ビデオ相談・治療費用は別途、事前にご案内します。" } },
-  ],
-  consultation: [
-    { q: { ko: "상담은 어떻게 진행되나요?", en: "How does the consultation work?", ru: "Как проходит консультация?", kz: "Кеңес қалай жүргізіледі?", zh: "咨询如何进行？", ja: "相談はどのように進みますか？" }, a: { ko: "인테이크 양식을 제출하면 24시간 이내에 전문의 상담을 배정해드립니다. 이후 화상 통화로 AI 실시간 통역과 함께 상담이 진행됩니다.", en: "After submitting your intake form, we arrange a specialist consultation within 24 hours. The consultation is conducted via video call with AI real-time interpretation.", ru: "После подачи анкеты мы организуем консультацию специалиста в течение 24 часов. Консультация проходит по видеосвязи с ИИ-переводом.", kz: "Сауалнаманы жібергеннен кейін 24 сағат ішінде маман кеңесін ұйымдастырамыз. Кеңес AI аудармамен бейне байланыс арқылы жүргізіледі.", zh: "提交资料后24小时内为您安排专家咨询。咨询通过视频通话进行，配有AI实时翻译。", ja: "問診票提出後24時間以内に専門医相談を手配します。AI通訳付きビデオ通話で相談が行われます。" } },
-    { q: { ko: "어떤 언어로 상담할 수 있나요?", en: "What languages are supported?", ru: "На каких языках?", kz: "Қандай тілдерде?", zh: "支持哪些语言？", ja: "対応言語は？" }, a: { ko: "한국어, 영어, 러시아어, 중국어, 일본어, 카자흐어 총 6개 언어를 AI 실시간 통역으로 지원합니다.", en: "We support 6 languages: Korean, English, Russian, Chinese, Japanese, and Kazakh with AI real-time interpretation.", ru: "Мы поддерживаем 6 языков: корейский, английский, русский, китайский, японский и казахский.", kz: "6 тілді қолдаймыз: корей, ағылшын, орыс, қытай, жапон және қазақ.", zh: "支持6种语言：韩语、英语、俄语、中文、日语、哈萨克语，配有AI实时翻译。", ja: "韓国語・英語・ロシア語・中国語・日本語・カザフ語の6言語をAI通訳で対応します。" } },
-  ],
-  cost: [
-    { q: { ko: "한국 치료비는 얼마나 드나요?", en: "How much does treatment in Korea cost?", ru: "Сколько стоит лечение в Корее?", kz: "Кореядағы ем қанша тұрады?", zh: "韩国治疗费用是多少？", ja: "韓国の治療費はいくらですか？" }, a: { ko: "일반적으로 미국 대비 1/3 수준이며, 암종과 치료 방법에 따라 다릅니다. 사전상담 시 예상 비용을 안내해드립니다.", en: "Generally about 1/3 of US costs, varying by cancer type and treatment. Estimated costs are provided during pre-consultation.", ru: "Обычно около 1/3 стоимости в США. Точная стоимость зависит от типа рака и лечения.", kz: "АҚШ құнының шамамен 1/3. Нақты құн рак түрі мен емге байланысты.", zh: "通常约为美国费用的1/3，具体取决于癌症类型和治疗方案。预咨询时会提供预估费用。", ja: "一般的に米国の約1/3で、がん種と治療法により異なります。事前相談時に概算費用をご案内します。" } },
-    { q: { ko: "비자는 어떻게 준비하나요?", en: "How do I prepare my visa?", ru: "Как подготовить визу?", kz: "Визаны қалай дайындауға болады?", zh: "如何准备签证？", ja: "ビザはどう準備しますか？" }, a: { ko: "단기 치료는 C-3-3(의료관광) 비자, 장기 치료는 G-1-10 비자가 필요합니다. healwith가 비자 유형 안내 및 필요 서류 체크리스트를 제공합니다.", en: "Short-term treatment requires a C-3-3 (medical tourism) visa, long-term requires G-1-10. healwith provides visa type guidance and document checklists.", ru: "Краткосрочное лечение — виза C-3-3, долгосрочное — G-1-10. healwith предоставляет рекомендации по визам.", kz: "Қысқа мерзімді ем — C-3-3 визасы, ұзақ мерзімді — G-1-10. healwith виза бойынша кеңес береді.", zh: "短期治疗需要C-3-3（医疗旅游）签证，长期治疗需要G-1-10签证。healwith提供签证类型指南和文件清单。", ja: "短期治療はC-3-3（医療観光）ビザ、長期はG-1-10ビザが必要です。healwithがビザ案内と必要書類チェックリストを提供します。" } },
-  ],
-};
 
 /* ═══════════════════════════════════════════════════════
    COMPONENT
@@ -186,7 +172,7 @@ export default function HomeClient({ content } = {}) {
 
       {/* ══════════════════════════════════════════
           DOCTORS — 협력 의료진
-          📸 교체 방법: DOCTORS_DATA 배열에서 img, name, title, specialty 수정
+          📸 사진 교체: DOCTORS_META 배열. 문구(이름·직함·전문분야)는 코디 콘텐츠 편집기에서
           ══════════════════════════════════════════ */}
       <section className="bg-slate-50 py-10 md:py-16">
         <div className="max-w-6xl mx-auto px-4">
@@ -195,11 +181,11 @@ export default function HomeClient({ content } = {}) {
             <p className="text-gray-500 text-sm md:text-base max-w-2xl mx-auto whitespace-pre-line">{l(L.doctors.subtitle)}</p>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-6">
-            {DOCTORS_DATA.map((doc, i) => (
+            {(L.doctors.items || []).map((doc, i) => (
               <div key={i} className="bg-white rounded-xl md:rounded-2xl overflow-hidden border border-gray-100 hover:shadow-md transition-all duration-200 group">
                 <div className="aspect-square overflow-hidden bg-gray-100">
                   <img
-                    src={doc.img}
+                    src={DOCTORS_META[i]?.img}
                     alt={l(doc.name)}
                     loading="lazy"
                     decoding="async"
@@ -311,7 +297,7 @@ export default function HomeClient({ content } = {}) {
 
       {/* ══════════════════════════════════════════
           PARTNER HOSPITALS
-          📸 교체 방법: PARTNERS_DATA 배열에서 img, name, desc 수정
+          📸 사진 교체: PARTNERS_META 배열. 문구(병원명·설명)는 코디 콘텐츠 편집기에서
           ══════════════════════════════════════════ */}
       <section className="bg-slate-50 py-10 md:py-16">
         <div className="max-w-6xl mx-auto px-4">
@@ -320,8 +306,9 @@ export default function HomeClient({ content } = {}) {
             <p className="text-gray-500 text-sm md:text-base max-w-2xl mx-auto whitespace-pre-line">{l(L.partners.subtitle)}</p>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 md:gap-5">
-            {PARTNERS_DATA.map((h, i) => {
-              const isPartner = h.badge === "partner";
+            {(L.partners.items || []).map((h, i) => {
+              const meta = PARTNERS_META[i] || {};
+              const isPartner = meta.badge === "partner";
               const badgeClass = isPartner
                 ? "bg-teal-50 text-teal-700"
                 : "bg-blue-50 text-blue-700";
@@ -331,15 +318,15 @@ export default function HomeClient({ content } = {}) {
                   key={i}
                   role="button"
                   tabIndex={0}
-                  onClick={() => router.push(`/hospitals/${h.slug}`)}
-                  onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); router.push(`/hospitals/${h.slug}`); } }}
+                  onClick={() => router.push(`/hospitals/${meta.slug}`)}
+                  onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); router.push(`/hospitals/${meta.slug}`); } }}
                   className="bg-white rounded-xl md:rounded-2xl overflow-hidden border border-gray-100 hover:shadow-md hover:border-teal-200 transition-all duration-200 cursor-pointer group focus:outline-none focus:ring-2 focus:ring-teal-400"
                 >
                   <div className="relative h-24 sm:h-32 md:h-40 overflow-hidden bg-gray-100">
                     {/* next/image: 로컬 병원 사진을 webp/avif·디바이스 크기로 자동 최적화 + 기본 lazy.
                         (각 원본 JPEG 180~456KB → 모바일 수십 KB) onError는 사진 없을 때 안전망. */}
                     <Image
-                      src={h.img.split("?")[0]}
+                      src={(meta.img || "").split("?")[0]}
                       alt={l(h.name)}
                       fill
                       sizes="(min-width:1024px) 25vw, (min-width:640px) 33vw, 50vw"
@@ -392,7 +379,7 @@ export default function HomeClient({ content } = {}) {
 
           {/* Accordion */}
           <div className="space-y-2 md:space-y-3">
-            {FAQ_DATA[faqTab]?.map((item, i) => {
+            {(L.faq[faqTab] || []).map((item, i) => {
               const isOpen = openFaq === `${faqTab}-${i}`;
               return (
                 <div key={i} className="bg-white rounded-xl border border-gray-100 overflow-hidden">
@@ -500,12 +487,12 @@ export default function HomeClient({ content } = {}) {
       - 크기: 400x400px 이상, 정사각형
       - 배경: 깔끔한 단색 또는 병원 배경
       - 복장: 가운 착용 권장
-      → DOCTORS_DATA[i].img 를 실제 URL로 교체
+      → DOCTORS_META[i].img 를 실제 URL로 교체
 
    2. 병원 사진 (2장)
       - 크기: 800x500px 이상
       - 내용: 건물 외관 또는 로비/진료실
-      → PARTNERS_DATA[i].img 를 실제 URL로 교체
+      → PARTNERS_META[i].img 를 실제 URL로 교체
 
    3. 히어로 배경 (1장)
       - 크기: 1920x1080px 이상
