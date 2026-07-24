@@ -33,6 +33,7 @@ import {
   INTAKE_EVERY_N_TURNS,
   createDraftIntake,
   pickHandoffConfirm,
+  HANDOFF_RECEIVED_ACK,
 } from "@/lib/chat/publicChatHelpers";
 import {
   sendWhatsAppPatientMessage,
@@ -302,24 +303,38 @@ async function handleOneMessage(value: any, msg: any): Promise<string | null> {
     const coordinatorActive = meta.coordinator_active === true;
     const handOff = detectHandOff(text);
 
-    const { error: threadUpdErr } = await (supabaseAdmin as any)
+    // 핸드오프 후 첫 추가 메시지 1회 수신확인(ack) — 텔레그램 라우트와 동일 패턴(조건부
+    // UPDATE 로 병렬 배달 직렬화, 핸드오프 마킹과 한 UPDATE 로 합쳐 서로 안 덮음).
+    const wantAck =
+      alreadyHandedOff && !coordinatorActive && meta.hand_off_ack_sent !== true;
+    const metaPatch =
+      handOff.requested || wantAck
+        ? {
+            ...meta,
+            ...(handOff.requested
+              ? {
+                  hand_off_requested: true,
+                  hand_off_reason: meta.hand_off_reason || handOff.reason,
+                  hand_off_at: meta.hand_off_at || new Date().toISOString(),
+                  hand_off_notified: true,
+                }
+              : {}),
+            ...(wantAck ? { hand_off_ack_sent: true } : {}),
+          }
+        : null;
+    let threadUpd = (supabaseAdmin as any)
       .from("chat_threads")
       .update({
         updated_at: new Date().toISOString(),
         last_active_at: new Date().toISOString(),
-        ...(handOff.requested
-          ? {
-              metadata: {
-                ...meta,
-                hand_off_requested: true,
-                hand_off_reason: meta.hand_off_reason || handOff.reason,
-                hand_off_at: meta.hand_off_at || new Date().toISOString(),
-                hand_off_notified: true,
-              },
-            }
-          : {}),
+        ...(metaPatch ? { metadata: metaPatch } : {}),
       })
       .eq("id", thread.id);
+    if (wantAck) {
+      threadUpd = threadUpd.is("metadata->>hand_off_ack_sent", null).select("id");
+    }
+    const { data: ackClaim, error: threadUpdErr } = await threadUpd;
+    const sendHandoffAck = wantAck && !!ackClaim?.length;
     if (threadUpdErr) console.error("[webhooks/whatsapp] thread update:", threadUpdErr.message);
 
     after(async () => {
@@ -333,7 +348,13 @@ async function handleOneMessage(value: any, msg: any): Promise<string | null> {
           }
         }
 
-        if (alreadyHandedOff || coordinatorActive) return;
+        // 코디 인수 후 AI 침묵 — 단, 핸드오프 후 첫 추가 메시지엔 고정 수신확인 1회.
+        if (alreadyHandedOff || coordinatorActive) {
+          if (sendHandoffAck) {
+            await sendWhatsAppPatientMessage(waId, pickTgText(HANDOFF_RECEIVED_ACK, lang));
+          }
+          return;
+        }
 
         const aiGuard = await checkAiGuards(`wa:${waId}`, "/api/webhooks/whatsapp");
         if (!aiGuard.allowed) {

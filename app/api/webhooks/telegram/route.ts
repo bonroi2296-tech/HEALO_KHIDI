@@ -36,6 +36,7 @@ import {
   INTAKE_EVERY_N_TURNS,
   createDraftIntake,
   pickHandoffConfirm,
+  HANDOFF_RECEIVED_ACK,
 } from "@/lib/chat/publicChatHelpers";
 import {
   sendTelegramPatientMessage,
@@ -329,25 +330,40 @@ export async function POST(request: NextRequest) {
     const handOff = detectHandOff(text);
 
     // 스레드 갱신은 요청 안에서 끝낸다(독립 리뷰 C2: after() 에서 낡은 스냅샷으로 metadata
-    // 전체를 덮어쓰면 그 사이 끼어든 갱신을 롤백시킴). 핸드오프가 아니면 metadata 는 안 건드림.
-    const { error: threadUpdErr } = await (supabaseAdmin as any)
+    // 전체를 덮어쓰면 그 사이 끼어든 갱신을 롤백시킴). 필요 없으면 metadata 는 안 건드림.
+    // 핸드오프 후 첫 추가 메시지에는 1회 수신 확인(ack)을 보낸다(사전질문 답이 죽은 침묵으로
+    // 떨어지는 것 방지 — 2026-07-24 PO). ack 클레임은 조건부 UPDATE 로 병렬 배달을 직렬화
+    // (동의 더블탭 F1 과 동일 패턴). 핸드오프 마킹과 한 UPDATE 로 합쳐 서로 덮지 않게 한다.
+    const wantAck =
+      alreadyHandedOff && !coordinatorActive && meta.hand_off_ack_sent !== true;
+    const metaPatch =
+      handOff.requested || wantAck
+        ? {
+            ...meta,
+            ...(handOff.requested
+              ? {
+                  hand_off_requested: true,
+                  hand_off_reason: meta.hand_off_reason || handOff.reason,
+                  hand_off_at: meta.hand_off_at || new Date().toISOString(),
+                  hand_off_notified: true,
+                }
+              : {}),
+            ...(wantAck ? { hand_off_ack_sent: true } : {}),
+          }
+        : null;
+    let threadUpd = (supabaseAdmin as any)
       .from("chat_threads")
       .update({
         updated_at: new Date().toISOString(),
         last_active_at: new Date().toISOString(),
-        ...(handOff.requested
-          ? {
-              metadata: {
-                ...meta,
-                hand_off_requested: true,
-                hand_off_reason: meta.hand_off_reason || handOff.reason,
-                hand_off_at: meta.hand_off_at || new Date().toISOString(),
-                hand_off_notified: true,
-              },
-            }
-          : {}),
+        ...(metaPatch ? { metadata: metaPatch } : {}),
       })
       .eq("id", thread.id);
+    if (wantAck) {
+      threadUpd = threadUpd.is("metadata->>hand_off_ack_sent", null).select("id");
+    }
+    const { data: ackClaim, error: threadUpdErr } = await threadUpd;
+    const sendHandoffAck = wantAck && !!ackClaim?.length;
     if (threadUpdErr) {
       console.error("[webhooks/telegram] thread update:", threadUpdErr.message);
     }
@@ -368,7 +384,13 @@ export async function POST(request: NextRequest) {
         }
 
         // 코디 인수 후 AI 침묵 — 핸드오프된 스레드 + 코디가 답장 중인 스레드 모두.
-        if (alreadyHandedOff || coordinatorActive) return;
+        // 단, 핸드오프 후 첫 추가 메시지엔 고정 수신확인 1회(AI 재개입 아님 — dead-air 방지).
+        if (alreadyHandedOff || coordinatorActive) {
+          if (sendHandoffAck) {
+            await sendTelegramPatientMessage(chatId, pickTgText(HANDOFF_RECEIVED_ACK, lang));
+          }
+          return;
+        }
 
         // AI 비용 가드(일일·전역) — 초과 시 침묵하면 텔레그램에선 dead-air(환자 방치)가 되므로
         // (독립 리뷰 M2) 고정 안내 + 코디 종으로 사람 인수를 유도한다.

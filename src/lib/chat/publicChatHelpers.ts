@@ -45,6 +45,7 @@ export const ATTACHMENT_ACK: Record<string, string> = {
 export {
   HANDOFF_CONFIRM,
   HANDOFF_NEED_CONTACT,
+  HANDOFF_RECEIVED_ACK,
   hasReachableContact,
   pickHandoffConfirm,
 } from "./contactGate";

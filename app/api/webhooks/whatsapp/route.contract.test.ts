@@ -100,6 +100,7 @@ vi.mock("@/lib/chat/publicChatHelpers", () => ({
   INTAKE_EVERY_N_TURNS: 3,
   createDraftIntake: (...args: any[]) => createDraftIntake(...args),
   pickHandoffConfirm: (...args: any[]) => pickHandoffConfirm(...args),
+  HANDOFF_RECEIVED_ACK: { en: "handoff-ack" },
 }));
 
 const sendWhatsAppPatientMessage = vi.fn(async (..._args: any[]) => ({ sent: true, windowExpired: false }));
@@ -329,6 +330,31 @@ describe("왓츠앱 웹훅 계약", () => {
 
     expect(captured.find((c) => c.table === "chat_messages" && c.payload?.actor_type === "patient")).toBeTruthy();
     expect(generateChatReply).not.toHaveBeenCalled();
+    expect(sendWhatsAppPatientMessage).not.toHaveBeenCalled();
+  });
+
+  it("⑥-2 핸드오프 후 첫 추가 메시지: AI 침묵 유지 + 고정 수신확인 1회(ack) — 이미 보냈으면 침묵", async () => {
+    const { POST } = await loadRoute();
+    const t = CONSENTED_THREAD();
+    (t.metadata as any).hand_off_requested = true;
+    (t.metadata as any).hand_off_notified = true;
+    mockState.thread = t;
+    const res = await POST(makeReq(waUpdate(textMsg("my diagnosis is ...", "wamid.a1"))));
+    expect((await res.json()).ok).toBe(true);
+    await flushAfter();
+    expect(generateChatReply).not.toHaveBeenCalled();
+    expect(sendWhatsAppPatientMessage).toHaveBeenCalledTimes(1);
+    expect(sendWhatsAppPatientMessage.mock.calls[0][1]).toBe("handoff-ack");
+
+    // 이미 ack 를 보낸 스레드면 완전 침묵
+    sendWhatsAppPatientMessage.mockClear();
+    const t2 = CONSENTED_THREAD();
+    (t2.metadata as any).hand_off_requested = true;
+    (t2.metadata as any).hand_off_ack_sent = true;
+    mockState.thread = t2;
+    const res2 = await POST(makeReq(waUpdate(textMsg("more info", "wamid.a2"))));
+    expect((await res2.json()).ok).toBe(true);
+    await flushAfter();
     expect(sendWhatsAppPatientMessage).not.toHaveBeenCalled();
   });
 
