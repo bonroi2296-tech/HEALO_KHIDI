@@ -22,6 +22,12 @@
   - Android `AndroidManifest.xml`: `CAMERA`·`RECORD_AUDIO`·`MODIFY_AUDIO_SETTINGS`·`POST_NOTIFICATIONS`(13+) + 카메라/마이크 `uses-feature required=false`(태블릿 설치 허용).
   - ⚠️ 이 권한이 없으면 iOS 는 카메라 접근 시 **크래시 + 심사 반려**, Android 는 WebView `getUserMedia` 거부로 **영상상담 먹통**이었음 → 2026-06-29 보강.
 - **푸시 클라이언트·서버 배선 완료** — `src/lib/push/registerPush.ts`(앱에서만 동작) + `/api/push/register`·`/api/push/test`.
+- ✅ **Android 푸시 네이티브 배선 완비 (2026-07-24 실측 재확인)** — iOS와 달리 손볼 것 없음:
+  - `android/build.gradle`: `classpath 'com.google.gms:google-services:4.4.4'` ✅
+  - `android/app/build.gradle`: google-services.json 존재 시 `com.google.gms.google-services` 플러그인 자동 적용 ✅ (파일 커밋됨)
+  - `capacitor.settings.gradle`·`app/capacitor.build.gradle`: `capacitor-push-notifications` 편입(firebase-messaging 트랜지티브) ✅
+  - 권한 CAMERA·RECORD_AUDIO·POST_NOTIFICATIONS ✅
+  - → **남은 건 전부 PO 몫(코드 아님)**: 플레이 등록($25)·키스토어(서명)·Play 서비스계정 JSON. 안드로이드는 리눅스 빌드 가능해 첫 검증이 iOS보다 쉬움.
 
 ## ⚠️ 제출 전 선결 — PO 체크리스트 (2026-07-14 갱신)
 
