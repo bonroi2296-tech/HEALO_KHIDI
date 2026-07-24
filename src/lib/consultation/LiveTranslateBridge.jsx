@@ -44,9 +44,12 @@ function parseTxTrackName(name) {
  * @param {object} props
  * @param {string} props.myLang   — 내가 듣고 싶은 언어 (ko/ru/en/kz/zh/ja)
  * @param {string} [props.myRole] — 역할 라벨(자막 표시용)
+ * @param {boolean} [props.voiceOn] — 통역(음성) 토글 상태. false 면 통역 트랙 구독·원음 음소거·
+ *   봇 자막 표시를 전부 안 한다(봇이 방에 있어도 이 참가자에겐 무영향 — 공존 설계 2026-07-24).
+ * @param {function} [props.onAgentPresence] — (boolean) => void 통역 봇 재실 여부 통지(토글 활성화 판단용)
  * @param {function} props.onRemoteSubtitle — ({ text, lang, role }) => void (기존 자막 UI 재사용)
  */
-export function LiveTranslateBridge({ myLang, myRole, onRemoteSubtitle }) {
+export function LiveTranslateBridge({ myLang, myRole, voiceOn = false, onAgentPresence, onRemoteSubtitle }) {
   const room = useRoomContext();
   const subtitleCbRef = useRef(onRemoteSubtitle);
   // 내 언어로 통역되고 있는 "원음 화자"들 — 이들은 원음을 음소거(통역과 이중 재생 방지).
@@ -58,6 +61,30 @@ export function LiveTranslateBridge({ myLang, myRole, onRemoteSubtitle }) {
 
   // 가드: 스위치 꺼짐이면 아무 것도 안 함.
   const enabled = isLiveTranslateEnabledClient();
+
+  // ── 0) 통역 봇 재실 감지 → 부모에 통지 (통역 토글의 활성/안내 판단 근거) ──
+  useEffect(() => {
+    if (!enabled || !room || !onAgentPresence) return;
+    const check = () => {
+      let present = false;
+      for (const p of room.remoteParticipants?.values?.() ?? []) {
+        if (p.identity?.startsWith("agent-")) {
+          present = true;
+          break;
+        }
+      }
+      onAgentPresence(present);
+    };
+    check();
+    const events = [
+      RoomEvent.ParticipantConnected,
+      RoomEvent.ParticipantDisconnected,
+      RoomEvent.Connected,
+      RoomEvent.Reconnected,
+    ];
+    events.forEach((e) => room.on(e, check));
+    return () => events.forEach((e) => room.off(e, check));
+  }, [enabled, room, onAgentPresence]);
 
   // ── 1) 내 언어를 방에 알림 (lang 속성) ──
   // ⚠️ 반드시 **연결 완료 후에** 보낼 것. `setAttributes` 는 서버 ack 를 5초 기다리다
@@ -85,8 +112,9 @@ export function LiveTranslateBridge({ myLang, myRole, onRemoteSubtitle }) {
   }, [enabled, room, myLang]);
 
   // ── 2) 통역 자막(텍스트 스트림 lk.translation) 수신 → 기존 자막 UI 로 ──
+  // voiceOn 게이트: 통역 껐으면 봇 자막도 안 띄운다 — 클라 STT 자막과의 이중 표시 방지(공존 설계).
   useEffect(() => {
-    if (!enabled || !room) return;
+    if (!enabled || !voiceOn || !room) return;
     // livekit-client 2.x 텍스트 스트림 핸들러. 토픽 단위로 1개만 등록 가능.
     if (typeof room.registerTextStreamHandler !== "function") return;
 
@@ -128,11 +156,13 @@ export function LiveTranslateBridge({ myLang, myRole, onRemoteSubtitle }) {
         /* noop */
       }
     };
-  }, [enabled, room, myLang, myRole]);
+  }, [enabled, voiceOn, room, myLang, myRole]);
 
   // ── 3) 통역 음성 트랙 라우팅 ──
-  // 내 언어(`tx:*:<myLang>`) 트랙만 재생, 그 화자의 원음은 음소거.
-  // 다른 언어용 `tx:*` 트랙은 구독 해제(불필요한 대역폭·이중 음성 방지).
+  // voiceOn(통역 켬): 내 언어(`tx:*:<myLang>`) 트랙만 재생, 그 화자의 원음은 음소거.
+  //   다른 언어용 `tx:*` 트랙은 구독 해제(불필요한 대역폭·이중 음성 방지).
+  // voiceOff(기본): 모든 `tx:*` 트랙 구독 해제 + 원음 그대로 — 봇이 방에 있어도 이 참가자는
+  //   기존 상담방과 동일하게 동작(공존 설계 2026-07-24: 사람마다 독립 선택).
   useEffect(() => {
     if (!enabled || !room) return;
 
@@ -146,25 +176,31 @@ export function LiveTranslateBridge({ myLang, myRole, onRemoteSubtitle }) {
       }
     };
 
-    const onSubscribed = (_track, publication, participant) => {
+    const routeTx = (publication) => {
       const parsed = parseTxTrackName(publication?.trackName);
       if (!parsed) return; // 통역 트랙이 아니면 무시(원음·화면공유 등 기존대로).
-      if (parsed.lang === myLang) {
-        // 내 언어 통역 → 재생 유지(RoomAudioRenderer 가 출력). 그 화자 원음은 음소거.
+      if (voiceOn && parsed.lang === myLang) {
+        // 내 언어 통역 → 구독·재생(RoomAudioRenderer 가 출력). 그 화자 원음은 음소거.
+        try {
+          publication.setSubscribed?.(true);
+        } catch {
+          /* noop */
+        }
         if (!mutedSpeakersRef.current.has(parsed.speaker)) {
           mutedSpeakersRef.current.add(parsed.speaker);
           muteSpeaker(parsed.speaker, true);
         }
       } else {
-        // 다른 언어 통역 트랙 → 내겐 불필요. 구독 해제(이중 음성 방지).
+        // 통역 꺼짐 or 다른 언어 통역 트랙 → 구독 해제(이중 음성 방지).
         try {
           publication.setSubscribed?.(false);
         } catch {
           /* noop */
         }
-        void participant;
       }
     };
+
+    const onSubscribed = (_track, publication) => routeTx(publication);
 
     const onUnsubscribed = (_track, publication) => {
       const parsed = parseTxTrackName(publication?.trackName);
@@ -176,16 +212,24 @@ export function LiveTranslateBridge({ myLang, myRole, onRemoteSubtitle }) {
       }
     };
 
+    // 토글 시점에 이미 방에 있는 통역 트랙에도 즉시 반영 (구독 이벤트만 기다리면
+    // 토글 이전부터 있던 트랙이 옛 상태로 남는다)
+    for (const p of room.remoteParticipants?.values?.() ?? []) {
+      for (const pub of p.trackPublications?.values?.() ?? []) {
+        if (pub.kind === "audio") routeTx(pub);
+      }
+    }
+
     room.on(RoomEvent.TrackSubscribed, onSubscribed);
     room.on(RoomEvent.TrackUnsubscribed, onUnsubscribed);
     return () => {
       room.off(RoomEvent.TrackSubscribed, onSubscribed);
       room.off(RoomEvent.TrackUnsubscribed, onUnsubscribed);
-      // 정리: 음소거했던 화자 원음 복구.
+      // 정리(토글 끔·언마운트): 음소거했던 화자 원음 복구.
       for (const id of mutedSpeakersRef.current) muteSpeaker(id, false);
       mutedSpeakersRef.current.clear();
     };
-  }, [enabled, room, myLang]);
+  }, [enabled, voiceOn, room, myLang]);
 
   return null; // 렌더링 없음 (DataChannelBridge 와 동일 패턴)
 }

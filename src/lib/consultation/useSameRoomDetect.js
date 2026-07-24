@@ -41,8 +41,18 @@ const HOWL_RMS = 0.45;       // 하울링 확정 문턱(0~1 RMS). 하울링은 �
                              //   일반 발화·소음은 여기까지 지속되지 않는다 → 같은 방이 아닌 정상 원격통화
                              //   (겹발화·환자쪽 소음)에서 오작동 자동뮤트를 막는다(독립리뷰 #1: 소리 크기만으론
                              //   같은-방 특정이 안 됨). 일부러 높게 잡음: 빗나가도 실패 방향이 '안 꺼짐'(안전).
-                             //   ⚠️ 실제 하울링 RMS 로 2대 실테스트 후 보정할 1순위 노브.
 const FAST_SUSTAIN_MS = 200; // 양쪽 동시 큰 소리가 이만큼 지속되면 확정 → 총 반응 ~0.4초(거의 즉각, 기침 등 단발 소음은 배제)
+
+// ── 빠른 경로 2단(AGC 대응, 2026-07-24) ── 실전에서 0.45 단 하나로는 하울링이 샜다(PO 실테스트).
+// 원인: 브라우저 자동게인(AGC)이 하울링 음량을 눌러 0.45 문턱을 영영 못 넘김(#922 독립리뷰가 경고한 그 경로).
+// AGC 는 '크기'만 누르고 스펙트럼 '모양'은 못 바꾼다 → 하울링의 두 번째 지문(에너지가 한 주파수에
+// 몰린 단일음)을 보조 판정으로 쓴다. 말소리는 포먼트로 에너지가 퍼져 이 비율이 안 나온다.
+const HOWL_RMS_AGC = 0.22;    // 2단 문턱: 중간 음량 + 단일음(tonal)일 때만 하울링 인정
+const TONAL_SUSTAIN_MS = 600; // 2단은 오탐 여지가 커서 1단(200ms)보다 길게 지속돼야 확정
+const TONAL_WINDOW = 6;       // 단일음 판정 창: 최근 표본 6개(≈0.36초)
+const TONAL_NEED = 4;         // 그중 4개 이상이 단일음이어야
+const TONAL_PEAK_MIN = 110;   // 주파수 피크 최소 크기(0~255) — 이보다 작으면 배경음 수준
+const TONAL_RATIO = 5;        // 피크/평균 비 문턱. ponytail: 실측 없는 휴리스틱 초기값 — 2단이 안 잡으면 4로, 오탐이면 6으로.
 
 function rms(analyser, buf) {
   analyser.getByteTimeDomainData(buf);
@@ -85,6 +95,36 @@ function meanOfLast(samples, n) {
   let sum = 0;
   for (let i = samples.length - n; i < samples.length; i++) sum += samples[i];
   return sum / n;
+}
+
+/**
+ * 주파수 스펙트럼 한 프레임이 '단일음'(하울링 지문)인가.
+ * 하울링은 에너지가 한 주파수에 몰려 피크가 뾰족하고, 말소리는 여러 포먼트로 퍼진다.
+ * AGC 가 음량을 눌러도 이 '모양'은 남는다 → 음량 문턱(HOWL_RMS)이 뚫린 상황의 보조 지문.
+ * 단위시험 대상이라 export.
+ * @param {Uint8Array|number[]} freqData — AnalyserNode.getByteFrequencyData 결과(0~255)
+ */
+export function isTonalFrame(freqData, peakMin = TONAL_PEAK_MIN, ratio = TONAL_RATIO) {
+  let max = 0, sum = 0, n = 0;
+  for (let i = 2; i < freqData.length; i++) { // 0~1번 빈(DC·초저역 럼블)은 제외
+    const v = freqData[i];
+    if (v > max) max = v;
+    sum += v;
+    n++;
+  }
+  if (!n) return false;
+  return max >= peakMin && max / (sum / n + 1) >= ratio;
+}
+
+/** 양쪽 다 최근 창에서 단일음 프레임이 충분한가(2단 하울링 판정의 스펙트럼 조건). 단위시험 대상. */
+export function tonalBoth(localTonals, remoteTonals, win = TONAL_WINDOW, need = TONAL_NEED) {
+  const hits = (arr) => {
+    if (arr.length < win) return 0;
+    let c = 0;
+    for (let i = arr.length - win; i < arr.length; i++) if (arr[i]) c++;
+    return c;
+  };
+  return hits(localTonals) >= need && hits(remoteTonals) >= need;
 }
 
 /**
@@ -145,7 +185,14 @@ export function useSameRoomDetect({ localTrack, remoteTracks, enabled }) {
       const analyser = ctx.createAnalyser();
       analyser.fftSize = 512;
       src.connect(analyser); // → destination 으로 잇지 않음: 소리가 두 번 나면 안 된다
-      return { src, analyser, buf: new Uint8Array(analyser.fftSize), samples: [] };
+      return {
+        src,
+        analyser,
+        buf: new Uint8Array(analyser.fftSize),
+        freqBuf: new Uint8Array(analyser.frequencyBinCount), // 단일음(하울링 지문) 판정용 스펙트럼
+        samples: [],
+        tonals: [], // 프레임별 단일음 여부(boolean) — samples 와 같은 주기로 쌓임
+      };
     };
 
     let nodes;
@@ -163,6 +210,10 @@ export function useSameRoomDetect({ localTrack, remoteTracks, enabled }) {
       const push = (n) => {
         n.samples.push(rms(n.analyser, n.buf));
         if (n.samples.length > BUFFER_LEN) n.samples.shift();
+        // 스펙트럼 단일음 여부도 같은 주기로 — 2단(AGC 대응) 하울링 판정 재료
+        n.analyser.getByteFrequencyData(n.freqBuf);
+        n.tonals.push(isTonalFrame(n.freqBuf));
+        if (n.tonals.length > BUFFER_LEN) n.tonals.shift();
       };
       push(nodes.local);
       nodes.remotes.forEach(push);
@@ -174,11 +225,19 @@ export function useSameRoomDetect({ localTrack, remoteTracks, enabled }) {
       for (const r of nodes.remotes) {
         // ── 빠른 경로: 양쪽 마이크가 동시에 계속 큰 소리 = 하울링 즉발 ──
         //   지속 하울링은 RMS 가 높고 평평해 상관으로는 못 잡는다(분산≈0 → null).
-        //   그래서 "동시 큰 소리"로 잡아 ~0.4초 안에 확정한다(입장 순간 터지는 하울링용).
-        if (bothLoud(nodes.local.samples, r.samples)) {
+        //   1단: 포화 수준(0.45) 동시 큰 소리 — AGC 없는 기기, 200ms 로 즉발.
+        //   2단: AGC 가 눌러 중간 음량(0.22)이지만 양쪽 다 '단일음'(하울링 스펙트럼) — 600ms 지속 시 확정.
+        //   (같은 하울링 증거라 시작 시각은 한 맵을 공유 — 단 유지 조건이 끊기면 리셋.)
+        const saturated = bothLoud(nodes.local.samples, r.samples);
+        const agcHowl =
+          !saturated &&
+          bothLoud(nodes.local.samples, r.samples, FAST_LEN, HOWL_RMS_AGC) &&
+          tonalBoth(nodes.local.tonals, r.tonals);
+        if (saturated || agcHowl) {
+          const need = saturated ? FAST_SUSTAIN_MS : TONAL_SUSTAIN_MS;
           const since = loudSinceRef.current[r.identity];
           if (!since) loudSinceRef.current[r.identity] = now;
-          else if (now - since >= FAST_SUSTAIN_MS) {
+          else if (now - since >= need) {
             confirmed = r.identity;
             fast = true;
           }

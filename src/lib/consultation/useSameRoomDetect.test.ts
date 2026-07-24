@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { correlate, bothLoud } from "./useSameRoomDetect";
+import { correlate, bothLoud, isTonalFrame, tonalBoth } from "./useSameRoomDetect";
 
 // 판정 임계값(훅 내부와 동일해야 의미가 있다)
 const CORR_ON = 0.72;
@@ -85,5 +85,58 @@ describe("bothLoud — 하울링 즉발(빠른 경로) 판정", () => {
 
   it("표본이 창 길이보다 모자라면 판정하지 않는다(false)", () => {
     expect(bothLoud([0.4, 0.4], [0.4, 0.4])).toBe(false);
+  });
+
+  it("2단(AGC) 문턱: 중간 음량(0.3)은 기본 문턱은 못 넘지만 낮춘 문턱은 넘는다", () => {
+    // AGC 가 하울링을 눌러 0.45에 못 미치는 실전 케이스(2026-07-24 PO 실테스트) —
+    // 이 음량대는 tonalBoth(단일음)와 결합해서만 하울링으로 인정된다(훅의 agcHowl 경로).
+    const agcPressed = Array.from({ length: N }, () => 0.3);
+    expect(bothLoud(agcPressed, agcPressed)).toBe(false); // 1단(0.45) 그대로
+    expect(bothLoud(agcPressed, agcPressed, 3, 0.22)).toBe(true); // 2단(0.22)
+  });
+});
+
+describe("isTonalFrame — 단일음(하울링 스펙트럼 지문) 판정", () => {
+  const BINS = 256;
+  // 하울링: 한 주파수 빈에 에너지 집중, 나머지는 바닥
+  const howl = Array.from({ length: BINS }, (_, i) => (i === 40 ? 220 : 8));
+  // 말소리: 여러 포먼트 대역에 에너지 분산
+  const speechSpec = Array.from({ length: BINS }, (_, i) =>
+    i > 4 && i < 90 ? 90 + ((i * 37) % 60) : 20
+  );
+  const silence = Array.from({ length: BINS }, () => 3);
+
+  it("한 주파수에 몰린 스펙트럼(하울링)은 단일음이다", () => {
+    expect(isTonalFrame(howl)).toBe(true);
+  });
+
+  it("포먼트로 퍼진 말소리는 단일음이 아니다 — 겹발화 오탐 방지", () => {
+    expect(isTonalFrame(speechSpec)).toBe(false);
+  });
+
+  it("정적(피크 자체가 작음)은 단일음이 아니다", () => {
+    expect(isTonalFrame(silence)).toBe(false);
+  });
+
+  it("DC·초저역(0~1번 빈)의 럼블은 무시한다", () => {
+    const rumbleOnly = Array.from({ length: BINS }, (_, i) => (i < 2 ? 255 : 5));
+    expect(isTonalFrame(rumbleOnly)).toBe(false);
+  });
+});
+
+describe("tonalBoth — 양쪽 단일음 지속(2단 하울링의 스펙트럼 조건)", () => {
+  const tonalRun = Array.from({ length: 10 }, () => true);
+  const speechRun = Array.from({ length: 10 }, (_, i) => i % 3 === 0); // 가끔만 true(우연)
+
+  it("양쪽 다 최근 창에서 단일음이 충분하면 true", () => {
+    expect(tonalBoth(tonalRun, tonalRun)).toBe(true);
+  });
+
+  it("한쪽만 단일음이면 false — 원격 통화의 일방 소음 오탐 방지", () => {
+    expect(tonalBoth(tonalRun, speechRun)).toBe(false);
+  });
+
+  it("표본이 창보다 모자라면 false(판정 보류)", () => {
+    expect(tonalBoth([true, true], tonalRun)).toBe(false);
   });
 });
