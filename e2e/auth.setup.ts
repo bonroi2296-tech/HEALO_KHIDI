@@ -25,8 +25,16 @@ const ROLES: Array<[Role, string]> = [
 for (const [role, envKey] of ROLES) {
   setup(`@smoke ${role} 세션 저장 (역할당 로그인 1회)`, async ({ page }) => {
     setup.skip(!process.env[envKey], `${envKey} 미설정 — 해당 역할 스펙도 스킵됨`);
-    await uiLoginAs(page, role);
-    fs.mkdirSync(AUTH_STATE_DIR, { recursive: true });
-    await page.context().storageState({ path: statePath(role) });
+    // 소프트 실패: setup 테스트가 fail 이면 의존 프로젝트(chromium) 전체가 스킵돼
+    // 공개/비인증 스펙·야간 프로덕션 감시까지 통째로 침묵한다(독립 리뷰 지적 — 장애 격리 회귀).
+    // 로그인이 안 되면 상태 저장만 건너뛰고 통과 → 그 역할 스펙이 uiLoginAs 폴백으로
+    // 직접 시도하다 개별 실패해 신호는 스펙 단위로 살아남는다(= 이 PR 이전과 동일한 격리).
+    try {
+      await uiLoginAs(page, role);
+      fs.mkdirSync(AUTH_STATE_DIR, { recursive: true });
+      await page.context().storageState({ path: statePath(role) });
+    } catch (e) {
+      console.warn(`[auth.setup] ${role} 로그인 실패 — 이 역할 스펙은 개별 UI 로그인 폴백(느림): ${e}`);
+    }
   });
 }

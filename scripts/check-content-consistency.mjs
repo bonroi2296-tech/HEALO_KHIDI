@@ -492,8 +492,11 @@ for (const file of SCAN_DIRS.flatMap(walk)) {
 //     Supabase(프로덕션 겸용)를 포화시켜 PR 폭주 시간대에 auth 무응답·REST 10~25s
 //     → 매번 다른 테스트가 떨어지는 간헐 실패. 로그인은 e2e/auth.setup.ts 에서
 //     역할당 1회만(세션 저장), 스펙은 loginAs()(쿠키 주입)만 쓴다.
-for (const file of walk("e2e")) {
-  if (!/\.spec\.ts$/.test(file)) continue; // auth.setup.ts·fixtures 는 허용
+// ⚠️ walk() 금지 — EXCLUDE 가 .spec. 파일을 원래부터 배제해 스캔 대상이 0개가 된다
+//    (독립 리뷰 CONFIRMED — 죽은 가드). e2e 는 평평한 폴더라 직접 나열.
+for (const file of readdirSync(join(ROOT, "e2e"))
+  .filter((f) => /\.spec\.ts$/.test(f)) // auth.setup.ts·fixtures 는 허용
+  .map((f) => join("e2e", f))) {
   const text = readFileSync(join(ROOT, file), "utf8");
   if (!/\buiLoginAs\s*\(/.test(text)) continue;
   const line = text.split("\n").findIndex((l) => /\buiLoginAs\s*\(/.test(l)) + 1;
