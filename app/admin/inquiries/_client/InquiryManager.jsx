@@ -133,9 +133,10 @@ export const InquiryManager = ({ inquiries, fetchInquiries, handleFileClick }) =
       const resolveJson = await resolveRes.json();
       if (!resolveJson.ok) { alert(`Resolve 실패: ${resolveJson.error}`); return; }
 
+      // 플레이북 화면은 2026-07-24 메뉴 정리로 비활성(미사용·실DB 0행) — 자동 이동하지 않는다.
+      // 초안은 /admin/playbook 주소 직접 입력으로 확인 가능(라우트 보존).
       alert(`Playbook Draft 생성 완료! (Score: ${resolveJson.quality_score})`);
       closeDetailModal();
-      router.push('/admin/playbook');
     } catch (e) {
       console.error('[InquiryManager] Resolve error:', e);
       alert('처리 중 오류 발생');
