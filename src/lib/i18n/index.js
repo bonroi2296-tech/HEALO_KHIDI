@@ -5604,7 +5604,7 @@ const DICTIONARY = {
   },
 };
 
-/** UI 언어 목록 (DICTIONARY 키와 일치). 20개 언어 지원 */
+/** UI 언어 목록 (DICTIONARY 키와 일치). 활성 6 + 기타 — 단 km·my는 빈 사전(영어 폴백), ms·uz는 복사본(위 감사 주석 참고) */
 export const LANG_OPTIONS = [
   { code: "en", label: "English" },
   { code: "ja", label: "日本語" },
