@@ -14,6 +14,12 @@ import { test as setup } from "@playwright/test";
 import fs from "node:fs";
 import { AUTH_STATE_DIR, statePath, uiLoginAs, type Role } from "./fixtures/auth";
 
+// 부팅 판정이 /api/health(가벼움)로 바뀌면서 홈("/") 첫 컴파일(2코어 러너 30~60s)이
+// 테스트 예산(30s) 안으로 밀리는 것을 방지 — setup 의 넉넉한 예산(120s)에서 미리 흡수.
+setup("@smoke 서버 웜업 — 홈 첫 컴파일 흡수", async ({ page }) => {
+  await page.goto("/");
+});
+
 const ROLES: Array<[Role, string]> = [
   ["patient", "E2E_TEST_USER_EMAIL"],
   ["admin", "E2E_ADMIN_EMAIL"],

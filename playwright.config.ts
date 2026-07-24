@@ -57,11 +57,12 @@ export default defineConfig({
     ? undefined
     : {
         command: "npm run dev",
-        url: baseURL,
+        // 준비 판정 URL 을 "/"(홈 SSR — 콜드 컴파일 60s+ 에 Supabase 조회가 행 없이 매달림)
+        // 대신 /api/health 로: 컴파일 가벼움 + DB 프로브가 3s 바운드(무한 대기 없음) +
+        // DB 다운이면 503 = 미준비(Playwright 는 200~403 만 준비로 침 — 정직한 게이트).
+        // "/" 를 판정에 걸면 Supabase 지연 시 240s 로도 부팅 오판(2026-07-24 실측, #116).
+        url: baseURL + "/api/health",
         reuseExistingServer: !process.env.CI,
-        // 준비 판정이 "/" 첫 응답 = 콜드 컴파일 + SSR 의 Supabase 조회까지 포함.
-        // 공유 Supabase 포화 시(REST 10~25s 실측) 120s 로는 2코어 러너에서 부팅 판정 실패
-        // 가 실제로 났다(2026-07-24 attempt 2·3) → 240s (POSTMORTEMS #116).
         timeout: 240_000,
       },
 });
