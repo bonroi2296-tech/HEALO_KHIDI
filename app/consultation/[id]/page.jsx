@@ -1323,6 +1323,9 @@ export default function ConsultationRoomPage() {
     let cancelled = false;
 
     const fetchPending = async () => {
+      // 탭이 백그라운드면 스킵 — 3초 주기라 방치 탭 하나가 시간당 1,200회를 만든다.
+      // (대기 중인 사람이 있으면 탭을 보고 있을 때 최대 3초 안에 뜬다 = 체감 동일)
+      if (typeof document !== "undefined" && document.hidden) return;
       try {
         const headers = await getAdmissionsAuthHeaders();
         if (!headers) return;

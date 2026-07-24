@@ -1,5 +1,20 @@
 # HEALO KHIDI — 알려진 이슈 / 전수 QA 발견사항
 
+## 🔴 Supabase 인스턴스가 통째로 무응답 → 프로덕션 로그인 전면 중단 (2026-07-24 16:45~17:41 KST, 약 1시간) — **복구됨**
+
+**무슨 일**: PO 로그인이 "로그인 중…"에서 멈춤. 실측 = 코드 무관, Supabase가 응답을 멈춤. GoTrue `POST /token` → 504 `request_timeout`(13.2초) / `/rest/v1/*` → 522 / `/auth/v1/health` → 무응답 / MCP SQL → connection timeout. **DB를 안 타는 `/storage/v1/*`만 0.06초 정상** = Postgres에 붙는 서비스만 죽은 것. Supabase 전사 status는 정상, 컨트롤플레인은 `ACTIVE_HEALTHY`로 **거짓 안심**(제어 API만 봄 — 장애 판정에 이 지표를 믿지 말 것).
+
+**대시보드에 찍혀 있던 원인 후보**: `Your project is about to deplete its Disk IO Budget` 배너 + 플랜 FREE·컴퓨트 NANO(공유 CPU). 디스크 **용량**은 0.00GB/8GB로 멀쩡 — 문제는 용량이 아니라 **IO 처리량 예산**.
+
+**해결**: PO가 **Pro 플랜 + Micro Compute**로 업그레이드 → 17:41 복구 확인(`auth/health` 200, 0.1초), 17:56 실로그인 성공(`auth.users.last_sign_in_at`).
+⚠️ **Pro 플랜 전환만으로는 안 풀렸다** — 컴퓨트가 NANO에 머물러 있었고 **Micro로 올린 뒤에야** 살아남. 다음에 같은 일이 나면 플랜이 아니라 **컴퓨트 사이즈**부터 확인할 것.
+⚠️ 플랜 변경은 Supabase에서 안 된다 — 이 조직은 **Vercel 마켓플레이스 관리**(org `vercel_icfg_…`)라 Supabase 화면의 Upgrade 버튼이 비활성. Vercel 쪽에서 바꿔야 함.
+
+**남은 것**:
+- 재발 감시: Supabase 대시보드 Reports → Database의 **Disk IO Budget** 잔량. 배너가 다시 뜨면 부하부터 줄이고 필요 시 컴퓨트 상향.
+- 부하 측: 방치된 화상상담 탭이 4~8초마다 무한 폴링하던 것 수리(POSTMORTEMS #117 / PR #969). 3시간 요청의 **72%가 상담방 하나**였음.
+- 화면 측: 인증 서버 무응답 시 로딩에 갇히던 것 수리(POSTMORTEMS #116 / PR #968, `withAuthTimeout`).
+
 ## 🟡 메신저 스레드 metadata 통째 덮어쓰기 경쟁 — 극히 드물게 환자 동의 기록이 지워질 수 있음 (2026-07-24, #942 독립 리뷰 발견 — 기존 구조, 실사고 아님)
 
 **내용**: 스태프 답장 릴레이(`staffReplyRelay`)가 `coordinator_active=true`를 세울 때 요청 초반에 읽은 스레드 `metadata` 전체를 spread로 다시 쓴다. 그 짧은 사이에 텔레그램 웹훅이 같은 스레드 metadata(동의 기록·last_start_at)를 갱신하면 스태프 쪽 stale write가 그걸 덮을 수 있음 → 이론상 봇이 동의를 재요청. 관리자 라우트 시절부터 동일했던 구조(이번 수리의 회귀 아님)이고 창이 매우 좁아 실발생 확률 낮음.
