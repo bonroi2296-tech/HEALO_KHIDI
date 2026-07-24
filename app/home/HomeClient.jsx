@@ -5,6 +5,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useLang } from "@/lib/i18n/LangContext";
 import { HOME_CONTENT } from "@/lib/content/homeContent";
+import OrganIcon from "../_components/OrganIcon";
 import {
   ArrowRight,
   Shield,
@@ -29,8 +30,13 @@ import {
   MapPin,
   Mail,
   GraduationCap,
+  UserCheck,
+  HeartHandshake,
 } from "lucide-react";
 import SocialProofSection from "@/components/SocialProofSection";
+
+// 이용 절차 4단계 아이콘 (2026-07-24 PO 확정 C안: 아이콘 + STEP 번호 — 옛 그라데이션 번호배지 대체)
+const STEP_ICONS = [FileText, UserCheck, Video, HeartHandshake];
 
 /* ═══════════════════════════════════════════════════════
    PLACEHOLDER IMAGES (Unsplash — free, no auth required)
@@ -153,7 +159,7 @@ export default function HomeClient({ content } = {}) {
               {l(L.hero.cta)}
               <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
             </button>
-            <p className="text-slate-400 text-xs md:text-sm mt-3">{l(L.hero.ctaSub)}</p>
+            <p className="text-slate-400 text-xs md:text-sm mt-3 whitespace-pre-line">{l(L.hero.ctaSub)}</p>
           </div>
         </div>
       </section>
@@ -164,8 +170,8 @@ export default function HomeClient({ content } = {}) {
       <section className="bg-white py-10 md:py-16">
         <div className="max-w-6xl mx-auto px-4">
           <div className="text-center mb-8 md:mb-12">
-            <h2 className="text-2xl md:text-3xl lg:text-4xl font-extrabold text-gray-900 mb-2 md:mb-4">{l(L.stats.title)}</h2>
-            <p className="text-gray-500 text-sm md:text-base max-w-2xl mx-auto">{l(L.stats.subtitle)}</p>
+            <h2 className="text-2xl md:text-3xl lg:text-4xl font-extrabold text-gray-900 mb-2 md:mb-4 whitespace-pre-line">{l(L.stats.title)}</h2>
+            <p className="text-gray-500 text-sm md:text-base max-w-2xl mx-auto whitespace-pre-line">{l(L.stats.subtitle)}</p>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-6">
             {L.stats.items.map((item, i) => (
@@ -185,8 +191,8 @@ export default function HomeClient({ content } = {}) {
       <section className="bg-slate-50 py-10 md:py-16">
         <div className="max-w-6xl mx-auto px-4">
           <div className="text-center mb-8 md:mb-12">
-            <h2 className="text-2xl md:text-3xl lg:text-4xl font-extrabold text-gray-900 mb-2 md:mb-4">{l(L.doctors.title)}</h2>
-            <p className="text-gray-500 text-sm md:text-base max-w-2xl mx-auto">{l(L.doctors.subtitle)}</p>
+            <h2 className="text-2xl md:text-3xl lg:text-4xl font-extrabold text-gray-900 mb-2 md:mb-4 whitespace-pre-line">{l(L.doctors.title)}</h2>
+            <p className="text-gray-500 text-sm md:text-base max-w-2xl mx-auto whitespace-pre-line">{l(L.doctors.subtitle)}</p>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-6">
             {DOCTORS_DATA.map((doc, i) => (
@@ -225,8 +231,8 @@ export default function HomeClient({ content } = {}) {
       <section className="bg-white py-10 md:py-16">
         <div className="max-w-6xl mx-auto px-4">
           <div className="text-center mb-8 md:mb-12">
-            <h2 className="text-2xl md:text-3xl lg:text-4xl font-extrabold text-gray-900 mb-2 md:mb-4">{l(L.services.title)}</h2>
-            <p className="text-gray-500 text-sm md:text-base max-w-2xl mx-auto">{l(L.services.subtitle)}</p>
+            <h2 className="text-2xl md:text-3xl lg:text-4xl font-extrabold text-gray-900 mb-2 md:mb-4 whitespace-pre-line">{l(L.services.title)}</h2>
+            <p className="text-gray-500 text-sm md:text-base max-w-2xl mx-auto whitespace-pre-line">{l(L.services.subtitle)}</p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-6">
             {L.services.items.map((item, i) => {
@@ -243,8 +249,8 @@ export default function HomeClient({ content } = {}) {
                     <Icon size={20} className={`${colors.icon} md:hidden`} />
                     <Icon size={24} className={`${colors.icon} hidden md:block`} />
                   </div>
-                  <h3 className="font-bold text-base md:text-xl mb-2 md:mb-3 text-gray-900">{l(item.title)}</h3>
-                  <p className="text-gray-500 text-xs md:text-sm leading-relaxed">{l(item.desc)}</p>
+                  <h3 className="font-bold text-base md:text-xl mb-2 md:mb-3 text-gray-900 whitespace-pre-line">{l(item.title)}</h3>
+                  <p className="text-gray-500 text-xs md:text-sm leading-relaxed whitespace-pre-line">{l(item.desc)}</p>
                 </div>
               );
             })}
@@ -257,22 +263,23 @@ export default function HomeClient({ content } = {}) {
           ══════════════════════════════════════════ */}
       <section className="bg-slate-50 py-10 md:py-16">
         <div className="max-w-6xl mx-auto px-4">
-          <h2 className="text-2xl md:text-3xl lg:text-4xl font-extrabold text-center text-gray-900 mb-8 md:mb-12">{l(L.process.title)}</h2>
+          <h2 className="text-2xl md:text-3xl lg:text-4xl font-extrabold text-center text-gray-900 mb-8 md:mb-12 whitespace-pre-line">{l(L.process.title)}</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-            {L.process.steps.map((step, i) => (
-              <div key={i} className="relative flex flex-col items-center text-center">
-                {i < 3 && (
-                  <div className="hidden md:block absolute top-6 left-[calc(50%+28px)] w-[calc(100%-56px)] h-0.5 bg-gradient-to-r from-teal-300 to-teal-100" />
-                )}
-                <div className="w-10 h-10 md:w-14 md:h-14 bg-gradient-to-br from-teal-500 to-emerald-500 rounded-xl md:rounded-2xl flex items-center justify-center text-white font-black text-sm md:text-lg mb-2 md:mb-4 shrink-0 relative z-10 shadow-lg shadow-teal-500/20">
-                  {step.num}
+            {L.process.steps.map((step, i) => {
+              const StepIcon = STEP_ICONS[i] || FileText;
+              return (
+                <div key={i} className="flex flex-col items-center text-center">
+                  <div className="w-10 h-10 md:w-12 md:h-12 bg-teal-50 text-teal-700 rounded-xl flex items-center justify-center mb-2 md:mb-3 shrink-0">
+                    <StepIcon size={22} />
+                  </div>
+                  <div>
+                    <div className="text-[10px] md:text-[11px] font-semibold tracking-wide text-teal-700 mb-0.5">STEP {i + 1}</div>
+                    <h3 className="font-bold text-xs md:text-lg text-gray-900 mb-0.5 md:mb-1 whitespace-pre-line">{l(step.title)}</h3>
+                    <p className="text-gray-500 text-[10px] md:text-sm leading-snug whitespace-pre-line">{l(step.desc)}</p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="font-bold text-xs md:text-lg text-gray-900 mb-0.5 md:mb-1">{l(step.title)}</h3>
-                  <p className="text-gray-500 text-[10px] md:text-sm leading-snug">{l(step.desc)}</p>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </section>
@@ -282,13 +289,15 @@ export default function HomeClient({ content } = {}) {
           ══════════════════════════════════════════ */}
       <section className="bg-white py-10 md:py-16">
         <div className="max-w-6xl mx-auto px-4">
-          <h2 className="text-2xl md:text-3xl lg:text-4xl font-extrabold text-center text-gray-900 mb-8 md:mb-12">{l(L.cancers.title)}</h2>
+          <h2 className="text-2xl md:text-3xl lg:text-4xl font-extrabold text-center text-gray-900 mb-8 md:mb-12 whitespace-pre-line">{l(L.cancers.title)}</h2>
           <div className="grid grid-cols-3 md:grid-cols-6 gap-2 md:gap-4">
             {L.cancers.items.map((c, i) => (
               <div key={i} role="button" tabIndex={0} onClick={() => router.push("/treatments")} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); router.push("/treatments"); } }} className="bg-white rounded-xl md:rounded-2xl p-3 md:p-5 text-center cursor-pointer hover:shadow-md transition-all duration-200 border border-gray-100 group focus:outline-none focus:ring-2 focus:ring-teal-400">
-                <div className="text-2xl md:text-4xl mb-1 md:mb-3">{c.emoji}</div>
-                <div className="font-bold text-xs md:text-sm text-gray-800 mb-0.5 md:mb-1">{l(c.label)}</div>
-                <div className="text-[9px] md:text-[11px] text-teal-700 font-semibold leading-tight">{l(c.stat)}</div>
+                <div className="mb-1 md:mb-3 flex justify-center text-teal-600">
+                  <OrganIcon name={c.organ} className="w-7 h-7 md:w-10 md:h-10" />
+                </div>
+                <div className="font-bold text-xs md:text-sm text-gray-800 mb-0.5 md:mb-1 whitespace-pre-line">{l(c.label)}</div>
+                <div className="text-[9px] md:text-[11px] text-teal-700 font-semibold leading-tight whitespace-pre-line">{l(c.stat)}</div>
               </div>
             ))}
           </div>
@@ -307,8 +316,8 @@ export default function HomeClient({ content } = {}) {
       <section className="bg-slate-50 py-10 md:py-16">
         <div className="max-w-6xl mx-auto px-4">
           <div className="text-center mb-8 md:mb-12">
-            <h2 className="text-2xl md:text-3xl lg:text-4xl font-extrabold text-gray-900 mb-2 md:mb-4">{l(L.partners.title)}</h2>
-            <p className="text-gray-500 text-sm md:text-base max-w-2xl mx-auto">{l(L.partners.subtitle)}</p>
+            <h2 className="text-2xl md:text-3xl lg:text-4xl font-extrabold text-gray-900 mb-2 md:mb-4 whitespace-pre-line">{l(L.partners.title)}</h2>
+            <p className="text-gray-500 text-sm md:text-base max-w-2xl mx-auto whitespace-pre-line">{l(L.partners.subtitle)}</p>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 md:gap-5">
             {PARTNERS_DATA.map((h, i) => {
@@ -362,7 +371,7 @@ export default function HomeClient({ content } = {}) {
           ══════════════════════════════════════════ */}
       <section className="bg-slate-50 py-10 md:py-16">
         <div className="max-w-3xl mx-auto px-4">
-          <h2 className="text-2xl md:text-3xl lg:text-4xl font-extrabold text-center text-gray-900 mb-6 md:mb-10">{l(L.faq.title)}</h2>
+          <h2 className="text-2xl md:text-3xl lg:text-4xl font-extrabold text-center text-gray-900 mb-6 md:mb-10 whitespace-pre-line">{l(L.faq.title)}</h2>
 
           {/* Tabs */}
           <div className="flex justify-center gap-1.5 md:gap-2 mb-6 md:mb-8">
@@ -411,8 +420,8 @@ export default function HomeClient({ content } = {}) {
         <div className="max-w-4xl mx-auto px-4">
           <div className="bg-red-50 rounded-xl md:rounded-2xl p-5 md:p-10 border border-red-100">
             <div className="text-center">
-              <h2 className="text-xl md:text-3xl font-extrabold text-gray-900 mb-2 md:mb-3">{l(L.emergency.title)}</h2>
-              <p className="text-gray-500 text-sm md:text-base mb-5 md:mb-8">{l(L.emergency.subtitle)}</p>
+              <h2 className="text-xl md:text-3xl font-extrabold text-gray-900 mb-2 md:mb-3 whitespace-pre-line">{l(L.emergency.title)}</h2>
+              <p className="text-gray-500 text-sm md:text-base mb-5 md:mb-8 whitespace-pre-line">{l(L.emergency.subtitle)}</p>
               <div className="flex flex-col sm:flex-row justify-center gap-2 md:gap-4">
                 <a href="mailto:admin@healwith.co.kr" className="inline-flex items-center justify-center gap-2 bg-white border border-gray-200 rounded-xl px-4 md:px-6 py-2.5 md:py-3 text-gray-700 text-sm md:text-base font-medium hover:border-teal-300 hover:shadow-md transition-all">
                   <Mail size={16} className="text-teal-700" />
@@ -464,7 +473,7 @@ export default function HomeClient({ content } = {}) {
           <div className="absolute bottom-0 left-0 w-[200px] h-[200px] md:w-[300px] md:h-[300px] bg-emerald-500/10 rounded-full blur-3xl" />
         </div>
         <div className="relative max-w-3xl mx-auto px-4 text-center">
-          <h2 className="text-2xl md:text-3xl lg:text-4xl font-extrabold mb-4 md:mb-6">{l(L.bottomCta.title)}</h2>
+          <h2 className="text-2xl md:text-3xl lg:text-4xl font-extrabold mb-4 md:mb-6 whitespace-pre-line">{l(L.bottomCta.title)}</h2>
           <p className="text-slate-200 text-sm md:text-base mb-6 md:mb-10 whitespace-pre-line leading-relaxed">{l(L.bottomCta.desc)}</p>
           <button
             onClick={() => router.push("/inquiry")}

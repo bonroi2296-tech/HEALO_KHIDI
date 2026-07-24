@@ -255,6 +255,44 @@ try {
   errors.push(`[i18n] ${I18N} 읽기 실패: ${e.message}`);
 }
 
+// ── 2b) 사전 값 언어-스크립트 불일치(가짜 번역 유입 차단) ─────────────
+// 왜: km(크메르)·my(미얀마) 섹션이 통째로 인도네시아어 복사본이었음(2026-07-24 발견 —
+//     언어 선택기에서 고르면 그 언어 사용자에게 남의 언어가 노출). 값에 해당 언어 문자가
+//     하나도 없이 라틴 알파벳만 길게 있으면 "그 언어가 아님"으로 판정해 재유입을 차단.
+//     라틴 문자권 언어(en·vi·id·ms 등)끼리는 스크립트로 구분 불가 → 검사 대상 아님.
+const SCRIPT_EXPECT = {
+  ko: /[가-힣]/, ja: /[぀-ヿ一-鿿]/, zh: /[一-鿿]/,
+  ru: /[Ѐ-ӿ]/, kz: /[Ѐ-ӿ]/, mn: /[Ѐ-ӿ]/,
+  th: /[฀-๿]/, ar: /[؀-ۿ]/, hi: /[ऀ-ॿ]/,
+  km: /[ក-៿]/, my: /[က-႟]/,
+};
+// 라틴 표기가 정상인 키(이메일 예시·브랜드/제품명을 그대로 쓰는 값)
+const SCRIPT_ALLOW = new Set(["login.emailPlaceholder", "inquiry.messenger"]);
+try {
+  const text = readFileSync(join(ROOT, I18N), "utf8").split("\n");
+  let cur = null;
+  const bad = [];
+  text.forEach((line, idx) => {
+    const m = line.match(/^ {2}([a-z]{2}): \{\s*$/);
+    if (m) { cur = m[1]; return; }
+    if (/^\};/.test(line)) { cur = null; return; } // DICTIONARY 닫힘
+    const re = cur && SCRIPT_EXPECT[cur];
+    if (!re) return;
+    const kv = line.match(/^ {4}"([^"]+)": "(.*)",?\s*$/);
+    if (!kv || SCRIPT_ALLOW.has(kv[1])) return;
+    const latin = (kv[2].match(/[A-Za-z]/g) || []).length;
+    if (latin >= 6 && !re.test(kv[2])) bad.push(`${cur} ${idx + 1}행 ${kv[1]}="${kv[2].slice(0, 40)}"`);
+  });
+  if (bad.length) {
+    errors.push(
+      `[i18n-스크립트] 사전 값이 섹션 언어의 문자가 아님(다른 언어 복사·오염 의심) ${bad.length}건: ` +
+        `${bad.slice(0, 5).join(" · ")}${bad.length > 5 ? " …" : ""} — 해당 언어로 번역하거나, 라틴 표기가 정상인 키면 SCRIPT_ALLOW에 추가`
+    );
+  }
+} catch {
+  /* 읽기 실패는 위 2)에서 이미 보고됨 */
+}
+
 // ── 3) 화상 상담방 카피(_roomCopy.js) 6개 언어 키 패리티 ─────────────
 // 화상방은 별도 COPY 객체(_roomCopy.js)를 쓰는데 위 i18n 검사(index.js)가 안 본다.
 // 한 언어에만 키가 빠지면 그 언어 환자 화면에 undefined/빈칸이 뜬다(화상방=KHIDI 시연 핵심).

@@ -13,8 +13,9 @@ import { useRouter, useSearchParams } from "next/navigation";
 import {
   Check, ChevronRight, ChevronLeft, UploadCloud, X, File,
   AlertCircle, Loader2, Shield, Clock,
-  Bot, MessageCircle, ClipboardList, Headset, BadgeCheck
+  Bot, MessageCircle, ClipboardList, Headset, BadgeCheck, HelpCircle
 } from "lucide-react";
+import OrganIcon from "../../_components/OrganIcon";
 // 인테이크 선택지 라벨(6개국어)·값은 코디 상세화면과 공용 — 단일 SoR.
 import { CANCER_TYPES, STAGES, TREATMENT_STATES, TRAVEL_TIMING, PRIORITIES } from "@/lib/inquiry/intakeLabels";
 import { useLang } from "@/lib/i18n/LangContext";
@@ -1205,7 +1206,9 @@ export default function UnifiedInquiryFunnel() {
           <p className="text-gray-500 text-sm md:text-base">{tl("humanChannelsSubtitle", lang)}</p>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+        {/* 카드 수와 무관하게 가운데 정렬 — 4칸 grid 고정이면 2개(현 WhatsApp·Telegram)일 때
+            왼쪽으로 쏠린다(실기기 2026-07-24 PO 지적). 채널이 늘어도(4개) 그대로 동작. */}
+        <div className="flex flex-wrap justify-center gap-3 md:gap-4">
           {channels.map((c) => {
             const enabled = !!c.url;
             const inner = (
@@ -1225,7 +1228,8 @@ export default function UnifiedInquiryFunnel() {
               </>
             );
 
-            const baseCls = "bg-white border border-gray-200 rounded-xl p-5 flex flex-col items-center justify-center text-center transition-all aspect-square";
+            // flex 컨테이너라 카드가 스스로 폭을 가져야 함 — 모바일 2열(반폭), md+ 고정폭.
+            const baseCls = "bg-white border border-gray-200 rounded-xl p-5 flex flex-col items-center justify-center text-center transition-all aspect-square w-[calc(50%-0.375rem)] md:w-44";
 
             if (enabled) {
               return (
@@ -1387,7 +1391,6 @@ export default function UnifiedInquiryFunnel() {
           </label>
           <div className="grid grid-cols-4 gap-2" role="group" aria-labelledby="funnel-cancerType-label">
             {CANCER_TYPES.map((ct) => {
-              const Icon = ct.icon;
               const selected = form1.cancerType === ct.value;
               const colorClass = CANCER_TYPE_COLORS[ct.value] || "text-gray-600 bg-gray-50 border-gray-200";
               return (
@@ -1402,7 +1405,7 @@ export default function UnifiedInquiryFunnel() {
                   }`}
                 >
                   <div className={`w-9 h-9 rounded-lg flex items-center justify-center border ${colorClass}`}>
-                    <Icon size={18} />
+                    {ct.organ ? <OrganIcon name={ct.organ} className="w-[22px] h-[22px]" /> : <HelpCircle size={18} />}
                   </div>
                   <span className={`text-[11px] font-medium leading-tight ${selected ? "text-teal-800" : "text-gray-700"}`}>
                     {ct.label[lang] || ct.label.en}

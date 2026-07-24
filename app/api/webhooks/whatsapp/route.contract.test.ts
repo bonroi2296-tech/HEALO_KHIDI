@@ -51,12 +51,34 @@ vi.mock("@/lib/rag/supabaseAdmin", () => ({
   supabaseAdmin: {
     from: (table: string) => ({
       select: (cols: string) => {
+        const filters: Array<[string, any]> = [];
         const builder: any = {
-          eq: () => builder,
+          eq: (f: string, v: any) => {
+            filters.push([f, v]);
+            return builder;
+          },
+          not: (f: string, op: string, v: any) => {
+            filters.push([`not:${f}:${op}`, v]);
+            return builder;
+          },
           order: () => builder,
           limit: async () => {
             if (table === "chat_threads") {
-              return { data: mockState.thread ? [mockState.thread] : [], error: null };
+              const t = mockState.thread;
+              if (!t) return { data: [], error: null };
+              // status 필터 시뮬레이션 — 연속성 계약을 실제로 고정(텔레그램 하니스와 동일).
+              const status = (t as any).status || "open";
+              for (const [f, v] of filters) {
+                if (f === "status" && status !== v) return { data: [], error: null };
+                if (f === "not:status:in") {
+                  const excluded = String(v)
+                    .replace(/[()]/g, "")
+                    .split(",")
+                    .map((s) => s.trim());
+                  if (excluded.includes(status)) return { data: [], error: null };
+                }
+              }
+              return { data: [t], error: null };
             }
             if (cols === "id") {
               return { data: mockState.dupMsg ? [{ id: "m-dup" }] : [], error: null };
@@ -113,6 +135,10 @@ vi.mock("@/lib/messaging/telegram", () => ({
   CONSENT_WELCOME: { en: "welcome" },
   TG_APOLOGY: { en: "sorry" },
   pickTgText: (map: Record<string, string>, lang: string) => map[lang] || map.en,
+}));
+const relayToStaffTopic = vi.fn(async (..._args: any[]) => {});
+vi.mock("@/lib/messaging/staffRelay", () => ({
+  relayToStaffTopic: (...args: any[]) => relayToStaffTopic(...args),
 }));
 
 const afterPromises: Promise<unknown>[] = [];
@@ -356,6 +382,21 @@ describe("왓츠앱 웹훅 계약", () => {
     expect((await res2.json()).ok).toBe(true);
     await flushAfter();
     expect(sendWhatsAppPatientMessage).not.toHaveBeenCalled();
+  });
+
+  it("⑥-3 코디 답장으로 waiting_patient 가 된 스레드도 이어받는다 — 재동의·새 스레드 분절 금지", async () => {
+    const { POST } = await loadRoute();
+    const t = CONSENTED_THREAD();
+    (t as any).status = "waiting_patient";
+    mockState.thread = t;
+
+    const res = await POST(makeReq(waUpdate(textMsg("another question", "wamid.w1"))));
+    expect((await res.json()).ok).toBe(true);
+    await flushAfter();
+
+    expect(sendWhatsAppConsentPrompt).not.toHaveBeenCalled();
+    expect(captured.find((c) => c.table === "chat_threads" && c.op === "insert")).toBeFalsy();
+    expect(generateChatReply).toHaveBeenCalledTimes(1);
   });
 
   it("⑦ 핸드오프 요청: 접수 멘트를 채널 안(inChannel=true) 변형으로 붙인다", async () => {

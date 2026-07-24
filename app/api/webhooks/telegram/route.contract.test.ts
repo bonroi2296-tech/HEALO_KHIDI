@@ -61,10 +61,30 @@ vi.mock("@/lib/rag/supabaseAdmin", () => ({
             filters.push([f, v]);
             return builder;
           },
+          not: (f: string, op: string, v: any) => {
+            filters.push([`not:${f}:${op}`, v]);
+            return builder;
+          },
           order: () => builder,
           limit: async (_n: number) => {
             if (table === "chat_threads") {
-              return { data: mockState.thread ? [mockState.thread] : [], error: null };
+              const t = mockState.thread;
+              if (!t) return { data: [], error: null };
+              // status 필터를 실제로 시뮬레이션 — "waiting_patient 이어받기" 계약이
+              // 코드를 .eq("status","open") 으로 되돌리면 빨간불 나게 고정(독립 리뷰 지적:
+              // 필터 무시 목은 연속성 수리를 전혀 고정하지 못했다).
+              const status = (t as any).status || "open";
+              for (const [f, v] of filters) {
+                if (f === "status" && status !== v) return { data: [], error: null };
+                if (f === "not:status:in") {
+                  const excluded = String(v)
+                    .replace(/[()]/g, "")
+                    .split(",")
+                    .map((s) => s.trim());
+                  if (excluded.includes(status)) return { data: [], error: null };
+                }
+              }
+              return { data: [t], error: null };
             }
             // chat_messages: 멱등 가드의 중복 조회(select "id") vs 히스토리 조회를 구분
             if (cols === "id") {
@@ -84,6 +104,11 @@ vi.mock("@/lib/rag/supabaseAdmin", () => ({
       update: (payload: any) =>
         chainable("update", table, payload, { data: [{ id: "row-1" }], error: null }),
     }),
+    // metadata 키 병합 RPC(chat_thread_merge_meta 등) — 호출 기록으로 계약 어설션.
+    rpc: (fn: string, args: any) => {
+      captured.push({ table: `rpc:${fn}`, op: "rpc", payload: args, filters: [] });
+      return Promise.resolve({ data: 1, error: null });
+    },
   },
 }));
 
@@ -126,6 +151,21 @@ vi.mock("@/lib/messaging/telegram", () => ({
   TG_WELCOME_BACK: { en: "welcome-back" },
   TG_APOLOGY: { en: "sorry" },
   pickTgText: (map: Record<string, string>, lang: string) => map[lang] || map.en,
+}));
+
+// 스태프 그룹 릴레이(B안) — server-only 모듈이라 목으로 대체. 그룹 라우팅 계약도 여기로 잠근다.
+const relayToStaffTopic = vi.fn(async (..._args: any[]) => {});
+const notifyStaffTopic = vi.fn(async (..._args: any[]) => {});
+const findThreadByStaffTopic = vi.fn(async (_topicId: number) => null as any);
+vi.mock("@/lib/messaging/staffRelay", () => ({
+  staffGroupId: () => process.env.STAFF_TELEGRAM_GROUP_ID || null,
+  relayToStaffTopic: (...args: any[]) => relayToStaffTopic(...args),
+  notifyStaffTopic: (...args: any[]) => notifyStaffTopic(...args),
+  findThreadByStaffTopic: (...args: any[]) => findThreadByStaffTopic(...(args as [number])),
+}));
+const sendWhatsAppPatientMessage = vi.fn(async (..._args: any[]) => ({ sent: true, windowExpired: false }));
+vi.mock("@/lib/messaging/whatsapp", () => ({
+  sendWhatsAppPatientMessage: (...args: any[]) => sendWhatsAppPatientMessage(...args),
 }));
 
 // after() 는 테스트에서 즉시 실행하되 promise 를 모아둔다 — 핸드오프 턴처럼 동적 import 가
@@ -517,12 +557,116 @@ describe("텔레그램 웹훅 계약", () => {
     expect(createDraftIntake.mock.calls[0][4]).toEqual({ handOffRequested: true });
   });
 
-  it("그룹 채팅 메시지는 무시한다(1:1 상담 전용)", async () => {
+  it("코디 답장으로 waiting_patient 가 된 스레드도 이어받는다 — 재동의·새 스레드 분절 금지(2026-07-24 실기기 재현)", async () => {
     const POST = await loadPost();
+    const t = CONSENTED_THREAD();
+    (t as any).status = "waiting_patient";
+    mockState.thread = t;
+
+    const res = await POST(makeReq(msgUpdate("another question", 15)));
+    expect((await res.json()).ok).toBe(true);
+    await flushAfter();
+
+    // 동의를 다시 묻지 않고, 새 스레드도 만들지 않으며, AI 가 정상 응답한다
+    expect(sendConsentPrompt).not.toHaveBeenCalled();
+    expect(captured.find((c) => c.table === "chat_threads" && c.op === "insert")).toBeFalsy();
+    expect(generateChatReply).toHaveBeenCalledTimes(1);
+  });
+
+  it("TEST_TELEGRAM_CHAT_IDS 에 등록된 계정은 딥링크 없이도 테스트 표식(is_test) — 실적 오염 방지", async () => {
+    const POST = await loadPost();
+    process.env.TEST_TELEGRAM_CHAT_IDS = "999, 777";
+    try {
+      const res = await POST(makeReq(msgUpdate("hello", 16)));
+      expect((await res.json()).ok).toBe(true);
+      const tIns = captured.find((c) => c.table === "chat_threads" && c.op === "insert");
+      expect(tIns?.payload.metadata.is_test).toBe(true);
+    } finally {
+      delete process.env.TEST_TELEGRAM_CHAT_IDS;
+    }
+  });
+
+  it("그룹 채팅 메시지는 무시한다(스태프 그룹 미설정 시 — 1:1 상담 전용)", async () => {
+    const POST = await loadPost();
+    delete process.env.STAFF_TELEGRAM_GROUP_ID;
     const u = msgUpdate("hello", 10);
     (u.message.chat as any).type = "group";
     const res = await POST(makeReq(u));
     expect((await res.json()).skipped).toBe("non_private");
     expect(captured.length).toBe(0);
+  });
+
+  function staffGroupUpdate(text: string, topicId: number | null, updateId = 90) {
+    return {
+      update_id: updateId,
+      message: {
+        message_id: 500,
+        text,
+        ...(topicId ? { message_thread_id: topicId } : {}),
+        chat: { id: -100999, type: "supergroup" },
+        from: { id: 42, username: "coordinator_kim", is_bot: false },
+      },
+    };
+  }
+
+  it("스태프 그룹 주제 답장: 스레드로 역매핑 → 환자 발신 + admin 저장(via telegram_staff) + AI 침묵 플래그 (B안)", async () => {
+    const POST = await loadPost();
+    process.env.STAFF_TELEGRAM_GROUP_ID = "-100999";
+    findThreadByStaffTopic.mockResolvedValueOnce({
+      ...CONSENTED_THREAD(),
+      metadata: { ...CONSENTED_THREAD().metadata, staff_topic_id: 55 },
+    });
+    const res = await POST(makeReq(staffGroupUpdate("네, 예약 도와드릴게요", 55)));
+    expect((await res.json()).ok).toBe(true);
+
+    // 환자 텔레그램으로 발신
+    expect(sendTelegramPatientMessage).toHaveBeenCalledWith("777", "네, 예약 도와드릴게요");
+    // admin 메시지로 저장 + 출처 표식
+    const ins = captured.find((c) => c.table === "chat_messages" && c.op === "insert");
+    expect(ins?.payload.actor_type).toBe("admin");
+    expect(ins?.payload.metadata.via).toBe("telegram_staff");
+    expect(ins?.payload.metadata.staff_username).toBe("coordinator_kim");
+    // 사람 답장 시작 → coordinator_active(이후 AI 침묵) — 키 병합 RPC 로(전체 덮어쓰기 금지, C2)
+    const merge = captured.find(
+      (c) => c.table === "rpc:chat_thread_merge_meta" && c.payload?.p_patch?.coordinator_active === true
+    );
+    expect(merge).toBeTruthy();
+    // 이중 발신 차단: 저장(클레임)이 발신보다 먼저여야 한다(재배달이 유니크 인덱스에 걸리게)
+    const insIdx = captured.findIndex((c) => c.table === "chat_messages" && c.op === "insert");
+    expect(insIdx).toBeGreaterThanOrEqual(0);
+    expect(sendTelegramPatientMessage.mock.invocationCallOrder[0]).toBeGreaterThan(0);
+    delete process.env.STAFF_TELEGRAM_GROUP_ID;
+  });
+
+  it("스태프 그룹: gid 가 설정돼 있어도 다른 그룹의 메시지는 무시한다(보안 — 임의 그룹 초대 공격 차단)", async () => {
+    const POST = await loadPost();
+    process.env.STAFF_TELEGRAM_GROUP_ID = "-100999";
+    const u = staffGroupUpdate("try to reply", 55, 95);
+    (u.message.chat as any).id = -100777; // 다른 그룹
+    const res = await POST(makeReq(u));
+    expect((await res.json()).skipped).toBe("non_private");
+    expect(sendTelegramPatientMessage).not.toHaveBeenCalled();
+    expect(captured.filter((c) => c.op === "insert")).toHaveLength(0);
+    delete process.env.STAFF_TELEGRAM_GROUP_ID;
+  });
+
+  it("스태프 그룹: 매핑 안 되는 주제엔 발신하지 않고 주제에 안내만 남긴다", async () => {
+    const POST = await loadPost();
+    process.env.STAFF_TELEGRAM_GROUP_ID = "-100999";
+    findThreadByStaffTopic.mockResolvedValueOnce(null);
+    const res = await POST(makeReq(staffGroupUpdate("어디로 가나요", 77)));
+    expect((await res.json()).skipped).toBe("staff_topic_unmapped");
+    expect(sendTelegramPatientMessage).not.toHaveBeenCalled();
+    expect(notifyStaffTopic).toHaveBeenCalledTimes(1);
+    delete process.env.STAFF_TELEGRAM_GROUP_ID;
+  });
+
+  it("환자 메시지는 스태프 주제로 릴레이된다(🧑 환자)", async () => {
+    const POST = await loadPost();
+    mockState.thread = CONSENTED_THREAD();
+    const res = await POST(makeReq(msgUpdate("what hospitals?", 91)));
+    expect((await res.json()).ok).toBe(true);
+    await flushAfter();
+    expect(relayToStaffTopic).toHaveBeenCalledWith(expect.anything(), "🧑 환자", "what hospitals?");
   });
 });

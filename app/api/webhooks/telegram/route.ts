@@ -48,6 +48,12 @@ import {
   TG_APOLOGY,
   pickTgText,
 } from "@/lib/messaging/telegram";
+import {
+  staffGroupId,
+  findThreadByStaffTopic,
+  notifyStaffTopic,
+  relayToStaffTopic,
+} from "@/lib/messaging/staffRelay";
 
 // 텔레그램 language_code(IETF) → 사이트 활성 6개 언어. 카자흐어는 ISO 'kk' 로 오지만
 // 이 코드베이스의 언어 키는 'kz'(src/lib/i18n) — 여기서 정규화한다. 미지원은 en 폴백.
@@ -80,15 +86,18 @@ function threadMeta(thread: any): Record<string, any> {
     : {};
 }
 
-// chat_id 로 살아있는(open) 텔레그램 스레드 조회 — resolved/closed 는 새 대화로 취급
-// (재상담은 새 스레드 + 재동의: PIPA 증빙이 대화 단위로 남는 게 안전).
+// chat_id 로 살아있는 텔레그램 스레드 조회 — 종료(resolved/closed)만 새 대화로 취급
+// (재상담은 종료 후 새 스레드 + 재동의: PIPA 증빙이 대화 단위로 남는 게 안전).
+// ⚠️ "open"만 매칭하면 코디 답장으로 status 가 waiting_patient 로 바뀐 순간, 환자의 다음
+// 메시지가 새 스레드로 갈라져 동의를 처음부터 다시 묻는다(2026-07-24 PO 실기기 재현 —
+// 무표식 inquiry#41 까지 생성). 웹 챗의 종료 판정(resolved||closed)과 동일 의미로 통일.
 async function findOpenThread(chatId: string) {
   const { data } = await (supabaseAdmin as any)
     .from("chat_threads")
     .select("*")
     .eq("channel", "telegram")
     .eq("metadata->telegram->>chat_id", chatId)
-    .eq("status", "open")
+    .not("status", "in", "(resolved,closed)")
     .order("created_at", { ascending: false })
     .limit(1);
   return data?.[0] || null;
@@ -113,9 +122,18 @@ async function createThread(chatId: string, from: any, startParam: string | null
         telegram: { chat_id: chatId, username: from?.username || null },
         utm: { source: "telegram_bot", start_param: startParam },
         started_at: new Date().toISOString(),
-        // 딥링크 ?start=test... 로 들어온 대화는 테스트 표식 — inquiries 승격 시 is_test 로
+        // 딥링크 ?start=test... 또는 등록된 테스트 계정(chat_id) — inquiries 승격 시 is_test 로
         // 이어져 KHIDI 실적 오염을 막는다(독립 리뷰 C3: 텔레그램은 IP·이메일 판별이 불가능).
-        ...(startParam && /^test/i.test(startParam) ? { is_test: true } : {}),
+        // env TEST_TELEGRAM_CHAT_IDS(쉼표구분): PO 실기기가 딥링크 없이 평문으로 시작해도
+        // 자동 표식(2026-07-24 무표식 inquiry#41 사고 재발 방지). 미설정이면 no-op.
+        ...((startParam && /^test/i.test(startParam)) ||
+        (process.env.TEST_TELEGRAM_CHAT_IDS || "")
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean)
+          .includes(chatId)
+          ? { is_test: true }
+          : {}),
       },
     })
     .select("*")
@@ -125,6 +143,133 @@ async function createThread(chatId: string, from: any, startParam: string | null
     return null;
   }
   return data;
+}
+
+// ── 스태프 그룹(양방향 릴레이) — 봇 문의를 코디 텔레그램에서 보고 거기서 답장(B안 2026-07-24) ──
+// 그룹 주제(topic) 1개 = 환자 스레드 1개. 주제에 쓴 글을 환자 메신저(텔레그램·왓츠앱)로 발신.
+// 개통: docs/TELEGRAM_BOT_SETUP.md §스태프 그룹 (봇 privacy Disable 필수 — 아니면 그룹 글이 안 옴).
+async function handleStaffGroupMessage(update: any, msg: any): Promise<Response> {
+  const groupChatId = String(msg.chat?.id ?? "");
+  const text = typeof msg.text === "string" ? msg.text.trim() : "";
+
+  // 설정 도우미 — 어느 그룹에서든 /id 로 chat_id 확인(env STAFF_TELEGRAM_GROUP_ID 등록용).
+  if (text === "/id" || text.startsWith("/id@")) {
+    await sendTelegramPatientMessage(
+      groupChatId,
+      `이 그룹의 chat_id: ${groupChatId}\nVercel env STAFF_TELEGRAM_GROUP_ID 에 이 값을 넣고 재배포하면 스태프 릴레이가 켜집니다.`
+    );
+    return Response.json({ ok: true });
+  }
+
+  const gid = staffGroupId();
+  if (!gid || groupChatId !== gid) {
+    return Response.json({ ok: true, skipped: "non_private" });
+  }
+  // 주제 밖 일반 글·서비스 메시지(주제 생성 등)·봇 발신 글은 라우팅 대상 아님.
+  const topicId = Number(msg.message_thread_id || 0);
+  if (msg.from?.is_bot) {
+    // 함정(독립 리뷰 P2): 그룹 관리자가 "익명으로 보내기"를 켜면 from=GroupAnonymousBot 으로
+    // 와서 조용히 버려진다 — 전달된 줄 착각하지 않게 주제에 즉시 경고.
+    if (topicId && msg.from?.username === "GroupAnonymousBot" && text) {
+      await notifyStaffTopic(
+        topicId,
+        "⚠️ '익명으로 보내기(관리자 익명)'가 켜져 있으면 답장을 환자에게 전달할 수 없어요 — 익명을 끄고 다시 보내주세요."
+      );
+    }
+    return Response.json({ ok: true, skipped: "staff_ignored" });
+  }
+  if (!topicId || !text) {
+    return Response.json({ ok: true, skipped: "staff_ignored" });
+  }
+
+  const thread = await findThreadByStaffTopic(topicId);
+  if (!thread) {
+    await notifyStaffTopic(topicId, "⚠️ 이 주제와 연결된 상담을 찾지 못했어요(종료됐거나 매핑 유실). 인앱(/admin/chat)에서 답장해 주세요.");
+    return Response.json({ ok: true, skipped: "staff_topic_unmapped" });
+  }
+
+  // 멱등 — 저장(클레임)을 발신보다 먼저: 같은 update 가 병렬/재배달돼도 유니크 인덱스
+  // (thread_id, tg_update_id)가 한 쪽만 통과시켜 환자 이중 발신을 막는다(독립 리뷰 P3 —
+  // 발신-먼저였으면 dup pre-check 를 둘 다 통과하는 창이 열림). 환자 경로와 동일한 순서.
+  const updateId = Number(update.update_id || 0);
+  if (updateId) {
+    const { data: dup } = await (supabaseAdmin as any)
+      .from("chat_messages")
+      .select("id")
+      .eq("thread_id", thread.id)
+      .eq("metadata->>tg_update_id", String(updateId))
+      .limit(1);
+    if (dup?.length) return Response.json({ ok: true, skipped: "duplicate" });
+  }
+
+  const { data: staffMsg, error: staffInsertErr } = await (supabaseAdmin as any)
+    .from("chat_messages")
+    .insert({
+      thread_id: thread.id,
+      actor_type: "admin",
+      message_text: text,
+      metadata: {
+        via: "telegram_staff",
+        tg_update_id: updateId || null,
+        staff_username: msg.from?.username || null,
+      },
+    })
+    .select("id")
+    .single();
+  if (staffInsertErr) {
+    if (staffInsertErr.code === "23505") return Response.json({ ok: true, skipped: "duplicate" });
+    console.error("[webhooks/telegram] staff reply insert:", staffInsertErr.message);
+    return Response.json({ ok: false, error: "internal_error" }, { status: 500 });
+  }
+
+  // 환자에게 발신 — 스레드 채널별 어댑터(스태프 답장 창구는 텔레그램 그룹 하나로 통일).
+  let deliveryNote = "failed";
+  if (thread.channel === "telegram") {
+    const tgChatId = thread.metadata?.telegram?.chat_id;
+    deliveryNote = tgChatId && (await sendTelegramPatientMessage(tgChatId, text)) ? "sent" : "failed";
+  } else if (thread.channel === "whatsapp") {
+    const waId = thread.metadata?.whatsapp?.wa_id;
+    if (waId) {
+      const { sendWhatsAppPatientMessage } = await import("@/lib/messaging/whatsapp");
+      const r = await sendWhatsAppPatientMessage(waId, text);
+      deliveryNote = r.sent ? "sent" : r.windowExpired ? "window_expired" : "failed";
+    }
+  } else {
+    deliveryNote = "sent"; // 웹 챗: 저장만으로 환자 화면(스레드)에 뜬다.
+  }
+  if (deliveryNote !== "sent" && staffMsg?.id) {
+    await (supabaseAdmin as any)
+      .from("chat_messages")
+      .update({
+        metadata: {
+          via: "telegram_staff",
+          tg_update_id: updateId || null,
+          staff_username: msg.from?.username || null,
+          delivery: deliveryNote,
+        },
+      })
+      .eq("id", staffMsg.id);
+  }
+
+  // 사람이 답장을 시작한 스레드에는 AI 가 끼어들지 않는다(어드민 라우트와 동일 규칙).
+  // 전체 metadata 덮어쓰기 대신 키 병합 RPC(독립 리뷰 C2 부류 방지 — 그 사이 갱신된 키 보존).
+  if (thread.metadata?.coordinator_active !== true) {
+    const { error: mergeErr } = await (supabaseAdmin as any).rpc("chat_thread_merge_meta", {
+      p_thread_id: thread.id,
+      p_patch: { coordinator_active: true },
+    });
+    if (mergeErr) console.error("[webhooks/telegram] coordinator_active merge:", mergeErr.message);
+  }
+
+  if (deliveryNote !== "sent") {
+    await notifyStaffTopic(
+      topicId,
+      deliveryNote === "window_expired"
+        ? "⚠️ 미전달 — 왓츠앱 24시간 창 만료(환자가 다시 메시지를 보내면 답장 가능)."
+        : "⚠️ 전송 실패 — 인앱(/admin/chat)에서 상태를 확인해 주세요."
+    );
+  }
+  return Response.json({ ok: true });
 }
 
 // 웹 message 라우트와 동일한 '비답변 제외 + 최근 N개' 모델 히스토리 구성 규칙
@@ -220,9 +365,9 @@ export async function POST(request: NextRequest) {
     // ── 일반 메시지 ───────────────────────────────────────────────────────
     const msg = update.message;
     if (!msg) return Response.json({ ok: true, skipped: "ignored_update" });
-    // 1:1 상담 봇 — 그룹/채널 메시지는 처리하지 않음.
+    // 그룹 메시지: 스태프 그룹(양방향 릴레이 — PO 결정 2026-07-24 B안)만 처리, 그 외 그룹 무시.
     if (msg.chat?.type && msg.chat.type !== "private") {
-      return Response.json({ ok: true, skipped: "non_private" });
+      return handleStaffGroupMessage(update, msg);
     }
     const chatId = String(msg.chat?.id ?? "");
     if (!chatId) return Response.json({ ok: true, skipped: "no_chat_id" });
@@ -373,6 +518,9 @@ export async function POST(request: NextRequest) {
     // 응답을 먼저 닫고(텔레그램 타임아웃·재전송 방지) LLM·발신은 after 로.
     after(async () => {
       try {
+        // 스태프 그룹 릴레이(B안) — 환자 메시지를 코디 텔레그램 주제로(설정 안 됐으면 내부 스킵).
+        await relayToStaffTopic(thread, "🧑 환자", text);
+
         // 핸드오프 종은 스레드당 1회(도배 방지 — 웹 message 라우트와 동일 규칙).
         // 핸드오프 종은 스레드당 1회(도배 방지). notified 플래그는 위 동기 갱신에서 기록됨 —
         // after() 에서는 metadata 를 다시 쓰지 않는다(낡은 스냅샷 덮어쓰기 금지, 독립 리뷰 C2).
@@ -383,6 +531,7 @@ export async function POST(request: NextRequest) {
           } catch (e: any) {
             console.warn("[webhooks/telegram] handoff bell 실패(무시):", e?.message);
           }
+          await relayToStaffTopic(thread, "🙋 시스템", "상담원 연결 요청 — 이 주제에 답장을 쓰면 환자에게 그대로 전달됩니다.");
         }
 
         // 코디 인수 후 AI 침묵 — 핸드오프된 스레드 + 코디가 답장 중인 스레드 모두.
@@ -449,6 +598,7 @@ export async function POST(request: NextRequest) {
         }
 
         const delivered = await sendTelegramPatientMessage(chatId, finalReply);
+        await relayToStaffTopic(thread, "🤖 AI", finalReply);
 
         const { data: aiMsg, error: aiInsertErr } = await (supabaseAdmin as any)
           .from("chat_messages")

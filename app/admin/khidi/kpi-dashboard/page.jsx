@@ -240,7 +240,7 @@ export default function KpiDashboardPage() {
       {/* 헤더 */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl font-bold text-gray-900">중간평가 현황</h1>
+          <h1 className="text-xl font-bold text-gray-900">KHIDI 리포트</h1>
           <p className="text-sm text-gray-500 mt-0.5">ICT 기반 외국인환자 사전상담·사후관리 지원 사업 (2026.04 ~ 2026.11)</p>
         </div>
         {/* 월 선택 */}

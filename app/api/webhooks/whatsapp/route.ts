@@ -41,6 +41,7 @@ import {
 } from "@/lib/messaging/whatsapp";
 import { CONSENT_WELCOME, TG_APOLOGY, pickTgText } from "@/lib/messaging/telegram";
 import { mapWaLang } from "@/lib/messaging/waLang";
+import { relayToStaffTopic } from "@/lib/messaging/staffRelay";
 
 // 파일/사진/음성 안내 — v1 은 왓츠앱 미디어 수신 미지원(다운로드 파이프 없음). 텔레그램과 동일 정책.
 const FILE_GUIDE: Record<string, string> = {
@@ -58,13 +59,16 @@ function threadMeta(thread: any): Record<string, any> {
     : {};
 }
 
+// 종료(resolved/closed)만 새 대화로 취급 — "open"만 매칭하면 코디 답장으로 status 가
+// waiting_patient 로 바뀐 순간 다음 환자 메시지가 새 스레드+재동의로 갈라진다
+// (텔레그램에서 2026-07-24 PO 실기기 재현 — 동일 수리를 채널 대칭 적용).
 async function findOpenThread(waId: string) {
   const { data } = await (supabaseAdmin as any)
     .from("chat_threads")
     .select("*")
     .eq("channel", "whatsapp")
     .eq("metadata->whatsapp->>wa_id", waId)
-    .eq("status", "open")
+    .not("status", "in", "(resolved,closed)")
     .order("created_at", { ascending: false })
     .limit(1);
   return data?.[0] || null;
@@ -340,6 +344,9 @@ async function handleOneMessage(value: any, msg: any): Promise<string | null> {
 
     after(async () => {
       try {
+        // 스태프 그룹 릴레이(B안 2026-07-24) — 환자 메시지를 코디 텔레그램 주제로(미설정이면 내부 스킵).
+        await relayToStaffTopic(thread, "🧑 환자", text);
+
         if (handOff.requested && !meta.hand_off_notified) {
           try {
             const { notifyStaffChatHandoff } = await import("@/lib/notifications/inApp");
@@ -347,6 +354,7 @@ async function handleOneMessage(value: any, msg: any): Promise<string | null> {
           } catch (e: any) {
             console.warn("[webhooks/whatsapp] handoff bell 실패(무시):", e?.message);
           }
+          await relayToStaffTopic(thread, "🙋 시스템", "상담원 연결 요청 — 이 주제에 답장을 쓰면 환자에게 그대로 전달됩니다.");
         }
 
         // 코디 인수 후 AI 침묵 — 단, 핸드오프 후 첫 추가 메시지엔 고정 수신확인 1회.
@@ -405,6 +413,7 @@ async function handleOneMessage(value: any, msg: any): Promise<string | null> {
         }
 
         const { sent } = await sendWhatsAppPatientMessage(waId, finalReply);
+        await relayToStaffTopic(thread, "🤖 AI", finalReply);
 
         const { data: aiMsg, error: aiInsertErr } = await (supabaseAdmin as any)
           .from("chat_messages")
