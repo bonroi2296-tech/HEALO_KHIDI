@@ -107,6 +107,7 @@ _proposal/
 # Playwright
 test-results/
 playwright-report/
+e2e/.auth/
 
 # Lighthouse 측정 리포트 (재생성 가능한 결과물).
 # ⚠️ 미추적+비ignore 로 두면 git clean -fd 에 쓸려 사라진다 (POSTMORTEM #34).
