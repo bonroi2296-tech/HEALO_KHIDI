@@ -24,6 +24,7 @@ import {
 } from "@/lib/intakeExtract";
 import { encryptStringNullable, decryptMaybe } from "@/lib/security/encryptionV2";
 import { detectInquiryIsTest } from "@/lib/khidi/testData";
+import { shouldPromoteToInquiry } from "@/lib/chat/intakeGate";
 
 export const INTAKE_EVERY_N_TURNS = 3;
 export const MAX_ATTACHMENTS = 5;
@@ -44,6 +45,7 @@ export const ATTACHMENT_ACK: Record<string, string> = {
 export {
   HANDOFF_CONFIRM,
   HANDOFF_NEED_CONTACT,
+  HANDOFF_RECEIVED_ACK,
   hasReachableContact,
   pickHandoffConfirm,
 } from "./contactGate";
@@ -147,12 +149,15 @@ async function promoteThreadToInquiry(
   }
 }
 
-// 3턴마다 대화에서 normalized_inquiries draft 생성 (PII 암호화 저장).
+// 3턴마다(+핸드오프 즉시) 대화에서 normalized_inquiries draft 생성 (PII 암호화 저장).
+// opts.handOffRequested: 이번 턴에 사람 연결·접수 요청이 감지됐는가 — 핸드오프 턴은
+// 호출부의 in-memory thread.metadata 가 낡아(동기 UPDATE 이전 스냅샷) 플래그로 따로 받는다.
 export async function createDraftIntake(
   thread: any,
   messages: Array<{ actor_type: string; message_text: string }>,
   lang: string,
-  clientIp: string | null = null
+  clientIp: string | null = null,
+  opts: { handOffRequested?: boolean } = {}
 ) {
   const patientTexts = messages
     .filter((m) => m.actor_type === "patient")
@@ -215,6 +220,11 @@ export async function createDraftIntake(
       .eq("id", thread.id);
   }
 
-  // KHIDI 집계 대상(inquiries)으로 승격 — 3턴+ 대화 1회(중복방지). 실패해도 챗은 계속.
-  await promoteThreadToInquiry(thread, intake, rawEnc, lang, clientIp);
+  // KHIDI 집계 대상(inquiries)으로 승격 — 잡담만으론 승격하지 않는다(게이트: 핸드오프 요청
+  // 또는 의미 신호 1개 이상 — src/lib/chat/intakeGate.ts). 초안·스레드는 위에서 이미 남았다.
+  const handOff =
+    opts.handOffRequested === true || thread?.metadata?.hand_off_requested === true;
+  if (shouldPromoteToInquiry(intake, handOff, patientTexts)) {
+    await promoteThreadToInquiry(thread, intake, rawEnc, lang, clientIp);
+  }
 }

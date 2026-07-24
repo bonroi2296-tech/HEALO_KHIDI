@@ -1,5 +1,11 @@
 # HEALO KHIDI — 알려진 이슈 / 전수 QA 발견사항
 
+## 🟡 메신저 스레드 metadata 통째 덮어쓰기 경쟁 — 극히 드물게 환자 동의 기록이 지워질 수 있음 (2026-07-24, #942 독립 리뷰 발견 — 기존 구조, 실사고 아님)
+
+**내용**: 스태프 답장 릴레이(`staffReplyRelay`)가 `coordinator_active=true`를 세울 때 요청 초반에 읽은 스레드 `metadata` 전체를 spread로 다시 쓴다. 그 짧은 사이에 텔레그램 웹훅이 같은 스레드 metadata(동의 기록·last_start_at)를 갱신하면 스태프 쪽 stale write가 그걸 덮을 수 있음 → 이론상 봇이 동의를 재요청. 관리자 라우트 시절부터 동일했던 구조(이번 수리의 회귀 아님)이고 창이 매우 좁아 실발생 확률 낮음.
+
+**후속 개선안**: `metadata` 전체 쓰기 대신 jsonb 부분 갱신(RPC 또는 `metadata || '{"coordinator_active":true}'`)으로 전환. 같은 패턴을 쓰는 다른 metadata 쓰기 지점도 같이 전수 점검할 것.
+
 ## 🟠 E2E 실패 알림 이메일이 발송 불가 상태 — **PO 조치 필요 (어시 권한 밖)** (2026-07-23, POSTMORTEMS #112)
 
 **증상**: main push·야간 E2E 실패 시 Resend 이메일 알림이 매번 403 — Resend 테스트 모드는 `onboarding@resend.dev` 발신으로 **계정 소유자 주소(bonroi2296@gmail.com)에만** 발송 가능한데, `E2E_ALERT_EMAIL` 시크릿이 다른 주소인 것으로 보임. 이 때문에 E2E 3일 빨강을 아무도 몰랐다.

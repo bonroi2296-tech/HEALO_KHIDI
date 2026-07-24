@@ -110,6 +110,7 @@ vi.mock("@/lib/chat/publicChatHelpers", () => ({
   INTAKE_EVERY_N_TURNS: 3,
   createDraftIntake: (...args: any[]) => createDraftIntake(...args),
   pickHandoffConfirm: (...args: any[]) => pickHandoffConfirm(...args),
+  HANDOFF_RECEIVED_ACK: { en: "handoff-ack" },
 }));
 
 const sendTelegramPatientMessage = vi.fn(async (..._args: any[]) => true);
@@ -350,7 +351,7 @@ describe("텔레그램 웹훅 계약", () => {
     expect(pickHandoffConfirm).toHaveBeenCalledWith("en", true, true);
   });
 
-  it("⑤ 코디 인수 후 AI 침묵: 메시지는 저장하되 AI 생성·발신 없음", async () => {
+  it("⑤ 코디 인수 후 AI 침묵 + 첫 추가 메시지엔 고정 수신확인 1회(사전질문 답 dead-air 방지)", async () => {
     const POST = await loadPost();
     const t = CONSENTED_THREAD();
     (t.metadata as any).hand_off_requested = true;
@@ -359,13 +360,35 @@ describe("텔레그램 웹훅 계약", () => {
 
     const res = await POST(makeReq(msgUpdate("ok thank you", 10)));
     expect((await res.json()).ok).toBe(true);
+    await flushAfter();
 
     // 환자 메시지는 코디가 봐야 하므로 저장된다
     const pIns = captured.find(
       (c) => c.table === "chat_messages" && c.payload.actor_type === "patient"
     );
     expect(pIns).toBeTruthy();
-    // 하지만 AI 는 침묵
+    // AI 는 침묵(재개입 아님) — 발신은 고정 ack 1건뿐
+    expect(generateChatReply).not.toHaveBeenCalled();
+    expect(sendTelegramPatientMessage).toHaveBeenCalledTimes(1);
+    expect(sendTelegramPatientMessage).toHaveBeenCalledWith("777", "handoff-ack");
+    // ack 클레임은 조건부 UPDATE(아직 안 보냈을 때만) — 병렬 배달 중복 발송 방지
+    const upd = captured.find(
+      (c) => c.table === "chat_threads" && c.op === "update" && c.payload?.metadata?.hand_off_ack_sent === true
+    );
+    expect(upd?.filters.some(([f]) => f === "is:metadata->>hand_off_ack_sent")).toBe(true);
+  });
+
+  it("⑤-2 수신확인은 스레드당 1회 — 이미 보냈으면(hand_off_ack_sent) 완전 침묵", async () => {
+    const POST = await loadPost();
+    const t = CONSENTED_THREAD();
+    (t.metadata as any).hand_off_requested = true;
+    (t.metadata as any).hand_off_notified = true;
+    (t.metadata as any).hand_off_ack_sent = true;
+    mockState.thread = t;
+
+    const res = await POST(makeReq(msgUpdate("here are my symptoms", 11)));
+    expect((await res.json()).ok).toBe(true);
+    await flushAfter();
     expect(generateChatReply).not.toHaveBeenCalled();
     expect(sendTelegramPatientMessage).not.toHaveBeenCalled();
   });
@@ -478,6 +501,20 @@ describe("텔레그램 웹훅 계약", () => {
     const res = await POST(makeReq(msgUpdate("q3", 12)));
     expect((await res.json()).ok).toBe(true);
     expect(createDraftIntake).toHaveBeenCalledTimes(1);
+  });
+
+  it("사람 연결 요청 턴: 3턴 규칙과 무관하게 문의 승격이 즉시 발사된다(핸드오프 플래그 전달)", async () => {
+    const POST = await loadPost();
+    mockState.thread = CONSENTED_THREAD();
+    // 환자 메시지 1개뿐(3의 배수 아님) — 기존 규칙이면 승격이 영영 안 걸리던 케이스
+    mockState.history = [
+      { actor_type: "patient", message_text: "connect me to a human", metadata: {} },
+    ];
+    const res = await POST(makeReq(msgUpdate("connect me to a human", 14)));
+    expect((await res.json()).ok).toBe(true);
+    await flushAfter();
+    expect(createDraftIntake).toHaveBeenCalledTimes(1);
+    expect(createDraftIntake.mock.calls[0][4]).toEqual({ handOffRequested: true });
   });
 
   it("그룹 채팅 메시지는 무시한다(1:1 상담 전용)", async () => {

@@ -100,6 +100,7 @@ vi.mock("@/lib/chat/publicChatHelpers", () => ({
   INTAKE_EVERY_N_TURNS: 3,
   createDraftIntake: (...args: any[]) => createDraftIntake(...args),
   pickHandoffConfirm: (...args: any[]) => pickHandoffConfirm(...args),
+  HANDOFF_RECEIVED_ACK: { en: "handoff-ack" },
 }));
 
 const sendWhatsAppPatientMessage = vi.fn(async (..._args: any[]) => ({ sent: true, windowExpired: false }));
@@ -332,6 +333,31 @@ describe("왓츠앱 웹훅 계약", () => {
     expect(sendWhatsAppPatientMessage).not.toHaveBeenCalled();
   });
 
+  it("⑥-2 핸드오프 후 첫 추가 메시지: AI 침묵 유지 + 고정 수신확인 1회(ack) — 이미 보냈으면 침묵", async () => {
+    const { POST } = await loadRoute();
+    const t = CONSENTED_THREAD();
+    (t.metadata as any).hand_off_requested = true;
+    (t.metadata as any).hand_off_notified = true;
+    mockState.thread = t;
+    const res = await POST(makeReq(waUpdate(textMsg("my diagnosis is ...", "wamid.a1"))));
+    expect((await res.json()).ok).toBe(true);
+    await flushAfter();
+    expect(generateChatReply).not.toHaveBeenCalled();
+    expect(sendWhatsAppPatientMessage).toHaveBeenCalledTimes(1);
+    expect(sendWhatsAppPatientMessage.mock.calls[0][1]).toBe("handoff-ack");
+
+    // 이미 ack 를 보낸 스레드면 완전 침묵
+    sendWhatsAppPatientMessage.mockClear();
+    const t2 = CONSENTED_THREAD();
+    (t2.metadata as any).hand_off_requested = true;
+    (t2.metadata as any).hand_off_ack_sent = true;
+    mockState.thread = t2;
+    const res2 = await POST(makeReq(waUpdate(textMsg("more info", "wamid.a2"))));
+    expect((await res2.json()).ok).toBe(true);
+    await flushAfter();
+    expect(sendWhatsAppPatientMessage).not.toHaveBeenCalled();
+  });
+
   it("⑦ 핸드오프 요청: 접수 멘트를 채널 안(inChannel=true) 변형으로 붙인다", async () => {
     const { POST } = await loadRoute();
     mockState.thread = CONSENTED_THREAD();
@@ -342,6 +368,20 @@ describe("왓츠앱 웹훅 계약", () => {
     const sent = String(sendWhatsAppPatientMessage.mock.calls[0]?.[1]);
     expect(sent).toContain("🔔 접수됐어요");
     expect(pickHandoffConfirm).toHaveBeenCalledWith("en", true, true);
+  });
+
+  it("⑦-2 사람 연결 요청 턴: 3턴 규칙과 무관하게 문의 승격이 즉시 발사된다(핸드오프 플래그 전달)", async () => {
+    const { POST } = await loadRoute();
+    mockState.thread = CONSENTED_THREAD();
+    // 환자 메시지 1개뿐(3의 배수 아님) — 기존 규칙이면 승격이 영영 안 걸리던 케이스
+    mockState.history = [
+      { actor_type: "patient", message_text: "connect me to a human", metadata: {} },
+    ];
+    const res = await POST(makeReq(waUpdate(textMsg("connect me to a human", "wamid.h1"))));
+    expect((await res.json()).ok).toBe(true);
+    await flushAfter();
+    expect(createDraftIntake).toHaveBeenCalledTimes(1);
+    expect(createDraftIntake.mock.calls[0][4]).toEqual({ handOffRequested: true });
   });
 
   it("한 웹훅에 실려 온 여러 메시지를 전부 처리한다 — 배치 유실 금지(독립 리뷰 CONFIRMED①)", async () => {

@@ -8,9 +8,9 @@
 
 ---
 
-> **📌 중간 저장 (2026-07-24, 백오피스 리뉴얼 계획 세션 — PO 방향 결정)** — PO: 어드민 리뉴얼 질문에 **"기왕 하는 김에 모든 계층 백오피스 재설계부터"** 확정 → 방식 = 설계(청사진)는 전 계층 한 번에, 시공은 단계별. **전 계층 청사진 실측 완료**(계층·가드 구조 / admin 재사용 3형태 / 실DB 생사표 — playbook·crawl 0행, `treatments` 0행 특이 / 권한 매트릭스 + 구멍 4건 → KNOWN_ISSUES 2026-07-24 등재). 단일 SoR = **`docs/ADMIN_RENEWAL_PLAN.md`** ([PR #945](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/945), 문서 전용). 다음 = 2단계 어드민 메뉴 대청소(생사표 이미 확보).
+> **📌 중간 저장 (2026-07-24, 백오피스 리뉴얼 계획 세션 — PO 방향 결정)** — PO: 어드민 리뉴얼 질문에 **"기왕 하는 김에 모든 계층 백오피스 재설계부터"** 확정 → 방식 = 설계(청사진)는 전 계층 한 번에, 시공은 단계별. **전 계층 청사진 실측 완료**(계층·가드 구조 / admin 재사용 3형태 / 실DB 생사표 — playbook·crawl 0행, `treatments` 0행 특이 / 권한 매트릭스 + 구멍 4건 → KNOWN_ISSUES 2026-07-24 등재). 단일 SoR = **`docs/ADMIN_RENEWAL_PLAN.md`** ([PR #945](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/945), 문서 전용). PO에게 리뉴얼 후 모습 **스케치(아티팩트) 전달**(관제 허브+메뉴 전/후) — PO "청사진 먼저 검토할게" = 검토 대기 중, **코드 착수·머지 보류**. 다음 = PO 검토 후 2단계 어드민 메뉴 대청소(생사표 이미 확보).
 >
-> **📌 중간 저장 (2026-07-23 심야, 하루 마감 점검 세션 — ✅ 수리 완료)** — PO "정상 마무리 맞는지 정리해봐" 실측에서 **main 전체 E2E 7/21부터 3일 빨강 방치**를 발견 → 당일 수리 완료: [#939](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/939)(잘림 스캔 예산 — 사이트맵 194개 전수→/en만 · 병원상세 테스트 드리프트 · 실패이슈 dedupe 가드 · **postcss high 취약점 공고 긴급 패치**) + [#940](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/940)(스캔이 첫 완주하자마자 찾은 실결함 — **styled-jsx가 App Router에서 증발**해 모바일 법률 페이지 본문 109px 잘림, 4개 파일 수리 + `<style jsx` CI 가드). **main Full E2E cd69d47 = success 실측(7/21 이후 첫 초록)**, 프로덕션 privacy·terms 모바일 CSS 존재 curl 실측. 반성문 #112·#113. 중복 자동 이슈 117개 정리(#938 completed로 종결). **PO 조치 1건 남음 = KNOWN_ISSUES 최상단(E2E_ALERT_EMAIL 시크릿을 본인 주소로 — 실패 이메일 부활)**.
+> **📌 중간 저장 (2026-07-24, 코디 백오피스 세션 — 문의 전환 기준 실측·수리)** — PO가 텔레그램 실기기 테스트에서 "무기준 문의 전환"을 지적 → 실측으로 기준 확정: **문의(inquiries) 승격 = 환자 메시지 3턴마다 무조건**(잡담 "안녕?"도 등록 — 7/23 inquiry#40이 그렇게 생성) + **"상담원 연결"은 별개 트랙**(키워드 감지 → 코디 종·AI 침묵만, 문의 생성과 무관 → 1~2턴째 연결 요청이면 "접수됐어요"가 거짓이 되는 구멍). **PO 결정: 핵심 2개 수정 승인** = ①연결 요청 즉시 승격 ②잡담-only 승격 차단(의미 게이트). [#943](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/943)으로 구현(4채널 공통, `src/lib/chat/intakeGate.ts` 신규). ⚠️함정 발견(독립 리뷰 CONFIRMED → 해소): **intake 추출기(intakeExtract.ts)는 전부 영어 키워드**(성형 시절 잔재 nose·botox) — 신호만 믿으면 러·한 실상담 리드가 증발 → 게이트에 언어 불문 분량 폴백(12자+) 추가. 잔여 개선점(보류): AI 레드라인 때 "곧 연결해 드릴게요" 말하고 AI가 계속 답하는 불일치(7/23 17:22 실발생). — PO "정상 마무리 맞는지 정리해봐" 실측에서 **main 전체 E2E 7/21부터 3일 빨강 방치**를 발견 → 당일 수리 완료: [#939](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/939)(잘림 스캔 예산 — 사이트맵 194개 전수→/en만 · 병원상세 테스트 드리프트 · 실패이슈 dedupe 가드 · **postcss high 취약점 공고 긴급 패치**) + [#940](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/940)(스캔이 첫 완주하자마자 찾은 실결함 — **styled-jsx가 App Router에서 증발**해 모바일 법률 페이지 본문 109px 잘림, 4개 파일 수리 + `<style jsx` CI 가드). **main Full E2E cd69d47 = success 실측(7/21 이후 첫 초록)**, 프로덕션 privacy·terms 모바일 CSS 존재 curl 실측. 반성문 #112·#113. 중복 자동 이슈 117개 정리(#938 completed로 종결). **PO 조치 1건 남음 = KNOWN_ISSUES 최상단(E2E_ALERT_EMAIL 시크릿을 본인 주소로 — 실패 이메일 부활)**.
 
 ## 🔖 세션 핸드오프 (2026-07-23 — **전 화면 콘텐츠 편집 CMS 완성 + 한글 바로수정·하드코딩 우회 가드** (+ SEO 색인·암종별 키워드) 세션 종료)
 
@@ -49,6 +49,7 @@
 
 **6. 검증 상태**
 
+- ✅ **(2026-07-24 중간 저장) 5번 1항 "편집기 실클릭" = PO 실사용으로 검증 완료** — 수정→저장→홈 실반영 확인(러 제목 «Почему именно Корея?»). 그 과정에서 발견 2건(①고친 문구로 재검색 불가 ②여러 줄·카드 문구 편집 불편/미등록) → 별도 세션(work/cms-editor)이 [#944](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/944)로 수리(반성문 #114, 홈 레지스트리 자동화 포함).
 - ✅ **#918·#932 머지 + 프로덕션 배포 success** — Vercel 커밋 `a23a584a` status=success **실측**(gh api commit status). #910 CLOSED. 라우트 서빙 실측: `/coordinator/content` → 307 `/login?redirect=…`(게이트 정상=배포 라이브), 홈 → 308 `/en`(언어 리다이렉트).
 - ✅ **CI**: 양쪽 PR `ci`·`Smoke Tests`(E2E) 초록. #932 **독립 리뷰**(작성 맥락 모르는 별도 에이전트) = 정합성 결함 0(PLAUSIBLE 관찰 3건은 비차단). **가드 실동작 실측**: 임시 공개파일에 인라인-L 심으니 `[인라인사전]` 에러로 CI 실패 → 제거 후 통과.
 - ✅ `npx next build --webpack`·`npm run check:content` 통과.

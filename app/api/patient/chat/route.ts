@@ -25,6 +25,7 @@ import {
   getModelName,
   logPlaybookUsage,
 } from "@/lib/chat/generateReply";
+import { pickHandoffConfirm } from "@/lib/chat/publicChatHelpers";
 
 // ─── Auth helper ───
 
@@ -209,8 +210,10 @@ export async function POST(request: NextRequest) {
 
   let finalReply = reply;
   if (handOff.requested) {
-    finalReply +=
-      "\n\n---\nA human coordinator has been notified. You can continue chatting while you wait.";
+    // 영어 하드코딩 한 줄만 붙던 곳 → 6개 언어 접수 멘트(사전질문 포함)로 통일
+    // (2026-07-24 완성도 감사 — 러시아 환자가 영어 안내를 받던 같은 부류의 딴 통로).
+    // 환자 포털 스레드가 곧 회신 채널(로그인 상태) → in-channel 변형.
+    finalReply += `\n\n---\n${pickHandoffConfirm(lang, true, true)}`;
   }
 
   // AI 응답 저장 (공개챗 규약: actor_type="system" + message_text)
