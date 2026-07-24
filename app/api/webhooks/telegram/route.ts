@@ -80,15 +80,18 @@ function threadMeta(thread: any): Record<string, any> {
     : {};
 }
 
-// chat_id 로 살아있는(open) 텔레그램 스레드 조회 — resolved/closed 는 새 대화로 취급
-// (재상담은 새 스레드 + 재동의: PIPA 증빙이 대화 단위로 남는 게 안전).
+// chat_id 로 살아있는 텔레그램 스레드 조회 — 종료(resolved/closed)만 새 대화로 취급
+// (재상담은 종료 후 새 스레드 + 재동의: PIPA 증빙이 대화 단위로 남는 게 안전).
+// ⚠️ "open"만 매칭하면 코디 답장으로 status 가 waiting_patient 로 바뀐 순간, 환자의 다음
+// 메시지가 새 스레드로 갈라져 동의를 처음부터 다시 묻는다(2026-07-24 PO 실기기 재현 —
+// 무표식 inquiry#41 까지 생성). 웹 챗의 종료 판정(resolved||closed)과 동일 의미로 통일.
 async function findOpenThread(chatId: string) {
   const { data } = await (supabaseAdmin as any)
     .from("chat_threads")
     .select("*")
     .eq("channel", "telegram")
     .eq("metadata->telegram->>chat_id", chatId)
-    .eq("status", "open")
+    .not("status", "in", "(resolved,closed)")
     .order("created_at", { ascending: false })
     .limit(1);
   return data?.[0] || null;
@@ -113,9 +116,18 @@ async function createThread(chatId: string, from: any, startParam: string | null
         telegram: { chat_id: chatId, username: from?.username || null },
         utm: { source: "telegram_bot", start_param: startParam },
         started_at: new Date().toISOString(),
-        // 딥링크 ?start=test... 로 들어온 대화는 테스트 표식 — inquiries 승격 시 is_test 로
+        // 딥링크 ?start=test... 또는 등록된 테스트 계정(chat_id) — inquiries 승격 시 is_test 로
         // 이어져 KHIDI 실적 오염을 막는다(독립 리뷰 C3: 텔레그램은 IP·이메일 판별이 불가능).
-        ...(startParam && /^test/i.test(startParam) ? { is_test: true } : {}),
+        // env TEST_TELEGRAM_CHAT_IDS(쉼표구분): PO 실기기가 딥링크 없이 평문으로 시작해도
+        // 자동 표식(2026-07-24 무표식 inquiry#41 사고 재발 방지). 미설정이면 no-op.
+        ...((startParam && /^test/i.test(startParam)) ||
+        (process.env.TEST_TELEGRAM_CHAT_IDS || "")
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean)
+          .includes(chatId)
+          ? { is_test: true }
+          : {}),
       },
     })
     .select("*")
