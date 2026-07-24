@@ -145,6 +145,7 @@ jobs:
         env:
           CODE: ${{ steps.probe.outputs.code }}
         run: |
-          # ${{ }} 를 run 본문에 직접 박으면 응답 유래 문자열이 셸로 실행될 수 있어 env 경유.
+          # 표현식 보간을 run 본문에 직접 박으면 응답 유래 문자열이 셸로 실행될 수 있어 env 경유.
+          # (주의: 주석이어도 GitHub 은 표현식 문법을 파싱한다 — 빈 보간을 쓰면 워크플로가 통째로 깨짐)
           echo "::error::프로덕션 DB 무응답 (/api/health HTTP $CODE)"
           exit 1
