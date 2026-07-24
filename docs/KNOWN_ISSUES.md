@@ -12,14 +12,14 @@
 
 **PO 가 하나 고르면 됨**: ① [resend.com/domains](https://resend.com/domains)에서 healwith.co.kr 도메인 인증(발신 주소도 그 도메인으로 교체 필요) ② GitHub 저장소 Settings → Secrets 의 `E2E_ALERT_EMAIL` 값을 `bonroi2296@gmail.com`으로 변경(1분, 권장). 그 전까지 이메일 알림은 계속 죽어 있음(이슈 알림은 dedupe 가드로 살아 있음).
 
-## 🟡 계층 권한 매트릭스 실측에서 나온 구멍 4개 (2026-07-24, 백오피스 리뉴얼 청사진 감사)
+## 🟡 계층 권한 매트릭스 실측에서 나온 구멍 4개 → **A·B·D 수리 완료, C만 잔존** (2026-07-24, 백오피스 리뉴얼 4단계)
 
-> 전 계층 권한을 코드로 전수 실측(`docs/ADMIN_RENEWAL_PLAN.md` §1-4)하며 발견. 수리 순서는 로드맵 4단계에 배치 — 여기엔 유실 방지용 기록.
+> 전 계층 권한을 코드로 전수 실측(`docs/ADMIN_RENEWAL_PLAN.md` §1-4)하며 발견 → 같은 날 4단계에서 3건 수리.
 
-- **A. 코디 접근 비일관**: cases·conversion·satisfaction 은 `requirePortalAuth(staffOnly)`로 코디 허용됐는데, 같은 환자 여정의 **협진의뢰(`app/api/admin/khidi/referrals/route.ts:28,101,144`)와 리드(`app/api/admin/leads/route.ts:61` 외)는 여전히 `requireAdminAuth`(admin 전용)**. 지금은 PO=어드민이라 무영향, 코디 운영 시작하면 즉시 걸림(기존 「코디 유치확정 클릭 불가」 항목과 같은 부류).
-- **B. 콘텐츠 편집 API 가 rate limit·감사로그 우회**: `app/api/coordinator/content/route.ts:22-24`가 표준 가드 대신 `checkAdminAuth` 직접 호출 커스텀 — 허용 role(admin+coordinator)은 맞으나, `content_overrides` 유일 쓰기 경로에 rate limit 없음 + 인증 실패 audit 미기록. 저위험 즉시 수리 가능(표준 가드 교체).
-- **C. 상담 게스트 초대토큰 발급 권한 확대**: `app/api/khidi/consultation/[id]/invite/route.ts:33` — 담당자 검증(`requireConsultationAccess`)에서 전 스태프(`staffOnly`)로 의도적 완화(주석 명시). 스태프 누구나 담당 아닌 상담방 게스트 토큰 발급 가능 = 세션별 격리 없음. **정책 재확인은 PO**(지금 인원 구조에선 실위험 낮음).
-- **D. agency↔clinic 가드 미분기**: `checkAgencyAuth`가 두 계층을 동일 통과 — `partner_type` 분기는 경과 업로드(`app/api/khidi/progress/route.ts:75`) 단 1곳. 앞으로 "의료기관 전용" 데이터를 추가하면 분기를 잊는 순간 조용히 에이전시도 통과하는 구조 → 분기 헬퍼(예: `requirePartnerType('medical_institution')`) 도입 필요.
+- ~~**A. 코디 접근 비일관**~~ ✅ **수리(2026-07-24)**: 협진의뢰(`admin/khidi/referrals`)·리드(`admin/leads` 3개 라우트)를 cases·conversion·satisfaction과 동일한 `requirePortalAuth(staffOnly)`로 통일 — 코디 운영 시작 시 걸릴 비일관 해소. (코디 네비에 리드·협진 메뉴를 걸지는 코디 운영 개시 때 별도 판단.)
+- ~~**B. 콘텐츠 편집 API rate limit·감사로그 우회**~~ ✅ **수리(2026-07-24)**: `coordinator/content`의 커스텀 가드를 표준 `requirePortalAuth(staffOnly)`로 교체 — rate limit(120/min)·표준 401/429 응답 적용.
+- **C. 상담 게스트 초대토큰 발급 권한 확대 — 잔존(PO 정책 판단 대기)**: `app/api/khidi/consultation/[id]/invite/route.ts:33` — 담당자 검증에서 전 스태프로 의도적 완화(주석 명시). 스태프 누구나 담당 아닌 상담방 게스트 토큰 발급 가능 = 세션별 격리 없음. 지금 인원 구조(PO=어드민, 코디 소수)에선 실위험 낮음 — 코디 인원이 늘면 담당자 검증 복원 검토.
+- ~~**D. agency↔clinic 가드 미분기**~~ ✅ **수리(2026-07-24)**: `requirePartnerType(auth, type)` 표준 게이트 헬퍼 신설(`src/lib/auth/checkAgencyAuth.ts`) + 경과 업로드 라우트 적용. 앞으로 유형 전용 라우트는 수동 if 비교 금지, 이 헬퍼 필수.
 - 🟢 양호로 확인: 공개(무인증) POST 전수 rate limit 보유(옛 `inquiries/create`는 410 폐쇄), `app_metadata.disabled` 킬스위치 전 계층 정합.
 
 ## 🟡 AI 챗 — 구어체·조각 한국어에서 과잉 에스컬레이션 (2026-07-23, 텔레그램 실기기)

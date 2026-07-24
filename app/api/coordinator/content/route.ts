@@ -11,7 +11,7 @@
 export const runtime = "nodejs";
 
 import { NextRequest, NextResponse } from "next/server";
-import { checkAdminAuth } from "@/lib/auth/checkAdminAuth";
+import { requirePortalAuth } from "@/lib/auth/requirePortalAuth";
 import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
 import { REGISTRY_KEYS, EDITABLE_LANGS, HOME_CONTENT_REGISTRY, getDefaultValueObject } from "@/lib/content/registry";
 import { invalidateContentCache } from "@/lib/content/overrides";
@@ -19,15 +19,19 @@ import { searchI18nKeys, isValidI18nKey, getI18nValues, normalizeForSearch } fro
 
 const db = supabaseAdmin as any;
 
-async function requireStaff(request: NextRequest): Promise<{ ok: boolean; email: string }> {
-  const a = await checkAdminAuth(request);
-  const ok = Boolean(a.isAdmin || a.appRole === "coordinator");
-  return { ok, email: a.email || "unknown" };
+// 2026-07-24 권한 정비(B, KNOWN_ISSUES 참조): checkAdminAuth 직접 호출은 rate limit·표준 응답이
+// 안 걸리는 우회로였음 → 표준 스태프 가드(requirePortalAuth staffOnly = admin+coordinator)로 교체.
+async function requireStaff(
+  request: NextRequest
+): Promise<{ ok: boolean; email: string; response?: Response }> {
+  const a = await requirePortalAuth(request, { staffOnly: true });
+  if (!a.success) return { ok: false, email: "unknown", response: a.response };
+  return { ok: true, email: a.email || "unknown" };
 }
 
 export async function GET(request: NextRequest) {
   const staff = await requireStaff(request);
-  if (!staff.ok) return NextResponse.json({ ok: false, error: "forbidden" }, { status: 403 });
+  if (!staff.ok) return staff.response ?? NextResponse.json({ ok: false, error: "forbidden" }, { status: 403 });
   const q = request.nextUrl.searchParams.get("q");
   const wantLogs = request.nextUrl.searchParams.get("logs");
   try {
@@ -111,7 +115,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   const staff = await requireStaff(request);
-  if (!staff.ok) return NextResponse.json({ ok: false, error: "forbidden" }, { status: 403 });
+  if (!staff.ok) return staff.response ?? NextResponse.json({ ok: false, error: "forbidden" }, { status: 403 });
 
   let body: any;
   try {
