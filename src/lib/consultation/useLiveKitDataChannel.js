@@ -4,8 +4,11 @@
  * 자기 음성 STT 결과를 DataChannel로 다른 참가자에게 전송하고,
  * 상대방이 보낸 STT 결과를 수신해 콜백으로 전달합니다.
  *
- * 프로토콜: JSON { type: "subtitle", text, lang, role, name, ts }
+ * 프로토콜: JSON { type: "subtitle", text, lang, role, name, ts, interim? }
  *   name = 화자 표시 이름 (LiveKit 참가자 이름) — 같은 역할이 여럿이어도 자막에서 화자 구분
+ *   interim = true 면 "말하는 중" 부분 자막 — 수신측은 화면 슬롯만 갱신하고 기록하지 않는다
+ *   (확정 자막이 같은 화자 슬롯을 교체). 구버전 클라는 이 필드를 몰라 확정처럼 표시하지만
+ *   해가 없고, 배포 전환기 혼재 시간만 존재하는 케이스.
  *
  * 사용처: consultation/[id]/page.jsx
  */
@@ -48,6 +51,7 @@ export function useLiveKitDataChannel({ onRemoteSubtitle } = {}) {
           // 화자 이름 — payload 우선, 없으면(구버전 클라) LiveKit 참가자 이름으로 폴백
           name: msg.name || participant?.name || undefined,
           ts: msg.ts,
+          interim: !!msg.interim,
           participantIdentity: participant?.identity,
         });
       } catch {
@@ -66,9 +70,10 @@ export function useLiveKitDataChannel({ onRemoteSubtitle } = {}) {
    * @param {string} text
    * @param {string} lang  — "ko" | "ru" | "en" etc.
    * @param {string} role  — "doctor" | "patient" | "coordinator"
+   * @param {object} [opts] — { interim?: boolean } 말하는 중 부분 자막이면 true
    */
   const publishSubtitle = useCallback(
-    async (text, lang, role) => {
+    async (text, lang, role, opts = {}) => {
       if (!room || !ENCODER) return;
       if (!room.localParticipant?.permissions?.canPublishData) return;
 
@@ -81,6 +86,7 @@ export function useLiveKitDataChannel({ onRemoteSubtitle } = {}) {
           // 화자 이름 자동 첨부 — 게스트는 입장 폼 이름, 스태프는 계정 이름 (토큰에 설정됨)
           name: room.localParticipant?.name || undefined,
           ts: Date.now(),
+          ...(opts.interim ? { interim: true } : {}),
         });
         const data = ENCODER.encode(msg);
         // ⚠️ livekit-client v2 의 DataPublishOptions 는 { reliable: boolean } 를 받는다.

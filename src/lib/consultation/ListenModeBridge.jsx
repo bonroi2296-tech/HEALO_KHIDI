@@ -36,6 +36,12 @@ import { Track } from "livekit-client";
 const DC_SUPPRESS_MS = 60000; // DataChannel 자막 수신 후 이 시간 동안 청취 모드 억제
 const MIN_BLOB_BYTES = 4000;
 
+// 통역 봇(agent-*)과 봇이 만든 통역 음성 트랙(tx:*)은 전사 대상이 아니다 —
+// 봇 통역 음성을 여기서 또 STT 하면 같은 발화가 세 번 자막이 된다(2026-07-23 첫 라이브 사고).
+const isHumanAudioTrack = (t) =>
+  !t.participant?.identity?.startsWith("agent-") &&
+  !t.publication?.trackName?.startsWith("tx:");
+
 export function ListenModeBridge({
   enabled,
   langHint, // 상대가 말할 가능성이 높은 언어 (kz 면 서버가 Pro 모델 선택)
@@ -58,7 +64,7 @@ export function ListenModeBridge({
   // mediaStreamTrack.id 까지 키에 포함 — LiveKit 이 재연결·재발행으로 내부 트랙을
   // 갈아끼우면(참가자·trackSid 동일) 죽은 트랙을 계속 듣는 파이프라인을 교체하기 위함
   const remoteKeys = trackRefs
-    .filter((t) => !t.participant?.isLocal && t.publication?.track?.mediaStreamTrack)
+    .filter((t) => !t.participant?.isLocal && t.publication?.track?.mediaStreamTrack && isHumanAudioTrack(t))
     .map(
       (t) =>
         `${t.participant.identity}::${t.publication.trackSid}::${t.publication.track.mediaStreamTrack.id}`
@@ -77,7 +83,7 @@ export function ListenModeBridge({
     }
 
     const active = trackRefs.filter(
-      (t) => !t.participant?.isLocal && t.publication?.track?.mediaStreamTrack
+      (t) => !t.participant?.isLocal && t.publication?.track?.mediaStreamTrack && isHumanAudioTrack(t)
     );
     const activeKeys = new Set(
       active.map(

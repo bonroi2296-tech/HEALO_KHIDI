@@ -271,7 +271,8 @@ function WaitingForOthers({ copy }) {
   const participants = useParticipants();
   const state = useConnectionState();
   if (state !== ConnectionState.Connected) return null; // 연결 중/실패는 별도 UI가 담당
-  if (participants.length > 1) return null; // 상대가 방에 있으면 안 띄움
+  // 통역 봇은 '상대'가 아니다 — 봇만 있고 사람이 없으면 여전히 "기다리는 중"
+  if (participants.filter(isHumanParticipant).length > 1) return null; // 상대가 방에 있으면 안 띄움
   return (
     <div className="absolute inset-0 z-10 flex flex-col items-center justify-center pointer-events-none text-center px-6">
       <span className="w-2.5 h-2.5 rounded-full bg-teal-400 animate-pulse mb-3" />
@@ -283,7 +284,7 @@ function WaitingForOthers({ copy }) {
 // ── 방 정보 오버레이 (LiveKitRoom 내부 전용) — 참가자 수 + 경과 시간 ──
 // 줌 벤치: 다자 미팅에서 몇 명 들어왔는지 + 상담 진행 시간(전문적 느낌).
 function RoomInfoOverlay() {
-  const participants = useParticipants(); // 로컬 포함 전원
+  const participants = useParticipants().filter(isHumanParticipant); // 로컬 포함 전원(통역 봇 제외)
   const [sec, setSec] = useState(0);
   useEffect(() => {
     const t = setInterval(() => setSec((s) => s + 1), 1000);
@@ -307,6 +308,10 @@ function RoomInfoOverlay() {
 function trackKey(t) {
   return `${t?.participant?.identity ?? ""}_${t?.source ?? ""}`;
 }
+
+// 통역 봇(agent-*)은 사람이 아니다 — 타일·인원수·"상대 기다림" 판정에서 제외.
+// (2026-07-23 첫 라이브: 봇이 참가자로 세져 기계이름 빈 타일 + 3명 셈 + 1:1 레이아웃 깨짐)
+const isHumanParticipant = (p) => !p?.identity?.startsWith("agent-");
 
 // ── 음소거 상태에서 말하면 경고 (LiveKitRoom 내부 전용) ──
 // 마이크가 꺼져 있는데 목소리가 감지되면 "마이크 꺼져 있어요" 안내. 비기술 환자 배려.
@@ -454,19 +459,21 @@ function BlurFillTile({ trackRef, onParticipantClick }) {
 function VideoGrid({ copy }) {
   const lang = useLang();
   const c = copy || COPY[lang] || COPY.en;
-  const tracks = useTracks(
+  const rawTracks = useTracks(
     [
       { source: Track.Source.Camera, withPlaceholder: true },
       { source: Track.Source.ScreenShare, withPlaceholder: false },
     ],
     { onlySubscribed: false }
   );
+  // 통역 봇(음성 전용)은 카메라 placeholder 로 빈 타일이 생긴다 → 화면에서 제외
+  const tracks = rawTracks.filter((t) => isHumanParticipant(t.participant));
 
   // 발화자 자동추적 제거(2026-07-01) — 3인 상담(의사+코디+환자)에서 말차례마다 메인 화면이
   // '휙휙' 바뀌어 어지럽다는 PO 제보. 정상 말차례는 2초를 넘겨 히스테리시스(2초)로도 못 걸렀다.
   // → 줌/미트 소규모 기본처럼 '갤러리(격자)'를 기본으로: 화면공유·수동 핀일 때만 크게 띄운다.
   //   단 1:1(참가자 2명)은 상대를 크게(직전과 동일) — 이땐 튈 상대가 없어 안 흔들린다.
-  const allParticipants = useParticipants();
+  const allParticipants = useParticipants().filter(isHumanParticipant);
   const [pinnedKey, setPinnedKey] = useState(null);
   const isDesktop = useIsDesktopViewport();
   const cameraTracks = tracks.filter((t) => t.source === Track.Source.Camera);
@@ -612,7 +619,12 @@ function SubtitleOverlay({
       {/* 상대방 자막 (DataChannel·청취모드) — 화자 라벨은 본문 앞 인라인(줄 수 절약) */}
       {remoteSubtitles.map((rs) => (
         <div key={rs.key} className={`${boxBase} bg-black/60 border border-yellow-500/20`}>
-          <p className={`${roleColor[rs.role] || "text-teal-300"} ${sz.trans} font-medium`}>
+          {/* interim = 상대가 아직 말하는 중인 부분 자막 — 톤 낮춰 '자라는 중'임을 표시, 말줄임표로 마감 */}
+          <p
+            className={`${roleColor[rs.role] || "text-teal-300"} ${sz.trans} font-medium ${
+              rs.interim ? "opacity-75 italic" : ""
+            }`}
+          >
             <span className="text-yellow-500/70 text-[11px] font-normal mr-1.5">
               {/* 화자 구분: 이름(있으면) + 역할 + 언어 */}
               {rs.name ? `${rs.name} · ` : ""}
@@ -620,6 +632,7 @@ function SubtitleOverlay({
               {LANG_LABELS[rs.lang] || rs.lang}
             </span>
             {rs.text}
+            {rs.interim ? " …" : ""}
           </p>
         </div>
       ))}
@@ -745,6 +758,21 @@ export default function ConsultationRoomPage() {
   const [interimText, setInterimText] = useState("");
   const [manualInput, setManualInput] = useState("");
   const [translationEnabled, setTranslationEnabled] = useState(false);
+  // ── 통역(음성) 토글 — 봇(gemini-translator)의 통역 음성을 들을지 (2026-07-24 PO: 버튼 부활) ──
+  // 봇이 방에 없으면(서버 스위치 꺼짐·에이전트 미가동) 켤 수 없고 안내만 띄운다.
+  const [voiceOn, setVoiceOn] = useState(false);
+  const [agentPresent, setAgentPresent] = useState(false);
+  // DC 자막 억제 판정용 ref (콜백 재생성 없이 최신값 읽기)
+  const voiceOnRef = useRef(false);
+  const agentPresentRef = useRef(false);
+  useEffect(() => {
+    voiceOnRef.current = voiceOn;
+  }, [voiceOn]);
+  useEffect(() => {
+    agentPresentRef.current = agentPresent;
+    // 봇이 방에서 사라지면(스위치 내림·에이전트 다운) 통역도 자동 꺼짐 — 죽은 토글 방지
+    if (!agentPresent) setVoiceOn(false);
+  }, [agentPresent]);
   // 자막/통역 켤 때 "AI 번역이라 참고용" 안내 배너 — 닫을 때까지 유지, 켤 때마다 재표시.
   const [aiNoticeDismissed, setAiNoticeDismissed] = useState(false);
   // 언어 변경 바텀시트 (모바일에서도 언어쌍 변경 가능하게)
@@ -904,18 +932,21 @@ export default function ConsultationRoomPage() {
       timers.clear();
     };
   }, []);
-  const showRemoteSubtitle = useCallback(({ key, text, lang, role, name }) => {
+  const showRemoteSubtitle = useCallback(({ key, text, lang, role, name, interim }) => {
     const k = key || "dc";
     setRemoteSubtitles((prev) => {
       const next = prev.filter((s) => s.key !== k);
-      next.push({ key: k, text, lang, role, name });
+      next.push({ key: k, text, lang, role, name, interim });
       return next.slice(-2); // 최근 화자 2명까지
     });
     // 문장 길이에 비례해 자동 숨김(12~30초) — "너무 슉슉 넘어가 읽기 힘들다"(PO 제보 2026-07-23)로
     // 유지시간을 크게 늘림. 지난 자막은 「자막 기록」 패널에 남으므로 다시 읽을 수 있다.
+    // 중간(진행 중) 자막은 곧 다음 조각·확정 자막으로 교체되므로 짧게(8초) — 발화 중단 시 잔상 방지.
     const timers = remoteSubtitleTimersRef.current;
     if (timers.has(k)) clearTimeout(timers.get(k));
-    const holdMs = Math.min(30000, Math.max(12000, (text?.length || 0) * 140));
+    const holdMs = interim
+      ? 8000
+      : Math.min(30000, Math.max(12000, (text?.length || 0) * 140));
     timers.set(
       k,
       setTimeout(() => {
@@ -1110,7 +1141,18 @@ export default function ConsultationRoomPage() {
 
   // ── 상대방 자막 수신 핸들러 (DataChannel) ──
   const handleRemoteSubtitle = useCallback(
-    ({ text, lang, role, name, participantIdentity }) => {
+    ({ text, lang, role, name, participantIdentity, interim }) => {
+      // 통역(음성) 사용 중엔 봇 자막이 표시·기록을 담당 — 상대 클라의 DC 자막까지 띄우면
+      // 같은 발화가 이중으로 뜬다(7/23 삼중자막 사고의 한 갈래) → DC 자막은 통째로 억제.
+      if (voiceOnRef.current && agentPresentRef.current) return;
+      // 중간(진행 중) 자막 — 화면 슬롯만 갱신하고 끝. 기록·문맥은 확정 자막에서만
+      // (같은 발화가 기록에 여러 번 쌓이는 것 방지). 청취 모드 억제는 여기서도 갱신 —
+      // 중간 자막이 오고 있다 = 화자 기기가 직접 자막 송신 중 = 이쪽 재전사 불필요.
+      if (interim) {
+        showRemoteSubtitle({ key: participantIdentity, text, lang, role, name, interim: true });
+        if (participantIdentity) dcActivityRef.current.set(participantIdentity, Date.now());
+        return;
+      }
       showRemoteSubtitle({ key: participantIdentity, text, lang, role, name });
       // 이 참가자는 직접 통역을 켠 상태 — 청취 모드 STT 억제용 시각 기록
       if (participantIdentity) dcActivityRef.current.set(participantIdentity, Date.now());
@@ -1128,6 +1170,28 @@ export default function ConsultationRoomPage() {
           target_language: myLang,
           speaker_role: "other",
           speaker_name: name,
+          created_at: new Date().toISOString(),
+        },
+      ]);
+    },
+    [pushConvoContext, showRemoteSubtitle, myLang]
+  );
+
+  // ── 통역 봇 자막 수신 (LiveTranslateBridge, lk.translation 스트림) ──
+  // DC 자막과 분리된 전용 핸들러 — 통역(음성) 켠 동안엔 이 경로가 표시·기록을 담당한다.
+  const handleBotSubtitle = useCallback(
+    ({ text, lang, role }) => {
+      showRemoteSubtitle({ key: `bot:${role || "interpreter"}`, text, lang });
+      pushConvoContext("other", lang, text);
+      setTranslations((prev) => [
+        ...prev.slice(-299),
+        {
+          id: Date.now(),
+          original_text: "",
+          translated_text: text,
+          source_language: lang,
+          target_language: myLang,
+          speaker_role: "other",
           created_at: new Date().toISOString(),
         },
       ]);
@@ -1159,6 +1223,58 @@ export default function ConsultationRoomPage() {
     [myLang, pushConvoContext, showRemoteSubtitle]
   );
 
+  // ── 부분(중간) 자막 번역 — 말이 끝나기 전에 번역 자막을 상대에게 먼저 보낸다 ──
+  // (2026-07-24 PO: "말이 끝나야 나와서 느리다. 바로 보여주면서 문장을 완성해나가는 방향으로")
+  // 방식: 말하는 중간결과(interim)를 1.2초 간격으로 통째 번역해 interim 플래그로 전송 —
+  //   상대 화면에서 자막이 점점 자라다가, 발화 확정 시 기존 확정 경로(품질·기록·문맥)가 교체한다.
+  //   부분 번역은 화면 표시 전용: 기록·DB·TTS·문맥 축적 없음(서버도 partial 플래그로 저장 스킵).
+  const utterRef = useRef(1); // 발화 세대 — 확정되면 +1 → 날아오던 부분 번역 응답은 폐기
+  const partialRef = useRef({ lastText: "", lastAt: 0, inFlight: false });
+  const maybeTranslatePartial = useCallback(
+    (text) => {
+      const t = (text || "").trim();
+      // 짧은 조각·추임새는 스킵(비용·깜빡임), 같은 언어면 번역 무의미 → interim 원문 그대로 전송
+      if (t.length < 10 || isFillerOnly(t)) return;
+      if (myLang === targetLang) return;
+      const st = partialRef.current;
+      const now = Date.now();
+      if (st.inFlight || now - st.lastAt < 1200 || t === st.lastText) return;
+      st.inFlight = true;
+      st.lastAt = now;
+      st.lastText = t;
+      const uid = utterRef.current;
+      fetch("/api/khidi/consultation/translate-realtime", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(isGuestMode ? { "X-Guest-Token": inviteToken } : {}),
+        },
+        body: JSON.stringify({
+          text: t,
+          sourceLang: myLang,
+          targetLang,
+          consultationId, // 인증용 — partial 이라 서버는 기록하지 않는다
+          speakerRole: "self",
+          partial: true,
+          context: convoContextRef.current.slice(-6),
+        }),
+      })
+        .then((r) => r.json())
+        .then((res) => {
+          if (uid !== utterRef.current) return; // 발화가 이미 확정됨 — 늦은 부분 번역 폐기
+          if (!res?.ok || !res.translated || !String(res.translated).trim()) return;
+          publishSubtitleRef.current?.(res.translated, targetLang, myRole, {
+            interim: true,
+          });
+        })
+        .catch(() => {})
+        .finally(() => {
+          partialRef.current.inFlight = false;
+        });
+    },
+    [myLang, targetLang, consultationId, isGuestMode, inviteToken, myRole]
+  );
+
   // ── Speech Recognition ──
   // 브라우저 STT 가 마지막으로 결과(중간자막 포함)를 낸 시각 — "조용한 사망" 워치독용
   const lastBrowserSttRef = useRef(0);
@@ -1167,14 +1283,20 @@ export default function ConsultationRoomPage() {
     language: myLang,
     // 마이크 게이트(통역 통일 규칙): 마이크 꺼짐 = 내 말 자막 송신 안 함 (privacy 겸용)
     enabled: translationEnabled && myMicOn,
-    onInterim: useCallback((text) => {
-      lastBrowserSttRef.current = Date.now();
-      setInterimText(text);
-    }, []),
+    onInterim: useCallback(
+      (text) => {
+        lastBrowserSttRef.current = Date.now();
+        setInterimText(text);
+        maybeTranslatePartial(text); // 말하는 중에도 번역 자막을 상대에게 흘려보냄
+      },
+      [maybeTranslatePartial]
+    ),
     onResult: useCallback(
       (text) => {
         lastBrowserSttRef.current = Date.now();
         setInterimText("");
+        utterRef.current += 1; // 이 발화의 부분 번역은 이제 폐기 — 확정 경로가 교체
+        partialRef.current.lastText = "";
         // "음", "어" 같은 추임새뿐인 조각은 자막 안 띄움 (번역 호출도 절약)
         if (isFillerOnly(text)) return;
         translateText(text);
@@ -2441,17 +2563,34 @@ export default function ConsultationRoomPage() {
           <span className="absolute top-1 right-1 w-2 h-2 bg-yellow-400 rounded-full animate-pulse" />
         )}
       </button>
-      {/* 통역(음성) 토글 — 음성 통역은 봇 꺼서 "준비 중". 탭하면 안내(2026-07-23 PO: 통역/자막 2토글). */}
+      {/* 통역(음성) 토글 — 봇의 통역 음성 듣기 (2026-07-24 PO: 버튼 부활).
+          봇이 방에 없으면(서버 스위치 꺼짐·에이전트 다운) 안내만 — 죽은 척 안 하는 정직한 버튼. */}
       <button
-        onClick={() => toast.success(c.voiceComingSoon)}
-        className="hw-ctrl-btn relative rounded-lg font-medium transition bg-gray-800 text-gray-500 cursor-not-allowed"
-        title={c.voiceComingSoon}
+        onClick={() => {
+          if (!voiceOn && !agentPresent) {
+            toast.success(c.voiceNotReady);
+            return;
+          }
+          const next = !voiceOn;
+          setVoiceOn(next);
+          toast.success(next ? c.voiceOnMsg : c.voiceOffMsg);
+        }}
+        className={`hw-ctrl-btn relative rounded-lg font-medium transition ${
+          voiceOn
+            ? "bg-teal-700 hover:bg-teal-800 text-white"
+            : agentPresent
+            ? "bg-gray-700 hover:bg-gray-600 text-gray-200"
+            : "bg-gray-800 text-gray-500"
+        }`}
+        title={voiceOn ? c.voiceOffMsg : agentPresent ? c.voiceOnMsg : c.voiceNotReady}
       >
         <Volume2 size={18} />
         <span>{c.voiceLabel}</span>
-        <span className="absolute -top-1 -right-1 bg-gray-600 text-gray-200 text-[9px] leading-none px-1 py-0.5 rounded-full">
-          ···
-        </span>
+        {!agentPresent && (
+          <span className="absolute -top-1 -right-1 bg-gray-600 text-gray-200 text-[9px] leading-none px-1 py-0.5 rounded-full">
+            ···
+          </span>
+        )}
       </button>
       {/* 언어 설정 — 자막이 어느 언어로 나올지 바로 설정(PO 2026-07-23: 토글 옆에서 언어 설정). */}
       <button
@@ -2711,13 +2850,16 @@ export default function ConsultationRoomPage() {
               <LiveTranslateBridge
                 myLang={myLang}
                 myRole={myRole}
-                onRemoteSubtitle={handleRemoteSubtitle}
+                voiceOn={voiceOn}
+                onAgentPresence={setAgentPresent}
+                onRemoteSubtitle={handleBotSubtitle}
               />
               {/* 수신 자막 — 상대가 통역을 안 켜도 원격 음성을 이쪽에서 전사·번역 (렌더링 없음).
                   별도 토글 없이 통역 스위치에 통합(2026-07-11 PO "하나로 통일") — 상대가 직접
-                  자막을 보내오면 자동 억제되므로 양쪽 다 켜도 중복 없음 */}
+                  자막을 보내오면 자동 억제되므로 양쪽 다 켜도 중복 없음.
+                  통역(음성) 사용 중엔 봇 자막이 담당 → 청취 모드 정지(이중 전사·비용 방지). */}
               <ListenModeBridge
-                enabled={translationEnabled}
+                enabled={translationEnabled && !(voiceOn && agentPresent)}
                 langHint={targetLang}
                 targetLang={myLang}
                 consultationId={consultationId}
