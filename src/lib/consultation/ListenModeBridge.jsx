@@ -162,8 +162,9 @@ export function ListenModeBridge({
   useEffect(() => {
     if (typeof onAudioHealth !== "function") return;
     const report = () => {
+      // 사람 트랙만 센다(봇 tx:* 제외) — 워치독은 "전사할 상대 발화가 있는데 못 잡는가"를 봐야 한다.
       const remoteAudioCount = trackRefs.filter(
-        (t) => !t.participant?.isLocal && t.publication?.track?.mediaStreamTrack
+        (t) => !t.participant?.isLocal && t.publication?.track?.mediaStreamTrack && isHumanAudioTrack(t)
       ).length;
       onAudioHealth({
         remoteAudioCount,

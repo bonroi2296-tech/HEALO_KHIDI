@@ -1164,8 +1164,18 @@ export default function ConsultationRoomPage() {
       let stale = false;
       if (typeof utter === "number" && participantIdentity) {
         const seen = remoteUtterRef.current.get(participantIdentity) || 0;
-        if (utter < seen) stale = true;
-        else remoteUtterRef.current.set(participantIdentity, utter);
+        // 큰 폭의 역행(예: 20→1)은 늦은 재정렬이 아니라 상대의 **페이지 새로고침**으로 인한
+        // 카운터 리셋이다(발신측 utterRef 는 리로드 시 1로 되돌아감, LiveKit identity 는 유지).
+        // 낡음으로 걸러버리면 상대가 재접속한 뒤 자막이 카운트가 옛 최고치를 넘을 때까지 영영
+        // 안 뜬다 = 이 PR 이 잡으려는 "조용한 자막 사망"의 재발. → 리셋으로 받아들여 표시 허용.
+        // 진짜 늦은 '이전-확정'은 seen 바로 아래(1~2)로만 오므로 임계(3)로 구분한다.
+        if (utter < seen - 3) {
+          remoteUtterRef.current.set(participantIdentity, utter); // 리셋 간주 — 표시 허용
+        } else if (utter < seen) {
+          stale = true;
+        } else {
+          remoteUtterRef.current.set(participantIdentity, utter);
+        }
       }
       // 중간(진행 중) 자막 — 화면 슬롯만 갱신하고 끝. 기록·문맥은 확정 자막에서만
       // (같은 발화가 기록에 여러 번 쌓이는 것 방지). 청취 모드 억제는 여기서도 갱신 —
