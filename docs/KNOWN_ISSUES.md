@@ -1,5 +1,17 @@
 # HEALO KHIDI — 알려진 이슈 / 전수 QA 발견사항
 
+## 🔴 KHIDI 사전상담 실적이 **구조적으로 0** — 실제 화상회의를 해도 자동집계에 한 건도 안 잡힘 (2026-07-24 실측, 중간평가 직결)
+
+**실측 근거**(2026-07-24, 실DB):
+- 집계 조건(코드 실측 `app/api/admin/khidi/conversion-funnel/route.ts:97-104`) = `session_type='pre_consultation'` **AND** `status='completed'` **AND** `inquiry_id IS NOT NULL`.
+- 실제 `consultation_sessions` **42건 전부 `inquiry_id` = NULL**, `status='completed'`는 **1건**(2026-07-08)뿐. → **교집합 0 = K-02(사전상담) 자동집계 영구 0.** 2026-07-24 실회의 2건(17:53~18:19·18:38~19:07)도 당연히 미집계.
+
+**원인 = 배선 버그 아님(반증 확인함)**: 생성 API는 `inquiryId`·`inquiry_id`·`selected_inquiry_id` 셋 다 받아 저장하고(`app/api/khidi/consultation/route.ts:53-58,141`), 문의 드롭다운도 비어 있지 않다(picker 17건 반환 실측). → 진짜 원인은 **운영 흐름**: ①상담 만들 때 「문의 선택」이 선택사항이라 안 고르고 만들어도 아무 경고가 없음 ②끝나고 「상담 완료」를 안 누름(status가 scheduled로 남음).
+
+**부차 발견**: picker가 `step1_completed_at IS NOT NULL`만 노출 → 문의 38건 중 **21건은 드롭다운에 아예 안 뜸**(그중 실문의 3건). 텔레그램·메신저 자동 생성 문의는 step1이 안 채워질 수 있어 **연결하고 싶어도 못 하는** 경우 존재.
+
+**고칠 방향(미착수, PO와 다음 주 논의)**: ①생성 모달에서 문의 미선택 시 «이 상담은 KHIDI 실적에 안 잡힙니다» 경고 또는 사실상 필수화 ②상담방 종료 시 「상담 완료」 유도(또는 webhook의 방 종료 신호로 자동 completed) ③picker 필터를 step1 무관하게 완화(최근 문의 전체). ⚠️소급 반영도 필요 — 이미 한 회의들을 사후에 문의와 연결·완료 처리할 방법(어드민 화면 or 스크립트).
+
 ## 🟡 메신저 스레드 metadata 통째 덮어쓰기 경쟁 — 극히 드물게 환자 동의 기록이 지워질 수 있음 (2026-07-24, #942 독립 리뷰 발견 — 기존 구조, 실사고 아님)
 
 **내용**: 스태프 답장 릴레이(`staffReplyRelay`)가 `coordinator_active=true`를 세울 때 요청 초반에 읽은 스레드 `metadata` 전체를 spread로 다시 쓴다. 그 짧은 사이에 텔레그램 웹훅이 같은 스레드 metadata(동의 기록·last_start_at)를 갱신하면 스태프 쪽 stale write가 그걸 덮을 수 있음 → 이론상 봇이 동의를 재요청. 관리자 라우트 시절부터 동일했던 구조(이번 수리의 회귀 아님)이고 창이 매우 좁아 실발생 확률 낮음.
