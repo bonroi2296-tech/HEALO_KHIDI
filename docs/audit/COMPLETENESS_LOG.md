@@ -4,6 +4,14 @@
 > 채점표 = `src/lib/completeness/rubric.js` (사람용 `docs/DEFINITION_OF_DONE.md`). 형식·루프 구조는 `.claude/skills/completeness-audit/SKILL.md` 참고.
 > 새 엔트리는 이 안내문 바로 아래에 추가.
 
+## 2026-07-24 완성도 감사 (범위: diff — PR #951 메신저 대화 연속성+멘트 단락화)
+- 스캔: i18n 6개어+kk(단락화한 4맵 — 파일약속/시간약속 금지·①② 존재는 기존 계약테스트가 재검증) · 문서 드리프트(admin 설명서 "사람 답장 후 AI 침묵"·"재상담=재동의" 서술 = 새 판정(종료시만 재동의)과 모순 없음 확인) · 반쪽배선(findOpenThread 호출부 텔레그램·왓츠앱 2곳 전수 — 웹 챗은 별도 판정(resolved||closed) 이미 동일 의미)
+- 수정: 발견 0건 (수정 없음)
+- 검증 못 함(정직 표기): 실기기 왕복(코디 답장 → 환자 재발신 시 재동의 안 묻는지) — 머지·배포 후 PO 텔레그램 메시지 1건으로 확인 가능
+- 라운드: 2 (무발견 도달)
+
+---
+
 ## 2026-07-24 완성도 감사 (범위: diff — PR #948 사후관리 D+ 케이던스)
 - 스캔: 유형3(문서-현실 드리프트: KNOWN_ISSUES 설문·rescue 장부 vs 실코드/실DB) · 한글누출/언어누락(환자 배지 CADENCE_LABELS 6개어) · 죽은링크(종 알림 `/coordinator/inbox/[id]` 라우트 실재) · 반쪽배선(제안→환자 포털 GET/PATCH·벨 렌더 title/body/link 타입불문 — 코드 추적) · KHIDI §4 월별 로그(작업습관)
 - 수정: ①KNOWN_ISSUES 🔴 설문 항목 제목·본문 7/24 실측 갱신(발송1·응답1 + #948) ②rescue 장부에서 설문·kpiHealthcheck 확장분 회수 완료 처리 ③KHIDI §4 7월 로그에 케이던스 1줄(K-02·K-03 연결)
