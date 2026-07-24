@@ -22,6 +22,7 @@ const COPY = {
     types: {
       consultation: "Consultation",
       followup: "Follow-up",
+      cadence: { survey: "Progress survey", medication_check: "Medication check", video_call: "Video consultation", lab_review: "Lab results review" },
       rebooking: "Rebooking",
       deadline: "Deadline",
     },
@@ -44,6 +45,7 @@ const COPY = {
     types: {
       consultation: "상담",
       followup: "사후관리",
+      cadence: { survey: "경과 설문", medication_check: "복약 확인", video_call: "화상 상담", lab_review: "검사 결과 리뷰" },
       rebooking: "재예약 권장",
       deadline: "마감",
     },
@@ -66,6 +68,7 @@ const COPY = {
     types: {
       consultation: "Консультация",
       followup: "Наблюдение",
+      cadence: { survey: "Опрос о самочувствии", medication_check: "Проверка приёма лекарств", video_call: "Видеоконсультация", lab_review: "Обзор результатов анализов" },
       rebooking: "Повторная запись",
       deadline: "Срок",
     },
@@ -88,6 +91,7 @@ const COPY = {
     types: {
       consultation: "Кеңес",
       followup: "Бақылау",
+      cadence: { survey: "Денсаулық сауалнамасы", medication_check: "Дәрі қабылдауын тексеру", video_call: "Бейне кеңес", lab_review: "Талдау нәтижелерін қарау" },
       rebooking: "Қайта жазылу",
       deadline: "Мерзім",
     },
@@ -110,6 +114,7 @@ const COPY = {
     types: {
       consultation: "咨询",
       followup: "随访",
+      cadence: { survey: "康复问卷", medication_check: "用药确认", video_call: "视频咨询", lab_review: "检查结果回顾" },
       rebooking: "再次预约",
       deadline: "截止",
     },
@@ -132,6 +137,7 @@ const COPY = {
     types: {
       consultation: "相談",
       followup: "フォローアップ",
+      cadence: { survey: "経過アンケート", medication_check: "服薬確認", video_call: "ビデオ相談", lab_review: "検査結果レビュー" },
       rebooking: "再予約",
       deadline: "締切",
     },
@@ -213,7 +219,11 @@ export default function CalendarClient() {
         type: "followup",
         date: new Date(journey.followup.next_action_at),
         title: copy.types.followup,
-        sub: journey.followup.current_phase || "",
+        // 케이던스 제안(cron 생성)은 phase 원문(week_2 등 영어 키) 대신 action 라벨로(6개 언어)
+        sub:
+          journey.followup.schedule?.kind === "cadence"
+            ? copy.types.cadence?.[journey.followup.schedule.action] || ""
+            : journey.followup.current_phase || "",
       });
     }
 

@@ -45,7 +45,7 @@ import {
 import { resolveSurveyRecipient } from "@/lib/surveys/resolveRecipient";
 import { surveyDispatchWindow } from "@/lib/surveys/dispatchWindow";
 import { computeUnclosedNudge } from "@/lib/surveys/unclosedNudge";
-import { computeCadencePlan } from "@/lib/surveys/cadencePlan";
+import { computeCadencePlan, buildSentSurveyTypes } from "@/lib/surveys/cadencePlan";
 import { createFollowupSchedule } from "@/lib/followup/scheduler";
 import { alertIfKpiStale, alertIfSurveysStale } from "@/lib/khidi/kpiHealthcheck";
 import { decryptMaybe } from "@/lib/security/encryptionV2";
@@ -303,18 +303,27 @@ export async function GET(request: NextRequest) {
 
         // 이 케이스에 이미 나간 설문 차수(멱등 가드). 조회 실패 시 fail-closed —
         // 못 보내는 건 다음 실행이 재시도하지만 잘못 보낸 메일은 못 되돌린다.
+        // 판정(고아 pending 재시도·레거시 폴딩)은 순수함수 buildSentSurveyTypes — 단위테스트.
         const { data: sentRows, error: sentErr } = await db
           .from("surveys")
-          .select("survey_type")
+          .select("id, survey_type, sent_at, created_at")
           .eq("inquiry_id", c.id);
         if (sentErr) {
           errors.push(`case=${c.id}: 설문 존재검사 실패 — 이번 실행 건너뜀`);
           skipped++;
           continue;
         }
-        const sentSurveyTypes = new Set<string>(
-          ((sentRows as any[]) || []).map((r) => r.survey_type).filter(Boolean)
+        const { types: sentSurveyTypes, staleIds } = buildSentSurveyTypes(
+          ((sentRows as any[]) || []) as any,
+          now
         );
+        // 고아 pending(insert 후 crash — 발송된 적 없음) 삭제 → 이번 실행이 재발송.
+        // sent_at null 조건을 같이 걸어 "방금 다른 실행이 발송 완료한" 행을 지우는 경합 방지.
+        // 삭제 실패 시엔 DB 유니크가 재발송 insert 를 막으므로 중복은 없고 다음 실행이 재시도.
+        for (const sid of staleIds) {
+          await db.from("surveys").delete().eq("id", sid).is("sent_at", null)
+            .then(() => {}, () => { /* 위 주석의 안전 수렴 */ });
+        }
 
         // 이미 만든 케이던스 제안(비설문 단계) 키 — 재예약 단발(source 기반)과는
         // schedule.kind='cadence' 로 구분된다.
@@ -519,9 +528,10 @@ export async function GET(request: NextRequest) {
   let kpiHealth: { stale: boolean; latest: string | null } = { stale: false, latest: null };
   try { kpiHealth = await alertIfKpiStale(); } catch { /* noop */ }
 
-  // 설문 침묵 감지: 사후관리 8일↑인데 1주차 설문(fu_week_1)이 없는 케이스가 있으면 경보.
+  // 설문 침묵 감지: 사후관리 8일↑인데 1주차 설문이 실발송(sent_at)되지 않은 케이스 경보.
   // 위 발송 로직이 어떤 이유로든 조용히 죽었을 때 데이터로 잡는 백업 감시자.
-  let surveyHealth: { stale: boolean; overdue: number } = { stale: false, overdue: 0 };
+  // (이메일 없는 케이스는 noEmail 로만 집계 — 경보 아님. 전면 사망은 앵커리스 모집단으로 감지.)
+  let surveyHealth: { stale: boolean; overdue: number; noEmail: number } = { stale: false, overdue: 0, noEmail: 0 };
   try { surveyHealth = await alertIfSurveysStale(); } catch { /* noop */ }
 
   return Response.json({

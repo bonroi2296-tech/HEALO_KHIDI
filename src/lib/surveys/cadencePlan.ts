@@ -32,6 +32,50 @@ export const cadenceStepKey = (step: Pick<ScheduleStep, "phase" | "type">) =>
 
 const DAY_MS = 86_400_000;
 
+/** insert 후 crash 로 남은 고아 pending 을 "발송됨"으로 오인하지 않기 위한 유예(동시 실행 보호 겸). */
+export const STALE_PENDING_MS = 2 * 3_600_000;
+
+export interface SurveyRowLike {
+  id: string;
+  survey_type: string | null;
+  sent_at: string | null;
+  created_at: string | null;
+}
+
+/**
+ * 케이스의 surveys 행들 → 케이던스 멱등 판정용 "이미 나간 차수" 집합.
+ *
+ * - 고아 pending(fu_* 인데 sent_at null + 생성 2시간↑): 발송된 적 없음 → 집합에서 빼고
+ *   staleIds 로 반환(호출부가 지우고 이번 실행이 재발송) — 안 그러면 행 존재 가드에 걸려
+ *   그 차수가 영구 침묵한다(독립 리뷰 P-2).
+ * - 레거시·세션 설문(post_consultation/post_followup 등 fu_ 밖 타입)이 이미 나간 케이스는
+ *   첫 차수(fu_week_1)를 접는다 — 설문 이메일 템플릿에 차수 구분이 없어 같은 메일 2통이
+ *   된다(독립 리뷰 P-1·P-4). 이후 차수(D+90~)는 정상 진행.
+ */
+export function buildSentSurveyTypes(
+  rows: SurveyRowLike[],
+  nowMs: number
+): { types: Set<string>; staleIds: string[] } {
+  const types = new Set<string>();
+  const staleIds: string[] = [];
+  for (const r of rows) {
+    const t = r.survey_type || "";
+    const createdMs = r.created_at ? new Date(r.created_at).getTime() : NaN;
+    if (
+      t.startsWith("fu_") &&
+      !r.sent_at &&
+      Number.isFinite(createdMs) &&
+      nowMs - createdMs > STALE_PENDING_MS
+    ) {
+      staleIds.push(r.id);
+      continue;
+    }
+    if (t) types.add(t);
+  }
+  if ([...types].some((t) => !t.startsWith("fu_"))) types.add(cadenceSurveyType("week_1"));
+  return { types, staleIds };
+}
+
 export function computeCadencePlan(opts: {
   steps: ScheduleStep[];
   /** D+0 앵커(inquiries.followup_started_at) epoch ms */

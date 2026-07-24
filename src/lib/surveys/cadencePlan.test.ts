@@ -4,7 +4,13 @@
  */
 import { describe, it, expect } from "vitest";
 import { createFollowupSchedule } from "@/lib/followup/scheduler";
-import { computeCadencePlan, cadenceStepKey, cadenceSurveyType } from "./cadencePlan";
+import {
+  computeCadencePlan,
+  cadenceStepKey,
+  cadenceSurveyType,
+  buildSentSurveyTypes,
+  STALE_PENDING_MS,
+} from "./cadencePlan";
 
 const DAY = 86_400_000;
 const T0 = Date.parse("2026-07-01T00:00:00Z");
@@ -72,5 +78,56 @@ describe("computeCadencePlan", () => {
   it("키 헬퍼 계약: fu_<phase> / phase:action", () => {
     expect(cadenceSurveyType("month_6")).toBe("fu_month_6");
     expect(cadenceStepKey({ phase: "month_1", type: "video_call" })).toBe("month_1:video_call");
+  });
+});
+
+describe("buildSentSurveyTypes", () => {
+  const NOW = Date.parse("2026-07-24T12:00:00Z");
+  const row = (over: Partial<Parameters<typeof buildSentSurveyTypes>[0][number]>) => ({
+    id: "s1",
+    survey_type: "fu_week_1",
+    sent_at: "2026-07-20T00:00:00Z",
+    created_at: "2026-07-20T00:00:00Z",
+    ...over,
+  });
+
+  it("실발송된 케이던스 행은 집합에 들어간다", () => {
+    const r = buildSentSurveyTypes([row({})], NOW);
+    expect(r.types.has("fu_week_1")).toBe(true);
+    expect(r.staleIds).toEqual([]);
+  });
+
+  it("🔁 P-2: 고아 pending(fu_*·sent_at null·2시간↑)은 '발송됨'이 아니라 삭제·재시도 대상", () => {
+    const r = buildSentSurveyTypes(
+      [row({ sent_at: null, created_at: new Date(NOW - STALE_PENDING_MS - 1000).toISOString() })],
+      NOW
+    );
+    expect(r.types.has("fu_week_1")).toBe(false);
+    expect(r.staleIds).toEqual(["s1"]);
+  });
+
+  it("방금 만든 pending(2시간 내)은 동시 실행 보호로 '발송됨' 취급 — 중복 발사 금지", () => {
+    const r = buildSentSurveyTypes(
+      [row({ sent_at: null, created_at: new Date(NOW - 60_000).toISOString() })],
+      NOW
+    );
+    expect(r.types.has("fu_week_1")).toBe(true);
+    expect(r.staleIds).toEqual([]);
+  });
+
+  it("🔁 P-1·P-4: 레거시·세션 설문(post_*)이 나간 케이스는 첫 차수(fu_week_1)를 접는다", () => {
+    for (const legacy of ["post_followup", "post_consultation"]) {
+      const r = buildSentSurveyTypes([row({ survey_type: legacy })], NOW);
+      expect(r.types.has("fu_week_1")).toBe(true); // 동일 템플릿 메일 2통 방지
+      expect(r.types.has("fu_month_3")).toBe(false); // 이후 차수는 정상 진행
+    }
+  });
+
+  it("레거시 pending(sent_at null·비 fu_)은 삭제 대상이 아니다 — 케이던스 소유 행만 지운다", () => {
+    const r = buildSentSurveyTypes(
+      [row({ survey_type: "post_consultation", sent_at: null, created_at: new Date(NOW - 10 * STALE_PENDING_MS).toISOString() })],
+      NOW
+    );
+    expect(r.staleIds).toEqual([]);
   });
 });

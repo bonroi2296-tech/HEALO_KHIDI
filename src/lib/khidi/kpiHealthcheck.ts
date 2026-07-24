@@ -1,5 +1,6 @@
 import "server-only";
 import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
+import { decryptMaybe } from "@/lib/security/encryptionV2";
 
 /**
  * KHIDI 데드맨 스위치 — KPI 일일 집계(kpi-snapshot cron)가 멈췄는지 감지.
@@ -59,30 +60,57 @@ export async function alertIfKpiStale(): Promise<{ stale: boolean; latest: strin
  * 동작: 사후관리 진입(inquiries.followup_started_at) 8일↑(D+7 +1일 유예) 지난 비테스트
  * 케이스인데 1주차 설문(fu_week_1)이 없으면 Sentry 경보(= PO 이메일 도달). 절대 throw 안 함.
  */
-export async function alertIfSurveysStale(): Promise<{ stale: boolean; overdue: number }> {
+export async function alertIfSurveysStale(): Promise<{ stale: boolean; overdue: number; noEmail: number }> {
   try {
     const cutoff = new Date();
     cutoff.setUTCDate(cutoff.getUTCDate() - 8); // D+7 + 1일 유예
     const cutoffStr = cutoff.toISOString();
 
-    const { data: cases, error: caseErr } = await supabaseAdmin
+    // ① 앵커 찍힌 지 8일↑ — 발송 루프가 "부분적으로" 죽은 경우.
+    const { data: anchored, error: e1 } = await supabaseAdmin
       .from("inquiries")
-      .select("id")
+      .select("id, email")
       .in("case_status", ["follow_up", "completed"])
       .not("is_test", "is", true)
       .not("followup_started_at", "is", null)
       .lte("followup_started_at", cutoffStr);
-    if (caseErr) throw new Error(caseErr.message);
-    const ids = ((cases as any[]) || []).map((r) => r.id);
-    if (ids.length === 0) return { stale: false, overdue: 0 };
+    if (e1) throw new Error(e1.message);
 
-    const { data: sent, error: sentErr } = await supabaseAdmin
+    // ② 앵커가 아예 없는데 사후관리 진입(case_status_updated_at) 후 8일↑ — stamp 이전에
+    //    루프가 "전면" 죽은 경우. ①만 보면 전면 사망 시 모집단 0 → 감시자가 침묵한다(독립 리뷰 P-3).
+    const { data: anchorless, error: e2 } = await supabaseAdmin
+      .from("inquiries")
+      .select("id, email")
+      .in("case_status", ["follow_up", "completed"])
+      .not("is_test", "is", true)
+      .is("followup_started_at", null)
+      .lte("case_status_updated_at", cutoffStr);
+    if (e2) throw new Error(e2.message);
+
+    const candidates = [...((anchored as any[]) || []), ...((anchorless as any[]) || [])];
+    if (candidates.length === 0) return { stale: false, overdue: 0, noEmail: 0 };
+
+    // 이메일이 없는 케이스(메신저 유입 등)는 "발송 로직이 죽은" 게 아니라 보낼 수단이 없는
+    // 정상 상태 → 경보 모집단에서 제외. 안 그러면 매일 영구 오탐 경보가 된다(독립 리뷰 C-1).
+    const withEmail = candidates.filter((c) => String(decryptMaybe(c.email) || "").includes("@"));
+    const noEmail = candidates.length - withEmail.length;
+    if (withEmail.length === 0) return { stale: false, overdue: 0, noEmail };
+
+    const ids = withEmail.map((c) => c.id);
+    // "행 존재"가 아니라 "실제 발송"(sent_at)으로 판정 — insert 후 crash 한 고아 pending 행은
+    // 발송된 적 없다(독립 리뷰 P-2). 레거시(post_*) 설문이 나간 케이스는 fu_week_1 을 접으므로
+    // (cadencePlan 폴딩) 그것도 충족으로 친다 — 아니면 접힌 케이스가 영구 오탐이 된다.
+    const { data: sent, error: e3 } = await supabaseAdmin
       .from("surveys")
-      .select("inquiry_id")
+      .select("inquiry_id, survey_type")
       .in("inquiry_id", ids)
-      .eq("survey_type", "fu_week_1");
-    if (sentErr) throw new Error(sentErr.message);
-    const sentIds = new Set(((sent as any[]) || []).map((r: any) => r.inquiry_id));
+      .not("sent_at", "is", null);
+    if (e3) throw new Error(e3.message);
+    const sentIds = new Set(
+      ((sent as any[]) || [])
+        .filter((r) => r.survey_type === "fu_week_1" || !String(r.survey_type || "").startsWith("fu_"))
+        .map((r: any) => r.inquiry_id)
+    );
     const overdue = ids.filter((id) => !sentIds.has(id)).length;
 
     if (overdue > 0) {
@@ -97,9 +125,9 @@ export async function alertIfSurveysStale(): Promise<{ stale: boolean; overdue: 
         /* Sentry 미설정 시에도 콘솔 로그는 남음 */
       }
     }
-    return { stale: overdue > 0, overdue };
+    return { stale: overdue > 0, overdue, noEmail };
   } catch (e: any) {
     console.error("[kpiHealthcheck] alertIfSurveysStale 실패:", e?.message);
-    return { stale: false, overdue: 0 };
+    return { stale: false, overdue: 0, noEmail: 0 };
   }
 }
