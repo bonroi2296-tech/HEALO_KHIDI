@@ -4,11 +4,13 @@
  * 자기 음성 STT 결과를 DataChannel로 다른 참가자에게 전송하고,
  * 상대방이 보낸 STT 결과를 수신해 콜백으로 전달합니다.
  *
- * 프로토콜: JSON { type: "subtitle", text, lang, role, name, ts, interim? }
+ * 프로토콜: JSON { type: "subtitle", text, lang, role, name, ts, interim?, utter? }
  *   name = 화자 표시 이름 (LiveKit 참가자 이름) — 같은 역할이 여럿이어도 자막에서 화자 구분
  *   interim = true 면 "말하는 중" 부분 자막 — 수신측은 화면 슬롯만 갱신하고 기록하지 않는다
  *   (확정 자막이 같은 화자 슬롯을 교체). 구버전 클라는 이 필드를 몰라 확정처럼 표시하지만
  *   해가 없고, 배포 전환기 혼재 시간만 존재하는 케이스.
+ *   utter = 화자의 발화 세대 번호 — 번역 큐 밀림으로 '이전 발화 확정'이 '다음 발화 부분'보다
+ *   늦게 도착하는 순서 역전을 수신측이 걸러내는 근거(없으면 항상 표시 = 구버전 호환).
  *
  * 사용처: consultation/[id]/page.jsx
  */
@@ -52,6 +54,7 @@ export function useLiveKitDataChannel({ onRemoteSubtitle } = {}) {
           name: msg.name || participant?.name || undefined,
           ts: msg.ts,
           interim: !!msg.interim,
+          utter: typeof msg.utter === "number" ? msg.utter : undefined,
           participantIdentity: participant?.identity,
         });
       } catch {
@@ -87,6 +90,7 @@ export function useLiveKitDataChannel({ onRemoteSubtitle } = {}) {
           name: room.localParticipant?.name || undefined,
           ts: Date.now(),
           ...(opts.interim ? { interim: true } : {}),
+          ...(typeof opts.utter === "number" ? { utter: opts.utter } : {}),
         });
         const data = ENCODER.encode(msg);
         // ⚠️ livekit-client v2 의 DataPublishOptions 는 { reliable: boolean } 를 받는다.
