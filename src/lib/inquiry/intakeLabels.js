@@ -9,17 +9,16 @@
  * 왜 분리했나: 코디 화면이 raw 코드(pre_surgery·2weeks)를 그대로 노출하던 문제 →
  * 폼이 이미 가진 6개국어 라벨을 재사용해 한글로 보여주기 위함.
  */
-import { Activity, Heart, Stethoscope, Wind, Zap, Microscope, HelpCircle } from "lucide-react";
-
+// organ = app/_components/OrganIcon.jsx 의 장기 아이콘 키(없으면 소비처가 물음표 등 대체 표시).
 export const CANCER_TYPES = [
-  { value: "stomach", label: { ko: "위암", en: "Stomach", ru: "Желудок", kz: "Асқазан", zh: "胃癌", ja: "胃がん" }, icon: Activity },
-  { value: "liver", label: { ko: "간암", en: "Liver", ru: "Печень", kz: "Бауыр", zh: "肝癌", ja: "肝がん" }, icon: Zap },
-  { value: "lung", label: { ko: "폐암", en: "Lung", ru: "Лёгкое", kz: "Өкпе", zh: "肺癌", ja: "肺がん" }, icon: Wind },
-  { value: "breast", label: { ko: "유방암", en: "Breast", ru: "Грудь", kz: "Сүт без", zh: "乳腺癌", ja: "乳がん" }, icon: Heart },
-  { value: "thyroid", label: { ko: "갑상선암", en: "Thyroid", ru: "Щитовидка", kz: "Қалқанша", zh: "甲状腺癌", ja: "甲状腺がん" }, icon: Stethoscope },
-  { value: "colorectal", label: { ko: "대장암", en: "Colorectal", ru: "Толстая кишка", kz: "Тоқ ішек", zh: "结肠癌", ja: "大腸がん" }, icon: Activity },
-  { value: "pancreatic", label: { ko: "췌장암", en: "Pancreatic", ru: "Поджелудочная", kz: "Ұйқы без", zh: "胰腺癌", ja: "膵がん" }, icon: Microscope },
-  { value: "other", label: { ko: "기타", en: "Other", ru: "Другое", kz: "Басқа", zh: "其他", ja: "その他" }, icon: HelpCircle },
+  { value: "stomach", label: { ko: "위암", en: "Stomach", ru: "Желудок", kz: "Асқазан", zh: "胃癌", ja: "胃がん" }, organ: "stomach" },
+  { value: "liver", label: { ko: "간암", en: "Liver", ru: "Печень", kz: "Бауыр", zh: "肝癌", ja: "肝がん" }, organ: "liver" },
+  { value: "lung", label: { ko: "폐암", en: "Lung", ru: "Лёгкое", kz: "Өкпе", zh: "肺癌", ja: "肺がん" }, organ: "lung" },
+  { value: "breast", label: { ko: "유방암", en: "Breast", ru: "Грудь", kz: "Сүт без", zh: "乳腺癌", ja: "乳がん" }, organ: "breast" },
+  { value: "thyroid", label: { ko: "갑상선암", en: "Thyroid", ru: "Щитовидка", kz: "Қалқанша", zh: "甲状腺癌", ja: "甲状腺がん" }, organ: "thyroid" },
+  { value: "colorectal", label: { ko: "대장암", en: "Colorectal", ru: "Толстая кишка", kz: "Тоқ ішек", zh: "结肠癌", ja: "大腸がん" }, organ: "colon" },
+  { value: "pancreatic", label: { ko: "췌장암", en: "Pancreatic", ru: "Поджелудочная", kz: "Ұйқы без", zh: "胰腺癌", ja: "膵がん" }, organ: "pancreas" },
+  { value: "other", label: { ko: "기타", en: "Other", ru: "Другое", kz: "Басқа", zh: "其他", ja: "その他" }, organ: null },
 ];
 
 export const STAGES = ["I", "II", "III", "IV"];

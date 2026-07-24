@@ -5,6 +5,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useLang } from "@/lib/i18n/LangContext";
 import { HOME_CONTENT } from "@/lib/content/homeContent";
+import OrganIcon from "../_components/OrganIcon";
 import {
   ArrowRight,
   Shield,
@@ -286,7 +287,9 @@ export default function HomeClient({ content } = {}) {
           <div className="grid grid-cols-3 md:grid-cols-6 gap-2 md:gap-4">
             {L.cancers.items.map((c, i) => (
               <div key={i} role="button" tabIndex={0} onClick={() => router.push("/treatments")} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); router.push("/treatments"); } }} className="bg-white rounded-xl md:rounded-2xl p-3 md:p-5 text-center cursor-pointer hover:shadow-md transition-all duration-200 border border-gray-100 group focus:outline-none focus:ring-2 focus:ring-teal-400">
-                <div className="text-2xl md:text-4xl mb-1 md:mb-3">{c.emoji}</div>
+                <div className="mb-1 md:mb-3 flex justify-center text-teal-600">
+                  <OrganIcon name={c.organ} className="w-7 h-7 md:w-10 md:h-10" />
+                </div>
                 <div className="font-bold text-xs md:text-sm text-gray-800 mb-0.5 md:mb-1">{l(c.label)}</div>
                 <div className="text-[9px] md:text-[11px] text-teal-700 font-semibold leading-tight">{l(c.stat)}</div>
               </div>

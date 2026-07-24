@@ -7,6 +7,7 @@ import {
   Activity, Clock, FileText, CheckCircle,
 } from 'lucide-react';
 import { useLang } from '@/lib/i18n/LangContext';
+import OrganIcon from '../_components/OrganIcon';
 
 export const TREATMENTS_L = {
   title: { ko: '암종별 치료 안내', en: 'Cancer Treatment Guide', ru: 'Руководство по лечению рака', kz: 'Рак емдеу нұсқаулығы', zh: '癌症治疗指南', ja: 'がん治療ガイド' },
@@ -22,7 +23,7 @@ export const TREATMENTS_L = {
 
 export const CANCERS = [
   {
-    emoji: '🫁', type: { ko: '위암', en: 'Stomach Cancer', ru: 'Рак желудка', kz: 'Асқазан обыры', zh: '胃癌', ja: '胃がん' },
+    organ: 'stomach', type: { ko: '위암', en: 'Stomach Cancer', ru: 'Рак желудка', kz: 'Асқазан обыры', zh: '胃癌', ja: '胃がん' },
     koreaStrength: { ko: '한국 위암 5년 생존율 세계 1위 (77.0%)', en: 'Korea has the world\'s highest 5-year stomach cancer survival rate (77.0%)', ru: 'Корея — мировой лидер по выживаемости при раке желудка (77.0%)', kz: 'Корея — асқазан обыры бойынша өмір сүру рекорды (77.0%)', zh: '韩国胃癌5年生存率世界第一（77.0%）', ja: '韓国の胃がん5年生存率は世界一（77.0%）' },
     western: [
       { ko: '내시경 점막하 절제술 (ESD)', en: 'Endoscopic Submucosal Dissection (ESD)', ru: 'Эндоскопическая подслизистая диссекция (ЭПД)', kz: 'Эндоскопиялық шырышасты диссекция (ESD)', zh: '内镜黏膜下剥离术（ESD）', ja: '内視鏡的粘膜下層剥離術（ESD）' },
@@ -36,7 +37,7 @@ export const CANCERS = [
     ],
   },
   {
-    emoji: '🩷', type: { ko: '유방암', en: 'Breast Cancer', ru: 'Рак молочной железы', kz: 'Сүт безі обыры', zh: '乳腺癌', ja: '乳がん' },
+    organ: 'breast', type: { ko: '유방암', en: 'Breast Cancer', ru: 'Рак молочной железы', kz: 'Сүт безі обыры', zh: '乳腺癌', ja: '乳がん' },
     koreaStrength: { ko: '유방보존술 비율 세계 최고 수준, 최소 절개 수술', en: 'World-leading breast conservation rates with minimal incision surgery', ru: 'Мировой лидер по органосберегающим операциям', kz: 'Сүт безін сақтап қалу операциялары бойынша әлемдік көшбасшы, минималды тілік', zh: '保乳手术比例世界领先，微创手术', ja: '乳房温存手術の割合は世界最高水準、最小切開手術' },
     western: [
       { ko: '유방보존술 / 유방절제술', en: 'Breast-conserving / Mastectomy', ru: 'Органосберегающая / Мастэктомия', kz: 'Сүт безін сақтау операциясы / мастэктомия', zh: '保乳手术/乳房切除术', ja: '乳房温存術／乳房切除術' },
@@ -50,7 +51,7 @@ export const CANCERS = [
     ],
   },
   {
-    emoji: '🫀', type: { ko: '간암', en: 'Liver Cancer', ru: 'Рак печени', kz: 'Бауыр обыры', zh: '肝癌', ja: '肝がん' },
+    organ: 'liver', type: { ko: '간암', en: 'Liver Cancer', ru: 'Рак печени', kz: 'Бауыр обыры', zh: '肝癌', ja: '肝がん' },
     koreaStrength: { ko: '간이식 성공률 세계 최고 수준, B형 간염 기반 간암 전문', en: 'World-leading liver transplant success rates, expertise in HBV-related liver cancer', ru: 'Мировой лидер по успешности трансплантации печени', kz: 'Бауыр трансплантациясының сәттілігі бойынша әлемдік деңгей, В гепатитіне байланысты бауыр обырына маманданған', zh: '肝移植成功率世界领先，擅长乙肝相关肝癌', ja: '肝移植成功率は世界最高水準、B型肝炎由来の肝がんに精通' },
     western: [
       { ko: '간절제술 (복강경/개복)', en: 'Hepatectomy (Laparoscopic/Open)', ru: 'Гепатэктомия (лапароскопическая/открытая)', kz: 'Бауыр резекциясы (лапароскопиялық/ашық)', zh: '肝切除术（腹腔镜/开腹）', ja: '肝切除術（腹腔鏡・開腹）' },
@@ -64,7 +65,7 @@ export const CANCERS = [
     ],
   },
   {
-    emoji: '🌬️', type: { ko: '폐암', en: 'Lung Cancer', ru: 'Рак лёгких', kz: 'Өкпе обыры', zh: '肺癌', ja: '肺がん' },
+    organ: 'lung', type: { ko: '폐암', en: 'Lung Cancer', ru: 'Рак лёгких', kz: 'Өкпе обыры', zh: '肺癌', ja: '肺がん' },
     koreaStrength: { ko: '흉강경(VATS) 수술 세계적 수준, 면역항암 선도 적용', en: 'World-class VATS surgery, leading immunotherapy adoption', ru: 'Мирового класса ВАТС-хирургия, ведущее применение иммунотерапии', kz: 'Әлемдік деңгейдегі VATS хирургиясы, иммундық терапияны алдыңғы қатарда қолдану', zh: '胸腔镜（VATS）手术世界一流，率先应用免疫治疗', ja: '世界水準の胸腔鏡（VATS）手術、免疫療法を先進的に導入' },
     western: [
       { ko: '흉강경(VATS) / 로봇 폐절제', en: 'VATS / Robotic Lung Resection', ru: 'ВАТС / Роботизированная резекция лёгкого', kz: 'VATS / роботты өкпе резекциясы', zh: '胸腔镜（VATS）/机器人肺切除', ja: 'VATS／ロボット肺切除' },
@@ -78,7 +79,7 @@ export const CANCERS = [
     ],
   },
   {
-    emoji: '🦋', type: { ko: '갑상선암', en: 'Thyroid Cancer', ru: 'Рак щитовидной железы', kz: 'Қалқанша без обыры', zh: '甲状腺癌', ja: '甲状腺がん' },
+    organ: 'thyroid', type: { ko: '갑상선암', en: 'Thyroid Cancer', ru: 'Рак щитовидной железы', kz: 'Қалқанша без обыры', zh: '甲状腺癌', ja: '甲状腺がん' },
     koreaStrength: { ko: '갑상선암 치료 경험 세계 최다, 5년 생존율 100% 근접', en: 'World\'s most thyroid cancer treatment experience, near 100% 5-year survival', ru: 'Мировой лидер по опыту лечения рака щитовидной железы', kz: 'Қалқанша безі обырын емдеу тәжірибесі бойынша әлемде бірінші, 5 жылдық өмір сүру 100%-ға жуық', zh: '甲状腺癌治疗经验世界最多，5年生存率接近100%', ja: '甲状腺がん治療実績は世界最多、5年生存率はほぼ100%' },
     western: [
       { ko: '갑상선 절제술 (로봇/내시경)', en: 'Thyroidectomy (Robotic/Endoscopic)', ru: 'Тиреоидэктомия (роботизированная/эндоскопическая)', kz: 'Қалқанша безін алып тастау (роботты/эндоскопиялық)', zh: '甲状腺切除术（机器人/内镜）', ja: '甲状腺切除術（ロボット・内視鏡）' },
@@ -92,7 +93,7 @@ export const CANCERS = [
     ],
   },
   {
-    emoji: '🎗️', type: { ko: '대장암', en: 'Colorectal Cancer', ru: 'Рак толстой кишки', kz: 'Тоқ ішек обыры', zh: '大肠癌', ja: '大腸がん' },
+    organ: 'colon', type: { ko: '대장암', en: 'Colorectal Cancer', ru: 'Рак толстой кишки', kz: 'Тоқ ішек обыры', zh: '大肠癌', ja: '大腸がん' },
     koreaStrength: { ko: '복강경 대장암 수술 세계 최다 경험, 높은 항문보존률', en: 'World\'s most laparoscopic colorectal surgeries, high anal preservation rate', ru: 'Мировой лидер по лапароскопическим операциям, высокий процент сохранения сфинктера', kz: 'Лапароскопиялық тоқ ішек операциялары бойынша әлемдегі ең мол тәжірибе, сфинктерді сақтау деңгейі жоғары', zh: '腹腔镜大肠癌手术经验世界最多，肛门保留率高', ja: '腹腔鏡大腸がん手術は世界最多の実績、高い肛門温存率' },
     western: [
       { ko: '복강경/로봇 대장절제', en: 'Laparoscopic/Robotic Colectomy', ru: 'Лапароскопическая/Роботизированная колэктомия', kz: 'Лапароскопиялық/роботты колэктомия', zh: '腹腔镜/机器人大肠切除', ja: '腹腔鏡・ロボット大腸切除' },
@@ -172,7 +173,7 @@ export default function TreatmentsClient() {
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <span className="text-3xl">{cancer.emoji}</span>
+                      <span className="text-teal-600"><OrganIcon name={cancer.organ} className="w-9 h-9" /></span>
                       <div>
                         <h3 className="font-bold text-lg">{l(cancer.type)}</h3>
                         <p className="text-xs text-teal-700 font-medium mt-0.5">{l(cancer.koreaStrength)}</p>

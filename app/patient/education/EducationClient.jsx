@@ -3,13 +3,14 @@
 import { useState, useEffect } from 'react';
 import { useLang } from '@/lib/i18n/LangContext';
 import { BookOpen, ChevronDown, ChevronUp, Stethoscope, AlertTriangle, Utensils, Dumbbell, Brain, Leaf } from 'lucide-react';
+import OrganIcon from '../../_components/OrganIcon';
 
 export const CANCER_TYPES = [
-  { value: 'stomach', emoji: '🫁', label: { ko: '위암', en: 'Stomach Cancer', ru: 'Рак желудка', zh: '胃癌', ja: '胃がん', kz: 'Асқазан обыры' } },
-  { value: 'breast', emoji: '🎀', label: { ko: '유방암', en: 'Breast Cancer', ru: 'Рак молочной железы', zh: '乳腺癌', ja: '乳がん', kz: 'Сүт безі обыры' } },
-  { value: 'liver', emoji: '🫀', label: { ko: '간암', en: 'Liver Cancer', ru: 'Рак печени', zh: '肝癌', ja: '肝臓がん', kz: 'Бауыр обыры' } },
-  { value: 'lung', emoji: '🫁', label: { ko: '폐암', en: 'Lung Cancer', ru: 'Рак лёгких', zh: '肺癌', ja: '肺がん', kz: 'Өкпе обыры' } },
-  { value: 'thyroid', emoji: '🦋', label: { ko: '갑상선암', en: 'Thyroid Cancer', ru: 'Рак щитовидной железы', zh: '甲状腺癌', ja: '甲状腺がん', kz: 'Қалқанша без обыры' } },
+  { value: 'stomach', label: { ko: '위암', en: 'Stomach Cancer', ru: 'Рак желудка', zh: '胃癌', ja: '胃がん', kz: 'Асқазан обыры' } },
+  { value: 'breast', label: { ko: '유방암', en: 'Breast Cancer', ru: 'Рак молочной железы', zh: '乳腺癌', ja: '乳がん', kz: 'Сүт безі обыры' } },
+  { value: 'liver', label: { ko: '간암', en: 'Liver Cancer', ru: 'Рак печени', zh: '肝癌', ja: '肝臓がん', kz: 'Бауыр обыры' } },
+  { value: 'lung', label: { ko: '폐암', en: 'Lung Cancer', ru: 'Рак лёгких', zh: '肺癌', ja: '肺がん', kz: 'Өкпе обыры' } },
+  { value: 'thyroid', label: { ko: '갑상선암', en: 'Thyroid Cancer', ru: 'Рак щитовидной железы', zh: '甲状腺癌', ja: '甲状腺がん', kz: 'Қалқанша без обыры' } },
 ];
 
 export const PAGE_LABELS = {
@@ -578,7 +579,7 @@ export default function EducationClient() {
                   : 'border-gray-100 text-gray-600 hover:border-gray-200 hover:bg-gray-50'
               }`}
             >
-              <span>{ct.emoji}</span>
+              <OrganIcon name={ct.value} className="w-5 h-5" />
               {l(ct.label)}
             </button>
           ))}

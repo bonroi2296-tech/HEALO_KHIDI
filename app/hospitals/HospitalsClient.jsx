@@ -10,6 +10,7 @@ import {
   Phone, GraduationCap, Briefcase, BookOpen, Activity,
   X,
 } from 'lucide-react';
+import OrganIcon from '../_components/OrganIcon';
 
 // 의사 사진은 public/doctors/ 에 자체 호스팅(핫링크 금지 — 원본 immunehospital.com이 파일명 변경/삭제하면 깨졌었음).
 // 새 의사 추가 시: scripts/fetch-doctor-photos.mjs 로 사진을 받아 public/doctors/ 에 넣고 로컬 경로로 참조.
@@ -432,12 +433,12 @@ const BRANCH_CONFIG = [
 ];
 
 const CANCER_GUIDES = [
-  { emoji: '🫁', type: { ko: '위암', en: 'Stomach Cancer', ru: 'Рак желудка', kz: 'Асқазан обыры', zh: '胃癌', ja: '胃がん' }, approach: { ko: '내시경 절제 · 위절제술 · 항암 → 한방 소화기능 회복', en: 'Endoscopic resection · Gastrectomy · Chemo → KM digestive recovery', ru: 'Эндоскопия · Гастрэктомия · Химиотерапия → Восстановление ЖКТ', kz: 'Эндоскопия → АЖ қалпына келтіру', zh: '内镜切除·化疗→韩方消化功能恢复', ja: '内視鏡切除・抗がん→韓方消化機能回復' } },
-  { emoji: '🩷', type: { ko: '유방암', en: 'Breast Cancer', ru: 'Рак молочной железы', kz: 'Сүт безі обыры', zh: '乳腺癌', ja: '乳がん' }, approach: { ko: '유방보존술 · 항암/호르몬 → 한방 면역·체력 회복', en: 'Breast-conserving surgery · Chemo → KM immune recovery', ru: 'Органосберегающая · Химио → Иммунное восстановление', kz: 'Сақтау · Химио → Қалпына келтіру', zh: '保乳手术·化疗→韩方免疫恢复', ja: '乳房温存術・抗がん→韓方免疫回復' } },
-  { emoji: '🫀', type: { ko: '간암', en: 'Liver Cancer', ru: 'Рак печени', kz: 'Бауыр обыры', zh: '肝癌', ja: '肝がん' }, approach: { ko: '간절제 · 색전술 · 표적항암 → 한방 간기능 보호', en: 'Hepatectomy · Embolization · Targeted → KM liver protection', ru: 'Гепатэктомия · Эмболизация → Защита печени', kz: 'Гепатэктомия → Бауырды қорғау', zh: '肝切除·栓塞→韩方肝功能保护', ja: '肝切除・塞栓術→韓方肝機能保護' } },
-  { emoji: '🌬️', type: { ko: '폐암', en: 'Lung Cancer', ru: 'Рак лёгких', kz: 'Өкпе обыры', zh: '肺癌', ja: '肺がん' }, approach: { ko: '흉강경 수술 · 면역항암 → 한방 호흡기·체력 관리', en: 'VATS · Immunotherapy → KM respiratory care', ru: 'ВАТС · Иммунотерапия → Респираторная помощь', kz: 'ВАТС · Иммунотерапия → Тыныс алу', zh: '胸腔镜·免疫→韩方呼吸管理', ja: 'VATS・免疫療法→韓方呼吸器管理' } },
-  { emoji: '🦋', type: { ko: '갑상선암', en: 'Thyroid Cancer', ru: 'Рак щитовидной железы', kz: 'Қалқанша без обыры', zh: '甲状腺癌', ja: '甲状腺がん' }, approach: { ko: '갑상선 절제 · 방사성요오드 → 한방 호르몬 균형', en: 'Thyroidectomy · Radioiodine → KM hormonal balance', ru: 'Тиреоидэктомия · Радиойод → Баланс гормонов', kz: 'Тиреоидэктомия → Гормондық тепе-теңдік', zh: '甲状腺切除→韩方激素平衡', ja: '甲状腺切除→韓方ホルモンバランス' } },
-  { emoji: '🎗️', type: { ko: '대장암', en: 'Colorectal Cancer', ru: 'Рак толстой кишки', kz: 'Тоқ ішек обыры', zh: '大肠癌', ja: '大腸がん' }, approach: { ko: '복강경 절제 · 항암 → 한방 장기능 회복·면역 강화', en: 'Laparoscopic resection · Chemo → KM bowel & immune recovery', ru: 'Лапароскопия · Химио → Восстановление кишечника', kz: 'Лапароскопия → Ішек қалпына келтіру', zh: '腹腔镜切除→韩方肠功能·免疫恢复', ja: '腹腔鏡切除→韓方腸機能・免疫回復' } },
+  { organ: 'stomach', type: { ko: '위암', en: 'Stomach Cancer', ru: 'Рак желудка', kz: 'Асқазан обыры', zh: '胃癌', ja: '胃がん' }, approach: { ko: '내시경 절제 · 위절제술 · 항암 → 한방 소화기능 회복', en: 'Endoscopic resection · Gastrectomy · Chemo → KM digestive recovery', ru: 'Эндоскопия · Гастрэктомия · Химиотерапия → Восстановление ЖКТ', kz: 'Эндоскопия → АЖ қалпына келтіру', zh: '内镜切除·化疗→韩方消化功能恢复', ja: '内視鏡切除・抗がん→韓方消化機能回復' } },
+  { organ: 'breast', type: { ko: '유방암', en: 'Breast Cancer', ru: 'Рак молочной железы', kz: 'Сүт безі обыры', zh: '乳腺癌', ja: '乳がん' }, approach: { ko: '유방보존술 · 항암/호르몬 → 한방 면역·체력 회복', en: 'Breast-conserving surgery · Chemo → KM immune recovery', ru: 'Органосберегающая · Химио → Иммунное восстановление', kz: 'Сақтау · Химио → Қалпына келтіру', zh: '保乳手术·化疗→韩方免疫恢复', ja: '乳房温存術・抗がん→韓方免疫回復' } },
+  { organ: 'liver', type: { ko: '간암', en: 'Liver Cancer', ru: 'Рак печени', kz: 'Бауыр обыры', zh: '肝癌', ja: '肝がん' }, approach: { ko: '간절제 · 색전술 · 표적항암 → 한방 간기능 보호', en: 'Hepatectomy · Embolization · Targeted → KM liver protection', ru: 'Гепатэктомия · Эмболизация → Защита печени', kz: 'Гепатэктомия → Бауырды қорғау', zh: '肝切除·栓塞→韩方肝功能保护', ja: '肝切除・塞栓術→韓方肝機能保護' } },
+  { organ: 'lung', type: { ko: '폐암', en: 'Lung Cancer', ru: 'Рак лёгких', kz: 'Өкпе обыры', zh: '肺癌', ja: '肺がん' }, approach: { ko: '흉강경 수술 · 면역항암 → 한방 호흡기·체력 관리', en: 'VATS · Immunotherapy → KM respiratory care', ru: 'ВАТС · Иммунотерапия → Респираторная помощь', kz: 'ВАТС · Иммунотерапия → Тыныс алу', zh: '胸腔镜·免疫→韩方呼吸管理', ja: 'VATS・免疫療法→韓方呼吸器管理' } },
+  { organ: 'thyroid', type: { ko: '갑상선암', en: 'Thyroid Cancer', ru: 'Рак щитовидной железы', kz: 'Қалқанша без обыры', zh: '甲状腺癌', ja: '甲状腺がん' }, approach: { ko: '갑상선 절제 · 방사성요오드 → 한방 호르몬 균형', en: 'Thyroidectomy · Radioiodine → KM hormonal balance', ru: 'Тиреоидэктомия · Радиойод → Баланс гормонов', kz: 'Тиреоидэктомия → Гормондық тепе-теңдік', zh: '甲状腺切除→韩方激素平衡', ja: '甲状腺切除→韓方ホルモンバランス' } },
+  { organ: 'colon', type: { ko: '대장암', en: 'Colorectal Cancer', ru: 'Рак толстой кишки', kz: 'Тоқ ішек обыры', zh: '大肠癌', ja: '大腸がん' }, approach: { ko: '복강경 절제 · 항암 → 한방 장기능 회복·면역 강화', en: 'Laparoscopic resection · Chemo → KM bowel & immune recovery', ru: 'Лапароскопия · Химио → Восстановление кишечника', kz: 'Лапароскопия → Ішек қалпына келтіру', zh: '腹腔镜切除→韩方肠功能·免疫恢复', ja: '腹腔鏡切除→韓方腸機能・免疫回復' } },
 ];
 
 /* ───────────────── Sub-components ───────────────── */
@@ -877,7 +878,7 @@ export default function HospitalsClient() {
             {CANCER_GUIDES.map((guide, i) => (
               <div key={i} role="button" tabIndex={0} onClick={() => router.push('/inquiry')} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); router.push('/inquiry'); } }} className="bg-white border border-gray-200 rounded-2xl p-6 hover:shadow-md hover:border-teal-200 transition cursor-pointer group focus:outline-none focus:ring-2 focus:ring-teal-400">
                 <div className="flex items-center gap-3 mb-3">
-                  <span className="text-3xl">{guide.emoji}</span>
+                  <span className="text-teal-600"><OrganIcon name={guide.organ} className="w-9 h-9" /></span>
                   <h3 className="font-bold text-lg group-hover:text-teal-700 transition">{l(guide.type)}</h3>
                 </div>
                 <p className="text-base text-gray-500 leading-relaxed">{l(guide.approach)}</p>
