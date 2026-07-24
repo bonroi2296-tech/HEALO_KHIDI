@@ -6032,9 +6032,14 @@ export const t = (key, lang = "en") => {
 // ── 편집 백오피스용: 사전 키 검색·검증 ──
 const EDIT_LANGS = ["ko", "en", "ru", "kz", "zh", "ja"];
 
+// 검색 비교용 정규화: 소문자 + 모든 공백(줄바꿈 포함)을 한 칸으로.
+// 화면에서 여러 줄로 보이는 문구를 복사해 검색해도(줄바꿈이 공백으로 바뀜) 찾히게.
+export const normalizeForSearch = (s) =>
+  String(s ?? "").toLowerCase().replace(/\s+/g, " ").trim();
+
 // key 또는 아무 언어 값에 query 가 포함된 사전 항목을 반환({ key, values:{lang:val} }).
 export function searchI18nKeys(query, limit = 60) {
-  const q = (query || "").trim().toLowerCase();
+  const q = normalizeForSearch(query);
   if (!q) return [];
   const enDict = DICTIONARY.en || {};
   const out = [];
@@ -6043,17 +6048,24 @@ export function searchI18nKeys(query, limit = 60) {
     if (!matched) {
       for (const lang of EDIT_LANGS) {
         const v = DICTIONARY[lang] && DICTIONARY[lang][key];
-        if (typeof v === "string" && v.toLowerCase().includes(q)) { matched = true; break; }
+        if (typeof v === "string" && normalizeForSearch(v).includes(q)) { matched = true; break; }
       }
     }
     if (matched) {
-      const values = {};
-      for (const lang of EDIT_LANGS) values[lang] = (DICTIONARY[lang] && DICTIONARY[lang][key]) || "";
+      const values = getI18nValues(key);
       out.push({ key, values });
       if (out.length >= limit) break;
     }
   }
   return out;
+}
+
+// 사전 키 하나의 6개어 기본값 조회(편집기 표시용).
+export function getI18nValues(key) {
+  if (!isValidI18nKey(key)) return null;
+  const values = {};
+  for (const lang of EDIT_LANGS) values[lang] = (DICTIONARY[lang] && DICTIONARY[lang][key]) || "";
+  return values;
 }
 
 // 실재하는 사전 키인가(편집 저장 화이트리스트용).

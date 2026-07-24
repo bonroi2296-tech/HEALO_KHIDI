@@ -1,10 +1,23 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useRef, useState } from "react";
 
 const LANGS = ["ko", "en", "ru", "kz", "zh", "ja"];
 const LANG_LABEL = { ko: "한국어", en: "English", ru: "Русский", kz: "Қазақша", zh: "中文", ja: "日本語" };
 const LANG_SHORT = { ko: "한", en: "EN", ru: "РУ", kz: "ҚЗ", zh: "中", ja: "日" };
+
+// 여러 줄 문구도 한 칸에서 통째로 수정(줄바꿈 보존). 줄 수만큼 자동으로 늘어난다.
+function Field({ value, onChange, dirty, size = "sm" }) {
+  const v = value ?? "";
+  return (
+    <textarea
+      rows={Math.max(1, String(v).split("\n").length)}
+      value={v}
+      onChange={onChange}
+      className={`flex-1 ${size === "xs" ? "text-xs" : "text-sm"} rounded border px-2 py-1.5 resize-none focus:outline-none focus:ring-2 focus:ring-teal-400 ${dirty ? "border-teal-400" : "border-gray-200"}`}
+    />
+  );
+}
 
 export default function ContentEditorClient() {
   const [query, setQuery] = useState("");
@@ -155,7 +168,7 @@ export default function ContentEditorClient() {
               ))}
             </div>
           </div>
-          <p className="text-[11px] text-gray-400 mb-4">언어는 한 번 고르면 유지됩니다 · 줄을 펼치면 6개어 전부</p>
+          <p className="text-[11px] text-gray-400 mb-4">언어는 한 번 고르면 유지됩니다 · 줄을 펼치면 6개어 전부 · 이미 고친 문구로도 검색됩니다</p>
 
           {loading && <p className="text-sm text-gray-400">검색 중…</p>}
           {!loading && query.trim() && results.length === 0 && (
@@ -166,13 +179,20 @@ export default function ContentEditorClient() {
           )}
 
           <div className="space-y-2.5">
-            {results.map((r) => {
+            {results.map((r, i) => {
               const isOpen = !!expanded[r.key];
+              const newSection = i === 0 || results[i - 1].section !== r.section;
               return (
-                <div key={r.key} className={`bg-white border rounded-xl p-3.5 ${dirty.some((d) => d.key === r.key) ? "border-teal-400" : "border-gray-200"}`}>
+                <Fragment key={r.key}>
+                  {newSection && (
+                    <div className="text-xs font-medium text-gray-500 pt-2 first:pt-0">{r.section}</div>
+                  )}
+                  <div className={`bg-white border rounded-xl p-3.5 ${dirty.some((d) => d.key === r.key) ? "border-teal-400" : "border-gray-200"}`}>
                   <div className="flex items-center gap-2 mb-2">
-                    <span className="text-[11px] text-teal-700 bg-teal-50 px-2 py-0.5 rounded">{r.section}</span>
                     <span className="text-xs text-gray-500 truncate">{r.label}</span>
+                    {r.matched === false && (
+                      <span className="text-[11px] text-gray-400 bg-gray-50 px-2 py-0.5 rounded" title="검색어와 직접 일치하진 않지만 같은 화면 블록이라 함께 표시">같은 블록</span>
+                    )}
                     <button
                       onClick={() => setExpanded((p) => ({ ...p, [r.key]: !p[r.key] }))}
                       className="ml-auto text-[11px] text-gray-400 hover:text-gray-600"
@@ -184,37 +204,39 @@ export default function ContentEditorClient() {
                   {isOpen ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                       {LANGS.map((l) => (
-                        <div key={l} className="flex items-center gap-2">
-                          <span className={`text-[11px] w-9 flex-shrink-0 ${l === editLang ? "text-teal-700" : "text-gray-400"}`}>{LANG_SHORT[l]}</span>
-                          <input
-                            value={values[r.key]?.[l] ?? ""}
+                        <div key={l} className="flex items-start gap-2">
+                          <span className={`text-[11px] w-9 flex-shrink-0 pt-1.5 ${l === editLang ? "text-teal-700" : "text-gray-400"}`}>{LANG_SHORT[l]}</span>
+                          <Field
+                            size="xs"
+                            value={values[r.key]?.[l]}
                             onChange={(e) => onChange(r.key, l, e.target.value)}
-                            className={`flex-1 text-xs rounded border px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-teal-400 ${(values[r.key]?.[l] ?? "") !== (original[r.key]?.[l] ?? "") ? "border-teal-400" : "border-gray-200"}`}
+                            dirty={(values[r.key]?.[l] ?? "") !== (original[r.key]?.[l] ?? "")}
                           />
                         </div>
                       ))}
                     </div>
                   ) : (
                     <>
-                      <div className="flex items-center gap-2 mb-1.5">
-                        <span className="text-[11px] text-gray-400 w-16 flex-shrink-0">{LANG_LABEL[refLang]}</span>
-                        <input
-                          value={values[r.key]?.[refLang] ?? ""}
+                      <div className="flex items-start gap-2 mb-1.5">
+                        <span className="text-[11px] text-gray-400 w-16 flex-shrink-0 pt-1.5">{LANG_LABEL[refLang]}</span>
+                        <Field
+                          value={values[r.key]?.[refLang]}
                           onChange={(e) => onChange(r.key, refLang, e.target.value)}
-                          className={`flex-1 text-sm rounded border px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-teal-400 ${(values[r.key]?.[refLang] ?? "") !== (original[r.key]?.[refLang] ?? "") ? "border-teal-400" : "border-gray-200"}`}
+                          dirty={(values[r.key]?.[refLang] ?? "") !== (original[r.key]?.[refLang] ?? "")}
                         />
                       </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-[11px] text-teal-700 w-16 flex-shrink-0">{LANG_LABEL[editLang]}</span>
-                        <input
-                          value={values[r.key]?.[editLang] ?? ""}
+                      <div className="flex items-start gap-2">
+                        <span className="text-[11px] text-teal-700 w-16 flex-shrink-0 pt-1.5">{LANG_LABEL[editLang]}</span>
+                        <Field
+                          value={values[r.key]?.[editLang]}
                           onChange={(e) => onChange(r.key, editLang, e.target.value)}
-                          className={`flex-1 text-sm rounded border px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-teal-400 ${(values[r.key]?.[editLang] ?? "") !== (original[r.key]?.[editLang] ?? "") ? "border-teal-400" : "border-gray-200"}`}
+                          dirty={(values[r.key]?.[editLang] ?? "") !== (original[r.key]?.[editLang] ?? "")}
                         />
                       </div>
                     </>
                   )}
-                </div>
+                  </div>
+                </Fragment>
               );
             })}
           </div>

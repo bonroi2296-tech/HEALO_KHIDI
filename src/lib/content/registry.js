@@ -1,26 +1,81 @@
 import { HOME_CONTENT } from "./homeContent";
 
-// 편집 백오피스에 노출할 "편집 가능한 홈 문구" 목록(MVP = 홈 핵심 문구).
-// key = content_overrides.content_key 와 동일. section/label 은 편집기 UI 표시용.
-// ⚠️ 여기 없는 키는 편집 대상 아님(코드값 그대로). 확대하려면 이 배열에 추가.
-export const HOME_CONTENT_REGISTRY = [
-  { section: "히어로", label: "배지", key: "home.hero.badge" },
-  { section: "히어로", label: "제목", key: "home.hero.title" },
-  { section: "히어로", label: "부제", key: "home.hero.subtitle" },
-  { section: "히어로", label: "버튼", key: "home.hero.cta" },
-  { section: "통계", label: "섹션 제목", key: "home.stats.title" },
-  { section: "통계", label: "섹션 부제", key: "home.stats.subtitle" },
-  { section: "서비스", label: "섹션 제목", key: "home.services.title" },
-  { section: "서비스", label: "섹션 부제", key: "home.services.subtitle" },
-  { section: "암종", label: "섹션 제목", key: "home.cancers.title" },
-  { section: "파트너", label: "섹션 제목", key: "home.partners.title" },
-  { section: "파트너", label: "섹션 부제", key: "home.partners.subtitle" },
-  { section: "CTA(하단)", label: "제목", key: "home.bottomCta.title" },
-  { section: "CTA(하단)", label: "설명", key: "home.bottomCta.desc" },
-];
+// 편집 백오피스에 노출할 "편집 가능한 홈 문구" 목록.
+// HOME_CONTENT 의 다국어 leaf({ko,en,...} 객체)를 전부 자동 등록 —
+// 홈에 문구를 추가하면 편집기에 자동으로 잡힌다(수동 목록 유지 불필요).
+// key = content_overrides.content_key 와 동일(예: "home.stats.items.0.label").
+// 병합(setByPath)이 배열 인덱스까지 처리하므로 여기 나온 키는 전부 실제 반영됨.
+
+const SECTION_LABELS = {
+  hero: "히어로",
+  stats: "통계",
+  doctors: "의료진",
+  services: "서비스",
+  process: "절차",
+  cancers: "암종",
+  partners: "파트너",
+  faq: "FAQ",
+  emergency: "응급안내",
+  bottomCta: "CTA(하단)",
+  misc: "기타",
+};
+
+const FIELD_LABELS = {
+  badge: "배지",
+  title: "제목",
+  subtitle: "부제",
+  cta: "버튼",
+  ctaSub: "버튼 소제목",
+  desc: "설명",
+  label: "문구",
+  value: "수치",
+  viewAll: "전체보기",
+  name: "이름",
+  items: "항목",
+  steps: "단계",
+  q: "질문",
+  a: "답변",
+};
+
+export const EDITABLE_LANGS = ["ko", "en", "ru", "kz", "zh", "ja"];
+
+// {ko:"...", en:"..."} 모양의 다국어 leaf 인가
+const isLangLeaf = (n) =>
+  n && typeof n === "object" && !Array.isArray(n) && EDITABLE_LANGS.some((l) => typeof n[l] === "string");
+
+function collectPaths(node, path, out) {
+  if (node == null || typeof node !== "object") return; // 평문 문자열(수치·아이콘 등) = 편집 대상 아님
+  if (isLangLeaf(node)) {
+    out.push(path);
+    return;
+  }
+  for (const k of Object.keys(node)) collectPaths(node[k], [...path, k], out);
+}
+
+// ["items","0","label"] → "항목1 · 문구" (숫자는 앞 단어에 붙임)
+function labelFor(parts) {
+  const words = [];
+  for (const p of parts) {
+    if (/^\d+$/.test(p)) {
+      words[words.length - 1] = `${words[words.length - 1] || "항목"}${Number(p) + 1}`;
+      continue;
+    }
+    words.push(FIELD_LABELS[p] || p);
+  }
+  return words.join(" · ") || "문구";
+}
+
+export const HOME_CONTENT_REGISTRY = (() => {
+  const paths = [];
+  collectPaths(HOME_CONTENT, [], paths);
+  return paths.map((parts) => ({
+    section: SECTION_LABELS[parts[0]] || parts[0],
+    label: labelFor(parts.slice(1)),
+    key: `home.${parts.join(".")}`,
+  }));
+})();
 
 export const REGISTRY_KEYS = new Set(HOME_CONTENT_REGISTRY.map((r) => r.key));
-export const EDITABLE_LANGS = ["ko", "en", "ru", "kz", "zh", "ja"];
 
 // key → HOME_CONTENT 기본값 객체({ko,en,ru,kz,zh,ja}) 읽기
 export function getDefaultValueObject(key) {
