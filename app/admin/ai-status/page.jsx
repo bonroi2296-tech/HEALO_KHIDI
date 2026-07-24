@@ -329,6 +329,7 @@ export default function AiStatusPage() {
         <a href="/admin/khidi/ai-quality" className="underline hover:text-gray-600">상세 품질 데이터</a>
         {" · "}
         <a href="/admin/automation/playbook" className="underline hover:text-gray-600">자동화 정비실</a>
+        <span>(메뉴 숨김 — 이 링크로만 접근)</span>
       </div>
     </div>
   );

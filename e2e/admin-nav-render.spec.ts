@@ -33,27 +33,41 @@ test.describe("어드민 사이드바 메뉴 @smoke", () => {
 
     // 게이트(AdminGateClient) 통과 후 사이드바가 마운트될 때까지 web-first 재시도
     await expect(
-      page.getByRole("link", { name: "중간평가 현황" })
+      page.getByRole("link", { name: "KHIDI 리포트" })
     ).toBeVisible({ timeout: 20_000 });
 
-    // 펼쳐진 기본 그룹 헤더 + 환자 여정 동선이 보인다
-    await expect(page.getByText("운영 현황", { exact: false }).first()).toBeVisible();
-    await expect(page.getByText("환자 여정", { exact: false }).first()).toBeVisible();
+    // 2026-07-24 리뉴얼 2단계 그룹 헤더(홈/상담·문의)가 보인다
+    await expect(page.getByText("홈", { exact: false }).first()).toBeVisible();
+    await expect(page.getByText("상담 · 문의", { exact: false }).first()).toBeVisible();
   });
 
-  test("기본 접힘 그룹(레거시 도구)을 헤더 클릭으로 펼칠 수 있다 — 데드 토글 회귀 방지", async ({ page }) => {
+  test("기본 접힘 그룹(AI 품질)을 헤더 클릭으로 펼칠 수 있다 — 데드 토글 회귀 방지", async ({ page }) => {
     await page.goto("/admin");
     await page.waitForLoadState("domcontentloaded");
     await expect(
-      page.getByRole("link", { name: "중간평가 현황" })
+      page.getByRole("link", { name: "KHIDI 리포트" })
     ).toBeVisible({ timeout: 20_000 });
 
-    // 레거시 도구는 collapsed:true → 자식 '대량 Import' 링크가 처음엔 DOM에 없다(open && 조건부 렌더).
-    const importLink = page.getByRole("link", { name: "대량 Import" });
-    await expect(importLink).toHaveCount(0);
+    // AI 품질은 collapsed:true → 자식 'AI 상태' 링크가 처음엔 DOM에 없다(open && 조건부 렌더).
+    const aiStatusLink = page.getByRole("link", { name: "AI 상태" });
+    await expect(aiStatusLink).toHaveCount(0);
 
     // 그룹 헤더(버튼)를 누르면 펼쳐져 자식이 나타난다.
-    await page.getByRole("button", { name: /레거시 도구/ }).click();
-    await expect(importLink).toBeVisible({ timeout: 5_000 });
+    await page.getByRole("button", { name: /AI 품질/ }).click();
+    await expect(aiStatusLink).toBeVisible({ timeout: 5_000 });
+  });
+
+  test("비활성(hidden) 화면은 메뉴에 없다 — 리뉴얼 2단계 숨김 회귀 방지", async ({ page }) => {
+    await page.goto("/admin");
+    await page.waitForLoadState("domcontentloaded");
+    await expect(
+      page.getByRole("link", { name: "KHIDI 리포트" })
+    ).toBeVisible({ timeout: 20_000 });
+
+    // 실DB 0행 실측(docs/ADMIN_RENEWAL_PLAN.md §1-3)으로 숨긴 화면들 — 메뉴 어디에도 없어야 한다.
+    // (라우트·코드는 보존 — 메뉴에서만 숨김. AdminNav 의 hidden 플래그가 SoR.)
+    await expect(page.getByRole("link", { name: "대량 Import" })).toHaveCount(0);
+    await expect(page.getByRole("link", { name: "플레이북" })).toHaveCount(0);
+    await expect(page.getByText("레거시 도구")).toHaveCount(0);
   });
 });

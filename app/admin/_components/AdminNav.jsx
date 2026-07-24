@@ -41,47 +41,56 @@ import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 // 2026-05: 피벗(암환자 컨시어지) 반영 메뉴 재편 — 환자 여정 중심으로 그룹화,
 // 디렉토리 시절 도구는 '레거시 도구'로 분리(코드 보존). 크롤링은 RAG Tier2 갱신으로 라벨 재정의.
 // 2026-06-30: 메뉴 정리 — 과적된 "AI 품질·시스템"(10개)을 "AI 품질"+"계정·시스템"으로 분리.
-//   메뉴에서 빠져 묻혀있던 페이지 편입: 만족도(KHIDI 성과지표)·치료/암종·후속 리마인더·AI품질평가·AI회귀·시스템관측.
+// 2026-07-24: 백오피스 리뉴얼 2단계(메뉴 정리) — 근거·시안 = docs/ADMIN_RENEWAL_PLAN.md §3-2.
+//   ① 그룹 재편: 홈 / 상담·문의 / 파트너·회원 / 콘텐츠 / AI 품질(접힘) / 시스템 (용어는 IT 표준 — PO_PREFERENCES 2026-07-24).
+//   ② 실DB 0행으로 실측된 안 쓰는 화면은 hidden:true 로 "비활성"만 — 🛑 삭제 금지(PO 지시).
+//      코드·주소(/admin/…)는 그대로 살아 있고, hidden 한 줄 지우면 즉시 메뉴 복구된다.
 const navGroups = [
   {
-    title: "운영 현황",
+    title: "홈",
     items: [
       { id: "dashboard", label: "대시보드", icon: LayoutDashboard, href: "/admin" },
-      { id: "kpi-dashboard", label: "중간평가 현황", icon: TrendingUp, href: "/admin/khidi/kpi-dashboard", children: [
+      { id: "kpi-dashboard", label: "KHIDI 리포트", icon: TrendingUp, href: "/admin/khidi/kpi-dashboard", children: [
         { id: "north-star", label: "북극성 지표", icon: Target, href: "/admin/khidi/north-star" },
         { id: "conversion", label: "유치 전환 상세", icon: Filter, href: "/admin/khidi/conversion" },
         { id: "satisfaction", label: "환자 만족도", icon: Star, href: "/admin/khidi/satisfaction" },
         { id: "evidence", label: "증빙 산출물", icon: FileText, href: "/admin/khidi/evidence" },
       ] },
-      { id: "analytics", label: "문의 현황", icon: BarChart3, href: "/admin/analytics" },
-      { id: "ad-budget", label: "광고 예산 계산기", icon: Calculator, href: "/admin/khidi/ad-budget" },
+      { id: "analytics", label: "문의 통계", icon: BarChart3, href: "/admin/analytics" },
+      { id: "ad-budget", label: "광고 예산", icon: Calculator, href: "/admin/khidi/ad-budget" },
     ]
   },
   {
-    title: "환자 여정",
+    title: "상담 · 문의",
     items: [
       { id: "leads", label: "사전상담 리드", icon: Users, href: "/admin/leads" },
+      { id: "inquiries", label: "문의 관리", icon: MessageSquare, href: "/admin/inquiries" },
       { id: "cases", label: "케이스 관리", icon: HeartPulse, href: "/admin/khidi/cases" },
-      { id: "inquiries", label: "AI 핸드오프 문의", icon: MessageSquare, href: "/admin/inquiries" },
-      { id: "chat", label: "AI 대화·환자자료", icon: MessageSquare, href: "/admin/chat" },
-      { id: "consultations", label: "원격협진", icon: Video, href: "/admin/consultations" },
-      { id: "referrals", label: "양·한방 협진 의뢰", icon: Building2, href: "/admin/khidi/referrals" },
-      { id: "agent", label: "Human Agent", icon: HeartPulse, href: "/admin/agent" },
+      { id: "chat", label: "AI 채팅", icon: MessageSquare, href: "/admin/chat" },
+      { id: "agent", label: "Human Agent 채널", icon: HeartPulse, href: "/admin/agent" },
+      { id: "consultations", label: "화상 상담", icon: Video, href: "/admin/consultations" },
+      { id: "referrals", label: "협진 의뢰", icon: Building2, href: "/admin/khidi/referrals" },
       { id: "reminders", label: "후속 리마인더", icon: Bell, href: "/admin/reminders" },
     ]
   },
   {
-    title: "제휴 자원 · RAG",
+    title: "파트너 · 회원",
     items: [
-      { id: "hospitals", label: "제휴 병원", icon: Building2, href: "/admin/hospitals" },
-      { id: "treatments", label: "치료·암종", icon: Stethoscope, href: "/admin/treatments" },
-      { id: "agencies", label: "에이전시 관리", icon: Users, href: "/admin/khidi/agencies" },
+      { id: "staff", label: "직원(코디) 계정", icon: Users, href: "/admin/staff" },
+      { id: "agencies", label: "에이전시·클리닉", icon: Users, href: "/admin/khidi/agencies" },
       { id: "partner-outreach", label: "파트너 발굴", icon: Target, href: "/admin/khidi/partners" },
+      { id: "hospitals", label: "제휴 병원", icon: Building2, href: "/admin/hospitals" },
       { id: "doctors", label: "의료진·지점", icon: Users, href: "/admin/doctors" },
-      { id: "rag", label: "RAG", icon: Brain, href: "/admin/rag", children: [
+      { id: "users", label: "환자 회원", icon: Users, href: "/admin/users" },
+      { id: "deletion-requests", label: "데이터 삭제 요청", icon: Trash2, href: "/admin/account/deletion-requests" },
+    ]
+  },
+  {
+    title: "콘텐츠",
+    items: [
+      { id: "treatments", label: "치료·암종", icon: Stethoscope, href: "/admin/treatments" },
+      { id: "rag", label: "AI 지식베이스", icon: Brain, href: "/admin/rag", children: [
         { id: "rag-docs", label: "RAG 문서/Tier", icon: FileText, href: "/admin/rag/documents" },
-        { id: "crawl", label: "Tier 2 데이터 갱신", icon: SearchCode, href: "/admin/crawl" },
-        { id: "pipeline", label: "갱신 파이프라인", icon: BarChart3, href: "/admin/crawl/pipeline" },
       ] },
     ]
   },
@@ -98,11 +107,8 @@ const navGroups = [
     ]
   },
   {
-    title: "계정 · 시스템",
+    title: "시스템",
     items: [
-      { id: "users", label: "회원(환자) 관리", icon: Users, href: "/admin/users" },
-      { id: "staff", label: "직원 계정", icon: Users, href: "/admin/staff" },
-      { id: "deletion-requests", label: "데이터 삭제 요청", icon: Trash2, href: "/admin/account/deletion-requests" },
       { id: "audit", label: "감사로그", icon: FileText, href: "/admin/audit" },
       { id: "usage", label: "외부 서비스 사용량", icon: Wallet, href: "/admin/khidi/usage" },
       { id: "notifications", label: "알림 관리", icon: Bell, href: "/admin/settings/notifications" },
@@ -110,13 +116,17 @@ const navGroups = [
     ]
   },
   {
-    // 디렉토리 시절(전체 병원 수동등록) 잔재 + 가끔 쓰는 시스템 도구 — 평소 접어둠
-    title: "레거시 도구",
-    collapsed: true,
+    // 🗄️ 비활성 보관함 — 실DB 0행 실측(2026-07-24, ADMIN_RENEWAL_PLAN §1-3)으로 안 쓰는 화면.
+    // 메뉴에서만 숨김(hidden) — 라우트·코드는 살아 있어 주소 직접 입력하면 열리고, hidden 지우면 메뉴 복구.
+    title: "비활성 화면 (메뉴에서 숨김)",
+    hidden: true,
     items: [
       { id: "import", label: "대량 Import", icon: Upload, href: "/admin/import" },
       { id: "enrichment", label: "데이터 보강", icon: Database, href: "/admin/enrichment" },
       { id: "observability", label: "시스템 관측", icon: Eye, href: "/admin/observability" },
+      { id: "crawl", label: "Tier 2 데이터 갱신", icon: SearchCode, href: "/admin/crawl" },
+      { id: "pipeline", label: "갱신 파이프라인", icon: BarChart3, href: "/admin/crawl/pipeline" },
+      { id: "crawl-review", label: "크롤 검수(옛 고아 화면)", icon: SearchCode, href: "/admin/crawl/review" },
       { id: "playbook", label: "플레이북", icon: FileText, href: "/admin/playbook", children: [
         { id: "playbook-patterns", label: "응대 패턴", icon: Brain, href: "/admin/playbook-patterns" },
         { id: "playbook-analytics", label: "패턴 분석", icon: BarChart3, href: "/admin/playbook-analytics" },
@@ -125,6 +135,21 @@ const navGroups = [
     ]
   }
 ];
+
+// hidden 플래그 반영 — 그룹/항목/하위항목 어디든 hidden:true 면 메뉴에서 제외(코드는 보존)
+const visibleGroups = navGroups
+  .filter((g) => !g.hidden)
+  .map((g) => ({
+    ...g,
+    items: g.items
+      .filter((it) => !it.hidden)
+      .map((it) => {
+        if (!it.children) return it;
+        const kids = it.children.filter((c) => !c.hidden);
+        return kids.length ? { ...it, children: kids } : { ...it, children: undefined };
+      }),
+  }))
+  .filter((g) => g.items.length > 0);
 
 export function AdminNav() {
   const pathname = usePathname();
@@ -215,7 +240,7 @@ export function AdminNav() {
       </div>
 
       <nav className="flex-1 p-3 lg:p-4 space-y-4 lg:space-y-6 overflow-y-auto">
-        {navGroups.map((group) => {
+        {visibleGroups.map((group) => {
           const collapsible = !!group.collapsed;
           // 펼침: 접이식 아님 OR 사용자가 수동 토글했으면 그 값 우선, 아니면 현재 페이지가 이 그룹 안일 때 자동 펼침
           // (수동 토글값을 자동펼침보다 우선해야 — 활성 그룹을 사용자가 접을 수 있음. 안 그러면 토글 버튼이 먹통)

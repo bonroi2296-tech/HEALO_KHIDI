@@ -13,13 +13,14 @@ import {
 } from "lucide-react";
 import { AdminGuideModal } from "./_components/AdminGuideModal";
 
+// 2026-07-24 메뉴 정리(리뉴얼 2단계)와 용어 통일 — 사이드바 라벨과 같은 이름을 쓴다.
 const quickLinks = [
-  { title: "Human Agent", href: "/admin/agent", icon: HeartPulse, description: "에스컬레이션 응대" },
-  { title: "원격협진", href: "/admin/consultations", icon: Video, description: "상담 세션 모니터링" },
-  { title: "AI 핸드오프", href: "/admin/inquiries", icon: MessageSquare, description: "환자 문의 핸드오프" },
-  { title: "병원관리", href: "/admin/hospitals", icon: Building2, description: "제휴 병원 정보" },
-  { title: "통계", href: "/admin/analytics", icon: BarChart3, description: "인사이트 보기" },
-  { title: "RAG", href: "/admin/rag", icon: Brain, description: "AI 관리" },
+  { title: "Human Agent 채널", href: "/admin/agent", icon: HeartPulse, description: "에스컬레이션 응대" },
+  { title: "화상 상담", href: "/admin/consultations", icon: Video, description: "상담 세션 모니터링" },
+  { title: "문의 관리", href: "/admin/inquiries", icon: MessageSquare, description: "환자 문의 핸드오프" },
+  { title: "제휴 병원", href: "/admin/hospitals", icon: Building2, description: "제휴 병원 정보" },
+  { title: "문의 통계", href: "/admin/analytics", icon: BarChart3, description: "인사이트 보기" },
+  { title: "AI 지식베이스", href: "/admin/rag", icon: Brain, description: "AI 관리" },
 ];
 
 export default function AdminDashboard() {
@@ -36,11 +37,11 @@ export default function AdminDashboard() {
           </section>
           <section>
             <h3 className="text-base font-semibold text-gray-900 mb-2">카드 사용법</h3>
-            <p>각 카드를 클릭하면 해당 메뉴(문의관리, 병원관리, 시술관리, 통계, 감사로그, RAG)로 이동합니다. 좌측 사이드바에서도 동일한 메뉴에 접근할 수 있습니다.</p>
+            <p>각 카드를 클릭하면 해당 화면(문의 관리, 화상 상담, 제휴 병원, 문의 통계, AI 지식베이스 등)으로 이동합니다. 좌측 사이드바에서도 동일한 메뉴에 접근할 수 있습니다.</p>
           </section>
           <section className="bg-teal-50 rounded-lg p-4">
             <h3 className="text-base font-semibold text-teal-800 mb-1">추가 메뉴</h3>
-            <p className="text-teal-700 text-sm">좌측 메뉴에는 대시보드에 없는 항목(리드관리, 대량 Import, 데이터 보강, 크롤링, 플레이북, 응대 패턴, 알림/브랜딩 설정 등)도 있습니다. 필요한 기능은 사이드바에서 선택하세요.</p>
+            <p className="text-teal-700 text-sm">좌측 메뉴는 홈 / 상담·문의 / 파트너·회원 / 콘텐츠 / AI 품질 / 시스템 6묶음입니다. 안 쓰는 옛 도구(대량 Import·플레이북·크롤링 등)는 2026-07 메뉴 정리로 숨겨졌습니다 — 삭제가 아니라 비활성이라 필요하면 복구할 수 있어요.</p>
           </section>
         </AdminGuideModal>
       )}
