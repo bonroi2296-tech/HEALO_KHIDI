@@ -9,6 +9,14 @@
  */
 
 import { type Page } from "@playwright/test";
+import fs from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+// auth.setup.ts 가 역할별 1회 로그인 후 세션(쿠키)을 저장하는 위치 — .gitignore 대상
+// (__dirname 금지 — repo 가 "type":"module" 이라 ESM 스코프)
+export const AUTH_STATE_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), "..", ".auth");
+export const statePath = (role: string) => path.join(AUTH_STATE_DIR, `${role}.json`);
 
 export const TEST_USER = {
   email: process.env.E2E_TEST_USER_EMAIL || "e2e-patient@healo-test.invalid",
@@ -40,13 +48,35 @@ export const CLINIC_USER = {
   password: process.env.E2E_CLINIC_PASSWORD || "E2eClinic1234!",
 };
 
+export type Role = "patient" | "admin" | "coordinator" | "agency" | "clinic";
+
 /**
- * Supabase email/password 로그인 (공통)
+ * 역할별 로그인 — 저장된 세션(쿠키) 재사용이 기본, 없으면 UI 로그인 폴백.
+ *
+ * 왜(POSTMORTEMS #117): 테스트마다 UI 로그인을 하면 스모크 1회에 로그인 10회+
+ * (retry 시 3배)가 공유 Supabase(프로덕션 겸용!)로 나간다. 그 DB 가 느려진 시간대엔
+ * auth/REST 응답이 10~25초까지 늘어져(실측 trace) waitForURL 30s 를
+ * 넘기고, 매번 다른 테스트가 떨어지는 복권이 됐다. auth.setup.ts 가 역할별 1회만
+ * 로그인해 세션을 저장하고, 여기선 그 쿠키를 주입만 한다(@supabase/ssr = 쿠키 기반).
  */
-export async function loginAs(
-  page: Page,
-  role: "patient" | "admin" | "coordinator" | "agency" | "clinic" = "patient"
-): Promise<void> {
+export async function loginAs(page: Page, role: Role = "patient"): Promise<void> {
+  const f = statePath(role);
+  if (fs.existsSync(f)) {
+    const { cookies } = JSON.parse(fs.readFileSync(f, "utf8"));
+    if (cookies?.length) {
+      await page.context().addCookies(cookies);
+      return;
+    }
+  }
+  // 폴백: 단일 스펙 로컬 실행 등 setup 을 안 거친 경우만 UI 로그인
+  await uiLoginAs(page, role);
+}
+
+/**
+ * Supabase email/password UI 로그인 — auth.setup.ts 전용.
+ * 스펙에서 직접 부르지 말 것(부하 증폭 재유입 — check:content [e2e-ui-login] 가드가 차단).
+ */
+export async function uiLoginAs(page: Page, role: Role = "patient"): Promise<void> {
   const creds =
     role === "admin"
       ? ADMIN_USER
@@ -71,9 +101,8 @@ export async function loginAs(
   await page.locator('button[type="submit"]').first().click();
 
   // 로그인 완료 대기 — URL 변경(성공 시 역할별 라우트로 push).
-  // 로그인 핸들러가 whoami 2개 + 목적지 라우트를 거치는데, CI/로컬 모두 `npm run dev`(콜드 컴파일)
-  // 라 첫 진입이 느림 → 타임아웃 넉넉히(10s 는 콜드 서버에서 자주 초과).
+  // 역할당 1회만 도니 넉넉히 60s: dev 콜드 컴파일 + 공유 Supabase 지연(포화 시 10~25s 실측)을 흡수.
   await page.waitForURL((url) => !url.pathname.includes("/login"), {
-    timeout: 30_000,
+    timeout: 60_000,
   });
 }
