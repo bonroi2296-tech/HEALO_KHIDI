@@ -16,6 +16,7 @@ import { sendEmail } from "@/lib/email/sendEmail";
 import { renderConsultationInviteEmail } from "@/lib/email/templates/consultationInvite";
 import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
 import { siteUrl } from "@/lib/siteUrl";
+import { logAdminAction, getIpFromRequest, getUserAgentFromRequest } from "@/lib/audit/adminAuditLog";
 
 const VALID_ROLES: GuestRole[] = ["patient", "doctor", "translator", "coordinator", "observer", "guest"];
 
@@ -210,6 +211,18 @@ export async function POST(
         emailError = mailErr.message;
       }
     }
+
+    // 권한 감사 C 보완(2026-07-24): 발급은 전 스태프 허용 유지(담당 미지정 실무 — 위 주석의 실버그
+    // 재발 방지) 대신, "누가 어느 상담의 초대 토큰을 만들었는지"를 감사로그로 남겨 추적성 확보.
+    // best-effort — 로그 실패가 발급을 막지 않는다(logAdminAction 내부 catch).
+    logAdminAction({
+      adminEmail: access.email || "unknown",
+      adminUserId: access.userId,
+      action: "CREATE_CONSULTATION_INVITE",
+      ipAddress: getIpFromRequest(request),
+      userAgent: getUserAgentFromRequest(request),
+      metadata: { consultation_id: consultationId, invite_role: role, max_uses: maxUses, email_sent: emailSent },
+    });
 
     return Response.json({
       ok: true,

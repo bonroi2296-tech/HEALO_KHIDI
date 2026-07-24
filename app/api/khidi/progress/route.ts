@@ -16,7 +16,7 @@
 export const runtime = "nodejs";
 
 import { NextRequest, NextResponse } from "next/server";
-import { checkAgencyAuth } from "@/lib/auth/checkAgencyAuth";
+import { checkAgencyAuth, requirePartnerType } from "@/lib/auth/checkAgencyAuth";
 import { requireAdminAuth } from "@/lib/auth/requireAdminAuth";
 import { supabaseAdmin, assertSupabaseEnv } from "@/lib/rag/supabaseAdmin";
 import { uploadLimiter } from "@/lib/api/rateLimiter";
@@ -68,13 +68,10 @@ export async function POST(request: NextRequest) {
     if (limited) return limited;
 
     const auth = await checkAgencyAuth(request);
-    if (!auth.isAgencyUser || !auth.agencyId) {
-      return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 403 });
-    }
     // 사후관리(경과 업로드)는 임상 행위 → 해외 의료기관만. 비의료 에이전시는 불가(기획안 §2).
-    if (auth.partnerType !== "medical_institution") {
-      return NextResponse.json({ ok: false, error: "not_medical_institution" }, { status: 403 });
-    }
+    // 2026-07-24 권한 정비(D): 수동 if 비교 → 표준 게이트 헬퍼(requirePartnerType)로 통일.
+    const gate = requirePartnerType(auth, "medical_institution");
+    if (gate) return gate;
 
     assertSupabaseEnv();
 
@@ -171,6 +168,8 @@ export async function GET(request: NextRequest) {
     const inquiryIdParam = new URL(request.url).searchParams.get("inquiryId");
 
     // 1) 해외 의료기관 우선 (자기 케이스)
+    // 여기는 차단 게이트가 아니라 "누구로 볼 것인가" 분기(아니면 아래 admin fallback으로 계속)라
+    // requirePartnerType(즉시 403 반환)을 쓰면 동작이 바뀜 — 수동 비교가 의도임(독립 리뷰 확인).
     const agency = await checkAgencyAuth(request);
     if (agency.isAgencyUser && agency.partnerType === "medical_institution" && agency.agencyId) {
       let q = (supabaseAdmin as any)

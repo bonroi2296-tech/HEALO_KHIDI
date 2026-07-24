@@ -5,14 +5,16 @@
  * POST  /api/admin/khidi/referrals      → 협진 의뢰 생성 (한방 → 대학병원)
  * PATCH /api/admin/khidi/referrals      → 상태 변경 (accepted/completed/declined/cancelled)
  *
- * 인증: requireAdminAuth. cotreatment_referrals 는 service_role 전용 → 서버 경유.
+ * 인증: requirePortalAuth(staffOnly = admin+coordinator) — 2026-07-24 권한 정비(A):
+ * cases·conversion·satisfaction과 동일하게 코디도 협진 의뢰를 보고 진행할 수 있게 통일.
+ * cotreatment_referrals 는 service_role 전용 → 서버 경유.
  * 산출물: 협진 의뢰서 증빙 + 협진율 지표(완료/유효 의뢰).
  */
 
 export const runtime = "nodejs";
 
 import { NextRequest, NextResponse } from "next/server";
-import { requireAdminAuth } from "@/lib/auth/requireAdminAuth";
+import { requirePortalAuth } from "@/lib/auth/requirePortalAuth";
 import { supabaseAdmin, assertSupabaseEnv } from "@/lib/rag/supabaseAdmin";
 import { decryptInquiryForAdmin } from "@/lib/security/decryptForAdmin";
 
@@ -25,7 +27,7 @@ function maskName(first?: string | null, last?: string | null): string {
 const VALID_STATUS = ["requested", "accepted", "completed", "declined", "cancelled"];
 
 export async function GET(request: NextRequest) {
-  const auth = await requireAdminAuth(request);
+  const auth = await requirePortalAuth(request, { staffOnly: true });
   if (!auth.success) return auth.response;
   try {
     assertSupabaseEnv();
@@ -98,7 +100,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const auth = await requireAdminAuth(request);
+  const auth = await requirePortalAuth(request, { staffOnly: true });
   if (!auth.success) return auth.response;
   try {
     assertSupabaseEnv();
@@ -125,7 +127,7 @@ export async function POST(request: NextRequest) {
         to_hospital_id: toHospitalId,
         reason,
         status: "requested",
-        created_by: auth.authResult.userId,
+        created_by: auth.userId,
       })
       .select("id")
       .single();
@@ -141,7 +143,7 @@ export async function POST(request: NextRequest) {
 }
 
 export async function PATCH(request: NextRequest) {
-  const auth = await requireAdminAuth(request);
+  const auth = await requirePortalAuth(request, { staffOnly: true });
   if (!auth.success) return auth.response;
   try {
     assertSupabaseEnv();

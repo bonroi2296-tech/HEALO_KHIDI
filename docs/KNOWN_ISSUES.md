@@ -12,14 +12,15 @@
 
 **PO 가 하나 고르면 됨**: ① [resend.com/domains](https://resend.com/domains)에서 healwith.co.kr 도메인 인증(발신 주소도 그 도메인으로 교체 필요) ② GitHub 저장소 Settings → Secrets 의 `E2E_ALERT_EMAIL` 값을 `bonroi2296@gmail.com`으로 변경(1분, 권장). 그 전까지 이메일 알림은 계속 죽어 있음(이슈 알림은 dedupe 가드로 살아 있음).
 
-## 🟡 계층 권한 매트릭스 실측에서 나온 구멍 4개 (2026-07-24, 백오피스 리뉴얼 청사진 감사)
+## 🟡 계층 권한 매트릭스 실측에서 나온 구멍 4개 → **A·B·D 수리 완료, C만 잔존** (2026-07-24, 백오피스 리뉴얼 4단계)
 
-> 전 계층 권한을 코드로 전수 실측(`docs/ADMIN_RENEWAL_PLAN.md` §1-4)하며 발견. 수리 순서는 로드맵 4단계에 배치 — 여기엔 유실 방지용 기록.
+> 전 계층 권한을 코드로 전수 실측(`docs/ADMIN_RENEWAL_PLAN.md` §1-4)하며 발견 → 같은 날 4단계에서 3건 수리.
 
-- **A. 코디 접근 비일관**: cases·conversion·satisfaction 은 `requirePortalAuth(staffOnly)`로 코디 허용됐는데, 같은 환자 여정의 **협진의뢰(`app/api/admin/khidi/referrals/route.ts:28,101,144`)와 리드(`app/api/admin/leads/route.ts:61` 외)는 여전히 `requireAdminAuth`(admin 전용)**. 지금은 PO=어드민이라 무영향, 코디 운영 시작하면 즉시 걸림(기존 「코디 유치확정 클릭 불가」 항목과 같은 부류).
-- **B. 콘텐츠 편집 API 가 rate limit·감사로그 우회**: `app/api/coordinator/content/route.ts:22-24`가 표준 가드 대신 `checkAdminAuth` 직접 호출 커스텀 — 허용 role(admin+coordinator)은 맞으나, `content_overrides` 유일 쓰기 경로에 rate limit 없음 + 인증 실패 audit 미기록. 저위험 즉시 수리 가능(표준 가드 교체).
-- **C. 상담 게스트 초대토큰 발급 권한 확대**: `app/api/khidi/consultation/[id]/invite/route.ts:33` — 담당자 검증(`requireConsultationAccess`)에서 전 스태프(`staffOnly`)로 의도적 완화(주석 명시). 스태프 누구나 담당 아닌 상담방 게스트 토큰 발급 가능 = 세션별 격리 없음. **정책 재확인은 PO**(지금 인원 구조에선 실위험 낮음).
-- **D. agency↔clinic 가드 미분기**: `checkAgencyAuth`가 두 계층을 동일 통과 — `partner_type` 분기는 경과 업로드(`app/api/khidi/progress/route.ts:75`) 단 1곳. 앞으로 "의료기관 전용" 데이터를 추가하면 분기를 잊는 순간 조용히 에이전시도 통과하는 구조 → 분기 헬퍼(예: `requirePartnerType('medical_institution')`) 도입 필요.
+- ~~**A. 코디 접근 비일관**~~ ✅ **수리(2026-07-24)**: 협진의뢰(`admin/khidi/referrals`)·리드(`admin/leads` 3개 라우트)를 cases·conversion·satisfaction과 동일한 `requirePortalAuth(staffOnly)`로 통일 — 코디 운영 시작 시 걸릴 비일관 해소. (코디 네비에 리드·협진 메뉴를 걸지는 코디 운영 개시 때 별도 판단.)
+- ~~**B. 콘텐츠 편집 API rate limit 우회**~~ ✅ **부분 수리(2026-07-24)**: `coordinator/content`의 커스텀 가드를 표준 `requirePortalAuth(staffOnly)`로 교체 — rate limit(120/min)·표준 401/429 적용. ⚠️잔여(저위험): **인증 실패 audit 로그는 여전히 미기록** — 이건 이 라우트만이 아니라 `requirePortalAuth` 쓰는 전 라우트(cases·conversion·satisfaction 포함)의 공통 공백. 고치려면 requirePortalAuth 자체에 실패 audit를 넣는 게 맞음(개별 라우트 아님) — 후속 백로그.
+- 🟡 **(운영 참고, 2026-07-24 독립 리뷰)**: A 수리로 leads·referrals가 admin 버킷(100/min)→공용 `portal_api` 버킷(120/min·IP당)으로 이동 — 사무실 공유 IP에서 환자 포털 폴링과 버킷을 나눠 쓰므로 트래픽 몰리면 스태프 화면이 429 맞을 수 있음(현 인원 구조 실위험 낮음, 스태프 전용 버킷 분리는 필요 시).
+- **C. 상담 게스트 초대토큰 발급 권한 확대 — 잔존(PO 정책 판단 대기)**: `app/api/khidi/consultation/[id]/invite/route.ts:33` — 담당자 검증에서 전 스태프로 의도적 완화(주석 명시). 스태프 누구나 담당 아닌 상담방 게스트 토큰 발급 가능 = 세션별 격리 없음. 지금 인원 구조(PO=어드민, 코디 소수)에선 실위험 낮음 — 코디 인원이 늘면 담당자 검증 복원 검토.
+- ~~**D. agency↔clinic 가드 미분기**~~ ✅ **수리(2026-07-24)**: `requirePartnerType(auth, type)` 표준 게이트 헬퍼 신설(`src/lib/auth/checkAgencyAuth.ts`) + 경과 업로드 라우트 적용. 앞으로 유형 전용 라우트는 수동 if 비교 금지, 이 헬퍼 필수.
 - 🟢 양호로 확인: 공개(무인증) POST 전수 rate limit 보유(옛 `inquiries/create`는 410 폐쇄), `app_metadata.disabled` 킬스위치 전 계층 정합.
 
 ## 🟡 AI 챗 — 구어체·조각 한국어에서 과잉 에스컬레이션 (2026-07-23, 텔레그램 실기기)
@@ -141,32 +142,31 @@ app/api/survey/[token]/route.ts:48
 
 | 브랜치 | 아직 본판에 없는 것 | 판단 |
 |---|---|---|
-| `rescue/local-uncommitted-20260716` | `caseStatus.ts` 확장 · 개인정보처리방침·동의서 문구 · `KHIDI_유치문서/` 텍스트 2건 (~~kpiHealthcheck 확장판~~ ✅ #948 로 병합 2026-07-24 · ~~D+ 케이던스~~ ✅ #948 로 이식) | ⚠️ `caseStatus.ts` 는 **KHIDI 지표 계산 직결** — 필요할 때 덩어리로 떼서 재작성. 통째로 얹지 마라 |
+| ~~`rescue/local-uncommitted-20260716`~~ | ✅ **2026-07-24 전수 감사(에이전트 3개 병렬) 후 정리 완료** — 기록 8건 이식·기능 2건 백로그(아래)·태그 `rescue-archive-20260716` 박제 후 브랜치 삭제 | 참고 구현 필요 시 태그에서 꺼내기: `git show rescue-archive-20260716:<파일>` |
 | `work/agency-claim-inbox` | **고유 파일 없음**(소견번역은 머지됨). 나머지는 본판이 앞선 것 | 사실상 정리 대상. 위 잔여 확인 후 지워도 된다 |
 
 
-- ⚠️ **위 3개 브랜치를 「방치 브랜치」로 오해해 지우지 마라.**
+- ✅ (2026-07-24) rescue 는 전수 감사 후 태그 박제·삭제로 종결(아래 섹션). 남은 브랜치 경고는 `work/agency-claim-inbox`(로컬)뿐.
 - ✅ 1번은 머지돼 보관 해제. 중복본 `partners-preview` 브랜치도 정리했다.
-- 📌 **3번은 PO 가 보류한 게 아니다** — 2번에 딸려 rescue 브랜치에 묻힌 것이고, **DB 칸·마이그레이션은 이미 본판에 있는 반쪽 배선 상태**다. 별도 판단 필요(상세는 아래 표).
+- ~~3번 별도 판단~~ → ✅ 소견 자동번역은 #856 회수 완료. 다중 첨부는 아래 백로그로.
 
 ---
 
-## 📦 보관 — `rescue/local-uncommitted-20260716` 미머지 코드 974줄 (**PO 지시로 보류**, 2026-07-21)
+## 📦 rescue 상자 — ✅ 전수 감사 후 정리 완료 (2026-07-24, PO 결정)
 
-> **PO 지시: "일단 메모해놓고 나중에 쓸 일 있음 쓰게 보관만 해둬"** — 지우지 마라.
+> 2026-07-16 로컬 미커밋 백업 브랜치를 감사 에이전트 3개(지표 로직/소견·에이전시/문서·법률·설정)로 전수 대조한 결과로 종결. **브랜치는 삭제됐지만 태그 `rescue-archive-20260716`으로 그 시점 전체가 박제**돼 있어 언제든 꺼낼 수 있다(`git show rescue-archive-20260716:<파일>`).
 
-- **어디에**: 브랜치 `rescue/local-uncommitted-20260716` (PR 없음). 2026-07-16 세션의 로컬 미커밋분을 구조해 둔 것. 커밋 39개 중 대부분은 자동저장 노이즈이고, 실제 알맹이는 아래 3덩어리.
-- **⚠️ 「방치 브랜치」로 오해해 지우지 마라.** PR 이 없어서 정리 대상처럼 보이지만 **본판에 없는 진짜 작업**이 들어 있다.
+- **회수 완료(그간)**: 설문 케이스 발송·소견 자동번역(#856) · D+ 케이던스·kpiHealthcheck 확장(#948) · 마이그레이션 3개(#844).
+- **기록 이식(2026-07-24, PO 8건 개별 승인)**: 개인정보처리방침 v2.2.0 초안(검토용 PR 별도) · 위탁 방식 결정 주석(consentForms) · KHIDI 유치문서 탐색지도 2건 · 반성문 #116(가짜 주소) · PO 취향 3건(대외 문서 톤 등) · 경쟁사 §6(CIS 직접 경쟁권) · 중간보고 §0.6(법적 근거) · Sentry dev 트레이싱 off.
+- **폐기(main이 동등 이상)**: caseStatus 확장·nextActor·문서 스냅샷·설정 구버전 등 나머지 전부 — 감사 근거는 세 에이전트 판정표(이 세션 기록).
 
-| 덩어리 | 파일 | 상태 |
-|---|---|---|
-| ~~**설문 발송 기준 변경 + D+ 케이던스**~~ | ~~`app/api/cron/dispatch-surveys/route.ts` · `generateSurveyToken.ts`~~ | ✅ **완전 회수** — 기준 변경은 #856(7/21), 케이던스(차수별 설문·제안·종 알림·침묵 경보)는 [#948](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/948)(7/24, 최신 본판 위 재작성) |
-| **소견 AI 자동번역** | `src/lib/opinions/translateOpinion.ts`(신규 45줄) · `app/api/coordinator/opinions/translate/route.ts`(신규 65줄) · `OpinionsSection.jsx` | DB 칸(`case_opinions.auto_translated_text`)·마이그레이션은 **본판에 이미 있는데 채우는 코드만 없다** = 반쪽 배선 → 소견 2건 중 번역 0건. **`work/agency-claim-inbox` 브랜치에도 동일본이 있다**(둘 중 아무거나) |
-| **기타** | `caseStatus.ts`(128줄) · 개인정보처리방침·동의서 문구 | — |
-| ~~`kpiHealthcheck.ts`(신규)~~ | ~~`src/lib/khidi/kpiHealthcheck.ts`~~ | ❌ **정정(2026-07-21 밤 실측)**: 「신규」가 아니다. **본판에 이미 50줄짜리가 있고** rescue 것은 104줄 **확장판**이다. 살릴 거면 신규 추가가 아니라 **차이분 병합**으로 접근할 것 |
+### 🧩 백로그 — rescue 참고 구현이 있는 기능 2건 (PO 결정 2026-07-24: "장부에 올려두기")
 
-- ✅ **마이그레이션 3개는 이미 회수 완료**(PR #844) — 이 브랜치에서 건져야 할 DB 분은 남아 있지 않다.
-- ⚠️ **통째로 얹지 마라.** 2026-07-16 이후 본판이 크게 움직였고, 특히 `caseStatus.ts` 는 **KHIDI 지표 계산에 직결**돼 잘못 얹으면 숫자가 틀어진다. 살릴 때는 **덩어리 단위로 떼서** 최신 본판 위에 재작성하는 게 안전하다.
+| 기능 | 내용 | 참고 구현 | 착수 조건·주의 |
+|---|---|---|---|
+| **소견 다중 첨부 + 에이전시 원본 파일 전달** | 지금은 에이전시가 소견 텍스트만 받고 첨부(검사지·PDF)는 영영 못 받음. DB(`case_opinions.files` jsonb)는 실재, 코드만 없음(#856이 "별개 기능"으로 명시 보류) | 태그의 `OpinionsSection.jsx`·`coordinator/opinions/route.ts`·`agency/inquiries/route.ts` | ⚠️ **에이전시에 의료 원본을 노출할 범위 = PO 정책 판단 선행**. main의 동기 번역(maxDuration 120) 구조와 합쳐야 해 다중 파일 타임아웃 설계 필요 |
+| **하위단계(substep) 체크리스트** | 케이스 큰 단계 안의 세부 진행("병원 정식 회신 대기" 등)을 코디가 체크, 에이전시도 열람. main엔 DB 칸(`case_substeps`)·설계 주석만 있고 구현 증발(문서-현실 드리프트) | 태그의 `caseStatus.ts`(SUBSTEP_SUGGESTIONS)·코디 인박스·admin cases API | ⚠️ KHIDI 지표 직결 파일 — 그대로 못 얹고 재작성(main은 그새 후퇴가드·advanceCaseStatus로 진화). 케이스 수 늘어 실수요 생기면 착수 |
+
 
 ## 🟠 2026-07-21 환자 교육 페이지가 "즉시 연락하세요"라고 하는데 **앱 안에 연락 수단이 없다** (응급 SOS 삭제 결정의 잔여)
 
