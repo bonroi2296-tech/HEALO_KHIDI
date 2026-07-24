@@ -44,6 +44,8 @@ export type AdminAuditAction =
   // patient data-subject rights (GDPR Art.17 / PIPA)
   | "PATIENT_DELETION_REQUEST"
   | "PROCESS_DELETION_REQUEST"
+  // consultations (원격협진) — 2026-07-24 권한 감사 C 보완: 발급 격리 대신 추적성
+  | "CREATE_CONSULTATION_INVITE"
   // misc
   | "UPLOAD_IMAGE"
   | "UNAUTHORIZED_ADMIN_ACCESS";
