@@ -71,6 +71,11 @@ const navGroups = [
       { id: "consultations", label: "화상 상담", icon: Video, href: "/admin/consultations" },
       { id: "referrals", label: "협진 의뢰", icon: Building2, href: "/admin/khidi/referrals" },
       { id: "reminders", label: "후속 리마인더", icon: Bell, href: "/admin/reminders" },
+      // ↓ 리뉴얼 5단계(2026-07-24): 코디 전용이던 실무 화면을 어드민 메뉴에서도 연다(§2 "어드민 = 통합 콘솔").
+      //   화면 자체는 코디 포털(StaffPortalGate가 admin 통과) — 신설 아님, 링크 연결만.
+      { id: "cost-estimates", label: "견적 관리", icon: Calculator, href: "/coordinator/cost-estimates" },
+      { id: "visa", label: "비자 트래킹", icon: FileText, href: "/coordinator/visa" },
+      { id: "symptom-alerts", label: "증상 알림", icon: Bell, href: "/coordinator/alerts" },
     ]
   },
   {
@@ -89,6 +94,8 @@ const navGroups = [
     title: "콘텐츠",
     items: [
       { id: "treatments", label: "치료·암종", icon: Stethoscope, href: "/admin/treatments" },
+      // 리뉴얼 5단계(2026-07-24): 코디 문구 편집기를 어드민에서도 — 화면은 코디 포털(admin 통과).
+      { id: "content-editor", label: "문구 편집기", icon: Palette, href: "/coordinator/content" },
       { id: "rag", label: "AI 지식베이스", icon: Brain, href: "/admin/rag", children: [
         { id: "rag-docs", label: "RAG 문서/Tier", icon: FileText, href: "/admin/rag/documents" },
       ] },
