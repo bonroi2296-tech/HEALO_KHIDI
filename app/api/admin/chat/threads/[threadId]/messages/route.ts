@@ -80,56 +80,18 @@ export async function POST(
       .update({ updated_at: new Date().toISOString() })
       .eq("id", threadId);
 
-    // 메신저 스레드(텔레그램·왓츠앱)면 코디 답장을 환자의 메신저로 실제 발신(내부 메모는 제외).
-    // 실패해도 저장은 유지하되 delivery='failed' 를 남겨 코디가 미전달을 알 수 있게 한다.
+    // 메신저 스레드(텔레그램·왓츠앱)면 스태프 답장을 환자의 메신저로 실제 발신(내부 메모는 제외).
+    // 발신·delivery 기록·coordinator_active 규칙은 공용 모듈(staffReplyRelay) — 코디 포털과 공유.
     let delivery: string | undefined;
-    if (
-      (thread.channel === "telegram" || thread.channel === "whatsapp") &&
-      !is_internal &&
-      actor_type === "admin"
-    ) {
-      if (thread.channel === "telegram") {
-        const tgChatId = thread.metadata?.telegram?.chat_id;
-        if (tgChatId) {
-          const { sendTelegramPatientMessage } = await import("@/lib/messaging/telegram");
-          const sent = await sendTelegramPatientMessage(tgChatId, message_text.trim());
-          delivery = sent ? "sent" : "failed";
-        } else {
-          delivery = "failed";
-        }
-      } else {
-        const waId = thread.metadata?.whatsapp?.wa_id;
-        if (waId) {
-          const { sendWhatsAppPatientMessage } = await import("@/lib/messaging/whatsapp");
-          const r = await sendWhatsAppPatientMessage(waId, message_text.trim());
-          // 왓츠앱 24시간 창 만료(131047)는 일반 실패와 구분 — 코디에게 "템플릿 필요" 안내 근거.
-          delivery = r.sent ? "sent" : r.windowExpired ? "window_expired" : "failed";
-        } else {
-          delivery = "failed";
-        }
-      }
-      if (delivery !== "sent") {
-        await (supabaseAdmin as any)
-          .from("chat_messages")
-          .update({ metadata: { ...(data?.metadata || {}), delivery } })
-          .eq("id", data.id);
-      }
-      // 사람이 답장을 시작한 메신저 스레드(텔레그램·왓츠앱)에는 이후 AI 가 끼어들지 않는다
-      // (각 웹훅이 이 플래그를 보고 침묵). 핸드오프 요청 없이 선제 답장한 경우까지 커버 —
-      // resolve 후 재상담은 새 스레드라 자동으로 다시 AI 응대.
-      if (thread.metadata?.coordinator_active !== true) {
-        await (supabaseAdmin as any)
-          .from("chat_threads")
-          .update({
-            metadata: {
-              ...(thread.metadata && typeof thread.metadata === "object" && !Array.isArray(thread.metadata)
-                ? thread.metadata
-                : {}),
-              coordinator_active: true,
-            },
-          })
-          .eq("id", threadId);
-      }
+    if (!is_internal && actor_type === "admin") {
+      const { relayStaffReplyToMessenger } = await import("@/lib/messaging/staffReplyRelay");
+      delivery = await relayStaffReplyToMessenger({
+        threadId,
+        messageId: data.id,
+        messageText: message_text.trim(),
+        thread,
+        existingMessageMetadata: data?.metadata,
+      });
     }
 
     return Response.json({ ok: true, message: data, ...(delivery ? { delivery } : {}) });
