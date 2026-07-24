@@ -334,8 +334,10 @@ export async function POST(request: NextRequest) {
     // 핸드오프 후 첫 추가 메시지에는 1회 수신 확인(ack)을 보낸다(사전질문 답이 죽은 침묵으로
     // 떨어지는 것 방지 — 2026-07-24 PO). ack 클레임은 조건부 UPDATE 로 병렬 배달을 직렬화
     // (동의 더블탭 F1 과 동일 패턴). 핸드오프 마킹과 한 UPDATE 로 합쳐 서로 덮지 않게 한다.
+    // == null(키 없음·null만): 아래 조건부 UPDATE 의 .is(null) 필터와 판정을 일치시킨다
+    // (독립 리뷰 PLAUSIBLE — false 로 저장되는 날이 오면 둘이 어긋나 침묵+타임스탬프 유실).
     const wantAck =
-      alreadyHandedOff && !coordinatorActive && meta.hand_off_ack_sent !== true;
+      alreadyHandedOff && !coordinatorActive && meta.hand_off_ack_sent == null;
     const metaPatch =
       handOff.requested || wantAck
         ? {

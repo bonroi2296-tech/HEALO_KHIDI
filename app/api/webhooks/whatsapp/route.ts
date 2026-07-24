@@ -305,8 +305,9 @@ async function handleOneMessage(value: any, msg: any): Promise<string | null> {
 
     // 핸드오프 후 첫 추가 메시지 1회 수신확인(ack) — 텔레그램 라우트와 동일 패턴(조건부
     // UPDATE 로 병렬 배달 직렬화, 핸드오프 마킹과 한 UPDATE 로 합쳐 서로 안 덮음).
+    // == null(키 없음·null만): 조건부 UPDATE 의 .is(null) 필터와 판정 일치(독립 리뷰 PLAUSIBLE).
     const wantAck =
-      alreadyHandedOff && !coordinatorActive && meta.hand_off_ack_sent !== true;
+      alreadyHandedOff && !coordinatorActive && meta.hand_off_ack_sent == null;
     const metaPatch =
       handOff.requested || wantAck
         ? {
