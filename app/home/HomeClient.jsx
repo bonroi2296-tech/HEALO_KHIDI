@@ -30,8 +30,13 @@ import {
   MapPin,
   Mail,
   GraduationCap,
+  UserCheck,
+  HeartHandshake,
 } from "lucide-react";
 import SocialProofSection from "@/components/SocialProofSection";
+
+// 이용 절차 4단계 아이콘 (2026-07-24 PO 확정 C안: 아이콘 + STEP 번호 — 옛 그라데이션 번호배지 대체)
+const STEP_ICONS = [FileText, UserCheck, Video, HeartHandshake];
 
 /* ═══════════════════════════════════════════════════════
    PLACEHOLDER IMAGES (Unsplash — free, no auth required)
@@ -260,20 +265,21 @@ export default function HomeClient({ content } = {}) {
         <div className="max-w-6xl mx-auto px-4">
           <h2 className="text-2xl md:text-3xl lg:text-4xl font-extrabold text-center text-gray-900 mb-8 md:mb-12">{l(L.process.title)}</h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-            {L.process.steps.map((step, i) => (
-              <div key={i} className="relative flex flex-col items-center text-center">
-                {i < 3 && (
-                  <div className="hidden md:block absolute top-6 left-[calc(50%+28px)] w-[calc(100%-56px)] h-0.5 bg-gradient-to-r from-teal-300 to-teal-100" />
-                )}
-                <div className="w-10 h-10 md:w-14 md:h-14 bg-gradient-to-br from-teal-500 to-emerald-500 rounded-xl md:rounded-2xl flex items-center justify-center text-white font-black text-sm md:text-lg mb-2 md:mb-4 shrink-0 relative z-10 shadow-lg shadow-teal-500/20">
-                  {step.num}
+            {L.process.steps.map((step, i) => {
+              const StepIcon = STEP_ICONS[i] || FileText;
+              return (
+                <div key={i} className="flex flex-col items-center text-center">
+                  <div className="w-10 h-10 md:w-12 md:h-12 bg-teal-50 text-teal-700 rounded-xl flex items-center justify-center mb-2 md:mb-3 shrink-0">
+                    <StepIcon size={22} />
+                  </div>
+                  <div>
+                    <div className="text-[10px] md:text-[11px] font-semibold tracking-wide text-teal-700 mb-0.5">STEP {i + 1}</div>
+                    <h3 className="font-bold text-xs md:text-lg text-gray-900 mb-0.5 md:mb-1">{l(step.title)}</h3>
+                    <p className="text-gray-500 text-[10px] md:text-sm leading-snug">{l(step.desc)}</p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="font-bold text-xs md:text-lg text-gray-900 mb-0.5 md:mb-1">{l(step.title)}</h3>
-                  <p className="text-gray-500 text-[10px] md:text-sm leading-snug">{l(step.desc)}</p>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </section>
