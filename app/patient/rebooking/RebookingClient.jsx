@@ -44,6 +44,24 @@ const SOURCE_COLORS = {
   doctor: { bg: '#d1fae5', color: '#065f46' },
 };
 
+// 사후관리 케이던스 제안(dispatch-surveys cron, schedule.kind='cadence')의 action별 라벨.
+// 없으면 배지에 phase 원문(month_1 등 영어 키)이 노출된다.
+const CADENCE_LABELS = {
+  survey: { ko: '경과 설문', en: 'Progress survey', ru: 'Опрос о самочувствии', zh: '康复问卷', ja: '経過アンケート', kz: 'Денсаулық сауалнамасы' },
+  medication_check: { ko: '복약 확인', en: 'Medication check', ru: 'Проверка приёма лекарств', zh: '用药确认', ja: '服薬確認', kz: 'Дәрі қабылдауын тексеру' },
+  video_call: { ko: '화상 상담', en: 'Video consultation', ru: 'Видеоконсультация', zh: '视频咨询', ja: 'ビデオ相談', kz: 'Бейне кеңес' },
+  lab_review: { ko: '검사 결과 리뷰', en: 'Lab results review', ru: 'Обзор результатов анализов', zh: '检查结果回顾', ja: '検査結果レビュー', kz: 'Талдау нәтижелерін қарау' },
+};
+
+// 배지 라벨: 케이던스 제안 → action 라벨 / 재예약 제안 → source 라벨 / 그 외 → followup 폴백
+const scheduleLabel = (row, l) => {
+  if (row.schedule?.kind === 'cadence') {
+    return l(CADENCE_LABELS[row.schedule.action] || LABELS.followup);
+  }
+  const src = row.schedule?.source;
+  return LABELS[src] ? l(LABELS[src]) : (row.current_phase || l(LABELS.followup));
+};
+
 const STATUS_LABELS = {
   scheduled: { ko: '예약됨', en: 'Scheduled', ru: 'Запланировано', zh: '已预约', ja: '予約済', kz: 'Жоспарланды' },
   active: { ko: '진행 중', en: 'Active', ru: 'Активно', zh: '进行中', ja: '進行中', kz: 'Белсенді' },
@@ -128,7 +146,7 @@ export default function RebookingClient() {
           {rebookings.map(rb => {
             const src = rb.schedule?.source;
             const sourceStyle = SOURCE_COLORS[src] || SOURCE_COLORS.followup;
-            const sourceLabel = LABELS[src] ? l(LABELS[src]) : (rb.current_phase || l(LABELS.followup));
+            const sourceLabel = scheduleLabel(rb, l);
             return (
               <div
                 key={rb.id}
@@ -250,7 +268,7 @@ export default function RebookingClient() {
               >
                 <div>
                   <span style={{ fontSize: 14, fontWeight: 500 }}>
-                    {h.schedule?.source && LABELS[h.schedule.source] ? l(LABELS[h.schedule.source]) : (h.current_phase || l(LABELS.followup))}
+                    {scheduleLabel(h, l)}
                   </span>
                   <span style={{ fontSize: 13, color: '#888', marginLeft: 8 }}>
                     {formatDate(h.next_action_at)}

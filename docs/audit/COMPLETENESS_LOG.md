@@ -4,6 +4,13 @@
 > 채점표 = `src/lib/completeness/rubric.js` (사람용 `docs/DEFINITION_OF_DONE.md`). 형식·루프 구조는 `.claude/skills/completeness-audit/SKILL.md` 참고.
 > 새 엔트리는 이 안내문 바로 아래에 추가.
 
+## 2026-07-24 완성도 감사 (범위: diff — PR #948 사후관리 D+ 케이던스)
+- 스캔: 유형3(문서-현실 드리프트: KNOWN_ISSUES 설문·rescue 장부 vs 실코드/실DB) · 한글누출/언어누락(환자 배지 CADENCE_LABELS 6개어) · 죽은링크(종 알림 `/coordinator/inbox/[id]` 라우트 실재) · 반쪽배선(제안→환자 포털 GET/PATCH·벨 렌더 title/body/link 타입불문 — 코드 추적) · KHIDI §4 월별 로그(작업습관)
+- 수정: ①KNOWN_ISSUES 🔴 설문 항목 제목·본문 7/24 실측 갱신(발송1·응답1 + #948) ②rescue 장부에서 설문·kpiHealthcheck 확장분 회수 완료 처리 ③KHIDI §4 7월 로그에 케이던스 1줄(K-02·K-03 연결)
+- 발견(PO 대기): 응답 설문의 inquiry #39 가 `is_test=false`인데 7/23 기록은 "만족도 1건=PO 테스트" — 정체 확인 필요(테스트면 도장 → K-03 오염 방지)
+- 검증 못 함(정직 표기): 환자 재예약 화면 케이던스 배지 실렌더(로그인 게이트 — 코드·6개어 사전만 확인) · 실이메일 수신(다음 cron 사이클)
+- 라운드: 2 (무발견 도달)
+
 ## 2026-07-24 완성도 감사 (범위: diff — PR #946 핸드오프 사전질문+1회 수신확인)
 - 스캔: i18n 6개어+kk(신규 ack 맵·수정 confirm 3맵, 파일약속/시간약속 금지 계약테스트로 고정) · 같은 부류 전수(핸드오프 안내 하드코딩 통로 — "has been notified" 류 전수 grep) · 설명서 동기(admin §텔레그램 봇 상담 응대)
 - 수정: ①환자 포털 챗(`app/api/patient/chat`)이 연결 요청 시 **영어 하드코딩 한 줄**만 붙임(러 환자도 영어·사전질문 없음) → `pickHandoffConfirm(lang, true, true)`로 통일 ②admin 설명서 "AI는 침묵" 서술을 새 동작(즉시 문의 등록+사전질문+1회 수신확인)으로 갱신+updated 7-24
