@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Mail, Lock, Eye, EyeOff, Check } from 'lucide-react';
-import { createSupabaseBrowserClient } from '@/lib/supabase/browser';
+import { createSupabaseBrowserClient, withAuthTimeout } from '@/lib/supabase/browser';
 import { useToast } from '@/components/Toast';
 import { PolicyModal } from '@/components/Modals';
 import { PRIVACY_CONTENT, TERMS_CONTENT } from '@/lib/policyContent';
@@ -175,7 +175,10 @@ export const SignUpPage = ({ setView }) => {
 
         setLoading(true);
 
-        const { data: _data, error } = await supabase.auth.signUp({
+        // 인증 서버 무응답 시 버튼이 영원히 "가입 중"에 갇히는 것 방지 (2026-07-24 장애)
+        let _data, error;
+        try {
+            ({ data: _data, error } = await withAuthTimeout(supabase.auth.signUp({
             email: email,
             password: password,
             options: {
@@ -192,7 +195,12 @@ export const SignUpPage = ({ setView }) => {
                     lang: langCode, // 인증/복구 메일을 사용자 언어로 보내기 위해 저장 ({{ .Data.lang }})
                 },
             },
-        });
+            })));
+        } catch (e) {
+            toast.error(t(e?.message === "auth_timeout" ? "login.timeout" : "signup.errorFailed", langCode));
+            setLoading(false);
+            return;
+        }
 
         if (error) {
             // Supabase 원문 error.message(영문)를 사용자에게 노출하지 않음 — 6개어 일반 안내만,

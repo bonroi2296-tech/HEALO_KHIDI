@@ -14,6 +14,28 @@
 
 ---
 
+## #116 — Supabase 인스턴스 무응답 장애 때 로그인 화면이 "로그인 중…"에 **영원히** 갇힘 — 실패했다는 사실조차 사용자에게 안 알려짐 (2026-07-24, PO "로그인 왜 안 되냐" 제보)
+
+**무슨 일**
+- PO가 `assel@healwith.co.kr`로 로그인 시도 → 버튼이 "로그인 중…"에서 멈춘 채 아무 일도 안 일어남. 첫 의심은 **"어느 놈이 또 코드를 고장냈나"**였음.
+- 실측 결과 **코드 문제가 아니라 Supabase 인스턴스가 통째로 무응답**: GoTrue `POST /token?grant_type=password` → 504 `request_timeout`("context deadline exceeded", 13.2초), `/rest/v1/*` → 90초 뒤 522, `/auth/v1/health` → 무응답, MCP SQL 2회 모두 connection timeout. 반면 **DB를 안 타는 `/storage/v1/*`는 0.06초 정상** → 클라우드플레어·네트워크가 아니라 **Postgres에 붙는 서비스만 죽음**. Supabase 전사 status는 "All Systems Operational"(우리 인스턴스만), 컨트롤플레인은 `ACTIVE_HEALTHY`로 표시(제어 API만 봐서 DB 멈춤을 못 봄).
+- 우리 코드 무관 근거: 직전 머지 #962는 로그인 경로 미변경, `/api/*/whoami`는 200 정상, 프로덕션 500은 2시간 4건뿐.
+
+**왜 못 잡았나 (근본원인)**
+1. **`try/catch`·`.catch()`로는 못 잡는 부류** — 예외가 아니라 **응답이 영영 안 오는 것**이라 catch 블록 자체가 실행되지 않는다. `LoginClient`는 `await supabase.auth.signInWithPassword(...)` 한 줄에 매달려 `setLoading(false)`까지 도달을 못 했다.
+2. **"에러는 처리했으니 됐다"는 착각** — 로그인·가입·비번재설정 전부 *에러 응답* 경로만 방어했고 *무응답* 경로는 아무도 안 봤다. 외부 의존(인증 서버)이 죽는 시나리오가 설계에 없었음.
+3. 결과적으로 **장애 원인 규명이 사용자(PO) 몫**이 됐다 — 화면이 "서버가 응답 안 함"이라고만 말해줬어도 "코드가 깨졌나"를 의심할 이유가 없었다.
+
+**어떻게 고쳤나**
+- `src/lib/supabase/browser.ts`에 `withAuthTimeout(promise, ms=20000)` 추가(타임아웃 시 `auth_timeout` reject, 타이머는 `finally`로 정리).
+- 적용 6곳(유사 스캔 전수): 로그인(`LoginClient`) / 가입(`SignupClient`) / 비번재설정 `updateUser`·`verifyOtp`(`ResetPasswordClient`) / 이메일확인 `verifyOtp`(`ConfirmClient`) / 비번변경 후 재로그인(`ChangePasswordClient`).
+- 안내 문구 `login.timeout`("서버가 응답하지 않습니다…") **6개 언어** 추가. 로그인 후 역할 판별 fetch 2건에는 `AbortSignal.timeout(10000)` — 늘어지면 포기하고 홈으로 보낸다(로그인 자체는 이미 성공한 상태라 막을 이유가 없음).
+- 테스트 `src/lib/supabase/withAuthTimeout.test.ts` 3케이스(정상 통과 / 에러 그대로 전달 / 무응답 끊김).
+
+**재발 방지 (시스템)**
+- **가드 §20 신설**(`scripts/check-content-consistency.mjs`): `app/**`의 네트워크 타는 `supabase.auth.*`(signInWithPassword·signUp·updateUser·resetPasswordForEmail·verifyOtp·signInWithOtp·refreshSession)가 `withAuthTimeout` 없이 호출되면 CI 실패.
+- 이 가드는 **추가하자마자 값을 했다**: 내가 놓친 `verifyOtp` 2곳(`/auth/confirm`, `/reset-password` 초기검증)을 즉시 잡아냄. 초안이 "같은 줄"만 보다가 줄바꿈한 내 수정본을 오탐한 것도 첫 실행에서 드러나 **앞 2줄 창(window)** 으로 고침.
+- 교훈: **외부 의존이 "느리게 실패"하는 게 아니라 "아예 안 답하는" 경우를 UI마다 시간으로 끊어라.** 에러 처리가 있다는 것과 무응답에 안전한 것은 다른 얘기다. (grep 키워드: 무한대기, withAuthTimeout, auth_timeout, 로그인 중, 스피너, 무응답)
 ## #117 — PR 스모크 E2E 간헐 실패: 테스트마다 UI 로그인 → PR 폭주 시간대에 **공유 Supabase(프로덕션 겸용) 포화** — 매번 다른 테스트가 떨어지는 복권 (2026-07-24, 06~07시 UTC 실패 3건 실측 규명)
 
 **무슨 일**

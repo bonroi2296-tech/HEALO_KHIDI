@@ -89,6 +89,25 @@ export function resetBrowserClient() {
 }
 
 /**
+ * 인증 호출 타임아웃 가드.
+ *
+ * 왜: 인증 서버(GoTrue)가 에러도 안 주고 아예 응답을 멈추면(2026-07-24 Supabase DB 무응답 장애)
+ * fetch가 영원히 안 끝나 화면이 "로그인 중…"에 갇힌다 — 사용자는 실패했는지조차 모름.
+ * try/catch·.catch()로는 못 잡는다(예외가 아니라 '영영 안 옴'이라서) → 시간으로 끊는다.
+ *
+ * 타임아웃이면 `auth_timeout` 메시지로 reject → 호출부가 "서버가 응답하지 않습니다"를 띄운다.
+ */
+export function withAuthTimeout<T>(promise: Promise<T>, ms = 20000): Promise<T> {
+  let timer: ReturnType<typeof setTimeout>
+  return Promise.race([
+    promise,
+    new Promise<never>((_, reject) => {
+      timer = setTimeout(() => reject(new Error('auth_timeout')), ms)
+    }),
+  ]).finally(() => clearTimeout(timer)) as Promise<T>
+}
+
+/**
  * 이메일 링크 발송 전용 클라이언트 (implicit flow, 세션 저장 안 함).
  *
  * 왜 별도냐: 기본 SSR 클라이언트는 PKCE flow → resetPasswordForEmail이 만드는

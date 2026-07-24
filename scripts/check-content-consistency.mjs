@@ -1353,6 +1353,39 @@ for (const dir of BACKOFFICE_DIRS) {
   }
 }
 
+// ── §20) 인증 호출 무한대기 차단 — supabase.auth.* 는 withAuthTimeout 필수 ──────
+// 왜: 2026-07-24 Supabase 인스턴스가 "에러도 안 주고 응답을 멈추는" 장애를 냈다. 그러자
+//     로그인 버튼이 "로그인 중…" 상태로 **영원히** 갇혔다 — 사용자는 실패했는지도 모르고,
+//     PO 는 "누가 코드를 고장냈나" 를 먼저 의심했다(실제로는 DB 무응답). try/catch·.catch()
+//     로는 못 잡는 부류다: 예외가 아니라 **영영 안 오는 것**이라 catch 가 실행되지 않는다.
+// 무엇을 보나: 화면 코드(app/**)에서 네트워크를 타는 supabase.auth.* 호출이
+//     withAuthTimeout() 으로 안 감싸여 있으면 실패. (getSession/signOut/onAuthStateChange 는
+//     로컬 처리이거나 무한대기 위험이 없어 제외.)
+// 한계: withAuthTimeout 이 **앞 2줄 안에** 있는지로 판정한다. 초안은 "같은 줄"만 봤는데,
+//     감싼 코드가 줄바꿈되면(`await withAuthTimeout(` ↵ `  supabase.auth.signInWithPassword(...)`)
+//     제대로 고친 코드까지 오탐으로 잡았다 — 첫 실행에서 내 수정본이 걸려 바로 드러났다.
+//     변수에 담아 훨씬 뒤에서 감싸는 변형은 여전히 미탐(정적 가드의 목적은 복붙 신규 유입 차단).
+{
+  const NET_AUTH = /supabase(?:Client)?\.auth\.(signInWithPassword|signUp|updateUser|resetPasswordForEmail|verifyOtp|signInWithOtp|refreshSession)\s*\(/;
+  for (const rel of walk("app")) {
+    if (!/\.(jsx|tsx)$/.test(rel)) continue;
+    let lines;
+    try { lines = readFileSync(join(ROOT, rel), "utf8").split("\n"); } catch { continue; }
+    lines.forEach((line, i) => {
+      const code = line.replace(/\/\/.*$/, "");
+      const hit = code.match(NET_AUTH);
+      const window = lines.slice(Math.max(0, i - 2), i + 1).join("\n");
+      if (!hit || /withAuthTimeout\s*\(/.test(window)) return;
+      errors.push(
+        `[인증무한대기] ${rel.replace(/\\/g, "/")}:${i + 1} — supabase.auth.${hit[1]}() 가 ` +
+          `withAuthTimeout() 없이 호출됨. 인증 서버가 무응답이면 화면이 로딩 상태에 영원히 갇힌다 ` +
+          `(2026-07-24 실제 장애). \`await withAuthTimeout(supabase.auth.${hit[1]}(...))\` 로 감싸고 ` +
+          `타임아웃 시 안내 문구(login.timeout)를 띄울 것.`
+      );
+    });
+  }
+}
+
 // ── 결과 ────────────────────────────────────────────────────────
 if (errors.length) {
   console.error(`\n❌ 콘텐츠 일관성 검사 실패 (${errors.length}건)\n`);
