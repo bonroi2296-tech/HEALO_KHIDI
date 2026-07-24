@@ -25,8 +25,9 @@ export default function ContentEditorClient() {
   const [loading, setLoading] = useState(false);
   const [editLang, setEditLang] = useState("ru");
   const [expanded, setExpanded] = useState({});
-  const [values, setValues] = useState({});
-  const [original, setOriginal] = useState({});
+  // values/original 을 한 상태로 — 검색 새로고침 때 "dirty 보존 + 나머지 서버값" 판단에 둘 다 필요
+  const [edit, setEdit] = useState({ values: {}, original: {} });
+  const { values, original } = edit;
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState(null);
   const [showLog, setShowLog] = useState(false);
@@ -50,13 +51,24 @@ export default function ContentEditorClient() {
       const data = await res.json();
       if (data.ok) {
         setResults(data.results || []);
-        const seed = (prev) => {
-          const next = { ...prev };
-          for (const r of data.results || []) if (!next[r.key]) next[r.key] = { ...r.values };
-          return next;
-        };
-        setValues(seed);
-        setOriginal(seed);
+        // 서버 최신값으로 새로고침(빈값 저장=원문 복원 뒤에도 편집기가 실제 화면과 일치),
+        // 단 아직 저장 안 한 편집(dirty)은 보존.
+        setEdit((prev) => {
+          const nextValues = { ...prev.values };
+          const nextOriginal = { ...prev.original };
+          for (const r of data.results || []) {
+            const cur = prev.values[r.key] || {};
+            const orig = prev.original[r.key] || {};
+            const v = {};
+            for (const l of LANGS) {
+              const isDirty = (cur[l] ?? "") !== (orig[l] ?? "");
+              v[l] = isDirty ? (cur[l] ?? "") : (r.values[l] ?? "");
+            }
+            nextValues[r.key] = v;
+            nextOriginal[r.key] = { ...r.values };
+          }
+          return { values: nextValues, original: nextOriginal };
+        });
       }
     } catch {} finally { setLoading(false); }
   }, []);
@@ -68,7 +80,7 @@ export default function ContentEditorClient() {
   };
 
   const onChange = (key, lang, val) => {
-    setValues((p) => ({ ...p, [key]: { ...p[key], [lang]: val } }));
+    setEdit((p) => ({ ...p, values: { ...p.values, [key]: { ...p.values[key], [lang]: val } } }));
     setMsg(null);
   };
 
@@ -91,10 +103,10 @@ export default function ContentEditorClient() {
       });
       const data = await res.json();
       if (data.ok) {
-        setOriginal((p) => {
-          const n = { ...p };
+        setEdit((p) => {
+          const n = { ...p.original };
           for (const u of dirty) n[u.key] = { ...n[u.key], [u.lang]: u.value };
-          return n;
+          return { ...p, original: n };
         });
         setMsg({ type: "ok", text: `저장됨 (${data.saved}건). 화면에 반영됩니다.` });
       } else setMsg({ type: "err", text: "저장 실패 (권한 또는 서버 오류)." });

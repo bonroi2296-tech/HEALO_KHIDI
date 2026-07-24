@@ -35,6 +35,17 @@ const FIELD_LABELS = {
   steps: "단계",
   q: "질문",
   a: "답변",
+  tabs: "탭",
+  general: "일반",
+  cost: "비용",
+  consultation: "상담",
+  badgePartner: "배지(파트너)",
+  badgeUniversity: "배지(대학병원)",
+  fast: "신속",
+  free: "무료",
+  noObligation: "부담없음",
+  onlineInquiry: "온라인 문의",
+  viewTreatments: "치료법 보기",
 };
 
 export const EDITABLE_LANGS = ["ko", "en", "ru", "kz", "zh", "ja"];
