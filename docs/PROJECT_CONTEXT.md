@@ -47,6 +47,7 @@
 
 **6. 검증 상태**
 
+- ✅ **(2026-07-24 중간 저장) 5번 1항 "편집기 실클릭" = PO 실사용으로 검증 완료** — 수정→저장→홈 실반영 확인(러 제목 «Почему именно Корея?»). 그 과정에서 발견 2건(①고친 문구로 재검색 불가 ②여러 줄·카드 문구 편집 불편/미등록) → 별도 세션(work/cms-editor)이 [#944](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/944)로 수리(반성문 #114, 홈 레지스트리 자동화 포함).
 - ✅ **#918·#932 머지 + 프로덕션 배포 success** — Vercel 커밋 `a23a584a` status=success **실측**(gh api commit status). #910 CLOSED. 라우트 서빙 실측: `/coordinator/content` → 307 `/login?redirect=…`(게이트 정상=배포 라이브), 홈 → 308 `/en`(언어 리다이렉트).
 - ✅ **CI**: 양쪽 PR `ci`·`Smoke Tests`(E2E) 초록. #932 **독립 리뷰**(작성 맥락 모르는 별도 에이전트) = 정합성 결함 0(PLAUSIBLE 관찰 3건은 비차단). **가드 실동작 실측**: 임시 공개파일에 인라인-L 심으니 `[인라인사전]` 에러로 CI 실패 → 제거 후 통과.
 - ✅ `npx next build --webpack`·`npm run check:content` 통과.
