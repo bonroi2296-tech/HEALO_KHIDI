@@ -72,7 +72,7 @@ export default function PatientLayout({ children }) {
           className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-white rounded-t-2xl shadow-2xl animate-in slide-in-from-bottom duration-300 pb-safe"
         >
           <div className="flex items-center justify-between px-5 pt-4 pb-2">
-            <span className="text-sm font-semibold text-gray-500">{l(MORE_LABEL)}</span>
+            <span className="text-sm font-semibold text-gray-500">{t("patientLayout.more", lang)}</span>
             <button
               onClick={() => setMoreOpen(false)}
               className="p-1.5 rounded-full hover:bg-gray-100 transition"
@@ -135,7 +135,7 @@ export default function PatientLayout({ children }) {
             <div className={`p-1 rounded-lg transition-all ${isMoreActive || moreOpen ? 'bg-teal-50' : ''}`}>
               <MoreHorizontal size={22} strokeWidth={isMoreActive || moreOpen ? 2.5 : 2} />
             </div>
-            <span className="text-[10px] font-medium leading-tight">{l(MORE_LABEL)}</span>
+            <span className="text-[10px] font-medium leading-tight">{t("patientLayout.more", lang)}</span>
           </button>
         </div>
       </nav>

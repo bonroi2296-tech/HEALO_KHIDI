@@ -1,6 +1,33 @@
 import { describe, it, expect } from "vitest";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { HOME_CONTENT_REGISTRY, REGISTRY_KEYS, getDefaultValueObject, EDITABLE_LANGS } from "./registry";
+import { HOME_CONTENT } from "./homeContent";
 import { normalizeForSearch } from "@/lib/i18n";
+
+describe("홈 의료진·파트너: 문구 배열 ↔ 메타 배열 길이 일치", () => {
+  // 왜: 문구는 HOME_CONTENT.doctors/partners.items 에, 사진·slug 는 HomeClient 의
+  // DOCTORS_META/PARTNERS_META 에 있고 **인덱스로 짝**을 맞춘다. 한쪽만 늘리거나 지우면
+  // 의료진 사진이 조용히 빈칸이 되고, 파트너는 next/image 가 빈 src 로 하드 에러를 내
+  // **홈 전체가 렌더 실패**한다. 길이 단언으로 그런 커밋을 CI에서 막는다(독립 리뷰 지적).
+  const countMeta = (name: string) => {
+    const src = readFileSync(join(process.cwd(), "app/home/HomeClient.jsx"), "utf8");
+    const block = src.split(`const ${name} = [`)[1]?.split("];")[0] ?? "";
+    return (block.match(/\{\s*(?:slug|img)/g) || []).length;
+  };
+
+  it("의료진: 문구 항목 수 = 사진 메타 수", () => {
+    const n = countMeta("DOCTORS_META");
+    expect(n).toBeGreaterThan(0);
+    expect((HOME_CONTENT as any).doctors.items.length).toBe(n);
+  });
+
+  it("파트너 병원: 문구 항목 수 = slug·이미지 메타 수", () => {
+    const n = countMeta("PARTNERS_META");
+    expect(n).toBeGreaterThan(0);
+    expect((HOME_CONTENT as any).partners.items.length).toBe(n);
+  });
+});
 
 describe("HOME_CONTENT_REGISTRY 자동 생성", () => {
   it("옛 수동 목록의 키가 그대로 살아있다(하위호환 — 저장된 오버라이드가 계속 먹힘)", () => {
@@ -56,7 +83,7 @@ describe("socialProof 사전 키 (SocialProofSection t() 마이그레이션)", (
   });
 });
 
-describe("공개 화면 문구 중앙 사전 이관 (#960) — 편집기에서 잡히는지", () => {
+describe("공개 화면 문구 중앙 사전 이관 (#974) — 편집기에서 잡히는지", () => {
   // 왜: 이 키들이 사라지거나 언어가 빠지면 그 화면 문구가 편집기 밖으로 다시 나간다(POSTMORTEMS #118).
   // 화면당 대표 키 1개씩 — 이관이 통째로 되돌려지는 회귀를 잡는 게 목적.
   const SCREENS: Array<[string, string]> = [

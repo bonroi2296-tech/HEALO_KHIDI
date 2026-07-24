@@ -57,8 +57,8 @@ export default function NotificationBell({ variant = 'fixed' }) {
 
   useEffect(() => {
     load();
-    const t = setInterval(load, 30000);
-    return () => clearInterval(t);
+    const timer = setInterval(load, 30000);
+    return () => clearInterval(timer);
   }, [load]);
 
   // 바깥 클릭 닫기

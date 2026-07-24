@@ -613,18 +613,18 @@ export default function UnifiedInquiryFunnel() {
           <div>
             <label className="block text-sm font-bold text-gray-700 mb-2">{tl("travelTimingLabel", lang)}</label>
             <div className="grid grid-cols-2 gap-2">
-              {TRAVEL_TIMING.map((t) => (
+              {TRAVEL_TIMING.map((opt) => (
                 <button
-                  key={t.value}
+                  key={opt.value}
                   type="button"
-                  onClick={() => setForm2((p) => ({ ...p, travelTiming: p.travelTiming === t.value ? "" : t.value }))}
+                  onClick={() => setForm2((p) => ({ ...p, travelTiming: p.travelTiming === opt.value ? "" : opt.value }))}
                   className={`py-3 rounded-xl border-2 text-sm font-medium transition ${
-                    form2.travelTiming === t.value
+                    form2.travelTiming === opt.value
                       ? "border-teal-500 bg-teal-50 text-teal-700"
                       : "border-gray-200 text-gray-600 hover:border-gray-300"
                   }`}
                 >
-                  {t.label[lang] || t.label.en}
+                  {opt.label[lang] || opt.label.en}
                 </button>
               ))}
             </div>

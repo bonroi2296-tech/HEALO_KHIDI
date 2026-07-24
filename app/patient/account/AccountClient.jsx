@@ -33,10 +33,11 @@ export default function AccountClient() {
   const load = async () => {
     setLoading(true);
     try {
-      const t = await getToken();
-      if (!t) { setAuth(false); setLoading(false); return; }
+      // ⚠️ 이 변수를 t 로 두지 마라 — 모듈 스코프의 i18n t() 를 가려 t("...") 가 TypeError 가 된다.
+      const token = await getToken();
+      if (!token) { setAuth(false); setLoading(false); return; }
       const res = await fetch("/api/patient/account/deletion-request", {
-        headers: { Authorization: `Bearer ${t}` }, cache: "no-store",
+        headers: { Authorization: `Bearer ${token}` }, cache: "no-store",
       });
       const j = await res.json();
       if (j.ok) setStatus(j.request?.status || null);
@@ -49,11 +50,13 @@ export default function AccountClient() {
     if (!window.confirm(t("patientAccount.confirm", lang))) return;
     setBusy(true); setFlash(null);
     try {
-      const t = await getToken();
-      if (!t) { setAuth(false); return; }
+      // ⚠️ 이 변수를 t 로 두지 마라 — i18n t() 가 가려져 아래 성공/실패 문구가 TypeError 가 된다
+      // (그러면 삭제 요청이 접수됐는데도 화면엔 "실패"가 떠서 환자가 중복 신청한다).
+      const token = await getToken();
+      if (!token) { setAuth(false); return; }
       const res = await fetch("/api/patient/account/deletion-request", {
         method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${t}` },
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ reason: reason.trim() || undefined }),
       });
       const j = await res.json();

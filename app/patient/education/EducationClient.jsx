@@ -120,12 +120,12 @@ function Callout({ level, title, lines }) {
       </div>
       <ul className="space-y-1.5">
         {lines.map((raw, i) => {
-          const t = raw.trim();
-          const bullet = t.startsWith('•');
+          const line = raw.trim();
+          const bullet = line.startsWith('•');
           return (
             <li key={i} className="flex gap-2.5 text-sm text-gray-700 leading-relaxed">
               {bullet && <span className={`mt-2 h-1.5 w-1.5 shrink-0 rounded-full ${dot}`} />}
-              <span>{bullet ? t.replace(/^•\s*/, '') : t}</span>
+              <span>{bullet ? line.replace(/^•\s*/, '') : line}</span>
             </li>
           );
         })}

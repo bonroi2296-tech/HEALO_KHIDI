@@ -268,7 +268,7 @@ const SCRIPT_EXPECT = {
 };
 // 라틴 표기가 정상인 키(이메일 예시·브랜드/제품명을 그대로 쓰는 값)
 // 라틴 표기가 정상이거나(이메일 예시·파일 포맷), 원본부터 전 언어 공통 영어 라벨이던 키.
-// 2026-07-24 인라인→중앙사전 이관(#960)으로 드러남 — 값은 원본 그대로 옮겼고(창작 번역 금지),
+// 2026-07-24 인라인→중앙사전 이관(#974)으로 드러남 — 값은 원본 그대로 옮겼고(창작 번역 금지),
 // 이제 코디 콘텐츠 편집기에서 언어별로 고칠 수 있다.
 const SCRIPT_ALLOW = new Set([
   "login.emailPlaceholder",
@@ -468,7 +468,7 @@ for (const file of SCAN_DIRS.flatMap(walk)) {
 //     — 오히려 인라인-L 이 그 검사의 '탈출구'라 새 문구가 CMS 밖으로 새는 통로가 됨.
 //     → 공개 파일에 새 인라인-L 이 생기면 CI 차단. 기존 5개는 grandfather(점진 마이그레이션).
 //     고치는 법: 문구를 src/lib/i18n/index.js DICTIONARY 에 키로 넣고 t("키", lang) 로 렌더.
-// 2026-07-24 (#960): 옛 grandfather 5개 포함 공개 화면 38개 파일을 전부 중앙 사전으로 이관 →
+// 2026-07-24 (#974): 옛 grandfather 5개 포함 공개 화면 38개 파일을 전부 중앙 사전으로 이관 →
 // 면제는 아래 1개만 남았다. 새 인라인 미니사전은 어떤 공개 파일에서도 CI 실패다.
 // ⚠️ 여기에 파일을 추가하지 마라 — 면제가 곧 "PO가 못 고치는 화면"이 된다(POSTMORTEMS #118).
 const INLINE_L_ALLOW = new Set([
@@ -487,7 +487,7 @@ for (const file of SCAN_DIRS.flatMap(walk)) {
   const text = readFileSync(join(ROOT, file), "utf8");
   if (!INLINE_L_RE.test(text) || !INLINE_L_LANGKEY_RE.test(text)) continue; // 언어키 있는 진짜 미니사전만
   const line = text.split("\n").findIndex((l) => INLINE_L_RE.test(l)) + 1;
-  errors.push(`[인라인사전] ${f}:${line} — 공개 화면 문구가 컴포넌트 안 const L={} 미니사전에 박혀 코디 콘텐츠 편집기(/coordinator/content)에서 수정 불가(번역돼도 CMS 우회). 문구를 src/lib/i18n/index.js DICTIONARY 에 키로 넣고 t("키", lang) 로 렌더할 것(그러면 편집기에 자동 등록). 기존 5개는 INLINE_L_ALLOW 로 grandfather.`);
+  errors.push(`[인라인사전] ${f}:${line} — 공개 화면 문구가 컴포넌트 안 const L={} 미니사전에 박혀 코디 콘텐츠 편집기(/coordinator/content)에서 수정 불가(번역돼도 CMS 우회). 문구를 src/lib/i18n/index.js DICTIONARY 에 키로 넣고 t("키", lang) 로 렌더할 것(그러면 편집기에 자동 등록). 예외는 INLINE_L_ALLOW(현재 1개).`);
 }
 
 // ── 7b) styled-jsx 금지 가드 (POSTMORTEMS #113) ──
@@ -661,7 +661,7 @@ try {
 //     라이브 소스에 없으면 CI 실패(외부 사이트 대조는 못 하지만, 사본 간 드리프트는 기계가 잡음).
 {
   try {
-    // 2026-07-24 이관(#960): 의료진 문구가 HomeClient 의 DOCTORS_DATA → HOME_CONTENT.doctors.items 로 이동
+    // 2026-07-24 이관(#974): 의료진 문구가 HomeClient 의 DOCTORS_DATA → HOME_CONTENT.doctors.items 로 이동
     // (편집기에서 수정 가능해짐). 사진 경로만 HomeClient 의 DOCTORS_META 에 남음.
     const home = readFileSync(join(ROOT, "src/lib/content/homeContent.js"), "utf8");
     const live = readFileSync(join(ROOT, "src/lib/data/immuneHospitalInfo.js"), "utf8");
@@ -1373,7 +1373,41 @@ for (const dir of BACKOFFICE_DIRS) {
   }
 }
 
-// ── 20) t("키") 가 사전에 실재하는가 (2026-07-24, #960 대량 이관에서 태어남) ──────────
+// ── 26) i18n `t` 섀도잉 차단 (2026-07-24 #974 — 독립 리뷰가 실제 버그를 잡아 태어남) ──
+// 왜: `import { t } from "@/lib/i18n"` 한 파일에서 지역 변수·콜백 파라미터를 `t` 로 두면
+//     그 스코프의 t("키") 가 **번역 함수가 아닌 그 값**을 호출해 TypeError 가 난다.
+//     실제 사고: AccountClient 의 `const t = await getToken()` 이 아래 t("...") 를 가려,
+//     환자 데이터 삭제 요청이 **접수됐는데도 화면엔 "실패"** 가 떠 중복 신청을 유발할 뻔했다.
+//     tsc·vitest·next build 전부 통과하는 부류라 사람 리뷰 아니면 프로덕션까지 간다.
+{
+  try {
+    const bad = [];
+    for (const file of SCAN_DIRS.flatMap(walk)) {
+      if (!/\.(jsx?|tsx?)$/.test(file) || EXCLUDE.test(file)) continue;
+      const text = readFileSync(join(ROOT, file), "utf8");
+      // i18n 의 t 심볼을 직접 import 한 파일만 대상(래퍼만 쓰는 파일은 무관)
+      const imp = text.match(/import\s*\{([^}]*)\}\s*from\s*["']@\/lib\/i18n(?:\/index)?["']/);
+      if (!imp || !/(^|,)\s*t\s*(,|$)/.test(imp[1].replace(/\s+/g, ""))) continue;
+      text.split("\n").forEach((line, i) => {
+        if (/^\s*(\/\/|\*|\/\*)/.test(line)) return; // 주석 제외
+        const decl = /\b(?:const|let|var)\s+t\s*=/.test(line);
+        const param = /\(\s*t\s*(?:,|\)\s*=>)/.test(line);
+        if (decl || param) bad.push(`${file.replace(/\\/g, "/")}:${i + 1} ${line.trim().slice(0, 70)}`);
+      });
+    }
+    if (bad.length) {
+      errors.push(
+        `[t섀도잉] i18n t() 를 가리는 지역 t 선언 ${bad.length}건: ${bad.slice(0, 5).join(" · ")}` +
+          `${bad.length > 5 ? ` …외 ${bad.length - 5}` : ""} — 그 스코프의 t("키") 가 번역 대신 그 값을 ` +
+          `호출해 TypeError 가 난다(빌드·타입·테스트는 통과하고 화면에서만 터짐). 변수명을 바꿀 것(token·tr·opt 등).`
+      );
+    }
+  } catch (e) {
+    errors.push(`[t섀도잉] 검사 실패: ${e.message}`);
+  }
+}
+
+// ── 25) t("키") 가 사전에 실재하는가 (2026-07-24 #974 대량 이관에서 태어남) ──────────
 // 왜: t() 는 없는 키를 만나면 조용히 "키 문자열 자체"를 반환한다(폴백 설계). 그래서 오타 하나·
 //     사전 삽입 누락 하나면 화면에 "patientDocs.title" 같은 날키가 6개 언어 전부에 렌더된다 —
 //     빌드·타입·테스트 어디도 안 잡고, 그 화면을 열어본 사람만 안다. 이관 작업 중 실제로
