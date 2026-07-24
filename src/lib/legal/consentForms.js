@@ -88,14 +88,14 @@ export const CONSENT_ITEMS = [
     mandatory: false,
     warnIfDeclined: true,
     titleKey: "consent.thirdPartyHospital.title",
-    legalBasis: "PIPA §17 (제3자 제공 동의)",
+    legalBasis: "PIPA §17 (제3자 제공 동의) + §28-8 (에이전시분은 국외이전 병행)",
     recipients: {
-      ko: "이용자가 선택한 대한민국 내 협력 의료기관",
-      en: "Korean partner hospitals selected by the user",
+      ko: "이용자가 선택한 대한민국 내 협력 의료기관 + 이용자를 의뢰한 해외 유치 에이전시(해당 이용자를 의뢰한 곳에 한함, 소재국: 카자흐스탄·러시아 등)",
+      en: "Korean partner hospitals selected by the user + the overseas agency that referred the user (limited to that referring agency; country: e.g., Kazakhstan, Russia)",
     },
     purpose: {
-      ko: "진료 상담, 예약, 치료 계획 수립",
-      en: "Consultation, appointment, treatment planning",
+      ko: "진료 상담, 예약, 치료 계획 수립 / (에이전시) 전문의 소견·치료 안내의 현지어 전달, 통역, 사전·사후관리 연락",
+      en: "Consultation, appointment, treatment planning / (agency) delivery of specialist opinions and treatment guidance in the local language, interpretation, pre/post-care communication",
     },
     items: {
       ko: "이름, 생년월일, 연락처, 여권번호, 진단명, 증상, 의료기록",
@@ -131,10 +131,13 @@ export const CONSENT_ITEMS = [
     },
   },
 
-  // ※ 해외 유치 에이전시로의 국외이전(전문의 소견 release-to-agency 등)은 별도 필수 '동의'가 아니라
-  //   개인정보보호법 §28-8(3)·§26 '처리위탁' 근거로 처리한다(PO 결정 2026-07-16, 위탁 방식 선택).
-  //   → 여기 CONSENT_ITEMS에 필수 동의 항목을 추가하지 않는다(문 앞 마찰 방지). 대신 개인정보처리방침
-  //   privacyPolicy.js §8(국외이전)·§9(처리위탁)에 수탁자로 공개 + 에이전시 위탁계약으로 담보.
+  // ※ 해외 유치 에이전시로의 이전(전문의 소견 release-to-agency 등)은 **위탁이 아니라 제3자 제공**이다.
+  //   근거(2026-07-24 동종 글로벌 서비스 실조사): Bookimed·MediGlobus 모두 파트너를 "independent /
+  //   separate controller"로 공개하고 processor 로 두지 않는다. 한국법 실무 기준도 "수탁자는 자기 목적
+  //   이용 금지 / 자기 목적으로도 쓰면 제3자 제공"인데, 에이전시는 자기 고객관리 목적으로도 데이터를
+  //   쓰므로 제공이 맞다. (2026-07-16 '위탁 방식' 전제를 이때 교정.)
+  //   → 새 체크박스를 만들지 않고 기존 third_party_hospital 항목의 수신자 범위를 확장했다
+  //     (문 앞 마찰 0 유지 + 법적 근거 정확). 처리방침은 §7 제3자 제공 + §8 국외이전에 공개.
 
   // ==== 선택 동의 ====
   {
