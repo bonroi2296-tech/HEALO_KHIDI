@@ -284,10 +284,14 @@ export async function POST(request: NextRequest) {
     ).length;
 
     // 문의서 초안 생성은 응답을 막을 필요가 없음 → 응답 전송 후 백그라운드로(해당 턴 지연 제거).
-    if (patientMsgCount > 0 && patientMsgCount % INTAKE_EVERY_N_TURNS === 0) {
+    // 에스컬레이션(사람 연결 요청·의료자료 첨부) 턴엔 3턴 규칙과 무관하게 즉시 승격 —
+    // 둘 다 이 라우트가 hand_off_requested 를 세우는 사유(메신저 봇과 동일 게이트, intakeGate.ts).
+    if (escalate || (patientMsgCount > 0 && patientMsgCount % INTAKE_EVERY_N_TURNS === 0)) {
       after(async () => {
         try {
-          await createDraftIntake(thread, (history || []) as any, lang, clientIp);
+          await createDraftIntake(thread, (history || []) as any, lang, clientIp, {
+            handOffRequested: escalate,
+          });
         } catch (e: any) {
           console.error("[public/chat/message] intake error:", e.message);
         }

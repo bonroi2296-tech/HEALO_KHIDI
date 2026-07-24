@@ -344,6 +344,20 @@ describe("왓츠앱 웹훅 계약", () => {
     expect(pickHandoffConfirm).toHaveBeenCalledWith("en", true, true);
   });
 
+  it("⑦-2 사람 연결 요청 턴: 3턴 규칙과 무관하게 문의 승격이 즉시 발사된다(핸드오프 플래그 전달)", async () => {
+    const { POST } = await loadRoute();
+    mockState.thread = CONSENTED_THREAD();
+    // 환자 메시지 1개뿐(3의 배수 아님) — 기존 규칙이면 승격이 영영 안 걸리던 케이스
+    mockState.history = [
+      { actor_type: "patient", message_text: "connect me to a human", metadata: {} },
+    ];
+    const res = await POST(makeReq(waUpdate(textMsg("connect me to a human", "wamid.h1"))));
+    expect((await res.json()).ok).toBe(true);
+    await flushAfter();
+    expect(createDraftIntake).toHaveBeenCalledTimes(1);
+    expect(createDraftIntake.mock.calls[0][4]).toEqual({ handOffRequested: true });
+  });
+
   it("한 웹훅에 실려 온 여러 메시지를 전부 처리한다 — 배치 유실 금지(독립 리뷰 CONFIRMED①)", async () => {
     const { POST } = await loadRoute();
     mockState.thread = CONSENTED_THREAD();
