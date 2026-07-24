@@ -38,6 +38,24 @@ describe("HOME_CONTENT_REGISTRY 자동 생성", () => {
   });
 });
 
+describe("socialProof 사전 키 (SocialProofSection t() 마이그레이션)", () => {
+  it("11개 키가 6개어 전부 값이 있다", async () => {
+    const { getI18nValues } = await import("@/lib/i18n");
+    const keys = [
+      "socialProof.eyebrow", "socialProof.title", "socialProof.lede",
+      "socialProof.stat1Big", "socialProof.stat1Sub",
+      "socialProof.stat2Big", "socialProof.stat2Sub",
+      "socialProof.stat3Big", "socialProof.stat3Sub",
+      "socialProof.stat4Big", "socialProof.stat4Sub",
+    ];
+    for (const k of keys) {
+      const v = getI18nValues(k);
+      expect(v, k).not.toBeNull();
+      for (const l of EDITABLE_LANGS) expect((v as any)[l], `${k}:${l}`).not.toBe("");
+    }
+  });
+});
+
 describe("normalizeForSearch — 줄바꿈/공백 차이 무시", () => {
   it("여러 줄 저장값을 화면 복사본(공백 연결)으로 찾는다", () => {
     const stored = "Рак желудка\n5-летняя выживаемость\n(№1 в мире)";
