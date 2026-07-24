@@ -770,8 +770,12 @@ export default function ConsultationRoomPage() {
   }, [voiceOn]);
   useEffect(() => {
     agentPresentRef.current = agentPresent;
-    // 봇이 방에서 사라지면(스위치 내림·에이전트 다운) 통역도 자동 꺼짐 — 죽은 토글 방지
-    if (!agentPresent) setVoiceOn(false);
+    // 봇이 방에서 사라지면(스위치 내림·에이전트 다운) 통역도 자동 꺼짐 — 죽은 토글 방지.
+    // 단 10초 유예: 재연결·재협상 중 participants 가 잠깐 비는 동안(독립리뷰 #2) 통역이
+    // 조용히 꺼져버리지 않게 — 봇이 그 안에 돌아오면 유지된다.
+    if (agentPresent) return;
+    const t = setTimeout(() => setVoiceOn(false), 10000);
+    return () => clearTimeout(t);
   }, [agentPresent]);
   // 자막/통역 켤 때 "AI 번역이라 참고용" 안내 배너 — 닫을 때까지 유지, 켤 때마다 재표시.
   const [aiNoticeDismissed, setAiNoticeDismissed] = useState(false);
@@ -1006,7 +1010,7 @@ export default function ConsultationRoomPage() {
   // ── 번역 결과를 자막·기록·상대 전송·TTS 에 일괄 반영 ──
   // (브라우저 STT→번역 / 수동입력→번역 / 서버 STT 전사+번역 통합응답 공용)
   const applyTranslation = useCallback(
-    (original, translated, srcLangOverride) => {
+    (original, translated, srcLangOverride, utter) => {
       const entry = {
         id: Date.now(),
         original_text: original,
@@ -1028,9 +1032,11 @@ export default function ConsultationRoomPage() {
       setCurrentSubtitle({ original, translated });
 
       // DataChannel: 내 STT 결과를 상대방에게 전송 (번역된 텍스트 전송)
-      // 상대방은 본인 언어(targetLang)로 번역된 텍스트를 받아서 표시
+      // 상대방은 본인 언어(targetLang)로 번역된 텍스트를 받아서 표시.
+      // utter(발화 세대) 동봉 — 큐 밀림으로 이전 발화의 확정 자막이 다음 발화의 부분 자막을
+      // 덮는 순서 역전을 수신측이 걸러낼 근거(독립리뷰 #1).
       if (publishSubtitleRef.current) {
-        publishSubtitleRef.current(translated, targetLang, myRole);
+        publishSubtitleRef.current(translated, targetLang, myRole, { utter });
       }
 
       // Auto-hide subtitle — 문장 길이에 비례(긴 의료문장을 다 읽기 전에 사라지지 않게, 6~15초)
@@ -1067,7 +1073,7 @@ export default function ConsultationRoomPage() {
         // 처리한다(직전 긴 문장 번역이 끝나기 전에 "네"가 먼저 뜨면 대화 순서·문맥이 꼬임).
         // DB 번역 로그에도 기록 — 회의록·상대방 폴링 로그에서 예/아니오 답변이 빠지면 안 됨.
         if (typeof item !== "string" && item.pre) {
-          applyTranslation(text, item.pre);
+          applyTranslation(text, item.pre, undefined, item.utter);
           if (consultationId) {
             fetch(`/api/khidi/consultation/${consultationId}/translate`, {
               method: "POST",
@@ -1107,7 +1113,12 @@ export default function ConsultationRoomPage() {
           if (!result.ok) continue;
           // 번역 API 가 추임새 정리 후 빈 결과를 주면 자막 스킵
           if (!result.translated || !String(result.translated).trim()) continue;
-          applyTranslation(text, result.translated);
+          applyTranslation(
+            text,
+            result.translated,
+            undefined,
+            typeof item === "string" ? undefined : item.utter
+          );
         } catch (err) {
           console.error("[Translation] Error:", err);
         }
@@ -1119,7 +1130,7 @@ export default function ConsultationRoomPage() {
   }, [myLang, targetLang, consultationId, isGuestMode, inviteToken, applyTranslation]);
 
   const translateText = useCallback(
-    (text) => {
+    (text, utter) => {
       if (!text || !text.trim()) return;
       const trimmed = text.trim();
       // 맞장구('네','Да','спасибо' 등)는 API 없이 사전으로 처리 — 발화의 39%가
@@ -1130,8 +1141,9 @@ export default function ConsultationRoomPage() {
         ? null
         : getBackchannelTranslation(trimmed, targetLang);
       const q = translateQueueRef.current;
-      // 사전 매칭도 큐를 태워 발화 순서를 보존한다 (즉시 반영하면 앞 문장보다 먼저 뜸)
-      q.push(quick ? { text: trimmed, pre: quick } : trimmed);
+      // 사전 매칭도 큐를 태워 발화 순서를 보존한다 (즉시 반영하면 앞 문장보다 먼저 뜸).
+      // utter(발화 세대)는 확정 자막의 순서 역전 필터용 — 수동입력 등 utter 없는 경로는 undefined.
+      q.push(quick ? { text: trimmed, pre: quick, utter } : { text: trimmed, utter });
       // 느린 회선에서 큐가 폭주하지 않게 최근 15개만 유지(오래된 조각은 버림)
       if (q.length > 15) q.splice(0, q.length - 15);
       drainTranslateQueue();
@@ -1139,21 +1151,33 @@ export default function ConsultationRoomPage() {
     [drainTranslateQueue, targetLang]
   );
 
+  // 화자별로 지금까지 본 최신 발화 세대 — '이전 발화 확정'이 '다음 발화 부분'을 덮는
+  // 순서 역전 필터(독립리뷰 #1). 표시만 거르고 기록은 남긴다(기록은 순서 무관하게 유효).
+  const remoteUtterRef = useRef(new Map());
   // ── 상대방 자막 수신 핸들러 (DataChannel) ──
   const handleRemoteSubtitle = useCallback(
-    ({ text, lang, role, name, participantIdentity, interim }) => {
+    ({ text, lang, role, name, participantIdentity, interim, utter }) => {
       // 통역(음성) 사용 중엔 봇 자막이 표시·기록을 담당 — 상대 클라의 DC 자막까지 띄우면
       // 같은 발화가 이중으로 뜬다(7/23 삼중자막 사고의 한 갈래) → DC 자막은 통째로 억제.
       if (voiceOnRef.current && agentPresentRef.current) return;
+      // 발화 세대 필터: 이 화자에게서 더 새 세대의 자막을 이미 봤으면 낡은 자막은 화면에 안 띄움.
+      let stale = false;
+      if (typeof utter === "number" && participantIdentity) {
+        const seen = remoteUtterRef.current.get(participantIdentity) || 0;
+        if (utter < seen) stale = true;
+        else remoteUtterRef.current.set(participantIdentity, utter);
+      }
       // 중간(진행 중) 자막 — 화면 슬롯만 갱신하고 끝. 기록·문맥은 확정 자막에서만
       // (같은 발화가 기록에 여러 번 쌓이는 것 방지). 청취 모드 억제는 여기서도 갱신 —
       // 중간 자막이 오고 있다 = 화자 기기가 직접 자막 송신 중 = 이쪽 재전사 불필요.
       if (interim) {
-        showRemoteSubtitle({ key: participantIdentity, text, lang, role, name, interim: true });
+        if (!stale) {
+          showRemoteSubtitle({ key: participantIdentity, text, lang, role, name, interim: true });
+        }
         if (participantIdentity) dcActivityRef.current.set(participantIdentity, Date.now());
         return;
       }
-      showRemoteSubtitle({ key: participantIdentity, text, lang, role, name });
+      if (!stale) showRemoteSubtitle({ key: participantIdentity, text, lang, role, name });
       // 이 참가자는 직접 통역을 켠 상태 — 청취 모드 STT 억제용 시각 기록
       if (participantIdentity) dcActivityRef.current.set(participantIdentity, Date.now());
       // 상대 발화도 문맥으로 축적 (수신되는 건 번역문이지만 대명사·용어 일관성엔 유효)
@@ -1233,7 +1257,8 @@ export default function ConsultationRoomPage() {
   const maybeTranslatePartial = useCallback(
     (text) => {
       const t = (text || "").trim();
-      // 짧은 조각·추임새는 스킵(비용·깜빡임), 같은 언어면 번역 무의미 → interim 원문 그대로 전송
+      // 짧은 조각·추임새는 스킵(비용·깜빡임). 같은 언어쌍이면 부분 자막 자체를 스킵 —
+      // 확정 자막(echo 경로)만으로 충분하고 부분 전송은 트래픽 낭비.
       if (t.length < 10 || isFillerOnly(t)) return;
       if (myLang === targetLang) return;
       const st = partialRef.current;
@@ -1265,6 +1290,7 @@ export default function ConsultationRoomPage() {
           if (!res?.ok || !res.translated || !String(res.translated).trim()) return;
           publishSubtitleRef.current?.(res.translated, targetLang, myRole, {
             interim: true,
+            utter: uid,
           });
         })
         .catch(() => {})
@@ -1295,11 +1321,12 @@ export default function ConsultationRoomPage() {
       (text) => {
         lastBrowserSttRef.current = Date.now();
         setInterimText("");
+        const uid = utterRef.current; // 이 발화의 세대 — 확정 자막에 동봉(순서 역전 필터)
         utterRef.current += 1; // 이 발화의 부분 번역은 이제 폐기 — 확정 경로가 교체
         partialRef.current.lastText = "";
         // "음", "어" 같은 추임새뿐인 조각은 자막 안 띄움 (번역 호출도 절약)
         if (isFillerOnly(text)) return;
-        translateText(text);
+        translateText(text, uid);
       },
       [translateText]
     ),
