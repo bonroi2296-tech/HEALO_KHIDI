@@ -56,6 +56,38 @@ describe("socialProof 사전 키 (SocialProofSection t() 마이그레이션)", (
   });
 });
 
+describe("공개 화면 문구 중앙 사전 이관 (#960) — 편집기에서 잡히는지", () => {
+  // 왜: 이 키들이 사라지거나 언어가 빠지면 그 화면 문구가 편집기 밖으로 다시 나간다(POSTMORTEMS #118).
+  // 화면당 대표 키 1개씩 — 이관이 통째로 되돌려지는 회귀를 잡는 게 목적.
+  const SCREENS: Array<[string, string]> = [
+    ["병원 목록", "hospitalsPage.cta"],
+    ["병원 상세", "partnerHospital.about"],
+    ["문의 퍼널", "inquiryFunnel.aiAgent"],
+    ["인테이크", "intakeForm.fields.stage.label"],
+    ["환자 교육", "patientEdu.page.title"],
+    ["치료법", "treatmentsPage.title"],
+    ["암종 상세", "cancerDetail.cta.intake"],
+    ["환자 대시보드", "patientDash.consultationCta"],
+    ["환자 메시지", "patientMessages.conversationFallback"],
+    ["FAQ 문답", "faqData.category.visa"],
+    ["원격협진", "telemedicine.heroTitle"],
+    ["비용 계산기", "costCalc.heroTitle"],
+    ["케어 저니", "careJourney.heroTitle"],
+    ["신뢰 섹션", "socialProof.title"],
+    ["쿠키 배너", "cookieConsent.title"],
+    ["알림 벨", "notifBell.title"],
+  ];
+
+  it.each(SCREENS)("%s 문구가 6개어로 사전에 있다 (%s)", async (_name, key) => {
+    const { getI18nValues } = await import("@/lib/i18n");
+    const v = getI18nValues(key);
+    expect(v, `${key} 가 사전에서 사라짐 — 이관이 되돌려졌는지 확인`).not.toBeNull();
+    for (const l of EDITABLE_LANGS) {
+      expect((v as any)[l], `${key}.${l} 이 빔`).toBeTruthy();
+    }
+  });
+});
+
 describe("normalizeForSearch — 줄바꿈/공백 차이 무시", () => {
   it("여러 줄 저장값을 화면 복사본(공백 연결)으로 찾는다", () => {
     const stored = "Рак желудка\n5-летняя выживаемость\n(№1 в мире)";

@@ -11,23 +11,16 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Bell, X } from 'lucide-react';
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser';
-import { getLangCodeFromCookie } from '@/lib/i18n';
+import { getLangCodeFromCookie, t } from '@/lib/i18n';
 
-const T = {
-  title: { ko: '알림', en: 'Notifications', ru: 'Уведомления', kz: 'Хабарламалар', zh: '通知', ja: '通知' },
-  empty: { ko: '새 소식이 없습니다', en: 'No notifications yet', ru: 'Пока нет уведомлений', kz: 'Әзірге хабарлама жоқ', zh: '暂无通知', ja: 'お知らせはありません' },
-  markAll: { ko: '모두 읽음', en: 'Mark all read', ru: 'Прочитать все', kz: 'Бәрін оқу', zh: '全部已读', ja: 'すべて既読' },
-};
-
-// 상대 시간 (간단) — 외부 라이브러리 없이
+// 상대 시간 (간단) — 외부 라이브러리 없이. 단위 라벨은 중앙 사전(notifBell.ago*).
 function ago(iso, lang) {
   const s = Math.max(0, (Date.now() - new Date(iso).getTime()) / 1000);
   const m = Math.floor(s / 60), h = Math.floor(m / 60), d = Math.floor(h / 24);
-  const u = lang === 'ko' ? ['초', '분', '시간', '일'] : ['s', 'm', 'h', 'd'];
-  if (d > 0) return `${d}${u[3]}`;
-  if (h > 0) return `${h}${u[2]}`;
-  if (m > 0) return `${m}${u[1]}`;
-  return `${Math.floor(s)}${u[0]}`;
+  if (d > 0) return `${d}${t('notifBell.agoDay', lang)}`;
+  if (h > 0) return `${h}${t('notifBell.agoHour', lang)}`;
+  if (m > 0) return `${m}${t('notifBell.agoMin', lang)}`;
+  return `${Math.floor(s)}${t('notifBell.agoSec', lang)}`;
 }
 
 /**
@@ -36,7 +29,6 @@ function ago(iso, lang) {
 export default function NotificationBell({ variant = 'fixed' }) {
   const router = useRouter();
   const lang = getLangCodeFromCookie?.() || 'en';
-  const l = (o) => o?.[lang] || o?.en || '';
   const [items, setItems] = useState([]);
   const [open, setOpen] = useState(false);
   const panelRef = useRef(null);
@@ -100,7 +92,7 @@ export default function NotificationBell({ variant = 'fixed' }) {
     <div ref={panelRef} className={isInline ? 'relative' : 'fixed top-2.5 right-3 z-[60]'}>
       <button
         onClick={() => setOpen((v) => !v)}
-        aria-label={l(T.title)}
+        aria-label={t('notifBell.title', lang)}
         className={isInline
           ? 'relative p-2 rounded-full text-slate-600 hover:text-teal-700 hover:bg-teal-200/70 transition-colors'
           : 'relative p-2 rounded-full bg-white/90 backdrop-blur border border-gray-200 shadow-sm hover:bg-gray-50 transition'}
@@ -116,14 +108,14 @@ export default function NotificationBell({ variant = 'fixed' }) {
       {open && (
         <div className="absolute top-11 right-0 w-80 max-w-[88vw] bg-white rounded-2xl shadow-2xl border border-gray-200 overflow-hidden z-[70]">
           <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-            <span className="text-sm font-bold text-gray-900">{l(T.title)}</span>
+            <span className="text-sm font-bold text-gray-900">{t('notifBell.title', lang)}</span>
             <div className="flex items-center gap-1">
               {unread > 0 && (
                 <button
                   onClick={() => markRead(items.filter((n) => !n.read_at).map((n) => n.id))}
                   className="text-xs text-teal-700 hover:underline px-1.5"
                 >
-                  {l(T.markAll)}
+                  {t('notifBell.markAll', lang)}
                 </button>
               )}
               <button onClick={() => setOpen(false)} className="p-1 rounded-full hover:bg-gray-100">
@@ -133,7 +125,7 @@ export default function NotificationBell({ variant = 'fixed' }) {
           </div>
 
           {items.length === 0 ? (
-            <div className="px-4 py-10 text-center text-sm text-gray-400">{l(T.empty)}</div>
+            <div className="px-4 py-10 text-center text-sm text-gray-400">{t('notifBell.empty', lang)}</div>
           ) : (
             <ul className="max-h-96 overflow-auto">
               {items.map((n) => (

@@ -267,7 +267,23 @@ const SCRIPT_EXPECT = {
   km: /[ក-៿]/, my: /[က-႟]/,
 };
 // 라틴 표기가 정상인 키(이메일 예시·브랜드/제품명을 그대로 쓰는 값)
-const SCRIPT_ALLOW = new Set(["login.emailPlaceholder", "inquiry.messenger"]);
+// 라틴 표기가 정상이거나(이메일 예시·파일 포맷), 원본부터 전 언어 공통 영어 라벨이던 키.
+// 2026-07-24 인라인→중앙사전 이관(#960)으로 드러남 — 값은 원본 그대로 옮겼고(창작 번역 금지),
+// 이제 코디 콘텐츠 편집기에서 언어별로 고칠 수 있다.
+const SCRIPT_ALLOW = new Set([
+  "login.emailPlaceholder",
+  "inquiry.messenger",
+  "inquiryFunnel.emailPlaceholder", // 이메일 예시
+  "patientDocs.formats", // "PDF, JPEG, PNG, WebP"
+  "inquiryFunnel.aiAgent", // 원본부터 전 언어 "AI Agent"
+  "inquiryFunnel.humanAgent",
+  "inquiryFunnel.inquiryForm",
+  "visaHub.myAppsKicker",
+  "patientMessages.ai", // "healwith AI" 브랜드명
+  // 원격협진 소개의 "상담 화면 목업" — 의사가 한국어로 말하고 AI가 영어로 옮기는 시연이라
+  // 한국어 화면에서도 번역줄이 영어인 게 원문 의도(원본 그대로).
+  "telemedicine.mockup.transLine",
+]);
 try {
   const text = readFileSync(join(ROOT, I18N), "utf8").split("\n");
   let cur = null;
@@ -452,14 +468,16 @@ for (const file of SCAN_DIRS.flatMap(walk)) {
 //     — 오히려 인라인-L 이 그 검사의 '탈출구'라 새 문구가 CMS 밖으로 새는 통로가 됨.
 //     → 공개 파일에 새 인라인-L 이 생기면 CI 차단. 기존 5개는 grandfather(점진 마이그레이션).
 //     고치는 법: 문구를 src/lib/i18n/index.js DICTIONARY 에 키로 넣고 t("키", lang) 로 렌더.
+// 2026-07-24 (#960): 옛 grandfather 5개 포함 공개 화면 38개 파일을 전부 중앙 사전으로 이관 →
+// 면제는 아래 1개만 남았다. 새 인라인 미니사전은 어떤 공개 파일에서도 CI 실패다.
+// ⚠️ 여기에 파일을 추가하지 마라 — 면제가 곧 "PO가 못 고치는 화면"이 된다(POSTMORTEMS #118).
 const INLINE_L_ALLOW = new Set([
-  "app/claim/[token]/ClaimClient.jsx",
-  "app/hospitals/HospitalsClient.jsx",
-  "app/patient/chat/PatientChatClient.jsx",
-  "app/patient/PatientDashboardClient.jsx",
-  "app/patient/symptoms/SymptomsClient.jsx",
+  // 화상 상담방 문구. 상담방은 통역·자막 전담 세션이 계속 고치는 실시간 UI라(#780·#820·#915)
+  // 같은 시각에 이관하면 충돌한다 → 그 세션 작업이 끝난 뒤 이관한다(다음 CMS 세션 1순위).
+  "app/consultation/[id]/_roomCopy.js",
 ]);
-const INLINE_L_RE = /\bconst\s+L\s*=\s*\{/;
+// 변수명은 L 뿐 아니라 COPY·T·DICT 도 매칭(옛 가드가 L 만 봐서 COPY 로 우회되던 사각 — SocialProof·CookieConsent 실사례).
+const INLINE_L_RE = /\bconst\s+(L|COPY|T|DICT|TEXTS?|LABELS)\s*=\s*\{/;
 const INLINE_L_LANGKEY_RE = /\b(ko|en|ru|kz|zh|ja)\s*:/;
 for (const file of SCAN_DIRS.flatMap(walk)) {
   if (!/\.jsx?$/.test(file) || EXCLUDE.test(file)) continue;
@@ -643,16 +661,18 @@ try {
 //     라이브 소스에 없으면 CI 실패(외부 사이트 대조는 못 하지만, 사본 간 드리프트는 기계가 잡음).
 {
   try {
-    const home = readFileSync(join(ROOT, "app/home/HomeClient.jsx"), "utf8");
+    // 2026-07-24 이관(#960): 의료진 문구가 HomeClient 의 DOCTORS_DATA → HOME_CONTENT.doctors.items 로 이동
+    // (편집기에서 수정 가능해짐). 사진 경로만 HomeClient 의 DOCTORS_META 에 남음.
+    const home = readFileSync(join(ROOT, "src/lib/content/homeContent.js"), "utf8");
     const live = readFileSync(join(ROOT, "src/lib/data/immuneHospitalInfo.js"), "utf8");
-    const block = home.split("const DOCTORS_DATA")[1]?.split("];")[0] || "";
+    const block = home.split("doctors:")[1]?.split("items:")[1]?.split("],")[0] || "";
     const names = [...block.matchAll(/name: \{ ko: "([가-힣]{2,5})[ "]/g)].map((m) => m[1]);
     if (!names.length) {
-      errors.push(`[의료진드리프트] app/home/HomeClient.jsx 의 DOCTORS_DATA 에서 이름을 못 읽음 — 구조를 바꿨으면 이 검사(§13)도 같이 갱신할 것 (POSTMORTEMS #66)`);
+      errors.push(`[의료진드리프트] src/lib/content/homeContent.js 의 doctors.items 에서 이름을 못 읽음 — 구조를 바꿨으면 이 검사(§13)도 같이 갱신할 것 (POSTMORTEMS #66)`);
     }
     for (const n of names) {
       if (!live.includes(`"${n}"`)) {
-        errors.push(`[의료진드리프트] 홈 DOCTORS_DATA 의 "${n}" 이 라이브 소스(src/lib/data/immuneHospitalInfo.js doctors[])에 없음 — 퇴사·개명 가능성. 병원 공식 사이트(각 지점 doctor.php) 대조 후 두 파일을 같이 갱신할 것 (POSTMORTEMS #66)`);
+        errors.push(`[의료진드리프트] 홈 doctors.items 의 "${n}" 이 라이브 소스(src/lib/data/immuneHospitalInfo.js doctors[])에 없음 — 퇴사·개명 가능성. 병원 공식 사이트(각 지점 doctor.php) 대조 후 두 파일을 같이 갱신할 것 (POSTMORTEMS #66)`);
       }
     }
   } catch (e) {
@@ -1350,6 +1370,51 @@ for (const dir of BACKOFFICE_DIRS) {
     }
   } catch (e) {
     errors.push(`[하드코딩라벨] 검사 실패: ${e.message}`);
+  }
+}
+
+// ── 20) t("키") 가 사전에 실재하는가 (2026-07-24, #960 대량 이관에서 태어남) ──────────
+// 왜: t() 는 없는 키를 만나면 조용히 "키 문자열 자체"를 반환한다(폴백 설계). 그래서 오타 하나·
+//     사전 삽입 누락 하나면 화면에 "patientDocs.title" 같은 날키가 6개 언어 전부에 렌더된다 —
+//     빌드·타입·테스트 어디도 안 잡고, 그 화면을 열어본 사람만 안다. 이관 작업 중 실제로
+//     "컴포넌트만 머지되고 사전이 안 들어가면 환자 화면 전체가 깨진다"는 상황이 반복 관찰됨.
+// → 공개 파일의 정적 t("...") 키가 DICTIONARY 에 없으면 CI 실패. (동적 t(`...`) 는 검사 불가라 제외)
+{
+  try {
+    const dictText = readFileSync(join(ROOT, I18N), "utf8");
+    const known = new Set([...dictText.matchAll(/^ {4}"([^"]+)":/gm)].map((m) => m[1]));
+    const bad = [];
+    for (const file of SCAN_DIRS.flatMap(walk)) {
+      if (!/\.(jsx?|tsx?)$/.test(file) || EXCLUDE.test(file)) continue;
+      if (!isPublicFacingFile(file)) continue;
+      const text = readFileSync(join(ROOT, file), "utf8");
+      if (!/from ["']@\/lib\/i18n["']/.test(text)) continue; // 중앙 사전을 쓰는 파일만
+      const lines = text.split("\n");
+      const prefixes = new Set(); // 템플릿 래퍼용: t(`prefix.${...}`) 의 prefix
+      lines.forEach((line, i) => {
+        for (const m of line.matchAll(/\bt\(\s*["']([A-Za-z][\w.]*\.[\w.]+)["']\s*,/g)) {
+          if (!known.has(m[1])) bad.push(`${file.replace(/\\/g, "/")}:${i + 1} t("${m[1]}")`);
+        }
+        // 래퍼 패턴 — 예: const tr = (k) => t(`telemedicine.${k}`, lang)
+        // 키 전체를 정적으로 알 수 없으니, 그 접두어가 사전에 통째로 없는 경우(=삽입 누락)만 잡는다.
+        for (const m of line.matchAll(/\bt\(\s*`([A-Za-z][\w]*)\.\$\{/g)) prefixes.add(m[1]);
+      });
+      for (const p of prefixes) {
+        if (![...known].some((k) => k.startsWith(p + "."))) {
+          bad.push(`${file.replace(/\\/g, "/")} t(\`${p}.\${…}\`) — "${p}." 접두어 키가 사전에 하나도 없음`);
+        }
+      }
+    }
+    if (bad.length) {
+      errors.push(
+        `[유령키] 화면이 부르는 t() 키가 사전(src/lib/i18n/index.js)에 없음 ${bad.length}건: ` +
+          `${bad.slice(0, 6).join(" · ")}${bad.length > 6 ? ` …외 ${bad.length - 6}` : ""} — ` +
+          `t() 는 없는 키를 그대로 렌더하므로 이 상태로 배포하면 사용자 화면에 날키가 뜬다. ` +
+          `사전에 6개 언어로 키를 추가하거나 오타를 고칠 것.`
+      );
+    }
+  } catch (e) {
+    errors.push(`[유령키] 검사 실패: ${e.message}`);
   }
 }
 
