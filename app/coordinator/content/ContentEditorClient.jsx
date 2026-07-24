@@ -32,15 +32,25 @@ export default function ContentEditorClient() {
   const [msg, setMsg] = useState(null);
   const [showLog, setShowLog] = useState(false);
   const [logs, setLogs] = useState([]);
+  // 기본 = 일치한 것만 (처음 보는 사람이 안 헷갈리게). 켜면 같은 화면 블록까지 함께 표시.
+  const [blockView, setBlockView] = useState(false);
   const debounceRef = useRef();
 
   useEffect(() => {
-    const saved = typeof window !== "undefined" && localStorage.getItem("cms-edit-lang");
+    if (typeof window === "undefined") return;
+    const saved = localStorage.getItem("cms-edit-lang");
     if (saved && LANGS.includes(saved)) setEditLang(saved);
+    if (localStorage.getItem("cms-block-view") === "1") setBlockView(true);
   }, []);
   const pickLang = (l) => {
     setEditLang(l);
     try { localStorage.setItem("cms-edit-lang", l); } catch {}
+  };
+  const toggleBlockView = () => {
+    setBlockView((v) => {
+      try { localStorage.setItem("cms-block-view", v ? "0" : "1"); } catch {}
+      return !v;
+    });
   };
 
   const runSearch = useCallback(async (q) => {
@@ -124,6 +134,10 @@ export default function ContentEditorClient() {
 
   const refLang = editLang === "ko" ? "en" : "ko";
 
+  // 기본은 검색어와 직접 일치한 줄만. 토글을 켜면 같은 화면 블록(제목·부제·카드)까지 함께.
+  const visible = blockView ? results : results.filter((r) => r.matched !== false);
+  const hiddenCount = results.length - visible.length;
+
   return (
     <div className="max-w-4xl mx-auto p-4 md:p-6">
       <div className="flex items-center justify-between mb-4">
@@ -191,10 +205,22 @@ export default function ContentEditorClient() {
             <p className="text-sm text-gray-400">위에서 바꾸고 싶은 문구를 검색하세요 (한국어·러시아어 등 아무 언어).</p>
           )}
 
+          {results.length > 0 && (hiddenCount > 0 || blockView) && (
+            <div className="mb-3">
+              <button
+                onClick={toggleBlockView}
+                className={`text-xs px-2.5 py-1 rounded-full border ${blockView ? "border-teal-400 text-teal-700 bg-teal-50" : "border-gray-200 text-gray-500 hover:bg-gray-50"}`}
+                title="같은 화면 블록의 다른 문구(제목·부제·카드)를 함께 보고 한 번에 고칠 수 있습니다"
+              >
+                {blockView ? "일치한 것만 보기" : `같은 블록 함께 보기 (+${hiddenCount}줄)`}
+              </button>
+            </div>
+          )}
+
           <div className="space-y-2.5">
-            {results.map((r, i) => {
+            {visible.map((r, i) => {
               const isOpen = !!expanded[r.key];
-              const newSection = i === 0 || results[i - 1].section !== r.section;
+              const newSection = i === 0 || visible[i - 1].section !== r.section;
               return (
                 <Fragment key={r.key}>
                   {newSection && (
