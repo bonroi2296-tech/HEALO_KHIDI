@@ -36,6 +36,12 @@ import { Track } from "livekit-client";
 const DC_SUPPRESS_MS = 60000; // DataChannel 자막 수신 후 이 시간 동안 청취 모드 억제
 const MIN_BLOB_BYTES = 4000;
 
+// 통역 봇(agent-*)과 봇이 만든 통역 음성 트랙(tx:*)은 전사 대상이 아니다 —
+// 봇 통역 음성을 여기서 또 STT 하면 같은 발화가 세 번 자막이 된다(2026-07-23 첫 라이브 사고).
+const isHumanAudioTrack = (t) =>
+  !t.participant?.identity?.startsWith("agent-") &&
+  !t.publication?.trackName?.startsWith("tx:");
+
 export function ListenModeBridge({
   enabled,
   langHint, // 상대가 말할 가능성이 높은 언어 (kz 면 서버가 Pro 모델 선택)
@@ -45,6 +51,7 @@ export function ListenModeBridge({
   contextRef, // 대화 문맥 링버퍼 (page.jsx convoContextRef)
   dcActivityRef, // Map<identity, ts> — DataChannel 자막 최근 수신 시각
   onSubtitle, // ({ transcript, translated, lang, name, identity }) => void
+  onAudioHealth, // ({ remoteAudioCount, contextState }) => void — "조용한 사망" 워치독용 (선택)
 }) {
   // 원격 참가자 마이크 트랙 (본인 제외)
   const trackRefs = useTracks([Track.Source.Microphone]);
@@ -58,7 +65,7 @@ export function ListenModeBridge({
   // mediaStreamTrack.id 까지 키에 포함 — LiveKit 이 재연결·재발행으로 내부 트랙을
   // 갈아끼우면(참가자·trackSid 동일) 죽은 트랙을 계속 듣는 파이프라인을 교체하기 위함
   const remoteKeys = trackRefs
-    .filter((t) => !t.participant?.isLocal && t.publication?.track?.mediaStreamTrack)
+    .filter((t) => !t.participant?.isLocal && t.publication?.track?.mediaStreamTrack && isHumanAudioTrack(t))
     .map(
       (t) =>
         `${t.participant.identity}::${t.publication.trackSid}::${t.publication.track.mediaStreamTrack.id}`
@@ -77,7 +84,7 @@ export function ListenModeBridge({
     }
 
     const active = trackRefs.filter(
-      (t) => !t.participant?.isLocal && t.publication?.track?.mediaStreamTrack
+      (t) => !t.participant?.isLocal && t.publication?.track?.mediaStreamTrack && isHumanAudioTrack(t)
     );
     const activeKeys = new Set(
       active.map(
@@ -122,6 +129,54 @@ export function ListenModeBridge({
       audioCtxRef.current = null;
     };
   }, []);
+
+  // ── 공유 AudioContext 를 사용자 제스처로 확실히 깨우기 (조용한 사망 근본 수리) ──
+  // 배경(2026-07-24 실회의 진단): AudioContext 가 사용자 제스처 밖에서 생성되면 `suspended`
+  //   로 시작한다 → VAD analyser 의 RMS 가 항상 0 → voicedFrames 가 3에 영영 못 미쳐 업로드
+  //   자체가 안 일어남 → `/stt` 호출 0 = 자막이 조용히 안 나온다. 게다가 이 컨텍스트는
+  //   자막 토글을 껐다 켜도 다시 안 살아난다(파이프라인만 재시작될 뿐 컨텍스트는 언마운트
+  //   전까지 유지) → 사용자가 "껐다켰다 반복해도 안 나온다"고 겪는 정확한 패턴.
+  //   startPipeline 의 1회성 resume() 는 제스처 밖이면 실패할 수 있으므로, 여기서 화면의 어떤
+  //   탭/키 입력에도 resume 을 재시도한다(표준 Web Audio unlock 패턴). 이미 running 이면
+  //   resume() 은 무해한 no-op → 잘 되던 경로(회의1)엔 영향 0.
+  useEffect(() => {
+    if (!enabled) return;
+    const resume = () => {
+      const ctx = audioCtxRef.current;
+      if (ctx && ctx.state === "suspended") ctx.resume().catch(() => {});
+    };
+    window.addEventListener("pointerdown", resume);
+    window.addEventListener("touchstart", resume);
+    window.addEventListener("keydown", resume);
+    return () => {
+      window.removeEventListener("pointerdown", resume);
+      window.removeEventListener("touchstart", resume);
+      window.removeEventListener("keydown", resume);
+    };
+  }, [enabled]);
+
+  // ── 건강상태 보고 — 상위(page.jsx)가 "켜졌는데 자막이 안 나온다"를 눈에 띄게 알리는 근거 ──
+  // 상대 오디오 트랙 수 + AudioContext 상태를 주기적으로 올린다. contextState 가 'suspended'
+  // 인데 상대 오디오가 있으면 = 우리가 상대 발화를 물리적으로 감지 못 하는 상태(위 수리 전).
+  // (트랙 상태는 렌더 없이도 바뀔 수 있어 interval 로 재확인 — remoteKeys 로 트랙 증감도 반영.)
+  useEffect(() => {
+    if (typeof onAudioHealth !== "function") return;
+    const report = () => {
+      // 사람 트랙만 센다(봇 tx:* 제외) — 워치독은 "전사할 상대 발화가 있는데 못 잡는가"를 봐야 한다.
+      const remoteAudioCount = trackRefs.filter(
+        (t) => !t.participant?.isLocal && t.publication?.track?.mediaStreamTrack && isHumanAudioTrack(t)
+      ).length;
+      onAudioHealth({
+        remoteAudioCount,
+        contextState: audioCtxRef.current?.state || "none",
+      });
+    };
+    report();
+    const id = setInterval(report, 2000);
+    return () => clearInterval(id);
+    // trackRefs 는 매 렌더 새 배열 → remoteKeys(트랙 증감 대표)로 재실행. enabled 로 온/오프 반영.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [onAudioHealth, enabled, remoteKeys]);
 
   return null;
 }
