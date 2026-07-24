@@ -39,6 +39,9 @@ async function callBotApi(method: string, payload: Record<string, any>): Promise
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
+      // 릴레이는 after() 에서 LLM 호출보다 먼저 실행됨 — TG API 행이 걸려도 환자 AI 응답
+      // (maxDuration 60s)을 소진하지 않게 8초 컷(독립 리뷰 N5).
+      signal: AbortSignal.timeout(8000),
     });
     const body = await res.json().catch(() => null);
     if (!res.ok || !body?.ok) {
@@ -81,13 +84,19 @@ export async function ensureStaffTopic(thread: any): Promise<number | null> {
   const topicId = Number(created?.message_thread_id) || null;
   if (!topicId) return null;
 
-  const { data: won } = await (supabaseAdmin as any)
-    .from("chat_threads")
-    .update({ metadata: { ...meta, staff_topic_id: topicId } })
-    .eq("id", thread.id)
-    .is("metadata->>staff_topic_id", null)
-    .select("id");
-  if (won?.length) return topicId;
+  // ⚠️ 전체 metadata 덮어쓰기 금지(독립 리뷰 C2 부류 — 낡은 스냅샷이 hand_off_requested·
+  // coordinator_active 등 그 사이 갱신된 키를 되돌림) → 키 병합 RPC 로 staff_topic_id 만
+  // 원자적으로 클레임(chat_thread_merge_meta, 키가 아직 없을 때만).
+  const { data: claimed, error } = await (supabaseAdmin as any).rpc("chat_thread_merge_meta", {
+    p_thread_id: thread.id,
+    p_patch: { staff_topic_id: topicId },
+    p_only_if_absent: "staff_topic_id",
+  });
+  if (error) {
+    console.error("[staffRelay] topic claim rpc:", error.message);
+    return topicId; // 기록 실패해도 이번 릴레이는 진행(다음 턴에 재클레임)
+  }
+  if (Number(claimed) > 0) return topicId;
 
   // 경쟁에서 짐 — 이긴 쪽 topic 을 쓴다(내가 만든 주제는 빈 채로 남지만 무해).
   const { data: fresh } = await (supabaseAdmin as any)

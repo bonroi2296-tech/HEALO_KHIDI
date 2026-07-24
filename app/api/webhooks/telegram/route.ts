@@ -165,9 +165,20 @@ async function handleStaffGroupMessage(update: any, msg: any): Promise<Response>
   if (!gid || groupChatId !== gid) {
     return Response.json({ ok: true, skipped: "non_private" });
   }
-  // 주제 밖 일반 글·서비스 메시지(주제 생성 등)·봇 자신의 글은 라우팅 대상 아님.
+  // 주제 밖 일반 글·서비스 메시지(주제 생성 등)·봇 발신 글은 라우팅 대상 아님.
   const topicId = Number(msg.message_thread_id || 0);
-  if (!topicId || !text || msg.from?.is_bot) {
+  if (msg.from?.is_bot) {
+    // 함정(독립 리뷰 P2): 그룹 관리자가 "익명으로 보내기"를 켜면 from=GroupAnonymousBot 으로
+    // 와서 조용히 버려진다 — 전달된 줄 착각하지 않게 주제에 즉시 경고.
+    if (topicId && msg.from?.username === "GroupAnonymousBot" && text) {
+      await notifyStaffTopic(
+        topicId,
+        "⚠️ '익명으로 보내기(관리자 익명)'가 켜져 있으면 답장을 환자에게 전달할 수 없어요 — 익명을 끄고 다시 보내주세요."
+      );
+    }
+    return Response.json({ ok: true, skipped: "staff_ignored" });
+  }
+  if (!topicId || !text) {
     return Response.json({ ok: true, skipped: "staff_ignored" });
   }
 
@@ -177,7 +188,9 @@ async function handleStaffGroupMessage(update: any, msg: any): Promise<Response>
     return Response.json({ ok: true, skipped: "staff_topic_unmapped" });
   }
 
-  // 멱등 — 환자 경로와 같은 키(tg_update_id)로 중복 배달 차단(부분 유니크 인덱스가 최종 방어선).
+  // 멱등 — 저장(클레임)을 발신보다 먼저: 같은 update 가 병렬/재배달돼도 유니크 인덱스
+  // (thread_id, tg_update_id)가 한 쪽만 통과시켜 환자 이중 발신을 막는다(독립 리뷰 P3 —
+  // 발신-먼저였으면 dup pre-check 를 둘 다 통과하는 창이 열림). 환자 경로와 동일한 순서.
   const updateId = Number(update.update_id || 0);
   if (updateId) {
     const { data: dup } = await (supabaseAdmin as any)
@@ -187,6 +200,26 @@ async function handleStaffGroupMessage(update: any, msg: any): Promise<Response>
       .eq("metadata->>tg_update_id", String(updateId))
       .limit(1);
     if (dup?.length) return Response.json({ ok: true, skipped: "duplicate" });
+  }
+
+  const { data: staffMsg, error: staffInsertErr } = await (supabaseAdmin as any)
+    .from("chat_messages")
+    .insert({
+      thread_id: thread.id,
+      actor_type: "admin",
+      message_text: text,
+      metadata: {
+        via: "telegram_staff",
+        tg_update_id: updateId || null,
+        staff_username: msg.from?.username || null,
+      },
+    })
+    .select("id")
+    .single();
+  if (staffInsertErr) {
+    if (staffInsertErr.code === "23505") return Response.json({ ok: true, skipped: "duplicate" });
+    console.error("[webhooks/telegram] staff reply insert:", staffInsertErr.message);
+    return Response.json({ ok: false, error: "internal_error" }, { status: 500 });
   }
 
   // 환자에게 발신 — 스레드 채널별 어댑터(스태프 답장 창구는 텔레그램 그룹 하나로 통일).
@@ -204,30 +237,28 @@ async function handleStaffGroupMessage(update: any, msg: any): Promise<Response>
   } else {
     deliveryNote = "sent"; // 웹 챗: 저장만으로 환자 화면(스레드)에 뜬다.
   }
-
-  const { error: staffInsertErr } = await (supabaseAdmin as any)
-    .from("chat_messages")
-    .insert({
-      thread_id: thread.id,
-      actor_type: "admin",
-      message_text: text,
-      metadata: {
-        via: "telegram_staff",
-        tg_update_id: updateId || null,
-        staff_username: msg.from?.username || null,
-        ...(deliveryNote === "sent" ? {} : { delivery: deliveryNote }),
-      },
-    });
-  if (staffInsertErr && staffInsertErr.code !== "23505") {
-    console.error("[webhooks/telegram] staff reply insert:", staffInsertErr.message);
+  if (deliveryNote !== "sent" && staffMsg?.id) {
+    await (supabaseAdmin as any)
+      .from("chat_messages")
+      .update({
+        metadata: {
+          via: "telegram_staff",
+          tg_update_id: updateId || null,
+          staff_username: msg.from?.username || null,
+          delivery: deliveryNote,
+        },
+      })
+      .eq("id", staffMsg.id);
   }
 
   // 사람이 답장을 시작한 스레드에는 AI 가 끼어들지 않는다(어드민 라우트와 동일 규칙).
+  // 전체 metadata 덮어쓰기 대신 키 병합 RPC(독립 리뷰 C2 부류 방지 — 그 사이 갱신된 키 보존).
   if (thread.metadata?.coordinator_active !== true) {
-    await (supabaseAdmin as any)
-      .from("chat_threads")
-      .update({ metadata: { ...threadMeta(thread), coordinator_active: true } })
-      .eq("id", thread.id);
+    const { error: mergeErr } = await (supabaseAdmin as any).rpc("chat_thread_merge_meta", {
+      p_thread_id: thread.id,
+      p_patch: { coordinator_active: true },
+    });
+    if (mergeErr) console.error("[webhooks/telegram] coordinator_active merge:", mergeErr.message);
   }
 
   if (deliveryNote !== "sent") {

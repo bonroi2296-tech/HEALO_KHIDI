@@ -104,6 +104,11 @@ vi.mock("@/lib/rag/supabaseAdmin", () => ({
       update: (payload: any) =>
         chainable("update", table, payload, { data: [{ id: "row-1" }], error: null }),
     }),
+    // metadata 키 병합 RPC(chat_thread_merge_meta 등) — 호출 기록으로 계약 어설션.
+    rpc: (fn: string, args: any) => {
+      captured.push({ table: `rpc:${fn}`, op: "rpc", payload: args, filters: [] });
+      return Promise.resolve({ data: 1, error: null });
+    },
   },
 }));
 
@@ -621,11 +626,27 @@ describe("텔레그램 웹훅 계약", () => {
     expect(ins?.payload.actor_type).toBe("admin");
     expect(ins?.payload.metadata.via).toBe("telegram_staff");
     expect(ins?.payload.metadata.staff_username).toBe("coordinator_kim");
-    // 사람 답장 시작 → coordinator_active(이후 AI 침묵)
-    const upd = captured.find(
-      (c) => c.table === "chat_threads" && c.op === "update" && c.payload?.metadata?.coordinator_active === true
+    // 사람 답장 시작 → coordinator_active(이후 AI 침묵) — 키 병합 RPC 로(전체 덮어쓰기 금지, C2)
+    const merge = captured.find(
+      (c) => c.table === "rpc:chat_thread_merge_meta" && c.payload?.p_patch?.coordinator_active === true
     );
-    expect(upd).toBeTruthy();
+    expect(merge).toBeTruthy();
+    // 이중 발신 차단: 저장(클레임)이 발신보다 먼저여야 한다(재배달이 유니크 인덱스에 걸리게)
+    const insIdx = captured.findIndex((c) => c.table === "chat_messages" && c.op === "insert");
+    expect(insIdx).toBeGreaterThanOrEqual(0);
+    expect(sendTelegramPatientMessage.mock.invocationCallOrder[0]).toBeGreaterThan(0);
+    delete process.env.STAFF_TELEGRAM_GROUP_ID;
+  });
+
+  it("스태프 그룹: gid 가 설정돼 있어도 다른 그룹의 메시지는 무시한다(보안 — 임의 그룹 초대 공격 차단)", async () => {
+    const POST = await loadPost();
+    process.env.STAFF_TELEGRAM_GROUP_ID = "-100999";
+    const u = staffGroupUpdate("try to reply", 55, 95);
+    (u.message.chat as any).id = -100777; // 다른 그룹
+    const res = await POST(makeReq(u));
+    expect((await res.json()).skipped).toBe("non_private");
+    expect(sendTelegramPatientMessage).not.toHaveBeenCalled();
+    expect(captured.filter((c) => c.op === "insert")).toHaveLength(0);
     delete process.env.STAFF_TELEGRAM_GROUP_ID;
   });
 
