@@ -13,8 +13,9 @@ import { useRouter, useSearchParams } from "next/navigation";
 import {
   Check, ChevronRight, ChevronLeft, UploadCloud, X, File,
   AlertCircle, Loader2, Shield, Clock,
-  Bot, MessageCircle, ClipboardList, Headset, BadgeCheck
+  Bot, MessageCircle, ClipboardList, Headset, BadgeCheck, HelpCircle
 } from "lucide-react";
+import OrganIcon from "../../_components/OrganIcon";
 // 인테이크 선택지 라벨(6개국어)·값은 코디 상세화면과 공용 — 단일 SoR.
 import { CANCER_TYPES, STAGES, TREATMENT_STATES, TRAVEL_TIMING, PRIORITIES } from "@/lib/inquiry/intakeLabels";
 import { useLang } from "@/lib/i18n/LangContext";
@@ -1387,7 +1388,6 @@ export default function UnifiedInquiryFunnel() {
           </label>
           <div className="grid grid-cols-4 gap-2" role="group" aria-labelledby="funnel-cancerType-label">
             {CANCER_TYPES.map((ct) => {
-              const Icon = ct.icon;
               const selected = form1.cancerType === ct.value;
               const colorClass = CANCER_TYPE_COLORS[ct.value] || "text-gray-600 bg-gray-50 border-gray-200";
               return (
@@ -1402,7 +1402,7 @@ export default function UnifiedInquiryFunnel() {
                   }`}
                 >
                   <div className={`w-9 h-9 rounded-lg flex items-center justify-center border ${colorClass}`}>
-                    <Icon size={18} />
+                    {ct.organ ? <OrganIcon name={ct.organ} className="w-[22px] h-[22px]" /> : <HelpCircle size={18} />}
                   </div>
                   <span className={`text-[11px] font-medium leading-tight ${selected ? "text-teal-800" : "text-gray-700"}`}>
                     {ct.label[lang] || ct.label.en}

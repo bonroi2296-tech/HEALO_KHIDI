@@ -16,7 +16,11 @@
  *   직접 눌러야 바뀌는데 아무도 안 누른다.
  * - 그래서 inquiries.case_status 가 'follow_up'(사후관리)·'completed' 인 케이스에도 보낸다
  *   (PO 결정 2026-07-16). 세션 경로는 그대로 둔다 — 누군가 완료를 누르면 여전히 동작해야 하고,
- *   빼면 회귀다. 중복은 surveys.inquiry_id 존재검사로 막는다(케이스당 1회, 재실행에 멱등).
+ *   빼면 회귀다.
+ *
+ * 2026-07-24 확장 — 케이스 경로를 D+ 케이던스로(PO 결정, rescue 보관분 이식):
+ * - "케이스당 설문 1회" → D+7·D+90·D+180 차수별 설문(fu_<phase>) + 비설문 단계(복약 D+14·
+ *   화상 D+30·검사리뷰)의 환자 제안·직원 종 알림. 상세는 아래 케이스 블록 주석.
  *
  * 스케줄:
  * - vercel.json crons 에 `0 9 * * *` (매일 09:00 UTC) 등록됨
@@ -41,7 +45,9 @@ import {
 import { resolveSurveyRecipient } from "@/lib/surveys/resolveRecipient";
 import { surveyDispatchWindow } from "@/lib/surveys/dispatchWindow";
 import { computeUnclosedNudge } from "@/lib/surveys/unclosedNudge";
-import { alertIfKpiStale } from "@/lib/khidi/kpiHealthcheck";
+import { computeCadencePlan, buildSentSurveyTypes } from "@/lib/surveys/cadencePlan";
+import { createFollowupSchedule } from "@/lib/followup/scheduler";
+import { alertIfKpiStale, alertIfSurveysStale } from "@/lib/khidi/kpiHealthcheck";
 import { decryptMaybe } from "@/lib/security/encryptionV2";
 
 function verifyCronSecret(header: string | null): boolean {
@@ -243,19 +249,28 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  // ── 케이스(사후관리) 기반 발송 ─────────────────────────────────────────
+  // ── 케이스(사후관리) 기반 발송 — D+ 케이던스 ──────────────────────────
   // 위 세션 루프는 consultation_sessions.status='completed' 를 찾는데 실측상 completed 가
   // 영구 0건이라(2026-07-21: 세션 35건 전부 scheduled) 설문이 구조적으로 0건이었다.
-  // 실제 환자 여정은 inquiries.case_status 에 기록되므로 거기서도 발송한다(PO 결정 2026-07-16).
-  // 시간창(window) 없이 "이 케이스에 설문이 나갔나"만 보는 이유: 케이스가 사후관리에 처음
-  // 도달한 시점을 정확히 알 필요가 없고, surveys.inquiry_id 존재검사만으로 케이스당 1회가
-  // 보장되기 때문(재실행에도 멱등).
+  // 실제 환자 여정은 inquiries.case_status 에 기록되므로 거기서 발송한다(PO 결정 2026-07-16).
+  //
+  // 2026-07-24 확장(PO 결정, rescue 보관분 이식): "케이스당 1회" → D+ 케이던스.
+  // D+0 앵커 = inquiries.followup_started_at(처음 보면 stamp). scheduler.ts 의 암종별
+  // 케이던스를 재계산해 기한 도래분만 실행한다(계산은 순수함수 computeCadencePlan — 단위테스트):
+  //   - 설문 단계(D+7·D+90·D+180…) → 이메일 발송. 멱등 = surveys.survey_type('fu_<phase>')
+  //     존재검사 + DB 유니크(uniq_surveys_inquiry_type)가 마지막 방어선.
+  //   - 비설문 단계(복약 D+14·화상 D+30·검사리뷰) → 환자 포털 '제안'(followup_schedules,
+  //     schedule.kind='cadence') + 직원 종 알림. 멱등 = 제안 행 존재검사(phase:action).
+  // 앵커가 stamp 시점부터 시작하므로 기존 케이스도 첫 실행에 폭주하지 않는다(D+7부터).
   let caseSurveysDispatched = 0;
+  let proposalsCreated = 0;
   let casesChecked = 0;
+  // 직원 종 알림용 목록 — 제안이 실제로 생길 때 1회만 조회(매일 헛도는 날 listUsers 호출 아끼기).
+  let staffIdsPromise: Promise<{ admins: string[]; coordinators: string[] }> | null = null;
   try {
     const { data: cases, error: caseErr } = await db
       .from("inquiries")
-      .select("id, email, preferred_language, spoken_language, first_name, last_name, user_id, case_status")
+      .select("id, email, preferred_language, spoken_language, first_name, last_name, user_id, case_status, cancer_type, followup_started_at")
       .in("case_status", ["follow_up", "completed"])
       // 테스트 케이스는 실적이 아니므로 실제 메일을 보내지 않는다(KPI·수신자 오염 방지).
       .not("is_test", "is", true)
@@ -269,76 +284,189 @@ export async function GET(request: NextRequest) {
 
     for (const c of (cases as any[]) || []) {
       try {
-        // 이 케이스에 이미 설문이 나갔는지(멱등 가드).
-        const alreadySent = await surveyExists(db, { inquiryId: c.id });
-        if (alreadySent === "error") {
-          errors.push(`case=${c.id}: 존재검사 실패 — 이번 실행 건너뜀`);
+        // D+0 앵커: 사후관리 진입 시각. 처음 보면 지금으로 stamp(과거 소급 불가 —
+        // case_status_history 는 옛 단계 키만 담아 신뢰 불가, 20260716 마이그레이션 주석 참조).
+        // stamp 실패면 케이스를 건너뛴다 — 앵커 없이 진행하면 매 실행 D+0 이 밀려 영영 안 나간다.
+        let anchor: string = c.followup_started_at;
+        if (!anchor) {
+          anchor = new Date().toISOString();
+          const { error: stampErr } = await db
+            .from("inquiries")
+            .update({ followup_started_at: anchor })
+            .eq("id", c.id);
+          if (stampErr) {
+            errors.push(`case=${c.id}: 앵커 stamp 실패 — 이번 실행 건너뜀`);
+            skipped++;
+            continue;
+          }
+        }
+
+        // 이 케이스에 이미 나간 설문 차수(멱등 가드). 조회 실패 시 fail-closed —
+        // 못 보내는 건 다음 실행이 재시도하지만 잘못 보낸 메일은 못 되돌린다.
+        // 판정(고아 pending 재시도·레거시 폴딩)은 순수함수 buildSentSurveyTypes — 단위테스트.
+        const { data: sentRows, error: sentErr } = await db
+          .from("surveys")
+          .select("id, survey_type, sent_at, created_at")
+          .eq("inquiry_id", c.id);
+        if (sentErr) {
+          errors.push(`case=${c.id}: 설문 존재검사 실패 — 이번 실행 건너뜀`);
           skipped++;
           continue;
         }
-        if (alreadySent) {
-          skipped++;
-          continue;
-        }
-
-        // inquiries 의 email/이름은 AES-256-GCM 암호화 저장 → 복호화 없이 쓰면 암호문에 '@' 가
-        // 없어 수신자 결정이 항상 null → 또 영구 0건이 된다(POSTMORTEMS #13).
-        const inquiryRow = {
-          email: decryptMaybe(c.email),
-          preferred_language: c.preferred_language,
-          spoken_language: c.spoken_language,
-          first_name: decryptMaybe(c.first_name),
-          last_name: decryptMaybe(c.last_name),
-        };
-
-        const recipient = resolveSurveyRecipient(
-          { patient_id: c.user_id || null, inquiry_id: c.id, patient_language: null },
-          null,
-          inquiryRow
+        const { types: sentSurveyTypes, staleIds } = buildSentSurveyTypes(
+          ((sentRows as any[]) || []) as any,
+          now
         );
-        if (!recipient) {
+        // 고아 pending(insert 후 crash — 발송된 적 없음) 삭제 → 이번 실행이 재발송.
+        // sent_at null 조건을 같이 걸어 "방금 다른 실행이 발송 완료한" 행을 지우는 경합 방지.
+        // 삭제 실패 시엔 DB 유니크가 재발송 insert 를 막으므로 중복은 없고 다음 실행이 재시도.
+        for (const sid of staleIds) {
+          await db.from("surveys").delete().eq("id", sid).is("sent_at", null)
+            .then(() => {}, () => { /* 위 주석의 안전 수렴 */ });
+        }
+
+        // 이미 만든 케이던스 제안(비설문 단계) 키 — 재예약 단발(source 기반)과는
+        // schedule.kind='cadence' 로 구분된다.
+        const { data: propRows, error: propErr } = await db
+          .from("followup_schedules")
+          .select("schedule")
+          .eq("inquiry_id", c.id);
+        if (propErr) {
+          errors.push(`case=${c.id}: 제안 존재검사 실패 — 이번 실행 건너뜀`);
           skipped++;
           continue;
         }
+        const firedStepKeys = new Set<string>(
+          ((propRows as any[]) || [])
+            .map((r) => (r.schedule?.kind === "cadence" ? `${r.schedule?.phase}:${r.schedule?.action}` : null))
+            .filter((k): k is string => !!k)
+        );
 
-        const tokenResult = await generateSurveyToken({
-          inquiryId: c.id,
-          patientId: c.user_id || null,
-          surveyType: "post_followup",
+        const cadence = createFollowupSchedule(
+          String(c.id),
+          c.cancer_type || "unspecified",
+          anchor,
+          c.user_id || undefined
+        );
+        const plan = computeCadencePlan({
+          steps: cadence.schedule,
+          anchorMs: new Date(anchor).getTime(),
+          nowMs: now,
+          sentSurveyTypes,
+          firedStepKeys,
         });
-        if (!tokenResult.ok || !tokenResult.surveyId || !tokenResult.token) {
-          errors.push(`case=${c.id}: token generation failed`);
-          continue;
+
+        // ── 설문 단계 → 이메일 (K-03 표본) ──
+        if (plan.surveysDue.length > 0) {
+          // inquiries 의 email/이름은 AES-256-GCM 암호화 저장 → 복호화 없이 쓰면 암호문에 '@' 가
+          // 없어 수신자 결정이 항상 null → 또 영구 0건이 된다(POSTMORTEMS #13).
+          const recipient = resolveSurveyRecipient(
+            { patient_id: c.user_id || null, inquiry_id: c.id, patient_language: null },
+            null,
+            {
+              email: decryptMaybe(c.email),
+              preferred_language: c.preferred_language,
+              spoken_language: c.spoken_language,
+              first_name: decryptMaybe(c.first_name),
+              last_name: decryptMaybe(c.last_name),
+            }
+          );
+          if (!recipient) {
+            skipped++; // 이메일이 없으면 설문은 못 보내지만 아래 제안·알림은 계속 만든다
+          } else {
+            for (const { step, surveyType } of plan.surveysDue) {
+              const tokenResult = await generateSurveyToken({
+                inquiryId: c.id,
+                patientId: c.user_id || null,
+                surveyType,
+              });
+              if (!tokenResult.ok || !tokenResult.surveyId || !tokenResult.token) {
+                // 동시 실행 경합은 DB 유니크(uniq_surveys_inquiry_type)가 insert 를 거부해
+                // 여기로 떨어진다 — 중복 발송 대신 이번 실행 건너뜀.
+                errors.push(`case=${c.id} ${surveyType}: token generation failed`);
+                continue;
+              }
+
+              const emailResult = await sendSurveyEmail({
+                surveyId: tokenResult.surveyId,
+                token: tokenResult.token,
+                toEmail: recipient.email,
+                patientName: recipient.name,
+                lang: recipient.lang,
+              });
+
+              if (emailResult.ok) {
+                caseSurveysDispatched++;
+                // 세션 경로와 동일하게 발송 이력을 남긴다 — 안 남기면 /admin/reminders 에서
+                // 케이스 설문만 흔적 없이 사라진 것처럼 보인다.
+                await db.from("reminders_scheduled").insert({
+                  reminder_type: "survey_request",
+                  fire_at: new Date().toISOString(),
+                  channel: "email",
+                  recipient_user_id: c.user_id || null,
+                  recipient_address: recipient.email,
+                  payload: { survey_id: tokenResult.surveyId, inquiry_id: c.id, phase: step.phase },
+                  status: "sent",
+                  sent_at: new Date().toISOString(),
+                }).then(() => {}, () => { /* 이력 실패는 발송을 되돌리지 않는다 */ });
+              } else {
+                // 발송 실패 시 pending 행을 지운다. 안 지우면 존재검사에 걸려 다음 실행부터
+                // 영구 skip → 설문이 조용히 유실된다(세션 경로와 동일 정책).
+                await db.from("surveys").delete().eq("id", tokenResult.surveyId);
+                console.error(`[cron/dispatch-surveys] case=${c.id} ${surveyType} email failed:`, emailResult.error);
+                errors.push(`case=${c.id} ${surveyType}: email send failed (pending survey row deleted for retry)`);
+              }
+            }
+          }
         }
 
-        const emailResult = await sendSurveyEmail({
-          surveyId: tokenResult.surveyId,
-          token: tokenResult.token,
-          toEmail: recipient.email,
-          patientName: recipient.name,
-          lang: recipient.lang,
-        });
+        // ── 비설문 단계(복약·화상·검사리뷰) → 환자 포털 '제안' + 직원 종 알림 ──
+        for (const { step, stepKey, dueAtIso } of plan.proposalsDue) {
+          const { error: insErr } = await db.from("followup_schedules").insert({
+            inquiry_id: c.id,
+            patient_user_id: c.user_id ?? null,
+            cancer_type: c.cancer_type || "unspecified",
+            treatment_completed_at: anchor.slice(0, 10),
+            status: "proposed",
+            current_phase: step.phase,
+            next_action_at: dueAtIso,
+            schedule: {
+              kind: "cadence",
+              phase: step.phase,
+              action: step.type,
+              title_ko: step.title_ko,
+              title_ru: step.title_ru,
+              days_from_treatment: step.daysFromTreatment,
+            },
+          });
+          if (insErr) {
+            errors.push(`case=${c.id} ${stepKey}: 제안 생성 실패 — ${insErr.message}`);
+            continue;
+          }
+          proposalsCreated++;
 
-        if (emailResult.ok) {
-          caseSurveysDispatched++;
-          // 세션 경로와 동일하게 발송 이력을 남긴다 — 안 남기면 /admin/reminders 에서
-          // 케이스 설문만 흔적 없이 사라진 것처럼 보인다.
-          await db.from("reminders_scheduled").insert({
-            reminder_type: "survey_request",
-            fire_at: new Date().toISOString(),
-            channel: "email",
-            recipient_user_id: c.user_id || null,
-            recipient_address: recipient.email,
-            payload: { survey_id: tokenResult.surveyId, inquiry_id: c.id },
-            status: "sent",
-            sent_at: new Date().toISOString(),
-          }).then(() => {}, () => { /* 이력 실패는 발송을 되돌리지 않는다 */ });
-        } else {
-          // 발송 실패 시 pending 행을 지운다. 안 지우면 위 존재검사에 걸려 다음 실행부터
-          // 영구 skip → 설문이 조용히 유실된다(세션 경로와 동일 정책).
-          await db.from("surveys").delete().eq("id", tokenResult.surveyId);
-          console.error(`[cron/dispatch-surveys] case=${c.id} email failed:`, emailResult.error);
-          errors.push(`case=${c.id}: email send failed (pending survey row deleted for retry)`);
+          // 직원 종 — 코디가 케이스를 열어 기존 재예약·상담 도구로 처리한다.
+          // 실패해도 제안 자체는 유효(환자 화면에는 이미 떴다) — 흡수만 하고 로그.
+          try {
+            if (!staffIdsPromise) {
+              staffIdsPromise = import("@/lib/notifications/inApp").then((m) => m.getStaffIdsByRole());
+            }
+            const { admins, coordinators } = await staffIdsPromise;
+            const staff = [...admins, ...coordinators];
+            if (staff.length > 0) {
+              const { broadcastInAppNotification } = await import("@/lib/notifications/inApp");
+              await broadcastInAppNotification(staff, {
+                type: "followup_due",
+                title: `🗓️ 사후관리 ${step.title_ko} — 케이스 #${c.id}`,
+                body: step.description_ko,
+                priority: "normal",
+                link: `/coordinator/inbox/${c.id}`,
+                payload: { inquiryId: c.id, phase: step.phase, action: step.type },
+              });
+            }
+          } catch (bellErr: any) {
+            console.warn(`[cron/dispatch-surveys] case=${c.id} ${stepKey} 종 알림 실패(무시):`, bellErr?.message);
+          }
         }
       } catch (err: any) {
         errors.push(`case=${c.id}: ${err.message}`);
@@ -400,17 +528,25 @@ export async function GET(request: NextRequest) {
   let kpiHealth: { stale: boolean; latest: string | null } = { stale: false, latest: null };
   try { kpiHealth = await alertIfKpiStale(); } catch { /* noop */ }
 
+  // 설문 침묵 감지: 사후관리 8일↑인데 1주차 설문이 실발송(sent_at)되지 않은 케이스 경보.
+  // 위 발송 로직이 어떤 이유로든 조용히 죽었을 때 데이터로 잡는 백업 감시자.
+  // (이메일 없는 케이스는 noEmail 로만 집계 — 경보 아님. 전면 사망은 앵커리스 모집단으로 감지.)
+  let surveyHealth: { stale: boolean; overdue: number; noEmail: number } = { stale: false, overdue: 0, noEmail: 0 };
+  try { surveyHealth = await alertIfSurveysStale(); } catch { /* noop */ }
+
   return Response.json({
     ok: true,
     sessionsChecked: (sessions as any[])?.length || 0,
     casesChecked,
     surveysDispatched,
     caseSurveysDispatched,
+    proposalsCreated,
     skipped,
     unclosed,
     unclosedCheckFailed,
     errors,
     kpiHealth,
+    surveyHealth,
   });
 }
 

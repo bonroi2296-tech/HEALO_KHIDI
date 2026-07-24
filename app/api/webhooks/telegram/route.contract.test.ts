@@ -61,10 +61,30 @@ vi.mock("@/lib/rag/supabaseAdmin", () => ({
             filters.push([f, v]);
             return builder;
           },
+          not: (f: string, op: string, v: any) => {
+            filters.push([`not:${f}:${op}`, v]);
+            return builder;
+          },
           order: () => builder,
           limit: async (_n: number) => {
             if (table === "chat_threads") {
-              return { data: mockState.thread ? [mockState.thread] : [], error: null };
+              const t = mockState.thread;
+              if (!t) return { data: [], error: null };
+              // status 필터를 실제로 시뮬레이션 — "waiting_patient 이어받기" 계약이
+              // 코드를 .eq("status","open") 으로 되돌리면 빨간불 나게 고정(독립 리뷰 지적:
+              // 필터 무시 목은 연속성 수리를 전혀 고정하지 못했다).
+              const status = (t as any).status || "open";
+              for (const [f, v] of filters) {
+                if (f === "status" && status !== v) return { data: [], error: null };
+                if (f === "not:status:in") {
+                  const excluded = String(v)
+                    .replace(/[()]/g, "")
+                    .split(",")
+                    .map((s) => s.trim());
+                  if (excluded.includes(status)) return { data: [], error: null };
+                }
+              }
+              return { data: [t], error: null };
             }
             // chat_messages: 멱등 가드의 중복 조회(select "id") vs 히스토리 조회를 구분
             if (cols === "id") {
@@ -515,6 +535,35 @@ describe("텔레그램 웹훅 계약", () => {
     await flushAfter();
     expect(createDraftIntake).toHaveBeenCalledTimes(1);
     expect(createDraftIntake.mock.calls[0][4]).toEqual({ handOffRequested: true });
+  });
+
+  it("코디 답장으로 waiting_patient 가 된 스레드도 이어받는다 — 재동의·새 스레드 분절 금지(2026-07-24 실기기 재현)", async () => {
+    const POST = await loadPost();
+    const t = CONSENTED_THREAD();
+    (t as any).status = "waiting_patient";
+    mockState.thread = t;
+
+    const res = await POST(makeReq(msgUpdate("another question", 15)));
+    expect((await res.json()).ok).toBe(true);
+    await flushAfter();
+
+    // 동의를 다시 묻지 않고, 새 스레드도 만들지 않으며, AI 가 정상 응답한다
+    expect(sendConsentPrompt).not.toHaveBeenCalled();
+    expect(captured.find((c) => c.table === "chat_threads" && c.op === "insert")).toBeFalsy();
+    expect(generateChatReply).toHaveBeenCalledTimes(1);
+  });
+
+  it("TEST_TELEGRAM_CHAT_IDS 에 등록된 계정은 딥링크 없이도 테스트 표식(is_test) — 실적 오염 방지", async () => {
+    const POST = await loadPost();
+    process.env.TEST_TELEGRAM_CHAT_IDS = "999, 777";
+    try {
+      const res = await POST(makeReq(msgUpdate("hello", 16)));
+      expect((await res.json()).ok).toBe(true);
+      const tIns = captured.find((c) => c.table === "chat_threads" && c.op === "insert");
+      expect(tIns?.payload.metadata.is_test).toBe(true);
+    } finally {
+      delete process.env.TEST_TELEGRAM_CHAT_IDS;
+    }
   });
 
   it("그룹 채팅 메시지는 무시한다(1:1 상담 전용)", async () => {
