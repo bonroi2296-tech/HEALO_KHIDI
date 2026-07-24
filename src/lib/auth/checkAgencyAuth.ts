@@ -3,6 +3,7 @@
  * checkHospitalAuth 와 동일 패턴 — Bearer token / 쿠키 인증 후 agency_users 조회.
  */
 
+import "server-only"; // service_role 접근 모듈 — 클라이언트 번들 유입 차단(독립 리뷰 2026-07-24 권고)
 import type { NextRequest } from "next/server";
 import { createSupabaseServerClient, createServiceRoleClient } from "../supabase/server";
 
@@ -91,4 +92,26 @@ export async function checkAgencyAuth(request?: NextRequest): Promise<AgencyAuth
   } catch (error: unknown) {
     return { isAgencyUser: false, error: error instanceof Error ? error.message : String(error) };
   }
+}
+
+/**
+ * 파트너 유형 게이트 (2026-07-24 권한 정비 D — KNOWN_ISSUES 참조)
+ *
+ * 배경: 해외 에이전시(agency)와 해외 의료기관(medical_institution)은 같은 checkAgencyAuth 를
+ * 통과한다 — "의료기관 전용" 데이터를 추가할 때 분기를 잊으면 조용히 둘 다 통과하는 구조.
+ * → 유형 전용 라우트는 반드시 이 헬퍼로 명시 게이트할 것 (수동 if 비교 금지).
+ *
+ * 사용: const gate = requirePartnerType(auth, "medical_institution"); if (gate) return gate;
+ */
+export function requirePartnerType(
+  auth: AgencyAuthResult,
+  type: "agency" | "medical_institution"
+): Response | null {
+  if (!auth.isAgencyUser || !auth.agencyId) {
+    return Response.json({ ok: false, error: "unauthorized" }, { status: 403 });
+  }
+  if (auth.partnerType !== type) {
+    return Response.json({ ok: false, error: `not_${type}` }, { status: 403 });
+  }
+  return null;
 }
