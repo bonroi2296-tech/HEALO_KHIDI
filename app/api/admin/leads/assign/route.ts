@@ -14,7 +14,7 @@ export const runtime = "nodejs";
 
 import { NextRequest } from "next/server";
 import { supabaseAdmin, assertSupabaseEnv } from "@/lib/rag/supabaseAdmin";
-import { requireAdminAuth } from "@/lib/auth/requireAdminAuth";
+import { requirePortalAuth } from "@/lib/auth/requirePortalAuth"; // 2026-07-24 권한 정비(A): 코디도 리드 진행 가능(staffOnly)
 import {
   logAdminAction,
   getIpFromRequest,
@@ -49,11 +49,11 @@ export async function POST(request: NextRequest) {
   // ========================================
   // 1. 관리자 권한 확인
   // ========================================
-  const auth = await requireAdminAuth(request);
+  const auth = await requirePortalAuth(request, { staffOnly: true });
   if (!auth.success) {
     return auth.response;
   }
-  const { authResult } = auth;
+  const authResult = { email: auth.email, userId: auth.userId }; // requirePortalAuth 평탄 반환 → 기존 코드 호환
 
   // ========================================
   // 2. Body 파싱 및 검증
