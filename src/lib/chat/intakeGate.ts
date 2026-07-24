@@ -21,11 +21,27 @@ const SIGNAL_FIELDS = [
   "medications_flag",
 ] as const;
 
-export function shouldPromoteToInquiry(intake: any, handOffRequested: boolean): boolean {
+// 언어 불문 최소 분량(공백·구두점 제외) — "안녕?"×3(6자)·"hi hello"(7자)는 걸리고,
+// "Хочу лечить рак"(13자) 같은 짧은 실상담은 통과하게 낮게 잡는다. 놓친 리드(집계 누락)가
+// 잡문의 1건보다 훨씬 비싸므로 승격 쪽으로 기운 문턱.
+const MIN_MEANINGFUL_CHARS = 12;
+
+export function shouldPromoteToInquiry(
+  intake: any,
+  handOffRequested: boolean,
+  patientTexts = ""
+): boolean {
   if (handOffRequested) return true;
-  return SIGNAL_FIELDS.some((f) => {
+  const hasSignal = SIGNAL_FIELDS.some((f) => {
     const v = intake?.[f];
     if (Array.isArray(v)) return v.length > 0;
     return v !== null && v !== undefined && v !== false && v !== "";
   });
+  if (hasSignal) return true;
+  // 추출기(intakeExtract.ts)는 영어 키워드 전용이라 러·한·중·일·카 실상담이 신호 0으로
+  // 나온다(독립 리뷰 CONFIRMED — 핵심 타겟이 러시아어인데 신호만 믿으면 리드가 통째로
+  // 증발). 언어 불문 폴백: 환자 원문이 최소 분량 이상이면 실상담으로 보고 승격한다.
+  // ponytail: 진짜 해법은 6개 언어 추출 키워드(암종·부위·일정) — 지표 품질이 문제되면 확장.
+  const stripped = String(patientTexts || "").replace(/[\s\p{P}\p{S}]/gu, "");
+  return stripped.length >= MIN_MEANINGFUL_CHARS;
 }

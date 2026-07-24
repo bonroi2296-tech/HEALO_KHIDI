@@ -223,7 +223,7 @@ export async function createDraftIntake(
   // 또는 의미 신호 1개 이상 — src/lib/chat/intakeGate.ts). 초안·스레드는 위에서 이미 남았다.
   const handOff =
     opts.handOffRequested === true || thread?.metadata?.hand_off_requested === true;
-  if (shouldPromoteToInquiry(intake, handOff)) {
+  if (shouldPromoteToInquiry(intake, handOff, patientTexts)) {
     await promoteThreadToInquiry(thread, intake, rawEnc, lang, clientIp);
   }
 }
