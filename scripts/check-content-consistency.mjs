@@ -487,6 +487,20 @@ for (const file of SCAN_DIRS.flatMap(walk)) {
   errors.push(`[styled-jsx] ${f}:${line} — <style jsx>는 App Router에서 렌더되지 않아 CSS가 통째로 증발한다(POSTMORTEMS #113 모바일 잘림 실사고). jsx 속성 제거하고 평범한 <style>{\`...\`}</style> 로 바꿀 것(:global() 래퍼도 제거).`);
 }
 
+// ── 7c) E2E 스펙 UI 로그인 금지 가드 (POSTMORTEMS #116) ──
+// 왜: 테스트마다 UI 로그인 = 스모크 1회당 Supabase 로그인 10회+(retry 3배)가 공유
+//     Supabase(프로덕션 겸용)를 포화시켜 PR 폭주 시간대에 auth 무응답·REST 10~25s
+//     → 매번 다른 테스트가 떨어지는 간헐 실패. 로그인은 e2e/auth.setup.ts 에서
+//     역할당 1회만(세션 저장), 스펙은 loginAs()(쿠키 주입)만 쓴다.
+for (const file of walk("e2e")) {
+  if (!/\.spec\.ts$/.test(file)) continue; // auth.setup.ts·fixtures 는 허용
+  const text = readFileSync(join(ROOT, file), "utf8");
+  if (!/\buiLoginAs\s*\(/.test(text)) continue;
+  const line = text.split("\n").findIndex((l) => /\buiLoginAs\s*\(/.test(l)) + 1;
+  const f = file.replace(/\\/g, "/");
+  errors.push(`[e2e-ui-login] ${f}:${line} — 스펙에서 uiLoginAs(UI 로그인) 직접 호출 금지. 테스트마다 로그인하면 공유 Supabase 가 PR 폭주 때 포화돼 간헐 실패(POSTMORTEMS #116). loginAs()(저장 세션 쿠키 주입)를 쓸 것 — UI 로그인은 e2e/auth.setup.ts 역할당 1회뿐.`);
+}
+
 // ── 8) 이메일 템플릿 premium 톤 누수 가드 (DESIGN.md premium_drift, POSTMORTEMS #55) ──
 // 왜: 사이트는 legacy(teal+시스템폰트)인데 상담초대·리마인더·설문 이메일이 옛 premium 톤
 //     (검정 #0a0a0a + 골드 #c8a96a + 크림 #f5f0e8 + Playfair 세리프)으로 살아있어, 환자가
