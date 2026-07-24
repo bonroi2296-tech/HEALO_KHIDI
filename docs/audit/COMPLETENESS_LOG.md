@@ -4,6 +4,15 @@
 > 채점표 = `src/lib/completeness/rubric.js` (사람용 `docs/DEFINITION_OF_DONE.md`). 형식·루프 구조는 `.claude/skills/completeness-audit/SKILL.md` 참고.
 > 새 엔트리는 이 안내문 바로 아래에 추가.
 
+## 2026-07-24 완성도 감사 (범위: diff — PR #946 핸드오프 사전질문+1회 수신확인)
+- 스캔: i18n 6개어+kk(신규 ack 맵·수정 confirm 3맵, 파일약속/시간약속 금지 계약테스트로 고정) · 같은 부류 전수(핸드오프 안내 하드코딩 통로 — "has been notified" 류 전수 grep) · 설명서 동기(admin §텔레그램 봇 상담 응대)
+- 수정: ①환자 포털 챗(`app/api/patient/chat`)이 연결 요청 시 **영어 하드코딩 한 줄**만 붙임(러 환자도 영어·사전질문 없음) → `pickHandoffConfirm(lang, true, true)`로 통일 ②admin 설명서 "AI는 침묵" 서술을 새 동작(즉시 문의 등록+사전질문+1회 수신확인)으로 갱신+updated 7-24
+- 비발견: inquiry/ThreadChat(중앙사전 t()+en 폴백)·patient 클라이언트 토스트(6개어 로컬사전)는 이미 다국어 — 통과
+- 검증 못 함(정직 표기): 실기기 텔레그램에서 사전질문→답변→1회 ack 실흐름(봇 대화 필요 — 계약테스트로만 고정)
+- 라운드: 2 (무발견 도달)
+
+---
+
 ## 2026-07-24 완성도 감사 (범위: diff — PR #942 코디 메신저 릴레이·채널 배지)
 - 스캔: i18n 6개어 완전성(신규 3키, {channel} 자리표시자 포함 실검증) · 같은 부류 전수(스태프→chat_messages 삽입 통로 10개 라우트 전수 — 릴레이 필요 통로는 admin·portal 2개뿐, 둘 다 이번에 공용 모듈로 배선. resolve=playbook_responses 학습 드래프트라 비대상, 병원·에이전시=스태프 간 채널) · 설명서 동기(코디 §메시지 updated 7-24)
 - 수정: 발견 0건 (수정 없음)

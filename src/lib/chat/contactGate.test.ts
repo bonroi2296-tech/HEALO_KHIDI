@@ -5,6 +5,7 @@ import {
   HANDOFF_CONFIRM,
   HANDOFF_CONFIRM_IN_CHANNEL,
   HANDOFF_NEED_CONTACT,
+  HANDOFF_RECEIVED_ACK,
 } from "./contactGate";
 
 const ACTIVE_LANGS = ["ko", "en", "ru", "kz", "zh", "ja"];
@@ -58,11 +59,34 @@ describe("pickHandoffConfirm — 연락 가능 여부로 접수 멘트 분기", 
     expect(pickHandoffConfirm("xx", true, true)).toBe(HANDOFF_CONFIRM_IN_CHANNEL.en);
   });
 
-  it("활성 6개 언어(ko·en·ru·kz·zh·ja) 멘트가 세 맵에 다 존재", () => {
+  it("활성 6개 언어(ko·en·ru·kz·zh·ja) 멘트가 네 맵에 다 존재", () => {
     for (const lang of ACTIVE_LANGS) {
       expect(HANDOFF_CONFIRM[lang], `CONFIRM.${lang}`).toBeTruthy();
       expect(HANDOFF_NEED_CONTACT[lang], `NEED_CONTACT.${lang}`).toBeTruthy();
       expect(HANDOFF_CONFIRM_IN_CHANNEL[lang], `IN_CHANNEL.${lang}`).toBeTruthy();
+      expect(HANDOFF_RECEIVED_ACK[lang], `ACK.${lang}`).toBeTruthy();
+    }
+  });
+
+  it("접수 멘트에 사전질문(증상·진단/검사) 포함 — 접수만 하고 끝내지 않는다 (2026-07-24 PO)", () => {
+    // ko 만 문구로 고정하고, 나머지 언어는 번호 매긴 두 질문(①②) 존재로 검사(번역 표현 자유).
+    expect(HANDOFF_CONFIRM_IN_CHANNEL.ko).toContain("증상");
+    expect(HANDOFF_CONFIRM.ko).toContain("증상");
+    for (const lang of ACTIVE_LANGS) {
+      expect(HANDOFF_CONFIRM_IN_CHANNEL[lang], `IN_CHANNEL.${lang}`).toMatch(/①[\s\S]*②/);
+      expect(HANDOFF_CONFIRM[lang], `CONFIRM.${lang}`).toMatch(/①[\s\S]*②/);
+    }
+  });
+
+  it("채널 안(메신저) 멘트는 파일 업로드를 약속하지 않는다 — 봇은 파일 수신 불가(FILE_GUIDE 참고)", () => {
+    for (const [lang, msg] of Object.entries(HANDOFF_CONFIRM_IN_CHANNEL)) {
+      expect(msg, `IN_CHANNEL.${lang}`).not.toMatch(/올려|첨부|upload|прикреп|тірке|上传|アップロード/i);
+    }
+  });
+
+  it("수신확인(ack)은 시간 약속(즉시·24시간) 금지 — 1인 운영 의료안전 원칙", () => {
+    for (const [lang, msg] of Object.entries(HANDOFF_RECEIVED_ACK)) {
+      expect(msg, `ACK.${lang}`).not.toMatch(/즉시|24시간|24\/7|immediately|немедленно|сразу же|すぐに|立即/i);
     }
   });
 });
