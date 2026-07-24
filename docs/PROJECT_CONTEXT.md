@@ -22,6 +22,52 @@
 
 > **📌 중간 저장 (2026-07-24, 앱스토어 등록 세션 — 애플 결제 완료 → 등록 착수)** — PO "애플 디벨로퍼 결제했으니 앱 등록해줘". **핵심 사실: "앱 등록"의 실체(App Store Connect 앱 레코드 생성)는 PO 애플 계정 로그인이 필요 = 어시가 못 누름** → PO 포털 단계(App ID `kr.co.healwith.app`+Push cap / 앱 생성 / APNs .p8 키→Firebase 업로드 / ASC API 키→Codemagic)를 문서(`docs/APP_STORE_LISTING.md`)에 순서로 정리. **PO 선택 = "내가 할 코드부터 먼저 해둬"** → [#982](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/982) 스테이징: ⚠️**발견 = iOS 푸시가 아예 안 배선됐었음**(registerPush.ts가 서버에 올리는 token.value가 iOS에선 FCM 못 쓰는 APNs 원시토큰 → 무음실패). 수리: AppDelegate.swift에 FirebaseApp.configure()+MessagingDelegate로 APNs→FCM 교환(FCM 토큰만 Capacitor registration 이벤트로) · Info.plist FirebaseAppDelegateProxyEnabled=NO · codemagic.yaml pod install 제거(SPM 구조라 무조건 실패)·workspace→xcodeproj. ⚠️**검증 = 리눅스 iOS 빌드 불가 → 디바이스 런타임 미검증, 코드는 표준 패턴**. **남은 Xcode 단계(첫 클라우드 맥 빌드에서)**: Firebase SPM 패키지 App 타겟 추가·GoogleService-Info.plist 타겟 등록(현재 pbxproj 참조 0건)·Push/Background capability — 안 하면 AppDelegate 컴파일 실패. **다음 할 일**: PO가 애플 포털 4단계 완료 → 어시가 Vercel env 2개(FCM_PROJECT_ID·GOOGLE_SERVICE_ACCOUNT_JSON) + 첫 Codemagic 빌드 컴파일 보며 남은 Xcode 단계.
 >
+## 🔖 세션 핸드오프 (2026-07-24 — **앱스토어 등록 착수: iOS 푸시 배선 스테이징 + Android 완비 실측** 세션 종료)
+
+> PO "애플 디벨로퍼 결제했으니 앱등록해줘" → "완벽 준비냐? 한방에 가자" → "안드로이드도 같이 준비" → "준비 마쳤으면 핸드오프". 만진 영역 = `ios/App/App/*`·`codemagic.yaml`·`docs/APP_STORE_LISTING.md`(안드로이드는 실측만, 코드 변경 0). 등록정보 SoR = **`docs/APP_STORE_LISTING.md`**, 심사 답변지 = `docs/APP_STORE_REVIEW_ANSWERS.md`. 이 앱 = Capacitor 라이브로드(웹 `https://healwith.co.kr`을 감싼 네이티브 껍데기), 스토어 반려(4.2 웹뷰) 회피용 네이티브 가치 = 푸시·카메라.
+
+**1. 이번 세션 한 일** (PR [#982](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/982) **초안·미머지**, CI 초록)
+
+- **iOS 푸시(APNs→FCM) 배선 코드 스테이징** — 발견: iOS는 원래 푸시가 아예 안 배선됨(웹 `registerPush.ts`가 서버에 올리는 token.value가 iOS에선 FCM이 못 쓰는 APNs 원시 토큰 → `fcm.ts` 발송이 무음 실패). 수리 3파일: ①`AppDelegate.swift` — `FirebaseApp.configure()`+`MessagingDelegate`, APNs 토큰을 Firebase에 수동으로 넘겨 FCM 토큰 교환 → **FCM 토큰만** Capacitor `registration` 이벤트로 String 전달(공식 "Push with Firebase" 패턴). ②`Info.plist` — `FirebaseAppDelegateProxyEnabled=NO`(APNs/FCM 이중 발화 방지). ③`codemagic.yaml` — `pod install` 제거(Podfile 없는 SPM 구조라 무조건 실패)·빌드대상 `.xcworkspace`→`.xcodeproj`.
+- **Android 푸시 배선 = 이미 완비 실측 재확인** — 코드 변경 0(내가 손댈 것 없었음). 실측: `build.gradle` google-services classpath ✅ / `app/build.gradle` google-services.json 있으면 플러그인 자동적용 ✅(파일 커밋됨) / `capacitor.settings.gradle`·`capacitor.build.gradle`에 `capacitor-push-notifications` 편입(firebase-messaging 트랜지티브) ✅ / 권한 CAMERA·RECORD_AUDIO·POST_NOTIFICATIONS ✅. `docs/APP_STORE_LISTING.md`에 실측 기록.
+- **문서** — APP_STORE_LISTING.md에 애플 결제 완료(✅ 2026-07-24) 반영 + PO 애플 포털 4단계(App ID/앱 생성/APNs .p8/ASC API 키) 순서 + 첫 맥 빌드에서 할 남은 Xcode 단계 정리. PROJECT_CONTEXT 중간저장.
+
+**2. 왜 그렇게 했는지**
+
+- **"앱 등록"의 실체는 PO 몫**: App Store Connect 앱 레코드 생성·App ID·APNs 키·ASC API 키는 전부 애플 계정 로그인이 필요 → 어시가 대신 못 누름. PO에게 "코드는 내가, 포털 단추는 니가"로 역할을 명확히 갈랐다.
+- **iOS 남은 Xcode 단계를 눈감고 안 함**: Firebase SPM 패키지 추가·GoogleService-Info.plist 타겟 등록·capability는 **리눅스에서 검증 불가**하고 pbxproj를 블라인드로 손대면 첫 빌드가 더 꼬인다(PO 취향 「고친 것처럼 보이는데 안 고쳐진 = 해롭다」). → 첫 클라우드 맥 빌드에서 컴파일 피드백 보며 하는 게 맞다고 판단, 문서로 정확히 남김.
+- **"한방에?"에 안심 대신 실측**: PO가 "완벽 준비냐"고 되물어 CI/파일 실측으로 "코드는 됐지만 첫 빌드는 반드시 손봐야 하고, 계정 단추 7개가 남았다"고 정직하게 답(CLAUDE.md ⭐ 「되물으면 실측으로」).
+
+**3. 안 끝났거나 보류** (전부 PO 계정 작업이 선행조건)
+
+- **애플 포털 4단계** — App ID `kr.co.healwith.app`(+Push) / 앱 생성 `healwith` / APNs .p8 키(→Firebase 업로드) / ASC API 키(→Codemagic). PO 로그인 필요.
+- **구글 플레이** — 개발자 등록 $25(일회) / 앱 생성 / 서명 키스토어 / Play 서비스계정 JSON(→Codemagic). PO 작업.
+- **PR #982 미머지** — 화면변화 없는 iOS 네이티브 스테이징이라 자동머지 안 함. 첫 맥 빌드에서 Xcode 단계 마저 하며 같이 다루는 게 자연스러움(급하지 않음).
+
+**4. 주의·함정** ⚠️
+
+- **AppDelegate는 지금 이대로면 iOS 빌드가 컴파일 실패한다(정상)** — `import FirebaseCore/FirebaseMessaging`인데 Firebase SDK가 아직 App 타겟에 없음(`Package.swift`에 firebase 0건). 첫 맥 빌드에서 Xcode로 SPM 패키지(`https://github.com/firebase/firebase-ios-sdk`→FirebaseMessaging) 추가해야 함. **이건 버그가 아니라 남겨둔 단계.**
+- **`GoogleService-Info.plist`는 파일만 있고 pbxproj 참조 0건** — 타겟 리소스로 등록 안 하면 `FirebaseApp.configure()`가 런타임 크래시. 첫 빌드에서 Xcode로 App 타겟에 등록.
+- **CI 초록 ≠ 앱 준비 완료** — CI(`next build`)는 Swift를 컴파일하지 않는다. #982 CI 초록은 "웹이 안 깨졌다"는 뜻일 뿐. iOS 실검증은 첫 Codemagic 빌드 + 실기기뿐.
+- **Codemagic 무료분 낭비 주의** — 서명 열쇠(ASC API 키·키스토어) 없이 빌드 시작하면 실패만 뜨고 무료분만 깎임. PO 포털 단계 후에 빌드 트리거.
+
+**5. 다음 세션이 먼저 할 일**
+
+1. **⚠️ 직전 미검증분 = iOS 푸시 런타임 미검증** — 리눅스에서 못 돌림. PO가 애플 포털 4단계 완료하면: 어시가 (a)첫 Codemagic 빌드 돌리며 남은 Xcode 단계(Firebase SPM 추가·plist 등록·Push/Background capability) 컴파일 피드백 보며 처리 → (b)Vercel env 2개(`FCM_PROJECT_ID`·`GOOGLE_SERVICE_ACCOUNT_JSON`) 설정 → (c)TestFlight 업로드 → (d)실기기 `/api/push/test`로 푸시 수신 실확인. **여기까지 가야 "iOS 됨"이라 말할 수 있음.**
+2. Android: PO가 플레이 등록·키스토어·서비스계정 마치면 Codemagic android-release 빌드(리눅스라 iOS보다 검증 쉬움) → 내부테스트 트랙.
+3. 심사 제출 전 데모 계정 1개 발급(비번 문서에 쓰지 말 것) + `APP_STORE_REVIEW_ANSWERS.md` 복붙.
+
+**6. 검증 상태**
+
+- ✅ **PR #982 CI 초록 실측**(`get_check_runs`): `ci` success·`Smoke Tests (PR)` success. Vercel 프리뷰는 iOS/문서 변경이라 Ignored(정상).
+- ✅ **Android 배선 완비 = 파일 실측**(gradle·settings·manifest 직접 확인). 단 **gradle 빌드 자체는 이 환경(Android SDK 없음)에서 미실행** — Codemagic 리눅스 빌드에서 확정.
+- ⚠️ **iOS 코드 = 디바이스 런타임 미검증**(리눅스 iOS 빌드 불가). 코드는 Capacitor 공식 표준 패턴대로 작성했으나 **실기기 토큰 흐름은 한 번도 안 돌려봄** → 5번 1순위로 승격.
+- 🟡 **열린 PR 다수(내 것 아님)**: #981·#973·#969·#968·#965 등(장애·화상상담·i18n 세션들) — 이 세션과 무관.
+
+**7. 다음 세션 첫 프롬프트**
+
+> 먼저 docs/PROJECT_CONTEXT.md 최상단 읽어. 앱스토어 등록 착수 세션 이어받는 거다. iOS 푸시 배선 코드는 PR #982에 스테이징돼 있는데 **디바이스 런타임 미검증**이고 첫 클라우드 맥 빌드에서 Xcode 단계(Firebase SPM 패키지 추가·GoogleService-Info.plist 타겟 등록·Push/Background capability)를 마저 해야 컴파일된다(지금 이대로면 컴파일 실패가 정상). Android는 코드 이미 완비(실측). **선행조건 = PO 계정 작업**: 애플 포털 4단계(App ID+Push / 앱 생성 / APNs .p8→Firebase / ASC API 키→Codemagic) + 구글 플레이($25·키스토어·서비스계정). PO가 "포털 했다"고 하면: 어시가 Vercel env 2개 넣고 첫 Codemagic 빌드 돌리며 컴파일 잡고 TestFlight 올린 뒤 실기기 /api/push/test로 푸시 실수신 확인까지. 🚫 함정: CI 초록은 웹만 뜻함(Swift 미컴파일) · 서명 열쇠 없이 빌드 트리거하면 무료분만 낭비 · AppDelegate 컴파일 실패는 버그 아니라 남겨둔 Firebase SDK 단계.
+
 ## 🔖 세션 핸드오프 (2026-07-24 — **어드민 백오피스 리뉴얼 1~5단계 전부 완료·배포** 세션 종료)
 
 > PO 질문 "리뉴얼하면서 계층 많아졌는데 어디서부터 풀까"에서 시작해, 전 계층 재설계 로드맵을 세우고 어드민을 5단계에 걸쳐 리뉴얼한 세션. 만진 영역 = `app/admin/*`·`app/api/admin/*`·`app/api/khidi/*`·`src/lib/auth/*`·`src/lib/audit/*`·`src/lib/manuals`. 로드맵 단일 SoR = **`docs/ADMIN_RENEWAL_PLAN.md`**.
@@ -166,58 +212,6 @@
 **7. 다음 세션 첫 프롬프트**
 
 > 먼저 docs/PROJECT_CONTEXT.md 최상단 읽어. 전 화면 콘텐츠 편집 CMS(#918)+한글 바로수정·인라인-L 우회 가드(#932)가 머지·배포됐다(기존 백오피스 유지·추가). ⚠️미검증 먼저: 코디로 로그인해 /coordinator/content 열고 문구 검색→한글 칸에 타이핑→저장→그 화면에 실제 반영되는지 실클릭 확인. 그다음 PO가 준 러시아어 홈 카피를 편집기로 적용. 🚫 함정: 공개 화면 문구는 반드시 중앙 사전(t())으로 넣어야 편집기에 잡힘(하드코딩·인라인-L은 CI가 막음, 단 가드는 변수명 L만 매칭) · 편집기는 코디 로그인 뒤라 자동화 검증 불가 · 빈 값 저장=오버라이드 삭제(원문 복원).
-
----
-
-## 🔖 세션 핸드오프 (2026-07-23 — **딥테크 전략 확정 + 텔레그램 봇 완전 개통 + 왓츠앱 준비 + 시차 배지** 세션 종료. PR 8개 머지)
-
-> 딥테크 질문에서 시작해 텔레그램 봇을 실기기 E2E까지 개통하고 왓츠앱을 예열해 둔 세션. 앞서 이 세션이 남긴 「중간 저장」 블록을 이 정식 블록으로 대체함.
-
-**1. 이번 세션 한 일** (PR 전부 머지·프로덕션 배포 — 자동머지, 코드 PR은 독립 리뷰 통과)
-
-- **딥테크 전략(PO 확정)**: 엣지 = **"치료 여권(Treatment Passport)" — 국경간 치료 연속성 인프라**(전: EMR특허 10-2745881 / 중: LiveKit 원격협진 / 후: 경과기록). AI 안전계측·자기학습·6개어는 구성요소로 강등. 1단계 구현은 별도 세션에 위임(trigger 발사, 2026-07-23 05:27Z).
-- **텔레그램 봇(@healwith_bot) 완전 개통** — [#905](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/905) 웹훅·동의 게이트·멱등 + Gemini 별칭 세대교체 전면 장애 복구(생존 사다리, POSTMORTEMS #110) · [#914](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/914) `**` 마크다운 평문화 + 성동점 hospitals 행(실DB) · [#916](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/916) 구어체 회귀 6종(colloquial, 실DB) · [#919](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/919) RAG trust_tier 근본수리(POSTMORTEMS #111) · [#921](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/921) Human Agent → WhatsApp·Telegram 선택 화면 · [#927](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/927) 재입장 /start 한 줄 인사+60초 스로틀 · [#930](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/930) 접수 멘트 채널 인지("이 채팅으로 연락드립니다")+WeChat·LINE 제거+딥링크 소거.
-- **왓츠앱 봇 전체 연동 준비** — [#933](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/933): 웹훅(서명 HMAC·동의 버튼·wamid 멱등·배치 전수 처리)·아웃바운드(24시간 창 131047 감지)·언어 추정(전화 국가번호, +7 대역 카자흐/러시아 구분)·어드민 릴레이·집계(messenger_whatsapp)·인덱스(실DB 적용). **env 4개만 채우면 켜짐** — 절차 = `docs/WHATSAPP_BOT_SETUP.md`.
-- **환자 현지 시각 배지**(#933 동봉) — `/admin/chat`에 🕓 현지 시각 / 🌙 심야(22~08시) 배지 + 말풍선 미전달 표시(failed·window_expired). 신호: 웹=브라우저 tz(정확) > 왓츠앱=국가번호 > 텔레그램=언어 추정.
-- **실기기 E2E(PO)**: 동의→환영 1회·AI 답변(별표 없음·성동점 포함 4지점)·재입장 한 줄 인사·어드민 답장→텔레그램 수신(어시가 admin API 실호출로 실증)·사람 연결 시 AI 침묵 — 전부 통과.
-
-**2. 왜 그렇게 했는지**
-
-- **치료 여권으로 피벗**: PO가 언어·카자흐 특화 엣지를 "시장이 좋게 볼까?"로 기각 → KHIDI 정성지표(사전상담·사후관리 체계)와 시장 엣지가 **같은 물건**이라는 정합성이 결정타.
-- **성동점 누락의 진범**: hospitals 행 추가만으론 안 됨 — ①RAG 재색인 누락 ②ingest 가 trust_tier 미명시(기본값 3=공개수집)라 검색 순위에서 밀림. #48 때 데이터만 고치고 코드를 안 고친 것의 재발(#111) → 코드가 등급 명시 + 자기치유.
-- **/start 소거**: 텔레그램 프로토콜상 신규 1회는 불가피, 재입장 /start 는 링크의 ?start= 표식 제거로 소거(유입 구분 utm 포기 — 채널 기록은 유지).
-- **왓츠앱을 지금 예열**: PO "준비해봐, 인증은 내일" — Meta 사업자 인증(며칠)이 유일한 대기 구간이라 코드를 먼저 완성해 인증만 끝나면 켜지게.
-
-**3. 안 끝났거나 보류**
-
-- **왓츠앱 개통 대기**: 2026-07-24 PO가 Meta 절차(비즈니스 계정→사업자 인증→번호→토큰→env 4개) 진행 예정. **번호 전략 미결**(A안 새 번호 권장 vs B안 기존 010 전환) — PO 결정 필요. E2E 전 `WHATSAPP_TEST_WA_IDS`에 테스트 번호 등록 필수(집계 오염 방지).
-- **구어체 이해력 개선**(과잉 에스컬레이션) — 감시는 colloquial 회귀 6종이 매일 하지만 근본 개선(프롬프트·detectHandOff 점검)은 백로그(KNOWN_ISSUES 2026-07-23 항목).
-- 치료 여권 1단계 = 위임된 별도 세션 담당(이 세션 범위 아님).
-
-**4. 주의·함정** ⚠️
-
-- **hospitals/treatments 에 직접 SQL 로 행 추가하면 `/api/rag/ingest`(admin)를 그 source_id 로 같이 호출할 것** — 자동 동기화 없음(POSTMORTEMS #111). admin API 실호출은 `admin@test.com` Bearer 토큰으로.
-- **텔레그램 링크에 `?start=` 딥링크 금지**(재입장마다 /start 노이즈 — siteSettings.js 주석·TELEGRAM_BOT_SETUP.md 갱신됨).
-- 코디가 어드민에서 답장하면 그 메신저 방은 `coordinator_active` = **AI 영구 침묵**(resolve 후 새 스레드부터 AI 재개). PO 텔레그램 테스트 방(fcd0aea1)이 지금 이 상태 — 봇 AI 재테스트하려면 플래그 해제 필요.
-- 왓츠앱 24시간 창: 환자 마지막 메시지 후 24시간 지나면 어드민 답장이 `window_expired`(말풍선에 표시됨) — 환자가 다시 말 걸어야 열림(v1 은 템플릿 재개 미지원).
-
-**5. 다음 세션이 먼저 할 일**
-
-1. ⚠️ **직전 미검증분 먼저 확인**: ①`/admin/chat` **현지 시각 배지 실화면**(배포는 READY 확인, 화면 실클릭은 안 함 — 텔레그램 대화에 🕓 배지 뜨는지) ②텔레그램 **"상담원 연결" 새 문구 실기기**("이 채팅으로 연락드립니다" — 코드·계약테스트·배포까지만, PO 실기기 재확인 대기) ③`/admin/khidi/conversion`에 Telegram 행(3턴+ 승격 쌓인 뒤).
-2. **왓츠앱 개통 지원**(PO가 Meta 인증 진행 시): `docs/WHATSAPP_BOT_SETUP.md` 따라 안내 + 번호 전략(A/B) 버튼으로 확정 + env 등록 후 E2E.
-3. 구어체 이해력 개선 착수 여부는 colloquial 회귀 첫 점수 보고 판단.
-
-**6. 검증 상태**
-
-- ✅ 이 세션 PR 8개(#905·#914·#916·#919·#921·#927·#930·#933) **전부 머지 + 프로덕션 배포 READY 확인**(마지막 #933 = commit 35f4770). CI 초록(중간 Smoke 빨강 1회는 agency-portal 플레이키 — 재실행 통과). 코드 PR 은 전부 독립 리뷰 통과(발견 결함 즉시 수정: #919 자기치유 범위, #930 문서 드리프트, #933 배치 유실·maxDuration).
-- ✅ 실측: 텔레그램 실기기 E2E(위 1번 목록) · 프로덕션 웹챗 재현(성동점 4지점) · 번들 grep(딥링크 소거) · 어드민 답장 API 실호출(delivery=sent).
-- ✅ vitest 654 · tsc · check:content · next build 통과(마지막 커밋 기준).
-- ❌ **미검증**: /admin/chat 시각 배지 실화면 미클릭 · "상담원 연결" 새 문구 실기기 미확인(PO 차례) · 왓츠앱 전체(Meta 미인증 — env 없으면 웹훅 안전 무시 확인만).
-- 열린 내 PR: 0 (이 핸드오프 PR 제외). 다른 세션 PR 미확인.
-
-**7. 다음 세션 첫 프롬프트**
-
-> 먼저 docs/PROJECT_CONTEXT.md 최상단 읽어. 텔레그램 봇은 완전 개통됐고(PR 8개 머지·배포) 왓츠앱은 코드만 완성 상태다. ⚠️미검증분 먼저: ①/admin/chat 열어 환자 현지 시각 배지(🕓/🌙) 실화면 확인 ②PO 텔레그램 실기기로 "상담원 연결" 새 문구("이 채팅으로 연락드립니다") 확인. 그다음 PO가 Meta 인증 진행하면 docs/WHATSAPP_BOT_SETUP.md 절차로 왓츠앱 개통 지원(번호 전략 A/B 버튼 확정 + WHATSAPP_TEST_WA_IDS 등록 필수). 🚫 함정: hospitals 직접 SQL 추가 시 /api/rag/ingest 같이 호출(#111) · PO 텔레그램 테스트 방은 coordinator_active 라 AI 침묵 상태.
 
 ---
 
