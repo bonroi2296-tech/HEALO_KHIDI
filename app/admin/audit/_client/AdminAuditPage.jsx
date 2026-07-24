@@ -3,11 +3,15 @@
 import { useState, useEffect } from 'react';
 import { Clock, Filter, ChevronLeft, ChevronRight, Eye, EyeOff } from 'lucide-react';
 
-// ✅ audit metadata whitelist (서버와 동일)
+// ✅ audit metadata whitelist (서버 adminAuditLog.ts 와 동일하게 유지할 것)
+// 2026-07-24 동기화: 서버에만 있던 partner_type·count·request_id·new_status 4개(기존 드리프트)
+// + 상담 초대 추적 4개(consultation_id·invite_role·max_uses·email_sent) 반영.
 const AUDIT_METADATA_ALLOWED_KEYS = [
-  "limit", "offset", "page", "status", "treatment_type", 
+  "limit", "offset", "page", "status", "treatment_type",
   "nationality", "sort_by", "sort_order", "decrypt", "include_normalized",
-  "error", "reason", "path", "method"
+  "partner_type", "count", "request_id", "new_status",
+  "error", "reason", "path", "method",
+  "consultation_id", "invite_role", "max_uses", "email_sent",
 ];
 
 /**

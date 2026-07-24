@@ -183,6 +183,12 @@ export const AUDIT_METADATA_ALLOWED_KEYS = [
   "reason",     // ✅ requireAdminAuth에서 사용
   "path",       // ✅ requireAdminAuth에서 사용
   "method",     // ✅ requireAdminAuth에서 사용
+  // ✅ 상담 초대 토큰 발급 추적 (2026-07-24 권한 감사 C 보완 — CREATE_CONSULTATION_INVITE)
+  //    consultation_id 는 uuid(PII 아님). 미등록 시 sanitize가 조용히 드롭해 추적성이 무산된다(독립 리뷰 C1).
+  "consultation_id",
+  "invite_role",
+  "max_uses",
+  "email_sent",
 ] as const;
 
 /**
