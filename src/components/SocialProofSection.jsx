@@ -41,7 +41,7 @@ export default function SocialProofSection({ className = "" }) {
             {c.eyebrow}
           </span>
           <h2 className="text-2xl md:text-3xl font-bold text-gray-900 whitespace-pre-line leading-snug">{c.title}</h2>
-          <p className="mt-3 text-sm md:text-base text-gray-500 leading-relaxed max-w-2xl mx-auto">{c.lede}</p>
+          <p className="mt-3 text-sm md:text-base text-gray-500 leading-relaxed max-w-2xl mx-auto whitespace-pre-line">{c.lede}</p>
         </div>
 
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
@@ -54,7 +54,7 @@ export default function SocialProofSection({ className = "" }) {
               >
                 <Icon size={26} className="text-teal-700 mb-2.5" aria-hidden="true" />
                 <div className="text-lg md:text-xl font-extrabold text-gray-900 leading-tight">{it.big}</div>
-                <p className="text-xs md:text-sm text-gray-500 mt-1 leading-snug">{it.sub}</p>
+                <p className="text-xs md:text-sm text-gray-500 mt-1 leading-snug whitespace-pre-line">{it.sub}</p>
               </div>
             );
           })}

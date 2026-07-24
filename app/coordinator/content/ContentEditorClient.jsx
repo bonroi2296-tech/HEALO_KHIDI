@@ -195,7 +195,7 @@ export default function ContentEditorClient() {
             </div>
           </div>
           <p className="text-[11px] text-gray-400 mb-1">언어는 한 번 고르면 유지됩니다 · 줄을 펼치면 6개어 전부 · 이미 고친 문구로도 검색됩니다</p>
-          <p className="text-[11px] text-gray-400 mb-4">칸이 <b>여러 줄</b>이면 그 줄바꿈(Enter)이 화면에 그대로 반영되고, <b>한 줄</b>이면 화면 폭에 맞춰 자동으로 줄바꿈됩니다</p>
+          <p className="text-[11px] text-gray-400 mb-4">줄바꿈(Enter)은 화면에 그대로 반영됩니다 · 줄바꿈 없이 길게 쓰면 화면 폭에 맞춰 자동 줄바꿈 · 줄바꿈이 안 먹는 화면을 발견하면 알려주세요</p>
 
           {loading && <p className="text-sm text-gray-400">검색 중…</p>}
           {!loading && query.trim() && results.length === 0 && (
