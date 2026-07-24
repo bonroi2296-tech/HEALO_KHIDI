@@ -3,6 +3,7 @@
  * checkHospitalAuth 와 동일 패턴 — Bearer token / 쿠키 인증 후 agency_users 조회.
  */
 
+import "server-only"; // service_role 접근 모듈 — 클라이언트 번들 유입 차단(독립 리뷰 2026-07-24 권고)
 import type { NextRequest } from "next/server";
 import { createSupabaseServerClient, createServiceRoleClient } from "../supabase/server";
 

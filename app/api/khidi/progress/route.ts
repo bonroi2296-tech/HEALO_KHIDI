@@ -168,6 +168,8 @@ export async function GET(request: NextRequest) {
     const inquiryIdParam = new URL(request.url).searchParams.get("inquiryId");
 
     // 1) 해외 의료기관 우선 (자기 케이스)
+    // 여기는 차단 게이트가 아니라 "누구로 볼 것인가" 분기(아니면 아래 admin fallback으로 계속)라
+    // requirePartnerType(즉시 403 반환)을 쓰면 동작이 바뀜 — 수동 비교가 의도임(독립 리뷰 확인).
     const agency = await checkAgencyAuth(request);
     if (agency.isAgencyUser && agency.partnerType === "medical_institution" && agency.agencyId) {
       let q = (supabaseAdmin as any)
