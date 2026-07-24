@@ -8,6 +8,8 @@
 
 ---
 
+> **📌 중간 저장 (2026-07-24, 백오피스 리뉴얼 계획 세션 — PO 방향 결정)** — PO: 어드민 리뉴얼 질문에 **"기왕 하는 김에 모든 계층 백오피스 재설계부터"** 확정 → 방식 = 설계(청사진)는 전 계층 한 번에, 시공은 단계별. **전 계층 청사진 실측 완료**(계층·가드 구조 / admin 재사용 3형태 / 실DB 생사표 — playbook·crawl 0행, `treatments` 0행 특이 / 권한 매트릭스 + 구멍 4건 → KNOWN_ISSUES 2026-07-24 등재). 단일 SoR = **`docs/ADMIN_RENEWAL_PLAN.md`** ([PR #945](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/945), 문서 전용). 다음 = 2단계 어드민 메뉴 대청소(생사표 이미 확보).
+>
 > **📌 중간 저장 (2026-07-23 심야, 하루 마감 점검 세션 — ✅ 수리 완료)** — PO "정상 마무리 맞는지 정리해봐" 실측에서 **main 전체 E2E 7/21부터 3일 빨강 방치**를 발견 → 당일 수리 완료: [#939](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/939)(잘림 스캔 예산 — 사이트맵 194개 전수→/en만 · 병원상세 테스트 드리프트 · 실패이슈 dedupe 가드 · **postcss high 취약점 공고 긴급 패치**) + [#940](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/940)(스캔이 첫 완주하자마자 찾은 실결함 — **styled-jsx가 App Router에서 증발**해 모바일 법률 페이지 본문 109px 잘림, 4개 파일 수리 + `<style jsx` CI 가드). **main Full E2E cd69d47 = success 실측(7/21 이후 첫 초록)**, 프로덕션 privacy·terms 모바일 CSS 존재 curl 실측. 반성문 #112·#113. 중복 자동 이슈 117개 정리(#938 completed로 종결). **PO 조치 1건 남음 = KNOWN_ISSUES 최상단(E2E_ALERT_EMAIL 시크릿을 본인 주소로 — 실패 이메일 부활)**.
 
 ## 🔖 세션 핸드오프 (2026-07-23 — **전 화면 콘텐츠 편집 CMS 완성 + 한글 바로수정·하드코딩 우회 가드** (+ SEO 색인·암종별 키워드) 세션 종료)
