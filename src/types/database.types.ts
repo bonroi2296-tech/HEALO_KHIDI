@@ -2570,6 +2570,7 @@ export type Database = {
           encrypted_name: Json | null
           encryption_version: number | null
           first_name: string | null
+          followup_started_at: string | null
           id: number
           info_requested_at: string | null
           insurance_coverage: string | null
@@ -2633,6 +2634,7 @@ export type Database = {
           encrypted_name?: Json | null
           encryption_version?: number | null
           first_name?: string | null
+          followup_started_at?: string | null
           id?: never
           info_requested_at?: string | null
           insurance_coverage?: string | null
@@ -2696,6 +2698,7 @@ export type Database = {
           encrypted_name?: Json | null
           encryption_version?: number | null
           first_name?: string | null
+          followup_started_at?: string | null
           id?: never
           info_requested_at?: string | null
           insurance_coverage?: string | null
@@ -3927,6 +3930,7 @@ export type Database = {
           created_at: string | null
           expires_at: string | null
           id: string
+          inquiry_id: number | null
           patient_id: string | null
           reminder_sent_at: string | null
           responded: boolean | null
@@ -3939,6 +3943,7 @@ export type Database = {
           created_at?: string | null
           expires_at?: string | null
           id?: string
+          inquiry_id?: number | null
           patient_id?: string | null
           reminder_sent_at?: string | null
           responded?: boolean | null
@@ -3951,6 +3956,7 @@ export type Database = {
           created_at?: string | null
           expires_at?: string | null
           id?: string
+          inquiry_id?: number | null
           patient_id?: string | null
           reminder_sent_at?: string | null
           responded?: boolean | null

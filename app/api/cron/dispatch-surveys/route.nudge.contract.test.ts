@@ -61,6 +61,10 @@ vi.mock("@/lib/notifications/inApp", () => ({
   notifyStaffUnclosedConsultations: vi.fn(async (n: any) => {
     h.notified.push(n);
   }),
+  // 케이던스 제안 경로(2026-07-24)가 동적 import 로 쓰는 함수들 — 이 테스트에선 케이스 0건이라
+  // 호출되지 않지만, mock 모듈에 export 가 없으면 vitest 가 접근 시점에 던진다.
+  getStaffIdsByRole: vi.fn(async () => ({ admins: [], coordinators: [] })),
+  broadcastInAppNotification: vi.fn(async () => {}),
 }));
 
 // 본업(설문 발송) 쪽 의존성은 이 테스트의 관심사가 아니므로 무해하게 막는다.
@@ -73,6 +77,7 @@ vi.mock("@/lib/surveys/resolveRecipient", () => ({
 }));
 vi.mock("@/lib/khidi/kpiHealthcheck", () => ({
   alertIfKpiStale: vi.fn(async () => ({ stale: false, latest: null })),
+  alertIfSurveysStale: vi.fn(async () => ({ stale: false, overdue: 0 })),
 }));
 vi.mock("@/lib/security/encryptionV2", () => ({ decryptMaybe: (v: any) => v }));
 
