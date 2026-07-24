@@ -85,5 +85,14 @@ export async function relayStaffReplyToMessenger(opts: {
       .eq("id", threadId);
   }
 
+  // 스태프 텔레그램 그룹(주제)에도 미러링 — 웹/포털에서 답한 내용이 그룹에서도 보이게
+  // (양방향 릴레이 B안, 2026-07-24 PO). 미설정이면 내부에서 조용히 스킵. fail-safe.
+  try {
+    const { relayToStaffTopic } = await import("@/lib/messaging/staffRelay");
+    await relayToStaffTopic({ ...thread, id: threadId }, "🧑‍💼 코디(관리자화면)", messageText);
+  } catch (e: any) {
+    console.warn("[staffReplyRelay] staff topic 미러 실패(무시):", e?.message);
+  }
+
   return delivery;
 }

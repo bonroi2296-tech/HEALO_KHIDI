@@ -136,6 +136,10 @@ vi.mock("@/lib/messaging/telegram", () => ({
   TG_APOLOGY: { en: "sorry" },
   pickTgText: (map: Record<string, string>, lang: string) => map[lang] || map.en,
 }));
+const relayToStaffTopic = vi.fn(async (..._args: any[]) => {});
+vi.mock("@/lib/messaging/staffRelay", () => ({
+  relayToStaffTopic: (...args: any[]) => relayToStaffTopic(...args),
+}));
 
 const afterPromises: Promise<unknown>[] = [];
 async function flushAfter() {
