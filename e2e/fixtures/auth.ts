@@ -53,9 +53,9 @@ export type Role = "patient" | "admin" | "coordinator" | "agency" | "clinic";
 /**
  * 역할별 로그인 — 저장된 세션(쿠키) 재사용이 기본, 없으면 UI 로그인 폴백.
  *
- * 왜(POSTMORTEMS #116): 테스트마다 UI 로그인을 하면 스모크 1회에 로그인 10회+
- * (retry 시 3배)가 공유 Supabase(프로덕션 겸용!)를 두들긴다. PR 폭주 시간대엔
- * 그 부하로 auth/REST 응답이 10~25초까지 늘어져(실측 trace) waitForURL 30s 를
+ * 왜(POSTMORTEMS #117): 테스트마다 UI 로그인을 하면 스모크 1회에 로그인 10회+
+ * (retry 시 3배)가 공유 Supabase(프로덕션 겸용!)로 나간다. 그 DB 가 느려진 시간대엔
+ * auth/REST 응답이 10~25초까지 늘어져(실측 trace) waitForURL 30s 를
  * 넘기고, 매번 다른 테스트가 떨어지는 복권이 됐다. auth.setup.ts 가 역할별 1회만
  * 로그인해 세션을 저장하고, 여기선 그 쿠키를 주입만 한다(@supabase/ssr = 쿠키 기반).
  */

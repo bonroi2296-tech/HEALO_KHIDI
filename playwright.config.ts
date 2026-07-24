@@ -31,7 +31,7 @@ export default defineConfig({
 
   projects: [
     // 역할별 UI 로그인 1회 → 세션 저장 (e2e/auth.setup.ts). 테스트들은 쿠키 재사용 —
-    // 테스트마다 로그인해 공유 Supabase 를 포화시키던 부하 제거 (POSTMORTEMS #116).
+    // 테스트마다 로그인해 공유 Supabase 를 포화시키던 부하 제거 (POSTMORTEMS #117).
     {
       name: "setup",
       testMatch: /auth\.setup\.ts/,
@@ -60,7 +60,7 @@ export default defineConfig({
         // 준비 판정 URL 을 "/"(홈 SSR — 콜드 컴파일 60s+ 에 Supabase 조회가 행 없이 매달림)
         // 대신 /api/health 로: 컴파일 가벼움 + DB 프로브가 3s 바운드(무한 대기 없음) +
         // DB 다운이면 503 = 미준비(Playwright 는 200~403 만 준비로 침 — 정직한 게이트).
-        // "/" 를 판정에 걸면 Supabase 지연 시 240s 로도 부팅 오판(2026-07-24 실측, #116).
+        // "/" 를 판정에 걸면 Supabase 지연 시 240s 로도 부팅 오판(2026-07-24 실측, #117).
         url: baseURL + "/api/health",
         reuseExistingServer: !process.env.CI,
         timeout: 240_000,
