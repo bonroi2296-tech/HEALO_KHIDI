@@ -765,15 +765,26 @@ export default function ConsultationRoomPage() {
   // DC 자막 억제 판정용 ref (콜백 재생성 없이 최신값 읽기)
   const voiceOnRef = useRef(false);
   const agentPresentRef = useRef(false);
+  // 봇을 한 번이라도 봤나 — 자동꺼짐(재연결 유예)을 "봇이 있다가 사라진" 경우로 한정하기 위함.
+  // 사용자가 봇 없이 직접 켠 통역은 자동으로 끄지 않는다.
+  // ⚠️ voiceOn 껐다고 리셋하지 않는다(독립리뷰 버그): 봇이 계속 방에 있는 채로 통역을 껐다
+  //    켜면 리셋된 ref 가 false 로 굳고(agentPresent 는 true→false 전이가 없어 다시 true 로
+  //    안 세워짐) → 이후 봇이 진짜 끊겨도 자동꺼짐이 안 돌아 "죽은 토글"이 된다. 자동꺼짐은
+  //    어차피 agentPresent 의 진짜 true→false 전이에서만 발동하므로, ref 가 stale-true 여도
+  //    잘못된 자동꺼짐을 일으키지 못한다(그 전이 자체가 봇이 있었다는 뜻).
+  const agentEverPresentRef = useRef(false);
   useEffect(() => {
     voiceOnRef.current = voiceOn;
   }, [voiceOn]);
   useEffect(() => {
     agentPresentRef.current = agentPresent;
-    // 봇이 방에서 사라지면(스위치 내림·에이전트 다운) 통역도 자동 꺼짐 — 죽은 토글 방지.
-    // 단 10초 유예: 재연결·재협상 중 participants 가 잠깐 비는 동안(독립리뷰 #2) 통역이
-    // 조용히 꺼져버리지 않게 — 봇이 그 안에 돌아오면 유지된다.
-    if (agentPresent) return;
+    if (agentPresent) {
+      agentEverPresentRef.current = true;
+      return;
+    }
+    // 봇이 '있다가' 사라진 경우에만 10초 유예 후 자동 꺼짐(재연결·재협상 보호, 독립리뷰 #2).
+    // 사용자가 봇 없이 직접 켠 통역은 그대로 둔다 — 버튼은 사용자가 쥔다(PO 2026-07-24).
+    if (!voiceOnRef.current || !agentEverPresentRef.current) return;
     const t = setTimeout(() => setVoiceOn(false), 10000);
     return () => clearTimeout(t);
   }, [agentPresent]);
@@ -2625,17 +2636,16 @@ export default function ConsultationRoomPage() {
           <span className="absolute top-1 right-1 w-2 h-2 bg-yellow-400 rounded-full animate-pulse" />
         )}
       </button>
-      {/* 통역(음성) 토글 — 봇의 통역 음성 듣기 (2026-07-24 PO: 버튼 부활).
-          봇이 방에 없으면(서버 스위치 꺼짐·에이전트 다운) 안내만 — 죽은 척 안 하는 정직한 버튼. */}
+      {/* 통역(음성) 토글 — 봇의 통역 음성 듣기 (2026-07-24 PO: 봇 없어도 켤 수 있는 토글로).
+          봇이 방에 아직 없으면 켜두고 대기 → 봇이 들어오면 그때부터 통역 음성이 들린다. */}
       <button
         onClick={() => {
-          if (!voiceOn && !agentPresent) {
-            toast.success(c.voiceNotReady);
-            return;
-          }
           const next = !voiceOn;
           setVoiceOn(next);
-          toast.success(next ? c.voiceOnMsg : c.voiceOffMsg);
+          // 봇이 없어도 켤 수 있다 — 없을 땐 "들어오면 통역돼요"로 정직하게 안내.
+          toast.success(
+            next ? (agentPresent ? c.voiceOnMsg : c.voiceOnPendingMsg) : c.voiceOffMsg
+          );
         }}
         className={`hw-ctrl-btn relative rounded-lg font-medium transition ${
           voiceOn
@@ -2644,7 +2654,7 @@ export default function ConsultationRoomPage() {
             ? "bg-gray-700 hover:bg-gray-600 text-gray-200"
             : "bg-gray-800 text-gray-500"
         }`}
-        title={voiceOn ? c.voiceOffMsg : agentPresent ? c.voiceOnMsg : c.voiceNotReady}
+        title={voiceOn ? c.voiceOffMsg : agentPresent ? c.voiceOnMsg : c.voiceOnPendingMsg}
       >
         <Volume2 size={18} />
         <span>{c.voiceLabel}</span>
