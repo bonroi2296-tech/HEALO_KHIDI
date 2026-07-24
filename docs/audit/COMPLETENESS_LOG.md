@@ -4,6 +4,12 @@
 > 채점표 = `src/lib/completeness/rubric.js` (사람용 `docs/DEFINITION_OF_DONE.md`). 형식·루프 구조는 `.claude/skills/completeness-audit/SKILL.md` 참고.
 > 새 엔트리는 이 안내문 바로 아래에 추가.
 
+## 2026-07-24 완성도 감사 (범위: diff — PR #942 코디 메신저 릴레이·채널 배지)
+- 스캔: i18n 6개어 완전성(신규 3키, {channel} 자리표시자 포함 실검증) · 같은 부류 전수(스태프→chat_messages 삽입 통로 10개 라우트 전수 — 릴레이 필요 통로는 admin·portal 2개뿐, 둘 다 이번에 공용 모듈로 배선. resolve=playbook_responses 학습 드래프트라 비대상, 병원·에이전시=스태프 간 채널) · 설명서 동기(코디 §메시지 updated 7-24)
+- 수정: 발견 0건 (수정 없음)
+- 검증 못 함(정직 표기): 백오피스 로그인 뒤 실화면(채널 배지·미전달 표시·버튼 겹침 해소)은 스윕·프리뷰 자동화 밖 — PO 실클릭 항목
+- 라운드: 2 (무발견 도달)
+
 ---
 
 ## 2026-07-22 PR #877 푸터 사업자 정보 6개어 (범위: diff)

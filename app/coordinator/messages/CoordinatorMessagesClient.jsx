@@ -88,6 +88,7 @@ export default function CoordinatorMessagesClient() {
   const [statusFilter, setStatusFilter] = useState("open");
   const [draft, setDraft] = useState("");
   const [sending, setSending] = useState(false);
+  const [sendError, setSendError] = useState(false);
   const [msgLoading, setMsgLoading] = useState(false);
   const [suggestions, setSuggestions] = useState([]);
   const msgEndRef = useRef(null);
@@ -210,6 +211,7 @@ export default function CoordinatorMessagesClient() {
   async function send() {
     if (!draft.trim() || !selectedId || sending) return;
     setSending(true);
+    setSendError(false);
     try {
       const token = await getAccessToken();
       if (!token) return;
@@ -220,9 +222,20 @@ export default function CoordinatorMessagesClient() {
       });
       const result = await res.json();
       if (res.ok && result.ok && result.message) {
-        setMessages((m) => [...m, result.message]);
+        // 메신저 릴레이 결과를 즉시 말풍선에 반영 (미전달이면 sent 는 metadata 없음)
+        const sentMsg =
+          result.delivery && result.delivery !== "sent"
+            ? { ...result.message, metadata: { ...(result.message.metadata || {}), delivery: result.delivery } }
+            : result.message;
+        setMessages((m) => [...m, sentMsg]);
         setDraft("");
+      } else {
+        setSendError(true);
       }
+    } catch (e) {
+      // 네트워크 예외가 조용히 삼켜져 코디가 실패를 모르던 것 방지 (독립 리뷰 P2)
+      console.error("[coordinator/messages] send failed:", e);
+      setSendError(true);
     } finally {
       setSending(false);
     }
@@ -291,7 +304,14 @@ export default function CoordinatorMessagesClient() {
                   }`}
                 >
                   <div className="mb-0.5 flex items-center gap-2">
-                    <span className="h-2 w-2 shrink-0 rounded-full" style={{ background: chColor }} title={`${L.msChannelLabel}: ${chLabel}`} />
+                    {/* 채널을 색점이 아니라 글자 배지로 — 웹/텔레그램/왓츠앱 유입이 한눈에 (PO 2026-07-24) */}
+                    <span
+                      className="shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold leading-none text-white"
+                      style={{ background: chColor, ...(t.channel === "kakao" ? { color: "#3c1e1e" } : {}) }}
+                      title={`${L.msChannelLabel}: ${chLabel}`}
+                    >
+                      {chLabel}
+                    </span>
                     <span className="truncate text-sm font-medium text-gray-900">{threadTitle(t)}</span>
                     {t.guest_country && <span className="shrink-0 text-xs text-gray-400">· {t.guest_country}</span>}
                     <span className="ml-auto shrink-0 text-xs text-gray-400">
@@ -325,7 +345,15 @@ export default function CoordinatorMessagesClient() {
             {/* 헤더 */}
             <div className="flex items-center justify-between gap-3 border-b border-gray-200 bg-white px-6 py-3">
               <div className="min-w-0">
-                <div className="truncate text-base font-bold text-gray-900">{threadTitle(selectedThread)}</div>
+                <div className="flex items-center gap-2">
+                  <span
+                    className="shrink-0 rounded px-1.5 py-0.5 text-[10px] font-bold leading-none text-white"
+                    style={{ background: CHANNEL_COLOR[selectedThread.channel] || CHANNEL_COLOR.web, ...(selectedThread.channel === "kakao" ? { color: "#3c1e1e" } : {}) }}
+                  >
+                    {CHANNEL_LABEL[selectedThread.channel] || CHANNEL_LABEL.web}
+                  </span>
+                  <span className="truncate text-base font-bold text-gray-900">{threadTitle(selectedThread)}</span>
+                </div>
                 <div className="mt-0.5 flex flex-wrap gap-x-3 text-xs text-gray-400">
                   {selectedThread.guest_name ? (
                     <>
@@ -391,8 +419,21 @@ export default function CoordinatorMessagesClient() {
               </div>
             )}
 
-            {/* 입력 */}
-            <div className="flex items-end gap-3 border-t border-gray-200 bg-white px-6 py-3">
+            {/* 메신저 스레드 안내 — 이 답장이 DB 저장만이 아니라 환자 앱으로 실발신됨을 명시 */}
+            {(selectedThread.channel === "telegram" || selectedThread.channel === "whatsapp") && (
+              <div className="border-t border-gray-100 bg-white px-6 pt-2 text-xs text-gray-500">
+                📨 {L.msRelayHint.replace("{channel}", selectedThread.channel === "telegram" ? "Telegram" : "WhatsApp")}
+              </div>
+            )}
+
+            {sendError && (
+              <div className="border-t border-gray-100 bg-white px-6 pt-2 text-xs font-medium text-red-500">
+                ⚠️ {L.msSendFailed}
+              </div>
+            )}
+
+            {/* 입력 — 우측 여백은 우하단 고정 「사용설명서」 버튼과 전송 버튼 겹침 방지 (PO 2026-07-24) */}
+            <div className="flex items-end gap-3 border-t border-gray-200 bg-white py-3 pl-6 pr-40">
               <textarea
                 value={draft}
                 onChange={(e) => setDraft(e.target.value)}
@@ -463,6 +504,13 @@ function Message({ m, meId, L, dateLoc }) {
         <div className={`inline-block whitespace-pre-wrap break-words rounded-xl px-4 py-2.5 text-sm leading-relaxed ${bubble}`}>
           {m.message_text}
         </div>
+        {/* 메신저 릴레이 미전달 표시 — staffReplyRelay 가 metadata.delivery 에 기록 */}
+        {m.metadata?.delivery === "failed" && (
+          <div className="mt-1 text-[11px] font-medium text-red-500">{L.msDeliveryFailed}</div>
+        )}
+        {m.metadata?.delivery === "window_expired" && (
+          <div className="mt-1 text-[11px] font-medium text-amber-600">{L.msDeliveryWindowExpired}</div>
+        )}
       </div>
     </div>
   );
