@@ -16,23 +16,23 @@
 >
 > **📌 중간 저장 (2026-07-24, 브랜치 정리 세션 — 설문 상태 실측 + PO 결정: D+ 케이던스 이식)** — ①낡은 원격 브랜치 정리: `deeptech-service-strategy`(#930 계열에 흡수)·`feat/coordinator-content-cms`(#918에 대체) 삭제, `rescue/local-uncommitted-20260716`는 보존. ②**설문 K-03 실측**: 수정은 이미 [#856](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/856)(7/21)으로 회수·작동 중 — 실DB 발송1(7/22)·**응답1** = 지표 살아있음(기억 메모 낡아 정정). ③**PO 결정: rescue 잔존분 중 D+ 케이던스 이식 승인** → [#948](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/948) **머지·프로덕션 배포 success 실측**(독립 리뷰 7건 중 6건 수리 후 — 중복 메일 폴딩·감시자 오탐/사각·제안 DB 유니크 2종 적용, 테스트 693 초록). ④응답 설문 1건(#39)= **PO 버튼 확인으로 테스트 확정 → is_test 도장**(K-03 실표본 0 = 정직 기준선). ⚠️함정: 앵커(followup_started_at)는 첫 cron 실행에 stamp → 기존 케이스도 D+7부터 시작(첫날 폭주 없음). ⑤**rescue 상자 전수 감사·종결(에이전트 3개 병렬, PO 항목별 버튼 승인)**: 유실 기록 이식(#963 — 반성문 #116·PO 취향 3건·경쟁사 §6·중간보고 §0.6·유치문서 지도 2·Sentry dev off) + **처리방침 v2.2.0 검토용 [#964](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/964) = PO 미리보기·머지 결정 대기** + 기능 2건(소견 다중첨부·substep) 백로그 + **태그 `rescue-archive-20260716` 박제 후 브랜치 삭제**.
 
-> **📌 중간 저장 (2026-07-24, 딥테크/스태프릴레이 세션 — #959 프로덕션 왕복 실측 + DB 포화 장애)** — ①**스태프 그룹 릴레이([#959](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/959)) 프로덕션 코드경로 전부 실측 완료** (PO가 그룹 `healwith`·chat_id `-1004399480698`·env 등록·재배포 끝낸 직후 첫 검증): 봇 `getChat`=`is_forum:true`+`administrator`+`can_manage_topics`+`is_anonymous:false`(익명함정 회피) 실측 → 동의된 test 스레드 심고 웹훅 시뮬 → **주제 생성+`staff_topic_id` RPC클레임 / 스태프 주제답장→스레드 역매핑→admin(via telegram_staff) 저장 / `coordinator_active` AI침묵 전환** 전부 실DB 확인, `[staffRelay]` 에러 0. 유일 미실증 = **실제 환자 폰 배달**(가짜 chat_id라 delivery:failed — 이건 어제 실기기로 검증된 `sendTelegramPatientMessage`라 릴레이 신규코드 무관). test 흔적(주제·스레드·메시지) 정리 완료. **실전 왕복(폰↔그룹)은 PO 손 필요 = 다음 할 일.** ②**프로덕션 DB 약 1h40m 포화**(07:00~08:41Z, Supabase 컴퓨트 burst 고갈 — 시스템 점검쿼리조차 16초 = 특정쿼리 아님) → 위험조작 없이 자가회복 대기·확인, 반성문 **#117**. ⚠️재발방지 미구현 = `/api/health` db:down 지속시 PO 알림(다음 할 일).
+> **📌 중간 저장 (2026-07-24, 딥테크/스태프릴레이 세션 — #959 프로덕션 왕복 실측 + DB 포화 장애)** — ①**스태프 그룹 릴레이([#959](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/959)) 프로덕션 코드경로 전부 실측 완료** (PO가 그룹 `healwith`·chat_id `-1004399480698`·env 등록·재배포 끝낸 직후 첫 검증): 봇 `getChat`=`is_forum:true`+`administrator`+`can_manage_topics`+`is_anonymous:false`(익명함정 회피) 실측 → 동의된 test 스레드 심고 웹훅 시뮬 → **주제 생성+`staff_topic_id` RPC클레임 / 스태프 주제답장→스레드 역매핑→admin(via telegram_staff) 저장 / `coordinator_active` AI침묵 전환** 전부 실DB 확인, `[staffRelay]` 에러 0. 유일 미실증 = **실제 환자 폰 배달**(가짜 chat_id라 delivery:failed — 이건 어제 실기기로 검증된 `sendTelegramPatientMessage`라 릴레이 신규코드 무관). test 흔적(주제·스레드·메시지) 정리 완료. **실전 왕복(폰↔그룹)은 PO 손 필요 = 다음 할 일.** ②**프로덕션 DB 완전 무응답 장애**(07:45~08:40Z) 관측. 📝**정정**: 처음 "컴퓨트 burst 고갈로 재시작 없이 자가회복(08:41)"이라 봤으나 **오진** — `pg_postmaster_start_time` 실측 = **08:40:42 UTC Postgres 재시작으로 회복**(재시작 여부를 실측 안 하고 관리 API·latency만 보고 단정 = CLAUDE.md ⑤ 반증검사 위반). 같은 장애를 병렬 세션이 이미 **반성문 #117(스모크 후속 국면)**에 재시작 실측까지 기록 → 내 별도 반성문은 중복·오류라 철회. ⚠️재발방지 = `/api/health` 외부 업타임 모니터 연결(#117 결론, PO 결정 1건).
 >
 > **📌 중간 저장 (2026-07-24, 코디 백오피스 세션 — 문의 전환 기준 실측·수리)** — PO가 텔레그램 실기기 테스트에서 "무기준 문의 전환"을 지적 → 실측으로 기준 확정: **문의(inquiries) 승격 = 환자 메시지 3턴마다 무조건**(잡담 "안녕?"도 등록 — 7/23 inquiry#40이 그렇게 생성) + **"상담원 연결"은 별개 트랙**(키워드 감지 → 코디 종·AI 침묵만, 문의 생성과 무관 → 1~2턴째 연결 요청이면 "접수됐어요"가 거짓이 되는 구멍). **PO 결정: 핵심 2개 수정 승인** = ①연결 요청 즉시 승격 ②잡담-only 승격 차단(의미 게이트). [#943](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/943)으로 구현(4채널 공통, `src/lib/chat/intakeGate.ts` 신규). ⚠️함정 발견(독립 리뷰 CONFIRMED → 해소): **intake 추출기(intakeExtract.ts)는 전부 영어 키워드**(성형 시절 잔재 nose·botox) — 신호만 믿으면 러·한 실상담 리드가 증발 → 게이트에 언어 불문 분량 폴백(12자+) 추가. 잔여 개선점(보류): AI 레드라인 때 "곧 연결해 드릴게요" 말하고 AI가 계속 답하는 불일치(7/23 17:22 실발생). — PO "정상 마무리 맞는지 정리해봐" 실측에서 **main 전체 E2E 7/21부터 3일 빨강 방치**를 발견 → 당일 수리 완료: [#939](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/939)(잘림 스캔 예산 — 사이트맵 194개 전수→/en만 · 병원상세 테스트 드리프트 · 실패이슈 dedupe 가드 · **postcss high 취약점 공고 긴급 패치**) + [#940](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/940)(스캔이 첫 완주하자마자 찾은 실결함 — **styled-jsx가 App Router에서 증발**해 모바일 법률 페이지 본문 109px 잘림, 4개 파일 수리 + `<style jsx` CI 가드). **main Full E2E cd69d47 = success 실측(7/21 이후 첫 초록)**, 프로덕션 privacy·terms 모바일 CSS 존재 curl 실측. 반성문 #112·#113. 중복 자동 이슈 117개 정리(#938 completed로 종결). **PO 조치 1건 남음 = KNOWN_ISSUES 최상단(E2E_ALERT_EMAIL 시크릿을 본인 주소로 — 실패 이메일 부활)**.
 
-## 🔖 세션 핸드오프 (2026-07-24 — **DB 포화 장애 복구 + 스태프 텔레그램 릴레이(#959) 프로덕션 왕복 실측** 세션 종료)
+## 🔖 세션 핸드오프 (2026-07-24 — **DB 무응답 장애 관측·진단 오진 정정 + 스태프 텔레그램 릴레이(#959) 프로덕션 왕복 실측** 세션 종료)
 
 > 딥테크/텔레그램 세션의 연속(위 「딥테크/스태프릴레이」 중간 저장을 이 정식 블록으로 승격). 토큰 끊김 후 재개 → DB 장애 복구·스태프 릴레이 검증·문서 정리를 하고 PO가 "다음 주에 마저" 하기로 하며 종료.
 
 **1. 이번 세션 한 일**
 
-- **프로덕션 DB 포화 장애 복구·기록** — Supabase Postgres가 약 1h40m(2026-07-24 07:00~08:41Z) 컴퓨트 burst CPU 고갈로 포화, DB 의존 기능 전면 timeout. 진단 후 **위험 조작(재시작·pg_terminate) 없이 자가회복 대기 → 회복 확인**(latency 3002ms→68ms, 남은 잠금 0). 반성문 **`docs/POSTMORTEMS.md` #117** 신설.
+- **프로덕션 DB 완전 무응답 장애(2026-07-24 07:45~08:40Z) 관측 + 내 초기 진단 오진 정정** — DB 의존 기능 전면 timeout(`/api/health` db:down). 📝 처음 "burst 고갈로 재시작 없이 자가회복(08:41)"이라 봤으나 **오진**: `pg_postmaster_start_time` 실측 = **08:40:42 재시작으로 회복**(재시작 여부 미실측·관리 API·latency만 보고 단정). 같은 장애를 병렬 세션이 이미 **반성문 #117**(스모크 후속 국면)에 재시작 실측까지 기록 → 내 별도 반성문 철회(중복·오류). 회복 후 `pg_stat_activity` 남은 잠금 0 실측.
 - **스태프 텔레그램 릴레이([#959](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/959), 이전 세션 머지) 프로덕션 코드경로 전수 실측** — PO가 그룹 `healwith`(chat_id `-1004399480698`)·env `STAFF_TELEGRAM_GROUP_ID` 등록·재배포를 끝낸 직후 첫 검증. 봇 `getChat`=`is_forum:true`+`administrator`+`can_manage_topics`+`is_anonymous:false` 실측 → 동의된 test 스레드로 웹훅 시뮬 → **주제 생성+`staff_topic_id` RPC클레임 / 스태프 주제답장→스레드 역매핑→admin(via `telegram_staff`) 저장 / `coordinator_active` AI침묵 전환** 전부 실DB 확인. test 흔적(주제·스레드·메시지) 정리 완료.
 - **문서 정리 PR [#971](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/971)** (draft, docs-only) — 반성문 #117 + 위 중간 저장 블록. CI 통과 시 자동머지 예약(self check-in 2026-07-24 10:44Z).
 
 **2. 왜 그렇게 했는지**
 
-- **DB: 자가회복 대기 판단** — 관리 API는 `ACTIVE_HEALTHY`(서버 죽음 아니라 포화)라 재시작하면 원인 데이터가 날아감. burst 고갈은 부하 빠지면 스스로 참 → 대기가 정답이었고 실제로 회복됨.
+- **DB 진단 오진 교훈**: "재시작 없이 자가회복"은 재시작 여부를 실측(`pg_postmaster_start_time`)하지 않고 관리 API·latency만 보고 단정한 것 = CLAUDE.md ⑤ 반증검사 위반(*원인이면 무엇이 참이어야 하나*를 안 물음). 실제론 08:40:42 재시작으로 회복. 병렬 세션 #117이 같은 결론을 먼저 실측 → 내 것 철회. "화면이 회복됨"과 "왜 회복됐는지"를 혼동하지 말 것.
 - **스태프 릴레이: 가짜 chat_id로 코드경로만** — 실제 PO 폰(7813265239)으로 시뮬하면 PO를 방해하고 실적(KHIDI 집계)을 오염시킴 → is_test 가짜 스레드로 릴레이 신규코드만 검증. 실배달은 2026-07-23 실기기로 이미 검증된 `sendTelegramPatientMessage`라 릴레이와 무관.
 - **브랜치 origin/main 재시작(중요)** — 이 브랜치는 #959 squash 머지 시점의 옛 main 기반이라, 그대로 PR을 열면 그동안 다른 세션이 머지한 **33개 파일을 통째로 revert**할 뻔함. `git rebase --onto origin/main`으로 docs 커밋만 최신 위에 재적용해 방지.
 
@@ -45,7 +45,7 @@
 **4. 주의·함정** ⚠️
 
 - **이 브랜치(claude/deeptech-service-strategy-9wvj73)는 origin/main으로 재시작됨** — 이어가기 전 최신 상태 확인. 옛 로컬 커밋(#959 계열 3개)은 이미 머지돼 버려짐(정상).
-- **반성문 번호**: origin/main에 다른 세션의 #115(km/my 오염)·#116(가짜 주소)이 이미 있어 내 DB 장애 반성문은 **#117**. 옛 main 기준 "다음 #115"라 단정했다가 재시작 때 반증검사로 잡음 — 번호는 항상 origin/main 최신 기준.
+- **반성문 중복 함정**: 내 DB 장애 반성문을 #115→#117로 두 번 재조정하다, 결국 **병렬 세션이 같은 장애를 #117에 이미 기록**함을 발견 → 내 것 철회. 교훈 = 반성문 쓰기 전 origin/main 최신에서 같은 사건이 이미 있는지부터 확인(번호 충돌뿐 아니라 사건 중복). 병렬 세션이 많을수록 "내가 처음 보는 사건"이 아닐 수 있다.
 - **스태프 릴레이 테스트 시 가짜 chat_id는 `delivery:failed`가 정상** — 존재하지 않는 텔레그램 유저라 발신만 실패, 릴레이 코드 결함 아님.
 
 **5. 다음 세션이 먼저 할 일**
@@ -61,11 +61,11 @@
 - ✅ **스태프 릴레이 코드경로 실측** — 주제 생성+RPC 클레임, 주제답장→역매핑, admin 저장, `coordinator_active` 전환 전부 실DB 확인. `[staffRelay]` 에러 로그 0. 봇 API로 주제 쓰기 성공 실증.
 - ❌ **스태프 릴레이 실배달 미검증** — 가짜 chat_id라 `delivery:failed`. 실전 왕복(폰↔그룹)은 PO 손 필요 → 5번 1항 승격.
 - ⏳ **PR #971 CI** — 커밋 `d65428ac`에서 `ci`·`Smoke Tests(PR)` in_progress(핸드오프 작성 시점), Vercel = Ignored(docs-only 정상). 자동머지 self check-in 10:44Z 예약. **머지 여부 미확인.**
-- 반성문 #117 + 중간 저장은 origin/main 최신 위에 충돌 해소 후 재적용 완료.
+- 📝 내 DB장애 반성문은 병렬 세션 #117과 중복(+"재시작 없이 자가회복" 오진)으로 **철회** — POSTMORTEMS는 origin/main #117 채택. 08:40:42 재시작은 `pg_postmaster_start_time` 실측으로 확정.
 
 **7. 다음 세션 첫 프롬프트**
 
-> 먼저 docs/PROJECT_CONTEXT.md 최상단 읽어. DB 포화 장애는 자가회복됐고(반성문 #117), 스태프 텔레그램 릴레이(#959)는 프로덕션 코드경로를 전수 실측했다. ⚠️미검증 먼저: 스태프 릴레이 **실전 왕복** — PO가 폰으로 @healwith_bot에 메시지 → 그룹 healwith에 방 뜨는지 → 그 방에 답장 → PO 폰으로 실제 배달되는지(코드경로는 됐고 실배달만 남음). 그다음 PR #971 머지 확인(자동머지 예약). 🚫 함정: 이 브랜치는 origin/main 재시작됨(이어가기 전 최신 확인) · 반성문 번호는 origin/main 최신 기준(#117) · 스태프 릴레이 테스트 시 가짜 chat_id는 delivery:failed가 정상.
+> 먼저 docs/PROJECT_CONTEXT.md 최상단 읽어. DB 무응답 장애는 08:40:42 재시작으로 회복(병렬 세션 반성문 #117에 재시작 실측까지 기록 — 내 초기 "자가회복" 진단은 오진이라 철회·정정함), 스태프 텔레그램 릴레이(#959)는 프로덕션 코드경로를 전수 실측했다. ⚠️미검증 먼저: 스태프 릴레이 **실전 왕복** — PO가 폰으로 @healwith_bot에 메시지 → 그룹 healwith에 방 뜨는지 → 그 방에 답장 → PO 폰으로 실제 배달되는지(코드경로는 됐고 실배달만 남음). 그다음 PR #971 머지 확인(자동머지 예약). 🚫 함정: 이 브랜치는 origin/main 재시작됨(이어가기 전 최신 확인) · 반성문 번호는 origin/main 최신 기준(#117) · 스태프 릴레이 테스트 시 가짜 chat_id는 delivery:failed가 정상.
 
 ## 🔖 세션 핸드오프 (2026-07-23 — **전 화면 콘텐츠 편집 CMS 완성 + 한글 바로수정·하드코딩 우회 가드** (+ SEO 색인·암종별 키워드) 세션 종료)
 
