@@ -1206,7 +1206,9 @@ export default function UnifiedInquiryFunnel() {
           <p className="text-gray-500 text-sm md:text-base">{tl("humanChannelsSubtitle", lang)}</p>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+        {/* 카드 수와 무관하게 가운데 정렬 — 4칸 grid 고정이면 2개(현 WhatsApp·Telegram)일 때
+            왼쪽으로 쏠린다(실기기 2026-07-24 PO 지적). 채널이 늘어도(4개) 그대로 동작. */}
+        <div className="flex flex-wrap justify-center gap-3 md:gap-4">
           {channels.map((c) => {
             const enabled = !!c.url;
             const inner = (
@@ -1226,7 +1228,8 @@ export default function UnifiedInquiryFunnel() {
               </>
             );
 
-            const baseCls = "bg-white border border-gray-200 rounded-xl p-5 flex flex-col items-center justify-center text-center transition-all aspect-square";
+            // flex 컨테이너라 카드가 스스로 폭을 가져야 함 — 모바일 2열(반폭), md+ 고정폭.
+            const baseCls = "bg-white border border-gray-200 rounded-xl p-5 flex flex-col items-center justify-center text-center transition-all aspect-square w-[calc(50%-0.375rem)] md:w-44";
 
             if (enabled) {
               return (
