@@ -45,6 +45,23 @@ curl -s "https://api.telegram.org/bot<봇토큰>/setWebhook" \
 4. `/admin/khidi/conversion`에서 「테스트 포함」 토글 켜고 「Telegram 상담」 행 확인 (실적만 보기에선 안 보이는 게 정상)
 5. "I want to talk to a human" → 검토요청 종 + 이후 AI 침묵 확인
 
+## 5. 스태프 그룹 — 코디가 텔레그램에서 보고 "거기서 바로 답장" (선택, PO 승인 2026-07-24)
+
+> 환자 1명 = 그룹 안의 주제(Topic) 1개. 환자·AI·웹 코디 메시지가 주제로 실시간 흐르고,
+> **주제에 답장을 쓰면 봇이 환자 메신저(텔레그램·왓츠앱 공통)로 배달**한다.
+> ⚠️ 환자 대화 본문이 그룹에 흐르므로 **그룹 멤버는 스태프만**(초대 관리 = 운영 책임).
+
+1. 텔레그램에서 **새 그룹** 생성(예: "healwith 상담데스크") → 그룹 설정 → **주제(Topics) 켜기**
+2. 그룹에 **@healwith_bot 초대 → 관리자로 승격**(주제 관리 권한 포함)
+3. **BotFather → `/setprivacy` → @healwith_bot 선택 → Disable** — 안 하면 봇이 그룹 글을 못 받아 답장 라우팅이 안 됨(가장 흔한 함정)
+4. 그룹 채팅에 **`/id`** 라고 치면 봇이 그룹 chat_id 를 알려줌(보통 `-100…`)
+5. Vercel env **`STAFF_TELEGRAM_GROUP_ID`** = 그 값 → **재배포**
+6. 검증: 봇에 환자로 메시지 → 그룹에 새 주제 생김 → 주제에 답장 → 환자 텔레그램 수신 + `/admin/chat`에도 같은 답장 기록(👤 admin, via telegram_staff)
+
+- 주제 답장은 웹 답장과 동일 취급: 그 스레드는 이후 **AI 침묵**(coordinator_active)
+- 전송 실패·왓츠앱 24시간 창 만료는 주제에 ⚠️ 안내가 자동으로 붙음
+- env 미설정이면 이 기능 전체가 조용히 꺼진 상태(기존 동작 무변경)
+
 ## 동작 방식 요약
 
 - 환자 텔레그램 → 봇 웹훅(`/api/webhooks/telegram`) → `chat_threads`(channel='telegram')

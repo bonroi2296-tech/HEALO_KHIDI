@@ -148,6 +148,21 @@ vi.mock("@/lib/messaging/telegram", () => ({
   pickTgText: (map: Record<string, string>, lang: string) => map[lang] || map.en,
 }));
 
+// 스태프 그룹 릴레이(B안) — server-only 모듈이라 목으로 대체. 그룹 라우팅 계약도 여기로 잠근다.
+const relayToStaffTopic = vi.fn(async (..._args: any[]) => {});
+const notifyStaffTopic = vi.fn(async (..._args: any[]) => {});
+const findThreadByStaffTopic = vi.fn(async (_topicId: number) => null as any);
+vi.mock("@/lib/messaging/staffRelay", () => ({
+  staffGroupId: () => process.env.STAFF_TELEGRAM_GROUP_ID || null,
+  relayToStaffTopic: (...args: any[]) => relayToStaffTopic(...args),
+  notifyStaffTopic: (...args: any[]) => notifyStaffTopic(...args),
+  findThreadByStaffTopic: (...args: any[]) => findThreadByStaffTopic(...(args as [number])),
+}));
+const sendWhatsAppPatientMessage = vi.fn(async (..._args: any[]) => ({ sent: true, windowExpired: false }));
+vi.mock("@/lib/messaging/whatsapp", () => ({
+  sendWhatsAppPatientMessage: (...args: any[]) => sendWhatsAppPatientMessage(...args),
+}));
+
 // after() 는 테스트에서 즉시 실행하되 promise 를 모아둔다 — 핸드오프 턴처럼 동적 import 가
 // 끼는 경로는 어설션 전에 `await flushAfter()` 로 완료를 기다려야 한다(아니면 경합 오탐).
 const afterPromises: Promise<unknown>[] = [];
@@ -566,12 +581,71 @@ describe("텔레그램 웹훅 계약", () => {
     }
   });
 
-  it("그룹 채팅 메시지는 무시한다(1:1 상담 전용)", async () => {
+  it("그룹 채팅 메시지는 무시한다(스태프 그룹 미설정 시 — 1:1 상담 전용)", async () => {
     const POST = await loadPost();
+    delete process.env.STAFF_TELEGRAM_GROUP_ID;
     const u = msgUpdate("hello", 10);
     (u.message.chat as any).type = "group";
     const res = await POST(makeReq(u));
     expect((await res.json()).skipped).toBe("non_private");
     expect(captured.length).toBe(0);
+  });
+
+  function staffGroupUpdate(text: string, topicId: number | null, updateId = 90) {
+    return {
+      update_id: updateId,
+      message: {
+        message_id: 500,
+        text,
+        ...(topicId ? { message_thread_id: topicId } : {}),
+        chat: { id: -100999, type: "supergroup" },
+        from: { id: 42, username: "coordinator_kim", is_bot: false },
+      },
+    };
+  }
+
+  it("스태프 그룹 주제 답장: 스레드로 역매핑 → 환자 발신 + admin 저장(via telegram_staff) + AI 침묵 플래그 (B안)", async () => {
+    const POST = await loadPost();
+    process.env.STAFF_TELEGRAM_GROUP_ID = "-100999";
+    findThreadByStaffTopic.mockResolvedValueOnce({
+      ...CONSENTED_THREAD(),
+      metadata: { ...CONSENTED_THREAD().metadata, staff_topic_id: 55 },
+    });
+    const res = await POST(makeReq(staffGroupUpdate("네, 예약 도와드릴게요", 55)));
+    expect((await res.json()).ok).toBe(true);
+
+    // 환자 텔레그램으로 발신
+    expect(sendTelegramPatientMessage).toHaveBeenCalledWith("777", "네, 예약 도와드릴게요");
+    // admin 메시지로 저장 + 출처 표식
+    const ins = captured.find((c) => c.table === "chat_messages" && c.op === "insert");
+    expect(ins?.payload.actor_type).toBe("admin");
+    expect(ins?.payload.metadata.via).toBe("telegram_staff");
+    expect(ins?.payload.metadata.staff_username).toBe("coordinator_kim");
+    // 사람 답장 시작 → coordinator_active(이후 AI 침묵)
+    const upd = captured.find(
+      (c) => c.table === "chat_threads" && c.op === "update" && c.payload?.metadata?.coordinator_active === true
+    );
+    expect(upd).toBeTruthy();
+    delete process.env.STAFF_TELEGRAM_GROUP_ID;
+  });
+
+  it("스태프 그룹: 매핑 안 되는 주제엔 발신하지 않고 주제에 안내만 남긴다", async () => {
+    const POST = await loadPost();
+    process.env.STAFF_TELEGRAM_GROUP_ID = "-100999";
+    findThreadByStaffTopic.mockResolvedValueOnce(null);
+    const res = await POST(makeReq(staffGroupUpdate("어디로 가나요", 77)));
+    expect((await res.json()).skipped).toBe("staff_topic_unmapped");
+    expect(sendTelegramPatientMessage).not.toHaveBeenCalled();
+    expect(notifyStaffTopic).toHaveBeenCalledTimes(1);
+    delete process.env.STAFF_TELEGRAM_GROUP_ID;
+  });
+
+  it("환자 메시지는 스태프 주제로 릴레이된다(🧑 환자)", async () => {
+    const POST = await loadPost();
+    mockState.thread = CONSENTED_THREAD();
+    const res = await POST(makeReq(msgUpdate("what hospitals?", 91)));
+    expect((await res.json()).ok).toBe(true);
+    await flushAfter();
+    expect(relayToStaffTopic).toHaveBeenCalledWith(expect.anything(), "🧑 환자", "what hospitals?");
   });
 });
