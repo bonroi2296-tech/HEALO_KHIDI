@@ -1159,6 +1159,31 @@ export default function ConsultationRoomPage() {
     [myLang, pushConvoContext, showRemoteSubtitle]
   );
 
+  // ── 청취모드 "조용한 사망" 워치독 (2026-07-24 실회의 진단) ──
+  // 문제: 자막을 켰는데도 청취모드가 조용히 아무것도 안 만드는 상태(공유 AudioContext 가
+  //   suspended 로 굳어 상대 발화를 물리적으로 감지 못 함)를 사용자가 알 길이 없어 25분을
+  //   허비했다("껐다켰다 반복해도 안 나와서 포기"). 송신 브라우저 STT 엔 워치독이 있었지만
+  //   수신(청취모드)엔 없었던 사각. ListenModeBridge 가 올려주는 건강상태로 "상대 오디오는
+  //   있는데 AudioContext 가 죽어 있음"을 감지해 눈에 띄는 안내(탭 유도)를 띄운다.
+  const listenHealthRef = useRef({ remoteAudioCount: 0, contextState: "none" });
+  const onListenHealth = useCallback((h) => {
+    listenHealthRef.current = h || { remoteAudioCount: 0, contextState: "none" };
+  }, []);
+  const [listenStale, setListenStale] = useState(false);
+  useEffect(() => {
+    if (!translationEnabled) {
+      setListenStale(false);
+      return;
+    }
+    const t = setInterval(() => {
+      const h = listenHealthRef.current;
+      // 상대 오디오 트랙이 있는데 우리 감지용 AudioContext 가 suspended = 확실한 고장(오탐 없음).
+      // running 으로 살아나면(제스처 unlock) 자동으로 배너가 사라진다.
+      setListenStale(h.remoteAudioCount > 0 && h.contextState === "suspended");
+    }, 2000);
+    return () => clearInterval(t);
+  }, [translationEnabled]);
+
   // ── Speech Recognition ──
   // 브라우저 STT 가 마지막으로 결과(중간자막 포함)를 낸 시각 — "조용한 사망" 워치독용
   const lastBrowserSttRef = useRef(0);
@@ -2725,6 +2750,7 @@ export default function ConsultationRoomPage() {
                 contextRef={convoContextRef}
                 dcActivityRef={dcActivityRef}
                 onSubtitle={handleListenSubtitle}
+                onAudioHealth={onListenHealth}
               />
               <div className="flex-1 relative" style={{ height: "calc(100% - 64px)" }}>
                 <VideoGrid copy={c} />
@@ -2815,6 +2841,14 @@ export default function ConsultationRoomPage() {
                     <span className="text-[11px] text-gray-200">
                       {serverSttStatus === "processing" ? c.sttProcessing : c.sttListening}
                     </span>
+                  </div>
+                )}
+                {/* 청취모드 조용한 사망 안내 — 자막 켰는데 상대 오디오 감지가 죽어 있을 때.
+                    탭하면(어디든) 공유 AudioContext 가 resume 되어 자막이 되살아난다. */}
+                {translationEnabled && listenStale && (
+                  <div className="absolute top-14 left-3 right-3 z-30 flex items-center justify-center gap-1.5 bg-amber-500/90 text-black rounded-lg px-3 py-2 text-[12px] font-medium shadow-lg animate-pulse">
+                    <Mic size={13} />
+                    <span>{c.listenStale}</span>
                   </div>
                 )}
               </div>
