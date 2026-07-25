@@ -1485,6 +1485,99 @@ for (const dir of BACKOFFICE_DIRS) {
   }
 }
 
+// ── §21) 폴링 좀비 차단 — 네트워크를 타는 setInterval 은 «안 보이면 쉬기»가 필수 ──────
+// 왜: 2026-07-24 Supabase 가 디스크 IO 예산 고갈로 1시간 죽었다. 부하를 만든 주범은
+//     **아무도 안 보는 상담방 탭 하나**였다 — 채팅 4초·번역 4초·자료 8초 폴링이 돌고 있는데
+//     멈추는 조건이 «탭 닫기» 하나뿐이라, 통화가 끝나고 2시간이 지나도 분당 37.5회씩
+//     DB 를 두드렸다(3시간 전체 요청의 72%가 그 방 하나). POSTMORTEMS #120.
+// 근본 문제: 폴링을 «시작하는» 코드는 누구나 쓰지만 «멈추는» 조건은 잘 안 쓴다. 그리고
+//     그 누락은 빌드·타입·테스트·화면 어디에서도 안 보인다 — 요금과 장애로만 드러난다.
+//     실제로 #969 수리 때 상담방만 고쳤고 같은 패턴 4곳(코디·환자 메시지함, 병원 리드,
+//     에이전시 포털)이 그대로 남아 있었다. 그래서 사람 기억이 아니라 CI 가 잡는다.
+// 무엇을 보나: app/** 에서 주기 30초 이하 setInterval 의 콜백이 네트워크(fetch/supabase)를
+//     타는데 그 파일에 document.hidden(또는 visibilitychange) 처리가 없으면 실패.
+// 한계: 파일 단위 판정이다(같은 파일에 가드가 하나라도 있으면 통과). 정밀도보다 «새 유입
+//     차단»이 목적이라 이 정도로 잡는다. 60초 이상 주기(관리자 대시보드 등)는 대상 밖.
+{
+  try {
+    // fetch 뿐 아니라 래퍼 이름(fetchWithAuth 등)과 API 경로 문자열까지 «네트워크»로 본다 —
+    // 초안이 `fetch\s*\(` 만 봐서 fetchWithAuth() 를 쓰는 병원 리드 화면을 놓쳤다.
+    const NET = /\bfetch\w*\s*\(|supabase|getAccessToken|authHeaders|["'`]\/api\//;
+    const bad = [];
+    for (const rel of walk("app")) {
+      if (!/\.(jsx|tsx|js|ts)$/.test(rel)) continue;
+      let text;
+      try { text = readFileSync(join(ROOT, rel), "utf8"); } catch { continue; }
+      if (!text.includes("setInterval(")) continue;
+      const guarded = /document\.hidden|visibilitychange/.test(text);
+      if (guarded) continue;
+
+      for (const m of text.matchAll(/setInterval\s*\(/g)) {
+        // setInterval( … ) 의 괄호 균형을 맞춰 인자 전체를 뜬다
+        let depth = 1, i = m.index + m[0].length;
+        while (i < text.length && depth > 0) {
+          if (text[i] === "(") depth++;
+          else if (text[i] === ")") depth--;
+          i++;
+        }
+        const args = text.slice(m.index + m[0].length, i - 1);
+        const delay = Number((args.match(/,\s*(\d+)\s*$/) || [])[1]);
+        // 1초 미만 = 타자기·슬라이드 같은 화면 애니메이션 틱(실제로 25ms 타자기 버퍼를 오탐했다).
+        // 30초 초과 = 관리자 대시보드류라 상시 부하로 안 본다.
+        if (!delay || delay < 1000 || delay > 30000) continue;
+
+        const body = args.replace(/,\s*\d+\s*$/, "").trim();
+        let polls = NET.test(body);
+        if (!polls) {
+          // 콜백이 직접 네트워크를 안 타도 «폴링 함수를 부르기만» 하는 경우가 훨씬 흔하다:
+          //   setInterval(loadMessages, 5000)          ← 이름만 넘김
+          //   setInterval(() => loadMessages(false), 5000)
+          //   setInterval(() => { loadMessages(); }, 5000)  ← 블록 본문(초안이 이걸 놓쳤다)
+          // → 콜백 안에서 호출되는 이름을 전부 모아 각 정의 본문까지 따라간다.
+          const names = new Set();
+          if (/^[A-Za-z_$][\w$]*$/.test(body)) names.add(body); // 이름만 넘긴 형태
+          for (const c of body.matchAll(/\b([A-Za-z_$][\w$]*)\s*\(/g)) names.add(c[1]);
+          const IGNORE = /^(if|for|while|switch|return|typeof|catch|setTimeout|setInterval|clearInterval|clearTimeout|Number|String|Boolean|Math|Date|console|require)$/;
+          for (const name of names) {
+            if (IGNORE.test(name)) continue;
+            const def = text.match(
+              new RegExp(`(?:async\\s+)?function\\s+${name}\\s*\\(|(?:const|let|var)\\s+${name}\\s*=`)
+            );
+            if (!def) continue;
+            // 고정 길이로 자르면 옆 코드까지 딸려와 오탐이 난다 → 그 함수의 { } 만 정확히 뜬다.
+            const open = text.indexOf("{", def.index);
+            if (open < 0) continue;
+            let d = 1, k = open + 1;
+            while (k < text.length && d > 0) {
+              if (text[k] === "{") d++;
+              else if (text[k] === "}") d--;
+              k++;
+            }
+            if (NET.test(text.slice(open, k))) { polls = true; break; }
+          }
+        }
+        if (polls) {
+          const line = text.slice(0, m.index).split("\n").length;
+          bad.push(`${rel.replace(/\\/g, "/")}:${line} (${delay}ms)`);
+          break; // 파일당 1건이면 충분
+        }
+      }
+    }
+    if (bad.length) {
+      errors.push(
+        `[폴링좀비] 네트워크 폴링이 «안 보이면 쉬기» 없이 돈다 ${bad.length}건: ${bad.join(" · ")} — ` +
+          `사용자가 탭을 두고 떠나도 계속 DB를 두드려 요금·장애로만 드러난다(2026-07-24 IO 예산 고갈, ` +
+          `POSTMORTEMS #120). 인터벌 콜백 첫 줄에 ` +
+          `\`if (typeof document !== "undefined" && document.hidden) return;\` 를 넣을 것 ` +
+          `(탭이 돌아오면 다음 tick에 자동으로 따라잡는다). 정말 백그라운드에서도 돌아야 하면 ` +
+          `그 이유를 주석으로 남기고 visibilitychange 로 명시적으로 처리할 것.`
+      );
+    }
+  } catch (e) {
+    errors.push(`[폴링좀비] 검사 실패: ${e.message}`);
+  }
+}
+
 // ── 결과 ────────────────────────────────────────────────────────
 if (errors.length) {
   console.error(`\n❌ 콘텐츠 일관성 검사 실패 (${errors.length}건)\n`);

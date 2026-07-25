@@ -530,7 +530,13 @@ function HospitalChatDrawer({ leadId, onClose }) {
 
   useEffect(() => {
     load();
-    const t = setInterval(load, 8000);
+    // 탭이 안 보이는 동안엔 건너뛴다 — 병원 담당자가 리드 목록을 켜둔 채 방치하면 8초 폴링이
+    // 그대로 상시 부하가 된다(2026-07-24 상담방 탭이 같은 이유로 IO 예산 고갈, POSTMORTEMS #120).
+    // 탭이 다시 보이면 다음 tick(최대 8초)에 자동으로 따라잡는다.
+    const t = setInterval(() => {
+      if (typeof document !== "undefined" && document.hidden) return;
+      load();
+    }, 8000);
     return () => clearInterval(t);
   }, [load]);
 
