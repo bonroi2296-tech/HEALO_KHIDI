@@ -699,6 +699,14 @@ export default function ConsultationRoomPage() {
   const [micFailureReason, setMicFailureReason] = useState("");
   // 같은 신분(identity)으로 다른 탭·기기가 입장해 이 화면이 밀려난 상태 — 재연결 경쟁 금지(새 세션 승리)
   const [sessionTakenOver, setSessionTakenOver] = useState(false);
+  // 좀비 탭 방지: 연결이 끊긴 뒤(상대 이탈·네트워크 끊김 등, 강제양보 제외) 재연결 없이 60초가
+  // 지나면 채팅·자료 폴링을 멈춘다. 안 그러면 통화 끝난 방치 탭이 4~8초마다 DB를 계속 두드림
+  // (2026-07-24 Supabase IO 예산 고갈의 유력 원인 — 방 하나가 3시간 2,500회).
+  const hasConnectedOnceRef = useRef(false);
+  const idleDisconnectTimerRef = useRef(null);
+  useEffect(() => () => {
+    if (idleDisconnectTimerRef.current) clearTimeout(idleDisconnectTimerRef.current);
+  }, []);
 
   // Guest mode state
   const [guestName, setGuestName] = useState("");
@@ -1510,6 +1518,9 @@ export default function ConsultationRoomPage() {
     let cancelled = false;
 
     const fetchPending = async () => {
+      // 탭이 백그라운드면 스킵 — 3초 주기라 방치 탭 하나가 시간당 1,200회를 만든다.
+      // (대기 중인 사람이 있으면 탭을 보고 있을 때 최대 3초 안에 뜬다 = 체감 동일)
+      if (typeof document !== "undefined" && document.hidden) return;
       try {
         const headers = await getAdmissionsAuthHeaders();
         if (!headers) return;
@@ -1938,6 +1949,10 @@ export default function ConsultationRoomPage() {
     let cancelled = false;
 
     const poll = async () => {
+      // 탭이 백그라운드/최소화면 건너뛴다 — 방치 탭이 안 보이는 동안에도 4초마다 DB를
+      // 두드리던 것 방지(2026-07-24 Supabase IO 예산 고갈 원인 중 하나). 탭이 다시 보이면
+      // 다음 tick(최대 4초 뒤)에 자동으로 따라잡는다.
+      if (typeof document !== "undefined" && document.hidden) return;
       try {
         const headers = { "X-Guest-Token": inviteToken };
         const [mRes, tRes] = await Promise.all([
@@ -1997,6 +2012,8 @@ export default function ConsultationRoomPage() {
   const knownDocIdsRef = useRef(null);
   const skipNextDocToastRef = useRef(false);
   const loadSharedDocs = useCallback(async () => {
+    // 탭이 백그라운드일 때는 건너뛴다 (방치 탭 DB 부하 방지)
+    if (typeof document !== "undefined" && document.hidden) return;
     try {
       const headers = await getConsultAuthHeaders();
       if (!headers) return;
@@ -2024,9 +2041,10 @@ export default function ConsultationRoomPage() {
   useEffect(() => {
     if (!livekitToken) return;
     loadSharedDocs();
-    // 상담 중 상대가 올린 자료가 바로 보이게 8초 주기 갱신
-    // (기존엔 입장 시 1회만 불러와 상대 화면에 안 떴음 — 2026-06-12 자료공유 1단계)
-    const interval = setInterval(loadSharedDocs, 8000);
+    // 상담 중 상대가 올린 자료가 보이게 주기 갱신 (기존엔 입장 시 1회만 불러와 상대 화면에
+    // 안 떴음 — 2026-06-12 자료공유 1단계). 8초→20초: 자료는 채팅만큼 실시간일 필요가 없고,
+    // 8초는 방치 탭 하나가 시간당 450회를 두드리는 부하였다(2026-07-24 IO 예산 고갈 원인).
+    const interval = setInterval(loadSharedDocs, 20000);
     return () => clearInterval(interval);
   }, [livekitToken, loadSharedDocs]);
 
@@ -2873,6 +2891,11 @@ export default function ConsultationRoomPage() {
                 setConnected(true);
                 setConnectError(false);
                 setConnectErrorDetail("");
+                hasConnectedOnceRef.current = true;
+                if (idleDisconnectTimerRef.current) {
+                  clearTimeout(idleDisconnectTimerRef.current);
+                  idleDisconnectTimerRef.current = null;
+                }
               }}
               onDisconnected={(reason) => {
                 setConnected(false);
@@ -2888,6 +2911,13 @@ export default function ConsultationRoomPage() {
                   setInterimText("");
                   tts.stop();
                   reportClientEvent("connect_error", "duplicate identity takeover - this tab yielded");
+                } else if (hasConnectedOnceRef.current) {
+                  // 한 번이라도 연결됐다가 끊긴 경우(상대 이탈·네트워크 등) — 60초 안에 재연결(재시도
+                  // 클릭 → onConnected) 안 되면 방치 탭으로 간주하고 폴링을 멈춘다.
+                  if (idleDisconnectTimerRef.current) clearTimeout(idleDisconnectTimerRef.current);
+                  idleDisconnectTimerRef.current = setTimeout(() => {
+                    setLivekitToken("");
+                  }, 60000);
                 }
               }}
               onError={(e) => {
