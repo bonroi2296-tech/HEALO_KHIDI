@@ -158,7 +158,13 @@ export default function PipelinePage() {
     const hasRunning = jobs.some((j) => j.status === "running" || j.status === "pending");
     if (hasRunning && !pollingRef.current) {
       setIsPolling(true);
-      pollingRef.current = setInterval(fetchJobs, 2000);
+      // 탭이 안 보이면 건너뛴다 — 2초 주기라 켜둔 채 방치하면 시간당 1,800회다. 진행 중인
+      // 작업이 있을 때만 도는 구조지만, 그 작업이 길면 그대로 상시 부하가 된다
+      // (2026-07-24 IO 예산 고갈, POSTMORTEMS #120). 돌아오면 다음 tick에 따라잡는다.
+      pollingRef.current = setInterval(() => {
+        if (typeof document !== "undefined" && document.hidden) return;
+        fetchJobs();
+      }, 2000);
     } else if (!hasRunning && pollingRef.current) {
       clearInterval(pollingRef.current);
       pollingRef.current = null;

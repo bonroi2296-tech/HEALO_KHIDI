@@ -161,7 +161,13 @@ export default function CoordinatorMessagesClient() {
     }
 
     loadMessages(true);
-    const timer = setInterval(() => loadMessages(false), 5000);
+    // 탭이 안 보이는 동안엔 건너뛴다 — 코디가 메시지함을 하루 종일 켜두면 5초 폴링이 그대로
+    // 상시 부하가 된다(2026-07-24 상담방 탭이 같은 이유로 IO 예산 고갈, POSTMORTEMS #120).
+    // 탭이 다시 보이면 다음 tick(최대 5초)에 자동으로 따라잡는다.
+    const timer = setInterval(() => {
+      if (typeof document !== "undefined" && document.hidden) return;
+      loadMessages(false);
+    }, 5000);
     return () => { cancelled = true; clearInterval(timer); };
   }, [selectedId]);
 

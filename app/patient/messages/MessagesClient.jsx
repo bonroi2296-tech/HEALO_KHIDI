@@ -96,7 +96,13 @@ export default function MessagesClient() {
     }
 
     loadMessages();
-    const timer = setInterval(loadMessages, 5000);
+    // 탭이 안 보이는 동안엔 건너뛴다. 안 그러면 열어둔 채 방치한 탭이 하루 종일 5초마다 DB를
+    // 두드린다(2026-07-24 상담방 탭이 같은 이유로 3시간 요청의 72%를 만들어 IO 예산을 태움,
+    // POSTMORTEMS #120). 탭이 다시 보이면 다음 tick(최대 5초)에 자동으로 따라잡는다.
+    const timer = setInterval(() => {
+      if (typeof document !== "undefined" && document.hidden) return;
+      loadMessages();
+    }, 5000);
     return () => {
       cancelled = true;
       clearInterval(timer);

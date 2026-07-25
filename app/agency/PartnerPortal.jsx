@@ -1391,7 +1391,13 @@ function ChatDrawer({ open, onClose, inquiryId, caseName, tt, getToken }) {
     if (!open) return;
     setLoaded(false);
     fetchMessages();
-    const t = setInterval(fetchMessages, 8000);
+    // 탭이 안 보이는 동안엔 건너뛴다 — 대화창을 열어둔 채 다른 창으로 가도 8초 폴링은 계속
+    // 돈다(2026-07-24 상담방 탭이 같은 이유로 IO 예산 고갈, POSTMORTEMS #120).
+    // 탭이 다시 보이면 다음 tick(최대 8초)에 자동으로 따라잡는다.
+    const t = setInterval(() => {
+      if (typeof document !== "undefined" && document.hidden) return;
+      fetchMessages();
+    }, 8000);
     return () => clearInterval(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, inquiryId]);
