@@ -1494,10 +1494,14 @@ for (const dir of BACKOFFICE_DIRS) {
 //     그 누락은 빌드·타입·테스트·화면 어디에서도 안 보인다 — 요금과 장애로만 드러난다.
 //     실제로 #969 수리 때 상담방만 고쳤고 같은 패턴 4곳(코디·환자 메시지함, 병원 리드,
 //     에이전시 포털)이 그대로 남아 있었다. 그래서 사람 기억이 아니라 CI 가 잡는다.
-// 무엇을 보나: app/** 에서 주기 30초 이하 setInterval 의 콜백이 네트워크(fetch/supabase)를
-//     타는데 그 파일에 document.hidden(또는 visibilitychange) 처리가 없으면 실패.
-// 한계: 파일 단위 판정이다(같은 파일에 가드가 하나라도 있으면 통과). 정밀도보다 «새 유입
-//     차단»이 목적이라 이 정도로 잡는다. 60초 이상 주기(관리자 대시보드 등)는 대상 밖.
+// 무엇을 보나: app/** 에서 주기 1~30초 setInterval 의 콜백이 네트워크(fetch/supabase)를
+//     타는데 그 콜백에 document.hidden 처리가 없으면 실패.
+// 판정 단위: **인터벌 하나하나**다. 콜백 본문 + 콜백이 부르는 함수 본문 안에 document.hidden
+//     이 있어야 통과 — 초안은 «파일 어딘가에 있으면 통과»여서 상담방 대기실 폴링(2.5초·무제한)
+//     을 통째로 놓쳤다(같은 파일 다른 폴링에 가드가 있었기 때문). 그 누락은 PO가 «일찍 들어와
+//     대기하면 어떻게 되냐»고 물어서야 드러났다.
+// 한계: 1초 미만(애니메이션)·30초 초과(관리자 대시보드)는 대상 밖. 변수에 담아 훨씬 뒤에서
+//     감싸는 변형은 여전히 미탐(정적 가드의 목적은 복붙 신규 유입 차단).
 {
   try {
     // fetch 뿐 아니라 래퍼 이름(fetchWithAuth 등)과 API 경로 문자열까지 «네트워크»로 본다 —
@@ -1509,8 +1513,6 @@ for (const dir of BACKOFFICE_DIRS) {
       let text;
       try { text = readFileSync(join(ROOT, rel), "utf8"); } catch { continue; }
       if (!text.includes("setInterval(")) continue;
-      const guarded = /document\.hidden|visibilitychange/.test(text);
-      if (guarded) continue;
 
       for (const m of text.matchAll(/setInterval\s*\(/g)) {
         // setInterval( … ) 의 괄호 균형을 맞춰 인자 전체를 뜬다
@@ -1527,8 +1529,11 @@ for (const dir of BACKOFFICE_DIRS) {
         if (!delay || delay < 1000 || delay > 30000) continue;
 
         const body = args.replace(/,\s*\d+\s*$/, "").trim();
+        // 이 인터벌이 «실제로 보는» 코드 조각들 — 콜백 본문 + 콜백이 부르는 함수들의 본문.
+        // 네트워크 판정도, 가드 유무 판정도 **이 조각들 안에서만** 한다(파일 단위 아님).
+        const scopes = [body];
         let polls = NET.test(body);
-        if (!polls) {
+        {
           // 콜백이 직접 네트워크를 안 타도 «폴링 함수를 부르기만» 하는 경우가 훨씬 흔하다:
           //   setInterval(loadMessages, 5000)          ← 이름만 넘김
           //   setInterval(() => loadMessages(false), 5000)
@@ -1553,13 +1558,18 @@ for (const dir of BACKOFFICE_DIRS) {
               else if (text[k] === "}") d--;
               k++;
             }
-            if (NET.test(text.slice(open, k))) { polls = true; break; }
+            const fnBody = text.slice(open, k);
+            scopes.push(fnBody);
+            if (NET.test(fnBody)) polls = true;
           }
         }
-        if (polls) {
+        // 가드는 «이 인터벌» 안에 있어야 한다. 파일 어딘가에 있으면 통과시키던 초안이
+        // 상담방 대기실 폴링(2.5초·무제한)을 통째로 놓쳤다 — 같은 파일 다른 폴링에
+        // document.hidden 이 있었기 때문이다(2026-07-25 실제 누락, POSTMORTEMS #121).
+        const guarded = scopes.some((s) => /document\.hidden/.test(s));
+        if (polls && !guarded) {
           const line = text.slice(0, m.index).split("\n").length;
           bad.push(`${rel.replace(/\\/g, "/")}:${line} (${delay}ms)`);
-          break; // 파일당 1건이면 충분
         }
       }
     }
