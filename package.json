@@ -58,7 +58,7 @@
     "check": "npm run lint && next build --webpack",
     "check:vercel": "node scripts/validate-vercel-config.js",
     "audit:secret": "node scripts/audit/secret-scan.mjs",
-    "audit:deps": "npm audit --audit-level=high",
+    "audit:deps": "node scripts/audit-deps.mjs",
     "audit:a11y": "node scripts/audit/a11y-scan.mjs",
     "audit:lighthouse": "node scripts/audit/lighthouse-scan.mjs",
     "prepare": "node scripts/install-hooks.js"
