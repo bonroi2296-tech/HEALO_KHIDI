@@ -1600,11 +1600,35 @@ export default function ConsultationRoomPage() {
       }
     };
 
-    const interval = setInterval(check, 2500);
+    // 대기실은 «일찍 들어와서 하염없이 기다리는» 화면이라 폴링이 가장 오래 도는 곳이다.
+    // 승인될 때까지 무한정 2.5초로 두면 1시간 일찍 온 참가자 한 명이 1,440회를 만든다
+    // (2026-07-24 IO 예산 고갈과 같은 부류 — POSTMORTEMS #120·#121).
+    //   ① 탭이 안 보이면 건너뛴다
+    //   ② 3분 넘게 기다린 뒤부터는 10초 간격으로 늦춘다(오래 기다린 사람에게 10초는 체감 차이 없음)
+    //   ③ 대신 탭으로 돌아오는 순간 즉시 한 번 확인한다 → 기다리다 돌아왔을 때 바로 들어가진다
+    const startedAt = Date.now();
+    let ticks = 0;
+    const interval = setInterval(() => {
+      if (typeof document !== "undefined" && document.hidden) return;
+      ticks += 1;
+      const slow = Date.now() - startedAt > 3 * 60 * 1000;
+      if (slow && ticks % 4 !== 0) return; // 2.5초 × 4 = 10초
+      check();
+    }, 2500);
     check();
+
+    const onVisible = () => {
+      if (typeof document !== "undefined" && !document.hidden) check();
+    };
+    if (typeof document !== "undefined") {
+      document.addEventListener("visibilitychange", onVisible);
+    }
     return () => {
       cancelled = true;
       clearInterval(interval);
+      if (typeof document !== "undefined") {
+        document.removeEventListener("visibilitychange", onVisible);
+      }
     };
   }, [admissionId, admissionStatus, consultationId, toast]);
 
