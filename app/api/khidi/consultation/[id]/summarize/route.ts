@@ -19,6 +19,7 @@ export const runtime = "nodejs";
 import { decryptTranscriptRows } from "@/lib/consultation/transcriptCrypto";
 import { NextRequest } from "next/server";
 import { generateText } from "ai";
+import { callGeminiWithCompat } from "@/lib/ai/geminiThinkingCompat";
 import { google } from "@ai-sdk/google";
 import { resolveConsultationActor } from "@/lib/auth/requireConsultationAccess";
 
@@ -142,7 +143,7 @@ ${transcript}`;
 
     let modelText = "";
     try {
-      const { text } = await generateText({
+      const { text } = await callGeminiWithCompat((p) => generateText(p as any), {
         model: google("gemini-flash-latest") as any,
         prompt,
         temperature: 0.2,

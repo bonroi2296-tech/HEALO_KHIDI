@@ -15,6 +15,15 @@ export interface ModelPrice {
 // 기본값 = Gemini 3.5 Flash 표준 단가(USD/1M, 2026-05-19 출시: in $1.50 / out $9.00).
 // `gemini-flash-latest` 별칭은 최신 Flash 로 자동 스왑되므로 2026-07 현재 3.5 Flash 를 가리킨다
 // (옛 2.5 Flash 0.3/2.5 대비 in 5배·out 3.6배 상승). 별칭이 또 이동하면 env 로 덮어써라.
+//
+// 📌 다음 이동 예정 — Gemini 3.6 Flash (2026-07-21 GA): **in $1.50(동일) / out $7.50**
+//    (+ 캐시입력 $0.15). 즉 별칭이 3.6 으로 넘어가면 출력 단가가 17% 싸진다 → 이 표를
+//    안 고치면 **비용이 실제보다 부풀려** 집계된다.
+//    ⚠️ 아직 기본값을 3.6 으로 바꾸지 않았다: 별칭이 실제로 3.6 을 가리키는지 실호출로
+//    확인하지 못했고(2026-07-25 트렌드 스캔 — 컨테이너에 API 키 없음), 미리 내리면 반대로
+//    과소 집계가 된다. **확인되는 즉시** 아래 기본값을 1.5/7.5 로 내리거나 env 로 덮어라:
+//        AI_PRICE_FLASH_OUT=7.5
+//    확인 방법: `GET /v1beta/models/gemini-flash-latest?key=…` 의 응답 모델명 확인.
 const FLASH_IN = Number(process.env.AI_PRICE_FLASH_IN || 1.5);
 const FLASH_OUT = Number(process.env.AI_PRICE_FLASH_OUT || 9.0);
 

@@ -1485,6 +1485,96 @@ for (const dir of BACKOFFICE_DIRS) {
   }
 }
 
+// ── §28) Gemini 호출은 세대 교체 사다리(geminiThinkingCompat)를 반드시 통과 ──────────
+// 왜: 2026-07-23 구글이 `gemini-flash-latest` 별칭을 새 세대로 갈아치우자 구세대
+//     `thinkingBudget:0` 이 400 거절돼 **전 채널 AI 가 통째로 죽었다**. 그때 사다리
+//     (geminiThinkingCompat)를 만들었지만 **감싼 건 8곳뿐**이었고, 나머지 14곳은 맨손으로
+//     남아 있었다 = 같은 사고가 나면 그 14곳이 그대로 다시 죽는다.
+//     그리고 2026-07-21 구글이 `temperature`/`top_p`/`top_k` 폐기를 공지했다
+//     ("future model generations 에서는 HTTP 400") → **예고된 동일 사고**.
+//     사람이 "새 호출부 만들 때 감싸는 걸 기억"하는 구조로는 또 빠진다 → 기계가 잡는다.
+// 무엇을 보나: Gemini 를 직접 호출하는 파일(SDK generateText / REST :generateContent)이
+//     폐기 예고된 샘플링 파라미터를 넘기면서 사다리를 안 쓰면 실패.
+// 한계: 파일 단위 판정 + "같은 줄에 래퍼가 있나"까지만 본다(정적 가드의 목적 = 복붙 신규
+//     유입 차단). 파라미터를 변수에 담아 멀리서 넘기는 변형은 미탐.
+{
+  const SAMPLING = /\b(temperature|topP|topK|top_p|top_k)\s*:/;
+  const SDK_CALL = /\bgenerateText\s*\(\s*\{/;
+  const REST_CALL = /:generateContent\?key=/;
+  const LADDER = /geminiThinkingCompat|callGeminiWithCompat|fetchGeminiWithCompat/;
+  // 체온(fever)·정렬(topPages) 등 동명이인 오탐 제외용 — Gemini 호출이 없는 파일은 애초에 후보 아님
+  for (const dir of ["src", "app"]) {
+    for (const rel of walk(dir)) {
+      if (!/\.(ts|tsx|js|jsx)$/.test(rel) || /\.test\./.test(rel)) continue;
+      let src;
+      try { src = readFileSync(join(ROOT, rel), "utf8"); } catch { continue; }
+      const isGeminiCaller = SDK_CALL.test(src) || REST_CALL.test(src);
+      if (!isGeminiCaller || !SAMPLING.test(src)) continue;
+      const path = rel.replace(/\\/g, "/");
+
+      if (!LADDER.test(src)) {
+        errors.push(
+          `[Gemini사다리] ${path} — Gemini 를 호출하며 폐기 예고된 샘플링 파라미터` +
+            `(temperature/topP/topK)를 넘기는데 세대 교체 사다리를 안 쓴다. ` +
+            `\`callGeminiWithCompat((p) => generateText(p as any), {...})\` 또는 ` +
+            `\`fetchGeminiWithCompat(url, body, init?)\` 로 감쌀 것 ` +
+            `(구글 공지 2026-07-21: 이 파라미터는 곧 HTTP 400 이 된다).`
+        );
+        continue;
+      }
+      // 사다리를 import 했더라도 «감싸지 않은 generateText 호출» 이 남아 있으면 그 줄을 찍는다.
+      src.split("\n").forEach((line, i) => {
+        const code = line.replace(/\/\/.*$/, "");
+        if (!SDK_CALL.test(code)) return;
+        if (/callGeminiWithCompat/.test(code)) return;
+        errors.push(
+          `[Gemini사다리] ${path}:${i + 1} — 이 파일은 사다리를 쓰지만 이 generateText() ` +
+            `호출만 맨손이다. 같은 파일 안 다른 호출처럼 callGeminiWithCompat 으로 감쌀 것.`
+        );
+      });
+    }
+  }
+}
+
+// ── §29) 종료(shutdown)된 Gemini 모델 ID 하드코딩 차단 ──────────────────────────
+// 왜: 2026-07-25 트렌드 스캔에서 `src/lib/symptoms/detect.ts` 가 **2026-06-01 에 종료된**
+//     `gemini-2.0-flash-lite` 를 부르고 있는 걸 발견했다. 호출은 조용히 실패하고 rule-based
+//     폴백만 돌아서 **아무도 몰랐다**(에러 화면도 안 뜬다 = try/catch 안에서 조용히 죽는 부류).
+//     모델 종료는 «우리가 아무것도 안 해도 남이 우리 코드를 깨뜨리는» 외부 변화다 →
+//     기억이 아니라 목록으로 잡는다. 새 종료 예정이 뜨면 아래 표에 날짜와 함께 추가하라.
+// 근거: https://ai.google.dev/gemini-api/docs/deprecations
+{
+  const DEAD_MODELS = [
+    // [모델 ID, 종료일, 대체]
+    ["gemini-2.0-flash", "2026-06-01", "gemini-flash-latest"],
+    ["gemini-2.0-flash-001", "2026-06-01", "gemini-flash-latest"],
+    ["gemini-2.0-flash-lite", "2026-06-01", "gemini-flash-latest"],
+    ["gemini-2.0-flash-lite-001", "2026-06-01", "gemini-flash-latest"],
+    ["gemini-3.1-flash-lite-preview", "2026-05-25", "gemini-3.1-flash-lite"],
+    ["gemini-3.1-flash-image-preview", "2026-06-25", "gemini-3.1-flash-image"],
+    ["gemini-3-pro-image-preview", "2026-06-25", "gemini-3-pro-image"],
+  ];
+  for (const dir of ["src", "app", "scripts", "agents"]) {
+    for (const rel of walk(dir)) {
+      if (!/\.(ts|tsx|js|jsx|mjs|py)$/.test(rel)) continue;
+      if (/\.test\.|check-content-consistency/.test(rel)) continue;
+      let src;
+      try { src = readFileSync(join(ROOT, rel), "utf8"); } catch { continue; }
+      for (const [id, dead, replacement] of DEAD_MODELS) {
+        // 더 긴 ID 의 접두사로 오탐하지 않도록 뒤에 ID 문자가 안 오는 경우만
+        const re = new RegExp(`["'\`]${id.replace(/\./g, "\\.")}(?![\\w.-])`);
+        const line = src.split("\n").findIndex((l) => re.test(l.replace(/\/\/.*$/, "")));
+        if (line < 0) continue;
+        errors.push(
+          `[죽은모델] ${rel.replace(/\\/g, "/")}:${line + 1} — \`${id}\` 는 ${dead} 에 ` +
+            `종료된 모델이라 호출이 조용히 실패한다(폴백만 돌아 아무도 모른다). ` +
+            `\`${replacement}\` 로 교체할 것.`
+        );
+      }
+    }
+  }
+}
+
 // ── 결과 ────────────────────────────────────────────────────────
 if (errors.length) {
   console.error(`\n❌ 콘텐츠 일관성 검사 실패 (${errors.length}건)\n`);

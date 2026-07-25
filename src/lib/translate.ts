@@ -6,6 +6,7 @@
  */
 
 import { generateText } from "ai";
+import { callGeminiWithCompat } from "@/lib/ai/geminiThinkingCompat";
 import { google } from "@ai-sdk/google";
 
 const TRANSLATE_MODEL = "gemini-flash-latest";
@@ -141,7 +142,7 @@ export async function translateToAllLanguages(
   const targetLangs = SUPPORTED_LANGS.filter((l) => l !== sourceLang);
 
   try {
-    const { text } = await generateText({
+    const { text } = await callGeminiWithCompat((p) => generateText(p as any), {
       model,
       system: buildSystemPrompt(sourceLang, targetLangs),
       prompt: `Source language: ${sourceLang}\nTranslate this data:\n${JSON.stringify(compact)}`,

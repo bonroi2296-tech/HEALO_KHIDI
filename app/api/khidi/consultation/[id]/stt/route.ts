@@ -21,6 +21,7 @@ export const runtime = "nodejs";
 import { encryptTranscriptRow } from "@/lib/consultation/transcriptCrypto";
 import { NextRequest } from "next/server";
 import { generateText } from "ai";
+import { callGeminiWithCompat } from "@/lib/ai/geminiThinkingCompat";
 import { google } from "@ai-sdk/google";
 import { resolveConsultationActor } from "@/lib/auth/requireConsultationAccess";
 import { isFillerOnly } from "@/lib/consultation/fillerFilter";
@@ -88,12 +89,17 @@ async function genWithFallback(
   args: { messages: any; temperature: number; maxOutputTokens: number }
 ): Promise<string> {
   try {
-    const { text } = await generateText({ model: google(modelId) as any, ...args });
+    // 별칭 세대 교체 생존 사다리 — temperature 폐기(2026-07-21 공지)·thinking 거절을 흡수.
+    // 자막은 실시간이라 400 한 번에 통째로 끊기면 회의가 못 돌아간다.
+    const { text } = await callGeminiWithCompat((p) => generateText(p as any), {
+      model: google(modelId) as any,
+      ...args,
+    });
     return text || "";
   } catch (e) {
     // Pro 등 비-Flash 모델이 실패하면(별칭 오류·쿼터 등) Flash 로 1회 폴백 — kz 자막이 끊기지 않게.
     if (modelId !== "gemini-flash-latest") {
-      const { text } = await generateText({
+      const { text } = await callGeminiWithCompat((p) => generateText(p as any), {
         model: google("gemini-flash-latest") as any,
         ...args,
       });

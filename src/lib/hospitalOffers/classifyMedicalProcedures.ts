@@ -5,6 +5,7 @@
  */
 
 import { generateText } from "ai";
+import { callGeminiWithCompat } from "@/lib/ai/geminiThinkingCompat";
 import { google } from "@ai-sdk/google";
 
 const MODEL = "gemini-flash-latest";
@@ -56,7 +57,7 @@ export async function classifyMedicalProcedures(
   const userPrompt = `Input array (JSON):\n${inputJson}\n\nOutput: single JSON object with "labels" array of ${n} items only.`;
 
   try {
-    const { text } = await generateText({
+    const { text } = await callGeminiWithCompat((p) => generateText(p as any), {
       model,
       system: SYSTEM_PROMPT,
       prompt: userPrompt,

@@ -241,6 +241,8 @@ export async function POST(request: NextRequest) {
         try {
           const { generateText } = await import("ai");
           const { google } = await import("@ai-sdk/google");
+          // 별칭 세대 교체 생존 사다리 — temperature 폐기(2026-07-21 공지) 시 400 을 흡수.
+          const { callGeminiWithCompat } = await import("@/lib/ai/geminiThinkingCompat");
 
           const systemPrompt = `당신은 한국 의료관광 비용 추정 전문가입니다.
 환자의 상세 인테이크 정보를 보고 KHIDI 벤치마크 범위 ${total_min_krw}~${total_max_krw} KRW (중앙값 ${total_median_krw}) 안에서 이 환자의 실제 비용이 어느 구간에 위치할 가능성이 높은지 판단하세요.
@@ -263,7 +265,7 @@ export async function POST(request: NextRequest) {
 - 예산 구간: ${intake.budget_range || "미정"}
 - 여행 일정: ${intake.travel_dates || "미정"}`;
 
-          const { text } = await generateText({
+          const { text } = await callGeminiWithCompat((p) => generateText(p as any), {
             model: google("gemini-flash-latest") as any,
             system: systemPrompt,
             prompt: userPrompt,

@@ -13,6 +13,7 @@ export const runtime = "nodejs";
 import { encryptTranscriptRow } from "@/lib/consultation/transcriptCrypto";
 import { NextRequest } from "next/server";
 import { generateText } from "ai";
+import { callGeminiWithCompat } from "@/lib/ai/geminiThinkingCompat";
 import { google } from "@ai-sdk/google";
 import { requireConsultationAccess, requireAuthenticatedUser } from "@/lib/auth/requireConsultationAccess";
 import { verifyGuestTokenReadOnly } from "@/lib/auth/guestToken";
@@ -182,7 +183,10 @@ ${text}`,
       temperature: 0.1,
       maxOutputTokens: 500,
     };
-    const { text: translated } = await generateText(genArgs);
+    // 별칭 세대 교체 생존 사다리 — temperature 폐기(2026-07-21 공지)·thinking 거절 흡수.
+    // 실시간 통역 자막이라 400 하나에 회의 전체가 벙어리가 된다.
+    const gen = (a: any) => callGeminiWithCompat((p) => generateText(p as any), a);
+    const { text: translated } = await gen(genArgs);
 
     let translatedText = translated.trim();
 
@@ -190,7 +194,7 @@ ${text}`,
     // 이 조각은 버린다(빈 출력 취급 = 아래 저장·자막이 스킵됨). 추임새-빈출력 경로와 동일.
     // ponytail: 재시도 1회면 대개 복구된다. 여전히 누출이면 자막을 빼는 게 쓰레기를 띄우는 것보다 안전.
     if (looksLikeLeakedTranslation(translatedText, targetLang)) {
-      const retry = await generateText(genArgs).catch(() => null);
+      const retry = await gen(genArgs).catch(() => null);
       const retried = (retry?.text || "").trim();
       translatedText =
         retried && !looksLikeLeakedTranslation(retried, targetLang) ? retried : "";
