@@ -4,90 +4,13 @@ import { useState } from "react";
 import Link from "next/link";
 import { ArrowRight, Plus } from "lucide-react";
 import { useLang } from "@/lib/i18n/LangContext";
+import { t } from "@/lib/i18n";
 import { FAQ_CATEGORIES, FAQS } from "@/lib/faq/faqData";
-
-const COPY = {
-  ko: {
-    eyebrow: "자주 묻는 질문",
-    title: "궁금하신 모든 것",
-    lede: "외국인 환자들이 한국 치료 전·중에 가장 자주 묻는 질문들입니다. 원하는 답이 없으면 메시지 주세요.",
-    all: "전체",
-    qaSuffix: "개의 질문",
-    empty: "해당 카테고리의 질문이 없습니다.",
-    contactEyebrow: "문의",
-    contactTitle: "다른 궁금한 점이 있으신가요?",
-    contactBody: "코디네이터가 선호 언어로, 영업일 기준 하루 안에 개인적으로 답변드립니다.",
-    contactBtn: "대화 시작하기",
-  },
-  en: {
-    eyebrow: "Questions",
-    title: "Everything you're wondering",
-    lede: "Common questions from international patients before and during their care in Korea. Didn't find yours? Send us a message.",
-    all: "All",
-    qaSuffix: "questions",
-    empty: "No questions in this category.",
-    contactEyebrow: "Contact",
-    contactTitle: "Still have questions?",
-    contactBody: "Our coordinator will answer personally in your language, within one business day.",
-    contactBtn: "Start a conversation",
-  },
-  ru: {
-    eyebrow: "Вопросы",
-    title: "Всё, что вас интересует",
-    lede: "Самые частые вопросы иностранных пациентов до и во время лечения в Корее. Не нашли свой? Напишите нам.",
-    all: "Все",
-    qaSuffix: "вопросов",
-    empty: "В этой категории пока нет вопросов.",
-    contactEyebrow: "Контакт",
-    contactTitle: "Остались вопросы?",
-    contactBody: "Наш координатор ответит лично на вашем языке в течение одного рабочего дня.",
-    contactBtn: "Начать разговор",
-  },
-  kz: {
-    eyebrow: "Сұрақтар",
-    title: "Сізді қызықтыратын барлық нәрсе",
-    lede: "Шетелдік науқастардың Кореяда емделу алдында және кезінде жиі қоятын сұрақтары. Жауабын таппадыңыз ба? Бізге хабарласыңыз.",
-    all: "Барлығы",
-    qaSuffix: "сұрақ",
-    empty: "Бұл санатта сұрақтар жоқ.",
-    contactEyebrow: "Байланыс",
-    contactTitle: "Сұрақтарыңыз қалды ма?",
-    contactBody: "Координаторымыз бір жұмыс күні ішінде сіздің тіліңізде жеке жауап береді.",
-    contactBtn: "Сөйлесуді бастау",
-  },
-  zh: {
-    eyebrow: "常见问题",
-    title: "您想了解的一切",
-    lede: "国际患者在韩国治疗前及治疗中最常问的问题。没找到您的问题？请给我们留言。",
-    all: "全部",
-    qaSuffix: "个问题",
-    empty: "该分类暂无问题。",
-    contactEyebrow: "联系",
-    contactTitle: "还有疑问吗？",
-    contactBody: "我们的协调员将在一个工作日内，以您偏好的语言为您亲自解答。",
-    contactBtn: "开始对话",
-  },
-  ja: {
-    eyebrow: "よくある質問",
-    title: "気になることのすべて",
-    lede: "外国人患者が韓国での治療前・治療中に最もよく尋ねる質問です。お探しの答えがなければメッセージをお送りください。",
-    all: "すべて",
-    qaSuffix: "件の質問",
-    empty: "このカテゴリーには質問がありません。",
-    contactEyebrow: "お問い合わせ",
-    contactTitle: "他にご不明な点はありますか？",
-    contactBody: "コーディネーターが営業日基準で1日以内に、ご希望の言語で個別にお答えします。",
-    contactBtn: "会話を始める",
-  },
-};
 
 export default function FAQClient() {
   const lang = useLang();
-  const copy = COPY[lang] || COPY.en;
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [openIdx, setOpenIdx] = useState(null);
-
-  const l = (obj) => obj?.[lang] || obj?.en || obj?.ko || "";
 
   const filtered =
     selectedCategory === "all"
@@ -99,14 +22,14 @@ export default function FAQClient() {
       {/* HERO */}
       <section className="max-w-4xl mx-auto px-4 pt-14 pb-10 md:pt-20 md:pb-12">
         <span className="inline-block text-xs font-bold tracking-wide text-teal-700 bg-teal-50 border border-teal-100 rounded-full px-3 py-1 mb-5">
-          {copy.eyebrow}
+          {t("faqPage.eyebrow", lang)}
         </span>
         <h1 className="text-3xl md:text-4xl font-bold text-gray-900 leading-tight">
-          {copy.title}
+          {t("faqPage.title", lang)}
         </h1>
         <div className="w-12 h-px bg-teal-700 mt-5 mb-5" />
         <p className="text-base md:text-lg text-gray-500 leading-relaxed max-w-2xl">
-          {copy.lede}
+          {t("faqPage.lede", lang)}
         </p>
       </section>
 
@@ -114,7 +37,7 @@ export default function FAQClient() {
       <section className="sticky top-14 md:top-16 z-20 bg-white/90 backdrop-blur border-y border-gray-200">
         <div className="max-w-4xl mx-auto px-4 py-4 flex flex-wrap items-center gap-2.5">
           <span className="text-xs text-gray-500 mr-1 shrink-0">
-            {filtered.length} {copy.qaSuffix}
+            {filtered.length} {t("faqPage.qaSuffix", lang)}
           </span>
           <FilterBtn
             active={selectedCategory === "all"}
@@ -123,7 +46,7 @@ export default function FAQClient() {
               setOpenIdx(null);
             }}
           >
-            {copy.all}
+            {t("faqPage.all", lang)}
           </FilterBtn>
           {FAQ_CATEGORIES.map((cat) => (
             <FilterBtn
@@ -134,7 +57,7 @@ export default function FAQClient() {
                 setOpenIdx(null);
               }}
             >
-              {l(cat.labels)}
+              {t(cat.labelKey, lang)}
             </FilterBtn>
           ))}
         </div>
@@ -146,9 +69,10 @@ export default function FAQClient() {
           {filtered.map((faq, idx) => {
             const key = `${faq.category}-${idx}`;
             const open = openIdx === key;
-            const catLabel = l(
-              FAQ_CATEGORIES.find((c) => c.id === faq.category)?.labels || {}
-            );
+            const catLabelKey = FAQ_CATEGORIES.find(
+              (c) => c.id === faq.category
+            )?.labelKey;
+            const catLabel = catLabelKey ? t(catLabelKey, lang) : "";
             return (
               <div
                 key={key}
@@ -164,7 +88,7 @@ export default function FAQClient() {
                       {String(idx + 1).padStart(2, "0")} · {catLabel}
                     </div>
                     <div className="text-base md:text-lg font-bold text-gray-900 leading-snug">
-                      {l(faq.q)}
+                      {t(faq.qKey, lang)}
                     </div>
                   </div>
                   <span
@@ -178,7 +102,7 @@ export default function FAQClient() {
                 {open && (
                   <div className="px-5 md:px-6 pb-5 md:pb-6 -mt-1">
                     <p className="text-sm md:text-base text-gray-600 leading-relaxed">
-                      {l(faq.a)}
+                      {t(faq.aKey, lang)}
                     </p>
                   </div>
                 )}
@@ -188,7 +112,7 @@ export default function FAQClient() {
 
           {filtered.length === 0 && (
             <p className="py-16 text-center text-sm text-gray-500">
-              {copy.empty}
+              {t("faqPage.empty", lang)}
             </p>
           )}
         </div>
@@ -198,19 +122,19 @@ export default function FAQClient() {
       <section className="bg-teal-700">
         <div className="max-w-4xl mx-auto px-4 py-14 md:py-20 text-center">
           <span className="inline-block text-xs font-bold tracking-wide text-teal-50 bg-teal-700 rounded-full px-3 py-1 mb-5">
-            {copy.contactEyebrow}
+            {t("faqPage.contactEyebrow", lang)}
           </span>
           <h2 className="text-2xl md:text-3xl font-bold text-white mb-4 leading-snug">
-            {copy.contactTitle}
+            {t("faqPage.contactTitle", lang)}
           </h2>
           <p className="text-teal-50 text-sm md:text-base mb-8 max-w-2xl mx-auto leading-relaxed">
-            {copy.contactBody}
+            {t("faqPage.contactBody", lang)}
           </p>
           <Link
             href="/inquiry"
             className="inline-flex items-center gap-2 px-7 py-3.5 bg-white text-teal-700 rounded-xl font-bold hover:bg-teal-50 transition-colors"
           >
-            {copy.contactBtn} <ArrowRight size={18} />
+            {t("faqPage.contactBtn", lang)} <ArrowRight size={18} />
           </Link>
         </div>
       </section>

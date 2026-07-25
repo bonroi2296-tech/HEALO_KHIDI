@@ -106,7 +106,9 @@ export async function POST(request: NextRequest) {
       return Response.json({ ok: false, error: "forbidden_origin" }, { status: 403 });
     }
 
-    const { text, sourceLang, targetLang, consultationId, speakerRole, context } =
+    // partial=true: 말하는 중(interim) 부분 번역 — 화면 표시 전용이라 DB 기록을 남기지 않는다
+    // (같은 발화가 확정 번역과 이중 기록되는 것 방지. 인증·비용가드는 동일 적용.)
+    const { text, sourceLang, targetLang, consultationId, speakerRole, context, partial } =
       await request.json();
 
     if (!text || !sourceLang || !targetLang) {
@@ -195,8 +197,8 @@ ${text}`,
     }
 
     // Save to DB if consultationId provided (fire-and-forget)
-    // 추임새 정리로 번역이 비면 기록도 남기지 않음
-    if (consultationId && translatedText) {
+    // 추임새 정리로 번역이 비면 기록도 남기지 않음. partial(중간 자막)도 기록 안 함.
+    if (consultationId && translatedText && partial !== true) {
       saveTranslationLog(consultationId, {
         originalText: text,
         translatedText,

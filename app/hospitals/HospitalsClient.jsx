@@ -20,65 +20,17 @@ const DOCTOR_FALLBACK = "data:image/svg+xml," + encodeURIComponent(
 );
 const onImgError = (e) => { e.currentTarget.onerror = null; e.currentTarget.src = DOCTOR_FALLBACK; };
 
-import { getLangCodeFromCookie } from '@/lib/i18n';
+import { getLangCodeFromCookie, t } from '@/lib/i18n';
 import { useLang } from '@/lib/i18n/LangContext';
 import { localeHref } from '@/lib/i18n/config';
 import { supabaseClient } from '@/lib/data/supabaseClient';
 import { mapHospitalRow } from '@/lib/mapper';
 
-/* ───────────────── i18n Labels ───────────────── */
-const L = {
-  consortium: {
-    badge: { ko: '핵심 컨소시엄 파트너', en: 'Core Consortium Partner', ru: 'Основной партнёр консорциума', kz: 'Негізгі консорциум серіктес', zh: '核心联盟合作伙伴', ja: 'コアコンソーシアムパートナー' },
-    name: { ko: '면력한방병원', en: 'Immune Hospital of Korean Medicine', ru: 'Клиника Мёнрёк', kz: 'Мёнрёк клиникасы', zh: '免疫医院', ja: '免疫病院' },
-    role: { ko: 'healwith 플랫폼의 한방 면역치료 및 사후관리 총괄', en: 'Korean Medicine immune therapy & post-care for healwith', ru: 'Иммунная терапия и послеоперационный уход', kz: 'Иммундық терапия және емнен кейінгі күтім', zh: '韩方免疫治疗及术后管理', ja: '韓方免疫治療・術後管理' },
-    desc: { ko: '면력한방병원은 서울 강서구에 본원을 두고 신촌·광명·성동에 분원을 운영하는 한방 면역치료 전문 의료기관입니다. 암 환자의 면역력 강화, 항암 부작용 완화, 체력 회복을 위한 통합 한방 프로그램을 제공합니다.', en: 'Immune Hospital is a Korean Medicine institution headquartered in Gangseo-gu, Seoul, with branches in Sinchon, Gwangmyeong, and Seongdong. We provide integrated Korean Medicine programs for cancer patients including immune enhancement, chemotherapy side-effect relief, and physical recovery.', ru: 'Иммунная Клиника — учреждение корейской медицины с главным офисом в Кансо-гу, Сеул, и филиалами в Синчоне, Кванмёне и Сондоне. Мы предоставляем комплексные программы для онкопациентов.', kz: 'Иммунная Клиника — Кансо-гудағы бас кеңсесі мен Синчон, Кванмён, Сондон филиалдары бар корей медицинасы мекемесі.', zh: '免疫医院总部位于首尔江西区，在新村、光明和城东设有分院。为癌症患者提供综合韩方项目。', ja: '免疫病院はソウル江西区に本院を置き、新村・光明・城東に分院を展開する免疫治療専門韓方医療機関です。' },
-  },
-  branches: { ko: '지점 네트워크', en: 'Branch Network', ru: 'Сеть филиалов', kz: 'Филиал желісі', zh: '分院网络', ja: '分院ネットワーク' },
-  immuneOverview: { ko: '면력한방병원 전체 안내 보기', en: 'See the full Immune Hospital guide', ru: 'Полный обзор Immune Hospital', kz: 'Immune Hospital толық нұсқаулығы', zh: '查看免疫医院完整介绍', ja: '免疫病院の全体案内を見る' },
-  branchesDesc: { ko: '면력한방병원은 서울·경기 4개 지점을 운영하고 있습니다.', en: 'Immune Hospital operates 4 branches across Seoul & Gyeonggi.', ru: 'Иммунная Клиника работает в 4 филиалах.', kz: 'Иммунная Клиника 4 филиалда жұмыс істейді.', zh: '免疫医院在首尔及京畿道运营4家分院。', ja: '免疫病院は4拠点で運営しています。' },
-  status: {
-    registered: { ko: '외국인환자 유치기관 등록', en: 'Registered for Foreign Patients', ru: 'Зарегистрирован для иностранных пациентов', kz: 'Шетелдік пациенттер үшін тіркелген', zh: '已注册外国患者招引机构', ja: '外国人患者誘致機関登録済み' },
-    preparing: { ko: '외국인환자 유치기관 등록 준비 중', en: 'Foreign Patient Institution — Registration in Progress', ru: 'Регистрация учреждения для иностранных пациентов в процессе', kz: 'Шетелдік пациенттер мекемесі ретінде тіркеу дайындалуда', zh: '外国患者招引机构注册准备中', ja: '外国人患者誘致機関の登録準備中' },
-    upcoming: { ko: '오픈 예정', en: 'Coming Soon', ru: 'Скоро открытие', kz: 'Жақында ашылады', zh: '即将开业', ja: '近日オープン予定' },
-  },
-  section: {
-    career: { ko: '경력', en: 'Career', ru: 'Карьера', kz: 'Мансап', zh: '经历', ja: '経歴' },
-    education: { ko: '학력', en: 'Education', ru: 'Образование', kz: 'Білім', zh: '学历', ja: '学歴' },
-    activities: { ko: '활동', en: 'Activities & Memberships', ru: 'Деятельность и членство', kz: 'Қызмет және мүшелік', zh: '活动与会员', ja: '活動・所属' },
-    publications: { ko: '저서 및 논문', en: 'Publications & Papers', ru: 'Публикации и статьи', kz: 'Жарияланымдар және мақалалар', zh: '著作与论文', ja: '著書・論文' },
-  },
-  doctors_label: { ko: '명 전문의', en: ' Doctors', ru: ' врачей', kz: ' дәрігер', zh: '名医生', ja: '名の医師' },
-  view_profile: { ko: '상세 프로필', en: 'Full Profile', ru: 'Полный профиль', kz: 'Толық профиль', zh: '详细简历', ja: '詳細プロフィール' },
-  specialist: { ko: '전문의', en: 'Specialist', ru: 'Специалист', kz: 'Маман дәрігер', zh: '专科医师', ja: '専門医' },
-  close: { ko: '닫기', en: 'Close', ru: 'Закрыть', kz: 'Жабу', zh: '关闭', ja: '閉じる' },
-  strengths: {
-    title: { ko: '면력한방병원의 강점', en: 'Our Strengths', ru: 'Наши преимущества', kz: 'Артықшылықтарымыз', zh: '我们的优势', ja: '強み' },
-    items: [
-      { icon: 'Shield', title: { ko: '면역 강화 전문', en: 'Immune Enhancement', ru: 'Укрепление иммунитета', kz: 'Иммунитетті нығайту', zh: '免疫增强', ja: '免疫強化' }, desc: { ko: '사상체질 진단 기반 맞춤형 면역 프로그램', en: 'Customized immune programs based on Sasang constitutional diagnosis', ru: 'Индивидуальные программы на основе диагностики Сасан', kz: 'Сасан диагностикасы негізіндегі бағдарламалар', zh: '基于四象体质诊断的定制免疫方案', ja: '四象体質診断に基づくプログラム' } },
-      { icon: 'Heart', title: { ko: '항암 부작용 관리', en: 'Chemo Side-effect Care', ru: 'Побочные эффекты химиотерапии', kz: 'Химиотерапия жанама әсерлері', zh: '化疗副作用管理', ja: '抗がん副作用ケア' }, desc: { ko: '구토, 피로, 식욕부진 등 항암 부작용 한방 치료', en: 'Korean Medicine for nausea, fatigue, appetite loss from chemo', ru: 'Лечение тошноты, усталости, потери аппетита', kz: 'Жүрек айну, шаршау, тәбет жоғалуын емдеу', zh: '针对化疗副作用的韩方治疗', ja: '吐き気・疲労・食欲不振の韓方治療' } },
-      { icon: 'Leaf', title: { ko: '사후 회복 프로그램', en: 'Post-treatment Recovery', ru: 'Восстановление', kz: 'Қалпына келтіру', zh: '术后恢复', ja: '治療後回復' }, desc: { ko: '수술 후 체력 회복, 한약·침·약침 통합 치료', en: 'Integrated herbal medicine, acupuncture & pharmacopuncture', ru: 'Фитотерапия, акупунктура и фармакопунктура', kz: 'Фитотерапия, акупунктура және фармакопунктура', zh: '韩药·针灸·药针综合治疗', ja: '韓薬・鍼・薬鍼統合治療' } },
-    ],
-  },
-  partnerHospitals: {
-    title: { ko: '협진 암 전문 병원', en: 'Partner Oncology Hospitals', ru: 'Партнёрские онкобольницы', kz: 'Серіктес онкологиялық аурухналар', zh: '协诊肿瘤医院', ja: '協診がん専門病院' },
-    desc: { ko: 'healwith가 연계하는 한국 주요 암 전문 의료기관입니다.', en: 'Leading Korean oncology hospitals partnered with healwith.', ru: 'Ведущие корейские онкобольницы — партнёры healwith.', kz: 'healwith серіктес корей онкологиялық аурухналары.', zh: 'healwith合作的韩国肿瘤专科医院。', ja: 'healwith提携の韓国がん専門病院。' },
-  },
-  cancerCare: {
-    title: { ko: '암종별 치료 안내', en: 'Treatment by Cancer Type', ru: 'Лечение по типу рака', kz: 'Рак түрі бойынша емдеу', zh: '按癌症类型治疗', ja: 'がん種別治療' },
-    desc: { ko: '각 암종에 대한 한국의 치료 접근법과 healwith의 통합 케어를 확인하세요.', en: 'Korean treatment approaches for each cancer type with healwith\'s integrated care.', ru: 'Корейские методы лечения с интегрированной помощью healwith.', kz: 'healwith кешенді көмегімен корей емдеу тәсілдері.', zh: '了解韩国治疗方法和healwith综合护理。', ja: '韓国の治療アプローチとhealwith統合ケア。' },
-  },
-  cta: { ko: '사전상담 신청하기', en: 'Request Pre-consultation', ru: 'Запросить консультацию', kz: 'Кеңес сұрау', zh: '申请预咨询', ja: '事前相談を申請' },
-  viewDetails: { ko: '상세 보기', en: 'View Details', ru: 'Подробнее', kz: 'Толығырақ', zh: '查看详情', ja: '詳細を見る' },
-  comingSoon: { ko: '협진 병원 정보를 준비 중입니다', en: 'Partner hospital information coming soon', ru: 'Информация о больницах-партнёрах скоро появится', kz: 'Серіктес аурухналар туралы ақпарат жақында', zh: '合作医院信息即将推出', ja: '協診病院情報を準備中です' },
-  ewTitle: { ko: '양·한방 통합 암 케어', en: 'Integrated East-West Cancer Care', ru: 'Интегрированная онкологическая помощь', kz: 'Кешенді онкологиялық көмек', zh: '中西医结合肿瘤护理', ja: '洋・韓方統合がんケア' },
-  ewDesc: { ko: '전문 암 병원의 수술·항암 치료와 면력한방병원의 면역 강화·사후관리를 하나의 플랫폼에서.', en: 'Oncology surgery & chemotherapy from partner hospitals + Korean Medicine immune therapy & post-care — all on one platform.', ru: 'Хирургия и химиотерапия в партнёрских больницах + иммунная терапия и послеоперационный уход в Иммуногоспитале — на одной платформе.', kz: 'Серіктес аурухналардағы хирургия мен химиотерапия + Иммунная Клиникадегі иммундық терапия мен бақылау — бір платформада.', zh: '合作医院的手术与化疗 + 免疫医院的免疫强化与术后管理 — 一站式平台。', ja: '提携病院の手術・抗がん治療と免疫病院の免疫強化・術後管理を一つのプラットフォームで。' },
-  hero_branches: { ko: '개 지점', en: 'Branches', ru: 'филиала', kz: 'филиал', zh: '家分院', ja: '拠点' },
-  hero_doctors: { ko: '명 전문의', en: 'Doctors', ru: 'врачей', kz: 'дәрігер', zh: '名医生', ja: '名の医師' },
-  hero_registered: { ko: '4개 지점 외국인환자 유치기관 등록', en: '4 Branches Registered for Foreign Patients', ru: '4 филиала зарегистрированы', kz: '4 филиал тіркелген', zh: '4家已注册外国患者招引', ja: '4拠点 外国人患者誘致登録済み' },
-};
-
+/* ───────────────── i18n Labels ─────────────────
+   화면 문구는 중앙 사전(src/lib/i18n)의 "hospitalsPage.*" 키로 이전됨 — t(key, lang)로 조회. */
 const ICON_MAP = { Shield, Heart, Leaf };
+const STRENGTH_ICONS = ['Shield', 'Heart', 'Leaf']; // hospitalsPage.strengths.item{N}Title/Desc 와 순서 일치
+
 
 /* ───────────────── Doctor Data ───────────────── */
 const DOCTORS = [
@@ -424,26 +376,21 @@ const DOCTORS = [
   },
 ];
 
-/* ───────────────── Branch Config ───────────────── */
+/* ───────────────── Branch Config ─────────────────
+   지점명·주소 문구는 hospitalsPage.branch.<id>.name/.addr 키로 이전. id/status/tel은 로직·비표시 값이라 유지. */
 const BRANCH_CONFIG = [
-  { id: 'gangseo', name: { ko: '강서점 (본원)', en: 'Gangseo HQ', ru: 'Кансо (гл. офис)', kz: 'Кансо (бас)', zh: '江西总院', ja: '江西本院' }, addr: { ko: '서울특별시 강서구 마곡중앙6로 93 (마곡동, 열린프라자) 6,7,10층', en: 'F6,7,10, 93 Magokjungang 6-ro, Gangseo-gu, Seoul', ru: 'Магок, Кансо-гу, Сеул', kz: 'Магок, Кансо-гу, Сеул', zh: '首尔江西区麻谷中央6路93号 6,7,10层', ja: 'ソウル江西区麻谷中央6路93 6·7·10階' }, status: 'registered', tel: '02-2039-8510' },
-  { id: 'sinchon', name: { ko: '신촌점', en: 'Sinchon', ru: 'Синчон', kz: 'Синчон', zh: '新村分院', ja: '新村分院' }, addr: { ko: '서울특별시 서대문구 연세로 12 (창천동, 피델리아타워) 8-14층', en: '8-14F, 12 Yonsei-ro, Seodaemun-gu, Seoul', ru: 'Содэмун-гу, Сеул', kz: 'Содэмун-гу, Сеул', zh: '首尔西大门区延世路12号 8-14层', ja: 'ソウル西大門区延世路12 8-14階' }, status: 'registered', tel: '02-393-8510' },
-  { id: 'gwangmyeong', name: { ko: '광명점', en: 'Gwangmyeong', ru: 'Кванмён', kz: 'Кванмён', zh: '光明分院', ja: '光明分院' }, addr: { ko: '경기 광명시 철산로 16 (철산동, 트라이앵글빌딩) 6, 8~11층', en: '6F, 8-11F, Triangle Building, 16 Cheolsan-ro, Gwangmyeong, Gyeonggi', ru: 'Чхольсан-дон, Кванмён, Кёнги-до', kz: 'Чхольсан-дон, Кванмён, Кёнги-до', zh: '京畿道光明市铁山路16号 三角大厦 6、8-11层', ja: '京畿道光明市鉄山路16 トライアングルビル 6·8-11階' }, status: 'registered', tel: '02-898-8510' },
-  { id: 'seongdong', name: { ko: '성동점', en: 'Seongdong', ru: 'Сондон', kz: 'Сондон', zh: '城东分院', ja: '城東分院' }, addr: { ko: '서울 성동구 천호대로 320 (용답동, 장안빌딩) 2~7층', en: '2-7F, 320 Cheonho-daero, Seongdong-gu, Seoul', ru: 'Сондон-гу, Сеул', kz: 'Сондон-гу, Сеул', zh: '首尔城东区天户大路320号 2-7层', ja: 'ソウル城東区天戸大路320 2-7階' }, status: 'registered', tel: '02-2295-8510' },
+  { id: 'gangseo', status: 'registered', tel: '02-2039-8510' },
+  { id: 'sinchon', status: 'registered', tel: '02-393-8510' },
+  { id: 'gwangmyeong', status: 'registered', tel: '02-898-8510' },
+  { id: 'seongdong', status: 'registered', tel: '02-2295-8510' },
 ];
 
-const CANCER_GUIDES = [
-  { organ: 'stomach', type: { ko: '위암', en: 'Stomach Cancer', ru: 'Рак желудка', kz: 'Асқазан обыры', zh: '胃癌', ja: '胃がん' }, approach: { ko: '내시경 절제 · 위절제술 · 항암 → 한방 소화기능 회복', en: 'Endoscopic resection · Gastrectomy · Chemo → KM digestive recovery', ru: 'Эндоскопия · Гастрэктомия · Химиотерапия → Восстановление ЖКТ', kz: 'Эндоскопия → АЖ қалпына келтіру', zh: '内镜切除·化疗→韩方消化功能恢复', ja: '内視鏡切除・抗がん→韓方消化機能回復' } },
-  { organ: 'breast', type: { ko: '유방암', en: 'Breast Cancer', ru: 'Рак молочной железы', kz: 'Сүт безі обыры', zh: '乳腺癌', ja: '乳がん' }, approach: { ko: '유방보존술 · 항암/호르몬 → 한방 면역·체력 회복', en: 'Breast-conserving surgery · Chemo → KM immune recovery', ru: 'Органосберегающая · Химио → Иммунное восстановление', kz: 'Сақтау · Химио → Қалпына келтіру', zh: '保乳手术·化疗→韩方免疫恢复', ja: '乳房温存術・抗がん→韓方免疫回復' } },
-  { organ: 'liver', type: { ko: '간암', en: 'Liver Cancer', ru: 'Рак печени', kz: 'Бауыр обыры', zh: '肝癌', ja: '肝がん' }, approach: { ko: '간절제 · 색전술 · 표적항암 → 한방 간기능 보호', en: 'Hepatectomy · Embolization · Targeted → KM liver protection', ru: 'Гепатэктомия · Эмболизация → Защита печени', kz: 'Гепатэктомия → Бауырды қорғау', zh: '肝切除·栓塞→韩方肝功能保护', ja: '肝切除・塞栓術→韓方肝機能保護' } },
-  { organ: 'lung', type: { ko: '폐암', en: 'Lung Cancer', ru: 'Рак лёгких', kz: 'Өкпе обыры', zh: '肺癌', ja: '肺がん' }, approach: { ko: '흉강경 수술 · 면역항암 → 한방 호흡기·체력 관리', en: 'VATS · Immunotherapy → KM respiratory care', ru: 'ВАТС · Иммунотерапия → Респираторная помощь', kz: 'ВАТС · Иммунотерапия → Тыныс алу', zh: '胸腔镜·免疫→韩方呼吸管理', ja: 'VATS・免疫療法→韓方呼吸器管理' } },
-  { organ: 'thyroid', type: { ko: '갑상선암', en: 'Thyroid Cancer', ru: 'Рак щитовидной железы', kz: 'Қалқанша без обыры', zh: '甲状腺癌', ja: '甲状腺がん' }, approach: { ko: '갑상선 절제 · 방사성요오드 → 한방 호르몬 균형', en: 'Thyroidectomy · Radioiodine → KM hormonal balance', ru: 'Тиреоидэктомия · Радиойод → Баланс гормонов', kz: 'Тиреоидэктомия → Гормондық тепе-теңдік', zh: '甲状腺切除→韩方激素平衡', ja: '甲状腺切除→韓方ホルモンバランス' } },
-  { organ: 'colon', type: { ko: '대장암', en: 'Colorectal Cancer', ru: 'Рак толстой кишки', kz: 'Тоқ ішек обыры', zh: '大肠癌', ja: '大腸がん' }, approach: { ko: '복강경 절제 · 항암 → 한방 장기능 회복·면역 강화', en: 'Laparoscopic resection · Chemo → KM bowel & immune recovery', ru: 'Лапароскопия · Химио → Восстановление кишечника', kz: 'Лапароскопия → Ішек қалпына келтіру', zh: '腹腔镜切除→韩方肠功能·免疫恢复', ja: '腹腔鏡切除→韓方腸機能・免疫回復' } },
-];
+// 암종 가이드: 표시 문구는 hospitalsPage.cancerGuide.<organ>.type/.approach 키로 이전. organ은 아이콘 식별자라 유지.
+const CANCER_ORGANS = ['stomach', 'breast', 'liver', 'lung', 'thyroid', 'colon'];
 
 /* ───────────────── Sub-components ───────────────── */
 
-function StatusBadge({ status, l }) {
+function StatusBadge({ status, lang }) {
   const cfg = {
     registered: { bg: 'bg-emerald-100', text: 'text-emerald-800', icon: <CheckCircle2 size={14} /> },
     preparing:  { bg: 'bg-amber-100',   text: 'text-amber-800',   icon: <Clock size={14} /> },
@@ -452,7 +399,7 @@ function StatusBadge({ status, l }) {
   const c = cfg[status];
   return (
     <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 ${c.bg} ${c.text} text-sm font-bold rounded-full`}>
-      {c.icon} {l(L.status[status])}
+      {c.icon} {t(`hospitalsPage.status.${status}`, lang)}
     </span>
   );
 }
@@ -468,10 +415,10 @@ const la = (obj, lang) => {
 function DoctorModal({ doc, l, lang, onClose }) {
   if (!doc) return null;
   const sections = [
-    { key: '경력', icon: <Briefcase size={16} />, label: l(L.section.career), data: la(doc.경력, lang) },
-    { key: '학력', icon: <GraduationCap size={16} />, label: l(L.section.education), data: la(doc.학력, lang) },
-    { key: '활동', icon: <Activity size={16} />, label: l(L.section.activities), data: la(doc.활동, lang) },
-    { key: '논문', icon: <BookOpen size={16} />, label: l(L.section.publications), data: la(doc.논문, lang) },
+    { key: '경력', icon: <Briefcase size={16} />, label: t('hospitalsPage.section.career', lang), data: la(doc.경력, lang) },
+    { key: '학력', icon: <GraduationCap size={16} />, label: t('hospitalsPage.section.education', lang), data: la(doc.학력, lang) },
+    { key: '활동', icon: <Activity size={16} />, label: t('hospitalsPage.section.activities', lang), data: la(doc.활동, lang) },
+    { key: '논문', icon: <BookOpen size={16} />, label: t('hospitalsPage.section.publications', lang), data: la(doc.논문, lang) },
   ];
 
   return (
@@ -572,7 +519,7 @@ function DoctorCard({ doc, l, lang, onSelect }) {
             {/* 전문의 검증 칩 — 실제 '전문의' 자격이 데이터에 있을 때만(전부 도배 금지·과장 금지) */}
             {doc.subspecialty?.ko?.includes("전문의") && (
               <span className="inline-flex items-center gap-0.5 px-2 py-0.5 text-[10px] font-bold rounded-full bg-teal-50 text-teal-700 border border-teal-100">
-                <CheckCircle2 size={11} /> {l(L.specialist)}
+                <CheckCircle2 size={11} /> {t('hospitalsPage.specialist', lang)}
               </span>
             )}
           </div>
@@ -611,7 +558,7 @@ function DoctorCard({ doc, l, lang, onSelect }) {
               <span className="flex items-center gap-1 text-gray-500"><Activity size={11} /> {la(doc.활동, lang).length}</span>
             )}
             <span className="ml-auto text-emerald-700 font-semibold group-hover:text-emerald-700 transition text-xs">
-              {l(L.view_profile)} →
+              {t('hospitalsPage.viewProfile', lang)} →
             </span>
           </div>
         </div>
@@ -686,24 +633,24 @@ export default function HospitalsClient() {
         </div>
         <div className="relative max-w-6xl mx-auto px-4 py-16 md:py-24">
           <div className="inline-flex items-center gap-2 bg-white/15 backdrop-blur-sm rounded-full px-4 py-1.5 text-sm font-semibold mb-6">
-            <Award size={16} /> {l(L.consortium.badge)}
+            <Award size={16} /> {t('hospitalsPage.consortium.badge', lang)}
           </div>
-          <h1 className="text-3xl md:text-5xl font-extrabold leading-tight mb-4">{l(L.consortium.name)}</h1>
-          <p className="text-emerald-200 text-xl font-medium mb-4">{l(L.consortium.role)}</p>
-          <p className="text-white/80 text-base md:text-lg max-w-3xl leading-relaxed mb-10">{l(L.consortium.desc)}</p>
+          <h1 className="text-3xl md:text-5xl font-extrabold leading-tight mb-4">{t('hospitalsPage.consortium.name', lang)}</h1>
+          <p className="text-emerald-200 text-xl font-medium mb-4">{t('hospitalsPage.consortium.role', lang)}</p>
+          <p className="text-white/80 text-base md:text-lg max-w-3xl leading-relaxed mb-10">{t('hospitalsPage.consortium.desc', lang)}</p>
 
           <div className="flex flex-wrap gap-3 mb-10">
             <div className="bg-white/10 backdrop-blur-sm rounded-xl px-5 py-3 text-base">
               <span className="text-white font-bold text-xl tabular-nums">4</span>
-              <span className="text-emerald-200 ml-2">{l(L.hero_branches)}</span>
+              <span className="text-emerald-200 ml-2">{t('hospitalsPage.heroBranches', lang)}</span>
             </div>
             <div className="bg-white/10 backdrop-blur-sm rounded-xl px-5 py-3 text-base">
               <span className="text-white font-bold text-xl tabular-nums">28</span>
-              <span className="text-emerald-200 ml-2">{l(L.hero_doctors)}</span>
+              <span className="text-emerald-200 ml-2">{t('hospitalsPage.heroDoctors', lang)}</span>
             </div>
             <div className="bg-white/10 backdrop-blur-sm rounded-xl px-5 py-3 text-base inline-flex items-center gap-2">
               <CheckCircle2 size={16} className="text-emerald-300" />
-              <span className="text-emerald-200">{l(L.hero_registered)}</span>
+              <span className="text-emerald-200">{t('hospitalsPage.heroRegistered', lang)}</span>
             </div>
           </div>
 
@@ -711,22 +658,22 @@ export default function HospitalsClient() {
             onClick={() => router.push('/intake')}
             className="bg-white text-emerald-800 font-bold px-8 py-4 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-200 inline-flex items-center gap-2 text-lg"
           >
-            {l(L.cta)} <ArrowRight size={20} />
+            {t('hospitalsPage.cta', lang)} <ArrowRight size={20} />
           </button>
         </div>
       </section>
 
       {/* ── Branch Network + Doctors ── */}
       <section className="max-w-6xl mx-auto px-4 py-14">
-        <h2 className="text-2xl md:text-3xl font-bold mb-2">{l(L.branches)}</h2>
-        <p className="text-gray-500 text-base mb-6">{l(L.branchesDesc)}</p>
+        <h2 className="text-2xl md:text-3xl font-bold mb-2">{t('hospitalsPage.branches', lang)}</h2>
+        <p className="text-gray-500 text-base mb-6">{t('hospitalsPage.branchesDesc', lang)}</p>
         {/* 면력 대표 페이지 입구. 이게 없어서 /hospitals/immune 이 목록에서 도달 불가한
             고아였다(2026-07-22 실측: 목록·홈에서 링크 0). 목록 → 대표 페이지 동선을 만든다. */}
         <Link
           href="/hospitals/immune"
           className="inline-flex items-center gap-1.5 text-sm font-semibold text-teal-700 hover:text-teal-800 mb-8"
         >
-          {l(L.immuneOverview)} <ArrowRight size={15} />
+          {t('hospitalsPage.immuneOverview', lang)} <ArrowRight size={15} />
         </Link>
 
         <div className="space-y-5">
@@ -761,9 +708,9 @@ export default function HospitalsClient() {
                         } />
                       </div>
                       <div>
-                        <h3 className="font-bold text-xl md:text-2xl">{l(branch.name)}</h3>
+                        <h3 className="font-bold text-xl md:text-2xl">{t(`hospitalsPage.branch.${branch.id}.name`, lang)}</h3>
                         <p className="text-sm text-gray-500 flex items-center gap-1 mt-1">
-                          <MapPin size={14} /> {l(branch.addr)}
+                          <MapPin size={14} /> {t(`hospitalsPage.branch.${branch.id}.addr`, lang)}
                         </p>
                       </div>
                     </div>
@@ -771,7 +718,7 @@ export default function HospitalsClient() {
                     <div className="flex items-center gap-4">
                       {docs.length > 0 && (
                         <span className="text-sm text-gray-500 flex items-center gap-1 hidden sm:flex">
-                          <Users size={16} /> {docs.length}{l(L.doctors_label)}
+                          <Users size={16} /> {docs.length}{t('hospitalsPage.doctorsLabel', lang)}
                         </span>
                       )}
                       {branch.tel && (
@@ -785,7 +732,7 @@ export default function HospitalsClient() {
                     </div>
                   </div>
                   <div className="mt-4">
-                    <StatusBadge status={branch.status} l={l} />
+                    <StatusBadge status={branch.status} lang={lang} />
                   </div>
                 </div>
 
@@ -812,17 +759,17 @@ export default function HospitalsClient() {
       {/* ── Strengths ── */}
       <section className="bg-emerald-50 py-14">
         <div className="max-w-6xl mx-auto px-4">
-          <h2 className="text-2xl md:text-3xl font-bold mb-8">{l(L.strengths.title)}</h2>
+          <h2 className="text-2xl md:text-3xl font-bold mb-8">{t('hospitalsPage.strengths.title', lang)}</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {L.strengths.items.map((item, i) => {
-              const Icon = ICON_MAP[item.icon];
+            {STRENGTH_ICONS.map((iconName, i) => {
+              const Icon = ICON_MAP[iconName];
               return (
                 <div key={i} className="bg-white rounded-2xl p-8 border border-emerald-100">
                   <div className="w-14 h-14 bg-emerald-100 rounded-xl flex items-center justify-center mb-5">
                     <Icon size={28} className="text-emerald-700" />
                   </div>
-                  <h3 className="font-bold text-lg mb-3">{l(item.title)}</h3>
-                  <p className="text-base text-gray-500 leading-relaxed">{l(item.desc)}</p>
+                  <h3 className="font-bold text-lg mb-3">{t(`hospitalsPage.strengths.item${i + 1}Title`, lang)}</h3>
+                  <p className="text-base text-gray-500 leading-relaxed">{t(`hospitalsPage.strengths.item${i + 1}Desc`, lang)}</p>
                 </div>
               );
             })}
@@ -832,8 +779,8 @@ export default function HospitalsClient() {
 
       {/* ── Partner Hospitals ── */}
       <section className="max-w-6xl mx-auto px-4 py-14">
-        <h2 className="text-2xl md:text-3xl font-bold mb-2">{l(L.partnerHospitals.title)}</h2>
-        <p className="text-gray-500 text-base mb-8">{l(L.partnerHospitals.desc)}</p>
+        <h2 className="text-2xl md:text-3xl font-bold mb-2">{t('hospitalsPage.partnerHospitals.title', lang)}</h2>
+        <p className="text-gray-500 text-base mb-8">{t('hospitalsPage.partnerHospitals.desc', lang)}</p>
         {partnerHospitals.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
             {partnerHospitals.map(h => (
@@ -856,7 +803,7 @@ export default function HospitalsClient() {
                   </div>
                 )}
                 <div className="flex items-center gap-1 text-sm text-teal-700 font-medium">
-                  {l(L.viewDetails)} <ArrowRight size={14} />
+                  {t('hospitalsPage.viewDetails', lang)} <ArrowRight size={14} />
                 </div>
               </Link>
             ))}
@@ -864,7 +811,7 @@ export default function HospitalsClient() {
         ) : (
           <div className="text-center py-16 bg-gray-50 rounded-2xl">
             <Building2 size={40} className="mx-auto text-gray-300 mb-3" />
-            <p className="text-gray-500">{l(L.comingSoon)}</p>
+            <p className="text-gray-500">{t('hospitalsPage.comingSoon', lang)}</p>
           </div>
         )}
       </section>
@@ -872,18 +819,18 @@ export default function HospitalsClient() {
       {/* ── Cancer Type Guide ── */}
       <section className="bg-gray-50 py-14">
         <div className="max-w-6xl mx-auto px-4">
-          <h2 className="text-2xl md:text-3xl font-bold mb-2">{l(L.cancerCare.title)}</h2>
-          <p className="text-gray-500 text-base mb-8">{l(L.cancerCare.desc)}</p>
+          <h2 className="text-2xl md:text-3xl font-bold mb-2">{t('hospitalsPage.cancerCare.title', lang)}</h2>
+          <p className="text-gray-500 text-base mb-8">{t('hospitalsPage.cancerCare.desc', lang)}</p>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {CANCER_GUIDES.map((guide, i) => (
+            {CANCER_ORGANS.map((organ, i) => (
               <div key={i} role="button" tabIndex={0} onClick={() => router.push('/inquiry')} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); router.push('/inquiry'); } }} className="bg-white border border-gray-200 rounded-2xl p-6 hover:shadow-md hover:border-teal-200 transition cursor-pointer group focus:outline-none focus:ring-2 focus:ring-teal-400">
                 <div className="flex items-center gap-3 mb-3">
-                  <span className="text-teal-600"><OrganIcon name={guide.organ} className="w-9 h-9" /></span>
-                  <h3 className="font-bold text-lg group-hover:text-teal-700 transition">{l(guide.type)}</h3>
+                  <span className="text-teal-600"><OrganIcon name={organ} className="w-9 h-9" /></span>
+                  <h3 className="font-bold text-lg group-hover:text-teal-700 transition">{t(`hospitalsPage.cancerGuide.${organ}.type`, lang)}</h3>
                 </div>
-                <p className="text-base text-gray-500 leading-relaxed">{l(guide.approach)}</p>
+                <p className="text-base text-gray-500 leading-relaxed">{t(`hospitalsPage.cancerGuide.${organ}.approach`, lang)}</p>
                 <div className="flex items-center gap-1 mt-4 text-sm text-teal-700 font-medium">
-                  {l(L.cta)} <ArrowRight size={14} />
+                  {t('hospitalsPage.cta', lang)} <ArrowRight size={14} />
                 </div>
               </div>
             ))}
@@ -900,13 +847,13 @@ export default function HospitalsClient() {
             <Leaf size={28} className="text-emerald-200" />
           </div>
           <h2 className="text-2xl md:text-4xl font-extrabold mb-4">
-            {l(L.ewTitle)}
+            {t('hospitalsPage.ewTitle', lang)}
           </h2>
           <p className="text-white/80 max-w-2xl mx-auto mb-8 text-lg">
-            {l(L.ewDesc)}
+            {t('hospitalsPage.ewDesc', lang)}
           </p>
           <button onClick={() => router.push('/intake')} className="bg-white text-teal-700 font-bold px-10 py-5 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-200 inline-flex items-center gap-2 text-lg">
-            {l(L.cta)} <ArrowRight size={20} />
+            {t('hospitalsPage.cta', lang)} <ArrowRight size={20} />
           </button>
         </div>
       </section>

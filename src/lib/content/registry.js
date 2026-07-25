@@ -35,6 +35,7 @@ const FIELD_LABELS = {
   steps: "단계",
   q: "질문",
   a: "답변",
+  specialty: "전문분야",
   tabs: "탭",
   general: "일반",
   cost: "비용",
