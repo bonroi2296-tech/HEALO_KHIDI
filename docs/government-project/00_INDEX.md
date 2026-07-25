@@ -19,6 +19,8 @@ KHIDI 제출 산출물의 기반 자료. 사업 시작 시 작성, 변경 시 �
 | `01_요구사항정의서.docx` | 22p | 페르소나 4종, FR-28개, NFR-23개 |
 | `02_기능명세서.docx` | 30p | 14 기능그룹, 코드 매핑 |
 | `EVAL_MATRIX.docx` | 15p | 공고문 평가지표 대응표 |
+| `10_백오피스_재설계_요구사항대비표.docx` | 9p | 백오피스 5계층 재설계 요구사항 22건 분석표 + 반영 대비표 + RTM (01의 FR/NFR 추적 하위) |
+| `10_백오피스_재설계_요구사항대비표.html` | — | 위 산출물의 시각화판(브라우저에서 열람, 발표·공유용) |
 
 ### B. 보고서 (Phase B)
 KHIDI 제출 정기 보고서.
@@ -47,6 +49,7 @@ KHIDI 제출 정기 보고서.
 
 ### D. 자동화 스크립트
 `make_req.py`, `make_func.py`, `make_eval.py` — Phase A .docx 생성 스크립트 (재실행 가능)
+`make_backoffice_req.py` — 산출물 10(백오피스 재설계 요구사항 대비표) .docx 생성 스크립트 (재실행 가능, `python3 make_backoffice_req.py`)
 
 ### E. 보관 (예정)
 - `monthly-reports/` — 매월 KHIDI 제출본 사본
