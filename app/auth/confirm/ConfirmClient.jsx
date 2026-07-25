@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { CheckCircle2, XCircle, Loader2 } from "lucide-react";
-import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
+import { createSupabaseBrowserClient, withAuthTimeout } from "@/lib/supabase/browser";
 import { useLang } from "@/lib/i18n/LangContext";
 
 const supabase = createSupabaseBrowserClient();
@@ -39,15 +39,17 @@ export default function ConfirmClient() {
       return;
     }
     let active = true;
-    supabase.auth.verifyOtp({ type, token_hash }).then(({ error }) => {
-      if (!active) return;
-      if (error) {
-        setStatus("error");
-        return;
-      }
-      setStatus("success");
-      setTimeout(() => router.push(next), 1200);
-    });
+    withAuthTimeout(supabase.auth.verifyOtp({ type, token_hash }))
+      .then(({ error }) => {
+        if (!active) return;
+        if (error) {
+          setStatus("error");
+          return;
+        }
+        setStatus("success");
+        setTimeout(() => router.push(next), 1200);
+      })
+      .catch(() => { if (active) setStatus("error"); }); // 인증 서버 무응답 → 스피너에 갇히지 않게
     return () => { active = false; };
   }, [router]);
 

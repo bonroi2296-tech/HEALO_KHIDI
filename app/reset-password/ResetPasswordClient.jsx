@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Lock, Eye, EyeOff, CheckCircle2 } from "lucide-react";
-import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
+import { createSupabaseBrowserClient, withAuthTimeout } from "@/lib/supabase/browser";
 import { useToast } from "@/components/Toast";
 import { useLang } from "@/lib/i18n/LangContext";
 
@@ -65,9 +65,9 @@ export default function ResetPasswordClient() {
     const token_hash = params.get("token_hash");
     const type = params.get("type");
     if (token_hash && type) {
-      supabase.auth.verifyOtp({ type, token_hash }).then(({ error }) => {
-        if (error) markInvalid(); else markReady();
-      });
+      withAuthTimeout(supabase.auth.verifyOtp({ type, token_hash }))
+        .then(({ error }) => { if (error) markInvalid(); else markReady(); })
+        .catch(markInvalid); // 인증 서버 무응답 → 로딩 스피너에 갇히지 않게 만료 처리
       return;
     }
 
@@ -95,7 +95,15 @@ export default function ResetPasswordClient() {
       return;
     }
     setSaving(true);
-    const { error } = await supabase.auth.updateUser({ password });
+    // 인증 서버 무응답 시 "저장 중"에 영원히 갇히는 것 방지 (2026-07-24 장애)
+    let error;
+    try {
+      ({ error } = await withAuthTimeout(supabase.auth.updateUser({ password })));
+    } catch {
+      toast.error(pick(L.updateFailed, langCode));
+      setSaving(false);
+      return;
+    }
     if (error) {
       // ponytail: 보안규칙 — Supabase 원문 error.message(영어) 노출 금지, 로컬라이즈 코드형만
       toast.error(pick(L.updateFailed, langCode));

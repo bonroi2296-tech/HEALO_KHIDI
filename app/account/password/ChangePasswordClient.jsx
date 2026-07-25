@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Lock, Eye, EyeOff, CheckCircle2, ArrowLeft } from "lucide-react";
-import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
+import { createSupabaseBrowserClient, withAuthTimeout } from "@/lib/supabase/browser";
 import { useToast } from "@/components/Toast";
 import { useLang } from "@/lib/i18n/LangContext";
 
@@ -141,7 +141,8 @@ export default function ChangePasswordClient() {
       }
       // 서버가 관리자 권한으로 비번을 바꾸면 기존 세션이 무효화된다 → 방금 새 비번으로
       // 즉시 재로그인해 로그아웃 없이 포털로 진입(안 그러면 /login 으로 튕김).
-      await supabase.auth.signInWithPassword({ email, password }).catch(() => {});
+      // 무응답이어도 여기서 멈추지 않는다(재로그인은 보너스) — 20초 컷 후 그대로 진행.
+      await withAuthTimeout(supabase.auth.signInWithPassword({ email, password })).catch(() => {});
       toast.success(pick(L.success, langCode));
       setCurrent(""); setPassword(""); setConfirmPassword("");
       // 완료 → 역할별 초기 화면으로 이동(토스트 잠깐 보이게 지연). saving 유지 = 중복 제출 방지.
