@@ -304,18 +304,18 @@ export const TreatmentDetailPage = ({
     touchRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY, axis: null };
   };
   const onCarouselTouchMove = (e) => {
-    const t = touchRef.current;
-    const dx = e.touches[0].clientX - t.x;
-    const dy = e.touches[0].clientY - t.y;
-    if (!t.axis && (Math.abs(dx) > 8 || Math.abs(dy) > 8)) t.axis = Math.abs(dx) > Math.abs(dy) ? "x" : "y";
-    if (t.axis !== "x") return;
+    const touch = touchRef.current;
+    const dx = e.touches[0].clientX - touch.x;
+    const dy = e.touches[0].clientY - touch.y;
+    if (!touch.axis && (Math.abs(dx) > 8 || Math.abs(dy) > 8)) touch.axis = Math.abs(dx) > Math.abs(dy) ? "x" : "y";
+    if (touch.axis !== "x") return;
     setIsDragging(true);
     setDragX(dx); // 루프라 끝이 없음 — 고무줄 저항 불필요
   };
   const onCarouselTouchEnd = (e) => {
-    const t = touchRef.current;
-    if (t.axis === "x") {
-      const dx = e.changedTouches[0].clientX - t.x;
+    const touch = touchRef.current;
+    if (touch.axis === "x") {
+      const dx = e.changedTouches[0].clientX - touch.x;
       if (dx < -40) stepSlide(1);
       else if (dx > 40) stepSlide(-1);
     }

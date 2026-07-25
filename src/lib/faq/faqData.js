@@ -1,353 +1,54 @@
 /**
  * healwith FAQ — 외국인 암환자가 가장 자주 묻는 Q&A
  * 카테고리: 서비스·상담·치료·비자·체류·결제·응급
+ *
+ * ⚠️ 표시 문구(질문·답변·카테고리 라벨)는 전부 중앙 i18n 사전으로 이관됨.
+ *    이 파일은 구조(순서·카테고리 코드·항목 id)와 i18n 키 참조만 보유한다.
+ *    문구 수정은 `src/lib/i18n/index.js`의 `faqData.*` 키(또는 코디 편집 오버라이드)에서.
+ *    - 카테고리 라벨: faqData.category.<카테고리코드>
+ *    - 질문/답변:     faqData.<항목id>.q / faqData.<항목id>.a
+ *    id·카테고리 코드는 필터·앵커에 쓰이므로 변경 금지.
  */
 
 export const FAQ_CATEGORIES = [
-  { id: "service", labels: { en: "About healwith", ko: "healwith 소개", ru: "О healwith", kz: "healwith туралы", zh: "关于 healwith", ja: "healwith について" } },
-  { id: "consultation", labels: { en: "Consultation", ko: "상담", ru: "Консультация", kz: "Кеңес", zh: "咨询", ja: "相談" } },
-  { id: "treatment", labels: { en: "Treatment", ko: "치료", ru: "Лечение", kz: "Емдеу", zh: "治疗", ja: "治療" } },
-  { id: "recovery", labels: { en: "Recovery & immune care", ko: "회복·면역케어", ru: "Восстановление и иммунный уход", kz: "Қалпына келу және иммундық күтім", zh: "康复与免疫护理", ja: "回復・免疫ケア" } },
-  { id: "visa", labels: { en: "Visa & stay", ko: "비자·체류", ru: "Виза и проживание", kz: "Виза және тұру", zh: "签证住宿", ja: "ビザと滞在" } },
-  { id: "payment", labels: { en: "Payment", ko: "결제", ru: "Оплата", kz: "Төлем", zh: "付款", ja: "支払い" } },
-  { id: "privacy", labels: { en: "Privacy & data", ko: "개인정보", ru: "Конфиденциальность", kz: "Құпиялылық", zh: "隐私数据", ja: "プライバシー" } },
+  { id: "service", labelKey: "faqData.category.service" },
+  { id: "consultation", labelKey: "faqData.category.consultation" },
+  { id: "treatment", labelKey: "faqData.category.treatment" },
+  { id: "recovery", labelKey: "faqData.category.recovery" },
+  { id: "visa", labelKey: "faqData.category.visa" },
+  { id: "payment", labelKey: "faqData.category.payment" },
+  { id: "privacy", labelKey: "faqData.category.privacy" },
 ];
 
 export const FAQS = [
   // === About healwith ===
-  {
-    category: "service",
-    q: {
-      en: "What exactly is healwith?",
-      ko: "healwith는 어떤 서비스인가요?",
-      ru: "Что такое healwith?",
-      kz: "healwith дегеніміз не?",
-      zh: "healwith 是什么？",
-      ja: "healwithとは何ですか？",
-    },
-    a: {
-      en: "healwith is a medical concierge platform that helps international cancer patients access care at Korea's top oncology hospitals. We handle hospital matching, visa support, translation, and end-to-end coordination — so you focus on recovery.",
-      ko: "healwith는 외국인 암환자가 한국 최상위 종양학 병원의 진료를 받을 수 있도록 돕는 메디컬 컨시어지 플랫폼입니다. 병원 매칭, 비자 지원, 통역, 전 과정 코디네이션을 담당해 환자는 회복에만 집중할 수 있습니다.",
-      ru: "healwith — платформа медицинского консьержа, которая помогает международным онкологическим пациентам получать помощь в ведущих корейских клиниках. Мы подбираем больницу, помогаем с визой, переводом и координируем весь процесс.",
-      kz: "healwith — халықаралық онкологиялық науқастарға Кореяның жетекші клиникаларында емделуге көмектесетін медициналық консьерж платформасы. Біз клиника таңдау, виза, аударма және толық үйлестіруді қамтамасыз етеміз.",
-      zh: "healwith 是一家医疗协调平台，帮助国际癌症患者在韩国顶级肿瘤医院就诊。我们负责医院匹配、签证支持、翻译和全程协调。",
-      ja: "healwithは、外国人がん患者が韓国のトップがん専門病院で治療を受けられるよう支援するメディカルコンシェルジュプラットフォームです。病院の選定、ビザ支援、通訳、全工程のコーディネートを行います。",
-    },
-  },
-  {
-    category: "service",
-    q: {
-      en: "Is healwith a hospital?",
-      ko: "healwith가 병원인가요?",
-      ru: "healwith — это больница?",
-      kz: "healwith аурухана ма?",
-      zh: "healwith 是医院吗？",
-      ja: "healwithは病院ですか？",
-    },
-    a: {
-      en: "No. healwith is a registered international patient facilitator (Reg. A-2026-01-02-06761 by the Mayor of Seoul). We connect you with licensed Korean hospitals, but all diagnosis and treatment is performed by the hospital's medical team.",
-      ko: "아닙니다. healwith는 서울특별시장이 등록한 외국인환자 유치업자(등록번호 A-2026-01-02-06761)입니다. 한국의 면허 의료기관과 연결해드리며, 진단·치료는 해당 병원의 의료진이 수행합니다.",
-      ru: "Нет. healwith — зарегистрированный посредник по привлечению иностранных пациентов (Рег. A-2026-01-02-06761). Мы связываем вас с лицензированными корейскими клиниками, но диагностика и лечение проводятся врачами больницы.",
-      kz: "Жоқ. healwith — шетелдік науқастарды тарту бойынша тіркелген делдал. Біз сізді Кореяның лицензияланған клиникаларымен байланыстырамыз, ал диагностика мен емдеу клиника дәрігерлерімен жасалады.",
-      zh: "不是。healwith 是首尔市长注册的外国患者招揽服务商（注册号 A-2026-01-02-06761）。我们连接您和持牌韩国医院，但诊断和治疗由医院医疗团队执行。",
-      ja: "いいえ。healwithはソウル特別市長が登録した外国人患者誘致事業者（登録番号 A-2026-01-02-06761）です。韓国の認可医療機関とつなぎますが、診断・治療は病院の医療陣が行います。",
-    },
-  },
-  {
-    category: "service",
-    q: {
-      en: "How much does healwith cost?",
-      ko: "healwith 이용료가 얼마인가요?",
-      ru: "Сколько стоит healwith?",
-      kz: "healwith қызметтерінің бағасы қандай?",
-      zh: "healwith 费用多少？",
-      ja: "healwithの費用は？",
-    },
-    a: {
-      en: "healwith is free for patients. From your first inquiry through post-treatment follow-up, we never charge you a service or concierge fee. You pay only the hospital, directly, for your treatment — healwith is compensated by its partner hospitals.",
-      ko: "healwith 이용은 환자에게 무료입니다. 최초 문의부터 치료 후 사후관리까지 어떤 이용료나 수수료도 환자에게 청구하지 않습니다. 환자는 병원 진료비만 병원에 직접 납부하며, healwith는 제휴 병원으로부터 유치 수수료를 정산받아 운영합니다.",
-      ru: "healwith бесплатен для пациентов. От первой заявки до наблюдения после лечения мы никогда не берём с вас сервисный сбор или комиссию. Вы оплачиваете только лечение — напрямую больнице. Вознаграждение healwith получает от больниц-партнёров.",
-      kz: "healwith пациенттер үшін тегін. Алғашқы өтінімнен емнен кейінгі бақылауға дейін сізден ешқандай қызмет ақысы немесе комиссия алынбайды. Сіз тек емделу құнын тікелей клиникаға төлейсіз. healwith серіктес клиникалардан сыйақы алады.",
-      zh: "healwith 对患者完全免费。从初次咨询到治疗后随访，我们绝不向您收取任何服务费或协调费。您只需将治疗费直接支付给医院——healwith 由合作医院支付报酬。",
-      ja: "healwithのご利用は患者様には無料です。初回のお問い合わせから治療後のフォローまで、サービス料やコーディネーション料を患者様に請求することはありません。患者様は治療費のみを病院に直接お支払いいただき、healwithは提携病院から報酬を受け取り運営しています。",
-    },
-  },
+  { id: "service1", category: "service", qKey: "faqData.service1.q", aKey: "faqData.service1.a" },
+  { id: "service2", category: "service", qKey: "faqData.service2.q", aKey: "faqData.service2.a" },
+  { id: "service3", category: "service", qKey: "faqData.service3.q", aKey: "faqData.service3.a" },
 
   // === Consultation ===
-  {
-    category: "consultation",
-    q: {
-      en: "How fast do you respond to inquiries?",
-      ko: "문의 답변은 얼마나 빠른가요?",
-      ru: "Как быстро вы отвечаете?",
-      kz: "Сұраныстарға қаншалықты тез жауап бересіздер?",
-      zh: "回复有多快？",
-      ja: "問い合わせへの返信はどれくらい早いですか？",
-    },
-    a: {
-      en: "Within one business day, in your preferred language. For urgent cases (e.g. time-sensitive diagnosis), we expedite to a few hours.",
-      ko: "영업일 기준 하루 안에 선호 언어로 회신드립니다. 시급한 경우(시간 민감한 진단 등)는 몇 시간 내 대응합니다.",
-      ru: "В течение одного рабочего дня, на вашем языке. В срочных случаях — в течение нескольких часов.",
-      kz: "Бір жұмыс күні ішінде, таңдаған тіліңізде. Шұғыл жағдайларда — бірнеше сағат ішінде.",
-      zh: "一个工作日内，以您偏好的语言回复。紧急情况几小时内响应。",
-      ja: "営業日基準で1日以内、希望言語で返信します。緊急の場合は数時間以内に対応します。",
-    },
-  },
-  {
-    category: "consultation",
-    q: {
-      en: "Can I speak to a doctor before traveling?",
-      ko: "방한 전에 의사와 직접 상담할 수 있나요?",
-      ru: "Можно ли поговорить с врачом до приезда?",
-      kz: "Келмес бұрын дәрігермен сөйлесуге бола ма?",
-      zh: "可以在来韩前与医生通话吗？",
-      ja: "渡航前に医師と話せますか？",
-    },
-    a: {
-      en: "Yes. After intake, we arrange a pre-consultation video call with the matched specialist — with simultaneous medical interpretation in your language (Korean-Russian, Korean-English, etc.).",
-      ko: "네. 인테이크 후 매칭된 전문의와 사전 상담 화상 통화를 주선합니다. 실시간 의료 통역(한-러, 한-영 등)이 제공됩니다.",
-      ru: "Да. После заявки организуем видеоконсультацию с подобранным специалистом, с синхронным медицинским переводом.",
-      kz: "Иә. Өтінімнен кейін таңдалған маманмен бейнекеңес ұйымдастырамыз, нақты уақыттағы медициналық аудармамен.",
-      zh: "可以。申请后我们会安排与配对专科医生的预诊视频，并提供实时医疗翻译。",
-      ja: "はい。問診後、マッチした専門医との事前ビデオ相談を手配します。リアルタイム医療通訳付きです。",
-    },
-  },
+  { id: "consultation1", category: "consultation", qKey: "faqData.consultation1.q", aKey: "faqData.consultation1.a" },
+  { id: "consultation2", category: "consultation", qKey: "faqData.consultation2.q", aKey: "faqData.consultation2.a" },
 
   // === Treatment ===
-  {
-    category: "treatment",
-    q: {
-      en: "What cancer types does healwith specialize in?",
-      ko: "healwith가 지원하는 암종은?",
-      ru: "Какие виды рака?",
-      kz: "Қандай қатерлі ісік түрлерімен жұмыс жасайсыздар?",
-      zh: "healwith 擅长哪些癌症？",
-      ja: "healwithが対応するがんの種類は？",
-    },
-    a: {
-      en: "Primary focus on stomach, breast, liver, lung, thyroid, and colorectal cancer — where Korea has world-leading survival rates. We also coordinate for other oncology cases through our partner hospital network.",
-      ko: "위암, 유방암, 간암, 폐암, 갑상선암, 대장암이 주력이며, 한국이 세계 최고 수준의 생존율을 보이는 암종들입니다. 다른 암종도 제휴 병원 네트워크를 통해 코디네이션합니다.",
-      ru: "Основные направления: рак желудка, молочной железы, печени, лёгких, щитовидной железы и колоректальный — Корея является мировым лидером по выживаемости. Другие случаи также координируем через партнёрскую сеть.",
-      kz: "Негізгі бағыттар: асқазан, сүт безі, бауыр, өкпе, қалқанша без және ішек обыры. Басқа түрлерді де серіктес желі арқылы үйлестіреміз.",
-      zh: "主要专长：胃癌、乳腺癌、肝癌、肺癌、甲状腺癌、大肠癌——韩国在这些领域的生存率世界领先。其他癌症也通过合作医院网络协调。",
-      ja: "主な対応：胃がん、乳がん、肝がん、肺がん、甲状腺がん、大腸がん——韓国は世界トップクラスの生存率を誇ります。他の症例もパートナー病院ネットワークで対応可能です。",
-    },
-  },
-  {
-    category: "treatment",
-    q: {
-      en: "How do I know which hospital is right for me?",
-      ko: "제게 맞는 병원은 어떻게 정하나요?",
-      ru: "Как выбрать подходящую больницу?",
-      kz: "Маған қандай клиника лайық?",
-      zh: "如何选择适合我的医院？",
-      ja: "自分に合った病院はどう選ぶ？",
-    },
-    a: {
-      en: "Based on your diagnosis, stage, language needs, budget, and timeline, our matching algorithm suggests 2–3 suitable hospitals. A coordinator reviews the match and you make the final choice.",
-      ko: "진단, 병기, 언어 필요사항, 예산, 일정을 바탕으로 매칭 알고리즘이 2-3곳을 제안합니다. 코디네이터가 검토하고, 최종 선택은 환자 본인의 몫입니다.",
-      ru: "На основе диагноза, стадии, языка, бюджета и сроков наш алгоритм подбирает 2–3 подходящие клиники. Координатор проверяет, окончательный выбор за вами.",
-      kz: "Диагноз, саты, тіл, бюджет пен уақытқа қарап алгоритм 2–3 клиниканы ұсынады. Координатор тексереді, соңғы шешім сіздікі.",
-      zh: "根据您的诊断、分期、语言、预算和时间，算法推荐2-3家医院。协调员审核，最终由您决定。",
-      ja: "診断・ステージ・言語・予算・日程に基づき、マッチングが2–3の病院を提案。コーディネーターが確認し、最終決定はあなたが行います。",
-    },
-  },
+  { id: "treatment1", category: "treatment", qKey: "faqData.treatment1.q", aKey: "faqData.treatment1.a" },
+  { id: "treatment2", category: "treatment", qKey: "faqData.treatment2.q", aKey: "faqData.treatment2.a" },
 
   // === Recovery & immune care (수술 후 면역·재활 회복) ===
-  {
-    category: "recovery",
-    q: {
-      en: "What's the difference between the surgery hospital and the immune-care hospital?",
-      ko: "수술 병원과 면역케어(한방) 병원은 어떻게 다른가요?",
-      ru: "Чем отличается хирургическая больница от больницы иммунного ухода?",
-      kz: "Хирургиялық аурухана мен иммундық күтім ауруханасының айырмашылығы неде?",
-      zh: "手术医院和免疫护理（韩方）医院有什么区别？",
-      ja: "手術病院と免疫ケア（韓方）病院はどう違いますか？",
-    },
-    a: {
-      en: "At a cooperating university/general hospital you receive diagnosis, surgery, and chemotherapy. At our partner immune-care hospitals (Immune Hospital of Korean Medicine) you recover afterward — with Korean-medicine immunotherapy, pain rehabilitation, nutrition, and side-effect management. healwith links both into one continuous care path.",
-      ko: "협진 대학·종합병원에서는 진단·수술·항암치료를 받습니다. 제휴 면역케어 병원(면력한방병원)에서는 그 이후의 회복을 돕습니다 — 한방 면역치료, 통증재활, 영양 관리, 부작용 관리 등. healwith는 이 둘을 하나의 연속 케어 경로로 연결합니다.",
-      ru: "В сотрудничающей университетской/общей больнице вы проходите диагностику, операцию и химиотерапию. В партнёрских больницах иммунного ухода (больница корейской медицины) вы восстанавливаетесь после — иммунотерапия корейской медицины, реабилитация при боли, питание и управление побочными эффектами. healwith связывает оба этапа в единый маршрут.",
-      kz: "Серіктес университеттік/жалпы ауруханада сіз диагностика, операция және химиотерапиядан өтесіз. Серіктес иммундық күтім ауруханаларында (корей медицинасы ауруханасы) одан кейінгі қалпына келуге көмектеседі — корей медицинасы иммунотерапиясы, ауырсынуды оңалту, тамақтану және жанама әсерлерді басқару. healwith екеуін бір үздіксіз жолға біріктіреді.",
-      zh: "在协诊大学/综合医院，您接受诊断、手术和化疗。在我们合作的免疫护理医院（免疫韩方医院），您在之后进行康复——韩方免疫治疗、疼痛康复、营养管理和副作用管理。healwith 将两者连接为一条连续护理路径。",
-      ja: "協診の大学・総合病院では診断・手術・抗がん治療を受けます。提携の免疫ケア病院（免疫韓方病院）ではその後の回復を支えます——韓方免疫治療、疼痛リハビリ、栄養管理、副作用管理など。healwithはこの両方を一つの連続ケア経路でつなぎます。",
-    },
-  },
-  {
-    category: "recovery",
-    q: {
-      en: "What treatments can I receive at the immune-care hospital?",
-      ko: "면역케어 병원에서는 어떤 치료를 받나요?",
-      ru: "Какое лечение я получу в больнице иммунного ухода?",
-      kz: "Иммундық күтім ауруханасында қандай ем аламын?",
-      zh: "在免疫护理医院能接受哪些治疗？",
-      ja: "免疫ケア病院ではどんな治療を受けられますか？",
-    },
-    a: {
-      en: "Korean-medicine immunotherapy, thermotherapy, pain rehabilitation, customized nutrition and inpatient meals, and physical/psychological recovery support — tailored to your cancer type and condition after surgery or chemotherapy. The exact program is set by the hospital's medical team.",
-      ko: "한방 면역치료, 온열치료, 통증재활, 맞춤 영양·입원식, 체력·심리 회복 지원 등을 받습니다 — 수술·항암 후 암종과 상태에 맞춰서요. 구체적 프로그램은 병원 의료진이 정합니다.",
-      ru: "Иммунотерапия корейской медицины, термотерапия, реабилитация при боли, индивидуальное питание и стационарные блюда, поддержка физического и психологического восстановления — с учётом типа рака и состояния после операции или химиотерапии. Конкретную программу определяет медицинская команда больницы.",
-      kz: "Корей медицинасы иммунотерапиясы, термотерапия, ауырсынуды оңалту, жеке тамақтану және стационарлық тамақ, дене мен психологиялық қалпына келу қолдауы — операциядан немесе химиотерапиядан кейінгі обыр түрі мен жағдайға сай. Нақты бағдарламаны аурухана дәрігерлері белгілейді.",
-      zh: "韩方免疫治疗、热疗、疼痛康复、定制营养与住院餐、体力与心理康复支持——根据术后或化疗后的癌种与状态量身定制。具体方案由医院医疗团队确定。",
-      ja: "韓方免疫治療、温熱療法、疼痛リハビリ、オーダーメイドの栄養・入院食、体力・心理の回復支援など——手術や抗がん剤後のがんの種類と状態に合わせて。具体的なプログラムは病院の医療陣が決定します。",
-    },
-  },
-  {
-    category: "recovery",
-    q: {
-      en: "Why recover in Korea after surgery instead of returning home right away?",
-      ko: "수술 후 바로 귀국하지 않고 한국에서 회복하는 게 좋은가요?",
-      ru: "Почему лучше восстанавливаться в Корее после операции, а не сразу возвращаться домой?",
-      kz: "Операциядан кейін бірден қайтудың орнына Кореяда қалпына келген дұрыс па?",
-      zh: "为什么术后最好在韩国康复，而不是马上回国？",
-      ja: "手術後すぐ帰国せず、韓国で回復するほうが良いですか？",
-    },
-    a: {
-      en: "The weeks after surgery or chemotherapy are when immunity is lowest and side effects appear. Structured recovery care — monitored nutrition, immune and pain management, and a calm environment — can support a smoother recovery compared to managing alone. healwith coordinates surgery and recovery so the transition is seamless, with interpretation throughout.",
-      ko: "수술·항암 직후 몇 주는 면역력이 가장 낮고 부작용이 나타나는 시기입니다. 영양 관리, 면역·통증 관리, 차분한 환경 속의 체계적 회복 케어는 혼자 관리하는 것보다 회복에 도움이 될 수 있습니다. healwith는 수술과 회복을 끊김 없이 연결하고, 전 과정에 통역을 지원합니다.",
-      ru: "Недели после операции или химиотерапии — это время самого низкого иммунитета и появления побочных эффектов. Системный восстановительный уход — контроль питания, управление иммунитетом и болью, спокойная среда — может способствовать более плавному восстановлению, чем уход в одиночку. healwith связывает операцию и восстановление без разрывов, с переводом на всех этапах.",
-      kz: "Операциядан немесе химиотерапиядан кейінгі бірнеше апта — иммунитет ең төмен және жанама әсерлер пайда болатын кез. Жүйелі қалпына келу күтімі — тамақтануды бақылау, иммунитет пен ауырсынуды басқару, тыныш орта — жалғыз басқарудан гөрі жеңіл қалпына келуге көмектесе алады. healwith операция мен қалпына келуді үзіліссіз байланыстырады, барлық кезеңде аудармамен.",
-      zh: "术后或化疗后的数周是免疫力最低、副作用出现的时期。系统的康复护理——营养监控、免疫与疼痛管理、安静环境——相比独自管理更有助于平稳康复。healwith 将手术与康复无缝衔接，全程提供翻译。",
-      ja: "手術や抗がん剤の直後の数週間は免疫力が最も低く、副作用が現れる時期です。栄養管理、免疫・痛みの管理、落ち着いた環境での体系的な回復ケアは、一人で管理するより回復をスムーズに支える場合があります。healwithは手術と回復を途切れなくつなぎ、全工程で通訳を支援します。",
-    },
-  },
-  {
-    category: "recovery",
-    q: {
-      en: "Do I have to be admitted as an inpatient, and how long does recovery care take?",
-      ko: "회복 케어는 입원해야 하나요? 기간은 얼마나 걸리나요?",
-      ru: "Нужна ли госпитализация и сколько длится восстановительный уход?",
-      kz: "Қалпына келу күтімі үшін жатқызу қажет пе, ол қанша уақыт алады?",
-      zh: "康复护理需要住院吗？需要多长时间？",
-      ja: "回復ケアは入院が必要ですか？期間はどれくらいですか？",
-    },
-    a: {
-      en: "It depends on your condition — recovery care can be inpatient or outpatient. Programs typically range from a few days to several weeks. Your coordinator and the medical team set a plan that fits your treatment timeline and visa, and adjust it as you recover.",
-      ko: "상태에 따라 다릅니다 — 입원 또는 통원으로 진행할 수 있습니다. 보통 며칠에서 몇 주까지입니다. 코디네이터와 의료진이 치료 일정·비자에 맞춰 계획을 세우고, 회복 경과에 따라 조정합니다.",
-      ru: "Зависит от состояния — уход может быть стационарным или амбулаторным. Обычно от нескольких дней до нескольких недель. Координатор и медицинская команда составляют план с учётом сроков лечения и визы и корректируют его по мере восстановления.",
-      kz: "Жағдайға байланысты — күтім стационарлық немесе амбулаторлық болуы мүмкін. Әдетте бірнеше күннен бірнеше аптаға дейін. Координатор мен дәрігерлер емдеу кестесі мен визаға сай жоспар құрып, қалпына келу барысында түзетеді.",
-      zh: "取决于您的状态——可住院或门诊。通常从几天到数周不等。协调员和医疗团队会根据您的治疗时间表与签证制定方案，并随康复进展进行调整。",
-      ja: "状態によります——入院でも通院でも可能です。通常は数日から数週間です。コーディネーターと医療陣が治療日程・ビザに合わせて計画を立て、回復の経過に応じて調整します。",
-    },
-  },
+  { id: "recovery1", category: "recovery", qKey: "faqData.recovery1.q", aKey: "faqData.recovery1.a" },
+  { id: "recovery2", category: "recovery", qKey: "faqData.recovery2.q", aKey: "faqData.recovery2.a" },
+  { id: "recovery3", category: "recovery", qKey: "faqData.recovery3.q", aKey: "faqData.recovery3.a" },
+  { id: "recovery4", category: "recovery", qKey: "faqData.recovery4.q", aKey: "faqData.recovery4.a" },
 
   // === Visa ===
-  {
-    category: "visa",
-    q: {
-      en: "Do I need a visa to receive treatment in Korea?",
-      ko: "한국 진료에 비자가 필요한가요?",
-      ru: "Нужна ли виза для лечения в Корее?",
-      kz: "Кореяда емделу үшін виза керек пе?",
-      zh: "在韩国治疗需要签证吗？",
-      ja: "韓国での治療にビザは必要ですか？",
-    },
-    a: {
-      en: "It depends on nationality. Most patients need a medical visa (C-3-3 for short-term under 90 days, G-1 for longer treatment). healwith prepares the invitation letter and supports the entire application.",
-      ko: "국적에 따라 다릅니다. 대부분 의료 비자(C-3-3 90일 이내 단기, G-1 장기)가 필요합니다. healwith가 초청장을 발급하고 신청 전 과정을 지원합니다.",
-      ru: "Зависит от гражданства. Большинству пациентов нужна медицинская виза (C-3-3 до 90 дней, G-1 для длительного лечения). healwith готовит приглашение и сопровождает подачу.",
-      kz: "Азаматтыққа байланысты. Көпшілігіне медициналық виза керек (C-3-3 қысқа мерзім, G-1 ұзақ мерзім). healwith шақыру хатын дайындап, толық үдеріске қолдау көрсетеді.",
-      zh: "取决于国籍。大多数患者需要医疗签证（C-3-3 短期、G-1 长期）。healwith 发放邀请函并协助全程申请。",
-      ja: "国籍によります。多くの場合、医療ビザ（C-3-3短期、G-1長期）が必要です。healwithが招聘状を発行し、申請全体をサポートします。",
-    },
-  },
-  {
-    category: "visa",
-    q: {
-      en: "Can I bring a caregiver or family member?",
-      ko: "보호자나 가족을 동반할 수 있나요?",
-      ru: "Можно ли взять с собой сопровождающего?",
-      kz: "Өзіммен бірге серіктес әкелуге бола ма?",
-      zh: "可以带陪护或家人吗？",
-      ja: "介護者や家族を同伴できますか？",
-    },
-    a: {
-      en: "Yes. We assist one or more accompanying family members with their visa application (usually C-3-3 or C-3-9) and coordinate accommodations for them during your treatment.",
-      ko: "네. 동반 가족(보통 1-2명)의 비자 신청(C-3-3 또는 C-3-9)을 지원하고, 치료 기간 중 숙소도 함께 안내합니다.",
-      ru: "Да. Помогаем одному или нескольким сопровождающим членам семьи с визой (обычно C-3-3 или C-3-9) и жильём.",
-      kz: "Иә. Бір немесе одан көп серіктестің визасын (әдетте C-3-3 немесе C-3-9) және тұрғын үйін ұйымдастырамыз.",
-      zh: "可以。我们协助一位或多位陪同家属申请签证（通常 C-3-3 或 C-3-9），并安排治疗期间的住宿。",
-      ja: "はい。同伴家族のビザ申請（通常C-3-3またはC-3-9）と、治療期間中の宿泊手配も行います。",
-    },
-  },
+  { id: "visa1", category: "visa", qKey: "faqData.visa1.q", aKey: "faqData.visa1.a" },
+  { id: "visa2", category: "visa", qKey: "faqData.visa2.q", aKey: "faqData.visa2.a" },
 
   // === Payment ===
-  {
-    category: "payment",
-    q: {
-      en: "How does payment work?",
-      ko: "결제는 어떻게 진행되나요?",
-      ru: "Как проходит оплата?",
-      kz: "Төлем қалай жүзеге асады?",
-      zh: "如何付款？",
-      ja: "支払いはどのように？",
-    },
-    a: {
-      en: "You pay only the hospital, directly, for your treatment (in KRW, by credit card, cash, or wire). healwith does not charge patients any service or concierge fee — you pay us nothing.",
-      ko: "환자는 병원 진료비만 병원에 직접 납부합니다(원화, 신용카드, 현금, 송금 중 선택). healwith는 환자에게 이용료나 컨시어지 수수료를 청구하지 않습니다 — healwith에 지불하실 비용은 없습니다.",
-      ru: "Вы оплачиваете только лечение — напрямую больнице (в KRW: картой, наличными или переводом). healwith не берёт с пациентов сервисный сбор или комиссию — нам вы не платите ничего.",
-      kz: "Сіз тек емделу құнын тікелей клиникаға төлейсіз (KRW: карта, қолма-қол немесе аударым). healwith пациенттерден қызмет ақысын немесе комиссия алмайды — бізге ешнәрсе төлемейсіз.",
-      zh: "您只需将治疗费直接支付给医院（韩币，信用卡/现金/汇款）。healwith 不向患者收取任何服务费或协调费——您无需向我们支付任何费用。",
-      ja: "患者様は治療費のみを病院に直接お支払いいただきます（韓国ウォン、クレジットカード・現金・送金）。healwithは患者様にサービス料やコーディネーション料を請求しません——当社へのお支払いはございません。",
-    },
-  },
-  {
-    category: "payment",
-    q: {
-      en: "Will I get a written estimate before committing?",
-      ko: "계약 전 견적서를 받을 수 있나요?",
-      ru: "Получу ли я смету до заключения договора?",
-      kz: "Келісімге дейін смета аламын ба?",
-      zh: "签约前能拿到报价单吗？",
-      ja: "契約前に見積書はもらえますか？",
-    },
-    a: {
-      en: "Yes — by Korean Medical Tourism Act §15, we are legally required to provide a written quotation (in your language) before any treatment contract. It details treatment costs and the refund policy. The facilitator fee, a statutory disclosure item, is the amount the Company receives from the hospital — it is not charged to you.",
-      ko: "네. 「의료 해외진출 및 외국인환자 유치 지원에 관한 법률」 제15조에 따라, 진료계약 전 견적서(환자 모국어 또는 영어)를 반드시 서면으로 제공합니다. 진료비와 환불 정책이 명시됩니다. 법정 고지 항목인 유치 수수료는 회사가 병원으로부터 받는 금액으로, 환자에게 청구되지 않습니다.",
-      ru: "Да — согласно §15 Закона Кореи о привлечении иностранных пациентов, мы обязаны предоставить письменную смету (на вашем языке) до заключения договора.",
-      kz: "Иә — Корея Заңының §15-іне сәйкес, келісімге дейін жазбаша сметаны (сіздің тіліңізде) беруге міндеттіміз.",
-      zh: "是。根据韩国《医疗观光法》§15，签订治疗合同前必须以您的语言提供书面报价单。包含治疗费和退款政策。法定披露项「协调费」为公司向医院收取的金额，不向患者收取。",
-      ja: "はい — 韓国「医療海外進出・外国人患者誘致法」§15により、治療契約前に書面の見積書（ご希望言語）を必ず提供します。",
-    },
-  },
+  { id: "payment1", category: "payment", qKey: "faqData.payment1.q", aKey: "faqData.payment1.a" },
+  { id: "payment2", category: "payment", qKey: "faqData.payment2.q", aKey: "faqData.payment2.a" },
 
   // === Privacy ===
-  {
-    category: "privacy",
-    q: {
-      en: "How do you protect my medical data?",
-      ko: "제 의료 데이터는 어떻게 보호되나요?",
-      ru: "Как защищаются мои медицинские данные?",
-      kz: "Медициналық деректерім қалай қорғалады?",
-      zh: "我的医疗数据如何保护？",
-      ja: "医療データはどう保護されますか？",
-    },
-    a: {
-      en: "End-to-end encrypted (TLS 1.3 in transit, AES-256 at rest). Compliant with Korean PIPA, Kazakhstan Law 94-V, and EU GDPR. Sensitive health data requires explicit separate consent, is shared only with hospitals you choose, and is deleted after service completion.",
-      ko: "종단 간 암호화(전송 TLS 1.3, 저장 AES-256)되어 있습니다. 한국 PIPA, 카자흐스탄 94-V, EU GDPR을 준수합니다. 민감 건강정보는 별도 명시적 동의를 받고, 이용자가 선택한 병원에만 공유되며, 서비스 완료 후 삭제됩니다.",
-      ru: "Сквозное шифрование (TLS 1.3 при передаче, AES-256 при хранении). Соответствие корейскому PIPA, казахскому 94-V и GDPR. Чувствительные медданные требуют отдельного явного согласия и передаются только выбранным вами клиникам.",
-      kz: "Толық шифрлау (TLS 1.3, AES-256). PIPA, 94-V және GDPR-ге сәйкес. Құпия медициналық деректер бөлек нақты келісімді қажет етеді және тек сіз таңдаған клиникаларға беріледі.",
-      zh: "端到端加密（传输 TLS 1.3，存储 AES-256）。符合韩国 PIPA、哈萨克斯坦 94-V 和 GDPR。敏感健康数据需单独明示同意，仅与您选择的医院共享，服务完成后删除。",
-      ja: "エンドツーエンド暗号化（TLS 1.3、AES-256）。韓国PIPA、カザフスタン94-V、EU GDPRに準拠。機微な医療データは別途明示的同意を得て、選択した病院のみと共有し、サービス完了後は削除されます。",
-    },
-  },
-  {
-    category: "privacy",
-    q: {
-      en: "Can I delete my data later?",
-      ko: "나중에 제 데이터를 삭제할 수 있나요?",
-      ru: "Могу ли я удалить свои данные позже?",
-      kz: "Кейін деректерімді жоя аламын ба?",
-      zh: "以后能删除我的数据吗？",
-      ja: "後でデータを削除できますか？",
-    },
-    a: {
-      en: "Yes. You can request access, correction, or deletion of your personal data at any time by contacting our DPO (admin@healwith.co.kr). Medical records retained by hospitals are subject to their own legal retention periods (typically 10 years under Korean Medical Service Act §22).",
-      ko: "네. 개인정보 열람·정정·삭제를 DPO(admin@healwith.co.kr)에게 언제든 요청할 수 있습니다. 병원이 보유한 진료기록은 해당 병원의 법적 보관 의무(의료법 §22에 따라 보통 10년)에 따릅니다.",
-      ru: "Да. Вы можете запросить доступ, исправление или удаление в любое время у DPO (admin@healwith.co.kr). Медицинские записи больницы хранятся согласно их правовым срокам (обычно 10 лет).",
-      kz: "Иә. Кез келген уақытта DPO-дан (admin@healwith.co.kr) сұрата аласыз. Клиникадағы медициналық жазбалар олардың заңды мерзімі бойынша сақталады (әдетте 10 жыл).",
-      zh: "可以。您可随时向 DPO（admin@healwith.co.kr）申请查询、更正或删除。医院保存的医疗记录按其法定保存期（通常10年）处理。",
-      ja: "はい。DPO（admin@healwith.co.kr）にいつでも閲覧・訂正・削除を請求できます。病院保有の診療記録は医療法§22により通常10年間保存されます。",
-    },
-  },
+  { id: "privacy1", category: "privacy", qKey: "faqData.privacy1.q", aKey: "faqData.privacy1.a" },
+  { id: "privacy2", category: "privacy", qKey: "faqData.privacy2.q", aKey: "faqData.privacy2.a" },
 ];

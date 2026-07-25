@@ -149,10 +149,10 @@ export const HospitalDetailPage = ({ selectedId, setView, onTreatmentClick, init
     if (!raw) return [];
     if (Array.isArray(raw)) return raw.filter(Boolean);
     if (typeof raw === "string") {
-      const t = raw.trim();
-      if (t.startsWith("[") && t.endsWith("]")) {
+      const str = raw.trim();
+      if (str.startsWith("[") && str.endsWith("]")) {
         try {
-          const parsed = JSON.parse(t);
+          const parsed = JSON.parse(str);
           if (Array.isArray(parsed)) return parsed.filter(Boolean);
         } catch (e) {
           console.warn("Failed to parse image array:", e);
@@ -218,7 +218,7 @@ export const HospitalDetailPage = ({ selectedId, setView, onTreatmentClick, init
   useEffect(() => {
     let alive = true;
     const fetchReviews = async () => {
-      const treatmentIds = hospitalTreatments.map((t) => t.id).filter(Boolean);
+      const treatmentIds = hospitalTreatments.map((tr) => tr.id).filter(Boolean);
       if (treatmentIds.length === 0) return;
       setLoadingReviews(true);
       try {
@@ -299,18 +299,18 @@ export const HospitalDetailPage = ({ selectedId, setView, onTreatmentClick, init
     touchRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY, axis: null };
   };
   const onCarouselTouchMove = (e) => {
-    const t = touchRef.current;
-    const dx = e.touches[0].clientX - t.x;
-    const dy = e.touches[0].clientY - t.y;
-    if (!t.axis && (Math.abs(dx) > 8 || Math.abs(dy) > 8)) t.axis = Math.abs(dx) > Math.abs(dy) ? "x" : "y";
-    if (t.axis !== "x") return;
+    const touch = touchRef.current;
+    const dx = e.touches[0].clientX - touch.x;
+    const dy = e.touches[0].clientY - touch.y;
+    if (!touch.axis && (Math.abs(dx) > 8 || Math.abs(dy) > 8)) touch.axis = Math.abs(dx) > Math.abs(dy) ? "x" : "y";
+    if (touch.axis !== "x") return;
     setIsDragging(true);
     setDragX(dx); // 루프라 끝이 없음 — 고무줄 저항 불필요, 양쪽 다 이웃(클론)이 보임
   };
   const onCarouselTouchEnd = (e) => {
-    const t = touchRef.current;
-    if (t.axis === "x") {
-      const dx = e.changedTouches[0].clientX - t.x;
+    const touch = touchRef.current;
+    if (touch.axis === "x") {
+      const dx = e.changedTouches[0].clientX - touch.x;
       if (dx < -40) stepSlide(1);
       else if (dx > 40) stepSlide(-1);
     }

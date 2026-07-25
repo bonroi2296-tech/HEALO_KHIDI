@@ -4,150 +4,37 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Eyebrow, Rule, Chip, ButtonGold, LinkArrow } from "../../../components/healo/Primitives";
 import { kstDate, kstTime, kstDateParts } from "@/lib/datetime/kst";
+import { t } from "@/lib/i18n";
 import { useLang } from "@/lib/i18n/LangContext";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { fetchPatientJourney } from "@/lib/patient/journeyState";
 
-const COPY = {
-  en: {
-    heroEyebrow: "Calendar",
-    heroTitle: "Your schedule,",
-    heroTitleItalic: "at a glance.",
-    heroLede: "All consultations, follow-up milestones, and recommended re-bookings in one view.",
-    monthView: "Month",
-    listView: "List",
-    noEvents: "No scheduled events yet.",
-    loginRequired: "Please sign in to view your calendar.",
-    today: "Today",
-    types: {
-      consultation: "Consultation",
-      followup: "Follow-up",
-      cadence: { survey: "Progress survey", medication_check: "Medication check", video_call: "Video consultation", lab_review: "Lab results review" },
-      rebooking: "Rebooking",
-      deadline: "Deadline",
-    },
-    previous: "Previous",
-    next: "Next",
-    join: "Join",
-    signIn: "Sign in",
-    daysOfWeek: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
-  },
-  ko: {
-    heroEyebrow: "캘린더",
-    heroTitle: "모든 일정을",
-    heroTitleItalic: "한 눈에.",
-    heroLede: "상담, 사후관리 일정, 권장 재예약을 한 화면에 모았습니다.",
-    monthView: "월간",
-    listView: "목록",
-    noEvents: "예정된 일정이 없습니다.",
-    loginRequired: "캘린더 확인을 위해 로그인해 주세요.",
-    today: "오늘",
-    types: {
-      consultation: "상담",
-      followup: "사후관리",
-      cadence: { survey: "경과 설문", medication_check: "복약 확인", video_call: "화상 상담", lab_review: "검사 결과 리뷰" },
-      rebooking: "재예약 권장",
-      deadline: "마감",
-    },
-    previous: "이전",
-    next: "다음",
-    join: "참여",
-    signIn: "로그인",
-    daysOfWeek: ["일", "월", "화", "수", "목", "금", "토"],
-  },
-  ru: {
-    heroEyebrow: "Календарь",
-    heroTitle: "Ваше расписание —",
-    heroTitleItalic: "с первого взгляда.",
-    heroLede: "Все консультации, этапы наблюдения и рекомендуемые повторные записи в одном окне.",
-    monthView: "Месяц",
-    listView: "Список",
-    noEvents: "Запланированных событий пока нет.",
-    loginRequired: "Пожалуйста, войдите, чтобы посмотреть свой календарь.",
-    today: "Сегодня",
-    types: {
-      consultation: "Консультация",
-      followup: "Наблюдение",
-      cadence: { survey: "Опрос о самочувствии", medication_check: "Проверка приёма лекарств", video_call: "Видеоконсультация", lab_review: "Обзор результатов анализов" },
-      rebooking: "Повторная запись",
-      deadline: "Срок",
-    },
-    previous: "Назад",
-    next: "Вперёд",
-    join: "Присоединиться",
-    signIn: "Войти",
-    daysOfWeek: ["Вс", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"],
-  },
-  kz: {
-    heroEyebrow: "Күнтізбе",
-    heroTitle: "Кестеңіз —",
-    heroTitleItalic: "бір көзқараспен.",
-    heroLede: "Барлық кеңестер, бақылау кезеңдері және ұсынылған қайта жазылулар бір экранда.",
-    monthView: "Ай",
-    listView: "Тізім",
-    noEvents: "Жоспарланған оқиғалар әзірге жоқ.",
-    loginRequired: "Күнтізбеңізді көру үшін жүйеге кіріңіз.",
-    today: "Бүгін",
-    types: {
-      consultation: "Кеңес",
-      followup: "Бақылау",
-      cadence: { survey: "Денсаулық сауалнамасы", medication_check: "Дәрі қабылдауын тексеру", video_call: "Бейне кеңес", lab_review: "Талдау нәтижелерін қарау" },
-      rebooking: "Қайта жазылу",
-      deadline: "Мерзім",
-    },
-    previous: "Алдыңғы",
-    next: "Келесі",
-    join: "Қосылу",
-    signIn: "Кіру",
-    daysOfWeek: ["Жс", "Дс", "Сс", "Ср", "Бс", "Жм", "Сб"],
-  },
-  zh: {
-    heroEyebrow: "日历",
-    heroTitle: "您的日程，",
-    heroTitleItalic: "一目了然。",
-    heroLede: "所有咨询、随访节点和推荐的再次预约都集中在一个视图中。",
-    monthView: "月视图",
-    listView: "列表",
-    noEvents: "暂无已安排的日程。",
-    loginRequired: "请登录以查看您的日历。",
-    today: "今天",
-    types: {
-      consultation: "咨询",
-      followup: "随访",
-      cadence: { survey: "康复问卷", medication_check: "用药确认", video_call: "视频咨询", lab_review: "检查结果回顾" },
-      rebooking: "再次预约",
-      deadline: "截止",
-    },
-    previous: "上一个",
-    next: "下一个",
-    join: "加入",
-    signIn: "登录",
-    daysOfWeek: ["日", "一", "二", "三", "四", "五", "六"],
-  },
-  ja: {
-    heroEyebrow: "カレンダー",
-    heroTitle: "あなたの予定を、",
-    heroTitleItalic: "ひと目で。",
-    heroLede: "すべての相談、フォローアップの予定、おすすめの再予約を一つの画面にまとめました。",
-    monthView: "月表示",
-    listView: "リスト",
-    noEvents: "予定されているイベントはまだありません。",
-    loginRequired: "カレンダーを表示するにはログインしてください。",
-    today: "今日",
-    types: {
-      consultation: "相談",
-      followup: "フォローアップ",
-      cadence: { survey: "経過アンケート", medication_check: "服薬確認", video_call: "ビデオ相談", lab_review: "検査結果レビュー" },
-      rebooking: "再予約",
-      deadline: "締切",
-    },
-    previous: "前へ",
-    next: "次へ",
-    join: "参加",
-    signIn: "ログイン",
-    daysOfWeek: ["日", "月", "火", "水", "木", "金", "土"],
-  },
+// 이벤트 종류(코드) → 표시 라벨 i18n 키. 코드 값은 DB/로직용이라 그대로 둔다.
+const TYPE_LABEL_KEYS = {
+  consultation: "patientCalendar.types.consultation",
+  followup: "patientCalendar.types.followup",
+  rebooking: "patientCalendar.types.rebooking",
+  deadline: "patientCalendar.types.deadline",
 };
+
+// 사후관리 케이던스 action(snake_case 코드) → 표시 라벨 i18n 키
+const CADENCE_LABEL_KEYS = {
+  survey: "patientCalendar.types.cadence.survey",
+  medication_check: "patientCalendar.types.cadence.medicationCheck",
+  video_call: "patientCalendar.types.cadence.videoCall",
+  lab_review: "patientCalendar.types.cadence.labReview",
+};
+
+// 요일 헤더(일~토 순서 고정 — getDay() 인덱스와 1:1)
+const DOW_KEYS = [
+  "patientCalendar.dow.sun",
+  "patientCalendar.dow.mon",
+  "patientCalendar.dow.tue",
+  "patientCalendar.dow.wed",
+  "patientCalendar.dow.thu",
+  "patientCalendar.dow.fri",
+  "patientCalendar.dow.sat",
+];
 
 const LOCALES = {
   en: "en-US",
@@ -162,7 +49,8 @@ const localeFor = (lang) => LOCALES[lang] || "en-US";
 
 export default function CalendarClient() {
   const lang = useLang();
-  const copy = COPY[lang] || COPY.en;
+  const heroTitle = t("patientCalendar.heroTitle", lang);
+  const heroTitleItalic = t("patientCalendar.heroTitleItalic", lang);
 
   const [user, setUser] = useState(null);
   const [journey, setJourney] = useState(null);
@@ -205,7 +93,7 @@ export default function CalendarClient() {
           id: `cons-${c.id}`,
           type: "consultation",
           date: new Date(c.scheduled_at),
-          title: copy.types.consultation,
+          title: t("patientCalendar.types.consultation", lang),
           sub: c.session_type || "",
           href: `/consultation/${c.id}`,
           status: c.status,
@@ -218,11 +106,13 @@ export default function CalendarClient() {
         id: `followup-${journey.followup.id}`,
         type: "followup",
         date: new Date(journey.followup.next_action_at),
-        title: copy.types.followup,
+        title: t("patientCalendar.types.followup", lang),
         // 케이던스 제안(cron 생성)은 phase 원문(week_2 등 영어 키) 대신 action 라벨로(6개 언어)
         sub:
           journey.followup.schedule?.kind === "cadence"
-            ? copy.types.cadence?.[journey.followup.schedule.action] || ""
+            ? (CADENCE_LABEL_KEYS[journey.followup.schedule.action]
+                ? t(CADENCE_LABEL_KEYS[journey.followup.schedule.action], lang)
+                : "")
             : journey.followup.current_phase || "",
       });
     }
@@ -234,7 +124,7 @@ export default function CalendarClient() {
           id: `deadline-${e.id}`,
           type: "deadline",
           date: new Date(e.metadata.deadline),
-          title: copy.types.deadline,
+          title: t("patientCalendar.types.deadline", lang),
           sub: e.metadata.note || "",
         });
       }
@@ -247,8 +137,8 @@ export default function CalendarClient() {
     return (
       <main style={{ maxWidth: 1240, margin: "0 auto", paddingTop: 64 }}>
         <div style={{ padding: "24px" }}>
-          <p style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "#0f766e" }}>{copy.heroEyebrow}</p>
-          <h1 style={{ fontSize: 28, fontWeight: 700, color: "#111827", marginTop: 4 }}>{copy.heroTitle}{copy.heroTitleItalic ? ` ${copy.heroTitleItalic}` : ""}</h1>
+          <p style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "#0f766e" }}>{t("patientCalendar.heroEyebrow", lang)}</p>
+          <h1 style={{ fontSize: 28, fontWeight: 700, color: "#111827", marginTop: 4 }}>{heroTitle}{heroTitleItalic ? ` ${heroTitleItalic}` : ""}</h1>
         </div>
         <div style={{ padding: "72px 24px", textAlign: "center" }}>
           <p
@@ -259,10 +149,10 @@ export default function CalendarClient() {
               marginBottom: 24,
             }}
           >
-            {copy.loginRequired}
+            {t("patientCalendar.loginRequired", lang)}
           </p>
           <Link href="/login" style={{ textDecoration: "none" }}>
-            <ButtonGold>{copy.signIn}</ButtonGold>
+            <ButtonGold>{t("patientCalendar.signIn", lang)}</ButtonGold>
           </Link>
         </div>
       </main>
@@ -272,8 +162,8 @@ export default function CalendarClient() {
   return (
     <main style={{ maxWidth: 1240, margin: "0 auto", paddingTop: 64 }}>
       <div style={{ padding: "24px" }}>
-        <p style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "#0f766e" }}>{copy.heroEyebrow}</p>
-        <h1 style={{ fontSize: 28, fontWeight: 700, color: "#111827", marginTop: 4 }}>{copy.heroTitle}{copy.heroTitleItalic ? ` ${copy.heroTitleItalic}` : ""}</h1>
+        <p style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "#0f766e" }}>{t("patientCalendar.heroEyebrow", lang)}</p>
+        <h1 style={{ fontSize: 28, fontWeight: 700, color: "#111827", marginTop: 4 }}>{heroTitle}{heroTitleItalic ? ` ${heroTitleItalic}` : ""}</h1>
       </div>
       <section style={{ padding: "48px 24px 96px" }}>
         <div style={{ maxWidth: 1240, margin: "0 auto" }}>
@@ -308,7 +198,7 @@ export default function CalendarClient() {
                 >
                   ←
                 </IconBtn>
-                <IconBtn onClick={() => setCursor(new Date())}>{copy.today}</IconBtn>
+                <IconBtn onClick={() => setCursor(new Date())}>{t("patientCalendar.today", lang)}</IconBtn>
                 <IconBtn
                   onClick={() => setCursor(new Date(cursor.getFullYear(), cursor.getMonth() + 1, 1))}
                 >
@@ -318,10 +208,10 @@ export default function CalendarClient() {
             </div>
             <div style={{ display: "flex", gap: 4 }}>
               <ViewTab active={view === "month"} onClick={() => setView("month")}>
-                {copy.monthView}
+                {t("patientCalendar.monthView", lang)}
               </ViewTab>
               <ViewTab active={view === "list"} onClick={() => setView("list")}>
-                {copy.listView}
+                {t("patientCalendar.listView", lang)}
               </ViewTab>
             </div>
           </div>
@@ -348,16 +238,16 @@ export default function CalendarClient() {
                 fontFamily: "var(--font-serif)",
               }}
             >
-              {copy.noEvents}
+              {t("patientCalendar.noEvents", lang)}
             </p>
           ) : view === "month" ? (
             <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
               <div style={{ minWidth: 700 }}>
-                <MonthGrid cursor={cursor} events={events} daysOfWeek={copy.daysOfWeek} copy={copy} lang={lang} />
+                <MonthGrid cursor={cursor} events={events} daysOfWeek={DOW_KEYS.map((k) => t(k, lang))} lang={lang} />
               </div>
             </div>
           ) : (
-            <ListView events={events} copy={copy} lang={lang} />
+            <ListView events={events} lang={lang} />
           )}
         </div>
       </section>
@@ -418,7 +308,7 @@ function ViewTab({ active, onClick, children }) {
   );
 }
 
-function MonthGrid({ cursor, events, daysOfWeek, copy, lang }) {
+function MonthGrid({ cursor, events, daysOfWeek, lang }) {
   const year = cursor.getFullYear();
   const month = cursor.getMonth();
   const firstDay = new Date(year, month, 1);
@@ -481,7 +371,6 @@ function MonthGrid({ cursor, events, daysOfWeek, copy, lang }) {
             isToday={isSameMonth && d === today.getDate()}
             isWeekend={i % 7 === 0}
             events={d ? eventsByDay[d] || [] : []}
-            copy={copy}
             lang={lang}
           />
         ))}
@@ -490,7 +379,7 @@ function MonthGrid({ cursor, events, daysOfWeek, copy, lang }) {
   );
 }
 
-function DayCell({ day, isToday, isWeekend, events, copy, lang }) {
+function DayCell({ day, isToday, isWeekend, events, lang }) {
   return (
     <div
       style={{
@@ -521,7 +410,7 @@ function DayCell({ day, isToday, isWeekend, events, copy, lang }) {
       )}
       <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
         {events.slice(0, 3).map((e) => (
-          <EventPill key={e.id} event={e} copy={copy} lang={lang} />
+          <EventPill key={e.id} event={e} lang={lang} />
         ))}
         {events.length > 3 && (
           <div style={{ fontSize: 10, color: "var(--fg-on-light-4)", fontFamily: "var(--font-mono)" }}>
@@ -533,7 +422,7 @@ function DayCell({ day, isToday, isWeekend, events, copy, lang }) {
   );
 }
 
-function EventPill({ event, copy: _copy, lang }) {
+function EventPill({ event, lang }) {
   const colors = {
     consultation: { bg: "var(--ink-0)", fg: "var(--gold-0)" },
     followup: { bg: "var(--gold-0)", fg: "var(--ink-0)" },
@@ -576,7 +465,7 @@ function EventPill({ event, copy: _copy, lang }) {
   return content;
 }
 
-function ListView({ events, copy, lang }) {
+function ListView({ events, lang }) {
   if (events.length === 0) {
     return (
       <p
@@ -588,7 +477,7 @@ function ListView({ events, copy, lang }) {
           fontFamily: "var(--font-serif)",
         }}
       >
-        {copy.noEvents}
+        {t("patientCalendar.noEvents", lang)}
       </p>
     );
   }
@@ -640,7 +529,7 @@ function ListView({ events, copy, lang }) {
           </div>
           <div>
             <Chip tone={e.type === "deadline" ? "warn" : e.type === "followup" ? "gold" : "ink"}>
-              {copy.types[e.type] || e.type}
+              {TYPE_LABEL_KEYS[e.type] ? t(TYPE_LABEL_KEYS[e.type], lang) : e.type}
             </Chip>
             <div
               style={{
@@ -668,7 +557,7 @@ function ListView({ events, copy, lang }) {
           </div>
           {e.href ? (
             <Link href={e.href} style={{ textDecoration: "none" }}>
-              <LinkArrow>{copy.join} →</LinkArrow>
+              <LinkArrow>{t("patientCalendar.join", lang)} →</LinkArrow>
             </Link>
           ) : (
             <span />
