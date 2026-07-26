@@ -19,11 +19,12 @@ const IDLE_RULES = {
 
 /** page.jsx 의 effect 와 같은 구조를 최소로 재현한 모형 */
 function createIdleWatcher(mode, { onAsk, onClose }) {
-  let askTimer = null;
-  let graceTimer = null;
+  type Timer = ReturnType<typeof setTimeout> | null;
+  let askTimer: Timer = null;
+  let graceTimer: Timer = null;
   const clear = () => {
-    clearTimeout(askTimer);
-    clearTimeout(graceTimer);
+    if (askTimer) clearTimeout(askTimer);
+    if (graceTimer) clearTimeout(graceTimer);
     askTimer = graceTimer = null;
   };
   const arm = () => {
