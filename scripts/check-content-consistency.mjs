@@ -1896,6 +1896,25 @@ for (const dir of BACKOFFICE_DIRS) {
   } catch {
     errors.push(`[의료진i18n] src/lib/content/doctorPhrases.js 를 읽지 못했다 — ${SRC} 가 이 사전을 쓴다.`);
   }
+  // 중복 키 (반성문 #129 — 🔁 #61 부류 재발). import 한 객체로는 못 본다(뒤 값이 앞을 덮어써서
+  // 둘 다 조회에 성공한다) → 소스를 줄 단위로 읽어야 잡힌다. 일괄 치환으로 서로 다른 두 문구가
+  // 한 문자열로 수렴할 때 생기며, 빌드·§33 을 전부 통과하고 eslint 에서만 걸린다.
+  {
+    let raw = "";
+    try { raw = readFileSync(join(ROOT, "src/lib/content/doctorPhrases.js"), "utf8"); } catch { raw = ""; }
+    const seen = new Map();
+    raw.split("\n").forEach((line, n) => {
+      const m = line.match(/^ {2}'((?:[^'\\]|\\.)*)':\s*\{/);
+      if (!m) return;
+      if (seen.has(m[1])) {
+        errors.push(
+          `[의료진i18n] doctorPhrases.js 중복 키 «${m[1]}» (${seen.get(m[1])}번째 줄과 ${n + 1}번째 줄). ` +
+            `뒤에 온 값이 앞을 덮어써 앞의 번역은 죽는다 — 한쪽을 지울 것.`
+        );
+      } else seen.set(m[1], n + 1);
+    });
+  }
+
   if (phrases) {
     let src = "";
     try { src = readFileSync(join(ROOT, SRC), "utf8"); } catch { src = ""; }
