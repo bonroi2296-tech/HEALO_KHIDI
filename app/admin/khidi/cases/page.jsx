@@ -441,7 +441,7 @@ export default function CasesPage() {
                         ))}
                       </div>
                     )}
-                    <p className="text-[11px] text-gray-500 mb-1.5">{t.hospAssignHelp}</p>
+                    <p className="text-[11px] text-gray-600 mb-1.5">{t.hospAssignHelp}</p>
                     {hospitals.length === 0 ? (
                       <p className="text-xs text-gray-500">{t.noHospitals}</p>
                     ) : (

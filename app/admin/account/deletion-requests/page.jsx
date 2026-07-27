@@ -117,7 +117,7 @@ export default function DeletionRequestsPage() {
                     <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${STATUS_TONE[r.status] || "bg-gray-100 text-gray-600"}`}>
                       {STATUS_LABEL[r.status] || r.status}
                     </span>
-                    <span className="text-xs text-gray-500 tabular-nums">{new Date(r.requested_at).toLocaleString("ko-KR")}</span>
+                    <span className="text-xs text-gray-600 tabular-nums">{new Date(r.requested_at).toLocaleString("ko-KR")}</span>
                   </div>
                   <div className="text-xs text-gray-500 mt-1 truncate">user_id: <span className="font-mono">{r.user_id}</span></div>
                   {r.reason && <div className="text-sm text-gray-700 mt-1">사유: {r.reason}</div>}

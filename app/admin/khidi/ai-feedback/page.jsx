@@ -231,7 +231,7 @@ export default function AiFeedbackPage() {
                           {REASON_LABELS[item.reason_category] || item.reason_category}
                         </span>
                       )}
-                      <span className="text-[11px] text-gray-500">
+                      <span className="text-[11px] text-gray-600">
                         {item.created_at ? new Date(item.created_at).toLocaleString("ko-KR") : "—"}
                       </span>
                       {item.guest_email && (

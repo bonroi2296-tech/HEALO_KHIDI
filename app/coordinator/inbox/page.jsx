@@ -171,7 +171,7 @@ export default function CoordinatorInboxPage() {
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
                         <div className="w-7 h-7 bg-gray-100 rounded-full flex items-center justify-center shrink-0">
-                          <User size={14} className="text-gray-500" />
+                          <User size={14} className="text-gray-600" />
                         </div>
                         <span className="font-medium text-gray-900 truncate max-w-[120px]">
                           {item.name || "—"}

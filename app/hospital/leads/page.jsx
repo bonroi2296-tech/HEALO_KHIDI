@@ -381,7 +381,7 @@ function LeadDetailSheet({ lead, onClose, onUpdateStatus }) {
                   <dl className="grid grid-cols-2 gap-x-3 gap-y-1.5">
                     {detail.clinical.map((c, i) => (
                       <div key={i} className="min-w-0">
-                        <dt className="text-[11px] text-gray-500">{c.label}</dt>
+                        <dt className="text-[11px] text-gray-600">{c.label}</dt>
                         <dd className="text-gray-900 truncate">{c.value}</dd>
                       </div>
                     ))}
@@ -573,7 +573,7 @@ function HospitalChatDrawer({ leadId, onClose }) {
         </div>
         <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50">
           {loading ? (
-            <div className="flex items-center justify-center py-10 text-gray-500">
+            <div className="flex items-center justify-center py-10 text-gray-600">
               <Loader2 size={20} className="animate-spin" />
             </div>
           ) : messages.length === 0 ? (

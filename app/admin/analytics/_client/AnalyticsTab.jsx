@@ -59,7 +59,7 @@ export const AnalyticsTab = ({ analytics }) => (
                 style={{ width: `${t.percent}%` }}
               ></div>
             </div>
-            <p className="text-[10px] text-gray-500 mt-1 text-right tabular-nums">{t.count}건의 활성 문의</p>
+            <p className="text-[10px] text-gray-600 mt-1 text-right tabular-nums">{t.count}건의 활성 문의</p>
           </div>
         ))}
         {analytics.treatmentTrends.length === 0 && <div className="text-center text-gray-500 py-10">아직 문의 데이터가 없습니다.</div>}

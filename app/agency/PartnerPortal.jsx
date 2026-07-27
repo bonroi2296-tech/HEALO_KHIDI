@@ -1029,7 +1029,7 @@ export default function PartnerPortal({ expected = "agency" }) {
                           {caseStatusLabelL(c.case_status, lang)}
                         </span>
                         {c.case_status && !isHold && (
-                          <span className="text-xs font-semibold text-gray-500 tabular-nums">{tt("stepWord")} {curOrder}/{total}</span>
+                          <span className="text-xs font-semibold text-gray-600 tabular-nums">{tt("stepWord")} {curOrder}/{total}</span>
                         )}
                       </div>
                     );
@@ -1471,7 +1471,7 @@ function ChatDrawer({ open, onClose, inquiryId, caseName, tt, getToken }) {
             </div>
           </div>
           <button type="button" onClick={onClose} aria-label="close"
-            className="p-1.5 -mr-1 rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-50 transition-all duration-200 shrink-0">
+            className="p-1.5 -mr-1 rounded-lg text-gray-600 hover:text-gray-700 hover:bg-gray-50 transition-all duration-200 shrink-0">
             <X size={18} />
           </button>
         </div>
@@ -1507,7 +1507,7 @@ function ChatDrawer({ open, onClose, inquiryId, caseName, tt, getToken }) {
             const who = mine ? tt("msgrYou") : tt("msgrCoord");
             return (
               <div key={m.id} className={`flex flex-col ${mine ? "items-end" : "items-start"}`}>
-                <span className="text-[10px] text-gray-500 mb-1 px-1">{who} · {new Date(m.created_at).toLocaleString()}</span>
+                <span className="text-[10px] text-gray-600 mb-1 px-1">{who} · {new Date(m.created_at).toLocaleString()}</span>
                 <div className={`max-w-[85%] px-3.5 py-2.5 text-sm leading-relaxed whitespace-pre-wrap break-words shadow-sm ${
                   mine ? "bg-teal-600 text-white rounded-2xl rounded-br-md" : "bg-white text-gray-800 border border-gray-200 rounded-2xl rounded-bl-md"
                 }`} title={!mine && msgIsTr(m.message_text) ? m.message_text : undefined}>

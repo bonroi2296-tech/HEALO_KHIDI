@@ -595,7 +595,7 @@ export default function AdminDoctorsPage() {
                       {branch.address_ko && <p className="text-xs text-gray-500 ml-8 mt-1">{branch.address_ko}</p>}
                       <div className="flex items-center gap-4 ml-8 mt-2">
                         <span className="text-xs text-gray-600">코드: <code className="bg-gray-100 px-1.5 py-0.5 rounded">{branch.branch_code}</code></span>
-                        <span className="text-xs text-gray-500">의료진: <strong className="text-teal-700">{doctorCount}</strong>명</span>
+                        <span className="text-xs text-gray-600">의료진: <strong className="text-teal-700">{doctorCount}</strong>명</span>
                         {branch.phone && <span className="text-xs text-gray-500">TEL: {branch.phone}</span>}
                       </div>
                     </div>

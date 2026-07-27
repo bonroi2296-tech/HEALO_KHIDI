@@ -379,7 +379,7 @@ function TreatmentsManager() {
                     </span>
                   </div>
                   {(treatment.price_min || treatment.price_max) && (
-                    <p className="text-xs text-gray-500 mb-1.5">
+                    <p className="text-xs text-gray-600 mb-1.5">
                       {treatment.currency || "USD"} {treatment.price_min || "?"} ~ {treatment.price_max || "?"}
                     </p>
                   )}

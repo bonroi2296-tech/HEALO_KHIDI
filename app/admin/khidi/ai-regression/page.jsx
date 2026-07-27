@@ -308,7 +308,7 @@ function FailedTable({ rows }) {
                   {row.ai_regression_tests?.scenario_category ?? "-"}
                 </span>
               </td>
-              <td className="py-2 pr-4 text-xs text-gray-500">{row.run_date}</td>
+              <td className="py-2 pr-4 text-xs text-gray-600">{row.run_date}</td>
               <td className={`py-2 pr-4 text-right font-bold text-xs ${SCORE_COLOR(row.overall_score)}`}>
                 {row.overall_score?.toFixed(2) ?? "-"}
               </td>

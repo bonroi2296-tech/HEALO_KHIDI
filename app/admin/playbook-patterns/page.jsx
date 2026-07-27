@@ -318,7 +318,7 @@ export default function PlaybookPatternsPage() {
                       <span className="text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-600">
                         {SCOPE_LABELS[p.scope] || p.scope}
                       </span>
-                      <span className="text-xs text-gray-500">{p.language}</span>
+                      <span className="text-xs text-gray-600">{p.language}</span>
                     </div>
                     <span className={`text-xs ${p.quality_score < 70 ? "text-red-500 font-medium" : "text-gray-500"}`}>
                       Q: {p.quality_score}/100

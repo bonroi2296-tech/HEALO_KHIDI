@@ -288,7 +288,7 @@ export default function AlertsPage() {
                       )}
                     </div>
 
-                    <div className="flex items-center gap-3 text-xs text-gray-500">
+                    <div className="flex items-center gap-3 text-xs text-gray-600">
                       <span className="flex items-center gap-1">
                         <User size={10} />
                         {L.alPatient}: {alert.patient_id

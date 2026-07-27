@@ -256,7 +256,7 @@ export default function ModelBenchmarkPage() {
                         </span>
                         <span className="text-sm text-gray-800">{first?.query}</span>
                       </div>
-                      <span className="text-gray-500 text-xs shrink-0">{open ? "▲" : "▼"}</span>
+                      <span className="text-gray-600 text-xs shrink-0">{open ? "▲" : "▼"}</span>
                     </button>
                     {open && (
                       <div className="mt-3 space-y-2">

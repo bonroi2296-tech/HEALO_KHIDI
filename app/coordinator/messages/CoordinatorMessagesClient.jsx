@@ -504,7 +504,7 @@ function Message({ m, meId, L, dateLoc }) {
   return (
     <div className={`mb-3.5 flex ${isMine ? "justify-end" : "justify-start"}`}>
       <div className={`max-w-[72%] ${isMine ? "text-right" : "text-left"}`}>
-        <div className={`mb-1 text-xs font-semibold ${isMine ? "text-gray-500" : labelColor}`}>
+        <div className={`mb-1 text-xs font-semibold ${isMine ? "text-gray-600" : labelColor}`}>
           {label} <span className="font-normal text-gray-500">· {new Date(m.created_at).toLocaleString(dateLoc)}</span>
         </div>
         <div className={`inline-block whitespace-pre-wrap break-words rounded-xl px-4 py-2.5 text-sm leading-relaxed ${bubble}`}>

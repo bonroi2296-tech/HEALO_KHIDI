@@ -328,7 +328,7 @@ export default function AdminStaffPage() {
                     setForm({ name: s.full_name || "", email: s.email, role: s.role, password: "" });
                     window.scrollTo({ top: 0, behavior: "smooth" });
                   }}
-                  className="text-xs font-semibold text-gray-500 hover:text-teal-700 px-2 py-1"
+                  className="text-xs font-semibold text-gray-600 hover:text-teal-700 px-2 py-1"
                 >
                   {tt("btnEdit")}
                 </button>

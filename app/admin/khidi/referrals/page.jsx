@@ -157,7 +157,7 @@ export default function ReferralsPage() {
                       <div className="flex items-center justify-between gap-3 flex-wrap">
                         <div className="min-w-0">
                           <div className="text-sm font-semibold text-gray-800">
-                            {r.from_hospital} <span className="text-gray-500">→</span> {r.to_hospital}
+                            {r.from_hospital} <span className="text-gray-600">→</span> {r.to_hospital}
                           </div>
                           <div className="text-xs text-gray-500">
                             {r.patient} · {r.reason || "(사유 없음)"} · {new Date(r.requested_at).toLocaleDateString("ko-KR")}

@@ -233,7 +233,7 @@ export default function RagDocumentsPage() {
               ))
             ) : docs.length === 0 ? (
               <tr>
-                <td colSpan={8} className="text-center py-12 text-gray-500">
+                <td colSpan={8} className="text-center py-12 text-gray-600">
                   문서가 없습니다
                 </td>
               </tr>

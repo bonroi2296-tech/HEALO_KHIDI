@@ -935,7 +935,7 @@ export default function CrawlPage() {
             );
           })}
 
-          {items.length === 0 && <div className="py-12 text-center text-gray-500">검색 결과가 없습니다</div>}
+          {items.length === 0 && <div className="py-12 text-center text-gray-600">검색 결과가 없습니다</div>}
         </div>
 
         {results.hasMore && (

@@ -243,7 +243,7 @@ export const InquiryManager = ({ inquiries, fetchInquiries, handleFileClick }) =
       {/* Desktop: Table */}
       <div className="hidden lg:block bg-white rounded-xl border shadow-sm overflow-hidden">
         <table className="w-full text-sm text-left">
-          <thead className="bg-gray-50 text-gray-500 uppercase text-xs">
+          <thead className="bg-gray-50 text-gray-600 uppercase text-xs">
             <tr>
               <th className="px-6 py-3">날짜</th>
               <th className="px-6 py-3">고객 정보</th>

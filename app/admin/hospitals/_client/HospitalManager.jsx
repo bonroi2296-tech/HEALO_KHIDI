@@ -71,7 +71,7 @@ function HospitalListItem({ h, isActive, onClick }) {
             <span key={i} className="text-[10px] bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded">{s}</span>
           ))}
           {h.specialties.length > 3 && (
-            <span className="text-[10px] text-gray-500">+{h.specialties.length - 3}</span>
+            <span className="text-[10px] text-gray-600">+{h.specialties.length - 3}</span>
           )}
         </div>
       )}
@@ -324,7 +324,7 @@ export const HospitalManager = ({
         <div className="flex gap-1 bg-gray-100 rounded-lg p-0.5 text-xs">
           <button
             onClick={() => setStatusFilter('all')}
-            className={`px-2.5 py-1 rounded-md transition font-medium ${statusFilter === 'all' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'}`}
+            className={`px-2.5 py-1 rounded-md transition font-medium ${statusFilter === 'all' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600'}`}
           >
             전체 <span className="text-gray-500">{hospitalsList.length}</span>
           </button>
