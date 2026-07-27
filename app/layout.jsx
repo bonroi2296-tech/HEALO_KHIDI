@@ -129,9 +129,16 @@ const baseMetadata = {
 };
 
 export default async function RootLayout({ children }) {
-  // 미들웨어가 URL 언어 prefix(/ru/ 등)에서 읽어 x-locale 헤더로 넘긴다.
-  // 없으면(내부도구·prefix 미적용 경로) en. → 서버가 그 언어로 렌더(SEO).
-  const lang = (await headers()).get("x-locale") || "en";
+  // 미들웨어가 URL 언어 prefix(/ru/ 등)에서 읽어 x-locale 헤더로 넘긴다. → 서버가 그 언어로 렌더(SEO).
+  //
+  // x-locale 이 없다 = proxy.ts 의 PUBLIC_PREFIXES 밖 = 포털(/patient·/admin 등, 전부 noindex).
+  // 그때는 en 으로 굳히지 말고 **쿠키 언어로 서버 렌더**한다 — 안 그러면 러시아어 환자가
+  // /patient 를 열 때 첫 화면이 영어였다가 JS 붙은 뒤 러시아어로 바뀐다(영문 깜빡임,
+  // KNOWN_ISSUES·POSTMORTEMS #133 후속). 공개 경로는 x-locale 이 항상 있어 영향 없고,
+  // 검색봇은 쿠키가 없어 en 그대로라 SEO 도 불변.
+  const cookieLang = (await cookies()).get("healo_lang")?.value;
+  const validCookieLang = LANG_OPTIONS.some((l) => l.code === cookieLang) ? cookieLang : null;
+  const lang = (await headers()).get("x-locale") || validCookieLang || "en";
   // 코디 콘텐츠 편집 오버라이드: 서버에서 로드 → SSR t() 즉시 반영 + 클라 provider 로 주입.
   // 비면 t() 기존 사전 동작(안 깨짐).
   const i18nOverrides = await getI18nOverrideMap();
