@@ -8,6 +8,13 @@
 
 ---
 
+> **📌 중간 저장 (2026-07-27 2차 — 속도 후속 [#1018](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/1018) 머지·배포 완료, main `4318c73`)** — PO 가 #1011 배포 후 PageSpeed 를 직접 돌린 결과 **모바일 49 → 69 / 데스크톱 → 99**(FCP 6.7→2.3s, LCP 15.3→7.0s). PO 선택 = "구글이 남긴 3개 더 치우기". 워크트리 `HEALO_worktrees/perf-mobile`.
+> · **한 것**: ①`ClientShell` 이 전 페이지를 감싸며 supabase 클라이언트를 static import → 공개 홈에도 `supabase-vendor` 43KB(gz)가 딸려오던 것을 마운트 뒤 동적 import 로(**첫 화면 JS 676→623KB gz**), 알림 종도 `dynamic({ssr:false})` ②**최적화 이미지 캐시 1시간→30일** ③병원 썸네일 화질 75→60.
+> · ⭐ **다음 세션이 알아야 할 함정 (이번에 오진했다가 프리뷰 실측으로 잡음)**: **Vercel 이미지 최적화기는 원본의 `Cache-Control` 을 그대로 물려준다.** 원본이 1시간이면 `/_next/image` 도 1시간이고, `images.minimumCacheTTL`(서버 캐시)은 이 브라우저 헤더를 **못 바꾼다**. 처음엔 「우리 headers() 규칙이 `/_next/image` 에 걸린다」고 보고 `(?!_next/)` 를 넣었는데 **프리뷰에선 여전히 1시간**이었다. ⚠️ **로컬 `next start` 에선 이 물려받기가 안 일어나 재현 자체가 안 된다** — 캐시 헤더는 반드시 **프리뷰/프로덕션 curl 로** 확인할 것. 최종 해법 = 늦게 파일이 추가되지 않는 확정 자산(`/immune`, `/brand`)만 30일, `/images/hospitals` 등은 1시간 유지(404 박제 방지 원칙 보존).
+> · **인증 실검증**: 로그인(admin@test.com)→쿠키 발급→`/admin` 실데이터 렌더→로그아웃→쿠키 삭제까지 **실제 클릭으로 통과**(지연 로드가 세션 읽기·signOut 둘 다 안 깨뜨림). 프로덕션 curl 재확인: 최적화 이미지 30일 · `/images/hospitals` 1시간 · 홈 초기 HTML 에 supabase 청크 0.
+> · **안 한 것**: 안 쓰는 CSS 35KiB(20KB 는 폰트 CSS 커버리지 오탐, 나머지는 Tailwind 기본층 — 실이득 없음) / Sentry 클라이언트 트레이싱 트리셰이킹(−20KB 인데 의료 플랫폼 관측을 줄이는 값이 아님).
+> · 🔴 **남은 최대 병목 = i18n 사전 269KB(gz)** — 홈 JS 의 43%. 상세·판단기준은 `KNOWN_ISSUES.md` 최상단. **PO 결정 대기**.
+
 > **📌 중간 저장 (2026-07-27 — 접속 속도 최적화 머지·프로덕션 배포 완료 [#1011](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/1011), main `6562b52`)** — PO 가 준 PageSpeed 리포트(모바일 49점)에서 출발. 워크트리 `HEALO_worktrees/perf-pagespeed`. **홈 전송량 2,959KB → 1,009KB(−66%) / FCP 6.4s→2.8s / LCP 15.2s→7.0s** (전·후 모두 로컬 프로덕션 빌드 + Lighthouse 모바일, 동일 조건). 원인 4개: ①`healo-tokens.css` 의 `@import pretendard.min.css` — `layout.jsx` 가 이미 dynamic-subset 을 넣는데 **풀폰트를 이중으로** 받고 있었고(774KB) `@import` 라 렌더까지 막았다 ②의료진 PNG 4장을 날 `<img>` 로(−900KB, `next/image` 로 교체 — `/hospitals/immune` 6곳도 같이) ③`next.config.js` `splitChunks` 의 **`name:'vendor'`** 가 안 걸린 node_modules 전부를 사이트 단 하나의 406KB 덩어리로 뭉쳐 모든 페이지가 통째로 받게 함(홈에선 80% 미사용) → **이름만 제거**하면 페이지별로 쪼개짐 ④Supabase·Sentry preconnect + `images.minimumCacheTTL` 1년(`?dpl=` 자동 캐시버스팅이라 안전).
 > · **프로덕션 실검증(curl)**: CSS 번들에 `pretendard.min.css` 0건 · 의료진 사진 `_next/image` **11.3KB AVIF**(원본 295KB) · preconnect 3개 · 단일 `vendor-*.js` 사라짐.
 > · ⚠️ **되살리지 마라**: `@import pretendard.min.css`(폰트 창구는 `layout.jsx` 하나) / `name:'vendor'`.
@@ -155,6 +162,16 @@
 > - **가장 뼈아픈 지점**: workflow 레벨에서 «남의 PR 을 내 PR 이 죽인다(재앙)»를 정확히 짚고 피해놓고, **job 레벨 대기열 밀어내기로 같은 재앙을 뒷문으로 들여놨다.**
 > - **지금 상태**: job 레벨 자물쇠 3개 전부 제거(파싱 확인). workflow 레벨 그룹(#1004)은 유지 — 별개 수정. **「E2E 가 프로덕션 DB 동시 진입」은 미해결로 원위치.**
 > - **다음 사람에게**: ⛔ **concurrency 로는 «동시 N개»를 못 만든다 — 이 방향 재시도 금지.** 후보는 ①self-hosted 러너 풀 ②외부 뮤텍스 ③근본책(DB 분리, 정공법). ①②도 «막힘» 시나리오부터 검증할 것. 상세 = POSTMORTEMS **#127**.
+>
+> **⭐ 추가 (2026-07-27 오전 마지막 — [#1016](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/1016), main `9216e57`) — 별칭이 «이미» 3.6 Flash 였다. 이 블록에서 가장 중요한 발견.**
+> - PO 가 API 키를 주며 *"그냥 써"* → 직접 확인: **`gemini-flash-latest` = `gemini-3.6-flash`**.
+>   ⚠️ **확인 방법이 핵심** — 모델 메타데이터(`GET /models/gemini-flash-latest`)는 displayName 이 "Gemini Flash Latest" 라 **세대를 안 알려준다.** #990 에서 "확인 불가"로 남긴 건 방법이 틀렸던 것. **실제 호출 응답의 `modelVersion` 필드**를 봐야 한다.
+> - **확인하다 진짜 문제가 나왔다.** 3.6 에서 파라미터별 실측:
+>   `temperature` → 통과(**조용히 무시**) / **`thinkingBudget: 0` → ❌ 400** ← 우리가 쓰던 값 / `thinkingLevel:"minimal"` → ✅ 통과·**생각 토큰 0**(옛 값과 동일 효과) / thinkingConfig 없음 → 통과하나 생각 토큰 131(돈 더 씀).
+> - 즉 **#110(2026-07-23)과 같은 조건이 이미 도래해 있었고, 같은 날 아침 #990 으로 넓힌 생존 사다리가 매 호출마다 그걸 받아내는 중이었다**(사다리의 **첫 실전 성공**). 다만 정상 상태가 아니다 — 서버리스 인스턴스가 새로 뜰 때마다 400 왕복 1회를 버린다(memo 는 인스턴스 수명 한정).
+> - **고침**: `thinkingBudget:0` → `thinkingLevel:"minimal"` **8곳**(generateReply 2·translateDoc 2·judge·triage·caseBrief·playbook/suggest) + 사다리 헛왕복 제거 + 단가표 out **$9.00 → $7.50**(공식 가격표 재확인, 테스트 기대값도 갱신). #110 재발방지 ③ 이행.
+> - **검증**: 프로덕션 요청 모양 그대로 **실호출 통과**(modelVersion 확인·생각토큰 0) / `@ai-sdk/google` 3.0.64 의 `thinkingLevel` 지원을 **설치본 grep 으로 확인**(가정 아님) / build·vitest 748·tsc 0·check:content / 머지 후 **프로덕션 AI 실채점 확인**(7/26 50건 중 47 통과, 평균 0.942).
+> - ❌ **남는 것(정직)**: `temperature` 는 지금 **조용히 무시**되는 상태다(400 이 아니라 사다리가 발화하지 않는다). **번역의 온도 0/0.1 설정은 현재 효과가 없다** → `translateOutputGuard` 이탈률(기존 실측 5~15%)이 오르는지로 감시. 오르면 프롬프트/스키마로 결정성을 대체하는 게 다음 수. **다음 세션이 이 지표를 한 번 확인할 것.**
 
 **1. 이번 세션 한 일**
 

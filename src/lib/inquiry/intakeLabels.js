@@ -4,56 +4,60 @@
  * 폼(app/inquiry/_components/UnifiedInquiryFunnel.jsx)과
  * 코디 문의상세(app/coordinator/inbox/[id]/CoordinatorInboxDetailClient.jsx)가 함께 쓴다.
  * value/구조는 폼과 1:1 (DB에 저장되는 코드값과 동일) — 바꾸면 저장값이 깨지니 주의.
- * 라벨은 활성 6개국어(ko·en·ru·kz·zh·ja).
  *
- * 왜 분리했나: 코디 화면이 raw 코드(pre_surgery·2weeks)를 그대로 노출하던 문제 →
- * 폼이 이미 가진 6개국어 라벨을 재사용해 한글로 보여주기 위함.
+ * 2026-07-27: 선택지 라벨을 중앙 사전(intakeLabels.*)으로 이관 — 코디 콘텐츠 편집기에서
+ * 검색·수정 가능하게(PO 요청, PO가 「Грудь」 등 폼 버튼이 편집기에 안 잡힘을 지적).
+ * value·organ 코드는 그대로(저장값 불변), 표시 라벨만 labelKey → t()로 해석.
+ * 읽을 때는 optLabel(item, lang) 또는 labelOf(list, value, lang) 사용(둘 다 t()로 해석).
+ * INTAKE_UI·CONSENT_ITEMS 는 코디 화면 전용 UI라 아직 객체(pick) 유지 — 후속 이관 대상.
  */
+import { t } from "@/lib/i18n";
+
 // organ = app/_components/OrganIcon.jsx 의 장기 아이콘 키(없으면 소비처가 물음표 등 대체 표시).
 export const CANCER_TYPES = [
-  { value: "stomach", label: { ko: "위암", en: "Stomach", ru: "Желудок", kz: "Асқазан", zh: "胃癌", ja: "胃がん" }, organ: "stomach" },
-  { value: "liver", label: { ko: "간암", en: "Liver", ru: "Печень", kz: "Бауыр", zh: "肝癌", ja: "肝がん" }, organ: "liver" },
-  { value: "lung", label: { ko: "폐암", en: "Lung", ru: "Лёгкое", kz: "Өкпе", zh: "肺癌", ja: "肺がん" }, organ: "lung" },
-  { value: "breast", label: { ko: "유방암", en: "Breast", ru: "Грудь", kz: "Сүт без", zh: "乳腺癌", ja: "乳がん" }, organ: "breast" },
-  { value: "thyroid", label: { ko: "갑상선암", en: "Thyroid", ru: "Щитовидка", kz: "Қалқанша", zh: "甲状腺癌", ja: "甲状腺がん" }, organ: "thyroid" },
-  { value: "colorectal", label: { ko: "대장암", en: "Colorectal", ru: "Толстая кишка", kz: "Тоқ ішек", zh: "结肠癌", ja: "大腸がん" }, organ: "colon" },
-  { value: "pancreatic", label: { ko: "췌장암", en: "Pancreatic", ru: "Поджелудочная", kz: "Ұйқы без", zh: "胰腺癌", ja: "膵がん" }, organ: "pancreas" },
-  { value: "other", label: { ko: "기타", en: "Other", ru: "Другое", kz: "Басқа", zh: "其他", ja: "その他" }, organ: null },
+  { value: "stomach", labelKey: "intakeLabels.cancer.stomach", organ: "stomach" },
+  { value: "liver", labelKey: "intakeLabels.cancer.liver", organ: "liver" },
+  { value: "lung", labelKey: "intakeLabels.cancer.lung", organ: "lung" },
+  { value: "breast", labelKey: "intakeLabels.cancer.breast", organ: "breast" },
+  { value: "thyroid", labelKey: "intakeLabels.cancer.thyroid", organ: "thyroid" },
+  { value: "colorectal", labelKey: "intakeLabels.cancer.colorectal", organ: "colon" },
+  { value: "pancreatic", labelKey: "intakeLabels.cancer.pancreatic", organ: "pancreas" },
+  { value: "other", labelKey: "intakeLabels.cancer.other", organ: null },
 ];
 
 export const STAGES = ["I", "II", "III", "IV"];
 
 export const TREATMENT_STATES = [
-  { value: "pre_surgery", label: { ko: "수술 전", en: "Pre-surgery", ru: "До операции", kz: "Операцияға дейін", zh: "术前", ja: "術前" } },
-  { value: "post_surgery", label: { ko: "수술 후", en: "Post-surgery", ru: "После операции", kz: "Операциядан кейін", zh: "术后", ja: "術後" } },
-  { value: "chemotherapy", label: { ko: "항암 중", en: "Chemotherapy", ru: "Химиотерапия", kz: "Химиотерапия", zh: "化疗中", ja: "化学療法中" } },
-  { value: "follow_up", label: { ko: "추적 관찰", en: "Follow-up", ru: "Наблюдение", kz: "Бақылау", zh: "随访", ja: "経過観察" } },
-  { value: "other", label: { ko: "기타", en: "Other", ru: "Другое", kz: "Басқа", zh: "其他", ja: "その他" } },
+  { value: "pre_surgery", labelKey: "intakeLabels.treatState.pre_surgery" },
+  { value: "post_surgery", labelKey: "intakeLabels.treatState.post_surgery" },
+  { value: "chemotherapy", labelKey: "intakeLabels.treatState.chemotherapy" },
+  { value: "follow_up", labelKey: "intakeLabels.treatState.follow_up" },
+  { value: "other", labelKey: "intakeLabels.treatState.other" },
 ];
 
 export const TRAVEL_TIMING = [
-  { value: "2weeks", label: { ko: "2주 내", en: "Within 2 weeks", ru: "В течение 2 нед.", kz: "2 апта ішінде", zh: "2周内", ja: "2週間以内" } },
-  { value: "1month", label: { ko: "1개월", en: "~1 month", ru: "~1 месяц", kz: "~1 ай", zh: "约1个月", ja: "約1ヶ月" } },
-  { value: "3months", label: { ko: "3개월", en: "~3 months", ru: "~3 месяца", kz: "~3 ай", zh: "约3个月", ja: "約3ヶ月" } },
-  { value: "undecided", label: { ko: "미정", en: "Undecided", ru: "Не решено", kz: "Белгісіз", zh: "未定", ja: "未定" } },
+  { value: "2weeks", labelKey: "intakeLabels.travel.2weeks" },
+  { value: "1month", labelKey: "intakeLabels.travel.1month" },
+  { value: "3months", labelKey: "intakeLabels.travel.3months" },
+  { value: "undecided", labelKey: "intakeLabels.travel.undecided" },
 ];
 
 // 우선순위(복수 선택) — 2026-07-07 명확화: 옛 '기간(duration)'이 모호(빨리 오고 싶다/짧게 끝내고 싶다)
 // → '빠른 치료 시작(fast_start)'과 '짧은 체류 기간(short_stay)'으로 분리. 모호한 '접근성'→'소통·통역'.
 export const PRIORITIES = [
-  { value: "cost", label: { ko: "비용", en: "Cost", ru: "Стоимость", kz: "Құны", zh: "费用", ja: "費用" } },
-  { value: "fast_start", label: { ko: "빠른 치료 시작", en: "Fast treatment start", ru: "Быстрое начало лечения", kz: "Емдеуді тез бастау", zh: "尽快开始治疗", ja: "早期の治療開始" } },
-  { value: "short_stay", label: { ko: "짧은 체류·치료 기간", en: "Short stay & treatment", ru: "Короткое пребывание и лечение", kz: "Қысқа болу және емдеу мерзімі", zh: "短期停留与治疗", ja: "短期滞在・治療" } },
-  { value: "expertise", label: { ko: "의료진·병원 실력", en: "Doctor & hospital expertise", ru: "Опыт врачей и клиники", kz: "Дәрігер мен клиника тәжірибесі", zh: "医生与医院水平", ja: "医師・病院の実力" } },
-  { value: "communication", label: { ko: "소통·통역 편의", en: "Communication & interpreting", ru: "Общение и перевод", kz: "Қарым-қатынас пен аударма", zh: "沟通与翻译", ja: "コミュニケーション・通訳" } },
+  { value: "cost", labelKey: "intakeLabels.priority.cost" },
+  { value: "fast_start", labelKey: "intakeLabels.priority.fast_start" },
+  { value: "short_stay", labelKey: "intakeLabels.priority.short_stay" },
+  { value: "expertise", labelKey: "intakeLabels.priority.expertise" },
+  { value: "communication", labelKey: "intakeLabels.priority.communication" },
 ];
 
 // 구 우선순위 값(2026-07-07 이전 접수) — 표시 하위호환용. 새 폼은 위 PRIORITIES 사용.
 export const PRIORITIES_LEGACY = [
-  { value: "price", label: { ko: "가격", en: "Price", ru: "Цена", kz: "Баға", zh: "价格", ja: "価格" } },
-  { value: "duration", label: { ko: "기간", en: "Duration", ru: "Сроки", kz: "Мерзім", zh: "疗程", ja: "期間" } },
-  { value: "doctor", label: { ko: "의료진", en: "Doctor", ru: "Врачи", kz: "Дәрігерлер", zh: "医生", ja: "医師" } },
-  { value: "accessibility", label: { ko: "접근성", en: "Accessibility", ru: "Доступность", kz: "Қолжетімділік", zh: "便利性", ja: "アクセス" } },
+  { value: "price", labelKey: "intakeLabels.priorityLegacy.price" },
+  { value: "duration", labelKey: "intakeLabels.priorityLegacy.duration" },
+  { value: "doctor", labelKey: "intakeLabels.priorityLegacy.doctor" },
+  { value: "accessibility", labelKey: "intakeLabels.priorityLegacy.accessibility" },
 ];
 
 // 동의 항목 — intake.consents 의 boolean 키 → 라벨(6개국어). key 는 폼 Step2 동의키와 1:1.
@@ -100,16 +104,23 @@ export const INTAKE_UI = {
   briefFailed: { ko: "브리프 생성에 실패했어요. 잠시 후 다시 시도해 주세요.", en: "Failed to generate the brief. Please try again.", ru: "Не удалось создать бриф. Повторите попытку.", kz: "Бриф жасалмады. Қайталап көріңіз.", zh: "简报生成失败，请稍后重试。", ja: "概要の生成に失敗しました。再度お試しください。" },
 };
 
-/** 다국어 라벨 객체({ko,en,...})에서 현재 언어 값을 뽑는다. 없으면 en → ko 폴백. */
+/** 다국어 라벨 객체({ko,en,...})에서 현재 언어 값을 뽑는다. 없으면 en → ko 폴백.
+ *  (INTAKE_UI·CONSENT_ITEMS 처럼 아직 객체인 것 전용 — 옵션 배열은 optLabel 사용) */
 export function pick(obj, lang = "ko") {
   if (!obj) return "";
   return obj[lang] || obj.en || obj.ko || "";
+}
+
+/** 옵션 항목({ value, labelKey }) → 지정 언어 라벨. 사전(t)에서 해석. */
+export function optLabel(item, lang = "ko") {
+  if (!item || !item.labelKey) return "";
+  return t(item.labelKey, lang);
 }
 
 /** value → 지정 언어 라벨. 목록에 없으면 원래 값을 그대로 돌려준다(안전 폴백). */
 export function labelOf(list, value, lang = "ko") {
   if (value == null || value === "") return null;
   const item = (list || []).find((x) => x.value === value);
-  if (!item || !item.label) return String(value);
-  return item.label[lang] || item.label.ko || String(value);
+  if (!item || !item.labelKey) return String(value);
+  return t(item.labelKey, lang) || String(value);
 }
