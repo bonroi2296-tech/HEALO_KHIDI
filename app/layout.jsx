@@ -9,6 +9,7 @@ import InstallPrompt from "./InstallPrompt";
 import { localeAlternates, OG_LOCALE, getRequestLocale } from "@/lib/i18n/metadata";
 import { getI18nOverrideMap } from "@/lib/content/i18nOverrides";
 import { applyI18nOverrides, LANG_OPTIONS } from "@/lib/i18n";
+import { LOCALES } from "@/lib/i18n/config";
 import { i18nInlineScript } from "@/lib/i18n/inlineScript";
 import I18nOverridesApply from "./_components/I18nOverridesApply";
 
@@ -131,14 +132,24 @@ const baseMetadata = {
 export default async function RootLayout({ children }) {
   // 미들웨어가 URL 언어 prefix(/ru/ 등)에서 읽어 x-locale 헤더로 넘긴다. → 서버가 그 언어로 렌더(SEO).
   //
-  // x-locale 이 없다 = proxy.ts 의 PUBLIC_PREFIXES 밖 = 포털(/patient·/admin 등, 전부 noindex).
+  // x-locale 이 없다 = proxy.ts 의 PUBLIC_PREFIXES 밖. 대부분 포털·토큰 링크·인증 화면이고,
+  // sitemap 에 실리는 URL 은 전부 PUBLIC_PREFIXES 안이라 색인 대상엔 항상 x-locale 이 붙는다
+  // (색인되는데 x-locale 이 없는 예외: /agency·/clinic·/notifications — 아래 SEO 설명 참고).
   // 그때는 en 으로 굳히지 말고 **쿠키 언어로 서버 렌더**한다 — 안 그러면 러시아어 환자가
   // /patient 를 열 때 첫 화면이 영어였다가 JS 붙은 뒤 러시아어로 바뀐다(영문 깜빡임,
-  // KNOWN_ISSUES·POSTMORTEMS #133 후속). 공개 경로는 x-locale 이 항상 있어 영향 없고,
-  // 검색봇은 쿠키가 없어 en 그대로라 SEO 도 불변.
+  // KNOWN_ISSUES·POSTMORTEMS #133 후속).
+  // SEO 불변인 이유: ①sitemap URL 은 전부 x-locale 이 붙어 이 분기를 안 탄다 ②x-locale 이
+  // 없으면 localeAlternates() 가 null 이라 canonical/hreflang 자체가 안 나간다 ③검색봇은
+  // 쿠키가 없어 en 그대로다.
   const cookieLang = (await cookies()).get("healo_lang")?.value;
-  const validCookieLang = LANG_OPTIONS.some((l) => l.code === cookieLang) ? cookieLang : null;
-  const lang = (await headers()).get("x-locale") || validCookieLang || "en";
+  // ⚠️ 검증 기준은 **LOCALES(활성 6개)** 다. LANG_OPTIONS(21개)로 검증하면 안 된다 —
+  //    setLangCookie 는 옛 21개 언어를 1년짜리 쿠키로 심었고(vi·ar 등 실제로 남아 있다,
+  //    src/lib/legal/medicalDisclaimer.js 참고), HTML_LANG 매핑은 6개뿐이라
+  //    「본문은 베트남어인데 <html lang="en">」 이 된다. 그 불일치는 브라우저 자동번역을
+  //    부르는 조건이고, 자동번역은 우리가 아직 못 닫은 NotFoundError 8건의 유력 용의자다
+  //    (POSTMORTEMS #133). 6개 밖의 옛 쿠키는 en 으로 떨어뜨리는 게 맞다.
+  const ssrLang = LOCALES.includes(cookieLang) ? cookieLang : null;
+  const lang = (await headers()).get("x-locale") || ssrLang || "en";
   // 코디 콘텐츠 편집 오버라이드: 서버에서 로드 → SSR t() 즉시 반영 + 클라 provider 로 주입.
   // 비면 t() 기존 사전 동작(안 깨짐).
   const i18nOverrides = await getI18nOverrideMap();
@@ -147,7 +158,11 @@ export default async function RootLayout({ children }) {
   // 브라우저에 심을 사전 목록. 21개 언어 통짜를 번들에서 뺀 대신 「필요한 언어만」 넣는다.
   // 보통 1개. 사용자가 쿠키로 URL 언어와 다른 언어를 골라둔 경우에만 2개 —
   // LangProvider 가 하이드레이션 후 쿠키 언어로 바꾸므로 그 사전이 없으면 글자가 빈다.
-  const clientLangs = [lang, validCookieLang]
+  // ⚠️ 여기는 위(ssrLang)와 **일부러 기준이 다르다**: 사전 주입 목적이라 21개 전체가 맞다.
+  //    옛 언어 쿠키(vi 등)를 든 사용자도 하이드레이션 뒤엔 LangContext 가 그 언어로 바꾸므로
+  //    그 사전이 없으면 글자가 빈칸이 된다. 서버 렌더 언어(6개)와 혼동 금지.
+  const dictCookieLang = LANG_OPTIONS.some((l) => l.code === cookieLang) ? cookieLang : null;
+  const clientLangs = [lang, dictCookieLang]
     .filter((v, i, a) => v && a.indexOf(v) === i);
 
   return (
