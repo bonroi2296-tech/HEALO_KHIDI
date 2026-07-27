@@ -73,6 +73,7 @@ import { LiveTranslateBridge } from "@/lib/consultation/LiveTranslateBridge";
 import { SameRoomGuard } from "@/lib/consultation/SameRoomGuard";
 import { PartnerLangBridge } from "@/lib/consultation/PartnerLangBridge";
 import { ListenModeBridge } from "@/lib/consultation/ListenModeBridge";
+import { speakerColor } from "@/lib/consultation/speakerColor";
 
 const supabase = createSupabaseBrowserClient();
 
@@ -599,8 +600,9 @@ const SUBTITLE_SIZE_STORAGE_KEY = "hw_subtitle_size";
 
 // ── Subtitle overlay ──
 // size: "sm" | "md" | "lg"
-// remoteSubtitles: [{ key, text, lang, role, name }] — 상대방 자막 (DataChannel·청취모드),
+// remoteSubtitles: [{ key, text, lang, name }] — 상대방 자막 (DataChannel·청취모드),
 //   화자별 슬롯 최대 2개 — 두 화자가 교대로 말해도 앞 자막이 즉시 덮이지 않게(청취 시나리오 핵심)
+//   구분은 **사람 단위**(색+이름+좌/우) — 역할(계층)은 상담방에서 안 쓴다(speakerColor.js 참고)
 // showDisclaimer: 면책 문구 표시 여부 — 페이지 레벨 15초 타이머가 결정(패널 토글로
 //   오버레이가 리마운트돼도 리셋 안 되게 여기 두지 않는다)
 function SubtitleOverlay({
@@ -619,48 +621,54 @@ function SubtitleOverlay({
 
   const sz = SUBTITLE_SIZE_CLASS[size] || SUBTITLE_SIZE_CLASS.md;
 
-  // 역할별 색상
-  const roleColor = {
-    doctor: "text-yellow-300",
-    patient: "text-teal-300",
-    coordinator: "text-gray-300",
-  };
   // 각 자막 박스: 화면 전체폭 대신 글자 폭만큼만(w-fit) — 검은 배경이 영상을 덜 가리게 (PO 제보 2026-07-11)
-  const boxBase = "w-fit max-w-[min(92%,42rem)] backdrop-blur-sm rounded-lg px-3 py-1.5 text-center";
+  // ⚠️ 정렬(text-center/left)은 여기 넣지 않는다 — Tailwind 는 클래스 문자열 순서가 아니라
+  //    스타일시트 순서로 이기므로, base 에 text-center 를 두면 뒤에 붙인 text-left 가 진다.
+  const boxBase = "w-fit max-w-[min(92%,42rem)] backdrop-blur-sm rounded-lg px-3 py-1.5";
 
   return (
     <div className="absolute bottom-4 inset-x-0 z-10 pointer-events-none flex flex-col items-center gap-1.5 px-4">
       {/* 상대방 자막 (DataChannel·청취모드) — 화자 라벨은 본문 앞 인라인(줄 수 절약) */}
-      {remoteSubtitles.map((rs) => (
-        <div key={rs.key} className={`${boxBase} bg-black/60 border border-yellow-500/20`}>
-          {/* interim = 상대가 아직 말하는 중인 부분 자막 — 톤 낮춰 '자라는 중'임을 표시, 말줄임표로 마감 */}
-          <p
-            className={`${roleColor[rs.role] || "text-teal-300"} ${sz.trans} font-medium ${
-              rs.interim ? "opacity-75 italic" : ""
+      {remoteSubtitles.map((rs, i) => {
+        // 화자 구분 = **사람 단위** 3중 신호: ①색(이름 고정) ②이름 라벨 ③좌/우 위치.
+        // 슬롯 순서가 고정돼 있어(showRemoteSubtitle 이 제자리 교체) 두 사람이 교대로 말해도
+        // 자막이 좌우로 튀지 않는다 — 왼쪽은 계속 같은 사람.
+        const sc = speakerColor(rs.name || rs.key);
+        return (
+          <div
+            key={rs.key}
+            className={`${boxBase} bg-black/60 border border-l-4 ${sc.border} text-left ${
+              i % 2 === 0 ? "self-start" : "self-end"
             }`}
           >
-            <span className="text-yellow-500/70 text-[11px] font-normal mr-1.5">
-              {/* 화자 구분: 이름(있으면) + 역할 + 언어 */}
-              {rs.name ? `${rs.name} · ` : ""}
-              {rs.role ? `${roleLabel(rs.role, c)} · ` : ""}
-              {LANG_LABELS[rs.lang] || rs.lang}
-            </span>
-            {rs.text}
-            {rs.interim ? " …" : ""}
-          </p>
-        </div>
-      ))}
+            {/* interim = 상대가 아직 말하는 중인 부분 자막 — 톤 낮춰 '자라는 중'임을 표시, 말줄임표로 마감 */}
+            <p
+              className={`${sc.text} ${sz.trans} font-medium ${
+                rs.interim ? "opacity-75 italic" : ""
+              }`}
+            >
+              <span className={`${sc.text} opacity-70 text-[11px] font-normal mr-1.5`}>
+                {/* 이름이 없으면(구버전 클라·통역봇) 언어만 — 색·위치가 화자 구분을 계속 담당 */}
+                {rs.name ? `${rs.name} · ` : ""}
+                {LANG_LABELS[rs.lang] || rs.lang}
+              </span>
+              {rs.text}
+              {rs.interim ? " …" : ""}
+            </p>
+          </div>
+        );
+      })}
 
       {/* 내 음성 인식 중간 결과 */}
       {interimText && (
-        <div className={`${boxBase} bg-black/50`}>
+        <div className={`${boxBase} bg-black/50 text-center`}>
           <p className={`text-gray-300 ${sz.text} italic`}>🎤 {interimText}</p>
         </div>
       )}
 
       {/* 내 발화 원문+번역 — 원문은 STT 오인식 확인용 1줄, 번역 1줄 (예전 5줄 스택이 화면을 과하게 가림) */}
       {original && (
-        <div className={`${boxBase} bg-black/60`}>
+        <div className={`${boxBase} bg-black/60 text-center`}>
           <p className={`text-white ${sz.text}`}>{original}</p>
           <p className={`text-teal-300 ${sz.text}`}>{translated}</p>
         </div>
@@ -992,9 +1000,16 @@ export default function ConsultationRoomPage() {
   const showRemoteSubtitle = useCallback(({ key, text, lang, role, name, interim }) => {
     const k = key || "dc";
     setRemoteSubtitles((prev) => {
-      const next = prev.filter((s) => s.key !== k);
-      next.push({ key: k, text, lang, role, name, interim });
-      return next.slice(-2); // 최근 화자 2명까지
+      const entry = { key: k, text, lang, role, name, interim };
+      const at = prev.findIndex((s) => s.key === k);
+      // 이미 화면에 있는 화자면 **제자리 교체** — 슬롯 순서(=좌/우 위치)를 사람에 고정한다.
+      // 예전엔 지웠다 뒤에 붙여서, 두 사람이 교대로 말할 때마다 자막이 위아래·좌우로 튀었다.
+      if (at >= 0) {
+        const next = prev.slice();
+        next[at] = entry;
+        return next;
+      }
+      return [...prev, entry].slice(-2); // 최근 화자 2명까지
     });
     // 문장 길이에 비례해 자동 숨김(12~30초) — "너무 슉슉 넘어가 읽기 힘들다"(PO 제보 2026-07-23)로
     // 유지시간을 크게 늘림. 지난 자막은 「자막 기록」 패널에 남으므로 다시 읽을 수 있다.
@@ -3524,14 +3539,18 @@ export default function ConsultationRoomPage() {
                       className="border border-gray-700 rounded-lg p-3 hover:border-gray-600 transition"
                     >
                       <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs text-gray-500">
-                          {trans.speaker_name
-                            ? trans.speaker_name
-                            : trans.speaker_role === "doctor"
-                            ? c.roleDoctor
-                            : trans.speaker_role === "patient"
-                            ? c.rolePatient
-                            : c.you}
+                        {/* 화자 표시 = 사람 단위(색 점 + 이름). 오버레이 자막과 같은 색 규칙이라
+                            같은 사람이면 기록에서도 같은 색이다. 역할(계층)은 쓰지 않는다. */}
+                        <span className="text-xs text-gray-500 flex items-center gap-1.5">
+                          <span
+                            className={`inline-block w-2 h-2 rounded-full ${
+                              trans.speaker_role === "self"
+                                ? "bg-gray-400"
+                                : speakerColor(trans.speaker_name).dot
+                            }`}
+                          />
+                          {trans.speaker_name ||
+                            (trans.speaker_role === "self" ? c.you : c.roleGuest)}
                         </span>
                         <span className="text-xs text-gray-600">
                           {new Date(trans.created_at).toLocaleTimeString("ko-KR", {
