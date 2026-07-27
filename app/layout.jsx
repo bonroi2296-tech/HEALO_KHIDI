@@ -186,6 +186,13 @@ export default async function RootLayout({ children }) {
           }}
         />
         <link rel="preconnect" href="https://cdn.jsdelivr.net" crossOrigin="anonymous" />
+        {/* Supabase(세션 확인)·Sentry(에러 전송) 는 첫 화면에서 바로 붙는데 연결(DNS+TLS)을
+            그때 처음 맺느라 각각 ~300ms 를 버렸다 (2026-07-27 PageSpeed 실측).
+            연결만 미리 열어둔다 — 요청 자체는 그대로. 주소는 env 에서 뽑아 하드코딩 드리프트 방지. */}
+        {[process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SENTRY_DSN]
+          .map((u) => { try { return new URL(u).origin; } catch { return null; } })
+          .filter(Boolean)
+          .map((origin) => <link key={origin} rel="preconnect" href={origin} crossOrigin="anonymous" />)}
         {/* Pretendard — dynamic-subset(페이지에 쓰인 글리프만 다운로드: 한글 풀폰트 수 MB → 수십 KB)
             + 비차단 로딩(렌더 차단 제거 → FCP/LCP 개선). font-display:swap 이라 폰트 도착 전엔
             시스템 폰트로 즉시 표시(텍스트 안 보임 현상 없음). 느린 CIS 회선 대응. */}
