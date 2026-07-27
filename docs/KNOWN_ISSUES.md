@@ -1,12 +1,13 @@
 # HEALO KHIDI — 알려진 이슈 / 전수 QA 발견사항
 
-## 🟠 홈 JS 623KB 중 **269KB(gz)가 i18n 사전 한 덩어리** — 방문자는 1개 언어만 필요한데 6개를 다 받는다 (2026-07-27 실측, 모바일 점수의 남은 최대 병목)
+## ~~🟠 홈 JS 의 43%가 i18n 사전 한 덩어리~~ ✅ **해결·머지·배포 완료 (2026-07-27, [#1025](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/1025), main `6d99448`)**
 
-- **무엇**: `src/lib/i18n/index.js` 는 `DICTIONARY = { en, ko, ru, kz, zh, ja }` **한 파일 12,594줄(1.08MB)** 이고, 통째로 브라우저 청크가 된다(빌드 후 gzip **269KB** = 홈 첫 화면 JS 의 **43%**). 러시아 환자가 한국어·중국어·일본어 사전까지 받는다.
-- **왜 아직 안 고쳤나**: `t(key, lang)` 이 서버·클라이언트 전역에서 **동기 호출**이라 언어별 동적 import 로 바꾸면 로드 전 빈 문자열이 뜬다(하이드레이션 불일치·글자 깜빡임). 6개 언어 전 화면에 영향 → 속도 PR([#1011](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/1011)·[#1018](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/1018))에 섞지 않고 분리했다.
-- **후보 경로**: ①언어별 파일 6개로 쪼개고 서버가 현재 언어분만 주입 ②공개/백오피스 키 분리(`coordinator.js` 가 이미 그렇게 분리돼 있으니 같은 패턴) — ②가 위험이 낮고 부분 이득.
-- **판단 기준**: 이걸 손대면 모바일 PageSpeed 가 **69 → 80점대**로 갈 여지가 가장 크다. 반대로 잘못 건드리면 6개 언어 화면 전체에 빈 글자가 난다. **PO 결정 사항**(비용 대비).
-- ⚠️ 측정할 때: 이 PC 는 AdGuard 데스크톱앱이 페이지마다 2MB 를 주입한다(시크릿·헤드리스로 안 막힘). 메모리 `lighthouse-measurement` 참조.
+- **문제였던 것**: `src/lib/i18n/index.js` 가 21개 언어 사전을 한 파일로 들고 있어 통째로 브라우저 청크가 됐다(프로덕션 `chunks/5612` = **264KB br / 707KB raw** — 내려받아 한글 21,464자·키릴 112,718자로 정체 확인). 러시아 환자가 한국어·중국어·일본어 사전까지 받았다.
+- **해결 방식**: 사전을 `src/lib/i18n/dictionary.js`(서버 전용)로 분리 → `next.config.js` 가 **클라이언트 빌드에서만** 빈 껍데기로 바꿔치기 → `app/i18n/[lang]/route.js` 가 «그 언어 완성본»(en 값으로 빈칸 메움)을 서빙 → `layout.jsx` 가 `<Script strategy="beforeInteractive">` 로 주입. **`t()` 는 그대로 동기**(호출부 변경 0). URL 언어와 쿠키 언어가 다르면 두 개 주입.
+- **프로덕션 실측**: 홈 첫 화면 JS **624KB → 365KB**, 사전 스크립트 ru 47KB(1년 immutable, 배포ID 주소) → 러시아 방문자 순감 **약 212KB(−34%)**. 6개 언어 전부 서버 렌더 정상·교차오염 0.
+- ⚠️ **되살리지 마라**: `next.config.js` 의 dictionary 별칭. 없어지면 264KB 가 **조용히** 전 페이지로 돌아온다 → `check:content` **§33** 가드가 감시한다(별칭 제거 + `"use client"` 의 사전 직접 import 둘 다).
+- 📌 **사전 편집 SoR 은 `src/lib/i18n/dictionary.js` 로 옮겨졌다**(검사 스크립트 3종도 이 경로를 본다). 예전 습관대로 `index.js` 에 키를 넣지 말 것.
+- ⚠️ 측정 함정: 이 PC 는 AdGuard 데스크톱앱이 페이지마다 2MB 를 주입한다. `--blocked-url-patterns="*adguard*"` 로 우회 가능(2026-07-27 확인). 메모리 `lighthouse-measurement` 참조.
 
 ---
 
