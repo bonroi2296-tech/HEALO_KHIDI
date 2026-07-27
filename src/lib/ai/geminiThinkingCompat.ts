@@ -81,13 +81,17 @@ function buildLadder(opts: {
   sampling: boolean;
   thinking: boolean;
   google: boolean;
+  alreadyMinimal?: boolean;
 }): Mitigation[][] {
   const { sampling, thinking, google } = opts;
+  const { alreadyMinimal } = opts;
   const ladder: Mitigation[][] = [[]]; // 0번은 항상 «원본 그대로»
   if (sampling) ladder.push(["strip"]);
   if (thinking) {
-    ladder.push(["minimal"]);
-    if (sampling) ladder.push(["minimal", "strip"]);
+    // 원본이 이미 thinkingLevel:"minimal" 이면 minimal 칸은 «같은 요청 재전송» 이라 무의미.
+    // (2026-07-27 기본값을 minimal 로 바꾼 뒤 생긴 상황 — 실패 경로에서 헛왕복 1회 절약.)
+    if (!alreadyMinimal) ladder.push(["minimal"]);
+    if (sampling && !alreadyMinimal) ladder.push(["minimal", "strip"]);
     ladder.push(["dropThinking"]);
     if (sampling) ladder.push(["dropThinking", "strip"]);
   }
@@ -148,6 +152,8 @@ export async function callGeminiWithCompat<T>(
     sampling: hasSampling(params),
     thinking: !!params?.providerOptions?.google?.thinkingConfig,
     google: !!params?.providerOptions?.google,
+    alreadyMinimal:
+      params?.providerOptions?.google?.thinkingConfig?.thinkingLevel === "minimal",
   });
 
   // memo 된 칸이 이 모양에도 있으면 거기서 출발(실패 왕복 생략). 없으면 처음부터.
@@ -219,6 +225,7 @@ export async function fetchGeminiWithCompat(
     sampling: hasSampling(body?.generationConfig),
     thinking: !!body?.generationConfig?.thinkingConfig,
     google: false, // REST 에는 providerOptions 개념이 없다
+    alreadyMinimal: body?.generationConfig?.thinkingConfig?.thinkingLevel === "minimal",
   });
   const start = Math.max(
     0,

@@ -129,7 +129,7 @@ export async function evaluateResponse(input: JudgeInput): Promise<JudgeResult |
       // ⚠️ ai v5+ 는 maxTokens 가 아니라 maxOutputTokens (옛 이름은 무시됨 = 상한 미적용이었음).
       // thinking 도 꺼서 판사 호출 비용 고정(메인 챗 generateReply 와 동일 패턴).
       maxOutputTokens: 512,
-      providerOptions: { google: { thinkingConfig: { thinkingBudget: 0 } } },
+      providerOptions: { google: { thinkingConfig: { thinkingLevel: "minimal" } } },
     });
 
     const raw = result.text?.trim() ?? "";

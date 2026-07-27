@@ -1,0 +1,67 @@
+{
+  "_comment": "폐지·이전된 경로와 낱말의 단일 소스(SoR). 파이썬 생성기(_facts.py)와 CI 검사기(scripts/check-content-consistency.mjs §32)가 이 파일 하나를 함께 읽는다. 두 곳에 각자 적어두면 또 갈라진다 — 그게 2026-07 산출물 드리프트의 원인이었다.",
+  "_howto": "화면 경로나 개념을 폐지·개명하면 여기에 한 줄 추가하고 산출물 생성기를 재실행한다. 그러면 옛 표현이 남은 산출물은 CI 가 잡는다.",
+  "_routes_comment": "allow = «이 경로의 부분문자열이지만 실제로 살아 있는 화면». 예: /coordinator/intakes 와 /inquiry/intake 는 현행 화면이므로 /intake 위반으로 세면 안 된다. 검사기는 allow 를 먼저 지운 뒤 남은 것만 위반으로 본다. allow 에 넣기 전 반드시 그 경로가 app/ 아래 실재하는지 확인할 것.",
+  "routes": [
+    {
+      "old": "/intake",
+      "now": "/inquiry",
+      "why": "통합 문의 퍼널로 통폐합(영구 리디렉트). 옛 화면은 보관 처리.",
+      "allow": [
+        "/coordinator/intakes",
+        "/inquiry/intake"
+      ],
+      "oldLabel": "인테이크 화면(별도 경로)"
+    },
+    {
+      "old": "/consult/start",
+      "now": "/inquiry",
+      "why": "통합 문의 퍼널로 통폐합(영구 리디렉트).",
+      "allow": [],
+      "oldLabel": "상담 시작 화면(별도 경로)"
+    },
+    {
+      "old": "/partner",
+      "now": "/hospital",
+      "why": "국내 의료기관 포털로 개명. 옛 경로는 존재하지 않음.",
+      "allow": [
+        "/partners",
+        "partner_doctors",
+        "partner_type"
+      ],
+      "oldLabel": "파트너 포털 경로"
+    },
+    {
+      "old": "/doctor",
+      "now": "(폐지)",
+      "why": "의사 계정 계층 폐지. 화상상담 초대링크 또는 병원 계정으로 참여.",
+      "allow": [
+        "/admin/doctors",
+        "partner_doctors"
+      ],
+      "oldLabel": "의사 전용 화면"
+    },
+    {
+      "old": "/stories",
+      "now": "/",
+      "why": "후기 화면 비활성(홈 리디렉트).",
+      "allow": [],
+      "oldLabel": "후기 화면"
+    },
+    {
+      "old": "/search",
+      "now": "/hospitals",
+      "why": "검색 화면 비활성(병원 목록으로 리디렉트).",
+      "allow": [],
+      "oldLabel": "검색 화면"
+    }
+  ],
+  "_terms_comment": "낱말 검사는 «옛 경로»보다 오탐이 나기 쉽다. 초안에 «파트너 포털»을 넣었다가 실제로는 app/agency/PartnerPortal.jsx 가 살아 있는 현행 용어임을 확인하고 뺐다(해외 에이전시·의료기관이 공유하는 포털의 이름). 폐지된 것은 «/partner 경로»이지 «파트너 포털»이라는 낱말이 아니다 — 넣기 전에 코드에 그 이름이 남아 있는지 반드시 확인할 것.",
+  "terms": [],
+  "scanTargets": {
+    "_comment": "검사 대상 산출물(.docx). 생성기가 있는 것도 결과물을 검사해야 «고쳤는데 재생성을 안 한» 경우를 잡는다.",
+    "dir": "docs/government-project",
+    "ext": ".docx"
+  },
+  "_label_comment": "oldLabel = 산출물 문서에 인쇄할 «말로 된» 이름. 문서에 죽은 경로를 그대로 찍으면 (a)평가위원이 살아있는 화면으로 오해하고 (b)이 검사기가 자기 문서를 위반으로 잡는다. 문서에는 oldLabel 을, 검사에는 old 를 쓴다."
+}

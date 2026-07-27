@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
       maxOutputTokens: 1024,
       providerOptions: {
         google: {
-          thinkingConfig: { thinkingBudget: 0 },
+          thinkingConfig: { thinkingLevel: "minimal" },
           safetySettings: SAFETY_SETTINGS as any,
         },
       },

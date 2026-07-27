@@ -287,7 +287,7 @@ export async function translateMedicalDoc(opts: {
       generationConfig: {
         temperature: 0, // 충실 번역 — 창의성 0
         maxOutputTokens: 8192,
-        thinkingConfig: { thinkingBudget: 0 },
+        thinkingConfig: { thinkingLevel: "minimal" },
         responseMimeType: "application/json",
         responseSchema: RESPONSE_SCHEMA,
       },
@@ -418,7 +418,7 @@ export async function verifyTranslationNumbers(opts: {
         { category: "HARM_CATEGORY_SEXUALLY_EXPLICIT", threshold: "BLOCK_NONE" },
         { category: "HARM_CATEGORY_DANGEROUS_CONTENT", threshold: "BLOCK_NONE" },
       ],
-      generationConfig: { temperature: 0, maxOutputTokens: 4096, thinkingConfig: { thinkingBudget: 0 }, responseMimeType: "application/json", responseSchema: VERIFY_SCHEMA },
+      generationConfig: { temperature: 0, maxOutputTokens: 4096, thinkingConfig: { thinkingLevel: "minimal" }, responseMimeType: "application/json", responseSchema: VERIFY_SCHEMA },
     });
     if (!res.ok) return { ok: false, error: "model_http_error" };
     const json = await res.json();

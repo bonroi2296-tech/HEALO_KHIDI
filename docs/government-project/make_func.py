@@ -177,7 +177,7 @@ tbl.style = 'Table Grid'
 add_header_row(tbl, ['그룹', '기능 그룹명', '핵심 라우트', '현황'])
 groups = [
     ('G-01', '회원·인증·권한', '/signup, /login, /auth', '✅'),
-    ('G-02', '환자 인테이크·문서', '/intake, /api/attachments', '✅'),
+    ('G-02', '환자 인테이크·문서', '/inquiry, /api/attachments', '✅'),
     ('G-03', '병원 매칭·정보', '/hospitals, /api/chat', '✅'),
     ('G-04', '원격 화상상담', '/telemedicine, /api/livekit', '✅'),
     ('G-05', 'AI 챗봇·Human 상담', '/api/chat, /coordinator/messages', '✅'),
@@ -186,7 +186,7 @@ groups = [
     ('G-08', '사후관리·모니터링', '/patient/symptoms, /patient/education', '🟡'),
     ('G-09', '다국어 UI', '/ru, /kk, src/lib/i18n', '🟡'),
     ('G-10', '코디네이터 포털', '/coordinator/*', '✅'),
-    ('G-11', '관리자·파트너·의사', '/admin/*, /partner/*, /doctor/*', '✅'),
+    ('G-11', '관리자·의료기관·파트너', '/admin/*, /hospital/*, /agency/*, /clinic/*', '✅'),
     ('G-12', '알림·이메일', '/api/email, Supabase Realtime', '🟡'),
     ('G-13', 'AI RAG 파이프라인', 'src/lib/rag, /api/rag', '✅'),
     ('G-14', '보안·암호화·감사', 'src/lib/security, /admin/audit', '✅'),
@@ -237,7 +237,7 @@ add_scenario(doc, {
     '트리거': '보호된 라우트 (/patient/*, /admin/*, /coordinator/*) 접근 시',
     '기본 흐름': '① Next.js middleware.js에서 세션 검증\n② app_metadata.role 확인\n③ 역할 불일치 → /login 리다이렉트\n④ 역할 일치 → 페이지 렌더링 허용',
     '예외 흐름': '• 세션 만료 → 재로그인 안내\n• role 미설정 → 기본 환자 권한',
-    '역할 정의': 'patient: /patient/* 접근\ncoordinator: /coordinator/* 접근\nadmin: /admin/* 전체 접근\ndoctor: /doctor/* 접근\npartner: /partner/* 접근',
+    '역할 정의': '비회원(게스트): 상담방 초대링크 토큰으로만 /consultation/[id] 입장\n환자: /patient/* 접근\ncoordinator: /coordinator/* 접근\nadmin: /admin/* 전체 접근\n국내 의료기관: /hospital/* 접근\n해외 에이전시: /agency/* 접근\n해외 의료기관: /clinic/* 접근\n※ 의사는 계정 계층이 아님 — 초대링크 게스트 또는 병원 계정으로 참여',
     '화면 경로': 'middleware.js (루트 레벨)',
     'DB/컬럼': 'auth.users.app_metadata.role (user_metadata 사용 금지)',
     '현재 구현 상태': '✅ 완료 — middleware.js, src/lib/auth/requireAdminAuth',
@@ -252,7 +252,7 @@ add_scenario(doc, {
     '트리거': '최초 인테이크 폼 제출 또는 채팅 시작',
     '기본 흐름': '① UUID 기반 public_token 생성\n② inquiries 테이블에 token 저장\n③ 쿠키/로컬스토리지에 token 보관\n④ 이후 요청에 token으로 상담 이력 연속성 유지',
     '예외 흐름': '• 토큰 만료 (30일) → 새 토큰 발급, 이전 이력 연결 불가',
-    '화면 경로': '/intake (토큰 발급 시작점)',
+    '화면 경로': '/inquiry (토큰 발급 시작점)',
     'DB 테이블/컬럼': 'inquiries.public_token (migrations/20260125)',
     '현재 구현 상태': '✅ 완료 — migrations/20260125_inquiries_public_token',
 })
@@ -270,15 +270,15 @@ add_scenario(doc, {
     '기능명': '단계별 암환자 인테이크 정보 수집',
     '액터': '해외 암환자 (P-01)',
     '전제 조건': '웹/앱 접속, 다국어 UI 선택 (러시아어 등)',
-    '트리거': '/intake 페이지 접근',
+    '트리거': '/inquiry 페이지 접근',
     '기본 흐름': '① Step 1: 기본 정보 (성명·연락처·국가)\n② Step 2: 암 정보 (종류·병기·현재 치료 상태)\n③ Step 3: 의료기록 업로드 (CT/MRI/검사결과)\n④ Step 4: 희망 치료·예산·일정\n⑤ Step 5: 개인정보 동의·제출\n⑥ → inquiries 테이블 저장, 코디네이터 알림 발송',
     '예외 흐름': '• 필수 항목 미입력 → 단계 진행 불가\n• 파일 업로드 실패 → 재시도 안내\n• 네트워크 오류 → 임시 저장 (로컬스토리지)',
     '입력': '성명(암호화), 연락처(암호화), 국가, 암 종류, 병기, 파일, 희망 내용',
     '출력': 'inquiry 레코드 생성, 코디네이터 이메일 알림',
-    '화면 경로': '/app/intake, IntakePremium.jsx, IntakeLegacy.jsx',
+    '화면 경로': '/app/inquiry (통합 문의 퍼널)',
     'DB 테이블/컬럼': 'inquiries (id, name_encrypted, email_encrypted, cancer_type, stage, public_token, status)\ncancer_intake_encrypted (암호화 민감 데이터)\nmigrations/20260125_inquiries_intake_progressive',
     '보안': 'AES-256-GCM 암호화 (encryptionV2.ts)\n개인정보보호법 동의 수집',
-    '현재 구현 상태': '✅ 완료 — /app/intake, IntakePremium.jsx\nmigrations/20260125_inquiries_intake_progressive\nmigrations/20260420_drop_cancer_intake_plaintext (평문 컬럼 삭제 완료)',
+    '현재 구현 상태': '✅ 완료 — /app/inquiry (통합 문의 퍼널)\nmigrations/20260125_inquiries_intake_progressive\nmigrations/20260420_drop_cancer_intake_plaintext (평문 컬럼 삭제 완료)',
 })
 
 add_heading(doc, '3.2 의료문서 업로드·관리 (FN-INTAKE-02)', 2)
@@ -292,7 +292,7 @@ add_scenario(doc, {
     '예외 흐름': '• 허용 외 파일 형식 → 업로드 거부 및 안내\n• 파일 크기 초과 → 압축 요청\n• Storage 오류 → 재시도',
     '입력': '의료 파일 (CT DICOM, MRI, 검사결과 PDF, 진단서)',
     '출력': 'Supabase Storage URL, attachments 레코드',
-    '화면 경로': '/app/intake (업로드), /app/patient/documents (관리)',
+    '화면 경로': '/app/inquiry (업로드), /app/patient/documents (관리)',
     'DB 테이블/컬럼': 'attachments (id, inquiry_id, file_url, file_type, uploaded_at)\nconsultation_documents (migrations/20260406)',
     '현재 구현 상태': '✅ 완료 — /app/api/attachments\nmigrations/20260406_consultation_documents',
 })
@@ -608,9 +608,9 @@ add_scenario(doc, {
     '액터': '파트너 병원 담당자',
     '전제 조건': 'partner role 로그인',
     '기본 흐름': '① 병원 프로필·의료진 정보 관리\n② 협진 의뢰 수신·처리\n③ 진료 결과 입력\n④ 가용 일정 관리',
-    '화면 경로': '/app/partner/*',
+    '화면 경로': '/app/hospital/*',
     'DB 테이블/컬럼': 'hospital_users (hospital_id, user_id, role)\npartner_doctors (doctor_id, hospital_id, specialty)\nmigrations/20260220_hospital_users\nmigrations/20260407_partner_doctors_branches',
-    '현재 구현 상태': '✅ 완료 — /app/partner/*\nmigrations/20260407_partner_doctors_branches',
+    '현재 구현 상태': '✅ 완료 — /app/hospital/*\nmigrations/20260407_partner_doctors_branches',
 })
 
 doc.add_page_break()
@@ -720,7 +720,7 @@ sum_tbl.style = 'Table Grid'
 add_header_row(sum_tbl, ['기능 그룹', '구현 상태', '파일 경로', '비고'])
 summary_data = [
     ('회원·인증·RBAC', '✅ 완료', '/app/signup, /app/login, middleware.js', '게스트 토큰 포함'),
-    ('인테이크·문서 업로드', '✅ 완료', '/app/intake, /app/api/attachments', '평문 컬럼 완전 제거'),
+    ('인테이크·문서 업로드', '✅ 완료', '/app/inquiry, /app/api/attachments', '평문 컬럼 완전 제거'),
     ('병원 매칭 (AI+RAG)', '✅ 완료', '/app/api/chat, src/lib/chat/', 'RAG 3계층 운영 중'),
     ('병원 목록·상세', '✅ 완료', '/app/hospitals', 'i18n JSONB 완료'),
     ('화상상담 (LiveKit)', '✅ 완료', '/app/telemedicine, /app/api/livekit', '게스트 참여 가능'),
@@ -735,7 +735,7 @@ summary_data = [
     ('DB 자동번역', '✅ 완료', 'migrations/20260223', '병원·치료 완료'),
     ('코디네이터 포털', '✅ 완료', '/app/coordinator/*', ''),
     ('관리자 포털', '✅ 완료', '/app/admin/*', '감사 로그 포함'),
-    ('파트너 포털', '✅ 완료', '/app/partner/*', '의료진 등록 포함'),
+    ('국내 의료기관 포털', '✅ 완료', '/app/hospital/*', '의료진 등록 포함'),
     ('이메일 알림', '✅ 완료', '/app/api/email', 'Resend 연동'),
     ('실시간 In-app 알림', '🟡 부분', 'Supabase Realtime', '부분 통합'),
     ('RAG 파이프라인', '✅ 완료', 'src/lib/rag/*', '3계층 운영'),
@@ -754,7 +754,10 @@ add_para(doc, '❌ 미구현: 0개 그룹 (모든 기능 최소 부분 구현 �
 add_para(doc, '※ 부분구현 항목은 Phase B에서 완성 예정.')
 
 # 저장
-out_path = 'C:/Users/user/Desktop/HEALO_KHIDI/docs/government-project/02_기능명세서.docx'
+import os as _os
+# 저장 위치는 «이 스크립트가 있는 폴더» 기준으로 잡는다.
+# (전에는 특정 PC 의 절대경로가 박혀 있어 그 PC 밖에서는 재생성이 아예 불가능했다.)
+out_path = _os.path.join(_os.path.dirname(_os.path.abspath(__file__)), '02_기능명세서.docx')
 doc.save(out_path)
 print(f'저장 완료: {out_path}')
 print(f'총 단락 수: {len(doc.paragraphs)}')

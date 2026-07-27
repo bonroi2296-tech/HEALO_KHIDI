@@ -45,6 +45,36 @@ concurrency:
   group: e2e-${{ github.ref }}-${{ github.event_name }}
   cancel-in-progress: true
 
+# ─────────────────────────────────────────────────────────────────────────────
+# 🚫 concurrency 로 「DB 동시 진입 상한」을 만들려는 시도는 하지 마라 (2026-07-27 실패 기록)
+#
+# 하고 싶었던 것: 자동검사는 앱을 러너 로컬에 띄우면서 **DB 는 프로덕션을 그대로** 문다
+#   (연습용 DB 가 없다). 위 workflow 레벨 그룹은 «같은 브랜치» 안에서만 중복을 지우므로
+#   작업본이 여러 개면 그만큼의 스위트가 같은 DB 로 동시에 들어간다(KNOWN_ISSUES 항목).
+#
+# 시도했다가 되돌린 것(#1008 → 즉시 revert): 세 잡에 job 레벨
+#   `concurrency: {group: e2e-prod-db, cancel-in-progress: false}` 를 걸어 전역 직렬화.
+#
+# ❌ 왜 실패했나 — **concurrency 의 대기 슬롯은 1개뿐이다.**
+#   `cancel-in-progress: false` 는 «실행 중인 것»만 지킨다. **«대기 중인 것»은 못 지킨다.**
+#   공식 문서: *"Any previously pending job or workflow in the concurrency group will be canceled."*
+#   → 새 실행이 대기열에 들어오는 순간 **먼저 기다리던 실행이 취소**되고, 그 취소는 「실패」로
+#     기록돼 해당 PR 이 BLOCKED 가 된다. workflow 레벨에서 «남의 PR 을 내 PR 이 죽인다»는
+#     재앙을 정확히 짚고 피했는데, **job 레벨 대기열 밀어내기로 같은 재앙이 뒷문으로 들어왔다.**
+#   실측(머지 03:04:40 직후): 03:05 app-registration / 03:10 docs/postmortems /
+#     03:13 backoffice-hierarchy / 03:14 a11y-scanner 가 전부
+#     `Canceling since a higher priority waiting request for e2e-prod-db exists` 로 취소.
+#     **열린 PR 5개가 동시에 막혔다.** 머지 전(02:49·02:50·02:55)엔 서로 다른 브랜치가
+#     동시에 돌아도 전부 success 였다.
+#   ⚠️ 당시 주석에 적었던 «몰릴 땐 줄을 서지만 대체로 흘러간다»는 **틀린 전제**였다
+#      (가동률 53% 산수는 «줄이 서진다»를 전제했는데 줄이 안 선다).
+#
+# ✅ 다음에 이 문제를 다시 풀 사람에게: **concurrency 로는 «동시 N개»를 표현할 수 없다.**
+#   다른 수단이 필요하다 — 예: ①self-hosted 러너 풀 크기로 제한 ②외부 잠금(뮤텍스 액션 등)
+#   ③근본책 = KNOWN_ISSUES ②번 **E2E 를 프로덕션 DB 에서 떼어내기**(별도 Supabase, 시드 이관).
+#   ③이 정공법이다. ①②는 또 다른 방식으로 PR 을 막을 수 있으니 반드시 «막힘» 시나리오부터 검증할 것.
+# ─────────────────────────────────────────────────────────────────────────────
+
 jobs:
   # ─────────────────────────────────────────────
   # JOB 1: PR smoke (핵심만, 빠르게)

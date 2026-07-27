@@ -67,10 +67,12 @@ const nextConfig = {
               priority: 24,
               reuseExistingChunk: true,
             },
-            // 기타 vendor
+            // 기타 vendor — 이름을 주지 않는 게 핵심(2026-07-27 PageSpeed 실측).
+            // name:'vendor' 를 박아두면 「위에서 안 걸린 node_modules 전부」가 사이트 단 하나의
+            // 406KB 덩어리로 뭉쳐 모든 페이지가 통째로 받는다. 홈에선 그중 323KB(80%)가
+            // 안 쓰이는 코드였다. 이름을 빼면 webpack 이 페이지별로 쪼개고 공통분만 공유한다.
             vendor: {
               test: /[\\/]node_modules[\\/]/,
-              name: 'vendor',
               priority: 10,
               reuseExistingChunk: true,
             },
@@ -160,6 +162,11 @@ const nextConfig = {
   // ✅ 이미지 최적화
   images: {
     formats: ['image/avif', 'image/webp'],
+    // 최적화된 이미지는 1년 캐시 — 아래 headers() 의 「원본 이미지 1시간」 규칙과 달리 안전하다.
+    // /_next/image 주소엔 배포ID(?dpl=)가 붙어 배포할 때마다 주소가 바뀜(자동 캐시버스팅) →
+    // 404 가 1년 박제되는 그 문제가 안 생긴다. 안 걸면 재방문자도 매번 다시 받는다
+    // (2026-07-27 PageSpeed 실측: 재다운로드 888KB).
+    minimumCacheTTL: 31536000,
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
     remotePatterns: [

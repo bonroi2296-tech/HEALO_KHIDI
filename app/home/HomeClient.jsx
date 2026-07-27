@@ -183,13 +183,16 @@ export default function HomeClient({ content } = {}) {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-6">
             {(L.doctors.items || []).map((doc, i) => (
               <div key={i} className="bg-white rounded-xl md:rounded-2xl overflow-hidden border border-gray-100 hover:shadow-md transition-all duration-200 group">
-                <div className="aspect-square overflow-hidden bg-gray-100">
-                  <img
+                {/* next/image 필수 — 원본 PNG 는 592px·290KB 인데 화면엔 180px 로 나온다.
+                    날 <img> 로 두면 4장에 960KB(홈 전송량의 1/3). next/image 가 webp·크기맞춤
+                    으로 장당 ~10KB 까지 줄인다 (2026-07-27 PageSpeed 실측). */}
+                <div className="relative aspect-square overflow-hidden bg-gray-100">
+                  <Image
                     src={DOCTORS_META[i]?.img}
                     alt={l(doc.name)}
-                    loading="lazy"
-                    decoding="async"
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    fill
+                    sizes="(max-width: 768px) 50vw, 25vw"
+                    className="object-cover group-hover:scale-105 transition-transform duration-300"
                   />
                 </div>
                 <div className="p-3 md:p-5">

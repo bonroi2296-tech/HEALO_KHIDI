@@ -178,7 +178,7 @@ export async function generateTriage(opts: {
       generationConfig: {
         temperature: 0.3,
         maxOutputTokens: 2048,
-        thinkingConfig: { thinkingBudget: 0 },
+        thinkingConfig: { thinkingLevel: "minimal" },
         responseMimeType: "application/json",
         responseSchema: PACKET_SCHEMA,
       },
