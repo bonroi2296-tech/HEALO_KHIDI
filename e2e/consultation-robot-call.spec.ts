@@ -224,6 +224,14 @@ test.describe("야간 로봇 통화 — 2인 실연결 검증", () => {
         await voiceBtn.click().catch(() => {}); // 다시 꺼서 다음 회차가 새 토스트를 만들게
       }
 
+      // ⚠️ 판정 결과는 **assert 앞에서 즉시** stdout 으로 찍는다.
+      //    실패 상세(assert 메시지·annotation)는 스위트가 «끝까지» 돌아야 출력되는데,
+      //    2026-07-27 실측: 다른 PR 이 main 에 머지되며 동시성 규칙이 이 실행을 중간에 죽여
+      //    **로봇 테스트는 3회 다 돌았는데 결과를 한 글자도 못 건졌다.**
+      //    한 줄이라도 미리 흘려두면 취소·타임아웃에도 답이 남는다.
+      console.log(
+        `[robot-call] 통역봇=${botPresent} / 마지막토스트="${lastToast}"`
+      );
       test.info().annotations.push({
         type: "interpreter-bot",
         description: `봇 재실 판정=${botPresent} / 마지막 토스트="${lastToast}"`,

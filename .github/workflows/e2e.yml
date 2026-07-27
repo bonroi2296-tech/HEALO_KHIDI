@@ -36,7 +36,13 @@ permissions:
   issues: write
 
 concurrency:
-  group: e2e-${{ github.ref }}
+  # ⚠️ 이벤트 종류를 그룹 키에 포함한다(2026-07-27 실측으로 추가).
+  #    전에는 `e2e-${{ github.ref }}` 뿐이라, main 을 대상으로 **수동 실행**(프로덕션 점검)을
+  #    돌려놓으면 그 사이 아무 PR 이나 main 에 머지되는 순간 push 실행이 같은 그룹으로 들어와
+  #    **수동 실행을 죽였다.** 실제로 그랬다: 수동 실행 중 #1002 머지(01:54:46) → 16초 뒤 취소.
+  #    로봇 통화 3회가 다 돌았는데 결과를 한 글자도 못 건졌다.
+  #    main 은 여러 세션이 계속 머지하는 곳이라, 이벤트를 안 나누면 수동 점검이 사실상 불가능하다.
+  group: e2e-${{ github.ref }}-${{ github.event_name }}
   cancel-in-progress: true
 
 jobs:
