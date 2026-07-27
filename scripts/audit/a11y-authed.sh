@@ -20,6 +20,17 @@ paths_for() {
   esac
 }
 
+# 「열어본 상태」까지 재는 경로 — 목록만 있는 화면은 첫 렌더에 본 내용이 없다.
+# ⚠️ 여기엔 «상태만 바꾸는» 요소만 등록한다. 저장·삭제·전송 버튼을 넣으면 실데이터가 바뀐다.
+#    선택자는 data-testid 로 고정한다(클래스는 디자인이 바뀌면 조용히 안 맞게 된다).
+clicks_for() {
+  case "$1" in
+    patient)     echo '{"/patient/messages":"[data-testid=thread-row]"}' ;;
+    coordinator) echo '{"/coordinator/messages":"[data-testid=thread-row]"}' ;;
+    *)           echo '{}' ;;
+  esac
+}
+
 failed=0
 for role in "${ROLES[@]}"; do
   state="e2e/.auth/${role}.json"
@@ -35,6 +46,7 @@ for role in "${ROLES[@]}"; do
   AUDIT_LABEL="$role" \
   AUDIT_OUT="docs/audit/a11y-${role}.json" \
   AUDIT_PATHS="$(paths_for "$role")" \
+  AUDIT_CLICKS="$(clicks_for "$role")" \
     node scripts/audit/a11y-scan.mjs || failed=1
 done
 
