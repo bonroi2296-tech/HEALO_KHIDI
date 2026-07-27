@@ -13,7 +13,7 @@ const ARM_DESC = {
   highend_spec: "하이엔드 + 우리 파이프라인 (공정 비교 상한선)",
 };
 const WINNER_LABEL = { our: "우리 승", highend: "하이엔드 승", tie: "무승부" };
-const WINNER_COLOR = { our: "text-green-600", highend: "text-red-500", tie: "text-gray-400" };
+const WINNER_COLOR = { our: "text-green-600", highend: "text-red-500", tie: "text-gray-500" };
 
 function ScoreCell({ value }) {
   return <span className={`font-bold ${SCORE_COLOR(value)}`}>{fmt(value)}</span>;
@@ -97,7 +97,7 @@ export default function ModelBenchmarkPage() {
             {running ? "실행 중…" : "정밀 + 상한선 (하이엔드+특화)"}
           </button>
         </div>
-        <p className="text-xs text-gray-400 mt-3">
+        <p className="text-xs text-gray-500 mt-3">
           ⚠️ AI 호출 비용 소액 발생(무료 한도면 자동 재시도 후 일부 에러로 표시될 수 있음). 하이엔드(Pro)가
           느려 <b>빠른 실행 1~2분 / 정밀 실행 3~5분</b> 걸릴 수 있습니다. 창을 닫지 마세요.
         </p>
@@ -135,10 +135,10 @@ export default function ModelBenchmarkPage() {
                 <div className="text-sm text-gray-600">
                   우리 <b className="text-green-600">{pw.ourWins}</b>승 ·
                   하이엔드 <b className="text-red-500">{pw.highendWins}</b>승 ·
-                  무승부 <b className="text-gray-400">{pw.ties}</b> <span className="text-gray-400">(총 {pw.n})</span>
+                  무승부 <b className="text-gray-500">{pw.ties}</b> <span className="text-gray-500">(총 {pw.n})</span>
                 </div>
               </div>
-              <p className="text-xs text-gray-400 mt-3">
+              <p className="text-xs text-gray-500 mt-3">
                 두 답변을 익명(A/B, 위치 교대로 편향↓)으로 채점관에게 보여주고 “의료관광 컨시어지에 더 적합한 쪽”을 고르게 한 결과.
               </p>
             </div>
@@ -168,7 +168,7 @@ export default function ModelBenchmarkPage() {
                     <tr key={a.armKey} className="border-b border-gray-50">
                       <td className="px-4 py-3">
                         <div className="font-semibold text-gray-900">{a.armKey}</div>
-                        <div className="text-xs text-gray-400">{ARM_DESC[a.armKey] || a.label}</div>
+                        <div className="text-xs text-gray-500">{ARM_DESC[a.armKey] || a.label}</div>
                       </td>
                       <td className="px-4 py-3"><ScoreCell value={a.hallucination} /></td>
                       <td className="px-4 py-3"><ScoreCell value={a.safety} /></td>
@@ -226,7 +226,7 @@ export default function ModelBenchmarkPage() {
                       </div>
                     </div>
                     {c.pairwise?.reason && (
-                      <p className="text-xs text-gray-400 mt-2">판정 이유: {c.pairwise.reason}</p>
+                      <p className="text-xs text-gray-500 mt-2">판정 이유: {c.pairwise.reason}</p>
                     )}
                   </div>
                 ))}
@@ -256,7 +256,7 @@ export default function ModelBenchmarkPage() {
                         </span>
                         <span className="text-sm text-gray-800">{first?.query}</span>
                       </div>
-                      <span className="text-gray-400 text-xs shrink-0">{open ? "▲" : "▼"}</span>
+                      <span className="text-gray-500 text-xs shrink-0">{open ? "▲" : "▼"}</span>
                     </button>
                     {open && (
                       <div className="mt-3 space-y-2">

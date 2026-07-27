@@ -175,7 +175,7 @@ function ProfileEditor() {
 
   if (!hospital) {
     return (
-      <div className="text-center py-20 text-gray-400">
+      <div className="text-center py-20 text-gray-500">
         <Building2 size={48} className="mx-auto mb-3 opacity-50" />
         <p>병원 정보를 불러올 수 없습니다</p>
       </div>
@@ -197,7 +197,7 @@ function ProfileEditor() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-lg lg:text-2xl font-extrabold text-gray-900">병원 정보</h1>
-            <p className="text-xs text-gray-400 mt-0.5">병원 프로필을 수정하세요</p>
+            <p className="text-xs text-gray-500 mt-0.5">병원 프로필을 수정하세요</p>
           </div>
           <button onClick={handleSave} disabled={saving} className="bg-teal-700 text-white px-5 py-2.5 rounded-xl font-bold hover:bg-teal-800 transition flex items-center gap-2 disabled:opacity-50 text-sm shadow-sm">
             {saving ? <Loader2 size={16} className="animate-spin"/> : <Save size={16}/>}
@@ -209,24 +209,24 @@ function ProfileEditor() {
       <div className="bg-white rounded-2xl border border-gray-200 p-5 lg:p-8 space-y-5 mb-6">
         {/* Read-only info */}
         <div className="space-y-3">
-          <h3 className="text-sm font-bold text-gray-400">기본 정보 (수정 불가)</h3>
+          <h3 className="text-sm font-bold text-gray-500">기본 정보 (수정 불가)</h3>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm bg-gray-50 p-3 rounded-lg border border-gray-100">
             <div><span className="text-gray-500">병원명:</span> <span className="text-gray-900 font-medium">{hospital.name}</span></div>
             <div><span className="text-gray-500">슬러그:</span> <span className="text-gray-900">{hospital.slug}</span></div>
             {hospital.location_kr && <div><span className="text-gray-500">주소:</span> <span className="text-gray-900">{hospital.location_kr}</span></div>}
-            <div><span className="text-gray-500">공개 상태:</span> <span className={hospital.is_published ? "text-green-600 font-medium" : "text-gray-400"}>{hospital.is_published ? "공개" : "비공개"}</span></div>
+            <div><span className="text-gray-500">공개 상태:</span> <span className={hospital.is_published ? "text-green-600 font-medium" : "text-gray-500"}>{hospital.is_published ? "공개" : "비공개"}</span></div>
           </div>
         </div>
 
         {/* Website */}
         <div className="space-y-3">
-          <h3 className="text-sm font-bold text-gray-400">웹사이트</h3>
+          <h3 className="text-sm font-bold text-gray-500">웹사이트</h3>
           <input type="url" value={website} onChange={(e) => setWebsite(e.target.value)} className="w-full p-2 border rounded text-sm" placeholder="https://..."/>
         </div>
 
         {/* Description */}
         <div className="space-y-3">
-          <h3 className="text-sm font-bold text-gray-400">병원 소개</h3>
+          <h3 className="text-sm font-bold text-gray-500">병원 소개</h3>
           <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={4} className="w-full p-2 border rounded text-sm" placeholder="병원에 대한 설명을 입력하세요..."/>
         </div>
 
@@ -264,7 +264,7 @@ function ProfileEditor() {
 
         {/* Tags */}
         <div className="space-y-3">
-          <h3 className="text-sm font-bold text-gray-400">이미지 및 태그</h3>
+          <h3 className="text-sm font-bold text-gray-500">이미지 및 태그</h3>
           <TagListEditor items={tags} onAdd={t => setTags([...tags, t])} onRemove={i => setTags(tags.filter((_, x) => x !== i))} placeholder="태그 입력 (예: 피부과)"/>
         </div>
 
@@ -281,7 +281,7 @@ function ProfileEditor() {
           </div>
           <TagListEditor items={doctorProfile.specialties || []} onAdd={t => setDoctorProfile({ ...doctorProfile, specialties: [...(doctorProfile.specialties || []), t] })} onRemove={i => setDoctorProfile({ ...doctorProfile, specialties: (doctorProfile.specialties || []).filter((_, x) => x !== i) })} placeholder="전문 분야 (예: 코성형)" colorClass="bg-yellow-50 text-yellow-700"/>
           <div className="mt-2">
-            <label className="text-xs text-gray-400 font-bold mb-1 block">원장님 프로필 사진</label>
+            <label className="text-xs text-gray-500 font-bold mb-1 block">원장님 프로필 사진</label>
             <p className="text-[10px] text-teal-700 mb-2">1:1 정방형 (400x400px) 필수</p>
             <div className="flex gap-2 items-center">
               {doctorProfile.image ? (
@@ -292,7 +292,7 @@ function ProfileEditor() {
               ) : (
                 <div>
                   <input type="file" accept="image/*" ref={doctorFileRef} className="hidden" onChange={async(e) => { const url = await uploadImage(e.target.files[0]); if (url) setDoctorProfile(prev => ({ ...prev, image: url })); if (doctorFileRef.current) doctorFileRef.current.value = ""; }}/>
-                  <button onClick={() => doctorFileRef.current?.click()} disabled={uploading} className="w-16 h-16 rounded-full border border-dashed flex items-center justify-center text-gray-400 cursor-pointer hover:bg-white hover:border-teal-500">
+                  <button onClick={() => doctorFileRef.current?.click()} disabled={uploading} className="w-16 h-16 rounded-full border border-dashed flex items-center justify-center text-gray-500 cursor-pointer hover:bg-white hover:border-teal-500">
                     {uploading ? <Loader2 size={16} className="animate-spin"/> : <Plus size={16}/>}
                   </button>
                 </div>
@@ -330,7 +330,7 @@ function ProfileEditor() {
 
         {/* Certifications */}
         <div className="space-y-3">
-          <h3 className="text-sm font-bold text-gray-400 flex items-center gap-2"><Shield size={14}/> 인증 / 자격</h3>
+          <h3 className="text-sm font-bold text-gray-500 flex items-center gap-2"><Shield size={14}/> 인증 / 자격</h3>
           {certifications.map((cert, idx) => (
             <div key={idx} className="flex items-center gap-2 bg-white border rounded-lg p-2">
               <input placeholder="유형" value={cert.type || ""} onChange={e => { const c = [...certifications]; c[idx] = { ...c[idx], type: e.target.value }; setCertifications(c); }} className="flex-1 border p-1.5 rounded text-xs"/>
@@ -349,7 +349,7 @@ function ProfileEditor() {
           {faq.map((item, idx) => (
             <div key={idx} className="bg-white border rounded-lg p-3 space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-gray-400">Q{idx + 1}</span>
+                <span className="text-xs font-bold text-gray-500">Q{idx + 1}</span>
                 <button onClick={() => setFaq(faq.filter((_, i) => i !== idx))} className="text-red-400 hover:text-red-600"><X size={14}/></button>
               </div>
               <input placeholder="질문" value={item.question || ''} onChange={e => { const f = [...faq]; f[idx] = {...f[idx], question: e.target.value}; setFaq(f); }} className="w-full border p-2 rounded text-sm"/>

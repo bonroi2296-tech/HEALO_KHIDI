@@ -75,7 +75,7 @@ function StatCard({ label, value, sub, colorClass = "text-gray-900" }) {
     <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
       <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">{label}</p>
       <p className={`text-3xl font-bold ${colorClass}`}>{value}</p>
-      {sub && <p className="text-xs text-gray-400 mt-1">{sub}</p>}
+      {sub && <p className="text-xs text-gray-500 mt-1">{sub}</p>}
     </div>
   );
 }
@@ -93,7 +93,7 @@ function MiniBar({ value, max, colorClass = "bg-teal-700" }) {
 function TrendChart({ data, label, colorClass: _colorClass = "bg-teal-700", yMax = 100 }) {
   if (!data || data.length === 0) {
     return (
-      <div className="h-32 flex items-center justify-center text-gray-400 text-sm">
+      <div className="h-32 flex items-center justify-center text-gray-500 text-sm">
         데이터 없음
       </div>
     );
@@ -124,8 +124,8 @@ function TrendChart({ data, label, colorClass: _colorClass = "bg-teal-700", yMax
         })}
       </div>
       <div className="flex justify-between mt-1">
-        <span className="text-xs text-gray-400">{data[0]?.date?.slice(5) ?? ""}</span>
-        <span className="text-xs text-gray-400">{data[data.length - 1]?.date?.slice(5) ?? ""}</span>
+        <span className="text-xs text-gray-500">{data[0]?.date?.slice(5) ?? ""}</span>
+        <span className="text-xs text-gray-500">{data[data.length - 1]?.date?.slice(5) ?? ""}</span>
       </div>
     </div>
   );
@@ -198,7 +198,7 @@ function QualityDistribution({ rows }) {
           <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
             문제 유형 분포 (최근 실행)
           </p>
-          <span className="text-xs text-gray-400">감지 건수 기준</span>
+          <span className="text-xs text-gray-500">감지 건수 기준</span>
         </div>
         {flagRows.length === 0 ? (
           <p className="text-sm text-green-600 bg-green-50 border border-green-200 rounded-lg px-4 py-3">
@@ -279,7 +279,7 @@ function CategoryBreakdown({ rows }) {
 function FailedTable({ rows }) {
   if (!rows || rows.length === 0) {
     return (
-      <div className="text-center text-gray-400 text-sm py-8">
+      <div className="text-center text-gray-500 text-sm py-8">
         최근 실패 시나리오 없음
       </div>
     );
@@ -524,7 +524,7 @@ export default function AiRegressionPage() {
         <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-sm font-semibold text-gray-700">품질 분포 (최근 실행)</h3>
-            <span className="text-xs text-gray-400">
+            <span className="text-xs text-gray-500">
               통과율 한 숫자에 묻히는 것들 — 환각률·응답시간·문제 유형
             </span>
           </div>
@@ -566,7 +566,7 @@ export default function AiRegressionPage() {
       <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
         <div className="flex items-center justify-between mb-4">
           <h3 className="text-sm font-semibold text-gray-700">최근 실패 시나리오</h3>
-          <span className="text-xs text-gray-400">{failedRows.length}개 (최근 30일)</span>
+          <span className="text-xs text-gray-500">{failedRows.length}개 (최근 30일)</span>
         </div>
         <FailedTable rows={failedRows} />
       </div>

@@ -90,19 +90,19 @@ function TriagePacketCard({
 
       <div className="p-3 space-y-2 text-xs text-gray-700">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-1.5">
-          <div><span className="text-gray-400">환자</span> · {p.patient_summary || "—"}</div>
+          <div><span className="text-gray-500">환자</span> · {p.patient_summary || "—"}</div>
           <div className="flex items-center gap-1">
-            <span className="text-gray-400">시급도</span>
+            <span className="text-gray-500">시급도</span>
             <span className={`px-1.5 py-0.5 rounded border text-[10px] font-semibold ${urg.cls}`}>{urg.label}</span>
           </div>
-          <div className="sm:col-span-2"><span className="text-gray-400">상태</span> · {p.condition || "—"}</div>
-          <div className="sm:col-span-2"><span className="text-gray-400">요청</span> · {p.request || "—"}</div>
-          <div className="sm:col-span-2"><span className="text-gray-400">추천 진료과</span> · {p.suggested_specialty || "—"}</div>
+          <div className="sm:col-span-2"><span className="text-gray-500">상태</span> · {p.condition || "—"}</div>
+          <div className="sm:col-span-2"><span className="text-gray-500">요청</span> · {p.request || "—"}</div>
+          <div className="sm:col-span-2"><span className="text-gray-500">추천 진료과</span> · {p.suggested_specialty || "—"}</div>
         </div>
 
         {Array.isArray(p.missing_docs) && p.missing_docs.length > 0 && (
           <div>
-            <span className="text-gray-400">필요한데 빠진 자료</span>
+            <span className="text-gray-500">필요한데 빠진 자료</span>
             <ul className="list-disc list-inside text-gray-600 mt-0.5">
               {p.missing_docs.map((d, i) => <li key={i}>{d}</li>)}
             </ul>
@@ -121,7 +121,7 @@ function TriagePacketCard({
       {/* 검수 액션 */}
       <div className="px-3 pb-3">
         {reviewed ? (
-          <div className="text-[10px] text-gray-400">
+          <div className="text-[10px] text-gray-500">
             검수완료 {tri.reviewed_at ? `· ${fmtTime(tri.reviewed_at)}` : ""}
             {tri.review_note ? ` · 정정 발송됨` : ""}
           </div>
@@ -427,11 +427,11 @@ export default function AdminChatPage() {
         {/* 스레드 목록 */}
         <div className="lg:col-span-1 bg-white border border-gray-200 rounded-xl overflow-hidden">
           {loading ? (
-            <div className="flex items-center justify-center py-16 text-gray-400">
+            <div className="flex items-center justify-center py-16 text-gray-500">
               <RefreshCw size={18} className="animate-spin mr-2" /> 불러오는 중...
             </div>
           ) : visibleThreads.length === 0 ? (
-            <div className="text-center py-16 text-sm text-gray-400">
+            <div className="text-center py-16 text-sm text-gray-500">
               {filter === "review" ? "검토 대기 중인 요청이 없습니다." : filter === "attachments" ? "첨부 자료가 있는 대화가 없습니다." : "대화가 없습니다."}
             </div>
           ) : (
@@ -447,8 +447,8 @@ export default function AdminChatPage() {
                       className={`w-full text-left px-4 py-3 transition ${active ? "bg-teal-50" : handoff ? "hover:bg-amber-50/60" : "hover:bg-gray-50"}`}
                     >
                       <div className="flex items-center justify-between gap-2">
-                        <span className="text-xs font-mono text-gray-400 truncate">#{String(t.id).slice(0, 8)}</span>
-                        <span className="text-[11px] text-gray-400 flex items-center gap-1 shrink-0">
+                        <span className="text-xs font-mono text-gray-500 truncate">#{String(t.id).slice(0, 8)}</span>
+                        <span className="text-[11px] text-gray-500 flex items-center gap-1 shrink-0">
                           <Clock size={11} /> {fmtTime(t.updated_at)}
                         </span>
                       </div>
@@ -482,7 +482,7 @@ export default function AdminChatPage() {
                         {handoff && (
                           <span className="text-[10px] font-semibold text-amber-600 ml-auto">{ageLabel(t.updated_at)}</span>
                         )}
-                        {!handoff && <span className="text-[10px] text-gray-400">{t.status}</span>}
+                        {!handoff && <span className="text-[10px] text-gray-500">{t.status}</span>}
                       </div>
                     </button>
                   </li>
@@ -526,7 +526,7 @@ export default function AdminChatPage() {
                                 </span>
                               )}
                             </div>
-                            <div className="text-[11px] text-gray-400 mt-0.5 flex items-center gap-1">
+                            <div className="text-[11px] text-gray-500 mt-0.5 flex items-center gap-1">
                               <Clock size={11} /> {fmtTime(t.updated_at)} · {ageLabel(t.updated_at)}
                             </div>
                           </div>
@@ -540,12 +540,12 @@ export default function AdminChatPage() {
                 <div className="flex flex-col items-center justify-center h-full py-24 text-center">
                   <CheckCircle2 size={40} className="text-teal-400 mb-3" />
                   <p className="text-gray-600 font-medium">검토 대기 없음</p>
-                  <p className="text-sm text-gray-400 mt-1">왼쪽 목록에서 대화를 골라 내용을 확인할 수 있습니다.</p>
+                  <p className="text-sm text-gray-500 mt-1">왼쪽 목록에서 대화를 골라 내용을 확인할 수 있습니다.</p>
                 </div>
               )}
             </div>
           ) : loadingMsgs ? (
-            <div className="flex items-center justify-center py-24 text-gray-400">
+            <div className="flex items-center justify-center py-24 text-gray-500">
               <RefreshCw size={18} className="animate-spin mr-2" /> 대화 불러오는 중...
             </div>
           ) : (
@@ -578,7 +578,7 @@ export default function AdminChatPage() {
                 </div>
                 <button
                   onClick={() => setSelected(null)}
-                  className="text-xs text-gray-400 hover:text-gray-600 shrink-0"
+                  className="text-xs text-gray-500 hover:text-gray-600 shrink-0"
                 >
                   ← 목록
                 </button>
@@ -640,13 +640,13 @@ export default function AdminChatPage() {
                               : "미전달 — 메신저 발신 실패"}
                           </div>
                         )}
-                        <div className="text-[10px] text-gray-400 mt-1 px-1">{fmtTime(m.created_at)}</div>
+                        <div className="text-[10px] text-gray-500 mt-1 px-1">{fmtTime(m.created_at)}</div>
                       </div>
                     </div>
                   );
                 })}
                 {messages.length === 0 && (
-                  <div className="text-center py-16 text-sm text-gray-400">메시지가 없습니다.</div>
+                  <div className="text-center py-16 text-sm text-gray-500">메시지가 없습니다.</div>
                 )}
               </div>
             </>

@@ -219,7 +219,7 @@ export default function CoordinatorInboxPage() {
                         )}
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-gray-400 text-xs">
+                    <td className="px-4 py-3 text-gray-500 text-xs">
                       <span className="flex items-center gap-1">
                         <Calendar size={12} />
                         {item.created_at
@@ -246,7 +246,7 @@ export default function CoordinatorInboxPage() {
                         )}
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-gray-400">
+                    <td className="px-4 py-3 text-gray-500">
                       <ChevronRight size={16} />
                     </td>
                   </tr>

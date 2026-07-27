@@ -158,7 +158,7 @@ function TeachBox({ item }) {
         </button>
         {state === "error" && <span className="text-sm text-red-600">저장 실패 — 잠시 후 다시 시도해 주세요.</span>}
       </div>
-      <p className="text-xs text-gray-400">
+      <p className="text-xs text-gray-500">
         저장하면 개인정보는 자동 제거되고, AI의 의료 안전 규칙(진단·가격 단정 금지 등)은 그대로 적용됩니다.
       </p>
     </div>
@@ -170,7 +170,7 @@ function StatCard({ label, value, sub, tone }) {
     <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
       <p className="text-xs text-gray-500 mb-1">{label}</p>
       <p className={`text-2xl font-bold ${tone ? TONE_TEXT[tone] : "text-gray-900"}`}>{value}</p>
-      {sub && <p className="text-xs text-gray-400 mt-1">{sub}</p>}
+      {sub && <p className="text-xs text-gray-500 mt-1">{sub}</p>}
     </div>
   );
 }
@@ -248,7 +248,7 @@ export default function AiStatusPage() {
         <div className="mt-4 pt-4 border-t border-white/60 flex items-baseline gap-2">
           <span className="text-sm text-gray-500">AI 답변 점수</span>
           <span className={`text-3xl font-bold ${TONE_TEXT[st.tone]}`}>{scoreText}</span>
-          <span className="text-sm text-gray-400">/ 100점</span>
+          <span className="text-sm text-gray-500">/ 100점</span>
         </div>
       </div>
 
@@ -281,7 +281,7 @@ export default function AiStatusPage() {
               return (
                 <div key={item.id} className="bg-white rounded-xl border border-gray-200 shadow-sm p-4">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs text-gray-400">
+                    <span className="text-xs text-gray-500">
                       {item.created_at ? new Date(item.created_at).toLocaleDateString("ko-KR") : ""}
                     </span>
                     <span className={`text-sm font-bold ${score < 40 ? "text-red-600" : "text-amber-600"}`}>
@@ -290,17 +290,17 @@ export default function AiStatusPage() {
                   </div>
 
                   <p className="text-sm text-gray-900">
-                    <span className="text-gray-400">손님 질문 · </span>
+                    <span className="text-gray-500">손님 질문 · </span>
                     {item.query_text}
                   </p>
                   <p className="text-sm text-gray-600 mt-1.5 line-clamp-3">
-                    <span className="text-gray-400">AI 답변 · </span>
+                    <span className="text-gray-500">AI 답변 · </span>
                     {item.response_text}
                   </p>
 
                   {item.judge_reasoning && (
                     <p className="text-sm text-gray-700 mt-2 bg-gray-50 rounded-lg px-3 py-2">
-                      <span className="text-gray-400">왜 낮았나 · </span>
+                      <span className="text-gray-500">왜 낮았나 · </span>
                       {item.judge_reasoning}
                     </p>
                   )}
@@ -324,7 +324,7 @@ export default function AiStatusPage() {
       </div>
 
       {/* 엔지니어용 링크 (작게) */}
-      <div className="pt-2 text-xs text-gray-400">
+      <div className="pt-2 text-xs text-gray-500">
         🔧 더 자세한 기술 화면:{" "}
         <a href="/admin/khidi/ai-quality" className="underline hover:text-gray-600">상세 품질 데이터</a>
         {" · "}

@@ -67,19 +67,19 @@ function TriagePacketCard({ m, L, dateLoc }) {
 
       <div className="p-3 space-y-2 text-xs text-gray-700">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-1.5">
-          <div><span className="text-gray-400">{L.fieldPatient}</span> · {p.patient_summary || "—"}</div>
+          <div><span className="text-gray-500">{L.fieldPatient}</span> · {p.patient_summary || "—"}</div>
           <div className="flex items-center gap-1">
-            <span className="text-gray-400">{L.chUrgency}</span>
+            <span className="text-gray-500">{L.chUrgency}</span>
             <span className={`px-1.5 py-0.5 rounded border text-[10px] font-semibold ${urg.cls}`}>{L[urg.labelKey]}</span>
           </div>
-          <div className="sm:col-span-2"><span className="text-gray-400">{L.chCondition}</span> · {p.condition || "—"}</div>
-          <div className="sm:col-span-2"><span className="text-gray-400">{L.chRequest}</span> · {p.request || "—"}</div>
-          <div className="sm:col-span-2"><span className="text-gray-400">{L.chSuggestedSpecialty}</span> · {p.suggested_specialty || "—"}</div>
+          <div className="sm:col-span-2"><span className="text-gray-500">{L.chCondition}</span> · {p.condition || "—"}</div>
+          <div className="sm:col-span-2"><span className="text-gray-500">{L.chRequest}</span> · {p.request || "—"}</div>
+          <div className="sm:col-span-2"><span className="text-gray-500">{L.chSuggestedSpecialty}</span> · {p.suggested_specialty || "—"}</div>
         </div>
 
         {Array.isArray(p.missing_docs) && p.missing_docs.length > 0 && (
           <div>
-            <span className="text-gray-400">{L.chMissingDocs}</span>
+            <span className="text-gray-500">{L.chMissingDocs}</span>
             <ul className="list-disc list-inside text-gray-600 mt-0.5">
               {p.missing_docs.map((d, i) => <li key={i}>{d}</li>)}
             </ul>
@@ -96,7 +96,7 @@ function TriagePacketCard({ m, L, dateLoc }) {
       </div>
 
       {/* 검수 상태 (읽기전용) */}
-      <div className="px-3 pb-3 text-[10px] text-gray-400">
+      <div className="px-3 pb-3 text-[10px] text-gray-500">
         {reviewed
           ? <>{L.chReviewed} {tri.reviewed_at ? `· ${fmtTime(tri.reviewed_at, dateLoc)}` : ""}{tri.review_note ? ` · ${L.chCorrectionSent}` : ""}</>
           : L.chReviewWaitingNote}
@@ -297,11 +297,11 @@ export default function CoordinatorChatPage() {
         {/* 스레드 목록 */}
         <div className="lg:col-span-1 bg-white border border-gray-200 rounded-xl overflow-hidden">
           {loading ? (
-            <div className="flex items-center justify-center py-16 text-gray-400">
+            <div className="flex items-center justify-center py-16 text-gray-500">
               <RefreshCw size={18} className="animate-spin mr-2" /> {L.chLoading}
             </div>
           ) : visibleThreads.length === 0 ? (
-            <div className="text-center py-16 text-sm text-gray-400">
+            <div className="text-center py-16 text-sm text-gray-500">
               {filter === "review" ? L.chEmptyReview : filter === "attachments" ? L.chEmptyAttachments : L.chEmptyThreads}
             </div>
           ) : (
@@ -317,8 +317,8 @@ export default function CoordinatorChatPage() {
                       className={`w-full text-left px-4 py-3 transition ${active ? "bg-teal-50" : handoff ? "hover:bg-amber-50/60" : "hover:bg-gray-50"}`}
                     >
                       <div className="flex items-center justify-between gap-2">
-                        <span className="text-xs font-mono text-gray-400 truncate">#{String(t.id).slice(0, 8)}</span>
-                        <span className="text-[11px] text-gray-400 flex items-center gap-1 shrink-0">
+                        <span className="text-xs font-mono text-gray-500 truncate">#{String(t.id).slice(0, 8)}</span>
+                        <span className="text-[11px] text-gray-500 flex items-center gap-1 shrink-0">
                           <Clock size={11} /> {fmtTime(t.updated_at, dateLoc)}
                         </span>
                       </div>
@@ -341,7 +341,7 @@ export default function CoordinatorChatPage() {
                         {handoff && (
                           <span className="text-[10px] font-semibold text-amber-600 ml-auto">{ageLabel(t.updated_at, L)}</span>
                         )}
-                        {!handoff && <span className="text-[10px] text-gray-400">{t.status}</span>}
+                        {!handoff && <span className="text-[10px] text-gray-500">{t.status}</span>}
                       </div>
                     </button>
                   </li>
@@ -385,7 +385,7 @@ export default function CoordinatorChatPage() {
                                 </span>
                               )}
                             </div>
-                            <div className="text-[11px] text-gray-400 mt-0.5 flex items-center gap-1">
+                            <div className="text-[11px] text-gray-500 mt-0.5 flex items-center gap-1">
                               <Clock size={11} /> {fmtTime(t.updated_at, dateLoc)} · {ageLabel(t.updated_at, L)}
                             </div>
                           </div>
@@ -399,12 +399,12 @@ export default function CoordinatorChatPage() {
                 <div className="flex flex-col items-center justify-center h-full py-24 text-center">
                   <CheckCircle2 size={40} className="text-teal-400 mb-3" />
                   <p className="text-gray-600 font-medium">{L.chNoReviewPending}</p>
-                  <p className="text-sm text-gray-400 mt-1">{L.chNoReviewHint}</p>
+                  <p className="text-sm text-gray-500 mt-1">{L.chNoReviewHint}</p>
                 </div>
               )}
             </div>
           ) : loadingMsgs ? (
-            <div className="flex items-center justify-center py-24 text-gray-400">
+            <div className="flex items-center justify-center py-24 text-gray-500">
               <RefreshCw size={18} className="animate-spin mr-2" /> {L.chLoadingThread}
             </div>
           ) : (
@@ -426,7 +426,7 @@ export default function CoordinatorChatPage() {
                 </div>
                 <button
                   onClick={() => setSelected(null)}
-                  className="text-xs text-gray-400 hover:text-gray-600 shrink-0"
+                  className="text-xs text-gray-500 hover:text-gray-600 shrink-0"
                 >
                   ← {L.chBackToList}
                 </button>
@@ -469,13 +469,13 @@ export default function CoordinatorChatPage() {
                         {!isPatient && m.metadata?.triage?.packet && (
                           <TriagePacketCard m={m} L={L} dateLoc={dateLoc} />
                         )}
-                        <div className="text-[10px] text-gray-400 mt-1 px-1">{fmtTime(m.created_at, dateLoc)}</div>
+                        <div className="text-[10px] text-gray-500 mt-1 px-1">{fmtTime(m.created_at, dateLoc)}</div>
                       </div>
                     </div>
                   );
                 })}
                 {messages.length === 0 && (
-                  <div className="text-center py-16 text-sm text-gray-400">{L.chNoMessages}</div>
+                  <div className="text-center py-16 text-sm text-gray-500">{L.chNoMessages}</div>
                 )}
               </div>
             </>

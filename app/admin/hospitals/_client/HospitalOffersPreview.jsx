@@ -54,7 +54,7 @@ function SourceListCollapsible({ sources }) {
         ))}
       </ul>
       {hasMore && !expanded && (
-        <p className="mt-1 text-xs text-gray-400">펼쳐서 전체 {count}개 보기</p>
+        <p className="mt-1 text-xs text-gray-500">펼쳐서 전체 {count}개 보기</p>
       )}
     </div>
   );

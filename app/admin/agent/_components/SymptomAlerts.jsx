@@ -124,7 +124,7 @@ export function SymptomAlerts() {
                         <Eye size={14} /> 미검토
                       </span>
                     )}
-                    <span className="text-xs text-gray-400">
+                    <span className="text-xs text-gray-500">
                       {new Date(report.created_at).toLocaleString("ko-KR", {
                         month: "short",
                         day: "numeric",

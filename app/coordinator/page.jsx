@@ -140,7 +140,7 @@ export default function CoordinatorDashboard() {
           </button>
         </div>
         {upcomingConsultations.length === 0 ? (
-          <div className="text-center py-8 text-gray-400">
+          <div className="text-center py-8 text-gray-500">
             <Video size={32} className="mx-auto mb-2 opacity-50" />
             <p className="text-sm">{L.noUpcoming}</p>
           </div>
@@ -162,7 +162,7 @@ export default function CoordinatorDashboard() {
                        c.session_type === 'follow_up' ? L.sessionFollow :
                        c.session_type === 'emergency' ? L.sessionEmergency : L.sessionGeneric}
                     </div>
-                    <div className="text-xs text-gray-400">
+                    <div className="text-xs text-gray-500">
                       {c.scheduled_at ? kstDateTime(c.scheduled_at, dateLoc, {
                         month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
                       }) : '-'}

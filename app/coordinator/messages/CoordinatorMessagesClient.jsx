@@ -69,7 +69,7 @@ export default function CoordinatorMessagesClient() {
       hospital: `${L.msActorHospital}: `,
     };
     const label = m[actor];
-    return label ? <span className="font-medium text-gray-400">{label}</span> : null;
+    return label ? <span className="font-medium text-gray-500">{label}</span> : null;
   };
   // 스레드 제목: 게스트명 > 제목 > 폴백. AI 채팅 기본 제목은 현지어로 다듬음.
   const threadTitle = (t) => {
@@ -293,9 +293,9 @@ export default function CoordinatorMessagesClient() {
 
         <div className="min-h-0 flex-1 overflow-y-auto">
           {loading ? (
-            <div className="p-6 text-sm text-gray-400">{L.msLoading}</div>
+            <div className="p-6 text-sm text-gray-500">{L.msLoading}</div>
           ) : threads.length === 0 ? (
-            <div className="p-6 text-sm text-gray-400">{L.msNoThreads}</div>
+            <div className="p-6 text-sm text-gray-500">{L.msNoThreads}</div>
           ) : (
             threads.map((t) => {
               const chColor = CHANNEL_COLOR[t.channel] || CHANNEL_COLOR.web;
@@ -319,8 +319,8 @@ export default function CoordinatorMessagesClient() {
                       {chLabel}
                     </span>
                     <span className="truncate text-sm font-medium text-gray-900">{threadTitle(t)}</span>
-                    {t.guest_country && <span className="shrink-0 text-xs text-gray-400">· {t.guest_country}</span>}
-                    <span className="ml-auto shrink-0 text-xs text-gray-400">
+                    {t.guest_country && <span className="shrink-0 text-xs text-gray-500">· {t.guest_country}</span>}
+                    <span className="ml-auto shrink-0 text-xs text-gray-500">
                       {fmtDate(t.updated_at || t.last_active_at || t.created_at)}
                     </span>
                   </div>
@@ -328,7 +328,7 @@ export default function CoordinatorMessagesClient() {
                   <div className="truncate text-xs text-gray-500">
                     {t.last_message
                       ? <>{actorPrefix(t.last_actor)}{t.last_message}</>
-                      : <span className="text-gray-400">{t.inquiry_id ? `${L.msInquiry} #${t.inquiry_id}` : L.msNoMessages}</span>}
+                      : <span className="text-gray-500">{t.inquiry_id ? `${L.msInquiry} #${t.inquiry_id}` : L.msNoMessages}</span>}
                   </div>
                   <span className={`mt-1.5 inline-block rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_BADGE[t.status] || STATUS_BADGE.open}`}>
                     {statusLabel(t.status)}
@@ -343,7 +343,7 @@ export default function CoordinatorMessagesClient() {
       {/* 우측 — 대화 */}
       <div className="flex h-full min-h-0 flex-col overflow-hidden">
         {!selectedThread ? (
-          <div className="flex flex-1 items-center justify-center text-sm text-gray-400">
+          <div className="flex flex-1 items-center justify-center text-sm text-gray-500">
             {L.msSelectConversation}
           </div>
         ) : (
@@ -360,7 +360,7 @@ export default function CoordinatorMessagesClient() {
                   </span>
                   <span className="truncate text-base font-bold text-gray-900">{threadTitle(selectedThread)}</span>
                 </div>
-                <div className="mt-0.5 flex flex-wrap gap-x-3 text-xs text-gray-400">
+                <div className="mt-0.5 flex flex-wrap gap-x-3 text-xs text-gray-500">
                   {selectedThread.guest_name ? (
                     <>
                       {selectedThread.guest_email && <span>✉ {selectedThread.guest_email}</span>}
@@ -397,7 +397,7 @@ export default function CoordinatorMessagesClient() {
                   <div className="h-6 w-6 animate-spin rounded-full border-2 border-teal-600 border-t-transparent" />
                 </div>
               ) : messages.length === 0 ? (
-                <div className="flex h-full items-center justify-center text-sm text-gray-400">{L.msNoMessagesYet}</div>
+                <div className="flex h-full items-center justify-center text-sm text-gray-500">{L.msNoMessagesYet}</div>
               ) : (
                 <>
                   {messages.map((m) => (
@@ -411,7 +411,7 @@ export default function CoordinatorMessagesClient() {
             {/* 답장 추천 칩 — 입력 중(draft 있음)에는 숨겨 타이핑 덮어쓰기 방지 */}
             {suggestions.length > 0 && !draft.trim() && (
               <div className="flex items-center gap-2 overflow-x-auto border-t border-gray-100 bg-white px-6 pt-2.5">
-                <span className="shrink-0 text-xs font-medium text-gray-400">💬 {L.msSuggestedReplies}</span>
+                <span className="shrink-0 text-xs font-medium text-gray-500">💬 {L.msSuggestedReplies}</span>
                 {suggestions.map((s) => (
                   <button
                     key={s.id}
@@ -490,7 +490,7 @@ function Message({ m, meId, L, dateLoc }) {
     isAgency ? "text-emerald-600" :
     isHospital ? "text-sky-600" :
     isAdmin ? "text-amber-600" :
-    "text-gray-400";
+    "text-gray-500";
   // 버블: 나=teal 우측 / 환자=흰색+파란 좌측 / AI=보라 / 에이전시=초록 / 병원=하늘 / 관리자=앰버
   const bubble =
     isMine ? "bg-teal-600 text-white" :
@@ -504,8 +504,8 @@ function Message({ m, meId, L, dateLoc }) {
   return (
     <div className={`mb-3.5 flex ${isMine ? "justify-end" : "justify-start"}`}>
       <div className={`max-w-[72%] ${isMine ? "text-right" : "text-left"}`}>
-        <div className={`mb-1 text-xs font-semibold ${isMine ? "text-gray-400" : labelColor}`}>
-          {label} <span className="font-normal text-gray-400">· {new Date(m.created_at).toLocaleString(dateLoc)}</span>
+        <div className={`mb-1 text-xs font-semibold ${isMine ? "text-gray-500" : labelColor}`}>
+          {label} <span className="font-normal text-gray-500">· {new Date(m.created_at).toLocaleString(dateLoc)}</span>
         </div>
         <div className={`inline-block whitespace-pre-wrap break-words rounded-xl px-4 py-2.5 text-sm leading-relaxed ${bubble}`}>
           {m.message_text}

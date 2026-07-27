@@ -102,11 +102,11 @@ export default function AgenciesAdmin() {
 
       {/* 목록 */}
       {loading ? (
-        <div className="py-12 text-center text-gray-400">불러오는 중…</div>
+        <div className="py-12 text-center text-gray-500">불러오는 중…</div>
       ) : error ? (
         <div className="py-8 text-center text-red-500">{error}</div>
       ) : agencies.length === 0 ? (
-        <p className="text-sm text-gray-400">등록된 파트너가 없습니다.</p>
+        <p className="text-sm text-gray-500">등록된 파트너가 없습니다.</p>
       ) : (
         <div className="space-y-2">
           {agencies.map((a) => {
@@ -119,7 +119,7 @@ export default function AgenciesAdmin() {
                     <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${isClinic ? "bg-indigo-50 text-indigo-700" : "bg-teal-50 text-teal-700"}`}>{isClinic ? "해외 의료기관" : "해외 에이전시"}</span>
                     <span className="text-sm font-semibold text-gray-800">{a.name}</span>
                   </div>
-                  <div className="text-xs text-gray-400 mt-0.5">{a.country || "-"} · 담당자 {a.userCount}명{a.code ? ` · ${a.code}` : ""}</div>
+                  <div className="text-xs text-gray-500 mt-0.5">{a.country || "-"} · 담당자 {a.userCount}명{a.code ? ` · ${a.code}` : ""}</div>
                 </div>
               </div>
               <div className="flex gap-2">

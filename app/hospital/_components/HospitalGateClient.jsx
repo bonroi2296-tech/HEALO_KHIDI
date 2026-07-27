@@ -110,7 +110,7 @@ export function HospitalGateClient({ children }) {
             </Link>
           </div>
           {gateError && (
-            <p className="mt-4 text-xs text-gray-400">오류 코드: {gateError}</p>
+            <p className="mt-4 text-xs text-gray-500">오류 코드: {gateError}</p>
           )}
         </div>
       </div>

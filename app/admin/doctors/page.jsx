@@ -47,12 +47,12 @@ function ArrayEditor({ label, items, onChange }) {
             className="flex-1 text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:ring-1 focus:ring-teal-300 focus:border-teal-400 outline-none"
             placeholder={`${label} ${i + 1}`}
           />
-          <button onClick={() => removeItem(i)} className="text-gray-400 hover:text-red-500">
+          <button onClick={() => removeItem(i)} className="text-gray-500 hover:text-red-500">
             <X size={14} />
           </button>
         </div>
       ))}
-      {items.length === 0 && <p className="text-xs text-gray-400 italic">항목 없음</p>}
+      {items.length === 0 && <p className="text-xs text-gray-500 italic">항목 없음</p>}
     </div>
   );
 }
@@ -417,7 +417,7 @@ export default function AdminDoctorsPage() {
       </div>
 
       {loading && (
-        <div className="text-center py-20 text-gray-400">
+        <div className="text-center py-20 text-gray-500">
           <div className="animate-spin w-8 h-8 border-2 border-teal-500 border-t-transparent rounded-full mx-auto mb-3" />
           로딩 중...
         </div>
@@ -437,7 +437,7 @@ export default function AdminDoctorsPage() {
           <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
             <div className="flex gap-2 flex-1 w-full sm:w-auto">
               <div className="relative flex-1 max-w-xs">
-                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
                 <input
                   value={search}
                   onChange={e => setSearch(e.target.value)}
@@ -500,13 +500,13 @@ export default function AdminDoctorsPage() {
                         />
                       ) : (
                         <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center">
-                          <User size={16} className="text-gray-400" />
+                          <User size={16} className="text-gray-500" />
                         </div>
                       )}
                     </td>
                     <td className="px-4 py-3">
                       <div className="font-medium text-gray-900">{doc.name_ko}</div>
-                      {doc.name_en && <div className="text-xs text-gray-400">{doc.name_en}</div>}
+                      {doc.name_en && <div className="text-xs text-gray-500">{doc.name_en}</div>}
                     </td>
                     <td className="px-4 py-3 text-gray-600 hidden sm:table-cell">{doc.position_ko || "-"}</td>
                     <td className="px-4 py-3 hidden md:table-cell">
@@ -548,7 +548,7 @@ export default function AdminDoctorsPage() {
                 ))}
                 {filteredDoctors.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="px-4 py-12 text-center text-gray-400">
+                    <td colSpan={7} className="px-4 py-12 text-center text-gray-500">
                       {search ? "검색 결과가 없습니다" : "등록된 의료진이 없습니다"}
                     </td>
                   </tr>
@@ -592,7 +592,7 @@ export default function AdminDoctorsPage() {
                         <StatusBadge status={branch.status} />
                       </div>
                       {branch.name_en && <p className="text-sm text-gray-500 ml-8">{branch.name_en}</p>}
-                      {branch.address_ko && <p className="text-xs text-gray-400 ml-8 mt-1">{branch.address_ko}</p>}
+                      {branch.address_ko && <p className="text-xs text-gray-500 ml-8 mt-1">{branch.address_ko}</p>}
                       <div className="flex items-center gap-4 ml-8 mt-2">
                         <span className="text-xs text-gray-500">코드: <code className="bg-gray-100 px-1.5 py-0.5 rounded">{branch.branch_code}</code></span>
                         <span className="text-xs text-gray-500">의료진: <strong className="text-teal-700">{doctorCount}</strong>명</span>
@@ -618,7 +618,7 @@ export default function AdminDoctorsPage() {
               );
             })}
             {branches.length === 0 && (
-              <div className="text-center py-12 text-gray-400">등록된 지점이 없습니다</div>
+              <div className="text-center py-12 text-gray-500">등록된 지점이 없습니다</div>
             )}
           </div>
         </div>

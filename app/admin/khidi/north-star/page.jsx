@@ -18,12 +18,12 @@ const SOURCE_COLORS = ["bg-teal-500", "bg-blue-500", "bg-amber-400", "bg-violet-
 
 function DeltaBadge({ pct }) {
   if (pct === null || pct === undefined) {
-    return <span className="text-xs text-gray-400">—</span>;
+    return <span className="text-xs text-gray-500">—</span>;
   }
   const up = pct > 0;
   const flat = pct === 0;
   const Icon = flat ? Minus : up ? TrendingUp : TrendingDown;
-  const color = flat ? "text-gray-400" : up ? "text-green-600" : "text-red-500";
+  const color = flat ? "text-gray-500" : up ? "text-green-600" : "text-red-500";
   return (
     <span className={`inline-flex items-center gap-0.5 text-xs font-bold ${color}`}>
       <Icon size={13} />
@@ -97,7 +97,7 @@ function SourceBars({ weeks, sources }) {
               );
             })}
           </div>
-          <span className="text-[9px] text-gray-400 truncate w-full text-center">{wk.label}</span>
+          <span className="text-[9px] text-gray-500 truncate w-full text-center">{wk.label}</span>
         </div>
       ))}
     </div>
@@ -119,9 +119,9 @@ function LeadingCard({ label, value, unit, delta, sub, tone = "teal", muted }) {
       </div>
       <div className={`text-2xl font-bold ${muted ? "text-gray-300" : "text-gray-900"}`}>
         {value}
-        {unit && <span className="text-sm font-normal text-gray-400 ml-1">{unit}</span>}
+        {unit && <span className="text-sm font-normal text-gray-500 ml-1">{unit}</span>}
       </div>
-      {sub && <p className="text-xs text-gray-400 mt-1">{sub}</p>}
+      {sub && <p className="text-xs text-gray-500 mt-1">{sub}</p>}
     </div>
   );
 }
@@ -169,7 +169,7 @@ export default function NorthStarPage() {
         <div>
           <Link
             href="/admin/khidi/kpi-dashboard"
-            className="inline-flex items-center gap-1 text-xs text-gray-400 hover:text-teal-700 mb-1"
+            className="inline-flex items-center gap-1 text-xs text-gray-500 hover:text-teal-700 mb-1"
           >
             <ArrowLeft size={13} /> KHIDI 리포트
           </Link>
@@ -215,7 +215,7 @@ export default function NorthStarPage() {
             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">이번 주 사전상담 완료</p>
             <div className="flex items-end gap-2">
               <span className="text-4xl font-bold text-teal-700">{loading ? "—" : nsm?.thisWeek ?? 0}</span>
-              <span className="text-sm text-gray-400 mb-1">건</span>
+              <span className="text-sm text-gray-500 mb-1">건</span>
               {nsm && <span className="mb-1.5"><DeltaBadge pct={nsm.deltaPct} /></span>}
             </div>
           </div>
@@ -227,7 +227,7 @@ export default function NorthStarPage() {
         {weekList.length > 0 ? (
           <TrendLine points={weekList} />
         ) : (
-          <p className="text-sm text-gray-400 text-center py-10">
+          <p className="text-sm text-gray-500 text-center py-10">
             {loading ? "데이터 로딩 중..." : "표시할 데이터가 없습니다."}
           </p>
         )}
@@ -294,11 +294,11 @@ export default function NorthStarPage() {
                   <span className="text-xs text-gray-500">{SOURCE_LABELS[s] ?? s}</span>
                 </div>
               ))}
-              {sources.length === 0 && <span className="text-xs text-gray-400">문의 데이터 없음</span>}
+              {sources.length === 0 && <span className="text-xs text-gray-500">문의 데이터 없음</span>}
             </div>
           </>
         ) : (
-          <p className="text-sm text-gray-400 text-center py-6">{loading ? "로딩 중..." : "데이터 없음"}</p>
+          <p className="text-sm text-gray-500 text-center py-6">{loading ? "로딩 중..." : "데이터 없음"}</p>
         )}
       </div>
     </div>

@@ -528,7 +528,7 @@ export default function CrawlPage() {
                 >전체</button>
                 <button
                   onClick={() => setSelectedRegions([])}
-                  className="text-xs text-gray-400 hover:underline"
+                  className="text-xs text-gray-500 hover:underline"
                 >해제</button>
               </div>
             </div>
@@ -572,7 +572,7 @@ export default function CrawlPage() {
                 >전체</button>
                 <button
                   onClick={() => setSelectedSpecs([])}
-                  className="text-xs text-gray-400 hover:underline"
+                  className="text-xs text-gray-500 hover:underline"
                 >해제</button>
               </div>
             </div>
@@ -644,7 +644,7 @@ export default function CrawlPage() {
                     </div>
                     <button
                       onClick={() => setExpandedGroups(new Set())}
-                      className="text-xs text-gray-400 hover:text-gray-600"
+                      className="text-xs text-gray-500 hover:text-gray-600"
                     >닫기</button>
                   </div>
                   <div className="flex flex-wrap gap-1.5">
@@ -688,7 +688,7 @@ export default function CrawlPage() {
                   >기본값</button>
                   <button
                     onClick={() => setSelectedFields([])}
-                    className="text-xs text-gray-400 hover:underline"
+                    className="text-xs text-gray-500 hover:underline"
                   >해제</button>
                 </div>
               </div>
@@ -753,7 +753,7 @@ export default function CrawlPage() {
                 );
               })()}
 
-              <p className="text-xs text-gray-400 mt-2">
+              <p className="text-xs text-gray-500 mt-2">
                 각 필드에 마우스를 올리면 원본 API 필드명을 볼 수 있습니다. 선택한 필드만 결과에 포함됩니다.
               </p>
             </div>
@@ -790,7 +790,7 @@ export default function CrawlPage() {
             <span className="font-medium text-gray-800">검색 조합:</span>{" "}
             {selectedRegions.length || "전체"} 지역 × {selectedSpecs.length || "기본"} 과목
             {selectedRegions.length > 0 && selectedSpecs.length > 0 && (
-              <span className="text-gray-400"> = {selectedRegions.length * selectedSpecs.length} API 호출</span>
+              <span className="text-gray-500"> = {selectedRegions.length * selectedSpecs.length} API 호출</span>
             )}
           </div>
 
@@ -860,7 +860,7 @@ export default function CrawlPage() {
               disabled={importing || selectedItems.size === 0}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition ${
                 importing || selectedItems.size === 0
-                  ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                  ? "bg-gray-200 text-gray-500 cursor-not-allowed"
                   : "bg-teal-700 text-white hover:bg-teal-800"
               }`}
             >
@@ -895,7 +895,7 @@ export default function CrawlPage() {
 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className={`text-sm font-semibold ${exists ? "text-gray-400 line-through" : "text-gray-800"}`}>
+                    <span className={`text-sm font-semibold ${exists ? "text-gray-500 line-through" : "text-gray-800"}`}>
                       {item.name}
                     </span>
                     {exists && <span className="text-xs px-1.5 py-0.5 bg-orange-100 text-orange-600 rounded-full">이미 등록됨</span>}
@@ -935,7 +935,7 @@ export default function CrawlPage() {
             );
           })}
 
-          {items.length === 0 && <div className="py-12 text-center text-gray-400">검색 결과가 없습니다</div>}
+          {items.length === 0 && <div className="py-12 text-center text-gray-500">검색 결과가 없습니다</div>}
         </div>
 
         {results.hasMore && (
@@ -1046,7 +1046,7 @@ function FieldGuideModal({ sourceId, onClose }) {
           </div>
           <button
             onClick={onClose}
-            className="p-2 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition"
+            className="p-2 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-gray-600 transition"
           >
             <X size={20} />
           </button>
@@ -1080,7 +1080,7 @@ function FieldGuideModal({ sourceId, onClose }) {
                   <div key={idx} className="bg-gray-50 rounded-lg px-4 py-2.5 border border-gray-100">
                     <div className="flex items-baseline gap-2 mb-1">
                       <span className="text-sm font-semibold text-gray-800">{item.field}</span>
-                      <code className="text-[11px] text-gray-400 bg-gray-200/60 px-1.5 py-0.5 rounded font-mono">{item.api}</code>
+                      <code className="text-[11px] text-gray-500 bg-gray-200/60 px-1.5 py-0.5 rounded font-mono">{item.api}</code>
                     </div>
                     <p className="text-xs text-gray-600 leading-relaxed">{item.desc}</p>
                   </div>

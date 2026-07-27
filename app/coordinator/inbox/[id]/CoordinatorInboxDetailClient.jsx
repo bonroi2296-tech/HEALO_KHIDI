@@ -46,7 +46,7 @@ const CI_MULTI_DEF = {
 function Row({ icon: Icon, label, value }) {
   return (
     <div className="flex items-start gap-3 py-2.5 border-b border-gray-100 last:border-0">
-      <div className="w-6 shrink-0 text-gray-400 pt-0.5">
+      <div className="w-6 shrink-0 text-gray-500 pt-0.5">
         <Icon size={16} />
       </div>
       <div className="w-28 shrink-0 text-sm text-gray-500">{label}</div>
@@ -215,7 +215,7 @@ function TranslatedDocView({ doc, onCopy, copied, onPdf, lang = "ko", onVerify, 
         )
       )}
 
-      <p className="text-[11px] text-gray-400 mb-3">
+      <p className="text-[11px] text-gray-500 mb-3">
         {DISCLAIMER[lang] || DISCLAIMER.ko}
       </p>
       <div className="space-y-4">
@@ -679,7 +679,7 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
         <div className="text-center py-16 bg-gray-50 rounded-xl">
           <AlertCircle size={40} className="mx-auto text-gray-300 mb-3" />
           <p className="text-gray-600 font-medium">{L.ibNotFoundTitle}</p>
-          <p className="text-gray-400 text-sm mt-1">{L.ibNotFoundDesc}</p>
+          <p className="text-gray-500 text-sm mt-1">{L.ibNotFoundDesc}</p>
         </div>
       </div>
     );
@@ -775,7 +775,7 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
                 </button>
               )}
             </div>
-            <p className="text-xs text-gray-400 mt-0.5">{L.ibInquiryNo} #{inquiry.id} · {L.ibReceivedLabel} {fmtDate(inquiry.created_at)}</p>
+            <p className="text-xs text-gray-500 mt-0.5">{L.ibInquiryNo} #{inquiry.id} · {L.ibReceivedLabel} {fmtDate(inquiry.created_at)}</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -849,7 +849,7 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
                 </ul>
               </div>
             )}
-            <p className="text-[11px] text-gray-400 pt-1.5 border-t border-teal-100">{pick(INTAKE_UI.briefDisclaimer, lang)}</p>
+            <p className="text-[11px] text-gray-500 pt-1.5 border-t border-teal-100">{pick(INTAKE_UI.briefDisclaimer, lang)}</p>
           </div>
         )}
       </div>
@@ -889,7 +889,7 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
         {inquiry.message && !looksEncrypted(inquiry.message) ? (
           <p className="text-sm text-gray-800 whitespace-pre-wrap leading-relaxed">{inquiry.message}</p>
         ) : (
-          <p className="text-sm text-gray-400">{L.ibNoMessage}</p>
+          <p className="text-sm text-gray-500">{L.ibNoMessage}</p>
         )}
       </Card>
 
@@ -957,12 +957,12 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
                       return (
                         <div key={o.value} className="flex items-center gap-2 py-1 text-sm">
                           {on ? <Check size={14} className="text-teal-600 shrink-0" /> : <X size={14} className="text-gray-300 shrink-0" />}
-                          <span className={on ? "text-gray-800" : "text-gray-400"}>{pick(o.label, lang)}</span>
+                          <span className={on ? "text-gray-800" : "text-gray-500"}>{pick(o.label, lang)}</span>
                         </div>
                       );
                     })}
                   </div>
-                  {priorities.length === 0 && <span className="text-xs text-gray-400">{NE}</span>}
+                  {priorities.length === 0 && <span className="text-xs text-gray-500">{NE}</span>}
                 </div>
               );
             })()}
@@ -977,8 +977,8 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
                     return (
                       <div key={c.key} className="flex items-center gap-2 py-1 text-sm">
                         {agreed ? <Check size={14} className="text-teal-600 shrink-0" /> : <X size={14} className="text-gray-300 shrink-0" />}
-                        <span className={agreed ? "text-gray-800" : "text-gray-400"}>{pick(c.label, lang)}</span>
-                        <span className={`ml-auto text-[11px] ${agreed ? "text-teal-600" : "text-gray-400"}`}>
+                        <span className={agreed ? "text-gray-800" : "text-gray-500"}>{pick(c.label, lang)}</span>
+                        <span className={`ml-auto text-[11px] ${agreed ? "text-teal-600" : "text-gray-500"}`}>
                           {agreed ? pick(INTAKE_UI.agreed, lang) : pick(INTAKE_UI.declined, lang)}
                         </span>
                       </div>
@@ -986,7 +986,7 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
                   })}
                 </div>
                 {(intake.consentAt || intake.consentVersion) && (
-                  <p className="mt-2 text-[11px] text-gray-400">
+                  <p className="mt-2 text-[11px] text-gray-500">
                     {intake.consentAt ? `${pick(INTAKE_UI.consentAt, lang)}: ${fmtKST(intake.consentAt)}` : ""}
                     {intake.consentAt && intake.consentVersion ? " · " : ""}
                     {intake.consentVersion ? `${pick(INTAKE_UI.consentVersion, lang)} ${intake.consentVersion}` : ""}
@@ -1000,7 +1000,7 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
               <div className="mt-3 pt-3 border-t border-gray-100">
                 {others.map(([k, v]) => (
                   <div key={k} className="flex gap-2 py-1 text-sm">
-                    <span className="text-gray-400 shrink-0 font-mono text-xs">{k}</span>
+                    <span className="text-gray-500 shrink-0 font-mono text-xs">{k}</span>
                     <span className="text-gray-600 break-words">{String(v)}</span>
                   </div>
                 ))}
@@ -1044,12 +1044,12 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
                       <FileText size={18} className="text-teal-600 shrink-0" />
                       <span className="flex-1 text-sm text-gray-800 truncate">{name}</span>
                       {cat && cat !== "other" && (
-                        <span className="text-[11px] text-gray-400 shrink-0">{cat}</span>
+                        <span className="text-[11px] text-gray-500 shrink-0">{cat}</span>
                       )}
                       {attLoadingPath === path ? (
                         <span className="w-4 h-4 border-2 border-teal-500 border-t-transparent rounded-full animate-spin shrink-0" />
                       ) : (
-                        <ExternalLink size={14} className="text-gray-400 shrink-0" />
+                        <ExternalLink size={14} className="text-gray-500 shrink-0" />
                       )}
                     </button>
                     {/* 출력 언어 선택(한/영/러) — 코디=한글, 병원의뢰=영문, 환자·에이전시=러시아어 */}
@@ -1213,7 +1213,7 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
                 <Send size={16} /> {reqLoading ? L.ibReqSending : L.ibReqButton}
               </button>
               {inquiry.info_requested_at && (
-                <span className="text-xs text-gray-400">
+                <span className="text-xs text-gray-500">
                   {L.ibReqLast}: {fmtDate(inquiry.info_requested_at)}
                 </span>
               )}
@@ -1272,7 +1272,7 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
 
       {/* 다음 단계 — 병원 검토 후 화상 상담 (흐름상 진행 단계·추가정보 다음). */}
       <div className="border-t border-gray-100 pt-4">
-        <p className="text-xs text-gray-400 mb-2">{L.ibNextStepDesc}</p>
+        <p className="text-xs text-gray-500 mb-2">{L.ibNextStepDesc}</p>
         <Link
           href="/coordinator/consultations"
           className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition"

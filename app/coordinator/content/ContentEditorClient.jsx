@@ -155,7 +155,7 @@ export default function ContentEditorClient() {
 
       {showLog ? (
         <div className="space-y-2">
-          {logs.length === 0 && <p className="text-sm text-gray-400">아직 변경 이력이 없습니다.</p>}
+          {logs.length === 0 && <p className="text-sm text-gray-500">아직 변경 이력이 없습니다.</p>}
           {logs.map((lg) => (
             <div key={lg.id} className="text-xs bg-white border border-gray-100 rounded-lg p-3">
               <div className="flex flex-wrap gap-2 text-gray-500 mb-1">
@@ -164,7 +164,7 @@ export default function ContentEditorClient() {
                 <span>·</span><span className="font-mono">{lg.content_key} ({lg.lang})</span>
               </div>
               <div className="text-gray-700">
-                <span className="line-through text-gray-400">{lg.old_value || "(없음)"}</span> → <span>{lg.new_value}</span>
+                <span className="line-through text-gray-500">{lg.old_value || "(없음)"}</span> → <span>{lg.new_value}</span>
               </div>
             </div>
           ))}
@@ -173,7 +173,7 @@ export default function ContentEditorClient() {
         <>
           <div className="flex flex-col md:flex-row md:items-center gap-3 mb-1">
             <div className="flex items-center gap-2 border border-gray-300 rounded-lg px-3 py-2 bg-white flex-1">
-              <span className="text-gray-400 text-sm">🔍</span>
+              <span className="text-gray-500 text-sm">🔍</span>
               <input
                 value={query}
                 onChange={(e) => onQuery(e.target.value)}
@@ -182,7 +182,7 @@ export default function ContentEditorClient() {
               />
             </div>
             <div className="flex items-center gap-1">
-              <span className="text-[11px] text-gray-400 mr-1">편집 언어</span>
+              <span className="text-[11px] text-gray-500 mr-1">편집 언어</span>
               {LANGS.map((l) => (
                 <button
                   key={l}
@@ -194,15 +194,15 @@ export default function ContentEditorClient() {
               ))}
             </div>
           </div>
-          <p className="text-[11px] text-gray-400 mb-1">언어는 한 번 고르면 유지됩니다 · 줄을 펼치면 6개어 전부 · 이미 고친 문구로도 검색됩니다</p>
-          <p className="text-[11px] text-gray-400 mb-4">줄바꿈(Enter)은 화면에 그대로 반영됩니다 · 줄바꿈 없이 길게 쓰면 화면 폭에 맞춰 자동 줄바꿈 · 줄바꿈이 안 먹는 화면을 발견하면 알려주세요</p>
+          <p className="text-[11px] text-gray-500 mb-1">언어는 한 번 고르면 유지됩니다 · 줄을 펼치면 6개어 전부 · 이미 고친 문구로도 검색됩니다</p>
+          <p className="text-[11px] text-gray-500 mb-4">줄바꿈(Enter)은 화면에 그대로 반영됩니다 · 줄바꿈 없이 길게 쓰면 화면 폭에 맞춰 자동 줄바꿈 · 줄바꿈이 안 먹는 화면을 발견하면 알려주세요</p>
 
-          {loading && <p className="text-sm text-gray-400">검색 중…</p>}
+          {loading && <p className="text-sm text-gray-500">검색 중…</p>}
           {!loading && query.trim() && results.length === 0 && (
-            <p className="text-sm text-gray-400">"{query}" 로 찾은 문구가 없습니다.</p>
+            <p className="text-sm text-gray-500">"{query}" 로 찾은 문구가 없습니다.</p>
           )}
           {!query.trim() && (
-            <p className="text-sm text-gray-400">위에서 바꾸고 싶은 문구를 검색하세요 (한국어·러시아어 등 아무 언어).</p>
+            <p className="text-sm text-gray-500">위에서 바꾸고 싶은 문구를 검색하세요 (한국어·러시아어 등 아무 언어).</p>
           )}
 
           {results.length > 0 && (hiddenCount > 0 || blockView) && (
@@ -230,11 +230,11 @@ export default function ContentEditorClient() {
                   <div className="flex items-center gap-2 mb-2">
                     <span className="text-xs text-gray-500 truncate">{r.label}</span>
                     {r.matched === false && (
-                      <span className="text-[11px] text-gray-400 bg-gray-50 px-2 py-0.5 rounded" title="검색어와 직접 일치하진 않지만 같은 화면 블록이라 함께 표시">같은 블록</span>
+                      <span className="text-[11px] text-gray-500 bg-gray-50 px-2 py-0.5 rounded" title="검색어와 직접 일치하진 않지만 같은 화면 블록이라 함께 표시">같은 블록</span>
                     )}
                     <button
                       onClick={() => setExpanded((p) => ({ ...p, [r.key]: !p[r.key] }))}
-                      className="ml-auto text-[11px] text-gray-400 hover:text-gray-600"
+                      className="ml-auto text-[11px] text-gray-500 hover:text-gray-600"
                     >
                       {isOpen ? "접기 ▲" : "6개어 펼치기 ▾"}
                     </button>
@@ -244,7 +244,7 @@ export default function ContentEditorClient() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                       {LANGS.map((l) => (
                         <div key={l} className="flex items-start gap-2">
-                          <span className={`text-[11px] w-9 flex-shrink-0 pt-1.5 ${l === editLang ? "text-teal-700" : "text-gray-400"}`}>{LANG_SHORT[l]}</span>
+                          <span className={`text-[11px] w-9 flex-shrink-0 pt-1.5 ${l === editLang ? "text-teal-700" : "text-gray-500"}`}>{LANG_SHORT[l]}</span>
                           <Field
                             size="xs"
                             value={values[r.key]?.[l]}
@@ -257,7 +257,7 @@ export default function ContentEditorClient() {
                   ) : (
                     <>
                       <div className="flex items-start gap-2 mb-1.5">
-                        <span className="text-[11px] text-gray-400 w-16 flex-shrink-0 pt-1.5">{LANG_LABEL[refLang]}</span>
+                        <span className="text-[11px] text-gray-500 w-16 flex-shrink-0 pt-1.5">{LANG_LABEL[refLang]}</span>
                         <Field
                           value={values[r.key]?.[refLang]}
                           onChange={(e) => onChange(r.key, refLang, e.target.value)}

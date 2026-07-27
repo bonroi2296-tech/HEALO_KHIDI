@@ -69,12 +69,12 @@ function KpiCard({ title, kpiId, actual, target, unit = "건", note, accentColor
         <span className="text-sm font-normal text-gray-500 ml-1">{unit}</span>
       </div>
       {target && (
-        <p className="text-xs text-gray-400 mb-2">목표 {target.toLocaleString()}{unit}</p>
+        <p className="text-xs text-gray-500 mb-2">목표 {target.toLocaleString()}{unit}</p>
       )}
       {pct !== null && (
         <ProgressBar value={actual} max={target} colorClass={c.bar} />
       )}
-      {note && <p className="text-xs text-gray-400 mt-2">{note}</p>}
+      {note && <p className="text-xs text-gray-500 mt-2">{note}</p>}
     </div>
   );
 }
@@ -99,7 +99,7 @@ function BarChart({ data, keys, colors, labels, height = 120 }) {
               );
             })}
           </div>
-          <span className="text-[10px] text-gray-400 truncate w-full text-center">{d.label ?? ""}</span>
+          <span className="text-[10px] text-gray-500 truncate w-full text-center">{d.label ?? ""}</span>
         </div>
       ))}
     </div>
@@ -319,7 +319,7 @@ export default function KpiDashboardPage() {
           <span className="text-sm font-bold text-teal-700">{projPct}%</span>
         </div>
         <ProgressBar value={projPct} max={100} colorClass="bg-teal-700" height="h-3" />
-        <div className="flex justify-between mt-1.5 text-xs text-gray-400">
+        <div className="flex justify-between mt-1.5 text-xs text-gray-500">
           <span>2026년 4월</span>
           <span>2026년 11월</span>
         </div>
@@ -329,9 +329,9 @@ export default function KpiDashboardPage() {
       <div>
         <div className="flex items-center justify-between mb-2">
           <h2 className="text-sm font-bold text-gray-800">
-            공식 정량지표 달성률 <span className="text-gray-400 font-normal">· 사업 누적 (8/27 중간평가 기준)</span>
+            공식 정량지표 달성률 <span className="text-gray-500 font-normal">· 사업 누적 (8/27 중간평가 기준)</span>
           </h2>
-          <span className="text-xs text-gray-400">2026.04 ~ 현재</span>
+          <span className="text-xs text-gray-500">2026.04 ~ 현재</span>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <KpiCard
@@ -380,7 +380,7 @@ export default function KpiDashboardPage() {
       {/* 월별 상세 (선택한 달의 운영 수치 — 목표 바 없음) */}
       <div>
         <h2 className="text-sm font-bold text-gray-800 mb-2">
-          이번 달 상세 <span className="text-gray-400 font-normal">· {year}년 {month}월 운영 수치</span>
+          이번 달 상세 <span className="text-gray-500 font-normal">· {year}년 {month}월 운영 수치</span>
         </h2>
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <KpiCard
@@ -447,7 +447,7 @@ export default function KpiDashboardPage() {
             </div>
           </>
         ) : (
-          <p className="text-sm text-gray-400 text-center py-8">
+          <p className="text-sm text-gray-500 text-center py-8">
             {loading ? "데이터 로딩 중..." : "이 달의 스냅샷 데이터가 없습니다. Cron 설정 후 쌓입니다."}
           </p>
         )}
@@ -483,7 +483,7 @@ export default function KpiDashboardPage() {
               ))}
             </div>
           ) : (
-            <p className="text-sm text-gray-400 text-center py-6">
+            <p className="text-sm text-gray-500 text-center py-6">
               {loading ? "로딩 중..." : "환자 데이터 없음"}
             </p>
           )}
@@ -506,7 +506,7 @@ export default function KpiDashboardPage() {
               color={kpi?.satisfactionAvg !== null && (kpi?.satisfactionAvg ?? 0) >= KPI_TARGETS.satisfaction ? "#14b8a6" : "#f59e0b"}
             />
           </div>
-          <div className="text-xs text-gray-400 text-center">
+          <div className="text-xs text-gray-500 text-center">
             응답 {kpi?.satisfactionResponseCount ?? 0}건 / 만족도 {kpi?.satisfactionAvg ?? "—"}점
           </div>
         </div>
@@ -561,7 +561,7 @@ export default function KpiDashboardPage() {
             )}
           </button>
         </div>
-        <p className="text-xs text-gray-400 mt-2">
+        <p className="text-xs text-gray-500 mt-2">
           KHIDI 양식 기준으로 사전상담·사후관리·환자유치 건수 + 외국인환자 명단이 자동 채워진 xlsx 파일이 생성됩니다.
         </p>
       </div>

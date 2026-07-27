@@ -252,7 +252,7 @@ export default function AlertsPage() {
         <div className="text-center py-16 bg-gray-50 rounded-xl">
           <CheckCircle size={40} className="mx-auto text-green-400 mb-3" />
           <p className="text-gray-500 font-medium">{L.alEmptyTitle}</p>
-          <p className="text-gray-400 text-sm mt-1">{L.alEmptyDesc}</p>
+          <p className="text-gray-500 text-sm mt-1">{L.alEmptyDesc}</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -288,7 +288,7 @@ export default function AlertsPage() {
                       )}
                     </div>
 
-                    <div className="flex items-center gap-3 text-xs text-gray-400">
+                    <div className="flex items-center gap-3 text-xs text-gray-500">
                       <span className="flex items-center gap-1">
                         <User size={10} />
                         {L.alPatient}: {alert.patient_id
@@ -345,7 +345,7 @@ export default function AlertsPage() {
                     )}
                     <button
                       onClick={() => setExpandedId(isExpanded ? null : alert.id)}
-                      className="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg transition"
+                      className="p-1.5 text-gray-500 hover:text-gray-600 rounded-lg transition"
                     >
                       {isExpanded ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
                     </button>
@@ -422,7 +422,7 @@ export default function AlertsPage() {
       )}
 
       {/* 면책 footer */}
-      <div className="flex items-center gap-2 text-xs text-gray-400 pt-2 border-t border-gray-100">
+      <div className="flex items-center gap-2 text-xs text-gray-500 pt-2 border-t border-gray-100">
         <AlertTriangle size={12} />
         <span>
           {L.alFooterDisclaimer}

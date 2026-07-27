@@ -12,7 +12,7 @@ const STATUS_LABEL = {
   accepted: { ko: "수락", cls: "bg-blue-50 text-blue-700" },
   completed: { ko: "협진 완료", cls: "bg-teal-50 text-teal-700" },
   declined: { ko: "반려", cls: "bg-gray-100 text-gray-500" },
-  cancelled: { ko: "취소", cls: "bg-gray-100 text-gray-400" },
+  cancelled: { ko: "취소", cls: "bg-gray-100 text-gray-500" },
 };
 
 export default function ReferralsPage() {
@@ -91,7 +91,7 @@ export default function ReferralsPage() {
       </div>
 
       {loading ? (
-        <div className="py-24 text-center text-gray-400">불러오는 중…</div>
+        <div className="py-24 text-center text-gray-500">불러오는 중…</div>
       ) : error ? (
         <div className="py-12 text-center text-red-500">{error}</div>
       ) : (
@@ -147,7 +147,7 @@ export default function ReferralsPage() {
           <section className="bg-white border border-gray-200 rounded-2xl p-6">
             <h2 className="text-sm font-bold text-gray-700 mb-3">협진 의뢰 목록</h2>
             {(data?.referrals ?? []).length === 0 ? (
-              <p className="text-sm text-gray-400">의뢰가 없습니다.</p>
+              <p className="text-sm text-gray-500">의뢰가 없습니다.</p>
             ) : (
               <div className="space-y-2">
                 {data.referrals.map((r) => {
@@ -157,9 +157,9 @@ export default function ReferralsPage() {
                       <div className="flex items-center justify-between gap-3 flex-wrap">
                         <div className="min-w-0">
                           <div className="text-sm font-semibold text-gray-800">
-                            {r.from_hospital} <span className="text-gray-400">→</span> {r.to_hospital}
+                            {r.from_hospital} <span className="text-gray-500">→</span> {r.to_hospital}
                           </div>
-                          <div className="text-xs text-gray-400">
+                          <div className="text-xs text-gray-500">
                             {r.patient} · {r.reason || "(사유 없음)"} · {new Date(r.requested_at).toLocaleDateString("ko-KR")}
                           </div>
                         </div>
@@ -175,7 +175,7 @@ export default function ReferralsPage() {
                             <Btn disabled={busyId === r.id} onClick={() => setStatus(r.id, "completed")} cls="bg-teal-700 text-white hover:bg-teal-800">협진 완료</Btn>
                           )}
                           {(r.status === "requested" || r.status === "accepted") && (
-                            <Btn disabled={busyId === r.id} onClick={() => setStatus(r.id, "cancelled")} cls="bg-gray-100 text-gray-400 hover:bg-gray-200">취소</Btn>
+                            <Btn disabled={busyId === r.id} onClick={() => setStatus(r.id, "cancelled")} cls="bg-gray-100 text-gray-500 hover:bg-gray-200">취소</Btn>
                           )}
                         </div>
                       </div>
@@ -195,7 +195,7 @@ function Kpi({ label, value, highlight }) {
   return (
     <div>
       <div className={`text-xl font-bold ${highlight ? "text-teal-700" : "text-gray-900"}`}>{value}</div>
-      <div className="text-xs text-gray-400 mt-0.5">{label}</div>
+      <div className="text-xs text-gray-500 mt-0.5">{label}</div>
     </div>
   );
 }

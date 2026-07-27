@@ -355,11 +355,11 @@ export default function CasesPage() {
       </div>
 
       {loading ? (
-        <div className="py-24 text-center text-gray-400">{t.loading}</div>
+        <div className="py-24 text-center text-gray-500">{t.loading}</div>
       ) : error ? (
         <div className="py-12 text-center text-red-500">{error}</div>
       ) : (data?.cases ?? []).length === 0 ? (
-        <p className="text-sm text-gray-400">{t.empty}</p>
+        <p className="text-sm text-gray-500">{t.empty}</p>
       ) : (
         <div className="space-y-2">
           {data.cases.map((c) => (
@@ -369,11 +369,11 @@ export default function CasesPage() {
                   <div className="text-sm font-semibold text-gray-800 truncate">
                     {c.name} · {nationalityLabelL(c.nationality, lang)} · {cancerTypeLabelL(c.cancer_type, lang)}
                   </div>
-                  <div className="text-xs text-gray-400 truncate">
+                  <div className="text-xs text-gray-500 truncate">
                     {c.agency_name ? `${t.agencyPrefix}${c.agency_name}` : t.directIntake}{c.case_status_note ? ` · ${c.case_status_note}` : ""}
                   </div>
                 </div>
-                <span className={`text-xs px-2 py-1 rounded-full shrink-0 ${c.case_status ? "bg-teal-50 text-teal-700" : "bg-gray-100 text-gray-400"}`}>
+                <span className={`text-xs px-2 py-1 rounded-full shrink-0 ${c.case_status ? "bg-teal-50 text-teal-700" : "bg-gray-100 text-gray-500"}`}>
                   {caseStatusLabelL(c.case_status, lang)}
                 </span>
               </button>
@@ -441,9 +441,9 @@ export default function CasesPage() {
                         ))}
                       </div>
                     )}
-                    <p className="text-[11px] text-gray-400 mb-1.5">{t.hospAssignHelp}</p>
+                    <p className="text-[11px] text-gray-500 mb-1.5">{t.hospAssignHelp}</p>
                     {hospitals.length === 0 ? (
-                      <p className="text-xs text-gray-400">{t.noHospitals}</p>
+                      <p className="text-xs text-gray-500">{t.noHospitals}</p>
                     ) : (
                       <div className="flex flex-wrap gap-1.5">
                         {hospitals.map((h) => {

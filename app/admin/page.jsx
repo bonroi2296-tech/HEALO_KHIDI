@@ -68,7 +68,7 @@ function RoleCard({ swatch, title, big, unit, rows, onClick }) {
       </div>
       <div className="text-2xl font-extrabold text-gray-900 tabular-nums">
         {big}
-        <span className="text-xs font-semibold text-gray-400 ml-1">{unit}</span>
+        <span className="text-xs font-semibold text-gray-500 ml-1">{unit}</span>
       </div>
       <div className="mt-2 space-y-0.5">
         {rows.map(([k, v]) => (
@@ -153,11 +153,11 @@ export default function AdminDashboard() {
       <section>
         <div className="flex items-baseline gap-3 mb-3">
           <h2 className="text-base font-bold text-gray-900">오늘 현황</h2>
-          <span className="text-xs text-gray-400">실데이터 집계</span>
+          <span className="text-xs text-gray-500">실데이터 집계</span>
           <button
             type="button"
             onClick={load}
-            className="ml-auto flex items-center gap-1 text-xs text-gray-400 hover:text-teal-700 transition"
+            className="ml-auto flex items-center gap-1 text-xs text-gray-500 hover:text-teal-700 transition"
           >
             <RefreshCw size={12} className={loading ? "animate-spin" : ""} /> 새로고침
           </button>
@@ -232,11 +232,11 @@ export default function AdminDashboard() {
       <section>
         <div className="flex items-baseline gap-3 mb-3">
           <h2 className="text-base font-bold text-gray-900">최근 활동</h2>
-          <span className="text-xs text-gray-400">모든 역할의 변경사항이 시간순으로</span>
+          <span className="text-xs text-gray-500">모든 역할의 변경사항이 시간순으로</span>
         </div>
         <div className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-100">
           {loading && (
-            <div className="p-4 text-sm text-gray-400">불러오는 중…</div>
+            <div className="p-4 text-sm text-gray-500">불러오는 중…</div>
           )}
           {!loading && (data?.feed?.length ? (
             data.feed.map((f, i) => {
@@ -248,7 +248,7 @@ export default function AdminDashboard() {
                   onClick={() => router.push(f.href)}
                   className="w-full flex items-baseline gap-3 px-4 py-2.5 text-left hover:bg-gray-50 transition"
                 >
-                  <span className="text-[11px] text-gray-400 tabular-nums min-w-[52px]">{timeOf(f.at)}</span>
+                  <span className="text-[11px] text-gray-500 tabular-nums min-w-[52px]">{timeOf(f.at)}</span>
                   <span className={`text-[10px] font-bold text-white rounded-full px-2 py-0.5 whitespace-nowrap ${meta.chip}`}>
                     {meta.label}
                   </span>
@@ -258,7 +258,7 @@ export default function AdminDashboard() {
               );
             })
           ) : (
-            <div className="p-4 text-sm text-gray-400">
+            <div className="p-4 text-sm text-gray-500">
               {loadError ? "불러오지 못했습니다." : "아직 기록된 활동이 없습니다."}
             </div>
           ))}

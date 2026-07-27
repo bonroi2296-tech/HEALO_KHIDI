@@ -104,7 +104,7 @@ export const TreatmentManager = ({
     <>
       {!selectedHospitalId ? (
         <div className="bg-white rounded-2xl border border-gray-200 p-8 lg:h-[calc(100vh-100px)] flex items-center justify-center">
-          <div className="text-center text-gray-400">병원을 먼저 선택해주세요.</div>
+          <div className="text-center text-gray-500">병원을 먼저 선택해주세요.</div>
         </div>
       ) : (
         <>
@@ -161,7 +161,7 @@ export const TreatmentManager = ({
             )}
             <div className="space-y-4">
               <div className="space-y-3">
-                <h3 className="text-sm font-bold text-gray-400">기본 정보</h3>
+                <h3 className="text-sm font-bold text-gray-500">기본 정보</h3>
                 <input placeholder="시술명 (영어/한글)" value={treatmentForm.title} onChange={e=>setTreatmentForm({...treatmentForm, title: e.target.value})} className="w-full p-2 border rounded text-sm"/>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                   <input type="number" placeholder="최소 가격 ($)" value={treatmentForm.priceMin} onChange={e=>setTreatmentForm({...treatmentForm, priceMin: e.target.value})} className="w-full p-2 border rounded text-sm"/>
@@ -178,7 +178,7 @@ export const TreatmentManager = ({
               </div>
 
               <div className="space-y-3">
-                <h3 className="text-sm font-bold text-gray-400">설명</h3>
+                <h3 className="text-sm font-bold text-gray-500">설명</h3>
                 <input placeholder="간략 설명 (카드용)" value={treatmentForm.desc} onChange={e=>setTreatmentForm({...treatmentForm, desc: e.target.value})} className="w-full p-2 border rounded text-sm"/>
                 <textarea placeholder="상세 설명 (페이지용)" rows="4" value={treatmentForm.fullDescription} onChange={e=>setTreatmentForm({...treatmentForm, fullDescription: e.target.value})} className="w-full p-2 border rounded text-sm"/>
               </div>
@@ -187,7 +187,7 @@ export const TreatmentManager = ({
                   옛 미용시술 패널 4개(마취·시술시간·필요장비 / 회복기간 min·max / 부작용태그 /
                   보험·연간건수·성공률)는 실컬럼이 아니라 저장 자체를 깨뜨리고 있었다(#103). */}
               <div className="space-y-3">
-                <h3 className="text-sm font-bold text-gray-400 flex items-center gap-2"><Clock size={16}/> 치료 상세</h3>
+                <h3 className="text-sm font-bold text-gray-500 flex items-center gap-2"><Clock size={16}/> 치료 상세</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   <div>
                     <label className="text-xs text-gray-500 mb-1 block">소요 시간</label>

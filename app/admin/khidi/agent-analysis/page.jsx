@@ -140,11 +140,11 @@ export default function AgentAnalysisPage() {
         {/* 스레드 목록 */}
         <div className="lg:col-span-1 bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
           {loading ? (
-            <div className="flex items-center justify-center py-16 text-gray-400">
+            <div className="flex items-center justify-center py-16 text-gray-500">
               <RefreshCw size={18} className="animate-spin mr-2" /> 불러오는 중...
             </div>
           ) : threads.length === 0 ? (
-            <div className="text-center py-16 text-sm text-gray-400">대화가 없습니다.</div>
+            <div className="text-center py-16 text-sm text-gray-500">대화가 없습니다.</div>
           ) : (
             <ul className="divide-y divide-gray-100 max-h-[70vh] overflow-y-auto">
               {threads.map((t) => {
@@ -156,8 +156,8 @@ export default function AgentAnalysisPage() {
                       className={`w-full text-left px-4 py-3 transition-all duration-200 ${active ? "bg-teal-50" : "hover:bg-gray-50"}`}
                     >
                       <div className="flex items-center justify-between gap-2">
-                        <span className="text-xs font-mono text-gray-400 truncate">#{String(t.id).slice(0, 8)}</span>
-                        <span className="text-[11px] text-gray-400 flex items-center gap-1 shrink-0">
+                        <span className="text-xs font-mono text-gray-500 truncate">#{String(t.id).slice(0, 8)}</span>
+                        <span className="text-[11px] text-gray-500 flex items-center gap-1 shrink-0">
                           <Clock size={11} /> {fmtTime(t.updated_at)}
                         </span>
                       </div>
@@ -172,7 +172,7 @@ export default function AgentAnalysisPage() {
                             핸드오프
                           </span>
                         )}
-                        <span className="text-[10px] text-gray-400">{t.status}</span>
+                        <span className="text-[10px] text-gray-500">{t.status}</span>
                       </div>
                     </button>
                   </li>
@@ -185,7 +185,7 @@ export default function AgentAnalysisPage() {
         {/* 분석 패널 */}
         <div className="lg:col-span-2 bg-white border border-gray-200 rounded-xl min-h-[50vh] shadow-sm">
           {!selected ? (
-            <div className="flex items-center justify-center h-full py-24 text-sm text-gray-400">
+            <div className="flex items-center justify-center h-full py-24 text-sm text-gray-500">
               왼쪽에서 분석할 대화를 선택하세요.
             </div>
           ) : (
@@ -193,7 +193,7 @@ export default function AgentAnalysisPage() {
               <div className="flex items-center justify-between gap-3 mb-3">
                 <div className="text-sm text-gray-600">
                   스레드 <span className="font-mono text-gray-800">#{String(selected.id).slice(0, 8)}</span>
-                  <span className="text-gray-400"> · {fmtTime(selected.updated_at)}</span>
+                  <span className="text-gray-500"> · {fmtTime(selected.updated_at)}</span>
                 </div>
                 {analysis && (
                   <button
@@ -226,7 +226,7 @@ export default function AgentAnalysisPage() {
               </div>
 
               {running && !analysis ? (
-                <div className="flex items-center justify-center py-20 text-gray-400 text-sm">
+                <div className="flex items-center justify-center py-20 text-gray-500 text-sm">
                   <RefreshCw size={18} className="animate-spin mr-2" /> 대화 전체를 점검하는 중...
                 </div>
               ) : analysis ? (
@@ -234,7 +234,7 @@ export default function AgentAnalysisPage() {
                   <p className="whitespace-pre-wrap text-sm text-gray-800 leading-relaxed">{analysis}</p>
                 </div>
               ) : (
-                <div className="text-center py-16 text-sm text-gray-400">
+                <div className="text-center py-16 text-sm text-gray-500">
                   "분석 실행"을 누르면 이 대화에 대한 6하원칙 자기분석이 표시됩니다.
                 </div>
               )}

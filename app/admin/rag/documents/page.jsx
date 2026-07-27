@@ -180,7 +180,7 @@ export default function RagDocumentsPage() {
           <div className="flex-1 min-w-[200px]">
             <label className="block text-xs font-medium text-gray-500 mb-1">검색</label>
             <div className="relative">
-              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
               <input
                 className="w-full border border-gray-300 rounded-lg pl-8 pr-3 py-1.5 text-sm"
                 placeholder="제목/내용 검색..."
@@ -233,7 +233,7 @@ export default function RagDocumentsPage() {
               ))
             ) : docs.length === 0 ? (
               <tr>
-                <td colSpan={8} className="text-center py-12 text-gray-400">
+                <td colSpan={8} className="text-center py-12 text-gray-500">
                   문서가 없습니다
                 </td>
               </tr>
@@ -248,7 +248,7 @@ export default function RagDocumentsPage() {
                     className={`border-b border-gray-100 hover:bg-gray-50 transition ${expired ? "opacity-60" : ""}`}
                   >
                     <td className="px-4 py-2.5 max-w-[280px] truncate" title={doc.title}>
-                      {doc.title || <span className="text-gray-400 italic">제목 없음</span>}
+                      {doc.title || <span className="text-gray-500 italic">제목 없음</span>}
                     </td>
                     <td className="px-3 py-2.5 text-xs font-mono">{doc.lang}</td>
                     <td className="px-3 py-2.5 text-xs">{doc.source_type}</td>

@@ -10,7 +10,7 @@ const STATUS_CONFIG = {
   pending: { label: "대기 중", icon: Clock, color: "text-yellow-600", bg: "bg-yellow-50 border-yellow-200" },
   sent: { label: "발송 완료", icon: CheckCircle, color: "text-green-600", bg: "bg-green-50 border-green-200" },
   failed: { label: "실패", icon: XCircle, color: "text-red-600", bg: "bg-red-50 border-red-200" },
-  cancelled: { label: "취소됨", icon: XCircle, color: "text-gray-400", bg: "bg-gray-50 border-gray-200" },
+  cancelled: { label: "취소됨", icon: XCircle, color: "text-gray-500", bg: "bg-gray-50 border-gray-200" },
 };
 
 const CHANNEL_LABELS = {
@@ -194,9 +194,9 @@ export default function RemindersAdminPage() {
 
       {/* 테이블 */}
       {loading ? (
-        <div className="text-center py-12 text-gray-400">로딩 중...</div>
+        <div className="text-center py-12 text-gray-500">로딩 중...</div>
       ) : reminders.length === 0 ? (
-        <div className="text-center py-12 text-gray-400">
+        <div className="text-center py-12 text-gray-500">
           <AlertCircle className="w-8 h-8 mx-auto mb-2 opacity-40" />
           리마인더 없음
         </div>

@@ -92,7 +92,7 @@ export default function ManualDrawer({ role, buttonLabel }) {
               type="button"
               onClick={() => setOpen(false)}
               aria-label="close"
-              className="p-1.5 -mr-1 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-50 transition-all duration-200 shrink-0"
+              className="p-1.5 -mr-1 rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-50 transition-all duration-200 shrink-0"
             >
               <X size={18} />
             </button>
@@ -128,7 +128,7 @@ export default function ManualDrawer({ role, buttonLabel }) {
 
           {/* 푸터 — 갱신일 */}
           {manual.updated && (
-            <div className="px-5 py-3 border-t border-gray-100 text-[11px] text-gray-400 shrink-0">
+            <div className="px-5 py-3 border-t border-gray-100 text-[11px] text-gray-500 shrink-0">
               {T.footer.replace("{updated}", manual.updated)}
             </div>
           )}

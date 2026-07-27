@@ -227,7 +227,7 @@ export default function EnrichmentPage() {
                 );
               })}
               {manifest.length === 0 && (
-                <p className="text-sm text-gray-400 text-center py-4">소스 로딩 중...</p>
+                <p className="text-sm text-gray-500 text-center py-4">소스 로딩 중...</p>
               )}
             </div>
           </div>
@@ -347,7 +347,7 @@ export default function EnrichmentPage() {
             <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
               <Database size={48} className="mx-auto text-gray-300 mb-4" />
               <h3 className="text-lg font-medium text-gray-600 mb-2">데이터 수집 준비</h3>
-              <p className="text-sm text-gray-400 max-w-md mx-auto">
+              <p className="text-sm text-gray-500 max-w-md mx-auto">
                 왼쪽에서 수집 소스와 필터 조건을 설정한 후 배치 수집을 실행하세요.
                 Google Places, Kakao Map, AI 생성 등의 소스로 병원 데이터를 자동 보강합니다.
               </p>
@@ -358,10 +358,10 @@ export default function EnrichmentPage() {
             <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
               <Loader2 size={48} className="mx-auto text-teal-700 mb-4 animate-spin" />
               <h3 className="text-lg font-medium text-gray-700 mb-2">수집 진행 중...</h3>
-              <p className="text-sm text-gray-400">
+              <p className="text-sm text-gray-500">
                 선택된 소스: {selectedSources.map((s) => SOURCE_META[s]?.label || s).join(", ")}
               </p>
-              <p className="text-xs text-gray-400 mt-2">
+              <p className="text-xs text-gray-500 mt-2">
                 소스와 병원 수에 따라 수 분이 소요될 수 있습니다
               </p>
             </div>
@@ -401,19 +401,19 @@ export default function EnrichmentPage() {
                       ) : (
                         <XCircle size={18} className="text-red-500 shrink-0" />
                       )}
-                      <Building2 size={16} className="text-gray-400 shrink-0" />
+                      <Building2 size={16} className="text-gray-500 shrink-0" />
                       <span className="flex-1 text-sm font-medium text-gray-800 truncate">
                         {r.name}
                       </span>
                       {r.sources && (
-                        <span className="text-xs text-gray-400">
+                        <span className="text-xs text-gray-500">
                           {r.sources.filter((s) => s.success).length}/{r.sources.length} 소스
                         </span>
                       )}
                       {expandedResult === idx ? (
-                        <ChevronUp size={16} className="text-gray-400" />
+                        <ChevronUp size={16} className="text-gray-500" />
                       ) : (
-                        <ChevronDown size={16} className="text-gray-400" />
+                        <ChevronDown size={16} className="text-gray-500" />
                       )}
                     </button>
 

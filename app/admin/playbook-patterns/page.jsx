@@ -280,7 +280,7 @@ export default function PlaybookPatternsPage() {
           {loading ? (
             <div className="text-center py-10 text-gray-500">Loading...</div>
           ) : patterns.length === 0 ? (
-            <div className="text-center py-10 text-gray-400">No patterns found</div>
+            <div className="text-center py-10 text-gray-500">No patterns found</div>
           ) : (
             <div className="space-y-2">
               {patterns.map((p) => (
@@ -318,9 +318,9 @@ export default function PlaybookPatternsPage() {
                       <span className="text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-600">
                         {SCOPE_LABELS[p.scope] || p.scope}
                       </span>
-                      <span className="text-xs text-gray-400">{p.language}</span>
+                      <span className="text-xs text-gray-500">{p.language}</span>
                     </div>
-                    <span className={`text-xs ${p.quality_score < 70 ? "text-red-500 font-medium" : "text-gray-400"}`}>
+                    <span className={`text-xs ${p.quality_score < 70 ? "text-red-500 font-medium" : "text-gray-500"}`}>
                       Q: {p.quality_score}/100
                     </span>
                   </div>
@@ -328,7 +328,7 @@ export default function PlaybookPatternsPage() {
                   {p.treatment_slug && (
                     <span className="text-xs text-indigo-600">{p.treatment_slug}</span>
                   )}
-                  <p className="text-xs text-gray-400 mt-1">
+                  <p className="text-xs text-gray-500 mt-1">
                     {new Date(p.updated_at).toLocaleDateString()}
                   </p>
                 </div>
@@ -445,7 +445,7 @@ export default function PlaybookPatternsPage() {
                   </ul>
                 </div>
 
-                <div className="flex flex-wrap gap-3 text-xs text-gray-400">
+                <div className="flex flex-wrap gap-3 text-xs text-gray-500">
                   <span className={selected.quality_score < 70 ? "text-red-500 font-medium" : ""}>
                     Quality: {selected.quality_score}/100
                   </span>
@@ -455,7 +455,7 @@ export default function PlaybookPatternsPage() {
               </div>
             </div>
           ) : (
-            <div className="border rounded-lg p-8 text-center text-gray-400 text-sm">
+            <div className="border rounded-lg p-8 text-center text-gray-500 text-sm">
               패턴을 선택하면 상세 정보가 표시됩니다
             </div>
           )}

@@ -48,7 +48,7 @@ export default function SatisfactionPage() {
 
   if (loading) {
     return (
-      <div className="p-8 text-center text-gray-400 text-sm">불러오는 중...</div>
+      <div className="p-8 text-center text-gray-500 text-sm">불러오는 중...</div>
     );
   }
 
@@ -93,7 +93,7 @@ export default function SatisfactionPage() {
         <div className="bg-white border rounded-xl p-4 text-center">
           <div className="text-3xl font-bold text-gray-800">{responseRate}%</div>
           <div className="text-xs text-gray-500 mt-1">응답률</div>
-          <div className="text-xs text-gray-400 mt-1">
+          <div className="text-xs text-gray-500 mt-1">
             {respondedSurveys} / {totalSurveys}건
           </div>
         </div>
@@ -125,7 +125,7 @@ export default function SatisfactionPage() {
       )}
 
       {totalResponses === 0 && (
-        <div className="bg-white border rounded-xl p-8 text-center text-gray-400 text-sm">
+        <div className="bg-white border rounded-xl p-8 text-center text-gray-500 text-sm">
           아직 응답이 없습니다.
         </div>
       )}
@@ -140,7 +140,7 @@ export default function SatisfactionPage() {
             {recentComments.map((c, i) => (
               <div key={i} className="border-l-2 border-[#c8a96a] pl-3">
                 <p className="text-sm text-gray-800 leading-relaxed">{c.comment}</p>
-                <p className="text-xs text-gray-400 mt-1">
+                <p className="text-xs text-gray-500 mt-1">
                   {new Date(c.submittedAt).toLocaleDateString("ko-KR")}
                 </p>
               </div>

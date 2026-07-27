@@ -10,7 +10,7 @@ const fmt2 = (n) =>
   typeof n === "number" ? (n * 100).toFixed(1) + "%" : "—";
 
 const scoreColor = (score) => {
-  if (score === null || score === undefined) return "text-gray-400";
+  if (score === null || score === undefined) return "text-gray-500";
   if (score >= 0.8) return "text-green-600 font-semibold";
   if (score >= 0.6) return "text-yellow-600 font-semibold";
   return "text-red-600 font-semibold";
@@ -38,14 +38,14 @@ function KpiCard({ label, value, sub, colorClass }) {
       <p className={`text-2xl font-bold ${colorClass ?? "text-gray-900"}`}>
         {value}
       </p>
-      {sub && <p className="text-xs text-gray-400 mt-1">{sub}</p>}
+      {sub && <p className="text-xs text-gray-500 mt-1">{sub}</p>}
     </div>
   );
 }
 
 function DailyTable({ rows }) {
   if (!rows?.length)
-    return <p className="text-sm text-gray-400">데이터 없음</p>;
+    return <p className="text-sm text-gray-500">데이터 없음</p>;
   return (
     <div className="overflow-x-auto">
       <table className="w-full text-sm border-collapse">
@@ -104,7 +104,7 @@ function LowScoreItem({ item, onOpenThread }) {
                 {f}
               </span>
             ))}
-            <span className="text-xs text-gray-400">
+            <span className="text-xs text-gray-500">
               {item.created_at?.slice(0, 16).replace("T", " ")}
             </span>
           </div>
@@ -352,7 +352,7 @@ export default function AiQualityPage() {
       )}
 
       {loading ? (
-        <div className="text-center py-16 text-gray-400">Loading...</div>
+        <div className="text-center py-16 text-gray-500">Loading...</div>
       ) : (
         <>
           {/* 일별 추이 */}
@@ -368,13 +368,13 @@ export default function AiQualityPage() {
             <h2 className="text-lg font-semibold mb-3">
               낮은 점수 응답 목록
               {data?.low_score_items?.length > 0 && (
-                <span className="ml-2 text-sm text-gray-400">
+                <span className="ml-2 text-sm text-gray-500">
                   ({data.low_score_items.length}건)
                 </span>
               )}
             </h2>
             {!data?.low_score_items?.length ? (
-              <div className="bg-white border rounded-lg p-8 text-center text-gray-400">
+              <div className="bg-white border rounded-lg p-8 text-center text-gray-500">
                 해당 기간에 낮은 점수 응답이 없습니다
               </div>
             ) : (

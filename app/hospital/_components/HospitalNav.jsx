@@ -68,7 +68,7 @@ export function HospitalNav() {
           </div>
           <button
             onClick={() => setIsMobileOpen(false)}
-            className="lg:hidden p-2 text-gray-400 hover:text-gray-600 rounded-lg"
+            className="lg:hidden p-2 text-gray-500 hover:text-gray-600 rounded-lg"
           >
             <X size={20} />
           </button>
@@ -89,7 +89,7 @@ export function HospitalNav() {
                   : "text-gray-700 hover:bg-gray-50"
               }`}
             >
-              <Icon size={18} className={isActive ? "text-teal-700" : "text-gray-400"} />
+              <Icon size={18} className={isActive ? "text-teal-700" : "text-gray-500"} />
               <span>{item.label}</span>
             </Link>
           );

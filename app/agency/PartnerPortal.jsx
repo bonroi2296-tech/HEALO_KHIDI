@@ -806,7 +806,7 @@ export default function PartnerPortal({ expected = "agency" }) {
 
       {/* 단계가 코디 업데이트로만 전진함을 한 줄 안내 (완료·1단계 혼동 방지) */}
       {view === "track" && cnt.total > 0 && (
-        <p className="flex items-start gap-1.5 text-xs text-gray-400 mb-4 -mt-2">
+        <p className="flex items-start gap-1.5 text-xs text-gray-500 mb-4 -mt-2">
           <Activity size={13} className="mt-0.5 shrink-0" />
           <span>{tt("advanceHint")}</span>
         </p>
@@ -861,7 +861,7 @@ export default function PartnerPortal({ expected = "agency" }) {
             <div>
               <p className="text-xs font-semibold text-gray-600 mb-1.5">{tt("lblDiagDate")}</p>
               <div className="flex items-center gap-3">
-                <input type="date" className={`${INP} flex-1 bg-white disabled:bg-gray-50 disabled:text-gray-400`}
+                <input type="date" className={`${INP} flex-1 bg-white disabled:bg-gray-50 disabled:text-gray-500`}
                   value={form.diagnosisDate} disabled={form.diagnosisUnknown}
                   onChange={(e) => setForm({ ...form, diagnosisDate: e.target.value })} />
                 <label className="flex items-center gap-1.5 text-sm text-gray-500 cursor-pointer whitespace-nowrap">
@@ -890,14 +890,14 @@ export default function PartnerPortal({ expected = "agency" }) {
 
           {/* 첨부 서류 */}
           <Section title={tt("secDocs")}>
-            <p className="text-xs text-gray-400 -mt-1">{tt("docsHint")}</p>
+            <p className="text-xs text-gray-500 -mt-1">{tt("docsHint")}</p>
             <div onClick={() => fileInputRef.current?.click()}
               onDrop={(e) => { e.preventDefault(); addFiles(e.dataTransfer.files); }}
               onDragOver={(e) => e.preventDefault()}
               className="border-2 border-dashed border-gray-300 rounded-xl p-6 text-center hover:bg-gray-50 transition-all duration-200 cursor-pointer">
-              <UploadCloud size={24} className="mx-auto text-gray-400 mb-2" />
+              <UploadCloud size={24} className="mx-auto text-gray-500 mb-2" />
               <p className="text-xs text-gray-500">{uploading ? tt("docUploading") : tt("uploadDrop")}</p>
-              <p className="text-[11px] text-gray-400 mt-1">{tt("uploadHint")}</p>
+              <p className="text-[11px] text-gray-500 mt-1">{tt("uploadHint")}</p>
             </div>
             <input ref={fileInputRef} type="file" multiple className="hidden"
               accept=".pdf,.jpg,.jpeg,.png,.gif,.webp,.doc,.docx,application/pdf,image/jpeg,image/png,image/gif,image/webp"
@@ -925,7 +925,7 @@ export default function PartnerPortal({ expected = "agency" }) {
 
           {/* 연락처 */}
           <Section title={tt("secContact")}>
-            <p className="text-xs text-gray-400 -mt-1">{tt("contactLabel")}</p>
+            <p className="text-xs text-gray-500 -mt-1">{tt("contactLabel")}</p>
             <input className={`${INP} w-full`} placeholder={tt("phEmail")} value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
             <div className="flex gap-2">
               <select className={`${INP} bg-white shrink-0`} value={form.contactMethod} onChange={(e) => setForm({ ...form, contactMethod: e.target.value })}>
@@ -986,7 +986,7 @@ export default function PartnerPortal({ expected = "agency" }) {
           </div>
 
           {filtered.length === 0 ? (
-            <p className="text-sm text-gray-400">{tt("noMatch")}</p>
+            <p className="text-sm text-gray-500">{tt("noMatch")}</p>
           ) : (
             <div className="space-y-3">
           {filtered.map((c) => {
@@ -1000,7 +1000,7 @@ export default function PartnerPortal({ expected = "agency" }) {
                       <div className="flex items-center gap-2 text-xs text-gray-500 mt-0.5">
                         <span>{c.nationality}</span>
                         {c.attachments?.length > 0 && (
-                          <span className="inline-flex items-center gap-0.5 text-gray-400"><Paperclip size={11} />{c.attachments.length}</span>
+                          <span className="inline-flex items-center gap-0.5 text-gray-500"><Paperclip size={11} />{c.attachments.length}</span>
                         )}
                         {c.estimates?.length > 0 && (
                           <span className="inline-flex items-center gap-0.5 text-emerald-600"><FileText size={11} />{c.estimates.length}</span>
@@ -1010,7 +1010,7 @@ export default function PartnerPortal({ expected = "agency" }) {
                         )}
                       </div>
                     </div>
-                    <ChevronDown size={16} className={`text-gray-400 transition-transform duration-200 shrink-0 ${openId === c.id ? "rotate-180" : ""}`} />
+                    <ChevronDown size={16} className={`text-gray-500 transition-transform duration-200 shrink-0 ${openId === c.id ? "rotate-180" : ""}`} />
                   </div>
                   {/* 현재 단계 — 이름 + 위치(N/8) 크게, 완료·보류는 색으로 구분 */}
                   {(() => {
@@ -1023,13 +1023,13 @@ export default function PartnerPortal({ expected = "agency" }) {
                           isHold ? "bg-amber-50 text-amber-700"
                           : isDone ? "bg-emerald-600 text-white"
                           : c.case_status ? "bg-teal-700 text-white"
-                          : "bg-gray-100 text-gray-400"}`}>
+                          : "bg-gray-100 text-gray-500"}`}>
                           {isDone && <CheckCircle2 size={14} className="shrink-0" />}
                           {isHold && <PauseCircle size={14} className="shrink-0" />}
                           {caseStatusLabelL(c.case_status, lang)}
                         </span>
                         {c.case_status && !isHold && (
-                          <span className="text-xs font-semibold text-gray-400 tabular-nums">{tt("stepWord")} {curOrder}/{total}</span>
+                          <span className="text-xs font-semibold text-gray-500 tabular-nums">{tt("stepWord")} {curOrder}/{total}</span>
                         )}
                       </div>
                     );
@@ -1059,7 +1059,7 @@ export default function PartnerPortal({ expected = "agency" }) {
                       <span>{tt(`nextStep_${OLD_KEY_ALIASES[c.case_status] || c.case_status}`)}</span>
                     </p>
                   )}
-                  <div className="flex gap-3 mt-2 text-xs text-gray-400">
+                  <div className="flex gap-3 mt-2 text-xs text-gray-500">
                     {c.insurance_status && <span>{tt("insuranceLabel")} {c.insurance_status}</span>}
                     {c.case_status_updated_at && <span>{tt("updatedLabel")} {new Date(c.case_status_updated_at).toLocaleDateString()}</span>}
                   </div>
@@ -1090,14 +1090,14 @@ export default function PartnerPortal({ expected = "agency" }) {
                         <dl className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-2.5">
                           {detailRows(c.detail, tt, lang).map((row) => (
                             <div key={row.label}>
-                              <dt className="text-[11px] text-gray-400">{row.label}</dt>
+                              <dt className="text-[11px] text-gray-500">{row.label}</dt>
                               <dd className="text-sm text-gray-800">{row.value}</dd>
                             </div>
                           ))}
                         </dl>
                         {c.detail?.priorTreatment && (
                           <div className="mt-2.5">
-                            <dt className="text-[11px] text-gray-400">{tt("lblPriorTx")}</dt>
+                            <dt className="text-[11px] text-gray-500">{tt("lblPriorTx")}</dt>
                             <dd className="text-sm text-gray-700 whitespace-pre-wrap">{c.detail.priorTreatment}</dd>
                           </div>
                         )}
@@ -1108,13 +1108,13 @@ export default function PartnerPortal({ expected = "agency" }) {
                     <div>
                       <p className="text-xs font-bold text-gray-600 mb-2">{tt("lblTimeline")}</p>
                       {c.timeline.length === 0 ? (
-                        <p className="text-xs text-gray-400">{tt("timelineEmpty")}</p>
+                        <p className="text-xs text-gray-500">{tt("timelineEmpty")}</p>
                       ) : (
                         <ol className="relative border-l border-gray-200 ml-[5px] space-y-3.5">
                           {c.timeline.map((tl, i) => (
                             <li key={i} className="ml-4">
                               <span className="absolute -left-[5px] mt-1 w-2.5 h-2.5 rounded-full bg-teal-500 ring-2 ring-white" />
-                              <div className="text-[11px] text-gray-400">{new Date(tl.at).toLocaleDateString()}</div>
+                              <div className="text-[11px] text-gray-500">{new Date(tl.at).toLocaleDateString()}</div>
                               <div className="text-sm text-gray-700" title={noteIsTr(tl.note) ? tl.note : undefined}><b>{caseStatusLabelL(tl.status, lang)}</b>{tl.note ? ` — ${trNote(tl.note)}` : ""}{noteIsTr(tl.note) && <Languages size={11} className="inline-block ml-1 -mt-0.5 text-gray-300" />}</div>
                             </li>
                           ))}
@@ -1292,7 +1292,7 @@ function CaseActions({ c, tt, onDone }) {
               </div>
             ))}
           </div>
-          <p className="text-[11px] text-gray-400 mt-1">{tt("consJoinNote")}</p>
+          <p className="text-[11px] text-gray-500 mt-1">{tt("consJoinNote")}</p>
         </div>
       )}
 
@@ -1318,7 +1318,7 @@ function CaseActions({ c, tt, onDone }) {
           <div className="space-y-2">
             {Object.entries(docGroups).map(([cat, items]) => (
               <div key={cat}>
-                <p className="text-[11px] font-semibold text-gray-400 mb-1">{tt(catKey(cat))} <span className="opacity-60">{items.length}</span></p>
+                <p className="text-[11px] font-semibold text-gray-500 mb-1">{tt(catKey(cat))} <span className="opacity-60">{items.length}</span></p>
                 <div className="space-y-1">
                   {items.map((a, i) => (
                     <div key={i} className="flex items-center justify-between gap-2 text-xs bg-gray-50 rounded-lg px-3 py-1.5">
@@ -1471,7 +1471,7 @@ function ChatDrawer({ open, onClose, inquiryId, caseName, tt, getToken }) {
             </div>
           </div>
           <button type="button" onClick={onClose} aria-label="close"
-            className="p-1.5 -mr-1 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-50 transition-all duration-200 shrink-0">
+            className="p-1.5 -mr-1 rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-50 transition-all duration-200 shrink-0">
             <X size={18} />
           </button>
         </div>
@@ -1507,7 +1507,7 @@ function ChatDrawer({ open, onClose, inquiryId, caseName, tt, getToken }) {
             const who = mine ? tt("msgrYou") : tt("msgrCoord");
             return (
               <div key={m.id} className={`flex flex-col ${mine ? "items-end" : "items-start"}`}>
-                <span className="text-[10px] text-gray-400 mb-1 px-1">{who} · {new Date(m.created_at).toLocaleString()}</span>
+                <span className="text-[10px] text-gray-500 mb-1 px-1">{who} · {new Date(m.created_at).toLocaleString()}</span>
                 <div className={`max-w-[85%] px-3.5 py-2.5 text-sm leading-relaxed whitespace-pre-wrap break-words shadow-sm ${
                   mine ? "bg-teal-600 text-white rounded-2xl rounded-br-md" : "bg-white text-gray-800 border border-gray-200 rounded-2xl rounded-bl-md"
                 }`} title={!mine && msgIsTr(m.message_text) ? m.message_text : undefined}>
@@ -1594,9 +1594,9 @@ function ClinicProgressPanel({ inquiryId, tt }) {
       <h4 className="text-xs font-bold text-indigo-700 mb-2">{tt("progressTitle")}</h4>
 
       {loading ? (
-        <p className="text-xs text-gray-400">…</p>
+        <p className="text-xs text-gray-500">…</p>
       ) : records.length === 0 ? (
-        <p className="text-xs text-gray-400 mb-3">{tt("progressEmpty")}</p>
+        <p className="text-xs text-gray-500 mb-3">{tt("progressEmpty")}</p>
       ) : (
         <div className="space-y-1.5 mb-3">
           {records.map((r) => (
@@ -1607,7 +1607,7 @@ function ClinicProgressPanel({ inquiryId, tt }) {
                 {r.note ? ` — ${r.note}` : ""}
               </span>
               <span className="flex items-center gap-2 shrink-0">
-                <span className="text-gray-400">{new Date(r.created_at).toLocaleDateString()}</span>
+                <span className="text-gray-500">{new Date(r.created_at).toLocaleDateString()}</span>
                 {r.url && <a href={r.url} target="_blank" rel="noopener noreferrer" className="text-teal-700 underline">{tt("progressView")}</a>}
               </span>
             </div>
@@ -1627,7 +1627,7 @@ function ClinicProgressPanel({ inquiryId, tt }) {
         <input key={fileKey} type="file" accept=".pdf,.jpg,.jpeg,.png,.webp,.dcm,application/pdf,image/jpeg,image/png,image/webp,application/dicom"
           onChange={(e) => setFile(e.target.files?.[0] || null)}
           className="block w-full text-xs text-gray-600 file:mr-2 file:rounded-lg file:border-0 file:bg-indigo-100 file:px-3 file:py-1.5 file:text-indigo-700" />
-        <p className="text-[11px] text-gray-400">{tt("progressFile")}</p>
+        <p className="text-[11px] text-gray-500">{tt("progressFile")}</p>
         {msg && <p className={`text-xs ${msg.type === "ok" ? "text-teal-700" : "text-red-600"}`}>{msg.text}</p>}
         <div className="flex justify-end">
           <button type="submit" disabled={busy}

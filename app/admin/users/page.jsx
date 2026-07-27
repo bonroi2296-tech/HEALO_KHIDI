@@ -228,9 +228,9 @@ export default function AdminUsersPage() {
       />
 
       {loading ? (
-        <p className="text-sm text-gray-400">{tt("loadingText")}</p>
+        <p className="text-sm text-gray-500">{tt("loadingText")}</p>
       ) : filtered.length === 0 ? (
-        <p className="text-sm text-gray-400">{tt("emptyPatients")}</p>
+        <p className="text-sm text-gray-500">{tt("emptyPatients")}</p>
       ) : (
         <div className="border border-gray-200 rounded-xl overflow-hidden divide-y divide-gray-100">
           {filtered.map((p) => (
@@ -241,8 +241,8 @@ export default function AdminUsersPage() {
             >
               <div className="min-w-0">
                 <span className="font-semibold text-gray-900 text-sm">{p.full_name || p.email}</span>
-                {p.full_name && <span className="text-xs text-gray-400 ml-2">{p.email}</span>}
-                <div className="text-xs text-gray-400 mt-0.5">
+                {p.full_name && <span className="text-xs text-gray-500 ml-2">{p.email}</span>}
+                <div className="text-xs text-gray-500 mt-0.5">
                   {p.country || tt("countryUnknown")} · {tt("joinedPrefix")} {fmtDate(p.created_at, lang)}
                 </div>
               </div>
@@ -266,13 +266,13 @@ export default function AdminUsersPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setDetail(null)}>
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg max-h-[85vh] overflow-auto p-6" onClick={(e) => e.stopPropagation()}>
             {detail.loading || detailLoading ? (
-              <p className="text-sm text-gray-400">{tt("loadingText")}</p>
+              <p className="text-sm text-gray-500">{tt("loadingText")}</p>
             ) : detail.user ? (
               <>
                 <div className="flex items-start justify-between mb-4">
                   <div>
                     <h2 className="text-lg font-bold text-gray-900">{detail.user.full_name || detail.user.email}</h2>
-                    <p className="text-xs text-gray-400">{detail.user.email}</p>
+                    <p className="text-xs text-gray-500">{detail.user.email}</p>
                   </div>
                   {detail.user.banned && (
                     <span className="text-xs font-bold text-red-600 bg-red-50 border border-red-100 rounded-full px-2.5 py-0.5">{tt("statusDisabled")}</span>
@@ -280,22 +280,22 @@ export default function AdminUsersPage() {
                 </div>
 
                 <div className="grid grid-cols-2 gap-3 text-sm mb-5">
-                  <div><span className="text-gray-400">{tt("lblCountry")}</span><div className="font-medium text-gray-900">{detail.user.country || "-"}</div></div>
-                  <div><span className="text-gray-400">{tt("lblPrefLang")}</span><div className="font-medium text-gray-900">{detail.user.language || "-"}</div></div>
-                  <div><span className="text-gray-400">{tt("lblJoinedAt")}</span><div className="font-medium text-gray-900">{fmtDate(detail.user.created_at, lang)}</div></div>
-                  <div><span className="text-gray-400">{tt("lblLastLogin")}</span><div className="font-medium text-gray-900">{fmtDate(detail.user.last_sign_in_at, lang)}</div></div>
+                  <div><span className="text-gray-500">{tt("lblCountry")}</span><div className="font-medium text-gray-900">{detail.user.country || "-"}</div></div>
+                  <div><span className="text-gray-500">{tt("lblPrefLang")}</span><div className="font-medium text-gray-900">{detail.user.language || "-"}</div></div>
+                  <div><span className="text-gray-500">{tt("lblJoinedAt")}</span><div className="font-medium text-gray-900">{fmtDate(detail.user.created_at, lang)}</div></div>
+                  <div><span className="text-gray-500">{tt("lblLastLogin")}</span><div className="font-medium text-gray-900">{fmtDate(detail.user.last_sign_in_at, lang)}</div></div>
                 </div>
 
                 <h3 className="text-sm font-bold text-gray-900 mb-2">{fmt(tt("consultHistoryTpl"), { n: detail.consultations.length })}</h3>
                 {detail.consultations.length === 0 ? (
-                  <p className="text-sm text-gray-400 mb-5">{tt("noConsultRecords")}</p>
+                  <p className="text-sm text-gray-500 mb-5">{tt("noConsultRecords")}</p>
                 ) : (
                   <div className="border border-gray-200 rounded-lg divide-y divide-gray-100 mb-5">
                     {detail.consultations.map((c) => (
                       <div key={c.id} className="px-3 py-2 flex items-center justify-between text-sm">
                         <div>
                           <span className="font-medium text-gray-900">{SESSION_TYPE_KEY[c.session_type] ? tt(SESSION_TYPE_KEY[c.session_type]) : c.session_type}</span>
-                          <span className="text-xs text-gray-400 ml-2">{fmtDate(c.scheduled_at, lang)}</span>
+                          <span className="text-xs text-gray-500 ml-2">{fmtDate(c.scheduled_at, lang)}</span>
                         </div>
                         <span className="text-xs text-gray-500">{c.status}</span>
                       </div>
@@ -306,15 +306,15 @@ export default function AdminUsersPage() {
                 {/* 가입 전 게스트 문의 — 이메일로 매칭 (동일인 통합) */}
                 <h3 className="text-sm font-bold text-gray-900 mb-2">{fmt(tt("pastInquiriesTpl"), { n: (detail.inquiries || []).length })}</h3>
                 {(detail.inquiries || []).length === 0 ? (
-                  <p className="text-sm text-gray-400 mb-5">{tt("noInquiries")}</p>
+                  <p className="text-sm text-gray-500 mb-5">{tt("noInquiries")}</p>
                 ) : (
                   <div className="border border-gray-200 rounded-lg divide-y divide-gray-100 mb-5">
                     {detail.inquiries.map((q) => (
                       <div key={q.id} className="px-3 py-2 flex items-center justify-between text-sm">
                         <div className="min-w-0">
                           <span className="font-medium text-gray-900">{q.cancer_type || q.treatment_type || tt("inquiryFallback")}</span>
-                          {q.nationality && <span className="text-xs text-gray-400 ml-2">{q.nationality}</span>}
-                          <span className="text-xs text-gray-400 ml-2">{fmtDate(q.created_at, lang)}</span>
+                          {q.nationality && <span className="text-xs text-gray-500 ml-2">{q.nationality}</span>}
+                          <span className="text-xs text-gray-500 ml-2">{fmtDate(q.created_at, lang)}</span>
                         </div>
                         {q.status && <span className="text-xs text-gray-500 shrink-0">{q.status}</span>}
                       </div>
@@ -329,7 +329,7 @@ export default function AdminUsersPage() {
                   <button onClick={() => handleResetPw(detail.user)} className="px-4 py-2 rounded-lg text-sm font-bold text-gray-600 border border-gray-300 hover:bg-gray-50">
                     {tt("btnResetPw")}
                   </button>
-                  <button onClick={() => setDetail(null)} className="px-4 py-2 rounded-lg text-sm font-bold text-gray-400 ml-auto">{tt("btnClose")}</button>
+                  <button onClick={() => setDetail(null)} className="px-4 py-2 rounded-lg text-sm font-bold text-gray-500 ml-auto">{tt("btnClose")}</button>
                 </div>
               </>
             ) : null}

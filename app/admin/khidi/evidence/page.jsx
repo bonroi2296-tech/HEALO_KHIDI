@@ -73,7 +73,7 @@ export default function EvidencePage() {
       </div>
 
       {loading ? (
-        <div className="py-24 text-center text-gray-400">불러오는 중…</div>
+        <div className="py-24 text-center text-gray-500">불러오는 중…</div>
       ) : error ? (
         <div className="py-12 text-center text-red-500">{error}</div>
       ) : (
@@ -87,7 +87,7 @@ export default function EvidencePage() {
               <Kpi label="사후관리 완료" value={s?.followup_done ?? 0} />
               <Kpi label="협진율" value={`${s?.referral_rate ?? 0}%`} />
             </div>
-            <p className="text-xs text-gray-400 mt-4">
+            <p className="text-xs text-gray-500 mt-4">
               유치 건수·만족도 증빙은 <a className="text-teal-700 underline" href="/admin/khidi/conversion">유치 전환 상세</a> ·{" "}
               <a className="text-teal-700 underline" href="/admin/khidi/satisfaction">환자 만족도</a> 페이지 참조.
             </p>
@@ -117,19 +117,19 @@ function EvidenceTable({ title, rows, onDownload }) {
   return (
     <section className="bg-white border border-gray-200 rounded-2xl p-6 mb-6">
       <div className="flex items-center justify-between mb-3">
-        <h2 className="text-sm font-bold text-gray-700">{title} <span className="text-gray-400 font-normal">({rows.length})</span></h2>
+        <h2 className="text-sm font-bold text-gray-700">{title} <span className="text-gray-500 font-normal">({rows.length})</span></h2>
         <button onClick={onDownload} disabled={rows.length === 0}
           className="px-3 py-1.5 rounded-lg text-sm font-medium bg-teal-700 text-white hover:bg-teal-800 disabled:opacity-40">
           CSV 다운로드
         </button>
       </div>
       {rows.length === 0 ? (
-        <p className="text-sm text-gray-400">데이터 없음</p>
+        <p className="text-sm text-gray-500">데이터 없음</p>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-left text-gray-400 border-b border-gray-100">
+              <tr className="text-left text-gray-500 border-b border-gray-100">
                 {headers.map((h) => <th key={h} className="py-2 px-2 font-medium whitespace-nowrap">{h}</th>)}
               </tr>
             </thead>
@@ -141,7 +141,7 @@ function EvidenceTable({ title, rows, onDownload }) {
               ))}
             </tbody>
           </table>
-          {rows.length > 50 && <p className="text-xs text-gray-400 mt-2">표는 50건까지 표시 — 전체는 CSV로 받으세요.</p>}
+          {rows.length > 50 && <p className="text-xs text-gray-500 mt-2">표는 50건까지 표시 — 전체는 CSV로 받으세요.</p>}
         </div>
       )}
     </section>
@@ -152,7 +152,7 @@ function Kpi({ label, value, highlight }) {
   return (
     <div>
       <div className={`text-xl font-bold ${highlight ? "text-teal-700" : "text-gray-900"}`}>{value}</div>
-      <div className="text-xs text-gray-400 mt-0.5">{label}</div>
+      <div className="text-xs text-gray-500 mt-0.5">{label}</div>
     </div>
   );
 }

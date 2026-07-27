@@ -15,7 +15,7 @@ const STATUS_CONFIG = {
   replied: { label: "응답함", color: "text-green-600", icon: Reply },
   converted: { label: "치료 확정", color: "text-emerald-700", icon: CheckCircle },
   rejected: { label: "거절", color: "text-red-500", icon: XCircle },
-  expired: { label: "만료", color: "text-gray-400", icon: Clock },
+  expired: { label: "만료", color: "text-gray-500", icon: Clock },
 };
 
 function fetchWithAuth(url) {
@@ -102,13 +102,13 @@ export default function HospitalDashboardPage() {
           }`}
         >
           <div className="flex items-center gap-1.5 mb-2">
-            <AlertCircle size={16} className={pending > 0 ? "text-white" : "text-gray-400"} />
+            <AlertCircle size={16} className={pending > 0 ? "text-white" : "text-gray-500"} />
             <span className={`text-xs font-medium ${pending > 0 ? "text-teal-50" : "text-gray-500"}`}>응답 대기</span>
           </div>
           <p className={`text-2xl font-bold tabular-nums ${pending > 0 ? "text-white" : "text-gray-900"}`}>
             {pending}<span className="text-base font-medium ml-0.5">건</span>
           </p>
-          <p className={`text-[11px] mt-0.5 ${pending > 0 ? "text-teal-50" : "text-gray-400"}`}>
+          <p className={`text-[11px] mt-0.5 ${pending > 0 ? "text-teal-50" : "text-gray-500"}`}>
             {pending > 0 ? "지금 응답이 필요해요" : "모두 처리됨"}
           </p>
         </Link>
@@ -146,7 +146,7 @@ export default function HospitalDashboardPage() {
           <div className="py-8 text-center">
             <CheckCircle size={28} className="mx-auto mb-2 text-emerald-500" />
             <p className="text-sm text-gray-500">응답 대기 중인 문의가 없습니다</p>
-            <p className="text-xs text-gray-400 mt-0.5">새 진료 의뢰가 배정되면 여기에 표시됩니다</p>
+            <p className="text-xs text-gray-500 mt-0.5">새 진료 의뢰가 배정되면 여기에 표시됩니다</p>
           </div>
         ) : (
           <div className="space-y-2">
@@ -166,7 +166,7 @@ export default function HospitalDashboardPage() {
                       <p className="text-sm text-gray-900 truncate">
                         {inquiry?.objective || inquiry?.treatment_slug || "문의"}
                       </p>
-                      <p className="text-xs text-gray-400">
+                      <p className="text-xs text-gray-500">
                         {[inquiry?.country, inquiry?.language].filter(Boolean).join(" · ")}
                       </p>
                     </div>
@@ -208,13 +208,13 @@ function KpiCard({ icon: Icon, label, value, unit, hint }) {
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
       <div className="flex items-center gap-1.5 mb-2">
-        <Icon size={16} className="text-gray-400" />
+        <Icon size={16} className="text-gray-500" />
         <span className="text-xs font-medium text-gray-500">{label}</span>
       </div>
       <p className="text-2xl font-bold text-gray-900 tabular-nums">
         {value}{unit && <span className="text-base font-medium ml-0.5">{unit}</span>}
       </p>
-      {hint && <p className="text-[11px] text-gray-400 mt-0.5 truncate">{hint}</p>}
+      {hint && <p className="text-[11px] text-gray-500 mt-0.5 truncate">{hint}</p>}
     </div>
   );
 }

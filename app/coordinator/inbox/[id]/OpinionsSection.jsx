@@ -140,10 +140,10 @@ export default function OpinionsSection({ inquiryId }) {
       <h2 className="text-sm font-semibold text-gray-700 mb-1 flex items-center gap-2">
         <Stethoscope size={16} className="text-teal-600" /> 전문의 소견 (세컨드 오피니언)
       </h2>
-      <p className="text-xs text-gray-400 mb-3">협력병원·전문의에게 소견 요청 링크를 보내고, 받은 소견을 여기서 확인합니다. (코디·어드민 전용)</p>
+      <p className="text-xs text-gray-500 mb-3">협력병원·전문의에게 소견 요청 링크를 보내고, 받은 소견을 여기서 확인합니다. (코디·어드민 전용)</p>
 
       {loading ? (
-        <div className="flex items-center gap-2 text-gray-400 text-sm py-3"><Loader2 size={15} className="animate-spin" /> 불러오는 중…</div>
+        <div className="flex items-center gap-2 text-gray-500 text-sm py-3"><Loader2 size={15} className="animate-spin" /> 불러오는 중…</div>
       ) : (
         <>
           {/* 링크 생성 / 재공유 */}
@@ -167,7 +167,7 @@ export default function OpinionsSection({ inquiryId }) {
               {summary && (
                 <div>
                   <div className="flex items-center justify-between mb-1">
-                    <span className="text-[11px] text-gray-400">카톡 붙여넣기용 요약</span>
+                    <span className="text-[11px] text-gray-500">카톡 붙여넣기용 요약</span>
                     <button onClick={() => copy(summary, "sum")} className="inline-flex items-center gap-1 text-xs text-teal-700 font-medium hover:underline">
                       {copied === "sum" ? <Check size={13} /> : <Copy size={13} />} 요약 복사
                     </button>
@@ -175,7 +175,7 @@ export default function OpinionsSection({ inquiryId }) {
                   <pre className="text-xs text-gray-700 whitespace-pre-wrap bg-white border border-gray-200 rounded p-2 font-sans">{summary}</pre>
                 </div>
               )}
-              <p className="text-[11px] text-gray-400">링크를 카톡 등으로 원장님께 보내세요. 원장님은 로그인 없이 소견을 남깁니다.</p>
+              <p className="text-[11px] text-gray-500">링크를 카톡 등으로 원장님께 보내세요. 원장님은 로그인 없이 소견을 남깁니다.</p>
               <button onClick={createLink} disabled={creating} className="text-xs text-gray-500 hover:text-teal-700 hover:underline">
                 새 링크 만들기
               </button>
@@ -209,7 +209,7 @@ export default function OpinionsSection({ inquiryId }) {
                   <div className="flex items-center gap-2 text-xs bg-white border border-gray-200 rounded px-2 py-1.5">
                     <FileText size={13} className="text-teal-600 shrink-0" />
                     <span className="truncate flex-1 text-gray-700">{directFile.name}</span>
-                    <button onClick={() => setDirectFile(null)} className="shrink-0 text-gray-400 hover:text-red-600">
+                    <button onClick={() => setDirectFile(null)} className="shrink-0 text-gray-500 hover:text-red-600">
                       <X size={13} />
                     </button>
                   </div>
@@ -237,7 +237,7 @@ export default function OpinionsSection({ inquiryId }) {
                   >
                     {addingDirect ? "저장·번역 중… (최대 1~2분)" : "추가"}
                   </button>
-                  <button onClick={() => setShowDirect(false)} className="text-xs text-gray-400 hover:underline">취소</button>
+                  <button onClick={() => setShowDirect(false)} className="text-xs text-gray-500 hover:underline">취소</button>
                 </div>
               </div>
             )}
@@ -246,7 +246,7 @@ export default function OpinionsSection({ inquiryId }) {
           {/* 도착한 소견 */}
           <div className="mt-4 space-y-3">
             {opinions.length === 0 ? (
-              <p className="text-xs text-gray-400">아직 도착한 소견이 없습니다.</p>
+              <p className="text-xs text-gray-500">아직 도착한 소견이 없습니다.</p>
             ) : (
               opinions.map((o) => <OpinionItem key={o.id} opinion={o} patientLang={patientLang} />)
             )}
@@ -360,13 +360,13 @@ function OpinionItem({ opinion, patientLang }) {
     <div className="border border-gray-200 rounded-lg p-3">
       <div className="flex items-center gap-2 mb-1.5">
         <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-teal-50 text-teal-700 text-xs font-medium">{opinion.doctor_name}</span>
-        <span className="text-[11px] text-gray-400">{fmt(opinion.created_at)}</span>
+        <span className="text-[11px] text-gray-500">{fmt(opinion.created_at)}</span>
         {released && (
           <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 text-[11px] font-medium">에이전시 공개됨</span>
         )}
       </div>
       <div className="flex items-center justify-between mb-1">
-        <p className="text-xs text-gray-400">
+        <p className="text-xs text-gray-500">
           {opinion.file_path ? "원장님 원문 — AI 번역 초안(내부용, 에이전시에 안 보임)" : "원장님 원문 (내부용, 에이전시에 안 보임)"}
         </p>
         {opinion.file_url && (

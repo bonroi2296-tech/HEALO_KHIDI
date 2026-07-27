@@ -39,7 +39,7 @@ function StatCard({ label, value, unit, sub, accent = "teal" }) {
         {value}
         {unit && <span className="text-sm font-normal text-gray-500 ml-1">{unit}</span>}
       </div>
-      {sub && <p className="text-xs text-gray-400 mt-2">{sub}</p>}
+      {sub && <p className="text-xs text-gray-500 mt-2">{sub}</p>}
     </div>
   );
 }
@@ -63,7 +63,7 @@ function Slider({ label, value, min, max, step, onChange, suffix, hint }) {
         onChange={(e) => onChange(Number(e.target.value))}
         className="w-full accent-teal-600"
       />
-      {hint && <p className="text-xs text-gray-400 mt-1">{hint}</p>}
+      {hint && <p className="text-xs text-gray-500 mt-1">{hint}</p>}
     </div>
   );
 }
@@ -183,7 +183,7 @@ export default function AdBudgetPlanner() {
 
       <div className="bg-white rounded-xl border border-gray-200 p-5 md:p-8 shadow-sm">
         <h2 className="text-sm font-bold text-gray-800 mb-1">8/27 평가 목표 기여 (추정)</h2>
-        <p className="text-xs text-gray-400 mb-4">이 광고만으로 채워지는 비율. 에이전시·콘텐츠 유입은 별도로 더해짐.</p>
+        <p className="text-xs text-gray-500 mb-4">이 광고만으로 채워지는 비율. 에이전시·콘텐츠 유입은 별도로 더해짐.</p>
         <div className="space-y-4">
           <Contribution
             label={`외국인환자 유치 — 광고 기여 ${fmt(r.admitsTotal, 1)} / 목표 ${attractionTarget}건`}
@@ -198,7 +198,7 @@ export default function AdBudgetPlanner() {
         </div>
       </div>
 
-      <p className="text-xs text-gray-400 leading-relaxed">
+      <p className="text-xs text-gray-500 leading-relaxed">
         ⚠️ CPL·전환율은 <b>추정값</b>입니다(검증 전). 실제 광고 2주 후 <code>/admin/khidi/conversion</code>의 실측 리드·유치로 두 값을
         교정하면 정확해집니다. 결제·계정 개설은 <code>docs/YANDEX_SEO_SETUP.md</code> 참고. 채널: 카자흐=Google / 러시아=Yandex 권장.
       </p>

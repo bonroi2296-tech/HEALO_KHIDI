@@ -26,7 +26,7 @@ const DynamicListInput = ({ items, onAdd, onRemove, placeholder, icon: Icon }) =
     <div className="space-y-2">
       <div className="flex gap-2">
         <div className="relative flex-1">
-          {Icon && <Icon size={16} className="absolute left-3 top-3 text-gray-400"/>}
+          {Icon && <Icon size={16} className="absolute left-3 top-3 text-gray-500"/>}
           <input 
             type="text" 
             value={newItem} 
