@@ -70,7 +70,9 @@ describe("재예약 생성 계약 — SymptomAlerts(inquiryId) → followup_sche
         inquiryId: 42,
         source: "symptom",
         reason: "증상 악화",
-        sessionType: "diagnostic",
+        // "diagnostic" 은 DB CHECK 가 안 받는 값이었다 — mock DB 라 이 테스트가 통과했을 뿐
+        // 실서비스에선 insert 가 깨졌다(2026-07-27). 유효한 값으로 교체.
+        sessionType: "pre_consultation",
         daysFromNow: 1,
       })
     );
@@ -79,6 +81,15 @@ describe("재예약 생성 계약 — SymptomAlerts(inquiryId) → followup_sche
     expect(captured.table).toBe("followup_schedules");
     expect(captured.insert.inquiry_id).toBe(42);
     expect(captured.insert.status).toBe("proposed");
+  });
+
+  it("DB 가 안 받는 session_type 은 400 으로 막는다 (mock DB 라 통과하던 구멍)", async () => {
+    const res = await POST(
+      makeReq({ inquiryId: 42, source: "symptom", reason: "x", sessionType: "diagnostic" })
+    );
+    expect(res.status).toBe(400);
+    const json = await res.json();
+    expect(json.ok).toBe(false);
   });
 
   it("inquiry 에서 cancer_type·user_id 를 끌어와 환자에 연결한다", async () => {
