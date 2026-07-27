@@ -161,3 +161,10 @@ secrets.env
 *.mobileprovision
 *.keystore
 *.jks
+
+# 클라우드 서비스계정 키 (2026-07-27) — Firebase/GCP admin JSON. 저장소 PUBLIC 이라 유출 시 프로젝트 전체 탈취.
+# 실제로 발생: healo-e3e58-firebase-adminsdk-*.json 이 프로젝트 루트에 복사돼 있었다(자동 저장 훅이 집어갈 뻔함).
+*firebase-adminsdk*.json
+*-serviceaccount*.json
+serviceAccountKey*.json
+gcp-*-key.json
