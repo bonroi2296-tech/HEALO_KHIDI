@@ -213,7 +213,7 @@ personas = [
             ('주요 니즈', '한국 상급종합병원 암 치료 정보 비교\n예상 치료비·일정 사전 확인\n러시아어로 의료진 상담\n귀국 후 경과 모니터링 지속'),
             ('고충 (Pain Points)', '한국 의료기관 정보 접근 어려움\n언어 장벽으로 상담 불가\n비용·비자 절차 불투명\n귀국 후 의료진과 연락 단절'),
             ('사용 시나리오', '① HEALO 웹 접속(러시아어 UI)\n② 증상·희망 치료 입력, AI 병원 매칭\n③ 화상상담 예약, 의료문서 업로드\n④ 내원·치료 (면역치료+대학병원 협진)\n⑤ 귀국 후 사후관리 앱 활용'),
-            ('핵심 라우트', '/ru 또는 /kk (다국어 홈), /intake, /consultation/[id], /patient/*'),
+            ('핵심 라우트', '/ru 또는 /kk (다국어 홈), /inquiry (통합 문의 퍼널), /consultation/[id], /patient/*'),
         ]
     },
     {
@@ -236,8 +236,8 @@ personas = [
             ('기술 수준', 'EMR 시스템 사용 경험, 원격 진료 툴 익숙'),
             ('주요 니즈', '환자 의료정보(CT/MRI/검사결과) 사전 검토\nWebRTC 화상상담 수행\n경과 추적 기록 입력\n협진 의뢰서 전송'),
             ('고충', '여러 플랫폼 로그인 분산\n의료문서 형식 불일치\n언어 장벽으로 직접 소통 한계'),
-            ('사용 시나리오', '① Doctor 포털 로그인\n② 환자 문서 열람 (사전 검토)\n③ 화상상담 참여 (AI 번역 지원)\n④ 처방·메모 기록\n⑤ 협진 의뢰서 전송'),
-            ('핵심 라우트', '/doctor/*, /partner/*, /consultation/[id]'),
+            ('사용 시나리오', '① 상담방 초대링크 수신(계정 발급 불필요)\n② 환자 문서 열람 (사전 검토)\n③ 화상상담 참여 (실시간 자막·통역 지원)\n④ 처방·메모 기록\n⑤ 전문의 소견 전송'),
+            ('핵심 라우트', '/consultation/[id] (초대링크 입장), /opinion/[token] (소견 작성), /hospital/* (병원 담당자 계정)'),
         ]
     },
     {
@@ -283,8 +283,11 @@ fr_data = [
      '✅ /app/signup, /app/login, /app/auth'),
 
     ('FR-02', '역할 기반 접근 제어(RBAC)', 'H',
-     'app_metadata.role 기준 환자/coordinator/admin/doctor/partner 역할 분기. 미들웨어에서 /patient/*, /admin/*, /coordinator/* 보호.',
-     '✅ middleware.js, src/lib/auth'),
+     '계정 계층 7종(비회원·환자·코디네이터·관리자·국내 의료기관·해외 에이전시·해외 의료기관)으로 분기. '
+     '권한 저장 위치는 계층별로 다름(app_metadata.role / hospital_users / agency_users / 초대링크 토큰). '
+     '미들웨어에서 /patient/*, /admin/*, /coordinator/*, /hospital/*, /agency/*, /clinic/* 보호. '
+     '※ 의사는 계정 계층이 아니라 상담방 초대링크 게스트 또는 병원 계정으로 참여함.',
+     '✅ middleware.js, src/lib/auth/accountTiers.ts (계층 단일 표준)'),
 
     ('FR-03', '게스트 토큰 발급', 'H',
      '비회원 환자에게 public_token을 발급하여 회원가입 없이 초기 상담 접근 가능.',
@@ -292,7 +295,7 @@ fr_data = [
 
     ('FR-04', '암환자 인테이크 폼', 'H',
      '환자 기본정보, 암 종류·병기, 의료기록 업로드, 치료 희망 사항 수집. Progressive 단계별 폼. AES-256-GCM 암호화 저장. (사업계획서 p.27)',
-     '✅ /app/intake, IntakePremium.jsx, migrations/20260125_inquiries_intake_progressive'),
+     '✅ /app/inquiry (통합 문의 퍼널), migrations/20260125_inquiries_intake_progressive'),
 
     ('FR-05', '의료문서 업로드·관리', 'H',
      'CT/MRI/검사결과/진단서 업로드. Supabase Storage 저장, 암호화. MIME 타입 검증, 파일 크기 제한.',
@@ -366,9 +369,9 @@ fr_data = [
      '담당 환자 관리, 상담 처리, 실적 현황, 알림 수신.',
      '✅ /app/coordinator/*'),
 
-    ('FR-23', '파트너 병원 포털', 'H',
-     '병원 정보 관리, 의료진 등록, 협진 의뢰 수신, 진료 결과 입력.',
-     '✅ /app/partner/*, migrations/20260407_partner_doctors_branches'),
+    ('FR-23', '국내 의료기관 포털', 'H',
+     '병원 정보 관리, 의료진 등록, 협진 의뢰(리드) 수신, 진료 결과 입력.',
+     '✅ /app/hospital/* (구 파트너 경로에서 개명), migrations/20260407_partner_doctors_branches'),
 
     ('FR-24', '관리자(Admin) 포털', 'H',
      '사용자·병원·KPI·AI 성능 관리. 성과보고 자료 출력. 감사 로그.',
@@ -568,7 +571,7 @@ terms = [
     ('Capacitor', 'Ionic 기반 웹→iOS/Android 네이티브 앱 변환 프레임워크'),
     ('KHIDI', '한국보건산업진흥원. Korea Health Industry Development Institute'),
     ('PIPA', '개인정보보호법. Personal Information Protection Act (대한민국)'),
-    ('인테이크(Intake)', '환자가 플랫폼에 최초 정보를 입력하는 단계. /intake 라우트'),
+    ('인테이크(Intake)', '환자가 플랫폼에 최초 정보를 입력하는 단계. 통합 문의 퍼널(/inquiry) 내에서 수행'),
     ('사전상담', '환자 내원 전 병원 정보 제공, 진료의뢰, 예약 안내 포함 ICT 서비스 (공고문 p.8)'),
     ('사후관리', '환자 귀국 후 경과 추적, 모니터링, 교육, 재방문 연계 ICT 서비스 (공고문 p.8)'),
     ('협진', '면력한방병원(면역치료)과 이대서울·고대구로 등 상급종합병원 간 연계 진료'),
@@ -585,7 +588,10 @@ for term, defn in terms:
     add_data_row(term_tbl, [term, defn], bold_first=True)
 
 # 저장
-out_path = 'C:/Users/user/Desktop/HEALO_KHIDI/docs/government-project/01_요구사항정의서.docx'
+import os as _os
+# 저장 위치는 «이 스크립트가 있는 폴더» 기준으로 잡는다.
+# (전에는 특정 PC 의 절대경로가 박혀 있어 그 PC 밖에서는 재생성이 아예 불가능했다.)
+out_path = _os.path.join(_os.path.dirname(_os.path.abspath(__file__)), '01_요구사항정의서.docx')
 doc.save(out_path)
 print(f'저장 완료: {out_path}')
 print(f'총 단락 수: {len(doc.paragraphs)}')
