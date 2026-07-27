@@ -12,6 +12,7 @@ export const runtime = "nodejs";
 import { NextRequest } from "next/server";
 import { requirePortalAuth } from "@/lib/auth/requirePortalAuth";
 import { generateGuestToken, type GuestRole } from "@/lib/auth/guestToken";
+import { resolveInviteExpiry } from "@/lib/auth/inviteExpiry";
 import { sendEmail } from "@/lib/email/sendEmail";
 import { renderConsultationInviteEmail } from "@/lib/email/templates/consultationInvite";
 import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
@@ -35,10 +36,12 @@ export async function POST(
   if (!access.success) return access.response;
 
   // 대상 상담이 실제로 존재하는지 확인(없는 id로 토큰 생성 방지)
+  // + 예약시각을 같이 읽는다 — 만료가 미팅보다 먼저 오지 않게 하는 데 쓰임(아래 resolveInviteExpiry)
+  let sessionScheduledAt: string | null = null;
   {
     const { data: sessionRows, error: sessionErr } = await supabaseAdmin
       .from("consultation_sessions")
-      .select("id")
+      .select("id, scheduled_at")
       .eq("id", consultationId)
       .limit(1);
     // 조회 자체가 실패한 걸 "상담 없음(404)"으로 보고하면 안 된다 — 스태프는 멀쩡한 상담을
@@ -53,6 +56,7 @@ export async function POST(
         { status: 404 }
       );
     }
+    sessionScheduledAt = (sessionRows[0] as any)?.scheduled_at ?? null;
   }
 
   let body: any;
@@ -87,6 +91,14 @@ export async function POST(
     );
   }
 
+  // 만료시각: 요청분(기본 72h)과 «예약시각 + 유예 12h» 중 늦은 쪽 (POSTMORTEM #130).
+  //   발급 시점 기준 고정 시간만 쓰면, 미팅이 연기되거나 링크를 미리 뽑아둔 경우
+  //   상담 당일 링크가 이미 죽어 있다(실제 사고: 7/24 발급 링크가 7/27 미팅 5시간 전 만료).
+  const { expiresAt, extendedForSchedule } = resolveInviteExpiry({
+    expiresInHours,
+    scheduledAt: sessionScheduledAt,
+  });
+
   try {
     // 수신 이메일 해소: 명시 inviteeEmail 우선. 없고 role 이 patient/guest(대표 수신자=환자)면
     // 상담의 patient_user_id 로 auth 이메일 폴백 → 계정 환자도 초대+리마인더가 자동 도달.
@@ -114,7 +126,7 @@ export async function POST(
       role,
       inviteeName: typeof body.inviteeName === "string" ? body.inviteeName.slice(0, 100) : undefined,
       inviteeEmail: resolvedEmail,
-      expiresAt: new Date(Date.now() + expiresInHours * 60 * 60 * 1000),
+      expiresAt,
       maxUses,
       createdBy: access.userId,
     });
@@ -221,7 +233,15 @@ export async function POST(
       action: "CREATE_CONSULTATION_INVITE",
       ipAddress: getIpFromRequest(request),
       userAgent: getUserAgentFromRequest(request),
-      metadata: { consultation_id: consultationId, invite_role: role, max_uses: maxUses, email_sent: emailSent },
+      metadata: {
+        consultation_id: consultationId,
+        invite_role: role,
+        max_uses: maxUses,
+        email_sent: emailSent,
+        expires_at: result.expiresAt.toISOString(),
+        // 예약시각 때문에 만료가 요청분보다 늘어났는지 — 사고(#130) 이후 동작 추적용
+        expiry_extended_for_schedule: extendedForSchedule,
+      },
     });
 
     return Response.json({
