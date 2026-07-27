@@ -1,35 +1,28 @@
 {
-  "base": "https://healwith.co.kr",
-  "ts": "2026-07-27T00:36:15.148Z",
+  "base": "http://localhost:3000",
+  "ts": "2026-07-27T00:32:53.584Z",
   "scope": "공개(무인증) 페이지만 — 백오피스·환자포털은 로그인 뒤라 미측정",
   "sanityFailed": 0,
   "totalsByImpact": {
     "critical": 0,
-    "serious": 2,
+    "serious": 0,
     "moderate": 0,
     "minor": 0
   },
-  "incompleteTotal": 51,
-  "byRule": [
-    {
-      "id": "color-contrast",
-      "impact": "serious",
-      "nodes": 2,
-      "pages": 2
-    }
-  ],
+  "incompleteTotal": 20,
+  "byRule": [],
   "incompleteByRule": {
-    "color-contrast": 51
+    "color-contrast": 20
   },
   "pages": [
     {
       "path": "/en",
       "renderOk": true,
       "status": 200,
-      "renderedNodes": 521,
-      "renderedText": 4799,
-      "ruleViolations": 1,
-      "nodes": 1,
+      "renderedNodes": 515,
+      "renderedText": 4649,
+      "ruleViolations": 0,
+      "nodes": 0,
       "incompleteNodes": 10,
       "incomplete": [
         {
@@ -49,8 +42,8 @@
               "html": "<button class=\"group bg-gradient-to-r from-teal-500 to-emerald-500 text-white font-bold text-base md:text-lg px-8 py-4 md:px-10 md:py-5 rounded-2xl shadow-lg sh"
             },
             {
-              "target": ".text-slate-400.mt-3",
-              "html": "<p class=\"text-slate-400 text-xs md:text-sm mt-3 whitespace-pre-line\">Takes only 5 minutes · Completely free</p>"
+              "target": ".text-slate-300.mt-3",
+              "html": "<p class=\"text-slate-300 text-xs md:text-sm mt-3 whitespace-pre-line\">Takes only 5 minutes · Completely free</p>"
             },
             {
               "target": ".mb-4.md\\:mb-6.lg\\:text-4xl",
@@ -59,188 +52,6 @@
           ]
         }
       ],
-      "byImpact": {
-        "critical": 0,
-        "serious": 1,
-        "moderate": 0,
-        "minor": 0
-      },
-      "rules": [
-        {
-          "id": "color-contrast",
-          "impact": "serious",
-          "count": 1,
-          "help": "Elements must meet minimum color contrast ratio thresholds",
-          "samples": [
-            {
-              "target": ".mb-5",
-              "summary": "Fix any of the following:\n  Element has insufficient color contrast of 4.41 (foreground color: #6b7280, background color: #fef2f2, font size: 12.0pt (16px), font weight: normal). Expected contrast ratio of 4.5:1"
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "path": "/en/treatments",
-      "renderOk": true,
-      "status": 200,
-      "renderedNodes": 294,
-      "renderedText": 2030,
-      "ruleViolations": 0,
-      "nodes": 0,
-      "incompleteNodes": 2,
-      "incomplete": [
-        {
-          "id": "color-contrast",
-          "count": 2,
-          "samples": [
-            {
-              "target": "h1",
-              "html": "<h1 class=\"text-3xl md:text-4xl font-extrabold mb-4\">Cancer Treatment Guide</h1>"
-            },
-            {
-              "target": ".text-white\\/80",
-              "html": "<p class=\"text-white/80 text-base md:text-lg max-w-2xl mx-auto\">healwith integrated care combining Korea's advanced cancer treatment with Korean Medicine immune"
-            }
-          ]
-        }
-      ],
-      "byImpact": {
-        "critical": 0,
-        "serious": 0,
-        "moderate": 0,
-        "minor": 0
-      },
-      "rules": []
-    },
-    {
-      "path": "/en/hospitals",
-      "renderOk": true,
-      "status": 200,
-      "renderedNodes": 1378,
-      "renderedText": 12221,
-      "ruleViolations": 0,
-      "nodes": 0,
-      "incompleteNodes": 13,
-      "incomplete": [
-        {
-          "id": "color-contrast",
-          "count": 13,
-          "samples": [
-            {
-              "target": ".bg-white\\/15",
-              "html": "<div class=\"inline-flex items-center gap-2 bg-white/15 backdrop-blur-sm rounded-full px-4 py-1.5 text-sm font-semibold mb-6\">"
-            },
-            {
-              "target": "h1",
-              "html": "<h1 class=\"text-3xl md:text-5xl font-extrabold leading-tight mb-4\">Immune Hospital of Korean Medicine</h1>"
-            },
-            {
-              "target": ".mb-4.text-emerald-200.text-xl",
-              "html": "<p class=\"text-emerald-200 text-xl font-medium mb-4\">Korean Medicine immune therapy &amp; post-care for healwith</p>"
-            },
-            {
-              "target": ".md\\:text-lg",
-              "html": "<p class=\"text-white/80 text-base md:text-lg max-w-3xl leading-relaxed mb-10\">"
-            },
-            {
-              "target": ".bg-white\\/10.px-5.py-3:nth-child(1) > .tabular-nums.text-xl.text-white",
-              "html": "<span class=\"text-white font-bold text-xl tabular-nums\">4</span>"
-            }
-          ]
-        }
-      ],
-      "byImpact": {
-        "critical": 0,
-        "serious": 0,
-        "moderate": 0,
-        "minor": 0
-      },
-      "rules": []
-    },
-    {
-      "path": "/en/telemedicine",
-      "renderOk": true,
-      "status": 200,
-      "renderedNodes": 427,
-      "renderedText": 3826,
-      "ruleViolations": 0,
-      "nodes": 0,
-      "incompleteNodes": 3,
-      "incomplete": [
-        {
-          "id": "color-contrast",
-          "count": 3,
-          "samples": [
-            {
-              "target": ".aspect-\\[4\\/3\\].overflow-hidden.bg-gray-800:nth-child(1) > .bottom-2.left-2.bg-black\\/50",
-              "html": "<span class=\"absolute bottom-2 left-2 text-[11px] font-semibold text-white bg-black/50 rounded px-1.5 py-0.5\">Dr. Kim · Oncology</span>"
-            },
-            {
-              "target": ".aspect-\\[4\\/3\\].overflow-hidden.bg-gray-800:nth-child(2) > .bottom-2.left-2.bg-black\\/50",
-              "html": "<span class=\"absolute bottom-2 left-2 text-[11px] font-semibold text-white bg-black/50 rounded px-1.5 py-0.5\">Patient · Almaty</span>"
-            },
-            {
-              "target": ".text-teal-400",
-              "html": "<p class=\"text-[11px] md:text-xs text-teal-400 mb-1 inline-flex items-center gap-1\">"
-            }
-          ]
-        }
-      ],
-      "byImpact": {
-        "critical": 0,
-        "serious": 0,
-        "moderate": 0,
-        "minor": 0
-      },
-      "rules": []
-    },
-    {
-      "path": "/en/care-journey",
-      "renderOk": true,
-      "status": 200,
-      "renderedNodes": 268,
-      "renderedText": 4490,
-      "ruleViolations": 0,
-      "nodes": 0,
-      "incompleteNodes": 0,
-      "incomplete": [],
-      "byImpact": {
-        "critical": 0,
-        "serious": 0,
-        "moderate": 0,
-        "minor": 0
-      },
-      "rules": []
-    },
-    {
-      "path": "/en/faq",
-      "renderOk": true,
-      "status": 200,
-      "renderedNodes": 305,
-      "renderedText": 2426,
-      "ruleViolations": 0,
-      "nodes": 0,
-      "incompleteNodes": 0,
-      "incomplete": [],
-      "byImpact": {
-        "critical": 0,
-        "serious": 0,
-        "moderate": 0,
-        "minor": 0
-      },
-      "rules": []
-    },
-    {
-      "path": "/en/inquiry",
-      "renderOk": true,
-      "status": 200,
-      "renderedNodes": 122,
-      "renderedText": 721,
-      "ruleViolations": 0,
-      "nodes": 0,
-      "incompleteNodes": 0,
-      "incomplete": [],
       "byImpact": {
         "critical": 0,
         "serious": 0,
@@ -253,10 +64,10 @@
       "path": "/ru",
       "renderOk": true,
       "status": 200,
-      "renderedNodes": 523,
+      "renderedNodes": 526,
       "renderedText": 4759,
-      "ruleViolations": 1,
-      "nodes": 1,
+      "ruleViolations": 0,
+      "nodes": 0,
       "incompleteNodes": 10,
       "incomplete": [
         {
@@ -276,8 +87,8 @@
               "html": "<button class=\"group bg-gradient-to-r from-teal-500 to-emerald-500 text-white font-bold text-base md:text-lg px-8 py-4 md:px-10 md:py-5 rounded-2xl shadow-lg sh"
             },
             {
-              "target": ".text-slate-400.mt-3",
-              "html": "<p class=\"text-slate-400 text-xs md:text-sm mt-3 whitespace-pre-line\">Всего 5 минут · Абсолютно бесплатно</p>"
+              "target": ".text-slate-300.mt-3",
+              "html": "<p class=\"text-slate-300 text-xs md:text-sm mt-3 whitespace-pre-line\">Всего 5 минут · Абсолютно бесплатно</p>"
             },
             {
               "target": ".mb-4.md\\:mb-6.lg\\:text-4xl",
@@ -286,82 +97,6 @@
           ]
         }
       ],
-      "byImpact": {
-        "critical": 0,
-        "serious": 1,
-        "moderate": 0,
-        "minor": 0
-      },
-      "rules": [
-        {
-          "id": "color-contrast",
-          "impact": "serious",
-          "count": 1,
-          "help": "Elements must meet minimum color contrast ratio thresholds",
-          "samples": [
-            {
-              "target": ".mb-5",
-              "summary": "Fix any of the following:\n  Element has insufficient color contrast of 4.41 (foreground color: #6b7280, background color: #fef2f2, font size: 12.0pt (16px), font weight: normal). Expected contrast ratio of 4.5:1"
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "path": "/ru/hospitals",
-      "renderOk": true,
-      "status": 200,
-      "renderedNodes": 1380,
-      "renderedText": 12362,
-      "ruleViolations": 0,
-      "nodes": 0,
-      "incompleteNodes": 13,
-      "incomplete": [
-        {
-          "id": "color-contrast",
-          "count": 13,
-          "samples": [
-            {
-              "target": ".bg-white\\/15",
-              "html": "<div class=\"inline-flex items-center gap-2 bg-white/15 backdrop-blur-sm rounded-full px-4 py-1.5 text-sm font-semibold mb-6\">"
-            },
-            {
-              "target": "h1",
-              "html": "<h1 class=\"text-3xl md:text-5xl font-extrabold leading-tight mb-4\">Клиника Мёнрёк</h1>"
-            },
-            {
-              "target": ".mb-4.text-emerald-200.text-xl",
-              "html": "<p class=\"text-emerald-200 text-xl font-medium mb-4\">Иммунная терапия и послеоперационный уход</p>"
-            },
-            {
-              "target": ".md\\:text-lg",
-              "html": "<p class=\"text-white/80 text-base md:text-lg max-w-3xl leading-relaxed mb-10\">Иммунная Клиника — учреждение корейской медицины с главным офисом в Кансо-гу, Сеул"
-            },
-            {
-              "target": ".bg-white\\/10.px-5.py-3:nth-child(1) > .tabular-nums.text-xl.text-white",
-              "html": "<span class=\"text-white font-bold text-xl tabular-nums\">4</span>"
-            }
-          ]
-        }
-      ],
-      "byImpact": {
-        "critical": 0,
-        "serious": 0,
-        "moderate": 0,
-        "minor": 0
-      },
-      "rules": []
-    },
-    {
-      "path": "/ru/care-journey",
-      "renderOk": true,
-      "status": 200,
-      "renderedNodes": 270,
-      "renderedText": 4661,
-      "ruleViolations": 0,
-      "nodes": 0,
-      "incompleteNodes": 0,
-      "incomplete": [],
       "byImpact": {
         "critical": 0,
         "serious": 0,
