@@ -438,7 +438,7 @@ export default function CoordinatorChatPage() {
                   return (
                     <div key={m.id} className={`flex gap-2.5 ${isPatient ? "" : "flex-row-reverse"}`}>
                       <div className={`w-7 h-7 rounded-full flex items-center justify-center text-white shrink-0 ${
-                        isPatient ? "bg-gray-400" : m.actor_type === "admin" ? "bg-amber-500" : "bg-teal-600"
+                        isPatient ? "bg-gray-600" : m.actor_type === "admin" ? "bg-amber-700" : "bg-teal-700"
                       }`}>
                         {isPatient ? <User size={14} /> : m.actor_type === "admin" ? <Headset size={14} /> : <Bot size={14} />}
                       </div>
