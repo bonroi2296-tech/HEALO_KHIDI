@@ -267,7 +267,7 @@ export default function AdminStaffPage() {
             placeholder={tt("phPassword")}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
           />
-          <p className="text-[11px] text-gray-400 mt-1">{tt("passwordHint")}</p>
+          <p className="text-[11px] text-gray-500 mt-1">{tt("passwordHint")}</p>
         </div>
         <button
           type="submit"
@@ -303,38 +303,38 @@ export default function AdminStaffPage() {
       {/* 직원 목록 */}
       <h2 className="text-lg font-bold text-gray-900 mb-3">{tt("registeredHeading")}</h2>
       {loading ? (
-        <p className="text-sm text-gray-400">{tt("loadingText")}</p>
+        <p className="text-sm text-gray-500">{tt("loadingText")}</p>
       ) : staff.length === 0 ? (
-        <p className="text-sm text-gray-400">{tt("emptyStaff")}</p>
+        <p className="text-sm text-gray-500">{tt("emptyStaff")}</p>
       ) : (
         <div className="border border-gray-200 rounded-xl overflow-hidden divide-y divide-gray-100">
           {staff.map((s) => (
             <div key={s.id} className={`flex items-center justify-between px-4 py-3 gap-3 ${s.disabled ? "bg-gray-50" : "bg-white"}`}>
               <div className="min-w-0">
-                <span className={`font-semibold text-sm ${s.disabled ? "text-gray-400" : "text-gray-900"}`}>
+                <span className={`font-semibold text-sm ${s.disabled ? "text-gray-500" : "text-gray-900"}`}>
                   {s.full_name || s.email}
                 </span>
-                {s.full_name && <span className="text-xs text-gray-400 ml-2">{s.email}</span>}
+                {s.full_name && <span className="text-xs text-gray-500 ml-2">{s.email}</span>}
               </div>
               <div className="flex items-center gap-2 shrink-0">
                 <span className="text-xs font-bold text-teal-700 bg-teal-50 border border-teal-100 rounded-full px-2.5 py-0.5">
                   {KNOWN_ROLES.has(s.role) ? tt("roleCoordinator") : s.role}
                 </span>
                 {s.disabled && (
-                  <span className="text-xs font-bold text-gray-500 bg-gray-100 border border-gray-200 rounded-full px-2.5 py-0.5">{tt("statusDisabled")}</span>
+                  <span className="text-xs font-bold text-gray-600 bg-gray-100 border border-gray-200 rounded-full px-2.5 py-0.5">{tt("statusDisabled")}</span>
                 )}
                 <button
                   onClick={() => {
                     setForm({ name: s.full_name || "", email: s.email, role: s.role, password: "" });
                     window.scrollTo({ top: 0, behavior: "smooth" });
                   }}
-                  className="text-xs font-semibold text-gray-500 hover:text-teal-700 px-2 py-1"
+                  className="text-xs font-semibold text-gray-600 hover:text-teal-700 px-2 py-1"
                 >
                   {tt("btnEdit")}
                 </button>
                 <button
                   onClick={() => handleToggleDisabled(s)}
-                  className={`text-xs font-semibold px-2 py-1 ${s.disabled ? "text-teal-700 hover:text-teal-700" : "text-red-500 hover:text-red-700"}`}
+                  className={`text-xs font-semibold px-2 py-1 ${s.disabled ? "text-teal-700 hover:text-teal-700" : "text-red-600 hover:text-red-700"}`}
                 >
                   {s.disabled ? tt("btnEnable") : tt("btnDisable")}
                 </button>

@@ -391,7 +391,7 @@ export default function ImportPage() {
               <p className="text-2xl font-bold">{validationResult.total}</p>
             </div>
             <div className="p-4 bg-green-50 border border-green-200 rounded">
-              <p className="text-sm text-green-600">성공</p>
+              <p className="text-sm text-green-700">성공</p>
               <p className="text-2xl font-bold text-green-700">{validationResult.valid}</p>
             </div>
             <div className="p-4 bg-red-50 border border-red-200 rounded">
@@ -442,7 +442,7 @@ export default function ImportPage() {
 
           <div className="grid grid-cols-2 gap-4 mb-6">
             <div className="p-4 bg-green-50 border border-green-200 rounded">
-              <p className="text-sm text-green-600">성공</p>
+              <p className="text-sm text-green-700">성공</p>
               <p className="text-2xl font-bold text-green-700">{importResult.success}</p>
             </div>
             <div className="p-4 bg-red-50 border border-red-200 rounded">

@@ -26,7 +26,7 @@ const DynamicListInput = ({ items, onAdd, onRemove, placeholder, icon: Icon }) =
     <div className="space-y-2">
       <div className="flex gap-2">
         <div className="relative flex-1">
-          {Icon && <Icon size={16} className="absolute left-3 top-3 text-gray-400"/>}
+          {Icon && <Icon size={16} className="absolute left-3 top-3 text-gray-500"/>}
           <input 
             type="text" 
             value={newItem} 
@@ -41,7 +41,7 @@ const DynamicListInput = ({ items, onAdd, onRemove, placeholder, icon: Icon }) =
       <div className="flex flex-wrap gap-2">
         {items.map((item, idx) => (
           <span key={idx} className="bg-teal-50 text-teal-700 text-xs font-bold px-3 py-1.5 rounded-full flex items-center gap-2 border border-teal-100">
-            {item} <button type="button" onClick={() => onRemove(idx)} className="hover:text-red-500"><X size={12}/></button>
+            {item} <button type="button" onClick={() => onRemove(idx)} className="hover:text-red-600"><X size={12}/></button>
           </span>
         ))}
       </div>
@@ -105,7 +105,7 @@ const ImageUploader = ({ images, onUpload, onRemove, uploading, thumbnailImage, 
                 {isThumbnail && (
                   <div className="absolute top-0.5 left-0.5 bg-teal-700 text-white text-[9px] font-bold px-1.5 py-0.5 rounded">대표</div>
                 )}
-                <button onClick={(e) => { e.stopPropagation(); onRemove(idx); }} className="absolute top-0.5 right-0.5 bg-red-500 text-white p-0.5 rounded-full opacity-0 group-hover:opacity-100 transition shadow-sm">
+                <button onClick={(e) => { e.stopPropagation(); onRemove(idx); }} className="absolute top-0.5 right-0.5 bg-red-600 text-white p-0.5 rounded-full opacity-0 group-hover:opacity-100 transition shadow-sm">
                   <X size={10} />
                 </button>
                 {!isThumbnail && (
@@ -551,7 +551,7 @@ export default function HospitalsPage() {
         <button
           onClick={() => setActiveTab("hospitals")}
           className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition ${
-            activeTab === "hospitals" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"
+            activeTab === "hospitals" ? "bg-white text-gray-900 shadow-sm" : "text-gray-600 hover:text-gray-700"
           }`}
         >
           <Building2 size={16} />
@@ -560,7 +560,7 @@ export default function HospitalsPage() {
         <button
           onClick={() => setActiveTab("accounts")}
           className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition ${
-            activeTab === "accounts" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"
+            activeTab === "accounts" ? "bg-white text-gray-900 shadow-sm" : "text-gray-600 hover:text-gray-700"
           }`}
         >
           <Users size={16} />

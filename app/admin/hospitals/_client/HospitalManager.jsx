@@ -68,10 +68,10 @@ function HospitalListItem({ h, isActive, onClick }) {
       {(h.specialties?.length > 0) && (
         <div className="flex gap-1 mt-1 flex-wrap">
           {h.specialties.slice(0, 3).map((s, i) => (
-            <span key={i} className="text-[10px] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded">{s}</span>
+            <span key={i} className="text-[10px] bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded">{s}</span>
           ))}
           {h.specialties.length > 3 && (
-            <span className="text-[10px] text-gray-400">+{h.specialties.length - 3}</span>
+            <span className="text-[10px] text-gray-600">+{h.specialties.length - 3}</span>
           )}
         </div>
       )}
@@ -303,7 +303,7 @@ export const HospitalManager = ({
     <>
       {/* Search */}
       <div className="relative">
-        <Search size={14} className="absolute left-2.5 top-2.5 text-gray-400" />
+        <Search size={14} className="absolute left-2.5 top-2.5 text-gray-500" />
         <input
           type="text"
           value={search}
@@ -312,7 +312,7 @@ export const HospitalManager = ({
           className="w-full pl-8 pr-3 py-2 text-sm border border-gray-200 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none"
         />
         {search && (
-          <button onClick={() => setSearch('')} className="absolute right-2.5 top-2.5 text-gray-400 hover:text-gray-600">
+          <button onClick={() => setSearch('')} className="absolute right-2.5 top-2.5 text-gray-500 hover:text-gray-600">
             <X size={14} />
           </button>
         )}
@@ -324,21 +324,21 @@ export const HospitalManager = ({
         <div className="flex gap-1 bg-gray-100 rounded-lg p-0.5 text-xs">
           <button
             onClick={() => setStatusFilter('all')}
-            className={`px-2.5 py-1 rounded-md transition font-medium ${statusFilter === 'all' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'}`}
+            className={`px-2.5 py-1 rounded-md transition font-medium ${statusFilter === 'all' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600'}`}
           >
-            전체 <span className="text-gray-400">{hospitalsList.length}</span>
+            전체 <span className="text-gray-600">{hospitalsList.length}</span>
           </button>
           <button
             onClick={() => setStatusFilter('published')}
-            className={`px-2.5 py-1 rounded-md transition font-medium flex items-center gap-1 ${statusFilter === 'published' ? 'bg-white text-green-700 shadow-sm' : 'text-gray-500'}`}
+            className={`px-2.5 py-1 rounded-md transition font-medium flex items-center gap-1 ${statusFilter === 'published' ? 'bg-white text-green-700 shadow-sm' : 'text-gray-600'}`}
           >
-            <Eye size={11} /> 공개 <span className="text-gray-400">{publishedCount}</span>
+            <Eye size={11} /> 공개 <span className="text-gray-600">{publishedCount}</span>
           </button>
           <button
             onClick={() => setStatusFilter('unpublished')}
-            className={`px-2.5 py-1 rounded-md transition font-medium flex items-center gap-1 ${statusFilter === 'unpublished' ? 'bg-white text-orange-600 shadow-sm' : 'text-gray-500'}`}
+            className={`px-2.5 py-1 rounded-md transition font-medium flex items-center gap-1 ${statusFilter === 'unpublished' ? 'bg-white text-orange-600 shadow-sm' : 'text-gray-600'}`}
           >
-            <EyeOff size={11} /> 숨김 <span className="text-gray-400">{unpublishedCount}</span>
+            <EyeOff size={11} /> 숨김 <span className="text-gray-600">{unpublishedCount}</span>
           </button>
         </div>
 
@@ -370,7 +370,7 @@ export const HospitalManager = ({
 
       {/* Result count */}
       {search && (
-        <p className="text-xs text-gray-400">
+        <p className="text-xs text-gray-500">
           {filtered.length}건 검색됨 {filtered.length !== hospitalsList.length && `(전체 ${hospitalsList.length}건)`}
         </p>
       )}
@@ -386,22 +386,24 @@ export const HospitalManager = ({
           <div className="p-4 space-y-3 border-b border-gray-100 shrink-0">
             <div className="flex justify-between items-center">
               <h2 className="text-lg font-bold">등록된 병원</h2>
-              <button onClick={handleNew} className="bg-teal-700 text-white p-1 rounded">
+              <button onClick={handleNew} aria-label="병원 새로 등록" className="bg-teal-700 text-white p-1 rounded">
                 <Plus size={16}/>
               </button>
             </div>
             {listToolbar}
           </div>
           {process.env.NODE_ENV !== "production" && hospitalsError && (
-            <p className="text-xs text-red-500 px-4 pt-2">Hospitals error: {hospitalsError.message}</p>
+            <p className="text-xs text-red-600 px-4 pt-2">Hospitals error: {hospitalsError.message}</p>
           )}
-          <div className="overflow-y-auto flex-1">
+          {/* tabIndex=0: 스크롤되는 영역은 키보드(화살표)로도 내릴 수 있어야 한다.
+              안이 비었거나 포커스 가능한 요소가 없을 때 마우스 없는 사용자는 목록을 아예 못 본다(axe scrollable-region-focusable). */}
+          <div className="overflow-y-auto flex-1" tabIndex={0}>
             {hospitalsListLoading ? (
               <div className="p-4">
                 <AdminLoadingSkeleton rows={6} />
               </div>
             ) : filtered.length === 0 ? (
-              <div className="p-8 text-center text-sm text-gray-400">
+              <div className="p-8 text-center text-sm text-gray-500">
                 {search ? '검색 결과가 없습니다' : '등록된 병원이 없습니다'}
               </div>
             ) : (
@@ -464,13 +466,13 @@ export const HospitalManager = ({
               {listToolbar}
             </div>
             {process.env.NODE_ENV !== "production" && hospitalsError && (
-              <p className="text-xs text-red-500 mb-2">Hospitals error: {hospitalsError.message}</p>
+              <p className="text-xs text-red-600 mb-2">Hospitals error: {hospitalsError.message}</p>
             )}
             <div className="space-y-2">
               {hospitalsListLoading ? (
                 <AdminLoadingSkeleton rows={5} />
               ) : filtered.length === 0 ? (
-                <div className="p-8 text-center text-sm text-gray-400">
+                <div className="p-8 text-center text-sm text-gray-500">
                   {search ? '검색 결과가 없습니다' : '등록된 병원이 없습니다'}
                 </div>
               ) : (
@@ -643,7 +645,7 @@ function EnrichmentPanel({ editingHospitalId, enrichmentLog, onComplete, toast }
                     <div className="flex items-center gap-1.5">
                       <Icon size={13} className="text-gray-600"/>
                       <span className="text-sm font-bold text-gray-800">{s.name}</span>
-                      {!s.available && <span className="text-[10px] text-red-500 font-medium">키 필요</span>}
+                      {!s.available && <span className="text-[10px] text-red-600 font-medium">키 필요</span>}
                     </div>
                     <p className="text-[11px] text-gray-500 mt-0.5">{s.description}</p>
                     {log && (
@@ -651,15 +653,15 @@ function EnrichmentPanel({ editingHospitalId, enrichmentLog, onComplete, toast }
                         {log.status === 'success' ? (
                           <CheckCircle2 size={10} className="text-green-500"/>
                         ) : log.status === 'failed' ? (
-                          <XCircle size={10} className="text-red-500"/>
+                          <XCircle size={10} className="text-red-600"/>
                         ) : (
-                          <Clock size={10} className="text-gray-400"/>
+                          <Clock size={10} className="text-gray-500"/>
                         )}
-                        <span className="text-gray-400">
+                        <span className="text-gray-500">
                           {log.last_run ? new Date(log.last_run).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '미수집'}
                         </span>
                         {log.items?.length > 0 && (
-                          <span className="text-gray-400">· {log.items.slice(0,3).join(', ')}</span>
+                          <span className="text-gray-500">· {log.items.slice(0,3).join(', ')}</span>
                         )}
                       </div>
                     )}
@@ -800,7 +802,7 @@ function FormContent({ editingHospitalId, hospitalForm, setHospitalForm, uploadi
           {editingHospitalId && (
             <button 
               onClick={()=>handleDelete('hospitals', editingHospitalId, fetchHospitals)}
-              className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition"
+              className="p-2 text-red-700 hover:bg-red-50 rounded-lg transition"
               title="삭제"
             >
               <Trash2 size={18}/>
@@ -820,7 +822,7 @@ function FormContent({ editingHospitalId, hospitalForm, setHospitalForm, uploadi
       <div className="bg-white rounded-2xl border border-gray-200 p-4 lg:p-8 lg:h-[calc(100vh-180px)] overflow-y-auto">
         <div className="space-y-5 lg:space-y-6">
           <div className="space-y-3">
-            <h3 className="text-sm font-bold text-gray-400">기본 정보 (필수)</h3>
+            <h3 className="text-sm font-bold text-gray-500">기본 정보 (필수)</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <input type="text" placeholder="병원명 (영어/한국어)" value={hospitalForm.name} onChange={e=>setHospitalForm({...hospitalForm, name: e.target.value})} className="w-full p-2 border rounded text-sm"/>
               <input 
@@ -835,6 +837,9 @@ function FormContent({ editingHospitalId, hospitalForm, setHospitalForm, uploadi
               <label className="text-sm font-bold text-gray-700 flex-1">프론트 노출 여부</label>
               <button
                 type="button"
+                role="switch"
+                aria-checked={!!hospitalForm.isPublished}
+                aria-label="프론트 노출 여부"
                 onClick={() => setHospitalForm({...hospitalForm, isPublished: !hospitalForm.isPublished})}
                 className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
                   hospitalForm.isPublished ? 'bg-teal-700' : 'bg-gray-300'
@@ -854,6 +859,9 @@ function FormContent({ editingHospitalId, hospitalForm, setHospitalForm, uploadi
               <label className="text-sm font-bold text-gray-700 flex-1">healwith 제휴 병원</label>
               <button
                 type="button"
+                role="switch"
+                aria-checked={!!hospitalForm.isPartner}
+                aria-label="healwith 제휴 병원"
                 onClick={() => setHospitalForm({...hospitalForm, isPartner: !hospitalForm.isPartner})}
                 className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
                   hospitalForm.isPartner ? 'bg-blue-600' : 'bg-gray-300'
@@ -925,7 +933,7 @@ function FormContent({ editingHospitalId, hospitalForm, setHospitalForm, uploadi
           </div>
 
           <div className="space-y-3">
-            <h3 className="text-sm font-bold text-gray-400">이미지 및 태그</h3>
+            <h3 className="text-sm font-bold text-gray-500">이미지 및 태그</h3>
             <DynamicListInput items={hospitalForm.tags} onAdd={t=>setHospitalForm({...hospitalForm, tags:[...hospitalForm.tags, t]})} onRemove={i=>setHospitalForm({...hospitalForm, tags:hospitalForm.tags.filter((_,x)=>x!==i)})} placeholder="태그 입력 (예: 피부과)"/>
             
             <label className="block text-sm font-bold text-gray-500 mt-2">병원 갤러리 이미지</label>
@@ -978,7 +986,7 @@ function FormContent({ editingHospitalId, hospitalForm, setHospitalForm, uploadi
             <DynamicListInput items={hospitalForm.doctorSpecialties} onAdd={t=>setHospitalForm({...hospitalForm, doctorSpecialties:[...hospitalForm.doctorSpecialties, t]})} onRemove={i=>setHospitalForm({...hospitalForm, doctorSpecialties:hospitalForm.doctorSpecialties.filter((_,x)=>x!==i)})} placeholder="전문 분야 (예: 코성형)" icon={Trophy}/>
             
             <div className="mt-2">
-              <label className="text-xs text-gray-400 font-bold mb-1 block">원장님 프로필 사진</label>
+              <label className="text-xs text-gray-500 font-bold mb-1 block">원장님 프로필 사진</label>
               <p className="text-[10px] text-teal-700 mb-2">1:1 정방형 (400x400px) 필수</p>
               <div className="flex gap-2 items-center">
                 {hospitalForm.doctorImage ? (
@@ -987,7 +995,7 @@ function FormContent({ editingHospitalId, hospitalForm, setHospitalForm, uploadi
                     <button onClick={() => setHospitalForm({...hospitalForm, doctorImage: ''})} className="absolute inset-0 bg-black/50 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition"><X size={16}/></button>
                   </div>
                 ) : (
-                  <div onClick={() => document.getElementById('doc-upload').click()} className="w-16 h-16 rounded-full border border-dashed flex items-center justify-center text-gray-400 cursor-pointer hover:bg-white hover:border-teal-500">
+                  <div onClick={() => document.getElementById('doc-upload').click()} className="w-16 h-16 rounded-full border border-dashed flex items-center justify-center text-gray-500 cursor-pointer hover:bg-white hover:border-teal-500">
                     {uploading ? <Loader2 size={16} className="animate-spin"/> : <Plus size={16}/>}
                     <input id="doc-upload" type="file" accept="image/*" className="hidden" disabled={uploading} onChange={async(e)=>{ const url=await uploadToSupabase(e.target.files[0]); if(url) setHospitalForm(prev=>({...prev, doctorImage: url})); }} />
                   </div>
@@ -1029,16 +1037,16 @@ function FormContent({ editingHospitalId, hospitalForm, setHospitalForm, uploadi
             <h3 className="text-sm font-bold text-blue-900 flex items-center gap-2"><Building size={16}/> 병원 통계</h3>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
-                <label className="text-xs text-gray-500 mb-1 block">연간 시술 건수</label>
+                <label className="text-xs text-gray-600 mb-1 block">연간 시술 건수</label>
                 <input type="number" placeholder="예: 5000" value={hospitalForm.annualSurgeryCount || ''} onChange={e=>setHospitalForm({...hospitalForm, annualSurgeryCount: e.target.value})} className="w-full border p-2 rounded text-sm"/>
               </div>
               <div>
-                <label className="text-xs text-gray-500 mb-1 block">의료진 수</label>
+                <label className="text-xs text-gray-600 mb-1 block">의료진 수</label>
                 <input type="number" placeholder="예: 12" value={hospitalForm.doctorCount || ''} onChange={e=>setHospitalForm({...hospitalForm, doctorCount: e.target.value})} className="w-full border p-2 rounded text-sm"/>
               </div>
               <div>
-                <label className="text-xs text-gray-500 mb-1 block">설립일</label>
-                <input type="date" value={hospitalForm.establishmentDate || ''} onChange={e=>setHospitalForm({...hospitalForm, establishmentDate: e.target.value})} className="w-full border p-2 rounded text-sm"/>
+                <label className="text-xs text-gray-600 mb-1 block">설립일</label>
+                <input type="date" aria-label="설립일" value={hospitalForm.establishmentDate || ''} onChange={e=>setHospitalForm({...hospitalForm, establishmentDate: e.target.value})} className="w-full border p-2 rounded text-sm"/>
               </div>
             </div>
           </div>
@@ -1047,7 +1055,7 @@ function FormContent({ editingHospitalId, hospitalForm, setHospitalForm, uploadi
             <h3 className="text-sm font-bold text-green-900 flex items-center gap-2"><Shield size={16}/> 보험 정보</h3>
             <div className="flex items-center gap-3">
               <label className="text-sm text-gray-700 flex-1">보험 적용 가능</label>
-              <button type="button" onClick={()=>setHospitalForm({...hospitalForm, insuranceAccepted: !hospitalForm.insuranceAccepted})} className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${hospitalForm.insuranceAccepted?'bg-green-600':'bg-gray-300'}`}>
+              <button type="button" role="switch" aria-checked={!!hospitalForm.insuranceAccepted} aria-label="보험 적용 가능" onClick={()=>setHospitalForm({...hospitalForm, insuranceAccepted: !hospitalForm.insuranceAccepted})} className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${hospitalForm.insuranceAccepted?'bg-green-600':'bg-gray-300'}`}>
                 <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${hospitalForm.insuranceAccepted?'translate-x-6':'translate-x-1'}`}/>
               </button>
             </div>
@@ -1105,7 +1113,7 @@ function FormContent({ editingHospitalId, hospitalForm, setHospitalForm, uploadi
                         <div className="w-6 h-6 bg-gray-200 rounded-full flex items-center justify-center text-[10px] font-bold">{review.author?.[0]}</div>
                       )}
                       <span className="text-xs font-bold text-gray-700">{review.author}</span>
-                      <span className="text-[10px] text-gray-400">{review.time}</span>
+                      <span className="text-[10px] text-gray-500">{review.time}</span>
                       <div className="flex text-yellow-400 gap-0.5">{[...Array(review.rating || 5)].map((_, i) => <Star key={i} size={10} fill="currentColor" />)}</div>
                     </div>
                     <div className="flex items-center gap-1">
@@ -1137,7 +1145,7 @@ function FormContent({ editingHospitalId, hospitalForm, setHospitalForm, uploadi
           )}
 
           <div className="space-y-3">
-            <h3 className="text-sm font-bold text-gray-400 flex items-center gap-2"><Calendar size={14}/> 인증 / 자격</h3>
+            <h3 className="text-sm font-bold text-gray-500 flex items-center gap-2"><Calendar size={14}/> 인증 / 자격</h3>
             {(hospitalForm.certifications || []).map((cert, idx) => (
               <div key={idx} className="flex items-center gap-2 bg-white border rounded-lg p-2">
                 <input placeholder="유형" value={cert.type||''} onChange={e=>{const c=[...(hospitalForm.certifications||[])]; c[idx]={...c[idx],type:e.target.value}; setHospitalForm({...hospitalForm, certifications:c});}} className="flex-1 border p-1.5 rounded text-xs"/>
@@ -1156,7 +1164,7 @@ function FormContent({ editingHospitalId, hospitalForm, setHospitalForm, uploadi
             {(hospitalForm.faq || []).map((item, idx) => (
               <div key={idx} className="bg-white border rounded-lg p-3 space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-xs font-bold text-gray-400">Q{idx + 1}</span>
+                  <span className="text-xs font-bold text-gray-500">Q{idx + 1}</span>
                   <button onClick={() => setHospitalForm({...hospitalForm, faq: (hospitalForm.faq||[]).filter((_, i) => i !== idx)})} className="text-red-400 hover:text-red-600"><X size={14}/></button>
                 </div>
                 <input

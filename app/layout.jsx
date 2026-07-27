@@ -1,14 +1,16 @@
 // ✅ 성능 최적화: CSS는 Next.js가 자동으로 최적화하지만, 명시적으로 처리
 import "./globals.css";
 import "./styles/healo-tokens.css";
-import { headers } from "next/headers";
+import { headers, cookies } from "next/headers";
+import Script from "next/script";
 import Providers from "./providers";
 import ClientShell from "./ClientShell";
 import AnalyticsWrapper from "./AnalyticsWrapper";
 import InstallPrompt from "./InstallPrompt";
 import { localeAlternates, OG_LOCALE, getRequestLocale } from "@/lib/i18n/metadata";
 import { getI18nOverrideMap } from "@/lib/content/i18nOverrides";
-import { applyI18nOverrides } from "@/lib/i18n";
+import { applyI18nOverrides, LANG_OPTIONS } from "@/lib/i18n";
+import { I18N_VERSION } from "@/lib/i18n/version";
 import I18nOverridesApply from "./_components/I18nOverridesApply";
 
 // kz(우리 내부 코드) → kk(BCP47 표준 카자흐 언어코드). <html lang>·hreflang용.
@@ -135,6 +137,15 @@ export default async function RootLayout({ children }) {
   // 비면 t() 기존 사전 동작(안 깨짐).
   const i18nOverrides = await getI18nOverrideMap();
   applyI18nOverrides(i18nOverrides);
+
+  // 브라우저가 받을 사전 목록. 21개 언어 통짜(gzip 269KB)를 번들에서 뺀 대신
+  // 「필요한 언어만」 스크립트로 내려준다 (app/i18n/[lang]/route.js).
+  // 보통 1개. 사용자가 쿠키로 URL 언어와 다른 언어를 골라둔 경우에만 2개 —
+  // LangProvider 가 하이드레이션 후 쿠키 언어로 바꾸므로 그 사전이 없으면 글자가 빈다.
+  const cookieLang = (await cookies()).get("healo_lang")?.value;
+  const clientLangs = [lang, LANG_OPTIONS.some((l) => l.code === cookieLang) ? cookieLang : null]
+    .filter((v, i, a) => v && a.indexOf(v) === i);
+
   return (
     // suppressHydrationWarning: 브라우저 확장(예: 한글 HWP 뷰어 rhwp 가 data-hwp-extension 주입)이
     // hydration 전에 <html> 속성을 건드려도 경고가 안 뜨게. 확장 종류 무관·안전(루트 태그 한정).
@@ -143,6 +154,23 @@ export default async function RootLayout({ children }) {
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, viewport-fit=cover" />
         <meta name="theme-color" content="#0d9488" />
+        {/* 이 방문자 언어의 사전만 주입 (전체 21개 언어 통짜 = gzip 269KB 를 번들에서 뺀 대신).
+            beforeInteractive = React 가 붙기 전 실행 보장 → t() 가 첫 렌더부터 값을 갖는다
+            (나중에 도착하는 방식이면 글자가 빈칸으로 그려졌다 채워진다). */}
+        {clientLangs.map((code) => (
+          <Script
+            key={code}
+            id={`i18n-${code}`}
+            src={`/i18n/${code}?v=${I18N_VERSION}`}
+            strategy="beforeInteractive"
+          />
+        ))}
+        <script
+          dangerouslySetInnerHTML={{
+            // 못 받은 언어로 t() 를 부를 때 되돌아갈 기본 언어 (i18n/index.js dictOf 참고).
+            __html: `window.__I18N__=Object.assign(window.__I18N__||{},{__primary:${JSON.stringify(lang)}});`,
+          }}
+        />
         {/* 브랜드 구조화데이터(JSON-LD): "힐위드"를 healwith의 공식 별칭으로 선언 — 네이버·구글 한글 브랜드 검색 매칭 */}
         <script
           type="application/ld+json"

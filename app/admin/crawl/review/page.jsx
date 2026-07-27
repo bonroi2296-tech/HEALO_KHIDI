@@ -21,9 +21,9 @@ import { AdminGuideModal } from "../../_components/AdminGuideModal";
 import Link from "next/link";
 
 const TABS = [
-  { key: "new", label: "신규", color: "text-green-600 border-green-500", bg: "bg-green-50" },
+  { key: "new", label: "신규", color: "text-green-700 border-green-500", bg: "bg-green-50" },
   { key: "changed", label: "변경", color: "text-blue-600 border-blue-500", bg: "bg-blue-50" },
-  { key: "closed", label: "폐업 의심", color: "text-red-600 border-red-500", bg: "bg-red-50" },
+  { key: "closed", label: "폐업 의심", color: "text-red-700 border-red-500", bg: "bg-red-50" },
 ];
 
 const PAGE_SIZE = 50;
@@ -180,7 +180,7 @@ export default function ReviewPage() {
 
   if (!jobId) {
     return (
-      <div className="max-w-4xl mx-auto py-12 text-center text-gray-400">
+      <div className="max-w-4xl mx-auto py-12 text-center text-gray-500">
         <p>jobId 파라미터가 필요합니다.</p>
         <Link href="/admin/crawl/pipeline" className="text-teal-700 hover:underline mt-2 inline-block">
           파이프라인으로 돌아가기
@@ -223,11 +223,11 @@ export default function ReviewPage() {
       <div className="flex items-center justify-between">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <Link href="/admin/crawl/pipeline" className="text-gray-400 hover:text-gray-600 transition">
+            <Link href="/admin/crawl/pipeline" className="text-gray-500 hover:text-gray-600 transition">
               <ArrowLeft size={20} />
             </Link>
             <h1 className="text-xl font-bold text-gray-900">검토 큐</h1>
-            <span className="text-sm text-gray-400">
+            <span className="text-sm text-gray-500">
               {job?.source_id} · {new Date(job?.created_at).toLocaleString("ko-KR")}
             </span>
           </div>
@@ -252,9 +252,9 @@ export default function ReviewPage() {
 
       {/* Stats */}
       <div className="grid grid-cols-4 gap-3">
-        <StatCard label="신규 병원" value={(counts.new || 0).toLocaleString()} sub="개" color="text-green-600 bg-green-50" />
+        <StatCard label="신규 병원" value={(counts.new || 0).toLocaleString()} sub="개" color="text-green-700 bg-green-50" />
         <StatCard label="변경 감지" value={(counts.changed || 0).toLocaleString()} sub="개" color="text-blue-600 bg-blue-50" />
-        <StatCard label="폐업 의심" value={(counts.closed || 0).toLocaleString()} sub="개" color="text-red-600 bg-red-50" />
+        <StatCard label="폐업 의심" value={(counts.closed || 0).toLocaleString()} sub="개" color="text-red-700 bg-red-50" />
         <StatCard label="검토 완료" value={(counts.reviewed || 0).toLocaleString()} sub="개" color="text-gray-600 bg-gray-50" />
       </div>
 
@@ -268,7 +268,7 @@ export default function ReviewPage() {
                 key={tab.key}
                 onClick={() => changeTab(tab.key)}
                 className={`flex-1 py-3 text-sm font-medium text-center border-b-2 transition ${
-                  activeTab === tab.key ? tab.color : "text-gray-400 border-transparent hover:text-gray-600"
+                  activeTab === tab.key ? tab.color : "text-gray-500 border-transparent hover:text-gray-600"
                 }`}
               >
                 {tab.label} ({count.toLocaleString()})
@@ -280,7 +280,7 @@ export default function ReviewPage() {
         {/* Filter bar */}
         <div className="flex items-center gap-3 px-4 py-3 bg-gray-50 border-b border-gray-100 flex-wrap">
           <div className="flex items-center gap-1.5 bg-white border border-gray-200 rounded-lg px-3 py-1.5 flex-1 min-w-[200px] max-w-[300px]">
-            <Search size={14} className="text-gray-400" />
+            <Search size={14} className="text-gray-500" />
             <input
               type="text"
               placeholder="병원명 검색..."
@@ -324,7 +324,7 @@ export default function ReviewPage() {
               <X size={12} /> 초기화
             </button>
           )}
-          <div className="ml-auto text-xs text-gray-400">
+          <div className="ml-auto text-xs text-gray-500">
             {total.toLocaleString()}건
           </div>
         </div>
@@ -373,7 +373,7 @@ export default function ReviewPage() {
             <Loader2 className="animate-spin text-teal-700" size={24} />
           </div>
         ) : items.length === 0 ? (
-          <div className="py-12 text-center text-gray-400">
+          <div className="py-12 text-center text-gray-500">
             검토 대기 항목이 없습니다
           </div>
         ) : (

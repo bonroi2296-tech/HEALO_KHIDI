@@ -264,7 +264,9 @@ export default function MessagesClient() {
                   style={{
                     fontFamily: "var(--font-serif)",
                     fontStyle: "italic",
-                    color: "var(--fg-on-light-4)",
+                    // fg-on-light-4(#9a9284, "disabled")는 paper 배경에서 2.91:1 로 AA 미달 —
+                    // 이건 비활성 표시가 아니라 안내 문구다. fg-on-light-3(5.51:1)로 교체.
+                    color: "var(--fg-on-light-3)",
                     fontSize: 17,
                   }}
                 >

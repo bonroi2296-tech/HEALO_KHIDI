@@ -116,7 +116,7 @@ export function SymptomAlerts() {
                   </div>
                   <div className="flex items-center gap-2">
                     {report.human_reviewed ? (
-                      <span className="flex items-center gap-1 text-xs text-green-600">
+                      <span className="flex items-center gap-1 text-xs text-green-700">
                         <CheckCircle2 size={14} /> 검토완료
                       </span>
                     ) : (
@@ -124,7 +124,7 @@ export function SymptomAlerts() {
                         <Eye size={14} /> 미검토
                       </span>
                     )}
-                    <span className="text-xs text-gray-400">
+                    <span className="text-xs text-gray-500">
                       {new Date(report.created_at).toLocaleString("ko-KR", {
                         month: "short",
                         day: "numeric",

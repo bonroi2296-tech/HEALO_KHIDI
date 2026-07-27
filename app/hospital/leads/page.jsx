@@ -10,7 +10,7 @@ const STATUS_CONFIG = {
   replied: { label: "응답함", color: "bg-green-100 text-green-700", icon: Reply },
   converted: { label: "치료 확정", color: "bg-emerald-100 text-emerald-700", icon: CheckCircle },
   rejected: { label: "거절", color: "bg-red-100 text-red-700", icon: XCircle },
-  expired: { label: "만료", color: "bg-gray-100 text-gray-500", icon: Clock },
+  expired: { label: "만료", color: "bg-gray-100 text-gray-600", icon: Clock },
 };
 
 const STATUS_FILTERS = [
@@ -135,7 +135,7 @@ export default function HospitalLeadsPage() {
           <p className="text-xs lg:text-sm text-gray-500 mt-0.5">배정된 문의를 확인하고 응답하세요</p>
         </div>
         <div className="flex items-center gap-2 text-sm">
-          <Filter size={14} className="text-gray-400" />
+          <Filter size={14} className="text-gray-500" />
           <div className="flex flex-wrap gap-1.5">
             {STATUS_FILTERS.map((f) => (
               <button
@@ -143,7 +143,7 @@ export default function HospitalLeadsPage() {
                 onClick={() => setStatusFilter(f.value)}
                 className={`px-2.5 py-1 rounded-full text-xs font-medium transition-all ${
                   statusFilter === f.value
-                    ? "bg-teal-600 text-white shadow-sm"
+                    ? "bg-teal-700 text-white shadow-sm"
                     : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                 }`}
               >
@@ -157,7 +157,7 @@ export default function HospitalLeadsPage() {
       {/* 검색·정렬·내보내기 */}
       <div className="flex flex-col sm:flex-row gap-2 mb-4 lg:mb-6">
         <div className="relative flex-1">
-          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
           <input
             type="search"
             value={search}
@@ -188,7 +188,7 @@ export default function HospitalLeadsPage() {
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
         </div>
       ) : view.length === 0 ? (
-        <div className="text-center py-20 text-gray-400">
+        <div className="text-center py-20 text-gray-500">
           <MessageSquare size={48} className="mx-auto mb-3 opacity-50" />
           <p className="text-sm">
             {search ? `"${search}" 검색 결과가 없습니다` : statusFilter ? "해당 상태의 리드가 없습니다" : "배정된 리드가 없습니다"}
@@ -201,7 +201,7 @@ export default function HospitalLeadsPage() {
         </div>
       ) : (
         <>
-          <p className="text-xs text-gray-400 mb-3 tabular-nums">
+          <p className="text-xs text-gray-500 mb-3 tabular-nums">
             {view.length}건 {statusFilter && `· ${STATUS_FILTERS.find((f) => f.value === statusFilter)?.label}`} {search && `· "${search}"`}
             {!statusFilter && !search && total > view.length && ` (총 ${total}건)`}
           </p>
@@ -248,7 +248,7 @@ function LeadCard({ lead, onClick }) {
           <p className="text-sm font-medium text-gray-900 truncate">
             {inquiry?.objective || "문의 내용"}
           </p>
-          <div className="flex items-center gap-3 mt-1.5 text-xs text-gray-400">
+          <div className="flex items-center gap-3 mt-1.5 text-xs text-gray-500">
             {inquiry?.country && <span>{inquiry.country}</span>}
             {inquiry?.language && <span>{inquiry.language}</span>}
             <span>{new Date(lead.assigned_at).toLocaleDateString("ko-KR")}</span>
@@ -325,9 +325,9 @@ function LeadDetailSheet({ lead, onClose, onUpdateStatus }) {
   };
 
   const statusActions = [];
-  if (lead.status === "viewed") statusActions.push({ status: "replied", label: "응답 완료", color: "bg-green-600 hover:bg-green-700" });
+  if (lead.status === "viewed") statusActions.push({ status: "replied", label: "응답 완료", color: "bg-green-700 hover:bg-green-800" });
   if (["replied", "viewed"].includes(lead.status)) statusActions.push({ status: "converted", label: "치료 확정", color: "bg-emerald-700 hover:bg-emerald-700" });
-  if (!["converted", "rejected", "expired"].includes(lead.status)) statusActions.push({ status: "rejected", label: "거절", color: "bg-red-500 hover:bg-red-600" });
+  if (!["converted", "rejected", "expired"].includes(lead.status)) statusActions.push({ status: "rejected", label: "거절", color: "bg-red-600 hover:bg-red-700" });
 
   return (
     <div className="fixed inset-0 z-50 flex items-end lg:items-center justify-center">
@@ -357,7 +357,7 @@ function LeadDetailSheet({ lead, onClose, onUpdateStatus }) {
         <div className="p-5 space-y-5">
           {/* 임상 정보 — 견적·치료가능 판단 근거 */}
           <div>
-            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">환자 / 임상 정보</h3>
+            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">환자 / 임상 정보</h3>
             {loadingDetail ? (
               <div className="bg-gray-50 rounded-lg p-4 flex items-center gap-2 text-sm text-gray-500">
                 <Loader2 size={15} className="animate-spin" /> 의뢰 상세 불러오는 중…
@@ -367,9 +367,9 @@ function LeadDetailSheet({ lead, onClose, onUpdateStatus }) {
             ) : (
               <div className="bg-gray-50 rounded-lg p-4 space-y-3 text-sm">
                 <div className="flex flex-wrap gap-x-4 gap-y-1 text-gray-700">
-                  <span><span className="text-gray-400">환자</span> {detail.patient}</span>
-                  {detail.country && <span><span className="text-gray-400">국적</span> {detail.country}</span>}
-                  {detail.language && <span><span className="text-gray-400">언어</span> {detail.language}</span>}
+                  <span><span className="text-gray-500">환자</span> {detail.patient}</span>
+                  {detail.country && <span><span className="text-gray-500">국적</span> {detail.country}</span>}
+                  {detail.language && <span><span className="text-gray-500">언어</span> {detail.language}</span>}
                 </div>
                 {(detail.cancer_type || detail.treatment_type) && (
                   <div className="flex flex-wrap gap-2">
@@ -381,7 +381,7 @@ function LeadDetailSheet({ lead, onClose, onUpdateStatus }) {
                   <dl className="grid grid-cols-2 gap-x-3 gap-y-1.5">
                     {detail.clinical.map((c, i) => (
                       <div key={i} className="min-w-0">
-                        <dt className="text-[11px] text-gray-400">{c.label}</dt>
+                        <dt className="text-[11px] text-gray-600">{c.label}</dt>
                         <dd className="text-gray-900 truncate">{c.value}</dd>
                       </div>
                     ))}
@@ -389,26 +389,26 @@ function LeadDetailSheet({ lead, onClose, onUpdateStatus }) {
                 )}
                 {(detail.preferred_date || detail.preferred_date_flex) && (
                   <div className="text-gray-700">
-                    <span className="text-gray-400">희망 방한일</span>{" "}
+                    <span className="text-gray-500">희망 방한일</span>{" "}
                     {detail.preferred_date ? new Date(detail.preferred_date).toLocaleDateString("ko-KR") : "유동적"}
                     {detail.preferred_date && detail.preferred_date_flex && " (유동적)"}
                   </div>
                 )}
                 {detail.insurance && (
                   <div className="flex items-center gap-1.5 text-gray-700">
-                    <ShieldCheck size={14} className="text-gray-400" />
+                    <ShieldCheck size={14} className="text-gray-500" />
                     <span>{[detail.insurance.provider, detail.insurance.coverage, detail.insurance.status].filter(Boolean).join(" · ") || "보험 정보 있음"}</span>
                   </div>
                 )}
                 {detail.message && (
                   <div>
-                    <p className="text-[11px] text-gray-400 mb-1">환자 메시지</p>
+                    <p className="text-[11px] text-gray-500 mb-1">환자 메시지</p>
                     <p className="text-gray-800 whitespace-pre-wrap bg-white border border-gray-100 rounded-lg p-3 leading-relaxed">{detail.message}</p>
                   </div>
                 )}
                 {detail.attachments?.length > 0 && (
                   <div>
-                    <p className="text-[11px] text-gray-400 mb-1.5 flex items-center gap-1"><Paperclip size={12} /> 첨부 의료기록 ({detail.attachments.length})</p>
+                    <p className="text-[11px] text-gray-500 mb-1.5 flex items-center gap-1"><Paperclip size={12} /> 첨부 의료기록 ({detail.attachments.length})</p>
                     <div className="space-y-1.5">
                       {detail.attachments.map((a, i) => (
                         a.url ? (
@@ -416,20 +416,20 @@ function LeadDetailSheet({ lead, onClose, onUpdateStatus }) {
                             <FileText size={14} /> <span className="truncate">{a.name}</span>
                           </a>
                         ) : (
-                          <div key={i} className="flex items-center gap-2 text-gray-400"><FileText size={14} /> <span className="truncate">{a.name} (열람 불가)</span></div>
+                          <div key={i} className="flex items-center gap-2 text-gray-500"><FileText size={14} /> <span className="truncate">{a.name} (열람 불가)</span></div>
                         )
                       ))}
                     </div>
                   </div>
                 )}
-                <div className="text-xs text-gray-400 pt-1">배정일: {new Date(lead.assigned_at).toLocaleString("ko-KR")}</div>
+                <div className="text-xs text-gray-500 pt-1">배정일: {new Date(lead.assigned_at).toLocaleString("ko-KR")}</div>
               </div>
             )}
           </div>
 
           {/* 견적/메모 */}
           <div>
-            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">견적/메모</h3>
+            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">견적/메모</h3>
             <div className="space-y-3">
               <div className="grid grid-cols-2 gap-3">
                 <div>
@@ -450,10 +450,10 @@ function LeadDetailSheet({ lead, onClose, onUpdateStatus }) {
 
           {/* 원격협진 가능 시간 → 코디에게 전달 */}
           <div>
-            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2 flex items-center gap-1">
+            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 flex items-center gap-1">
               <CalendarClock size={13} /> 원격협진 가능 시간
             </h3>
-            <p className="text-[11px] text-gray-400 mb-2">응답 완료 시 코디네이터에게 전달되어 일정 조율에 쓰입니다. (현지 시각 입력)</p>
+            <p className="text-[11px] text-gray-500 mb-2">응답 완료 시 코디네이터에게 전달되어 일정 조율에 쓰입니다. (현지 시각 입력)</p>
             <div className="space-y-2">
               {slots.map((s, i) => (
                 <div key={i} className="flex items-center gap-2">
@@ -470,7 +470,7 @@ function LeadDetailSheet({ lead, onClose, onUpdateStatus }) {
                     placeholder="메모(선택)"
                     className="w-24 border border-gray-200 rounded-lg px-2 py-2 text-sm focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none"
                   />
-                  <button onClick={() => removeSlot(i)} className="p-2 text-gray-400 hover:text-red-500 transition"><Trash2 size={15} /></button>
+                  <button onClick={() => removeSlot(i)} className="p-2 text-gray-500 hover:text-red-600 transition"><Trash2 size={15} /></button>
                 </div>
               ))}
               <button onClick={addSlot} className="flex items-center gap-1.5 text-teal-700 text-sm font-medium hover:underline">
@@ -482,14 +482,14 @@ function LeadDetailSheet({ lead, onClose, onUpdateStatus }) {
           <button
             onClick={handleReply}
             disabled={saving}
-            className="w-full bg-teal-600 text-white py-2.5 rounded-lg text-sm font-medium hover:bg-teal-700 transition disabled:opacity-50"
+            className="w-full bg-teal-700 text-white py-2.5 rounded-lg text-sm font-medium hover:bg-teal-700 transition disabled:opacity-50"
           >
             {saving ? "저장 중..." : "응답 저장 (견적·가능시간 → 코디 전달)"}
           </button>
 
           {statusActions.length > 0 && (
             <div>
-              <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">상태 변경</h3>
+              <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">상태 변경</h3>
               <div className="flex flex-wrap gap-2">
                 {statusActions.map((action) => (
                   <button
@@ -573,11 +573,11 @@ function HospitalChatDrawer({ leadId, onClose }) {
         </div>
         <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gray-50">
           {loading ? (
-            <div className="flex items-center justify-center py-10 text-gray-400">
+            <div className="flex items-center justify-center py-10 text-gray-600">
               <Loader2 size={20} className="animate-spin" />
             </div>
           ) : messages.length === 0 ? (
-            <p className="text-center text-sm text-gray-400 py-10">
+            <p className="text-center text-sm text-gray-500 py-10">
               아직 대화가 없습니다. 코디네이터에게 궁금한 점·추가 서류 요청 등을 남겨보세요.
             </p>
           ) : (
@@ -585,8 +585,8 @@ function HospitalChatDrawer({ leadId, onClose }) {
               const mine = m.actor_type === "hospital";
               return (
                 <div key={m.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
-                  <div className={`max-w-[80%] rounded-xl px-3.5 py-2 text-sm whitespace-pre-wrap break-words ${mine ? "bg-sky-600 text-white" : "border border-gray-200 bg-white text-gray-800"}`}>
-                    {!mine && <div className="text-[10px] text-gray-400 mb-0.5">코디네이터</div>}
+                  <div className={`max-w-[80%] rounded-xl px-3.5 py-2 text-sm whitespace-pre-wrap break-words ${mine ? "bg-sky-700 text-white" : "border border-gray-200 bg-white text-gray-800"}`}>
+                    {!mine && <div className="text-[10px] text-gray-500 mb-0.5">코디네이터</div>}
                     {m.message_text}
                   </div>
                 </div>

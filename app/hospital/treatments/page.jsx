@@ -205,7 +205,7 @@ function TreatmentsManager() {
       <div>
         {toast && (
           <div className={`fixed top-16 lg:top-4 right-4 z-50 px-4 py-3 rounded-lg shadow-lg text-sm font-medium ${
-            toast.type === "error" ? "bg-red-500 text-white" : "bg-green-500 text-white"
+            toast.type === "error" ? "bg-red-600 text-white" : "bg-green-500 text-white"
           }`}>
             {toast.message}
           </div>
@@ -232,7 +232,7 @@ function TreatmentsManager() {
         <div className="bg-white rounded-2xl border border-gray-200 p-5 lg:p-8 space-y-5 mb-6">
           {/* 기본 정보 */}
           <div className="space-y-3">
-            <h3 className="text-sm font-bold text-gray-400">기본 정보</h3>
+            <h3 className="text-sm font-bold text-gray-500">기본 정보</h3>
             <input placeholder="시술명 (영어/한글) *" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} className="w-full p-2 border rounded text-sm"/>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
               <input type="number" placeholder="최소 가격 ($)" value={form.price_min} onChange={e => setForm({ ...form, price_min: e.target.value })} className="w-full p-2 border rounded text-sm"/>
@@ -254,7 +254,7 @@ function TreatmentsManager() {
 
           {/* 설명 */}
           <div className="space-y-3">
-            <h3 className="text-sm font-bold text-gray-400">설명</h3>
+            <h3 className="text-sm font-bold text-gray-500">설명</h3>
             <input placeholder="간략 설명 (카드용)" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} className="w-full p-2 border rounded text-sm"/>
             <textarea placeholder="상세 설명 (페이지용)" rows="4" value={form.full_description || ""} onChange={e => setForm({ ...form, full_description: e.target.value })} className="w-full p-2 border rounded text-sm"/>
           </div>
@@ -270,7 +270,7 @@ function TreatmentsManager() {
                 {form.images.map((url, idx) => (
                   <div key={idx} className="relative group aspect-square rounded-lg overflow-hidden border border-gray-200 bg-gray-100">
                     <img src={url} alt="treatment" className="w-full h-full object-cover"/>
-                    <button onClick={() => setForm({ ...form, images: form.images.filter((_, i) => i !== idx) })} className="absolute top-0.5 right-0.5 bg-red-500 text-white p-0.5 rounded-full opacity-0 group-hover:opacity-100 transition shadow-sm"><X size={10}/></button>
+                    <button onClick={() => setForm({ ...form, images: form.images.filter((_, i) => i !== idx) })} className="absolute top-0.5 right-0.5 bg-red-600 text-white p-0.5 rounded-full opacity-0 group-hover:opacity-100 transition shadow-sm"><X size={10}/></button>
                   </div>
                 ))}
               </div>
@@ -284,7 +284,7 @@ function TreatmentsManager() {
 
           {/* 치료 상세 — 환자 상세페이지에 그대로 표시되는 항목 */}
           <div className="space-y-3">
-            <h3 className="text-sm font-bold text-gray-400 flex items-center gap-2"><Clock size={16}/> 치료 상세</h3>
+            <h3 className="text-sm font-bold text-gray-500 flex items-center gap-2"><Clock size={16}/> 치료 상세</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <div>
                 <label className="text-xs text-gray-500 mb-1 block">소요 시간</label>
@@ -328,7 +328,7 @@ function TreatmentsManager() {
     <div>
       {toast && (
         <div className={`fixed top-16 lg:top-4 right-4 z-50 px-4 py-3 rounded-lg shadow-lg text-sm font-medium ${
-          toast.type === "error" ? "bg-red-500 text-white" : "bg-green-500 text-white"
+          toast.type === "error" ? "bg-red-600 text-white" : "bg-green-500 text-white"
         }`}>
           {toast.message}
         </div>
@@ -339,7 +339,7 @@ function TreatmentsManager() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-lg lg:text-2xl font-extrabold text-gray-900">시술 관리</h1>
-            <p className="text-xs text-gray-400 mt-0.5">시술을 추가하고 관리하세요</p>
+            <p className="text-xs text-gray-500 mt-0.5">시술을 추가하고 관리하세요</p>
           </div>
           <button onClick={startCreate} className="bg-teal-700 text-white px-5 py-2.5 rounded-xl font-bold hover:bg-teal-800 transition flex items-center gap-2 text-sm shadow-sm">
             <Plus size={16} /> 새 시술 추가
@@ -352,7 +352,7 @@ function TreatmentsManager() {
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-teal-600" />
         </div>
       ) : treatments.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-gray-200 text-center py-20 text-gray-400 mb-6">
+        <div className="bg-white rounded-2xl border border-gray-200 text-center py-20 text-gray-500 mb-6">
           <Stethoscope size={48} className="mx-auto mb-3 opacity-50" />
           <p className="text-sm">등록된 시술이 없습니다</p>
           <button onClick={startCreate} className="mt-4 text-teal-700 text-sm font-medium hover:underline">
@@ -372,14 +372,14 @@ function TreatmentsManager() {
                   <div className="flex items-center gap-2 mb-1">
                     <h3 className="text-sm font-bold text-gray-900 truncate">{treatment.name}</h3>
                     <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium ${
-                      treatment.is_published ? "bg-teal-50 text-teal-700" : "bg-gray-100 text-gray-500"
+                      treatment.is_published ? "bg-teal-50 text-teal-700" : "bg-gray-100 text-gray-600"
                     }`}>
                       {treatment.is_published ? <Eye size={10} /> : <EyeOff size={10} />}
                       {treatment.is_published ? "공개" : "비공개"}
                     </span>
                   </div>
                   {(treatment.price_min || treatment.price_max) && (
-                    <p className="text-xs text-gray-500 mb-1.5">
+                    <p className="text-xs text-gray-600 mb-1.5">
                       {treatment.currency || "USD"} {treatment.price_min || "?"} ~ {treatment.price_max || "?"}
                     </p>
                   )}
@@ -395,7 +395,7 @@ function TreatmentsManager() {
                   <button
                     onClick={(e) => { e.stopPropagation(); togglePublish(treatment); }}
                     className={`p-2 rounded-lg text-xs transition ${
-                      treatment.is_published ? "text-teal-700 hover:bg-teal-50" : "text-gray-400 hover:bg-gray-100"
+                      treatment.is_published ? "text-teal-700 hover:bg-teal-50" : "text-gray-600 hover:bg-gray-100"
                     }`}
                     title={treatment.is_published ? "비공개로 변경" : "공개로 변경"}
                   >
@@ -403,7 +403,7 @@ function TreatmentsManager() {
                   </button>
                   <button
                     onClick={(e) => { e.stopPropagation(); startEdit(treatment); }}
-                    className="p-2 rounded-lg text-gray-400 hover:bg-teal-50 hover:text-teal-700 transition"
+                    className="p-2 rounded-lg text-gray-500 hover:bg-teal-50 hover:text-teal-700 transition"
                     title="수정"
                   >
                     <Pencil size={16} />

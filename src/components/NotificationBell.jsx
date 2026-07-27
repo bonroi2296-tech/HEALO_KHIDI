@@ -99,7 +99,7 @@ export default function NotificationBell({ variant = 'fixed' }) {
       >
         <Bell size={isInline ? 17 : 18} className={isInline ? '' : 'text-gray-600'} />
         {unread > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
+          <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 rounded-full bg-red-600 text-white text-[10px] font-bold flex items-center justify-center">
             {unread > 9 ? '9+' : unread}
           </span>
         )}
@@ -119,13 +119,13 @@ export default function NotificationBell({ variant = 'fixed' }) {
                 </button>
               )}
               <button onClick={() => setOpen(false)} className="p-1 rounded-full hover:bg-gray-100">
-                <X size={15} className="text-gray-400" />
+                <X size={15} className="text-gray-500" />
               </button>
             </div>
           </div>
 
           {items.length === 0 ? (
-            <div className="px-4 py-10 text-center text-sm text-gray-400">{t('notifBell.empty', lang)}</div>
+            <div className="px-4 py-10 text-center text-sm text-gray-500">{t('notifBell.empty', lang)}</div>
           ) : (
             <ul className="max-h-96 overflow-auto">
               {items.map((n) => (
@@ -139,7 +139,7 @@ export default function NotificationBell({ variant = 'fixed' }) {
                       <div className="min-w-0 flex-1">
                         <div className="text-sm font-semibold text-gray-900 truncate">{n.title}</div>
                         {n.body && <div className="text-xs text-gray-500 line-clamp-2 mt-0.5">{n.body}</div>}
-                        <div className="text-[10px] text-gray-400 mt-1">{ago(n.created_at, lang)}</div>
+                        <div className="text-[10px] text-gray-500 mt-1">{ago(n.created_at, lang)}</div>
                       </div>
                     </div>
                   </button>

@@ -42,7 +42,7 @@ const LocationFallback = ({ hospitalName, location, billingError = false }) => (
     <div className="absolute inset-0 opacity-10">
       <svg viewBox="0 0 100 100" className="w-full h-full">
         <circle cx="50" cy="50" r="3" fill="currentColor" className="text-teal-700" />
-        <circle cx="50" cy="50" r="15" fill="none" stroke="currentColor" strokeWidth="0.5" className="text-gray-400" />
+        <circle cx="50" cy="50" r="15" fill="none" stroke="currentColor" strokeWidth="0.5" className="text-gray-500" />
         <circle cx="50" cy="50" r="25" fill="none" stroke="currentColor" strokeWidth="0.3" className="text-gray-300" />
       </svg>
     </div>

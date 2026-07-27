@@ -79,7 +79,7 @@ function PartnerHospitalsCard({ lang }) {
           </Link>
         ))}
       </div>
-      <p className="text-[10px] text-gray-400 mt-3 text-center">{t('patientChatUI.partnerCardNote', lang)}</p>
+      <p className="text-[10px] text-gray-500 mt-3 text-center">{t('patientChatUI.partnerCardNote', lang)}</p>
     </div>
   );
 }
@@ -101,25 +101,25 @@ function CancerCostsCard({ lang }) {
             <div className="text-xs font-semibold text-gray-900 mb-1.5">{c.name[lang] || c.name.en}</div>
             <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-[10px] text-gray-600">
               <div className="flex justify-between">
-                <span className="text-gray-400">{t('patientChatUI.costSurgery', lang)}</span>
+                <span className="text-gray-500">{t('patientChatUI.costSurgery', lang)}</span>
                 <span className="font-medium text-gray-700">
                   {formatKRW(c.surgery.min, lang)}~{formatKRW(c.surgery.max, lang)}
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-400">{t('patientChatUI.costChemo', lang)}</span>
+                <span className="text-gray-500">{t('patientChatUI.costChemo', lang)}</span>
                 <span className="font-medium text-gray-700">
                   {formatKRW(c.chemo.min, lang)}~{formatKRW(c.chemo.max, lang)}
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-400">{t('patientChatUI.costRadiation', lang)}</span>
+                <span className="text-gray-500">{t('patientChatUI.costRadiation', lang)}</span>
                 <span className="font-medium text-gray-700">
                   {formatKRW(c.radiation.min, lang)}~{formatKRW(c.radiation.max, lang)}
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-400">{t('patientChatUI.costInpatient', lang)}</span>
+                <span className="text-gray-500">{t('patientChatUI.costInpatient', lang)}</span>
                 <span className="font-medium text-gray-700">
                   {c.inpatientDays.min}~{c.inpatientDays.max} {t('patientChatUI.days', lang)}
                 </span>
@@ -129,7 +129,7 @@ function CancerCostsCard({ lang }) {
         ))}
       </div>
       <p className="text-[10px] text-gray-500 mt-3 leading-relaxed">{getCostDisclaimer(lang)}</p>
-      <p className="text-[9px] text-gray-400 mt-1">{getCostSource(lang)}</p>
+      <p className="text-[9px] text-gray-500 mt-1">{getCostSource(lang)}</p>
     </div>
   );
 }
@@ -412,7 +412,7 @@ export default function PatientChatClient() {
         </button>
 
         {threads.length === 0 ? (
-          <p className="text-center text-gray-400 py-12">{t('patientChatUI.noHistory', lang)}</p>
+          <p className="text-center text-gray-500 py-12">{t('patientChatUI.noHistory', lang)}</p>
         ) : (
           <div className="space-y-2">
             {threads.map((th) => (
@@ -430,12 +430,12 @@ export default function PatientChatClient() {
                     {th.subject || t('patientChatUI.title', lang)}
                   </span>
                   <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
-                    th.status === 'open' ? 'bg-green-50 text-green-600' : 'bg-gray-100 text-gray-500'
+                    th.status === 'open' ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-500'
                   }`}>
                     {th.status}
                   </span>
                 </div>
-                <p className="text-xs text-gray-400 mt-1">
+                <p className="text-xs text-gray-500 mt-1">
                   {new Date(th.updated_at || th.created_at).toLocaleDateString(lang === 'ko' ? 'ko-KR' : 'en-US', {
                     month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
                   })}
@@ -462,7 +462,7 @@ export default function PatientChatClient() {
         </button>
         <div className="flex-1 min-w-0">
           <h1 className="text-sm font-bold text-gray-900 truncate">{t('patientChatUI.title', lang)}</h1>
-          <p className="text-[10px] text-gray-400">3-Tier RAG</p>
+          <p className="text-[10px] text-gray-500">3-Tier RAG</p>
         </div>
         <button
           onClick={startNewChat}
@@ -487,7 +487,7 @@ export default function PatientChatClient() {
 
             {/* Quick Action buttons */}
             <div className="w-full max-w-sm">
-              <p className="text-[11px] text-gray-400 mb-2 font-medium">{t('patientChatUI.qaTitle', lang)}</p>
+              <p className="text-[11px] text-gray-500 mb-2 font-medium">{t('patientChatUI.qaTitle', lang)}</p>
               <div className="grid grid-cols-2 gap-2">
                 <button
                   onClick={() => handleSend(t('patientChatUI.qaFindHospitalQ', lang), 'find_hospital')}
@@ -598,7 +598,7 @@ export default function PatientChatClient() {
             )}
           </button>
         </div>
-        <p className="text-[10px] text-gray-400 text-center mt-2 px-2">
+        <p className="text-[10px] text-gray-500 text-center mt-2 px-2">
           {t('patientChatUI.disclaimer', lang)}
         </p>
       </div>

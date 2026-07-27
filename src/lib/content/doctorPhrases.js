@@ -9,7 +9,7 @@
           이름(name)·직위(position)는 영어 통일 — 일부러 여기에 넣지 않는다(PO 결정 2026-07-27).
 
    ⚠️ 문구를 새로 추가하면 여기도 추가할 것. 빠지면 그 줄만 영어로 노출된다 —
-      scripts/check-content-consistency.mjs §33 가드가 누락을 빌드에서 잡는다. */
+      scripts/check-content-consistency.mjs §34 가드가 누락을 빌드에서 잡는다. */
 
 export const DOCTOR_PHRASES = {
   /* ── 강서점 ── */

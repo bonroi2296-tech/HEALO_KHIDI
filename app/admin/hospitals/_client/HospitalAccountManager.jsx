@@ -108,7 +108,7 @@ export function HospitalAccountManager({ hospitals }) {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h2 className="text-base lg:text-lg font-bold text-gray-900 flex items-center gap-2">
-            <Users size={20} className="text-gray-400" />
+            <Users size={20} className="text-gray-500" />
             병원 계정 관리
           </h2>
           <p className="text-xs text-gray-500 mt-0.5">병원별 담당자를 등록하여 Hospital Portal 접근 권한을 부여합니다</p>
@@ -172,7 +172,7 @@ export function HospitalAccountManager({ hospitals }) {
                   </select>
                 </div>
               </div>
-              {error && <p className="text-xs text-red-500">{error}</p>}
+              {error && <p className="text-xs text-red-600">{error}</p>}
               <button
                 onClick={handleAdd}
                 disabled={adding || !newEmail.trim()}
@@ -231,10 +231,10 @@ export function HospitalAccountManager({ hospitals }) {
           {/* Account List */}
           {loading ? (
             <div className="flex items-center justify-center py-10">
-              <Loader2 size={24} className="animate-spin text-gray-400" />
+              <Loader2 size={24} className="animate-spin text-gray-500" />
             </div>
           ) : accounts.length === 0 ? (
-            <div className="text-center py-10 text-gray-400">
+            <div className="text-center py-10 text-gray-500">
               <Users size={32} className="mx-auto mb-2 opacity-50" />
               <p className="text-sm">등록된 담당자가 없습니다</p>
             </div>
@@ -260,7 +260,7 @@ export function HospitalAccountManager({ hospitals }) {
                           <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full ${rc.color}`}>
                             {rc.label}
                           </span>
-                          <span className="text-[10px] text-gray-400">
+                          <span className="text-[10px] text-gray-500">
                             {new Date(account.created_at).toLocaleDateString("ko-KR")}
                           </span>
                         </div>
@@ -268,7 +268,7 @@ export function HospitalAccountManager({ hospitals }) {
                     </div>
                     <button
                       onClick={() => handleDeactivate(account.id)}
-                      className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition"
+                      className="p-2 text-gray-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition"
                       title="비활성화"
                     >
                       <Trash2 size={16} />

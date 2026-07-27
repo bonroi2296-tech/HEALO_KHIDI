@@ -28,7 +28,7 @@ export const AddressInput = ({
   return (
     <div className="space-y-2">
       <div className="relative">
-        <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+        <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" size={18} />
         <input
           type="text"
           value={value}
@@ -41,7 +41,7 @@ export const AddressInput = ({
             <button
               type="button"
               onClick={() => onChange('')}
-              className="p-1 text-gray-400 hover:text-gray-600"
+              className="p-1 text-gray-500 hover:text-gray-600"
             >
               <X size={16} />
             </button>
@@ -64,7 +64,7 @@ export const AddressInput = ({
               <button
                 type="button"
                 onClick={() => setIsOpen(false)}
-                className="p-1 text-gray-400 hover:text-gray-600"
+                className="p-1 text-gray-500 hover:text-gray-600"
               >
                 <X size={18} />
               </button>

@@ -324,7 +324,7 @@ export const AdminAuditPage = ({ authToken }) => {
                             )}
                           </div>
                         ) : (
-                          <span className="text-gray-400">-</span>
+                          <span className="text-gray-500">-</span>
                         )}
                       </td>
                       <td className="px-4 py-3 text-sm text-gray-700">
@@ -347,7 +347,7 @@ export const AdminAuditPage = ({ authToken }) => {
                             )}
                           </button>
                         ) : (
-                          <span className="text-xs text-gray-400">-</span>
+                          <span className="text-xs text-gray-500">-</span>
                         )}
                         {showMetadata[log.id] && (() => {
                           const safeMetadata = sanitizeMetadata(log.metadata);

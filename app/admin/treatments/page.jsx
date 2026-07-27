@@ -23,7 +23,7 @@ const DynamicListInput = ({ items, onAdd, onRemove, placeholder, icon: Icon }) =
     <div className="space-y-2">
       <div className="flex gap-2">
         <div className="relative flex-1">
-          {Icon && <Icon size={16} className="absolute left-3 top-3 text-gray-400"/>}
+          {Icon && <Icon size={16} className="absolute left-3 top-3 text-gray-500"/>}
           <input 
             type="text" 
             value={newItem} 
@@ -38,7 +38,7 @@ const DynamicListInput = ({ items, onAdd, onRemove, placeholder, icon: Icon }) =
       <div className="flex flex-wrap gap-2">
         {items.map((item, idx) => (
           <span key={idx} className="bg-teal-50 text-teal-700 text-xs font-bold px-3 py-1.5 rounded-full flex items-center gap-2 border border-teal-100">
-            {item} <button type="button" onClick={() => onRemove(idx)} className="hover:text-red-500"><X size={12}/></button>
+            {item} <button type="button" onClick={() => onRemove(idx)} className="hover:text-red-600"><X size={12}/></button>
           </span>
         ))}
       </div>
@@ -71,7 +71,7 @@ const ImageUploader = ({ images, onUpload, onRemove, uploading }) => {
           {images.map((url, idx) => (
             <div key={idx} className="relative group aspect-square rounded-lg overflow-hidden border border-gray-200 bg-gray-100">
               <img src={url} alt="upload" className="w-full h-full object-cover" />
-              <button onClick={() => onRemove(idx)} className="absolute top-0.5 right-0.5 bg-red-500 text-white p-0.5 rounded-full opacity-0 group-hover:opacity-100 transition shadow-sm">
+              <button onClick={() => onRemove(idx)} className="absolute top-0.5 right-0.5 bg-red-600 text-white p-0.5 rounded-full opacity-0 group-hover:opacity-100 transition shadow-sm">
                 <X size={10} />
               </button>
             </div>

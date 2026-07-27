@@ -117,7 +117,7 @@ export function AccuracyPanel() {
                   {hasVal ? val : "–"}
                   {hasVal && meta.pct && "%"}
                 </span>
-                <span className="text-xs text-gray-400 mb-1">
+                <span className="text-xs text-gray-500 mb-1">
                   / 목표 {meta.target}
                   {meta.pct && "%"}
                 </span>
@@ -135,7 +135,7 @@ export function AccuracyPanel() {
           );
         })}
       </div>
-      <p className="text-[11px] text-gray-400 -mt-2">
+      <p className="text-[11px] text-gray-500 -mt-2">
         AI 정확도·환자 만족도는 실측(AI 품질 평가·설문). 에스컬레이션 비율·응답 시간은 집계 파이프라인 준비 중이라 "–"로 표시됩니다.
       </p>
 
@@ -184,11 +184,11 @@ export function AccuracyPanel() {
                     style={{ width: "0%" }}
                   />
                 </div>
-                <span className="text-xs text-gray-400 w-8 text-right">0건</span>
+                <span className="text-xs text-gray-500 w-8 text-right">0건</span>
               </div>
             ))}
           </div>
-          <p className="text-xs text-gray-400 mt-4 text-center">
+          <p className="text-xs text-gray-500 mt-4 text-center">
             상담 운영 시작 후 데이터가 누적되면 자동으로 표시됩니다.
           </p>
         </div>
@@ -203,7 +203,7 @@ export function AccuracyPanel() {
             Human Agent의 수정 패턴이 3회 이상 반복되면<br />
             자동으로 Playbook에 등록됩니다.
           </p>
-          <p className="text-xs text-gray-400 mt-2">
+          <p className="text-xs text-gray-500 mt-2">
             자세한 현황은 「AI 품질」 메뉴에서 확인하세요. (플레이북 화면은 2026-07-24 메뉴 정리로 비활성 — 주소 직접 입력으로는 열립니다.)
           </p>
         </div>

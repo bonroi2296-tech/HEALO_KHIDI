@@ -12,7 +12,7 @@
  * 실행: node scripts/check-content-consistency.mjs   (npm run check:content)
  */
 import { readFileSync, readdirSync, statSync } from "node:fs";
-import { join, dirname } from "node:path";
+import { join, dirname, sep } from "node:path";
 import { pathToFileURL } from "node:url";
 // §32(산출물 .docx 검사)용 — .docx 는 zip 이라 내장 zlib 만으로 본문을 꺼낸다(의존성 0).
 import { inflateRawSync } from "node:zlib";
@@ -224,7 +224,7 @@ for (const file of SCAN_DIRS.flatMap(walk)) {
 
 // ── 2) i18n 활성 6개 언어 키 패리티 ─────────────────────────────
 const ACTIVE = ["ko", "en", "ru", "kz", "zh", "ja"];
-const I18N = "src/lib/i18n/index.js";
+const I18N = "src/lib/i18n/dictionary.js";
 try {
   const text = readFileSync(join(ROOT, I18N), "utf8").split("\n");
   // 최상위 언어 블록 시작: "  xx: {"
@@ -469,7 +469,7 @@ for (const file of SCAN_DIRS.flatMap(walk)) {
 //     바로 위 [환자i18n] 검사는 ru/kz 키만 있으면 통과시켜(번역은 됐으니) 이 우회를 정확히 못 막음
 //     — 오히려 인라인-L 이 그 검사의 '탈출구'라 새 문구가 CMS 밖으로 새는 통로가 됨.
 //     → 공개 파일에 새 인라인-L 이 생기면 CI 차단. 기존 5개는 grandfather(점진 마이그레이션).
-//     고치는 법: 문구를 src/lib/i18n/index.js DICTIONARY 에 키로 넣고 t("키", lang) 로 렌더.
+//     고치는 법: 문구를 src/lib/i18n/dictionary.js DICTIONARY 에 키로 넣고 t("키", lang) 로 렌더.
 // 2026-07-24 (#974): 옛 grandfather 5개 포함 공개 화면 38개 파일을 전부 중앙 사전으로 이관 →
 // 면제는 아래 1개만 남았다. 새 인라인 미니사전은 어떤 공개 파일에서도 CI 실패다.
 // ⚠️ 여기에 파일을 추가하지 마라 — 면제가 곧 "PO가 못 고치는 화면"이 된다(POSTMORTEMS #118).
@@ -489,7 +489,7 @@ for (const file of SCAN_DIRS.flatMap(walk)) {
   const text = readFileSync(join(ROOT, file), "utf8");
   if (!INLINE_L_RE.test(text) || !INLINE_L_LANGKEY_RE.test(text)) continue; // 언어키 있는 진짜 미니사전만
   const line = text.split("\n").findIndex((l) => INLINE_L_RE.test(l)) + 1;
-  errors.push(`[인라인사전] ${f}:${line} — 공개 화면 문구가 컴포넌트 안 const L={} 미니사전에 박혀 코디 콘텐츠 편집기(/coordinator/content)에서 수정 불가(번역돼도 CMS 우회). 문구를 src/lib/i18n/index.js DICTIONARY 에 키로 넣고 t("키", lang) 로 렌더할 것(그러면 편집기에 자동 등록). 예외는 INLINE_L_ALLOW(현재 1개).`);
+  errors.push(`[인라인사전] ${f}:${line} — 공개 화면 문구가 컴포넌트 안 const L={} 미니사전에 박혀 코디 콘텐츠 편집기(/coordinator/content)에서 수정 불가(번역돼도 CMS 우회). 문구를 src/lib/i18n/dictionary.js DICTIONARY 에 키로 넣고 t("키", lang) 로 렌더할 것(그러면 편집기에 자동 등록). 예외는 INLINE_L_ALLOW(현재 1개).`);
 }
 
 // ── 7b) styled-jsx 금지 가드 (POSTMORTEMS #113) ──
@@ -563,7 +563,7 @@ for (const file of EMAIL_TEMPLATE_FILES) {
 // 방법: 사전 소스에서 따옴표 dotted 키 전수 추출 → 글로벌 t 를 import 하는 파일의
 //     t("a.b") 리터럴 호출이 전부 사전에 존재하는지 대조. 동적 키(t(변수))는 검사 밖(의도).
 {
-  const dictSrc = readFileSync(join(ROOT, "src/lib/i18n/index.js"), "utf8");
+  const dictSrc = readFileSync(join(ROOT, "src/lib/i18n/dictionary.js"), "utf8");
   const KNOWN_KEYS = new Set(
     [...dictSrc.matchAll(/"([a-z0-9]+(?:\.[A-Za-z0-9_]+)+)"\s*:/g)].map((m) => m[1])
   );
@@ -579,7 +579,7 @@ for (const file of EMAIL_TEMPLATE_FILES) {
           errors.push(
             `[t미정의키] ${file.replace(/\\/g, "/")} — t("${m[1]}") 키가 i18n 사전에 없음. ` +
               `t()는 미정의 키에 키 원문을 반환하므로 사용자 화면에 "${m[1]}" 가 그대로 노출됨. ` +
-              `사전(src/lib/i18n/index.js) 6개 언어에 키를 추가하거나 호출을 제거할 것.`
+              `사전(src/lib/i18n/dictionary.js) 6개 언어에 키를 추가하거나 호출을 제거할 것.`
           );
         }
       }
@@ -790,6 +790,48 @@ for (const dir of BACKOFFICE_DIRS) {
         errors.push(`[헤딩크기누락] ${file.replace(/\\/g, "/")} — raw <h1/h2/h3 className="${m[1]}">에 text-size 유틸 없음 → 마케팅 히어로 크기(h2 최대 64px) 유출 위험. text-base/text-lg/text-xl 등을 명시할 것 (2026-07-08 부류).`);
       }
     }
+  }
+}
+
+// ── 15-b) 백오피스 저대비 회색 글씨 차단 (2026-07-27 접근성 실측) ──────────────
+// 왜: text-gray-400(#9ca3af)은 흰 배경에서 대비 2.53:1 — WCAG AA 본문 기준(4.5:1)의 절반뿐.
+//     공개 페이지에선 아이콘 위주라 안 걸렸는데, 로그인 뒤 화면을 처음 실측하자
+//     백오피스에서만 serious 412건이 나왔고 그 대부분이 이 한 토큰이었다(admin 244·coordinator 149).
+//     "공개 페이지 위반 0건"이라는 리포트가 5주간 이 사실을 가리고 있었음(스캐너가 로그인 뒤를 못 봄).
+//     → 부류 자체를 차단: 백오피스 본문 회색은 gray-500(4.83:1) 이상.
+//     ⚠️ 흰/연회색 배경 전제다. 어두운 배경 위에서 밝은 회색이 필요하면 예외를 여기에 명시적으로 추가할 것.
+// ⚠️ 백오피스 폴더만 훑으면 놓친다 — /admin/staff 의 위반은 정작 공유 부품(NotificationBell 등)에서
+//    나왔다. 그래서 백오피스 화면이 실제로 렌더하는 공유 부품도 같은 잣대로 본다.
+//    (새 공유 부품이 늘면 이 목록에 추가할 것. 목록이 새더라도 주간 axe 실측이 뒤에서 받쳐 준다.)
+const BACKOFFICE_SHARED = [
+  "app/_components/ManualDrawer.jsx",
+  "src/components/AddressInput.jsx",
+  "src/components/GoogleMap.jsx",
+  "src/components/Modals.jsx",
+  "src/components/NotificationBell.jsx",
+  "src/components/consultation/CreateConsultationModal.jsx",
+  "src/components/marketing/AdBudgetPlanner.jsx",
+  "src/components/partners/PartnerOutreachTracker.jsx",
+];
+{
+  const targets = [];
+  // app/patient 도 포함(2026-07-27 2차 실측): 환자가 직접 보는 화면이라 우선순위가 오히려 높다.
+  for (const dir of [...BACKOFFICE_DIRS, "app/patient"]) {
+    for (const file of walk(dir)) {
+      if (!CODE_EXT.test(file) || EXCLUDE.test(file)) continue;
+      targets.push(file);
+    }
+  }
+  targets.push(...BACKOFFICE_SHARED);
+  for (const file of targets) {
+    let text;
+    try { text = readFileSync(join(ROOT, file), "utf8"); } catch { continue; }
+    const idx = text.indexOf("text-gray-400");
+    if (idx === -1) continue;
+    const line = text.slice(0, idx).split("\n").length;
+    errors.push(
+      `[저대비회색] ${file.replace(/\\/g, "/")}:${line} — 백오피스(또는 백오피스가 쓰는 공유 부품)에 text-gray-400 사용. 흰 배경 대비 2.53:1 로 WCAG AA(4.5:1) 미달이다. text-gray-500(4.83:1) 이상을 쓸 것 (2026-07-27 접근성 실측 부류).`,
+    );
   }
 }
 
@@ -1476,7 +1518,7 @@ for (const dir of BACKOFFICE_DIRS) {
     }
     if (bad.length) {
       errors.push(
-        `[유령키] 화면이 부르는 t() 키가 사전(src/lib/i18n/index.js)에 없음 ${bad.length}건: ` +
+        `[유령키] 화면이 부르는 t() 키가 사전(src/lib/i18n/dictionary.js)에 없음 ${bad.length}건: ` +
           `${bad.slice(0, 6).join(" · ")}${bad.length > 6 ? ` …외 ${bad.length - 6}` : ""} — ` +
           `t() 는 없는 키를 그대로 렌더하므로 이 상태로 배포하면 사용자 화면에 날키가 뜬다. ` +
           `사전에 6개 언어로 키를 추가하거나 오타를 고칠 것.`
@@ -1880,7 +1922,64 @@ for (const dir of BACKOFFICE_DIRS) {
   }
 }
 
-// ── §33) 의료진 세부 이력 문구가 ru·kz·zh·ja 사전에 다 있는지 ────────────────
+// ── §33) 21개 언어 통짜 사전이 브라우저 번들로 되돌아오지 않게 ──────────────────
+// 왜: 2026-07-27 실측 — src/lib/i18n/dictionary.js(21개 언어)가 통째로 첫 화면 JS 에 들어가
+//     홈 623KB 중 269KB(gzip)를 차지했다. 방문자는 자기 언어 1개만 쓴다. next.config.js 가
+//     클라이언트 빌드에서만 이 파일을 dictionary.client.js(빈 껍데기)로 바꿔치기하고,
+//     브라우저는 app/i18n/[lang]/route.js 가 주는 자기 언어 완성본 하나만 받는다.
+//     그 별칭이 사라지면 269KB 가 **조용히** 전 페이지로 돌아온다(화면은 멀쩡해서 아무도 모른다).
+// 무엇을 보나: ① next.config.js 에 그 별칭이 살아 있는지 ② "use client" 파일이 사전을 직접
+//     import 하지 않는지(별칭 때문에 빈 객체가 와서 **글자가 조용히 사라진다**).
+{
+  const CFG = "next.config.js";
+  try {
+    const cfg = readFileSync(join(ROOT, CFG), "utf8");
+    const hasAlias =
+      /i18n\/dictionary\.js/.test(cfg) && /i18n\/dictionary\.client\.js/.test(cfg);
+    if (!hasAlias) {
+      errors.push(
+        `[사전번들] ${CFG} — 클라이언트 빌드에서 src/lib/i18n/dictionary.js 를 ` +
+          `dictionary.client.js 로 바꿔치기하는 별칭(resolve.alias)이 없다. ` +
+          `이게 빠지면 21개 언어 사전(gzip 269KB)이 전 페이지 첫 화면 JS 로 되돌아온다.`
+      );
+    }
+  } catch {
+    errors.push(`[사전번들] ${CFG} 읽기 실패 — 별칭 확인 불가`);
+  }
+
+  const scanDirs = ["app", "src", "components"];
+  const walk = (dir) => {
+    const out = [];
+    let entries;
+    try { entries = readdirSync(join(ROOT, dir)); } catch { return out; }
+    for (const e of entries) {
+      if (/^(node_modules|\.next)$/.test(e)) continue;
+      const rel = join(dir, e);
+      let st;
+      try { st = statSync(join(ROOT, rel)); } catch { continue; }
+      if (st.isDirectory()) out.push(...walk(rel));
+      else if (/\.(jsx?|tsx?)$/.test(e)) out.push(rel);
+    }
+    return out;
+  };
+  for (const dir of scanDirs) {
+    for (const rel of walk(dir)) {
+      const path_ = rel.split(sep).join("/");
+      if (path_.startsWith("src/lib/i18n/")) continue; // 사전 본체·껍데기 자신
+      let raw;
+      try { raw = readFileSync(join(ROOT, rel), "utf8"); } catch { continue; }
+      if (!/^\s*["']use client["']/m.test(raw)) continue;
+      if (!/from\s+["'](@\/lib\/i18n\/dictionary|.*\/i18n\/dictionary)["']/.test(raw)) continue;
+      errors.push(
+        `[사전번들] ${path_} — "use client" 파일이 사전(i18n/dictionary)을 직접 import 한다. ` +
+          `클라이언트 빌드에서 이건 빈 껍데기로 바뀌므로 **글자가 조용히 사라진다**. ` +
+          `t() 를 쓰거나(@/lib/i18n), 서버 컴포넌트에서 값을 내려줄 것.`
+      );
+    }
+  }
+}
+
+// ── §34) 의료진 세부 이력 문구가 ru·kz·zh·ja 사전에 다 있는지 ────────────────
 // 왜: 2026-07-27 PO 지적 — /ru/hospitals 에서 섹션 제목(경력·학력)만 번역되고 **내용은 전부 영어**로
 //     나왔다. DOCTORS(app/hospitals/HospitalsClient.jsx)가 ko/en 만 들고 있었기 때문.
 //     번역을 doctorPhrases.js 로 옮겼는데, 의사를 새로 추가하면서 사전에 넣는 걸 잊으면

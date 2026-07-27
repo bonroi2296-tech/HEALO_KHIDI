@@ -9,7 +9,7 @@ function GuideModal({ onClose }) {
       <div className="relative bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[85vh] overflow-y-auto">
         <div className="sticky top-0 bg-white border-b border-gray-100 p-5 flex items-center justify-between rounded-t-2xl">
           <h2 className="text-lg font-bold text-gray-900">Playbook 자동화 가이드</h2>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition">
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-600 hover:text-gray-600 transition">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
           </button>
         </div>
@@ -90,7 +90,7 @@ function GuideModal({ onClose }) {
             <div className="grid grid-cols-2 gap-2">
               <div className="bg-green-50 rounded-lg p-3 text-center">
                 <p className="text-xl font-bold text-green-700">85+</p>
-                <p className="text-xs text-green-600">양호 - 변경 불필요</p>
+                <p className="text-xs text-green-700">양호 - 변경 불필요</p>
               </div>
               <div className="bg-yellow-50 rounded-lg p-3 text-center">
                 <p className="text-xl font-bold text-yellow-700">50~84</p>
@@ -98,7 +98,7 @@ function GuideModal({ onClose }) {
               </div>
               <div className="bg-red-50 rounded-lg p-3 text-center">
                 <p className="text-xl font-bold text-red-600">{"<50"}</p>
-                <p className="text-xs text-red-500">퇴출 후보</p>
+                <p className="text-xs text-red-600">퇴출 후보</p>
               </div>
               <div className="bg-purple-50 rounded-lg p-3 text-center">
                 <p className="text-xl font-bold text-purple-700">90+</p>
@@ -185,7 +185,7 @@ function KpiCard({ label, value, sub }) {
     <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
       <p className="text-xs text-gray-500 mb-1">{label}</p>
       <p className="text-2xl font-bold text-gray-900">{value}</p>
-      {sub && <p className="text-xs text-gray-400 mt-1">{sub}</p>}
+      {sub && <p className="text-xs text-gray-500 mt-1">{sub}</p>}
     </div>
   );
 }
@@ -320,7 +320,7 @@ export default function AutomationPlaybookPage() {
             </thead>
             <tbody className="divide-y divide-gray-100">
               {candidates.length === 0 ? (
-                <tr><td colSpan={5} className="p-4 text-center text-gray-400">없음</td></tr>
+                <tr><td colSpan={5} className="p-4 text-center text-gray-500">없음</td></tr>
               ) : candidates.map((c) => (
                 <tr key={c.id} className="hover:bg-gray-50">
                   <td className="p-3 font-mono text-xs text-gray-500">{c.id?.slice(0, 8)}</td>
@@ -358,7 +358,7 @@ export default function AutomationPlaybookPage() {
             </thead>
             <tbody className="divide-y divide-gray-100">
               {abPatterns.length === 0 ? (
-                <tr><td colSpan={6} className="p-4 text-center text-gray-400">없음</td></tr>
+                <tr><td colSpan={6} className="p-4 text-center text-gray-500">없음</td></tr>
               ) : abPatterns.map((p) => (
                 <tr key={p.id} className="hover:bg-gray-50">
                   <td className="p-3 font-mono text-xs text-gray-500">{p.id?.slice(0, 8)}</td>
@@ -392,7 +392,7 @@ export default function AutomationPlaybookPage() {
             </thead>
             <tbody className="divide-y divide-gray-100">
               {[...runningJobs, ...recentDone].length === 0 ? (
-                <tr><td colSpan={5} className="p-4 text-center text-gray-400">없음</td></tr>
+                <tr><td colSpan={5} className="p-4 text-center text-gray-500">없음</td></tr>
               ) : [...runningJobs, ...recentDone].map((j) => {
                 const dur = j.completed_at && j.started_at
                   ? `${((new Date(j.completed_at) - new Date(j.started_at)) / 1000).toFixed(1)}s`
@@ -436,7 +436,7 @@ export default function AutomationPlaybookPage() {
             </thead>
             <tbody className="divide-y divide-gray-100">
               {events.length === 0 ? (
-                <tr><td colSpan={5} className="p-4 text-center text-gray-400">없음</td></tr>
+                <tr><td colSpan={5} className="p-4 text-center text-gray-500">없음</td></tr>
               ) : events.map((e) => (
                 <tr key={e.id} className="hover:bg-gray-50">
                   <td className="p-3 text-xs text-gray-500">{new Date(e.created_at).toLocaleString("ko-KR")}</td>

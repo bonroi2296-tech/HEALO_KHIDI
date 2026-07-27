@@ -32,7 +32,7 @@ export const ReviewModal = ({ isOpen, onClose, reviews }) => {
             <div className="bg-white rounded-3xl w-full max-w-2xl max-h-[85vh] flex flex-col shadow-2xl">
                 <div className="p-6 border-b border-gray-100 flex justify-between items-center sticky top-0 bg-white rounded-t-3xl z-10">
                     <h3 className="text-xl font-bold text-gray-900">All Reviews ({reviews.length})</h3>
-                    <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition"><X size={24} className="text-gray-400"/></button>
+                    <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition"><X size={24} className="text-gray-500"/></button>
                 </div>
                 <div className="p-6 overflow-y-auto space-y-6">
                     {reviews.map(review => (

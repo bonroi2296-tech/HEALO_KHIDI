@@ -185,7 +185,7 @@ export default function DocumentsClient() {
       {/* No consultation yet */}
       {consultations.length === 0 ? (
         <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6 mb-6 text-center">
-          <AlertCircle size={36} className="text-amber-500 mx-auto mb-3" />
+          <AlertCircle size={36} className="text-amber-700 mx-auto mb-3" />
           <p className="font-semibold text-amber-900 mb-1">{t('patientDocs.noConsult', lang)}</p>
           <p className="text-sm text-amber-700 mb-4">{t('patientDocs.noConsultDesc', lang)}</p>
           <button
@@ -219,7 +219,7 @@ export default function DocumentsClient() {
                   </option>
                 ))}
               </select>
-              <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+              <ChevronDown size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
             </div>
           </div>
 
@@ -237,7 +237,7 @@ export default function DocumentsClient() {
               dragOver ? 'border-teal-500 bg-teal-50' : 'border-gray-200 bg-gray-50 hover:bg-gray-100'
             }`}
           >
-            <Upload size={36} className="text-gray-400 mx-auto mb-3" />
+            <Upload size={36} className="text-gray-500 mx-auto mb-3" />
             <p className="text-sm font-semibold mb-1">{t('patientDocs.dragDrop', lang)}</p>
             <p className="text-xs text-gray-500">{t('patientDocs.formats', lang)} · {t('patientDocs.maxSize', lang)}</p>
             <input
@@ -319,7 +319,7 @@ export default function DocumentsClient() {
                   {doc.description && ` · ${doc.description}`}
                 </div>
                 {doc.consultation && (
-                  <div className="text-[10px] text-gray-400 mt-0.5">
+                  <div className="text-[10px] text-gray-500 mt-0.5">
                     {sessionLabel(doc.consultation.session_type)}
                     {doc.consultation.scheduled_at && ` · ${kstDate(doc.consultation.scheduled_at)}`}
                   </div>

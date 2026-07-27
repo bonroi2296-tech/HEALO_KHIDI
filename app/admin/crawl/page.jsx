@@ -37,7 +37,7 @@ const SOURCE_ICONS = {
 
 const SOURCE_COLORS = {
   hira: "bg-blue-50 text-blue-600 border-blue-200",
-  google_places: "bg-green-50 text-green-600 border-green-200",
+  google_places: "bg-green-50 text-green-700 border-green-200",
   kakao_local: "bg-yellow-50 text-yellow-600 border-yellow-200",
   naver_local: "bg-emerald-50 text-emerald-700 border-emerald-200",
 };
@@ -465,7 +465,7 @@ export default function CrawlPage() {
                           </span>
                         </div>
                         {!src.available && (
-                          <div className="mt-2 text-xs text-red-500 flex items-center gap-1">
+                          <div className="mt-2 text-xs text-red-600 flex items-center gap-1">
                             <AlertTriangle size={12} />
                             키 필요: {src.requiredEnvKeys.join(", ")}
                           </div>
@@ -528,7 +528,7 @@ export default function CrawlPage() {
                 >전체</button>
                 <button
                   onClick={() => setSelectedRegions([])}
-                  className="text-xs text-gray-400 hover:underline"
+                  className="text-xs text-gray-500 hover:underline"
                 >해제</button>
               </div>
             </div>
@@ -572,7 +572,7 @@ export default function CrawlPage() {
                 >전체</button>
                 <button
                   onClick={() => setSelectedSpecs([])}
-                  className="text-xs text-gray-400 hover:underline"
+                  className="text-xs text-gray-500 hover:underline"
                 >해제</button>
               </div>
             </div>
@@ -616,7 +616,7 @@ export default function CrawlPage() {
                             ? "bg-blue-700 text-white hover:bg-blue-800 border-l border-blue-500"
                             : inspecting
                               ? "bg-blue-100 text-blue-700 hover:bg-blue-200 border-l border-blue-200"
-                              : "bg-gray-100 text-gray-500 hover:bg-gray-200 border-l border-gray-200"
+                              : "bg-gray-100 text-gray-600 hover:bg-gray-200 border-l border-gray-200"
                         }`}
                         title={`세부과목 ${subs.length}개 보기`}
                       >
@@ -644,7 +644,7 @@ export default function CrawlPage() {
                     </div>
                     <button
                       onClick={() => setExpandedGroups(new Set())}
-                      className="text-xs text-gray-400 hover:text-gray-600"
+                      className="text-xs text-gray-500 hover:text-gray-600"
                     >닫기</button>
                   </div>
                   <div className="flex flex-wrap gap-1.5">
@@ -688,7 +688,7 @@ export default function CrawlPage() {
                   >기본값</button>
                   <button
                     onClick={() => setSelectedFields([])}
-                    className="text-xs text-gray-400 hover:underline"
+                    className="text-xs text-gray-500 hover:underline"
                   >해제</button>
                 </div>
               </div>
@@ -753,7 +753,7 @@ export default function CrawlPage() {
                 );
               })()}
 
-              <p className="text-xs text-gray-400 mt-2">
+              <p className="text-xs text-gray-500 mt-2">
                 각 필드에 마우스를 올리면 원본 API 필드명을 볼 수 있습니다. 선택한 필드만 결과에 포함됩니다.
               </p>
             </div>
@@ -790,7 +790,7 @@ export default function CrawlPage() {
             <span className="font-medium text-gray-800">검색 조합:</span>{" "}
             {selectedRegions.length || "전체"} 지역 × {selectedSpecs.length || "기본"} 과목
             {selectedRegions.length > 0 && selectedSpecs.length > 0 && (
-              <span className="text-gray-400"> = {selectedRegions.length * selectedSpecs.length} API 호출</span>
+              <span className="text-gray-500"> = {selectedRegions.length * selectedSpecs.length} API 호출</span>
             )}
           </div>
 
@@ -846,7 +846,7 @@ export default function CrawlPage() {
               로드 <span className="font-bold text-gray-900">{items.length}</span>건
             </span>
             <span className="text-sm">
-              신규 <span className="font-bold text-green-600">{importableCount}</span> / 중복 <span className="font-bold text-orange-500">{items.length - importableCount}</span>
+              신규 <span className="font-bold text-green-700">{importableCount}</span> / 중복 <span className="font-bold text-orange-500">{items.length - importableCount}</span>
             </span>
           </div>
 
@@ -860,7 +860,7 @@ export default function CrawlPage() {
               disabled={importing || selectedItems.size === 0}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition ${
                 importing || selectedItems.size === 0
-                  ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                  ? "bg-gray-200 text-gray-500 cursor-not-allowed"
                   : "bg-teal-700 text-white hover:bg-teal-800"
               }`}
             >
@@ -895,7 +895,7 @@ export default function CrawlPage() {
 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className={`text-sm font-semibold ${exists ? "text-gray-400 line-through" : "text-gray-800"}`}>
+                    <span className={`text-sm font-semibold ${exists ? "text-gray-500 line-through" : "text-gray-800"}`}>
                       {item.name}
                     </span>
                     {exists && <span className="text-xs px-1.5 py-0.5 bg-orange-100 text-orange-600 rounded-full">이미 등록됨</span>}
@@ -930,12 +930,12 @@ export default function CrawlPage() {
                   )}
                 </div>
 
-                <span className="shrink-0 text-xs px-2 py-1 bg-gray-100 text-gray-500 rounded-full">{item._sourceId}</span>
+                <span className="shrink-0 text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded-full">{item._sourceId}</span>
               </div>
             );
           })}
 
-          {items.length === 0 && <div className="py-12 text-center text-gray-400">검색 결과가 없습니다</div>}
+          {items.length === 0 && <div className="py-12 text-center text-gray-600">검색 결과가 없습니다</div>}
         </div>
 
         {results.hasMore && (
@@ -976,11 +976,11 @@ export default function CrawlPage() {
               <div className="text-xs text-gray-500 mt-1">총 요청</div>
             </div>
             <div className="text-center p-4 bg-green-50 rounded-xl">
-              <div className="text-2xl font-bold text-green-600">{importResult.imported}</div>
+              <div className="text-2xl font-bold text-green-700">{importResult.imported}</div>
               <div className="text-xs text-gray-500 mt-1">등록 성공</div>
             </div>
             <div className="text-center p-4 bg-red-50 rounded-xl">
-              <div className="text-2xl font-bold text-red-500">{importResult.failed}</div>
+              <div className="text-2xl font-bold text-red-600">{importResult.failed}</div>
               <div className="text-xs text-gray-500 mt-1">실패/중복</div>
             </div>
           </div>
@@ -988,12 +988,12 @@ export default function CrawlPage() {
           <div className="divide-y divide-gray-100 border border-gray-200 rounded-lg overflow-hidden max-h-96 overflow-y-auto">
             {importResult.results?.map((r, idx) => (
               <div key={idx} className="flex items-center gap-3 px-4 py-2.5 text-sm">
-                {r.success ? <CheckCircle2 size={16} className="text-green-500 shrink-0" /> : <XCircle size={16} className="text-red-500 shrink-0" />}
+                {r.success ? <CheckCircle2 size={16} className="text-green-500 shrink-0" /> : <XCircle size={16} className="text-red-600 shrink-0" />}
                 <span className="flex-1 font-medium text-gray-700 truncate">{r.name}</span>
                 {r.success ? (
-                  <span className="text-xs text-green-600">/{r.slug}</span>
+                  <span className="text-xs text-green-700">/{r.slug}</span>
                 ) : (
-                  <span className="text-xs text-red-500">{r.reason}</span>
+                  <span className="text-xs text-red-600">{r.reason}</span>
                 )}
               </div>
             ))}
@@ -1046,7 +1046,7 @@ function FieldGuideModal({ sourceId, onClose }) {
           </div>
           <button
             onClick={onClose}
-            className="p-2 rounded-lg hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition"
+            className="p-2 rounded-lg hover:bg-gray-100 text-gray-600 hover:text-gray-600 transition"
           >
             <X size={20} />
           </button>
@@ -1080,7 +1080,7 @@ function FieldGuideModal({ sourceId, onClose }) {
                   <div key={idx} className="bg-gray-50 rounded-lg px-4 py-2.5 border border-gray-100">
                     <div className="flex items-baseline gap-2 mb-1">
                       <span className="text-sm font-semibold text-gray-800">{item.field}</span>
-                      <code className="text-[11px] text-gray-400 bg-gray-200/60 px-1.5 py-0.5 rounded font-mono">{item.api}</code>
+                      <code className="text-[11px] text-gray-500 bg-gray-200/60 px-1.5 py-0.5 rounded font-mono">{item.api}</code>
                     </div>
                     <p className="text-xs text-gray-600 leading-relaxed">{item.desc}</p>
                   </div>

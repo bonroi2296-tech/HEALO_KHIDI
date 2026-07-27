@@ -75,7 +75,7 @@ export function AddRecipientForm({ onClose, onSubmit, showToast }: AddRecipientF
             resetForm();
             onClose();
           }}
-          className="text-gray-400 hover:text-gray-600 transition-colors"
+          className="text-gray-500 hover:text-gray-600 transition-colors"
           title="닫기"
         >
           <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -89,7 +89,7 @@ export function AddRecipientForm({ onClose, onSubmit, showToast }: AddRecipientF
         {/* 이름 */}
         <div>
           <label className="block mb-2 text-sm font-medium text-gray-700">
-            이름 <span className="text-red-500">*</span>
+            이름 <span className="text-red-600">*</span>
           </label>
           <input
             type="text"
@@ -104,7 +104,7 @@ export function AddRecipientForm({ onClose, onSubmit, showToast }: AddRecipientF
         {/* 채널 선택 */}
         <div>
           <label className="block mb-3 text-sm font-medium text-gray-700">
-            알림 채널 선택 <span className="text-red-500">*</span>
+            알림 채널 선택 <span className="text-red-600">*</span>
             <span className="text-xs text-gray-500 ml-2">(다채널 선택 가능)</span>
           </label>
           <div className="space-y-3">
@@ -160,7 +160,7 @@ export function AddRecipientForm({ onClose, onSubmit, showToast }: AddRecipientF
         {(formData.channels.includes("sms") || formData.channels.includes("alimtalk")) && (
           <div>
             <label className="block mb-2 text-sm font-medium text-gray-700">
-              전화번호 <span className="text-red-500">*</span>
+              전화번호 <span className="text-red-600">*</span>
             </label>
             <input
               type="text"
@@ -181,7 +181,7 @@ export function AddRecipientForm({ onClose, onSubmit, showToast }: AddRecipientF
         {formData.channels.includes("email") && (
           <div>
             <label className="block mb-2 text-sm font-medium text-gray-700">
-              이메일 주소 <span className="text-red-500">*</span>
+              이메일 주소 <span className="text-red-600">*</span>
             </label>
             <input
               type="email"

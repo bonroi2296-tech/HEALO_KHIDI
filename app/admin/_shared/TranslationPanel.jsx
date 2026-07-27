@@ -30,7 +30,7 @@ function StatusBadge({ hasValue }) {
     );
   }
   return (
-    <span className="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-400">
+    <span className="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-600">
       <AlertCircle size={10} /> 없음
     </span>
   );
@@ -106,7 +106,7 @@ export function TranslationPanel({ i18n, onI18nChange, type = 'hospital', _entit
                   ? 'bg-green-200 text-green-800'
                   : filled > 0
                   ? 'bg-yellow-200 text-yellow-800'
-                  : 'bg-gray-200 text-gray-500'
+                  : 'bg-gray-200 text-gray-700' /* gray-500 on gray-200 = 3.9:1 (AA 미달) → gray-700 7.6:1 */
               }`}
             >
               {code.toUpperCase()} {filled}/{total}
@@ -134,7 +134,7 @@ export function TranslationPanel({ i18n, onI18nChange, type = 'hospital', _entit
                   }`}
                 >
                   {label}
-                  <span className={`ml-1 text-[10px] ${activeLang === code ? 'text-indigo-200' : 'text-gray-400'}`}>
+                  <span className={`ml-1 text-[10px] ${activeLang === code ? 'text-indigo-200' : 'text-gray-500'}`}>
                     ({comp?.filled}/{comp?.total})
                   </span>
                 </button>

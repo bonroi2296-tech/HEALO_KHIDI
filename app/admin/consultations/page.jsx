@@ -546,7 +546,7 @@ export default function ConsultationsPage() {
       {/* Empty state */}
       {!loading && filteredConsultations.length === 0 && (
         <div className="text-center py-12 bg-gray-50 rounded-lg">
-          <Calendar size={48} className="mx-auto text-gray-400 mb-4" />
+          <Calendar size={48} className="mx-auto text-gray-500 mb-4" />
           <p className="text-gray-600 font-semibold">{tt("emptyHeading")}</p>
           <p className="text-gray-500 text-sm mt-1">
             {filter === "upcoming" && tt("emptyUpcoming")}
@@ -657,7 +657,7 @@ export default function ConsultationsPage() {
                   <div className="flex-shrink-0">
                     <ChevronDown
                       size={24}
-                      className={`text-gray-400 transition ${
+                      className={`text-gray-500 transition ${
                         expandedId === consultation.id ? "rotate-180" : ""
                       }`}
                     />
@@ -700,7 +700,7 @@ export default function ConsultationsPage() {
 
                   {/* Room info */}
                   <div className="flex items-start gap-3 p-4 bg-white rounded-lg border border-gray-200">
-                    <AlertCircle size={20} className="text-gray-400 mt-1" />
+                    <AlertCircle size={20} className="text-gray-500 mt-1" />
                     <div className="flex-1">
                       <p className="text-sm font-semibold text-gray-900">
                         {tt("lblRoomInfo")}
@@ -829,7 +829,7 @@ export default function ConsultationsPage() {
                           <p className="text-sm font-semibold text-gray-900">
                             {tt("aiSummaryTitle")}
                           </p>
-                          <span className="text-xs text-gray-400">
+                          <span className="text-xs text-gray-500">
                             {tt("aiSummaryNote")}
                           </span>
                         </div>

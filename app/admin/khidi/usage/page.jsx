@@ -23,7 +23,7 @@ function fmtVal(m) {
 
 const STATUS_BAR = { ok: "bg-teal-500", warn: "bg-amber-400", danger: "bg-red-500", none: "bg-gray-300" };
 const MEASURE_BADGE = {
-  live: { t: "● 실측", c: "text-green-600 bg-green-50 border-green-200" },
+  live: { t: "● 실측", c: "text-green-700 bg-green-50 border-green-200" },
   proxy: { t: "≈ 추정", c: "text-blue-600 bg-blue-50 border-blue-200" },
   console: { t: "콘솔", c: "text-gray-500 bg-gray-50 border-gray-200" },
 };
@@ -51,11 +51,11 @@ function Metric({ m, big }) {
     <div>
       <div className="flex items-baseline justify-between gap-2">
         <span className={`${big ? "text-xs" : "text-[11px]"} text-gray-500`}>{m.label}</span>
-        {m.limit && <span className="text-[10px] text-gray-400">/ {m.limit}{m.pct != null ? ` · ${m.pct}%` : ""}</span>}
+        {m.limit && <span className="text-[10px] text-gray-500">/ {m.limit}{m.pct != null ? ` · ${m.pct}%` : ""}</span>}
       </div>
       <div className={`${big ? "text-2xl font-bold" : "text-sm font-semibold"} text-gray-900`}>{fmtVal(m)}</div>
       <Bar pct={m.pct} status={m.status} />
-      {m.note && <p className="text-[10px] text-gray-400 mt-0.5">{m.note}</p>}
+      {m.note && <p className="text-[10px] text-gray-500 mt-0.5">{m.note}</p>}
     </div>
   );
 }
@@ -132,11 +132,11 @@ export default function UsagePage() {
             <p className="text-2xl font-bold text-gray-900">{loading ? "—" : fmtVal(s.m)}</p>
             {s.m?.limit && (
               <>
-                <p className="text-[11px] text-gray-400 mt-0.5">/ {s.m.limit}{s.m.pct != null ? ` · ${s.m.pct}%` : ""}</p>
+                <p className="text-[11px] text-gray-500 mt-0.5">/ {s.m.limit}{s.m.pct != null ? ` · ${s.m.pct}%` : ""}</p>
                 <Bar pct={s.m?.pct} status={s.m?.status} />
               </>
             )}
-            {s.m?.note && !s.m?.limit && <p className="text-[11px] text-gray-400 mt-0.5">{s.m.note}</p>}
+            {s.m?.note && !s.m?.limit && <p className="text-[11px] text-gray-500 mt-0.5">{s.m.note}</p>}
           </div>
         ))}
       </div>
@@ -173,7 +173,7 @@ export default function UsagePage() {
                   )}
                 </div>
               ) : (
-                <div className="bg-gray-50/70 rounded-lg p-3 mt-1 text-xs text-gray-400">
+                <div className="bg-gray-50/70 rounded-lg p-3 mt-1 text-xs text-gray-500">
                   앱에서 직접 측정 불가 — 아래 콘솔에서 실제 사용량을 확인하세요.
                 </div>
               )}
@@ -181,15 +181,15 @@ export default function UsagePage() {
               {/* 플랜·한도 */}
               <dl className="text-xs space-y-1.5 mt-3">
                 <div className="flex gap-2">
-                  <dt className="text-gray-400 w-16 shrink-0">플랜</dt>
+                  <dt className="text-gray-500 w-16 shrink-0">플랜</dt>
                   <dd className="text-gray-700 font-medium">{s.plan}</dd>
                 </div>
                 <div className="flex gap-2">
-                  <dt className="text-gray-400 w-16 shrink-0">무료 한도</dt>
+                  <dt className="text-gray-500 w-16 shrink-0">무료 한도</dt>
                   <dd className="text-gray-600">{s.freeTier}</dd>
                 </div>
                 <div className="flex gap-2">
-                  <dt className="text-gray-400 w-16 shrink-0">유료 시작</dt>
+                  <dt className="text-gray-500 w-16 shrink-0">유료 시작</dt>
                   <dd className="text-gray-600">{s.paidTrigger}</dd>
                 </div>
               </dl>
@@ -207,7 +207,7 @@ export default function UsagePage() {
         })}
       </div>
 
-      <p className="text-[11px] text-gray-400">
+      <p className="text-[11px] text-gray-500">
         ※ <b>실측</b>=앱이 직접 집계 · <b>추정</b>=우리 DB로 대신 측정(정확치는 콘솔) · <b>콘솔</b>=벤더 콘솔에서만 확인.
         무료 한도·단가는 참고치(벤더 수시 변경) — 정확한 청구는 각 콘솔. 제미나이 비용은 추정 단가.
         {data?.generatedAt && ` · 조회 ${new Date(data.generatedAt).toLocaleString("ko-KR")}`}

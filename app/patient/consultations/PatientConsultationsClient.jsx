@@ -162,7 +162,7 @@ export default function PatientConsultationsClient() {
                       {q.step2_completed_at ? (
                         <span className="text-teal-700">{t("patientConsults.step2Done", lang)}</span>
                       ) : (
-                        <span className="text-gray-400">{t("patientConsults.step1Done", lang)}</span>
+                        <span className="text-gray-500">{t("patientConsults.step1Done", lang)}</span>
                       )}
                     </div>
                   </div>
@@ -259,7 +259,7 @@ function ConsultationCard({ session, past, lang }) {
               <span className="text-sm text-gray-600">
                 Dr. {session.partner_doctors.name_ko}
                 {session.partner_doctors.subspecialty && (
-                  <span className="text-gray-400">
+                  <span className="text-gray-500">
                     {" "}
                     · {session.partner_doctors.subspecialty}
                   </span>

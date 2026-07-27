@@ -24,12 +24,16 @@ import { AdminGuideModal } from "./_components/AdminGuideModal";
 const supabase = createSupabaseBrowserClient();
 
 // 역할 식별 색(사이드바 teal 브랜드와 별개로, 피드·카드에서 역할 구분용)
+// ⚠️ 이 칩들은 흰 글씨(10px bold)를 얹는다 → 배경이 흰색 대비 4.5:1 이상이어야 한다.
+//    2026-07-27 프로덕션 실측에서 teal-600(3.74)이 걸렸다. 같은 이유로 violet-500(4.23)·amber-500(2.15)도
+//    미달이지만 «그 역할의 데이터가 마침 없어서» 측정에 안 잡혔을 뿐이라 함께 교정한다.
+//    교훈: 프리뷰에서 0건이어도 «데이터가 없어 안 걸린 것»일 수 있다 — 색 상수는 실측을 기다리지 말고 계산으로 검산할 것.
 const ROLE_META = {
-  patient: { label: "환자", chip: "bg-teal-600" },
-  coordinator: { label: "코디", chip: "bg-sky-500" },
-  agency: { label: "에이전시", chip: "bg-violet-500" },
-  hospital: { label: "병원", chip: "bg-amber-500" },
-  system: { label: "시스템", chip: "bg-gray-500" },
+  patient: { label: "환자", chip: "bg-teal-700" },      // 3.74 → 5.47
+  coordinator: { label: "코디", chip: "bg-sky-700" },   // 5.93 (유지)
+  agency: { label: "에이전시", chip: "bg-violet-600" }, // 4.23 → 5.70
+  hospital: { label: "병원", chip: "bg-amber-700" },    // 2.15 → 5.02
+  system: { label: "시스템", chip: "bg-gray-600" },     // 4.83 → 7.56
 };
 
 const quickLinks = [
@@ -68,7 +72,7 @@ function RoleCard({ swatch, title, big, unit, rows, onClick }) {
       </div>
       <div className="text-2xl font-extrabold text-gray-900 tabular-nums">
         {big}
-        <span className="text-xs font-semibold text-gray-400 ml-1">{unit}</span>
+        <span className="text-xs font-semibold text-gray-500 ml-1">{unit}</span>
       </div>
       <div className="mt-2 space-y-0.5">
         {rows.map(([k, v]) => (
@@ -153,11 +157,11 @@ export default function AdminDashboard() {
       <section>
         <div className="flex items-baseline gap-3 mb-3">
           <h2 className="text-base font-bold text-gray-900">오늘 현황</h2>
-          <span className="text-xs text-gray-400">실데이터 집계</span>
+          <span className="text-xs text-gray-500">실데이터 집계</span>
           <button
             type="button"
             onClick={load}
-            className="ml-auto flex items-center gap-1 text-xs text-gray-400 hover:text-teal-700 transition"
+            className="ml-auto flex items-center gap-1 text-xs text-gray-500 hover:text-teal-700 transition"
           >
             <RefreshCw size={12} className={loading ? "animate-spin" : ""} /> 새로고침
           </button>
@@ -232,11 +236,11 @@ export default function AdminDashboard() {
       <section>
         <div className="flex items-baseline gap-3 mb-3">
           <h2 className="text-base font-bold text-gray-900">최근 활동</h2>
-          <span className="text-xs text-gray-400">모든 역할의 변경사항이 시간순으로</span>
+          <span className="text-xs text-gray-500">모든 역할의 변경사항이 시간순으로</span>
         </div>
         <div className="bg-white rounded-xl border border-gray-200 divide-y divide-gray-100">
           {loading && (
-            <div className="p-4 text-sm text-gray-400">불러오는 중…</div>
+            <div className="p-4 text-sm text-gray-500">불러오는 중…</div>
           )}
           {!loading && (data?.feed?.length ? (
             data.feed.map((f, i) => {
@@ -248,7 +252,7 @@ export default function AdminDashboard() {
                   onClick={() => router.push(f.href)}
                   className="w-full flex items-baseline gap-3 px-4 py-2.5 text-left hover:bg-gray-50 transition"
                 >
-                  <span className="text-[11px] text-gray-400 tabular-nums min-w-[52px]">{timeOf(f.at)}</span>
+                  <span className="text-[11px] text-gray-500 tabular-nums min-w-[52px]">{timeOf(f.at)}</span>
                   <span className={`text-[10px] font-bold text-white rounded-full px-2 py-0.5 whitespace-nowrap ${meta.chip}`}>
                     {meta.label}
                   </span>
@@ -258,7 +262,7 @@ export default function AdminDashboard() {
               );
             })
           ) : (
-            <div className="p-4 text-sm text-gray-400">
+            <div className="p-4 text-sm text-gray-500">
               {loadError ? "불러오지 못했습니다." : "아직 기록된 활동이 없습니다."}
             </div>
           ))}
