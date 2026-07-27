@@ -67,16 +67,24 @@ for (const p of PATHS) {
     // 「빈 화면 통과」와 같은 부류의 두 번째 구멍: 세션이 죽으면 로그인 화면으로 튕기는데
     // 그 화면은 멀쩡히 렌더되므로 위 검증을 통과해 버린다 → 로그인 페이지를 재고 "백오피스 0건"이라 보고하게 된다.
     // 그래서 로그인 뒤 화면을 잴 때는 「진짜 그 화면에 있는가」를 따로 단언한다.
-    // 언어 접두사(/en, /ru …)와 끝 슬래시는 정상 이동이므로 벗겨내고 비교한다(괜한 오탐 방지).
-    const norm = (s) => s.replace(/^\/(ko|en|ru|kz|zh|ja)(?=\/|$)/, "").replace(/\/$/, "") || "/";
+    // 「빈 화면 통과」와 같은 부류의 두 번째 구멍을 여기서 막는다:
+    // 세션이 죽으면 로그인 화면으로 튕기는데, 그 화면은 멀쩡히 렌더돼 위 검증을 통과해 버린다
+    // → 로그인 페이지를 재고 "백오피스 위반 0건"이라 보고하게 된다.
+    // 단, 로그인 이탈만 실패로 본다. 앱이 스스로 다른 화면으로 보내는 것(합쳐진 메뉴 등)은 정상이므로
+    // 실패가 아니라 「어디에 도착했는지」만 기록하고 그대로 측정한다.
+    // (2026-07-27 첫 실행에서 /coordinator/intakes → /coordinator/consultations 정상 이동을
+    //  AUTH FAIL 로 오탐한 뒤 완화. 과한 가드는 진짜 신호를 파묻는다.)
     const landed = new URL(page.url()).pathname;
-    if (STATE && (landed.includes("/login") || norm(landed) !== norm(p))) {
+    if (STATE && /\/(login|auth)(\/|$)/.test(landed)) {
       sanityFailed++;
       console.log(`${p}: ⛔ AUTH FAIL — ${landed} 로 튕김(세션 만료·권한 없음). 측정 불가, 통과 아님`);
       summary.push({ path: p, renderOk: false, status, landedOn: landed, error: "redirected_not_authenticated" });
       await page.close();
       continue;
     }
+    const norm = (s) => s.replace(/^\/(ko|en|ru|kz|zh|ja)(?=\/|$)/, "").replace(/\/$/, "") || "/";
+    const redirectedTo = norm(landed) === norm(p) ? null : landed;
+    if (redirectedTo) console.log(`${p}: ↪ ${redirectedTo} 로 이동해서 측정함(정상 리다이렉트)`);
 
     const res = await new AxeBuilder({ page })
       .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
@@ -96,6 +104,7 @@ for (const p of PATHS) {
       path: p,
       renderOk: true,
       status,
+      redirectedTo,
       renderedNodes: render.nodes,
       renderedText: render.text,
       ruleViolations: res.violations.length,
