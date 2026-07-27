@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import OrganIcon from "../../_components/OrganIcon";
 // 인테이크 선택지 라벨(6개국어)·값은 코디 상세화면과 공용 — 단일 SoR.
-import { CANCER_TYPES, STAGES, TREATMENT_STATES, TRAVEL_TIMING, PRIORITIES } from "@/lib/inquiry/intakeLabels";
+import { CANCER_TYPES, STAGES, TREATMENT_STATES, TRAVEL_TIMING, PRIORITIES, optLabel } from "@/lib/inquiry/intakeLabels";
 import { t } from "@/lib/i18n";
 import { useLang } from "@/lib/i18n/LangContext";
 import { event } from "@/lib/ga";
@@ -560,7 +560,7 @@ export default function UnifiedInquiryFunnel() {
                       : "border-gray-200 text-gray-600 hover:border-gray-300"
                   }`}
                 >
-                  {s.label[lang] || s.label.en}
+                  {optLabel(s, lang)}
                 </button>
               ))}
             </div>
@@ -624,7 +624,7 @@ export default function UnifiedInquiryFunnel() {
                       : "border-gray-200 text-gray-600 hover:border-gray-300"
                   }`}
                 >
-                  {opt.label[lang] || opt.label.en}
+                  {optLabel(opt, lang)}
                 </button>
               ))}
             </div>
@@ -655,7 +655,7 @@ export default function UnifiedInquiryFunnel() {
                     }`}
                   >
                     {selected && <Check size={14} />}
-                    {p.label[lang] || p.label.en}
+                    {optLabel(p, lang)}
                   </button>
                 );
               })}
@@ -1033,7 +1033,7 @@ export default function UnifiedInquiryFunnel() {
                     {ct.organ ? <OrganIcon name={ct.organ} className="w-[22px] h-[22px]" /> : <HelpCircle size={18} />}
                   </div>
                   <span className={`text-[11px] font-medium leading-tight ${selected ? "text-teal-800" : "text-gray-700"}`}>
-                    {ct.label[lang] || ct.label.en}
+                    {optLabel(ct, lang)}
                   </span>
                   {selected && (
                     <div className="absolute top-1 right-1 w-4 h-4 bg-teal-700 rounded-full flex items-center justify-center">

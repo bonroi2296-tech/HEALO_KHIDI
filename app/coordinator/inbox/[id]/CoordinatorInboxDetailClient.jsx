@@ -19,7 +19,7 @@ import { cancerTypeLabelL } from "@/lib/khidi/medicalLabels";
 import { nationalityLabelL } from "@/lib/khidi/nationality";
 import { useBackofficeLang, useCoordinatorL, useDateLocale, coordinatorL } from "@/lib/i18n/coordinator";
 // 인테이크 선택지 라벨(6개국어)·값 = 폼과 공용 단일 SoR. 코디 화면에서 raw 코드 대신 번역 표시.
-import { TREATMENT_STATES, TRAVEL_TIMING, PRIORITIES, PRIORITIES_LEGACY, CONSENT_ITEMS, INTAKE_UI, labelOf, pick } from "@/lib/inquiry/intakeLabels";
+import { TREATMENT_STATES, TRAVEL_TIMING, PRIORITIES, PRIORITIES_LEGACY, CONSENT_ITEMS, INTAKE_UI, labelOf, pick, optLabel } from "@/lib/inquiry/intakeLabels";
 import OpinionsSection from "./OpinionsSection";
 
 const STATUS_COLORS = {
@@ -957,7 +957,7 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
                       return (
                         <div key={o.value} className="flex items-center gap-2 py-1 text-sm">
                           {on ? <Check size={14} className="text-teal-600 shrink-0" /> : <X size={14} className="text-gray-300 shrink-0" />}
-                          <span className={on ? "text-gray-800" : "text-gray-500"}>{pick(o.label, lang)}</span>
+                          <span className={on ? "text-gray-800" : "text-gray-500"}>{optLabel(o, lang)}</span>
                         </div>
                       );
                     })}
