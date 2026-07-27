@@ -186,10 +186,25 @@ test.describe("야간 로봇 통화 — 2인 실연결 검증", () => {
       const BOT_PRESENT =
         /통역 음성으로 들려요|hear an interpreted voice|переведённый голос|аударылған дауысты|翻译语音|通訳音声/;
 
-      const voiceBtn = robotB
-        .getByRole("button", { name: /^(통역|Voice|Озвучка|Дауыс|语音|音声)$/ })
-        .first();
-      await voiceBtn.waitFor({ state: "visible", timeout: 15_000 });
+      // 접근명(«통역»)으로 찾지 않는다 — 봇이 없을 때 붙는 `···` 배지가 이름에 섞여
+      // "통역 ···" 이 되는 바람에 **정작 봇이 없는 경우에만 못 찾았다**(2026-07-27 실측:
+      // 프로덕션에서 15초 타임아웃 3회. 잡으려던 상황에서만 눈이 머는 셀렉터였다).
+      // → page.jsx 의 `data-testid="voice-toggle"` 로 고정(다국어 6종·배지 무관).
+      const voiceBtn = robotB.getByTestId("voice-toggle").first();
+      try {
+        await voiceBtn.waitFor({ state: "visible", timeout: 15_000 });
+      } catch (e) {
+        // 버튼 자체가 없으면 «봇 없음»과 «UI 가 달라짐»을 구분해야 한다 → 화면을 남긴다.
+        const screen = await robotB
+          .locator("body")
+          .innerText()
+          .catch(() => "(본문 읽기 실패)");
+        test.info().annotations.push({
+          type: "interpreter-nobutton",
+          description: `통역 토글을 못 찾음. 화면: ${screen.replace(/\n+/g, " | ").slice(0, 500)}`,
+        });
+        throw e;
+      }
 
       // 봇 디스패치는 토큰 발급 시점에 걸리지만 워커가 방에 붙기까지 몇 초 걸린다.
       // 토글을 껐다 켜며 최대 ~40초 재확인 — 매번 새 토스트가 현재 재실 상태로 다시 뜬다.
