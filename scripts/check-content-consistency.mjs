@@ -1066,7 +1066,7 @@ for (const dir of BACKOFFICE_DIRS) {
 {
   const PRIVATE_SEGS = new Set(["admin", "coordinator", "patient", "hospital", "agency", "clinic", "doctor", "api", "auth", "dev", "design-preview", "account"]);
   // 주석(줄·블록) 제거 — 주석 내용이 판정에 끼어들면 안 된다.
-  const stripComments = (s) => s.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
+  const stripComments = (s) => s.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^[^\S\r\n]*\/\/.*/gm, "");
   // 폐기용 껍데기: `export default function X() { redirect("/어디"); }` — 본문이 리다이렉트뿐.
   const SHELL_RE = /export\s+default\s+(?:async\s+)?function\s+\w*\s*\([^)]*\)\s*\{\s*(redirect|permanentRedirect)\s*\(\s*["'`][^"'`]*["'`]\s*\)\s*;?\s*\}/;
   for (const file of walk("app")) {
@@ -1392,7 +1392,7 @@ for (const dir of BACKOFFICE_DIRS) {
     let lines;
     try { lines = readFileSync(join(ROOT, rel), "utf8").split("\n"); } catch { continue; }
     lines.forEach((line, i) => {
-      const code = line.replace(/\/\/.*$/, "");
+      const code = line.replace(/\/\/.*/, "");
       const hit = code.match(NET_AUTH);
       const window = lines.slice(Math.max(0, i - 2), i + 1).join("\n");
       if (!hit || /withAuthTimeout\s*\(/.test(window)) return;
@@ -1627,7 +1627,7 @@ for (const dir of BACKOFFICE_DIRS) {
       }
       // 사다리를 import 했더라도 «감싸지 않은 generateText 호출» 이 남아 있으면 그 줄을 찍는다.
       src.split("\n").forEach((line, i) => {
-        const code = line.replace(/\/\/.*$/, "");
+        const code = line.replace(/\/\/.*/, "");
         if (!SDK_CALL.test(code)) return;
         if (/callGeminiWithCompat/.test(code)) return;
         errors.push(
@@ -1666,7 +1666,7 @@ for (const dir of BACKOFFICE_DIRS) {
       for (const [id, dead, replacement] of DEAD_MODELS) {
         // 더 긴 ID 의 접두사로 오탐하지 않도록 뒤에 ID 문자가 안 오는 경우만
         const re = new RegExp(`["'\`]${id.replace(/\./g, "\\.")}(?![\\w.-])`);
-        const line = src.split("\n").findIndex((l) => re.test(l.replace(/\/\/.*$/, "")));
+        const line = src.split("\n").findIndex((l) => re.test(l.replace(/\/\/.*/, "")));
         if (line < 0) continue;
         errors.push(
           `[죽은모델] ${rel.replace(/\\/g, "/")}:${line + 1} — \`${id}\` 는 ${dead} 에 ` +
@@ -1722,11 +1722,11 @@ for (const dir of BACKOFFICE_DIRS) {
       try { raw = readFileSync(join(ROOT, rel), "utf8"); } catch { continue; }
       // ⚠️ 주석은 걷어내고 판정한다. 초안이 원문 그대로 검사해서, «__dirname 쓰지 마라»고
       //    경고하는 주석(e2e/fixtures/auth.ts)을 위반으로 오탐했다 — 첫 실행에서 바로 드러남.
-      const stripped = raw.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/.*$/gm, "$1");
+      const stripped = raw.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/.*/gm, "$1");
       if (!USE.test(stripped) || DEFINE.test(stripped)) continue;
       const lines = raw.split("\n");
       const line = lines.findIndex(
-        (l, i) => USE.test(l.replace(/(^|[^:])\/\/.*$/, "$1")) && stripped.includes(lines[i].trim().slice(0, 20))
+        (l, i) => USE.test(l.replace(/(^|[^:])\/\/.*/, "$1")) && stripped.includes(lines[i].trim().slice(0, 20))
       );
       errors.push(
         `[ESM경로] ${path_}${line >= 0 ? `:${line + 1}` : ""} — 이 저장소는 "type":"module"(ESM) 이라 ` +
