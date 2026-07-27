@@ -379,7 +379,10 @@ for r in review_data:
     add_data_row(review_tbl, r, bold_first=True)
 
 # 저장
-out_path = 'C:/Users/user/Desktop/HEALO_KHIDI/docs/government-project/EVAL_MATRIX.docx'
+import os as _os
+# 저장 위치는 «이 스크립트가 있는 폴더» 기준으로 잡는다.
+# (전에는 특정 PC 의 절대경로가 박혀 있어 그 PC 밖에서는 재생성이 아예 불가능했다.)
+out_path = _os.path.join(_os.path.dirname(_os.path.abspath(__file__)), 'EVAL_MATRIX.docx')
 doc.save(out_path)
 print(f'저장 완료: {out_path}')
 print(f'총 단락 수: {len(doc.paragraphs)}')
