@@ -45,6 +45,30 @@ concurrency:
   group: e2e-${{ github.ref }}-${{ github.event_name }}
   cancel-in-progress: true
 
+# ─────────────────────────────────────────────────────────────────────────────
+# 🔒 DB 동시 진입 상한 (2026-07-27, KNOWN_ISSUES 「E2E 가 프로덕션 DB 를 물고 22갈래 동시 진입」)
+#
+# 문제: 자동검사는 앱을 러너 로컬에 띄우면서 **DB 는 프로덕션을 그대로** 문다(연습용 DB 가 없다).
+#   위 workflow 레벨 그룹은 «같은 브랜치» 안에서만 중복을 지운다 → 작업본이 22개면
+#   22개 스위트가 같은 DB 로 동시에 들어간다. 2026-07-24 DB 멈춤의 부하 축 중 하나.
+#
+# 왜 job 레벨에 따로 거나: GitHub 의 concurrency 는 «동시 N개»가 아니라 «그룹당 1개»다.
+#   그래서 workflow 레벨 그룹을 전역으로 바꾸면 둘 중 하나를 잃는다 —
+#     · cancel-in-progress: true 로 하면 → 남의 PR 실행을 내 PR 이 죽인다(재앙)
+#     · false 로 하면 → 브랜치 내 중복 제거(같은 PR 에 연속 푸시)를 잃는다
+#   job 레벨은 workflow 레벨과 **독립된 자물쇠**라 둘 다 가진다:
+#     workflow 레벨 = 브랜치 안 중복 제거 / job 레벨 = 저장소 전역 직렬화(대기).
+#
+# 상한을 1로 잡아도 되는 근거(실측 산수): KNOWN_ISSUES 기록 = 14시간에 89회 실행.
+#   1회 ≈ 4~7분 → 총 점유 ≈ 445분 / 창 840분 = **약 53% 가동률**.
+#   즉 직렬화해도 여유가 있다. 몰릴 땐 줄을 서지만(대기 중 러너를 안 먹는다) 대체로 흘러간다.
+#   ⚠️ 이 산수가 틀어지는 신호 = PR 초록이 늦게 뜬다는 체감. 그러면 상한을 늘리기 전에
+#      «왜 실행 횟수가 늘었나»(불필요한 재실행·중복 푸시)를 먼저 볼 것.
+#
+# ⚠️ 이건 응급 처치다. 근본 해결은 KNOWN_ISSUES ②번 — **E2E 를 프로덕션 DB 에서 떼어내기**
+#    (별도 Supabase 프로젝트, 시드 이관 필요) = 비용 산출 후 PO 결정.
+# ─────────────────────────────────────────────────────────────────────────────
+
 jobs:
   # ─────────────────────────────────────────────
   # JOB 1: PR smoke (핵심만, 빠르게)
@@ -52,6 +76,10 @@ jobs:
   smoke:
     name: Smoke Tests (PR)
     if: github.event_name == 'pull_request'
+    # 🔒 전역 직렬화 — 아래 「DB 동시 진입 상한」 주석 참고. 저장소 전체에서 한 번에 하나만.
+    concurrency:
+      group: e2e-prod-db
+      cancel-in-progress: false
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -141,6 +169,10 @@ jobs:
     if: >-
       (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
       (github.event_name == 'workflow_dispatch' && github.event.inputs.target != 'production')
+    # 🔒 전역 직렬화 (smoke·nightly 와 같은 그룹)
+    concurrency:
+      group: e2e-prod-db
+      cancel-in-progress: false
     runs-on: ubuntu-latest
     timeout-minutes: 25
 
@@ -291,6 +323,10 @@ jobs:
     if: >-
       github.event_name == 'schedule' ||
       (github.event_name == 'workflow_dispatch' && github.event.inputs.target == 'production')
+    # 🔒 전역 직렬화 (smoke·full 과 같은 그룹). 야간엔 경쟁자가 거의 없어 대기 영향 미미.
+    concurrency:
+      group: e2e-prod-db
+      cancel-in-progress: false
     runs-on: ubuntu-latest
     timeout-minutes: 25
 
