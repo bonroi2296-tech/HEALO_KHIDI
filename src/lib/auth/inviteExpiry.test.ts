@@ -1,5 +1,5 @@
 /**
- * 초대 링크 만료가 «미팅보다 먼저 죽는» 사고를 막는 회귀 테스트 (POSTMORTEM #129)
+ * 초대 링크 만료가 «미팅보다 먼저 죽는» 사고를 막는 회귀 테스트 (POSTMORTEM #130)
  */
 
 import { describe, it, expect } from "vitest";

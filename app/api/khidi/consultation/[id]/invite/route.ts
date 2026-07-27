@@ -91,7 +91,7 @@ export async function POST(
     );
   }
 
-  // 만료시각: 요청분(기본 72h)과 «예약시각 + 유예 12h» 중 늦은 쪽 (POSTMORTEM #129).
+  // 만료시각: 요청분(기본 72h)과 «예약시각 + 유예 12h» 중 늦은 쪽 (POSTMORTEM #130).
   //   발급 시점 기준 고정 시간만 쓰면, 미팅이 연기되거나 링크를 미리 뽑아둔 경우
   //   상담 당일 링크가 이미 죽어 있다(실제 사고: 7/24 발급 링크가 7/27 미팅 5시간 전 만료).
   const { expiresAt, extendedForSchedule } = resolveInviteExpiry({
@@ -239,7 +239,7 @@ export async function POST(
         max_uses: maxUses,
         email_sent: emailSent,
         expires_at: result.expiresAt.toISOString(),
-        // 예약시각 때문에 만료가 요청분보다 늘어났는지 — 사고(#129) 이후 동작 추적용
+        // 예약시각 때문에 만료가 요청분보다 늘어났는지 — 사고(#130) 이후 동작 추적용
         expiry_extended_for_schedule: extendedForSchedule,
       },
     });
