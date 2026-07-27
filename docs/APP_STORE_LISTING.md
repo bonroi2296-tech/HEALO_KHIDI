@@ -54,7 +54,10 @@
 4. ✅ **Codemagic 가입·저장소 연결 완료(2026-07-14)** — Personal(Individual) 계정, HEALO_KHIDI 연결, codemagic.yaml 자동 인식 확인(PO 스크린샷). ⚠️ 서명 열쇠 없이 빌드 시작 금지(실패만 뜨고 무료분 낭비) — 결제 후 열쇠 3종(ASC API 키·Play 서비스계정·키스토어) 등록부터.
 
 **어시가 할 것 (계정 열리면):**
-- Vercel env 2개(`FCM_PROJECT_ID`·`GOOGLE_SERVICE_ACCOUNT_JSON`) 설정 + `/api/push/test` 실기기 수신 확인
+- ✅ **Vercel env 2개 설정 완료 (2026-07-27, 실측 확인)** — `FCM_PROJECT_ID`=`healo-e3e58` · `GOOGLE_SERVICE_ACCOUNT_JSON`=Firebase Admin SDK 서비스계정 키(2026-07-27 신규 발급). 둘 다 production·preview·development, encrypted.
+  - ⚠️ **Vercel env 는 「다음 배포부터」 적용된다** — 현재 돌고 있는 프로덕션에는 아직 안 실렸다. 다음 머지·배포가 나가면 자동 반영(이것만을 위해 재배포할 필요는 없음).
+  - ⚠️ 서비스계정 키 = **Firebase 프로젝트 전체 권한**. 로컬 다운로드 사본은 안전한 곳(비밀번호 관리자·암호화 폴더)으로 옮기고 다운로드 폴더에 방치하지 말 것. 유출 의심 시 Firebase 콘솔에서 키 폐기 후 재발급 → Vercel env 교체.
+  - ⬜ 남은 검증: `/api/push/test`(admin) 실기기 수신 확인 — **앱 빌드가 나온 뒤에만 가능**.
 - ✅ **iOS 푸시 배선 코드 스테이징 완료 (2026-07-24, 브랜치 `claude/app-registration`)** — 아래 ②④가 코드로 준비됨:
   - ✅ ② **AppDelegate.swift** — `FirebaseApp.configure()` + `MessagingDelegate`로 APNs→FCM 토큰 교환. **FCM 토큰만** Capacitor `registration` 이벤트로 흘려보내 registerPush.ts가 서버에 올리는 token.value가 iOS에서도 FCM 토큰이 되게 함(무음 실패 원인 해소). Info.plist에 `FirebaseAppDelegateProxyEnabled=NO` 추가(이중 발화 방지).
   - ✅ ④ **codemagic.yaml** — `pod install`(Podfile 없어 무조건 실패) 제거, `.xcworkspace`→`.xcodeproj` 로 SPM 구조에 맞춤.
