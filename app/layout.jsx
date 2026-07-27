@@ -147,8 +147,7 @@ export default async function RootLayout({ children }) {
   // 브라우저에 심을 사전 목록. 21개 언어 통짜를 번들에서 뺀 대신 「필요한 언어만」 넣는다.
   // 보통 1개. 사용자가 쿠키로 URL 언어와 다른 언어를 골라둔 경우에만 2개 —
   // LangProvider 가 하이드레이션 후 쿠키 언어로 바꾸므로 그 사전이 없으면 글자가 빈다.
-  const cookieLang = (await cookies()).get("healo_lang")?.value;
-  const clientLangs = [lang, LANG_OPTIONS.some((l) => l.code === cookieLang) ? cookieLang : null]
+  const clientLangs = [lang, validCookieLang]
     .filter((v, i, a) => v && a.indexOf(v) === i);
 
   return (
