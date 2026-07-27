@@ -74,4 +74,17 @@ describe("resolveInviteExpiry", () => {
     expect(r.expiresAt.getTime()).toBe(NOW.getTime() + 168 * H);
     expect(r.cappedByMaxLifetime).toBe(false);
   });
+
+  it("요청분 자체가 상한보다 길면(라우트 밖 호출) 요청분을 지키고 «잘렸다»고 보고하지 않는다", () => {
+    const r = resolveInviteExpiry({ now: NOW, expiresInHours: 100 * 24, scheduledAt: null });
+    expect(r.expiresAt.getTime()).toBe(NOW.getTime() + 100 * 24 * H);
+    expect(r.cappedByMaxLifetime).toBe(false);
+  });
+
+  it("Date 객체로 넘긴 예약시각도 동일하게 동작한다", () => {
+    const scheduled = new Date(NOW.getTime() + 10 * 24 * H);
+    const r = resolveInviteExpiry({ now: NOW, expiresInHours: 72, scheduledAt: scheduled });
+    expect(r.extendedForSchedule).toBe(true);
+    expect(r.expiresAt.getTime()).toBe(scheduled.getTime() + POST_MEETING_GRACE_HOURS * H);
+  });
 });

@@ -63,9 +63,10 @@ export function resolveInviteExpiry({
 
   const hardCap = new Date(now.getTime() + MAX_LINK_LIFETIME_DAYS * 24 * 60 * 60 * 1000);
   let cappedByMaxLifetime = false;
-  if (expiresAt.getTime() > hardCap.getTime()) {
-    // 상한이 요청분보다 짧아지는 역전은 없어야 한다(요청 자체가 상한을 넘는 건 라우트에서 이미 차단).
-    expiresAt = hardCap.getTime() > base.getTime() ? hardCap : base;
+  // 상한은 «예약시각 때문에 늘어난 부분»만 자른다. 요청분(base)보다 짧아지는 역전은 없어야 하고
+  // (요청 자체가 상한을 넘는 건 라우트에서 이미 차단), 그 경우 «잘렸다»고 보고하지도 않는다.
+  if (expiresAt.getTime() > hardCap.getTime() && hardCap.getTime() > base.getTime()) {
+    expiresAt = hardCap;
     cappedByMaxLifetime = true;
   }
 
