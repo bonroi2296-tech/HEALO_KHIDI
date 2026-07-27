@@ -332,6 +332,9 @@ export default function HomeClient({ content } = {}) {
                       src={(meta.img || "").split("?")[0]}
                       alt={l(h.name)}
                       fill
+                      // 모바일에선 높이 96px 짜리 썸네일이라 기본 화질(75)은 과하다 — 육안 차이 없이
+                      // 장당 수십 KB 절감 (2026-07-27 PageSpeed: 이 카드 한 장이 40KB 였음).
+                      quality={60}
                       sizes="(min-width:1024px) 25vw, (min-width:640px) 33vw, 50vw"
                       onError={(e) => { if (e.currentTarget.src.includes("_coming-soon")) return; e.currentTarget.onerror = null; e.currentTarget.src = "/images/hospitals/_coming-soon.svg?v=3"; }}
                       className="object-cover group-hover:scale-105 transition-transform duration-300"

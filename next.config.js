@@ -130,9 +130,16 @@ const nextConfig = {
         ],
       },
       {
-        // 이미지 파일 캐시 — immutable 금지 (404가 1년 캐시되어 파일 추가 후에도
+        // 이미지 「원본」 파일 캐시 — immutable 금지 (404가 1년 캐시되어 파일 추가 후에도
         // 깨진 채 고정되는 문제 방지). 짧게 캐시하고 백그라운드 재검증.
-        source: '/:path*\\.(jpg|jpeg|png|gif|webp|svg|ico)',
+        //
+        // ⚠️ `(?!_next)` 는 실수로 넣은 게 아니다 (2026-07-27 PageSpeed 실측).
+        // Vercel 에서는 이 규칙이 next/image 결과물(`/_next/image?url=...jpg`)에도 걸려서,
+        // next.config 의 images.minimumCacheTTL(1년)이 만든 헤더를 1시간으로 덮어쓰고 있었다
+        // → 재방문자가 최적화 이미지 122KiB 를 매번 다시 받음. 로컬 `next start` 에서는
+        // 안 걸려서 「고쳐졌겠지」 하고 넘어가면 안 보인다(프로덕션에서만 재현).
+        // 여기서 /_next/ 를 빼면 최적화 이미지는 Next 기본값(1년)을 그대로 받는다.
+        source: '/:path((?!_next/).*)\\.(jpg|jpeg|png|gif|webp|svg|ico)',
         headers: [
           {
             key: 'Cache-Control',
