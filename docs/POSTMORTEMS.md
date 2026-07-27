@@ -14,6 +14,27 @@
 
 ---
 
+## #132 — 🔁 #77(#30) 부류 **3차 재발**: 렌더 중 쿠키·`navigator` 읽기로 Hydration Error 한 달간 23건 — #77이 "후속 권장"으로 남긴 잠복 1건이 **20일 동안 4건으로 번식** (2026-07-27, PO가 "센트리 에러 분석해봐"라고 해서 발각)
+
+- **무슨 일**: 센트리 `JAVASCRIPT-NEXTJS-3`(`Hydration failed…`)가 **한 달간 23건**, 우선순위 Med 로 조용히 쌓이고 있었다(`/patient/visa/applications`·`/survey/*`). 원인은 **컴포넌트 렌더 본문에서 브라우저에만 있는 값을 읽는 것** — 서버 렌더엔 `document`·`navigator` 가 없어 `'en'` 으로 그리고, 브라우저는 쿠키/브라우저언어로 `'ko'`·`'ru'` 로 그린다 → 화면 전체가 어긋남. 실제 지점 4곳:
+  `app/patient/layout.jsx:32`(탭 라벨 전부) · `src/components/NotificationBell.jsx:31` · `app/inquiry/ThreadChat.jsx:410` · `src/components.jsx:137`(Header 폴백) + 변형 1곳 `app/survey/[token]/_client/SurveyForm.jsx:277`(`navigator.language` 를 렌더 중 호출).
+- **왜 못 잡았나 (그때의 방지책이 왜 못 막았나)** — 셋 다 뚫렸다:
+  1. **#30 가드가 «리터럴 한 줄»만 봤다.** 룰이 `setLang(getLangCodeFromCookie())` 정규식이라, 같은 죄인 `const lang = getLangCodeFromCookie()`(대입형)는 **그물 밖**이었다. 부류가 아니라 문장 하나를 막은 것.
+  2. **#77이 진범을 이미 지목해놓고 안 고쳤다.** #77(7/7) 본문에 *"부차 잠복(이번 PR 범위 밖, 후속): `src/components.jsx:137` … `useLang()`로 이관 권장"* 이라고 **정확히 적혀 있다.** 티켓도 가드도 안 남긴 «권장» 이라 20일간 방치됐고, 그 사이 같은 패턴이 3곳 더 생겼다. **반성문에 적은 «후속»은 가드나 티켓이 되지 않으면 없는 것과 같다.**
+  3. **언어 가드는 언어만 봤다.** `SurveyForm` 은 쿠키가 아니라 `navigator.language` 라 어떤 룰에도 안 걸렸다. `localStorage`·`matchMedia` 도 마찬가지로 무방비였다.
+  - 공통 배경: 카테고리 A — `next build`·tsc·`check:content` 전부 통과한다(문법이 아니라 **렌더 타이밍**). 사람 눈에도 안 보인다(하이드레이션 후엔 올바른 언어로 보임). **오직 센트리만 알고 있었고, PO가 물어보기 전까지 아무도 안 봤다.**
+- **어떻게 고쳤나**
+  - 4곳 → 이미 있던 안전 장치 `useLang()`(`useSyncExternalStore`: 하이드레이션 땐 서버값, 그 뒤 쿠키값)로 교체. 새 추상화 0.
+  - 설문은 `useLang()` 로는 부족했다(초대 링크로 처음 온 환자는 쿠키가 없어 러시아 환자에게 영어 설문이 간다 — K-03 표본이 걸린 문제). **서버 컴포넌트가 `Accept-Language` 헤더를 읽어 `browserLang` prop 으로 내려주게** 바꿔, 서버·클라가 같은 언어로 그리면서 러시아 환자는 러시아어를 받는다.
+  - **실측 검증**: 로컬 dev 에 `Accept-Language` 를 바꿔가며 SSR HTML 을 직접 조회 — ko→`오류가 발생했습니다`, ru→`Произошла ошибка`, kk→`Қате орын алды`, en→`An Error Occurred`. 고치기 전 코드는 `if (typeof navigator === "undefined") return "en"` 이라 **서버는 무조건 영어**였다. 브라우저 콘솔 hydration 경고 0.
+- **재발 방지 (뚫린 가드 교체)**
+  - `check-content-consistency.mjs` 에 **「렌더 본문에서 브라우저 전용 값 읽기」 룰 신설** — 리터럴 패턴이 아니라 **위치**로 판정한다(들여쓰기 2칸 = 컴포넌트 본문, `useEffect`/핸들러 안은 통과). 대상도 `getLangCodeFromCookie`·`navigator.language(s)`·`localStorage`·`sessionStorage`·`matchMedia` 로 확장.
+  - **가드가 실제로 무는지 증명**: 나쁜 컴포넌트를 임시로 심어 검사 실패(1건) → 제거 후 통과를 확인했다. 켰을 때 진짜 위반 4건 + 오탐 1건(`LangContext.jsx` = 안전 패턴의 원본, 면제 처리)이 드러났다.
+  - 정직한 한계(ponytail): 파일에 중첩 컴포넌트가 있어 본문이 4칸으로 들어가면 못 잡는다. 그때는 AST 로 올릴 것 — 룰 주석에 적어뒀다.
+  - **미결로 남긴 것(숨기지 않음)**: 같은 센트리에 `NotFoundError(insertBefore/removeChild)` 8건이 **미해결**이다(상담방 3건은 100% Edge·네이버웍스 링크, 전부 «방 나가는 순간»). 원인이 «브라우저 자동번역» 인지 우리 코드인지 **아직 못 가른다** → 단정 대신 판별 태그(`page_translated`·`page_lang`·`ui_lang`)를 센트리 `beforeSend` 에 심었다(실제 페이지에서 no/yes/yes 동작 확인). 다음 1건이면 판정된다.
+
+---
+
 ## #131 — 「JS 260KB 줄였다」고 보고했는데 구글 점수는 제자리였다 — **바이트를 재고 점수를 안 쟀다** (2026-07-27, PO가 "구글 들어가서 확인해봐" 해서 발각)
 
 - **무슨 일**: i18n 사전 분리([#1025](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/1025))로 홈 첫 화면 JS 를 **624KB → 365KB** 로 줄이고 「완료」로 보고했다. 그런데 PO 지시로 구글 PageSpeed 를 실제로 돌려보니 모바일 점수가 **69 → 66·68 로 제자리**였다. 뜯어보니 LCP·TBT 는 좋아졌는데 **FCP 가 2.3s → 3.5s 로 나빠져 상쇄**되고 있었다.
