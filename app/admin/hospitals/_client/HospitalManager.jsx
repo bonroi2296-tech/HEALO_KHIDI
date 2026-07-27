@@ -1055,7 +1055,7 @@ function FormContent({ editingHospitalId, hospitalForm, setHospitalForm, uploadi
             <h3 className="text-sm font-bold text-green-900 flex items-center gap-2"><Shield size={16}/> 보험 정보</h3>
             <div className="flex items-center gap-3">
               <label className="text-sm text-gray-700 flex-1">보험 적용 가능</label>
-              <button type="button" onClick={()=>setHospitalForm({...hospitalForm, insuranceAccepted: !hospitalForm.insuranceAccepted})} className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${hospitalForm.insuranceAccepted?'bg-green-600':'bg-gray-300'}`}>
+              <button type="button" role="switch" aria-checked={!!hospitalForm.insuranceAccepted} aria-label="보험 적용 가능" onClick={()=>setHospitalForm({...hospitalForm, insuranceAccepted: !hospitalForm.insuranceAccepted})} className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${hospitalForm.insuranceAccepted?'bg-green-600':'bg-gray-300'}`}>
                 <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${hospitalForm.insuranceAccepted?'translate-x-6':'translate-x-1'}`}/>
               </button>
             </div>

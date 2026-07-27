@@ -106,7 +106,7 @@ export function TranslationPanel({ i18n, onI18nChange, type = 'hospital', _entit
                   ? 'bg-green-200 text-green-800'
                   : filled > 0
                   ? 'bg-yellow-200 text-yellow-800'
-                  : 'bg-gray-200 text-gray-500'
+                  : 'bg-gray-200 text-gray-700' /* gray-500 on gray-200 = 3.9:1 (AA 미달) → gray-700 7.6:1 */
               }`}
             >
               {code.toUpperCase()} {filled}/{total}
