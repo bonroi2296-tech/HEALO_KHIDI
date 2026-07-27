@@ -1,89 +1,122 @@
 {
-  "base": "https://healo-khidi-git-claude-audit-results-doc-bonrois-projects.vercel.app",
-  "ts": "2026-06-20T09:09:11.523Z",
+  "base": "https://healwith.co.kr",
+  "ts": "2026-07-27T00:29:35.409Z",
+  "scope": "공개(무인증) 페이지만 — 백오피스·환자포털은 로그인 뒤라 미측정",
+  "sanityFailed": 0,
   "totalsByImpact": {
     "critical": 0,
-    "serious": 0,
+    "serious": 1,
     "moderate": 0,
     "minor": 0
+  },
+  "incompleteTotal": 23,
+  "byRule": [
+    {
+      "id": "color-contrast",
+      "impact": "serious",
+      "nodes": 1,
+      "pages": 1
+    }
+  ],
+  "incompleteByRule": {
+    "color-contrast": 23
   },
   "pages": [
     {
       "path": "/en",
-      "ruleViolations": 0,
-      "nodes": 0,
+      "renderOk": true,
+      "status": 200,
+      "renderedNodes": 521,
+      "renderedText": 4799,
+      "ruleViolations": 1,
+      "nodes": 1,
+      "incompleteNodes": 10,
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 10,
+          "samples": [
+            {
+              "target": "h1",
+              "html": "<h1 class=\"text-3xl sm:text-4xl md:text-5xl font-extrabold leading-tight mb-4 md:mb-6 whitespace-pre-line tracking-tight\">Get a Second Opinion from\nKorea's Top "
+            },
+            {
+              "target": ".lg\\:text-lg",
+              "html": "<p class=\"text-sm md:text-base lg:text-lg text-slate-200 mb-6 md:mb-8 max-w-2xl mx-auto whitespace-pre-line leading-relaxed\">AI real-time interpretation · Video"
+            },
+            {
+              "target": ".py-12 > .text-center > .bg-gradient-to-r.from-teal-500.to-emerald-500",
+              "html": "<button class=\"group bg-gradient-to-r from-teal-500 to-emerald-500 text-white font-bold text-base md:text-lg px-8 py-4 md:px-10 md:py-5 rounded-2xl shadow-lg sh"
+            },
+            {
+              "target": ".text-slate-400.mt-3",
+              "html": "<p class=\"text-slate-400 text-xs md:text-sm mt-3 whitespace-pre-line\">Takes only 5 minutes · Completely free</p>"
+            },
+            {
+              "target": ".mb-4.md\\:mb-6.lg\\:text-4xl",
+              "html": "<h2 class=\"text-2xl md:text-3xl lg:text-4xl font-extrabold mb-4 md:mb-6 whitespace-pre-line\">Start Your Journey Today</h2>"
+            }
+          ]
+        }
+      ],
       "byImpact": {
         "critical": 0,
-        "serious": 0,
+        "serious": 1,
         "moderate": 0,
         "minor": 0
       },
-      "rules": []
-    },
-    {
-      "path": "/en/treatments",
-      "ruleViolations": 0,
-      "nodes": 0,
-      "byImpact": {
-        "critical": 0,
-        "serious": 0,
-        "moderate": 0,
-        "minor": 0
-      },
-      "rules": []
+      "rules": [
+        {
+          "id": "color-contrast",
+          "impact": "serious",
+          "count": 1,
+          "help": "Elements must meet minimum color contrast ratio thresholds",
+          "samples": [
+            {
+              "target": ".mb-5",
+              "summary": "Fix any of the following:\n  Element has insufficient color contrast of 4.41 (foreground color: #6b7280, background color: #fef2f2, font size: 12.0pt (16px), font weight: normal). Expected contrast ratio of 4.5:1"
+            }
+          ]
+        }
+      ]
     },
     {
       "path": "/en/hospitals",
+      "renderOk": true,
+      "status": 200,
+      "renderedNodes": 1378,
+      "renderedText": 12221,
       "ruleViolations": 0,
       "nodes": 0,
-      "byImpact": {
-        "critical": 0,
-        "serious": 0,
-        "moderate": 0,
-        "minor": 0
-      },
-      "rules": []
-    },
-    {
-      "path": "/en/telemedicine",
-      "ruleViolations": 0,
-      "nodes": 0,
-      "byImpact": {
-        "critical": 0,
-        "serious": 0,
-        "moderate": 0,
-        "minor": 0
-      },
-      "rules": []
-    },
-    {
-      "path": "/en/care-journey",
-      "ruleViolations": 0,
-      "nodes": 0,
-      "byImpact": {
-        "critical": 0,
-        "serious": 0,
-        "moderate": 0,
-        "minor": 0
-      },
-      "rules": []
-    },
-    {
-      "path": "/en/faq",
-      "ruleViolations": 0,
-      "nodes": 0,
-      "byImpact": {
-        "critical": 0,
-        "serious": 0,
-        "moderate": 0,
-        "minor": 0
-      },
-      "rules": []
-    },
-    {
-      "path": "/ru",
-      "ruleViolations": 0,
-      "nodes": 0,
+      "incompleteNodes": 13,
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 13,
+          "samples": [
+            {
+              "target": ".bg-white\\/15",
+              "html": "<div class=\"inline-flex items-center gap-2 bg-white/15 backdrop-blur-sm rounded-full px-4 py-1.5 text-sm font-semibold mb-6\">"
+            },
+            {
+              "target": "h1",
+              "html": "<h1 class=\"text-3xl md:text-5xl font-extrabold leading-tight mb-4\">Immune Hospital of Korean Medicine</h1>"
+            },
+            {
+              "target": ".mb-4.text-emerald-200.text-xl",
+              "html": "<p class=\"text-emerald-200 text-xl font-medium mb-4\">Korean Medicine immune therapy &amp; post-care for healwith</p>"
+            },
+            {
+              "target": ".md\\:text-lg",
+              "html": "<p class=\"text-white/80 text-base md:text-lg max-w-3xl leading-relaxed mb-10\">"
+            },
+            {
+              "target": ".bg-white\\/10.px-5.py-3:nth-child(1) > .tabular-nums.text-xl.text-white",
+              "html": "<span class=\"text-white font-bold text-xl tabular-nums\">4</span>"
+            }
+          ]
+        }
+      ],
       "byImpact": {
         "critical": 0,
         "serious": 0,

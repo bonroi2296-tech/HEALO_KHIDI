@@ -11,34 +11,83 @@ import { AxeBuilder } from "@axe-core/playwright";
 import { writeFileSync, mkdirSync } from "node:fs";
 
 const BASE = process.env.AUDIT_BASE_URL || "https://healo-khidi.vercel.app";
-const PATHS = (process.env.AUDIT_PATHS || "/en,/en/treatments,/en/hospitals,/en/telemedicine,/en/care-journey,/en/faq,/ru").split(",");
+// 공개(무인증) 화면만 측정 가능 — 백오피스·환자포털은 로그인 뒤라 여기 안 잡힌다(스캔 범위 한계, 리포트에 명시).
+// /en/inquiry·/ru/hospitals 는 전환 퍼널·주 타겟 언어라 2026-07-27 추가.
+const PATHS = (
+  process.env.AUDIT_PATHS ||
+  "/en,/en/treatments,/en/hospitals,/en/telemedicine,/en/care-journey,/en/faq,/en/inquiry,/ru,/ru/hospitals,/ru/care-journey"
+).split(",");
 
 const browser = await chromium.launch({ args: ["--no-sandbox", "--ignore-certificate-errors"] });
 // 일부 실행환경(프록시)에서 TLS 체인을 못 믿는 경우가 있어 인증서 오류 무시.
 const context = await browser.newContext({ ignoreHTTPSErrors: true });
 const summary = [];
 
+// 「빈 화면 통과」 차단 — 자동화 브라우저가 페이지를 하얗게 렌더하면 axe 는 위반 0 을 돌려주고
+// 그게 "접근성 완벽"으로 기록된다(실제로 2026-06 리포트가 7개 페이지 전부 0/0 이었음).
+// 그래서 스캔 전에 "이 페이지가 진짜 그려졌는가"를 먼저 단언한다. 못 넘으면 통과가 아니라 실패.
+const MIN_TEXT = 200;   // 본문 글자수 하한
+const MIN_NODES = 50;   // 렌더된 엘리먼트 수 하한
+let sanityFailed = 0;
+
 for (const p of PATHS) {
   const page = await context.newPage();
   try {
-    await page.goto(BASE + p, { waitUntil: "networkidle", timeout: 60000 });
+    const resp = await page.goto(BASE + p, { waitUntil: "networkidle", timeout: 60000 });
+    const status = resp?.status() ?? 0;
+    const render = await page.evaluate(() => ({
+      nodes: document.body ? document.body.querySelectorAll("*").length : 0,
+      text: (document.body?.innerText || "").trim().length,
+    }));
+    const ok = status < 400 && render.nodes >= MIN_NODES && render.text >= MIN_TEXT;
+    if (!ok) {
+      // 여기서 axe 를 돌리면 "위반 0" 이라는 거짓 합격이 나온다 → 스캔하지 않고 실패로 기록.
+      sanityFailed++;
+      console.log(`${p}: ⛔ RENDER FAIL (status ${status} · nodes ${render.nodes} · text ${render.text}자) — 측정 불가, 통과 아님`);
+      summary.push({ path: p, renderOk: false, status, ...render, error: "empty_or_error_render" });
+      await page.close();
+      continue;
+    }
+
     const res = await new AxeBuilder({ page })
       .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
       .analyze();
     const byImpact = { critical: 0, serious: 0, moderate: 0, minor: 0 };
     for (const v of res.violations) byImpact[v.impact || "minor"] += v.nodes.length;
     const nodes = res.violations.reduce((a, v) => a + v.nodes.length, 0);
+    // axe 가 "위반"이라 단정 못 한 것들(사진·그라데이션 위 글씨 등 배경색을 계산할 수 없는 경우).
+    // 위반 0 이어도 여기 숫자가 크면 "확인 안 된 것"이지 "괜찮은 것"이 아니다 → 따로 센다.
+    const incomplete = res.incomplete.map((v) => ({
+      id: v.id,
+      count: v.nodes.length,
+      samples: v.nodes.slice(0, 5).map((n) => ({ target: n.target.join(" "), html: (n.html || "").slice(0, 160) })),
+    }));
+    const incompleteNodes = incomplete.reduce((a, v) => a + v.count, 0);
     summary.push({
       path: p,
+      renderOk: true,
+      status,
+      renderedNodes: render.nodes,
+      renderedText: render.text,
       ruleViolations: res.violations.length,
       nodes,
+      incompleteNodes,
+      incomplete,
       byImpact,
-      rules: res.violations.map((v) => ({ id: v.id, impact: v.impact, count: v.nodes.length, help: v.help })),
+      rules: res.violations.map((v) => ({
+        id: v.id,
+        impact: v.impact,
+        count: v.nodes.length,
+        help: v.help,
+        // 어디를 고쳐야 하는지 — 대표 3건만(리포트 비대화 방지)
+        samples: v.nodes.slice(0, 3).map((n) => ({ target: n.target.join(" "), summary: n.failureSummary })),
+      })),
     });
-    console.log(`${p}: ${res.violations.length} rules / ${nodes} nodes  [crit ${byImpact.critical} · ser ${byImpact.serious} · mod ${byImpact.moderate} · min ${byImpact.minor}]`);
+    console.log(`${p}: ${res.violations.length} rules / ${nodes} nodes  [crit ${byImpact.critical} · ser ${byImpact.serious} · mod ${byImpact.moderate} · min ${byImpact.minor}]  미판정 ${incompleteNodes}  (렌더 ${render.nodes}노드·${render.text}자)`);
   } catch (e) {
+    sanityFailed++;
     console.log(`${p}: ERROR ${e.message}`);
-    summary.push({ path: p, error: e.message });
+    summary.push({ path: p, renderOk: false, error: e.message });
   }
   await page.close();
 }
@@ -49,6 +98,54 @@ const tot = summary.reduce((a, s) => {
   return a;
 }, { critical: 0, serious: 0, moderate: 0, minor: 0 });
 
+// 룰별 합계 — "무엇을 고치면 제일 많이 줄어드나"가 한눈에 보이게.
+const byRule = {};
+for (const s of summary) {
+  for (const r of s.rules || []) {
+    byRule[r.id] ??= { id: r.id, impact: r.impact, nodes: 0, pages: 0 };
+    byRule[r.id].nodes += r.count;
+    byRule[r.id].pages++;
+  }
+}
+const rank = Object.values(byRule).sort((a, b) => b.nodes - a.nodes);
+
+const incByRule = {};
+for (const s of summary) {
+  for (const r of s.incomplete || []) incByRule[r.id] = (incByRule[r.id] || 0) + r.count;
+}
+const incRank = Object.entries(incByRule).sort((a, b) => b[1] - a[1]);
+const incTotal = incRank.reduce((a, [, n]) => a + n, 0);
+
 mkdirSync("docs/audit", { recursive: true });
-writeFileSync("docs/audit/a11y-report.json", JSON.stringify({ base: BASE, ts: new Date().toISOString(), totalsByImpact: tot, pages: summary }, null, 2));
+writeFileSync(
+  "docs/audit/a11y-report.json",
+  JSON.stringify(
+    {
+      base: BASE,
+      ts: new Date().toISOString(),
+      scope: "공개(무인증) 페이지만 — 백오피스·환자포털은 로그인 뒤라 미측정",
+      sanityFailed,
+      totalsByImpact: tot,
+      incompleteTotal: incTotal,
+      byRule: rank,
+      incompleteByRule: Object.fromEntries(incRank),
+      pages: summary,
+    },
+    null,
+    2,
+  ),
+);
 console.log(`\nTOTAL by impact — critical:${tot.critical} serious:${tot.serious} moderate:${tot.moderate} minor:${tot.minor}`);
+if (rank.length) {
+  console.log("\n룰별 순위 (고칠 순서):");
+  for (const r of rank) console.log(`  ${String(r.nodes).padStart(4)} nodes · ${r.pages}p · [${r.impact}] ${r.id}`);
+}
+if (incRank.length) {
+  console.log(`\n미판정(axe가 배경색을 계산 못 해 «확인 안 됨»으로 남긴 것) 총 ${incTotal}:`);
+  for (const [id, n] of incRank) console.log(`  ${String(n).padStart(4)} nodes · ${id}`);
+}
+if (sanityFailed) {
+  // 스캐너 정합성 문제(측정 자체가 안 된 것) = 실패. 위반 건수는 리포트로 남기되 잡을 죽이지 않는다.
+  console.error(`\n⛔ ${sanityFailed}개 페이지가 렌더 검증을 통과하지 못했습니다 — 이 리포트의 "0건"은 통과가 아닙니다.`);
+  process.exit(1);
+}
