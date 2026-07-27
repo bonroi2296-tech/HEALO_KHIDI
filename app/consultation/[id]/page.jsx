@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import {
   LiveKitRoom,
@@ -279,6 +279,20 @@ function WaitingForOthers({ copy }) {
       <p className="text-gray-300 text-sm">{c.waitingForOthers}</p>
     </div>
   );
+}
+
+// ── 혼자 남았는지 감시 (LiveKitRoom 내부 전용) ──
+// useParticipants 는 방 컨텍스트 안에서만 쓸 수 있어, 부모(페이지)에 콜백으로 알려준다.
+// 통역 봇(agent-*)은 사람이 아니므로 «봇만 남은 방»도 혼자로 센다.
+function AloneWatcher({ onAloneChange }) {
+  const participants = useParticipants();
+  const state = useConnectionState();
+  const humans = participants.filter(isHumanParticipant).length;
+  const alone = state === ConnectionState.Connected && humans <= 1;
+  useEffect(() => {
+    onAloneChange(alone);
+  }, [alone, onAloneChange]);
+  return null;
 }
 
 // ── 방 정보 오버레이 (LiveKitRoom 내부 전용) — 참가자 수 + 경과 시간 ──
@@ -707,6 +721,26 @@ export default function ConsultationRoomPage() {
   useEffect(() => () => {
     if (idleDisconnectTimerRef.current) clearTimeout(idleDisconnectTimerRef.current);
   }, []);
+
+  // ── 자리 비움 자동 종료 (구글 미트 방식: 먼저 «아직 계신가요?» → 무응답이면 연결만 끊기) ──
+  // 왜: 위 워치독은 «연결이 끊긴 뒤»에만 작동한다. 나가기를 안 누르고 화면만 켜둔 채 자리를
+  //     뜨면(방에 그대로 있는 상태) 폴링이 영원히 돈다 — 2026-07-24 IO 예산 고갈과 같은 부류.
+  // 업계 표준 조사(2026-07-25): 구글 미트 = 혼자 10분 → 안내 → 2분 무응답이면 종료 /
+  //     줌 = 혼자 40분이면 종료(단 이건 무료 요금제 제한 목적). 바로 끊지 않고 «먼저 묻는»
+  //     구글 방식을 택함 — 의료 상담이라 오작동으로 끊기면 안 되기 때문.
+  // ⚠️ 여기서 «종료» = 이 브라우저의 연결만 끊기. 상담 기록(status)·상대 참가자·초대 링크는
+  //     전혀 안 건드린다(2026-07-01 «종료 누르면 completed 로 바뀌던» 회귀와 혼동 금지).
+  const IDLE_RULES = {
+    // 입장 전 대기(의사 기다리는 중) — PO 지시 2026-07-25: 5분 뒤 묻고 1분 무응답이면 내보냄
+    waiting: { ask: 5 * 60 * 1000, grace: 60 * 1000 },
+    // 통화 중인데 방에 나 혼자 — 재접속이 잦은 회선(카자흐·러시아)을 고려해 구글 표준값 유지
+    inRoom: { ask: 10 * 60 * 1000, grace: 2 * 60 * 1000 },
+  };
+  const [isAloneInRoom, setIsAloneInRoom] = useState(false);
+  const [idlePrompt, setIdlePrompt] = useState(false);   // «아직 계신가요?» 표시 중
+  const [idleClosed, setIdleClosed] = useState(false);   // 무응답으로 연결을 끊은 상태
+  const idleAskTimerRef = useRef(null);
+  const idleGraceTimerRef = useRef(null);
 
   // Guest mode state
   const [guestName, setGuestName] = useState("");
@@ -1632,6 +1666,54 @@ export default function ConsultationRoomPage() {
     };
   }, [admissionId, admissionStatus, consultationId, toast]);
 
+  // ── 자리 비움 타이머 ──
+  // 두 상황에만 돈다: ①입장 전 대기 중 ②통화 중인데 방에 나 혼자. 상대가 한 명이라도 있으면
+  // 타이머 자체가 안 돈다 → 진행 중인 상담은 30분을 말없이 들어도 절대 안 끊긴다.
+  const idleMode = useMemo(() => {
+    if (idleClosed || !livekitToken) return null;
+    if (admissionStatus === "pending") return "waiting";
+    if (connected && isAloneInRoom) return "inRoom";
+    return null;
+  }, [idleClosed, livekitToken, admissionStatus, connected, isAloneInRoom]);
+
+  // «네, 있어요»를 누르면 타이머를 처음부터 다시 건다. round 를 올려 아래 effect 를 재실행시키는
+  // 방식 — 안 그러면 한 번 누른 뒤로는 영영 다시 안 물어봐서, 그 뒤에 진짜 자리를 떠도 못 잡는다.
+  const [idleRound, setIdleRound] = useState(0);
+  const stayInRoom = useCallback(() => {
+    setIdlePrompt(false);
+    if (idleGraceTimerRef.current) clearTimeout(idleGraceTimerRef.current);
+    idleGraceTimerRef.current = null;
+    setIdleRound((n) => n + 1);
+  }, []);
+
+  useEffect(() => {
+    const clear = () => {
+      if (idleAskTimerRef.current) clearTimeout(idleAskTimerRef.current);
+      if (idleGraceTimerRef.current) clearTimeout(idleGraceTimerRef.current);
+      idleAskTimerRef.current = null;
+      idleGraceTimerRef.current = null;
+    };
+    if (!idleMode) {
+      clear();
+      setIdlePrompt(false);
+      return;
+    }
+    const { ask, grace } = IDLE_RULES[idleMode];
+    idleAskTimerRef.current = setTimeout(() => {
+      setIdlePrompt(true);
+      idleGraceTimerRef.current = setTimeout(() => {
+        // 연결만 끊는다 — 폴링이 전부 멈추고(livekitToken 의존) 화면엔 «다시 입장»이 뜬다.
+        setIdlePrompt(false);
+        setIdleClosed(true);
+        setLivekitToken("");
+      }, grace);
+    }, ask);
+    return clear;
+    // IDLE_RULES 는 렌더마다 새로 만들어지는 상수 객체라 의존성에서 뺀다(값은 불변).
+    // idleRound 는 «네, 있어요»를 누를 때마다 올라가 타이머를 처음부터 다시 걸게 한다.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [idleMode, idleRound]);
+
   // ── 신원 판정 + (계정 모드면) 세션·LiveKit 토큰 로드 ──
   // 링크 하나로 통일: 로그인 세션이 있으면 '이 상담의 참가자인지' 먼저 확인한다.
   //   · 참가자면 → 계정(staff) 모드 입장 (URL 에 초대토큰이 있어도 계정 우선).
@@ -2412,6 +2494,29 @@ export default function ConsultationRoomPage() {
     );
   }
 
+  // ── 자리 비움으로 연결을 끊은 화면 ──
+  // «상담이 끝났다»가 아니라 «이 브라우저의 연결만 끊었다»임을 분명히 말한다.
+  // 새로고침 한 번이면 원래 입장 흐름(게스트 폼 / 계정 자동입장)으로 그대로 돌아간다.
+  if (idleClosed) {
+    return (
+      <div className="w-full min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-slate-900 to-teal-950 text-white p-4">
+        <div className="max-w-md w-full bg-gray-800/90 backdrop-blur rounded-2xl shadow-2xl border border-gray-700 p-6 sm:p-8 text-center">
+          <div className="w-12 h-12 rounded-2xl bg-teal-700/15 text-teal-400 flex items-center justify-center mx-auto mb-4">
+            <Video size={22} />
+          </div>
+          <h1 className="text-xl font-bold mb-2">{c.idleClosedTitle}</h1>
+          <p className="text-sm text-gray-400 leading-relaxed mb-6">{c.idleClosedBody}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="w-full py-3 rounded-xl bg-teal-600 hover:bg-teal-500 font-semibold transition-colors"
+          >
+            {c.idleRejoin}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   // ── Guest mode: 이름 입력 폼 먼저 표시 (staff 여부 판정이 끝난 뒤에만) ──
   if (isGuestMode && !livekitToken && !checkingAuth) {
     // 모바일: 인사말 압축 + 이름칸 상단 + 하단 고정 입장 바 — 첫 화면에 "뭘 해야 하는지"가
@@ -2738,6 +2843,22 @@ export default function ConsultationRoomPage() {
 
   return (
     <div className="w-full h-screen bg-gray-900 text-white flex flex-col">
+      {/* ── «아직 계신가요?» — 대기 화면·통화 화면 어디서든 뜨게 최상위에 겹친다 ──
+          바로 끊지 않고 먼저 묻는 이유: 의료 상담이라 오작동으로 끊기면 안 된다(구글 미트 방식). */}
+      {idlePrompt && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+          <div className="max-w-sm w-full bg-gray-800 rounded-2xl border border-gray-700 shadow-2xl p-6 text-center">
+            <h2 className="text-lg font-bold mb-2">{c.stillThereTitle}</h2>
+            <p className="text-sm text-gray-400 leading-relaxed mb-5">{c.stillThereBody}</p>
+            <button
+              onClick={stayInRoom}
+              className="w-full py-3 rounded-xl bg-teal-600 hover:bg-teal-500 font-semibold transition-colors"
+            >
+              {c.stillThereYes}
+            </button>
+          </div>
+        </div>
+      )}
       {/* ── Header ── */}
       <div className="bg-gray-800 border-b border-gray-700 px-3 py-2 md:px-6 md:py-3">
         <div className="flex items-center justify-between gap-2">
@@ -2998,6 +3119,7 @@ export default function ConsultationRoomPage() {
               <div className="flex-1 relative" style={{ height: "calc(100% - 64px)" }}>
                 <VideoGrid copy={c} />
                 <WaitingForOthers copy={c} />
+                <AloneWatcher onAloneChange={setIsAloneInRoom} />
                 <RoomAudioRenderer />
                 <AudioUnblock copy={c} />
                 <MicOffBanner
