@@ -16,19 +16,20 @@ test.describe("게스트 초대 토큰 — 유효 케이스 UI", () => {
     const fakeToken = "a".repeat(64);
 
     await page.goto(`/consultation/${fakeSession}?invite=${fakeToken}`);
-    await page.waitForLoadState("domcontentloaded");
 
     // 게스트 이름 입력 폼이 노출되어야 함 (토큰 검증 전 UI)
+    //
+    // ⚠️ 「한 번 읽고 판정」하지 마라 (2026-07-27 POSTMORTEMS #132).
+    //   이 화면은 서버렌더 시점엔 "연결 중…"만 그리고, 게스트 폼은 하이드레이션 뒤
+    //   staff/guest 판정 fetch 가 끝나야(실측 load + 0.2~0.3초) 뜬다.
+    //   그래서 예전의 `innerText() 한 번 → toBeTruthy()` 는 구조적으로 이길 수 없는 경주였고,
+    //   실제로 3주 넘게 «1차 실패 → retry 로 통과»로 초록을 위장하다가 결국 터졌다.
+    //   Playwright 웹퍼스트 어서션은 «뜰 때까지» 자동 재시도한다 — 이게 정답이다.
     const nameInput = page
       .locator('input[placeholder*="이름"], input[placeholder*="name"], input[placeholder*="Айжан"]')
       .first();
 
-    const bodyText = await page.locator("body").innerText().catch(() => "");
-    const hasGuestUI =
-      (await nameInput.isVisible().catch(() => false)) ||
-      /원격 상담|게스트|guest|상담 시작|healwith/i.test(bodyText);
-
-    expect(hasGuestUI).toBeTruthy();
+    await expect(nameInput).toBeVisible({ timeout: 15_000 });
   });
 
   test("게스트 페이지 — 네트워크 응답이 HTML을 반환한다 (404 아님)", async ({ page }) => {
