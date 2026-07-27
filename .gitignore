@@ -152,3 +152,6 @@ KHIDI_유치문서/02_에이전시협약서_원문/_extract/
 .secrets.env
 *.secrets.env
 secrets.env
+
+# 파이썬 생성기 캐시(docs/government-project/*.py)
+__pycache__/

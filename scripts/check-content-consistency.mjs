@@ -14,6 +14,8 @@
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { pathToFileURL } from "node:url";
+// §32(산출물 .docx 검사)용 — .docx 는 zip 이라 내장 zlib 만으로 본문을 꺼낸다(의존성 0).
+import { inflateRawSync } from "node:zlib";
 
 const ROOT = process.cwd();
 const SCAN_DIRS = ["app", "src", "components"];
@@ -1781,6 +1783,99 @@ for (const dir of BACKOFFICE_DIRS) {
           `내려받기만 하도록 조기 종료할 것 ` +
           `(예: .claude/hooks/auto-commit-push.sh 의 case 문, scripts/sync.mjs 의 PROTECTED_BRANCHES).`
       );
+    }
+  }
+}
+
+// ── §32) 정부지원과제 산출물(.docx)이 폐지된 화면·용어를 설명하고 있지 않은지 ───
+// 왜: 2026-07-27 실사고 — 산출물 01·02·06·07 이 4월 기준 그대로 남아 **지금은 없는 화면**
+//     (/intake·/partner/*·/doctor/*)을 설명하고 있었다. 06_사용자매뉴얼은 사용자에게
+//     `/partner` 로 접속하라고 안내했는데 그 경로는 저장소에 폴더조차 없다.
+//     아무도 못 잡은 이유가 명확하다 — **이 검사기는 .docx 내부를 읽지 못한다.**
+//     코드에서 옛 경로를 지우면 잡히지만, 워드 문서에 남은 것은 그물 밖이었다.
+// 무엇을 보나: docs/government-project/*.docx 본문을 추출해 retired-terms.json 의
+//     폐지 경로·용어가 남아 있는지. 목록은 파이썬 생성기(_facts.py)와 **같은 파일**을 읽는다.
+// 의존성 0: .docx 는 zip 이라 노드 내장 zlib 만으로 본문(word/document.xml)을 꺼낸다.
+{
+  const GP_DIR = "docs/government-project";
+  let retired = null;
+  try {
+    retired = JSON.parse(readFileSync(join(ROOT, GP_DIR, "retired-terms.json"), "utf8"));
+  } catch {
+    /* 목록 파일이 없으면 이 룰은 건너뛴다(저장소에서 산출물을 걷어낸 경우) */
+  }
+
+  /** .docx(zip)에서 word/document.xml 을 꺼내 태그를 걷어낸 평문을 돌려준다. */
+  const docxText = (abs) => {
+    const buf = readFileSync(abs);
+    // 1) 끝에서부터 EOCD(End of Central Directory, 0x06054b50) 를 찾는다.
+    let eocd = -1;
+    for (let i = buf.length - 22; i >= 0 && i > buf.length - 65558; i--) {
+      if (buf.readUInt32LE(i) === 0x06054b50) { eocd = i; break; }
+    }
+    if (eocd < 0) return null;
+    const count = buf.readUInt16LE(eocd + 10);
+    let ptr = buf.readUInt32LE(eocd + 16); // 중앙 디렉터리 시작
+    for (let n = 0; n < count; n++) {
+      if (buf.readUInt32LE(ptr) !== 0x02014b50) return null;
+      const method = buf.readUInt16LE(ptr + 10);
+      const compSize = buf.readUInt32LE(ptr + 20);
+      const nameLen = buf.readUInt16LE(ptr + 28);
+      const extraLen = buf.readUInt16LE(ptr + 30);
+      const commentLen = buf.readUInt16LE(ptr + 32);
+      const localOff = buf.readUInt32LE(ptr + 42);
+      const name = buf.toString("utf8", ptr + 46, ptr + 46 + nameLen);
+      if (name === "word/document.xml") {
+        // 로컬 헤더의 이름·extra 길이는 중앙 디렉터리와 다를 수 있어 반드시 다시 읽는다.
+        const lNameLen = buf.readUInt16LE(localOff + 26);
+        const lExtraLen = buf.readUInt16LE(localOff + 28);
+        const start = localOff + 30 + lNameLen + lExtraLen;
+        const raw = buf.subarray(start, start + compSize);
+        const xml = (method === 8 ? inflateRawSync(raw) : raw).toString("utf8");
+        return xml.replace(/<[^>]+>/g, "");
+      }
+      ptr += 46 + nameLen + extraLen + commentLen;
+    }
+    return null;
+  };
+
+  if (retired) {
+    let files = [];
+    try {
+      files = readdirSync(join(ROOT, GP_DIR)).filter((f) => f.endsWith(".docx"));
+    } catch { files = []; }
+    for (const f of files.sort()) {
+      let text;
+      try { text = docxText(join(ROOT, GP_DIR, f)); } catch { text = null; }
+      if (!text) {
+        errors.push(
+          `[산출물문서] ${GP_DIR}/${f} — 본문을 읽지 못했다. 손상됐거나 예상 밖 형식이다. ` +
+            `생성기(make_*.py)로 다시 만들 것.`
+        );
+        continue;
+      }
+      for (const r of retired.routes) {
+        // 1) 살아 있는 «비슷한» 경로를 먼저 지운다. 안 그러면 /coordinator/intakes 나
+        //    /inquiry/intake 같은 **현행** 화면이 /intake 위반으로 잡힌다(초안이 실제로 그랬다).
+        let probe = text;
+        for (const ok of r.allow || []) probe = probe.split(ok).join(" ");
+        // 2) 뒤에 낱말 문자가 붙은 경우도 다른 경로다(/partner → /partners).
+        const re = new RegExp(r.old.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "(?![\\w-])");
+        if (!re.test(probe)) continue;
+        errors.push(
+          `[산출물문서] ${GP_DIR}/${f} — 폐지된 화면 «${r.old}» 을 아직 설명하고 있다 ` +
+            `(현행: ${r.now}). ${r.why} ` +
+            `생성기가 있으면 생성기를 고쳐 재생성하고, 없으면 본문을 고칠 것. ` +
+            `폐지 목록 SoR = ${GP_DIR}/retired-terms.json.`
+        );
+      }
+      for (const t of retired.terms) {
+        if (!text.includes(t.old)) continue;
+        errors.push(
+          `[산출물문서] ${GP_DIR}/${f} — 폐지된 용어 «${t.old}» 이 남아 있다 ` +
+            `(현행: ${t.now}). ${t.why}`
+        );
+      }
     }
   }
 }
