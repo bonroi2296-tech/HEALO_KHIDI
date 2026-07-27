@@ -98,7 +98,7 @@ export default function PatientDashboardClient() {
     return (
       <main className="max-w-lg mx-auto px-4 py-20 text-center">
         <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-          <User size={32} className="text-gray-400" />
+          <User size={32} className="text-gray-500" />
         </div>
         <h1 className="text-2xl font-bold mb-2">{t('patientDash.title', lang)}</h1>
         <p className="text-gray-500 mb-6">{t('patientDash.login', lang)}</p>
@@ -208,7 +208,7 @@ export default function PatientDashboardClient() {
                     </div>
                     <div>
                       <div className="font-medium text-sm">{cancer}</div>
-                      <div className="text-xs text-gray-400">
+                      <div className="text-xs text-gray-500">
                         {q.created_at ? new Date(q.created_at).toLocaleDateString() : '-'}
                       </div>
                     </div>
@@ -235,7 +235,7 @@ export default function PatientDashboardClient() {
                 return JOURNEY_STEP_KEYS.map((stepKey, i) => (
                 <div key={i} className="flex items-center gap-2 flex-1">
                   <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 ${
-                    i < stepsDone ? 'bg-teal-100 text-teal-700' : i === stepsDone ? 'bg-teal-700 text-white' : 'bg-gray-100 text-gray-400'
+                    i < stepsDone ? 'bg-teal-100 text-teal-700' : i === stepsDone ? 'bg-teal-700 text-white' : 'bg-gray-100 text-gray-500'
                   }`}>
                     {i + 1}
                   </div>
@@ -249,7 +249,7 @@ export default function PatientDashboardClient() {
           <div className="bg-gray-50 px-6 py-6 text-center border-t border-gray-100">
             <AlertCircle size={36} className="text-gray-300 mx-auto mb-3" />
             <p className="font-medium text-gray-600 mb-1">{t('patientDash.noConsultations', lang)}</p>
-            <p className="text-gray-400 text-sm mb-4">{t('patientDash.startFirst', lang)}</p>
+            <p className="text-gray-500 text-sm mb-4">{t('patientDash.startFirst', lang)}</p>
             <button
               onClick={() => router.push('/intake')}
               className="inline-flex items-center gap-2 bg-teal-700 text-white font-semibold px-5 py-2.5 rounded-xl hover:bg-teal-800 transition text-sm"
@@ -269,7 +269,7 @@ export default function PatientDashboardClient() {
               <div className="flex items-center gap-3">
                 <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
                   c.status === 'active' ? 'bg-green-50 text-green-600' :
-                  c.status === 'completed' ? 'bg-gray-50 text-gray-400' :
+                  c.status === 'completed' ? 'bg-gray-50 text-gray-500' :
                   'bg-blue-50 text-blue-600'
                 }`}>
                   <Video size={20} />
@@ -278,7 +278,7 @@ export default function PatientDashboardClient() {
                   <div className="font-medium text-sm">
                     {sessionLabel(c.session_type)}
                   </div>
-                  <div className="text-xs text-gray-400">
+                  <div className="text-xs text-gray-500">
                     {c.scheduled_at ? kstDate(c.scheduled_at) : '-'}
                   </div>
                 </div>

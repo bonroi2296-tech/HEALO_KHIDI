@@ -813,7 +813,8 @@ const BACKOFFICE_SHARED = [
 ];
 {
   const targets = [];
-  for (const dir of BACKOFFICE_DIRS) {
+  // app/patient 도 포함(2026-07-27 2차 실측): 환자가 직접 보는 화면이라 우선순위가 오히려 높다.
+  for (const dir of [...BACKOFFICE_DIRS, "app/patient"]) {
     for (const file of walk(dir)) {
       if (!CODE_EXT.test(file) || EXCLUDE.test(file)) continue;
       targets.push(file);

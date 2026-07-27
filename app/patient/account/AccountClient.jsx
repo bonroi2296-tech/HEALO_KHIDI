@@ -77,7 +77,7 @@ export default function AccountClient() {
       </div>
 
       {loading ? (
-        <p className="text-sm text-gray-400">{t("patientAccount.loading", lang)}</p>
+        <p className="text-sm text-gray-500">{t("patientAccount.loading", lang)}</p>
       ) : !auth ? (
         <p className="text-sm text-gray-600">
           {t("patientAccount.loginReq", lang)} <a className="text-teal-700 underline ml-1" href="/login">{t("patientAccount.loginLink", lang)}</a>

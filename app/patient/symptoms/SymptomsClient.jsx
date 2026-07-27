@@ -154,7 +154,7 @@ export default function SymptomsClient() {
                 />
                 <div className="flex gap-2">
                   <div className="flex-1">
-                    <label className="text-xs text-gray-400 mb-1 block">{t('patientSymptoms.severity', lang)}</label>
+                    <label className="text-xs text-gray-500 mb-1 block">{t('patientSymptoms.severity', lang)}</label>
                     <div className="flex items-center gap-2">
                       <input
                         type="range"
@@ -173,7 +173,7 @@ export default function SymptomsClient() {
                     </div>
                   </div>
                   <div className="w-28">
-                    <label className="text-xs text-gray-400 mb-1 block">{t('patientSymptoms.duration', lang)}</label>
+                    <label className="text-xs text-gray-500 mb-1 block">{t('patientSymptoms.duration', lang)}</label>
                     <input
                       type="text"
                       value={symptom.duration}
@@ -187,7 +187,7 @@ export default function SymptomsClient() {
               {symptoms.length > 1 && (
                 <button
                   onClick={() => removeSymptom(index)}
-                  className="mt-1 p-2 text-gray-400 hover:text-red-500 transition"
+                  className="mt-1 p-2 text-gray-500 hover:text-red-500 transition"
                 >
                   <Trash2 size={16} />
                 </button>
@@ -260,7 +260,7 @@ export default function SymptomsClient() {
             {/* Assessment */}
             {result.assessment && (
               <div className="p-3 bg-gray-50 rounded-lg">
-                <div className="text-xs text-gray-400 mb-1">{t('patientSymptoms.recommendation', lang)}</div>
+                <div className="text-xs text-gray-500 mb-1">{t('patientSymptoms.recommendation', lang)}</div>
                 <p className="text-sm text-gray-700">{result.assessment}</p>
               </div>
             )}
@@ -330,7 +330,7 @@ export default function SymptomsClient() {
 
       {showPrevious && (
         previousReports.length === 0 ? (
-          <div className="text-center py-8 bg-gray-50 rounded-xl text-gray-400 text-sm">
+          <div className="text-center py-8 bg-gray-50 rounded-xl text-gray-500 text-sm">
             {t('patientSymptoms.noSymptoms', lang)}
           </div>
         ) : (
@@ -341,7 +341,7 @@ export default function SymptomsClient() {
               return (
                 <div key={r.id} className="bg-white border border-gray-100 rounded-xl p-4">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs text-gray-400">{new Date(r.created_at).toLocaleString()}</span>
+                    <span className="text-xs text-gray-500">{new Date(r.created_at).toLocaleString()}</span>
                     <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
                       risk >= 70 ? 'bg-red-100 text-red-700' :
                       risk >= 40 ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700'

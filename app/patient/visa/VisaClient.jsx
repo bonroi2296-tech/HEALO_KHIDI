@@ -121,15 +121,15 @@ function VisaCard({ checklist, label, lang, sync, serverChecks, onPersist }) {
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
         <div className="bg-gray-50 p-2.5 rounded-lg">
-          <div className="text-xs text-gray-400">{t('patientVisa.maxStay', lang)}</div>
+          <div className="text-xs text-gray-500">{t('patientVisa.maxStay', lang)}</div>
           <div className="text-base font-semibold tabular-nums">{checklist.maxStay} {t('patientVisa.days', lang)}</div>
         </div>
         <div className="bg-gray-50 p-2.5 rounded-lg">
-          <div className="text-xs text-gray-400">{t('patientVisa.processingTime', lang)}</div>
+          <div className="text-xs text-gray-500">{t('patientVisa.processingTime', lang)}</div>
           <div className="text-sm font-semibold">{checklist.processingTime}</div>
         </div>
         <div className="bg-gray-50 p-2.5 rounded-lg">
-          <div className="text-xs text-gray-400">{t('patientVisa.fee', lang)}</div>
+          <div className="text-xs text-gray-500">{t('patientVisa.fee', lang)}</div>
           <div className="text-base font-semibold tabular-nums">{checklist.fee}</div>
         </div>
       </div>
@@ -168,7 +168,7 @@ function VisaCard({ checklist, label, lang, sync, serverChecks, onPersist }) {
         ))}
       </div>
 
-      <p className="text-[11px] text-gray-400 mb-3 print:hidden">{t(sync === 'account' ? 'patientVisa.savedHintAccount' : 'patientVisa.savedHint', lang)}</p>
+      <p className="text-[11px] text-gray-500 mb-3 print:hidden">{t(sync === 'account' ? 'patientVisa.savedHintAccount' : 'patientVisa.savedHint', lang)}</p>
 
       {/* Note */}
       <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-[13px] text-amber-800">
@@ -281,7 +281,7 @@ export default function VisaClient() {
       </form>
 
       {loading ? (
-        <p className="text-center text-gray-400 py-10">{t('patientVisa.loading', lang)}</p>
+        <p className="text-center text-gray-500 py-10">{t('patientVisa.loading', lang)}</p>
       ) : error ? (
         <div className="text-center py-10">
           <p className="text-gray-600 mb-3">{t('patientVisa.errorTitle', lang)}</p>

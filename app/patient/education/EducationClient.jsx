@@ -210,9 +210,9 @@ export default function EducationClient() {
                   {t(section.titleKey, lang)}
                 </h2>
                 {isOpen ? (
-                  <ChevronUp size={20} className="text-gray-400 shrink-0" />
+                  <ChevronUp size={20} className="text-gray-500 shrink-0" />
                 ) : (
-                  <ChevronDown size={20} className="text-gray-400 shrink-0" />
+                  <ChevronDown size={20} className="text-gray-500 shrink-0" />
                 )}
               </button>
               {isOpen && (
@@ -241,7 +241,7 @@ export default function EducationClient() {
       </div>
 
       {/* Photo Credit */}
-      <p className="mt-4 text-center text-xs text-gray-400">
+      <p className="mt-4 text-center text-xs text-gray-500">
         Photos by{' '}
         <a href="https://unsplash.com" target="_blank" rel="noopener noreferrer" className="underline hover:text-gray-500">
           Unsplash

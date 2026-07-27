@@ -261,7 +261,7 @@ export default function VisaApplicationsClient() {
                     <p className="text-sm text-gray-600 mt-1">
                       {app.purpose || t("visaApps.purposeFallback", lang)}
                     </p>
-                    <div className="text-xs text-gray-400 mt-2 flex gap-4">
+                    <div className="text-xs text-gray-500 mt-2 flex gap-4">
                       <span>{t("visaApps.nationalityLabel", lang)}: {app.nationality}</span>
                       {app.duration_days && (
                         <span>{t("visaApps.stayLabel", lang)}: {app.duration_days}{t("visaApps.daysSuffix", lang)}</span>
@@ -269,7 +269,7 @@ export default function VisaApplicationsClient() {
                       <span>{t("visaApps.createdLabel", lang)}: {new Date(app.created_at).toLocaleDateString(dateLocale)}</span>
                     </div>
                   </div>
-                  <span className="text-gray-400 text-sm">→</span>
+                  <span className="text-gray-500 text-sm">→</span>
                 </div>
               </Link>
             );
