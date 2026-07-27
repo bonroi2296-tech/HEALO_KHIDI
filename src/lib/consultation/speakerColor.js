@@ -34,7 +34,7 @@ export function speakerInitial(name) {
   const s = String(name || "").trim();
   if (!s) return "?";
   // "healwith_moon" 처럼 구분자가 있으면 첫 두 토막의 머리글자
-  const parts = s.split(/[\s_.\-]+/).filter(Boolean);
+  const parts = s.split(/[\s_.-]+/).filter(Boolean);
   if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
   return s.slice(0, 2).toUpperCase();
 }

@@ -74,6 +74,12 @@ import { SameRoomGuard } from "@/lib/consultation/SameRoomGuard";
 import { PartnerLangBridge } from "@/lib/consultation/PartnerLangBridge";
 import { ListenModeBridge } from "@/lib/consultation/ListenModeBridge";
 import { speakerColor, speakerInitial } from "@/lib/consultation/speakerColor";
+import {
+  shouldShowChunk,
+  sortByTime,
+  dedupeAgainstShown,
+  isSameSpeakerRun,
+} from "@/lib/consultation/transcriptOrder";
 
 const supabase = createSupabaseBrowserClient();
 
@@ -1311,15 +1317,14 @@ export default function ConsultationRoomPage() {
   const handleListenSubtitle = useCallback(
     ({ transcript, translated, lang, name, identity, seq, startedAt, interim }) => {
       if (typeof seq === "number" && identity) {
-        // 같은 발화의 «말하는 중»(seq) 보다 «확정»(seq+0.5) 이 뒤 — 확정이 뜬 뒤 늦게 도착한
-        // 부분 자막이 확정본을 도로 덮어쓰지 않게 한다.
-        const rank = seq + (interim ? 0 : 0.5);
-        const seen = listenSeqRef.current.get(identity) || 0;
-        // 큰 폭 역행 = 트랙 교체로 파이프라인이 새로 시작된 것(카운터 리셋) → 막지 않는다.
-        // 낡음으로 걸러버리면 재연결 뒤 자막이 영영 안 뜬다(DC 경로와 같은 판단).
-        if (rank < seen - 3) listenSeqRef.current.set(identity, rank);
-        else if (rank < seen) return; // 진짜 늦게 도착한 옛 조각 — 버린다
-        else listenSeqRef.current.set(identity, rank);
+        // 판정 규칙·근거는 transcriptOrder.ts (단위 테스트로 고정 — 실통화 없이 검증 가능한 층)
+        const { show, nextRank } = shouldShowChunk(
+          listenSeqRef.current.get(identity) || 0,
+          seq,
+          interim
+        );
+        listenSeqRef.current.set(identity, nextRank);
+        if (!show) return; // 늦게 도착한 옛 조각 — 버린다
       }
       showRemoteSubtitle({ key: identity, text: translated, lang, name, interim });
       // 말하는 중(부분) 자막은 화면에만 — 기록·문맥은 확정본에서만 쌓는다
@@ -2112,25 +2117,13 @@ export default function ConsultationRoomPage() {
           // 번역 로그는 서버 기록 기준으로 갱신 (내 입력은 이미 로컬에 있음 → id 중복 제거)
           setTranslations((prev) => {
             const seen = new Set(prev.map((t) => t.id));
-            const incoming = tJson.data
+            const fresh = tJson.data
               .filter((row) => !seen.has(row.id))
               // 이 통화 이후 기록만 — 예전 통화·테스트 번역이 폴링으로 섞여 들어오던 것 차단
               .filter((row) => afterCallStart(row.created_at))
-              .map(normalizeTrans)
-              // 이미 화면에 있는 발화는 서버 기록으로 또 들어오지 않게 걸러낸다.
-              // 예전엔 원문+번역문을 **둘 다** 비교해서, 원문이 없는 경로(상대 기기가 보낸
-              // 자막은 번역문만 받는다)는 매번 중복으로 통과했다 → 한 사람만 말해도
-              // 「이름 있는 줄 + 화자 미상 줄」이 짝으로 쌓임(2026-07-27 PO 제보).
-              // → 번역문 일치만으로 같은 발화로 보고, 시간창은 조각 지연을 감안해 60초.
-              .filter(
-                (row) =>
-                  !prev.some(
-                    (p) =>
-                      p.translated_text &&
-                      p.translated_text === row.translated_text &&
-                      Math.abs(new Date(p.created_at) - new Date(row.created_at)) < 60000
-                  )
-              );
+              .map(normalizeTrans);
+            // 이미 화면에 있는 발화는 서버 기록으로 또 들어오지 않게 (규칙·근거 = transcriptOrder.ts)
+            const incoming = dedupeAgainstShown(prev, fresh);
             return incoming.length ? [...prev, ...incoming] : prev;
           });
         }
@@ -3559,9 +3552,7 @@ export default function ConsultationRoomPage() {
                 ) : (
                   // **말한 시각 순서로** 읽는다 — 서버 기록은 4초 폴링으로 늦게 오므로
                   // 배열 순서대로 그리면 옛 발화가 새 발화 아래에 끼어든다(2026-07-27 PO 제보).
-                  [...translations]
-                    .sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
-                    .map((trans, i, arr) => {
+                  sortByTime(translations).map((trans, i, arr) => {
                       // 화자 구분은 **4중 신호**로 — 색 점 하나로는 훑기 어렵다는 PO 지적(2026-07-27).
                       //   ①왼쪽 굵은 색 띠 ②이니셜 아바타(색 원) ③색 배지에 박힌 이름 ④연속 발화 묶기.
                       // 이름을 모르는 줄(옛 기록)은 전부 회색 — 다른 사람인 척하지 않는다.
@@ -3570,12 +3561,7 @@ export default function ConsultationRoomPage() {
                       const sc = known ? speakerColor(trans.speaker_name) : null;
                       const label = trans.speaker_name || (isSelf ? c.you : c.speakerUnknown);
                       // 같은 사람이 이어 말하면 이름줄을 생략 — 이름이 바뀌는 지점만 눈에 띈다.
-                      const prev = arr[i - 1];
-                      const sameAsPrev =
-                        prev &&
-                        prev.speaker_role === trans.speaker_role &&
-                        (prev.speaker_name || "") === (trans.speaker_name || "") &&
-                        new Date(trans.created_at) - new Date(prev.created_at) < 120000;
+                      const sameAsPrev = isSameSpeakerRun(arr[i - 1], trans);
                       return (
                         <div key={trans.id} className={`flex gap-2 ${sameAsPrev ? "-mt-1" : ""}`}>
                           {/* ① 왼쪽 색 띠 — 같은 사람의 발화 덩어리가 한 줄기로 보인다 */}
