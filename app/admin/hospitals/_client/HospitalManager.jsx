@@ -1029,15 +1029,15 @@ function FormContent({ editingHospitalId, hospitalForm, setHospitalForm, uploadi
             <h3 className="text-sm font-bold text-blue-900 flex items-center gap-2"><Building size={16}/> 병원 통계</h3>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div>
-                <label className="text-xs text-gray-500 mb-1 block">연간 시술 건수</label>
+                <label className="text-xs text-gray-600 mb-1 block">연간 시술 건수</label>
                 <input type="number" placeholder="예: 5000" value={hospitalForm.annualSurgeryCount || ''} onChange={e=>setHospitalForm({...hospitalForm, annualSurgeryCount: e.target.value})} className="w-full border p-2 rounded text-sm"/>
               </div>
               <div>
-                <label className="text-xs text-gray-500 mb-1 block">의료진 수</label>
+                <label className="text-xs text-gray-600 mb-1 block">의료진 수</label>
                 <input type="number" placeholder="예: 12" value={hospitalForm.doctorCount || ''} onChange={e=>setHospitalForm({...hospitalForm, doctorCount: e.target.value})} className="w-full border p-2 rounded text-sm"/>
               </div>
               <div>
-                <label className="text-xs text-gray-500 mb-1 block">설립일</label>
+                <label className="text-xs text-gray-600 mb-1 block">설립일</label>
                 <input type="date" value={hospitalForm.establishmentDate || ''} onChange={e=>setHospitalForm({...hospitalForm, establishmentDate: e.target.value})} className="w-full border p-2 rounded text-sm"/>
               </div>
             </div>
