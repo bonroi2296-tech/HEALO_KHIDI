@@ -1,6 +1,9 @@
 "use client";
 
 import Link from "next/link";
+// 사진은 전부 로컬(/immune/...) 이라 next/image 로 webp·크기맞춤 변환이 그대로 먹는다.
+// 날 <img> 로 두면 원본 PNG(장당 ~290KB)를 그대로 내려받는다 (2026-07-27 PageSpeed 실측).
+import Image from "next/image";
 import { ArrowRight, Phone, MapPin, Clock, Car } from "lucide-react";
 import { IMMUNE_PHOTOS } from "../../../components/healo/Photos";
 import { useLang } from "@/lib/i18n/LangContext";
@@ -61,11 +64,14 @@ export default function ImmuneHospitalClient() {
 
           {/* 히어로는 의료진 단체사진 금지 — 「그 병원임을 보여주는 공간 실사」를 쓴다.
               (PO 지시 2026-07-22: "병원 현판이나 그런걸루". docs/PO_PREFERENCES.md 참조) */}
-          <div className="w-full aspect-[4/5] overflow-hidden rounded-xl bg-gray-100">
-            <img
+          <div className="relative w-full aspect-[4/5] overflow-hidden rounded-xl bg-gray-100">
+            <Image
               src={IMMUNE_PHOTOS.signage}
               alt="면력한방병원 마곡 본원 리셉션"
-              className="w-full h-full object-cover"
+              fill
+              priority
+              sizes="(max-width: 1024px) 100vw, 50vw"
+              className="object-cover"
             />
           </div>
         </div>
@@ -206,12 +212,13 @@ export default function ImmuneHospitalClient() {
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5">
           {H.integrativePrograms.map((prog, i) => (
             <article key={prog.id} className="border border-gray-200 rounded-xl overflow-hidden">
-              <div className="w-full aspect-[4/5] overflow-hidden bg-gray-100">
-                <img
+              <div className="relative w-full aspect-[4/5] overflow-hidden bg-gray-100">
+                <Image
                   src={PROGRAM_PHOTOS[i]}
                   alt={l(prog.label)}
-                  loading="lazy"
-                  className="w-full h-full object-cover"
+                  fill
+                  sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                  className="object-cover"
                 />
               </div>
               <div className="p-4 md:p-5">
@@ -238,12 +245,13 @@ export default function ImmuneHospitalClient() {
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-5">
             {H.doctors.map((d, i) => (
               <article key={i} className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-                <div className="w-full aspect-[3/4] overflow-hidden bg-gray-100">
-                  <img
+                <div className="relative w-full aspect-[3/4] overflow-hidden bg-gray-100">
+                  <Image
                     src={d.photo}
                     alt={l(d.name)}
-                    loading="lazy"
-                    className="w-full h-full object-cover"
+                    fill
+                    sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                    className="object-cover"
                   />
                 </div>
                 <div className="p-4">
@@ -274,12 +282,13 @@ export default function ImmuneHospitalClient() {
               <p className="text-sm text-gray-500 leading-relaxed max-w-2xl mb-4">{l(f.description)}</p>
               <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
                 {f.images.map((img, i) => (
-                  <div key={i} className="aspect-[4/3] overflow-hidden rounded-xl bg-gray-100">
-                    <img
+                  <div key={i} className="relative aspect-[4/3] overflow-hidden rounded-xl bg-gray-100">
+                    <Image
                       src={img}
                       alt={l(f.name)}
-                      loading="lazy"
-                      className="w-full h-full object-cover"
+                      fill
+                      sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                      className="object-cover"
                     />
                   </div>
                 ))}
@@ -304,12 +313,13 @@ export default function ImmuneHospitalClient() {
                 {/* 지점 실사 — 옛 지점 상세 페이지에서 가치 있던 두 가지(사진·구글리뷰) 중 하나.
                     통합하면서 버리지 않고 카드로 끌어왔다. */}
                 {b.photo && (
-                  <div className="aspect-[16/10] bg-gray-100 overflow-hidden">
-                    <img
+                  <div className="relative aspect-[16/10] bg-gray-100 overflow-hidden">
+                    <Image
                       src={b.photo}
                       alt={l(b.name)}
-                      loading="lazy"
-                      className="w-full h-full object-cover"
+                      fill
+                      sizes="(max-width: 768px) 100vw, 50vw"
+                      className="object-cover"
                     />
                   </div>
                 )}
@@ -321,10 +331,11 @@ export default function ImmuneHospitalClient() {
                     PO 지시 2026-07-22: 지점 카드에는 리뷰 대신 병원 정보만. 대표원장은 병원 정보다. */}
                 {b.director && (
                   <div className="flex items-center gap-2.5 mb-4 pb-4 border-b border-gray-100">
-                    <img
+                    <Image
                       src={b.director.photo}
                       alt={l(b.director.name)}
-                      loading="lazy"
+                      width={40}
+                      height={40}
                       className="w-10 h-10 rounded-full object-cover object-top bg-gray-100 shrink-0"
                     />
                     <span translate="no" className="text-sm font-semibold text-gray-800 leading-snug">
