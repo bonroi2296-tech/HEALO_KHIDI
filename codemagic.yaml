@@ -27,7 +27,7 @@ workflows:
     environment:
       vars:
         BUNDLE_ID: "kr.co.healwith.app"
-      node: 20
+      node: 22   # Capacitor CLI 8.x 는 NodeJS >=22 요구(2026-07-27 빌드 실패로 확인)
       xcode: latest
     scripts:
       - name: npm 의존성 설치
@@ -69,7 +69,7 @@ workflows:
         - google_play          # GCLOUD_SERVICE_ACCOUNT_CREDENTIALS
       android_signing:
         - healwith_keystore     # ← Codemagic Code signing identities 의 reference 이름
-      node: 20
+      node: 22   # Capacitor CLI 8.x 는 NodeJS >=22 요구(2026-07-27 빌드 실패로 확인)
       java: 17
     scripts:
       - name: npm 의존성 설치
