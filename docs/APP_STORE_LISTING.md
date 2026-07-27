@@ -36,11 +36,14 @@
    - 본로이는 개인사업자 → **개인(Individual) 계정**으로 등록. 판매자명이 개인 이름으로 노출됨(법인 전환 시 조직 계정 이전 가능).
    - 🛑 **함정**: 애플 가이드라인 5.1.1은 의료성 앱에 법인 계정을 요구할 수 있음 → 심사에서 이 사유로 반려될 가능성 있음(반려 시 항소·법인 검토 대응 — 어시가 그때 정리).
    - **결제 후 애플 포털에서 순서대로 (이게 "앱 등록"):**
-     1. ⬜ **App ID 등록** — [Identifiers](https://developer.apple.com/account/resources/identifiers/list) → `+` → App ID `kr.co.healwith.app` + **Push Notifications** capability 체크
-     2. ⬜ **앱 레코드 생성** — [App Store Connect](https://appstoreconnect.apple.com) → My Apps → `+` → 이름 `healwith`, 기본 언어 English, 위 App ID 선택
-     3. ⬜ **APNs 인증키(.p8) 발급** — [Keys](https://developer.apple.com/account/resources/authkeys/list) → `+` → APNs 체크 → 다운로드 → **Firebase 콘솔 → Cloud Messaging 에 업로드**(Key ID·Team ID 함께)
-     4. ⬜ **App Store Connect API 키 발급** — Users and Access → Integrations → `+` → 다운로드 → **Codemagic Integrations 에 `healwith_asc` 로 등록**(빌드 자동화용)
-2. ⬜ **구글 플레이 개발자 등록 + $25(일회) 결제** — https://play.google.com/console/signup
+     1. ✅ **App ID 등록 (2026-07-27)** — `kr.co.healwith.app`(Explicit) + **Push Notifications** capability. Wildcard 로 만들면 푸시 불가라 Explicit 확인함.
+     2. ✅ **앱 레코드 생성 (2026-07-27)** — [App Store Connect](https://appstoreconnect.apple.com) 에 iOS 앱 `healwith`, 기본 언어 English(U.S.), SKU `healwith-ios-01`, Full Access.
+     3. ✅ **APNs 인증키(.p8) 발급 (2026-07-27)** — 이름 `healwith APNs Key`. ⚠️ 발급 시 **Environment = `Sandbox & Production`** 으로 설정(기본값 Sandbox 그대로 두면 실배포 푸시가 안 감. **저장 후 변경 불가**라 키 재발급밖에 답이 없다) · Key Restriction = Team Scoped(All Topics).
+        - Firebase 콘솔(`healo` = healo-e3e58) → 프로젝트 설정 → 클라우드 메시징 → Apple 앱 구성(`kr.co.healwith.app`) → APNs 인증 키 업로드. **개발·프로덕션 슬롯 둘 다 같은 .p8 을 올린다.**
+     4. ✅ **App Store Connect API 키 발급 (2026-07-27)** — 사용자 및 액세스 → 통합 → 팀 키. 최초 1회 **「API 액세스 요청」 약관 동의**(내부 개발·테스트·보고 한정 사용) 필요 → 즉시 승인됨. 역할 = **앱 관리(App Manager)**(최소권한, TestFlight 업로드 가능). Codemagic Integrations 에 등록.
+     - 🔑 **값(Key ID·Issuer ID·Team ID)은 이 저장소에 적지 않는다 — 저장소가 PUBLIC.** ASC/개발자 포털 화면에서 확인할 것. **.p8 파일은 절대 저장소에 넣지 마라**(2026-07-27 `.gitignore` 에 `*.p8`·`*.p12`·`*.keystore`·`*.jks` 차단 규칙 추가).
+2. 🔶 **구글 플레이 개발자 등록 — $25 결제 완료(2026-07-24), 인증 3건 남음** — https://play.google.com/console (※ `/signup` 은 "새로 시작" 링크라 진행 중인 등록을 무시함. 이어서 할 때는 `/console`)
+   - 남은 것: ①연락처 전화번호 인증(대표 명의 휴대폰이라 대표 본인 필요) ②본인 확인(공문서) ③Android 휴대기기 액세스(Play Console 모바일 앱 로그인). **셋 다 끝나야 앱 게시 가능.**
 3. ✅ **Firebase 설정파일 2개 완료(2026-07-14)** — PO가 기존 프로젝트 `healo`(healo-e3e58)에 iOS/Android 앱 추가·파일 발급, 어시가 검증 후 배치·머지(PR #757 android / #758 ios). 남은 조각: **APNs 인증키(.p8) Firebase 업로드는 애플 결제 후**(어시가 안내).
 4. ✅ **Codemagic 가입·저장소 연결 완료(2026-07-14)** — Personal(Individual) 계정, HEALO_KHIDI 연결, codemagic.yaml 자동 인식 확인(PO 스크린샷). ⚠️ 서명 열쇠 없이 빌드 시작 금지(실패만 뜨고 무료분 낭비) — 결제 후 열쇠 3종(ASC API 키·Play 서비스계정·키스토어) 등록부터.
 

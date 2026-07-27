@@ -152,3 +152,12 @@ KHIDI_유치문서/02_에이전시협약서_원문/_extract/
 .secrets.env
 *.secrets.env
 secrets.env
+
+# 앱 서명·푸시 비밀 열쇠 (2026-07-27) — 이 저장소는 PUBLIC 이라 한 번 올라가면 즉시 유출.
+# 왜: 애플 APNs 인증키(.p8)·ASC API 키(.p8)를 발급받아 다운로드 폴더에 두는 단계가 생겼는데,
+#     최상위 .gitignore 에 확장자 규칙이 하나도 없었다(실측). 실수로 프로젝트에 복사하면 그대로 올라간다.
+*.p8
+*.p12
+*.mobileprovision
+*.keystore
+*.jks
