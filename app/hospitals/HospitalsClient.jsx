@@ -25,6 +25,7 @@ import { useLang } from '@/lib/i18n/LangContext';
 import { localeHref } from '@/lib/i18n/config';
 import { supabaseClient } from '@/lib/data/supabaseClient';
 import { mapHospitalRow } from '@/lib/mapper';
+import { DOCTOR_PHRASES } from '@/lib/content/doctorPhrases';
 
 /* ───────────────── i18n Labels ─────────────────
    화면 문구는 중앙 사전(src/lib/i18n)의 "hospitalsPage.*" 키로 이전됨 — t(key, lang)로 조회. */
@@ -404,11 +405,16 @@ function StatusBadge({ status, lang }) {
   );
 }
 
+/* 세부 이력 문구 1개를 해당 언어로. DOCTORS 는 ko/en 만 들고 있고
+   ru·kz·zh·ja 는 문구 사전(doctorPhrases)에서 찾는다. 사전에 없으면 영어 그대로. */
+const tp = (s, lang) => (typeof s === 'string' && DOCTOR_PHRASES[s]?.[lang]) || s;
+
 /* Helper: get localized array data (supports both plain arrays and {ko,en,...} objects) */
 const la = (obj, lang) => {
   if (!obj) return [];
   if (Array.isArray(obj)) return obj;
-  return obj[lang] || obj.en || obj.ko || [];
+  if (obj[lang]) return obj[lang];
+  return (obj.en || obj.ko || []).map((s) => tp(s, lang));
 };
 
 /* ── Doctor Profile Modal (Large) ── */
@@ -575,10 +581,12 @@ export default function HospitalsClient() {
   const [expandedBranch, setExpandedBranch] = useState('gangseo');
   const [selectedDoctor, setSelectedDoctor] = useState(null);
 
+  // 이름(name)·직위(position)는 사전에 없어 영어 그대로 나가고(영어 통일 — PO 결정 2026-07-27),
+  // 세부전공(subspecialty)처럼 사전에 있는 문구만 해당 언어로 바뀐다.
   const l = (obj) => {
     if (!obj) return '';
     if (typeof obj === 'string') return obj;
-    return obj[lang] || obj['en'] || '';
+    return obj[lang] || tp(obj['en'], lang) || '';
   };
 
   useEffect(() => {
