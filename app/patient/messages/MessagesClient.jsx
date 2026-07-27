@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
-import { Eyebrow, Rule, ButtonGold, LinkArrow, Chip } from "../../../components/healo/Primitives";
+import { ArrowLeft, ArrowRight, MessageSquare } from "lucide-react";
 import { useLang } from "@/lib/i18n/LangContext";
 import { t } from "@/lib/i18n";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
@@ -116,24 +116,20 @@ export default function MessagesClient() {
 
   if (!loading && !user) {
     return (
-      <main style={{ maxWidth: 1240, margin: "0 auto", paddingTop: 64 }}>
-        <div style={{ padding: "24px" }}>
-          <p style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "#0f766e" }}>{t("patientMessages.heroEyebrow", lang)}</p>
-          <h1 style={{ fontSize: 28, fontWeight: 700, color: "#111827", marginTop: 4 }}>{t("patientMessages.heroTitle", lang)}{heroItalic ? ` ${heroItalic}` : ""}</h1>
+      <main className="max-w-5xl mx-auto px-4 py-6" aria-label={t("patientMessages.heroTitle", lang)}>
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold text-gray-900">
+            {t("patientMessages.heroTitle", lang)}{heroItalic ? ` ${heroItalic}` : ""}
+          </h1>
+          <p className="text-gray-500 text-sm mt-1">{t("patientMessages.heroEyebrow", lang)}</p>
         </div>
-        <div style={{ padding: "72px 24px", textAlign: "center" }}>
-          <p
-            style={{
-              fontFamily: "var(--font-serif)",
-              fontStyle: "italic",
-              color: "var(--fg-on-light-3)",
-              marginBottom: 24,
-            }}
+        <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-8 md:p-12 text-center">
+          <p className="text-gray-600 mb-6">{t("patientMessages.loginRequired", lang)}</p>
+          <Link
+            href="/login"
+            className="inline-block bg-teal-700 text-white font-semibold px-6 py-3 rounded-xl hover:bg-teal-800 transition-all duration-200"
           >
-            {t("patientMessages.loginRequired", lang)}
-          </p>
-          <Link href="/login" style={{ textDecoration: "none" }}>
-            <ButtonGold>{t("patientMessages.signIn", lang)}</ButtonGold>
+            {t("patientMessages.signIn", lang)}
           </Link>
         </div>
       </main>
@@ -169,174 +165,99 @@ export default function MessagesClient() {
   }
 
   return (
-    <main style={{ maxWidth: 1240, margin: "0 auto", paddingTop: 64 }}>
-      <div style={{ padding: "24px" }}>
-        <p style={{ fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", color: "#0f766e" }}>{t("patientMessages.heroEyebrow", lang)}</p>
-        <h1 style={{ fontSize: 28, fontWeight: 700, color: "#111827", marginTop: 4 }}>{t("patientMessages.heroTitle", lang)}{heroItalic ? ` ${heroItalic}` : ""}</h1>
+    <main className="max-w-5xl mx-auto px-4 py-6" aria-label={t("patientMessages.heroTitle", lang)}>
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-gray-900">
+          {t("patientMessages.heroTitle", lang)}{heroItalic ? ` ${heroItalic}` : ""}
+        </h1>
+        <p className="text-gray-500 text-sm mt-1">{t("patientMessages.heroEyebrow", lang)}</p>
       </div>
-      <section style={{ padding: "48px 24px 96px" }}>
-        <div
-          className="healo-msg-grid"
-          style={{
-            maxWidth: 1240,
-            margin: "0 auto",
-            display: "grid",
-            gridTemplateColumns: "minmax(0, 320px) minmax(0, 1fr)",
-            gap: 32,
-            minHeight: 600,
-            border: "1px solid var(--gold-tint)",
-            background: "var(--paper)",
-          }}
-        >
-          {/* Thread list */}
-          <aside
-            className="healo-msg-threads"
-            style={{
-              borderRight: "1px solid var(--cream-2)",
-              padding: "24px 0",
-              overflowY: "auto",
-              display: selectedId && "none-mobile",
-            }}
-          >
-            <div style={{ padding: "0 24px 16px" }}>
-              <Eyebrow tone="muted">{t("patientMessages.threadsTitle", lang)}</Eyebrow>
-            </div>
-            {loading ? (
-              <div style={{ padding: "24px", color: "var(--fg-on-light-3)", fontStyle: "italic" }}>
-                {t("patientMessages.loading", lang)}
-              </div>
-            ) : threads.length === 0 ? (
-              <div style={{ padding: "24px" }}>
-                <p
-                  style={{
-                    fontFamily: "var(--font-serif)",
-                    fontStyle: "italic",
-                    color: "var(--fg-on-light-3)",
-                    fontSize: 14,
-                    lineHeight: 1.6,
-                    marginBottom: 24,
-                  }}
-                >
-                  {t("patientMessages.noThreads", lang)}
-                </p>
-                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                  <Link href="/patient/chat" style={{ textDecoration: "none" }}>
-                    <LinkArrow>{t("patientMessages.startChat", lang)} →</LinkArrow>
-                  </Link>
-                  <Link href="/intake" style={{ textDecoration: "none" }}>
-                    <LinkArrow>{t("patientMessages.startInquiry", lang)} →</LinkArrow>
-                  </Link>
-                </div>
-              </div>
-            ) : (
-              threads.map((th) => (
-                <ThreadRow
-                  key={th.id}
-                  thread={th}
-                  active={selectedId === th.id}
-                  onClick={() => setSelectedId(th.id)}
-                  lang={lang}
-                />
-              ))
-            )}
-          </aside>
 
-          {/* Conversation */}
-          <div
-            className="healo-msg-conversation"
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              minHeight: 600,
-            }}
-          >
-            {!selectedThread ? (
-              <div
-                style={{
-                  flex: 1,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  padding: 48,
-                }}
-              >
-                <p
-                  style={{
-                    fontFamily: "var(--font-serif)",
-                    fontStyle: "italic",
-                    // fg-on-light-4(#9a9284, "disabled")는 paper 배경에서 2.91:1 로 AA 미달 —
-                    // 이건 비활성 표시가 아니라 안내 문구다. fg-on-light-3(5.51:1)로 교체.
-                    color: "var(--fg-on-light-3)",
-                    fontSize: 17,
-                  }}
+      {/* 모바일에서는 목록↔대화를 한 화면씩 보여준다(예전 <style> 태그 토글을 클래스 조건으로 대체). */}
+      <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden grid md:grid-cols-[minmax(0,320px)_minmax(0,1fr)] min-h-[600px]">
+        {/* Thread list */}
+        <aside
+          className={`md:border-r border-gray-200 py-4 overflow-y-auto ${selectedId ? "hidden md:block" : "block"}`}
+        >
+          <div className="px-5 pb-3 text-xs font-bold text-gray-500">
+            {t("patientMessages.threadsTitle", lang)}
+          </div>
+          {loading ? (
+            <div className="px-5 py-6 text-sm text-gray-500">{t("patientMessages.loading", lang)}</div>
+          ) : threads.length === 0 ? (
+            <div className="px-5 py-6">
+              <p className="text-sm text-gray-600 leading-relaxed mb-5">{t("patientMessages.noThreads", lang)}</p>
+              <div className="flex flex-col gap-3">
+                <Link
+                  href="/patient/chat"
+                  className="inline-flex items-center gap-1.5 text-sm font-semibold text-teal-700 hover:text-teal-800 hover:underline"
                 >
-                  {threads.length > 0 ? t("patientMessages.selectConversation", lang) : ""}
-                </p>
+                  {t("patientMessages.startChat", lang)} <ArrowRight size={14} />
+                </Link>
+                <Link
+                  href="/inquiry"
+                  className="inline-flex items-center gap-1.5 text-sm font-semibold text-teal-700 hover:text-teal-800 hover:underline"
+                >
+                  {t("patientMessages.startInquiry", lang)} <ArrowRight size={14} />
+                </Link>
+              </div>
+            </div>
+          ) : (
+            threads.map((th) => (
+              <ThreadRow
+                key={th.id}
+                thread={th}
+                active={selectedId === th.id}
+                onClick={() => setSelectedId(th.id)}
+                lang={lang}
+              />
+            ))
+          )}
+        </aside>
+
+        {/* Conversation */}
+        <div className={`flex-col min-h-[600px] ${selectedId ? "flex" : "hidden md:flex"}`}>
+            {!selectedThread ? (
+              <div className="flex-1 flex flex-col items-center justify-center p-12 text-center">
+                {threads.length > 0 && (
+                  <>
+                    <MessageSquare size={28} className="text-gray-500 mb-3" />
+                    <p className="text-gray-600">{t("patientMessages.selectConversation", lang)}</p>
+                  </>
+                )}
               </div>
             ) : (
               <>
                 {/* Thread header */}
-                <div
-                  style={{
-                    padding: "20px 32px",
-                    borderBottom: "1px solid var(--cream-2)",
-                    background: "var(--cream-0)",
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    gap: 12,
-                  }}
-                >
-                  <div style={{ minWidth: 0 }}>
-                    <Eyebrow tone="muted">{t("patientMessages.threadTitle", lang)}</Eyebrow>
-                    <div
-                      style={{
-                        fontFamily: "var(--font-serif)",
-                        fontSize: 20,
-                        fontWeight: 500,
-                        color: "var(--fg-on-light-1)",
-                        marginTop: 4,
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                      }}
-                    >
-                      {selectedThread.subject || t("patientMessages.conversationFallback", lang)}
-                    </div>
-                  </div>
-                  <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-                    <Chip tone={selectedThread.status === "resolved" ? "success" : "gold"}>
-                      {selectedThread.status === "resolved" ? t("patientMessages.resolved", lang) : t("patientMessages.open", lang)}
-                    </Chip>
+                <div className="px-5 py-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center gap-3">
+                  <div className="min-w-0 flex items-center gap-2">
                     <button
                       onClick={() => setSelectedId(null)}
-                      className="healo-msg-back"
-                      style={{
-                        display: "none",
-                        background: "transparent",
-                        border: 0,
-                        cursor: "pointer",
-                        fontFamily: "var(--font-sans)",
-                        fontSize: 11,
-                        letterSpacing: "0.2em",
-                        textTransform: "uppercase",
-                        color: "var(--fg-on-light-3)",
-                      }}
+                      aria-label={t("patientMessages.back", lang)}
+                      className="md:hidden shrink-0 p-1.5 -ml-1.5 rounded-lg text-gray-600 hover:bg-gray-200 transition-all duration-200"
                     >
-                      {t("patientMessages.back", lang)}
+                      <ArrowLeft size={18} />
                     </button>
+                    <div className="min-w-0">
+                      <div className="text-xs text-gray-500">{t("patientMessages.threadTitle", lang)}</div>
+                      <div className="text-base font-bold text-gray-900 truncate">
+                        {selectedThread.subject || t("patientMessages.conversationFallback", lang)}
+                      </div>
+                    </div>
                   </div>
+                  <span
+                    className={`shrink-0 text-xs font-semibold px-2.5 py-1 rounded-full border ${
+                      selectedThread.status === "resolved"
+                        ? "bg-gray-100 text-gray-700 border-gray-200"
+                        : "bg-teal-50 text-teal-700 border-teal-100"
+                    }`}
+                  >
+                    {selectedThread.status === "resolved" ? t("patientMessages.resolved", lang) : t("patientMessages.open", lang)}
+                  </span>
                 </div>
 
                 {/* Messages */}
-                <div
-                  style={{
-                    flex: 1,
-                    padding: "24px 32px",
-                    overflowY: "auto",
-                    background: "var(--paper)",
-                  }}
-                >
+                <div className="flex-1 px-5 py-5 overflow-y-auto bg-white">
                   {messages.map((m) => (
                     <MessageBubble key={m.id} message={m} user={user} lang={lang} />
                   ))}
@@ -344,17 +265,8 @@ export default function MessagesClient() {
                 </div>
 
                 {/* Composer */}
-                <div
-                  className="healo-safe-bottom"
-                  style={{
-                    padding: "16px 32px 20px",
-                    borderTop: "1px solid var(--cream-2)",
-                    background: "var(--cream-0)",
-                    position: "sticky",
-                    bottom: 0,
-                  }}
-                >
-                  <div style={{ display: "flex", gap: 12, alignItems: "flex-end" }}>
+                <div className="healo-safe-bottom px-5 py-4 border-t border-gray-200 bg-gray-50 sticky bottom-0">
+                  <div className="flex gap-3 items-end">
                     <textarea
                       value={draft}
                       onChange={(e) => setDraft(e.target.value)}
@@ -365,39 +277,14 @@ export default function MessagesClient() {
                         }
                       }}
                       placeholder={t("patientMessages.typePlaceholder", lang)}
+                      aria-label={t("patientMessages.typePlaceholder", lang)}
                       rows={2}
-                      style={{
-                        flex: 1,
-                        resize: "none",
-                        border: 0,
-                        borderBottom: "1px solid var(--fg-on-light-4)",
-                        background: "transparent",
-                        padding: "10px 0",
-                        fontFamily: "var(--font-sans)",
-                        fontSize: 15,
-                        color: "var(--fg-on-light-1)",
-                        outline: "none",
-                      }}
-                      onFocus={(e) => (e.currentTarget.style.borderBottomColor = "var(--gold-0)")}
-                      onBlur={(e) => (e.currentTarget.style.borderBottomColor = "var(--fg-on-light-4)")}
+                      className="flex-1 resize-none rounded-xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-900 placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-transparent"
                     />
                     <button
                       onClick={sendMessage}
                       disabled={!draft.trim() || sending}
-                      style={{
-                        background: "var(--gold-0)",
-                        color: "var(--ink-0)",
-                        border: 0,
-                        padding: "12px 20px",
-                        cursor: draft.trim() ? "pointer" : "not-allowed",
-                        fontFamily: "var(--font-sans)",
-                        fontWeight: 600,
-                        fontSize: 10,
-                        letterSpacing: "0.24em",
-                        textTransform: "uppercase",
-                        opacity: draft.trim() && !sending ? 1 : 0.4,
-                        flexShrink: 0,
-                      }}
+                      className="shrink-0 bg-teal-700 text-white font-semibold text-sm px-5 py-2.5 rounded-xl hover:bg-teal-800 disabled:opacity-40 disabled:cursor-not-allowed transition-all duration-200"
                     >
                       {sending ? "…" : t("patientMessages.send", lang)}
                     </button>
@@ -405,29 +292,8 @@ export default function MessagesClient() {
                 </div>
               </>
             )}
-          </div>
         </div>
-      </section>
-
-      {/* styled-jsx silently no-ops in the App Router (POSTMORTEMS #113) — use a plain
-          style tag. The template-literal interpolation below still works as-is. */}
-      <style>{`
-        @media (max-width: 768px) {
-          .healo-msg-grid {
-            grid-template-columns: 1fr !important;
-          }
-          .healo-msg-threads {
-            display: ${selectedId ? "none" : "block"} !important;
-            border-right: 0 !important;
-          }
-          .healo-msg-conversation {
-            display: ${selectedId ? "flex" : "none"} !important;
-          }
-          .healo-msg-back {
-            display: inline-block !important;
-          }
-        }
-      `}</style>
+      </div>
     </main>
   );
 }
@@ -437,39 +303,16 @@ function ThreadRow({ thread, active, onClick, lang }) {
   return (
     <button
       onClick={onClick}
-      style={{
-        width: "100%",
-        textAlign: "left",
-        padding: "16px 24px",
-        border: 0,
-        borderBottom: "1px solid var(--cream-2)",
-        background: active ? "var(--cream-0)" : "transparent",
-        cursor: "pointer",
-        display: "block",
-      }}
+      data-testid="thread-row"
+      aria-current={active ? "true" : undefined}
+      className={`block w-full text-left px-5 py-4 border-b border-gray-100 transition-all duration-200 ${
+        active ? "bg-teal-50" : "hover:bg-gray-50"
+      }`}
     >
-      <div
-        style={{
-          fontFamily: "var(--font-serif)",
-          fontSize: 16,
-          fontWeight: 500,
-          color: "var(--fg-on-light-1)",
-          marginBottom: 4,
-          overflow: "hidden",
-          textOverflow: "ellipsis",
-          whiteSpace: "nowrap",
-        }}
-      >
+      <div className={`text-sm font-semibold truncate ${active ? "text-teal-800" : "text-gray-900"}`}>
         {subject}
       </div>
-      <div
-        style={{
-          fontFamily: "var(--font-mono)",
-          fontSize: 10,
-          letterSpacing: "0.1em",
-          color: "var(--fg-on-light-3)",
-        }}
-      >
+      <div className="text-xs text-gray-500 tabular-nums mt-0.5">
         {new Date(thread.updated_at).toLocaleDateString()}
       </div>
     </button>
@@ -481,42 +324,15 @@ function MessageBubble({ message, user, lang }) {
   const who = t(ACTOR_LABEL_KEYS[message.actor_type] || ACTOR_LABEL_KEYS.system, lang);
 
   return (
-    <div
-      style={{
-        display: "flex",
-        justifyContent: isMine ? "flex-end" : "flex-start",
-        marginBottom: 16,
-      }}
-    >
-      <div style={{ maxWidth: "70%", textAlign: isMine ? "right" : "left" }}>
-        <div
-          style={{
-            fontFamily: "var(--font-sans)",
-            fontSize: 10,
-            letterSpacing: "0.2em",
-            textTransform: "uppercase",
-            color: "var(--fg-on-light-3)",
-            marginBottom: 6,
-          }}
-        >
-          {who} ·{" "}
-          <span style={{ fontFamily: "var(--font-mono)", letterSpacing: "0.05em" }}>
-            {new Date(message.created_at).toLocaleString()}
-          </span>
+    <div className={`flex mb-4 ${isMine ? "justify-end" : "justify-start"}`}>
+      <div className={`max-w-[80%] md:max-w-[70%] ${isMine ? "text-right" : "text-left"}`}>
+        <div className="text-xs text-gray-500 mb-1.5">
+          {who} · <span className="tabular-nums">{new Date(message.created_at).toLocaleString()}</span>
         </div>
         <div
-          style={{
-            display: "inline-block",
-            background: isMine ? "var(--ink-0)" : "var(--paper)",
-            color: isMine ? "var(--fg-on-dark-1)" : "var(--fg-on-light-1)",
-            border: isMine ? "1px solid var(--ink-3)" : "1px solid var(--cream-2)",
-            padding: "14px 18px",
-            fontFamily: "var(--font-sans)",
-            fontSize: 15,
-            lineHeight: 1.6,
-            whiteSpace: "pre-wrap",
-            wordBreak: "break-word",
-          }}
+          className={`inline-block px-4 py-3 rounded-xl text-sm leading-relaxed whitespace-pre-wrap break-words text-left ${
+            isMine ? "bg-teal-700 text-white" : "bg-gray-50 text-gray-900 border border-gray-200"
+          }`}
         >
           {message.message_text}
         </div>

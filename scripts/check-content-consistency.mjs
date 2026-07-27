@@ -611,7 +611,7 @@ for (const f of ["NotoSans-Regular.ttf", "NotoSans-Bold.ttf", "NotoSansKR-Regula
   }
 }
 
-// ── 11) PDF 렌더 React 정합 가드 (POSTMORTEMS #64) ────────────────────────────
+// ── 11) PDF 렌더 React 정합 가드 (POSTMORTEMS #132) ────────────────────────────
 // 왜: Next(App Router)는 앱 코드를 내장(vendored) React 19 로 컴파일한다. 설치 react 가
 //     18 이거나 @react-pdf/renderer 가 웹팩 서버 번들에 말려 들어가면, PDF 렌더 트리에
 //     서로 다른 React 의 요소가 섞여 renderToBuffer 가 React error #31 로 즉사 →
@@ -621,12 +621,12 @@ try {
   const nextCfg = readFileSync(join(ROOT, "next.config.js"), "utf8");
   const extBlock = nextCfg.match(/serverExternalPackages\s*:\s*\[[\s\S]*?\]/);
   if (!extBlock || !extBlock[0].includes("@react-pdf/renderer")) {
-    errors.push(`[PDF React정합] next.config.js serverExternalPackages 에 "@react-pdf/renderer" 없음 — 웹팩이 react-pdf 를 번들하면 내장 React 와 인스턴스가 갈려 발급 PDF 가 전부 500 (React #31, POSTMORTEMS #64).`);
+    errors.push(`[PDF React정합] next.config.js serverExternalPackages 에 "@react-pdf/renderer" 없음 — 웹팩이 react-pdf 를 번들하면 내장 React 와 인스턴스가 갈려 발급 PDF 가 전부 500 (React #31, POSTMORTEMS #132).`);
   }
   const pkg = JSON.parse(readFileSync(join(ROOT, "package.json"), "utf8"));
   const reactMajor = parseInt(String(pkg.dependencies?.react || "0").replace(/^[^\d]*/, ""), 10);
   if (reactMajor < 19) {
-    errors.push(`[PDF React정합] package.json react "${pkg.dependencies?.react}" — Next 16(내장 React 19)과 요소 규격이 갈려 외부화된 react-pdf 렌더가 React #31 로 죽음. react/react-dom ^19 유지할 것 (POSTMORTEMS #64).`);
+    errors.push(`[PDF React정합] package.json react "${pkg.dependencies?.react}" — Next 16(내장 React 19)과 요소 규격이 갈려 외부화된 react-pdf 렌더가 React #31 로 죽음. react/react-dom ^19 유지할 것 (POSTMORTEMS #132).`);
   }
 } catch { /* next.config.js 없으면 다른 검사가 이미 실패 */ }
 
@@ -1926,7 +1926,8 @@ const BACKOFFICE_SHARED = [
 // 왜: 2026-07-27 실측 — src/lib/i18n/dictionary.js(21개 언어)가 통째로 첫 화면 JS 에 들어가
 //     홈 623KB 중 269KB(gzip)를 차지했다. 방문자는 자기 언어 1개만 쓴다. next.config.js 가
 //     클라이언트 빌드에서만 이 파일을 dictionary.client.js(빈 껍데기)로 바꿔치기하고,
-//     브라우저는 app/i18n/[lang]/route.js 가 주는 자기 언어 완성본 하나만 받는다.
+//     브라우저는 layout.jsx 가 HTML 에 인라인해 주는 자기 언어 완성본 하나만 받는다
+//     (src/lib/i18n/inlineScript.js — 별도 파일로 내리면 head preload 가 첫 화면을 늦춘다, 실측).
 //     그 별칭이 사라지면 269KB 가 **조용히** 전 페이지로 돌아온다(화면은 멀쩡해서 아무도 모른다).
 // 무엇을 보나: ① next.config.js 에 그 별칭이 살아 있는지 ② "use client" 파일이 사전을 직접
 //     import 하지 않는지(별칭 때문에 빈 객체가 와서 **글자가 조용히 사라진다**).
@@ -1975,6 +1976,66 @@ const BACKOFFICE_SHARED = [
           `클라이언트 빌드에서 이건 빈 껍데기로 바뀌므로 **글자가 조용히 사라진다**. ` +
           `t() 를 쓰거나(@/lib/i18n), 서버 컴포넌트에서 값을 내려줄 것.`
       );
+    }
+  }
+}
+
+// ── §33-b) E2E 「한 번 읽고 판정」 금지 — innerText() → toBeTruthy() 부채 동결 (POSTMORTEMS #132) ──
+// 왜: 2026-07-27 게스트 초대 스펙 2건이 main 을 빨갛게 만들었는데, 앱은 멀쩡했다.
+//     화면이 하이드레이션 뒤에 그려지는데 테스트는 goto 직후 body.innerText() 를 **딱 한 번**
+//     읽고 정규식으로 판정했다 — 자동 재시도가 없어 구조적으로 이길 수 없는 경주였고,
+//     Playwright retry 가 «1차 실패 → 2차 통과»로 최소 3번의 초록을 위장하다 결국 터졌다.
+//     (실측: 게스트 폼은 load 뒤 0.2~0.3초에 뜬다. 그 사이엔 "연결 중…"만 있다.)
+//     정답은 웹퍼스트 어서션 — expect(locator).toBeVisible() / expect(body).toContainText().
+// 무엇을 보나: 기존 부채는 파일별 개수로 **동결**하고, 늘어나거나 새 파일이 생기면 실패.
+//     고쳐서 줄었으면 아래 숫자도 같이 내려라(부채 장부가 거짓이 되지 않게).
+{
+  const FROZEN = {
+    "admin-feedback-list.spec.ts": 1,
+    "chat-feedback-thumbs-down.spec.ts": 2,
+    "chat-identification-form.spec.ts": 1,
+    "chat-multilingual.spec.ts": 2,
+    "chat-resume-cookie.spec.ts": 1,
+    "hospital-detail.spec.ts": 1,
+    "hospitals-list.spec.ts": 1,
+    "intake-file-upload.spec.ts": 1,
+    "intake-form-submit.spec.ts": 1,
+    "intake-language-fallback.spec.ts": 1,
+    "intake-validation-required.spec.ts": 1,
+    "patient-dashboard-auth.spec.ts": 1,
+    "patient-survey-response.spec.ts": 1,
+    "telemedicine-booking-cta.spec.ts": 1,
+    "treatments-immune-data.spec.ts": 2,
+  };
+  const HOW =
+    `→ expect(locator).toBeVisible() / await expect(page.locator("body")).toContainText(/…/) 로 바꿀 것 ` +
+    `(둘 다 «될 때까지» 자동 재시도한다). 부채를 갚았으면 scripts/check-content-consistency.mjs §33-b 의 숫자도 내려라.`;
+
+  // ⚠️ walk() 금지 — EXCLUDE 가 .spec. 을 배제해 스캔 대상이 0이 된다(§7c 와 같은 함정).
+  const specs = readdirSync(join(ROOT, "e2e")).filter((f) => /\.spec\.ts$/.test(f));
+  for (const f of specs) {
+    const lines = readFileSync(join(ROOT, "e2e", f), "utf8").split("\n");
+    let count = 0;
+    for (let i = 0; i < lines.length; i++) {
+      // innerText() 한 번 읽기 → 10줄 안에서 toBeTruthy() 로 판정하는 모양
+      if (/\.innerText\(\)/.test(lines[i]) && /toBeTruthy\(\)/.test(lines.slice(i, i + 10).join("\n"))) count++;
+    }
+    const allowed = FROZEN[f] ?? 0;
+    if (count > allowed) {
+      errors.push(
+        `[e2e-oneshot] e2e/${f} — 「innerText() 한 번 읽고 toBeTruthy()」 ${count}건 (허용 ${allowed}건). ` +
+          `하이드레이션 뒤에 그려지는 화면에선 이 검사가 경주라서, retry 로 초록을 위장하다 아무 커밋에서나 터진다(POSTMORTEMS #132). ${HOW}`
+      );
+    } else if (count < allowed) {
+      errors.push(
+        `[e2e-oneshot] e2e/${f} — 부채가 ${allowed}건 → ${count}건으로 줄었다(좋음). ` +
+          `scripts/check-content-consistency.mjs §33-b 의 숫자를 ${count}${count === 0 ? " (= 항목 삭제)" : ""} 로 내려라 — 장부가 실제와 어긋나면 가드가 헐거워진다.`
+      );
+    }
+  }
+  for (const f of Object.keys(FROZEN)) {
+    if (!specs.includes(f)) {
+      errors.push(`[e2e-oneshot] §33-b 동결 목록의 e2e/${f} 가 없다(이름 변경·삭제). 목록에서 지울 것 — 죽은 항목은 가드를 헐겁게 만든다.`);
     }
   }
 }
@@ -2045,6 +2106,48 @@ const BACKOFFICE_SHARED = [
           (missing.length > 20 ? `\n      · … 외 ${missing.length - 20}건` : "")
       );
     }
+  }
+}
+
+// ── 렌더 중 «브라우저에만 있는 값» 읽기 = Hydration Error (POSTMORTEMS #30 부류 재발) ──
+// 서버 렌더에는 document·navigator 가 없다. 컴포넌트 본문에서 이걸 읽으면 서버는 'en',
+// 브라우저는 'ko'/'ru' 로 그려서 화면 전체가 어긋나고 React 가 Hydration Error 를 던진다.
+// 실제로 센트리에 한 달간 23건 쌓였다(JAVASCRIPT-NEXTJS-3, /patient/*·/survey/*).
+// 올바른 방법: useLang()(useSyncExternalStore — 하이드레이션 땐 서버값, 그 뒤 쿠키값) 또는
+//             서버 컴포넌트가 헤더/쿠키를 읽어 prop 으로 내려주기.
+// ponytail: 「들여쓰기 2칸 = 컴포넌트 본문」 휴리스틱. effect/핸들러 안(4칸 이상)은 안전하니 넘긴다.
+//   한계 — 파일에 중첩 컴포넌트가 있어 본문이 4칸으로 들어가면 못 잡는다. 그때는 룰을 AST 로 올릴 것.
+{
+  // ⚠️ `document.cookie` 는 일부러 뺐다 — 컴포넌트가 아닌 모듈 최상단 쿠키 헬퍼(readCookie 등)가
+  //    같은 2칸 들여쓰기라 오탐만 쏟아진다. 언어 쿠키는 getLangCodeFromCookie 로 이미 덮인다.
+  const BROWSER_ONLY = /getLangCodeFromCookie\s*\??\.?\(|navigator\.(languages?|userAgent)\b|window\.(matchMedia\s*\(|inner(Width|Height)\b)|localStorage\.|sessionStorage\./;
+  // 마운트 뒤에만 도는 훅 — 이 콜백은 렌더 중 실행되지 않으니 안전.
+  const DEFERRED_HOOK = /useEffect|useLayoutEffect|useCallback/;
+  // ⚠️ 반대로 이 둘의 콜백은 **렌더 중에** 실행된다(useState 지연 초기화·useMemo).
+  //    `=>` 가 있다고 안전 처리하면 `useState(() => getLangCodeFromCookie())` 가 그대로 샌다.
+  const RUNS_DURING_RENDER = /useState\s*\(|useMemo\s*\(/;
+  for (const file of [...walk("app"), ...walk("src"), ...walk("components")]) {
+    if (!/\.(jsx|tsx)$/.test(file)) continue;
+    const norm = file.replace(/\\/g, "/");
+    // 안전 패턴의 원본 — useSyncExternalStore 의 «클라이언트 스냅샷» 이라 쿠키를 읽는 게 맞다.
+    if (norm.endsWith("src/lib/i18n/LangContext.jsx")) continue;
+    const lines = stripCommentsWholeFile(readFileSync(join(ROOT, file), "utf8")).split("\n");
+    lines.forEach((line, i) => {
+      if (!/^ {2}\S/.test(line)) return;          // 컴포넌트 본문 최상단만
+      if (!BROWSER_ONLY.test(line)) return;
+      // 순서 주의: 렌더 중 실행되는 훅이 먼저다 — `=>` 에게 구제받지 못하게.
+      if (!RUNS_DURING_RENDER.test(line)) {
+        if (DEFERRED_HOOK.test(line)) return;                 // effect 안이면 안전
+        if (/=>|\bfunction\b|\basync\b/.test(line)) return;    // 핸들러·콜백 정의면 안전
+      }
+      errors.push(
+        `[하이드레이션] ${norm}:${i + 1} — 컴포넌트 렌더 중에 브라우저 전용 값을 읽는다. ` +
+          `서버 렌더엔 document/navigator 가 없어 서버('en')와 브라우저('ko')가 다른 화면을 그리고 ` +
+          `React 가 Hydration Error 를 던진다(POSTMORTEMS #30 부류·센트리 23건). ` +
+          `언어는 useLang(), 그 밖의 값은 useEffect 로 마운트 후 읽거나 서버가 prop 으로 내려줄 것.\n` +
+          `    ${line.trim().slice(0, 120)}`
+      );
+    });
   }
 }
 

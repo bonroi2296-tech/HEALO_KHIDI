@@ -4,6 +4,8 @@
  * 서버 컴포넌트에서 토큰 검증 후 클라이언트 폼 렌더링
  */
 
+import { headers } from "next/headers";
+
 import SurveyForm from "./_client/SurveyForm";
 
 export const metadata = {
@@ -46,6 +48,10 @@ export default async function SurveyPage({ params }) {
     initialState = "internal_error";
   }
 
+  // 환자 언어가 없을 때의 폴백 — 브라우저가 아니라 **서버가** 헤더에서 읽는다.
+  // (폼이 navigator 를 직접 읽으면 서버는 en, 브라우저는 ru/ko 로 그려 Hydration Error)
+  const browserLang = (await headers()).get("accept-language")?.split(",")[0] || "en";
+
   return (
     <SurveyForm
       token={token}
@@ -53,6 +59,7 @@ export default async function SurveyPage({ params }) {
       initialState={initialState}
       alreadyResponded={responded}
       patientLang={patientLang}
+      browserLang={browserLang}
     />
   );
 }

@@ -189,7 +189,9 @@ jobs:
         run: npx playwright install chromium --with-deps
 
       - name: Full E2E 실행
-        run: npm run e2e
+        run: |
+          set -o pipefail
+          npm run e2e 2>&1 | tee e2e-run.log
         env:
           CI: "1"
           E2E_SKIP_SERVER: "0"
@@ -210,6 +212,25 @@ jobs:
           # 민감키 — 시크릿 필수(server-side 라우트·PII 복호화).
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           ENCRYPTION_KEY_V1: ${{ secrets.ENCRYPTION_KEY_V1 }}
+
+      # 🩺 「1차 실패 → retry 로 통과」한 테스트를 잡 요약에 띄운다.
+      #    왜: retries=2 는 공유 프로덕션 DB 의 진짜 간헐 실패를 흡수하려고 켠 것인데,
+      #    **깨진 테스트까지 같이 덮는다.** 2026-07-27 게스트 초대 스펙 2건이 정확히 그랬다 —
+      #    최소 3번의 «초록» 뒤에서 매번 1차 실패하고 있었고, 아무도 못 봤다(POSTMORTEMS #132).
+      #    합격/불합격은 안 바꾼다(진짜 인프라 흔들림으로 main 을 막으면 더 나쁨). 보이게만 한다.
+      - name: 재시도로만 통과한 테스트 표시
+        if: always()
+        run: |
+          grep -F '(retry #' e2e-run.log | grep -F '✓' > retried.txt || true
+          if [ -s retried.txt ]; then
+            {
+              echo "### ⚠️ 재시도로만 통과한 테스트 — 깨진 테스트가 초록으로 위장 중일 수 있음"
+              echo "1차에서 떨어지는 테스트는 «가끔 실패»가 아니라 보통 **경주(race)**다. 웹퍼스트 어서션으로 고칠 것."
+              echo '```'
+              cat retried.txt
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
 
       - name: 테스트 리포트 저장
         if: always()

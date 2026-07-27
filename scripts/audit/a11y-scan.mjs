@@ -38,6 +38,48 @@ if (STATE) {
 }
 const summary = [];
 
+// 「열어본 상태」 측정 — 목록만 있는 화면은 첫 렌더에 본 내용이 없다.
+// (2026-07-27: 환자 메시지 화면을 새로 만들었는데 스캔은 «대화 목록»만 재고 통과시켰다.
+//  정작 많이 바뀐 말풍선·입력창은 클릭해야 그려지므로 측정된 적이 없었다.)
+// path → 클릭할 CSS 선택자. 안전을 위해 «명시 설정된 선택자»만 누른다(자동 탐색 금지 —
+// 삭제 버튼 같은 걸 눌러버리면 실데이터가 날아간다). 목록 항목처럼 상태만 바꾸는 것만 등록할 것.
+const CLICKS = process.env.AUDIT_CLICKS ? JSON.parse(process.env.AUDIT_CLICKS) : {};
+
+async function measure(page) {
+  const res = await new AxeBuilder({ page })
+    .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
+    .analyze();
+  const byImpact = { critical: 0, serious: 0, moderate: 0, minor: 0 };
+  for (const v of res.violations) byImpact[v.impact || "minor"] += v.nodes.length;
+  const nodes = res.violations.reduce((a, v) => a + v.nodes.length, 0);
+  // axe 가 "위반"이라 단정 못 한 것들(사진·그라데이션 위 글씨 등 배경색을 계산할 수 없는 경우).
+  // 위반 0 이어도 여기 숫자가 크면 "확인 안 된 것"이지 "괜찮은 것"이 아니다 → 따로 센다.
+  const incomplete = res.incomplete.map((v) => ({
+    id: v.id,
+    count: v.nodes.length,
+    samples: v.nodes.slice(0, 5).map((n) => ({ target: n.target.join(" "), html: (n.html || "").slice(0, 160) })),
+  }));
+  return {
+    ruleViolations: res.violations.length,
+    nodes,
+    byImpact,
+    incompleteNodes: incomplete.reduce((a, v) => a + v.count, 0),
+    incomplete,
+    rules: res.violations.map((v) => ({
+      id: v.id,
+      impact: v.impact,
+      count: v.nodes.length,
+      help: v.help,
+      // 어디를 고쳐야 하는지 — 대표 3건만(리포트 비대화 방지)
+      samples: v.nodes.slice(0, 3).map((n) => ({ target: n.target.join(" "), summary: n.failureSummary })),
+    })),
+  };
+}
+
+const fmt = (label, m, render) =>
+  `${label}: ${m.ruleViolations} rules / ${m.nodes} nodes  [crit ${m.byImpact.critical} · ser ${m.byImpact.serious} · mod ${m.byImpact.moderate} · min ${m.byImpact.minor}]  미판정 ${m.incompleteNodes}` +
+  (render ? `  (렌더 ${render.nodes}노드·${render.text}자)` : "");
+
 // 「빈 화면 통과」 차단 — 자동화 브라우저가 페이지를 하얗게 렌더하면 axe 는 위반 0 을 돌려주고
 // 그게 "접근성 완벽"으로 기록된다(실제로 2026-06 리포트가 7개 페이지 전부 0/0 이었음).
 // 그래서 스캔 전에 "이 페이지가 진짜 그려졌는가"를 먼저 단언한다. 못 넘으면 통과가 아니라 실패.
@@ -64,9 +106,6 @@ for (const p of PATHS) {
       continue;
     }
 
-    // 「빈 화면 통과」와 같은 부류의 두 번째 구멍: 세션이 죽으면 로그인 화면으로 튕기는데
-    // 그 화면은 멀쩡히 렌더되므로 위 검증을 통과해 버린다 → 로그인 페이지를 재고 "백오피스 0건"이라 보고하게 된다.
-    // 그래서 로그인 뒤 화면을 잴 때는 「진짜 그 화면에 있는가」를 따로 단언한다.
     // 「빈 화면 통과」와 같은 부류의 두 번째 구멍을 여기서 막는다:
     // 세션이 죽으면 로그인 화면으로 튕기는데, 그 화면은 멀쩡히 렌더돼 위 검증을 통과해 버린다
     // → 로그인 페이지를 재고 "백오피스 위반 0건"이라 보고하게 된다.
@@ -86,42 +125,48 @@ for (const p of PATHS) {
     const redirectedTo = norm(landed) === norm(p) ? null : landed;
     if (redirectedTo) console.log(`${p}: ↪ ${redirectedTo} 로 이동해서 측정함(정상 리다이렉트)`);
 
-    const res = await new AxeBuilder({ page })
-      .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
-      .analyze();
-    const byImpact = { critical: 0, serious: 0, moderate: 0, minor: 0 };
-    for (const v of res.violations) byImpact[v.impact || "minor"] += v.nodes.length;
-    const nodes = res.violations.reduce((a, v) => a + v.nodes.length, 0);
-    // axe 가 "위반"이라 단정 못 한 것들(사진·그라데이션 위 글씨 등 배경색을 계산할 수 없는 경우).
-    // 위반 0 이어도 여기 숫자가 크면 "확인 안 된 것"이지 "괜찮은 것"이 아니다 → 따로 센다.
-    const incomplete = res.incomplete.map((v) => ({
-      id: v.id,
-      count: v.nodes.length,
-      samples: v.nodes.slice(0, 5).map((n) => ({ target: n.target.join(" "), html: (n.html || "").slice(0, 160) })),
-    }));
-    const incompleteNodes = incomplete.reduce((a, v) => a + v.count, 0);
-    summary.push({
-      path: p,
-      renderOk: true,
-      status,
-      redirectedTo,
-      renderedNodes: render.nodes,
-      renderedText: render.text,
-      ruleViolations: res.violations.length,
-      nodes,
-      incompleteNodes,
-      incomplete,
-      byImpact,
-      rules: res.violations.map((v) => ({
-        id: v.id,
-        impact: v.impact,
-        count: v.nodes.length,
-        help: v.help,
-        // 어디를 고쳐야 하는지 — 대표 3건만(리포트 비대화 방지)
-        samples: v.nodes.slice(0, 3).map((n) => ({ target: n.target.join(" "), summary: n.failureSummary })),
-      })),
-    });
-    console.log(`${p}: ${res.violations.length} rules / ${nodes} nodes  [crit ${byImpact.critical} · ser ${byImpact.serious} · mod ${byImpact.moderate} · min ${byImpact.minor}]  미판정 ${incompleteNodes}  (렌더 ${render.nodes}노드·${render.text}자)`);
+    const m = await measure(page);
+    summary.push({ path: p, state: "initial", renderOk: true, status, redirectedTo, renderedNodes: render.nodes, renderedText: render.text, ...m });
+    console.log(fmt(p, m, render));
+
+    // ── 「열어본 상태」 2차 측정 (설정된 경로만) ──────────────────────────────
+    const sel = CLICKS[p];
+    if (sel) {
+      const el = await page.$(sel);
+      if (!el) {
+        // 눌러야 할 것을 못 찾았으면 «조용히 통과»시키지 않는다 — 목록이 비어 측정 못 한 사실을 남긴다.
+        console.log(`${p}: ⓘ 클릭 대상 없음(${sel}) — 열어본 상태는 측정 못 함(목록이 비었을 수 있음)`);
+        summary.push({ path: p, state: "opened", measured: false, reason: "click_target_not_found", selector: sel });
+      } else {
+        const clickedText = ((await el.innerText().catch(() => "")) || "").trim().slice(0, 40);
+        await el.click();
+        // 상태 전환 렌더를 기다린다(라우팅이면 networkidle, 클라이언트 상태면 타임아웃 무시).
+        await page.waitForLoadState("networkidle", { timeout: 8000 }).catch(() => {});
+        // ⚠️ 클릭 직후 마우스가 그 요소 «위»에 남아 hover 전환이 돈다. 그 상태로 재면 axe 가
+        //    «정지 상태엔 존재하지 않는 중간 색»을 읽는다 — 실제로 첫 시험에서 teal-100(4.86 통과)과
+        //    teal-200(4.34 미달) 사이의 #a8f8e8 을 4.49 미달로 잡아냈다(가짜 위반).
+        //    → 커서를 치우고, 전환(기본 duration-200)이 확실히 끝날 때까지 기다린 뒤 측정한다.
+        await page.mouse.move(0, 0);
+        await page.waitForTimeout(900);
+        const r2 = await page.evaluate(() => ({
+          nodes: document.body ? document.body.querySelectorAll("*").length : 0,
+          text: (document.body?.innerText || "").trim().length,
+        }));
+        const m2 = await measure(page);
+        summary.push({
+          path: p,
+          state: "opened",
+          measured: true,
+          selector: sel,
+          clickedText,
+          renderedNodes: r2.nodes,
+          renderedText: r2.text,
+          landedOn: new URL(page.url()).pathname,
+          ...m2,
+        });
+        console.log(fmt(`${p} ▸ 열어본 상태("${clickedText}")`, m2, r2));
+      }
+    }
   } catch (e) {
     sanityFailed++;
     console.log(`${p}: ERROR ${e.message}`);

@@ -16,6 +16,7 @@ import { NextRequest } from "next/server";
 import { defaultLimiter } from "@/lib/api/rateLimiter";
 import { sanitizeString } from "@/lib/api/sanitize";
 import { checkAdminAuth } from "@/lib/auth/checkAdminAuth";
+import { isValidSessionType } from "@/lib/consultation/sessionTypes";
 
 export async function POST(request: NextRequest) {
   const limited = defaultLimiter.check(request);
@@ -71,7 +72,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // ⚠️ 2026-07-27: 여기엔 검증이 아예 없어서 아무 문자열이나 DB 로 갔다(DB CHECK 위반 → insert 실패).
+    //    유형 목록의 단일 SoR = src/lib/consultation/sessionTypes.ts.
     const sessionType = payload.sessionType || 'follow_up';
+    if (!isValidSessionType(sessionType)) {
+      return Response.json({ ok: false, error: 'invalid_session_type' }, { status: 400 });
+    }
     const daysFromNow = payload.daysFromNow ?? 3;
 
     // 기본 10:00 은 KST 기준이어야 한다. setHours 는 서버(Vercel=UTC) 로컬시간이라
