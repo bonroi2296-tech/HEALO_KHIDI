@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Mail, Lock, Eye, EyeOff } from 'lucide-react';
-import { createSupabaseBrowserClient } from '@/lib/supabase/browser';
+import { createSupabaseBrowserClient, withAuthTimeout } from '@/lib/supabase/browser';
 import { useToast } from '@/components/Toast';
 import { t } from '@/lib/i18n';
 import { useLang } from '@/lib/i18n/LangContext';
@@ -44,13 +44,21 @@ export const LoginPage = ({ setView }) => {
 
     const handleLogin = async (e) => {
         if(e) e.preventDefault();
-        
+
         setLoading(true);
 
-        const { data, error } = await supabase.auth.signInWithPassword({
-            email: email,
-            password: password,
-        });
+        // 인증 서버가 아예 응답을 안 하면(2026-07-24 Supabase 무응답 장애) 버튼이 "로그인 중..."에
+        // 영원히 갇힌다 — 20초 컷 후 안내.
+        let data, error;
+        try {
+            ({ data, error } = await withAuthTimeout(
+                supabase.auth.signInWithPassword({ email, password })
+            ));
+        } catch (e2) {
+            toast.error(t(e2?.message === "auth_timeout" ? "login.timeout" : "login.error", langCode));
+            setLoading(false);
+            return;
+        }
 
         if (error) {
             toast.error(t("login.error", langCode));
@@ -66,9 +74,13 @@ export const LoginPage = ({ setView }) => {
 
                 await new Promise(resolve => setTimeout(resolve, 300));
 
+                // ponytail: 역할 판별은 "있으면 좋은 것" — 서버가 늘어지면 10초 뒤 포기하고 홈으로 보낸다
+                // (여기서 무한 대기하면 로그인은 됐는데 버튼만 "로그인 중..."으로 남는다).
+                const roleFetch = (url) =>
+                    fetch(url, { credentials: 'include', headers: authHeaders, signal: AbortSignal.timeout(10000) }).catch(() => null);
                 const [adminRes, partnerRes] = await Promise.all([
-                    fetch('/api/admin/whoami', { credentials: 'include', headers: authHeaders }).catch(() => null),
-                    fetch('/api/partner/whoami', { credentials: 'include', headers: authHeaders }).catch(() => null),
+                    roleFetch('/api/admin/whoami'),
+                    roleFetch('/api/partner/whoami'),
                 ]);
 
                 const adminData = adminRes?.ok ? await adminRes.json() : null;

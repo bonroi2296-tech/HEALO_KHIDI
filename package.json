@@ -4,6 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
+    "sync": "node scripts/sync.mjs",
     "dev": "next dev --webpack",
     "build": "next build --webpack",
     "start": "next start",
@@ -58,7 +59,7 @@
     "check": "npm run lint && next build --webpack",
     "check:vercel": "node scripts/validate-vercel-config.js",
     "audit:secret": "node scripts/audit/secret-scan.mjs",
-    "audit:deps": "npm audit --audit-level=high",
+    "audit:deps": "node scripts/audit-deps.mjs",
     "audit:a11y": "node scripts/audit/a11y-scan.mjs",
     "audit:lighthouse": "node scripts/audit/lighthouse-scan.mjs",
     "prepare": "node scripts/install-hooks.js"
@@ -90,7 +91,7 @@
     "livekit-client": "^2.20.1",
     "livekit-server-sdk": "^2.17.0",
     "lucide-react": "^0.562.0",
-    "next": "^16.2.9",
+    "next": "^16.2.11",
     "papaparse": "^5.5.3",
     "pdf-parse": "^2.4.5",
     "pg": "^8.18.0",

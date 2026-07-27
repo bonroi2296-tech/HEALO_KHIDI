@@ -8,6 +8,8 @@
 
 import "server-only";
 
+import { fetchGeminiWithCompat } from "@/lib/ai/geminiThinkingCompat";
+
 import { sanitizeResponse } from "./sanitize";
 
 export interface PatternMessage {
@@ -188,15 +190,15 @@ Rules:
 
     if (googleKey) {
       const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${googleKey}`;
-      const res = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
+      // 별칭 세대 교체 생존 사다리 — temperature 폐기(2026-07-21 공지) 시 400 을 흡수.
+      const res = await fetchGeminiWithCompat(
+        url,
+        {
           contents: [{ parts: [{ text: prompt }] }],
           generationConfig: { temperature: 0.3, maxOutputTokens: 2000 },
-        }),
-        signal: AbortSignal.timeout(15000),
-      });
+        },
+        { signal: AbortSignal.timeout(15000) }
+      );
       if (res.ok) {
         const data = await res.json();
         text = data?.candidates?.[0]?.content?.parts?.[0]?.text || null;

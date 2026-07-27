@@ -1,0 +1,790 @@
+<title>백오피스 계층별 재설계 — HEALO KHIDI</title>
+
+<style>
+  :root {
+    --ink:        #0b1f1d;
+    --ink-2:      #334744;
+    --ink-3:      #61756f;
+    --paper:      #f6f8f7;
+    --card:       #ffffff;
+    --rule:       #dbe4e1;
+    --rule-soft:  #e8efec;
+    --teal:       #0d9488;
+    --teal-deep:  #115e59;
+    --teal-wash:  #eaf6f3;
+    --emerald:    #047857;
+    --amber:      #a35b09;
+    --rose:       #a11340;
+    --shadow:     0 1px 2px rgba(11,31,29,.05), 0 8px 24px -16px rgba(11,31,29,.28);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ink:       #e8f0ee;
+      --ink-2:     #b3c4c0;
+      --ink-3:     #869995;
+      --paper:     #0a1211;
+      --card:      #101b1a;
+      --rule:      #23332f;
+      --rule-soft: #1a2725;
+      --teal:      #2dd4bf;
+      --teal-deep: #99f6e4;
+      --teal-wash: #102724;
+      --emerald:   #34d399;
+      --amber:     #e5a13c;
+      --rose:      #f4718f;
+      --shadow:    0 1px 2px rgba(0,0,0,.4), 0 10px 30px -18px rgba(0,0,0,.9);
+    }
+  }
+  :root[data-theme="dark"] {
+    --ink:       #e8f0ee;
+    --ink-2:     #b3c4c0;
+    --ink-3:     #869995;
+    --paper:     #0a1211;
+    --card:      #101b1a;
+    --rule:      #23332f;
+    --rule-soft: #1a2725;
+    --teal:      #2dd4bf;
+    --teal-deep: #99f6e4;
+    --teal-wash: #102724;
+    --emerald:   #34d399;
+    --amber:     #e5a13c;
+    --rose:      #f4718f;
+    --shadow:    0 1px 2px rgba(0,0,0,.4), 0 10px 30px -18px rgba(0,0,0,.9);
+  }
+  :root[data-theme="light"] {
+    --ink:       #0b1f1d;
+    --ink-2:     #334744;
+    --ink-3:     #61756f;
+    --paper:     #f6f8f7;
+    --card:      #ffffff;
+    --rule:      #dbe4e1;
+    --rule-soft: #e8efec;
+    --teal:      #0d9488;
+    --teal-deep: #115e59;
+    --teal-wash: #eaf6f3;
+    --emerald:   #047857;
+    --amber:     #a35b09;
+    --rose:      #a11340;
+    --shadow:    0 1px 2px rgba(11,31,29,.05), 0 8px 24px -16px rgba(11,31,29,.28);
+  }
+
+  /* Korean text: font CDNs are blocked, and a Korean webfont as data URI would be
+     multi-MB — so the stack below is the deliberate choice, not a fallback accident. */
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "Pretendard Variable", Pretendard, "Apple SD Gothic Neo",
+                 "Noto Sans KR", "Malgun Gothic", system-ui, sans-serif;
+    font-size: 16px;
+    line-height: 1.7;
+    word-break: keep-all;
+  }
+  .mono {
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", "JetBrains Mono",
+                 Menlo, Consolas, monospace;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 0 24px 96px; }
+
+  /* ---------- masthead ---------- */
+  .masthead { padding: 72px 0 40px; border-bottom: 2px solid var(--ink); }
+  .eyebrow {
+    font-size: 12px; letter-spacing: .16em; text-transform: uppercase;
+    color: var(--teal); font-weight: 700; margin: 0 0 18px;
+  }
+  h1 {
+    font-size: clamp(34px, 6vw, 62px); line-height: 1.08; letter-spacing: -.03em;
+    font-weight: 800; margin: 0 0 20px; text-wrap: balance; max-width: 16ch;
+  }
+  .lede {
+    font-size: clamp(17px, 2.2vw, 20px); color: var(--ink-2);
+    max-width: 62ch; margin: 0 0 32px; line-height: 1.62;
+  }
+  .lede b { color: var(--ink); font-weight: 700; }
+  .meta {
+    display: flex; flex-wrap: wrap; gap: 8px 20px;
+    font-size: 13px; color: var(--ink-3);
+  }
+  .meta span { display: inline-flex; gap: 7px; align-items: baseline; }
+  .meta b { color: var(--ink-2); font-weight: 600; }
+
+  /* ---------- stat strip ---------- */
+  .stats {
+    display: grid; gap: 1px; background: var(--rule);
+    grid-template-columns: repeat(auto-fit, minmax(158px, 1fr));
+    border: 1px solid var(--rule); margin: 0 0 8px;
+  }
+  .stat { background: var(--card); padding: 20px 18px; }
+  .stat .n {
+    font-size: 32px; font-weight: 700; letter-spacing: -.02em;
+    line-height: 1.1; display: block;
+  }
+  .stat .n small { font-size: 15px; font-weight: 600; color: var(--ink-3); margin-left: 2px; }
+  .stat .k { font-size: 12.5px; color: var(--ink-3); margin-top: 4px; display: block; }
+
+  /* ---------- sections ---------- */
+  section { padding-top: 68px; scroll-margin-top: 20px; }
+  .sec-head { display: flex; align-items: baseline; gap: 14px; margin-bottom: 8px; }
+  .sec-num {
+    font-size: 12px; font-weight: 700; color: var(--teal);
+    letter-spacing: .1em; padding-top: 6px;
+  }
+  h2 {
+    font-size: clamp(23px, 3.2vw, 31px); letter-spacing: -.022em; font-weight: 750;
+    margin: 0; line-height: 1.24; text-wrap: balance;
+  }
+  .sec-sub { color: var(--ink-2); margin: 6px 0 26px; max-width: 66ch; }
+  h3 {
+    font-size: 15px; font-weight: 700; margin: 34px 0 12px;
+    letter-spacing: -.01em;
+  }
+
+  /* ---------- cards ---------- */
+  .grid { display: grid; gap: 14px; }
+  .g3 { grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+  .g2 { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+  .card {
+    background: var(--card); border: 1px solid var(--rule);
+    padding: 20px; box-shadow: var(--shadow);
+  }
+  .card h4 { margin: 0 0 8px; font-size: 15.5px; font-weight: 700; letter-spacing: -.01em; }
+  .card p { margin: 0; font-size: 14.2px; color: var(--ink-2); line-height: 1.65; }
+  .card .tag {
+    font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase;
+    color: var(--rose); display: block; margin-bottom: 9px;
+  }
+
+  /* ---------- tier map (the containment diagram) ---------- */
+  .map { border: 1px solid var(--rule); background: var(--card); padding: 22px; box-shadow: var(--shadow); }
+  .map-label {
+    font-size: 11.5px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+    color: var(--ink-3); margin-bottom: 10px;
+  }
+  .superset {
+    border: 2px solid var(--teal); background: var(--teal-wash);
+    padding: 16px; position: relative;
+  }
+  .superset > .stamp {
+    position: absolute; top: -11px; left: 14px; background: var(--teal);
+    color: #fff; font-size: 11px; font-weight: 700; letter-spacing: .07em;
+    padding: 2px 10px;
+  }
+  :root[data-theme="dark"] .superset > .stamp { color: #06231f; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .superset > .stamp { color: #06231f; } }
+  .node-title { font-weight: 700; font-size: 16px; margin: 8px 0 2px; }
+  .node-meta { font-size: 12.5px; color: var(--ink-3); }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+  .chip {
+    font-size: 12px; padding: 3px 9px; border: 1px solid var(--rule);
+    background: var(--card); color: var(--ink-2); white-space: nowrap;
+  }
+  .chip.new { border-color: var(--teal); color: var(--teal-deep); font-weight: 650; }
+  :root[data-theme="dark"] .chip.new { color: var(--teal); }
+  .subset {
+    border: 1px dashed var(--teal); background: var(--card);
+    padding: 14px; margin-top: 16px;
+  }
+  .gate {
+    display: flex; align-items: center; gap: 12px; margin: 18px 0 16px;
+    padding: 9px 14px; border: 1px solid var(--rule);
+    background: repeating-linear-gradient(135deg, transparent 0 7px, var(--rule-soft) 7px 8px);
+    font-size: 13px; color: var(--ink-2);
+  }
+  .gate b { color: var(--ink); font-weight: 700; }
+  .partners { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); }
+  .p-node { border: 1px solid var(--rule); background: var(--card); padding: 14px; }
+  .p-node .scope {
+    font-size: 11px; font-weight: 700; letter-spacing: .07em; color: var(--amber);
+    text-transform: uppercase;
+  }
+  .outside {
+    display: flex; flex-wrap: wrap; gap: 12px; margin-top: 16px;
+    padding-top: 16px; border-top: 1px solid var(--rule);
+    font-size: 13px; color: var(--ink-3);
+  }
+  .outside .o { display: flex; gap: 8px; align-items: baseline; }
+  .outside b { color: var(--ink-2); font-weight: 650; }
+
+  /* ---------- tables ---------- */
+  .scroll { overflow-x: auto; border: 1px solid var(--rule); background: var(--card); }
+  table { border-collapse: collapse; width: 100%; font-size: 14px; min-width: 620px; }
+  th, td { padding: 10px 13px; text-align: left; border-bottom: 1px solid var(--rule-soft); vertical-align: top; }
+  thead th {
+    font-size: 11.5px; letter-spacing: .07em; text-transform: uppercase;
+    color: var(--ink-3); font-weight: 700; background: var(--rule-soft);
+    border-bottom: 1px solid var(--rule); white-space: nowrap;
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .rowhead { font-weight: 650; white-space: nowrap; }
+  .cell-c { text-align: center; }
+
+  .perm {
+    display: inline-block; min-width: 34px; text-align: center;
+    font-size: 11.5px; font-weight: 700; padding: 2px 7px; letter-spacing: .02em;
+  }
+  .perm.rw   { background: var(--teal); color: #fff; }
+  :root[data-theme="dark"] .perm.rw { color: #06231f; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .perm.rw { color: #06231f; } }
+  .perm.r    { background: var(--teal-wash); color: var(--teal-deep); border: 1px solid var(--teal); }
+  .perm.none { color: var(--ink-3); font-weight: 500; }
+  .perm.fix  { background: var(--emerald); color: #fff; }
+  :root[data-theme="dark"] .perm.fix { color: #06231f; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .perm.fix { color: #06231f; } }
+  .was { text-decoration: line-through; color: var(--ink-3); font-size: 11.5px; margin-right: 5px; }
+
+  .pill {
+    display: inline-block; font-size: 11.5px; font-weight: 700; padding: 2px 8px;
+    border: 1px solid currentColor; white-space: nowrap;
+  }
+  .pill.ok   { color: var(--emerald); }
+  .pill.hold { color: var(--amber); }
+  .pill.dead { color: var(--rose); }
+
+  /* ---------- delta bars ---------- */
+  .bars { display: grid; gap: 9px; }
+  .bar-row { display: grid; grid-template-columns: 150px 1fr 92px; gap: 12px; align-items: center; font-size: 13.5px; }
+  .track { height: 15px; background: var(--rule-soft); position: relative; }
+  .fill { height: 100%; background: var(--teal); }
+  .fill.add { background: var(--emerald); }
+  .bar-row .v { text-align: right; font-variant-numeric: tabular-nums; font-size: 13px; }
+  .bar-row .v i { font-style: normal; color: var(--emerald); font-weight: 700; }
+  .bar-row .lbl { color: var(--ink-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  /* ---------- timeline ---------- */
+  .steps { display: grid; gap: 0; border: 1px solid var(--rule); background: var(--card); box-shadow: var(--shadow); }
+  .step {
+    display: grid; grid-template-columns: 74px 1fr; gap: 18px;
+    padding: 18px 20px; border-bottom: 1px solid var(--rule-soft);
+  }
+  .step:last-child { border-bottom: none; }
+  .step .idx { display: flex; flex-direction: column; gap: 3px; }
+  .step .idx .n {
+    font-size: 27px; font-weight: 750; line-height: 1; letter-spacing: -.03em; color: var(--teal);
+  }
+  .step .idx .pr { font-size: 11.5px; color: var(--ink-3); font-weight: 650; }
+  .step h4 { margin: 0 0 5px; font-size: 15.5px; font-weight: 700; }
+  .step p { margin: 0; font-size: 14px; color: var(--ink-2); line-height: 1.62; }
+  .step .verify {
+    margin-top: 9px; font-size: 12.5px; color: var(--ink-3);
+    padding-left: 12px; border-left: 2px solid var(--rule);
+  }
+
+  /* ---------- callout ---------- */
+  .note {
+    border-left: 3px solid var(--amber); background: var(--card);
+    padding: 15px 18px; margin: 22px 0; font-size: 14.2px; color: var(--ink-2);
+  }
+  .note b { color: var(--ink); }
+  .note.teal { border-left-color: var(--teal); }
+
+  /* ---------- decisions ---------- */
+  .dec { display: grid; gap: 1px; background: var(--rule); border: 1px solid var(--rule); }
+  .dec-row { background: var(--card); padding: 16px 18px; display: grid; grid-template-columns: 26px 1fr; gap: 14px; }
+  .dec-row .m { font-weight: 700; color: var(--amber); }
+  .dec-row h4 { margin: 0 0 4px; font-size: 14.8px; font-weight: 700; }
+  .dec-row p { margin: 0; font-size: 13.6px; color: var(--ink-2); }
+
+  footer {
+    margin-top: 72px; padding-top: 22px; border-top: 1px solid var(--rule);
+    font-size: 13px; color: var(--ink-3);
+  }
+  footer code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 12.5px; color: var(--ink-2);
+  }
+  footer ul { margin: 10px 0 0; padding-left: 18px; }
+  footer li { margin-bottom: 4px; }
+
+  @media (max-width: 600px) {
+    .masthead { padding: 44px 0 30px; }
+    section { padding-top: 50px; }
+    .bar-row { grid-template-columns: 108px 1fr 78px; gap: 9px; font-size: 12.5px; }
+    .step { grid-template-columns: 52px 1fr; gap: 12px; padding: 16px 15px; }
+  }
+</style>
+
+<div class="wrap">
+
+  <header class="masthead">
+    <p class="eyebrow">HEALO KHIDI · 백오피스 리뉴얼 결과 보고</p>
+    <h1>백오피스 계층별 재설계</h1>
+    <p class="lede">
+      계층마다 따로 자라서 어드민이 <b>“코디·에이전시가 지금 뭘 하는지”</b> 볼 수 없던 구조를,
+      어드민 한 화면에서 전부 보이는 <b>통합 콘솔</b>로 다시 설계했다.
+      설계는 5개 계층을 한 번에, 구현은 단계별로 5번 나눠 배포했다.
+    </p>
+    <div class="meta">
+      <span>설계·구현 <b>2026-07-24</b></span>
+      <span>실DB 재실측 <b class="mono">2026-07-25</b></span>
+      <span>대상 포털 <b>5개 계층</b></span>
+      <span>PR <b class="mono">#945 · #955 · #962 · #966</b></span>
+      <span>상태 <b>전 단계 배포 완료</b></span>
+    </div>
+  </header>
+
+  <div class="stats" style="margin-top:0;border-top:none;">
+    <div class="stat"><span class="n">5<small>/5</small></span><span class="k">구현 단계 완료</span></div>
+    <div class="stat"><span class="n">3<small>건</small></span><span class="k">권한 구멍 봉합</span></div>
+    <div class="stat"><span class="n">10<small>개</small></span><span class="k">죽은 화면 비활성</span></div>
+    <div class="stat"><span class="n">4<small>개</small></span><span class="k">코디 화면 어드민 연결</span></div>
+    <div class="stat"><span class="n">0<small>개</small></span><span class="k">새로 만든 테이블</span></div>
+  </div>
+
+  <!-- 1 -->
+  <section id="why">
+    <div class="sec-head"><span class="sec-num mono">01</span><h2>왜 했나 — 재설계 전의 문제 셋</h2></div>
+    <p class="sec-sub">화면이 부족한 게 아니라, 화면끼리 연결이 없었다.</p>
+
+    <div class="grid g3">
+      <div class="card">
+        <span class="tag">문제 1 · PO 최대 페인</span>
+        <h4>팔로우가 안 됐다</h4>
+        <p>어드민에 로그인해도 지금 무슨 일이 벌어지는지 알 수 없었다. 코디 전용 화면 4종(견적·비자·증상알림·문구편집)은 어드민 메뉴에 아예 없었고, 변경사항을 한자리에서 보는 화면도 없었다.</p>
+      </div>
+      <div class="card">
+        <span class="tag">문제 2 · 권한</span>
+        <h4>경계가 설명 불가능했다</h4>
+        <p>같은 환자 여정인데 케이스·전환·만족도는 코디가 되고, 협진의뢰·리드는 어드민 전용. “왜 이건 되고 저건 안 되나”에 답할 수 없는 상태였다.</p>
+      </div>
+      <div class="card">
+        <span class="tag">문제 3 · 메뉴</span>
+        <h4>죽은 화면이 자리를 차지했다</h4>
+        <p>실DB 0행인 기능(플레이북·크롤·Import 등)이 메뉴 상단을 점유해, 매일 쓰는 화면이 그 밑에 묻혔다.</p>
+      </div>
+    </div>
+
+    <div class="note">
+      <b>재설계 중 중요한 교정.</b> “에이전시·클리닉 포털은 빈 껍데기”라는 기존 인식은 <b>틀렸다.</b>
+      실측해보니 케이스 추적·환자 의뢰 폼·코디 메신저·견적 열람·경과 업로드(클리닉 전용)·자동번역이 전부 동작 중이었다.
+      ‘정체’의 실체는 기능 부재가 아니라 <b>개선이 코디·어드민에만 쏠렸던 것</b>이다.
+    </div>
+  </section>
+
+  <!-- 2 -->
+  <section id="map">
+    <div class="sec-head"><span class="sec-num mono">02</span><h2>계층 지도 — 포함 관계로 다시 그림</h2></div>
+    <p class="sec-sub">
+      계정은 7계층, 그중 백오피스를 가진 건 5계층이다. 핵심은 나열이 아니라 <b>포함 관계</b> —
+      어드민이 코디를 품고, 파트너 3계층은 같은 테이블을 API 게이트 너머에서 본인 몫만 본다.
+    </p>
+
+    <div class="map">
+      <p class="map-label">스태프 — 포함 관계 (어드민 ⊃ 코디)</p>
+
+      <div class="superset">
+        <span class="stamp">원칙 1 · 상위집합</span>
+        <p class="node-title">관리자 <span class="mono" style="font-weight:500;color:var(--ink-3);font-size:13px;">/admin</span></p>
+        <p class="node-meta">화면 40+ · <span class="mono">requireAdminAuth</span> · app_metadata.role=admin + ADMIN_EMAIL_ALLOWLIST</p>
+        <div class="chips">
+          <span class="chip new">통합 대시보드 🆕</span>
+          <span class="chip">KHIDI 리포트</span>
+          <span class="chip">상담·문의 9</span>
+          <span class="chip">파트너·회원 7</span>
+          <span class="chip">콘텐츠 3</span>
+          <span class="chip">AI 품질 6</span>
+          <span class="chip">시스템 4</span>
+        </div>
+
+        <div class="subset">
+          <p class="node-title">코디네이터 <span class="mono" style="font-weight:500;color:var(--ink-3);font-size:13px;">/coordinator</span></p>
+          <p class="node-meta">화면 13 · <span class="mono">requirePortalAuth({ staffOnly })</span> · app_metadata.role=coordinator</p>
+          <div class="chips">
+            <span class="chip">문의함</span><span class="chip">AI 상담</span><span class="chip">케이스</span>
+            <span class="chip">상담 일정</span><span class="chip">유치 전환</span><span class="chip">만족도</span>
+            <span class="chip">파트너</span><span class="chip">메시지</span>
+            <span class="chip new">견적</span><span class="chip new">비자</span>
+            <span class="chip new">증상 알림</span><span class="chip new">문구 편집</span>
+          </div>
+          <p class="node-meta" style="margin-top:11px;">
+            🆕 표시 4개 = 코디에만 있던 화면. 5단계에서 <b style="color:var(--ink-2)">화면을 새로 만들지 않고</b>
+            어드민 메뉴에 링크만 연결했다(스태프 게이트가 어드민을 통과시킴).
+          </p>
+        </div>
+      </div>
+
+      <div class="gate">
+        <span class="mono" style="font-weight:700;color:var(--teal)">API GATE</span>
+        <span><b>원칙 3</b> — 테이블은 공용, 분리는 API 게이트로만. 계층별 사본 테이블을 만들지 않아 동기화 문제를 애초에 안 만든다.</span>
+      </div>
+
+      <p class="map-label">파트너 — 같은 테이블, 본인 몫(own)만</p>
+      <div class="partners">
+        <div class="p-node">
+          <span class="scope">own 스코프</span>
+          <p class="node-title">국내 의료기관</p>
+          <p class="node-meta mono" style="margin-bottom:6px;">/hospital · 화면 4 (2개 플래그 OFF)</p>
+          <p class="node-meta"><span class="mono">checkHospitalAuth</span> · hospital_users 테이블</p>
+          <div class="chips"><span class="chip">리드 응답</span><span class="chip">병원 프로필</span></div>
+        </div>
+        <div class="p-node">
+          <span class="scope">own 스코프</span>
+          <p class="node-title">해외 에이전시</p>
+          <p class="node-meta mono" style="margin-bottom:6px;">/agency · 공유 PartnerPortal</p>
+          <p class="node-meta"><span class="mono">checkAgencyAuth</span> · partner_type='agency'</p>
+          <div class="chips"><span class="chip">케이스 추적</span><span class="chip">환자 의뢰</span><span class="chip">코디 메신저</span><span class="chip">견적 열람</span></div>
+        </div>
+        <div class="p-node">
+          <span class="scope">own 스코프</span>
+          <p class="node-title">해외 의료기관</p>
+          <p class="node-meta mono" style="margin-bottom:6px;">/clinic · 동일 PartnerPortal</p>
+          <p class="node-meta"><span class="mono">checkAgencyAuth</span> + <span class="mono">requirePartnerType</span> 🆕</p>
+          <div class="chips"><span class="chip">케이스 추적</span><span class="chip">환자 의뢰</span><span class="chip new">경과 업로드</span><span class="chip">자동번역</span></div>
+        </div>
+      </div>
+
+      <div class="outside">
+        <span class="o"><b>백오피스 밖</b></span>
+        <span class="o">환자 — <b>/patient</b> 6개 언어 환자앱</span>
+        <span class="o">비회원(게스트) — <b>초대링크 토큰</b>으로 상담방만</span>
+        <span class="o">의사 — <b>계정 없음</b>, 줌처럼 링크로 상담방 참여</span>
+      </div>
+    </div>
+
+    <div class="note teal">
+      <b>6번과 7번이 한 인프라를 쓰는 이유.</b> 해외 에이전시와 해외 의료기관은 하는 일이 같다 —
+      한국으로 환자를 의뢰하고 그 환자의 진행을 추적한다. 그래서 포털·테이블을 새로 만들지 않고
+      <b>partner_type 한 컬럼</b>으로만 구분한다. 화면은 라벨만 바뀐다.
+    </div>
+
+    <h3>재설계 원칙 4개</h3>
+    <div class="grid g2">
+      <div class="card"><h4>1 · 어드민 = 통합 콘솔</h4><p>모든 계층 화면의 상위집합. 코디 전용 4종도 어드민 메뉴에서 열린다.</p></div>
+      <div class="card"><h4>2 · 코디 = 실무 화면</h4><p>admin 페이지를 <b>직접 re-export</b>하는 방식이 표준. 화면 따로 만들기(drift)는 신규 금지.</p></div>
+      <div class="card"><h4>3 · 파트너 = 외부 뷰</h4><p>테이블 공용 + API 게이트로만 분리. 계층별 사본 테이블 금지.</p></div>
+      <div class="card"><h4>4 · 설명서는 같은 PR에</h4><p>기능이 바뀌면 <span class="mono" style="font-size:12.5px">src/lib/manuals</span>도 같은 PR에서 고치고 날짜를 올린다.</p></div>
+    </div>
+  </section>
+
+  <!-- 3 -->
+  <section id="perm">
+    <div class="sec-head"><span class="sec-num mono">03</span><h2>권한 매트릭스 — 전 → 후</h2></div>
+    <p class="sec-sub">코드 실측으로 그린 표. 초록 칸이 이번에 열린 곳이다.</p>
+
+    <div class="scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>도메인</th><th class="cell-c">admin</th><th class="cell-c">coordinator</th>
+            <th class="cell-c">agency</th><th class="cell-c">clinic</th>
+            <th class="cell-c">hospital</th><th class="cell-c">patient</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td class="rowhead">문의 <span class="mono" style="font-size:12.5px;color:var(--ink-3)">inquiries</span></td>
+            <td class="cell-c"><span class="perm rw">RW</span></td><td class="cell-c"><span class="perm r">R+부분W</span></td>
+            <td class="cell-c"><span class="perm r">RW own</span></td><td class="cell-c"><span class="perm r">RW own</span></td>
+            <td class="cell-c"><span class="perm r">R claim</span></td><td class="cell-c"><span class="perm r">RW own</span></td></tr>
+          <tr><td class="rowhead">케이스 <span class="mono" style="font-size:12.5px;color:var(--ink-3)">cases</span></td>
+            <td class="cell-c"><span class="perm rw">RW</span></td><td class="cell-c"><span class="perm rw">RW</span></td>
+            <td class="cell-c"><span class="perm r">RW own</span></td><td class="cell-c"><span class="perm r">RW own</span></td>
+            <td class="cell-c"><span class="perm none">–</span></td><td class="cell-c"><span class="perm r">R</span></td></tr>
+          <tr><td class="rowhead">원격협진 <span class="mono" style="font-size:12.5px;color:var(--ink-3)">consultations</span></td>
+            <td class="cell-c"><span class="perm rw">RW</span></td><td class="cell-c"><span class="perm rw">RW</span></td>
+            <td class="cell-c"><span class="perm r">R 일정</span></td><td class="cell-c"><span class="perm r">R 일정</span></td>
+            <td class="cell-c"><span class="perm none">–</span></td><td class="cell-c"><span class="perm r">RW own</span></td></tr>
+          <tr><td class="rowhead">협진의뢰 <span class="mono" style="font-size:12.5px;color:var(--ink-3)">referrals</span></td>
+            <td class="cell-c"><span class="perm rw">RW</span></td>
+            <td class="cell-c"><span class="was">–</span><span class="perm fix">RW</span></td>
+            <td class="cell-c"><span class="perm r">W 생성</span></td><td class="cell-c"><span class="perm r">W 생성</span></td>
+            <td class="cell-c"><span class="perm none">–</span></td><td class="cell-c"><span class="perm none">–</span></td></tr>
+          <tr><td class="rowhead">콘텐츠 <span class="mono" style="font-size:12.5px;color:var(--ink-3)">content_overrides</span></td>
+            <td class="cell-c"><span class="perm rw">RW</span></td><td class="cell-c"><span class="perm fix">RW</span></td>
+            <td class="cell-c"><span class="perm none">–</span></td><td class="cell-c"><span class="perm none">–</span></td>
+            <td class="cell-c"><span class="perm none">–</span></td><td class="cell-c"><span class="perm none">–</span></td></tr>
+          <tr><td class="rowhead">만족도 <span class="mono" style="font-size:12.5px;color:var(--ink-3)">satisfaction</span></td>
+            <td class="cell-c"><span class="perm r">R</span></td><td class="cell-c"><span class="perm r">R</span></td>
+            <td class="cell-c"><span class="perm none">–</span></td><td class="cell-c"><span class="perm none">–</span></td>
+            <td class="cell-c"><span class="perm none">–</span></td><td class="cell-c"><span class="perm r">W 설문</span></td></tr>
+          <tr><td class="rowhead">AI대화 <span class="mono" style="font-size:12.5px;color:var(--ink-3)">chat</span></td>
+            <td class="cell-c"><span class="perm rw">RW</span></td><td class="cell-c"><span class="perm r">부분RW</span></td>
+            <td class="cell-c"><span class="perm r">RW own</span></td><td class="cell-c"><span class="perm r">RW own</span></td>
+            <td class="cell-c"><span class="perm r">RW own리드</span></td><td class="cell-c"><span class="perm r">RW own</span></td></tr>
+          <tr><td class="rowhead">리드 <span class="mono" style="font-size:12.5px;color:var(--ink-3)">leads</span></td>
+            <td class="cell-c"><span class="perm rw">RW</span></td>
+            <td class="cell-c"><span class="was">–</span><span class="perm fix">RW</span></td>
+            <td class="cell-c"><span class="perm none">–</span></td><td class="cell-c"><span class="perm none">–</span></td>
+            <td class="cell-c"><span class="perm r">RW own</span></td><td class="cell-c"><span class="perm none">–</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>발견된 구멍 4개와 처리 — 하나는 일부러 안 고쳤다</h3>
+    <div class="scroll">
+      <table>
+        <thead><tr><th style="width:52px">구멍</th><th>내용</th><th style="width:340px">처리</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><span class="pill ok">A</span></td>
+            <td><b>코디 접근 불일치</b> — 같은 여정인데 referrals·leads만 admin 전용</td>
+            <td>✅ 수리 — <span class="mono" style="font-size:12.5px">requirePortalAuth({ staffOnly })</span>로 통일</td>
+          </tr>
+          <tr>
+            <td><span class="pill ok">B</span></td>
+            <td><b>콘텐츠 API가 rate limit·감사로그 우회</b> — 커스텀 가드를 써서, 유일한 문구 쓰기 경로에 제한이 없었다</td>
+            <td>✅ 수리 — 표준 가드 + rate limit 적용</td>
+          </tr>
+          <tr>
+            <td><span class="pill hold">C</span></td>
+            <td><b>상담 초대토큰 발급 범위</b> — 모든 스태프가 담당 아닌 상담방의 게스트 토큰을 발급할 수 있다</td>
+            <td>⛔ <b>일부러 조이지 않음.</b> 과거에 걸었다가 담당 미지정 상담에서 코디가 자기 링크도 못 뽑는 실버그로 푼 것 — 재조이면 재발한다. 대신 발급 감사로그(<span class="mono" style="font-size:12.5px">CREATE_CONSULTATION_INVITE</span>)로 추적성 확보</td>
+          </tr>
+          <tr>
+            <td><span class="pill ok">D</span></td>
+            <td><b>에이전시↔클리닉 가드 미분기</b> — partner_type 분기가 경과 업로드 1곳뿐이라, “의료기관만” 데이터를 추가하면 조용히 둘 다 통과할 구조였다</td>
+            <td>✅ 수리 — <span class="mono" style="font-size:12.5px">requirePartnerType()</span> 게이트 헬퍼 신설</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="note teal">
+      <b>양호 확인(실측).</b> 공개 POST는 전수 rate limit 적용됨. <span class="mono">disabled</span> 킬스위치는
+      어느 계층 계정에 찍히든 전 포털에서 즉시 잠긴다(계층별 <span class="mono">is_active</span>는 1차 방어로 유지).
+    </div>
+  </section>
+
+  <!-- 4 -->
+  <section id="menu">
+    <div class="sec-head"><span class="sec-num mono">04</span><h2>어드민 메뉴 재편 — 환자 여정 순서로</h2></div>
+    <p class="sec-sub">6그룹 체계. 메뉴 순서가 곧 환자 한 명이 지나가는 순서가 되게 배치했다.</p>
+
+    <div class="scroll">
+      <table>
+        <thead><tr><th style="width:140px">그룹</th><th>화면</th><th style="width:250px">달라진 점</th></tr></thead>
+        <tbody>
+          <tr><td class="rowhead">홈</td>
+            <td>대시보드 · KHIDI 리포트(북극성·전환·만족도·증빙) · 문의 통계 · 광고 예산</td>
+            <td><span class="pill ok">신설</span> 통합 대시보드 (3단계)</td></tr>
+          <tr><td class="rowhead">상담 · 문의</td>
+            <td>사전상담 리드 → 문의 관리 → 케이스 → AI 채팅 → Human Agent → 화상 상담 → 협진 의뢰 → 후속 리마인더 → <b>견적 · 비자 · 증상알림</b></td>
+            <td><span class="pill ok">연결</span> 코디 전용 3종 (5단계)</td></tr>
+          <tr><td class="rowhead">파트너 · 회원</td>
+            <td>직원(코디) 계정 · 에이전시/클리닉 · 파트너 발굴 · 제휴 병원 · 의료진 · 환자 회원 · 데이터 삭제 요청</td>
+            <td>사람·기관 관리를 한 그룹으로</td></tr>
+          <tr><td class="rowhead">콘텐츠</td>
+            <td>치료·암종 · <b>문구 편집기</b> · AI 지식베이스(RAG)</td>
+            <td><span class="pill ok">연결</span> 문구 편집기 (5단계)</td></tr>
+          <tr><td class="rowhead">AI 품질 <span style="color:var(--ink-3);font-weight:400">(접힘)</span></td>
+            <td>AI 상태 · 품질 평가 · 회귀 테스트 · 에이전트 자기분석 · 모델 성능 비교 · 피드백</td>
+            <td>평소 접어둠 — 매일 볼 것 아님</td></tr>
+          <tr><td class="rowhead">시스템</td>
+            <td>감사로그 · 외부 서비스 사용량 · 알림 관리 · 브랜딩 설정</td>
+            <td>—</td></tr>
+          <tr><td class="rowhead" style="color:var(--ink-3)">비활성 <span style="font-weight:400">(숨김)</span></td>
+            <td style="color:var(--ink-3)">대량 Import · 데이터 보강 · 시스템 관측 · 크롤 3종 · 플레이북 4종</td>
+            <td><span class="pill dead">삭제 아님</span> <span class="mono" style="font-size:12.5px">hidden:true</span> 한 줄 — 라우트·코드 그대로, 플래그 지우면 즉시 복구</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>🆕 통합 대시보드 <span class="mono" style="font-weight:500;color:var(--ink-3);font-size:13px;">/admin</span></h3>
+    <div class="grid g2">
+      <div class="card">
+        <h4>오늘 현황 카드 5개</h4>
+        <p>환자(문의·AI채팅) / 코디(상담·견적·문구편집) / 에이전시·클리닉(활성·협진의뢰) / 병원(미응답 리드) / 시스템(AI 통과율·환각률).
+        전부 실데이터 집계이고, 카드를 누르면 해당 화면으로 바로 이동한다.</p>
+      </div>
+      <div class="card">
+        <h4>최근 활동 피드</h4>
+        <p>모든 역할의 변경사항이 시간순 타임라인으로 — 문구 수정, 새 문의, 상담 생성, 협진 의뢰, 병원 리드.
+        <b>“코디·에이전시가 뭘 했는지”를 따라가는 화면</b>이 여기다.</p>
+      </div>
+      <div class="card">
+        <h4>PII는 나가지 않는다</h4>
+        <p><span class="mono" style="font-size:13px">/api/admin/dashboard/overview</span> 는 <span class="mono" style="font-size:13px">requireAdminAuth</span> 뒤에서
+        건수·상태·키만 반환한다. 환자 개인정보는 응답에 담지 않는다.</p>
+      </div>
+      <div class="card">
+        <h4>새 테이블 0개</h4>
+        <p>피드 소스는 감사로그가 아니라 도메인 테이블 직접(content_change_log·inquiries·consultation_sessions·cotreatment_referrals·hospital_leads).
+        그래서 라벨이 코드 용어가 아니라 <b>사람 말</b>이 된다.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 -->
+  <section id="data">
+    <div class="sec-head"><span class="sec-num mono">05</span><h2>데이터 생사표 — 감이 아니라 COUNT로 판정</h2></div>
+    <p class="sec-sub">
+      무엇을 살리고 무엇을 숨길지의 근거. 아래는 <b>2026-07-25 재실측</b>이고, 회색은 하루 전(7/24) 청사진 수치다.
+    </p>
+
+    <h3><span class="pill ok">산 데이터</span> &nbsp;핵심 여정은 전부 돌고 있다</h3>
+    <div class="card" style="padding:22px;">
+      <div class="bars">
+        <div class="bar-row"><span class="lbl">chat_messages</span>
+          <span class="track"><span class="fill" style="width:97.5%"></span><span class="fill add" style="width:2.5%;position:absolute;left:97.5%;top:0"></span></span>
+          <span class="v mono">956 <i>+24</i></span></div>
+        <div class="bar-row"><span class="lbl">chat_threads</span>
+          <span class="track"><span class="fill" style="width:28.2%"></span><span class="fill add" style="width:0.6%;position:absolute;left:28.2%;top:0"></span></span>
+          <span class="v mono">276 <i>+6</i></span></div>
+        <div class="bar-row"><span class="lbl">consultation_sessions</span>
+          <span class="track"><span class="fill" style="width:4.1%"></span><span class="fill add" style="width:0.4%;position:absolute;left:4.1%;top:0"></span></span>
+          <span class="v mono">43 <i>+4</i></span></div>
+        <div class="bar-row"><span class="lbl">inquiries</span>
+          <span class="track"><span class="fill" style="width:3.7%"></span><span class="fill add" style="width:0.4%;position:absolute;left:3.7%;top:0"></span></span>
+          <span class="v mono">39 <i>+4</i></span></div>
+        <div class="bar-row"><span class="lbl">education_contents</span>
+          <span class="track"><span class="fill" style="width:1.9%"></span></span>
+          <span class="v mono">18</span></div>
+        <div class="bar-row"><span class="lbl">content_overrides</span>
+          <span class="track"><span class="fill" style="width:0.1%"></span><span class="fill add" style="width:1.2%;position:absolute;left:0.1%;top:0"></span></span>
+          <span class="v mono">12 <i>+11</i></span></div>
+        <div class="bar-row"><span class="lbl">hospitals</span>
+          <span class="track"><span class="fill" style="width:0.9%"></span></span>
+          <span class="v mono">9</span></div>
+        <div class="bar-row"><span class="lbl">cost_estimates</span>
+          <span class="track"><span class="fill" style="width:0.6%"></span></span>
+          <span class="v mono">6</span></div>
+        <div class="bar-row"><span class="lbl">cotreatment_referrals</span>
+          <span class="track"><span class="fill" style="width:0.4%"></span></span>
+          <span class="v mono">4</span></div>
+        <div class="bar-row"><span class="lbl">agencies / agency_users</span>
+          <span class="track"><span class="fill" style="width:0.3%"></span></span>
+          <span class="v mono">3 / 3</span></div>
+        <div class="bar-row"><span class="lbl">hospital_users</span>
+          <span class="track"><span class="fill" style="width:0.2%"></span></span>
+          <span class="v mono">2</span></div>
+      </div>
+      <p style="margin:18px 0 0;font-size:13.5px;color:var(--ink-3);">
+        막대는 <span class="mono">chat_messages</span> 956을 100%로 잡은 상대 크기. 초록 = 하루 사이 증가분.
+        재설계 다음 날에도 문의 +4 · 상담 +4 · 채팅 +24 · 문구 오버라이드 +11 — <b style="color:var(--ink-2)">여정이 계속 돌고 있다는 실측 증거</b>다.
+      </p>
+    </div>
+
+    <div class="grid g2" style="margin-top:14px;">
+      <div class="card">
+        <h4><span class="pill dead">0행</span> &nbsp;비활성 판정 (7/25 재확인)</h4>
+        <p class="mono" style="font-size:12.8px;line-height:1.85;color:var(--ink-2);margin-top:8px;">
+          playbook_patterns · playbook_responses · crawl_jobs · crawl_raw_items ·
+          auto_job_events · reviews · treatment_sources · partner_branches ·
+          partner_doctors · visa_applications · followup_schedules · progress_records
+        </p>
+        <p style="margin-top:10px;">처분 안전성도 코드로 확인했다 — Import·보강·관측·패턴분석은 <b>화면만 내려도 데이터·수집에 영향이 없다</b>(공유 테이블 읽기 전용 또는 수동 트리거).</p>
+      </div>
+      <div class="card">
+        <h4><span class="pill hold">보류</span> &nbsp;메뉴 유지 중인 2화면</h4>
+        <p style="margin-bottom:10px;"><b class="mono" style="font-size:13.5px">/admin/treatments</b> — treatments 0행(7/20 백업 후 비워짐).
+        공개 <span class="mono" style="font-size:13px">/treatments</span>는 정적 암종 상수라 무영향이지만, 관리 화면 자체를 없앨지는 PO 판단.</p>
+        <p><b class="mono" style="font-size:13.5px">/admin/doctors</b> — partner_doctors 0행이지만
+        <b>화상 상담의 의사 드롭다운이 이 테이블을 참조</b>한다. 숨기면 상담 생성에 영향이 갈 수 있어 그대로 뒀다.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6 -->
+  <section id="steps">
+    <div class="sec-head"><span class="sec-num mono">06</span><h2>구현 5단계 — 각 단계 독립 PR · 독립 배포</h2></div>
+    <p class="sec-sub">
+      설계는 5개 계층을 한 번에, 구현은 쪼개서. 한 번에 뚝딱 밀지 않은 건 각 단계마다 프리뷰로 확인하고 넘어가기 위해서다.
+      아래는 실제 진행 순서이므로 번호가 곧 의존 관계다.
+    </p>
+
+    <div class="steps">
+      <div class="step">
+        <span class="idx"><span class="n mono">1</span><span class="pr mono">문서</span></span>
+        <div>
+          <h4>전 계층 청사진</h4>
+          <p>코드 지도 3종(계층·인증가드·권한 매트릭스) + 실DB 정확 COUNT. 여기서 “파트너 포털은 빈 껍데기” 오해가 깨졌다.</p>
+          <p class="verify">검증 — 코드 실측 + 실DB COUNT</p>
+        </div>
+      </div>
+      <div class="step">
+        <span class="idx"><span class="n mono">2</span><span class="pr mono">#945</span></span>
+        <div>
+          <h4>메뉴 6그룹 재편 + 죽은 화면 10개 비활성</h4>
+          <p>지도가 이미 있으니 청소부터. 옛 메뉴명 참조(설명서·페이지 제목·E2E)까지 같이 정리했다. 🛑 삭제가 아니라 숨김 — 코드는 전부 보존.</p>
+          <p class="verify">검증 — PO 프리뷰 확인 후 머지</p>
+        </div>
+      </div>
+      <div class="step">
+        <span class="idx"><span class="n mono">3</span><span class="pr mono">#955</span></span>
+        <div>
+          <h4>통합 대시보드 — PO 최대 페인 해결</h4>
+          <p>역할별 현황 카드 5개 + 최근 활동 피드. 새 테이블 없이 기존 도메인 테이블만 집계한다.</p>
+          <p class="verify">검증 — PO 프리뷰 확인 후 머지</p>
+        </div>
+      </div>
+      <div class="step">
+        <span class="idx"><span class="n mono">4</span><span class="pr mono">#962</span></span>
+        <div>
+          <h4>권한 구멍 A · B · D 수리</h4>
+          <p>허브를 만들면서 드러난 구멍을 봉합. C는 조이는 대신 감사로그로 대체하는 것이 결론이었다(과거 실버그 재발 방지).</p>
+          <p class="verify">검증 — <b>독립 보안 리뷰 CONFIRMED 0건</b></p>
+        </div>
+      </div>
+      <div class="step">
+        <span class="idx"><span class="n mono">5</span><span class="pr mono">#966</span></span>
+        <div>
+          <h4>통합 콘솔 완성 + 초대토큰 감사로그</h4>
+          <p>코디 전용 4화면을 어드민 메뉴에 연결(화면 신설 아님 — 링크만). 파트너 설명서는 실측 결과 현행과 일치해, 번역 5개어를 흔드는 재작성을 피하고 어드민 설명서만 갱신했다.</p>
+          <p class="verify">검증 — 독립 리뷰 지적 1건(whitelist 미등록 드롭) 수리 후 머지. 스모크 실패는 공유 Supabase 포화 인프라 원인으로 코드 무관 확인 후 PO 지시로 강제 머지</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7 -->
+  <section id="open">
+    <div class="sec-head"><span class="sec-num mono">07</span><h2>남은 결정 — 전부 PO 판단 대기</h2></div>
+    <p class="sec-sub">급한 건 없다. 이번 사이클은 여기서 한 번 닫혔고, 아래는 다음에 열 때 고를 것들이다.</p>
+
+    <div class="dec">
+      <div class="dec-row"><span class="m mono">ⓐ</span><div>
+        <h4>초대토큰 담당자 검증을 다시 조일까</h4>
+        <p>지금처럼 감사로그로만 추적 / 다시 조이기(과거 실무 마찰 재발 위험 있음)</p></div></div>
+      <div class="dec-row"><span class="m mono">ⓑ</span><div>
+        <h4>파트너 포털에 새 기능을 줄까</h4>
+        <p>에이전시·클리닉·병원에 무엇을 더 줄지 — PO가 특정하면 그때 착수</p></div></div>
+      <div class="dec-row"><span class="m mono">ⓒ</span><div>
+        <h4>애매한 2화면을 숨길까</h4>
+        <p><span class="mono" style="font-size:13px">/admin/treatments</span> · <span class="mono" style="font-size:13px">/admin/doctors</span> — 숨김 / 유지</p></div></div>
+      <div class="dec-row"><span class="m mono">ⓓ</span><div>
+        <h4>인증 실패 감사로그 공백을 메울까</h4>
+        <p><span class="mono" style="font-size:13px">requirePortalAuth</span> 공통 — 보강 / 현행 유지</p></div></div>
+      <div class="dec-row"><span class="m mono">ⓔ</span><div>
+        <h4>국내병원 포털의 꺼둔 2화면을 켤까</h4>
+        <p><span class="mono" style="font-size:13px">/hospital</span> 플래그 OFF 화면 — ON / 유지</p></div></div>
+    </div>
+  </section>
+
+  <!-- 8 -->
+  <section id="khidi">
+    <div class="sec-head"><span class="sec-num mono">08</span><h2>KHIDI 8/27 중간평가 연결</h2></div>
+    <p class="sec-sub">이 재설계는 평가 자료에 그대로 들어간다.</p>
+
+    <div class="grid g3">
+      <div class="card">
+        <h4>평가항목 ② 추진실적 · ③ 향후계획</h4>
+        <p>5단계 백오피스 재설계 = <b>“ICT 기반 외국인환자 관리 체계 구축”</b>(정성지표)의 직접 증빙.</p>
+      </div>
+      <div class="card">
+        <h4>평가항목 ④ 성과지표 달성도</h4>
+        <p>통합 대시보드 → KHIDI 리포트 드릴다운이 유치 12건 / 상담·사후관리 120건 / 만족도 90점을 <b>자동 집계</b>한다 — 사람이 세지 않는다.</p>
+      </div>
+      <div class="card">
+        <h4>보여줄 화면</h4>
+        <p class="mono" style="font-size:13px;line-height:1.9;">
+          /admin<br>→ /admin/khidi/kpi-dashboard<br>→ 북극성 · 전환 · 만족도 · 증빙
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <p><b style="color:var(--ink-2)">문서 위치</b> — 로드맵의 단일 SoR은 <code>docs/ADMIN_RENEWAL_PLAN.md</code>,
+    계층 정의는 <code>docs/ACCOUNT_TIERS.md</code>(코드 SoR <code>src/lib/auth/accountTiers.ts</code>).
+    이 페이지는 그 결과를 설명하는 합본이며, 원문은 <code>docs/BACKOFFICE_HIERARCHY_REDESIGN.md</code>.</p>
+    <ul>
+      <li>계층별 사용설명서 SoR — <code>src/lib/manuals/index.js</code> (기능이 바뀌면 같은 PR에서 갱신)</li>
+      <li>구멍 A~D의 파일별 근거 — <code>docs/KNOWN_ISSUES.md</code> 2026-07-24 항목</li>
+      <li>중간평가 준비 — <code>docs/KHIDI_중간보고_베이스.md</code></li>
+    </ul>
+    <p style="margin-top:16px;">설계·구현 2026-07-24 · 실DB 재실측 2026-07-25 · 수치는 Supabase 정확 COUNT</p>
+  </footer>
+
+</div>

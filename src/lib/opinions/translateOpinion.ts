@@ -12,6 +12,7 @@
 import "server-only";
 
 import { generateText } from "ai";
+import { callGeminiWithCompat } from "@/lib/ai/geminiThinkingCompat";
 import { google } from "@ai-sdk/google";
 import { logAiUsage } from "@/lib/ai/usageLog";
 import { isNoteTargetLang } from "@/lib/translate/shortText";
@@ -29,7 +30,7 @@ export async function translateOpinionText(text: string, lang: string): Promise<
   if (!process.env.GOOGLE_GENERATIVE_AI_API_KEY) return null;
 
   try {
-    const { text: translated, usage } = await generateText({
+    const { text: translated, usage } = await callGeminiWithCompat((p) => generateText(p as any), {
       model: google(MODEL) as any,
       system:
         `You translate a Korean doctor's second-opinion letter for a cancer medical-tourism patient into ${LANG_NAME[lang]}. ` +

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import {
   LiveKitRoom,
@@ -73,6 +73,7 @@ import { LiveTranslateBridge } from "@/lib/consultation/LiveTranslateBridge";
 import { SameRoomGuard } from "@/lib/consultation/SameRoomGuard";
 import { PartnerLangBridge } from "@/lib/consultation/PartnerLangBridge";
 import { ListenModeBridge } from "@/lib/consultation/ListenModeBridge";
+import { speakerColor } from "@/lib/consultation/speakerColor";
 
 const supabase = createSupabaseBrowserClient();
 
@@ -279,6 +280,20 @@ function WaitingForOthers({ copy }) {
       <p className="text-gray-300 text-sm">{c.waitingForOthers}</p>
     </div>
   );
+}
+
+// ── 혼자 남았는지 감시 (LiveKitRoom 내부 전용) ──
+// useParticipants 는 방 컨텍스트 안에서만 쓸 수 있어, 부모(페이지)에 콜백으로 알려준다.
+// 통역 봇(agent-*)은 사람이 아니므로 «봇만 남은 방»도 혼자로 센다.
+function AloneWatcher({ onAloneChange }) {
+  const participants = useParticipants();
+  const state = useConnectionState();
+  const humans = participants.filter(isHumanParticipant).length;
+  const alone = state === ConnectionState.Connected && humans <= 1;
+  useEffect(() => {
+    onAloneChange(alone);
+  }, [alone, onAloneChange]);
+  return null;
 }
 
 // ── 방 정보 오버레이 (LiveKitRoom 내부 전용) — 참가자 수 + 경과 시간 ──
@@ -585,8 +600,9 @@ const SUBTITLE_SIZE_STORAGE_KEY = "hw_subtitle_size";
 
 // ── Subtitle overlay ──
 // size: "sm" | "md" | "lg"
-// remoteSubtitles: [{ key, text, lang, role, name }] — 상대방 자막 (DataChannel·청취모드),
+// remoteSubtitles: [{ key, text, lang, name }] — 상대방 자막 (DataChannel·청취모드),
 //   화자별 슬롯 최대 2개 — 두 화자가 교대로 말해도 앞 자막이 즉시 덮이지 않게(청취 시나리오 핵심)
+//   구분은 **사람 단위**(색+이름+좌/우) — 역할(계층)은 상담방에서 안 쓴다(speakerColor.js 참고)
 // showDisclaimer: 면책 문구 표시 여부 — 페이지 레벨 15초 타이머가 결정(패널 토글로
 //   오버레이가 리마운트돼도 리셋 안 되게 여기 두지 않는다)
 function SubtitleOverlay({
@@ -605,48 +621,54 @@ function SubtitleOverlay({
 
   const sz = SUBTITLE_SIZE_CLASS[size] || SUBTITLE_SIZE_CLASS.md;
 
-  // 역할별 색상
-  const roleColor = {
-    doctor: "text-yellow-300",
-    patient: "text-teal-300",
-    coordinator: "text-gray-300",
-  };
   // 각 자막 박스: 화면 전체폭 대신 글자 폭만큼만(w-fit) — 검은 배경이 영상을 덜 가리게 (PO 제보 2026-07-11)
-  const boxBase = "w-fit max-w-[min(92%,42rem)] backdrop-blur-sm rounded-lg px-3 py-1.5 text-center";
+  // ⚠️ 정렬(text-center/left)은 여기 넣지 않는다 — Tailwind 는 클래스 문자열 순서가 아니라
+  //    스타일시트 순서로 이기므로, base 에 text-center 를 두면 뒤에 붙인 text-left 가 진다.
+  const boxBase = "w-fit max-w-[min(92%,42rem)] backdrop-blur-sm rounded-lg px-3 py-1.5";
 
   return (
     <div className="absolute bottom-4 inset-x-0 z-10 pointer-events-none flex flex-col items-center gap-1.5 px-4">
       {/* 상대방 자막 (DataChannel·청취모드) — 화자 라벨은 본문 앞 인라인(줄 수 절약) */}
-      {remoteSubtitles.map((rs) => (
-        <div key={rs.key} className={`${boxBase} bg-black/60 border border-yellow-500/20`}>
-          {/* interim = 상대가 아직 말하는 중인 부분 자막 — 톤 낮춰 '자라는 중'임을 표시, 말줄임표로 마감 */}
-          <p
-            className={`${roleColor[rs.role] || "text-teal-300"} ${sz.trans} font-medium ${
-              rs.interim ? "opacity-75 italic" : ""
+      {remoteSubtitles.map((rs, i) => {
+        // 화자 구분 = **사람 단위** 3중 신호: ①색(이름 고정) ②이름 라벨 ③좌/우 위치.
+        // 슬롯 순서가 고정돼 있어(showRemoteSubtitle 이 제자리 교체) 두 사람이 교대로 말해도
+        // 자막이 좌우로 튀지 않는다 — 왼쪽은 계속 같은 사람.
+        const sc = speakerColor(rs.name || rs.key);
+        return (
+          <div
+            key={rs.key}
+            className={`${boxBase} bg-black/60 border border-l-4 ${sc.border} text-left ${
+              i % 2 === 0 ? "self-start" : "self-end"
             }`}
           >
-            <span className="text-yellow-500/70 text-[11px] font-normal mr-1.5">
-              {/* 화자 구분: 이름(있으면) + 역할 + 언어 */}
-              {rs.name ? `${rs.name} · ` : ""}
-              {rs.role ? `${roleLabel(rs.role, c)} · ` : ""}
-              {LANG_LABELS[rs.lang] || rs.lang}
-            </span>
-            {rs.text}
-            {rs.interim ? " …" : ""}
-          </p>
-        </div>
-      ))}
+            {/* interim = 상대가 아직 말하는 중인 부분 자막 — 톤 낮춰 '자라는 중'임을 표시, 말줄임표로 마감 */}
+            <p
+              className={`${sc.text} ${sz.trans} font-medium ${
+                rs.interim ? "opacity-75 italic" : ""
+              }`}
+            >
+              <span className={`${sc.text} opacity-70 text-[11px] font-normal mr-1.5`}>
+                {/* 이름이 없으면(구버전 클라·통역봇) 언어만 — 색·위치가 화자 구분을 계속 담당 */}
+                {rs.name ? `${rs.name} · ` : ""}
+                {LANG_LABELS[rs.lang] || rs.lang}
+              </span>
+              {rs.text}
+              {rs.interim ? " …" : ""}
+            </p>
+          </div>
+        );
+      })}
 
       {/* 내 음성 인식 중간 결과 */}
       {interimText && (
-        <div className={`${boxBase} bg-black/50`}>
+        <div className={`${boxBase} bg-black/50 text-center`}>
           <p className={`text-gray-300 ${sz.text} italic`}>🎤 {interimText}</p>
         </div>
       )}
 
       {/* 내 발화 원문+번역 — 원문은 STT 오인식 확인용 1줄, 번역 1줄 (예전 5줄 스택이 화면을 과하게 가림) */}
       {original && (
-        <div className={`${boxBase} bg-black/60`}>
+        <div className={`${boxBase} bg-black/60 text-center`}>
           <p className={`text-white ${sz.text}`}>{original}</p>
           <p className={`text-teal-300 ${sz.text}`}>{translated}</p>
         </div>
@@ -699,6 +721,36 @@ export default function ConsultationRoomPage() {
   const [micFailureReason, setMicFailureReason] = useState("");
   // 같은 신분(identity)으로 다른 탭·기기가 입장해 이 화면이 밀려난 상태 — 재연결 경쟁 금지(새 세션 승리)
   const [sessionTakenOver, setSessionTakenOver] = useState(false);
+  // 좀비 탭 방지: 연결이 끊긴 뒤(상대 이탈·네트워크 끊김 등, 강제양보 제외) 재연결 없이 60초가
+  // 지나면 채팅·자료 폴링을 멈춘다. 안 그러면 통화 끝난 방치 탭이 4~8초마다 DB를 계속 두드림
+  // (2026-07-24 Supabase IO 예산 고갈의 유력 원인 — 방 하나가 3시간 2,500회).
+  const hasConnectedOnceRef = useRef(false);
+  const idleDisconnectTimerRef = useRef(null);
+  useEffect(() => () => {
+    if (idleDisconnectTimerRef.current) clearTimeout(idleDisconnectTimerRef.current);
+  }, []);
+
+  // ── 자리 비움 자동 종료 (구글 미트 방식: 먼저 «아직 계신가요?» → 무응답이면 연결만 끊기) ──
+  // 왜: 위 워치독은 «연결이 끊긴 뒤»에만 작동한다. 나가기를 안 누르고 화면만 켜둔 채 자리를
+  //     뜨면(방에 그대로 있는 상태) 폴링이 영원히 돈다 — 2026-07-24 IO 예산 고갈과 같은 부류.
+  // 업계 표준 조사(2026-07-25): 구글 미트 = 혼자 10분 → 안내 → 2분 무응답이면 종료 /
+  //     줌 = 혼자 40분이면 종료(단 이건 무료 요금제 제한 목적). 바로 끊지 않고 «먼저 묻는»
+  //     구글 방식을 택함 — 의료 상담이라 오작동으로 끊기면 안 되기 때문.
+  // ⚠️ 여기서 «종료» = 이 브라우저의 연결만 끊기. 상담 기록(status)·상대 참가자·초대 링크는
+  //     전혀 안 건드린다(2026-07-01 «종료 누르면 completed 로 바뀌던» 회귀와 혼동 금지).
+  // PO 지시(2026-07-27): 두 경우 모두 5분 뒤 묻고 1분 무응답이면 끊는다.
+  // (초안은 통화 중 혼자를 구글 표준값 10분+2분으로 뒀으나 PO가 5분+1분으로 통일 지시.)
+  // 짧게 잡아도 안전한 이유: 타이머는 «방에 나 혼자»일 때만 돈다 — 상대가 한 명이라도 있으면
+  // 시작조차 안 하므로, 진행 중인 상담이 5분 침묵으로 끊길 일은 구조상 없다.
+  const IDLE_RULES = {
+    waiting: { ask: 5 * 60 * 1000, grace: 60 * 1000 }, // 입장 전 대기(의사 기다리는 중)
+    inRoom: { ask: 5 * 60 * 1000, grace: 60 * 1000 },  // 통화 중인데 방에 나 혼자
+  };
+  const [isAloneInRoom, setIsAloneInRoom] = useState(false);
+  const [idlePrompt, setIdlePrompt] = useState(false);   // «아직 계신가요?» 표시 중
+  const [idleClosed, setIdleClosed] = useState(false);   // 무응답으로 연결을 끊은 상태
+  const idleAskTimerRef = useRef(null);
+  const idleGraceTimerRef = useRef(null);
 
   // Guest mode state
   const [guestName, setGuestName] = useState("");
@@ -765,15 +817,26 @@ export default function ConsultationRoomPage() {
   // DC 자막 억제 판정용 ref (콜백 재생성 없이 최신값 읽기)
   const voiceOnRef = useRef(false);
   const agentPresentRef = useRef(false);
+  // 봇을 한 번이라도 봤나 — 자동꺼짐(재연결 유예)을 "봇이 있다가 사라진" 경우로 한정하기 위함.
+  // 사용자가 봇 없이 직접 켠 통역은 자동으로 끄지 않는다.
+  // ⚠️ voiceOn 껐다고 리셋하지 않는다(독립리뷰 버그): 봇이 계속 방에 있는 채로 통역을 껐다
+  //    켜면 리셋된 ref 가 false 로 굳고(agentPresent 는 true→false 전이가 없어 다시 true 로
+  //    안 세워짐) → 이후 봇이 진짜 끊겨도 자동꺼짐이 안 돌아 "죽은 토글"이 된다. 자동꺼짐은
+  //    어차피 agentPresent 의 진짜 true→false 전이에서만 발동하므로, ref 가 stale-true 여도
+  //    잘못된 자동꺼짐을 일으키지 못한다(그 전이 자체가 봇이 있었다는 뜻).
+  const agentEverPresentRef = useRef(false);
   useEffect(() => {
     voiceOnRef.current = voiceOn;
   }, [voiceOn]);
   useEffect(() => {
     agentPresentRef.current = agentPresent;
-    // 봇이 방에서 사라지면(스위치 내림·에이전트 다운) 통역도 자동 꺼짐 — 죽은 토글 방지.
-    // 단 10초 유예: 재연결·재협상 중 participants 가 잠깐 비는 동안(독립리뷰 #2) 통역이
-    // 조용히 꺼져버리지 않게 — 봇이 그 안에 돌아오면 유지된다.
-    if (agentPresent) return;
+    if (agentPresent) {
+      agentEverPresentRef.current = true;
+      return;
+    }
+    // 봇이 '있다가' 사라진 경우에만 10초 유예 후 자동 꺼짐(재연결·재협상 보호, 독립리뷰 #2).
+    // 사용자가 봇 없이 직접 켠 통역은 그대로 둔다 — 버튼은 사용자가 쥔다(PO 2026-07-24).
+    if (!voiceOnRef.current || !agentEverPresentRef.current) return;
     const t = setTimeout(() => setVoiceOn(false), 10000);
     return () => clearTimeout(t);
   }, [agentPresent]);
@@ -939,9 +1002,16 @@ export default function ConsultationRoomPage() {
   const showRemoteSubtitle = useCallback(({ key, text, lang, role, name, interim }) => {
     const k = key || "dc";
     setRemoteSubtitles((prev) => {
-      const next = prev.filter((s) => s.key !== k);
-      next.push({ key: k, text, lang, role, name, interim });
-      return next.slice(-2); // 최근 화자 2명까지
+      const entry = { key: k, text, lang, role, name, interim };
+      const at = prev.findIndex((s) => s.key === k);
+      // 이미 화면에 있는 화자면 **제자리 교체** — 슬롯 순서(=좌/우 위치)를 사람에 고정한다.
+      // 예전엔 지웠다 뒤에 붙여서, 두 사람이 교대로 말할 때마다 자막이 위아래·좌우로 튀었다.
+      if (at >= 0) {
+        const next = prev.slice();
+        next[at] = entry;
+        return next;
+      }
+      return [...prev, entry].slice(-2); // 최근 화자 2명까지
     });
     // 문장 길이에 비례해 자동 숨김(12~30초) — "너무 슉슉 넘어가 읽기 힘들다"(PO 제보 2026-07-23)로
     // 유지시간을 크게 늘림. 지난 자막은 「자막 기록」 패널에 남으므로 다시 읽을 수 있다.
@@ -1499,6 +1569,9 @@ export default function ConsultationRoomPage() {
     let cancelled = false;
 
     const fetchPending = async () => {
+      // 탭이 백그라운드면 스킵 — 3초 주기라 방치 탭 하나가 시간당 1,200회를 만든다.
+      // (대기 중인 사람이 있으면 탭을 보고 있을 때 최대 3초 안에 뜬다 = 체감 동일)
+      if (typeof document !== "undefined" && document.hidden) return;
       try {
         const headers = await getAdmissionsAuthHeaders();
         if (!headers) return;
@@ -1578,13 +1651,85 @@ export default function ConsultationRoomPage() {
       }
     };
 
-    const interval = setInterval(check, 2500);
+    // 대기실은 «일찍 들어와서 하염없이 기다리는» 화면이라 폴링이 가장 오래 도는 곳이다.
+    // 승인될 때까지 무한정 2.5초로 두면 1시간 일찍 온 참가자 한 명이 1,440회를 만든다
+    // (2026-07-24 IO 예산 고갈과 같은 부류 — POSTMORTEMS #120·#121).
+    //   ① 탭이 안 보이면 건너뛴다
+    //   ② 3분 넘게 기다린 뒤부터는 10초 간격으로 늦춘다(오래 기다린 사람에게 10초는 체감 차이 없음)
+    //   ③ 대신 탭으로 돌아오는 순간 즉시 한 번 확인한다 → 기다리다 돌아왔을 때 바로 들어가진다
+    const startedAt = Date.now();
+    let ticks = 0;
+    const interval = setInterval(() => {
+      if (typeof document !== "undefined" && document.hidden) return;
+      ticks += 1;
+      const slow = Date.now() - startedAt > 3 * 60 * 1000;
+      if (slow && ticks % 4 !== 0) return; // 2.5초 × 4 = 10초
+      check();
+    }, 2500);
     check();
+
+    const onVisible = () => {
+      if (typeof document !== "undefined" && !document.hidden) check();
+    };
+    if (typeof document !== "undefined") {
+      document.addEventListener("visibilitychange", onVisible);
+    }
     return () => {
       cancelled = true;
       clearInterval(interval);
+      if (typeof document !== "undefined") {
+        document.removeEventListener("visibilitychange", onVisible);
+      }
     };
   }, [admissionId, admissionStatus, consultationId, toast]);
+
+  // ── 자리 비움 타이머 ──
+  // 두 상황에만 돈다: ①입장 전 대기 중 ②통화 중인데 방에 나 혼자. 상대가 한 명이라도 있으면
+  // 타이머 자체가 안 돈다 → 진행 중인 상담은 30분을 말없이 들어도 절대 안 끊긴다.
+  const idleMode = useMemo(() => {
+    if (idleClosed || !livekitToken) return null;
+    if (admissionStatus === "pending") return "waiting";
+    if (connected && isAloneInRoom) return "inRoom";
+    return null;
+  }, [idleClosed, livekitToken, admissionStatus, connected, isAloneInRoom]);
+
+  // «네, 있어요»를 누르면 타이머를 처음부터 다시 건다. round 를 올려 아래 effect 를 재실행시키는
+  // 방식 — 안 그러면 한 번 누른 뒤로는 영영 다시 안 물어봐서, 그 뒤에 진짜 자리를 떠도 못 잡는다.
+  const [idleRound, setIdleRound] = useState(0);
+  const stayInRoom = useCallback(() => {
+    setIdlePrompt(false);
+    if (idleGraceTimerRef.current) clearTimeout(idleGraceTimerRef.current);
+    idleGraceTimerRef.current = null;
+    setIdleRound((n) => n + 1);
+  }, []);
+
+  useEffect(() => {
+    const clear = () => {
+      if (idleAskTimerRef.current) clearTimeout(idleAskTimerRef.current);
+      if (idleGraceTimerRef.current) clearTimeout(idleGraceTimerRef.current);
+      idleAskTimerRef.current = null;
+      idleGraceTimerRef.current = null;
+    };
+    if (!idleMode) {
+      clear();
+      setIdlePrompt(false);
+      return;
+    }
+    const { ask, grace } = IDLE_RULES[idleMode];
+    idleAskTimerRef.current = setTimeout(() => {
+      setIdlePrompt(true);
+      idleGraceTimerRef.current = setTimeout(() => {
+        // 연결만 끊는다 — 폴링이 전부 멈추고(livekitToken 의존) 화면엔 «다시 입장»이 뜬다.
+        setIdlePrompt(false);
+        setIdleClosed(true);
+        setLivekitToken("");
+      }, grace);
+    }, ask);
+    return clear;
+    // IDLE_RULES 는 렌더마다 새로 만들어지는 상수 객체라 의존성에서 뺀다(값은 불변).
+    // idleRound 는 «네, 있어요»를 누를 때마다 올라가 타이머를 처음부터 다시 걸게 한다.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [idleMode, idleRound]);
 
   // ── 신원 판정 + (계정 모드면) 세션·LiveKit 토큰 로드 ──
   // 링크 하나로 통일: 로그인 세션이 있으면 '이 상담의 참가자인지' 먼저 확인한다.
@@ -1927,6 +2072,10 @@ export default function ConsultationRoomPage() {
     let cancelled = false;
 
     const poll = async () => {
+      // 탭이 백그라운드/최소화면 건너뛴다 — 방치 탭이 안 보이는 동안에도 4초마다 DB를
+      // 두드리던 것 방지(2026-07-24 Supabase IO 예산 고갈 원인 중 하나). 탭이 다시 보이면
+      // 다음 tick(최대 4초 뒤)에 자동으로 따라잡는다.
+      if (typeof document !== "undefined" && document.hidden) return;
       try {
         const headers = { "X-Guest-Token": inviteToken };
         const [mRes, tRes] = await Promise.all([
@@ -1986,6 +2135,8 @@ export default function ConsultationRoomPage() {
   const knownDocIdsRef = useRef(null);
   const skipNextDocToastRef = useRef(false);
   const loadSharedDocs = useCallback(async () => {
+    // 탭이 백그라운드일 때는 건너뛴다 (방치 탭 DB 부하 방지)
+    if (typeof document !== "undefined" && document.hidden) return;
     try {
       const headers = await getConsultAuthHeaders();
       if (!headers) return;
@@ -2013,9 +2164,10 @@ export default function ConsultationRoomPage() {
   useEffect(() => {
     if (!livekitToken) return;
     loadSharedDocs();
-    // 상담 중 상대가 올린 자료가 바로 보이게 8초 주기 갱신
-    // (기존엔 입장 시 1회만 불러와 상대 화면에 안 떴음 — 2026-06-12 자료공유 1단계)
-    const interval = setInterval(loadSharedDocs, 8000);
+    // 상담 중 상대가 올린 자료가 보이게 주기 갱신 (기존엔 입장 시 1회만 불러와 상대 화면에
+    // 안 떴음 — 2026-06-12 자료공유 1단계). 8초→20초: 자료는 채팅만큼 실시간일 필요가 없고,
+    // 8초는 방치 탭 하나가 시간당 450회를 두드리는 부하였다(2026-07-24 IO 예산 고갈 원인).
+    const interval = setInterval(loadSharedDocs, 20000);
     return () => clearInterval(interval);
   }, [livekitToken, loadSharedDocs]);
 
@@ -2359,6 +2511,29 @@ export default function ConsultationRoomPage() {
     );
   }
 
+  // ── 자리 비움으로 연결을 끊은 화면 ──
+  // «상담이 끝났다»가 아니라 «이 브라우저의 연결만 끊었다»임을 분명히 말한다.
+  // 새로고침 한 번이면 원래 입장 흐름(게스트 폼 / 계정 자동입장)으로 그대로 돌아간다.
+  if (idleClosed) {
+    return (
+      <div className="w-full min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-slate-900 to-teal-950 text-white p-4">
+        <div className="max-w-md w-full bg-gray-800/90 backdrop-blur rounded-2xl shadow-2xl border border-gray-700 p-6 sm:p-8 text-center">
+          <div className="w-12 h-12 rounded-2xl bg-teal-700/15 text-teal-400 flex items-center justify-center mx-auto mb-4">
+            <Video size={22} />
+          </div>
+          <h1 className="text-xl font-bold mb-2">{c.idleClosedTitle}</h1>
+          <p className="text-sm text-gray-400 leading-relaxed mb-6">{c.idleClosedBody}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="w-full py-3 rounded-xl bg-teal-600 hover:bg-teal-500 font-semibold transition-colors"
+          >
+            {c.idleRejoin}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   // ── Guest mode: 이름 입력 폼 먼저 표시 (staff 여부 판정이 끝난 뒤에만) ──
   if (isGuestMode && !livekitToken && !checkingAuth) {
     // 모바일: 인사말 압축 + 이름칸 상단 + 하단 고정 입장 바 — 첫 화면에 "뭘 해야 하는지"가
@@ -2625,18 +2800,22 @@ export default function ConsultationRoomPage() {
           <span className="absolute top-1 right-1 w-2 h-2 bg-yellow-400 rounded-full animate-pulse" />
         )}
       </button>
-      {/* 통역(음성) 토글 — 봇의 통역 음성 듣기 (2026-07-24 PO: 버튼 부활).
-          봇이 방에 없으면(서버 스위치 꺼짐·에이전트 다운) 안내만 — 죽은 척 안 하는 정직한 버튼. */}
+      {/* 통역(음성) 토글 — 봇의 통역 음성 듣기 (2026-07-24 PO: 봇 없어도 켤 수 있는 토글로).
+          봇이 방에 아직 없으면 켜두고 대기 → 봇이 들어오면 그때부터 통역 음성이 들린다. */}
       <button
         onClick={() => {
-          if (!voiceOn && !agentPresent) {
-            toast.success(c.voiceNotReady);
-            return;
-          }
           const next = !voiceOn;
           setVoiceOn(next);
-          toast.success(next ? c.voiceOnMsg : c.voiceOffMsg);
+          // 봇이 없어도 켤 수 있다 — 없을 땐 "들어오면 통역돼요"로 정직하게 안내.
+          toast.success(
+            next ? (agentPresent ? c.voiceOnMsg : c.voiceOnPendingMsg) : c.voiceOffMsg
+          );
         }}
+        // 야간 로봇 통화가 «통역봇 재실»을 판정할 때 잡는 손잡이. 접근명(«통역»)으로 찾으면
+        // 봇이 없을 때 붙는 `···` 배지 때문에 이름이 "통역 ···" 이 되어 **정작 봇이 없는 경우에만
+        // 못 찾는** 함정이 있었다(2026-07-27 실측, 프로덕션 E2E 15초 타임아웃 3회).
+        // 다국어 라벨 6종·배지 유무와 무관하게 안정적으로 잡히도록 testid 고정.
+        data-testid="voice-toggle"
         className={`hw-ctrl-btn relative rounded-lg font-medium transition ${
           voiceOn
             ? "bg-teal-700 hover:bg-teal-800 text-white"
@@ -2644,7 +2823,7 @@ export default function ConsultationRoomPage() {
             ? "bg-gray-700 hover:bg-gray-600 text-gray-200"
             : "bg-gray-800 text-gray-500"
         }`}
-        title={voiceOn ? c.voiceOffMsg : agentPresent ? c.voiceOnMsg : c.voiceNotReady}
+        title={voiceOn ? c.voiceOffMsg : agentPresent ? c.voiceOnMsg : c.voiceOnPendingMsg}
       >
         <Volume2 size={18} />
         <span>{c.voiceLabel}</span>
@@ -2686,6 +2865,22 @@ export default function ConsultationRoomPage() {
 
   return (
     <div className="w-full h-screen bg-gray-900 text-white flex flex-col">
+      {/* ── «아직 계신가요?» — 대기 화면·통화 화면 어디서든 뜨게 최상위에 겹친다 ──
+          바로 끊지 않고 먼저 묻는 이유: 의료 상담이라 오작동으로 끊기면 안 된다(구글 미트 방식). */}
+      {idlePrompt && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+          <div className="max-w-sm w-full bg-gray-800 rounded-2xl border border-gray-700 shadow-2xl p-6 text-center">
+            <h2 className="text-lg font-bold mb-2">{c.stillThereTitle}</h2>
+            <p className="text-sm text-gray-400 leading-relaxed mb-5">{c.stillThereBody}</p>
+            <button
+              onClick={stayInRoom}
+              className="w-full py-3 rounded-xl bg-teal-600 hover:bg-teal-500 font-semibold transition-colors"
+            >
+              {c.stillThereYes}
+            </button>
+          </div>
+        </div>
+      )}
       {/* ── Header ── */}
       <div className="bg-gray-800 border-b border-gray-700 px-3 py-2 md:px-6 md:py-3">
         <div className="flex items-center justify-between gap-2">
@@ -2863,6 +3058,11 @@ export default function ConsultationRoomPage() {
                 setConnected(true);
                 setConnectError(false);
                 setConnectErrorDetail("");
+                hasConnectedOnceRef.current = true;
+                if (idleDisconnectTimerRef.current) {
+                  clearTimeout(idleDisconnectTimerRef.current);
+                  idleDisconnectTimerRef.current = null;
+                }
               }}
               onDisconnected={(reason) => {
                 setConnected(false);
@@ -2878,6 +3078,13 @@ export default function ConsultationRoomPage() {
                   setInterimText("");
                   tts.stop();
                   reportClientEvent("connect_error", "duplicate identity takeover - this tab yielded");
+                } else if (hasConnectedOnceRef.current) {
+                  // 한 번이라도 연결됐다가 끊긴 경우(상대 이탈·네트워크 등) — 60초 안에 재연결(재시도
+                  // 클릭 → onConnected) 안 되면 방치 탭으로 간주하고 폴링을 멈춘다.
+                  if (idleDisconnectTimerRef.current) clearTimeout(idleDisconnectTimerRef.current);
+                  idleDisconnectTimerRef.current = setTimeout(() => {
+                    setLivekitToken("");
+                  }, 60000);
                 }
               }}
               onError={(e) => {
@@ -2934,6 +3141,7 @@ export default function ConsultationRoomPage() {
               <div className="flex-1 relative" style={{ height: "calc(100% - 64px)" }}>
                 <VideoGrid copy={c} />
                 <WaitingForOthers copy={c} />
+                <AloneWatcher onAloneChange={setIsAloneInRoom} />
                 <RoomAudioRenderer />
                 <AudioUnblock copy={c} />
                 <MicOffBanner
@@ -3338,14 +3546,18 @@ export default function ConsultationRoomPage() {
                       className="border border-gray-700 rounded-lg p-3 hover:border-gray-600 transition"
                     >
                       <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs text-gray-500">
-                          {trans.speaker_name
-                            ? trans.speaker_name
-                            : trans.speaker_role === "doctor"
-                            ? c.roleDoctor
-                            : trans.speaker_role === "patient"
-                            ? c.rolePatient
-                            : c.you}
+                        {/* 화자 표시 = 사람 단위(색 점 + 이름). 오버레이 자막과 같은 색 규칙이라
+                            같은 사람이면 기록에서도 같은 색이다. 역할(계층)은 쓰지 않는다. */}
+                        <span className="text-xs text-gray-500 flex items-center gap-1.5">
+                          <span
+                            className={`inline-block w-2 h-2 rounded-full ${
+                              trans.speaker_role === "self"
+                                ? "bg-gray-400"
+                                : speakerColor(trans.speaker_name).dot
+                            }`}
+                          />
+                          {trans.speaker_name ||
+                            (trans.speaker_role === "self" ? c.you : c.roleGuest)}
                         </span>
                         <span className="text-xs text-gray-600">
                           {new Date(trans.created_at).toLocaleTimeString("ko-KR", {

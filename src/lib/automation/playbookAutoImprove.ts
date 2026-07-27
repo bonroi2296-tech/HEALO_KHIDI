@@ -6,6 +6,8 @@
 
 import "server-only";
 
+import { fetchGeminiWithCompat } from "@/lib/ai/geminiThinkingCompat";
+
 import { supabaseAdmin } from "../rag/supabaseAdmin";
 import { sanitizeResponse } from "../playbook/sanitize";
 import { chunkText } from "../rag/chunker";
@@ -93,15 +95,15 @@ Rules:
 
   try {
     const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${apiKey}`;
-    const res = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
+    // 별칭 세대 교체 생존 사다리 — temperature 폐기(2026-07-21 공지) 시 400 을 흡수.
+    const res = await fetchGeminiWithCompat(
+      url,
+      {
         contents: [{ parts: [{ text: prompt }] }],
         generationConfig: { temperature: 0.4, maxOutputTokens: 3000 },
-      }),
-      signal: AbortSignal.timeout(20000),
-    });
+      },
+      { signal: AbortSignal.timeout(20000) }
+    );
     if (!res.ok) return null;
     const data = await res.json();
     const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;

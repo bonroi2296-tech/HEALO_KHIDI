@@ -1,0 +1,509 @@
+<title>과제 요구사항(6대 ICT 서비스) 분석 및 구현 대비표 — HEALO</title>
+
+<style>
+  :root{
+    --navy:#003d70; --navy-2:#1b5f96; --navy-pale:#eef3f8; --navy-line:#c3d4e4;
+    --ink:#14181c; --ink-2:#3d4750; --ink-3:#6d7982;
+    --paper:#f2f4f6; --sheet:#ffffff; --rule:#d3dae0; --rule-2:#e7ecf0;
+    --done:#1a6b52; --done-bg:#eaf4f0;
+    --part:#8a5a10; --part-bg:#fbf3e4;
+    --pend:#7a828a;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{
+      --navy:#7fb4e0; --navy-2:#a5cbe9; --navy-pale:#101d29; --navy-line:#26394b;
+      --ink:#e8ecef; --ink-2:#aeb9c2; --ink-3:#7f8a93;
+      --paper:#070a0d; --sheet:#0e1319; --rule:#222c35; --rule-2:#181f26;
+      --done:#4ec9a4; --done-bg:#0c1f1a;
+      --part:#dfa855; --part-bg:#22190c;
+      --pend:#78828b;
+    }
+  }
+  :root[data-theme="dark"]{
+    --navy:#7fb4e0; --navy-2:#a5cbe9; --navy-pale:#101d29; --navy-line:#26394b;
+    --ink:#e8ecef; --ink-2:#aeb9c2; --ink-3:#7f8a93;
+    --paper:#070a0d; --sheet:#0e1319; --rule:#222c35; --rule-2:#181f26;
+    --done:#4ec9a4; --done-bg:#0c1f1a;
+    --part:#dfa855; --part-bg:#22190c;
+    --pend:#78828b;
+  }
+  :root[data-theme="light"]{
+    --navy:#003d70; --navy-2:#1b5f96; --navy-pale:#eef3f8; --navy-line:#c3d4e4;
+    --ink:#14181c; --ink-2:#3d4750; --ink-3:#6d7982;
+    --paper:#f2f4f6; --sheet:#ffffff; --rule:#d3dae0; --rule-2:#e7ecf0;
+    --done:#1a6b52; --done-bg:#eaf4f0;
+    --part:#8a5a10; --part-bg:#fbf3e4;
+    --pend:#7a828a;
+  }
+
+  html{-webkit-text-size-adjust:100%}
+  body{
+    margin:0; background:var(--paper); color:var(--ink);
+    font-family:"Pretendard Variable",Pretendard,"Apple SD Gothic Neo","Noto Sans KR","Malgun Gothic",system-ui,sans-serif;
+    font-size:15px; line-height:1.7; word-break:keep-all;
+  }
+  .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-variant-numeric:tabular-nums}
+  .sheet{max-width:1140px;margin:0 auto;background:var(--sheet);border-left:1px solid var(--rule);border-right:1px solid var(--rule);padding:0 clamp(20px,4vw,54px) 80px}
+
+  /* ---------- 문서 머리 ---------- */
+  .docband{border-bottom:3px double var(--navy);padding:34px 0 16px}
+  .docno{font-size:12px;color:var(--ink-3);letter-spacing:.06em;margin:0 0 22px}
+  .docno b{color:var(--navy);font-weight:700}
+  .prog{font-size:12.5px;color:var(--ink-3);margin:0 0 12px}
+  h1{font-size:clamp(26px,4.4vw,42px);line-height:1.2;letter-spacing:-.035em;font-weight:800;margin:0 0 4px;text-wrap:balance}
+  .h1b{font-size:clamp(19px,3vw,30px);font-weight:750;letter-spacing:-.03em;color:var(--navy);margin:0 0 10px}
+  .subtitle{font-size:13.5px;color:var(--ink-3);margin:0 0 26px}
+
+  .metagrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:0 0;border-top:1px solid var(--rule)}
+  .mrow{display:grid;grid-template-columns:96px 1fr;border-bottom:1px solid var(--rule-2)}
+  .mrow .k{background:var(--navy-pale);padding:8px 10px;font-size:12px;font-weight:700;color:var(--ink-2);text-align:center;border-right:1px solid var(--rule-2)}
+  .mrow .v{padding:8px 12px;font-size:13px;color:var(--ink-2)}
+
+  /* ---------- 장/조 ---------- */
+  .chap{margin:56px 0 6px;padding-bottom:7px;border-bottom:2px solid var(--navy);display:flex;align-items:baseline;gap:12px}
+  .chap .cn{font-size:12.5px;font-weight:800;color:#fff;background:var(--navy);padding:2px 10px;letter-spacing:.06em}
+  :root[data-theme="dark"] .chap .cn{color:#04121d}
+  @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .chap .cn{color:#04121d}}
+  .chap h2{font-size:clamp(19px,2.7vw,25px);margin:0;font-weight:780;letter-spacing:-.025em}
+  .art{font-size:15px;font-weight:750;color:var(--navy);margin:30px 0 9px;letter-spacing:-.012em}
+  .body p{margin:0 0 7px;font-size:14.2px;color:var(--ink-2);line-height:1.72}
+  .body p.ind{padding-left:14px}
+
+  /* ---------- 표 ---------- */
+  .scroll{overflow-x:auto;border:1px solid var(--rule);margin:10px 0 4px}
+  table{border-collapse:collapse;width:100%;font-size:13.4px;min-width:620px;background:var(--sheet)}
+  th,td{padding:8px 11px;text-align:left;border-bottom:1px solid var(--rule-2);border-right:1px solid var(--rule-2);vertical-align:top}
+  th:last-child,td:last-child{border-right:none}
+  thead th{background:var(--navy);color:#fff;font-size:11.5px;font-weight:700;letter-spacing:.05em;white-space:nowrap;border-right-color:rgba(255,255,255,.2)}
+  :root[data-theme="dark"] thead th{color:#04121d}
+  @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) thead th{color:#04121d}}
+  tbody tr:last-child td{border-bottom:none}
+  td.c,th.c{text-align:center}
+  .rh{font-weight:650;white-space:nowrap}
+  tr.total td{background:var(--navy-pale);font-weight:750}
+  .cap{font-size:12.2px;color:var(--ink-3);margin:6px 0 0}
+
+  /* ---------- 이행 배지 ---------- */
+  .bd{display:inline-block;font-size:11.5px;font-weight:800;padding:2px 10px;letter-spacing:.04em;white-space:nowrap;border:1px solid currentColor}
+  .bd.done{color:var(--done);background:var(--done-bg)}
+  .bd.part{color:var(--part);background:var(--part-bg)}
+  .bd.pend{color:var(--pend)}
+
+  /* ---------- 총괄 타일 ---------- */
+  .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(168px,1fr));gap:1px;background:var(--rule);border:1px solid var(--rule);margin-top:14px}
+  .tile{background:var(--sheet);padding:15px 14px;display:flex;flex-direction:column;gap:5px}
+  .tile .ic{font-size:12.5px;font-weight:800;color:var(--navy);letter-spacing:.04em}
+  .tile .nm{font-size:14px;font-weight:700;letter-spacing:-.012em;line-height:1.4}
+  .tile .fn{font-size:11.8px;color:var(--ink-3)}
+
+  /* ---------- 서비스 트랙 (핵심 장치) ---------- */
+  .svc{border:1px solid var(--rule);margin:16px 0 0;background:var(--sheet)}
+  .svc-h{display:flex;align-items:center;gap:11px;flex-wrap:wrap;padding:11px 16px;background:var(--navy-pale);border-bottom:1px solid var(--rule)}
+  .svc-h .no{font-size:12px;font-weight:800;color:var(--navy);letter-spacing:.05em}
+  .svc-h .nm{font-size:16.5px;font-weight:780;letter-spacing:-.02em;flex:1 1 190px}
+  .svc-h .fid{font-size:11.8px;color:var(--ink-3)}
+
+  .stage{display:grid;grid-template-columns:104px 1fr;border-bottom:1px solid var(--rule-2)}
+  .stage:last-child{border-bottom:none}
+  .stage .lab{
+    padding:12px 10px;font-size:11.5px;font-weight:800;letter-spacing:.08em;color:var(--ink-3);
+    border-right:1px solid var(--rule-2);background:var(--rule-2);text-align:center;
+    display:flex;align-items:flex-start;justify-content:center;
+  }
+  .stage.req .lab{color:var(--navy);background:var(--navy-pale)}
+  .stage.impl .lab{color:var(--done)}
+  .stage.adv .lab{color:var(--part)}
+  .stage .con{padding:12px 16px;font-size:13.8px;color:var(--ink-2);line-height:1.68}
+  .stage .con b{color:var(--ink)}
+  .stage .con ul{margin:0;padding-left:17px;display:grid;gap:4px}
+  .stage .con li{padding-left:1px}
+  .stage.req .con{font-weight:600;color:var(--ink)}
+  .evi{display:flex;flex-wrap:wrap;gap:6px}
+  .evi span{font-size:12px;border:1px solid var(--rule);padding:2px 9px;color:var(--ink-2);white-space:nowrap}
+
+  @media (max-width:680px){
+    .stage{grid-template-columns:1fr}
+    .stage .lab{border-right:none;border-bottom:1px solid var(--rule-2);justify-content:flex-start;padding:7px 14px;text-align:left}
+  }
+
+  /* ---------- 고도화 타임라인 ---------- */
+  .tl{border-left:2px solid var(--navy-line);margin:14px 0 0;padding-left:0}
+  .tl-item{display:grid;grid-template-columns:70px 1fr;gap:14px;padding:0 0 20px 0;position:relative}
+  .tl-item:last-child{padding-bottom:0}
+  .tl-item .mo{font-size:15px;font-weight:800;color:var(--navy);padding-left:14px;position:relative}
+  .tl-item .mo::before{content:"";position:absolute;left:-6px;top:9px;width:9px;height:9px;background:var(--navy);border:2px solid var(--sheet)}
+  .tl-item .txt{font-size:13.8px;color:var(--ink-2);line-height:1.7}
+  .tl-item .txt .ict{font-size:11.5px;color:var(--ink-3);font-weight:700;letter-spacing:.04em;display:block;margin-top:4px}
+
+  .note{border:1px solid var(--rule);border-left:3px solid var(--navy);padding:13px 16px;margin:18px 0;font-size:13.8px;color:var(--ink-2);background:var(--sheet)}
+  .note b{color:var(--ink)}
+  .note.warn{border-left-color:var(--part)}
+
+  footer{margin-top:60px;padding-top:18px;border-top:3px double var(--navy);font-size:12.5px;color:var(--ink-3);display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px}
+  .end{text-align:center;font-size:13px;font-weight:700;color:var(--ink-2);margin:40px 0 0;letter-spacing:.3em}
+</style>
+
+<div class="sheet">
+
+  <header class="docband">
+    <p class="docno">문서번호 <b class="mono">HEALO-KHIDI-2026-11</b> · Rev. 0 · 2026. 7. 25.</p>
+    <p class="prog">2026년 「ICT 기반 외국인환자 사전상담·사후관리 지원 사업」</p>
+    <h1>과제 요구사항(6대 ICT 서비스)</h1>
+    <p class="h1b">분석 및 구현 대비표</p>
+    <p class="subtitle">요구사항 분석 · 구현 계획 · 구현 결과 · 착수 후 고도화</p>
+
+    <div class="metagrid">
+      <div class="mrow"><span class="k">사 업 명</span><span class="v">카자흐스탄 암환자 대상 ICT 기반 사전상담 및 사후관리 통합 의료연계 서비스 구축(HEALO)</span></div>
+      <div class="mrow"><span class="k">주관기관</span><span class="v">(주)본로이 · 총괄책임자 강주영</span></div>
+      <div class="mrow"><span class="k">참여기관</span><span class="v">면력한방병원, 신촌면력한방병원</span></div>
+      <div class="mrow"><span class="k">사업기간</span><span class="v">2026. 4. ~ 2026. 11. (8개월)</span></div>
+      <div class="mrow"><span class="k">작성근거</span><span class="v">공고문 p.8 「참고」 6대 ICT 서비스 정의 / 수행계획서(2026. 5. 14. 확정본)</span></div>
+      <div class="mrow"><span class="k">검증방법</span><span class="v">소스코드 실측 및 운영데이터베이스 정확 집계(2026. 7. 25. 조회)</span></div>
+    </div>
+  </header>
+
+  <!-- ============ 총괄 ============ -->
+  <div class="chap"><span class="cn">총괄</span><h2>6대 ICT 서비스 이행 현황</h2></div>
+  <div class="body">
+    <p>공고가 정한 6대 ICT 서비스를 원문 기준으로 분해하여 <b>도출 기능 22종(F-01~F-22)</b>을 정의하고, 전건을 구현하였음.
+    이 중 5개 서비스는 이행, 1개 서비스(⑥ 재이용 예약상담)는 선행 단계 미도달로 부분이행임.</p>
+  </div>
+
+  <div class="tiles">
+    <div class="tile"><span class="ic">① 사전상담</span><span class="nm">병원안내·매칭</span><span class="fn mono">F-01~05 · 5/5</span><span class="bd done">이행</span></div>
+    <div class="tile"><span class="ic">② 사전상담</span><span class="nm">진료의뢰·상담</span><span class="fn mono">F-06~10 · 5/5</span><span class="bd done">이행</span></div>
+    <div class="tile"><span class="ic">③ 사전상담</span><span class="nm">예약상담</span><span class="fn mono">F-11~14 · 4/4</span><span class="bd done">이행</span></div>
+    <div class="tile"><span class="ic">④ 사후관리</span><span class="nm">경과 f/u</span><span class="fn mono">F-15~17 · 3/3</span><span class="bd done">이행</span></div>
+    <div class="tile"><span class="ic">⑤ 사후관리</span><span class="nm">모니터링·상담·교육</span><span class="fn mono">F-18~20 · 3/3</span><span class="bd done">이행</span></div>
+    <div class="tile"><span class="ic">⑥ 사후관리</span><span class="nm">재이용 예약상담</span><span class="fn mono">F-21~22 · 2/2</span><span class="bd part">부분이행</span></div>
+  </div>
+
+  <div class="note">
+    <b>기능 구현률과 실데이터 검증은 별개 지표로 관리함.</b> 기능이 구현되었더라도 실제 수행 사례가 없는 항목은
+    「미검증」으로 표기하며 이를 이행으로 간주하지 아니함. 사전상담 계열(①②③)은 실데이터로 검증되었고,
+    사후관리 계열(④⑤⑥)은 실환자의 치료 완료 단계 미도달로 기능 구축까지 확인됨.
+  </div>
+
+  <!-- ============ 제2장 ============ -->
+  <div class="chap"><span class="cn">제2장</span><h2>과제 요구사항 분석</h2></div>
+
+  <p class="art">제6조(6대 ICT 서비스 요구사항 원문)</p>
+  <div class="body"><p>본 사업의 기능 요구사항은 공고문 p.8 「참고」의 공식 정의를 원천으로 하며, 주관기관의 임의 해석을 배제하고 원문 문구에 1:1로 대응시켜 도출하였음.</p></div>
+  <div class="scroll">
+    <table>
+      <thead><tr><th style="width:92px">구분</th><th style="width:210px">서비스</th><th>공고 원문(공식 기술 정의)</th></tr></thead>
+      <tbody>
+        <tr><td class="rh">사전상담</td><td class="rh">① 병원안내·매칭</td><td>의료기관·진료과·의료진·관광서비스 기본정보 안내 / 의료수요 파악 / 병원·의료진 매칭</td></tr>
+        <tr><td class="rh">사전상담</td><td class="rh">② 진료의뢰·상담</td><td>환자 개인·의료정보 전송·수집 / 상담 커뮤니케이션</td></tr>
+        <tr><td class="rh">사전상담</td><td class="rh">③ 예약상담</td><td>예상진료비·진료일정·비자발급 정보 안내 / 개인정보 수집·저장</td></tr>
+        <tr><td class="rh">사후관리</td><td class="rh">④ 경과 f/u</td><td>수술·시술 경과·부작용 확인, 검사결과·영상정보 전송·수집·저장 / 상담</td></tr>
+        <tr><td class="rh">사후관리</td><td class="rh">⑤ 모니터링·상담·교육</td><td>건강·질병 상태 지속 모니터링 / 상담 / 건강관리 교육</td></tr>
+        <tr><td class="rh">사후관리</td><td class="rh">⑥ 재이용 예약상담</td><td>사후관리 기반 재방문 진료비·일정·비자 안내 / 개인정보 수집</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p class="art">제7조(분석 방법)</p>
+  <div class="body">
+    <p class="ind"><b>1. 원문 분해</b> — 각 서비스 정의를 동사 단위로 분해하여 시스템이 수행할 행위를 특정함. 예: ④의 “검사결과·영상정보 전송·수집·저장”은 업로드·보관·열람의 3개 행위로 분해됨.</p>
+    <p class="ind"><b>2. 기능 도출</b> — 분해된 행위를 구현 단위 기능으로 전환하고 식별자(F-01~F-22)를 부여함.</p>
+    <p class="ind"><b>3. 역할 배정</b> — 각 기능의 수행 주체를 계정 계층에 배정하여, 권한 설계가 공고 서비스에 1:1 대응되도록 함.</p>
+  </div>
+
+  <p class="art">제10조(분석 과정에서 도출된 설계 결정)</p>
+  <div class="body"><p>요구사항 원문을 정밀 분석한 결과, 당초 구상과 달라져야 하는 설계 결정 4건이 도출되었음. <b>이는 공고 문구를 다시 읽어 확인한 사실에서 나온 것이며, 본 사업 설계의 핵심 판단임.</b></p></div>
+  <div class="scroll">
+    <table>
+      <thead><tr><th class="c" style="width:46px">No</th><th style="width:38%">분석에서 확인된 사실</th><th>도출된 설계 결정</th><th class="c" style="width:88px">조치</th></tr></thead>
+      <tbody>
+        <tr><td class="c rh">1</td>
+          <td><b>사후관리 3종(④⑤⑥)이 전부 임상행위임</b> — 검사·영상정보 취급, 건강상태 모니터링, 의학 교육이 포함됨.</td>
+          <td>비의료 에이전시는 구조적으로 사후관리를 수행할 수 없음. 따라서 해외 의뢰처를 <b>「해외 에이전시(사전상담까지)」와 「해외 의료기관(사후 경과 업로드 가능)」으로 분리</b>함.</td>
+          <td class="c mono">2026.6.</td></tr>
+        <tr><td class="c rh">2</td>
+          <td>의사는 케이스를 상시 관리하는 주체가 아니라 <b>예약된 원격협진 시점에만 참여</b>하는 주체임.</td>
+          <td>의사 전용 계정 계층을 폐지하고 초대링크 참여 방식으로 전환함(계정 계층 8종 → 7종).</td>
+          <td class="c mono">2026.6.</td></tr>
+        <tr><td class="c rh">3</td>
+          <td>④⑤의 <b>“지속” 요건은 담당자의 기억과 수기 관리로는 유지되지 아니함.</b></td>
+          <td>사후관리를 사람이 아닌 시스템이 견인하도록 차수별 자동 케이던스(정기 실행)로 설계함.</td>
+          <td class="c mono">2026.7.</td></tr>
+        <tr><td class="c rh">4</td>
+          <td>상담이 개인 메신저 링크로 이관되면 <b>대화 데이터가 플랫폼 외부에 남아 ICT 사업의 집계·학습 근거가 성립하지 아니함.</b></td>
+          <td>개인 메신저 링크 방식을 폐지하고, 봇 연동을 통해 대화가 플랫폼 내부를 경유하도록 전환함.</td>
+          <td class="c mono">2026.7.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p class="art">제9조(성과지표 요구사항)</p>
+  <div class="scroll">
+    <table>
+      <thead><tr><th style="width:32%">지표</th><th class="c" style="width:110px">공고 최소</th><th class="c" style="width:130px">수행계획서 목표</th><th>집계 방식</th></tr></thead>
+      <tbody>
+        <tr><td class="rh">외국인환자 유치(필수)</td><td class="c mono">10건</td><td class="c mono">12건</td><td>유치 전환 대시보드 자동 집계</td></tr>
+        <tr><td class="rh">사전상담·사후관리(부가)</td><td class="c mono">80건</td><td class="c mono">120건</td><td>완료 처리된 상담세션 수 자동 집계</td></tr>
+        <tr><td class="rh">환자 만족도(부가)</td><td class="c mono">80점</td><td class="c mono">90점</td><td>완료 상담 대상 자동 발송 설문의 응답 평균</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="cap">※ 공고 최소치를 상회하는 도전목표 설정은 평가항목 「수행기관 역량·의지」의 가점 요소를 고려한 것임.</p>
+
+  <!-- ============ 제4장 ============ -->
+  <div class="chap"><span class="cn">제4장</span><h2>구현 결과 및 요구사항 대비</h2></div>
+  <div class="body">
+    <p>각 서비스별로 <b>공고 요구 → 분석 결과 → 당초 계획 → 구현 결과 → 착수 후 고도화 → 확인 근거</b>의 순으로 대비함.
+    「확인 근거」에는 소스코드 경로 또는 운영데이터 집계값 등 제3자가 확인 가능한 사실만 기재하였으며, 확인하지 못한 사항은 이행으로 표기하지 아니함.</p>
+  </div>
+
+  <!-- ① -->
+  <section class="svc">
+    <div class="svc-h"><span class="no mono">제15조</span><span class="nm">① 병원안내·매칭</span><span class="fid mono">F-01~05</span><span class="bd done">이행</span></div>
+    <div class="stage req"><span class="lab">공고 요구</span><div class="con">의료기관·진료과·의료진·관광서비스 기본정보 안내 / 의료수요 파악 / 병원·의료진 매칭</div></div>
+    <div class="stage"><span class="lab">분석</span><div class="con">요구를 <b>(가) 정보 제공 (나) 수요 파악 (다) 매칭</b>의 3요소로 분해함. 대상 환자가 CIS 암환자인 점을 고려하여 정보 구조를 진료과가 아닌 <b>암종 중심</b>으로 재편하고, 6개 언어 동시 제공을 필수 요건으로 설정함.</div></div>
+    <div class="stage"><span class="lab">당초 계획</span><div class="con">제휴 의료기관 및 암종별 치료정보 공개 화면 구축, AI 상담을 통한 수요 파악·병원 제안.</div></div>
+    <div class="stage impl"><span class="lab">구현 결과</span><div class="con"><ul>
+      <li>제휴 의료기관 목록·상세 화면 운영(등록 9개 기관), 위치 지도·유치의료기관 등록 인증 표기 포함</li>
+      <li>암종별 치료정보 상세 화면 운영, 한방 협진 프로그램 상세 포함</li>
+      <li>3-Tier RAG 기반 AI 상담이 환자 상태를 수집하고 적합 병원·진료과를 제안(F-04·F-05)</li>
+      <li>문의 진입 경로를 단일 퍼널로 통합 — AI 상담·사람 상담·문의서 3종을 한 화면에서 선택</li>
+      <li>전 화면 6개 언어(국문·영문·노문·카자흐어·중문·일문) 제공</li>
+    </ul></div></div>
+    <div class="stage adv"><span class="lab">착수 후 고도화</span><div class="con"><ul>
+      <li>참여기관 4개 지점의 유치의료기관 등록 완료 반영 및 대표원장 프로필 전수 갱신 <span class="mono">(7월)</span></li>
+      <li>병원·암종 상세의 지도 표시 결함 시정 및 협진 상급종합병원 4개소 실좌표 등록 <span class="mono">(7월)</span></li>
+      <li>보험 안내 화면 신설 — 러시아 보험·어시스턴스 경유 유치 채널 대응 <span class="mono">(7월)</span></li>
+      <li>치료비 직접 결제 고지 등 신뢰 정보를 6개 언어로 상시 노출 <span class="mono">(7월)</span></li>
+    </ul></div></div>
+    <div class="stage"><span class="lab">확인 근거</span><div class="con"><div class="evi"><span>제휴 의료기관 9건(운영DB)</span><span>6개 언어 정합성 자동 검사 통과</span><span>교육·정보 콘텐츠 18건</span></div></div></div>
+  </section>
+
+  <!-- ② -->
+  <section class="svc">
+    <div class="svc-h"><span class="no mono">제16조</span><span class="nm">② 진료의뢰·상담</span><span class="fid mono">F-06~10</span><span class="bd done">이행</span></div>
+    <div class="stage req"><span class="lab">공고 요구</span><div class="con">환자 개인·의료정보 전송·수집 / 상담 커뮤니케이션</div></div>
+    <div class="stage"><span class="lab">분석</span><div class="con">요구를 <b>(가) 의료정보 전송·수집 (나) 상담 커뮤니케이션</b>으로 분해함. 대상 시장은 유치업 경유 비중이 높아(러시아 67.5%, 카자흐스탄 63.7%) <b>환자 본인뿐 아니라 해외 의뢰처가 대신 의뢰하는 경로도 수용</b>해야 한다고 판단함. 또한 의료정보는 수집 즉시 암호화 대상임.</div></div>
+    <div class="stage"><span class="lab">당초 계획</span><div class="con">문의 창구 단일화, 검사자료 첨부, AI·사람 병행 상담, 개인정보 암호화 저장.</div></div>
+    <div class="stage impl"><span class="lab">구현 결과</span><div class="con"><ul>
+      <li>통합 문의 퍼널 운영 — 접수 39건(운영DB)</li>
+      <li>AI 상담 대화 276건·메시지 956건 축적, 사람 상담 인계 시 AI 자동 침묵 처리</li>
+      <li>검사자료 첨부 및 AI 자동 정리(진료의뢰 패킷 — 환자·상태·요청·시급도·누락 서류)</li>
+      <li>환자 개인정보 AES-256-GCM 암호화 저장 후 권한 검증 경로로만 조회</li>
+      <li>검사자료 한·영·러 원문 1:1 번역 및 수치 검증(요약이 아닌 원문 대조 방식)</li>
+      <li>전문의 소견 수집 — 계정 없이 열람 가능한 링크로 협력 의료진 소견 접수 후 환자 언어 자동 번역</li>
+    </ul></div></div>
+    <div class="stage adv"><span class="lab">착수 후 고도화</span><div class="con"><ul>
+      <li><b>텔레그램 봇 상담 채널 신설</b> — 종전 개인 메신저 링크 방식에서는 대화가 플랫폼 외부에 남아 집계·학습이 불가하였으므로, 동의 절차 후 대화가 플랫폼을 경유하도록 전환하고 3회 대화 시 문의로 자동 승격 <span class="mono">(7월)</span></li>
+      <li>코디네이터가 자신의 텔레그램에서 환자 문의를 확인·응답하는 양방향 중계 도입 <span class="mono">(7월)</span></li>
+      <li>첨부문서 관련 AI 허위생성 원천 차단 — 파일 판독 불가 시 상태사실을 강제 주입하는 규칙 적용 <span class="mono">(7월)</span></li>
+      <li>소견 도착 시 환자 언어 번역 초안 자동 생성 및 「의뢰처 공개본」 확정 절차 도입</li>
+    </ul></div></div>
+    <div class="stage"><span class="lab">확인 근거</span><div class="con"><div class="evi"><span>문의 39건(웹 30·AI 5·텔레그램 3·시험 1)</span><span>AI 대화 276스레드 / 956메시지</span><span>전문의 소견 요청 1건·소견 2건</span></div></div></div>
+  </section>
+
+  <!-- ③ -->
+  <section class="svc">
+    <div class="svc-h"><span class="no mono">제17조</span><span class="nm">③ 예약상담</span><span class="fid mono">F-11~14</span><span class="bd done">이행</span></div>
+    <div class="stage req"><span class="lab">공고 요구</span><div class="con">예상진료비·진료일정·비자발급 정보 안내 / 개인정보 수집·저장</div></div>
+    <div class="stage"><span class="lab">분석</span><div class="con">요구를 <b>(가) 비용 (나) 일정 (다) 비자</b>의 3요소로 분해함. 예상진료비 고지는 「의료 해외진출 및 외국인환자 유치 지원에 관한 법률」상 <b>서면고지 의무와 직결</b>되므로, 단순 안내가 아니라 <b>법정 발급문서 수준으로 구현</b>하여야 한다고 판단함.</div></div>
+    <div class="stage"><span class="lab">당초 계획</span><div class="con">견적·원격협진 예약·비자 진행을 코디네이터 화면에서 일괄 처리, 법정 서면은 시스템 발급.</div></div>
+    <div class="stage impl"><span class="lab">구현 결과</span><div class="con"><ul>
+      <li>예상진료비 견적 작성·이력 관리 기능 운영(견적 6건)</li>
+      <li>원격협진 예약 기능 운영(상담세션 43건) — 계정 없이 입장하는 초대링크 방식</li>
+      <li>예약 리마인더 자동 발송(정기 실행)</li>
+      <li>비자 진행 추적 기능 및 서류·이력 관리 구조 구축</li>
+      <li>법정 발급문서 자동 생성 — 견적서, 동의서 3종, 비자 초청장</li>
+    </ul></div></div>
+    <div class="stage adv"><span class="lab">착수 후 고도화</span><div class="con"><ul>
+      <li><b>법정 발급문서의 다국어 표기 결함 시정</b> — 한글 및 키릴 문자가 깨지던 결함을 자체 호스팅 글꼴로 시정하고 재발 방지 자동 검사를 신설함. <b>외국인환자 서면고지 의무의 이행 품질을 확보한 조치</b> <span class="mono">(7월)</span></li>
+      <li>상담 예약 절차 간소화 — 필수 입력을 환자 선택·예약시각 2개로 축소하고 나머지는 선택 항목화</li>
+      <li>예약시각의 한국시간·협정시계 병기로 해외 참가자 시차 오인 방지</li>
+    </ul></div></div>
+    <div class="stage"><span class="lab">확인 근거</span><div class="con"><div class="evi"><span>견적 6건</span><span>상담세션 43건(실환자 10·시험 33)</span><span>비자 관리 3개 테이블 구축(실데이터 0건 — 실환자 진입 대기)</span></div></div></div>
+  </section>
+
+  <!-- ④ -->
+  <section class="svc">
+    <div class="svc-h"><span class="no mono">제18조</span><span class="nm">④ 경과 f/u</span><span class="fid mono">F-15~17</span><span class="bd done">이행</span></div>
+    <div class="stage req"><span class="lab">공고 요구</span><div class="con">수술·시술 경과·부작용 확인, 검사결과·영상정보 전송·수집·저장 / 상담</div></div>
+    <div class="stage"><span class="lab">분석</span><div class="con">본 요구는 임상정보를 다루므로 <b>수행 주체가 의료기관이어야 함</b>을 확인함(제10조 제1호). 또한 “전송·수집·저장”은 업로드·보관·열람의 3개 행위로 분해되며, <b>수집된 정보가 담당자의 진행 화면에 반영되지 아니하면 요구가 충족되지 아니한다</b>고 판단함.</div></div>
+    <div class="stage"><span class="lab">당초 계획</span><div class="con">치료 후 경과·검사결과·영상의 현지 전송 경로 마련 및 담당자 화면 반영.</div></div>
+    <div class="stage impl"><span class="lab">구현 결과</span><div class="con"><ul>
+      <li>해외 의료기관 전용 경과 업로드 기능 구축 — 검사결과·영상·소견 전송 및 저장</li>
+      <li>업로드 시 케이스 이력에 경과 사건을 기록하여 코디네이터·의뢰처 진행 화면에 자동 반영</li>
+      <li>해외 의뢰처를 에이전시와 의료기관으로 분리하고, 업로드 권한을 의료기관에만 부여</li>
+      <li>업로드 채널을 앱·웹·메신저 전 경로로 허용</li>
+    </ul></div></div>
+    <div class="stage adv"><span class="lab">착수 후 고도화</span><div class="con"><ul>
+      <li>파트너 유형 검증을 공통 관문으로 분리 — 유형 한정 기능을 추가할 때 검증 누락이 발생하지 아니하는 구조로 보강 <span class="mono">(7월)</span></li>
+    </ul></div></div>
+    <div class="stage"><span class="lab">확인 근거</span><div class="con"><div class="evi"><span>경과기록 테이블·전송 기능 구축 완료</span><span>실데이터 0건 — 실환자 치료 후 단계 미도달</span></div></div></div>
+  </section>
+
+  <!-- ⑤ -->
+  <section class="svc">
+    <div class="svc-h"><span class="no mono">제19조</span><span class="nm">⑤ 모니터링·상담·교육</span><span class="fid mono">F-18~20</span><span class="bd done">이행</span></div>
+    <div class="stage req"><span class="lab">공고 요구</span><div class="con">건강·질병 상태 지속 모니터링 / 상담 / 건강관리 교육</div></div>
+    <div class="stage"><span class="lab">분석</span><div class="con"><b>“지속”이 본 요구의 핵심</b>이며, 담당자의 수기 관리로는 유지되지 아니한다고 판단함(제10조 제3호). 따라서 모니터링·교육·설문을 사람이 아닌 <b>시스템이 견인하는 자동 실행 구조</b>로 설계함.</div></div>
+    <div class="stage"><span class="lab">당초 계획</span><div class="con">증상 기록 및 이상 징후 감지, 암종별 교육 콘텐츠 제공, 만족도 조사 운영.</div></div>
+    <div class="stage impl"><span class="lab">구현 결과</span><div class="con"><ul>
+      <li>증상 보고 접수 및 이상 징후 자동 분석·담당자 알림 기능 구축</li>
+      <li>암종별·단계별·범주별(복약·식이·운동·경고징후·심리) 교육 콘텐츠 18건 운영, 다국어 지원</li>
+      <li>사후관리 일정 자동 생성 — 1주·2주·1개월·3개월·6개월·1년 차수 구조</li>
+      <li>만족도 설문 자동 발송 및 응답 수집</li>
+      <li>정기 자동 실행 4종 — 리마인더 발송, 설문 발송, 무응답 환자 감지, 지표 스냅샷</li>
+    </ul></div></div>
+    <div class="stage adv"><span class="lab">착수 후 고도화</span><div class="con"><ul>
+      <li><b>사후관리 자동 케이던스 도입</b> — 케이스가 사후관리 단계에 진입하면 차수별 경과 설문을 자동 발송하고, 복약 확인·화상상담·검사 리뷰 일정을 환자 앱 제안으로 제시하며, 암종별로 항목을 가감함(위암 식이 확인, 유방암 혈액검사 리뷰 등). 설문이 8일 이상 회신되지 아니하면 운영자에게 자동 경보가 발송됨 <span class="mono">(7월)</span></li>
+      <li><b>만족도 설문 미발송 결함 시정</b> — 발송 조건 시간창이 실행 주기보다 짧아 설문 대부분이 발송되지 아니하던 결함을 시정하고 과거분을 소급 발송함. <b>만족도 측정 자체를 복원한 조치</b> <span class="mono">(6월)</span></li>
+    </ul></div></div>
+    <div class="stage"><span class="lab">확인 근거</span><div class="con"><div class="evi"><span>교육 콘텐츠 18건</span><span>설문 1건·응답 1건</span><span>증상 보고 1건</span><span>사후관리 일정 0건 — 실환자 치료 후 단계 미도달</span></div></div></div>
+  </section>
+
+  <!-- ⑥ -->
+  <section class="svc">
+    <div class="svc-h"><span class="no mono">제20조</span><span class="nm">⑥ 재이용 예약상담</span><span class="fid mono">F-21~22</span><span class="bd part">부분이행</span></div>
+    <div class="stage req"><span class="lab">공고 요구</span><div class="con">사후관리 기반 재방문 진료비·일정·비자 안내 / 개인정보 수집</div></div>
+    <div class="stage"><span class="lab">분석</span><div class="con">본 서비스는 <b>④·⑤의 산출물이 존재하여야 성립하는 후행 서비스</b>임을 확인함. 따라서 독립 기능이 아니라 사후관리 파이프라인의 최종 단계로 설계하였으며, 재방문은 반복 매출과 직결되어 <b>사업화 성공 가능성 항목의 근거</b>가 됨.</div></div>
+    <div class="stage"><span class="lab">당초 계획</span><div class="con">사후관리 결과를 근거로 재방문을 제안하고, 견적·일정·비자 절차를 재이용함.</div></div>
+    <div class="stage impl"><span class="lab">구현 결과</span><div class="con"><ul>
+      <li>재방문 제안 판정 로직 구축 및 단위시험 완비</li>
+      <li>사후관리 자동 케이던스가 재방문 상담 일정을 환자 앱 제안으로 제시</li>
+      <li>재방문 시 견적·일정·비자 절차는 ③의 기능을 그대로 재이용하는 구조</li>
+    </ul></div></div>
+    <div class="stage adv"><span class="lab">착수 후 고도화</span><div class="con"><ul>
+      <li>사후관리 케이던스와 재방문 제안을 연결하여, 재방문 판단이 담당자 기억이 아닌 시스템 판정으로 이루어지도록 함 <span class="mono">(7월)</span></li>
+    </ul></div></div>
+    <div class="stage"><span class="lab">확인 근거</span><div class="con"><div class="evi"><span>재방문 판정 로직·단위시험 소스 확인</span><span>실제 재방문 발생 0건 — 선행 단계(치료 완료) 미도달</span></div></div></div>
+  </section>
+
+  <!-- ============ 제5장 ============ -->
+  <div class="chap"><span class="cn">제5장</span><h2>사업 착수 후 고도화 이력</h2></div>
+  <div class="body">
+    <p>당초 계획을 요구사항의 최소 충족선으로 보고, 운영 과정에서 확인된 사실을 근거로 기능을 구체화·확장하였음.
+    고도화는 임의 판단이 아니라 <b>(가) 실사용 중 확인된 문제 (나) 실측 데이터 (다) 공고 요구의 재해석</b> 중 하나를 근거로 착수하였음.</p>
+  </div>
+
+  <p class="art">제23조(월별 고도화 이력)</p>
+  <div class="tl">
+    <div class="tl-item"><span class="mo mono">4월</span><span class="txt">AI 모델 교체(무료 정책 변경 대응), 암종별 상세 화면 신설, 파트너 병원 콘텐츠 통합, 원격협진 전면 배치, 계정 없이 입장하는 초대링크 방식 도입, 다국어 검색 대응(러시아 검색엔진 포함)<span class="ict">관련 ICT ① ② ③</span></span></div>
+    <div class="tl-item"><span class="mo mono">5월</span><span class="txt">플랫폼 설계 확정 및 배포 기반 정비, 개인정보처리방침·이용약관 정비<span class="ict">관련 ICT 전체</span></span></div>
+    <div class="tl-item"><span class="mo mono">6월</span><span class="txt">유치 전환 성과 대시보드 및 기관별 집계, 양·한방 협진 의뢰 절차 구축, 증빙 산출물 내보내기, 해외 의뢰처 전용 포털 구축, 지표 집계 오류 시정 및 자동 감시 도입, 만족도 설문 발송 결함 시정, <b>해외 의료기관 경과 업로드 1차 구축</b>, AI 과장표현 자동 차단 규칙 도입, AI 상담의 사람 연결 동선 강화<span class="ict">관련 ICT ① ④ ⑤</span></span></div>
+    <div class="tl-item"><span class="mo mono">7월</span><span class="txt">법정 발급문서 다국어 표기 시정, 지표 집계 정직성 보강(시험 데이터 분리), AI 품질 분포 관측(허위생성률·응답시간 분포) 도입, 참여기관 4개 지점 유치기관 등록 반영, 보험 유치 채널 신설, AI 품질 경보-검토 폐루프 완성, 케이스 지연 감지 도입, 지도 표시 결함 시정, <b>원격협진 실회의 투입 및 실시간 통역 자막 작동</b>, 원격협진 운영 안전망 구축, 백오피스 5계층 재설계 및 통합 대시보드 구축, <b>텔레그램 봇 상담 채널 신설</b>, <b>사후관리 자동 케이던스 도입</b><span class="ict">관련 ICT ① ② ③ ④ ⑤ ⑥</span></span></div>
+  </div>
+
+  <p class="art">제24조(당초 계획 외 추가 구현)</p>
+  <div class="body"><p>공고 요구를 충족하는 과정에서 당초 계획에 없었으나 필요성이 확인되어 추가한 항목임. 공고 원문에서 직접 도출된 F-01~F-22와 구분되는 <b>「자체 도출」</b> 항목임.</p></div>
+  <div class="scroll">
+    <table>
+      <thead><tr><th style="width:30%">추가 구현 항목</th><th>추가 사유</th><th class="c" style="width:96px">관련 ICT</th></tr></thead>
+      <tbody>
+        <tr><td class="rh">통합 문의 퍼널</td><td>문의 진입 경로가 3개로 분산되어 이탈이 발생함. AI·사람·문의서를 한 화면에서 선택하도록 통합함.</td><td class="c mono">②</td></tr>
+        <tr><td class="rh">텔레그램 봇 상담 채널</td><td>개인 메신저 링크 방식에서는 대화가 플랫폼 외부에 남아 집계·학습 근거가 성립하지 아니함.</td><td class="c mono">②</td></tr>
+        <tr><td class="rh">전문의 소견(세컨드 오피니언)</td><td>환자 및 의뢰처가 국내 의료진의 사전 소견을 요구함. 협력 의료진이 계정 없이 소견을 남길 수 있는 경로가 필요함.</td><td class="c mono">②</td></tr>
+        <tr><td class="rh">원격협진 실시간 통역 자막</td><td>상담 참가자 간 언어가 상이하여 통역 인력 없이는 상담이 성립하지 아니함.</td><td class="c mono">② ③</td></tr>
+        <tr><td class="rh">보험 유치 채널 안내</td><td>러시아 보험·어시스턴스사 제휴 추진에 따라 보험 경유 유치 경로가 신설됨.</td><td class="c mono">①</td></tr>
+        <tr><td class="rh">AI 품질 자가관측 체계</td><td>의료 상담에서 허위정보 1건은 신뢰에 치명적이므로, 평균값이 아닌 분포(허위생성률·응답시간 상위 5%)로 상시 관측함.</td><td class="c mono">② ⑤</td></tr>
+        <tr><td class="rh">백오피스 5계층 재설계</td><td>계층별로 순차 구축되어 계층 간 연결과 권한 경계의 정합성이 검증되지 아니한 상태였음. 통합 관리화면을 구축함.</td><td class="c mono">전체</td></tr>
+        <tr><td class="rh">공개 문구 중앙 사전화</td><td>화면 문구가 코드에 분산되어 다국어 수정에 개발이 필요하였음. 1,130개 문구를 6개 언어 편집기로 이관함.</td><td class="c mono">①</td></tr>
+        <tr><td class="rh">지표 집계 자동 감시</td><td>지표가 담당자 부주의 또는 집계 오류로 조용히 0이 되는 경로를 차단할 필요가 있음.</td><td class="c mono">전체</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p class="art">제25조(운영 중 발견·수정 사항)</p>
+  <div class="body"><p>운영 과정에서 발견하여 시정한 주요 사항임. 발견 경위와 시정 결과를 함께 기재하여 품질관리 활동의 실재를 확인할 수 있도록 함.</p></div>
+  <div class="scroll">
+    <table>
+      <thead><tr><th class="c" style="width:58px">시기</th><th style="width:32%">발견 사항</th><th style="width:32%">시정 결과</th><th>재발 방지</th></tr></thead>
+      <tbody>
+        <tr><td class="c rh mono">6월</td><td>지표 집계 쿼리가 존재하지 아니하는 항목을 조회하여 실적이 0으로 표시됨</td><td>집계 대상을 시정하고 누적 달성률 화면을 신설함</td><td>집계 오류 발생 시 운영자 자동 경보</td></tr>
+        <tr><td class="c rh mono">6월</td><td>만족도 설문 발송 조건의 시간창이 실행 주기보다 짧아 설문 대부분이 미발송됨</td><td>조건을 시정하고 14일분을 소급 발송하여 만족도 측정을 복원함</td><td>무응답 지속 시 자동 경보</td></tr>
+        <tr><td class="c rh mono">7월</td><td>법정 발급문서에서 한글·키릴 문자가 표시되지 아니함</td><td>자체 호스팅 글꼴 적용 및 실데이터 육안 검증 완료</td><td>문서 렌더링 자동 검사 신설</td></tr>
+        <tr><td class="c rh mono">7월</td><td>시험용 상담 자료가 성과지표에 혼입될 수 있는 경로 존재</td><td>시험 표식 자동 부여 및 집계 제외, 기존 17건 소급 처리</td><td>생성 시점 자동 표식</td></tr>
+        <tr><td class="c rh mono">7월</td><td>병원 상세의 지도가 보안 설정 누락으로 표시되지 아니함</td><td>설정 시정 및 협진 병원 4개소 실좌표 등록</td><td>외부 스크립트-보안설정 자동 대조</td></tr>
+        <tr><td class="c rh mono">7월</td><td>병원에서 코디네이터로 보내는 메시지가 저장 규칙 위반으로 작동하지 아니함</td><td>저장 규칙을 시정하여 정상화함</td><td>동일 유형 정적 검사 신설</td></tr>
+        <tr><td class="c rh mono">7월</td><td><b>상담 종료 후 「완료」 처리가 실행되지 아니하여 성과지표가 0에 고정됨</b></td><td>자동 완료 처리는 <b>실적 부풀리기에 해당하여 채택하지 아니하고</b>, 미완료 누적 시 운영자에게 경보가 발송되도록 함</td><td>정기 실행 감지기 탑재</td></tr>
+        <tr><td class="c rh mono">7월</td><td>백오피스 계층 간 권한 경계 불일치 등 4건 확인</td><td>3건 시정, 1건은 과거 장애 재발 우려로 감사기록 방식으로 대체함</td><td>독립 보안 검토 절차 도입</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ============ 제6장 ============ -->
+  <div class="chap"><span class="cn">제6장</span><h2>이행 점검 결과</h2></div>
+
+  <p class="art">제26조(이행률)</p>
+  <div class="scroll">
+    <table>
+      <thead><tr><th style="width:28%">점검 항목</th><th class="c" style="width:150px">기준</th><th class="c" style="width:170px">결과</th><th>비고</th></tr></thead>
+      <tbody>
+        <tr><td class="rh">6대 ICT 서비스 이행</td><td class="c mono">6종</td><td class="c">이행 5 / 부분이행 1</td><td>⑥은 선행 단계 미도달</td></tr>
+        <tr><td class="rh">도출 기능 구현</td><td class="c mono">F-01~22 (22종)</td><td class="c"><b>22 / 22 (100%)</b></td><td>기능 구현 기준</td></tr>
+        <tr><td class="rh">실데이터 검증 — 사전상담 계열</td><td class="c">① ② ③</td><td class="c"><span class="bd done">검증됨</span></td><td>문의·상담·AI 대화 실축적</td></tr>
+        <tr><td class="rh">실데이터 검증 — 사후관리 계열</td><td class="c">④ ⑤ ⑥</td><td class="c"><span class="bd part">미검증</span></td><td>실환자 치료 완료 단계 미도달</td></tr>
+        <tr><td class="rh">다국어 요건</td><td class="c mono">6개 언어</td><td class="c">충족</td><td>자동 검사로 상시 확인</td></tr>
+        <tr><td class="rh">개인정보 보호</td><td class="c">암호화 저장</td><td class="c">충족</td><td>AES-256-GCM 적용</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p class="art">제28조(실데이터 축적 현황) <span style="font-weight:500;font-size:12.5px;color:var(--ink-3)">— 2026. 7. 25. 운영DB 정확 집계</span></p>
+  <div class="scroll">
+    <table>
+      <thead><tr><th class="c" style="width:90px">구분</th><th style="width:32%">항목</th><th class="c" style="width:110px">수량</th><th>비고</th></tr></thead>
+      <tbody>
+        <tr><td class="c rh">사전상담</td><td>문의 접수</td><td class="c mono">39건</td><td>웹 30 · AI 상담 5 · 텔레그램 3 · 시험 1</td></tr>
+        <tr><td class="c rh">사전상담</td><td>AI 상담 대화</td><td class="c mono">276건</td><td>메시지 956건</td></tr>
+        <tr><td class="c rh">사전상담</td><td>원격협진 세션</td><td class="c mono">43건</td><td>실환자 10 · 시험 33</td></tr>
+        <tr><td class="c rh">사전상담</td><td>예상진료비 견적</td><td class="c mono">6건</td><td></td></tr>
+        <tr><td class="c rh">사전상담</td><td>전문의 소견</td><td class="c mono">2건</td><td>요청 1건</td></tr>
+        <tr><td class="c rh">사전상담</td><td>협진 의뢰</td><td class="c mono">4건</td><td></td></tr>
+        <tr><td class="c rh">사후관리</td><td>경과기록</td><td class="c mono">0건</td><td>기능 구축 완료 · 실환자 진입 대기</td></tr>
+        <tr><td class="c rh">사후관리</td><td>사후관리 일정</td><td class="c mono">0건</td><td>기능 구축 완료 · 실환자 진입 대기</td></tr>
+        <tr><td class="c rh">사후관리</td><td>만족도 설문 / 응답</td><td class="c mono">1건 / 1건</td><td></td></tr>
+        <tr><td class="c rh">기반</td><td>제휴 의료기관</td><td class="c mono">9건</td><td>참여기관 4개 지점 유치기관 등록 완료</td></tr>
+        <tr><td class="c rh">기반</td><td>해외 의뢰처 / 담당자</td><td class="c mono">3건 / 3건</td><td></td></tr>
+        <tr><td class="c rh">기반</td><td>교육 콘텐츠</td><td class="c mono">18건</td><td>암종별·단계별·범주별</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="scroll" style="margin-top:14px">
+    <table>
+      <thead><tr><th style="width:30%">성과지표</th><th class="c" style="width:100px">목표</th><th class="c" style="width:120px">현재 실적</th><th>판단</th></tr></thead>
+      <tbody>
+        <tr><td class="rh">외국인환자 유치</td><td class="c mono">12건</td><td class="c mono">0건</td><td>유치 파이프라인 가동 중, 8~10월 유입 필요</td></tr>
+        <tr><td class="rh">사전상담·사후관리</td><td class="c mono">120건</td><td class="c mono">1건</td><td>상담 종료 후 완료 처리 실행이 집계 조건임(감지기 탑재)</td></tr>
+        <tr><td class="rh">환자 만족도</td><td class="c mono">90점</td><td class="c mono">표본 1건</td><td>완료 상담 증가에 연동</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="note warn">
+    <b>본 표는 실적을 실제보다 크게 보이도록 조정하지 아니하며, 시험 데이터를 제외한 값만 기재함.</b>
+    상담 종료 시 자동으로 완료 처리하는 방식은 실적 부풀리기에 해당하므로 채택하지 아니하였고,
+    대신 미완료가 누적되면 운영자에게 경보가 발송되는 감지기를 정기 실행에 탑재하였음.
+  </div>
+
+  <!-- ============ 제7장 ============ -->
+  <div class="chap"><span class="cn">제7장</span><h2>향후 계획</h2></div>
+  <div class="scroll">
+    <table>
+      <thead><tr><th class="c" style="width:80px">시기</th><th>추진 내용</th><th class="c" style="width:96px">관련 ICT</th></tr></thead>
+      <tbody>
+        <tr><td class="c rh mono">8월</td><td>중간평가 수검(8. 27.). 상담 완료 처리 운영 정착으로 사전상담 실적 축적. 유치 파이프라인 관리 강화.</td><td class="c mono">② ③</td></tr>
+        <tr><td class="c rh mono">9월</td><td>실환자 치료 개시에 따른 사후관리 파이프라인 실가동 — 경과 업로드 및 사후관리 자동 케이던스 최초 실행.</td><td class="c mono">④ ⑤</td></tr>
+        <tr><td class="c rh mono">10월</td><td>재방문 제안 실행 및 재이용 절차 최초 수행. 성과지표 실적 확정.</td><td class="c mono">⑥</td></tr>
+        <tr><td class="c rh mono">11월</td><td>성과평가 및 최종보고. 산출물 최종본 정리.</td><td class="c mono">전체</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p class="end">— 이 상 —</p>
+
+  <footer>
+    <span>(주)본로이 · 2026. 7. 25.</span>
+    <span>근거: 공고문 p.8 「참고」 / 수행계획서(2026. 5. 14.) / 운영DB 정확 집계</span>
+    <span class="mono">HEALO-KHIDI-2026-11 · Rev. 0</span>
+  </footer>
+
+</div>

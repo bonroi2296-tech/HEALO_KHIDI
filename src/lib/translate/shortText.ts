@@ -16,6 +16,7 @@ import "server-only";
 
 import { createHash } from "crypto";
 import { generateText } from "ai";
+import { callGeminiWithCompat } from "@/lib/ai/geminiThinkingCompat";
 import { google } from "@ai-sdk/google";
 import { supabaseAdmin } from "../rag/supabaseAdmin";
 import { logAiUsage } from "@/lib/ai/usageLog";
@@ -99,7 +100,7 @@ export async function translateNotes(
     // 각 원문에 인덱스(i)를 붙여 보내고, 응답도 같은 i 로 받는다 → 번역을 "위치"가 아니라
     // "i 값"으로 원문에 묶는다(모델이 순서를 뒤섞어도 엉뚱한 메모에 붙지 않게 — 영구 캐시 오염 방지).
     const items = misses.map((t, i) => ({ i, text: t }));
-    const { text: raw, usage } = await generateText({
+    const { text: raw, usage } = await callGeminiWithCompat((p) => generateText(p as any), {
       model,
       system:
         `You translate short operational notes written by a Korean medical coordinator into ${LANG_NAME[lang]}. ` +

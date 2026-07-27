@@ -16,6 +16,8 @@
  * 독립 리뷰 적발).
  */
 
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { test, expect, chromium, type Browser } from "@playwright/test";
 import { loginAs } from "./fixtures/auth";
 
@@ -66,10 +68,30 @@ test.describe("야간 로봇 통화 — 2인 실연결 검증", () => {
     expect(invite?.inviteUrl, "초대 URL 없음").toBeTruthy();
 
     // 2) 가짜 미디어 브라우저(권한창 자동 허용 + 초록 링 테스트 영상) — 로봇 전용 인스턴스
+    //
+    // 🎙️ 가짜 «마이크» 에 실제 말소리를 물린다 (2026-07-27).
+    //   그 전까지는 `--use-fake-device-for-media-stream` 만 있어서 마이크에 크로미움 기본
+    //   **사인톤(「삐—」)** 이 들어갔다. 말소리가 아니니 STT 가 잡을 게 없고, 그래서 이 야간
+    //   테스트는 매일 돌면서도 «둘이 연결됐나» 까지만 봤다 — 자막·통역봇은 한 번도 검증된 적이 없다.
+    //   `--use-file-for-fake-audio-capture` 로 WAV 를 마이크 입력으로 재생하면 STT·통역 경로가 깨어난다.
+    //   (파일·재생성 절차 = e2e/fixtures/audio/README.md. 크로미움은 이 파일을 무한 반복 재생한다.)
+    //
+    //   ⚠️ 기록용: "자동환경엔 마이크가 없어 통역 검증 불가" 라고 여러 세션이 적어 왔는데
+    //      **오진이었다.** 크로미움이 WAV 를 마이크로 재생해 준다. 진짜 블로커는 «말소리 파일 없음» 이었고,
+    //      로컬 TTS(piper)로 만들면 끝나는 문제였다.
+    // ⚠️ `__dirname` 금지 — 이 저장소는 package.json "type":"module" 이라 ESM 스코프다
+    //    (e2e/fixtures/auth.ts 에 같은 경고가 이미 있었는데 내가 어겼다. 첫 실행에서
+    //     `ReferenceError: __dirname is not defined` 로 터짐 — tsc 는 @types/node 때문에
+    //     통과시켜 주므로 «타입검사 초록 = 동작»이 아님을 다시 확인한 사례.)
+    const fakeAudioPath = path.join(
+      path.dirname(fileURLToPath(import.meta.url)),
+      "fixtures/audio/ko-patient-speech.wav"
+    );
     fakeMediaBrowser = await chromium.launch({
       args: [
         "--use-fake-ui-for-media-stream",
         "--use-fake-device-for-media-stream",
+        `--use-file-for-fake-audio-capture=${fakeAudioPath}`,
       ],
     });
 
@@ -145,5 +167,96 @@ test.describe("야간 로봇 통화 — 2인 실연결 검증", () => {
       robotB.getByText(chatMsg).first(),
       "로봇B 에게 채팅이 전달되지 않음"
     ).toBeVisible({ timeout: 20_000 });
+
+    // 5) 🔊 통역봇 실참여 검증 (2026-07-27 신설) — E2E_INTERPRETER=1 일 때만
+    //
+    // 왜 이게 필요한가: 통역봇은 «토큰 발급 시 LiveKit 이 디스패치하는 별도 워커 프로세스» 라,
+    //   앱이 멀쩡해도 봇 배포가 죽어 있으면 **아무 에러 없이 그냥 통역이 안 된다**.
+    //   실제로 POSTMORTEMS #100 이 정확히 그 부류였다 — 스위치 켜짐·봇 입장·로그 정상인데
+    //   통역만 전혀 안 됨. 사람이 실통화를 해봐야만 알 수 있는 상태로 방치돼 있었다.
+    //
+    // 판정 근거(화면): 통역 토글을 켜면 앱이 봇 재실 여부에 따라 **다른 토스트**를 띄운다
+    //   (`page.jsx` 의 `agentPresent ? c.voiceOnMsg : c.voiceOnPendingMsg`).
+    //   → "…통역봇이 방에 들어오면…" 이 뜨면 봇이 방에 없다는 뜻 = 실패.
+    //   게스트 화면 언어가 ko/en/ru/kz 중 무엇이든 잡히도록 6개어 변형을 다 넣는다.
+    if (process.env.E2E_INTERPRETER === "1") {
+      // 봇 없음 = "들어오면 통역돼요" 계열 / 봇 있음 = "통역 음성으로 들려요" 계열
+      const BOT_MISSING =
+        /통역봇이 방에 들어오면|interpreter bot joins|когда подключится|қосылғанда|翻译机器人|通訳ボット/;
+      const BOT_PRESENT =
+        /통역 음성으로 들려요|hear an interpreted voice|переведённый голос|аударылған дауысты|翻译语音|通訳音声/;
+
+      // 접근명(«통역»)으로 찾지 않는다 — 봇이 없을 때 붙는 `···` 배지가 이름에 섞여
+      // "통역 ···" 이 되는 바람에 **정작 봇이 없는 경우에만 못 찾았다**(2026-07-27 실측:
+      // 프로덕션에서 15초 타임아웃 3회. 잡으려던 상황에서만 눈이 머는 셀렉터였다).
+      // → page.jsx 의 `data-testid="voice-toggle"` 로 고정(다국어 6종·배지 무관).
+      const voiceBtn = robotB.getByTestId("voice-toggle").first();
+      try {
+        await voiceBtn.waitFor({ state: "visible", timeout: 15_000 });
+      } catch (e) {
+        // 버튼 자체가 없으면 «봇 없음»과 «UI 가 달라짐»을 구분해야 한다 → 화면을 남긴다.
+        const screen = await robotB
+          .locator("body")
+          .innerText()
+          .catch(() => "(본문 읽기 실패)");
+        test.info().annotations.push({
+          type: "interpreter-nobutton",
+          description: `통역 토글을 못 찾음. 화면: ${screen.replace(/\n+/g, " | ").slice(0, 500)}`,
+        });
+        throw e;
+      }
+
+      // 봇 디스패치는 토큰 발급 시점에 걸리지만 워커가 방에 붙기까지 몇 초 걸린다.
+      // 토글을 껐다 켜며 최대 ~40초 재확인 — 매번 새 토스트가 현재 재실 상태로 다시 뜬다.
+      let botPresent = false;
+      let lastToast = "(토스트 못 봄)";
+      for (let attempt = 0; attempt < 4 && !botPresent; attempt++) {
+        if (attempt > 0) await robotB.waitForTimeout(10_000);
+        await voiceBtn.click();
+        const toast = robotB.getByText(new RegExp(`${BOT_PRESENT.source}|${BOT_MISSING.source}`)).first();
+        try {
+          await toast.waitFor({ state: "visible", timeout: 8_000 });
+          lastToast = (await toast.innerText()).trim();
+          botPresent = BOT_PRESENT.test(lastToast);
+        } catch {
+          /* 토스트를 놓쳤으면 다음 회차에서 다시 켜 본다 */
+        }
+        await voiceBtn.click().catch(() => {}); // 다시 꺼서 다음 회차가 새 토스트를 만들게
+      }
+
+      // ⚠️ 판정 결과는 **assert 앞에서 즉시** stdout 으로 찍는다.
+      //    실패 상세(assert 메시지·annotation)는 스위트가 «끝까지» 돌아야 출력되는데,
+      //    2026-07-27 실측: 다른 PR 이 main 에 머지되며 동시성 규칙이 이 실행을 중간에 죽여
+      //    **로봇 테스트는 3회 다 돌았는데 결과를 한 글자도 못 건졌다.**
+      //    한 줄이라도 미리 흘려두면 취소·타임아웃에도 답이 남는다.
+      console.log(
+        `[robot-call] 통역봇=${botPresent} / 마지막토스트="${lastToast}"`
+      );
+      test.info().annotations.push({
+        type: "interpreter-bot",
+        description: `봇 재실 판정=${botPresent} / 마지막 토스트="${lastToast}"`,
+      });
+      expect(
+        botPresent,
+        `통역봇(agent-*)이 상담방에 들어오지 않았다 — 워커 배포·LIVE_TRANSLATE_ENABLED 확인 필요. ` +
+          `마지막 토스트: "${lastToast}"`
+      ).toBeTruthy();
+
+      // ── 자막(STT→번역)은 «관측만» 한다, 아직 실패로 치지 않는다 ──
+      //   가짜 마이크에 흘리는 건 합성 음성(piper)이라 Gemini STT 가 이 목소리를 얼마나 잘
+      //   받아적는지가 **미검증**이다. 첫날부터 하드 실패로 걸면 «봇은 멀쩡한데 합성음 인식이
+      //   약해서» 매일 밤 빨간불이 뜰 수 있다(가드 신뢰도를 갉아먹는 부류 — KNOWN_ISSUES flaky 참조).
+      //   며칠치 annotation 을 보고 실제로 잘 잡히면 그때 expect 로 승격할 것. ← TODO(승격 판단)
+      const captionText = await robotB
+        .locator("body")
+        .innerText()
+        .then((t) => (t.match(/위암|수술|회복|операц|восстанов/) ? "자막 후보 발견" : "자막 못 봄"))
+        .catch(() => "(본문 읽기 실패)");
+      test.info().annotations.push({
+        type: "interpreter-caption",
+        description: `${captionText} (합성음 STT 관측 — 승격 전 단계)`,
+      });
+      console.log(`[robot-call] 통역봇=${botPresent} / 자막관측=${captionText}`);
+    }
   });
 });

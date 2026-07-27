@@ -1066,7 +1066,7 @@ for (const dir of BACKOFFICE_DIRS) {
 {
   const PRIVATE_SEGS = new Set(["admin", "coordinator", "patient", "hospital", "agency", "clinic", "doctor", "api", "auth", "dev", "design-preview", "account"]);
   // 주석(줄·블록) 제거 — 주석 내용이 판정에 끼어들면 안 된다.
-  const stripComments = (s) => s.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
+  const stripComments = (s) => s.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^[^\S\r\n]*\/\/.*/gm, "");
   // 폐기용 껍데기: `export default function X() { redirect("/어디"); }` — 본문이 리다이렉트뿐.
   const SHELL_RE = /export\s+default\s+(?:async\s+)?function\s+\w*\s*\([^)]*\)\s*\{\s*(redirect|permanentRedirect)\s*\(\s*["'`][^"'`]*["'`]\s*\)\s*;?\s*\}/;
   for (const file of walk("app")) {
@@ -1373,6 +1373,39 @@ for (const dir of BACKOFFICE_DIRS) {
   }
 }
 
+// ── §20) 인증 호출 무한대기 차단 — supabase.auth.* 는 withAuthTimeout 필수 ──────
+// 왜: 2026-07-24 Supabase 인스턴스가 "에러도 안 주고 응답을 멈추는" 장애를 냈다. 그러자
+//     로그인 버튼이 "로그인 중…" 상태로 **영원히** 갇혔다 — 사용자는 실패했는지도 모르고,
+//     PO 는 "누가 코드를 고장냈나" 를 먼저 의심했다(실제로는 DB 무응답). try/catch·.catch()
+//     로는 못 잡는 부류다: 예외가 아니라 **영영 안 오는 것**이라 catch 가 실행되지 않는다.
+// 무엇을 보나: 화면 코드(app/**)에서 네트워크를 타는 supabase.auth.* 호출이
+//     withAuthTimeout() 으로 안 감싸여 있으면 실패. (getSession/signOut/onAuthStateChange 는
+//     로컬 처리이거나 무한대기 위험이 없어 제외.)
+// 한계: withAuthTimeout 이 **앞 2줄 안에** 있는지로 판정한다. 초안은 "같은 줄"만 봤는데,
+//     감싼 코드가 줄바꿈되면(`await withAuthTimeout(` ↵ `  supabase.auth.signInWithPassword(...)`)
+//     제대로 고친 코드까지 오탐으로 잡았다 — 첫 실행에서 내 수정본이 걸려 바로 드러났다.
+//     변수에 담아 훨씬 뒤에서 감싸는 변형은 여전히 미탐(정적 가드의 목적은 복붙 신규 유입 차단).
+{
+  const NET_AUTH = /supabase(?:Client)?\.auth\.(signInWithPassword|signUp|updateUser|resetPasswordForEmail|verifyOtp|signInWithOtp|refreshSession)\s*\(/;
+  for (const rel of walk("app")) {
+    if (!/\.(jsx|tsx)$/.test(rel)) continue;
+    let lines;
+    try { lines = readFileSync(join(ROOT, rel), "utf8").split("\n"); } catch { continue; }
+    lines.forEach((line, i) => {
+      const code = line.replace(/\/\/.*/, "");
+      const hit = code.match(NET_AUTH);
+      const window = lines.slice(Math.max(0, i - 2), i + 1).join("\n");
+      if (!hit || /withAuthTimeout\s*\(/.test(window)) return;
+      errors.push(
+        `[인증무한대기] ${rel.replace(/\\/g, "/")}:${i + 1} — supabase.auth.${hit[1]}() 가 ` +
+          `withAuthTimeout() 없이 호출됨. 인증 서버가 무응답이면 화면이 로딩 상태에 영원히 갇힌다 ` +
+          `(2026-07-24 실제 장애). \`await withAuthTimeout(supabase.auth.${hit[1]}(...))\` 로 감싸고 ` +
+          `타임아웃 시 안내 문구(login.timeout)를 띄울 것.`
+      );
+    });
+  }
+}
+
 // ── 26) i18n `t` 섀도잉 차단 (2026-07-24 #974 — 독립 리뷰가 실제 버그를 잡아 태어남) ──
 // 왜: `import { t } from "@/lib/i18n"` 한 파일에서 지역 변수·콜백 파라미터를 `t` 로 두면
 //     그 스코프의 t("키") 가 **번역 함수가 아닌 그 값**을 호출해 TypeError 가 난다.
@@ -1449,6 +1482,306 @@ for (const dir of BACKOFFICE_DIRS) {
     }
   } catch (e) {
     errors.push(`[유령키] 검사 실패: ${e.message}`);
+  }
+}
+
+// ── §21) 폴링 좀비 차단 — 네트워크를 타는 setInterval 은 «안 보이면 쉬기»가 필수 ──────
+// 왜: 2026-07-24 Supabase 가 디스크 IO 예산 고갈로 1시간 죽었다. 부하를 만든 주범은
+//     **아무도 안 보는 상담방 탭 하나**였다 — 채팅 4초·번역 4초·자료 8초 폴링이 돌고 있는데
+//     멈추는 조건이 «탭 닫기» 하나뿐이라, 통화가 끝나고 2시간이 지나도 분당 37.5회씩
+//     DB 를 두드렸다(3시간 전체 요청의 72%가 그 방 하나). POSTMORTEMS #120.
+// 근본 문제: 폴링을 «시작하는» 코드는 누구나 쓰지만 «멈추는» 조건은 잘 안 쓴다. 그리고
+//     그 누락은 빌드·타입·테스트·화면 어디에서도 안 보인다 — 요금과 장애로만 드러난다.
+//     실제로 #969 수리 때 상담방만 고쳤고 같은 패턴 4곳(코디·환자 메시지함, 병원 리드,
+//     에이전시 포털)이 그대로 남아 있었다. 그래서 사람 기억이 아니라 CI 가 잡는다.
+// 무엇을 보나: app/** 에서 주기 1~30초 setInterval 의 콜백이 네트워크(fetch/supabase)를
+//     타는데 그 콜백에 document.hidden 처리가 없으면 실패.
+// 판정 단위: **인터벌 하나하나**다. 콜백 본문 + 콜백이 부르는 함수 본문 안에 document.hidden
+//     이 있어야 통과 — 초안은 «파일 어딘가에 있으면 통과»여서 상담방 대기실 폴링(2.5초·무제한)
+//     을 통째로 놓쳤다(같은 파일 다른 폴링에 가드가 있었기 때문). 그 누락은 PO가 «일찍 들어와
+//     대기하면 어떻게 되냐»고 물어서야 드러났다.
+// 한계: 1초 미만(애니메이션)·30초 초과(관리자 대시보드)는 대상 밖. 변수에 담아 훨씬 뒤에서
+//     감싸는 변형은 여전히 미탐(정적 가드의 목적은 복붙 신규 유입 차단).
+{
+  try {
+    // fetch 뿐 아니라 래퍼 이름(fetchWithAuth 등)과 API 경로 문자열까지 «네트워크»로 본다 —
+    // 초안이 `fetch\s*\(` 만 봐서 fetchWithAuth() 를 쓰는 병원 리드 화면을 놓쳤다.
+    const NET = /\bfetch\w*\s*\(|supabase|getAccessToken|authHeaders|["'`]\/api\//;
+    const bad = [];
+    for (const rel of walk("app")) {
+      if (!/\.(jsx|tsx|js|ts)$/.test(rel)) continue;
+      let text;
+      try { text = readFileSync(join(ROOT, rel), "utf8"); } catch { continue; }
+      if (!text.includes("setInterval(")) continue;
+
+      for (const m of text.matchAll(/setInterval\s*\(/g)) {
+        // setInterval( … ) 의 괄호 균형을 맞춰 인자 전체를 뜬다
+        let depth = 1, i = m.index + m[0].length;
+        while (i < text.length && depth > 0) {
+          if (text[i] === "(") depth++;
+          else if (text[i] === ")") depth--;
+          i++;
+        }
+        const args = text.slice(m.index + m[0].length, i - 1);
+        const delay = Number((args.match(/,\s*(\d+)\s*$/) || [])[1]);
+        // 1초 미만 = 타자기·슬라이드 같은 화면 애니메이션 틱(실제로 25ms 타자기 버퍼를 오탐했다).
+        // 30초 초과 = 관리자 대시보드류라 상시 부하로 안 본다.
+        if (!delay || delay < 1000 || delay > 30000) continue;
+
+        const body = args.replace(/,\s*\d+\s*$/, "").trim();
+        // 이 인터벌이 «실제로 보는» 코드 조각들 — 콜백 본문 + 콜백이 부르는 함수들의 본문.
+        // 네트워크 판정도, 가드 유무 판정도 **이 조각들 안에서만** 한다(파일 단위 아님).
+        const scopes = [body];
+        let polls = NET.test(body);
+        {
+          // 콜백이 직접 네트워크를 안 타도 «폴링 함수를 부르기만» 하는 경우가 훨씬 흔하다:
+          //   setInterval(loadMessages, 5000)          ← 이름만 넘김
+          //   setInterval(() => loadMessages(false), 5000)
+          //   setInterval(() => { loadMessages(); }, 5000)  ← 블록 본문(초안이 이걸 놓쳤다)
+          // → 콜백 안에서 호출되는 이름을 전부 모아 각 정의 본문까지 따라간다.
+          const names = new Set();
+          if (/^[A-Za-z_$][\w$]*$/.test(body)) names.add(body); // 이름만 넘긴 형태
+          for (const c of body.matchAll(/\b([A-Za-z_$][\w$]*)\s*\(/g)) names.add(c[1]);
+          const IGNORE = /^(if|for|while|switch|return|typeof|catch|setTimeout|setInterval|clearInterval|clearTimeout|Number|String|Boolean|Math|Date|console|require)$/;
+          for (const name of names) {
+            if (IGNORE.test(name)) continue;
+            const def = text.match(
+              new RegExp(`(?:async\\s+)?function\\s+${name}\\s*\\(|(?:const|let|var)\\s+${name}\\s*=`)
+            );
+            if (!def) continue;
+            // 고정 길이로 자르면 옆 코드까지 딸려와 오탐이 난다 → 그 함수의 { } 만 정확히 뜬다.
+            const open = text.indexOf("{", def.index);
+            if (open < 0) continue;
+            let d = 1, k = open + 1;
+            while (k < text.length && d > 0) {
+              if (text[k] === "{") d++;
+              else if (text[k] === "}") d--;
+              k++;
+            }
+            const fnBody = text.slice(open, k);
+            scopes.push(fnBody);
+            if (NET.test(fnBody)) polls = true;
+          }
+        }
+        // 가드는 «이 인터벌» 안에 있어야 한다. 파일 어딘가에 있으면 통과시키던 초안이
+        // 상담방 대기실 폴링(2.5초·무제한)을 통째로 놓쳤다 — 같은 파일 다른 폴링에
+        // document.hidden 이 있었기 때문이다(2026-07-25 실제 누락, POSTMORTEMS #121).
+        const guarded = scopes.some((s) => /document\.hidden/.test(s));
+        if (polls && !guarded) {
+          const line = text.slice(0, m.index).split("\n").length;
+          bad.push(`${rel.replace(/\\/g, "/")}:${line} (${delay}ms)`);
+        }
+      }
+    }
+    if (bad.length) {
+      errors.push(
+        `[폴링좀비] 네트워크 폴링이 «안 보이면 쉬기» 없이 돈다 ${bad.length}건: ${bad.join(" · ")} — ` +
+          `사용자가 탭을 두고 떠나도 계속 DB를 두드려 요금·장애로만 드러난다(2026-07-24 IO 예산 고갈, ` +
+          `POSTMORTEMS #120). 인터벌 콜백 첫 줄에 ` +
+          `\`if (typeof document !== "undefined" && document.hidden) return;\` 를 넣을 것 ` +
+          `(탭이 돌아오면 다음 tick에 자동으로 따라잡는다). 정말 백그라운드에서도 돌아야 하면 ` +
+          `그 이유를 주석으로 남기고 visibilitychange 로 명시적으로 처리할 것.`
+      );
+    }
+  } catch (e) {
+    errors.push(`[폴링좀비] 검사 실패: ${e.message}`);
+  }
+}
+
+// ── §28) Gemini 호출은 세대 교체 사다리(geminiThinkingCompat)를 반드시 통과 ──────────
+// 왜: 2026-07-23 구글이 `gemini-flash-latest` 별칭을 새 세대로 갈아치우자 구세대
+//     `thinkingBudget:0` 이 400 거절돼 **전 채널 AI 가 통째로 죽었다**. 그때 사다리
+//     (geminiThinkingCompat)를 만들었지만 **감싼 건 8곳뿐**이었고, 나머지 14곳은 맨손으로
+//     남아 있었다 = 같은 사고가 나면 그 14곳이 그대로 다시 죽는다.
+//     그리고 2026-07-21 구글이 `temperature`/`top_p`/`top_k` 폐기를 공지했다
+//     ("future model generations 에서는 HTTP 400") → **예고된 동일 사고**.
+//     사람이 "새 호출부 만들 때 감싸는 걸 기억"하는 구조로는 또 빠진다 → 기계가 잡는다.
+// 무엇을 보나: Gemini 를 직접 호출하는 파일(SDK generateText / REST :generateContent)이
+//     폐기 예고된 샘플링 파라미터를 넘기면서 사다리를 안 쓰면 실패.
+// 한계: 파일 단위 판정 + "같은 줄에 래퍼가 있나"까지만 본다(정적 가드의 목적 = 복붙 신규
+//     유입 차단). 파라미터를 변수에 담아 멀리서 넘기는 변형은 미탐.
+{
+  const SAMPLING = /\b(temperature|topP|topK|top_p|top_k)\s*:/;
+  const SDK_CALL = /\bgenerateText\s*\(\s*\{/;
+  const REST_CALL = /:generateContent\?key=/;
+  const LADDER = /geminiThinkingCompat|callGeminiWithCompat|fetchGeminiWithCompat/;
+  // 체온(fever)·정렬(topPages) 등 동명이인 오탐 제외용 — Gemini 호출이 없는 파일은 애초에 후보 아님
+  for (const dir of ["src", "app"]) {
+    for (const rel of walk(dir)) {
+      if (!/\.(ts|tsx|js|jsx)$/.test(rel) || /\.test\./.test(rel)) continue;
+      let src;
+      try { src = readFileSync(join(ROOT, rel), "utf8"); } catch { continue; }
+      const isGeminiCaller = SDK_CALL.test(src) || REST_CALL.test(src);
+      if (!isGeminiCaller || !SAMPLING.test(src)) continue;
+      const path = rel.replace(/\\/g, "/");
+
+      if (!LADDER.test(src)) {
+        errors.push(
+          `[Gemini사다리] ${path} — Gemini 를 호출하며 폐기 예고된 샘플링 파라미터` +
+            `(temperature/topP/topK)를 넘기는데 세대 교체 사다리를 안 쓴다. ` +
+            `\`callGeminiWithCompat((p) => generateText(p as any), {...})\` 또는 ` +
+            `\`fetchGeminiWithCompat(url, body, init?)\` 로 감쌀 것 ` +
+            `(구글 공지 2026-07-21: 이 파라미터는 곧 HTTP 400 이 된다).`
+        );
+        continue;
+      }
+      // 사다리를 import 했더라도 «감싸지 않은 generateText 호출» 이 남아 있으면 그 줄을 찍는다.
+      src.split("\n").forEach((line, i) => {
+        const code = line.replace(/\/\/.*/, "");
+        if (!SDK_CALL.test(code)) return;
+        if (/callGeminiWithCompat/.test(code)) return;
+        errors.push(
+          `[Gemini사다리] ${path}:${i + 1} — 이 파일은 사다리를 쓰지만 이 generateText() ` +
+            `호출만 맨손이다. 같은 파일 안 다른 호출처럼 callGeminiWithCompat 으로 감쌀 것.`
+        );
+      });
+    }
+  }
+}
+
+// ── §29) 종료(shutdown)된 Gemini 모델 ID 하드코딩 차단 ──────────────────────────
+// 왜: 2026-07-25 트렌드 스캔에서 `src/lib/symptoms/detect.ts` 가 **2026-06-01 에 종료된**
+//     `gemini-2.0-flash-lite` 를 부르고 있는 걸 발견했다. 호출은 조용히 실패하고 rule-based
+//     폴백만 돌아서 **아무도 몰랐다**(에러 화면도 안 뜬다 = try/catch 안에서 조용히 죽는 부류).
+//     모델 종료는 «우리가 아무것도 안 해도 남이 우리 코드를 깨뜨리는» 외부 변화다 →
+//     기억이 아니라 목록으로 잡는다. 새 종료 예정이 뜨면 아래 표에 날짜와 함께 추가하라.
+// 근거: https://ai.google.dev/gemini-api/docs/deprecations
+{
+  const DEAD_MODELS = [
+    // [모델 ID, 종료일, 대체]
+    ["gemini-2.0-flash", "2026-06-01", "gemini-flash-latest"],
+    ["gemini-2.0-flash-001", "2026-06-01", "gemini-flash-latest"],
+    ["gemini-2.0-flash-lite", "2026-06-01", "gemini-flash-latest"],
+    ["gemini-2.0-flash-lite-001", "2026-06-01", "gemini-flash-latest"],
+    ["gemini-3.1-flash-lite-preview", "2026-05-25", "gemini-3.1-flash-lite"],
+    ["gemini-3.1-flash-image-preview", "2026-06-25", "gemini-3.1-flash-image"],
+    ["gemini-3-pro-image-preview", "2026-06-25", "gemini-3-pro-image"],
+  ];
+  for (const dir of ["src", "app", "scripts", "agents"]) {
+    for (const rel of walk(dir)) {
+      if (!/\.(ts|tsx|js|jsx|mjs|py)$/.test(rel)) continue;
+      if (/\.test\.|check-content-consistency/.test(rel)) continue;
+      let src;
+      try { src = readFileSync(join(ROOT, rel), "utf8"); } catch { continue; }
+      for (const [id, dead, replacement] of DEAD_MODELS) {
+        // 더 긴 ID 의 접두사로 오탐하지 않도록 뒤에 ID 문자가 안 오는 경우만
+        const re = new RegExp(`["'\`]${id.replace(/\./g, "\\.")}(?![\\w.-])`);
+        const line = src.split("\n").findIndex((l) => re.test(l.replace(/\/\/.*/, "")));
+        if (line < 0) continue;
+        errors.push(
+          `[죽은모델] ${rel.replace(/\\/g, "/")}:${line + 1} — \`${id}\` 는 ${dead} 에 ` +
+            `종료된 모델이라 호출이 조용히 실패한다(폴백만 돌아 아무도 모른다). ` +
+            `\`${replacement}\` 로 교체할 것.`
+        );
+      }
+    }
+  }
+}
+
+// ── §30) ESM 저장소에서 «정의 없이 쓰는» __dirname/__filename 차단 ─────────────
+// 왜: package.json 이 "type":"module" 이라 이 저장소의 .ts/.js/.mjs 는 전부 ESM 스코프다.
+//     거기서 `__dirname` 은 존재하지 않는다 → 런타임에 `ReferenceError`.
+//     그런데 **tsc 는 통과시킨다**(@types/node 가 전역으로 선언해 둠) → 「타입검사 초록」이
+//     「동작함」을 전혀 보증하지 않는 부류. 2026-07-27 실사고: 야간 로봇 통화 스펙에 이걸
+//     써서 프로덕션 E2E 가 통째로 실패했다. `e2e/fixtures/auth.ts` 에 *이미* 같은 경고
+//     주석이 있었는데도 반복됐다 = 주석은 가드가 아니다.
+// 무엇을 보나: `__dirname`/`__filename` 을 **참조하면서 같은 파일에서 정의하지 않은** 경우.
+//     (정의해서 쓰는 건 정상 — 대부분의 scripts/*.mjs 가 그렇게 한다.)
+// 예외: `*.test.ts`/`*.spec.ts` 중 vitest 로 도는 것은 러너가 주입해 줘서 실제로 동작한다.
+//     단 **Playwright 스펙(e2e/)은 진짜 ESM 이라 예외가 아니다** — 이번에 터진 자리가 거기다.
+{
+  const USE = /(?<![\w$.])(__dirname|__filename)\b/;
+  const DEFINE = /(?:const|let|var)\s+(?:__dirname|__filename)\s*=|\{[^}]*__dirname[^}]*\}\s*=/;
+  // ⚠️ 공용 walk() 를 쓰면 안 된다 — 전역 EXCLUDE 가 `.spec.`·`.test.` 를 걸러내고
+  //    CODE_EXT 에 `.mjs` 가 없다. 그래서 **Playwright 스펙과 scripts/*.mjs 는 이 검사기에
+  //    통째로 안 보인다**(초안이 여기 걸려 «되돌려도 발화 0» 이었다 — 실측으로 드러남).
+  //    이 룰의 표적이 정확히 그 두 부류라, 전용 탐색기로 직접 훑는다.
+  const walkAll = (dir) => {
+    const out = [];
+    let entries;
+    try { entries = readdirSync(join(ROOT, dir)); } catch { return out; }
+    for (const e of entries) {
+      if (/^(node_modules|\.next|archive|\.auth)$/.test(e)) continue;
+      const rel = join(dir, e);
+      let st;
+      try { st = statSync(join(ROOT, rel)); } catch { continue; }
+      if (st.isDirectory()) out.push(...walkAll(rel));
+      else if (/\.(ts|tsx|js|jsx|mjs)$/.test(e)) out.push(rel);
+    }
+    return out;
+  };
+  for (const dir of ["src", "app", "e2e", "scripts"]) {
+    for (const rel of walkAll(dir)) {
+      const path_ = rel.replace(/\\/g, "/");
+      // 검사기 자신 제외 — 룰의 정규식·안내문에 `__dirname` 문자열이 들어 있어 자기를 오탐한다
+      // (§29 와 같은 처리. 첫 실행에서 실제로 자기를 물었다).
+      if (/check-content-consistency/.test(path_)) continue;
+      // vitest 러너가 주입해 주는 단위테스트는 제외(실제로 동작). e2e/ 는 제외 안 함.
+      if (/\.test\.(ts|tsx|js|jsx)$/.test(path_) && !path_.startsWith("e2e/")) continue;
+      let raw;
+      try { raw = readFileSync(join(ROOT, rel), "utf8"); } catch { continue; }
+      // ⚠️ 주석은 걷어내고 판정한다. 초안이 원문 그대로 검사해서, «__dirname 쓰지 마라»고
+      //    경고하는 주석(e2e/fixtures/auth.ts)을 위반으로 오탐했다 — 첫 실행에서 바로 드러남.
+      const stripped = raw.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/.*/gm, "$1");
+      if (!USE.test(stripped) || DEFINE.test(stripped)) continue;
+      const lines = raw.split("\n");
+      const line = lines.findIndex(
+        (l, i) => USE.test(l.replace(/(^|[^:])\/\/.*/, "$1")) && stripped.includes(lines[i].trim().slice(0, 20))
+      );
+      errors.push(
+        `[ESM경로] ${path_}${line >= 0 ? `:${line + 1}` : ""} — 이 저장소는 "type":"module"(ESM) 이라 ` +
+          `\`__dirname\`/\`__filename\` 이 런타임에 없다(ReferenceError). tsc 는 못 잡는다. ` +
+          `\`path.dirname(fileURLToPath(import.meta.url))\` 를 쓸 것 ` +
+          `(예: e2e/fixtures/auth.ts).`
+      );
+    }
+  }
+}
+
+// ── §31) 자동으로 `git push` 하는 도구는 보호 브랜치(main) 가드가 있어야 한다 ────
+// 왜: main 에 푸시하는 순간 자동 검사(PR CI) 없이 실서비스로 배포된다. 게다가 이 저장소는
+//     워크트리를 여러 개 쓰기 때문에 **어떤 폴더 하나는 항상 main 을 잡고 있다** → 그 폴더에
+//     남의 미저장 변경이 남아 있으면 자동 저장·푸시가 그걸 통째로 실서비스로 실어 보낸다.
+//     `.claude/hooks/auto-commit-push.sh` 는 처음부터 이 가드를 갖고 있었는데(main|master 조기 종료),
+//     나중에 만든 `scripts/sync.mjs` 가 **같은 일을 하면서 그 가드를 물려받지 않았다**(2026-07-27 발견,
+//     PO 가 "지금 돌려도 됨?" 하고 물어보지 않았으면 그대로 돌 뻔했다).
+//     = #122 와 같은 구조: 안전 규칙이 «한 곳의 코드»에만 있고 기계가 강제하지 않으면,
+//       같은 일을 하는 새 도구가 맨손으로 생긴다.
+// 무엇을 보나: 자동 푸시를 하는 파일이 보호 브랜치 이름(main/master)을 분기 조건으로 언급하는지.
+// 예외: CI 워크플로(.github/)는 러너가 브랜치를 지정해 돌리므로 대상 아님. 미러링도 제외.
+{
+  const AUTOPUSH = /git\s+push|\[\s*"push"/;
+  const HAS_GUARD = /\bmain\b[\s\S]{0,80}\bmaster\b|\bmaster\b[\s\S]{0,80}\bmain\b|PROTECTED_BRANCHES/;
+  const scan = (dir) => {
+    const out = [];
+    let entries;
+    try { entries = readdirSync(join(ROOT, dir)); } catch { return out; }
+    for (const e of entries) {
+      if (/^(node_modules|\.next|archive)$/.test(e)) continue;
+      const rel = join(dir, e);
+      let st;
+      try { st = statSync(join(ROOT, rel)); } catch { continue; }
+      if (st.isDirectory()) out.push(...scan(rel));
+      else if (/\.(mjs|js|ts|sh)$/.test(e)) out.push(rel);
+    }
+    return out;
+  };
+  for (const dir of ["scripts", ".claude"]) {
+    for (const rel of scan(dir)) {
+      const path_ = rel.replace(/\\/g, "/");
+      // 검사기 자신 제외 — 이 룰의 정규식·설명에 `git push`/`main` 문자열이 들어 있어 자기를 오탐한다.
+      if (/check-content-consistency/.test(path_)) continue;
+      let raw;
+      try { raw = readFileSync(join(ROOT, rel), "utf8"); } catch { continue; }
+      if (!AUTOPUSH.test(raw)) continue;
+      if (HAS_GUARD.test(raw)) continue;
+      errors.push(
+        `[보호브랜치] ${path_} — 자동으로 \`git push\` 하는데 보호 브랜치(main/master) 가드가 안 보인다. ` +
+          `main 푸시 = 자동 검사 없이 실서비스 배포다. 브랜치가 main/master 면 저장·올리기를 하지 말고 ` +
+          `내려받기만 하도록 조기 종료할 것 ` +
+          `(예: .claude/hooks/auto-commit-push.sh 의 case 문, scripts/sync.mjs 의 PROTECTED_BRANCHES).`
+      );
+    }
   }
 }
 
