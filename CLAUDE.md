@@ -166,7 +166,9 @@ npm run dev                # dev 서버는 Turbopack 정상
 
 - Production: `main` 브랜치 푸시 → Vercel 자동 배포
 - Preview: 다른 브랜치 푸시 → 자동 preview
-- OS: Windows 11 / Shell: bash (Unix syntax)
+- OS: Windows 11 / Shell: **PowerShell 이 기본**, bash(Unix syntax)도 사용 가능 — 둘은 문법이 다르니 섞지 말 것
+  (2026-07-27 정정: 예전엔 "Shell: bash"만 적혀 있어 실제 환경과 어긋났다. 검사기 정규식이 CRLF 에서만
+   오작동하던 것도 이 차이에서 나왔다 — 윈도우에서만 빨간불이 뜨면 줄바꿈부터 의심할 것.)
 
 ---
 
@@ -193,5 +195,11 @@ npm run dev                # dev 서버는 Turbopack 정상
 
 ## 프리뷰 팁
 
-- `preview_screenshot` 자주 타임아웃 → `preview_eval` (DOM 쿼리)로 대체
+> ⚠️ 2026-07-27 정정: 여기 있던 `preview_screenshot`·`preview_eval` 은 **존재하지 않는 도구 이름**이었다.
+> 없는 도구를 쓰라는 규칙은 안 지켜지는 게 아니라 **엉뚱한 시도를 하게 만든다.**
+
+- 브라우저 조작은 `preview_start`(dev 서버) → `read_page`(구조·텍스트) → `javascript_tool`(계산된 스타일 등) 순으로.
+  스크린샷은 `computer{action:"screenshot"}` — 다만 **텍스트·구조 확인은 `read_page` 가 더 빠르고 정확**하다.
+- **로그인 뒤 화면은 로컬에서 못 연다** (미들웨어 `proxy.ts` 가 세션 없으면 `/login` 으로 보냄).
+  백오피스·환자포털을 눈으로 봐야 하면 **Vercel preview URL 을 PO 에게 주고 확인받는다** — 로컬에서 본 척하지 말 것.
 - 시각 확인 필요 시 Vercel preview URL 사용자에게 제공
