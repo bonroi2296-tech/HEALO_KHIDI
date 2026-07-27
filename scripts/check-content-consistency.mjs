@@ -1979,6 +1979,75 @@ const BACKOFFICE_SHARED = [
   }
 }
 
+// ── §34) 의료진 세부 이력 문구가 ru·kz·zh·ja 사전에 다 있는지 ────────────────
+// 왜: 2026-07-27 PO 지적 — /ru/hospitals 에서 섹션 제목(경력·학력)만 번역되고 **내용은 전부 영어**로
+//     나왔다. DOCTORS(app/hospitals/HospitalsClient.jsx)가 ko/en 만 들고 있었기 때문.
+//     번역을 doctorPhrases.js 로 옮겼는데, 의사를 새로 추가하면서 사전에 넣는 걸 잊으면
+//     **그 줄만 조용히 영어로** 나간다 — 같은 부류의 재발이라 기계가 잡는다.
+// 무엇을 보나: DOCTORS 의 en 배열 문구·subspecialty.en 이 DOCTOR_PHRASES 에 있고 4개 언어가 다 찼는지.
+{
+  const SRC = "app/hospitals/HospitalsClient.jsx";
+  let phrases = null;
+  try {
+    ({ DOCTOR_PHRASES: phrases } = await import(
+      pathToFileURL(join(ROOT, "src/lib/content/doctorPhrases.js")).href
+    ));
+  } catch {
+    errors.push(`[의료진i18n] src/lib/content/doctorPhrases.js 를 읽지 못했다 — ${SRC} 가 이 사전을 쓴다.`);
+  }
+  // 중복 키 (반성문 #129 — 🔁 #61 부류 재발). import 한 객체로는 못 본다(뒤 값이 앞을 덮어써서
+  // 둘 다 조회에 성공한다) → 소스를 줄 단위로 읽어야 잡힌다. 일괄 치환으로 서로 다른 두 문구가
+  // 한 문자열로 수렴할 때 생기며, 빌드·§33 을 전부 통과하고 eslint 에서만 걸린다.
+  {
+    let raw = "";
+    try { raw = readFileSync(join(ROOT, "src/lib/content/doctorPhrases.js"), "utf8"); } catch { raw = ""; }
+    const seen = new Map();
+    raw.split("\n").forEach((line, n) => {
+      const m = line.match(/^ {2}'((?:[^'\\]|\\.)*)':\s*\{/);
+      if (!m) return;
+      if (seen.has(m[1])) {
+        errors.push(
+          `[의료진i18n] doctorPhrases.js 중복 키 «${m[1]}» (${seen.get(m[1])}번째 줄과 ${n + 1}번째 줄). ` +
+            `뒤에 온 값이 앞을 덮어써 앞의 번역은 죽는다 — 한쪽을 지울 것.`
+        );
+      } else seen.set(m[1], n + 1);
+    });
+  }
+
+  if (phrases) {
+    let src = "";
+    try { src = readFileSync(join(ROOT, SRC), "utf8"); } catch { src = ""; }
+    // DOCTORS 배열 구간만 본다(그 뒤 BRANCH_CONFIG 등은 별개).
+    const from = src.indexOf("const DOCTORS = [");
+    const to = src.indexOf("const BRANCH_CONFIG");
+    const block = from >= 0 && to > from ? src.slice(from, to) : "";
+    if (!block) {
+      errors.push(`[의료진i18n] ${SRC} 에서 DOCTORS 배열을 찾지 못했다 — 이 가드가 무력화됐다. 검사 룰을 고칠 것.`);
+    }
+    const used = new Set();
+    for (const m of block.matchAll(/en:\s*\[([^\]]*)\]/g))
+      for (const s of m[1].matchAll(/'([^']*)'/g)) used.add(s[1]);
+    for (const m of block.matchAll(/subspecialty:\s*\{[^}]*en:\s*'([^']*)'/g)) used.add(m[1]);
+
+    const LANGS = ["ru", "kz", "zh", "ja"];
+    const missing = [];
+    for (const s of used) {
+      const row = phrases[s];
+      if (!row) { missing.push(`«${s}» — 사전에 없음`); continue; }
+      const gaps = LANGS.filter((L) => !row[L]);
+      if (gaps.length) missing.push(`«${s}» — ${gaps.join("·")} 누락`);
+    }
+    if (missing.length) {
+      errors.push(
+        `[의료진i18n] 의료진 세부 이력 ${missing.length}건이 6개 언어로 안 나간다 ` +
+          `(러시아어·카자흐어 사용자에게 영어로 노출됨). src/lib/content/doctorPhrases.js 에 추가할 것:\n` +
+          missing.slice(0, 20).map((m) => `      · ${m}`).join("\n") +
+          (missing.length > 20 ? `\n      · … 외 ${missing.length - 20}건` : "")
+      );
+    }
+  }
+}
+
 // ── 결과 ────────────────────────────────────────────────────────
 if (errors.length) {
   console.error(`\n❌ 콘텐츠 일관성 검사 실패 (${errors.length}건)\n`);
