@@ -3,7 +3,7 @@
  * i18n 번역 커버리지 체크 (2026-05 업그레이드)
  *
  * 목적:
- * - `src/lib/i18n/index.js` 의 언어별 번역 맵에서 누락된 key 탐지
+ * - `src/lib/i18n/dictionary.js` 의 언어별 번역 맵에서 누락된 key 탐지
  * - 전체 key universe(모든 언어 합집합) 기준으로 누락 판정
  * - ru/kz (1차 타겟 언어) 커버리지 강조
  * - CI 에서 실행해 번역 누락 방지
@@ -26,9 +26,9 @@ import { createRequire } from "node:module";
 const FAIL_ON_MISSING = process.argv.includes("--fail-on-missing");
 const CHECK_ALL = process.argv.includes("--all");
 
-const i18nPath = path.join(process.cwd(), "src/lib/i18n/index.js");
+const i18nPath = path.join(process.cwd(), "src/lib/i18n/dictionary.js");
 if (!fs.existsSync(i18nPath)) {
-  console.error("[abort] src/lib/i18n/index.js not found");
+  console.error("[abort] src/lib/i18n/dictionary.js not found");
   process.exit(1);
 }
 

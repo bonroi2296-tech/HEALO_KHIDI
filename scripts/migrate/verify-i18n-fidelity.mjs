@@ -1,7 +1,7 @@
 // 문구 이관 충실도 검증(AST) — "옮겼다"가 아니라 "원본과 같다"를 증명하는 도구.
 //
 // 무엇을 하나: 변경된 컴포넌트의 **기준 시점 원본**(기본 origin/main)을 파싱해 모든 문자열
-// 리터럴의 *값*을 모으고, **중앙 사전(src/lib/i18n/index.js)에 새로 들어간 값**이 그 안에
+// 리터럴의 *값*을 모으고, **중앙 사전(src/lib/i18n/dictionary.js)에 새로 들어간 값**이 그 안에
 // 있는지 대조한다. 이스케이프 표기(\' \" 템플릿)로 인한 오탐이 없다(AST 기준).
 //
 // 왜 사전을 소스로 보나: 중간 산출물(이관 스크립트의 임시 JSON)이 아니라 **실제로 배포되는
@@ -23,14 +23,14 @@ const traverse = _traverse.default || _traverse;
 
 const ROOT = process.cwd();
 const BASE = process.env.BASE || "origin/main";
-const DICT = "src/lib/i18n/index.js";
+const DICT = "src/lib/i18n/dictionary.js";
 const LANGS = ["ko", "en", "ru", "kz", "zh", "ja"];
 const ONLY = (process.env.PREFIXES || "").split(",").map((s) => s.trim()).filter(Boolean);
 
 // ── 1) 기준 시점 원본의 문자열 값 집합 ────────────────────────────────
 const changed = execSync(`git -C "${ROOT}" diff --name-only ${BASE}`, { encoding: "utf8" })
   .split("\n").map((s) => s.trim()).filter(Boolean)
-  .filter((f) => /\.(jsx?|tsx?)$/.test(f) && !f.includes("lib/i18n/index.js"));
+  .filter((f) => /\.(jsx?|tsx?)$/.test(f) && !f.includes("lib/i18n/dictionary.js"));
 
 const originalValues = new Set();
 let parsed = 0;
