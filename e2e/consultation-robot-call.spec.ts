@@ -17,6 +17,7 @@
  */
 
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { test, expect, chromium, type Browser } from "@playwright/test";
 import { loginAs } from "./fixtures/auth";
 
@@ -78,8 +79,12 @@ test.describe("야간 로봇 통화 — 2인 실연결 검증", () => {
     //   ⚠️ 기록용: "자동환경엔 마이크가 없어 통역 검증 불가" 라고 여러 세션이 적어 왔는데
     //      **오진이었다.** 크로미움이 WAV 를 마이크로 재생해 준다. 진짜 블로커는 «말소리 파일 없음» 이었고,
     //      로컬 TTS(piper)로 만들면 끝나는 문제였다.
-    const fakeAudioPath = path.resolve(
-      __dirname,
+    // ⚠️ `__dirname` 금지 — 이 저장소는 package.json "type":"module" 이라 ESM 스코프다
+    //    (e2e/fixtures/auth.ts 에 같은 경고가 이미 있었는데 내가 어겼다. 첫 실행에서
+    //     `ReferenceError: __dirname is not defined` 로 터짐 — tsc 는 @types/node 때문에
+    //     통과시켜 주므로 «타입검사 초록 = 동작»이 아님을 다시 확인한 사례.)
+    const fakeAudioPath = path.join(
+      path.dirname(fileURLToPath(import.meta.url)),
       "fixtures/audio/ko-patient-speech.wav"
     );
     fakeMediaBrowser = await chromium.launch({
