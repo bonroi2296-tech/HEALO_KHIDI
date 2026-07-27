@@ -1,6 +1,5 @@
 import { describe, it, expect } from "vitest";
-// @ts-ignore — JS 모듈(순수 함수)
-import { speakerColor, SPEAKER_COLORS } from "./speakerColor.js";
+import { speakerColor, SPEAKER_COLORS } from "./speakerColor";
 
 describe("speakerColor — 자막 화자 구분(사람 단위)", () => {
   it("같은 화자면 항상 같은 색 (재입장·새로고침에도 안 바뀜)", () => {
