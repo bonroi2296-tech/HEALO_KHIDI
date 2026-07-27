@@ -118,7 +118,13 @@ describe("livekit webhook 계약 — 자동완료 금지(K-02 인플레·재입�
     expect(calls.some((c) => c.update?.status === "completed")).toBe(false);
   });
 
-  it("participant_joined 도 DB 를 건드리지 않는다(로그만)", async () => {
+  it("participant_joined 는 started_at 만 채운다(status 불변, 첫 입장만)", async () => {
+    // 2026-07-27 계약 «변경». 예전 계약은 "DB 를 아예 안 건드린다(로그만)" 였다.
+    // 그런데 실측에서 세션 54건 전부 started_at 이 NULL 이라 «회의를 실제로 했는지»를
+    // 데이터로 증명할 수 없었다(상태는 계속 scheduled).
+    // 이 파일이 지키려는 원칙은 «DB 금지»가 아니라 «status 자동완료 금지»(K-02 인플레·재입장 차단)다
+    // — 바로 아래 participant_left 도 이미 left_at 을 쓴다. 그 원칙에 맞춰 계약을 조인다:
+    //   ① status 는 절대 안 건드린다   ② 첫 입장에만(started_at IS NULL) 쓴다.
     const POST = await loadPost();
     mockState.event = {
       event: "participant_joined",
@@ -128,7 +134,17 @@ describe("livekit webhook 계약 — 자동완료 금지(K-02 인플레·재입�
 
     const res = await POST(makeReq({ event: "participant_joined" }));
     expect((await res.json()).ok).toBe(true);
-    expect(calls.length).toBe(0);
+
+    expect(calls.length).toBe(1);
+    expect(calls[0].table).toBe("consultation_sessions");
+    expect(calls[0].update.started_at).toBeTruthy();
+    // 🔒 자동완료 금지 계약 — 여기서도 status 는 건드리지 않는다
+    expect(calls[0].update.status).toBeUndefined();
+    // 첫 입장에만 기록: 방 매칭 + started_at 이 아직 비어 있을 때만
+    // (두 번째 참가자가 덮으면 그건 «시작»이 아니다)
+    const ops = calls[0].filters.map((f) => `${f.op}:${f.field}`);
+    expect(ops).toContain("eq:livekit_room_name");
+    expect(ops).toContain("is:started_at");
   });
 
   it("participant_left 는 열린 입장기록의 left_at 만 채운다(status 불변, 재입장 새 기록 보호)", async () => {
