@@ -56,10 +56,21 @@
 	<string>healwith lets you attach photos of medical documents from your library to consultations and inquiries.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>healwith can save documents and images shared during your care journey to your photo library.</string>
+	<!-- 수출 규정(암호화) 신고 — 2026-07-27 추가.
+	     이 앱은 자체 암호화를 구현하지 않고 iOS 가 제공하는 HTTPS/TLS 만 쓴다(서버측 AES 암호화는 앱이 아니라 Vercel 서버 일).
+	     이 키가 없으면 App Store Connect 가 빌드마다 «수출 규정 관련 문서 누락» 경고를 띄우고 제출을 막는다(첫 빌드에서 실제로 막혔음).
+	     false = 비면제 암호화 미사용 → 매번 콘솔에서 답할 필요가 사라진다. -->
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<!-- 백그라운드 푸시 수신(@capacitor/push-notifications). -->
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>remote-notification</string>
 	</array>
+	<!-- Firebase 의 AppDelegate 메서드 스위즐링 비활성 → AppDelegate.swift 에서 APNs 토큰을
+	     수동으로 Firebase 에 넘겨 FCM 토큰만 Capacitor registration 이벤트로 흘려보낸다.
+	     (스위즐링을 켜두면 APNs 원시 토큰과 FCM 토큰이 이중 발화해 서버가 iOS 에서 못 쓰는 토큰을 저장할 수 있음) -->
+	<key>FirebaseAppDelegateProxyEnabled</key>
+	<false/>
 </dict>
 </plist>

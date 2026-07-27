@@ -153,6 +153,22 @@ KHIDI_유치문서/02_에이전시협약서_원문/_extract/
 *.secrets.env
 secrets.env
 
+# 앱 서명·푸시 비밀 열쇠 (2026-07-27) — 이 저장소는 PUBLIC 이라 한 번 올라가면 즉시 유출.
+# 왜: 애플 APNs 인증키(.p8)·ASC API 키(.p8)를 발급받아 다운로드 폴더에 두는 단계가 생겼는데,
+#     최상위 .gitignore 에 확장자 규칙이 하나도 없었다(실측). 실수로 프로젝트에 복사하면 그대로 올라간다.
+*.p8
+*.p12
+*.mobileprovision
+*.keystore
+*.jks
+
+# 클라우드 서비스계정 키 (2026-07-27) — Firebase/GCP admin JSON. 저장소 PUBLIC 이라 유출 시 프로젝트 전체 탈취.
+# 실제로 발생: healo-e3e58-firebase-adminsdk-*.json 이 프로젝트 루트에 복사돼 있었다(자동 저장 훅이 집어갈 뻔함).
+*firebase-adminsdk*.json
+*-serviceaccount*.json
+serviceAccountKey*.json
+gcp-*-key.json
+
 # 파이썬 생성기 캐시(docs/government-project/*.py)
 __pycache__/
 

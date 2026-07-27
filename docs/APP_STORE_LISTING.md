@@ -22,13 +22,26 @@
   - Android `AndroidManifest.xml`: `CAMERA`·`RECORD_AUDIO`·`MODIFY_AUDIO_SETTINGS`·`POST_NOTIFICATIONS`(13+) + 카메라/마이크 `uses-feature required=false`(태블릿 설치 허용).
   - ⚠️ 이 권한이 없으면 iOS 는 카메라 접근 시 **크래시 + 심사 반려**, Android 는 WebView `getUserMedia` 거부로 **영상상담 먹통**이었음 → 2026-06-29 보강.
 - **푸시 클라이언트·서버 배선 완료** — `src/lib/push/registerPush.ts`(앱에서만 동작) + `/api/push/register`·`/api/push/test`.
+- ✅ **Android 푸시 네이티브 배선 완비 (2026-07-24 실측 재확인)** — iOS와 달리 손볼 것 없음:
+  - `android/build.gradle`: `classpath 'com.google.gms:google-services:4.4.4'` ✅
+  - `android/app/build.gradle`: google-services.json 존재 시 `com.google.gms.google-services` 플러그인 자동 적용 ✅ (파일 커밋됨)
+  - `capacitor.settings.gradle`·`app/capacitor.build.gradle`: `capacitor-push-notifications` 편입(firebase-messaging 트랜지티브) ✅
+  - 권한 CAMERA·RECORD_AUDIO·POST_NOTIFICATIONS ✅
+  - → **남은 건 전부 PO 몫(코드 아님)**: 플레이 등록($25)·키스토어(서명)·Play 서비스계정 JSON. 안드로이드는 리눅스 빌드 가능해 첫 검증이 iOS보다 쉬움.
 
 ## ⚠️ 제출 전 선결 — PO 체크리스트 (2026-07-14 갱신)
 
-**PO가 직접 할 것 (지금은 결제 2건뿐):**
-1. ⬜ **애플 개발자 등록 + $99/년 결제** — https://developer.apple.com/programs/enroll/
+**PO가 직접 할 것 (애플 계정 로그인 필요 — 어시가 대신 못 누름):**
+1. ✅ **애플 개발자 등록 + $99/년 결제 (2026-07-24 완료)** — https://developer.apple.com/programs/enroll/
    - 본로이는 개인사업자 → **개인(Individual) 계정**으로 등록. 판매자명이 개인 이름으로 노출됨(법인 전환 시 조직 계정 이전 가능).
    - 🛑 **함정**: 애플 가이드라인 5.1.1은 의료성 앱에 법인 계정을 요구할 수 있음 → 심사에서 이 사유로 반려될 가능성 있음(반려 시 항소·법인 검토 대응 — 어시가 그때 정리).
+   - **결제 후 애플 포털에서 순서대로 (이게 "앱 등록"):**
+     1. ✅ **App ID 등록 (2026-07-27)** — `kr.co.healwith.app`(Explicit) + **Push Notifications** capability. Wildcard 로 만들면 푸시 불가라 Explicit 확인함.
+     2. ✅ **앱 레코드 생성 (2026-07-27)** — [App Store Connect](https://appstoreconnect.apple.com) 에 iOS 앱 `healwith`, 기본 언어 English(U.S.), SKU `healwith-ios-01`, Full Access.
+     3. ✅ **APNs 인증키(.p8) 발급 (2026-07-27)** — 이름 `healwith APNs Key`. ⚠️ 발급 시 **Environment = `Sandbox & Production`** 으로 설정(기본값 Sandbox 그대로 두면 실배포 푸시가 안 감. **저장 후 변경 불가**라 키 재발급밖에 답이 없다) · Key Restriction = Team Scoped(All Topics).
+        - Firebase 콘솔(`healo` = healo-e3e58) → 프로젝트 설정 → 클라우드 메시징 → Apple 앱 구성(`kr.co.healwith.app`) → APNs 인증 키 업로드. **개발·프로덕션 슬롯 둘 다 같은 .p8 을 올린다.**
+     4. ✅ **App Store Connect API 키 발급 (2026-07-27)** — 사용자 및 액세스 → 통합 → 팀 키. 최초 1회 **「API 액세스 요청」 약관 동의**(내부 개발·테스트·보고 한정 사용) 필요 → 즉시 승인됨. 역할 = **앱 관리(App Manager)**(최소권한, TestFlight 업로드 가능). Codemagic Integrations 에 등록.
+     - 🔑 **값(Key ID·Issuer ID·Team ID)은 이 저장소에 적지 않는다 — 저장소가 PUBLIC.** ASC/개발자 포털 화면에서 확인할 것. **.p8 파일은 절대 저장소에 넣지 마라**(2026-07-27 `.gitignore` 에 `*.p8`·`*.p12`·`*.keystore`·`*.jks` 차단 규칙 추가).
 2. 🔶 **구글 플레이 개발자 등록 — $25 결제 완료(2026-07-24), 인증 3건 남음** — https://play.google.com/console (※ `/signup` 은 "새로 시작" 링크라 진행 중인 등록을 무시함. 이어서 할 때는 `/console`)
    - ✅ 계정 생성 완료: **개인** 계정 · 이름 `healwith` · 계정 ID `5457445830881937645` · 소유 구글계정 `bonroi2296@gmail.com`(생성 후 변경 불가).
    - 🛑 **남은 것 ①연락처 전화번호 인증 — 대표 명의 휴대폰(LGU+)이라 대표 본인 필요. 2026-07-24 연락 불가 → 월요일(07-27) 처리.** ②본인 확인(공문서) ③Android 휴대기기 액세스(Play Console 모바일 앱 로그인). **셋 다 끝나야 앱 게시 가능.**
@@ -41,9 +54,38 @@
 4. ✅ **Codemagic 가입·저장소 연결 완료(2026-07-14)** — Personal(Individual) 계정, HEALO_KHIDI 연결, codemagic.yaml 자동 인식 확인(PO 스크린샷). ⚠️ 서명 열쇠 없이 빌드 시작 금지(실패만 뜨고 무료분 낭비) — 결제 후 열쇠 3종(ASC API 키·Play 서비스계정·키스토어) 등록부터.
 
 **어시가 할 것 (계정 열리면):**
-- Vercel env 2개(`FCM_PROJECT_ID`·`GOOGLE_SERVICE_ACCOUNT_JSON`) 설정 + `/api/push/test` 실기기 수신 확인
-- ⚠️ **iOS 푸시 마무리 배선(첫 Codemagic 빌드 때)**: 이 프로젝트는 CocoaPods가 아니라 **SPM(CapApp-SPM)** 구조 — ①Firebase iOS SDK(FirebaseMessaging)를 SPM으로 추가 ②AppDelegate에 APNs 토큰→FCM 토큰 교환 배선(안 하면 iOS 푸시 무음 실패 — registerPush.ts가 보내는 token.value가 iOS에선 APNs 원시 토큰이라 FCM 발송이 못 씀) ③`GoogleService-Info.plist`를 Xcode 프로젝트 리소스에 등록(파일만 폴더에 있음, pbxproj 참조 0건) ④codemagic.yaml의 `pod install` 단계는 SPM 구조라 손질 필요. 전부 클라우드 맥 빌드의 컴파일 피드백을 보며 진행(윈도우에선 검증 불가).
+- ✅ **Vercel env 2개 설정 완료 (2026-07-27, 실측 확인)** — `FCM_PROJECT_ID`=`healo-e3e58` · `GOOGLE_SERVICE_ACCOUNT_JSON`=Firebase Admin SDK 서비스계정 키(2026-07-27 신규 발급). 둘 다 production·preview·development, encrypted.
+  - ⚠️ **Vercel env 는 「다음 배포부터」 적용된다** — 현재 돌고 있는 프로덕션에는 아직 안 실렸다. 다음 머지·배포가 나가면 자동 반영(이것만을 위해 재배포할 필요는 없음).
+  - ⚠️ 서비스계정 키 = **Firebase 프로젝트 전체 권한**. 로컬 다운로드 사본은 안전한 곳(비밀번호 관리자·암호화 폴더)으로 옮기고 다운로드 폴더에 방치하지 말 것. 유출 의심 시 Firebase 콘솔에서 키 폐기 후 재발급 → Vercel env 교체.
+  - ⬜ 남은 검증: `/api/push/test`(admin) 실기기 수신 확인 — **앱 빌드가 나온 뒤에만 가능**.
+- ✅ **iOS 푸시 배선 코드 스테이징 완료 (2026-07-24, 브랜치 `claude/app-registration`)** — 아래 ②④가 코드로 준비됨:
+  - ✅ ② **AppDelegate.swift** — `FirebaseApp.configure()` + `MessagingDelegate`로 APNs→FCM 토큰 교환. **FCM 토큰만** Capacitor `registration` 이벤트로 흘려보내 registerPush.ts가 서버에 올리는 token.value가 iOS에서도 FCM 토큰이 되게 함(무음 실패 원인 해소). Info.plist에 `FirebaseAppDelegateProxyEnabled=NO` 추가(이중 발화 방지).
+  - ✅ ④ **codemagic.yaml** — `pod install`(Podfile 없어 무조건 실패) 제거, `.xcworkspace`→`.xcodeproj` 로 SPM 구조에 맞춤.
+  - ⚠️ **아직 남음(첫 클라우드 맥 빌드에서 Xcode로 — 윈도우/리눅스 검증 불가):**
+    - ⬜ ① **Firebase iOS SDK(FirebaseMessaging) 를 App 타겟에 SPM 패키지로 추가** — 안 하면 AppDelegate의 `import FirebaseCore/FirebaseMessaging`가 컴파일 실패. (Xcode → Add Package → `https://github.com/firebase/firebase-ios-sdk` → FirebaseMessaging)
+    - ⬜ ③ **`GoogleService-Info.plist` 를 App 타겟 리소스로 등록** — 파일은 `ios/App/App/`에 있으나 pbxproj 참조 0건이라 번들에 안 들어감(`FirebaseApp.configure()` 크래시).
+    - ⬜ **Xcode 타겟에 Push Notifications + Background Modes(Remote notifications) capability 추가**(서명 프로필에 반영).
+    - ⚠️ 런타임(실기기 토큰 흐름) 검증은 첫 빌드 후 `/api/push/test` 로. 코드는 표준 패턴대로 짰으나 디바이스 실증 전까지는 "설계상 맞음, 런타임 미검증".
 - 빌드→TestFlight/Play 내부트랙 업로드, 등록 문구 6개 언어 입력, 심사 설문 제출(→ `APP_STORE_REVIEW_ANSWERS.md` 복붙), 반려 대응
+
+## 📌 App Store Connect 입력 현황 (2026-07-27 어시가 채움)
+
+**✅ 채워서 저장한 것**
+- 앱 정보: 부제 `Korea cancer care, end to end`(30자 제한이라 문서 초안 `Cancer care in Korea, end to end`=32자를 줄임) · 기본 카테고리 **의료** + 추가 **건강 및 피트니스**
+- **연령 등급 = 16+**(한국 15+ / 브라질 A16 / 구 OS 17+). 답: 의료·치료 정보 «빈번», 건강·웰빙 주제 «예», 메시지 및 채팅 «예», 나머지(폭력·성적·도박·광고·UGC·무제한 웹) 전부 없음/아니요.
+  - ⚠️ 「제한되지 않은 웹 액세스」를 **아니요**로 답함 — 앱이 healwith.co.kr 만 로드하고 자유 브라우징을 제공하지 않기 때문. 「사용자 생성 콘텐츠」도 **아니요**(상담 채팅은 1:1이고 타 사용자에게 배포되지 않음).
+- 버전 1.0: 프로모션 텍스트·설명(영어)·키워드·지원/마케팅 URL·저작권 `2026 Bonroi`
+- **심사 노트(Review Notes)** — 웹뷰 반려(4.2) 예방용 핵심: 네이티브 가치(푸시·카메라/마이크 화상상담) 명시 + «진단·처방하지 않는다» 의료 범위 한계 + 계정 삭제 위치(`/patient/account`) + 로그인 없이 쓸 수 있는 범위.
+- 심사 연락처: Juyoung Kang / bonroi2296@gmail.com / +82 10-4772-1075
+- 개인정보 처리방침 URL + **앱 개인정보 라벨 8종 완료**: 연락처정보(이름·이메일·전화)·건강·사용자콘텐츠(사진/비디오·기타)·기기ID = **앱 기능/신원 연결됨**, 제품 상호작용 = **분석/신원 미연결**, **전 항목 추적 목적 사용 없음**(→ ATT 프롬프트 불필요).
+
+**⬜ 아직 남은 것 (제출 전 필수)**
+1. **스크린샷 0장** — `scripts/appstore-screenshots.mjs` 로 재생성 필요(git 미추적이라 로컬에 없음). 최종본은 실기기 캡처 권장.
+2. **빌드 연결** — TestFlight 처리 완료 후 버전 페이지에서 1.0(1) 선택.
+3. **심사용 데모 계정** — 「로그인 필요」가 켜져 있어 ID/비번 입력 필수. 환자 테스트 계정 1개 발급(비번은 이 저장소에 쓰지 말 것).
+4. **EU 거래자(trader) 정보** — 미입력 시 EU App Store 에서 삭제됨. EU 배포 제외 or 정보 입력 = PO 결정.
+5. 개인정보 라벨 「게시」 + 가격(무료)·배포 국가 확인.
+- 🚫 **「심사에 추가/제출」은 누르지 않았다** — 제출은 PO 확인 후.
 
 **이미 끝난 것:**
 - ✅ **앱 아이콘 최종 확정(2026-07-14 PO)** — 흰 바탕 + 청록→남색 그라데이션 말풍선 h(폰 PWA와 동일). 3벌(PWA·안드로이드·iOS) 규격 검증 완료, 추가 작업 불필요. 다크 전용 변형은 선택사항으로 보류.

@@ -258,6 +258,54 @@
 **7. 다음 세션 첫 프롬프트**
 
 > 먼저 `docs/PROJECT_CONTEXT.md` 최상단 읽어. 2026-07-25~27에 밀려 있던 미머지 6건을 전부 마무리했고(#985 CI 차단 해소·#968 로그인 무한대기·#969 좀비탭·#986 문서회수·#988 폴링 5곳+가드·#989 대기실 폴링·#991/#994 자리비움 자동종료), 「멈추지 않는 폴링」 부류는 CI 가드 §21로 영구 차단했다. ⚠️미검증 먼저: **실통화 1회로 ①게스트 입장 후 5분 방치 시 「아직 계신가요?」가 뜨는지 ②안 누르면 1분 뒤 「다시 입장」 화면이 되는지 ③둘 이상일 땐 아무 일도 안 일어나는지** 확인해야 완결(코드·테스트·CI는 통과, 실클릭만 남음). 그다음 🔴 E2E 전역 동시실행 상한(concurrency.group을 저장소 전역으로, 비용 0)과 🔴 KHIDI 사전상담 집계 0 논의. 🚫함정: PR이 main과 dirty면 CI가 아예 안 돎(조용히 멈춤) · 자리비움의 «종료»는 상담 종료가 아니라 그 브라우저 연결만 · 테스트를 .ts로 쓰면 머지 전 `npm run typecheck`까지 돌릴 것 · 새 CI 룰은 «일부러 어겼을 때 막히는지»를 확인해야 함.
+> **📌 중간 저장 (2026-07-24, 앱스토어 등록 세션 — 애플 결제 완료 → 등록 착수)** — PO "애플 디벨로퍼 결제했으니 앱 등록해줘". **핵심 사실: "앱 등록"의 실체(App Store Connect 앱 레코드 생성)는 PO 애플 계정 로그인이 필요 = 어시가 못 누름** → PO 포털 단계(App ID `kr.co.healwith.app`+Push cap / 앱 생성 / APNs .p8 키→Firebase 업로드 / ASC API 키→Codemagic)를 문서(`docs/APP_STORE_LISTING.md`)에 순서로 정리. **PO 선택 = "내가 할 코드부터 먼저 해둬"** → [#982](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/982) 스테이징: ⚠️**발견 = iOS 푸시가 아예 안 배선됐었음**(registerPush.ts가 서버에 올리는 token.value가 iOS에선 FCM 못 쓰는 APNs 원시토큰 → 무음실패). 수리: AppDelegate.swift에 FirebaseApp.configure()+MessagingDelegate로 APNs→FCM 교환(FCM 토큰만 Capacitor registration 이벤트로) · Info.plist FirebaseAppDelegateProxyEnabled=NO · codemagic.yaml pod install 제거(SPM 구조라 무조건 실패)·workspace→xcodeproj. ⚠️**검증 = 리눅스 iOS 빌드 불가 → 디바이스 런타임 미검증, 코드는 표준 패턴**. **남은 Xcode 단계(첫 클라우드 맥 빌드에서)**: Firebase SPM 패키지 App 타겟 추가·GoogleService-Info.plist 타겟 등록(현재 pbxproj 참조 0건)·Push/Background capability — 안 하면 AppDelegate 컴파일 실패. **다음 할 일**: PO가 애플 포털 4단계 완료 → 어시가 Vercel env 2개(FCM_PROJECT_ID·GOOGLE_SERVICE_ACCOUNT_JSON) + 첫 Codemagic 빌드 컴파일 보며 남은 Xcode 단계.
+>
+## 🔖 세션 핸드오프 (2026-07-24 — **앱스토어 등록 착수: iOS 푸시 배선 스테이징 + Android 완비 실측** 세션 종료)
+
+> PO "애플 디벨로퍼 결제했으니 앱등록해줘" → "완벽 준비냐? 한방에 가자" → "안드로이드도 같이 준비" → "준비 마쳤으면 핸드오프". 만진 영역 = `ios/App/App/*`·`codemagic.yaml`·`docs/APP_STORE_LISTING.md`(안드로이드는 실측만, 코드 변경 0). 등록정보 SoR = **`docs/APP_STORE_LISTING.md`**, 심사 답변지 = `docs/APP_STORE_REVIEW_ANSWERS.md`. 이 앱 = Capacitor 라이브로드(웹 `https://healwith.co.kr`을 감싼 네이티브 껍데기), 스토어 반려(4.2 웹뷰) 회피용 네이티브 가치 = 푸시·카메라.
+
+**1. 이번 세션 한 일** (PR [#982](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/982) **초안·미머지**, CI 초록)
+
+- **iOS 푸시(APNs→FCM) 배선 코드 스테이징** — 발견: iOS는 원래 푸시가 아예 안 배선됨(웹 `registerPush.ts`가 서버에 올리는 token.value가 iOS에선 FCM이 못 쓰는 APNs 원시 토큰 → `fcm.ts` 발송이 무음 실패). 수리 3파일: ①`AppDelegate.swift` — `FirebaseApp.configure()`+`MessagingDelegate`, APNs 토큰을 Firebase에 수동으로 넘겨 FCM 토큰 교환 → **FCM 토큰만** Capacitor `registration` 이벤트로 String 전달(공식 "Push with Firebase" 패턴). ②`Info.plist` — `FirebaseAppDelegateProxyEnabled=NO`(APNs/FCM 이중 발화 방지). ③`codemagic.yaml` — `pod install` 제거(Podfile 없는 SPM 구조라 무조건 실패)·빌드대상 `.xcworkspace`→`.xcodeproj`.
+- **Android 푸시 배선 = 이미 완비 실측 재확인** — 코드 변경 0(내가 손댈 것 없었음). 실측: `build.gradle` google-services classpath ✅ / `app/build.gradle` google-services.json 있으면 플러그인 자동적용 ✅(파일 커밋됨) / `capacitor.settings.gradle`·`capacitor.build.gradle`에 `capacitor-push-notifications` 편입(firebase-messaging 트랜지티브) ✅ / 권한 CAMERA·RECORD_AUDIO·POST_NOTIFICATIONS ✅. `docs/APP_STORE_LISTING.md`에 실측 기록.
+- **문서** — APP_STORE_LISTING.md에 애플 결제 완료(✅ 2026-07-24) 반영 + PO 애플 포털 4단계(App ID/앱 생성/APNs .p8/ASC API 키) 순서 + 첫 맥 빌드에서 할 남은 Xcode 단계 정리. PROJECT_CONTEXT 중간저장.
+
+**2. 왜 그렇게 했는지**
+
+- **"앱 등록"의 실체는 PO 몫**: App Store Connect 앱 레코드 생성·App ID·APNs 키·ASC API 키는 전부 애플 계정 로그인이 필요 → 어시가 대신 못 누름. PO에게 "코드는 내가, 포털 단추는 니가"로 역할을 명확히 갈랐다.
+- **iOS 남은 Xcode 단계를 눈감고 안 함**: Firebase SPM 패키지 추가·GoogleService-Info.plist 타겟 등록·capability는 **리눅스에서 검증 불가**하고 pbxproj를 블라인드로 손대면 첫 빌드가 더 꼬인다(PO 취향 「고친 것처럼 보이는데 안 고쳐진 = 해롭다」). → 첫 클라우드 맥 빌드에서 컴파일 피드백 보며 하는 게 맞다고 판단, 문서로 정확히 남김.
+- **"한방에?"에 안심 대신 실측**: PO가 "완벽 준비냐"고 되물어 CI/파일 실측으로 "코드는 됐지만 첫 빌드는 반드시 손봐야 하고, 계정 단추 7개가 남았다"고 정직하게 답(CLAUDE.md ⭐ 「되물으면 실측으로」).
+
+**3. 안 끝났거나 보류** (전부 PO 계정 작업이 선행조건)
+
+- **애플 포털 4단계** — App ID `kr.co.healwith.app`(+Push) / 앱 생성 `healwith` / APNs .p8 키(→Firebase 업로드) / ASC API 키(→Codemagic). PO 로그인 필요.
+- **구글 플레이** — 개발자 등록 $25(일회) / 앱 생성 / 서명 키스토어 / Play 서비스계정 JSON(→Codemagic). PO 작업.
+- **PR #982 미머지** — 화면변화 없는 iOS 네이티브 스테이징이라 자동머지 안 함. 첫 맥 빌드에서 Xcode 단계 마저 하며 같이 다루는 게 자연스러움(급하지 않음).
+
+**4. 주의·함정** ⚠️
+
+- **AppDelegate는 지금 이대로면 iOS 빌드가 컴파일 실패한다(정상)** — `import FirebaseCore/FirebaseMessaging`인데 Firebase SDK가 아직 App 타겟에 없음(`Package.swift`에 firebase 0건). 첫 맥 빌드에서 Xcode로 SPM 패키지(`https://github.com/firebase/firebase-ios-sdk`→FirebaseMessaging) 추가해야 함. **이건 버그가 아니라 남겨둔 단계.**
+- **`GoogleService-Info.plist`는 파일만 있고 pbxproj 참조 0건** — 타겟 리소스로 등록 안 하면 `FirebaseApp.configure()`가 런타임 크래시. 첫 빌드에서 Xcode로 App 타겟에 등록.
+- **CI 초록 ≠ 앱 준비 완료** — CI(`next build`)는 Swift를 컴파일하지 않는다. #982 CI 초록은 "웹이 안 깨졌다"는 뜻일 뿐. iOS 실검증은 첫 Codemagic 빌드 + 실기기뿐.
+- **Codemagic 무료분 낭비 주의** — 서명 열쇠(ASC API 키·키스토어) 없이 빌드 시작하면 실패만 뜨고 무료분만 깎임. PO 포털 단계 후에 빌드 트리거.
+
+**5. 다음 세션이 먼저 할 일**
+
+1. **⚠️ 직전 미검증분 = iOS 푸시 런타임 미검증** — 리눅스에서 못 돌림. PO가 애플 포털 4단계 완료하면: 어시가 (a)첫 Codemagic 빌드 돌리며 남은 Xcode 단계(Firebase SPM 추가·plist 등록·Push/Background capability) 컴파일 피드백 보며 처리 → (b)Vercel env 2개(`FCM_PROJECT_ID`·`GOOGLE_SERVICE_ACCOUNT_JSON`) 설정 → (c)TestFlight 업로드 → (d)실기기 `/api/push/test`로 푸시 수신 실확인. **여기까지 가야 "iOS 됨"이라 말할 수 있음.**
+2. Android: PO가 플레이 등록·키스토어·서비스계정 마치면 Codemagic android-release 빌드(리눅스라 iOS보다 검증 쉬움) → 내부테스트 트랙.
+3. 심사 제출 전 데모 계정 1개 발급(비번 문서에 쓰지 말 것) + `APP_STORE_REVIEW_ANSWERS.md` 복붙.
+
+**6. 검증 상태**
+
+- ✅ **PR #982 CI 초록 실측**(`get_check_runs`): `ci` success·`Smoke Tests (PR)` success. Vercel 프리뷰는 iOS/문서 변경이라 Ignored(정상).
+- ✅ **Android 배선 완비 = 파일 실측**(gradle·settings·manifest 직접 확인). 단 **gradle 빌드 자체는 이 환경(Android SDK 없음)에서 미실행** — Codemagic 리눅스 빌드에서 확정.
+- ⚠️ **iOS 코드 = 디바이스 런타임 미검증**(리눅스 iOS 빌드 불가). 코드는 Capacitor 공식 표준 패턴대로 작성했으나 **실기기 토큰 흐름은 한 번도 안 돌려봄** → 5번 1순위로 승격.
+- 🟡 **열린 PR 다수(내 것 아님)**: #981·#973·#969·#968·#965 등(장애·화상상담·i18n 세션들) — 이 세션과 무관.
+
+**7. 다음 세션 첫 프롬프트**
+
+> 먼저 docs/PROJECT_CONTEXT.md 최상단 읽어. 앱스토어 등록 착수 세션 이어받는 거다. iOS 푸시 배선 코드는 PR #982에 스테이징돼 있는데 **디바이스 런타임 미검증**이고 첫 클라우드 맥 빌드에서 Xcode 단계(Firebase SPM 패키지 추가·GoogleService-Info.plist 타겟 등록·Push/Background capability)를 마저 해야 컴파일된다(지금 이대로면 컴파일 실패가 정상). Android는 코드 이미 완비(실측). **선행조건 = PO 계정 작업**: 애플 포털 4단계(App ID+Push / 앱 생성 / APNs .p8→Firebase / ASC API 키→Codemagic) + 구글 플레이($25·키스토어·서비스계정). PO가 "포털 했다"고 하면: 어시가 Vercel env 2개 넣고 첫 Codemagic 빌드 돌리며 컴파일 잡고 TestFlight 올린 뒤 실기기 /api/push/test로 푸시 실수신 확인까지. 🚫 함정: CI 초록은 웹만 뜻함(Swift 미컴파일) · 서명 열쇠 없이 빌드 트리거하면 무료분만 낭비 · AppDelegate 컴파일 실패는 버그 아니라 남겨둔 Firebase SDK 단계.
+
 ## 🧭 오전 다중세션 통합 정리 (2026-07-01) — 무엇이 배포됐고 / 무엇이 미머지로 남았나
 
 > **왜 이 블록:** 오늘 오전 여러 창(병렬 세션)에서 각자 작업 후 각자 핸드오프 → 배포된 건 main·SoR에 잘 쌓였지만, **끝냈는데 아직 본판에 안 합친(미머지) 작업 3건**이 각 세션 브랜치에만 있고 이 SoR엔 기록이 없었음(=다음 세션이 놓칠 위험). 그 3건을 여기 한 곳에 모아 다음 세션 큐로 승격. (세부 이야기는 아래 오후·오전(2) 핸드오프 + `archive/`에 이미 있음 — 여기선 안 겹치게 '무엇이 남았나'만.)

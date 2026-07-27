@@ -25,25 +25,40 @@ workflows:
     integrations:
       app_store_connect: healwith_asc   # ← Codemagic Integrations 에 등록한 이름
     environment:
-      ios_signing:
-        distribution_type: app_store
-        bundle_identifier: kr.co.healwith.app
-      node: 20
+      groups:
+        - ios_signing          # CERTIFICATE_PRIVATE_KEY (애플 배포 인증서 발급용 RSA 개인키)
+      vars:
+        BUNDLE_ID: "kr.co.healwith.app"
+      node: 22   # Capacitor CLI 8.x 는 NodeJS >=22 요구(2026-07-27 빌드 실패로 확인)
       xcode: latest
-      cocoapods: default
     scripts:
       - name: npm 의존성 설치
         script: npm ci
-      - name: Capacitor iOS 동기화
+      - name: Capacitor iOS 동기화 (SPM 패키지 해결 포함)
         script: npx cap sync ios
-      - name: CocoaPods 설치
-        script: cd ios/App && pod install
-      - name: 서명 프로필 적용
-        script: xcode-project use-profiles
+      - name: 서명 파일 발급·적용 (없으면 새로 만든다)
+        # ⚠️ 2026-07-27 첫 빌드가 여기서 죽었다: "No matching profiles found ... app_store".
+        #    environment.ios_signing 블록은 «있는 프로파일을 가져오기만» 한다 → 계정에 프로파일이
+        #    하나도 없는 최초 상태에서는 무조건 실패. --create 로 배포 인증서·프로파일을 만들게 바꿨다.
+        # ⚠️ 2026-07-27 빌드 #3: --create 만으로는 아무것도 안 만들어진다.
+        #    로그 실측 «Cannot save Signing Certificates without certificate private key» →
+        #    배포 인증서를 발급하려면 CSR 서명용 RSA 개인키가 있어야 하는데 없으면 조용히 빈손으로
+        #    넘어가고(프로파일 0개), 그 다음 컴파일이 «푸시 프로파일 없음»으로 죽는다(엉뚱한 데서 터짐).
+        script: |
+          keychain initialize
+          app-store-connect fetch-signing-files "$BUNDLE_ID" \
+            --type IOS_APP_STORE \
+            --certificate-key=@env:CERTIFICATE_PRIVATE_KEY \
+            --create
+          keychain add-certificates
+          xcode-project use-profiles
       - name: IPA 빌드
+        # ⚠️ 이 앱은 CocoaPods 가 아니라 SPM(CapApp-SPM) 구조 → pod install/.xcworkspace 없음.
+        #    xcodeproj 를 직접 빌드한다. Firebase SDK(FirebaseMessaging)는 첫 클라우드 맥 빌드에서
+        #    App 타겟에 SPM 패키지로 추가해야 AppDelegate 가 컴파일된다(APP_STORE_LISTING.md 참고).
         script: |
           xcode-project build-ipa \
-            --workspace "ios/App/App.xcworkspace" \
+            --project "ios/App/App.xcodeproj" \
             --scheme "App"
     artifacts:
       - build/ios/ipa/*.ipa
@@ -63,7 +78,7 @@ workflows:
         - google_play          # GCLOUD_SERVICE_ACCOUNT_CREDENTIALS
       android_signing:
         - healwith_keystore     # ← Codemagic Code signing identities 의 reference 이름
-      node: 20
+      node: 22   # Capacitor CLI 8.x 는 NodeJS >=22 요구(2026-07-27 빌드 실패로 확인)
       java: 17
     scripts:
       - name: npm 의존성 설치
