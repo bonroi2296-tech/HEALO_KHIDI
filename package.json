@@ -4,7 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "sync": "bash scripts/sync.sh",
+    "sync": "node scripts/sync.mjs",
     "dev": "next dev --webpack",
     "build": "next build --webpack",
     "start": "next start",
