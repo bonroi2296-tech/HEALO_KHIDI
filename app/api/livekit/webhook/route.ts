@@ -69,8 +69,25 @@ export async function POST(request: NextRequest) {
           `[livekit/webhook] room_finished ${roomName} — status 미변경(staff 완료가 K-02 정본 경로)`
         );
       } else if (event.event === "participant_joined" && roomName) {
-        // 참가 로그 - metadata 에 append
-        console.log(`[livekit/webhook] ${participantIdentity} joined ${roomName}`);
+        // 통화 «시작 시각» 기록 — 2026-07-27 실측: 세션 54건 전부 started_at 이 NULL 이었다.
+        // 실제로 회의를 해도 시스템은 «시작한 적 없음»으로 알아, 나중에 "이때 상담했다"를
+        // 데이터로 증명할 수 없었다(상태는 계속 scheduled).
+        // ⚠️ status 는 절대 건드리지 않는다 — 'completed' 는 K-02 집계 기준이고 staff 수동 완료가
+        //    유일한 정본 경로다(위 room_finished 주석·#637 K-02 인플레 사고와 같은 원칙).
+        //    여기서 채우는 건 status 와 무관한 started_at 컬럼뿐이다.
+        // 첫 입장에만 기록(.is("started_at", null)) — 두 번째 참가자가 덮어쓰면 «시작»이 아니게 된다.
+        const { error: startErr } = await supabase
+          .from("consultation_sessions")
+          .update({ started_at: new Date().toISOString() } as any)
+          .eq("livekit_room_name", roomName)
+          .is("started_at", null);
+        if (startErr) {
+          // 위 participant_left 와 같은 이유로 실패를 알린다(로그만 남기면 1시간 뒤 증발 =
+          // 이 기능이 막으려던 «시작 시각 유실»이 그대로 재발). LiveKit 이 재시도한다.
+          console.error("[livekit/webhook] started_at 기록 실패(재시도 유도):", startErr.message);
+          return Response.json({ ok: false, error: "internal_error" }, { status: 502 });
+        }
+        console.log(`[livekit/webhook] ${participantIdentity} joined ${roomName} (started_at 기록 시도)`);
       } else if (
         event.event === "participant_left" &&
         roomName &&
