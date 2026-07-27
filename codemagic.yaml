@@ -96,3 +96,27 @@ workflows:
         credentials: $GCLOUD_SERVICE_ACCOUNT_CREDENTIALS
         track: internal        # internal → 검증 후 production 으로 승격
         submit_as_draft: true
+
+  # ── 서명·업로드 없이 «안드로이드가 컴파일되는가»만 확인하는 검증용 워크플로 ──────
+  #    왜: 키스토어·Play 서비스계정은 PO 계정 작업이라 준비되기 전엔 android-release 를 못 돌린다.
+  #        그런데 정작 «코드가 빌드되는지»는 그것들과 무관하게 지금 확인할 수 있다.
+  #        (iOS 는 첫 빌드에서 서명·Node버전·SDK누락으로 4번 걸렸다 — 안드로이드는 미리 겪어둔다)
+  #    나중에 PR 검증용으로도 그대로 쓸 수 있다.
+  android-verify:
+    name: healwith Android (빌드 검증 전용 · 서명/업로드 없음)
+    instance_type: linux_x2
+    max_build_duration: 45
+    environment:
+      node: 22
+      java: 17
+    scripts:
+      - name: npm 의존성 설치
+        script: npm ci
+      - name: Capacitor Android 동기화
+        script: npx cap sync android
+      - name: 디버그 AAB 빌드 (서명 불필요)
+        script: |
+          cd android
+          ./gradlew bundleDebug --stacktrace
+    artifacts:
+      - android/app/build/outputs/**/*.aab
