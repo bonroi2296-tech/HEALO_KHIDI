@@ -33,6 +33,13 @@
 > - **[#1008] E2E 프로덕션 DB 동시 진입 상한** (main `c32665f`) — `smoke`·`full`·`production-nightly` 세 잡에 **job 레벨** `concurrency: {group: e2e-prod-db, cancel-in-progress: false}` → 저장소 전역 직렬화(동시 1개). **왜 job 레벨인가**: GitHub 의 concurrency 는 «동시 N개»가 아니라 «그룹당 1개»라, workflow 레벨을 전역으로 바꾸면 `true` 는 남의 PR 실행을 죽이고 `false` 는 브랜치 내 중복 제거를 잃는다. job 레벨은 독립 자물쇠라 둘 다 가진다. **상한 1의 근거**: 실측 «14시간 89회» × 4~7분 ≈ 53% 가동률 → 직렬화해도 흘러간다. KNOWN_ISSUES 해당 항목을 「✅ ①번 조치 완료」로 갱신.
 > - ❌ **직렬화 «효과»는 실측 못 했다** — 머지 직후 PR 검사가 대기 없이 시작했지만, 그 브랜치는 2026-07-25 것이라 **애초에 새 자물쇠가 없는 옛 설정으로 돌았다**(브랜치가 main 을 받아야 적용). 그 시점에 경쟁 실행이 있었는지도 미확인 → **양쪽 다 미확정**. 확정 시점 = 2026-07-27 밤 예약 실행(main 기준이라 확실히 새 설정) + 각 PR 이 main 을 받은 뒤. **다음 세션이 며칠치 이력으로 ⓐPR 초록 지연 ⓑ동시 진입 감소를 확인할 것.**
 > - ⚠️ 근본 해결은 여전히 KNOWN_ISSUES ②번(**E2E 를 프로덕션 DB 에서 분리** — 별도 Supabase, 비용 산출 후 PO 결정). 이건 응급 처치다.
+>
+> **🚨 정정 (2026-07-27 오전, 위 📝 추가분을 쓴 직후) — #1008 은 «되돌렸다». 위 서술을 그대로 믿지 마라.**
+> - **무슨 일**: #1008 머지 직후 **열린 PR 5개(#982·#998·#1007·#1009·#1010)가 전부 BLOCKED.** 각 PR 잘못이 아니라 서로의 검사를 취소시켰다(사유 전부 `Canceling since a higher priority waiting request for e2e-prod-db exists`). PO 지적으로 발각 → **1분 만에 되돌림([#1010](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/1010), main `0cd6b16`).**
+> - **내 전제가 틀렸다**: `cancel-in-progress: false` 면 «대기열에 줄을 선다»고 적었는데, **concurrency 의 대기 슬롯은 1개뿐**이다(공식 문서: *"Any previously pending job or workflow in the concurrency group will be canceled."*). `false` 는 «실행 중인 것»만 지키고 «대기 중인 것»은 못 지킨다. → **위 «53% 가동률이라 흘러간다» 산수는 «줄이 선다»를 전제한 것이라 무효.**
+> - **가장 뼈아픈 지점**: workflow 레벨에서 «남의 PR 을 내 PR 이 죽인다(재앙)»를 정확히 짚고 피해놓고, **job 레벨 대기열 밀어내기로 같은 재앙을 뒷문으로 들여놨다.**
+> - **지금 상태**: job 레벨 자물쇠 3개 전부 제거(파싱 확인). workflow 레벨 그룹(#1004)은 유지 — 별개 수정. **「E2E 가 프로덕션 DB 동시 진입」은 미해결로 원위치.**
+> - **다음 사람에게**: ⛔ **concurrency 로는 «동시 N개»를 못 만든다 — 이 방향 재시도 금지.** 후보는 ①self-hosted 러너 풀 ②외부 뮤텍스 ③근본책(DB 분리, 정공법). ①②도 «막힘» 시나리오부터 검증할 것. 상세 = POSTMORTEMS **#127**.
 
 **1. 이번 세션 한 일**
 
