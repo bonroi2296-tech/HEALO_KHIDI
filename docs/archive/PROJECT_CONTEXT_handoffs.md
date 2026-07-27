@@ -1,5 +1,116 @@
 # PR
 
+
+## 🔖 세션 핸드오프 (2026-07-25~27 — **밀린 미머지 6건 마무리 + 「멈추지 않는 폴링」 부류 전수 근절·가드화** 세션 종료)
+
+> PO "어제 작업한 것들 정리해봐" → "마무리 안된거 있으면 정리해"에서 시작. 정리 도중 **CI 전면 차단**과 **좀비 폴링 부류**를 발견해 근절까지 감. 만진 영역 = `app/consultation/[id]/*`·`app/patient|coordinator|hospital|agency|admin` 폴링부·`scripts/*`·`docs/*`. **머지 8건 전부 프로덕션 배포 완료.**
+>
+> 📝 **정정**: 아래 「2026-07-24 로그인 장애 대응」 블록이 «[#968](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/968)·[#969](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/969) 미머지»로 남긴 것은 **2026-07-25 둘 다 머지·배포 완료**로 해소됨.
+
+**1. 이번 세션 한 일** (머지 8건 — 전부 CI 초록 후 squash 머지)
+
+- **[#985] 🔴 CI 전면 차단 해소(가장 먼저 터진 것)** — 2026-07-25 아침, 우리가 의존성을 한 줄도 안 건드렸는데 `audit:deps`가 빨개져 **열린 PR 전부가 막혀 있었다.** 원인 = 전날 밤 새로 등록된 공고 `GHSA-mh99-v99m-4gvg`(brace-expansion DoS) 1건이 사슬을 타고 high 13건으로 번진 것. **고칠 상위 버전이 아직 없음**(대상 `<=5.0.7`, 우리가 무는 1.x·2.x 라인에 패치판 미발행), `npm audit fix --force`는 exceljs 다운그레이드라 부적절. → 게이트를 끄지 않고 **`scripts/audit-deps.mjs` 신설**: 공고 단위 판정 + **이유·만료일 달린 한시 예외**(만료 2026-08-25, 지나면 CI가 스스로 실패).
+- **[#968] 로그인 무한대기 수리** — 인증 서버가 «에러도 안 주고 응답을 멈추면» 화면이 「로그인 중…」에 영원히 갇히던 것. `withAuthTimeout(20s)` 6곳 적용 + 안내문구 6개어 + **가드 §20**. 반성문 #119.
+- **[#969] 상담방 좀비 탭 수리** — 통화 끝난 방치 탭이 4~8초마다 무한 폴링(분당 37.5회, 3시간 요청의 72%). 60초 유휴 워치독 + 백그라운드 탭 스킵 + 자료 8→20초. 반성문 #120.
+- **[#986] 갇혀 있던 문서 3건 회수** — [#965]·[#973]·[#981]이 전부 main과 충돌(dirty)이라 **CI가 아예 안 돌아 조용히 멈춰** 있었다. 알맹이만 최신 main 위로 옮기고 원본 3건은 사유 적어 close.
+- **[#988] 좀비 폴링 나머지 5곳 + `[폴링좀비]` 가드 §21 신설** — #969가 상담방만 고치고 가드를 안 만들어 같은 패턴이 5곳(코디·환자 메시지함 5초, 병원 리드·에이전시 포털 8초, **크롤 파이프라인 2초**) 그대로 살아 있었다. 반성문 #121.
+- **[#989] 대기실 폴링 수리 + 가드를 파일 단위→인터벌 단위로** — PO "일찍 들어와 대기하면 또 문제냐" 질문에서 드러남. 대기실은 **승인될 때까지 무제한 2.5초**(1시간 일찍 오면 1,440회)인데 안 고쳐져 있었고, **어제 만든 가드가 파일 단위라 이걸 못 잡았다.**
+- **[#991]·[#994] 자리 비움 자동 종료** — 나가기를 안 누르고 화면만 켜둔 채 떠나면 폴링이 영원히 돌던 마지막 구멍. 구글 미트 방식(먼저 묻고, 무응답이면 끊기) + PO 지시로 **대기·통화 중 혼자 모두 5분 → 1분**. 문구 6개어, 테스트 5건.
+
+**2. 왜 그렇게 했는지**
+
+- **감사 게이트를 끄지 않고 «만료일 예외»로 간 이유**: 끄면(`--audit-level` 상향·`|| true`) 고칠 수 있는 진짜 취약점까지 눈감게 된다. 예외에 만료일을 박아 **조용한 영구 면제**를 막았다(#118의 「면제 목록 금지」 교훈 적용).
+- **문서 3건을 하나로 합친 이유**: 셋 다 같은 파일(`PROJECT_CONTEXT`·`PO_PREFERENCES`)을 물어 하나씩 풀면 서로 또 충돌한다. 핸드오프 7칸 원문을 그대로 옮기면 **상단 4블록 한도를 넘겨 당일 기록이 창고로 밀린다** → 「다음 주에 이걸 믿고 일해야 하는 사실」만 추렸다.
+- **자동 종료를 «바로 끊기»가 아니라 «먼저 묻기»로**: PO가 *"줌이나 구글미트는 어케하니?"*라고 되물어 실조사 → 구글 미트 = 10분 무활동 안내 후 2분 무응답 시 종료 / 줌 = 혼자 40분(단 이건 **무료 요금제 제한**이 목적이라 우리와 결이 다름). **의료 상담이라 오작동 종료가 치명적**이므로 «묻고 끊는» 구글 방식 채택.
+- **5분/1분으로 짧게 잡아도 안전한 근거**: 타이머는 «방에 나 혼자»일 때만 돈다 — 상대가 한 명이라도 있으면 시작조차 안 하므로 **진행 중인 상담이 침묵으로 끊길 일은 구조상 없다.**
+
+**3. 안 끝났거나 보류**
+
+- **실통화 클릭 검증 전부** — 자리 비움 안내·대기실 폴링·로그인 타임아웃 모두 **실제 사람이 눌러본 적 없음**. 자동환경에서 2인 통화·실마이크·실장애를 만들 수 없다. **PO 손 필요.**
+- **🔴 E2E 전역 동시실행 상한** — 자동검사가 프로덕션 DB를 그대로 물고 22갈래 동시 진입하는 구조는 **그대로**. `KNOWN_ISSUES` 최상단 등재, 미착수.
+- **🔴 KHIDI 사전상담 자동집계 0** — 회의를 해도 실적에 안 잡힘(8/27 중간평가 K-02 직결). 발견·기록만 하고 미수정(PO 논의 대기).
+- **의존성 공고 예외 만료 2026-08-25** — 그때 상위 패치 재확인해 올리거나 근거 대고 연장. 안 하면 CI가 스스로 빨개진다(의도된 설계).
+
+**4. 주의·함정** ⚠️
+
+- **PR이 main과 충돌(dirty)이면 GitHub이 CI를 아예 안 돌린다** — 빨간 것도 아니고 «조용히 멈춤»이라 방치되기 쉽다. PR이 조용하면 `mergeable_state`부터 볼 것. 이번에 5건이 그 상태였다.
+- **`[폴링좀비]` 가드는 인터벌 단위 판정** — 콜백 본문(또는 콜백이 부르는 함수 본문) 안에 `document.hidden`이 있어야 통과. 파일 어딘가에 있다고 통과시키던 초안이 대기실 폴링을 통째로 놓쳤다.
+- **새 CI 룰은 «통과하는지»가 아니라 «일부러 어겼을 때 종료코드 1로 막는지»를 확인해야 한다** — 이번에 그 확인이 가드 자체 결함 4개를 잡았다(블록 본문 미탐지 / 25ms 타자기 오탐 / `fetchWithAuth` 미탐지 / 파일 단위 구멍).
+- **자리 비움의 «종료»는 상담 종료가 아니다** — 그 브라우저 연결만 끊는다. 상담 기록(`status`)·상대 참가자·초대 링크 전부 안 건드리며 화면엔 「다시 입장」이 뜬다. (2026-07-01 «종료 누르면 completed로 바뀌던» 회귀와 혼동 금지.)
+- **테스트를 `.js`로 쓰고 `.ts`로 이름만 바꾸면 타입 오류가 난다** — 이번에 CI를 한 번 빨갛게 만들었다. 로컬 `vitest`만 돌리면 못 잡는다. **머지 전 `npm run typecheck`까지 돌릴 것.**
+
+**5. 다음 세션이 먼저 할 일**
+
+1. ⚠️ **직전 미검증분 먼저 확인(실통화 1회로 다 됨)**: ①게스트로 입장해 **5분 그냥 두면 「아직 계신가요?」가 뜨는지**, 안 누르면 1분 뒤 「다시 입장」 화면이 되는지 ②**둘 이상 있을 땐 아무 일도 안 일어나는지** ③(이전 세션 잔여) 자막 안 뜨면 화면 탭 → 살아나는지·통역 버튼 눌러 켜지는지.
+2. **🔴 E2E 전역 동시실행 상한** 착수 — `concurrency.group`을 저장소 전역으로(비용 0, 즉시 가능). 근본책인 «CI 전용 Supabase 분리»는 비용 산출 후 PO 결정.
+3. **🔴 KHIDI 사전상담 집계 0** — PO와 고칠 방향 논의(문의 미선택 경고·상담 완료 유도·소급 반영 수단).
+4. (PO 몫) 구글플레이 전화번호 인증 / 스태프 릴레이 실전 왕복 / 외부 업타임 모니터 결정.
+
+**6. 검증 상태**
+
+- ✅ **머지·배포 실측**: #985(`48fd890`)·#968(`5bce4bf`)·#969(`28dd22a`)·#986(`1c5bf5d`)·#988(`8302666`)·#989(`01c792b`)·#991(`d7d8a91`)·#994(`69c72e1`) — **8건 전부 `ci`·`Smoke Tests(PR)` success 확인 후 squash 머지.** 문서 PR #965·#973·#981은 사유 적어 close.
+- ✅ **로컬 실측(CI 동일 검사)**: `typecheck` · `eslint --quiet` 0 · `vitest` 730→735 전부 통과 · `next build --webpack` · `check:content`.
+- ✅ **가드 반증 검사** — 예외 비움·만료일 조작 시 종료코드 1 / 정상 시 0(감사 게이트), 6개 파일에서 가드 제거 시 전부 차단·수리 상태 오탐 0(폴링좀비), 대기실 수리 되돌리면 **새 가드는 잡고 옛 가드는 못 잡음**을 실측.
+- ✅ **테스트 반증 검사** — 자리 비움 타이머 테스트 5건에서 「«있어요» 누르면 재무장」 결함을 일부러 되살렸을 때 실패하는 것 확인(테스트에 이빨이 있음).
+- ❌ **미검증(정직)**: **실통화·실사용 클릭 검증 0건.** 자리 비움 안내가 실제로 5분 뒤 뜨는지, 대기실 승인이 정상 동작하는지, 로그인 타임아웃 안내가 실제 장애 때 뜨는지 — 전부 코드·테스트·CI까지만. → 5번 1항 승격.
+- ❌ **독립 리뷰 에이전트 미실행** — #968·#969는 내가 작성자가 아니라(전날 다른 세션 작업) 합친 결과물을 처음 보는 눈으로 검토했으나, 규칙상의 별도 리뷰 에이전트는 이번 세션에서 돌리지 않았다.
+- 🟡 **열린 PR(내 것 아님)**: #993(로컬↔깃 동기화 스크립트, 타 세션)·#982(iOS 푸시 스테이징, 첫 맥 빌드 때 처리). 내가 연 PR은 전부 닫힘.
+
+**7. 다음 세션 첫 프롬프트**
+
+> 먼저 `docs/PROJECT_CONTEXT.md` 최상단 읽어. 2026-07-25~27에 밀려 있던 미머지 6건을 전부 마무리했고(#985 CI 차단 해소·#968 로그인 무한대기·#969 좀비탭·#986 문서회수·#988 폴링 5곳+가드·#989 대기실 폴링·#991/#994 자리비움 자동종료), 「멈추지 않는 폴링」 부류는 CI 가드 §21로 영구 차단했다. ⚠️미검증 먼저: **실통화 1회로 ①게스트 입장 후 5분 방치 시 「아직 계신가요?」가 뜨는지 ②안 누르면 1분 뒤 「다시 입장」 화면이 되는지 ③둘 이상일 땐 아무 일도 안 일어나는지** 확인해야 완결(코드·테스트·CI는 통과, 실클릭만 남음). 그다음 🔴 E2E 전역 동시실행 상한(concurrency.group을 저장소 전역으로, 비용 0)과 🔴 KHIDI 사전상담 집계 0 논의. 🚫함정: PR이 main과 dirty면 CI가 아예 안 돎(조용히 멈춤) · 자리비움의 «종료»는 상담 종료가 아니라 그 브라우저 연결만 · 테스트를 .ts로 쓰면 머지 전 `npm run typecheck`까지 돌릴 것 · 새 CI 룰은 «일부러 어겼을 때 막히는지»를 확인해야 함.
+> **📌 중간 저장 (2026-07-24, 앱스토어 등록 세션 — 애플 결제 완료 → 등록 착수)** — PO "애플 디벨로퍼 결제했으니 앱 등록해줘". **핵심 사실: "앱 등록"의 실체(App Store Connect 앱 레코드 생성)는 PO 애플 계정 로그인이 필요 = 어시가 못 누름** → PO 포털 단계(App ID `kr.co.healwith.app`+Push cap / 앱 생성 / APNs .p8 키→Firebase 업로드 / ASC API 키→Codemagic)를 문서(`docs/APP_STORE_LISTING.md`)에 순서로 정리. **PO 선택 = "내가 할 코드부터 먼저 해둬"** → [#982](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/982) 스테이징: ⚠️**발견 = iOS 푸시가 아예 안 배선됐었음**(registerPush.ts가 서버에 올리는 token.value가 iOS에선 FCM 못 쓰는 APNs 원시토큰 → 무음실패). 수리: AppDelegate.swift에 FirebaseApp.configure()+MessagingDelegate로 APNs→FCM 교환(FCM 토큰만 Capacitor registration 이벤트로) · Info.plist FirebaseAppDelegateProxyEnabled=NO · codemagic.yaml pod install 제거(SPM 구조라 무조건 실패)·workspace→xcodeproj. ⚠️**검증 = 리눅스 iOS 빌드 불가 → 디바이스 런타임 미검증, 코드는 표준 패턴**. **남은 Xcode 단계(첫 클라우드 맥 빌드에서)**: Firebase SPM 패키지 App 타겟 추가·GoogleService-Info.plist 타겟 등록(현재 pbxproj 참조 0건)·Push/Background capability — 안 하면 AppDelegate 컴파일 실패. **다음 할 일**: PO가 애플 포털 4단계 완료 → 어시가 Vercel env 2개(FCM_PROJECT_ID·GOOGLE_SERVICE_ACCOUNT_JSON) + 첫 Codemagic 빌드 컴파일 보며 남은 Xcode 단계.
+>
+
+## 🔖 세션 핸드오프 (2026-07-24 — **앱스토어 등록 착수: iOS 푸시 배선 스테이징 + Android 완비 실측** 세션 종료)
+
+> PO "애플 디벨로퍼 결제했으니 앱등록해줘" → "완벽 준비냐? 한방에 가자" → "안드로이드도 같이 준비" → "준비 마쳤으면 핸드오프". 만진 영역 = `ios/App/App/*`·`codemagic.yaml`·`docs/APP_STORE_LISTING.md`(안드로이드는 실측만, 코드 변경 0). 등록정보 SoR = **`docs/APP_STORE_LISTING.md`**, 심사 답변지 = `docs/APP_STORE_REVIEW_ANSWERS.md`. 이 앱 = Capacitor 라이브로드(웹 `https://healwith.co.kr`을 감싼 네이티브 껍데기), 스토어 반려(4.2 웹뷰) 회피용 네이티브 가치 = 푸시·카메라.
+
+**1. 이번 세션 한 일** (PR [#982](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/982) **초안·미머지**, CI 초록)
+
+- **iOS 푸시(APNs→FCM) 배선 코드 스테이징** — 발견: iOS는 원래 푸시가 아예 안 배선됨(웹 `registerPush.ts`가 서버에 올리는 token.value가 iOS에선 FCM이 못 쓰는 APNs 원시 토큰 → `fcm.ts` 발송이 무음 실패). 수리 3파일: ①`AppDelegate.swift` — `FirebaseApp.configure()`+`MessagingDelegate`, APNs 토큰을 Firebase에 수동으로 넘겨 FCM 토큰 교환 → **FCM 토큰만** Capacitor `registration` 이벤트로 String 전달(공식 "Push with Firebase" 패턴). ②`Info.plist` — `FirebaseAppDelegateProxyEnabled=NO`(APNs/FCM 이중 발화 방지). ③`codemagic.yaml` — `pod install` 제거(Podfile 없는 SPM 구조라 무조건 실패)·빌드대상 `.xcworkspace`→`.xcodeproj`.
+- **Android 푸시 배선 = 이미 완비 실측 재확인** — 코드 변경 0(내가 손댈 것 없었음). 실측: `build.gradle` google-services classpath ✅ / `app/build.gradle` google-services.json 있으면 플러그인 자동적용 ✅(파일 커밋됨) / `capacitor.settings.gradle`·`capacitor.build.gradle`에 `capacitor-push-notifications` 편입(firebase-messaging 트랜지티브) ✅ / 권한 CAMERA·RECORD_AUDIO·POST_NOTIFICATIONS ✅. `docs/APP_STORE_LISTING.md`에 실측 기록.
+- **문서** — APP_STORE_LISTING.md에 애플 결제 완료(✅ 2026-07-24) 반영 + PO 애플 포털 4단계(App ID/앱 생성/APNs .p8/ASC API 키) 순서 + 첫 맥 빌드에서 할 남은 Xcode 단계 정리. PROJECT_CONTEXT 중간저장.
+
+**2. 왜 그렇게 했는지**
+
+- **"앱 등록"의 실체는 PO 몫**: App Store Connect 앱 레코드 생성·App ID·APNs 키·ASC API 키는 전부 애플 계정 로그인이 필요 → 어시가 대신 못 누름. PO에게 "코드는 내가, 포털 단추는 니가"로 역할을 명확히 갈랐다.
+- **iOS 남은 Xcode 단계를 눈감고 안 함**: Firebase SPM 패키지 추가·GoogleService-Info.plist 타겟 등록·capability는 **리눅스에서 검증 불가**하고 pbxproj를 블라인드로 손대면 첫 빌드가 더 꼬인다(PO 취향 「고친 것처럼 보이는데 안 고쳐진 = 해롭다」). → 첫 클라우드 맥 빌드에서 컴파일 피드백 보며 하는 게 맞다고 판단, 문서로 정확히 남김.
+- **"한방에?"에 안심 대신 실측**: PO가 "완벽 준비냐"고 되물어 CI/파일 실측으로 "코드는 됐지만 첫 빌드는 반드시 손봐야 하고, 계정 단추 7개가 남았다"고 정직하게 답(CLAUDE.md ⭐ 「되물으면 실측으로」).
+
+**3. 안 끝났거나 보류** (전부 PO 계정 작업이 선행조건)
+
+- **애플 포털 4단계** — App ID `kr.co.healwith.app`(+Push) / 앱 생성 `healwith` / APNs .p8 키(→Firebase 업로드) / ASC API 키(→Codemagic). PO 로그인 필요.
+- **구글 플레이** — 개발자 등록 $25(일회) / 앱 생성 / 서명 키스토어 / Play 서비스계정 JSON(→Codemagic). PO 작업.
+- **PR #982 미머지** — 화면변화 없는 iOS 네이티브 스테이징이라 자동머지 안 함. 첫 맥 빌드에서 Xcode 단계 마저 하며 같이 다루는 게 자연스러움(급하지 않음).
+
+**4. 주의·함정** ⚠️
+
+- **AppDelegate는 지금 이대로면 iOS 빌드가 컴파일 실패한다(정상)** — `import FirebaseCore/FirebaseMessaging`인데 Firebase SDK가 아직 App 타겟에 없음(`Package.swift`에 firebase 0건). 첫 맥 빌드에서 Xcode로 SPM 패키지(`https://github.com/firebase/firebase-ios-sdk`→FirebaseMessaging) 추가해야 함. **이건 버그가 아니라 남겨둔 단계.**
+- **`GoogleService-Info.plist`는 파일만 있고 pbxproj 참조 0건** — 타겟 리소스로 등록 안 하면 `FirebaseApp.configure()`가 런타임 크래시. 첫 빌드에서 Xcode로 App 타겟에 등록.
+- **CI 초록 ≠ 앱 준비 완료** — CI(`next build`)는 Swift를 컴파일하지 않는다. #982 CI 초록은 "웹이 안 깨졌다"는 뜻일 뿐. iOS 실검증은 첫 Codemagic 빌드 + 실기기뿐.
+- **Codemagic 무료분 낭비 주의** — 서명 열쇠(ASC API 키·키스토어) 없이 빌드 시작하면 실패만 뜨고 무료분만 깎임. PO 포털 단계 후에 빌드 트리거.
+
+**5. 다음 세션이 먼저 할 일**
+
+1. **⚠️ 직전 미검증분 = iOS 푸시 런타임 미검증** — 리눅스에서 못 돌림. PO가 애플 포털 4단계 완료하면: 어시가 (a)첫 Codemagic 빌드 돌리며 남은 Xcode 단계(Firebase SPM 추가·plist 등록·Push/Background capability) 컴파일 피드백 보며 처리 → (b)Vercel env 2개(`FCM_PROJECT_ID`·`GOOGLE_SERVICE_ACCOUNT_JSON`) 설정 → (c)TestFlight 업로드 → (d)실기기 `/api/push/test`로 푸시 수신 실확인. **여기까지 가야 "iOS 됨"이라 말할 수 있음.**
+2. Android: PO가 플레이 등록·키스토어·서비스계정 마치면 Codemagic android-release 빌드(리눅스라 iOS보다 검증 쉬움) → 내부테스트 트랙.
+3. 심사 제출 전 데모 계정 1개 발급(비번 문서에 쓰지 말 것) + `APP_STORE_REVIEW_ANSWERS.md` 복붙.
+
+**6. 검증 상태**
+
+- ✅ **PR #982 CI 초록 실측**(`get_check_runs`): `ci` success·`Smoke Tests (PR)` success. Vercel 프리뷰는 iOS/문서 변경이라 Ignored(정상).
+- ✅ **Android 배선 완비 = 파일 실측**(gradle·settings·manifest 직접 확인). 단 **gradle 빌드 자체는 이 환경(Android SDK 없음)에서 미실행** — Codemagic 리눅스 빌드에서 확정.
+- ⚠️ **iOS 코드 = 디바이스 런타임 미검증**(리눅스 iOS 빌드 불가). 코드는 Capacitor 공식 표준 패턴대로 작성했으나 **실기기 토큰 흐름은 한 번도 안 돌려봄** → 5번 1순위로 승격.
+- 🟡 **열린 PR 다수(내 것 아님)**: #981·#973·#969·#968·#965 등(장애·화상상담·i18n 세션들) — 이 세션과 무관.
+
+**7. 다음 세션 첫 프롬프트**
+
+> 먼저 docs/PROJECT_CONTEXT.md 최상단 읽어. 앱스토어 등록 착수 세션 이어받는 거다. iOS 푸시 배선 코드는 PR #982에 스테이징돼 있는데 **디바이스 런타임 미검증**이고 첫 클라우드 맥 빌드에서 Xcode 단계(Firebase SPM 패키지 추가·GoogleService-Info.plist 타겟 등록·Push/Background capability)를 마저 해야 컴파일된다(지금 이대로면 컴파일 실패가 정상). Android는 코드 이미 완비(실측). **선행조건 = PO 계정 작업**: 애플 포털 4단계(App ID+Push / 앱 생성 / APNs .p8→Firebase / ASC API 키→Codemagic) + 구글 플레이($25·키스토어·서비스계정). PO가 "포털 했다"고 하면: 어시가 Vercel env 2개 넣고 첫 Codemagic 빌드 돌리며 컴파일 잡고 TestFlight 올린 뒤 실기기 /api/push/test로 푸시 실수신 확인까지. 🚫 함정: CI 초록은 웹만 뜻함(Swift 미컴파일) · 서명 열쇠 없이 빌드 트리거하면 무료분만 낭비 · AppDelegate 컴파일 실패는 버그 아니라 남겨둔 Firebase SDK 단계.
+
+
+---
+
 ## 🔖 세션 핸드오프 (2026-07-27 새벽 — **LiveKit↔제미나이 통역 구조 규명 + 자막 화자 구분을 «사람» 기준으로 교체** 세션 종료)
 
 > PO "라이브키트 쉽(Ship) 구독했는데 적용됐냐, 근데 목요일엔 구독 안 했는데도 통역 목소리 나왔다 원인이 뭐냐"에서 시작. 구조 규명(코드 변경 0) → PO 지시로 자막 화자 구분 교체까지. 만진 영역 = `app/consultation/[id]/page.jsx`·`src/lib/consultation/*`·`src/lib/manuals/index.js`. **머지 1건: [#992](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/992) (프로덕션 배포·실측 확인 완료).**
