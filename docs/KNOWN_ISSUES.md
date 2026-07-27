@@ -38,7 +38,7 @@
 
 **고칠 방향**: ①`concurrency.group` 을 저장소 전역으로 바꿔 동시 실행 상한 걸기(비용 0, 즉시 가능) ②더 근본적으로는 **E2E 를 프로덕션 DB 에서 떼어내기** — 별도 Supabase 프로젝트(시드 이관 필요) = **PO 결정 필요**(비용 산출부터).
 
-> 🚫 **①번(concurrency 전역 그룹)은 «불가능»으로 판명 — 시도했다가 즉시 되돌림 (2026-07-27, POSTMORTEMS #125)**
+> 🚫 **①번(concurrency 전역 그룹)은 «불가능»으로 판명 — 시도했다가 즉시 되돌림 (2026-07-27, POSTMORTEMS #127)**
 > - 시도: 세 잡(smoke·full·production-nightly)에 job 레벨 `concurrency: {group: e2e-prod-db, cancel-in-progress: false}` 로 전역 직렬화(#1008).
 > - **결과: 열린 PR 5개(#982·#998·#1007·#1009·#1010)가 전부 BLOCKED.** 각 PR 잘못이 아니라 **서로의 검사를 취소**시켰다. 사유 전부 `Canceling since a higher priority waiting request for e2e-prod-db exists`. → 1분 만에 되돌림(#1010, main `0cd6b16`).
 > - **왜 안 되나(핵심)**: **concurrency 의 대기 슬롯은 1개뿐이다.** 공식 문서 *"Any previously pending job or workflow in the concurrency group will be canceled."* → `cancel-in-progress: false` 는 «실행 중인 것»만 지키고 **«대기 중인 것»은 못 지킨다.** 새 실행이 대기열에 들어오면 먼저 기다리던 게 취소되고, 취소는 「실패」로 기록돼 PR 이 막힌다. 활성 브랜치가 여러 개인 이 저장소에선 **막힘이 상시**가 된다.
