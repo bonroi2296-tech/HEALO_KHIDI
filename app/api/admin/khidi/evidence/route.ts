@@ -30,7 +30,9 @@ function maskName(first?: string | null, last?: string | null): string {
   return `${[...n][0] || ""}***`;
 }
 const TYPE_KO: Record<string, string> = {
-  pre_consultation: "사전상담", follow_up: "사후관리", diagnostic: "진단", emergency: "응급",
+  pre_consultation: "사전상담", follow_up: "사후관리", emergency: "응급",
+  // 아래는 증빙에서 제외되지만(그래서 CSV 에 안 나오지만) 라벨 누락으로 raw 코드가 새는 걸 막으려 남긴다.
+  partner_meeting: "파트너 미팅",
 };
 
 export async function GET(request: NextRequest) {
@@ -68,6 +70,11 @@ export async function GET(request: NextRequest) {
       sessionRows = sessionRows.filter((s: any) => !testSet.has(s.inquiry_id));
       refRows = refRows.filter((r: any) => !testSet.has(r.inquiry_id));
     }
+    // 파트너(에이전시·병원) 미팅은 KHIDI 성과지표가 아니다 → 증빙 CSV 에서 제외한다.
+    // 2026-07-27 실측: 실제로 한 회의 10건이 전부 파트너 미팅인데 이 API 는 유형을 안 가리고
+    // 전부 내보내고 있었다(그때는 session_type 이 'pre_consultation' 이라 「사전상담」으로 찍혔다).
+    // 증빙은 K-02(사전상담)·K-04(사후관리) 를 뒷받침하는 자료다 — 파트너 미팅이 섞이면 허위 증빙.
+    sessionRows = sessionRows.filter((s: any) => s.session_type !== "partner_meeting");
 
     // 환자명 마스킹 (상담+협진 의뢰의 inquiry_id 합쳐 한 번에)
     const inquiryIds = Array.from(new Set([

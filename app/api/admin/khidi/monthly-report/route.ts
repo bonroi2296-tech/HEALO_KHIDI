@@ -74,6 +74,11 @@ async function fetchPatientList(year: number, month: number) {
     .from("consultation_sessions")
     .select("id, patient_id, inquiry_id, session_type, scheduled_at, notes, notes_encrypted")
     .eq("status", "completed")
+    // ⚠️ 공식 제출물이다. KHIDI 성과지표는 사전상담(K-02)·사후관리(K-04) 뿐이므로
+    //    파트너(에이전시·병원) 미팅은 반드시 빠져야 한다. 아래 B열 라벨이
+    //    `pre_consultation ? "사전상담" : "사후관리"` 2분기라, 안 거르면 파트너 미팅이
+    //    「사후관리」로 둔갑해 찍힌다(2026-07-27 발견).
+    .in("session_type", ["pre_consultation", "follow_up"])
     .gte("scheduled_at", fromISO)
     .lt("scheduled_at", toISO)
     .order("scheduled_at", { ascending: true });
