@@ -330,7 +330,9 @@ jobs:
           retention-days: 30
 
       - name: GitHub Issue 자동 생성 (실패 시)
-        if: failure()
+        # ⚠️ 경보는 «예약 실행»에서만. 사람이 수동으로 돌려본 실패까지 «프로덕션 이상»으로
+        #    긴급 메일·urgent 이슈를 쏘면 헛경보가 되고, 곧 아무도 안 믿는 경보가 된다.
+        if: failure() && github.event_name == 'schedule'
         uses: actions/github-script@v7
         with:
           script: |
@@ -375,7 +377,7 @@ jobs:
             }
 
       - name: Slack 알림 (실패 시)
-        if: failure() && env.SLACK_WEBHOOK_URL != ''
+        if: failure() && github.event_name == 'schedule' && env.SLACK_WEBHOOK_URL != ''
         uses: slackapi/slack-github-action@v1
         with:
           payload: |
@@ -388,7 +390,7 @@ jobs:
           SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
 
       - name: 이메일 알림 (프로덕션 실패 — URGENT)
-        if: failure() && env.RESEND_API_KEY != '' && env.E2E_ALERT_EMAIL != ''
+        if: failure() && github.event_name == 'schedule' && env.RESEND_API_KEY != '' && env.E2E_ALERT_EMAIL != ''
         env:
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
           E2E_ALERT_EMAIL: ${{ secrets.E2E_ALERT_EMAIL }}
