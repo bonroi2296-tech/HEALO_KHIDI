@@ -13,6 +13,19 @@ import { i18nInlineScript } from "@/lib/i18n/inlineScript";
 import I18nOverridesApply from "./_components/I18nOverridesApply";
 
 // kz(우리 내부 코드) → kk(BCP47 표준 카자흐 언어코드). <html lang>·hreflang용.
+// Pretendard CDN 기준 주소 — 아래 폰트 미리받기와 dynamic-subset CSS 가 같은 판본을 봐야 한다.
+const PRETENDARD_BASE = "https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9";
+// 폰트 CSS 도 같은 BASE 에서 파생 — 버전을 올려도 미리받기 주소와 «구조적으로» 어긋날 수 없다.
+const PRETENDARD_CSS = `${PRETENDARD_BASE}/dist/web/static/pretendard-dynamic-subset.min.css`;
+
+// 언어별 「히어로 제목이 실제로 내려받는」 woff2 조각 (2026-07-27 프로덕션 실측).
+// 라틴·키릴만 등록 — 한글·한자는 조각이 8~14개라 미리받기 이득보다 낭비가 크다.
+const HERO_FONT_SUBSETS = {
+  en: ["Pretendard-ExtraBold.subset.91.woff2", "Pretendard-Bold.subset.91.woff2", "Pretendard-Bold.subset.88.woff2"],
+  ru: ["Pretendard-ExtraBold.subset.91.woff2", "Pretendard-Bold.subset.91.woff2"],
+  kz: ["Pretendard-ExtraBold.subset.91.woff2", "Pretendard-Bold.subset.91.woff2"],
+};
+
 const HTML_LANG = { en: "en", ko: "ko", ru: "ru", kz: "kk", zh: "zh", ja: "ja" };
 
 // 동적 메타데이터: 정적 필드 + 요청 언어별 hreflang/canonical/OG locale.
@@ -214,15 +227,39 @@ export default async function RootLayout({ children }) {
           .map((u) => { try { return new URL(u).origin; } catch { return null; } })
           .filter(Boolean)
           .map((origin) => <link key={origin} rel="preconnect" href={origin} crossOrigin="anonymous" />)}
+        {/* ⭐ 히어로 제목이 쓰는 폰트 파일을 미리 받는다 (2026-07-27 실측).
+            문제: 폰트 CSS 를 JS 로 주입하다 보니 브라우저의 미리읽기(preload scanner)가 못 본다.
+            → CSS 를 늦게(VeryLow, ~270ms) 받고 **그 뒤에야** 폰트를 찾아 받는다(~544ms).
+            히어로 제목은 그 폰트가 와야 최종 모양으로 다시 그려지므로 LCP 가 거기까지 밀린다.
+            프로덕션 실측(폰트 파일만 차단): LCP 중앙값 5.9s → 4.1s = 폰트가 약 1.8초를 잡고 있었다.
+            그래서 「그 언어 히어로가 실제로 받는 파일」만 골라 미리 받는다(실측으로 확인한 목록).
+            ⚠️ ko·zh·ja 는 일부러 뺐다 — 한자·한글은 필요한 조각이 8~14개(170KB)라
+               미리받기가 오히려 대역폭 낭비다. 라틴·키릴(핵심 타겟 러·카)만 이득이 확실하다.
+            ⚠️ 파일명은 Pretendard v1.3.9 의 조각 번호다. 버전을 올리면 번호가 달라질 수 있으니
+               PRETENDARD_BASE 를 올릴 땐 이 목록도 실측으로 다시 뽑아라(폰트가 안 와도 화면은 안 깨지고
+               시스템 폰트로 그려질 뿐이라 조용히 이득만 사라진다).
+            ⚠️ 이건 FCP 대책이지 LCP 대책이 아니다 — 실측(프리뷰 A/B 4회): FCP 2451→1645ms,
+               LCP 5345→5294ms(거의 변화 없음). LCP 는 히어로 제목이 웹폰트를 기다리는 구조 자체라
+               별도 결정이 필요하다(KNOWN_ISSUES 참조). */}
+        {(HERO_FONT_SUBSETS[lang] || []).map((f) => (
+          <link
+            key={f}
+            rel="preload"
+            as="font"
+            type="font/woff2"
+            crossOrigin="anonymous"
+            href={`${PRETENDARD_BASE}/packages/pretendard/dist/web/static/woff2-dynamic-subset/${f}`}
+          />
+        ))}
         {/* Pretendard — dynamic-subset(페이지에 쓰인 글리프만 다운로드: 한글 풀폰트 수 MB → 수십 KB)
             + 비차단 로딩(렌더 차단 제거 → FCP/LCP 개선). font-display:swap 이라 폰트 도착 전엔
             시스템 폰트로 즉시 표시(텍스트 안 보임 현상 없음). 느린 CIS 회선 대응. */}
         <noscript>
-          <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-dynamic-subset.min.css" />
+          <link rel="stylesheet" href={PRETENDARD_CSS} />
         </noscript>
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){var l=document.createElement('link');l.rel='stylesheet';l.href='https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-dynamic-subset.min.css';l.media='print';l.onload=function(){this.media='all'};document.head.appendChild(l)})()`,
+            __html: `(function(){var l=document.createElement('link');l.rel='stylesheet';l.href='${PRETENDARD_CSS}';l.media='print';l.onload=function(){this.media='all'};document.head.appendChild(l)})()`,
           }}
         />
       </head>
