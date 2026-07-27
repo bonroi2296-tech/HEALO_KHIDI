@@ -36,7 +36,8 @@
 - **🍎 iOS 빌드 성공 → TestFlight 업로드** (4번 시도, 원인 매번 다름 — 4번 함정 참조). `App.ipa` 53.82MB, 빌드 1.0(1).
 - **iOS 네이티브 배선 3종을 Xcode 없이 처리** — `project.pbxproj` 직접 편집: Firebase SDK(FirebaseMessaging) SPM 원격 패키지 추가 · `GoogleService-Info.plist` 를 Resources 빌드단계 등록 · `App.entitlements`(aps-environment=production) 신설 + 두 빌드설정에 `CODE_SIGN_ENTITLEMENTS`.
 - **🍎 스토어 등록정보 = 심사 제출 직전까지 완료** — 부제·카테고리(의료)·**연령등급 16+**(한국 15+)·설명/키워드/URL·저작권·**심사 노트**(웹뷰 반려 4.2 예방용: 푸시·화상상담이 네이티브 가치 + "진단·처방 안 함" 범위 한계)·심사 연락처·**개인정보 라벨 8종**(추적 목적 사용 0 → ATT 불필요)·**스크린샷 4장**(36장 재생성 후 6.5" 영어분)·빌드 연결·수출규정·**데모 계정 `patient@test.com`**·**가격 무료·배포 175개국**.
-- **🇪🇺 EU 거래자(DSA) 신고 제출 → 애플 심사 중** / **🇰🇷 대한민국 전자상거래법 정보 = 활성화됨**(사업자등록번호 `4633500902`).
+- **🇪🇺 EU 거래자(DSA) 신고 → ✅ 같은 날 16:56 승인**(«now live on the App Store in the European Union») = **EU 27개국 배포 열림.** / **🇰🇷 대한민국 전자상거래법 정보 = 활성화됨**(사업자등록번호 `4633500902`).
+- **🔑 열쇠 파일 5종 정리·원격 백업**(세션 막바지) — 애플 `.p8` 2개·Firebase 서비스계정 JSON 이 **공개 저장소 폴더 루트에 방치**돼 있던 것을 `C:\Users\user\Documents\healwith-keys\` 로 모으고, **git 이력에 들어간 적 없음을 실측 확인**(`--diff-filter=A` 전수). 설명서·묶음 zip 생성 → **PO 가 네이버웍스 공용드라이브(`본로이 > 8. 힐위드 > 8. 기타`)에 업로드 완료**. 이유 = `healwith-upload.jks` 는 **분실 시 재발급 불가**(Play 앱을 영구히 업데이트 못 함)인데 이 PC 는 드라이브가 C: 하나뿐이라 로컬 복사는 백업이 아니었다.
 - **🤖 안드로이드 착수** — Play Console 계정 진입(계정ID `5457445830881937645`), **Android 기기 액세스 인증 완료**(PO 폰), 본인확인 서류 제출 → **구글 심사 중**. **서명 키스토어 생성**(`C:\Users\user\Documents\healwith-keys\healwith-upload.jks`, PKCS12, 30년). `android-verify` 워크플로 신설(서명·업로드 없이 컴파일만 검증).
 - **보안 사고 1건 차단** — `healo-e3e58-firebase-adminsdk-*.json`(Firebase 전체 권한 키)이 프로젝트 루트에 복사돼 있었다. **이 저장소는 PUBLIC이고 2분 주기 자동저장 훅이 `git add -A`** 라 다음 사이클에 올라갈 뻔함. `git log --all` 로 **과거 유출 이력 0건 확인** 후 `.gitignore` 차단(`*firebase-adminsdk*.json` 등). 오전엔 `*.p8`·`*.keystore`·`*.jks` 계열도 추가(그전엔 확장자 규칙이 **하나도 없었음**).
 - **Vercel env 2개 등록** — `FCM_PROJECT_ID`=`healo-e3e58` · `GOOGLE_SERVICE_ACCOUNT_JSON`(신규 발급). production·preview·development, encrypted.
@@ -62,6 +63,10 @@
 
 **4. 주의·함정** ⚠️
 
+- 🔴 **«내 커밋이 남의 브랜치로 들어간» 사고 (2026-07-27 저녁 실제 발생)** — 이 세션은 공용 메인 폴더(`HEALO_KHIDI`)에서 돌고 있었는데, **다른 병렬 세션이 같은 폴더의 브랜치를 `claude/sentry-error-triage` 로 바꿔놨다.** 그 상태에서 내가 `git commit` 하자 커밋이 통째로 남의 브랜치에 들어갔고, `git push origin claude/app-registration-4sj2l7` 는 (로컬 브랜치명을 인자로 받으므로) **엉뚱하게 성공 메시지만 띄웠다** — 푸시 성공 = 내 작업이 갔다는 뜻이 아니다.
+  - **징후**: 내가 방금 고친 문서를 다시 열었는데 **내 편집이 없고 낡은 내용**이면 브랜치가 바뀐 것이다(파일이 안 고쳐진 게 아니라 *다른 브랜치의 파일*을 보고 있는 것).
+  - **복구법**: 남의 브랜치는 **절대 rebase·reset 하지 마라**(그 세션이 동시에 작업 중이고, 미커밋 변경까지 있었다). `git worktree add <임시경로> <내브랜치>` 로 **딴 폴더를 만들어** 거기서 `cherry-pick` 하면 현재 폴더를 전혀 안 건드리고 옮길 수 있다.
+  - **예방**: 커밋 전에 `git rev-parse --abbrev-ref HEAD` 한 번. 근본 해결은 `bash scripts/new-session.sh <영역>` 으로 **자기 worktree 에서 시작하는 것**(CLAUDE.md 병렬세션 규칙 1번) — 이 세션은 그걸 안 지켜서 당했다.
 - **오늘 잡은 빌드 함정 6개(같은 부류 재발 방지)**:
   - iOS① `environment.ios_signing` 은 **있는 프로파일을 가져오기만** 한다 → 계정에 프로파일 0개인 최초 상태에선 100% 실패. `fetch-signing-files --create` 필요.
   - iOS② Capacitor CLI 8.x 는 **NodeJS ≥22** 요구(20이면 `cap sync` 에서 죽음).
