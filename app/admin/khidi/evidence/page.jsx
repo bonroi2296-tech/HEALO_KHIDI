@@ -75,7 +75,7 @@ export default function EvidencePage() {
       {loading ? (
         <div className="py-24 text-center text-gray-500">불러오는 중…</div>
       ) : error ? (
-        <div className="py-12 text-center text-red-500">{error}</div>
+        <div className="py-12 text-center text-red-600">{error}</div>
       ) : (
         <>
           {/* 성과지표 증빙 요약 */}

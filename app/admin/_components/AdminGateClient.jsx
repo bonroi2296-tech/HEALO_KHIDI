@@ -103,7 +103,7 @@ export function AdminGateClient({ children }) {
             관리자 권한이 없습니다.
           </p>
           <div className="space-y-2">
-            <a href="/coordinator" className="block w-full py-2.5 rounded-xl bg-teal-600 text-white text-sm font-semibold hover:bg-teal-700 transition">
+            <a href="/coordinator" className="block w-full py-2.5 rounded-xl bg-teal-700 text-white text-sm font-semibold hover:bg-teal-700 transition">
               코디네이터 화면으로 가기
             </a>
             <a href="/login" className="block w-full py-2.5 rounded-xl border border-gray-300 text-gray-700 text-sm font-semibold hover:bg-gray-50 transition">

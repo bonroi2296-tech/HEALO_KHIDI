@@ -705,7 +705,7 @@ export default function PartnerPortal({ expected = "agency" }) {
   if (loading || portalMismatch) return <Center>{tt("loading")}</Center>;
   if (error === "login") return <Center>{tt("loginRequired")} <a className="text-teal-700 underline ml-1" href="/login">{tt("loginLink")}</a></Center>;
   if (error === "forbidden") return <Center>{tt("forbidden")}</Center>;
-  if (error) return <Center className="text-red-500">{tt("errServer")}</Center>;
+  if (error) return <Center className="text-red-600">{tt("errServer")}</Center>;
 
   const steps = data?.statusSteps?.filter((s) => s.order < 90) ?? [];
   const orderOf = (k) => data?.statusSteps?.find((s) => s.key === k)?.order ?? 0;
@@ -961,7 +961,7 @@ export default function PartnerPortal({ expected = "agency" }) {
           <div className="flex flex-col sm:flex-row gap-2 justify-center mt-5 mb-6 text-xs text-gray-600">
             {[tt("emptyStep1"), tt("emptyStep2"), tt("emptyStep3")].map((s, i) => (
               <div key={i} className="flex items-center gap-1.5 bg-gray-50 rounded-lg px-3 py-2">
-                <span className="w-5 h-5 rounded-full bg-teal-600 text-white flex items-center justify-center text-[11px] font-bold shrink-0">{i + 1}</span>
+                <span className="w-5 h-5 rounded-full bg-teal-700 text-white flex items-center justify-center text-[11px] font-bold shrink-0">{i + 1}</span>
                 <span>{s}</span>
               </div>
             ))}
@@ -1006,7 +1006,7 @@ export default function PartnerPortal({ expected = "agency" }) {
                           <span className="inline-flex items-center gap-0.5 text-emerald-600"><FileText size={11} />{c.estimates.length}</span>
                         )}
                         {c.thread?.unread > 0 && (
-                          <span className="inline-flex items-center gap-0.5 text-white bg-red-500 rounded-full px-1.5 font-semibold"><MessageCircle size={10} />{c.thread.unread}</span>
+                          <span className="inline-flex items-center gap-0.5 text-white bg-red-600 rounded-full px-1.5 font-semibold"><MessageCircle size={10} />{c.thread.unread}</span>
                         )}
                       </div>
                     </div>
@@ -1336,7 +1336,7 @@ function CaseActions({ c, tt, onDone }) {
       {/* 액션 버튼: 코디와 대화(주요) / 화상상담 요청 / 자료 추가 */}
       <div className="flex flex-wrap gap-2 items-center">
         <button type="button" onClick={() => setChatOpen(true)}
-          className="px-4 py-2 rounded-xl text-sm font-semibold bg-teal-600 text-white hover:bg-teal-700 transition-all duration-200 flex items-center gap-1.5">
+          className="px-4 py-2 rounded-xl text-sm font-semibold bg-teal-700 text-white hover:bg-teal-700 transition-all duration-200 flex items-center gap-1.5">
           <MessageCircle size={15} />{tt("msgrTitle")}
           {c.thread?.unread > 0 && (
             <span className="ml-0.5 inline-flex items-center justify-center min-w-[18px] h-[18px] px-1 rounded-full bg-white text-teal-700 text-[11px] font-bold tabular-nums">{c.thread.unread}</span>
@@ -1509,7 +1509,7 @@ function ChatDrawer({ open, onClose, inquiryId, caseName, tt, getToken }) {
               <div key={m.id} className={`flex flex-col ${mine ? "items-end" : "items-start"}`}>
                 <span className="text-[10px] text-gray-600 mb-1 px-1">{who} · {new Date(m.created_at).toLocaleString()}</span>
                 <div className={`max-w-[85%] px-3.5 py-2.5 text-sm leading-relaxed whitespace-pre-wrap break-words shadow-sm ${
-                  mine ? "bg-teal-600 text-white rounded-2xl rounded-br-md" : "bg-white text-gray-800 border border-gray-200 rounded-2xl rounded-bl-md"
+                  mine ? "bg-teal-700 text-white rounded-2xl rounded-br-md" : "bg-white text-gray-800 border border-gray-200 rounded-2xl rounded-bl-md"
                 }`} title={!mine && msgIsTr(m.message_text) ? m.message_text : undefined}>
                   {mine ? m.message_text : trMsg(m.message_text)}
                   {!mine && msgIsTr(m.message_text) && <Languages size={11} className="inline-block ml-1 -mt-0.5 text-gray-300" />}
@@ -1528,7 +1528,7 @@ function ChatDrawer({ open, onClose, inquiryId, caseName, tt, getToken }) {
             onChange={(e) => setDraft(e.target.value)}
             onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }} />
           <button type="button" disabled={sending || !draft.trim()} onClick={send}
-            className="px-4 py-2.5 rounded-xl text-sm font-bold bg-teal-600 text-white hover:bg-teal-700 transition-all duration-200 disabled:opacity-40 shrink-0 flex items-center gap-1.5">
+            className="px-4 py-2.5 rounded-xl text-sm font-bold bg-teal-700 text-white hover:bg-teal-700 transition-all duration-200 disabled:opacity-40 shrink-0 flex items-center gap-1.5">
             <Send size={15} />{sending ? tt("msgSending") : tt("msgSend")}
           </button>
         </div>

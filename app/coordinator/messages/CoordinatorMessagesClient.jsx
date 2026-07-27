@@ -18,7 +18,7 @@ const STATUS_VALUES = ["open", "waiting_coordinator", "waiting_patient", "resolv
 
 const STATUS_BADGE = {
   open: "bg-blue-50 text-blue-600",
-  waiting_coordinator: "bg-red-50 text-red-600",
+  waiting_coordinator: "bg-red-50 text-red-700",
   waiting_patient: "bg-amber-50 text-amber-600",
   resolved: "bg-gray-100 text-gray-600",
 };
@@ -281,7 +281,7 @@ export default function CoordinatorMessagesClient() {
                 onClick={() => setStatusFilter(s)}
                 className={`rounded-full px-2.5 py-1 text-xs font-medium transition ${
                   statusFilter === s
-                    ? "bg-teal-600 text-white"
+                    ? "bg-teal-700 text-white"
                     : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                 }`}
               >
@@ -380,7 +380,7 @@ export default function CoordinatorMessagesClient() {
                     onClick={() => changeThreadStatus(s)}
                     className={`rounded-full px-2.5 py-1 text-xs font-medium transition ${
                       selectedThread.status === s
-                        ? "bg-teal-600 text-white"
+                        ? "bg-teal-700 text-white"
                         : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                     }`}
                   >
@@ -433,7 +433,7 @@ export default function CoordinatorMessagesClient() {
             )}
 
             {sendError && (
-              <div className="border-t border-gray-100 bg-white px-6 pt-2 text-xs font-medium text-red-500">
+              <div className="border-t border-gray-100 bg-white px-6 pt-2 text-xs font-medium text-red-600">
                 ⚠️ {L.msSendFailed}
               </div>
             )}
@@ -453,7 +453,7 @@ export default function CoordinatorMessagesClient() {
               <button
                 onClick={send}
                 disabled={!draft.trim() || sending}
-                className="shrink-0 rounded-lg bg-teal-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-teal-700 disabled:opacity-50"
+                className="shrink-0 rounded-lg bg-teal-700 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-teal-700 disabled:opacity-50"
               >
                 {sending ? L.msSending : L.msSend}
               </button>
@@ -493,7 +493,7 @@ function Message({ m, meId, L, dateLoc }) {
     "text-gray-500";
   // 버블: 나=teal 우측 / 환자=흰색+파란 좌측 / AI=보라 / 에이전시=초록 / 병원=하늘 / 관리자=앰버
   const bubble =
-    isMine ? "bg-teal-600 text-white" :
+    isMine ? "bg-teal-700 text-white" :
     isPatient ? "border border-gray-200 border-l-[3px] border-l-blue-400 bg-white text-gray-900" :
     isAI ? "border border-violet-100 bg-violet-50 text-gray-800" :
     isAgency ? "border border-emerald-100 bg-emerald-50 text-gray-800" :
@@ -512,7 +512,7 @@ function Message({ m, meId, L, dateLoc }) {
         </div>
         {/* 메신저 릴레이 미전달 표시 — staffReplyRelay 가 metadata.delivery 에 기록 */}
         {m.metadata?.delivery === "failed" && (
-          <div className="mt-1 text-[11px] font-medium text-red-500">{L.msDeliveryFailed}</div>
+          <div className="mt-1 text-[11px] font-medium text-red-600">{L.msDeliveryFailed}</div>
         )}
         {m.metadata?.delivery === "window_expired" && (
           <div className="mt-1 text-[11px] font-medium text-amber-600">{L.msDeliveryWindowExpired}</div>

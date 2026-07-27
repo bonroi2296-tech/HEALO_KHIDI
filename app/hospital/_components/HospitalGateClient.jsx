@@ -87,7 +87,7 @@ export function HospitalGateClient({ children }) {
       <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
         <div className="max-w-sm w-full bg-white rounded-2xl shadow-lg p-8 text-center border border-gray-100">
           <div className="w-14 h-14 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4">
-            <ShieldAlert size={28} className="text-red-500" />
+            <ShieldAlert size={28} className="text-red-600" />
           </div>
           <h2 className="text-xl font-bold text-gray-900 mb-2">접근 권한 없음</h2>
           <p className="text-sm text-gray-500 mb-6 leading-relaxed">

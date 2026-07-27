@@ -85,9 +85,9 @@ export default function CoordinatorDashboard() {
 
   const STAT_CARDS = [
     { label: L.statPendingIntakes, value: stats.pendingIntakes, icon: ClipboardList, color: 'bg-blue-50 text-blue-600', href: '/coordinator/inbox' },
-    { label: L.statTodayConsult, value: stats.todayConsultations, icon: Video, color: 'bg-green-50 text-green-600', href: '/coordinator/consultations' },
+    { label: L.statTodayConsult, value: stats.todayConsultations, icon: Video, color: 'bg-green-50 text-green-700', href: '/coordinator/consultations' },
     { label: L.statActivePatients, value: stats.activePatients, icon: Video, color: 'bg-purple-50 text-purple-600', href: '/coordinator/consultations' },
-    { label: L.statUrgentAlerts, value: stats.urgentAlerts, icon: AlertTriangle, color: 'bg-red-50 text-red-600', href: '/coordinator/alerts' },
+    { label: L.statUrgentAlerts, value: stats.urgentAlerts, icon: AlertTriangle, color: 'bg-red-50 text-red-700', href: '/coordinator/alerts' },
   ];
 
   if (loading) {
@@ -187,10 +187,10 @@ export default function CoordinatorDashboard() {
           onClick={() => router.push('/coordinator/consultations')}
           className="flex items-center gap-3 p-4 bg-green-50 rounded-xl hover:bg-green-100 transition text-left"
         >
-          <Video size={20} className="text-green-600" />
+          <Video size={20} className="text-green-700" />
           <div>
             <div className="font-semibold text-sm text-green-900">{L.qaSchedTitle}</div>
-            <div className="text-xs text-green-600">{L.qaSchedDesc}</div>
+            <div className="text-xs text-green-700">{L.qaSchedDesc}</div>
           </div>
         </button>
         <button

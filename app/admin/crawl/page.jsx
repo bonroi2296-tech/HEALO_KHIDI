@@ -37,7 +37,7 @@ const SOURCE_ICONS = {
 
 const SOURCE_COLORS = {
   hira: "bg-blue-50 text-blue-600 border-blue-200",
-  google_places: "bg-green-50 text-green-600 border-green-200",
+  google_places: "bg-green-50 text-green-700 border-green-200",
   kakao_local: "bg-yellow-50 text-yellow-600 border-yellow-200",
   naver_local: "bg-emerald-50 text-emerald-700 border-emerald-200",
 };
@@ -465,7 +465,7 @@ export default function CrawlPage() {
                           </span>
                         </div>
                         {!src.available && (
-                          <div className="mt-2 text-xs text-red-500 flex items-center gap-1">
+                          <div className="mt-2 text-xs text-red-600 flex items-center gap-1">
                             <AlertTriangle size={12} />
                             키 필요: {src.requiredEnvKeys.join(", ")}
                           </div>
@@ -846,7 +846,7 @@ export default function CrawlPage() {
               로드 <span className="font-bold text-gray-900">{items.length}</span>건
             </span>
             <span className="text-sm">
-              신규 <span className="font-bold text-green-600">{importableCount}</span> / 중복 <span className="font-bold text-orange-500">{items.length - importableCount}</span>
+              신규 <span className="font-bold text-green-700">{importableCount}</span> / 중복 <span className="font-bold text-orange-500">{items.length - importableCount}</span>
             </span>
           </div>
 
@@ -976,11 +976,11 @@ export default function CrawlPage() {
               <div className="text-xs text-gray-500 mt-1">총 요청</div>
             </div>
             <div className="text-center p-4 bg-green-50 rounded-xl">
-              <div className="text-2xl font-bold text-green-600">{importResult.imported}</div>
+              <div className="text-2xl font-bold text-green-700">{importResult.imported}</div>
               <div className="text-xs text-gray-500 mt-1">등록 성공</div>
             </div>
             <div className="text-center p-4 bg-red-50 rounded-xl">
-              <div className="text-2xl font-bold text-red-500">{importResult.failed}</div>
+              <div className="text-2xl font-bold text-red-600">{importResult.failed}</div>
               <div className="text-xs text-gray-500 mt-1">실패/중복</div>
             </div>
           </div>
@@ -988,12 +988,12 @@ export default function CrawlPage() {
           <div className="divide-y divide-gray-100 border border-gray-200 rounded-lg overflow-hidden max-h-96 overflow-y-auto">
             {importResult.results?.map((r, idx) => (
               <div key={idx} className="flex items-center gap-3 px-4 py-2.5 text-sm">
-                {r.success ? <CheckCircle2 size={16} className="text-green-500 shrink-0" /> : <XCircle size={16} className="text-red-500 shrink-0" />}
+                {r.success ? <CheckCircle2 size={16} className="text-green-500 shrink-0" /> : <XCircle size={16} className="text-red-600 shrink-0" />}
                 <span className="flex-1 font-medium text-gray-700 truncate">{r.name}</span>
                 {r.success ? (
-                  <span className="text-xs text-green-600">/{r.slug}</span>
+                  <span className="text-xs text-green-700">/{r.slug}</span>
                 ) : (
-                  <span className="text-xs text-red-500">{r.reason}</span>
+                  <span className="text-xs text-red-600">{r.reason}</span>
                 )}
               </div>
             ))}

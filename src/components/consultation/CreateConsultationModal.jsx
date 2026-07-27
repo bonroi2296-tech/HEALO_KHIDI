@@ -481,7 +481,7 @@ export function CreateConsultationModal({ onClose, onSuccess }) {
           onClick={(e) => e.stopPropagation()}
         >
           <div className="flex items-center gap-3 mb-6">
-            <div className="w-12 h-12 rounded-2xl bg-green-50 text-green-600 flex items-center justify-center text-2xl">
+            <div className="w-12 h-12 rounded-2xl bg-green-50 text-green-700 flex items-center justify-center text-2xl">
               ✓
             </div>
             <div>

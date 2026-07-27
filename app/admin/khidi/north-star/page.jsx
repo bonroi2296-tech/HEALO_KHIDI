@@ -23,7 +23,7 @@ function DeltaBadge({ pct }) {
   const up = pct > 0;
   const flat = pct === 0;
   const Icon = flat ? Minus : up ? TrendingUp : TrendingDown;
-  const color = flat ? "text-gray-500" : up ? "text-green-600" : "text-red-500";
+  const color = flat ? "text-gray-500" : up ? "text-green-700" : "text-red-600";
   return (
     <span className={`inline-flex items-center gap-0.5 text-xs font-bold ${color}`}>
       <Icon size={13} />

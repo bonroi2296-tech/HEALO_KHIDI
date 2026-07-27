@@ -112,7 +112,7 @@ const ToastItem = ({ toast, onRemove, closeLabel }) => {
       bg: 'bg-green-50',
       border: 'border-green-200',
       text: 'text-green-800',
-      icon: <CheckCircle2 size={20} className="text-green-600" />,
+      icon: <CheckCircle2 size={20} className="text-green-700" />,
     },
     error: {
       bg: 'bg-red-50',

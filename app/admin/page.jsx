@@ -26,7 +26,7 @@ const supabase = createSupabaseBrowserClient();
 // 역할 식별 색(사이드바 teal 브랜드와 별개로, 피드·카드에서 역할 구분용)
 const ROLE_META = {
   patient: { label: "환자", chip: "bg-teal-600" },
-  coordinator: { label: "코디", chip: "bg-sky-500" },
+  coordinator: { label: "코디", chip: "bg-sky-700" },
   agency: { label: "에이전시", chip: "bg-violet-500" },
   hospital: { label: "병원", chip: "bg-amber-500" },
   system: { label: "시스템", chip: "bg-gray-500" },

@@ -215,7 +215,7 @@ export default function CoordinatorInboxPage() {
                           {step2Done ? "Step 1+2" : L.inboxStepOneOnly}
                         </span>
                         {!step2Done && (
-                          <AlertCircle size={14} className="text-red-500" />
+                          <AlertCircle size={14} className="text-red-600" />
                         )}
                       </div>
                     </td>

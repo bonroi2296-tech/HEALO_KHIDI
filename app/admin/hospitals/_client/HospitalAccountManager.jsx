@@ -172,7 +172,7 @@ export function HospitalAccountManager({ hospitals }) {
                   </select>
                 </div>
               </div>
-              {error && <p className="text-xs text-red-500">{error}</p>}
+              {error && <p className="text-xs text-red-600">{error}</p>}
               <button
                 onClick={handleAdd}
                 disabled={adding || !newEmail.trim()}
@@ -268,7 +268,7 @@ export function HospitalAccountManager({ hospitals }) {
                     </div>
                     <button
                       onClick={() => handleDeactivate(account.id)}
-                      className="p-2 text-gray-500 hover:text-red-500 hover:bg-red-50 rounded-lg transition"
+                      className="p-2 text-gray-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition"
                       title="비활성화"
                     >
                       <Trash2 size={16} />

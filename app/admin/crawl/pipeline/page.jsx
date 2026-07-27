@@ -64,7 +64,7 @@ const SOURCE_FIELDS = {
 const STATUS_CONFIG = {
   pending: { label: "대기", color: "text-gray-600 bg-gray-100", icon: Clock },
   running: { label: "실행 중", color: "text-blue-600 bg-blue-100", icon: Loader2 },
-  completed: { label: "완료", color: "text-green-600 bg-green-100", icon: CheckCircle2 },
+  completed: { label: "완료", color: "text-green-700 bg-green-100", icon: CheckCircle2 },
   failed: { label: "실패", color: "text-red-600 bg-red-100", icon: XCircle },
 };
 
@@ -329,7 +329,7 @@ export default function PipelinePage() {
               <span className="text-base font-semibold text-gray-800">자동 수집 스케줄</span>
               <div className="flex items-center gap-2 mt-0.5">
                 {schedule.enabled ? (
-                  <span className="inline-flex items-center gap-1 text-xs text-green-600 font-medium">
+                  <span className="inline-flex items-center gap-1 text-xs text-green-700 font-medium">
                     <Wifi size={11} /> 활성
                     <span className="text-gray-500 mx-1">·</span>
                     {scheduleDesc}
@@ -694,7 +694,7 @@ function JobRow({ job, onCancel, onDelete }) {
               </div>
               {(stats.new > 0 || stats.changed > 0 || stats.errors > 0) && (
                 <div className="flex items-center gap-3 text-xs mt-1">
-                  {stats.new > 0 && <span className="text-green-600">신규 +{stats.new}</span>}
+                  {stats.new > 0 && <span className="text-green-700">신규 +{stats.new}</span>}
                   {stats.changed > 0 && <span className="text-blue-600">변경 {stats.changed}</span>}
                   {stats.unchanged > 0 && <span className="text-gray-500">기존 {stats.unchanged}</span>}
                   {stats.errors > 0 && <span className="text-orange-500">오류 {stats.errors}</span>}
@@ -705,10 +705,10 @@ function JobRow({ job, onCancel, onDelete }) {
 
           {job.status !== "running" && (
             <div className="flex items-center gap-3 text-xs text-gray-500">
-              {stats.new > 0 && <span className="text-green-600">신규 {stats.new}</span>}
+              {stats.new > 0 && <span className="text-green-700">신규 {stats.new}</span>}
               {stats.changed > 0 && <span className="text-blue-600">변경 {stats.changed}</span>}
               {stats.unchanged > 0 && <span>기존 {stats.unchanged}</span>}
-              {stats.closed > 0 && <span className="text-red-500">폐업 {stats.closed}</span>}
+              {stats.closed > 0 && <span className="text-red-600">폐업 {stats.closed}</span>}
               {stats.errors > 0 && <span className="text-orange-500">오류 {stats.errors}</span>}
               <span className="text-gray-300">|</span>
               <span>{elapsed}</span>
@@ -719,7 +719,7 @@ function JobRow({ job, onCancel, onDelete }) {
         {(job.status === "running" || job.status === "pending") && (
           <button
             onClick={() => onCancel(job.id)}
-            className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition shrink-0"
+            className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-red-700 bg-red-50 rounded-lg hover:bg-red-100 transition shrink-0"
           >
             <StopCircle size={14} />
             중단
@@ -739,7 +739,7 @@ function JobRow({ job, onCancel, onDelete }) {
         )}
 
         {job.status === "failed" && !isCancelled && job.error_message && (
-          <span className="text-xs text-red-500 max-w-[200px] truncate shrink-0" title={job.error_message}>
+          <span className="text-xs text-red-600 max-w-[200px] truncate shrink-0" title={job.error_message}>
             {job.error_message}
           </span>
         )}
@@ -748,7 +748,7 @@ function JobRow({ job, onCancel, onDelete }) {
         {(job.status === "completed" || job.status === "failed") && (
           <button
             onClick={() => onDelete(job.id)}
-            className="p-2 text-gray-500 hover:text-red-500 hover:bg-red-50 rounded-lg transition shrink-0"
+            className="p-2 text-gray-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition shrink-0"
             title="이력 삭제"
           >
             <XCircle size={16} />

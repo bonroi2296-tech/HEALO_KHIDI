@@ -334,7 +334,7 @@ export default function AdminStaffPage() {
                 </button>
                 <button
                   onClick={() => handleToggleDisabled(s)}
-                  className={`text-xs font-semibold px-2 py-1 ${s.disabled ? "text-teal-700 hover:text-teal-700" : "text-red-500 hover:text-red-700"}`}
+                  className={`text-xs font-semibold px-2 py-1 ${s.disabled ? "text-teal-700 hover:text-teal-700" : "text-red-600 hover:text-red-700"}`}
                 >
                   {s.disabled ? tt("btnEnable") : tt("btnDisable")}
                 </button>

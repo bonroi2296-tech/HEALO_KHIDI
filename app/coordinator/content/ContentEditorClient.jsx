@@ -187,7 +187,7 @@ export default function ContentEditorClient() {
                 <button
                   key={l}
                   onClick={() => pickLang(l)}
-                  className={`text-xs px-2 py-1 rounded ${editLang === l ? "bg-teal-600 text-white font-medium" : "text-gray-600 hover:bg-gray-100"}`}
+                  className={`text-xs px-2 py-1 rounded ${editLang === l ? "bg-teal-700 text-white font-medium" : "text-gray-600 hover:bg-gray-100"}`}
                 >
                   {LANG_SHORT[l]}
                 </button>
@@ -288,7 +288,7 @@ export default function ContentEditorClient() {
             <button
               onClick={save}
               disabled={dirty.length === 0 || saving}
-              className="text-sm px-4 py-2 rounded-lg bg-teal-600 text-white font-medium hover:bg-teal-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+              className="text-sm px-4 py-2 rounded-lg bg-teal-700 text-white font-medium hover:bg-teal-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
             >
               {saving ? "저장 중…" : "저장"}
             </button>

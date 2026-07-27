@@ -23,7 +23,7 @@ function fmtVal(m) {
 
 const STATUS_BAR = { ok: "bg-teal-500", warn: "bg-amber-400", danger: "bg-red-500", none: "bg-gray-300" };
 const MEASURE_BADGE = {
-  live: { t: "● 실측", c: "text-green-600 bg-green-50 border-green-200" },
+  live: { t: "● 실측", c: "text-green-700 bg-green-50 border-green-200" },
   proxy: { t: "≈ 추정", c: "text-blue-600 bg-blue-50 border-blue-200" },
   console: { t: "콘솔", c: "text-gray-500 bg-gray-50 border-gray-200" },
 };

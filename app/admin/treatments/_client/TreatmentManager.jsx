@@ -80,7 +80,7 @@ export const TreatmentManager = ({
           .map(h=><option key={h.id} value={h.id}>{h.name} ({treatmentCounts[h.id]}건)</option>)}
       </select>
       {process.env.NODE_ENV !== "production" && treatmentsError && (
-        <p className="text-xs text-red-500 mb-2">Treatments error: {treatmentsError.message}</p>
+        <p className="text-xs text-red-600 mb-2">Treatments error: {treatmentsError.message}</p>
       )}
       <div className="flex justify-between items-center mb-4">
         <h2 className="text-lg font-bold">시술 목록</h2>
@@ -114,7 +114,7 @@ export const TreatmentManager = ({
               {editingTreatmentId && (
                 <button 
                   onClick={()=>handleDelete('treatments', editingTreatmentId, ()=>fetchTreatments(selectedHospitalId))}
-                  className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition"
+                  className="p-2 text-red-700 hover:bg-red-50 rounded-lg transition"
                 >
                   <Trash2 size={18}/>
                 </button>

@@ -217,7 +217,7 @@ export default function CoordinatorConsultationsPage() {
                       <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
                         c.status === 'active' ? 'bg-green-100' : 'bg-blue-100'
                       }`}>
-                        <Video size={18} className={c.status === 'active' ? 'text-green-600' : 'text-blue-600'} />
+                        <Video size={18} className={c.status === 'active' ? 'text-green-700' : 'text-blue-600'} />
                       </div>
                       <div>
                         <div className="font-semibold text-sm">

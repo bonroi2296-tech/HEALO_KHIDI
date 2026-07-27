@@ -185,7 +185,7 @@ export default function DocumentsClient() {
       {/* No consultation yet */}
       {consultations.length === 0 ? (
         <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6 mb-6 text-center">
-          <AlertCircle size={36} className="text-amber-500 mx-auto mb-3" />
+          <AlertCircle size={36} className="text-amber-700 mx-auto mb-3" />
           <p className="font-semibold text-amber-900 mb-1">{t('patientDocs.noConsult', lang)}</p>
           <p className="text-sm text-amber-700 mb-4">{t('patientDocs.noConsultDesc', lang)}</p>
           <button

@@ -28,7 +28,7 @@ const SEVERITY_STYLE = {
     bg: 'bg-red-100 text-red-800',
     border: 'border-red-300',
     dot: 'bg-red-500',
-    badge: 'bg-red-500 text-white',
+    badge: 'bg-red-600 text-white',
   },
   high: {
     bg: 'bg-orange-100 text-orange-800',
@@ -190,7 +190,7 @@ export default function AlertsPage() {
           <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
             {L.alTitle}
             {unreadCount > 0 && (
-              <span className="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+              <span className="bg-red-600 text-white text-xs font-bold px-2 py-0.5 rounded-full">
                 {unreadCount}
               </span>
             )}
@@ -389,7 +389,7 @@ export default function AlertsPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
             <h3 className="text-lg font-bold text-gray-900 mb-2 flex items-center gap-2">
-              <CheckCircle size={20} className="text-green-600" />
+              <CheckCircle size={20} className="text-green-700" />
               {L.alResolveModalTitle}
             </h3>
             <p className="text-sm text-gray-500 mb-4">

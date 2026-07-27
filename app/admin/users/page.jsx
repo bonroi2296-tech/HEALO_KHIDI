@@ -251,7 +251,7 @@ export default function AdminUsersPage() {
                   {tt("consultationCountPrefix")} {p.consultation_count}
                 </span>
                 {p.banned && (
-                  <span className="text-xs font-semibold text-red-600 bg-red-50 border border-red-100 rounded-full px-2.5 py-0.5">
+                  <span className="text-xs font-semibold text-red-700 bg-red-50 border border-red-100 rounded-full px-2.5 py-0.5">
                     {tt("statusDisabled")}
                   </span>
                 )}
@@ -275,7 +275,7 @@ export default function AdminUsersPage() {
                     <p className="text-xs text-gray-500">{detail.user.email}</p>
                   </div>
                   {detail.user.banned && (
-                    <span className="text-xs font-bold text-red-600 bg-red-50 border border-red-100 rounded-full px-2.5 py-0.5">{tt("statusDisabled")}</span>
+                    <span className="text-xs font-bold text-red-700 bg-red-50 border border-red-100 rounded-full px-2.5 py-0.5">{tt("statusDisabled")}</span>
                   )}
                 </div>
 

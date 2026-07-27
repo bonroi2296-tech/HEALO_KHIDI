@@ -430,7 +430,7 @@ export default function PatientChatClient() {
                     {th.subject || t('patientChatUI.title', lang)}
                   </span>
                   <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
-                    th.status === 'open' ? 'bg-green-50 text-green-600' : 'bg-gray-100 text-gray-500'
+                    th.status === 'open' ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-500'
                   }`}>
                     {th.status}
                   </span>

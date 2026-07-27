@@ -167,7 +167,7 @@ function TranslatedDocView({ doc, onCopy, copied, onPdf, lang = "ko", onVerify, 
         <div className="flex items-center gap-1.5 shrink-0">
           {editing ? (
             <>
-              <button onClick={save} disabled={saving} className="inline-flex items-center gap-1 px-2 py-1 text-xs rounded border border-teal-300 bg-teal-600 text-white hover:bg-teal-700 transition disabled:opacity-50">
+              <button onClick={save} disabled={saving} className="inline-flex items-center gap-1 px-2 py-1 text-xs rounded border border-teal-300 bg-teal-700 text-white hover:bg-teal-700 transition disabled:opacity-50">
                 {saving ? <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Check size={13} />} 저장
               </button>
               <button onClick={cancelEdit} className="inline-flex items-center gap-1 px-2 py-1 text-xs rounded border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 transition">
@@ -694,7 +694,7 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
           <p className="text-red-600">{error || L.ibLoadFailed}</p>
           <button
             onClick={load}
-            className="mt-3 px-4 py-2 text-sm bg-white border border-red-200 text-red-600 rounded-lg hover:bg-red-50"
+            className="mt-3 px-4 py-2 text-sm bg-white border border-red-200 text-red-700 rounded-lg hover:bg-red-50"
           >
             {L.ibRetry}
           </button>
@@ -1059,7 +1059,7 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
                           key={o.key}
                           type="button"
                           onClick={() => setAttLang((prev) => ({ ...prev, [path]: o.key }))}
-                          className={`px-2 py-1.5 text-xs font-medium transition ${curLang === o.key ? "bg-teal-600 text-white" : "bg-white text-gray-500 hover:bg-gray-50"}`}
+                          className={`px-2 py-1.5 text-xs font-medium transition ${curLang === o.key ? "bg-teal-700 text-white" : "bg-white text-gray-500 hover:bg-gray-50"}`}
                           title={`${o.label} 로 번역`}
                         >
                           {o.label}
@@ -1159,7 +1159,7 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
                 }}
                 className={`px-3 py-1.5 rounded-full text-xs font-medium border transition ${
                   caseStatus === s.key
-                    ? "bg-teal-600 text-white border-teal-600"
+                    ? "bg-teal-700 text-white border-teal-600"
                     : "bg-white text-gray-600 border-gray-300 hover:border-teal-400"
                 }`}
               >
@@ -1208,7 +1208,7 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
               <button
                 onClick={requestInfo}
                 disabled={reqLoading}
-                className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition disabled:opacity-50"
+                className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-semibold bg-teal-700 text-white rounded-lg hover:bg-teal-700 transition disabled:opacity-50"
               >
                 <Send size={16} /> {reqLoading ? L.ibReqSending : L.ibReqButton}
               </button>
@@ -1275,7 +1275,7 @@ export default function CoordinatorInboxDetailClient({ inquiryId }) {
         <p className="text-xs text-gray-500 mb-2">{L.ibNextStepDesc}</p>
         <Link
           href="/coordinator/consultations"
-          className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition"
+          className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium bg-teal-700 text-white rounded-lg hover:bg-teal-700 transition"
         >
           <Video size={16} /> {L.ibScheduleConsult}
         </Link>

@@ -104,7 +104,7 @@ export default function AgenciesAdmin() {
       {loading ? (
         <div className="py-12 text-center text-gray-500">불러오는 중…</div>
       ) : error ? (
-        <div className="py-8 text-center text-red-500">{error}</div>
+        <div className="py-8 text-center text-red-600">{error}</div>
       ) : agencies.length === 0 ? (
         <p className="text-sm text-gray-500">등록된 파트너가 없습니다.</p>
       ) : (

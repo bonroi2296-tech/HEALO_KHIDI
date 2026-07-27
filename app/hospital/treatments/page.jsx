@@ -205,7 +205,7 @@ function TreatmentsManager() {
       <div>
         {toast && (
           <div className={`fixed top-16 lg:top-4 right-4 z-50 px-4 py-3 rounded-lg shadow-lg text-sm font-medium ${
-            toast.type === "error" ? "bg-red-500 text-white" : "bg-green-500 text-white"
+            toast.type === "error" ? "bg-red-600 text-white" : "bg-green-500 text-white"
           }`}>
             {toast.message}
           </div>
@@ -270,7 +270,7 @@ function TreatmentsManager() {
                 {form.images.map((url, idx) => (
                   <div key={idx} className="relative group aspect-square rounded-lg overflow-hidden border border-gray-200 bg-gray-100">
                     <img src={url} alt="treatment" className="w-full h-full object-cover"/>
-                    <button onClick={() => setForm({ ...form, images: form.images.filter((_, i) => i !== idx) })} className="absolute top-0.5 right-0.5 bg-red-500 text-white p-0.5 rounded-full opacity-0 group-hover:opacity-100 transition shadow-sm"><X size={10}/></button>
+                    <button onClick={() => setForm({ ...form, images: form.images.filter((_, i) => i !== idx) })} className="absolute top-0.5 right-0.5 bg-red-600 text-white p-0.5 rounded-full opacity-0 group-hover:opacity-100 transition shadow-sm"><X size={10}/></button>
                   </div>
                 ))}
               </div>
@@ -328,7 +328,7 @@ function TreatmentsManager() {
     <div>
       {toast && (
         <div className={`fixed top-16 lg:top-4 right-4 z-50 px-4 py-3 rounded-lg shadow-lg text-sm font-medium ${
-          toast.type === "error" ? "bg-red-500 text-white" : "bg-green-500 text-white"
+          toast.type === "error" ? "bg-red-600 text-white" : "bg-green-500 text-white"
         }`}>
           {toast.message}
         </div>

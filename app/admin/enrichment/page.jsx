@@ -221,7 +221,7 @@ export default function EnrichmentPage() {
                     </div>
                     {isSelected && <CheckCircle2 size={18} className="text-teal-700 shrink-0" />}
                     {!src.available && (
-                      <span className="text-xs text-red-500 shrink-0">키 없음</span>
+                      <span className="text-xs text-red-600 shrink-0">키 없음</span>
                     )}
                   </button>
                 );
@@ -376,11 +376,11 @@ export default function EnrichmentPage() {
                   <div className="text-xs text-gray-500 mt-1">총 처리</div>
                 </div>
                 <div className="bg-white rounded-xl border border-green-200 p-4 text-center">
-                  <div className="text-2xl font-bold text-green-600">{batchResults.success}</div>
+                  <div className="text-2xl font-bold text-green-700">{batchResults.success}</div>
                   <div className="text-xs text-gray-500 mt-1">성공</div>
                 </div>
                 <div className="bg-white rounded-xl border border-red-200 p-4 text-center">
-                  <div className="text-2xl font-bold text-red-500">{batchResults.failed}</div>
+                  <div className="text-2xl font-bold text-red-600">{batchResults.failed}</div>
                   <div className="text-xs text-gray-500 mt-1">실패</div>
                 </div>
               </div>
@@ -399,7 +399,7 @@ export default function EnrichmentPage() {
                       {r.success ? (
                         <CheckCircle2 size={18} className="text-green-500 shrink-0" />
                       ) : (
-                        <XCircle size={18} className="text-red-500 shrink-0" />
+                        <XCircle size={18} className="text-red-600 shrink-0" />
                       )}
                       <Building2 size={16} className="text-gray-500 shrink-0" />
                       <span className="flex-1 text-sm font-medium text-gray-800 truncate">
@@ -446,8 +446,8 @@ export default function EnrichmentPage() {
                                 </>
                               ) : (
                                 <>
-                                  <XCircle size={14} className="text-red-500" />
-                                  <span className="text-xs text-red-500">{src.error}</span>
+                                  <XCircle size={14} className="text-red-600" />
+                                  <span className="text-xs text-red-600">{src.error}</span>
                                 </>
                               )}
                             </div>

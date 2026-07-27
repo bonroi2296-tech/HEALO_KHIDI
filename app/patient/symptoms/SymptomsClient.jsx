@@ -166,7 +166,7 @@ export default function SymptomsClient() {
                       />
                       <span className={`text-sm font-bold w-6 text-center ${
                         symptom.severity >= 8 ? 'text-red-600' :
-                        symptom.severity >= 5 ? 'text-yellow-600' : 'text-green-600'
+                        symptom.severity >= 5 ? 'text-yellow-600' : 'text-green-700'
                       }`}>
                         {symptom.severity}
                       </span>
@@ -187,7 +187,7 @@ export default function SymptomsClient() {
               {symptoms.length > 1 && (
                 <button
                   onClick={() => removeSymptom(index)}
-                  className="mt-1 p-2 text-gray-500 hover:text-red-500 transition"
+                  className="mt-1 p-2 text-gray-500 hover:text-red-600 transition"
                 >
                   <Trash2 size={16} />
                 </button>
@@ -269,7 +269,7 @@ export default function SymptomsClient() {
             {result.flagged_symptoms?.length > 0 && (
               <div className="p-3 bg-red-50 rounded-lg border border-red-100">
                 <div className="flex items-center gap-1.5 mb-2">
-                  <AlertTriangle size={14} className="text-red-500" />
+                  <AlertTriangle size={14} className="text-red-600" />
                   <span className="text-xs font-medium text-red-700">Warning</span>
                 </div>
                 <div className="flex flex-wrap gap-1">

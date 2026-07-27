@@ -14,7 +14,7 @@ import {
 const MENU_ITEMS = [
   { key: 'consultations', icon: Video, href: '#consultations', color: 'bg-blue-50 text-blue-600' },
   { key: 'documents', icon: Upload, href: '/patient/documents', color: 'bg-purple-50 text-purple-600' },
-  { key: 'education', icon: BookOpen, href: '/education', color: 'bg-green-50 text-green-600' },
+  { key: 'education', icon: BookOpen, href: '/education', color: 'bg-green-50 text-green-700' },
   { key: 'symptoms', icon: Activity, href: '/patient/symptoms', color: 'bg-orange-50 text-orange-600' },
   { key: 'rebooking', icon: Calendar, href: '/patient/rebooking', color: 'bg-teal-50 text-teal-700' },
   { key: 'visa', icon: FileText, href: '/visa', color: 'bg-indigo-50 text-indigo-600' },
@@ -268,7 +268,7 @@ export default function PatientDashboardClient() {
             >
               <div className="flex items-center gap-3">
                 <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                  c.status === 'active' ? 'bg-green-50 text-green-600' :
+                  c.status === 'active' ? 'bg-green-50 text-green-700' :
                   c.status === 'completed' ? 'bg-gray-50 text-gray-500' :
                   'bg-blue-50 text-blue-600'
                 }`}>

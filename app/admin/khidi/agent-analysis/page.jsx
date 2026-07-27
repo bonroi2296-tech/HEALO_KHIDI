@@ -218,7 +218,7 @@ export default function AgentAnalysisPage() {
                 <button
                   onClick={() => runAnalysis(selected)}
                   disabled={running}
-                  className="flex items-center justify-center gap-1.5 px-6 py-2 text-sm font-medium text-white bg-teal-600 rounded-lg hover:bg-teal-700 disabled:opacity-60 disabled:cursor-not-allowed transition-all duration-200"
+                  className="flex items-center justify-center gap-1.5 px-6 py-2 text-sm font-medium text-white bg-teal-700 rounded-lg hover:bg-teal-700 disabled:opacity-60 disabled:cursor-not-allowed transition-all duration-200"
                 >
                   {running ? <RefreshCw size={15} className="animate-spin" /> : <Sparkles size={15} />}
                   {running ? "분석 중..." : "분석 실행"}

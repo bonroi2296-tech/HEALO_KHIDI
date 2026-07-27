@@ -115,7 +115,7 @@ const UserMenu = ({ session, onLogout, langCode, isHospitalUser, isAdmin }) => {
             </a>
             <button
               onClick={() => { setIsOpen(false); onLogout(); }}
-              className="w-full text-left px-4 py-2.5 text-sm hover:bg-red-50 transition-colors flex items-center gap-2.5 text-red-600 font-medium"
+              className="w-full text-left px-4 py-2.5 text-sm hover:bg-red-50 transition-colors flex items-center gap-2.5 text-red-700 font-medium"
             >
               <LogOut size={15} />
               <span>{t("auth.logout", langCode)}</span>
@@ -417,7 +417,7 @@ export const Header = ({ setView, view, _handleGlobalInquiry, isMobileMenuOpen, 
                     <KeyRound size={16} className="text-teal-700" />
                     {CHANGE_PW_LABEL[langCode] || CHANGE_PW_LABEL.en}
                   </a>
-                  <button onClick={() => { onLogout(); setIsMobileMenuOpen(false); }} className="w-full py-2.5 px-4 text-red-600 hover:bg-red-50 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors">
+                  <button onClick={() => { onLogout(); setIsMobileMenuOpen(false); }} className="w-full py-2.5 px-4 text-red-700 hover:bg-red-50 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors">
                     <LogOut size={16} />
                     {t("auth.logout", langCode)}
                   </button>

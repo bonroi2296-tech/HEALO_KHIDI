@@ -19,9 +19,9 @@ export const CANCER_TYPES = [
 // 암종 공통 섹션 5종 — 모든 암종 가이드가 같은 아이콘·색·순서를 공유
 const SECTION_DEFS = [
   { key: 'treatment', icon: Stethoscope, color: 'text-blue-600 bg-blue-50' },
-  { key: 'diet', icon: Utensils, color: 'text-green-600 bg-green-50' },
+  { key: 'diet', icon: Utensils, color: 'text-green-700 bg-green-50' },
   { key: 'exercise', icon: Dumbbell, color: 'text-orange-600 bg-orange-50' },
-  { key: 'warning', icon: AlertTriangle, color: 'text-red-600 bg-red-50' },
+  { key: 'warning', icon: AlertTriangle, color: 'text-red-700 bg-red-50' },
   { key: 'mental', icon: Brain, color: 'text-purple-600 bg-purple-50' },
 ];
 

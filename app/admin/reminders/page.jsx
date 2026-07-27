@@ -8,8 +8,8 @@ const supabase = createSupabaseBrowserClient();
 
 const STATUS_CONFIG = {
   pending: { label: "대기 중", icon: Clock, color: "text-yellow-600", bg: "bg-yellow-50 border-yellow-200" },
-  sent: { label: "발송 완료", icon: CheckCircle, color: "text-green-600", bg: "bg-green-50 border-green-200" },
-  failed: { label: "실패", icon: XCircle, color: "text-red-600", bg: "bg-red-50 border-red-200" },
+  sent: { label: "발송 완료", icon: CheckCircle, color: "text-green-700", bg: "bg-green-50 border-green-200" },
+  failed: { label: "실패", icon: XCircle, color: "text-red-700", bg: "bg-red-50 border-red-200" },
   cancelled: { label: "취소됨", icon: XCircle, color: "text-gray-500", bg: "bg-gray-50 border-gray-200" },
 };
 
@@ -251,7 +251,7 @@ export default function RemindersAdminPage() {
                       </span>
                     </td>
                     <td className="py-2 pr-3 text-gray-500">{r.attempts}</td>
-                    <td className="py-2 pr-3 text-xs text-red-500 max-w-[200px] truncate">
+                    <td className="py-2 pr-3 text-xs text-red-600 max-w-[200px] truncate">
                       {r.last_error ?? "—"}
                     </td>
                     <td className="py-2">

@@ -47,7 +47,7 @@ function ArrayEditor({ label, items, onChange }) {
             className="flex-1 text-sm border border-gray-200 rounded-lg px-3 py-1.5 focus:ring-1 focus:ring-teal-300 focus:border-teal-400 outline-none"
             placeholder={`${label} ${i + 1}`}
           />
-          <button onClick={() => removeItem(i)} className="text-gray-500 hover:text-red-500">
+          <button onClick={() => removeItem(i)} className="text-gray-500 hover:text-red-600">
             <X size={14} />
           </button>
         </div>
@@ -538,7 +538,7 @@ export default function AdminDoctorsPage() {
                         </button>
                         <button
                           onClick={() => deleteDoctor(doc.id)}
-                          className="text-xs text-red-500 hover:text-red-700 px-2 py-1 rounded hover:bg-red-50 transition"
+                          className="text-xs text-red-700 hover:text-red-700 px-2 py-1 rounded hover:bg-red-50 transition"
                         >
                           <Trash2 size={12} />
                         </button>
@@ -608,7 +608,7 @@ export default function AdminDoctorsPage() {
                       </button>
                       <button
                         onClick={() => deleteBranch(branch.id)}
-                        className="text-xs text-red-500 hover:text-red-700 px-2 py-1.5 rounded-lg hover:bg-red-50 transition"
+                        className="text-xs text-red-700 hover:text-red-700 px-2 py-1.5 rounded-lg hover:bg-red-50 transition"
                       >
                         <Trash2 size={12} />
                       </button>

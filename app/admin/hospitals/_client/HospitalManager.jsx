@@ -393,7 +393,7 @@ export const HospitalManager = ({
             {listToolbar}
           </div>
           {process.env.NODE_ENV !== "production" && hospitalsError && (
-            <p className="text-xs text-red-500 px-4 pt-2">Hospitals error: {hospitalsError.message}</p>
+            <p className="text-xs text-red-600 px-4 pt-2">Hospitals error: {hospitalsError.message}</p>
           )}
           <div className="overflow-y-auto flex-1">
             {hospitalsListLoading ? (
@@ -464,7 +464,7 @@ export const HospitalManager = ({
               {listToolbar}
             </div>
             {process.env.NODE_ENV !== "production" && hospitalsError && (
-              <p className="text-xs text-red-500 mb-2">Hospitals error: {hospitalsError.message}</p>
+              <p className="text-xs text-red-600 mb-2">Hospitals error: {hospitalsError.message}</p>
             )}
             <div className="space-y-2">
               {hospitalsListLoading ? (
@@ -643,7 +643,7 @@ function EnrichmentPanel({ editingHospitalId, enrichmentLog, onComplete, toast }
                     <div className="flex items-center gap-1.5">
                       <Icon size={13} className="text-gray-600"/>
                       <span className="text-sm font-bold text-gray-800">{s.name}</span>
-                      {!s.available && <span className="text-[10px] text-red-500 font-medium">키 필요</span>}
+                      {!s.available && <span className="text-[10px] text-red-600 font-medium">키 필요</span>}
                     </div>
                     <p className="text-[11px] text-gray-500 mt-0.5">{s.description}</p>
                     {log && (
@@ -651,7 +651,7 @@ function EnrichmentPanel({ editingHospitalId, enrichmentLog, onComplete, toast }
                         {log.status === 'success' ? (
                           <CheckCircle2 size={10} className="text-green-500"/>
                         ) : log.status === 'failed' ? (
-                          <XCircle size={10} className="text-red-500"/>
+                          <XCircle size={10} className="text-red-600"/>
                         ) : (
                           <Clock size={10} className="text-gray-500"/>
                         )}
@@ -800,7 +800,7 @@ function FormContent({ editingHospitalId, hospitalForm, setHospitalForm, uploadi
           {editingHospitalId && (
             <button 
               onClick={()=>handleDelete('hospitals', editingHospitalId, fetchHospitals)}
-              className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition"
+              className="p-2 text-red-700 hover:bg-red-50 rounded-lg transition"
               title="삭제"
             >
               <Trash2 size={18}/>

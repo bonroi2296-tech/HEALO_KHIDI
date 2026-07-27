@@ -143,7 +143,7 @@ export default function HospitalLeadsPage() {
                 onClick={() => setStatusFilter(f.value)}
                 className={`px-2.5 py-1 rounded-full text-xs font-medium transition-all ${
                   statusFilter === f.value
-                    ? "bg-teal-600 text-white shadow-sm"
+                    ? "bg-teal-700 text-white shadow-sm"
                     : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                 }`}
               >
@@ -470,7 +470,7 @@ function LeadDetailSheet({ lead, onClose, onUpdateStatus }) {
                     placeholder="메모(선택)"
                     className="w-24 border border-gray-200 rounded-lg px-2 py-2 text-sm focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none"
                   />
-                  <button onClick={() => removeSlot(i)} className="p-2 text-gray-500 hover:text-red-500 transition"><Trash2 size={15} /></button>
+                  <button onClick={() => removeSlot(i)} className="p-2 text-gray-500 hover:text-red-600 transition"><Trash2 size={15} /></button>
                 </div>
               ))}
               <button onClick={addSlot} className="flex items-center gap-1.5 text-teal-700 text-sm font-medium hover:underline">
@@ -482,7 +482,7 @@ function LeadDetailSheet({ lead, onClose, onUpdateStatus }) {
           <button
             onClick={handleReply}
             disabled={saving}
-            className="w-full bg-teal-600 text-white py-2.5 rounded-lg text-sm font-medium hover:bg-teal-700 transition disabled:opacity-50"
+            className="w-full bg-teal-700 text-white py-2.5 rounded-lg text-sm font-medium hover:bg-teal-700 transition disabled:opacity-50"
           >
             {saving ? "저장 중..." : "응답 저장 (견적·가능시간 → 코디 전달)"}
           </button>

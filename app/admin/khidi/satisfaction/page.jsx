@@ -16,7 +16,7 @@ function ScoreBar({ label, avg100 }) {
     <div className="space-y-1">
       <div className="flex justify-between items-center text-sm">
         <span className="text-gray-700">{label}</span>
-        <span className={`font-bold ${isGood ? "text-green-600" : "text-red-500"}`}>
+        <span className={`font-bold ${isGood ? "text-green-700" : "text-red-600"}`}>
           {avg100}점
         </span>
       </div>
@@ -54,7 +54,7 @@ export default function SatisfactionPage() {
 
   if (error) {
     return (
-      <div className="p-8 text-center text-red-500 text-sm">
+      <div className="p-8 text-center text-red-600 text-sm">
         데이터 로드 실패: {error}
       </div>
     );
@@ -82,7 +82,7 @@ export default function SatisfactionPage() {
       {/* 전체 KPI 카드 */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <div className="bg-white border rounded-xl p-4 text-center">
-          <div className={`text-3xl font-bold ${kpiK03Met ? "text-green-600" : "text-red-500"}`}>
+          <div className={`text-3xl font-bold ${kpiK03Met ? "text-green-700" : "text-red-600"}`}>
             {overallAvg100}
           </div>
           <div className="text-xs text-gray-500 mt-1">전체 평균 (100점)</div>

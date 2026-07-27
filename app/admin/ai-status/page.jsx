@@ -146,7 +146,7 @@ function TeachBox({ item }) {
         <button
           onClick={submit}
           disabled={state === "saving" || !text.trim()}
-          className="text-sm font-medium text-white bg-teal-600 hover:bg-teal-700 rounded-lg px-4 py-1.5 transition disabled:opacity-50 disabled:cursor-not-allowed"
+          className="text-sm font-medium text-white bg-teal-700 hover:bg-teal-700 rounded-lg px-4 py-1.5 transition disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {state === "saving" ? "가르치는 중…" : "저장하고 가르치기"}
         </button>
@@ -308,7 +308,7 @@ export default function AiStatusPage() {
                   {flags.length > 0 && (
                     <div className="flex flex-wrap gap-1.5 mt-2">
                       {flags.map((f) => (
-                        <span key={f} className="px-2 py-0.5 rounded-full text-xs bg-red-50 text-red-600 border border-red-100">
+                        <span key={f} className="px-2 py-0.5 rounded-full text-xs bg-red-50 text-red-700 border border-red-100">
                           {flagToKo(f)}
                         </span>
                       ))}

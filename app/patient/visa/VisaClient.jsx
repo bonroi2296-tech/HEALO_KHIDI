@@ -160,7 +160,7 @@ function VisaCard({ checklist, label, lang, sync, serverChecks, onPersist }) {
             <div>
               <div className="font-medium text-sm">
                 {doc.name}
-                {doc.required && <span className="text-red-500 ml-1">*</span>}
+                {doc.required && <span className="text-red-600 ml-1">*</span>}
               </div>
               <div className="text-[13px] text-gray-500 mt-0.5">{doc.description}</div>
             </div>
@@ -268,7 +268,7 @@ export default function VisaClient() {
                   aria-pressed={active}
                   className={`flex-1 px-4 py-2.5 rounded-lg border text-sm font-semibold transition-all duration-200 ${
                     active
-                      ? 'bg-teal-600 text-white border-teal-600'
+                      ? 'bg-teal-700 text-white border-teal-600'
                       : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
                   }`}
                 >
@@ -348,7 +348,7 @@ export default function VisaClient() {
           {/* Print Button */}
           <button
             onClick={() => window.print()}
-            className="self-center px-6 py-3 rounded-lg bg-teal-600 text-white text-[15px] font-semibold hover:bg-teal-700 transition-all duration-200"
+            className="self-center px-6 py-3 rounded-lg bg-teal-700 text-white text-[15px] font-semibold hover:bg-teal-700 transition-all duration-200"
           >
             {t('patientVisa.print', lang)}
           </button>

@@ -411,7 +411,7 @@ export default function AdminChatPage() {
               key={t.key}
               onClick={() => setFilter(t.key)}
               className={`flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg border transition ${
-                on ? "bg-teal-600 border-teal-600 text-white" : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"
+                on ? "bg-teal-700 border-teal-600 text-white" : "bg-white border-gray-200 text-gray-600 hover:bg-gray-50"
               }`}
             >
               <Icon size={14} /> {t.label}

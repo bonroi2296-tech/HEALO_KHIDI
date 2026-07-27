@@ -320,7 +320,7 @@ export default function PlaybookPatternsPage() {
                       </span>
                       <span className="text-xs text-gray-600">{p.language}</span>
                     </div>
-                    <span className={`text-xs ${p.quality_score < 70 ? "text-red-500 font-medium" : "text-gray-500"}`}>
+                    <span className={`text-xs ${p.quality_score < 70 ? "text-red-600 font-medium" : "text-gray-500"}`}>
                       Q: {p.quality_score}/100
                     </span>
                   </div>
@@ -446,11 +446,11 @@ export default function PlaybookPatternsPage() {
                 </div>
 
                 <div className="flex flex-wrap gap-3 text-xs text-gray-500">
-                  <span className={selected.quality_score < 70 ? "text-red-500 font-medium" : ""}>
+                  <span className={selected.quality_score < 70 ? "text-red-600 font-medium" : ""}>
                     Quality: {selected.quality_score}/100
                   </span>
                   {selected.is_active === false && <span className="text-gray-600">Retired</span>}
-                  {selected.rag_document_id && <span className="text-green-600">RAG linked</span>}
+                  {selected.rag_document_id && <span className="text-green-700">RAG linked</span>}
                 </div>
               </div>
             </div>

@@ -90,7 +90,7 @@ function GuideModal({ onClose }) {
             <div className="grid grid-cols-2 gap-2">
               <div className="bg-green-50 rounded-lg p-3 text-center">
                 <p className="text-xl font-bold text-green-700">85+</p>
-                <p className="text-xs text-green-600">양호 - 변경 불필요</p>
+                <p className="text-xs text-green-700">양호 - 변경 불필요</p>
               </div>
               <div className="bg-yellow-50 rounded-lg p-3 text-center">
                 <p className="text-xl font-bold text-yellow-700">50~84</p>
@@ -98,7 +98,7 @@ function GuideModal({ onClose }) {
               </div>
               <div className="bg-red-50 rounded-lg p-3 text-center">
                 <p className="text-xl font-bold text-red-600">{"<50"}</p>
-                <p className="text-xs text-red-500">퇴출 후보</p>
+                <p className="text-xs text-red-600">퇴출 후보</p>
               </div>
               <div className="bg-purple-50 rounded-lg p-3 text-center">
                 <p className="text-xl font-bold text-purple-700">90+</p>

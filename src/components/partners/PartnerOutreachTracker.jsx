@@ -547,7 +547,7 @@ export default function PartnerOutreachTracker({ accent = 'teal' }) {
                       <button onClick={() => setEditing({ ...row, next_followup_at: row.next_followup_at ? row.next_followup_at.slice(0, 10) : '' })} className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition" aria-label={t.ariaEdit}>
                         <Edit2 size={15} />
                       </button>
-                      <button onClick={() => remove(row)} className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-lg transition" aria-label={t.ariaDelete}>
+                      <button onClick={() => remove(row)} className="p-1.5 text-gray-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition" aria-label={t.ariaDelete}>
                         <Trash2 size={15} />
                       </button>
                     </div>

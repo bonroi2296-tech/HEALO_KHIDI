@@ -151,7 +151,7 @@ export default function OpinionsSection({ inquiryId }) {
             <button
               onClick={createLink}
               disabled={creating}
-              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition disabled:opacity-50"
+              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold bg-teal-700 text-white rounded-lg hover:bg-teal-700 transition disabled:opacity-50"
             >
               {creating ? <Loader2 size={15} className="animate-spin" /> : <Link2 size={15} />}
               소견 요청 링크 만들기
@@ -233,7 +233,7 @@ export default function OpinionsSection({ inquiryId }) {
                   <button
                     onClick={addDirect}
                     disabled={addingDirect || uploadingFile || !directDoctor.trim() || (directText.trim().length < 5 && !directFile)}
-                    className="inline-flex items-center px-3 py-1.5 text-xs font-semibold bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition disabled:opacity-50"
+                    className="inline-flex items-center px-3 py-1.5 text-xs font-semibold bg-teal-700 text-white rounded-lg hover:bg-teal-700 transition disabled:opacity-50"
                   >
                     {addingDirect ? "저장·번역 중… (최대 1~2분)" : "추가"}
                   </button>

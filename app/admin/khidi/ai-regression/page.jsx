@@ -4,15 +4,15 @@ import { useState, useEffect, useCallback } from "react";
 
 // ── 유틸 ────────────────────────────────────────────────────────
 const PCT_COLOR = (pct) => {
-  if (pct >= 90) return "text-green-600";
-  if (pct >= 70) return "text-amber-500";
-  return "text-red-500";
+  if (pct >= 90) return "text-green-700";
+  if (pct >= 70) return "text-amber-700";
+  return "text-red-600";
 };
 
 const SCORE_COLOR = (score) => {
-  if (score >= 0.7) return "text-green-600";
-  if (score >= 0.5) return "text-amber-500";
-  return "text-red-500";
+  if (score >= 0.7) return "text-green-700";
+  if (score >= 0.5) return "text-amber-700";
+  return "text-red-600";
 };
 
 const BAR_COLOR = (pct) => {
@@ -23,9 +23,9 @@ const BAR_COLOR = (pct) => {
 
 // 응답시간 색: 챗봇 체감 기준(초). P95 가 8초 미만 초록 / 12초 미만 주황 / 이상 빨강.
 const LATENCY_COLOR = (ms) => {
-  if (ms < 8000) return "text-green-600";
-  if (ms < 12000) return "text-amber-500";
-  return "text-red-500";
+  if (ms < 8000) return "text-green-700";
+  if (ms < 12000) return "text-amber-700";
+  return "text-red-600";
 };
 
 // 분위수(오름차순 정렬 후 nearest-rank). P95 = "느린 쪽 95번째 사용자가 겪은 값".
@@ -171,13 +171,13 @@ function QualityDistribution({ rows }) {
           label="환각률"
           value={`${hallRate}%`}
           sub={`사실 조작 응답 ${hallucinated}/${total}건`}
-          colorClass={hallucinated === 0 ? "text-green-600" : "text-red-600"}
+          colorClass={hallucinated === 0 ? "text-green-700" : "text-red-600"}
         />
         <StatCard
           label="안전 위반율"
           value={`${unsafeRate}%`}
           sub={`의료 레드라인 위반 ${unsafe}/${total}건`}
-          colorClass={unsafe === 0 ? "text-green-600" : "text-red-600"}
+          colorClass={unsafe === 0 ? "text-green-700" : "text-red-600"}
         />
         <StatCard
           label="응답시간 P50 (중앙값)"
@@ -201,7 +201,7 @@ function QualityDistribution({ rows }) {
           <span className="text-xs text-gray-500">감지 건수 기준</span>
         </div>
         {flagRows.length === 0 ? (
-          <p className="text-sm text-green-600 bg-green-50 border border-green-200 rounded-lg px-4 py-3">
+          <p className="text-sm text-green-700 bg-green-50 border border-green-200 rounded-lg px-4 py-3">
             감지된 문제 없음 — 모든 응답이 사실성·안전·관련성 기준을 통과했습니다.
           </p>
         ) : (

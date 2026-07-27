@@ -12,9 +12,9 @@ const STATUS_CONFIG = {
   queued: { label: "대기", color: "text-gray-600", icon: Clock },
   sent: { label: "전송됨", color: "text-blue-600", icon: Send },
   viewed: { label: "조회됨", color: "text-amber-600", icon: Eye },
-  replied: { label: "응답함", color: "text-green-600", icon: Reply },
+  replied: { label: "응답함", color: "text-green-700", icon: Reply },
   converted: { label: "치료 확정", color: "text-emerald-700", icon: CheckCircle },
-  rejected: { label: "거절", color: "text-red-500", icon: XCircle },
+  rejected: { label: "거절", color: "text-red-600", icon: XCircle },
   expired: { label: "만료", color: "text-gray-500", icon: Clock },
 };
 
@@ -97,7 +97,7 @@ export default function HospitalDashboardPage() {
           href="/hospital/leads"
           className={`rounded-xl border p-4 transition-all shadow-sm hover:shadow-md ${
             pending > 0
-              ? "bg-teal-600 border-teal-600 text-white"
+              ? "bg-teal-700 border-teal-600 text-white"
               : "bg-white border-gray-200"
           }`}
         >
@@ -144,7 +144,7 @@ export default function HospitalDashboardPage() {
 
         {queue.length === 0 ? (
           <div className="py-8 text-center">
-            <CheckCircle size={28} className="mx-auto mb-2 text-emerald-500" />
+            <CheckCircle size={28} className="mx-auto mb-2 text-emerald-700" />
             <p className="text-sm text-gray-500">응답 대기 중인 문의가 없습니다</p>
             <p className="text-xs text-gray-500 mt-0.5">새 진료 의뢰가 배정되면 여기에 표시됩니다</p>
           </div>

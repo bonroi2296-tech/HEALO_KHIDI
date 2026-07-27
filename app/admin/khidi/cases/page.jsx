@@ -23,7 +23,7 @@ const HOSP_STATUS_CLS = {
   viewed: "bg-blue-50 text-blue-600",
   replied: "bg-teal-50 text-teal-700",
   converted: "bg-green-100 text-green-700",
-  rejected: "bg-red-50 text-red-600",
+  rejected: "bg-red-50 text-red-700",
 };
 
 // 자기 완결형 로컬 다국어 사전 (6개 언어: ko·en·ru·kz·zh·ja).
@@ -357,7 +357,7 @@ export default function CasesPage() {
       {loading ? (
         <div className="py-24 text-center text-gray-500">{t.loading}</div>
       ) : error ? (
-        <div className="py-12 text-center text-red-500">{error}</div>
+        <div className="py-12 text-center text-red-600">{error}</div>
       ) : (data?.cases ?? []).length === 0 ? (
         <p className="text-sm text-gray-500">{t.empty}</p>
       ) : (
@@ -450,7 +450,7 @@ export default function CasesPage() {
                           const on = assignSel.includes(h.id);
                           return (
                             <button key={h.id} type="button" onClick={() => toggleHospital(h.id)}
-                              className={`px-2.5 py-1 rounded-full text-xs border transition ${on ? "bg-teal-600 text-white border-teal-600" : "bg-white text-gray-600 border-gray-300 hover:border-teal-400"}`}>
+                              className={`px-2.5 py-1 rounded-full text-xs border transition ${on ? "bg-teal-700 text-white border-teal-600" : "bg-white text-gray-600 border-gray-300 hover:border-teal-400"}`}>
                               {on ? "✓ " : ""}{h.name}
                             </button>
                           );

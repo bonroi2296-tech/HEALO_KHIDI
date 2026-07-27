@@ -186,7 +186,7 @@ function ProfileEditor() {
     <div>
       {toast && (
         <div className={`fixed top-16 lg:top-4 right-4 z-50 px-4 py-3 rounded-lg shadow-lg text-sm font-medium transition-all ${
-          toast.type === "error" ? "bg-red-500 text-white" : "bg-green-500 text-white"
+          toast.type === "error" ? "bg-red-600 text-white" : "bg-green-500 text-white"
         }`}>
           {toast.message}
         </div>
@@ -214,7 +214,7 @@ function ProfileEditor() {
             <div><span className="text-gray-500">병원명:</span> <span className="text-gray-900 font-medium">{hospital.name}</span></div>
             <div><span className="text-gray-500">슬러그:</span> <span className="text-gray-900">{hospital.slug}</span></div>
             {hospital.location_kr && <div><span className="text-gray-500">주소:</span> <span className="text-gray-900">{hospital.location_kr}</span></div>}
-            <div><span className="text-gray-500">공개 상태:</span> <span className={hospital.is_published ? "text-green-600 font-medium" : "text-gray-500"}>{hospital.is_published ? "공개" : "비공개"}</span></div>
+            <div><span className="text-gray-500">공개 상태:</span> <span className={hospital.is_published ? "text-green-700 font-medium" : "text-gray-500"}>{hospital.is_published ? "공개" : "비공개"}</span></div>
           </div>
         </div>
 
@@ -239,7 +239,7 @@ function ProfileEditor() {
               {galleryImages.map((url, idx) => (
                 <div key={idx} className="relative group aspect-square rounded-lg overflow-hidden border border-gray-200 bg-gray-100">
                   <img src={url} alt="gallery" className="w-full h-full object-cover"/>
-                  <button onClick={() => setGalleryImages(galleryImages.filter((_, i) => i !== idx))} className="absolute top-0.5 right-0.5 bg-red-500 text-white p-0.5 rounded-full opacity-0 group-hover:opacity-100 transition shadow-sm"><X size={10}/></button>
+                  <button onClick={() => setGalleryImages(galleryImages.filter((_, i) => i !== idx))} className="absolute top-0.5 right-0.5 bg-red-600 text-white p-0.5 rounded-full opacity-0 group-hover:opacity-100 transition shadow-sm"><X size={10}/></button>
                 </div>
               ))}
             </div>

@@ -11,7 +11,7 @@ const fmt2 = (n) =>
 
 const scoreColor = (score) => {
   if (score === null || score === undefined) return "text-gray-500";
-  if (score >= 0.8) return "text-green-600 font-semibold";
+  if (score >= 0.8) return "text-green-700 font-semibold";
   if (score >= 0.6) return "text-yellow-600 font-semibold";
   return "text-red-600 font-semibold";
 };
@@ -345,7 +345,7 @@ export default function AiQualityPage() {
                 ? "text-red-600 font-bold"
                 : s.low_score_rate > 10
                 ? "text-yellow-600 font-semibold"
-                : "text-green-600 font-semibold"
+                : "text-green-700 font-semibold"
             }
           />
         </div>

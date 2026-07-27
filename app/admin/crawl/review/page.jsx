@@ -21,9 +21,9 @@ import { AdminGuideModal } from "../../_components/AdminGuideModal";
 import Link from "next/link";
 
 const TABS = [
-  { key: "new", label: "신규", color: "text-green-600 border-green-500", bg: "bg-green-50" },
+  { key: "new", label: "신규", color: "text-green-700 border-green-500", bg: "bg-green-50" },
   { key: "changed", label: "변경", color: "text-blue-600 border-blue-500", bg: "bg-blue-50" },
-  { key: "closed", label: "폐업 의심", color: "text-red-600 border-red-500", bg: "bg-red-50" },
+  { key: "closed", label: "폐업 의심", color: "text-red-700 border-red-500", bg: "bg-red-50" },
 ];
 
 const PAGE_SIZE = 50;
@@ -252,9 +252,9 @@ export default function ReviewPage() {
 
       {/* Stats */}
       <div className="grid grid-cols-4 gap-3">
-        <StatCard label="신규 병원" value={(counts.new || 0).toLocaleString()} sub="개" color="text-green-600 bg-green-50" />
+        <StatCard label="신규 병원" value={(counts.new || 0).toLocaleString()} sub="개" color="text-green-700 bg-green-50" />
         <StatCard label="변경 감지" value={(counts.changed || 0).toLocaleString()} sub="개" color="text-blue-600 bg-blue-50" />
-        <StatCard label="폐업 의심" value={(counts.closed || 0).toLocaleString()} sub="개" color="text-red-600 bg-red-50" />
+        <StatCard label="폐업 의심" value={(counts.closed || 0).toLocaleString()} sub="개" color="text-red-700 bg-red-50" />
         <StatCard label="검토 완료" value={(counts.reviewed || 0).toLocaleString()} sub="개" color="text-gray-600 bg-gray-50" />
       </div>
 

@@ -3,8 +3,8 @@
 import { useState } from "react";
 
 // ── 색상 유틸 ───────────────────────────────────────────────────
-const SCORE_COLOR = (s) => (s >= 0.7 ? "text-green-600" : s >= 0.5 ? "text-amber-500" : "text-red-500");
-const PCT_COLOR = (p) => (p >= 90 ? "text-green-600" : p >= 70 ? "text-amber-500" : "text-red-500");
+const SCORE_COLOR = (s) => (s >= 0.7 ? "text-green-700" : s >= 0.5 ? "text-amber-700" : "text-red-600");
+const PCT_COLOR = (p) => (p >= 90 ? "text-green-700" : p >= 70 ? "text-amber-700" : "text-red-600");
 const fmt = (n, d = 2) => (Number.isFinite(n) ? Number(n).toFixed(d) : "—");
 
 const ARM_DESC = {
@@ -13,7 +13,7 @@ const ARM_DESC = {
   highend_spec: "하이엔드 + 우리 파이프라인 (공정 비교 상한선)",
 };
 const WINNER_LABEL = { our: "우리 승", highend: "하이엔드 승", tie: "무승부" };
-const WINNER_COLOR = { our: "text-green-600", highend: "text-red-500", tie: "text-gray-500" };
+const WINNER_COLOR = { our: "text-green-700", highend: "text-red-600", tie: "text-gray-500" };
 
 function ScoreCell({ value }) {
   return <span className={`font-bold ${SCORE_COLOR(value)}`}>{fmt(value)}</span>;
@@ -133,8 +133,8 @@ export default function ModelBenchmarkPage() {
                   <div className="text-xs text-gray-500 mt-1">우리 승률 (무승부 제외)</div>
                 </div>
                 <div className="text-sm text-gray-600">
-                  우리 <b className="text-green-600">{pw.ourWins}</b>승 ·
-                  하이엔드 <b className="text-red-500">{pw.highendWins}</b>승 ·
+                  우리 <b className="text-green-700">{pw.ourWins}</b>승 ·
+                  하이엔드 <b className="text-red-600">{pw.highendWins}</b>승 ·
                   무승부 <b className="text-gray-500">{pw.ties}</b> <span className="text-gray-500">(총 {pw.n})</span>
                 </div>
               </div>
@@ -175,7 +175,7 @@ export default function ModelBenchmarkPage() {
                       <td className="px-4 py-3"><ScoreCell value={a.relevance} /></td>
                       <td className="px-4 py-3 text-base"><ScoreCell value={a.overall} /></td>
                       <td className={`px-4 py-3 font-bold ${PCT_COLOR(a.passRate)}`}>{fmt(a.passRate, 0)}%</td>
-                      <td className={`px-4 py-3 font-bold ${a.redlineViolations === 0 ? "text-green-600" : "text-red-500"}`}>
+                      <td className={`px-4 py-3 font-bold ${a.redlineViolations === 0 ? "text-green-700" : "text-red-600"}`}>
                         {a.redlineViolations}/{a.n}
                       </td>
                       <td className="px-4 py-3 text-gray-600">{fmt(a.avgLatency, 0)}ms</td>
@@ -216,7 +216,7 @@ export default function ModelBenchmarkPage() {
                       <div className="bg-teal-50/50 rounded-lg p-3 border border-teal-100">
                         <div className="text-xs font-semibold text-teal-700 mb-1">
                           우리 (종합 {fmt(c.ourScores.overall)})
-                          {c.ourScores.flags?.length > 0 && <span className="text-red-500"> [{c.ourScores.flags.join(", ")}]</span>}
+                          {c.ourScores.flags?.length > 0 && <span className="text-red-600"> [{c.ourScores.flags.join(", ")}]</span>}
                         </div>
                         <p className="text-sm text-gray-600 whitespace-pre-wrap">{c.ourResponse}</p>
                       </div>
@@ -268,7 +268,7 @@ export default function ModelBenchmarkPage() {
                                 종합 {fmt(r.scores.overall)}
                               </span>
                               {r.scores.flags.length > 0 && (
-                                <span className="text-xs text-red-500">[{r.scores.flags.join(", ")}]</span>
+                                <span className="text-xs text-red-600">[{r.scores.flags.join(", ")}]</span>
                               )}
                             </div>
                             <p className="text-sm text-gray-600 whitespace-pre-wrap">{r.response}</p>

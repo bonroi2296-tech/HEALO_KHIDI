@@ -166,7 +166,7 @@ export default function InquiriesPage() {
 
             <div className="flex-1 overflow-auto p-6">
               {previewError ? (
-                <div className="text-center text-red-500">
+                <div className="text-center text-red-600">
                   <p className="mb-4">파일을 불러올 수 없습니다.</p>
                   <a
                     href={selectedFile}
