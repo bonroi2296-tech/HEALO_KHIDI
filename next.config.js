@@ -1,3 +1,9 @@
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+// 이 저장소는 ESM 이라 __dirname 이 없다 (2026-07-27 #999 에서 한 번 터진 부류).
+const HERE = path.dirname(fileURLToPath(import.meta.url));
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // ✅ 성능 최적화: 코드 스플리팅 및 번들 최적화
@@ -13,6 +19,17 @@ const nextConfig = {
     );
 
     if (!isServer) {
+      // ⭐ 21개 언어 통짜 사전을 브라우저 번들에서 제외 (2026-07-27).
+      // 방문자는 자기 언어 1개만 필요한데 전부 받고 있었다(홈 첫 화면 JS 623KB 중 269KB).
+      // 클라이언트 빌드에서만 진짜 사전을 빈 껍데기로 바꿔치기하고, 브라우저는
+      // app/i18n/[lang]/route.js 가 주는 «자기 언어 완성본» 하나만 받는다.
+      // ⚠️ 이 별칭을 지우면 269KB 가 조용히 전 페이지로 되돌아온다 — CI 가드 §32 가 감시한다.
+      config.resolve.alias = {
+        ...config.resolve.alias,
+        [path.resolve(HERE, 'src/lib/i18n/dictionary.js')]:
+          path.resolve(HERE, 'src/lib/i18n/dictionary.client.js'),
+      };
+
       // 클라이언트 사이드 번들 최적화
       config.optimization = {
         ...config.optimization,
