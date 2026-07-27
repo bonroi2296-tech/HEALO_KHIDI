@@ -52,21 +52,38 @@ standard:
 # 4. 토큰 — 실제 코드에서 추출한 값만
 # ============================================================
 colors:
-  primary:           "teal-600"      # 영구 고정. 브랜드 색.
+  primary:           "teal-600"      # 영구 고정. 브랜드 색. ⚠️ 흰 배경 «글씨»로는 3.74:1 미달 → 글씨는 teal-700
   primary_hover:     "teal-700"
   primary_subtle:    "teal-50"       # 배경 강조용
   primary_border:    "teal-100"
   primary_active:    "teal-500"
-  text_primary:      "gray-900"
-  text_secondary:    "gray-500"
-  text_muted:        "gray-400"
+  text_primary:      "gray-900"      # 17.7:1
+  text_secondary:    "gray-500"      # 4.83:1 (흰 배경 전용 — 회색/연색 배경 위에선 gray-600)
+  text_muted:        "gray-400"      # ⛔ 2.53:1 — «글씨로 쓰지 마라». 아이콘·장식 전용
   bg:                "white"
   bg_subtle:         "gray-50"
   border:            "gray-200"
   border_strong:     "gray-300"
-  success:           "emerald-500"
-  warning:           "amber-500"
-  danger:            "red-500"
+  # ⚠️ 상태색 3종은 «배경·아이콘·테두리» 전용이다. 글씨로 쓰면 전부 AA 미달(2026-07-27 실측).
+  success:           "emerald-500"   # 흰 배경 글씨 2.54:1 ⛔ → 글씨는 green-700 / emerald-700
+  warning:           "amber-500"     # 2.15:1 ⛔ → 글씨는 amber-700
+  danger:            "red-500"       # 3.76:1 ⛔ → 글씨는 red-600 (연빨강 배경 위면 red-700)
+
+# ============================================================
+# 4-b. 대비(contrast) 축 — 2026-07-27 실측으로 신설
+# ============================================================
+# 왜: 로그인 뒤 화면을 처음 실측하자 WCAG AA 위반 serious 414건이 나왔고, 대부분이 «흐린 회색»
+#     한 토큰이었다. 지금은 32화면 0건이며 매주 자동 측정으로 지킨다(scripts/audit/a11y-scan.mjs).
+#     ⛔ 재유입은 check:content 의 [저대비회색] 가드가 막는다(백오피스·환자포털·공유부품).
+contrast:
+  rule_text:    "본문 글씨 4.5:1 이상 (18px 미만 기준)"
+  rule_ui:      "아이콘·테두리·상태 점 3:1 이상"
+  gotcha_bg:    "배경이 흰색이 아니면 한 단계 더 진하게 — gray-500 은 흰 배경 4.83 통과지만 gray-100 위에선 4.39 미달"
+  gotcha_photo: "사진·그라데이션 위 글씨는 axe 가 «미판정»으로 남긴다 = 통과가 아님. 오버레이 최악값으로 직접 계산할 것"
+  forbidden:
+    - "text-gray-400 을 글씨로 (2.53:1)"
+    - "상태색 500번대를 글씨로 (emerald 2.54 · amber 2.15 · red 3.76)"
+    - "흰 글씨를 500번대 배지 배경 위에 (sky-500 2.77 · red-500 3.76 · teal-600 3.74) → 700번대로"
 
 radii:
   default:   "rounded-xl"       # 12px — 카드·버튼·이미지 기본 (신규 작업 우선)
@@ -214,6 +231,9 @@ deprecated:
 12. ✅ 가격·건수·통계 숫자에 `tabular-nums` 뺐는가? → 추가(흔들림 방지). 숫자:단위 위계 2:1
 13. ✅ 전환에 `duration-500+`·`scale`·`rotate` 호버 썼는가? → 기본 `duration-200`, 호버는 그림자/톤만
 14. ✅ 빈·로딩·에러 상태를 방치(빈 화면·날 에러코드)했는가? → 맥락 문구+재시도+다음행동(의료 신뢰)
+15. ✅ **글씨에 `text-gray-400`·상태색 500번대를 썼는가?** → 전부 AA 미달. gray-500↑ / 상태색은 600~700번대 (`contrast` 축)
+16. ✅ **흰 글씨를 500번대 색 배경 위에 얹었는가?** → sky/red/teal-500~600은 미달. 700번대로
+17. ✅ **배경이 흰색이 아닌데 gray-500을 썼는가?** → 회색·연색 배경 위에선 gray-600 (흰 배경 4.83 → gray-100 위 4.39)
 
 ---
 
