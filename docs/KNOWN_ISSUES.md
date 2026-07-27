@@ -1,5 +1,15 @@
 # HEALO KHIDI — 알려진 이슈 / 전수 QA 발견사항
 
+## 🟠 홈 JS 623KB 중 **269KB(gz)가 i18n 사전 한 덩어리** — 방문자는 1개 언어만 필요한데 6개를 다 받는다 (2026-07-27 실측, 모바일 점수의 남은 최대 병목)
+
+- **무엇**: `src/lib/i18n/index.js` 는 `DICTIONARY = { en, ko, ru, kz, zh, ja }` **한 파일 12,594줄(1.08MB)** 이고, 통째로 브라우저 청크가 된다(빌드 후 gzip **269KB** = 홈 첫 화면 JS 의 **43%**). 러시아 환자가 한국어·중국어·일본어 사전까지 받는다.
+- **왜 아직 안 고쳤나**: `t(key, lang)` 이 서버·클라이언트 전역에서 **동기 호출**이라 언어별 동적 import 로 바꾸면 로드 전 빈 문자열이 뜬다(하이드레이션 불일치·글자 깜빡임). 6개 언어 전 화면에 영향 → 속도 PR([#1011](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/1011)·[#1018](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/1018))에 섞지 않고 분리했다.
+- **후보 경로**: ①언어별 파일 6개로 쪼개고 서버가 현재 언어분만 주입 ②공개/백오피스 키 분리(`coordinator.js` 가 이미 그렇게 분리돼 있으니 같은 패턴) — ②가 위험이 낮고 부분 이득.
+- **판단 기준**: 이걸 손대면 모바일 PageSpeed 가 **69 → 80점대**로 갈 여지가 가장 크다. 반대로 잘못 건드리면 6개 언어 화면 전체에 빈 글자가 난다. **PO 결정 사항**(비용 대비).
+- ⚠️ 측정할 때: 이 PC 는 AdGuard 데스크톱앱이 페이지마다 2MB 를 주입한다(시크릿·헤드리스로 안 막힘). 메모리 `lighthouse-measurement` 참조.
+
+---
+
 ## 🟠 외부 칼럼 3편 대조에서 나온 보완점 3건 — **A 완료(#998), B·C 미착수** (2026-07-27)
 
 > 출처: ①[작은 UI 디자인 팁](https://news.hada.io/topic?id=31746)(Adham Dannaway) ②[클로드 Opus 5 출시](https://wikidocs.net/blog/@openwiki/26082/) ③[클로드 5 컨텍스트 엔지니어링 — "규칙 줄여야 성능 올라간다"](https://www.aitimes.com/news/articleView.html?idxno=213178)

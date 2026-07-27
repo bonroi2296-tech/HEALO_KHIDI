@@ -8,6 +8,13 @@
 
 ---
 
+> **📌 중간 저장 (2026-07-27 2차 — 속도 후속 [#1018](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/1018) 머지·배포 완료, main `4318c73`)** — PO 가 #1011 배포 후 PageSpeed 를 직접 돌린 결과 **모바일 49 → 69 / 데스크톱 → 99**(FCP 6.7→2.3s, LCP 15.3→7.0s). PO 선택 = "구글이 남긴 3개 더 치우기". 워크트리 `HEALO_worktrees/perf-mobile`.
+> · **한 것**: ①`ClientShell` 이 전 페이지를 감싸며 supabase 클라이언트를 static import → 공개 홈에도 `supabase-vendor` 43KB(gz)가 딸려오던 것을 마운트 뒤 동적 import 로(**첫 화면 JS 676→623KB gz**), 알림 종도 `dynamic({ssr:false})` ②**최적화 이미지 캐시 1시간→30일** ③병원 썸네일 화질 75→60.
+> · ⭐ **다음 세션이 알아야 할 함정 (이번에 오진했다가 프리뷰 실측으로 잡음)**: **Vercel 이미지 최적화기는 원본의 `Cache-Control` 을 그대로 물려준다.** 원본이 1시간이면 `/_next/image` 도 1시간이고, `images.minimumCacheTTL`(서버 캐시)은 이 브라우저 헤더를 **못 바꾼다**. 처음엔 「우리 headers() 규칙이 `/_next/image` 에 걸린다」고 보고 `(?!_next/)` 를 넣었는데 **프리뷰에선 여전히 1시간**이었다. ⚠️ **로컬 `next start` 에선 이 물려받기가 안 일어나 재현 자체가 안 된다** — 캐시 헤더는 반드시 **프리뷰/프로덕션 curl 로** 확인할 것. 최종 해법 = 늦게 파일이 추가되지 않는 확정 자산(`/immune`, `/brand`)만 30일, `/images/hospitals` 등은 1시간 유지(404 박제 방지 원칙 보존).
+> · **인증 실검증**: 로그인(admin@test.com)→쿠키 발급→`/admin` 실데이터 렌더→로그아웃→쿠키 삭제까지 **실제 클릭으로 통과**(지연 로드가 세션 읽기·signOut 둘 다 안 깨뜨림). 프로덕션 curl 재확인: 최적화 이미지 30일 · `/images/hospitals` 1시간 · 홈 초기 HTML 에 supabase 청크 0.
+> · **안 한 것**: 안 쓰는 CSS 35KiB(20KB 는 폰트 CSS 커버리지 오탐, 나머지는 Tailwind 기본층 — 실이득 없음) / Sentry 클라이언트 트레이싱 트리셰이킹(−20KB 인데 의료 플랫폼 관측을 줄이는 값이 아님).
+> · 🔴 **남은 최대 병목 = i18n 사전 269KB(gz)** — 홈 JS 의 43%. 상세·판단기준은 `KNOWN_ISSUES.md` 최상단. **PO 결정 대기**.
+
 > **📌 중간 저장 (2026-07-27 — 접속 속도 최적화 머지·프로덕션 배포 완료 [#1011](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/1011), main `6562b52`)** — PO 가 준 PageSpeed 리포트(모바일 49점)에서 출발. 워크트리 `HEALO_worktrees/perf-pagespeed`. **홈 전송량 2,959KB → 1,009KB(−66%) / FCP 6.4s→2.8s / LCP 15.2s→7.0s** (전·후 모두 로컬 프로덕션 빌드 + Lighthouse 모바일, 동일 조건). 원인 4개: ①`healo-tokens.css` 의 `@import pretendard.min.css` — `layout.jsx` 가 이미 dynamic-subset 을 넣는데 **풀폰트를 이중으로** 받고 있었고(774KB) `@import` 라 렌더까지 막았다 ②의료진 PNG 4장을 날 `<img>` 로(−900KB, `next/image` 로 교체 — `/hospitals/immune` 6곳도 같이) ③`next.config.js` `splitChunks` 의 **`name:'vendor'`** 가 안 걸린 node_modules 전부를 사이트 단 하나의 406KB 덩어리로 뭉쳐 모든 페이지가 통째로 받게 함(홈에선 80% 미사용) → **이름만 제거**하면 페이지별로 쪼개짐 ④Supabase·Sentry preconnect + `images.minimumCacheTTL` 1년(`?dpl=` 자동 캐시버스팅이라 안전).
 > · **프로덕션 실검증(curl)**: CSS 번들에 `pretendard.min.css` 0건 · 의료진 사진 `_next/image` **11.3KB AVIF**(원본 295KB) · preconnect 3개 · 단일 `vendor-*.js` 사라짐.
 > · ⚠️ **되살리지 마라**: `@import pretendard.min.css`(폰트 창구는 `layout.jsx` 하나) / `name:'vendor'`.
