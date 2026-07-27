@@ -73,7 +73,13 @@ import { LiveTranslateBridge } from "@/lib/consultation/LiveTranslateBridge";
 import { SameRoomGuard } from "@/lib/consultation/SameRoomGuard";
 import { PartnerLangBridge } from "@/lib/consultation/PartnerLangBridge";
 import { ListenModeBridge } from "@/lib/consultation/ListenModeBridge";
-import { speakerColor } from "@/lib/consultation/speakerColor";
+import { speakerColor, speakerInitial } from "@/lib/consultation/speakerColor";
+import {
+  shouldShowChunk,
+  sortByTime,
+  dedupeAgainstShown,
+  isSameSpeakerRun,
+} from "@/lib/consultation/transcriptOrder";
 
 const supabase = createSupabaseBrowserClient();
 
@@ -629,17 +635,16 @@ function SubtitleOverlay({
   return (
     <div className="absolute bottom-4 inset-x-0 z-10 pointer-events-none flex flex-col items-center gap-1.5 px-4">
       {/* 상대방 자막 (DataChannel·청취모드) — 화자 라벨은 본문 앞 인라인(줄 수 절약) */}
-      {remoteSubtitles.map((rs, i) => {
-        // 화자 구분 = **사람 단위** 3중 신호: ①색(이름 고정) ②이름 라벨 ③좌/우 위치.
-        // 슬롯 순서가 고정돼 있어(showRemoteSubtitle 이 제자리 교체) 두 사람이 교대로 말해도
-        // 자막이 좌우로 튀지 않는다 — 왼쪽은 계속 같은 사람.
+      {remoteSubtitles.map((rs) => {
+        // 화자 구분 = **사람 단위** 2중 신호: ①색(이름 고정) ②이름 라벨.
+        // 좌/우 배치는 폐기(2026-07-27 PO): 위치를 배열 순서로 정하다 보니 화면 속 사람과
+        // 안 맞아 오히려 헷갈렸고, 3명째가 말하면 좌우가 뒤바뀌었다. 구글밋·줌처럼
+        // **가운데 한 줄 스택**으로 모으고 사람 구분은 이름표+색이 전담한다.
         const sc = speakerColor(rs.name || rs.key);
         return (
           <div
             key={rs.key}
-            className={`${boxBase} bg-black/60 border border-l-4 ${sc.border} text-left ${
-              i % 2 === 0 ? "self-start" : "self-end"
-            }`}
+            className={`${boxBase} bg-black/60 border border-l-4 ${sc.border} text-left`}
           >
             {/* interim = 상대가 아직 말하는 중인 부분 자막 — 톤 낮춰 '자라는 중'임을 표시, 말줄임표로 마감 */}
             <p
@@ -987,9 +992,10 @@ export default function ConsultationRoomPage() {
       /* 저장 실패해도 이번 세션엔 적용됨 */
     }
   }, []);
-  // 상대방 자막 (DataChannel 수신 + 청취 모드) — 화자별 슬롯 최대 2개.
+  // 상대방 자막 (DataChannel 수신 + 청취 모드) — 화자별 슬롯 최대 3개.
   // 단일 슬롯이면 두 화자가 교대할 때 뒤 자막이 앞 자막을 즉시 덮어 읽다 만 자막이
   // 사라진다(청취 모드 핵심 시나리오: 코디↔외국인 교대 대화). 화자 key 별 타이머 관리.
+  // 2 → 3: 2026-07-27 실회의는 상대가 3명이었고, 3번째가 말할 때마다 1번째가 밀려났다.
   const [remoteSubtitles, setRemoteSubtitles] = useState([]);
   const remoteSubtitleTimersRef = useRef(new Map());
   useEffect(() => {
@@ -1011,7 +1017,7 @@ export default function ConsultationRoomPage() {
         next[at] = entry;
         return next;
       }
-      return [...prev, entry].slice(-2); // 최근 화자 2명까지
+      return [...prev, entry].slice(-3); // 최근 화자 3명까지
     });
     // 문장 길이에 비례해 자동 숨김(12~30초) — "너무 슉슉 넘어가 읽기 힘들다"(PO 제보 2026-07-23)로
     // 유지시간을 크게 늘림. 지난 자막은 「자막 기록」 패널에 남으므로 다시 읽을 수 있다.
@@ -1304,23 +1310,42 @@ export default function ConsultationRoomPage() {
   );
 
   // ── 청취 모드 자막 수신 (ListenModeBridge) — 원격 참가자 음성을 이쪽에서 전사·번역 ──
+  // 순서 역전 필터: 조각을 보내자마자 다음 녹음을 시작하므로 응답이 뒤섞여 도착한다.
+  //   더 새 조각을 이미 본 뒤 낡은 조각이 오면 «이전 대화 자막이 뜬금없이» 뜬다
+  //   (2026-07-27 PO 제보). DC 경로엔 있던 세대 필터가 청취모드엔 없었다 — 같은 규칙으로 맞춤.
+  const listenSeqRef = useRef(new Map());
   const handleListenSubtitle = useCallback(
-    ({ transcript, translated, lang, name, identity }) => {
-      showRemoteSubtitle({ key: identity, text: translated, lang, name });
+    ({ transcript, translated, lang, name, identity, seq, startedAt, interim }) => {
+      if (typeof seq === "number" && identity) {
+        // 판정 규칙·근거는 transcriptOrder.ts (단위 테스트로 고정 — 실통화 없이 검증 가능한 층)
+        const { show, nextRank } = shouldShowChunk(
+          listenSeqRef.current.get(identity) || 0,
+          seq,
+          interim
+        );
+        listenSeqRef.current.set(identity, nextRank);
+        if (!show) return; // 늦게 도착한 옛 조각 — 버린다
+      }
+      showRemoteSubtitle({ key: identity, text: translated, lang, name, interim });
+      // 말하는 중(부분) 자막은 화면에만 — 기록·문맥은 확정본에서만 쌓는다
+      // (같은 발화가 조각 수만큼 기록에 남으면 회의록이 오염된다).
+      if (interim) return;
       // 문맥 축적은 원문(전사)으로 — 번역문보다 정보 보존이 좋음
       pushConvoContext("other", lang, transcript);
       // 번역 기록 패널에도 남긴다 (화자 이름 포함, 최근 300개 캡 — 장시간 통화 메모리·렌더 보호)
+      // created_at 은 **말한 시각**(녹음 시작)으로 — 응답 도착 시각으로 찍으면 늦게 온 조각이
+      // 기록에서 뒤로 밀려 순서가 뒤죽박죽이 된다.
       setTranslations((prev) => [
         ...prev.slice(-299),
         {
-          id: Date.now(),
+          id: `local-${identity}-${seq ?? Date.now()}`,
           original_text: transcript,
           translated_text: translated,
           source_language: lang,
           target_language: myLang,
           speaker_role: "other",
           speaker_name: name,
-          created_at: new Date().toISOString(),
+          created_at: new Date(startedAt || Date.now()).toISOString(),
         },
       ]);
     },
@@ -1825,15 +1850,7 @@ export default function ConsultationRoomPage() {
           setTranslations(
             (transResult.data || [])
               .filter((row) => afterCallStart(row.created_at))
-              .map((row) => ({
-                id: row.id,
-                original_text: row.source_text ?? row.original_text ?? "",
-                translated_text: row.translated_text ?? "",
-                source_language: row.source_lang ?? row.source_language ?? "",
-                target_language: row.target_lang ?? row.target_language ?? "",
-                speaker_role: row.speaker_role || "unknown",
-                created_at: row.created_at || new Date().toISOString(),
-              }))
+              .map(normalizeTrans)
           );
         }
       } catch (error) {
@@ -2021,6 +2038,8 @@ export default function ConsultationRoomPage() {
     source_language: row.source_lang ?? row.source_language ?? "",
     target_language: row.target_lang ?? row.target_language ?? "",
     speaker_role: row.speaker_role || "unknown",
+    // 서버 기록의 화자 이름 (2026-07-27 컬럼 추가 전 기록은 null → 화면에서 「화자 미상」)
+    speaker_name: row.speaker_name || null,
     created_at: row.created_at || new Date().toISOString(),
   }), []);
 
@@ -2098,22 +2117,13 @@ export default function ConsultationRoomPage() {
           // 번역 로그는 서버 기록 기준으로 갱신 (내 입력은 이미 로컬에 있음 → id 중복 제거)
           setTranslations((prev) => {
             const seen = new Set(prev.map((t) => t.id));
-            const incoming = tJson.data
+            const fresh = tJson.data
               .filter((row) => !seen.has(row.id))
               // 이 통화 이후 기록만 — 예전 통화·테스트 번역이 폴링으로 섞여 들어오던 것 차단
               .filter((row) => afterCallStart(row.created_at))
-              .map(normalizeTrans)
-              // 내 발화는 로컬 entry(다른 id)로 이미 추가됨 — 서버 기록이 같은 내용으로
-              // 다시 오면 중복 표시되므로 내용+20초 시간창 기준으로 걸러냄
-              .filter(
-                (row) =>
-                  !prev.some(
-                    (p) =>
-                      p.original_text === row.original_text &&
-                      p.translated_text === row.translated_text &&
-                      Math.abs(new Date(p.created_at) - new Date(row.created_at)) < 20000
-                  )
-              );
+              .map(normalizeTrans);
+            // 이미 화면에 있는 발화는 서버 기록으로 또 들어오지 않게 (규칙·근거 = transcriptOrder.ts)
+            const incoming = dedupeAgainstShown(prev, fresh);
             return incoming.length ? [...prev, ...incoming] : prev;
           });
         }
@@ -3540,47 +3550,76 @@ export default function ConsultationRoomPage() {
                     )}
                   </div>
                 ) : (
-                  translations.map((trans) => (
-                    <div
-                      key={trans.id}
-                      className="border border-gray-700 rounded-lg p-3 hover:border-gray-600 transition"
-                    >
-                      <div className="flex items-center justify-between mb-2">
-                        {/* 화자 표시 = 사람 단위(색 점 + 이름). 오버레이 자막과 같은 색 규칙이라
-                            같은 사람이면 기록에서도 같은 색이다. 역할(계층)은 쓰지 않는다. */}
-                        <span className="text-xs text-gray-500 flex items-center gap-1.5">
+                  // **말한 시각 순서로** 읽는다 — 서버 기록은 4초 폴링으로 늦게 오므로
+                  // 배열 순서대로 그리면 옛 발화가 새 발화 아래에 끼어든다(2026-07-27 PO 제보).
+                  sortByTime(translations).map((trans, i, arr) => {
+                      // 화자 구분은 **4중 신호**로 — 색 점 하나로는 훑기 어렵다는 PO 지적(2026-07-27).
+                      //   ①왼쪽 굵은 색 띠 ②이니셜 아바타(색 원) ③색 배지에 박힌 이름 ④연속 발화 묶기.
+                      // 이름을 모르는 줄(옛 기록)은 전부 회색 — 다른 사람인 척하지 않는다.
+                      const isSelf = trans.speaker_role === "self";
+                      const known = !isSelf && !!trans.speaker_name;
+                      const sc = known ? speakerColor(trans.speaker_name) : null;
+                      const label = trans.speaker_name || (isSelf ? c.you : c.speakerUnknown);
+                      // 같은 사람이 이어 말하면 이름줄을 생략 — 이름이 바뀌는 지점만 눈에 띈다.
+                      const sameAsPrev = isSameSpeakerRun(arr[i - 1], trans);
+                      return (
+                        <div key={trans.id} className={`flex gap-2 ${sameAsPrev ? "-mt-1" : ""}`}>
+                          {/* ① 왼쪽 색 띠 — 같은 사람의 발화 덩어리가 한 줄기로 보인다 */}
                           <span
-                            className={`inline-block w-2 h-2 rounded-full ${
-                              trans.speaker_role === "self"
-                                ? "bg-gray-400"
-                                : speakerColor(trans.speaker_name).dot
-                            }`}
+                            className={`w-1 rounded-full shrink-0 ${
+                              known ? sc.bar : "bg-gray-600"
+                            } ${sameAsPrev ? "opacity-60" : ""}`}
+                            aria-hidden="true"
                           />
-                          {trans.speaker_name ||
-                            (trans.speaker_role === "self" ? c.you : c.roleGuest)}
-                        </span>
-                        <span className="text-xs text-gray-600">
-                          {new Date(trans.created_at).toLocaleTimeString("ko-KR", {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                            second: "2-digit",
-                          })}
-                        </span>
-                      </div>
-                      <div className="mb-2">
-                        <p className="text-xs text-gray-500 mb-0.5">
-                          {LANG_LABELS[trans.source_language] || trans.source_language}
-                        </p>
-                        <p className="text-sm text-gray-200">{trans.original_text}</p>
-                      </div>
-                      <div className="pt-2 border-t border-gray-700">
-                        <p className="text-xs text-teal-700 mb-0.5">
-                          {LANG_LABELS[trans.target_language] || trans.target_language}
-                        </p>
-                        <p className="text-sm text-teal-300">{trans.translated_text}</p>
-                      </div>
-                    </div>
-                  ))
+                          <div className="flex-1 min-w-0">
+                            {!sameAsPrev && (
+                              <div className="flex items-center justify-between gap-2 mb-1">
+                                <span className="flex items-center gap-1.5 min-w-0">
+                                  {/* ② 이니셜 아바타 */}
+                                  <span
+                                    className={`w-5 h-5 rounded-full shrink-0 flex items-center justify-center text-[9px] font-bold ${
+                                      known ? sc.chip : "bg-gray-600 text-gray-950"
+                                    }`}
+                                    aria-hidden="true"
+                                  >
+                                    {speakerInitial(label)}
+                                  </span>
+                                  {/* ③ 색 배지에 박힌 이름 */}
+                                  <span
+                                    className={`text-[11px] font-semibold px-1.5 py-0.5 rounded truncate ${
+                                      known ? sc.chip : "bg-gray-700 text-gray-300"
+                                    }`}
+                                  >
+                                    {label}
+                                  </span>
+                                </span>
+                                <span className="text-[10px] text-gray-600 shrink-0">
+                                  {new Date(trans.created_at).toLocaleTimeString("ko-KR", {
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                    second: "2-digit",
+                                  })}
+                                </span>
+                              </div>
+                            )}
+                            <div className="border border-gray-700 rounded-lg p-2.5 hover:border-gray-600 transition">
+                              <div className="mb-2">
+                                <p className="text-xs text-gray-500 mb-0.5">
+                                  {LANG_LABELS[trans.source_language] || trans.source_language}
+                                </p>
+                                <p className="text-sm text-gray-200">{trans.original_text}</p>
+                              </div>
+                              <div className="pt-2 border-t border-gray-700">
+                                <p className="text-xs text-teal-700 mb-0.5">
+                                  {LANG_LABELS[trans.target_language] || trans.target_language}
+                                </p>
+                                <p className="text-sm text-teal-300">{trans.translated_text}</p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })
                 )}
                 <div ref={translationsEndRef} />
               </div>
