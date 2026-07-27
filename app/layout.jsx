@@ -2,7 +2,6 @@
 import "./globals.css";
 import "./styles/healo-tokens.css";
 import { headers, cookies } from "next/headers";
-import Script from "next/script";
 import Providers from "./providers";
 import ClientShell from "./ClientShell";
 import AnalyticsWrapper from "./AnalyticsWrapper";
@@ -10,7 +9,7 @@ import InstallPrompt from "./InstallPrompt";
 import { localeAlternates, OG_LOCALE, getRequestLocale } from "@/lib/i18n/metadata";
 import { getI18nOverrideMap } from "@/lib/content/i18nOverrides";
 import { applyI18nOverrides, LANG_OPTIONS } from "@/lib/i18n";
-import { I18N_VERSION } from "@/lib/i18n/version";
+import { i18nInlineScript } from "@/lib/i18n/inlineScript";
 import I18nOverridesApply from "./_components/I18nOverridesApply";
 
 // kz(우리 내부 코드) → kk(BCP47 표준 카자흐 언어코드). <html lang>·hreflang용.
@@ -138,8 +137,7 @@ export default async function RootLayout({ children }) {
   const i18nOverrides = await getI18nOverrideMap();
   applyI18nOverrides(i18nOverrides);
 
-  // 브라우저가 받을 사전 목록. 21개 언어 통짜(gzip 269KB)를 번들에서 뺀 대신
-  // 「필요한 언어만」 스크립트로 내려준다 (app/i18n/[lang]/route.js).
+  // 브라우저에 심을 사전 목록. 21개 언어 통짜를 번들에서 뺀 대신 「필요한 언어만」 넣는다.
   // 보통 1개. 사용자가 쿠키로 URL 언어와 다른 언어를 골라둔 경우에만 2개 —
   // LangProvider 가 하이드레이션 후 쿠키 언어로 바꾸므로 그 사전이 없으면 글자가 빈다.
   const cookieLang = (await cookies()).get("healo_lang")?.value;
@@ -154,23 +152,18 @@ export default async function RootLayout({ children }) {
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, viewport-fit=cover" />
         <meta name="theme-color" content="#0d9488" />
-        {/* 이 방문자 언어의 사전만 주입 (전체 21개 언어 통짜 = gzip 269KB 를 번들에서 뺀 대신).
-            beforeInteractive = React 가 붙기 전 실행 보장 → t() 가 첫 렌더부터 값을 갖는다
-            (나중에 도착하는 방식이면 글자가 빈칸으로 그려졌다 채워진다). */}
-        {clientLangs.map((code) => (
-          <Script
-            key={code}
-            id={`i18n-${code}`}
-            src={`/i18n/${code}?v=${I18N_VERSION}`}
-            strategy="beforeInteractive"
-          />
-        ))}
-        <script
-          dangerouslySetInnerHTML={{
-            // 못 받은 언어로 t() 를 부를 때 되돌아갈 기본 언어 (i18n/index.js dictOf 참고).
-            __html: `window.__I18N__=Object.assign(window.__I18N__||{},{__primary:${JSON.stringify(lang)}});`,
-          }}
-        />
+        {/* 이 방문자 언어의 사전만 주입 (21개 언어 통짜 = 번들 264KB 를 뺀 대신).
+            t() 는 화면 곳곳에서 동기로 불리므로 React 가 붙기 전에 값이 있어야 한다
+            (나중에 도착하는 방식이면 글자가 빈칸으로 그려졌다 채워진다).
+
+            ⚠️ 왜 「별도 파일 + beforeInteractive」가 아니라 인라인인가 (2026-07-27 실측):
+            별도 파일로 하면 Next 가 head 에 <link rel="preload" as="script"> 를 넣는데
+            이게 High 우선순위라 CSS·히어로 이미지와 첫 화면 대역폭을 다툰다.
+            같은 조건 3안 비교(로컬 프로덕션 빌드, Lighthouse 모바일 3회, FCP 시뮬):
+              외부파일 3894~3942ms / 사전 없음(대조군) 1226~3284ms / 인라인 2440~2482ms.
+            인라인이 외부파일보다 FCP 약 1.45초 빠르고 성능 점수도 3~4점 높았다.
+            되돌리고 싶으면 이 3안 실측부터 다시 하고 판단할 것. */}
+        <script dangerouslySetInnerHTML={{ __html: i18nInlineScript(clientLangs, lang) }} />
         {/* 브랜드 구조화데이터(JSON-LD): "힐위드"를 healwith의 공식 별칭으로 선언 — 네이버·구글 한글 브랜드 검색 매칭 */}
         <script
           type="application/ld+json"

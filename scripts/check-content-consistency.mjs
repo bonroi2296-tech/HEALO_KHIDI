@@ -1926,7 +1926,8 @@ const BACKOFFICE_SHARED = [
 // 왜: 2026-07-27 실측 — src/lib/i18n/dictionary.js(21개 언어)가 통째로 첫 화면 JS 에 들어가
 //     홈 623KB 중 269KB(gzip)를 차지했다. 방문자는 자기 언어 1개만 쓴다. next.config.js 가
 //     클라이언트 빌드에서만 이 파일을 dictionary.client.js(빈 껍데기)로 바꿔치기하고,
-//     브라우저는 app/i18n/[lang]/route.js 가 주는 자기 언어 완성본 하나만 받는다.
+//     브라우저는 layout.jsx 가 HTML 에 인라인해 주는 자기 언어 완성본 하나만 받는다
+//     (src/lib/i18n/inlineScript.js — 별도 파일로 내리면 head preload 가 첫 화면을 늦춘다, 실측).
 //     그 별칭이 사라지면 269KB 가 **조용히** 전 페이지로 돌아온다(화면은 멀쩡해서 아무도 모른다).
 // 무엇을 보나: ① next.config.js 에 그 별칭이 살아 있는지 ② "use client" 파일이 사전을 직접
 //     import 하지 않는지(별칭 때문에 빈 객체가 와서 **글자가 조용히 사라진다**).
