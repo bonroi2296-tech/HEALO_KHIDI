@@ -22,6 +22,7 @@
 - **문제였던 것**: `src/lib/i18n/index.js` 가 21개 언어 사전을 한 파일로 들고 있어 통째로 브라우저 청크가 됐다(프로덕션 `chunks/5612` = **264KB br / 707KB raw** — 내려받아 한글 21,464자·키릴 112,718자로 정체 확인). 러시아 환자가 한국어·중국어·일본어 사전까지 받았다.
 - **해결 방식**: 사전을 `src/lib/i18n/dictionary.js`(서버 전용)로 분리 → `next.config.js` 가 **클라이언트 빌드에서만** 빈 껍데기로 바꿔치기 → `app/i18n/[lang]/route.js` 가 «그 언어 완성본»(en 값으로 빈칸 메움)을 서빙 → `layout.jsx` 가 `<Script strategy="beforeInteractive">` 로 주입. **`t()` 는 그대로 동기**(호출부 변경 0). URL 언어와 쿠키 언어가 다르면 두 개 주입.
 - **프로덕션 실측**: 홈 첫 화면 JS **624KB → 365KB**, 사전 스크립트 ru 47KB(1년 immutable, 배포ID 주소) → 러시아 방문자 순감 **약 212KB(−34%)**. 6개 언어 전부 서버 렌더 정상·교차오염 0.
+- ⚠️ **후속 정정(2026-07-27, [#1039](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/1039))**: 사전을 **별도 파일로 내리면 안 된다** — head 의 `<link rel="preload" as="script">` 가 High 우선순위라 첫 화면(FCP)을 약 1초 늦춘다(실측). 지금은 `src/lib/i18n/inlineScript.js` 로 **HTML 인라인**한다. 반성문 #131 참조.
 - ⚠️ **되살리지 마라**: `next.config.js` 의 dictionary 별칭. 없어지면 264KB 가 **조용히** 전 페이지로 돌아온다 → `check:content` **§33** 가드가 감시한다(별칭 제거 + `"use client"` 의 사전 직접 import 둘 다).
 - 📌 **사전 편집 SoR 은 `src/lib/i18n/dictionary.js` 로 옮겨졌다**(검사 스크립트 3종도 이 경로를 본다). 예전 습관대로 `index.js` 에 키를 넣지 말 것.
 - ⚠️ 측정 함정: 이 PC 는 AdGuard 데스크톱앱이 페이지마다 2MB 를 주입한다. `--blocked-url-patterns="*adguard*"` 로 우회 가능(2026-07-27 확인). 메모리 `lighthouse-measurement` 참조.
