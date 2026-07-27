@@ -27,6 +27,7 @@ import {
   readSessionNotes,
   backfillSessionNotesEncryption,
 } from "@/lib/khidi/consultationNotes";
+import { isValidSessionType } from "@/lib/consultation/sessionTypes";
 
 export async function POST(request: NextRequest) {
   try {
@@ -77,13 +78,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const validSessionTypes = [
-      "pre_consultation",
-      "follow_up",
-      "emergency",
-      "diagnostic",
-    ];
-    if (!validSessionTypes.includes(sessionType)) {
+    // 유형 목록은 src/lib/consultation/sessionTypes.ts 한 곳에만 둔다(DB CHECK 와 동기).
+    if (!isValidSessionType(sessionType)) {
       return Response.json(
         { ok: false, error: "Invalid sessionType" },
         { status: 400 }
