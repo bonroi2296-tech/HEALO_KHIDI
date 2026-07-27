@@ -13,7 +13,11 @@
 /* Premium(폐기) 전용 구글폰트 @import 제거 — CSP(style-src)에 막혀 어차피 로드 안 되면서
    전 페이지에서 콘솔 에러만 발생시켰음. Premium 부활 시 CSP 허용과 함께 복원할 것.
    @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:...&family=Inter:...&family=Noto+Serif+KR:...&display=swap'); */
-@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css');
+/* Pretendard 「풀버전」 @import 제거 (2026-07-27, PageSpeed 실측) — layout.jsx 가 이미
+   dynamic-subset(글리프만) 을 비차단으로 넣고 있는데 여기서 풀폰트까지 중복 로드해
+   Pretendard-Bold.woff2 774KB 를 매번 받고 있었다(홈 전체 전송량 2.9MB 중 26%).
+   게다가 @import 는 「앱 CSS 받고 → 그제서야 CDN CSS 요청」 이라 렌더까지 막았다.
+   폰트는 layout.jsx 의 dynamic-subset 한 곳에서만 로드한다 — 여기 되살리지 마라. */
 
 :root {
   /* ==========================================================

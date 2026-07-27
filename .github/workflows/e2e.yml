@@ -46,27 +46,33 @@ concurrency:
   cancel-in-progress: true
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 🔒 DB 동시 진입 상한 (2026-07-27, KNOWN_ISSUES 「E2E 가 프로덕션 DB 를 물고 22갈래 동시 진입」)
+# 🚫 concurrency 로 「DB 동시 진입 상한」을 만들려는 시도는 하지 마라 (2026-07-27 실패 기록)
 #
-# 문제: 자동검사는 앱을 러너 로컬에 띄우면서 **DB 는 프로덕션을 그대로** 문다(연습용 DB 가 없다).
-#   위 workflow 레벨 그룹은 «같은 브랜치» 안에서만 중복을 지운다 → 작업본이 22개면
-#   22개 스위트가 같은 DB 로 동시에 들어간다. 2026-07-24 DB 멈춤의 부하 축 중 하나.
+# 하고 싶었던 것: 자동검사는 앱을 러너 로컬에 띄우면서 **DB 는 프로덕션을 그대로** 문다
+#   (연습용 DB 가 없다). 위 workflow 레벨 그룹은 «같은 브랜치» 안에서만 중복을 지우므로
+#   작업본이 여러 개면 그만큼의 스위트가 같은 DB 로 동시에 들어간다(KNOWN_ISSUES 항목).
 #
-# 왜 job 레벨에 따로 거나: GitHub 의 concurrency 는 «동시 N개»가 아니라 «그룹당 1개»다.
-#   그래서 workflow 레벨 그룹을 전역으로 바꾸면 둘 중 하나를 잃는다 —
-#     · cancel-in-progress: true 로 하면 → 남의 PR 실행을 내 PR 이 죽인다(재앙)
-#     · false 로 하면 → 브랜치 내 중복 제거(같은 PR 에 연속 푸시)를 잃는다
-#   job 레벨은 workflow 레벨과 **독립된 자물쇠**라 둘 다 가진다:
-#     workflow 레벨 = 브랜치 안 중복 제거 / job 레벨 = 저장소 전역 직렬화(대기).
+# 시도했다가 되돌린 것(#1008 → 즉시 revert): 세 잡에 job 레벨
+#   `concurrency: {group: e2e-prod-db, cancel-in-progress: false}` 를 걸어 전역 직렬화.
 #
-# 상한을 1로 잡아도 되는 근거(실측 산수): KNOWN_ISSUES 기록 = 14시간에 89회 실행.
-#   1회 ≈ 4~7분 → 총 점유 ≈ 445분 / 창 840분 = **약 53% 가동률**.
-#   즉 직렬화해도 여유가 있다. 몰릴 땐 줄을 서지만(대기 중 러너를 안 먹는다) 대체로 흘러간다.
-#   ⚠️ 이 산수가 틀어지는 신호 = PR 초록이 늦게 뜬다는 체감. 그러면 상한을 늘리기 전에
-#      «왜 실행 횟수가 늘었나»(불필요한 재실행·중복 푸시)를 먼저 볼 것.
+# ❌ 왜 실패했나 — **concurrency 의 대기 슬롯은 1개뿐이다.**
+#   `cancel-in-progress: false` 는 «실행 중인 것»만 지킨다. **«대기 중인 것»은 못 지킨다.**
+#   공식 문서: *"Any previously pending job or workflow in the concurrency group will be canceled."*
+#   → 새 실행이 대기열에 들어오는 순간 **먼저 기다리던 실행이 취소**되고, 그 취소는 「실패」로
+#     기록돼 해당 PR 이 BLOCKED 가 된다. workflow 레벨에서 «남의 PR 을 내 PR 이 죽인다»는
+#     재앙을 정확히 짚고 피했는데, **job 레벨 대기열 밀어내기로 같은 재앙이 뒷문으로 들어왔다.**
+#   실측(머지 03:04:40 직후): 03:05 app-registration / 03:10 docs/postmortems /
+#     03:13 backoffice-hierarchy / 03:14 a11y-scanner 가 전부
+#     `Canceling since a higher priority waiting request for e2e-prod-db exists` 로 취소.
+#     **열린 PR 5개가 동시에 막혔다.** 머지 전(02:49·02:50·02:55)엔 서로 다른 브랜치가
+#     동시에 돌아도 전부 success 였다.
+#   ⚠️ 당시 주석에 적었던 «몰릴 땐 줄을 서지만 대체로 흘러간다»는 **틀린 전제**였다
+#      (가동률 53% 산수는 «줄이 서진다»를 전제했는데 줄이 안 선다).
 #
-# ⚠️ 이건 응급 처치다. 근본 해결은 KNOWN_ISSUES ②번 — **E2E 를 프로덕션 DB 에서 떼어내기**
-#    (별도 Supabase 프로젝트, 시드 이관 필요) = 비용 산출 후 PO 결정.
+# ✅ 다음에 이 문제를 다시 풀 사람에게: **concurrency 로는 «동시 N개»를 표현할 수 없다.**
+#   다른 수단이 필요하다 — 예: ①self-hosted 러너 풀 크기로 제한 ②외부 잠금(뮤텍스 액션 등)
+#   ③근본책 = KNOWN_ISSUES ②번 **E2E 를 프로덕션 DB 에서 떼어내기**(별도 Supabase, 시드 이관).
+#   ③이 정공법이다. ①②는 또 다른 방식으로 PR 을 막을 수 있으니 반드시 «막힘» 시나리오부터 검증할 것.
 # ─────────────────────────────────────────────────────────────────────────────
 
 jobs:
@@ -76,10 +82,6 @@ jobs:
   smoke:
     name: Smoke Tests (PR)
     if: github.event_name == 'pull_request'
-    # 🔒 전역 직렬화 — 아래 「DB 동시 진입 상한」 주석 참고. 저장소 전체에서 한 번에 하나만.
-    concurrency:
-      group: e2e-prod-db
-      cancel-in-progress: false
     runs-on: ubuntu-latest
     timeout-minutes: 15
 
@@ -169,10 +171,6 @@ jobs:
     if: >-
       (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
       (github.event_name == 'workflow_dispatch' && github.event.inputs.target != 'production')
-    # 🔒 전역 직렬화 (smoke·nightly 와 같은 그룹)
-    concurrency:
-      group: e2e-prod-db
-      cancel-in-progress: false
     runs-on: ubuntu-latest
     timeout-minutes: 25
 
@@ -323,10 +321,6 @@ jobs:
     if: >-
       github.event_name == 'schedule' ||
       (github.event_name == 'workflow_dispatch' && github.event.inputs.target == 'production')
-    # 🔒 전역 직렬화 (smoke·full 과 같은 그룹). 야간엔 경쟁자가 거의 없어 대기 영향 미미.
-    concurrency:
-      group: e2e-prod-db
-      cancel-in-progress: false
     runs-on: ubuntu-latest
     timeout-minutes: 25
 
