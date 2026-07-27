@@ -8,6 +8,12 @@
 
 ---
 
+> **📌 중간 저장 (2026-07-27 — 접속 속도 최적화 머지·프로덕션 배포 완료 [#1011](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/1011), main `6562b52`)** — PO 가 준 PageSpeed 리포트(모바일 49점)에서 출발. 워크트리 `HEALO_worktrees/perf-pagespeed`. **홈 전송량 2,959KB → 1,009KB(−66%) / FCP 6.4s→2.8s / LCP 15.2s→7.0s** (전·후 모두 로컬 프로덕션 빌드 + Lighthouse 모바일, 동일 조건). 원인 4개: ①`healo-tokens.css` 의 `@import pretendard.min.css` — `layout.jsx` 가 이미 dynamic-subset 을 넣는데 **풀폰트를 이중으로** 받고 있었고(774KB) `@import` 라 렌더까지 막았다 ②의료진 PNG 4장을 날 `<img>` 로(−900KB, `next/image` 로 교체 — `/hospitals/immune` 6곳도 같이) ③`next.config.js` `splitChunks` 의 **`name:'vendor'`** 가 안 걸린 node_modules 전부를 사이트 단 하나의 406KB 덩어리로 뭉쳐 모든 페이지가 통째로 받게 함(홈에선 80% 미사용) → **이름만 제거**하면 페이지별로 쪼개짐 ④Supabase·Sentry preconnect + `images.minimumCacheTTL` 1년(`?dpl=` 자동 캐시버스팅이라 안전).
+> · **프로덕션 실검증(curl)**: CSS 번들에 `pretendard.min.css` 0건 · 의료진 사진 `_next/image` **11.3KB AVIF**(원본 295KB) · preconnect 3개 · 단일 `vendor-*.js` 사라짐.
+> · ⚠️ **되살리지 마라**: `@import pretendard.min.css`(폰트 창구는 `layout.jsx` 하나) / `name:'vendor'`.
+> · ⚠️ **측정 함정(메모리 `lighthouse-measurement` 갱신함)**: 이 PC 는 **AdGuard 데스크톱앱**이 페이지마다 1.6~2.1MB 유저스크립트를 주입한다. **시크릿 창·`--disable-extensions`·헤드리스로 안 막히고 HTTPS 도 뚫는다.** 실행마다 붙는 날/안 붙는 날이 갈리므로 리포트의 `network-requests` 에서 `adguard` 를 **매번 확인**하고, 붙었으면 타이밍은 버려라. 구글 PSI **API 는 못 쓴다**(익명 쿼터 0·프로젝트 키 비활성).
+> · **미검증**: `/hospitals/immune` 의 시간 개선치(위 오염으로 못 잼, 전송량만 ~906KB 확인) / 어드민·상담방 등 다른 라우트를 청크 분할 변경 후 **실클릭으로 안 눌러봄**(CI·E2E 는 통과). KHIDI 중간보고 §4 7월 로그에 1줄 등재함.
+
 > **📌 중간 저장 (2026-07-25~27 — KHIDI 산출물 2건 신설·머지 완료 #987)** — PO 요청("백오피스 계층별 재설계 자료 만들어줘" → **"애초에 ICT 6대 서비스 요구사항이 있잖아, 그걸 어떻게 분석해서 계획하고 구현했는지를 보여줘야지"**로 방향 전환 → "공문서처럼" → "그동안 보완한 것까지 반영")로 **정부과제 산출물 2건 신설·머지**(main `bec634a`).
 > · **산출물 11 `11_과제요구사항_6대ICT_분석및구현대비표.docx`** = 이번 작업의 본체. 공고문 p.8 6대 ICT **원문**을 요구사항 원천으로 삼아 「분석(동사 단위 분해 → 도출기능 F-01~22) → 구현 계획 → 구현 결과 → 착수 후 고도화」를 대비. 공문서 개조식·장조 체계(제1~7장), 표 27개. 생성기 = `make_ict_req.py`(재실행 가능).
 > · **산출물 10** = 백오피스 5계층 재설계 요구사항 22건 대비표(11의 §24 세부). · **변경관리 대장** 5~7월분 **26건 소급 등재**(누적 38, 4/30에서 멈춰 있던 것). · 사내 설명자료 `docs/BACKOFFICE_HIERARCHY_REDESIGN.md`.
