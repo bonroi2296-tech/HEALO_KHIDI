@@ -125,6 +125,11 @@ export async function POST(
     const targetLangRaw = String(formData.get("targetLang") || "");
     const targetLang = LANG_NAMES[targetLangRaw] ? targetLangRaw : "";
     const contextBlock = parseContext(formData.get("context"));
+    // 화자 표시 이름 — 기록에 "누가 말했나"를 남긴다(없던 컬럼, 2026-07-27).
+    const speakerName = String(formData.get("speakerName") || "").trim().slice(0, 80) || null;
+    // partial=1 → 말하는 중 조각. 화면에만 띄우고 기록·DB 에는 남기지 않는다
+    // (같은 발화가 조각 수만큼 기록에 쌓이면 회의록이 통째로 오염된다).
+    const isPartial = String(formData.get("partial") || "") === "1";
 
     if (!audio || typeof audio.arrayBuffer !== "function") {
       return Response.json({ ok: false, error: "audio_required" }, { status: 400 });
@@ -239,12 +244,13 @@ ${contextBlock}Transcribe the speech in this audio clip. The speaker is speaking
     //    번역 기록 탭이 의미 없는 줄로 차고, 회의록 요약 입력도 같은 말이 두 번 들어간다.
     //    (자막 표시는 위에서 이미 끝났으므로 저장만 건너뛰면 화면 동작엔 영향 없다.)
     const effectiveSrc = detectedLang || lang;
-    if (transcript && translated && targetLang && effectiveSrc !== targetLang) {
+    if (!isPartial && transcript && translated && targetLang && effectiveSrc !== targetLang) {
       saveTranslationLog(consultationId, {
         originalText: transcript,
         translatedText: translated,
         sourceLang: detectedLang || lang,
         targetLang,
+        speakerName,
       }).catch((err: any) =>
         console.error("[consultation/stt] DB save error:", err?.message?.slice(0, 200))
       );
@@ -264,6 +270,7 @@ async function saveTranslationLog(
     translatedText: string;
     sourceLang: string;
     targetLang: string;
+    speakerName?: string | null;
   }
 ) {
   const { getSupabaseServerClient } = await import("@/lib/data/supabaseServerClient");
@@ -275,6 +282,7 @@ async function saveTranslationLog(
       session_id: consultationId,
       source_lang: data.sourceLang,
       target_lang: data.targetLang,
+      speaker_name: data.speakerName ?? null,
       ...encryptTranscriptRow({
         sourceText: data.originalText,
         translatedText: data.translatedText,

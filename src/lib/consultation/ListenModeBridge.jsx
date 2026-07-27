@@ -7,7 +7,12 @@
  * 자기 화면에서 한국어 자막으로 따라감. 스피커를 꺼도 원격 트랙 데이터는 수신된다.
  *
  * 화자 구분: 원격 참가자별로 독립 파이프라인(믹스 안 함) — 각 자막에 참가자
- * 이름이 트랙 단위로 정확히 붙는다.
+ * 이름이 트랙 단위로 정확히 붙는다. 단, **한 공간에 기기가 여럿이면** 같은 목소리가
+ * 여러 트랙에 잡혀 한 사람이 두세 명처럼 갈라진다 → 파이프라인 간 중복 억제(looksDuplicate).
+ *
+ * 지연: 확정 자막은 발화가 끝나야 나오므로, 3초를 넘긴 발화엔 지금까지 녹음분을 먼저
+ * 올려 «말하는 중» 자막을 띄운다(partial=1, 기록·DB 저장 없음). 확정본이 제자리에서 교체.
+ * 응답은 뒤섞여 도착하므로 조각마다 seq 를 붙여 수신측이 낡은 조각을 버린다.
  *
  * 중복 억제: 해당 참가자가 직접 통역을 켜서 DataChannel 자막을 보내는 중이면
  * (최근 60초, dcActivityRef) 그 참가자의 청취 모드 자막은 억제 — 화자 기기
@@ -36,6 +41,41 @@ import { Track } from "livekit-client";
 const DC_SUPPRESS_MS = 60000; // DataChannel 자막 수신 후 이 시간 동안 청취 모드 억제
 const MIN_BLOB_BYTES = 4000;
 
+// ── 말하는 중 자막(부분 전사) ──
+// 왜: 예전엔 「말 끝 → 1.2초 무음 확인 → 업로드 → Gemini」라서 5초 문장이면 말 시작 후
+//   8~10초 뒤에야 자막이 떴다("자막만 켰을 때도 느리다" PO 2026-07-27). 송신 경로엔 이미
+//   부분 자막이 있었는데 수신(청취모드)엔 없던 사각. 지금까지 녹음된 조각을 그대로
+//   올려 먼저 띄우고, 발화가 끝나면 확정본이 제자리에서 교체한다.
+// 비용 방어: ①이미 3초 넘게 이어진 발화만(짧은 문장은 확정본이 곧 오므로 부분 불필요)
+//   ②동시 1건 ③최소 2.5초 간격 → 10초 발화당 부분 요청 2~3회.
+const PARTIAL_SLICE_MS = 2500; // MediaRecorder 조각 주기
+const PARTIAL_MIN_SPEECH_MS = 3000; // 이만큼 이어진 발화부터 부분 자막 시도
+const PARTIAL_MIN_INTERVAL_MS = 2500;
+
+// ── 같은 목소리가 여러 마이크에 잡히는 것 억제 ──
+// 왜: 참가자별로 트랙을 따로 듣기 때문에, 한 공간에 기기가 여럿이면 한 사람 발화가
+//   여러 이름으로 갈라져 자막에 뜬다. 2026-07-27 실회의 로그에서 피크 분당 33건 ×
+//   평균 3초 ≈ 100초 분량 = 1분에 100초어치가 기록됨(벽시계 초과) → 중복 전사 확정.
+const CROSS_DUP_WINDOW_MS = 8000;
+const CROSS_DUP_JACCARD = 0.6;
+
+const normalizeWords = (s) =>
+  String(s || "")
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}\s]/gu, " ")
+    .split(/\s+/)
+    .filter(Boolean);
+
+/** 두 전사가 «같은 발화»로 보이는가 — 단어집합 겹침(Jaccard) 기준. */
+export function looksDuplicate(a, b) {
+  const wa = new Set(normalizeWords(a));
+  const wb = new Set(normalizeWords(b));
+  if (wa.size < 4 || wb.size < 4) return false; // 짧은 조각은 우연히 겹침 → 판정 안 함
+  let inter = 0;
+  for (const w of wa) if (wb.has(w)) inter += 1;
+  return inter / (wa.size + wb.size - inter) >= CROSS_DUP_JACCARD;
+}
+
 // 통역 봇(agent-*)과 봇이 만든 통역 음성 트랙(tx:*)은 전사 대상이 아니다 —
 // 봇 통역 음성을 여기서 또 STT 하면 같은 발화가 세 번 자막이 된다(2026-07-23 첫 라이브 사고).
 const isHumanAudioTrack = (t) =>
@@ -57,6 +97,8 @@ export function ListenModeBridge({
   const trackRefs = useTracks([Track.Source.Microphone]);
   const pipelinesRef = useRef(new Map()); // key → stop()
   const audioCtxRef = useRef(null); // 브릿지당 1개 공유
+  // 최근 확정 전사 [{ identity, text, at }] — 파이프라인 간 중복(같은 목소리 여러 마이크) 억제용
+  const recentRef = useRef([]);
   // 언어·콜백·헤더는 ref 로 — 값이 바뀌어도 진행 중인 녹음 파이프라인을 재시작하지 않고
   // 다음 전송 시점에 최신값을 읽는다 (재시작하면 녹음 중이던 문장이 통째로 유실됨)
   const liveRef = useRef({});
@@ -113,6 +155,7 @@ export function ListenModeBridge({
           name: t.participant.name || t.participant.identity,
           liveRef,
           audioCtxRef,
+          recentRef,
         })
       );
     }
@@ -182,12 +225,18 @@ export function ListenModeBridge({
 }
 
 // 원격 트랙 1개에 대한 발화 단위 녹음 → 서버 STT → 자막 콜백. stop 함수를 반환.
-function startPipeline({ mediaStreamTrack, identity, name, liveRef, audioCtxRef }) {
+function startPipeline({ mediaStreamTrack, identity, name, liveRef, audioCtxRef, recentRef }) {
   let stopped = false;
   let recorder = null;
   let vadTimer = null;
   let analyser = null;
   let source = null;
+  // 발화 세대 — 조각을 보내자마자 다음 녹음을 시작하므로 응답이 뒤섞여 도착한다.
+  // 화면에는 «더 새 세대를 이미 본 뒤 도착한 낡은 조각»을 안 띄운다(DC 경로의 utter 필터와 같은 규칙).
+  // 2026-07-27 PO: "이전 대화 자막이 뜬금없이 올라온다" 의 원인 — 청취모드엔 이 필터가 없었다.
+  let seq = 0;
+  // 직전 확정 전사 — 강제 컷으로 잘린 뒷조각이 앞 문장을 모른 채 번역되지 않게 문맥으로 넘긴다.
+  let carryOver = "";
   // 침묵 환각 반복 필터 (파이프라인별 — 참가자 간 교차 억제 방지).
   // 억제 시 타임스탬프를 갱신하지 않는다(page.jsx isHallucinatedRepeat 와 동일 규칙 —
   // 갱신하면 창이 미끄러져 정당한 반복 발화가 영구 억제됨).
@@ -221,12 +270,56 @@ function startPipeline({ mediaStreamTrack, identity, name, liveRef, audioCtxRef 
     return () => {};
   }
 
+  // 조각 하나를 서버 STT 로 보낸다. partial=true 면 화면 표시 전용(기록·DB 저장 없음).
+  const sendChunk = async ({ blob, partial, mySeq, startedAt }) => {
+    const live = liveRef.current;
+    // 화자 기기가 직접 자막을 보내는 중이면 스킵 (이중 자막 방지)
+    const dcAt = live.dcActivityRef?.current?.get?.(identity) || 0;
+    if (Date.now() - dcAt < DC_SUPPRESS_MS) return null;
+    const headers = await live.getAuthHeaders();
+    if (!headers) return null;
+    const ctx = (live.contextRef?.current || []).slice(-6);
+    // 강제 컷으로 잘린 앞조각을 문맥 맨 뒤에 붙여 뒷조각이 문장을 이어받게 한다
+    if (carryOver) ctx.push({ speaker: "other", lang: live.langHint, text: carryOver });
+    const fd = new FormData();
+    fd.append("audio", blob, "chunk.webm");
+    fd.append("lang", live.langHint);
+    fd.append("targetLang", live.targetLang);
+    fd.append("context", JSON.stringify(ctx));
+    fd.append("speakerName", name || "");
+    if (partial) fd.append("partial", "1");
+    const res = await fetch(`/api/khidi/consultation/${live.consultationId}/stt`, {
+      method: "POST",
+      headers,
+      body: fd,
+    });
+    const result = await res.json();
+    if (!result.ok || !result.transcript || !result.translated) return null;
+    return { ...result, mySeq, startedAt, partial: !!partial };
+  };
+
+  const emit = (result) =>
+    liveRef.current.onSubtitle?.({
+      transcript: result.transcript,
+      translated: result.translated,
+      lang: result.detectedLang || liveRef.current.langHint,
+      name,
+      identity,
+      seq: result.mySeq,
+      startedAt: result.startedAt,
+      interim: result.partial,
+    });
+
   const recordCycle = () => {
     if (stopped) return;
     const chunks = [];
     let voicedFrames = 0;
     let silentStreak = 0;
     const startedAt = Date.now();
+    const mySeq = ++seq;
+    let partialInFlight = false;
+    let lastPartialAt = 0;
+    let cutting = false; // 컷 결정 후 들어오는 마지막 조각으로 부분 요청을 또 쏘지 않게
 
     try {
       recorder = new MediaRecorder(stream, mime ? { mimeType: mime } : undefined);
@@ -234,7 +327,29 @@ function startPipeline({ mediaStreamTrack, identity, name, liveRef, audioCtxRef 
       return; // 이 트랙은 녹음 불가 — 청취 모드 해당 참가자만 조용히 비활성
     }
     recorder.ondataavailable = (e) => {
-      if (e.data && e.data.size > 0) chunks.push(e.data);
+      if (!e.data || e.data.size === 0) return;
+      chunks.push(e.data);
+      // ── 말하는 중 자막 ── 지금까지 조각을 이어붙이면 (첫 조각에 헤더가 있어) 그대로
+      // 재생 가능한 webm 이다. 발화가 아직 안 끝났어도 먼저 띄운다.
+      if (stopped || cutting) return;
+      const now = Date.now();
+      if (
+        voicedFrames >= 3 &&
+        now - startedAt >= PARTIAL_MIN_SPEECH_MS &&
+        !partialInFlight &&
+        now - lastPartialAt >= PARTIAL_MIN_INTERVAL_MS
+      ) {
+        const blob = new Blob(chunks, { type: mime || "audio/webm" });
+        if (blob.size <= MIN_BLOB_BYTES) return;
+        partialInFlight = true;
+        lastPartialAt = now;
+        sendChunk({ blob, partial: true, mySeq, startedAt })
+          .then((r) => r && emit(r))
+          .catch(() => {})
+          .finally(() => {
+            partialInFlight = false;
+          });
+      }
     };
     recorder.onstop = async () => {
       clearInterval(vadTimer);
@@ -242,25 +357,9 @@ function startPipeline({ mediaStreamTrack, identity, name, liveRef, audioCtxRef 
       const hasSpeech = voicedFrames >= 3;
       if (!stopped) recordCycle();
       if (stopped || !hasSpeech || blob.size <= MIN_BLOB_BYTES) return;
-      const live = liveRef.current;
-      // 화자 기기가 직접 자막을 보내는 중이면 스킵 (이중 자막 방지)
-      const dcAt = live.dcActivityRef?.current?.get?.(identity) || 0;
-      if (Date.now() - dcAt < DC_SUPPRESS_MS) return;
       try {
-        const headers = await live.getAuthHeaders();
-        if (!headers) return;
-        const fd = new FormData();
-        fd.append("audio", blob, "chunk.webm");
-        fd.append("lang", live.langHint);
-        fd.append("targetLang", live.targetLang);
-        fd.append("context", JSON.stringify((live.contextRef?.current || []).slice(-6)));
-        const res = await fetch(`/api/khidi/consultation/${live.consultationId}/stt`, {
-          method: "POST",
-          headers,
-          body: fd,
-        });
-        const result = await res.json();
-        if (!result.ok || !result.transcript || !result.translated) return;
+        const result = await sendChunk({ blob, partial: false, mySeq, startedAt });
+        if (!result) return;
         // 같은 전사 30초 내 반복 = 침묵 환각 패턴 → 스킵 (억제 시 타임스탬프 미갱신)
         const now = Date.now();
         if (
@@ -270,20 +369,25 @@ function startPipeline({ mediaStreamTrack, identity, name, liveRef, audioCtxRef 
         ) {
           return;
         }
+        // 다른 참가자 마이크가 방금 같은 말을 잡았으면 스킵 — 한 사람 발화가 두세 이름으로
+        // 갈라져 뜨던 것(한 공간에 기기 여럿) 차단. 먼저 도착한 쪽이 그 발화의 주인이 된다.
+        const recent = recentRef.current;
+        while (recent.length && now - recent[0].at > CROSS_DUP_WINDOW_MS) recent.shift();
+        if (
+          recent.some((r) => r.identity !== identity && looksDuplicate(r.text, result.transcript))
+        ) {
+          return;
+        }
+        recent.push({ identity, text: result.transcript, at: now });
         lastText = result.transcript;
         lastAt = now;
-        live.onSubtitle?.({
-          transcript: result.transcript,
-          translated: result.translated,
-          lang: result.detectedLang || live.langHint,
-          name,
-          identity,
-        });
+        carryOver = result.transcript.slice(-300);
+        emit(result);
       } catch {
         /* 조각 실패 무시 — 다음 사이클 */
       }
     };
-    recorder.start();
+    recorder.start(PARTIAL_SLICE_MS);
 
     const buf = new Uint8Array(analyser.fftSize);
     vadTimer = setInterval(() => {
@@ -301,11 +405,16 @@ function startPipeline({ mediaStreamTrack, identity, name, liveRef, audioCtxRef 
         silentStreak += 1;
       }
       const dur = Date.now() - startedAt;
+      // 긴 발화를 «10초 정각»에 자르면 단어 한복판이 잘려 앞뒤 반쪽이 서로를 모른 채
+      // 번역된다(2026-07-27 PO: "말을 길게 하니까 얘가 혼란스러워한다").
+      // → 5초를 넘긴 뒤에는 0.3초짜리 숨쉬는 틈에서 끊고, 12초는 최후 안전장치로만 쓴다.
       const shouldCut =
-        (voicedFrames >= 3 && silentStreak >= 12) || // 말 끝남(1.2초 무음)
-        (voicedFrames >= 3 && dur >= 10000) || // 긴 발화 강제 컷
+        (voicedFrames >= 3 && silentStreak >= 10) || // 말 끝남(1.0초 무음)
+        (voicedFrames >= 3 && dur >= 5000 && silentStreak >= 3) || // 긴 발화 — 숨쉬는 틈에서
+        (voicedFrames >= 3 && dur >= 12000) || // 최후 강제 컷
         (voicedFrames < 3 && dur >= 5000); // 무음만 — 버리고 새 사이클
       if (shouldCut) {
+        cutting = true;
         try {
           if (recorder.state !== "inactive") recorder.stop();
         } catch {
