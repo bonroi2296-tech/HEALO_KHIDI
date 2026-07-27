@@ -2811,6 +2811,11 @@ export default function ConsultationRoomPage() {
             next ? (agentPresent ? c.voiceOnMsg : c.voiceOnPendingMsg) : c.voiceOffMsg
           );
         }}
+        // 야간 로봇 통화가 «통역봇 재실»을 판정할 때 잡는 손잡이. 접근명(«통역»)으로 찾으면
+        // 봇이 없을 때 붙는 `···` 배지 때문에 이름이 "통역 ···" 이 되어 **정작 봇이 없는 경우에만
+        // 못 찾는** 함정이 있었다(2026-07-27 실측, 프로덕션 E2E 15초 타임아웃 3회).
+        // 다국어 라벨 6종·배지 유무와 무관하게 안정적으로 잡히도록 testid 고정.
+        data-testid="voice-toggle"
         className={`hw-ctrl-btn relative rounded-lg font-medium transition ${
           voiceOn
             ? "bg-teal-700 hover:bg-teal-800 text-white"
