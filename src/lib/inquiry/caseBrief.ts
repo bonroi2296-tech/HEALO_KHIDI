@@ -168,7 +168,7 @@ export async function generateCaseBrief(opts: {
       generationConfig: {
         temperature: 0.2,
         maxOutputTokens: 2048,
-        thinkingConfig: { thinkingBudget: 0 },
+        thinkingConfig: { thinkingLevel: "minimal" },
         responseMimeType: "application/json",
         responseSchema: RESPONSE_SCHEMA,
       },

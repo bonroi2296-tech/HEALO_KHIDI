@@ -852,7 +852,7 @@ export async function generateMasterKeyAnalysis(
     maxOutputTokens: 4096,
     providerOptions: {
       google: {
-        thinkingConfig: { thinkingBudget: 0 },
+        thinkingConfig: { thinkingLevel: "minimal" },
         safetySettings: SAFETY_SETTINGS as any,
       },
     },
@@ -1004,7 +1004,7 @@ async function prepareGeneration(
       maxOutputTokens: 8192,
       providerOptions: {
         google: {
-          thinkingConfig: { thinkingBudget: 0 },
+          thinkingConfig: { thinkingLevel: "minimal" },
           safetySettings: SAFETY_SETTINGS as any,
           ...(useWebSearch ? { useSearchGrounding: true } : {}),
         },
