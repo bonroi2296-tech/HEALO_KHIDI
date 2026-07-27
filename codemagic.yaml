@@ -25,9 +25,8 @@ workflows:
     integrations:
       app_store_connect: healwith_asc   # ← Codemagic Integrations 에 등록한 이름
     environment:
-      ios_signing:
-        distribution_type: app_store
-        bundle_identifier: kr.co.healwith.app
+      vars:
+        BUNDLE_ID: "kr.co.healwith.app"
       node: 20
       xcode: latest
     scripts:
@@ -35,8 +34,15 @@ workflows:
         script: npm ci
       - name: Capacitor iOS 동기화 (SPM 패키지 해결 포함)
         script: npx cap sync ios
-      - name: 서명 프로필 적용
-        script: xcode-project use-profiles
+      - name: 서명 파일 발급·적용 (없으면 새로 만든다)
+        # ⚠️ 2026-07-27 첫 빌드가 여기서 죽었다: "No matching profiles found ... app_store".
+        #    environment.ios_signing 블록은 «있는 프로파일을 가져오기만» 한다 → 계정에 프로파일이
+        #    하나도 없는 최초 상태에서는 무조건 실패. --create 로 배포 인증서·프로파일을 만들게 바꿨다.
+        script: |
+          keychain initialize
+          app-store-connect fetch-signing-files "$BUNDLE_ID" --type IOS_APP_STORE --create
+          keychain add-certificates
+          xcode-project use-profiles
       - name: IPA 빌드
         # ⚠️ 이 앱은 CocoaPods 가 아니라 SPM(CapApp-SPM) 구조 → pod install/.xcworkspace 없음.
         #    xcodeproj 를 직접 빌드한다. Firebase SDK(FirebaseMessaging)는 첫 클라우드 맥 빌드에서
