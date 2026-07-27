@@ -24,12 +24,16 @@ import { AdminGuideModal } from "./_components/AdminGuideModal";
 const supabase = createSupabaseBrowserClient();
 
 // 역할 식별 색(사이드바 teal 브랜드와 별개로, 피드·카드에서 역할 구분용)
+// ⚠️ 이 칩들은 흰 글씨(10px bold)를 얹는다 → 배경이 흰색 대비 4.5:1 이상이어야 한다.
+//    2026-07-27 프로덕션 실측에서 teal-600(3.74)이 걸렸다. 같은 이유로 violet-500(4.23)·amber-500(2.15)도
+//    미달이지만 «그 역할의 데이터가 마침 없어서» 측정에 안 잡혔을 뿐이라 함께 교정한다.
+//    교훈: 프리뷰에서 0건이어도 «데이터가 없어 안 걸린 것»일 수 있다 — 색 상수는 실측을 기다리지 말고 계산으로 검산할 것.
 const ROLE_META = {
-  patient: { label: "환자", chip: "bg-teal-600" },
-  coordinator: { label: "코디", chip: "bg-sky-700" },
-  agency: { label: "에이전시", chip: "bg-violet-500" },
-  hospital: { label: "병원", chip: "bg-amber-500" },
-  system: { label: "시스템", chip: "bg-gray-500" },
+  patient: { label: "환자", chip: "bg-teal-700" },      // 3.74 → 5.47
+  coordinator: { label: "코디", chip: "bg-sky-700" },   // 5.93 (유지)
+  agency: { label: "에이전시", chip: "bg-violet-600" }, // 4.23 → 5.70
+  hospital: { label: "병원", chip: "bg-amber-700" },    // 2.15 → 5.02
+  system: { label: "시스템", chip: "bg-gray-600" },     // 4.83 → 7.56
 };
 
 const quickLinks = [

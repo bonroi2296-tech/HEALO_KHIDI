@@ -325,9 +325,9 @@ function LeadDetailSheet({ lead, onClose, onUpdateStatus }) {
   };
 
   const statusActions = [];
-  if (lead.status === "viewed") statusActions.push({ status: "replied", label: "응답 완료", color: "bg-green-600 hover:bg-green-700" });
+  if (lead.status === "viewed") statusActions.push({ status: "replied", label: "응답 완료", color: "bg-green-700 hover:bg-green-800" });
   if (["replied", "viewed"].includes(lead.status)) statusActions.push({ status: "converted", label: "치료 확정", color: "bg-emerald-700 hover:bg-emerald-700" });
-  if (!["converted", "rejected", "expired"].includes(lead.status)) statusActions.push({ status: "rejected", label: "거절", color: "bg-red-500 hover:bg-red-600" });
+  if (!["converted", "rejected", "expired"].includes(lead.status)) statusActions.push({ status: "rejected", label: "거절", color: "bg-red-600 hover:bg-red-700" });
 
   return (
     <div className="fixed inset-0 z-50 flex items-end lg:items-center justify-center">
@@ -585,7 +585,7 @@ function HospitalChatDrawer({ leadId, onClose }) {
               const mine = m.actor_type === "hospital";
               return (
                 <div key={m.id} className={`flex ${mine ? "justify-end" : "justify-start"}`}>
-                  <div className={`max-w-[80%] rounded-xl px-3.5 py-2 text-sm whitespace-pre-wrap break-words ${mine ? "bg-sky-600 text-white" : "border border-gray-200 bg-white text-gray-800"}`}>
+                  <div className={`max-w-[80%] rounded-xl px-3.5 py-2 text-sm whitespace-pre-wrap break-words ${mine ? "bg-sky-700 text-white" : "border border-gray-200 bg-white text-gray-800"}`}>
                     {!mine && <div className="text-[10px] text-gray-500 mb-0.5">코디네이터</div>}
                     {m.message_text}
                   </div>

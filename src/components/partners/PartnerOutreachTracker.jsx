@@ -331,7 +331,7 @@ const TYPE = { agency: 'ty_agency', hospital: 'ty_hospital', clinic: 'ty_clinic'
 
 const ACCENT = {
   blue: { btn: 'bg-blue-600 hover:bg-blue-700', tabActive: 'border-blue-600 text-blue-600', link: 'text-blue-600', ring: 'focus:border-blue-500 focus:ring-blue-500' },
-  teal: { btn: 'bg-teal-600 hover:bg-teal-700', tabActive: 'border-teal-600 text-teal-600', link: 'text-teal-600', ring: 'focus:border-teal-500 focus:ring-teal-500' },
+  teal: { btn: 'bg-teal-700 hover:bg-teal-800', tabActive: 'border-teal-600 text-teal-600', link: 'text-teal-600', ring: 'focus:border-teal-500 focus:ring-teal-500' },
 };
 
 const EMPTY = { org_name: '', org_type: 'agency', contact_person: '', contact_email: '', contact_phone: '', country: '', status: 'prospect', priority: 0, next_followup_at: '', notes: '', source: '' };
