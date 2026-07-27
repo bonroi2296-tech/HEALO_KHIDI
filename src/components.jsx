@@ -9,7 +9,7 @@ import {
   MessageCircle, X, ArrowRight, Stethoscope, Building2, Settings,
   FileText, UserCheck, Clock, ShieldCheck, Shield, Sparkles, User, LogOut, Video, KeyRound
 } from 'lucide-react';
-import { getLangCodeFromCookie, setLangCookie, LANG_OPTIONS as I18N_LANG_OPTIONS, LANG_OPTIONS_PRIMARY, t } from "./lib/i18n";
+import { setLangCookie, LANG_OPTIONS as I18N_LANG_OPTIONS, LANG_OPTIONS_PRIMARY, t } from "./lib/i18n";
 import { useLang } from "./lib/i18n/LangContext";
 import { localeSwitchTarget } from "./lib/i18n/config";
 import Logo from "../components/brand/Logo";

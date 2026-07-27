@@ -2058,10 +2058,15 @@ const BACKOFFICE_SHARED = [
 // ponytail: 「들여쓰기 2칸 = 컴포넌트 본문」 휴리스틱. effect/핸들러 안(4칸 이상)은 안전하니 넘긴다.
 //   한계 — 파일에 중첩 컴포넌트가 있어 본문이 4칸으로 들어가면 못 잡는다. 그때는 룰을 AST 로 올릴 것.
 {
-  const BROWSER_ONLY = /getLangCodeFromCookie\s*\??\.?\(|navigator\.languages?\b|window\.matchMedia\s*\(|localStorage\.|sessionStorage\./;
-  // 훅/콜백 안에서 부르는 건 정상 — 그 줄엔 이런 토큰이 같이 있다.
-  const IN_CALLBACK = /useEffect|useLayoutEffect|useCallback|useMemo|=>|\bfunction\b|\basync\b/;
-  for (const file of [...walk("app"), ...walk("src")]) {
+  // ⚠️ `document.cookie` 는 일부러 뺐다 — 컴포넌트가 아닌 모듈 최상단 쿠키 헬퍼(readCookie 등)가
+  //    같은 2칸 들여쓰기라 오탐만 쏟아진다. 언어 쿠키는 getLangCodeFromCookie 로 이미 덮인다.
+  const BROWSER_ONLY = /getLangCodeFromCookie\s*\??\.?\(|navigator\.(languages?|userAgent)\b|window\.(matchMedia\s*\(|inner(Width|Height)\b)|localStorage\.|sessionStorage\./;
+  // 마운트 뒤에만 도는 훅 — 이 콜백은 렌더 중 실행되지 않으니 안전.
+  const DEFERRED_HOOK = /useEffect|useLayoutEffect|useCallback/;
+  // ⚠️ 반대로 이 둘의 콜백은 **렌더 중에** 실행된다(useState 지연 초기화·useMemo).
+  //    `=>` 가 있다고 안전 처리하면 `useState(() => getLangCodeFromCookie())` 가 그대로 샌다.
+  const RUNS_DURING_RENDER = /useState\s*\(|useMemo\s*\(/;
+  for (const file of [...walk("app"), ...walk("src"), ...walk("components")]) {
     if (!/\.(jsx|tsx)$/.test(file)) continue;
     const norm = file.replace(/\\/g, "/");
     // 안전 패턴의 원본 — useSyncExternalStore 의 «클라이언트 스냅샷» 이라 쿠키를 읽는 게 맞다.
@@ -2070,7 +2075,11 @@ const BACKOFFICE_SHARED = [
     lines.forEach((line, i) => {
       if (!/^ {2}\S/.test(line)) return;          // 컴포넌트 본문 최상단만
       if (!BROWSER_ONLY.test(line)) return;
-      if (IN_CALLBACK.test(line)) return;         // effect·핸들러 안이면 안전
+      // 순서 주의: 렌더 중 실행되는 훅이 먼저다 — `=>` 에게 구제받지 못하게.
+      if (!RUNS_DURING_RENDER.test(line)) {
+        if (DEFERRED_HOOK.test(line)) return;                 // effect 안이면 안전
+        if (/=>|\bfunction\b|\basync\b/.test(line)) return;    // 핸들러·콜백 정의면 안전
+      }
       errors.push(
         `[하이드레이션] ${norm}:${i + 1} — 컴포넌트 렌더 중에 브라우저 전용 값을 읽는다. ` +
           `서버 렌더엔 document/navigator 가 없어 서버('en')와 브라우저('ko')가 다른 화면을 그리고 ` +

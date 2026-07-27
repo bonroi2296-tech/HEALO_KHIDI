@@ -29,8 +29,12 @@
   - **실측 검증**: 로컬 dev 에 `Accept-Language` 를 바꿔가며 SSR HTML 을 직접 조회 — ko→`오류가 발생했습니다`, ru→`Произошла ошибка`, kk→`Қате орын алды`, en→`An Error Occurred`. 고치기 전 코드는 `if (typeof navigator === "undefined") return "en"` 이라 **서버는 무조건 영어**였다. 브라우저 콘솔 hydration 경고 0.
 - **재발 방지 (뚫린 가드 교체)**
   - `check-content-consistency.mjs` 에 **「렌더 본문에서 브라우저 전용 값 읽기」 룰 신설** — 리터럴 패턴이 아니라 **위치**로 판정한다(들여쓰기 2칸 = 컴포넌트 본문, `useEffect`/핸들러 안은 통과). 대상도 `getLangCodeFromCookie`·`navigator.language(s)`·`localStorage`·`sessionStorage`·`matchMedia` 로 확장.
-  - **가드가 실제로 무는지 증명**: 나쁜 컴포넌트를 임시로 심어 검사 실패(1건) → 제거 후 통과를 확인했다. 켰을 때 진짜 위반 4건 + 오탐 1건(`LangContext.jsx` = 안전 패턴의 원본, 면제 처리)이 드러났다.
-  - 정직한 한계(ponytail): 파일에 중첩 컴포넌트가 있어 본문이 4칸으로 들어가면 못 잡는다. 그때는 AST 로 올릴 것 — 룰 주석에 적어뒀다.
+  - **가드가 실제로 무는지 증명**: 나쁜 컴포넌트를 임시로 심어 검사가 실제로 실패하는 것 → 제거 후 통과를 확인했다. 켰을 때 진짜 위반 5건(수정 대상 5곳 전부) + 오탐 1건(`LangContext.jsx` = 안전 패턴의 원본, 면제 처리)이 드러났다.
+  - **독립 리뷰가 초판 가드의 구멍 2개를 잡아 보강했다**(작성자=판정자 구조로는 못 봤을 것):
+    ① `useState(() => getLangCodeFromCookie())` — **지연 초기화 콜백은 렌더 중에 실행되는데** 줄에 `=>` 가 있다는 이유로 통과시키고 있었다(잡으려던 바로 그 부류를 눈감음). `useState`·`useMemo` 를 «렌더 중 실행» 으로 분류해 `=>` 구제를 못 받게 순서를 뒤집었다.
+    ② 커버 토큰이 언어에만 쏠려 있었다 → `navigator.userAgent`·`window.innerWidth/Height` 추가, 스캔 범위에 루트 `components/` 추가. 새 미탐 케이스 2개를 실제 파일로 심어 «이제 잡힌다 / 정상 패턴은 안 잡힌다» 를 확인했다.
+  - 정직한 한계(ponytail): ①파일에 중첩 컴포넌트가 있어 본문이 4칸으로 들어가면 못 잡는다 ②`document.cookie` 는 일부러 뺐다(모듈 최상단 쿠키 헬퍼가 같은 들여쓰기라 오탐만 남) ③`src/lib/language.js` 의 `getCurrentLangCode()` 처럼 **한 겹 감싼 간접 호출**은 정규식으로 구조상 못 잡는다(현재 호출부는 전부 lang 명시라 안 깨져 있음). 셋 다 룰 주석에 적어뒀고, 넘어서려면 AST 로 올려야 한다.
+  - **성과를 과장하지 않기 위해**: `/patient/*` 는 프록시가 `x-locale` 을 안 붙여 **여전히 서버 HTML 이 영어**다. 이번 변경으로 하이드레이션 «에러» 는 사라졌지만 **첫 화면 영문 깜빡임은 그대로**다(회귀는 아님 — 전에는 깜빡임 + 에러였다). 별건으로 `KNOWN_ISSUES.md` 에 남긴다.
   - **미결로 남긴 것(숨기지 않음)**: 같은 센트리에 `NotFoundError(insertBefore/removeChild)` 8건이 **미해결**이다(상담방 3건은 100% Edge·네이버웍스 링크, 전부 «방 나가는 순간»). 원인이 «브라우저 자동번역» 인지 우리 코드인지 **아직 못 가른다** → 단정 대신 판별 태그(`page_translated`·`page_lang`·`ui_lang`)를 센트리 `beforeSend` 에 심었다(실제 페이지에서 no/yes/yes 동작 확인). 다음 1건이면 판정된다.
 
 ---

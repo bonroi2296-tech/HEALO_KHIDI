@@ -29,7 +29,8 @@ function ago(iso, lang) {
  */
 export default function NotificationBell({ variant = 'fixed' }) {
   const router = useRouter();
-  // 렌더 중 쿠키 읽기 금지(서버='en' vs 브라우저='ko' → Hydration Error). useLang 은 안전.
+  // 렌더 중 쿠키 읽기 금지(서버='en' vs 브라우저='ko' → Hydration Error).
+  // useLang 은 LangProvider(=ClientShell) 하위에서만 올바르다 — 밖이면 조용히 'en'.
   const lang = useLang();
   const [items, setItems] = useState([]);
   const [open, setOpen] = useState(false);
