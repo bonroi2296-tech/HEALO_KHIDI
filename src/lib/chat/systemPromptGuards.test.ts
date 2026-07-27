@@ -41,6 +41,15 @@ describe("system prompt behavioral guards (regression lock)", () => {
     expect(SRC).toMatch(/if \(isTopicCorrection\(query\)\)/);
   });
 
+  // 반성문 #126: 센터 메뉴판 금액은 «국내 비급여 정가»지 외국인 국제수가가 아니다.
+  // 이 고지를 RAG 문서(자료)에만 뒀더니 러시아어 답변에서 통째로 사라졌다(한국어만 우연히 생존).
+  // ⚠️ 이 테스트가 보증하는 건 «규칙이 프롬프트에 살아있다»까지다 — «모델이 실제로 지켰다»는
+  //    다국어 실측/회귀 채점의 몫이지 여기서 볼 수 없다. 그래도 누가 지우는 것만은 막는다.
+  it("국내 비급여가를 외국인 견적처럼 답하지 말라는 규칙이 있다", () => {
+    expect(SRC).toMatch(/KOREAN DOMESTIC self-pay list prices, NOT foreign-patient international rates/);
+    expect(SRC).toMatch(/IN THE USER'S OWN LANGUAGE/);
+  });
+
   // ── 2026-06-22 PO 재현: 비로그인·연락처 없는 사용자에게 "접수 완료/코디가 연락"이라는
   //    거짓 약속 + 세션 유실 질문에 즉흥 오답. 상태 사실 주입으로 차단. (state-detection)
   it("접수(REGISTER) 멘트가 연락처 유무(hasReachableContact)로 분기된다", () => {
