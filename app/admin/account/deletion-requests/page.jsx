@@ -21,7 +21,7 @@ const STATUS_TONE = {
   pending: "bg-amber-50 text-amber-700",
   processing: "bg-blue-50 text-blue-700",
   completed: "bg-emerald-50 text-emerald-700",
-  rejected: "bg-gray-100 text-gray-500",
+  rejected: "bg-gray-100 text-gray-600",
 };
 
 export default function DeletionRequestsPage() {
@@ -114,7 +114,7 @@ export default function DeletionRequestsPage() {
               <div className="flex items-center justify-between gap-3">
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
-                    <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${STATUS_TONE[r.status] || "bg-gray-100 text-gray-500"}`}>
+                    <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${STATUS_TONE[r.status] || "bg-gray-100 text-gray-600"}`}>
                       {STATUS_LABEL[r.status] || r.status}
                     </span>
                     <span className="text-xs text-gray-500 tabular-nums">{new Date(r.requested_at).toLocaleString("ko-KR")}</span>

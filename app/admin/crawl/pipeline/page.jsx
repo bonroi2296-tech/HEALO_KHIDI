@@ -62,7 +62,7 @@ const SOURCE_FIELDS = {
 };
 
 const STATUS_CONFIG = {
-  pending: { label: "대기", color: "text-gray-500 bg-gray-100", icon: Clock },
+  pending: { label: "대기", color: "text-gray-600 bg-gray-100", icon: Clock },
   running: { label: "실행 중", color: "text-blue-600 bg-blue-100", icon: Loader2 },
   completed: { label: "완료", color: "text-green-600 bg-green-100", icon: CheckCircle2 },
   failed: { label: "실패", color: "text-red-600 bg-red-100", icon: XCircle },

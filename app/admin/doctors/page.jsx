@@ -156,7 +156,7 @@ function BranchForm({ branch, onSave, onCancel }) {
           <Save size={14} /> 저장
         </button>
         <button onClick={onCancel}
-          className="text-sm text-gray-500 px-4 py-2 rounded-lg hover:bg-gray-100 transition">
+          className="text-sm text-gray-600 px-4 py-2 rounded-lg hover:bg-gray-100 transition">
           취소
         </button>
       </div>
@@ -271,7 +271,7 @@ function DoctorForm({ doctor, branches, onSave, onCancel }) {
           <Save size={14} /> 저장
         </button>
         <button onClick={onCancel}
-          className="text-sm text-gray-500 px-4 py-2 rounded-lg hover:bg-gray-100 transition">
+          className="text-sm text-gray-600 px-4 py-2 rounded-lg hover:bg-gray-100 transition">
           취소
         </button>
       </div>
@@ -523,7 +523,7 @@ export default function AdminDoctorsPage() {
                           <Eye size={10} /> 활성
                         </span>
                       ) : (
-                        <span className="text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full flex items-center gap-1 w-fit">
+                        <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full flex items-center gap-1 w-fit">
                           <EyeOff size={10} /> 비활성
                         </span>
                       )}
@@ -594,7 +594,7 @@ export default function AdminDoctorsPage() {
                       {branch.name_en && <p className="text-sm text-gray-500 ml-8">{branch.name_en}</p>}
                       {branch.address_ko && <p className="text-xs text-gray-500 ml-8 mt-1">{branch.address_ko}</p>}
                       <div className="flex items-center gap-4 ml-8 mt-2">
-                        <span className="text-xs text-gray-500">코드: <code className="bg-gray-100 px-1.5 py-0.5 rounded">{branch.branch_code}</code></span>
+                        <span className="text-xs text-gray-600">코드: <code className="bg-gray-100 px-1.5 py-0.5 rounded">{branch.branch_code}</code></span>
                         <span className="text-xs text-gray-500">의료진: <strong className="text-teal-700">{doctorCount}</strong>명</span>
                         {branch.phone && <span className="text-xs text-gray-500">TEL: {branch.phone}</span>}
                       </div>

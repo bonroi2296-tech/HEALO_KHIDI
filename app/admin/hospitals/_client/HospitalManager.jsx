@@ -68,7 +68,7 @@ function HospitalListItem({ h, isActive, onClick }) {
       {(h.specialties?.length > 0) && (
         <div className="flex gap-1 mt-1 flex-wrap">
           {h.specialties.slice(0, 3).map((s, i) => (
-            <span key={i} className="text-[10px] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded">{s}</span>
+            <span key={i} className="text-[10px] bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded">{s}</span>
           ))}
           {h.specialties.length > 3 && (
             <span className="text-[10px] text-gray-500">+{h.specialties.length - 3}</span>

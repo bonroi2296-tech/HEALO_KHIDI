@@ -18,7 +18,7 @@ export function AdminGuideModal({ title, children, onClose }) {
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-gray-600 transition"
+            className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-600 hover:text-gray-600 transition"
             aria-label="닫기"
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

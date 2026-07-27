@@ -324,7 +324,7 @@ export default function CoordinatorChatPage() {
                       </div>
                       <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
                         {t.metadata?.language && (
-                          <span className="text-[10px] font-semibold text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">
+                          <span className="text-[10px] font-semibold text-gray-600 bg-gray-100 px-1.5 py-0.5 rounded">
                             {String(t.metadata.language).toUpperCase()}
                           </span>
                         )}
@@ -375,7 +375,7 @@ export default function CoordinatorChatPage() {
                             <div className="flex items-center gap-2">
                               <span className="text-xs font-mono text-gray-500">#{String(t.id).slice(0, 8)}</span>
                               {t.metadata?.language && (
-                                <span className="text-[10px] font-semibold text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">
+                                <span className="text-[10px] font-semibold text-gray-600 bg-gray-100 px-1.5 py-0.5 rounded">
                                   {String(t.metadata.language).toUpperCase()}
                                 </span>
                               )}
@@ -414,7 +414,7 @@ export default function CoordinatorChatPage() {
                 <div className="flex items-center gap-2 min-w-0">
                   <span className="text-sm font-mono text-gray-600">#{String(selected.id).slice(0, 8)}</span>
                   {selected.metadata?.language && (
-                    <span className="text-[10px] font-semibold text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">
+                    <span className="text-[10px] font-semibold text-gray-600 bg-gray-100 px-1.5 py-0.5 rounded">
                       {String(selected.metadata.language).toUpperCase()}
                     </span>
                   )}

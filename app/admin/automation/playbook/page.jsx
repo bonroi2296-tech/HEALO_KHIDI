@@ -9,7 +9,7 @@ function GuideModal({ onClose }) {
       <div className="relative bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[85vh] overflow-y-auto">
         <div className="sticky top-0 bg-white border-b border-gray-100 p-5 flex items-center justify-between rounded-t-2xl">
           <h2 className="text-lg font-bold text-gray-900">Playbook 자동화 가이드</h2>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-gray-600 transition">
+          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-600 hover:text-gray-600 transition">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
           </button>
         </div>

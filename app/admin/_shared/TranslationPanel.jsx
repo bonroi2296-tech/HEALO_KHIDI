@@ -30,7 +30,7 @@ function StatusBadge({ hasValue }) {
     );
   }
   return (
-    <span className="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-500">
+    <span className="inline-flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-600">
       <AlertCircle size={10} /> 없음
     </span>
   );

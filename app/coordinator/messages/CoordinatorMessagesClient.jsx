@@ -20,7 +20,7 @@ const STATUS_BADGE = {
   open: "bg-blue-50 text-blue-600",
   waiting_coordinator: "bg-red-50 text-red-600",
   waiting_patient: "bg-amber-50 text-amber-600",
-  resolved: "bg-gray-100 text-gray-500",
+  resolved: "bg-gray-100 text-gray-600",
 };
 
 // 채널 색상만 모듈 상수(언어 무관). 라벨은 컴포넌트에서 L로 해석(WhatsApp/Telegram/LINE은 고유명사라 그대로).
@@ -282,7 +282,7 @@ export default function CoordinatorMessagesClient() {
                 className={`rounded-full px-2.5 py-1 text-xs font-medium transition ${
                   statusFilter === s
                     ? "bg-teal-600 text-white"
-                    : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                 }`}
               >
                 {s === "all" ? L.all : statusLabel(s)}
@@ -381,7 +381,7 @@ export default function CoordinatorMessagesClient() {
                     className={`rounded-full px-2.5 py-1 text-xs font-medium transition ${
                       selectedThread.status === s
                         ? "bg-teal-600 text-white"
-                        : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                        : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                     }`}
                   >
                     {statusLabel(s)}

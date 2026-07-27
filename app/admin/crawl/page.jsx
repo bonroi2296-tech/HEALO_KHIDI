@@ -616,7 +616,7 @@ export default function CrawlPage() {
                             ? "bg-blue-700 text-white hover:bg-blue-800 border-l border-blue-500"
                             : inspecting
                               ? "bg-blue-100 text-blue-700 hover:bg-blue-200 border-l border-blue-200"
-                              : "bg-gray-100 text-gray-500 hover:bg-gray-200 border-l border-gray-200"
+                              : "bg-gray-100 text-gray-600 hover:bg-gray-200 border-l border-gray-200"
                         }`}
                         title={`세부과목 ${subs.length}개 보기`}
                       >
@@ -930,7 +930,7 @@ export default function CrawlPage() {
                   )}
                 </div>
 
-                <span className="shrink-0 text-xs px-2 py-1 bg-gray-100 text-gray-500 rounded-full">{item._sourceId}</span>
+                <span className="shrink-0 text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded-full">{item._sourceId}</span>
               </div>
             );
           })}
@@ -1046,7 +1046,7 @@ function FieldGuideModal({ sourceId, onClose }) {
           </div>
           <button
             onClick={onClose}
-            className="p-2 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-gray-600 transition"
+            className="p-2 rounded-lg hover:bg-gray-100 text-gray-600 hover:text-gray-600 transition"
           >
             <X size={20} />
           </button>

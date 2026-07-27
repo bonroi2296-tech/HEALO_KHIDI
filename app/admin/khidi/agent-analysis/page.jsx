@@ -163,7 +163,7 @@ export default function AgentAnalysisPage() {
                       </div>
                       <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
                         {t.metadata?.language && (
-                          <span className="text-[10px] font-semibold text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">
+                          <span className="text-[10px] font-semibold text-gray-600 bg-gray-100 px-1.5 py-0.5 rounded">
                             {String(t.metadata.language).toUpperCase()}
                           </span>
                         )}

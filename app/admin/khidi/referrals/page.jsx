@@ -11,8 +11,8 @@ const STATUS_LABEL = {
   requested: { ko: "의뢰", cls: "bg-amber-50 text-amber-700" },
   accepted: { ko: "수락", cls: "bg-blue-50 text-blue-700" },
   completed: { ko: "협진 완료", cls: "bg-teal-50 text-teal-700" },
-  declined: { ko: "반려", cls: "bg-gray-100 text-gray-500" },
-  cancelled: { ko: "취소", cls: "bg-gray-100 text-gray-500" },
+  declined: { ko: "반려", cls: "bg-gray-100 text-gray-600" },
+  cancelled: { ko: "취소", cls: "bg-gray-100 text-gray-600" },
 };
 
 export default function ReferralsPage() {
@@ -151,7 +151,7 @@ export default function ReferralsPage() {
             ) : (
               <div className="space-y-2">
                 {data.referrals.map((r) => {
-                  const st = STATUS_LABEL[r.status] || { ko: r.status, cls: "bg-gray-100 text-gray-500" };
+                  const st = STATUS_LABEL[r.status] || { ko: r.status, cls: "bg-gray-100 text-gray-600" };
                   return (
                     <div key={r.id} className="bg-gray-50 rounded-xl px-4 py-3">
                       <div className="flex items-center justify-between gap-3 flex-wrap">
@@ -175,7 +175,7 @@ export default function ReferralsPage() {
                             <Btn disabled={busyId === r.id} onClick={() => setStatus(r.id, "completed")} cls="bg-teal-700 text-white hover:bg-teal-800">협진 완료</Btn>
                           )}
                           {(r.status === "requested" || r.status === "accepted") && (
-                            <Btn disabled={busyId === r.id} onClick={() => setStatus(r.id, "cancelled")} cls="bg-gray-100 text-gray-500 hover:bg-gray-200">취소</Btn>
+                            <Btn disabled={busyId === r.id} onClick={() => setStatus(r.id, "cancelled")} cls="bg-gray-100 text-gray-600 hover:bg-gray-200">취소</Btn>
                           )}
                         </div>
                       </div>

@@ -372,7 +372,7 @@ function TreatmentsManager() {
                   <div className="flex items-center gap-2 mb-1">
                     <h3 className="text-sm font-bold text-gray-900 truncate">{treatment.name}</h3>
                     <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium ${
-                      treatment.is_published ? "bg-teal-50 text-teal-700" : "bg-gray-100 text-gray-500"
+                      treatment.is_published ? "bg-teal-50 text-teal-700" : "bg-gray-100 text-gray-600"
                     }`}>
                       {treatment.is_published ? <Eye size={10} /> : <EyeOff size={10} />}
                       {treatment.is_published ? "공개" : "비공개"}
@@ -395,7 +395,7 @@ function TreatmentsManager() {
                   <button
                     onClick={(e) => { e.stopPropagation(); togglePublish(treatment); }}
                     className={`p-2 rounded-lg text-xs transition ${
-                      treatment.is_published ? "text-teal-700 hover:bg-teal-50" : "text-gray-500 hover:bg-gray-100"
+                      treatment.is_published ? "text-teal-700 hover:bg-teal-50" : "text-gray-600 hover:bg-gray-100"
                     }`}
                     title={treatment.is_published ? "비공개로 변경" : "공개로 변경"}
                   >

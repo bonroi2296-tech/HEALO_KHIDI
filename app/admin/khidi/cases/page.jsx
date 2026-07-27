@@ -19,7 +19,7 @@ const SHOW_HOSPITAL_ASSIGN = false;
 // 병원 리드 응답 상태 색상 (병원이 파트너 화면에서 바꾼 값이 여기로 반영됨).
 // 라벨은 언어 인식(TR.hs_*)으로 옮겼다 — 여기엔 색상 클래스만 둔다.
 const HOSP_STATUS_CLS = {
-  sent: "bg-gray-100 text-gray-500",
+  sent: "bg-gray-100 text-gray-600",
   viewed: "bg-blue-50 text-blue-600",
   replied: "bg-teal-50 text-teal-700",
   converted: "bg-green-100 text-green-700",
@@ -373,7 +373,7 @@ export default function CasesPage() {
                     {c.agency_name ? `${t.agencyPrefix}${c.agency_name}` : t.directIntake}{c.case_status_note ? ` · ${c.case_status_note}` : ""}
                   </div>
                 </div>
-                <span className={`text-xs px-2 py-1 rounded-full shrink-0 ${c.case_status ? "bg-teal-50 text-teal-700" : "bg-gray-100 text-gray-500"}`}>
+                <span className={`text-xs px-2 py-1 rounded-full shrink-0 ${c.case_status ? "bg-teal-50 text-teal-700" : "bg-gray-100 text-gray-600"}`}>
                   {caseStatusLabelL(c.case_status, lang)}
                 </span>
               </button>
@@ -434,7 +434,7 @@ export default function CasesPage() {
                     {(c.assigned_hospitals ?? []).length > 0 && (
                       <div className="flex flex-wrap gap-1 mb-1.5">
                         {c.assigned_hospitals.map((h) => (
-                          <span key={h.id} className={`text-[11px] px-2 py-0.5 rounded-full ${HOSP_STATUS_CLS[h.status] || "bg-gray-100 text-gray-500"}`}>
+                          <span key={h.id} className={`text-[11px] px-2 py-0.5 rounded-full ${HOSP_STATUS_CLS[h.status] || "bg-gray-100 text-gray-600"}`}>
                             {h.name}: {t[`hs_${h.status}`] || h.status}
                             {(h.quoted_price_min != null || h.quoted_price_max != null) ? ` (${t.quoteLabel} ${h.quoted_price_min ?? "?"}~${h.quoted_price_max ?? "?"})` : ""}
                           </span>

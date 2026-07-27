@@ -772,7 +772,7 @@ export default function PartnerPortal({ expected = "agency" }) {
                 </span>
                 <span className="flex-1 text-left">{it.label}</span>
                 {it.badge != null && it.badge > 0 && (
-                  <span className={`text-sm tabular-nums font-semibold rounded-full px-2 py-0.5 ${on ? "bg-white/20 text-white" : "bg-gray-100 text-gray-500"}`}>{it.badge}</span>
+                  <span className={`text-sm tabular-nums font-semibold rounded-full px-2 py-0.5 ${on ? "bg-white/20 text-white" : "bg-gray-100 text-gray-600"}`}>{it.badge}</span>
                 )}
               </button>
             );
@@ -1023,7 +1023,7 @@ export default function PartnerPortal({ expected = "agency" }) {
                           isHold ? "bg-amber-50 text-amber-700"
                           : isDone ? "bg-emerald-600 text-white"
                           : c.case_status ? "bg-teal-700 text-white"
-                          : "bg-gray-100 text-gray-500"}`}>
+                          : "bg-gray-100 text-gray-600"}`}>
                           {isDone && <CheckCircle2 size={14} className="shrink-0" />}
                           {isHold && <PauseCircle size={14} className="shrink-0" />}
                           {caseStatusLabelL(c.case_status, lang)}
@@ -1465,7 +1465,7 @@ function ChatDrawer({ open, onClose, inquiryId, caseName, tt, getToken }) {
           <div className="min-w-0">
             <div className="text-base font-bold text-gray-900 flex items-center gap-1.5"><MessageCircle size={16} className="text-teal-600" />{tt("msgrTitle")}</div>
             <div className="text-xs text-gray-500 mt-0.5 truncate">{caseName}</div>
-            <div className={`mt-2 inline-flex items-center gap-1.5 text-[11px] font-semibold px-2 py-0.5 rounded-full ${hoursOpen ? "bg-teal-50 text-teal-700" : "bg-gray-100 text-gray-500"}`}>
+            <div className={`mt-2 inline-flex items-center gap-1.5 text-[11px] font-semibold px-2 py-0.5 rounded-full ${hoursOpen ? "bg-teal-50 text-teal-700" : "bg-gray-100 text-gray-600"}`}>
               <span className={`w-1.5 h-1.5 rounded-full ${hoursOpen ? "bg-teal-500" : "bg-gray-400"}`} />
               {hoursOpen ? tt("msgrOpen") : tt("msgrClosed")}
             </div>
@@ -1502,7 +1502,7 @@ function ChatDrawer({ open, onClose, inquiryId, caseName, tt, getToken }) {
             const coord = m.actor_type === "coordinator" || m.actor_type === "admin";
             if (!mine && !coord) {
               // 시스템 메시지 — 가운데 칩 (한글이면 상대 언어로 번역)
-              return <div key={m.id} className="text-center"><span className="inline-block text-[11px] text-gray-500 bg-gray-100 rounded-full px-3 py-1" title={msgIsTr(m.message_text) ? m.message_text : undefined}>{trMsg(m.message_text)}</span></div>;
+              return <div key={m.id} className="text-center"><span className="inline-block text-[11px] text-gray-600 bg-gray-100 rounded-full px-3 py-1" title={msgIsTr(m.message_text) ? m.message_text : undefined}>{trMsg(m.message_text)}</span></div>;
             }
             const who = mine ? tt("msgrYou") : tt("msgrCoord");
             return (

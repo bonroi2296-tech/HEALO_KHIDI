@@ -284,7 +284,7 @@ export default function ConversionDashboard() {
                         <span className={`text-xs px-2 py-0.5 rounded-full ${
                           o.kind === "한방(참여기관)" ? "bg-teal-50 text-teal-700"
                           : o.kind === "대학병원(협진)" ? "bg-blue-50 text-blue-700"
-                          : "bg-gray-100 text-gray-500"
+                          : "bg-gray-100 text-gray-600"
                         }`}>{o.kind}</span>
                       </td>
                       <td className="py-2 text-right text-gray-600">{o.total_sessions}</td>
@@ -345,7 +345,7 @@ export default function ConversionDashboard() {
                         disabled={busyId === p.inquiry_id}
                         onClick={() => markTest(p.inquiry_id, !p.is_test)}
                         title="평가 숫자에서 제외/포함"
-                        className="px-2.5 py-1.5 rounded-lg text-xs font-medium border border-gray-200 text-gray-500 hover:bg-gray-100 disabled:opacity-40 transition"
+                        className="px-2.5 py-1.5 rounded-lg text-xs font-medium border border-gray-200 text-gray-600 hover:bg-gray-100 disabled:opacity-40 transition"
                       >
                         {p.is_test ? "테스트 해제" : "테스트로 표시"}
                       </button>
@@ -409,7 +409,7 @@ export default function ConversionDashboard() {
                         disabled={busyId === p.inquiry_id}
                         onClick={() => markTest(p.inquiry_id, !p.is_test)}
                         title="평가 숫자에서 제외/포함"
-                        className="px-2.5 py-1.5 rounded-lg text-xs font-medium border border-gray-200 text-gray-500 hover:bg-gray-100 disabled:opacity-40 transition"
+                        className="px-2.5 py-1.5 rounded-lg text-xs font-medium border border-gray-200 text-gray-600 hover:bg-gray-100 disabled:opacity-40 transition"
                       >
                         {p.is_test ? "테스트 해제" : "테스트로 표시"}
                       </button>

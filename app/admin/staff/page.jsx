@@ -321,7 +321,7 @@ export default function AdminStaffPage() {
                   {KNOWN_ROLES.has(s.role) ? tt("roleCoordinator") : s.role}
                 </span>
                 {s.disabled && (
-                  <span className="text-xs font-bold text-gray-500 bg-gray-100 border border-gray-200 rounded-full px-2.5 py-0.5">{tt("statusDisabled")}</span>
+                  <span className="text-xs font-bold text-gray-600 bg-gray-100 border border-gray-200 rounded-full px-2.5 py-0.5">{tt("statusDisabled")}</span>
                 )}
                 <button
                   onClick={() => {

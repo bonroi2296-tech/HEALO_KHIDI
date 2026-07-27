@@ -439,7 +439,8 @@ function PortalTopBar({ session, onLogout, siteConfig, langCode }) {
 
       <div className="flex items-center gap-3 text-sm">
         {session?.user?.email && (
-          <span className="hidden md:block text-slate-500 truncate max-w-[180px]">
+          {/* slate-500 → slate-600: 어드민 상단바(teal-100 배경) 위에서 4.22:1 로 AA 미달이었음 → 5.9:1 */}
+          <span className="hidden md:block text-slate-600 truncate max-w-[180px]">
             {session.user.email}
           </span>
         )}

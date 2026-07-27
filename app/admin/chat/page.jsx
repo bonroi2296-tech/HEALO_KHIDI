@@ -464,7 +464,7 @@ export default function AdminChatPage() {
                           </span>
                         )}
                         {t.metadata?.language && (
-                          <span className="text-[10px] font-semibold text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">
+                          <span className="text-[10px] font-semibold text-gray-600 bg-gray-100 px-1.5 py-0.5 rounded">
                             {String(t.metadata.language).toUpperCase()}
                           </span>
                         )}
@@ -516,7 +516,7 @@ export default function AdminChatPage() {
                             <div className="flex items-center gap-2">
                               <span className="text-xs font-mono text-gray-500">#{String(t.id).slice(0, 8)}</span>
                               {t.metadata?.language && (
-                                <span className="text-[10px] font-semibold text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">
+                                <span className="text-[10px] font-semibold text-gray-600 bg-gray-100 px-1.5 py-0.5 rounded">
                                   {String(t.metadata.language).toUpperCase()}
                                 </span>
                               )}
@@ -565,7 +565,7 @@ export default function AdminChatPage() {
                     </span>
                   )}
                   {selected.metadata?.language && (
-                    <span className="text-[10px] font-semibold text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">
+                    <span className="text-[10px] font-semibold text-gray-600 bg-gray-100 px-1.5 py-0.5 rounded">
                       {String(selected.metadata.language).toUpperCase()}
                     </span>
                   )}

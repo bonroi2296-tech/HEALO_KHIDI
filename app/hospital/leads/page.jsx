@@ -10,7 +10,7 @@ const STATUS_CONFIG = {
   replied: { label: "응답함", color: "bg-green-100 text-green-700", icon: Reply },
   converted: { label: "치료 확정", color: "bg-emerald-100 text-emerald-700", icon: CheckCircle },
   rejected: { label: "거절", color: "bg-red-100 text-red-700", icon: XCircle },
-  expired: { label: "만료", color: "bg-gray-100 text-gray-500", icon: Clock },
+  expired: { label: "만료", color: "bg-gray-100 text-gray-600", icon: Clock },
 };
 
 const STATUS_FILTERS = [

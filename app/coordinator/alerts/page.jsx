@@ -281,7 +281,7 @@ export default function AlertsPage() {
                         {ALERT_TYPE_LABEL[alert.alert_type] || alert.alert_type}
                       </span>
                       {isResolved && (
-                        <span className="text-xs px-2 py-0.5 bg-gray-100 text-gray-500 rounded-full">{L.alBadgeResolved}</span>
+                        <span className="text-xs px-2 py-0.5 bg-gray-100 text-gray-600 rounded-full">{L.alBadgeResolved}</span>
                       )}
                       {!isResolved && isAck && (
                         <span className="text-xs px-2 py-0.5 bg-blue-50 text-blue-600 rounded-full">{L.alBadgeAcknowledged}</span>

@@ -187,7 +187,7 @@ export default function ContentEditorClient() {
                 <button
                   key={l}
                   onClick={() => pickLang(l)}
-                  className={`text-xs px-2 py-1 rounded ${editLang === l ? "bg-teal-600 text-white font-medium" : "text-gray-500 hover:bg-gray-100"}`}
+                  className={`text-xs px-2 py-1 rounded ${editLang === l ? "bg-teal-600 text-white font-medium" : "text-gray-600 hover:bg-gray-100"}`}
                 >
                   {LANG_SHORT[l]}
                 </button>

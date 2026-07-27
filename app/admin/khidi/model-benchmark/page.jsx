@@ -204,7 +204,7 @@ export default function ModelBenchmarkPage() {
                 {result.calibration.map((c) => (
                   <div key={c.scenarioId} className="px-5 py-4">
                     <div className="flex items-center gap-2 mb-2">
-                      <span className="text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-500">{c.category} · {c.lang}</span>
+                      <span className="text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-600">{c.category} · {c.lang}</span>
                       {c.pairwise && (
                         <span className={`text-xs font-bold ${WINNER_COLOR[c.pairwise.winner]}`}>
                           맞대결: {WINNER_LABEL[c.pairwise.winner]}
@@ -251,7 +251,7 @@ export default function ModelBenchmarkPage() {
                       onClick={() => setExpanded((e) => ({ ...e, [sid]: !e[sid] }))}
                     >
                       <div>
-                        <span className="inline-block text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-500 mr-2">
+                        <span className="inline-block text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-600 mr-2">
                           {first?.category} · {first?.lang}
                         </span>
                         <span className="text-sm text-gray-800">{first?.query}</span>
