@@ -9,7 +9,8 @@ type SourceType =
   | "review"
   | "normalized_inquiry"
   | "policy"
-  | "faq";
+  | "faq"
+  | "center_menu";
 
 const nowIso = () => new Date().toISOString();
 
@@ -21,6 +22,8 @@ const nowIso = () => new Date().toISOString();
 const TRUST_TIER_BY_SOURCE: Partial<Record<SourceType, number>> = {
   hospital: 2,
   treatment: 2,
+  // 자사 제휴병원이 준 공식 메뉴판(엑셀 원본) — hospital/treatment 와 같은 등급.
+  center_menu: 2,
 };
 
 const fetchSourceRows = async (sourceType: SourceType, sourceId?: string) => {
@@ -64,6 +67,35 @@ const fetchSourceRows = async (sourceType: SourceType, sourceId?: string) => {
         );
       if (sourceId) q = q.eq("id", sourceId);
       return q;
+    }
+    case "center_menu": {
+      // 메뉴판은 (센터 × 카테고리) 하나를 문서 1건으로 묶는다 — 이유는 buildDocument 주석 참고.
+      // sourceId 는 center_slug 로 해석(한 센터만 재적재할 때).
+      // src/types/database.types.ts 는 생성물이라 신규 테이블이 아직 없다 → 이 쿼리만 캐스팅.
+      // 타입 재생성(supabase gen types) 시 이 캐스팅을 지워라.
+      let q: any = (supabaseAdmin.from as any)("center_menu_items")
+        .select(
+          "center_slug, center_name_ko, center_summary_ko, hospital_brand, category_ko, frequency_ko, item_name_ko, price_krw, display_order, revised_on"
+        )
+        .eq("is_active", true)
+        .order("center_slug")
+        .order("display_order");
+      if (sourceId) q = q.eq("center_slug", sourceId);
+      const { data, error } = await q;
+      if (error) return { data: [], error };
+
+      const groups = new Map<string, any>();
+      for (const row of (data || []) as any[]) {
+        const key = `${row.center_slug}:${row.category_ko}`;
+        if (!groups.has(key)) {
+          groups.set(key, { ...row, items: [] });
+        }
+        groups.get(key).items.push({
+          item_name_ko: row.item_name_ko,
+          price_krw: row.price_krw,
+        });
+      }
+      return { data: [...groups.values()], error: null };
     }
     default:
       return { data: [], error: null };
@@ -188,6 +220,7 @@ export const ingestSources = async (
     "hospital",
     "review",
     "normalized_inquiry",
+    "center_menu",
   ],
   sourceId?: string
 ) => {
