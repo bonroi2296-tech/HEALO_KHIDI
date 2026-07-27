@@ -611,7 +611,7 @@ for (const f of ["NotoSans-Regular.ttf", "NotoSans-Bold.ttf", "NotoSansKR-Regula
   }
 }
 
-// ── 11) PDF 렌더 React 정합 가드 (POSTMORTEMS #64) ────────────────────────────
+// ── 11) PDF 렌더 React 정합 가드 (POSTMORTEMS #132) ────────────────────────────
 // 왜: Next(App Router)는 앱 코드를 내장(vendored) React 19 로 컴파일한다. 설치 react 가
 //     18 이거나 @react-pdf/renderer 가 웹팩 서버 번들에 말려 들어가면, PDF 렌더 트리에
 //     서로 다른 React 의 요소가 섞여 renderToBuffer 가 React error #31 로 즉사 →
@@ -621,12 +621,12 @@ try {
   const nextCfg = readFileSync(join(ROOT, "next.config.js"), "utf8");
   const extBlock = nextCfg.match(/serverExternalPackages\s*:\s*\[[\s\S]*?\]/);
   if (!extBlock || !extBlock[0].includes("@react-pdf/renderer")) {
-    errors.push(`[PDF React정합] next.config.js serverExternalPackages 에 "@react-pdf/renderer" 없음 — 웹팩이 react-pdf 를 번들하면 내장 React 와 인스턴스가 갈려 발급 PDF 가 전부 500 (React #31, POSTMORTEMS #64).`);
+    errors.push(`[PDF React정합] next.config.js serverExternalPackages 에 "@react-pdf/renderer" 없음 — 웹팩이 react-pdf 를 번들하면 내장 React 와 인스턴스가 갈려 발급 PDF 가 전부 500 (React #31, POSTMORTEMS #132).`);
   }
   const pkg = JSON.parse(readFileSync(join(ROOT, "package.json"), "utf8"));
   const reactMajor = parseInt(String(pkg.dependencies?.react || "0").replace(/^[^\d]*/, ""), 10);
   if (reactMajor < 19) {
-    errors.push(`[PDF React정합] package.json react "${pkg.dependencies?.react}" — Next 16(내장 React 19)과 요소 규격이 갈려 외부화된 react-pdf 렌더가 React #31 로 죽음. react/react-dom ^19 유지할 것 (POSTMORTEMS #64).`);
+    errors.push(`[PDF React정합] package.json react "${pkg.dependencies?.react}" — Next 16(내장 React 19)과 요소 규격이 갈려 외부화된 react-pdf 렌더가 React #31 로 죽음. react/react-dom ^19 유지할 것 (POSTMORTEMS #132).`);
   }
 } catch { /* next.config.js 없으면 다른 검사가 이미 실패 */ }
 
@@ -1976,6 +1976,66 @@ const BACKOFFICE_SHARED = [
           `클라이언트 빌드에서 이건 빈 껍데기로 바뀌므로 **글자가 조용히 사라진다**. ` +
           `t() 를 쓰거나(@/lib/i18n), 서버 컴포넌트에서 값을 내려줄 것.`
       );
+    }
+  }
+}
+
+// ── §33-b) E2E 「한 번 읽고 판정」 금지 — innerText() → toBeTruthy() 부채 동결 (POSTMORTEMS #132) ──
+// 왜: 2026-07-27 게스트 초대 스펙 2건이 main 을 빨갛게 만들었는데, 앱은 멀쩡했다.
+//     화면이 하이드레이션 뒤에 그려지는데 테스트는 goto 직후 body.innerText() 를 **딱 한 번**
+//     읽고 정규식으로 판정했다 — 자동 재시도가 없어 구조적으로 이길 수 없는 경주였고,
+//     Playwright retry 가 «1차 실패 → 2차 통과»로 최소 3번의 초록을 위장하다 결국 터졌다.
+//     (실측: 게스트 폼은 load 뒤 0.2~0.3초에 뜬다. 그 사이엔 "연결 중…"만 있다.)
+//     정답은 웹퍼스트 어서션 — expect(locator).toBeVisible() / expect(body).toContainText().
+// 무엇을 보나: 기존 부채는 파일별 개수로 **동결**하고, 늘어나거나 새 파일이 생기면 실패.
+//     고쳐서 줄었으면 아래 숫자도 같이 내려라(부채 장부가 거짓이 되지 않게).
+{
+  const FROZEN = {
+    "admin-feedback-list.spec.ts": 1,
+    "chat-feedback-thumbs-down.spec.ts": 2,
+    "chat-identification-form.spec.ts": 1,
+    "chat-multilingual.spec.ts": 2,
+    "chat-resume-cookie.spec.ts": 1,
+    "hospital-detail.spec.ts": 1,
+    "hospitals-list.spec.ts": 1,
+    "intake-file-upload.spec.ts": 1,
+    "intake-form-submit.spec.ts": 1,
+    "intake-language-fallback.spec.ts": 1,
+    "intake-validation-required.spec.ts": 1,
+    "patient-dashboard-auth.spec.ts": 1,
+    "patient-survey-response.spec.ts": 1,
+    "telemedicine-booking-cta.spec.ts": 1,
+    "treatments-immune-data.spec.ts": 2,
+  };
+  const HOW =
+    `→ expect(locator).toBeVisible() / await expect(page.locator("body")).toContainText(/…/) 로 바꿀 것 ` +
+    `(둘 다 «될 때까지» 자동 재시도한다). 부채를 갚았으면 scripts/check-content-consistency.mjs §33-b 의 숫자도 내려라.`;
+
+  // ⚠️ walk() 금지 — EXCLUDE 가 .spec. 을 배제해 스캔 대상이 0이 된다(§7c 와 같은 함정).
+  const specs = readdirSync(join(ROOT, "e2e")).filter((f) => /\.spec\.ts$/.test(f));
+  for (const f of specs) {
+    const lines = readFileSync(join(ROOT, "e2e", f), "utf8").split("\n");
+    let count = 0;
+    for (let i = 0; i < lines.length; i++) {
+      // innerText() 한 번 읽기 → 10줄 안에서 toBeTruthy() 로 판정하는 모양
+      if (/\.innerText\(\)/.test(lines[i]) && /toBeTruthy\(\)/.test(lines.slice(i, i + 10).join("\n"))) count++;
+    }
+    const allowed = FROZEN[f] ?? 0;
+    if (count > allowed) {
+      errors.push(
+        `[e2e-oneshot] e2e/${f} — 「innerText() 한 번 읽고 toBeTruthy()」 ${count}건 (허용 ${allowed}건). ` +
+          `하이드레이션 뒤에 그려지는 화면에선 이 검사가 경주라서, retry 로 초록을 위장하다 아무 커밋에서나 터진다(POSTMORTEMS #132). ${HOW}`
+      );
+    } else if (count < allowed) {
+      errors.push(
+        `[e2e-oneshot] e2e/${f} — 부채가 ${allowed}건 → ${count}건으로 줄었다(좋음). ` +
+          `scripts/check-content-consistency.mjs §33-b 의 숫자를 ${count}${count === 0 ? " (= 항목 삭제)" : ""} 로 내려라 — 장부가 실제와 어긋나면 가드가 헐거워진다.`
+      );
+    }
+  }
+  for (const f of Object.keys(FROZEN)) {
+    if (!specs.includes(f)) {
+      errors.push(`[e2e-oneshot] §33-b 동결 목록의 e2e/${f} 가 없다(이름 변경·삭제). 목록에서 지울 것 — 죽은 항목은 가드를 헐겁게 만든다.`);
     }
   }
 }
