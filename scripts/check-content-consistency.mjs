@@ -2109,6 +2109,48 @@ const BACKOFFICE_SHARED = [
   }
 }
 
+// ── 렌더 중 «브라우저에만 있는 값» 읽기 = Hydration Error (POSTMORTEMS #30 부류 재발) ──
+// 서버 렌더에는 document·navigator 가 없다. 컴포넌트 본문에서 이걸 읽으면 서버는 'en',
+// 브라우저는 'ko'/'ru' 로 그려서 화면 전체가 어긋나고 React 가 Hydration Error 를 던진다.
+// 실제로 센트리에 한 달간 23건 쌓였다(JAVASCRIPT-NEXTJS-3, /patient/*·/survey/*).
+// 올바른 방법: useLang()(useSyncExternalStore — 하이드레이션 땐 서버값, 그 뒤 쿠키값) 또는
+//             서버 컴포넌트가 헤더/쿠키를 읽어 prop 으로 내려주기.
+// ponytail: 「들여쓰기 2칸 = 컴포넌트 본문」 휴리스틱. effect/핸들러 안(4칸 이상)은 안전하니 넘긴다.
+//   한계 — 파일에 중첩 컴포넌트가 있어 본문이 4칸으로 들어가면 못 잡는다. 그때는 룰을 AST 로 올릴 것.
+{
+  // ⚠️ `document.cookie` 는 일부러 뺐다 — 컴포넌트가 아닌 모듈 최상단 쿠키 헬퍼(readCookie 등)가
+  //    같은 2칸 들여쓰기라 오탐만 쏟아진다. 언어 쿠키는 getLangCodeFromCookie 로 이미 덮인다.
+  const BROWSER_ONLY = /getLangCodeFromCookie\s*\??\.?\(|navigator\.(languages?|userAgent)\b|window\.(matchMedia\s*\(|inner(Width|Height)\b)|localStorage\.|sessionStorage\./;
+  // 마운트 뒤에만 도는 훅 — 이 콜백은 렌더 중 실행되지 않으니 안전.
+  const DEFERRED_HOOK = /useEffect|useLayoutEffect|useCallback/;
+  // ⚠️ 반대로 이 둘의 콜백은 **렌더 중에** 실행된다(useState 지연 초기화·useMemo).
+  //    `=>` 가 있다고 안전 처리하면 `useState(() => getLangCodeFromCookie())` 가 그대로 샌다.
+  const RUNS_DURING_RENDER = /useState\s*\(|useMemo\s*\(/;
+  for (const file of [...walk("app"), ...walk("src"), ...walk("components")]) {
+    if (!/\.(jsx|tsx)$/.test(file)) continue;
+    const norm = file.replace(/\\/g, "/");
+    // 안전 패턴의 원본 — useSyncExternalStore 의 «클라이언트 스냅샷» 이라 쿠키를 읽는 게 맞다.
+    if (norm.endsWith("src/lib/i18n/LangContext.jsx")) continue;
+    const lines = stripCommentsWholeFile(readFileSync(join(ROOT, file), "utf8")).split("\n");
+    lines.forEach((line, i) => {
+      if (!/^ {2}\S/.test(line)) return;          // 컴포넌트 본문 최상단만
+      if (!BROWSER_ONLY.test(line)) return;
+      // 순서 주의: 렌더 중 실행되는 훅이 먼저다 — `=>` 에게 구제받지 못하게.
+      if (!RUNS_DURING_RENDER.test(line)) {
+        if (DEFERRED_HOOK.test(line)) return;                 // effect 안이면 안전
+        if (/=>|\bfunction\b|\basync\b/.test(line)) return;    // 핸들러·콜백 정의면 안전
+      }
+      errors.push(
+        `[하이드레이션] ${norm}:${i + 1} — 컴포넌트 렌더 중에 브라우저 전용 값을 읽는다. ` +
+          `서버 렌더엔 document/navigator 가 없어 서버('en')와 브라우저('ko')가 다른 화면을 그리고 ` +
+          `React 가 Hydration Error 를 던진다(POSTMORTEMS #30 부류·센트리 23건). ` +
+          `언어는 useLang(), 그 밖의 값은 useEffect 로 마운트 후 읽거나 서버가 prop 으로 내려줄 것.\n` +
+          `    ${line.trim().slice(0, 120)}`
+      );
+    });
+  }
+}
+
 // ── 결과 ────────────────────────────────────────────────────────
 if (errors.length) {
   console.error(`\n❌ 콘텐츠 일관성 검사 실패 (${errors.length}건)\n`);

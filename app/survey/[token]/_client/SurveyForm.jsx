@@ -202,10 +202,12 @@ const STRINGS = {
   },
 };
 
-// 브라우저 언어 → 지원 언어 매핑
-function detectLang() {
-  if (typeof navigator === "undefined") return "en";
-  const nav = navigator.language || "en";
+// 언어 문자열("ru-RU", "ko" …) → 지원 언어 매핑.
+// ⚠️ 예전엔 여기서 직접 navigator.language 를 읽었는데, 서버 렌더엔 navigator 가 없어
+//    항상 "en" → 브라우저는 "ru"/"ko" → 설문 전체 글자가 어긋나 Hydration Error 가 났다
+//    (센트리 JAVASCRIPT-NEXTJS-3, 한 달간 23건). 이제 언어는 서버가 정해서 내려준다.
+export function pickLang(raw) {
+  const nav = raw || "en";
   if (nav.startsWith("ko")) return "ko";
   if (nav.startsWith("ru")) return "ru";
   if (nav.startsWith("kk") || nav.startsWith("kz")) return "kz";
@@ -267,14 +269,16 @@ function ScoreSelector({ qIndex, value, onChange, scaleLabels }) {
 }
 
 // ─── 메인 폼 ──────────────────────────────────────────────────────────────────
-export default function SurveyForm({ token, initialState, alreadyResponded, patientLang }) {
+export default function SurveyForm({ token, initialState, alreadyResponded, patientLang, browserLang }) {
   // 우선순위: **환자에게 기록된 언어** → 브라우저 언어 → 영어.
+  // (browserLang = 서버가 Accept-Language 헤더에서 읽어 내려준 값. 브라우저에서 직접
+  //  navigator 를 읽으면 서버 렌더와 어긋나 Hydration Error 가 난다 — pickLang 주석 참고.)
   //
   // 왜 환자 언어가 먼저인가 — 우리는 이 환자가 무슨 말을 쓰는지 이미 안다(메일도 그 언어로
   // 보냈다). 브라우저 설정으로 정하면 러시아 환자가 영어 폰을 쓸 때 영어 설문지를 받는다.
   // 실제로 2026-07-22 에 러시아어 메일 → 한국어 설문지가 나왔다(연 사람 브라우저가 한국어라).
   // 읽을 수 없으면 답을 못 하고, 그럼 K-03 만족도 표본이 영영 안 쌓인다.
-  const lang = (patientLang && STRINGS[patientLang]) ? patientLang : detectLang();
+  const lang = (patientLang && STRINGS[patientLang]) ? patientLang : pickLang(browserLang);
   const s = STRINGS[lang] || STRINGS.en;
 
   const [scores, setScores] = useState({ q1: 0, q2: 0, q3: 0, q4: 0, q5: 0 });

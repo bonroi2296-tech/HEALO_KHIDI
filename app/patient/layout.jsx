@@ -3,7 +3,8 @@
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { getLangCodeFromCookie, t } from '@/lib/i18n';
+import { t } from '@/lib/i18n';
+import { useLang } from '@/lib/i18n/LangContext';
 import {
   Home, FileText, BookOpen, Activity, Calendar, Globe,
   MoreHorizontal, X, ShieldCheck, Phone,
@@ -29,7 +30,12 @@ const MORE_TABS = [
 
 export default function PatientLayout({ children }) {
   const pathname = usePathname();
-  const lang = getLangCodeFromCookie?.() || 'en';
+  // ⚠️ 렌더 중에 getLangCodeFromCookie() 를 부르면 안 된다 — 서버엔 document 가 없어 'en',
+  //    브라우저는 쿠키값('ko' 등) → 탭 라벨이 서버/클라 다르게 그려져 Hydration Error.
+  //    useLang() 은 LangProvider 가 useSyncExternalStore 로 관리하는 값을 읽는다 — 하이드레이션
+  //    시점엔 서버값, 그 뒤 쿠키값(안전). ⚠️ LangProvider 밖에서 부르면 경고 없이 'en' 으로 굳으니
+  //    이 컴포넌트가 ClientShell(=LangProvider) 하위인지 확인하고 쓸 것.
+  const lang = useLang();
   const l = (obj) => obj?.[lang] || obj?.['en'] || '';
   const [moreOpen, setMoreOpen] = useState(false);
   const sheetRef = useRef(null);

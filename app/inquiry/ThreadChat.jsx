@@ -2,7 +2,8 @@
 
 import { useState, useRef, useEffect, useCallback } from "react";
 import { ArrowRight, AlertCircle, Loader2, Bot, ThumbsUp, ThumbsDown, X, Paperclip, FileText, Image as ImageIcon, Headset, ClipboardCheck, Plus, History, ChevronLeft } from "lucide-react";
-import { getLangCodeFromCookie, t } from "@/lib/i18n";
+import { t } from "@/lib/i18n";
+import { useLang } from "@/lib/i18n/LangContext";
 import { INSTALL_COPY } from "../InstallPrompt";
 
 const TOKEN_COOKIE = "healo_chat_token";
@@ -407,7 +408,9 @@ export function ThreadChat({ onBack, backLabel } = {}) {
   // PIPA: 게스트가 민감 건강정보를 AI(국외·Google)에 입력하기 전 1줄 필수 동의 게이트.
   // 신규 진입(쿠키 토큰 없음)은 익명 자동시작 대신 이 게이트를 먼저 통과해야 함.
   const [needsConsent, setNeedsConsent] = useState(false);
-  const langCode = getLangCodeFromCookie();
+  // 렌더 중 쿠키 읽기 금지(서버='en' vs 브라우저='ko' → Hydration Error).
+  // useLang 은 LangProvider(=ClientShell) 하위에서만 올바르다 — 밖이면 조용히 'en'.
+  const langCode = useLang();
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
