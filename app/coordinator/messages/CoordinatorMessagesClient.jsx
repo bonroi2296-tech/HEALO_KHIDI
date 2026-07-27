@@ -18,9 +18,9 @@ const STATUS_VALUES = ["open", "waiting_coordinator", "waiting_patient", "resolv
 
 const STATUS_BADGE = {
   open: "bg-blue-50 text-blue-600",
-  waiting_coordinator: "bg-red-50 text-red-600",
+  waiting_coordinator: "bg-red-50 text-red-700",
   waiting_patient: "bg-amber-50 text-amber-600",
-  resolved: "bg-gray-100 text-gray-500",
+  resolved: "bg-gray-100 text-gray-600",
 };
 
 // 채널 색상만 모듈 상수(언어 무관). 라벨은 컴포넌트에서 L로 해석(WhatsApp/Telegram/LINE은 고유명사라 그대로).
@@ -69,7 +69,7 @@ export default function CoordinatorMessagesClient() {
       hospital: `${L.msActorHospital}: `,
     };
     const label = m[actor];
-    return label ? <span className="font-medium text-gray-400">{label}</span> : null;
+    return label ? <span className="font-medium text-gray-500">{label}</span> : null;
   };
   // 스레드 제목: 게스트명 > 제목 > 폴백. AI 채팅 기본 제목은 현지어로 다듬음.
   const threadTitle = (t) => {
@@ -281,8 +281,8 @@ export default function CoordinatorMessagesClient() {
                 onClick={() => setStatusFilter(s)}
                 className={`rounded-full px-2.5 py-1 text-xs font-medium transition ${
                   statusFilter === s
-                    ? "bg-teal-600 text-white"
-                    : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                    ? "bg-teal-700 text-white"
+                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                 }`}
               >
                 {s === "all" ? L.all : statusLabel(s)}
@@ -293,9 +293,9 @@ export default function CoordinatorMessagesClient() {
 
         <div className="min-h-0 flex-1 overflow-y-auto">
           {loading ? (
-            <div className="p-6 text-sm text-gray-400">{L.msLoading}</div>
+            <div className="p-6 text-sm text-gray-500">{L.msLoading}</div>
           ) : threads.length === 0 ? (
-            <div className="p-6 text-sm text-gray-400">{L.msNoThreads}</div>
+            <div className="p-6 text-sm text-gray-500">{L.msNoThreads}</div>
           ) : (
             threads.map((t) => {
               const chColor = CHANNEL_COLOR[t.channel] || CHANNEL_COLOR.web;
@@ -319,8 +319,8 @@ export default function CoordinatorMessagesClient() {
                       {chLabel}
                     </span>
                     <span className="truncate text-sm font-medium text-gray-900">{threadTitle(t)}</span>
-                    {t.guest_country && <span className="shrink-0 text-xs text-gray-400">· {t.guest_country}</span>}
-                    <span className="ml-auto shrink-0 text-xs text-gray-400">
+                    {t.guest_country && <span className="shrink-0 text-xs text-gray-500">· {t.guest_country}</span>}
+                    <span className="ml-auto shrink-0 text-xs text-gray-500">
                       {fmtDate(t.updated_at || t.last_active_at || t.created_at)}
                     </span>
                   </div>
@@ -328,7 +328,7 @@ export default function CoordinatorMessagesClient() {
                   <div className="truncate text-xs text-gray-500">
                     {t.last_message
                       ? <>{actorPrefix(t.last_actor)}{t.last_message}</>
-                      : <span className="text-gray-400">{t.inquiry_id ? `${L.msInquiry} #${t.inquiry_id}` : L.msNoMessages}</span>}
+                      : <span className="text-gray-500">{t.inquiry_id ? `${L.msInquiry} #${t.inquiry_id}` : L.msNoMessages}</span>}
                   </div>
                   <span className={`mt-1.5 inline-block rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_BADGE[t.status] || STATUS_BADGE.open}`}>
                     {statusLabel(t.status)}
@@ -343,7 +343,7 @@ export default function CoordinatorMessagesClient() {
       {/* 우측 — 대화 */}
       <div className="flex h-full min-h-0 flex-col overflow-hidden">
         {!selectedThread ? (
-          <div className="flex flex-1 items-center justify-center text-sm text-gray-400">
+          <div className="flex flex-1 items-center justify-center text-sm text-gray-500">
             {L.msSelectConversation}
           </div>
         ) : (
@@ -360,7 +360,7 @@ export default function CoordinatorMessagesClient() {
                   </span>
                   <span className="truncate text-base font-bold text-gray-900">{threadTitle(selectedThread)}</span>
                 </div>
-                <div className="mt-0.5 flex flex-wrap gap-x-3 text-xs text-gray-400">
+                <div className="mt-0.5 flex flex-wrap gap-x-3 text-xs text-gray-500">
                   {selectedThread.guest_name ? (
                     <>
                       {selectedThread.guest_email && <span>✉ {selectedThread.guest_email}</span>}
@@ -380,8 +380,8 @@ export default function CoordinatorMessagesClient() {
                     onClick={() => changeThreadStatus(s)}
                     className={`rounded-full px-2.5 py-1 text-xs font-medium transition ${
                       selectedThread.status === s
-                        ? "bg-teal-600 text-white"
-                        : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                        ? "bg-teal-700 text-white"
+                        : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                     }`}
                   >
                     {statusLabel(s)}
@@ -397,7 +397,7 @@ export default function CoordinatorMessagesClient() {
                   <div className="h-6 w-6 animate-spin rounded-full border-2 border-teal-600 border-t-transparent" />
                 </div>
               ) : messages.length === 0 ? (
-                <div className="flex h-full items-center justify-center text-sm text-gray-400">{L.msNoMessagesYet}</div>
+                <div className="flex h-full items-center justify-center text-sm text-gray-500">{L.msNoMessagesYet}</div>
               ) : (
                 <>
                   {messages.map((m) => (
@@ -411,7 +411,7 @@ export default function CoordinatorMessagesClient() {
             {/* 답장 추천 칩 — 입력 중(draft 있음)에는 숨겨 타이핑 덮어쓰기 방지 */}
             {suggestions.length > 0 && !draft.trim() && (
               <div className="flex items-center gap-2 overflow-x-auto border-t border-gray-100 bg-white px-6 pt-2.5">
-                <span className="shrink-0 text-xs font-medium text-gray-400">💬 {L.msSuggestedReplies}</span>
+                <span className="shrink-0 text-xs font-medium text-gray-500">💬 {L.msSuggestedReplies}</span>
                 {suggestions.map((s) => (
                   <button
                     key={s.id}
@@ -433,7 +433,7 @@ export default function CoordinatorMessagesClient() {
             )}
 
             {sendError && (
-              <div className="border-t border-gray-100 bg-white px-6 pt-2 text-xs font-medium text-red-500">
+              <div className="border-t border-gray-100 bg-white px-6 pt-2 text-xs font-medium text-red-600">
                 ⚠️ {L.msSendFailed}
               </div>
             )}
@@ -453,7 +453,7 @@ export default function CoordinatorMessagesClient() {
               <button
                 onClick={send}
                 disabled={!draft.trim() || sending}
-                className="shrink-0 rounded-lg bg-teal-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-teal-700 disabled:opacity-50"
+                className="shrink-0 rounded-lg bg-teal-700 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-teal-700 disabled:opacity-50"
               >
                 {sending ? L.msSending : L.msSend}
               </button>
@@ -490,10 +490,10 @@ function Message({ m, meId, L, dateLoc }) {
     isAgency ? "text-emerald-600" :
     isHospital ? "text-sky-600" :
     isAdmin ? "text-amber-600" :
-    "text-gray-400";
+    "text-gray-500";
   // 버블: 나=teal 우측 / 환자=흰색+파란 좌측 / AI=보라 / 에이전시=초록 / 병원=하늘 / 관리자=앰버
   const bubble =
-    isMine ? "bg-teal-600 text-white" :
+    isMine ? "bg-teal-700 text-white" :
     isPatient ? "border border-gray-200 border-l-[3px] border-l-blue-400 bg-white text-gray-900" :
     isAI ? "border border-violet-100 bg-violet-50 text-gray-800" :
     isAgency ? "border border-emerald-100 bg-emerald-50 text-gray-800" :
@@ -504,15 +504,15 @@ function Message({ m, meId, L, dateLoc }) {
   return (
     <div className={`mb-3.5 flex ${isMine ? "justify-end" : "justify-start"}`}>
       <div className={`max-w-[72%] ${isMine ? "text-right" : "text-left"}`}>
-        <div className={`mb-1 text-xs font-semibold ${isMine ? "text-gray-400" : labelColor}`}>
-          {label} <span className="font-normal text-gray-400">· {new Date(m.created_at).toLocaleString(dateLoc)}</span>
+        <div className={`mb-1 text-xs font-semibold ${isMine ? "text-gray-600" : labelColor}`}>
+          {label} <span className="font-normal text-gray-500">· {new Date(m.created_at).toLocaleString(dateLoc)}</span>
         </div>
         <div className={`inline-block whitespace-pre-wrap break-words rounded-xl px-4 py-2.5 text-sm leading-relaxed ${bubble}`}>
           {m.message_text}
         </div>
         {/* 메신저 릴레이 미전달 표시 — staffReplyRelay 가 metadata.delivery 에 기록 */}
         {m.metadata?.delivery === "failed" && (
-          <div className="mt-1 text-[11px] font-medium text-red-500">{L.msDeliveryFailed}</div>
+          <div className="mt-1 text-[11px] font-medium text-red-600">{L.msDeliveryFailed}</div>
         )}
         {m.metadata?.delivery === "window_expired" && (
           <div className="mt-1 text-[11px] font-medium text-amber-600">{L.msDeliveryWindowExpired}</div>

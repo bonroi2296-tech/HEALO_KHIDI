@@ -112,13 +112,13 @@ export default function CostEstimatesListClient() {
                         {Number(est.auto_max_krw).toLocaleString(dateLocale)} KRW
                       </p>
                     ) : (
-                      <p className="text-sm text-gray-400 mt-1">{t("costList.noRange", lang)}</p>
+                      <p className="text-sm text-gray-500 mt-1">{t("costList.noRange", lang)}</p>
                     )}
-                    <p className="text-xs text-gray-400 mt-2">
+                    <p className="text-xs text-gray-500 mt-2">
                       {t("costList.createdPrefix", lang)} {new Date(est.created_at).toLocaleDateString(dateLocale)}
                     </p>
                   </div>
-                  <span className="text-gray-400 text-sm">→</span>
+                  <span className="text-gray-500 text-sm">→</span>
                 </div>
               </Link>
             );

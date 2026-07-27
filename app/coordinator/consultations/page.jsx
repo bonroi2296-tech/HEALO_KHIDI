@@ -217,13 +217,13 @@ export default function CoordinatorConsultationsPage() {
                       <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
                         c.status === 'active' ? 'bg-green-100' : 'bg-blue-100'
                       }`}>
-                        <Video size={18} className={c.status === 'active' ? 'text-green-600' : 'text-blue-600'} />
+                        <Video size={18} className={c.status === 'active' ? 'text-green-700' : 'text-blue-600'} />
                       </div>
                       <div>
                         <div className="font-semibold text-sm">
                           {patient?.first_name || 'Patient'} — {SESSION_LABEL[c.session_type] || c.session_type}
                         </div>
-                        <div className="flex items-center gap-3 mt-0.5 text-xs text-gray-400">
+                        <div className="flex items-center gap-3 mt-0.5 text-xs text-gray-500">
                           <span className="flex items-center gap-1">
                             <Calendar size={10} />
                             {c.scheduled_at ? kstDate(c.scheduled_at, dateLoc) : '-'}
@@ -243,7 +243,7 @@ export default function CoordinatorConsultationsPage() {
                       <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${statusColor}`}>
                         {statusLabel}
                       </span>
-                      <ChevronDown size={16} className={`text-gray-400 transition ${isExpanded ? 'rotate-180' : ''}`} />
+                      <ChevronDown size={16} className={`text-gray-500 transition ${isExpanded ? 'rotate-180' : ''}`} />
                     </div>
                   </div>
                 </div>
@@ -252,22 +252,22 @@ export default function CoordinatorConsultationsPage() {
                   <div className="border-t border-gray-100 bg-gray-50 p-4 space-y-3">
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                       <div className="bg-white rounded-lg p-3 border border-gray-100">
-                        <div className="text-xs text-gray-400 mb-1">{L.fieldPatient}</div>
+                        <div className="text-xs text-gray-500 mb-1">{L.fieldPatient}</div>
                         <div className="text-sm font-medium">{patient?.first_name || '-'}</div>
                       </div>
                       <div className="bg-white rounded-lg p-3 border border-gray-100">
-                        <div className="text-xs text-gray-400 mb-1">{L.fieldCancerStage}</div>
+                        <div className="text-xs text-gray-500 mb-1">{L.fieldCancerStage}</div>
                         <div className="text-sm font-medium">{patient?.cancer_type ? cancerTypeLabelL(patient.cancer_type, lang) : '-'} / Stage {patient?.cancer_stage || '-'}</div>
                       </div>
                       <div className="bg-white rounded-lg p-3 border border-gray-100">
-                        <div className="text-xs text-gray-400 mb-1">{L.fieldDoctorAssign}</div>
+                        <div className="text-xs text-gray-500 mb-1">{L.fieldDoctorAssign}</div>
                         <div className="text-sm font-medium">{c.doctor_id ? L.badgeAssigned : L.unassigned}</div>
                       </div>
                     </div>
 
                     {c.notes && (
                       <div className="bg-white rounded-lg p-3 border border-gray-100">
-                        <div className="text-xs text-gray-400 mb-1">{L.notes}</div>
+                        <div className="text-xs text-gray-500 mb-1">{L.notes}</div>
                         <div className="text-sm text-gray-600">{c.notes}</div>
                       </div>
                     )}

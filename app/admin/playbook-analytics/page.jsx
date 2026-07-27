@@ -8,7 +8,7 @@ function KpiCard({ label, value, sub }) {
     <div className="bg-white border rounded-lg p-4">
       <p className="text-xs text-gray-500 mb-1">{label}</p>
       <p className="text-2xl font-bold text-gray-900">{value}</p>
-      {sub && <p className="text-xs text-gray-400 mt-1">{sub}</p>}
+      {sub && <p className="text-xs text-gray-500 mt-1">{sub}</p>}
     </div>
   );
 }
@@ -120,9 +120,9 @@ export default function PlaybookAnalyticsPage() {
       </div>
 
       {loading ? (
-        <div className="text-center py-16 text-gray-400">Loading...</div>
+        <div className="text-center py-16 text-gray-500">Loading...</div>
       ) : !s ? (
-        <div className="text-center py-16 text-gray-400">No data</div>
+        <div className="text-center py-16 text-gray-500">No data</div>
       ) : (
         <>
           {/* KPIs */}
@@ -140,7 +140,7 @@ export default function PlaybookAnalyticsPage() {
           <div className="mb-8">
             <h2 className="text-lg font-semibold mb-3">Top Patterns (상위 20)</h2>
             {tp.length === 0 ? (
-              <p className="text-sm text-gray-400">No pattern usage data yet</p>
+              <p className="text-sm text-gray-500">No pattern usage data yet</p>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm border-collapse">
@@ -156,7 +156,7 @@ export default function PlaybookAnalyticsPage() {
                   <tbody>
                     {tp.map((p, i) => (
                       <tr key={p.pattern_id} className="hover:bg-gray-50">
-                        <td className="px-3 py-2 border-b text-gray-400">{i + 1}</td>
+                        <td className="px-3 py-2 border-b text-gray-500">{i + 1}</td>
                         <td className="px-3 py-2 border-b font-mono text-xs">{p.pattern_id}</td>
                         <td className="px-3 py-2 border-b text-right">{p.retrieves}</td>
                         <td className="px-3 py-2 border-b text-right font-medium">{p.uses}</td>
@@ -175,7 +175,7 @@ export default function PlaybookAnalyticsPage() {
           <div>
             <h2 className="text-lg font-semibold mb-3">Daily Timeseries</h2>
             {ts.length === 0 ? (
-              <p className="text-sm text-gray-400">No timeseries data</p>
+              <p className="text-sm text-gray-500">No timeseries data</p>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-sm border-collapse">

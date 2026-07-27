@@ -147,9 +147,9 @@ export default function ConversionDashboard() {
       )}
 
       {loading ? (
-        <div className="py-24 text-center text-gray-400">불러오는 중…</div>
+        <div className="py-24 text-center text-gray-500">불러오는 중…</div>
       ) : error ? (
-        <div className="py-12 text-center text-red-500">{error}</div>
+        <div className="py-12 text-center text-red-600">{error}</div>
       ) : (
         <>
           {/* 깔때기 */}
@@ -160,16 +160,19 @@ export default function ConversionDashboard() {
                 <div key={s.key} className="flex items-center gap-3">
                   <div className="w-28 text-sm text-gray-600 shrink-0">{s.label}</div>
                   <div className="flex-1 bg-gray-100 rounded-lg overflow-hidden h-9 relative">
+                    {/* 라벨 대비 수정: gray-900 on teal-700 = 3.24:1 (AA 미달) → 흰 글씨 5.47:1.
+                        minWidth 는 숫자 라벨이 항상 «채워진 막대 위»에 놓이게 보장한다 —
+                        없으면 막대가 짧을 때 라벨이 회색 트랙으로 삐져나와 흰 글씨가 안 보인다. */}
                     <div
                       className="h-full bg-teal-700 rounded-lg transition-all"
-                      style={{ width: `${Math.max(4, (s.count / maxCount) * 100)}%` }}
+                      style={{ width: `${Math.max(4, (s.count / maxCount) * 100)}%`, minWidth: "3.5rem" }}
                     />
-                    <span className="absolute inset-y-0 left-3 flex items-center text-sm font-bold text-gray-900">
+                    <span className="absolute inset-y-0 left-3 flex items-center text-sm font-bold text-white">
                       {s.count.toLocaleString()}
                     </span>
                   </div>
                   {i > 0 && (
-                    <div className="w-16 text-right text-xs text-gray-400 shrink-0">
+                    <div className="w-16 text-right text-xs text-gray-500 shrink-0">
                       {stages[i - 1].count > 0
                         ? `${Math.round((s.count / stages[i - 1].count) * 100)}%`
                         : "—"}
@@ -184,7 +187,7 @@ export default function ConversionDashboard() {
               <Kpi label="전체 유치율" value={`${conv.overall_admit_rate ?? 0}%`} highlight />
             </div>
             {data?.funnel?.lost > 0 && (
-              <p className="mt-3 text-xs text-gray-400">이탈 처리: {data.funnel.lost}건</p>
+              <p className="mt-3 text-xs text-gray-500">이탈 처리: {data.funnel.lost}건</p>
             )}
           </section>
 
@@ -192,11 +195,11 @@ export default function ConversionDashboard() {
           <section className="bg-white border border-gray-200 rounded-2xl p-6 mb-6">
             <h2 className="text-sm font-bold text-gray-700 mb-3">국가별</h2>
             {(data?.byCountry ?? []).length === 0 ? (
-              <p className="text-sm text-gray-400">데이터 없음</p>
+              <p className="text-sm text-gray-500">데이터 없음</p>
             ) : (
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="text-left text-gray-400 border-b border-gray-100">
+                  <tr className="text-left text-gray-500 border-b border-gray-100">
                     <th className="py-2 font-medium">국가</th>
                     <th className="py-2 font-medium text-right">문의</th>
                     <th className="py-2 font-medium text-right">사전상담</th>
@@ -222,15 +225,15 @@ export default function ConversionDashboard() {
           {/* 채널별 (유입경로: 웹 문의폼 / AI 상담) */}
           <section className="bg-white border border-gray-200 rounded-2xl p-6 mb-6">
             <h2 className="text-sm font-bold text-gray-700 mb-1">채널별 (유입경로)</h2>
-            <p className="text-xs text-gray-400 mb-3">
+            <p className="text-xs text-gray-500 mb-3">
               어느 유입 채널(웹 문의폼 / AI 상담)이 실제 유치로 이어지는지 비교합니다.
             </p>
             {(data?.bySource ?? []).length === 0 ? (
-              <p className="text-sm text-gray-400">데이터 없음</p>
+              <p className="text-sm text-gray-500">데이터 없음</p>
             ) : (
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="text-left text-gray-400 border-b border-gray-100">
+                  <tr className="text-left text-gray-500 border-b border-gray-100">
                     <th className="py-2 font-medium">채널</th>
                     <th className="py-2 font-medium text-right">문의</th>
                     <th className="py-2 font-medium text-right">사전상담</th>
@@ -260,15 +263,15 @@ export default function ConversionDashboard() {
           {/* 기관별 (참여기관 한방 / 협진 대학병원) */}
           <section className="bg-white border border-gray-200 rounded-2xl p-6 mb-6">
             <h2 className="text-sm font-bold text-gray-700 mb-1">기관별 상담·사후관리</h2>
-            <p className="text-xs text-gray-400 mb-3">
+            <p className="text-xs text-gray-500 mb-3">
               참여기관(한방)·협진(대학병원)별 상담 세션 집계. 참여기관 「원격 사후관리」 실적 = 사후관리 열.
             </p>
             {(data?.byOrg ?? []).length === 0 ? (
-              <p className="text-sm text-gray-400">데이터 없음 (상담 생성 시 병원을 지정하면 집계됩니다)</p>
+              <p className="text-sm text-gray-500">데이터 없음 (상담 생성 시 병원을 지정하면 집계됩니다)</p>
             ) : (
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="text-left text-gray-400 border-b border-gray-100">
+                  <tr className="text-left text-gray-500 border-b border-gray-100">
                     <th className="py-2 font-medium">기관</th>
                     <th className="py-2 font-medium">구분</th>
                     <th className="py-2 font-medium text-right">전체 세션</th>
@@ -284,7 +287,7 @@ export default function ConversionDashboard() {
                         <span className={`text-xs px-2 py-0.5 rounded-full ${
                           o.kind === "한방(참여기관)" ? "bg-teal-50 text-teal-700"
                           : o.kind === "대학병원(협진)" ? "bg-blue-50 text-blue-700"
-                          : "bg-gray-100 text-gray-500"
+                          : "bg-gray-100 text-gray-600"
                         }`}>{o.kind}</span>
                       </td>
                       <td className="py-2 text-right text-gray-600">{o.total_sessions}</td>
@@ -300,12 +303,12 @@ export default function ConversionDashboard() {
           {/* 유치확정 대기 — 코디 액션 */}
           <section className="bg-white border border-gray-200 rounded-2xl p-6 mb-6">
             <h2 className="text-sm font-bold text-gray-700 mb-1">유치 확정 대기</h2>
-            <p className="text-xs text-gray-400 mb-4">
+            <p className="text-xs text-gray-500 mb-4">
               사전상담을 마쳤거나 병원이 응답한 환자 중 결과가 입력되지 않은 건입니다. 실제
               입국·치료를 시작했으면 「유치 확정」, 연락이 끊겼으면 「이탈」을 눌러 주세요.
             </p>
             {(data?.pending ?? []).length === 0 ? (
-              <p className="text-sm text-gray-400">대기 중인 환자가 없습니다.</p>
+              <p className="text-sm text-gray-500">대기 중인 환자가 없습니다.</p>
             ) : (
               <div className="space-y-2">
                 {data.pending.map((p) => (
@@ -322,7 +325,7 @@ export default function ConversionDashboard() {
                           </span>
                         )}
                       </div>
-                      <div className="text-xs text-gray-400 truncate">
+                      <div className="text-xs text-gray-500 truncate">
                         {p.cancer_type} · {new Date(p.created_at).toLocaleDateString("ko-KR")}
                       </div>
                     </div>
@@ -345,7 +348,7 @@ export default function ConversionDashboard() {
                         disabled={busyId === p.inquiry_id}
                         onClick={() => markTest(p.inquiry_id, !p.is_test)}
                         title="평가 숫자에서 제외/포함"
-                        className="px-2.5 py-1.5 rounded-lg text-xs font-medium border border-gray-200 text-gray-500 hover:bg-gray-100 disabled:opacity-40 transition"
+                        className="px-2.5 py-1.5 rounded-lg text-xs font-medium border border-gray-200 text-gray-600 hover:bg-gray-100 disabled:opacity-40 transition"
                       >
                         {p.is_test ? "테스트 해제" : "테스트로 표시"}
                       </button>
@@ -359,12 +362,12 @@ export default function ConversionDashboard() {
           {/* 유치 확정됨 — 되돌리기(코디) */}
           <section className="bg-white border border-gray-200 rounded-2xl p-6 mt-6">
             <h2 className="text-sm font-bold text-gray-700 mb-1">유치 확정됨 (되돌리기)</h2>
-            <p className="text-xs text-gray-400 mb-4">
+            <p className="text-xs text-gray-500 mb-4">
               유치로 집계된 환자입니다. 「자동」 배지는 병원이 「치료 확정」해 자동 집계된 건이며,
               실제 유치가 아니면 「유치 취소」(집계 제외) 또는 「이탈」로 코디가 되돌릴 수 있습니다.
             </p>
             {(data?.admitted ?? []).length === 0 ? (
-              <p className="text-sm text-gray-400">유치 확정된 환자가 없습니다.</p>
+              <p className="text-sm text-gray-500">유치 확정된 환자가 없습니다.</p>
             ) : (
               <div className="space-y-2">
                 {data.admitted.map((p) => (
@@ -386,7 +389,7 @@ export default function ConversionDashboard() {
                           </span>
                         )}
                       </div>
-                      <div className="text-xs text-gray-400 truncate">
+                      <div className="text-xs text-gray-500 truncate">
                         {p.cancer_type} · {new Date(p.created_at).toLocaleDateString("ko-KR")}
                       </div>
                     </div>
@@ -409,7 +412,7 @@ export default function ConversionDashboard() {
                         disabled={busyId === p.inquiry_id}
                         onClick={() => markTest(p.inquiry_id, !p.is_test)}
                         title="평가 숫자에서 제외/포함"
-                        className="px-2.5 py-1.5 rounded-lg text-xs font-medium border border-gray-200 text-gray-500 hover:bg-gray-100 disabled:opacity-40 transition"
+                        className="px-2.5 py-1.5 rounded-lg text-xs font-medium border border-gray-200 text-gray-600 hover:bg-gray-100 disabled:opacity-40 transition"
                       >
                         {p.is_test ? "테스트 해제" : "테스트로 표시"}
                       </button>
@@ -431,7 +434,7 @@ function Kpi({ label, value, highlight }) {
       <div className={`text-xl font-bold ${highlight ? "text-teal-700" : "text-gray-900"}`}>
         {value}
       </div>
-      <div className="text-xs text-gray-400 mt-0.5">{label}</div>
+      <div className="text-xs text-gray-500 mt-0.5">{label}</div>
     </div>
   );
 }

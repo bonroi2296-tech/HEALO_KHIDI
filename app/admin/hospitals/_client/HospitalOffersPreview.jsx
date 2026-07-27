@@ -54,7 +54,7 @@ function SourceListCollapsible({ sources }) {
         ))}
       </ul>
       {hasMore && !expanded && (
-        <p className="mt-1 text-xs text-gray-400">펼쳐서 전체 {count}개 보기</p>
+        <p className="mt-1 text-xs text-gray-500">펼쳐서 전체 {count}개 보기</p>
       )}
     </div>
   );
@@ -225,7 +225,7 @@ export function HospitalOffersPreviewModal({
         </div>
         <div className="p-4 overflow-y-auto flex-1">
           {loading ? (
-            <div className="flex flex-col items-center justify-center py-12 text-gray-500">
+            <div className="flex flex-col items-center justify-center py-12 text-gray-600">
               <Loader2 size={32} className="animate-spin shrink-0" />
               <span className="mt-4 font-medium text-gray-700">{currentStep.label}</span>
               <span className="mt-1 text-xs text-gray-500">{currentStep.detail}</span>

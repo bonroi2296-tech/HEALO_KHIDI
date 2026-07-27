@@ -460,14 +460,14 @@ export default function PartnerOutreachTracker({ accent = 'teal' }) {
             }`}
           >
             {tab.label}
-            <span className="ml-1.5 text-xs text-gray-400 tabular-nums">{tab.n}</span>
+            <span className="ml-1.5 text-xs text-gray-500 tabular-nums">{tab.n}</span>
           </button>
         ))}
       </div>
 
       {/* 본문 */}
       {loading ? (
-        <div className="flex flex-col items-center justify-center py-16 text-gray-400">
+        <div className="flex flex-col items-center justify-center py-16 text-gray-500">
           <RefreshCw size={28} className="animate-spin mb-3" />
           <p className="text-sm">{t.loading}</p>
         </div>
@@ -523,7 +523,7 @@ export default function PartnerOutreachTracker({ accent = 'teal' }) {
                     </div>
                     {row.notes && <p className="mt-2 text-sm text-gray-600 whitespace-pre-line">{row.notes}</p>}
                     {row.source && (
-                      <div className="mt-1.5 text-[11px] text-gray-400 flex items-center gap-1">
+                      <div className="mt-1.5 text-[11px] text-gray-500 flex items-center gap-1">
                         {t.source}
                         {url ? (
                           <a href={url} target="_blank" rel="noopener noreferrer" className={`inline-flex items-center gap-0.5 hover:underline ${a.link}`}>
@@ -544,10 +544,10 @@ export default function PartnerOutreachTracker({ accent = 'teal' }) {
                       {STATUS_ORDER.map((s) => <option key={s} value={s}>{t[STATUS[s].key]}</option>)}
                     </select>
                     <div className="flex items-center gap-1">
-                      <button onClick={() => setEditing({ ...row, next_followup_at: row.next_followup_at ? row.next_followup_at.slice(0, 10) : '' })} className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition" aria-label={t.ariaEdit}>
+                      <button onClick={() => setEditing({ ...row, next_followup_at: row.next_followup_at ? row.next_followup_at.slice(0, 10) : '' })} className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition" aria-label={t.ariaEdit}>
                         <Edit2 size={15} />
                       </button>
-                      <button onClick={() => remove(row)} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition" aria-label={t.ariaDelete}>
+                      <button onClick={() => remove(row)} className="p-1.5 text-gray-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition" aria-label={t.ariaDelete}>
                         <Trash2 size={15} />
                       </button>
                     </div>
@@ -585,7 +585,7 @@ function EditModal({ initial, accent, saving, t, onClose, onSave }) {
       <div className="relative bg-white rounded-xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between p-4 border-b border-gray-100 sticky top-0 bg-white">
           <h2 className="font-bold text-gray-900">{isNew ? t.modalAdd : t.modalEdit}</h2>
-          <button onClick={onClose} className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg"><X size={18} /></button>
+          <button onClick={onClose} className="p-1.5 text-gray-500 hover:text-gray-700 hover:bg-gray-100 rounded-lg"><X size={18} /></button>
         </div>
         <div className="p-4 space-y-3">
           <div>

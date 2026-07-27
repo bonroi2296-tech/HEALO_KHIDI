@@ -112,11 +112,11 @@ export function EscalationQueue() {
                   Stage {intake.cancer_stage}
                 </span>
               )}
-              <span className="text-xs text-gray-400">
+              <span className="text-xs text-gray-500">
                 {intake.language_preference?.toUpperCase()}
               </span>
             </div>
-            <div className="flex items-center gap-2 text-xs text-gray-400">
+            <div className="flex items-center gap-2 text-xs text-gray-500">
               <Clock size={14} />
               {new Date(intake.created_at).toLocaleString("ko-KR", {
                 month: "short",

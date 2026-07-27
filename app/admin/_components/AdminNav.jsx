@@ -217,7 +217,7 @@ export function AdminNav() {
       >
         <Icon
           size={isChild ? 16 : 18}
-          className={strongActive ? "text-teal-700" : parentOpen ? "text-gray-500" : "text-gray-400"}
+          className={strongActive ? "text-teal-700" : parentOpen ? "text-gray-500" : "text-gray-500"}
         />
         <span>{item.label}</span>
       </Link>
@@ -239,7 +239,7 @@ export function AdminNav() {
           </div>
           <button
             onClick={() => setIsMobileOpen(false)}
-            className="lg:hidden p-2 text-gray-400 hover:text-gray-600 rounded-lg"
+            className="lg:hidden p-2 text-gray-500 hover:text-gray-600 rounded-lg"
           >
             <X size={20} />
           </button>
@@ -257,13 +257,13 @@ export function AdminNav() {
             {collapsible ? (
               <button
                 onClick={() => setOpenExtra((s) => ({ ...s, [group.title]: !open }))}
-                className="w-full flex items-center justify-between px-3 lg:px-4 mb-1.5 lg:mb-2 text-[10px] lg:text-xs font-bold text-gray-400 uppercase tracking-wider hover:text-gray-600 transition-colors"
+                className="w-full flex items-center justify-between px-3 lg:px-4 mb-1.5 lg:mb-2 text-[10px] lg:text-xs font-bold text-gray-500 uppercase tracking-wider hover:text-gray-600 transition-colors"
               >
                 <span>{group.title}</span>
                 <ChevronDown size={14} className={`transition-transform ${open ? "" : "-rotate-90"}`} />
               </button>
             ) : (
-              <h3 className="px-3 lg:px-4 mb-1.5 lg:mb-2 text-[10px] lg:text-xs font-bold text-gray-400 uppercase tracking-wider">
+              <h3 className="px-3 lg:px-4 mb-1.5 lg:mb-2 text-[10px] lg:text-xs font-bold text-gray-500 uppercase tracking-wider">
                 {group.title}
               </h3>
             )}
@@ -306,7 +306,7 @@ export function AdminNav() {
         </Link>
         <button
           onClick={handleLogout}
-          className="w-full flex items-center gap-3 px-3 lg:px-4 py-2.5 lg:py-3 rounded-lg text-sm font-medium text-gray-700 hover:bg-red-50 hover:text-red-600 transition-all min-h-[44px] md:min-h-0"
+          className="w-full flex items-center gap-3 px-3 lg:px-4 py-2.5 lg:py-3 rounded-lg text-sm font-medium text-gray-700 hover:bg-red-50 hover:text-red-700 transition-all min-h-[44px] md:min-h-0"
         >
           <LogOut size={18} />
           <span>로그아웃</span>

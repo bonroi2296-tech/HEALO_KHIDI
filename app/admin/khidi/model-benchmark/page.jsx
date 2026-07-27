@@ -3,8 +3,8 @@
 import { useState } from "react";
 
 // ── 색상 유틸 ───────────────────────────────────────────────────
-const SCORE_COLOR = (s) => (s >= 0.7 ? "text-green-600" : s >= 0.5 ? "text-amber-500" : "text-red-500");
-const PCT_COLOR = (p) => (p >= 90 ? "text-green-600" : p >= 70 ? "text-amber-500" : "text-red-500");
+const SCORE_COLOR = (s) => (s >= 0.7 ? "text-green-700" : s >= 0.5 ? "text-amber-700" : "text-red-600");
+const PCT_COLOR = (p) => (p >= 90 ? "text-green-700" : p >= 70 ? "text-amber-700" : "text-red-600");
 const fmt = (n, d = 2) => (Number.isFinite(n) ? Number(n).toFixed(d) : "—");
 
 const ARM_DESC = {
@@ -13,7 +13,7 @@ const ARM_DESC = {
   highend_spec: "하이엔드 + 우리 파이프라인 (공정 비교 상한선)",
 };
 const WINNER_LABEL = { our: "우리 승", highend: "하이엔드 승", tie: "무승부" };
-const WINNER_COLOR = { our: "text-green-600", highend: "text-red-500", tie: "text-gray-400" };
+const WINNER_COLOR = { our: "text-green-700", highend: "text-red-600", tie: "text-gray-500" };
 
 function ScoreCell({ value }) {
   return <span className={`font-bold ${SCORE_COLOR(value)}`}>{fmt(value)}</span>;
@@ -97,7 +97,7 @@ export default function ModelBenchmarkPage() {
             {running ? "실행 중…" : "정밀 + 상한선 (하이엔드+특화)"}
           </button>
         </div>
-        <p className="text-xs text-gray-400 mt-3">
+        <p className="text-xs text-gray-500 mt-3">
           ⚠️ AI 호출 비용 소액 발생(무료 한도면 자동 재시도 후 일부 에러로 표시될 수 있음). 하이엔드(Pro)가
           느려 <b>빠른 실행 1~2분 / 정밀 실행 3~5분</b> 걸릴 수 있습니다. 창을 닫지 마세요.
         </p>
@@ -133,12 +133,12 @@ export default function ModelBenchmarkPage() {
                   <div className="text-xs text-gray-500 mt-1">우리 승률 (무승부 제외)</div>
                 </div>
                 <div className="text-sm text-gray-600">
-                  우리 <b className="text-green-600">{pw.ourWins}</b>승 ·
-                  하이엔드 <b className="text-red-500">{pw.highendWins}</b>승 ·
-                  무승부 <b className="text-gray-400">{pw.ties}</b> <span className="text-gray-400">(총 {pw.n})</span>
+                  우리 <b className="text-green-700">{pw.ourWins}</b>승 ·
+                  하이엔드 <b className="text-red-600">{pw.highendWins}</b>승 ·
+                  무승부 <b className="text-gray-500">{pw.ties}</b> <span className="text-gray-500">(총 {pw.n})</span>
                 </div>
               </div>
-              <p className="text-xs text-gray-400 mt-3">
+              <p className="text-xs text-gray-500 mt-3">
                 두 답변을 익명(A/B, 위치 교대로 편향↓)으로 채점관에게 보여주고 “의료관광 컨시어지에 더 적합한 쪽”을 고르게 한 결과.
               </p>
             </div>
@@ -168,14 +168,14 @@ export default function ModelBenchmarkPage() {
                     <tr key={a.armKey} className="border-b border-gray-50">
                       <td className="px-4 py-3">
                         <div className="font-semibold text-gray-900">{a.armKey}</div>
-                        <div className="text-xs text-gray-400">{ARM_DESC[a.armKey] || a.label}</div>
+                        <div className="text-xs text-gray-500">{ARM_DESC[a.armKey] || a.label}</div>
                       </td>
                       <td className="px-4 py-3"><ScoreCell value={a.hallucination} /></td>
                       <td className="px-4 py-3"><ScoreCell value={a.safety} /></td>
                       <td className="px-4 py-3"><ScoreCell value={a.relevance} /></td>
                       <td className="px-4 py-3 text-base"><ScoreCell value={a.overall} /></td>
                       <td className={`px-4 py-3 font-bold ${PCT_COLOR(a.passRate)}`}>{fmt(a.passRate, 0)}%</td>
-                      <td className={`px-4 py-3 font-bold ${a.redlineViolations === 0 ? "text-green-600" : "text-red-500"}`}>
+                      <td className={`px-4 py-3 font-bold ${a.redlineViolations === 0 ? "text-green-700" : "text-red-600"}`}>
                         {a.redlineViolations}/{a.n}
                       </td>
                       <td className="px-4 py-3 text-gray-600">{fmt(a.avgLatency, 0)}ms</td>
@@ -204,7 +204,7 @@ export default function ModelBenchmarkPage() {
                 {result.calibration.map((c) => (
                   <div key={c.scenarioId} className="px-5 py-4">
                     <div className="flex items-center gap-2 mb-2">
-                      <span className="text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-500">{c.category} · {c.lang}</span>
+                      <span className="text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-600">{c.category} · {c.lang}</span>
                       {c.pairwise && (
                         <span className={`text-xs font-bold ${WINNER_COLOR[c.pairwise.winner]}`}>
                           맞대결: {WINNER_LABEL[c.pairwise.winner]}
@@ -216,7 +216,7 @@ export default function ModelBenchmarkPage() {
                       <div className="bg-teal-50/50 rounded-lg p-3 border border-teal-100">
                         <div className="text-xs font-semibold text-teal-700 mb-1">
                           우리 (종합 {fmt(c.ourScores.overall)})
-                          {c.ourScores.flags?.length > 0 && <span className="text-red-500"> [{c.ourScores.flags.join(", ")}]</span>}
+                          {c.ourScores.flags?.length > 0 && <span className="text-red-600"> [{c.ourScores.flags.join(", ")}]</span>}
                         </div>
                         <p className="text-sm text-gray-600 whitespace-pre-wrap">{c.ourResponse}</p>
                       </div>
@@ -226,7 +226,7 @@ export default function ModelBenchmarkPage() {
                       </div>
                     </div>
                     {c.pairwise?.reason && (
-                      <p className="text-xs text-gray-400 mt-2">판정 이유: {c.pairwise.reason}</p>
+                      <p className="text-xs text-gray-500 mt-2">판정 이유: {c.pairwise.reason}</p>
                     )}
                   </div>
                 ))}
@@ -251,12 +251,12 @@ export default function ModelBenchmarkPage() {
                       onClick={() => setExpanded((e) => ({ ...e, [sid]: !e[sid] }))}
                     >
                       <div>
-                        <span className="inline-block text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-500 mr-2">
+                        <span className="inline-block text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-600 mr-2">
                           {first?.category} · {first?.lang}
                         </span>
                         <span className="text-sm text-gray-800">{first?.query}</span>
                       </div>
-                      <span className="text-gray-400 text-xs shrink-0">{open ? "▲" : "▼"}</span>
+                      <span className="text-gray-600 text-xs shrink-0">{open ? "▲" : "▼"}</span>
                     </button>
                     {open && (
                       <div className="mt-3 space-y-2">
@@ -268,7 +268,7 @@ export default function ModelBenchmarkPage() {
                                 종합 {fmt(r.scores.overall)}
                               </span>
                               {r.scores.flags.length > 0 && (
-                                <span className="text-xs text-red-500">[{r.scores.flags.join(", ")}]</span>
+                                <span className="text-xs text-red-600">[{r.scores.flags.join(", ")}]</span>
                               )}
                             </div>
                             <p className="text-sm text-gray-600 whitespace-pre-wrap">{r.response}</p>

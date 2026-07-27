@@ -481,7 +481,7 @@ export function CreateConsultationModal({ onClose, onSuccess }) {
           onClick={(e) => e.stopPropagation()}
         >
           <div className="flex items-center gap-3 mb-6">
-            <div className="w-12 h-12 rounded-2xl bg-green-50 text-green-600 flex items-center justify-center text-2xl">
+            <div className="w-12 h-12 rounded-2xl bg-green-50 text-green-700 flex items-center justify-center text-2xl">
               ✓
             </div>
             <div>
@@ -581,7 +581,7 @@ export function CreateConsultationModal({ onClose, onSuccess }) {
                   </option>
                 ))}
               </select>
-              <p className="text-[11px] text-gray-400 mt-1">{tt("inquiryHint")}</p>
+              <p className="text-[11px] text-gray-500 mt-1">{tt("inquiryHint")}</p>
             </div>
 
             <div className="mt-3 pt-3 border-t border-teal-200 space-y-2">
@@ -618,7 +618,7 @@ export function CreateConsultationModal({ onClose, onSuccess }) {
           <details className="border border-gray-200 rounded-xl">
             <summary className="cursor-pointer select-none px-4 py-3 text-sm font-semibold text-gray-700 hover:bg-gray-50 rounded-xl flex items-center justify-between gap-2">
               <span>{tt("advancedOptions")}</span>
-              <span className="text-xs font-normal text-gray-400">{tt("advancedOptionsHint")}</span>
+              <span className="text-xs font-normal text-gray-500">{tt("advancedOptionsHint")}</span>
             </summary>
             <div className="px-4 pb-4 pt-2 space-y-4 border-t border-gray-100">
               <Field label={tt("lblSessionType")}>
@@ -701,7 +701,7 @@ export function CreateConsultationModal({ onClose, onSuccess }) {
                       setForm({ ...form, partner_doctor_id: e.target.value })
                     }
                     disabled={!form.hospital_id || doctorOptions.length === 0}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white disabled:bg-gray-100 disabled:text-gray-400"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 bg-white disabled:bg-gray-100 disabled:text-gray-500"
                   >
                     <option value="">
                       {!form.hospital_id

@@ -793,6 +793,48 @@ for (const dir of BACKOFFICE_DIRS) {
   }
 }
 
+// ── 15-b) 백오피스 저대비 회색 글씨 차단 (2026-07-27 접근성 실측) ──────────────
+// 왜: text-gray-400(#9ca3af)은 흰 배경에서 대비 2.53:1 — WCAG AA 본문 기준(4.5:1)의 절반뿐.
+//     공개 페이지에선 아이콘 위주라 안 걸렸는데, 로그인 뒤 화면을 처음 실측하자
+//     백오피스에서만 serious 412건이 나왔고 그 대부분이 이 한 토큰이었다(admin 244·coordinator 149).
+//     "공개 페이지 위반 0건"이라는 리포트가 5주간 이 사실을 가리고 있었음(스캐너가 로그인 뒤를 못 봄).
+//     → 부류 자체를 차단: 백오피스 본문 회색은 gray-500(4.83:1) 이상.
+//     ⚠️ 흰/연회색 배경 전제다. 어두운 배경 위에서 밝은 회색이 필요하면 예외를 여기에 명시적으로 추가할 것.
+// ⚠️ 백오피스 폴더만 훑으면 놓친다 — /admin/staff 의 위반은 정작 공유 부품(NotificationBell 등)에서
+//    나왔다. 그래서 백오피스 화면이 실제로 렌더하는 공유 부품도 같은 잣대로 본다.
+//    (새 공유 부품이 늘면 이 목록에 추가할 것. 목록이 새더라도 주간 axe 실측이 뒤에서 받쳐 준다.)
+const BACKOFFICE_SHARED = [
+  "app/_components/ManualDrawer.jsx",
+  "src/components/AddressInput.jsx",
+  "src/components/GoogleMap.jsx",
+  "src/components/Modals.jsx",
+  "src/components/NotificationBell.jsx",
+  "src/components/consultation/CreateConsultationModal.jsx",
+  "src/components/marketing/AdBudgetPlanner.jsx",
+  "src/components/partners/PartnerOutreachTracker.jsx",
+];
+{
+  const targets = [];
+  // app/patient 도 포함(2026-07-27 2차 실측): 환자가 직접 보는 화면이라 우선순위가 오히려 높다.
+  for (const dir of [...BACKOFFICE_DIRS, "app/patient"]) {
+    for (const file of walk(dir)) {
+      if (!CODE_EXT.test(file) || EXCLUDE.test(file)) continue;
+      targets.push(file);
+    }
+  }
+  targets.push(...BACKOFFICE_SHARED);
+  for (const file of targets) {
+    let text;
+    try { text = readFileSync(join(ROOT, file), "utf8"); } catch { continue; }
+    const idx = text.indexOf("text-gray-400");
+    if (idx === -1) continue;
+    const line = text.slice(0, idx).split("\n").length;
+    errors.push(
+      `[저대비회색] ${file.replace(/\\/g, "/")}:${line} — 백오피스(또는 백오피스가 쓰는 공유 부품)에 text-gray-400 사용. 흰 배경 대비 2.53:1 로 WCAG AA(4.5:1) 미달이다. text-gray-500(4.83:1) 이상을 쓸 것 (2026-07-27 접근성 실측 부류).`,
+    );
+  }
+}
+
 // ── 16) 스태프 백오피스가 공개용 useLang()(healo_lang, 쿠키 없으면 en 기본) 써서
 //        기본 언어가 영어로 새는 회귀 차단 (2026-07-09, PR #727 CI 적발) ──────
 // 왜: app/admin·coordinator·hospital 은 스태프(기본 한국 운영)용이라 기본언어가 ko 여야 하는데,

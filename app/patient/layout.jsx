@@ -77,7 +77,7 @@ export default function PatientLayout({ children }) {
               onClick={() => setMoreOpen(false)}
               className="p-1.5 rounded-full hover:bg-gray-100 transition"
             >
-              <X size={18} className="text-gray-400" />
+              <X size={18} className="text-gray-500" />
             </button>
           </div>
           <div className="px-3 pb-4 grid grid-cols-2 gap-2">
@@ -94,7 +94,7 @@ export default function PatientLayout({ children }) {
                       : 'text-gray-600 hover:bg-gray-50'
                   }`}
                 >
-                  <Icon size={20} className={active ? 'text-teal-700' : 'text-gray-400'} />
+                  <Icon size={20} className={active ? 'text-teal-700' : 'text-gray-500'} />
                   <span className="text-sm font-medium">{l(tab.label)}</span>
                 </Link>
               );
@@ -114,7 +114,7 @@ export default function PatientLayout({ children }) {
                 key={tab.href}
                 href={tab.href}
                 className={`flex flex-col items-center justify-center gap-0.5 min-w-[56px] min-h-[44px] rounded-xl px-2 py-1.5 transition-all ${
-                  active ? 'text-teal-700' : 'text-gray-400 hover:text-gray-600'
+                  active ? 'text-teal-700' : 'text-gray-500 hover:text-gray-600'
                 }`}
               >
                 <div className={`p-1 rounded-lg transition-all ${active ? 'bg-teal-50' : ''}`}>
@@ -129,7 +129,7 @@ export default function PatientLayout({ children }) {
           <button
             onClick={() => setMoreOpen(!moreOpen)}
             className={`flex flex-col items-center justify-center gap-0.5 min-w-[56px] min-h-[44px] rounded-xl px-2 py-1.5 transition-all ${
-              isMoreActive || moreOpen ? 'text-teal-700' : 'text-gray-400 hover:text-gray-600'
+              isMoreActive || moreOpen ? 'text-teal-700' : 'text-gray-500 hover:text-gray-600'
             }`}
           >
             <div className={`p-1 rounded-lg transition-all ${isMoreActive || moreOpen ? 'bg-teal-50' : ''}`}>

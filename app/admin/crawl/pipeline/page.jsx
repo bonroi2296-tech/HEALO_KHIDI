@@ -62,9 +62,9 @@ const SOURCE_FIELDS = {
 };
 
 const STATUS_CONFIG = {
-  pending: { label: "대기", color: "text-gray-500 bg-gray-100", icon: Clock },
+  pending: { label: "대기", color: "text-gray-600 bg-gray-100", icon: Clock },
   running: { label: "실행 중", color: "text-blue-600 bg-blue-100", icon: Loader2 },
-  completed: { label: "완료", color: "text-green-600 bg-green-100", icon: CheckCircle2 },
+  completed: { label: "완료", color: "text-green-700 bg-green-100", icon: CheckCircle2 },
   failed: { label: "실패", color: "text-red-600 bg-red-100", icon: XCircle },
 };
 
@@ -329,13 +329,13 @@ export default function PipelinePage() {
               <span className="text-base font-semibold text-gray-800">자동 수집 스케줄</span>
               <div className="flex items-center gap-2 mt-0.5">
                 {schedule.enabled ? (
-                  <span className="inline-flex items-center gap-1 text-xs text-green-600 font-medium">
+                  <span className="inline-flex items-center gap-1 text-xs text-green-700 font-medium">
                     <Wifi size={11} /> 활성
-                    <span className="text-gray-400 mx-1">·</span>
+                    <span className="text-gray-500 mx-1">·</span>
                     {scheduleDesc}
                   </span>
                 ) : (
-                  <span className="inline-flex items-center gap-1 text-xs text-gray-400 font-medium">
+                  <span className="inline-flex items-center gap-1 text-xs text-gray-500 font-medium">
                     <WifiOff size={11} /> 비활성
                   </span>
                 )}
@@ -348,7 +348,7 @@ export default function PipelinePage() {
                 <Check size={12} /> 저장됨
               </span>
             )}
-            <Settings size={18} className={`text-gray-400 transition-transform ${showSchedule ? "rotate-90" : ""}`} />
+            <Settings size={18} className={`text-gray-500 transition-transform ${showSchedule ? "rotate-90" : ""}`} />
           </div>
         </button>
 
@@ -402,7 +402,7 @@ export default function PipelinePage() {
                         }`}
                       >
                         <div>{opt.label}</div>
-                        <div className="text-[11px] text-gray-400 mt-0.5">{opt.desc}</div>
+                        <div className="text-[11px] text-gray-500 mt-0.5">{opt.desc}</div>
                       </button>
                     ))}
                   </div>
@@ -435,7 +435,7 @@ export default function PipelinePage() {
                         <option key={h.value} value={h.value}>{h.label}</option>
                       ))}
                     </select>
-                    <p className="text-[10px] text-gray-400 mt-1">
+                    <p className="text-[10px] text-gray-500 mt-1">
                       Cron은 매일 실행되며, 설정된 요일/시간에만 실제 수집이 시작됩니다
                     </p>
                   </div>
@@ -497,7 +497,7 @@ export default function PipelinePage() {
                         </div>
                       );
                     })}
-                    <p className="text-[10px] text-gray-400 pt-1">
+                    <p className="text-[10px] text-gray-500 pt-1">
                       전체 수집 시 각 소스의 API에서 제공하는 모든 메타데이터를 가져옵니다.
                       데이터 크롤링 페이지에서 필드를 선택적으로 수집할 수도 있습니다.
                     </p>
@@ -554,7 +554,7 @@ export default function PipelinePage() {
             disabled={starting || jobs.some((j) => j.status === "running")}
             className={`flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium transition shrink-0 ${
               starting || jobs.some((j) => j.status === "running")
-                ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                ? "bg-gray-200 text-gray-500 cursor-not-allowed"
                 : "bg-teal-700 text-white hover:bg-teal-800 shadow-lg shadow-teal-200"
             }`}
           >
@@ -601,7 +601,7 @@ export default function PipelinePage() {
             <Loader2 className="animate-spin text-teal-700" size={32} />
           </div>
         ) : jobs.length === 0 ? (
-          <div className="py-12 text-center text-gray-400">
+          <div className="py-12 text-center text-gray-500">
             아직 실행 이력이 없습니다
           </div>
         ) : (
@@ -672,7 +672,7 @@ function JobRow({ job, onCancel, onDelete }) {
             <span className="text-sm font-medium text-gray-800">
               {SOURCE_NAMES[job.source_id] || job.source_id}
             </span>
-            <span className="text-xs text-gray-400">
+            <span className="text-xs text-gray-500">
               {new Date(job.created_at).toLocaleString("ko-KR")}
             </span>
           </div>
@@ -688,15 +688,15 @@ function JobRow({ job, onCancel, onDelete }) {
                 </div>
                 <span className="text-xs text-blue-600 font-semibold w-12 text-right">{progress}%</span>
               </div>
-              <div className="flex items-center justify-between text-xs text-gray-400 mt-1">
+              <div className="flex items-center justify-between text-xs text-gray-500 mt-1">
                 <span>{job.progress_current}/{job.progress_total} API 호출 · {elapsed}</span>
                 {etaText && <span className="text-blue-500 font-medium">{etaText}</span>}
               </div>
               {(stats.new > 0 || stats.changed > 0 || stats.errors > 0) && (
                 <div className="flex items-center gap-3 text-xs mt-1">
-                  {stats.new > 0 && <span className="text-green-600">신규 +{stats.new}</span>}
+                  {stats.new > 0 && <span className="text-green-700">신규 +{stats.new}</span>}
                   {stats.changed > 0 && <span className="text-blue-600">변경 {stats.changed}</span>}
-                  {stats.unchanged > 0 && <span className="text-gray-400">기존 {stats.unchanged}</span>}
+                  {stats.unchanged > 0 && <span className="text-gray-500">기존 {stats.unchanged}</span>}
                   {stats.errors > 0 && <span className="text-orange-500">오류 {stats.errors}</span>}
                 </div>
               )}
@@ -705,10 +705,10 @@ function JobRow({ job, onCancel, onDelete }) {
 
           {job.status !== "running" && (
             <div className="flex items-center gap-3 text-xs text-gray-500">
-              {stats.new > 0 && <span className="text-green-600">신규 {stats.new}</span>}
+              {stats.new > 0 && <span className="text-green-700">신규 {stats.new}</span>}
               {stats.changed > 0 && <span className="text-blue-600">변경 {stats.changed}</span>}
               {stats.unchanged > 0 && <span>기존 {stats.unchanged}</span>}
-              {stats.closed > 0 && <span className="text-red-500">폐업 {stats.closed}</span>}
+              {stats.closed > 0 && <span className="text-red-600">폐업 {stats.closed}</span>}
               {stats.errors > 0 && <span className="text-orange-500">오류 {stats.errors}</span>}
               <span className="text-gray-300">|</span>
               <span>{elapsed}</span>
@@ -719,7 +719,7 @@ function JobRow({ job, onCancel, onDelete }) {
         {(job.status === "running" || job.status === "pending") && (
           <button
             onClick={() => onCancel(job.id)}
-            className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-red-600 bg-red-50 rounded-lg hover:bg-red-100 transition shrink-0"
+            className="flex items-center gap-1.5 px-3 py-2 text-sm font-medium text-red-700 bg-red-50 rounded-lg hover:bg-red-100 transition shrink-0"
           >
             <StopCircle size={14} />
             중단
@@ -739,7 +739,7 @@ function JobRow({ job, onCancel, onDelete }) {
         )}
 
         {job.status === "failed" && !isCancelled && job.error_message && (
-          <span className="text-xs text-red-500 max-w-[200px] truncate shrink-0" title={job.error_message}>
+          <span className="text-xs text-red-600 max-w-[200px] truncate shrink-0" title={job.error_message}>
             {job.error_message}
           </span>
         )}
@@ -748,7 +748,7 @@ function JobRow({ job, onCancel, onDelete }) {
         {(job.status === "completed" || job.status === "failed") && (
           <button
             onClick={() => onDelete(job.id)}
-            className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition shrink-0"
+            className="p-2 text-gray-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition shrink-0"
             title="이력 삭제"
           >
             <XCircle size={16} />

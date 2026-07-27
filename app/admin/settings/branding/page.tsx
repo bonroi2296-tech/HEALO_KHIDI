@@ -246,11 +246,11 @@ export default function BrandingSettingsPage() {
                     onError={(e) => {
                       (e.target as HTMLImageElement).style.display = "none";
                       (e.target as HTMLImageElement).parentElement!.innerHTML =
-                        '<div class="text-gray-400 text-sm">이미지 로드 실패</div>';
+                        '<div class="text-gray-500 text-sm">이미지 로드 실패</div>';
                     }}
                   />
                 ) : (
-                  <p className="text-gray-400 text-sm">로고 없음</p>
+                  <p className="text-gray-500 text-sm">로고 없음</p>
                 )}
               </div>
             </div>
@@ -319,7 +319,7 @@ export default function BrandingSettingsPage() {
                       onError={(e) => {
                         (e.target as HTMLImageElement).style.display = "none";
                         (e.target as HTMLImageElement).parentElement!.innerHTML =
-                          '<div class="flex items-center justify-center h-full text-gray-400 text-sm">이미지 로드 실패</div>';
+                          '<div class="flex items-center justify-center h-full text-gray-500 text-sm">이미지 로드 실패</div>';
                       }}
                     />
                     <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-20">
@@ -328,7 +328,7 @@ export default function BrandingSettingsPage() {
                   </>
                 ) : (
                   <div className="flex items-center justify-center h-full">
-                    <p className="text-gray-400 text-sm">배경 이미지 없음</p>
+                    <p className="text-gray-500 text-sm">배경 이미지 없음</p>
                   </div>
                 )}
               </div>

@@ -9,7 +9,7 @@ on:
     inputs:
       base_url:
         description: "측정 대상 URL"
-        default: "https://healo-khidi.vercel.app"
+        default: "https://healwith.co.kr"
         required: false
 jobs:
   audit:
@@ -25,15 +25,63 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: 접근성(axe-core WCAG 2.1 AA) 실측
         env:
-          AUDIT_BASE_URL: ${{ github.event.inputs.base_url || 'https://healo-khidi.vercel.app' }}
-        run: npm run audit:a11y || true
+          AUDIT_BASE_URL: ${{ github.event.inputs.base_url || 'https://healwith.co.kr' }}
+        # || true 제거(2026-07-27): 스캐너가 「렌더 검증 실패」일 때만 exit 1 한다.
+        # = 페이지가 안 그려졌는데 "위반 0건"으로 기록되는 거짓 합격을 잡으라고 잡을 빨갛게 만드는 것.
+        # 접근성 위반 건수 자체로는 실패하지 않는다(리포트 목적 유지).
+        run: npm run audit:a11y
       - name: 성능·SEO(Lighthouse) 실측
         env:
-          AUDIT_BASE_URL: ${{ github.event.inputs.base_url || 'https://healo-khidi.vercel.app' }}
+          AUDIT_BASE_URL: ${{ github.event.inputs.base_url || 'https://healwith.co.kr' }}
         run: npm run audit:lighthouse || true
       - name: 감리 리포트 업로드(증거)
+        if: always() # a11y 가 실패해도 증거는 남긴다
         uses: actions/upload-artifact@v4
         with:
           name: audit-reports
           path: docs/audit/*.json
+          if-no-files-found: warn
+
+  # 로그인 뒤 화면(백오피스·환자포털) 접근성 실측.
+  # 공개 페이지 잡과 분리한 이유: 계정 시크릿이 필요하고, 로그인이 깨지면 공개 감리까지 같이 빨개지면 안 되므로.
+  # 비밀번호는 E2E 가 이미 쓰는 시크릿을 그대로 사용 — 로그인은 e2e/auth.setup.ts 가 하고,
+  # 스캐너는 거기서 나온 쿠키(storageState)만 받아 쓴다.
+  audit-authed:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+      - run: npm ci
+      - name: chromium 설치(playwright)
+        run: npx playwright install --with-deps chromium
+      - name: 역할별 로그인 세션 만들기(storageState)
+        env:
+          E2E_BASE_URL: ${{ github.event.inputs.base_url || 'https://healwith.co.kr' }}
+          E2E_SKIP_SERVER: "1"
+          E2E_TEST_USER_EMAIL: ${{ secrets.E2E_TEST_USER_EMAIL }}
+          E2E_TEST_USER_PASSWORD: ${{ secrets.E2E_TEST_USER_PASSWORD }}
+          E2E_ADMIN_EMAIL: ${{ secrets.E2E_ADMIN_EMAIL }}
+          E2E_ADMIN_PASSWORD: ${{ secrets.E2E_ADMIN_PASSWORD }}
+          E2E_COORDINATOR_EMAIL: ${{ secrets.E2E_COORDINATOR_EMAIL }}
+          E2E_COORDINATOR_PASSWORD: ${{ secrets.E2E_COORDINATOR_PASSWORD }}
+          E2E_AGENCY_EMAIL: ${{ secrets.E2E_AGENCY_EMAIL }}
+          E2E_AGENCY_PASSWORD: ${{ secrets.E2E_AGENCY_PASSWORD }}
+          E2E_CLINIC_EMAIL: ${{ secrets.E2E_CLINIC_EMAIL }}
+          E2E_CLINIC_PASSWORD: ${{ secrets.E2E_CLINIC_PASSWORD }}
+        run: npx playwright test --project=setup
+      - name: 접근성 실측 — 로그인 뒤 화면
+        env:
+          AUDIT_BASE_URL: ${{ github.event.inputs.base_url || 'https://healwith.co.kr' }}
+        # 세션이 죽어 로그인 화면으로 튕기면 스캐너가 AUTH FAIL 로 잡아 exit 1 한다
+        # (= 로그인 화면을 재고 "백오피스 위반 0건"이라 보고하는 거짓 합격 차단).
+        run: bash scripts/audit/a11y-authed.sh
+      - name: 감리 리포트 업로드(증거)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: audit-reports-authed
+          path: docs/audit/a11y-*.json
           if-no-files-found: warn

@@ -58,7 +58,7 @@ export default function CoordinatorLayout({ children }) {
               <p className="text-[10px] text-gray-500">{L.brandRole}</p>
             </div>
           </div>
-          <button onClick={() => setMobileOpen(false)} className="lg:hidden p-2 text-gray-400 hover:text-gray-600 rounded-lg">
+          <button onClick={() => setMobileOpen(false)} className="lg:hidden p-2 text-gray-500 hover:text-gray-600 rounded-lg">
             <X size={20} />
           </button>
         </div>
@@ -76,7 +76,7 @@ export default function CoordinatorLayout({ children }) {
                 active ? 'bg-blue-50 text-blue-700 shadow-sm' : 'text-gray-700 hover:bg-gray-50'
               }`}
             >
-              <Icon size={18} className={active ? 'text-blue-600' : 'text-gray-400'} />
+              <Icon size={18} className={active ? 'text-blue-600' : 'text-gray-500'} />
               <span>{L[item.labelKey] || item.label}</span>
             </Link>
           );
@@ -93,7 +93,7 @@ export default function CoordinatorLayout({ children }) {
         </Link>
         <button
           onClick={handleLogout}
-          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-700 hover:bg-red-50 hover:text-red-600 transition-all min-h-[44px]"
+          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-700 hover:bg-red-50 hover:text-red-700 transition-all min-h-[44px]"
         >
           <LogOut size={18} />
           <span>{L.logout}</span>
