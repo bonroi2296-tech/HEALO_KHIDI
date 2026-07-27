@@ -155,3 +155,6 @@ secrets.env
 
 # 파이썬 생성기 캐시(docs/government-project/*.py)
 __pycache__/
+
+# 자동 동기화 실행 기록(로컬 전용)
+sync-auto.log
