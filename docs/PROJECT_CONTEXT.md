@@ -8,6 +8,57 @@
 
 ---
 
+> ## 📌 인수인계 — 2026-07-27 밤 · 센트리 에러 전수 분석 → Hydration 23건 종결 + 포털 영문 깜빡임 제거
+>
+> PO 지시 *"크롬 열어서 센트리 들어간다음에 에러 나온것들 분석해봐"* → 미해결 7건 전수 분석 → 그중 최다 건수(23건)를 원인규명·수리·가드까지. 이어서 *"1번부터 3번까지 다 해라"*, *"싹다해줘"*.
+>
+> **1. 이번 세션 한 일**
+> · **센트리 미해결 7건 전수 분석**(bonroi.sentry.io, 프로젝트 `javascript-nextjs`). 각 이슈의 브라우저·지역·시각·breadcrumb 까지 열어 확인.
+> · **[#1046](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/1046) 머지·배포 (main `6bc9548c`, 반성문 #133)** — `Hydration failed…` **23건**의 원인 = **컴포넌트 렌더 본문에서 브라우저 전용 값(언어 쿠키·`navigator.language`)을 읽는 것**. 5곳 수리: `app/patient/layout.jsx` · `src/components/NotificationBell.jsx` · `app/inquiry/ThreadChat.jsx` · `src/components.jsx`(Header 폴백) → 전부 기존 `useLang()` 으로. `app/survey/[token]/` 은 **서버가 `Accept-Language` 를 읽어 `browserLang` prop 으로** 내려주게 변경.
+> · **[#1047](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/1047) 머지·배포 (main `da9e5f17`)** — 포털(`/patient` 등) 첫 화면 **영문 깜빡임 제거**. `x-locale` 헤더가 없으면(=공개 경로 밖) `healo_lang` 쿠키를 서버 렌더 언어로 쓴다.
+> · **가드 3종 신설**(`scripts/check-content-consistency.mjs`): ①「렌더 본문(들여쓰기 2칸)에서 브라우저 전용 값 읽기」 ②「`HTML_LANG` ⊇ `LOCALES`」 ③「서버 언어 검증이 `LANG_OPTIONS` 로 되돌아가면 실패」. **셋 다 «일부러 위반 코드를 심어 실제로 검사가 실패하는 것»까지 확인 후 원복.**
+> · **센트리 `beforeSend` 에 자동번역 판별 태그 3종**(`page_translated`·`page_lang`·`ui_lang`) — 미해결 `NotFoundError` 8건의 원인을 다음 1건에서 자동 판정하기 위한 계측.
+> · **완성도 감사 1회**(`/completeness-audit`) — DoD-3 문서-현실 드리프트 1건 발견·수정. 기록 `docs/audit/COMPLETENESS_LOG.md`.
+> · **독립 리뷰 2회**(작성 맥락 비공유 에이전트) — 두 번 다 **실제 결함**을 잡았다(아래 4번).
+>
+> **2. 왜 그렇게 했는지 (커밋에 안 남는 배경)**
+> · 🔑 **이건 «3차 재발」이고, 재발 원인은 코드가 아니라 기억 시스템이었다.** 반성문 **#77(2026-07-07)** 본문에 *"부차 잠복(범위 밖, 후속): `src/components.jsx:137` … `useLang()` 로 이관 권장"* 이라고 **진범이 정확히 적혀 있었다.** 티켓도 가드도 안 남긴 «권장» 이라 **20일 방치**됐고, 그 사이 같은 패턴이 **3곳 더** 늘었다. → **반성문에 적은 «후속»은 가드나 티켓이 되지 않으면 없는 것과 같다.**
+> · **#30 가드가 왜 못 막았나**: 룰이 `setLang(getLangCodeFromCookie())` **리터럴 한 줄**만 정규식으로 봤다. 같은 죄인 `const lang = getLangCodeFromCookie()`(대입형)는 그물 밖이었다. → 새 가드는 **문장이 아니라 «위치»**(렌더 본문에서 읽는가)로 판정한다.
+> · **설문만 `useLang()` 을 안 쓴 이유**: 초대 링크로 처음 온 환자는 `healo_lang` 쿠키가 없다 → `useLang()` 은 `en` → **러시아 환자에게 영어 설문**이 간다. K-03 만족도 표본이 직결이라, 서버가 `Accept-Language` 를 읽어 내려주는 방식으로 갔다(깜빡임도 없고 언어도 맞다).
+> · **`/patient` 를 왜 프록시가 아니라 레이아웃에서 고쳤나**: `PUBLIC_PREFIXES` 에 `/patient` 를 넣으면 URL 언어화(`/ru/patient/…`)까지 딸려와 로그인·리다이렉트 동선이 바뀐다. 레이아웃 한 줄이 훨씬 좁은 변경이고, `cookieLang` 은 이미 읽고 있던 값이라 새 I/O 도 없다.
+>
+> **3. 안 끝났거나 보류**
+> · **`NotFoundError`(insertBefore/removeChild) 8건 — 미해결·의도적 보류.** 상담방 3건은 **100% Edge·Windows·서울·네이버웍스 초대링크**, 전부 «방 나가는 순간». 홈 1건은 러시아어 페이지를 한국어 크롬으로 볼 때. 원인이 «브라우저 자동번역» 인지 우리 코드인지 **지금 데이터로는 못 가른다** → 단정 대신 판별 태그를 심었다. **다음 상담 1건이면 자동 판정된다. 그 전에 추측으로 고치지 마라.**
+> · **센트리 소스맵 — PO 손 2건 대기.** Vercel 환경변수에 `NEXT_PUBLIC_SENTRY_DSN` **하나뿐**이라 소스맵 업로드가 **애초에 한 번도 안 돌았다**(스택이 `vendor-xxx.js:492:196017` 암호문인 진짜 이유). 필요: ①Sentry↔GitHub 연동 완료(2단계 중 1단계만 됨) ②`SENTRY_ORG=bonroi` · `SENTRY_PROJECT=javascript-nextjs` · `SENTRY_AUTH_TOKEN`(토큰은 어시가 다루면 안 되는 값 → PO 발급).
+> · **`/agency`·`/clinic`·`/notifications` 색인 여부 — PO 판단 대기.** 검색엔진이 200 을 받는데 `PUBLIC_PREFIXES` 밖이라 다국어 URL·hreflang 이 없는 중간 상태. 파트너 유입용이면 공개 경로에 넣고, 아니면 `noindex`. `KNOWN_ISSUES.md` 에 항목으로 있음.
+> · **안드로이드 3차 빌드 — 다른 세션 소관, 손대지 않음.** Codemagic 빌드 **#2 = 실패 확정**(`./gradlew: Permission denied`, exit 126, 커밋 `9f0c1b5`). 그걸 고친 커밋 `7d5d92a2`(gradlew 실행권한)는 **아직 한 번도 안 돌았다.** iOS 는 **#4 성공**(`App.ipa` 산출). 브랜치 `claude/app-registration-4sj2l7` 은 이 세션 도중에도 다른 세션이 커밋 중이었다.
+>
+> **4. 주의·함정**
+> · ⚠️ **언어 검증 기준이 2개다 — 합치지 마라.** `app/layout.jsx` 에서 **서버 렌더 언어 = `LOCALES`(6개)**, **사전 주입 목록 = `LANG_OPTIONS`(21개)**. 이 둘을 한 변수로 합쳤다가 독립 리뷰에 잡혔다: `LANG_OPTIONS`(21) 로 검증하면 옛 `healo_lang=vi`·`ar` 쿠키(`setLangCookie` 가 1년짜리로 심었고 실제로 남아 있다)에서 **본문은 베트남어인데 `<html lang="en">`** 이 된다. 그 불일치는 **브라우저 자동번역을 부르는 조건**이고, 자동번역은 위 3번의 미해결 `NotFoundError` 유력 용의자다 — **하필 내가 못 닫은 이슈의 발화 조건을 넓힐 뻔했다.** 이제 `check:content` 가 막는다.
+> · ⚠️ **독립 리뷰가 두 번 다 «내가 방금 만든» 결함을 잡았다.** #1046 에서는 안 지운 import 하나가 **레포 유일 eslint 에러**로 CI 를 무조건 빨간불로 만들 상태였고, #1047 에서는 위 언어 집합 불일치. **작성자=판정자 구조로는 안 보인다 — 게이트를 건너뛰지 마라.**
+> · ⚠️ **`useLang()` 은 `useContext` 다**(`useSyncExternalStore` 는 `LangProvider` 안). **`LangProvider`(=`ClientShell`) 밖에서 부르면 경고 없이 `'en'` 으로 굳는다.** 세션 초반에 주석을 틀리게 썼다가 리뷰가 잡아 정정함.
+> · ⚠️ **`Vary: Cookie` 가 어디에도 없다.** 지금은 루트 레이아웃이 `cookies()` 를 불러 전 라우트가 동적이라 무해하지만, **나중에 HTML 엣지 캐시 룰을 넣는다면 반드시 같이 넣어야 한다**(안 그러면 사용자 간 언어 유출).
+> · ⚠️ **반성문 번호가 병렬 세션끼리 충돌한다.** 이 세션에서만 두 번 겪었다(#131 → #132 → 최종 #133). **커밋 직전에 `origin/main` 기준으로 최신 번호를 다시 확인**하고, 바꿨으면 `KNOWN_ISSUES`·PR 본문의 참조도 같이 고쳐라.
+> · ⚠️ **공용 폴더(`HEALO_KHIDI`)에서 작업했다.** 2분마다 도는 자동저장 훅이 **다른 세션의 미커밋 변경까지 같이 커밋**해 브랜치가 오염됐다(1회) → 내 파일만 골라 새 브랜치로 다시 판 뒤 진행. 다음 세션은 worktree 를 쓰는 게 안전하다.
+>
+> **5. 다음 세션이 먼저 할 일**
+> 1. ⚠️ **직전 미검증분 먼저 확인**: ①**로그인 뒤 `/patient` 실화면** — 하단 탭 라벨이 러시아어·카자흐어로 그려질 때 **잘리는지**(인증 게이트라 자동화로 못 봄, `/login` 까지만 실렌더 확인함) ②**프로덕션에서 Hydration 이슈가 실제로 멎었는지** — 센트리 `JAVASCRIPT-NEXTJS-3` 의 마지막 발생 시각이 `2026-07-27 20:00 KST` 이후로 안 올라오면 종결 처리.
+> 2. **PO 손 2건 상기**: ①Sentry↔GitHub 연동 **2단계까지** 완료 ②`SENTRY_ORG`·`SENTRY_PROJECT`·`SENTRY_AUTH_TOKEN` 을 Vercel 환경변수에. 이거 없으면 앞으로도 스택이 암호문이라 에러 추적이 매번 비싸다.
+> 3. **`NotFoundError` 8건 판정**: 다음 상담이 열린 뒤 센트리에서 그 이슈의 `page_translated` 태그를 봐라. `yes` 면 **우리 코드가 아니라 번역기** → `translate="no"` 범위 확대로 대응. `no` 면 우리 코드 → 상담방 언마운트 경로를 판다. ⚠️ `no` 는 «무죄 증명» 이 아니다(번역이 에러 이후에 붙었을 수 있음).
+> 4. **PO 판단 1건 받기**: `/agency`·`/clinic` 을 검색에 노출할 것인가(파트너 유입용 6개어 URL vs `noindex`).
+> 5. 안드로이드 3차 빌드는 **`claude/app-registration-4sj2l7` 담당 세션에 맡겨라**(중복 금지).
+>
+> **6. 검증 상태**
+> · **[#1046](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/1046)**: CI 초록(ci 3m52s · Smoke 5m3s · Vercel) → **머지·배포 완료** (main `6bc9548c`). 독립 리뷰 1회(차단 결함 1건 발견·수정).
+> · **[#1047](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/1047)**: CI 초록(ci 3m39s · Smoke 4m6s · Vercel) → **머지·배포 완료** (main `da9e5f17`). 독립 리뷰 1회(실제 결함 1건 발견·수정) + 완성도 감사 1회.
+> · **실측한 것**: ①설문 SSR 을 `Accept-Language` 바꿔가며 직접 조회 — ko `오류가 발생했습니다` / ru `Произошла ошибка` / kk `Қате орын алды` / en `An Error Occurred` ②포털 SSR `<html lang>` 6개어 전부(ko·en·ru·kz→kk·zh·ja) ③옛 21개어 쿠키 9종(vi·ar·th·id·es·fr·de·mn·uz) **전부 `en` 폴백** + 본문도 영어(일관) + `vi` 사전은 주입돼 하이드레이션 후 빈칸 없음 ④공개 경로(`/ru`·`/kz`·`/en`)는 쿠키와 무관하게 URL 언어 유지 ⑤브라우저 콘솔 hydration 경고 **0**(`/survey/*`·`/inquiry`·`/login`) ⑥가드 3종이 위반 코드를 실제로 잡는 것 ⑦센트리 판별 태그가 실제 페이지에서 no/yes/yes 로 동작하는 것.
+> · **검증 못 한 것(솔직히)**: ①**로그인 뒤 `/patient`·백오피스 실화면** — 인증 게이트라 자동화 불가. 러/카 탭 라벨 잘림(DoD-7 시각) 미확인. ②**프로덕션에서 Hydration 이 실제로 멎었는지** — 배포 직후라 아직 데이터 없음. ③**iOS TestFlight 베타 심사 통과 여부** — App Store Connect 는 안 열어봤다(Codemagic 빌드 성공까지만 확인). ④안드로이드 3차 빌드 — 안 돌렸다(다른 세션 소관).
+>
+> **7. 다음 세션 첫 프롬프트**
+> > 먼저 `docs/PROJECT_CONTEXT.md` 최상단 읽어. 어제 센트리 Hydration 23건 고쳐서 머지·배포했는데 **프로덕션에서 진짜 멎었는지** 센트리에서 확인해라(`JAVASCRIPT-NEXTJS-3` 마지막 발생 시각). 그리고 **로그인해서 `/patient` 를 러시아어·카자흐어로 열어 하단 탭 라벨이 잘리는지** 봐라 — 이건 어제 검증 못 한 것. 미해결 `NotFoundError` 8건은 판별 태그(`page_translated`) 심어놨으니 다음 상담 데이터 나오면 판정하고, 그 전엔 추측으로 고치지 마.
+
+---
+
 > **📌 중간 저장 (2026-07-27 4차 — 「사전 분리했는데 점수가 안 올랐던」 원인 규명·수리 완료 [#1039](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/1039), main `fe81df7`)** — PO 지시로 구글 PageSpeed 를 직접 돌려보니 #1025 이후 모바일 점수가 **69 → 66·68 제자리**였다. JS 는 260KB 줄었는데 **FCP 가 2.3s → 3.5s 로 나빠져 상쇄**되고 있었다.
 > · **진범**: 사전을 별도 파일(`/i18n/<lang>`)로 내리면 Next 가 head 에 `<link rel="preload" as="script">` 를 넣는데 이게 **High 우선순위**라 CSS·히어로 이미지와 첫 화면 대역폭을 다툰다. **바이트는 줄었는데 첫 화면 경로에 새 경쟁자가 생긴 것.**
 > · **수리**: 별도 파일 → **HTML 인라인**(`src/lib/i18n/inlineScript.js`). 요청이 아예 없어 경쟁이 사라진다. `app/i18n/[lang]/route.js`·`version.js` 삭제. **사전 분리 구조·webpack 별칭·CI 가드 §33 은 그대로**(번들 −264KB 유지).
