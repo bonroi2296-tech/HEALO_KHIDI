@@ -8,7 +8,7 @@
  */
 import { chromium } from "playwright";
 import { AxeBuilder } from "@axe-core/playwright";
-import { writeFileSync, mkdirSync } from "node:fs";
+import { writeFileSync, mkdirSync, readFileSync, existsSync } from "node:fs";
 
 const BASE = process.env.AUDIT_BASE_URL || "https://healo-khidi.vercel.app";
 // 공개(무인증) 화면만 측정 가능 — 백오피스·환자포털은 로그인 뒤라 여기 안 잡힌다(스캔 범위 한계, 리포트에 명시).
@@ -18,9 +18,24 @@ const PATHS = (
   "/en,/en/treatments,/en/hospitals,/en/telemedicine,/en/care-journey,/en/faq,/en/inquiry,/ru,/ru/hospitals,/ru/care-journey"
 ).split(",");
 
+// 로그인 뒤 화면(백오피스·환자포털) 측정용 — E2E 가 이미 만들어 둔 storageState 쿠키를 그대로 재사용한다.
+// 비밀번호는 이 스크립트가 다루지 않는다(로그인은 e2e/auth.setup.ts 가 CI 시크릿으로 수행).
+const STATE = process.env.AUDIT_STORAGE_STATE || "";
+const LABEL = process.env.AUDIT_LABEL || "public";
+const OUT = process.env.AUDIT_OUT || "docs/audit/a11y-report.json";
+
 const browser = await chromium.launch({ args: ["--no-sandbox", "--ignore-certificate-errors"] });
 // 일부 실행환경(프록시)에서 TLS 체인을 못 믿는 경우가 있어 인증서 오류 무시.
 const context = await browser.newContext({ ignoreHTTPSErrors: true });
+if (STATE) {
+  if (!existsSync(STATE)) {
+    console.error(`⛔ storageState 파일이 없습니다: ${STATE} — 로그인 세션 없이 돌리면 로그인 화면만 재게 된다(거짓 합격).`);
+    process.exit(1);
+  }
+  const { cookies } = JSON.parse(readFileSync(STATE, "utf8"));
+  await context.addCookies(cookies || []);
+  console.log(`[${LABEL}] 로그인 세션 주입: ${STATE} (쿠키 ${cookies?.length ?? 0}개)`);
+}
 const summary = [];
 
 // 「빈 화면 통과」 차단 — 자동화 브라우저가 페이지를 하얗게 렌더하면 axe 는 위반 0 을 돌려주고
@@ -45,6 +60,20 @@ for (const p of PATHS) {
       sanityFailed++;
       console.log(`${p}: ⛔ RENDER FAIL (status ${status} · nodes ${render.nodes} · text ${render.text}자) — 측정 불가, 통과 아님`);
       summary.push({ path: p, renderOk: false, status, ...render, error: "empty_or_error_render" });
+      await page.close();
+      continue;
+    }
+
+    // 「빈 화면 통과」와 같은 부류의 두 번째 구멍: 세션이 죽으면 로그인 화면으로 튕기는데
+    // 그 화면은 멀쩡히 렌더되므로 위 검증을 통과해 버린다 → 로그인 페이지를 재고 "백오피스 0건"이라 보고하게 된다.
+    // 그래서 로그인 뒤 화면을 잴 때는 「진짜 그 화면에 있는가」를 따로 단언한다.
+    // 언어 접두사(/en, /ru …)와 끝 슬래시는 정상 이동이므로 벗겨내고 비교한다(괜한 오탐 방지).
+    const norm = (s) => s.replace(/^\/(ko|en|ru|kz|zh|ja)(?=\/|$)/, "").replace(/\/$/, "") || "/";
+    const landed = new URL(page.url()).pathname;
+    if (STATE && (landed.includes("/login") || norm(landed) !== norm(p))) {
+      sanityFailed++;
+      console.log(`${p}: ⛔ AUTH FAIL — ${landed} 로 튕김(세션 만료·권한 없음). 측정 불가, 통과 아님`);
+      summary.push({ path: p, renderOk: false, status, landedOn: landed, error: "redirected_not_authenticated" });
       await page.close();
       continue;
     }
@@ -118,12 +147,13 @@ const incTotal = incRank.reduce((a, [, n]) => a + n, 0);
 
 mkdirSync("docs/audit", { recursive: true });
 writeFileSync(
-  "docs/audit/a11y-report.json",
+  OUT,
   JSON.stringify(
     {
       base: BASE,
+      label: LABEL,
       ts: new Date().toISOString(),
-      scope: "공개(무인증) 페이지만 — 백오피스·환자포털은 로그인 뒤라 미측정",
+      scope: STATE ? `로그인 뒤 화면 (${LABEL} 계정)` : "공개(무인증) 페이지",
       sanityFailed,
       totalsByImpact: tot,
       incompleteTotal: incTotal,
