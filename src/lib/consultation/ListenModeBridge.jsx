@@ -48,9 +48,13 @@ const MIN_BLOB_BYTES = 4000;
 //   올려 먼저 띄우고, 발화가 끝나면 확정본이 제자리에서 교체한다.
 // 비용 방어: ①이미 3초 넘게 이어진 발화만(짧은 문장은 확정본이 곧 오므로 부분 불필요)
 //   ②동시 1건 ③최소 2.5초 간격 → 10초 발화당 부분 요청 2~3회.
-const PARTIAL_SLICE_MS = 2500; // MediaRecorder 조각 주기
-const PARTIAL_MIN_SPEECH_MS = 3000; // 이만큼 이어진 발화부터 부분 자막 시도
-const PARTIAL_MIN_INTERVAL_MS = 2500;
+// 2026-07-27 2차 조정(PO "지연 더 줄여줘"): 첫 부분 자막을 3초 → **1.2초**에 쏜다.
+//   예전 값(조각 2.5초 · 최소 3초)이면 첫 요청이 실제로는 5초째에나 나갔다
+//   (조각이 2.5/5.0/7.5초에 떨어지는데 2.5초는 «3초 미만»이라 걸러졌기 때문).
+//   짧은 조각은 AI 응답도 빨라(출력 토큰이 적다) 첫 글자가 2~3초대에 보인다.
+const PARTIAL_SLICE_MS = 1200; // MediaRecorder 조각 주기
+const PARTIAL_MIN_SPEECH_MS = 1200; // 이만큼 이어진 발화부터 부분 자막 시도
+const PARTIAL_MIN_INTERVAL_MS = 1500; // 갱신 주기(너무 잦으면 깜빡임·비용)
 
 // ── 같은 목소리가 여러 마이크에 잡히는 것 억제 ──
 // 왜: 참가자별로 트랙을 따로 듣기 때문에, 한 공간에 기기가 여럿이면 한 사람 발화가
@@ -409,7 +413,7 @@ function startPipeline({ mediaStreamTrack, identity, name, liveRef, audioCtxRef,
       // 번역된다(2026-07-27 PO: "말을 길게 하니까 얘가 혼란스러워한다").
       // → 5초를 넘긴 뒤에는 0.3초짜리 숨쉬는 틈에서 끊고, 12초는 최후 안전장치로만 쓴다.
       const shouldCut =
-        (voicedFrames >= 3 && silentStreak >= 10) || // 말 끝남(1.0초 무음)
+        (voicedFrames >= 3 && silentStreak >= 7) || // 말 끝남(0.7초 무음 — 확정 자막 0.5초 당김)
         (voicedFrames >= 3 && dur >= 5000 && silentStreak >= 3) || // 긴 발화 — 숨쉬는 틈에서
         (voicedFrames >= 3 && dur >= 12000) || // 최후 강제 컷
         (voicedFrames < 3 && dur >= 5000); // 무음만 — 버리고 새 사이클

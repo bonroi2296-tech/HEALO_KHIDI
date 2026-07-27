@@ -73,7 +73,7 @@ import { LiveTranslateBridge } from "@/lib/consultation/LiveTranslateBridge";
 import { SameRoomGuard } from "@/lib/consultation/SameRoomGuard";
 import { PartnerLangBridge } from "@/lib/consultation/PartnerLangBridge";
 import { ListenModeBridge } from "@/lib/consultation/ListenModeBridge";
-import { speakerColor } from "@/lib/consultation/speakerColor";
+import { speakerColor, speakerInitial } from "@/lib/consultation/speakerColor";
 
 const supabase = createSupabaseBrowserClient();
 
@@ -3561,50 +3561,79 @@ export default function ConsultationRoomPage() {
                   // 배열 순서대로 그리면 옛 발화가 새 발화 아래에 끼어든다(2026-07-27 PO 제보).
                   [...translations]
                     .sort((a, b) => new Date(a.created_at) - new Date(b.created_at))
-                    .map((trans) => (
-                    <div
-                      key={trans.id}
-                      className="border border-gray-700 rounded-lg p-3 hover:border-gray-600 transition"
-                    >
-                      <div className="flex items-center justify-between mb-2">
-                        {/* 화자 표시 = 사람 단위(색 점 + 이름). 오버레이 자막과 같은 색 규칙이라
-                            같은 사람이면 기록에서도 같은 색이다. 역할(계층)은 쓰지 않는다. */}
-                        <span className="text-xs text-gray-500 flex items-center gap-1.5">
-                          {/* 이름을 모르는 줄(옛 기록·화자 컬럼 이전 데이터)은 회색 —
-                              예전엔 speakerColor(undefined) 가 1번 화자와 같은 teal 을 돌려줘
-                              «다른 사람»처럼 보였다(2026-07-27 PO 제보). */}
+                    .map((trans, i, arr) => {
+                      // 화자 구분은 **4중 신호**로 — 색 점 하나로는 훑기 어렵다는 PO 지적(2026-07-27).
+                      //   ①왼쪽 굵은 색 띠 ②이니셜 아바타(색 원) ③색 배지에 박힌 이름 ④연속 발화 묶기.
+                      // 이름을 모르는 줄(옛 기록)은 전부 회색 — 다른 사람인 척하지 않는다.
+                      const isSelf = trans.speaker_role === "self";
+                      const known = !isSelf && !!trans.speaker_name;
+                      const sc = known ? speakerColor(trans.speaker_name) : null;
+                      const label = trans.speaker_name || (isSelf ? c.you : c.speakerUnknown);
+                      // 같은 사람이 이어 말하면 이름줄을 생략 — 이름이 바뀌는 지점만 눈에 띈다.
+                      const prev = arr[i - 1];
+                      const sameAsPrev =
+                        prev &&
+                        prev.speaker_role === trans.speaker_role &&
+                        (prev.speaker_name || "") === (trans.speaker_name || "") &&
+                        new Date(trans.created_at) - new Date(prev.created_at) < 120000;
+                      return (
+                        <div key={trans.id} className={`flex gap-2 ${sameAsPrev ? "-mt-1" : ""}`}>
+                          {/* ① 왼쪽 색 띠 — 같은 사람의 발화 덩어리가 한 줄기로 보인다 */}
                           <span
-                            className={`inline-block w-2 h-2 rounded-full ${
-                              trans.speaker_role === "self" || !trans.speaker_name
-                                ? "bg-gray-500"
-                                : speakerColor(trans.speaker_name).dot
-                            }`}
+                            className={`w-1 rounded-full shrink-0 ${
+                              known ? sc.bar : "bg-gray-600"
+                            } ${sameAsPrev ? "opacity-60" : ""}`}
+                            aria-hidden="true"
                           />
-                          {trans.speaker_name ||
-                            (trans.speaker_role === "self" ? c.you : c.speakerUnknown)}
-                        </span>
-                        <span className="text-xs text-gray-600">
-                          {new Date(trans.created_at).toLocaleTimeString("ko-KR", {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                            second: "2-digit",
-                          })}
-                        </span>
-                      </div>
-                      <div className="mb-2">
-                        <p className="text-xs text-gray-500 mb-0.5">
-                          {LANG_LABELS[trans.source_language] || trans.source_language}
-                        </p>
-                        <p className="text-sm text-gray-200">{trans.original_text}</p>
-                      </div>
-                      <div className="pt-2 border-t border-gray-700">
-                        <p className="text-xs text-teal-700 mb-0.5">
-                          {LANG_LABELS[trans.target_language] || trans.target_language}
-                        </p>
-                        <p className="text-sm text-teal-300">{trans.translated_text}</p>
-                      </div>
-                    </div>
-                  ))
+                          <div className="flex-1 min-w-0">
+                            {!sameAsPrev && (
+                              <div className="flex items-center justify-between gap-2 mb-1">
+                                <span className="flex items-center gap-1.5 min-w-0">
+                                  {/* ② 이니셜 아바타 */}
+                                  <span
+                                    className={`w-5 h-5 rounded-full shrink-0 flex items-center justify-center text-[9px] font-bold ${
+                                      known ? sc.chip : "bg-gray-600 text-gray-950"
+                                    }`}
+                                    aria-hidden="true"
+                                  >
+                                    {speakerInitial(label)}
+                                  </span>
+                                  {/* ③ 색 배지에 박힌 이름 */}
+                                  <span
+                                    className={`text-[11px] font-semibold px-1.5 py-0.5 rounded truncate ${
+                                      known ? sc.chip : "bg-gray-700 text-gray-300"
+                                    }`}
+                                  >
+                                    {label}
+                                  </span>
+                                </span>
+                                <span className="text-[10px] text-gray-600 shrink-0">
+                                  {new Date(trans.created_at).toLocaleTimeString("ko-KR", {
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                    second: "2-digit",
+                                  })}
+                                </span>
+                              </div>
+                            )}
+                            <div className="border border-gray-700 rounded-lg p-2.5 hover:border-gray-600 transition">
+                              <div className="mb-2">
+                                <p className="text-xs text-gray-500 mb-0.5">
+                                  {LANG_LABELS[trans.source_language] || trans.source_language}
+                                </p>
+                                <p className="text-sm text-gray-200">{trans.original_text}</p>
+                              </div>
+                              <div className="pt-2 border-t border-gray-700">
+                                <p className="text-xs text-teal-700 mb-0.5">
+                                  {LANG_LABELS[trans.target_language] || trans.target_language}
+                                </p>
+                                <p className="text-sm text-teal-300">{trans.translated_text}</p>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })
                 )}
                 <div ref={translationsEndRef} />
               </div>
