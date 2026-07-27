@@ -4,6 +4,7 @@
  */
 
 import { generateText } from "ai";
+import { callGeminiWithCompat } from "@/lib/ai/geminiThinkingCompat";
 import { google } from "@ai-sdk/google";
 import type { OfferItem, TreatmentOffer, OfferEvidence } from "./types";
 
@@ -157,7 +158,7 @@ export async function extractOffersFromTextWithAttempt(
   const prompt = `Source URLs: ${sourceList}\n\nExtract up to 3 representative treatments/programs from the following text. Only include fields with evidence. Each offer MUST have evidence.name with snippet_or_ocr_text.\n\nText:\n${combinedText.slice(0, 120000)}`;
 
   try {
-    const { text } = await generateText({
+    const { text } = await callGeminiWithCompat((p) => generateText(p as any), {
       model,
       system: SYSTEM_PROMPT,
       prompt,

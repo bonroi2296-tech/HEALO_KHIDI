@@ -4,6 +4,7 @@
  */
 
 import { generateText } from "ai";
+import { callGeminiWithCompat } from "@/lib/ai/geminiThinkingCompat";
 import { google } from "@ai-sdk/google";
 import type { OfferItem, TreatmentOffer, OfferEvidence } from "./types";
 import type { PriceHint } from "./priceHints";
@@ -76,7 +77,7 @@ export async function summarizeOffersBatch(input: SummarizeInput): Promise<Summa
   const timeoutId = setTimeout(() => abortController.abort(), TIMEOUT_MS);
 
   try {
-    const { text } = await generateText({
+    const { text } = await callGeminiWithCompat((p) => generateText(p as any), {
       model,
       system: SYSTEM_PROMPT,
       prompt: userPrompt,

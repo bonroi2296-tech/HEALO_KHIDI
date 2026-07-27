@@ -155,6 +155,118 @@ describe("geminiThinkingCompat — REST 사다리", () => {
   });
 });
 
+// ── 샘플링 파라미터 폐기(2026-07-21 구글 공지) 대응 칸 ────────────────────────
+// temperature/topP/topK 는 지금은 "조용히 무시", 새 세대에서는 400. 7-23 과 같은 부류라
+// 같은 사다리로 흡수한다. 여기서 잠그는 계약의 핵심은 **순서와 memo 정책** 이다.
+describe("geminiThinkingCompat — 샘플링 파라미터 거절", () => {
+  const savedFetch = global.fetch;
+  beforeEach(() => _resetThinkingCompat());
+  afterEach(() => {
+    global.fetch = savedFetch;
+  });
+
+  const SAMPLED = { ...BASE_PARAMS, temperature: 0.1 };
+
+  it("temperature 거절 → temperature 만 떼고 thinking 설정은 보존 (돈 안 쓰는 칸 우선)", async () => {
+    const fn = vi.fn(async (p: any) => {
+      if (p.temperature !== undefined) throw rejection("Unknown field: temperature");
+      return p;
+    });
+    const out: any = await callGeminiWithCompat(fn, SAMPLED);
+    expect(out.temperature).toBeUndefined();
+    // 핵심: thinkingBudget:0 이 그대로 남아야 한다(강등되면 생각 토큰 = 돈이 늘어난다)
+    expect(out.providerOptions.google.thinkingConfig).toEqual({ thinkingBudget: 0 });
+    expect(fn).toHaveBeenCalledTimes(2);
+  });
+
+  it("thinking 만 거절되는 세대에서는 temperature 를 떼지 않는다 (번역 충실도 회귀 방지)", async () => {
+    const fn = vi.fn(async (p: any) => {
+      if (p.providerOptions?.google?.thinkingConfig?.thinkingBudget !== undefined) {
+        throw rejection();
+      }
+      return p;
+    });
+    const out: any = await callGeminiWithCompat(fn, SAMPLED);
+    // strip 칸은 시도되지만 실패하므로 memo 에 안 남고, 성공한 칸은 minimal 이다
+    expect(out.providerOptions.google.thinkingConfig).toEqual({ thinkingLevel: "minimal" });
+    expect(out.temperature).toBe(0.1);
+  });
+
+  it("thinking·샘플링이 동시에 거절되면 조합 칸(minimal+strip)까지 내려간다", async () => {
+    const fn = vi.fn(async (p: any) => {
+      if (p.temperature !== undefined) throw rejection("Unknown field: temperature");
+      if (p.providerOptions?.google?.thinkingConfig?.thinkingBudget !== undefined) {
+        throw rejection();
+      }
+      return p;
+    });
+    const out: any = await callGeminiWithCompat(fn, SAMPLED);
+    expect(out.temperature).toBeUndefined();
+    expect(out.providerOptions.google.thinkingConfig).toEqual({ thinkingLevel: "minimal" });
+  });
+
+  it("topP·topK 도 같이 떼며, 온도 없는 호출부의 사다리에는 strip 칸이 아예 안 생긴다", async () => {
+    const fn = vi.fn(async (p: any) => {
+      if (p.topP !== undefined || p.topK !== undefined) throw rejection("unknown field");
+      return "ok";
+    });
+    await callGeminiWithCompat(fn, { ...BASE_PARAMS, topP: 0.9, topK: 40 });
+    expect(fn.mock.calls[1][0].topP).toBeUndefined();
+    expect(fn.mock.calls[1][0].topK).toBeUndefined();
+
+    // 온도 없는 파라미터(BASE_PARAMS)는 strip 칸이 무의미 → 헛시도 없이 thinking 칸으로
+    _resetThinkingCompat();
+    const fn2 = vi.fn(async (p: any) => {
+      if (p.providerOptions?.google?.thinkingConfig?.thinkingBudget !== undefined) throw rejection();
+      return "ok";
+    });
+    await callGeminiWithCompat(fn2, BASE_PARAMS);
+    expect(fn2).toHaveBeenCalledTimes(2); // 원본 → minimal (strip 왕복 없음)
+  });
+
+  it("REST 경로도 generationConfig.temperature 를 떼어 살아난다", async () => {
+    const bodies: any[] = [];
+    global.fetch = vi.fn(async (_url: any, init: any) => {
+      const body = JSON.parse(init.body);
+      bodies.push(body);
+      const ok = body.generationConfig?.temperature === undefined;
+      return new Response("{}", { status: ok ? 200 : 400 });
+    }) as any;
+
+    const res = await fetchGeminiWithCompat("https://x/y", {
+      contents: [],
+      generationConfig: { temperature: 0, maxOutputTokens: 100, thinkingConfig: { thinkingBudget: 0 } },
+    });
+    expect(res.status).toBe(200);
+    expect(bodies[1].generationConfig.temperature).toBeUndefined();
+    // maxOutputTokens·thinkingConfig 는 보존 — 과잉 강등 금지
+    expect(bodies[1].generationConfig.maxOutputTokens).toBe(100);
+    expect(bodies[1].generationConfig.thinkingConfig).toEqual({ thinkingBudget: 0 });
+  });
+
+  it("memo 는 «칸 번호» 가 아니라 «집합 키» — 모양이 다른 호출부끼리 뜻이 안 섞인다", async () => {
+    // 1) 온도 있는 호출부가 strip 칸에서 성공 → memo="strip"
+    const fnA = vi.fn(async (p: any) => {
+      if (p.temperature !== undefined) throw rejection("unknown field");
+      return "A";
+    });
+    await callGeminiWithCompat(fnA, SAMPLED);
+    expect(fnA).toHaveBeenCalledTimes(2);
+
+    // 2) 온도 없는 호출부는 사다리에 "strip" 이 없으므로 원본(0번)부터 — 그리고 성공한다.
+    //    번호로 기억했다면 여기서 엉뚱한 칸(thinking 강등)으로 출발해 돈이 늘었을 것.
+    const seen: any[] = [];
+    const fnB = vi.fn(async (p: any) => {
+      seen.push(p);
+      return "B";
+    });
+    const out = await callGeminiWithCompat(fnB, BASE_PARAMS);
+    expect(out).toBe("B");
+    expect(fnB).toHaveBeenCalledTimes(1);
+    expect(seen[0].providerOptions.google.thinkingConfig).toEqual({ thinkingBudget: 0 });
+  });
+});
+
 describe("isParamRejection", () => {
   it("400/INVALID_ARGUMENT/not supported 를 거절로 판정", () => {
     expect(isParamRejection(rejection())).toBe(true);

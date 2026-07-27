@@ -22,6 +22,13 @@ on:
     - cron: "0 19 * * *"
   # 수동 실행 — 작업본(브랜치)에서도 전체 E2E를 돌려볼 수 있게 (테스트 수리 검증 루프용)
   workflow_dispatch:
+    inputs:
+      target:
+        description: "대상 (local=러너 dev 서버 / production=실서비스, 로봇 통화·통역봇 포함)"
+        type: choice
+        default: local
+        options: [local, production]
+        required: false
 
 # 실패 시 GitHub Issue 자동 생성에 필요 (기본 토큰은 read-only라 그동안 이슈 생성이 403으로 죽어 있었음)
 permissions:
@@ -124,7 +131,10 @@ jobs:
   # ─────────────────────────────────────────────
   full:
     name: Full E2E (main push)
-    if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || github.event_name == 'workflow_dispatch'
+    # 수동 실행은 target=local 일 때만 이 잡(러너 dev 서버). production 이면 아래 JOB 3 로 간다.
+    if: >-
+      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.target != 'production')
     runs-on: ubuntu-latest
     timeout-minutes: 25
 
@@ -262,11 +272,19 @@ jobs:
             }"
 
   # ─────────────────────────────────────────────
-  # JOB 3: 프로덕션 대상 cron (매일 새벽 4시 KST)
+  # JOB 3: 프로덕션 대상 cron (매일 새벽 4시 KST) + 수동(target=production)
+  #
+  # ⚠️ 수동 실행을 연 이유(2026-07-27): 예약 실행(cron)은 **기본 브랜치에서만** 돈다.
+  #    그래서 로봇 통화·통역봇 검증을 고쳐도 «머지하기 전엔 한 번도 못 돌려보는» 상태였다
+  #    (작업본에서 검증 불가 → 검증 안 된 채로 머지 → 다음날 아침에야 결과 확인).
+  #    target=production 으로 수동 실행하면 작업본의 테스트 코드로 실서비스를 즉시 점검할 수 있다.
+  #    (대상은 언제나 배포된 프로덕션 앱이다 — 작업본은 «테스트 코드»만 제공한다.)
   # ─────────────────────────────────────────────
   production-nightly:
     name: Production Nightly E2E (cron)
-    if: github.event_name == 'schedule'
+    if: >-
+      github.event_name == 'schedule' ||
+      (github.event_name == 'workflow_dispatch' && github.event.inputs.target == 'production')
     runs-on: ubuntu-latest
     timeout-minutes: 25
 
@@ -294,6 +312,10 @@ jobs:
           # 로봇 통화 스펙(안전망 ②)은 프로덕션 야간 잡에서만 — Full E2E 의 로컬 dev 서버엔
           # LiveKit env 가 없어 게스트 입장이 구조적으로 503 (독립 리뷰 적발)
           E2E_ROBOT_CALL: "1"
+          # 통역봇 실참여 검증(로봇 통화 5단계). 봇 워커가 죽으면 아침에 빨간불로 잡힌다.
+          # ⚠️ 통역을 의도적으로 끄면(LIVE_TRANSLATE_ENABLED=false) 여기도 "0" 으로 내려라 —
+          #    안 그러면 매일 밤 «봇 없음» 으로 헛경보가 뜬다.
+          E2E_INTERPRETER: "1"
           E2E_TEST_USER_EMAIL: ${{ secrets.E2E_TEST_USER_EMAIL }}
           E2E_TEST_USER_PASSWORD: ${{ secrets.E2E_TEST_USER_PASSWORD }}
           E2E_ADMIN_EMAIL: ${{ secrets.E2E_ADMIN_EMAIL }}
@@ -308,7 +330,9 @@ jobs:
           retention-days: 30
 
       - name: GitHub Issue 자동 생성 (실패 시)
-        if: failure()
+        # ⚠️ 경보는 «예약 실행»에서만. 사람이 수동으로 돌려본 실패까지 «프로덕션 이상»으로
+        #    긴급 메일·urgent 이슈를 쏘면 헛경보가 되고, 곧 아무도 안 믿는 경보가 된다.
+        if: failure() && github.event_name == 'schedule'
         uses: actions/github-script@v7
         with:
           script: |
@@ -353,7 +377,7 @@ jobs:
             }
 
       - name: Slack 알림 (실패 시)
-        if: failure() && env.SLACK_WEBHOOK_URL != ''
+        if: failure() && github.event_name == 'schedule' && env.SLACK_WEBHOOK_URL != ''
         uses: slackapi/slack-github-action@v1
         with:
           payload: |
@@ -366,7 +390,7 @@ jobs:
           SLACK_WEBHOOK_TYPE: INCOMING_WEBHOOK
 
       - name: 이메일 알림 (프로덕션 실패 — URGENT)
-        if: failure() && env.RESEND_API_KEY != '' && env.E2E_ALERT_EMAIL != ''
+        if: failure() && github.event_name == 'schedule' && env.RESEND_API_KEY != '' && env.E2E_ALERT_EMAIL != ''
         env:
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
           E2E_ALERT_EMAIL: ${{ secrets.E2E_ALERT_EMAIL }}

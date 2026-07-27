@@ -1,4 +1,5 @@
 import { generateText } from "ai";
+import { callGeminiWithCompat } from "@/lib/ai/geminiThinkingCompat";
 import { google } from "@ai-sdk/google";
 import type { EnrichmentSource, EnrichmentResult, HospitalRow } from "../types";
 
@@ -105,7 +106,7 @@ export const aiGeneratorSource: EnrichmentSource = {
     try {
       const context = buildHospitalContext(hospital);
 
-      const { text } = await generateText({
+      const { text } = await callGeminiWithCompat((p) => generateText(p as any), {
         model,
         system: SYSTEM_PROMPT,
         prompt: context,

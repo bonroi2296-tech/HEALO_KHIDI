@@ -8,13 +8,32 @@
  * 로 거절해 **모든 AI 응답이 전면 불능**(웹 챗·텔레그램·판사 동일). 전날 회귀채점 44/44
  * 정상 → 당일 전면 실패로 확인된 순수 외부 변화였다.
  *
+ * 예고된 재발(2026-07-21 구글 공지 / 2026-07-25 확인): 샘플링 파라미터
+ * `temperature`·`top_p`·`top_k` 가 폐기됐다. 현재는 **조용히 무시**되지만 구글 문서가
+ * "future model generations 에서는 HTTP 400" 을 명시 → 별칭이 그 세대로 넘어가는 순간
+ * 7-23 과 **완전히 같은 방식**으로 전면 불능이 된다. 그래서 같은 사다리에 칸을 끼웠다.
+ *   출처: https://ai.google.dev/gemini-api/docs/latest-model#sampling-parameter-deprecation
+ *
  * 별칭 최신 유지는 PO 결정(2026-06-12, 모델 임의 고정 금지)이므로 모델을 고정하지 않는다.
- * 대신 파라미터를 한 단계씩 낮춰 재시도하는 사다리로 어떤 세대가 와도 살아남는다:
- *   0. 원본 그대로 (thinkingBudget:0 — 구세대용, 비용 최소)
- *   1. thinkingLevel:"minimal" (신세대 체계 — 생각 최소화로 비용 억제)
- *   2. thinkingConfig 제거 (모델 기본값 — 비용은 늘지만 동작 우선)
- *   3. google providerOptions 통째 제거 (safetySettings 등 다른 필드 거절까지 방어)
- * 성공한 칸은 인스턴스 수명 동안 기억(memo)해 이후 요청은 실패 왕복 없이 바로 그 칸으로.
+ * 대신 파라미터를 한 단계씩 낮춰 재시도하는 사다리로 어떤 세대가 와도 살아남는다.
+ * 칸(mitigation)은 4종이고, **적용 가능한 것만** 골라 «해가 적은 순서» 로 조합한다:
+ *   - strip        : temperature/topP/topK 제거 (비용 영향 0 — 그래서 가장 먼저)
+ *   - minimal      : thinkingLevel:"minimal" (신세대 체계, 생각 최소화로 비용 억제)
+ *   - dropThinking : thinkingConfig 제거 (모델 기본값 — 비용 늘지만 동작 우선)
+ *   - dropGoogle   : google providerOptions 통째 제거 (safetySettings 등까지 방어, SDK 전용)
+ *
+ * ⚠️ 사다리 순서 설계 근거(중요 — 함부로 바꾸지 마라):
+ *  ① strip 을 thinking 칸보다 **앞**에 둔다: 무시되는 파라미터를 떼는 건 비용·품질 손실이
+ *     0 인데, thinking 칸은 강등될수록 생각 토큰이 늘어 **돈이 든다**. 새 세대가 샘플링만
+ *     거절하는 경우(=지금 예고된 상황) 첫 강등에서 끝나므로 thinking 설정이 보존된다.
+ *  ② memo 는 «성공한 칸» 에만 커밋한다. 7-23 형(thinking 거절) 상황에서 strip 칸은
+ *     그대로 실패하므로 memo 에 남지 않는다 → **온도가 아직 유효한 세대에서 온도를
+ *     엉뚱하게 떼어버리는 일이 없다**(번역 충실도 회귀 방지).
+ *  ③ 두 가지가 동시에 거절될 수 있으므로 조합 칸(minimal+strip 등)까지 열거한다.
+ *
+ * memo 는 «칸 번호» 가 아니라 «적용한 mitigation 집합의 키» 다. 호출부마다 파라미터 모양이
+ * 달라(어떤 곳은 thinkingConfig 없고 어떤 곳은 temperature 없음) 사다리 길이가 다르기
+ * 때문에, 번호로 기억하면 A 호출부의 3번이 B 호출부의 3번과 다른 뜻이 된다.
  * 강등 발생 시 console.error 로 크게 남긴다(로그 = 세대 교체 감지 신호).
  */
 
@@ -30,47 +49,90 @@ export function isParamRejection(err: any): boolean {
 
 type Params = Record<string, any>;
 
-function cloneWithGoogle(params: Params): { next: Params; google: Record<string, any> | null } {
-  const g = params?.providerOptions?.google;
-  if (!g || typeof g !== "object") return { next: params, google: null };
-  const google = { ...g };
-  return {
-    next: { ...params, providerOptions: { ...params.providerOptions, google } },
-    google,
-  };
+/** 폐기된 샘플링 파라미터 이름 — SDK(camelCase)·REST(camelCase) 공통. */
+const SAMPLING_KEYS = ["temperature", "topP", "topK", "top_p", "top_k"] as const;
+
+/** 이 객체에 폐기 대상 샘플링 파라미터가 하나라도 있나. */
+function hasSampling(obj: any): boolean {
+  if (!obj || typeof obj !== "object") return false;
+  return SAMPLING_KEYS.some((k) => obj[k] !== undefined);
 }
 
-// SDK(ai/@ai-sdk-google) 파라미터용 사다리. 바꿀 게 없으면 이전 칸과 동일 객체를 반환한다
-// (호출부가 중복 시도를 건너뛸 수 있게).
-const SDK_LADDER: Array<(p: Params) => Params> = [
-  (p) => p,
-  (p) => {
-    const { next, google } = cloneWithGoogle(p);
-    if (!google || !google.thinkingConfig) return p;
-    google.thinkingConfig = { thinkingLevel: "minimal" };
-    return next;
-  },
-  (p) => {
-    const { next, google } = cloneWithGoogle(p);
-    if (!google || !google.thinkingConfig) return p;
-    delete google.thinkingConfig;
-    return next;
-  },
-  (p) => {
-    if (!p?.providerOptions?.google) return p;
-    const providerOptions = { ...p.providerOptions };
-    delete providerOptions.google;
-    return { ...p, providerOptions };
-  },
-];
+/** 샘플링 파라미터만 뺀 얕은 복사. 뺄 게 없으면 **같은 객체**를 그대로 돌려준다. */
+function withoutSampling<T extends Params>(obj: T): T {
+  if (!hasSampling(obj)) return obj;
+  const next: Params = { ...obj };
+  for (const k of SAMPLING_KEYS) delete next[k];
+  return next as T;
+}
 
-// 서버리스 인스턴스 수명 동안 유지되는 "현재 작동 칸".
-let sdkMemoRung = 0;
+type Mitigation = "strip" | "minimal" | "dropThinking" | "dropGoogle";
+
+/** 조합 키 — memo 비교용 안정 문자열. 빈 집합(원본)은 "none". */
+function keyOf(set: readonly Mitigation[]): string {
+  return set.length === 0 ? "none" : set.join("+");
+}
+
+/**
+ * 이 파라미터 모양에 **실제로 적용 가능한** 칸만 골라 해가 적은 순서로 나열한다.
+ * (적용 불가한 칸을 남기면 아무것도 안 바뀐 요청을 또 보내 왕복만 버린다.)
+ */
+function buildLadder(opts: {
+  sampling: boolean;
+  thinking: boolean;
+  google: boolean;
+}): Mitigation[][] {
+  const { sampling, thinking, google } = opts;
+  const ladder: Mitigation[][] = [[]]; // 0번은 항상 «원본 그대로»
+  if (sampling) ladder.push(["strip"]);
+  if (thinking) {
+    ladder.push(["minimal"]);
+    if (sampling) ladder.push(["minimal", "strip"]);
+    ladder.push(["dropThinking"]);
+    if (sampling) ladder.push(["dropThinking", "strip"]);
+  }
+  if (google) {
+    ladder.push(["dropGoogle"]);
+    if (sampling) ladder.push(["dropGoogle", "strip"]);
+  }
+  return ladder;
+}
+
+// ── SDK(ai / @ai-sdk-google) 경로 ──────────────────────────────────────────
+// 샘플링 파라미터는 generateText 파라미터 **최상위**(temperature: 0.1)에 있고,
+// thinking 설정은 providerOptions.google.thinkingConfig 에 있다.
+
+function applySdk(params: Params, set: readonly Mitigation[]): Params {
+  let next: Params = params;
+
+  if (set.includes("dropGoogle")) {
+    if (next?.providerOptions?.google) {
+      const providerOptions = { ...next.providerOptions };
+      delete providerOptions.google;
+      next = { ...next, providerOptions };
+    }
+  } else if (set.includes("minimal") || set.includes("dropThinking")) {
+    const g = next?.providerOptions?.google;
+    if (g && typeof g === "object" && g.thinkingConfig) {
+      const google = { ...g };
+      if (set.includes("minimal")) google.thinkingConfig = { thinkingLevel: "minimal" };
+      else delete google.thinkingConfig;
+      next = { ...next, providerOptions: { ...next.providerOptions, google } };
+    }
+  }
+
+  if (set.includes("strip")) next = withoutSampling(next);
+  return next;
+}
+
+// 서버리스 인스턴스 수명 동안 유지되는 "현재 작동 칸"(mitigation 집합 키).
+let sdkMemoKey = "none";
+let restMemoKey = "none";
 
 /** 테스트용 리셋. */
 export function _resetThinkingCompat() {
-  sdkMemoRung = 0;
-  restMemoRung = 0;
+  sdkMemoKey = "none";
+  restMemoKey = "none";
 }
 
 /**
@@ -82,78 +144,109 @@ export async function callGeminiWithCompat<T>(
   fn: (params: Params) => Promise<T>,
   params: Params
 ): Promise<T> {
+  const ladder = buildLadder({
+    sampling: hasSampling(params),
+    thinking: !!params?.providerOptions?.google?.thinkingConfig,
+    google: !!params?.providerOptions?.google,
+  });
+
+  // memo 된 칸이 이 모양에도 있으면 거기서 출발(실패 왕복 생략). 없으면 처음부터.
+  const start = Math.max(
+    0,
+    ladder.findIndex((s) => keyOf(s) === sdkMemoKey)
+  );
+
   let lastErr: any = null;
-  let prevApplied: Params | null = null;
-  for (let rung = sdkMemoRung; rung < SDK_LADDER.length; rung++) {
-    const applied = SDK_LADDER[rung](params);
-    // 이 칸이 이전 칸과 동일(바꿀 게 없음)이면 헛시도 생략
-    if (prevApplied !== null && applied === prevApplied) continue;
-    prevApplied = applied;
+  for (let i = start; i < ladder.length; i++) {
+    const set = ladder[i];
     try {
-      const out = await fn(applied);
-      if (rung !== sdkMemoRung) {
+      const out = await fn(applySdk(params, set));
+      const key = keyOf(set);
+      if (key !== sdkMemoKey) {
         console.error(
-          `[geminiCompat] 파라미터 사다리 강등 ${sdkMemoRung}→${rung} 로 복구 — ` +
-            `gemini-flash-latest 별칭 세대 교체 감지. thinking 설정 정리 필요.`
+          `[geminiCompat] 파라미터 사다리 강등 "${sdkMemoKey}"→"${key}" 로 복구 — ` +
+            `gemini-flash-latest 별칭 세대 교체 감지. 해당 파라미터 정리 필요.`
         );
-        sdkMemoRung = rung;
+        sdkMemoKey = key;
       }
       return out;
     } catch (e: any) {
       if (!isParamRejection(e)) throw e;
       lastErr = e;
       console.warn(
-        `[geminiCompat] rung ${rung} 거절: ${String(e?.message || e).slice(0, 100)}`
+        `[geminiCompat] 칸 "${keyOf(set)}" 거절: ${String(e?.message || e).slice(0, 100)}`
       );
     }
   }
   throw lastErr;
 }
 
-// ── REST 직호출(triage·caseBrief·translateDoc) 용 ──────────────────────────
-// body.generationConfig.thinkingConfig 에 같은 사다리를 적용한다.
+// ── REST 직호출(triage·caseBrief·translateDoc 등) 용 ────────────────────────
+// thinking·샘플링 모두 body.generationConfig 안에 있다.
 
-let restMemoRung = 0;
-
-function applyRestRung(body: any, rung: number): any {
+function applyRest(body: any, set: readonly Mitigation[]): any {
   const gc = body?.generationConfig;
-  if (!gc || typeof gc !== "object" || !gc.thinkingConfig) return body;
-  if (rung === 0) return body;
-  const generationConfig = { ...gc };
-  if (rung === 1) {
-    generationConfig.thinkingConfig = { thinkingLevel: "minimal" };
-  } else {
-    delete generationConfig.thinkingConfig;
+  if (!gc || typeof gc !== "object") return body;
+  let generationConfig: Params = gc;
+
+  if (set.includes("minimal") || set.includes("dropThinking")) {
+    if (generationConfig.thinkingConfig) {
+      generationConfig = { ...generationConfig };
+      if (set.includes("minimal")) generationConfig.thinkingConfig = { thinkingLevel: "minimal" };
+      else delete generationConfig.thinkingConfig;
+    }
   }
-  return { ...body, generationConfig };
+  if (set.includes("strip")) generationConfig = withoutSampling(generationConfig);
+
+  return generationConfig === gc ? body : { ...body, generationConfig };
 }
 
-const REST_MAX_RUNG = 2;
-
 /**
- * Gemini REST 직호출용 fetch 래퍼 — 400(파라미터 거절)이면 thinking 설정을 강등해 재시도.
+ * Gemini REST 직호출용 fetch 래퍼 — 400(파라미터 거절)이면 설정을 강등해 재시도.
  * 400 이외의 실패 응답은 그대로 반환(호출부의 res.ok 처리 유지).
+ *
+ * `init` 으로 signal 등 추가 fetch 옵션을 넘길 수 있다(자동화·cron 경로의
+ * `AbortSignal.timeout` 보존용 — 안 받으면 감싸는 순간 타임아웃이 사라진다).
+ * ⚠️ signal 은 사다리 재시도 전체에 공유된다 = 타임아웃이 «총 예산» 으로 동작한다.
+ *    강등 왕복마다 시계를 리셋해 무한정 늘어나는 것보다 안전하다는 판단.
  */
-export async function fetchGeminiWithCompat(url: string, body: any): Promise<Response> {
+export async function fetchGeminiWithCompat(
+  url: string,
+  body: any,
+  init?: Omit<RequestInit, "method" | "body">
+): Promise<Response> {
+  const ladder = buildLadder({
+    sampling: hasSampling(body?.generationConfig),
+    thinking: !!body?.generationConfig?.thinkingConfig,
+    google: false, // REST 에는 providerOptions 개념이 없다
+  });
+  const start = Math.max(
+    0,
+    ladder.findIndex((s) => keyOf(s) === restMemoKey)
+  );
+
   let res: Response | null = null;
-  for (let rung = restMemoRung; rung <= REST_MAX_RUNG; rung++) {
+  for (let i = start; i < ladder.length; i++) {
+    const set = ladder[i];
     res = await fetch(url, {
+      ...init,
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(applyRestRung(body, rung)),
+      headers: { "Content-Type": "application/json", ...(init?.headers as any) },
+      body: JSON.stringify(applyRest(body, set)),
     });
     if (res.status !== 400) {
       // memo 커밋은 "성공 증거(2xx)"가 있을 때만 — 강등 도중 만난 5xx·429 로 칸을 고착하면
       // 이후 모든 REST 호출이 근거 없이 강등된 설정으로 나간다(독립 리뷰 F2).
-      if (res.ok && rung !== restMemoRung) {
+      const key = keyOf(set);
+      if (res.ok && key !== restMemoKey) {
         console.error(
-          `[geminiCompat] REST 사다리 강등 ${restMemoRung}→${rung} 로 복구 — 별칭 세대 교체 감지.`
+          `[geminiCompat] REST 사다리 강등 "${restMemoKey}"→"${key}" 로 복구 — 별칭 세대 교체 감지.`
         );
-        restMemoRung = rung;
+        restMemoKey = key;
       }
       return res;
     }
-    console.warn(`[geminiCompat] REST rung ${rung} → 400, 다음 칸으로`);
+    console.warn(`[geminiCompat] REST 칸 "${keyOf(set)}" → 400, 다음 칸으로`);
   }
   return res as Response;
 }

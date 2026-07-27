@@ -167,8 +167,12 @@ export async function assessSymptomTextRisk(
     try {
       const { google } = await import("@ai-sdk/google");
       const { generateText } = await import("ai");
-      const { text: aiResponse } = await generateText({
-        model: google("gemini-2.0-flash-lite"),
+      const { callGeminiWithCompat } = await import("@/lib/ai/geminiThinkingCompat");
+      // ⚠️ 2026-07-25 수정: 여기 있던 `gemini-2.0-flash-lite` 는 **2026-06-01 종료된 모델**이라
+      //    (구글 deprecations 문서) 이 AI 평가는 그동안 조용히 실패해 아래 rule-based 폴백만
+      //    돌고 있었다. 별칭으로 교체 — CLAUDE.md 의 "모델 임의 고정 금지" 방침과도 일치.
+      const { text: aiResponse } = await callGeminiWithCompat((p) => generateText(p as any), {
+        model: google("gemini-flash-latest") as any,
         prompt: `당신은 의료 코디네이터 보조 시스템입니다.
 아래 환자의 증상 텍스트를 읽고 위험도를 평가하세요.
 응답은 반드시 JSON 형식: { "severity": "low"|"medium"|"high"|"critical", "reasoning": "한 줄 근거" }
