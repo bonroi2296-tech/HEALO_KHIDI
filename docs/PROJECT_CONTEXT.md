@@ -29,7 +29,11 @@
 >
 > **3. 안 끝났거나 보류**
 > · **`NotFoundError`(insertBefore/removeChild) 8건 — 미해결·의도적 보류.** 상담방 3건은 **100% Edge·Windows·서울·네이버웍스 초대링크**, 전부 «방 나가는 순간». 홈 1건은 러시아어 페이지를 한국어 크롬으로 볼 때. 원인이 «브라우저 자동번역» 인지 우리 코드인지 **지금 데이터로는 못 가른다** → 단정 대신 판별 태그를 심었다. **다음 상담 1건이면 자동 판정된다. 그 전에 추측으로 고치지 마라.**
-> · **센트리 소스맵 — PO 손 2건 대기.** Vercel 환경변수에 `NEXT_PUBLIC_SENTRY_DSN` **하나뿐**이라 소스맵 업로드가 **애초에 한 번도 안 돌았다**(스택이 `vendor-xxx.js:492:196017` 암호문인 진짜 이유). 필요: ①Sentry↔GitHub 연동 완료(2단계 중 1단계만 됨) ②`SENTRY_ORG=bonroi` · `SENTRY_PROJECT=javascript-nextjs` · `SENTRY_AUTH_TOKEN`(토큰은 어시가 다루면 안 되는 값 → PO 발급).
+> · **센트리 소스맵 — PO 손 2건 대기 (PO: "나중에 해볼게", 2026-07-27 밤 — 재촉하지 마라).** Vercel 환경변수에 `NEXT_PUBLIC_SENTRY_DSN` **하나뿐**이라 소스맵 업로드가 **애초에 한 번도 안 돌았다**(스택이 `vendor-xxx.js:492:196017` 암호문인 진짜 이유). 필요: ①Sentry↔GitHub 연동 ②`SENTRY_ORG=bonroi` · `SENTRY_PROJECT=javascript-nextjs` · `SENTRY_AUTH_TOKEN`(토큰은 어시가 다루면 안 되는 값 → PO 발급).
+>   - **📝 정정**: 세션 중 내가 *"2단계 중 1단계(승인)는 됐다"* 고 보고했는데 **그건 화면만 보고 한 추측이었고 틀렸다.** PO 가 되물어 재확인하니 **1단계 흔적도 없다** — 독립된 3군데가 전부 일치: ⓐSentry `Not Installed`(Configurations 탭도 비어 있음) ⓑGitHub → **Installed GitHub Apps** = Claude·Claude Design Import·Codemagic·Cursor·Vercel (**Sentry 없음**) ⓒGitHub → **Authorized OAuth Apps** = Git Credential Manager·GitHub Android·GitHub CLI·GitHub Desktop·Supabase (**Sentry 없음**). ※`Authorized GitHub Apps` 탭은 2단계 인증을 요구해 어시가 못 엶 — 하지만 «설치 안 됨»은 위 둘로 이미 확정.
+>   - **유력 원인**: Sentry 가 승인 화면을 **새 창(팝업)** 으로 띄우는데 **브라우저 팝업 차단**에 걸렸을 가능성. (어시가 클릭을 두 번 걸어 창이 여러 개 떴을 수도 있음.)
+>   - **다시 할 때 순서(각각 다른 창이라 중간에 끊기기 쉽다)**: ①주소창 오른쪽 팝업 차단 아이콘에서 `sentry.io` 허용 ②`https://bonroi.sentry.io/settings/integrations/github/` → 우상단 **Add Installation** ③작은 창의 **Authorize GitHub** ④**새 창**의 초록 **Authorize Sentry** ⑤저장소 선택 화면 → *Only select repositories* → `HEALO_KHIDI` → **Install** ⑥**끝난 표시 = Sentry 화면이 `Not Installed` 에서 저장소 목록으로 바뀜.**
+>   - ⚠️ **어시는 여기까지만.** OAuth 승인·2단계 인증은 PO 몫이고, 팝업은 어시 도구 범위(탭 그룹) 밖이라 못 누른다.
 > · **`/agency`·`/clinic`·`/notifications` 색인 여부 — PO 판단 대기.** 검색엔진이 200 을 받는데 `PUBLIC_PREFIXES` 밖이라 다국어 URL·hreflang 이 없는 중간 상태. 파트너 유입용이면 공개 경로에 넣고, 아니면 `noindex`. `KNOWN_ISSUES.md` 에 항목으로 있음.
 > · **안드로이드 3차 빌드 — 다른 세션 소관, 손대지 않음.** Codemagic 빌드 **#2 = 실패 확정**(`./gradlew: Permission denied`, exit 126, 커밋 `9f0c1b5`). 그걸 고친 커밋 `7d5d92a2`(gradlew 실행권한)는 **아직 한 번도 안 돌았다.** iOS 는 **#4 성공**(`App.ipa` 산출). 브랜치 `claude/app-registration-4sj2l7` 은 이 세션 도중에도 다른 세션이 커밋 중이었다.
 >
