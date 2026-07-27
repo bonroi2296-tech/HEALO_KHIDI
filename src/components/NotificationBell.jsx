@@ -11,7 +11,8 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Bell, X } from 'lucide-react';
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser';
-import { getLangCodeFromCookie, t } from '@/lib/i18n';
+import { t } from '@/lib/i18n';
+import { useLang } from '@/lib/i18n/LangContext';
 
 // 상대 시간 (간단) — 외부 라이브러리 없이. 단위 라벨은 중앙 사전(notifBell.ago*).
 function ago(iso, lang) {
@@ -28,7 +29,8 @@ function ago(iso, lang) {
  */
 export default function NotificationBell({ variant = 'fixed' }) {
   const router = useRouter();
-  const lang = getLangCodeFromCookie?.() || 'en';
+  // 렌더 중 쿠키 읽기 금지(서버='en' vs 브라우저='ko' → Hydration Error). useLang 은 안전.
+  const lang = useLang();
   const [items, setItems] = useState([]);
   const [open, setOpen] = useState(false);
   const panelRef = useRef(null);

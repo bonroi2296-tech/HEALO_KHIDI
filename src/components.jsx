@@ -134,7 +134,9 @@ export const Header = ({ setView, view, _handleGlobalInquiry, isMobileMenuOpen, 
   // user_metadata.role은 클라이언트가 고칠 수 있어 어드민 판정에 사용 금지.
   // 서버측 단일 소스는 app_metadata.role. (ADMIN_EMAIL_ALLOWLIST는 서버에서만 체크)
   const isAdmin = session?.user?.app_metadata?.role === 'admin';
-  const langCode = langCodeProp ?? getLangCodeFromCookie();
+  // 폴백도 렌더 중 쿠키 읽기 금지(서버 'en' vs 브라우저 'ko' → Hydration Error). useLang 은 안전.
+  const ctxLang = useLang();
+  const langCode = langCodeProp ?? ctxLang;
   const langRef = useOutsideClose(isLangOpen, () => setIsLangOpen(false));
   const LANG_OPTIONS = I18N_LANG_OPTIONS;
 
