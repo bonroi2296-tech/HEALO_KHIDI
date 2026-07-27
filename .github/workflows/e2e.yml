@@ -294,6 +294,10 @@ jobs:
           # 로봇 통화 스펙(안전망 ②)은 프로덕션 야간 잡에서만 — Full E2E 의 로컬 dev 서버엔
           # LiveKit env 가 없어 게스트 입장이 구조적으로 503 (독립 리뷰 적발)
           E2E_ROBOT_CALL: "1"
+          # 통역봇 실참여 검증(로봇 통화 5단계). 봇 워커가 죽으면 아침에 빨간불로 잡힌다.
+          # ⚠️ 통역을 의도적으로 끄면(LIVE_TRANSLATE_ENABLED=false) 여기도 "0" 으로 내려라 —
+          #    안 그러면 매일 밤 «봇 없음» 으로 헛경보가 뜬다.
+          E2E_INTERPRETER: "1"
           E2E_TEST_USER_EMAIL: ${{ secrets.E2E_TEST_USER_EMAIL }}
           E2E_TEST_USER_PASSWORD: ${{ secrets.E2E_TEST_USER_PASSWORD }}
           E2E_ADMIN_EMAIL: ${{ secrets.E2E_ADMIN_EMAIL }}
