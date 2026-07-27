@@ -160,11 +160,14 @@ export default function ConversionDashboard() {
                 <div key={s.key} className="flex items-center gap-3">
                   <div className="w-28 text-sm text-gray-600 shrink-0">{s.label}</div>
                   <div className="flex-1 bg-gray-100 rounded-lg overflow-hidden h-9 relative">
+                    {/* 라벨 대비 수정: gray-900 on teal-700 = 3.24:1 (AA 미달) → 흰 글씨 5.47:1.
+                        minWidth 는 숫자 라벨이 항상 «채워진 막대 위»에 놓이게 보장한다 —
+                        없으면 막대가 짧을 때 라벨이 회색 트랙으로 삐져나와 흰 글씨가 안 보인다. */}
                     <div
                       className="h-full bg-teal-700 rounded-lg transition-all"
-                      style={{ width: `${Math.max(4, (s.count / maxCount) * 100)}%` }}
+                      style={{ width: `${Math.max(4, (s.count / maxCount) * 100)}%`, minWidth: "3.5rem" }}
                     />
-                    <span className="absolute inset-y-0 left-3 flex items-center text-sm font-bold text-gray-900">
+                    <span className="absolute inset-y-0 left-3 flex items-center text-sm font-bold text-white">
                       {s.count.toLocaleString()}
                     </span>
                   </div>

@@ -560,7 +560,7 @@ export default function HospitalsPage() {
         <button
           onClick={() => setActiveTab("accounts")}
           className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition ${
-            activeTab === "accounts" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500 hover:text-gray-700"
+            activeTab === "accounts" ? "bg-white text-gray-900 shadow-sm" : "text-gray-600 hover:text-gray-700"
           }`}
         >
           <Users size={16} />

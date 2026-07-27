@@ -326,19 +326,19 @@ export const HospitalManager = ({
             onClick={() => setStatusFilter('all')}
             className={`px-2.5 py-1 rounded-md transition font-medium ${statusFilter === 'all' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600'}`}
           >
-            전체 <span className="text-gray-500">{hospitalsList.length}</span>
+            전체 <span className="text-gray-600">{hospitalsList.length}</span>
           </button>
           <button
             onClick={() => setStatusFilter('published')}
-            className={`px-2.5 py-1 rounded-md transition font-medium flex items-center gap-1 ${statusFilter === 'published' ? 'bg-white text-green-700 shadow-sm' : 'text-gray-500'}`}
+            className={`px-2.5 py-1 rounded-md transition font-medium flex items-center gap-1 ${statusFilter === 'published' ? 'bg-white text-green-700 shadow-sm' : 'text-gray-600'}`}
           >
-            <Eye size={11} /> 공개 <span className="text-gray-500">{publishedCount}</span>
+            <Eye size={11} /> 공개 <span className="text-gray-600">{publishedCount}</span>
           </button>
           <button
             onClick={() => setStatusFilter('unpublished')}
-            className={`px-2.5 py-1 rounded-md transition font-medium flex items-center gap-1 ${statusFilter === 'unpublished' ? 'bg-white text-orange-600 shadow-sm' : 'text-gray-500'}`}
+            className={`px-2.5 py-1 rounded-md transition font-medium flex items-center gap-1 ${statusFilter === 'unpublished' ? 'bg-white text-orange-600 shadow-sm' : 'text-gray-600'}`}
           >
-            <EyeOff size={11} /> 숨김 <span className="text-gray-500">{unpublishedCount}</span>
+            <EyeOff size={11} /> 숨김 <span className="text-gray-600">{unpublishedCount}</span>
           </button>
         </div>
 

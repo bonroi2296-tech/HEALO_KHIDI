@@ -200,7 +200,8 @@ export default function CoordinatorDashboard() {
           <AlertTriangle size={20} className="text-red-600" />
           <div>
             <div className="font-semibold text-sm text-red-900">{L.statUrgentAlerts}</div>
-            <div className="text-xs text-red-600">{L.qaAlertDesc}</div>
+            {/* red-50 배경 위 red-600 = 4.41:1 (AA 미달) → red-700 5.91:1 */}
+            <div className="text-xs text-red-700">{L.qaAlertDesc}</div>
           </div>
         </button>
       </div>
