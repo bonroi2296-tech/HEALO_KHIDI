@@ -1,12 +1,21 @@
 # HEALO KHIDI — 알려진 이슈 / 전수 QA 발견사항
 
-## 🟡 환자 포털(`/patient/*`) 첫 화면이 **서버에서 영어로 그려진다** — 하이드레이션 뒤에야 제 언어로 바뀜(영문 깜빡임) (2026-07-27, PR #1046 독립 리뷰가 발견)
+## ~~🟡 환자 포털(`/patient/*`) 첫 화면이 서버에서 영어로 그려진다(영문 깜빡임)~~ ✅ **해결 (2026-07-27, [#1047](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/1047))**
 
-- **현상**: 한국어·러시아어 환자가 `/patient/*` 를 열면 첫 프레임이 영어고, 브라우저 JS 가 붙은 뒤 자기 언어로 바뀐다.
-- **원인(확정)**: `proxy.ts` 의 `PUBLIC_PREFIXES` 에 `/patient` 가 없어 `x-locale` 헤더가 안 붙는다 → `app/layout.jsx` 의 `lang` 이 `"en"` → `LangProvider initialLang="en"`. 서버는 언어를 모르는 채로 그린다.
-- **회귀 아님**: 반성문 #133 이전에도 서버는 영어였다(거기에 하이드레이션 에러까지 얹혀 있었을 뿐). #133 으로 **에러는 없어졌고 깜빡임만 남았다.**
-- **고칠 방향**: `app/layout.jsx` 가 이미 `cookies().get("healo_lang")` 을 읽고 있으니, `x-locale` 이 없을 때만 그 쿠키를 `initialLang` 으로 쓰면 닫힌다. ⚠️ 공개 경로는 SEO 때문에 URL 로케일 우선을 유지해야 하므로 **포털 경로에만** 적용할 것.
-- 영향: 로그인한 환자만(공개 페이지·`/inquiry` 는 이미 서버부터 올바른 언어). SEO 무관(포털은 noindex).
+- **현상이었던 것**: 한국어·러시아어 환자가 `/patient/*` 를 열면 첫 프레임이 영어고, 브라우저 JS 가 붙은 뒤 자기 언어로 바뀌었다.
+- **원인(확정)**: `proxy.ts` 의 `PUBLIC_PREFIXES` 에 `/patient` 가 없어 `x-locale` 헤더가 안 붙는다 → `app/layout.jsx` 의 `lang` 이 `"en"` → `LangProvider initialLang="en"`.
+- **고친 방법**: `x-locale` 이 **없을 때만** `healo_lang` 쿠키를 서버 렌더 언어로 쓴다. 검증 기준은 **`LOCALES`(활성 6개)** 다 — `LANG_OPTIONS`(21개)가 아니다(아래 함정).
+  - ⚠️ **적용 범위는 «포털만» 이 아니다**(이 항목의 원래 계획과 다르니 적어둔다): `x-locale` 없는 **모든** 경로 — `/patient`·`/admin` 외에 `/login`·`/signup`·`/agency`·`/clinic`·`/notifications`·`/consultation/*`·`/survey/[token]`·404 등도 포함된다. 전부 방문자 본인에게 자기 언어로 보이는 게 맞는 화면이라 의도된 결과다.
+- **SEO 불변인 근거(전수 확인)**: ①`app/sitemap.js` 가 내보내는 URL 은 전부 `PUBLIC_PREFIXES` 안이거나 레거시 랜딩이라 **색인 대상엔 항상 `x-locale` 이 붙는다**(이 분기를 안 탐) ②`x-locale` 이 없으면 `localeAlternates()` 가 `null` → canonical/hreflang 자체가 안 나감 ③검색봇은 쿠키가 없어 `en`.
+- **⚠️ 함정 (독립 리뷰가 잡음)**: `LANG_OPTIONS` 는 **21개 언어**인데 `HTML_LANG`(`<html lang>` 매핑)은 **6개**뿐이다. 21개 기준으로 검증하면 옛 `healo_lang=vi`·`ar` 쿠키(1년짜리로 심겼고 실제로 남아 있다)에서 **본문은 베트남어인데 `<html lang="en">`** 이 된다 → 그 불일치가 **브라우저 자동번역을 부르는 조건**이고, 자동번역은 아직 못 닫은 `NotFoundError` 8건(POSTMORTEMS #133)의 유력 용의자다. `check:content` 에 **`HTML_LANG` ⊇ `LOCALES` 가드**를 신설해 영구 차단(가드가 실제로 무는 것까지 확인).
+- **실측**: 활성 6개어 ko→`ko`·en→`en`·ru→`ru`·kz→`kk`·zh→`zh`·ja→`ja`. 옛 21개어 쿠키(vi·ar·th·id·es·fr·de·mn·uz) **전부 `en` 폴백** + 본문도 영어(일관) + `vi` 사전은 그대로 주입돼 하이드레이션 후 빈칸 없음. 공개 경로(`/ru`·`/kz`·`/en`)는 쿠키와 무관하게 URL 언어 유지.
+- 캐시 영향 없음: 루트 레이아웃은 이 변경 **이전에도** `cookies()` 를 부르고 있어 이미 전 라우트가 동적 렌더였다(git + `prerender-manifest.json` 으로 확인). 🔸 다만 어디에도 `Vary: Cookie` 가 없으므로, **나중에 HTML 엣지 캐시 룰을 넣는다면** 그때 반드시 같이 넣어야 한다(안 그러면 사용자 간 언어 유출).
+
+## 🔸 `/agency`·`/clinic`·`/notifications` 는 색인 가능한데 `PUBLIC_PREFIXES` 밖이다 — 의도인지 확인 필요 (2026-07-27, PR #1047 독립 리뷰가 발견)
+
+- 이 3개는 `robots:{index:false}` 도 없고 `app/robots.js` 의 `commonDisallow` 에도 없고 `proxy.ts` 인증 게이트에도 안 걸린다 → **크롤러가 200 을 받는다.** 그런데 `PUBLIC_PREFIXES` 밖이라 URL 언어화·`hreflang` 대상이 아니다.
+- 지금 실害는 없다(sitemap 에 없어 제출도 안 되고, 봇은 쿠키가 없어 `en` 으로 본다). 다만 **파트너 유입용으로 쓰려면 `PUBLIC_PREFIXES` 에 넣어 6개어 URL 을 만들어야 하고, 아니면 `noindex` 를 박는 게 맞다.** 지금은 어느 쪽도 아닌 중간 상태.
+- PO 판단 필요: `/agency`·`/clinic` 을 검색에 노출할 것인가?
 
 ## 🧊 **하지 말 것 2건 — 그럴듯한데 근거가 없거나 이미 실패한 안** (2026-07-27, PO가 "판단해보라"고 지시해서 검증)
 

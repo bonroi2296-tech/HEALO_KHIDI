@@ -2151,6 +2151,39 @@ const BACKOFFICE_SHARED = [
   }
 }
 
+// ── <html lang> 매핑이 활성 6개 언어를 전부 덮는가 (2026-07-27, PR #1047 독립 리뷰 발견) ──
+// app/layout.jsx 의 HTML_LANG 은 우리 내부코드(kz) → BCP47(kk) 변환표다. 이게 LOCALES 보다
+// 좁으면 「본문은 그 언어인데 <html lang> 은 en」 이 되고, 그 불일치는 브라우저 자동번역을
+// 부르는 조건이다 — 자동번역은 아직 못 닫은 NotFoundError(POSTMORTEMS #133)의 유력 용의자.
+// 실제로 언어 검증을 LANG_OPTIONS(21개)로 하는 바람에 15개 코드가 매핑 없이 새던 것을 잡았다.
+{
+  try {
+    const layoutSrc = readFileSync(join(ROOT, "app/layout.jsx"), "utf8");
+    const m = /const HTML_LANG = \{([^}]*)\}/.exec(layoutSrc);
+    if (!m) {
+      errors.push(`[html-lang] app/layout.jsx 에서 HTML_LANG 을 못 찾았다 — 이 가드가 무력화됐다. 룰을 고칠 것.`);
+    } else {
+      const mapped = new Set([...m[1].matchAll(/(\w+)\s*:/g)].map((x) => x[1]));
+      const cfg = readFileSync(join(ROOT, "src/lib/i18n/config.js"), "utf8");
+      const lm = /export const LOCALES = \[([^\]]*)\]/.exec(cfg);
+      const locales = lm ? [...lm[1].matchAll(/"([a-z]{2})"/g)].map((x) => x[1]) : [];
+      const missing = locales.filter((l) => !mapped.has(l));
+      if (missing.length) {
+        errors.push(
+          `[html-lang] app/layout.jsx 의 HTML_LANG 에 활성 언어 ${missing.join("·")} 매핑 없음 → ` +
+            `그 언어로 본문이 나가는데 <html lang> 은 en 으로 찍힌다(브라우저 자동번역 유발, POSTMORTEMS #133). HTML_LANG 에 추가할 것.`
+        );
+      }
+      // 반대 방향: 서버 렌더 언어 검증은 LOCALES(6) 기준이어야 한다. LANG_OPTIONS(21)로 하면 위 불일치가 되살아난다.
+      if (/const ssrLang = LANG_OPTIONS/.test(layoutSrc)) {
+        errors.push(`[html-lang] app/layout.jsx 의 서버 렌더 언어 검증이 LANG_OPTIONS(21개) 기준이다 — LOCALES(활성 6개)로 할 것. 옛 언어 쿠키(vi·ar 등)가 <html lang="en"> + 그 언어 본문을 만든다.`);
+      }
+    }
+  } catch (e) {
+    errors.push(`[html-lang] 검사 실패: ${e.message}`);
+  }
+}
+
 // ── 결과 ────────────────────────────────────────────────────────
 if (errors.length) {
   console.error(`\n❌ 콘텐츠 일관성 검사 실패 (${errors.length}건)\n`);
