@@ -4,7 +4,8 @@ type SourceType =
   | "review"
   | "normalized_inquiry"
   | "policy"
-  | "faq";
+  | "faq"
+  | "center_menu";
 
 type BuildInput = {
   source_type: SourceType;
@@ -128,6 +129,40 @@ export const buildDocument = (sourceType: SourceType, row: any): BuildInput => {
         source_type: sourceType,
         source_id: row.id,
         lang: row?.language || "en",
+        title,
+        content,
+      };
+    }
+    case "center_menu": {
+      // row = fetchSourceRows 가 (센터 × 카테고리) 단위로 합쳐 만든 합성 행.
+      // 센터 통짜 1문서가 아니라 카테고리별로 쪼갠 이유: chunkText 가 개행을 죽이고 800자에서
+      // 무자비하게 자른다 → 통짜면 청크가 항목 중간에서 끊겨 "금액만 있고 무슨 항목인지 없는"
+      // 조각이 생기고, 머리에 박은 「국내 비급여가·확정견적 아님」 경고도 첫 청크에만 남는다.
+      // 카테고리 단위면 한 문서 = 한 청크라 경고가 항상 금액과 같이 붙어 다닌다.
+      const items: Array<{ item_name_ko: string; price_krw: number | null }> =
+        row?.items || [];
+      const title = `${row?.center_name_ko} · ${row?.category_ko}`;
+      const content = joinLines([
+        `[${row?.hospital_brand} ${row?.center_name_ko} 센터 메뉴판 | ${row?.category_ko}]`,
+        row?.center_summary_ko ? `센터 소개: ${row.center_summary_ko}` : null,
+        row?.frequency_ko ? `권장 주기: ${row.frequency_ko}` : null,
+        // 이 한 줄이 핵심 안전장치 — 국내 비급여 정가를 외국인 확정견적으로 답하는 걸 막는다.
+        `기준: 국내 비급여 정가(KRW), ${row?.revised_on} 개정, ${row?.hospital_brand} 전지점 공통. 외국인 국제수가나 확정 견적이 아니며 실제 치료계획·금액은 진료 후 결정됨. Korea domestic self-pay list price, NOT a final foreign-patient quote.`,
+        `항목: ${items
+          .map(
+            (it) =>
+              `${it.item_name_ko} ${
+                it.price_krw == null
+                  ? "금액 미기재"
+                  : `${it.price_krw.toLocaleString("ko-KR")}원`
+              }`
+          )
+          .join(" / ")}`,
+      ]);
+      return {
+        source_type: sourceType,
+        source_id: `${row?.center_slug}:${row?.category_ko}`,
+        lang: "ko",
         title,
         content,
       };

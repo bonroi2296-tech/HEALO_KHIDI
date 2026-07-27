@@ -1107,7 +1107,7 @@ const BACKOFFICE_SHARED = [
 {
   const PRIVATE_SEGS = new Set(["admin", "coordinator", "patient", "hospital", "agency", "clinic", "doctor", "api", "auth", "dev", "design-preview", "account"]);
   // 주석(줄·블록) 제거 — 주석 내용이 판정에 끼어들면 안 된다.
-  const stripComments = (s) => s.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
+  const stripComments = (s) => s.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^[^\S\r\n]*\/\/.*/gm, "");
   // 폐기용 껍데기: `export default function X() { redirect("/어디"); }` — 본문이 리다이렉트뿐.
   const SHELL_RE = /export\s+default\s+(?:async\s+)?function\s+\w*\s*\([^)]*\)\s*\{\s*(redirect|permanentRedirect)\s*\(\s*["'`][^"'`]*["'`]\s*\)\s*;?\s*\}/;
   for (const file of walk("app")) {
@@ -1715,6 +1715,66 @@ const BACKOFFICE_SHARED = [
             `\`${replacement}\` 로 교체할 것.`
         );
       }
+    }
+  }
+}
+
+// ── §30) ESM 저장소에서 «정의 없이 쓰는» __dirname/__filename 차단 ─────────────
+// 왜: package.json 이 "type":"module" 이라 이 저장소의 .ts/.js/.mjs 는 전부 ESM 스코프다.
+//     거기서 `__dirname` 은 존재하지 않는다 → 런타임에 `ReferenceError`.
+//     그런데 **tsc 는 통과시킨다**(@types/node 가 전역으로 선언해 둠) → 「타입검사 초록」이
+//     「동작함」을 전혀 보증하지 않는 부류. 2026-07-27 실사고: 야간 로봇 통화 스펙에 이걸
+//     써서 프로덕션 E2E 가 통째로 실패했다. `e2e/fixtures/auth.ts` 에 *이미* 같은 경고
+//     주석이 있었는데도 반복됐다 = 주석은 가드가 아니다.
+// 무엇을 보나: `__dirname`/`__filename` 을 **참조하면서 같은 파일에서 정의하지 않은** 경우.
+//     (정의해서 쓰는 건 정상 — 대부분의 scripts/*.mjs 가 그렇게 한다.)
+// 예외: `*.test.ts`/`*.spec.ts` 중 vitest 로 도는 것은 러너가 주입해 줘서 실제로 동작한다.
+//     단 **Playwright 스펙(e2e/)은 진짜 ESM 이라 예외가 아니다** — 이번에 터진 자리가 거기다.
+{
+  const USE = /(?<![\w$.])(__dirname|__filename)\b/;
+  const DEFINE = /(?:const|let|var)\s+(?:__dirname|__filename)\s*=|\{[^}]*__dirname[^}]*\}\s*=/;
+  // ⚠️ 공용 walk() 를 쓰면 안 된다 — 전역 EXCLUDE 가 `.spec.`·`.test.` 를 걸러내고
+  //    CODE_EXT 에 `.mjs` 가 없다. 그래서 **Playwright 스펙과 scripts/*.mjs 는 이 검사기에
+  //    통째로 안 보인다**(초안이 여기 걸려 «되돌려도 발화 0» 이었다 — 실측으로 드러남).
+  //    이 룰의 표적이 정확히 그 두 부류라, 전용 탐색기로 직접 훑는다.
+  const walkAll = (dir) => {
+    const out = [];
+    let entries;
+    try { entries = readdirSync(join(ROOT, dir)); } catch { return out; }
+    for (const e of entries) {
+      if (/^(node_modules|\.next|archive|\.auth)$/.test(e)) continue;
+      const rel = join(dir, e);
+      let st;
+      try { st = statSync(join(ROOT, rel)); } catch { continue; }
+      if (st.isDirectory()) out.push(...walkAll(rel));
+      else if (/\.(ts|tsx|js|jsx|mjs)$/.test(e)) out.push(rel);
+    }
+    return out;
+  };
+  for (const dir of ["src", "app", "e2e", "scripts"]) {
+    for (const rel of walkAll(dir)) {
+      const path_ = rel.replace(/\\/g, "/");
+      // 검사기 자신 제외 — 룰의 정규식·안내문에 `__dirname` 문자열이 들어 있어 자기를 오탐한다
+      // (§29 와 같은 처리. 첫 실행에서 실제로 자기를 물었다).
+      if (/check-content-consistency/.test(path_)) continue;
+      // vitest 러너가 주입해 주는 단위테스트는 제외(실제로 동작). e2e/ 는 제외 안 함.
+      if (/\.test\.(ts|tsx|js|jsx)$/.test(path_) && !path_.startsWith("e2e/")) continue;
+      let raw;
+      try { raw = readFileSync(join(ROOT, rel), "utf8"); } catch { continue; }
+      // ⚠️ 주석은 걷어내고 판정한다. 초안이 원문 그대로 검사해서, «__dirname 쓰지 마라»고
+      //    경고하는 주석(e2e/fixtures/auth.ts)을 위반으로 오탐했다 — 첫 실행에서 바로 드러남.
+      const stripped = raw.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/.*/gm, "$1");
+      if (!USE.test(stripped) || DEFINE.test(stripped)) continue;
+      const lines = raw.split("\n");
+      const line = lines.findIndex(
+        (l, i) => USE.test(l.replace(/(^|[^:])\/\/.*/, "$1")) && stripped.includes(lines[i].trim().slice(0, 20))
+      );
+      errors.push(
+        `[ESM경로] ${path_}${line >= 0 ? `:${line + 1}` : ""} — 이 저장소는 "type":"module"(ESM) 이라 ` +
+          `\`__dirname\`/\`__filename\` 이 런타임에 없다(ReferenceError). tsc 는 못 잡는다. ` +
+          `\`path.dirname(fileURLToPath(import.meta.url))\` 를 쓸 것 ` +
+          `(예: e2e/fixtures/auth.ts).`
+      );
     }
   }
 }
