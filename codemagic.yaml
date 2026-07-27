@@ -71,7 +71,7 @@ workflows:
 
   android-release:
     name: healwith Android (Google Play)
-    instance_type: linux_x2
+    instance_type: mac_mini_m2   # 무료 플랜에서 linux_x2 불가(2026-07-27 실측) — gradle 은 OS 무관이라 맥에서 빌드
     max_build_duration: 60
     environment:
       groups:
@@ -104,7 +104,7 @@ workflows:
   #    나중에 PR 검증용으로도 그대로 쓸 수 있다.
   android-verify:
     name: healwith Android (빌드 검증 전용 · 서명/업로드 없음)
-    instance_type: linux_x2
+    instance_type: mac_mini_m2   # 무료 플랜에서 linux_x2 불가(2026-07-27 실측) — gradle 은 OS 무관이라 맥에서 빌드
     max_build_duration: 45
     environment:
       node: 22
