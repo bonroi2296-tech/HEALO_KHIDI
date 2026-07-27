@@ -1738,6 +1738,53 @@ for (const dir of BACKOFFICE_DIRS) {
   }
 }
 
+// ── §31) 자동으로 `git push` 하는 도구는 보호 브랜치(main) 가드가 있어야 한다 ────
+// 왜: main 에 푸시하는 순간 자동 검사(PR CI) 없이 실서비스로 배포된다. 게다가 이 저장소는
+//     워크트리를 여러 개 쓰기 때문에 **어떤 폴더 하나는 항상 main 을 잡고 있다** → 그 폴더에
+//     남의 미저장 변경이 남아 있으면 자동 저장·푸시가 그걸 통째로 실서비스로 실어 보낸다.
+//     `.claude/hooks/auto-commit-push.sh` 는 처음부터 이 가드를 갖고 있었는데(main|master 조기 종료),
+//     나중에 만든 `scripts/sync.mjs` 가 **같은 일을 하면서 그 가드를 물려받지 않았다**(2026-07-27 발견,
+//     PO 가 "지금 돌려도 됨?" 하고 물어보지 않았으면 그대로 돌 뻔했다).
+//     = #122 와 같은 구조: 안전 규칙이 «한 곳의 코드»에만 있고 기계가 강제하지 않으면,
+//       같은 일을 하는 새 도구가 맨손으로 생긴다.
+// 무엇을 보나: 자동 푸시를 하는 파일이 보호 브랜치 이름(main/master)을 분기 조건으로 언급하는지.
+// 예외: CI 워크플로(.github/)는 러너가 브랜치를 지정해 돌리므로 대상 아님. 미러링도 제외.
+{
+  const AUTOPUSH = /git\s+push|\[\s*"push"/;
+  const HAS_GUARD = /\bmain\b[\s\S]{0,80}\bmaster\b|\bmaster\b[\s\S]{0,80}\bmain\b|PROTECTED_BRANCHES/;
+  const scan = (dir) => {
+    const out = [];
+    let entries;
+    try { entries = readdirSync(join(ROOT, dir)); } catch { return out; }
+    for (const e of entries) {
+      if (/^(node_modules|\.next|archive)$/.test(e)) continue;
+      const rel = join(dir, e);
+      let st;
+      try { st = statSync(join(ROOT, rel)); } catch { continue; }
+      if (st.isDirectory()) out.push(...scan(rel));
+      else if (/\.(mjs|js|ts|sh)$/.test(e)) out.push(rel);
+    }
+    return out;
+  };
+  for (const dir of ["scripts", ".claude"]) {
+    for (const rel of scan(dir)) {
+      const path_ = rel.replace(/\\/g, "/");
+      // 검사기 자신 제외 — 이 룰의 정규식·설명에 `git push`/`main` 문자열이 들어 있어 자기를 오탐한다.
+      if (/check-content-consistency/.test(path_)) continue;
+      let raw;
+      try { raw = readFileSync(join(ROOT, rel), "utf8"); } catch { continue; }
+      if (!AUTOPUSH.test(raw)) continue;
+      if (HAS_GUARD.test(raw)) continue;
+      errors.push(
+        `[보호브랜치] ${path_} — 자동으로 \`git push\` 하는데 보호 브랜치(main/master) 가드가 안 보인다. ` +
+          `main 푸시 = 자동 검사 없이 실서비스 배포다. 브랜치가 main/master 면 저장·올리기를 하지 말고 ` +
+          `내려받기만 하도록 조기 종료할 것 ` +
+          `(예: .claude/hooks/auto-commit-push.sh 의 case 문, scripts/sync.mjs 의 PROTECTED_BRANCHES).`
+      );
+    }
+  }
+}
+
 // ── 결과 ────────────────────────────────────────────────────────
 if (errors.length) {
   console.error(`\n❌ 콘텐츠 일관성 검사 실패 (${errors.length}건)\n`);
