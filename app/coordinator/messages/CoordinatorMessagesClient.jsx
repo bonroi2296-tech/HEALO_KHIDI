@@ -304,6 +304,7 @@ export default function CoordinatorMessagesClient() {
               return (
                 <button
                   key={t.id}
+                  data-testid="thread-row"
                   onClick={() => setSelectedId(t.id)}
                   className={`block w-full border-b border-gray-100 px-4 py-3 text-left transition ${
                     active ? "bg-teal-50" : "hover:bg-gray-50"

@@ -303,6 +303,7 @@ function ThreadRow({ thread, active, onClick, lang }) {
   return (
     <button
       onClick={onClick}
+      data-testid="thread-row"
       aria-current={active ? "true" : undefined}
       className={`block w-full text-left px-5 py-4 border-b border-gray-100 transition-all duration-200 ${
         active ? "bg-teal-50" : "hover:bg-gray-50"
