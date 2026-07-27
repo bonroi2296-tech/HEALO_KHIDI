@@ -2,9 +2,14 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { LogOut, Globe, ChevronDown, Check } from "lucide-react";
-import { supabaseClient } from "@/lib/data/supabaseClient";
+// ⚠️ Supabase 클라이언트를 여기서 static import 하면 안 된다 — ClientShell 은 전 페이지를 감싸서
+// 공개 홈에도 supabase-vendor(43KB gz)가 첫 화면 번들로 딸려오고, 히어로 이미지와 대역폭을 다툰다
+// (2026-07-27 PageSpeed: 그중 34.5KB 는 홈에서 아예 안 쓰는 코드). 아래 loadSupabase() 로
+// 마운트 뒤에 불러온다 = 로그인 확인은 그대로, 첫 화면 경로에서만 빠짐.
+const loadSupabase = () => import("@/lib/data/supabaseClient").then((m) => m.supabaseClient);
 import { SITE_INFO } from "@/lib/siteSettings";
 import { getLangCodeFromCookie, setLangCookie, setBackofficeLangCookie, LANG_OPTIONS_PRIMARY, t } from "@/lib/i18n";
 import { LangProvider, useLang } from "@/lib/i18n/LangContext";
@@ -17,7 +22,8 @@ import Logo from "../components/brand/Logo";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { useToast } from "@/components/Toast";
 import CookieConsent from "@/components/CookieConsent";
-import NotificationBell from "@/components/NotificationBell";
+// 알림 종은 로그인한 사람에게만 보인다 → 공개 홈 방문자는 받을 이유가 없다(같은 이유로 지연 로드).
+const NotificationBell = dynamic(() => import("@/components/NotificationBell"), { ssr: false });
 import { pageview, hasAnalyticsConsent } from "@/lib/ga";
 
 export default function ClientShell({ children, initialLang = "en" }) {
@@ -48,40 +54,48 @@ export default function ClientShell({ children, initialLang = "en" }) {
         .catch(() => { if (mounted) setIsHospitalUser(false); });
     };
 
-    supabaseClient.auth
-      .getSession()
-      .then(({ data: { session } }) => {
-        if (mounted) {
-          console.log("[ClientShell] ✅ Initial session:", session ? "active" : "none");
-          setSession(session);
-          checkHospitalUser(session?.access_token);
+    // 구독 해제 함수는 supabase 가 늦게 도착하므로 ref 대신 지역 변수에 담아 정리 시점에 호출한다.
+    let unsubscribe = null;
+
+    loadSupabase().then((supabaseClient) => {
+      if (!mounted) return;
+
+      supabaseClient.auth
+        .getSession()
+        .then(({ data: { session } }) => {
+          if (mounted) {
+            console.log("[ClientShell] ✅ Initial session:", session ? "active" : "none");
+            setSession(session);
+            checkHospitalUser(session?.access_token);
+          }
+        });
+
+      const { data } = supabaseClient.auth.onAuthStateChange(
+        (_event, session) => {
+          if (mounted) {
+            console.log("[ClientShell] 🔔 Auth state changed:", _event, session ? "active" : "none");
+            setSession(session);
+            checkHospitalUser(session?.access_token);
+          }
         }
-      });
-      
-    const { data } = supabaseClient.auth.onAuthStateChange(
-      (_event, session) => {
-        if (mounted) {
-          console.log("[ClientShell] 🔔 Auth state changed:", _event, session ? "active" : "none");
-          setSession(session);
-          checkHospitalUser(session?.access_token);
-        }
-      }
-    );
-    
-    supabaseClient
-      .from("site_settings")
-      .select("logo_url,hero_background_url")
-      .single()
-      .then(({ data }) => {
-        if (mounted && data) {
-          setSiteConfig({ logo: data.logo_url, hero: data.hero_background_url });
-        }
-      })
-      .catch(() => { /* RLS/테이블 없음 시 무시, 기본 UI 유지 */ });
-      
+      );
+      unsubscribe = () => data?.subscription?.unsubscribe();
+
+      supabaseClient
+        .from("site_settings")
+        .select("logo_url,hero_background_url")
+        .single()
+        .then(({ data }) => {
+          if (mounted && data) {
+            setSiteConfig({ logo: data.logo_url, hero: data.hero_background_url });
+          }
+        })
+        .catch(() => { /* RLS/테이블 없음 시 무시, 기본 UI 유지 */ });
+    });
+
     return () => {
       mounted = false;
-      if (data?.subscription) data.subscription.unsubscribe();
+      if (unsubscribe) unsubscribe();
     };
   }, []);
 
@@ -138,6 +152,7 @@ export default function ClientShell({ children, initialLang = "en" }) {
   const handleNavClick = (targetView) => handleSetView(targetView);
 
   const handleLogout = async () => {
+    const supabaseClient = await loadSupabase();
     await supabaseClient.auth.signOut();
     toast.success(t("auth.logoutSuccess", getLangCodeFromCookie()));
     router.push("/");
@@ -201,7 +216,7 @@ export default function ClientShell({ children, initialLang = "en" }) {
       if (idle >= IDLE_LIMIT_MS) {
         clearInterval(timer);
         events.forEach((e) => window.removeEventListener(e, resetActivity));
-        supabaseClient.auth.signOut().then(() => {
+        loadSupabase().then((supabaseClient) => supabaseClient.auth.signOut()).then(() => {
           toast.error(t("auth.autoLogoutSecurity", getLangCodeFromCookie()));
           router.push("/login");
         });

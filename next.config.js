@@ -130,9 +130,29 @@ const nextConfig = {
         ],
       },
       {
-        // 이미지 파일 캐시 — immutable 금지 (404가 1년 캐시되어 파일 추가 후에도
+        // ⭐ 「원본을 길게 캐시해야 최적화본도 길게 캐시된다」 (2026-07-27 실측으로 알아낸 것)
+        //
+        // Vercel 의 이미지 최적화기는 원본을 자기 배포에서 가져올 때 **원본의 Cache-Control 을
+        // 그대로 물려준다**. 그래서 원본이 1시간이면 `/_next/image?...` 응답도 1시간이 되고,
+        // next.config 의 `images.minimumCacheTTL`(1년)은 서버 캐시만 바꿔서 아무 소용이 없다.
+        // → 재방문자가 최적화 이미지를 매번 다시 받았다 (PageSpeed 실측 122KiB).
+        // ⚠️ 로컬 `next start` 에서는 이 물려받기가 안 일어난다(로컬은 1년으로 잘 나옴).
+        //    **프로덕션/프리뷰에 올려서 curl 로 확인하지 않으면 못 잡는 부류다.**
+        //
+        // 그래서 «절대 늦게 추가되지 않는» 확정 자산 폴더만 30일로 올린다.
+        // (아래 일반 이미지 규칙이 1시간인 이유 = 404가 길게 박제되는 사고 방지 —
+        //  나중에 파일이 추가되는 /images/hospitals 같은 경로는 계속 1시간으로 둔다.)
+        source: '/:dir(immune|brand)/:path*',
+        headers: [
+          { key: 'Cache-Control', value: 'public, max-age=2592000, stale-while-revalidate=86400' },
+        ],
+      },
+      {
+        // 이미지 「원본」 파일 캐시 — immutable 금지 (404가 1년 캐시되어 파일 추가 후에도
         // 깨진 채 고정되는 문제 방지). 짧게 캐시하고 백그라운드 재검증.
-        source: '/:path*\\.(jpg|jpeg|png|gif|webp|svg|ico)',
+        // `(?!immune/|brand/)` = 위 규칙과 겹치지 않게 명시적으로 뺀 것(둘 다 걸릴 때 어느 쪽이
+        // 이기는지에 기대지 않으려고 — 순서 규칙에 의존하면 나중에 조용히 뒤집힌다).
+        source: '/:path((?!immune/|brand/).*)\\.(jpg|jpeg|png|gif|webp|svg|ico)',
         headers: [
           {
             key: 'Cache-Control',
