@@ -1,5 +1,54 @@
 # PR
 
+## 🔖 세션 핸드오프 (2026-07-24 — **DB 무응답 장애 관측·진단 오진 정정 + 스태프 텔레그램 릴레이(#959) 프로덕션 왕복 실측** 세션 종료)
+
+> 딥테크/텔레그램 세션의 연속(위 「딥테크/스태프릴레이」 중간 저장을 이 정식 블록으로 승격). 토큰 끊김 후 재개 → DB 장애 복구·스태프 릴레이 검증·문서 정리를 하고 PO가 "다음 주에 마저" 하기로 하며 종료.
+
+**1. 이번 세션 한 일**
+
+- **프로덕션 DB 완전 무응답 장애(2026-07-24 07:45~08:40Z) 관측 + 내 초기 진단 오진 정정** — DB 의존 기능 전면 timeout(`/api/health` db:down). 📝 처음 "burst 고갈로 재시작 없이 자가회복(08:41)"이라 봤으나 **오진**: `pg_postmaster_start_time` 실측 = **08:40:42 재시작으로 회복**(재시작 여부 미실측·관리 API·latency만 보고 단정). 같은 장애를 병렬 세션이 이미 **반성문 #117**(스모크 후속 국면)에 재시작 실측까지 기록 → 내 별도 반성문 철회(중복·오류). 회복 후 `pg_stat_activity` 남은 잠금 0 실측.
+- **스태프 텔레그램 릴레이([#959](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/959), 이전 세션 머지) 프로덕션 코드경로 전수 실측** — PO가 그룹 `healwith`(chat_id `-1004399480698`)·env `STAFF_TELEGRAM_GROUP_ID` 등록·재배포를 끝낸 직후 첫 검증. 봇 `getChat`=`is_forum:true`+`administrator`+`can_manage_topics`+`is_anonymous:false` 실측 → 동의된 test 스레드로 웹훅 시뮬 → **주제 생성+`staff_topic_id` RPC클레임 / 스태프 주제답장→스레드 역매핑→admin(via `telegram_staff`) 저장 / `coordinator_active` AI침묵 전환** 전부 실DB 확인. test 흔적(주제·스레드·메시지) 정리 완료.
+- **문서 정리 PR [#971](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/971)** (draft, docs-only) — 반성문 #117 + 위 중간 저장 블록. CI 통과 시 자동머지 예약(self check-in 2026-07-24 10:44Z).
+
+**2. 왜 그렇게 했는지**
+
+- **DB 진단 오진 교훈**: "재시작 없이 자가회복"은 재시작 여부를 실측(`pg_postmaster_start_time`)하지 않고 관리 API·latency만 보고 단정한 것 = CLAUDE.md ⑤ 반증검사 위반(*원인이면 무엇이 참이어야 하나*를 안 물음). 실제론 08:40:42 재시작으로 회복. 병렬 세션 #117이 같은 결론을 먼저 실측 → 내 것 철회. "화면이 회복됨"과 "왜 회복됐는지"를 혼동하지 말 것.
+- **스태프 릴레이: 가짜 chat_id로 코드경로만** — 실제 PO 폰(7813265239)으로 시뮬하면 PO를 방해하고 실적(KHIDI 집계)을 오염시킴 → is_test 가짜 스레드로 릴레이 신규코드만 검증. 실배달은 2026-07-23 실기기로 이미 검증된 `sendTelegramPatientMessage`라 릴레이와 무관.
+- **브랜치 origin/main 재시작(중요)** — 이 브랜치는 #959 squash 머지 시점의 옛 main 기반이라, 그대로 PR을 열면 그동안 다른 세션이 머지한 **33개 파일을 통째로 revert**할 뻔함. `git rebase --onto origin/main`으로 docs 커밋만 최신 위에 재적용해 방지.
+
+**3. 안 끝났거나 보류**
+
+- **스태프 릴레이 실전 왕복(폰↔그룹 실배달)** — 코드경로는 실측했으나 **실제 환자 폰으로 답장이 배달되는지**는 가짜 chat_id라 미검증. PO가 직접 폰으로 봇에 말 걸고 그룹 방에서 답장하면 끝. **PO 손 필요.**
+- **`/api/health` db:down 지속 시 PO 알림** — #117 재발방지책, 아직 **미구현**(코드 0). db가 밀려도 사람이 겪기 전엔 신호가 없음.
+- **PO 몫(후속)** — 봇 로고(BotFather `/setuserpic` → 봇 버튼 탭 → 사진), 왓츠앱 Meta 인증(`docs/WHATSAPP_BOT_SETUP.md`, 번호 전략 A/B + `WHATSAPP_TEST_WA_IDS`).
+
+**4. 주의·함정** ⚠️
+
+- **이 브랜치(claude/deeptech-service-strategy-9wvj73)는 origin/main으로 재시작됨** — 이어가기 전 최신 상태 확인. 옛 로컬 커밋(#959 계열 3개)은 이미 머지돼 버려짐(정상).
+- **반성문 중복 함정**: 내 DB 장애 반성문을 #115→#117로 두 번 재조정하다, 결국 **병렬 세션이 같은 장애를 #117에 이미 기록**함을 발견 → 내 것 철회. 교훈 = 반성문 쓰기 전 origin/main 최신에서 같은 사건이 이미 있는지부터 확인(번호 충돌뿐 아니라 사건 중복). 병렬 세션이 많을수록 "내가 처음 보는 사건"이 아닐 수 있다.
+- **스태프 릴레이 테스트 시 가짜 chat_id는 `delivery:failed`가 정상** — 존재하지 않는 텔레그램 유저라 발신만 실패, 릴레이 코드 결함 아님.
+
+**5. 다음 세션이 먼저 할 일**
+
+1. ⚠️ **직전 미검증분 먼저 확인**: **스태프 릴레이 실전 왕복** — PO가 폰으로 @healwith_bot에 메시지 → 그룹 `healwith`에 방(주제) 뜨는지 → 그 방에 답장 → **PO 폰으로 실제 배달되는지** 확인(코드경로는 검증됨, 실배달만 남음).
+2. PR [#971](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/971) 머지 확인(자동머지 예약됨 — 안 됐으면 CI 확인 후 머지).
+3. `/api/health` db:down 지속 시 PO 알림 구현 검토(#117 재발방지).
+4. (후속 PO 몫) 봇 로고·왓츠앱 Meta 인증 지원.
+
+**6. 검증 상태**
+
+- ✅ **DB 회복 실측** — `/api/health` `db:up` latency 68ms, `pg_stat_activity` 남은 잠금 0·장기 트랜잭션은 정상 realtime WAL 복제뿐(실DB 확인).
+- ✅ **스태프 릴레이 코드경로 실측** — 주제 생성+RPC 클레임, 주제답장→역매핑, admin 저장, `coordinator_active` 전환 전부 실DB 확인. `[staffRelay]` 에러 로그 0. 봇 API로 주제 쓰기 성공 실증.
+- ❌ **스태프 릴레이 실배달 미검증** — 가짜 chat_id라 `delivery:failed`. 실전 왕복(폰↔그룹)은 PO 손 필요 → 5번 1항 승격.
+- ⏳ **PR #971 CI** — 커밋 `d65428ac`에서 `ci`·`Smoke Tests(PR)` in_progress(핸드오프 작성 시점), Vercel = Ignored(docs-only 정상). 자동머지 self check-in 10:44Z 예약. **머지 여부 미확인.**
+- 📝 내 DB장애 반성문은 병렬 세션 #117과 중복(+"재시작 없이 자가회복" 오진)으로 **철회** — POSTMORTEMS는 origin/main #117 채택. 08:40:42 재시작은 `pg_postmaster_start_time` 실측으로 확정.
+
+**7. 다음 세션 첫 프롬프트**
+
+> 먼저 docs/PROJECT_CONTEXT.md 최상단 읽어. DB 무응답 장애는 08:40:42 재시작으로 회복(병렬 세션 반성문 #117에 재시작 실측까지 기록 — 내 초기 "자가회복" 진단은 오진이라 철회·정정함), 스태프 텔레그램 릴레이(#959)는 프로덕션 코드경로를 전수 실측했다. ⚠️미검증 먼저: 스태프 릴레이 **실전 왕복** — PO가 폰으로 @healwith_bot에 메시지 → 그룹 healwith에 방 뜨는지 → 그 방에 답장 → PO 폰으로 실제 배달되는지(코드경로는 됐고 실배달만 남음). 그다음 PR #971 머지 확인(자동머지 예약). 🚫 함정: 이 브랜치는 origin/main 재시작됨(이어가기 전 최신 확인) · 반성문 번호는 origin/main 최신 기준(#117) · 스태프 릴레이 테스트 시 가짜 chat_id는 delivery:failed가 정상.
+
+---
+
 ## 🔖 세션 핸드오프 (2026-07-23 — **전 화면 콘텐츠 편집 CMS 완성 + 한글 바로수정·하드코딩 우회 가드** (+ SEO 색인·암종별 키워드) 세션 종료)
 
 > 별도 병렬 세션(위 딥테크/텔레그램 세션과 다름). 코디가 **화면별 모든 텍스트를 6개어로 직접 고치는 편집기**를 완성·배포하고, 후속으로 한글 편집성·하드코딩 우회 가드를 붙인 세션. 만진 영역 = `app/coordinator/content`·`src/lib/i18n`·`src/lib/content`·`scripts/check-content-consistency.mjs`.
