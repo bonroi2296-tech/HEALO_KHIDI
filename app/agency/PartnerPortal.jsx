@@ -1455,7 +1455,8 @@ function ChatDrawer({ open, onClose, inquiryId, caseName, tt, getToken }) {
   };
 
   return (
-    <div className={`fixed inset-0 z-50 transition-opacity duration-300 ${open ? "opacity-100" : "opacity-0 pointer-events-none"}`} aria-hidden={!open}>
+    // inert: 닫혔을 때 안쪽 요소를 Tab 순서에서도 제거(ManualDrawer 와 같은 부류 — aria-hidden 인데 포커스 가능)
+    <div className={`fixed inset-0 z-50 transition-opacity duration-300 ${open ? "opacity-100" : "opacity-0 pointer-events-none"}`} aria-hidden={!open} inert={!open}>
       {/* 배경 */}
       <div className="absolute inset-0 bg-black/30" onClick={onClose} />
       {/* 패널 */}

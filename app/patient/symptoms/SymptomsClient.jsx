@@ -156,10 +156,13 @@ export default function SymptomsClient() {
                   <div className="flex-1">
                     <label className="text-xs text-gray-500 mb-1 block">{t('patientSymptoms.severity', lang)}</label>
                     <div className="flex items-center gap-2">
+                      {/* 옆의 <label>이 htmlFor 없이 떨어져 있어 화면낭독기가 «무엇을 고르는 칸인지» 못 읽었다.
+                          환자가 자기 증상 강도를 입력하는 칸이라 특히 중요 → aria-label 로 이름을 준다(6개 언어 번역 사용). */}
                       <input
                         type="range"
                         min="1"
                         max="10"
+                        aria-label={t('patientSymptoms.severity', lang)}
                         value={symptom.severity}
                         onChange={(e) => updateSymptom(index, 'severity', e.target.value)}
                         className="flex-1 accent-teal-600"

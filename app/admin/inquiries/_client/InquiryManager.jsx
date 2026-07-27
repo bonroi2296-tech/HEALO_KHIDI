@@ -236,7 +236,7 @@ export const InquiryManager = ({ inquiries, fetchInquiries, handleFileClick }) =
           <span className="text-[10px] lg:text-xs text-gray-500">
             🔒 목록은 마스킹됩니다
           </span>
-          <button onClick={fetchInquiries} className="p-1.5 hover:bg-gray-100 rounded-lg"><RefreshCw size={18}/></button>
+          <button onClick={fetchInquiries} aria-label="문의 목록 새로고침" className="p-1.5 hover:bg-gray-100 rounded-lg"><RefreshCw size={18}/></button>
         </div>
       </div>
 

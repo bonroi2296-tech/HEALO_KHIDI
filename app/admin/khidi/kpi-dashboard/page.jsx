@@ -247,6 +247,7 @@ export default function KpiDashboardPage() {
         <div className="flex items-center gap-2">
           <select
             value={year}
+            aria-label="조회 연도"
             onChange={(e) => setYear(Number(e.target.value))}
             className="text-sm border border-gray-300 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-teal-400"
           >
@@ -256,6 +257,7 @@ export default function KpiDashboardPage() {
           </select>
           <select
             value={month}
+            aria-label="조회 월"
             onChange={(e) => setMonth(Number(e.target.value))}
             className="text-sm border border-gray-300 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-teal-400"
           >
@@ -520,6 +522,7 @@ export default function KpiDashboardPage() {
             <label className="block text-xs text-gray-500 mb-1">연도</label>
             <select
               value={dlYear}
+              aria-label="다운로드 연도"
               onChange={(e) => setDlYear(Number(e.target.value))}
               className="text-sm border border-gray-300 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-teal-400"
             >
@@ -530,6 +533,7 @@ export default function KpiDashboardPage() {
             <label className="block text-xs text-gray-500 mb-1">월</label>
             <select
               value={dlMonth}
+              aria-label="다운로드 월"
               onChange={(e) => setDlMonth(Number(e.target.value))}
               className="text-sm border border-gray-300 rounded-lg px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-teal-400"
             >

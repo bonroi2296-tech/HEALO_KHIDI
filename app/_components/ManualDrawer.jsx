@@ -63,9 +63,14 @@ export default function ManualDrawer({ role, buttonLabel }) {
       </button>
 
       {/* 드로어 */}
+      {/* inert: 닫혔을 때 안쪽 버튼·링크를 키보드 이동(Tab)에서도 빼준다.
+          opacity-0 + pointer-events-none 은 «마우스»만 막을 뿐 Tab 순서에는 그대로 남아,
+          화면낭독기 사용자는 보이지도 않는 서랍 안으로 커서가 빨려 들어갔다
+          (aria-hidden 인데 포커스 가능 = axe aria-hidden-focus. 백오피스 전 화면 17건의 원인이 여기 하나였다). */}
       <div
         className={`fixed inset-0 z-50 transition-opacity duration-300 ${open ? "opacity-100" : "opacity-0 pointer-events-none"}`}
         aria-hidden={!open}
+        inert={!open}
       >
         {/* 배경 */}
         <div className="absolute inset-0 bg-black/30" onClick={() => setOpen(false)} />

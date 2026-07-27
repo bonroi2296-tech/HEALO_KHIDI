@@ -386,7 +386,7 @@ export const HospitalManager = ({
           <div className="p-4 space-y-3 border-b border-gray-100 shrink-0">
             <div className="flex justify-between items-center">
               <h2 className="text-lg font-bold">등록된 병원</h2>
-              <button onClick={handleNew} className="bg-teal-700 text-white p-1 rounded">
+              <button onClick={handleNew} aria-label="병원 새로 등록" className="bg-teal-700 text-white p-1 rounded">
                 <Plus size={16}/>
               </button>
             </div>
@@ -395,7 +395,9 @@ export const HospitalManager = ({
           {process.env.NODE_ENV !== "production" && hospitalsError && (
             <p className="text-xs text-red-600 px-4 pt-2">Hospitals error: {hospitalsError.message}</p>
           )}
-          <div className="overflow-y-auto flex-1">
+          {/* tabIndex=0: 스크롤되는 영역은 키보드(화살표)로도 내릴 수 있어야 한다.
+              안이 비었거나 포커스 가능한 요소가 없을 때 마우스 없는 사용자는 목록을 아예 못 본다(axe scrollable-region-focusable). */}
+          <div className="overflow-y-auto flex-1" tabIndex={0}>
             {hospitalsListLoading ? (
               <div className="p-4">
                 <AdminLoadingSkeleton rows={6} />
@@ -835,6 +837,9 @@ function FormContent({ editingHospitalId, hospitalForm, setHospitalForm, uploadi
               <label className="text-sm font-bold text-gray-700 flex-1">프론트 노출 여부</label>
               <button
                 type="button"
+                role="switch"
+                aria-checked={!!hospitalForm.isPublished}
+                aria-label="프론트 노출 여부"
                 onClick={() => setHospitalForm({...hospitalForm, isPublished: !hospitalForm.isPublished})}
                 className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
                   hospitalForm.isPublished ? 'bg-teal-700' : 'bg-gray-300'
@@ -854,6 +859,9 @@ function FormContent({ editingHospitalId, hospitalForm, setHospitalForm, uploadi
               <label className="text-sm font-bold text-gray-700 flex-1">healwith 제휴 병원</label>
               <button
                 type="button"
+                role="switch"
+                aria-checked={!!hospitalForm.isPartner}
+                aria-label="healwith 제휴 병원"
                 onClick={() => setHospitalForm({...hospitalForm, isPartner: !hospitalForm.isPartner})}
                 className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
                   hospitalForm.isPartner ? 'bg-blue-600' : 'bg-gray-300'
@@ -1038,7 +1046,7 @@ function FormContent({ editingHospitalId, hospitalForm, setHospitalForm, uploadi
               </div>
               <div>
                 <label className="text-xs text-gray-600 mb-1 block">설립일</label>
-                <input type="date" value={hospitalForm.establishmentDate || ''} onChange={e=>setHospitalForm({...hospitalForm, establishmentDate: e.target.value})} className="w-full border p-2 rounded text-sm"/>
+                <input type="date" aria-label="설립일" value={hospitalForm.establishmentDate || ''} onChange={e=>setHospitalForm({...hospitalForm, establishmentDate: e.target.value})} className="w-full border p-2 rounded text-sm"/>
               </div>
             </div>
           </div>
