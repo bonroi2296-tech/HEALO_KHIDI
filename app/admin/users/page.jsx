@@ -23,7 +23,7 @@ const TR = {
     toastDeactivated: "비활성화됨", toastActivated: "활성화됨",
     promptResetPwTpl: "{email} 새 임시 비밀번호 (최소 6자):", errMinChars: "최소 6자",
     toastResetDoneTpl: "비밀번호 재설정 완료 — 환자에게 전달: {pw}",
-    sessionTypePre: "사전 상담", sessionTypeFollow: "사후 관리", sessionTypeSecond: "세컨드 오피니언",
+    sessionTypePre: "사전 상담", sessionTypeFollow: "사후 관리", sessionTypeSecond: "세컨드 오피니언", sessionTypePartner: "파트너 미팅(에이전시·병원)",
   },
   en: {
     pageTitle: "Members (Patients)",
@@ -39,7 +39,7 @@ const TR = {
     toastDeactivated: "Deactivated", toastActivated: "Activated",
     promptResetPwTpl: "New temporary password for {email} (min 6 characters):", errMinChars: "Minimum 6 characters",
     toastResetDoneTpl: "Password reset complete — share with the patient: {pw}",
-    sessionTypePre: "Pre-consultation", sessionTypeFollow: "Follow-up", sessionTypeSecond: "Second opinion",
+    sessionTypePre: "Pre-consultation", sessionTypeFollow: "Follow-up", sessionTypeSecond: "Second opinion", sessionTypePartner: "Partner meeting (agency/hospital)",
   },
   ru: {
     pageTitle: "Участники (пациенты)",
@@ -55,7 +55,7 @@ const TR = {
     toastDeactivated: "Деактивирован", toastActivated: "Активирован",
     promptResetPwTpl: "Новый временный пароль для {email} (минимум 6 символов):", errMinChars: "Минимум 6 символов",
     toastResetDoneTpl: "Пароль сброшен — передайте пациенту: {pw}",
-    sessionTypePre: "Предварительная консультация", sessionTypeFollow: "Последующее наблюдение", sessionTypeSecond: "Второе мнение",
+    sessionTypePre: "Предварительная консультация", sessionTypeFollow: "Последующее наблюдение", sessionTypeSecond: "Второе мнение", sessionTypePartner: "Встреча с партнёром (агентство/больница)",
   },
   kz: {
     pageTitle: "Мүшелер (науқастар)",
@@ -71,7 +71,7 @@ const TR = {
     toastDeactivated: "Өшірілді", toastActivated: "Белсендірілді",
     promptResetPwTpl: "{email} үшін жаңа уақытша құпия сөз (кемінде 6 таңба):", errMinChars: "Кемінде 6 таңба",
     toastResetDoneTpl: "Құпия сөз қалпына келтірілді — науқасқа беріңіз: {pw}",
-    sessionTypePre: "Алдын ала кеңес", sessionTypeFollow: "Емнен кейінгі бақылау", sessionTypeSecond: "Екінші пікір",
+    sessionTypePre: "Алдын ала кеңес", sessionTypeFollow: "Емнен кейінгі бақылау", sessionTypeSecond: "Екінші пікір", sessionTypePartner: "Серіктеспен кездесу (агенттік/аурухана)",
   },
   zh: {
     pageTitle: "会员（患者）管理",
@@ -87,7 +87,7 @@ const TR = {
     toastDeactivated: "已停用", toastActivated: "已启用",
     promptResetPwTpl: "{email} 的新临时密码（至少6位）：", errMinChars: "至少6位",
     toastResetDoneTpl: "密码重置完成 — 请转告患者：{pw}",
-    sessionTypePre: "术前咨询", sessionTypeFollow: "术后随访", sessionTypeSecond: "第二诊疗意见",
+    sessionTypePre: "术前咨询", sessionTypeFollow: "术后随访", sessionTypeSecond: "第二诊疗意见", sessionTypePartner: "合作方会议（代理机构/医院）",
   },
   ja: {
     pageTitle: "会員（患者）管理",
@@ -103,7 +103,7 @@ const TR = {
     toastDeactivated: "無効化しました", toastActivated: "有効化しました",
     promptResetPwTpl: "{email} の新しい仮パスワード（最低6文字）:", errMinChars: "最低6文字",
     toastResetDoneTpl: "パスワード再設定完了 — 患者に伝えてください: {pw}",
-    sessionTypePre: "事前相談", sessionTypeFollow: "術後フォローアップ", sessionTypeSecond: "セカンドオピニオン",
+    sessionTypePre: "事前相談", sessionTypeFollow: "術後フォローアップ", sessionTypeSecond: "セカンドオピニオン", sessionTypePartner: "パートナー会議（代理店・病院）",
   },
 };
 
@@ -111,6 +111,8 @@ const SESSION_TYPE_KEY = {
   pre_consultation: "sessionTypePre",
   follow_up: "sessionTypeFollow",
   second_opinion: "sessionTypeSecond",
+  // 없으면 화면에 raw 코드("partner_meeting")가 그대로 새어 나온다(표시부가 코드로 폴백).
+  partner_meeting: "sessionTypePartner",
 };
 
 const LOCALE_MAP = { ko: "ko-KR", en: "en-US", ru: "ru-RU", kz: "kk-KZ", zh: "zh-CN", ja: "ja-JP" };

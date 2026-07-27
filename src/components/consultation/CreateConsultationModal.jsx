@@ -35,7 +35,7 @@ const TR = {
     phInviteeName: "대표 수신자(환자) 이름 — 문의 선택 시 자동", phInviteeEmail: "대표 수신자(환자) 이메일 (선택) — 입력 시 자동 발송·리마인더",
     lblScheduledAt: "예약 시각 (KST · 한국 시간 기준)",
     advancedOptions: "고급 옵션 (선택)", advancedOptionsHint: "세션 유형 · 코디 · 병원/의사 · 언어 · 비고",
-    lblSessionType: "세션 유형", sessionTypePre: "진료 전 평가", sessionTypeFollow: "추후 진료", sessionTypeEmergency: "긴급 상담", sessionTypeDiagnostic: "검사 결과 검토",
+    lblSessionType: "세션 유형", sessionTypePre: "진료 전 평가", sessionTypeFollow: "추후 진료", sessionTypeEmergency: "긴급 상담", sessionTypePartner: "파트너 미팅(에이전시·병원)", sessionTypePartnerHint: "KHIDI 실적(사전상담·사후관리)에는 집계되지 않습니다.",
     lblPatientAccount: "환자 계정 (선택 — 기존 계정)", phPatientAccount: "비워두면 게스트 링크 전용",
     lblCoordinatorSelect: "담당 코디네이터 (지정 코디 목록)",
     lblPatientLang: "환자 언어", langRu: "러시아어", langKz: "카자흐어", langEn: "영어", langZh: "중국어",
@@ -71,7 +71,7 @@ const TR = {
     phInviteeName: "Primary recipient (patient) name — auto-filled when an inquiry is selected", phInviteeEmail: "Primary recipient (patient) email (optional) — enables auto-send & reminders",
     lblScheduledAt: "Scheduled time (KST · Korea time)",
     advancedOptions: "Advanced options (optional)", advancedOptionsHint: "Session type · coordinator · hospital/doctor · language · notes",
-    lblSessionType: "Session type", sessionTypePre: "Pre-treatment assessment", sessionTypeFollow: "Follow-up", sessionTypeEmergency: "Emergency consult", sessionTypeDiagnostic: "Test result review",
+    lblSessionType: "Session type", sessionTypePre: "Pre-treatment assessment", sessionTypeFollow: "Follow-up", sessionTypeEmergency: "Emergency consult", sessionTypePartner: "Partner meeting (agency/hospital)", sessionTypePartnerHint: "Not counted toward KHIDI figures (pre-consultation / follow-up).",
     lblPatientAccount: "Patient account (optional — existing account)", phPatientAccount: "Leave blank for guest-link only",
     lblCoordinatorSelect: "Assigned coordinator (from coordinator list)",
     lblPatientLang: "Patient language", langRu: "Russian", langKz: "Kazakh", langEn: "English", langZh: "Chinese",
@@ -107,7 +107,7 @@ const TR = {
     phInviteeName: "Имя основного получателя (пациента) — заполняется автоматически при выборе заявки", phInviteeEmail: "Email основного получателя (пациента) (необязательно) — включает автоотправку и напоминания",
     lblScheduledAt: "Время консультации (KST · время Кореи)",
     advancedOptions: "Дополнительные настройки (необязательно)", advancedOptionsHint: "Тип сессии · координатор · больница/врач · язык · заметки",
-    lblSessionType: "Тип сессии", sessionTypePre: "Оценка перед лечением", sessionTypeFollow: "Повторный приём", sessionTypeEmergency: "Экстренная консультация", sessionTypeDiagnostic: "Разбор результатов анализов",
+    lblSessionType: "Тип сессии", sessionTypePre: "Оценка перед лечением", sessionTypeFollow: "Повторный приём", sessionTypeEmergency: "Экстренная консультация", sessionTypePartner: "Встреча с партнёром (агентство/больница)", sessionTypePartnerHint: "Не учитывается в показателях KHIDI (предварительная консультация / наблюдение).",
     lblPatientAccount: "Аккаунт пациента (необязательно — существующий)", phPatientAccount: "Оставьте пустым для гостевой ссылки",
     lblCoordinatorSelect: "Назначенный координатор (из списка координаторов)",
     lblPatientLang: "Язык пациента", langRu: "Русский", langKz: "Казахский", langEn: "Английский", langZh: "Китайский",
@@ -143,7 +143,7 @@ const TR = {
     phInviteeName: "Негізгі алушы (науқас) аты — өтінім таңдалғанда автоматты", phInviteeEmail: "Негізгі алушы (науқас) email (міндетті емес) — енгізілсе автожіберу мен еске салғыштар қосылады",
     lblScheduledAt: "Кеңес уақыты (KST · Корея уақыты)",
     advancedOptions: "Кеңейтілген параметрлер (міндетті емес)", advancedOptionsHint: "Сессия түрі · үйлестіруші · аурухана/дәрігер · тіл · ескертпе",
-    lblSessionType: "Сессия түрі", sessionTypePre: "Емдеу алдындағы бағалау", sessionTypeFollow: "Қайталама қабылдау", sessionTypeEmergency: "Шұғыл кеңес", sessionTypeDiagnostic: "Талдау нәтижесін қарау",
+    lblSessionType: "Сессия түрі", sessionTypePre: "Емдеу алдындағы бағалау", sessionTypeFollow: "Қайталама қабылдау", sessionTypeEmergency: "Шұғыл кеңес", sessionTypePartner: "Серіктеспен кездесу (агенттік/аурухана)", sessionTypePartnerHint: "KHIDI көрсеткіштеріне (алдын ала кеңес / бақылау) есептелмейді.",
     lblPatientAccount: "Науқас аккаунты (міндетті емес — бар аккаунт)", phPatientAccount: "Тек қонақ сілтемесі үшін бос қалдырыңыз",
     lblCoordinatorSelect: "Тағайындалған үйлестіруші (үйлестірушілер тізімінен)",
     lblPatientLang: "Науқас тілі", langRu: "Орысша", langKz: "Қазақша", langEn: "Ағылшынша", langZh: "Қытайша",
@@ -179,7 +179,7 @@ const TR = {
     phInviteeName: "主要接收人（患者）姓名 — 选择咨询后自动填充", phInviteeEmail: "主要接收人（患者）邮箱（可选）— 填写后启用自动发送和提醒",
     lblScheduledAt: "预约时间（KST · 韩国时间）",
     advancedOptions: "高级选项（可选）", advancedOptionsHint: "会诊类型 · 协调员 · 医院/医生 · 语言 · 备注",
-    lblSessionType: "会诊类型", sessionTypePre: "治疗前评估", sessionTypeFollow: "复诊", sessionTypeEmergency: "紧急会诊", sessionTypeDiagnostic: "检查结果review",
+    lblSessionType: "会诊类型", sessionTypePre: "治疗前评估", sessionTypeFollow: "复诊", sessionTypeEmergency: "紧急会诊", sessionTypePartner: "合作方会议（代理机构/医院）", sessionTypePartnerHint: "不计入 KHIDI 指标（术前咨询/术后随访）。",
     lblPatientAccount: "患者账户（可选 — 已有账户）", phPatientAccount: "留空则仅使用访客链接",
     lblCoordinatorSelect: "指定协调员（协调员列表）",
     lblPatientLang: "患者语言", langRu: "俄语", langKz: "哈萨克语", langEn: "英语", langZh: "中文",
@@ -215,7 +215,7 @@ const TR = {
     phInviteeName: "代表受信者（患者）氏名 — 問い合わせ選択時に自動入力", phInviteeEmail: "代表受信者（患者）メール（任意）— 入力すると自動送信・リマインダーが有効",
     lblScheduledAt: "予定時刻（KST・韓国時間基準）",
     advancedOptions: "詳細オプション（任意）", advancedOptionsHint: "セッション種別・コーディネーター・病院/医師・言語・備考",
-    lblSessionType: "セッション種別", sessionTypePre: "治療前評価", sessionTypeFollow: "再診", sessionTypeEmergency: "緊急相談", sessionTypeDiagnostic: "検査結果レビュー",
+    lblSessionType: "セッション種別", sessionTypePre: "治療前評価", sessionTypeFollow: "再診", sessionTypeEmergency: "緊急相談", sessionTypePartner: "パートナー会議（代理店・病院）", sessionTypePartnerHint: "KHIDI 実績（事前相談・術後フォロー）には計上されません。",
     lblPatientAccount: "患者アカウント（任意 — 既存アカウント）", phPatientAccount: "空欄でゲストリンク専用",
     lblCoordinatorSelect: "担当コーディネーター（指定コーディネーター一覧）",
     lblPatientLang: "患者の言語", langRu: "ロシア語", langKz: "カザフ語", langEn: "英語", langZh: "中国語",
@@ -630,8 +630,13 @@ export function CreateConsultationModal({ onClose, onSuccess }) {
                   <option value="pre_consultation">{tt("sessionTypePre")}</option>
                   <option value="follow_up">{tt("sessionTypeFollow")}</option>
                   <option value="emergency">{tt("sessionTypeEmergency")}</option>
-                  <option value="diagnostic">{tt("sessionTypeDiagnostic")}</option>
+                  {/* 파트너 미팅 = 에이전시·병원과의 회의. KHIDI 실적(사전상담·사후관리)에 안 잡힌다.
+                      ※ 여기 있던 "diagnostic" 은 DB CHECK 가 안 받는 값이라 고르면 저장이 깨졌다 → 제거(2026-07-27). */}
+                  <option value="partner_meeting">{tt("sessionTypePartner")}</option>
                 </select>
+                {form.session_type === "partner_meeting" && (
+                  <p className="mt-1.5 text-xs text-gray-600">{tt("sessionTypePartnerHint")}</p>
+                )}
               </Field>
 
               <UserSearchField
