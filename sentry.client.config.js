@@ -93,8 +93,14 @@ if (SENTRY_DSN && typeof window !== "undefined") {
     }
   };
 
-  // idle 에 켜되 timeout 으로 상한을 둔다 — 바쁜 페이지에서 idle 이 영영 안 와 «에러 수집이 아예 안 켜지는»
-  // 상황을 막는다. requestIdleCallback 이 없는 브라우저(사파리 구버전)는 setTimeout 으로 같은 지연.
-  if ("requestIdleCallback" in window) window.requestIdleCallback(boot, { timeout: 3000 });
-  else setTimeout(boot, 2000);
+  // 「화면이 다 뜬 뒤(load) → 한가할 때(idle)」 순서로 켠다.
+  // idle 만 걸면 첫 화면 직후 곧바로 실행돼 로딩 구간을 여전히 막는다(실측: TBT 650→590ms 로 제자리).
+  // load 를 먼저 기다리면 이미지·폰트까지 끝난 뒤라, 사용자가 화면을 만지는 구간에 멈칫이 없다.
+  // timeout 5초는 상한 — 바쁜 페이지에서 idle 이 영영 안 와 «에러 수집이 아예 안 켜지는» 것을 막는다.
+  const schedule = () => {
+    if ("requestIdleCallback" in window) window.requestIdleCallback(boot, { timeout: 5000 });
+    else setTimeout(boot, 2000);
+  };
+  if (document.readyState === "complete") schedule();
+  else window.addEventListener("load", schedule, { once: true });
 }
