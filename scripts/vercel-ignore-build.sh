@@ -3,7 +3,7 @@
 # Vercel "Ignored Build Step" 스크립트 — 안 볼 배포는 짓지 않는다.
 #
 #   규칙 0. 자동저장(백업) 커밋            → 스킵
-#   규칙 1. [프로덕션] 더 최신 main 커밋 있음 → 스킵 (몰아서 머지 → 마지막 것만 짓는다)
+#   규칙 1. [프로덕션] production 브랜치(3시 창구)·[deploy] 커밋이 아니면 → 스킵
 #   규칙 2. [프리뷰] 커밋 제목에 [preview] 없음 → 스킵
 #   규칙 3. 문서/비앱 파일만 변경          → 스킵
 #
@@ -40,19 +40,29 @@ esac
 #   실서비스 반영(배포)만 하루 한 번으로 접는다.
 #
 #   그래서: main 에 머지돼도 프로덕션 빌드를 짓지 않는다. 오후 3시 창구
-#   (.github/workflows/daily-deploy.yml)가 main 위에 빈 커밋 하나를 «[deploy]» 제목으로
-#   얹고, 그 커밋 하나만 빌드한다. 그 한 건이 그날 머지된 것 **전부**를 포함한다.
+#   (.github/workflows/daily-deploy.yml)가 main 을 **production 브랜치**로 밀고,
+#   그 한 건만 빌드한다. 그 한 건이 그날 머지된 것 **전부**를 포함한다.
+#
+#   ⚠️ 왜 「main 위에 [deploy] 빈 커밋」이 아니라 별도 브랜치냐 (2026-07-28 실측):
+#      main 은 보호 브랜치라 「검사 통과한 커밋만」 받는다. 그런데 깃허브는 GITHUB_TOKEN 이
+#      만든 커밋에 검사를 안 돌려준다(무한루프 방지) → 로봇은 그 조건을 영원히 못 채운다.
+#      실제로 GH006 로 거부당했다. main 자물쇠를 푸는 대신 옆문(production)을 냈다.
 #
 #   급한 것(장애·보안·PO 가 지금 보자고 한 것)은 커밋 제목에 [deploy] 를 달면 즉시 나간다:
 #     git commit --allow-empty -m "chore: 긴급 배포 [deploy]" && git push
 #   또는 Actions 탭에서 "Daily Deploy" 를 Run workflow.
 #
-# ⚠️ 프로덕션에는 규칙 3(문서-only 스킵)을 적용하지 않는다 — [deploy] 커밋 자체가
-#    빈 커밋이라 「변경 없음」으로 스킵되면 그날 배포가 통째로 사라진다.
+# ⚠️ 프로덕션에는 규칙 3(문서-only 스킵)을 적용하지 않는다 — 그날 마지막 머지가 문서뿐이면
+#    「변경 없음」으로 스킵돼서 그날 배포가 통째로 사라진다.
 if [ "$VERCEL_ENV" = "production" ]; then
+  # 창구가 미는 배포 전용 브랜치. (Vercel 의 Production Branch = production)
+  if [ "${VERCEL_GIT_COMMIT_REF:-}" = "production" ]; then
+    echo "▶ production 브랜치(3시 창구) — 프로덕션 배포 진행"
+    exit 1
+  fi
   case "$commit_subject" in
     *"[deploy]"*)
-      echo "▶ [deploy] 배포 창구 커밋 — 프로덕션 배포 진행"
+      echo "▶ [deploy] 커밋 — 프로덕션 배포 진행"
       exit 1
       ;;
   esac
