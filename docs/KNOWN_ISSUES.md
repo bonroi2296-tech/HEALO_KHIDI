@@ -197,7 +197,7 @@
 **B. 🔴 규칙 과적 — 앤트로픽은 반대로 80% 줄였다**
 - 매 세션 자동 주입량 실측: 훅 **60,463 bytes**(192줄), 그중 「PO 취향」 섹션이 **54,817 bytes = 91%**. + `CLAUDE.md` 12,649 · `PO_PREFERENCES.md` 67,109 · `KNOWN_ISSUES.md` 58,277 · `PROJECT_CONTEXT.md` 34,177.
 - 칼럼 ③: 클로드 코드 시스템 프롬프트 **80% 축소해도 코딩 성능 저하 없음**. 촘촘한 규칙·풍부한 예제가 오히려 탐색 범위를 제한. 지침은 주제별 소형 파일로 쪼개 **필요할 때만 로드**(deferred loading). 산문 문서보다 **실제 코드**를 참고자료로 줄 때 이해도가 높음.
-- 규칙 더미에 **죽은 규칙 실재**: `CLAUDE.md` 「프리뷰 팁」의 `preview_screenshot`·`preview_eval`은 현존하지 않는 도구 이름, "Shell: bash"도 현재 환경(PowerShell 기본)과 불일치.
+- 규칙 더미에 **죽은 규칙 실재**: `CLAUDE.md` 「프리뷰 팁」(2026-07-28 `docs/rules/PREVIEW.md` 로 이관)의 `preview_screenshot`·`preview_eval`은 현존하지 않는 도구 이름, "Shell: bash"도 현재 환경(PowerShell 기본)과 불일치.
 - **수리안**: 훅은 핵심 요약만(다음 할 일·열린 브랜치·활성 취향 5~7개), 취향 전문은 필요 시 로드. 산문 취향 → 기계 판독 파일화(`src/lib/completeness/rubric.js`가 이미 그 방식). ⚠️`/doctor`(자동 간소화)는 대화형 터미널 전용 — 어시가 못 돌림, PO가 터미널에서 실행해야 함.
 - ⚠️ **PO 취향 SoR을 건드리는 일이라 착수 전 PO 승인 필요.**
 
@@ -952,7 +952,7 @@ app/api/survey/[token]/route.ts:48
 ---
 
 ## 예방 (적용됨)
-- `CLAUDE.md` 출시 전 self-QA 체크리스트 → service_role 테이블 client 직접 쿼리 금지 명시 (신규 코드 재발 방지)
+- `docs/rules/SELF_QA.md` 「출시 전 self-QA」 체크리스트(2026-07-28 `CLAUDE.md` 에서 이관) → service_role 테이블 client 직접 쿼리 금지 명시 (신규 코드 재발 방지)
 
 ---
 

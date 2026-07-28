@@ -6,12 +6,13 @@
  * 「짧게 유지」를 문서에 적어두는 것만으로는 안 지켜진다(같은 실패가 07-15 에도 있었다).
  * → CLAUDE.md 「규칙은 문서에 적었다로 끝나지 않는다. 기계로 잴 수 있으면 CI로 박아라」 적용.
  *
- * 검사 5가지:
+ * 검사 6가지:
  *   1. CLAUDE.md 상한 (항상 주입되는 문서라 여기만 조인다)
  *   2. 분류 대기실 상한 (항목 수·글자 수) — 넘치면 지우는 게 아니라 제자리로 내려보내라는 신호
  *   3. 대기실 모든 항목에 분류 태그 필수 (분류 없이 쌓는 것을 막는 핵심 검사)
  *   4. CLAUDE.md 트리거 표가 가리키는 문서가 실제로 존재하는지 (죽은 링크)
  *   5. docs/rules/*.md 가 트리거 표에 등재돼 있는지 (아무도 안 읽는 고아 문서)
+ *   6. 옮겨간 섹션을 아직 CLAUDE.md 에서 찾게 하는 죽은 참조 (이 재구성 자신이 낸 사고)
  */
 import fs from "node:fs";
 import path from "node:path";
@@ -111,6 +112,63 @@ if (fs.existsSync(RULES_DIR)) {
   } else {
     ok.push(`docs/rules/*.md 전부 트리거 표에 등재됨`);
   }
+}
+
+// ── 6. 살아있는 문서·코드가 «옮겨간 섹션»을 아직 CLAUDE.md 에서 찾게 하나 ────
+// 왜(2026-07-28, 이 재구성 자신이 낸 사고): 섹션을 docs/rules/ 로 옮기자 다른 문서·스크립트
+// 6곳이 「CLAUDE.md 「출시 전 self-QA」」처럼 사라진 자리를 계속 가리켰다. 죽은 참조는
+// «안 지켜지는 것»이 아니라 «엉뚱한 곳을 찾게 만드는 것»이다(PREVIEW.md 의 없는 도구 이름 사례).
+//
+// 일부러 좁게 잡는다: 「실제로 옮긴 섹션」만 본다. 이름을 추측해 넓게 잡으면 멀쩡한 참조까지
+// 빨간불이 되고, 그러면 사람이 검사를 무시하게 된다 = 없느니만 못하다.
+const MOVED = {
+  "출시 전 self-QA": "docs/rules/SELF_QA.md",
+  "상시 루틴": "docs/rules/BUG_ROUTINE.md",
+  "자동 운영 규칙": "docs/rules/AUTOMERGE.md",
+  "병렬 세션 규칙": "docs/PARALLEL_SESSIONS.md",
+  "AI 품질": "docs/rules/AI_QUALITY.md",
+  "계층별 백오피스 사용설명서": "docs/rules/MANUALS.md",
+  "프리뷰 팁": "docs/rules/PREVIEW.md",
+  "주요 라우트": "docs/rules/PROJECT_MAP.md",
+  "주요 시스템": "docs/rules/PROJECT_MAP.md",
+};
+const LIVING = ["docs", "scripts", ".claude", "src", "e2e"];
+// 과거 기록(반성문·보관·정부과제 대장·리뷰)은 «그때 그랬다»는 사실이라 고치지 않는다.
+// 이관 문서 자신과 이 검사기도 제외(자기 참조).
+const SKIP =
+  /^docs\/(archive|reviews|government-project)\/|^docs\/POSTMORTEMS\.md|^docs\/rules\/|^docs\/PO_PREFERENCES\.md|^scripts\/check-rules\.mjs$/;
+const walk = (dir) =>
+  fs.readdirSync(dir, { withFileTypes: true }).flatMap((d) => {
+    const p = path.join(dir, d.name);
+    if (d.name === "node_modules" || d.name.startsWith(".git")) return [];
+    return d.isDirectory() ? walk(p) : /\.(md|mjs|js|ts|tsx|sh)$/.test(d.name) ? [p] : [];
+  });
+const dead = [];
+for (const dir of LIVING) {
+  if (!fs.existsSync(path.join(ROOT, dir))) continue;
+  for (const file of walk(path.join(ROOT, dir))) {
+    const rel = path.relative(ROOT, file).split(path.sep).join("/");
+    if (SKIP.test(rel)) continue;
+    const lines = fs.readFileSync(file, "utf8").split("\n");
+    lines.forEach((line, i) => {
+      if (!line.includes("CLAUDE.md")) return;
+      for (const [name, dest] of Object.entries(MOVED)) {
+        if (!line.includes(name)) continue;
+        // 같은 줄에 «간 곳»을 이미 적어 뒀으면 살아있는 안내다 — 통과.
+        if (line.includes(dest)) continue;
+        dead.push(`${rel}:${i + 1} → CLAUDE.md 「${name}」 (지금은 ${dest})`);
+      }
+    });
+  }
+}
+if (dead.length) {
+  errors.push(
+    `옮겨간 섹션을 아직 CLAUDE.md 에서 찾게 하는 곳 ${dead.length}건:\n` +
+      dead.map((d) => `     ${d}`).join("\n") +
+      `\n   → 그 줄이 옮긴 곳을 같이 가리키게 고쳐라(과거 기록이면 "(… 로 이관)" 한 마디면 통과).`
+  );
+} else {
+  ok.push("옮겨간 섹션을 가리키는 죽은 참조 0건");
 }
 
 // ── 출력 ─────────────────────────────────────────────────────────────
