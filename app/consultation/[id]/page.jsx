@@ -1908,6 +1908,49 @@ export default function ConsultationRoomPage() {
     },
     [consultationId, getConsultAuthHeaders]
   );
+  // ⚠️ 이 훅은 반드시 «조기 return» 보다 위에 있어야 한다. 처음엔 컨트롤 버튼 근처
+  //    (2,800줄대)에 뒀다가 로봇 실행에서 **React #310(훅 개수 불일치)** 으로 방 화면이
+  //    통째로 500 에러가 됐다 — 그 위치엔 `if (loading) return …` 류 조기 return 이 5개 있다.
+  // ── 통역봇 호출/퇴장 요청 (2026-07-28) ──────────────────────────────────
+  // 전에는 이 버튼이 «내 화면 상태»만 바꿨다. 봇은 방이 만들어질 때 자동으로 들어와
+  // 있거나(스위치 켜짐) 영영 안 들어왔다(꺼짐) — 버튼과 실제 봇이 연결돼 있지 않았다.
+  // 이제 켤 때 서버에 봇을 부르고, 끌 때 (남은 사람이 없으면) 내보낸다.
+  const requestInterpreter = useCallback(
+    async (on) => {
+      try {
+        const res = await fetch(
+          `/api/khidi/consultation/${consultationId}/interpreter`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              ...(isGuestMode ? { "X-Guest-Token": inviteToken } : {}),
+            },
+            body: JSON.stringify({ on, identity: myIdentity }),
+          }
+        );
+        const data = await res.json().catch(() => null);
+
+        // 서버가 «기능 꺼짐»이라고 하면 토글을 되돌린다 — 켜진 것처럼 두면
+        // 「눌렀는데 아무 일도 안 일어남」이 된다(2026-07-24~28 실제 상태였음).
+        if (res.ok && data?.enabled === false) {
+          setVoiceOn(false);
+          toast(c.voiceUnavailableMsg);
+          return;
+        }
+        if (!res.ok) throw new Error(data?.error || "request_failed");
+
+        toast.success(on ? (agentPresent ? c.voiceOnMsg : c.voiceOnPendingMsg) : c.voiceOffMsg);
+      } catch (e) {
+        // 호출 실패 = 통역이 안 켜진다. 켜진 척하지 말고 되돌린다.
+        if (on) setVoiceOn(false);
+        toast.error(c.voiceUnavailableMsg);
+        reportClientEvent?.("media_failure", `interpreter dispatch failed: ${e?.message}`);
+      }
+    },
+    [consultationId, isGuestMode, inviteToken, myIdentity, agentPresent, c, reportClientEvent]
+  );
+
   // 선언 위쪽의 이펙트(연결 워치독)에서도 안전하게 쓰도록 ref 로도 노출
   const reportClientEventRef = useRef(null);
   useEffect(() => {
@@ -2784,46 +2827,6 @@ export default function ConsultationRoomPage() {
   // 대기실/거절 화면 — 영상·채팅·번역 UI 없이 안내만 (혼란 방지)
   const isWaitingScreen =
     !!livekitToken && (admissionStatus === "pending" || admissionStatus === "rejected");
-
-  // ── 통역봇 호출/퇴장 요청 (2026-07-28) ──────────────────────────────────
-  // 전에는 이 버튼이 «내 화면 상태»만 바꿨다. 봇은 방이 만들어질 때 자동으로 들어와
-  // 있거나(스위치 켜짐) 영영 안 들어왔다(꺼짐) — 버튼과 실제 봇이 연결돼 있지 않았다.
-  // 이제 켤 때 서버에 봇을 부르고, 끌 때 (남은 사람이 없으면) 내보낸다.
-  const requestInterpreter = useCallback(
-    async (on) => {
-      try {
-        const res = await fetch(
-          `/api/khidi/consultation/${consultationId}/interpreter`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              ...(isGuestMode ? { "X-Guest-Token": inviteToken } : {}),
-            },
-            body: JSON.stringify({ on, identity: myIdentity }),
-          }
-        );
-        const data = await res.json().catch(() => null);
-
-        // 서버가 «기능 꺼짐»이라고 하면 토글을 되돌린다 — 켜진 것처럼 두면
-        // 「눌렀는데 아무 일도 안 일어남」이 된다(2026-07-24~28 실제 상태였음).
-        if (res.ok && data?.enabled === false) {
-          setVoiceOn(false);
-          toast(c.voiceUnavailableMsg);
-          return;
-        }
-        if (!res.ok) throw new Error(data?.error || "request_failed");
-
-        toast.success(on ? (agentPresent ? c.voiceOnMsg : c.voiceOnPendingMsg) : c.voiceOffMsg);
-      } catch (e) {
-        // 호출 실패 = 통역이 안 켜진다. 켜진 척하지 말고 되돌린다.
-        if (on) setVoiceOn(false);
-        toast.error(c.voiceUnavailableMsg);
-        reportClientEvent?.("media_failure", `interpreter dispatch failed: ${e?.message}`);
-      }
-    },
-    [consultationId, isGuestMode, inviteToken, myIdentity, agentPresent, c, reportClientEvent]
-  );
 
   // ── 컨트롤 버튼 (헤더에서 공용 재사용 — 중복 정의 방지) ──
   // 컨트롤 버튼 공통 문법(2026-07-15 PO): 아이콘 위 + 짧은 라벨 아래(모바일 포함 항상 표시) —

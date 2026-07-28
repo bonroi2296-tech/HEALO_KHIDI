@@ -67,6 +67,21 @@ test.describe("야간 로봇 통화 — 2인 실연결 검증", () => {
     const invite = await inviteRes.json();
     expect(invite?.inviteUrl, "초대 URL 없음").toBeTruthy();
 
+    // ⚠️ 초대 URL 의 도메인을 **검사 대상**으로 갈아끼운다 (2026-07-28 실측으로 추가).
+    //    서버는 초대 링크를 `siteUrl()`(= 정본 도메인, 프로덕션)로 만든다 — 환자에게 나가는
+    //    링크라 request origin 을 안 쓰는 게 맞다. 그런데 **프리뷰를 대상으로 돌려도 로봇이
+    //    프로덕션 방으로 들어가 버려서**, 프리뷰의 새 코드를 검사한 줄 알고 실은 프로덕션을
+    //    재고 있었다(고친 줄 알았던 기능이 「안 고쳐졌다」로 나옴 — 낡은 대상 오검증 부류).
+    //    프로덕션 야간 실행에서는 두 도메인이 같아 무동작이다.
+    const robotEntryUrl = (() => {
+      const u = new URL(invite.inviteUrl);
+      const base = new URL(process.env.E2E_BASE_URL || "http://localhost:3000");
+      u.protocol = base.protocol;
+      u.host = base.host;
+      return u.toString();
+    })();
+    console.log(`[robot-call] 로봇 입장 URL = ${robotEntryUrl.split("?")[0]}`);
+
     // 2) 가짜 미디어 브라우저(권한창 자동 허용 + 초록 링 테스트 영상) — 로봇 전용 인스턴스
     //
     // 🎙️ 가짜 «마이크» 에 실제 말소리를 물린다 (2026-07-27).
@@ -100,7 +115,13 @@ test.describe("야간 로봇 통화 — 2인 실연결 검증", () => {
         permissions: ["camera", "microphone"],
       });
       const robot = await ctx.newPage();
-      await robot.goto(invite.inviteUrl, { waitUntil: "domcontentloaded" });
+      // 방 화면이 하얗게/에러로 죽으면 이유가 브라우저 콘솔에만 남는다 — 야간 실행엔 사람이
+      // 없으니 즉시 stdout 으로 흘린다(원격 진단 원칙, POSTMORTEMS #61 과 같은 부류 예방).
+      robot.on("pageerror", (err) => console.log(`[robot-call] ${name} pageerror: ${err.message}`));
+      robot.on("console", (m) => {
+        if (m.type() === "error") console.log(`[robot-call] ${name} console: ${m.text().slice(0, 300)}`);
+      });
+      await robot.goto(robotEntryUrl, { waitUntil: "domcontentloaded" });
       const nameInput = robot.locator('input[type="text"]').first();
       await nameInput.waitFor({ state: "visible", timeout: 20_000 });
       await nameInput.fill(name);
@@ -217,6 +238,15 @@ test.describe("야간 로봇 통화 — 2인 실연결 검증", () => {
       let botPresent = false;
       let lastToast = "(토스트 못 봄)";
 
+      // 서버가 뭐라고 답했는지 남긴다 — 「봇이 안 들어온다」가 앱 문제인지 워커 문제인지
+      // 가르는 첫 갈림길인데, 프로덕션 로그는 몇 분 밀려서 아침에 보면 이미 늦다.
+      const apiAnswers: string[] = [];
+      robotB.on("response", async (res) => {
+        if (!res.url().includes("/interpreter")) return;
+        const body = await res.text().catch(() => "(본문 못 읽음)");
+        apiAnswers.push(`${res.status()} ${body.slice(0, 200)}`);
+      });
+
       await voiceBtn.click(); // 통역 켜기 = 이 순간 서버가 봇을 부른다
       const toast = robotB
         .getByText(new RegExp(`${BOT_PRESENT.source}|${BOT_MISSING.source}`))
@@ -278,6 +308,11 @@ test.describe("야간 로봇 통화 — 2인 실연결 검증", () => {
       console.log(
         `[robot-call] 통역봇=${botPresent} / 마지막토스트="${lastToast}"`
       );
+      console.log(`[robot-call] interpreter 응답: ${apiAnswers.join(" | ") || "(호출 없음)"}`);
+      test.info().annotations.push({
+        type: "interpreter-api",
+        description: apiAnswers.join(" | ") || "(호출 없음)",
+      });
       test.info().annotations.push({
         type: "interpreter-bot",
         description: `봇 재실 판정=${botPresent} / 마지막 토스트="${lastToast}"`,
