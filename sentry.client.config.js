@@ -8,6 +8,13 @@
 // 늦게 켜면 그 사이 에러를 놓치므로, SDK 가 붙기 전 에러는 아래 «임시 수신함»이 받아뒀다가
 // init 직후 그대로 넘긴다. hydration·자동번역 사고처럼 «로딩 중에 나는» 에러가 우리 주력이라
 // 이 버퍼가 없으면 늦게 켜는 것 자체가 성립하지 않는다.
+//
+// 감수한 손실 2가지(알고 택한 것 — 되돌리려면 이 파일을 옛 판으로):
+//   ① 센트리 «성능 추적(pageload 트랜잭션)»은 이제 안 잡힌다. 로딩이 끝난 뒤 켜지니 로딩 자체를
+//      못 잰다. 우리 성능 판단 근거는 Lighthouse 실측이라 실손해가 없다(tracesSampleRate 0.1 은
+//      켜진 뒤의 API 호출·라우팅에 계속 적용된다).
+//   ② 에러 녹화(replay)가 첫 몇 초를 못 담는다. 에러 «보고»는 ①의 버퍼로 온전하지만 그 순간의
+//      «화면 녹화»는 켜진 이후 구간만 남는다.
 const SENTRY_DSN = process.env.NEXT_PUBLIC_SENTRY_DSN;
 const isProd = process.env.NODE_ENV === "production";
 

@@ -5,7 +5,7 @@
  * init 직후 밀어 넣는다. 그 버퍼가 이 변경의 «에러를 잃지 않는» 유일한 근거라, 조용히
  * 깨지면 «빠른데 에러를 놓치는» 상태가 된다(겉으로 티가 안 난다) → 검사로 박아둔다.
  */
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 const init = vi.fn();
 const captureException = vi.fn();
@@ -47,6 +47,13 @@ describe("센트리 늦게 켜기 — 그 사이 에러를 잃지 않는다", ()
     init.mockClear();
     captureException.mockClear();
     process.env.NEXT_PUBLIC_SENTRY_DSN = "https://k@o0.ingest.sentry.io/0";
+  });
+
+  // node 환경에 심어둔 가짜 브라우저를 치운다 — 안 치우면 같은 워커의 다른 검사가
+  // «window 가 있는 node» 라는 이상한 환경에서 돌아 원인 찾기 어려운 실패를 낸다.
+  afterEach(() => {
+    delete (globalThis as Record<string, unknown>).window;
+    delete (globalThis as Record<string, unknown>).document;
   });
 
   it("켜지기 전에 난 에러를 init 뒤에 late_init 태그로 넘긴다", async () => {
