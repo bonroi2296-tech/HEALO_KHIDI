@@ -103,14 +103,18 @@ export async function GET(request: NextRequest) {
       const merged = results.map((r) => {
         const values: Record<string, string> = {};
         let overridden = false;
+        // editedLangs = 코디가 «직접 고친» 언어 목록. 편집기가 줄마다 언어 배지로 표시한다.
+        // 왜 «값이 있는 언어»가 아니라 이것인가: 사실상 모든 문구가 6개 언어를 다 갖고 있어서
+        // (실측 205줄·배지 1,230개 중 빈 언어 0개) «내용 있음»으로는 아무것도 구분되지 않는다.
+        const editedLangs: string[] = [];
         for (const l of EDITABLE_LANGS) {
           const o = ovMap[`${r.key}|${l}`];
           values[l] = o !== undefined ? o : ((r.values as any)[l] ?? "");
-          if (o !== undefined) overridden = true;
+          if (o !== undefined) { overridden = true; editedLangs.push(l); }
         }
         // matched=false 인 홈 항목은 "직접 맞진 않았지만 같은 블록이라 함께 온" 줄(편집기에서 배지 표시)
         const matched = r.section === "화면 텍스트" ? true : homeDirect.has(r.key);
-        return { key: r.key, section: r.section, label: r.label, values, overridden, matched };
+        return { key: r.key, section: r.section, label: r.label, values, overridden, editedLangs, matched };
       });
       return NextResponse.json({ ok: true, results: merged });
     }

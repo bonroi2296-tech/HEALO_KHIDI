@@ -32,6 +32,7 @@ export default function ContentEditorClient() {
   const [msg, setMsg] = useState(null);
   const [confirming, setConfirming] = useState(false);
   const [pending, setPending] = useState([]); // 확인창에 «얼려서» 보여주고 그대로 저장할 목록
+  const [justSaved, setJustSaved] = useState(() => new Set()); // 이번 화면에서 방금 저장한 `키|언어` (배지 즉시 반영용)
   const dialogRef = useRef();
   const [showLog, setShowLog] = useState(false);
   const [logs, setLogs] = useState([]);
@@ -116,6 +117,15 @@ export default function ContentEditorClient() {
     return m;
   }, [results]);
 
+  // 「코디가 직접 고친 언어」 — 줄마다 언어 배지를 칠하는 기준(서버가 준 목록 + 이번 화면에서 방금 저장한 것).
+  // 저장 직후엔 재검색 전이라 서버 목록이 낡으므로 방금 저장분을 더해 준다.
+  const editedByKey = useMemo(() => {
+    const m = {};
+    for (const r of results) m[r.key] = new Set(r.editedLangs || []);
+    return m;
+  }, [results]);
+  const isEditedLang = (key, lang) => editedByKey[key]?.has(lang) || justSaved.has(`${key}|${lang}`);
+
   // 확인창을 열 때 목록을 «얼린다». 뒤늦게 도착한 검색(디바운스 300ms + 서버 왕복)이
   // original 을 갈아끼우면 화면의 목록이 읽는 도중 조용히 바뀔 수 있어서 — 얼려두면
   // «읽은 것 = 저장되는 것»이 구조로 보장된다(독립 리뷰 P2).
@@ -143,6 +153,11 @@ export default function ContentEditorClient() {
           const n = { ...p.original };
           for (const u of updates) n[u.key] = { ...n[u.key], [u.lang]: u.value };
           return { ...p, original: n };
+        });
+        setJustSaved((prev) => {
+          const n = new Set(prev);
+          for (const u of updates) (u.value ?? "") === "" ? n.delete(`${u.key}|${u.lang}`) : n.add(`${u.key}|${u.lang}`);
+          return n;
         });
         setMsg({ type: "ok", text: `저장됨 (${data.saved}건). 화면에 반영됩니다.` });
       } else setMsg({ type: "err", text: "저장 실패 (권한 또는 서버 오류)." });
@@ -281,7 +296,9 @@ export default function ContentEditorClient() {
               ))}
             </div>
           </div>
-          <p className="text-[11px] text-gray-600 mb-1">언어는 한 번 고르면 유지됩니다 · 줄을 펼치면 6개어 전부 · 이미 고친 문구로도 검색됩니다</p>
+          <p className="text-[11px] text-gray-600 mb-1">
+            언어는 한 번 고르면 유지됩니다 · 줄마다 <span className="text-teal-700 font-semibold">진한 언어 표시</span>가 «직접 고친 언어»입니다(눌러서 그 언어로 전환) · 줄을 펼치면 6개어 전부 · 이미 고친 문구로도 검색됩니다
+          </p>
           <p className="text-[11px] text-gray-500 mb-4">줄바꿈(Enter)은 화면에 그대로 반영됩니다 · 줄바꿈 없이 길게 쓰면 화면 폭에 맞춰 자동 줄바꿈 · 줄바꿈이 안 먹는 화면을 발견하면 알려주세요</p>
 
           {loading && <p className="text-sm text-gray-500">검색 중…</p>}
@@ -327,9 +344,38 @@ export default function ContentEditorClient() {
                         문구 중복
                       </span>
                     )}
+                    {/* 언어 배지 (2026-07-28) — 접힌 줄은 「한국어 + 지금 고치는 언어」 두 칸만 보여준다.
+                        그래서 «다른 언어에 내용이 있는지»를 알 방법이 아예 없었다:
+                        코디가 카자흐어로 44곳을 저장한 뒤 다른 브라우저에서 열자(편집 언어 기본값=러시아어)
+                        카자흐어 칸이 화면에서 빠져 「저장한 게 사라졌다」로 읽혔다(2026-07-28 실사고).
+                        → 「코디가 직접 고친 언어」를 진하게 표시하고, 눌러서 그 언어로 바로 전환.
+                        ⚠️ 처음엔 «내용이 있는 언어»로 칠했다가 버렸다 — 실측(205줄·배지 1,230개)에서
+                        빈 언어가 **0개**라 전부 진하게 떠서 아무것도 구분하지 못했다(가드는 기본 상태에서 조용해야 한다). */}
+                    <div className="ml-auto flex items-center gap-0.5 flex-shrink-0">
+                      {LANGS.map((l) => {
+                        const edited = isEditedLang(r.key, l);
+                        const now = l === editLang;
+                        return (
+                          <button
+                            key={l}
+                            onClick={() => pickLang(l)}
+                            title={`${LANG_LABEL[l]} — ${edited ? "코디가 직접 고친 언어" : "기본 문구 그대로"} · 누르면 이 언어를 편집합니다`}
+                            className={`text-[10px] leading-none px-1.5 py-1 rounded transition-colors ${
+                              now
+                                ? "bg-teal-700 text-white font-bold"
+                                : edited
+                                  ? "text-teal-700 bg-teal-50 font-semibold hover:bg-teal-100"
+                                  : "text-gray-500 hover:bg-gray-100"
+                            }`}
+                          >
+                            {LANG_SHORT[l]}
+                          </button>
+                        );
+                      })}
+                    </div>
                     <button
                       onClick={() => setExpanded((p) => ({ ...p, [r.key]: !p[r.key] }))}
-                      className="ml-auto text-[11px] text-gray-500 hover:text-gray-600"
+                      className="text-[11px] text-gray-500 hover:text-gray-600 flex-shrink-0"
                     >
                       {isOpen ? "접기 ▲" : "6개어 펼치기 ▾"}
                     </button>
