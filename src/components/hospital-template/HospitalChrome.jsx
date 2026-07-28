@@ -114,7 +114,7 @@ export function HospitalFooter({ site, lang, darkTone }) {
 }
 
 /** 속 페이지 상단 — 제목 띠. 홈의 히어로 자리를 대신한다. */
-export function PageHero({ title, subtitle, accent, darkTone }) {
+export function PageHero({ title, subtitle, darkTone }) {
   return (
     <section className="py-14 md:py-20" style={{ backgroundColor: darkTone }}>
       <div className="max-w-6xl mx-auto px-5 md:px-8">

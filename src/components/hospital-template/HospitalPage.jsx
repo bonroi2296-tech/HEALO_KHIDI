@@ -28,7 +28,7 @@ export default function HospitalPage({ site, page, slug, lang = "en", onInquiry,
   return (
     <div className="bg-[#FBF8F3] text-[#16211C] antialiased min-h-screen flex flex-col">
       <HospitalHeader site={site} lang={lang} accent={accent} onInquiry={onInquiry} basePath={basePath} current={slug} />
-      <PageHero title={t(page.title)} subtitle={t(page.subtitle)} accent={accent} darkTone={darkTone} />
+      <PageHero title={t(page.title)} subtitle={t(page.subtitle)} darkTone={darkTone} />
 
       <main className="flex-1">
         {blocks.map((block, i) => (

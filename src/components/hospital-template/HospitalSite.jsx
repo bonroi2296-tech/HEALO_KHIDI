@@ -78,7 +78,6 @@ export default function HospitalSite({ site, lang = "en", onInquiry, basePath = 
 
   const t = (v) => pick(v, lang);
   const accent = site.brand?.accent || FALLBACK_ACCENT;
-  const brandName = t(site.brand?.name);
   // 어두운 면(신뢰 숫자 바·후기·마무리·푸터)은 강조색을 깊게 눌러 만든다.
   // 고정 색을 쓰면 어느 병원이든 같은 검정이 되어 «판 티»가 난다.
   const darkTone = site.brand?.darkTone || "#0C2233";
