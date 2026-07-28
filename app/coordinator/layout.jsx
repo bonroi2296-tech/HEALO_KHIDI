@@ -139,7 +139,15 @@ export default function CoordinatorLayout({ children }) {
           {children}
         </main>
       ) : (
-        <main className="flex-1 overflow-auto pt-14 lg:pt-0">
+        /* 2026-07-28: `overflow-auto` 제거.
+           이 main 은 부모가 `flex min-h-screen`(높이 상한 없음)이라 **자기가 스크롤한 적이 없다**
+           (실측 scrollHeight>clientHeight = false, 실제 스크롤 주체는 문서).
+           그런데 overflow 가 visible 이 아니면 CSS 상 여기가 «스크롤 상자»로 잡혀,
+           안쪽의 `position: sticky` 가 **움직이지 않는 상자를 기준 삼아 아예 안 붙었다.**
+           실측(콘텐츠 편집, 문서 10,985px): 저장바가 맨 위 기준 10,889px 지점에 정적으로 앉아
+           편집 중엔 화면에 없었고 끝까지 내려야 보였다.
+           ⚠️ 메시지 화면은 위 분기의 `overflow-hidden` 을 그대로 쓴다(2단 채팅 풀블리드 — 건드리지 말 것). */
+        <main className="flex-1 pt-14 lg:pt-0">
           <div className="max-w-6xl mx-auto px-4 sm:px-6 py-4 lg:py-6">
             {children}
           </div>
