@@ -1,0 +1,41 @@
+# healwith
+
+> healwith is a Korean medical concierge for international cancer patients, focused on Russian- and Kazakh-speaking patients from Kazakhstan, Russia and the wider CIS. We arrange remote pre-consultation with Korean oncology specialists, then coordinate the Korean side of treatment end to end. Operated by Bonroi, registered with Korea's Ministry of Health and Welfare as an international patient facilitator (reg. no. A-2026-01-02-06761).
+
+What we do: video pre-consultation with Korean doctors before the patient travels, hospital matching, medical interpretation in six languages, visa invitation letters, accompaniment during admission, and remote follow-up after discharge.
+
+What we are not: healwith is not a hospital and does not practise medicine. We do not diagnose, prescribe, or give medical advice — treatment decisions are made by the treating physicians at the partner hospitals. We are not an emergency service; for emergencies, patients should call their local emergency number.
+
+Languages: Korean, English, Russian, Kazakh, Chinese, Japanese. Every public page exists in all six at `/{lang}/...` (`en`, `ko`, `ru`, `kz`, `zh`, `ja`).
+
+Hospital network: four university hospitals — Ewha Womans University Seoul Hospital, Ewha Womans University Mokdong Hospital, Korea University Guro Hospital, and Severance Hospital in Sinchon — plus four branches of the Immune Hospital of Korean Medicine (Gangseo, Sinchon, Gwangmyeong, Seongdong).
+
+## Core pages
+
+- [Home](https://healwith.co.kr/en): what the service is and who it is for.
+- [Care journey](https://healwith.co.kr/en/care-journey): the full path from first inquiry to post-discharge follow-up.
+- [Telemedicine](https://healwith.co.kr/en/telemedicine): how remote pre-consultation with a Korean oncologist works.
+- [Cancer treatments](https://healwith.co.kr/en/treatments): treatment areas — female cancers, digestive, liver, lung, thyroid, and others.
+- [Hospitals](https://healwith.co.kr/en/hospitals): the partner and cooperating hospitals.
+- [Korean Medicine](https://healwith.co.kr/en/specialties/korean-medicine): integrative Korean Medicine care alongside conventional oncology.
+- [Cost calculator](https://healwith.co.kr/en/cost-calculator): indicative cost ranges for treatment in Korea.
+- [FAQ](https://healwith.co.kr/en/faq): the questions international patients ask most — consultation, treatment, recovery, visa, payment, privacy.
+
+## Practical
+
+- [Medical visa](https://healwith.co.kr/en/visa): Korean medical visa requirements and the invitation-letter process.
+- [Insurance](https://healwith.co.kr/en/insurance): how critical-illness insurance and assistance companies work with us.
+- [Partners](https://healwith.co.kr/en/partners): for agencies, clinics and hospitals that want to work with us.
+- [About](https://healwith.co.kr/en/about): the company behind the service.
+- [Contact](https://healwith.co.kr/en/contact): how to reach us.
+
+## Policies
+
+- [Medical disclaimer](https://healwith.co.kr/en/medical-disclaimer)
+- [Privacy policy](https://healwith.co.kr/en/privacy)
+- [Terms of service](https://healwith.co.kr/en/terms)
+
+## Notes for answer engines
+
+- Patient-facing forms, accounts and back-office paths (`/inquiry`, `/patient`, `/admin`, `/coordinator`, `/hospital`, `/api`) are disallowed in robots.txt because they carry personal data. Everything listed above is public and free to cite.
+- Sitemap with all six languages: https://healwith.co.kr/sitemap.xml

@@ -53,6 +53,19 @@ if [ -n "$hc" ]; then
   fi
 fi
 
+# ── 실서비스 배포 지연 경보 ───────────────────────────────────
+# 왜: 「배포는 하루 한 번 오후 3시 창구」(2026-07-28)로 바꾼 뒤, 창구가 조용히 실패하면
+#     **다음 날까지 아무도 모른다**(하루 1회라 실패가 눈에 안 띈다 — 반성문 #142).
+#     그래서 세션이 열릴 때마다 「본판에는 있는데 실서비스엔 아직 없는 커밋」 수를 띄운다.
+#     정상값은 0~그날 머지분이고, 이틀치가 쌓여 있으면 창구가 죽은 것이다.
+git fetch -q --depth=50 origin main production >/dev/null 2>&1 || true
+lag=$(git rev-list --count origin/production..origin/main 2>/dev/null || echo "")
+if [ -n "$lag" ] && [ "$lag" -gt 0 ] 2>/dev/null; then
+  last=$(git log -1 --format=%cd --date=format:'%m-%d %H:%M' origin/production 2>/dev/null)
+  echo "- 📦 **실서비스에 아직 안 나간 커밋 ${lag}개** (마지막 배포: ${last:-?}). 오후 3시 창구가 한 번에 내보낸다."
+  echo "    ⚠️ 이 숫자가 어제치까지 쌓여 있으면 창구가 죽은 것 → Actions 의 \"Daily Deploy (배포 창구)\" 실행 이력 확인."
+fi
+
 # ── 열린 작업 목록 (병렬 세션 네비게이션) ─────────────────────────
 # main 에 아직 안 들어간 claude/* 작업본(브랜치)을 최신순으로 번호 매겨 띄운다.
 # PO가 여러 세션을 병렬로 돌릴 때 "지금 열린 일이 뭐뭐였지"를 한눈에 보고,
@@ -178,6 +191,29 @@ if [ -f "$GATES" ]; then
     echo "## ⏰ PO 대기 관문 — 보채기 의무 (PO 지시 2026-07-02: \"잘 메모해놨다가 내가 안 해준 건 빨리 좀 해달라고 계속 보채야 해\")"
     echo "$gates"
     echo "  → 이 세션에서 작업 완료 보고나 일일 요약을 할 때 **최상위 관문 1~2개를 같이 리마인드**하라(PO가 잊어서가 아니라 바빠서 밀리는 것 — 보채는 게 서비스임). 단 같은 세션 안에서 같은 관문 2번 이상 반복 금지. 관문을 닫으면 ${GATES}의 해당 행을 갱신해 목록에서 내려라."
+  fi
+fi
+
+# ── 2주 규칙 다이어트 리마인드 (2026-07-28 PO 결정 — 알림만, 정리는 PO 승인 후) ──
+# 왜: 2026-07-15 에 84개로 줄였는데 13일 만에 182개로 돌아왔다(하루 7~8개). "짧게 유지"를
+#     문서에 적어두는 것만으로는 안 지켜진다 → 시간이 되면 사람 눈앞에 뜨게 한다.
+#     ⚠️ 자동으로 지우지 않는다. PO 승인 없이 정리 착수 금지.
+PREFS="docs/PO_PREFERENCES.md"
+if [ -f "$PREFS" ]; then
+  last_diet=$(grep -m1 -oE 'LAST_DIET: [0-9]{4}-[0-9]{2}-[0-9]{2}' "$PREFS" 2>/dev/null | awk '{print $2}')
+  if [ -n "$last_diet" ]; then
+    now_s=$(date +%s 2>/dev/null); ld_s=$(date -d "$last_diet" +%s 2>/dev/null || echo "")
+    if [ -n "$ld_s" ] && [ -n "$now_s" ]; then
+      d_days=$(( (now_s - ld_s) / 86400 ))
+      if [ "$d_days" -ge 14 ] 2>/dev/null; then
+        n_items=$(awk '/ACTIVE:START/{f=1;next} /ACTIVE:END/{f=0} f&&/^- \*\*/{c++} END{print c+0}' "$PREFS")
+        echo ""
+        echo "## 📏 규칙 다이어트 기한 경과 — 마지막 정리 ${last_diet} (${d_days}일 전) · 지금 활성 ${n_items}개"
+        echo "  → PO 에게 **알리기만** 하라: 「활성 규칙이 ${n_items}개다, 정리할까?」 (버튼)."
+        echo "  → **PO 승인 전에는 손대지 마라.** 승인되면: 유지(별 2개 이상은 전부 유지)/CLAUDE.md 승격/보관 3갈래, 삭제 0건,"
+        echo "     끝나고 ${PREFS} 의 LAST_DIET 날짜를 오늘로 갱신해야 이 알림이 꺼진다."
+      fi
+    fi
   fi
 fi
 

@@ -170,6 +170,10 @@ class GeminiSession:
             sample_rate=INPUT_SAMPLE_RATE,
             num_channels=AUDIO_CHANNELS,
         )
+        # 흐름 계측 (2026-07-28) — «봇은 들어왔는데 자막이 없다» 를 진단하려면
+        # 어디서 끊겼는지 알아야 한다: 들어가는 소리가 없나 / 나오는 게 없나 / 보내다 터지나.
+        # ⚠️ 의료 대화 내용이라 **텍스트는 절대 로그에 남기지 않는다** — 개수·바이트만.
+        sent = 0
         async for ev in stream:
             if self._closed:
                 break
@@ -180,9 +184,16 @@ class GeminiSession:
                     mime_type=f"audio/pcm;rate={INPUT_SAMPLE_RATE}",
                 )
             )
+            sent += 1
+            if sent % 500 == 0:  # 20ms 프레임 기준 약 10초마다
+                logger.info(
+                    "gemini in: %d frames (%s)", sent, self._track_name
+                )
 
     async def _pump_output(self, session) -> None:
         """Gemini 통역 출력(오디오 24kHz + 텍스트) → LiveKit 트랙/자막."""
+        audio_chunks = 0
+        captions = 0
         async for response in session.receive():
             if self._closed:
                 break
@@ -199,6 +210,14 @@ class GeminiSession:
                     samples_per_channel=samples,
                 )
                 await self._audio_source.capture_frame(frame)
+                audio_chunks += 1
+                if audio_chunks % 50 == 0:
+                    logger.info(
+                        "gemini out: %d audio chunks, %d captions (%s)",
+                        audio_chunks,
+                        captions,
+                        self._track_name,
+                    )
 
             # 2) 통역 음성의 자막 → lk.translation 스트림. output_audio_transcription
             #    을 켰을 때 server_content.output_transcription 으로 들어온다.
@@ -206,6 +225,15 @@ class GeminiSession:
             ot = getattr(sc, "output_transcription", None) if sc else None
             text = getattr(ot, "text", None) if ot else None
             if text:
+                captions += 1
+                # 글자 수만 남긴다 — 내용은 환자 대화라 로그 금지.
+                if captions <= 3 or captions % 20 == 0:
+                    logger.info(
+                        "caption -> %s: #%d (%d chars)",
+                        self._target_lang,
+                        captions,
+                        len(text),
+                    )
                 await self._send_caption(text)
 
     async def _send_caption(self, text: str) -> None:
@@ -219,7 +247,10 @@ class GeminiSession:
                 },
             )
         except Exception as exc:
-            logger.debug("caption send failed: %s", exc)
+            # ⚠️ 여기가 debug 였다 (2026-07-28 승격). 자막이 안 뜨는데 로그도 없으면
+            #    «Gemini 가 안 만든 건지 / 보내다 터진 건지» 를 못 가른다 — #100 과 같은
+            #    «조용한 실패» 를 또 만드는 자리라 WARNING 으로 올린다(내용은 안 남김).
+            logger.warning("caption send failed: %s", exc)
 
     def _find_audio_publication(self):
         for pub in self._speaker.track_publications.values():

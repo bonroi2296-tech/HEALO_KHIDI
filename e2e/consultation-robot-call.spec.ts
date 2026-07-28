@@ -126,7 +126,12 @@ test.describe("야간 로봇 통화 — 2인 실연결 검증", () => {
       // 없으니 즉시 stdout 으로 흘린다(원격 진단 원칙, POSTMORTEMS #61 과 같은 부류 예방).
       robot.on("pageerror", (err) => console.log(`[robot-call] ${name} pageerror: ${err.message}`));
       robot.on("console", (m) => {
-        if (m.type() === "error") console.log(`[robot-call] ${name} console: ${m.text().slice(0, 300)}`);
+        // warning 도 본다 — 통역·자막 경로의 실패는 전부 `console.warn` 으로 나간다
+        // (`[LiveTranslate] …`). error 만 보던 탓에 2026-07-28 진단에서 이 줄들을 통째로
+        // 놓쳤다: 봇은 자막을 보냈는데 화면엔 없고, 이유는 warn 에 있었을 자리다.
+        const t = m.type();
+        if (t === "error" || t === "warning")
+          console.log(`[robot-call] ${name} ${t}: ${m.text().slice(0, 300)}`);
       });
       await robot.goto(robotEntryUrl, { waitUntil: "domcontentloaded" });
       const nameInput = robot.locator('input[type="text"]').first();
@@ -242,6 +247,13 @@ test.describe("야간 로봇 통화 — 2인 실연결 검증", () => {
       //    (실측: 4회 전부 pending 토스트 → 봇=false. 앱은 멀쩡했다).
       //    → 클릭 없이 읽히는 신호로 판정한다: 봇 대기 배지(`voice-bot-pending`)는
       //      `!agentPresent` 일 때만 그려지므로, **사라짐 = 봇 입장**이다.
+      // ⚠️ 채팅 패널을 «닫고» 시작한다. 자막 오버레이는 `{!panelOpen && …}` 이라 패널이 열려
+      //    있으면 **아예 렌더되지 않는다**(2026-07-11 PO: 모바일에서 패널이 자막을 덮음).
+      //    4단계 채팅 검사가 패널을 열어둔 채 끝나서, 봇이 자막 34건을 보낸 실행에서도
+      //    화면엔 «자막 못 봄»이 나왔다 — 앱이 아니라 검사가 눈을 가리고 있었다(2026-07-28).
+      await robotB.locator('button[aria-label="Toggle chat panel"]').first().click();
+      await robotA.locator('button[aria-label="Toggle chat panel"]').first().click();
+
       const pendingBadge = robotB.getByTestId("voice-bot-pending").first();
       let botPresent = false;
       let lastToast = "(토스트 못 봄)";
@@ -282,17 +294,18 @@ test.describe("야간 로봇 통화 — 2인 실연결 검증", () => {
       //      expect 로 올리면 «봇은 멀쩡한데 합성음이 약해서» 매일 밤 빨간불이 될 수 있다.
       let captionText = "(관측 안 함 — 봇 미입장)";
       if (botPresent) {
-        const stack = robotB.getByTestId("subtitle-stack").first();
+        // 자막 «본문»만 읽는다 — 같은 줄의 이름·언어 라벨(«Русский»)과 옆의 AI 면책 배너도
+        // 러시아어라, 스택 전체 텍스트로 보면 봇이 아무 말도 안 해도 «자막 있음»이 된다
+        // (2026-07-28 실측: 라벨만 잡고 통과할 뻔했다).
+        const lines = robotB.getByTestId("subtitle-text");
         const cyrillic = /[Ѐ-ӿ]{3,}/;
         const deadline = Date.now() + 60_000;
         captionText = "자막 못 봄";
         while (Date.now() < deadline) {
-          // ⚠️ 반드시 짧은 timeout 을 준다. 자막 스택은 «자막이 하나라도 있을 때만» 그려지는
-          //    엘리먼트라, 아직 없으면 Playwright 가 기본 대기(이 저장소는 120초)를 통째로 쓴다.
-          //    처음엔 안 줬다가 폴링 한 바퀴에 2분이 날아가 테스트 예산이 터졌다(2026-07-28).
-          const txt = await stack.innerText({ timeout: 2_000 }).catch(() => "");
-          if (cyrillic.test(txt)) {
-            captionText = "자막 뜸: " + txt.split("\n").join(" | ").slice(0, 120);
+          const texts = await lines.allInnerTexts().catch(() => [] as string[]);
+          const hit = texts.find((t) => cyrillic.test(t));
+          if (hit) {
+            captionText = "자막 뜸: " + hit.slice(0, 120);
             break;
           }
           await robotB.waitForTimeout(3_000);

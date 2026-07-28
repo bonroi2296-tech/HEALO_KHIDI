@@ -1,3 +1,7 @@
+import { t } from "@/lib/i18n";
+import { DEFAULT_LOCALE } from "@/lib/i18n/config";
+import { getRequestLocale, HREF_LANG } from "@/lib/i18n/metadata";
+import { FAQS } from "@/lib/faq/faqData";
 import FAQClient from "./FAQClient";
 
 export const metadata = {
@@ -17,52 +21,38 @@ export const metadata = {
   },
 };
 
-const faqJsonLd = {
-  "@context": "https://schema.org",
-  "@type": "FAQPage",
-  mainEntity: [
-    {
+/**
+ * FAQPage JSON-LD — 화면에 실제로 뜨는 Q&A(FAQS + i18n)를 그대로 직렬화한다.
+ *
+ * 왜 하드코딩을 버렸나: 예전엔 영어 4문항이 이 파일에 박혀 있어 ①화면의 17문항과 다르고
+ * ②러시아어·카자흐어 요청에도 영어만 나갔다. 구조화데이터가 화면과 다르면 구글은 리치결과를
+ * 안 주고, AI 답변엔 애초에 우리 문장이 안 실린다(AEO). 이제 화면과 같은 소스 = 항상 일치.
+ * 문구 수정은 i18n 사전(faqData.*)에서 — 여기 손댈 일 없음.
+ */
+function faqJsonLd(lang) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    inLanguage: HREF_LANG[lang] || lang,
+    mainEntity: FAQS.map((f) => ({
       "@type": "Question",
-      name: "How do I start a consultation with healwith?",
-      acceptedAnswer: {
-        "@type": "Answer",
-        text: "You can start a consultation by submitting an inquiry through our website. Our concierge team will contact you within 24 hours to guide you through the process.",
-      },
-    },
-    {
-      "@type": "Question",
-      name: "What languages does healwith support?",
-      acceptedAnswer: {
-        "@type": "Answer",
-        text: "healwith provides real-time interpretation in 6 languages: Korean, English, Russian, Kazakh, Chinese, and Japanese.",
-      },
-    },
-    {
-      "@type": "Question",
-      name: "Does healwith help with medical visas?",
-      acceptedAnswer: {
-        "@type": "Answer",
-        text: "Yes, healwith assists international patients with Korean medical visa applications, including document preparation and embassy guidance.",
-      },
-    },
-    {
-      "@type": "Question",
-      name: "What types of cancer treatments are available in Korea?",
-      acceptedAnswer: {
-        "@type": "Answer",
-        text: "Korea offers comprehensive cancer care including surgery, chemotherapy, radiation, targeted therapy, immunotherapy, and Korean Medicine immune therapy. healwith partners with specialized oncology centers and Korean Medicine hospitals.",
-      },
-    },
-  ],
-};
+      name: t(f.qKey, lang),
+      acceptedAnswer: { "@type": "Answer", text: t(f.aKey, lang) },
+    })),
+  };
+}
 
-export default function FAQPage() {
+export default async function FAQPage() {
+  // layout 이 요청 언어의 코디 오버라이드까지 적용한 뒤 자식이 렌더되므로 t() 는 화면과 같은 값을 준다.
+  const { locale } = await getRequestLocale();
+  const lang = locale || DEFAULT_LOCALE;
+
   return (
     <>
       <script
         id="jsonld-faq"
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd(lang)) }}
       />
       <FAQClient />
     </>
