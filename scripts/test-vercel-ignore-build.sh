@@ -59,25 +59,18 @@ chk "프리뷰 + [preview] + 코드변경 = 빌드" "$(run preview "$(head_local
 commit_local README.md "docs: 문서만 [preview]"
 chk "프리뷰 + [preview] + 문서만 = 스킵" "$(run preview "$(head_local)")" 0
 
-echo "── 규칙 1: 프로덕션 (배치 머지)"
-# local 을 origin 과 같은 상태로 맞춘 뒤, origin 에만 새 커밋을 얹어 「내가 구버전」 상황을 만든다.
-q git -C "$TMP/local" fetch origin main
-q git -C "$TMP/local" reset --hard FETCH_HEAD
-chk "프로덕션 + 내가 최신 = 빌드" "$(run production "$(head_local)")" 1
+echo "── 규칙 1: 프로덕션 (배포 창구 = [deploy] 커밋만)"
+# 2026-07-28 정정: 머지는 자유, 배포만 하루 한 번. main 머지만으로는 프로덕션을 짓지 않는다.
+commit_local app.js "feat: 평범하게 머지된 PR"
+chk "프로덕션 + 평범한 머지 = 스킵" "$(run production "$(head_local)")" 0
 
-echo "console.log(2)" > "$TMP/origin/app.js"
-q git -C "$TMP/origin" add -A
-q git -C "$TMP/origin" commit -m "feat: 나중에 머지된 PR"
-chk "프로덕션 + 더 최신 커밋 있음 = 스킵" "$(run production "$(head_local)")" 0
+commit_local app.js "chore: 오늘치 배포 창구 2026-07-28 15:00 [deploy]"
+chk "프로덕션 + [deploy] = 빌드" "$(run production "$(head_local)")" 1
 
-# 구멍 검사: 「문서만 바뀐 커밋」이 배치의 마지막이어도 프로덕션은 반드시 지어야 한다.
-# (안 그러면 앞의 코드커밋은 «최신 아님»으로, 이건 «문서뿐»으로 둘 다 스킵돼 코드가 안 나간다.)
-q git -C "$TMP/local" fetch origin main
-q git -C "$TMP/local" reset --hard FETCH_HEAD
-commit_local README.md "docs: 문서만 고침"
-q git -C "$TMP/origin" fetch "$TMP/local" main:main2
-q git -C "$TMP/origin" reset --hard main2 2>/dev/null || q git -C "$TMP/origin" checkout -B main main2
-chk "프로덕션 + 최신인데 문서만 = 빌드(구멍 방지)" "$(run production "$(head_local)")" 1
+# 구멍 검사: 창구 커밋은 «빈 커밋»이다. 규칙 3(문서/비앱만 = 스킵)에 걸려버리면
+# 그날 배포가 통째로 사라진다 → 프로덕션은 [deploy] 만 보고 즉시 exit 1 해야 한다.
+commit_local README.md "chore: 배포 창구인데 코드 변경이 없다 [deploy]"
+chk "프로덕션 + [deploy] + 코드변경 없음 = 빌드(구멍 방지)" "$(run production "$(head_local)")" 1
 
 echo "── 안전장치: 모르면 짓는다"
 commit_local app.js "feat: env 를 모르는 상황"
