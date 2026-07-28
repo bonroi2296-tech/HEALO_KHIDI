@@ -28,7 +28,9 @@ test.describe("야간 로봇 통화 — 2인 실연결 검증", () => {
     "E2E_ROBOT_CALL!=1 — 야간 프로덕션 잡 전용 (Full E2E 로컬 서버엔 LiveKit env 없음)"
   );
   // 방 연결·ICE 협상까지 실네트워크라 넉넉히 (이 스펙만; 전역 timeout 무관)
-  test.setTimeout(180_000);
+  // 2026-07-28: 통역 단계가 붙으며 180초로는 모자랐다 — 봇 입장 대기(45s) + 자막 관측(60s) +
+  // 퇴장 확인(45s) 만 150초다. 예산이 모자라면 «페이지가 닫혔다»는 엉뚱한 에러로 끝난다.
+  test.setTimeout(360_000);
 
   let fakeMediaBrowser: Browser | null = null;
 
@@ -285,10 +287,12 @@ test.describe("야간 로봇 통화 — 2인 실연결 검증", () => {
         const deadline = Date.now() + 60_000;
         captionText = "자막 못 봄";
         while (Date.now() < deadline) {
-          const txt = await stack.innerText().catch(() => "");
+          // ⚠️ 반드시 짧은 timeout 을 준다. 자막 스택은 «자막이 하나라도 있을 때만» 그려지는
+          //    엘리먼트라, 아직 없으면 Playwright 가 기본 대기(이 저장소는 120초)를 통째로 쓴다.
+          //    처음엔 안 줬다가 폴링 한 바퀴에 2분이 날아가 테스트 예산이 터졌다(2026-07-28).
+          const txt = await stack.innerText({ timeout: 2_000 }).catch(() => "");
           if (cyrillic.test(txt)) {
-            captionText = `자막 뜸: ${txt.replace(/
-+/g, " | ").slice(0, 120)}`;
+            captionText = "자막 뜸: " + txt.split("\n").join(" | ").slice(0, 120);
             break;
           }
           await robotB.waitForTimeout(3_000);
