@@ -16,7 +16,7 @@ import "server-only";
 import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
 import { getAiUsageSummary } from "@/lib/ai/usageLog";
 import { EXTERNAL_SERVICES, FREE_LIMITS, type ExternalService } from "@/lib/admin/externalServices";
-import { fetchVercelUsage, fetchSentryUsage } from "@/lib/admin/vendorApis";
+import { fetchVercelUsage, fetchSentryUsage, type VercelUsage } from "@/lib/admin/vendorApis";
 
 function kstDayStartISO(now: Date): string {
   const k = new Date(now.getTime() + 9 * 60 * 60 * 1000);
@@ -136,7 +136,7 @@ export async function getServiceUsageBoard(now: Date = new Date()): Promise<Serv
   const sessionsMonth = sessMonthRes?.count ?? 0;
 
   // 벤더 API 결과(토큰 없으면 available:false)
-  const vercelU = vercel as { available: boolean; deploymentsThisMonth?: number; productionState?: string; error?: string };
+  const vercelU = vercel as VercelUsage;
   const sentryU = sentry as { available: boolean; errorsThisMonth?: number; error?: string };
   if (vercelU.error) errors.push(`vercel: ${vercelU.error}`);
   if (sentryU.error) errors.push(`sentry: ${sentryU.error}`);
