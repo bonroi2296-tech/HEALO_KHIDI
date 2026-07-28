@@ -25,7 +25,9 @@
 import { useState } from "react";
 import Image from "next/image";
 
-const FALLBACK_ACCENT = "#0F3D2E"; // 딥 포레스트 — teal 과 확실히 구분되는 톤
+// 판 기본 강조색. 병원마다 `brand.accent` 로 덮어쓴다 — 색은 판이 정하는 게 아니라
+// **그 병원 로고에서 뽑는다**(면력은 로고 SVG 에서 #003D66 이 66회 나왔다).
+const FALLBACK_ACCENT = "#0F3D2E";
 
 /* 다국어 값 꺼내기: 문자열이면 그대로, 언어맵이면 그 언어 → en → 첫 값. */
 const pick = (v, lang) => {
@@ -49,10 +51,11 @@ function Eyebrow({ children, accent }) {
   );
 }
 
-function Section({ id, children, tone = "light", className = "" }) {
-  const bg = tone === "sand" ? "bg-[#F6F3EE]" : tone === "ink" ? "bg-[#12211B]" : "bg-[#FCFBF9]";
+function Section({ id, children, tone = "light", className = "", darkTone }) {
+    const bg = tone === "sand" ? "bg-[#F4EFE7]" : tone === "ink" ? "" : "bg-[#FBF8F3]";
+  const style = tone === "ink" ? { backgroundColor: darkTone || "#0C2233" } : undefined;
   return (
-    <section id={id} className={`${bg} py-16 md:py-24 ${className}`}>
+    <section id={id} className={`${bg} py-16 md:py-24 ${className}`} style={style}>
       <div className="max-w-6xl mx-auto px-5 md:px-8">{children}</div>
     </section>
   );
@@ -75,13 +78,16 @@ export default function HospitalSite({ site, lang = "en", onInquiry }) {
   const t = (v) => pick(v, lang);
   const accent = site.brand?.accent || FALLBACK_ACCENT;
   const brandName = t(site.brand?.name);
+  // 어두운 면(신뢰 숫자 바·후기·마무리·푸터)은 강조색을 깊게 눌러 만든다.
+  // 고정 색을 쓰면 어느 병원이든 같은 검정이 되어 «판 티»가 난다.
+  const darkTone = site.brand?.darkTone || "#0C2233";
 
   return (
-    <div className="bg-[#FCFBF9] text-[#16211C] antialiased">
+    <div className="bg-[#FBF8F3] text-[#16211C] antialiased">
       {/* ══ 판 자체 헤더 — 병원 사이트지 healwith 사이트가 아니다 ══
           메뉴를 길게 달지 않는다: 해외 환자용 병원 사이트의 목적은 «상담 요청 하나»이고,
           메뉴가 많을수록 나갈 길만 늘어난다(dekabi 도 상단 CTA 하나). */}
-      <header className="sticky top-0 z-30 bg-[#FCFBF9]/85 backdrop-blur-md border-b border-black/[0.06]">
+      <header className="sticky top-0 z-30 bg-[#FBF8F3]/88 backdrop-blur-md border-b border-black/[0.06]">
         <div className="max-w-6xl mx-auto px-5 md:px-8 h-16 md:h-[72px] flex items-center justify-between gap-4">
           <div className="flex items-center gap-3 min-w-0">
             {site.brand?.logoUrl ? (
@@ -115,42 +121,38 @@ export default function HospitalSite({ site, lang = "en", onInquiry }) {
         </div>
       </header>
 
-      {/* ══ 히어로 ══ */}
-      <section className="relative min-h-[72vh] md:min-h-[80vh] flex items-center overflow-hidden">
-        {site.hero?.image && (
-          <div className="absolute inset-0">
-            <Image src={site.hero.image} alt="" fill priority sizes="100vw" className="object-cover" />
-            {/* 글자 가독성 2겹: ①전면을 고르게 어둡게 ②왼쪽을 더 진하게(글자가 앉는 쪽).
-                1겹만 썼더니 밝은 사진 위에서 흰 글자가 사진에 묻혔다(2026-07-28 실측). */}
-            <div className="absolute inset-0 bg-[#0B1713]/55" />
-            <div className="absolute inset-0 bg-gradient-to-r from-[#0B1713]/90 via-[#0B1713]/60 to-transparent" />
-          </div>
-        )}
-        <div className="relative w-full max-w-6xl mx-auto px-5 md:px-8 py-20">
-          <div className="max-w-2xl">
+      {/* ══ 히어로 — 좌우 분할 ══
+          ⚠️ 처음엔 «사진 전면 + 어두운 오버레이 + 흰 글자»로 만들었는데 PO 지적: "너무 AI 톤".
+             맞는 지적이었다. 그 조합은 스톡 사진을 아무거나 깔아도 그럴듯해 보이는 형태라
+             **어느 병원이든 똑같아 보인다** = 템플릿 냄새의 정체.
+             실제 병원 사진(로비·시설)은 밝고 따뜻해서 어둡게 덮으면 그 병원다움이 통째로 죽는다.
+             → 사진을 덮지 않고 **옆에 그대로 세운다.** 글자는 병원 인테리어 톤의 배경 위에 앉는다. */}
+      <section className="grid lg:grid-cols-[1.05fr_1fr] items-stretch">
+        <div className="flex items-center px-5 md:px-10 lg:pl-[max(2rem,calc((100vw-72rem)/2+2rem))] lg:pr-14 py-16 md:py-24 lg:py-28">
+          <div className="max-w-xl">
             {t(site.hero?.eyebrow) && (
               <p
-                className="text-[11px] md:text-xs font-semibold uppercase mb-5 text-white/85"
-                style={{ letterSpacing: "0.2em" }}
+                className="text-[11px] md:text-xs font-semibold uppercase mb-5"
+                style={{ letterSpacing: "0.2em", color: accent }}
               >
                 {t(site.hero.eyebrow)}
               </p>
             )}
             <h1
-              className="text-white text-[2.1rem] leading-[1.12] md:text-6xl md:leading-[1.08] font-semibold tracking-tight whitespace-pre-line"
+              className="text-[2.1rem] leading-[1.14] md:text-5xl md:leading-[1.1] font-semibold tracking-tight whitespace-pre-line text-[#16211C]"
               style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}
             >
               {t(site.hero?.title)}
             </h1>
             {t(site.hero?.subtitle) && (
-              <p className="mt-6 text-white/85 text-base md:text-xl leading-relaxed whitespace-pre-line max-w-xl">
+              <p className="mt-6 text-black/60 text-base md:text-lg leading-relaxed whitespace-pre-line">
                 {t(site.hero.subtitle)}
               </p>
             )}
             <div className="mt-9 flex flex-col sm:flex-row gap-3">
               <button
                 onClick={onInquiry}
-                className="px-8 py-4 rounded-full text-white text-base font-medium transition-transform hover:scale-[1.02] shadow-xl"
+                className="px-8 py-4 rounded-full text-white text-base font-medium transition-transform hover:scale-[1.02] shadow-lg"
                 style={{ backgroundColor: accent }}
               >
                 {t(site.hero?.primaryCta) || "Consult Now"}
@@ -158,7 +160,8 @@ export default function HospitalSite({ site, lang = "en", onInquiry }) {
               {t(site.hero?.secondaryCta) && (
                 <a
                   href={site.contact?.channels?.whatsapp || "#contact"}
-                  className="px-8 py-4 rounded-full border border-white/40 text-white text-base font-medium text-center hover:bg-white/10 transition-colors backdrop-blur-sm"
+                  className="px-8 py-4 rounded-full border text-base font-medium text-center transition-colors hover:bg-black/[0.03]"
+                  style={{ borderColor: `${accent}33`, color: accent }}
                 >
                   {t(site.hero.secondaryCta)}
                 </a>
@@ -166,11 +169,23 @@ export default function HospitalSite({ site, lang = "en", onInquiry }) {
             </div>
           </div>
         </div>
+        {site.hero?.image && (
+          <div className="relative min-h-[42vh] lg:min-h-[86vh]">
+            <Image
+              src={site.hero.image}
+              alt=""
+              fill
+              priority
+              sizes="(max-width: 1024px) 100vw, 50vw"
+              className="object-cover"
+            />
+          </div>
+        )}
       </section>
 
       {/* ══ 신뢰 숫자 — 히어로 바로 아래(의료관광 사이트의 사실상 표준) ══ */}
       {has(site.proof) && (
-        <div className="bg-[#12211B]">
+        <div style={{ backgroundColor: darkTone }}>
           <div className="max-w-6xl mx-auto px-5 md:px-8 py-10 md:py-14 grid grid-cols-2 md:grid-cols-4 gap-y-8 gap-x-4">
             {site.proof.map((p, i) => (
               <div key={i} className="text-center md:border-r md:last:border-r-0 border-white/12 px-2">
@@ -248,7 +263,7 @@ export default function HospitalSite({ site, lang = "en", onInquiry }) {
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-5 md:gap-7">
             {site.doctors.map((d, i) => (
               <div key={i}>
-                <div className="relative aspect-[4/5] rounded-2xl overflow-hidden bg-[#EDE9E2] mb-4">
+                <div className="relative aspect-[4/5] rounded-2xl overflow-hidden bg-[#EDE6DA] mb-4">
                   {d.photo && (
                     <Image src={d.photo} alt={t(d.name)} fill sizes="(max-width: 768px) 50vw, 25vw" className="object-cover object-top" />
                   )}
@@ -294,7 +309,7 @@ export default function HospitalSite({ site, lang = "en", onInquiry }) {
 
       {/* ══ 환자 후기 — 없으면 통째로 안 그린다 ══ */}
       {has(site.testimonials) && (
-        <Section tone="ink">
+        <Section tone="ink" darkTone={darkTone}>
           <div className="max-w-2xl mb-12">
             <Eyebrow accent="#9BB8A5">{t(site.labels?.testimonials) || "Patient Stories"}</Eyebrow>
             <Heading tone="light">{t(site.testimonialsTitle)}</Heading>
@@ -381,7 +396,7 @@ export default function HospitalSite({ site, lang = "en", onInquiry }) {
       )}
 
       {/* ══ 마무리 CTA ══ */}
-      <Section tone="ink" id="contact">
+      <Section tone="ink" darkTone={darkTone} id="contact">
         <div className="text-center max-w-2xl mx-auto">
           <Heading tone="light" size="xl">{t(site.closing?.title)}</Heading>
           {t(site.closing?.subtitle) && (
@@ -422,7 +437,7 @@ export default function HospitalSite({ site, lang = "en", onInquiry }) {
       </button>
 
       {/* ══ 푸터 — 아는 것만 적는다 ══ */}
-      <footer className="bg-[#0B1713] text-white/45 py-12">
+      <footer className="text-white/45 py-12" style={{ backgroundColor: darkTone }}>
         <div className="max-w-6xl mx-auto px-5 md:px-8 text-[13px] space-y-1.5">
           <div className="text-white/85 font-medium text-base mb-3" style={{ fontFamily: "Georgia, serif" }}>
             {brandName}

@@ -26,8 +26,12 @@ export const IMMUNE_SITE = {
       zh: "免力韩方医院",
       ja: "免力韓方病院",
     },
-    // 한방 병원이라 healwith 의 teal 대신 «약초/자연» 쪽 딥 그린. 로고 파일은 아직 없음.
-    accent: "#14503A",
+    // ⚠️ 색은 **추측하지 않고 로고에서 뽑았다.** 처음엔 "한방이니 초록"이라 넘겨짚어 딥 그린을
+    //    썼는데, 면력 공식 로고 SVG 를 받아 보니 #003D66(딥 네이비)이 66회로 유일한 브랜드 색이었다.
+    //    실물 로비 사진은 웜 베이지·크림에 골드 사인 → 바탕을 크림으로, 어두운 면을 네이비로 맞춘다.
+    accent: "#003D66",
+    darkTone: "#062A45",
+    logoUrl: "/immune/brand/logo.svg",
   },
 
   hero: {
@@ -71,7 +75,9 @@ export const IMMUNE_SITE = {
       zh: "WhatsApp咨询",
       ja: "WhatsAppで問い合わせ",
     },
-    image: "/images/hero/recovery-walk.jpg",
+    // 스톡 사진(공원 산책) → **실제 병원 로비**. 그 병원 공간이 보여야 «그 병원 사이트»가 된다.
+    // 출처: immunehospital.com 배너. 제휴 병원 이미지라 기존 의료진 사진과 같은 관행으로 self-host.
+    image: "/immune/brand/lobby.jpg",
   },
 
   proof: [
