@@ -2826,12 +2826,14 @@ export default function ConsultationRoomPage() {
         // 못 찾는** 함정이 있었다(2026-07-27 실측, 프로덕션 E2E 15초 타임아웃 3회).
         // 다국어 라벨 6종·배지 유무와 무관하게 안정적으로 잡히도록 testid 고정.
         data-testid="voice-toggle"
+        // 봇 유무로 «꺼진 색»을 달리 하지 않는다 (2026-07-28 PO 제보: "토글은 되던데 아이콘이
+        // 비활성화된 것처럼 보인다"). `bg-gray-800 text-gray-500` 는 옆 버튼들(gray-700/gray-200)
+        // 보다 두 단계 어두워서 **눌러도 안 되는 버튼**으로 읽혔다 — 실제로는 눌리는데.
+        // 봇 대기 상태는 색이 아니라 `···` 배지 + 툴팁이 알린다(정보는 남기고 오해만 제거).
         className={`hw-ctrl-btn relative rounded-lg font-medium transition ${
           voiceOn
             ? "bg-teal-700 hover:bg-teal-800 text-white"
-            : agentPresent
-            ? "bg-gray-700 hover:bg-gray-600 text-gray-200"
-            : "bg-gray-800 text-gray-500"
+            : "bg-gray-700 hover:bg-gray-600 text-gray-200"
         }`}
         title={voiceOn ? c.voiceOffMsg : agentPresent ? c.voiceOnMsg : c.voiceOnPendingMsg}
       >
