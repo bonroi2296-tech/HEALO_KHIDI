@@ -1,5 +1,35 @@
 # HEALO KHIDI — 알려진 이슈 / 전수 QA 발견사항
 
+## 🟠 「모바일 44px 터치타겟」 규칙이 **손수 위치 잡은 아이콘 버튼을 밀어낸다** — 전수 스캔 (2026-07-28)
+
+> 계기: PO 가 앱에서 로그인 화면의 눈 아이콘이 어긋난 걸 발견. 부류째 훑었다.
+
+**근본원인 — 규칙이 두 파일로 갈라져 있고 예외 통로가 반쪽이다**
+
+- `src/index.css:71` → `@media (max-width:768px) { button:not(.no-touch-target) { min-height:44px; min-width:44px } }` — **예외 통로 있음**
+- `app/styles/healo-tokens.css:287` → 같은 미디어쿼리에 **`button` 통째로** `min-height:44px` — **예외 통로 없음**
+- ⚠️ 즉 아이콘 버튼에 `.no-touch-target` 을 붙여도 **절반만 먹는다.** 고치려는 다음 사람이 반드시 한 번 헛발질한다. **두 정의를 한 곳으로 합치고 예외 통로를 양쪽에 맞추는 게 진짜 수리다.**
+
+**판정 기준 (실측으로 확인된 경계선)**: 세로 위치를 **`top-1/2 -translate-y-1/2`(가운데 기준)** 로 잡은 버튼은 44px 로 부풀어도 **스스로 다시 가운데로 온다 → 무사**. **`top-3.5` 같은 고정 오프셋**으로 잡은 버튼만 깨진다.
+
+**❌ 깨짐 — 실측 (프로덕션, 폭 412px)**
+
+| 화면 | 버튼 | 어긋남 | 위치 |
+|---|---|---|---|
+| `/login` | 비밀번호 눈 | **아래로 9.4px** (입력칸 53.2px) | `app/login/LoginClient.jsx:156` |
+| `/signup` | 비밀번호 눈 | **아래로 13px** (입력칸 46px) | `app/signup/SignupClient.jsx:360` |
+| `/signup` | 비밀번호 확인 눈 | **아래로 13px** | `app/signup/SignupClient.jsx:395` |
+
+**❌ 깨짐 — 코드 동일, 렌더 조건을 못 맞춰 실측 못 함**: `app/reset-password/ResetPasswordClient.jsx:162` · `app/account/password/ChangePasswordClient.jsx:229` (둘 다 `absolute right-4 top-3.5` 동일 코드).
+
+**❌ 로그인 뒤라 실측 불가 — 코드상 같은 부류**: `app/admin/hospitals/_client/HospitalManager.jsx:315`(검색 지우기, `right-2.5 top-2.5`) · `app/consultation/[id]/page.jsx:634`(고정 해제, `top-3 right-3`).
+
+**⚠️ 같은 규칙의 «다른 피해» — 투명한 지뢰 4곳**: 썸네일 삭제 X 버튼(`app/admin/treatments/page.jsx:74` · `app/admin/hospitals/page.jsx:108` · `app/hospital/profile/page.jsx:242` · `app/hospital/treatments/page.jsx:273`). 원래 `p-0.5`+`X size={10}` ≈ 14px 인데 44×44 로 부푼다. `opacity-0 group-hover:opacity-100` 이라 **모바일에선 안 보이지만 `pointer-events-none` 이 없어 여전히 눌린다.** 썸네일 한 칸이 `grid-cols-5` 기준 약 70px → **썸네일 면적의 약 80% 가 보이지 않는 삭제 버튼**. 폰으로 백오피스에서 사진을 누르면 목록에서 빠진다(저장 전 상태 변경이라 저장 안 하면 복구됨 → 심각도 🟠).
+
+**✅ 무사함 — 실측 확인**: 병원/치료 상세의 좌우 화살표 4개(`top-1/2 -translate-y-1/2`) 어긋남 **0px** · 우하단 「문의」 버튼(`-top-5` 로 **일부러** 13.5px 띄운 것, 정상).
+
+**재발 방지 아이디어**: `scripts/check-content-consistency.mjs` 에 「`<button>` 에 `absolute` + 고정 `top-*`/`bottom-*` 가 함께 있고 명시 크기(`w-*`/`h-*`)나 `-translate-y-1/2` 가 없으면 경고」 룰 추가 가능. 다만 오탐이 나올 수 있어 화이트리스트 필요.
+
 ## 🔸 스토어 앱 전수 조사 — 남은 문제 9건 (2026-07-28, PO 실기기 스크린샷 계기로 어시가 코드 전수 조사)
 
 > ⚠️ **이 항목은 같은 날 어시가 쓴 「안전영역 여백이 헤더에 안 붙어 있다」를 정정한 것이다.**
@@ -19,8 +49,9 @@
 
 - **(가) 비밀번호 「눈」 아이콘이 9.4px 아래로 처진다 — ⚠️ 앱 문제가 아니라 웹 버그.** 실서비스를 폰 폭(412px)으로 띄워 실측: 입력칸 중심 506.8 / **눈 버튼 중심 516.3** / 왼쪽 자물쇠 아이콘 중심 504.3.
   - **원인**: `@media (max-width: 768px)` 에서 **모든 `button` 에 `min-height:44px; min-width:44px`** 를 강제한다(`src/index.css:71` · `app/styles/healo-tokens.css:287` — **두 파일에 중복 정의**). 눈 아이콘 버튼은 `absolute right-4 top-3.5` 로 **20px 아이콘 기준**으로 손수 위치를 잡아놔서, 모바일에서만 버튼이 44px 로 부풀며 중심이 밀린다(측정 버튼 높이 = 44). 왼쪽 자물쇠는 `<button>` 이 아니라 순수 아이콘이라 규칙을 안 받아 제자리 → **둘이 어긋나 보인다.**
-  - **범위**: 데스크톱(769px+)에선 안 난다 → 지금껏 아무도 못 봤다. **같은 부류(모바일에서만 44px 로 부푸는 아이콘 버튼)가 다른 화면에도 있는지 전수 스캔 필요.**
+  - **범위**: 데스크톱(769px+)에선 안 난다 → 지금껏 아무도 못 봤다.
   - **고칠 때**: `top-3.5` 대신 `inset-y-0 my-auto` 또는 `top-1/2 -translate-y-1/2` + 버튼을 `flex items-center justify-center` 로. **웹만 고치면 앱에도 바로 반영**(재빌드 불필요).
+  - 🔎 **전수 스캔 결과 (2026-07-28, 폰 폭 412px 실측 + 코드 대조) — 아래 별도 항목.**
 - **(나) 이메일 끝 「com」 이 사라지면서 로그인 실패** — PO 실기기: 화면엔 `patient@test.com` 이 보이는데 로그인 누르면 실패하고 **칸이 `patient@test.` 로 바뀐다.**
   - **코드에는 자르는 곳이 없다**(확인): `app/login/LoginClient.jsx:131` 이 `e.target.value` 를 그대로 담고, `:55` 가 그 값을 그대로 인증 서버에 넘긴다. 다듬기·정규화 0줄.
   - **유력 가설(미검증 — 폰이 없어 재현 불가)**: 리액트 제어 입력(controlled input) 값과 실제 DOM 값의 어긋남. 안드로이드 키보드의 **「.com」 키·추천 단어**처럼 조합(IME composition)으로 한 번에 들어간 글자가 리액트 상태에 안 반영된 상태에서 제출 → ①표시는 완전한 주소 ②전송은 잘린 주소(실패) ③재렌더로 상태값이 화면을 덮어써 **눈앞에서 com 이 사라짐**. 증상 3개가 이 하나로 전부 설명된다.
