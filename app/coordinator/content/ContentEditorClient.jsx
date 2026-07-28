@@ -30,6 +30,7 @@ export default function ContentEditorClient() {
   const { values, original } = edit;
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState(null);
+  const [confirming, setConfirming] = useState(false);
   const [showLog, setShowLog] = useState(false);
   const [logs, setLogs] = useState([]);
   // 기본 = 일치한 것만 (처음 보는 사람이 안 헷갈리게). 켜면 같은 화면 블록까지 함께 표시.
@@ -94,22 +95,26 @@ export default function ContentEditorClient() {
     setMsg(null);
   };
 
+  // old = 저장 전 값(서버 최신). 미리보기에서 «무엇을 무엇으로» 바꾸는지 보여주는 데 쓴다.
   const dirty = [];
   for (const key of Object.keys(values)) {
     for (const lang of LANGS) {
       const cur = values[key]?.[lang] ?? "";
-      if (cur !== (original[key]?.[lang] ?? "")) dirty.push({ key, lang, value: cur });
+      const old = original[key]?.[lang] ?? "";
+      if (cur !== old) dirty.push({ key, lang, value: cur, old });
     }
   }
 
   const save = async () => {
     if (dirty.length === 0) return;
+    setConfirming(false);
     setSaving(true); setMsg(null);
     try {
       const res = await fetch("/api/coordinator/content", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ updates: dirty }),
+        // old 는 미리보기 전용 — 서버로 보내지 않는다
+        body: JSON.stringify({ updates: dirty.map(({ key, lang, value }) => ({ key, lang, value })) }),
       });
       const data = await res.json();
       if (data.ok) {
@@ -328,13 +333,77 @@ export default function ContentEditorClient() {
               {msg && <span className={`ml-3 ${msg.type === "ok" ? "text-teal-700" : "text-red-600"}`}>{msg.text}</span>}
             </span>
             <button
-              onClick={save}
+              onClick={() => setConfirming(true)}
               disabled={dirty.length === 0 || saving}
               className="text-sm px-4 py-2 rounded-lg bg-teal-700 text-white font-medium hover:bg-teal-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
             >
               {saving ? "저장 중…" : "저장"}
             </button>
           </div>
+
+          {/* 저장 전 미리보기 (2026-07-28, 반성문 #139).
+              왜: 값이 한 줄씩 밀려 들어가는 사고(코디 붙여넣기·자동화 둘 다 겪음)는 값끼리 겹치지
+              않아 「문구 중복」 배지가 원리상 못 잡는다. 유일하게 통하는 방어가 «무슨 항목을
+              무엇에서 무엇으로 바꾸는지»를 저장 직전에 사람 눈앞에 놓는 것이다.
+              색 표기는 변경 이력과 같게(이전=연빨강 / 이후=연초록) — 두 화면을 같은 언어로 읽게.
+              z-[10000]: 쿠키 동의 배너가 `z-[9999] fixed bottom-0` 이라 그보다 낮으면 「이대로 저장」
+              버튼이 배너에 덮인다(쿠키를 아직 안 누른 브라우저에서 실측 — 같은 이유로 하단 저장바도
+              가려진다. 그건 이 화면만의 문제가 아니라 KNOWN_ISSUES 로 분리). */}
+          {confirming && (
+            <div
+              className="fixed inset-0 z-[10000] bg-gray-900/40 flex items-end sm:items-center justify-center p-0 sm:p-6"
+              onClick={() => setConfirming(false)}
+            >
+              <div
+                role="dialog"
+                aria-modal="true"
+                aria-label="저장 전 확인"
+                className="bg-white w-full sm:max-w-2xl sm:rounded-2xl rounded-t-2xl shadow-xl flex flex-col max-h-[85vh]"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="px-5 pt-5 pb-3 border-b border-gray-100">
+                  <h2 className="text-base font-bold text-gray-900">이렇게 바꿉니다 · {dirty.length}곳</h2>
+                  <p className="text-xs text-gray-600 mt-1">
+                    항목 이름과 바뀌는 내용을 한 번만 확인해 주세요. 엉뚱한 줄이 바뀌고 있진 않은지 보는 자리입니다.
+                  </p>
+                </div>
+
+                <div className="px-5 py-3 overflow-y-auto space-y-2.5">
+                  {dirty.map((d) => (
+                    <div key={`${d.key}|${d.lang}`} className="text-xs">
+                      <div className="flex flex-wrap items-center gap-2 text-gray-600 mb-1">
+                        <span className="font-mono break-all">{d.key}</span>
+                        <span className="text-[11px] bg-gray-100 px-1.5 py-0.5 rounded">{LANG_LABEL[d.lang]}</span>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-1.5 text-gray-700">
+                        <span className="px-1.5 py-0.5 rounded bg-red-50 text-red-700">{d.old || "(빈칸)"}</span>
+                        <span className="text-gray-600">→</span>
+                        <span className="px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700">
+                          {d.value || "(기본값으로 되돌림)"}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="px-5 py-3 border-t border-gray-100 flex items-center justify-end gap-2">
+                  <button
+                    onClick={() => setConfirming(false)}
+                    className="text-sm px-4 py-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50"
+                  >
+                    다시 볼게요
+                  </button>
+                  <button
+                    onClick={save}
+                    disabled={saving}
+                    className="text-sm px-4 py-2 rounded-lg bg-teal-700 text-white font-medium disabled:bg-gray-300"
+                  >
+                    이대로 저장
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </>
       )}
     </div>
