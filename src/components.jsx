@@ -611,7 +611,7 @@ export const CardListSection = ({ title, items, onCardClick, type, showPartnerBa
 export const FloatingInquiryBtn = ({ onClick }) => {
   const langCode = useLangCode();
   return (
-    <div className="fixed bottom-20 md:bottom-6 right-4 md:right-6 z-50 flex flex-col items-end gap-2 group cursor-pointer pb-safe-area" onClick={onClick}>
+    <div className="fixed bottom-[calc(5rem+var(--cookie-banner-h,0px))] md:bottom-[calc(1.5rem+var(--cookie-banner-h,0px))] right-4 md:right-6 z-50 flex flex-col items-end gap-2 group cursor-pointer pb-safe-area" onClick={onClick}>
       <div className="bg-white text-gray-800 text-xs font-extrabold px-3 py-2 rounded-xl shadow-md border border-gray-100 mb-1 animate-bounce">
         {t("floatingHelp", langCode)} 💬
       </div>
