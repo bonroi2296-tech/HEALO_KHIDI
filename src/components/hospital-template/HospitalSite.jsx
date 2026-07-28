@@ -211,18 +211,35 @@ export default function HospitalSite({ site, lang = "en", onInquiry }) {
             <Eyebrow accent={accent}>{t(site.labels?.specialties) || "Specialties"}</Eyebrow>
             <Heading>{t(site.specialtiesTitle) || t(site.labels?.specialtiesHeading)}</Heading>
           </div>
+          {/* 카드에 사진이 있으면 위에 얹는다 — 글자 카드만 늘어놓으면 아래로 갈수록 밋밋해진다.
+              사진이 없는 병원은 색 막대만 뜨고 레이아웃은 그대로(빈 자리가 안 생긴다). */}
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {site.specialties.map((s, i) => (
               <div
                 key={i}
-                className="group bg-white rounded-2xl p-7 border border-black/[0.06] hover:border-black/[0.14] hover:shadow-[0_12px_40px_-12px_rgba(0,0,0,0.18)] transition-all duration-300"
+                className="group bg-white rounded-2xl overflow-hidden border border-black/[0.06] hover:border-black/[0.14] hover:shadow-[0_12px_40px_-12px_rgba(0,0,0,0.18)] transition-all duration-300"
               >
-                <div
-                  className="w-10 h-[3px] rounded-full mb-5 transition-all duration-300 group-hover:w-16"
-                  style={{ backgroundColor: accent }}
-                />
-                <h3 className="text-lg md:text-xl font-semibold mb-3 tracking-tight">{t(s.title)}</h3>
-                <p className="text-[15px] text-black/55 leading-relaxed">{t(s.desc)}</p>
+                {s.image && (
+                  <div className="relative aspect-[16/10] overflow-hidden bg-[#EDE6DA]">
+                    <Image
+                      src={s.image}
+                      alt=""
+                      fill
+                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                      className="object-cover transition-transform duration-500 group-hover:scale-[1.04]"
+                    />
+                  </div>
+                )}
+                <div className="p-7">
+                  {!s.image && (
+                    <div
+                      className="w-10 h-[3px] rounded-full mb-5 transition-all duration-300 group-hover:w-16"
+                      style={{ backgroundColor: accent }}
+                    />
+                  )}
+                  <h3 className="text-lg md:text-xl font-semibold mb-3 tracking-tight">{t(s.title)}</h3>
+                  <p className="text-[15px] text-black/55 leading-relaxed">{t(s.desc)}</p>
+                </div>
               </div>
             ))}
           </div>
@@ -274,6 +291,43 @@ export default function HospitalSite({ site, lang = "en", onInquiry }) {
                   <p className="text-[13px] text-black/45 mt-1.5 leading-snug">{t(d.credentials)}</p>
                 )}
               </div>
+            ))}
+          </div>
+        </Section>
+      )}
+
+      {/* ══ 시설 갤러리 ══
+          해외 환자는 «가 본 적 없는 나라의 병원»을 사진으로만 판단한다. 공간을 보여주는 것이
+          문장 열 줄보다 낫다 — dekabi 도 시설·의료진 사진 비중이 크다.
+          사진이 없는 병원은 이 섹션이 통째로 안 뜬다. */}
+      {has(site.gallery) && (
+        <Section>
+          <div className="max-w-2xl mb-12">
+            <Eyebrow accent={accent}>{t(site.labels?.gallery) || "Our Space"}</Eyebrow>
+            <Heading>{t(site.galleryTitle)}</Heading>
+          </div>
+          {/* 첫 장을 크게 — 격자로만 깔면 카탈로그처럼 보인다. */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
+            {site.gallery.map((g, i) => (
+              <figure
+                key={i}
+                className={`relative overflow-hidden rounded-2xl bg-[#EDE6DA] group ${
+                  i === 0 ? "col-span-2 row-span-2 aspect-[4/3] lg:aspect-auto lg:min-h-[420px]" : "aspect-square"
+                }`}
+              >
+                <Image
+                  src={g.src}
+                  alt={t(g.caption)}
+                  fill
+                  sizes={i === 0 ? "(max-width: 1024px) 100vw, 50vw" : "(max-width: 1024px) 50vw, 25vw"}
+                  className="object-cover transition-transform duration-500 group-hover:scale-[1.05]"
+                />
+                {t(g.caption) && (
+                  <figcaption className="absolute inset-x-0 bottom-0 p-4 text-[13px] text-white bg-gradient-to-t from-black/60 to-transparent pt-10">
+                    {t(g.caption)}
+                  </figcaption>
+                )}
+              </figure>
             ))}
           </div>
         </Section>

@@ -132,6 +132,7 @@ export const IMMUNE_SITE = {
     whyUs: "Why Immune Hospital",
     doctors: "Medical Team",
     programs: "Treatments",
+    gallery: "Our Space",
     credentials: "Certifications",
     faq: "FAQ",
   },
@@ -146,6 +147,7 @@ export const IMMUNE_SITE = {
   },
   specialties: [
     {
+      image: "/images/hospitals/immunehospital-magok/2.jpg",
       title: {
         ko: "암면역센터",
         en: "Cancer Immunity Center",
@@ -164,6 +166,7 @@ export const IMMUNE_SITE = {
       },
     },
     {
+      image: "/images/hospitals/immunehospital-magok/4.jpg",
       title: {
         ko: "신경면역센터",
         en: "Neuro-Immunity Center",
@@ -182,6 +185,7 @@ export const IMMUNE_SITE = {
       },
     },
     {
+      image: "/images/hospitals/immunehospital-magok/5.jpg",
       title: {
         ko: "재활센터",
         en: "Rehabilitation Center",
@@ -198,6 +202,41 @@ export const IMMUNE_SITE = {
         zh: "术后康复、妇科手术后恢复、交通事故后遗症。",
         ja: "術後リハビリ、婦人科手術後の回復、交通事故後遺症。",
       },
+    },
+  ],
+
+  galleryTitle: {
+    ko: "진료가 이루어지는 공간",
+    en: "Where Treatment Happens",
+    ru: "Где проходит лечение",
+    kz: "Ем өтетін кеңістік",
+    zh: "诊疗所在的空间",
+    ja: "診療が行われる空間",
+  },
+  // 실제 면력 시설 사진(강서·신촌 지점) + 병원이 직접 만드는 치료식.
+  // 해외 환자는 가 본 적 없는 나라의 병원을 사진으로 판단한다 — 문장보다 공간이 낫다.
+  // ⚠️ **5장이 격자에 딱 맞는다**(큰 것 1 + 작은 것 4 = 2행). 6장이면 마지막 한 장이
+  //    혼자 떨어져 나간다 — 2026-07-28 에 실제로 그렇게 떴다.
+  gallery: [
+    {
+      src: "/immune/brand/lobby.jpg",
+      caption: { ko: "강서점 로비", en: "Gangseo branch lobby", ru: "Холл филиала Кансо", kz: "Кансо филиалының холлы", zh: "江西院区大厅", ja: "江西院ロビー" },
+    },
+    {
+      src: "/immune/brand/care-meal.jpg",
+      caption: { ko: "병원에서 직접 준비하는 치료식", en: "Therapeutic meals prepared in-house", ru: "Лечебное питание собственного приготовления", kz: "Ауруханада дайындалатын емдік тамақ", zh: "院内自制治疗餐", ja: "院内で用意する治療食" },
+    },
+    {
+      src: "/images/hospitals/immunehospital-magok/1.jpg",
+      caption: { ko: "진료 공간", en: "Consultation area", ru: "Зона приёма", kz: "Қабылдау аймағы", zh: "诊疗区", ja: "診療スペース" },
+    },
+    {
+      src: "/images/hospitals/immunehospital-magok/3.jpg",
+      caption: { ko: "치료실", en: "Treatment room", ru: "Процедурный кабинет", kz: "Ем бөлмесі", zh: "治疗室", ja: "治療室" },
+    },
+    {
+      src: "/images/hospitals/immunehospital-sinchon/1.jpg",
+      caption: { ko: "신촌점", en: "Sinchon branch", ru: "Филиал Синчон", kz: "Синчон филиалы", zh: "新村院区", ja: "新村院" },
     },
   ],
 
