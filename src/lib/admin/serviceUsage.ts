@@ -3,10 +3,7 @@
  *
  * 실측(live): 제미나이 토큰·비용 / Supabase DB·스토리지 용량 / 알림 채널별 발송(Resend·SES·
  *             Twilio·Telegram) / LiveKit 상담방 수.
- * Vercel: 토큰이 있으면 live — **요금제·청구주기·포함 크레딧은 청구 API 실값**,
- *         배포 건수·빌드 시간은 배포 API 전수 집계, **빌드비만 추정**(벤더가 소진액 API 를
- *         안 준다 — 2026-07-28 전수 시도 확인). 토큰 없으면 콘솔 링크만.
- * 콘솔(console): Sentry 토큰이 없을 때 — 무료 한도·콘솔 링크만.
+ * 콘솔(console): Vercel·Sentry — 벤더 Management API 키 미보유 → 무료 한도·콘솔 링크만.
  *
  * 모든 DB 접근은 service_role(supabaseAdmin) — RLS 우회. 실패는 errors 로 표면화(조용한 0 방지).
  */
@@ -16,7 +13,7 @@ import "server-only";
 import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
 import { getAiUsageSummary } from "@/lib/ai/usageLog";
 import { EXTERNAL_SERVICES, FREE_LIMITS, type ExternalService } from "@/lib/admin/externalServices";
-import { fetchVercelUsage, fetchSentryUsage, type VercelUsage } from "@/lib/admin/vendorApis";
+import { fetchVercelUsage, fetchSentryUsage } from "@/lib/admin/vendorApis";
 
 function kstDayStartISO(now: Date): string {
   const k = new Date(now.getTime() + 9 * 60 * 60 * 1000);
@@ -136,7 +133,7 @@ export async function getServiceUsageBoard(now: Date = new Date()): Promise<Serv
   const sessionsMonth = sessMonthRes?.count ?? 0;
 
   // 벤더 API 결과(토큰 없으면 available:false)
-  const vercelU = vercel as VercelUsage;
+  const vercelU = vercel as { available: boolean; deploymentsThisMonth?: number; productionState?: string; error?: string };
   const sentryU = sentry as { available: boolean; errorsThisMonth?: number; error?: string };
   if (vercelU.error) errors.push(`vercel: ${vercelU.error}`);
   if (sentryU.error) errors.push(`sentry: ${sentryU.error}`);
@@ -208,45 +205,15 @@ export async function getServiceUsageBoard(now: Date = new Date()): Promise<Serv
       extra.push({ label: "누적 상담방", value: sessionsTotal, unit: "개" });
     } else if (s.id === "vercel" && vercelU.available) {
       kind = "live";
-      const credit = vercelU.includedCreditUsd ?? null;
-      const buildCost = vercelU.estimatedBuildCostUsd ?? 0;
-      // 빌드비가 크레딧의 몇 %인지. 2026-07-28 실측에서 청구액의 94%가 빌드였기 때문에
-      // 이 한 줄이 사실상 «크레딧 얼마나 썼나»의 대리 지표가 된다.
-      const p = credit ? pct(buildCost, credit) : null;
       primary = {
-        label: "이번 주기 빌드비(추정)",
-        value: buildCost,
-        unit: "USD",
-        ...(credit ? { limit: `$${credit} 크레딧` } : {}),
-        pct: p,
-        status: statusOf(p),
-        note: "추정치 — 벤더가 소진액 API 를 안 준다. 정확한 청구는 콘솔에서.",
+        label: "이번 달 배포",
+        value: vercelU.deploymentsThisMonth ?? 0,
+        unit: "회",
+        note: "대역폭·함수 사용량은 콘솔",
+        status: "none",
       };
-      if (vercelU.periodStart && vercelU.periodEnd) {
-        extra.push({
-          label: "청구주기(실값)",
-          value: `${vercelU.periodStart.slice(0, 10)} ~ ${vercelU.periodEnd.slice(0, 10)}`,
-        });
-      }
-      if (vercelU.plan) extra.push({ label: "요금제(실값)", value: vercelU.plan });
-      extra.push(
-        {
-          label: "이번 주기 배포",
-          value: vercelU.deploymentsThisPeriod ?? 0,
-          unit: "건",
-          note: `프로덕션 ${vercelU.productionDeployments ?? 0}건`,
-        },
-        {
-          // 스킵 건수 = 배포 스킵 규칙(프리뷰 OFF·문서만·최신 아님)이 실제로 일하고 있다는 증거.
-          // 이 숫자가 0 으로 떨어지면 규칙이 풀렸다는 뜻이다.
-          label: "빌드함 / 건너뜀",
-          value: `${vercelU.builtDeployments ?? 0} / ${vercelU.skippedDeployments ?? 0}`,
-          unit: "건",
-        },
-        { label: "빌드 시간", value: vercelU.buildWallMinutes ?? 0, unit: "분" }
-      );
-      if (vercelU.truncated) {
-        extra.push({ label: "⚠️ 부분집계", value: "배포가 너무 많아 일부만 셌음(실제는 더 큼)" });
+      if (vercelU.productionState) {
+        extra.push({ label: "프로덕션 상태", value: vercelU.productionState });
       }
     } else if (s.id === "sentry" && sentryU.available) {
       kind = "live";

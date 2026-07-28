@@ -135,15 +135,12 @@ export const EXTERNAL_SERVICES: ExternalService[] = [
     name: "Vercel",
     category: "호스팅",
     what: "Next.js 호스팅·배포·서버리스/엣지·cron",
-    // ⚠️ 아래 문구는 **토큰이 없을 때만 쓰는 대체 텍스트**다. 토큰이 있으면 요금제·청구주기·
-    //    포함 크레딧은 청구 API 실값으로 덮어써서 화면에 나온다(그래서 이 문구는 안 낡는다).
     plan: "Pro ($20/월, 2026-07-24 전환)",
-    freeTier:
-      "Pro 포함: 크레딧 $20/주기 · Edge Requests 1,000만 · Fast Data Transfer 1TB (2026-07-28 청구 API 실확인)",
-    paidTrigger: "크레딧 $20 소진 후 종량 — 실측상 소진액의 94%가 «빌드 CPU 시간»이었다(2026-07-28)",
-    paidPrice: "$20/월/멤버 + 초과 종량 (빌드 ≈ 벽시계 1분당 $0.0143 · 건당 약 $0.044)",
+    freeTier: "Pro 포함: 대역폭 1TB/월 · 배포 하루 6,000회",
+    paidTrigger: "포함량 초과분은 종량 과금",
+    paidPrice: "$20/월/멤버 + 초과 종량",
     consoleUrl: "https://vercel.com/bonrois-projects/healo-khidi/usage",
-    measure: "console", // 토큰(VERCEL_API_TOKEN 또는 VERCEL_TOKEN)이 있으면 자동으로 live 로 승격
+    measure: "console",
   },
   {
     id: "sentry",
