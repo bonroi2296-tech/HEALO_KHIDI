@@ -66,6 +66,13 @@ const FORBIDDEN = [
   // 보안: 비밀키를 NEXT_PUBLIC_ 접두사로 두면 클라이언트 번들에 그대로 박혀 노출된다
   // (2026-06-20 NEXT_PUBLIC_CRON_SECRET 누출 사고). 공개돼도 되는 값만 NEXT_PUBLIC_ 사용.
   { re: /NEXT_PUBLIC_[A-Z0-9_]*SECRET/, msg: "비밀키가 NEXT_PUBLIC_ 접두사로 클라이언트에 노출됨 — 서버 전용(CRON_SECRET 등)으로 옮기고 관리자 인증 라우트로 감쌀 것" },
+  // 「보이지 않는데 눌리는 버튼」 차단 (2026-07-28 발견).
+  // opacity-0 은 «안 보이게»만 할 뿐 «못 누르게» 하지 않는다. 마우스가 없는 모바일에선
+  // group-hover 가 영영 안 걸려 버튼이 계속 투명한 채로 남는데, 클릭은 그대로 먹는다.
+  // 실제 피해: 병원·치료 사진 썸네일(약 70px) 위에 44px 투명 삭제 버튼이 얹혀 있어
+  // 폰으로 사진을 누르면 사진이 목록에서 빠졌다(의료진 사진은 inset-0 이라 전체가 삭제 버튼).
+  // → opacity-0 으로 감출 거면 pointer-events-none 을 같이 걸어라.
+  { re: /^(?=.*<button)(?=.*\bopacity-0\b)(?=.*group-hover:opacity-100)(?!.*pointer-events-none).*$/, msg: "투명한데 눌리는 버튼 — `opacity-0` 은 클릭을 막지 않는다(모바일엔 hover 가 없어 영영 투명). `pointer-events-none group-hover:pointer-events-auto` 를 같이 걸 것" },
   // 조작된 환자 후기 시그니처 차단 (2026-06-20 홈에 가짜 후기 라이브 사고, POSTMORTEMS #11).
   // "이니셜 / 국가 / 암종" 형식(예: "A.K. / Kazakhstan / Stomach Cancer", "A.K. / 카자흐스탄 / 위암").
   // 실제 후기는 동의받은 것만, 출처표시 또는 외부 플랫폼 링크로.
