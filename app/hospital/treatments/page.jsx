@@ -270,7 +270,7 @@ function TreatmentsManager() {
                 {form.images.map((url, idx) => (
                   <div key={idx} className="relative group aspect-square rounded-lg overflow-hidden border border-gray-200 bg-gray-100">
                     <img src={url} alt="treatment" className="w-full h-full object-cover"/>
-                    <button onClick={() => setForm({ ...form, images: form.images.filter((_, i) => i !== idx) })} className="absolute top-0.5 right-0.5 bg-red-600 text-white p-0.5 rounded-full opacity-0 group-hover:opacity-100 transition shadow-sm"><X size={10}/></button>
+                    <button onClick={() => setForm({ ...form, images: form.images.filter((_, i) => i !== idx) })} className="absolute top-0.5 right-0.5 bg-red-600 text-white p-0.5 rounded-full opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition shadow-sm"><X size={10}/></button>
                   </div>
                 ))}
               </div>

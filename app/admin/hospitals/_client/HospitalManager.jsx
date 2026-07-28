@@ -992,7 +992,7 @@ function FormContent({ editingHospitalId, hospitalForm, setHospitalForm, uploadi
                 {hospitalForm.doctorImage ? (
                   <div className="relative group w-16 h-16 rounded-full overflow-hidden border">
                     <img src={hospitalForm.doctorImage} alt="doc" className="w-full h-full object-cover"/>
-                    <button onClick={() => setHospitalForm({...hospitalForm, doctorImage: ''})} className="absolute inset-0 bg-black/50 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition"><X size={16}/></button>
+                    <button onClick={() => setHospitalForm({...hospitalForm, doctorImage: ''})} className="absolute inset-0 bg-black/50 text-white flex items-center justify-center opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition"><X size={16}/></button>
                   </div>
                 ) : (
                   <div onClick={() => document.getElementById('doc-upload').click()} className="w-16 h-16 rounded-full border border-dashed flex items-center justify-center text-gray-500 cursor-pointer hover:bg-white hover:border-teal-500">

@@ -239,7 +239,7 @@ function ProfileEditor() {
               {galleryImages.map((url, idx) => (
                 <div key={idx} className="relative group aspect-square rounded-lg overflow-hidden border border-gray-200 bg-gray-100">
                   <img src={url} alt="gallery" className="w-full h-full object-cover"/>
-                  <button onClick={() => setGalleryImages(galleryImages.filter((_, i) => i !== idx))} className="absolute top-0.5 right-0.5 bg-red-600 text-white p-0.5 rounded-full opacity-0 group-hover:opacity-100 transition shadow-sm"><X size={10}/></button>
+                  <button onClick={() => setGalleryImages(galleryImages.filter((_, i) => i !== idx))} className="absolute top-0.5 right-0.5 bg-red-600 text-white p-0.5 rounded-full opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition shadow-sm"><X size={10}/></button>
                 </div>
               ))}
             </div>
@@ -287,7 +287,7 @@ function ProfileEditor() {
               {doctorProfile.image ? (
                 <div className="relative group w-16 h-16 rounded-full overflow-hidden border">
                   <img src={doctorProfile.image} alt="doc" className="w-full h-full object-cover"/>
-                  <button onClick={() => setDoctorProfile({ ...doctorProfile, image: "" })} className="absolute inset-0 bg-black/50 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition"><X size={16}/></button>
+                  <button onClick={() => setDoctorProfile({ ...doctorProfile, image: "" })} className="absolute inset-0 bg-black/50 text-white flex items-center justify-center opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition"><X size={16}/></button>
                 </div>
               ) : (
                 <div>
