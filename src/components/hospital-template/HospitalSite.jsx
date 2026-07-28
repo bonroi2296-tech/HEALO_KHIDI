@@ -25,6 +25,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import { HospitalHeader, HospitalFooter } from "./HospitalChrome";
+import MessengerRail from "./MessengerRail";
 
 // 판 기본 강조색. 병원마다 `brand.accent` 로 덮어쓴다 — 색은 판이 정하는 게 아니라
 // **그 병원 로고에서 뽑는다**(면력은 로고 SVG 에서 #003D66 이 66회 나왔다).
@@ -212,6 +213,32 @@ export default function HospitalSite({ site, lang = "en", onInquiry, basePath = 
         </Section>
       )}
 
+      {/* ══ 큰 사진 띠 — 화면 폭을 꽉 채우는 한 장 ══
+          왜: 카드·글자만 이어지면 «읽는 사이트»가 된다. 해외 환자는 가 본 적 없는 병원을
+          사진으로 판단하므로, 중간에 **공간을 크게 한 번 보여주는 자리**가 필요하다
+          (Braun 등 상위 의료관광 사이트는 시각 비중이 60~70%다 — 2026-07-28 실측). */}
+      {site.showcase?.image && (
+        <section className="relative min-h-[52vh] md:min-h-[62vh] flex items-end">
+          <Image src={site.showcase.image} alt="" fill sizes="100vw" className="object-cover" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/25 to-transparent" />
+          <div className="relative w-full max-w-6xl mx-auto px-5 md:px-8 pb-12 md:pb-16">
+            <div className="max-w-xl">
+              {t(site.showcase.eyebrow) && (
+                <p className="text-[11px] md:text-xs font-semibold uppercase mb-3 text-white/80" style={{ letterSpacing: "0.2em" }}>
+                  {t(site.showcase.eyebrow)}
+                </p>
+              )}
+              <h2 className="text-white text-2xl md:text-4xl font-semibold leading-[1.2] tracking-tight whitespace-pre-line" style={{ fontFamily: "Georgia, 'Times New Roman', serif" }}>
+                {t(site.showcase.title)}
+              </h2>
+              {t(site.showcase.desc) && (
+                <p className="mt-4 text-white/75 text-[15px] md:text-base leading-relaxed">{t(site.showcase.desc)}</p>
+              )}
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* ══ 왜 우리인가 — 국가 자랑이 아니라 이 병원의 이유 ══ */}
       {has(site.whyUs) && (
         <Section tone="sand">
@@ -219,15 +246,28 @@ export default function HospitalSite({ site, lang = "en", onInquiry, basePath = 
             <Eyebrow accent={accent}>{t(site.labels?.whyUs) || "Why Choose Us"}</Eyebrow>
             <Heading>{t(site.whyUsTitle)}</Heading>
           </div>
+          {/* 사진이 있으면 위에 얹는다 — 번호만 있는 세 칸은 «설명서»처럼 읽힌다. */}
           <div className="grid md:grid-cols-3 gap-8 md:gap-10">
             {site.whyUs.map((w, i) => (
               <div key={i}>
-                <div
-                  className="text-4xl md:text-5xl font-light mb-4 opacity-25"
-                  style={{ fontFamily: "Georgia, serif", color: accent }}
-                >
-                  {String(i + 1).padStart(2, "0")}
-                </div>
+                {w.image ? (
+                  <div className="relative aspect-[4/3] rounded-2xl overflow-hidden bg-[#EDE6DA] mb-6">
+                    <Image src={w.image} alt="" fill sizes="(max-width: 768px) 100vw, 33vw" className="object-cover" />
+                    <span
+                      className="absolute top-4 left-4 w-9 h-9 rounded-full flex items-center justify-center text-[13px] font-semibold text-white"
+                      style={{ backgroundColor: accent }}
+                    >
+                      {String(i + 1).padStart(2, "0")}
+                    </span>
+                  </div>
+                ) : (
+                  <div
+                    className="text-4xl md:text-5xl font-light mb-4 opacity-25"
+                    style={{ fontFamily: "Georgia, serif", color: accent }}
+                  >
+                    {String(i + 1).padStart(2, "0")}
+                  </div>
+                )}
                 <h3 className="text-lg md:text-xl font-semibold mb-3 tracking-tight">{t(w.title)}</h3>
                 <p className="text-[15px] text-black/55 leading-relaxed">{t(w.desc)}</p>
               </div>
@@ -308,7 +348,13 @@ export default function HospitalSite({ site, lang = "en", onInquiry, basePath = 
           </div>
           <div className="grid md:grid-cols-3 gap-5">
             {site.programs.map((p, i) => (
-              <div key={i} className="bg-white rounded-2xl p-7 border border-black/[0.06]">
+              <div key={i} className="bg-white rounded-2xl overflow-hidden border border-black/[0.06]">
+                {p.image && (
+                  <div className="relative aspect-[16/10] overflow-hidden bg-[#EDE6DA]">
+                    <Image src={p.image} alt="" fill sizes="(max-width: 640px) 100vw, 33vw" className="object-cover" />
+                  </div>
+                )}
+                <div className="p-7">
                 <h3 className="text-lg font-semibold mb-2.5 tracking-tight">{t(p.title)}</h3>
                 <p className="text-[15px] text-black/55 leading-relaxed mb-5">{t(p.desc)}</p>
                 {has(p.items) && (
@@ -321,6 +367,7 @@ export default function HospitalSite({ site, lang = "en", onInquiry, basePath = 
                     ))}
                   </ul>
                 )}
+                </div>
               </div>
             ))}
           </div>
@@ -457,6 +504,9 @@ export default function HospitalSite({ site, lang = "en", onInquiry, basePath = 
       </button>
 
       <HospitalFooter site={site} lang={lang} darkTone={darkTone} />
+
+      {/* 상시 상담 채널 — 해외 환자는 전화보다 메신저를 쓴다(국제전화 요금·시차·언어). */}
+      <MessengerRail channels={site.contact?.channels} accent={accent} label={t(site.labels?.chat)} />
     </div>
   );
 }

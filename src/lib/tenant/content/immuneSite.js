@@ -131,12 +131,36 @@ export const IMMUNE_SITE = {
     },
   ],
 
+
+  // 화면 폭을 꽉 채우는 사진 한 장. 해외 환자는 «한국 병원이 어떤 곳인지»를 여기서 판단한다.
+  showcase: {
+    image: "/immune/facility/facility-vip-room-1.jpg",
+    eyebrow: { ko: "입원 · 회복", en: "Stay & Recovery", ru: "Пребывание и восстановление", kz: "Болу және қалпына келу", zh: "住院·康复", ja: "入院・回復" },
+    title: {
+      ko: "치료받는 동안\n쉴 수 있는 공간",
+      en: "A Place to Rest\nWhile You Are Treated",
+      ru: "Место, где можно\nотдохнуть во время лечения",
+      kz: "Ем кезінде\nдемалатын кеңістік",
+      zh: "治疗期间\n可以休息的空间",
+      ja: "治療の間も\n休める空間",
+    },
+    desc: {
+      ko: "1인 병실과 회복 라운지. 보호자가 함께 머무를 수 있습니다.",
+      en: "Private rooms and a recovery lounge — a carer can stay with you.",
+      ru: "Одноместные палаты и лаундж для восстановления — сопровождающий может остаться с вами.",
+      kz: "Жеке палаталар мен қалпына келу лаунжы — ілесіп жүруші сізбен бірге бола алады.",
+      zh: "单人病房与康复休息区，陪同人员可一同停留。",
+      ja: "個室と回復ラウンジ。付き添いの方も一緒に滞在できます。",
+    },
+  },
+
   labels: {
     specialties: "Centers",
     whyUs: "Why Immune Hospital",
     doctors: "Medical Team",
     programs: "Treatments",
     gallery: "Our Space",
+    chat: "Chat",
     credentials: "Certifications",
     faq: "FAQ",
   },
@@ -227,20 +251,20 @@ export const IMMUNE_SITE = {
       caption: { ko: "강서점 로비", en: "Gangseo branch lobby", ru: "Холл филиала Кансо", kz: "Кансо филиалының холлы", zh: "江西院区大厅", ja: "江西院ロビー" },
     },
     {
-      src: "/immune/brand/care-meal.jpg",
-      caption: { ko: "병원에서 직접 준비하는 치료식", en: "Therapeutic meals prepared in-house", ru: "Лечебное питание собственного приготовления", kz: "Ауруханада дайындалатын емдік тамақ", zh: "院内自制治疗餐", ja: "院内で用意する治療食" },
+      src: "/immune/facility/facility-ward-room-1.jpg",
+      caption: { ko: "병실", en: "Patient room", ru: "Палата", kz: "Палата", zh: "病房", ja: "病室" },
     },
     {
-      src: "/images/hospitals/immunehospital-magok/1.jpg",
-      caption: { ko: "진료 공간", en: "Consultation area", ru: "Зона приёма", kz: "Қабылдау аймағы", zh: "诊疗区", ja: "診療スペース" },
-    },
-    {
-      src: "/images/hospitals/immunehospital-magok/3.jpg",
+      src: "/immune/facility/facility-treatment-room-3.jpg",
       caption: { ko: "치료실", en: "Treatment room", ru: "Процедурный кабинет", kz: "Ем бөлмесі", zh: "治疗室", ja: "治療室" },
     },
     {
-      src: "/images/hospitals/immunehospital-sinchon/1.jpg",
-      caption: { ko: "신촌점", en: "Sinchon branch", ru: "Филиал Синчон", kz: "Синчон филиалы", zh: "新村院区", ja: "新村院" },
+      src: "/immune/facility/facility-healing-space-4.jpg",
+      caption: { ko: "회복 공간", en: "Recovery space", ru: "Зона восстановления", kz: "Қалпына келу аймағы", zh: "康复空间", ja: "回復スペース" },
+    },
+    {
+      src: "/images/hospitals/immunehospital-magok/5.jpg",
+      caption: { ko: "한방 케어 공간", en: "Korean Medicine care area", ru: "Зона корейской медицины", kz: "Корей медицинасы аймағы", zh: "韩方护理区", ja: "韓方ケア空間" },
     },
   ],
 
@@ -254,6 +278,7 @@ export const IMMUNE_SITE = {
   },
   whyUs: [
     {
+      image: "/immune/facility/facility-treatment-room-2.jpg",
       title: {
         ko: "한 팀으로 보는 양·한방 협진",
         en: "One Team, Two Disciplines",
@@ -272,6 +297,7 @@ export const IMMUNE_SITE = {
       },
     },
     {
+      image: "/immune/facility/facility-healing-space-1.jpg",
       title: {
         ko: "진단부터 재활까지 한 곳에서",
         en: "Diagnosis to Rehabilitation, One Place",
@@ -290,6 +316,7 @@ export const IMMUNE_SITE = {
       },
     },
     {
+      image: "/immune/brand/care-meal.jpg",
       title: {
         ko: "치료 중 컨디션을 함께 관리",
         en: "Managing How You Feel During Treatment",
@@ -350,6 +377,7 @@ export const IMMUNE_SITE = {
   },
   programs: [
     {
+      image: "/immune/facility/facility-treatment-room-1.jpg",
       title: { ko: "면역·영양 수액", en: "Immune & Nutritional IV", ru: "Иммунные и питательные капельницы", kz: "Иммундық және тағамдық тамшылар", zh: "免疫·营养输液", ja: "免疫・栄養点滴" },
       desc: {
         ko: "항암 중 떨어진 체력과 면역을 받쳐주는 정맥·근육 주사.",
@@ -366,6 +394,7 @@ export const IMMUNE_SITE = {
       ],
     },
     {
+      image: "/images/hospitals/immunehospital-magok/2.jpg",
       title: { ko: "재생·회복 치료", en: "Regenerative Care", ru: "Регенеративная терапия", kz: "Регенеративті ем", zh: "再生·恢复治疗", ja: "再生・回復治療" },
       desc: {
         ko: "손상된 신경·조직의 회복을 돕는 주사와 냉각치료.",
@@ -382,6 +411,7 @@ export const IMMUNE_SITE = {
       ],
     },
     {
+      image: "/immune/facility/facility-healing-space-6.jpg",
       title: { ko: "한약 처방", en: "Korean Herbal Medicine", ru: "Корейская фитотерапия", kz: "Корей фитотерапиясы", zh: "韩药处方", ja: "韓方処方" },
       desc: {
         ko: "체질과 치료 단계에 맞춰 조제하는 개인 처방.",

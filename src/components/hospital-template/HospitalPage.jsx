@@ -8,6 +8,7 @@
  */
 
 import { HospitalHeader, HospitalFooter, PageHero } from "./HospitalChrome";
+import MessengerRail from "./MessengerRail";
 import { Block } from "./blocks";
 
 const pick = (v, lang) => {
@@ -79,6 +80,9 @@ export default function HospitalPage({ site, page, slug, lang = "en", onInquiry,
       </section>
 
       <HospitalFooter site={site} lang={lang} darkTone={darkTone} />
+
+      {/* 상시 상담 채널 — 해외 환자는 전화보다 메신저를 쓴다(국제전화 요금·시차·언어). */}
+      <MessengerRail channels={site.contact?.channels} accent={accent} label={t(site.labels?.chat)} />
 
       <button
         onClick={onInquiry}
