@@ -130,10 +130,36 @@ export async function POST(request: NextRequest) {
             .lt("requested_at", cutoff);
         }
         console.log(`[livekit/webhook] ${participantIdentity} left ${roomName}`);
-      } else if ((event.event as string) === "recording_finished" && roomName) {
-        // 녹화 URL 을 consultation 에 저장 (있으면)
-        const fileUrl = (event as any).egressInfo?.fileResults?.[0]?.location;
-        if (fileUrl) {
+      } else if (
+        (event.event as string) === "egress_ended" ||
+        (event.event as string) === "recording_finished"
+      ) {
+        // 녹화 종료 — 대장(consultation_recordings)을 닫는다.
+        // ⚠️ 이게 없으면 방이 자연 종료돼 녹화가 알아서 끝났을 때 행이 'recording' 으로 영영 남고,
+        //    그 상담은 «이미 녹화 중»으로 판정돼 **다시는 녹화를 못 시작한다.** (스위치 켜기 전 선반영)
+        const eg = (event as any).egressInfo;
+        const egressId = eg?.egressId;
+        if (egressId) {
+          const startedNs = Number(eg?.startedAt || 0);
+          const endedNs = Number(eg?.endedAt || 0);
+          const durationSec =
+            startedNs && endedNs ? Math.round((endedNs - startedNs) / 1e9) : null;
+          // 3=COMPLETE 만 정상. 4/5/6(FAILED·ABORTED·LIMIT_REACHED)은 실패로 남겨 원인을 남긴다.
+          const ok = Number(eg?.status) === 3;
+          await supabase
+            .from("consultation_recordings")
+            .update({
+              status: ok ? "stopped" : "failed",
+              ended_at: new Date().toISOString(),
+              duration_sec: durationSec,
+            })
+            .eq("egress_id", egressId)
+            .eq("status", "recording");
+        }
+
+        // (레거시) 녹화 URL 을 consultation 에 저장 — 옛 경로 유지
+        const fileUrl = eg?.fileResults?.[0]?.location;
+        if (fileUrl && roomName) {
           await supabase
             .from("consultation_sessions")
             .update({

@@ -60,7 +60,12 @@ import {
   X,
   Users,
   ArrowLeftRight,
+  Circle,
 } from "lucide-react";
+import {
+  isRecordingEnabledClient,
+  RECORDING_ROLES,
+} from "@/lib/consultation/recording";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { useLang } from "@/lib/i18n/LangContext";
 import { useToast } from "@/components/Toast";
@@ -179,6 +184,37 @@ function AudioUnblock({ copy }) {
     >
       <Volume2 size={16} /> {c.tapToEnableAudio}
     </button>
+  );
+}
+
+// ── 「녹화 중」 고지 배지 (LiveKitRoom 내부 전용) ──
+// 법적으로도 실무적으로도 **몰래 녹화는 있어선 안 된다.** LiveKit 은 녹화가 시작되면
+// 방의 모든 참가자에게 상태를 알려주므로(`room.isRecording`), 그걸 그대로 화면에 띄운다
+// → 누가 어디서 시작했든 방 안 전원이 즉시 안다. 이 배지를 지우면 그 보장이 깨진다.
+function RecordingBadge({ copy, onChange }) {
+  const room = useRoomContext();
+  const lang = useLang();
+  const c = copy || COPY[lang] || COPY.en;
+  const [on, setOn] = useState(false);
+  useEffect(() => {
+    if (!room) return;
+    const update = () => {
+      const v = !!room.isRecording;
+      setOn(v);
+      onChange?.(v);
+    };
+    update();
+    room.on(RoomEvent.RecordingStatusChanged, update);
+    return () => {
+      room.off(RoomEvent.RecordingStatusChanged, update);
+    };
+  }, [room, onChange]);
+  if (!on) return null;
+  return (
+    <div className="absolute top-3 left-3 z-40 flex items-center gap-1.5 bg-red-600/90 text-white text-[12px] font-semibold px-2.5 py-1.5 rounded-full shadow-lg">
+      <Circle size={9} className="fill-current animate-pulse" />
+      <span>{c.recordingNotice}</span>
+    </div>
   );
 }
 
@@ -2794,6 +2830,35 @@ export default function ConsultationRoomPage() {
   const isWaitingScreen =
     !!livekitToken && (admissionStatus === "pending" || admissionStatus === "rejected");
 
+  // ── 녹화 (기본 꺼짐 — PO 지시 2026-07-28 "준비만") ──────────────────────
+  // 스위치가 꺼져 있으면 버튼 자체가 안 뜬다 = 지금 상담방과 동작이 완전히 같다.
+  // 켤 수 있는 사람도 운영자(어드민·코디)뿐 — 환자·게스트 의사에겐 안 보인다.
+  const recordingFeatureOn = isRecordingEnabledClient() && RECORDING_ROLES.includes(myRole);
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingBusy, setRecordingBusy] = useState(false);
+  const toggleRecording = useCallback(async () => {
+    if (recordingBusy) return;
+    setRecordingBusy(true);
+    try {
+      const headers = await getConsultAuthHeaders();
+      if (!headers) return;
+      const res = await fetch(`/api/khidi/consultation/${consultationId}/recording`, {
+        method: "POST",
+        headers: { ...headers, "Content-Type": "application/json" },
+        body: JSON.stringify({ action: isRecording ? "stop" : "start" }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!data.ok) toast.error(c.recordingFailed);
+      // 성공했다고 버튼을 미리 바꾸지 않는다 — 표시는 방의 실제 녹화 상태(RecordingBadge)만
+      // 따른다. 낙관적 갱신을 하면 «켜진 줄 알았는데 안 찍히는»(또는 그 반대) 상태가 생기고,
+      // 녹화에서 그건 곧 «몰래 찍힘»으로 읽힌다.
+    } catch {
+      toast.error(c.recordingFailed);
+    } finally {
+      setRecordingBusy(false);
+    }
+  }, [recordingBusy, isRecording, consultationId, getConsultAuthHeaders, c]);
+
   // ── 컨트롤 버튼 (헤더에서 공용 재사용 — 중복 정의 방지) ──
   // 컨트롤 버튼 공통 문법(2026-07-15 PO): 아이콘 위 + 짧은 라벨 아래(모바일 포함 항상 표시) —
   // 아이콘만으론 연령대 높은 사용자가 뜻을 못 알아봄. 상태는 색으로(켜짐 teal / 꺼짐·종료 red).
@@ -2860,6 +2925,22 @@ export default function ConsultationRoomPage() {
           </span>
         )}
       </button>
+      {/* 녹화 토글 — 스위치 ON + 운영자일 때만 존재. 켜져 있으면 방 전원에게 「녹화 중」이 보인다. */}
+      {recordingFeatureOn && (
+        <button
+          onClick={toggleRecording}
+          disabled={recordingBusy}
+          className={`hw-ctrl-btn relative rounded-lg font-medium transition disabled:opacity-50 ${
+            isRecording
+              ? "bg-red-600 hover:bg-red-700 text-white"
+              : "bg-gray-700 hover:bg-gray-600 text-gray-200"
+          }`}
+          title={isRecording ? c.recordStop : c.recordStart}
+        >
+          <Circle size={18} className={isRecording ? "fill-current" : ""} />
+          <span>{c.recordLabel}</span>
+        </button>
+      )}
       {/* 언어 설정 — 자막이 어느 언어로 나올지 바로 설정(PO 2026-07-23: 토글 옆에서 언어 설정). */}
       <button
         onClick={() => setLangSheetOpen(true)}
@@ -3171,6 +3252,7 @@ export default function ConsultationRoomPage() {
                 <AloneWatcher onAloneChange={setIsAloneInRoom} />
                 <RoomAudioRenderer />
                 <NoiseFilter />
+                <RecordingBadge copy={c} onChange={setIsRecording} />
                 <AudioUnblock copy={c} />
                 <MicOffBanner
                   failed={micActivationFailed}
