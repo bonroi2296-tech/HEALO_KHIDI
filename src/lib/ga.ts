@@ -95,18 +95,26 @@ export const pageview = (url: string) => {
   //    이어졌는지 알 수 없게 됨). page_location 을 명시해 그 위험을 없앤다.
   //    page_title 은 일부러 안 넘긴다 — Next.js 는 제목을 렌더 뒤에 바꿔서
   //    이 시점에 읽으면 «이전 화면 제목»이 박힐 수 있다. GA 가 알아서 읽게 둔다.
-  window.gtag("event", "page_view", {
-    page_location: window.location.href,
-    page_path: url,
-    ...commonParams(),
-  });
+  // 🛡️ 추적이 화면을 깨뜨리면 안 된다 — 여기서 예외가 나면 «호출한 쪽»이 멈춘다.
+  //    실제로 병원·암종 상세는 데이터를 불러오는 도중에 이걸 부르므로, 던지면 그 뒤
+  //    로딩이 통째로 중단된다. 호출부마다 감싸는 대신 여기서 한 번에 막는다.
+  try {
+    window.gtag("event", "page_view", {
+      page_location: window.location.href,
+      page_path: url,
+      ...commonParams(),
+    });
+  } catch { /* 분석 실패는 조용히 무시 — 화면은 계속 동작해야 한다 */ }
 };
 
 export const event = (action: string, params: Record<string, any> = {}) => {
   const gaId = getGaId();
   if (!gaId || internalUser || typeof window === "undefined" || !window.gtag) return;
   // 공통값(platform·lang)을 먼저 깔고 호출부 params 로 덮어쓴다 → 호출부가 명시한 lang 이 이긴다.
-  window.gtag("event", action, { ...commonParams(), ...params });
+  // 🛡️ pageview 와 같은 이유로 방탄 (위 주석 참고).
+  try {
+    window.gtag("event", action, { ...commonParams(), ...params });
+  } catch { /* 분석 실패는 조용히 무시 — 화면은 계속 동작해야 한다 */ }
 };
 
 /** 직원 계정으로 로그인한 브라우저인지 판정 (app_metadata.role 기준 — user_metadata 는 위조 가능). */
@@ -157,9 +165,6 @@ export const initDebugMode = (): boolean => {
   }
   return debugMode;
 };
-
-/** AnalyticsWrapper 가 gtag 초기 설정에 얹을 값 (debug_mode 는 config 단계에서 켜야 전체 이벤트에 걸린다). */
-export const isDebugMode = () => debugMode;
 
 /**
  * 이벤트 이름 단일 진실원천(SoR).

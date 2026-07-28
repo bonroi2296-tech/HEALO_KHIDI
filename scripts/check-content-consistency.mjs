@@ -2404,6 +2404,44 @@ const BACKOFFICE_SHARED = [
   }
 }
 
+// ── [분석누락] 상태 갱신 함수 «안»에서 GA 를 쏘면 숫자가 2배가 된다 (POSTMORTEMS #147) ──
+//
+// 리액트는 `setX(prev => ...)` 의 갱신 함수를 «순수 함수»로 보고 **여러 번 부를 수 있다**
+// (개발 모드는 항상 2번, 실서비스도 렌더 재시도 시 재호출 가능). 그 안에서 GA 를 쏘면
+// 이벤트가 조용히 중복 발화된다 — 화면은 멀쩡하고 숫자만 틀리는, 이 문서 전체가 경계하는 부류다.
+{
+  const gaFiles = walk("app").concat(walk("src"))
+    .filter((f) => /\.(jsx?|tsx?)$/.test(f) && !/(^|[\\/])archive[\\/]/.test(f));
+  for (const file of gaFiles) {
+    let src = "";
+    try { src = readFileSync(join(ROOT, file), "utf8"); } catch { continue; }
+    if (!/from ["']@?[./\w]*lib\/ga["']/.test(src)) continue;
+    const lines = stripCommentsWholeFile(src).split(/\r?\n/);
+
+    // set*( (prev) => { … } ) 블록의 중괄호 깊이를 세어 «안쪽»인지 판정한다.
+    let depth = 0;      // 갱신 함수 본문 안이면 > 0
+    let brace = 0;      // 그 본문의 중괄호 균형
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      if (depth === 0 && /\bset[A-Z]\w*\(\s*\(?\s*\w*\s*\)?\s*=>\s*\{/.test(line)) {
+        depth = 1; brace = 0;
+      }
+      if (depth > 0) {
+        for (const ch of line) { if (ch === "{") brace++; else if (ch === "}") brace--; }
+        // GA 발화가 이 안에 있으면 중복 위험
+        if (/\b(ga|safeEvent|gaEvent|event)\(\s*GA_EVENTS\./.test(line)) {
+          errors.push(
+            `[분석누락] ${file.replace(/\\/g, "/")}:${i + 1} — 상태 갱신 함수(set…(prev => …)) «안»에서 GA 이벤트를 쏜다. ` +
+              `리액트는 이 함수를 여러 번 부를 수 있어 **숫자가 조용히 2배**가 된다(화면은 멀쩡함). ` +
+              `발화를 갱신 함수 «밖»으로 빼라 (POSTMORTEMS #147)\n    ${line.trim().slice(0, 120)}`
+          );
+        }
+        if (brace <= 0) depth = 0;
+      }
+    }
+  }
+}
+
 // ── 결과 ────────────────────────────────────────────────────────
 if (errors.length) {
   console.error(`\n❌ 콘텐츠 일관성 검사 실패 (${errors.length}건)\n`);
