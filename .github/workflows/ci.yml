@@ -32,6 +32,10 @@ jobs:
         run: npm run lint
       - name: 콘텐츠 일관성 (옛 브랜드·이메일 잔재 + i18n 키 누락 자동 차단)
         run: npm run check:content
+      # 지침이 다시 한 통으로 불어나는 것을 막는다 — CLAUDE.md 상한·분류 태그 필수·죽은 문서 참조.
+      # 왜: 활성 취향을 -86% 로 줄인 날 반나절 만에 +38% 되찼다(2026-07-28). 문서로만 적으면 안 지켜진다.
+      - name: 지침 구조 (CLAUDE.md 상한 + 취향 분류 태그 + 죽은 문서 참조 차단)
+        run: npm run check:rules
       # 완성도 루브릭(Definition of Done) SoR 무결성 — 골격 단계라 비차단(경고).
       # 안정·오탐 검증 후 continue-on-error 제거해 blocking 으로 승격 예정(docs/DEFINITION_OF_DONE.md 로드맵).
       - name: 완성도 루브릭 SoR 정합성 (판단 기준 채점표가 부패·문서 드리프트하지 않게 — 비차단)

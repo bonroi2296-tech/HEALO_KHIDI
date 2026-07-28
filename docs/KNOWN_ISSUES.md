@@ -1,5 +1,14 @@
 # HEALO KHIDI — 알려진 이슈 / 전수 QA 발견사항
 
+## 🔸 `hospital`(국내병원) 역할만 **자동 확인 경로가 아예 없다** — 백오피스 화면을 어떤 방법으로도 못 본다 (2026-07-28, 지침 재구성 중 발견)
+
+- **무엇**: `e2e/auth.setup.ts` 는 역할별로 1회 로그인해 세션을 파일로 저장한다(`storageState`). 그런데 `ROLES` 목록에 `patient`·`admin`·`coordinator`·`agency`·`clinic` **5개만** 있고 **`hospital` 이 없다.**
+- **왜 지금 드러났나**: 2026-07-28 핸드오프에 *"`hospital@test.com` 은 첫 화면으로 되돌아가고 `hospital@test.healo.kr` 은 비밀번호를 몰라 `/hospital/profile`·`/hospital/treatments` 를 못 봤다"* 고 적혀 있었다. **계정을 몰라서가 아니라 애초에 목록에 없어서**다 — 계정을 알아내도 자동 확인은 여전히 안 된다.
+- **덤**: `E2E_*` 계정 키가 `.env.example` 에도 없어서, 새로 세팅하는 사람은 이 장치의 존재 자체를 모른다.
+- **고친다면**: ①`ROLES` 에 `["hospital", "E2E_HOSPITAL_EMAIL"]` 추가 ②`e2e/fixtures/auth.ts` 의 `Role` 타입·로그인 경로에 hospital 반영 ③`.env.example` 에 `E2E_*` 키 6개를 주석과 함께 등재 ④병원 계정 1개 발급.
+- **왜 중요한가**: 이게 막혀 있는 동안 국내병원 백오피스는 **"직접 동작 검증 못 함"** 상태로만 보고할 수 있다. 옛 지침의 *"로그인 뒤 화면은 로컬에서 못 연다"* 는 서술이 이 구멍을 덮고 있었다(→ `docs/rules/PREVIEW.md` 에서 정정).
+
+
 ## 🔸 AI 봇 정책에 **「학습용 수집봇」과 「답변용 검색봇」 구분이 없다** (2026-07-28, 경쟁사 실측 중 발견)
 
 - **무엇**: 우리 `app/robots.js` 는 AI 크롤러를 **한 덩어리로 허용**한다. 그런데 AI 봇은 성격이 둘로 갈린다 — ①**학습용 수집**(GPTBot·ClaudeBot·Bytespider·Meta-ExternalAgent = 모델 훈련 데이터로 가져감) ②**답변용 검색**(OAI-SearchBot·PerplexityBot·ChatGPT-User·Claude-SearchBot·Google-Extended·Applebot = 사용자 질문에 답할 때 인용).

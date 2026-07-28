@@ -176,9 +176,10 @@ if [ -f "$PREFS" ]; then
   active=$(awk '/<!-- ACTIVE:START -->/{f=1;next} /<!-- ACTIVE:END -->/{f=0} f' "$PREFS" 2>/dev/null)
   if [ -n "$active" ]; then
     echo ""
-    echo "## 🎯 PO 취향·선호 (누적 학습 — 고정 규칙 외, 어기지 마라)"
+    echo "## 🎯 PO 취향·선호 — 분류 대기실 (누적 학습 — 고정 규칙 외, 어기지 마라)"
     echo "$active"
-    echo "_(세션 중 새 취향이 드러나면 /handoff가 ${PREFS}에 누적한다)_"
+    echo "_(세션 중 새 취향이 드러나면 /handoff가 ${PREFS}에 **분류 태그와 함께** 누적한다._"
+    echo "_ 태그 = [CI]기계가 잡음 / [문서]상황별 / [말투] / [규칙]매번 / [기록]사건. 여긴 창고가 아니라 대기실이다 — 태그가 가리키는 자리로 옮기고 빼라. 검사: \`npm run check:rules\`)_"
   fi
 fi
 
@@ -206,7 +207,8 @@ if [ -f "$PREFS" ]; then
     if [ -n "$ld_s" ] && [ -n "$now_s" ]; then
       d_days=$(( (now_s - ld_s) / 86400 ))
       if [ "$d_days" -ge 14 ] 2>/dev/null; then
-        n_items=$(awk '/ACTIVE:START/{f=1;next} /ACTIVE:END/{f=0} f&&/^- \*\*/{c++} END{print c+0}' "$PREFS")
+        # 2026-07-28: 항목 형식이 「- `[태그]` **…**」로 바뀌어 옛 정규식(^- \*\*)이 0을 세던 것을 수정
+        n_items=$(awk '/ACTIVE:START/{f=1;next} /ACTIVE:END/{f=0} f&&/^- /{c++} END{print c+0}' "$PREFS")
         echo ""
         echo "## 📏 규칙 다이어트 기한 경과 — 마지막 정리 ${last_diet} (${d_days}일 전) · 지금 활성 ${n_items}개"
         echo "  → PO 에게 **알리기만** 하라: 「활성 규칙이 ${n_items}개다, 정리할까?」 (버튼)."
