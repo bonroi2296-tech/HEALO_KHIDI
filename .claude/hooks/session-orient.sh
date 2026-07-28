@@ -87,6 +87,61 @@ EOF
   fi
 fi
 
+# ── 서랍에 갇힌 작업 경보 (커밋은 있는데 PR 이 없는 브랜치) ────────
+# 2026-07-27 사고: 커밋만 해두고 PR 을 안 낸 브랜치에 작업 3건이 갇혀 회수 세션이 따로 필요했다(#1056·#1058·#1059).
+# 「머지됐나」가 아니라 **PR 이 있나**로 가른다 — squash 머지를 쓰면 알맹이가 다 들어가도
+# 브랜치는 영원히 --no-merged 라 git 만으론 구분이 안 된다. 그래서 여기서만 GitHub 를 본다.
+# gh 가 없거나 망이 끊겼으면 조용히 건너뛴다(훅은 무슨 일이 있어도 세션 시작을 막지 않는다).
+STALE_DAYS=3
+if command -v gh >/dev/null 2>&1; then
+    now=$(date +%s)
+    stale=""; sn=0; checked=0
+    while IFS='|' read -r ref ts subj; do
+      [ -z "$ref" ] && continue
+      # ① 먼저 git 만으로(=망 없이) 후보를 거른다 — 본판에 안 들어갔고 · 오래됐고 · 앞선 커밋이 있는 것.
+      git merge-base --is-ancestor "$ref" origin/main 2>/dev/null && continue
+      d=$(( (now - ts) / 86400 ))
+      [ "$d" -lt "$STALE_DAYS" ] && continue
+      n=$(git rev-list --count "origin/main..$ref" 2>/dev/null || echo 0)
+      [ "${n:-0}" -eq 0 ] && continue
+      short=${ref#origin/}
+      # ② 후보에 대해서만 GitHub 를 묻는다(보통 0건 → 망 호출 0). 전체 PR 목록을 받으면
+      #    800건이 넘어 느리고, --limit 에 잘리면 «PR 있는데 없다»고 거짓 경보가 난다.
+      # 한계: gh 호출은 최신 8개 후보까지만(훅이 느려지지 않게). 오래 방치된 브랜치가 8개를 넘으면
+      # 그 아래는 못 본다 — 갇힌 작업은 보통 최근 것이라 이 정도로 충분. 자주 잘리면 상한을 올릴 것.
+      checked=$((checked+1)); [ "$checked" -gt 8 ] && break
+      pr=$(timeout 10 gh pr list --state all --head "$short" --limit 1 --json number,state,mergedAt,closedAt \
+             -q '.[]|"\(.number)|\(.state)|\(.mergedAt // .closedAt // "")"' 2>/dev/null) || continue
+      why=""
+      if [ -z "$pr" ]; then
+        why="커밋 ${n}개 · **${d}일째 PR 없음**"
+      else
+        IFS='|' read -r pnum pstate pend <<<"$pr"
+        [ "$pstate" = "OPEN" ] && continue
+        # 「PR 은 있었다」로 끝내면 안 된다 — 머지 뒤 같은 브랜치에 새 커밋을 더 쌓아두고
+        # 새 PR 을 안 낸 것이 2026-07-27 실제 사고였다(#982 머지 뒤 27커밋). 마감 시각 뒤 커밋만 센다.
+        pend_s=$(date -d "$pend" +%s 2>/dev/null || echo 0)
+        [ "$pend_s" -gt 0 ] && [ "$ts" -le "$pend_s" ] && continue
+        na=$(git rev-list --count --after="$pend" "origin/main..$ref" 2>/dev/null || echo "$n")
+        [ "${na:-0}" -eq 0 ] && continue
+        why="PR #${pnum} 마감 뒤 커밋 ${na}개 · **${d}일째 새 PR 없음**"
+      fi
+      sn=$((sn+1))
+      stale="${stale}  · \`${short}\` — ${why} — ${subj}
+"
+      [ "$sn" -ge 6 ] && break
+    done <<EOF
+$(git for-each-ref --sort=-committerdate --format='%(refname:short)|%(committerdate:unix)|%(contents:subject)' refs/remotes/origin 2>/dev/null)
+EOF
+    if [ "$sn" -gt 0 ]; then
+      echo ""
+      echo "## 🚨 서랍에 갇힌 작업 — 커밋은 있는데 **합치기 신청서(PR)가 없다** (${STALE_DAYS}일+ 방치)"
+      printf '%s' "$stale"
+      echo "  → 이대로 두면 본판에 영영 안 들어간다. **오늘 처리하라**: 살릴 것이면 \`gh pr create\`, 이미 본판에 있는 잔재면 대조 후 브랜치 삭제."
+      echo "     · ⚠️ 삭제 전엔 \`docs/\` 까지 포함해 전수 대조(과거에 핸드오프 76줄이 브랜치에만 남아 있던 적 있음)."
+    fi
+fi
+
 echo "- ▶ 이어가기 전 **${CTX} 최상단 핸드오프** 전체를 읽어라. 남은 버그·개선점은 docs/KNOWN_ISSUES.md."
 
 # ── 핸드오프 핵심 3칸을 직접 띄움 (B) — 안 읽어도 눈앞에 ──────────

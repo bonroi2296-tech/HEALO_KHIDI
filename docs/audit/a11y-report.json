@@ -1,35 +1,30 @@
 {
   "base": "https://healwith.co.kr",
-  "ts": "2026-07-27T00:36:15.148Z",
-  "scope": "공개(무인증) 페이지만 — 백오피스·환자포털은 로그인 뒤라 미측정",
+  "label": "public",
+  "ts": "2026-07-27T06:09:25.549Z",
+  "scope": "공개(무인증) 페이지",
   "sanityFailed": 0,
   "totalsByImpact": {
     "critical": 0,
-    "serious": 2,
+    "serious": 0,
     "moderate": 0,
     "minor": 0
   },
-  "incompleteTotal": 51,
-  "byRule": [
-    {
-      "id": "color-contrast",
-      "impact": "serious",
-      "nodes": 2,
-      "pages": 2
-    }
-  ],
+  "incompleteTotal": 54,
+  "byRule": [],
   "incompleteByRule": {
-    "color-contrast": 51
+    "color-contrast": 54
   },
   "pages": [
     {
       "path": "/en",
       "renderOk": true,
       "status": 200,
+      "redirectedTo": null,
       "renderedNodes": 521,
       "renderedText": 4799,
-      "ruleViolations": 1,
-      "nodes": 1,
+      "ruleViolations": 0,
+      "nodes": 0,
       "incompleteNodes": 10,
       "incomplete": [
         {
@@ -49,8 +44,8 @@
               "html": "<button class=\"group bg-gradient-to-r from-teal-500 to-emerald-500 text-white font-bold text-base md:text-lg px-8 py-4 md:px-10 md:py-5 rounded-2xl shadow-lg sh"
             },
             {
-              "target": ".text-slate-400.mt-3",
-              "html": "<p class=\"text-slate-400 text-xs md:text-sm mt-3 whitespace-pre-line\">Takes only 5 minutes · Completely free</p>"
+              "target": ".text-slate-300.mt-3",
+              "html": "<p class=\"text-slate-300 text-xs md:text-sm mt-3 whitespace-pre-line\">Takes only 5 minutes · Completely free</p>"
             },
             {
               "target": ".mb-4.md\\:mb-6.lg\\:text-4xl",
@@ -61,38 +56,26 @@
       ],
       "byImpact": {
         "critical": 0,
-        "serious": 1,
+        "serious": 0,
         "moderate": 0,
         "minor": 0
       },
-      "rules": [
-        {
-          "id": "color-contrast",
-          "impact": "serious",
-          "count": 1,
-          "help": "Elements must meet minimum color contrast ratio thresholds",
-          "samples": [
-            {
-              "target": ".mb-5",
-              "summary": "Fix any of the following:\n  Element has insufficient color contrast of 4.41 (foreground color: #6b7280, background color: #fef2f2, font size: 12.0pt (16px), font weight: normal). Expected contrast ratio of 4.5:1"
-            }
-          ]
-        }
-      ]
+      "rules": []
     },
     {
       "path": "/en/treatments",
       "renderOk": true,
       "status": 200,
+      "redirectedTo": null,
       "renderedNodes": 294,
       "renderedText": 2030,
       "ruleViolations": 0,
       "nodes": 0,
-      "incompleteNodes": 2,
+      "incompleteNodes": 3,
       "incomplete": [
         {
           "id": "color-contrast",
-          "count": 2,
+          "count": 3,
           "samples": [
             {
               "target": "h1",
@@ -101,6 +84,10 @@
             {
               "target": ".text-white\\/80",
               "html": "<p class=\"text-white/80 text-base md:text-lg max-w-2xl mx-auto\">healwith integrated care combining Korea's advanced cancer treatment with Korean Medicine immune"
+            },
+            {
+              "target": ".text-gray-600.flex-1.text-sm > p:nth-child(2)",
+              "html": "<p>We use essential cookies for site functionality and analytics cookies to improve our service. <a href=\"/cookies\" class=\"text-teal-700 underline\">Learn more</"
             }
           ]
         }
@@ -117,6 +104,7 @@
       "path": "/en/hospitals",
       "renderOk": true,
       "status": 200,
+      "redirectedTo": null,
       "renderedNodes": 1378,
       "renderedText": 12221,
       "ruleViolations": 0,
@@ -162,15 +150,16 @@
       "path": "/en/telemedicine",
       "renderOk": true,
       "status": 200,
+      "redirectedTo": null,
       "renderedNodes": 427,
       "renderedText": 3826,
       "ruleViolations": 0,
       "nodes": 0,
-      "incompleteNodes": 3,
+      "incompleteNodes": 4,
       "incomplete": [
         {
           "id": "color-contrast",
-          "count": 3,
+          "count": 4,
           "samples": [
             {
               "target": ".aspect-\\[4\\/3\\].overflow-hidden.bg-gray-800:nth-child(1) > .bottom-2.left-2.bg-black\\/50",
@@ -183,6 +172,10 @@
             {
               "target": ".text-teal-400",
               "html": "<p class=\"text-[11px] md:text-xs text-teal-400 mb-1 inline-flex items-center gap-1\">"
+            },
+            {
+              "target": ".flex-1 > p:nth-child(2)",
+              "html": "<p>We use essential cookies for site functionality and analytics cookies to improve our service. <a href=\"/cookies\" class=\"text-teal-700 underline\">Learn more</"
             }
           ]
         }
@@ -199,6 +192,7 @@
       "path": "/en/care-journey",
       "renderOk": true,
       "status": 200,
+      "redirectedTo": null,
       "renderedNodes": 268,
       "renderedText": 4490,
       "ruleViolations": 0,
@@ -217,12 +211,24 @@
       "path": "/en/faq",
       "renderOk": true,
       "status": 200,
+      "redirectedTo": null,
       "renderedNodes": 305,
       "renderedText": 2426,
       "ruleViolations": 0,
       "nodes": 0,
-      "incompleteNodes": 0,
-      "incomplete": [],
+      "incompleteNodes": 1,
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 1,
+          "samples": [
+            {
+              "target": "p:nth-child(2)",
+              "html": "<p>We use essential cookies for site functionality and analytics cookies to improve our service. <a href=\"/cookies\" class=\"text-teal-700 underline\">Learn more</"
+            }
+          ]
+        }
+      ],
       "byImpact": {
         "critical": 0,
         "serious": 0,
@@ -235,6 +241,7 @@
       "path": "/en/inquiry",
       "renderOk": true,
       "status": 200,
+      "redirectedTo": null,
       "renderedNodes": 122,
       "renderedText": 721,
       "ruleViolations": 0,
@@ -253,10 +260,11 @@
       "path": "/ru",
       "renderOk": true,
       "status": 200,
+      "redirectedTo": null,
       "renderedNodes": 523,
-      "renderedText": 4759,
-      "ruleViolations": 1,
-      "nodes": 1,
+      "renderedText": 4772,
+      "ruleViolations": 0,
+      "nodes": 0,
       "incompleteNodes": 10,
       "incomplete": [
         {
@@ -276,8 +284,8 @@
               "html": "<button class=\"group bg-gradient-to-r from-teal-500 to-emerald-500 text-white font-bold text-base md:text-lg px-8 py-4 md:px-10 md:py-5 rounded-2xl shadow-lg sh"
             },
             {
-              "target": ".text-slate-400.mt-3",
-              "html": "<p class=\"text-slate-400 text-xs md:text-sm mt-3 whitespace-pre-line\">Всего 5 минут · Абсолютно бесплатно</p>"
+              "target": ".text-slate-300.mt-3",
+              "html": "<p class=\"text-slate-300 text-xs md:text-sm mt-3 whitespace-pre-line\">Всего 5 минут · Абсолютно бесплатно</p>"
             },
             {
               "target": ".mb-4.md\\:mb-6.lg\\:text-4xl",
@@ -288,31 +296,19 @@
       ],
       "byImpact": {
         "critical": 0,
-        "serious": 1,
+        "serious": 0,
         "moderate": 0,
         "minor": 0
       },
-      "rules": [
-        {
-          "id": "color-contrast",
-          "impact": "serious",
-          "count": 1,
-          "help": "Elements must meet minimum color contrast ratio thresholds",
-          "samples": [
-            {
-              "target": ".mb-5",
-              "summary": "Fix any of the following:\n  Element has insufficient color contrast of 4.41 (foreground color: #6b7280, background color: #fef2f2, font size: 12.0pt (16px), font weight: normal). Expected contrast ratio of 4.5:1"
-            }
-          ]
-        }
-      ]
+      "rules": []
     },
     {
       "path": "/ru/hospitals",
       "renderOk": true,
       "status": 200,
+      "redirectedTo": null,
       "renderedNodes": 1380,
-      "renderedText": 12362,
+      "renderedText": 12389,
       "ruleViolations": 0,
       "nodes": 0,
       "incompleteNodes": 13,
@@ -356,8 +352,9 @@
       "path": "/ru/care-journey",
       "renderOk": true,
       "status": 200,
+      "redirectedTo": null,
       "renderedNodes": 270,
-      "renderedText": 4661,
+      "renderedText": 4738,
       "ruleViolations": 0,
       "nodes": 0,
       "incompleteNodes": 0,
