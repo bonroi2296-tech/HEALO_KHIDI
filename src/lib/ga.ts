@@ -61,24 +61,104 @@ const getLang = (): string | undefined => {
   }
 };
 
+/**
+ * 직원(운영자·코디·병원) 여부. true 면 이 브라우저에서는 GA 로 아무것도 보내지 않는다.
+ *
+ * 왜: 우리가 우리 사이트를 하루에도 수십 번 돌아다닌다. 그게 그대로 «방문자»로 섞이면
+ * KHIDI 성과지표(유치·상담 건수)의 분모가 조용히 부풀고, 전환율은 반대로 낮아 보인다.
+ * GA4 콘솔의 «내부 트래픽» 필터는 IP 기준이라 재택·모바일·해외출장이면 안 걸린다 —
+ * 그래서 IP 가 아니라 «로그인한 사람의 역할»로 판단한다(우리가 확실히 아는 정보).
+ */
+let internalUser = false;
+
+/** 개발자 검증용 debug_mode — GA4 「DebugView」에 실시간으로 뜨게 한다(아래 initDebugMode 참고). */
+let debugMode = false;
+
 /** 모든 이벤트/페이지뷰에 자동으로 얹히는 공통 파라미터. 호출부가 명시한 값이 항상 우선한다. */
 const commonParams = (): Record<string, any> => {
   const lang = getLang();
-  return lang ? { platform: getPlatform(), lang } : { platform: getPlatform() };
+  const p: Record<string, any> = { platform: getPlatform() };
+  if (lang) p.lang = lang;
+  // debug_mode 는 config 에도 얹지만, 이벤트마다 붙여야 DebugView 에서 빠짐없이 보인다.
+  if (debugMode) p.debug_mode = true;
+  return p;
 };
 
 export const pageview = (url: string) => {
   const gaId = getGaId();
-  if (!gaId || typeof window === "undefined" || !window.gtag) return;
-  window.gtag("config", gaId, { page_path: url, ...commonParams() });
+  if (!gaId || internalUser || typeof window === "undefined" || !window.gtag) return;
+  // ⚠️ 예전엔 gtag("config", …) 를 라우트마다 다시 불렀다(UA 시절 방식).
+  //    GA4 공식 방식은 «page_view 이벤트»를 직접 쏘는 것이다. config 재호출은
+  //    page_location(전체 URL)을 갱신해준다는 보장이 없어서, 화면을 옮겨 다녀도
+  //    **첫 진입 URL 이 그대로 기록될 위험**이 있었다(= 어느 페이지가 문의로
+  //    이어졌는지 알 수 없게 됨). page_location 을 명시해 그 위험을 없앤다.
+  //    page_title 은 일부러 안 넘긴다 — Next.js 는 제목을 렌더 뒤에 바꿔서
+  //    이 시점에 읽으면 «이전 화면 제목»이 박힐 수 있다. GA 가 알아서 읽게 둔다.
+  window.gtag("event", "page_view", {
+    page_location: window.location.href,
+    page_path: url,
+    ...commonParams(),
+  });
 };
 
 export const event = (action: string, params: Record<string, any> = {}) => {
   const gaId = getGaId();
-  if (!gaId || typeof window === "undefined" || !window.gtag) return;
+  if (!gaId || internalUser || typeof window === "undefined" || !window.gtag) return;
   // 공통값(platform·lang)을 먼저 깔고 호출부 params 로 덮어쓴다 → 호출부가 명시한 lang 이 이긴다.
   window.gtag("event", action, { ...commonParams(), ...params });
 };
+
+/** 직원 계정으로 로그인한 브라우저인지 판정 (app_metadata.role 기준 — user_metadata 는 위조 가능). */
+const STAFF_ROLES = new Set(["admin", "coordinator", "hospital", "agency", "clinic", "doctor"]);
+
+/**
+ * 로그인 상태를 GA 에 반영한다. 로그인/로그아웃 때마다 호출(ClientShell).
+ *
+ * 두 가지를 한다.
+ *  1) **직원이면 추적 자체를 끈다** (위 internalUser 주석 참고).
+ *  2) **user_id 연결** — 같은 사람이 휴대폰으로 보고 노트북으로 문의하면 GA 는 기본적으로
+ *     «다른 사람 2명»으로 센다. 로그인 계정 id 를 넘기면 한 사람으로 이어 붙는다.
+ *     ⚠️ 넘기는 값은 Supabase 계정 id(무작위 UUID) 뿐 — 이름·이메일·전화 같은 개인정보는
+ *     GA 로 절대 보내지 않는다(구글 정책 위반이자 우리 PII 원칙 위반).
+ */
+export const setAnalyticsUser = (session: any | null) => {
+  const role = session?.user?.app_metadata?.role || null;
+  internalUser = !!role && STAFF_ROLES.has(role);
+
+  if (typeof window === "undefined" || !window.gtag) return;
+  if (internalUser) {
+    // 직원으로 밝혀지면 이후 발화를 멈춘다(이미 나간 건 되돌릴 수 없음 — 그래서 로그인 즉시 호출).
+    window.gtag("set", { user_id: undefined });
+    return;
+  }
+  window.gtag("set", { user_id: session?.user?.id || undefined });
+};
+
+/**
+ * GA4 「DebugView」로 이벤트를 실시간 확인할 수 있게 켠다.
+ *
+ * 왜 필요한가: 분석은 **틀려도 화면이 멀쩡해서** 눈으로 검증할 방법이 없다. 이걸 켜면
+ * 실서비스에서 내가 누른 것이 GA4 관리자 화면(관리 → DebugView)에 **몇 초 안에 그대로 뜬다.**
+ * → 「배포했는데 진짜 들어오나?」를 사람이 직접 확인할 수 있는 유일한 통로.
+ *
+ * 켜는 법: 주소 뒤에 `?ga_debug=1` 을 붙여 한 번 열면 그 탭에서 계속 켜져 있다(`?ga_debug=0` 이면 끔).
+ * 일반 방문자에게는 절대 안 켜진다(주소로 직접 요청해야만 켜짐).
+ */
+export const initDebugMode = (): boolean => {
+  if (typeof window === "undefined") return false;
+  try {
+    const q = new URLSearchParams(window.location.search).get("ga_debug");
+    if (q === "1") window.sessionStorage.setItem("healo_ga_debug", "1");
+    if (q === "0") window.sessionStorage.removeItem("healo_ga_debug");
+    debugMode = window.sessionStorage.getItem("healo_ga_debug") === "1";
+  } catch {
+    debugMode = false;
+  }
+  return debugMode;
+};
+
+/** AnalyticsWrapper 가 gtag 초기 설정에 얹을 값 (debug_mode 는 config 단계에서 켜야 전체 이벤트에 걸린다). */
+export const isDebugMode = () => debugMode;
 
 /**
  * 이벤트 이름 단일 진실원천(SoR).

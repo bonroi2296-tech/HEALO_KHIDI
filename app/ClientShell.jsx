@@ -24,7 +24,7 @@ import { useToast } from "@/components/Toast";
 import CookieConsent from "@/components/CookieConsent";
 // 알림 종은 로그인한 사람에게만 보인다 → 공개 홈 방문자는 받을 이유가 없다(같은 이유로 지연 로드).
 const NotificationBell = dynamic(() => import("@/components/NotificationBell"), { ssr: false });
-import { pageview, hasAnalyticsConsent } from "@/lib/ga";
+import { pageview, hasAnalyticsConsent, setAnalyticsUser, initDebugMode } from "@/lib/ga";
 
 export default function ClientShell({ children, initialLang = "en" }) {
   const router = useRouter();
@@ -116,6 +116,17 @@ export default function ClientShell({ children, initialLang = "en" }) {
     lastPageviewRef.current = pathname;
     pageview(pathname);
   }, [pathname]);
+
+  // GA4 「DebugView」 스위치 — 주소에 ?ga_debug=1 을 붙여 연 탭에서만 켜진다(일반 방문자엔 영향 없음).
+  // 분석은 «틀려도 화면이 멀쩡»해서 눈으로 검증할 방법이 없다 → 실서비스에서 직접 확인하는 통로.
+  useEffect(() => { initDebugMode(); }, []);
+
+  // 로그인 상태를 GA 에 반영: ①직원(운영자·코디·병원)이면 추적을 끈다(우리 방문이 지표를 부풀림)
+  // ②일반 사용자는 계정 id(UUID)로 기기 간 연결. 이름·이메일 등 개인정보는 절대 보내지 않는다.
+  useEffect(() => {
+    if (!hasAnalyticsConsent()) return;
+    setAnalyticsUser(session);
+  }, [session]);
 
   const handleSetView = (viewName) => {
     setIsMobileMenuOpen(false);
