@@ -115,11 +115,17 @@ function roleLabel(role, c) {
 // LiveKit 마이크 ON/OFF 를 페이지 레벨 state 로 올린다. 통역 스위치 통일(2026-07-11 PO):
 // 통역 ON + 마이크 ON = 내 말 자막 송신 / 통역 ON + 마이크 OFF = 상대 말 자막만(듣기).
 // 마이크 게이트는 privacy 도 겸함 — 음소거 상태 발화가 자막 텍스트로 방송되지 않게.
-function MicStateBridge({ onChange }) {
-  const { isMicrophoneEnabled } = useLocalParticipant();
+// 내 LiveKit identity 도 같이 올린다 — 통역봇 호출 API 가 «누가 통역을 원하는가»를
+// 참가자 속성으로 기록하는 데 쓴다(봇을 언제 내보낼지 판정). 통역 버튼은 방 컨텍스트
+// 밖(페이지 레벨)에 정의돼 있어 identity 를 직접 못 읽는다 → 이미 있는 이 브릿지에 얹었다.
+function MicStateBridge({ onChange, onIdentity }) {
+  const { isMicrophoneEnabled, localParticipant } = useLocalParticipant();
   useEffect(() => {
     onChange?.(!!isMicrophoneEnabled);
   }, [isMicrophoneEnabled, onChange]);
+  useEffect(() => {
+    if (localParticipant?.identity) onIdentity?.(localParticipant.identity);
+  }, [localParticipant?.identity, onIdentity]);
   return null;
 }
 
@@ -819,6 +825,8 @@ export default function ConsultationRoomPage() {
   // 봇이 방에 없으면(서버 스위치 꺼짐·에이전트 미가동) 켤 수 없고 안내만 띄운다.
   const [voiceOn, setVoiceOn] = useState(false);
   const [agentPresent, setAgentPresent] = useState(false);
+  // 내 LiveKit identity (MicStateBridge 가 채움) — 통역봇 호출 API 에 «누가» 를 알린다.
+  const [myIdentity, setMyIdentity] = useState(null);
   // DC 자막 억제 판정용 ref (콜백 재생성 없이 최신값 읽기)
   const voiceOnRef = useRef(false);
   const agentPresentRef = useRef(false);
@@ -2777,6 +2785,46 @@ export default function ConsultationRoomPage() {
   const isWaitingScreen =
     !!livekitToken && (admissionStatus === "pending" || admissionStatus === "rejected");
 
+  // ── 통역봇 호출/퇴장 요청 (2026-07-28) ──────────────────────────────────
+  // 전에는 이 버튼이 «내 화면 상태»만 바꿨다. 봇은 방이 만들어질 때 자동으로 들어와
+  // 있거나(스위치 켜짐) 영영 안 들어왔다(꺼짐) — 버튼과 실제 봇이 연결돼 있지 않았다.
+  // 이제 켤 때 서버에 봇을 부르고, 끌 때 (남은 사람이 없으면) 내보낸다.
+  const requestInterpreter = useCallback(
+    async (on) => {
+      try {
+        const res = await fetch(
+          `/api/khidi/consultation/${consultationId}/interpreter`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              ...(isGuestMode ? { "X-Guest-Token": inviteToken } : {}),
+            },
+            body: JSON.stringify({ on, identity: myIdentity }),
+          }
+        );
+        const data = await res.json().catch(() => null);
+
+        // 서버가 «기능 꺼짐»이라고 하면 토글을 되돌린다 — 켜진 것처럼 두면
+        // 「눌렀는데 아무 일도 안 일어남」이 된다(2026-07-24~28 실제 상태였음).
+        if (res.ok && data?.enabled === false) {
+          setVoiceOn(false);
+          toast(c.voiceUnavailableMsg);
+          return;
+        }
+        if (!res.ok) throw new Error(data?.error || "request_failed");
+
+        toast.success(on ? (agentPresent ? c.voiceOnMsg : c.voiceOnPendingMsg) : c.voiceOffMsg);
+      } catch (e) {
+        // 호출 실패 = 통역이 안 켜진다. 켜진 척하지 말고 되돌린다.
+        if (on) setVoiceOn(false);
+        toast.error(c.voiceUnavailableMsg);
+        reportClientEvent?.("media_failure", `interpreter dispatch failed: ${e?.message}`);
+      }
+    },
+    [consultationId, isGuestMode, inviteToken, myIdentity, agentPresent, c, reportClientEvent]
+  );
+
   // ── 컨트롤 버튼 (헤더에서 공용 재사용 — 중복 정의 방지) ──
   // 컨트롤 버튼 공통 문법(2026-07-15 PO): 아이콘 위 + 짧은 라벨 아래(모바일 포함 항상 표시) —
   // 아이콘만으론 연령대 높은 사용자가 뜻을 못 알아봄. 상태는 색으로(켜짐 teal / 꺼짐·종료 red).
@@ -2810,16 +2858,15 @@ export default function ConsultationRoomPage() {
           <span className="absolute top-1 right-1 w-2 h-2 bg-yellow-400 rounded-full animate-pulse" />
         )}
       </button>
-      {/* 통역(음성) 토글 — 봇의 통역 음성 듣기 (2026-07-24 PO: 봇 없어도 켤 수 있는 토글로).
-          봇이 방에 아직 없으면 켜두고 대기 → 봇이 들어오면 그때부터 통역 음성이 들린다. */}
+      {/* 통역(음성) 토글 — 켤 때 **그 자리에서 통역봇을 부른다**(2026-07-28 PO 요청:
+          "눌렀을 때만 띡하고 나오고 다시 끄면 사라지게"). 끄면 방에 통역을 원하는 사람이
+          아무도 안 남았을 때만 봇이 나간다. 서버가 «준비 중»(스위치 꺼짐)이라고 답하면
+          토글을 되돌려 빈 약속을 하지 않는다. */}
       <button
         onClick={() => {
           const next = !voiceOn;
-          setVoiceOn(next);
-          // 봇이 없어도 켤 수 있다 — 없을 땐 "들어오면 통역돼요"로 정직하게 안내.
-          toast.success(
-            next ? (agentPresent ? c.voiceOnMsg : c.voiceOnPendingMsg) : c.voiceOffMsg
-          );
+          setVoiceOn(next); // 낙관적 반영 — 버튼이 먹통처럼 보이지 않게
+          requestInterpreter(next);
         }}
         // 야간 로봇 통화가 «통역봇 재실»을 판정할 때 잡는 손잡이. 접근명(«통역»)으로 찾으면
         // 봇이 없을 때 붙는 `···` 배지 때문에 이름이 "통역 ···" 이 되어 **정작 봇이 없는 경우에만
@@ -3115,7 +3162,7 @@ export default function ConsultationRoomPage() {
               {/* 백그라운드/이탈 시 유령 참가자 방지 — 렌더링 없음 */}
               <PresenceGuard />
               {/* 마이크 상태 → 페이지 state (통역 통일 규칙의 게이트) — 렌더링 없음 */}
-              <MicStateBridge onChange={setMyMicOn} />
+              <MicStateBridge onChange={setMyMicOn} onIdentity={setMyIdentity} />
               {/* DataChannel 수신/송신 브릿지 — 렌더링 없음 */}
               <DataChannelBridge
                 onRemoteSubtitle={handleRemoteSubtitle}

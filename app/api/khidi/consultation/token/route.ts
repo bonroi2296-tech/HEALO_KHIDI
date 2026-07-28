@@ -14,19 +14,8 @@
 export const runtime = "nodejs";
 
 import { NextRequest } from "next/server";
-import {
-  AccessToken,
-  RoomConfiguration,
-  RoomAgentDispatch,
-} from "livekit-server-sdk";
+import { AccessToken } from "livekit-server-sdk";
 import { requireConsultationAccess } from "@/lib/auth/requireConsultationAccess";
-import {
-  isLiveTranslateEnabledServer,
-  TRANSLATOR_AGENT_NAME,
-  ROOM_EMPTY_TIMEOUT,
-  ROOM_DEPARTURE_TIMEOUT,
-  ROOM_MAX_PARTICIPANTS,
-} from "@/lib/consultation/liveTranslate";
 
 const TOKEN_TTL_SECONDS = 2 * 60 * 60; // 2시간
 
@@ -98,23 +87,12 @@ export async function POST(request: NextRequest) {
       canUpdateOwnMetadata: true,
     });
 
-    // ── Gemini Live Translate 에이전트 자동 디스패치 (스위치 뒤) ──
-    // RoomConfiguration 은 "방 최초 생성 시"에만 적용된다 → 이미 있는 방의 토큰을
-    // 다시 발급해도 무시되므로 멱등(idempotent). 스위치가 꺼져 있으면 아무 것도 안 함
-    // = 기존 동작과 100% 동일.
-    if (isLiveTranslateEnabledServer()) {
-      token.roomConfig = new RoomConfiguration({
-        agents: [
-          new RoomAgentDispatch({
-            agentName: TRANSLATOR_AGENT_NAME,
-            metadata: JSON.stringify({ consultationId }),
-          }),
-        ],
-        emptyTimeout: ROOM_EMPTY_TIMEOUT,
-        departureTimeout: ROOM_DEPARTURE_TIMEOUT,
-        maxParticipants: ROOM_MAX_PARTICIPANTS,
-      });
-    }
+    // ── 통역봇은 여기서 부르지 않는다 (2026-07-28 변경) ──
+    // 전에는 이 자리에서 `RoomConfiguration.agents` 로 봇을 끼워 **방이 생기는 순간
+    // 자동 입장**시켰다. 그래서 아무도 통역을 원하지 않아도 봇이 들어왔고, 2026-07-20 에
+    // 실환자 상담방 무단 입장 사고가 났다(POSTMORTEMS #101).
+    // → 이제 **사용자가 통역 버튼을 누를 때만** 부른다:
+    //   `POST /api/khidi/consultation/[id]/interpreter`
 
     const jwt = await token.toJwt();
 
