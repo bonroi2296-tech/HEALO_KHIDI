@@ -372,7 +372,13 @@ jobs:
           # 통역봇 실참여 검증(로봇 통화 5단계). 봇 워커가 죽으면 아침에 빨간불로 잡힌다.
           # ⚠️ 통역을 의도적으로 끄면(LIVE_TRANSLATE_ENABLED=false) 여기도 "0" 으로 내려라 —
           #    안 그러면 매일 밤 «봇 없음» 으로 헛경보가 뜬다.
-          E2E_INTERPRETER: "1"
+          # 🔴 지금이 정확히 그 상태다 → "0" (2026-07-28).
+          #    프로덕션 `LIVE_TRANSLATE_ENABLED=false` (2026-07-23 16:51 UTC 에 PO 판단으로 끔:
+          #    봇이 참가자 타일로 잡혀 1:1 레이아웃 깨짐 + 봇 통역음성을 클라가 또 STT 해 삼중자막.
+          #    「봇 다시 켜려면 공존설계 먼저」 = 2026-07-23 핸드오프). 즉 봇이 안 들어오는 게 정상이고,
+          #    이 검사를 1 로 둔 채 야간 실행 → 2026-07-28 05:27 KST 긴급 이메일·이슈 #1061 = 헛경보.
+          #    ▶ `LIVE_TRANSLATE_ENABLED=true` 로 되돌리는 PR 에서 이 값도 같이 "1" 로 올릴 것.
+          E2E_INTERPRETER: "0"
           E2E_TEST_USER_EMAIL: ${{ secrets.E2E_TEST_USER_EMAIL }}
           E2E_TEST_USER_PASSWORD: ${{ secrets.E2E_TEST_USER_PASSWORD }}
           E2E_ADMIN_EMAIL: ${{ secrets.E2E_ADMIN_EMAIL }}
