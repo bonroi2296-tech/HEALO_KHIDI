@@ -37,6 +37,10 @@ const config: CapacitorConfig = {
       'accounts.google.com',
       'hvwwlkawaxabhtumjhrg.supabase.co',
     ],
+    // 인터넷이 끊겨 사이트를 못 불러오면 «하얀 화면» 대신 이 로컬 파일을 띄운다.
+    // 파일은 webDir(=public) 안에 있어 앱에 같이 포장된다. 홈화면 추가(PWA)의
+    // 오프라인 화면(public/sw.js)과 **같은 파일**을 쓴다 — 두 벌로 갈라지지 않게.
+    errorPath: 'offline.html',
   },
   plugins: {
     SplashScreen: {

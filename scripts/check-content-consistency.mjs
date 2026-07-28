@@ -409,6 +409,37 @@ for (const file of walk("app")) {
   });
 }
 
+// ── 5-b) public/ 의 .html 도 금지토큰 검사 (2026-07-28 신설) ─────────────
+// 왜: walk() 가 CODE_EXT(js|jsx|ts|tsx)만 담아서 **.html 은 통째로 사각지대**였다.
+//     `public/` 에는 사용자가 실제로 보는 정적 화면이 있다(오프라인 화면 등). 죽은 옛 도메인이나
+//     옛 이메일이 여기 박히면 **어떤 검사에도 안 걸린다** — 게다가 오프라인 화면은 인터넷이
+//     끊겼을 때만 뜨므로 사람 눈에도 거의 안 띈다(2026-07-28 전수 조사에서 발견).
+//     이 파일들은 손으로 만든 정적 화면이라 i18n 검사 대상은 아니지만, 금지토큰은 똑같이 적용한다.
+//     ※ 동작 확인 방법: offline.html 의 healwith.co.kr 을 healo-khidi.vercel.app 으로 바꾸면 빨간불.
+{
+  const htmlDir = join(ROOT, "public");
+  const stack = ["public"];
+  while (stack.length) {
+    const rel = stack.pop();
+    for (const e of readdirSync(join(ROOT, rel), { withFileTypes: true })) {
+      const child = `${rel}/${e.name}`;
+      if (e.isDirectory()) {
+        if (!/node_modules/.test(child)) stack.push(child);
+      } else if (e.name.endsWith(".html")) {
+        const lines = readFileSync(join(ROOT, child), "utf8").split("\n");
+        lines.forEach((line, i) => {
+          for (const f of FORBIDDEN) {
+            if (f.re.test(line) && !(f.allow && f.allow.test(child))) {
+              errors.push(`[금지토큰:html] ${child}:${i + 1} — ${f.msg}\n    ${line.trim().slice(0, 120)}`);
+            }
+          }
+        });
+      }
+    }
+  }
+  void htmlDir;
+}
+
 // ── 6) tt("키") 존재 검사 — 로컬 TR 패턴 파일 한정 ───────────────────
 // 왜: 에이전시 포털 secContact 키가 6개 언어 *전부* 누락 → 패리티검사(언어간 불일치)는
 //     통과했지만 화면엔 빈칸 출력(2026-06-24). 전-언어 동일누락은 패리티로 못 잡힘.

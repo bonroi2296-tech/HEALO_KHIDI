@@ -54,7 +54,30 @@ export async function sendInAppNotification(
       console.warn("[inApp] notification insert 실패:", error.message);
       return null;
     }
-    return (data as any)?.id ?? null;
+
+    const id = (data as any)?.id ?? null;
+
+    // 폰 알림으로도 내보낸다 (2026-07-28 연결).
+    // 여기 한 곳에 얹었기 때문에 **이 함수를 쓰는 모든 알림이 자동으로** 폰까지 간다 —
+    // 호출부는 한 줄도 안 고쳤다. 무엇을 보낼지는 priority 가 정한다(pushBridge 주석 참고).
+    // await 하지 않는다: 폰 알림이 느려도 알림 저장은 이미 끝났고, 호출부를 붙잡을 이유가 없다.
+    void import("./pushBridge")
+      .then((m) =>
+        m.bridgeToPush({
+          userId: opts.userId,
+          type: opts.type,
+          title: opts.title,
+          body: opts.body,
+          link: opts.link,
+          priority: opts.priority ?? "normal",
+          notificationId: id,
+        })
+      )
+      .catch(() => {
+        /* 폰 알림 실패는 앱내 알림에 영향 없음 */
+      });
+
+    return id;
   } catch (err: any) {
     console.warn("[inApp] notification insert 예외:", err.message);
     return null;
