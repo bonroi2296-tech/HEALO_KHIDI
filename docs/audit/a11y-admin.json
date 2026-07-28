@@ -1,0 +1,388 @@
+{
+  "base": "https://healwith.co.kr",
+  "label": "admin",
+  "ts": "2026-07-27T06:10:12.599Z",
+  "scope": "로그인 뒤 화면 (admin 계정)",
+  "sanityFailed": 0,
+  "totalsByImpact": {
+    "critical": 0,
+    "serious": 0,
+    "moderate": 0,
+    "minor": 0
+  },
+  "incompleteTotal": 202,
+  "byRule": [],
+  "incompleteByRule": {
+    "color-contrast": 202
+  },
+  "pages": [
+    {
+      "path": "/admin",
+      "renderOk": true,
+      "status": 200,
+      "redirectedTo": null,
+      "renderedNodes": 677,
+      "renderedText": 4976,
+      "ruleViolations": 0,
+      "nodes": 0,
+      "incompleteNodes": 22,
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 22,
+          "samples": [
+            {
+              "target": "a[href$=\"cost-estimates\"] > span",
+              "html": "<span>견적 관리</span>"
+            },
+            {
+              "target": "a[href$=\"visa\"] > span",
+              "html": "<span>비자 트래킹</span>"
+            },
+            {
+              "target": "a[href$=\"alerts\"] > span",
+              "html": "<span>증상 알림</span>"
+            },
+            {
+              "target": "div:nth-child(3) > .mb-1\\.5.lg\\:mb-2.uppercase",
+              "html": "<h3 class=\"px-3 lg:px-4 mb-1.5 lg:mb-2 text-[10px] lg:text-xs font-bold text-gray-500 uppercase tracking-wider\">파트너 · 회원</h3>"
+            },
+            {
+              "target": "a[href$=\"staff\"] > span",
+              "html": "<span>직원(코디) 계정</span>"
+            }
+          ]
+        }
+      ],
+      "byImpact": {
+        "critical": 0,
+        "serious": 0,
+        "moderate": 0,
+        "minor": 0
+      },
+      "rules": []
+    },
+    {
+      "path": "/admin/inquiries",
+      "renderOk": true,
+      "status": 200,
+      "redirectedTo": null,
+      "renderedNodes": 1967,
+      "renderedText": 6813,
+      "ruleViolations": 0,
+      "nodes": 0,
+      "incompleteNodes": 22,
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 22,
+          "samples": [
+            {
+              "target": "a[href$=\"cost-estimates\"] > span",
+              "html": "<span>견적 관리</span>"
+            },
+            {
+              "target": "a[href$=\"visa\"] > span",
+              "html": "<span>비자 트래킹</span>"
+            },
+            {
+              "target": "a[href$=\"alerts\"] > span",
+              "html": "<span>증상 알림</span>"
+            },
+            {
+              "target": "div:nth-child(3) > .mb-1\\.5.lg\\:mb-2.tracking-wider",
+              "html": "<h3 class=\"px-3 lg:px-4 mb-1.5 lg:mb-2 text-[10px] lg:text-xs font-bold text-gray-500 uppercase tracking-wider\">파트너 · 회원</h3>"
+            },
+            {
+              "target": "a[href$=\"staff\"] > span",
+              "html": "<span>직원(코디) 계정</span>"
+            }
+          ]
+        }
+      ],
+      "byImpact": {
+        "critical": 0,
+        "serious": 0,
+        "moderate": 0,
+        "minor": 0
+      },
+      "rules": []
+    },
+    {
+      "path": "/admin/consultations",
+      "renderOk": true,
+      "status": 200,
+      "redirectedTo": null,
+      "renderedNodes": 2379,
+      "renderedText": 7894,
+      "ruleViolations": 0,
+      "nodes": 0,
+      "incompleteNodes": 22,
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 22,
+          "samples": [
+            {
+              "target": "a[href$=\"cost-estimates\"] > span",
+              "html": "<span>견적 관리</span>"
+            },
+            {
+              "target": "a[href$=\"visa\"] > span",
+              "html": "<span>비자 트래킹</span>"
+            },
+            {
+              "target": "a[href$=\"alerts\"] > span",
+              "html": "<span>증상 알림</span>"
+            },
+            {
+              "target": "div:nth-child(3) > .mb-1\\.5.lg\\:mb-2.uppercase",
+              "html": "<h3 class=\"px-3 lg:px-4 mb-1.5 lg:mb-2 text-[10px] lg:text-xs font-bold text-gray-500 uppercase tracking-wider\">파트너 · 회원</h3>"
+            },
+            {
+              "target": "a[href$=\"staff\"] > span",
+              "html": "<span>직원(코디) 계정</span>"
+            }
+          ]
+        }
+      ],
+      "byImpact": {
+        "critical": 0,
+        "serious": 0,
+        "moderate": 0,
+        "minor": 0
+      },
+      "rules": []
+    },
+    {
+      "path": "/admin/staff",
+      "renderOk": true,
+      "status": 200,
+      "redirectedTo": null,
+      "renderedNodes": 493,
+      "renderedText": 4468,
+      "ruleViolations": 0,
+      "nodes": 0,
+      "incompleteNodes": 21,
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 21,
+          "samples": [
+            {
+              "target": "a[href$=\"cost-estimates\"] > span",
+              "html": "<span>견적 관리</span>"
+            },
+            {
+              "target": "a[href$=\"visa\"] > span",
+              "html": "<span>비자 트래킹</span>"
+            },
+            {
+              "target": "a[href$=\"alerts\"] > span",
+              "html": "<span>증상 알림</span>"
+            },
+            {
+              "target": "div:nth-child(3) > .mb-1\\.5.lg\\:mb-2.uppercase",
+              "html": "<h3 class=\"px-3 lg:px-4 mb-1.5 lg:mb-2 text-[10px] lg:text-xs font-bold text-gray-500 uppercase tracking-wider\">파트너 · 회원</h3>"
+            },
+            {
+              "target": "a[href$=\"agencies\"] > span",
+              "html": "<span>에이전시·클리닉</span>"
+            }
+          ]
+        }
+      ],
+      "byImpact": {
+        "critical": 0,
+        "serious": 0,
+        "moderate": 0,
+        "minor": 0
+      },
+      "rules": []
+    },
+    {
+      "path": "/admin/users",
+      "renderOk": true,
+      "status": 200,
+      "redirectedTo": null,
+      "renderedNodes": 542,
+      "renderedText": 4907,
+      "ruleViolations": 0,
+      "nodes": 0,
+      "incompleteNodes": 21,
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 21,
+          "samples": [
+            {
+              "target": "a[href$=\"cost-estimates\"] > span",
+              "html": "<span>견적 관리</span>"
+            },
+            {
+              "target": "a[href$=\"visa\"] > span",
+              "html": "<span>비자 트래킹</span>"
+            },
+            {
+              "target": "a[href$=\"alerts\"] > span",
+              "html": "<span>증상 알림</span>"
+            },
+            {
+              "target": "div:nth-child(3) > .mb-1\\.5.lg\\:mb-2.uppercase",
+              "html": "<h3 class=\"px-3 lg:px-4 mb-1.5 lg:mb-2 text-[10px] lg:text-xs font-bold text-gray-500 uppercase tracking-wider\">파트너 · 회원</h3>"
+            },
+            {
+              "target": "a[href$=\"staff\"] > span",
+              "html": "<span>직원(코디) 계정</span>"
+            }
+          ]
+        }
+      ],
+      "byImpact": {
+        "critical": 0,
+        "serious": 0,
+        "moderate": 0,
+        "minor": 0
+      },
+      "rules": []
+    },
+    {
+      "path": "/admin/hospitals",
+      "renderOk": true,
+      "status": 200,
+      "redirectedTo": null,
+      "renderedNodes": 951,
+      "renderedText": 5086,
+      "ruleViolations": 0,
+      "nodes": 0,
+      "incompleteNodes": 34,
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 34,
+          "samples": [
+            {
+              "target": "a[href$=\"cost-estimates\"] > span",
+              "html": "<span>견적 관리</span>"
+            },
+            {
+              "target": "a[href$=\"visa\"] > span",
+              "html": "<span>비자 트래킹</span>"
+            },
+            {
+              "target": "a[href$=\"alerts\"] > span",
+              "html": "<span>증상 알림</span>"
+            },
+            {
+              "target": "div:nth-child(3) > .mb-1\\.5.lg\\:mb-2.uppercase",
+              "html": "<h3 class=\"px-3 lg:px-4 mb-1.5 lg:mb-2 text-[10px] lg:text-xs font-bold text-gray-500 uppercase tracking-wider\">파트너 · 회원</h3>"
+            },
+            {
+              "target": "a[href$=\"staff\"] > span",
+              "html": "<span>직원(코디) 계정</span>"
+            }
+          ]
+        }
+      ],
+      "byImpact": {
+        "critical": 0,
+        "serious": 0,
+        "moderate": 0,
+        "minor": 0
+      },
+      "rules": []
+    },
+    {
+      "path": "/admin/khidi/conversion",
+      "renderOk": true,
+      "status": 200,
+      "redirectedTo": null,
+      "renderedNodes": 628,
+      "renderedText": 4947,
+      "ruleViolations": 0,
+      "nodes": 0,
+      "incompleteNodes": 26,
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 26,
+          "samples": [
+            {
+              "target": "a[href$=\"agent\"] > span",
+              "html": "<span>Human Agent 채널</span>"
+            },
+            {
+              "target": "a[href$=\"consultations\"] > span",
+              "html": "<span>화상 상담</span>"
+            },
+            {
+              "target": "a[href$=\"referrals\"] > span",
+              "html": "<span>협진 의뢰</span>"
+            },
+            {
+              "target": "a[href$=\"reminders\"] > span",
+              "html": "<span>후속 리마인더</span>"
+            },
+            {
+              "target": "a[href$=\"cost-estimates\"] > span",
+              "html": "<span>견적 관리</span>"
+            }
+          ]
+        }
+      ],
+      "byImpact": {
+        "critical": 0,
+        "serious": 0,
+        "moderate": 0,
+        "minor": 0
+      },
+      "rules": []
+    },
+    {
+      "path": "/admin/khidi/kpi-dashboard",
+      "renderOk": true,
+      "status": 200,
+      "redirectedTo": null,
+      "renderedNodes": 804,
+      "renderedText": 5186,
+      "ruleViolations": 0,
+      "nodes": 0,
+      "incompleteNodes": 34,
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 34,
+          "samples": [
+            {
+              "target": "a[href$=\"agent\"] > span",
+              "html": "<span>Human Agent 채널</span>"
+            },
+            {
+              "target": "a[href$=\"consultations\"] > span",
+              "html": "<span>화상 상담</span>"
+            },
+            {
+              "target": "a[href$=\"referrals\"] > span",
+              "html": "<span>협진 의뢰</span>"
+            },
+            {
+              "target": "a[href$=\"reminders\"] > span",
+              "html": "<span>후속 리마인더</span>"
+            },
+            {
+              "target": "a[href$=\"cost-estimates\"] > span",
+              "html": "<span>견적 관리</span>"
+            }
+          ]
+        }
+      ],
+      "byImpact": {
+        "critical": 0,
+        "serious": 0,
+        "moderate": 0,
+        "minor": 0
+      },
+      "rules": []
+    }
+  ]
+}

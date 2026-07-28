@@ -14,6 +14,26 @@
 
 \* axe/lighthouse 는 **실행 중인 앱 + 브라우저**가 필요해 CI 블로킹엔 안 넣음(앱 부팅·시크릿 필요). `AUDIT_BASE_URL` 로 배포 URL/로컬 서버를 지정해 돌린다. secret·deps 는 정적/레지스트리라 매 PR 자동.
 
+## ♿ 접근성 최신 실측 (2026-07-27, 대상: 프로덕션 `https://healwith.co.kr` **32화면**)
+
+**결과: critical 0 · serious 0 · moderate 0 · minor 0 / 렌더검증 실패 0.**
+공개 페이지만 보던 범위를 **로그인 뒤 5개 역할까지** 넓혀 다시 잰 값. 증거 파일은 이 폴더에 커밋돼 있다(아래 표).
+
+| 범위 | 화면 | 결과 파일 | 위반 | 미판정 |
+|---|---|---|---|---|
+| 공개(무인증) | 10 | `a11y-report.json` | 0 | 54 |
+| 어드민 | 8 | `a11y-admin.json` | 0 | 202 |
+| 코디네이터 | 6 | `a11y-coordinator.json` | 0 | 12 |
+| 환자 포털 | 6 | `a11y-patient.json` | 0 | 5 |
+| 해외 에이전시 | 1 | `a11y-agency.json` | 0 | 5 |
+| 해외 의료기관 | 1 | `a11y-clinic.json` | 0 | 0 |
+| **합계** | **32** | | **🟢 0** | 278 |
+
+- **출처**: GitHub Actions `Audit (live)` [run 30241732070](https://github.com/bonroi2296-tech/HEALO_KHIDI/actions/runs/30241732070) (main, 2026-07-27 06:07 UTC). 위 6개 파일은 그 실행이 만든 산출물 원본 그대로다 — 손으로 고친 숫자가 아니다.
+- **미판정 278건은 «통과»가 아니다.** axe 가 사진·그라데이션 위 글씨의 배경색을 계산 못 해 판정을 보류한 것. 확정 위반은 아니지만 확인된 것도 아니다(각 파일 `incompleteByRule` 참고).
+- **재현**: `AUDIT_BASE_URL=https://healwith.co.kr npm run audit:a11y` (공개) / `bash scripts/audit/a11y-authed.sh` (로그인 뒤 — `e2e/.auth/<role>.json` 쿠키 필요).
+- ⚠️ **이 파일들은 CI 가 자동으로 커밋해 주지 않는다.** 스캔을 다시 돌렸으면 결과 파일도 같이 커밋할 것 — 안 하면 저장소 숫자만 옛날 값으로 남는다(실제로 2026-07-27 하루 동안 그랬다).
+
 ## 베이스라인 실측 (2026-06-20, 대상: `https://healo-khidi.vercel.app` 공개 7페이지)
 
 ### 🔐 보안

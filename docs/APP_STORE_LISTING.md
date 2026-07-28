@@ -102,7 +102,13 @@
 **이미 끝난 것:**
 - ✅ **EU 거래자(trader) 정보 — 애플 검증 통과(2026-07-27 16:56 승인 메일)** — «Your information is now live on the App Store in the European Union». 제출(사업자등록증 + 주소 확인 문서) 당일 승인됨. **미입력 시 EU App Store 에서 삭제되는 조건이었으므로 EU 27개국 배포가 열린 것.** 사업자등록번호는 하이픈 없이 숫자 10자리로만 받는다(`463-35-00902` → `4633500902`, 하이픈 넣으면 «값이 너무 깁니다» 로 거부).
 - ✅ **앱 아이콘 최종 확정(2026-07-14 PO)** — 흰 바탕 + 청록→남색 그라데이션 말풍선 h(폰 PWA와 동일). 3벌(PWA·안드로이드·iOS) 규격 검증 완료, 추가 작업 불필요. 다크 전용 변형은 선택사항으로 보류.
-- ✅ **스크린샷 초안 36장** — `scripts/appstore-screenshots.mjs`로 ko·en·ru × 3규격 × 4화면 촬영(`appstore-assets/screenshots/`, git 미추적·재생성 가능). 최종 제출 전 실기기 캡처 교체 권장. Android 피처 그래픽(1024×500)은 제출 직전 제작.
+- ✅ **스크린샷 초안 36장** — `scripts/appstore-screenshots.mjs`로 ko·en·ru × 3규격 × 4화면 촬영(`appstore-assets/screenshots/`, git 미추적·재생성 가능). 최종 제출 전 실기기 캡처 교체 권장.
+- ✅ **Android 피처 그래픽 1024×500 (2026-07-28 제작)** — `node scripts/play-feature-graphic.mjs [ko|en|ru]` → `appstore-assets/feature-graphic-<언어>.png`. Play 콘솔 **필수 제출물**인데 iOS 엔 없는 항목이라 스크린샷 스크립트로는 안 나온다. 배경 teal-700 단색(그라데이션 배경은 `DESIGN.md` 금지 + 흰 글씨 대비 5.7:1), 문구는 **§1 짧은 설명 승인본 그대로**(새로 짓지 말 것). PO 승인 대기.
+
+**⬜ Google Play 남은 준비물** (구글 신원확인 통과 → 앱 생성이 열려야 입력 가능)
+- 앱 아이콘 512×512 = `public/icons/icon-512x512.png` **재사용 가능** / 폰 스크린샷 = `appstore-assets/screenshots/android/` **12장 준비됨** / 피처 그래픽 **준비됨**(위)
+- 짧은 설명(80자)·전체 설명(4000자) = 아래 §1·§3 그대로 / 데이터 안전 설문 = `docs/APP_STORE_REVIEW_ANSWERS.md`
+- ⚠️ **프로덕션 출시 전 「테스터 12명 × 14일 연속 옵트인」 필수**(2023-11-13 이후 개설 개인 계정, 면제 없음). 출시 일정은 여기서 역산.
 - ✅ **도메인** — healwith.co.kr 정식 가동(2026-06-22 컷오버). ~~미등록 경고~~는 폐기.
 - ✅ **데이터 안전/개인정보 라벨 답변지** — `docs/APP_STORE_REVIEW_ANSWERS.md`(문항별 답 완성).
 - ✅ 계정 삭제 요건(애플 5.1.1(v)) — `/patient/account`에 구현 확인.
