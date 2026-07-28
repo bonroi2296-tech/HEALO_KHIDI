@@ -702,7 +702,7 @@ export const TreatmentDetailPage = ({
       </div>
 
       {/* Mobile Sticky CTA */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 lg:hidden bg-white border-t border-gray-200 shadow-[0_-4px_20px_rgba(0,0,0,0.08)]">
+      <div className="fixed bottom-[var(--cookie-banner-h,0px)] left-0 right-0 z-50 lg:hidden bg-white border-t border-gray-200 shadow-[0_-4px_20px_rgba(0,0,0,0.08)]">
         <div className="flex items-center justify-between gap-3 max-w-6xl mx-auto px-4 py-3">
           <div className="min-w-0">
             <p className="font-bold text-teal-700 text-lg">{treatment.price}</p>

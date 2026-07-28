@@ -1,0 +1,63 @@
+# 배포 창구 — 하루 한 번, 오후 3시(KST)에 그날 머지된 것을 «한 번에» 실서비스로 내보낸다.
+#
+# 왜: 머지 1건 = 프로덕션 풀빌드 1건(≈$0.044)이었다. 7/28 하루에만 19건이 돌았고
+#     Pro 첫 청구의 94%가 빌드 CPU 였다. 그런데 묶어야 할 건 «머지»가 아니라 «배포»다 —
+#     PR 을 24시간 붙잡아 두면 작업이 서랍에 갇힌다(PO 정정 2026-07-28).
+#     → 머지는 언제든 자유. main 푸시로는 프로덕션이 안 지어지고(scripts/vercel-ignore-build.sh),
+#       이 워크플로가 얹는 «[deploy]» 빈 커밋 하나만 지어진다. 그 한 건이 그날치 전부를 포함한다.
+#
+# 급한 것(장애·보안·PO 가 지금 보자고 한 것)은 기다리지 마라:
+#     git commit --allow-empty -m "chore: 긴급 배포 [deploy]" && git push
+#   또는 Actions 탭에서 이 워크플로 "Run workflow".
+
+name: Daily Deploy (배포 창구)
+
+on:
+  schedule:
+    # KST 15:00 = UTC 06:00
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: daily-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 1
+
+      - name: 오늘 머지된 게 있는지 확인
+        id: check
+        run: |
+          set -euo pipefail
+          # 아무것도 안 머지됐으면 main 의 맨 위가 «지난번 창구 커밋» 그대로다 → 빌드 낭비 방지.
+          #
+          # ⚠️ 반드시 **제목(%s)** 만 본다. 처음엔 `git log --grep='[deploy]'` 를 썼는데
+          #    --grep 은 커밋 **본문**까지 뒤져서, PR 설명에 사용법 예시로 적어둔
+          #    「chore: 긴급 배포 [deploy]」 한 줄에 걸려 창구가 통째로 스킵됐다(2026-07-28 실측).
+          subject="$(git log -1 --format=%s)"
+          case "$subject" in
+            "chore: 오늘치 배포 창구"*)
+              echo "새 머지 없음 ($subject) — 배포 생략"
+              echo "skip=1" >> "$GITHUB_OUTPUT"
+              ;;
+          esac
+
+      - name: 배포 창구 열기 ([deploy] 커밋 푸시)
+        if: steps.check.outputs.skip != '1'
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit --allow-empty -m "chore: 오늘치 배포 창구 $(TZ=Asia/Seoul date '+%Y-%m-%d %H:%M') [deploy]"
+          # 실패하면 그날 배포가 통째로 안 나간다 → 워크플로를 빨간불로 끝내서 눈에 띄게 한다.
+          git push origin HEAD:main
+          echo "✅ [deploy] 커밋 푸시 완료 — Vercel 프로덕션 빌드 1건이 돈다."

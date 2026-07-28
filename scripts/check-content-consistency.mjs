@@ -1818,7 +1818,10 @@ const BACKOFFICE_SHARED = [
       if (/check-content-consistency/.test(path_)) continue;
       let raw;
       try { raw = readFileSync(join(ROOT, rel), "utf8"); } catch { continue; }
-      if (!AUTOPUSH.test(raw)) continue;
+      // 주석에 적힌 사용법 예시(`# ... && git push`)는 실행되지 않는다 → 코드 줄만 본다.
+      // (2026-07-28 오탐: vercel-ignore-build.sh 의 「급하면 이렇게 해라」 주석이 걸렸다.)
+      const code = raw.replace(/^\s*(#|\/\/).*$/gm, "");
+      if (!AUTOPUSH.test(code)) continue;
       if (HAS_GUARD.test(raw)) continue;
       errors.push(
         `[보호브랜치] ${path_} — 자동으로 \`git push\` 하는데 보호 브랜치(main/master) 가드가 안 보인다. ` +
