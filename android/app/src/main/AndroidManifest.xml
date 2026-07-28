@@ -18,6 +18,21 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+
+            <!-- 앱 링크(App Links) — healwith.co.kr 주소를 «앱이» 받는다 (2026-07-28 추가).
+                 없으면 가입 인증 메일·상담방 초대 링크를 폰에서 눌러도 앱이 아니라 크롬이 열려서,
+                 앱을 깔아둔 사람도 정작 상담은 앱 밖에서 하게 된다.
+                 ⚠️ autoVerify 가 실제로 통과하려면 서버에 아래 파일이 있어야 한다:
+                    https://healwith.co.kr/.well-known/assetlinks.json
+                    (Play 콘솔 → 앱 서명 → SHA-256 지문을 넣어 발급. 지문 없이는 검증 실패 →
+                     그때는 「기본으로 열기」를 사용자가 직접 켜야 한다.) -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="https" android:host="healwith.co.kr" />
+                <data android:scheme="https" android:host="www.healwith.co.kr" />
+            </intent-filter>
         </activity>
 
         <provider
