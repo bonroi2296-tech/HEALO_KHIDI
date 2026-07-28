@@ -24,6 +24,7 @@ import {
   EgressClient,
   EncodedFileOutput,
   EncodedFileType,
+  EncodingOptions,
   S3Upload,
 } from "livekit-server-sdk";
 import { resolveConsultationActor } from "@/lib/auth/requireConsultationAccess";
@@ -31,6 +32,7 @@ import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
 import {
   isRecordingEnabledServer,
   recordingFilepath,
+  RECORDING_AUDIO_BITRATE_KBPS,
   RECORDING_AUDIO_ONLY,
   RECORDING_BUCKET,
   RECORDING_RETENTION_DAYS,
@@ -166,7 +168,14 @@ export async function POST(
         filepath,
         output: { case: "s3", value: s3 },
       }),
-      { audioOnly: RECORDING_AUDIO_ONLY }
+      {
+        audioOnly: RECORDING_AUDIO_ONLY,
+        // 기본 128kbps 로 두면 1시간짜리가 57MB 라 저장소 상한(50MB)에 걸려 업로드가 통째로
+        // 실패한다. 64kbps = 분당 약 0.48MB → 약 100분까지 안전. (recording.js 주석 참조)
+        encodingOptions: new EncodingOptions({
+          audioBitrate: RECORDING_AUDIO_BITRATE_KBPS,
+        }),
+      }
     );
 
     const expiresAt = new Date(

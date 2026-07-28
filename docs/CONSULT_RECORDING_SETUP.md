@@ -29,12 +29,26 @@
 | 6개 언어 문구 | `_roomCopy.js` | ko·en·ru·kz·zh·ja |
 | 종료 처리 | `app/api/livekit/webhook` (`egress_ended`) | 대장 닫기 + 길이 기록 |
 | **파기 배치** | `app/api/cron/purge-recordings` | 매일 02:30 KST. 기한 지난 파일을 **실제로 지우고** `deleted` 처리 |
-| **저장 버킷** | Supabase Storage `consultation-recordings` | **생성 완료**(비공개·파일당 500MB 상한) |
+| **저장 버킷** | Supabase Storage `consultation-recordings` | **생성 완료**(비공개·파일당 50MB — 아래 ⚠️) |
 
 **기본 정책값**(바꾸려면 `recording.js` 한 곳만):
 - **음성만**(영상 없음) — 비용 1/4, 개인정보 위험 최소. 필요해지면 `RECORDING_AUDIO_ONLY = false`.
 - **보관 90일** — `expires_at` 에 박힌다.
 - 저장 버킷 `consultation-recordings` — **반드시 비공개**.
+- **음질 64kbps**(LiveKit 기본 128 에서 낮춤) — 이유는 바로 아래.
+
+### ⚠️ 길이 천장: 한 번에 약 100분까지 (2026-07-28 실측)
+
+Supabase Storage 의 **전역 업로드 상한이 50MB** 다(프로젝트 spend cap 때문에 낮게 잡혀 있음.
+대시보드 Storage → Settings 에 *"Reduced max upload file size limit due to spend cap"* 로 표시).
+
+- 기본 128kbps 로 찍으면 **1시간 = 약 57MB → 업로드 통째 실패.** 그래서 **64kbps** 로 낮췄다
+  (분당 약 0.48MB → **약 100분**까지 안전). 말소리 기록용으론 충분하다.
+- **100분 넘는 상담을 녹음해야 하거나 영상 녹화로 바꾸려면 상한부터 올려야 한다** —
+  Storage → Settings → Global file size limit. **spend cap 해제가 선행조건이고 그건 돈이 걸린
+  설정이라 PO 결정 사항이다.** 상한을 안 올린 채 영상으로 바꾸면 몇 분 만에 실패한다.
+- ⚠️ **실패 방식이 고약하다** — 상한을 넘으면 상담이 끝난 **뒤에** 업로드가 깨진다.
+  즉 «녹화했다고 믿었는데 파일이 없는» 상태가 된다. 켜기 전에 이 천장부터 확인할 것.
 
 ---
 

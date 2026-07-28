@@ -41,6 +41,23 @@ export const RECORDING_AUDIO_ONLY = true;
 /** 보관 기간(일). 지나면 파기 대상 — `expires_at` 에 박아 두고 정리 배치가 지운다. */
 export const RECORDING_RETENTION_DAYS = 90;
 
+/**
+ * 녹음 음질(kbps). LiveKit 기본값은 128 인데 **64 로 낮춘다.**
+ *
+ * 왜: Supabase Storage 의 **전역 업로드 상한이 50MB**(2026-07-28 실측 — 프로젝트 spend cap
+ *   때문에 낮게 잡혀 있다)라, 기본 128kbps 로 찍으면 **한 시간짜리 상담이 57MB 라 업로드가
+ *   통째로 실패한다.** 64kbps 면 분당 약 0.48MB → **약 100분까지** 한 파일에 들어간다.
+ *   말소리 기록용으로 64kbps Opus 는 충분하다(음악이 아니다).
+ *
+ * ⚠️ 100분 넘는 상담을 녹음해야 하거나 영상 녹화로 바꾸려면 **먼저 상한부터 올려야 한다**
+ *   (Supabase 대시보드 Storage → Settings → Global file size limit. spend cap 해제가 선행 —
+ *   돈이 걸린 설정이라 PO 결정 사항).
+ */
+export const RECORDING_AUDIO_BITRATE_KBPS = 64;
+
+/** 저장소 전역 업로드 상한(바이트). 위 계산의 근거값 — 대시보드에서 바뀌면 여기도 고쳐라. */
+export const STORAGE_MAX_UPLOAD_BYTES = 50 * 1024 * 1024;
+
 /** 저장 버킷(비공개). 공개 버킷에 두면 링크만 알면 누구나 듣는다 — 절대 public 금지. */
 export const RECORDING_BUCKET = "consultation-recordings";
 
