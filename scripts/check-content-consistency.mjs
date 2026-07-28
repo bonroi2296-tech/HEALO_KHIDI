@@ -2184,6 +2184,40 @@ const BACKOFFICE_SHARED = [
   }
 }
 
+// ── 36) 결제·정산 경보는 저장소 문서로 달 수 없다 (반성문 #137 — 🔁 #96 부류 재발) ─────────
+//     왜: 결제·정산·증빙의 정본(SoR)은 PO 로컬 폴더(`05. 비용 집행 > 02. 온라인 결제`)이고
+//     어시는 그걸 못 본다. 저장소에 남는 건 전부 «특정 시점 스냅샷»이다.
+//     실제 사고(2026-07-28): 어시가 2026-07-24 자 「전용카드 결제 거절」 기록을 브랜치에서
+//     회수한 뒤 날짜를 확인하지 않고 🔴 «지금 문제다»로 PO 에게 보고했다. 그 사이 PO 는
+//     이미 증빙을 정리해둔 상태였다. 손에 2026-07-27 실측이 있었는데도 대조하지 않았다.
+//     → 결제·정산 얘기에 🔴/🛑 를 달려면 반드시 «시점»을 명시하게 강제한다.
+{
+  const PAY_DOCS = ["docs/KNOWN_ISSUES.md", "docs/PROJECT_CONTEXT.md", "docs/LAUNCH_GATES_PO.md"];
+  //  «돈» 주제 낱말 — 이게 걸린 제목에만 적용한다(과탐 방지)
+  const PAY_WORDS = /결제|정산|증빙|카드|청구|미납|환불/;
+  //  시점을 밝혔다고 인정하는 표기
+  const DATED = /20\d\d-\d\d-\d\d|시점|기준|현재 상태 아님|기록으로만|당시/;
+  for (const rel of PAY_DOCS) {
+    const abs = join(ROOT, rel);
+    let raw;
+    try { raw = readFileSync(abs, "utf8"); } catch { continue; }
+    const lines = raw.split("\n");
+    lines.forEach((line, i) => {
+      // 문서 제목(##) 중 🔴·🛑 경보이면서 돈 주제인 것
+      if (!/^#{2,3}\s*(🔴|🛑)/.test(line)) return;
+      if (!PAY_WORDS.test(line)) return;
+      if (DATED.test(line)) return;
+      errors.push(
+        `[결제경보] ${rel}:${i + 1} — 결제·정산 항목에 🔴/🛑 를 달면서 «시점»을 안 밝혔다.\n` +
+          `    "${line.trim().slice(0, 80)}"\n` +
+          `    결제·정산의 정본은 PO 로컬 폴더(05. 비용 집행 > 02. 온라인 결제)이고 어시는 못 본다.\n` +
+          `    저장소 기록은 전부 스냅샷이다 → 제목에 날짜(2026-MM-DD)나 «N 기준»·«현재 상태 아님»을 붙이거나,\n` +
+          `    확인 안 된 건 경보(🔴/🛑) 대신 📄/📌 로 낮춰라. (반성문 #137)`
+      );
+    });
+  }
+}
+
 // ── 결과 ────────────────────────────────────────────────────────
 if (errors.length) {
   console.error(`\n❌ 콘텐츠 일관성 검사 실패 (${errors.length}건)\n`);
