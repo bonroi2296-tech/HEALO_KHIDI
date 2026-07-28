@@ -122,6 +122,15 @@ workflows:
           cd android
           chmod +x ./gradlew
           ./gradlew bundleRelease
+      - name: 도장(서명) 실제로 찍혔는지 검사
+        # ⚠️ 2026-07-28: 워크플로 이름이 «서명»이어도 android/app/build.gradle 에 signingConfigs 가
+        #    없으면 조용히 «서명 안 된» AAB 가 나온다. Play 에 올려봐야 거부당해서 알게 되므로
+        #    (PO 손이 한 번 더 감) 빌드 단계에서 끝낸다. 서명된 AAB 는 META-INF/*.RSA 를 갖는다.
+        script: |
+          AAB=$(ls android/app/build/outputs/bundle/release/*.aab | head -1)
+          unzip -l "$AAB" | grep -qE 'META-INF/.*\.(RSA|EC|DSA)' \
+            || { echo "❌ 서명 안 된 AAB 다 — build.gradle 의 signingConfigs 확인"; exit 1; }
+          echo "✅ 서명 확인됨: $AAB"
     artifacts:
       - android/app/build/outputs/**/*.aab
 

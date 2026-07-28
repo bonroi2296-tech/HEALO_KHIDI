@@ -16,8 +16,27 @@ android {
             ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    // 클라우드 빌드(Codemagic)에서만 도장을 찍는다.
+    // ⚠️ 2026-07-28 실측: 이 블록이 없으면 `gradlew bundleRelease` 는 «서명 안 된» AAB 를 만들고,
+    //    Play 업로드 시 「업로드된 모든 번들에 서명해야 합니다」로 거부당한다.
+    //    Codemagic 의 android_signing 은 키스토어를 디스크에 놓고 CM_* 환경변수만 채워줄 뿐,
+    //    gradle 이 그걸 쓰게 만드는 건 이 파일의 몫이다(워크플로 이름이 «서명»이어도 안 찍힘).
+    signingConfigs {
+        release {
+            if (System.getenv("CM_KEYSTORE_PATH")) {
+                storeFile file(System.getenv("CM_KEYSTORE_PATH"))
+                storePassword System.getenv("CM_KEYSTORE_PASSWORD")
+                keyAlias System.getenv("CM_KEY_ALIAS")
+                keyPassword System.getenv("CM_KEY_PASSWORD")
+            }
+        }
+    }
     buildTypes {
         release {
+            // 로컬(도장 없음)에서는 기존처럼 서명 없이 빌드된다.
+            if (System.getenv("CM_KEYSTORE_PATH")) {
+                signingConfig signingConfigs.release
+            }
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
