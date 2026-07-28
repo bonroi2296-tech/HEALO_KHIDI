@@ -14,7 +14,8 @@
 # 시험 3가지:
 #   1) 열린 작업 목록이 «claude/ 아닌 이름»의 작업본도 보여주는가
 #   2) 같은 파일을 두 작업본이 만질 때 「겹침 감지」가 뜨는가
-#   3) 오래 방치된 작업본에 「서랍에 갇힌 작업」이 뜨는가 (gh 없는 환경 기준)
+#   3) 오래 방치된 작업본에 「서랍에 갇힌 작업」이 뜨는가
+#      — gh 가 «없는» 환경과 «있지만 못 쓰는» 환경 둘 다에서
 #
 # 이 시험이 깨지면 = 경보가 죽었다는 뜻. 자동 검사가 막는다.
 
@@ -81,6 +82,14 @@ git fetch -q origin '+refs/heads/*:refs/remotes/origin/*'
 OUT=$(cd "$TMP/work" && CLAUDE_PROJECT_DIR="$TMP/work" bash "$HOOK" 2>&1)
 OUT_STALE=$(sed 's/^STALE_DAYS=3/STALE_DAYS=0/' "$HOOK" > "$TMP/h0.sh"; cd "$TMP/work" && CLAUDE_PROJECT_DIR="$TMP/work" bash "$TMP/h0.sh" 2>&1)
 
+# gh 가 «깔려는 있지만 못 쓰는» 상태를 흉내낸다(로그인 안 됨·GitHub 저장소 아님·망 끊김).
+# 2026-07-28 실제로 자동 검사 기계에서 이 상태였고, 그때 경보가 통째로 침묵했다.
+# 「명령이 있나」가 아니라 「물어봐서 답이 오나」로 갈라야 한다는 걸 이 줄이 지킨다.
+mkdir -p "$TMP/fakebin"
+printf '#!/usr/bin/env bash\nexit 1\n' > "$TMP/fakebin/gh"
+chmod +x "$TMP/fakebin/gh"
+OUT_GHBAD=$(cd "$TMP/work" && PATH="$TMP/fakebin:$PATH" CLAUDE_PROJECT_DIR="$TMP/work" bash "$TMP/h0.sh" 2>&1)
+
 fails=0
 chk() { # chk "설명" "찾을 문구" "$본문"
   if printf '%s' "$3" | grep -q "$2"; then
@@ -107,7 +116,8 @@ chk "2a. 겹침 감지가 뜬다"                       "겹침 감지" "$OUT"
 chk "2b. 겹치는 파일을 정확히 짚는다"            "shared.txt" "$OUT"
 chk_not "2c. 안 겹치는 파일은 겹침으로 안 뜬다"  "other.txt ←" "$OUT"
 chk "3a. 서랍에 갇힌 작업 경보가 뜬다"           "서랍에 갇힌 작업" "$OUT_STALE"
-chk "3b. gh 없는 환경에서도 뜬다"                "본판(main) 밖" "$OUT_STALE"
+chk "3b. gh 가 없는 환경에서도 뜬다"              "본판(main) 밖" "$OUT_STALE"
+chk "3c. gh 가 «있지만 못 쓰는» 환경에서도 뜬다"  "서랍에 갇힌 작업" "$OUT_GHBAD"
 
 if [ "$fails" -gt 0 ]; then
   echo ""
@@ -116,4 +126,4 @@ if [ "$fails" -gt 0 ]; then
   exit 1
 fi
 echo ""
-echo "✅ 세션 시작 경보 8개 항목 전부 실동작 확인"
+echo "✅ 세션 시작 경보 9개 항목 전부 실동작 확인"
