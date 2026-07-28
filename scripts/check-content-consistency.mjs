@@ -12,6 +12,7 @@
  * 실행: node scripts/check-content-consistency.mjs   (npm run check:content)
  */
 import { readFileSync, readdirSync, statSync } from "node:fs";
+import { execSync } from "node:child_process";
 import { join, dirname, sep } from "node:path";
 import { pathToFileURL } from "node:url";
 // §32(산출물 .docx 검사)용 — .docx 는 zip 이라 내장 zlib 만으로 본문을 꺼낸다(의존성 0).
@@ -1817,7 +1818,10 @@ const BACKOFFICE_SHARED = [
       if (/check-content-consistency/.test(path_)) continue;
       let raw;
       try { raw = readFileSync(join(ROOT, rel), "utf8"); } catch { continue; }
-      if (!AUTOPUSH.test(raw)) continue;
+      // 주석에 적힌 사용법 예시(`# ... && git push`)는 실행되지 않는다 → 코드 줄만 본다.
+      // (2026-07-28 오탐: vercel-ignore-build.sh 의 「급하면 이렇게 해라」 주석이 걸렸다.)
+      const code = raw.replace(/^\s*(#|\/\/).*$/gm, "");
+      if (!AUTOPUSH.test(code)) continue;
       if (HAS_GUARD.test(raw)) continue;
       errors.push(
         `[보호브랜치] ${path_} — 자동으로 \`git push\` 하는데 보호 브랜치(main/master) 가드가 안 보인다. ` +
@@ -2290,6 +2294,53 @@ const BACKOFFICE_SHARED = [
     }
   } catch (e) {
     errors.push(`[사이트맵-리디렉션] 검사 실패: ${e.message}`);
+  }
+}
+
+// ── §36) 공개 저장소에 «진짜 열쇠»가 들어오지 않게 (2026-07-28) ────────────────
+// 왜: 이 저장소는 PUBLIC 이고 2분마다 도는 자동저장 훅이 `git add -A` 라, 열쇠 파일이 폴더에
+//     들어오면 다음 사이클에 그대로 공개된다(2026-07-27 Firebase 키가 실제로 그럴 뻔했다).
+//     .gitignore 는 «파일 이름»만 막는다 → 이름을 바꾸거나 코드에 문자열로 박으면 그대로 통과한다.
+//     그래서 여기서는 «내용»으로 잡는다. 이름 규칙과 내용 규칙 두 겹.
+// 통과시키는 것: anon 키(설계상 공개), 예시·자리표시자.
+{
+  const SECRET_PATTERNS = [
+    [/-----BEGIN (?:RSA |EC |OPENSSH |PGP )?PRIVATE KEY-----/, "개인키(PEM)"],
+    [/"private_key"\s*:\s*"-----BEGIN/, "구글 서비스계정 JSON"],
+    [/sb_secret_[A-Za-z0-9_-]{10,}/, "Supabase secret 키"],
+    [/gh[pousr]_[A-Za-z0-9]{20,}/, "GitHub 토큰"],
+    [/sk-(?:proj-)?[A-Za-z0-9]{20,}/, "OpenAI 키"],
+    [/AIza[0-9A-Za-z_-]{30,}/, "구글 API 키"],
+  ];
+  // 저장소가 추적하는 «코드/설정» 파일만 본다(문서·바이너리는 제외 — 오탐만 늘린다).
+  const files = execSync("git ls-files", { cwd: ROOT, encoding: "utf8", maxBuffer: 32 * 1024 * 1024 })
+    .split(/\r?\n/)
+    .filter(Boolean)
+    .filter((f) => !f.startsWith("docs/") && !/\.(png|jpg|jpeg|webp|gif|svg|ico|woff2?|ttf|pdf|docx|hwpx|xlsx|pptx|zip)$/i.test(f));
+  for (const f of files) {
+    let src = "";
+    try { src = readFileSync(join(ROOT, f), "utf8"); } catch { continue; }
+    if (src.length > 2_000_000) continue;
+    for (const [re, label] of SECRET_PATTERNS) {
+      if (re.test(src)) {
+        errors.push(
+          `[열쇠유출] ${f} 에 ${label} 로 보이는 값이 있다 — 이 저장소는 공개다. ` +
+            `값을 지우고 .env.local(또는 GitHub Secrets)로 옮긴 뒤, 이미 커밋됐다면 그 열쇠를 «폐기·재발급»하라.`
+        );
+      }
+    }
+    // service_role JWT 는 형태가 anon 과 같아서 payload 를 열어야 구분된다.
+    for (const m of src.matchAll(/eyJ[A-Za-z0-9_-]{10,}\.([A-Za-z0-9_-]{20,})\.[A-Za-z0-9_-]{10,}/g)) {
+      try {
+        const payload = JSON.parse(Buffer.from(m[1], "base64").toString("utf8"));
+        if (payload.role && payload.role !== "anon") {
+          errors.push(
+            `[열쇠유출] ${f} 에 role=${payload.role} 인 Supabase 키가 박혀 있다 — 공개 저장소에 두면 DB 전체가 열린다. ` +
+              `즉시 키를 회전(rotate)하고 시크릿으로 옮길 것.`
+          );
+        }
+      } catch { /* JWT 가 아니면 무시 */ }
+    }
   }
 }
 

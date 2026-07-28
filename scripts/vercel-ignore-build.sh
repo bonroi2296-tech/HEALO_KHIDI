@@ -3,7 +3,7 @@
 # Vercel "Ignored Build Step" 스크립트 — 안 볼 배포는 짓지 않는다.
 #
 #   규칙 0. 자동저장(백업) 커밋            → 스킵
-#   규칙 1. [프로덕션] 더 최신 main 커밋 있음 → 스킵 (몰아서 머지 → 마지막 것만 짓는다)
+#   규칙 1. [프로덕션] production 브랜치(3시 창구)·[deploy] 커밋이 아니면 → 스킵
 #   규칙 2. [프리뷰] 커밋 제목에 [preview] 없음 → 스킵
 #   규칙 3. 문서/비앱 파일만 변경          → 스킵
 #
@@ -33,28 +33,42 @@ case "$commit_subject" in
     ;;
 esac
 
-# ── 규칙 1. [프로덕션] 나보다 최신 main 커밋이 있으면 스킵 ──────────────────
-# 왜: main 커밋은 100% PR 머지다(2026-07-28 확인, 159건 전수). PR 을 몰아서 머지하면
-#     머지 1건마다 풀빌드가 도는데, 마지막 빌드가 앞의 것들을 전부 포함한다. 앞엣것은 낭비다.
-#     → 「내가 최신이 아니면 짓지 않는다」. 연쇄적으로 항상 마지막 하나만 살아남는다.
+# ── 규칙 1. [프로덕션] 「배포 창구」 커밋일 때만 짓는다 ──────────────────────
+# 왜 (2026-07-28 PO 정정): 묶어야 할 건 **머지가 아니라 배포**다.
+#   앞선 규칙은 「PR 을 3시까지 붙잡아 뒀다 몰아서 머지」였는데, 그건 PR 이 최대 24시간
+#   서랍에 갇힌다는 뜻이라 PO 가 원한 게 아니었다. 머지는 언제든 자유롭게 하고,
+#   실서비스 반영(배포)만 하루 한 번으로 접는다.
 #
-# ⚠️ 프로덕션에는 규칙 3(문서-only 스킵)을 **적용하지 않는다.** 둘을 같이 걸면 구멍이 난다:
-#    코드커밋 A → 문서커밋 B 순으로 머지될 때 A 는 「최신 아님」으로, B 는 「문서뿐」으로
-#    둘 다 스킵돼서 **코드가 영원히 배포되지 않는다.** 그래서 프로덕션은 최신이면 무조건 짓는다.
-#    (문서만 바뀐 배치 하나당 빌드 1건이 더 도는 건 감수 — 배치당 1건이라 무시할 수준.)
+#   그래서: main 에 머지돼도 프로덕션 빌드를 짓지 않는다. 오후 3시 창구
+#   (.github/workflows/daily-deploy.yml)가 main 을 **production 브랜치**로 밀고,
+#   그 한 건만 빌드한다. 그 한 건이 그날 머지된 것 **전부**를 포함한다.
+#
+#   ⚠️ 왜 「main 위에 [deploy] 빈 커밋」이 아니라 별도 브랜치냐 (2026-07-28 실측):
+#      main 은 보호 브랜치라 「검사 통과한 커밋만」 받는다. 그런데 깃허브는 GITHUB_TOKEN 이
+#      만든 커밋에 검사를 안 돌려준다(무한루프 방지) → 로봇은 그 조건을 영원히 못 채운다.
+#      실제로 GH006 로 거부당했다. main 자물쇠를 푸는 대신 옆문(production)을 냈다.
+#
+#   급한 것(장애·보안·PO 가 지금 보자고 한 것)은 커밋 제목에 [deploy] 를 달면 즉시 나간다:
+#     git commit --allow-empty -m "chore: 긴급 배포 [deploy]" && git push
+#   또는 Actions 탭에서 "Daily Deploy" 를 Run workflow.
+#
+# ⚠️ 프로덕션에는 규칙 3(문서-only 스킵)을 적용하지 않는다 — 그날 마지막 머지가 문서뿐이면
+#    「변경 없음」으로 스킵돼서 그날 배포가 통째로 사라진다.
 if [ "$VERCEL_ENV" = "production" ]; then
-  if [ -n "$VERCEL_GIT_COMMIT_SHA" ] && git fetch --depth=1 origin main >/dev/null 2>&1; then
-    newest="$(git rev-parse FETCH_HEAD 2>/dev/null)"
-    if [ -n "$newest" ] && [ "$newest" != "$VERCEL_GIT_COMMIT_SHA" ]; then
-      echo "🛑 더 최신 main 커밋(${newest:0:7})이 있다 — 이 빌드는 스킵(마지막 것만 짓는다)."
-      exit 0
-    fi
-    echo "▶ main 최신 커밋 — 프로덕션 배포 진행"
-  else
-    # fetch 실패(네트워크·권한·shallow) = 최신 여부를 모른다 → 짓는다.
-    echo "▶ 최신 여부 확인 불가 — 안전하게 프로덕션 배포 진행"
+  # 창구가 미는 배포 전용 브랜치. (Vercel 의 Production Branch = production)
+  if [ "${VERCEL_GIT_COMMIT_REF:-}" = "production" ]; then
+    echo "▶ production 브랜치(3시 창구) — 프로덕션 배포 진행"
+    exit 1
   fi
-  exit 1
+  case "$commit_subject" in
+    *"[deploy]"*)
+      echo "▶ [deploy] 커밋 — 프로덕션 배포 진행"
+      exit 1
+      ;;
+  esac
+  echo "🛑 창구 밖 머지 — 프로덕션 빌드 스킵. 배포는 오후 3시 창구가 한 번에 한다."
+  echo "   급하면 커밋 제목에 [deploy] 를 달거나 Actions 에서 Daily Deploy 를 돌려라."
+  exit 0
 fi
 
 # ── 규칙 2. [프리뷰] 달라고 했을 때만 짓는다 ────────────────────────────────
