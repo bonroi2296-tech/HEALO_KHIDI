@@ -28,8 +28,9 @@ q git clone "$TMP/origin" "$TMP/local"
 q git -C "$TMP/local" config user.email t@t.t
 q git -C "$TMP/local" config user.name t
 
-run() { # run <VERCEL_ENV> <SHA>  → exit code 출력
-  ( cd "$TMP/local" && VERCEL_ENV="$1" VERCEL_GIT_COMMIT_SHA="$2" bash "$SCRIPT" >/dev/null 2>&1; echo $? )
+run() { # run <VERCEL_ENV> <SHA> [브랜치]  → exit code 출력
+  ( cd "$TMP/local" && VERCEL_ENV="$1" VERCEL_GIT_COMMIT_SHA="$2" VERCEL_GIT_COMMIT_REF="${3:-main}" \
+      bash "$SCRIPT" >/dev/null 2>&1; echo $? )
 }
 commit_local() { # commit_local <파일> <제목>
   echo "x$RANDOM" > "$TMP/local/$1"
@@ -59,18 +60,20 @@ chk "프리뷰 + [preview] + 코드변경 = 빌드" "$(run preview "$(head_local
 commit_local README.md "docs: 문서만 [preview]"
 chk "프리뷰 + [preview] + 문서만 = 스킵" "$(run preview "$(head_local)")" 0
 
-echo "── 규칙 1: 프로덕션 (배포 창구 = [deploy] 커밋만)"
+echo "── 규칙 1: 프로덕션 (배포 창구 = production 브랜치 / [deploy] 커밋)"
 # 2026-07-28 정정: 머지는 자유, 배포만 하루 한 번. main 머지만으로는 프로덕션을 짓지 않는다.
 commit_local app.js "feat: 평범하게 머지된 PR"
-chk "프로덕션 + 평범한 머지 = 스킵" "$(run production "$(head_local)")" 0
+chk "프로덕션 + main 브랜치 = 스킵" "$(run production "$(head_local)" main)" 0
 
-commit_local app.js "chore: 오늘치 배포 창구 2026-07-28 15:00 [deploy]"
-chk "프로덕션 + [deploy] = 빌드" "$(run production "$(head_local)")" 1
+chk "프로덕션 + production 브랜치(3시 창구) = 빌드" "$(run production "$(head_local)" production)" 1
 
-# 구멍 검사: 창구 커밋은 «빈 커밋»이다. 규칙 3(문서/비앱만 = 스킵)에 걸려버리면
-# 그날 배포가 통째로 사라진다 → 프로덕션은 [deploy] 만 보고 즉시 exit 1 해야 한다.
-commit_local README.md "chore: 배포 창구인데 코드 변경이 없다 [deploy]"
-chk "프로덕션 + [deploy] + 코드변경 없음 = 빌드(구멍 방지)" "$(run production "$(head_local)")" 1
+# 구멍 검사: 창구는 main 을 그대로 밀 뿐이라 그날 마지막 머지가 «문서만»일 수 있다.
+# 규칙 3(문서/비앱만 = 스킵)에 걸려버리면 그날 배포가 통째로 사라진다.
+commit_local README.md "docs: 그날 마지막 머지가 문서였다"
+chk "프로덕션 + production + 문서만 = 빌드(구멍 방지)" "$(run production "$(head_local)" production)" 1
+
+commit_local app.js "chore: 긴급 배포 [deploy]"
+chk "프로덕션 + [deploy] 수동 배포 = 빌드" "$(run production "$(head_local)" main)" 1
 
 echo "── 안전장치: 모르면 짓는다"
 commit_local app.js "feat: env 를 모르는 상황"

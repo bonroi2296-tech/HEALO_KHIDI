@@ -9,6 +9,8 @@
 # 급한 것(장애·보안·PO 가 지금 보자고 한 것)은 기다리지 마라:
 #     git commit --allow-empty -m "chore: 긴급 배포 [deploy]" && git push
 #   또는 Actions 탭에서 이 워크플로 "Run workflow".
+#
+# ⚠️ production 브랜치는 이 창구 말고 아무도 건드리지 마라 — 그게 곧 실서비스다.
 
 name: Daily Deploy (배포 창구)
 
@@ -37,27 +39,24 @@ jobs:
       - name: 오늘 머지된 게 있는지 확인
         id: check
         run: |
-          set -euo pipefail
-          # 아무것도 안 머지됐으면 main 의 맨 위가 «지난번 창구 커밋» 그대로다 → 빌드 낭비 방지.
-          #
-          # ⚠️ 반드시 **제목(%s)** 만 본다. 처음엔 `git log --grep='[deploy]'` 를 썼는데
-          #    --grep 은 커밋 **본문**까지 뒤져서, PR 설명에 사용법 예시로 적어둔
-          #    「chore: 긴급 배포 [deploy]」 한 줄에 걸려 창구가 통째로 스킵됐다(2026-07-28 실측).
-          subject="$(git log -1 --format=%s)"
-          case "$subject" in
-            "chore: 오늘치 배포 창구"*)
-              echo "새 머지 없음 ($subject) — 배포 생략"
-              echo "skip=1" >> "$GITHUB_OUTPUT"
-              ;;
-          esac
+          set -uo pipefail
+          # production 이 이미 main 과 같으면 그날 머지된 게 없다는 뜻 → 빌드 낭비 방지.
+          # (production 브랜치가 아직 없으면 fetch 가 실패한다 → 그냥 배포 진행 = 「모르면 짓는다」.)
+          git fetch --depth=1 origin production >/dev/null 2>&1 || true
+          prod="$(git rev-parse FETCH_HEAD 2>/dev/null || true)"
+          if [ -n "$prod" ] && [ "$prod" = "$(git rev-parse HEAD)" ]; then
+            echo "새 머지 없음 (production 이 이미 main 과 동일) — 배포 생략"
+            echo "skip=1" >> "$GITHUB_OUTPUT"
+          fi
 
-      - name: 배포 창구 열기 ([deploy] 커밋 푸시)
+      - name: 배포 창구 열기 (main → production 브랜치)
         if: steps.check.outputs.skip != '1'
         run: |
           set -euo pipefail
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git commit --allow-empty -m "chore: 오늘치 배포 창구 $(TZ=Asia/Seoul date '+%Y-%m-%d %H:%M') [deploy]"
+          # main 은 보호 브랜치라 로봇이 못 민다(GH006 — 깃허브가 GITHUB_TOKEN 이 만든 커밋에
+          # 검사를 안 돌려줘서 「검사 통과」 조건을 영원히 못 채운다). 자물쇠를 푸는 대신
+          # 배포 전용 옆문으로 민다. Vercel 의 Production Branch = production.
+          #
           # 실패하면 그날 배포가 통째로 안 나간다 → 워크플로를 빨간불로 끝내서 눈에 띄게 한다.
-          git push origin HEAD:main
-          echo "✅ [deploy] 커밋 푸시 완료 — Vercel 프로덕션 빌드 1건이 돈다."
+          git push origin HEAD:production
+          echo "✅ main → production 푸시 완료 — Vercel 프로덕션 빌드 1건이 돈다."
