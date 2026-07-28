@@ -68,6 +68,10 @@ jobs:
       # (검사 대상인 대화 본문은 CI 가 볼 수 없다. 실제 측정은 턴 종료 훅 self-check.sh 가 한다.)
       - name: 말투 검사기 자체 시험 (쉬운 말+원어 병기 판정이 살아있는지)
         run: npm run check:talk -- --self-test
+      # 「만들었나」가 아니라 「뜨나」로 판정한다 — 이 저장소에서 두 번 데인 부류(반성문 #152).
+      # 가짜 저장소를 만들어 훅을 실제로 돌리고 경보 문구가 나오는지 본다.
+      - name: 세션 시작 경보 실동작 (열린 작업·겹침 감지·서랍 경보가 진짜 뜨는지)
+        run: npm run test:alarms
       - name: 시크릿 스캔 (하드코딩 비밀키·NEXT_PUBLIC_ 비밀키 노출 차단 — 감리 실측)
         run: npm run audit:secret
       - name: 의존성 취약점 (high/critical 발견 시 머지 차단 — 감리 실측)
