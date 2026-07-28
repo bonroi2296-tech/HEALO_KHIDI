@@ -443,7 +443,11 @@ function ClientShellContent({
    ────────────────────────────────────────────── */
 function PortalTopBar({ session, onLogout, siteConfig, langCode }) {
   return (
-    <header className="fixed top-0 left-0 right-0 h-14 md:h-16 z-50 bg-teal-100 text-slate-700 border-b border-teal-200 shadow-sm flex items-center justify-between px-4 pt-safe-area">
+    // ⚠️ 안전영역 여백(pt-safe-area)은 «바깥», 바 높이(h-14)는 «안쪽» 이어야 한다.
+    //    한 칸에 같이 걸면 padding 이 height 안으로 먹혀(border-box) 바가 안 내려가고
+    //    로고만 찌그러진다(2026-07-28 실기기 발견). 본문 여백은 .healo-portal-offset 이 같은 값을 쓴다.
+    <header className="fixed top-0 left-0 right-0 z-50 bg-teal-100 text-slate-700 border-b border-teal-200 shadow-sm pt-safe-area">
+     <div className="h-14 md:h-16 flex items-center justify-between px-4">
       <Link href="/" className="flex items-center gap-2 shrink-0 hover:opacity-90 transition-opacity">
         {siteConfig?.logo ? (
           <img src={siteConfig.logo} alt="healwith" className="h-8 w-auto object-contain" />
@@ -472,6 +476,7 @@ function PortalTopBar({ session, onLogout, siteConfig, langCode }) {
           <span className="hidden sm:inline">{t("auth.logout", langCode)}</span>
         </button>
       </div>
+     </div>
     </header>
   );
 }

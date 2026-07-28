@@ -357,7 +357,7 @@ export const SignUpPage = ({ setView }) => {
                             type="button"
                             aria-label={showPassword ? "Hide password" : "Show password"}
                             onClick={() => setShowPassword(!showPassword)}
-                            className="absolute right-4 top-3.5 text-gray-400 hover:text-gray-600 focus:outline-none"
+                            className="absolute right-0 inset-y-0 w-12 flex items-center justify-center text-gray-400 hover:text-gray-600 focus:outline-none"
                         >
                             {showPassword ? <EyeOff size={20}/> : <Eye size={20}/>}
                         </button>
@@ -392,7 +392,7 @@ export const SignUpPage = ({ setView }) => {
                             type="button"
                             aria-label={showConfirmPassword ? "Hide password" : "Show password"}
                             onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                            className="absolute right-4 top-3.5 text-gray-400 hover:text-gray-600 focus:outline-none"
+                            className="absolute right-0 inset-y-0 w-12 flex items-center justify-center text-gray-400 hover:text-gray-600 focus:outline-none"
                         >
                             {showConfirmPassword ? <EyeOff size={20}/> : <Eye size={20}/>}
                         </button>

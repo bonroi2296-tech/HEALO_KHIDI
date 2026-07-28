@@ -104,9 +104,9 @@ export default function CoordinatorLayout({ children }) {
 
   return (
     <StaffPortalGate allow={["coordinator"]} portalName="코디네이터 포털" redirect="/coordinator">
-    <div className="flex min-h-screen bg-gray-50 pt-14 md:pt-16">
+    <div className="flex min-h-screen bg-gray-50 healo-portal-offset">
       {/* Mobile top bar */}
-      <div className="lg:hidden fixed top-14 md:top-16 left-0 right-0 z-40 bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
+      <div className="lg:hidden fixed top-[calc(3.5rem+env(safe-area-inset-top,0px))] md:top-[calc(4rem+env(safe-area-inset-top,0px))] left-0 right-0 z-40 bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
             <ClipboardList size={16} className="text-white" />

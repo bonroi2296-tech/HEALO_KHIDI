@@ -212,7 +212,7 @@ function TreatmentsManager() {
         )}
 
         {/* Page header */}
-        <div className="sticky top-14 lg:top-0 z-10 bg-gray-50 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 pt-4 lg:pt-6 pb-4 border-b border-gray-200/60">
+        <div className="sticky top-[calc(3.5rem+env(safe-area-inset-top,0px))] lg:top-0 z-10 bg-gray-50 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 pt-4 lg:pt-6 pb-4 border-b border-gray-200/60">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <button onClick={() => setEditing(null)} className="p-2 hover:bg-white rounded-lg transition border border-gray-200 bg-white shadow-sm">
@@ -335,7 +335,7 @@ function TreatmentsManager() {
       )}
 
       {/* Page header */}
-      <div className="sticky top-14 lg:top-0 z-10 bg-gray-50 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 pt-4 lg:pt-6 pb-4 border-b border-gray-200/60">
+      <div className="sticky top-[calc(3.5rem+env(safe-area-inset-top,0px))] lg:top-0 z-10 bg-gray-50 -mx-4 sm:-mx-6 lg:-mx-8 px-4 sm:px-6 lg:px-8 pt-4 lg:pt-6 pb-4 border-b border-gray-200/60">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-lg lg:text-2xl font-extrabold text-gray-900">시술 관리</h1>
