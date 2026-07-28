@@ -21,6 +21,79 @@
 > · **다음 확인**: 머지 시점 **$16.36 / $20**(남은 $3.64). 예상 소진 = 프로덕션 배치 1회/일 기준 월 $2~3 + 비빌드 $5 ≈ **크레딧의 10~25%**. **8월 첫째 주에 재실측해서 이 추정을 검증할 것**(안 하면 또 모른 채 지나간다).
 > · 🧹 **뒷정리 남음**: 브랜치 `claude/appstore-0728-payments`(워크트리 `HEALO_worktrees/appstore-0728`, 다른 세션 소유라 안 건드림)에 `CLAUDE.md`·`vercel-ignore-build.sh` 의 **옛 버전**이 남아 있다. 열린 PR 은 없으나 **그 세션은 PR 전에 main 을 먼저 당겨라**(안 그러면 이 수정을 되돌린다).
 >
+## 🔖 세션 핸드오프 (2026-07-28 — **[배포 창구] 「머지 자유 / 배포는 하루 한 번」 전환 + 옆문(`production` 브랜치) 개통 → 실배포까지 실측 확인** 세션 종료)
+
+> PO *"야 지금 뭘 계속 배포하고 있다냐? 배포 3시에만 하라고 했는데"* (받은편지함이 Sentry 배포 알림으로 도배된 스크린샷)로 시작.
+> 실측하니 그날 프로덕션 빌드 **19건**, 그중 **12건이 「모아서 배포」 규칙이 살아난 12:23 이후**였다. 원인 규명 → 정책 재설계 → 세 번의 실패를 실행으로 잡아내고 **실서비스 배포 1건이 실제로 나가는 것까지 확인**하고 종료.
+> 작업 폴더: 공용 `HEALO_KHIDI`. 브랜치 `fix/deploy-window` → `fix/deploy-window-skipcheck` → `fix/deploy-side-door2` → `fix/deploy-window-fetchdepth` (전부 머지됨).
+
+📝 **정정: 직전 블록([배포창구·문서충돌])의 「3시 배포 창구가 구조적으로 절대 못 도는 상태」는 이 세션에서 해소됐다.** 원인은 그 블록이 지목한 것 + 두 가지가 더 있었고(아래 4번), 지금은 **실배포 1건이 실제로 나간 것을 실측 확인**했다.
+
+**1. 이번 세션 한 일**
+
+- **정책 전환 — 「합치기(머지)는 자유, 실서비스 반영(배포)만 하루 한 번」** ([#1099](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/1099) 머지)
+  - `scripts/vercel-ignore-build.sh`: `main` 에 합쳐도 프로덕션 빌드를 **안 짓는다.**
+  - `.github/workflows/daily-deploy.yml` 신설 — 매일 **KST 15:00**(UTC 06:00) 창구.
+  - `.github/workflows/batch-merge.yml` **삭제** + `CLAUDE.md` 2곳 정정 (같은 날 오전에 넣었던 「`merge-queued` 라벨 달고 3시까지 대기」 규칙 폐기).
+- **창구 버그 3건 수리** — 전부 *실제로 돌려봐야만* 드러난 것들
+  1. [#1100](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/1100) `git log --grep` 이 커밋 **본문**까지 뒤져 창구가 통째로 건너뜀 → 제목·해시 비교로 교체
+  2. [#1107](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/1107) `main` 보호 브랜치가 로봇 밀기 거부(GH006) → **옆문(`production` 브랜치)** 신설
+  3. [#1110](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/1110) 얕은 복제(`fetch-depth: 1`)라 `non-fast-forward` 거부 → 전체 이력(`0`)
+- **Vercel 설정 전환** — Production Branch `main` → `production` (**PO 가 대시보드에서 직접 클릭**. 위치가 `Settings → Git` 이 아니라 **`Settings → Environments → Production → Branch Tracking`** 으로 옮겨져 있어 PO 가 못 찾았고, PO 브라우저를 읽어 자리를 특정해 안내했다).
+- **검사기 오탐 수리** — 보호브랜치 가드가 *주석에 적힌 사용법 예시*의 `git push` 를 자동 푸시로 오탐 → 주석 줄을 걷어내고 코드만 보게(`scripts/check-content-consistency.mjs`).
+- **자체검사 확장** — `scripts/test-vercel-ignore-build.sh` 프로덕션 판정 4건(main=스킵 / production=빌드 / 문서만이어도 빌드 / `[deploy]`=빌드). CI 차단 게이트.
+- **반성문 [#142](docs/POSTMORTEMS.md) 작성** (🔁 #123 부류 재발 — 「만든 자동화를 한 번도 안 돌려봄」).
+- **세션시작 훅에 「실서비스 배포 지연」 경보 신설**(`.claude/hooks/session-orient.sh`) — 세션 열 때마다 `origin/production..origin/main` 커밋 수 + 마지막 배포 시각 표시. 발화 확인 완료.
+- **2026-07-29 15:10 확인 예약**(`check-daily-deploy-window`) — 예약(cron)이 **스스로** 뜨는지 확인용.
+
+**2. 왜 그렇게 했는지**
+
+- **묶을 건 머지가 아니라 배포다 (PO 정정).** 같은 날 오전 다른 세션이 「PR 에 `merge-queued` 라벨만 달고 3시까지 대기」로 만들었는데, PO 가 *"머지는 해도 된다 한거 아님?"* 이라며 뒤집었다. 이유: **PR 을 최대 24시간 붙잡으면 작업이 서랍에 갇힌다.** 비용 절감을 이유로 작업 흐름을 막으면 안 된다.
+- **`main` 자물쇠는 풀지 않았다.** 로봇이 `main` 에 못 미는 이유는 깃허브가 `GITHUB_TOKEN` 이 만든 커밋에 자동 검사를 **안 돌려주기** 때문(무한루프 방지)이라 「검사 통과」 조건을 영원히 못 채운다. 배포 시간표 하나 때문에 안전장치를 없애는 건 남는 장사가 아니라서, **로봇이 자물쇠를 안 건드리게 옆문(`production`)을 냈다.**
+- **설정 전/후 양쪽에서 안전하게 만들었다.** Vercel 설정을 바꾸기 전에도 `ref=main` 은 계속 스킵되므로, PO 클릭이 늦어져도 누수가 재발하지 않는다.
+- **강제 푸시(`--force`)를 안 썼다.** `production` 은 실서비스 그 자체라, 강제로 덮으면 실서비스를 되돌려버릴 수 있다.
+
+**3. 안 끝났거나 보류**
+
+- **예약(cron)이 스스로 뜨는 건 아직 확인 못 했다.** 성공한 실행 4번은 전부 사람이 손으로 누른 것(`workflow_dispatch`). 2026-07-29 15:10 예약 확인이 이걸 판정한다.
+- **중복 작업본 `work/fix-deploy-window`(커밋 `48ccad01`)** — 다른 세션이 `fetch-depth` 문제를 따로 수리한 것. [#1110](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/1110) 로 이미 해결됐으므로 **그 브랜치는 정리 대상**(차이: 검사 단계의 `git fetch --depth=1` 제거 — 있어도 없어도 동작 확인됨).
+- **2026-08 첫째 주 빌드비 재실측** — 직전 블록의 예상(월 크레딧 10~25%)이 맞는지. 이번 전환으로 프로덕션 빌드가 **하루 19건 → 1건**이 됐으니 그 효과까지 같이 잰다.
+
+**4. 주의·함정**
+
+- ⚠️ **`production` 브랜치는 창구 말고 아무도 건드리지 마라.** 그게 곧 실서비스다.
+- ⚠️ **`fetch-depth: 0` 을 되돌리지 마라.** 1(얕은 복제)로 두면 *브랜치 하나만 받아 다른 브랜치로 미는 구조*가 통째로 깨진다 — `production` 을 «처음 만드는» 첫 실행만 성공하고 그 뒤 전부 실패한다(그날 배포가 통째로 안 나감). 주석에 못 박아뒀다.
+- ⚠️ **`git log --grep` 은 커밋 «본문»까지 검색한다.** 제목만 보려면 `--format=%s` 로 뽑아 비교할 것. PR 설명에 예시로 적은 문구에 걸려 창구가 통째로 스킵됐다.
+- ⚠️ **프로덕션 판정에 「문서만이면 스킵」을 걸지 마라** — 그날 마지막 합치기가 문서면 배포가 통째로 사라진다. 테스트로 박아뒀다.
+- ⚠️ **Vercel 의 Production Branch 는 API 로 못 바꾼다** — `PATCH /v9/projects/:id` 는 **400 거부**. 대시보드 `Settings → Environments → Production` 전용. 다음에 또 시도해서 시간 쓰지 마라.
+- ⚠️ **`git checkout -B <새브랜치> origin/main` 은 미커밋 편집분을 날린다.** 이번에 한 번 당해서 4개 파일을 다시 썼다. 브랜치를 새로 딸 땐 먼저 커밋하거나 stash 할 것.
+- ⚠️ **자동저장 훅이 다른 세션의 문서 변경을 내 커밋에 딸려 넣는다**(`git add -A`). 이번에 [#1106](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/1106) 을 닫고 파일을 골라 다시 올렸다. 커밋 전 `git show --stat` 으로 파일 목록을 확인할 것.
+- ⚠️ **초록불 ≠ 배포됨.** 창구 워크플로가 `success` 여도 「새 머지 없음」으로 건너뛴 것일 수 있다. `origin/main` 과 `origin/production` 해시를 직접 비교하라.
+
+**5. 다음 세션이 먼저 할 일**
+
+1. ⚠️ **직전 미검증분 먼저 확인**: **오후 3시 창구의 예약(cron)이 «스스로» 떴는지.** `gh run list --workflow=daily-deploy.yml --limit 10 --json event,createdAt,conclusion` 에서 `event=schedule` 인 실행을 찾아라(`workflow_dispatch` 는 사람이 누른 것이라 해당 없음). 안 떴으면 **먼저 손으로 돌려 배포부터 내보내고**(`gh workflow run "Daily Deploy (배포 창구)"`) 원인을 고쳐라. 2026-07-29 15:10 예약 확인(`check-daily-deploy-window`)이 이미 걸려 있으니 그 결과부터 볼 것.
+2. **세션 열자마자 뜨는 「실서비스에 아직 안 나간 커밋 N개」를 확인하라.** 어제치까지 쌓여 있으면 창구가 죽은 것이다.
+3. **중복 작업본 `work/fix-deploy-window` 정리** — 이미 해결된 내용이라 태그 박제 후 삭제 판단.
+4. **열린 합치기 신청서(PR) 정리**: [#1104](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/1104)(충돌 상태 — 리베이스 필요) · [#1111](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/1111) · [#1105](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/1105) · [#1091](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/1091).
+5. **2026-08 첫째 주 빌드비 재실측**(3번 항목).
+
+**6. 검증 상태**
+
+- ✅ **실배포 실측(가장 중요)**: 창구 실행 성공 → Vercel 프로덕션 **READY**(2026-07-28 15:25, `production` 브랜치, 커밋 `4ab1e3ae`) → `healwith.co.kr` **HTTP 200** → `origin/main == origin/production`(안 나간 커밋 0건).
+- ✅ **정책 실측**: 같은 시각 `main` 합치기 3건이 전부 Vercel `CANCELED`(=빌드 안 됨). 하루 19건 → 1건.
+- ✅ **자동 검사(CI)**: [#1099](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/1099)·[#1100](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/1100)·[#1107](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/1107)·[#1110](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/1110) 모두 `ci`·`Smoke Tests (PR)` 초록 후 머지.
+- ✅ `scripts/test-vercel-ignore-build.sh` 8/8 통과, `npm run check:content` 통과.
+- ✅ 세션시작 배포지연 경보: 실제로 돌려 발화 확인(현재 1건 표시).
+- ✅ Vercel 설정: 서버 API 조회로 `productionBranch = production` 확인.
+- ❌ **검증 못 함 — 예약(cron)이 스스로 뜨는지.** 성공 4번 전부 사람이 손으로 누른 것. → 5번 1항으로 승격.
+- ❌ **검증 못 함 — 「새 머지 없으면 건너뛴다」 분기.** `production == main` 인 상태로 창구를 돌려본 적이 없다(항상 새 머지가 있었다).
+- 열린 PR 4건의 자동 검사 상태는 `UNKNOWN`/`DIRTY` 로만 확인(내 작업분 아님).
+
+**7. 다음 세션 첫 프롬프트**
+
+> 먼저 `docs/PROJECT_CONTEXT.md` 최상단 핸드오프를 읽어라. 그리고 **오후 3시 배포 창구의 예약(cron)이 스스로 떴는지부터 확인해라** — `gh run list --workflow=daily-deploy.yml` 에서 `event=schedule` 인 실행을 찾고, 없으면 손으로 한 번 돌려서 실서비스 배포부터 내보낸 뒤 원인을 고쳐라. 그다음 세션 열 때 뜨는 「실서비스에 아직 안 나간 커밋 N개」가 어제치까지 쌓여 있지 않은지 보고, 중복 작업본 `work/fix-deploy-window` 를 정리하고, 열린 합치기 신청서(PR) 4건(#1104 는 충돌)을 훑어라.
+
 ## 🔖 세션 핸드오프 (2026-07-28 — **[배포창구·문서충돌] 창구 스킵 버그 수리 + 「매일 나는 핸드오프 충돌」을 구조로 없앰 + 🔴 3시 배포 창구가 실은 못 도는 것 발각** 세션 종료)
 
 > PO *"충돌났다고 하는것들은 뭐냐"* 로 시작 → PR 화면의 빨간 「충돌」 딱지 정체를 규명하고 하나를 풀어준 뒤, **매일 재발하는 부류 자체를 git 설정 한 줄로 없앴다.** 마지막에 PO 가 *"이제 3시에 모아다가 배포하라고 했잖아 그럼 괜찮은거임?"* 이라 되물어 실측했다가 — **2026-07-27 에 만든 3시 배포 창구가 구조적으로 절대 못 도는 상태**임을 발견했다(2026-07-28 프로덕션 배포 0건).
@@ -183,66 +256,6 @@
 **7. 다음 세션 첫 프롬프트**
 
 > 먼저 docs/PROJECT_CONTEXT.md 최상단 읽어. 코디 편집기 저장바가 스티키인데 실제로는 뷰포트에 안 붙어서(조상 main 이 overflow-auto) 편집 중엔 저장 버튼이 화면 밖이다 — 레이아웃 스크롤 구조부터 보고 고쳐라. 그 전에 저장 전 확인창 접근성(스크린리더)만 실기기로 한 번 확인하고.
-
----
-
-## 🔖 세션 핸드오프 (2026-07-28 — **[관측] 센트리 소스맵·GitHub 연동 종결 + 업타임 감시 개통(7/24 무경보 장애 봉인) + PO 미결항목 전수 대조** 세션 종료)
-
-> PO *"어제 센트리 뭐 키 줘야 한다고 했던가? 그리고 센트리에 뭐 하나 떴는데 이거 뭐임"* 로 시작 → 센트리 잔여 설정 3종을 그 자리에서 종결 → 업타임 감시 개통 → *"내가 빼먹은 거 없는지 확인해봐"* 로 미결항목 전수 대조까지 간 세션. **웹 화면 코드 변경 0(문서·외부 서비스 설정만).**
-> ⚠️ **공용 폴더(`HEALO_KHIDI`)에서 시작했다가 다른 세션들과 브랜치가 3번 엇갈렸다** — 문서 커밋은 결국 워크트리 + `origin/main` 기준 새 브랜치로 냈다(4번 함정 참조).
-
-**1. 이번 세션 한 일**
-
-- **센트리 「소스맵 안 올라감」 종결** — 어시가 `SENTRY_ORG=bonroi`·`SENTRY_PROJECT=javascript-nextjs` 를 Vercel(production)에 REST API 로 입력(11:22), PO 가 `SENTRY_AUTH_TOKEN`(Sentry **Organization Token**, 스코프 고정 = Source Map Upload·Release Creation·Code Mappings)을 입력(11:41). → **그 뒤 프로덕션 배포 2건이 실제로 소스맵을 올린 것을 Sentry 화면에서 확인**(릴리스 `8b0857f5`·`59f044de`, 배포마다 번들 2개 = 927 files + 479 files).
-- **센트리↔GitHub 연동 개통** — 설치 ID `149496915` · 연동 `475691` · 계정 `bonroi2296-tech`. **2026-07-27 밤에 막혔던 원인은 「팝업 차단」이 맞았다**(허용하니 한 번에 통과).
-- 🔒 **연동 직후 접근범위가 `All repositories` 인 것을 발견해 좁혔다** — 이 계정 레포 3개(`HEALO_KHIDI` 공개 · `HEALO` 공개 · **`bonroi-erp` 비공개**) 중 비공개 ERP 까지 Sentry 가 코드 읽기·쓰기 권한을 갖고 있었다. PO 승인 후 `Only select repositories` = `HEALO_KHIDI` 하나로 저장·재확인.
-- **업타임 감시 개통(7/24 「55분 무경보 장애」 봉인)** — PO 가 UptimeRobot 무료 모니터 등록(`/api/health`·5분·메일). 어시가 설정 열어 확인 + 주소를 `www` 빼고 apex 로 정리 + **`Test Notification` 실행 → 지메일 기본함에 `TEST: Monitor is DOWN` · `TEST: Monitor is UP` 2통 도착 확인**(스팸 아님). = 경보 경로가 끝까지 살아있는 것이 실증됨.
-- **[#1082](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/1082) 머지**(main `c6270c2b`) — 센트리 종결 기록 + 「빌드 로그로는 확인 못 하는 함정」 박제.
-- **[#1085](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/1085) 머지**(main `89e6630a`) — `KNOWN_ISSUES.md` 의 🔴 「프로덕션 장애를 제때 알 방법이 없음」을 **해결**로 정리 + 「왜 홈이 아니라 `/api/health` 인가」 근거 박제.
-- **PO 미결항목 전수 대조** — 문서(`PROJECT_CONTEXT`·`KNOWN_ISSUES`)만 보지 않고 **원격 브랜치·열린 PR 과 대조**해서 이미 끝났거나 진행 중인 것을 걸러냈다(6번 참조).
-- **파이어베이스(FCM) 설정 실측 점검** — Firebase 프로젝트 `healo-e3e58`, **APNs 인증 키 개발/프로덕션 2개 다 등록됨**(키 `35R55PSP57`·팀 `78S9ALAKDX`), `google-services.json`·`GoogleService-Info.plist` 실값, Vercel env 2종(`GOOGLE_SERVICE_ACCOUNT_JSON`·`FCM_PROJECT_ID`) 3개 환경 전부. **DB `device_tokens` 에 실제 iOS 토큰 1건(2026-07-27 14:08 KST)** = 앱이 실제로 붙어 토큰을 저장한 흔적.
-
-**2. 왜 그렇게 했는지 (커밋에 안 남는 배경)**
-
-- 🔑 **「빌드 로그에 업로드 흔적이 없다 = 실패」로 오판할 뻔했다.** 원인은 실패가 아니라 `next.config.js` 의 `sentryConfig = { silent: true }` 가 업로드 로그를 통째로 삼키는 것. **확인처는 빌드 로그가 아니라 Sentry Source Maps 화면**이다. 이 함정을 문서에 박은 이유 = 다음 세션이 같은 오판을 반복하면 「멀쩡한 설정을 뜯는」 사고가 난다.
-- **UptimeRobot 에 키워드 검사(「`"db":"up"` 포함」)를 굳이 안 넣은 이유**: `/api/health` 는 DB 실패 시 **503** 을 준다(`app/api/health/route.ts`). 모니터가 비-2xx 를 그대로 DOWN 으로 잡으므로 키워드 설정은 **중복이고 관리 지점만 늘린다.**
-- **홈(`/`)이 아니라 `/api/health` 를 감시하는 이유**: 홈은 캐시된 정적 페이지라 **DB 가 죽어도 200** 을 준다 — 그게 7/24 장애를 55분간 아무도 모른 실제 원인이다.
-- **`www` → apex 로 바꾼 이유**: `www.healwith.co.kr` 는 apex 로 308 리디렉션이다. UptimeRobot 이 따라가긴 하지만, 「리디렉션을 안 따라가는 설정이었다면 3xx 를 정상으로 읽는다」는 애매함을 없애려고 한 단계를 제거했다. **기능 차이는 없다**(이름표는 처음 그대로 `www.healwith.co.kr` 라 화면상 불일치가 보이는데 정상).
-- **Sentry Code Mappings 를 손으로 안 만든 이유**: 소스맵이 풀린 스택 프레임이 담긴 이벤트가 오면 Sentry 가 자동 생성한다. 미리 만들면 **틀린 경로를 박아** 오히려 스택 링크가 깨진다.
-
-**3. 안 끝났거나 보류**
-
-- **센트리 「스택이 실제로 사람 읽는 글자로 나오는지」 미검증** — 소스맵은 **업로드 이후 릴리스에서 난 새 에러에만** 적용된다. 콘솔에서 일부러 던진 테스트 에러는 프레임이 `<anonymous>` 라 검증에 못 쓴다(2026-07-28 오전 검증 이벤트가 딱 그 꼴). **다음 진짜 에러 1건이면 자동으로 판명**된다.
-- **Sentry Code Mappings 비어 있음 — 정상.** 위와 같은 이벤트 1건이면 채워진다.
-- **푸시(FCM) 실배달 미검증** — 토큰 등록까지는 실물로 확인됐으나 **폰 화면에 알림이 뜨는 것은 아무도 안 봤다.** TestFlight 베타 심사가 통과돼 앱이 깔리면 `/api/push/test` 로 1회 확인.
-- **UptimeRobot 폰 앱 푸시 — PO 가 직접 하기로 함**(*"그건 내가 알아서 할께"*). 무료. 실측한 요금 경계: **폰 앱 푸시·디스코드·구글챗 = 무료 / 텔레그램·슬랙·웹훅·MS팀즈 = 유료.** 스태프 텔레그램 그룹이 이미 있어도 **UptimeRobot 텔레그램은 유료라 못 쓴다.**
-- **`/agency`·`/clinic` 검색 노출 여부 — PO 판단 대기**(기존 항목, 이번에도 안 받음).
-
-**4. 주의·함정**
-
-- ⚠️ **`silent: true` 함정(위 2번)** — 빌드 로그 무흔적 ≠ 업로드 실패.
-- ⚠️ **공용 폴더에서 문서를 고치면 다른 세션의 자동저장이 되돌린다.** 이번에 `docs/PROJECT_CONTEXT.md` 편집이 **두 번 증발**했다(앱스토어 세션의 2분 자동커밋 `e0998d06` 이 낡은 작업본으로 덮음). 세션 도중 이 폴더의 브랜치가 `claude/appstore-0728-payments` → `fix/vercel-preview-build-cost` → `chore/build-cost-handoff` 로 **세 번 바뀌었다.** → **문서 작업도 워크트리(또는 `origin/main` 기준 새 브랜치 + PR)로 하라.**
-- ⚠️ **「PO 가 할 일」 목록을 낼 때 문서만 보면 틀린다.** 이번에 「E2E 가 실서비스 DB 를 문다 — 비용 결정 필요」를 버튼으로 물었는데, **이미 [#1081](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/1081) 로 다른 세션이 월 $0 방식으로 만들고 있었다**(PO 가 잡아냄). 같은 이유로 통역 버튼·쿠키 배너도 진행 중이었다. → **열린 PR·최근 브랜치를 먼저 대조하고 목록을 내라.**
-- ⚠️ **PO 가 한 외부 설정을 「요약 화면」만 보고 틀렸다고 단정하지 마라.** UptimeRobot 목록에 도메인만 짧게 표시되는 것을 보고 어시가 *"경로가 빠졌다"* 고 했으나, 설정 상세를 열어보니 **PO 는 처음 준 주소 그대로 정확히 넣었다.** PO 가 두 번 정정해야 했다.
-- ⚠️ **UptimeRobot 응답시간 1.3초는 정상** — 무료 플랜은 **북미**에서 측정한다(미국↔한국 왕복 + DB 질의 포함). 한국 사용자 체감속도가 아니다. 성능 지표로 쓰지 마라.
-
-**5. 다음 세션이 먼저 할 일**
-
-1. ⚠️ **직전 미검증분 먼저 확인**: ①**센트리 스택이 실제로 풀리는지** — 다음 진짜 에러 1건에서 `vendor-xxx.js:492:196017` 대신 `파일명:줄번호` 가 나오는지. ②**Code Mappings 가 자동 생성됐는지**(같은 이벤트로 함께 판명). ③**푸시 실배달** — TestFlight 통과 후 `/api/push/test` 1회.
-2. **PO 판단 1건 받기**: `/agency`·`/clinic` 을 검색에 노출할 것인가(파트너 유입용 6개어 URL vs `noindex`).
-3. **통역 버튼 「지킬 수 없는 약속」은 [#1079](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/1079) 가 끝난 뒤 재판정** — 지금 결정을 받으면 헛일이 된다.
-4. **앱스토어 PO 손 3건은 그 세션 소관**(구글 $25 증빙 저장 · TestFlight 초대 메일 도착 확인 · 피처 그래픽 가부) — 중복 착수 금지.
-
-**6. 검증 상태**
-
-- **[#1082](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/1082)**: CI 초록 → **머지 완료**(main `c6270c2b`). **[#1085](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/1085)**: CI 초록(ci 3m36s · Smoke 3m57s · Vercel) → **머지 완료**(main `89e6630a`). 둘 다 문서만 변경(코드 0줄)이라 독립 리뷰·완성도 감사 생략.
-- **이 세션 종료 시점 열린 PR(다른 세션 것, 손대지 않음)**: [#1090](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/1090) 보안 · [#1089](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/1089) 설명서 i18n · [#1083](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/1083) 빌드비.
-- **실측한 것**: ①`curl` 로 `/api/health` 200 + `{"db":"up","latency_ms":19}` / `www` 는 308 ②Sentry Source Maps 화면에서 업로드 번들 4개·릴리스 SHA·시각(UTC=KST−9) ③GitHub 앱 설정에서 `Selected 1 repository` 저장 후 재확인 ④UptimeRobot 테스트 알림 2통이 지메일 기본함 도착 ⑤Firebase 콘솔 APNs 키 2개 등록 ⑥`device_tokens` 실조회(iOS 1건) ⑦원격 브랜치 조회로 「삭제해달라던 브랜치 2개」가 이미 없음을 확인.
-- **검증 못 한 것(솔직히)**: ①**센트리 스택 해석·Code Mappings 자동생성** — 소스맵 업로드 이후 새 에러가 아직 없다. ②**푸시 실배달** — 앱이 아직 폰에 없다. ③**UptimeRobot 폰 앱 푸시** — PO 가 직접 하기로 한 몫이라 안 봤다. ④**진짜 장애 상황에서의 경보** — 테스트 알림만 봤지 실제 DOWN 을 겪어보진 않았다.
-
-**7. 다음 세션 첫 프롬프트**
-
-> 먼저 `docs/PROJECT_CONTEXT.md` 최상단 읽어. 2026-07-28 에 센트리 소스맵·GitHub 연동이랑 업타임 감시(UptimeRobot)를 다 열었는데, **셋 다 「진짜 에러/장애가 한 번 나야」 최종 확인되는 상태**다. 센트리에 새 에러가 떴으면 **스택이 파일명·줄번호로 풀리는지, Code Mappings 가 자동으로 생겼는지** 확인해라. 그리고 열린 작업 목록부터 보고 **다른 세션이 이미 하는 영역(통역봇·보안·설명서)은 손대지 마라.** `/agency`·`/clinic` 검색 노출 여부는 나한테 버튼으로 물어봐.
 
 ---
 

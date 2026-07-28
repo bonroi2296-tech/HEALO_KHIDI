@@ -53,6 +53,19 @@ if [ -n "$hc" ]; then
   fi
 fi
 
+# ── 실서비스 배포 지연 경보 ───────────────────────────────────
+# 왜: 「배포는 하루 한 번 오후 3시 창구」(2026-07-28)로 바꾼 뒤, 창구가 조용히 실패하면
+#     **다음 날까지 아무도 모른다**(하루 1회라 실패가 눈에 안 띈다 — 반성문 #142).
+#     그래서 세션이 열릴 때마다 「본판에는 있는데 실서비스엔 아직 없는 커밋」 수를 띄운다.
+#     정상값은 0~그날 머지분이고, 이틀치가 쌓여 있으면 창구가 죽은 것이다.
+git fetch -q --depth=50 origin main production >/dev/null 2>&1 || true
+lag=$(git rev-list --count origin/production..origin/main 2>/dev/null || echo "")
+if [ -n "$lag" ] && [ "$lag" -gt 0 ] 2>/dev/null; then
+  last=$(git log -1 --format=%cd --date=format:'%m-%d %H:%M' origin/production 2>/dev/null)
+  echo "- 📦 **실서비스에 아직 안 나간 커밋 ${lag}개** (마지막 배포: ${last:-?}). 오후 3시 창구가 한 번에 내보낸다."
+  echo "    ⚠️ 이 숫자가 어제치까지 쌓여 있으면 창구가 죽은 것 → Actions 의 \"Daily Deploy (배포 창구)\" 실행 이력 확인."
+fi
+
 # ── 열린 작업 목록 (병렬 세션 네비게이션) ─────────────────────────
 # main 에 아직 안 들어간 claude/* 작업본(브랜치)을 최신순으로 번호 매겨 띄운다.
 # PO가 여러 세션을 병렬로 돌릴 때 "지금 열린 일이 뭐뭐였지"를 한눈에 보고,

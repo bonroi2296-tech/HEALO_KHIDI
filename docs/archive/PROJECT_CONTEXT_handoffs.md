@@ -6,6 +6,69 @@
 
 
 
+
+## 🔖 세션 핸드오프 (2026-07-28 — **[관측] 센트리 소스맵·GitHub 연동 종결 + 업타임 감시 개통(7/24 무경보 장애 봉인) + PO 미결항목 전수 대조** 세션 종료)
+
+> PO *"어제 센트리 뭐 키 줘야 한다고 했던가? 그리고 센트리에 뭐 하나 떴는데 이거 뭐임"* 로 시작 → 센트리 잔여 설정 3종을 그 자리에서 종결 → 업타임 감시 개통 → *"내가 빼먹은 거 없는지 확인해봐"* 로 미결항목 전수 대조까지 간 세션. **웹 화면 코드 변경 0(문서·외부 서비스 설정만).**
+> ⚠️ **공용 폴더(`HEALO_KHIDI`)에서 시작했다가 다른 세션들과 브랜치가 3번 엇갈렸다** — 문서 커밋은 결국 워크트리 + `origin/main` 기준 새 브랜치로 냈다(4번 함정 참조).
+
+**1. 이번 세션 한 일**
+
+- **센트리 「소스맵 안 올라감」 종결** — 어시가 `SENTRY_ORG=bonroi`·`SENTRY_PROJECT=javascript-nextjs` 를 Vercel(production)에 REST API 로 입력(11:22), PO 가 `SENTRY_AUTH_TOKEN`(Sentry **Organization Token**, 스코프 고정 = Source Map Upload·Release Creation·Code Mappings)을 입력(11:41). → **그 뒤 프로덕션 배포 2건이 실제로 소스맵을 올린 것을 Sentry 화면에서 확인**(릴리스 `8b0857f5`·`59f044de`, 배포마다 번들 2개 = 927 files + 479 files).
+- **센트리↔GitHub 연동 개통** — 설치 ID `149496915` · 연동 `475691` · 계정 `bonroi2296-tech`. **2026-07-27 밤에 막혔던 원인은 「팝업 차단」이 맞았다**(허용하니 한 번에 통과).
+- 🔒 **연동 직후 접근범위가 `All repositories` 인 것을 발견해 좁혔다** — 이 계정 레포 3개(`HEALO_KHIDI` 공개 · `HEALO` 공개 · **`bonroi-erp` 비공개**) 중 비공개 ERP 까지 Sentry 가 코드 읽기·쓰기 권한을 갖고 있었다. PO 승인 후 `Only select repositories` = `HEALO_KHIDI` 하나로 저장·재확인.
+- **업타임 감시 개통(7/24 「55분 무경보 장애」 봉인)** — PO 가 UptimeRobot 무료 모니터 등록(`/api/health`·5분·메일). 어시가 설정 열어 확인 + 주소를 `www` 빼고 apex 로 정리 + **`Test Notification` 실행 → 지메일 기본함에 `TEST: Monitor is DOWN` · `TEST: Monitor is UP` 2통 도착 확인**(스팸 아님). = 경보 경로가 끝까지 살아있는 것이 실증됨.
+- **[#1082](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/1082) 머지**(main `c6270c2b`) — 센트리 종결 기록 + 「빌드 로그로는 확인 못 하는 함정」 박제.
+- **[#1085](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/1085) 머지**(main `89e6630a`) — `KNOWN_ISSUES.md` 의 🔴 「프로덕션 장애를 제때 알 방법이 없음」을 **해결**로 정리 + 「왜 홈이 아니라 `/api/health` 인가」 근거 박제.
+- **PO 미결항목 전수 대조** — 문서(`PROJECT_CONTEXT`·`KNOWN_ISSUES`)만 보지 않고 **원격 브랜치·열린 PR 과 대조**해서 이미 끝났거나 진행 중인 것을 걸러냈다(6번 참조).
+- **파이어베이스(FCM) 설정 실측 점검** — Firebase 프로젝트 `healo-e3e58`, **APNs 인증 키 개발/프로덕션 2개 다 등록됨**(키 `35R55PSP57`·팀 `78S9ALAKDX`), `google-services.json`·`GoogleService-Info.plist` 실값, Vercel env 2종(`GOOGLE_SERVICE_ACCOUNT_JSON`·`FCM_PROJECT_ID`) 3개 환경 전부. **DB `device_tokens` 에 실제 iOS 토큰 1건(2026-07-27 14:08 KST)** = 앱이 실제로 붙어 토큰을 저장한 흔적.
+
+**2. 왜 그렇게 했는지 (커밋에 안 남는 배경)**
+
+- 🔑 **「빌드 로그에 업로드 흔적이 없다 = 실패」로 오판할 뻔했다.** 원인은 실패가 아니라 `next.config.js` 의 `sentryConfig = { silent: true }` 가 업로드 로그를 통째로 삼키는 것. **확인처는 빌드 로그가 아니라 Sentry Source Maps 화면**이다. 이 함정을 문서에 박은 이유 = 다음 세션이 같은 오판을 반복하면 「멀쩡한 설정을 뜯는」 사고가 난다.
+- **UptimeRobot 에 키워드 검사(「`"db":"up"` 포함」)를 굳이 안 넣은 이유**: `/api/health` 는 DB 실패 시 **503** 을 준다(`app/api/health/route.ts`). 모니터가 비-2xx 를 그대로 DOWN 으로 잡으므로 키워드 설정은 **중복이고 관리 지점만 늘린다.**
+- **홈(`/`)이 아니라 `/api/health` 를 감시하는 이유**: 홈은 캐시된 정적 페이지라 **DB 가 죽어도 200** 을 준다 — 그게 7/24 장애를 55분간 아무도 모른 실제 원인이다.
+- **`www` → apex 로 바꾼 이유**: `www.healwith.co.kr` 는 apex 로 308 리디렉션이다. UptimeRobot 이 따라가긴 하지만, 「리디렉션을 안 따라가는 설정이었다면 3xx 를 정상으로 읽는다」는 애매함을 없애려고 한 단계를 제거했다. **기능 차이는 없다**(이름표는 처음 그대로 `www.healwith.co.kr` 라 화면상 불일치가 보이는데 정상).
+- **Sentry Code Mappings 를 손으로 안 만든 이유**: 소스맵이 풀린 스택 프레임이 담긴 이벤트가 오면 Sentry 가 자동 생성한다. 미리 만들면 **틀린 경로를 박아** 오히려 스택 링크가 깨진다.
+
+**3. 안 끝났거나 보류**
+
+- **센트리 「스택이 실제로 사람 읽는 글자로 나오는지」 미검증** — 소스맵은 **업로드 이후 릴리스에서 난 새 에러에만** 적용된다. 콘솔에서 일부러 던진 테스트 에러는 프레임이 `<anonymous>` 라 검증에 못 쓴다(2026-07-28 오전 검증 이벤트가 딱 그 꼴). **다음 진짜 에러 1건이면 자동으로 판명**된다.
+- **Sentry Code Mappings 비어 있음 — 정상.** 위와 같은 이벤트 1건이면 채워진다.
+- **푸시(FCM) 실배달 미검증** — 토큰 등록까지는 실물로 확인됐으나 **폰 화면에 알림이 뜨는 것은 아무도 안 봤다.** TestFlight 베타 심사가 통과돼 앱이 깔리면 `/api/push/test` 로 1회 확인.
+- **UptimeRobot 폰 앱 푸시 — PO 가 직접 하기로 함**(*"그건 내가 알아서 할께"*). 무료. 실측한 요금 경계: **폰 앱 푸시·디스코드·구글챗 = 무료 / 텔레그램·슬랙·웹훅·MS팀즈 = 유료.** 스태프 텔레그램 그룹이 이미 있어도 **UptimeRobot 텔레그램은 유료라 못 쓴다.**
+- **`/agency`·`/clinic` 검색 노출 여부 — PO 판단 대기**(기존 항목, 이번에도 안 받음).
+
+**4. 주의·함정**
+
+- ⚠️ **`silent: true` 함정(위 2번)** — 빌드 로그 무흔적 ≠ 업로드 실패.
+- ⚠️ **공용 폴더에서 문서를 고치면 다른 세션의 자동저장이 되돌린다.** 이번에 `docs/PROJECT_CONTEXT.md` 편집이 **두 번 증발**했다(앱스토어 세션의 2분 자동커밋 `e0998d06` 이 낡은 작업본으로 덮음). 세션 도중 이 폴더의 브랜치가 `claude/appstore-0728-payments` → `fix/vercel-preview-build-cost` → `chore/build-cost-handoff` 로 **세 번 바뀌었다.** → **문서 작업도 워크트리(또는 `origin/main` 기준 새 브랜치 + PR)로 하라.**
+- ⚠️ **「PO 가 할 일」 목록을 낼 때 문서만 보면 틀린다.** 이번에 「E2E 가 실서비스 DB 를 문다 — 비용 결정 필요」를 버튼으로 물었는데, **이미 [#1081](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/1081) 로 다른 세션이 월 $0 방식으로 만들고 있었다**(PO 가 잡아냄). 같은 이유로 통역 버튼·쿠키 배너도 진행 중이었다. → **열린 PR·최근 브랜치를 먼저 대조하고 목록을 내라.**
+- ⚠️ **PO 가 한 외부 설정을 「요약 화면」만 보고 틀렸다고 단정하지 마라.** UptimeRobot 목록에 도메인만 짧게 표시되는 것을 보고 어시가 *"경로가 빠졌다"* 고 했으나, 설정 상세를 열어보니 **PO 는 처음 준 주소 그대로 정확히 넣었다.** PO 가 두 번 정정해야 했다.
+- ⚠️ **UptimeRobot 응답시간 1.3초는 정상** — 무료 플랜은 **북미**에서 측정한다(미국↔한국 왕복 + DB 질의 포함). 한국 사용자 체감속도가 아니다. 성능 지표로 쓰지 마라.
+
+**5. 다음 세션이 먼저 할 일**
+
+1. ⚠️ **직전 미검증분 먼저 확인**: ①**센트리 스택이 실제로 풀리는지** — 다음 진짜 에러 1건에서 `vendor-xxx.js:492:196017` 대신 `파일명:줄번호` 가 나오는지. ②**Code Mappings 가 자동 생성됐는지**(같은 이벤트로 함께 판명). ③**푸시 실배달** — TestFlight 통과 후 `/api/push/test` 1회.
+2. **PO 판단 1건 받기**: `/agency`·`/clinic` 을 검색에 노출할 것인가(파트너 유입용 6개어 URL vs `noindex`).
+3. **통역 버튼 「지킬 수 없는 약속」은 [#1079](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/1079) 가 끝난 뒤 재판정** — 지금 결정을 받으면 헛일이 된다.
+4. **앱스토어 PO 손 3건은 그 세션 소관**(구글 $25 증빙 저장 · TestFlight 초대 메일 도착 확인 · 피처 그래픽 가부) — 중복 착수 금지.
+
+**6. 검증 상태**
+
+- **[#1082](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/1082)**: CI 초록 → **머지 완료**(main `c6270c2b`). **[#1085](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/1085)**: CI 초록(ci 3m36s · Smoke 3m57s · Vercel) → **머지 완료**(main `89e6630a`). 둘 다 문서만 변경(코드 0줄)이라 독립 리뷰·완성도 감사 생략.
+- **이 세션 종료 시점 열린 PR(다른 세션 것, 손대지 않음)**: [#1090](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/1090) 보안 · [#1089](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/1089) 설명서 i18n · [#1083](https://github.com/bonroi2296-tech/HEALO_KHIDI/pull/1083) 빌드비.
+- **실측한 것**: ①`curl` 로 `/api/health` 200 + `{"db":"up","latency_ms":19}` / `www` 는 308 ②Sentry Source Maps 화면에서 업로드 번들 4개·릴리스 SHA·시각(UTC=KST−9) ③GitHub 앱 설정에서 `Selected 1 repository` 저장 후 재확인 ④UptimeRobot 테스트 알림 2통이 지메일 기본함 도착 ⑤Firebase 콘솔 APNs 키 2개 등록 ⑥`device_tokens` 실조회(iOS 1건) ⑦원격 브랜치 조회로 「삭제해달라던 브랜치 2개」가 이미 없음을 확인.
+- **검증 못 한 것(솔직히)**: ①**센트리 스택 해석·Code Mappings 자동생성** — 소스맵 업로드 이후 새 에러가 아직 없다. ②**푸시 실배달** — 앱이 아직 폰에 없다. ③**UptimeRobot 폰 앱 푸시** — PO 가 직접 하기로 한 몫이라 안 봤다. ④**진짜 장애 상황에서의 경보** — 테스트 알림만 봤지 실제 DOWN 을 겪어보진 않았다.
+
+**7. 다음 세션 첫 프롬프트**
+
+> 먼저 `docs/PROJECT_CONTEXT.md` 최상단 읽어. 2026-07-28 에 센트리 소스맵·GitHub 연동이랑 업타임 감시(UptimeRobot)를 다 열었는데, **셋 다 「진짜 에러/장애가 한 번 나야」 최종 확인되는 상태**다. 센트리에 새 에러가 떴으면 **스택이 파일명·줄번호로 풀리는지, Code Mappings 가 자동으로 생겼는지** 확인해라. 그리고 열린 작업 목록부터 보고 **다른 세션이 이미 하는 영역(통역봇·보안·설명서)은 손대지 마라.** `/agency`·`/clinic` 검색 노출 여부는 나한테 버튼으로 물어봐.
+
+---
+
+---
+
 ## 🔖 세션 핸드오프 (2026-07-28 — **[앱스토어] 안드로이드 빌드 성공 + 구글 신원확인 통과 → Play 앱 생성·설정 8/11 + 결제 3건 종결** 세션 종료)
 
 > PO *"①Codemagic android-verify 수동 실행 ②TestFlight 베타심사 확인"* 로 시작 → 결제 점검 → **구글 신원확인이 통과돼 있는 걸 발견**하면서 Play 앱 등록 본작업까지 간 세션.
