@@ -24,7 +24,7 @@ import { useToast } from "@/components/Toast";
 import CookieConsent from "@/components/CookieConsent";
 // 알림 종은 로그인한 사람에게만 보인다 → 공개 홈 방문자는 받을 이유가 없다(같은 이유로 지연 로드).
 const NotificationBell = dynamic(() => import("@/components/NotificationBell"), { ssr: false });
-import { pageview, hasAnalyticsConsent, setAnalyticsUser, initDebugMode } from "@/lib/ga";
+import { pageview, hasAnalyticsConsent, setAnalyticsUser, initDebugMode, event, GA_EVENTS } from "@/lib/ga";
 
 export default function ClientShell({ children, initialLang = "en" }) {
   const router = useRouter();
@@ -500,6 +500,8 @@ function PortalLangSwitcher({ langCode }) {
   const current = LANG_OPTIONS_PRIMARY.find((l) => l.code === langCode) || LANG_OPTIONS_PRIMARY[0];
   const pick = (code) => {
     setOpen(false);
+    // 어느 언어에서 어느 언어로 갈아탔나 — 번역 보강 우선순위의 근거.
+    if (code !== langCode) { try { event(GA_EVENTS.LANGUAGE_CHANGED, { from: langCode, to: code }); } catch {} }
     setLangCookie(code);            // 공개/에이전시·의료기관용 (healo_lang)
     setBackofficeLangCookie(code);  // 스태프 포털용 (healo_bo_lang) — 코디/어드민 화면이 이걸 따름
     if (typeof window !== "undefined") window.dispatchEvent(new Event("healo:langchange"));

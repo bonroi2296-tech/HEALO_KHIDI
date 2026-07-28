@@ -65,7 +65,8 @@ const getLang = (): string | undefined => {
  * 직원(운영자·코디·병원) 여부. true 면 이 브라우저에서는 GA 로 아무것도 보내지 않는다.
  *
  * 왜: 우리가 우리 사이트를 하루에도 수십 번 돌아다닌다. 그게 그대로 «방문자»로 섞이면
- * KHIDI 성과지표(유치·상담 건수)의 분모가 조용히 부풀고, 전환율은 반대로 낮아 보인다.
+ * 방문자 수(분모)가 조용히 부풀어 전환율이 실제보다 낮아 보이고, 「어느 화면이 잘 되나」
+ * 비교가 통째로 왜곡된다 — 우리는 관리 목적으로만 도는 경로가 따로 있기 때문이다.
  * GA4 콘솔의 «내부 트래픽» 필터는 IP 기준이라 재택·모바일·해외출장이면 안 걸린다 —
  * 그래서 IP 가 아니라 «로그인한 사람의 역할»로 판단한다(우리가 확실히 아는 정보).
  */
@@ -167,7 +168,8 @@ export const isDebugMode = () => debugMode;
  * 새 이벤트를 넣을 땐 반드시 여기에 먼저 추가하고 상수를 import 해서 쓸 것 — 문자열 직접 타이핑 금지.
  *
  * 📌 «전환(conversion)» 표시 대상 = INQUIRY_SUBMITTED / INQUIRY_DETAIL_SUBMITTED / MESSENGER_CLICK.
- *    KHIDI 중간평가 성과지표(사전상담·사후관리 120건)와 대조하는 숫자가 이 셋이다.
+ *    「어느 유입·어느 화면·어느 언어가 실제로 상담까지 이어지나」를 재는 기준선이 이 셋이다.
+ *    (정확한 건수가 필요하면 DB 를 본다 — GA 는 구조적으로 적게 센다. docs/GA4_SETUP.md §0)
  */
 export const GA_EVENTS = {
   /** 문의 진입 화면에서 상담 방식(ai/human/form) 선택 */
@@ -202,4 +204,22 @@ export const GA_EVENTS = {
   VIEW_HOSPITAL: "view_hospital",
   /** 암종/치료 상세 조회 — { treatment_slug } */
   VIEW_TREATMENT: "view_treatment",
+
+  // ── AI 상담 (우리 서비스의 핵심 차별점인데 지금까지 «깜깜이»였다) ──────────────
+  // 재는 이유: ①사람들이 실제로 쓰는가 ②몇 마디 만에 그만두는가(= 답이 시원찮다는 뜻)
+  // ③AI 가 답을 못 해서 사람 코디를 부르는 비율 ④AI 답이 도움이 됐는가.
+  // 전부 «AI 를 어떻게 고칠까»로 바로 이어지는 숫자다.
+  /** AI 상담 대화가 실제로 열림 */
+  CHAT_STARTED: "chat_started",
+  /** 사용자가 메시지를 보냄 — { message_index } 로 몇 번째인지(이탈 지점 파악) */
+  CHAT_MESSAGE_SENT: "chat_message_sent",
+  /** AI 답변 평가 — { rating: "up" | "down" } */
+  CHAT_FEEDBACK: "chat_feedback",
+  /** AI 대신 사람 코디를 불러달라고 함 (= AI 가 못 푼 질문) */
+  CHAT_REQUEST_HUMAN: "chat_request_human",
+
+  /** 화면 언어를 바꿈 — { from, to }. 어느 번역을 먼저 손봐야 하는지 알려준다 */
+  LANGUAGE_CHANGED: "language_changed",
+  /** 비용 계산기를 실제로 써봄 — { cancer_type } */
+  COST_ESTIMATED: "cost_estimated",
 } as const;
