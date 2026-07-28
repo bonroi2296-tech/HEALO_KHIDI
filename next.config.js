@@ -144,6 +144,13 @@ const nextConfig = {
               //   있으나 CSP 에 없어 env 를 넣어도 동작하지 않는 상태였다(스크립트 로드부터 차단).
               "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.livekit.cloud wss://*.livekit.cloud https://generativelanguage.googleapis.com https://www.google-analytics.com https://*.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com https://mc.yandex.ru https://mc.yandex.com https://cdn.jsdelivr.net https://*.ingest.sentry.io https://*.ingest.de.sentry.io https://maps.googleapis.com https://maps.gstatic.com",
               "media-src 'self' blob:",
+              // ⚠️ worker-src 를 안 적으면 script-src 로 폴백돼 **blob: 워커가 전부 차단된다**
+              //    (2026-07-28 안드로이드 에뮬레이터 콘솔에서 발각 — 브라우저에서도 나던 것을 아무도 안 봤다).
+              //    막히던 것: **센트리 세션 리플레이의 압축 워커**. 우리는 `replaysOnErrorSampleRate: 1.0`
+              //    이라 실서비스에서 오류가 날 때마다 화면 녹화를 남기게 해뒀는데, 압축 워커가 막혀
+              //    매 방문마다 콘솔에 CSP 위반이 찍히고 리플레이가 반쪽으로 돌았다.
+              //    → 우리 출처와 blob: 만 연다(외부 도메인 워커는 계속 차단).
+              "worker-src 'self' blob:",
               "frame-ancestors 'none'",
               "base-uri 'self'",
               "form-action 'self'",

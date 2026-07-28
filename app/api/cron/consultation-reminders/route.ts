@@ -41,6 +41,11 @@ export async function GET(request: NextRequest) {
   }
 
   const now = Date.now();
+  // ⚠️ 창이 «10분»이다 → **실행 주기가 10분보다 길면 그 사이에 낀 상담은 영영 리마인드를 못 받는다.**
+  //    예) 15분 주기면: T 에 [T+25,T+35] 를 처리하고 다음은 T+15 에 [T+40,T+50] →
+  //        [T+35,T+40] 구간이 통째로 빈다(문서에 적혀 있던 「15분」이 바로 이 함정).
+  //    → vercel.json 에 **10분 주기**로 등록했다. 창을 늘리거나 주기를 바꿀 땐 «주기 ≤ 창» 을 지켜라.
+  //    (중복 발송은 guest_tokens.metadata.reminder_sent_at 이 막으므로 더 촘촘해도 안전하다.)
   const windowStart = new Date(now + 25 * 60 * 1000).toISOString();
   const windowEnd = new Date(now + 35 * 60 * 1000).toISOString();
 

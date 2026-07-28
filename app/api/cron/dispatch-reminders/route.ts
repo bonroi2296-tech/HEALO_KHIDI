@@ -271,22 +271,27 @@ async function dispatchInApp(
   };
   const rm = RL[(payload.lang || "").slice(0, 2) === "kk" ? "kz" : payload.lang] || RL.ru;
 
-  const { error } = await supabaseAdmin.from("notifications").insert({
-    user_id: userId,
+  // ⚠️ 2026-07-28: 예전엔 여기서 notifications 테이블에 **직접 insert** 했다.
+  //    그 바람에 «상담 30분 전» — 폰 알림이 가장 필요한 바로 그 알림 — 이
+  //    폰 알림 다리(sendInAppNotification → pushBridge)를 안 거쳐 **폰이 울리지 않았다.**
+  //    → 공통 진입점으로 보낸다. 저장은 그대로고 폰 알림만 따라붙는다.
+  const { sendInAppNotification } = await import("@/lib/notifications/inApp");
+  const id = await sendInAppNotification({
+    userId,
     type: "consultation_reminder",
     title: rm.t,
     body: rm.b,
     link,
+    priority: "high",
     payload: {
       consultation_session_id: row.consultation_session_id,
       reminder_type: row.reminder_type,
       role: payload.role ?? "user",
     },
-    priority: "high",
   });
 
-  if (error) {
-    console.error("[cron/dispatch-reminders] notify error:", error.message);
+  if (!id) {
+    console.error("[cron/dispatch-reminders] notify 실패");
     return { ok: false, error: "notify_failed" };
   }
   return { ok: true };

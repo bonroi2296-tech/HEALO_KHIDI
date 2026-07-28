@@ -60,22 +60,36 @@ export async function sendInAppNotification(
     // 폰 알림으로도 내보낸다 (2026-07-28 연결).
     // 여기 한 곳에 얹었기 때문에 **이 함수를 쓰는 모든 알림이 자동으로** 폰까지 간다 —
     // 호출부는 한 줄도 안 고쳤다. 무엇을 보낼지는 priority 가 정한다(pushBridge 주석 참고).
-    // await 하지 않는다: 폰 알림이 느려도 알림 저장은 이미 끝났고, 호출부를 붙잡을 이유가 없다.
-    void import("./pushBridge")
-      .then((m) =>
-        m.bridgeToPush({
-          userId: opts.userId,
-          type: opts.type,
-          title: opts.title,
-          body: opts.body,
-          link: opts.link,
-          priority: opts.priority ?? "normal",
-          notificationId: id,
-        })
-      )
-      .catch(() => {
-        /* 폰 알림 실패는 앱내 알림에 영향 없음 */
-      });
+    const runPush = () =>
+      import("./pushBridge")
+        .then((m) =>
+          m.bridgeToPush({
+            userId: opts.userId,
+            type: opts.type,
+            title: opts.title,
+            body: opts.body,
+            link: opts.link,
+            priority: opts.priority ?? "normal",
+            notificationId: id,
+          })
+        )
+        .catch(() => {
+          /* 폰 알림 실패는 앱내 알림에 영향 없음 */
+        });
+
+    // ⚠️ 그냥 «띄워놓고 잊기»(void promise)로 두면 안 된다 — 서버리스는 응답을 돌려준 순간
+    //    함수를 접을 수 있어서 **폰 알림이 발송 전에 잘린다**(조용히 아무 일도 안 함).
+    //    next/server 의 after() 가 «응답 후에도 끝까지 실행»을 보장한다. 이 저장소가 이미 쓰는 방식.
+    //    요청 맥락 밖(정기작업 등)에서는 after() 가 던지므로 그냥 기다린다 — 어차피 응답 대기가 없다.
+    let scheduled = false;
+    try {
+      const { after } = await import("next/server");
+      after(runPush);
+      scheduled = true;
+    } catch {
+      /* 요청 맥락 아님 → 아래에서 직접 await */
+    }
+    if (!scheduled) await runPush();
 
     return id;
   } catch (err: any) {

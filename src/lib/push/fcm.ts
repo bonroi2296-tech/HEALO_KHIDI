@@ -33,8 +33,21 @@ function getServiceAccount(): ServiceAccount | null {
   return null;
 }
 
+let warnedProjectMismatch = false;
+
 function getProjectId(sa: ServiceAccount): string | null {
-  return process.env.FCM_PROJECT_ID || sa.project_id || null;
+  const override = process.env.FCM_PROJECT_ID;
+  // FCM_PROJECT_ID 가 서비스계정의 프로젝트와 다르면 발송이 **조용히 404 로 실패**한다
+  // (토큰은 정상 발급되고 요청만 남의 프로젝트로 가므로 «되는 것처럼» 보인다).
+  // 값 자체는 비밀이 아니라 로그로 남겨도 되지만, 한 번만 알린다(발송마다 도배 방지).
+  if (override && sa.project_id && override !== sa.project_id && !warnedProjectMismatch) {
+    warnedProjectMismatch = true;
+    console.error(
+      `[push/fcm] ⚠️ FCM_PROJECT_ID(${override}) 가 서비스계정 프로젝트(${sa.project_id})와 다릅니다 — ` +
+        `푸시가 조용히 실패할 수 있습니다. 앱의 google-services.json 과 같은 프로젝트인지 확인하세요.`
+    );
+  }
+  return override || sa.project_id || null;
 }
 
 // ── OAuth 액세스 토큰 (서비스계정 JWT → 토큰 교환, 만료 전까지 캐시) ──────────
