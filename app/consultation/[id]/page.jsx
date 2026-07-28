@@ -18,6 +18,7 @@ import {
   CarouselLayout,
   VideoTrack,
 } from "@livekit/components-react";
+import { useKrispNoiseFilter } from "@livekit/components-react/krisp";
 import "@livekit/components-styles";
 import "./consultation.css"; // 미트식 발화자 테두리(teal)·1:1 PiP 보정 — LiveKit 기본 덮어쓰기
 import { COPY } from "./_roomCopy";
@@ -179,6 +180,22 @@ function AudioUnblock({ copy }) {
       <Volume2 size={16} /> {c.tapToEnableAudio}
     </button>
   );
+}
+
+// ── 잡음 제거 (LiveKit Cloud Krisp — LiveKitRoom 내부 전용, 렌더링 없음) ──
+// 왜: 상담 참가자는 사무실·집·차 안에서 들어온다. 배경 소음은 사람 귀뿐 아니라
+//     자막·통역(STT)의 오인식으로 직결된다 → 내 마이크에서 나가는 소리를 먼저 정리한다.
+// 언제 열렸나: LiveKit 유료(Ship) 구독 2026-07-28 — 이 기능은 유료 플랜 전용이라 그전엔 못 썼다.
+// 안전: 켜기 실패(미지원 브라우저·모델 로드 실패)는 조용히 넘어간다 — 통화 자체는 그대로 된다.
+// ⚠️ 통역 에이전트(agents/live-translate)에는 잡음 제거를 넣지 마라 — 양쪽에 겹쳐 걸면
+//    이미 처리된 소리를 또 처리해 음질이 되레 나빠진다(LiveKit 공식 경고). 현재 에이전트엔 없음(확인함).
+function NoiseFilter() {
+  const { setNoiseFilterEnabled } = useKrispNoiseFilter();
+  useEffect(() => {
+    // 마이크가 아직 안 켜졌어도 OK — 훅이 마이크 트랙이 생기는 시점에 알아서 건다.
+    setNoiseFilterEnabled(true).catch(() => {});
+  }, [setNoiseFilterEnabled]);
+  return null;
 }
 
 // ── 마이크 켜기 실패 경고 (LiveKitRoom 내부 전용) ──
@@ -3153,6 +3170,7 @@ export default function ConsultationRoomPage() {
                 <WaitingForOthers copy={c} />
                 <AloneWatcher onAloneChange={setIsAloneInRoom} />
                 <RoomAudioRenderer />
+                <NoiseFilter />
                 <AudioUnblock copy={c} />
                 <MicOffBanner
                   failed={micActivationFailed}
