@@ -1,8 +1,11 @@
 # 상담 녹화(LiveKit Egress) — 준비 상태 & 켜기 절차
 
-> **현재 상태: 꺼짐. 코드는 다 깔려 있고 스위치만 안 켰다.**
-> PO 지시(2026-07-28): *"녹화 기능은 일단 바로 오픈하지 말고 준비만 해줘."*
+> **현재 상태: 배선 완료 · 스위치 꺼짐.**
+> PO 지시(2026-07-28): *"녹화는 정책을 만든 다음에 활성화하자. 일단 연결만 해둬."*
 > 지금 상담방은 **이 기능이 없던 때와 100% 동일하게** 동작한다 — 버튼도 안 뜨고 API 는 503 이다.
+>
+> **남은 것은 딱 2개**: ①PO 가 S3 키 발급(대시보드 클릭, 아래 「켜기」 1단계) ②정책 확정 후 스위치 ON.
+> 그 외 배선(버킷·테이블·API·UI·파기 배치)은 **전부 실제로 붙어 있다.**
 
 ---
 
@@ -24,6 +27,9 @@
 | 「녹화 중」 배지 | 상담방 `RecordingBadge` | **전원에게** 표시 — 몰래 녹화 불가 |
 | 녹화 버튼 | 상담방 컨트롤 바 | 스위치 ON + 운영자일 때만 존재 |
 | 6개 언어 문구 | `_roomCopy.js` | ko·en·ru·kz·zh·ja |
+| 종료 처리 | `app/api/livekit/webhook` (`egress_ended`) | 대장 닫기 + 길이 기록 |
+| **파기 배치** | `app/api/cron/purge-recordings` | 매일 02:30 KST. 기한 지난 파일을 **실제로 지우고** `deleted` 처리 |
+| **저장 버킷** | Supabase Storage `consultation-recordings` | **생성 완료**(비공개·파일당 500MB 상한) |
 
 **기본 정책값**(바꾸려면 `recording.js` 한 곳만):
 - **음성만**(영상 없음) — 비용 1/4, 개인정보 위험 최소. 필요해지면 `RECORDING_AUDIO_ONLY = false`.
@@ -47,25 +53,29 @@
 - [ ] **누구 것을 찍나** — 전체 방(모든 참가자 음성)인지, 특정 참가자만인지. 현재 구현은 **방 전체**.
 - [ ] **보관 기간 90일이 맞나** — 의료 분쟁 대비면 더 길어야 할 수도, 개인정보 최소수집이면 더 짧아야 할 수도.
 - [ ] **누가 들을 수 있나** — 현재는 저장만 하고 **재생 화면이 없다**(의도적). 열람 UI 를 만들 때 권한·감사로그를 같이 설계할 것.
-- [ ] **국외이전** — 저장소 리전이 어디인지. 카자흐 환자 데이터 국외이전 이슈와 같은 계열(`docs/reviews/2026-06-30_C레벨_전방위_진단.md` 참조).
-- [ ] **파기 실행** — `expires_at` 지난 행을 실제로 지우는 배치가 **아직 없다**. 켜기 전에 cron 1개 추가 필요.
+- [x] ~~**파기 실행**~~ — cron `purge-recordings` 신설 완료(매일 02:30 KST). 파일 삭제 실패 시 대장을 안 건드려 **다음 날 재시도**한다("지웠음"으로 거짓 표시 금지).
+- [ ] **국외이전** — 저장소 리전 = **ap-northeast-2(서울)**. 파일 자체는 국내에 남는다. 다만 카자흐 시민 데이터의 «카자흐 영토 외 저장» 논점은 그대로 남아 있다(`docs/reviews/2026-06-30_C레벨_전방위_진단.md`) — 녹화는 그 논점의 **가장 민감한 형태**라 동의 문구에 저장 국가를 밝히는 게 안전하다.
 
 ---
 
 ## 켜기 (3단계)
 
-1. **저장소 준비** — Supabase Storage 에 **비공개** 버킷 `consultation-recordings` 생성 →
-   S3 호환 접근키 발급(Supabase 대시보드 → Storage → S3 Connection).
+1. **S3 접근키 발급 (PO — 대시보드에서만 됨, API 로는 못 만든다)**
+   [Supabase → Storage → S3 Connection](https://supabase.com/dashboard/project/hvwwlkawaxabhtumjhrg/settings/storage)
+   에서 **New access key** → Access key ID / Secret 을 복사(Secret 은 그때 한 번만 보인다).
+   > 버킷은 이미 만들어 뒀다(`consultation-recordings`, 비공개). 키만 있으면 된다.
+   > ⚠️ 세션토큰 방식(anon 키 + 사용자 JWT)은 쓰지 마라 — 사용자 토큰이 만료되면
+   >   장시간 녹화 업로드가 중간에 끊긴다. 서버 전용 S3 키가 맞다.
 2. **Vercel Production env 6개**:
    ```
    CONSULT_RECORDING_ENABLED=true
    NEXT_PUBLIC_CONSULT_RECORDING_ENABLED=true
-   RECORDING_S3_ENDPOINT=https://<project>.supabase.co/storage/v1/s3
-   RECORDING_S3_REGION=<대시보드에 표시된 리전>
+   RECORDING_S3_ENDPOINT=https://hvwwlkawaxabhtumjhrg.storage.supabase.co/storage/v1/s3
+   RECORDING_S3_REGION=ap-northeast-2
    RECORDING_S3_ACCESS_KEY=...
    RECORDING_S3_SECRET=...
    ```
-   → 재배포.
+   → 재배포. (endpoint 호스트가 `...supabase.co` 가 아니라 **`....storage.supabase.co`** 다 — 틀리면 업로드가 통째로 실패한다.)
 3. **실상담 1건으로 검증**: 코디 계정으로 「녹화」 → 방 전원 화면에 **빨간 「녹화 중」** 뜨는지 →
    중지 → 버킷에 `.ogg` 파일이 올라왔는지 → `consultation_recordings` 행 `status='stopped'` 확인.
 
@@ -75,4 +85,6 @@
 
 - **실제 녹화는 한 번도 안 돌려봤다.** 스위치가 꺼져 있어 API 가 503 만 돌려주는 상태에서
   타입·빌드·권한 경로까지만 확인했다. LiveKit → S3 업로드 실경로는 **켜는 날 3단계에서 처음 검증된다.**
-- 파기 배치 미구현(위 체크리스트).
+- **파기 배치도 실행된 적 없다** — 지울 대상이 0건이라 «돌긴 도는데 아무 일도 안 하는» 상태다.
+  실제 삭제 동작은 첫 녹화 + 90일 뒤에야 진짜로 검증된다(그전에 수동으로 `expires_at` 을
+  과거로 당긴 시험용 행 1개로 앞당겨 확인하는 걸 권한다).

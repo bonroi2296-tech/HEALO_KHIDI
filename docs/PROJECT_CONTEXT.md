@@ -18,7 +18,10 @@
 >   - 들어간 것: 설정 SoR(`src/lib/consultation/recording.js`) · 시작/중지 API(운영자 전용) · 녹화 대장 테이블(`consultation_recordings`, **프로덕션 적용 완료**·service_role 전용) · **「녹화 중」 배지(방 전원에게)** · 6개 언어 문구.
 >   - 기본 정책: **음성만**(영상 $0.02/분 vs 음성 $0.005/분 = 4배 차이 + 환자 얼굴은 안 만들면 안 샌다) · **보관 90일** · 비공개 버킷.
 >   - **몰래 녹화가 구조적으로 불가능**하게 만들었다 — LiveKit 이 방 전원에게 녹화 상태를 알리고 그걸 그대로 빨간 배지로 띄운다. 이 배지 지우지 마라.
->   - 🔴 **켜기 전 PO 가 정해야 할 것 6가지 + 미구현 1건(파기 배치)** = `docs/CONSULT_RECORDING_SETUP.md` 체크리스트. **실제 녹화는 한 번도 안 돌려봤다**(스위치가 꺼져 있어 못 돈다) — 켜는 날 첫 검증이다.
+>   - **PO 추가 지시(같은 날): "정책을 만든 다음에 활성화하자. 일단 연결만 해둬."** → 배선을 실제로 다 붙였다: **저장 버킷 생성 완료**(Supabase Storage `consultation-recordings`, 비공개·서울 리전) · **파기 배치 cron 신설**(`purge-recordings`, 매일 02:30 KST) · `egress_ended` 웹훅 처리. **남은 건 딱 2개 = ①PO 의 S3 키 발급(대시보드 클릭) ②정책 확정 후 스위치 ON.**
+>   - ⚠️ **함정(문서에 못 박음)**: S3 endpoint 호스트가 `<ref>.supabase.co` 가 아니라 **`<ref>.storage.supabase.co`** 다. 틀리면 업로드가 통째로 실패한다.
+>   - 🔴 **켜기 전 PO 가 정해야 할 것 5가지** = `docs/CONSULT_RECORDING_SETUP.md` 체크리스트(동의 방식·보관기간·열람권한·국외이전 고지 등). **실제 녹화는 한 번도 안 돌려봤다**(스위치가 꺼져 있어 못 돈다) — 켜는 날 첫 검증이다.
+>   - 📌 부수 정정: `docs/CRON_STATUS.md` 의 **「vercel.json crons 절대 추가 금지 — Hobby 한도」 경고가 낡았다**. Hobby 가 막던 건 개수가 아니라 «하루 1회보다 잦은 주기»이고 개수 한도는 두 플랜 다 100개(공식 문서 실확인). 우린 Pro다.
 >
 > **📌 중간 저장 (2026-07-28 — [가드·잔일] 접근성 증거 저장 + 「서랍에 갇힌 작업」 자동 경보)** — 워크트리 `HEALO_worktrees/guards`, 브랜치 `work/guards`.
 > · **①접근성 리포트 낡음 해소** — CI [run 30241732070](https://github.com/bonroi2296-tech/HEALO_KHIDI/actions/runs/30241732070) 산출물 6개를 **그대로** `docs/audit/` 에 커밋(손으로 고친 숫자 아님). **32화면 critical·serious·moderate·minor 전부 0 · 렌더검증 실패 0 · 미판정 278.** 요약표는 `docs/audit/AUDIT.md` 최상단. ⚠️CI 가 리포트를 자동 커밋해주지 않는다는 사실을 문서 2곳에 못 박음(그래서 하루 동안 옛 숫자가 남아 있었다).
