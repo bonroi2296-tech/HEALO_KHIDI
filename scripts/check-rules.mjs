@@ -171,6 +171,41 @@ if (dead.length) {
   ok.push("옮겨간 섹션을 가리키는 죽은 참조 0건");
 }
 
+// ── 7. 반성문 번호 중복 (병렬 세션이 같은 번호를 각자 발번하는 것) ────────
+// 왜 (2026-07-28 실측): 창을 여러 개 띄우고 일하면 각 창이 «지금 최신 번호 + 1» 을 각자 계산한다.
+//   서로를 못 보니 **같은 번호가 여러 개** 생긴다. 이번에도 두 작업본이 #149·#150 을 동시에 썼다.
+//   반성문 #90 이 이미 같은 사고를 기록했는데(12쌍 누적) **가드를 안 만들어서** 또 났다.
+//   기록 문서는 merge=union 이라 충돌 없이 양쪽 다 남는다 = 중복이 조용히 본판에 들어간다.
+//   → 합쳐진 결과물(본판)에서 기계가 잡는다.
+//
+// ⚠️ 「0건」으로 잡으면 안 된다. 과거 12쌍이 이미 있어서 상시 빨간불이 되고,
+//    오탐 나는 검사는 사람이 무시하게 돼서 없느니만 못하다(#148 에서 배운 것).
+//    그래서 **지금 있는 12쌍은 기준선으로 얼려두고, 새로 늘어나면 실패**시킨다.
+const KNOWN_DUP_PAIRS = 12; // 2026-07-28 기준선 (#31·32·39·42·55~62). 정당하게 정리했으면 이 숫자를 낮춰라.
+const PM = path.join(ROOT, "docs/POSTMORTEMS.md");
+if (fs.existsSync(PM)) {
+  const nums = (fs.readFileSync(PM, "utf8").match(/^## #(\d+)/gm) || []).map((s) =>
+    s.replace(/^## #/, "")
+  );
+  const seen = new Map();
+  for (const n of nums) seen.set(n, (seen.get(n) || 0) + 1);
+  const dups = [...seen.entries()].filter(([, c]) => c > 1);
+  if (dups.length > KNOWN_DUP_PAIRS) {
+    errors.push(
+      `반성문 번호가 중복됐다 — 중복 ${dups.length}쌍 (기준선 ${KNOWN_DUP_PAIRS}쌍 초과):\n` +
+        `     ${dups.map(([n, c]) => `#${n}×${c}`).join(", ")}\n` +
+        `   → 병렬 세션이 같은 번호를 각자 발번한 것이다(반성문 #90 부류).\n` +
+        `      새로 쓴 쪽이 «지금 파일에 있는 최대 번호 + 1» 로 다시 매기고, 그 번호를 가리키는 참조도 같이 고쳐라.`
+    );
+  } else if (dups.length < KNOWN_DUP_PAIRS) {
+    warns.push(
+      `반성문 번호 중복이 ${dups.length}쌍으로 줄었다 — check-rules.mjs 의 KNOWN_DUP_PAIRS 를 ${dups.length} 로 낮춰 기준선을 조여라.`
+    );
+  } else {
+    ok.push(`반성문 번호 새 중복 0건 (과거 ${KNOWN_DUP_PAIRS}쌍은 기준선으로 동결)`);
+  }
+}
+
 // ── 출력 ─────────────────────────────────────────────────────────────
 for (const o of ok) console.log(`  ✅ ${o}`);
 for (const w of warns) console.log(`  ⚠️  ${w}`);
