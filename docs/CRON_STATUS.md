@@ -11,8 +11,13 @@
 | `POST /api/cron/dispatch-reminders` | 리마인더 발송 (fire_at 도래 건 처리) | **5분** |
 | `GET /api/cron/consultation-reminders` | 레거시: guest_token 기반 이메일 리마인더 | 15분 |
 | `GET /api/cron/automation` | 자동화 기타 작업 | 필요 시 |
+| `GET /api/cron/purge-recordings` | 상담 녹화 보관기간(90일) 만료분 파기 | 매일 1회 (02:30 KST) |
 
-> ⚠️ `vercel.json` crons 블록 **절대 추가 금지** — Hobby 플랜 한도 위반
+> ✅ **2026-07-28 정정 — 예전 「vercel.json crons 절대 추가 금지(Hobby 한도)」 경고는 낡았다.**
+> ①우리는 **Vercel Pro**다(2026-07-24 전환) ②Hobby 든 Pro 든 **개수 한도는 100개**로 같고,
+> Hobby 가 막던 건 개수가 아니라 **「하루 1회보다 잦은 주기」**였다(공식 문서 실확인).
+> Pro 는 분 단위까지 가능. `vercel.json` 에 현재 6개 — 추가해도 된다. 다만 **cron 은 곧 함수 실행**이니
+> 잦은 주기는 비용으로 돌아온다(주기는 필요한 만큼만).
 
 ---
 

@@ -1154,6 +1154,59 @@ export type Database = {
           },
         ]
       }
+      consultation_recordings: {
+        Row: {
+          audio_only: boolean
+          consultation_id: string
+          created_at: string
+          duration_sec: number | null
+          egress_id: string
+          ended_at: string | null
+          expires_at: string
+          file_path: string | null
+          id: string
+          started_at: string
+          started_by: string | null
+          status: string
+        }
+        Insert: {
+          audio_only?: boolean
+          consultation_id: string
+          created_at?: string
+          duration_sec?: number | null
+          egress_id: string
+          ended_at?: string | null
+          expires_at: string
+          file_path?: string | null
+          id?: string
+          started_at?: string
+          started_by?: string | null
+          status?: string
+        }
+        Update: {
+          audio_only?: boolean
+          consultation_id?: string
+          created_at?: string
+          duration_sec?: number | null
+          egress_id?: string
+          ended_at?: string | null
+          expires_at?: string
+          file_path?: string | null
+          id?: string
+          started_at?: string
+          started_by?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "consultation_recordings_consultation_id_fkey"
+            columns: ["consultation_id"]
+            isOneToOne: false
+            referencedRelation: "consultation_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       consultation_sessions: {
         Row: {
           ai_summary: Json | null

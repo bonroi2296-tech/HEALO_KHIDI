@@ -1,0 +1,67 @@
+# PR 을 「모아서」 머지한다 — 하루 한 번, 오후 3시 창구.
+#
+# 왜: main 커밋은 100% PR 머지이고(2026-07-28 전수 확인), 머지 1건 = 프로덕션 풀빌드 1건이다.
+#     하루 종일 PR 이 하나씩 머지되니 빌드가 하루 18건씩 돌았다. Pro 크레딧 $20 = 월 약 460건치라
+#     이것만으로 예산의 대부분을 먹는다. → 머지를 창구에 모으면, ignoreCommand 의 「최신만 짓는다」
+#     규칙과 맞물려 배치 하나가 빌드 1건으로 접힌다.
+#
+# 쓰는 법: 세션이 PR 을 끝내면 머지하지 말고 `merge-queued` 라벨만 단다.
+#          창구가 하루 하나뿐이라 PR 이 최대 24시간 대기할 수 있다. 그래서
+#          **급한 것(장애·보안·PO 요청)은 라벨 없이 그냥 즉시 머지**한다 — 이 워크플로와 무관.
+#          지금 당장 창구를 열고 싶으면 Actions 탭에서 "Run workflow" (workflow_dispatch).
+
+name: Batch Merge (모아서 머지)
+
+on:
+  schedule:
+    # KST 15:00 (UTC 06:00) — 하루 한 번. PO 결정(2026-07-28): 창구는 하나면 충분하다.
+    - cron: "0 6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: batch-merge
+  cancel-in-progress: false
+
+jobs:
+  merge:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 대기열 PR 머지
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -uo pipefail
+
+          # CLEAN = 충돌 없음 + 필수 검사 전부 통과. 그 외(BLOCKED·DIRTY·BEHIND·UNSTABLE)는 건드리지 않는다.
+          mapfile -t prs < <(gh pr list --repo "$REPO" --label merge-queued --state open \
+            --json number,title,isDraft,mergeStateStatus \
+            --jq '.[] | select(.isDraft == false and .mergeStateStatus == "CLEAN") | .number')
+
+          if [ ${#prs[@]} -eq 0 ]; then
+            echo "머지할 PR 없음 (merge-queued 라벨 + 검사 통과 기준)."
+            gh pr list --repo "$REPO" --label merge-queued --state open \
+              --json number,title,mergeStateStatus \
+              --jq '.[] | "  대기중 #\(.number) \(.title) — 상태: \(.mergeStateStatus)"' || true
+            exit 0
+          fi
+
+          echo "이번 창구에서 머지할 PR ${#prs[@]}건: ${prs[*]}"
+          failed=()
+          for n in "${prs[@]}"; do
+            if gh pr merge "$n" --repo "$REPO" --squash --delete-branch; then
+              echo "✅ #$n 머지"
+            else
+              # 앞 머지 때문에 뒤 PR 이 충돌/구버전이 될 수 있다. 실패는 남겨두고 다음 창구에서 다시.
+              echo "⚠️ #$n 머지 실패 — 라벨 유지, 다음 창구에서 재시도"
+              failed+=("$n")
+            fi
+          done
+
+          echo "---"
+          echo "머지 성공 $(( ${#prs[@]} - ${#failed[@]} ))건 / 실패 ${#failed[@]}건 ${failed[*]:-}"
+          echo "프로덕션 빌드는 ignoreCommand 규칙에 따라 **마지막 커밋 1건만** 돈다."

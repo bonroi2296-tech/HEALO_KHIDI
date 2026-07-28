@@ -22,19 +22,8 @@ export const runtime = "nodejs";
 
 import { NextRequest } from "next/server";
 import { randomBytes } from "node:crypto";
-import {
-  AccessToken,
-  RoomConfiguration,
-  RoomAgentDispatch,
-} from "livekit-server-sdk";
+import { AccessToken } from "livekit-server-sdk";
 import { verifyAndConsumeGuestToken } from "@/lib/auth/guestToken";
-import {
-  isLiveTranslateEnabledServer,
-  TRANSLATOR_AGENT_NAME,
-  ROOM_EMPTY_TIMEOUT,
-  ROOM_DEPARTURE_TIMEOUT,
-  ROOM_MAX_PARTICIPANTS,
-} from "@/lib/consultation/liveTranslate";
 import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
 import { checkRateLimit, getClientIp, getRateLimitHeaders } from "@/lib/rateLimit";
 
@@ -190,22 +179,10 @@ export async function POST(
       canUpdateOwnMetadata: true,
     });
 
-    // ── Gemini Live Translate 에이전트 자동 디스패치 (스위치 뒤, 멱등) ──
-    // 게스트가 먼저 입장해 방을 만드는 경우(초대링크)에도 통역 에이전트가 붙도록.
-    // 스위치 꺼짐이면 무동작 = 기존 동작과 동일.
-    if (isLiveTranslateEnabledServer()) {
-      lkToken.roomConfig = new RoomConfiguration({
-        agents: [
-          new RoomAgentDispatch({
-            agentName: TRANSLATOR_AGENT_NAME,
-            metadata: JSON.stringify({ consultationId }),
-          }),
-        ],
-        emptyTimeout: ROOM_EMPTY_TIMEOUT,
-        departureTimeout: ROOM_DEPARTURE_TIMEOUT,
-        maxParticipants: ROOM_MAX_PARTICIPANTS,
-      });
-    }
+    // ── 통역봇은 여기서 부르지 않는다 (2026-07-28 변경, token 라우트와 동일) ──
+    // 방 생성과 동시에 자동 입장시키던 것을 **버튼을 누를 때만** 부르는 방식으로 옮겼다
+    // (POSTMORTEMS #101 실환자방 무단 입장). 호출 지점 =
+    // `POST /api/khidi/consultation/[id]/interpreter`
 
     const jwt = await lkToken.toJwt();
 

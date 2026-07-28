@@ -23,6 +23,10 @@
     {
       "path": "/api/cron/automation",
       "schedule": "0 16 * * *"
+    },
+    {
+      "path": "/api/cron/purge-recordings",
+      "schedule": "30 17 * * *"
     }
   ],
   "headers": [

@@ -18,6 +18,7 @@ import {
   CarouselLayout,
   VideoTrack,
 } from "@livekit/components-react";
+import { useKrispNoiseFilter } from "@livekit/components-react/krisp";
 import "@livekit/components-styles";
 import "./consultation.css"; // 미트식 발화자 테두리(teal)·1:1 PiP 보정 — LiveKit 기본 덮어쓰기
 import { COPY } from "./_roomCopy";
@@ -59,7 +60,12 @@ import {
   X,
   Users,
   ArrowLeftRight,
+  Circle,
 } from "lucide-react";
+import {
+  isRecordingEnabledClient,
+  RECORDING_ROLES,
+} from "@/lib/consultation/recording";
 import { createSupabaseBrowserClient } from "@/lib/supabase/browser";
 import { useLang } from "@/lib/i18n/LangContext";
 import { useToast } from "@/components/Toast";
@@ -115,11 +121,17 @@ function roleLabel(role, c) {
 // LiveKit 마이크 ON/OFF 를 페이지 레벨 state 로 올린다. 통역 스위치 통일(2026-07-11 PO):
 // 통역 ON + 마이크 ON = 내 말 자막 송신 / 통역 ON + 마이크 OFF = 상대 말 자막만(듣기).
 // 마이크 게이트는 privacy 도 겸함 — 음소거 상태 발화가 자막 텍스트로 방송되지 않게.
-function MicStateBridge({ onChange }) {
-  const { isMicrophoneEnabled } = useLocalParticipant();
+// 내 LiveKit identity 도 같이 올린다 — 통역봇 호출 API 가 «누가 통역을 원하는가»를
+// 참가자 속성으로 기록하는 데 쓴다(봇을 언제 내보낼지 판정). 통역 버튼은 방 컨텍스트
+// 밖(페이지 레벨)에 정의돼 있어 identity 를 직접 못 읽는다 → 이미 있는 이 브릿지에 얹었다.
+function MicStateBridge({ onChange, onIdentity }) {
+  const { isMicrophoneEnabled, localParticipant } = useLocalParticipant();
   useEffect(() => {
     onChange?.(!!isMicrophoneEnabled);
   }, [isMicrophoneEnabled, onChange]);
+  useEffect(() => {
+    if (localParticipant?.identity) onIdentity?.(localParticipant.identity);
+  }, [localParticipant?.identity, onIdentity]);
   return null;
 }
 
@@ -179,6 +191,53 @@ function AudioUnblock({ copy }) {
       <Volume2 size={16} /> {c.tapToEnableAudio}
     </button>
   );
+}
+
+// ── 「녹화 중」 고지 배지 (LiveKitRoom 내부 전용) ──
+// 법적으로도 실무적으로도 **몰래 녹화는 있어선 안 된다.** LiveKit 은 녹화가 시작되면
+// 방의 모든 참가자에게 상태를 알려주므로(`room.isRecording`), 그걸 그대로 화면에 띄운다
+// → 누가 어디서 시작했든 방 안 전원이 즉시 안다. 이 배지를 지우면 그 보장이 깨진다.
+function RecordingBadge({ copy, onChange }) {
+  const room = useRoomContext();
+  const lang = useLang();
+  const c = copy || COPY[lang] || COPY.en;
+  const [on, setOn] = useState(false);
+  useEffect(() => {
+    if (!room) return;
+    const update = () => {
+      const v = !!room.isRecording;
+      setOn(v);
+      onChange?.(v);
+    };
+    update();
+    room.on(RoomEvent.RecordingStatusChanged, update);
+    return () => {
+      room.off(RoomEvent.RecordingStatusChanged, update);
+    };
+  }, [room, onChange]);
+  if (!on) return null;
+  return (
+    <div className="absolute top-3 left-3 z-40 flex items-center gap-1.5 bg-red-600/90 text-white text-[12px] font-semibold px-2.5 py-1.5 rounded-full shadow-lg">
+      <Circle size={9} className="fill-current animate-pulse" />
+      <span>{c.recordingNotice}</span>
+    </div>
+  );
+}
+
+// ── 잡음 제거 (LiveKit Cloud Krisp — LiveKitRoom 내부 전용, 렌더링 없음) ──
+// 왜: 상담 참가자는 사무실·집·차 안에서 들어온다. 배경 소음은 사람 귀뿐 아니라
+//     자막·통역(STT)의 오인식으로 직결된다 → 내 마이크에서 나가는 소리를 먼저 정리한다.
+// 언제 열렸나: LiveKit 유료(Ship) 구독 2026-07-28 — 이 기능은 유료 플랜 전용이라 그전엔 못 썼다.
+// 안전: 켜기 실패(미지원 브라우저·모델 로드 실패)는 조용히 넘어간다 — 통화 자체는 그대로 된다.
+// ⚠️ 통역 에이전트(agents/live-translate)에는 잡음 제거를 넣지 마라 — 양쪽에 겹쳐 걸면
+//    이미 처리된 소리를 또 처리해 음질이 되레 나빠진다(LiveKit 공식 경고). 현재 에이전트엔 없음(확인함).
+function NoiseFilter() {
+  const { setNoiseFilterEnabled } = useKrispNoiseFilter();
+  useEffect(() => {
+    // 마이크가 아직 안 켜졌어도 OK — 훅이 마이크 트랙이 생기는 시점에 알아서 건다.
+    setNoiseFilterEnabled(true).catch(() => {});
+  }, [setNoiseFilterEnabled]);
+  return null;
 }
 
 // ── 마이크 켜기 실패 경고 (LiveKitRoom 내부 전용) ──
@@ -633,7 +692,12 @@ function SubtitleOverlay({
   const boxBase = "w-fit max-w-[min(92%,42rem)] backdrop-blur-sm rounded-lg px-3 py-1.5";
 
   return (
-    <div className="absolute bottom-4 inset-x-0 z-10 pointer-events-none flex flex-col items-center gap-1.5 px-4">
+    // testid: 야간 로봇이 «통역 자막이 실제로 떴나»를 여기 안에서만 본다. 방 UI 가 이미
+    // 사용자 언어라 본문 전체에서 키릴/한글을 찾으면 UI 문구에 걸려 늘 «찾음»이 된다.
+    <div
+      data-testid="subtitle-stack"
+      className="absolute bottom-4 inset-x-0 z-10 pointer-events-none flex flex-col items-center gap-1.5 px-4"
+    >
       {/* 상대방 자막 (DataChannel·청취모드) — 화자 라벨은 본문 앞 인라인(줄 수 절약) */}
       {remoteSubtitles.map((rs) => {
         // 화자 구분 = **사람 단위** 2중 신호: ①색(이름 고정) ②이름 라벨.
@@ -819,6 +883,8 @@ export default function ConsultationRoomPage() {
   // 봇이 방에 없으면(서버 스위치 꺼짐·에이전트 미가동) 켤 수 없고 안내만 띄운다.
   const [voiceOn, setVoiceOn] = useState(false);
   const [agentPresent, setAgentPresent] = useState(false);
+  // 내 LiveKit identity (MicStateBridge 가 채움) — 통역봇 호출 API 에 «누가» 를 알린다.
+  const [myIdentity, setMyIdentity] = useState(null);
   // DC 자막 억제 판정용 ref (콜백 재생성 없이 최신값 읽기)
   const voiceOnRef = useRef(false);
   const agentPresentRef = useRef(false);
@@ -1875,6 +1941,37 @@ export default function ConsultationRoomPage() {
     return t ? { Authorization: `Bearer ${t}` } : null;
   }, [isGuestMode, inviteToken]);
 
+  // ── 녹화 (기본 꺼짐 — PO 지시 2026-07-28 "준비만") ──────────────────────
+  // 스위치가 꺼져 있으면 버튼 자체가 안 뜬다 = 지금 상담방과 동작이 완전히 같다.
+  // 켤 수 있는 사람도 운영자(어드민·코디)뿐 — 환자·게스트 의사에겐 안 보인다.
+  // ⚠️ 위치 주의: 이 컴포넌트는 아래쪽에 조기 return 이 여럿 있다(대기화면·로딩 등).
+  //    훅은 **모든 조기 return 보다 위**에 있어야 한다 — 아래에 두면 어떤 렌더에선 훅이
+  //    실행되고 어떤 렌더에선 안 돼서 리액트가 상태를 뒤섞는다(lint 가 실제로 잡아냈다).
+  const [isRecording, setIsRecording] = useState(false);
+  const [recordingBusy, setRecordingBusy] = useState(false);
+  const toggleRecording = useCallback(async () => {
+    if (recordingBusy) return;
+    setRecordingBusy(true);
+    try {
+      const headers = await getConsultAuthHeaders();
+      if (!headers) return;
+      const res = await fetch(`/api/khidi/consultation/${consultationId}/recording`, {
+        method: "POST",
+        headers: { ...headers, "Content-Type": "application/json" },
+        body: JSON.stringify({ action: isRecording ? "stop" : "start" }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!data.ok) toast.error(c.recordingFailed);
+      // 성공했다고 버튼을 미리 바꾸지 않는다 — 표시는 방의 실제 녹화 상태(RecordingBadge)만
+      // 따른다. 낙관적 갱신을 하면 «켜진 줄 알았는데 안 찍히는»(또는 그 반대) 상태가 생기고,
+      // 녹화에서 그건 곧 «몰래 찍힘»으로 읽힌다.
+    } catch {
+      toast.error(c.recordingFailed);
+    } finally {
+      setRecordingBusy(false);
+    }
+  }, [recordingBusy, isRecording, consultationId, getConsultAuthHeaders, c]);
+
   // ── 클라이언트 오류 자동 보고 (진단 비콘) ──
   // 원격 기기(환자 폰 등)의 연결 실패 원인이 아무 데도 안 남아 진단이 이틀 밀렸던
   // 'invalid token: revoked' 장애(POSTMORTEMS #61) 재발 방지. 실패해도 조용히 무시(UX 영향 0).
@@ -1900,6 +1997,49 @@ export default function ConsultationRoomPage() {
     },
     [consultationId, getConsultAuthHeaders]
   );
+  // ⚠️ 이 훅은 반드시 «조기 return» 보다 위에 있어야 한다. 처음엔 컨트롤 버튼 근처
+  //    (2,800줄대)에 뒀다가 로봇 실행에서 **React #310(훅 개수 불일치)** 으로 방 화면이
+  //    통째로 500 에러가 됐다 — 그 위치엔 `if (loading) return …` 류 조기 return 이 5개 있다.
+  // ── 통역봇 호출/퇴장 요청 (2026-07-28) ──────────────────────────────────
+  // 전에는 이 버튼이 «내 화면 상태»만 바꿨다. 봇은 방이 만들어질 때 자동으로 들어와
+  // 있거나(스위치 켜짐) 영영 안 들어왔다(꺼짐) — 버튼과 실제 봇이 연결돼 있지 않았다.
+  // 이제 켤 때 서버에 봇을 부르고, 끌 때 (남은 사람이 없으면) 내보낸다.
+  const requestInterpreter = useCallback(
+    async (on) => {
+      try {
+        const res = await fetch(
+          `/api/khidi/consultation/${consultationId}/interpreter`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              ...(isGuestMode ? { "X-Guest-Token": inviteToken } : {}),
+            },
+            body: JSON.stringify({ on, identity: myIdentity }),
+          }
+        );
+        const data = await res.json().catch(() => null);
+
+        // 서버가 «기능 꺼짐»이라고 하면 토글을 되돌린다 — 켜진 것처럼 두면
+        // 「눌렀는데 아무 일도 안 일어남」이 된다(2026-07-24~28 실제 상태였음).
+        if (res.ok && data?.enabled === false) {
+          setVoiceOn(false);
+          toast(c.voiceUnavailableMsg);
+          return;
+        }
+        if (!res.ok) throw new Error(data?.error || "request_failed");
+
+        toast.success(on ? (agentPresent ? c.voiceOnMsg : c.voiceOnPendingMsg) : c.voiceOffMsg);
+      } catch (e) {
+        // 호출 실패 = 통역이 안 켜진다. 켜진 척하지 말고 되돌린다.
+        if (on) setVoiceOn(false);
+        toast.error(c.voiceUnavailableMsg);
+        reportClientEvent?.("media_failure", `interpreter dispatch failed: ${e?.message}`);
+      }
+    },
+    [consultationId, isGuestMode, inviteToken, myIdentity, agentPresent, c, reportClientEvent]
+  );
+
   // 선언 위쪽의 이펙트(연결 워치독)에서도 안전하게 쓰도록 ref 로도 노출
   const reportClientEventRef = useRef(null);
   useEffect(() => {
@@ -2777,6 +2917,9 @@ export default function ConsultationRoomPage() {
   const isWaitingScreen =
     !!livekitToken && (admissionStatus === "pending" || admissionStatus === "rejected");
 
+  // 녹화 버튼 표시 여부 — 훅이 아니라 계산값이라 여기 둬도 된다(위 훅들과 달리 순서 무관).
+  const recordingFeatureOn = isRecordingEnabledClient() && RECORDING_ROLES.includes(myRole);
+
   // ── 컨트롤 버튼 (헤더에서 공용 재사용 — 중복 정의 방지) ──
   // 컨트롤 버튼 공통 문법(2026-07-15 PO): 아이콘 위 + 짧은 라벨 아래(모바일 포함 항상 표시) —
   // 아이콘만으론 연령대 높은 사용자가 뜻을 못 알아봄. 상태는 색으로(켜짐 teal / 꺼짐·종료 red).
@@ -2810,16 +2953,15 @@ export default function ConsultationRoomPage() {
           <span className="absolute top-1 right-1 w-2 h-2 bg-yellow-400 rounded-full animate-pulse" />
         )}
       </button>
-      {/* 통역(음성) 토글 — 봇의 통역 음성 듣기 (2026-07-24 PO: 봇 없어도 켤 수 있는 토글로).
-          봇이 방에 아직 없으면 켜두고 대기 → 봇이 들어오면 그때부터 통역 음성이 들린다. */}
+      {/* 통역(음성) 토글 — 켤 때 **그 자리에서 통역봇을 부른다**(2026-07-28 PO 요청:
+          "눌렀을 때만 띡하고 나오고 다시 끄면 사라지게"). 끄면 방에 통역을 원하는 사람이
+          아무도 안 남았을 때만 봇이 나간다. 서버가 «준비 중»(스위치 꺼짐)이라고 답하면
+          토글을 되돌려 빈 약속을 하지 않는다. */}
       <button
         onClick={() => {
           const next = !voiceOn;
-          setVoiceOn(next);
-          // 봇이 없어도 켤 수 있다 — 없을 땐 "들어오면 통역돼요"로 정직하게 안내.
-          toast.success(
-            next ? (agentPresent ? c.voiceOnMsg : c.voiceOnPendingMsg) : c.voiceOffMsg
-          );
+          setVoiceOn(next); // 낙관적 반영 — 버튼이 먹통처럼 보이지 않게
+          requestInterpreter(next);
         }}
         // 야간 로봇 통화가 «통역봇 재실»을 판정할 때 잡는 손잡이. 접근명(«통역»)으로 찾으면
         // 봇이 없을 때 붙는 `···` 배지 때문에 이름이 "통역 ···" 이 되어 **정작 봇이 없는 경우에만
@@ -2839,12 +2981,35 @@ export default function ConsultationRoomPage() {
       >
         <Volume2 size={18} />
         <span>{c.voiceLabel}</span>
+        {/* 봇 대기 배지 — 봇이 방에 들어오면 사라진다. 야간 로봇 통화가 «봇이 실제로
+            들어왔나/나갔나»를 이 배지로 판정한다(토스트는 클릭해야 뜨는데, 이제 클릭 자체가
+            봇을 부르고 내보내므로 토스트로 재실을 물으면 검사가 봇을 쫓아내 버린다 —
+            2026-07-28 첫 프리뷰 실행에서 실제로 그렇게 실패했다). */}
         {!agentPresent && (
-          <span className="absolute -top-1 -right-1 bg-gray-600 text-gray-200 text-[9px] leading-none px-1 py-0.5 rounded-full">
+          <span
+            data-testid="voice-bot-pending"
+            className="absolute -top-1 -right-1 bg-gray-600 text-gray-200 text-[9px] leading-none px-1 py-0.5 rounded-full"
+          >
             ···
           </span>
         )}
       </button>
+      {/* 녹화 토글 — 스위치 ON + 운영자일 때만 존재. 켜져 있으면 방 전원에게 「녹화 중」이 보인다. */}
+      {recordingFeatureOn && (
+        <button
+          onClick={toggleRecording}
+          disabled={recordingBusy}
+          className={`hw-ctrl-btn relative rounded-lg font-medium transition disabled:opacity-50 ${
+            isRecording
+              ? "bg-red-600 hover:bg-red-700 text-white"
+              : "bg-gray-700 hover:bg-gray-600 text-gray-200"
+          }`}
+          title={isRecording ? c.recordStop : c.recordStart}
+        >
+          <Circle size={18} className={isRecording ? "fill-current" : ""} />
+          <span>{c.recordLabel}</span>
+        </button>
+      )}
       {/* 언어 설정 — 자막이 어느 언어로 나올지 바로 설정(PO 2026-07-23: 토글 옆에서 언어 설정). */}
       <button
         onClick={() => setLangSheetOpen(true)}
@@ -3115,7 +3280,7 @@ export default function ConsultationRoomPage() {
               {/* 백그라운드/이탈 시 유령 참가자 방지 — 렌더링 없음 */}
               <PresenceGuard />
               {/* 마이크 상태 → 페이지 state (통역 통일 규칙의 게이트) — 렌더링 없음 */}
-              <MicStateBridge onChange={setMyMicOn} />
+              <MicStateBridge onChange={setMyMicOn} onIdentity={setMyIdentity} />
               {/* DataChannel 수신/송신 브릿지 — 렌더링 없음 */}
               <DataChannelBridge
                 onRemoteSubtitle={handleRemoteSubtitle}
@@ -3155,6 +3320,8 @@ export default function ConsultationRoomPage() {
                 <WaitingForOthers copy={c} />
                 <AloneWatcher onAloneChange={setIsAloneInRoom} />
                 <RoomAudioRenderer />
+                <NoiseFilter />
+                <RecordingBadge copy={c} onChange={setIsRecording} />
                 <AudioUnblock copy={c} />
                 <MicOffBanner
                   failed={micActivationFailed}

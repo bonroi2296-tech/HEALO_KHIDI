@@ -7,7 +7,7 @@ export const PolicyModal = ({ isOpen, onClose, title, content, closeLabel }) => 
     if (!isOpen) return null;
     const label = closeLabel ?? "Close";
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200 text-left">
+        <div className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200 text-left">
             <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[80vh] flex flex-col shadow-2xl">
                 <div className="p-5 border-b border-gray-100 flex justify-between items-center sticky top-0 bg-white rounded-t-2xl z-10">
                     <h3 className="text-lg font-bold text-gray-900">{title}</h3>
