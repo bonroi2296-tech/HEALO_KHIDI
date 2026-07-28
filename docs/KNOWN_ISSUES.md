@@ -1,5 +1,41 @@
 # HEALO KHIDI — 알려진 이슈 / 전수 QA 발견사항
 
+## 🧪 앱을 «어시가 직접» 돌려볼 수 있다 — 절차 (2026-07-28 발견·실증)
+
+> 그동안 「어시는 폰이 없어 앱 검증 불가」로 보고해 왔는데 **틀렸다.** 이 PC 에 안드로이드 SDK·
+> 에뮬레이터·Android Studio 가 다 깔려 있다. 실제로 돌려서 **PO 가 내일 밟았을 사고(앱이 안 열림)를
+> 오늘 잡았다**(반성문 #146). **앱 변경은 PO 폰에 올리기 전에 여기서 먼저 돌린다.**
+
+```bash
+# 1) 설정을 앱에 반영
+npx cap sync android
+# 2) 빌드 (JDK 21 필수 — 안드로이드 스튜디오 번들 JBR 사용)
+cd android && ANDROID_HOME="$LOCALAPPDATA/Android/Sdk"   JAVA_HOME="/c/Program Files/Android/Android Studio/jbr" ./gradlew assembleDebug
+# 3) 에뮬레이터 (기기명 Medium_Phone_API_36 · 안드로이드 16)
+"$LOCALAPPDATA/Android/Sdk/emulator/emulator.exe" -avd Medium_Phone_API_36 -no-snapshot-load -gpu swiftshader_indirect
+# 4) 설치·실행·확인
+adb install -r android/app/build/outputs/apk/debug/app-debug.apk
+adb shell am start -n kr.co.healwith.app/.MainActivity
+adb exec-out screencap -p > 화면.png          # 눈으로 확인
+adb logcat -d | grep Capacitor                # 웹 콘솔·플러그인 호출까지 다 보인다
+adb shell dumpsys window windows | grep -c "Splash Screen kr.co.healwith.app"  # 시작화면 갇힘 감지
+```
+
+**⚠️ 함정 2개**: ①`cd android` 는 다음 명령까지 따라간다(작업 폴더 되돌릴 것) ②`ANDROID_HOME` 없으면
+「SDK location not found」로 실패한다.
+
+**이 방법으로 이번에 실증된 것**
+- ✅ **키보드 문제 해결 확인** — 키보드를 올려도 로그인 폼(입력칸·비밀번호·버튼)이 전부 멀쩡히 보인다.
+- ✅ **푸시 전 경로 실증** — 앱이 FCM 토큰을 발급받아 **실서비스 `device_tokens` 에 저장됨**(로그 시각과 DB 시각 일치).
+- ✅ **상단 안전영역 정상** — 헤더가 상태표시줄 밑에 정확히 앉는다(어시의 「오진 정정」이 실기기로도 맞음).
+- ✅ **앱 링크는 아직 안 걸린다** — `https://healwith.co.kr/login` 을 열면 크롬으로 갔다.
+  `assetlinks.json` 이 실서비스에 없고 시험용 서명이라 검증 불가 → **원인 진단이 맞았다는 확인.**
+- ⚠️ **부분 검증**: 이메일 `com` 유실은 재현 안 됨. 단 자동 입력은 한글 키보드의 «조합» 방식을 안 거치므로
+  **가설을 반증한 게 아니다.** 실기기에서 추가 확인 필요.
+- 🆕 **새 발견(실서비스 웹)**: 콘솔에 CSP 위반 — `Refused to create a worker from 'blob:...'`.
+  `worker-src` 가 지정 안 돼 `script-src` 로 폴백되면서 **Web Worker 생성이 차단**된다
+  (`_next/static/chunks/4073.*.js`). 어느 기능이 죽는지 미확인 → 별도 조사 필요.
+
 ## 📋 스토어 앱 — 고칠 것 전수 목록 (2026-07-28 확정, 이 표가 색인)
 
 > ## ✅ 2026-07-28 수리 완료 (PR #1127) — 아래 표에서 **1·4·7·10·11·12·13·14·15·16·17 + i1·i2·i5 처리됨**

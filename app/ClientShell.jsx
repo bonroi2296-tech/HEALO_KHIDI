@@ -106,6 +106,14 @@ export default function ClientShell({ children, initialLang = "en" }) {
       .catch(() => { /* 네이티브 아님/플러그인 없음 → 무시 */ });
   }, []);
 
+  // 스토어 앱: 웹이 실제로 그려진 순간 시작화면을 걷는다(저속 회선에서 흰 화면 방지).
+  // 설정에도 3초 안전망(launchAutoHide)이 있어, 이게 안 돌아도 앱이 갇히지 않는다.
+  useEffect(() => {
+    import("@/lib/app/hideSplash")
+      .then((m) => m.hideSplashWhenReady())
+      .catch(() => { /* 네이티브 아님 → 무시 */ });
+  }, []);
+
   // 라우트 변경 시 GA4 pageview 1회 발화 (자동 새로고침 원인이던 useSearchParams는 위에서 제거됨 —
   // pathname-only 이펙트는 네비게이션을 유발하지 않아 안전). 동의("all")가 있고 gtag 존재할 때만.
   // ga.ts의 pageview()가 window.gtag 없으면 no-op이라 이중 안전.

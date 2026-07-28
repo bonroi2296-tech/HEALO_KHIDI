@@ -44,16 +44,19 @@ const config: CapacitorConfig = {
   },
   plugins: {
     SplashScreen: {
-      // 라이브 로드라 첫 화면은 «네트워크가 끝나야» 뜬다. 카자흐·러시아 저속 회선에서
-      // 2초 뒤 자동으로 걷히면 흰 화면을 보게 된다 → 자동 숨김을 끄고, 웹이 뜨는 순간
-      // 캡시터가 걷도록 둔다(최대 대기는 launchShowDuration).
-      launchShowDuration: 8000,
-      launchAutoHide: false,
+      // ⚠️ 2026-07-28 에뮬레이터에서 «시작화면이 영영 안 걷혀 앱을 못 쓰는» 사고를 실제로 냈다.
+      //    범인은 `showSpinner: true` — 두 번의 실패/한 번의 성공으로 좁혀진 유일한 변수다.
+      //      실패① launchAutoHide:false + showSpinner:true → 갇힘
+      //      실패② launchAutoHide:true  + showSpinner:true → 갇힘
+      //      성공③ (기본)             + showSpinner:false → 정상
+      //    안드로이드 12+ 의 시스템 시작화면과 겹치면서 안 사라진다.
+      //    **showSpinner 를 켜지 마라. launchAutoHide 를 false 로 두지도 마라.**
+      //
+      //    저속 회선의 흰 화면은 스피너가 아니라 «웹이 준비되면 우리가 걷는 방식»으로 푼다
+      //    → src/lib/app/hideSplash.ts (ClientShell 에서 호출). 이 값은 안전망일 뿐이다.
+      launchShowDuration: 3000,
       backgroundColor: '#0d9488',
-      showSpinner: true,
-      androidSpinnerStyle: 'small',
-      iosSpinnerStyle: 'small',
-      spinnerColor: '#ffffff',
+      showSpinner: false,
       androidScaleType: 'CENTER_CROP',
     },
     StatusBar: {
