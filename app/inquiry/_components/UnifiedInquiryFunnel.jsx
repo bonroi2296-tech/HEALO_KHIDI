@@ -206,16 +206,34 @@ export default function UnifiedInquiryFunnel() {
     allRequiredConsented;
 
   function validateStep1() {
+    // ⚠️ 여기서 막힌 사람 = 「보내려는 의지가 있었는데 못 보낸 사람」 = 가장 아까운 이탈이다.
+    //    예전엔 이 함수가 false 를 돌려주면 그냥 조용히 끝나서 GA 에 흔적이 0이었다
+    //    (제출 이벤트는 검증을 통과한 뒤에만 발화). 즉 「어느 칸이 사람을 막고 있나」를
+    //    영영 알 수 없었다 → 막힌 사유를 남긴다. blocked_by 값이 곧 고칠 대상이다.
     if (!allRequiredConsented) {
+      safeEvent(GA_EVENTS.STEP1_BLOCKED, { blocked_by: "consent" });
       setError(tl("consentRequired", lang));
       return false;
     }
     if (!step1Valid) {
+      safeEvent(GA_EVENTS.STEP1_BLOCKED, {
+        // 전화 국가번호를 안 골랐나, 아니면 다른 필수칸이 비었나 — 원인이 다르면 고칠 것도 다르다.
+        blocked_by: phoneNeedsDial ? "phone_dial" : "required_field",
+        // 어느 칸이 비었는지까지 (여러 개면 쉼표로).
+        missing: [
+          form1.name.trim() ? null : "name",
+          form1.nationality ? null : "nationality",
+          form1.email.trim() ? null : "email",
+          form1.preferredLanguage ? null : "language",
+          form1.cancerType ? null : "cancer_type",
+        ].filter(Boolean).join(",") || null,
+      });
       setError(phoneNeedsDial ? tl("dialRequired", lang) : tl("required", lang));
       return false;
     }
     const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRe.test(form1.email)) {
+      safeEvent(GA_EVENTS.STEP1_BLOCKED, { blocked_by: "email_format" });
       setError(tl("invalidEmail", lang));
       return false;
     }
@@ -229,7 +247,8 @@ export default function UnifiedInquiryFunnel() {
     setSubmitting(true);
     // 「눌렀다」와 「저장됐다」는 다른 사건이다. 예전엔 여기서 성공 이벤트를 쐈는데,
     // 서버가 실패해도 GA 에는 제출 성공으로 찍혀 전환수가 부풀었다(2026-07-28 수정).
-    // → 여기는 시도(분모), 성공 이벤트는 저장 확인 후에만 쏜다.
+    // → 여기는 «검증까지 통과한» 시도. 검증에서 막힌 사람은 위 validateStep1 의
+    //   STEP1_BLOCKED 로 따로 잡힌다(여기까지 못 온다).
     safeEvent(GA_EVENTS.STEP1_ATTEMPTED);
 
     try {

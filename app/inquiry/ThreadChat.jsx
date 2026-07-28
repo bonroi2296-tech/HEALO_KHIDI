@@ -1066,7 +1066,11 @@ export function ThreadChat({ onBack, backLabel } = {}) {
               </button>
               <button
                 type="button"
-                onClick={() => handleSend(t("chat.action.registerMsg", langCode))}
+                onClick={() => {
+                  // AI 상담이 실제로 «문의»를 만들어내는지 — AI 를 계속 키울 근거가 되는 숫자.
+                  ga(GA_EVENTS.CHAT_TO_INQUIRY);
+                  handleSend(t("chat.action.registerMsg", langCode));
+                }}
                 disabled={sending || uploading}
                 className="inline-flex items-center gap-1.5 text-[11px] font-medium text-white bg-teal-700 rounded-xl px-3 py-1.5 hover:bg-teal-800 transition disabled:opacity-50 disabled:cursor-not-allowed"
               >

@@ -176,8 +176,14 @@ export const GA_EVENTS = {
   CHOOSE_CHANNEL: "inquiry_choose_channel",
   /** 폼 1단계 화면 진입 */
   STEP1_STARTED: "inquiry_step1_started",
-  /** 폼 1단계 «전송 버튼을 눌렀다»(성공 여부 무관) — 이탈률 계산용 분모 */
+  /** 폼 1단계 «전송 버튼을 눌러 검증까지 통과»한 시도 — 서버 실패율 계산용 분모 */
   STEP1_ATTEMPTED: "inquiry_step1_attempted",
+  /**
+   * ⭐ 전송을 눌렀는데 «빨간 오류로 못 넘어간» 경우 — { blocked_by, missing }.
+   * 보내려는 의지가 있었는데 우리 폼이 막은 것 = 가장 아까운 이탈이다.
+   * blocked_by 값(consent / required_field / phone_dial / email_format)이 곧 고칠 대상.
+   */
+  STEP1_BLOCKED: "inquiry_step1_blocked",
   /** ⭐ 폼 1단계가 «서버에 실제로 저장됐다» = 핵심 전환 */
   INQUIRY_SUBMITTED: "inquiry_submitted",
   /** 폼 2단계(상세 정보) 화면 진입 */
@@ -217,6 +223,8 @@ export const GA_EVENTS = {
   CHAT_FEEDBACK: "chat_feedback",
   /** AI 대신 사람 코디를 불러달라고 함 (= AI 가 못 푼 질문) */
   CHAT_REQUEST_HUMAN: "chat_request_human",
+  /** AI 상담을 하다가 «접수(문의 등록)»로 넘어감 — AI 가 실제로 문의를 만들어내나 */
+  CHAT_TO_INQUIRY: "chat_to_inquiry",
 
   /** 화면 언어를 바꿈 — { from, to }. 어느 번역을 먼저 손봐야 하는지 알려준다 */
   LANGUAGE_CHANGED: "language_changed",

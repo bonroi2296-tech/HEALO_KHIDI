@@ -130,10 +130,29 @@ GA4 접속 → 왼쪽 아래 **⚙️ 관리(Admin)** 클릭.
 | **AI 상담이 쓸모 있나?** | `chat_started`(열긴 하나) → `chat_message_sent`의 `message_index`(몇 마디 만에 그만두나) → `chat_feedback`(도움 됐나) → `chat_request_human`(AI가 못 푼 비율) |
 | **어느 화면이 문의로 이어지나?** | `view_hospital` / `view_treatment` / `cost_estimated` → `inquiry_submitted` |
 | **어디서 포기하나?** | `inquiry_step1_attempted` vs `inquiry_submitted` (= 서버 실패율) / `inquiry_dropoff`의 `phase` |
+| **⭐ 우리 폼이 사람을 막고 있나?** | `inquiry_step1_blocked`의 `blocked_by` — 「보내려 했는데 빨간 오류로 못 보낸 사람」. `consent`가 많으면 동의 문구가 부담스럽다는 뜻, `required_field`+`missing`이 많으면 그 칸을 없애거나 선택으로 바꿀 것 |
+| **AI 상담이 문의를 만들어내나?** | `chat_to_inquiry` (상담하다 접수로 넘어감) / `inquiry_submitted`의 `from_ai_chat` |
 | **어느 번역을 먼저 손볼까?** | `language_changed`의 `from`→`to`. **`ru`→`en`이 많으면 러시아어 번역이 부족하다는 뜻**(핵심 시장인데 영어로 도망가는 것) |
 | **비용 화면이 쓸모 있나?** | `cost_estimated` (그냥 들렀다 나간 사람과 실제로 조작해본 사람 구분) |
 | **앱이 웹보다 잘 되나?** | 아무 이벤트 + `platform` 쪼개기 |
 | **사람 상담(메신저)이 폼보다 잘 되나?** | `inquiry_choose_channel`의 `channel` → `inquiry_messenger_click` vs `inquiry_submitted` |
+
+## 3-2. **코드로 만들지 마라** — GA4가 공짜로 재주는 것
+
+GA4에는 「향상된 측정(Enhanced measurement)」이라는 스위치가 있다.
+`관리 → 데이터 스트림 → (스트림 클릭) → 향상된 측정` — **켜져 있는지만 확인하면 된다**(보통 기본 켜짐).
+
+이걸 켜두면 아래를 **우리가 코드 한 줄 안 짜도** 자동으로 잰다:
+
+| 자동으로 재주는 것 | 알 수 있는 것 |
+|---|---|
+| 스크롤 90% 도달 | 긴 화면(암종 상세·치료 여정)을 **실제로 끝까지 읽나** |
+| 바깥 링크 클릭 | 우리 사이트 밖으로 나가는 클릭 |
+| 파일 다운로드 | 안내 자료를 받아 가나 |
+| 동영상 시청 | (유튜브 삽입 시) |
+
+**그래서 이런 건 일부러 코드로 안 만들었다.** 직접 만들면 GA가 자동으로 만든 것과
+**두 번 세어져서** 숫자가 두 배로 보인다.
 
 ## 4. 일부러 **안 한** 것 (알고 넘어간 것)
 
