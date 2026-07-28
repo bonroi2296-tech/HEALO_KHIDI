@@ -127,7 +127,14 @@ export async function POST(
     }
 
     // ── 2) 봇 호출 / 퇴장 ────────────────────────────────────────────────
-    const existing = await dispatchClient.listDispatch(room);
+    // ⚠️ **이름으로 걸러야 한다.** `listDispatch` 는 우리가 만든 것뿐 아니라 LiveKit 이 방마다
+    //    자동으로 얹는 **이름 없는(자동 디스패치) 항목**도 같이 돌려준다. 처음엔 «항목이 하나라도
+    //    있으면 이미 부른 것»으로 봤다가, 그 자동 항목 때문에 **실제 호출을 건너뛰고도
+    //    `dispatched:true` 를 답했다**(2026-07-28 로봇 실행: API 200·봇 미입장. 앱 로그만 보면
+    //    성공처럼 보이는 부류라 더 위험했다).
+    const existing = (await dispatchClient.listDispatch(room)).filter(
+      (d) => d.agentName === TRANSLATOR_AGENT_NAME
+    );
 
     if (on) {
       if (existing.length === 0) {
