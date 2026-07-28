@@ -10,7 +10,8 @@ import { t } from "./index";
 const siteUrl = () => process.env.NEXT_PUBLIC_SITE_URL || "https://healwith.co.kr";
 
 // BCP47 표기 (kz→kk) + OG locale 태그
-const HREF_LANG = { en: "en", ko: "ko", ru: "ru", kz: "kk", zh: "zh", ja: "ja" };
+// export: JSON-LD 의 inLanguage 도 같은 표기를 써야 한다(사본 금지 — 내부코드 kz 를 그대로 내보내면 잘못된 언어태그).
+export const HREF_LANG = { en: "en", ko: "ko", ru: "ru", kz: "kk", zh: "zh", ja: "ja" };
 export const OG_LOCALE = { en: "en_US", ko: "ko_KR", ru: "ru_RU", kz: "kk_KZ", zh: "zh_CN", ja: "ja_JP" };
 
 // locale=null 이면 언어화 안 된 요청(내부도구·게스트 등) — 미들웨어가 x-locale 안 붙임.
