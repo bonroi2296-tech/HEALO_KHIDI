@@ -110,9 +110,14 @@ test.describe("야간 로봇 통화 — 2인 실연결 검증", () => {
       ],
     });
 
-    const joinAsRobot = async (name: string) => {
+    // 로봇마다 «다른 언어»로 붙는다 (2026-07-28 PO 지시: 통역까지 확인).
+    //   방 UI 언어 = Accept-Language(= 컨텍스트 locale) 이고, 그 언어가 그대로 LiveKit
+    //   `lang` 속성으로 방에 알려진다 → 통역봇은 그 속성으로 «누구 말을 어느 언어로»를 정한다.
+    //   둘 다 영어면 번역할 게 없어 세션 자체가 안 만들어진다(첫 실행에서 실제로 그랬다).
+    const joinAsRobot = async (name: string, locale: string) => {
       const ctx = await fakeMediaBrowser!.newContext({
         permissions: ["camera", "microphone"],
+        locale,
       });
       const robot = await ctx.newPage();
       // 방 화면이 하얗게/에러로 죽으면 이유가 브라우저 콘솔에만 남는다 — 야간 실행엔 사람이
@@ -130,7 +135,7 @@ test.describe("야간 로봇 통화 — 2인 실연결 검증", () => {
       // 헤더 연결 배지 — 새 방문자 기본 언어(en) 기준, ko 병행 허용
       try {
         await expect(
-          robot.getByText(/Connected|연결됨/).first(),
+          robot.getByText(/Connected|연결됨|Подключено|Қосылды|已连接|接続済み/).first(),
           `${name} 이 연결 배지에 도달하지 못함`
         ).toBeVisible({ timeout: 45_000 });
       } catch (e) {
@@ -148,13 +153,14 @@ test.describe("야간 로봇 통화 — 2인 실연결 검증", () => {
       }
       // 쿠키 동의 배너(fixed z-9999)가 컨트롤 바를 덮어 클릭을 가로챔(리허설 실측).
       // goto 직후엔 아직 안 떠 있어 못 닫음 → 연결 확인 후 최대 5초 기다려 '필수만 동의'로 닫기
-      const cookieBtn = robot.getByRole("button", { name: /Essential Only|필수만/i }).first();
+      const cookieBtn = robot.getByRole("button", { name: /Essential Only|필수만|Только необходимые|Тек қажеттілері|仅必要|必須のみ/i }).first();
       await cookieBtn.click({ timeout: 5_000 }).catch(() => {}); // 배너 없으면(이미 동의) 조용히 통과
       return robot;
     };
 
-    const robotA = await joinAsRobot("E2E-ROBOT-A");
-    const robotB = await joinAsRobot("E2E-ROBOT-B");
+    // A=한국어 화자(가짜 마이크의 WAV 가 한국어다) / B=러시아어 청취자 — 실사용 조합.
+    const robotA = await joinAsRobot("E2E-ROBOT-A", "ko-KR");
+    const robotB = await joinAsRobot("E2E-ROBOT-B", "ru-RU");
 
     // 3) 상호 확인 — 각 로봇 화면에 '상대' 이름 타일이 보여야 진짜 연결
     await expect(
@@ -171,9 +177,9 @@ test.describe("야간 로봇 통화 — 2인 실연결 검증", () => {
     const chatMsg = `robot-chat-${Date.now()}`;
     await robotA.locator('button[aria-label="Toggle chat panel"]').first().click(); // 라벨 유무 무관(구·신 UI 겸용)
     // 패널 기본 탭이 '번역'이라 채팅 입력칸이 안 보임(리허설 실측) → 채팅 탭으로 전환
-    await robotA.getByRole("button", { name: /^(채팅|Chat)$/ }).first().click();
+    await robotA.getByRole("button", { name: /^(채팅|Chat|Чат|聊天|チャット)$/ }).first().click();
     const msgInput = robotA
-      .locator('input[placeholder*="메시지"], input[placeholder*="message" i]')
+      .locator('input[placeholder*="메시지"], input[placeholder*="message" i], input[placeholder*="сообщ" i], input[placeholder*="Хабарлама" i]')
       .first();
     await msgInput.waitFor({ state: "visible", timeout: 10_000 });
     await msgInput.fill(chatMsg);
@@ -183,7 +189,7 @@ test.describe("야간 로봇 통화 — 2인 실연결 검증", () => {
       "로봇A 자기 화면에 보낸 채팅이 안 보임(전송 실패 의심)"
     ).toBeVisible({ timeout: 10_000 });
     await robotB.locator('button[aria-label="Toggle chat panel"]').first().click();
-    await robotB.getByRole("button", { name: /^(채팅|Chat)$/ }).first().click();
+    await robotB.getByRole("button", { name: /^(채팅|Chat|Чат|聊天|チャット)$/ }).first().click();
     await expect(
       robotB.getByText(chatMsg).first(),
       "로봇B 에게 채팅이 전달되지 않음"
@@ -265,24 +271,33 @@ test.describe("야간 로봇 통화 — 2인 실연결 검증", () => {
         botPresent = false;
       }
 
-      // ── 자막(STT→번역) «관측» — 봇을 내보내기 «전»에 본다 ────────────────
-      //   가짜 마이크에 흘리는 건 합성 음성(piper)이라 Gemini STT 가 이 목소리를 얼마나 잘
-      //   받아적는지가 **미검증**이다. 첫날부터 하드 실패로 걸면 «봇은 멀쩡한데 합성음 인식이
-      //   약해서» 매일 밤 빨간불이 뜰 수 있다(가드 신뢰도를 갉아먹는 부류). 며칠치 annotation 을
-      //   보고 실제로 잘 잡히면 그때 expect 로 승격할 것. ← TODO(승격 판단)
-      //   ⚠️ 순서 주의: 통역을 끄면 봇이 나가므로, 자막 관측을 «끄기» 뒤로 두면 항상 못 본다.
+      // ── 통역 자막이 «실제로» 떴는가 — 봇을 내보내기 «전»에 본다 ────────────
+      //   로봇A(ko)가 한국어 WAV 를 말하고 로봇B(ru)가 듣는 조합이므로, 봇이 일하고 있다면
+      //   로봇B 자막 스택에 **키릴 문자**가 떠야 한다. 방 UI 자체가 러시아어라 본문 전체에서
+      //   찾으면 UI 문구에 걸려 늘 «찾음»이 되므로 **자막 스택 안에서만** 본다.
+      //   ⚠️ 순서 주의: 통역을 끄면 봇이 나가므로 이 관측은 반드시 «끄기» 앞이어야 한다.
+      //   ⚠️ 아직 하드 실패로 걸지 않는다 — 합성음(piper) 인식률이 미검증이라 첫날부터
+      //      expect 로 올리면 «봇은 멀쩡한데 합성음이 약해서» 매일 밤 빨간불이 될 수 있다.
       let captionText = "(관측 안 함 — 봇 미입장)";
       if (botPresent) {
-        await robotB.waitForTimeout(12_000); // 합성음이 STT→번역을 한 바퀴 돌 시간
-        captionText = await robotB
-          .locator("body")
-          .innerText()
-          .then((t) => (t.match(/위암|수술|회복|операц|восстанов/) ? "자막 후보 발견" : "자막 못 봄"))
-          .catch(() => "(본문 읽기 실패)");
+        const stack = robotB.getByTestId("subtitle-stack").first();
+        const cyrillic = /[Ѐ-ӿ]{3,}/;
+        const deadline = Date.now() + 60_000;
+        captionText = "자막 못 봄";
+        while (Date.now() < deadline) {
+          const txt = await stack.innerText().catch(() => "");
+          if (cyrillic.test(txt)) {
+            captionText = `자막 뜸: ${txt.replace(/
++/g, " | ").slice(0, 120)}`;
+            break;
+          }
+          await robotB.waitForTimeout(3_000);
+        }
       }
+      console.log(`[robot-call] 통역자막(러시아어) = ${captionText}`);
       test.info().annotations.push({
         type: "interpreter-caption",
-        description: `${captionText} (합성음 STT 관측 — 승격 전 단계)`,
+        description: `${captionText} (ko 화자 → ru 청취자, 합성음 STT)`,
       });
 
       // 끄면 나가는가 — PO 요구사항의 나머지 절반(2026-07-28). 봇이 들어온 경우에만 의미.

@@ -639,7 +639,12 @@ function SubtitleOverlay({
   const boxBase = "w-fit max-w-[min(92%,42rem)] backdrop-blur-sm rounded-lg px-3 py-1.5";
 
   return (
-    <div className="absolute bottom-4 inset-x-0 z-10 pointer-events-none flex flex-col items-center gap-1.5 px-4">
+    // testid: 야간 로봇이 «통역 자막이 실제로 떴나»를 여기 안에서만 본다. 방 UI 가 이미
+    // 사용자 언어라 본문 전체에서 키릴/한글을 찾으면 UI 문구에 걸려 늘 «찾음»이 된다.
+    <div
+      data-testid="subtitle-stack"
+      className="absolute bottom-4 inset-x-0 z-10 pointer-events-none flex flex-col items-center gap-1.5 px-4"
+    >
       {/* 상대방 자막 (DataChannel·청취모드) — 화자 라벨은 본문 앞 인라인(줄 수 절약) */}
       {remoteSubtitles.map((rs) => {
         // 화자 구분 = **사람 단위** 2중 신호: ①색(이름 고정) ②이름 라벨.
