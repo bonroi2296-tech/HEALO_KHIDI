@@ -1,6 +1,6 @@
 import { getTreatmentList } from "@/lib/data/treatments";
 import { getHospitalList } from "@/lib/data/hospitals";
-import { getAllPartnerSlugs } from "@/lib/data/partnerHospitals";
+import { getAllPartnerSlugs, REDIRECTED_PARTNER_SLUGS } from "@/lib/data/partnerHospitals";
 import { LOCALES, DEFAULT_LOCALE } from "@/lib/i18n/config";
 
 const DEFAULT_LIMIT = 1000;
@@ -146,6 +146,10 @@ export default async function sitemap() {
   for (const h of hospitals || []) {
     const slugOrId = h?.slug || h?.id;
     if (!slugOrId) continue;
+    // 면력 지점 4개는 DB에 행이 남아 있지만(/hospitals/immune 이 지점별 리뷰를 조인해 쓴다)
+    // URL 은 next.config.js 가 /hospitals/immune 으로 영구이동시킨다 → 사이트맵에 넣으면
+    // 「리디렉션되는 URL 광고」가 된다(2026-07 GSC 적발). 행은 살리고 URL 만 뺀다.
+    if (REDIRECTED_PARTNER_SLUGS.includes(slugOrId)) continue;
     seenHospitalSlugs.add(String(slugOrId));
     const lastModified = h?.updated_at || h?.created_at || now;
     urls.push(

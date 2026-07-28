@@ -11,7 +11,7 @@ import { test, expect } from "@playwright/test";
 //     주 타겟(ru·kz) 언어 변형이 죽는 회귀도 잡는다(#88 독립 리뷰 지적).
 // 방식: URL의 도메인은 무시하고 경로만 대상 서버(baseURL)로 요청 — 도메인 하드코딩 무관.
 //     네트워크 블립 오탐 방지: URL당 1회 재시도 후에만 실패로 집계.
-test("사이트맵이 광고하는 모든 URL(hreflang 포함)이 살아있다(<400)", async ({ request }) => {
+test("사이트맵이 광고하는 모든 URL(hreflang 포함)이 그 자체로 200 이다(3xx 도 실패)", async ({ request }) => {
   test.setTimeout(420_000); // 약 230 URL, 8개씩 병렬
 
   const res = await request.get("/sitemap.xml");
@@ -26,14 +26,20 @@ test("사이트맵이 광고하는 모든 URL(hreflang 포함)이 살아있다(<
   // (정적 페이지만 있어도 24+이므로, 그보다 적으면 생성 자체가 비정상).
   expect(locs.length, "사이트맵 URL이 비정상적으로 적음 — 생성 실패/퇴화 의심").toBeGreaterThan(20);
 
+  // ⚠️ maxRedirects: 0 — 2026-07-28 보강(POSTMORTEMS #139).
+  // 원래는 리디렉션을 따라간 **최종** 상태를 봐서, 사이트맵이 「딴 데로 보내는 URL」을
+  // 광고해도 200 으로 통과했다. 실제로 면력 지점 4개(×6언어=24 URL)가 /hospitals/immune 으로
+  // 301 되면서 몇 주째 사이트맵에 실렸고, 구글은 「리디렉션이 포함된 페이지 = 색인 안 함」으로
+  // 처리했다. 사이트맵에 실을 URL 은 그 자체가 200 이어야 한다 → 3xx 도 실패로 본다.
   const fetchStatus = async (path: string): Promise<number> => {
     try {
-      const r = await request.get(path, { failOnStatusCode: false, timeout: 60_000 });
+      const r = await request.get(path, { failOnStatusCode: false, timeout: 60_000, maxRedirects: 0 });
       return r.status();
     } catch {
       return -1; // 네트워크 오류 — 재시도 대상
     }
   };
+  const isBad = (status: number) => status === -1 || status >= 300;
 
   const failures: string[] = [];
   const CHUNK = 8;
@@ -42,14 +48,14 @@ test("사이트맵이 광고하는 모든 URL(hreflang 포함)이 살아있다(<
     await Promise.all(
       chunk.map(async (path) => {
         let status = await fetchStatus(path);
-        if (status >= 400 || status === -1) status = await fetchStatus(path); // 블립 1회 재시도
-        if (status >= 400 || status === -1) failures.push(`${status === -1 ? "ERR" : status} ${path}`);
+        if (isBad(status)) status = await fetchStatus(path); // 블립 1회 재시도
+        if (isBad(status)) failures.push(`${status === -1 ? "ERR" : status} ${path}`);
       })
     );
   }
 
   expect(
     failures,
-    `사이트맵이 광고하는 죽은 URL ${failures.length}건:\n${failures.sort().join("\n")}`
+    `사이트맵이 광고하는 죽은/딴 데로 보내는 URL ${failures.length}건 (3xx = 리디렉션도 실패):\n${failures.sort().join("\n")}`
   ).toEqual([]);
 });

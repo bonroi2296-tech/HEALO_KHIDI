@@ -359,8 +359,20 @@ export function getPartnerHospital(slug) {
   return PARTNER_HOSPITALS[slug] || null;
 }
 
+// next.config.js redirects() 가 /hospitals/immune 로 영구이동시키는 지점 slug.
+// URL 을 만들어내는 쪽(사이트맵 등)이 이걸 쓰면 「리디렉션되는 URL 을 사이트맵에 광고」
+// 하게 된다 — 2026-07 GSC «리디렉션이 포함된 페이지» 의 원인. 두 목록은 같이 움직여야 함
+// (어긋나면 check:content §35 가 잡는다).
+export const REDIRECTED_PARTNER_SLUGS = [
+  "immunehospital-magok",
+  "immunehospital-sinchon",
+  "immunehospital-gwangmyeong",
+  "immunehospital-seongdong",
+];
+
+/** 실제로 200 을 내는 제휴 병원 slug (영구이동 대상 제외) */
 export function getAllPartnerSlugs() {
-  return Object.keys(PARTNER_HOSPITALS);
+  return Object.keys(PARTNER_HOSPITALS).filter((s) => !REDIRECTED_PARTNER_SLUGS.includes(s));
 }
 
 export function getAllPartnerHospitals() {

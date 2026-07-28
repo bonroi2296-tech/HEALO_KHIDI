@@ -2215,6 +2215,55 @@ const BACKOFFICE_SHARED = [
           `    확인 안 된 건 경보(🔴/🛑) 대신 📄/📌 로 낮춰라. (반성문 #137)`
       );
     });
+
+// ── §35) 사이트맵이 «리디렉션되는 URL» 을 광고하지 않는가 (2026-07-28, GSC) ────────
+// next.config.js 가 301 로 옮겨버린 slug 를 sitemap 생성부가 계속 뱉고 있었다
+// (면력 지점 4개 × 6언어 = 24 URL). 구글 색인 리포트 «리디렉션이 포함된 페이지» 의 정체.
+// 리디렉션 목록과 URL 생성 목록은 서로를 모르는 두 파일이라 손으로는 계속 어긋난다.
+{
+  try {
+    const cfgSrc = readFileSync(join(ROOT, "next.config.js"), "utf8");
+    const block = /async redirects\(\)\s*\{([\s\S]*?)\n  \},/.exec(cfgSrc);
+    if (!block) {
+      errors.push(`[사이트맵-리디렉션] next.config.js 에서 redirects() 를 못 찾았다 — 이 가드가 무력화됐다. 룰을 고칠 것.`);
+    } else {
+      // source 패턴을 정규식으로. `${b}` 같은 보간부는 «같은 블록에 적힌 slug 리터럴들»로만
+      // 넓힌다(.+ 로 넓히면 /treatments/${s} 가 살아있는 암종 목록까지 삼켜 오탐).
+      const literals = [...block[1].matchAll(/"([a-z0-9][a-z0-9-]*)"/g)].map((m) => m[1]);
+      const anyLiteral = `(?:${literals.join("|")})`;
+      // (:locale 접두 패턴은 언어 prefix 라 경로 비교에서 제외)
+      const sources = [...block[1].matchAll(/source:\s*[`"']([^`"']+)[`"']/g)]
+        .map((m) => m[1])
+        .filter((s) => !s.startsWith("/:locale"))
+        .map((s) => new RegExp("^" + s.replace(/\$\{[^}]+\}/g, anyLiteral) + "$"));
+      const { getAllPartnerSlugs } = await import(
+        pathToFileURL(join(ROOT, "src/lib/data/partnerHospitals.js")).href
+      );
+      const sitemapSrc = readFileSync(join(ROOT, "app/sitemap.js"), "utf8");
+      const advertised = [
+        ...getAllPartnerSlugs().map((s) => [`/hospitals/${s}`, "getAllPartnerSlugs()"]),
+        // app/sitemap.js 정적 목록: localized('/foo') 형태
+        ...[...sitemapSrc.matchAll(/localized\(\s*['"`](\/[^'"`]+)['"`]/g)].map((m) => [m[1], "app/sitemap.js 정적 목록"]),
+      ];
+      // DB에서 오는 병원 slug 는 정적 검사로 볼 수 없다 → 사이트맵이 제외목록을 «쓰는지»만 확인.
+      // (면력 지점은 DB 행이 살아있어서, 이 필터가 빠지면 리디렉션 URL 24개가 되살아난다)
+      if (!/REDIRECTED_PARTNER_SLUGS/.test(sitemapSrc)) {
+        errors.push(
+          `[사이트맵-리디렉션] app/sitemap.js 가 REDIRECTED_PARTNER_SLUGS 를 안 쓴다 → DB에 행이 남은 ` +
+            `영구이동 slug(면력 지점 등)가 사이트맵에 다시 실린다. DB 루프에서 제외할 것.`
+        );
+      }
+      for (const [path, where] of advertised) {
+        if (sources.some((re) => re.test(path))) {
+          errors.push(
+            `[사이트맵-리디렉션] «${path}» 는 next.config.js 가 영구이동시키는데 ${where} 가 아직 사이트맵에 내보낸다 → ` +
+              `구글이 «리디렉션이 포함된 페이지»로 잡는다(색인 안 됨). 그 목록에서 뺄 것(제휴병원이면 REDIRECTED_PARTNER_SLUGS 에 추가).`
+          );
+        }
+      }
+    }
+  } catch (e) {
+    errors.push(`[사이트맵-리디렉션] 검사 실패: ${e.message}`);
   }
 }
 
