@@ -102,6 +102,14 @@ describe("event (공통 파라미터 자동 첨부)", () => {
     vi.stubGlobal("window", {});
     expect(() => event(GA_EVENTS.INQUIRY_SUBMITTED)).not.toThrow();
   });
+
+  it("gtag 이 예외를 던져도 호출한 쪽을 멈추지 않는다 (추적이 화면을 깨뜨리면 안 됨)", () => {
+    // 병원·암종 상세는 «데이터를 불러오는 도중»에 이걸 부른다 → 던지면 그 뒤 로딩이 통째로 멈춘다.
+    vi.stubGlobal("window", { gtag: () => { throw new Error("GA 스크립트 깨짐"); }, location: { href: "https://x/" } });
+    vi.stubGlobal("document", { documentElement: { getAttribute: () => "en" } });
+    expect(() => event(GA_EVENTS.VIEW_HOSPITAL, { hospital_slug: "a" })).not.toThrow();
+    expect(() => pageview("/hospitals/a")).not.toThrow();
+  });
 });
 
 describe("setAnalyticsUser (직원 제외 + 기기 간 연결)", () => {
