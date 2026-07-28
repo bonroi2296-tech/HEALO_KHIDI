@@ -32,7 +32,10 @@ export default function ContentEditorClient() {
   const [msg, setMsg] = useState(null);
   const [confirming, setConfirming] = useState(false);
   const [pending, setPending] = useState([]); // 확인창에 «얼려서» 보여주고 그대로 저장할 목록
-  const [justSaved, setJustSaved] = useState(() => new Set()); // 이번 화면에서 방금 저장한 `키|언어` (배지 즉시 반영용)
+  // 이번 화면에서 저장한 `키|언어` → 고친 언어인가(true) / 기본값으로 되돌렸는가(false).
+  // Set 이 아니라 Map 인 이유: 빈 값 저장(=오버라이드 삭제) 뒤에도 재검색 전까지는
+  // 서버가 준 editedLangs 가 낡아 «고친 언어» 로 남아 있었다(독립 리뷰 지적).
+  const [sessionEdits, setSessionEdits] = useState(() => new Map());
   const dialogRef = useRef();
   const [showLog, setShowLog] = useState(false);
   const [logs, setLogs] = useState([]);
@@ -124,7 +127,11 @@ export default function ContentEditorClient() {
     for (const r of results) m[r.key] = new Set(r.editedLangs || []);
     return m;
   }, [results]);
-  const isEditedLang = (key, lang) => editedByKey[key]?.has(lang) || justSaved.has(`${key}|${lang}`);
+  const isEditedLang = (key, lang) => {
+    const id = `${key}|${lang}`;
+    if (sessionEdits.has(id)) return sessionEdits.get(id); // 이번 화면에서 저장한 것이 서버값보다 최신
+    return !!editedByKey[key]?.has(lang);
+  };
 
   // 확인창을 열 때 목록을 «얼린다». 뒤늦게 도착한 검색(디바운스 300ms + 서버 왕복)이
   // original 을 갈아끼우면 화면의 목록이 읽는 도중 조용히 바뀔 수 있어서 — 얼려두면
@@ -154,9 +161,9 @@ export default function ContentEditorClient() {
           for (const u of updates) n[u.key] = { ...n[u.key], [u.lang]: u.value };
           return { ...p, original: n };
         });
-        setJustSaved((prev) => {
-          const n = new Set(prev);
-          for (const u of updates) (u.value ?? "") === "" ? n.delete(`${u.key}|${u.lang}`) : n.add(`${u.key}|${u.lang}`);
+        setSessionEdits((prev) => {
+          const n = new Map(prev);
+          for (const u of updates) n.set(`${u.key}|${u.lang}`, (u.value ?? "") !== "");
           return n;
         });
         setMsg({ type: "ok", text: `저장됨 (${data.saved}건). 화면에 반영됩니다.` });
@@ -331,7 +338,7 @@ export default function ContentEditorClient() {
                     <div className="text-xs font-medium text-gray-500 pt-2 first:pt-0">{r.section}</div>
                   )}
                   <div className={`bg-white border rounded-xl p-3.5 ${dirty.some((d) => d.key === r.key) ? "border-teal-400" : "border-gray-200"}`}>
-                  <div className="flex items-center gap-2 mb-2">
+                  <div className="flex flex-wrap items-center gap-2 mb-2">
                     <span className="text-xs text-gray-500 truncate">{r.label}</span>
                     {r.matched === false && (
                       <span className="text-[11px] text-gray-500 bg-gray-50 px-2 py-0.5 rounded" title="검색어와 직접 일치하진 않지만 같은 화면 블록이라 함께 표시">같은 블록</span>
@@ -351,6 +358,8 @@ export default function ContentEditorClient() {
                         → 「코디가 직접 고친 언어」를 진하게 표시하고, 눌러서 그 언어로 바로 전환.
                         ⚠️ 처음엔 «내용이 있는 언어»로 칠했다가 버렸다 — 실측(205줄·배지 1,230개)에서
                         빈 언어가 **0개**라 전부 진하게 떠서 아무것도 구분하지 못했다(가드는 기본 상태에서 조용해야 한다). */}
+                    {/* tabIndex=-1: 줄당 6개 × 최대 120줄 = 탭 정거장 720개가 저장 버튼 앞에 생긴다.
+                        키보드 사용자는 맨 위 「편집 언어」 도구줄로 같은 일을 할 수 있으므로 이 배지는 마우스 전용(독립 리뷰 지적). */}
                     <div className="ml-auto flex items-center gap-0.5 flex-shrink-0">
                       {LANGS.map((l) => {
                         const edited = isEditedLang(r.key, l);
@@ -359,10 +368,16 @@ export default function ContentEditorClient() {
                           <button
                             key={l}
                             onClick={() => pickLang(l)}
-                            title={`${LANG_LABEL[l]} — ${edited ? "코디가 직접 고친 언어" : "기본 문구 그대로"} · 누르면 이 언어를 편집합니다`}
+                            type="button"
+                            tabIndex={-1}
+                            aria-pressed={now}
+                            aria-label={`${LANG_LABEL[l]} — ${now ? "지금 편집 중" : edited ? "직접 고친 언어" : "기본 문구 그대로"} · 누르면 이 언어를 편집합니다`}
+                            title={`${LANG_LABEL[l]} — ${now ? "지금 편집 중" : edited ? "코디가 직접 고친 언어" : "기본 문구 그대로"} · 누르면 이 언어를 편집합니다`}
                             className={`text-[10px] leading-none px-1.5 py-1 rounded transition-colors ${
                               now
-                                ? "bg-teal-700 text-white font-bold"
+                                // 지금 편집 중이면서 «고친 언어» 이면 테두리를 더해 두 정보를 동시에 보인다
+                                // (독립 리뷰 지적: 현재 언어 배지가 고친 여부를 가리고 있었다)
+                                ? `bg-teal-700 text-white font-bold${edited ? " ring-1 ring-teal-300" : ""}`
                                 : edited
                                   ? "text-teal-700 bg-teal-50 font-semibold hover:bg-teal-100"
                                   : "text-gray-500 hover:bg-gray-100"
