@@ -14,7 +14,7 @@ import { GoogleMapComponent } from "@/components/GoogleMap";
 import { t, LANG_OPTIONS } from "@/lib/i18n";
 import { useLang } from "@/lib/i18n/LangContext";
 import { formatDate } from "@/lib/i18n/format";
-import { event } from "@/lib/ga";
+import { event, GA_EVENTS } from "@/lib/ga";
 
 // 병원 이미지 폴더 규칙: /images/hospitals/<slug>/1~5.jpg (1=메인, 2~5=서브)
 const PLACEHOLDER_IMG = "/images/hospitals/_coming-soon.svg?v=3";
@@ -193,7 +193,7 @@ export const HospitalDetailPage = ({ selectedId, setView, onTreatmentClick, init
         catch (e) { console.warn("mapHospitalRow failed, using raw:", e); h = hRow; }
 
         setHospital(h);
-        event("view_hospital", { hospital_slug: h?.slug || null, lang: langCode });
+        event(GA_EVENTS.VIEW_HOSPITAL, { hospital_slug: h?.slug || null, lang: langCode });
 
         const { data: tRows, error: tErr } = await supabase
           .from("treatments")

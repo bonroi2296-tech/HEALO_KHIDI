@@ -3,7 +3,7 @@
 import { usePathname } from "next/navigation";
 import Script from "next/script";
 import { useEffect, useState } from "react";
-import { hasAnalyticsConsent, GA_ID } from "@/lib/ga";
+import { hasAnalyticsConsent, GA_ID, initDebugMode } from "@/lib/ga";
 
 /**
  * healwith: Analytics 래퍼 (GA4 + Yandex Metrica)
@@ -37,6 +37,10 @@ export default function AnalyticsWrapper() {
     window.addEventListener("cookie-consent-granted", onGranted);
     return () => window.removeEventListener("cookie-consent-granted", onGranted);
   }, []);
+
+  // GA4 「DebugView」 스위치(?ga_debug=1). 스크립트를 짜기 전에 확정돼야 config 에 얹을 수 있다.
+  const [debugOn, setDebugOn] = useState(false);
+  useEffect(() => { setDebugOn(initDebugMode()); }, []);
 
   // 환경/경로 게이트 (동의와 무관한 부분)
   const envOk = isProduction && !isAdminPath;
@@ -93,12 +97,14 @@ export default function AnalyticsWrapper() {
             }}
           />
           {/* send_page_view:true → 랜딩(첫 진입) 조회를 GA가 자동 1회 집계.
-              이후 SPA 페이지 이동은 ClientShell의 pageview()가 처리(같은 경로 중복 가드 있음). */}
+              이후 SPA 페이지 이동은 ClientShell의 pageview()가 처리(같은 경로 중복 가드 있음).
+              debug_mode → ?ga_debug=1 로 연 탭에서만 true. GA4 「DebugView」에 실시간으로 뜬다.
+              config 단계에서 켜야 이후 이벤트 전체에 걸린다(이벤트별로도 한 번 더 붙임 — ga.ts). */}
           <Script id="ga-init" strategy="lazyOnload">
             {`window.dataLayer = window.dataLayer || [];
 function gtag(){dataLayer.push(arguments);}
 gtag('js', new Date());
-gtag('config', '${gaId}', { send_page_view: true });`}
+gtag('config', '${gaId}', { send_page_view: true${debugOn ? ", debug_mode: true" : ""} });`}
           </Script>
         </>
       )}

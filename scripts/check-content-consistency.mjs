@@ -2344,6 +2344,66 @@ const BACKOFFICE_SHARED = [
   }
 }
 
+// ── [분석누락] GA4 «조용히 버려지는» 부류 차단 (POSTMORTEMS #145, 2026-07-28) ──
+//
+// 왜 자동검사인가: 분석(GA4)은 «틀려도 화면이 멀쩡하다». 빌드도 통과하고 404 도 안 나고
+// 사용자도 아무 불편이 없다 — 숫자만 조용히 틀린다. 사람 눈으로는 몇 달을 못 잡는 부류라
+// 기계가 잡아야 한다. 두 가지를 본다.
+{
+  const CSP_REQUIRED = [
+    ["https://*.google-analytics.com", "GA4 지역 라우팅(region1~N.google-analytics.com) 수집 요청"],
+    ["https://*.analytics.google.com", "GA4 일부 구성의 수집 요청"],
+  ];
+  try {
+    const cfg = readFileSync(join(ROOT, "next.config.js"), "utf8");
+    // 주석에도 "connect-src" 라는 말이 나오므로 «실제 지시문 줄»만 고른다
+    // (문자열 리터럴 시작 = 따옴표 + connect-src). 주석 줄을 잡으면 항상 오탐이 난다.
+    const connectLine = cfg
+      .split(/\r?\n/)
+      .find((l) => /["'`]connect-src\s/.test(l));
+    if (!connectLine) {
+      errors.push(`[분석누락] next.config.js 에서 CSP connect-src 줄을 못 찾음 — 검사 스크립트 점검 필요`);
+    } else {
+      for (const [host, why] of CSP_REQUIRED) {
+        if (!connectLine.includes(host)) {
+          errors.push(
+            `[분석누락] CSP connect-src 에 ${host} 가 없다 — ${why}이 브라우저에 차단된다. ` +
+              `이 부류는 «데이터 없음»이 아니라 «일부 방문자만 통째로 빠진 숫자»로 보여서 눈으로는 못 잡는다. ` +
+              `next.config.js 의 connect-src 에 추가할 것 (POSTMORTEMS #145)`
+          );
+        }
+      }
+    }
+  } catch (e) {
+    errors.push(`[분석누락] next.config.js 읽기 실패: ${e.message}`);
+  }
+
+  // GA4 는 이벤트 이름이 한 글자만 달라도 «다른 이벤트»로 조용히 쌓인다(오타를 아무도 안 알려줌).
+  // → 이름은 src/lib/ga.ts 의 GA_EVENTS 카탈로그에서만 나오게 강제한다.
+  // walk() 는 ROOT 기준 «상대경로»를 돌려준다(읽을 땐 join(ROOT, …) 필요).
+  const gaCallers = walk("app").concat(walk("src"))
+    .filter((f) => /\.(jsx?|tsx?)$/.test(f) && !/(^|[\\/])archive[\\/]/.test(f));
+  for (const file of gaCallers) {
+    let src = "";
+    try { src = readFileSync(join(ROOT, file), "utf8"); } catch { continue; }
+    // @/lib/ga 의 event() 를 쓰는 파일만 검사 (DOM 이벤트 API 와 헷갈리지 않게)
+    if (!/from ["']@\/lib\/ga["']/.test(src)) continue;
+    const lines = stripCommentsWholeFile(src).split(/\r?\n/);
+    lines.forEach((line, i) => {
+      // safeEvent("...") / event("...") 처럼 이름을 문자열로 직접 타이핑한 경우
+      const m = line.match(/\b(?:safeEvent|event)\(\s*["'`]([a-z0-9_]+)["'`]/i);
+      if (m) {
+        const rel = file.replace(/\\/g, "/");
+        errors.push(
+          `[분석누락] ${rel}:${i + 1} — GA 이벤트 이름 "${m[1]}" 을 문자열로 직접 씀. ` +
+            `오타가 나면 GA4 가 «다른 이벤트»로 조용히 쌓아서 아무도 모른다. ` +
+            `src/lib/ga.ts 의 GA_EVENTS 에 추가하고 상수로 부를 것 (POSTMORTEMS #145)\n    ${line.trim().slice(0, 120)}`
+        );
+      }
+    });
+  }
+}
+
 // ── 결과 ────────────────────────────────────────────────────────
 if (errors.length) {
   console.error(`\n❌ 콘텐츠 일관성 검사 실패 (${errors.length}건)\n`);
