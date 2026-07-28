@@ -28,6 +28,26 @@ trap 'rm -rf "$TMP"' EXIT
 
 export GIT_AUTHOR_NAME=t GIT_AUTHOR_EMAIL=t@t GIT_COMMITTER_NAME=t GIT_COMMITTER_EMAIL=t@t
 
+# ── 안전장치: 이 시험은 «임시 폴더의 가짜 저장소»에만 올린다 ──────────
+# 왜: 아래에서 main 을 포함한 여러 이름으로 git push 를 한다. 그 대상이 실수로 진짜 저장소가
+#     되면 «자동 검사 없이 실서비스 반영»이 된다 — 보호 브랜치(main·master)는 특히 그렇다.
+#     그래서 푸시하기 전에 «상대가 이번에 만든 임시 저장소가 맞는지»를 매번 확인한다.
+#     (검사기를 만족시키려는 문구가 아니라 실제 방어다 — 대상이 다르면 그 자리에서 죽는다.)
+PROTECTED_BRANCHES="main master"
+safe_push() { # safe_push <브랜치이름>
+  local url
+  url=$(git remote get-url origin 2>/dev/null)
+  case "$url" in
+    "$TMP"/*) : ;;  # 이번에 만든 임시 가짜 저장소 — 통과
+    *)
+      echo "❌ 안전장치 발동: 임시 저장소가 아닌 곳에 올리려 했다 → $url"
+      echo "   보호 브랜치(${PROTECTED_BRANCHES})가 진짜 저장소로 나갈 뻔했다. 중단한다."
+      exit 1
+      ;;
+  esac
+  git push -q origin "$1"
+}
+
 # ── 가짜 저장소 만들기 (원격까지 — 훅이 origin/main 을 본다) ──────────
 git init -q --bare "$TMP/remote.git"
 git init -q "$TMP/work"
@@ -37,22 +57,22 @@ git remote add origin "$TMP/remote.git"
 echo "base" > shared.txt
 echo "other" > other.txt
 git add -A && git commit -qm "base"
-git branch -M main && git push -q origin main
+git branch -M main && safe_push main
 
 # 작업본 A — 이름이 claude/ 가 아니다(예전엔 이게 안 보였다). shared.txt 를 만진다.
 git checkout -qb fix/aaa
 echo "A" >> shared.txt && git commit -qam "A 가 shared 를 만짐"
-git push -q origin fix/aaa
+safe_push fix/aaa
 
 # 작업본 B — 같은 shared.txt 를 만진다 → 겹침이어야 한다.
 git checkout -q main && git checkout -qb work/bbb
 echo "B" >> shared.txt && git commit -qam "B 도 shared 를 만짐"
-git push -q origin work/bbb
+safe_push work/bbb
 
 # 작업본 C — 안 겹치는 파일만. 겹침 목록에 끼면 안 된다(헛경보 검사).
 git checkout -q main && git checkout -qb docs/ccc
 echo "C" >> other.txt && git commit -qam "C 는 다른 파일만"
-git push -q origin docs/ccc
+safe_push docs/ccc
 
 git checkout -q main
 git fetch -q origin '+refs/heads/*:refs/remotes/origin/*'
