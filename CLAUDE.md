@@ -165,7 +165,13 @@ npm run dev                # dev 서버는 Turbopack 정상
 ```
 
 - Production: `main` 브랜치 푸시 → Vercel 자동 배포
-- Preview: 다른 브랜치 푸시 → 자동 preview
+- **Preview: 기본 OFF (2026-07-28 PO 승인).** 다른 브랜치를 푸시해도 프리뷰를 안 짓는다.
+  프리뷰 링크가 필요하면 **커밋 제목에 `[preview]`** 를 달아라 (빈 커밋도 됨):
+  ```bash
+  git commit --allow-empty -m "chore: 프리뷰 [preview]" && git push
+  ```
+  왜: 청구 실측(7/23~7/28) 결과 Vercel 요금의 **94%가 빌드 CPU 시간**이었고, 그중 67%가
+  아무도 안 보는 프리뷰였다(5.5일 537배포). 판정 로직 = `scripts/vercel-ignore-build.sh`.
 - OS: Windows 11 / Shell: **PowerShell 이 기본**, bash(Unix syntax)도 사용 가능 — 둘은 문법이 다르니 섞지 말 것
   (2026-07-27 정정: 예전엔 "Shell: bash"만 적혀 있어 실제 환경과 어긋났다. 검사기 정규식이 CRLF 에서만
    오작동하던 것도 이 차이에서 나왔다 — 윈도우에서만 빨간불이 뜨면 줄바꿈부터 의심할 것.)
