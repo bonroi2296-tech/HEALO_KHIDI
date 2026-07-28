@@ -10,8 +10,12 @@
  *   3. 성공 → status='sent', sent_at=now()
  *   4. 실패 → attempts++, last_error 기록, 3회 초과 시 status='failed'
  *
- * 외부 스케줄러: cron-job.org 에서 5분 주기로 이 URL 호출
- * (vercel.json crons 절대 추가 금지 — Hobby 한도)
+ * 실행 주기: **vercel.json 의 정기 작업(cron) 5분** — 2026-07-28 이관.
+ *   예전엔 외부 스케줄러(cron-job.org)에 등록해 돌린다고 문서에 적혀 있었으나,
+ *   거기 적힌 주소가 폐기된 옛 도메인이었고 실제로 도는지 확인할 방법이 없었다.
+ *   ("Hobby 한도라 vercel crons 금지"는 Pro 전환으로 낡은 경고 — 2026-07-24)
+ *   외부 스케줄러가 아직 살아 있어도 안전하다: pending 행만 집어 sent 로 바꾸므로
+ *   먼저 도는 쪽이 처리하고 나머지는 0건을 본다.
  */
 
 export const runtime = "nodejs";
@@ -254,11 +258,24 @@ async function dispatchInApp(
   const baseUrl = siteUrl();
   const link = `${baseUrl.replace(/\/$/, "")}/consultation/${row.consultation_session_id}`;
 
+  // ⚠️ 2026-07-28: 이 문구가 **한국어로 박혀 있었다.** 환자는 러시아·카자흐어권인데
+  //    「30분 후 상담 시작」이 한글로 갔다(전수 조사에서 발각). 활성 6개 언어로 분기한다.
+  //    언어는 예약 시 담아둔 payload.lang → 없으면 러시아어(주 타겟)로 폴백.
+  const RL: Record<string, { t: string; b: string }> = {
+    ko: { t: "⏰ 30분 후 상담 시작", b: "곧 원격 상담이 시작됩니다. 지금 입장해 주세요." },
+    ru: { t: "⏰ Консультация через 30 минут", b: "Видеоконсультация скоро начнётся. Пожалуйста, войдите в комнату." },
+    kz: { t: "⏰ 30 минуттан кейін кеңес", b: "Бейнекеңес жақында басталады. Бөлмеге кіріңіз." },
+    en: { t: "⏰ Consultation starts in 30 minutes", b: "Your video consultation is about to begin. Please join the room." },
+    zh: { t: "⏰ 30 分钟后开始会诊", b: "视频会诊即将开始，请进入会诊室。" },
+    ja: { t: "⏰ 30分後に診察開始", b: "オンライン診察がまもなく始まります。ルームに入室してください。" },
+  };
+  const rm = RL[(payload.lang || "").slice(0, 2) === "kk" ? "kz" : payload.lang] || RL.ru;
+
   const { error } = await supabaseAdmin.from("notifications").insert({
     user_id: userId,
     type: "consultation_reminder",
-    title: "⏰ 30분 후 상담 시작",
-    body: `곧 원격 상담이 시작됩니다. 지금 입장해 주세요.`,
+    title: rm.t,
+    body: rm.b,
     link,
     payload: {
       consultation_session_id: row.consultation_session_id,
