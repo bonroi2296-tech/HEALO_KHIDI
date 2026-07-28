@@ -2,7 +2,12 @@
 
 /**
  * 한국 암치료 안내 + 무료 견적 (다국어 6개 언어).
- * ⚠️ 임시: 가격 수치 숨김(2=B). PO 실제 가격 확보 후 금액 복원 예정.
+ * 가격 표시 정책 (2026-07-28 PO 결정으로 갱신 — 옛 메모 "가격 수치 숨김"은 이걸로 대체):
+ *   · **우리 프로그램 가격은 여전히 안 적는다.** PO 가 실제 가격을 확보하기 전까지 「무료 견적」으로만 안내.
+ *   · **다만 심평원(HIRA) 공개 통계 기반 «참고 진료비 범위»는 보여준다.** 우리 가격이 아니라
+ *     한국인·건강보험 기준 공개 통계이며, 외국인은 비급여라 다르다는 면책을 표 바로 아래 붙인다.
+ *   · 이유: 이 페이지에 숫자가 하나도 없어서 "한국 암치료 얼마?"에 답할 수 없었고,
+ *     AI 가시성 측정에서 경쟁사가 유일하게 이긴 항목이 «비용» 질문이었다.
  * 설계: 환자는 질환 + 치료 단계만 고른다 → 그 단계에 무엇이 포함되는지 + "정확한 비용은 무료 상담".
  * 치료 단계 = 우리 실제 케어경로: 진단 → 수술·항암(상급종합) → 면역·재활(한방 보조).
  * 의료 레드라인: 한방 면역·재활은 '보조'(치료/완치 아님).
@@ -13,6 +18,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useLang } from "@/lib/i18n/LangContext";
 import { t } from "@/lib/i18n";
+import { getAllCancerCosts, getDisclaimer, getSourceLabel, formatKRW } from "@/lib/data/hiraCancerCosts";
 
 const PROGRAM_KEYS = ["diagnosis", "surgery", "immune"];
 
@@ -97,6 +103,55 @@ export default function CostCalculatorClient() {
       </section>
 
       <p className="text-xs text-gray-400 leading-relaxed mt-4">{t("costCalc.disclaimer", lang)}</p>
+
+      {/* ── 암종별 참고 진료비 (심평원 공개 통계) ─────────────────────────────
+          왜 이걸 붙였나(2026-07-28, PO 승인): 이 페이지엔 **숫자가 한 개도 없었다.**
+          "한국 암치료 얼마?"라는 질문에 답이 없는 가격 페이지였고, AI 가시성 측정에서
+          경쟁사가 유일하게 우리를 이긴 항목이 «비용» 질문이었다(docs/audit/AEO_VISIBILITY.md).
+          숫자가 HTML 에 있어야 검색·답변엔진이 인용할 수 있다.
+          ⚠️ 이건 **우리가 받는 가격이 아니다.** 심평원 공개 통계(한국인·건강보험 기준)이고,
+             외국인은 비급여라 다르다는 면책을 바로 아래 붙인다(데이터 모듈이 6개 언어로 보유).
+             우리 프로그램 가격은 여전히 «무료 견적»으로만 안내한다(기존 PO 결정 유지). */}
+      <section className="mt-10">
+        <h2 className="text-lg md:text-xl font-bold text-gray-900 mb-1">{t("costCalc.ref.title", lang)}</h2>
+        <p className="text-sm text-gray-500 leading-relaxed mb-4">{t("costCalc.ref.lede", lang)}</p>
+        <div className="overflow-x-auto rounded-xl border border-gray-200">
+          <table className="w-full text-sm min-w-[520px]">
+            <thead>
+              <tr className="bg-gray-50 text-gray-500 text-xs">
+                <th className="text-left font-semibold px-4 py-3">{t("costCalc.ref.cancer", lang)}</th>
+                <th className="text-left font-semibold px-4 py-3">{t("costCalc.ref.surgery", lang)}</th>
+                <th className="text-left font-semibold px-4 py-3">{t("costCalc.ref.chemo", lang)}</th>
+                <th className="text-left font-semibold px-4 py-3">{t("costCalc.ref.radiation", lang)}</th>
+                <th className="text-left font-semibold px-4 py-3">{t("costCalc.ref.stay", lang)}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {getAllCancerCosts().map((c) => (
+                <tr key={c.id} className="border-t border-gray-100">
+                  <th scope="row" className="text-left font-semibold text-gray-900 px-4 py-3">
+                    {c.name[lang] || c.name.en}
+                  </th>
+                  <td className="px-4 py-3 text-gray-600 whitespace-nowrap">
+                    {formatKRW(c.surgery.min, lang)} – {formatKRW(c.surgery.max, lang)}
+                  </td>
+                  <td className="px-4 py-3 text-gray-600 whitespace-nowrap">
+                    {formatKRW(c.chemo.min, lang)} – {formatKRW(c.chemo.max, lang)}
+                  </td>
+                  <td className="px-4 py-3 text-gray-600 whitespace-nowrap">
+                    {formatKRW(c.radiation.min, lang)} – {formatKRW(c.radiation.max, lang)}
+                  </td>
+                  <td className="px-4 py-3 text-gray-600 whitespace-nowrap">
+                    {c.inpatientDays.min}–{c.inpatientDays.max} {t("costCalc.ref.days", lang)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <p className="text-xs text-gray-400 leading-relaxed mt-3">{getDisclaimer(lang)}</p>
+        <p className="text-xs text-gray-400 mt-1">{getSourceLabel(lang)}</p>
+      </section>
 
       {/* 신뢰 포인트 */}
       <section className="mt-10 grid sm:grid-cols-3 gap-4">
