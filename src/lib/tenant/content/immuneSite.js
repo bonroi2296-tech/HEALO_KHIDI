@@ -16,7 +16,11 @@
  *   · 외국인 대상 통역·비자 지원 범위는 **가정**이라 단정형으로 안 썼다.
  */
 
+import { IMMUNE_NAV } from "./immunePages";
+
 export const IMMUNE_SITE = {
+  // 헤더 메뉴 — 병원마다 페이지 구성이 다르므로 목록도 데이터다(판이 고정하지 않는다).
+  nav: IMMUNE_NAV,
   brand: {
     name: {
       ko: "면력한방병원",

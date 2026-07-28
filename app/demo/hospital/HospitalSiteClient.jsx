@@ -8,6 +8,7 @@ export default function HospitalSiteClient({ site, lang }) {
     <HospitalSite
       site={site}
       lang={lang}
+      basePath="/demo/hospital"
       onInquiry={() => {
         const wa = site?.contact?.channels?.whatsapp;
         if (wa) window.open(wa, "_blank", "noopener");

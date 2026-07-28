@@ -24,6 +24,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
+import { HospitalHeader, HospitalFooter } from "./HospitalChrome";
 
 // 판 기본 강조색. 병원마다 `brand.accent` 로 덮어쓴다 — 색은 판이 정하는 게 아니라
 // **그 병원 로고에서 뽑는다**(면력은 로고 SVG 에서 #003D66 이 66회 나왔다).
@@ -71,7 +72,7 @@ function Heading({ children, tone = "dark", size = "lg" }) {
   );
 }
 
-export default function HospitalSite({ site, lang = "en", onInquiry }) {
+export default function HospitalSite({ site, lang = "en", onInquiry, basePath = "" }) {
   const [openFaq, setOpenFaq] = useState(null);
   if (!site) return null;
 
@@ -84,42 +85,8 @@ export default function HospitalSite({ site, lang = "en", onInquiry }) {
 
   return (
     <div className="bg-[#FBF8F3] text-[#16211C] antialiased">
-      {/* ══ 판 자체 헤더 — 병원 사이트지 healwith 사이트가 아니다 ══
-          메뉴를 길게 달지 않는다: 해외 환자용 병원 사이트의 목적은 «상담 요청 하나»이고,
-          메뉴가 많을수록 나갈 길만 늘어난다(dekabi 도 상단 CTA 하나). */}
-      <header className="sticky top-0 z-30 bg-[#FBF8F3]/88 backdrop-blur-md border-b border-black/[0.06]">
-        <div className="max-w-6xl mx-auto px-5 md:px-8 h-16 md:h-[72px] flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3 min-w-0">
-            {site.brand?.logoUrl ? (
-              <img src={site.brand.logoUrl} alt={brandName} className="h-7 md:h-8 w-auto object-contain" />
-            ) : (
-              <span
-                className="text-[17px] md:text-xl font-semibold tracking-tight truncate"
-                style={{ fontFamily: "Georgia, 'Times New Roman', serif", color: accent }}
-              >
-                {brandName}
-              </span>
-            )}
-          </div>
-          <div className="flex items-center gap-3 shrink-0">
-            {site.contact?.phone && (
-              <a
-                href={`tel:${String(site.contact.phone).replace(/[^0-9+]/g, "")}`}
-                className="hidden md:block text-sm text-black/55 hover:text-black/80 transition-colors tabular-nums"
-              >
-                {site.contact.phone}
-              </a>
-            )}
-            <button
-              onClick={onInquiry}
-              className="px-5 py-2.5 rounded-full text-white text-[13px] md:text-sm font-medium transition-transform hover:scale-[1.03]"
-              style={{ backgroundColor: accent }}
-            >
-              {t(site.hero?.primaryCta) || "Consult Now"}
-            </button>
-          </div>
-        </div>
-      </header>
+      {/* 헤더는 속 페이지와 공용(HospitalChrome) — 홈만 다른 헤더면 «다른 사이트»로 읽힌다. */}
+      <HospitalHeader site={site} lang={lang} accent={accent} onInquiry={onInquiry} basePath={basePath} />
 
       {/* ══ 히어로 — 좌우 분할 ══
           ⚠️ 처음엔 «사진 전면 + 어두운 오버레이 + 흰 글자»로 만들었는데 PO 지적: "너무 AI 톤".
@@ -490,18 +457,7 @@ export default function HospitalSite({ site, lang = "en", onInquiry }) {
         {t(site.hero?.primaryCta) || "Consult Now"}
       </button>
 
-      {/* ══ 푸터 — 아는 것만 적는다 ══ */}
-      <footer className="text-white/45 py-12" style={{ backgroundColor: darkTone }}>
-        <div className="max-w-6xl mx-auto px-5 md:px-8 text-[13px] space-y-1.5">
-          <div className="text-white/85 font-medium text-base mb-3" style={{ fontFamily: "Georgia, serif" }}>
-            {brandName}
-          </div>
-          {t(site.contact?.address) && <div>{t(site.contact.address)}</div>}
-          {site.contact?.phone && <div>{site.contact.phone}</div>}
-          {site.contact?.email && <div>{site.contact.email}</div>}
-          {t(site.legalNote) && <div className="pt-3 text-white/30">{t(site.legalNote)}</div>}
-        </div>
-      </footer>
+      <HospitalFooter site={site} lang={lang} darkTone={darkTone} />
     </div>
   );
 }
