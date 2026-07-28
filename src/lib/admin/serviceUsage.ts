@@ -205,15 +205,45 @@ export async function getServiceUsageBoard(now: Date = new Date()): Promise<Serv
       extra.push({ label: "누적 상담방", value: sessionsTotal, unit: "개" });
     } else if (s.id === "vercel" && vercelU.available) {
       kind = "live";
+      const credit = vercelU.includedCreditUsd ?? null;
+      const buildCost = vercelU.estimatedBuildCostUsd ?? 0;
+      // 빌드비가 크레딧의 몇 %인지. 2026-07-28 실측에서 청구액의 94%가 빌드였기 때문에
+      // 이 한 줄이 사실상 «크레딧 얼마나 썼나»의 대리 지표가 된다.
+      const p = credit ? pct(buildCost, credit) : null;
       primary = {
-        label: "이번 달 배포",
-        value: vercelU.deploymentsThisMonth ?? 0,
-        unit: "회",
-        note: "대역폭·함수 사용량은 콘솔",
-        status: "none",
+        label: "이번 주기 빌드비(추정)",
+        value: buildCost,
+        unit: "USD",
+        ...(credit ? { limit: `$${credit} 크레딧` } : {}),
+        pct: p,
+        status: statusOf(p),
+        note: "추정치 — 벤더가 소진액 API 를 안 준다. 정확한 청구는 콘솔에서.",
       };
-      if (vercelU.productionState) {
-        extra.push({ label: "프로덕션 상태", value: vercelU.productionState });
+      if (vercelU.periodStart && vercelU.periodEnd) {
+        extra.push({
+          label: "청구주기(실값)",
+          value: `${vercelU.periodStart.slice(0, 10)} ~ ${vercelU.periodEnd.slice(0, 10)}`,
+        });
+      }
+      if (vercelU.plan) extra.push({ label: "요금제(실값)", value: vercelU.plan });
+      extra.push(
+        {
+          label: "이번 주기 배포",
+          value: vercelU.deploymentsThisPeriod ?? 0,
+          unit: "건",
+          note: `프로덕션 ${vercelU.productionDeployments ?? 0}건`,
+        },
+        {
+          // 스킵 건수 = 배포 스킵 규칙(프리뷰 OFF·문서만·최신 아님)이 실제로 일하고 있다는 증거.
+          // 이 숫자가 0 으로 떨어지면 규칙이 풀렸다는 뜻이다.
+          label: "빌드함 / 건너뜀",
+          value: `${vercelU.builtDeployments ?? 0} / ${vercelU.skippedDeployments ?? 0}`,
+          unit: "건",
+        },
+        { label: "빌드 시간", value: vercelU.buildWallMinutes ?? 0, unit: "분" }
+      );
+      if (vercelU.truncated) {
+        extra.push({ label: "⚠️ 부분집계", value: "배포가 너무 많아 일부만 셌음(실제는 더 큼)" });
       }
     } else if (s.id === "sentry" && sentryU.available) {
       kind = "live";
