@@ -1,5 +1,13 @@
 # HEALO KHIDI — 알려진 이슈 / 전수 QA 발견사항
 
+## 🔸 `hospital`(국내병원) 역할만 **자동 확인 경로가 아예 없다** — 백오피스 화면을 어떤 방법으로도 못 본다 (2026-07-28, 지침 재구성 중 발견)
+
+- **무엇**: `e2e/auth.setup.ts` 는 역할별로 1회 로그인해 세션을 파일로 저장한다(`storageState`). 그런데 `ROLES` 목록에 `patient`·`admin`·`coordinator`·`agency`·`clinic` **5개만** 있고 **`hospital` 이 없다.**
+- **왜 지금 드러났나**: 2026-07-28 핸드오프에 *"`hospital@test.com` 은 첫 화면으로 되돌아가고 `hospital@test.healo.kr` 은 비밀번호를 몰라 `/hospital/profile`·`/hospital/treatments` 를 못 봤다"* 고 적혀 있었다. **계정을 몰라서가 아니라 애초에 목록에 없어서**다 — 계정을 알아내도 자동 확인은 여전히 안 된다.
+- **덤**: `E2E_*` 계정 키가 `.env.example` 에도 없어서, 새로 세팅하는 사람은 이 장치의 존재 자체를 모른다.
+- **고친다면**: ①`ROLES` 에 `["hospital", "E2E_HOSPITAL_EMAIL"]` 추가 ②`e2e/fixtures/auth.ts` 의 `Role` 타입·로그인 경로에 hospital 반영 ③`.env.example` 에 `E2E_*` 키 6개를 주석과 함께 등재 ④병원 계정 1개 발급.
+- **왜 중요한가**: 이게 막혀 있는 동안 국내병원 백오피스는 **"직접 동작 검증 못 함"** 상태로만 보고할 수 있다. 옛 지침의 *"로그인 뒤 화면은 로컬에서 못 연다"* 는 서술이 이 구멍을 덮고 있었다(→ `docs/rules/PREVIEW.md` 에서 정정).
+
 ## 🔸 GA4 가 **실제로 데이터를 보내는지 아직 사람 눈으로 확인 못 했다** (2026-07-28, GA4 정비 [#1131] 직후)
 
 - **무엇**: CSP 구멍·전환 이벤트 정확도·측정 확장을 전부 고쳐 머지했으나, **브라우저로 「진짜 신호가 나가는지」는 못 쟀다.** 이 작업 환경의 외부접속 정책이 자동 브라우저(헤드리스 크로미움)를 막았고, 우회하지 않았다.
@@ -206,7 +214,7 @@
 **B. 🔴 규칙 과적 — 앤트로픽은 반대로 80% 줄였다**
 - 매 세션 자동 주입량 실측: 훅 **60,463 bytes**(192줄), 그중 「PO 취향」 섹션이 **54,817 bytes = 91%**. + `CLAUDE.md` 12,649 · `PO_PREFERENCES.md` 67,109 · `KNOWN_ISSUES.md` 58,277 · `PROJECT_CONTEXT.md` 34,177.
 - 칼럼 ③: 클로드 코드 시스템 프롬프트 **80% 축소해도 코딩 성능 저하 없음**. 촘촘한 규칙·풍부한 예제가 오히려 탐색 범위를 제한. 지침은 주제별 소형 파일로 쪼개 **필요할 때만 로드**(deferred loading). 산문 문서보다 **실제 코드**를 참고자료로 줄 때 이해도가 높음.
-- 규칙 더미에 **죽은 규칙 실재**: `CLAUDE.md` 「프리뷰 팁」의 `preview_screenshot`·`preview_eval`은 현존하지 않는 도구 이름, "Shell: bash"도 현재 환경(PowerShell 기본)과 불일치.
+- 규칙 더미에 **죽은 규칙 실재**: `CLAUDE.md` 「프리뷰 팁」(2026-07-28 `docs/rules/PREVIEW.md` 로 이관)의 `preview_screenshot`·`preview_eval`은 현존하지 않는 도구 이름, "Shell: bash"도 현재 환경(PowerShell 기본)과 불일치.
 - **수리안**: 훅은 핵심 요약만(다음 할 일·열린 브랜치·활성 취향 5~7개), 취향 전문은 필요 시 로드. 산문 취향 → 기계 판독 파일화(`src/lib/completeness/rubric.js`가 이미 그 방식). ⚠️`/doctor`(자동 간소화)는 대화형 터미널 전용 — 어시가 못 돌림, PO가 터미널에서 실행해야 함.
 - ⚠️ **PO 취향 SoR을 건드리는 일이라 착수 전 PO 승인 필요.**
 
@@ -961,7 +969,7 @@ app/api/survey/[token]/route.ts:48
 ---
 
 ## 예방 (적용됨)
-- `CLAUDE.md` 출시 전 self-QA 체크리스트 → service_role 테이블 client 직접 쿼리 금지 명시 (신규 코드 재발 방지)
+- `docs/rules/SELF_QA.md` 「출시 전 self-QA」 체크리스트(2026-07-28 `CLAUDE.md` 에서 이관) → service_role 테이블 client 직접 쿼리 금지 명시 (신규 코드 재발 방지)
 
 ---
 
