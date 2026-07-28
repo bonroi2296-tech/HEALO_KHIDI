@@ -13,16 +13,18 @@
 //   ① 센트리 «성능 추적(pageload 트랜잭션)»은 이제 안 잡힌다. 로딩이 끝난 뒤 켜지니 로딩 자체를
 //      못 잰다. 우리 성능 판단 근거는 Lighthouse 실측이라 실손해가 없다(tracesSampleRate 0.1 은
 //      켜진 뒤의 API 호출·라우팅에 계속 적용된다).
-//   ② 에러 녹화(replay)가 첫 몇 초를 못 담는다. 에러 «보고»는 ①의 버퍼로 온전하지만 그 순간의
-//      «화면 녹화»는 켜진 이후 구간만 남는다.
+//   ② 에러 녹화(replay)가 에러 «직전» 화면을 못 담는다. 에러가 나면 그 순간 켜지므로 보고는
+//      온전하지만, 녹화는 켜진 이후 구간만 남는다.
 const SENTRY_DSN = process.env.NEXT_PUBLIC_SENTRY_DSN;
 const isProd = process.env.NODE_ENV === "production";
 
 if (SENTRY_DSN && typeof window !== "undefined") {
   // ── 1. 임시 수신함: SDK 오기 전 에러를 모아둔다 ──
   const pending = [];
+  const onErrorHooks = []; // 에러가 들어오면 실행할 것들(아래에서 «즉시 켜기»를 붙인다)
   const onError = (e) => {
     if (pending.length < 20) pending.push(e?.error ?? e?.reason ?? e?.message ?? e);
+    onErrorHooks.forEach((fn) => fn());
   };
   window.addEventListener("error", onError);
   window.addEventListener("unhandledrejection", onError);
@@ -100,16 +102,25 @@ if (SENTRY_DSN && typeof window !== "undefined") {
     }
   };
 
-  // 「화면이 다 뜬 뒤(load) → 한가할 때(idle)」 순서로 켠다.
-  // idle 만 걸면 첫 화면 직후 곧바로 실행돼 로딩 구간을 여전히 막는다(실측: TBT 650→590ms 로 제자리).
-  // load 를 먼저 기다리면 이미지·폰트까지 끝난 뒤라, 사용자가 화면을 만지는 구간에 멈칫이 없다.
-  // timeout 5초는 상한 — 바쁜 페이지에서 idle 이 영영 안 와 «에러 수집이 아예 안 켜지는» 것을 막는다.
-  const schedule = () => {
-    if ("requestIdleCallback" in window) window.requestIdleCallback(boot, { timeout: 5000 });
-    else setTimeout(boot, 2000);
+  // 켜는 시점 = 「에러가 났거나 · 사용자가 화면을 만졌거나 · 15초가 지났거나」 중 가장 먼저.
+  //
+  // 왜 이렇게까지 미루나(2026-07-28 프로덕션 실측): 「load 뒤 idle」은 부족했다 — 실서비스는 로딩이
+  // 길어서 idle 이 여전히 측정·체감 구간 안에 들어왔고 TBT 가 329→294ms 로 제자리였다.
+  // 반대로 «에러가 나면 즉시» 켜므로 늦춰서 잃는 것이 없다: 보고할 일이 생긴 순간이 곧 켜는 순간이다.
+  // 사용자가 만지기 시작하면(=페이지를 실제로 쓰기 시작하면) 그때부터는 오류 감시가 붙어 있어야 하므로
+  // 첫 조작도 방아쇠. 아무 일도 없는 방문(대부분·측정 로봇 포함)에서는 15초 뒤 조용히 켜진다.
+  let booted = false;
+  const bootOnce = () => {
+    if (booted) return;
+    booted = true;
+    boot();
   };
-  if (document.readyState === "complete") schedule();
-  else window.addEventListener("load", schedule, { once: true });
+  // 에러가 수신함에 들어오면 곧바로 켠다 — 수신함에 쌓아두기만 하면 이탈 시 통째로 유실된다.
+  onErrorHooks.push(bootOnce);
+  for (const ev of ["pointerdown", "keydown", "touchstart"]) {
+    window.addEventListener(ev, bootOnce, { once: true, passive: true });
+  }
+  setTimeout(bootOnce, 15000);
 }
 
 // 이 파일은 «켜는 일»만 하고 내보낼 게 없다. 다만 정적 import 가 사라져서(센트리를 동적으로 받게
