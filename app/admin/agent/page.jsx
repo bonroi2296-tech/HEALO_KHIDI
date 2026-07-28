@@ -127,7 +127,7 @@ export default function AgentDashboardPage() {
           color="orange"
         />
         <StatCard
-          icon={<AlertTriangle className="text-red-500" size={24} />}
+          icon={<AlertTriangle className="text-red-600" size={24} />}
           label="고위험 증상 알림"
           value={stats.highRiskAlerts}
           color="red"

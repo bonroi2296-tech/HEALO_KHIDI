@@ -1,0 +1,37 @@
+{
+  "base": "https://healwith.co.kr",
+  "label": "clinic",
+  "ts": "2026-07-27T06:11:04.542Z",
+  "scope": "로그인 뒤 화면 (clinic 계정)",
+  "sanityFailed": 0,
+  "totalsByImpact": {
+    "critical": 0,
+    "serious": 0,
+    "moderate": 0,
+    "minor": 0
+  },
+  "incompleteTotal": 0,
+  "byRule": [],
+  "incompleteByRule": {},
+  "pages": [
+    {
+      "path": "/clinic",
+      "renderOk": true,
+      "status": 200,
+      "redirectedTo": null,
+      "renderedNodes": 144,
+      "renderedText": 1453,
+      "ruleViolations": 0,
+      "nodes": 0,
+      "incompleteNodes": 0,
+      "incomplete": [],
+      "byImpact": {
+        "critical": 0,
+        "serious": 0,
+        "moderate": 0,
+        "minor": 0
+      },
+      "rules": []
+    }
+  ]
+}

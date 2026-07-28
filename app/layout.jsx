@@ -1,17 +1,32 @@
 // ✅ 성능 최적화: CSS는 Next.js가 자동으로 최적화하지만, 명시적으로 처리
 import "./globals.css";
 import "./styles/healo-tokens.css";
-import { headers } from "next/headers";
+import { headers, cookies } from "next/headers";
 import Providers from "./providers";
 import ClientShell from "./ClientShell";
 import AnalyticsWrapper from "./AnalyticsWrapper";
 import InstallPrompt from "./InstallPrompt";
 import { localeAlternates, OG_LOCALE, getRequestLocale } from "@/lib/i18n/metadata";
 import { getI18nOverrideMap } from "@/lib/content/i18nOverrides";
-import { applyI18nOverrides } from "@/lib/i18n";
+import { applyI18nOverrides, LANG_OPTIONS } from "@/lib/i18n";
+import { LOCALES } from "@/lib/i18n/config";
+import { i18nInlineScript } from "@/lib/i18n/inlineScript";
 import I18nOverridesApply from "./_components/I18nOverridesApply";
 
 // kz(우리 내부 코드) → kk(BCP47 표준 카자흐 언어코드). <html lang>·hreflang용.
+// Pretendard CDN 기준 주소 — 아래 폰트 미리받기와 dynamic-subset CSS 가 같은 판본을 봐야 한다.
+const PRETENDARD_BASE = "https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9";
+// 폰트 CSS 도 같은 BASE 에서 파생 — 버전을 올려도 미리받기 주소와 «구조적으로» 어긋날 수 없다.
+const PRETENDARD_CSS = `${PRETENDARD_BASE}/dist/web/static/pretendard-dynamic-subset.min.css`;
+
+// 언어별 「히어로 제목이 실제로 내려받는」 woff2 조각 (2026-07-27 프로덕션 실측).
+// 라틴·키릴만 등록 — 한글·한자는 조각이 8~14개라 미리받기 이득보다 낭비가 크다.
+const HERO_FONT_SUBSETS = {
+  en: ["Pretendard-ExtraBold.subset.91.woff2", "Pretendard-Bold.subset.91.woff2", "Pretendard-Bold.subset.88.woff2"],
+  ru: ["Pretendard-ExtraBold.subset.91.woff2", "Pretendard-Bold.subset.91.woff2"],
+  kz: ["Pretendard-ExtraBold.subset.91.woff2", "Pretendard-Bold.subset.91.woff2"],
+};
+
 const HTML_LANG = { en: "en", ko: "ko", ru: "ru", kz: "kk", zh: "zh", ja: "ja" };
 
 // 동적 메타데이터: 정적 필드 + 요청 언어별 hreflang/canonical/OG locale.
@@ -128,13 +143,41 @@ const baseMetadata = {
 };
 
 export default async function RootLayout({ children }) {
-  // 미들웨어가 URL 언어 prefix(/ru/ 등)에서 읽어 x-locale 헤더로 넘긴다.
-  // 없으면(내부도구·prefix 미적용 경로) en. → 서버가 그 언어로 렌더(SEO).
-  const lang = (await headers()).get("x-locale") || "en";
+  // 미들웨어가 URL 언어 prefix(/ru/ 등)에서 읽어 x-locale 헤더로 넘긴다. → 서버가 그 언어로 렌더(SEO).
+  //
+  // x-locale 이 없다 = proxy.ts 의 PUBLIC_PREFIXES 밖. 대부분 포털·토큰 링크·인증 화면이고,
+  // sitemap 에 실리는 URL 은 전부 PUBLIC_PREFIXES 안이라 색인 대상엔 항상 x-locale 이 붙는다
+  // (색인되는데 x-locale 이 없는 예외: /agency·/clinic·/notifications — 아래 SEO 설명 참고).
+  // 그때는 en 으로 굳히지 말고 **쿠키 언어로 서버 렌더**한다 — 안 그러면 러시아어 환자가
+  // /patient 를 열 때 첫 화면이 영어였다가 JS 붙은 뒤 러시아어로 바뀐다(영문 깜빡임,
+  // KNOWN_ISSUES·POSTMORTEMS #133 후속).
+  // SEO 불변인 이유: ①sitemap URL 은 전부 x-locale 이 붙어 이 분기를 안 탄다 ②x-locale 이
+  // 없으면 localeAlternates() 가 null 이라 canonical/hreflang 자체가 안 나간다 ③검색봇은
+  // 쿠키가 없어 en 그대로다.
+  const cookieLang = (await cookies()).get("healo_lang")?.value;
+  // ⚠️ 검증 기준은 **LOCALES(활성 6개)** 다. LANG_OPTIONS(21개)로 검증하면 안 된다 —
+  //    setLangCookie 는 옛 21개 언어를 1년짜리 쿠키로 심었고(vi·ar 등 실제로 남아 있다,
+  //    src/lib/legal/medicalDisclaimer.js 참고), HTML_LANG 매핑은 6개뿐이라
+  //    「본문은 베트남어인데 <html lang="en">」 이 된다. 그 불일치는 브라우저 자동번역을
+  //    부르는 조건이고, 자동번역은 우리가 아직 못 닫은 NotFoundError 8건의 유력 용의자다
+  //    (POSTMORTEMS #133). 6개 밖의 옛 쿠키는 en 으로 떨어뜨리는 게 맞다.
+  const ssrLang = LOCALES.includes(cookieLang) ? cookieLang : null;
+  const lang = (await headers()).get("x-locale") || ssrLang || "en";
   // 코디 콘텐츠 편집 오버라이드: 서버에서 로드 → SSR t() 즉시 반영 + 클라 provider 로 주입.
   // 비면 t() 기존 사전 동작(안 깨짐).
   const i18nOverrides = await getI18nOverrideMap();
   applyI18nOverrides(i18nOverrides);
+
+  // 브라우저에 심을 사전 목록. 21개 언어 통짜를 번들에서 뺀 대신 「필요한 언어만」 넣는다.
+  // 보통 1개. 사용자가 쿠키로 URL 언어와 다른 언어를 골라둔 경우에만 2개 —
+  // LangProvider 가 하이드레이션 후 쿠키 언어로 바꾸므로 그 사전이 없으면 글자가 빈다.
+  // ⚠️ 여기는 위(ssrLang)와 **일부러 기준이 다르다**: 사전 주입 목적이라 21개 전체가 맞다.
+  //    옛 언어 쿠키(vi 등)를 든 사용자도 하이드레이션 뒤엔 LangContext 가 그 언어로 바꾸므로
+  //    그 사전이 없으면 글자가 빈칸이 된다. 서버 렌더 언어(6개)와 혼동 금지.
+  const dictCookieLang = LANG_OPTIONS.some((l) => l.code === cookieLang) ? cookieLang : null;
+  const clientLangs = [lang, dictCookieLang]
+    .filter((v, i, a) => v && a.indexOf(v) === i);
+
   return (
     // suppressHydrationWarning: 브라우저 확장(예: 한글 HWP 뷰어 rhwp 가 data-hwp-extension 주입)이
     // hydration 전에 <html> 속성을 건드려도 경고가 안 뜨게. 확장 종류 무관·안전(루트 태그 한정).
@@ -143,6 +186,18 @@ export default async function RootLayout({ children }) {
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, viewport-fit=cover" />
         <meta name="theme-color" content="#0d9488" />
+        {/* 이 방문자 언어의 사전만 주입 (21개 언어 통짜 = 번들 264KB 를 뺀 대신).
+            t() 는 화면 곳곳에서 동기로 불리므로 React 가 붙기 전에 값이 있어야 한다
+            (나중에 도착하는 방식이면 글자가 빈칸으로 그려졌다 채워진다).
+
+            ⚠️ 왜 「별도 파일 + beforeInteractive」가 아니라 인라인인가 (2026-07-27 실측):
+            별도 파일로 하면 Next 가 head 에 <link rel="preload" as="script"> 를 넣는데
+            이게 High 우선순위라 CSS·히어로 이미지와 첫 화면 대역폭을 다툰다.
+            같은 조건 3안 비교(로컬 프로덕션 빌드, Lighthouse 모바일 3회, FCP 시뮬):
+              외부파일 3894~3942ms / 사전 없음(대조군) 1226~3284ms / 인라인 2440~2482ms.
+            인라인이 외부파일보다 FCP 약 1.45초 빠르고 성능 점수도 3~4점 높았다.
+            되돌리고 싶으면 이 3안 실측부터 다시 하고 판단할 것. */}
+        <script dangerouslySetInnerHTML={{ __html: i18nInlineScript(clientLangs, lang) }} />
         {/* 브랜드 구조화데이터(JSON-LD): "힐위드"를 healwith의 공식 별칭으로 선언 — 네이버·구글 한글 브랜드 검색 매칭 */}
         <script
           type="application/ld+json"
@@ -193,15 +248,39 @@ export default async function RootLayout({ children }) {
           .map((u) => { try { return new URL(u).origin; } catch { return null; } })
           .filter(Boolean)
           .map((origin) => <link key={origin} rel="preconnect" href={origin} crossOrigin="anonymous" />)}
+        {/* ⭐ 히어로 제목이 쓰는 폰트 파일을 미리 받는다 (2026-07-27 실측).
+            문제: 폰트 CSS 를 JS 로 주입하다 보니 브라우저의 미리읽기(preload scanner)가 못 본다.
+            → CSS 를 늦게(VeryLow, ~270ms) 받고 **그 뒤에야** 폰트를 찾아 받는다(~544ms).
+            히어로 제목은 그 폰트가 와야 최종 모양으로 다시 그려지므로 LCP 가 거기까지 밀린다.
+            프로덕션 실측(폰트 파일만 차단): LCP 중앙값 5.9s → 4.1s = 폰트가 약 1.8초를 잡고 있었다.
+            그래서 「그 언어 히어로가 실제로 받는 파일」만 골라 미리 받는다(실측으로 확인한 목록).
+            ⚠️ ko·zh·ja 는 일부러 뺐다 — 한자·한글은 필요한 조각이 8~14개(170KB)라
+               미리받기가 오히려 대역폭 낭비다. 라틴·키릴(핵심 타겟 러·카)만 이득이 확실하다.
+            ⚠️ 파일명은 Pretendard v1.3.9 의 조각 번호다. 버전을 올리면 번호가 달라질 수 있으니
+               PRETENDARD_BASE 를 올릴 땐 이 목록도 실측으로 다시 뽑아라(폰트가 안 와도 화면은 안 깨지고
+               시스템 폰트로 그려질 뿐이라 조용히 이득만 사라진다).
+            ⚠️ 이건 FCP 대책이지 LCP 대책이 아니다 — 실측(프리뷰 A/B 4회): FCP 2451→1645ms,
+               LCP 5345→5294ms(거의 변화 없음). LCP 는 히어로 제목이 웹폰트를 기다리는 구조 자체라
+               별도 결정이 필요하다(KNOWN_ISSUES 참조). */}
+        {(HERO_FONT_SUBSETS[lang] || []).map((f) => (
+          <link
+            key={f}
+            rel="preload"
+            as="font"
+            type="font/woff2"
+            crossOrigin="anonymous"
+            href={`${PRETENDARD_BASE}/packages/pretendard/dist/web/static/woff2-dynamic-subset/${f}`}
+          />
+        ))}
         {/* Pretendard — dynamic-subset(페이지에 쓰인 글리프만 다운로드: 한글 풀폰트 수 MB → 수십 KB)
             + 비차단 로딩(렌더 차단 제거 → FCP/LCP 개선). font-display:swap 이라 폰트 도착 전엔
             시스템 폰트로 즉시 표시(텍스트 안 보임 현상 없음). 느린 CIS 회선 대응. */}
         <noscript>
-          <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-dynamic-subset.min.css" />
+          <link rel="stylesheet" href={PRETENDARD_CSS} />
         </noscript>
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){var l=document.createElement('link');l.rel='stylesheet';l.href='https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard-dynamic-subset.min.css';l.media='print';l.onload=function(){this.media='all'};document.head.appendChild(l)})()`,
+            __html: `(function(){var l=document.createElement('link');l.rel='stylesheet';l.href='${PRETENDARD_CSS}';l.media='print';l.onload=function(){this.media='all'};document.head.appendChild(l)})()`,
           }}
         />
       </head>

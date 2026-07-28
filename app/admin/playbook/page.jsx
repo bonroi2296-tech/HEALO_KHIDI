@@ -237,7 +237,7 @@ export default function PlaybookPage() {
         ))}
         <button
           onClick={fetchList}
-          className="px-2 py-1.5 text-gray-400 hover:text-gray-600 transition"
+          className="px-2 py-1.5 text-gray-500 hover:text-gray-600 transition"
           title="새로고침"
         >
           <RefreshCw size={14} />
@@ -275,7 +275,7 @@ export default function PlaybookPage() {
                 ))
               ) : responses.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="text-center py-12 text-gray-400">
+                  <td colSpan={7} className="text-center py-12 text-gray-600">
                     등록된 응대가 없습니다
                   </td>
                 </tr>
@@ -306,7 +306,7 @@ export default function PlaybookPage() {
                           </span>
                         ))}
                         {(r.case_tags || []).length > 2 && (
-                          <span className="text-[10px] text-gray-400">+{r.case_tags.length - 2}</span>
+                          <span className="text-[10px] text-gray-600">+{r.case_tags.length - 2}</span>
                         )}
                       </div>
                     </td>
@@ -339,7 +339,7 @@ export default function PlaybookPage() {
               <h3 className="text-base font-semibold text-gray-800">상세 보기</h3>
               <button
                 onClick={() => setSelectedId(null)}
-                className="p-1 text-gray-400 hover:text-gray-600 rounded transition"
+                className="p-1 text-gray-500 hover:text-gray-600 rounded transition"
               >
                 <X size={16} />
               </button>

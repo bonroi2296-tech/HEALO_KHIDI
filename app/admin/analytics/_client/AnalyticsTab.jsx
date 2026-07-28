@@ -22,7 +22,7 @@ export const AnalyticsTab = ({ analytics }) => (
         <div className="p-3 bg-teal-50 rounded-xl text-teal-700 w-fit mb-4"><TrendingUp size={24}/></div>
         <p className="text-xs text-gray-500 font-bold uppercase tracking-wider">총 활성 문의 (Active Leads)</p>
         <p className="text-3xl font-black text-gray-900 mt-1 tabular-nums">{analytics.totalLeads} 건</p>
-        <p className="text-[11px] text-gray-400 mt-2">현재까지 접수된 환자 상담 수요</p>
+        <p className="text-[11px] text-gray-500 mt-2">현재까지 접수된 환자 상담 수요</p>
       </div>
 
       {/* Card 2: Top Demand Category */}
@@ -59,10 +59,10 @@ export const AnalyticsTab = ({ analytics }) => (
                 style={{ width: `${t.percent}%` }}
               ></div>
             </div>
-            <p className="text-[10px] text-gray-400 mt-1 text-right tabular-nums">{t.count}건의 활성 문의</p>
+            <p className="text-[10px] text-gray-600 mt-1 text-right tabular-nums">{t.count}건의 활성 문의</p>
           </div>
         ))}
-        {analytics.treatmentTrends.length === 0 && <div className="text-center text-gray-400 py-10">아직 문의 데이터가 없습니다.</div>}
+        {analytics.treatmentTrends.length === 0 && <div className="text-center text-gray-500 py-10">아직 문의 데이터가 없습니다.</div>}
       </div>
 
       {analytics.topTreatment && analytics.topTreatment !== "-" && analytics.treatmentTrends.length > 0 && (

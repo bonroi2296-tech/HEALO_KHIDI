@@ -9,7 +9,7 @@ import {
   MessageCircle, X, ArrowRight, Stethoscope, Building2, Settings,
   FileText, UserCheck, Clock, ShieldCheck, Shield, Sparkles, User, LogOut, Video, KeyRound
 } from 'lucide-react';
-import { getLangCodeFromCookie, setLangCookie, LANG_OPTIONS as I18N_LANG_OPTIONS, LANG_OPTIONS_PRIMARY, t } from "./lib/i18n";
+import { setLangCookie, LANG_OPTIONS as I18N_LANG_OPTIONS, LANG_OPTIONS_PRIMARY, t } from "./lib/i18n";
 import { useLang } from "./lib/i18n/LangContext";
 import { localeSwitchTarget } from "./lib/i18n/config";
 import Logo from "../components/brand/Logo";
@@ -115,7 +115,7 @@ const UserMenu = ({ session, onLogout, langCode, isHospitalUser, isAdmin }) => {
             </a>
             <button
               onClick={() => { setIsOpen(false); onLogout(); }}
-              className="w-full text-left px-4 py-2.5 text-sm hover:bg-red-50 transition-colors flex items-center gap-2.5 text-red-600 font-medium"
+              className="w-full text-left px-4 py-2.5 text-sm hover:bg-red-50 transition-colors flex items-center gap-2.5 text-red-700 font-medium"
             >
               <LogOut size={15} />
               <span>{t("auth.logout", langCode)}</span>
@@ -134,7 +134,9 @@ export const Header = ({ setView, view, _handleGlobalInquiry, isMobileMenuOpen, 
   // user_metadata.role은 클라이언트가 고칠 수 있어 어드민 판정에 사용 금지.
   // 서버측 단일 소스는 app_metadata.role. (ADMIN_EMAIL_ALLOWLIST는 서버에서만 체크)
   const isAdmin = session?.user?.app_metadata?.role === 'admin';
-  const langCode = langCodeProp ?? getLangCodeFromCookie();
+  // 폴백도 렌더 중 쿠키 읽기 금지(서버 'en' vs 브라우저 'ko' → Hydration Error). useLang 은 안전.
+  const ctxLang = useLang();
+  const langCode = langCodeProp ?? ctxLang;
   const langRef = useOutsideClose(isLangOpen, () => setIsLangOpen(false));
   const LANG_OPTIONS = I18N_LANG_OPTIONS;
 
@@ -417,7 +419,7 @@ export const Header = ({ setView, view, _handleGlobalInquiry, isMobileMenuOpen, 
                     <KeyRound size={16} className="text-teal-700" />
                     {CHANGE_PW_LABEL[langCode] || CHANGE_PW_LABEL.en}
                   </a>
-                  <button onClick={() => { onLogout(); setIsMobileMenuOpen(false); }} className="w-full py-2.5 px-4 text-red-600 hover:bg-red-50 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors">
+                  <button onClick={() => { onLogout(); setIsMobileMenuOpen(false); }} className="w-full py-2.5 px-4 text-red-700 hover:bg-red-50 rounded-lg text-sm font-medium flex items-center gap-2 transition-colors">
                     <LogOut size={16} />
                     {t("auth.logout", langCode)}
                   </button>

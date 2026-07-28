@@ -164,15 +164,15 @@ export const InquiryManager = ({ inquiries, fetchInquiries, handleFileClick }) =
         {formatDate(item.created_at, "en")}
       </td>
       <td className="px-4 lg:px-6 py-3 lg:py-4">
-        <div className="font-bold text-gray-400">
+        <div className="font-bold text-gray-500">
           {item.first_name} {item.last_name}
           <span className="ml-2 text-xs bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded">마스킹</span>
         </div>
-        <div className="text-xs text-gray-400">{item.email}</div>
+        <div className="text-xs text-gray-500">{item.email}</div>
       </td>
       <td className="px-4 lg:px-6 py-3 lg:py-4 text-sm text-gray-600">
         <div>{item.treatment_type}</div>
-        <div className="text-xs text-gray-400">{item.contact_method}</div>
+        <div className="text-xs text-gray-500">{item.contact_method}</div>
       </td>
       <td className="px-4 lg:px-6 py-3 lg:py-4 text-sm text-gray-600">
         <div>{item.nationality || '-'}</div>
@@ -201,7 +201,7 @@ export const InquiryManager = ({ inquiries, fetchInquiries, handleFileClick }) =
             {item.first_name} {item.last_name}
             <span className="ml-2 text-[10px] bg-yellow-100 text-yellow-700 px-1.5 py-0.5 rounded">마스킹</span>
           </div>
-          <div className="text-xs text-gray-400 mt-0.5">{item.email}</div>
+          <div className="text-xs text-gray-500 mt-0.5">{item.email}</div>
         </div>
         <StatusBadge status={item.status} />
       </div>
@@ -213,7 +213,7 @@ export const InquiryManager = ({ inquiries, fetchInquiries, handleFileClick }) =
         <div className="text-sm">
           <span className="text-gray-700 font-medium">{item.treatment_type || '-'}</span>
           {item.contact_method && (
-            <span className="text-gray-400 ml-2 text-xs">({item.contact_method})</span>
+            <span className="text-gray-500 ml-2 text-xs">({item.contact_method})</span>
           )}
         </div>
         <button
@@ -236,14 +236,14 @@ export const InquiryManager = ({ inquiries, fetchInquiries, handleFileClick }) =
           <span className="text-[10px] lg:text-xs text-gray-500">
             🔒 목록은 마스킹됩니다
           </span>
-          <button onClick={fetchInquiries} className="p-1.5 hover:bg-gray-100 rounded-lg"><RefreshCw size={18}/></button>
+          <button onClick={fetchInquiries} aria-label="문의 목록 새로고침" className="p-1.5 hover:bg-gray-100 rounded-lg"><RefreshCw size={18}/></button>
         </div>
       </div>
 
       {/* Desktop: Table */}
       <div className="hidden lg:block bg-white rounded-xl border shadow-sm overflow-hidden">
         <table className="w-full text-sm text-left">
-          <thead className="bg-gray-50 text-gray-500 uppercase text-xs">
+          <thead className="bg-gray-50 text-gray-600 uppercase text-xs">
             <tr>
               <th className="px-6 py-3">날짜</th>
               <th className="px-6 py-3">고객 정보</th>
@@ -259,7 +259,7 @@ export const InquiryManager = ({ inquiries, fetchInquiries, handleFileClick }) =
       {/* Mobile: Cards */}
       <div className="lg:hidden space-y-3">
         {inquiries.length === 0 ? (
-          <div className="text-center py-8 text-gray-400 text-sm">문의가 없습니다.</div>
+          <div className="text-center py-8 text-gray-500 text-sm">문의가 없습니다.</div>
         ) : (
           inquiries.map(i => <InquiryCard key={i.id} item={i}/>)
         )}
@@ -276,7 +276,7 @@ export const InquiryManager = ({ inquiries, fetchInquiries, handleFileClick }) =
                   ⚠️ 이 조회는 감사 로그에 기록됩니다
                 </p>
               </div>
-              <button onClick={closeDetailModal} className="text-gray-400 hover:text-gray-600 transition p-1">
+              <button onClick={closeDetailModal} className="text-gray-500 hover:text-gray-600 transition p-1">
                 <X size={22} />
               </button>
             </div>

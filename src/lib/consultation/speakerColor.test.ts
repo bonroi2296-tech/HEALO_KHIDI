@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { speakerColor, SPEAKER_COLORS } from "./speakerColor";
+import { speakerColor, speakerInitial, SPEAKER_COLORS } from "./speakerColor";
 
 describe("speakerColor — 자막 화자 구분(사람 단위)", () => {
   it("같은 화자면 항상 같은 색 (재입장·새로고침에도 안 바뀜)", () => {
@@ -27,11 +27,31 @@ describe("speakerColor — 자막 화자 구분(사람 단위)", () => {
     expect(speakerColor(null)).toBe(SPEAKER_COLORS[0]);
   });
 
-  it("팔레트는 전부 text·border·dot 3종 클래스를 갖는다 (오버레이·기록 패널 공용)", () => {
+  it("팔레트는 오버레이용(text·border·dot)과 기록 패널용(chip·bar)을 다 갖는다", () => {
     for (const c of SPEAKER_COLORS) {
       expect(c.text).toMatch(/^text-/);
       expect(c.border).toMatch(/^border-/);
       expect(c.dot).toMatch(/^bg-/);
+      expect(c.chip).toMatch(/^bg-.+ text-/); // 색 배경 + 어두운 글자
+      expect(c.bar).toMatch(/^bg-/);
     }
+  });
+});
+
+describe("speakerInitial — 기록 패널 아바타 글자", () => {
+  it("구분자가 있으면 두 토막의 머리글자", () => {
+    expect(speakerInitial("healwith_moon")).toBe("HM");
+    expect(speakerInitial("Roy Kang")).toBe("RK");
+  });
+
+  it("한 단어면 앞 두 글자", () => {
+    expect(speakerInitial("Assel")).toBe("AS");
+    expect(speakerInitial("Назерке")).toBe("НА");
+  });
+
+  it("이름이 없으면 물음표 — 화면이 깨지지 않게", () => {
+    expect(speakerInitial("")).toBe("?");
+    expect(speakerInitial(undefined)).toBe("?");
+    expect(speakerInitial(null)).toBe("?");
   });
 });

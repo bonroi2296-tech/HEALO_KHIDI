@@ -19,11 +19,11 @@ const SHOW_HOSPITAL_ASSIGN = false;
 // 병원 리드 응답 상태 색상 (병원이 파트너 화면에서 바꾼 값이 여기로 반영됨).
 // 라벨은 언어 인식(TR.hs_*)으로 옮겼다 — 여기엔 색상 클래스만 둔다.
 const HOSP_STATUS_CLS = {
-  sent: "bg-gray-100 text-gray-500",
+  sent: "bg-gray-100 text-gray-600",
   viewed: "bg-blue-50 text-blue-600",
   replied: "bg-teal-50 text-teal-700",
   converted: "bg-green-100 text-green-700",
-  rejected: "bg-red-50 text-red-600",
+  rejected: "bg-red-50 text-red-700",
 };
 
 // 자기 완결형 로컬 다국어 사전 (6개 언어: ko·en·ru·kz·zh·ja).
@@ -355,11 +355,11 @@ export default function CasesPage() {
       </div>
 
       {loading ? (
-        <div className="py-24 text-center text-gray-400">{t.loading}</div>
+        <div className="py-24 text-center text-gray-500">{t.loading}</div>
       ) : error ? (
-        <div className="py-12 text-center text-red-500">{error}</div>
+        <div className="py-12 text-center text-red-600">{error}</div>
       ) : (data?.cases ?? []).length === 0 ? (
-        <p className="text-sm text-gray-400">{t.empty}</p>
+        <p className="text-sm text-gray-500">{t.empty}</p>
       ) : (
         <div className="space-y-2">
           {data.cases.map((c) => (
@@ -369,11 +369,11 @@ export default function CasesPage() {
                   <div className="text-sm font-semibold text-gray-800 truncate">
                     {c.name} · {nationalityLabelL(c.nationality, lang)} · {cancerTypeLabelL(c.cancer_type, lang)}
                   </div>
-                  <div className="text-xs text-gray-400 truncate">
+                  <div className="text-xs text-gray-500 truncate">
                     {c.agency_name ? `${t.agencyPrefix}${c.agency_name}` : t.directIntake}{c.case_status_note ? ` · ${c.case_status_note}` : ""}
                   </div>
                 </div>
-                <span className={`text-xs px-2 py-1 rounded-full shrink-0 ${c.case_status ? "bg-teal-50 text-teal-700" : "bg-gray-100 text-gray-400"}`}>
+                <span className={`text-xs px-2 py-1 rounded-full shrink-0 ${c.case_status ? "bg-teal-50 text-teal-700" : "bg-gray-100 text-gray-600"}`}>
                   {caseStatusLabelL(c.case_status, lang)}
                 </span>
               </button>
@@ -434,23 +434,23 @@ export default function CasesPage() {
                     {(c.assigned_hospitals ?? []).length > 0 && (
                       <div className="flex flex-wrap gap-1 mb-1.5">
                         {c.assigned_hospitals.map((h) => (
-                          <span key={h.id} className={`text-[11px] px-2 py-0.5 rounded-full ${HOSP_STATUS_CLS[h.status] || "bg-gray-100 text-gray-500"}`}>
+                          <span key={h.id} className={`text-[11px] px-2 py-0.5 rounded-full ${HOSP_STATUS_CLS[h.status] || "bg-gray-100 text-gray-600"}`}>
                             {h.name}: {t[`hs_${h.status}`] || h.status}
                             {(h.quoted_price_min != null || h.quoted_price_max != null) ? ` (${t.quoteLabel} ${h.quoted_price_min ?? "?"}~${h.quoted_price_max ?? "?"})` : ""}
                           </span>
                         ))}
                       </div>
                     )}
-                    <p className="text-[11px] text-gray-400 mb-1.5">{t.hospAssignHelp}</p>
+                    <p className="text-[11px] text-gray-600 mb-1.5">{t.hospAssignHelp}</p>
                     {hospitals.length === 0 ? (
-                      <p className="text-xs text-gray-400">{t.noHospitals}</p>
+                      <p className="text-xs text-gray-500">{t.noHospitals}</p>
                     ) : (
                       <div className="flex flex-wrap gap-1.5">
                         {hospitals.map((h) => {
                           const on = assignSel.includes(h.id);
                           return (
                             <button key={h.id} type="button" onClick={() => toggleHospital(h.id)}
-                              className={`px-2.5 py-1 rounded-full text-xs border transition ${on ? "bg-teal-600 text-white border-teal-600" : "bg-white text-gray-600 border-gray-300 hover:border-teal-400"}`}>
+                              className={`px-2.5 py-1 rounded-full text-xs border transition ${on ? "bg-teal-700 text-white border-teal-600" : "bg-white text-gray-600 border-gray-300 hover:border-teal-400"}`}>
                               {on ? "✓ " : ""}{h.name}
                             </button>
                           );

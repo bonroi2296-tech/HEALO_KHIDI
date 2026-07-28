@@ -56,6 +56,10 @@ const PUBLIC_PREFIXES = [
 function isPublicLocalePath(pathname: string) {
   return PUBLIC_PREFIXES.some((p) => pathname === p || pathname.startsWith(p + "/"));
 }
+
+// 토큰 링크로 «계정 없이» 들어오는 화면. SEO 대상이 아니라 URL 언어화는 안 하지만,
+// 방문자 본인 언어로는 보여야 한다(러/카 환자가 실제로 여는 유일한 화면들).
+const GUEST_LINK_PREFIXES = ["/consultation/", "/survey/"];
 function detectLocale(request: NextRequest) {
   // 직접 고른 언어(healo_lang 쿠키)는 항상 우선 — 다음 방문에도 유지.
   const cookie = request.cookies.get(LOCALE_COOKIE)?.value;
@@ -199,6 +203,30 @@ export async function proxy(request: NextRequest) {
     // 서버는 x-locale(=initialLang)로 ru/kz 렌더하는데 클라 getLangCodeFromCookie 가
     // healo_lang 쿠키를 못 읽으면 en 으로 갈려 hydration mismatch (POSTMORTEMS #77).
     // 아래 일반 로케일 분기(res.cookies.set(LOCALE_COOKIE, seg …))와 동일하게 쿠키를 맞춘다.
+    res.cookies.set(LOCALE_COOKIE, locale, { path: "/", maxAge: 31536000 });
+    return res;
+  }
+
+  // ========================================
+  // 초대 링크(게스트) — 주소에 언어가 없고 쿠키도 없는 «첫 방문 외국인 환자» 구제
+  // ========================================
+  // 문제: 상담방·설문은 SEO 무관이라 URL 언어화(PUBLIC_PREFIXES) 대상이 아니다 → x-locale 이
+  //   안 붙는다. #1047 이 「x-locale 없으면 쿠키 언어」까지는 열어 뒀지만, **초대 링크로 처음
+  //   오는 환자는 쿠키도 없다** → app/layout.jsx 의 마지막 폴백 "en" 으로 떨어졌다.
+  //   실측(2026-07-27 프로덕션): /consultation/… 은 Accept-Language 가 ru·kk·ko 무엇이든
+  //   전부 <html lang="en"> (같은 요청으로 /telemedicine 은 ru·kk 로 정상). 러/카 환자가
+  //   상담방·만족도설문을 영어로 받고 있었다 = 핵심 타겟이 새는 지점.
+  // 고침: 이 두 경로도 detectLocale(쿠키 → Accept-Language(kk→kz) → en)을 태운다.
+  //   감지 장치는 이미 있었고 잘 돈다 — 이 경로만 그 분기를 안 탔을 뿐이다.
+  // ⚠️ 인증 로직엔 영향 없다: 이 두 경로는 원래 아래 분기를 하나도 안 타고
+  //   맨 끝 NextResponse.next() 로 떨어진다(초대토큰 검증은 페이지·API 가 한다).
+  if (GUEST_LINK_PREFIXES.some((p) => pathname.startsWith(p))) {
+    const locale = detectLocale(request);
+    const headers = new Headers(request.headers);
+    headers.set("x-locale", locale);
+    const res = NextResponse.next({ request: { headers } });
+    // 불변식(POSTMORTEMS #77): x-locale 을 주입하는 분기는 healo_lang 쿠키도 같이 심는다.
+    // 안 그러면 서버는 ru 로 그리고 클라는 쿠키가 없어 en 으로 갈려 hydration mismatch.
     res.cookies.set(LOCALE_COOKIE, locale, { path: "/", maxAge: 31536000 });
     return res;
   }

@@ -22,13 +22,13 @@ export function RecipientCard({
     <tr className="border-t border-gray-200">
       <td className="px-4 py-3">{recipient.label}</td>
       <td className="px-4 py-3 font-mono text-sm">
-        {recipient.phone_masked || <span className="text-gray-400">-</span>}
+        {recipient.phone_masked || <span className="text-gray-500">-</span>}
       </td>
       <td className="px-4 py-3 font-mono text-sm">
         {recipient.email ? (
           <span className="text-blue-600">{recipient.email}</span>
         ) : (
-          <span className="text-gray-400">-</span>
+          <span className="text-gray-500">-</span>
         )}
       </td>
       <td className="px-4 py-3 text-center">

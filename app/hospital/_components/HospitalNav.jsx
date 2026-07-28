@@ -68,7 +68,7 @@ export function HospitalNav() {
           </div>
           <button
             onClick={() => setIsMobileOpen(false)}
-            className="lg:hidden p-2 text-gray-400 hover:text-gray-600 rounded-lg"
+            className="lg:hidden p-2 text-gray-500 hover:text-gray-600 rounded-lg"
           >
             <X size={20} />
           </button>
@@ -89,7 +89,7 @@ export function HospitalNav() {
                   : "text-gray-700 hover:bg-gray-50"
               }`}
             >
-              <Icon size={18} className={isActive ? "text-teal-700" : "text-gray-400"} />
+              <Icon size={18} className={isActive ? "text-teal-700" : "text-gray-500"} />
               <span>{item.label}</span>
             </Link>
           );
@@ -106,7 +106,7 @@ export function HospitalNav() {
         </Link>
         <button
           onClick={handleLogout}
-          className="w-full flex items-center gap-3 px-3 lg:px-4 py-2.5 rounded-lg text-sm font-medium text-gray-700 hover:bg-red-50 hover:text-red-600 transition-all min-h-[44px] md:min-h-0"
+          className="w-full flex items-center gap-3 px-3 lg:px-4 py-2.5 rounded-lg text-sm font-medium text-gray-700 hover:bg-red-50 hover:text-red-700 transition-all min-h-[44px] md:min-h-0"
         >
           <LogOut size={18} />
           <span>로그아웃</span>

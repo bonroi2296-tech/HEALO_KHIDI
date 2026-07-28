@@ -11,7 +11,8 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Bell, X } from 'lucide-react';
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser';
-import { getLangCodeFromCookie, t } from '@/lib/i18n';
+import { t } from '@/lib/i18n';
+import { useLang } from '@/lib/i18n/LangContext';
 
 // 상대 시간 (간단) — 외부 라이브러리 없이. 단위 라벨은 중앙 사전(notifBell.ago*).
 function ago(iso, lang) {
@@ -28,7 +29,9 @@ function ago(iso, lang) {
  */
 export default function NotificationBell({ variant = 'fixed' }) {
   const router = useRouter();
-  const lang = getLangCodeFromCookie?.() || 'en';
+  // 렌더 중 쿠키 읽기 금지(서버='en' vs 브라우저='ko' → Hydration Error).
+  // useLang 은 LangProvider(=ClientShell) 하위에서만 올바르다 — 밖이면 조용히 'en'.
+  const lang = useLang();
   const [items, setItems] = useState([]);
   const [open, setOpen] = useState(false);
   const panelRef = useRef(null);
@@ -99,7 +102,7 @@ export default function NotificationBell({ variant = 'fixed' }) {
       >
         <Bell size={isInline ? 17 : 18} className={isInline ? '' : 'text-gray-600'} />
         {unread > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center">
+          <span className="absolute -top-0.5 -right-0.5 min-w-[16px] h-4 px-1 rounded-full bg-red-600 text-white text-[10px] font-bold flex items-center justify-center">
             {unread > 9 ? '9+' : unread}
           </span>
         )}
@@ -119,13 +122,13 @@ export default function NotificationBell({ variant = 'fixed' }) {
                 </button>
               )}
               <button onClick={() => setOpen(false)} className="p-1 rounded-full hover:bg-gray-100">
-                <X size={15} className="text-gray-400" />
+                <X size={15} className="text-gray-500" />
               </button>
             </div>
           </div>
 
           {items.length === 0 ? (
-            <div className="px-4 py-10 text-center text-sm text-gray-400">{t('notifBell.empty', lang)}</div>
+            <div className="px-4 py-10 text-center text-sm text-gray-500">{t('notifBell.empty', lang)}</div>
           ) : (
             <ul className="max-h-96 overflow-auto">
               {items.map((n) => (
@@ -139,7 +142,7 @@ export default function NotificationBell({ variant = 'fixed' }) {
                       <div className="min-w-0 flex-1">
                         <div className="text-sm font-semibold text-gray-900 truncate">{n.title}</div>
                         {n.body && <div className="text-xs text-gray-500 line-clamp-2 mt-0.5">{n.body}</div>}
-                        <div className="text-[10px] text-gray-400 mt-1">{ago(n.created_at, lang)}</div>
+                        <div className="text-[10px] text-gray-500 mt-1">{ago(n.created_at, lang)}</div>
                       </div>
                     </div>
                   </button>

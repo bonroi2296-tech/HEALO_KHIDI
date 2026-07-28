@@ -158,7 +158,7 @@ export default function InquiriesPage() {
               <h3 className="font-bold text-base lg:text-lg">첨부파일 미리보기</h3>
               <button
                 onClick={() => setSelectedFile(null)}
-                className="text-gray-400 hover:text-gray-600 transition"
+                className="text-gray-500 hover:text-gray-600 transition"
               >
                 <X size={24} />
               </button>
@@ -166,7 +166,7 @@ export default function InquiriesPage() {
 
             <div className="flex-1 overflow-auto p-6">
               {previewError ? (
-                <div className="text-center text-red-500">
+                <div className="text-center text-red-600">
                   <p className="mb-4">파일을 불러올 수 없습니다.</p>
                   <a
                     href={selectedFile}

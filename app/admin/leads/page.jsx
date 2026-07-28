@@ -307,7 +307,7 @@ export default function LeadsPage() {
                       ) : lead.quoted_price_min ? (
                         <div>${lead.quoted_price_min.toLocaleString()}+</div>
                       ) : (
-                        <span className="text-gray-400">-</span>
+                        <span className="text-gray-500">-</span>
                       )}
                     </td>
                     <td className="px-4 py-3 text-sm">

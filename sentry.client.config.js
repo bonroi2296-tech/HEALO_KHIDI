@@ -43,6 +43,25 @@ if (SENTRY_DSN) {
         delete event.user.ip_address;
         delete event.user.username;
       }
+
+      // ── 브라우저 자동번역 판별 태그 (2026-07-27) ──
+      // 크롬/엣지 번역기는 페이지 글자를 <font> 로 갈아끼운다 → React 가 자기 노드를 못 찾고
+      // NotFoundError(insertBefore/removeChild)·Hydration Error 로 죽는다. 우리 코드 버그와
+      // 겉모습이 같아서, 이 3개 태그 없이는 사후에 절대 못 가른다(센트리 7/23·7/27 상담방 사고).
+      //   page_translated=yes 면 → 우리 코드 아님, 번역기가 범인.
+      try {
+        const el = document.documentElement;
+        event.tags = {
+          ...event.tags,
+          // 크롬/엣지가 번역을 적용하면 <html> 에 translated-ltr|rtl 이 붙는다
+          page_translated: /\btranslated-(ltr|rtl)\b/.test(el.className) ? "yes" : "no",
+          page_lang: el.lang || "unknown",       // 페이지가 선언한 언어
+          ui_lang: navigator.language || "unknown", // 브라우저 UI 언어 — 둘이 다르면 번역기가 뜬다
+        };
+      } catch {
+        // 태그는 있으면 좋은 것 — 실패해도 에러 보고 자체를 막지 않는다
+      }
+
       return event;
     },
   });

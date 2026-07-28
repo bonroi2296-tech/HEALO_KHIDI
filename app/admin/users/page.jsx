@@ -23,7 +23,7 @@ const TR = {
     toastDeactivated: "비활성화됨", toastActivated: "활성화됨",
     promptResetPwTpl: "{email} 새 임시 비밀번호 (최소 6자):", errMinChars: "최소 6자",
     toastResetDoneTpl: "비밀번호 재설정 완료 — 환자에게 전달: {pw}",
-    sessionTypePre: "사전 상담", sessionTypeFollow: "사후 관리", sessionTypeSecond: "세컨드 오피니언",
+    sessionTypePre: "사전 상담", sessionTypeFollow: "사후 관리", sessionTypeSecond: "세컨드 오피니언", sessionTypePartner: "파트너 미팅(에이전시·병원)",
   },
   en: {
     pageTitle: "Members (Patients)",
@@ -39,7 +39,7 @@ const TR = {
     toastDeactivated: "Deactivated", toastActivated: "Activated",
     promptResetPwTpl: "New temporary password for {email} (min 6 characters):", errMinChars: "Minimum 6 characters",
     toastResetDoneTpl: "Password reset complete — share with the patient: {pw}",
-    sessionTypePre: "Pre-consultation", sessionTypeFollow: "Follow-up", sessionTypeSecond: "Second opinion",
+    sessionTypePre: "Pre-consultation", sessionTypeFollow: "Follow-up", sessionTypeSecond: "Second opinion", sessionTypePartner: "Partner meeting (agency/hospital)",
   },
   ru: {
     pageTitle: "Участники (пациенты)",
@@ -55,7 +55,7 @@ const TR = {
     toastDeactivated: "Деактивирован", toastActivated: "Активирован",
     promptResetPwTpl: "Новый временный пароль для {email} (минимум 6 символов):", errMinChars: "Минимум 6 символов",
     toastResetDoneTpl: "Пароль сброшен — передайте пациенту: {pw}",
-    sessionTypePre: "Предварительная консультация", sessionTypeFollow: "Последующее наблюдение", sessionTypeSecond: "Второе мнение",
+    sessionTypePre: "Предварительная консультация", sessionTypeFollow: "Последующее наблюдение", sessionTypeSecond: "Второе мнение", sessionTypePartner: "Встреча с партнёром (агентство/больница)",
   },
   kz: {
     pageTitle: "Мүшелер (науқастар)",
@@ -71,7 +71,7 @@ const TR = {
     toastDeactivated: "Өшірілді", toastActivated: "Белсендірілді",
     promptResetPwTpl: "{email} үшін жаңа уақытша құпия сөз (кемінде 6 таңба):", errMinChars: "Кемінде 6 таңба",
     toastResetDoneTpl: "Құпия сөз қалпына келтірілді — науқасқа беріңіз: {pw}",
-    sessionTypePre: "Алдын ала кеңес", sessionTypeFollow: "Емнен кейінгі бақылау", sessionTypeSecond: "Екінші пікір",
+    sessionTypePre: "Алдын ала кеңес", sessionTypeFollow: "Емнен кейінгі бақылау", sessionTypeSecond: "Екінші пікір", sessionTypePartner: "Серіктеспен кездесу (агенттік/аурухана)",
   },
   zh: {
     pageTitle: "会员（患者）管理",
@@ -87,7 +87,7 @@ const TR = {
     toastDeactivated: "已停用", toastActivated: "已启用",
     promptResetPwTpl: "{email} 的新临时密码（至少6位）：", errMinChars: "至少6位",
     toastResetDoneTpl: "密码重置完成 — 请转告患者：{pw}",
-    sessionTypePre: "术前咨询", sessionTypeFollow: "术后随访", sessionTypeSecond: "第二诊疗意见",
+    sessionTypePre: "术前咨询", sessionTypeFollow: "术后随访", sessionTypeSecond: "第二诊疗意见", sessionTypePartner: "合作方会议（代理机构/医院）",
   },
   ja: {
     pageTitle: "会員（患者）管理",
@@ -103,7 +103,7 @@ const TR = {
     toastDeactivated: "無効化しました", toastActivated: "有効化しました",
     promptResetPwTpl: "{email} の新しい仮パスワード（最低6文字）:", errMinChars: "最低6文字",
     toastResetDoneTpl: "パスワード再設定完了 — 患者に伝えてください: {pw}",
-    sessionTypePre: "事前相談", sessionTypeFollow: "術後フォローアップ", sessionTypeSecond: "セカンドオピニオン",
+    sessionTypePre: "事前相談", sessionTypeFollow: "術後フォローアップ", sessionTypeSecond: "セカンドオピニオン", sessionTypePartner: "パートナー会議（代理店・病院）",
   },
 };
 
@@ -111,6 +111,8 @@ const SESSION_TYPE_KEY = {
   pre_consultation: "sessionTypePre",
   follow_up: "sessionTypeFollow",
   second_opinion: "sessionTypeSecond",
+  // 없으면 화면에 raw 코드("partner_meeting")가 그대로 새어 나온다(표시부가 코드로 폴백).
+  partner_meeting: "sessionTypePartner",
 };
 
 const LOCALE_MAP = { ko: "ko-KR", en: "en-US", ru: "ru-RU", kz: "kk-KZ", zh: "zh-CN", ja: "ja-JP" };
@@ -228,9 +230,9 @@ export default function AdminUsersPage() {
       />
 
       {loading ? (
-        <p className="text-sm text-gray-400">{tt("loadingText")}</p>
+        <p className="text-sm text-gray-500">{tt("loadingText")}</p>
       ) : filtered.length === 0 ? (
-        <p className="text-sm text-gray-400">{tt("emptyPatients")}</p>
+        <p className="text-sm text-gray-500">{tt("emptyPatients")}</p>
       ) : (
         <div className="border border-gray-200 rounded-xl overflow-hidden divide-y divide-gray-100">
           {filtered.map((p) => (
@@ -241,8 +243,8 @@ export default function AdminUsersPage() {
             >
               <div className="min-w-0">
                 <span className="font-semibold text-gray-900 text-sm">{p.full_name || p.email}</span>
-                {p.full_name && <span className="text-xs text-gray-400 ml-2">{p.email}</span>}
-                <div className="text-xs text-gray-400 mt-0.5">
+                {p.full_name && <span className="text-xs text-gray-500 ml-2">{p.email}</span>}
+                <div className="text-xs text-gray-500 mt-0.5">
                   {p.country || tt("countryUnknown")} · {tt("joinedPrefix")} {fmtDate(p.created_at, lang)}
                 </div>
               </div>
@@ -251,7 +253,7 @@ export default function AdminUsersPage() {
                   {tt("consultationCountPrefix")} {p.consultation_count}
                 </span>
                 {p.banned && (
-                  <span className="text-xs font-semibold text-red-600 bg-red-50 border border-red-100 rounded-full px-2.5 py-0.5">
+                  <span className="text-xs font-semibold text-red-700 bg-red-50 border border-red-100 rounded-full px-2.5 py-0.5">
                     {tt("statusDisabled")}
                   </span>
                 )}
@@ -266,36 +268,36 @@ export default function AdminUsersPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setDetail(null)}>
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg max-h-[85vh] overflow-auto p-6" onClick={(e) => e.stopPropagation()}>
             {detail.loading || detailLoading ? (
-              <p className="text-sm text-gray-400">{tt("loadingText")}</p>
+              <p className="text-sm text-gray-500">{tt("loadingText")}</p>
             ) : detail.user ? (
               <>
                 <div className="flex items-start justify-between mb-4">
                   <div>
                     <h2 className="text-lg font-bold text-gray-900">{detail.user.full_name || detail.user.email}</h2>
-                    <p className="text-xs text-gray-400">{detail.user.email}</p>
+                    <p className="text-xs text-gray-500">{detail.user.email}</p>
                   </div>
                   {detail.user.banned && (
-                    <span className="text-xs font-bold text-red-600 bg-red-50 border border-red-100 rounded-full px-2.5 py-0.5">{tt("statusDisabled")}</span>
+                    <span className="text-xs font-bold text-red-700 bg-red-50 border border-red-100 rounded-full px-2.5 py-0.5">{tt("statusDisabled")}</span>
                   )}
                 </div>
 
                 <div className="grid grid-cols-2 gap-3 text-sm mb-5">
-                  <div><span className="text-gray-400">{tt("lblCountry")}</span><div className="font-medium text-gray-900">{detail.user.country || "-"}</div></div>
-                  <div><span className="text-gray-400">{tt("lblPrefLang")}</span><div className="font-medium text-gray-900">{detail.user.language || "-"}</div></div>
-                  <div><span className="text-gray-400">{tt("lblJoinedAt")}</span><div className="font-medium text-gray-900">{fmtDate(detail.user.created_at, lang)}</div></div>
-                  <div><span className="text-gray-400">{tt("lblLastLogin")}</span><div className="font-medium text-gray-900">{fmtDate(detail.user.last_sign_in_at, lang)}</div></div>
+                  <div><span className="text-gray-500">{tt("lblCountry")}</span><div className="font-medium text-gray-900">{detail.user.country || "-"}</div></div>
+                  <div><span className="text-gray-500">{tt("lblPrefLang")}</span><div className="font-medium text-gray-900">{detail.user.language || "-"}</div></div>
+                  <div><span className="text-gray-500">{tt("lblJoinedAt")}</span><div className="font-medium text-gray-900">{fmtDate(detail.user.created_at, lang)}</div></div>
+                  <div><span className="text-gray-500">{tt("lblLastLogin")}</span><div className="font-medium text-gray-900">{fmtDate(detail.user.last_sign_in_at, lang)}</div></div>
                 </div>
 
                 <h3 className="text-sm font-bold text-gray-900 mb-2">{fmt(tt("consultHistoryTpl"), { n: detail.consultations.length })}</h3>
                 {detail.consultations.length === 0 ? (
-                  <p className="text-sm text-gray-400 mb-5">{tt("noConsultRecords")}</p>
+                  <p className="text-sm text-gray-500 mb-5">{tt("noConsultRecords")}</p>
                 ) : (
                   <div className="border border-gray-200 rounded-lg divide-y divide-gray-100 mb-5">
                     {detail.consultations.map((c) => (
                       <div key={c.id} className="px-3 py-2 flex items-center justify-between text-sm">
                         <div>
                           <span className="font-medium text-gray-900">{SESSION_TYPE_KEY[c.session_type] ? tt(SESSION_TYPE_KEY[c.session_type]) : c.session_type}</span>
-                          <span className="text-xs text-gray-400 ml-2">{fmtDate(c.scheduled_at, lang)}</span>
+                          <span className="text-xs text-gray-500 ml-2">{fmtDate(c.scheduled_at, lang)}</span>
                         </div>
                         <span className="text-xs text-gray-500">{c.status}</span>
                       </div>
@@ -306,15 +308,15 @@ export default function AdminUsersPage() {
                 {/* 가입 전 게스트 문의 — 이메일로 매칭 (동일인 통합) */}
                 <h3 className="text-sm font-bold text-gray-900 mb-2">{fmt(tt("pastInquiriesTpl"), { n: (detail.inquiries || []).length })}</h3>
                 {(detail.inquiries || []).length === 0 ? (
-                  <p className="text-sm text-gray-400 mb-5">{tt("noInquiries")}</p>
+                  <p className="text-sm text-gray-500 mb-5">{tt("noInquiries")}</p>
                 ) : (
                   <div className="border border-gray-200 rounded-lg divide-y divide-gray-100 mb-5">
                     {detail.inquiries.map((q) => (
                       <div key={q.id} className="px-3 py-2 flex items-center justify-between text-sm">
                         <div className="min-w-0">
                           <span className="font-medium text-gray-900">{q.cancer_type || q.treatment_type || tt("inquiryFallback")}</span>
-                          {q.nationality && <span className="text-xs text-gray-400 ml-2">{q.nationality}</span>}
-                          <span className="text-xs text-gray-400 ml-2">{fmtDate(q.created_at, lang)}</span>
+                          {q.nationality && <span className="text-xs text-gray-500 ml-2">{q.nationality}</span>}
+                          <span className="text-xs text-gray-500 ml-2">{fmtDate(q.created_at, lang)}</span>
                         </div>
                         {q.status && <span className="text-xs text-gray-500 shrink-0">{q.status}</span>}
                       </div>
@@ -329,7 +331,7 @@ export default function AdminUsersPage() {
                   <button onClick={() => handleResetPw(detail.user)} className="px-4 py-2 rounded-lg text-sm font-bold text-gray-600 border border-gray-300 hover:bg-gray-50">
                     {tt("btnResetPw")}
                   </button>
-                  <button onClick={() => setDetail(null)} className="px-4 py-2 rounded-lg text-sm font-bold text-gray-400 ml-auto">{tt("btnClose")}</button>
+                  <button onClick={() => setDetail(null)} className="px-4 py-2 rounded-lg text-sm font-bold text-gray-500 ml-auto">{tt("btnClose")}</button>
                 </div>
               </>
             ) : null}

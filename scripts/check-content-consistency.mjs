@@ -12,7 +12,7 @@
  * 실행: node scripts/check-content-consistency.mjs   (npm run check:content)
  */
 import { readFileSync, readdirSync, statSync } from "node:fs";
-import { join, dirname } from "node:path";
+import { join, dirname, sep } from "node:path";
 import { pathToFileURL } from "node:url";
 // §32(산출물 .docx 검사)용 — .docx 는 zip 이라 내장 zlib 만으로 본문을 꺼낸다(의존성 0).
 import { inflateRawSync } from "node:zlib";
@@ -224,7 +224,7 @@ for (const file of SCAN_DIRS.flatMap(walk)) {
 
 // ── 2) i18n 활성 6개 언어 키 패리티 ─────────────────────────────
 const ACTIVE = ["ko", "en", "ru", "kz", "zh", "ja"];
-const I18N = "src/lib/i18n/index.js";
+const I18N = "src/lib/i18n/dictionary.js";
 try {
   const text = readFileSync(join(ROOT, I18N), "utf8").split("\n");
   // 최상위 언어 블록 시작: "  xx: {"
@@ -469,7 +469,7 @@ for (const file of SCAN_DIRS.flatMap(walk)) {
 //     바로 위 [환자i18n] 검사는 ru/kz 키만 있으면 통과시켜(번역은 됐으니) 이 우회를 정확히 못 막음
 //     — 오히려 인라인-L 이 그 검사의 '탈출구'라 새 문구가 CMS 밖으로 새는 통로가 됨.
 //     → 공개 파일에 새 인라인-L 이 생기면 CI 차단. 기존 5개는 grandfather(점진 마이그레이션).
-//     고치는 법: 문구를 src/lib/i18n/index.js DICTIONARY 에 키로 넣고 t("키", lang) 로 렌더.
+//     고치는 법: 문구를 src/lib/i18n/dictionary.js DICTIONARY 에 키로 넣고 t("키", lang) 로 렌더.
 // 2026-07-24 (#974): 옛 grandfather 5개 포함 공개 화면 38개 파일을 전부 중앙 사전으로 이관 →
 // 면제는 아래 1개만 남았다. 새 인라인 미니사전은 어떤 공개 파일에서도 CI 실패다.
 // ⚠️ 여기에 파일을 추가하지 마라 — 면제가 곧 "PO가 못 고치는 화면"이 된다(POSTMORTEMS #118).
@@ -489,7 +489,7 @@ for (const file of SCAN_DIRS.flatMap(walk)) {
   const text = readFileSync(join(ROOT, file), "utf8");
   if (!INLINE_L_RE.test(text) || !INLINE_L_LANGKEY_RE.test(text)) continue; // 언어키 있는 진짜 미니사전만
   const line = text.split("\n").findIndex((l) => INLINE_L_RE.test(l)) + 1;
-  errors.push(`[인라인사전] ${f}:${line} — 공개 화면 문구가 컴포넌트 안 const L={} 미니사전에 박혀 코디 콘텐츠 편집기(/coordinator/content)에서 수정 불가(번역돼도 CMS 우회). 문구를 src/lib/i18n/index.js DICTIONARY 에 키로 넣고 t("키", lang) 로 렌더할 것(그러면 편집기에 자동 등록). 예외는 INLINE_L_ALLOW(현재 1개).`);
+  errors.push(`[인라인사전] ${f}:${line} — 공개 화면 문구가 컴포넌트 안 const L={} 미니사전에 박혀 코디 콘텐츠 편집기(/coordinator/content)에서 수정 불가(번역돼도 CMS 우회). 문구를 src/lib/i18n/dictionary.js DICTIONARY 에 키로 넣고 t("키", lang) 로 렌더할 것(그러면 편집기에 자동 등록). 예외는 INLINE_L_ALLOW(현재 1개).`);
 }
 
 // ── 7b) styled-jsx 금지 가드 (POSTMORTEMS #113) ──
@@ -563,7 +563,7 @@ for (const file of EMAIL_TEMPLATE_FILES) {
 // 방법: 사전 소스에서 따옴표 dotted 키 전수 추출 → 글로벌 t 를 import 하는 파일의
 //     t("a.b") 리터럴 호출이 전부 사전에 존재하는지 대조. 동적 키(t(변수))는 검사 밖(의도).
 {
-  const dictSrc = readFileSync(join(ROOT, "src/lib/i18n/index.js"), "utf8");
+  const dictSrc = readFileSync(join(ROOT, "src/lib/i18n/dictionary.js"), "utf8");
   const KNOWN_KEYS = new Set(
     [...dictSrc.matchAll(/"([a-z0-9]+(?:\.[A-Za-z0-9_]+)+)"\s*:/g)].map((m) => m[1])
   );
@@ -579,7 +579,7 @@ for (const file of EMAIL_TEMPLATE_FILES) {
           errors.push(
             `[t미정의키] ${file.replace(/\\/g, "/")} — t("${m[1]}") 키가 i18n 사전에 없음. ` +
               `t()는 미정의 키에 키 원문을 반환하므로 사용자 화면에 "${m[1]}" 가 그대로 노출됨. ` +
-              `사전(src/lib/i18n/index.js) 6개 언어에 키를 추가하거나 호출을 제거할 것.`
+              `사전(src/lib/i18n/dictionary.js) 6개 언어에 키를 추가하거나 호출을 제거할 것.`
           );
         }
       }
@@ -611,7 +611,7 @@ for (const f of ["NotoSans-Regular.ttf", "NotoSans-Bold.ttf", "NotoSansKR-Regula
   }
 }
 
-// ── 11) PDF 렌더 React 정합 가드 (POSTMORTEMS #64) ────────────────────────────
+// ── 11) PDF 렌더 React 정합 가드 (POSTMORTEMS #132) ────────────────────────────
 // 왜: Next(App Router)는 앱 코드를 내장(vendored) React 19 로 컴파일한다. 설치 react 가
 //     18 이거나 @react-pdf/renderer 가 웹팩 서버 번들에 말려 들어가면, PDF 렌더 트리에
 //     서로 다른 React 의 요소가 섞여 renderToBuffer 가 React error #31 로 즉사 →
@@ -621,12 +621,12 @@ try {
   const nextCfg = readFileSync(join(ROOT, "next.config.js"), "utf8");
   const extBlock = nextCfg.match(/serverExternalPackages\s*:\s*\[[\s\S]*?\]/);
   if (!extBlock || !extBlock[0].includes("@react-pdf/renderer")) {
-    errors.push(`[PDF React정합] next.config.js serverExternalPackages 에 "@react-pdf/renderer" 없음 — 웹팩이 react-pdf 를 번들하면 내장 React 와 인스턴스가 갈려 발급 PDF 가 전부 500 (React #31, POSTMORTEMS #64).`);
+    errors.push(`[PDF React정합] next.config.js serverExternalPackages 에 "@react-pdf/renderer" 없음 — 웹팩이 react-pdf 를 번들하면 내장 React 와 인스턴스가 갈려 발급 PDF 가 전부 500 (React #31, POSTMORTEMS #132).`);
   }
   const pkg = JSON.parse(readFileSync(join(ROOT, "package.json"), "utf8"));
   const reactMajor = parseInt(String(pkg.dependencies?.react || "0").replace(/^[^\d]*/, ""), 10);
   if (reactMajor < 19) {
-    errors.push(`[PDF React정합] package.json react "${pkg.dependencies?.react}" — Next 16(내장 React 19)과 요소 규격이 갈려 외부화된 react-pdf 렌더가 React #31 로 죽음. react/react-dom ^19 유지할 것 (POSTMORTEMS #64).`);
+    errors.push(`[PDF React정합] package.json react "${pkg.dependencies?.react}" — Next 16(내장 React 19)과 요소 규격이 갈려 외부화된 react-pdf 렌더가 React #31 로 죽음. react/react-dom ^19 유지할 것 (POSTMORTEMS #132).`);
   }
 } catch { /* next.config.js 없으면 다른 검사가 이미 실패 */ }
 
@@ -790,6 +790,48 @@ for (const dir of BACKOFFICE_DIRS) {
         errors.push(`[헤딩크기누락] ${file.replace(/\\/g, "/")} — raw <h1/h2/h3 className="${m[1]}">에 text-size 유틸 없음 → 마케팅 히어로 크기(h2 최대 64px) 유출 위험. text-base/text-lg/text-xl 등을 명시할 것 (2026-07-08 부류).`);
       }
     }
+  }
+}
+
+// ── 15-b) 백오피스 저대비 회색 글씨 차단 (2026-07-27 접근성 실측) ──────────────
+// 왜: text-gray-400(#9ca3af)은 흰 배경에서 대비 2.53:1 — WCAG AA 본문 기준(4.5:1)의 절반뿐.
+//     공개 페이지에선 아이콘 위주라 안 걸렸는데, 로그인 뒤 화면을 처음 실측하자
+//     백오피스에서만 serious 412건이 나왔고 그 대부분이 이 한 토큰이었다(admin 244·coordinator 149).
+//     "공개 페이지 위반 0건"이라는 리포트가 5주간 이 사실을 가리고 있었음(스캐너가 로그인 뒤를 못 봄).
+//     → 부류 자체를 차단: 백오피스 본문 회색은 gray-500(4.83:1) 이상.
+//     ⚠️ 흰/연회색 배경 전제다. 어두운 배경 위에서 밝은 회색이 필요하면 예외를 여기에 명시적으로 추가할 것.
+// ⚠️ 백오피스 폴더만 훑으면 놓친다 — /admin/staff 의 위반은 정작 공유 부품(NotificationBell 등)에서
+//    나왔다. 그래서 백오피스 화면이 실제로 렌더하는 공유 부품도 같은 잣대로 본다.
+//    (새 공유 부품이 늘면 이 목록에 추가할 것. 목록이 새더라도 주간 axe 실측이 뒤에서 받쳐 준다.)
+const BACKOFFICE_SHARED = [
+  "app/_components/ManualDrawer.jsx",
+  "src/components/AddressInput.jsx",
+  "src/components/GoogleMap.jsx",
+  "src/components/Modals.jsx",
+  "src/components/NotificationBell.jsx",
+  "src/components/consultation/CreateConsultationModal.jsx",
+  "src/components/marketing/AdBudgetPlanner.jsx",
+  "src/components/partners/PartnerOutreachTracker.jsx",
+];
+{
+  const targets = [];
+  // app/patient 도 포함(2026-07-27 2차 실측): 환자가 직접 보는 화면이라 우선순위가 오히려 높다.
+  for (const dir of [...BACKOFFICE_DIRS, "app/patient"]) {
+    for (const file of walk(dir)) {
+      if (!CODE_EXT.test(file) || EXCLUDE.test(file)) continue;
+      targets.push(file);
+    }
+  }
+  targets.push(...BACKOFFICE_SHARED);
+  for (const file of targets) {
+    let text;
+    try { text = readFileSync(join(ROOT, file), "utf8"); } catch { continue; }
+    const idx = text.indexOf("text-gray-400");
+    if (idx === -1) continue;
+    const line = text.slice(0, idx).split("\n").length;
+    errors.push(
+      `[저대비회색] ${file.replace(/\\/g, "/")}:${line} — 백오피스(또는 백오피스가 쓰는 공유 부품)에 text-gray-400 사용. 흰 배경 대비 2.53:1 로 WCAG AA(4.5:1) 미달이다. text-gray-500(4.83:1) 이상을 쓸 것 (2026-07-27 접근성 실측 부류).`,
+    );
   }
 }
 
@@ -1476,7 +1518,7 @@ for (const dir of BACKOFFICE_DIRS) {
     }
     if (bad.length) {
       errors.push(
-        `[유령키] 화면이 부르는 t() 키가 사전(src/lib/i18n/index.js)에 없음 ${bad.length}건: ` +
+        `[유령키] 화면이 부르는 t() 키가 사전(src/lib/i18n/dictionary.js)에 없음 ${bad.length}건: ` +
           `${bad.slice(0, 6).join(" · ")}${bad.length > 6 ? ` …외 ${bad.length - 6}` : ""} — ` +
           `t() 는 없는 키를 그대로 렌더하므로 이 상태로 배포하면 사용자 화면에 날키가 뜬다. ` +
           `사전에 6개 언어로 키를 추가하거나 오타를 고칠 것.`
@@ -1877,6 +1919,268 @@ for (const dir of BACKOFFICE_DIRS) {
         );
       }
     }
+  }
+}
+
+// ── §33) 21개 언어 통짜 사전이 브라우저 번들로 되돌아오지 않게 ──────────────────
+// 왜: 2026-07-27 실측 — src/lib/i18n/dictionary.js(21개 언어)가 통째로 첫 화면 JS 에 들어가
+//     홈 623KB 중 269KB(gzip)를 차지했다. 방문자는 자기 언어 1개만 쓴다. next.config.js 가
+//     클라이언트 빌드에서만 이 파일을 dictionary.client.js(빈 껍데기)로 바꿔치기하고,
+//     브라우저는 layout.jsx 가 HTML 에 인라인해 주는 자기 언어 완성본 하나만 받는다
+//     (src/lib/i18n/inlineScript.js — 별도 파일로 내리면 head preload 가 첫 화면을 늦춘다, 실측).
+//     그 별칭이 사라지면 269KB 가 **조용히** 전 페이지로 돌아온다(화면은 멀쩡해서 아무도 모른다).
+// 무엇을 보나: ① next.config.js 에 그 별칭이 살아 있는지 ② "use client" 파일이 사전을 직접
+//     import 하지 않는지(별칭 때문에 빈 객체가 와서 **글자가 조용히 사라진다**).
+{
+  const CFG = "next.config.js";
+  try {
+    const cfg = readFileSync(join(ROOT, CFG), "utf8");
+    const hasAlias =
+      /i18n\/dictionary\.js/.test(cfg) && /i18n\/dictionary\.client\.js/.test(cfg);
+    if (!hasAlias) {
+      errors.push(
+        `[사전번들] ${CFG} — 클라이언트 빌드에서 src/lib/i18n/dictionary.js 를 ` +
+          `dictionary.client.js 로 바꿔치기하는 별칭(resolve.alias)이 없다. ` +
+          `이게 빠지면 21개 언어 사전(gzip 269KB)이 전 페이지 첫 화면 JS 로 되돌아온다.`
+      );
+    }
+  } catch {
+    errors.push(`[사전번들] ${CFG} 읽기 실패 — 별칭 확인 불가`);
+  }
+
+  const scanDirs = ["app", "src", "components"];
+  const walk = (dir) => {
+    const out = [];
+    let entries;
+    try { entries = readdirSync(join(ROOT, dir)); } catch { return out; }
+    for (const e of entries) {
+      if (/^(node_modules|\.next)$/.test(e)) continue;
+      const rel = join(dir, e);
+      let st;
+      try { st = statSync(join(ROOT, rel)); } catch { continue; }
+      if (st.isDirectory()) out.push(...walk(rel));
+      else if (/\.(jsx?|tsx?)$/.test(e)) out.push(rel);
+    }
+    return out;
+  };
+  for (const dir of scanDirs) {
+    for (const rel of walk(dir)) {
+      const path_ = rel.split(sep).join("/");
+      if (path_.startsWith("src/lib/i18n/")) continue; // 사전 본체·껍데기 자신
+      let raw;
+      try { raw = readFileSync(join(ROOT, rel), "utf8"); } catch { continue; }
+      if (!/^\s*["']use client["']/m.test(raw)) continue;
+      if (!/from\s+["'](@\/lib\/i18n\/dictionary|.*\/i18n\/dictionary)["']/.test(raw)) continue;
+      errors.push(
+        `[사전번들] ${path_} — "use client" 파일이 사전(i18n/dictionary)을 직접 import 한다. ` +
+          `클라이언트 빌드에서 이건 빈 껍데기로 바뀌므로 **글자가 조용히 사라진다**. ` +
+          `t() 를 쓰거나(@/lib/i18n), 서버 컴포넌트에서 값을 내려줄 것.`
+      );
+    }
+  }
+}
+
+// ── §33-b) E2E 「한 번 읽고 판정」 금지 — innerText() → toBeTruthy() 부채 동결 (POSTMORTEMS #132) ──
+// 왜: 2026-07-27 게스트 초대 스펙 2건이 main 을 빨갛게 만들었는데, 앱은 멀쩡했다.
+//     화면이 하이드레이션 뒤에 그려지는데 테스트는 goto 직후 body.innerText() 를 **딱 한 번**
+//     읽고 정규식으로 판정했다 — 자동 재시도가 없어 구조적으로 이길 수 없는 경주였고,
+//     Playwright retry 가 «1차 실패 → 2차 통과»로 최소 3번의 초록을 위장하다 결국 터졌다.
+//     (실측: 게스트 폼은 load 뒤 0.2~0.3초에 뜬다. 그 사이엔 "연결 중…"만 있다.)
+//     정답은 웹퍼스트 어서션 — expect(locator).toBeVisible() / expect(body).toContainText().
+// 무엇을 보나: 기존 부채는 파일별 개수로 **동결**하고, 늘어나거나 새 파일이 생기면 실패.
+//     고쳐서 줄었으면 아래 숫자도 같이 내려라(부채 장부가 거짓이 되지 않게).
+{
+  const FROZEN = {
+    "admin-feedback-list.spec.ts": 1,
+    "chat-feedback-thumbs-down.spec.ts": 2,
+    "chat-identification-form.spec.ts": 1,
+    "chat-multilingual.spec.ts": 2,
+    "chat-resume-cookie.spec.ts": 1,
+    "hospital-detail.spec.ts": 1,
+    "hospitals-list.spec.ts": 1,
+    "intake-file-upload.spec.ts": 1,
+    "intake-form-submit.spec.ts": 1,
+    "intake-language-fallback.spec.ts": 1,
+    "intake-validation-required.spec.ts": 1,
+    "patient-dashboard-auth.spec.ts": 1,
+    "patient-survey-response.spec.ts": 1,
+    "telemedicine-booking-cta.spec.ts": 1,
+    "treatments-immune-data.spec.ts": 2,
+  };
+  const HOW =
+    `→ expect(locator).toBeVisible() / await expect(page.locator("body")).toContainText(/…/) 로 바꿀 것 ` +
+    `(둘 다 «될 때까지» 자동 재시도한다). 부채를 갚았으면 scripts/check-content-consistency.mjs §33-b 의 숫자도 내려라.`;
+
+  // ⚠️ walk() 금지 — EXCLUDE 가 .spec. 을 배제해 스캔 대상이 0이 된다(§7c 와 같은 함정).
+  const specs = readdirSync(join(ROOT, "e2e")).filter((f) => /\.spec\.ts$/.test(f));
+  for (const f of specs) {
+    const lines = readFileSync(join(ROOT, "e2e", f), "utf8").split("\n");
+    let count = 0;
+    for (let i = 0; i < lines.length; i++) {
+      // innerText() 한 번 읽기 → 10줄 안에서 toBeTruthy() 로 판정하는 모양
+      if (/\.innerText\(\)/.test(lines[i]) && /toBeTruthy\(\)/.test(lines.slice(i, i + 10).join("\n"))) count++;
+    }
+    const allowed = FROZEN[f] ?? 0;
+    if (count > allowed) {
+      errors.push(
+        `[e2e-oneshot] e2e/${f} — 「innerText() 한 번 읽고 toBeTruthy()」 ${count}건 (허용 ${allowed}건). ` +
+          `하이드레이션 뒤에 그려지는 화면에선 이 검사가 경주라서, retry 로 초록을 위장하다 아무 커밋에서나 터진다(POSTMORTEMS #132). ${HOW}`
+      );
+    } else if (count < allowed) {
+      errors.push(
+        `[e2e-oneshot] e2e/${f} — 부채가 ${allowed}건 → ${count}건으로 줄었다(좋음). ` +
+          `scripts/check-content-consistency.mjs §33-b 의 숫자를 ${count}${count === 0 ? " (= 항목 삭제)" : ""} 로 내려라 — 장부가 실제와 어긋나면 가드가 헐거워진다.`
+      );
+    }
+  }
+  for (const f of Object.keys(FROZEN)) {
+    if (!specs.includes(f)) {
+      errors.push(`[e2e-oneshot] §33-b 동결 목록의 e2e/${f} 가 없다(이름 변경·삭제). 목록에서 지울 것 — 죽은 항목은 가드를 헐겁게 만든다.`);
+    }
+  }
+}
+
+// ── §34) 의료진 세부 이력 문구가 ru·kz·zh·ja 사전에 다 있는지 ────────────────
+// 왜: 2026-07-27 PO 지적 — /ru/hospitals 에서 섹션 제목(경력·학력)만 번역되고 **내용은 전부 영어**로
+//     나왔다. DOCTORS(app/hospitals/HospitalsClient.jsx)가 ko/en 만 들고 있었기 때문.
+//     번역을 doctorPhrases.js 로 옮겼는데, 의사를 새로 추가하면서 사전에 넣는 걸 잊으면
+//     **그 줄만 조용히 영어로** 나간다 — 같은 부류의 재발이라 기계가 잡는다.
+// 무엇을 보나: DOCTORS 의 en 배열 문구·subspecialty.en 이 DOCTOR_PHRASES 에 있고 4개 언어가 다 찼는지.
+{
+  const SRC = "app/hospitals/HospitalsClient.jsx";
+  let phrases = null;
+  try {
+    ({ DOCTOR_PHRASES: phrases } = await import(
+      pathToFileURL(join(ROOT, "src/lib/content/doctorPhrases.js")).href
+    ));
+  } catch {
+    errors.push(`[의료진i18n] src/lib/content/doctorPhrases.js 를 읽지 못했다 — ${SRC} 가 이 사전을 쓴다.`);
+  }
+  // 중복 키 (반성문 #129 — 🔁 #61 부류 재발). import 한 객체로는 못 본다(뒤 값이 앞을 덮어써서
+  // 둘 다 조회에 성공한다) → 소스를 줄 단위로 읽어야 잡힌다. 일괄 치환으로 서로 다른 두 문구가
+  // 한 문자열로 수렴할 때 생기며, 빌드·§33 을 전부 통과하고 eslint 에서만 걸린다.
+  {
+    let raw = "";
+    try { raw = readFileSync(join(ROOT, "src/lib/content/doctorPhrases.js"), "utf8"); } catch { raw = ""; }
+    const seen = new Map();
+    raw.split("\n").forEach((line, n) => {
+      const m = line.match(/^ {2}'((?:[^'\\]|\\.)*)':\s*\{/);
+      if (!m) return;
+      if (seen.has(m[1])) {
+        errors.push(
+          `[의료진i18n] doctorPhrases.js 중복 키 «${m[1]}» (${seen.get(m[1])}번째 줄과 ${n + 1}번째 줄). ` +
+            `뒤에 온 값이 앞을 덮어써 앞의 번역은 죽는다 — 한쪽을 지울 것.`
+        );
+      } else seen.set(m[1], n + 1);
+    });
+  }
+
+  if (phrases) {
+    let src = "";
+    try { src = readFileSync(join(ROOT, SRC), "utf8"); } catch { src = ""; }
+    // DOCTORS 배열 구간만 본다(그 뒤 BRANCH_CONFIG 등은 별개).
+    const from = src.indexOf("const DOCTORS = [");
+    const to = src.indexOf("const BRANCH_CONFIG");
+    const block = from >= 0 && to > from ? src.slice(from, to) : "";
+    if (!block) {
+      errors.push(`[의료진i18n] ${SRC} 에서 DOCTORS 배열을 찾지 못했다 — 이 가드가 무력화됐다. 검사 룰을 고칠 것.`);
+    }
+    const used = new Set();
+    for (const m of block.matchAll(/en:\s*\[([^\]]*)\]/g))
+      for (const s of m[1].matchAll(/'([^']*)'/g)) used.add(s[1]);
+    for (const m of block.matchAll(/subspecialty:\s*\{[^}]*en:\s*'([^']*)'/g)) used.add(m[1]);
+
+    const LANGS = ["ru", "kz", "zh", "ja"];
+    const missing = [];
+    for (const s of used) {
+      const row = phrases[s];
+      if (!row) { missing.push(`«${s}» — 사전에 없음`); continue; }
+      const gaps = LANGS.filter((L) => !row[L]);
+      if (gaps.length) missing.push(`«${s}» — ${gaps.join("·")} 누락`);
+    }
+    if (missing.length) {
+      errors.push(
+        `[의료진i18n] 의료진 세부 이력 ${missing.length}건이 6개 언어로 안 나간다 ` +
+          `(러시아어·카자흐어 사용자에게 영어로 노출됨). src/lib/content/doctorPhrases.js 에 추가할 것:\n` +
+          missing.slice(0, 20).map((m) => `      · ${m}`).join("\n") +
+          (missing.length > 20 ? `\n      · … 외 ${missing.length - 20}건` : "")
+      );
+    }
+  }
+}
+
+// ── 렌더 중 «브라우저에만 있는 값» 읽기 = Hydration Error (POSTMORTEMS #30 부류 재발) ──
+// 서버 렌더에는 document·navigator 가 없다. 컴포넌트 본문에서 이걸 읽으면 서버는 'en',
+// 브라우저는 'ko'/'ru' 로 그려서 화면 전체가 어긋나고 React 가 Hydration Error 를 던진다.
+// 실제로 센트리에 한 달간 23건 쌓였다(JAVASCRIPT-NEXTJS-3, /patient/*·/survey/*).
+// 올바른 방법: useLang()(useSyncExternalStore — 하이드레이션 땐 서버값, 그 뒤 쿠키값) 또는
+//             서버 컴포넌트가 헤더/쿠키를 읽어 prop 으로 내려주기.
+// ponytail: 「들여쓰기 2칸 = 컴포넌트 본문」 휴리스틱. effect/핸들러 안(4칸 이상)은 안전하니 넘긴다.
+//   한계 — 파일에 중첩 컴포넌트가 있어 본문이 4칸으로 들어가면 못 잡는다. 그때는 룰을 AST 로 올릴 것.
+{
+  // ⚠️ `document.cookie` 는 일부러 뺐다 — 컴포넌트가 아닌 모듈 최상단 쿠키 헬퍼(readCookie 등)가
+  //    같은 2칸 들여쓰기라 오탐만 쏟아진다. 언어 쿠키는 getLangCodeFromCookie 로 이미 덮인다.
+  const BROWSER_ONLY = /getLangCodeFromCookie\s*\??\.?\(|navigator\.(languages?|userAgent)\b|window\.(matchMedia\s*\(|inner(Width|Height)\b)|localStorage\.|sessionStorage\./;
+  // 마운트 뒤에만 도는 훅 — 이 콜백은 렌더 중 실행되지 않으니 안전.
+  const DEFERRED_HOOK = /useEffect|useLayoutEffect|useCallback/;
+  // ⚠️ 반대로 이 둘의 콜백은 **렌더 중에** 실행된다(useState 지연 초기화·useMemo).
+  //    `=>` 가 있다고 안전 처리하면 `useState(() => getLangCodeFromCookie())` 가 그대로 샌다.
+  const RUNS_DURING_RENDER = /useState\s*\(|useMemo\s*\(/;
+  for (const file of [...walk("app"), ...walk("src"), ...walk("components")]) {
+    if (!/\.(jsx|tsx)$/.test(file)) continue;
+    const norm = file.replace(/\\/g, "/");
+    // 안전 패턴의 원본 — useSyncExternalStore 의 «클라이언트 스냅샷» 이라 쿠키를 읽는 게 맞다.
+    if (norm.endsWith("src/lib/i18n/LangContext.jsx")) continue;
+    const lines = stripCommentsWholeFile(readFileSync(join(ROOT, file), "utf8")).split("\n");
+    lines.forEach((line, i) => {
+      if (!/^ {2}\S/.test(line)) return;          // 컴포넌트 본문 최상단만
+      if (!BROWSER_ONLY.test(line)) return;
+      // 순서 주의: 렌더 중 실행되는 훅이 먼저다 — `=>` 에게 구제받지 못하게.
+      if (!RUNS_DURING_RENDER.test(line)) {
+        if (DEFERRED_HOOK.test(line)) return;                 // effect 안이면 안전
+        if (/=>|\bfunction\b|\basync\b/.test(line)) return;    // 핸들러·콜백 정의면 안전
+      }
+      errors.push(
+        `[하이드레이션] ${norm}:${i + 1} — 컴포넌트 렌더 중에 브라우저 전용 값을 읽는다. ` +
+          `서버 렌더엔 document/navigator 가 없어 서버('en')와 브라우저('ko')가 다른 화면을 그리고 ` +
+          `React 가 Hydration Error 를 던진다(POSTMORTEMS #30 부류·센트리 23건). ` +
+          `언어는 useLang(), 그 밖의 값은 useEffect 로 마운트 후 읽거나 서버가 prop 으로 내려줄 것.\n` +
+          `    ${line.trim().slice(0, 120)}`
+      );
+    });
+  }
+}
+
+// ── <html lang> 매핑이 활성 6개 언어를 전부 덮는가 (2026-07-27, PR #1047 독립 리뷰 발견) ──
+// app/layout.jsx 의 HTML_LANG 은 우리 내부코드(kz) → BCP47(kk) 변환표다. 이게 LOCALES 보다
+// 좁으면 「본문은 그 언어인데 <html lang> 은 en」 이 되고, 그 불일치는 브라우저 자동번역을
+// 부르는 조건이다 — 자동번역은 아직 못 닫은 NotFoundError(POSTMORTEMS #133)의 유력 용의자.
+// 실제로 언어 검증을 LANG_OPTIONS(21개)로 하는 바람에 15개 코드가 매핑 없이 새던 것을 잡았다.
+{
+  try {
+    const layoutSrc = readFileSync(join(ROOT, "app/layout.jsx"), "utf8");
+    const m = /const HTML_LANG = \{([^}]*)\}/.exec(layoutSrc);
+    if (!m) {
+      errors.push(`[html-lang] app/layout.jsx 에서 HTML_LANG 을 못 찾았다 — 이 가드가 무력화됐다. 룰을 고칠 것.`);
+    } else {
+      const mapped = new Set([...m[1].matchAll(/(\w+)\s*:/g)].map((x) => x[1]));
+      const cfg = readFileSync(join(ROOT, "src/lib/i18n/config.js"), "utf8");
+      const lm = /export const LOCALES = \[([^\]]*)\]/.exec(cfg);
+      const locales = lm ? [...lm[1].matchAll(/"([a-z]{2})"/g)].map((x) => x[1]) : [];
+      const missing = locales.filter((l) => !mapped.has(l));
+      if (missing.length) {
+        errors.push(
+          `[html-lang] app/layout.jsx 의 HTML_LANG 에 활성 언어 ${missing.join("·")} 매핑 없음 → ` +
+            `그 언어로 본문이 나가는데 <html lang> 은 en 으로 찍힌다(브라우저 자동번역 유발, POSTMORTEMS #133). HTML_LANG 에 추가할 것.`
+        );
+      }
+      // 반대 방향: 서버 렌더 언어 검증은 LOCALES(6) 기준이어야 한다. LANG_OPTIONS(21)로 하면 위 불일치가 되살아난다.
+      if (/const ssrLang = LANG_OPTIONS/.test(layoutSrc)) {
+        errors.push(`[html-lang] app/layout.jsx 의 서버 렌더 언어 검증이 LANG_OPTIONS(21개) 기준이다 — LOCALES(활성 6개)로 할 것. 옛 언어 쿠키(vi·ar 등)가 <html lang="en"> + 그 언어 본문을 만든다.`);
+      }
+    }
+  } catch (e) {
+    errors.push(`[html-lang] 검사 실패: ${e.message}`);
   }
 }
 

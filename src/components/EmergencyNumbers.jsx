@@ -26,7 +26,7 @@ export default function EmergencyNumbers({ lang = 'en', urgent = false }) {
               : 'border border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
           }`}
         >
-          <Phone size={14} className={urgent ? '' : 'text-red-500'} />
+          <Phone size={14} className={urgent ? '' : 'text-red-600'} />
           <span>{n.label}</span>
           <span className="tabular-nums">{n.tel}</span>
         </a>

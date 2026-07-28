@@ -36,7 +36,7 @@ function BarChart({ data }) {
               title={`👎 ${d.negative}`}
             />
           </div>
-          <span className="text-[9px] text-gray-400 truncate w-full text-center">
+          <span className="text-[9px] text-gray-500 truncate w-full text-center">
             {d.date.slice(5)}
           </span>
         </div>
@@ -47,7 +47,7 @@ function BarChart({ data }) {
 
 function PieChart({ data }) {
   const total = Object.values(data).reduce((a, b) => a + b, 0);
-  if (total === 0) return <p className="text-sm text-gray-400 text-center py-4">데이터 없음</p>;
+  if (total === 0) return <p className="text-sm text-gray-500 text-center py-4">데이터 없음</p>;
 
   const colors = ["#f87171", "#fb923c", "#a78bfa", "#9ca3af"];
   const keys = Object.keys(data);
@@ -159,21 +159,21 @@ export default function AiFeedbackPage() {
         <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm text-center">
           <p className="text-xs font-semibold text-gray-500 mb-1">전체 피드백</p>
           <p className="text-3xl font-bold text-gray-900">{stats.total.toLocaleString()}</p>
-          <p className="text-xs text-gray-400 mt-1">건</p>
+          <p className="text-xs text-gray-500 mt-1">건</p>
         </div>
         <div className="bg-white rounded-xl border border-teal-200 p-5 shadow-sm text-center">
           <p className="text-xs font-semibold text-teal-700 mb-1 flex items-center justify-center gap-1">
             <ThumbsUp size={12} /> 긍정
           </p>
           <p className="text-3xl font-bold text-teal-700">{stats.positive.toLocaleString()}</p>
-          <p className="text-xs text-gray-400 mt-1">{positiveRate}%</p>
+          <p className="text-xs text-gray-500 mt-1">{positiveRate}%</p>
         </div>
         <div className="bg-white rounded-xl border border-red-200 p-5 shadow-sm text-center">
           <p className="text-xs font-semibold text-red-600 mb-1 flex items-center justify-center gap-1">
             <ThumbsDown size={12} /> 부정
           </p>
           <p className="text-3xl font-bold text-red-600">{stats.negative.toLocaleString()}</p>
-          <p className="text-xs text-gray-400 mt-1">{stats.total > 0 ? 100 - positiveRate : 0}%</p>
+          <p className="text-xs text-gray-500 mt-1">{stats.total > 0 ? 100 - positiveRate : 0}%</p>
         </div>
       </div>
 
@@ -196,7 +196,7 @@ export default function AiFeedbackPage() {
               </div>
             </>
           ) : (
-            <p className="text-sm text-gray-400 text-center py-8">{loading ? "로딩 중..." : "데이터 없음"}</p>
+            <p className="text-sm text-gray-500 text-center py-8">{loading ? "로딩 중..." : "데이터 없음"}</p>
           )}
         </div>
 
@@ -205,7 +205,7 @@ export default function AiFeedbackPage() {
           {data && Object.keys(data.reasonCounts ?? {}).length > 0 ? (
             <PieChart data={data.reasonCounts} />
           ) : (
-            <p className="text-sm text-gray-400 text-center py-8">{loading ? "로딩 중..." : "데이터 없음"}</p>
+            <p className="text-sm text-gray-500 text-center py-8">{loading ? "로딩 중..." : "데이터 없음"}</p>
           )}
         </div>
       </div>
@@ -216,9 +216,9 @@ export default function AiFeedbackPage() {
           <h2 className="text-sm font-semibold text-gray-700">부정 피드백 목록 (최근 50건)</h2>
         </div>
         {loading && !data ? (
-          <p className="text-sm text-gray-400 text-center py-10">로딩 중...</p>
+          <p className="text-sm text-gray-500 text-center py-10">로딩 중...</p>
         ) : (data?.negativeList ?? []).length === 0 ? (
-          <p className="text-sm text-gray-400 text-center py-10">부정 피드백 없음</p>
+          <p className="text-sm text-gray-500 text-center py-10">부정 피드백 없음</p>
         ) : (
           <div className="divide-y divide-gray-100">
             {(data?.negativeList ?? []).map((item) => (
@@ -231,11 +231,11 @@ export default function AiFeedbackPage() {
                           {REASON_LABELS[item.reason_category] || item.reason_category}
                         </span>
                       )}
-                      <span className="text-[11px] text-gray-400">
+                      <span className="text-[11px] text-gray-600">
                         {item.created_at ? new Date(item.created_at).toLocaleString("ko-KR") : "—"}
                       </span>
                       {item.guest_email && (
-                        <span className="text-[11px] text-gray-400 truncate">{item.guest_email}</span>
+                        <span className="text-[11px] text-gray-500 truncate">{item.guest_email}</span>
                       )}
                     </div>
                     {item.message_content && (

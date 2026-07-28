@@ -78,7 +78,10 @@ Use it to resolve pronouns, omitted subjects, homophones, and to keep terminolog
 // ⚠️ 언어 자동 감지 도입(2026-07-11) 후엔 '설정 언어'만으론 부족 — 같은 마이크에 카자흐어가
 // 섞여 들어올 수 있는 세션(lang 또는 targetLang 이 kz)이면 Pro 를 쓴다. 안 그러면 공유 마이크의
 // 카자흐 발화가 Flash 로 떨어져, kz 경로에 Pro 를 도입한 이유(정확도 격차)가 도로 사라짐.
-function sttModelFor(lang: string, targetLang?: string): string {
+// partial(말하는 중 조각)은 어차피 확정본이 곧 교체하므로 **항상 Flash** — Pro 는 응답이
+// 느려 «빨리 보여준다»는 목적 자체를 깎아먹는다. 정확도가 필요한 확정본만 kz→Pro.
+function sttModelFor(lang: string, targetLang?: string, isPartial?: boolean): string {
+  if (isPartial) return "gemini-flash-latest";
   if (lang === "kz" || targetLang === "kz")
     return process.env.STT_KZ_MODEL || "gemini-pro-latest";
   return "gemini-flash-latest";
@@ -125,6 +128,11 @@ export async function POST(
     const targetLangRaw = String(formData.get("targetLang") || "");
     const targetLang = LANG_NAMES[targetLangRaw] ? targetLangRaw : "";
     const contextBlock = parseContext(formData.get("context"));
+    // 화자 표시 이름 — 기록에 "누가 말했나"를 남긴다(없던 컬럼, 2026-07-27).
+    const speakerName = String(formData.get("speakerName") || "").trim().slice(0, 80) || null;
+    // partial=1 → 말하는 중 조각. 화면에만 띄우고 기록·DB 에는 남기지 않는다
+    // (같은 발화가 조각 수만큼 기록에 쌓이면 회의록이 통째로 오염된다).
+    const isPartial = String(formData.get("partial") || "") === "1";
 
     if (!audio || typeof audio.arrayBuffer !== "function") {
       return Response.json({ ok: false, error: "audio_required" }, { status: 400 });
@@ -161,7 +169,7 @@ export async function POST(
       // 감지 언어가 이미 targetLang 이면 번역하지 않고 전사를 그대로 자막으로 (echo 방지 —
       // 7/10 로그 전수조사에서 한국어 발화가 ru→ko 로 들어가 원문 그대로 echo 된 건 10건).
       const targetName = LANG_NAMES[targetLang];
-      const text = await genWithFallback(sttModelFor(lang, targetLang), {
+      const text = await genWithFallback(sttModelFor(lang, targetLang, isPartial), {
         messages: [
           {
             role: "user",
@@ -183,7 +191,9 @@ If there is no clear human speech, or the speech is ONLY hesitation fillers with
           },
         ],
         temperature: 0,
-        maxOutputTokens: 800,
+        // 응답 지연은 사실상 «출력 토큰 수»가 좌우한다. 부분 조각은 1~2초짜리라
+        // 나올 글자도 적으므로 상한을 낮춰 꼬리 지연(장황한 응답)을 잘라낸다.
+        maxOutputTokens: isPartial ? 300 : 800,
       });
 
       // 모델이 코드펜스로 감싸는 경우 대비해 벗긴 뒤 JSON 추출
@@ -239,12 +249,13 @@ ${contextBlock}Transcribe the speech in this audio clip. The speaker is speaking
     //    번역 기록 탭이 의미 없는 줄로 차고, 회의록 요약 입력도 같은 말이 두 번 들어간다.
     //    (자막 표시는 위에서 이미 끝났으므로 저장만 건너뛰면 화면 동작엔 영향 없다.)
     const effectiveSrc = detectedLang || lang;
-    if (transcript && translated && targetLang && effectiveSrc !== targetLang) {
+    if (!isPartial && transcript && translated && targetLang && effectiveSrc !== targetLang) {
       saveTranslationLog(consultationId, {
         originalText: transcript,
         translatedText: translated,
         sourceLang: detectedLang || lang,
         targetLang,
+        speakerName,
       }).catch((err: any) =>
         console.error("[consultation/stt] DB save error:", err?.message?.slice(0, 200))
       );
@@ -264,6 +275,7 @@ async function saveTranslationLog(
     translatedText: string;
     sourceLang: string;
     targetLang: string;
+    speakerName?: string | null;
   }
 ) {
   const { getSupabaseServerClient } = await import("@/lib/data/supabaseServerClient");
@@ -275,6 +287,7 @@ async function saveTranslationLog(
       session_id: consultationId,
       source_lang: data.sourceLang,
       target_lang: data.targetLang,
+      speaker_name: data.speakerName ?? null,
       ...encryptTranscriptRow({
         sourceText: data.originalText,
         translatedText: data.translatedText,

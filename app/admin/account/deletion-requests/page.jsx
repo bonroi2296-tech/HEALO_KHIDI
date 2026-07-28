@@ -21,7 +21,7 @@ const STATUS_TONE = {
   pending: "bg-amber-50 text-amber-700",
   processing: "bg-blue-50 text-blue-700",
   completed: "bg-emerald-50 text-emerald-700",
-  rejected: "bg-gray-100 text-gray-500",
+  rejected: "bg-gray-100 text-gray-600",
 };
 
 export default function DeletionRequestsPage() {
@@ -104,9 +104,9 @@ export default function DeletionRequestsPage() {
       )}
 
       {loading ? (
-        <p className="text-sm text-gray-400">불러오는 중…</p>
+        <p className="text-sm text-gray-500">불러오는 중…</p>
       ) : rows.length === 0 ? (
-        <p className="text-sm text-gray-400">삭제 요청이 없습니다.</p>
+        <p className="text-sm text-gray-500">삭제 요청이 없습니다.</p>
       ) : (
         <div className="border border-gray-200 rounded-xl overflow-hidden divide-y divide-gray-100">
           {rows.map((r) => (
@@ -114,14 +114,14 @@ export default function DeletionRequestsPage() {
               <div className="flex items-center justify-between gap-3">
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
-                    <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${STATUS_TONE[r.status] || "bg-gray-100 text-gray-500"}`}>
+                    <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${STATUS_TONE[r.status] || "bg-gray-100 text-gray-600"}`}>
                       {STATUS_LABEL[r.status] || r.status}
                     </span>
-                    <span className="text-xs text-gray-400 tabular-nums">{new Date(r.requested_at).toLocaleString("ko-KR")}</span>
+                    <span className="text-xs text-gray-600 tabular-nums">{new Date(r.requested_at).toLocaleString("ko-KR")}</span>
                   </div>
                   <div className="text-xs text-gray-500 mt-1 truncate">user_id: <span className="font-mono">{r.user_id}</span></div>
                   {r.reason && <div className="text-sm text-gray-700 mt-1">사유: {r.reason}</div>}
-                  {r.note && <div className="text-xs text-gray-400 mt-1">처리메모: {r.note}</div>}
+                  {r.note && <div className="text-xs text-gray-500 mt-1">처리메모: {r.note}</div>}
                 </div>
                 <div className="flex flex-col gap-1.5 shrink-0">
                   {r.status === "pending" && (

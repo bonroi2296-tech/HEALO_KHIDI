@@ -1,0 +1,175 @@
+{
+  "base": "https://healwith.co.kr",
+  "label": "patient",
+  "ts": "2026-07-27T06:11:25.380Z",
+  "scope": "로그인 뒤 화면 (patient 계정)",
+  "sanityFailed": 0,
+  "totalsByImpact": {
+    "critical": 0,
+    "serious": 0,
+    "moderate": 0,
+    "minor": 0
+  },
+  "incompleteTotal": 5,
+  "byRule": [],
+  "incompleteByRule": {
+    "color-contrast": 5
+  },
+  "pages": [
+    {
+      "path": "/patient",
+      "renderOk": true,
+      "status": 200,
+      "redirectedTo": null,
+      "renderedNodes": 206,
+      "renderedText": 563,
+      "ruleViolations": 0,
+      "nodes": 0,
+      "incompleteNodes": 3,
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 3,
+          "samples": [
+            {
+              "target": ".gap-2.flex-1.items-center:nth-child(3) > .bg-gray-100.w-8.h-8",
+              "html": "<div class=\"w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 bg-gray-100 text-gray-500\">3</div>"
+            },
+            {
+              "target": ".gap-2.flex-1.items-center:nth-child(4) > .bg-gray-100.w-8.h-8",
+              "html": "<div class=\"w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold shrink-0 bg-gray-100 text-gray-500\">4</div>"
+            },
+            {
+              "target": ".text-gray-600.flex-1.text-sm > p:nth-child(2)",
+              "html": "<p>We use essential cookies for site functionality and analytics cookies to improve our service. <a href=\"/cookies\" class=\"text-teal-700 underline\">Learn more</"
+            }
+          ]
+        }
+      ],
+      "byImpact": {
+        "critical": 0,
+        "serious": 0,
+        "moderate": 0,
+        "minor": 0
+      },
+      "rules": []
+    },
+    {
+      "path": "/patient/consultations",
+      "renderOk": true,
+      "status": 200,
+      "redirectedTo": null,
+      "renderedNodes": 132,
+      "renderedText": 757,
+      "ruleViolations": 0,
+      "nodes": 0,
+      "incompleteNodes": 0,
+      "incomplete": [],
+      "byImpact": {
+        "critical": 0,
+        "serious": 0,
+        "moderate": 0,
+        "minor": 0
+      },
+      "rules": []
+    },
+    {
+      "path": "/patient/documents",
+      "renderOk": true,
+      "status": 200,
+      "redirectedTo": null,
+      "renderedNodes": 101,
+      "renderedText": 416,
+      "ruleViolations": 0,
+      "nodes": 0,
+      "incompleteNodes": 0,
+      "incomplete": [],
+      "byImpact": {
+        "critical": 0,
+        "serious": 0,
+        "moderate": 0,
+        "minor": 0
+      },
+      "rules": []
+    },
+    {
+      "path": "/patient/messages",
+      "renderOk": true,
+      "status": 200,
+      "redirectedTo": null,
+      "renderedNodes": 106,
+      "renderedText": 405,
+      "ruleViolations": 0,
+      "nodes": 0,
+      "incompleteNodes": 1,
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 1,
+          "samples": [
+            {
+              "target": "p:nth-child(2)",
+              "html": "<p>We use essential cookies for site functionality and analytics cookies to improve our service. <a href=\"/cookies\" class=\"text-teal-700 underline\">Learn more</"
+            }
+          ]
+        }
+      ],
+      "byImpact": {
+        "critical": 0,
+        "serious": 0,
+        "moderate": 0,
+        "minor": 0
+      },
+      "rules": []
+    },
+    {
+      "path": "/patient/symptoms",
+      "renderOk": true,
+      "status": 200,
+      "redirectedTo": null,
+      "renderedNodes": 114,
+      "renderedText": 367,
+      "ruleViolations": 0,
+      "nodes": 0,
+      "incompleteNodes": 1,
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 1,
+          "samples": [
+            {
+              "target": ".w-6",
+              "html": "<span class=\"text-sm font-bold w-6 text-center text-yellow-600\">5</span>"
+            }
+          ]
+        }
+      ],
+      "byImpact": {
+        "critical": 0,
+        "serious": 0,
+        "moderate": 0,
+        "minor": 0
+      },
+      "rules": []
+    },
+    {
+      "path": "/patient/visa",
+      "renderOk": true,
+      "status": 200,
+      "redirectedTo": null,
+      "renderedNodes": 95,
+      "renderedText": 523,
+      "ruleViolations": 0,
+      "nodes": 0,
+      "incompleteNodes": 0,
+      "incomplete": [],
+      "byImpact": {
+        "critical": 0,
+        "serious": 0,
+        "moderate": 0,
+        "minor": 0
+      },
+      "rules": []
+    }
+  ]
+}

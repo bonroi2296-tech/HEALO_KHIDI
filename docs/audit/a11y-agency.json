@@ -1,0 +1,66 @@
+{
+  "base": "https://healwith.co.kr",
+  "label": "agency",
+  "ts": "2026-07-27T06:11:00.916Z",
+  "scope": "로그인 뒤 화면 (agency 계정)",
+  "sanityFailed": 0,
+  "totalsByImpact": {
+    "critical": 0,
+    "serious": 0,
+    "moderate": 0,
+    "minor": 0
+  },
+  "incompleteTotal": 5,
+  "byRule": [],
+  "incompleteByRule": {
+    "color-contrast": 5
+  },
+  "pages": [
+    {
+      "path": "/agency",
+      "renderOk": true,
+      "status": 200,
+      "redirectedTo": null,
+      "renderedNodes": 222,
+      "renderedText": 1812,
+      "ruleViolations": 0,
+      "nodes": 0,
+      "incompleteNodes": 5,
+      "incomplete": [
+        {
+          "id": "color-contrast",
+          "count": 5,
+          "samples": [
+            {
+              "target": ".px-2.py-0\\.5.bg-white\\/20",
+              "html": "<span class=\"text-sm tabular-nums font-semibold rounded-full px-2 py-0.5 bg-white/20 text-white\">1</span>"
+            },
+            {
+              "target": ".bg-teal-700.px-3.py-1\\.5 > .opacity-70.tabular-nums",
+              "html": "<span class=\"tabular-nums opacity-70\">1</span>"
+            },
+            {
+              "target": ".bg-gray-100.hover\\:bg-gray-200.px-3:nth-child(2) > .opacity-70.tabular-nums",
+              "html": "<span class=\"tabular-nums opacity-70\">1</span>"
+            },
+            {
+              "target": ".bg-gray-100.hover\\:bg-gray-200.px-3:nth-child(3) > .opacity-70.tabular-nums",
+              "html": "<span class=\"tabular-nums opacity-70\">0</span>"
+            },
+            {
+              "target": ".text-gray-600.flex-1.text-sm > p:nth-child(2)",
+              "html": "<p>We use essential cookies for site functionality and analytics cookies to improve our service. <a href=\"/cookies\" class=\"text-teal-700 underline\">Learn more</"
+            }
+          ]
+        }
+      ],
+      "byImpact": {
+        "critical": 0,
+        "serious": 0,
+        "moderate": 0,
+        "minor": 0
+      },
+      "rules": []
+    }
+  ]
+}
