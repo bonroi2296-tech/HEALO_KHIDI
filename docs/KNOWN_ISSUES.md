@@ -22,13 +22,36 @@
 | 12 | **44px 규칙이 두 파일에 이중정의 + 예외통로 반쪽** | 🟠 10·11 의 뿌리 | `src/index.css:71` · `app/styles/healo-tokens.css:287` | 불필요 |
 | 13 | 시작화면 2초 고정(느린 회선에서 흰 화면) | 🟡 | `capacitor.config.ts:33` | 필요 |
 | 14 | StatusBar `backgroundColor` 설정이 무효(죽은 줄) | ⚪ 청소 | `capacitor.config.ts:40` | 필요 |
-| 15 | ⚠️ **`npx cap sync` 미실행 — 설정이 앱에 안 박힌다** | 🔴 **함정** | 아래 설명 | 필요 |
+| 15 | 🔴 **구글 로그인이 앱에서 «원천적으로» 안 된다** (양 플랫폼 확정) | 🔴 막힘 | `capacitor.config.ts` (`allowNavigation`) | 필요 |
 | 16 | 상담방 **문서 뷰어 시트**가 안드로이드 버튼줄에 깔림 | 🟠 핵심 화면 | `app/consultation/[id]/page.jsx:3440` | 불필요 |
 | 17 | 하단 여백 없는 잔여 4곳(쿠키 배너·토스트 2·설명서 버튼) | 🟡 경미 | 아래 목록 | 불필요 |
 
-**15번 상세 (다음 사람이 하루 날릴 함정)**: `capacitor.config.ts` 는 **원본**이고, 앱이 실제로 읽는 건 `android/app/src/main/assets/capacitor.config.json` · `ios/App/App/capacitor.config.json` 이다(`npx cap sync` 가 복사). 앱스토어 세션이 `appendUserAgent: 'healwith-app'` 를 원본에 넣었지만(`capacitor.config.ts:34`) **박힌 파일 두 개에는 없다 = 동기화 안 됨.** → ①지금 빌드된 앱엔 식별 표식이 없다(`isNativeApp()` 은 캡시터 전역 예비 판정으로 겨우 동작 중) ②**1·13·14 번을 고치고 그냥 빌드하면 안 먹는다.** 설정을 건드렸으면 **반드시 `npx cap sync` 먼저.**
+**15번 상세 — 캡시터 소스를 직접 읽고 확정(가설 아님)**
+
+- 안드로이드 `Bridge.java:407-419`: 이동하려는 주소의 **호스트가 `server.url`(=healwith.co.kr)과 다르고 `allowNavigation` 에도 없으면 → `Intent.ACTION_VIEW` 로 «시스템 브라우저»를 열고 웹뷰 이동은 취소**한다.
+- iOS `WebViewDelegationHandler.swift:96-115`: 완전히 동일 — `shouldAllowNavigation` 밖이면 `UIApplication.shared.open` (사파리) + `decisionHandler(.cancel)`.
+- `capacitor.config.ts` 에 **`allowNavigation` 설정이 없다.**
+- ⇒ 「Google로 계속하기」를 누르면 `accounts.google.com` 으로 가야 하는데 **앱이 그걸 크롬/사파리로 던진다.** 사용자는 브라우저에서 로그인하고, 되돌아오는 주소(`healwith.co.kr/auth/callback`)도 **브라우저에서** 열려 **세션 쿠키가 브라우저에 생긴다. 앱은 로그인 안 된 그대로.**
+- **고치는 법**: `server.allowNavigation` 에 OAuth 도메인 추가(`accounts.google.com` 등) 또는 네이티브 구글 로그인 플러그인 도입. ⚠️ `allowNavigation` 은 보안 경계라 **필요한 호스트만** 최소로.
+- 🚫 **이 때문에 「이메일 로그인이 막혔으니 구글 로그인으로 우회하라」는 조언은 성립하지 않는다.** 1번과 15번이 동시에 막혀 **앱에서 로그인할 방법이 아예 없다.**
 
 **17번 목록**: `src/components/CookieConsent.jsx:63`(`bottom-0`, 단 앱에선 숨김) · `app/admin/settings/branding/page.tsx:410` · `app/admin/settings/notifications/_components/Toast.tsx:12`(둘 다 `bottom-6`=24px, 버튼줄 약 48px 에 못 미침) · `app/_components/ManualDrawer.jsx:59`(`1.25rem`=20px).
+
+---
+
+### 🍎 iOS 전용 (PO 가 테스트할 수단이 아예 없는 영역 — 2026-07-28 설정 전수 검토)
+
+| # | 무엇 | 판정 |
+|---|---|---|
+| i1 | `Keyboard.resize: 'body'` — **이 설정은 iOS 전용**이고 기본값은 `native` | 🟠 **강한 의심** |
+| i2 | `ios.contentInset: 'always'` — 기본값(`automatic`) 이 아닌 값으로 바꿔놨는데 근거가 코드에 없음 | 🟠 **확인 필요** |
+| i3 | Universal Links 없음 — `apple-app-site-association` 파일 없음 + entitlements 에 `associated-domains` 없음 | 🟠 확정 |
+| i4 | `CFBundleURLTypes` 없음 → `healwith://` 로 앱을 열 수 없음 | 🟡 확정 |
+| i5 | `ios.allowsLinkPreview: true` — 링크 길게 누르면 사파리식 미리보기 팝업 = 「웹 감쌌다」 신호(애플 4.2 방어에 불리) | 🟡 확정 |
+
+- **i1 근거**: `@capacitor/keyboard` 문서 원문 — `resize` 는 *"Only available on iOS"*, `Body` 는 *"Only the `body` HTML element will be resized. Relative units are not affected, because the viewport does not change."* → **뷰포트가 안 줄어드니 `position: fixed` 요소가 키보드를 따라오지 않는다.** 우리 하단 고정 바(공개 모바일 내비·상세 CTA·환자 포털 내비·상담방 조작바)가 전부 `fixed` → 아이폰에서 키보드 올리면 **키보드 뒤에 깔리거나 엉뚱한 자리에 남을 가능성이 크다.** (안드로이드의 1번과 짝을 이루는 문제 — 원인은 서로 다름.)
+- **i2 근거**: `CAPBridgeViewController.swift:302` 가 이 값을 `scrollView.contentInsetAdjustmentBehavior` 에 그대로 넣는다. `.always` 는 안전영역만큼 **네이티브가 내용을 밀어낸다.** 그런데 우리 헤더는 CSS 로도 `pt-safe-area` 를 준다 → **노치·다이나믹 아일랜드 기기에서 여백이 두 번 들어갈 수 있다.** ⚠️ **아이폰 실기기 없이는 확정 불가** — 기본값으로 되돌리고 실기기에서 대조하는 게 유일한 검증법.
+- **✅ iOS 에서 «문제 없음» 으로 닫은 것**: 앱 아이콘 `1024x1024` **RGB·알파 채널 없음**(알파가 있으면 애플이 자동 반려 — 정상) · 권한 설명 문구 4종(카메라·마이크·사진첩·사진저장) · 푸시 권한 `aps-environment: production` + `UIBackgroundModes: remote-notification` · 시작화면 이미지(밝은·어두운 모드 각 3배율) · 버전 번호가 Xcode 변수로 연결됨 · **Codemagic `ios-release` 워크플로가 `npx cap sync ios` 를 먼저 돌린다**(설정 누락 없음).
 
 **권장 순서**: ①12번(뿌리) → ②10·11번 → ③1번 → ④2번 → ⑤3·6번 → ⑥4·5·7·13·14 를 **한 번에 묶어 앱 재빌드**.
 **웹만 고치면 되는 것 = 2·3·6·8·9·10·11·12 (8건)** — `server.url` 라이브 로드라 배포 즉시 앱에 반영. 앱 재빌드는 **1·4·5·7·13·14 를 한 판**으로.
