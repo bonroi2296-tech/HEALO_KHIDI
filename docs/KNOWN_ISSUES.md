@@ -22,6 +22,13 @@
 | 12 | **44px 규칙이 두 파일에 이중정의 + 예외통로 반쪽** | 🟠 10·11 의 뿌리 | `src/index.css:71` · `app/styles/healo-tokens.css:287` | 불필요 |
 | 13 | 시작화면 2초 고정(느린 회선에서 흰 화면) | 🟡 | `capacitor.config.ts:33` | 필요 |
 | 14 | StatusBar `backgroundColor` 설정이 무효(죽은 줄) | ⚪ 청소 | `capacitor.config.ts:40` | 필요 |
+| 15 | ⚠️ **`npx cap sync` 미실행 — 설정이 앱에 안 박힌다** | 🔴 **함정** | 아래 설명 | 필요 |
+| 16 | 상담방 **문서 뷰어 시트**가 안드로이드 버튼줄에 깔림 | 🟠 핵심 화면 | `app/consultation/[id]/page.jsx:3440` | 불필요 |
+| 17 | 하단 여백 없는 잔여 4곳(쿠키 배너·토스트 2·설명서 버튼) | 🟡 경미 | 아래 목록 | 불필요 |
+
+**15번 상세 (다음 사람이 하루 날릴 함정)**: `capacitor.config.ts` 는 **원본**이고, 앱이 실제로 읽는 건 `android/app/src/main/assets/capacitor.config.json` · `ios/App/App/capacitor.config.json` 이다(`npx cap sync` 가 복사). 앱스토어 세션이 `appendUserAgent: 'healwith-app'` 를 원본에 넣었지만(`capacitor.config.ts:34`) **박힌 파일 두 개에는 없다 = 동기화 안 됨.** → ①지금 빌드된 앱엔 식별 표식이 없다(`isNativeApp()` 은 캡시터 전역 예비 판정으로 겨우 동작 중) ②**1·13·14 번을 고치고 그냥 빌드하면 안 먹는다.** 설정을 건드렸으면 **반드시 `npx cap sync` 먼저.**
+
+**17번 목록**: `src/components/CookieConsent.jsx:63`(`bottom-0`, 단 앱에선 숨김) · `app/admin/settings/branding/page.tsx:410` · `app/admin/settings/notifications/_components/Toast.tsx:12`(둘 다 `bottom-6`=24px, 버튼줄 약 48px 에 못 미침) · `app/_components/ManualDrawer.jsx:59`(`1.25rem`=20px).
 
 **권장 순서**: ①12번(뿌리) → ②10·11번 → ③1번 → ④2번 → ⑤3·6번 → ⑥4·5·7·13·14 를 **한 번에 묶어 앱 재빌드**.
 **웹만 고치면 되는 것 = 2·3·6·8·9·10·11·12 (8건)** — `server.url` 라이브 로드라 배포 즉시 앱에 반영. 앱 재빌드는 **1·4·5·7·13·14 를 한 판**으로.
