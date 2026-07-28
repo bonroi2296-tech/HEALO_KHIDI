@@ -181,6 +181,29 @@ if [ -f "$GATES" ]; then
   fi
 fi
 
+# ── 2주 규칙 다이어트 리마인드 (2026-07-28 PO 결정 — 알림만, 정리는 PO 승인 후) ──
+# 왜: 2026-07-15 에 84개로 줄였는데 13일 만에 182개로 돌아왔다(하루 7~8개). "짧게 유지"를
+#     문서에 적어두는 것만으로는 안 지켜진다 → 시간이 되면 사람 눈앞에 뜨게 한다.
+#     ⚠️ 자동으로 지우지 않는다. PO 승인 없이 정리 착수 금지.
+PREFS="docs/PO_PREFERENCES.md"
+if [ -f "$PREFS" ]; then
+  last_diet=$(grep -m1 -oE 'LAST_DIET: [0-9]{4}-[0-9]{2}-[0-9]{2}' "$PREFS" 2>/dev/null | awk '{print $2}')
+  if [ -n "$last_diet" ]; then
+    now_s=$(date +%s 2>/dev/null); ld_s=$(date -d "$last_diet" +%s 2>/dev/null || echo "")
+    if [ -n "$ld_s" ] && [ -n "$now_s" ]; then
+      d_days=$(( (now_s - ld_s) / 86400 ))
+      if [ "$d_days" -ge 14 ] 2>/dev/null; then
+        n_items=$(awk '/ACTIVE:START/{f=1;next} /ACTIVE:END/{f=0} f&&/^- \*\*/{c++} END{print c+0}' "$PREFS")
+        echo ""
+        echo "## 📏 규칙 다이어트 기한 경과 — 마지막 정리 ${last_diet} (${d_days}일 전) · 지금 활성 ${n_items}개"
+        echo "  → PO 에게 **알리기만** 하라: 「활성 규칙이 ${n_items}개다, 정리할까?」 (버튼)."
+        echo "  → **PO 승인 전에는 손대지 마라.** 승인되면: 유지(별 2개 이상은 전부 유지)/CLAUDE.md 승격/보관 3갈래, 삭제 0건,"
+        echo "     끝나고 ${PREFS} 의 LAST_DIET 날짜를 오늘로 갱신해야 이 알림이 꺼진다."
+      fi
+    fi
+  fi
+fi
+
 # ── 주간 문서 건강검진 리마인드 (2026-07-05 PO 승인 — 문서도 부패한다, #63 문서-현실 드리프트 방지) ──
 DHLOG="docs/audit/DOC_HEALTH_LOG.md"
 if [ -f "$DHLOG" ]; then
