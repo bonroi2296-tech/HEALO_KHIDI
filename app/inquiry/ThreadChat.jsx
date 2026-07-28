@@ -841,13 +841,18 @@ export function ThreadChat({ onBack, backLabel } = {}) {
       content: trimmed,
       attachments: outgoingFiles,
     };
-    setMessages((prev) => {
-      // message_index = 이 사람이 보낸 몇 번째 메시지인가. 「2번 만에 다 나간다」면
-      // AI 첫 답이 시원찮다는 뜻 — 어디를 고쳐야 하는지가 이 숫자로 보인다.
-      const sentCount = prev.filter((m) => m.role === "user").length + 1;
-      ga(GA_EVENTS.CHAT_MESSAGE_SENT, { message_index: sentCount, has_attachment: outgoingFiles.length > 0 });
-      return [...prev, userMsg];
+    // message_index = 이 사람이 보낸 몇 번째 메시지인가. 「2번 만에 다 나간다」면
+    // AI 첫 답이 시원찮다는 뜻 — 어디를 고쳐야 하는지가 이 숫자로 보인다.
+    //
+    // ⚠️ 이 발화는 반드시 setMessages «밖»에 있어야 한다. 리액트는 상태 갱신 함수를
+    //    «순수 함수»로 보고 **여러 번 부를 수 있다**(개발 모드는 항상 2번, 실서비스도
+    //    렌더 재시도 시 재호출 가능). 안에 넣으면 이 숫자가 조용히 2배가 된다 —
+    //    화면은 멀쩡한데 통계만 틀리는 부류(POSTMORTEMS #147).
+    ga(GA_EVENTS.CHAT_MESSAGE_SENT, {
+      message_index: messages.filter((m) => m.role === "user").length + 1,
+      has_attachment: outgoingFiles.length > 0,
     });
+    setMessages((prev) => [...prev, userMsg]);
     // 빠른 행동은 사용자가 입력 중이던 텍스트를 지우지 않는다(칩만 보냄).
     if (!isOverride) setInput("");
     setAttachments([]);
