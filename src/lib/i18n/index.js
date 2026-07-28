@@ -7,6 +7,10 @@ import { LOCALES } from "./config";
 //   window.__I18N__ 을 쓰고, 그건 layout 이 넣은 `/i18n/<lang>.js` 한 개가 채운다.
 import { DICTIONARY } from "./dictionary";
 
+// 테넌트(이 사이트가 누구 것인지) 브랜드명 치환. healwith 기본이면 아무 일도 하지 않는다.
+// 사전에 브랜드명이 545군데 박혀 있어 파일마다 고치는 대신 t() 한 곳에서 갈아끼운다.
+import { applyTenantBrand } from "@/lib/tenant";
+
 // ── 브라우저 쪽 사전 ────────────────────────────────────────────
 // 왜 이렇게까지 하나: 전에는 러시아 환자가 한국어·중국어·일본어 사전까지 다 받았다
 // (홈 첫 화면 JS 623KB 중 269KB). 이제 «자기 언어 1개»만 받는다.
@@ -145,10 +149,10 @@ export function getI18nOverrides() {
 export const t = (key, lang = "en") => {
   // 1) 코디 편집 오버라이드 우선
   const ov = I18N_OVERRIDES[lang] && I18N_OVERRIDES[lang][key];
-  if (ov != null && ov !== "") return ov;
+  if (ov != null && ov !== "") return applyTenantBrand(ov, lang);
   // 2) 기존 사전 동작 (폴백) — 서버는 원본 사전, 브라우저는 받아온 자기 언어 사전
   const val = dictOf(lang)[key];
-  if (val) return val;
+  if (val) return applyTenantBrand(val, lang);
   // dev 환경: 언어 폴백 발생 시 경고 (ru/kz 누락 키 조기 발견용)
   if (
     process.env.NODE_ENV === "development" &&
@@ -157,7 +161,7 @@ export const t = (key, lang = "en") => {
   ) {
     console.warn(`[i18n] Missing key "${key}" for lang "${lang}" — falling back to en`);
   }
-  return fallbackDict()[key] || key;
+  return applyTenantBrand(fallbackDict()[key] || key, lang);
 };
 
 // ── 편집 백오피스용: 사전 키 검색·검증 ──

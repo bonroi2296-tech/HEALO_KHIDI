@@ -446,7 +446,7 @@ function PortalTopBar({ session, onLogout, siteConfig, langCode }) {
     <header className="fixed top-0 left-0 right-0 h-14 md:h-16 z-50 bg-teal-100 text-slate-700 border-b border-teal-200 shadow-sm flex items-center justify-between px-4 pt-safe-area">
       <Link href="/" className="flex items-center gap-2 shrink-0 hover:opacity-90 transition-opacity">
         {siteConfig?.logo ? (
-          <img src={siteConfig.logo} alt="healwith" className="h-8 w-auto object-contain" />
+          <img src={siteConfig.logo} alt={SITE_INFO.brand.name} className="h-8 w-auto object-contain" />
         ) : (
           <Logo tone="light" lang={langCode} />
         )}

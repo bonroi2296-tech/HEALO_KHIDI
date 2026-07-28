@@ -13,6 +13,8 @@
 //   힐위드 워드마크는 Pretendard SemiBold(영문 ExtraBold보다 가벼워 덜 투박).
 // ─────────────────────────────────────────────────────────────
 
+import { isDefaultTenant, tenantBrandName } from "@/lib/tenant";
+
 const SIZES = {
   sm: "h-3",
   md: "h-5",
@@ -26,7 +28,30 @@ const DIVIDER_SIZES = {
   lg: "h-4 md:h-5",
 };
 
+// 워드마크는 **그림 파일**이라 브랜드명 치환이 닿지 않는다(2026-07-28 면력 목업 실험에서 확인).
+// 다른 테넌트에서는 healwith 로고를 띄우면 안 되므로 **글자 로고**로 대체한다.
+// 실제 구축에서도 「병원 로고 파일을 아직 못 받은 상태」의 임시 표시로 그대로 쓸 수 있다.
+const TEXT_LOGO_SIZES = {
+  sm: "text-sm",
+  md: "text-base",
+  lg: "text-lg md:text-xl",
+};
+
+function TextLogo({ tone, size, lang, className }) {
+  const name = tenantBrandName(lang || "en");
+  const sizeCls = TEXT_LOGO_SIZES[size] || TEXT_LOGO_SIZES.md;
+  const color = tone === "dark" ? "text-white" : "text-teal-700";
+  return (
+    <span className={`inline-flex items-center font-extrabold tracking-tight notranslate ${sizeCls} ${color} ${className}`}>
+      {name}
+    </span>
+  );
+}
+
 export default function Logo({ tone = "light", size = "md", lang, className = "" }) {
+  if (!isDefaultTenant()) {
+    return <TextLogo tone={tone} size={size} lang={lang} className={className} />;
+  }
   const src = tone === "dark" ? "/brand/wordmark-dark.svg" : "/brand/wordmark.svg";
   const koSrc = tone === "dark" ? "/brand/wordmark-ko-dark.svg" : "/brand/wordmark-ko.svg";
   const sizeCls = SIZES[size] || SIZES.md;

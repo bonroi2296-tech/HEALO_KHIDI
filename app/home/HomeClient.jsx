@@ -34,6 +34,7 @@ import {
   HeartHandshake,
 } from "lucide-react";
 import SocialProofSection from "@/components/SocialProofSection";
+import { SITE_INFO } from "@/lib/siteSettings";
 
 // 이용 절차 4단계 아이콘 (2026-07-24 PO 확정 C안: 아이콘 + STEP 번호 — 옛 그라데이션 번호배지 대체)
 const STEP_ICONS = [FileText, UserCheck, Video, HeartHandshake];
@@ -418,9 +419,9 @@ export default function HomeClient({ content } = {}) {
               {/* gray-500 → gray-600: red-50 배경 위에서 4.41:1 (AA 4.5:1 미달) — axe 실측 유일 확정 위반이었음 → 6.91:1 */}
               <p className="text-gray-600 text-sm md:text-base mb-5 md:mb-8 whitespace-pre-line">{l(L.emergency.subtitle)}</p>
               <div className="flex flex-col sm:flex-row justify-center gap-2 md:gap-4">
-                <a href="mailto:admin@healwith.co.kr" className="inline-flex items-center justify-center gap-2 bg-white border border-gray-200 rounded-xl px-4 md:px-6 py-2.5 md:py-3 text-gray-700 text-sm md:text-base font-medium hover:border-teal-300 hover:shadow-md transition-all">
+                <a href={`mailto:${SITE_INFO.legal.contactEmail}`} className="inline-flex items-center justify-center gap-2 bg-white border border-gray-200 rounded-xl px-4 md:px-6 py-2.5 md:py-3 text-gray-700 text-sm md:text-base font-medium hover:border-teal-300 hover:shadow-md transition-all">
                   <Mail size={16} className="text-teal-700" />
-                  admin@healwith.co.kr
+                  {SITE_INFO.legal.contactEmail}
                 </a>
                 <button
                   onClick={() => router.push("/inquiry")}
