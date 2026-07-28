@@ -167,6 +167,21 @@ if (FLAGS.has("--seed")) {
     console.log(`콘텐츠 ${t}: ${ok}/${rows.length}`);
   }
 
+  // 검사가 콕 집어 보는 «가짜 문의» — 실서비스에서 복사하지 않고 여기서 만든다.
+  //  · e2e/coordinator-request-info.spec.ts 는 /coordinator/inbox/17 을 직접 연다.
+  //  · 조건: Step1 만 완료(step2 는 비어 있어야 «추가 정보 요청» 카드가 뜬다).
+  //  · 실서비스 데이터를 안 쓰므로 그쪽이 바뀌어도 검사가 흔들리지 않는다(오히려 더 안정적).
+  await dst.query(
+    `insert into public.inquiries (id, first_name, last_name, email, nationality, cancer_type,
+        status, is_test, step1_completed_at, created_at)
+     values (17, 'E2E', 'Fixture', 'e2e-fixture@test.com', 'KZ', 'test',
+        'received', true, now(), now())
+     on conflict (id) do update set step1_completed_at = excluded.step1_completed_at,
+        step2_completed_at = null, status = 'received', is_test = true`,
+  );
+  await dst.query("select setval(pg_get_serial_sequence('public.inquiries','id'), greatest(100, (select max(id) from public.inquiries)))");
+  console.log("고정 데이터: 문의 #17(Step1만) 준비");
+
   const { rows: users } = await dst.query("select id, email from auth.users where email like '%@test.com'");
   for (const u of users) {
     await dst.query("insert into public.user_roles (user_id, role, is_active) values ($1,'patient',true) on conflict do nothing", [u.id]);
@@ -210,9 +225,11 @@ for (const [label, sql] of Object.entries(CHECKS)) {
   if (a !== b) diff++;
   console.log(`${a === b ? "OK " : "차이"} ${label.padEnd(6)} 실서비스 ${String(a).padStart(4)} · 검사 ${String(b).padStart(4)}`);
 }
-// 환자 정보가 새어 들어갔는지 확인 — 여기서 0 이 아니면 즉시 조사할 것
-const leaked = (await dst.query("select count(*)::int n from public.inquiries")).rows[0].n;
-console.log(leaked === 0 ? "OK  환자정보 0행(정상)" : `🔴 환자정보 ${leaked}행 — 복사되면 안 되는 것이다`);
+// 실환자 정보가 새어 들어갔는지 확인 — 검사용 고정 데이터(is_test=true)만 있어야 한다.
+// 0 이 아니면 실서비스 문의가 복사된 것이므로 즉시 조사할 것(이 스크립트는 그런 복사를 하지 않는다).
+const leaked = (await dst.query("select count(*)::int n from public.inquiries where is_test is not true")).rows[0].n;
+const fixtures = (await dst.query("select count(*)::int n from public.inquiries where is_test")).rows[0].n;
+console.log(leaked === 0 ? `OK  실환자 문의 0행(정상) · 검사용 고정 문의 ${fixtures}행` : `🔴 실환자 문의 ${leaked}행 — 복사되면 안 되는 것이다`);
 
 await src.end();
 await dst.end();
