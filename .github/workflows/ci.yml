@@ -20,7 +20,7 @@ jobs:
       - name: vercel.json 검증 (Hobby 플랜 호환성)
         run: node scripts/validate-vercel-config.js
       # 이 판정이 틀리면 실서비스 배포가 «조용히» 안 나간다 = 가장 비싼 사고. 그래서 차단 게이트.
-      - name: 배포 스킵 판정 자체검사 (프리뷰 OFF·배치 머지 규칙이 코드를 안 막는지)
+      - name: 배포 스킵 판정 자체검사 (프리뷰 OFF·3시 배포 창구 규칙이 코드를 안 막는지)
         run: bash scripts/test-vercel-ignore-build.sh
       - name: 타입 검사 (tsc --noEmit — 타입 퇴행 차단, 실패 시 머지 차단)
         run: npm run typecheck
