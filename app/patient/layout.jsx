@@ -62,7 +62,7 @@ export default function PatientLayout({ children }) {
   const isMoreActive = MORE_TABS.some(tab => pathname === tab.href || pathname.startsWith(tab.href + '/'));
 
   return (
-    <div className="min-h-screen bg-gray-50 pt-14 md:pt-16 pb-20 lg:pb-0">
+    <div className="min-h-screen bg-gray-50 pt-14 md:pt-16 pb-[calc(5rem+var(--cookie-banner-h,0px))] lg:pb-0">
       <PatientNotificationBell />
       {children}
 
@@ -75,7 +75,7 @@ export default function PatientLayout({ children }) {
       {moreOpen && (
         <div
           ref={sheetRef}
-          className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-white rounded-t-2xl shadow-2xl animate-in slide-in-from-bottom duration-300 pb-safe"
+          className="lg:hidden fixed bottom-[var(--cookie-banner-h,0px)] left-0 right-0 z-50 bg-white rounded-t-2xl shadow-2xl animate-in slide-in-from-bottom duration-300 pb-safe"
         >
           <div className="flex items-center justify-between px-5 pt-4 pb-2">
             <span className="text-sm font-semibold text-gray-500">{t("patientLayout.more", lang)}</span>
@@ -110,7 +110,7 @@ export default function PatientLayout({ children }) {
       )}
 
       {/* Bottom tab bar (mobile) */}
-      <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-40 pb-safe">
+      <nav className="lg:hidden fixed bottom-[var(--cookie-banner-h,0px)] left-0 right-0 bg-white border-t border-gray-200 z-40 pb-safe">
         <div className="flex justify-around items-center h-16">
           {PRIMARY_TABS.map(tab => {
             const Icon = tab.icon;

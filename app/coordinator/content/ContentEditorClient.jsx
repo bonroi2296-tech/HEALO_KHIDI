@@ -375,7 +375,7 @@ export default function ContentEditorClient() {
             })}
           </div>
 
-          <div className="sticky bottom-0 bg-white/90 backdrop-blur border-t border-gray-200 py-3 flex items-center justify-between mt-6">
+          <div className="sticky bottom-[var(--cookie-banner-h,0px)] bg-white/90 backdrop-blur border-t border-gray-200 py-3 flex items-center justify-between mt-6">
             <span className="text-sm text-gray-500">
               {dirty.length > 0 ? `${dirty.length}곳 변경됨` : "변경 없음"}
               {msg && <span className={`ml-3 ${msg.type === "ok" ? "text-teal-700" : "text-red-600"}`}>{msg.text}</span>}

@@ -319,7 +319,7 @@ function ClientShellContent({
       )}
 
       <ErrorBoundary>
-        <main id="main-content" className={isPortalPage || isConsultationPage || hideBottomNav ? "" : "pb-24 pb-safe-area"}>{children}</main>
+        <main id="main-content" className={isPortalPage || isConsultationPage || hideBottomNav ? "" : "pb-[calc(6rem+var(--cookie-banner-h,0px))] pb-safe-area"}>{children}</main>
       </ErrorBoundary>
 
       {!isPortalPage && !isConsultationPage && !hideFooter && <footer className="bg-white border-t border-gray-100 pt-safe-area">
