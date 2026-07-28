@@ -281,8 +281,13 @@ function ClientShellContent({
   //   답하러 온 환자를 다른 데로 내보낸다. 2분짜리 설문에 나갈 길만 6개 달아준 꼴이다.
   //   포털 취급(PortalTopBar)도 안 된다 — 거긴 '로그아웃'이 있는데 설문 응답자는 계정이 없다.
   //   (2026-07-22 PO 지적: "이건 설문지 아냐? 로그인해야해?")
+  // - /demo/       : 병원 사이트 「판」 시연. 판은 **자체 헤더·푸터를 가진 별도 제품**이라
+  //   healwith 크롬이 붙으면 남의 병원 화면 위에 우리 메뉴(진료과목·병원·비자 가이드)가
+  //   얹혀 «누구 사이트인지» 가 무너진다. 실제로 그렇게 떴다(2026-07-28 PO 지적).
   const isConsultationPage =
-    pathname.startsWith("/consultation/") || pathname.startsWith("/survey/");
+    pathname.startsWith("/consultation/") ||
+    pathname.startsWith("/survey/") ||
+    pathname.startsWith("/demo/");
   // 문의 퍼널(/inquiry) — AI 챗·폼 집중 흐름. 하단 사이트 푸터(회사정보 등)가 채팅 밑에
   // 붙어 화면이 길어지고 "풀스크린 챗" 느낌을 깨므로 푸터 숨김(하단탭바는 이미 숨김).
   const hideFooter = pathname.includes("/inquiry");
