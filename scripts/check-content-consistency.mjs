@@ -2442,6 +2442,37 @@ const BACKOFFICE_SHARED = [
   }
 }
 
+// ── [출처유실] 리다이렉트가 «주소 뒤 꼬리표»를 버리면 광고 출처가 증발한다 (2026-07-28 실측) ──
+//
+// permanentRedirect("/inquiry") 처럼 경로를 문자열로 새로 쓰면 들어올 때 붙어 있던
+// ?utm_source=… 이 조용히 사라진다. 옛 주소(명함·QR·예전 광고 소재·검색결과에 남은 링크)로
+// 들어온 광고 클릭이 «어느 광고에서 왔는지» 영영 안 잡힌다 — 화면은 멀쩡히 뜨고 사용자
+// 불편도 0이라 «성과가 안 나오네»로만 보이는, 가장 비싼 종류의 조용한 실패.
+// → 공개 화면의 리다이렉트는 반드시 withQuery() 를 거치게 강제한다.
+{
+  const publicRedirectFiles = walk("app")
+    .filter((f) => /page\.(jsx?|tsx?)$/.test(f) && !/(^|[\\/])archive[\\/]/.test(f))
+    // 직원 전용 화면은 광고가 닿지 않는다 → 대상 밖(오탐만 늘린다).
+    .filter((f) => !/^app[\\/](admin|coordinator|hospital|agency|clinic|patient|api)[\\/]/.test(f));
+  for (const file of publicRedirectFiles) {
+    let src = "";
+    try { src = readFileSync(join(ROOT, file), "utf8"); } catch { continue; }
+    const lines = stripCommentsWholeFile(src).split(/\r?\n/);
+    lines.forEach((line, i) => {
+      // permanentRedirect("/…") / redirect("/…") 처럼 «리터럴 경로»로 보내는 경우
+      const m = line.match(/\b(permanentRedirect|redirect)\(\s*["'`](\/[^"'`?]*)["'`]\s*\)/);
+      if (m) {
+        errors.push(
+          `[출처유실] ${file.replace(/\\/g, "/")}:${i + 1} — 공개 화면이 «${m[2]}» 로 보내면서 ` +
+            `주소 뒤 꼬리표(?utm_source=… 등)를 버린다. 옛 주소로 들어온 광고 클릭의 출처가 ` +
+            `조용히 증발한다(화면은 멀쩡해서 안 보임). ` +
+            `withQuery("${m[2]}", await searchParams) 로 감쌀 것 — src/lib/url/withQuery.ts\n    ${line.trim().slice(0, 120)}`
+        );
+      }
+    });
+  }
+}
+
 // ── 결과 ────────────────────────────────────────────────────────
 if (errors.length) {
   console.error(`\n❌ 콘텐츠 일관성 검사 실패 (${errors.length}건)\n`);

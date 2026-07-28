@@ -19,6 +19,7 @@ GitHub 저장소 → **Settings → Secrets and variables → Actions → New re
 | `E2E_ADMIN_EMAIL` / `E2E_ADMIN_PASSWORD` | 어드민 | `admin-kpi-dashboard` · `admin-feedback-list` |
 | `E2E_AGENCY_EMAIL` / `E2E_AGENCY_PASSWORD` | 해외 에이전시 | `agency-portal`(포털 접근 — **신규, 그동안 사각지대**) |
 | `E2E_CLINIC_EMAIL` / `E2E_CLINIC_PASSWORD` | 해외 의료기관 | `clinic-portal`(포털 접근 — **신규, 그동안 사각지대**) |
+| `E2E_HOSPITAL_EMAIL` / `E2E_HOSPITAL_PASSWORD` | 국내 병원 | `hospital-portal`(포털·프로필·진료항목 — **2026-07-28 신설. 그전엔 역할 목록에 아예 없어서 어떤 방법으로도 확인 불가였다**) |
 
 > 일부 검사는 **시드 데이터**도 필요(예: 코디 문의 #17, 환자 증상 입력 UI) — 없으면 그 케이스만 추가 skip.
 > 환자/코디/어드민 6개만 먼저 넣어도 핵심 화면 8개가 즉시 보호된다. 에이전시/의료기관 4개는 그다음.
