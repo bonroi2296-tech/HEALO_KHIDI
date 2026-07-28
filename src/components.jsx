@@ -611,7 +611,7 @@ export const CardListSection = ({ title, items, onCardClick, type, showPartnerBa
 export const FloatingInquiryBtn = ({ onClick }) => {
   const langCode = useLangCode();
   return (
-    <div className="fixed bottom-20 md:bottom-6 right-4 md:right-6 z-50 flex flex-col items-end gap-2 group cursor-pointer pb-safe-area" onClick={onClick}>
+    <div className="fixed bottom-[calc(5rem+var(--cookie-banner-h,0px))] md:bottom-[calc(1.5rem+var(--cookie-banner-h,0px))] right-4 md:right-6 z-50 flex flex-col items-end gap-2 group cursor-pointer pb-safe-area" onClick={onClick}>
       <div className="bg-white text-gray-800 text-xs font-extrabold px-3 py-2 rounded-xl shadow-md border border-gray-100 mb-1 animate-bounce">
         {t("floatingHelp", langCode)} 💬
       </div>
@@ -653,7 +653,7 @@ export const PersonalConciergeCTA = ({ onClick, className = "" }) => {
 export const MobileBottomNav = ({ view, onInquiry, onNavClick }) => {
   const langCode = useLangCode();
   return (
-    <div className="md:hidden fixed bottom-0 left-0 right-0 z-[80] bg-white border-t border-gray-200 pb-safe-area shadow-[0_-4px_10px_rgba(0,0,0,0.03)]">
+    <div className="md:hidden fixed bottom-[var(--cookie-banner-h,0px)] left-0 right-0 z-[80] bg-white border-t border-gray-200 pb-safe-area shadow-[0_-4px_10px_rgba(0,0,0,0.03)]">
       <div className="grid grid-cols-3 h-16 items-center relative">
         <button onClick={() => onNavClick('list_treatment')} className={`flex flex-col items-center justify-center gap-1 h-full w-full active:scale-95 transition ${String(view).includes('treatment') ? 'text-teal-700' : 'text-gray-500 hover:text-gray-700'}`}>
             <Stethoscope size={24} strokeWidth={String(view).includes('treatment') ? 2.5 : 2} />

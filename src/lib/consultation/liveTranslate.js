@@ -29,6 +29,11 @@ export const PARTICIPANT_LANG_ATTR = "lang";
 // "통역 불필요"(원음 그대로) 센티넬 — 참가자가 통역을 끄고 싶을 때.
 export const NATIVE_LANG = "none";
 
+// 참가자가 "나는 지금 통역을 원한다"를 방에 알리는 속성 키 (2026-07-28 신설).
+// 봇 퇴장 판정에 쓴다 — 한 명이 껐다고 바로 내보내면 아직 듣고 있는 상대가 끊긴다.
+export const INTERPRETER_WANT_ATTR = "voice";
+export const INTERPRETER_WANT_ON = "on";
+
 // 에이전트가 통역 음성 트랙에 붙이는 이름 접두사: `tx:<speaker_identity>:<target_lang>`
 export const TRANSLATION_TRACK_PREFIX = "tx:";
 

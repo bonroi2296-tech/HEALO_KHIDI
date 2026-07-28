@@ -28,7 +28,9 @@ test.describe("야간 로봇 통화 — 2인 실연결 검증", () => {
     "E2E_ROBOT_CALL!=1 — 야간 프로덕션 잡 전용 (Full E2E 로컬 서버엔 LiveKit env 없음)"
   );
   // 방 연결·ICE 협상까지 실네트워크라 넉넉히 (이 스펙만; 전역 timeout 무관)
-  test.setTimeout(180_000);
+  // 2026-07-28: 통역 단계가 붙으며 180초로는 모자랐다 — 봇 입장 대기(45s) + 자막 관측(60s) +
+  // 퇴장 확인(45s) 만 150초다. 예산이 모자라면 «페이지가 닫혔다»는 엉뚱한 에러로 끝난다.
+  test.setTimeout(360_000);
 
   let fakeMediaBrowser: Browser | null = null;
 
@@ -67,6 +69,21 @@ test.describe("야간 로봇 통화 — 2인 실연결 검증", () => {
     const invite = await inviteRes.json();
     expect(invite?.inviteUrl, "초대 URL 없음").toBeTruthy();
 
+    // ⚠️ 초대 URL 의 도메인을 **검사 대상**으로 갈아끼운다 (2026-07-28 실측으로 추가).
+    //    서버는 초대 링크를 `siteUrl()`(= 정본 도메인, 프로덕션)로 만든다 — 환자에게 나가는
+    //    링크라 request origin 을 안 쓰는 게 맞다. 그런데 **프리뷰를 대상으로 돌려도 로봇이
+    //    프로덕션 방으로 들어가 버려서**, 프리뷰의 새 코드를 검사한 줄 알고 실은 프로덕션을
+    //    재고 있었다(고친 줄 알았던 기능이 「안 고쳐졌다」로 나옴 — 낡은 대상 오검증 부류).
+    //    프로덕션 야간 실행에서는 두 도메인이 같아 무동작이다.
+    const robotEntryUrl = (() => {
+      const u = new URL(invite.inviteUrl);
+      const base = new URL(process.env.E2E_BASE_URL || "http://localhost:3000");
+      u.protocol = base.protocol;
+      u.host = base.host;
+      return u.toString();
+    })();
+    console.log(`[robot-call] 로봇 입장 URL = ${robotEntryUrl.split("?")[0]}`);
+
     // 2) 가짜 미디어 브라우저(권한창 자동 허용 + 초록 링 테스트 영상) — 로봇 전용 인스턴스
     //
     // 🎙️ 가짜 «마이크» 에 실제 말소리를 물린다 (2026-07-27).
@@ -95,12 +112,28 @@ test.describe("야간 로봇 통화 — 2인 실연결 검증", () => {
       ],
     });
 
-    const joinAsRobot = async (name: string) => {
+    // 로봇마다 «다른 언어»로 붙는다 (2026-07-28 PO 지시: 통역까지 확인).
+    //   방 UI 언어 = Accept-Language(= 컨텍스트 locale) 이고, 그 언어가 그대로 LiveKit
+    //   `lang` 속성으로 방에 알려진다 → 통역봇은 그 속성으로 «누구 말을 어느 언어로»를 정한다.
+    //   둘 다 영어면 번역할 게 없어 세션 자체가 안 만들어진다(첫 실행에서 실제로 그랬다).
+    const joinAsRobot = async (name: string, locale: string) => {
       const ctx = await fakeMediaBrowser!.newContext({
         permissions: ["camera", "microphone"],
+        locale,
       });
       const robot = await ctx.newPage();
-      await robot.goto(invite.inviteUrl, { waitUntil: "domcontentloaded" });
+      // 방 화면이 하얗게/에러로 죽으면 이유가 브라우저 콘솔에만 남는다 — 야간 실행엔 사람이
+      // 없으니 즉시 stdout 으로 흘린다(원격 진단 원칙, POSTMORTEMS #61 과 같은 부류 예방).
+      robot.on("pageerror", (err) => console.log(`[robot-call] ${name} pageerror: ${err.message}`));
+      robot.on("console", (m) => {
+        // warning 도 본다 — 통역·자막 경로의 실패는 전부 `console.warn` 으로 나간다
+        // (`[LiveTranslate] …`). error 만 보던 탓에 2026-07-28 진단에서 이 줄들을 통째로
+        // 놓쳤다: 봇은 자막을 보냈는데 화면엔 없고, 이유는 warn 에 있었을 자리다.
+        const t = m.type();
+        if (t === "error" || t === "warning")
+          console.log(`[robot-call] ${name} ${t}: ${m.text().slice(0, 300)}`);
+      });
+      await robot.goto(robotEntryUrl, { waitUntil: "domcontentloaded" });
       const nameInput = robot.locator('input[type="text"]').first();
       await nameInput.waitFor({ state: "visible", timeout: 20_000 });
       await nameInput.fill(name);
@@ -109,7 +142,7 @@ test.describe("야간 로봇 통화 — 2인 실연결 검증", () => {
       // 헤더 연결 배지 — 새 방문자 기본 언어(en) 기준, ko 병행 허용
       try {
         await expect(
-          robot.getByText(/Connected|연결됨/).first(),
+          robot.getByText(/Connected|연결됨|Подключено|Қосылды|已连接|接続済み/).first(),
           `${name} 이 연결 배지에 도달하지 못함`
         ).toBeVisible({ timeout: 45_000 });
       } catch (e) {
@@ -127,13 +160,14 @@ test.describe("야간 로봇 통화 — 2인 실연결 검증", () => {
       }
       // 쿠키 동의 배너(fixed z-9999)가 컨트롤 바를 덮어 클릭을 가로챔(리허설 실측).
       // goto 직후엔 아직 안 떠 있어 못 닫음 → 연결 확인 후 최대 5초 기다려 '필수만 동의'로 닫기
-      const cookieBtn = robot.getByRole("button", { name: /Essential Only|필수만/i }).first();
+      const cookieBtn = robot.getByRole("button", { name: /Essential Only|필수만|Только необходимые|Тек қажеттілері|仅必要|必須のみ/i }).first();
       await cookieBtn.click({ timeout: 5_000 }).catch(() => {}); // 배너 없으면(이미 동의) 조용히 통과
       return robot;
     };
 
-    const robotA = await joinAsRobot("E2E-ROBOT-A");
-    const robotB = await joinAsRobot("E2E-ROBOT-B");
+    // A=한국어 화자(가짜 마이크의 WAV 가 한국어다) / B=러시아어 청취자 — 실사용 조합.
+    const robotA = await joinAsRobot("E2E-ROBOT-A", "ko-KR");
+    const robotB = await joinAsRobot("E2E-ROBOT-B", "ru-RU");
 
     // 3) 상호 확인 — 각 로봇 화면에 '상대' 이름 타일이 보여야 진짜 연결
     await expect(
@@ -150,9 +184,9 @@ test.describe("야간 로봇 통화 — 2인 실연결 검증", () => {
     const chatMsg = `robot-chat-${Date.now()}`;
     await robotA.locator('button[aria-label="Toggle chat panel"]').first().click(); // 라벨 유무 무관(구·신 UI 겸용)
     // 패널 기본 탭이 '번역'이라 채팅 입력칸이 안 보임(리허설 실측) → 채팅 탭으로 전환
-    await robotA.getByRole("button", { name: /^(채팅|Chat)$/ }).first().click();
+    await robotA.getByRole("button", { name: /^(채팅|Chat|Чат|聊天|チャット)$/ }).first().click();
     const msgInput = robotA
-      .locator('input[placeholder*="메시지"], input[placeholder*="message" i]')
+      .locator('input[placeholder*="메시지"], input[placeholder*="message" i], input[placeholder*="сообщ" i], input[placeholder*="Хабарлама" i]')
       .first();
     await msgInput.waitFor({ state: "visible", timeout: 10_000 });
     await msgInput.fill(chatMsg);
@@ -162,7 +196,7 @@ test.describe("야간 로봇 통화 — 2인 실연결 검증", () => {
       "로봇A 자기 화면에 보낸 채팅이 안 보임(전송 실패 의심)"
     ).toBeVisible({ timeout: 10_000 });
     await robotB.locator('button[aria-label="Toggle chat panel"]').first().click();
-    await robotB.getByRole("button", { name: /^(채팅|Chat)$/ }).first().click();
+    await robotB.getByRole("button", { name: /^(채팅|Chat|Чат|聊天|チャット)$/ }).first().click();
     await expect(
       robotB.getByText(chatMsg).first(),
       "로봇B 에게 채팅이 전달되지 않음"
@@ -206,22 +240,96 @@ test.describe("야간 로봇 통화 — 2인 실연결 검증", () => {
         throw e;
       }
 
-      // 봇 디스패치는 토큰 발급 시점에 걸리지만 워커가 방에 붙기까지 몇 초 걸린다.
-      // 토글을 껐다 켜며 최대 ~40초 재확인 — 매번 새 토스트가 현재 재실 상태로 다시 뜬다.
+      // ⚠️ 토스트로 «봇 재실»을 묻지 마라 (2026-07-28 프리뷰 실측으로 배운 것).
+      //    토스트는 클릭해야 뜨는데, 이제 **클릭 자체가 봇을 부르고/내보낸다**(on-demand
+      //    디스패치). 옛 루프는 「켜서 토스트 보고 → 다시 꺼서 다음 회차 준비」였는데,
+      //    그 «다시 끄기»가 매번 봇을 쫓아내 **봇이 방에 붙을 8초를 스스로 없애 버렸다**
+      //    (실측: 4회 전부 pending 토스트 → 봇=false. 앱은 멀쩡했다).
+      //    → 클릭 없이 읽히는 신호로 판정한다: 봇 대기 배지(`voice-bot-pending`)는
+      //      `!agentPresent` 일 때만 그려지므로, **사라짐 = 봇 입장**이다.
+      // ⚠️ 채팅 패널을 «닫고» 시작한다. 자막 오버레이는 `{!panelOpen && …}` 이라 패널이 열려
+      //    있으면 **아예 렌더되지 않는다**(2026-07-11 PO: 모바일에서 패널이 자막을 덮음).
+      //    4단계 채팅 검사가 패널을 열어둔 채 끝나서, 봇이 자막 34건을 보낸 실행에서도
+      //    화면엔 «자막 못 봄»이 나왔다 — 앱이 아니라 검사가 눈을 가리고 있었다(2026-07-28).
+      await robotB.locator('button[aria-label="Toggle chat panel"]').first().click();
+      await robotA.locator('button[aria-label="Toggle chat panel"]').first().click();
+
+      const pendingBadge = robotB.getByTestId("voice-bot-pending").first();
       let botPresent = false;
       let lastToast = "(토스트 못 봄)";
-      for (let attempt = 0; attempt < 4 && !botPresent; attempt++) {
-        if (attempt > 0) await robotB.waitForTimeout(10_000);
-        await voiceBtn.click();
-        const toast = robotB.getByText(new RegExp(`${BOT_PRESENT.source}|${BOT_MISSING.source}`)).first();
-        try {
-          await toast.waitFor({ state: "visible", timeout: 8_000 });
-          lastToast = (await toast.innerText()).trim();
-          botPresent = BOT_PRESENT.test(lastToast);
-        } catch {
-          /* 토스트를 놓쳤으면 다음 회차에서 다시 켜 본다 */
+
+      // 서버가 뭐라고 답했는지 남긴다 — 「봇이 안 들어온다」가 앱 문제인지 워커 문제인지
+      // 가르는 첫 갈림길인데, 프로덕션 로그는 몇 분 밀려서 아침에 보면 이미 늦다.
+      const apiAnswers: string[] = [];
+      robotB.on("response", async (res) => {
+        if (!res.url().includes("/interpreter")) return;
+        const body = await res.text().catch(() => "(본문 못 읽음)");
+        apiAnswers.push(`${res.status()} ${body.slice(0, 200)}`);
+      });
+
+      await voiceBtn.click(); // 통역 켜기 = 이 순간 서버가 봇을 부른다
+      const toast = robotB
+        .getByText(new RegExp(`${BOT_PRESENT.source}|${BOT_MISSING.source}`))
+        .first();
+      lastToast = await toast
+        .waitFor({ state: "visible", timeout: 8_000 })
+        .then(() => toast.innerText())
+        .then((t) => t.trim())
+        .catch(() => "(토스트 못 봄)");
+
+      // 워커가 방에 붙기까지 수 초 — 배지가 사라지길 기다린다(끄지 않고 그냥 본다).
+      try {
+        await pendingBadge.waitFor({ state: "hidden", timeout: 45_000 });
+        botPresent = true;
+      } catch {
+        botPresent = false;
+      }
+
+      // ── 통역 자막이 «실제로» 떴는가 — 봇을 내보내기 «전»에 본다 ────────────
+      //   로봇A(ko)가 한국어 WAV 를 말하고 로봇B(ru)가 듣는 조합이므로, 봇이 일하고 있다면
+      //   로봇B 자막 스택에 **키릴 문자**가 떠야 한다. 방 UI 자체가 러시아어라 본문 전체에서
+      //   찾으면 UI 문구에 걸려 늘 «찾음»이 되므로 **자막 스택 안에서만** 본다.
+      //   ⚠️ 순서 주의: 통역을 끄면 봇이 나가므로 이 관측은 반드시 «끄기» 앞이어야 한다.
+      //   ⚠️ 아직 하드 실패로 걸지 않는다 — 합성음(piper) 인식률이 미검증이라 첫날부터
+      //      expect 로 올리면 «봇은 멀쩡한데 합성음이 약해서» 매일 밤 빨간불이 될 수 있다.
+      let captionText = "(관측 안 함 — 봇 미입장)";
+      if (botPresent) {
+        // 자막 «본문»만 읽는다 — 같은 줄의 이름·언어 라벨(«Русский»)과 옆의 AI 면책 배너도
+        // 러시아어라, 스택 전체 텍스트로 보면 봇이 아무 말도 안 해도 «자막 있음»이 된다
+        // (2026-07-28 실측: 라벨만 잡고 통과할 뻔했다).
+        const lines = robotB.getByTestId("subtitle-text");
+        const cyrillic = /[Ѐ-ӿ]{3,}/;
+        const deadline = Date.now() + 60_000;
+        captionText = "자막 못 봄";
+        while (Date.now() < deadline) {
+          const texts = await lines.allInnerTexts().catch(() => [] as string[]);
+          const hit = texts.find((t) => cyrillic.test(t));
+          if (hit) {
+            captionText = "자막 뜸: " + hit.slice(0, 120);
+            break;
+          }
+          await robotB.waitForTimeout(3_000);
         }
-        await voiceBtn.click().catch(() => {}); // 다시 꺼서 다음 회차가 새 토스트를 만들게
+      }
+      console.log(`[robot-call] 통역자막(러시아어) = ${captionText}`);
+      test.info().annotations.push({
+        type: "interpreter-caption",
+        description: `${captionText} (ko 화자 → ru 청취자, 합성음 STT)`,
+      });
+
+      // 끄면 나가는가 — PO 요구사항의 나머지 절반(2026-07-28). 봇이 들어온 경우에만 의미.
+      let botLeft: boolean | null = null;
+      if (botPresent) {
+        await voiceBtn.click(); // 통역 끄기 = 방에 원하는 사람이 없으면 봇 퇴장
+        botLeft = await pendingBadge
+          .waitFor({ state: "visible", timeout: 45_000 })
+          .then(() => true)
+          .catch(() => false);
+        console.log(`[robot-call] 통역봇 퇴장=${botLeft}`);
+        test.info().annotations.push({
+          type: "interpreter-bot-leave",
+          description: `끄면 나가는가=${botLeft}`,
+        });
       }
 
       // ⚠️ 판정 결과는 **assert 앞에서 즉시** stdout 으로 찍는다.
@@ -232,6 +340,11 @@ test.describe("야간 로봇 통화 — 2인 실연결 검증", () => {
       console.log(
         `[robot-call] 통역봇=${botPresent} / 마지막토스트="${lastToast}"`
       );
+      console.log(`[robot-call] interpreter 응답: ${apiAnswers.join(" | ") || "(호출 없음)"}`);
+      test.info().annotations.push({
+        type: "interpreter-api",
+        description: apiAnswers.join(" | ") || "(호출 없음)",
+      });
       test.info().annotations.push({
         type: "interpreter-bot",
         description: `봇 재실 판정=${botPresent} / 마지막 토스트="${lastToast}"`,
@@ -241,21 +354,12 @@ test.describe("야간 로봇 통화 — 2인 실연결 검증", () => {
         `통역봇(agent-*)이 상담방에 들어오지 않았다 — 워커 배포·LIVE_TRANSLATE_ENABLED 확인 필요. ` +
           `마지막 토스트: "${lastToast}"`
       ).toBeTruthy();
+      expect(
+        botLeft,
+        `통역을 껐는데 봇이 방에 남아 있다 (분당 과금이 계속 난다). ` +
+          `interpreter 라우트의 «아무도 원하지 않으면 퇴장» 판정을 볼 것.`
+      ).toBe(true);
 
-      // ── 자막(STT→번역)은 «관측만» 한다, 아직 실패로 치지 않는다 ──
-      //   가짜 마이크에 흘리는 건 합성 음성(piper)이라 Gemini STT 가 이 목소리를 얼마나 잘
-      //   받아적는지가 **미검증**이다. 첫날부터 하드 실패로 걸면 «봇은 멀쩡한데 합성음 인식이
-      //   약해서» 매일 밤 빨간불이 뜰 수 있다(가드 신뢰도를 갉아먹는 부류 — KNOWN_ISSUES flaky 참조).
-      //   며칠치 annotation 을 보고 실제로 잘 잡히면 그때 expect 로 승격할 것. ← TODO(승격 판단)
-      const captionText = await robotB
-        .locator("body")
-        .innerText()
-        .then((t) => (t.match(/위암|수술|회복|операц|восстанов/) ? "자막 후보 발견" : "자막 못 봄"))
-        .catch(() => "(본문 읽기 실패)");
-      test.info().annotations.push({
-        type: "interpreter-caption",
-        description: `${captionText} (합성음 STT 관측 — 승격 전 단계)`,
-      });
       console.log(`[robot-call] 통역봇=${botPresent} / 자막관측=${captionText}`);
     }
   });

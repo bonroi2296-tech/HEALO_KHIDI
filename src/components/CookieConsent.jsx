@@ -1,11 +1,33 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useLang } from "@/lib/i18n/LangContext";
 import { t } from "@/lib/i18n";
 
 // 6개 활성언어(ko·en·ru·kz·zh·ja) — 카피는 중앙 i18n 사전(cookieConsent.*). 모든 공개/환자 페이지 하단에 뜨는 동의창.
+//
+// ⚠️ 이 배너는 `fixed bottom-0 z-[9999]` 라 **화면 하단에 붙는 다른 UI를 전부 덮는다.**
+//    2026-07-20 실통화 중 상담방 하단 조작바를 덮어 «채팅 버튼을 누르려다 배너 링크가 눌려
+//    통화에서 이탈»한 실사고가 있었고(그때는 상담방만 예외 처리 = 점 수리), 2026-07-28 엔
+//    코디 콘텐츠 편집기의 「저장」 버튼도 같은 이유로 클릭 자체가 막히는 게 실측됐다.
+//    → 이제 배너가 «자기 높이»를 `--cookie-banner-h` 로 알려주고, 하단 고정 바들이 그만큼
+//      비켜 앉는다(배너가 닫히면 변수가 지워져 0으로 복귀).
+//
+//    ✅ 새로 화면 하단에 붙는 UI를 만들 땐 **바닥 여백에 이 변수를 더해라**:
+//        · 바닥에 딱 붙는 바      → `bottom-[var(--cookie-banner-h,0px)]`
+//        · 여백을 두고 뜨는 버튼   → `bottom-[calc(1.25rem+var(--cookie-banner-h,0px))]`  ← 원래 여백 + 변수
+//        · 본문 하단 예약 여백     → `pb-[calc(6rem+var(--cookie-banner-h,0px))]`
+//      ⚠️ 오프셋이 있는 요소(`bottom-5`·`bottom-6` 등)를 그냥 `bottom-[var(...)]` 로 바꾸면
+//         **원래 여백이 날아가** 배너에 딱 붙는다. 반드시 `calc(원래값 + 변수)` 로.
+//         (2026-07-28 독립 리뷰가 이 함정을 잡았다 — 1차 수정이 `bottom-0` 인 바만 고쳐
+//          데스크톱 문의 FAB·백오피스 「사용설명서」 버튼이 그대로 덮여 있었다.)
+//
+//    배너보다 위에 떠야 하는 모달은 z 를 `z-[10000]` 이상으로(동의 UI 를 가리는 게 아니라,
+//    사용자가 «지금 연» 창이 배너에 막히지 않게).
+const BANNER_H_VAR = "--cookie-banner-h";
+
 export default function CookieConsent() {
   const [show, setShow] = useState(false);
+  const boxRef = useRef(null);
   const lang = useLang();
   const tr = (k) => t(`cookieConsent.${k}`, lang);
 
@@ -13,6 +35,21 @@ export default function CookieConsent() {
     const consent = localStorage.getItem("healo_cookie_consent");
     if (!consent) setShow(true);
   }, []);
+
+  // 높이를 상수로 못 박지 않는 이유: 6개 언어 글자 길이·화면 폭에 따라 2~3줄이 된다(실측 88~199px).
+  useEffect(() => {
+    const root = document.documentElement;
+    const clear = () => root.style.removeProperty(BANNER_H_VAR);
+    if (!show) { clear(); return; }
+    const el = boxRef.current;
+    if (!el) return;
+    const apply = () => root.style.setProperty(BANNER_H_VAR, `${Math.round(el.getBoundingClientRect().height)}px`);
+    apply();
+    const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(apply) : null;
+    ro?.observe(el);
+    window.addEventListener("resize", apply);
+    return () => { ro?.disconnect(); window.removeEventListener("resize", apply); clear(); };
+  }, [show]);
 
   const accept = (level) => {
     localStorage.setItem("healo_cookie_consent", level);
@@ -23,7 +60,7 @@ export default function CookieConsent() {
   if (!show) return null;
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-[9999] bg-white border-t border-gray-200 shadow-2xl p-4 md:p-6 animate-in slide-in-from-bottom">
+    <div ref={boxRef} className="fixed bottom-0 left-0 right-0 z-[9999] bg-white border-t border-gray-200 shadow-2xl p-4 md:p-6 animate-in slide-in-from-bottom">
       <div className="max-w-4xl mx-auto flex flex-col md:flex-row items-start md:items-center gap-4">
         <div className="flex-1 text-sm text-gray-600">
           <p className="font-semibold text-gray-900 mb-1">{tr("title")}</p>
