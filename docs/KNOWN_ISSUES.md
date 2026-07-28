@@ -10,7 +10,14 @@
 - ⚠️ **오프셋이 있는 요소는 `calc(원래값 + 변수)`** — 그냥 `bottom-[var(...)]` 로 바꾸면 원래 여백이 날아가 배너에 딱 붙는다. 1차 수정이 `bottom-0` 인 바만 고쳐 FAB·설명서 버튼이 그대로 덮여 있던 것을 **독립 리뷰가 잡았다**(실측 `가려짐: true`).
 - ✅ **새로 하단 고정 UI를 만들 땐 `bottom-0` 대신 이 변수를 써라.** (동의 UI를 가리는 방식은 피했다 — 배너는 그대로 보이고 다른 바가 비킨다.)
 - **실측**: 375px 치료 상세(배너 199px) 하단바 bottom 501/700 · 1000px 코디 편집기(배너 130px) 저장바 bottom 590/720 · 1280px 공개/포털에서 «배너와 겹치는 고정 요소» 전수 스캔 후 `가려짐 true` 0건 — 전부 `elementFromPoint` 가 자기 자신을 반환.
-- ~~**남은 별건**: 코디 편집기 저장바가 `sticky` 인데 실제로는 뷰포트를 안 따라다님~~ ✅ **해결 (2026-07-28)**: 조상 `main` 의 `overflow-auto` 가 원인이었다 — 그 main 은 부모가 `flex min-h-screen` 이라 **자기가 스크롤한 적이 없는데**(실측), overflow 가 visible 이 아니라는 이유만으로 CSS 상 «스크롤 상자»로 잡혀 안쪽 sticky 의 기준이 됐다. 움직이지 않는 상자가 기준이니 붙을 일이 없었다. → `overflow-auto` 제거(메시지 화면의 `overflow-hidden` 분기는 그대로). 실측: 문서 10,985px 에서 저장바가 맨 위 기준 10,889px 에 정적으로 앉아 있던 것이 → 스크롤 위치와 무관하게 `top 712 / 뷰포트 760` 고정. **부수 발견**: 저장바가 보이게 되자 우하단 「사용설명서」 버튼이 저장 버튼을 덮어(elementFromPoint 실측) 저장바에 `pr-36` 추가 — 1100px·375px 둘 다 겹침 0 확인.
+- ~~**남은 별건**: 코디 편집기 저장바가 `sticky` 인데 실제로는 뷰포트를 안 따라다님~~ ✅ **해결 (2026-07-28)**: 조상 `main` 의 `overflow-auto` 가 원인이었다 — 그 main 은 부모가 `flex min-h-screen` 이라 **자기가 스크롤한 적이 없는데**(실측), overflow 가 visible 이 아니라는 이유만으로 CSS 상 «스크롤 상자»로 잡혀 안쪽 sticky 의 기준이 됐다. 움직이지 않는 상자가 기준이니 붙을 일이 없었다. → `overflow-auto` 제거(메시지 화면의 `overflow-hidden` 분기는 그대로). 실측: 문서 10,985px 에서 저장바가 맨 위 기준 10,889px 에 정적으로 앉아 있던 것이 → 스크롤 위치와 무관하게 `top 712 / 뷰포트 760` 고정. **부수 발견**: 저장바가 보이게 되자 우하단 「사용설명서」 버튼이 저장 버튼을 덮어(elementFromPoint 실측) 저장바 오른쪽에 여백 추가(`pr-20 sm:pr-36` — 설명서 버튼이 모바일에선 아이콘만이라 폭이 다름) — 1100px·375px 둘 다 겹침 0 확인.
+
+## 🔸 같은 «죽은 `overflow-auto`» 가 **관리자·국내병원 포털에도 그대로** — 거기 sticky 5곳이 안 붙는다 (2026-07-28, 코디 수리 중 독립 리뷰가 발견)
+
+- **무엇**: `app/admin/layout.jsx` · `app/hospital/layout.jsx` 의 `<main>` 도 코디와 똑같이 `flex-1 … overflow-auto` 인데 부모가 `flex min-h-screen` 이라 **자기가 스크롤하지 않는다**. 그래서 그 안의 `position: sticky` 가 붙지 않는다.
+- **실제 피해자 5곳**(전부 main 까지 사이에 스크롤 조상 없음): `app/hospital/profile/page.jsx`·`app/hospital/treatments/page.jsx`(2곳)의 `sticky top-*` 페이지 헤더, `app/admin/treatments/_client/TreatmentManager.jsx`·`app/admin/hospitals/_client/HospitalManager.jsx` 의 `sticky top-0` 폼 툴바.
+- **이번엔 코디만 고쳤다**(범위 한정). 옮길 때 ⚠️ **함정**: 국내병원 sticky 헤더는 `-mx-4 sm:-mx-6 lg:-mx-10` 인데 그 레이아웃 패딩은 `px-4 sm:px-6 lg:px-8` — `lg` 에서 블리드(40px)가 패딩(32px)보다 8px 커서, main 의 overflow 를 떼면 헤더 배경이 8px 삐져나온다. `lg:-mx-8` 로 같이 맞출 것.
+- 참고(고칠 대상 아님): `app/hospital/leads/page.jsx` 의 sticky 는 자기 모달의 `overflow-y-auto` 안이라 **정상 작동**한다.
 
 ## ~~🔸 콘텐츠 편집기에 「저장 전 미리보기」가 없다 — 한 줄 밀린 수정을 아무도 못 잡는다~~ ✅ **해결 (2026-07-28, PO 지시로 같은 날 구현)**
 

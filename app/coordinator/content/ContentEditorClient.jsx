@@ -375,10 +375,12 @@ export default function ContentEditorClient() {
             })}
           </div>
 
-          {/* pr-36: 우하단에 떠 있는 「사용설명서」 버튼(ManualDrawer, `fixed bottom-* right-5`)이
+          {/* 오른쪽 여백: 우하단에 떠 있는 「사용설명서」 버튼(ManualDrawer, `fixed bottom-* right-5`)이
               저장 버튼을 덮는다 — 저장바가 화면에 붙게 고친 뒤 실측으로 드러났다
-              (elementFromPoint 가 설명서 버튼을 반환). 그만큼 오른쪽을 비워 자리를 겹치지 않게 한다. */}
-          <div className="sticky bottom-[var(--cookie-banner-h,0px)] bg-white/90 backdrop-blur border-t border-gray-200 py-3 pr-36 flex items-center justify-between mt-6">
+              (elementFromPoint 가 설명서 버튼을 반환).
+              폭을 버튼의 반응형에 맞춘다: 모바일은 라벨이 `hidden sm:inline` 이라 아이콘만(≈70px),
+              sm 이상은 라벨까지(≈158px). 한 값으로 박으면 모바일에서 2배를 헛되게 먹는다. */}
+          <div className="sticky bottom-[var(--cookie-banner-h,0px)] bg-white/90 backdrop-blur border-t border-gray-200 py-3 pr-20 sm:pr-36 flex items-center justify-between mt-6">
             <span className="text-sm text-gray-500">
               {dirty.length > 0 ? `${dirty.length}곳 변경됨` : "변경 없음"}
               {msg && <span className={`ml-3 ${msg.type === "ok" ? "text-teal-700" : "text-red-600"}`}>{msg.text}</span>}
