@@ -99,13 +99,22 @@ export default function FAQClient() {
                     <Plus size={22} />
                   </span>
                 </button>
-                {open && (
-                  <div className="px-5 md:px-6 pb-5 md:pb-6 -mt-1">
-                    <p className="text-sm md:text-base text-gray-600 leading-relaxed">
-                      {t(faq.aKey, lang)}
-                    </p>
-                  </div>
-                )}
+                {/* 접혀 있어도 답변을 DOM 에 남긴다 — 조건부 렌더({open && ...}) 금지.
+                    크롤러·AI 답변엔진은 아코디언을 열어보지 않으므로, 조건부로 두면 프로덕션 HTML 이
+                    "질문 17개, 답 0개"가 된다(2026-07-28 실측으로 확인된 실제 증상).
+                    접기는 홈 FAQ 와 같은 max-height 방식. 다만 홈의 max-h-96(384px)은 이 페이지엔 모자란다
+                    — 답변이 최대 700자라 모바일에서 잘린다 → 넉넉히 40rem.
+                    aria-hidden: 화면에 안 보이는 동안 스크린리더가 읽지 않도록(크롤러는 무관). */}
+                <div
+                  aria-hidden={!open}
+                  className={`overflow-hidden transition-all duration-300 ${
+                    open ? "max-h-[40rem] opacity-100" : "max-h-0 opacity-0"
+                  }`}
+                >
+                  <p className="px-5 md:px-6 pb-5 md:pb-6 -mt-1 text-sm md:text-base text-gray-600 leading-relaxed">
+                    {t(faq.aKey, lang)}
+                  </p>
+                </div>
               </div>
             );
           })}

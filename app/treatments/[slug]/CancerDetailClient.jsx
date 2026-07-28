@@ -309,19 +309,36 @@ export default function CancerDetailClient({ slug }) {
                     className={`shrink-0 text-teal-700 transition-transform ${isOpen ? "rotate-45" : ""}`}
                   />
                 </button>
-                {isOpen && (
+                {/* 접혀 있어도 DOM 에 남긴다 — 조건부 렌더({isOpen && ...}) 금지.
+                    이 5축 설명이 이 페이지의 실질 본문인데, 조건부로 두면 검색봇·AI 답변엔진이 받는
+                    HTML 에 **한 글자도 안 들어간다**(2026-07-28 프로덕션 실측: 축 설명 5개 전부 0건).
+                    암종 6종 × 6개 언어 = 36개 페이지가 "제목만 있고 알맹이 없는 페이지"로 읽히고 있었다.
+                    접기는 홈 FAQ 와 같은 max-height 방식. 축 설명+근거+태그 목록이라 높이가 제각각이어서
+                    상한은 넉넉히(60rem) — 모자라면 잘려서 안 보인다.
+                    aria-hidden: 화면에 안 보이는 동안 스크린리더가 읽지 않도록(크롤러는 무관). */}
+                <div
+                  aria-hidden={!isOpen}
+                  className={`overflow-hidden transition-all duration-300 ${
+                    isOpen ? "max-h-[60rem] opacity-100" : "max-h-0 opacity-0"
+                  }`}
+                >
                   <div className="pb-6 pl-0 md:pl-13">
                     <p className="text-sm md:text-base text-gray-600 leading-relaxed max-w-2xl mb-4">
                       {l(axis.desc)}
                     </p>
-                    {axis.evidence && (
+                    {/* 근거 문장·요법 태그는 아직 한국어만 있다(ITCRN_FRAMEWORK 의 evidence/methods/
+                        cellular/humoral/programs = 24개 문자열이 ko 단일). 접혀 있을 땐 아무도(검사기 포함)
+                        못 봐서 지금까지 안 드러났는데, 이제 HTML 에 상시 노출되므로 영어·러시아어 페이지에
+                        한글이 뿌려진다 → 번역이 붙기 전까지는 한국어 화면에서만 보여준다.
+                        ⚠️ 24개 용어 번역이 들어오면 이 lang 조건을 지울 것(KNOWN_ISSUES 등재). */}
+                    {lang === "ko" && axis.evidence && (
                       <div className="border-l-2 border-teal-600 bg-teal-50 rounded-r-xl px-4 py-3 mb-4 max-w-2xl">
                         <p className="text-sm text-teal-800 font-semibold m-0 leading-relaxed">
                           {axis.evidence}
                         </p>
                       </div>
                     )}
-                    {(axis.methods || axis.cellular || axis.programs) && (
+                    {lang === "ko" && (axis.methods || axis.cellular || axis.programs) && (
                       <ul className="flex flex-wrap gap-2 list-none p-0 m-0">
                         {[...(axis.methods || []), ...(axis.cellular || []), ...(axis.humoral || []), ...(axis.programs || [])].map(
                           (m, i) => (
@@ -336,7 +353,7 @@ export default function CancerDetailClient({ slug }) {
                       </ul>
                     )}
                   </div>
-                )}
+                </div>
               </div>
             );
           })}
