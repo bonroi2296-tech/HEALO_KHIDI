@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useCallback, useEffect, useRef, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 const LANGS = ["ko", "en", "ru", "kz", "zh", "ja"];
 const LANG_LABEL = { ko: "한국어", en: "English", ru: "Русский", kz: "Қазақша", zh: "中文", ja: "日本語" };
@@ -30,6 +30,9 @@ export default function ContentEditorClient() {
   const { values, original } = edit;
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState(null);
+  const [confirming, setConfirming] = useState(false);
+  const [pending, setPending] = useState([]); // 확인창에 «얼려서» 보여주고 그대로 저장할 목록
+  const dialogRef = useRef();
   const [showLog, setShowLog] = useState(false);
   const [logs, setLogs] = useState([]);
   // 기본 = 일치한 것만 (처음 보는 사람이 안 헷갈리게). 켜면 같은 화면 블록까지 함께 표시.
@@ -94,28 +97,51 @@ export default function ContentEditorClient() {
     setMsg(null);
   };
 
+  // old = 저장 전 값(서버 최신). 미리보기에서 «무엇을 무엇으로» 바꾸는지 보여주는 데 쓴다.
   const dirty = [];
   for (const key of Object.keys(values)) {
     for (const lang of LANGS) {
       const cur = values[key]?.[lang] ?? "";
-      if (cur !== (original[key]?.[lang] ?? "")) dirty.push({ key, lang, value: cur });
+      const old = original[key]?.[lang] ?? "";
+      if (cur !== old) dirty.push({ key, lang, value: cur, old });
     }
   }
 
-  const save = async () => {
+  // 확인창에 사람이 읽는 항목명을 같이 띄우기 위한 지도(키 → 라벨).
+  // 홈 항목은 «홈 · 히어로 / 제목» 처럼 사람 이름이 있고, 사전 키는 라벨=키라 그때는 안 겹치게 뺀다.
+  // (사용설명서가 「항목 이름을 확인하라」고 안내하는데 화면엔 점 경로만 있던 불일치 — 독립 리뷰 지적)
+  const labelByKey = useMemo(() => {
+    const m = {};
+    for (const r of results) if (r.label && r.label !== r.key) m[r.key] = r.label;
+    return m;
+  }, [results]);
+
+  // 확인창을 열 때 목록을 «얼린다». 뒤늦게 도착한 검색(디바운스 300ms + 서버 왕복)이
+  // original 을 갈아끼우면 화면의 목록이 읽는 도중 조용히 바뀔 수 있어서 — 얼려두면
+  // «읽은 것 = 저장되는 것»이 구조로 보장된다(독립 리뷰 P2).
+  const openConfirm = () => {
     if (dirty.length === 0) return;
+    setPending(dirty);
+    setConfirming(true);
+  };
+
+  const save = async () => {
+    const updates = pending;
+    if (!updates || updates.length === 0) return;
+    setConfirming(false);
     setSaving(true); setMsg(null);
     try {
       const res = await fetch("/api/coordinator/content", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ updates: dirty }),
+        // old 는 미리보기 전용 — 서버로 보내지 않는다
+        body: JSON.stringify({ updates: updates.map(({ key, lang, value }) => ({ key, lang, value })) }),
       });
       const data = await res.json();
       if (data.ok) {
         setEdit((p) => {
           const n = { ...p.original };
-          for (const u of dirty) n[u.key] = { ...n[u.key], [u.lang]: u.value };
+          for (const u of updates) n[u.key] = { ...n[u.key], [u.lang]: u.value };
           return { ...p, original: n };
         });
         setMsg({ type: "ok", text: `저장됨 (${data.saved}건). 화면에 반영됩니다.` });
@@ -123,7 +149,33 @@ export default function ContentEditorClient() {
     } catch { setMsg({ type: "err", text: "저장 실패 (네트워크)." }); } finally { setSaving(false); }
   };
 
+  // 확인창: ESC 로 닫기 + 열릴 때 포커스를 창 안으로, 닫힐 때 원래 자리로.
+  // Tab 이 뒤 화면으로 새 나가지 않게 창 안에서 돌린다(aria-modal 을 선언한 이상 실제로도 그래야 함).
+  useEffect(() => {
+    if (!confirming) return;
+    const prev = document.activeElement;
+    dialogRef.current?.focus();
+    const onKey = (e) => {
+      if (e.key === "Escape") { setConfirming(false); return; }
+      if (e.key !== "Tab") return;
+      const f = dialogRef.current?.querySelectorAll("button, [tabindex]:not([tabindex='-1'])");
+      if (!f || f.length === 0) return;
+      const first = f[0], last = f[f.length - 1];
+      if (e.shiftKey && (document.activeElement === first || document.activeElement === dialogRef.current)) {
+        e.preventDefault(); last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault(); first.focus();
+      }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      if (prev && typeof prev.focus === "function") prev.focus();
+    };
+  }, [confirming]);
+
   const openLogs = async () => {
+    setConfirming(false);
     setShowLog(true);
     try {
       const res = await fetch("/api/coordinator/content?logs=1");
@@ -186,8 +238,9 @@ export default function ContentEditorClient() {
               </div>
               {/* 전후 비교: 취소선은 원문 글자를 가려 「원래 뭐였는지」가 안 읽혔다(PO 지적).
                   줄을 긋지 않고 색으로만 구분 — 이전=연빨강, 이후=연초록. 글씨는 700번대(AA). */}
-              <div className="flex flex-wrap items-center gap-1.5 text-gray-700">
-                <span className="px-1.5 py-0.5 rounded bg-red-50 text-red-700">
+              <div className="flex flex-wrap items-start gap-1.5 text-gray-700">
+                {/* whitespace-pre-wrap: 줄바꿈만 바뀐 수정이 «이전=이후» 로 똑같아 보이지 않게 */}
+                <span className="px-1.5 py-0.5 rounded bg-red-50 text-red-700 whitespace-pre-wrap break-words">
                   {lg.old_value || "(빈칸)"}
                 </span>
                 {lg.from_default && (
@@ -196,7 +249,7 @@ export default function ContentEditorClient() {
                   </span>
                 )}
                 <span className="text-gray-600">→</span>
-                <span className="px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700">
+                <span className="px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 whitespace-pre-wrap break-words">
                   {lg.new_value || "(기본값으로 되돌림)"}
                 </span>
               </div>
@@ -328,13 +381,87 @@ export default function ContentEditorClient() {
               {msg && <span className={`ml-3 ${msg.type === "ok" ? "text-teal-700" : "text-red-600"}`}>{msg.text}</span>}
             </span>
             <button
-              onClick={save}
+              onClick={openConfirm}
               disabled={dirty.length === 0 || saving}
               className="text-sm px-4 py-2 rounded-lg bg-teal-700 text-white font-medium hover:bg-teal-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
             >
               {saving ? "저장 중…" : "저장"}
             </button>
           </div>
+
+          {/* 저장 전 미리보기 (2026-07-28, 반성문 #140).
+              왜: 값이 한 줄씩 밀려 들어가는 사고(코디 붙여넣기·자동화 둘 다 겪음)는 값끼리 겹치지
+              않아 「문구 중복」 배지가 원리상 못 잡는다. 유일하게 통하는 방어가 «무슨 항목을
+              무엇에서 무엇으로 바꾸는지»를 저장 직전에 사람 눈앞에 놓는 것이다.
+              색 표기는 변경 이력과 같게(이전=연빨강 / 이후=연초록) — 두 화면을 같은 언어로 읽게.
+              z-[10000]: 쿠키 동의 배너가 `z-[9999] fixed bottom-0` 이라 그보다 낮으면 「이대로 저장」
+              버튼이 배너에 덮인다(쿠키를 아직 안 누른 브라우저에서 실측 — 같은 이유로 하단 저장바도
+              가려진다. 그건 이 화면만의 문제가 아니라 KNOWN_ISSUES 로 분리). */}
+          {confirming && (
+            <div
+              className="fixed inset-0 z-[10000] bg-gray-900/40 flex items-end sm:items-center justify-center p-0 sm:p-6"
+              // 누르기 «시작»이 바깥일 때만 닫는다 — 목록의 글자를 드래그해 복사하다
+              // 바깥에서 손을 떼면 창이 사라지던 것 방지(독립 리뷰 P3).
+              onMouseDown={(e) => { if (e.target === e.currentTarget) setConfirming(false); }}
+            >
+              <div
+                ref={dialogRef}
+                tabIndex={-1}
+                role="dialog"
+                aria-modal="true"
+                aria-label="저장 전 확인"
+                className="bg-white w-full sm:max-w-2xl sm:rounded-2xl rounded-t-2xl shadow-xl flex flex-col max-h-[85vh] focus:outline-none"
+                onMouseDown={(e) => e.stopPropagation()}
+              >
+                <div className="px-5 pt-5 pb-3 border-b border-gray-100">
+                  <h2 className="text-base font-bold text-gray-900">이렇게 바꿉니다 · {pending.length}곳</h2>
+                  <p className="text-xs text-gray-600 mt-1">
+                    항목과 바뀌는 내용을 한 번만 확인해 주세요. 엉뚱한 줄이 바뀌고 있진 않은지 보는 자리입니다.
+                  </p>
+                </div>
+
+                {/* tabIndex=0: 목록이 길면 키보드만 쓰는 사람도 스크롤해서 읽을 수 있어야 한다(독립 리뷰 C2) */}
+                <div className="px-5 py-3 overflow-y-auto space-y-2.5" tabIndex={0}>
+                  {pending.map((d) => (
+                    <div key={`${d.key}|${d.lang}`} className="text-xs">
+                      <div className="flex flex-wrap items-center gap-2 text-gray-600 mb-1">
+                        {labelByKey[d.key] && <span className="text-gray-700">{labelByKey[d.key]}</span>}
+                        <span className="font-mono break-all text-gray-500">{d.key}</span>
+                        <span className="text-[11px] bg-gray-100 px-1.5 py-0.5 rounded">{LANG_LABEL[d.lang]}</span>
+                      </div>
+                      {/* whitespace-pre-wrap: 줄바꿈만 바뀐 수정이 «이전=이후» 로 똑같아 보이던 것 수정(독립 리뷰 C1).
+                          줄바꿈은 화면 레이아웃을 바꾸는 실제 차이라 확인창에서 보여야 한다. */}
+                      <div className="flex flex-wrap items-start gap-1.5 text-gray-700">
+                        <span className="px-1.5 py-0.5 rounded bg-red-50 text-red-700 whitespace-pre-wrap break-words">
+                          {d.old || "(빈칸)"}
+                        </span>
+                        <span className="text-gray-600">→</span>
+                        <span className="px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 whitespace-pre-wrap break-words">
+                          {d.value || "(기본값으로 되돌림)"}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="px-5 py-3 border-t border-gray-100 flex items-center justify-end gap-2">
+                  <button
+                    onClick={() => setConfirming(false)}
+                    className="text-sm px-4 py-2 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50"
+                  >
+                    다시 볼게요
+                  </button>
+                  <button
+                    onClick={save}
+                    disabled={saving || pending.length === 0}
+                    className="text-sm px-4 py-2 rounded-lg bg-teal-700 text-white font-medium disabled:bg-gray-300 disabled:cursor-not-allowed"
+                  >
+                    이대로 저장
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </>
       )}
     </div>
