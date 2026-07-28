@@ -231,9 +231,14 @@ export default async function RootLayout({ children }) {
                   ],
                   // 공식 계정 = "healwith=이 회사" 확정 신호(동명이인 healwith.com 홍콩 등과 구별).
                   // ⚠️ 반드시 실재하는 공식 계정만(가짜·추측 URL 금지). 계정 추가/변경 시 여기도 갱신.
+                  // ⚠️ 리디렉션 없는 최종 주소로 적을 것 — 중간에 튕기는 주소는 신호가 약해진다
+                  //    (facebook 의 profile.php?id=… 는 /people/… 로 301 된다. 2026-07-28 실측 교체).
+                  // 계정을 새로 만들면(VK·링크드인·유튜브·텔레그램 공개채널 등) 여기 한 줄씩 추가.
+                  // 열기 전 실제로 200 인지 확인하고 넣을 것 — 죽은 주소는 오히려 엔티티 신뢰를 깎는다.
                   sameAs: [
                     "https://www.instagram.com/healwith.kz",
-                    "https://www.facebook.com/profile.php?id=61590609467130",
+                    "https://www.facebook.com/people/Healwithkz/61590609467130/",
+                    "https://t.me/healwith_bot",
                   ],
                 },
               ],
