@@ -1,0 +1,3 @@
+# 셸 스크립트는 리눅스(Vercel 빌드·GitHub Actions)에서 돈다. CRLF 로 커밋되면 거기서 깨진다.
+# 윈도우 bash 는 CR 을 삼켜서 로컬에선 멀쩡해 보인다 = 로컬 통과가 증거가 못 된다.
+*.sh text eol=lf
