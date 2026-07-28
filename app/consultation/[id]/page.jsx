@@ -721,7 +721,10 @@ function SubtitleOverlay({
                 {rs.name ? `${rs.name} · ` : ""}
                 {LANG_LABELS[rs.lang] || rs.lang}
               </span>
-              {rs.text}
+              {/* testid: 야간 로봇이 «통역 자막의 본문»만 읽는다. 같은 <p> 안의 이름·언어 라벨과
+                  옆의 AI 면책 배너도 사용자 언어(키릴 등)라, 본문만 따로 잡지 않으면
+                  «라벨을 자막으로 오인»한다(2026-07-28 실측). */}
+              <span data-testid="subtitle-text">{rs.text}</span>
               {rs.interim ? " …" : ""}
             </p>
           </div>
