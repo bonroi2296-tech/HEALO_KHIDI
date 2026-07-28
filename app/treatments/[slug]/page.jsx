@@ -1,4 +1,5 @@
 import { notFound, redirect } from "next/navigation";
+import { withQuery } from "@/lib/url/withQuery";
 import {
   getTreatmentById,
   getTreatmentBySlug,
@@ -149,7 +150,7 @@ export async function generateMetadata({ params }) {
   };
 }
 
-export default async function TreatmentDetailPage({ params }) {
+export default async function TreatmentDetailPage({ params, searchParams }) {
   const { slug } = await params;
 
   // ── 암종 페이지 분기 ────────────────────────────────
@@ -208,7 +209,8 @@ export default async function TreatmentDetailPage({ params }) {
   // ── 기존 DB 치료 페이지 ─────────────────────────────
   if (slug && isUuid(slug)) {
     const resolvedSlug = await getTreatmentSlugById(slug);
-    if (resolvedSlug) redirect(`/treatments/${resolvedSlug}`);
+    // 옛 주소(id)로 들어와도 꼬리표(?utm_source=… 등)를 잃지 않게 넘긴다.
+    if (resolvedSlug) redirect(withQuery(`/treatments/${resolvedSlug}`, await searchParams));
   }
   const treatment = slug
     ? (await getTreatmentBySlug(slug)) ||
