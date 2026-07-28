@@ -22,7 +22,11 @@ const REQUIRED_VARS = {
 const OPTIONAL_VARS = {
   NEXT_PUBLIC_SITE_URL: 'Public base URL for emails/sitemap/canonical/survey links (should be https://healwith.co.kr in prod)',
   GOOGLE_MAPS_API_KEY: 'Google Maps API key',
-  NEXT_PUBLIC_GA_MEASUREMENT_ID: 'Google Analytics measurement ID',
+  // ⚠️ GA4 측정ID는 env 가 아니라 «코드 상수»(src/lib/ga.ts 의 GA_ID)가 단일 진실원천이다.
+  //    예전 Vercel env 가 옛 실험 속성으로 오염돼 있어 일부러 코드로 고정했다. 이 env 는
+  //    설정해도 쓰이지 않으니 «미설정»이 정상 — 속성을 바꾸려면 src/lib/ga.ts 를 고칠 것.
+  NEXT_PUBLIC_GA_MEASUREMENT_ID: '(미사용 — GA4 측정ID는 src/lib/ga.ts 의 GA_ID 상수가 SoR)',
+  NEXT_PUBLIC_YANDEX_METRICA_ID: 'Yandex Metrica 카운터 ID (러시아/CIS). 없으면 Yandex 추적 완전 미로드',
   AWS_SES_REGION: 'AWS SES region',
   AWS_SES_ACCESS_KEY_ID: 'AWS SES access key',
   AWS_SES_SECRET_ACCESS_KEY: 'AWS SES secret key',

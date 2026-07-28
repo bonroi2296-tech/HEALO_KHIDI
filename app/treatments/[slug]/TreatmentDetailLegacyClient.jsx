@@ -15,7 +15,7 @@ import { GoogleMapComponent } from "@/components/GoogleMap";
 import { formatDate, formatPriceRange } from "@/lib/i18n/format";
 import { t } from "@/lib/i18n";
 import { useLang } from "@/lib/i18n/LangContext";
-import { event } from "@/lib/ga";
+import { event, GA_EVENTS } from "@/lib/ga";
 
 export const TreatmentDetailPage = ({
   selectedId,
@@ -151,7 +151,7 @@ export const TreatmentDetailPage = ({
 
         if (!alive) return;
         setTreatment(tView);
-        event("view_treatment", { treatment_slug: tRow.slug || null, lang: currentLang });
+        event(GA_EVENTS.VIEW_TREATMENT, { treatment_slug: tRow.slug || null, lang: currentLang });
 
         if (tView.hospitalId) {
           const { data: hRow, error: hErr } = await supabase

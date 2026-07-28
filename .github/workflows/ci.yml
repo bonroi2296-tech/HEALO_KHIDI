@@ -7,6 +7,12 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+  # 손으로 돌리기 — 깃허브가 어떤 이유로든 신청서(PR)에 검사를 «안 붙여줄 때» 쓰는 비상구.
+  # 실제로 그런 일이 났다(2026-07-28): 같은 신청서인데 첫 커밋에만 검사가 붙고 이후
+  # 커밋 3개에는 아예 안 붙었다(다른 브랜치는 같은 시각 정상 동작 — 충돌도 없었음).
+  # 검사를 못 돌리면 「초록불 확인 후 머지」 규칙 자체가 멈춘다 → 언제든 깨울 수 있게 열어둔다.
+  # Actions 탭 → CI → "Run workflow" 에서 브랜치 골라 실행.
+  workflow_dispatch:
 jobs:
   ci:
     runs-on: ubuntu-latest
