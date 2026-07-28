@@ -237,7 +237,7 @@ export default async function RootLayout({ children }) {
                   // 열기 전 실제로 200 인지 확인하고 넣을 것 — 죽은 주소는 오히려 엔티티 신뢰를 깎는다.
                   sameAs: [
                     "https://www.instagram.com/healwith.kz",
-                    "https://www.facebook.com/people/Healwithkz/61590609467130/",
+                    "https://www.facebook.com/healwith.kz",
                     "https://t.me/healwith_bot",
                   ],
                 },
