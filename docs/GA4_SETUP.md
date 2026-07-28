@@ -286,6 +286,10 @@ https://healwith.co.kr/?utm_source=yandex&utm_medium=cpc&utm_campaign=ru_lung_26
 | `utm_medium` | 광고 종류 | `cpc`(클릭당 과금) · `banner` · `email` |
 | `utm_campaign` | 어느 광고인가 (내가 구분할 이름) | `ru_lung_2608` · `kz_stomach_2608` |
 
+> ✅ **우리 사이트가 이 꼬리표를 지켜주는지 실측 확인함(2026-07-28)** — 옛 주소(`/intake`·`/consult/start` 등)로
+> 들어와도 꼬리표가 살아남는다. **원래는 버려지고 있었고**(반성문 #148) 그때 고쳤다.
+> 자동 검사가 계속 감시하므로 앞으로 새 리다이렉트가 이걸 깨뜨리면 CI 가 막는다.
+
 **규칙 하나**: 이름을 **한 번 정하면 절대 바꾸지 마라.** `yandex` 와 `Yandex` 를 섞어 쓰면
 GA 는 **다른 출처 2개**로 센다(이벤트 이름 오타와 똑같은 부류다).
 
