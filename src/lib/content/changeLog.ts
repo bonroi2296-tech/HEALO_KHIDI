@@ -18,6 +18,8 @@ type LogRow = {
 // 두 helper 는 JS 라 반환 타입이 넓다(홈 트리 노드 / 사전 값 객체). 언어 키로 뽑아 쓰기만 하므로
 // 느슨하게 받고 문자열 여부는 아래에서 확인한다.
 type Defaults = {
+  /** 이 키가 홈 레지스트리 소속인가 (아니면 사전 키) */
+  isRegistryKey: (key: string) => boolean;
   /** 홈 레지스트리 기본값 { lang: value } (없으면 null) */
   getDefaultValueObject: (key: string) => any;
   /** 사전 기본값 { lang: value } (없으면 null) */
@@ -32,7 +34,11 @@ export function withOldValueDefaults<T extends LogRow>(rows: T[], d: Defaults): 
     const key = lg.content_key;
     const lang = lg.lang;
     if (!key || !lang) return lg;
-    const def = d.getDefaultValueObject(key) || d.getI18nValues(key);
+    // ⚠️ 층을 «명시»로 고른다 — 순서 폴백(홈 || 사전)은 틀린 값을 준다.
+    // 예: `process.title` 은 홈 트리에도 같은 경로가 있어서 홈을 먼저 보면 «Как это работает»
+    // 가 잡히지만, 그 키로 실제 화면에 떠 있던 문구는 사전의 «Ваш путь» 다.
+    // 잘못된 이전 값에 「기본값」 배지까지 달리면 이 수리가 겨냥한 문제를 되레 악화시킨다.
+    const def = d.isRegistryKey(key) ? d.getDefaultValueObject(key) : d.getI18nValues(key);
     const v = def ? def[lang] : "";
     return typeof v === "string" && v ? { ...lg, old_value: v, from_default: true } : lg;
   });

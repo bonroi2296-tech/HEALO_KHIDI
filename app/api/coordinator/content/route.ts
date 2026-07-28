@@ -43,7 +43,11 @@ export async function GET(request: NextRequest) {
         .order("changed_at", { ascending: false })
         .limit(50);
       // 2026-07-28: 이력의 「이전 값」이 (없음) 으로만 뜨던 것 수리 — 사유는 changeLog.ts 주석.
-      const enriched = withOldValueDefaults(logs || [], { getDefaultValueObject, getI18nValues });
+      const enriched = withOldValueDefaults(logs || [], {
+        isRegistryKey: (k: string) => REGISTRY_KEYS.has(k),
+        getDefaultValueObject,
+        getI18nValues,
+      });
       return NextResponse.json({ ok: true, logs: enriched });
     }
     if (q && q.trim()) {
