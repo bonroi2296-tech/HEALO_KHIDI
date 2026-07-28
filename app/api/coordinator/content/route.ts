@@ -15,6 +15,7 @@ import { requirePortalAuth } from "@/lib/auth/requirePortalAuth";
 import { supabaseAdmin } from "@/lib/rag/supabaseAdmin";
 import { REGISTRY_KEYS, EDITABLE_LANGS, HOME_CONTENT_REGISTRY, getDefaultValueObject } from "@/lib/content/registry";
 import { invalidateContentCache } from "@/lib/content/overrides";
+import { withOldValueDefaults } from "@/lib/content/changeLog";
 import { searchI18nKeys, isValidI18nKey, getI18nValues, normalizeForSearch } from "@/lib/i18n";
 
 const db = supabaseAdmin as any;
@@ -41,7 +42,9 @@ export async function GET(request: NextRequest) {
         .select("*")
         .order("changed_at", { ascending: false })
         .limit(50);
-      return NextResponse.json({ ok: true, logs: logs || [] });
+      // 2026-07-28: 이력의 「이전 값」이 (없음) 으로만 뜨던 것 수리 — 사유는 changeLog.ts 주석.
+      const enriched = withOldValueDefaults(logs || [], { getDefaultValueObject, getI18nValues });
+      return NextResponse.json({ ok: true, logs: enriched });
     }
     if (q && q.trim()) {
       const ql = normalizeForSearch(q);

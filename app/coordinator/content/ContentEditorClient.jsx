@@ -138,6 +138,20 @@ export default function ContentEditorClient() {
   const visible = blockView ? results : results.filter((r) => r.matched !== false);
   const hiddenCount = results.length - visible.length;
 
+  // 2026-07-28 가드: 화면에 함께 뜬 다른 항목과 「편집 언어 문구가 똑같은」 줄을 표시한다.
+  // 왜: 붙여넣기로 고치다 «폐암·췌장암 버튼이 둘 다 대장암»이 돼 실서비스 문의폼에 하루 가까이 노출됐다.
+  // 선택지 라벨이 겹치면 환자가 무엇을 고르는지 알 수 없다 — 저장 전에 눈에 띄게만 한다(막지는 않음).
+  const dupValues = new Set();
+  {
+    const seen = new Map();
+    for (const r of visible) {
+      const v = (values[r.key]?.[editLang] ?? "").trim();
+      if (!v) continue;
+      if (seen.has(v)) dupValues.add(v);
+      else seen.set(v, r.key);
+    }
+  }
+
   return (
     <div className="max-w-4xl mx-auto p-4 md:p-6">
       <div className="flex items-center justify-between mb-4">
@@ -163,8 +177,21 @@ export default function ContentEditorClient() {
                 <span>·</span><span>{lg.editor_email}</span>
                 <span>·</span><span className="font-mono">{lg.content_key} ({lg.lang})</span>
               </div>
-              <div className="text-gray-700">
-                <span className="line-through text-gray-500">{lg.old_value || "(없음)"}</span> → <span>{lg.new_value}</span>
+              {/* 전후 비교: 취소선은 원문 글자를 가려 「원래 뭐였는지」가 안 읽혔다(PO 지적).
+                  줄을 긋지 않고 색으로만 구분 — 이전=연빨강, 이후=연초록. 글씨는 700번대(AA). */}
+              <div className="flex flex-wrap items-center gap-1.5 text-gray-700">
+                <span className="px-1.5 py-0.5 rounded bg-red-50 text-red-700">
+                  {lg.old_value || "(빈칸)"}
+                </span>
+                {lg.from_default && (
+                  <span className="text-[10px] text-gray-600 bg-gray-100 px-1.5 py-0.5 rounded" title="이 문구를 처음 고친 것 — 이전 값은 원래 기본 문구입니다">
+                    기본값
+                  </span>
+                )}
+                <span className="text-gray-600">→</span>
+                <span className="px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700">
+                  {lg.new_value || "(기본값으로 되돌림)"}
+                </span>
               </div>
             </div>
           ))}
@@ -231,6 +258,14 @@ export default function ContentEditorClient() {
                     <span className="text-xs text-gray-500 truncate">{r.label}</span>
                     {r.matched === false && (
                       <span className="text-[11px] text-gray-500 bg-gray-50 px-2 py-0.5 rounded" title="검색어와 직접 일치하진 않지만 같은 화면 블록이라 함께 표시">같은 블록</span>
+                    )}
+                    {dupValues.has((values[r.key]?.[editLang] ?? "").trim()) && (
+                      <span
+                        className="text-[11px] text-red-700 bg-red-50 px-2 py-0.5 rounded"
+                        title="지금 화면의 다른 항목과 문구가 똑같습니다. 선택지 라벨이 겹치면 환자가 무엇을 고르는지 알 수 없습니다 — 확인해 주세요."
+                      >
+                        문구 중복
+                      </span>
                     )}
                     <button
                       onClick={() => setExpanded((p) => ({ ...p, [r.key]: !p[r.key] }))}
